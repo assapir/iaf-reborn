@@ -10,6 +10,11 @@ const TEXT := Color(0.62, 0.95, 0.62)
 const TEXT_HOVER := Color(1.0, 1.0, 0.75)
 const TEXT_DISABLED := Color(0.35, 0.45, 0.35)
 const BOX := Color(0.5, 1.0, 0.5, 0.18)
+## Font sizes in the original 640x480 space (scaled with the window).
+const SIZE_BUTTON := 17.0
+const SIZE_TITLE := 16.0
+const SIZE_TEXT := 13.0
+const SIZE_HEADING := 20.0
 
 ## Where each main-menu entry goes; missing entries are shown disabled for now.
 const MAIN_TARGETS := {"Training": "training", "Preferences": "pref"}
@@ -116,7 +121,7 @@ func _draw() -> void:
 			var rect := _rect(panel.pos[0] + r[0], panel.pos[1] + r[1], r[2], r[3])
 			var enabled := _button_enabled(b.label)
 			var color := TEXT_DISABLED if not enabled else (TEXT_HOVER if i == hover or _is_current(b.label) else TEXT)
-			_text_in(rect, b.label, font_button, int(11 * s), color, HORIZONTAL_ALIGNMENT_CENTER)
+			_text_in(rect, b.label, font_button, int(SIZE_BUTTON * s), color, HORIZONTAL_ALIGNMENT_CENTER)
 			if enabled:
 				hotspots.append([rect, _on_button.bind(b.label)])
 			i += 1
@@ -130,12 +135,12 @@ func _draw() -> void:
 	# Bottom bar: back / fly.
 	if screen != "main":
 		var back_rect := _rect(10, 446, 114, 22)
-		_text_in(back_rect, "BACK", font_button, int(11 * s), TEXT)
+		_text_in(back_rect, "BACK", font_button, int(SIZE_BUTTON * s), TEXT)
 		hotspots.append([back_rect, _go_back])
 	if _mission_selected() >= 0:
 		var fly_rect := _rect(520, 440, 80, 30)
 		draw_rect(fly_rect, BOX)
-		_text_in(fly_rect, "FLY", font_button, int(13 * s), TEXT_HOVER)
+		_text_in(fly_rect, "FLY", font_button, int(SIZE_HEADING * s), TEXT_HOVER)
 		hotspots.append([fly_rect, _fly])
 
 
@@ -163,16 +168,16 @@ func _draw_list(_def: Dictionary, win: Array, s: float) -> void:
 		var title := _string(row.title_key)
 		if title == "":
 			title = row.name
-		_text_in(_rect(win[0] + tb[0], win[1] + tb[1], tb[2] - tb[0], tb[3] - tb[1]), title, font_button, int(10 * s), TEXT_HOVER)
-		_text_block(_rect(win[0] + db[0], win[1] + db[1], db[2] - db[0], db[3] - db[1]), _string(row.desc_key), int(8 * s), TEXT)
+		_text_in(_rect(win[0] + tb[0], win[1] + tb[1], tb[2] - tb[0], tb[3] - tb[1]), title, font_button, int(SIZE_TITLE * s), TEXT_HOVER)
+		_text_block(_rect(win[0] + db[0], win[1] + db[1], db[2] - db[0], db[3] - db[1]), _string(row.desc_key), int(SIZE_TEXT * s), TEXT)
 		hotspots.append([rect, _on_row.bind(ri, row)])
 
 
 func _draw_prefs(content: Rect2, s: float) -> void:
-	var fs := int(10 * s)
+	var fs := int(SIZE_TEXT * s)
 	var x := content.position.x + 30 * s
 	var y := content.position.y + 50 * s
-	_text_in(Rect2(x, y - 30 * s, 300 * s, 20 * s), pref_page.to_upper(), font_button, int(12 * s), TEXT_HOVER, HORIZONTAL_ALIGNMENT_LEFT)
+	_text_in(Rect2(x, y - 30 * s, 300 * s, 20 * s), pref_page.to_upper(), font_button, int(SIZE_HEADING * s), TEXT_HOVER, HORIZONTAL_ALIGNMENT_LEFT)
 	if pref_page != "Gameplay":
 		_text_in(Rect2(x, y, 380 * s, 20 * s), "(not available yet)", font_text, fs, TEXT_DISABLED, HORIZONTAL_ALIGNMENT_LEFT)
 		return
