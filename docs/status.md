@@ -36,7 +36,7 @@ from Ramat David** in the original F-16 with the original 2D cockpit, everything
 8. Stall/spin modes, AB light-up delay not ported (nose-wheel steering done).
 9. Gear lever: ground / 300 kt rules enforced; leg timing (2 s), gear sound and weapon-release lock not yet (docs/flight-model.md §12).
 10. Sun shadow is coarse near the aircraft (one 2 km shadow range), so the shadow looks detached from the wheels.
-11. g reads 0.8–0.9 when parked (should be 1.0).
+11. g on the ground now reads 1.0 (display only; the original's ground readout is not traced — flagged to the user).
 12. No ground effect (not in the original model either). Decided: add it later behind a separate "better physics" option, not in the "real data" set.
 13. Cockpit lights not drawn (gear lights, warning lights; docs/cockpit.md lists the light bitmaps).
 

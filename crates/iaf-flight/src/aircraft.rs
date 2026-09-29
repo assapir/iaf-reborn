@@ -611,7 +611,9 @@ impl Aircraft {
         let (pitch, roll, heading) = Self::euler(fwd, right);
         let alt = position[2] as f32;
         let mass = self.params.empty_mass + self.fuel.sample(t);
-        let g = self.lift.sample(t) / (mass * G);
+        // On the wheels the load factor is 1 (the ground carries the weight); in the air it is L / (m·g).
+        // Display only; the original's ground readout is not traced (UNCERTAIN).
+        let g = if self.on_ground { 1.0 } else { self.lift.sample(t) / (mass * G) };
         State {
             time: t,
             position,
