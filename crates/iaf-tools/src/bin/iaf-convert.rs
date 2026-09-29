@@ -152,9 +152,10 @@ fn overlay_files(root: &Path, pack_root: Option<&Path>, rel: &str) -> Vec<(PathB
     map.into_iter().collect()
 }
 
-/// Windows-1252, or Windows-1255 Hebrew for pack files.
+/// Windows-1252, or Windows-1255 Hebrew for pack files. Stray NUL bytes are dropped.
 fn decode_text(data: &[u8], hebrew: bool) -> String {
     data.iter()
+        .filter(|&&c| c != 0)
         .map(|&c| match (hebrew, c) {
             (true, 0xe0..=0xfa) => char::from_u32(0x05d0 + (c - 0xe0) as u32).unwrap_or('?'),
             _ => c as char,

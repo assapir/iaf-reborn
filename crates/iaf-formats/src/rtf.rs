@@ -107,7 +107,7 @@ pub fn to_bbcode(data: &[u8]) -> String {
     };
 
     let emit = |out: &mut String, shown: &mut Style, st: &Style, c: char| {
-        if st.skip {
+        if st.skip || c == '\0' {
             return;
         }
         sync(out, shown, st);
