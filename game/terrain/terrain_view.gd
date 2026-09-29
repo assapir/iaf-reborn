@@ -146,9 +146,9 @@ func _process(delta: float) -> void:
 	var pitch_in := float(Input.is_key_pressed(KEY_DOWN)) - float(Input.is_key_pressed(KEY_UP))
 	var roll_in := float(Input.is_key_pressed(KEY_RIGHT)) - float(Input.is_key_pressed(KEY_LEFT))
 	var yaw_in := float(Input.is_key_pressed(KEY_X)) - float(Input.is_key_pressed(KEY_Z))
-	# Arrow up = nose down (stick forward), like a real stick.
+	# Arrow up = stick forward = nose down; arrow down = pull = nose up.
 	var b := rig.basis
-	b = b.rotated(b.x.normalized(), -pitch_in * 1.2 * delta)
+	b = b.rotated(b.x.normalized(), pitch_in * 1.2 * delta)
 	b = b.rotated(b.z.normalized(), -roll_in * 3.0 * delta)
 	b = b.rotated(b.y.normalized(), -yaw_in * 0.4 * delta)
 	rig.basis = b.orthonormalized()

@@ -24,11 +24,11 @@ var state := {
 }
 ## How far the panel is raised: 0 = forward view (original MainOffsetY), 1 = full panel
 ## ("panel down" view). `panel_target` is where it is sliding to.
-var panel_shift := 0.25
-var panel_target := 0.25
+var panel_shift := 0.5
+var panel_target := 0.5
 const PANEL_SLIDE_SPEED := 2.5  # full travel per second
 ## 1.0 = the original proportions (640x480 scaled to the screen); smaller shows more world.
-var zoom := 0.8
+var zoom := 0.65
 const ZOOM_MIN := 0.6
 const ZOOM_MAX := 1.0
 
