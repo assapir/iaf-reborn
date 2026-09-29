@@ -46,6 +46,7 @@ var _handle_ms := 0.0
 ## 12 px Arial and the HUD colour (FUN_0051e6a0).
 var subtitles: Array[String] = []
 var _console_font: SystemFont
+var _console_squeeze := 1.0
 ## How far the panel is raised: 0 = forward view (original MainOffsetY), 1 = full panel
 ## ("panel down" view). `panel_target` is where it is sliding to.
 var panel_shift := 0.6
@@ -264,17 +265,24 @@ func _draw() -> void:
 func _draw_console() -> void:
 	if subtitles.is_empty():
 		return
+	var s := size.y / ORIGINAL_HEIGHT
+	# CreateFontA(12, 4, …, "ARIAL"): a 12 px cell (em = 12 / 1.15) with a 4 px average character
+	# width: Arial squeezed horizontally to that width.
+	var em := 12.0 / 1.15
 	if _console_font == null:
 		_console_font = SystemFont.new()
 		_console_font.font_names = PackedStringArray(["Arial", "Liberation Sans"])
-	var s := size.y / ORIGINAL_HEIGHT
-	var left := size.x / 2 - 320.0 * s
-	var fs := int(round(12 * s))
+		var avg: float = _console_font.get_string_size("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", HORIZONTAL_ALIGNMENT_LEFT, -1, 100).x / 52.0 / 100.0 * em
+		_console_squeeze = 4.0 / avg
+	var fs := int(round(em * s))
 	if fs < 1:
 		return
+	var left := size.x / 2 - 320.0 * s
 	for n in subtitles.size():
-		draw_string(_console_font, Vector2(left + 4 * s, (10 + 15 * n) * s + _console_font.get_ascent(fs)), subtitles[n],
-				HORIZONTAL_ALIGNMENT_LEFT, -1, fs, HUD_CONSOLE)
+		var pos := Vector2(left + 4 * s, (10 + 15 * n) * s + _console_font.get_ascent(fs))
+		draw_set_transform(pos, 0.0, Vector2(_console_squeeze, 1.0))
+		draw_string(_console_font, Vector2.ZERO, subtitles[n], HORIZONTAL_ALIGNMENT_LEFT, -1, fs, HUD_CONSOLE)
+	draw_set_transform(Vector2.ZERO)
 
 
 ## One frame of a light (frames stacked under Top in the lights bitmap) at its panel position.

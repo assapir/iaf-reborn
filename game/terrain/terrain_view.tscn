@@ -61,9 +61,14 @@ near = 0.5
 far = 120000.0
 
 [node name="HUD" type="Label" parent="."]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
 offset_left = 16.0
-offset_top = 12.0
-theme_override_font_sizes/font_size = 16
+offset_top = -52.0
+offset_bottom = -4.0
+grow_vertical = 0
+theme_override_font_sizes/font_size = 14
 
 [node name="CockpitLayer" type="CanvasLayer" parent="."]
 

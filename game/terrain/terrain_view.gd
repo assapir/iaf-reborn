@@ -453,6 +453,8 @@ func _update_indicators(delta: float) -> void:
 
 func _record(st: Dictionary, delta: float) -> void:
 	_log_t += delta
+	if Settings.isolated():
+		return  # tests never write into the player's data
 	if _log == null:
 		_log = FileAccess.open("user://last_flight.csv", FileAccess.WRITE)
 		if _log == null:
