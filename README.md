@@ -10,3 +10,9 @@ modern graphics. No original game assets are stored in this repository.
 - `game/` – Godot 4 project
 - `docs/formats/` – reverse-engineered file format notes
 - `assets/` – generated from your ISO (git-ignored)
+
+## Getting the game data
+```sh
+cargo run --release -p iaf-tools --bin iaf-extract -- "/path/to/Jane's IAF.iso" assets/install
+```
+This reproduces the original "Full Install" (lower-cased paths) without Windows.

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = []
+members = ["crates/iaf-formats", "crates/iaf-tools"]
 
 [workspace.package]
 edition = "2024"

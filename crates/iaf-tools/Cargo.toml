@@ -1,0 +1,10 @@
+[package]
+name = "iaf-tools"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+description = "Extraction and conversion tools for Jane's IAF data"
+
+[dependencies]
+iaf-formats = { path = "../iaf-formats" }
+anyhow = "1"
