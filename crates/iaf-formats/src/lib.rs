@@ -8,6 +8,7 @@ pub mod menu;
 pub mod model;
 pub mod ptt;
 pub mod rtf;
+pub mod winfnt;
 pub mod ssf;
 pub mod xfile;
 

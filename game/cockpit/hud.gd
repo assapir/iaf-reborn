@@ -9,9 +9,25 @@ var camera: Camera3D
 var velocity_dir: Variant = null
 
 
+## The original HUD raster font (hud.fnt, 6x8), scaled with the cockpit.
+var hud_font: FontFile
+
+
 func _ready() -> void:
 	clip_contents = true
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud_font = load_original_font("hud")
+
+
+## Loads an original raster font converted by `iaf-convert fonts` (BMFont), scalable.
+static func load_original_font(name: String) -> FontFile:
+	var path := ProjectSettings.globalize_path("res://").path_join("../assets/converted/fonts/%s.fnt" % name).simplify_path()
+	var f := FontFile.new()
+	if f.load_bitmap_font(path) != OK:
+		return null
+	f.fixed_size_scale_mode = TextServer.FIXED_SIZE_SCALE_ENABLED
+	f.antialiasing = TextServer.FONT_ANTIALIASING_NONE
+	return f
 
 
 func _layout() -> void:
@@ -29,8 +45,8 @@ func _draw() -> void:
 	_layout()
 	var s: float = cockpit.ui_scale()
 	var st: Dictionary = cockpit.state
-	var font := get_theme_default_font()
-	var fs := int(7 * s)
+	var font: Font = hud_font if hud_font != null else get_theme_default_font()
+	var fs := int(8 * s)
 	var w := maxf(1.0, 0.6 * s)
 	var bore: Vector2 = cockpit.boresight() - position
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Probe/dump Jane's IAF mission files (.mis). See docs/formats/mis.md.
 
-usage: probe_mis.py file.mis [--raw]
+usage: probe_mis.py file.mis|file.bdb   (pretty-prints the parsed object graph)
 """
 import struct, sys
 
@@ -98,7 +98,8 @@ def rd_timevar(r, o):
 
 def rd_path(r, o):
     item_base(r, o); fields(r, o, [0x5dc, 0x5e6]); r.raw(0x200)
-    o['points'] = [struct.unpack('<6i', r.raw(0x18)) for _ in range(r.count())]
+    # FUN_00596870: {i32 id, f32 x, f32 y, f32 alt, i32 ?, i32 ?}
+    o['points'] = [struct.unpack('<i3f2i', r.raw(0x18)) for _ in range(r.count())]
 
 
 def rd_entity(r, o):
@@ -147,7 +148,8 @@ def rd_formation(r, o):
     o['members'] = []
     for _ in range(2):
         s = {}; fields(r, s, [0x410, 0x41a, 0x424]); r.raw(0x200); o['members'].append(s)
-    o['points'] = [struct.unpack('<6i', r.raw(0x18)) for _ in range(r.count())]
+    # waypoints {i32 id, f32 x, f32 y, f32 alt, f32 speed, i32 action}
+    o['points'] = [struct.unpack('<i4fi', r.raw(0x18)) for _ in range(r.count())]
     if VERSION >= 9:
         o['names'] = [(r.u32(), r.cstring()) for _ in range(r.count())]
 

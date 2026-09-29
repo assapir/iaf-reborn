@@ -6,6 +6,7 @@
 //! `iaf-convert cockpit <install-dir> <cockpit> <out-dir>` — cockpit art (PNG) + layout (`cockpit.json`).
 //! `iaf-convert briefings <install-dir> <packs-dir> <out-dir>` — briefing/lesson texts (RTF → BBCode,
 //! English + Hebrew pack), `.brl` entry lists and diagrams (`briefings.json`, `img/`, `img_he/`).
+//! `iaf-convert fonts <install-dir> <out-dir>` — HUD/MFD/key raster fonts → BMFont (`.fnt` + `.png`).
 //! `iaf-convert menu <install-dir> <out-dir> [--pack <pack-dir>]` — front-end screens/lists
 //! (`menus.json`), strings (`strings.json`), art (`img/…png`) and TrueType fonts; with `--pack`,
 //! files present in the pack (e.g. assets/packs/he, Hebrew art/strings in Windows-1255) win.
@@ -71,6 +72,7 @@ fn main() -> Result<()> {
             }
             Ok(())
         }
+        [_, "fonts", install, out] => convert_fonts(Path::new(install), Path::new(out)),
         [_, "briefings", install, packs, out] => convert_briefings(Path::new(install), Path::new(packs), Path::new(out), &opts),
         [_, "menu", install, out] => convert_menu(Path::new(install), None, Path::new(out), &opts),
         [_, "menu", install, out, "--pack", pack] => convert_menu(Path::new(install), Some(Path::new(pack)), Path::new(out), &opts),
@@ -338,5 +340,55 @@ fn convert_briefings(install: &Path, packs: &Path, out: &Path, opts: &Options) -
     }
     println!("briefings: {} missions, {} lessons, {n} diagrams -> {}",
         doc["missions"].as_object().map_or(0, |m| m.len()), doc["lessons"].as_object().map_or(0, |m| m.len()), out.display());
+    Ok(())
+}
+
+/// Raster fonts → BMFont text format + atlas (Godot: `FontFile.load_bitmap_font`). Glyphs are
+/// kept at their original pixel size; the engine scales them.
+fn convert_fonts(install: &Path, out: &Path) -> Result<()> {
+    use iaf_formats::winfnt;
+    std::fs::create_dir_all(out)?;
+    for name in ["hud", "mfd", "key"] {
+        let font = winfnt::parse(&std::fs::read(install.join(format!("resource/menu/fnt/{name}.fnt")))?)?;
+        let glyphs: Vec<_> = font.glyphs.iter().filter(|g| g.width > 0).collect();
+        // Simple row packing into a 256-wide atlas with 1 px padding.
+        let (atlas_w, h) = (256u32, font.height);
+        let mut x = 0u32;
+        let mut y = 0u32;
+        let mut places = Vec::new();
+        for g in &glyphs {
+            if x + g.width + 1 > atlas_w {
+                x = 0;
+                y += h + 1;
+            }
+            places.push((x, y));
+            x += g.width + 1;
+        }
+        let atlas_h = (y + h + 1).next_power_of_two();
+        let mut img = image::RgbaImage::new(atlas_w, atlas_h);
+        let mut desc = format!(
+            "info face=\"{}\" size={} bold=0 italic=0 charset=\"\" unicode=1 stretchH=100 smooth=0 aa=1 padding=0,0,0,0 spacing=1,1\n\
+             common lineHeight={} base={} scaleW={atlas_w} scaleH={atlas_h} pages=1 packed=0\n\
+             page id=0 file=\"{name}.png\"\nchars count={}\n",
+            font.face, h, h, font.ascent, glyphs.len()
+        );
+        for (g, &(gx, gy)) in glyphs.iter().zip(&places) {
+            for py in 0..h {
+                for px in 0..g.width {
+                    let v = g.pixels[(py * g.width + px) as usize];
+                    img.put_pixel(gx + px, gy + py, image::Rgba([255, 255, 255, v]));
+                }
+            }
+            // Windows-1252 code → Unicode.
+            let ch = if (0x80..0xa0).contains(&g.code) { g.code } else { g.code };
+            desc.push_str(&format!(
+                "char id={ch} x={gx} y={gy} width={} height={h} xoffset=0 yoffset=0 xadvance={} page=0 chnl=15\n",
+                g.width, g.width
+            ));
+        }
+        img.save(out.join(format!("{name}.png")))?;
+        std::fs::write(out.join(format!("{name}.fnt")), desc)?;
+        println!("{name}: {} glyphs, {}px tall ({})", glyphs.len(), h, font.face);
+    }
     Ok(())
 }

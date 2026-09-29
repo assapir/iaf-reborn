@@ -34,6 +34,7 @@ const ZOOM_MAX := 1.0
 
 var layout := {}
 var tex := {}
+var mfd_font: FontFile
 var dir := ""
 @onready var hud: Control = $Hud
 
@@ -143,8 +144,11 @@ func _draw() -> void:
 	var fuel: Dictionary = layout.get("FUELDIGITAL", {})
 	if fuel.get("Active", 0) == 1:
 		var col := Color8(int(fuel.ColorR), int(fuel.ColorG), int(fuel.ColorB))
-		draw_string(get_theme_default_font(), panel_to_screen(fuel.OffsetX, fuel.OffsetY + 8), "%05d" % int(state.fuel_lbs),
-				HORIZONTAL_ALIGNMENT_LEFT, -1, int(9 * s), col)
+		if mfd_font == null:
+			mfd_font = preload("res://cockpit/hud.gd").load_original_font("mfd")
+		var font: Font = mfd_font if mfd_font != null else get_theme_default_font()
+		draw_string(font, panel_to_screen(fuel.OffsetX, fuel.OffsetY + 9), "%05d" % int(state.fuel_lbs),
+				HORIZONTAL_ALIGNMENT_LEFT, -1, int(11 * s), col)
 
 	if tex.has("HUD"):
 		var h: Dictionary = layout.HUD

@@ -23,6 +23,9 @@ step "extracting the original install from the CD image"
 step "aircraft models (glTF, Lanczos-upscaled textures, smoothed geometry)"
 ./target/release/iaf-convert --upscale --smooth planes assets/install assets/converted/planes
 
+step "original HUD / MFD fonts"
+./target/release/iaf-convert fonts assets/install assets/converted/fonts
+
 step "F-16 cockpit art and layout"
 ./target/release/iaf-convert --upscale cockpit assets/install f16 assets/converted/cockpits/f16
 
