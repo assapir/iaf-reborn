@@ -5,3 +5,8 @@
 - v1.1 patch (RTPatch): extract `bdgen.dat`, fixed missions, `msgs.trx` / `credits.trx`.
 - **Better satellite imagery**: after georeferencing, optional modern imagery pack (e.g. Sentinel-2, 10 m/px, free) layered over the 1998 photos; optionally modern DEM (SRTM/Copernicus 30 m) for finer relief.
 - **3D virtual cockpit** (after the original 2D cockpit works), together with the high-detail F-16 model.
+- **Validate the F-16 flight data** against public sources: USAF fact sheet / RTF reference card, NASA TP-1538
+  (F-16 wind-tunnel aero data, used by JSBSim), JSBSim/FlightGear F-16, engine thrust data (F100-PW-220/229,
+  F110-GE-100/129), E-M diagrams. Automated checks in `iaf-flight`: max level speed (SL, 40k ft), sustained /
+  instantaneous turn at corner speed, roll rate, climb, stall/approach speeds, fuel burn. Report deviations; let the
+  user choose "faithful 1998" vs "realistic" per item (or a setting).

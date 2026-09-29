@@ -1,6 +1,7 @@
 //! Parsers for the data files of Jane's IAF: Israeli Air Force (1998).
 
 pub mod esa;
+pub mod ini;
 pub mod iso9660;
 pub mod lzo;
 pub mod model;
