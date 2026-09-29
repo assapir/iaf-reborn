@@ -744,7 +744,19 @@ func briefing_image(stem: String) -> Texture2D:
 	return null
 
 
+## Double-click on a flight leader in the TSD: select that flight and fly.
+func tsd_fly_flight(n: int) -> void:
+	for f in ["alpha", "bravo", "charlie", "delta"]:
+		tsd_checks[f] = false
+	tsd_checks[["alpha", "bravo", "charlie", "delta"][n - 1]] = true
+	tsd.select_flight(n)
+	_fly()
+
+
 func _fly() -> void:
+	# The route as left on the TSD (waypoints may have been dragged).
+	if tsd != null:
+		Settings.route_override = tsd.selected_route()
 	busy = true
 	get_tree().change_scene_to_file("res://terrain/terrain_view.tscn")
 

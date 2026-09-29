@@ -36,7 +36,8 @@ from Ramat David** in the original F-16 with the original 2D cockpit, everything
 8. Stall/spin modes, AB light-up delay not ported (nose-wheel steering done).
 9. Gear lever: ground / 300 kt rules enforced; leg timing (2 s), gear sound and weapon-release lock not yet (docs/flight-model.md §12).
 11. g on the ground now reads 1.0 (display only; the original's ground readout is not traced — flagged to the user).
-12. No ground effect (not in the original model either). Decided: add it later behind a separate "better physics" option, not in the "real data" set.
+12. Nose-wheel steering follows the original formula: slow at taxi speed (≈1–3°/s at 10–20 kt, 20°/s only at 145 kt). Candidate for the "better physics" option (asked the user).
+13. No ground effect (not in the original model either). Decided: add it later behind a separate "better physics" option, not in the "real data" set.
 13. Cockpit lights not drawn (gear lights, warning lights; docs/cockpit.md lists the light bitmaps).
 
 ## Plan (in order)

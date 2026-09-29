@@ -60,6 +60,7 @@ var mission_title := ""
 var mission_clock := ""
 var selected := -1  # unit index
 var sel_textures := {}
+var drag_wp := -1  # waypoint of the selected flight being dragged
 var pressed_arrow := ""
 var dragging := ""  # "v" / "h" while a thumb is dragged
 var drag_offset := 0.0
@@ -97,6 +98,22 @@ func setup(front_end: Control, mission: int) -> void:
 ## World (mission) coordinates -> TSD map units (FUN_004ff5a0).
 static func world_to_map(x: float, y: float) -> Vector2:
 	return Vector2((x + WORLD_X_SHIFT) * MAP_SIZE.x * MAP_X_FACTOR / WORLD_W, MAP_SIZE.y - (y + WORLD_Y_SHIFT) * MAP_SIZE.y / WORLD_H)
+
+
+## Inverse (FUN_004ff650).
+static func map_to_world(m: Vector2) -> Vector2:
+	return Vector2(m.x * WORLD_W / (MAP_SIZE.x * MAP_X_FACTOR) - WORLD_X_SHIFT, (MAP_SIZE.y - m.y) * WORLD_H / MAP_SIZE.y - WORLD_Y_SHIFT)
+
+
+## The selected flight's route in world coordinates (what the TSD may have changed), for the flight.
+func selected_route() -> Array:
+	var n := default_flight()
+	if not flights.has(n):
+		return []
+	var out := []
+	for p in flights[n].points:
+		out.append(map_to_world(p))
+	return out
 
 
 ## What the spawner creates from the mission and its base missions (docs/front-end.md §8.1):
@@ -499,6 +516,9 @@ func _gui_input(event: InputEvent) -> void:
 	if not (event is InputEventMouse):
 		return
 	var p: Vector2 = fe._to_menu(event.position)
+	if _map_input(event, p - CLIENT.position):
+		accept_event()
+		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
 			if VBAR.has_point(p):
@@ -521,6 +541,39 @@ func _gui_input(event: InputEvent) -> void:
 			var hi := HBAR.end.x - H_DOWN.x - H_THUMB.x
 			scroll.x = clampf(inverse_lerp(lo, hi, p.x - drag_offset), 0, 1) * maxf(0, MAP_SIZE.x - _view_size().x)
 		accept_event()
+
+
+## Map clicks (client coordinates): drag a waypoint of the selected flight (within 10 px,
+## FUN_005034f0); double-click an own flight leader of a flyable type to fly it (FUN_005005d0).
+func _map_input(event: InputEvent, c: Vector2) -> bool:
+	if not Rect2(Vector2.ZERO, CLIENT.size).has_point(c) and drag_wp < 0:
+		return false
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if not event.pressed:
+			if drag_wp >= 0:
+				drag_wp = -1
+				return true
+			return false
+		if event.double_click:
+			for i in units.size():
+				var u: Dictionary = units[i]
+				if u.klass == 1 and u.leader and int(u.flight) in [1, 2, 3, 4] and flight_enabled(int(u.flight)) \
+						and _to_client(u.pos).distance_to(c) <= 14:
+					fe.tsd_fly_flight(int(u.flight))
+					return true
+		var n := default_flight()
+		if layers.waypoint and flights.has(n):
+			var pts: Array = flights[n].points
+			for i in pts.size():
+				if _to_client(pts[i]).distance_to(c) <= 10:
+					drag_wp = i
+					return true
+	elif event is InputEventMouseMotion and drag_wp >= 0:
+		var n := default_flight()
+		if flights.has(n):
+			flights[n].points[drag_wp] = (c.clamp(Vector2.ZERO, CLIENT.size) / zoom + scroll).clamp(Vector2.ZERO, MAP_SIZE)
+		return true
+	return false
 
 
 func _bar_press(p: Vector2, vertical: bool) -> void:

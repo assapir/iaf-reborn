@@ -263,8 +263,14 @@ func _load_route(mission: Dictionary, player_id: int) -> void:
 		var names := {}
 		for n in f.get("names", []):
 			names[int(n[0])] = n[1]
-		for p in f.get("points", []):
-			route.append({"name": names.get(int(p[0]), ""), "world": Vector2(p[1], p[2])})
+		var pts: Array = f.get("points", [])
+		for i in pts.size():
+			var p: Array = pts[i]
+			var w := Vector2(p[1], p[2])
+			# Waypoints moved on the TSD replace the mission's positions.
+			if i < Settings.route_override.size():
+				w = Settings.route_override[i]
+			route.append({"name": names.get(int(p[0]), ""), "world": w})
 		return
 
 

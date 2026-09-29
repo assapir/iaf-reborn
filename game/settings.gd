@@ -12,6 +12,8 @@ var mission_id := -1
 ## Aircraft picked on the Jet list (original ids, FUN_00508470): 0 F-15, 1 F-16, 2 F-4E,
 ## 3 F-4 2000, 4 Lavi, 5 Kfir, 6 Mirage.
 var jet_id := 1
+## The player's route as set on the TSD ([Vector2 world]); empty = the mission's own.
+var route_override: Array = []
 
 
 ## Tests and captures run with IAF_DEFAULT_SETTINGS=1: defaults only, the player's settings file

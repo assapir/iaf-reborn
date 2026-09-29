@@ -92,4 +92,6 @@ Community mods (e.g. Hebrew briefings) can be imported as overlay packs — see 
 
 ### Tests / captures
 
-Run scripted tests and captures with `IAF_DEFAULT_SETTINGS=1` so they use default settings and never read or write your saved preferences (`user://settings.cfg`).
+`tools/test.sh` runs everything: the Rust tests and the headless Godot tests in `tests/godot`
+(mission start, taxi, gear rules, menu flow → TSD → fly). It needs the converted assets, so it runs
+locally rather than on a hosted CI. Run scripted tests and captures with `IAF_DEFAULT_SETTINGS=1` so they use default settings and never read or write your saved preferences (`user://settings.cfg`).

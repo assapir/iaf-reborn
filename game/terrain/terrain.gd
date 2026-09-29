@@ -326,3 +326,13 @@ func _add_detail(g: Vector2i, img: Image, c: Vector2i) -> void:
 	mi.position = terrain_to_godot(float(r[0]) + (g.x + 0.5) * span, float(r[1]) + (g.y + 0.5) * span)
 	add_child(mi)
 	detail_nodes[g] = mi
+
+
+## Let running decode jobs finish before the node (and its mutex) goes away.
+func _exit_tree() -> void:
+	for id in jobs.values():
+		WorkerThreadPool.wait_for_task_completion(id)
+	for id in detail_jobs.values():
+		WorkerThreadPool.wait_for_task_completion(id)
+	jobs.clear()
+	detail_jobs.clear()
