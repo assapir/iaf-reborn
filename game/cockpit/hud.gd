@@ -51,8 +51,8 @@ func _draw() -> void:
 	var bore: Vector2 = cockpit.boresight() - position
 
 	# Gun cross / boresight.
-	draw_line(bore - Vector2(6, 0) * s, bore + Vector2(6, 0) * s, HUD_GREEN, w)
-	draw_line(bore - Vector2(0, 6) * s, bore + Vector2(0, 6) * s, HUD_GREEN, w)
+	draw_line(bore - Vector2(6, 0) * s, bore + Vector2(6, 0) * s, cockpit.hud_colour(), w)
+	draw_line(bore - Vector2(0, 6) * s, bore + Vector2(0, 6) * s, cockpit.hud_colour(), w)
 
 	if camera != null:
 		_draw_ladder(st, s, w, font, fs)
@@ -65,14 +65,14 @@ func _draw() -> void:
 		var mark := int(round(hdg / 5.0)) * 5 + d
 		var x := size.x / 2 + (mark - hdg) * 3.0 * s
 		var tall := 3.0 * s if mark % 10 == 0 else 1.5 * s
-		draw_line(Vector2(x, top + 8 * s), Vector2(x, top + 8 * s + tall), HUD_GREEN, w)
+		draw_line(Vector2(x, top + 8 * s), Vector2(x, top + 8 * s + tall), cockpit.hud_colour(), w)
 		if mark % 10 == 0:
 			var label := "%02d" % int(fposmod(mark, 360) / 10)
-			draw_string(font, Vector2(x - 4 * s, top + 6 * s), label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, HUD_GREEN)
-	draw_string(font, Vector2(4 * s, size.y / 2), "%3d" % int(st.speed_kt), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, HUD_GREEN)
-	draw_string(font, Vector2(size.x - 30 * s, size.y / 2), "%5d" % int(st.alt_ft), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, HUD_GREEN)
-	draw_string(font, Vector2(4 * s, size.y - 14 * s), "G %.1f" % st.g, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, HUD_GREEN)
-	draw_string(font, Vector2(4 * s, size.y - 5 * s), "M %.2f" % st.mach, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, HUD_GREEN)
+			draw_string(font, Vector2(x - 4 * s, top + 6 * s), label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, cockpit.hud_colour())
+	draw_string(font, Vector2(4 * s, size.y / 2), "%3d" % int(st.speed_kt), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, cockpit.hud_colour())
+	draw_string(font, Vector2(size.x - 30 * s, size.y / 2), "%5d" % int(st.alt_ft), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, cockpit.hud_colour())
+	draw_string(font, Vector2(4 * s, size.y - 14 * s), "G %.1f" % st.g, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, cockpit.hud_colour())
+	draw_string(font, Vector2(4 * s, size.y - 5 * s), "M %.2f" % st.mach, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, cockpit.hud_colour())
 
 
 func _project(dir: Vector3) -> Vector2:
@@ -98,13 +98,13 @@ func _draw_ladder(st: Dictionary, s: float, w: float, font: Font, fs: int) -> vo
 			# Dashed negative rungs.
 			for k in range(3):
 				var a := gap + half * k / 3.0
-				draw_line(c + along * a, c + along * (a + half / 6.0), HUD_GREEN, w)
-				draw_line(c - along * a, c - along * (a + half / 6.0), HUD_GREEN, w)
+				draw_line(c + along * a, c + along * (a + half / 6.0), cockpit.hud_colour(), w)
+				draw_line(c - along * a, c - along * (a + half / 6.0), cockpit.hud_colour(), w)
 		else:
-			draw_line(c + along * gap, c + along * (gap + half), HUD_GREEN, w)
-			draw_line(c - along * gap, c - along * (gap + half), HUD_GREEN, w)
+			draw_line(c + along * gap, c + along * (gap + half), cockpit.hud_colour(), w)
+			draw_line(c - along * gap, c - along * (gap + half), cockpit.hud_colour(), w)
 		if e != 0:
-			draw_string(font, c + along * (gap + half + 2 * s) + Vector2(0, 3 * s), str(abs(e)), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, HUD_GREEN)
+			draw_string(font, c + along * (gap + half + 2 * s) + Vector2(0, 3 * s), str(abs(e)), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, cockpit.hud_colour())
 
 
 func _draw_fpm(s: float, w: float) -> void:
@@ -113,10 +113,9 @@ func _draw_fpm(s: float, w: float) -> void:
 		return
 	var p := _project(dir)
 	var r := 3.0 * s
-	draw_arc(p, r, 0, TAU, 16, HUD_GREEN, w)
-	draw_line(p + Vector2(r, 0), p + Vector2(r * 2.5, 0), HUD_GREEN, w)
-	draw_line(p - Vector2(r, 0), p - Vector2(r * 2.5, 0), HUD_GREEN, w)
-	draw_line(p - Vector2(0, r), p - Vector2(0, r * 2), HUD_GREEN, w)
+	draw_arc(p, r, 0, TAU, 16, cockpit.hud_colour(), w)
+	draw_line(p + Vector2(r, 0), p + Vector2(r * 2.5, 0), cockpit.hud_colour(), w)
+	draw_line(p - Vector2(r, 0), p - Vector2(r * 2.5, 0), cockpit.hud_colour(), w)
+	draw_line(p - Vector2(0, r), p - Vector2(0, r * 2), cockpit.hud_colour(), w)
 
 
-const HUD_GREEN := Color(0.3, 1.0, 0.45)

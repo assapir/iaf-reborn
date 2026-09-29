@@ -83,6 +83,29 @@ Misc sprites in (132..264, 792..924):
   ANSI_VAR_FONT (+0x578). HUD colour table +0x285c indexed by +0x2888 (`FUN_0051ed80` rebuilds pens +0x584/+0x588):
   0x2400,0x3400,0x5400,0x6c00,0x8800,0xa400,0xe400,0xfc00,0xf0f4f8,0xf8,0xbcf8 (greens dark→bright, white, red, amber).
 - Tile art colours: bright green RGB(0,255,0), dim green RGB(0,132,0)/(0,128,0), black background.
+- **HUD colour index — source, default, cycling** (objdump-verified):
+  - Chain: cockpit state (global ptr `0x82aaec`, = renderer+0x20b8, set by `FUN_0051db00` from `0x4d7fc3`)
+    field **+0x1098** → each frame `0x51de51` compares with renderer+0x16a8; if different, clamps to ≤10 and calls
+    `FUN_0051ed80(idx)` (renderer+0x2888 = idx; recreates pens +0x584 (1px) / +0x588 (2px) with `table[idx]`;
+    recolours the 5x5 font copy +0x5d4 and sun sprite +0x5f4 via `FUN_0052bb50`, which packs the COLORREF to RGB565).
+    Renderer ctor starts +0x2888 = 0 (`0x51cb7d`, ebp = 0).
+  - Only setter of state+0x1098 is `0x4467b0` (`this+0x1098 = arg`; the other +0x1098 writes at 0x4038ff/0x41d38b/
+    0x41de4c are other classes). Two callers, both with `ecx = [0x82aaec]` and the value of the flight/sim object's
+    field **+0x74**:
+    1. `0x447429` in `FUN_00447280` (virtual, vtable slot at 0x5fcca0 — flight start/load): pushes `this+0x74`.
+    2. `0x44c6a6`, event dispatcher `0x449459` (byte table `0x44c81c` maps event 0x7b → case 0x3e → `0x44c687`).
+  - `this+0x74` is zeroed in the ctor (`0x446d10`) then set from the static **`0x82aa70`** (`0x446f8f`; also in
+    `FUN_00447530` at `0x447543`, the sibling virtual at 0x5fcca4). `0x82aa70` lies in .data's uninitialised tail
+    (raw data ends 0x67fe00) and has no load-time initialiser and no other writer (only 3 references: 2 reads + the key
+    handler) → **starts at 0 every time the program is launched**. Not per aircraft, not from prefs/ini/registry, not
+    time-of-day/night dependent (no such read anywhere on the path).
+  - **Key H (event 0x7b)**: `idx = (idx + 1) % 11`, stored back to `this+0x74` **and** to `0x82aa70`, then setter.
+    Order 0→1→…→10→0: 8 greens dark→bright (0x24,0x34,0x54,0x6c,0x88,0xa4,0xe4,0xfc in G), 8 = near-white
+    RGB(248,244,240), 9 = red RGB(248,0,0), 10 = amber RGB(248,188,0). The choice persists to later flights in the same
+    session (via `0x82aa70`) but is never saved to disk.
+  - **Default = index 0 = COLORREF 0x002400 = RGB(0,36,0)** (darkest green) for HUD symbology, HUD/MFD sprite text and
+    the in-flight subtitle console text, at the first flight of each run. (The value is certain from the code; that
+    it really looks this dark on screen, e.g. no later brightening/additive blend, is UNCERTAIN — not traced.)
 
 ## 3. Pages (state+0x4fc+idx·4; dispatch `FUN_00527ba0`, passes 3/4 in `FUN_00529080`)
 
@@ -233,7 +256,7 @@ A/P 88, ELCT 97, GNRT 106. Redrawn when state+0x550.. flags change.
 | Master modes / NAV mode on | M / N | 0x63 / 0x62(0) |
 | Laser on/off | L | 0x6a |
 | Next / Previous waypoint | W / Shift+W | 0x65 / 0x66 |
-| Change HUD color | H | 0x7b (cycles +0x2888, UNCERTAIN) |
+| Change HUD color | H | 0x7b (`idx=(idx+1)%11`, see §2; default 0) |
 
 Event 0x5a(page) replaces Left unless Left shows radar, then Right; ignored if the page is already shown or page = 5.
 Radar events first put the radar page on an MFD if none shows it. STT comes from a lock (event 0x2a). Master mode →

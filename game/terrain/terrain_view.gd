@@ -197,7 +197,12 @@ func _mission_player(mission_id: int) -> Dictionary:
 ## snaps them or uses the entity altitude, which matches here).
 var runtime: Node
 var _voice: AudioStreamPlayer
-var _subtitles: Array[String] = []
+## The console (docs/mission-runtime.md §3.3): 40 slots, every push moves the lines back one slot;
+## an empty line is pushed every 3 s of sim time (also on the first frame), so a line lasts ~39-42 s.
+const CONSOLE_SLOTS := 40
+var _console: Array[String] = []
+var _console_tick := -1.0
+var _sim_time := 0.0
 var _msgbox: Control
 
 
@@ -312,20 +317,39 @@ func mission_play_wav(wav: String) -> void:
 ## Subtitle console (FUN_004491c0): wrapped at the last space before 40 characters, first letter
 ## upper-cased; the newest 14 lines are shown (drawn by the cockpit HUD layer).
 func _on_subtitle(text: String) -> void:
-	var t := text.strip_edges()
+	# FUN_004491c0: first letter upper-cased, wrapped at the last space before 40 characters.
+	var t := text
 	if t == "":
 		return
 	t = t[0].to_upper() + t.substr(1)
-	while t.length() > 40:
+	while t.length() >= 40:
 		var cut := t.substr(0, 40).rfind(" ")
 		if cut <= 0:
-			cut = 40
-		_subtitles.append(t.substr(0, cut))
-		t = t.substr(cut).strip_edges()
-	_subtitles.append(t)
-	while _subtitles.size() > 14:
-		_subtitles.pop_front()
-	cockpit.subtitles = _subtitles
+			cut = 39
+		_console_push(t.substr(0, cut))
+		t = t.substr(cut + 1)
+	_console_push(t)
+
+
+func _console_push(line: String) -> void:
+	if _console.is_empty():
+		_console.resize(CONSOLE_SLOTS)
+		_console.fill("")
+	_console.pop_front()
+	_console.append(line)
+	# Drawn: the non-empty lines among the newest 14 slots, oldest on top (FUN_0051e6a0).
+	var shown: Array[String] = []
+	for l in _console.slice(CONSOLE_SLOTS - 14):
+		if l != "":
+			shown.append(l)
+	cockpit.subtitles = shown
+
+
+## The 3 s ticker (0x4d7ec0): pushes the empty string; fires on the first frame, then every 3 s.
+func _console_update(sim_time: float) -> void:
+	if _console_tick < 0.0 or sim_time >= _console_tick:
+		_console_tick = sim_time + 3.0
+		_console_push("")
 
 
 func _on_mission_box(msg: int, buttons: Array) -> void:
@@ -564,6 +588,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_V:
 				cockpit.toggle_panel()
 			# MFD keys (docs/mfd.md §5).
+			KEY_H:
+				# Change HUD color (event 0x7b): next of the 11 table colours.
+				cockpit.hud_colour_index = (cockpit.hud_colour_index + 1) % 11
 			KEY_T:
 				cockpit.show_mfd_page(3)
 			KEY_D:
@@ -598,6 +625,9 @@ func _process(delta: float) -> void:
 		for k in ["speed_kt", "mach", "alt_ft", "vs_fpm", "pitch", "roll", "heading", "aoa", "g", "rpm", "throttle", "fuel_lbs"]:
 			cockpit.state[k] = st[k]
 		_record(st, delta)
+		if not frozen and not waiting_for_ground:
+			_sim_time += delta
+			_console_update(_sim_time)
 		g_effects.g = st.g
 		g_effects.over_g = st.over_g
 		cockpit.state["world"] = Vector2(terrain.world_origin.x + rig.position.x, terrain.world_origin.y - rig.position.z)

@@ -33,7 +33,7 @@ func run() -> void:
 
 
 func _said(tv, text: String) -> bool:
-	for line in tv._subtitles:
+	for line in tv._console:
 		if text in line.to_lower():
 			return true
 	return false
@@ -43,3 +43,4 @@ func seconds(s: float) -> void:
 	var t := Time.get_ticks_msec()
 	while Time.get_ticks_msec() - t < s * 1000.0:
 		await process_frame
+

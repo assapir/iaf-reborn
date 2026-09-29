@@ -11,9 +11,17 @@ extends Control
 
 const ORIGINAL_HEIGHT := 480.0
 const PANEL_CENTRE_X := 960.0
-const HUD_GREEN := Color(0.3, 1.0, 0.45)
-## Default HUD colour for the console text (HUD colour table, bright green; index UNCERTAIN).
-const HUD_CONSOLE := Color8(0, 252, 0)
+## HUD colour table (renderer+0x285c, COLORREFs 0x2400 … 0xbcf8): eight greens dark to bright,
+## near-white, red, amber. Index 0 at the start of a run; key H cycles (idx + 1) % 11 (docs/mfd.md §2).
+const HUD_COLOURS := [Color8(0, 0x24, 0), Color8(0, 0x34, 0), Color8(0, 0x54, 0), Color8(0, 0x6c, 0),
+	Color8(0, 0x88, 0), Color8(0, 0xa4, 0), Color8(0, 0xe4, 0), Color8(0, 0xfc, 0),
+	Color8(0xf8, 0xf4, 0xf0), Color8(0xf8, 0, 0), Color8(0xf8, 0xbc, 0)]
+## Kept for the run (the original's global 0x82aa70), not saved.
+static var hud_colour_index := 0
+
+
+static func hud_colour() -> Color:
+	return HUD_COLOURS[hud_colour_index]
 
 @export var cockpit_dir := "../assets/converted/cockpits/f16"
 
@@ -281,7 +289,7 @@ func _draw_console() -> void:
 	for n in subtitles.size():
 		var pos := Vector2(left + 4 * s, (10 + 15 * n) * s + _console_font.get_ascent(fs))
 		draw_set_transform(pos, 0.0, Vector2(_console_squeeze, 1.0))
-		draw_string(_console_font, Vector2.ZERO, subtitles[n], HORIZONTAL_ALIGNMENT_LEFT, -1, fs, HUD_CONSOLE)
+		draw_string(_console_font, Vector2.ZERO, subtitles[n], HORIZONTAL_ALIGNMENT_LEFT, -1, fs, hud_colour())
 	draw_set_transform(Vector2.ZERO)
 
 

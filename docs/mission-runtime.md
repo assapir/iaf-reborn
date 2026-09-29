@@ -168,7 +168,78 @@ listed above for completeness only.
     coordinates). The same console holds the chat input line at y=220.
   - Font = cockpit +0x580 = `CreateFontA(12,4,…,"ARIAL")`.
   - Colour = current HUD colour, table +0x285c[+0x2888] (see mfd.md; default green).
-  - No expiry timer was found: lines stay until scrolled out (UNCERTAIN).
+  - No per-line expiry. Lines leave the window only by being scrolled out, and a 3 s ticker keeps
+    scrolling (see "Subtitle lifetime" below).
+
+#### Subtitle lifetime
+**Console layout** (`DAT_00832100`):
+- `+0` = slot count, always 40. `+4` = the slot buffer, 40×128 bytes. `+8` = the 128-byte chat input line.
+- `+0x88` = the ring, an array of 40 slot offsets. Its last entry is the newest line. `+0x8c` = chat-input
+  flag.
+- It is built by `FUN_004e11c0` @`4e1482`: `malloc(0x1400)` and `malloc(0xa0)`, every slot set to "".
+
+**Push** (`FUN_004491c0` inline, `FUN_00450eb0`, `FUN_004d7ff0`):
+- Copy the text into the slot at ring[0], which is the oldest.
+- Shift ring[1..39] down by one and put that slot at ring[39].
+- Every push, including an empty one, ages all other lines by one position.
+
+**Draw** (`FUN_0051e6a0`):
+- Scans ring indices 39 down to 26. That is the **14 newest slots** (loop `esi > count-15`, collect array
+  `0x839250..0x839288` = 14 entries).
+- Keeps only non-empty strings. Draws them compacted (no gaps for empty slots), oldest at y=10, then +15 each.
+- The chat line is drawn separately at y=220. Its `_` cursor toggles every 400 ms (`0x8392e4`/`0x6582f8`).
+
+**The 3 s ticker** (`FUN_004d7ec0`, called first thing from the per-frame sim render `FUN_004d7960` @`4d796c`):
+- Function-static timer `0x82ee50` (guard bit `0x82ee70`), created once by `FUN_004d38e0(3.0f)`.
+  - `+0` last and `+8` next are both initialised to 1.0e7 (`.rdata 0x601090`). `+0x10` = 0, `+0x14` = 3.0,
+    `+0x18` = 0 (not random).
+- Each frame, `FUN_004d3a00(&simtime)` runs with `simtime` = double at `DAT_00694910+0x38`.
+  - It fires when `now > next` **or** `now < last`. The second case covers the first poll and a sim clock
+    that restarted.
+  - On fire: `last = now`, `next = now + 3.0`. There is no catch-up, so it fires at most once per frame.
+- On fire: `CharUpperBuffA(0x789370,1)`, `len = strlen(0x789370)`, then a push. If `len >= 40`, it is split
+  at the last space (as in `FUN_00450eb0`).
+- **`0x789370` is the program's shared empty string ""**:
+  - It sits in zero-initialised `.data` (beyond the raw data, which ends at 0x67fe00). No `.data`/`.rdata`
+    word points at it.
+  - All ~100 code references only read it. They use it as the GetPrivateProfileStringA default (`406cd5`,
+    `4e02ca`, `4c7141`→`FUN_004d33f0`, …), a CString ctor/assign source (`45294f`, `4529b3`, `452a22`,
+    `456740`, `4ee90c`), a strcpy source (`445886`, `4c5f02`, `4c7f17`, `4eff29`, …), an `_stricmp`
+    operand (`4f95a1`, `4fd6ee`), a `sprintf` format (`52d928`, `536702`), SetWindowText (`4e5654`,
+    `4e5a4b`), and a `char buf[N] = ""` initialiser (`4e8ff0`, `5016bc`).
+  - `CharUpperBuffA` on its NUL byte is a no-op.
+  - So the ticker **pushes one empty line every 3.0 s of sim time**. It does this even with text messages
+    off (it does not test `DAT_0062b05c`).
+  - UNCERTAIN: a few sites hand the pointer out in a register (`53f187` returns it, `5b00a6`, `5b1a84`,
+    `5c5725`, `5c1557`). No write through them was found. This looks like a leftover of a debug-message
+    feed.
+
+**Rule:**
+- A line is visible while fewer than 14 pushes have happened after it. It disappears on the 14th push after
+  its own. That push can be a tick or any later line: each wrapped line of a later subtitle, or any other
+  console message such as the 50+ `FUN_004491c0` callers (cockpit/weapon/radio messages) and chat.
+- With no other traffic, the first tick after the push comes 0–3 s later, and the line vanishes at the 14th
+  tick. **Lifetime = 39–42 s of sim time** (≈40.5 s on average, quantised to frames).
+- More traffic shortens it. For example, a 3-line wrapped message leaves only 11 pushes of lifetime for
+  the older lines.
+- Empty slots are not drawn, and the visible lines stay packed from y=10 downward. A tick therefore changes
+  nothing on screen until it pushes the oldest visible line out. Then the remaining lines move up one row
+  (15 px). A new line always appears below the others.
+- The clock is sim time, so time compression shortens the lifetime in wall-clock terms. If the sim clock
+  stops while paused, the lines freeze (UNCERTAIN: pause behaviour of `+0x38` not checked).
+
+**Clearing:**
+- Nothing clears the console at mission start or on a view change.
+- The only writers of `0x832100/04/88` are:
+  - `FUN_004e11c0` (main-window creation, once per run).
+  - `FUN_004e18d0` @`4e193b` (same re-allocation, all 40 slots emptied; `FUN_004e5a20` also empties the chat
+    line). `FUN_004e18d0` is reached from the message-box callbacks for message 0x55a (`CIAFWindow` map
+    `0x6019c0` → `FUN_004e18b0` when result == 6; flight-window map `0x601470` → `FUN_004daea0`) and from
+    `FUN_004dad50` (message 0x55b, result 7, single player).
+  - UNCERTAIN: which user-facing flight exit takes this path. The debrief exit `FUN_004e1a90` does not touch
+    the console.
+- Lines left over from a previous flight therefore scroll out within ≤42 s of the next flight's sim time.
+  The ticker fires on the first frame, because the new sim time < `last`.
 
 ### 3.4 Actions (`FUN_004c2cd6`)
 - Each record `{entity id, s0, s1}` is resolved to the entity key (doc vtbl+0xc4 `FUN_0058e920`).
@@ -372,6 +443,7 @@ UNCERTAIN / open:
 - Args of trigger ops 1, 2, 9, 20, 24–28.
 - Exact Path kinematics.
 - The player-exempt test in Explode (`FUN_004d7040`).
-- Subtitle lifetime.
+- Subtitle lifetime: resolved in §3.3 (14 pushes; a 3 s empty-line ticker gives 39–42 s). Which exit path
+  runs `FUN_004e18d0` (console reset) is still open.
 - Whether the 0x81 box can appear after 0x82 has ended the flight.
 - Where the Deb screens draw +0x5e0c and +0x620c (front-end).
