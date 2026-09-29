@@ -1,4 +1,4 @@
-# The original 2D F-16 cockpit, laid out from the converted cockpit.ibx (cockpit.json).
+# The original 2D cockpit of any aircraft, laid out from its converted cockpit.ibx (cockpit.json).
 #
 # All layout values are in the original 640x480 screen space; we scale by
 # screen height / 480 and centre the 1920 px panel strip, so wide screens show
@@ -21,7 +21,14 @@ var state := {
 	"speed_kt": 0.0, "mach": 0.0, "alt_ft": 0.0, "vs_fpm": 0.0,
 	"pitch": 0.0, "roll": 0.0, "heading": 0.0, "aoa": 0.0, "g": 1.0,
 	"rpm": 0.0, "throttle": 0.0, "fuel_lbs": 0.0,
+	"world": Vector2.ZERO,  # ownship in mission world coordinates (X east, Y north, metres)
 }
+## The player's route: [{name, world: Vector2}], and the current waypoint index.
+var waypoints: Array = []
+var current_waypoint := 0
+## The MFD TSD map (map.emf) as world-coordinate polygons: [{points, color}].
+var tsd_map: Array = []
+var mfds: Array = []
 ## How far the panel is raised: 0 = forward view (original MainOffsetY), 1 = full panel
 ## ("panel down" view). `panel_target` is where it is sliding to.
 var panel_shift := 0.6
@@ -55,7 +62,77 @@ func _ready() -> void:
 			if img != null:
 				img.generate_mipmaps()
 				tex[key] = ImageTexture.create_from_image(img)
+	var atlas := Image.load_from_file(dir.path_join("mfds.png"))
+	if atlas != null:
+		tex["MFDS"] = ImageTexture.create_from_image(atlas)
+	_load_tsd_map()
+	_create_mfds()
 	hud.cockpit = self
+
+
+## map.emf logical units (12601 x 16383 frame) -> world (FUN_0052ff30 inverse):
+## u = (X + 166850) / 819200 · 12601 · 1.0071394, v = (1043816 − Y) / 1064960 · 16383 · 1.0071394.
+func _load_tsd_map() -> void:
+	var data = JSON.parse_string(FileAccess.get_file_as_string(dir.path_join("map.json")))
+	if not (data is Dictionary):
+		return
+	var f := 1.0071394
+	for op in data.ops:
+		if op.t != "polygon" or op.brush == null:
+			continue
+		var pts := PackedVector2Array()
+		var ring: Array = op.rings[0]
+		for i in range(0, ring.size(), 2):
+			var u: float = ring[i] * 12601.0
+			var v: float = ring[i + 1] * 16383.0
+			pts.append(Vector2(u / f / 12601.0 * 819200.0 - 166850.0, 1043816.0 - v / f / 16383.0 * 1064960.0))
+		tsd_map.append({"points": pts, "color": Color8(op.brush[0], op.brush[1], op.brush[2])})
+
+
+## One MFD node per active [MFD] side, with the default pages of FUN_00447530: Left radar;
+## 3 MFDs: Right RWR, Middle TSD; 2 MFDs: Right RWR without a panel RWR, else TSD.
+func _create_mfds() -> void:
+	var m: Dictionary = layout.get("MFD", {})
+	var active := []
+	for i in 3:
+		if int(m.get(["Left", "Right", "Middle"][i] + "Active", 1)) == 1:
+			active.append(i)
+	var rwr_panel := int(layout.get("PANELRWR", {}).get("Active", 0)) == 1
+	for i in active:
+		var page := 2
+		if i == 1:
+			page = 7 if active.size() == 3 or not rwr_panel else 3
+		elif i == 2:
+			page = 3
+		var node := preload("res://cockpit/mfd.gd").new()
+		node.setup(self, i, page)
+		add_child(node)
+		mfds.append(node)
+
+
+## "Activate TSD / Damage report" keys (event 0x5a): the page replaces Left, or Right when Left
+## shows the radar; ignored when already shown.
+func show_mfd_page(page: int) -> void:
+	for m in mfds:
+		if m.page == page:
+			return
+	if mfds.is_empty():
+		return
+	var target = mfds[0]
+	if target.page == 2 and mfds.size() > 1:
+		target = mfds[1]
+	target.page = page
+
+
+## The MFD showing the radar (radar keys first put the radar on the Left MFD if none shows it).
+func radar_mfd() -> Node:
+	for m in mfds:
+		if m.page == 2:
+			return m
+	if mfds.is_empty():
+		return null
+	mfds[0].page = 2
+	return mfds[0]
 
 
 ## Screen scale factor from the original 640x480 layout.
@@ -127,7 +204,6 @@ func _draw() -> void:
 	if layout.is_empty():
 		return
 	var s := ui_scale()
-	_draw_mfd_screens(s)
 	_draw_adi(s)
 	_draw_standby_horizon(s)
 	_draw_tape("PANELVARIO", clamp(state.vs_fpm / 6000.0, -1.0, 1.0), s)
@@ -177,19 +253,10 @@ func _draw_adi(s: float) -> void:
 	draw_set_transform(Vector2.ZERO)
 
 
-## Dark MFD screens behind the panel's display cut-outs (content comes with the avionics).
-func _draw_mfd_screens(s: float) -> void:
-	var m: Dictionary = layout.get("MFD", {})
-	for side in ["Left", "Middle", "Right"]:
-		if m.get(side + "Active", 0) == 1:
-			var tl := panel_to_screen(m[side + "OffsetX"], m[side + "OffsetY"])
-			draw_rect(Rect2(tl - Vector2(6, 6) * s, Vector2(160, 230) * s), Color.BLACK)
-
-
 ## Small standby attitude indicator, drawn by the game in two flat colours (HORIZON).
 func _draw_standby_horizon(s: float) -> void:
 	var h: Dictionary = layout.get("HORIZON", {})
-	if h.is_empty() or h.get("OnMfd", 0) != 0:
+	if h.is_empty() or h.get("OnMfd", 0) != 0 or h.get("Active", 1) != 1:
 		return
 	var centre := panel_to_screen(h.ClockCenterX, h.ClockCenterY)
 	var r: float = h.Radius * s * 1.1

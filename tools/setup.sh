@@ -26,8 +26,10 @@ step "aircraft models (glTF, Lanczos-upscaled textures, smoothed geometry)"
 step "original HUD / MFD fonts"
 ./target/release/iaf-convert fonts assets/install assets/converted/fonts
 
-step "F-16 cockpit art and layout"
-./target/release/iaf-convert --upscale cockpit assets/install f16 assets/converted/cockpits/f16
+step "cockpits (art and layout, every aircraft)"
+for c in f16 f15 f4-2000 phantom cfir lavi mirage mig23 mig29; do
+	./target/release/iaf-convert --upscale cockpit assets/install "$c" "assets/converted/cockpits/$c"
+done
 
 if [[ -n "$hebrew_zip" ]]; then
 	step "Hebrew briefings pack"

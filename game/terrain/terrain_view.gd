@@ -43,6 +43,8 @@ var orbit_dist := 35.0
 ## Hold the simulation until the terrain under the aircraft has loaded.
 var waiting_for_ground := true
 var mission_name := ""
+## The player's waypoints: [{name, world}] (mission world coordinates).
+var route: Array = []
 ## Lowest the external camera may go above the terrain (metres).
 const CAMERA_MIN_AGL := 0.5
 ## Highest true airspeed at which the gear may be lowered (player controller case 0xe, docs/flight-model.md §12).
@@ -81,6 +83,7 @@ func _ready() -> void:
 	if thr >= 0:
 		throttle = float(args[thr + 1])
 	cockpit.hud.camera = camera
+	cockpit.waypoints = route
 	_start_flight()
 	_apply_view()
 	_spawn_f16()
@@ -160,8 +163,23 @@ func _mission_player(mission_id: int) -> Dictionary:
 		return {}
 	for e in mission.entities.items:
 		if e is Dictionary and e.get("0x2bc", "") == "Player1":
+			_load_route(mission, int(e["0x1e"]))
 			return e
 	return {}
+
+
+## The route of the formation holding the player (its waypoints and their names) for the MFDs.
+func _load_route(mission: Dictionary, player_id: int) -> void:
+	for f in mission.formations.items:
+		var members: Array = f.get("members", []).map(func(m): return int(m.get("0x41a", -1)))
+		if not player_id in members:
+			continue
+		var names := {}
+		for n in f.get("names", []):
+			names[int(n[0])] = n[1]
+		for p in f.get("points", []):
+			route.append({"name": names.get(int(p[0]), ""), "world": Vector2(p[1], p[2])})
+		return
 
 
 func _start_flight() -> void:
@@ -283,6 +301,21 @@ func _unhandled_input(event: InputEvent) -> void:
 				_zoom_cockpit(-0.05)
 			KEY_V:
 				cockpit.toggle_panel()
+			# MFD keys (docs/mfd.md §5).
+			KEY_T:
+				cockpit.show_mfd_page(3)
+			KEY_D:
+				cockpit.show_mfd_page(4)
+			KEY_Q:
+				cockpit.radar_mfd().cycle_radar_mode()
+			KEY_R:
+				cockpit.radar_mfd().toggle_radar_aa_ag()
+			KEY_PERIOD:
+				var r = cockpit.radar_mfd()
+				r.radar_range = mini(r.radar_range + 1, r.RADAR_RANGES.size() - 1)
+			KEY_COMMA:
+				var r = cockpit.radar_mfd()
+				r.radar_range = maxi(r.radar_range - 1, 0)
 
 
 func _process(delta: float) -> void:
@@ -300,6 +333,7 @@ func _process(delta: float) -> void:
 		rig.basis = Basis(st.right, st.up, -st.forward)
 		for k in ["speed_kt", "mach", "alt_ft", "vs_fpm", "pitch", "roll", "heading", "aoa", "g", "rpm", "throttle", "fuel_lbs"]:
 			cockpit.state[k] = st[k]
+		cockpit.state["world"] = Vector2(terrain.world_origin.x + rig.position.x, terrain.world_origin.y - rig.position.z)
 		cockpit.hud.velocity_dir = st.velocity.normalized() if st.velocity.length() > 1.0 else null
 	if aircraft != null:
 		aircraft.animate(stick, rudder, flaps, gear_down, brakes, delta)

@@ -24,7 +24,11 @@ from Ramat David** in the original F-16 with the original 2D cockpit, everything
 2. **TSD leftovers**: 3D-model (obj_t) and target (targ_t) link windows, waypoint dragging, selected-unit label,
    click-to-select / double-click-to-fly, Arming screen content, map drag cursors. (Map, units, flights,
    waypoints, zoom, scrollbars, briefing + lesson + card windows, filters, msg boxes are done.)
-3. **MFDs** empty (RE in progress → docs/mfd.md).
+3. **MFD leftovers**: radar contacts / lock / STT, radar MAP (isr.bmp) and GMT content, RWR threats, HARM / TV /
+   FLIR content, full-screen weapon MFD, NAV distances / ETA, stores stations. Initial radar mode and range are not
+   traced (LRS, 20 NM used). Original keys S (radar standby) and W (next waypoint) clash with our provisional throttle
+   keys, so they are not bound yet. (Done: all cockpits converted, MFD placement / default pages per cockpit ini,
+   radar / TSD / RWR / MENU / NAV / stores / damage / ADI pages, OSB clicks, T / D / Q / R / . / , keys.)
 4. **Terrain detail**: only the level-4 Israel inset (16 m/px); airbase insets (to ~1 m/px) and far levels not used.
 5. **Airbase objects**: base missions (`bmisrdvd`: hangars, runway objects…) not placed; no 3D models for them yet.
 6. **Mission logic**: triggers/scripts/audio (instructor voice, win sensor) not run.
@@ -38,7 +42,7 @@ from Ramat David** in the original F-16 with the original 2D cockpit, everything
 ## Plan (in order)
 1. ~~Front end rewrite~~ (done; message box comes with the TSD).
 2. ~~TSD screen~~ (done; leftovers in gaps).
-3. MFDs per docs/mfd.md.
+3. ~~MFDs~~ (done; leftovers in gaps).
 4. Airbase: high-detail insets around the start + base-mission objects (stationary 3D models).
 5. Mission runtime for "Engines ON": audio markers, win sensor, success/fail message box (original `mbg*`).
 6. Polish: sounds in flight, key table, remaining flight-model modes.

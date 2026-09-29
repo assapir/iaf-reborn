@@ -100,7 +100,12 @@ fn convert_cockpit(install: &Path, name: &str, out: &Path, opts: &Options) -> Re
     for section in &ini.sections {
         let mut obj = serde_json::Map::new();
         for (k, v) in &section.entries {
-            let value = v.parse::<f64>().map(serde_json::Value::from).unwrap_or_else(|_| serde_json::Value::from(v.as_str()));
+            // GetPrivateProfileInt reads an empty value (`MiddleOffsetX =`) as 0.
+            let value = if v.trim().is_empty() {
+                serde_json::Value::from(0)
+            } else {
+                v.parse::<f64>().map(serde_json::Value::from).unwrap_or_else(|_| serde_json::Value::from(v.as_str()))
+            };
             obj.entry(k.clone()).or_insert(value);
         }
         layout.insert(section.name.clone(), serde_json::Value::Object(obj));
@@ -108,6 +113,9 @@ fn convert_cockpit(install: &Path, name: &str, out: &Path, opts: &Options) -> Re
     let scale = if opts.upscaler.is_some() { upscale::FACTOR } else { 1 };
     layout.insert("image_scale".into(), scale.into());
     std::fs::write(out.join("cockpit.json"), serde_json::to_string_pretty(&layout)?)?;
+    // The MFD TSD map (shared by every cockpit, docs/mfd.md §3).
+    let map = iaf_formats::emf::parse(&std::fs::read(root.join("emf/map.emf")).context("emf/map.emf")?)?;
+    std::fs::write(out.join("map.json"), serde_json::to_string(&emf_json(&map))?)?;
 
     let mut images: Vec<PathBuf> = std::fs::read_dir(&dir)?
         .flatten()
