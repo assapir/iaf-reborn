@@ -45,6 +45,8 @@ var waiting_for_ground := true
 var mission_name := ""
 ## Lowest the external camera may go above the terrain (metres).
 const CAMERA_MIN_AGL := 0.5
+## Highest true airspeed at which the gear may be lowered (player controller case 0xe, docs/flight-model.md §12).
+const GEAR_DOWN_MAX_KT := 300.0
 
 
 func _ready() -> void:
@@ -220,6 +222,20 @@ func _apply_view() -> void:
 	chase.look_at(rig.global_position, Vector3.UP)
 
 
+## The gear lever (docs/flight-model.md §12): raising it is ignored on the ground, lowering it
+## is refused above 300 kt true airspeed; both silently.
+func _toggle_gear() -> void:
+	if flight == null:
+		gear_down = not gear_down
+		return
+	var st: Dictionary = flight.state()
+	if gear_down and st.on_ground:
+		return
+	if not gear_down and st.speed_kt > GEAR_DOWN_MAX_KT:
+		return
+	gear_down = not gear_down
+
+
 func _zoom_cockpit(step: float) -> void:
 	cockpit.zoom = clamp(cockpit.zoom + step, cockpit.ZOOM_MIN, cockpit.ZOOM_MAX)
 
@@ -252,7 +268,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8:
 				throttle = THROTTLE_PRESETS[event.keycode - KEY_1]
 			KEY_G:
-				gear_down = not gear_down
+				_toggle_gear()
 			KEY_F:
 				flaps = 0.0 if flaps > 0.0 else 1.0
 			KEY_B:

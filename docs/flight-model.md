@@ -307,3 +307,54 @@ found; UNCERTAIN). Key names are loaded from `keys.trx` into `0x82eea8` (100-byt
   start/stop (FLCS ~0.3 s time constant; the original's 170 deg/s² stop overshoots ~1 s); fuel flow
   16.5 lb/s at full AB (~60k lb/h, ~11k lb/h military); transonic wave drag ΔCD 0 → 0.02 over Mach 0.9–1.2.
 * In-game: `--real` launch option (pre-flight menu later).
+
+## 12. Gear lever rules (player controller `FUN_004493a0`, case GEV 0xe)
+Generic for every aircraft (no per-type data involved).
+
+**Key → event chain.** Key bindings live in a runtime table at `0x836e14` (stride 0x24: press cmd,
+press lParam, release cmd/lParam, key code `ushort`+modifier at +0x18; defaults not located, keys.trx
+only supplies the display names). `FUN_004df3d0` sends `WM 0x532, wParam = GEV code` → handler
+`0x4e1c20` (MFC map entry @`0x601918`; codes 0x7d–0x89 are UI, all others fall to `0x4e1f45`) →
+`FUN_005bc4a0` (ManageUnit log) → `FUN_004ccb80` queues a `SimGameEventNode` → the player controller
+`FUN_004493a0(this=ctl, gev, int *arg, int forced)`. (UNCERTAIN: the queue→`FUN_004493a0` hop was not
+traced. It is inferred from the matching case codes: GEV 5/6 INC/DEC_THROTTLE → motion 3/4, 10 RUDDER → 5,
+0xc FLAPS → 6, 0xe LANDING_GEAR → 7.) Motion inputs are built by `FUN_0044de50(buf,type,arg)` (+0 type,
++8 sim time, +0x18 `arg[0]`) and posted through `(*(unit+0x38))->vtbl[0]`. That lands in the FM's
+slot 9 (`0x59c4f0`, vtable `0x60df00`).
+
+**Controller state** (all offsets relative to `ctl`): the handle is `ind[9]` at `ctl+0x4e0+0xc+9*4` (1 = down, 0 = up).
+The per-leg lights are `leg[i]` at `ctl+0x53c+0xc+i*4`, i=0..2 (0 = up, 1 = in transit, 2 = down and locked).
+The damage flags are at `ctl+0x3d8+0xc+n*4` (n = 7 is gear, 4 is flaps).
+
+**GEV 0xe, keyboard toggle (`forced`=0), @44c2a4:**
+1. If the aircraft is simulated locally (`!netgame(0x82a9d0) || unit->local`) and `ctl+0x19c`≠0 or
+   `ctl+0x1a0`≠0, the command is ignored. (UNCERTAIN: these are weapon-release and gun-burst in progress, set by `FUN_00457340`.)
+2. **Ground lock:** if `ind[9]`≠0 (gear down) and FM getter 0x1a ≠ 0 → **return, silently**.
+   Getter 0x1a (`0x5a64b0` case 0x1a @5a6f8a) is `(float)S+0x2a0`, the on-ground/ground-roll flag (§7).
+   Nothing else is checked here: no weight-on-wheels, speed, or altitude test. No message, no sound, no
+   backseat voice, and the handle stays put. Lowering the gear on the ground is never blocked by this test.
+3. The three legs are tried with `FUN_0044ee10(old=ind[9], leg, forced)` @44ee10:
+   * gear damaged (flag 7) → the leg does not move;
+   * **up→down:** blocked if `min(|v|,1200)·1.9427955 > 300` (TAS > 300 kt; getter 5 = FM slot 0x3c).
+     Otherwise, if `leg`=0, it starts extending (`FUN_0045a670`: 0→1, and →2 after 2.0 s);
+   * **down→up:** no speed limit. A leg starts retracting only when `leg`=2 (`FUN_0045a640`: 2→1, →0 after 2.0 s).
+   If **no** leg can move, the command is ignored silently (locally simulated aircraft).
+4. The handle toggles: `ind[9]` = 0 (`FUN_0045a9b0`) or 1 (`FUN_0045a920`). Motion input 7 is sent with
+   +0x18 = the new `ind[9]`, and for the player's own aircraft `SFX_LANDING_GEAR` (sound 0x1e, `FUN_0044efb0`) plays.
+5. FM `FUN_0059d170`: +0x18≠0 ramps `S+0x320` to its min `S+0x334` (0 = extended). +0x18=0 ramps it to its max `S+0x338`.
+   (Airborne init `FUN_005a2a10` sets 1.569 ≈ π/2 = retracted, rate `S+0x330` = 0.5/s → ~3.1 s. Ground init sets 0.)
+   Ramp layout: +0 t0, +8 start, +0xc target, +0x10 rate, +0x14 min, +0x18 max, +0x1c duration.
+With `forced`≠0 (explicit set, `arg[0]` = wanted state, probably network/replay; UNCERTAIN), the command is ignored
+if the state is already equal, and steps 1–2 are skipped.
+
+**Related:**
+* Gear damage: `FUN_0044ca90(7)` comes from combat damage only. It shows "Gear damage" (for the player) and sets
+  the leg lights to 1. No overspeed-with-gear-down damage was found (UNCERTAIN: not searched exhaustively).
+* Touchdown check `FUN_005b85b0`: if the gear ramp is ≥1e-5 (not fully down), the three landing tolerances are
+  multiplied by 0.2/0.2/0.25 (and ×2 in easy mode). The ground roll uses μ=20 for a belly landing (§7).
+* ATC text `ACFT_GEARS_NOT_OPEN` (`FUN_0054faa0` case 10). The `BACKSEAT_GEAR_UP/DOWN` voices (category 0x36,
+  ids 10/0xd) are defined in soundprop.txt, but no code that plays them was found.
+* Other locks in the same controller: GEV 0x10 autopilot, when on the ground (getter 0x1a≠0), always goes to off
+  (@44c548). GEV 0x11 brakes plays `SFX_SPEED_BREAKES_LOOP` (0x1c) only when airborne (@44bf1e).
+  GEV 0x42 (UNCERTAIN: gun fire) is refused while `ind[9]`≠0 unless `ctl+0x970`≠0 (@44a7e4).
+  GEV 0xc flaps is refused while flaps are damaged (flag 4).
