@@ -43,6 +43,7 @@ Handy for development (not required): `ffmpeg` (image/video inspection), `python
 cargo run --release -p iaf-tools --bin iaf-extract -- "/path/to/Jane's IAF.iso" assets/install
 # 2. convert the aircraft models to glTF (+ PNG textures)
 cargo run --release -p iaf-tools --bin iaf-convert -- planes assets/install assets/converted/planes
+#    add --upscale (before "planes") for 4× AI-upscaled textures (needs realesrgan-ncnn-vulkan)
 # 3. open the viewer (hot-reloads when step 2 is re-run)
 godot --path game
 ```
