@@ -124,6 +124,27 @@ impl Ptt {
         Ok(jpeg)
     }
 
+    /// Decoded elevation grid (128×128, row-major, raw unsigned units; see `docs/formats/ptt.md`).
+    /// `None` when the tile carries no elevation block.
+    pub fn tile_heights(&mut self, tile: &TileEntry) -> Result<Option<Vec<u16>>, Error> {
+        if tile.height_size == 0 {
+            return Ok(None);
+        }
+        let n = TILE_PIXELS as usize;
+        let raw = crate::lzo::decompress(&self.tile_heights_raw(tile)?, n * n * 2)?;
+        if raw.len() != n * n * 2 {
+            return Err(Error::Format(format!("PTT: elevation block is {} bytes, expected {}", raw.len(), n * n * 2)));
+        }
+        let mut h: Vec<u16> = raw.chunks_exact(2).map(|b| u16::from_le_bytes([b[0], b[1]])).collect();
+        // Each row is delta-coded along x.
+        for row in h.chunks_exact_mut(n) {
+            for x in 1..n {
+                row[x] = row[x].wrapping_add(row[x - 1]);
+            }
+        }
+        Ok(Some(h))
+    }
+
     /// Raw (still compressed) elevation block of a tile.
     pub fn tile_heights_raw(&mut self, tile: &TileEntry) -> Result<Vec<u8>, Error> {
         self.read_at(tile.offset + tile.jpeg_size as u64, tile.height_size as usize)
