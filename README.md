@@ -11,6 +11,43 @@ modern graphics. No original game assets are stored in this repository.
 - `docs/formats/` – reverse-engineered file format notes
 - `assets/` – generated from your ISO (git-ignored)
 
+## Requirements
+
+### What you need from the original game
+- `Jane's IAF.iso` — the original CD image (English, v1.0).
+- *(later)* the v1.1 patch `iafp1_1.exe` — not used yet.
+
+### Arch Linux packages
+| package | source | needed for |
+|---------|--------|------------|
+| `rustup` (then `rustup default stable`) | extra | building the tools (`crates/`) |
+| `godot` (4.7+) | extra | running the viewer / game (`game/`) |
+| `vulkan-intel` / `vulkan-radeon` / `nvidia-utils` (match your GPU) | extra | Vulkan rendering + GPU upscaling |
+| `realesrgan-ncnn-vulkan` (or `-bin`) | AUR | *optional*: AI 4× texture upscaling in `iaf-convert` |
+
+```sh
+sudo pacman -S --needed rustup godot vulkan-intel
+rustup default stable
+paru -S realesrgan-ncnn-vulkan   # optional, for upscaled textures
+```
+
+Handy for development (not required): `ffmpeg` (image/video inspection), `python` (quick format probes).
+
+### macOS (planned, untested)
+`brew install rustup godot` (Godot as a cask), then `rustup default stable`. Real-ESRGAN ships a macOS build on its
+[GitHub releases](https://github.com/xinntao/Real-ESRGAN/releases) page.
+
+## Quick start
+```sh
+# 1. unpack the original game from the CD image
+cargo run --release -p iaf-tools --bin iaf-extract -- "/path/to/Jane's IAF.iso" assets/install
+# 2. convert the aircraft models to glTF (+ PNG textures)
+cargo run --release -p iaf-tools --bin iaf-convert -- planes assets/install assets/converted/planes
+# 3. open the viewer (hot-reloads when step 2 is re-run)
+godot --path game
+```
+The conversion is a one-time step; re-run it only after updating the converter or adding packs.
+
 ## Getting the game data
 ```sh
 cargo run --release -p iaf-tools --bin iaf-extract -- "/path/to/Jane's IAF.iso" assets/install
