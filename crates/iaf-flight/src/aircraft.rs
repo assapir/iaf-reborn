@@ -273,14 +273,13 @@ impl Aircraft {
 
     /// Nose-wheel steering (§7, `FUN_005b7a20`): yaw rate = clamp(input · V · K / 74.53, ±K) with
     /// K = 20°/s (`DAT_00840864`, set at load by `0x5b7960` to 1° · 20), zero with the gear up and
-    /// below 1e-4 rad/s. The input is the rudder (`S+0x2ec`); the stick also steers on the ground,
-    /// as the original instructor explains (UNCERTAIN where the original merges them).
+    /// below 1e-4 rad/s. The input is the rudder (`S+0x2ec`), as in the original's ground roll.
     fn steer(&mut self, dt: f64) {
         const K: f32 = 20.0 * std::f32::consts::PI / 180.0;
         if !self.controls.gear_down {
             return;
         }
-        let input = (self.controls.rudder + self.controls.stick_x).clamp(-1.0, 1.0);
+        let input = self.controls.rudder;
         let (vel, _) = self.speed_at(self.t);
         let v = dot(vel, self.ground_dir).max(0.0) as f32;
         let rate = (input * v * K / 74.53).clamp(-K, K);
