@@ -65,9 +65,13 @@ func _ready() -> void:
 	var rud := args.find("--rudder")
 	if rud >= 0:
 		scripted_rudder = float(args[rud + 1])
-	gear_down = args.has("--gear")
-	flaps = 1.0 if args.has("--flaps") else 0.0
-	brakes = args.has("--brakes")
+	# Test flags only override the start state (a mission starts with gear, flaps and brakes).
+	if args.has("--gear"):
+		gear_down = true
+	if args.has("--flaps"):
+		flaps = 1.0
+	if args.has("--brakes"):
+		brakes = true
 	frozen = args.has("--freeze")
 	var thr := args.find("--throttle")
 	if thr >= 0:
