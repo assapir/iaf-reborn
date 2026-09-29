@@ -316,6 +316,12 @@ func _apply_view() -> void:
 	chase.look_at(rig.global_position, Vector3.UP)
 
 
+## Any throttle command starts the engine (FUN_0059cb60 sets S+0x1d0), even at idle.
+func _throttle_event() -> void:
+	if flight != null:
+		flight.set_engine_on(true)
+
+
 ## The gear lever (docs/flight-model.md §12): raising it is ignored on the ground, lowering it
 ## is refused above 300 kt true airspeed; both silently.
 func _toggle_gear() -> void:
@@ -361,11 +367,14 @@ func _unhandled_input(event: InputEvent) -> void:
 				in_cockpit = false
 			KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8:
 				throttle = THROTTLE_PRESETS[event.keycode - KEY_1]
+				_throttle_event()
 			# "0" / "9": RPM +/- 5 % = throttle +/- 0.0925 (events 3/4, docs/flight-model.md §8).
 			KEY_0:
 				throttle = minf(throttle + 0.0925, 1.0)
+				_throttle_event()
 			KEY_9:
 				throttle = maxf(throttle - 0.0925, 0.0)
+				_throttle_event()
 			KEY_S:
 				cockpit.radar_mfd().radar_mode = 1  # radar standby (event 0x2c)
 			KEY_W:

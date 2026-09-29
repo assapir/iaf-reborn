@@ -260,7 +260,9 @@ func _draw_tsd() -> void:
 			for w in poly.points:
 				pts.append(to_mfd.call(w))
 			for piece in Geometry2D.intersect_polygons(pts, clip):
-				draw_colored_polygon(piece, poly.color)
+				# Skip slivers the clipper leaves (they don't triangulate).
+				if piece.size() >= 3 and not Geometry2D.triangulate_polygon(piece).is_empty():
+					draw_colored_polygon(piece, poly.color)
 	# Fixed symbology: range circle r=22, ownship, outer ring r=44 with SCL.
 	draw_arc(Vector2(65, 85), 22, 0, TAU, 48, GREEN, 1.0)
 	if tsd_options[3]:
