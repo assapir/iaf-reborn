@@ -36,15 +36,24 @@ pub fn find_texture(name: &str, dirs: &[PathBuf]) -> Option<PathBuf> {
     dirs.iter().map(|d| d.join(&lower)).find(|p| p.is_file())
 }
 
-/// Loads a BMP/TGA and applies the cyan colour key for 8-bit images.
+/// Loads a BMP/TGA and applies the cyan colour key for images without alpha.
 pub fn load_texture(path: &Path) -> Result<(RgbaImage, bool)> {
+    load_texture_keyed(path, &[COLOR_KEY])
+}
+
+/// Colour keys used by the cockpit art: the 8-bit palettes use pure cyan, the
+/// 24-bit panels (0, 210, 255).
+pub const COCKPIT_KEYS: &[[u8; 3]] = &[COLOR_KEY, [0, 210, 255]];
+
+/// Like [`load_texture`], with explicit colour keys.
+pub fn load_texture_keyed(path: &Path, keys: &[[u8; 3]]) -> Result<(RgbaImage, bool)> {
     let img = image::open(path).with_context(|| format!("decoding {}", path.display()))?;
     let has_alpha = img.color().has_alpha();
     let mut rgba = img.to_rgba8();
     let mut transparent = has_alpha && rgba.pixels().any(|p| p[3] < 255);
     if !has_alpha {
         for p in rgba.pixels_mut() {
-            if p.0[0..3] == COLOR_KEY {
+            if keys.iter().any(|k| p.0[0..3] == *k) {
                 p[3] = 0;
                 transparent = true;
             }

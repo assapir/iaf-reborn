@@ -76,7 +76,7 @@ const SHARED_COCKPIT_IMAGES: &[&str] = &["mfds.bmp", "rwrsymb.bmp", "isr.bmp"];
 
 fn convert_cockpit(install: &Path, name: &str, out: &Path, opts: &Options) -> Result<()> {
     use iaf_formats::ini::Ini;
-    use iaf_tools::gltf::{COLOR_KEY, load_texture};
+    use iaf_tools::gltf::{COCKPIT_KEYS, COLOR_KEY, load_texture_keyed};
     let root = install.join("resource/cockpits");
     let dir = root.join(name.to_lowercase());
     std::fs::create_dir_all(out)?;
@@ -103,7 +103,7 @@ fn convert_cockpit(install: &Path, name: &str, out: &Path, opts: &Options) -> Re
         .collect();
     images.extend(SHARED_COCKPIT_IMAGES.iter().map(|f| root.join(f)));
     for src in images {
-        let (img, transparent) = load_texture(&src)?;
+        let (img, transparent) = load_texture_keyed(&src, COCKPIT_KEYS)?;
         let img = match &opts.upscaler {
             Some(u) => u.upscale(&img, transparent.then_some(COLOR_KEY))?,
             None => img,

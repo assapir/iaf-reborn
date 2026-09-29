@@ -1,7 +1,8 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://terrain/terrain_view.gd" id="1"]
 [ext_resource type="Script" path="res://terrain/terrain.gd" id="2"]
+[ext_resource type="PackedScene" path="res://cockpit/cockpit.tscn" id="3"]
 
 [sub_resource type="ProceduralSkyMaterial" id="sky_mat"]
 sky_top_color = Color(0.22, 0.42, 0.75, 1)
@@ -43,12 +44,22 @@ directional_shadow_max_distance = 2000.0
 [node name="Terrain" type="Node3D" parent="."]
 script = ExtResource("2")
 
-[node name="Camera" type="Camera3D" parent="."]
+[node name="Rig" type="Node3D" parent="."]
+
+[node name="Camera" type="Camera3D" parent="Rig"]
 near = 0.5
 far = 120000.0
 fov = 60.0
+
+[node name="Chase" type="Camera3D" parent="."]
+near = 0.5
+far = 120000.0
 
 [node name="HUD" type="Label" parent="."]
 offset_left = 16.0
 offset_top = 12.0
 theme_override_font_sizes/font_size = 16
+
+[node name="CockpitLayer" type="CanvasLayer" parent="."]
+
+[node name="Cockpit" parent="CockpitLayer" instance=ExtResource("3")]
