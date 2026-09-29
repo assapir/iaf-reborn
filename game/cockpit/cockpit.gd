@@ -22,8 +22,11 @@ var state := {
 	"pitch": 0.0, "roll": 0.0, "heading": 0.0, "aoa": 0.0, "g": 1.0,
 	"rpm": 0.0, "throttle": 0.0, "fuel_lbs": 0.0,
 }
-## Look down at the full panel (the original's "panel down" view) instead of the forward view.
-var view_down := false
+## How far the panel is raised: 0 = forward view (original MainOffsetY), 1 = full panel
+## ("panel down" view). `panel_target` is where it is sliding to.
+var panel_shift := 0.0
+var panel_target := 0.0
+const PANEL_SLIDE_SPEED := 2.5  # full travel per second
 ## 1.0 = the original proportions (640x480 scaled to the screen); smaller shows more world.
 var zoom := 0.75
 const ZOOM_MIN := 0.45
@@ -71,7 +74,7 @@ func world_fov(base_fov: float) -> float:
 func panel_top() -> float:
 	var p: Dictionary = layout.get("PANEL", {})
 	var height: float = p.get("PanelHeight", 352)
-	var shown: float = height if view_down else height - p.get("MainOffsetY", 190)
+	var shown: float = height - p.get("MainOffsetY", 190) * (1.0 - panel_shift)
 	return size.y - shown * ui_scale()
 
 
@@ -93,7 +96,18 @@ func camera_pitch_offset(vertical_fov_deg: float) -> float:
 	return atan((size.y / 2 - boresight().y) / f)
 
 
-func _process(_delta: float) -> void:
+## Slide the panel up (positive) or down while a key is held.
+func slide_panel(amount: float) -> void:
+	panel_target = clamp(panel_shift + amount, 0.0, 1.0)
+
+
+## V: jump to the other end of the travel (animated).
+func toggle_panel() -> void:
+	panel_target = 0.0 if panel_target > 0.5 else 1.0
+
+
+func _process(delta: float) -> void:
+	panel_shift = move_toward(panel_shift, panel_target, PANEL_SLIDE_SPEED * delta)
 	queue_redraw()
 	hud.queue_redraw()
 

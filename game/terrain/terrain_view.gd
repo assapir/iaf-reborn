@@ -1,5 +1,5 @@
 # Terrain fly-over with the original 2D F-16 cockpit and an external view of your jet.
-#   F1: cockpit   F2: external   C: toggle   V: panel down view   +/- or wheel (cockpit): zoom
+#   F1: cockpit   F2: external   C: toggle   V: panel up/down   PgUp/PgDn: slide panel   +/- or wheel: zoom
 #   Arrows: stick (pitch / roll, body axes)   Z/X: rudder   W/S: speed   Shift: 8x speed
 #   External: RMB-drag orbits the camera, wheel zooms.
 #   `godot --path game res://terrain/terrain_view.tscn -- --screenshot out.png [--at x z alt heading pitch [roll]] [--external]`
@@ -138,7 +138,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_MINUS, KEY_KP_SUBTRACT:
 				_zoom_cockpit(-0.05)
 			KEY_V:
-				cockpit.view_down = not cockpit.view_down
+				cockpit.toggle_panel()
 
 
 func _process(delta: float) -> void:
@@ -152,6 +152,8 @@ func _process(delta: float) -> void:
 	b = b.rotated(b.z.normalized(), -roll_in * 3.0 * delta)
 	b = b.rotated(b.y.normalized(), -yaw_in * 0.4 * delta)
 	rig.basis = b.orthonormalized()
+	if Input.is_key_pressed(KEY_PAGEUP): cockpit.slide_panel(cockpit.PANEL_SLIDE_SPEED * delta)
+	if Input.is_key_pressed(KEY_PAGEDOWN): cockpit.slide_panel(-cockpit.PANEL_SLIDE_SPEED * delta)
 	if Input.is_key_pressed(KEY_W): speed = min(speed + 60.0 * delta, 700.0)
 	if Input.is_key_pressed(KEY_S): speed = max(speed - 60.0 * delta, 0.0)
 	var s := speed * (8.0 if Input.is_key_pressed(KEY_SHIFT) else 1.0)
@@ -166,7 +168,7 @@ func _process(delta: float) -> void:
 	var p := rig.position
 	var ground = terrain.height_at(p)
 	var agl := "" if ground == null else "  (%.0f m above ground)" % (p.y - ground)
-	hud_label.text = "x %.1f km  y %.1f km  alt %.0f m%s   chunks %d   %d fps\n[F1] cockpit  [F2] external  [C] toggle  [V] panel down  [+/-] zoom  [arrows] stick  [Z/X] rudder  [W/S] speed  [Shift] 8x  [RMB] orbit (external)  [Wheel] zoom" % [
+	hud_label.text = "x %.1f km  y %.1f km  alt %.0f m%s   chunks %d   %d fps\n[F1] cockpit  [F2] external  [C] toggle  [V/PgUp/PgDn] panel  [+/-] zoom  [arrows] stick  [Z/X] rudder  [W/S] speed  [Shift] 8x  [RMB] orbit (external)  [Wheel] zoom" % [
 		p.x / 1000.0, p.z / 1000.0, p.y, agl, terrain.loaded_count(), Engine.get_frames_per_second()]
 
 
