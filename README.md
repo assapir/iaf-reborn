@@ -76,8 +76,8 @@ Community mods (e.g. Hebrew briefings) can be imported as overlay packs — see 
 
 | key            | action                                                                    |
 | -------------- | ------------------------------------------------------------------------- |
-| arrows         | stick (↑ forward = nose down, ↓ pull), sprung                             |
-| Z / X          | rudder; also steers the nose wheel on the ground (provisional key)        |
+| arrows         | stick (↑ forward = nose down, ↓ pull), sprung; ←/→ steer the nose wheel on the ground |
+| Ins / Del (Numpad 0 / .) | rudder (ignored on the ground, as in the original)              |
 | 1–8            | throttle presets idle, 65, 70, 80, 90 %, military, AB1, AB2; **1 starts the engine** |
 | 0 / 9          | throttle +/− 5 % RPM                                                      |
 | G / F / B      | gear / flaps / brakes (wheel brakes on the ground, speed brake in the air) |

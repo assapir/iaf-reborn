@@ -267,23 +267,91 @@ if !((V > 74.53 || sp > 0.5) && (gearDown || AI || pref+0x3c || easy)): L = 0
 mu = brakes[6] * WheelsBrakeDI * (AI ? 2 : 1) + DAT_0084083c(=0, never written)
 if !gearDown && !AI && !easy: mu = 20                      // belly landing
 D = Drag(alpha=0, n=L/(m g)) + 0.5*mu*(m*9.806 - L);  D = max(D,0);  if V > 1: D *= 0.7
-T = max(T,0);  nose-wheel yaw rate = clamp(ru*V*DAT_00840864/74.53, ±DAT_00840864) (0 if gear up;
-DAT_00840864 never written → UNCERTAIN)
+T = max(T,0);  nose-wheel yaw rate = clamp(sx*V*K/74.53, ±K), K = DAT_00840864 = 20°/s = 0.3490659 rad/s
+(0 if gear up; 0 if |rate| < 1e-4).  sx = stick X S+0x2e8, NOT the rudder (see "Nose-wheel steering input")
 ```
 The single "Brakes in/out" key drives ramp `S+0x360`, used as speed brake in the air and wheel brake
 on the ground (UNCERTAIN mapping of events 7/8 = gear anim `S+0x320` / parachute `S+0x340`).
+
+### Nose-wheel steering input
+**Rule: on the ground the nose wheel is steered by the stick's roll axis (`S+0x2e8`), always, with no
+conversion step. The rudder input is ignored on the ground.** This matches the instructor line "The stick
+controls the nose wheel steering." Nothing converts stick X into a rudder input (motion 5), either on the
+ground or as an airborne auto-rudder.
+
+Evidence (all checked in objdump):
+* **Call chain, stick X → nose wheel.** `5a15e0` @5a48ec–5a4963 pushes the args of `FUN_005b0a20`
+  (`ecx` = FM params). Stack arg 6 is `S+0x2a0` (ground flag, tested as `param_7`). Stack args 15/16/17 are
+  `S+0x2e4` (stick Y), `S+0x2e8` (stick X) and `S+0x2ec` (rudder); arg 18 is the vehicle.
+  The ground branch @5b0a3c–5b0b2e forwards 30 stack args to `FUN_005b7a20` (`ret 0x78`). b0a20 args 6/7 and 29
+  are dropped, so 7a20 stack arg 14 (`param_15`) = b0a20 arg 16 = **stick X**, `param_14` = stick Y and
+  `param_16` = rudder. Ghidra's display of these argument lists is shifted by one; the push order is authoritative.
+  In 7a20 the yaw rate is computed @5b7da6: `fld [esp+0x5c]` (entry+0x38 = `param_15`) `fmul [esp+0x2c]` (V)
+  `fmul [0x840864]` `fdiv [0x60e568]` (74.53). `param_16` (rudder) is never read in 7a20.
+  The earlier notes here said "`ru`"/"rudder"; that was wrong.
+* **The rudder handler ignores the ground.** Motion 5 `FUN_0059c910` @59c934 stores
+  `S+0x2e0`/`S+0x2ec = clamp(in+0x10, ±1)` and starts the ×0.3926 ramp only if `S+0x2a0 == 0`. On the ground
+  the command is dropped, and `S+0x2ec` keeps its last airborne value. The only other writer is the init
+  @5b7119, which sets it to 0. In the air, `S+0x2ec` feeds `FUN_005b1840` (@5a1e18 in `5a15e0`), which
+  returns `(ru − x·k)·P+0xb8`, the β command for the beta ramp (§5).
+* **Stick handler.** Motion 1 `FUN_0059c740` writes `S+0x2e8 = clamp(in+0x14, ±1)` (X) and
+  `S+0x2e4 = −clamp(in+0x10, ±1)` (Y). It has no ground test. `FUN_0044de50` type 1 sets
+  `+0x14 = arg[0]·0.01` and `+0x10 = arg[1]·0.01` (`0x5fcc80` = 0.01). The controller `FUN_004493a0` case 1 (@44b153)
+  posts motion 1 with the raw `(x,y)` in the range ±100. When indicator 8 is set (UNCERTAIN: autopilot) and
+  |x| or |y| ≥ 51, it first clears that indicator. Case 10 posts motion 5. Cases 2/3 fall to the default
+  and return (jump table `0x44c714`, index bytes `0x44c81c`).
+* **K = 20°/s.** `DAT_00840864` is set by a static initialiser: CRT table `.data 0x62372c` → `0x5b7950` →
+  @5b7960 `K = DAT_00840844 · 20.0` (`0x60e584`). `DAT_00840844` is set by initialiser `0x623728` →
+  `0x5b7780` = 1.0° (`0x60e578`) wrapped and converted to radians = 0.01745329. So K = 0.3490659 rad/s.
+  Ghidra misses both writes.
+
+**Keyboard path (`FUN_004df3d0`, key → `WM 0x532`).** The "Roll left/right" keys send GEV 2 and
+"Pitch up/down" send GEV 3. Before sending, `FUN_004df3d0` rewrites both into **GEV 1 (stick)**:
+* GEV 2: x = the key's lParam, y = the last keyboard y `DAT_0082ee9c`; x is stored in `DAT_0082ee98`.
+* GEV 3: the same with the axes swapped.
+
+So a keyboard-only player steers the nose wheel with **Left/Right arrow** as a full ±1 stick X while the key
+is held. The release record sends x = 0.
+GEV 2/3 keys are dropped when `this+0x24 && this+0x18`. GEV 10 rudder keys are dropped when
+`this+0x2c && this+0x20`. GEV 5/6/9 throttle keys are dropped when `this+0x28 && this+0x1c`.
+(UNCERTAIN: these are "joystick stick/rudder/throttle axis in use" flags. The DirectInput poller `FUN_004dddb0` sends
+GEV 1 from lX/lY when `+0x24`, GEV 9 from the throttle axis when `+0x28`, and GEV 10 from a 4th axis
+(`param_6`, rudder pedals/twist) when `+0x2c`.) No code path turns the Rudder keys into stick X on the ground,
+and none adds rudder from roll.
+
+**Default key table.** `0x647ff8 + n·0x24`, n = keys.trx line (0-based), 117 records, copied into the
+runtime table `0x836e14` (`rep movs 0x41d` @4eef80; "defaults" button @5102a5). Record layout:
+* +0 press GEV, +4/+8 press arg (x, y); +0xc release GEV, +0x10/+0x14 release args;
+* +0x18 key: DirectInput DIK code (ushort), modifier byte at +0x1a (0x22 = Shift, e.g. Shift+W);
+* +0x1c: −1, overwritten by a file loader @4dff56 (UNCERTAIN);
+* +0x20: 1 = one-shot, 0 = held with release.
+
+The key code of record k is at `0x648010 + k·0x24`, which is where the `0x648010` in docs/mfd.md comes from.
+
+| n | keys.trx | Default key | Press → release |
+|---|---|---|---|
+| 24 | Pitch up | Up arrow (DIK 0xc8) | GEV 3 (0,+100) → GEV 3 (0,0) |
+| 25 | Pitch down | Down arrow (0xd0) | GEV 3 (0,−100) → GEV 3 (0,0) |
+| 26 | Roll left | Left arrow (0xcb) | GEV 2 (−100) → GEV 2 (0) |
+| 27 | Roll right | Right arrow (0xcd) | GEV 2 (+100) → GEV 2 (0) |
+| 37 | Rudder left | Numpad 0 / Ins (DIK_NUMPAD0 0x52) | GEV 10 (−100) → GEV 10 (0) |
+| 38 | Rudder right | Numpad . / Del (DIK_DECIMAL 0x53) | GEV 10 (+100) → GEV 10 (0) |
+
+For the port: on the ground, yaw rate = `clamp(stickX·V·0.3490659/74.53, ±0.3490659)` rad/s, i.e. full
+steering authority at 74.53 m/s and above. It is 0 with the gear up. Ignore the rudder while `S+0x2a0` ≠ 0.
+The sign convention of the yaw rate (right stick → right turn) was not traced (UNCERTAIN).
 
 ## 8. Controls / keys (dispatcher `FUN_0059c4f0`, event type → handler)
 1 stick (`FUN_0059c740`): `S+0x2e4 = −clamp(y,−1,1)`, `S+0x2e8 = clamp(x,−1,1)`; ×0.25 when
 input-mode 0x12 active, zeroed by 0x18 (UNCERTAIN meaning). 2 throttle (`FUN_0059cb60`): clamp
 [0,1]; crossing into AB (≥0.75) from below sets 0.74 and schedules the AB value after
 `max(0,(100−RPM%)·0.0667)` s (`FUN_0059cea0`); any throttle change turns the engine on (`S+0x1d0`).
-3/4 RPM ±5 %: throttle ±0.0925 (`FUN_0059c6a0`/`c6e0`). 5 rudder (`S+0x2ec`, ramp ×0.3926).
+3/4 RPM ±5 %: throttle ±0.0925 (`FUN_0059c6a0`/`c6e0`). 5 rudder (`S+0x2ec`, ramp ×0.3926; ignored on the ground, see §7).
 6 flaps (`S+0x300`, ×0.33 target for aircraft type 100), 7/8/9 ramps `S+0x320/0x340/0x360`.
 Throttle presets from keys.trx map naturally to RPM: idle 0, 65 % 0.0925, 70 % 0.185,
 80 % 0.37, 90 % 0.555, military 0.74, AB1 [0.75,0.875), AB2 ≥0.875 (preset values themselves not
 found; UNCERTAIN). Key names are loaded from `keys.trx` into `0x82eea8` (100-byte stride) by
-`FUN_004e24d0`; the default key→command table was not located.
+`FUN_004e24d0`; the default key→command table is at `0x647ff8` (record layout in §7 "Nose-wheel steering input").
 
 ## 9. Misc
 * g = 9.806 everywhere; lbf→N 4.4479; dt clamps: ramps 3.5 s, angles/axes 1.1 s.
@@ -312,7 +380,7 @@ found; UNCERTAIN). Key names are loaded from `keys.trx` into `0x82eea8` (100-byt
 Generic for every aircraft (no per-type data involved).
 
 **Key → event chain.** Key bindings live in a runtime table at `0x836e14` (stride 0x24: press cmd,
-press lParam, release cmd/lParam, key code `ushort`+modifier at +0x18; defaults not located, keys.trx
+press lParam, release cmd/lParam, key code `ushort`+modifier at +0x18; defaults at `0x647ff8`, see §7; keys.trx
 only supplies the display names). `FUN_004df3d0` sends `WM 0x532, wParam = GEV code` → handler
 `0x4e1c20` (MFC map entry @`0x601918`; codes 0x7d–0x89 are UI, all others fall to `0x4e1f45`) →
 `FUN_005bc4a0` (ManageUnit log) → `FUN_004ccb80` queues a `SimGameEventNode` → the player controller

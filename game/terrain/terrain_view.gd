@@ -1,6 +1,6 @@
 # Terrain fly-over with the original 2D F-16 cockpit and an external view of your jet.
 #   F1: cockpit   F2: external   C: toggle   V: panel up/down   PgUp/PgDn: slide panel   +/- or wheel: zoom
-#   Arrows: stick (sprung: hold to deflect, release to centre)   Z/X: rudder
+#   Arrows: stick (sprung: hold to deflect, release to centre)   Ins/Del (Numpad 0/.): rudder
 #   1..8: throttle presets idle / 65 / 70 / 80 / 90 % / military / AB1 / AB2 (1 also starts the engine)   0/9: throttle +/- 5 %   G: gear   F: flaps   B: brakes
 #   External: RMB-drag orbits the camera, wheel zooms.
 #   `godot --path game res://terrain/terrain_view.tscn -- [--mission 311] [--real] [--screenshot out.png]
@@ -477,7 +477,7 @@ func _process(delta: float) -> void:
 	var ground_h = terrain.height_at(p)
 	var agl := "" if ground_h == null else "  (%.0f m above ground)" % (p.y - ground_h)
 	var st2: Dictionary = cockpit.state
-	hud_label.text = "%s%s   x %.1f km  y %.1f km  alt %.0f m%s   %d kt  %.1f g  thr %d%%%s%s%s   %d fps\n[F1] cockpit  [F2] external  [C] toggle  [V/PgUp/PgDn] panel  [+/-] zoom  [arrows] stick  [Z/X] rudder  [1-8, 0/9] throttle  [G] gear  [F] flaps  [B] brake" % [
+	hud_label.text = "%s%s   x %.1f km  y %.1f km  alt %.0f m%s   %d kt  %.1f g  thr %d%%%s%s%s   %d fps\n[F1] cockpit  [F2] external  [C] toggle  [V/PgUp/PgDn] panel  [+/-] zoom  [arrows] stick  [Ins/Del] rudder  [1-8, 0/9] throttle  [G] gear  [F] flaps  [B] brake" % [
 		"REAL DATA" if real_data else "ORIGINAL 1998 DATA", ("   mission: " + mission_name) if mission_name != "" else "", p.x / 1000.0, p.z / 1000.0, p.y, agl, st2.speed_kt, st2.g, int(throttle * 100),
 		"  GEAR" if gear_down else "", "  FLAPS" if flaps > 0 else "", "  BRAKE" if brakes else "", Engine.get_frames_per_second()]
 
@@ -504,6 +504,8 @@ func _read_controls(delta: float) -> void:
 			stick[i] = move_toward(stick[i], want[i], STICK_RATE * delta)
 		else:
 			stick[i] = move_toward(stick[i], 0.0, STICK_RETURN * delta)
-	var want_rudder := float(Input.is_key_pressed(KEY_X)) - float(Input.is_key_pressed(KEY_Z))
+	# Original default keys: rudder left Numpad 0 / Ins, right Numpad . / Del (table 0x647ff8).
+	var want_rudder := float(Input.is_key_pressed(KEY_KP_PERIOD) or Input.is_key_pressed(KEY_DELETE)) \
+			- float(Input.is_key_pressed(KEY_KP_0) or Input.is_key_pressed(KEY_INSERT))
 	rudder = move_toward(rudder, want_rudder, (STICK_RATE if want_rudder != 0.0 else STICK_RETURN) * delta)
 
