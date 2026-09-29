@@ -7,6 +7,8 @@ const PATH := "user://settings.cfg"
 var flight_data := "original"
 ## Briefing language: "en" or "he" (Hebrew only when the Hebrew pack is installed).
 var language := "en"
+## Gameplay preference "No blackouts" (original pref, default off = blackouts on).
+var no_blackouts := false
 ## Mission picked in the front end (briefing id, e.g. 311), -1 = free flight.
 var mission_id := -1
 ## Aircraft picked on the Jet list (original ids, FUN_00508470): 0 F-15, 1 F-16, 2 F-4E,
@@ -35,6 +37,7 @@ func _ready() -> void:
 	if cfg.load(PATH) == OK:
 		flight_data = cfg.get_value("gameplay", "flight_data", flight_data)
 		language = cfg.get_value("gameplay", "language", language)
+		no_blackouts = cfg.get_value("gameplay", "no_blackouts", no_blackouts)
 	if language == "he" and not hebrew_available():
 		language = "en"
 
@@ -45,6 +48,7 @@ func save() -> void:
 	var cfg := ConfigFile.new()
 	cfg.set_value("gameplay", "flight_data", flight_data)
 	cfg.set_value("gameplay", "language", language)
+	cfg.set_value("gameplay", "no_blackouts", no_blackouts)
 	cfg.save(PATH)
 
 

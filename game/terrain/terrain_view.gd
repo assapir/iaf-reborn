@@ -45,6 +45,12 @@ var waiting_for_ground := true
 var mission_name := ""
 ## The player's waypoints: [{name, world}] (mission world coordinates).
 var route: Array = []
+var g_effects: Control
+## Flight recorder: the last flight's state twice a second (user://last_flight.csv) for diagnosing
+## glitches reported from play.
+var _log: FileAccess
+var _log_next := 0.0
+var _log_t := 0.0
 ## Lowest the external camera may go above the terrain (metres).
 const CAMERA_MIN_AGL := 0.5
 ## Highest true airspeed at which the gear may be lowered (player controller case 0xe, docs/flight-model.md §12).
@@ -93,6 +99,9 @@ func _ready() -> void:
 	gear_legs = [2, 2, 2] if gear_down else [0, 0, 0]
 	flaps_state = 2 if flaps > 0.0 else 0
 	cockpit.hud.camera = camera
+	g_effects = preload("res://cockpit/g_effects.gd").new()
+	g_effects.disabled = Settings.no_blackouts
+	$CockpitLayer.add_child(g_effects)
 	cockpit.waypoints = route
 	_start_flight()
 	_apply_view()
@@ -442,6 +451,24 @@ func _update_indicators(delta: float) -> void:
 	cockpit.indicators[5] = brakes  # air brake light follows the brakes toggle
 
 
+func _record(st: Dictionary, delta: float) -> void:
+	_log_t += delta
+	if _log == null:
+		_log = FileAccess.open("user://last_flight.csv", FileAccess.WRITE)
+		if _log == null:
+			return
+		_log.store_line("t,x,y,alt_m,ground_m,speed_kt,on_ground,engine,throttle,brakes,gear,stick_x,stick_y,heading,pitch,fps")
+	if _log_t < _log_next:
+		return
+	_log_next = _log_t + 0.5
+	var ground = terrain.height_at(rig.position)
+	_log.store_line("%.1f,%.1f,%.1f,%.1f,%s,%.1f,%s,%s,%.2f,%s,%s,%.2f,%.2f,%.1f,%.1f,%d" % [
+		_log_t, rig.position.x, rig.position.z, rig.position.y, "%.1f" % ground if ground != null else "none",
+		st.speed_kt, st.on_ground, st.get("engine_on", true), throttle, brakes, gear_down, stick.x, stick.y,
+		st.heading, st.pitch, Engine.get_frames_per_second()])
+	_log.flush()
+
+
 ## Any throttle command starts the engine (FUN_0059cb60 sets S+0x1d0), even at idle.
 func _throttle_event() -> void:
 	if flight != null:
@@ -568,6 +595,9 @@ func _process(delta: float) -> void:
 		rig.basis = Basis(st.right, st.up, -st.forward)
 		for k in ["speed_kt", "mach", "alt_ft", "vs_fpm", "pitch", "roll", "heading", "aoa", "g", "rpm", "throttle", "fuel_lbs"]:
 			cockpit.state[k] = st[k]
+		_record(st, delta)
+		g_effects.g = st.g
+		g_effects.over_g = st.over_g
 		cockpit.state["world"] = Vector2(terrain.world_origin.x + rig.position.x, terrain.world_origin.y - rig.position.z)
 		cockpit.hud.velocity_dir = st.velocity.normalized() if st.velocity.length() > 1.0 else null
 	if aircraft != null:

@@ -264,10 +264,10 @@ impl Aircraft {
                 self.next_accel += ACCEL_PERIOD;
             }
         }
+        self.t = end;
         if self.on_ground {
             self.steer(dt);
         }
-        self.t = end;
         self.ground_contact();
     }
 
@@ -299,8 +299,8 @@ impl Aircraft {
         let (s, c) = a.sin_cos();
         let d = self.ground_dir;
         self.ground_dir = norm([d[0] * c - d[1] * s, d[0] * s + d[1] * c, 0.0]);
-        // Carry the velocity round with the wheels.
-        let t = self.t + dt;
+        // Carry the velocity round with the wheels (at the current time).
+        let t = self.t;
         self.ground_roll_update(t, self.lift.sample(t));
     }
 

@@ -86,7 +86,8 @@ the Log screen (not traced).
   * Jet 9 → Basic; Jet 10 → Combat
   * His/Fut → Camp; mission lists → their war
   * TSD → the previous screen, after the dialog "Are you sure you want to quit the mission?" (Yes/No).
-  * On Arm, BACK has no case, so it does nothing (UNCERTAIN; use the TacticalDisplay button).
+  * On Arm, BACK goes back to the TSD. The frame calls content vfunc `+0xd4` (`FUN_00505ac0`), which
+    validates the loadout and asks "Use weapon load?" first (§15).
 * **MAIN** (`FUN_004eb7d0`) goes to Main. From TSD or Arm it first asks msg 8 (Yes/No).
 * **QUIT** is handled by the same function as MAIN, `FUN_004eb7d0`, and **does ask for confirmation**.
   * On screens 0/1 it first checks the content window's "can leave" query (vtable `+0xd8`). It then
@@ -125,7 +126,8 @@ the Log screen (not traced).
   `lfHeight = -round(cy*p/100 + 0.5)` (constants `0x602660` = 0.01, `0x602664` = -0.5). With
   Arial, `cy≈112`, so p=10 → about 11 px em and p=11 → about 12 px (UNCERTAIN: exact `cy`).
 * **`fnt/cr0..cr4.ttf` (Gill Sans variants) are only `AddFontResource`d for the credits sequence**
-  (`FUN_004e11c0` around `4e1700`, removed at `4e179f`). No menu screen uses them.
+  (`FUN_004e11c0` around `4e1700`, removed at `4e179f`). No menu screen uses them. The Pilot Records
+  Kills/Losses pages load two other font files, `fnt/key.fnt` and `fnt/hud.fnt` (§13.10).
 * Button labels are bitmaps (palette, misc, mbg art). They are not text.
 * Mission/course list (`FUN_00508590`), transparent background:
   * title: Arial p11 weight 500, RGB(0,255,0), `DT_SINGLELINE|DT_BOTTOM`
@@ -166,7 +168,8 @@ Moving off a button restores smain. Hover is driven by the frame's MOUSEMOVE (`4
   * `id` becomes the mission id (`DAT_00836c88`) when the button is pressed (`508f30`).
   * If `f2`≠0 (the Jet list), pressing the button also starts **loading the mission**
     (`FUN_004ec6a0`): content shows `mis/wait.bmp` and the music fades out over 6 s.
-  * Rows are disabled (button `_3`) for missions whose prerequisite is not passed (`FUN_004efcd0`, `4f5440`).
+  * Rows are disabled (button `_3`) for missions whose prerequisite is not passed (`FUN_004efcd0`,
+    `4f5440`). The exact rule is in §13.11: only Future missions 2–7 are ever locked.
   * `FUN_005082b0` disables certain jets per mission (e.g. id 314, 322, 323, 325).
 
 ### 5.3 Screen flow (`FUN_004eaf50`, button-release dispatcher)
@@ -194,6 +197,7 @@ Button-release dispatcher `FUN_004eaf50`. Labels are compared ignoring case, spa
 | His (0xc) | Six_Day_War→0xe, Yom_Kipur_War→0xf, Lebanon_War→0x10 |
 | Fut (0xd) | Syrian_Front→0x11, Iraqi_Front→0x12, Lebanese_Front→0x13 |
 | TSD (0x1e) | Arm→0x1f |
+| Arm (0x1f) | TacticalDisplay / BACK → TSD 0x1e; Fly → flight (§15) |
 
 BACK (`FUN_004eb990`): 3/5/6/0x15→Main; 7/8→6; 9→7; 10→8; 0xb→Main (single player); 0xc/0xd→0xb;
 0xe–0x10→0xc; 0x11–0x13→0xd; 0x14→Main; 0x16/0x17→0x15; TSD→previous screen (msg 8 Yes/No first;
@@ -226,8 +230,8 @@ Jets disabled per mission (`FUN_005082b0`; rows 0x11c bytes apart in the list ob
   `0xb0000` = close + minimise + maximise buttons.
 * Tab title art: **`framewnd/brief_t.bmp`**.
 * Contents: a RichEdit (`RICHED32`) loaded with `EM_STREAMIN SF_RTF`. The first `<header>`
-  (case-insensitive) is replaced by `"<rank> <callsign>"` (`DAT_00836c98`, `DAT_00836cac`; ranks are
-  "Second Lieutenant"…"General").
+  (case-insensitive) is replaced by `"<rank> <pilot name>"` (`DAT_00836c98`, `DAT_00836cac`; ranks are
+  "Second Lieutenant"…"General"). `DAT_00836cac` is the pilot **name**, not the callsign (§13).
 * **Links** (`FUN_0050c880`): text that is underlined and yellow RGB(255,255,0) is clickable. Hovering
   it shows `Cur/Point.cur`. Clicking takes the underlined run and matches it by name against
   **`<same path>.brl`** (records of 516 bytes: `name[256], int type, path[256]`; paths are relative to
@@ -238,8 +242,8 @@ Jets disabled per mission (`FUN_005082b0`; rows 0x11c bytes apart in the list ob
 | 0 | another RTF (e.g. the **lesson** `\Brief\Text\311_1.rtf`, war history `67.rtf`) | brief_t frame | (W/3, H/2), 2W/3 × H/2 | +0x140 |
 | 1 | UNCERTAIN (`FUN_0050cf80`), no records | frame | (W/2,H/2), W/2×H/2 | +0x148 |
 | 3 | bitmap (e.g. **instructor card `\Brief\Bmp\card.BMP`**, diagrams) | `FUN_0050d310`, style close+min | (W/2, 0), W/2 × H/2 | +0x144 |
-| 2 | 3D model `.x` (aircraft/SAM) | **`obj_t`** frame, 3D view (`FUN_005169f0`) | (12,16) 415×260 | +0x150 |
-| 5 | target: `\Brief\Tar\<id>_N.txt`, whose first line is an object name looked up in the mission (`FUN_00439bb0`) | **`targ_t`** frame (`FUN_005164f0`) | (22,16) 406×322 | +0x14c |
+| 2 | 3D model `.x` (aircraft/SAM) | **`obj_t`** frame, 3D view (`FUN_005169f0`, §11) | (12,16) 415×260 | +0x150 |
+| 5 | target: `\Brief\Tar\<id>_N.txt`, whose first line is an object name looked up in the mission (`FUN_00439bb0`) | **`targ_t`** frame, live 3D camera on the object (`FUN_005164f0`, §10) | (22,16) 406×322 | +0x14c |
 
 * A slot that is already open is reused and reloaded. The 3D-model window and the target window are
   mutually exclusive.
@@ -642,7 +646,7 @@ purpose of `move.cur` and `grab.cur` (UNCERTAIN).
 | thumb | `EM_LINESCROLL(pos − first visible line)` |
 
 * The first `<header>` is found with `EM_FINDTEXTEX` using FR_WHOLEWORD, case-insensitive. It is
-  replaced by `"%s %s"` = rank + callsign.
+  replaced by `"%s %s"` = rank + pilot name.
 * Rank `DAT_00836c98` is set on the pilot-record screen (`51a1fe`) from the pilot's score
   `DAT_008386f0`:
 
@@ -656,8 +660,9 @@ purpose of `move.cur` and `grab.cur` (UNCERTAIN).
 | < 100000 | Colonel |
 | otherwise | General |
 
-* A new pilot has score 0, so the header becomes **"Second Lieutenant <callsign>"**. The callsign
-  `DAT_00836cac` (20 chars) comes from the selected pilot record (`FUN_0051bdd0`).
+* A new pilot has score 0, so the header becomes **"Second Lieutenant <pilot name>"**. The pilot name
+  `DAT_00836cac` (20-byte buffer, record max 10 chars) comes from the selected pilot record
+  (`FUN_0051bdd0`). The callsign is `DAT_00836cc0` and is not used here (§13).
 
 #### BACK / MAIN from the TSD
 
@@ -684,3 +689,971 @@ message `0x55c` to the frame with wParam = the target screen and lParam = the bu
 * `PaletteIn.wav` and `PaletteOut.wav` play with the panel slides (§2).
 * `credits.wav` plays with the credits.
 * `menu_mo.wav` and `menu_mo.pk` are not referenced by name in the exe (UNCERTAIN).
+
+## 10. TSD target window (brl type 5, `targ_t`, `FUN_005164f0`)
+
+**Summary.** This window shows no text and no separate model. It is a **live 3D camera on the named
+mission object**, rendered by the flight engine, with a 15 px tab strip underneath: SATELLITE VIEW,
+ZOOM VIEW and UAV VIEW.
+
+**Opening** (`FUN_005013b0` case 5, `5016a7`–`5017d3`):
+* Path = `sprintf("%s%s", <root 0x831ff8>, brlPath)`, e.g. `\Brief\Tar\113_1.txt`.
+* The file is opened `"r"` and its first line is read with `fgets(buf, 255)` (`565e80`), so a
+  trailing `\n` would stay in the name. None of the 128 shipped files has a newline. Only the unused
+  `b4.txt` has CRLF lines.
+* `FUN_00439bb0(name)` walks the engine object hash and compares `obj->desc(+0x30)->name(+0x20)` with
+  an **exact, case-sensitive strcmp**. It returns the engine object.
+* If the lookup fails, **nothing opens** and no message is shown.
+* If the target slot `TSD+0x14c` is already open, it is retargeted (`FUN_005166b0` → `516870`).
+* Otherwise the 3D-model slot `+0x150` is destroyed first (the two windows are mutually exclusive).
+  A new frame is then created at TSD-client **(22,16), 406×322** (`0x16,0x10,0x196,0x142`), style
+  `0xb0000`.
+* Minimum size 270×146 (`FUN_0050a2e0(0x10e,0x92)`). Tab-title art `framewnd/targ_t.bmp` 78×11.
+* Example data:
+
+  | file | line |
+  |---|---|
+  | `113_1.txt` | `RADARsa2r1` (link "SA-2 battery" in `txt/113.brl`; the object exists in `missions/change.mis`) |
+  | `215_1.txt` | `Bunker` |
+  | `122_1.txt` | `RADAR1 S.A. 2` |
+
+  Names can contain spaces and mixed case (`T55 South 4`, `Syrian Army H.Q.`).
+
+**Layout.** The inner client is the frame minus the 5 px side borders, the 4 px top and bottom
+borders and the 11 px title bar: x=5, y=15, w=cx−10, h=cy−19. For 406×322 that is **396×303**.
+
+| child | class | rect (inner coords) | notes |
+|---|---|---|---|
+| 3D view | `FUN_0050db8b` (0xb30 bytes) | (0,0) w × (h−15) = 396×288 | camera mode 1 on creation |
+| view strip | `FUN_0051c0b0` | (0, h−15) w × 15 | `framewnd/tvw_off.bmp` 480×15, drawn at x0 = (w−480)/2 (C integer division; −42 at w=396). The selected tab is copied from `tvw_on.bmp`. |
+
+`WM_SIZE` (`516980`) re-lays out the same rects. The frame's own `WM_SIZE` is `50a970`.
+
+**View strip tabs.** Source rects in the 480×15 art are at `.rdata 0x608050`. The selected tab is
+`+0x44`, default 0.
+
+| tab | art x range | camera mode | camera |
+|---|---|---|---|
+| 0 **SATELLITE VIEW** | 113–197 | 1 | engine camera type 0x14 (`FUN_0057ee60`): eye = object (x, y−10, z+**7000**), looking straight down (pitch −90) |
+| 1 **ZOOM VIEW** | 197–281 | 2 | as tab 0, but height **2500** |
+| 2 **UAV VIEW** | 282–368 | 3 | engine camera type 0x15 (`FUN_0057ed30`): offset (0,0,**300**), sub-mode 6; view pitch −45 (UNCERTAIN: exact orbit behaviour) |
+
+* A left click (`51c520`) hit-tests the three tab rects, offset by x0 and (h−15−15)/2 = 0. On a hit:
+  * play `ButtonIn.wav` (`0x83644c`);
+  * set the tab;
+  * `RedrawWindow(RDW_INVALIDATE|RDW_UPDATENOW)`;
+  * `view->FUN_0050e6d7(mode)`.
+* A right click only activates the frame (msg 0x54a).
+* The distances 7000, 2500 and 300 are at `.rdata 0x605ca0/ca4/ca8`, in world units (about metres).
+* Initial view values per mode (`FUN_0050e6d7`):
+  * mode 1: pitch −90, dist 20;
+  * mode 2: pitch −90, dist 10;
+  * mode 3: pitch −45, dist 5, zoom limits 0.5..10.
+
+**What is shown.** The flight engine renders the **live mission world**: terrain, objects and the
+current mission time.
+* Render path: `FUN_0050e9a8`, mode ≠ 0 branch (`FUN_004bb110`/`0050f630`/`00586610`), with the camera
+  taken from the engine's camera object, then `FUN_00402140`.
+* There is **no text** in the window. The object name is used only for the lookup.
+* The render runs only on `WM_PAINT`. There is no timer, so the window shows a still image that is
+  refreshed on repaint or when the tab changes (UNCERTAIN whether the engine keeps animating it).
+* Arrow and +/− keys are ignored in modes 1 and 2 (`50f02b`). In mode 3 they change the view's own
+  angles, but the engine camera does not read them (UNCERTAIN: probably no visible effect).
+* The camera is set only if the target's engine body `obj+0x38 ≠ 0` (`57ee60`).
+* The 3D view gets the same 3 px `mv*` bevel as §11.
+
+## 11. TSD 3D-model window (brl type 2, `obj_t`, `FUN_005169f0`)
+
+**Summary.** The left two-thirds is an orbit view of the brl's `_h.x` model. The right third is a
+rich edit showing `<same dir>\<same name>.rtf`. `<name>.cp` sets the zoom limits. The window is
+keyboard-only.
+
+**Opening** (`FUN_005013b0` case 2, `5015d7`):
+* Path = `<root>` + brlPath, e.g. `\3dObjects\NonControllablePlanes\Mig21\Mig21_h.x`.
+* Across all `.brl` files there are 245 type-2 links. The most common targets are F15_h (27), F16_h
+  (22), Mig21_h (20), F42000_h (15) and Zsu234_h (12).
+* One path lacks the `\3dObjects\` prefix: `ControllablePlanes\mirage\mirage_h.x`. It would fail to
+  load (UNCERTAIN).
+* If slot `+0x150` is already open, the model is reloaded (`FUN_00516c50`).
+* Otherwise the target window `+0x14c` is destroyed, and a frame is created at **(12,16), 415×260**
+  (`0xc,0x10,0x19f,0x104`), style `0xb0000`.
+* Minimum size 212×124 (`FUN_0050a2e0(0xd4,0x7c)`). Tab-title art `framewnd/obj_t.bmp` 74×11.
+
+**Layout.** The inner client is 405×241 at frame (5,15). Its inner child is `FUN_00516d10`.
+* **Background**: brush **RGB(94,94,104)** (`CreateSolidBrush(0x685e5e)`, the same grey as the
+  briefing). Paint `517020` only `FillRect`s it.
+* **3D viewport**: rect (10, 20) – (2w/3 − 4, h − 14), i.e. **(10,20) 256×207** for w=405, h=241.
+  * Constants: `.rdata 0x606f90/94/98/9c` = 10, 20, 4, 14.
+  * `2w/3` = trunc(w × 0.6666667) (`0x607088/0x60708c`).
+  * On `WM_SIZE` (`5170d0`) it is re-placed at (10,20) with height h−34 (width UNCERTAIN, about
+    (w−14)·2/3).
+* **Description rich edit** (`FUN_0050be40`, the same class as the briefing, §8.1): rect
+  (2w/3, 0) – (w, h) = **(270,0) 135×241**.
+  * `FUN_0050c500({0,20,0,14})` sets its insets (UNCERTAIN: left/top/right/bottom margins).
+  * `FUN_00516f10` splits the model path and builds `<drive><dir><fname>.rtf` (ext `"rtf"` at
+    `0x656828`), e.g. `3dobjects/noncontrollableplanes/mig21/mig21_h.rtf`. 52 `_h.rtf` files exist.
+  * The file is loaded with `FUN_0050c160(path,0)`. Links work as in the briefing.
+* **Logo**: `framewnd/logo.bmp` 51×22 ("Jane's"), a child of the frame at **(3,4)** on top of the
+  z-order (`FUN_0051c7e0(frame,3,4)`, `.rdata 0x606f88/8c`). It sits over the frame's top-left corner
+  and title bar.
+  * On frame `WM_SIZE` (`516c70`): if the logo is at least as wide as the frame, it is moved off-screen
+    (UNCERTAIN); otherwise it goes back to (3,4).
+* **Viewport bevel**: after each render (`50e9a8`), 3 px pieces are blitted over the image edges in
+  this order:
+  1. `mvBrdrL` 3×480 at x=0
+  2. `mvBrdrT` 480×3 at y=0
+  3. `mvBrdrR` at x=w−3
+  4. `mvBrdrB` at y=h−3
+  5. the corners `mvCrnrLT/RT/LB/RB` 3×3
+
+  This corrects §7: the `mv*` art is this bevel, not a resize/move outline.
+
+**Model load** (`FUN_0050e066`):
+* The extension must be `.x` (`FUN_005682b0` vs `".x"`). Otherwise the load fails and the view stays
+  empty.
+* Engine call: `FUN_00402320(dir, file, file, 1, 0, 10.0f, 0, 1)` (engine vtable +0x94; the meaning
+  of 10.0 is UNCERTAIN).
+* The model instance (`this+0xbc`) is placed at **world (404912, 668510, 1410)** (`0x48c5b600`,
+  `0x492335e0`, `0x44b04000`) with orientation 0. That is about (319, 208) on the TSD map, over the
+  northern Golan. Whether terrain or sky shows behind the model is UNCERTAIN.
+* Scene render (`FUN_00407e80`):
+  * near 4, far 22000;
+  * clear colour bytes `c9 e4 e4 00` (RGB(201,228,228) or its BGR swap, UNCERTAIN);
+  * time argument 39600000 (11:00:00 in ms, UNCERTAIN).
+* **`<fname>.cp`** (same dir, ext `"cp"`) holds two floats read with `"%f" "%f"`: `dist height`.
+  Examples: `mig21_h.cp` = `170 10`, `sa13_h.cp` = `87 18`. 69 `.cp` files exist.
+* Without a `.cp`, `FUN_00402230(model,&a,&b,&c)` gives `dist = sqrt(a²+b²+c²)` and
+  `height = c/2` (UNCERTAIN: bounding extents).
+* Then:
+  * look-at = (404912, 668510, 1410 + height);
+  * min distance = `dist` (`0x65407c`), max = **4·dist** (`0x605ddc`);
+  * initial distance = **1.2·dist** (`0x605de0`).
+* A debug log line is written: `"FileName : %s, dist = %g, height = %g"`.
+
+**Camera (mode 0)** (`FUN_0050e6d7`, `50f02b`). Angles are in degrees and converted with ×0.0174533
+(`0x605cb8`).
+
+```
+initial: pitch p = -10, yaw y = 120, roll 0, d = 1.2*dist
+eye.x = X - cos(p)*sin(y)*d
+eye.y = Y - cos(p)*cos(y)*d
+eye.z = (1410 + height) + sin(-p)*d        (negative pitch = eye above)
+engine camera = (eye, p, y, 0)             (FUN_00402180, vtable +0x60)
+```
+
+**Interaction: keyboard only**, via `WM_KEYDOWN` (`50f02b`).
+* The view needs focus, which a left or right click gives it (`50efed`/`50f00c`).
+* Each key press (or Windows auto-repeat) changes one value, recomputes the eye and re-renders.
+* Steps: `0x605cb4` = 2°, `0x605cb0` = 2 units.
+
+| key | effect | limit |
+|---|---|---|
+| VK_LEFT | yaw += 2° | none (free spin) |
+| VK_RIGHT | yaw −= 2° | none |
+| VK_UP | pitch −= 2° (view more from above) | only while pitch > −80 (`0x605e00`) |
+| VK_DOWN | pitch += 2° | only while pitch < −10 (`0x605e04`) |
+| VK_ADD (numpad +) | d −= 2 (zoom in) | only while d > dist |
+| VK_SUBTRACT (numpad −) | d += 2 (zoom out) | only while d < 4·dist |
+| VK_F4 | ignored | |
+
+* **There is no mouse drag, no auto-rotation and no timer.** The message map (`.rdata 0x605ce0`)
+  handles:
+  * PAINT and DESTROY;
+  * SETFOCUS/KILLFOCUS (title bar active/inactive via 0x54a);
+  * 0x54b;
+  * L/RBUTTONDOWN (focus only);
+  * KEYDOWN;
+  * ERASEBKGND (returns 0).
+* Lighting: the render passes one object and no extra lights (`FUN_004022b0(1, &inst, +0xb0c=0, 0)`),
+  so the engine defaults apply (UNCERTAIN).
+* The engine draws into an off-screen surface (`FUN_004bce60`/`4eeb30`). The surface is cleared, the
+  scene rendered, the bevel drawn, and the result `BitBlt` to the window.
+
+## 12. Preferences screen (screen 3 `sGeneral`, in flight 0x21; ctor `FUN_004fc180`, vtable `0x603dd0`)
+
+**Summary.**
+* The screen has 5 tab pages drawn from bitmaps. Every control is a fixed rectangle hard-coded in
+  the exe.
+* A control shows "on" by copying its rectangle from `<page>_1.bmp` over `<page>_0.bmp`.
+* Edits go into a working copy. The globals at `0x836c88+…` change only when the user answers Yes
+  to "Save changes?". The values are then pushed into the game pref object `DAT_00694a64` and written
+  to `prefs.dat`.
+
+### 12.1 Frame and tabs
+* `dat/pref.trx`: `sGeneral tPref 155 42 608 399 1`. Left panel `pPref` at (0,35). There is no bottom
+  panel.
+* The panel has 5 `CheckGroup 1` buttons, so exactly one is lit.
+
+| button | screen rect (x,y,w,h) | page id | class (ctor) | art |
+|---|---|---|---|---|
+| Graphics | 16,65,109,39 | 1 | `FUN_005131f0` (vt `0x606820`) | `bmp/pref/graph_0/_1` |
+| Sound | 16,112,109,39 | 0 | `FUN_00511790` (vt `0x606618`) | `bmp/pref/sound_0/_1` |
+| Controls | 16,155,109,39 | 2 | `FUN_0050fa70` (vt `0x606148`) | `bmp/pref/cntrl_2.bmp` |
+| Devices | 16,199,109,39 | 3 | `FUN_005110d0` (vt `0x606400`) | `bmp/pref/cntrl_0/_1` |
+| Gameplay | 16,243,109,39 | 4 | `FUN_00514470` (vt `0x606a80`) | `bmp/pref/gamep_0/_1` |
+
+* Title art `titles/tpref_0..2`. Content background `screens/sgeneral.bmp`.
+* Each page is a 454×357 child at content (0,0) (`DAT_00603d30/34`) and covers the background.
+  **Screen coordinates = page coordinates + (155,42).**
+* The current page is `DAT_00836d2c`. It is zero-initialised and never reset, so the **first visit
+  opens Sound**, and later visits reopen the last page used.
+* Switching tabs (`FUN_004fc820`) destroys the old page (`FUN_004fce20`) and creates the new one
+  (`FUN_004fcea0`). There is no prompt, and edits survive the switch.
+* In flight (0x21) the ctor disables the **Gameplay** tab (`FUN_004ec0c0("Gameplay",1)` sets button
+  `+0x40`). If Gameplay was the remembered page, Sound is shown instead.
+* **Drawing, all pages:**
+  * The backbuffer starts as `_0` (unlit).
+  * Each control that is on copies its own rect from `_1` (lit LED or red bar), SRCCOPY.
+  * All labels are baked into the art. Only the Controls list draws text.
+* **Sliders (Graphics, Sound):**
+  * Drawing:
+    * erase `[x0−tw, x1+tw]` from `_0`;
+    * copy the fill `(x0, y0, trunc(v·(x1−x0)), h)` from `_1`;
+    * draw the thumb `pref/slider.bmp` (19×30) at `(x0 + fill − 6, y0)`, height 15: bottom half
+      SRCAND (mask), then top half SRCPAINT.
+  * LBUTTONDOWN inside `[x0−tw, x1+tw] × [y0,y1]` sets `v = (mx−x0)/(x1−x0)`, clamps it to [0,1] and
+    captures the mouse.
+  * MOUSEMOVE keeps updating the value while captured. LBUTTONUP releases the capture.
+* **DEFAULT button**: `pref/defbut_0/_2` 85×23 at page (357,330) = screen **(512,372)**, on every page
+  except Devices. It copies the defaults block (§12.2) into the working copy.
+
+### 12.2 Commit, cancel, persistence
+* The ctor copies the live globals into a working copy (`this+0x68..0xd4`, key table at `+0xd8`).
+* **Leaving the screen** (BACK/MAIN, vtable `+0xd4/+0xd8` = `FUN_004fc900`): if anything differs
+  (`FUN_004fc970`), the screen shows **msg 38 "Save changes?"** in a Yes/No/Cancel box (type 3).
+  * **Yes**: `FUN_004fcb80` commits the working copy to the globals and applies it.
+  * **No**: the edits are discarded, and the live-previewed SFX and music volumes are restored
+    (`_DAT_00831c6c = d38`; `FUN_00542c20(music, d40)`).
+  * **Cancel**: stay on the screen.
+* **On destroy** (`FUN_004fc6a0`) the globals are always written to **`<exe dir>\prefs.dat`**
+  (`4ef9a0`), and Mute is re-applied.
+* **Load** (`FUN_004eefb0`, at startup). `prefs.dat` is:
+  1. the magic `"PREFS"` (5 bytes);
+  2. 28 little-endian dwords, in this order:
+     * `d30 d34 d38 d3c d40`
+     * `d58 d5c d60 d64 d68 d6c d70`
+     * `d90 d94 d98`
+     * `da8 dac db0 db4 db8 dbc dc0 dc4`
+     * **`dd8`**
+     * `dc8 dcc dd0 dd4`
+  3. the key table (0x1074 bytes → `0x836e14`).
+
+  If the magic does not match, the defaults are kept. The shipped `install/prefs.dat` contains only
+  `"default"`, so the defaults apply. UNCERTAIN: the save order is assumed to be the same, because
+  `4ef9a0` was not decompiled.
+* **Apply on commit:**
+  * Sound: `FUN_004c50d0(1,d34 engine)`, `(2,d38 sfx)`, `(3,d3c speech)`, then
+    `FUN_004c5100(d30 mute)`.
+  * Devices: `FUN_004ddd30(d90==1, d94==1, d98==1)`, only if `DAT_00836440` is set.
+  * The rest is copied into the game pref object `DAT_00694a64` (via `FUN_0043b680`).
+  * The score multiplier is recomputed (`FUN_004ef7e0(0)` → `0x836e10`).
+* **Defaults:** set by the ctor `FUN_004eee10` (base `0x836c88`).
+  * The copy that DEFAULT uses sits 0x14 further on: sound `d44..d54`, graphics `d74..d8c`, devices
+    `d9c..da4`, gameplay `ddc..e0c`.
+  * Hardware detection (`FUN_004024c0`, `FUN_004022e0`) then overwrites the graphics defaults in both
+    the current copy and the default copy.
+
+### 12.3 Gameplay page (paint `514730`, click `514f70`, DEFAULT `514e60`)
+* A click toggles a check. The AI row is a 3-way radio.
+* Rects are page `(l,t,r,b)`, from `0x6068e8`.
+
+| control | page rect | working / global | pref `DAT_00694a64+` | default | effect in game (reader) |
+|---|---|---|---|---|---|
+| NO WIND | 24,45,154,78 | +0xa4 / da8 | +0x28 | 0 | no reader found (UNCERTAIN) |
+| NO BLACKOUTS | 24,78,154,113 | +0xac / db0 | +0x30 | 0 | `FUN_0044f050` zeroes the G-effect output |
+| NO SPINS | 24,113,154,148 | +0xb0 / db4 | +0x34 | 0 | `FUN_005a7d50` skips spin entry |
+| NO STALLS | 24,148,154,183 | +0xb4 / db8 | +0x38 | 0 | `5b13a0`/`5af920`: bStall = (+0x38==0) |
+| EASY LANDING | 24,183,154,218 | +0xb8 / dbc | +0x3c | **1** | `5b85b0` doubles the landing tolerances; flight-model gear check |
+| EASY AIMING | 24,218,154,253 | +0xbc / dc0 | +0x40 | 0 | `FUN_00456030` sets weapon `+0xb4`=1 (effect UNCERTAIN) |
+| NO MALFUNCTIONS | 24,253,154,287 | +0xc8 / dc4 | +0x24 | 0 | no reader found (UNCERTAIN) |
+| ROOKIE / NORMAL / EXPERT AI | 164,45,275,78 / 164,78,275,113 / 164,113,275,148 | +0xd4 / dd8 = 0/1/2 | +0x50 | **1 (Normal)** | `440480`, `443fd0`, `463660` (damage % scaled for levels 0/1), `5b13a0` |
+| INVULNERABLE | 285,45,435,78 | +0xc0 / dc8 | +0x1c | 0 | damage skipped in `43b3d0`, `4a8f40`, `447f50`, `44ca90`; crash tests `5a8fa0`, `5b7a20` |
+| NO CRASHES | 285,78,435,113 | +0xc4 / dcc | +0x20 | 0 | ground collision in `5a8fa0`, `5b7a20` |
+| UNLIMITED AMMO | 285,113,435,148 | +0xcc / dd0 | +0x18 | 0 | `456030`→`455e80`, `53a820` |
+| UNLIMITED FUEL | 285,148,435,183 | +0xd0 / dd4 | +0x44 | 0 | `5b1050` sets fuel flow to 0 |
+| (not on screen) | none | +0xa8 / dac | +0x2c | 0 | saved and loaded but never editable; no reader found |
+
+* The flight-model "easy" flag in docs/flight-model.md is Invulnerable (+0x1c) or No Crashes (+0x20).
+* **In multiplayer** (`DAT_00694990+4 ≠ 0`) the readers ignore these prefs: cheats off, AI = 1,
+  stalls on, easy landing on.
+* **Scoring strip**: page (290,184)-(441,218). Art `pref/score.bmp` 151×850 holds 25 frames of 34 px:
+  120%, 115% … 5%, then "WARNING – NO SCORING".
+  * Multiplier:
+
+    ```
+    m = 1 + (Expert ? 0.2 : 0)
+          − [NoWind .05 + NoBlackouts .1 + NoSpins .05 + NoStalls .05 + EasyAiming .1
+             + NoMalf .05 + Invuln 1.0 + NoCrash .5 + Ammo .5 + Fuel .25 + (Rookie ? 0.2 : 0)]
+    ```
+
+  * `m` is clamped to ≥ 0. Easy Landing costs nothing.
+  * Frame = `24 − trunc(20·m + 0.5)`. The defaults give m = 1.0, frame 4 ("100%").
+  * The same formula is in `FUN_004ef7e0`. The result is stored at `0x836e10` and read at `4f6207`
+    (UNCERTAIN: the debrief score).
+
+### 12.4 Graphics page (paint `5134b0`, click `513b10`, drag `5140d0`, DEFAULT `513a50`)
+
+| control | page rect | global | default (ctor, then hardware detection) | applied |
+|---|---|---|---|---|
+| TERRAIN DETAIL slider | 19,62,419,77 | d68, step 0.25 (5 positions) | 0.75, then (det−1)·0.25 | renderer `FUN_004d75c0`: level = 1+4v, min 1 |
+| OBJECT DETAIL slider | 19,148,419,163 | d6c, step 0.5 (3 positions) | 1.0, then (det−1)·0.5 | level = 1+2v |
+| VISUAL EFFECTS slider | 19,236,419,251 | d70, step 0.5 | 1.0, then (det−1)·0.5 | level = 1+2v |
+| SMOKE TRAILS | 7,306,112,326 | d58 | 1 | pref +0x48 (`4d8930`) |
+| TEXTURED SKY | 112,306,217,326 | d5c | 1 / detected | renderer init +4 |
+| SHADOWS | 217,306,303,326 | d60 | 1 / detected | renderer init +0x34 |
+| EXTERNAL STORES | 303,306,423,326 | d64 | 1 / `FUN_004022e0()` | `FUN_00586e50(d64)` if `DAT_0083f020` |
+
+* Slider values are quantised to `(float)ftol(x)·step` (UNCERTAIN: the rounding inside the ftol
+  argument).
+* The renderer levels are applied at 3D init (640×480, `4d75c0`).
+
+### 12.5 Sound page (paint `511b10`, click `512310`, drag `512a80`, DEFAULT `512240`)
+
+| control | page rect | global | default | live effect while dragging |
+|---|---|---|---|---|
+| MASTER VOLUME | 19,17,419,32 | **not stored** | n/a | sets the Windows mixer speaker volume to `v·65535` (`FUN_00512f90`) |
+| MUSIC VOLUME | 19,78,419,93 | d40 | 1.0 | `FUN_00542c20(DAT_0064961c music, v)` |
+| ENGINE VOLUME | 19,139,419,164 | d34 | **0.8** | loops `wav/pref/Engines.wav` |
+| SOUND EFFECTS VOLUME | 19,200,419,215 | d38 | 1.0 | loops `wav/pref/Sfx.wav`; `_DAT_00831c6c = v` |
+| SPEECH VOLUME | 19,261,419,276 | d3c | 1.0 | loops `wav/pref/Speech.wav` |
+| MUTE | 8,307,68,327 | d30 | 0 | applied immediately (`FUN_004c5100`) |
+
+* Sliders are continuous, clamped to [0,1].
+* The preview sound (`FUN_005424c0`, looped, range 50..500) stops on LBUTTONUP (`512a40`).
+* Message `0x532` with wParam 0x87 (the in-game "Mute sound toggle") re-reads d30 into the MUTE check.
+
+### 12.6 Devices page (paint `511270`, click `511540`; no DEFAULT button)
+Three two-way choices. The top option has value 1.
+
+| group | option = 1 (rect) | option = 0 (rect) | global | default |
+|---|---|---|---|---|
+| FLIGHT CONTROLS | JOYSTICK 25,73,102,92 | KEYBOARD 25,108,109,127 | d90 | 1 |
+| RUDDER | PEDALS 193,73,267,92 | KEYBOARD 193,108,276,127 | d98 | 0 |
+| THROTTLE | JOYSTICK 317,73,394,92 | KEYBOARD 317,108,399,127 | d94 | 0 |
+
+* Applied with `FUN_004ddd30(flight, throttle, rudder)` on commit and at startup (`4e1504`).
+* `menu/joy/*.joy` is not referenced by this page (UNCERTAIN).
+
+### 12.7 Controls page (`cntrl_2.bmp`; `FUN_0050fba0`)
+* **Key-binding list** (`FUN_005102f0`): page (0,53)-(400,323), 9 rows (30 px each, UNCERTAIN).
+  * Row art: `bmp/log/item.bmp`; the highlighted row uses `hiitem.bmp`.
+  * Font: Arial p11, weight 400.
+  * Columns (x within a row, y 1..28): FUNCTION 11..181, KEYBOARD ASSIGNED 187..328, JOYSTICK BUTTON
+    331..409.
+* **Scrollbar** at page (422,53)-(433,323): thumb `pref/sldcntrl.bmp` 10×23; arrows
+  `pref/slupb_0..2` / `sldownb_0..2` 15×18.
+* **Data**: 116 command records of 36 bytes at `0x648018`. The working copy is at `0x836e14`, and
+  that copy is what `prefs.dat` stores. Each record holds:
+  * a shown-in-list flag;
+  * the command id;
+  * 5 parameters;
+  * the key: DIK scancode | modifier<<16 (0x11 Ctrl, 0x22 Shift, 0x44 Alt, 0x88 not decoded);
+  * the joystick button (−1 = none).
+* Only records whose first field ≠ 0 are listed.
+* Key names: `FUN_005107c0`/`510890` (e.g. "Ctrl + " + key name).
+* Function labels: `txt/keys.trx`. Record i appears to match line i+1 (record 0 = Ctrl+Q, "Quit
+  mission"). UNCERTAIN: line 0, "TSD and cockpit toggle", has no record.
+* Conflicts: msg 36 "This key is already assigned…" and msg 37 "This button is already assigned…"
+  (UNCERTAIN: the caller was not traced).
+* DEFAULT restores the table from `0x647ff8` (UNCERTAIN: that is 0x20 before the list base
+  `0x648018`).
+
+## 13. Login / Pilot Records screen (screen 0, `log.trx`)
+
+**Summary.**
+* Pilots live in `<exe dir>\Pilots.dat` (36-byte records). Each pilot's history is in
+  `<exe dir>\Pilots\<id>.mis`. **No registry** is used.
+* `DAT_00836cac` is the **pilot name** and `DAT_00836cc0` is the callsign.
+* Only the Future campaign's missions 2–7 are ever locked.
+
+### 13.1 Entry, frame and panel
+* **Startup** (`4e1544..4e159c`):
+  * With no command-line mission, the frame is created on **screen 0** (UNCERTAIN: `ebp`=0 at `4e157a`).
+  * If `FUN_004e0720` returns −1 (the `MENU` command-line form), the frame opens on screen 0x16 (TCP).
+  * Otherwise `DAT_00836c88` is set to the returned mission id and the frame opens on screen 0x27 (Jump).
+* Main → `PilotRecords` returns to screen 0. On screen 0, BACK is disabled and QUIT replaces MAIN (§3.2).
+* `log.trx`:
+  * Header `sGeneral tLogin 155 42 608 399 1`: background `screens/sgeneral.bmp`, title `tlogin_0..2`.
+  * One left panel `pLogin` at (0,35) (`palettes/plogin_0..2`, 141×414).
+  * Push buttons `Login` (15,68,112×36), `New_Pilot` (15,333,112×36) and `Remove_Pilot` (15,382,112×36).
+* The content window's button handler (vtable +0xcc = `FUN_005097b0`) runs first. The frame changes
+  screen only if that handler returns non-zero (`4e847a`). For `Login`, the dispatcher `FUN_004eaf50`
+  (case 0) then goes to **Main (1)**.
+
+### 13.2 Content window `FUN_00509110` (vtable `0x604f48`, message map `0x604e80`)
+* Font: Arial p11 weight 400 (`+0x80`), shared by the list and the pages.
+* All four pages are created up front.
+  * Pages are drawn at content-local **(26,55)** (`0x604e20`).
+  * The tab strip (384×26 images) is drawn at **(26,29)** (`0x604e28`) by paint `FUN_00509490`.
+
+| tab | page class | page art | strip art (current tab lit) |
+|---|---|---|---|
+| 0 Dossier | `FUN_00519f50` (vt `0x607cc0`) | `log/dossier.bmp` 384×273 | `log/dossierb.bmp` |
+| 1 Records | `FUN_00519ba0` (vt `0x607b28`) | `log/records.bmp` 384×273 | `log/recordsb.bmp` |
+| 2 Kills | `FUN_005192b0(…,1)` (vt `0x6079e0`) | `log/kills.bmp` 385×283 | `log/killsb.bmp` |
+| 3 Losses | `FUN_005192b0(…,0)` | `log/losses.bmp` 385×283 | `log/lossesb.bmp` |
+
+* **Tab hit rects** (content-local, all at y 29–55; tables at `0x604e30..0x604e6c`): Dossier x 26–142,
+  Records 142–240, Kills 240–311, Losses 311–388.
+* Handling (`FUN_00509660`, on left button down; the current tab is not hit-tested):
+  1. Play `ButtonIn.wav` (`FUN_005424c0(DAT_0083644c)`).
+  2. Call `FUN_005098a0(1)`. When leaving the Dossier, this validates the name and callsign (§13.4).
+     If validation fails, the switch is cancelled.
+  3. Call `FUN_00509940(tab)`.
+* Message `0x549` is sent right after the screen is created (`4e8a80`, @`155173`). Its handler
+  `FUN_00509860` creates the pilot list (§13.3) and shows tab 0.
+* There is no Notes tab. `log/notes*.bmp` and the file `Pilots\<id>.not` (deleted when a pilot is
+  removed) are otherwise unreferenced (UNCERTAIN: probably a dropped feature).
+
+### 13.3 Pilot list box (`FUN_0051abf0` ctor, `FUN_0051ae70` create; item list `FUN_0051be80`, base `FUN_004f2a80`)
+* **Its parent is the frame, not the content window.** It sits at **screen (19,123)**
+  (`0x604e70/74`), size 104×200 = `log/pilotslb.bmp`. That fills the gap in the left panel between
+  Login (ends at y=104) and New_Pilot (starts at y=333).
+* Inside `pilotslb` (`0x607d88..a4`):
+  * Item area (28,11)–(103,199), i.e. 75×188: **11 visible rows of 17 px**.
+  * Scrollbar area (1,1)–(16,199) (`FUN_004f1d40`):
+    * thumb `log/slider.bmp` 15×35;
+    * arrows `log/slupb_0..2` / `log/sldownb_0..2` 15×18.
+* Item paint (`FUN_0051c020`):
+  * **Text only.** `item.bmp`/`hiitem.bmp` (75×17) are loaded, but this routine never draws them.
+  * The text is record +0 (the **pilot name**), `DT_CENTER|DT_VCENTER|DT_SINGLELINE`, transparent.
+  * RGB(0,255,0) when selected, RGB(0,128,0) otherwise.
+* A left button down (`51bfe0` → `4f3160`) selects a pilot. A **double-click** (`51c000` →
+  `FUN_0051be40`) logs in and goes to Main (`FUN_004e8a80(1)`).
+* When the selection changes (notification 0x10, `FUN_0051b6b0`):
+  1. Validate the dossier (`FUN_005098a0(1)`). On failure, restore the old selection and stop.
+  2. Set the current index `+0x40`.
+  3. Load that pilot's history (`FUN_004f4db0(id)`, §13.6).
+  4. Show the Dossier.
+* The initial selection is the index stored in the `Pilots.dat` header.
+
+### 13.4 Dossier page (create `FUN_0051a050`; page-local coords, page at content (26,55))
+The art `log/dossier.bmp` has these labels baked in: PILOT NAME, CALL SIGN, RANK, PILOT SCORE and
+MISSIONS COMPLETED, plus a photo frame.
+
+| item | rect / pos | content |
+|---|---|---|
+| Pilot name edit | (106,30) 170×18 | record +0, **max 10 chars** |
+| Call sign edit | (106,64) 170×18 | record +0xb, **max 12 chars** |
+| Photo | (288,32)–(357,125), StretchBlt | see below |
+| Rank | (80,156) | rank string (table in §8.1); also copied to `DAT_00836c98` |
+| Pilot score | (96,188) | `"%d"` of `DAT_008386f0` |
+| Missions completed | (140,220) | `"%d"` of `DAT_008386d4` (missions with at least one passed attempt) |
+
+* Text style:
+  * Arial p11 weight 400, RGB(0,255,0), transparent.
+  * `SetTextAlign(TA_BOTTOM|TA_LEFT)`, so each y is the text bottom.
+  * The text is drawn into the page bitmap only when a pilot is selected.
+* **Edit box** (`FUN_004eff00` / `FUN_004eff70`):
+  * It is a child window whose background is a copy of the page bitmap under it.
+  * Text is drawn at (0, h) with TA_BOTTOM, in the same green and font.
+  * Caret: `misc/LoginCaret.bmp` (1×16), bottom-aligned, blinking on a 200 ms timer (`SetTimer(…,1,200)`).
+  * A click places the caret at the nearest character (`FUN_004f0bd0`).
+  * WM_CHAR (`4f0480`, jump table `4f0764`):
+    * Only **space, `.`, `0-9`, `a-z`, `A-Z`** are accepted, inserted at the caret.
+    * A character is refused if it would exceed the max length or make the text wider than the box
+      (`FUN_004f0d40`).
+    * Backspace deletes the character left of the caret.
+  * The box notifies its parent with WM_COMMAND (high word): 0xb focus gained, 0xc focus lost,
+    0xd Enter, 0xe Tab, 0xf Esc.
+  * The page's handler (`FUN_0051a8b0`):
+    * Enter or Tab moves focus to the other box.
+    * On 0xb it validates the box that just lost focus (`+0x68`).
+* **Validation** (`FUN_0051a6c0` name, `FUN_0051a710` callsign). Errors are shown in an OK box
+  (`FUN_004e4f00`), and focus returns to the box.
+  * Name empty → msg 0x1c "Please enter a name for the new pilot."
+  * Callsign empty → msg 0x1a "Please enter a callsign for the new pilot."
+  * Callsign equal to another pilot's (case-sensitive `strcmp`) → msg 0x1b "Callsign is taken. Please
+    enter a different callsign."
+  * Otherwise the value is written to the record.
+  * Validation runs on tab switch, list selection change, New_Pilot, Login and double-click.
+* **Photo** (`FUN_0051a490`). The index `+0x7c` is record +0x1c.
+  * Index < 14: `log/pilots/<n>.bmp` (69×93).
+  * Index ≥ 14: `<exe dir>\Pilots\<pilotId>.bmp`.
+  * **Left click** on the photo (`FUN_0051a930`) cycles 0 → 1 → … → 13 → 14 → 0. Step 14 is skipped
+    if no custom bitmap loads.
+  * **Right button up** on the photo (`FUN_0051a9b0`) opens a Windows file dialog ("Bmp Files
+    (*.bmp)", default ext BMP). The chosen file is copied to `Pilots\<id>.bmp` and the index is set
+    to the pilot id.
+  * The index is written back to the record (`FUN_0051b950`).
+
+### 13.5 Buttons (`FUN_005097b0`)
+* **New_Pilot** (`FUN_0051ba10`):
+  1. Validate the dossier.
+  2. Create a blank record (`FUN_005099d0`: empty name and callsign, id 0, photo 0).
+  3. Set its id to the **lowest unused id ≥ 14** (`FUN_0051b750`).
+  4. Load its (empty) history, append it to the list, select it and show the Dossier.
+* **Remove_Pilot** (`FUN_0051bb20`):
+  * Does nothing when there are fewer than 2 pilots, so the last pilot can never be removed.
+  * If the name or callsign is filled in, it first asks msg 0x1d "You are about to delete this pilot
+    record. Continue?" (Yes/No). A record with both fields blank is deleted without asking.
+  * On Yes (or no question):
+    * delete `Pilots\<id>.not`, `.mis` and `.bmp`;
+    * remove the record (if it was last, the selection moves to the new last pilot);
+    * reload that pilot's history and show the Dossier.
+* **Login** (`FUN_0051bdd0`):
+  * Validates the dossier; on failure the screen does not change.
+  * Sets `DAT_00836c8c` = pilot id (record +0x18), `DAT_00836cac` = name (`strncpy`, 20) and
+    `DAT_00836cc0` = callsign (20).
+  * The dispatcher then goes to Main.
+  * With no record selected it returns 1 without setting anything (UNCERTAIN; the list is never empty
+    in practice).
+
+### 13.6 Storage (no registry)
+Paths are the exe's drive and dir (`GetModuleFileName`) plus a file name (`FUN_00567610`).
+
+**`Pilots.dat`**: a `u32` selected index, then N records of 36 bytes to the end of the file
+(N = (size − 4) / 36).
+
+| offset | type | field |
+|---|---|---|
+| +0x00 | char[11] | pilot name (list text, `DAT_00836cac`, briefing header) |
+| +0x0b | char[13] | callsign (`DAT_00836cc0`) |
+| +0x18 | i32 | pilot id (≥ 14), used in `Pilots\<id>.*` file names |
+| +0x1c | i32 | photo index (0–13 stock; otherwise = id, meaning the custom bmp) |
+| +0x20 | i32 | unused (not initialised by `FUN_005099d0`) |
+
+* Written when the list is destroyed (`FUN_0051b2c0`):
+  * If the selected record has **both** name and callsign empty (`FUN_0051b970`), its files and record
+    are deleted first.
+  * The file is then rewritten: header = current index, then all records.
+* If the file is missing, one default record is created: name **"Gal"**, callsign **"default"**,
+  id 14, photo 0 (`FUN_0051abf0`).
+
+**`Pilots\<id>.mis`**, the mission history. It is read by `FUN_004f65a0` and written by `FUN_004f6870`.
+In memory it is the object at `0x838458`, list head at `+4`.
+
+```
+u32 nMissions
+repeat nMissions:
+  u32 missionId
+  u32 nAttempts
+  repeat nAttempts:                    // in memory 0x138 bytes each
+    i32   result      (+0x00)  >0 passed, 0 failed, -1 "prerequisite not met" (not counted)
+    f32   mult        (+0x04)  = DAT_00836e10 when the attempt was created (score multiplier, §12.3)
+    i32   bonus       (+0x08)
+    u32   nCat        (+0x0c)  = 37
+    i32   kills[nCat] (+0x10)  enemy objects destroyed, per category
+    i32   losses[nCat](+0xa4)  own-side objects lost, per category
+```
+
+* `FUN_004f5440(id)` = the number of attempts with result > 0 (passes).
+* `FUN_004f6110` = the number of attempts with result == 0 (failures).
+
+### 13.7 Recording a mission (`FUN_004f4fb0`)
+It is called from the Debrief content ctor `FUN_004fcfb0` (@`4fd0f5`) with pilot `DAT_00836c8c` and
+mission `DAT_00836c88`.
+1. Reload the `.mis` file and append a new attempt (`FUN_004f6140`).
+2. Fill the attempt from the results R = `mission+0x1f84` (`FUN_00598140`):
+   * **result** = `R[0]`, except that it is set to −1 when all of these hold:
+     * the mission is Future (id 200–299, `FUN_004efe50`);
+     * it is not the first of its war (`FUN_004efe70`; the first-of-war ids are 111, 121, 131, 211,
+       221, 231, 311, 321, 331, 401, 511);
+     * mission id − 1 has not been passed.
+   * **bonus** = `R[1]`.
+   * **kills**: 1000 entries at `R+0x48`. **losses**: 1000 entries at `R+0x1f48`. Each entry is
+     8 bytes. For each entry, `FUN_004f54a0(typeCode)` gives a category, and that category's counter
+     is incremented.
+3. Save the file, except for the MP ids 0x21d, 0x29a, 0x213 and 0x1ff–0x207.
+
+Categories are the same indices as the TSD label table in §8.1 ("Selected-unit label"):
+* 0–36 by type code;
+* fallback by class: 2 → 15, 6 → 17, 9 → 25, 0xb/0xc/0xd/0x1d/0x1e → 31;
+* anything else → 37, which is ignored.
+
+### 13.8 Score and rank (`FUN_004f6230` per attempt, `FUN_004f4dd0` per pilot)
+**Points per category** (`FUN_004f5c50`):
+
+| categories | points |
+|---|---|
+| 0–10 | 1000, 800, 700, 600, 1200, 500, 600, 600, 700, 600, 800 |
+| 11–21 | 400, 400, 2000, 2000, 200, 100, 50, 100, 50, 300, 350 |
+| 22–30 | 800, 400, 400, 400, 800, 100, 100, 200, 500 |
+| 31–36 | 200, 3000, 600, 100, 2000, 2000 |
+
+**Score class** (`FUN_004f5b10`): categories 0–15 are air, 16–30 ground, 31–36 structure.
+
+Per attempt, for each class:
+
+```
+K_class += trunc(kills · pts · mult)
+L_class += losses · pts · (mult > 0 ? 1 : 0)
+score    = trunc((ΣK − ΣL) + bonus · (bonus > 0 ? mult : 1.0))
+```
+
+**Best attempt** of a mission: the one with the highest score (the later one on a tie). Pilot totals
+sum each mission's best attempt and skip the MP ids (§13.7).
+
+| global | meaning |
+|---|---|
+| `DAT_008386f0` | **pilot score** = sum of best scores. The rank comes from it (table in §8.1: < 5000 Second Lieutenant … ≥ 100000 General). |
+| `DAT_008386d4` | number of missions with at least one pass |
+| `DAT_008386d8/dc/e0` | kill points: air / ground / structure |
+| `DAT_008386e4/e8/ec` | loss points: air / ground / structure |
+| `0x8386f4 + 8g` / `0x83874c + 8g` | kills / losses per display group: {row, count} |
+
+**Display groups** (`FUN_004f5820`; names from `FUN_004f5fd0`; row from `FUN_004f5bf0`):
+
+| group | categories | row |
+|---|---|---|
+| 0 Fighter | 2,3,5,6,7,9,10,11 | air |
+| 1 Adv Fighter | 0,1,4,8 | air |
+| 2 Bomber | 12 | air |
+| 3 Support | 13,14 | air |
+| 4 Helo | 15 | air |
+| 5 Tank | 16 | ground |
+| 6 Soft | 17,19 | ground |
+| 7 Armored | 18 | ground |
+| 8 Anti Aircraft | 20–28 | ground |
+| 9 Naval | 29,30 | ground |
+| 10 Structure | 31–36 | structure |
+
+### 13.9 Records page (`FUN_00519bf0`)
+* Art: `log/records.bmp`, a grid with columns 1–7 and these rows: BASIC TRAINING, COMBAT TRAINING,
+  SIX DAY WAR, YOM KIPPUR WAR, LEBANON WAR, SYRIAN FRONT, IRAQI FRONT, LEBANON FRONT, SCRAMBLE.
+* Each mission in the history gets a stamp:
+  * `log/passed.bmp` (35×14) if it has any pass;
+  * otherwise `log/failed.bmp` if it has any failure;
+  * otherwise nothing (only −1 attempts).
+* Stamp x = 118 + (id mod 10 − 1)·36. Stamp y by id/10:
+
+| id/10 | 31 | 32 | 11 | 12 | 13 | 21 | 22 | 23 | 40 (scramble) |
+|---|---|---|---|---|---|---|---|---|---|
+| y | 64 | 79 | 96 | 111 | 126 | 143 | 158 | 173 | 190 |
+
+  Other ids are not drawn (`0x607aa8..d4`, jump table `519e68`).
+
+### 13.10 Kills / Losses pages (`FUN_005192b0`, paint `FUN_00519510`)
+* **Icons**: `log/enemyic.bmp` (Kills) or `log/iafic.bmp` (Losses), 162×17 = six cells of 27×17.
+  * Cell 0 = air, cell 1 = ground, cell 5 = structure.
+  * One icon per group with count > 0, in group order, into fixed page-local slots:
+    * air: (75,14), (165,14), (255,14), (120,48), (210,48)
+    * ground: (75,88), (165,88), (255,88), (120,118), (210,118)
+    * structure: (75,166)
+* **Label** under each icon: the group name, or `"%sX%d"` when the count is ≥ 2 (e.g. "FighterX3").
+  Drawn at (slotX+13, slotY+17), TA_CENTER|TA_TOP, green, font from **`fnt/key.fnt`**.
+* **Class totals**: font **`fnt/hud.fnt`**, right-aligned at x=378, vertically centred on y=58 (air),
+  128 (ground) and 184 (structure).
+  * Kills page: `DAT_008386d8/dc/e0` in green.
+  * Losses page: `−DAT_008386e4/e8/ec` in red RGB(255,0,0).
+  * A total is drawn only if it is non-zero or its row has icons.
+* Both `.fnt` files are loaded with `AddFontResource` + `EnumFontFamilies(<file title>)`
+  (`FUN_004ed4c0`). This is a second font use besides the credits (§4).
+
+### 13.11 Mission unlock rules
+**List screens** (`FUN_00508590` @`508cc9`). `s*.trx` rows are `id f1 f2 f3 f4 Name …`. Row *i* is
+disabled (button art `_3`) when all of these hold:
+* `f1 ≠ 0`;
+* `FUN_004f5440(id of row i−1) == 0`. The first row is compared with −1, so it is locked whenever
+  f1 = 1;
+* the cheat is **not** active.
+
+| list | f1 | effect |
+|---|---|---|
+| straining, sbasic (311–315), scombat (321–326) | all 0 | **training is never locked** |
+| scampaign, shistory, sfuture | all 0 | open |
+| sh1/sh2/sh3mission (111–117, 121–127, 131–137) | all 0 | historical wars fully open |
+| sf1mission 211–217, sf2mission 221–227, sf3mission 231–237 | 0 for Mission_1, **1 for Mission_2–7** | each Future-front mission needs the previous one passed |
+| sspmmis 511–516 | all 0 | open |
+
+* Multiplayer has a separate row-disable check at `508d04` (not traced).
+* **Cheat** (`FUN_004efcd0(&DAT_00836c88)`): it returns 1 when the name (`0x836cac`) is **"make sim"**
+  and the callsign (`0x836cc0`) is **"not war"**. With the cheat on:
+  * all rows are unlocked;
+  * the prerequisite for "next mission" is skipped;
+  * Jump_In asks "Do you want a 40N mission?" for each N (`4eb085`).
+
+**Debrief "next mission"** (`FUN_004fdec0`; 0 = none):
+
+| mission | next |
+|---|---|
+| 111–116 | +1 |
+| 117 | 121 |
+| 121–126 | +1 |
+| 127 | 131 |
+| 131–136 | +1 |
+| 137 | 211 |
+| 211–216, 221–226, 231–236 | +1 only if the current mission is passed (or the cheat is on) |
+| 217, 227, 237 | 0 |
+| 311–314 | +1 |
+| 315 | 321 |
+| 321–325 | +1 |
+| 401–407 | `FUN_004efd10` |
+
+**Jump_In without the cheat** (`FUN_004efd10`):
+* While 407 has no attempts: the mission after the highest attempted id in 401–406, or 401 if none
+  has been attempted.
+* After that: a random scramble mission not yet passed, excluding the current one.
+* If all are passed: a random one of the other six.
+
+### 13.12 Notes / UNCERTAIN
+* UNCERTAIN meanings: `R[0]` (assumed to be the pass flag) and `R[1]` (the bonus).
+* `FUN_004e4f00` is the message-box call used here (type 0 OK; type 4 Yes/No, returns 6 on Yes). It is
+  assumed to behave like `FUN_004e2790` (§3.3).
+* Page coordinates (Dossier, Records, Kills, Losses) are relative to content (26,55), so
+  screen = (181 + x, 97 + y). The list box is already in screen coordinates.
+
+## 14. Reference screen (screen 5, `ref.trx`, content class ctor `FUN_004fabb0`, vtable `0x603c50`)
+
+**Data file.** `<ReferencePath>\refers.ref`.
+* `ReferencePath` = `GetPrivateProfileString("MENU","ReferencePath",…, ini DAT_00831de8)`. In
+  `tgen.ini` it is `c:\iaf\Resource\Ref`, i.e. `install/resource/ref/`.
+* Loaded by `FUN_004fb9c0`: `u32 count`, then `count` × **0x234 (564) byte** records.
+* Then `qsort`ed by name, case-insensitive (`FUN_00565af0`, comparator `4fbb40` → `_stricmp 5682b0`).
+* `prevrefers.ref` (72 records, an older version) is **not referenced** by the exe.
+
+| off | field |
+|---|---|
+| +0x000 | display name `char[32]` ("F-16") |
+| +0x020 | directory `char[256]` ("F16"). Files are `ref\<dir>\<dir>_0.rtf` and `<dir>_0.bmp` (all 71 present). |
+| +0x120 | model path `char[260]`, relative to `3DObjectsDir` (`\ControllablePlanes\F16\F16_h.x`) |
+| +0x224 | IDF flag |
+| +0x228 | Enemy flag |
+| +0x22c | category: 0 Fighters, 1 Helicopters, 2 Support, 3 Tanks, 6 Other, 8 AA, 9 AG |
+| +0x230 | junk pointer |
+
+**Resulting lists.** Sorted; Prev/Next walk them in this order.
+
+| side | Fighters | Helicopters | Support | Tanks | Other | AA | AG |
+|---|---|---|---|---|---|---|---|
+| IDF | A-4E, F-15, F-16, F-4 2000, F-4 E, Kfir, Lavi, Mirage | CH-53, UH-60A | Boeing 707, C-130 | M-113, Mercava | Hawk Launcher, Sa'ar 5 | AIM-120, AIM-7, AIM-9, Python 3, Python 4, Shafrir | AGM-62 TV, AGM-65 Maverick, AGM-88 HARM, CBU-87 Cluster, CBU-97 Cluster, GBU-15 TV, LAU-61 Rockets, M-117, MK-82, MK-82 LGB, MK-83, MK-83 LGB, MK-84, MK-84 LGB, Popeye TV |
+| Enemy | MIG-17, MIG-21, MIG-23, MIG-25, MIG-29, SU-22, SU-24 | MI-24, MI-8 | IL-76, Tupolev | BMP-1, BRDM-2, M-1974, Scud B, T-55, T-62, T-72 | SA-13, SA-2/3/5/6 Launcher, SA-8, Syrian Military Ship, ZSU 23X4 | AA-10, AA-11, AA-2, AA-6, AA-8 | AS-14, AS-16, RBK-500 |
+
+F-4 E uses the F42000 model.
+
+**Left panel `pRef`** (screen coordinates, from `ref.trx`):
+
+| button | pos, size | kind |
+|---|---|---|
+| IDF | (16,67) 53×22 | CheckGroup 1 |
+| Enemy | (69,67) 53×22 | CheckGroup 1 |
+| Aircraft | (15,99) 108×18 | CheckGroup 2 |
+| Vehicles | (15,118) 108×18 | CheckGroup 2 |
+| Weapons | (15,136) 108×18 | CheckGroup 2 |
+| Description | (15,308) 108×18 | CheckGroup 3 |
+| 3DView | (15,326) 108×18 | CheckGroup 3 |
+| Pictures | (15,344) 108×18 | CheckGroup 3 |
+| Prev | (16,392) 53×22 | Push |
+| Next | (69,392) 53×22 | Push |
+
+**Sub-category list.** A list widget (`FUN_0050baa0`, base `FUN_004f2a80`, create `4f2b60`), child
+of the frame.
+* Position **(21,184)**, size 97×114 (`ref/list.bmp`; `.rdata 0x603bd0/4`).
+* **6 rows of 19 px**, each backed by `ref/item.bmp` 97×19.
+* Text: Arial p11 weight 400, `DT_CENTER|DT_VCENTER|DT_SINGLELINE`, left edge +3 (`50baf0`). Colour
+  RGB(0,128,0), or RGB(0,255,0) when selected.
+* Rows by group:
+  * Aircraft → Fighters, Helicopters, Support
+  * Vehicles → Tanks, Other
+  * Weapons → AA, AG
+* Selecting a row (click, or `FUN_004f2df0`) sends WM_COMMAND code 0x10 to `4fb1b0`. That handler:
+  1. sets the category `this+0x194` from the row string;
+  2. sets the index `this+0x160` = 0;
+  3. shows the first match (`FUN_004fbb60`).
+
+**Button handler** (`FUN_004fb2e0`, vtable +0xcc):
+* **IDF / Enemy**: set the side `this+0x198` (1 or 0), set the index to 0, and show the first match.
+* **Aircraft / Vehicles / Weapons**: refill the list and select row 0.
+* **Next / Prev**: index ±1, then scan forward or back for the next record whose category matches
+  and whose side flag is set (`4fbb60`/`4fbba0`). `FUN_004fbf20` disables Next/Prev when there is no
+  further match (`FUN_004ec0c0(name,1)`).
+* **Description / 3DView / Pictures**:
+  * If that view already exists, nothing happens.
+  * Otherwise the other views are destroyed, this view is created (rect below), and the current record
+    is reloaded (`FUN_004fbbd0`).
+* **Video** (`ref\<dir>\<dir>_0.avi`, `FUN_0050d170`/`50d250`) is handled in code, but `ref.trx` has
+  no Video button and no .avi files exist. It is unreachable.
+
+**Initial state** (msg 0x549 → `FUN_004fb030`):
+* IDF, Aircraft and Description are checked.
+* The list shows Fighters/Helicopters/Support with row 0 selected.
+* The first record shown is **A-4E**, with Prev disabled and Next enabled.
+
+**Content layout.** The content area is 453×357 with `screens/sref.bmp` as background: flat grey
+≈ RGB(94,94,104) with the "Jane's" logo at the top left.
+* **Title strip** (`FUN_004fc020`):
+  * The top **34 px** of sref.bmp are saved in the ctor (`this+0x174`) and re-blitted before each
+    title is drawn.
+  * The record name is drawn in **white, Arial p20 weight 400**, `DT_CENTER|DT_VCENTER|DT_SINGLELINE`,
+    in rect (0,0,W,34).
+* **View rect**: **(0,34)–(453,357)**, i.e. 453×323.
+
+| view | object | file | rendering |
+|---|---|---|---|
+| Description | rich edit `FUN_0050be40` (same class as the briefing, §6/§8.1: background RGB(94,94,104), custom scrollbar) | `<ReferencePath>\<dir>\<dir>_0.rtf` via `FUN_0050c160` | fonts from the RTF |
+| Pictures | `FUN_0050d4e0` (child, style 0x54000000) | `<ReferencePath>\<dir>\<dir>_0.bmp` (`FUN_0050d8a0`) | BLACKNESS fill, then a centred StretchBlt at zoom `z`=1.0: `x=(W−w·z)·0.5`, `y=(H−h·z)·0.5` (`50d760`). Images are up to 454×327, so a 327-high image loses 2 px at the top and bottom. See the zoom note below. |
+| 3DView | `FUN_0050db8b` (the same 3D viewer class that the TSD `obj_t` frame wraps, §11) | `<3DObjectsDir>\<model path>`. `3DObjectsDir` = ini `[Render] 3DObjectsDir` (`DAT_00831ca0`, read at `4e031b`); loaded via `FUN_0050df8a`. | Plain child with no frame. Ctor arguments `DAT_00694914`, `DAT_00694974`. Camera and keys are as in §11 (keyboard orbit, `.cp` limits). |
+
+* Pictures zoom (`50d910`/`50d980`): LBUTTON zooms in (`z≤1 ? z·2 : z+2`, while z < 16); RBUTTON zooms
+  out (`z>2 ? z−2 : z·0.5`, while z > 0.2). Both act only when `+0x44` ≠ 0, and nothing sets it, so
+  **there is no zoom in practice** (UNCERTAIN).
+* A missing file shows a Windows message box with the path as its text and the caption "Not exists"
+  (`FUN_005e5dfd`; caption role UNCERTAIN).
+* LBUTTONDOWN on the content goes to the empty `4eb760`.
+* BACK → Main.
+
+## 15. Arming screen (0x1f, `arm.trx`, content ctor `FUN_005045a0`, vtable `0x6045f0`)
+
+**Panels** (`arm.trx`, screen coordinates):
+* Left panel `pArm`:
+  * Fly (15,55) 111×35, Push
+  * TacticalDisplay (15,98) 111×35, Push
+  * AA (14,143) 35×20, AG (50,143) 35×20, Misc (85,143) 35×20, CheckGroup 1
+* Bottom1 panel `pFormation`, CheckGroup 1: Alpha (153,427) 72×40, Bravo (228,427), Charlie (307,427),
+  Delta (381,427).
+* Header `sArming tArm`. `screens/sarming.bmp` does not exist; the jet art paints the whole content.
+
+**Weapon database** (`CMissionWeapons`, object `0x8387b0`):
+* Layout: `+0` count, `+4` array of 0x1a0-byte records, `+8` default loadouts, `+0x320` current,
+  `+0x638` saved.
+* Loaded by `FUN_004ed950` from the mission's bdb Weapons part.
+
+| rec off | field (bdb Weapons) |
+|---|---|
+| +0 | weapon id (`0x1e`) |
+| +4 | type code (`0x780`) |
+| +8 | **menu tab**: 0 AA = types 540,550,570,580,600,610; 1 AG = 500,510,560,590,635,640,650; 2 Misc = 565, 660. Other types (620/630 SAMs, 0) are dropped. |
+| +0xc | name (`0x708`, 80 chars) |
+| +0x5c | icon file = **parent directory of the Present model path + ".BMP"**, loaded from `<DataPath>\Bmp\Arm\Weapons\` (`\WEAPONS\MK84\MK84_M.XFR` → `mk84.bmp`, 49×30 24-bit) |
+| +0x160 | weight in lb (`0x758`), float |
+| +0x164 | `int[9]` max count allowed per station for the current flight's aircraft |
+| +0x19c | icon HBITMAP |
+
+Misc holds fuel tanks ("2700LB" etc.) and pods (TV POD, ECM, FLIR). Guns are type 565.
+
+**Per-station allowed counts** (`FUN_004edf60(flight)`, called on every flight change):
+1. Every weapon's `+0x164[9]` is zeroed.
+2. The flight leader's bdb Objects entry has a list of `CDMEWeaponLoadItem`s, each with 9 station
+   flags (`raw`). For each item, for weapon `load.id(0x910)`:
+   `max[i] = max(max[i], flag[i] ? load.count(0x906) : 0)`.
+3. Only weapons with some `max[i] > 0` appear in the list (`FUN_004ed800`).
+
+Example, F-16:
+* AIM-9L on stations 1,2,3,7,8,9, ×1
+* MK-83 on 3,4,5,6,7, ×3 (the maximum over its loads)
+* 2700LB on 4,6
+* 2100LB on 5
+
+**Loadout tables.** Each table is 11 flights × 9 stations × `{id,count}` (0x48 bytes per flight):
+* `0x8387b8`: mission defaults;
+* `0x838ad0`: current (edited here);
+* `0x838de8`: saved.
+
+All three are filled after the mission loads (`FUN_004ee5b0` → `FUN_004ee410(flight)`). Station i
+gets the leader's runtime store (`FUN_0044f110`: weapon name and count), matched to a weapon by name.
+This equals the mission/bdb `CArmament` hardpoints `[id,count]×9`. F-16 default: AIM-9L, AMRAAM,
+MK-83×3, MK-84, –, MK-84, MK-83×3, AMRAAM, AIM-9L (UNCERTAIN whether mission entities override the bdb
+default).
+
+**Jet art** (`FUN_00505e30`, on entry and on each flight change). The leader type code is flight
+record `+0x350` (`0x689f18+n·0x370`).
+
+| type code | 100 | 110 | 120 | 130 | 140 | 160 | 180 | 190 | 200 |
+|---|---|---|---|---|---|---|---|---|---|
+| art name | F-16 | F-15 | F4e | Kfir | Lavi2 | Mig23 | Mig29 | Mirage | Phantom |
+
+* Files:
+  * `bmp/arm/jets/<name>.bmp`, 454×357: a front view with baked station boxes, the jet name,
+    "CURRENT LOAD" and "MAX T.O.W.".
+  * `<name>.trx`, in this format:
+    * line 1: base weight `%f` (`+0x64`);
+    * line 2: max take-off weight `%f` (`+0x68`);
+    * line 3: station count;
+    * then `station x y` lines: station 1..9, (x,y) = content-local top-left of a **51×32** box
+      (`.rdata 0x604478`).
+* F-16 example: 27600 / 48000; stations 1 (1,210), 2 (21,261), 3 (81,261), 4 (141,261), 5 (201,282),
+  6 (261,261), 7 (321,261), 8 (381,261), 9 (401,210).
+* Other jets: Kfir has stations 2–8, MiG-23 has 3–7, Mirage has 3,4,5,6,7 at x 21, 81, 201, 321, 381.
+* The view is from the front. Stations 1–4 (screen left) are on the aircraft's **right** wing, 5 is
+  the centreline, and 6–9 are on the left wing.
+
+**Paint** (`5048e0`, into the back buffer), in this order:
+1. The jet bmp.
+2. The flight name ("Alpha", flight record +0x328): `TextOut` at **(22,18)**, Arial p11 weight 500,
+   RGB(0,255,0), transparent.
+3. Switch the font to **`fnt/key.fnt`**: a Windows raster FNT, face "key", 6×8 fixed-pitch bold,
+   loaded via AddFontResource and EnumFontFamilies (`FUN_004ed4c0`).
+4. Max T.O.W. as `"%g Lb"` in rect **(377,333)–(431,352)**.
+5. Current load as `"%g Lb"` in rect **(126,333)–(182,352)**.
+   * Current = base + Σ count×weight (`FUN_005062b0`).
+   * Drawn in **red** RGB(255,0,0) when current > max.
+   * Both numbers use `DT_CENTER|DT_VCENTER|DT_SINGLELINE`.
+6. Station highlights for the weapon selected in the list (`+0x5c`, set by the list's selection
+   notify `517830` → `FUN_00506140`):
+   * every enabled station with `max[i] > 0` gets `arm/hibox.bmp` (53×44) at (x−1,y−1);
+   * the jet art is then re-blitted over (x+1,y+1, 49×40), leaving only a frame.
+7. For each loaded station (count ≠ 0), all in green RGB(0,255,0), key.fnt, centred:
+   * the weapon icon at (x+1,y+1), 49×30;
+   * `"%dx%s"` (count, name) in (x+2,y+23)–(x+51,y+32);
+   * `"%g"` = count×weight in (x+2,y+33)–(x+51,y+42).
+
+**Weapon list** (`FUN_005171b0`; created on msg 0x549 via `FUN_00517290`):
+* Frame position **(17,168)**, size 106×261 = `arm/weaponslb.bmp`.
+* Inner list at local (30,4)–(102,256): **6 rows × 42 px**, 72 wide. The background is cropped from
+  weaponslb.
+* Scrollbar at local (2,2)–(17,261): thumb `arm/slider.bmp` 15×35, arrows `slupb_0..2`/`sldownb_0..2`
+  15×18.
+* Row item (`518100`):
+  * a box `arm/item.bmp` 51×32 (`hiitem.bmp` when selected), centred in the cell, i.e. at local
+    (40, 9+42·row);
+  * the weapon icon at box+1;
+  * the name in key.fnt at box (1,22)–(50,31), RGB(0,255,0) when selected, RGB(0,128,0) otherwise.
+* Tab filter `FUN_00517880(tab)`: bdb order, only weapons of this tab with a non-zero allowed count.
+  Row 0 is then selected.
+
+**Mouse** (content message map `0x6044b0`). Cursors: `Cur/move.cur` on hover, `grab.cur` while
+dragging, the arrow otherwise (`SETCURSOR 504e40`).
+* **Drag from the list:**
+  * Press on a row icon and drag across the frame. The list draws the icon and name under the cursor.
+  * Release over a station (`518020` → `FUN_00506180`).
+  * The drop is accepted only if that station is enabled and `max[i] > 0`. It sets
+    `{id, count = max[i]}`, so the count is **always the maximum for that station**.
+* **Drag from a station** (LBUTTONDOWN `504f30`):
+  * Picks up the loaded weapon, switches the AA/AG/Misc tab to its tab, and selects it in the list.
+  * **Clears the station.**
+  * Drag feedback: the icon plus `"%dx%s"` (`505300`).
+  * LBUTTONUP (`505650`) drops it by the same rule (count = station max). Dropping anywhere else
+    leaves the weapon removed.
+* **Right-click on a loaded station** (`5056f0`): count −1. At 0 the station is empty.
+* **DEFAULT button**: `arm/defbut_0..2` 85×23 at content-local **(198,330)** (`.rdata 0x6044a0/a4`),
+  bottom-bar button class `FUN_004f13b0`. On notify 0x13 (`504eb0`):
+  * current = defaults, for all flights;
+  * in SP, the defaults are also applied to the aircraft (`FUN_004ee7b0(0..10)`);
+  * the saved table is not touched.
+
+**Buttons** (`FUN_005057e0`):
+* **AA / AG / Misc**: set the tab `+0x104`, refilter, and select row 0.
+  * The initial tab is AA (checked in `505ae0`).
+  * In MP, when `DAT_00838420==2` and the mission is 0x29a/0x213, AG and Misc are disabled.
+* **Alpha…Foxtrot**:
+  * The current loadout is validated first (see below). On failure, the old flight button is
+    re-checked (`FUN_00504130`).
+  * Otherwise `DAT_00836d1c` = n, and `505e30` reloads the art, stations and list.
+  * Enable rules (`FUN_005064d0`) are the same as on the TSD:
+    * the flight exists;
+    * the leader type is flyable (`FUN_005063e0`: 100,110,120,130,140,160,180,190,200);
+    * `FUN_00503cc0(n)`.
+* **TacticalDisplay** → code 1. **Fly** → code 2. **BACK** → code 3. For BACK, the frame calls content
+  vfunc `+0xd4` = `505ac0`, which returns 0 so that the frame's own BACK switch is skipped.
+* Each of these three actions first runs validation (`FUN_00505b60`). Any failure cancels the action.
+  Here w = count × weight, and 0.05 is at `0x6045ec`.
+  * current > max → msg 0x32 "WARNING! Overweight." (OK box).
+  * Σw(stations 1–4) > Σw(6–9) + 0.05·current → msg 0x34 "…right wing heavy."
+  * Σw(6–9) > Σw(1–4) + 0.05·current → msg 0x33 "…left wing heavy."
+* Then `FUN_00505ca0(code)`:
+  * If current ≠ saved (memcmp of 0x318 bytes), it shows msg **0x23 "Use weapon load?"**, box type 3
+    = Yes/No/Cancel. The third argument is 6 in SP and 7 in MP (meaning UNCERTAIN). The reply comes
+    back as message 0x55d with wParam = code.
+  * Otherwise it proceeds as if No was pressed.
+* Reply handler `FUN_00505d40(code, answer)`:
+  * **Cancel** (2): stay on the screen.
+  * **Yes** (6): saved = current. In SP, `FUN_004ee610` → `FUN_004ee7b0` writes the loadouts to the
+    aircraft of every existing flight.
+  * **No** (7): current = saved (revert).
+  * After Yes or No, act on the code:
+    * code 1 or 3 → TSD (0x1e);
+    * code 2 (Fly) in SP → `FUN_004d2ae0(flight)` (the leader becomes the player), `FUN_004d74a0`,
+      frame exit code `+0x5c`=2, `FUN_004e7c40` (the menu closes and the flight starts);
+    * code 2 in MP → `FUN_00506310` locks all buttons (`+0x54`=1) and waits for the session.
+* **MAIN** uses the default vfunc `+0xd8` (returns 1), so it shows msg 8 as documented in §3.2. An
+  unsaved loadout is neither applied nor reverted.

@@ -36,3 +36,6 @@ debrief/log/prefs/arm art, and all mission/course strings (`txt/mis/*.trx`, Wind
 and fonts are unchanged; Hebrew glyphs come from the system font (the original game relied on Windows' font fallback).
 Converted with `iaf-convert menu … assets/converted/menu_he --pack assets/packs/he`; the front end uses it when the
 language is Hebrew.
+
+## In-flight subtitles
+The instructor / radio subtitles come from the object database (`default6_1.bdb` Audio records) and exist only in English; the Hebrew packs translate menus and briefings only. Decided (user): keep the original English subtitles in Hebrew mode.

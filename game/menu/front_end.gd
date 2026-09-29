@@ -543,6 +543,7 @@ func _draw_prefs() -> void:
 	var options := [
 		["Flight data", [["Original (Jane's IAF 1998)", "original"], ["Real F-16", "real"]], "flight_data"],
 		["Language", [["English", "en"], ["Hebrew", "he"]], "language"],
+		["No blackouts", [["Off", false], ["On", true]], "no_blackouts"],
 	]
 	var rtl := _he()
 	var fs := int(round(LIST_TITLE_PX * _scale()))
@@ -550,9 +551,9 @@ func _draw_prefs() -> void:
 		_text_line(Rect2(x, y, width, 16), _t(opt[0]), LIST_TITLE_PX, LIST_TITLE)
 		var ox := x + width - 130 if rtl else x + 130
 		for choice in opt[1]:
-			var value: String = choice[1]
+			var value = choice[1]
 			var label := _t(choice[0])
-			var available: bool = not (value == "he" and not Settings.hebrew_available())
+			var available: bool = not (typeof(value) == TYPE_STRING and value == "he" and not Settings.hebrew_available())
 			var current: bool = Settings.get(opt[2]) == value
 			var w: float = font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x / _scale() + 12
 			var r := Rect2(ox - w if rtl else ox, y, w, 18)
