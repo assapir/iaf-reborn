@@ -47,9 +47,13 @@ cargo run --release -p iaf-tools --bin iaf-convert -- planes assets/install asse
 #                               --smooth   round the low-poly geometry (smooth normals + Phong tessellation)
 # 3. export the terrain around Israel (colour: level 4 inset, heights from level 6)
 cargo run --release -p iaf-tools --bin iaf-terrain -- export assets/install/resource/terrain/map.ptt 7 assets/converted/terrain/israel_l4
-# 4. model viewer (hot-reloads when step 2 is re-run) / terrain fly-over
-godot --path game
+# 4. cockpit art
+cargo run --release -p iaf-tools --bin iaf-convert -- --upscale cockpit assets/install f16 assets/converted/cockpits/f16
+# 5. build the Godot extension (flight model etc.)
+cargo build -p iaf-godot
+# 6. fly (original F-16 flight model, 2D cockpit) / model viewer
 godot --path game res://terrain/terrain_view.tscn
+godot --path game
 ```
 The conversion is a one-time step; re-run it only after updating the converter or adding packs.
 
@@ -61,3 +65,14 @@ This reproduces the original "Full Install" (lower-cased paths) without Windows.
 
 ## Optional packs
 Community mods (e.g. Hebrew briefings) can be imported as overlay packs — see [docs/packs.md](docs/packs.md).
+
+## Flying (current controls, provisional until the original key table is decoded)
+| key | action |
+|-----|--------|
+| arrows | stick (↑ forward = nose down, ↓ pull), sprung |
+| Z / X | rudder |
+| W / S, 1–8 | throttle; presets idle, 65, 70, 80, 90 %, military, AB1, AB2 |
+| G / F / B | gear / flaps / speed brake |
+| F1 / F2 / C | cockpit / external / toggle |
+| V, PgUp / PgDn | panel down / slide panel |
+| + / −, wheel | cockpit zoom (external: orbit distance); RMB drag orbits in external view |

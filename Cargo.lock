@@ -218,6 +218,7 @@ name = "iaf-godot"
 version = "0.1.0"
 dependencies = [
  "godot",
+ "iaf-flight",
  "iaf-formats",
 ]
 

@@ -2,6 +2,8 @@
 
 use godot::prelude::*;
 
+mod flight;
+
 struct IafExtension;
 
 #[gdextension]

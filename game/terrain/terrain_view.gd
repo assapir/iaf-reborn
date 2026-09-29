@@ -1,11 +1,11 @@
 # Terrain fly-over with the original 2D F-16 cockpit and an external view of your jet.
 #   F1: cockpit   F2: external   C: toggle   V: panel up/down   PgUp/PgDn: slide panel   +/- or wheel: zoom
-#   Arrows: stick (pitch / roll, body axes)   Z/X: rudder   W/S: speed   Shift: 8x speed
+#   Arrows: stick (sprung: hold to deflect, release to centre)   Z/X: rudder
+#   W/S: throttle   1..8: idle / 65 / 70 / 80 / 90 % / military / AB1 / AB2   G: gear   F: flaps   B: speed brake
 #   External: RMB-drag orbits the camera, wheel zooms.
 #   `godot --path game res://terrain/terrain_view.tscn -- --screenshot out.png [--at x z alt heading pitch [roll]] [--external]`
 #   (angles in degrees for --at)
-# Until the flight model is wired in, the "aircraft" is this simple body-axis rig: it flies along
-# its nose at `speed`, and the stick rotates it about its own axes (so loops and rolls work).
+# The aircraft is the original IAF F-16 flight model (Rust, crates/iaf-flight) via the IafFlight class.
 extends Node3D
 
 const FOV := 55.0
@@ -19,15 +19,23 @@ const SCREENSHOT_TIMEOUT_MS := 20000
 @onready var cockpit: Control = $CockpitLayer/Cockpit
 @onready var chase: Camera3D = $Chase
 
-var speed := 200.0  # m/s along the nose
 var looking := false
+var flight = null  # IafFlight
+var stick := Vector2.ZERO  # x roll right+, y pull+
+var rudder := 0.0
+var throttle := 0.74
+var flaps := 0.0
+var gear_down := false
+var brakes := false
+## Original throttle presets (keys.trx order): idle, 65%, 70%, 80%, 90%, military, AB1, AB2.
+const THROTTLE_PRESETS := [0.0, 0.0925, 0.185, 0.37, 0.555, 0.74, 0.8, 1.0]
+const STICK_RATE := 2.5  # full deflection per second while a key is held
+const STICK_RETURN := 4.0
 var in_cockpit := true
 var aircraft: Node3D
 var orbit_yaw := PI  # external camera, relative to the aircraft heading (PI = behind)
 var orbit_pitch := -0.15
 var orbit_dist := 35.0
-var last_pos := Vector3.ZERO
-var ground_speed := 0.0
 
 
 func _ready() -> void:
@@ -45,13 +53,15 @@ func _ready() -> void:
 		rig.basis = Basis.from_euler(Vector3(deg_to_rad(float(args[at + 5])), deg_to_rad(-float(args[at + 4])), deg_to_rad(-roll_deg)), EULER_ORDER_YXZ)
 	if args.has("--external"):
 		in_cockpit = false
-	last_pos = rig.position
+	var st_arg := args.find("--stick")
+	if st_arg >= 0:
+		scripted_stick = Vector2(float(args[st_arg + 1]), float(args[st_arg + 2]))
 	cockpit.hud.camera = camera
+	_start_flight()
 	_apply_view()
 	_spawn_f16()
 	var shot := args.find("--screenshot")
 	if shot >= 0:
-		speed = 0.0  # hold the requested attitude for the capture
 		_screenshot(args[shot + 1])
 
 
@@ -71,6 +81,20 @@ func _screenshot(path: String) -> void:
 	get_tree().quit()
 
 
+func _start_flight() -> void:
+	if not ClassDB.class_exists("IafFlight"):
+		push_error("IafFlight missing: build the extension (cargo build -p iaf-godot)")
+		return
+	flight = ClassDB.instantiate("IafFlight")
+	var install := ProjectSettings.globalize_path("res://").path_join("../assets/install").simplify_path()
+	var fwd := -rig.global_basis.z
+	var heading := fposmod(rad_to_deg(atan2(fwd.x, -fwd.z)), 360.0)
+	var err: String = flight.start(install, "F-16", rig.position, heading, 180.0)
+	if err != "":
+		push_error("flight model: " + err)
+		flight = null
+
+
 func _spawn_f16() -> void:
 	var path := ProjectSettings.globalize_path("res://").path_join("../assets/converted/planes/f16/f16_h.gltf").simplify_path()
 	var doc := GLTFDocument.new()
@@ -88,7 +112,6 @@ func _keep_above_ground() -> void:
 	if ground != null and rig.position.y < ground + 150.0:
 		var lift: float = ground + 150.0 - rig.position.y
 		rig.position.y += lift
-		last_pos.y += lift
 
 
 func _apply_view() -> void:
@@ -133,6 +156,14 @@ func _unhandled_input(event: InputEvent) -> void:
 				in_cockpit = true
 			KEY_F2:
 				in_cockpit = false
+			KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8:
+				throttle = THROTTLE_PRESETS[event.keycode - KEY_1]
+			KEY_G:
+				gear_down = not gear_down
+			KEY_F:
+				flaps = 0.0 if flaps > 0.0 else 1.0
+			KEY_B:
+				brakes = not brakes
 			KEY_EQUAL, KEY_PLUS, KEY_KP_ADD:
 				_zoom_cockpit(0.05)
 			KEY_MINUS, KEY_KP_SUBTRACT:
@@ -142,50 +173,50 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _process(delta: float) -> void:
-	# Stick and rudder rotate the rig about its own axes.
-	var pitch_in := float(Input.is_key_pressed(KEY_DOWN)) - float(Input.is_key_pressed(KEY_UP))
-	var roll_in := float(Input.is_key_pressed(KEY_RIGHT)) - float(Input.is_key_pressed(KEY_LEFT))
-	var yaw_in := float(Input.is_key_pressed(KEY_X)) - float(Input.is_key_pressed(KEY_Z))
-	# Arrow up = stick forward = nose down; arrow down = pull = nose up.
-	var b := rig.basis
-	b = b.rotated(b.x.normalized(), pitch_in * 1.2 * delta)
-	b = b.rotated(b.z.normalized(), -roll_in * 3.0 * delta)
-	b = b.rotated(b.y.normalized(), -yaw_in * 0.4 * delta)
-	rig.basis = b.orthonormalized()
+	_read_controls(delta)
+	if flight != null:
+		var ground = terrain.height_at(rig.position)
+		flight.set_ground_height(ground if ground != null else -1.0e9)
+		flight.set_controls(stick.x, stick.y, rudder, throttle, flaps, gear_down, brakes)
+		flight.step(delta)
+		var st: Dictionary = flight.state()
+		rig.position = st.position
+		rig.basis = Basis(st.right, st.up, -st.forward)
+		for k in ["speed_kt", "mach", "alt_ft", "vs_fpm", "pitch", "roll", "heading", "aoa", "g", "rpm", "throttle", "fuel_lbs"]:
+			cockpit.state[k] = st[k]
+		cockpit.hud.velocity_dir = st.velocity.normalized() if st.velocity.length() > 1.0 else null
+	_apply_view()
+	var p := rig.position
+	var ground_h = terrain.height_at(p)
+	var agl := "" if ground_h == null else "  (%.0f m above ground)" % (p.y - ground_h)
+	var st2: Dictionary = cockpit.state
+	hud_label.text = "x %.1f km  y %.1f km  alt %.0f m%s   %d kt  %.1f g  thr %d%%%s%s%s   %d fps\n[F1] cockpit  [F2] external  [C] toggle  [V/PgUp/PgDn] panel  [+/-] zoom  [arrows] stick  [Z/X] rudder  [W/S, 1-8] throttle  [G] gear  [F] flaps  [B] brake" % [
+		p.x / 1000.0, p.z / 1000.0, p.y, agl, st2.speed_kt, st2.g, int(throttle * 100),
+		"  GEAR" if gear_down else "", "  FLAPS" if flaps > 0 else "", "  BRAKE" if brakes else "", Engine.get_frames_per_second()]
+
+
+## Scripted stick for test captures: `--stick x y` (held for the whole run).
+var scripted_stick = null
+
+
+## Keyboard as a sprung joystick: held keys deflect the stick progressively, release centres it.
+func _read_controls(delta: float) -> void:
+	if scripted_stick != null:
+		stick = scripted_stick
+		return
+	var want := Vector2(
+		float(Input.is_key_pressed(KEY_RIGHT)) - float(Input.is_key_pressed(KEY_LEFT)),
+		float(Input.is_key_pressed(KEY_DOWN)) - float(Input.is_key_pressed(KEY_UP)))  # down = pull
+	for i in 2:
+		if want[i] != 0.0:
+			stick[i] = move_toward(stick[i], want[i], STICK_RATE * delta)
+		else:
+			stick[i] = move_toward(stick[i], 0.0, STICK_RETURN * delta)
+	var want_rudder := float(Input.is_key_pressed(KEY_X)) - float(Input.is_key_pressed(KEY_Z))
+	rudder = move_toward(rudder, want_rudder, (STICK_RATE if want_rudder != 0.0 else STICK_RETURN) * delta)
+	if Input.is_key_pressed(KEY_W): throttle = min(throttle + 0.3 * delta, 1.0)
+	if Input.is_key_pressed(KEY_S): throttle = max(throttle - 0.3 * delta, 0.0)
 	# PgUp looks up (panel slides away), PgDn looks down at more of the panel.
 	if Input.is_key_pressed(KEY_PAGEUP): cockpit.slide_panel(-cockpit.PANEL_SLIDE_SPEED * delta)
 	if Input.is_key_pressed(KEY_PAGEDOWN): cockpit.slide_panel(cockpit.PANEL_SLIDE_SPEED * delta)
-	if Input.is_key_pressed(KEY_W): speed = min(speed + 60.0 * delta, 700.0)
-	if Input.is_key_pressed(KEY_S): speed = max(speed - 60.0 * delta, 0.0)
-	var s := speed * (8.0 if Input.is_key_pressed(KEY_SHIFT) else 1.0)
-	rig.position += -rig.basis.z * s * delta
-	_apply_view()
-	var moved := rig.position - last_pos
-	last_pos = rig.position
-	if delta > 0:
-		ground_speed = lerp(ground_speed, moved.length() / delta, 0.1)
-	_update_instruments(moved, delta)
 
-	var p := rig.position
-	var ground = terrain.height_at(p)
-	var agl := "" if ground == null else "  (%.0f m above ground)" % (p.y - ground)
-	hud_label.text = "x %.1f km  y %.1f km  alt %.0f m%s   chunks %d   %d fps\n[F1] cockpit  [F2] external  [C] toggle  [V/PgUp/PgDn] panel  [+/-] zoom  [arrows] stick  [Z/X] rudder  [W/S] speed  [Shift] 8x  [RMB] orbit (external)  [Wheel] zoom" % [
-		p.x / 1000.0, p.z / 1000.0, p.y, agl, terrain.loaded_count(), Engine.get_frames_per_second()]
-
-
-func _update_instruments(moved: Vector3, delta: float) -> void:
-	var fwd := -rig.global_basis.z
-	var st: Dictionary = cockpit.state
-	st.speed_kt = ground_speed * 1.943844
-	st.mach = ground_speed / 340.3
-	st.alt_ft = rig.position.y * 3.28084
-	st.vs_fpm = (moved.y / delta * 196.85) if delta > 0 else 0.0
-	st.pitch = rad_to_deg(asin(clamp(fwd.y, -1.0, 1.0)))
-	# Bank: positive = right wing down.
-	st.roll = rad_to_deg(atan2(-rig.global_basis.x.y, rig.global_basis.y.y))
-	st.heading = fposmod(rad_to_deg(atan2(fwd.x, -fwd.z)), 360.0)
-	st.g = 1.0
-	st.throttle = clamp(ground_speed / 600.0, 0.0, 1.0)
-	st.rpm = lerp(0.7, 1.0, st.throttle)
-	st.fuel_lbs = 7000.0
-	cockpit.hud.velocity_dir = moved.normalized() if moved.length() > 0.01 else null
