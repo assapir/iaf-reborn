@@ -84,6 +84,13 @@ fn main() -> Result<()> {
             println!("{cols}x{rows} tiles, raw height range {lo}..{hi}, {empty} without heights, {failed} failed -> {out}");
             Ok(())
         }
+        [_, "height", path, tx, ty] => {
+            let mut ptt = Ptt::open(path)?;
+            let mut src = HeightSource::new(&mut ptt)?;
+            let raw = src.sample(&mut ptt, tx.parse()?, ty.parse()?)?;
+            println!("terrain ({tx}, {ty}): raw {raw:.1} -> {:.1} (raw-20342)/9.2575", (raw - 20342.0) / 9.2575);
+            Ok(())
+        }
         [_, "export", path, index, out] => export(path, index.parse()?, std::path::Path::new(out)),
         _ => bail!("usage: iaf-terrain info <map.ptt> | mosaic|heights <map.ptt> <level-index> <out.png> | export <map.ptt> <level-index> <out-dir>"),
     }

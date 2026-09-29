@@ -165,6 +165,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventMouseMotion and looking and not in_cockpit:
 		orbit_yaw -= event.relative.x * 0.005
 		orbit_pitch = clamp(orbit_pitch - event.relative.y * 0.005, -1.4, 1.4)
+	elif event is InputEventKey and event.pressed and event.echo and event.keycode in [KEY_PAGEUP, KEY_PAGEDOWN]:
+		cockpit.slide_panel(-1 if event.keycode == KEY_PAGEUP else 1)
 	elif event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
 			KEY_ESCAPE:
@@ -183,6 +185,10 @@ func _unhandled_input(event: InputEvent) -> void:
 				flaps = 0.0 if flaps > 0.0 else 1.0
 			KEY_B:
 				brakes = not brakes
+			KEY_PAGEUP:
+				cockpit.slide_panel(-1)  # look up: the panel slides away
+			KEY_PAGEDOWN:
+				cockpit.slide_panel(1)  # look down at more of the panel
 			KEY_EQUAL, KEY_PLUS, KEY_KP_ADD:
 				_zoom_cockpit(0.05)
 			KEY_MINUS, KEY_KP_SUBTRACT:
@@ -243,7 +249,4 @@ func _read_controls(delta: float) -> void:
 	rudder = move_toward(rudder, want_rudder, (STICK_RATE if want_rudder != 0.0 else STICK_RETURN) * delta)
 	if Input.is_key_pressed(KEY_W): throttle = min(throttle + 0.3 * delta, 1.0)
 	if Input.is_key_pressed(KEY_S): throttle = max(throttle - 0.3 * delta, 0.0)
-	# PgUp looks up (panel slides away), PgDn looks down at more of the panel.
-	if Input.is_key_pressed(KEY_PAGEUP): cockpit.slide_panel(-cockpit.PANEL_SLIDE_SPEED * delta)
-	if Input.is_key_pressed(KEY_PAGEDOWN): cockpit.slide_panel(cockpit.PANEL_SLIDE_SPEED * delta)
 
