@@ -266,9 +266,46 @@ fn convert_menu(install: &Path, pack: Option<&Path>, out: &Path, opts: &Options)
             std::fs::copy(&p, out.join("wav").join(rel.file_name().unwrap()))?;
         }
     }
+    // TSD maps and overlays (vector, see docs/front-end.md §8).
+    std::fs::create_dir_all(out.join("emf"))?;
+    let mut emfs = 0;
+    for (rel, p) in overlay_files(&root, pack_root.as_deref(), "emf") {
+        if !rel.extension().is_some_and(|x| x.eq_ignore_ascii_case("emf")) {
+            continue;
+        }
+        let mf = iaf_formats::emf::parse(&std::fs::read(&p)?)?;
+        let name = rel.file_stem().unwrap().to_string_lossy().to_lowercase();
+        std::fs::write(out.join("emf").join(format!("{name}.json")), serde_json::to_string(&emf_json(&mf))?)?;
+        emfs += 1;
+    }
     std::fs::write(out.join("image_scale.txt"), if opts.upscaler.is_some() { "4" } else { "1" })?;
+    println!("menu: {emfs} maps,");
     println!("menu: {} screens/lists, {} strings, {n} images -> {}", menus.len(), strings.len(), out.display());
     Ok(())
+}
+
+/// A metafile as JSON: frame size, then drawing ops with points normalised to the frame
+/// (0..1, flat [x0, y0, x1, y1, ...]).
+fn emf_json(mf: &iaf_formats::emf::Metafile) -> serde_json::Value {
+    use iaf_formats::emf::Op;
+    use serde_json::json;
+    let flat = |pts: &[[f32; 2]]| pts.iter().flat_map(|p| [(p[0] * 1e5).round() / 1e5, (p[1] * 1e5).round() / 1e5]).collect::<Vec<f32>>();
+    let pen = |p: &Option<iaf_formats::emf::Pen>| p.map(|p| json!({"color": p.color, "width": p.width}));
+    let ops: Vec<_> = mf.ops.iter().map(|op| match op {
+        Op::Polygon { rings, pen: pn, brush, alternate } => json!({
+            "t": "polygon", "rings": rings.iter().map(|r| flat(r)).collect::<Vec<_>>(),
+            "pen": pen(pn), "brush": brush, "alternate": alternate,
+        }),
+        Op::Polyline { points, pen: pn } => json!({"t": "polyline", "points": flat(points), "pen": pen(&Some(*pn))}),
+        Op::Text { pos, text, font, color, align } => json!({
+            "t": "text", "pos": pos, "text": text, "color": color, "align": align,
+            "font": {"height": font.height, "weight": font.weight, "italic": font.italic, "face": font.face},
+        }),
+    }).collect();
+    json!({
+        "frame_mm": [(mf.frame[2] - mf.frame[0]) as f32 / 100.0, (mf.frame[3] - mf.frame[1]) as f32 / 100.0],
+        "ops": ops,
+    })
 }
 
 fn strip_bbcode(line: &str) -> String {
@@ -285,9 +322,10 @@ fn strip_bbcode(line: &str) -> String {
     out
 }
 
-/// `.brl` briefing records: a list of 516-byte entries `{title[260], file[256]}`
-/// (Windows-1252 in the original, Windows-1255 in the Hebrew pack).
-fn parse_brl(data: &[u8], hebrew: bool) -> Vec<(String, String)> {
+/// `.brl` briefing links: 516-byte records `{name[256], i32 type, path[256]}` (Windows-1252 in
+/// the original, Windows-1255 in the Hebrew pack). Type: 0 RTF, 1 unused, 2 3D model (.x),
+/// 3 bitmap, 5 target (docs/front-end.md §6).
+fn parse_brl(data: &[u8], hebrew: bool) -> Vec<(String, i32, String)> {
     let text = |b: &[u8]| -> String {
         let b = b.split(|&c| c == 0).next().unwrap_or(&[]);
         b.iter()
@@ -300,8 +338,8 @@ fn parse_brl(data: &[u8], hebrew: bool) -> Vec<(String, String)> {
             .to_string()
     };
     data.chunks_exact(516)
-        .map(|e| (text(&e[..260]), text(&e[260..]).replace('\\', "/").to_lowercase()))
-        .filter(|(t, f)| !t.is_empty() || !f.is_empty())
+        .map(|e| (text(&e[..256]), i32::from_le_bytes(e[256..260].try_into().unwrap()), text(&e[260..]).replace('\\', "/").to_lowercase()))
+        .filter(|(t, _, f)| !t.is_empty() || !f.is_empty())
         .collect()
 }
 
@@ -314,12 +352,12 @@ fn convert_briefings(install: &Path, packs: &Path, out: &Path, opts: &Options) -
     std::fs::create_dir_all(out)?;
     let read_rtf = |dir: &Path, name: &str| std::fs::read(dir.join(name)).ok().map(|d| to_bbcode(&d));
     let read_brl = |dir: &Path, name: &str, hebrew: bool| std::fs::read(dir.join(name)).ok().map(|d| parse_brl(&d, hebrew));
-    let entries_json = |en: Option<Vec<(String, String)>>, he: Option<Vec<(String, String)>>| {
+    let entries_json = |en: Option<Vec<(String, i32, String)>>, he: Option<Vec<(String, i32, String)>>| {
         let en = en.unwrap_or_default();
         let he = he.unwrap_or_default();
         en.iter()
             .enumerate()
-            .map(|(i, (t, f))| json!({"title": {"en": t, "he": he.get(i).map(|e| e.0.clone())}, "file": f}))
+            .map(|(i, (t, kind, f))| json!({"title": {"en": t, "he": he.get(i).map(|e| e.0.clone())}, "type": kind, "file": f}))
             .collect::<Vec<_>>()
     };
     let mut doc = serde_json::Map::new();

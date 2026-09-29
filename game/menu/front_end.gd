@@ -86,6 +86,16 @@ var hover_key := ""
 var pref_page := "Gameplay"
 var pref_hotspots: Array = []  # [Rect2 (menu coordinates), setting, value]
 
+## TSD (screen 0x1e): the map/briefing node, where BACK returns to, and its check buttons,
+## which persist while the mission is loaded (DAT_00836cd4..d1c, defaults FUN_004efc60).
+var tsd: Control
+var tsd_return := "jet"
+var tsd_checks := {}
+var briefings := {}
+## Modal message box (§3.3): {text, buttons: [[art, Callable]], pressed: index}.
+var msgbox := {}
+var top_layer: Control
+
 var music: AudioStreamPlayer
 var sfx: AudioStreamPlayer
 var sounds := {}
@@ -100,10 +110,23 @@ func _ready() -> void:
 	sfx = AudioStreamPlayer.new()
 	add_child(music)
 	add_child(sfx)
+	top_layer = Control.new()
+	top_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	top_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	top_layer.draw.connect(_draw_msgbox)
+	top_layer.gui_input.connect(_msgbox_input)
+	add_child(top_layer)
+	briefings = JSON.parse_string(FileAccess.get_file_as_string(Settings.assets_dir().path_join("converted/briefings/briefings.json")))
+	if not (briefings is Dictionary):
+		briefings = {}
 	var args := OS.get_cmdline_user_args()
 	var at := args.find("--menu")
 	if at >= 0:
 		screen = args[at + 1]
+	at = args.find("--mission")
+	if at >= 0:
+		Settings.mission_id = int(args[at + 1])
+		_reset_tsd_checks()
 	_enter_screen()
 	_start_music()
 	at = args.find("--hover")
@@ -245,6 +268,35 @@ func _enter_screen() -> void:
 	checked.clear()
 	if screen == "pref":
 		checked[_key_for_label(pref_page)] = true
+	if screen in ["tsd", "arm"]:
+		_restore_tsd_checks()
+	if screen == "tsd" and tsd == null:
+		tsd = preload("res://menu/tsd.gd").new()
+		add_child(tsd)
+		move_child(top_layer, -1)
+		tsd.setup(self, Settings.mission_id)
+		tsd.open_briefing(tsd_checks.get("briefing", false))
+	elif screen != "tsd" and tsd != null:
+		tsd.queue_free()
+		tsd = null
+
+
+## TSD defaults on mission load (FUN_004efc60): every unit filter, Text, Waypoint, Grid and
+## Briefing on; the player's flight selected (single player: Alpha, UNCERTAIN until decoded).
+func _reset_tsd_checks() -> void:
+	tsd_checks = {"waypoint": true, "text": true, "grid": true, "briefing": true, "alpha": true}
+	for kind in ["aircrafts", "vehicles", "ships", "samsites", "aaasites", "structures", "airports"]:
+		for side in [1, 2]:
+			tsd_checks["%s%d" % [kind, side]] = true
+
+
+func _restore_tsd_checks() -> void:
+	var panels := _panels()
+	for p in panels.size():
+		for b in panels[p].buttons.size():
+			var btn: Dictionary = panels[p].buttons[b]
+			if tsd_checks.get(_norm(btn.label), false) and btn.kind in ["Check", "CheckGroup"]:
+				checked["%d/%d" % [p, b]] = true
 
 
 func _button_enabled(label: String) -> bool:
@@ -253,7 +305,24 @@ func _button_enabled(label: String) -> bool:
 		if id in JETS_DISABLED.get(Settings.mission_id, []):
 			return false
 		return id in FLYABLE_JETS
+	if screen == "tsd" and tsd != null:
+		match _norm(label):
+			"briefing":
+				return tsd.has_briefing()
+			"zoomin":
+				return tsd.can_zoom_in()
+			"zoomout":
+				return tsd.can_zoom_out()
+			"arm":
+				return _selected_flight() != ""
 	return true
+
+
+func _selected_flight() -> String:
+	for f in ["alpha", "bravo", "charlie", "delta"]:
+		if tsd_checks.get(f, false):
+			return f
+	return ""
 
 
 ## Visible frame of a button: animation first, then checked / disabled.
@@ -309,6 +378,7 @@ func _blit_region(path: String, src: Rect2, dest: Vector2) -> void:
 
 func _process(_delta: float) -> void:
 	queue_redraw()
+	top_layer.queue_redraw()
 
 
 func _draw() -> void:
@@ -376,6 +446,8 @@ func _draw_panels() -> void:
 func _draw_content(def: Dictionary) -> void:
 	if loading:
 		_blit("mis/wait.png", CONTENT.position)
+		return
+	if screen == "tsd":
 		return
 	var list := _list()
 	if not list.is_empty():
@@ -554,11 +626,16 @@ func _animate_release(key: String, inside: bool) -> void:
 
 func _on_button(key: String) -> void:
 	if key == "back":
-		_go(_back_target())
+		if screen == "tsd":
+			_message(8, [["yes", _go.bind(tsd_return)], ["no", Callable()]])
+		elif screen != "arm":  # BACK has no case on Arm (FUN_004eb990)
+			_go(_back_target())
 		return
 	if key == "main":
 		if screen in QUIT_SCREENS:
 			get_tree().quit()
+		elif screen in ["tsd", "arm"]:
+			_message(8, [["yes", _go.bind("main")], ["no", Callable()]])
 		else:
 			_go("main")
 		return
@@ -576,6 +653,9 @@ func _on_button(key: String) -> void:
 	if screen == "pref":
 		pref_page = label
 		return
+	if screen in ["tsd", "arm"]:
+		_tsd_button(key, _norm(label), btn)
+		return
 	var target: String = FORWARD.get(screen, {}).get(_norm(label), "")
 	if target != "":
 		_go(target)
@@ -591,6 +671,62 @@ func _on_button(key: String) -> void:
 		elif not row.is_empty():
 			Settings.mission_id = int(row.id)
 		_load_mission()
+
+
+## TSD / Arming buttons (§8; Fly FUN_00502c90, Arming FUN_005057e0).
+func _tsd_button(key: String, label: String, btn: Dictionary) -> void:
+	if btn.kind in ["Check", "CheckGroup"]:
+		if btn.kind == "CheckGroup":
+			for f in ["alpha", "bravo", "charlie", "delta"]:
+				tsd_checks[f] = false
+		tsd_checks[label] = checked.get(key, false)
+	match label:
+		"fly":
+			if _selected_flight() == "":
+				_message(25, [["ok", Callable()]])
+			else:
+				_fly()
+		"arm":
+			_go("arm")
+		"tacticaldisplay":
+			_go("tsd")
+		"zoomin":
+			tsd.zoom_by(tsd.ZOOM_STEP)
+		"zoomout":
+			tsd.zoom_by(1.0 / tsd.ZOOM_STEP)
+		"briefing":
+			tsd.open_briefing(tsd_checks.briefing)
+		"waypoint", "text", "grid":
+			tsd.set_layer(label, tsd_checks[label])
+
+
+## The briefing window's close button unchecks Briefing.
+func tsd_briefing_closed() -> void:
+	tsd_checks["briefing"] = false
+	checked.erase(_key_for_label("Briefing"))
+
+
+## "<rank> <callsign>" for the briefing's <header> (DAT_00836c98 / DAT_00836cac).
+## No pilot records yet: a new pilot's rank.
+func pilot_header() -> String:
+	return "Second Lieutenant"
+
+
+## A briefing diagram / card, from the Hebrew pack when the language is Hebrew.
+func briefing_image(stem: String) -> Texture2D:
+	var base := Settings.assets_dir().path_join("converted/briefings")
+	for sub in (["img_he", "img"] if _he() else ["img"]):
+		var path := base.path_join(sub).path_join(stem + ".png")
+		if FileAccess.file_exists(path):
+			var img := Image.load_from_file(path)
+			img.generate_mipmaps()
+			return ImageTexture.create_from_image(img)
+	return null
+
+
+func _fly() -> void:
+	busy = true
+	get_tree().change_scene_to_file("res://terrain/terrain_view.tscn")
 
 
 func _row_for(label: String) -> Dictionary:
@@ -648,15 +784,21 @@ func _slide(to: float, wav: String) -> void:
 	await t.finished
 
 
-## Mission load (FUN_004ec6a0): wait.bmp in the content window, music fades out over 6 s.
-## The TSD screen is not built yet, so the mission starts straight away.
+## Mission load (FUN_004ec6a0): wait.bmp in the content window, music fades out over 6 s,
+## then the TSD.
 func _load_mission() -> void:
 	busy = true
 	loading = true
-	create_tween().tween_property(music, "volume_db", -60.0, 6.0)
+	tsd_return = screen
+	_reset_tsd_checks()
+	var fade := create_tween()
+	fade.tween_property(music, "volume_db", -60.0, 6.0)
+	fade.tween_callback(music.stop)
 	for i in 3:
 		await get_tree().process_frame
-	get_tree().change_scene_to_file("res://terrain/terrain_view.tscn")
+	busy = false
+	await _go("tsd")
+	loading = false
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -666,3 +808,76 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_tree().quit()
 	elif not screen in NO_BACK:
 		_go(_back_target())
+
+
+# --- message box (§3.3) ---------------------------------------------------------------------
+
+const MSGBOX_SIZE := Vector2(320, 140)
+const MSGBOX_BUTTON := Vector2(60, 30)
+
+
+## Shows txt/msgs.trx line `msg` with buttons [[art, action]] ("yes", "no", "ok", ...).
+func _message(msg: int, buttons: Array) -> void:
+	var lines: PackedStringArray = _string("msgs").split("\n")
+	msgbox = {"text": lines[msg].strip_edges() if msg < lines.size() else "", "buttons": buttons, "pressed": -1}
+	top_layer.mouse_filter = Control.MOUSE_FILTER_STOP
+
+
+func _msgbox_origin() -> Vector2:
+	return ((Vector2(W, H) - MSGBOX_SIZE) / 2).floor()
+
+
+## Button rects (menu coordinates): 1 centred, 2 at W/2 - bw - bw/4 and W/2 + bw/4, top H - 5/3 bh.
+func _msgbox_buttons() -> Array:
+	var o := _msgbox_origin()
+	var bw := MSGBOX_BUTTON.x
+	var y := MSGBOX_SIZE.y - MSGBOX_BUTTON.y * 5.0 / 3.0
+	var xs: Array = [MSGBOX_SIZE.x / 2 - bw / 2] if msgbox.buttons.size() == 1 else [MSGBOX_SIZE.x / 2 - bw - bw / 4, MSGBOX_SIZE.x / 2 + bw / 4]
+	var out := []
+	for i in mini(xs.size(), msgbox.buttons.size()):
+		out.append(Rect2(o + Vector2(xs[i], y), MSGBOX_BUTTON))
+	return out
+
+
+func _draw_msgbox() -> void:
+	if msgbox.is_empty():
+		return
+	var o := _msgbox_origin()
+	var t := _tex("misc/mbgback.png")
+	if t != null:
+		top_layer.draw_texture_rect(t, _rect(Rect2(o, MSGBOX_SIZE)), false)
+	var box := _rect(Rect2(o + Vector2(10, 20), MSGBOX_SIZE - Vector2(20, 70)))
+	var fs := int(round(12 * _scale()))
+	top_layer.draw_multiline_string(font_bold, box.position + Vector2(0, font_bold.get_ascent(fs)), msgbox.text, HORIZONTAL_ALIGNMENT_CENTER, box.size.x, fs, 4, Color.WHITE)
+	var rects := _msgbox_buttons()
+	for i in rects.size():
+		var art := _tex("misc/mbg%s_%d.png" % [msgbox.buttons[i][0], 2 if msgbox.pressed == i else 0])
+		if art != null:
+			top_layer.draw_texture_rect(art, _rect(rects[i]), false)
+
+
+func _msgbox_input(event: InputEvent) -> void:
+	if msgbox.is_empty() or not (event is InputEventMouseButton) or event.button_index != MOUSE_BUTTON_LEFT:
+		return
+	var p := _to_menu(event.position)
+	var rects := _msgbox_buttons()
+	var hit := -1
+	for i in rects.size():
+		if rects[i].has_point(p):
+			hit = i
+	if event.pressed:
+		msgbox.pressed = hit
+		if hit >= 0:
+			_play("buttonin")
+	else:
+		if hit >= 0 and hit == msgbox.pressed:
+			_play("buttonout")
+			var action: Callable = msgbox.buttons[hit][1]
+			msgbox = {}
+			top_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			if action.is_valid():
+				action.call()
+		elif not msgbox.is_empty():
+			msgbox.pressed = -1
+	top_layer.queue_redraw()
+	top_layer.accept_event()

@@ -1,5 +1,5 @@
 //! Minimal RTF reader for the briefing texts (`resource/brief/{txt,text}/*.rtf`),
-//! producing BBCode (bold / italic / underline, paragraphs) for Godot's RichTextLabel.
+//! producing BBCode (bold / italic / underline / colour, paragraphs) for Godot's RichTextLabel.
 //!
 //! Handles the subset Word 97 wrote for the game and for the Hebrew pack: `\ansicpg`
 //! (1252 English, 1255 Hebrew), `\'xx` escapes, `\uN` Unicode, `\par`, `\tab`, `\b`,
@@ -32,6 +32,27 @@ struct Style {
     skip: bool,
     /// Current font's code page (from its `\fcharset`), 0 = document default.
     font_codepage: u32,
+    /// `\cfN` as N + 1 (0 = no `\cf` seen: default colour).
+    color: u16,
+}
+
+/// The `\colortbl` entries as RGB (index 0 is "auto" and has no colour).
+fn color_table(data: &[u8]) -> Vec<Option<[u8; 3]>> {
+    let text: String = data.iter().map(|&b| b as char).collect();
+    let Some(start) = text.find("\\colortbl") else { return Vec::new() };
+    let body = &text[start + 9..];
+    let body = &body[..body.find('}').unwrap_or(body.len())];
+    body.split(';')
+        .map(|entry| {
+            let get = |name: &str| {
+                entry.find(name).and_then(|j| entry[j + name.len()..].chars().take_while(|c| c.is_ascii_digit()).collect::<String>().parse::<u8>().ok())
+            };
+            match (get("\\red"), get("\\green"), get("\\blue")) {
+                (Some(r), Some(g), Some(b)) => Some([r, g, b]),
+                _ => None,
+            }
+        })
+        .collect()
 }
 
 /// Font number → code page, from `\fN … \fcharsetM` in the font table
@@ -76,9 +97,28 @@ pub fn to_bbcode(data: &[u8]) -> String {
     let mut i = 0;
     let mut pending_skip_uc = 0usize;
     let fonts = font_codepages(data);
+    let colors = color_table(data);
+    let color_of = |i: u16| if i == 0 { None } else { colors.get(i as usize - 1).copied().flatten() };
     let cp_of = |st: &Style, doc: u32| if st.font_codepage != 0 { st.font_codepage } else { doc };
 
     let sync = |out: &mut String, shown: &mut Style, st: &Style| {
+        // Colour is the outermost tag: a change closes everything and reopens.
+        let (had, want) = (color_of(shown.color), color_of(st.color));
+        if had != want {
+            let target = *st;
+            let open = Style { color: shown.color, ..Style::default() };
+            sync_tags(out, shown, &open);
+            if had.is_some() {
+                out.push_str("[/color]");
+            }
+            if let Some([r, g, b]) = want {
+                out.push_str(&format!("[color=#{r:02x}{g:02x}{b:02x}]"));
+            }
+            shown.color = target.color;
+        }
+        sync_tags(out, shown, st);
+    };
+    fn sync_tags(out: &mut String, shown: &mut Style, st: &Style) {
         // Close in reverse order of opening, then reopen what is needed.
         if shown.underline && !st.underline {
             out.push_str("[/u]");
@@ -104,7 +144,7 @@ pub fn to_bbcode(data: &[u8]) -> String {
             out.push_str("[u]");
             shown.underline = true;
         }
-    };
+    }
 
     let emit = |out: &mut String, shown: &mut Style, st: &Style, c: char| {
         if st.skip || c == '\0' {
@@ -198,6 +238,7 @@ pub fn to_bbcode(data: &[u8]) -> String {
                     "b" => st.bold = param != Some(0),
                     "i" => st.italic = param != Some(0),
                     "ul" => st.underline = param != Some(0),
+                    "cf" => st.color = param.unwrap_or(0).max(0) as u16 + 1,
                     "ulnone" => st.underline = false,
                     "plain" => {
                         st = Style { skip: st.skip, font_codepage: st.font_codepage, ..Style::default() };

@@ -31,6 +31,7 @@ var restore_rect := Rect2()
 var bounds := Rect2(0, 0, 453, 357)  # where maximise goes (TSD client)
 
 var rich: RichTextLabel
+var body_clip: Control
 var image: Texture2D
 var scroll := 0.0  # text scroll in 640-space pixels
 var pressed_btn := ""
@@ -61,8 +62,14 @@ func set_text(bbcode: String, links: Array) -> void:
 			f.font_weight = pair[1]
 			f.font_italic = pair[2]
 			rich.add_theme_font_override(pair[0], f)
-		add_child(rich)
-	rich.text = _linkify(bbcode, links)
+		body_clip = Control.new()
+		body_clip.clip_contents = true
+		body_clip.mouse_filter = Control.MOUSE_FILTER_PASS
+		add_child(body_clip)
+		body_clip.add_child(rich)
+	# Hebrew briefings are right-to-left paragraphs.
+	var text := _linkify(bbcode, links)
+	rich.text = "[right]%s[/right]" % text if fe._he() else text
 	image = null
 	scroll = 0.0
 
@@ -70,8 +77,9 @@ func set_text(bbcode: String, links: Array) -> void:
 func set_image(tex: Texture2D) -> void:
 	image = tex
 	if rich != null:
-		rich.queue_free()
+		body_clip.queue_free()
 		rich = null
+		body_clip = null
 
 
 ## The original makes every underlined run that matches a .brl entry name clickable.
@@ -95,15 +103,10 @@ func _s() -> float:
 	return fe._scale()
 
 
-## Window rect in screen pixels.
-func _screen_rect() -> Rect2:
-	return fe._rect(Rect2(origin + rect.position, rect.size))
-
-
 func _process(_delta: float) -> void:
-	var r := _screen_rect()
-	position = r.position
-	size = r.size
+	# Parent is the TSD client; geometry is client-local.
+	position = rect.position * _s()
+	size = rect.size * _s()
 	if rich != null:
 		var s := _s()
 		var body := _body()
@@ -112,8 +115,10 @@ func _process(_delta: float) -> void:
 		rich.add_theme_font_size_override("bold_font_size", fs)
 		rich.add_theme_font_size_override("italics_font_size", fs)
 		rich.add_theme_font_size_override("bold_italics_font_size", fs)
+		body_clip.position = body.position * s
+		body_clip.size = Vector2(body.size.x - SCROLL_W, body.size.y) * s
 		rich.size = Vector2(body.size.x - SCROLL_W - 4, 0) * s
-		rich.position = (body.position + Vector2(2, 2 - scroll)) * s
+		rich.position = Vector2(2, 2 - scroll) * s
 		scroll = clampf(scroll, 0.0, _max_scroll())
 	queue_redraw()
 
