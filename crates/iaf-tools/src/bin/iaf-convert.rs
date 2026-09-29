@@ -6,6 +6,8 @@
 //! `iaf-convert cockpit <install-dir> <cockpit> <out-dir>` — cockpit art (PNG) + layout (`cockpit.json`).
 //! `iaf-convert briefings <install-dir> <packs-dir> <out-dir>` — briefing/lesson texts (RTF → BBCode,
 //! English + Hebrew pack), `.brl` entry lists and diagrams (`briefings.json`, `img/`, `img_he/`).
+//! `iaf-convert missions <install-dir> <out-dir>` — every `.mis` and the `.bdb` → JSON, plus the
+//! mission list (menu id → mission + base-mission files).
 //! `iaf-convert fonts <install-dir> <out-dir>` — HUD/MFD/key raster fonts → BMFont (`.fnt` + `.png`).
 //! `iaf-convert menu <install-dir> <out-dir> [--pack <pack-dir>]` — front-end screens/lists
 //! (`menus.json`), strings (`strings.json`), art (`img/…png`) and TrueType fonts; with `--pack`,
@@ -72,6 +74,7 @@ fn main() -> Result<()> {
             }
             Ok(())
         }
+        [_, "missions", install, out] => convert_missions(Path::new(install), Path::new(out)),
         [_, "fonts", install, out] => convert_fonts(Path::new(install), Path::new(out)),
         [_, "briefings", install, packs, out] => convert_briefings(Path::new(install), Path::new(packs), Path::new(out), &opts),
         [_, "menu", install, out] => convert_menu(Path::new(install), None, Path::new(out), &opts),
@@ -390,6 +393,55 @@ fn convert_fonts(install: &Path, out: &Path) -> Result<()> {
         img.save(out.join(format!("{name}.png")))?;
         std::fs::write(out.join(format!("{name}.fnt")), desc)?;
         println!("{name}: {} glyphs, {}px tall ({})", glyphs.len(), h, font.face);
+    }
+    Ok(())
+}
+
+fn convert_missions(install: &Path, out: &Path) -> Result<()> {
+    use iaf_tools::mis;
+    let dir = install.join("resource/missions");
+    std::fs::create_dir_all(out)?;
+    let (mut ok, mut failed) = (0, Vec::new());
+    let mut bdb_version = 9;
+    let mut entries: Vec<_> = std::fs::read_dir(&dir)?.flatten().map(|e| e.path()).collect();
+    entries.sort();
+    for p in &entries {
+        let name = p.file_name().unwrap().to_string_lossy().to_lowercase();
+        if !name.ends_with(".mis") {
+            continue;
+        }
+        match mis::parse_mission(&std::fs::read(p)?) {
+            Ok(v) => {
+                bdb_version = v["version"].as_i64().unwrap_or(9) as i32;
+                std::fs::write(out.join(name.replace(".mis", ".json")), serde_json::to_string(&v)?)?;
+                ok += 1;
+            }
+            Err(e) => failed.push(format!("{name}: {e:#}")),
+        }
+    }
+    for p in entries.iter().filter(|p| p.extension().is_some_and(|e| e.eq_ignore_ascii_case("bdb"))) {
+        let v = mis::parse_bdb(&std::fs::read(p)?, bdb_version)?;
+        let name = p.file_name().unwrap().to_string_lossy().to_lowercase().replace(".bdb", ".bdb.json");
+        std::fs::write(out.join(name), serde_json::to_string(&v)?)?;
+    }
+    // Menu mission id -> [main mission, base missions…] (lower-cased file stems).
+    let list = iaf_formats::ini::Ini::parse(&std::fs::read(dir.join("missionlist.ibx"))?);
+    let mut map = serde_json::Map::new();
+    for s in &list.sections {
+        let files: Vec<String> = s
+            .entries
+            .iter()
+            .filter(|(k, _)| k.to_uppercase().starts_with("MISSION"))
+            .map(|(_, v)| v.to_lowercase().trim_end_matches(".mis").to_string())
+            .collect();
+        if !files.is_empty() {
+            map.insert(s.name.clone(), serde_json::json!(files));
+        }
+    }
+    std::fs::write(out.join("missionlist.json"), serde_json::to_string_pretty(&map)?)?;
+    println!("missions: {ok} converted, {} failed, {} ids -> {}", failed.len(), map.len(), out.display());
+    for f in failed {
+        println!("  {f}");
     }
     Ok(())
 }
