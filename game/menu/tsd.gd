@@ -19,8 +19,25 @@ const V_THUMB := Vector2(10, 75)
 const H_UP := Vector2(24, 10)
 const H_DOWN := Vector2(21, 10)
 const H_THUMB := Vector2(74, 10)
-## Scroll arrow step in map pixels (UNCERTAIN until decoded).
-const ARROW_STEP := 20.0
+## Scroll arrow step: 5 map units (round(5·z) px).
+const ARROW_STEP := 5.0
+## World -> map (FUN_004ff5a0): X shift = DataXShiftPR, Y shift, width / height of the world.
+const WORLD_X_SHIFT := 166850.0
+const WORLD_Y_SHIFT := 21144.0
+const WORLD_W := 819200.0
+const WORLD_H := 1064960.0
+const MAP_X_FACTOR := 1.0071394
+## Flight colours 1..4 (Alpha..Delta), 5-6 white.
+const FLIGHT_COLORS := [Color8(226, 0, 180), Color8(4, 178, 39), Color8(0, 82, 250), Color8(215, 134, 1), Color.WHITE, Color.WHITE]
+const FLIGHT_NAMES := ["alpha", "bravo", "charlie", "delta"]
+## Flyable type codes (FUN_00503e50).
+const FLYABLE_TYPES := [100, 110, 120, 130, 140, 160, 180, 190, 200]
+## bdb object class (0x5aa) -> icon class: 1 aircraft, 2 ship, 3 structure, 4 vehicle, 5 SAM, 6 AAA.
+const ICON_CLASS := {2: 1, 3: 1, 0x1c: 1, 0xf: 2, 0x10: 2, 0xc: 3, 0xd: 3, 0x1d: 3, 0x1e: 3, 5: 4, 6: 4, 8: 5, 9: 5, 10: 6}
+const ICON_ART := {1: "icair", 2: "icshp", 3: "icstr", 4: "icveh", 5: "icsam", 6: "icaaa"}
+const FILTERS := {1: "aircrafts", 2: "ships", 3: "structures", 4: "vehicles", 5: "samsites", 6: "aaasites"}
+## SAM ring radius (world units) by type code (class 8).
+const SAM_RING := {290: 37080.0, 340: 37080.0, 300: 16686.0, 320: 22248.0}
 
 static var _map_cache := {}
 
@@ -35,6 +52,14 @@ var windows: Control
 var brief_window: Control
 var link_windows := {}  # brl type -> window
 var mission_id := -1
+## Units shown on the map: {pos (map units), klass, side, heading, leader, flight, type, art}.
+var units: Array = []
+## Flights by number: {members: [unit index], points: [map units], leader: unit index}.
+var flights := {}
+var mission_title := ""
+var mission_clock := ""
+var selected := -1  # unit index
+var sel_textures := {}
 var pressed_arrow := ""
 var dragging := ""  # "v" / "h" while a thumb is dragged
 var drag_offset := 0.0
@@ -66,6 +91,111 @@ func setup(front_end: Control, mission: int) -> void:
 	windows.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(windows)
 	map_canvas.load_maps(_map(map_name), _map("grid"), _map("text"))
+	_load_units()
+
+
+## World (mission) coordinates -> TSD map units (FUN_004ff5a0).
+static func world_to_map(x: float, y: float) -> Vector2:
+	return Vector2((x + WORLD_X_SHIFT) * MAP_SIZE.x * MAP_X_FACTOR / WORLD_W, MAP_SIZE.y - (y + WORLD_Y_SHIFT) * MAP_SIZE.y / WORLD_H)
+
+
+## What the spawner creates from the mission and its base missions (docs/front-end.md §8.1):
+## entities whose bdb class has an icon, placed in the world (the unused player slots sit at -1).
+func _load_units() -> void:
+	var dir := Settings.assets_dir().path_join("converted/missions")
+	var list = JSON.parse_string(FileAccess.get_file_as_string(dir.path_join("missionlist.json")))
+	if not (list is Dictionary) or not list.has(str(mission_id)):
+		return
+	var bdbs := {}
+	var player_unit := -1
+	var first := true
+	for name in list[str(mission_id)]:
+		var m = JSON.parse_string(FileAccess.get_file_as_string(dir.path_join(String(name) + ".json")))
+		if not (m is Dictionary):
+			continue
+		var bdb_name := String(m.get("bdb", "")).to_lower()
+		if not bdbs.has(bdb_name):
+			var b = JSON.parse_string(FileAccess.get_file_as_string(dir.path_join(bdb_name + ".json")))
+			var objects := {}
+			if b is Dictionary:
+				for o in b.objects.items:
+					objects[int(o["0x1e"])] = o
+			bdbs[bdb_name] = objects
+		var objects: Dictionary = bdbs[bdb_name]
+		if first:
+			var misc: Dictionary = m.misc.items[0]
+			mission_title = misc.get("0x44c", "")
+			var t := int(misc.get("0x460", 0.0))
+			mission_clock = "%02d:%02d:%02d" % [t / 3600, t / 60 % 60, t % 60]
+		var by_id := {}
+		for e in m.entities.items:
+			if not (e is Dictionary) or int(e.get("0x2e4", -1)) < 0 or int(e.get("0x2ee", -1)) < 0:
+				continue
+			var obj: Dictionary = objects.get(int(e.get("0x2c6", -1)), {})
+			var klass: int = ICON_CLASS.get(int(obj.get("0x5aa", -1)), 0)
+			if klass == 0 or int(e.get("0x35c", 0)) == 0:
+				continue
+			var type := int(obj.get("0x5b4", -1))
+			var u := {
+				"pos": world_to_map(float(e["0x2e4"]), float(e["0x2ee"])),
+				"klass": klass, "side": int(e.get("0x2d0", 0)), "heading": float(e.get("0x302", 0)),
+				"type": type, "cls": int(obj.get("0x5aa", -1)), "leader": false, "flight": 0,
+				"airport": type == 450,
+			}
+			by_id[int(e["0x1e"])] = units.size()
+			if first and String(e.get("0x2bc", "")) == "Player1":
+				player_unit = units.size()
+			units.append(u)
+		for f in m.formations.items:
+			var n := int(f.get("0x3f2", 0))
+			if n == -1:
+				n = 8
+			if n <= 0 or not first:
+				continue
+			var members: Array = []
+			for mem in f.get("members", []):
+				var id := int(mem.get("0x41a", -1))
+				members.append(by_id.get(id, -1))
+			var alive := members.filter(func(i): return i >= 0)
+			if alive.is_empty():
+				continue
+			var leader: int = alive[0]
+			var pts: Array = []
+			for p in f.get("points", []):
+				pts.append(world_to_map(float(p[1]), float(p[2])))
+			flights[n] = {"members": alive, "points": pts, "leader": leader}
+			units[leader].leader = true
+			for i in alive:
+				units[i].flight = n
+		first = false
+	# The player's flight (the formation holding Player1) is the default selection.
+	if player_unit >= 0 and units[player_unit].flight > 0:
+		select_flight(units[player_unit].flight)
+
+
+## Flight number the player starts in (0 = none).
+func default_flight() -> int:
+	return int(units[selected].flight) if selected >= 0 else 0
+
+
+## Alpha..Delta enable rule (FUN_00503f40).
+func flight_enabled(n: int) -> bool:
+	if not flights.has(n) or n > 4:
+		return false
+	var leader: Dictionary = units[flights[n].leader]
+	return int(leader.type) in FLYABLE_TYPES and int(leader.side) == 1
+
+
+func flight_exists(n: int) -> bool:
+	return flights.has(n)
+
+
+## Selects a flight: its leader becomes the selected unit and the view centres on it.
+func select_flight(n: int) -> void:
+	if not flights.has(n):
+		return
+	selected = flights[n].leader
+	centre_on(units[selected].pos)
 
 
 func _map(name: String) -> Dictionary:
@@ -98,16 +228,14 @@ func _clamp_scroll() -> void:
 	scroll = scroll.clamp(Vector2.ZERO, (MAP_SIZE - _view_size()).max(Vector2.ZERO))
 
 
-## Zoom keeping a map point fixed on screen (the selected unit, or the view centre; 5019b0).
+## Zoom, then centre the selected unit, or keep the view centre (5019b0).
 func zoom_by(factor: float) -> void:
-	var fixed := scroll + _view_size() / 2
+	var centre: Vector2 = units[selected].pos if selected >= 0 else scroll + _view_size() / 2
 	var new_zoom := clampf(zoom * factor, 1.0, ZOOM_MAX)
 	if is_equal_approx(new_zoom, zoom):
 		return
-	var screen_offset := (fixed - scroll) * zoom
 	zoom = new_zoom
-	scroll = fixed - screen_offset / zoom
-	_clamp_scroll()
+	centre_on(centre)
 	map_canvas.queue_redraw()
 
 
@@ -260,7 +388,8 @@ func _h_thumb() -> float:
 	return lo if room <= 0.0 else lerpf(lo, hi, scroll.x / room)
 
 
-## Labels of text.emf: re-issued at their map position without scaling (4ff740).
+## Labels of text.emf: re-issued at their map position without scaling (4ff740); then units,
+## waypoints and the mission title / clock.
 func _draw_overlay() -> void:
 	var s: float = fe._scale()
 	if layers.text:
@@ -270,6 +399,98 @@ func _draw_overlay() -> void:
 			if px < 1:
 				continue
 			overlay.draw_string(fe.font, pos, op.text, HORIZONTAL_ALIGNMENT_LEFT, -1, px, op.color)
+	_draw_units(s)
+	if layers.waypoint:
+		for n in [1, 2, 3, 4]:
+			if flights.has(n) and n != default_flight():
+				_draw_route(n, s)
+		if flights.has(default_flight()):
+			_draw_route(default_flight(), s)
+	# Title and clock: Arial p10 weight 600, white (the second line is always empty).
+	var fs := int(round(11 * s))
+	var line_h: float = fe.font_bold.get_height(fs) / s
+	overlay.draw_string(fe.font_bold, Vector2(4, 4) * s + Vector2(0, fe.font_bold.get_ascent(fs)), mission_title, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
+	overlay.draw_string(fe.font_bold, Vector2(14, line_h + 6) * s + Vector2(0, fe.font_bold.get_ascent(fs)), mission_clock, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
+
+
+## Map units -> client pixels (640 space).
+func _to_client(m: Vector2) -> Vector2:
+	return (m - scroll) * zoom
+
+
+func _unit_visible(u: Dictionary) -> bool:
+	var filter: String = "airports" if u.airport else FILTERS[u.klass]
+	return fe.tsd_checks.get("%s%d" % [filter, 1 if u.side == 1 else 2], true)
+
+
+## Unit icons (FUN_005035c0), centred on the unit; plain copies of the icon cell.
+func _draw_units(s: float) -> void:
+	for i in units.size():
+		var u: Dictionary = units[i]
+		if not _unit_visible(u):
+			continue
+		var c := _to_client(u.pos)
+		var art: String = "icairport" if u.airport else ICON_ART[u.klass]
+		var cell: Rect2
+		if u.klass == 1:
+			var row := 1 if u.side > 1 else (0 if u.leader else 2)
+			var col := (int(fposmod(u.heading, 360.0)) / 45) % 8
+			cell = Rect2(col * 27, row * 21, 27, 21)
+		else:
+			cell = Rect2(0, (1 if u.side > 1 else 0) * 17, 27, 17)
+		var top_left := (c - (cell.size / 2).floor()).floor()
+		var t: Texture2D = fe._tex("tsd/%s.png" % art)
+		if t != null:
+			var a: float = fe.art_scale
+			overlay.draw_texture_rect_region(t, Rect2(top_left * s, cell.size * s), Rect2(cell.position * a, cell.size * a))
+		if u.cls == 8 and SAM_RING.has(u.type):
+			var r := floorf(floorf(SAM_RING[u.type]) * MAP_SIZE.x / WORLD_W) * zoom
+			overlay.draw_arc(c * s, r * s, 0, TAU, 64, Color.WHITE, maxf(1.0, s), true)
+		if u.klass == 1 and u.flight >= 1 and u.flight <= 4:
+			overlay.draw_rect(Rect2((top_left - Vector2(2, 2)) * s, (cell.size + Vector2(4, 4)) * s), FLIGHT_COLORS[u.flight - 1], false, 2 * s)
+	if selected >= 0 and _unit_visible(units[selected]):
+		var u: Dictionary = units[selected]
+		var t := _selection_texture("icselair" if u.klass == 1 else "icselveh")
+		if t != null:
+			var sz: Vector2 = Vector2(t.get_width(), t.get_height()) / fe.art_scale
+			overlay.draw_texture_rect(t, Rect2(((_to_client(u.pos) - (sz / 2).floor()).floor()) * s, sz * s), false)
+
+
+## Selection art: top half is the sprite, bottom half its AND mask (black = sprite).
+func _selection_texture(name: String) -> Texture2D:
+	if sel_textures.has(name):
+		return sel_textures[name]
+	var src: Texture2D = fe._tex("tsd/%s.png" % name)
+	if src == null:
+		return null
+	var img := src.get_image()
+	img.decompress()
+	var h := img.get_height() / 2
+	var out := Image.create(img.get_width(), h, false, Image.FORMAT_RGBA8)
+	for y in h:
+		for x in img.get_width():
+			var c := img.get_pixel(x, y)
+			var m := img.get_pixel(x, y + h)
+			out.set_pixel(x, y, Color(c.r, c.g, c.b, 1.0 - m.get_luminance()))
+	sel_textures[name] = ImageTexture.create_from_image(out)
+	return sel_textures[name]
+
+
+## A flight's route: numbered circles (r 10 px) in the flight colour, joined when > 20 px apart.
+func _draw_route(n: int, s: float) -> void:
+	var color: Color = FLIGHT_COLORS[n - 1]
+	var pts: Array = flights[n].points
+	var fs := int(round(11 * s))
+	for i in pts.size():
+		var c := _to_client(pts[i])
+		if i > 0:
+			var prev := _to_client(pts[i - 1])
+			if prev.distance_to(c) > 20:
+				overlay.draw_line(prev * s, c * s, color, 2 * s, true)
+	for i in pts.size():
+		var c := _to_client(pts[i])
+		overlay.draw_circle(c * s, 10 * s, color)
+		overlay.draw_string(fe.font_bold, (c + Vector2(0, 4)) * s - Vector2(20 * s, 0), str(i + 1), HORIZONTAL_ALIGNMENT_CENTER, 40 * s, fs, Color.WHITE)
 
 
 # --- input ----------------------------------------------------------------------------------

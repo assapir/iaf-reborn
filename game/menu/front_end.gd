@@ -275,16 +275,28 @@ func _enter_screen() -> void:
 		add_child(tsd)
 		move_child(top_layer, -1)
 		tsd.setup(self, Settings.mission_id)
-		tsd.open_briefing(tsd_checks.get("briefing", false))
+		if tsd_checks.get("player_flight", false):
+			tsd_checks.erase("player_flight")
+			var n: int = tsd.default_flight()
+			if n >= 1 and n <= 4:
+				tsd_checks[["alpha", "bravo", "charlie", "delta"][n - 1]] = true
+			_restore_tsd_checks()
+		else:
+			var n := _flight_number(_selected_flight())
+			if n > 0:
+				tsd.select_flight(n)
+		# Briefing only when its file exists.
+		tsd_checks["briefing"] = tsd_checks.get("briefing", false) and tsd.has_briefing()
+		tsd.open_briefing(tsd_checks.briefing)
 	elif screen != "tsd" and tsd != null:
 		tsd.queue_free()
 		tsd = null
 
 
 ## TSD defaults on mission load (FUN_004efc60): every unit filter, Text, Waypoint, Grid and
-## Briefing on; the player's flight selected (single player: Alpha, UNCERTAIN until decoded).
+## Briefing on; the flight holding the player is selected when the TSD opens.
 func _reset_tsd_checks() -> void:
-	tsd_checks = {"waypoint": true, "text": true, "grid": true, "briefing": true, "alpha": true}
+	tsd_checks = {"waypoint": true, "text": true, "grid": true, "briefing": true, "player_flight": true}
 	for kind in ["aircrafts", "vehicles", "ships", "samsites", "aaasites", "structures", "airports"]:
 		for side in [1, 2]:
 			tsd_checks["%s%d" % [kind, side]] = true
@@ -314,8 +326,14 @@ func _button_enabled(label: String) -> bool:
 			"zoomout":
 				return tsd.can_zoom_out()
 			"arm":
-				return _selected_flight() != ""
+				return _selected_flight() != "" and tsd.flight_exists(_flight_number(_selected_flight()))
+			"alpha", "bravo", "charlie", "delta":
+				return tsd.flight_enabled(_flight_number(_norm(label)))
 	return true
+
+
+func _flight_number(name: String) -> int:
+	return ["alpha", "bravo", "charlie", "delta"].find(name) + 1
 
 
 func _selected_flight() -> String:
@@ -680,6 +698,8 @@ func _tsd_button(key: String, label: String, btn: Dictionary) -> void:
 			for f in ["alpha", "bravo", "charlie", "delta"]:
 				tsd_checks[f] = false
 		tsd_checks[label] = checked.get(key, false)
+	if label in ["alpha", "bravo", "charlie", "delta"]:
+		tsd.select_flight(_flight_number(label))
 	match label:
 		"fly":
 			if _selected_flight() == "":

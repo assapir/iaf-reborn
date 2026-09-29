@@ -21,7 +21,9 @@ from Ramat David** in the original F-16 with the original 2D cockpit, everything
 1. **Front end leftovers**: no message box yet (TSD quit confirm, QUIT), mission prerequisites not enforced
    (no pilot records), Jump In / Mission Creator / Reference / Multiplayer / original Preferences pages are
    navigable art only. Only the F-16 is flyable (other jets shown disabled); campaign missions start in the F-16.
-2. **TSD / briefing screen** not built (EMF vector map `menu/emf/82.emf`, briefing window, links, filters, formation).
+2. **TSD leftovers**: 3D-model (obj_t) and target (targ_t) link windows, waypoint dragging, selected-unit label,
+   click-to-select / double-click-to-fly, Arming screen content, map drag cursors. (Map, units, flights,
+   waypoints, zoom, scrollbars, briefing + lesson + card windows, filters, msg boxes are done.)
 3. **MFDs** empty (RE in progress → docs/mfd.md).
 4. **Terrain detail**: only the level-4 Israel inset (16 m/px); airbase insets (to ~1 m/px) and far levels not used.
 5. **Airbase objects**: base missions (`bmisrdvd`: hangars, runway objects…) not placed; no 3D models for them yet.
@@ -34,7 +36,7 @@ from Ramat David** in the original F-16 with the original 2D cockpit, everything
 
 ## Plan (in order)
 1. ~~Front end rewrite~~ (done; message box comes with the TSD).
-2. TSD screen: EMF map converter + briefing window with links (lesson RTF, instructor card).
+2. ~~TSD screen~~ (done; leftovers in gaps).
 3. MFDs per docs/mfd.md.
 4. Airbase: high-detail insets around the start + base-mission objects (stationary 3D models).
 5. Mission runtime for "Engines ON": audio markers, win sensor, success/fail message box (original `mbg*`).

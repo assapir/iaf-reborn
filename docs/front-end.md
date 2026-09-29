@@ -243,7 +243,7 @@ Jets disabled per mission (`FUN_005082b0`; rows 0x11c bytes apart in the list ob
   * arrows `slupb_0..2` and `sldownb_0..2` 10×8
   * range = `EM_GETLINECOUNT`
   * keyboard (KEYDOWN) and VSCROLL are handled
-  * step sizes UNCERTAIN
+  * step sizes: see §8.1
 
 ## 7. Floating frame window construction (`FUN_00509a40`, paint `FUN_0050a9f0`)
 * Black background. Min 150×100, max 640×480.
@@ -279,8 +279,8 @@ Jets disabled per mission (`FUN_005082b0`; rows 0x11c bytes apart in the list ob
   `(-sx·z, -sy·z, 454z−sx·z, 590z−sy·z)`, where `z` is the zoom and `(sx,sy)` the scroll.
 * **Default zoom = 1.0**, scroll (0,0) (`FUN_004efc60`). The view is then centred on the selected
   flight (`FUN_005043e0`).
-* Zoom_In: ×1.5, max 32. Zoom_Out: ×2/3, min 1. Both keep the selected unit, or the view centre,
-  fixed (`5019b0`). Each button is disabled at its limit.
+* Zoom_In: ×1.5, max 32. Zoom_Out: ×2/3, min 1. Both then **centre** the selected unit (or keep the
+  view centre) (`5019b0`, see §8.1). Each button is disabled at its limit.
 * Scrollbars (screen coordinates):
   * V: `tsd/vscroll.bmp` 10×356 at (608,42); thumb `vslider` 10×75; `vslupb`/`vsldownb`
   * H: `hscroll.bmp` 462×10 at (146,399); thumb `hslider` 74×10
@@ -300,16 +300,283 @@ Jets disabled per mission (`FUN_005082b0`; rows 0x11c bytes apart in the list ob
     (UNCERTAIN meaning).
   * Aircraft in flight 1..4 get a 2 px outline rectangle in the flight colour.
   * The selected unit gets `icselair`/`icselveh` (`FUN_00503ae0`).
-  * The 18 filter checks (Aircrafts/Vehicles/Ships/SAM/AAA/Structures/Airports × side 1/2) gate the
+  * The 14 filter checks (Aircrafts/Vehicles/Ships/SAM/AAA/Structures/Airports × side 1/2) gate the
     drawing (`FUN_00503130`).
-* Top-left text: two lines at (4,4) and (4, lineH+6), from `DAT_006947b0`, `DAT_006948b0` and
-  `this+0x1204`. The content is UNCERTAIN (probably mission name, date/time).
+* Top-left text: mission title at (4,4); mission clock `HH:MM:SS` at (14, lineH+6) (decoded in §8.1).
 * A ruler drag draws a line and arrow in red with `"%.2f NM"` and bearing `"%03d T"` (m × 0.00053996).
-* Defaults (`FUN_004efc60`): all 18 unit filters on, and Text, Waypoint, Grid and Briefing on.
-  Stored in `DAT_00836cd4..d18`.
+* Defaults (`FUN_004efc60`): all 14 unit filters on, and Text, Waypoint, Grid and Briefing on.
+  Stored in `DAT_00836cd4..d18`; flight `d1c`=0, zoom `d20`=1.0, scroll `d24/d28`=0.
 * Formation panel `pformation` (bottom1): Alpha–Delta CheckGroup selects the player's flight
   (`DAT_00836d1c`). In single-player it is pre-set from the mission.
 * Arm is disabled when no valid flight is selected (`FUN_00504330`).
+
+### 8.1 TSD data mapping (decoded)
+
+**Data source.** The TSD does not read the .mis. After the mission loads, `FUN_004d21f0` (object
+`0x681878`, called from `FUN_005161e0` on every paint) walks the spawned engine objects and fills:
+* a unit table at `0x681880`: 0x70-byte records, count `DAT_00689bc0`, maximum 300;
+* a flight table at `0x689bc8 + n·0x370`.
+
+So the TSD shows what the spawner created from the mission (docs/formats/mis.md).
+
+#### World → map units → pixels (`FUN_004ff5a0`; inverse `FUN_004ff650`)
+
+```
+mx = (X − X0) · 454 · kx / W          my = 590 − (Y − Y0) · 590 / H
+px = z · (mx − sx)                    py = z · (my − sy)
+```
+
+| const | value | source |
+|---|---|---|
+| X0 | −166850 (= terrain `DataXShiftPR`) | `.rdata 0x604300` |
+| Y0 | −21144 | `0x604308` |
+| kx | 1.0071394 (inverse uses 0.9929112 at `0x60430c`) | `0x604304` |
+| W | 819200 = 0 − (−819200) | `0x6042f0`, stored `0x839174` by `4fe220` |
+| H | 1064960 = 0 − (−1064960) | `0x6042f4`, stored `0x839170` by `4fe250` |
+| 454, 590 | map extent in map units | `0x6040e0/e4` |
+
+* The EMF is played into the rect `(−sx·z, −sy·z, 454z − sx·z, 590z − sy·z)`.
+* `FUN_004ff5a0` returns `(mx − sx, my − sy)`. `FUN_005161e0` caches that per unit at
+  `this+0x8a4+8i` and per waypoint at `this+0x16c+0xa8·f+8i`. Drawing multiplies by `z`.
+* Unit icon top-left = `(trunc(z·(mx−sx) − w/2), trunc(z·(my−sy) − h/2))`, where `w/2` and `h/2`
+  are integer halves (`__ftol` truncates). The icon is therefore centred on the unit.
+* Scroll clamp (paint `4ff7c0`): `0 ≤ sx ≤ 454 − Wc/z` and `0 ≤ sy ≤ 590 − Hc/z`, where
+  Wc×Hc is the content client size (453×357).
+
+**Worked example: takeoff.mis Player1, X=356226, Y=600689.** It maps to **(291.96, 245.50)**.
+* For comparison, the Ramat David spawn point (356404, 602402) maps to (292.06, 244.55), and the
+  Alpha waypoint (347870, 602383) maps to (287.29, 244.56).
+* text.emf places "SEA OF GALILEE" at about (308, 231) after scaling its 478×620 bounds to 454×590.
+  This is 21 map units east and 14 units north of the RD point, about 1.79 km per map unit. The real
+  offset is about 38 km east and 17 km north, so the placement is consistent.
+* Other checks: Tel Nof → (267.8, 301.0), Ramon → (270.3, 350.5).
+* On entry (z=1), centring gives `sx = trunc(291.96) − 453/2 = 65`, clamped to 1, and
+  `sy = 245 − 178 = 67`.
+* The F-16 icon (27×21) is drawn at (277, 168). The waypoint "1" circle is centred at (286, 177).
+
+#### Unit record (`FUN_004d21f0`; runtime descriptor `obj+0x30`, state `obj+0x1c`)
+
+| rec | meaning | mission / bdb origin |
+|---|---|---|
+| [0] | object class | bdb Objects `0x5aa` of entity `0x2c6` (28 Controlled aircraft, 3 Aircraft, 2 Helicopter, 5 Armed vehicle, 6 Vehicle, 8 Radar SAM, 9 IR SAM, 10 Gundish, 11 Ground radar, 12 Building, 13 Target building, 14 Tree/marker, 15 Boat, 16 Armed boat, 18 Fire sensor) |
+| [1] | type code | bdb Objects `0x5b4` (100 F16, 110 F15, 120 F4, 130 Kfir, 140 Lavi, 150…220 MiGs/bombers, 230/240 transports, 250–280 vehicles, 290–340 SAMs, 350/360 AAA, 370–390 boats, 400 building, 410 strategic, 420 bridge, 430 road, 440 taxiway "Airport", 450 runway, −1 none) |
+| [8] | unique object id (`desc+0x18`); `DAT_006504d4` = selected unit | runtime id (UNCERTAIN: equals entity `0x1e`) |
+| [9] | TSD icon class | from [0]: 2,3,0x1c→1 aircraft; 0xf,0x10→2 ship; 0xc,0xd,0x1d,0x1e→3 structure; 5,6→4 vehicle; 8,9→5 SAM; 10→6 AAA. **Any other class gets no record.** |
+| [10],[11] | world X, Y | entity `0x2e4`, `0x2ee` |
+| [0xd] | heading, float radians | entity `0x302` (UNCERTAIN: runtime yaw equals compass heading) |
+| [0xe..] | object name, 20 chars | shown only for runways |
+| [0x15] | flight number (formation `0x3f2`) of the formation that lists this object as a member | `CDMEFormationItem` members `0x41a` |
+| [0x16]/[0x17] | object is member 0 / member 1 of its flight | |
+| [0x18] | **object is its flight's current leader**: member 0 if alive, else member 1 (`FUN_004d2eb0`) | |
+| [0x19] | side (`desc+0x1c`) | entity `0x2d0` |
+| [0x1a] | SAM ring radius (world units), set only for class 8: type 290/340 → 37080, 300 → 16686, 320 → 22248, 310/330 → 0 | hard-coded |
+
+**Records created.** An object gets a record only if all of these hold:
+* its state `+0x44 ≠ 0`, `+0x14 ≠ 0` and `+0xc ∉ {4,5}`;
+* its class is one of those listed for [9].
+
+The state fields:
+* `+0x44` is initialised from spawn slot `[0x43]` = **entity `0x35c`**, the "known to player" flag.
+  It is set to 1 later when the player's radar detects the unit (`FUN_004aea40` @4af141).
+* `+0x14` is 1 for aircraft and 2 for surface units (from entity `0x320`).
+* `+0xc` values 4 and 5 are dead/removed states (UNCERTAIN).
+
+Units that are never shown:
+* markers (civilhouse audio markers have `0x35c`=0);
+* sensors (class 18);
+* ground radars (class 11);
+* trees and parachutes (class 14);
+* player slots that were not spawned. Only slots marked used in the session slot table are spawned,
+  `FUN_0058cb50` @58d23c (UNCERTAIN for SP; takeoff's Player2..7 are at −1,−1).
+
+**Drawing** (`FUN_005035c0`). Record i is drawn only if `FUN_00503130` passes:
+* icon class 1..6 × (side==1 → the `…1` filter, else → the `…2` filter);
+* icon class 3 is split: category 0x23 (type 450 runway) → `Airports1/2`, else `Structures1/2`.
+
+Bitmap choice (`FUN_004f54a0`):
+
+| icon class | bitmap |
+|---|---|
+| 1 aircraft | `icair` |
+| 2 ship | `icshp` |
+| 3 structure | `icairport` for type 450, else `icstr` (taxiways, type 440, use `icstr`) |
+| 4 vehicle | `icveh` |
+| 5 SAM | `icsam` |
+| 6 AAA | `icaaa` |
+
+Row choice:
+
+| side | ground icons | aircraft |
+|---|---|---|
+| 0 or 1 | row 0 (blue) | row 0 if [0x18]=1 (**flight leader**); row 2 (light blue) for wingmen and aircraft in no flight |
+| any other | row 1 (red) | row 1 (red) |
+
+* `icair` column = `trunc(deg(heading mod 2π)) / 45`. The art columns are 0 N, 1 NE, 2 E … 7 NW,
+  clockwise. The value is **floored**, so a 150° heading uses column 3 (SE).
+* Class 8 units also get a hollow white ring of radius `trunc(trunc(r)·454/819200)·z` px about the
+  icon centre.
+* Aircraft in flights 1..4 get a 2 px rectangle in the flight colour, inflated by 2 px.
+* The selected unit is drawn last:
+  * `icselair` or `icselveh`: bottom half SRCAND, top half SRCPAINT;
+  * then yellow RGB(255,255,0) text, TA_CENTER|TA_TOP, at (x+w/2, y+h/2+2): the category name from
+    `FUN_004f5d70` ("F-16", "Tank", "SA-6"…; for runways, the object name);
+  * then, if the unit is in a flight, a second line with the flight name.
+* Double-clicking an own-side **flight-leader** aircraft whose type is flyable
+  (`FUN_00503e50`: 100,110,120,130,140,160,180,190,200) selects that flight and **flies** it
+  immediately (exit code 2, `FUN_005005d0`).
+
+#### Flights
+
+**Flight number.** It is the formation's `0x3f2` (runtime `+0x38`, `FUN_005b9ee0`): 1..10 kept,
+−1→8. Names come from `FUN_005b9ff0`:
+
+| number | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| name | Alpha | Bravo | Charlie | Delta | Echo | Foxtrot | Enemy | Other | Hotel | India |
+
+Over all missions: 1×86, 2×58, 3×42, 4×28, 5×9, 6×3, 8×239.
+
+**Flight table.** Flights 1..6 are stored at slot n. Other formations take slots 7+. Record layout:
+
+| offset | content |
+|---|---|
+| +0 | up to 20 waypoints × 0x28: {x, y, alt, ?, speed, action, name[16]}, copied from the formation's CList in route order |
+| +0x320 | waypoint count |
+| +0x324 | exists |
+| +0x328 | name ("Alpha"…; only for 1..6) |
+| +0x338/+0x354 | member 0 / member 1 descriptor |
+| +0x348/+0x364 | member 0 / member 1 object id |
+| +0x350/+0x36c | member 0 / member 1 type code |
+
+* Flight membership is the formation's **two** member slots (`0x41a` ids).
+* A flight exists if either member is spawned and alive.
+
+**Player's default flight in SP** (ctor `4fe280`, unless returning from Arm):
+* `DAT_00836d1c = DAT_006947a8`, the number of the formation that contains the player object
+  `DAT_00694960` (`FUN_005b9bc0`). It is 0 if the player is in no formation.
+* Then `FUN_00502390(n)`:
+  * sets the selected unit to member 0's id, or member 1's;
+  * checks the matching button (`FUN_00504130`);
+  * updates Arm (`FUN_00504330`);
+  * centres the view (`FUN_005043e0`).
+
+**Button enable** (`FUN_00503f40`). Alpha..Foxtrot are enabled only if all of these hold:
+* the flight exists;
+* its leader type code (member 0's, else member 1's) is flyable;
+* `FUN_00503cc0(n)`: n ≤ 4 and the member's record has side == 1. Missions 0x213 and 0x1ff–0x204
+  use MP side rules; mission 0x29a allows 1..2.
+
+So Echo/Foxtrot and enemy flights can never be picked in SP. The single-player `tsd.trx` has only
+Alpha–Delta.
+
+**Arm disabled** (`FUN_00504330`) when any of these hold:
+* `DAT_00838420 == 0` and the mission is 0x29a or 0x213 (UNCERTAIN meaning);
+* no flight is selected (0);
+* the selected flight does not exist.
+
+Multiplayer adds slot checks.
+
+**Fly** (`FUN_00502c90`):
+* SP with a valid flight: make the flight leader the player object (`FUN_004d2ae0`), then exit code 2.
+* Otherwise: msg 25 "Choose a jet before flying."
+
+**Waypoints** are drawn for flights 1..4 only, then the selected flight. In SP, pressing the left
+button within 10 px of a waypoint of the selected flight (`FUN_005034f0`) starts a drag. The drag
+moves the waypoint through the inverse transform (`FUN_004ff650`, `FUN_004d2a20`). This is the
+purpose of `move.cur` and `grab.cur` (UNCERTAIN).
+
+#### Top-left text (overlay `4ff9e0`)
+
+* Font: `this+0xdc` = Arial p10 weight 600, white, transparent background.
+* `L = tmHeight − tmExternalLeading − tmInternalLeading` (`this+0x60`).
+* `C = extra + (tmAveCharWidth + tmMaxCharWidth)/2` (`this+0x64`).
+
+| position | text | source |
+|---|---|---|
+| (4,4) | **mission title**, CDMEMiscItem `0x44c` ("Engines ON") | `DAT_006947b0` = `0x681878+0x12f38`, copied from the mission object `DAT_00694934+0x11c`. That CString is assigned at `4b9e23` from a header struct whose layout matches misc +0x18.. (title, subtitle, start time `+0xf0`, weather). |
+| (4, L+6) | `DAT_006948b0` = `+0x13038`: zero-filled every refresh and never written, so **empty** | |
+| (strlen·C + 14, L+6) = **(14, L+6)** | **mission clock `HH:MM:SS`**, zero-padded | `this+0x1204`, built in `FUN_005161e0` from `DAT_006947ac` = `trunc(clock+0x38 + clock+0x18)`, the time of day in seconds. Pre-flight this is the start time `0x460` (takeoff: "08:00:00"; UNCERTAIN which double is the offset). |
+| (Wc−4, 4), TA_RIGHT | `"%dx"` only when `clock->vfunc+0x20()` > 1 | probably time compression (UNCERTAIN); not seen pre-flight |
+
+#### Buttons, checks and scrollbars
+
+* `tsd.trx` defines these buttons:
+  * left panel `pTSD`: Fly, Waypoint, Text, Grid, the 14 filters, Briefing, Arm;
+  * bottom1 `pFormation`: Alpha–Delta, CheckGroup 1;
+  * bottom2 `pTools`: **Zoom_In (543,429,55×23) and Zoom_Out (543,453,55×23)**, both Push.
+
+  There is no Ruler button.
+* Initial check state: the ctor copies `DAT_00836cd8..d18` into each Check (`+0x3c`). Defaults are
+  all on (`FUN_004efc60`, confirmed): Waypoint, Text, Grid, 14 filters, Briefing.
+  * Briefing is then forced to "file exists" (`FUN_00502ec0`).
+  * Briefing is disabled if `brief/txt/<id>.rtf` is missing (`FUN_00502e40`).
+* Initially disabled in SP training (takeoff):
+  * Bravo, Charlie, Delta (no such flights);
+  * Zoom_Out (z == 1).
+
+  Enabled: Fly, Arm, Alpha, Zoom_In, Briefing.
+* Zoom (`5019b0`):
+  * Pivot: the selected unit's cached point p, or `(Wc/2)/z` if there is no selection.
+  * Zoom_In: `z ×= 1.5`, capped at 32. Zoom_Out: `z ×= 2/3`, floored at 1.0.
+  * Then `sx = trunc(p.x) + sx − (Wc/2)/z_new` (same for y). The pivot is **centred**.
+  * Then the scrollbar ranges are reset.
+* Scrollbars:
+  * range `[0, z·454 − Wc]` / `[0, z·590 − Hc]`, position `s·z`;
+  * **arrow step = round(5·z) px = 5 map units** (`+0x64`, `4f2800`);
+  * page = client size, i.e. `Hc/z` map units (`FUN_00501170` codes 2/3);
+  * thumb: `s = pos/z` (code 4).
+
+#### Briefing rich edit (`FUN_0050be40`, `FUN_0050c160`)
+
+* Style `0x520008c4`: child, visible, read-only, multi-line, auto-v/h-scroll.
+* Setup messages:
+  * `EM_SETBKGNDCOLOR` RGB(94,94,104);
+  * `EM_SETTARGETDEVICE(0,0)` (wrap to window);
+  * `EM_HIDESELECTION`.
+* **No `EM_SETCHARFORMAT`**: fonts and colours come only from the RTF.
+* Format rect (`EM_SETRECT`): 10 px inset from the left, and 10 px from the scrollbar on the right.
+* Scrollbar range = line count − visible lines + 1.
+* Scroll steps (`50ca40`/`50caa0`):
+
+| input | effect |
+|---|---|
+| arrow buttons, VK_UP / VK_DOWN | **1 line** (Down stops once the last line is within 20 px of the bottom) |
+| track click, VK_PRIOR / VK_NEXT | **one page**: exactly the number of fully visible lines, scrolled one line at a time |
+| thumb | `EM_LINESCROLL(pos − first visible line)` |
+
+* The first `<header>` is found with `EM_FINDTEXTEX` using FR_WHOLEWORD, case-insensitive. It is
+  replaced by `"%s %s"` = rank + callsign.
+* Rank `DAT_00836c98` is set on the pilot-record screen (`51a1fe`) from the pilot's score
+  `DAT_008386f0`:
+
+| score | rank |
+|---|---|
+| < 5000 | **Second Lieutenant** |
+| < 15000 | Lieutenant |
+| < 30000 | Captain |
+| < 45000 | Major |
+| < 75000 | Lt. Colonel |
+| < 100000 | Colonel |
+| otherwise | General |
+
+* A new pilot has score 0, so the header becomes **"Second Lieutenant <callsign>"**. The callsign
+  `DAT_00836cac` (20 chars) comes from the selected pilot record (`FUN_0051bdd0`).
+
+#### BACK / MAIN from the TSD
+
+Both show **msg 8, "Are you sure you want to quit the mission?"**, Yes/No (box type 4). The box posts
+message `0x55c` to the frame with wParam = the target screen and lParam = the button pressed.
+
+* **BACK** (`FUN_004eb990`): the target is MC (0x14) for mission 0x213, SpMMis (0x1c) when
+  `FUN_004efe30()`, otherwise the previous screen (`frame+0x58`, i.e. the Jet or mission list).
+* **MAIN** (`FUN_004eb7d0`): the target is Main (1).
+* The handler `4eb920` acts only when lParam == 6 (IDYES):
+  * it sends engine command 0x74, which unloads the mission (`FUN_005bc4a0`);
+  * in MP it also leaves the session;
+  * then it switches screen (`FUN_004e8a80`).
+* NO does nothing.
+* In MP, MAIN instead shows msg 11 ("quit the session?"), whose handler `0x557` → `4eb900` calls
+  `FUN_004ecd90` and then goes to Main. BACK still shows msg 8.
 
 ## 9. Sounds (`menu/wav`)
 * `Menu_M.WAV` is the menu music. It starts on entering any screen except TSD, Arm, FlyTSD and
