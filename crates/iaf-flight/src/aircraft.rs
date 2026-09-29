@@ -332,7 +332,10 @@ impl Aircraft {
         let fuel = self.fuel.sample(t);
         let mass = p.empty_mass + fuel;
         let (fwd, right, _) = self.attitude(t);
-        let (pitch, roll, _) = Self::euler(fwd, right);
+        let (_, roll, _) = Self::euler(fwd, right);
+        let (vel, _) = self.speed_at(t);
+        let gamma = if v > 1.0 { (vel[2] / v as f64).clamp(-1.0, 1.0).asin() as f32 } else { 0.0 };
+        let alpha_now = self.alpha.sample(t).0 as f32;
 
         // Commanded load factor (§4.2).
         let latched = t - self.stall_time < STALL_LATCH;
@@ -344,8 +347,11 @@ impl Aircraft {
             let sp = c.stick_y;
             let mut g = if sp > 0.0 { centre + sp * p.max_g_m1 } else { centre + (-sp) * ((p.min_g_m1 + 1.0) - centre) };
             if (g - 1.0).abs() < 1e-5 && roll.abs() < 10f32.to_radians() {
-                // Neutral stick: hold the flight path.
-                g = pitch.cos() / roll.cos();
+                // Neutral stick: hold the flight path. The original uses the nose pitch
+                // (cos(pitch)/cos(roll)); we use the flight-path angle and subtract the thrust's
+                // lift component, otherwise the jet slowly dives at high speed where the
+                // original's alpha goes negative (deviation, see docs/flight-model.md).
+                g = gamma.cos() / roll.cos() - self.thrust * alpha_now.sin() / (mass * G);
             }
             g
         };
