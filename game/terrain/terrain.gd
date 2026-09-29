@@ -170,8 +170,9 @@ func missing_after_frame() -> bool:
 	return _missing > 0
 
 
-## Terrain height in metres at a world position (null while that chunk isn't loaded).
-## Nearest-texel lookup; open sea is not flattened here.
+## Terrain height in metres at a world position (null while that chunk isn't loaded): the
+## surface as drawn by the finest ring's mesh (vertices every `step` texels, interpolated
+## between them), so the aircraft sits on what you see. Open sea is not flattened here.
 func height_at(pos: Vector3) -> Variant:
 	if meta.is_empty():
 		return null
@@ -181,10 +182,24 @@ func height_at(pos: Vector3) -> Variant:
 	var img: Image = chunks[c].get_meta("height")
 	var span: float = meta.chunk_span
 	var px: float = meta.chunk_pixels
+	var step: float = px / float(ring_resolution[0])
 	var t := godot_to_terrain(pos)
 	var r: Array = meta.rect
-	var x := int(round((t.x - float(r[0]) - c.x * span) / span * px))
-	var y := int(round((t.y - float(r[1]) - c.y * span) / span * px))
-	var col := img.get_pixel(clampi(x, 0, int(px)), clampi(y, 0, int(px)))
-	var raw := roundi(col.r * 255.0) * 256 + roundi(col.g * 255.0)
+	var gx := clampf((t.x - float(r[0]) - c.x * span) / span * px / step, 0.0, px / step)
+	var gy := clampf((t.y - float(r[1]) - c.y * span) / span * px / step, 0.0, px / step)
+	var x0 := floori(gx)
+	var y0 := floori(gy)
+	var fx := gx - x0
+	var fy := gy - y0
+	var h00 := _raw_height(img, x0, y0, step)
+	var h10 := _raw_height(img, x0 + 1, y0, step)
+	var h01 := _raw_height(img, x0, y0 + 1, step)
+	var h11 := _raw_height(img, x0 + 1, y0 + 1, step)
+	var raw := lerpf(lerpf(h00, h10, fx), lerpf(h01, h11, fx), fy)
 	return (raw - float(meta.sea_level_raw)) / float(meta.height_scale) * m_per_unit
+
+
+func _raw_height(img: Image, gx: int, gy: int, step: float) -> float:
+	var n := img.get_width() - 1
+	var col := img.get_pixel(clampi(int(gx * step), 0, n), clampi(int(gy * step), 0, n))
+	return float(roundi(col.r * 255.0) * 256 + roundi(col.g * 255.0))

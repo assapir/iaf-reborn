@@ -43,6 +43,8 @@ var orbit_dist := 35.0
 ## Hold the simulation until the terrain under the aircraft has loaded.
 var waiting_for_ground := true
 var mission_name := ""
+## Lowest the external camera may go above the terrain (metres).
+const CAMERA_MIN_AGL := 0.5
 
 
 func _ready() -> void:
@@ -209,7 +211,12 @@ func _apply_view() -> void:
 	var fwd := -rig.global_basis.z
 	var heading_yaw := atan2(-fwd.x, -fwd.z)
 	var offset := Vector3(0, 0, orbit_dist).rotated(Vector3.RIGHT, orbit_pitch).rotated(Vector3.UP, heading_yaw + orbit_yaw + PI)
-	chase.global_position = rig.global_position + offset
+	var cam := rig.global_position + offset
+	# Keep the external camera above the terrain surface.
+	var ground = terrain.height_at(cam)
+	if ground != null:
+		cam.y = maxf(cam.y, ground + CAMERA_MIN_AGL)
+	chase.global_position = cam
 	chase.look_at(rig.global_position, Vector3.UP)
 
 
