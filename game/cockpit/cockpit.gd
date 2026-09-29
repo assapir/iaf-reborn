@@ -12,6 +12,8 @@ extends Control
 const ORIGINAL_HEIGHT := 480.0
 const PANEL_CENTRE_X := 960.0
 const HUD_GREEN := Color(0.3, 1.0, 0.45)
+## Default HUD colour for the console text (HUD colour table, bright green; index UNCERTAIN).
+const HUD_CONSOLE := Color8(0, 252, 0)
 
 @export var cockpit_dir := "../assets/converted/cockpits/f16"
 
@@ -40,6 +42,10 @@ var flaps_state := 0
 var _blink := {}  # light index -> [phase, ms]
 var _handle_frame := -1
 var _handle_ms := 0.0
+## Mission subtitle console lines (newest last), drawn at x=4, y=10+15n of the 640x480 screen in
+## 12 px Arial and the HUD colour (FUN_0051e6a0).
+var subtitles: Array[String] = []
+var _console_font: SystemFont
 ## How far the panel is raised: 0 = forward view (original MainOffsetY), 1 = full panel
 ## ("panel down" view). `panel_target` is where it is sliding to.
 var panel_shift := 0.6
@@ -247,11 +253,28 @@ func _draw() -> void:
 		draw_string(font, panel_to_screen(fuel.OffsetX, fuel.OffsetY + 9), "%05d" % int(state.fuel_lbs),
 				HORIZONTAL_ALIGNMENT_LEFT, -1, int(11 * s), col)
 
+	_draw_console()
 	if tex.has("HUD"):
 		var h: Dictionary = layout.HUD
 		var w: float = h.Width * s
 		var hh: float = h.Height * s
 		draw_texture_rect(tex.HUD, Rect2(size.x / 2 - w / 2, panel_top() - hh, w, hh), false)
+
+
+func _draw_console() -> void:
+	if subtitles.is_empty():
+		return
+	if _console_font == null:
+		_console_font = SystemFont.new()
+		_console_font.font_names = PackedStringArray(["Arial", "Liberation Sans"])
+	var s := size.y / ORIGINAL_HEIGHT
+	var left := size.x / 2 - 320.0 * s
+	var fs := int(round(12 * s))
+	if fs < 1:
+		return
+	for n in subtitles.size():
+		draw_string(_console_font, Vector2(left + 4 * s, (10 + 15 * n) * s + _console_font.get_ascent(fs)), subtitles[n],
+				HORIZONTAL_ALIGNMENT_LEFT, -1, fs, HUD_CONSOLE)
 
 
 ## One frame of a light (frames stacked under Top in the lights bitmap) at its panel position.

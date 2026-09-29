@@ -75,7 +75,7 @@ DragIndex ×1e-4. "deg→rad*" = wrapped to (-180,180] then ×π/180.
 | MaxAlphaRate, AlphaStopAccel, AlphaStartAccel, AlphaK, AlphaBeta | 0x98,0x9c,0xa0,0xa4,0xa8 | 2.5,0.1,0.5,8,0.1 | – | raw |
 | StartMoveStickCenterG | 0x13c | 2 | g | raw |
 | MapCenterStick | 0x138 | 0 | g | raw |
-| OverGThresh | 0x168 | 6.7 | g | raw (only exposed via getter id 27 of `FUN_005a64b0`) |
+| OverGThresh | 0x168 | 6.7 | g | raw (getter id 27 of `FUN_005a64b0`; only used for the Betty "Over G" voice, §13) |
 | Multiplayer{Roll,Pitch}{K,Beta} | 0x150/0x154/0x158/0x15c | 9,0,9,0 | – | network clone smoothing only |
 
 Thrust offsets: MinMachMinAlt0/1 = 0x114/0x118, MinMachMaxAlt0/1 = 0x11c/0x120,
@@ -356,8 +356,8 @@ found; UNCERTAIN). Key names are loaded from `keys.trx` into `0x82eea8` (100-byt
 ## 9. Misc
 * g = 9.806 everywhere; lbf→N 4.4479; dt clamps: ramps 3.5 s, angles/axes 1.1 s.
 * Stall shake/buffet: `FUN_005a7050` sets `S+0x1a8/0x1ac = 0.5` while the vibration flag is set.
-* Over-G: `OverGThresh` only exported (getter id 27, `FUN_005a64b0`); comparison site not found
-  (UNCERTAIN: warn when current G = L/(m·g) > OverGThresh).
+* Over-G: `OverGThresh` (getter id 27) is compared with the current G in the player controller
+  (@448683). Above it, the "Over G" Betty voice plays every 4 s. No over-G damage exists. See §13.
 * Ceiling/Vmin extras: `P+0x14c` (Vmin 1 g @10 km) used by AI only (UNCERTAIN).
 
 ## 10. Deviations in our port (`crates/iaf-flight`)
@@ -426,3 +426,106 @@ if the state is already equal, and steps 1–2 are skipped.
   (@44c548). GEV 0x11 brakes plays `SFX_SPEED_BREAKES_LOOP` (0x1c) only when airborne (@44bf1e).
   GEV 0x42 (UNCERTAIN: gun fire) is refused while `ind[9]`≠0 unless `ctl+0x970`≠0 (@44a7e4).
   GEV 0xc flaps is refused while flaps are damaged (flag 4).
+
+## 13. Blackout / redout (G effects on the pilot)
+Generic for every aircraft: the rule uses no per-aircraft data except `OverGThresh` (warning only).
+
+**Summary.** The original **has** a blackout and a redout. It is purely visual: a full-screen overlay
+plus a shrinking "tunnel" for blackout, and a flat red overlay for redout. No code was found that
+removes control, changes stick input or damages the aircraft from G. There are no strings "blackout",
+"redout" or "G-LOC" in the exe. The only user-visible name is the Gameplay preference **"NO BLACKOUTS"**,
+which is baked into the art `resource/menu/bmp/pref/gamep_*.bmp` (column "PLAYER SKILLS").
+
+### 13.1 G value
+Getter id 0 of `FUN_005a64b0` (case @5a6567) returns
+`G = L(t) / m / 9.806` with `L` = the lift ramp `S+0x1e0` (§4), `m = EmptyWeight + S+0x424 + fuel(S+0x430)`
+and the factor `0.10197838` (@60dde0). This is the load factor: ≈1 in level flight and negative under a
+push. `FUN_0044f050(ctl, float *G, int *enable)` reads it for the player controller (`DAT_00694948`).
+
+### 13.2 Gating (`FUN_004da690`, called every frame from the sim render `FUN_004d7960`)
+1. If `DAT_00836db0` ≠ 0, the function returns and nothing is integrated or drawn. `DAT_00836db0` is
+   the menu-side copy of "No blackouts": pref object `0x836c88`+0x128, loaded from `prefs.dat` by
+   `FUN_004eefb0` and copied to the pref instance `DAT_00694a64`+0x30 by `FUN_004fcb80`. The default is 0
+   (blackouts on; `FUN_00450790` sets `[0xc]=0`).
+2. `FUN_0044f050` sets `enable = 1` only if the controller's unit is the player object (`DAT_00694960`,
+   ids at +0x30 compared) and `[unit+0x1c]+0x14 == 3` (UNCERTAIN: meaning of state 3; the same test gates
+   cockpit sounds in `FUN_0044efb0`). `enable` is also cleared when pref+0x30 ≠ 0, except in
+   multiplayer (`DAT_00694990 && [DAT_00694990+4]`), where the pref is ignored. Step 1 is not
+   overridden in multiplayer, so a local "No blackouts" still disables the effect. (UNCERTAIN: this
+   looks like an intended MP override that has no effect.)
+3. `FUN_00402260(G, enable)` → TgenAPI vtable slot 0x7c (`0x405180`, real 16-bit renderer vtable
+   `0x5f9908`) → `FUN_00403870` → **`FUN_0041a100(this=[0x774908], G, enable)`**. If that returns 1,
+   `FUN_0041a7b0([0x7748f0])` is called, and `FUN_004da690` sets `[param+0x154]+0x300 = 1` (UNCERTAIN:
+   a redraw/dirty flag).
+4. `FUN_0041a100` returns immediately (no integration) when `DAT_007ccf90` = 0. That flag is set to 1 at
+   @40b105 when the Direct3D device descriptor `0x7cd148` is present, and 0 otherwise. (UNCERTAIN: 1 =
+   hardware D3D device. With a software device there is no blackout at all.)
+
+### 13.3 Accumulators (`FUN_0041a100` @41a100, disassembly; constants read from .rdata)
+There are two floats in the Tgen effect object: blackout `B` at +0xc0 and redout `R` at +0xc4. `dt` is
+`DAT_007ccfb0`, the frame time in seconds: `(tick − lastTick)·0.001`, and if it is > 200 it is replaced
+by 0.001 (@40bc40). They integrate every frame, **even when `enable` = 0** (drawing is skipped then).
+```
+B += G·dt·0.43        ; if B > 24  → B = 24          // 5fb468, 5fb46c
+R += G·dt·0.20        ; if R > 0   → R = 0           // 5fb470
+                        if R < −3  → R = −3          // 5fb474
+B -= dt·2.5           ; if B < 0   → B = 0           // 5fb478
+if R < 0: R += dt·0.25; if R > 0   → R = 0           // 5fb47c
+b = (B − 15)·0.125                                   // 5fb480, 5fb484   (range −1.875..1.125)
+r = R < 0 ? (R + 1)·0.5 : 0                          // 5fb488, 5fb48c   (range −1..0.5)
+if !enable: return 0
+```
+The net rates are `dB/dt = 0.43·G − 2.5` and `dR/dt = 0.2·G + 0.25` (while R < 0):
+* **Blackout** builds above **G > 5.81 g** (2.5/0.43). It becomes visible at B ≥ 15.08 (b ≥ 0.01) and
+  fully black at B > 22.6 (b > 0.95). Starting from B = 0: at 9 g, visible after 11.0 s and black
+  after 16.5 s; at 7 g, visible after 29.6 s. Recovery at 1 g is −2.07/s (from 24 to below 15.08 in
+  4.3 s). Negative G drains B faster.
+* **Redout** starts only below **G < −1.25 g**. It becomes visible at R < −1.008 and is at full
+  strength at R = −3. At −3 g, R reaches −1 after 2.9 s and −3 after 8.6 s. Recovery at +1 g is
+  +0.45/s (from −3 to −1 in 4.4 s). Positive G drains R faster.
+* Blackout has priority: the redout branch runs only when b < 0.01.
+
+### 13.4 Drawing (Direct3D, IDirect3DDevice2 `DAT_007cd518`)
+Each branch first calls `SetCurrentViewport(DAT_007cd520)` (slot 0x34) and ends with
+`SetCurrentViewport(DAT_007cd51c)`. (UNCERTAIN: a full-screen viewport, then the normal one.)
+`FUN_00419d60(rect 0x7cd020, r, g, b, a, 0)` draws a 4-vertex TLVERTEX fan over the rect with the
+colour `ARGB(a, r, g, b)` (colour built @419f7a).
+* **Redout** (b < 0.01 and r ≤ 0.01): `a = trunc(−255·r)`, clamped to ≤ 255. If a < 1 nothing is
+  drawn. Otherwise a flat **dark-red** overlay `ARGB(a, 0x7f, 0, 0)` is drawn. There is no tunnel.
+  (@41a2c1)
+* **Blackout, b > 0.95:** an opaque black overlay `ARGB(255, 0, 0, 0)` (@41a356).
+* **Blackout, 0.01 ≤ b ≤ 0.95** (tunnel vision, @41a370):
+  1. `a = min(trunc(275·b), 275)` (5fb49c). A full-screen black overlay with alpha `min(a, 255)` is drawn.
+  2. The render states are set: TEXTUREHANDLE 0, ZENABLE 0, ZWRITEENABLE 0, FILLMODE 3.
+  3. Rings: the centre is (W/2, H/2), where W, H = `DAT_007cd028/02c` are the render size in pixels.
+     Ring 0 is an annulus from outer radius `W` to inner radius
+     `rin = (1 − 2·(b − 0.5))·W = (2 − 2b)·W` (0.1·W at b = 0.95, ≈W at b = 0.5). Both edges are
+     black with alpha `min(a, 255)`. Each next ring's outer radius is the previous inner radius, its
+     inner radius is 3 px smaller (5fb4a0), and its alpha is 20 lower. There are at most 7 rings, and
+     the loop stops when the next inner radius would be < 0. Each ring uses 24 points from the unit
+     circle table at object +0x00..+0xbc (x, y pairs), which gives 48 TLVERTEX at +0xc8 (stride 0x20).
+     It is drawn with `DrawIndexedPrimitive(TRIANGLESTRIP, TLVERTEX, …, 48, idx +0x6c8, 52, 1)`.
+     (UNCERTAIN: the table and the index list are filled by a constructor that was not traced.)
+     The result: the whole screen dims with `a`, and outside a circle of radius `rin` it is darker
+     again, with a soft edge 18 px wide. The clear circle shrinks as B grows.
+  * Quirk: the ring alpha `a − 20k` is clamped only above. For small `a`, negative values are written
+    as `a<<24` and become a large wrapped alpha. A faithful port can clamp it to 0 (UNCERTAIN: whether
+    this was visible in 1998).
+
+### 13.5 Over-G warning and G sound (player controller per-frame update `FUN_00447f50`)
+* @44867c: `if G > OverGThresh` (P+0x168, default 6.7 g, getter 27), then the repeat timer at `ctl+0x880`
+  is polled (`FUN_004d3a00`: it fires when "now" is outside the last window and opens a new window of
+  **4.0 s**; the period is `DAT_0082aa40` = 4.0, set by the load-time initialiser @446c50). When it
+  fires and `ctl+0x8d8` = 0, it plays sound `0x2c009000` = `VOC_BBETTY`/`BTY_OVER_G`
+  (`Cock_Bty_Over.wav`, soundprop.txt), and the handle is stored in `ctl+0x8d8`.
+* @4486d2: `if G > 6.0` (hard-coded, @5fcc50), then the timer at `ctl+0x8a0` fires with period
+  **17.0 s** (`DAT_0082a9e0`, initialiser @446c80) and plays `SFX_G_EFFECT` (code 0x13, `Cock_G_02.wav`).
+  It is not gated by "No blackouts".
+* `FUN_0044efb0` plays these only for the player's own aircraft (ctl+4 ∈ {2, 4, 5} and the same player
+  object test as in §13.2).
+* The G value is also written to the HUD (`FUN_00445920` → HUD `0x82aaec`+0x33c).
+* **No over-G damage** was found. Getter 27 (`OverGThresh`) is used only at @44867c. The only uses
+  of MaxG found are the FM's own lift limits (§4). (UNCERTAIN: other damage paths were not searched
+  exhaustively.) The `BACKSEAT_HEAVY_BREATH` and
+  `BACKSEAT_OH_YOU_KILLING_ME` voices (category 0x36, ids 1/2) are defined in soundprop.txt, but no code
+  that plays them was found (no 0x3600x000 codes and no `FUN_00450690(0x36,…)`).

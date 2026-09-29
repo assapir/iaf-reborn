@@ -225,6 +225,11 @@ above (+1666/+3333/+5000 altitude depending on an options field, `FUN_0058cb50`)
 the file values.
 
 ## 6. Open questions
+
+**See [../mission-runtime.md](../mission-runtime.md).** It decodes the runtime: slots, 0x32a role, 0x320 control
+mode, 0x398, the conditions, both script opcode tables, the win/lose rule and the misc audio usage. Where it
+disagrees with the guesses above, it takes precedence.
+
 - Exact win/lose rule (debrief 0x262 flag? scripted Explode of a `sensor`? misc 0x4e2/0x4ec?).
 - Slot semantics 0/2/3/5, script float args, formation `0x3f2` and waypoint `action`, misc 0x46a/0x474.
 - Whether `0x2f8` for ground entities is absolute MSL (values match terrain) or gets re-clamped.

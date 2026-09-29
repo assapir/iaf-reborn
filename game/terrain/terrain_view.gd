@@ -181,60 +181,74 @@ func _mission_player(mission_id: int) -> Dictionary:
 	return {}
 
 
-## Every visible object of the mission and its base missions (missionlist), placed in the world:
-## entity type (0x2c6) -> bdb object -> Present record (0x53c) -> converted model (objects.json).
-## Hidden at start: entities whose start script (scripts1) is "Visible off" (opcode 14); sensors
-## (class 18) and the player's own aircraft are not drawn. Ground objects sit on the terrain
-## (UNCERTAIN whether the original snaps them or uses the entity altitude, which matches here).
+## The mission and its base missions (missionlist) run by the mission runtime
+## (game/mission/mission_runtime.gd, docs/mission-runtime.md). Every placed entity with a model is
+## drawn (entity type 0x2c6 -> bdb object -> Present record 0x53c -> converted model); scripts
+## hide / show / move them. Ground objects sit on the terrain (UNCERTAIN whether the original
+## snaps them or uses the entity altitude, which matches here).
+var runtime: Node
+var _voice: AudioStreamPlayer
+var _subtitles: Array[String] = []
+var _msgbox: Control
+
+
 func _spawn_mission_objects() -> void:
-	if Settings.mission_id < 0 and not OS.get_cmdline_user_args().has("--mission"):
+	if _mission_id() < 0:
 		return
 	var base := Settings.assets_dir().path_join("converted")
 	var list = JSON.parse_string(FileAccess.get_file_as_string(base.path_join("missions/missionlist.json")))
-	var models = JSON.parse_string(FileAccess.get_file_as_string(base.path_join("objects/objects.json")))
-	if not (list is Dictionary) or not (models is Dictionary) or not list.has(str(_mission_id())):
+	if not (list is Dictionary) or not list.has(str(_mission_id())):
 		return
-	var bdbs := {}
-	var scenes := {}
+	var files: Array = []
 	for name in list[str(_mission_id())]:
 		var m = JSON.parse_string(FileAccess.get_file_as_string(base.path_join("missions/%s.json" % name)))
-		if not (m is Dictionary):
+		if m is Dictionary:
+			files.append(m)
+	if files.is_empty():
+		return
+	var bdb_name := String(files[0].bdb).to_lower()
+	var bdb: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(base.path_join("missions/%s.json" % bdb_name)))
+	var objs := {}
+	for o in bdb.objects.items:
+		objs[int(o["0x1e"])] = o
+	var models = JSON.parse_string(FileAccess.get_file_as_string(base.path_join("objects/objects.json")))
+	var paths: Dictionary = models.get(bdb_name, {}) if models is Dictionary else {}
+	runtime = preload("res://mission/mission_runtime.gd").new()
+	add_child(runtime)
+	runtime.setup(self, files, bdb)
+	runtime.subtitle.connect(_on_subtitle)
+	runtime.message_box.connect(_on_mission_box)
+	runtime.end_flight.connect(_end_flight)
+	_voice = AudioStreamPlayer.new()
+	add_child(_voice)
+	var scenes := {}
+	for ent in runtime.entities.values():
+		if ent.player:
 			continue
-		var bdb_name := String(m.bdb).to_lower()
-		if not bdbs.has(bdb_name):
-			var b = JSON.parse_string(FileAccess.get_file_as_string(base.path_join("missions/%s.json" % bdb_name)))
-			var objs := {}
-			for o in b.objects.items:
-				objs[int(o["0x1e"])] = o
-			bdbs[bdb_name] = objs
-		var paths: Dictionary = models.get(bdb_name, {})
-		for e in m.entities.items:
-			if not (e is Dictionary) or float(e.get("0x2e4", -1)) < 0 or float(e.get("0x2ee", -1)) < 0:
-				continue
-			if String(e.get("0x2bc", "")).begins_with("Player"):
-				continue
-			var obj: Dictionary = bdbs[bdb_name].get(int(e.get("0x2c6", -1)), {})
-			if obj.is_empty() or int(obj.get("0x5aa", -1)) == 18 or _starts_hidden(e):
-				continue
-			var path: String = paths.get(str(int(obj.get("0x53c", -1))), "")
-			if path == "":
-				continue
-			if not scenes.has(path):
-				var doc := GLTFDocument.new()
-				var state := GLTFState.new()
-				scenes[path] = [doc, state] if doc.append_from_file(base.path_join("objects").path_join(path), state) == OK else null
-			if scenes[path] == null:
-				continue
-			var node: Node3D = scenes[path][0].generate_scene(scenes[path][1])
-			var pos := Vector3(float(e["0x2e4"]) - terrain.world_origin.x, float(e.get("0x2f8", 0)), -(float(e["0x2ee"]) - terrain.world_origin.y))
-			var ground = terrain.height_at(pos)
-			var klass := int(obj.get("0x5aa", -1))
-			var airborne: bool = klass in [2, 3, 0x1c] and ground != null and pos.y > ground + 10.0
-			if ground != null and not airborne:
-				pos.y = ground
-			node.position = pos
-			node.rotation.y = -deg_to_rad(float(e.get("0x302", 0)))
-			add_child(node)
+		var obj: Dictionary = objs.get(ent.type, {})
+		var path: String = paths.get(str(int(obj.get("0x53c", -1))), "")
+		if path == "":
+			continue
+		if not scenes.has(path):
+			var doc := GLTFDocument.new()
+			var state := GLTFState.new()
+			scenes[path] = [doc, state] if doc.append_from_file(base.path_join("objects").path_join(path), state) == OK else null
+		if scenes[path] == null:
+			continue
+		var node: Node3D = scenes[path][0].generate_scene(scenes[path][1])
+		ent.node = node
+		ent["airborne_class"] = int(obj.get("0x5aa", -1)) in [2, 3, 0x1c]
+		add_child(node)
+		node.rotation.y = -deg_to_rad(float(_entity_heading(files, ent)))
+		mission_entity_moved(ent)
+	runtime.start()
+
+
+static func _entity_heading(files: Array, ent: Dictionary) -> float:
+	for e in files[ent.file].entities.items:
+		if e is Dictionary and int(e.get("0x1e", -1)) == ent.id:
+			return float(e.get("0x302", 0))
+	return 0.0
 
 
 func _mission_id() -> int:
@@ -242,16 +256,92 @@ func _mission_id() -> int:
 	return int(OS.get_cmdline_user_args()[m + 1]) if m >= 0 else Settings.mission_id
 
 
-## Entities whose start script (scripts1, first entry 0xf0) is "Visible off" start hidden.
-static func _starts_hidden(e: Dictionary) -> bool:
-	var scripts: Array = e.get("scripts1", {}).get("items", [])
-	if scripts.is_empty():
-		return false
-	var first := int(e.get("0xf0", -1))
-	for sc in scripts:
-		if int(sc.get("0x1e", -2)) == first or first < 0:
-			return int(sc.get("0x83e", -1)) == 14
-	return int(scripts[0].get("0x83e", -1)) == 14
+# --- mission runtime host -----------------------------------------------------------------------
+
+## Player position in mission world coordinates (X east, Y north, altitude m).
+## Tests may place the player directly (mission logic checks without flying the route).
+var player_world_override = null
+
+
+func player_world() -> Vector3:
+	if player_world_override != null:
+		return player_world_override
+	return Vector3(terrain.world_origin.x + rig.position.x, terrain.world_origin.y - rig.position.z, rig.position.y)
+
+
+func mission_entity_moved(ent: Dictionary) -> void:
+	var node: Node3D = ent.node
+	if node == null:
+		return
+	var w: Vector3 = ent.world
+	var pos := Vector3(w.x - terrain.world_origin.x, w.z, -(w.y - terrain.world_origin.y))
+	var ground = terrain.height_at(pos)
+	if ground != null and not (ent.get("airborne_class", false) and pos.y > ground + 10.0):
+		pos.y = ground
+	node.position = pos
+
+
+func mission_entity_visible(ent: Dictionary) -> void:
+	if ent.node != null:
+		ent.node.visible = ent.visible
+
+
+## Speech channel: the bdb Audio wav from resource/soundfiles (matched case-insensitively).
+func mission_play_wav(wav: String) -> void:
+	var name := wav.to_lower()
+	if not "." in name:
+		name += ".wav"
+	var path := Settings.assets_dir().path_join("install/resource/soundfiles").path_join(name)
+	if not FileAccess.file_exists(path):
+		return
+	var stream := AudioStreamWAV.load_from_file(path)
+	if stream != null:
+		_voice.stream = stream
+		_voice.play()
+
+
+## Subtitle console (FUN_004491c0): wrapped at the last space before 40 characters, first letter
+## upper-cased; the newest 14 lines are shown (drawn by the cockpit HUD layer).
+func _on_subtitle(text: String) -> void:
+	var t := text.strip_edges()
+	if t == "":
+		return
+	t = t[0].to_upper() + t.substr(1)
+	while t.length() > 40:
+		var cut := t.substr(0, 40).rfind(" ")
+		if cut <= 0:
+			cut = 40
+		_subtitles.append(t.substr(0, cut))
+		t = t.substr(cut).strip_edges()
+	_subtitles.append(t)
+	while _subtitles.size() > 14:
+		_subtitles.pop_front()
+	cockpit.subtitles = _subtitles
+
+
+func _on_mission_box(msg: int, buttons: Array) -> void:
+	if _msgbox != null:
+		_msgbox.queue_free()
+	_msgbox = preload("res://mission/mission_box.gd").new()
+	$CockpitLayer.add_child(_msgbox)
+	_msgbox.setup(msg, buttons)
+	_msgbox.chosen.connect(_on_box_choice)
+
+
+## DEBRIEF: end the flight and show the debrief; CONTINUE: keep flying; EXIT: back to the menus.
+func _on_box_choice(choice: String) -> void:
+	_msgbox.queue_free()
+	_msgbox = null
+	match choice:
+		"deb", "yes":
+			_end_flight(true)
+		"exit":
+			_end_flight(false)
+
+
+func _end_flight(debrief: bool) -> void:
+	Settings.debrief = runtime.debrief_text() if debrief and runtime != null else {}
+	get_tree().change_scene_to_file("res://menu/front_end.tscn")
 
 
 ## The route of the formation holding the player (its waypoints and their names) for the MFDs.
@@ -399,7 +489,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
 			KEY_ESCAPE:
-				get_tree().change_scene_to_file("res://menu/front_end.tscn")
+				# In a mission: "Are you sure you want to quit the mission?" (YES = debrief).
+				if runtime != null:
+					_on_mission_box(8, ["yes", "no"])
+				else:
+					get_tree().change_scene_to_file("res://menu/front_end.tscn")
 			KEY_C:
 				in_cockpit = not in_cockpit
 			KEY_F1:

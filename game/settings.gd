@@ -14,6 +14,10 @@ var mission_id := -1
 var jet_id := 1
 ## The player's route as set on the TSD ([Vector2 world]); empty = the mission's own.
 var route_override: Array = []
+## Result of the last flight for the debrief screen: {passed, headline, notes}; empty = none.
+var debrief := {}
+## The mission list the flight was chosen from (front-end screen), for the debrief buttons.
+var last_list := ""
 
 
 ## Tests and captures run with IAF_DEFAULT_SETTINGS=1: defaults only, the player's settings file

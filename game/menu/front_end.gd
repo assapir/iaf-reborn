@@ -123,6 +123,9 @@ func _ready() -> void:
 	var at := args.find("--menu")
 	if at >= 0:
 		screen = args[at + 1]
+	# Back from a flight with a debrief (docs/mission-runtime.md §5.3).
+	if not Settings.debrief.is_empty():
+		screen = "deb"
 	at = args.find("--mission")
 	if at >= 0:
 		Settings.mission_id = int(args[at + 1])
@@ -467,6 +470,9 @@ func _draw_content(def: Dictionary) -> void:
 		return
 	if screen == "tsd":
 		return
+	if screen == "deb":
+		_draw_debrief()
+		return
 	var list := _list()
 	if not list.is_empty():
 		_draw_list(list)
@@ -674,6 +680,9 @@ func _on_button(key: String) -> void:
 	if screen in ["tsd", "arm"]:
 		_tsd_button(key, _norm(label), btn)
 		return
+	if screen == "deb":
+		_debrief_button(_norm(label))
+		return
 	var target: String = FORWARD.get(screen, {}).get(_norm(label), "")
 	if target != "":
 		_go(target)
@@ -689,6 +698,35 @@ func _on_button(key: String) -> void:
 		elif not row.is_empty():
 			Settings.mission_id = int(row.id)
 		_load_mission()
+
+
+## Debrief buttons: Replay (the same mission again), New Mission (its list), Next Mission (the next
+## row of that list). Mapping UNCERTAIN (not traced in the exe).
+func _debrief_button(label: String) -> void:
+	var list_screen: String = Settings.last_list if Settings.last_list != "" else "main"
+	if list_screen in TO_JET:
+		jet_parent = list_screen
+	Settings.debrief = {}
+	match label:
+		"replaymission":
+			screen = "jet" if list_screen in TO_JET else list_screen
+			_load_mission()
+		"newmission":
+			_go(list_screen)
+		"nextmission":
+			var parent := list_screen
+			var rows: Array = menus.get(String(menus.get(parent, {}).get("name", "")).to_lower(), {}).get("rows", [])
+			for i in rows.size() - 1:
+				if int(rows[i].id) == Settings.mission_id:
+					Settings.mission_id = int(rows[i + 1].id)
+					screen = parent
+					if parent in TO_JET:
+						jet_parent = parent
+						_go("jet")
+					else:
+						_load_mission()
+					return
+			_go(parent)
 
 
 ## TSD / Arming buttons (§8; Fly FUN_00502c90, Arming FUN_005057e0).
@@ -753,7 +791,18 @@ func tsd_fly_flight(n: int) -> void:
 	_fly()
 
 
+## Debrief: the mission's headline (misc 0x47e / 0x492) and the notes of the events that fired.
+## (Where the original draws them on the Deb screen is UNCERTAIN; shown in the content window.)
+func _draw_debrief() -> void:
+	_blit("screens/sgeneral.png", CONTENT.position)
+	var d: Dictionary = Settings.debrief
+	var box := Rect2(CONTENT.position + Vector2(20, 20), CONTENT.size - Vector2(40, 40))
+	_text_line(Rect2(box.position, Vector2(box.size.x, 16)), String(d.get("headline", "")), LIST_TITLE_PX, LIST_TITLE, font_bold)
+	_text_block(Rect2(box.position + Vector2(0, 30), box.size - Vector2(0, 30)), String(d.get("notes", "")), LIST_DESC_PX + 1, LIST_DESC_LIT)
+
+
 func _fly() -> void:
+	Settings.last_list = jet_parent if tsd_return == "jet" else tsd_return
 	# The route as left on the TSD (waypoints may have been dragged).
 	if tsd != null:
 		Settings.route_override = tsd.selected_route()

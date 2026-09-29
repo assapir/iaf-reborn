@@ -88,7 +88,18 @@ the Log screen (not traced).
   * TSD → the previous screen, after the dialog "Are you sure you want to quit the mission?" (Yes/No).
   * On Arm, BACK has no case, so it does nothing (UNCERTAIN; use the TacticalDisplay button).
 * **MAIN** (`FUN_004eb7d0`) goes to Main. From TSD or Arm it first asks msg 8 (Yes/No).
-* **QUIT** sends WM_CLOSE to the frame. A "quit the game?" (msg 7) confirmation is UNCERTAIN.
+* **QUIT** is handled by the same function as MAIN, `FUN_004eb7d0`, and **does ask for confirmation**.
+  * On screens 0/1 it first checks the content window's "can leave" query (vtable `+0xd8`). It then
+    sends `WM_CLOSE` to `GetParent(frame)`, the main application window.
+  * That window's message map (`.rdata 0x6017e0`) routes WM_CLOSE to **`4e1110`**. If the menu frame
+    (`DAT_00836444`) or the game window (`DAT_00694920`) exists, `4e1110` shows **msg 7 "Are you sure
+    you want to quit the game?"** as a **Yes/No** box (type 4, reply message `0x556`). Otherwise
+    WM_CLOSE is swallowed: there is no default close.
+  * `0x556` → **`4e1660`** acts only on IDYES (lParam 6): engine command 0x74 (unload),
+    `FUN_004d7670(0)`, `FUN_004e7c40`, then the credits sequence if `FUN_00542e60()` ≠ 0 (cr0..4.ttf,
+    credits.wav; condition UNCERTAIN), `FUN_00542260`, DestroyWindow (vtable `+0x60`). NO does nothing.
+  * Alt+F4 / system close reach the same OnClose. msg 7 is also used by the in-flight pause menu,
+    item 5 (`FUN_004da920`, same reply message `0x556`).
 
 ### 3.3 Message box (`CIAFMenuMsgBoxDlg`, `FUN_004e2b40`/`4e2cc0`, called via `FUN_004e2790(msg,…,type)`)
 * Background: `misc/mbgback.bmp` 320×140.
@@ -264,10 +275,10 @@ Jets disabled per mission (`FUN_005082b0`; rows 0x11c bytes apart in the list ob
 * Activation: a click anywhere raises the window (SetWindowPos top) and sends msg 0x54a to switch
   to `title_a`. Others switch to `title_na` (`FUN_00509ef0`, `50ba50`). Dragging the title bar moves
   the window.
-* `mvcrnr*` / `mvbrdr*` (3 px) are the resize/move outline drawn while dragging (`FUN_0050db8b`;
-  details UNCERTAIN).
-* `framewnd/back.bmp`, `logo.bmp`, `tvw_on/off.bmp` and `buttonfordialogue.bmp` belong to other
-  windows (chat, 3D viewer); not traced.
+* `mvcrnr*` / `mvbrdr*` (3 px) are the bevel around a 3D viewport (`FUN_0050db8b`/`50e9a8`, §11),
+  not a resize outline.
+* `logo.bmp` belongs to the 3D-model window (§11) and `tvw_on/off.bmp` to the target window (§10).
+  `framewnd/back.bmp` and `buttonfordialogue.bmp` belong to other windows (chat?); not traced.
 
 ## 8. TSD map (`FUN_004fe280` ctor, paint `4ff710` = map `4ff7c0` + overlay `4ff9e0`)
 * **The map is an EMF vector metafile**, not isr.bmp or terrain: `menu/emf/82.emf`. Missions
@@ -393,7 +404,8 @@ Units that are never shown:
 * icon class 1..6 × (side==1 → the `…1` filter, else → the `…2` filter);
 * icon class 3 is split: category 0x23 (type 450 runway) → `Airports1/2`, else `Structures1/2`.
 
-Bitmap choice (`FUN_004f54a0`):
+Bitmap choice (in `FUN_005035c0`; note `FUN_004f54a0` is the type → category-index function of
+"Selected-unit label" below, not the bitmap chooser):
 
 | icon class | bitmap |
 |---|---|
@@ -416,14 +428,99 @@ Row choice:
 * Class 8 units also get a hollow white ring of radius `trunc(trunc(r)·454/819200)·z` px about the
   icon centre.
 * Aircraft in flights 1..4 get a 2 px rectangle in the flight colour, inflated by 2 px.
-* The selected unit is drawn last:
-  * `icselair` or `icselveh`: bottom half SRCAND, top half SRCPAINT;
-  * then yellow RGB(255,255,0) text, TA_CENTER|TA_TOP, at (x+w/2, y+h/2+2): the category name from
-    `FUN_004f5d70` ("F-16", "Tank", "SA-6"…; for runways, the object name);
-  * then, if the unit is in a flight, a second line with the flight name.
+* The selected unit is drawn last, with a selection icon and a two-line label (see
+  "Selected-unit label" below).
 * Double-clicking an own-side **flight-leader** aircraft whose type is flyable
   (`FUN_00503e50`: 100,110,120,130,140,160,180,190,200) selects that flight and **flies** it
   immediately (exit code 2, `FUN_005005d0`).
+
+#### Selected-unit label (`FUN_004f5d70`)
+
+`FUN_00503ae0` draws this label. `FUN_005035c0` calls it only for the record whose
+`[8] == DAT_006504d4`, and that record is drawn after all the others (`4ff9e0`).
+
+**Selection icon**
+* The icon is `icselair` (31×48) when rec[9] == 1. Every other icon class gets `icselveh` (31×42).
+* Each file holds two halves: the bottom half is the mask (SRCAND) and the top half is the image
+  (SRCPAINT). The displayed size is 31×24 for aircraft and 31×21 for everything else.
+* Icon top-left: `x = trunc(z·px − W/2)`, `y = trunc(z·py − (H/2)/2)`, where W×H is the full bitmap
+  and `(H/2)/2` uses integer halves.
+
+**Font and colour**
+* Font: the overlay font already selected by `4ff9e0` (`this+0xdc`, Arial p10 weight 600),
+  transparent background.
+* Colour: `SetTextColor(0x00FFFF)` = **RGB(255,255,0) yellow**, the same for both lines.
+* Alignment: `SetTextAlign(6)` = TA_CENTER|TA_TOP.
+
+**Line 1**
+* Position: `(x + W/2, y + 2 + H/2)`, i.e. centred and 2 px below the displayed icon.
+* Text: `idx = FUN_004f5930(FUN_004f54a0({rec[1] type, rec[0] class}))`. `FUN_004f5930` passes
+  0..0x24 through unchanged; anything above becomes 0x25.
+  * If `idx == 0x23` (runway), the text is the object name `rec+0xe` (20 chars).
+  * Otherwise the text is `FUN_004f5d70(idx)`, copied into the 32-byte buffer `0x839128`.
+
+Type code → index → string (`4f54a0` switch; strings from `.rdata 0x64cfec..0x64d110`):
+
+| type code | idx | string |
+|---|---|---|
+| 110 | 0 | F-15 |
+| 100 | 1 | F-16 |
+| 120 | 2 | F-4E |
+| 130 | 3 | Kfir |
+| 140 | 4 | Lavi |
+| 150 | 5 | MiG21 |
+| 160 | 6 | MiG23 |
+| 170 | 7 | MiG25 |
+| 180 | 8 | MiG29 |
+| 190 | 9 | Mirage |
+| 200 | 10 | F-42000 |
+| 210 | 0xb | MiG17 |
+| 220 | 0xc | Bomber |
+| 225, 230, 240 | 0xe | Transport |
+| 250 | 0x10 | Tank |
+| 260 | 0x11 | Truck |
+| 270 | 0x12 | Armored |
+| 280 | 0x13 | Soft |
+| 290 | 0x14 | SA-2 |
+| 300 | 0x15 | SA-3 |
+| 310 | 0x16 | SA-5 |
+| 320 | 0x17 | SA-6 |
+| 330 | 0x18 | SA8 (no hyphen in the exe) |
+| 340 | 0x1a | Hawk |
+| 350 | 0x1b | AAA |
+| 360 | 0x1c | Gundish |
+| 370 | 0x1d | Boat |
+| 380, 390 | 0x1e | Ship |
+| 400 | 0x1f | Building |
+| 410 | 0x20 | Strategic |
+| 420 | 0x21 | Bridge |
+| 430 | 0x22 | Road |
+| 440 | 0x24 | Airport (taxiway) |
+| 450 | 0x23 | Runway (the object name is shown instead) |
+
+Any other type code falls back to the unit's class (rec[0]):
+
+| class | idx | string |
+|---|---|---|
+| 2 (helicopter) | 0xf | Helo |
+| 6 (vehicle) | 0x11 | Truck |
+| 9 (IR SAM) | 0x19 | IR-SAM |
+| 0xb, 0xc, 0xd, 0x1d, 0x1e | 0x1f | Building |
+| anything else | 0x25 | "" (`DAT_00789370`, empty) |
+
+* Index 0xd "Cargo" is never produced by `4f54a0`.
+* `FUN_004f5fd0` is a separate 0..10 table (Fighter, Adv Fighter, Bomber, Support, Helo, Tank, Soft,
+  Armored, Anti Aircraft, Naval, Structure). This label does not use it.
+
+**Line 2 (flight name)**
+* Drawn only if flight slot `n = rec[0x15]` exists (`0x689eec + n·0x370` ≠ 0, i.e. flight-table
+  `+0x324`).
+* Text: `0x689ef0 + n·0x370`, i.e. flight-table `+0x328` ("Alpha"…"Foxtrot").
+* Position: `(x + W/2, line1_y + L + 2)`, where `L = this+0x60` is the overlay line height (see
+  "Top-left text"). Font, colour and alignment are the same as line 1.
+* UNCERTAIN: flight numbers 7+ do not index the table directly (formations beyond 6 take slots 7+),
+  and names exist only for 1..6. Line 2 is therefore empty or unrelated for enemy/"Other" flights.
+  For units in no flight, the slot-0 exists flag is presumably 0, so no line 2 is drawn.
 
 #### Flights
 
