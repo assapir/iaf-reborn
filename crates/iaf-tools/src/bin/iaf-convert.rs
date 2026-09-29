@@ -4,8 +4,11 @@
 //! `iaf-convert planes <install-dir> <out-dir>` — every controllable plane (`*_h.xfr`).
 //!
 //! `iaf-convert cockpit <install-dir> <cockpit> <out-dir>` — cockpit art (PNG) + layout (`cockpit.json`).
-//! `iaf-convert menu <install-dir> <out-dir>` — front-end screens/lists (`menus.json`), strings
-//! (`strings.json`), art (`img/…png`) and TrueType fonts.
+//! `iaf-convert briefings <install-dir> <packs-dir> <out-dir>` — briefing/lesson texts (RTF → BBCode,
+//! English + Hebrew pack), `.brl` entry lists and diagrams (`briefings.json`, `img/`, `img_he/`).
+//! `iaf-convert menu <install-dir> <out-dir> [--pack <pack-dir>]` — front-end screens/lists
+//! (`menus.json`), strings (`strings.json`), art (`img/…png`) and TrueType fonts; with `--pack`,
+//! files present in the pack (e.g. assets/packs/he, Hebrew art/strings in Windows-1255) win.
 //!
 //! `--upscale` resamples textures 4× (Lanczos). `--upscale-ai` uses the experimental AI
 //! upscaler instead (needs `realesrgan-ncnn-vulkan`; not recommended: it redraws text).
@@ -68,9 +71,11 @@ fn main() -> Result<()> {
             }
             Ok(())
         }
-        [_, "menu", install, out] => convert_menu(Path::new(install), Path::new(out), &opts),
+        [_, "briefings", install, packs, out] => convert_briefings(Path::new(install), Path::new(packs), Path::new(out), &opts),
+        [_, "menu", install, out] => convert_menu(Path::new(install), None, Path::new(out), &opts),
+        [_, "menu", install, out, "--pack", pack] => convert_menu(Path::new(install), Some(Path::new(pack)), Path::new(out), &opts),
         [_, "cockpit", install, name, out] => convert_cockpit(Path::new(install), name, Path::new(out), &opts),
-        _ => bail!("usage: iaf-convert [--upscale] [--smooth] model <file.x|file.xfr> <out-dir>\n       iaf-convert [--upscale] [--smooth] planes <install-dir> <out-dir>\n       iaf-convert [--upscale] cockpit <install-dir> <cockpit> <out-dir>\n       iaf-convert [--upscale] menu <install-dir> <out-dir>"),
+        _ => bail!("usage: iaf-convert [--upscale] [--smooth] model <file.x|file.xfr> <out-dir>\n       iaf-convert [--upscale] [--smooth] planes <install-dir> <out-dir>\n       iaf-convert [--upscale] cockpit <install-dir> <cockpit> <out-dir>\n       iaf-convert [--upscale] menu <install-dir> <out-dir> [--pack <pack-dir>]\n       iaf-convert [--upscale] briefings <install-dir> <packs-dir> <out-dir>"),
     }
 }
 
@@ -130,19 +135,43 @@ fn walk_files(dir: &Path, out: &mut Vec<PathBuf>) {
     }
 }
 
-fn convert_menu(install: &Path, out: &Path, opts: &Options) -> Result<()> {
+/// Files under `rel` (relative to resource/menu) from the base install, each replaced by the
+/// pack's copy when the pack has one, plus pack-only files. Returned as (relative path, file).
+fn overlay_files(root: &Path, pack_root: Option<&Path>, rel: &str) -> Vec<(PathBuf, PathBuf)> {
+    let mut map = std::collections::BTreeMap::new();
+    for r in [Some(root), pack_root].into_iter().flatten() {
+        let mut files = Vec::new();
+        walk_files(&r.join(rel), &mut files);
+        for f in files {
+            let key = f.strip_prefix(r).unwrap().to_string_lossy().to_lowercase();
+            map.insert(PathBuf::from(key), f);
+        }
+    }
+    map.into_iter().collect()
+}
+
+/// Windows-1252, or Windows-1255 Hebrew for pack files.
+fn decode_text(data: &[u8], hebrew: bool) -> String {
+    data.iter()
+        .map(|&c| match (hebrew, c) {
+            (true, 0xe0..=0xfa) => char::from_u32(0x05d0 + (c - 0xe0) as u32).unwrap_or('?'),
+            _ => c as char,
+        })
+        .collect()
+}
+
+fn convert_menu(install: &Path, pack: Option<&Path>, out: &Path, opts: &Options) -> Result<()> {
     use iaf_formats::menu::{self, MenuFile};
     use iaf_tools::gltf::{COCKPIT_KEYS, COLOR_KEY, load_texture_keyed};
     use serde_json::json;
     let root = install.join("resource/menu");
+    let pack_root = pack.map(|p| p.join("resource/menu"));
+    let from_pack = |f: &Path| pack_root.as_ref().is_some_and(|p| f.starts_with(p));
     std::fs::create_dir_all(out)?;
 
     // Screens and lists.
     let mut menus = serde_json::Map::new();
-    let mut files = Vec::new();
-    walk_files(&root.join("dat"), &mut files);
-    files.sort();
-    for f in &files {
+    for (_, f) in &overlay_files(&root, pack_root.as_deref(), "dat") {
         let key = f.file_stem().unwrap().to_string_lossy().to_lowercase();
         let value = match menu::parse(&std::fs::read(f)?) {
             Some(MenuFile::Screen(s)) => json!({
@@ -168,30 +197,24 @@ fn convert_menu(install: &Path, out: &Path, opts: &Options) -> Result<()> {
 
     // Strings (mission / jet titles and descriptions), Windows-1252.
     let mut strings = serde_json::Map::new();
-    let mut files = Vec::new();
-    walk_files(&root.join("txt"), &mut files);
-    for f in files.iter().filter(|f| f.extension().is_some_and(|e| e == "trx")) {
-        let text: String = std::fs::read(f)?.iter().map(|&b| b as char).collect();
+    for (_, f) in overlay_files(&root, pack_root.as_deref(), "txt").iter().filter(|(r, _)| r.extension().is_some_and(|e| e == "trx")) {
+        let text = decode_text(&std::fs::read(f)?, from_pack(f));
         strings.insert(f.file_stem().unwrap().to_string_lossy().to_lowercase(), text.trim().replace("\r\n", "\n").into());
     }
     std::fs::write(out.join("strings.json"), serde_json::to_string_pretty(&strings)?)?;
 
     // Fonts.
-    for e in std::fs::read_dir(root.join("fnt"))?.flatten() {
-        let p = e.path();
-        if p.extension().is_some_and(|x| x.eq_ignore_ascii_case("ttf")) {
-            std::fs::copy(&p, out.join(p.file_name().unwrap()))?;
+    for (rel, p) in overlay_files(&root, pack_root.as_deref(), "fnt") {
+        if rel.extension().is_some_and(|x| x == "ttf") {
+            std::fs::copy(&p, out.join(rel.file_name().unwrap()))?;
         }
     }
 
     // Art.
-    let mut images = Vec::new();
-    walk_files(&root.join("bmp"), &mut images);
     let img_root = out.join("img");
     let mut n = 0;
-    for src in images.iter().filter(|p| p.extension().is_some_and(|e| e.eq_ignore_ascii_case("bmp"))) {
-        let rel = src.strip_prefix(root.join("bmp"))?.with_extension("png");
-        let dest = img_root.join(rel.to_string_lossy().to_lowercase());
+    for (rel, src) in overlay_files(&root, pack_root.as_deref(), "bmp").iter().filter(|(r, _)| r.extension().is_some_and(|e| e == "bmp")) {
+        let dest = img_root.join(rel.strip_prefix("bmp")?.with_extension("png"));
         let (img, transparent) = match load_texture_keyed(src, COCKPIT_KEYS) {
             Ok(v) => v,
             Err(e) => {
@@ -209,5 +232,111 @@ fn convert_menu(install: &Path, out: &Path, opts: &Options) -> Result<()> {
     }
     std::fs::write(out.join("image_scale.txt"), if opts.upscaler.is_some() { "4" } else { "1" })?;
     println!("menu: {} screens/lists, {} strings, {n} images -> {}", menus.len(), strings.len(), out.display());
+    Ok(())
+}
+
+fn strip_bbcode(line: &str) -> String {
+    let mut out = String::new();
+    let mut tag = false;
+    for c in line.chars() {
+        match c {
+            '[' => tag = true,
+            ']' if tag => tag = false,
+            _ if !tag => out.push(c),
+            _ => {}
+        }
+    }
+    out
+}
+
+/// `.brl` briefing records: a list of 516-byte entries `{title[260], file[256]}`
+/// (Windows-1252 in the original, Windows-1255 in the Hebrew pack).
+fn parse_brl(data: &[u8], hebrew: bool) -> Vec<(String, String)> {
+    let text = |b: &[u8]| -> String {
+        let b = b.split(|&c| c == 0).next().unwrap_or(&[]);
+        b.iter()
+            .map(|&c| match (hebrew, c) {
+                (true, 0xe0..=0xfa) => char::from_u32(0x05d0 + (c - 0xe0) as u32).unwrap_or('?'),
+                _ => c as char,
+            })
+            .collect::<String>()
+            .trim()
+            .to_string()
+    };
+    data.chunks_exact(516)
+        .map(|e| (text(&e[..260]), text(&e[260..]).replace('\\', "/").to_lowercase()))
+        .filter(|(t, f)| !t.is_empty() || !f.is_empty())
+        .collect()
+}
+
+fn convert_briefings(install: &Path, packs: &Path, out: &Path, opts: &Options) -> Result<()> {
+    use iaf_formats::rtf::to_bbcode;
+    use iaf_tools::gltf::{COLOR_KEY, load_texture};
+    use serde_json::json;
+    let base = install.join("resource/brief");
+    let he = packs.join("he/resource/brief");
+    std::fs::create_dir_all(out)?;
+    let read_rtf = |dir: &Path, name: &str| std::fs::read(dir.join(name)).ok().map(|d| to_bbcode(&d));
+    let read_brl = |dir: &Path, name: &str, hebrew: bool| std::fs::read(dir.join(name)).ok().map(|d| parse_brl(&d, hebrew));
+    let entries_json = |en: Option<Vec<(String, String)>>, he: Option<Vec<(String, String)>>| {
+        let en = en.unwrap_or_default();
+        let he = he.unwrap_or_default();
+        en.iter()
+            .enumerate()
+            .map(|(i, (t, f))| json!({"title": {"en": t, "he": he.get(i).map(|e| e.0.clone())}, "file": f}))
+            .collect::<Vec<_>>()
+    };
+    let mut doc = serde_json::Map::new();
+    for (sub, key) in [("txt", "missions"), ("text", "lessons")] {
+        let mut map = serde_json::Map::new();
+        let mut names: Vec<String> = std::fs::read_dir(base.join(sub))?
+            .flatten()
+            .map(|e| e.file_name().to_string_lossy().to_lowercase())
+            .filter(|n| n.ends_with(".rtf") && !n.starts_with("~$"))
+            .collect();
+        names.sort();
+        for name in names {
+            let stem = name.trim_end_matches(".rtf").to_string();
+            let brl = format!("{stem}.brl");
+            let (text_en, text_he) = (read_rtf(&base.join(sub), &name), read_rtf(&he.join(sub), &name));
+            // The mission name as written in the briefing ("Mission: …"; Hebrew pack: "משימה: …" / "מבצע: …").
+            let title = |text: &Option<String>, labels: &[&str]| {
+                text.as_ref().and_then(|t| {
+                    t.lines().map(strip_bbcode).find_map(|l| {
+                        labels.iter().find_map(|label| l.trim().strip_prefix(label).map(|n| n.trim().to_string()))
+                    })
+                })
+            };
+            map.insert(stem.clone(), json!({
+                "title": {"en": title(&text_en, &["Mission:"]), "he": title(&text_he, &["משימה:", "מבצע:"])},
+                "text": {"en": text_en, "he": text_he},
+                "entries": entries_json(read_brl(&base.join(sub), &brl, false), read_brl(&he.join(sub), &brl, true)),
+            }));
+        }
+        doc.insert(key.into(), serde_json::Value::Object(map));
+    }
+    std::fs::write(out.join("briefings.json"), serde_json::to_string_pretty(&doc)?)?;
+
+    // Diagrams: original, and the Hebrew pack's relabelled versions.
+    let mut n = 0;
+    for (src_dir, dest) in [(base.join("bmp"), out.join("img")), (he.join("bmp"), out.join("img_he"))] {
+        let Ok(rd) = std::fs::read_dir(&src_dir) else { continue };
+        std::fs::create_dir_all(&dest)?;
+        for e in rd.flatten() {
+            let p = e.path();
+            if !p.extension().is_some_and(|x| x.eq_ignore_ascii_case("bmp")) {
+                continue;
+            }
+            let Ok((img, transparent)) = load_texture(&p) else { continue };
+            let img = match &opts.upscaler {
+                Some(u) => u.upscale(&img, transparent.then_some(COLOR_KEY))?,
+                None => img,
+            };
+            img.save(dest.join(format!("{}.png", p.file_stem().unwrap().to_string_lossy().to_lowercase())))?;
+            n += 1;
+        }
+    }
+    println!("briefings: {} missions, {} lessons, {n} diagrams -> {}",
+        doc["missions"].as_object().map_or(0, |m| m.len()), doc["lessons"].as_object().map_or(0, |m| m.len()), out.display());
     Ok(())
 }

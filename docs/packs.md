@@ -28,3 +28,11 @@ Overrides 193 files in `resource/brief`:
 - `bmp/*.bmp` — 32 briefing diagrams relabelled in Hebrew.
 
 Menus, HUD, radio messages and speech remain English.
+
+### `he` — Hebrew menus (preflight.us, `Menu.zip`, 2005, by רועי "106thE~LOL")
+Extract target per its readme: `I.A.F\Resource` → `--into resource` (the default); the zip's `Menu/` folder
+overlays `resource/menu`. Overrides 400 files: button strips (`bmp/palettes`), title tabs, bottom-bar buttons,
+debrief/log/prefs/arm art, and all mission/course strings (`txt/mis/*.trx`, Windows-1255). Screen layouts (`dat/`)
+and fonts are unchanged; Hebrew glyphs come from the system font (the original game relied on Windows' font fallback).
+Converted with `iaf-convert menu … assets/converted/menu_he --pack assets/packs/he`; the front end uses it when the
+language is Hebrew.

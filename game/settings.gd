@@ -31,9 +31,10 @@ func real_data() -> bool:
 	return flight_data == "real"
 
 
-## True when the Hebrew briefing pack is installed (assets/packs/he, see docs/packs.md).
+## True when the Hebrew packs are installed and converted (menus: assets/converted/menu_he;
+## see docs/packs.md).
 func hebrew_available() -> bool:
-	return DirAccess.dir_exists_absolute(assets_dir().path_join("packs/he"))
+	return DirAccess.dir_exists_absolute(assets_dir().path_join("converted/menu_he"))
 
 
 func assets_dir() -> String:

@@ -44,17 +44,7 @@ var hotspots: Array = []  # [Rect2 (screen px), Callable]
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	dir = Settings.assets_dir().path_join("converted/menu")
-	menus = JSON.parse_string(FileAccess.get_file_as_string(dir.path_join("menus.json")))
-	strings = JSON.parse_string(FileAccess.get_file_as_string(dir.path_join("strings.json")))
-	if menus == null:
-		push_error("front end: run `iaf-convert --upscale menu assets/install assets/converted/menu`")
-		menus = {}
-		strings = {}
-	hebrew = JSON.parse_string(FileAccess.get_file_as_string("res://menu/strings_he.json"))
-	art_scale = float(FileAccess.get_file_as_string(dir.path_join("image_scale.txt")).strip_edges()) if FileAccess.file_exists(dir.path_join("image_scale.txt")) else 1.0
-	font_button = _font("cr1.ttf")
-	font_text = _font("cr0.ttf")
+	_load_menu_data()
 	var args := OS.get_cmdline_user_args()
 	var at := args.find("--menu")
 	if at >= 0:
@@ -65,6 +55,23 @@ func _ready() -> void:
 			await get_tree().process_frame
 		get_viewport().get_texture().get_image().save_png(args[shot + 1])
 		get_tree().quit()
+
+
+## (Re)load screens, strings, fonts and art for the current language. Hebrew uses the
+## Hebrew menu pack (assets/converted/menu_he, see docs/packs.md) when it is installed.
+func _load_menu_data() -> void:
+	dir = Settings.assets_dir().path_join("converted/menu_he" if _he() else "converted/menu")
+	textures.clear()
+	menus = JSON.parse_string(FileAccess.get_file_as_string(dir.path_join("menus.json")))
+	strings = JSON.parse_string(FileAccess.get_file_as_string(dir.path_join("strings.json")))
+	if menus == null:
+		push_error("front end: run tools/setup.sh (menus not converted)")
+		menus = {}
+		strings = {}
+	hebrew = JSON.parse_string(FileAccess.get_file_as_string("res://menu/strings_he.json"))
+	art_scale = float(FileAccess.get_file_as_string(dir.path_join("image_scale.txt")).strip_edges()) if FileAccess.file_exists(dir.path_join("image_scale.txt")) else 1.0
+	font_button = _font("cr1.ttf")
+	font_text = _font("cr0.ttf")
 
 
 func _font(file: String) -> FontFile:
@@ -110,10 +117,7 @@ func _rect(x: float, y: float, w: float, h: float) -> Rect2:
 
 
 func _string(key: String) -> String:
-	var k := key.to_lower()
-	if _he() and hebrew.get("strings", {}).has(k):
-		return hebrew.strings[k]
-	return strings.get(k, "")
+	return strings.get(key.to_lower(), "")
 
 
 func _process(_delta: float) -> void:
@@ -158,8 +162,8 @@ func _draw() -> void:
 			if art != null and state != 1:
 				var src := Rect2(Vector2(r[0] - panel.pos[0], r[1] - panel.pos[1]) * art_scale, Vector2(r[2], r[3]) * art_scale)
 				draw_texture_rect_region(art, rect, src)
-			if base == null or _he():
-				_draw_label_over(rect, _t(b.label), enabled, state == 0 or _is_current(b.label), s)
+			if base == null:
+				_draw_label_over(rect, b.label, enabled, state == 0 or _is_current(b.label), s)
 			if enabled:
 				hotspots.append([rect, _on_button.bind(b.label)])
 			i += 1
@@ -192,6 +196,15 @@ func _draw_label_over(rect: Rect2, text: String, enabled: bool, lit: bool, s: fl
 	_text_in(face, text, font_button, int(SIZE_BUTTON * s), color)
 
 
+## Mission row title from the menu strings (Hebrew pack in Hebrew), with the user's overrides.
+func _mission_title(row: Dictionary) -> String:
+	var id := str(int(row.id))
+	if _he() and hebrew.get("overrides", {}).has(id):
+		return hebrew.overrides[id]
+	var title := _string(row.title_key)
+	return title if title != "" else row.name
+
+
 func _draw_art(path: String, rect: Rect2) -> void:
 	var t := _tex(path)
 	if t != null:
@@ -219,9 +232,7 @@ func _draw_list(_def: Dictionary, win: Array, s: float) -> void:
 			draw_rect(rect, BOX if ri == selected_row else Color(BOX, 0.08))
 		var tb: Array = row.title_box
 		var db: Array = row.desc_box
-		var title := _string(row.title_key)
-		if title == "":
-			title = _t(row.name)
+		var title := _mission_title(row)
 		_text_in(_rect(win[0] + tb[0], win[1] + tb[1], tb[2] - tb[0], tb[3] - tb[1]), title, font_button, int(SIZE_TITLE * s), TEXT_HOVER)
 		_text_block(_rect(win[0] + db[0], win[1] + db[1], db[2] - db[0], db[3] - db[1]), _string(row.desc_key), int(SIZE_TEXT * s), TEXT)
 		hotspots.append([rect, _on_row.bind(ri, row)])
@@ -340,6 +351,8 @@ func _on_row(index: int, row: Dictionary) -> void:
 func _set_pref(key: String, value: String) -> void:
 	Settings.set(key, value)
 	Settings.save()
+	if key == "language":
+		_load_menu_data()
 
 
 func _fly() -> void:

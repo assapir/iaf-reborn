@@ -7,6 +7,7 @@ pub mod lzo;
 pub mod menu;
 pub mod model;
 pub mod ptt;
+pub mod rtf;
 pub mod ssf;
 pub mod xfile;
 
