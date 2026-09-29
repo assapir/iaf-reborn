@@ -168,6 +168,79 @@ func _mission_player(mission_id: int) -> Dictionary:
 	return {}
 
 
+## Every visible object of the mission and its base missions (missionlist), placed in the world:
+## entity type (0x2c6) -> bdb object -> Present record (0x53c) -> converted model (objects.json).
+## Hidden at start: entities whose start script (scripts1) is "Visible off" (opcode 14); sensors
+## (class 18) and the player's own aircraft are not drawn. Ground objects sit on the terrain
+## (UNCERTAIN whether the original snaps them or uses the entity altitude, which matches here).
+func _spawn_mission_objects() -> void:
+	if Settings.mission_id < 0 and not OS.get_cmdline_user_args().has("--mission"):
+		return
+	var base := Settings.assets_dir().path_join("converted")
+	var list = JSON.parse_string(FileAccess.get_file_as_string(base.path_join("missions/missionlist.json")))
+	var models = JSON.parse_string(FileAccess.get_file_as_string(base.path_join("objects/objects.json")))
+	if not (list is Dictionary) or not (models is Dictionary) or not list.has(str(_mission_id())):
+		return
+	var bdbs := {}
+	var scenes := {}
+	for name in list[str(_mission_id())]:
+		var m = JSON.parse_string(FileAccess.get_file_as_string(base.path_join("missions/%s.json" % name)))
+		if not (m is Dictionary):
+			continue
+		var bdb_name := String(m.bdb).to_lower()
+		if not bdbs.has(bdb_name):
+			var b = JSON.parse_string(FileAccess.get_file_as_string(base.path_join("missions/%s.json" % bdb_name)))
+			var objs := {}
+			for o in b.objects.items:
+				objs[int(o["0x1e"])] = o
+			bdbs[bdb_name] = objs
+		var paths: Dictionary = models.get(bdb_name, {})
+		for e in m.entities.items:
+			if not (e is Dictionary) or float(e.get("0x2e4", -1)) < 0 or float(e.get("0x2ee", -1)) < 0:
+				continue
+			if String(e.get("0x2bc", "")).begins_with("Player"):
+				continue
+			var obj: Dictionary = bdbs[bdb_name].get(int(e.get("0x2c6", -1)), {})
+			if obj.is_empty() or int(obj.get("0x5aa", -1)) == 18 or _starts_hidden(e):
+				continue
+			var path: String = paths.get(str(int(obj.get("0x53c", -1))), "")
+			if path == "":
+				continue
+			if not scenes.has(path):
+				var doc := GLTFDocument.new()
+				var state := GLTFState.new()
+				scenes[path] = [doc, state] if doc.append_from_file(base.path_join("objects").path_join(path), state) == OK else null
+			if scenes[path] == null:
+				continue
+			var node: Node3D = scenes[path][0].generate_scene(scenes[path][1])
+			var pos := Vector3(float(e["0x2e4"]) - terrain.world_origin.x, float(e.get("0x2f8", 0)), -(float(e["0x2ee"]) - terrain.world_origin.y))
+			var ground = terrain.height_at(pos)
+			var klass := int(obj.get("0x5aa", -1))
+			var airborne: bool = klass in [2, 3, 0x1c] and ground != null and pos.y > ground + 10.0
+			if ground != null and not airborne:
+				pos.y = ground
+			node.position = pos
+			node.rotation.y = -deg_to_rad(float(e.get("0x302", 0)))
+			add_child(node)
+
+
+func _mission_id() -> int:
+	var m := OS.get_cmdline_user_args().find("--mission")
+	return int(OS.get_cmdline_user_args()[m + 1]) if m >= 0 else Settings.mission_id
+
+
+## Entities whose start script (scripts1, first entry 0xf0) is "Visible off" start hidden.
+static func _starts_hidden(e: Dictionary) -> bool:
+	var scripts: Array = e.get("scripts1", {}).get("items", [])
+	if scripts.is_empty():
+		return false
+	var first := int(e.get("0xf0", -1))
+	for sc in scripts:
+		if int(sc.get("0x1e", -2)) == first or first < 0:
+			return int(sc.get("0x83e", -1)) == 14
+	return int(scripts[0].get("0x83e", -1)) == 14
+
+
 ## The route of the formation holding the player (its waypoints and their names) for the MFDs.
 func _load_route(mission: Dictionary, player_id: int) -> void:
 	for f in mission.formations.items:
@@ -326,6 +399,7 @@ func _process(delta: float) -> void:
 		flight.set_controls(stick.x, stick.y, rudder, throttle, flaps, gear_down, brakes)
 		if waiting_for_ground and terrain.height_at(rig.position) != null:
 			waiting_for_ground = false
+			_spawn_mission_objects()
 		if not frozen and not waiting_for_ground:
 			flight.step(delta)
 		var st: Dictionary = flight.state()

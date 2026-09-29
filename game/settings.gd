@@ -14,7 +14,15 @@ var mission_id := -1
 var jet_id := 1
 
 
+## Tests and captures run with IAF_DEFAULT_SETTINGS=1: defaults only, the player's settings file
+## is neither read nor written.
+func isolated() -> bool:
+	return OS.get_environment("IAF_DEFAULT_SETTINGS") == "1"
+
+
 func _ready() -> void:
+	if isolated():
+		return
 	var cfg := ConfigFile.new()
 	if cfg.load(PATH) == OK:
 		flight_data = cfg.get_value("gameplay", "flight_data", flight_data)
@@ -24,6 +32,8 @@ func _ready() -> void:
 
 
 func save() -> void:
+	if isolated():
+		return
 	var cfg := ConfigFile.new()
 	cfg.set_value("gameplay", "flight_data", flight_data)
 	cfg.set_value("gameplay", "language", language)

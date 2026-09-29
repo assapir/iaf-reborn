@@ -84,3 +84,7 @@ Community mods (e.g. Hebrew briefings) can be imported as overlay packs — see 
 | Esc            | back to the menus                                                         |
 | V, PgUp / PgDn | panel down / slide panel                                                  |
 | + / −, wheel   | cockpit zoom (external: orbit distance); RMB drag orbits in external view |
+
+### Tests / captures
+
+Run scripted tests and captures with `IAF_DEFAULT_SETTINGS=1` so they use default settings and never read or write your saved preferences (`user://settings.cfg`).

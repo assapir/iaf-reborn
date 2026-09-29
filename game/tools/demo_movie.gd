@@ -1,5 +1,5 @@
 # Scripted demo for a video capture with Godot's Movie Maker:
-#   godot --path game --resolution 1920x1080 --fixed-fps 30 --write-movie demo.avi -s tools/demo_movie.gd
+#   IAF_DEFAULT_SETTINGS=1 godot --path game --resolution 1920x1080 --fixed-fps 30 --write-movie demo.avi -s tools/demo_movie.gd
 # Menus (Training -> Basic -> Takeoff -> F-16 -> TSD with briefing links) then the "Engines ON"
 # takeoff from Ramat David in the cockpit and a look from outside.
 extends SceneTree

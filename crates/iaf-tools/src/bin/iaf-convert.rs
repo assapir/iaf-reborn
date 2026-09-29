@@ -75,6 +75,7 @@ fn main() -> Result<()> {
             Ok(())
         }
         [_, "missions", install, out] => convert_missions(Path::new(install), Path::new(out)),
+        [_, "objects", install, missions, out] => convert_objects(Path::new(install), Path::new(missions), Path::new(out), &opts),
         [_, "fonts", install, out] => convert_fonts(Path::new(install), Path::new(out)),
         [_, "briefings", install, packs, out] => convert_briefings(Path::new(install), Path::new(packs), Path::new(out), &opts),
         [_, "menu", install, out] => convert_menu(Path::new(install), None, Path::new(out), &opts),
@@ -82,6 +83,50 @@ fn main() -> Result<()> {
         [_, "cockpit", install, name, out] => convert_cockpit(Path::new(install), name, Path::new(out), &opts),
         _ => bail!("usage: iaf-convert [--upscale] [--smooth] model <file.x|file.xfr> <out-dir>\n       iaf-convert [--upscale] [--smooth] planes <install-dir> <out-dir>\n       iaf-convert [--upscale] cockpit <install-dir> <cockpit> <out-dir>\n       iaf-convert [--upscale] menu <install-dir> <out-dir> [--pack <pack-dir>]\n       iaf-convert [--upscale] briefings <install-dir> <packs-dir> <out-dir>"),
     }
+}
+
+/// Every model the object databases reference: `.bdb` Present records (`0x64a` model path under
+/// `3dobjects`, e.g. `STATIONARY\FCTRY\FCTRY3_H.X`; objects point at them with `0x53c`).
+/// Writes `<out>/<path>.gltf` and `<out>/objects.json` = {bdb: {present id: gltf path}}.
+fn convert_objects(install: &Path, missions: &Path, out: &Path, opts: &Options) -> Result<()> {
+    let root = install.join("resource/3dobjects");
+    let mut index = serde_json::Map::new();
+    let mut done = std::collections::HashMap::new();
+    for entry in std::fs::read_dir(missions)?.flatten() {
+        let name = entry.file_name().to_string_lossy().to_string();
+        let Some(bdb) = name.strip_suffix(".bdb.json") else { continue };
+        let data: serde_json::Value = serde_json::from_slice(&std::fs::read(entry.path())?)?;
+        let mut map = serde_json::Map::new();
+        for item in data["present"]["items"].as_array().into_iter().flatten() {
+            let (Some(id), Some(path)) = (item["0x1e"].as_i64(), item["0x64a"].as_str()) else { continue };
+            if path.is_empty() {
+                continue;
+            }
+            let rel = PathBuf::from(path.replace('\\', "/").to_lowercase());
+            let gltf = rel.with_extension("gltf").with_file_name(format!(
+                "{}.gltf",
+                rel.file_stem().unwrap().to_string_lossy()
+            ));
+            if !done.contains_key(&rel) {
+                let src = root.join(&rel);
+                let ok = match convert(&src, &out.join(rel.parent().unwrap()), &[root.clone()], opts) {
+                    Ok(()) => true,
+                    Err(e) => {
+                        println!("  skipped {}: {e:#}", src.display());
+                        false
+                    }
+                };
+                done.insert(rel.clone(), ok);
+            }
+            if done[&rel] {
+                map.insert(id.to_string(), gltf.to_string_lossy().into());
+            }
+        }
+        index.insert(format!("{bdb}.bdb"), serde_json::Value::Object(map));
+    }
+    std::fs::write(out.join("objects.json"), serde_json::to_string_pretty(&index)?)?;
+    println!("objects: {} models -> {}", done.values().filter(|ok| **ok).count(), out.display());
+    Ok(())
 }
 
 /// Cockpit images shared by all aircraft (MFD sprites, RWR symbols, map).
