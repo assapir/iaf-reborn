@@ -1,0 +1,6 @@
+/target
+/assets/
+*.iso
+*.esa
+*.PTT
+.godot/
