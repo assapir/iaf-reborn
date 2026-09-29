@@ -22,6 +22,7 @@ var dragging := false
 var show_helpers := false
 var auto_rotate := true
 var status := ""
+var reloading := false
 
 
 func _ready() -> void:
@@ -138,13 +139,28 @@ func _process(delta: float) -> void:
 	pivot.rotation = Vector3(pitch, yaw, 0)
 	camera.position = Vector3(0, 0, distance)
 	poll += delta
-	if poll >= POLL_SECONDS and not models.is_empty():
+	if poll >= POLL_SECONDS and not models.is_empty() and not reloading:
 		poll = 0.0
-		var mtime := FileAccess.get_modified_time(models[index])
-		if mtime != loaded_mtime:
-			# Give the converter a moment to finish writing .bin / textures.
-			await get_tree().create_timer(0.3).timeout
-			_load()
+		if FileAccess.get_modified_time(models[index]) != loaded_mtime:
+			_reload_when_settled()
+
+
+func _reload_when_settled() -> void:
+	# The converter rewrites .gltf, .bin and textures; wait until nothing in the
+	# model's folder has changed for a second, then reload once.
+	reloading = true
+	var dir := models[index].get_base_dir()
+	var last := -1
+	while true:
+		var newest := 0
+		for f in DirAccess.get_files_at(dir):
+			newest = max(newest, FileAccess.get_modified_time(dir.path_join(f)))
+		if newest == last:
+			break
+		last = newest
+		await get_tree().create_timer(1.0).timeout
+	_load()
+	reloading = false
 
 
 func _unhandled_input(event: InputEvent) -> void:
