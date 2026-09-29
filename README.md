@@ -39,27 +39,13 @@ Handy for development (not required): `ffmpeg` (image/video inspection), `python
 
 ## Quick start
 ```sh
-# 1. unpack the original game from the CD image
-cargo run --release -p iaf-tools --bin iaf-extract -- "/path/to/Jane's IAF.iso" assets/install
-# 2. convert the aircraft models to glTF (+ PNG textures)
-cargo run --release -p iaf-tools --bin iaf-convert -- planes assets/install assets/converted/planes
-#    options (before "planes"): --upscale  4× Lanczos-resampled textures (faithful to the original art)
-#                               --smooth   round the low-poly geometry (smooth normals + Phong tessellation)
-# 3. export the terrain around Israel (colour: level 4 inset, heights from level 6)
-cargo run --release -p iaf-tools --bin iaf-terrain -- export assets/install/resource/terrain/map.ptt 7 assets/converted/terrain/israel_l4
-# 4. cockpit art
-cargo run --release -p iaf-tools --bin iaf-convert -- --upscale cockpit assets/install f16 assets/converted/cockpits/f16
-# 5. front-end menus (screens, strings, art, fonts)
-cargo run --release -p iaf-tools --bin iaf-convert -- --upscale menu assets/install assets/converted/menu
-# 6. build the Godot extension (flight model etc.)
-cargo build -p iaf-godot
-# 7. play: front end (Training → course → mission → FLY; Preferences → Gameplay for flight data / language)
-godot --path game
-#    or jump straight into the air / the model viewer
-godot --path game res://terrain/terrain_view.tscn
-godot --path game res://viewer/viewer.tscn
+tools/setup.sh "/path/to/Jane's IAF.iso" [/path/to/Brief.zip]   # everything, from your own ISO (~2 min)
+godot --path game                                                 # front end → Training → mission → Continue
 ```
-The conversion is a one-time step; re-run it only after updating the converter or adding packs.
+`tools/setup.sh` runs the whole pipeline (extract → aircraft → cockpit → menus → terrain → optional Hebrew pack →
+Godot extension); the individual commands are listed in it. Conversion is a one-time step; re-run after updating the
+converters. Other entry points: `godot --path game res://terrain/terrain_view.tscn` (straight into the air),
+`godot --path game res://viewer/viewer.tscn` (model viewer with hot reload).
 
 ## Getting the game data
 ```sh

@@ -29,6 +29,8 @@ var textures := {}
 var font_button: FontFile
 var font_text: FontFile
 var dir := ""
+## Converted art is stored at this multiple of the original pixel size.
+var art_scale := 1.0
 
 var screen := "main"
 var history: Array[String] = []
@@ -50,6 +52,7 @@ func _ready() -> void:
 		menus = {}
 		strings = {}
 	hebrew = JSON.parse_string(FileAccess.get_file_as_string("res://menu/strings_he.json"))
+	art_scale = float(FileAccess.get_file_as_string(dir.path_join("image_scale.txt")).strip_edges()) if FileAccess.file_exists(dir.path_join("image_scale.txt")) else 1.0
 	font_button = _font("cr1.ttf")
 	font_text = _font("cr0.ttf")
 	var args := OS.get_cmdline_user_args()
@@ -133,15 +136,30 @@ func _draw() -> void:
 	if bg != null:
 		draw_texture_rect(bg, content, false)
 
-	# Left column buttons.
+	# Title tab (top right) and the left button strip, both original art.
+	_draw_art("titles/%s_2.png" % String(def.title).to_lower(), _rect(486, 15, 119, 26))
 	var i := 0
+	var mouse := get_local_mouse_position()
 	for panel in def.panels:
+		var strip := "palettes/%s_%%d.png" % String(panel.name).to_lower()
+		var base := _tex(strip % 1)
+		if base != null:
+			draw_texture_rect(base, _rect(panel.pos[0], panel.pos[1], base.get_width() / art_scale, base.get_height() / art_scale), false)
 		for b in panel.buttons:
 			var r: Array = b.rect
-			var rect := _rect(panel.pos[0] + r[0], panel.pos[1] + r[1], r[2], r[3])
+			var rect := _rect(r[0], r[1], r[2], r[3])
 			var enabled := _button_enabled(b.label)
-			var color := TEXT_DISABLED if not enabled else (TEXT_HOVER if i == hover or _is_current(b.label) else TEXT)
-			_text_in(rect, _t(b.label), font_button, int(SIZE_BUTTON * s), color, HORIZONTAL_ALIGNMENT_CENTER)
+			var state := 1
+			if not enabled or _is_current(b.label) or (pressed.is_valid() and rect.has_point(mouse)):
+				state = 2
+			elif rect.has_point(mouse):
+				state = 0
+			var art := _tex(strip % state)
+			if art != null and state != 1:
+				var src := Rect2(Vector2(r[0] - panel.pos[0], r[1] - panel.pos[1]) * art_scale, Vector2(r[2], r[3]) * art_scale)
+				draw_texture_rect_region(art, rect, src)
+			if base == null or _he():
+				_draw_label_over(rect, _t(b.label), enabled, state == 0 or _is_current(b.label), s)
 			if enabled:
 				hotspots.append([rect, _on_button.bind(b.label)])
 			i += 1
@@ -153,7 +171,6 @@ func _draw() -> void:
 		_draw_list(def, win, s)
 
 	# Bottom bar: the original BACK tab and CONTINUE button art (normal / hover / pressed).
-	var mouse := get_local_mouse_position()
 	if screen != "main":
 		var back_rect := _rect(10, 446, 114, 22)
 		var state := 2 if pressed == _go_back else (1 if back_rect.has_point(mouse) else 0)
@@ -164,6 +181,15 @@ func _draw() -> void:
 		var state := 2 if pressed == _fly or fly_rect.has_point(mouse) else 0
 		_draw_art("misc/mbgfly_%d.png" % state, fly_rect)
 		hotspots.append([fly_rect, _fly])
+
+
+## Our label over an original button (Hebrew, or screens without strip art): cover the
+## baked-in English text with the button face and write ours.
+func _draw_label_over(rect: Rect2, text: String, enabled: bool, lit: bool, s: float) -> void:
+	var face := rect.grow_individual(-12 * s, -7 * s, -12 * s, -7 * s)
+	draw_rect(face, Color(0.09, 0.09, 0.1))
+	var color := TEXT_DISABLED if not enabled else (TEXT_HOVER if lit else Color(0.85, 0.85, 0.85))
+	_text_in(face, text, font_button, int(SIZE_BUTTON * s), color)
 
 
 func _draw_art(path: String, rect: Rect2) -> void:
