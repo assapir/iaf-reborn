@@ -49,6 +49,12 @@ if [[ -d assets/packs/he/resource/menu ]]; then
 	./target/release/iaf-convert --upscale menu assets/install assets/converted/menu_he --pack assets/packs/he
 fi
 
+step "missions (all .mis + object database -> JSON, mission list)"
+./target/release/iaf-convert missions assets/install assets/converted/missions
+
+step "mission object models (every model the object database references)"
+./target/release/iaf-convert --upscale objects assets/install assets/converted/missions assets/converted/objects
+
 step "terrain around Israel (colour: level-4 inset, heights: level 6)"
 ./target/release/iaf-terrain export assets/install/resource/terrain/map.ptt 7 assets/converted/terrain/israel_l4
 ./target/release/iaf-terrain details assets/install/resource/terrain/map.ptt 7 assets/converted/terrain/israel_l4/details
