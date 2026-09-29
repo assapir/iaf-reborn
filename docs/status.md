@@ -29,7 +29,7 @@ from Ramat David** in the original F-16 with the original 2D cockpit, everything
    traced (LRS, 20 NM used). Original keys S (radar standby) and W (next waypoint) clash with our provisional throttle
    keys, so they are not bound yet. (Done: all cockpits converted, MFD placement / default pages per cockpit ini,
    radar / TSD / RWR / MENU / NAV / stores / damage / ADI pages, OSB clicks, T / D / Q / R / . / , keys.)
-4. **Terrain detail**: only the level-4 Israel inset (16 m/px); airbase insets (to ~1 m/px) and far levels not used.
+4. **Terrain detail**: airbase insets (levels 0–2, ~1.24 m/px) are streamed as detail tiles within 6 km (149 tiles); the level-3 regions outside airbases, insets outside the level-4 Israel rect (e.g. x < 327680) and the far theatre levels are not used yet.
 5. **Airbase objects**: base missions (`bmisrdvd`: hangars, runway objects…) not placed; no 3D models for them yet.
 6. **Mission logic**: triggers/scripts/audio (instructor voice, win sensor) not run.
 7. Controls: original default key table not found yet (current keys provisional, G/F confirmed by the briefing).
@@ -37,7 +37,8 @@ from Ramat David** in the original F-16 with the original 2D cockpit, everything
 9. Gear lever: ground / 300 kt rules enforced; leg timing (2 s), gear sound and weapon-release lock not yet (docs/flight-model.md §12).
 10. Sun shadow is coarse near the aircraft (one 2 km shadow range), so the shadow looks detached from the wheels.
 11. g reads 0.8–0.9 when parked (should be 1.0).
-12. Cockpit lights not drawn (gear lights, warning lights; docs/cockpit.md lists the light bitmaps).
+12. No ground effect (not in the original model either; candidate for the "real data" set later).
+13. Cockpit lights not drawn (gear lights, warning lights; docs/cockpit.md lists the light bitmaps).
 
 ## Plan (in order)
 1. ~~Front end rewrite~~ (done; message box comes with the TSD).

@@ -9,7 +9,8 @@ extends Node3D
 @export var data_dir := "../assets/converted/terrain/israel_l4"
 ## Chunks kept around the focus in each direction.
 @export var radius := 3
-## Vertex grid per chunk side by ring distance (0 = the chunk under the focus).
+## Vertex grid per chunk side by ring distance (ring 0 = the 3x3 chunks around the focus, so
+## detail tiles near chunk edges always sit on a full-resolution base).
 @export var ring_resolution: PackedInt32Array = [256, 128, 64, 32]
 ## Decode jobs running at once.
 @export var max_jobs := 4
@@ -27,6 +28,17 @@ var meshes: Array[PlaneMesh] = []
 var shader := preload("res://terrain/terrain.gdshader")
 var dir := ""
 var _missing := 1
+
+## High-detail tiles (`iaf-terrain details`): airbase insets at 1 unit per pixel, streamed within
+## `detail_radius` metres of the focus.
+@export var detail_radius := 6000.0
+var details := {}  # details.json
+var detail_cells := {}  # Vector2i -> true (tiles that exist)
+var detail_nodes := {}  # Vector2i -> MeshInstance3D (null while loading)
+var detail_jobs := {}  # Vector2i -> task id
+var detail_results := {}  # Vector2i -> Image
+var detail_mesh: PlaneMesh
+var detail_shader := preload("res://terrain/terrain_detail.gdshader")
 
 
 func _ready() -> void:
@@ -46,6 +58,25 @@ func _ready() -> void:
 		# Heights are applied in the shader; give culling a generous box.
 		m.custom_aabb = AABB(Vector3(-span / 2, -1000, -span / 2), Vector3(span, 6000, span))
 		meshes.append(m)
+	_load_details()
+
+
+func _load_details() -> void:
+	var data = JSON.parse_string(FileAccess.get_file_as_string(dir.path_join("details/details.json")))
+	if not (data is Dictionary):
+		return
+	details = data
+	for t in details.tiles:
+		detail_cells[Vector2i(int(t[0]), int(t[1]))] = true
+	# Same vertex lattice as a ring-0 base chunk: one vertex per chunk_pixels / ring_resolution[0] texels.
+	var tile_texels: float = float(details.span) / float(meta.units_per_pixel)
+	var segments := int(tile_texels / (float(meta.chunk_pixels) / ring_resolution[0]))
+	detail_mesh = PlaneMesh.new()
+	var span_m: float = float(details.span) * m_per_unit
+	detail_mesh.size = Vector2(span_m, span_m)
+	detail_mesh.subdivide_width = segments - 1
+	detail_mesh.subdivide_depth = segments - 1
+	detail_mesh.custom_aabb = AABB(Vector3(-span_m / 2, -1000, -span_m / 2), Vector3(span_m, 6000, span_m))
 
 
 ## Terrain units (as in map.ptt) -> Godot position (y = 0).
@@ -83,6 +114,7 @@ func _process(_delta: float) -> void:
 	if meta.is_empty() or focus == null:
 		return
 	var centre := _chunk_of(focus.global_position)
+	_update_details()
 	var wanted := {}
 	var missing: Array[Vector2i] = []
 	for dy in range(-radius, radius + 1):
@@ -94,7 +126,7 @@ func _process(_delta: float) -> void:
 			if chunks.has(c):
 				var mi: MeshInstance3D = chunks[c]
 				if mi.material_override != null:
-					mi.mesh = _mesh_for(max(abs(dx), abs(dy)))
+					mi.mesh = _mesh_for(maxi(0, maxi(absi(dx), absi(dy)) - 1))
 			elif not jobs.has(c):
 				missing.append(c)
 	for c in chunks.keys():
@@ -121,7 +153,7 @@ func _process(_delta: float) -> void:
 		results.erase(c)
 		results_mutex.unlock()
 		if wanted.has(c):
-			_add_chunk(c, images, max(abs(c.x - centre.x), abs(c.y - centre.y)))
+			_add_chunk(c, images, maxi(0, maxi(absi(c.x - centre.x), absi(c.y - centre.y)) - 1))
 
 
 func _decode(c: Vector2i) -> void:
@@ -203,3 +235,94 @@ func _raw_height(img: Image, gx: int, gy: int, step: float) -> float:
 	var n := img.get_width() - 1
 	var col := img.get_pixel(clampi(int(gx * step), 0, n), clampi(int(gy * step), 0, n))
 	return float(roundi(col.r * 255.0) * 256 + roundi(col.g * 255.0))
+
+
+# --- high-detail tiles --------------------------------------------------------------------------
+
+func _update_details() -> void:
+	if details.is_empty():
+		return
+	var span: float = details.span
+	var r: Array = meta.rect
+	var t := godot_to_terrain(focus.global_position)
+	var fx := (t.x - float(r[0])) / span
+	var fy := (t.y - float(r[1])) / span
+	var reach := detail_radius / (span * m_per_unit)
+	var wanted := {}
+	var missing: Array[Vector2i] = []
+	for gy in range(floori(fy - reach), ceili(fy + reach)):
+		for gx in range(floori(fx - reach), ceili(fx + reach)):
+			var g := Vector2i(gx, gy)
+			if not detail_cells.has(g) or Vector2(gx + 0.5 - fx, gy + 0.5 - fy).length() > reach + 0.71:
+				continue
+			wanted[g] = true
+			if not detail_nodes.has(g) and not detail_jobs.has(g):
+				missing.append(g)
+	# Nearest first.
+	var here := Vector2(fx - 0.5, fy - 0.5)
+	missing.sort_custom(func(a, b): return Vector2(a).distance_squared_to(here) < Vector2(b).distance_squared_to(here))
+	for g in missing:
+		if detail_jobs.size() >= 3:
+			break
+		detail_jobs[g] = WorkerThreadPool.add_task(_decode_detail.bind(g))
+	for g in detail_nodes.keys():
+		if not wanted.has(g):
+			if detail_nodes[g] != null:
+				detail_nodes[g].queue_free()
+			detail_nodes.erase(g)
+	for g in detail_jobs.keys():
+		if not WorkerThreadPool.is_task_completed(detail_jobs[g]):
+			continue
+		# The base chunk must be there for its height texture.
+		var c := _chunk_of_cell(g)
+		if not chunks.has(c) or chunks[c].material_override == null:
+			continue
+		WorkerThreadPool.wait_for_task_completion(detail_jobs[g])
+		detail_jobs.erase(g)
+		results_mutex.lock()
+		var img: Image = detail_results.get(g)
+		detail_results.erase(g)
+		results_mutex.unlock()
+		if wanted.has(g) and img != null:
+			_add_detail(g, img, c)
+
+
+func _chunk_of_cell(g: Vector2i) -> Vector2i:
+	var per_chunk := int(float(meta.chunk_span) / float(details.span))
+	return Vector2i(floori(float(g.x) / per_chunk), floori(float(g.y) / per_chunk))
+
+
+## Worker: decode, mipmap and compress (BC1) one detail tile.
+func _decode_detail(g: Vector2i) -> void:
+	var img := Image.load_from_file(dir.path_join("details/d_%d_%d.jpg" % [g.x, g.y]))
+	if img != null:
+		img.generate_mipmaps()
+		img.compress(Image.COMPRESS_S3TC)
+	results_mutex.lock()
+	detail_results[g] = img
+	results_mutex.unlock()
+
+
+func _add_detail(g: Vector2i, img: Image, c: Vector2i) -> void:
+	var span: float = details.span
+	var per_chunk := int(float(meta.chunk_span) / span)
+	var texels_per_tile: float = span / float(meta.units_per_pixel)
+	var mat := ShaderMaterial.new()
+	mat.shader = detail_shader
+	mat.set_shader_parameter("colour_tex", ImageTexture.create_from_image(img))
+	mat.set_shader_parameter("height_tex", chunks[c].material_override.get_shader_parameter("height_tex"))
+	mat.set_shader_parameter("units_to_metres", m_per_unit)
+	mat.set_shader_parameter("chunk_pixels", float(meta.chunk_pixels))
+	mat.set_shader_parameter("sea_level_raw", float(meta.sea_level_raw))
+	mat.set_shader_parameter("height_scale", float(meta.height_scale))
+	mat.set_shader_parameter("texel_origin", Vector2(g.x - c.x * per_chunk, g.y - c.y * per_chunk) * texels_per_tile)
+	mat.set_shader_parameter("tile_texels", texels_per_tile)
+	mat.set_shader_parameter("texel_metres", float(meta.units_per_pixel) * m_per_unit)
+	var mi := MeshInstance3D.new()
+	mi.mesh = detail_mesh
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var r: Array = meta.rect
+	mi.position = terrain_to_godot(float(r[0]) + (g.x + 0.5) * span, float(r[1]) + (g.y + 0.5) * span)
+	add_child(mi)
+	detail_nodes[g] = mi

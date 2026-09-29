@@ -51,6 +51,7 @@ fi
 
 step "terrain around Israel (colour: level-4 inset, heights: level 6)"
 ./target/release/iaf-terrain export assets/install/resource/terrain/map.ptt 7 assets/converted/terrain/israel_l4
+./target/release/iaf-terrain details assets/install/resource/terrain/map.ptt 7 assets/converted/terrain/israel_l4/details
 
 step "Godot extension (flight model)"
 cargo build -p iaf-godot

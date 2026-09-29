@@ -4,6 +4,8 @@
 //! `iaf-terrain mosaic <map.ptt> <level-index> <out.png>` — stitch one level's imagery into a single image
 //! `iaf-terrain heights <map.ptt> <level-index> <out.png>` — stitch one level's elevation as greyscale
 //! `iaf-terrain export <map.ptt> <level-index> <out-dir>` — engine chunks: colour JPEG + height PNG + meta.json
+//! `iaf-terrain details <map.ptt> <base-level-index> <out-dir>` — high-detail tiles where the map has
+//!   airbase insets (levels 0..2), 1 unit per pixel, aligned to the base export's chunks
 
 use anyhow::{Context, Result, bail};
 use iaf_formats::ptt::{Ptt, TILE_PIXELS};
@@ -92,7 +94,8 @@ fn main() -> Result<()> {
             Ok(())
         }
         [_, "export", path, index, out] => export(path, index.parse()?, std::path::Path::new(out)),
-        _ => bail!("usage: iaf-terrain info <map.ptt> | mosaic|heights <map.ptt> <level-index> <out.png> | export <map.ptt> <level-index> <out-dir>"),
+        [_, "details", path, index, out] => details(path, index.parse()?, std::path::Path::new(out)),
+        _ => bail!("usage: iaf-terrain info <map.ptt> | mosaic|heights <map.ptt> <level-index> <out.png> | export|details <map.ptt> <level-index> <out-dir>"),
     }
 }
 
@@ -248,4 +251,100 @@ fn export(path: &str, index: usize, out: &std::path::Path) -> Result<()> {
     std::fs::write(out.join("meta.json"), serde_json::to_string_pretty(&meta)?)?;
     println!("{written} chunks ({ccols}x{crows}) -> {}", out.display());
     Ok(())
+}
+
+/// Detail tile side in terrain units (and pixels: 1 unit per pixel, the level-0 resolution).
+const DETAIL_SPAN: u32 = 2048;
+/// Finest-first inset levels that get detail tiles (the airbase insets).
+const DETAIL_MAX_LEVEL: u32 = 2;
+
+/// Writes `<out>/d_<gx>_<gy>.jpg` (2048², 1 unit per pixel) for every 2048-unit cell of the base
+/// level's grid touched by an inset of level <= 2, plus `details.json`. Each tile is painted
+/// coarse to fine: the base level, then every inset of level 3..0 that covers it, each level
+/// mosaicked at its own resolution and Lanczos-resampled to the tile.
+fn details(path: &str, base_index: usize, out: &std::path::Path) -> Result<()> {
+    use image::codecs::jpeg::JpegEncoder;
+    use image::imageops::{FilterType, resize};
+    let mut ptt = Ptt::open(path)?;
+    let base = ptt.levels.get(base_index).context("no such level")?.clone();
+    std::fs::create_dir_all(out)?;
+    // Painting order: base, then insets inside the base from coarse to fine.
+    let mut sources: Vec<iaf_formats::ptt::Level> = ptt
+        .levels
+        .iter()
+        .filter(|l| l.flag == 0 && l.level < base.level && overlaps(&l.rect, &base.rect))
+        .cloned()
+        .collect();
+    sources.sort_by_key(|l| std::cmp::Reverse(l.level));
+    sources.insert(0, base.clone());
+    // Cells to export: those touched by an airbase inset.
+    let mut cells = std::collections::BTreeSet::new();
+    for l in sources.iter().filter(|l| l.flag == 0 && l.level <= DETAIL_MAX_LEVEL) {
+        let r = clip(&l.rect, &base.rect);
+        for gy in (r[1] - base.rect[1]) / DETAIL_SPAN..(r[3] - base.rect[1]).div_ceil(DETAIL_SPAN) {
+            for gx in (r[0] - base.rect[0]) / DETAIL_SPAN..(r[2] - base.rect[0]).div_ceil(DETAIL_SPAN) {
+                cells.insert((gx, gy));
+            }
+        }
+    }
+    let mut tile_lists = std::collections::HashMap::new();
+    for (i, l) in sources.iter().enumerate() {
+        tile_lists.insert(i, ptt.tiles(l)?);
+    }
+    let mut written = Vec::new();
+    for &(gx, gy) in &cells {
+        let cell = [
+            base.rect[0] + gx * DETAIL_SPAN,
+            base.rect[1] + gy * DETAIL_SPAN,
+            base.rect[0] + (gx + 1) * DETAIL_SPAN,
+            base.rect[1] + (gy + 1) * DETAIL_SPAN,
+        ];
+        let mut img = RgbImage::new(DETAIL_SPAN, DETAIL_SPAN);
+        for (i, l) in sources.iter().enumerate() {
+            if !overlaps(&l.rect, &cell) {
+                continue;
+            }
+            let r = clip(&l.rect, &cell);
+            let upp = l.tile_span() / TILE_PIXELS; // units per source pixel
+            // Source tiles covering r, mosaicked at native resolution.
+            let (c0, r0) = ((r[0] - l.rect[0]) / l.tile_span(), (r[1] - l.rect[1]) / l.tile_span());
+            let (c1, r1) = ((r[2] - l.rect[0]).div_ceil(l.tile_span()), (r[3] - l.rect[1]).div_ceil(l.tile_span()));
+            let mut mosaic = RgbImage::new((c1 - c0) * TILE_PIXELS, (r1 - r0) * TILE_PIXELS);
+            for tr in r0..r1 {
+                for tc in c0..c1 {
+                    let t = &tile_lists[&i][(tr * l.columns() + tc) as usize];
+                    if let Ok(tile) = ptt.tile_jpeg(t).map_err(anyhow::Error::from).and_then(|j| Ok(image::load_from_memory(&j)?)) {
+                        mosaic.copy_from(&tile.to_rgb8(), (tc - c0) * TILE_PIXELS, (tr - r0) * TILE_PIXELS)?;
+                    }
+                }
+            }
+            // Crop to r (source pixels), resample to 1 unit per pixel, paste.
+            let (ox, oy) = ((r[0] - l.rect[0]) / upp - c0 * TILE_PIXELS, (r[1] - l.rect[1]) / upp - r0 * TILE_PIXELS);
+            let (w, h) = ((r[2] - r[0]).div_ceil(upp), (r[3] - r[1]).div_ceil(upp));
+            let crop = image::imageops::crop_imm(&mosaic, ox, oy, w, h).to_image();
+            let scaled = if upp == 1 { crop } else { resize(&crop, r[2] - r[0], r[3] - r[1], FilterType::Lanczos3) };
+            img.copy_from(&scaled, r[0] - cell[0], r[1] - cell[1])?;
+        }
+        let mut f = std::io::BufWriter::new(std::fs::File::create(out.join(format!("d_{gx}_{gy}.jpg")))?);
+        img.write_with_encoder(JpegEncoder::new_with_quality(&mut f, 90))?;
+        written.push([gx, gy]);
+    }
+    let meta = serde_json::json!({
+        "base_level": base.level,
+        "base_rect": base.rect,
+        "span": DETAIL_SPAN,
+        "pixels": DETAIL_SPAN,
+        "tiles": written,
+    });
+    std::fs::write(out.join("details.json"), serde_json::to_string(&meta)?)?;
+    println!("{} detail tiles -> {}", written.len(), out.display());
+    Ok(())
+}
+
+fn overlaps(a: &[u32; 4], b: &[u32; 4]) -> bool {
+    a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3]
+}
+
+fn clip(a: &[u32; 4], b: &[u32; 4]) -> [u32; 4] {
+    [a[0].max(b[0]), a[1].max(b[1]), a[2].min(b[2]), a[3].min(b[3])]
 }
