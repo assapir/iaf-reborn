@@ -24,6 +24,10 @@ var state := {
 }
 ## Look down at the full panel (the original's "panel down" view) instead of the forward view.
 var view_down := false
+## 1.0 = the original proportions (640x480 scaled to the screen); smaller shows more world.
+var zoom := 0.75
+const ZOOM_MIN := 0.45
+const ZOOM_MAX := 1.0
 
 var layout := {}
 var tex := {}
@@ -52,7 +56,14 @@ func _ready() -> void:
 
 ## Screen scale factor from the original 640x480 layout.
 func ui_scale() -> float:
-	return size.y / ORIGINAL_HEIGHT
+	return size.y / ORIGINAL_HEIGHT * zoom
+
+
+## Vertical field of view for the 3D world: the original framing at zoom 1, wider when zoomed out
+## (the panel covers less of the screen, so the world gets more of it).
+func world_fov(base_fov: float) -> float:
+	var half := deg_to_rad(base_fov) / 2.0
+	return rad_to_deg(2.0 * atan(tan(half) / zoom))
 
 
 ## Top of the panel in screen pixels. The forward view shows only the top part of the

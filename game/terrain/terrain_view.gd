@@ -1,5 +1,5 @@
 # Terrain fly-over with the original 2D F-16 cockpit and an external view of your jet.
-#   F1: cockpit   F2: external   C: toggle   V: panel down view
+#   F1: cockpit   F2: external   C: toggle   V: panel down view   +/- or wheel (cockpit): zoom
 #   Arrows / RMB-drag (cockpit): steer   Z/X: roll   W/S/A/D: move   Q/E: down/up   Shift: fast   Ctrl: slow
 #   External: RMB-drag orbits the camera, wheel zooms.
 #   `godot --path game res://terrain/terrain_view.tscn -- --screenshot out.png [--at x z alt yaw pitch] [--external]`
@@ -98,22 +98,28 @@ func _apply_view() -> void:
 	camera.current = in_cockpit
 	chase.current = not in_cockpit
 	# In the cockpit the camera looks slightly down so the nose axis sits on the HUD boresight.
-	camera.rotation = Vector3(-cockpit.camera_pitch_offset(FOV), 0, 0)
+	camera.fov = cockpit.world_fov(FOV)
+	camera.rotation = Vector3(-cockpit.camera_pitch_offset(camera.fov), 0, 0)
 	# External: orbit around the jet, relative to its heading, horizon kept level.
 	var offset := Vector3(0, 0, orbit_dist).rotated(Vector3.RIGHT, orbit_pitch).rotated(Vector3.UP, yaw + orbit_yaw + PI)
 	chase.global_position = rig.global_position + offset
 	chase.look_at(rig.global_position, Vector3.UP)
 
 
+func _zoom_cockpit(step: float) -> void:
+	cockpit.zoom = clamp(cockpit.zoom + step, cockpit.ZOOM_MIN, cockpit.ZOOM_MAX)
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT:
 		looking = event.pressed
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if looking else Input.MOUSE_MODE_VISIBLE
-	elif event is InputEventMouseButton and not in_cockpit and event.pressed:
-		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-			orbit_dist = max(12.0, orbit_dist * 0.9)
-		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			orbit_dist = min(400.0, orbit_dist * 1.1)
+	elif event is InputEventMouseButton and event.pressed and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
+		var closer: bool = event.button_index == MOUSE_BUTTON_WHEEL_UP
+		if in_cockpit:
+			_zoom_cockpit(0.05 if closer else -0.05)
+		else:
+			orbit_dist = clamp(orbit_dist * (0.9 if closer else 1.1), 12.0, 400.0)
 	elif event is InputEventMouseMotion and looking:
 		if in_cockpit:
 			yaw -= event.relative.x * 0.003
@@ -129,6 +135,10 @@ func _unhandled_input(event: InputEvent) -> void:
 				in_cockpit = true
 			KEY_F2:
 				in_cockpit = false
+			KEY_EQUAL, KEY_PLUS, KEY_KP_ADD:
+				_zoom_cockpit(0.05)
+			KEY_MINUS, KEY_KP_SUBTRACT:
+				_zoom_cockpit(-0.05)
 			KEY_V:
 				cockpit.view_down = not cockpit.view_down
 
@@ -161,7 +171,7 @@ func _process(delta: float) -> void:
 	var p := rig.position
 	var ground = terrain.height_at(p)
 	var agl := "" if ground == null else "  (%.0f m above ground)" % (p.y - ground)
-	hud_label.text = "x %.1f km  y %.1f km  alt %.0f m%s   chunks %d   %d fps\n[F1] cockpit  [F2] external  [C] toggle  [V] panel down  [arrows/RMB] steer or orbit  [Z/X] roll  [WASD] move  [Q/E] down/up  [Shift] fast  [Wheel] zoom" % [
+	hud_label.text = "x %.1f km  y %.1f km  alt %.0f m%s   chunks %d   %d fps\n[F1] cockpit  [F2] external  [C] toggle  [V] panel down  [+/-] zoom  [arrows/RMB] steer or orbit  [Z/X] roll  [WASD] move  [Q/E] down/up  [Shift] fast  [Wheel] zoom" % [
 		p.x / 1000.0, p.z / 1000.0, p.y, agl, terrain.loaded_count(), Engine.get_frames_per_second()]
 
 
