@@ -1,5 +1,5 @@
 {
-	"_note": "Hebrew texts for our own additions only (the Preferences > Gameplay options). Everything else in Hebrew comes from the Hebrew menu and briefing packs (docs/packs.md). 'overrides' replace pack mission names the user rejected (REVIEW).",
+	"_note": "Hebrew texts for our own additions only (the Preferences > Gameplay options). Everything else in Hebrew comes from the Hebrew menu and briefing packs (docs/packs.md).",
 	"labels": {
 		"Gameplay": "רמת משחק",
 		"Graphics": "גרפיקה",
@@ -13,8 +13,5 @@
 		"Language": "שפה",
 		"English": "English",
 		"Hebrew": "עברית"
-	},
-	"overrides": {
-		"323": "פניית פרסה"
 	}
 }

@@ -196,11 +196,8 @@ func _draw_label_over(rect: Rect2, text: String, enabled: bool, lit: bool, s: fl
 	_text_in(face, text, font_button, int(SIZE_BUTTON * s), color)
 
 
-## Mission row title from the menu strings (Hebrew pack in Hebrew), with the user's overrides.
+## Mission row title from the menu strings (the Hebrew pack's in Hebrew).
 func _mission_title(row: Dictionary) -> String:
-	var id := str(int(row.id))
-	if _he() and hebrew.get("overrides", {}).has(id):
-		return hebrew.overrides[id]
 	var title := _string(row.title_key)
 	return title if title != "" else row.name
 
