@@ -2,7 +2,9 @@
 
 pub mod esa;
 pub mod iso9660;
+pub mod model;
 pub mod ssf;
+pub mod xfile;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
