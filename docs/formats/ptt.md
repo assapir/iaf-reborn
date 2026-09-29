@@ -38,6 +38,7 @@ u16  elevation block size (follows the JPEG)
   tables in to decode.
 - **Elevation**: LZO1X-compressed (`FUN_0042b860` → `FUN_0042c750` = `lzo1x_decompress`) to 128×128 **u16**, row-major;
   each row is **delta-coded along x** (prefix-sum to decode, wrapping u16). Every theatre tile has one.
-  Raw range (level 7): 12593..59038. Game constants: `SeaLevelPR = 20342`, `HeightStretchFactorPR = 9.2575`
+  Only the whole-theatre levels (11..6) have elevation; inset levels are colour only and the engine derives
+  their heights from the level above (`FUN_004280a0`). Raw range (level 7): 12593..59038. Game constants: `SeaLevelPR = 20342`, `HeightStretchFactorPR = 9.2575`
   → probably `metres = (raw - 20342) / 9.2575` (gives −837..+4180 m; seas include bathymetry) — to be verified
   against real peaks once the map is georeferenced. Other defaults: `DataXShiftPR = -166850`, `DataYShiftPR = 1043780`.

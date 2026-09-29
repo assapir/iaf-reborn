@@ -45,8 +45,11 @@ cargo run --release -p iaf-tools --bin iaf-extract -- "/path/to/Jane's IAF.iso" 
 cargo run --release -p iaf-tools --bin iaf-convert -- planes assets/install assets/converted/planes
 #    options (before "planes"): --upscale  4× AI-upscaled textures (needs realesrgan-ncnn-vulkan)
 #                               --smooth   round the low-poly geometry (smooth normals + Phong tessellation)
-# 3. open the viewer (hot-reloads when step 2 is re-run)
+# 3. export the terrain around Israel (colour: level 4 inset, heights from level 6)
+cargo run --release -p iaf-tools --bin iaf-terrain -- export assets/install/resource/terrain/map.ptt 7 assets/converted/terrain/israel_l4
+# 4. model viewer (hot-reloads when step 2 is re-run) / terrain fly-over
 godot --path game
+godot --path game res://terrain/terrain_view.tscn
 ```
 The conversion is a one-time step; re-run it only after updating the converter or adding packs.
 
