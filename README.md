@@ -23,12 +23,12 @@ modern graphics. No original game assets are stored in this repository.
 | `rustup` (then `rustup default stable`) | extra | building the tools (`crates/`) |
 | `godot` (4.7+) | extra | running the viewer / game (`game/`) |
 | `vulkan-intel` / `vulkan-radeon` / `nvidia-utils` (match your GPU) | extra | Vulkan rendering + GPU upscaling |
-| `realesrgan-ncnn-vulkan` (or `-bin`) | AUR | *optional*: AI 4× texture upscaling in `iaf-convert` |
+| `realesrgan-ncnn-vulkan` (or `-bin`) | AUR | *optional, experimental*: `--upscale-ai` (not recommended — redraws text) |
 
 ```sh
 sudo pacman -S --needed rustup godot vulkan-intel
 rustup default stable
-paru -S realesrgan-ncnn-vulkan   # optional, for upscaled textures
+paru -S realesrgan-ncnn-vulkan   # optional, experimental AI upscaling only
 ```
 
 Handy for development (not required): `ffmpeg` (image/video inspection), `python` (quick format probes).
@@ -43,7 +43,7 @@ Handy for development (not required): `ffmpeg` (image/video inspection), `python
 cargo run --release -p iaf-tools --bin iaf-extract -- "/path/to/Jane's IAF.iso" assets/install
 # 2. convert the aircraft models to glTF (+ PNG textures)
 cargo run --release -p iaf-tools --bin iaf-convert -- planes assets/install assets/converted/planes
-#    options (before "planes"): --upscale  4× AI-upscaled textures (needs realesrgan-ncnn-vulkan)
+#    options (before "planes"): --upscale  4× Lanczos-resampled textures (faithful to the original art)
 #                               --smooth   round the low-poly geometry (smooth normals + Phong tessellation)
 # 3. export the terrain around Israel (colour: level 4 inset, heights from level 6)
 cargo run --release -p iaf-tools --bin iaf-terrain -- export assets/install/resource/terrain/map.ptt 7 assets/converted/terrain/israel_l4

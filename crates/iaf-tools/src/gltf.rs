@@ -17,7 +17,7 @@ use crate::smooth::{self, Tri};
 use crate::upscale::Upscaler;
 
 /// Palette colour the original engine treats as transparent.
-const COLOR_KEY: [u8; 3] = [0, 255, 255];
+pub const COLOR_KEY: [u8; 3] = [0, 255, 255];
 
 /// Frames that only carry positions for the engine (hinge axes, weapon
 /// stations, camera…) rather than visible geometry.
