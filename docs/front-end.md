@@ -170,6 +170,37 @@ Moving off a button restores smain. Hover is driven by the frame's MOUSEMOVE (`4
 * **There is no CONTINUE button in pre-flight.**
 * The briefing window opens automatically when the TSD opens (§6).
 
+### 5.4 Navigation tables (decoded)
+Button-release dispatcher `FUN_004eaf50`. Labels are compared ignoring case, spaces and `_`.
+
+| screen | button → screen |
+|---|---|
+| Main (1) | Training→6, Campaigns→0xb, Preferences→3, MissionCreator→0x14, PilotRecords→0 (Log), Reference→5, MultiPlayer→0x15, Jump_In→random scramble mission 0x191–0x197 (message box "Scramble Mission") |
+| Training (6) | Basic_Course→7, Combat_Course→8 |
+| Basic (7) / Combat (8) | any mission button → Jet 9 / 10 |
+| Jet (9, 10), His1–3Mis, Fut1–3Mis (0xe–0x13) | load the mission → TSD 0x1e (single player). **Campaign missions skip the Jet list.** |
+| Camp (0xb) | Historical→0xc, Future→0xd |
+| His (0xc) | Six_Day_War→0xe, Yom_Kipur_War→0xf, Lebanon_War→0x10 |
+| Fut (0xd) | Syrian_Front→0x11, Iraqi_Front→0x12, Lebanese_Front→0x13 |
+| TSD (0x1e) | Arm→0x1f |
+
+BACK (`FUN_004eb990`): 3/5/6/0x15→Main; 7/8→6; 9→7; 10→8; 0xb→Main (single player); 0xc/0xd→0xb;
+0xe–0x10→0xc; 0x11–0x13→0xd; 0x14→Main; 0x16/0x17→0x15; TSD→previous screen (msg 8 Yes/No first;
+mission 0x213 → MC).
+
+**Jet list** (`FUN_00508470` sets the aircraft id `DAT_00836c90`; the labels were read from the exe
+`.rdata`): Mirage 6, Kfir 5, F4 2, F42000 3, F15 0, F16 1, Lavi 4. Aircraft id → cockpit: see
+docs/cockpit.md.
+
+Jets disabled per mission (`FUN_005082b0`; rows 0x11c bytes apart in the list object):
+
+| mission | disabled |
+|---|---|
+| 314 Basic Air To Air | Mirage, Kfir |
+| 322 Advanced Air To Ground | Mirage, Kfir, F15 |
+| 323 Guided Weapon | Mirage, Kfir, F4, F15 |
+| 325 Multi Force Strike | Mirage, Kfir, F4, F16, Lavi |
+
 ## 6. Briefing window (TSD child)
 * Created by `FUN_00502ec0`. It is called from TSD `OnCreate` (`FUN_004ff4e0`) when the Briefing
   flag `DAT_00836cd4` is set.

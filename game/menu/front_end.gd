@@ -1,54 +1,114 @@
-# The original Jane's IAF front end, rebuilt from the converted menu data
-# (`iaf-convert menu`): screens and lists from menus.json, strings from strings.json,
-# original art and TrueType fonts. Laid out in the original 640x480 space, scaled to the
+# The original Jane's IAF front end (docs/front-end.md), rebuilt from the converted menu data
+# (`iaf-convert menu`): screens, panels and lists from menus.json, text from strings.json,
+# original art and sounds. Everything is laid out in the original 640x480 space, scaled to the
 # window height and centred (pillarboxed on wide screens).
 extends Control
 
 const W := 640.0
 const H := 480.0
-const TEXT := Color(0.62, 0.95, 0.62)
-const TEXT_HOVER := Color(1.0, 1.0, 0.75)
-const TEXT_DISABLED := Color(0.35, 0.45, 0.35)
-const BOX := Color(0.5, 1.0, 0.5, 0.18)
-## Font sizes in the original 640x480 space (scaled with the window).
-const SIZE_BUTTON := 17.0
-const SIZE_TITLE := 16.0
-const SIZE_TEXT := 13.0
-const SIZE_HEADING := 20.0
+## Content window (FUN_004e7560).
+const CONTENT := Rect2(155, 42, 453, 357)
+## Fixed frame pieces (docs/front-end.md §2, §3.2).
+const TITLE_POS := Vector2(485, 16)
+const UPCLIP_POS := Vector2(17, 18)
+const LOWCLIP_POS := Vector2(17, 433)
+const BACK_POS := Vector2(0, 458)
+const MAIN_POS := Vector2(605, 421)
+## Title tab frames are 50 ms apart.
+const TITLE_FRAME := 0.05
 
-## Where each main-menu entry goes; missing entries are shown disabled for now.
-const MAIN_TARGETS := {"Training": "training", "Preferences": "pref"}
-## Our own settings, shown on the Preferences screen's "Gameplay" page.
-const PREF_PAGES := ["Graphics", "Sound", "Controls", "Devices", "Gameplay"]
+## Arial sizes (FUN_004ed600: em = cy * p / 100 with cy = 112 for Arial) and list colours
+## (FUN_00508590).
+const LIST_TITLE_PX := 12.0
+const LIST_DESC_PX := 11.0
+const LIST_TITLE := Color8(0, 255, 0)
+const LIST_DESC := Color8(0, 128, 0)
+const LIST_DESC_LIT := Color8(0, 255, 0)
+## Our preference page (not in the original) uses the same text style.
+const PREF_TEXT := LIST_DESC_LIT
+const PREF_DIM := LIST_DESC
+
+## Button-release dispatcher FUN_004eaf50: screen -> {button label -> next screen}.
+## Basic/Combat mission buttons go to the Jet list; Jet and campaign mission buttons load the
+## mission (-> TSD).
+const FORWARD := {
+	"main": {"training": "training", "campaigns": "camp", "preferences": "pref",
+		"missioncreator": "mc", "pilotrecords": "log", "reference": "ref", "multiplayer": "ctype"},
+	"training": {"basiccourse": "basic", "combatcourse": "combat"},
+	"camp": {"historical": "his", "future": "fut"},
+	"his": {"sixdaywar": "his1mis", "yomkipurwar": "his2mis", "lebanonwar": "his3mis"},
+	"fut": {"syrianfront": "fut1mis", "iraqifront": "fut2mis", "lebanesefront": "fut3mis"},
+}
+const TO_JET := ["basic", "combat"]
+const LOADS_MISSION := ["jet", "his1mis", "his2mis", "his3mis", "fut1mis", "fut2mis", "fut3mis"]
+## BACK (FUN_004eb990). The Jet list goes back to where it came from (screen 9 / 10).
+const BACK := {"pref": "main", "ref": "main", "training": "main", "ctype": "main",
+	"basic": "training", "combat": "training", "camp": "main", "mc": "main",
+	"his": "camp", "fut": "camp", "his1mis": "his", "his2mis": "his", "his3mis": "his",
+	"fut1mis": "fut", "fut2mis": "fut", "fut3mis": "fut", "tcp": "ctype", "ipx": "ctype"}
+## BACK shows its disabled plate here; QUIT replaces MAIN on these (FUN_004e8a80).
+const NO_BACK := ["log", "main", "deb", "jump"]
+const QUIT_SCREENS := ["log", "main"]
+## Screens with the blank lower clip plate (lowclipc).
+const BLANK_CLIP := ["log", "main", "deb", "jump"]
+
+## Jet buttons -> aircraft id (FUN_00508470, DAT_00836c90).
+const JET_IDS := {"mirage": 6, "kfir": 5, "f4": 2, "f42000": 3, "f15": 0, "f16": 1, "lavi": 4}
+## Jets the original disables per mission (FUN_005082b0), by aircraft id.
+const JETS_DISABLED := {314: [6, 5], 322: [6, 5, 0], 323: [6, 5, 2, 0], 325: [6, 5, 2, 1, 4]}
+## Aircraft this engine can fly so far (cockpit + flight model converted): F-16 only.
+const FLYABLE_JETS := [1]
 
 var menus := {}
 var strings := {}
-## Our Hebrew translation (used when Settings.language == "he").
+## Labels for our own settings page in Hebrew.
 var hebrew := {}
 var textures := {}
-var font_button: FontFile
-var font_text: FontFile
 var dir := ""
 ## Converted art is stored at this multiple of the original pixel size.
 var art_scale := 1.0
+var font: SystemFont
+var font_bold: SystemFont
 
 var screen := "main"
-var history: Array[String] = []
-var hover := -1  # left button under the mouse
-var hover_row := -1
-var selected_row := -1
+## Where TSD and the Jet list return to.
+var jet_parent := "basic"
+## Transition state: left/bottom panels 0 = hidden .. 1 = shown; title tab frame 0..2.
+var panel_shown := 1.0
+var title_frame := 2
+var busy := false
+var loading := false
+## Button animation frames by key "panel/button" (0 normal, 1 anim, 2 pressed, 3 disabled).
+var frames := {}
+var checked := {}
+var held := ""  # key of the button the mouse is holding down
+var hover_key := ""
 var pref_page := "Gameplay"
-var pressed: Callable  # hotspot under a held mouse button (for pressed-state art)
-var hotspots: Array = []  # [Rect2 (screen px), Callable]
+var pref_hotspots: Array = []  # [Rect2 (menu coordinates), setting, value]
+
+var music: AudioStreamPlayer
+var sfx: AudioStreamPlayer
+var sounds := {}
 
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	_load_menu_data()
+	font = _arial(400)
+	font_bold = _arial(700)
+	music = AudioStreamPlayer.new()
+	sfx = AudioStreamPlayer.new()
+	add_child(music)
+	add_child(sfx)
 	var args := OS.get_cmdline_user_args()
 	var at := args.find("--menu")
 	if at >= 0:
 		screen = args[at + 1]
+	_enter_screen()
+	_start_music()
+	at = args.find("--hover")
+	if at >= 0:
+		hover_key = _key_for_label(args[at + 1])
 	var shot := args.find("--screenshot")
 	if shot >= 0:
 		for i in 5:
@@ -57,8 +117,8 @@ func _ready() -> void:
 		get_tree().quit()
 
 
-## (Re)load screens, strings, fonts and art for the current language. Hebrew uses the
-## Hebrew menu pack (assets/converted/menu_he, see docs/packs.md) when it is installed.
+## (Re)load screens, strings and art for the current language. Hebrew uses the Hebrew menu
+## pack (assets/converted/menu_he, see docs/packs.md) when it is installed.
 func _load_menu_data() -> void:
 	dir = Settings.assets_dir().path_join("converted/menu_he" if _he() else "converted/menu")
 	textures.clear()
@@ -69,18 +129,16 @@ func _load_menu_data() -> void:
 		menus = {}
 		strings = {}
 	hebrew = JSON.parse_string(FileAccess.get_file_as_string("res://menu/strings_he.json"))
-	art_scale = float(FileAccess.get_file_as_string(dir.path_join("image_scale.txt")).strip_edges()) if FileAccess.file_exists(dir.path_join("image_scale.txt")) else 1.0
-	font_button = _font("cr1.ttf")
-	font_text = _font("cr0.ttf")
+	var scale_file := dir.path_join("image_scale.txt")
+	art_scale = float(FileAccess.get_file_as_string(scale_file).strip_edges()) if FileAccess.file_exists(scale_file) else 1.0
+	sounds.clear()
 
 
-func _font(file: String) -> FontFile:
-	var f := FontFile.new()
-	f.load_dynamic_font(dir.path_join(file))
-	# The original fonts have no Hebrew letters: fall back to a system Hebrew font.
-	var hebrew_font := SystemFont.new()
-	hebrew_font.font_names = PackedStringArray(["Noto Sans Hebrew", "Arial Hebrew", "Arial", "DejaVu Sans"])
-	f.fallbacks = [hebrew_font]
+## All menu text is Arial (docs/front-end.md §4); Liberation Sans is metric-compatible.
+func _arial(weight: int) -> SystemFont:
+	var f := SystemFont.new()
+	f.font_names = PackedStringArray(["Arial", "Liberation Sans"])
+	f.font_weight = weight
 	return f
 
 
@@ -88,36 +146,165 @@ func _he() -> bool:
 	return Settings.language == "he"
 
 
-## A UI label in the current language.
 func _t(english: String) -> String:
 	return hebrew.get("labels", {}).get(english, english) if _he() else english
 
 
+func _string(key: String) -> String:
+	return strings.get(key.to_lower(), "")
+
+
+## Labels are compared without case, spaces or underscores ("Jump In" = "Jump_In").
+static func _norm(label: String) -> String:
+	return label.to_lower().replace(" ", "").replace("_", "")
+
+
+# --- assets -----------------------------------------------------------------------------
+
 func _tex(path: String) -> Texture2D:
 	if not textures.has(path):
-		var img := Image.load_from_file(dir.path_join("img").path_join(path))
+		var img := Image.load_from_file(dir.path_join("img").path_join(path)) if FileAccess.file_exists(dir.path_join("img").path_join(path)) else null
 		if img != null:
 			img.generate_mipmaps()
 		textures[path] = ImageTexture.create_from_image(img) if img != null else null
 	return textures[path]
 
 
+func _sound(name: String) -> AudioStreamWAV:
+	if not sounds.has(name):
+		var path := dir.path_join("wav/%s.wav" % name)
+		sounds[name] = AudioStreamWAV.load_from_file(path) if FileAccess.file_exists(path) else null
+	return sounds[name]
+
+
+func _sound_length(name: String) -> float:
+	var s := _sound(name)
+	return s.get_length() if s != null else 0.15
+
+
+func _play(name: String) -> void:
+	var s := _sound(name)
+	if s != null:
+		sfx.stream = s
+		sfx.play()
+
+
+## Menu_M.wav loops on every screen except TSD / Arm (FUN_004e8a80).
+func _start_music() -> void:
+	if screen in ["tsd", "arm"] or music.playing:
+		return
+	var s := _sound("menu_m")
+	if s == null:
+		return
+	s.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	s.loop_end = int(s.get_length() * s.mix_rate)
+	music.stream = s
+	music.volume_db = 0.0
+	music.play()
+
+
+# --- screen model -----------------------------------------------------------------------
+
+func _def() -> Dictionary:
+	return menus.get(screen, {})
+
+
+## The list shown in the content window: dat/<sName>.trx.
+func _list() -> Dictionary:
+	var l: Dictionary = menus.get(String(_def().get("name", "")).to_lower(), {})
+	return l if l.get("type", "") == "list" else {}
+
+
+func _panels() -> Array:
+	return _def().get("panels", [])
+
+
+func _button(key: String) -> Dictionary:
+	var parts := key.split("/")
+	if parts.size() != 2:
+		return {}
+	var panels := _panels()
+	var p := int(parts[0])
+	var b := int(parts[1])
+	if p >= panels.size() or b >= panels[p].buttons.size():
+		return {}
+	return panels[p].buttons[b]
+
+
+func _key_for_label(label: String) -> String:
+	var panels := _panels()
+	for p in panels.size():
+		for b in panels[p].buttons.size():
+			if _norm(panels[p].buttons[b].label) == _norm(label):
+				return "%d/%d" % [p, b]
+	return ""
+
+
+func _enter_screen() -> void:
+	frames.clear()
+	checked.clear()
+	if screen == "pref":
+		checked[_key_for_label(pref_page)] = true
+
+
+func _button_enabled(label: String) -> bool:
+	if screen == "jet":
+		var id: int = JET_IDS.get(_norm(label), -1)
+		if id in JETS_DISABLED.get(Settings.mission_id, []):
+			return false
+		return id in FLYABLE_JETS
+	return true
+
+
+## Visible frame of a button: animation first, then checked / disabled.
+func _frame(key: String, label: String) -> int:
+	if not _button_enabled(label):
+		return 3
+	if frames.has(key):
+		return frames[key]
+	return 2 if checked.get(key, false) else 0
+
+
+# --- drawing ----------------------------------------------------------------------------
+
 func _scale() -> float:
 	return min(size.x / W, size.y / H)
 
 
+func _origin() -> Vector2:
+	var s := _scale()
+	return Vector2((size.x - W * s) / 2.0, (size.y - H * s) / 2.0)
+
+
 ## Original 640x480 coordinates -> window pixels.
 func _to_screen(p: Vector2) -> Vector2:
-	var s := _scale()
-	return Vector2((size.x - W * s) / 2.0, (size.y - H * s) / 2.0) + p * s
+	return _origin() + p * _scale()
 
 
-func _rect(x: float, y: float, w: float, h: float) -> Rect2:
-	return Rect2(_to_screen(Vector2(x, y)), Vector2(w, h) * _scale())
+func _to_menu(p: Vector2) -> Vector2:
+	return (p - _origin()) / _scale()
 
 
-func _string(key: String) -> String:
-	return strings.get(key.to_lower(), "")
+func _rect(r: Rect2) -> Rect2:
+	return Rect2(_to_screen(r.position), r.size * _scale())
+
+
+func _art_size(t: Texture2D) -> Vector2:
+	return Vector2(t.get_width(), t.get_height()) / art_scale
+
+
+## Draw a whole image at its original size.
+func _blit(path: String, pos: Vector2) -> void:
+	var t := _tex(path)
+	if t != null:
+		draw_texture_rect(t, _rect(Rect2(pos, _art_size(t))), false)
+
+
+## Draw part of an image (source in original pixels) at `dest` (original coordinates).
+func _blit_region(path: String, src: Rect2, dest: Vector2) -> void:
+	var t := _tex(path)
+	if t != null:
+		draw_texture_rect_region(t, _rect(Rect2(dest, src.size)), Rect2(src.position * art_scale, src.size * art_scale))
 
 
 func _process(_delta: float) -> void:
@@ -125,274 +312,357 @@ func _process(_delta: float) -> void:
 
 
 func _draw() -> void:
-	hotspots.clear()
-	var s := _scale()
-	draw_rect(Rect2(Vector2.ZERO, size), Color(0.05, 0.06, 0.06))
-	var back := _tex("back0.png")
-	if back != null:
-		draw_texture_rect(back, _rect(0, 0, W, H), false)
-	var def: Dictionary = menus.get(screen, {})
+	draw_rect(Rect2(Vector2.ZERO, size), Color.BLACK)
+	_blit("back.png", Vector2.ZERO)
+	var def := _def()
 	if def.is_empty():
 		return
-	var win: Array = def.window
-	var content := _rect(win[0], win[1], win[2] - win[0], win[3] - win[1])
-	var bg := _content_background()
-	if bg != null:
-		draw_texture_rect(bg, content, false)
-
-	# Title tab (top right) and the left button strip, both original art.
-	_draw_art("titles/%s_2.png" % String(def.title).to_lower(), _rect(486, 15, 119, 26))
-	var i := 0
-	var mouse := get_local_mouse_position()
-	for panel in def.panels:
-		var strip := "palettes/%s_%%d.png" % String(panel.name).to_lower()
-		var base := _tex(strip % 1)
-		if base != null:
-			draw_texture_rect(base, _rect(panel.pos[0], panel.pos[1], base.get_width() / art_scale, base.get_height() / art_scale), false)
-		for b in panel.buttons:
-			var r: Array = b.rect
-			var rect := _rect(r[0], r[1], r[2], r[3])
-			var enabled := _button_enabled(b.label)
-			var state := 1
-			if not enabled or _is_current(b.label) or (pressed.is_valid() and rect.has_point(mouse)):
-				state = 2
-			elif rect.has_point(mouse):
-				state = 0
-			var art := _tex(strip % state)
-			if art != null and state != 1:
-				var src := Rect2(Vector2(r[0] - panel.pos[0], r[1] - panel.pos[1]) * art_scale, Vector2(r[2], r[3]) * art_scale)
-				draw_texture_rect_region(art, rect, src)
-			if base == null:
-				_draw_label_over(rect, b.label, enabled, state == 0 or _is_current(b.label), s)
-			if enabled:
-				hotspots.append([rect, _on_button.bind(b.label)])
-			i += 1
-
-	# Content: list rows, or our preference page.
-	if screen == "pref":
-		_draw_prefs(content, s)
-	else:
-		_draw_list(def, win, s)
-
-	# Bottom bar: the original BACK tab and CONTINUE button art (normal / hover / pressed).
-	if screen != "main":
-		var back_rect := _rect(10, 446, 114, 22)
-		var state := 2 if pressed == _go_back else (1 if back_rect.has_point(mouse) else 0)
-		_draw_art("misc/backbut_%d.png" % state, back_rect)
-		hotspots.append([back_rect, _go_back])
-	if _mission_selected() >= 0:
-		var fly_rect := _rect(530, 441, 60, 30)
-		var state := 2 if pressed == _fly or fly_rect.has_point(mouse) else 0
-		_draw_art("misc/mbgfly_%d.png" % state, fly_rect)
-		hotspots.append([fly_rect, _fly])
+	_draw_content(def)
+	_draw_panels()
+	_draw_frame_pieces()
+	# Pillarbox: hide sliding panels outside the 640x480 frame.
+	var o := _origin()
+	var sz := Vector2(W, H) * _scale()
+	draw_rect(Rect2(0, 0, o.x, size.y), Color.BLACK)
+	draw_rect(Rect2(o.x + sz.x, 0, size.x - o.x - sz.x, size.y), Color.BLACK)
+	draw_rect(Rect2(0, o.y + sz.y, size.x, size.y), Color.BLACK)
 
 
-## Our label over an original button (Hebrew, or screens without strip art): cover the
-## baked-in English text with the button face and write ours.
-func _draw_label_over(rect: Rect2, text: String, enabled: bool, lit: bool, s: float) -> void:
-	var face := rect.grow_individual(-12 * s, -7 * s, -12 * s, -7 * s)
-	draw_rect(face, Color(0.09, 0.09, 0.1))
-	var color := TEXT_DISABLED if not enabled else (TEXT_HOVER if lit else Color(0.85, 0.85, 0.85))
-	_text_in(face, text, font_button, int(SIZE_BUTTON * s), color)
+func _draw_frame_pieces() -> void:
+	var def := _def()
+	var title := String(def.get("title", "")).to_lower()
+	if title != "":
+		_blit("titles/%s_%d.png" % [title, title_frame], TITLE_POS)
+	var clip := 1 + int(round(panel_shown * 4.0))
+	_blit("misc/upclip%d.png" % clip, UPCLIP_POS)
+	_blit("misc/%s%d.png" % ["lowclipc" if screen in BLANK_CLIP else "lowclip", clip], LOWCLIP_POS)
+	var back_frame: int = frames.get("back", 3 if screen in NO_BACK else 0)
+	_blit("misc/backbut_%d.png" % back_frame, BACK_POS)
+	var main_art := "quitbut" if screen in QUIT_SCREENS else "mainbut"
+	_blit("misc/%s_%d.png" % [main_art, frames.get("main", 0)], MAIN_POS)
 
 
-## Mission row title from the menu strings (the Hebrew pack's in Hebrew).
-func _mission_title(row: Dictionary) -> String:
-	var title := _string(row.title_key)
-	return title if title != "" else row.name
+func _draw_panels() -> void:
+	var panels := _panels()
+	for p in panels.size():
+		var panel: Dictionary = panels[p]
+		var name := String(panel.name).to_lower()
+		var base := _tex("palettes/%s_0.png" % name)
+		if base == null:
+			continue
+		var pos := Vector2(panel.pos[0], panel.pos[1])
+		var art := _art_size(base)
+		# Left panels slide in from the left, bottom panels up from the bottom (§2).
+		var hidden := 1.0 - panel_shown
+		if panel.side == "left":
+			pos.x -= art.x * hidden
+		else:
+			pos.y += art.y * hidden
+		_blit("palettes/%s_0.png" % name, pos)
+		var delta := pos - Vector2(panel.pos[0], panel.pos[1])
+		for b in panel.buttons.size():
+			var btn: Dictionary = panel.buttons[b]
+			var f := _frame("%d/%d" % [p, b], btn.label)
+			if f == 0:
+				continue
+			var path := "palettes/%s_%d.png" % [name, f]
+			if _tex(path) == null:
+				continue
+			var r: Array = btn.rect
+			var src := Rect2(r[0] - panel.pos[0], r[1] - panel.pos[1], r[2], r[3])
+			_blit_region(path, src, Vector2(r[0], r[1]) + delta)
 
 
-func _draw_art(path: String, rect: Rect2) -> void:
-	var t := _tex(path)
-	if t != null:
-		draw_texture_rect(t, rect, false)
-
-
-func _content_background() -> Texture2D:
-	if screen == "main":
-		return _tex("main/main_%d.png" % clampi(hover + 1, 1, 8))
-	if screen == "pref":
-		return _tex("screens/sgeneral.png")
-	return _tex("mis/mis_0.png")
-
-
-func _draw_list(_def: Dictionary, win: Array, s: float) -> void:
-	var list: Dictionary = menus.get("s" + screen, {})
-	if list.get("type", "") != "list":
+func _draw_content(def: Dictionary) -> void:
+	if loading:
+		_blit("mis/wait.png", CONTENT.position)
 		return
-	var rows: Array = list.rows
-	for ri in rows.size():
-		var row: Dictionary = rows[ri]
+	var list := _list()
+	if not list.is_empty():
+		_draw_list(list)
+	elif screen == "main":
+		# Hovering an enabled main button shows main_N (FUN_004faa70).
+		var hb := _button(hover_key)
+		if not hb.is_empty() and _button_enabled(hb.label):
+			_blit("main/main_%d.png" % (int(hover_key.split("/")[1]) + 1), CONTENT.position)
+		else:
+			_blit("screens/smain.png", CONTENT.position)
+	else:
+		var bg := "screens/%s.png" % String(def.name).to_lower()
+		if _tex(bg) != null:
+			_blit(bg, CONTENT.position)
+		if screen == "pref":
+			_draw_prefs()
+
+
+## List screens (FUN_00508590): rows copied from mis_1, the row of the hovered same-named
+## button from mis_2; Arial title and description drawn over them.
+func _draw_list(list: Dictionary) -> void:
+	var prefix := "mis/mismp" if screen == "netaow" else "mis/mis"
+	_blit(prefix + "_0.png", CONTENT.position)
+	var hb := _button(hover_key)
+	var lit_name := _norm(hb.label) if not hb.is_empty() and _button_enabled(hb.label) else ""
+	for row in list.rows:
 		var rr: Array = row.rect
-		var rect := _rect(win[0] + rr[0], win[1] + rr[1], rr[2], rr[3])
-		if ri == selected_row or ri == hover_row:
-			draw_rect(rect, BOX if ri == selected_row else Color(BOX, 0.08))
+		var lit := _norm(row.name) == lit_name
+		var src := Rect2(rr[0], rr[1], rr[2], rr[3])
+		_blit_region(prefix + ("_2.png" if lit else "_1.png"), src, CONTENT.position + src.position)
 		var tb: Array = row.title_box
 		var db: Array = row.desc_box
-		var title := _mission_title(row)
-		_text_in(_rect(win[0] + tb[0], win[1] + tb[1], tb[2] - tb[0], tb[3] - tb[1]), title, font_button, int(SIZE_TITLE * s), TEXT_HOVER)
-		_text_block(_rect(win[0] + db[0], win[1] + db[1], db[2] - db[0], db[3] - db[1]), _string(row.desc_key), int(SIZE_TEXT * s), TEXT)
-		hotspots.append([rect, _on_row.bind(ri, row)])
+		var title := _string(row.title_key)
+		if title == "":
+			title = row.name
+		_text_line(Rect2(CONTENT.position + Vector2(tb[0], tb[1]), Vector2(tb[2] - tb[0], tb[3] - tb[1])), title, LIST_TITLE_PX, LIST_TITLE)
+		_text_block(Rect2(CONTENT.position + Vector2(db[0], db[1]), Vector2(db[2] - db[0], db[3] - db[1])), _string(row.desc_key), LIST_DESC_PX, LIST_DESC_LIT if lit else LIST_DESC)
 
 
-func _draw_prefs(content: Rect2, s: float) -> void:
-	var fs := int(SIZE_TEXT * s)
-	var x := content.position.x + 30 * s
-	var y := content.position.y + 50 * s
-	var width := content.size.x - 60 * s
-	var start := HORIZONTAL_ALIGNMENT_RIGHT if _he() else HORIZONTAL_ALIGNMENT_LEFT
-	_text_in(Rect2(x, y - 30 * s, width, 20 * s), _t(pref_page).to_upper(), font_button, int(SIZE_HEADING * s), TEXT_HOVER, start)
+## Single line, bottom-aligned (DT_SINGLELINE|DT_BOTTOM); right-aligned in Hebrew.
+func _text_line(box: Rect2, text: String, px: float, color: Color, f: Font = null) -> void:
+	f = f if f != null else font
+	var r := _rect(box)
+	var fs := int(round(px * _scale()))
+	var align := HORIZONTAL_ALIGNMENT_RIGHT if _he() else HORIZONTAL_ALIGNMENT_LEFT
+	draw_string(f, Vector2(r.position.x, r.end.y - f.get_descent(fs)), text, align, r.size.x, fs, color)
+
+
+## Word-wrapped block from the top (DT_WORDBREAK).
+func _text_block(box: Rect2, text: String, px: float, color: Color) -> void:
+	var r := _rect(box)
+	var fs := int(round(px * _scale()))
+	var align := HORIZONTAL_ALIGNMENT_RIGHT if _he() else HORIZONTAL_ALIGNMENT_LEFT
+	var lines := maxi(1, int(r.size.y / font.get_height(fs)) + 1)
+	draw_multiline_string(font, r.position + Vector2(0, font.get_ascent(fs)), text, align, r.size.x, fs, lines, color)
+
+
+## Our own settings on the Preferences "Gameplay" page (the original's pages are not built).
+func _draw_prefs() -> void:
+	pref_hotspots.clear()
+	var x := CONTENT.position.x + 30
+	var y := CONTENT.position.y + 60
+	var width := CONTENT.size.x - 60
+	_text_line(Rect2(x, y - 34, width, 20), _t(pref_page).to_upper(), LIST_TITLE_PX + 3, LIST_TITLE, font_bold)
 	if pref_page != "Gameplay":
-		_text_in(Rect2(x, y, width, 20 * s), _t("(not available yet)"), font_text, fs, TEXT_DISABLED, start)
+		_text_line(Rect2(x, y, width, 16), _t("(not available yet)"), LIST_TITLE_PX, PREF_DIM)
 		return
 	var options := [
 		["Flight data", [["Original (Jane's IAF 1998)", "original"], ["Real F-16", "real"]], "flight_data"],
 		["Language", [["English", "en"], ["Hebrew", "he"]], "language"],
 	]
-	# Hebrew mirrors the page: labels on the right, choices flowing leftwards.
 	var rtl := _he()
+	var fs := int(round(LIST_TITLE_PX * _scale()))
 	for opt in options:
-		_text_in(Rect2(x, y, width, 20 * s), _t(opt[0]), font_text, fs, TEXT, start)
-		var ox := x + width - 150 * s if rtl else x + 150 * s
+		_text_line(Rect2(x, y, width, 16), _t(opt[0]), LIST_TITLE_PX, LIST_TITLE)
+		var ox := x + width - 130 if rtl else x + 130
 		for choice in opt[1]:
 			var value: String = choice[1]
 			var label := _t(choice[0])
 			var available: bool = not (value == "he" and not Settings.hebrew_available())
 			var current: bool = Settings.get(opt[2]) == value
-			var w: float = font_text.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x + 16 * s
-			var r := Rect2(ox - w if rtl else ox, y - 2 * s, w, 22 * s)
+			var w: float = font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x / _scale() + 12
+			var r := Rect2(ox - w if rtl else ox, y, w, 18)
 			if current:
-				draw_rect(r, BOX)
-			_text_in(r, label, font_text, fs, TEXT_HOVER if current else (TEXT if available else TEXT_DISABLED))
+				draw_rect(_rect(r), Color(LIST_DESC, 0.6))
+			var color := LIST_DESC_LIT if current else (PREF_TEXT if available else PREF_DIM)
+			_text_line(Rect2(r.position + Vector2(6, 0), r.size - Vector2(6, 2)), label, LIST_TITLE_PX, color if available else PREF_DIM)
 			if available:
-				hotspots.append([r, _set_pref.bind(opt[2], value)])
-			ox += -(w + 10 * s) if rtl else w + 10 * s
-		y += 36 * s
+				pref_hotspots.append([r, opt[2], value])
+			ox += -(w + 8) if rtl else w + 8
+		y += 34
 
 
-func _text_in(rect: Rect2, text: String, font: Font, fs: int, color: Color, align := HORIZONTAL_ALIGNMENT_CENTER) -> void:
-	# Shrink to fit (long labels, Hebrew) instead of clipping.
-	while fs > 6 and font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x > rect.size.x:
-		fs -= 1
-	var asc := font.get_ascent(fs)
-	var h := font.get_height(fs)
-	var pos := Vector2(rect.position.x + (0.0 if align != HORIZONTAL_ALIGNMENT_CENTER else 0.0), rect.position.y + (rect.size.y - h) / 2.0 + asc)
-	draw_string(font, pos, text, align, rect.size.x, fs, color)
+# --- input ------------------------------------------------------------------------------
 
-
-func _text_block(rect: Rect2, text: String, fs: int, color: Color) -> void:
-	var align := HORIZONTAL_ALIGNMENT_RIGHT if _he() else HORIZONTAL_ALIGNMENT_LEFT
-	draw_multiline_string(font_text, rect.position + Vector2(0, font_text.get_ascent(fs)), text, align, rect.size.x, fs, 3, color)
-
-
-func _button_enabled(label: String) -> bool:
-	match screen:
-		"main":
-			return MAIN_TARGETS.has(label)
-		"pref":
-			return true
-		_:
-			return true
-
-
-func _is_current(label: String) -> bool:
-	return screen == "pref" and label == pref_page
-
-
-func _mission_selected() -> int:
-	var list: Dictionary = menus.get("s" + screen, {})
-	if selected_row < 0 or list.get("type", "") != "list":
-		return -1
-	return int(list.rows[selected_row].id)
-
-
-func _navigate(to: String) -> void:
-	if not menus.has(to):
-		return
-	history.append(screen)
-	screen = to
-	selected_row = -1
-	hover = -1
-
-
-func _go_back() -> void:
-	if not history.is_empty():
-		screen = history.pop_back()
-		selected_row = -1
-
-
-func _on_button(label: String) -> void:
-	match screen:
-		"main":
-			_navigate(MAIN_TARGETS.get(label, ""))
-		"pref":
-			pref_page = label
-		_:
-			# A left button mirrors a list row: pick that row (or open its screen).
-			var list: Dictionary = menus.get("s" + screen, {})
-			for ri in list.get("rows", []).size():
-				if list.rows[ri].name.to_lower() == label.to_lower():
-					_on_row(ri, list.rows[ri])
-					return
-
-
-func _on_row(index: int, row: Dictionary) -> void:
-	if int(row.id) >= 0:
-		selected_row = index
-		return
-	# Rows without a mission id open a sub-screen named after their first word ("Basic Course" -> basic).
-	var target: String = String(row.name).split(" ")[0].to_lower()
-	_navigate(target)
-
-
-func _set_pref(key: String, value: String) -> void:
-	Settings.set(key, value)
-	Settings.save()
-	if key == "language":
-		_load_menu_data()
-
-
-func _fly() -> void:
-	Settings.mission_id = _mission_selected()
-	get_tree().change_scene_to_file("res://terrain/terrain_view.tscn")
+## Button under a point (menu coordinates): "panel/button", "back", "main" or "".
+func _hit(p: Vector2) -> String:
+	if Rect2(BACK_POS, Vector2(114, 22)).has_point(p):
+		return "" if screen in NO_BACK else "back"
+	if Rect2(MAIN_POS, Vector2(35, 59)).has_point(p):
+		return "main"
+	var panels := _panels()
+	for pi in panels.size():
+		for bi in panels[pi].buttons.size():
+			var btn: Dictionary = panels[pi].buttons[bi]
+			var r: Array = btn.rect
+			if Rect2(r[0], r[1], r[2], r[3]).has_point(p) and _button_enabled(btn.label):
+				return "%d/%d" % [pi, bi]
+	return ""
 
 
 func _gui_input(event: InputEvent) -> void:
+	if busy:
+		return
 	if event is InputEventMouseMotion:
-		hover = -1
-		hover_row = -1
-		var i := 0
-		var def: Dictionary = menus.get(screen, {})
-		for panel in def.get("panels", []):
-			for b in panel.buttons:
-				var r: Array = b.rect
-				if _rect(panel.pos[0] + r[0], panel.pos[1] + r[1], r[2], r[3]).has_point(event.position):
-					hover = i
-				i += 1
-		var list: Dictionary = menus.get("s" + screen, {})
-		if list.get("type", "") == "list" and def.has("window"):
-			var win: Array = def.window
-			for ri in list.rows.size():
-				var rr: Array = list.rows[ri].rect
-				if _rect(win[0] + rr[0], win[1] + rr[1], rr[2], rr[3]).has_point(event.position):
-					hover_row = ri
+		var k := _hit(_to_menu(event.position))
+		hover_key = k if "/" in k else ""
+		# Dragging out of a held button releases it; back in presses it again (§3.1).
+		if held != "":
+			var inside := k == held
+			if inside and frames.get(held, 0) != 2:
+				frames[held] = 2
+			elif not inside and frames.get(held, 0) == 2:
+				frames.erase(held)
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-		# Act on release, like the original buttons; remember the press for pressed-state art.
-		for h in hotspots:
-			if h[0].has_point(event.position):
-				if event.pressed:
-					pressed = h[1]
-				elif pressed == h[1]:
-					pressed = Callable()
-					h[1].call()
-					return
-		if not event.pressed:
-			pressed = Callable()
+		var p := _to_menu(event.position)
+		if event.pressed:
+			if screen == "pref" and _pref_click(p):
+				return
+			held = _hit(p)
+			if held != "":
+				_animate_press(held)
+		elif held != "":
+			var key := held
+			held = ""
+			_animate_release(key, _hit(p) == key)
+
+
+func _pref_click(p: Vector2) -> bool:
+	for h in pref_hotspots:
+		if h[0].has_point(p):
+			Settings.set(h[1], h[2])
+			Settings.save()
+			if h[1] == "language":
+				_load_menu_data()
+			return true
+	return false
+
+
+## Press: frames _1, _2 with ButtonIn.wav, each held for half the sound (FUN_004e7f40).
+func _animate_press(key: String) -> void:
+	_play("buttonin")
+	var step := _sound_length("buttonin") / 2.0
+	frames[key] = 1
+	await get_tree().create_timer(step).timeout
+	if held == key:
+		frames[key] = 2
+
+
+## Release: _2, _1, _0 with ButtonOut.wav, then the action if still inside the button.
+func _animate_release(key: String, inside: bool) -> void:
+	if not inside:
+		frames.erase(key)
+		return
+	busy = true
+	_play("buttonout")
+	var step := _sound_length("buttonout") / 3.0
+	for f in [2, 1]:
+		frames[key] = f
+		await get_tree().create_timer(step).timeout
+	frames.erase(key)
+	busy = false
+	_on_button(key)
+
+
+func _on_button(key: String) -> void:
+	if key == "back":
+		_go(_back_target())
+		return
+	if key == "main":
+		if screen in QUIT_SCREENS:
+			get_tree().quit()
+		else:
+			_go("main")
+		return
+	var btn := _button(key)
+	if btn.is_empty():
+		return
+	match btn.kind:
+		"Check":
+			checked[key] = not checked.get(key, false)
+		"CheckGroup":
+			for k in checked.keys():
+				checked[k] = false
+			checked[key] = true
+	var label: String = btn.label
+	if screen == "pref":
+		pref_page = label
+		return
+	var target: String = FORWARD.get(screen, {}).get(_norm(label), "")
+	if target != "":
+		_go(target)
+		return
+	var row := _row_for(label)
+	if screen in TO_JET and not row.is_empty():
+		Settings.mission_id = int(row.id)
+		jet_parent = screen
+		_go("jet")
+	elif screen in LOADS_MISSION:
+		if screen == "jet":
+			Settings.jet_id = JET_IDS.get(_norm(label), 1)
+		elif not row.is_empty():
+			Settings.mission_id = int(row.id)
+		_load_mission()
+
+
+func _row_for(label: String) -> Dictionary:
+	for row in _list().get("rows", []):
+		if _norm(row.name) == _norm(label):
+			return row
+	return {}
+
+
+func _back_target() -> String:
+	if screen == "jet":
+		return jet_parent
+	return BACK.get(screen, "main")
+
+
+## Screen change (FUN_004e9f40): title tab and panels out, new screen, panels and title in.
+func _go(to: String) -> void:
+	if not menus.has(to) or busy:
+		return
+	busy = true
+	hover_key = ""
+	var old_panels := _panel_names()
+	for f in [1, 0]:
+		title_frame = f
+		await get_tree().create_timer(TITLE_FRAME).timeout
+	var new_panels: Array = []
+	for p in menus[to].get("panels", []):
+		new_panels.append(String(p.name).to_lower())
+	var slide := old_panels != new_panels
+	if slide:
+		await _slide(0.0, "palettein")
+	screen = to
+	_enter_screen()
+	_start_music()
+	if slide:
+		await _slide(1.0, "paletteout")
+	for f in [0, 1, 2]:
+		title_frame = f
+		await get_tree().create_timer(TITLE_FRAME).timeout
+	busy = false
+
+
+func _panel_names() -> Array:
+	var names: Array = []
+	for p in _panels():
+		names.append(String(p.name).to_lower())
+	return names
+
+
+## Panels slide for the length of the wav that plays with them (§2).
+func _slide(to: float, wav: String) -> void:
+	_play(wav)
+	var t := create_tween()
+	t.tween_property(self, "panel_shown", to, _sound_length(wav))
+	await t.finished
+
+
+## Mission load (FUN_004ec6a0): wait.bmp in the content window, music fades out over 6 s.
+## The TSD screen is not built yet, so the mission starts straight away.
+func _load_mission() -> void:
+	busy = true
+	loading = true
+	create_tween().tween_property(music, "volume_db", -60.0, 6.0)
+	for i in 3:
+		await get_tree().process_frame
+	get_tree().change_scene_to_file("res://terrain/terrain_view.tscn")
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
-		if history.is_empty():
-			get_tree().quit()
-		else:
-			_go_back()
+	if busy or not (event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE):
+		return
+	if screen in QUIT_SCREENS:
+		get_tree().quit()
+	elif not screen in NO_BACK:
+		_go(_back_target())

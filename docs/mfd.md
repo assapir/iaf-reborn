@@ -14,8 +14,9 @@ Colours are Windows COLORREF `0x00BBGGRR` unless written RGB(). MFD index: **0 =
 - Each MFD is a **132 x 132** px DirectDraw surface (renderer+0x5d8, `FUN_0051cf10`), colour key **cyan
   RGB(0,255,255)** (0xffff00). `mfds.bmp` is loaded into a 264x924 surface (renderer+0x5f8, `FUN_00527ac0`), same key;
   `rwrsymb.bmp` into a 10x300 surface (+0x5fc).
-- Panel: `f16panel.bmp` 1920x352 is cut into six 320-px-wide slices (+0x5b8..+0x5cc); slice i starts at panel row
-  {MaskOffsetY1, MaskOffsetY2, 0, 0, MaskOffsetY2, MaskOffsetY1}[i] = {288,93,0,0,93,288} for the F-16.
+- Panel: the `[PANEL] FileName` bitmap (1920 x PanelHeight; every cockpit is 1920 wide, height 352 except mig23 360 and
+  phantom 374) is cut into six 320-px-wide slices (+0x5b8..+0x5cc); slice i starts at panel row
+  {MaskOffsetY1, MaskOffsetY2, 0, 0, MaskOffsetY2, MaskOffsetY1}[i] (F-16: {288,93,0,0,93,288}; per-plane values in §7).
 - **Placement** (`FUN_00529300`): the finished MFD surface is BltFast'ed (src colour key) *into the panel slice*
   at panel pixel (OffsetX, OffsetY) from `[MFD]` (slice = OffsetX/320, x = OffsetX%320, y = OffsetY − slice top; split
   over two slices if it crosses 320). The rounded cyan tile corners therefore show the panel.
@@ -85,7 +86,8 @@ Misc sprites in (132..264, 792..924):
 
 ## 3. Pages (state+0x4fc+idx·4; dispatch `FUN_00527ba0`, passes 3/4 in `FUN_00529080`)
 
-F-16 defaults (`FUN_00447530`): **Left = radar (2), Right = TSD (3)** (Right would be RWR if [PANELRWR] Active=0).
+Default pages (`FUN_00447530`, all aircraft; rule and per-plane result in §7): Left = radar (2) always; Right/Middle depend on
+the MFD count and `[PANELRWR] Active`. F-16: Left = radar, Right = TSD (3).
 
 | Id | Page | Tile | Label | Code |
 |---|---|---|---|---|
@@ -242,11 +244,64 @@ page (`FUN_00448970`): NAV→0; modes 1/2→stores; 3→radar; 4→HARM(10)/rada
 
 - Main `FUN_0052f050`. Centre x = 320 − pan, centre y = MainOffsetY + vpan − [HUD] CenterY; gun cross and boresight
   from GunRetPositionY/BorePositionY; clip = centre + (−LeftBorder, −TopBorder, +RightBorder, +BottomBorder).
-  Glass `F16hud.bmp` sliced by MaskOffsetX/Y/Y2 (`FUN_00527380`/`FUN_00527880`).
+  Glass = `[HUD] FileName` (e.g. `F16hud.bmp`), sliced by MaskOffsetX/Y/Y2 (`FUN_00527380`/`FUN_00527880`).
 - Elements: text block at TxtOffX/Y (`FUN_0052d400`: "R %2.1f", "W%02d  %02.1f", "%3.1f MIN", "%2d SEC",
   "T %03d%", "AB %1d", "%4.1fG"); speed scale (`FUN_00536ba0`), altitude scale (`FUN_005366a0`), heading tape
   (`FUN_005361b0`), pitch ladder/FPM (`FUN_00537170`). Colour = HUD table above. HUD text also uses the 5x5 sprite
   font (HUD-coloured copy +0x5d4); `hud.fnt` is not used by the cockpit.
+
+## 7. Per-aircraft cockpit table (all cockpits; general layout/HUD/gauge data in `docs/cockpit.md`)
+
+### General decoding rule
+1. **Aircraft -> cockpit dir.** `FUN_00447280` switches on the aircraft type (`veh+0x24`, ids in part-animation.md) and stores
+   the cockpit index at logic+0x10; it is the `k` of `Cockpit00k = <dir>` in `cockpits.ibx` (`FUN_0051f110` -> `FUN_00520d90`
+   reads `<CockpitDir>\<dir>\cockpit.ibx`; no other file name, so `cfir/cockpit.ini` is unused). Types: 100 F-16 -> 1;
+   110 F-15 -> 0; 120 F-4 -> 5; 130 Kfir -> 4; 140 Lavi -> 3; 160 MiG-23 -> 8; 180 MiG-29 -> 7; 190 Mirage -> 6;
+   200 F-4-2000 -> 2; 150/170/210/220/225 (MiG-21/25/17, Tu-22, C-130) -> 3 (Lavi cockpit, fallback; UNCERTAIN whether ever
+   shown). It also sets logic+0x24 = 1 for F-15, F-4, F-4-2000, MiG-29 (the twin-engine ones: damage page "twin only"; UNCERTAIN
+   naming) and logic+0x964 = 1 for F-16, F-15, Lavi, MiG-29, F-4-2000 (meaning UNCERTAIN).
+2. **Menu jet -> type** (`menu/dat/sjet.trx` order Mirage, Kfir, F4, F42000, F15, F16, Lavi; the id mapping F42000 = 200 is by
+   elimination of the two F-4 ids, F4 = 120).
+3. **MFDs.** `[MFD]` keys `LeftActive/RightActive/MiddleActive` (default 1), `<Side>OffsetX/Y`, `<Side>MouseActive` (default 1;
+   consumer UNCERTAIN, presumably enables clicking) -> MFD index **0 Left, 1 Right, 2 Middle** (ini idx 0x5d, 0x5e, 0x5f;
+   confirmed by the default-page code). Panel pixel = (OffsetX, OffsetY) as in §1; **screen** top-left =
+   (OffsetX - 640, OffsetY + MainOffsetY) at pan 0 (`FUN_00529080`, hit test loops at ini+0x2234/+0x2250). Inactive MFDs keep
+   junk offsets in the file (ignore them). `MenuFlirOn`/`MenuTvOn` (default 1) gate the MENU "FLIR" button (`state+0x608` and
+   ini+0x2264); MenuTvOn consumer not traced.
+4. **Default pages** (`FUN_00447530`): n = number of active MFDs (`FUN_0051f110`), r = `[PANELRWR] Active` (default 0 when
+   the section is missing): Left = 2 (radar) always; **n = 3: Right = RWR (7), Middle = TSD (3)**; **n = 2: Right = RWR (7) if
+   r = 0, else TSD (3)**; n = 1: nothing else set.
+5. **RWR** is a separate panel dial iff `[PANELRWR] Active = 1` (Center/Radius in panel px); otherwise it is only an MFD
+   page (7). The MENU page shows "rwr" only when r = 0.
+6. **ADI** (attitude) is an MFD page (9, reachable via MENU "adi" only) iff `[HORIZON] OnMfd = 1`; page ball centre (65,74) in
+   the MFD, radius = `[HORIZON] Radius` (`FUN_005254c0`, ini+0x2184). With OnMfd = 0 and `[HORIZON] Active` (default 1) it is
+   the panel horizon disc at ClockCenter (X split into 320-px slice, `FUN_00524d90`). `Active = 0` -> neither. `[LENHORIZON]`
+   (lens ADI bitmap on the panel) is independent. On OnMfd planes ClockCenter equals the centre of one MFD (F-15 Left, Lavi
+   Left; F-4-2000 approx Right), unused by the page code as far as read - UNCERTAIN.
+
+### Table
+Screen = top-left on the 640x480 screen at pan 0 (MFD is 132x132). "Panel" = panel bitmap / HUD glass bitmap.
+
+| Menu jet | Dir (Cockpit k) | Panel / HUD glass | MFDs (idx: panel x,y -> screen) | Default pages | RWR | ADI |
+|---|---|---|---|---|---|---|
+| Mirage | `mirage` (6) | mirage.bmp / mrghud.bmp | 0 Left: 898,157 -> (258,327); MouseActive 1 | L radar | MFD page only (via MENU) | panel disc (Active 1), lens mrgadi.bmp |
+| Kfir | `cfir` (4) | cfirpnl.bmp / cfir-h.bmp | 0 Left: 754,134 -> (114,334) | L radar | panel dial (1094,74 r32) | panel disc, lens adi.bmp |
+| F4 (F-4E) | `phantom` (5) | f4panel.bmp (h 374) / f4hud.bmp | 0 Left: 889,21 -> (249,201); MouseActive 0; MenuFlir 0, MenuTv 0 | L radar | panel dial (1218,69 r28) | none ([HORIZON] Active 0); lens adi.bmp |
+| F42000 | `f4-2000` (2) | panel.bmp / hud.bmp | 0 Left: 730,69 -> (90,269); 1 Right: 903,136 -> (263,336) | L radar, R RWR | MFD page 7 | **MFD page 9** (r40); lens adi.bmp |
+| F15 | `f15` (0) | f15panel.bmp / f15hud.bmp | 0 Left: 718,64 -> (78,270); 2 Middle: 890,123 -> (250,329); 1 Right: 1061,62 -> (421,268) | L radar, R RWR, M TSD | MFD page 7 (no [PANELRWR]) | **MFD page 9** (r40); lens adi.bmp |
+| F16 | `f16` (1) | f16panel.bmp / f16hud.bmp | 0 Left: 722,146 -> (82,336); 1 Right: 1083,147 -> (443,337) | L radar, R TSD | panel dial (805,84 r28) | panel disc (1100,91 r17); lens f16adi.bmp |
+| Lavi | `lavi` (3) | lavi-p.bmp / lavi-hud.bmp | 0 Left: 720,85 -> (80,265); 2 Middle: 894,111 -> (254,291); 1 Right: 1071,88 -> (431,268) | L radar, R RWR, M TSD | MFD page 7 | **MFD page 9** (r40); lens adi.bmp |
+| (not in menu) | `mig23` (8) | panel.bmp (h 360) / hud.bmp | 0 Left: 903,120 -> (263,310); MouseActive 0 | L radar | MFD page only | none ([HORIZON] Active 0); lens adi.bmp |
+| (not in menu) | `mig29` (7) | panel.bmp / hud.bmp | 0 Left: 707,138 -> (67,328); 1 Right: 1115,139 -> (475,329) | L radar, R RWR | MFD page 7 (no [PANELRWR]) | none ([HORIZON] Active 0); lens adi.bmp |
+
+Per-plane panel geometry (`[PANEL]`): MaskOffsetY1/MaskOffsetY2/MainOffsetY - Mirage 301/33/170; Kfir 300/95/200; F-4E 300/95/180;
+F-4-2000 292/85/200; F-15 264/69/206 (+ ElevationAngleDeg 50, AzimutAngleDeg 100, not traced); F-16 288/93/190; Lavi 296/92/180;
+MiG-23 298/126/190; MiG-29 297/44/190. HUD `[HUD]` values are in docs/cockpit.md.
+
+Reachability: the menu offers only the seven jets above. `mig23` and `mig29` (enemy types 160/180) cannot be selected from the
+menu; `Cockpit009..012 = F16` in cockpits.ibx are never returned by `FUN_00447280` (indices only 0..8). Whether a mission file
+can put the player in a MiG (`Player1` type) is not verified - UNCERTAIN. `fsmfd/` (full-screen MFD art + `data.ibx`) and
+`mfds.bmp/rwrsymb.bmp/isr.bmp` are shared by all cockpits; `emf/map.emf` is the TSD map for all.
 
 ## Open questions
 - Unreferenced tiles (132,132) "Debug", (132,264) LAS, (132,396) TWS, (0,528): leftovers?

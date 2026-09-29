@@ -1,4 +1,4 @@
-# Status — checkpoint 1
+# Status — checkpoint 1 (+ front end)
 
 Goal of milestone 1: **start the game → Training → Basic → "Engines ON" (311) → brief/TSD → fly the takeoff
 from Ramat David** in the original F-16 with the original 2D cockpit, everything extracted from the original data.
@@ -13,15 +13,14 @@ from Ramat David** in the original F-16 with the original 2D cockpit, everything
 | Terrain | `map.ptt` imagery + LZO heights, chunk streaming in Godot, **original georeference** (engine metres, PlaneScale 1.2411) (docs/formats/ptt.md) |
 | Flight model | Rust port of the original model (docs/flight-model.md), ground-roll mode, **original / real data sets** (Preferences), validation suite vs public F-16 data |
 | Cockpit | original 2D F-16 panel from `cockpit.ibx`, gauges, ADI, standby horizon, conformal HUD with original HUD font, zoom / panel slide, cockpit + external views |
-| Front end (v1) | main / training / courses / preferences from the original `.trx` + art; Hebrew via the community packs |
+| Front end | rewritten to docs/front-end.md: original button states & press animation, panel slides + clips, title tab animation, BACK/MAIN/QUIT, list rows from `mis_1`/`mis_2` with hover-by-button, Arial text & colours, sounds + music, full navigation tables (training + campaigns), Jet list with per-mission jet locks, wait screen; Hebrew via the community packs |
 | Briefings | RTF → BBCode (EN + HE pack), `.brl` link lists, diagrams (converted, not displayed yet) |
 | Missions | `.mis` / `.bdb` parser (131/131), mission list, **mission start at Player1's position** (takeoff = Ramat David rwy 15) (docs/formats/mis.md) |
 
 ## Known gaps / wrong vs. the original (from the RE specs)
-1. **Front end deviates from docs/front-end.md**: button states (0 normal / 1 anim / 2 pressed / 3 disabled, no hover art),
-   panel masks, clip pieces, BACK at (0,458) and MAIN/QUIT at (605,421), list rows from `mis_1`/`mis_2` with
-   hover-by-button, Arial text & colours, sounds, **flow: mission → Jet list → load → TSD** (no CONTINUE).
-   Converter already produces masks + sounds; the Godot front end still needs the rewrite.
+1. **Front end leftovers**: no message box yet (TSD quit confirm, QUIT), mission prerequisites not enforced
+   (no pilot records), Jump In / Mission Creator / Reference / Multiplayer / original Preferences pages are
+   navigable art only. Only the F-16 is flyable (other jets shown disabled); campaign missions start in the F-16.
 2. **TSD / briefing screen** not built (EMF vector map `menu/emf/82.emf`, briefing window, links, filters, formation).
 3. **MFDs** empty (RE in progress → docs/mfd.md).
 4. **Terrain detail**: only the level-4 Israel inset (16 m/px); airbase insets (to ~1 m/px) and far levels not used.
@@ -31,7 +30,7 @@ from Ramat David** in the original F-16 with the original 2D cockpit, everything
 8. Nose-wheel steering, stall/spin modes, AB light-up delay not ported.
 
 ## Plan (in order)
-1. Front end rewrite to docs/front-end.md (incl. Jet list, sounds, masks).
+1. ~~Front end rewrite~~ (done; message box comes with the TSD).
 2. TSD screen: EMF map converter + briefing window with links (lesson RTF, instructor card).
 3. MFDs per docs/mfd.md.
 4. Airbase: high-detail insets around the start + base-mission objects (stationary 3D models).

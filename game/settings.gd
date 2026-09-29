@@ -9,6 +9,9 @@ var flight_data := "original"
 var language := "en"
 ## Mission picked in the front end (briefing id, e.g. 311), -1 = free flight.
 var mission_id := -1
+## Aircraft picked on the Jet list (original ids, FUN_00508470): 0 F-15, 1 F-16, 2 F-4E,
+## 3 F-4 2000, 4 Lavi, 5 Kfir, 6 Mirage.
+var jet_id := 1
 
 
 func _ready() -> void:
