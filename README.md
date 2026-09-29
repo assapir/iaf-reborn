@@ -5,6 +5,9 @@ A native (Linux, and later macOS) re-implementation of the engine for **Jane's I
 The engine loads the game data from **your own copy** of the original game (ISO + v1.1 patch) and renders it with
 modern graphics. No original game assets are stored in this repository.
 
+## Status
+See [docs/status.md](docs/status.md) for what works, known gaps and the plan.
+
 ## Layout
 - `crates/` – Rust workspace: file-format parsers, extraction/conversion tools, flight model, Godot extension
 - `game/` – Godot 4 project

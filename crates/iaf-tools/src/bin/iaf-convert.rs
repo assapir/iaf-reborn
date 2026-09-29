@@ -217,17 +217,40 @@ fn convert_menu(install: &Path, pack: Option<&Path>, out: &Path, opts: &Options)
     }
 
     // Art.
+    // Panel masks (1-bit, black = panel visible): the original draws mask AND, panel OR.
+    let masks: Vec<image::GrayImage> = ["maskleft", "maskbottom1", "maskbottom2"]
+        .iter()
+        .filter_map(|m| image::open(root.join(format!("bmp/misc/{m}.bmp"))).ok().map(|i| i.to_luma8()))
+        .collect();
     let img_root = out.join("img");
     let mut n = 0;
     for (rel, src) in overlay_files(&root, pack_root.as_deref(), "bmp").iter().filter(|(r, _)| r.extension().is_some_and(|e| e == "bmp")) {
         let dest = img_root.join(rel.strip_prefix("bmp")?.with_extension("png"));
-        let (img, transparent) = match load_texture_keyed(src, COCKPIT_KEYS) {
+        let (mut img, mut transparent) = match load_texture_keyed(src, COCKPIT_KEYS) {
             Ok(v) => v,
             Err(e) => {
                 println!("  skipped {}: {e:#}", src.display());
                 continue;
             }
         };
+        if rel.starts_with("bmp/palettes") {
+            // The mask whose size is closest to the panel (bottom panels are a few pixels larger).
+            if let Some(mask) = masks.iter().min_by_key(|m| (m.width() as i64 - img.width() as i64).abs() + (m.height() as i64 - img.height() as i64).abs()) {
+                if (mask.width() as i64 - img.width() as i64).abs() <= 4 && (mask.height() as i64 - img.height() as i64).abs() <= 4 {
+                    for (x, y, p) in img.enumerate_pixels_mut() {
+                        let visible = if x < mask.width() && y < mask.height() {
+                            mask.get_pixel(x, y)[0] < 128
+                        } else {
+                            p[0] as u32 + p[1] as u32 + p[2] as u32 > 0
+                        };
+                        if !visible {
+                            p[3] = 0;
+                            transparent = true;
+                        }
+                    }
+                }
+            }
+        }
         let img = match &opts.upscaler {
             Some(u) => u.upscale(&img, transparent.then_some(COLOR_KEY))?,
             None => img,
@@ -235,6 +258,13 @@ fn convert_menu(install: &Path, pack: Option<&Path>, out: &Path, opts: &Options)
         std::fs::create_dir_all(dest.parent().unwrap())?;
         img.save(&dest)?;
         n += 1;
+    }
+    // Sounds (button clicks, panel slides, menu music).
+    std::fs::create_dir_all(out.join("wav"))?;
+    for (rel, p) in overlay_files(&root, pack_root.as_deref(), "wav") {
+        if rel.extension().is_some_and(|x| x == "wav") && rel.parent().is_some_and(|d| d == Path::new("wav")) {
+            std::fs::copy(&p, out.join("wav").join(rel.file_name().unwrap()))?;
+        }
     }
     std::fs::write(out.join("image_scale.txt"), if opts.upscaler.is_some() { "4" } else { "1" })?;
     println!("menu: {} screens/lists, {} strings, {n} images -> {}", menus.len(), strings.len(), out.display());
