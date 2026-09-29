@@ -24,12 +24,12 @@ var state := {
 }
 ## How far the panel is raised: 0 = forward view (original MainOffsetY), 1 = full panel
 ## ("panel down" view). `panel_target` is where it is sliding to.
-var panel_shift := 0.0
-var panel_target := 0.0
+var panel_shift := 0.25
+var panel_target := 0.25
 const PANEL_SLIDE_SPEED := 2.5  # full travel per second
 ## 1.0 = the original proportions (640x480 scaled to the screen); smaller shows more world.
-var zoom := 0.75
-const ZOOM_MIN := 0.45
+var zoom := 0.8
+const ZOOM_MIN := 0.6
 const ZOOM_MAX := 1.0
 
 var layout := {}
@@ -62,11 +62,17 @@ func ui_scale() -> float:
 	return size.y / ORIGINAL_HEIGHT * zoom
 
 
-## Vertical field of view for the 3D world: the original framing at zoom 1, wider when zoomed out
-## (the panel covers less of the screen, so the world gets more of it).
-func world_fov(base_fov: float) -> float:
-	var half := deg_to_rad(base_fov) / 2.0
-	return rad_to_deg(2.0 * atan(tan(half) / zoom))
+## Real F-16 HUD field of view through the combiner glass, degrees.
+const HUD_REAL_FOV := 25.0
+## Width of the combiner glass in the original HUD art (the frame is 319 px wide).
+const HUD_GLASS_PIXELS := 200.0
+
+## Vertical field of view for the 3D world, chosen so the HUD glass spans its real ~25° of
+## the world at any zoom (zooming out widens the view instead of shrinking the world).
+func world_fov(_base_fov: float = 0.0) -> float:
+	var glass_px := HUD_GLASS_PIXELS * ui_scale()
+	var px_per_rad := (glass_px / 2.0) / tan(deg_to_rad(HUD_REAL_FOV) / 2.0)
+	return rad_to_deg(2.0 * atan((size.y / 2.0) / px_per_rad))
 
 
 ## Top of the panel in screen pixels. The forward view shows only the top part of the
@@ -116,6 +122,7 @@ func _draw() -> void:
 	if layout.is_empty():
 		return
 	var s := ui_scale()
+	_draw_mfd_screens(s)
 	_draw_adi(s)
 	_draw_standby_horizon(s)
 	_draw_tape("PANELVARIO", clamp(state.vs_fpm / 6000.0, -1.0, 1.0), s)
@@ -160,6 +167,15 @@ func _draw_adi(s: float) -> void:
 	draw_set_transform(centre, deg_to_rad(-state.roll))
 	draw_texture_rect_region(t, Rect2(-r, -r, 2 * r, 2 * r), Rect2(src_centre - Vector2(src_half, src_half), Vector2(2 * src_half, 2 * src_half)))
 	draw_set_transform(Vector2.ZERO)
+
+
+## Dark MFD screens behind the panel's display cut-outs (content comes with the avionics).
+func _draw_mfd_screens(s: float) -> void:
+	var m: Dictionary = layout.get("MFD", {})
+	for side in ["Left", "Middle", "Right"]:
+		if m.get(side + "Active", 0) == 1:
+			var tl := panel_to_screen(m[side + "OffsetX"], m[side + "OffsetY"])
+			draw_rect(Rect2(tl - Vector2(6, 6) * s, Vector2(160, 230) * s), Color.BLACK)
 
 
 ## Small standby attitude indicator, drawn by the game in two flat colours (HORIZON).

@@ -152,8 +152,9 @@ func _process(delta: float) -> void:
 	b = b.rotated(b.z.normalized(), -roll_in * 3.0 * delta)
 	b = b.rotated(b.y.normalized(), -yaw_in * 0.4 * delta)
 	rig.basis = b.orthonormalized()
-	if Input.is_key_pressed(KEY_PAGEUP): cockpit.slide_panel(cockpit.PANEL_SLIDE_SPEED * delta)
-	if Input.is_key_pressed(KEY_PAGEDOWN): cockpit.slide_panel(-cockpit.PANEL_SLIDE_SPEED * delta)
+	# PgUp looks up (panel slides away), PgDn looks down at more of the panel.
+	if Input.is_key_pressed(KEY_PAGEUP): cockpit.slide_panel(-cockpit.PANEL_SLIDE_SPEED * delta)
+	if Input.is_key_pressed(KEY_PAGEDOWN): cockpit.slide_panel(cockpit.PANEL_SLIDE_SPEED * delta)
 	if Input.is_key_pressed(KEY_W): speed = min(speed + 60.0 * delta, 700.0)
 	if Input.is_key_pressed(KEY_S): speed = max(speed - 60.0 * delta, 0.0)
 	var s := speed * (8.0 if Input.is_key_pressed(KEY_SHIFT) else 1.0)
