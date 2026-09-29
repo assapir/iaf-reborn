@@ -4,6 +4,7 @@
 //! validation suite (`tests/validation.rs`) flags against public data. Only the F-16 has
 //! real-world corrections so far; other aircraft use their original data in both sets.
 
+use crate::params::NoseWheel;
 use crate::{Envelope, Params};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -42,6 +43,9 @@ pub fn apply(set: DataSet, section: &str, params: &Params, envelope: &Envelope) 
         // 1 g stall ~118 kt instead of 86 kt: with Vmin ∝ √g this puts 9 g at ~355 kt,
         // matching the published ~330-350 kt corner speed.
         e.stall_floor = Some(118.0 * KT);
+        // Nose-wheel steering through the rudder pedals, ±32° (low-gain / taxi NWS), wheelbase
+        // 13.2 ft; side grip ~0.3 g (approximate). The original instead turns at stick · V · 20°/s / 145 kt.
+        p.nose_wheel = Some(NoseWheel { max_angle: 32f32.to_radians(), wheelbase: 13.2 * 0.3048, max_lateral: 0.3 * 9.806 });
     }
     (p, e)
 }

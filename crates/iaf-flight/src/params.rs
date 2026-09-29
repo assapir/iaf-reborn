@@ -56,6 +56,9 @@ pub struct Params {
     /// Transonic wave-drag rise (not in the original model; used by the real data set):
     /// ΔCD grows linearly from Mach 0.9 to `wave_drag` at Mach 1.2 and stays there.
     pub wave_drag: f32,
+    /// Real nose-wheel steering (real data set only): wheel angle from the rudder pedals, turn rate
+    /// from the geometry. None = the original's formula (flight-model.md §7).
+    pub nose_wheel: Option<NoseWheel>,
 }
 
 /// Wrap degrees to (-180, 180] then convert to radians (the original's "deg→rad*").
@@ -122,6 +125,17 @@ impl Params {
             over_g_thresh: f("OverGThresh", 6.7),
             envelope_file: s.get("FlightEnvelopeFile").unwrap_or("").to_string(),
             wave_drag: 0.0,
+            nose_wheel: None,
         }
     }
+}
+
+/// Geometric nose-wheel steering: yaw rate = V · tan(δ) / wheelbase, δ = pedals · max angle,
+/// limited by the tyres' side grip.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct NoseWheel {
+    pub max_angle: f32,
+    pub wheelbase: f32,
+    /// Largest sideways acceleration before the tyres skid (m/s²).
+    pub max_lateral: f32,
 }

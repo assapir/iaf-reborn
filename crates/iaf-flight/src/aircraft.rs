@@ -280,10 +280,17 @@ impl Aircraft {
         if !self.controls.gear_down {
             return;
         }
-        let input = self.controls.stick_x;
         let (vel, _) = self.speed_at(self.t);
         let v = dot(vel, self.ground_dir).max(0.0) as f32;
-        let rate = (input * v * K / 74.53).clamp(-K, K);
+        let rate = match self.params.nose_wheel {
+            // Real data set: geometric steering from the pedals, limited by the tyres' grip.
+            Some(nw) => {
+                let r = v * (self.controls.rudder * nw.max_angle).tan() / nw.wheelbase;
+                let grip = if v > 0.1 { nw.max_lateral / v } else { f32::INFINITY };
+                r.clamp(-grip, grip)
+            }
+            None => (self.controls.stick_x * v * K / 74.53).clamp(-K, K),
+        };
         if rate.abs() < 1e-4 {
             return;
         }
