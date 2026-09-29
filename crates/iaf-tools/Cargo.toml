@@ -8,3 +8,4 @@ description = "Extraction and conversion tools for Jane's IAF data"
 [dependencies]
 iaf-formats = { path = "../iaf-formats" }
 anyhow = "1"
+zip = { version = "8.6.0", default-features = false, features = ["deflate"] }

@@ -16,3 +16,6 @@ modern graphics. No original game assets are stored in this repository.
 cargo run --release -p iaf-tools --bin iaf-extract -- "/path/to/Jane's IAF.iso" assets/install
 ```
 This reproduces the original "Full Install" (lower-cased paths) without Windows.
+
+## Optional packs
+Community mods (e.g. Hebrew briefings) can be imported as overlay packs — see [docs/packs.md](docs/packs.md).
