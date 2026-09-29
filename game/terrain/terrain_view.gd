@@ -58,6 +58,19 @@ func _ready() -> void:
 	var st_arg := args.find("--stick")
 	if st_arg >= 0:
 		scripted_stick = Vector2(float(args[st_arg + 1]), float(args[st_arg + 2]))
+	# Test poses: --orbit yaw pitch dist (degrees, metres), --rudder r, --gear, --flaps, --brakes.
+	var orb := args.find("--orbit")
+	if orb >= 0:
+		orbit_yaw = deg_to_rad(float(args[orb + 1]))
+		orbit_pitch = deg_to_rad(float(args[orb + 2]))
+		orbit_dist = float(args[orb + 3])
+	var rud := args.find("--rudder")
+	if rud >= 0:
+		scripted_rudder = float(args[rud + 1])
+	gear_down = args.has("--gear")
+	flaps = 1.0 if args.has("--flaps") else 0.0
+	brakes = args.has("--brakes")
+	frozen = args.has("--freeze")
 	cockpit.hud.camera = camera
 	_start_flight()
 	_apply_view()
@@ -105,7 +118,9 @@ func _spawn_f16() -> void:
 	if doc.append_from_file(path, state) != OK:
 		return
 	# Your own jet rides on the rig; converted models face -Z like Godot, so no rotation needed.
-	aircraft = doc.generate_scene(state) as Node3D
+	aircraft = preload("res://aircraft/aircraft_model.gd").new()
+	aircraft.setup(doc.generate_scene(state) as Node3D)
+	aircraft.gear_pos = 1.0 if gear_down else 0.0
 	rig.add_child(aircraft)
 
 
@@ -181,13 +196,16 @@ func _process(delta: float) -> void:
 		var ground = terrain.height_at(rig.position)
 		flight.set_ground_height(ground if ground != null else -1.0e9)
 		flight.set_controls(stick.x, stick.y, rudder, throttle, flaps, gear_down, brakes)
-		flight.step(delta)
+		if not frozen:
+			flight.step(delta)
 		var st: Dictionary = flight.state()
 		rig.position = st.position
 		rig.basis = Basis(st.right, st.up, -st.forward)
 		for k in ["speed_kt", "mach", "alt_ft", "vs_fpm", "pitch", "roll", "heading", "aoa", "g", "rpm", "throttle", "fuel_lbs"]:
 			cockpit.state[k] = st[k]
 		cockpit.hud.velocity_dir = st.velocity.normalized() if st.velocity.length() > 1.0 else null
+	if aircraft != null:
+		aircraft.animate(stick, rudder, flaps, gear_down, brakes, delta)
 	_apply_view()
 	var p := rig.position
 	var ground_h = terrain.height_at(p)
@@ -200,12 +218,17 @@ func _process(delta: float) -> void:
 
 ## Scripted stick for test captures: `--stick x y` (held for the whole run).
 var scripted_stick = null
+var scripted_rudder = null
+## --freeze: don't advance the flight model (for posed test captures).
+var frozen := false
 
 
 ## Keyboard as a sprung joystick: held keys deflect the stick progressively, release centres it.
 func _read_controls(delta: float) -> void:
 	if scripted_stick != null:
 		stick = scripted_stick
+		if scripted_rudder != null:
+			rudder = scripted_rudder
 		return
 	var want := Vector2(
 		float(Input.is_key_pressed(KEY_RIGHT)) - float(Input.is_key_pressed(KEY_LEFT)),
