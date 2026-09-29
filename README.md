@@ -49,11 +49,15 @@ cargo run --release -p iaf-tools --bin iaf-convert -- planes assets/install asse
 cargo run --release -p iaf-tools --bin iaf-terrain -- export assets/install/resource/terrain/map.ptt 7 assets/converted/terrain/israel_l4
 # 4. cockpit art
 cargo run --release -p iaf-tools --bin iaf-convert -- --upscale cockpit assets/install f16 assets/converted/cockpits/f16
-# 5. build the Godot extension (flight model etc.)
+# 5. front-end menus (screens, strings, art, fonts)
+cargo run --release -p iaf-tools --bin iaf-convert -- --upscale menu assets/install assets/converted/menu
+# 6. build the Godot extension (flight model etc.)
 cargo build -p iaf-godot
-# 6. fly (original F-16 flight model, 2D cockpit) / model viewer
-godot --path game res://terrain/terrain_view.tscn
+# 7. play: front end (Training → course → mission → FLY; Preferences → Gameplay for flight data / language)
 godot --path game
+#    or jump straight into the air / the model viewer
+godot --path game res://terrain/terrain_view.tscn
+godot --path game res://viewer/viewer.tscn
 ```
 The conversion is a one-time step; re-run it only after updating the converter or adding packs.
 
@@ -74,6 +78,6 @@ Community mods (e.g. Hebrew briefings) can be imported as overlay packs — see 
 | W / S, 1–8 | throttle; presets idle, 65, 70, 80, 90 %, military, AB1, AB2 |
 | G / F / B | gear / flaps / speed brake |
 | F1 / F2 / C | cockpit / external / toggle |
-| `--real` (launch option) | fly the corrected real-world F-16 data instead of the original 1998 numbers |
+| Esc | back to the menus |
 | V, PgUp / PgDn | panel down / slide panel |
 | + / −, wheel | cockpit zoom (external: orbit distance); RMB drag orbits in external view |

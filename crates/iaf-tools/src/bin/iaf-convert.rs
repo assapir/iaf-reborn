@@ -4,6 +4,8 @@
 //! `iaf-convert planes <install-dir> <out-dir>` — every controllable plane (`*_h.xfr`).
 //!
 //! `iaf-convert cockpit <install-dir> <cockpit> <out-dir>` — cockpit art (PNG) + layout (`cockpit.json`).
+//! `iaf-convert menu <install-dir> <out-dir>` — front-end screens/lists (`menus.json`), strings
+//! (`strings.json`), art (`img/…png`) and TrueType fonts.
 //!
 //! `--upscale` resamples textures 4× (Lanczos). `--upscale-ai` uses the experimental AI
 //! upscaler instead (needs `realesrgan-ncnn-vulkan`; not recommended: it redraws text).
@@ -66,8 +68,9 @@ fn main() -> Result<()> {
             }
             Ok(())
         }
+        [_, "menu", install, out] => convert_menu(Path::new(install), Path::new(out), &opts),
         [_, "cockpit", install, name, out] => convert_cockpit(Path::new(install), name, Path::new(out), &opts),
-        _ => bail!("usage: iaf-convert [--upscale] [--smooth] model <file.x|file.xfr> <out-dir>\n       iaf-convert [--upscale] [--smooth] planes <install-dir> <out-dir>\n       iaf-convert [--upscale] cockpit <install-dir> <cockpit> <out-dir>"),
+        _ => bail!("usage: iaf-convert [--upscale] [--smooth] model <file.x|file.xfr> <out-dir>\n       iaf-convert [--upscale] [--smooth] planes <install-dir> <out-dir>\n       iaf-convert [--upscale] cockpit <install-dir> <cockpit> <out-dir>\n       iaf-convert [--upscale] menu <install-dir> <out-dir>"),
     }
 }
 
@@ -113,5 +116,98 @@ fn convert_cockpit(install: &Path, name: &str, out: &Path, opts: &Options) -> Re
         println!("  {file} {}x{}", img.width(), img.height());
     }
     println!("{} -> {}", dir.display(), out.display());
+    Ok(())
+}
+
+fn walk_files(dir: &Path, out: &mut Vec<PathBuf>) {
+    for e in std::fs::read_dir(dir).into_iter().flatten().flatten() {
+        let p = e.path();
+        if p.is_dir() {
+            walk_files(&p, out);
+        } else {
+            out.push(p);
+        }
+    }
+}
+
+fn convert_menu(install: &Path, out: &Path, opts: &Options) -> Result<()> {
+    use iaf_formats::menu::{self, MenuFile};
+    use iaf_tools::gltf::{COCKPIT_KEYS, COLOR_KEY, load_texture_keyed};
+    use serde_json::json;
+    let root = install.join("resource/menu");
+    std::fs::create_dir_all(out)?;
+
+    // Screens and lists.
+    let mut menus = serde_json::Map::new();
+    let mut files = Vec::new();
+    walk_files(&root.join("dat"), &mut files);
+    files.sort();
+    for f in &files {
+        let key = f.file_stem().unwrap().to_string_lossy().to_lowercase();
+        let value = match menu::parse(&std::fs::read(f)?) {
+            Some(MenuFile::Screen(s)) => json!({
+                "type": "screen", "name": s.name, "title": s.title, "window": s.window, "flag": s.flag,
+                "panels": s.panels.iter().map(|p| json!({
+                    "side": p.side, "name": p.name, "pos": p.pos,
+                    "buttons": p.buttons.iter().map(|b| json!({"label": b.label, "rect": b.rect, "kind": b.kind, "arg": b.arg})).collect::<Vec<_>>(),
+                })).collect::<Vec<_>>(),
+            }),
+            Some(MenuFile::List(rows)) => json!({
+                "type": "list",
+                "rows": rows.iter().map(|r| json!({
+                    "id": r.id, "flags": r.flags, "name": r.name, "rect": r.rect,
+                    "title_box": r.title_box, "title_key": r.title_key.to_lowercase(),
+                    "desc_box": r.desc_box, "desc_key": r.desc_key.to_lowercase(),
+                })).collect::<Vec<_>>(),
+            }),
+            None => continue,
+        };
+        menus.insert(key, value);
+    }
+    std::fs::write(out.join("menus.json"), serde_json::to_string_pretty(&menus)?)?;
+
+    // Strings (mission / jet titles and descriptions), Windows-1252.
+    let mut strings = serde_json::Map::new();
+    let mut files = Vec::new();
+    walk_files(&root.join("txt"), &mut files);
+    for f in files.iter().filter(|f| f.extension().is_some_and(|e| e == "trx")) {
+        let text: String = std::fs::read(f)?.iter().map(|&b| b as char).collect();
+        strings.insert(f.file_stem().unwrap().to_string_lossy().to_lowercase(), text.trim().replace("\r\n", "\n").into());
+    }
+    std::fs::write(out.join("strings.json"), serde_json::to_string_pretty(&strings)?)?;
+
+    // Fonts.
+    for e in std::fs::read_dir(root.join("fnt"))?.flatten() {
+        let p = e.path();
+        if p.extension().is_some_and(|x| x.eq_ignore_ascii_case("ttf")) {
+            std::fs::copy(&p, out.join(p.file_name().unwrap()))?;
+        }
+    }
+
+    // Art.
+    let mut images = Vec::new();
+    walk_files(&root.join("bmp"), &mut images);
+    let img_root = out.join("img");
+    let mut n = 0;
+    for src in images.iter().filter(|p| p.extension().is_some_and(|e| e.eq_ignore_ascii_case("bmp"))) {
+        let rel = src.strip_prefix(root.join("bmp"))?.with_extension("png");
+        let dest = img_root.join(rel.to_string_lossy().to_lowercase());
+        let (img, transparent) = match load_texture_keyed(src, COCKPIT_KEYS) {
+            Ok(v) => v,
+            Err(e) => {
+                println!("  skipped {}: {e:#}", src.display());
+                continue;
+            }
+        };
+        let img = match &opts.upscaler {
+            Some(u) => u.upscale(&img, transparent.then_some(COLOR_KEY))?,
+            None => img,
+        };
+        std::fs::create_dir_all(dest.parent().unwrap())?;
+        img.save(&dest)?;
+        n += 1;
+    }
+    std::fs::write(out.join("image_scale.txt"), if opts.upscaler.is_some() { "4" } else { "1" })?;
+    println!("menu: {} screens/lists, {} strings, {n} images -> {}", menus.len(), strings.len(), out.display());
     Ok(())
 }

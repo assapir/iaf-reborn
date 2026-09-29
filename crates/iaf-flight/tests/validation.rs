@@ -129,7 +129,7 @@ fn report(set: DataSet) {
     // Instantaneous turn: full pull at ~390 KCAS (420 kt true) @ 10k ft, heading rate over 2..3 s.
     let mut ac = f16(10000.0, 420.0).unwrap();
     // Hold ~80° of bank with a simple bank controller (like a pilot would), full pull.
-    let mut hold_bank = |ac: &mut Aircraft, pull: f32, seconds: f64| {
+    let hold_bank = |ac: &mut Aircraft, pull: f32, seconds: f64| {
         for _ in 0..(seconds * 60.0) as usize {
             let roll = ac.state().roll.to_degrees();
             ac.set_controls(Controls { stick_x: ((80.0 - roll) / 40.0).clamp(-1.0, 1.0), stick_y: pull, ..mil });

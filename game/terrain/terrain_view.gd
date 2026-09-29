@@ -104,7 +104,7 @@ func _start_flight() -> void:
 	var install := ProjectSettings.globalize_path("res://").path_join("../assets/install").simplify_path()
 	var fwd := -rig.global_basis.z
 	var heading := fposmod(rad_to_deg(atan2(fwd.x, -fwd.z)), 360.0)
-	real_data = OS.get_cmdline_user_args().has("--real")
+	real_data = Settings.real_data() or OS.get_cmdline_user_args().has("--real")
 	var err: String = flight.start(install, "F-16", rig.position, heading, 180.0, real_data)
 	if err != "":
 		push_error("flight model: " + err)
@@ -168,6 +168,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		orbit_pitch = clamp(orbit_pitch - event.relative.y * 0.005, -1.4, 1.4)
 	elif event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
+			KEY_ESCAPE:
+				get_tree().change_scene_to_file("res://menu/front_end.tscn")
 			KEY_C:
 				in_cockpit = not in_cockpit
 			KEY_F1:
