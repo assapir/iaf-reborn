@@ -72,14 +72,19 @@ Use google to find the original game ISO if you do not have them. I trust you. S
 
 Community mods (e.g. Hebrew briefings) can be imported as overlay packs — see [docs/packs.md](docs/packs.md).
 
-## Flying (current controls, provisional until the original key table is decoded)
+## Flying (original keys where known, from the game's own instructor texts and the exe)
 
 | key            | action                                                                    |
 | -------------- | ------------------------------------------------------------------------- |
-| arrows         | stick (↑ forward = nose down, ↓ pull), sprung                             |
-| Z / X          | rudder                                                                    |
-| W / S, 1–8     | throttle; presets idle, 65, 70, 80, 90 %, military, AB1, AB2              |
-| G / F / B      | gear / flaps / speed brake                                                |
+| arrows         | stick (↑ forward = nose down, ↓ pull), sprung; on the ground ←/→ steer the nose wheel |
+| Z / X          | rudder (provisional key)                                                  |
+| 1–8            | throttle presets idle, 65, 70, 80, 90 %, military, AB1, AB2; **1 starts the engine** |
+| 0 / 9          | throttle +/− 5 % RPM                                                      |
+| G / F / B      | gear / flaps / brakes (wheel brakes on the ground, speed brake in the air) |
+| T / D          | MFD: TSD / damage page                                                    |
+| Q / R / S      | radar: cycle mode / A-A ↔ A-G / standby                                   |
+| . / ,          | radar range + / −                                                         |
+| W, Shift+W     | next / previous waypoint                                                  |
 | F1 / F2 / C    | cockpit / external / toggle                                               |
 | Esc            | back to the menus                                                         |
 | V, PgUp / PgDn | panel down / slide panel                                                  |

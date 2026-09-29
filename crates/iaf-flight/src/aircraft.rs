@@ -123,6 +123,9 @@ pub struct Aircraft {
     fuel_flow: f32,
     stall_time: f64,
     buffet: bool,
+    /// Engine running (`S+0x1d0`): off at a ground start, turned on by any throttle change
+    /// (§8, `FUN_0059cb60`); on at an airborne start (`FUN_005a2a10`).
+    pub engine_on: bool,
     // Load-time derived constants.
     cl0: f32,
     cl_alpha: f32,
@@ -173,6 +176,7 @@ impl Aircraft {
             drag: 0.0,
             mass,
             fuel_flow: 0.0,
+            engine_on: true,
             stall_time: f64::NEG_INFINITY,
             buffet: false,
             cl0,
@@ -212,6 +216,15 @@ impl Aircraft {
         (cl0, cl_alpha, stick_centre_v, stick_centre_a, stick_centre_b)
     }
 
+    /// Engine on/off. Switching it off (a ground start) stops the engine at once: no thrust, RPM 0.
+    pub fn set_engine(&mut self, on: bool) {
+        self.engine_on = on;
+        if !on {
+            self.rpm.reset(self.t, 0.0);
+            self.aero_update();
+        }
+    }
+
     pub fn controls(&self) -> Controls {
         self.controls
     }
@@ -226,6 +239,9 @@ impl Aircraft {
             flaps: c.flaps.clamp(0.0, 1.0),
             ..c
         };
+        if c.throttle != self.controls.throttle {
+            self.engine_on = true;
+        }
         if c != self.controls {
             self.controls = c;
             self.flaps.set(self.t, c.flaps, 0.25);
@@ -248,8 +264,37 @@ impl Aircraft {
                 self.next_accel += ACCEL_PERIOD;
             }
         }
+        if self.on_ground {
+            self.steer(dt);
+        }
         self.t = end;
         self.ground_contact();
+    }
+
+    /// Nose-wheel steering (§7, `FUN_005b7a20`): yaw rate = clamp(input · V · K / 74.53, ±K) with
+    /// K = 20°/s (`DAT_00840864`, set at load by `0x5b7960` to 1° · 20), zero with the gear up and
+    /// below 1e-4 rad/s. The input is the rudder (`S+0x2ec`); the stick also steers on the ground,
+    /// as the original instructor explains (UNCERTAIN where the original merges them).
+    fn steer(&mut self, dt: f64) {
+        const K: f32 = 20.0 * std::f32::consts::PI / 180.0;
+        if !self.controls.gear_down {
+            return;
+        }
+        let input = (self.controls.rudder + self.controls.stick_x).clamp(-1.0, 1.0);
+        let (vel, _) = self.speed_at(self.t);
+        let v = dot(vel, self.ground_dir).max(0.0) as f32;
+        let rate = (input * v * K / 74.53).clamp(-K, K);
+        if rate.abs() < 1e-4 {
+            return;
+        }
+        // Positive input turns right (clockwise seen from above).
+        let a = -(rate as f64) * dt;
+        let (s, c) = a.sin_cos();
+        let d = self.ground_dir;
+        self.ground_dir = norm([d[0] * c - d[1] * s, d[0] * s + d[1] * c, 0.0]);
+        // Carry the velocity round with the wheels.
+        let t = self.t + dt;
+        self.ground_roll_update(t, self.lift.sample(t));
     }
 
     fn speed_at(&self, t: f64) -> (V3, f32) {
@@ -300,7 +345,7 @@ impl Aircraft {
     fn thrust_at(&self, alt: f32, mach: f32) -> (f32, f32, f32, u8) {
         let p = &self.params;
         let thr = self.controls.throttle;
-        if self.fuel.sample(self.t) <= 1e-5 {
+        if !self.engine_on || self.fuel.sample(self.t) <= 1e-5 {
             return (0.0, 0.0, 0.0, 0);
         }
         let (k, stage) = if p.has_afterburner {

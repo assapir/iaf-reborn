@@ -76,6 +76,14 @@ impl IafFlight {
         }
     }
 
+    /// Engine running or off (a ground start begins with the engine off).
+    #[func]
+    fn set_engine_on(&mut self, on: bool) {
+        if let Some(ac) = &mut self.aircraft {
+            ac.set_engine(on);
+        }
+    }
+
     #[func]
     fn step(&mut self, dt: f64) {
         if let Some(ac) = &mut self.aircraft {
@@ -112,6 +120,9 @@ impl IafFlight {
         d.set("buffet", s.buffet);
         d.set("over_g", s.over_g);
         d.set("on_ground", s.on_ground);
+        if let Some(ac) = &self.aircraft {
+            d.set("engine_on", ac.engine_on);
+        }
         d
     }
 }

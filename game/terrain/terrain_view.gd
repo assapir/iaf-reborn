@@ -1,7 +1,7 @@
 # Terrain fly-over with the original 2D F-16 cockpit and an external view of your jet.
 #   F1: cockpit   F2: external   C: toggle   V: panel up/down   PgUp/PgDn: slide panel   +/- or wheel: zoom
 #   Arrows: stick (sprung: hold to deflect, release to centre)   Z/X: rudder
-#   W/S: throttle   1..8: idle / 65 / 70 / 80 / 90 % / military / AB1 / AB2   G: gear   F: flaps   B: speed brake
+#   1..8: throttle presets idle / 65 / 70 / 80 / 90 % / military / AB1 / AB2 (1 also starts the engine)   0/9: throttle +/- 5 %   G: gear   F: flaps   B: brakes
 #   External: RMB-drag orbits the camera, wheel zooms.
 #   `godot --path game res://terrain/terrain_view.tscn -- [--mission 311] [--real] [--screenshot out.png]
 #        [--at X Y alt heading pitch [roll]] [--external]`
@@ -93,6 +93,9 @@ func _ready() -> void:
 		flight.set_gear_clearance(-h.position.y if h != null else 0.0)
 		if gear_down and mission_name != "":
 			flight.set_on_ground()
+			# A ground start begins with the engine off; any throttle change starts it (§8).
+			flight.set_controls(stick.x, stick.y, rudder, throttle, flaps, gear_down, brakes)
+			flight.set_engine_on(false)
 	var shot := args.find("--screenshot")
 	if shot >= 0:
 		_screenshot(args[shot + 1])
@@ -358,6 +361,16 @@ func _unhandled_input(event: InputEvent) -> void:
 				in_cockpit = false
 			KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8:
 				throttle = THROTTLE_PRESETS[event.keycode - KEY_1]
+			# "0" / "9": RPM +/- 5 % = throttle +/- 0.0925 (events 3/4, docs/flight-model.md §8).
+			KEY_0:
+				throttle = minf(throttle + 0.0925, 1.0)
+			KEY_9:
+				throttle = maxf(throttle - 0.0925, 0.0)
+			KEY_S:
+				cockpit.radar_mfd().radar_mode = 1  # radar standby (event 0x2c)
+			KEY_W:
+				var n: int = maxi(cockpit.waypoints.size(), 1)
+				cockpit.current_waypoint = posmod(cockpit.current_waypoint + (-1 if event.shift_pressed else 1), n)
 			KEY_G:
 				_toggle_gear()
 			KEY_F:
@@ -416,7 +429,7 @@ func _process(delta: float) -> void:
 	var ground_h = terrain.height_at(p)
 	var agl := "" if ground_h == null else "  (%.0f m above ground)" % (p.y - ground_h)
 	var st2: Dictionary = cockpit.state
-	hud_label.text = "%s%s   x %.1f km  y %.1f km  alt %.0f m%s   %d kt  %.1f g  thr %d%%%s%s%s   %d fps\n[F1] cockpit  [F2] external  [C] toggle  [V/PgUp/PgDn] panel  [+/-] zoom  [arrows] stick  [Z/X] rudder  [W/S, 1-8] throttle  [G] gear  [F] flaps  [B] brake" % [
+	hud_label.text = "%s%s   x %.1f km  y %.1f km  alt %.0f m%s   %d kt  %.1f g  thr %d%%%s%s%s   %d fps\n[F1] cockpit  [F2] external  [C] toggle  [V/PgUp/PgDn] panel  [+/-] zoom  [arrows] stick  [Z/X] rudder  [1-8, 0/9] throttle  [G] gear  [F] flaps  [B] brake" % [
 		"REAL DATA" if real_data else "ORIGINAL 1998 DATA", ("   mission: " + mission_name) if mission_name != "" else "", p.x / 1000.0, p.z / 1000.0, p.y, agl, st2.speed_kt, st2.g, int(throttle * 100),
 		"  GEAR" if gear_down else "", "  FLAPS" if flaps > 0 else "", "  BRAKE" if brakes else "", Engine.get_frames_per_second()]
 
@@ -445,6 +458,4 @@ func _read_controls(delta: float) -> void:
 			stick[i] = move_toward(stick[i], 0.0, STICK_RETURN * delta)
 	var want_rudder := float(Input.is_key_pressed(KEY_X)) - float(Input.is_key_pressed(KEY_Z))
 	rudder = move_toward(rudder, want_rudder, (STICK_RATE if want_rudder != 0.0 else STICK_RETURN) * delta)
-	if Input.is_key_pressed(KEY_W): throttle = min(throttle + 0.3 * delta, 1.0)
-	if Input.is_key_pressed(KEY_S): throttle = max(throttle - 0.3 * delta, 0.0)
 
