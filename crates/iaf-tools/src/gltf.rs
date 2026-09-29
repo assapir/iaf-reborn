@@ -13,6 +13,7 @@ use iaf_formats::model::{Frame, Material, Mesh, Model};
 use image::RgbaImage;
 use serde_json::{Value, json};
 
+use crate::smooth::{self, Tri};
 use crate::upscale::Upscaler;
 
 /// Palette colour the original engine treats as transparent.
@@ -55,6 +56,8 @@ pub fn load_texture(path: &Path) -> Result<(RgbaImage, bool)> {
 #[derive(Default)]
 struct Builder<'a> {
     upscaler: Option<&'a Upscaler>,
+    /// Smooth normals + Phong tessellation (see [`smooth`]).
+    smooth: bool,
     bin: Vec<u8>,
     buffer_views: Vec<Value>,
     accessors: Vec<Value>,
@@ -192,36 +195,54 @@ impl Builder<'_> {
     }
 
     fn mesh(&mut self, mesh: &Mesh, dirs: &[PathBuf], out_dir: &Path) -> Option<usize> {
-        // Split by material; un-index to (vertex, normal) pairs so normals stay per-corner.
-        let mut groups: Vec<(u32, Vec<[f32; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>, Vec<u32>, HashMap<(u32, u32), u32>)> =
-            Vec::new();
+        // Triangle soup in glTF space (Z mirrored, winding reversed), per-corner normals.
+        let mut tris = Vec::new();
         for (fi, face) in mesh.faces.iter().enumerate() {
-            let mat = mesh.face_materials.get(fi).copied().unwrap_or(0);
-            let gi = match groups.iter().position(|g| g.0 == mat) {
+            let fnorm = mesh.face_normals.get(fi);
+            let corner = |k: usize| {
+                let v = face[k] as usize;
+                let [x, y, z] = mesh.positions[v];
+                let n = fnorm.and_then(|f| f.get(k)).and_then(|&n| mesh.normals.get(n as usize));
+                let [nx, ny, nz] = n.copied().unwrap_or([0.0, 1.0, 0.0]);
+                ([x, y, -z], [nx, ny, -nz], mesh.uvs.get(v).copied().unwrap_or([0.0, 0.0]))
+            };
+            // Fan-triangulate polygons.
+            for k in 1..face.len().saturating_sub(1) {
+                let (a, b, c) = (corner(0), corner(k + 1), corner(k));
+                tris.push(Tri {
+                    p: [a.0, b.0, c.0],
+                    n: [a.1, b.1, c.1],
+                    uv: [a.2, b.2, c.2],
+                    material: mesh.face_materials.get(fi).copied().unwrap_or(0),
+                });
+            }
+        }
+        if self.smooth {
+            tris = smooth::refine(&tris);
+        }
+
+        // Split by material, sharing identical corners.
+        let mut groups: Vec<(u32, Vec<[f32; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>, Vec<u32>, HashMap<[u32; 8], u32>)> =
+            Vec::new();
+        for t in &tris {
+            let gi = match groups.iter().position(|g| g.0 == t.material) {
                 Some(i) => i,
                 None => {
-                    groups.push((mat, vec![], vec![], vec![], vec![], HashMap::new()));
+                    groups.push((t.material, vec![], vec![], vec![], vec![], HashMap::new()));
                     groups.len() - 1
                 }
             };
             let g = &mut groups[gi];
-            let fnorm = mesh.face_normals.get(fi);
-            let mut corner = |k: usize| -> u32 {
-                let v = face[k];
-                let n = fnorm.and_then(|f| f.get(k)).copied().unwrap_or(u32::MAX);
-                *g.5.entry((v, n)).or_insert_with(|| {
-                    let [x, y, z] = mesh.positions[v as usize];
-                    g.1.push([x, y, -z]);
-                    let [nx, ny, nz] = mesh.normals.get(n as usize).copied().unwrap_or([0.0, 1.0, 0.0]);
-                    g.2.push([nx, ny, -nz]);
-                    g.3.push(mesh.uvs.get(v as usize).copied().unwrap_or([0.0, 0.0]));
+            for c in 0..3 {
+                let k = [t.p[c][0], t.p[c][1], t.p[c][2], t.n[c][0], t.n[c][1], t.n[c][2], t.uv[c][0], t.uv[c][1]]
+                    .map(f32::to_bits);
+                let idx = *g.5.entry(k).or_insert_with(|| {
+                    g.1.push(t.p[c]);
+                    g.2.push(t.n[c]);
+                    g.3.push(t.uv[c]);
                     (g.1.len() - 1) as u32
-                })
-            };
-            // Fan-triangulate polygons.
-            for k in 1..face.len().saturating_sub(1) {
-                let tri = [corner(0), corner(k + 1), corner(k)];
-                g.4.extend(tri);
+                });
+                g.4.push(idx);
             }
         }
         if groups.is_empty() {
@@ -291,9 +312,10 @@ pub fn write_model(
     texture_dirs: &[PathBuf],
     out_dir: &Path,
     upscaler: Option<&Upscaler>,
+    smooth: bool,
 ) -> Result<Vec<String>> {
     fs::create_dir_all(out_dir)?;
-    let mut b = Builder { upscaler, ..Default::default() };
+    let mut b = Builder { upscaler, smooth, ..Default::default() };
     let roots: Vec<usize> = model.frames.iter().map(|f| b.frame(f, &model.frames, texture_dirs, out_dir)).collect();
     let bin_name = format!("{name}.bin");
     let doc = json!({

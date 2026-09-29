@@ -37,6 +37,12 @@ func _ready() -> void:
 		if args.size() > shot + 2:
 			index = max(models.find(_path_for(args[shot + 2])), 0)
 			_load()
+		var dist := args.find("--distance")
+		if dist >= 0:
+			distance = float(args[dist + 1])
+		var ang := args.find("--yaw")
+		if ang >= 0:
+			yaw = float(args[ang + 1])
 		for i in 10:
 			await get_tree().process_frame
 		get_viewport().get_texture().get_image().save_png(args[shot + 1])
