@@ -19,11 +19,13 @@ fn to_godot(v: [f64; 3]) -> Vector3 {
 #[godot_api]
 impl IafFlight {
     /// Loads `section` (e.g. "F-16") from `<install>/resource/md` and starts airborne at `position`
-    /// (Godot frame), `heading_deg` (clockwise from north) and `speed` (m/s). Returns an error string
-    /// or "" on success.
+    /// (Godot frame), `heading_deg` (clockwise from north) and `speed` (m/s). `real_data` picks the
+    /// corrected real-world data set instead of the original 1998 numbers (chosen before the flight).
+    /// Returns an error string or "" on success.
     #[func]
-    fn start(&mut self, install: GString, section: GString, position: Vector3, heading_deg: f64, speed: f64) -> GString {
-        match iaf_flight::load(std::path::Path::new(&install.to_string()), &section.to_string()) {
+    fn start(&mut self, install: GString, section: GString, position: Vector3, heading_deg: f64, speed: f64, real_data: bool) -> GString {
+        let set = if real_data { iaf_flight::DataSet::Real } else { iaf_flight::DataSet::Original };
+        match iaf_flight::load_with(std::path::Path::new(&install.to_string()), &section.to_string(), set) {
             Ok((params, envelope)) => {
                 let enu = [position.x as f64, -position.z as f64, position.y as f64];
                 self.aircraft = Some(Aircraft::new(params, envelope, enu, (heading_deg as f32).to_radians(), speed as f32));

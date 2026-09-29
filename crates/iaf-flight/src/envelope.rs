@@ -41,6 +41,9 @@ impl Graph {
 pub struct Envelope {
     graphs: Vec<Graph>,
     pub altitude_step: f32,
+    /// Optional 1 g stall speed at sea level (m/s, true airspeed). When set, minimum speeds are
+    /// never below `floor·√|g|·√(ρ0/ρ)` — used by the "real data" set.
+    pub stall_floor: Option<f32>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -92,7 +95,7 @@ impl Envelope {
             gr.rows.push((SENTINEL_ALT, last_v));
         }
         graphs.sort_by_key(|g| g.g);
-        Self { graphs, altitude_step }
+        Self { graphs, altitude_step, stall_floor: None }
     }
 
     pub fn g_range(&self) -> (f32, f32) {
@@ -127,7 +130,11 @@ impl Envelope {
     /// Minimum speed (m/s) for load factor `g` at `alt` (`FUN_005b1fa0` / `FUN_005b2170`).
     pub fn vmin(&self, alt: f32, g: f32) -> f32 {
         let alt = alt.clamp(0.0, (self.ceiling(g) - 1.0).max(0.0));
-        self.between(g, |gr| gr.vmin(alt))
+        let table = self.between(g, |gr| gr.vmin(alt));
+        match self.stall_floor {
+            Some(v1) => table.max(v1 * g.abs().sqrt() * (1.225 / crate::atmosphere::air(alt).rho).sqrt()),
+            None => table,
+        }
     }
 
     /// Load-factor limit at `alt` and speed `v` for a commanded `g` (`FUN_005b2810`).

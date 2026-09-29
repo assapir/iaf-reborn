@@ -140,18 +140,7 @@ impl Aircraft {
     /// Airborne start at `position` (ENU), `heading` (rad, clockwise from north), `speed` (m/s).
     pub fn new(params: Params, envelope: Envelope, position: V3, heading: f32, speed: f32) -> Self {
         let p = &params;
-        // Load-time derived lift slope (§1): CL at α=0 and dCL/dα from the 1 g / max g minimum speeds.
-        let alt = 330.0;
-        let v1 = envelope.vmin(alt, 1.0);
-        let vg = envelope.vmin(alt, p.max_g_m1 + 1.0);
-        let (qs1, qs2) = (q_s(alt, v1, p.wing_area), q_s(alt, vg, p.wing_area));
-        let w = p.empty_mass * G;
-        let cl0 = w / qs2;
-        let cl_alpha = (w - qs1 * cl0) / (qs1 * p.max_pos_alpha);
-        // Stick-centre shift line (P.170 / P.174).
-        let stick_centre_v = envelope.vmin(3048.0, p.start_move_stick_center_g);
-        let stick_centre_a = (p.map_center_stick - 1.0) / (10.0 - stick_centre_v);
-        let stick_centre_b = p.map_center_stick - stick_centre_a * 10.0;
+        let (cl0, cl_alpha, stick_centre_v, stick_centre_a, stick_centre_b) = Self::derive(p, &envelope);
 
         let (s, c) = (heading as f64).sin_cos();
         let v = [(speed as f64 * s) as f32, (speed as f64 * c) as f32, 0.0];
@@ -198,6 +187,22 @@ impl Aircraft {
         ac.next_aero = AERO_PERIOD;
         ac.next_accel = ACCEL_PERIOD;
         ac
+    }
+
+    /// Load-time derived constants (§1): CL at α=0 and dCL/dα from the 1 g / max g minimum
+    /// speeds, and the stick-centre shift line (P.170 / P.174).
+    fn derive(p: &Params, envelope: &Envelope) -> (f32, f32, f32, f32, f32) {
+        let alt = 330.0;
+        let v1 = envelope.vmin(alt, 1.0);
+        let vg = envelope.vmin(alt, p.max_g_m1 + 1.0);
+        let (qs1, qs2) = (q_s(alt, v1, p.wing_area), q_s(alt, vg, p.wing_area));
+        let w = p.empty_mass * G;
+        let cl0 = w / qs2;
+        let cl_alpha = (w - qs1 * cl0) / (qs1 * p.max_pos_alpha);
+        let stick_centre_v = envelope.vmin(3048.0, p.start_move_stick_center_g);
+        let stick_centre_a = (p.map_center_stick - 1.0) / (10.0 - stick_centre_v);
+        let stick_centre_b = p.map_center_stick - stick_centre_a * 10.0;
+        (cl0, cl_alpha, stick_centre_v, stick_centre_a, stick_centre_b)
     }
 
     pub fn controls(&self) -> Controls {
@@ -396,6 +401,9 @@ impl Aircraft {
         let k = 1.0 / (std::f32::consts::PI * p.wing_span * p.wing_span / p.wing_area * 0.85);
         let brakes = self.speed_brakes.sample(t);
         let mut cd = p.plane_di + k * cl * cl + p.flaps_di * flaps * 3.415_883_8;
+        if p.wave_drag > 0.0 && mach > 0.9 {
+            cd += p.wave_drag * ((mach - 0.9) / 0.3).min(1.0);
+        }
         if c.gear_down {
             cd += p.gear_di;
         }

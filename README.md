@@ -74,5 +74,6 @@ Community mods (e.g. Hebrew briefings) can be imported as overlay packs — see 
 | W / S, 1–8 | throttle; presets idle, 65, 70, 80, 90 %, military, AB1, AB2 |
 | G / F / B | gear / flaps / speed brake |
 | F1 / F2 / C | cockpit / external / toggle |
+| `--real` (launch option) | fly the corrected real-world F-16 data instead of the original 1998 numbers |
 | V, PgUp / PgDn | panel down / slide panel |
 | + / −, wheel | cockpit zoom (external: orbit distance); RMB drag orbits in external view |

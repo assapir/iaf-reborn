@@ -53,6 +53,9 @@ pub struct Params {
     pub map_center_stick: f32,
     pub over_g_thresh: f32,
     pub envelope_file: String,
+    /// Transonic wave-drag rise (not in the original model; used by the real data set):
+    /// ΔCD grows linearly from Mach 0.9 to `wave_drag` at Mach 1.2 and stays there.
+    pub wave_drag: f32,
 }
 
 /// Wrap degrees to (-180, 180] then convert to radians (the original's "deg→rad*").
@@ -118,6 +121,7 @@ impl Params {
             map_center_stick: f("MapCenterStick", 0.0),
             over_g_thresh: f("OverGThresh", 6.7),
             envelope_file: s.get("FlightEnvelopeFile").unwrap_or("").to_string(),
+            wave_drag: 0.0,
         }
     }
 }

@@ -3,7 +3,8 @@
 #   Arrows: stick (sprung: hold to deflect, release to centre)   Z/X: rudder
 #   W/S: throttle   1..8: idle / 65 / 70 / 80 / 90 % / military / AB1 / AB2   G: gear   F: flaps   B: speed brake
 #   External: RMB-drag orbits the camera, wheel zooms.
-#   `godot --path game res://terrain/terrain_view.tscn -- --screenshot out.png [--at x z alt heading pitch [roll]] [--external]`
+#   `godot --path game res://terrain/terrain_view.tscn -- [--real] [--screenshot out.png] [--at x z alt heading pitch [roll]] [--external]`
+#   --real: fly the corrected real-world F-16 data instead of the original 1998 numbers.
 #   (angles in degrees for --at)
 # The aircraft is the original IAF F-16 flight model (Rust, crates/iaf-flight) via the IafFlight class.
 extends Node3D
@@ -21,6 +22,7 @@ const SCREENSHOT_TIMEOUT_MS := 20000
 
 var looking := false
 var flight = null  # IafFlight
+var real_data := false
 var stick := Vector2.ZERO  # x roll right+, y pull+
 var rudder := 0.0
 var throttle := 0.74
@@ -89,7 +91,8 @@ func _start_flight() -> void:
 	var install := ProjectSettings.globalize_path("res://").path_join("../assets/install").simplify_path()
 	var fwd := -rig.global_basis.z
 	var heading := fposmod(rad_to_deg(atan2(fwd.x, -fwd.z)), 360.0)
-	var err: String = flight.start(install, "F-16", rig.position, heading, 180.0)
+	real_data = OS.get_cmdline_user_args().has("--real")
+	var err: String = flight.start(install, "F-16", rig.position, heading, 180.0, real_data)
 	if err != "":
 		push_error("flight model: " + err)
 		flight = null
@@ -190,8 +193,8 @@ func _process(delta: float) -> void:
 	var ground_h = terrain.height_at(p)
 	var agl := "" if ground_h == null else "  (%.0f m above ground)" % (p.y - ground_h)
 	var st2: Dictionary = cockpit.state
-	hud_label.text = "x %.1f km  y %.1f km  alt %.0f m%s   %d kt  %.1f g  thr %d%%%s%s%s   %d fps\n[F1] cockpit  [F2] external  [C] toggle  [V/PgUp/PgDn] panel  [+/-] zoom  [arrows] stick  [Z/X] rudder  [W/S, 1-8] throttle  [G] gear  [F] flaps  [B] brake" % [
-		p.x / 1000.0, p.z / 1000.0, p.y, agl, st2.speed_kt, st2.g, int(throttle * 100),
+	hud_label.text = "%s   x %.1f km  y %.1f km  alt %.0f m%s   %d kt  %.1f g  thr %d%%%s%s%s   %d fps\n[F1] cockpit  [F2] external  [C] toggle  [V/PgUp/PgDn] panel  [+/-] zoom  [arrows] stick  [Z/X] rudder  [W/S, 1-8] throttle  [G] gear  [F] flaps  [B] brake" % [
+		"REAL DATA" if real_data else "ORIGINAL 1998 DATA", p.x / 1000.0, p.z / 1000.0, p.y, agl, st2.speed_kt, st2.g, int(throttle * 100),
 		"  GEAR" if gear_down else "", "  FLAPS" if flaps > 0 else "", "  BRAKE" if brakes else "", Engine.get_frames_per_second()]
 
 

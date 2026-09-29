@@ -8,7 +8,7 @@
 use std::path::PathBuf;
 
 use iaf_flight::atmosphere::air;
-use iaf_flight::{Aircraft, Controls, State};
+use iaf_flight::{Aircraft, Controls, DataSet, State};
 
 const KT: f32 = 1.943844; // m/s → kt
 const FT: f32 = 3.28084; // m → ft
@@ -20,8 +20,12 @@ fn install() -> Option<PathBuf> {
     p.join("resource/md/bd.ibx").is_file().then_some(p)
 }
 
+thread_local! {
+    static SET: std::cell::Cell<DataSet> = const { std::cell::Cell::new(DataSet::Original) };
+}
+
 fn f16(alt_ft: f32, speed_kt: f32) -> Option<Aircraft> {
-    let (params, envelope) = iaf_flight::load(&install()?, "F-16").ok()?;
+    let (params, envelope) = iaf_flight::load_with(&install()?, "F-16", SET.get()).ok()?;
     Some(Aircraft::new(params, envelope, [0.0, 0.0, (alt_ft / FT) as f64], 0.0, speed_kt / KT))
 }
 
@@ -53,6 +57,13 @@ fn verdict(value: f32, lo: f32, hi: f32) -> &'static str {
 
 #[test]
 fn f16_against_public_data() {
+    for set in [DataSet::Original, DataSet::Real] {
+        SET.set(set);
+        report(set);
+    }
+}
+
+fn report(set: DataSet) {
     let Some(mut probe) = f16(10000.0, 350.0) else {
         eprintln!("skipped: no extracted game data (assets/install)");
         return;
@@ -80,12 +91,23 @@ fn f16_against_public_data() {
     let dz = (s.position[2] - s0.position[2]) as f32 * FT;
     rows.push(Row { item: "neutral stick, 60 s @10k ft", iaf: format!("alt change {dz:+.0} ft, {:.0} kt", s.speed * KT), real: "holds altitude (1 g hold)", verdict: if dz.abs() < 300.0 { "ok" } else { "OFF" } });
 
-    // Maximum level speed (full AB, neutral stick holds the flight path).
+    // Maximum level speed (full AB, neutral stick holds the flight path): peak while fuel lasts.
     for (alt, lo, hi, real) in [(0.0, 780.0, 800.0, "~795 kt (Mach 1.2)"), (40000.0, 1100.0, 1180.0, "~1,150 kt (Mach 2.0)")] {
         let mut ac = f16(alt, 500.0).unwrap();
-        let s = fly(&mut ac, ab, 600.0);
-        let mach = s.speed / air(s.position[2] as f32).sound;
-        rows.push(Row { item: if alt == 0.0 { "max level speed, SL" } else { "max level speed, 40k ft" }, iaf: format!("{:.0} kt (Mach {mach:.2}), alt {:+.0} ft", s.speed * KT, s.position[2] as f32 * FT - alt), real, verdict: verdict(s.speed * KT, lo, hi) });
+        ac.set_controls(ab);
+        let mut best = ac.state();
+        for _ in 0..(600 * 60) {
+            ac.step(1.0 / 60.0);
+            let s = ac.state();
+            if s.fuel_kg <= 0.0 {
+                break;
+            }
+            if s.speed > best.speed {
+                best = s;
+            }
+        }
+        let mach = best.speed / air(best.position[2] as f32).sound;
+        rows.push(Row { item: if alt == 0.0 { "max level speed, SL" } else { "max level speed, 40k ft" }, iaf: format!("{:.0} kt (Mach {mach:.2}) after {:.0} s, alt {:+.0} ft", best.speed * KT, best.time, best.position[2] as f32 * FT - alt), real, verdict: verdict(best.speed * KT, lo, hi) });
     }
 
     // Roll: time to 90° from wings level, full stick, 350 kt @ 10k ft.
@@ -104,14 +126,22 @@ fn f16_against_public_data() {
     }
     rows.push(Row { item: "roll 0→90°, 350 kt @10k ft", iaf: format!("{t90:.2} s, peak {peak:.0} deg/s"), real: "~0.5 s (240-300 deg/s)", verdict: verdict(t90, 0.35, 0.6) });
 
-    // Instantaneous turn: full pull at 350 kt @ 10k ft, measure heading rate over 2..3 s.
-    let mut ac = f16(10000.0, 350.0).unwrap();
-    fly(&mut ac, Controls { stick_x: 1.0, ..mil }, 0.6);
-    let pull = Controls { stick_y: 1.0, ..mil };
-    let a = fly(&mut ac, pull, 2.0);
-    let b = fly(&mut ac, pull, 1.0);
+    // Instantaneous turn: full pull at ~390 KCAS (420 kt true) @ 10k ft, heading rate over 2..3 s.
+    let mut ac = f16(10000.0, 420.0).unwrap();
+    // Hold ~80° of bank with a simple bank controller (like a pilot would), full pull.
+    let mut hold_bank = |ac: &mut Aircraft, pull: f32, seconds: f64| {
+        for _ in 0..(seconds * 60.0) as usize {
+            let roll = ac.state().roll.to_degrees();
+            ac.set_controls(Controls { stick_x: ((80.0 - roll) / 40.0).clamp(-1.0, 1.0), stick_y: pull, ..mil });
+            ac.step(1.0 / 60.0);
+        }
+        ac.state()
+    };
+    hold_bank(&mut ac, 0.0, 3.0);
+    let a = hold_bank(&mut ac, 1.0, 2.0);
+    let b = hold_bank(&mut ac, 1.0, 1.0);
     let turn = ((b.heading - a.heading).rem_euclid(std::f32::consts::TAU)).to_degrees();
-    rows.push(Row { item: "instantaneous turn, 350 kt @10k ft", iaf: format!("{turn:.1} deg/s at {:.1} g, AoA {:.1}°", b.g, b.alpha.to_degrees()), real: "~20-26 deg/s at 9 g", verdict: verdict(turn, 18.0, 26.0) });
+    rows.push(Row { item: "instantaneous turn, 420 kt TAS @10k ft", iaf: format!("{turn:.1} deg/s at {:.1} g, bank {:.0}°", b.g, b.roll.to_degrees()), real: "~20-26 deg/s at 9 g", verdict: verdict(turn, 18.0, 26.0) });
 
     // Specific excess power at SL, 350 kt, full AB (instant climb rate).
     let mut ac = f16(0.0, 350.0).unwrap();
@@ -132,9 +162,10 @@ fn f16_against_public_data() {
     rows.push(Row { item: "fuel flow military, SL", iaf: format!("{f_mil:.0} lb/h"), real: "~9,000-12,000 lb/h", verdict: verdict(f_mil, 9000.0, 12000.0) });
     rows.push(Row { item: "fuel flow full AB, SL", iaf: format!("{f_ab:.0} lb/h"), real: "~50,000-65,000 lb/h", verdict: verdict(f_ab, 50000.0, 65000.0) });
 
-    println!("\n F-16 (original IAF data) vs public references");
+    println!("\n F-16 ({set:?} data set) vs public references");
     println!(" {:<36} {:<44} {:<46} {}", "test", "IAF model", "real F-16 (approx., public sources)", "");
     for r in &rows {
         println!(" {:<36} {:<44} {:<46} {}", r.item, r.iaf, r.real, r.verdict);
     }
 }
+

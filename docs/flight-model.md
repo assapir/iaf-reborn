@@ -299,3 +299,11 @@ found; UNCERTAIN). Key names are loaded from `keys.trx` into `0x82eea8` (100-byt
 * **Envelope** (§3): linear interpolation within/between g-graphs instead of the 3-point plane fit.
 * Not yet ported: AB light-up delay, departure/spin modes (§6 other modes), engine damage flags, stores drag.
 * Validation against public F-16 data: `cargo test --release -p iaf-flight --test validation -- --nocapture`.
+
+## 11. Data sets (`crates/iaf-flight/src/data_set.rs`) — chosen before the flight
+* **Original**: the 1998 numbers as shipped.
+* **Real** (F-16 only so far): empty 19,000 lb; thrust table ×1.5 (F110-GE-100, ~17.4k/29k lbf SL);
+  1 g stall floor 118 kt (Vmin ≥ 118·√g·√(ρ0/ρ) kt → ~355 kt corner); roll 280 deg/s with 900 deg/s²
+  start/stop (FLCS ~0.3 s time constant; the original's 170 deg/s² stop overshoots ~1 s); fuel flow
+  16.5 lb/s at full AB (~60k lb/h, ~11k lb/h military); transonic wave drag ΔCD 0 → 0.02 over Mach 0.9–1.2.
+* In-game: `--real` launch option (pre-flight menu later).
