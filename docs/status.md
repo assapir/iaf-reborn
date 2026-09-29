@@ -37,6 +37,7 @@ from Ramat David** in the original F-16 with the original 2D cockpit, everything
 9. Gear lever: ground / 300 kt rules enforced; leg timing (2 s), gear sound and weapon-release lock not yet (docs/flight-model.md §12).
 11. g on the ground now reads 1.0 (display only; the original's ground readout is not traced — flagged to the user).
 12. Nose-wheel steering follows the original formula: slow at taxi speed (≈1–3°/s at 10–20 kt, 20°/s only at 145 kt). Candidate for the "better physics" option (asked the user).
+14. Original quirk kept (flight-model.md §14.5): above ~40 kt on the runway, any stick X multiplies the vertical lift by 4 (|Fc| > 0.1·L) — steering corrections can hop the jet off early. Asked the user whether the real-aircraft mode should drop it.
 13. No ground effect (not in the original model either). Decided: add it later behind a separate "better physics" option, not in the "real data" set.
 13. Cockpit lights not drawn (gear lights, warning lights; docs/cockpit.md lists the light bitmaps).
 

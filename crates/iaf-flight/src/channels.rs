@@ -86,6 +86,12 @@ impl Angle {
         }
     }
 
+    /// Re-base at `now` with angle `pos`, keeping the current rate and target rate.
+    pub fn reset_angle(&mut self, now: f64, pos: f64) {
+        let target = self.target_rate;
+        self.set(now, pos, target);
+    }
+
     /// Re-base at `now` with position `pos` and aim for `target_rate`.
     pub fn set(&mut self, now: f64, pos: f64, target_rate: f32) {
         let (_, rate) = self.sample(now);
@@ -131,6 +137,11 @@ impl Axis {
     pub fn set(&mut self, now: f64, a: f32) {
         let (p, v) = self.sample(now);
         *self = Self { p0: p, t0: now, v, a };
+    }
+
+    /// Current (constant) acceleration.
+    pub fn accel(&self) -> f32 {
+        self.a
     }
 
     pub fn set_state(&mut self, now: f64, p: f64, v: f32, a: f32) {

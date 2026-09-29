@@ -529,3 +529,233 @@ colour `ARGB(a, r, g, b)` (colour built @419f7a).
   exhaustively.) The `BACKSEAT_HEAVY_BREATH` and
   `BACKSEAT_OH_YOU_KILLING_ME` voices (category 0x36, ids 1/2) are defined in soundprop.txt, but no code
   that plays them was found (no 0x3600x000 codes and no `FUN_00450690(0x36,…)`).
+
+## 14. Port audit (ground roll and lift)
+
+Source: `objdump -d -M intel` of `iafjets.exe`; stack arguments were mapped by tracking every push (the
+Ghidra listing of these calls is shifted by one argument). Constants were read from `.rdata`/`.data`, and the
+CRT initialiser table `0x6236f0..0x623740` was checked for load-time writes. In this section `sY` = stick Y
+`S+0x2e4` (+ = pull), `sX` = stick X `S+0x2e8`, `W = m·9.806`, and `c_f = FlapsLiftCoef·flaps·3.4158838`.
+
+### 14.1 Call graph and argument mapping
+* `5a42e0` (aero update, 1 Hz + every control event) → `5b0a20(33 args)`. Arg 6 = `S+0x2a0` (ground flag)
+  and arg 7 = departure latch (`S+0x2f8` ≠ −1 and `now − S+0x2f8 ≤ 3.0`).
+* Ground branch: `5b0a20` → `5b7a20(30 args)`. 7a20 arg k = b0a20 arg k for k ≤ 5, arg k+2 for 6 ≤ k ≤ 26, and
+  arg k+3 for k ≥ 27. The latch (b0a20 arg 7) is dropped.
+  7a20 args: 1 alt, 2 V=|v|, 5 &attitude(pitch,roll,heading), 6 engine on (`S+0x1d0`), 7 &cfg, 8 extra mass
+  (`S+0x424`+fuel), 9 stores DI, 13 sY, 14 sX, 15 rudder (unused), 16 vehicle.
+  Outputs: 19 nose-wheel yaw, 20 roll-rate cmd, 24 L, 25 dragX, 26 stall flag, 27 Lnoflap, 28 T, 29 D, 30 m.
+* `cfg` (built in 5a42e0): `[0]` flaps (float, `S+0x300` ramp) and `[6]` = 1 only when the `S+0x360` ramp has
+  finished at its maximum (speed brakes in the air, wheel brakes on the ground; int). `[7]` = (`S+0x2cc`==2)
+  gear down, and `[8]` = hook.
+* After b0a20, 5a42e0 sets `S+0x1d4`=T, `S+0x1dc`=D, `S+0x1d8`=m, ramp `S+0x1e0`→L and ramp `S+0x200`→Lnoflap
+  (rates as §4). It passes the stall flag to `5a7050` (latch). It also calls the acceleration routine
+  `5b0e20` (@5a4a17) with the lift ramp value sampled *before* the new target is set, and re-bases the X/Y/Z
+  axes (@5a4e56–5a4f4a). **So every aero update and every control event also changes the acceleration at
+  once**, not only the 5 Hz tick.
+* On the ground, 5a42e0 skips the beta update `5a78f0`. Instead it ramps `S+0x2a8` toward the nose-wheel yaw
+  (arg 19) at rate `S+0x2b8` = 10000/s (init @5b70d2, `0x60e164`), so the ramp is in effect instant.
+
+### 14.2 `FUN_005b7a20` ground aero (ret 0x78)
+```
+ai   = FUN_005c58a0(veh+0xc50) != 0
+team = see 5b0a20 (only used by Lift for AI)
+mach, rho = atmos(alt, V);  qS = 0.5*rho*V²*WingArea            // 5b0f00, 5b1030
+T    = Thrust(alt, mach, V, thr=arg12, engineOn, noAB = ai, flags=arg11, &rpm,&ff,&stage)
+                    // NB: airborne passes noAB = !HasAfterBurner || (ai && mode∉{7,8}); ground passes ai
+m    = EmptyWeight(P+0x8c) + arg8;   *out_m = m
+L    = Lift(V, alt, mach, qS, m, sY, &att, cfg, latched=0, ai, team, &dragX, &stall, &dummyVib, &Lnoflap)
+easy = pref+0x20 || pref+0x1c         (both forced 0 in multiplayer)
+L    = 0.5*L;   L = L + |L|*c_f                              // @5b7bdd, 0x60e594=0.5, 0x60e598=−3.4158838
+      // Lift() already added |L|*c_f when V<125, so on the ground flaps count TWICE:
+      // L = 0.5*g*W*(1+c_f)²   (g>0, V<125)
+if !((V > 74.53 || sY > 0.5) && (cfg[7] || ai || multiplayer || pref+0x3c || easy)):
+      L = 0; Lnoflap = 0; stall = 0                          // @5b7c66
+mu   = cfg[6]*WheelsBrakeDI*(ai ? 2 : 1) + fric1             // fric1 = DAT_0084083c, see below
+if !cfg[7] && !ai && !easy: mu = 20.0                        // belly (replaces, not adds)
+D    = Drag(V, alt, n = L/W, mach, qS, alpha = 0, cfg, storesDI, dragX, stall, ai, m)
+     + 0.5*mu*(W − L)
+D    = D > 0 ? D : 0;   if V > 1.0: D *= 0.7
+T    = max(T, 0)
+yaw  = clamp(sX*V*K/74.53, −K, K);  if !cfg[7]: yaw = 0;  if |yaw| < 1e-4: yaw = 0   // K = 0.3490659
+out_rollRateCmd = 0
+```
+**Load-time initialiser (not in Ghidra):** `DAT_0084083c` = `fric1` is **not 0**. CRT table entry `0x623720`
+→ `0x5b7710` → @5b7720 calls `FUN_004d3440("TAXI", "fric1", 0.25, 0)`, which reads `IAF.ibx`.
+`install/iaf.ibx` `[TAXI] fric1=0.05`, so fric1 = 0.05, a rolling friction that is always on:
+`0.5·0.05·(W − L)`. `fric2` (0.30, `0x840840`) is loaded the same way but never read.
+Other TAXI keys (`DistFromGround` 0x840854, `GearSize` 0x840858, keys at 0x840860 and 0x84086c) are not used here.
+Constants: 74.53 `0x60e568`, 0.5 `0x60e594`, 2.0 `0x60e580` (AI brake factor), 1.0 `0x60e59c`,
+20.0 `0x60e584`, 9.806 `0x60e5a0`, 0.7 `0x60e5a4`, 0 `0x60e590`, 1e-4 (double) `0x60e5a8`.
+
+### 14.3 `FUN_005b13a0` Lift (shared, ret 0x3c)
+Args: V, alt, mach, qS, m, sY, &att, cfg, latched, ai, team, &dragX, &stall, &vib, &Lnoflap.
+```
+bStall = !ai ? (multiplayer || pref+0x38 == 0) : !(pref+0x50 == 2 && team)
+if latched && bStall: dragX=1.2; Lnoflap=0; return 0                     // ground always passes latched=0
+dragX = stall = vib = 0;  lim = 0
+c = V < P+0x144 ? P+0x170*V + P+0x174 : 1
+g = sY > 0 ? c + sY*(P+0xc8) : c + (−sY)*((P+0xcc + 1) − c)             // P+0xc8=MaxG−1, P+0xcc=MinG−1
+g_cmd = g
+if |g − 1| < 1e-5 && |att.roll| < P+0xdc(10°): g_cmd = g = cos(att.pitch)/cos(att.roll)
+if UseFlightLimits(P+0x88):
+   code = GLimit(alt, V, g, &lim)                                       // 5b2810, jump table 0x5b171c
+   0: dragX=1.2; bStall ? (g=0, stall=1) : g=min(0.4, g_cmd)
+   1: g = 0          (5b2810 never returns 1)
+   2: dragX=1.2; bStall ? (g=0, stall=1) : g=0.4                        // flat 0.4, not min()
+   3: g unchanged
+   4: if g_cmd > 0:  r = g_cmd;  if lim <= g_cmd { dragX=(g_cmd−lim)/(P+0xc8+1); r=lim }
+                     if !bStall { r = max(r, 0.4); if g_cmd < 0.4: r = g_cmd }
+      else:          r = max(g_cmd, lim)
+      g = r
+if !multiplayer && pref+0x50==0 && ai && team && g > 4.3: g = 4 + 0.02*g²
+Lnoflap = g*m*9.806
+if lim <= StartVibsG(P+0x160) && code==4 && g_cmd > 0 && P+0x84 && !ai: vib = 1
+L = Lnoflap;  if V < 125: L += |L|*c_f
+return L
+```
+Inputs: sY (via the stick-centre line and MaxG/MinG), the attitude (1 g hold only), V and alt (stick-centre
+line and envelope), m, flaps. **The inputs do not include the AoA or the α channel.** `mach` and `qS` are
+passed but not read.
+
+`GLimit` `FUN_005b2810(alt, V, g, &lim)`: `k = max(0, ftol(alt/step))`. Use the g>0 list `E+0x44` (count
+`E+0x48`) if g > 0, else the g≤0 list `E+0x58` (count `E+0x5c`).
+* `k+1 > count−1` → code 2, lim = −1.
+* `a = 5b3330(list[k], V)` and `b = 5b3330(list[k+1], V)` (>0 means V is above all points, <0 below all,
+  0 bracketed).
+* `a > 0`: if `Ceiling(g) ≥ alt` → code 3 (lim = g), else code 4 with `lim = 5b2770(g, alt)`.
+* `a ≤ 0`: if `b < 0` or `a < 0` → code 0 (lim = −1). Otherwise code 4 with lim = plane fit `5b2a90`,
+  forced to 0 if g > 0 and lim < 0, or if g < 0 and lim > 0.
+
+### 14.4 `FUN_005b1730` Drag (ret 0x30) and `FUN_005b1050` Thrust (ret 0x28)
+```
+Drag(V, alt, n, mach, qS, alpha, cfg, storesDI, dragX, stall, ai, m):     // dragX, stall unused
+  CD = PlaneDI + cfg[6]*SpeedBrakesDI + cfg[8]*HookDI + cfg[7]*GearDI*(ai ? 0 : 1)
+       + FlapsDI*cfg[0]*3.4158838 + storesDI + K*CL²
+  CL = qS > 0 ? cos(alpha)*m*n*9.806/qS : 0;   K = 1/(π*Span²/Area*0.85)
+  return CD*qS
+```
+On the ground `cfg[6]` (wheel brakes) therefore also adds **SpeedBrakesDI** to the aerodynamic drag.
+`Thrust` matches §4.1: a = clamp(alt·5e-5, 0, 1), M = clamp(mach·0.8333, 0, 1), `noAB` = arg 6. `noAB`:
+`k=(thr−0.2)·1.25`, and the stage still follows thr (0.75/0.875). rpm = 0.6+0.4·thr·1.3513514 (0 when off).
+ff = thr·FFmax, ×0.25 if k ≤ 0.6. The result ×4.4479 is not clamped here; only 7a20 clamps T ≥ 0.
+
+### 14.5 Ground acceleration `FUN_005b7e40` (via `5b0e20` → `5b1860` when ground)
+`5b0e20` forces pitch = roll = 0 on the ground, so `M = 5b7580(0, 0, heading)`.
+`yaw` is `S+0x2a8` in the 5 Hz update (5b87d0 writes it into the beta slot) and arg 19 in the aero update.
+```
+R  = yaw == 0 ? 5.0 : V/(9.806*tan(yaw));   if |R| < 2: R = 2*sign(R)
+Fc = (V > 2 && yaw != 0) ? V²*m/R : 0           // = V*m*9.806*tan(yaw)
+f  = V < 25.736 ? 1.0 : |0.1 − 0.000777118*V|;  Fc *= f
+Lz = L_ramp(t)                                    // S+0x1e0 sample, not the new target
+if |Fc| > 0.1*Lz && V > 20.5889: Lz *= 4          // @5b7f37, 0x60e5cc=0.1, 0x60e5d4=4.0
+Fx = (V < 0.01 && T < D) ? 0 : T − D − |Fc|*0.0625
+F_body = (x = Fc, y = Fx, z = Lz);  Fw = 5b74d0(M, F_body)   // (-r1, r0, r2) as §5
+Fw.z = max(Fw.z − m*9.806, 0);  acc = Fw/m;  acc_body = 5b7440(M, acc)
+```
+Constants: 5.0 (imm 0x40a00000), 2.0 `0x60e5b8`, 25.736 `0x60e5c4`, 0.000777118 `0x60e5c8`,
+20.5889 `0x60e5d0`, 0.01 `0x60e5d8`, 0.0625 `0x60e5e0` (double), −9.806 `0x60e5e8`.
+The heading is not integrated anywhere. The lateral force turns the velocity, and the attitude (mode object,
+§6) takes its heading from the velocity.
+
+**Stop rule** (5 Hz `5a15e0` only, @5a1a07–5a1b8e, ground only): `v_b = 5b7440(M(0,0,heading), velocity)`.
+If `acc_body.y < 0` and `v_b.y + 0.2·acc_body.y < 0` (0x60dd30 = −0.2), then set `acc_body.y = 0`, recompute
+the world acceleration, and re-base **all three axes with v = 0** (position kept). The 1 Hz/event path (5a42e0)
+has no stop rule (UNCERTAIN: so between two 5 Hz ticks a large deceleration set by an event could briefly
+reverse the velocity).
+
+### 14.6 Air ↔ ground transitions — `FUN_005b87d0(now, &speed, &Z, &beta)`
+This function is called at the start of every 5 Hz tick (`5a15e0` @5a16fd) and nowhere per frame.
+`clear` = terrain(X,Y) (`402030`) + |model height| (`463310`). The Z axis limits are fixed at
+[−1500, 30000] (@5b6d6a), so nothing else clamps altitude.
+```
+if S+0x2a0 == 0:                                     // airborne
+   if Z > clear: *beta = S+0x280 ramp sample; return
+   // touchdown (@5b8b14)
+   S+0x2a0 = 1
+   if 5b85b0(τ, vz) (landing/crash check, UNCERTAIN): event 4a8280(…,5,…)
+   Z axis := (p = Z(τ), v = 0, a = unchanged a_z);  if clear in [−1500,30000]: p0 = clear, t0 = now
+   *Z = clear;  5a42e0(now)                          // aero update now runs the ground branch
+   non-runway / water / gear-up side effects (S+0x2c8 = 2 or 4, sounds, 441000)   (UNCERTAIN)
+if *Z > clear && vz > 0.001:                          // lift-off (@5b8d6c)
+   S+0x2a0 = 0;  5a42e0(now)                          // airborne branch, full lift, latch honoured
+   roll channel S+0x80 := (pos = 0, rate = current rate, targetRate = S+0x90)
+   *Z = Z sample, *speed = vtable+0x3c, *beta = S+0x280 sample;  S+0x2c8 = 0;  return
+// still on ground
+*beta = S+0x2a8 ramp sample (nose-wheel yaw); re-base S+0x2a8; crash checks for flags/speed > 25.736
+```
+* Touchdown: only vz is set to 0; the horizontal velocity, including any sideways part, is kept.
+  Lift-off: the velocity is unchanged, and only the roll angle is reset to 0 (its rate is kept).
+  There is no hysteresis: the jet lifts off as soon as the ground-mode vertical acceleration
+  `max(L' − W, 0)/m` has raised Z above `clear` with vz > 0.001 at a 5 Hz tick.
+* Velocity reversal: on the ground it is prevented by the stop rule, apart from the 1 Hz/event gap noted above.
+  In the air nothing prevents it. The heading always follows the velocity, so a reversed velocity would show
+  as a 180° heading flip.
+* Stall latch on the ground: Lift can return code 0 on the ground (for example sY > 0.5 below the g=0
+  Vmin). Then `stall = 1` and `5a7050` sets `S+0x2f8` even on the ground. The ground branch ignores the
+  latch, but the first airborne updates within 3 s get L = 0.
+* `5b1b90` (alpha target) returns 0 on the ground.
+
+### 14.7 Worked example (the bug report: F-16, V = 65.3 m/s = 127 kt, sea level, full aft, gear down, flaps up)
+Original: g_cmd ≈ 8.7 (stick-centre shift). GLimit gives code 4 with lim ≈ 1.65 (Vmin: 1 g = 86 kt,
+2 g = 148 kt). So g = 1.65 and L = 0.5·1.65·W ≈ 0.83 W. n = 0.83 and CL ≈ 1.17, so D ≈ (0.072 + 0.143)·qS
+≈ 15.6 kN, plus friction 0.43 kN, ×0.7 ≈ 11 kN. With T ≈ 86 kN the jet keeps accelerating and stays on the
+ground. Exception: nose-wheel steering. At this speed any sX gives |Fc| > 0.1·L, which multiplies the
+vertical lift by 4, and the jet lifts off.
+Port: g ≈ 8.7 with no envelope, so L = 4.33 W and n = 4.33, CL ≈ 6. Induced drag ≈ 280 kN (×0.7 ≈ 200 kN)
+exceeds the thrust, and az = 3.3 g. The jet decelerates hard and is thrown into the air. At 25 kt the original
+would give L = 0 (code 0, below 46 kt), but the port still gives 4.5 W.
+
+### 14.8 Mismatches, most important first (our file `crates/iaf-flight/src/aircraft.rs`)
+1. **Envelope skipped on the ground** (l. 429, `&& !self.on_ground`). Original: Lift runs GLimit on the ground
+   too (latched=0), so g ≤ lim(alt,V), and below Vmin(g=0) it gives g = 0 plus the stall flag. This is the
+   direct cause of the report (4.3–4.5 W of lift and matching induced drag at 25–127 kt).
+2. **Departure latch applied on the ground** (l. 411–413). Original: the ground call passes latched = 0. The
+   original also *sets* the latch from a code-0 result on the ground; the port never does (l. 429, 446).
+3. **Flaps counted once on the ground** (l. 452–460). Original: `L = 0.5·Lift(); L += |L|·c_f`, and Lift has
+   already added `|L|·c_f` when V < 125. The ground lift is `0.5·g·W·(1+c_f)²`.
+4. **Rolling friction fric1 = 0.05 missing** (l. 477). Original: `mu = brakeFlag·WheelsBrakeDI·(ai?2:1) + 0.05`
+   (IAF.ibx `[TAXI] fric1`, load-time initialiser). The port has mu = 0 without brakes. The doc's §7 claim
+   "DAT_0084083c = 0" is wrong.
+5. **Ground acceleration model** (`ground_roll_update` l. 568–588, `steer` l. 278–305):
+   * The port snaps the velocity to `ground_dir` and rotates `ground_dir` kinematically at the nose-wheel
+     rate, every frame. Original: a lateral force `Fc = V·m·g·tan(yaw)·f` (f = 1 below 25.7 m/s, else
+     |0.1 − 0.000777·V|, R ≥ 2 m) turns the velocity at 5 Hz/events, and the heading follows the velocity.
+   * The port omits the scrub `Fx −= |Fc|/16` and the rule `L_vertical ×4 when |Fc| > 0.1·L && V > 20.59`.
+   * The port's stop rule is `along < 0.05 && a < 0 → v=a=0` along the direction. Original:
+     `Fx = 0 if V < 0.01 && T < D`, plus the 5 Hz rule `a_fwd < 0 && v_fwd + 0.2·a_fwd < 0` → all three
+     velocities = 0 and a_fwd = 0.
+   * The port's steering speed is `dot(v, ground_dir)`. Original: |v|.
+6. **Transitions** (`ground_contact` l. 590–612, `step` l. 268–271). The port checks per frame. Original:
+   once per 5 Hz tick, before the forces are computed.
+   * Lift-off: the port uses `z > floor + 1.0` (an invented 1 m hysteresis). Original: `Z > clear && vz > 0.001`.
+   * Touchdown: the original sets vz = 0 and keeps a_z. The port uses `vz.max(0)` and a_z = 0, and it re-clamps
+     z and zeroes a_z every frame while z ≤ floor (l. 607).
+   * Roll: the port resets the roll channel completely at touchdown (l. 602–603). Original: roll is untouched
+     at touchdown, and at lift-off pos := 0 with the rate and target kept (the port does nothing at lift-off).
+7. **Aero update does not re-base the acceleration** (l. 391–506 vs `5a42e0` @5a4a17/5a4e56). Original: every
+   1 Hz update and every control event recomputes the acceleration (using the old lift-ramp sample and the
+   new T/D) and re-bases the axes at once. The port waits for the next 5 Hz tick.
+8. **Speed-brake drag excluded on the ground** (l. 475). Original: `cfg[6]` adds SpeedBrakesDI on the ground
+   too, as well as the wheel friction. `cfg[6]` is the 0/1 "ramp finished at max" flag; the port uses the
+   continuous ramp value (l. 467, 477).
+9. **Ground drag uses α ≠ 0** (l. 463–465). Original: alpha = 0 in the ground Drag call, so CL = L/qS.
+10. **Lnoflap not zeroed by the ground lift gate** (l. 457–458, 492). Original: the gate zeroes L,
+    Lnoflap and the stall flag, so the `S+0x200` ramp also goes to 0.
+11. **Alpha on the ground** (l. 520–533, 585). Original: alpha target = 0 (`5b1b90`), with normal dynamics.
+    The port computes the target from lift_aoa and then snaps α to 0.
+12. **Beta on the ground** (l. 503–505). Original: the beta ramp is not updated on the ground; `S+0x2a8`
+    (nose-wheel yaw) is used instead.
+13. **Thrust on the ground ignores HasAfterBurner** (l. 358). Original: the ground call passes `noAB = ai`,
+    so a player jet without an afterburner gets the AB curve on the ground. Also for noAB the stage follows
+    thr (the port gives 0). The airborne T is not clamped to ≥ 0 (l. 379 clamps both).
+14. **Lift-gate conditions** (l. 457): the multiplayer, AI, pref+0x3c and "easy" bypasses of the gear test,
+    and the "easy" bypass of the belly μ = 20 (l. 477), are not modelled.
+15. **Lift for !bStall** (pref "stalls off"): code 2 → 0.4, code 4 → `max(r,0.4)` unless g_cmd < 0.4. Not
+    modelled; the port assumes bStall.
+16. **Buffet** (l. 442): the original tests `g_cmd > 0`, `P+0x84` and `!ai`. The port tests the clamped g.
+17. **GLimit itself** (`envelope.rs` l. 141–174): bisection on vmin instead of the per-altitude-level point
+    lists with a plane fit. The stall test (below the lowest point of level k or k+1) and code 2 (`k+1 >
+    count−1`, i.e. from the list count, not ceiling + step) are approximated. This is already listed in §10.
+18. **Invented terms**: `wave_drag` (l. 469–471) and the `nose_wheel` geometric steering (l. 285–291) are
+    not in the original. They are active only with `DataSet::Real`.

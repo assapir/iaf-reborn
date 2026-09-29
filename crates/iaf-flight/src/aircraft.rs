@@ -16,6 +16,10 @@ const AERO_PERIOD: f64 = 1.0;
 const ACCEL_PERIOD: f64 = 0.2;
 /// Departure latch after a stall.
 const STALL_LATCH: f64 = 3.0;
+/// Rolling friction, IAF.ibx `[TAXI] fric1` (load-time initialiser 0x5b7720 → DAT_0084083c).
+const FRIC1: f32 = 0.05;
+/// Nose-wheel yaw limit K (DAT_00840864 = 1° · 20, set at load by 0x5b7960).
+const NOSE_K: f32 = 0.349_065_9;
 
 type V3 = [f64; 3];
 
@@ -265,43 +269,22 @@ impl Aircraft {
             }
         }
         self.t = end;
-        if self.on_ground {
-            self.steer(dt);
-        }
-        self.ground_contact();
+        let _ = dt;
     }
 
-    /// Nose-wheel steering (§7, `FUN_005b7a20`): yaw rate = clamp(input · V · K / 74.53, ±K) with
-    /// K = 20°/s (`DAT_00840864`, set at load by `0x5b7960` to 1° · 20), zero with the gear up and
-    /// below 1e-4 rad/s. The input is the stick's roll axis (`S+0x2e8`); the rudder is ignored on
-    /// the ground (docs/flight-model.md §7 "Nose-wheel steering input").
-    fn steer(&mut self, dt: f64) {
-        const K: f32 = 20.0 * std::f32::consts::PI / 180.0;
+    /// Nose-wheel yaw (§7, §14.2): clamp(stickX · V · K / 74.53, ±K), 0 with the gear up or below
+    /// 1e-4. V = |v|. The rudder is ignored on the ground in the original.
+    fn nose_wheel_yaw(&self, v: f32) -> f32 {
         if !self.controls.gear_down {
-            return;
+            return 0.0;
         }
-        let (vel, _) = self.speed_at(self.t);
-        let v = dot(vel, self.ground_dir).max(0.0) as f32;
-        let rate = match self.params.nose_wheel {
-            // Real data set: geometric steering from the pedals, limited by the tyres' grip.
-            Some(nw) => {
-                let r = v * (self.controls.rudder * nw.max_angle).tan() / nw.wheelbase;
-                let grip = if v > 0.1 { nw.max_lateral / v } else { f32::INFINITY };
-                r.clamp(-grip, grip)
-            }
-            None => (self.controls.stick_x * v * K / 74.53).clamp(-K, K),
-        };
-        if rate.abs() < 1e-4 {
-            return;
-        }
-        // Positive input turns right (clockwise seen from above).
-        let a = -(rate as f64) * dt;
-        let (s, c) = a.sin_cos();
-        let d = self.ground_dir;
-        self.ground_dir = norm([d[0] * c - d[1] * s, d[0] * s + d[1] * c, 0.0]);
-        // Carry the velocity round with the wheels (at the current time).
-        let t = self.t;
-        self.ground_roll_update(t, self.lift.sample(t));
+        let yaw = (self.controls.stick_x * v * NOSE_K / 74.53).clamp(-NOSE_K, NOSE_K);
+        if yaw.abs() < 1e-4 { 0.0 } else { yaw }
+    }
+
+    /// The 0/1 brake flag `cfg[6]`: the brakes ramp has finished at its maximum (§14.1).
+    fn brake_flag(&self, t: f64) -> f32 {
+        if self.speed_brakes.sample(t) >= 1.0 { 1.0 } else { 0.0 }
     }
 
     fn speed_at(&self, t: f64) -> (V3, f32) {
@@ -318,8 +301,9 @@ impl Aircraft {
     /// Body axes from velocity, roll channel, α and β (§6).
     fn attitude(&self, t: f64) -> (V3, V3, V3) {
         if self.on_ground {
-            // Ground mode: level, pointing along the ground direction.
-            let f = self.ground_dir;
+            // Ground mode: level; the heading follows the velocity (§14.5), else the last heading.
+            let (v, speed) = self.speed_at(t);
+            let f = if speed > 0.5 { norm([v[0], v[1], 0.0]) } else { self.ground_dir };
             let right = norm(cross(f, [0.0, 0.0, 1.0]));
             return (f, right, [0.0, 0.0, 1.0]);
         }
@@ -349,13 +333,16 @@ impl Aircraft {
     }
 
     /// Thrust (N), RPM (0..1), fuel flow (kg/s), afterburner stage (§4.1).
-    fn thrust_at(&self, alt: f32, mach: f32) -> (f32, f32, f32, u8) {
+    /// `no_ab`: the original passes !HasAfterBurner in the air but "AI" (false for the player) on
+    /// the ground (§14.2, mismatch 13), so the player's ground roll always uses the AB curve.
+    fn thrust_at(&self, alt: f32, mach: f32, no_ab: bool) -> (f32, f32, f32, u8) {
         let p = &self.params;
         let thr = self.controls.throttle;
         if !self.engine_on || self.fuel.sample(self.t) <= 1e-5 {
             return (0.0, 0.0, 0.0, 0);
         }
-        let (k, stage) = if p.has_afterburner {
+        let stage_of = |thr: f32| if thr < 0.75 { 0 } else if thr < 0.875 { 1 } else { 2 };
+        let (k, stage) = if !no_ab {
             if thr < 0.75 {
                 (0.05 + 0.743_243_2 * thr, 0)
             } else if thr < 0.875 {
@@ -364,7 +351,7 @@ impl Aircraft {
                 (1.0, 2)
             }
         } else {
-            ((thr - 0.2) * 1.25, 0)
+            ((thr - 0.2) * 1.25, stage_of(thr))
         };
         let a = (alt * 5e-5).clamp(0.0, 1.0);
         let m = (mach / 1.2).clamp(0.0, 1.0);
@@ -376,7 +363,7 @@ impl Aircraft {
         if k <= 0.6 {
             ff *= 0.25;
         }
-        (thrust.max(0.0), rpm, ff, stage)
+        (thrust, rpm, ff, stage)
     }
 
     fn lift_coefficient_alpha(&self, lift: f32, qs: f32) -> f32 {
@@ -398,7 +385,11 @@ impl Aircraft {
         let air = air(alt);
         let mach = v / air.sound;
         let qs = q_s(alt, v, p.wing_area);
-        let (thrust, rpm, ff, stage) = self.thrust_at(alt, mach);
+        let lift_before = self.lift.sample(t);
+        let (mut thrust, rpm, ff, stage) = self.thrust_at(alt, mach, if self.on_ground { false } else { !p.has_afterburner });
+        if self.on_ground {
+            thrust = thrust.max(0.0);
+        }
         let fuel = self.fuel.sample(t);
         let mass = p.empty_mass + fuel;
         let (fwd, right, _) = self.attitude(t);
@@ -407,8 +398,8 @@ impl Aircraft {
         let gamma = if v > 1.0 { (vel[2] / v as f64).clamp(-1.0, 1.0).asin() as f32 } else { 0.0 };
         let alpha_now = self.alpha.sample(t).0 as f32;
 
-        // Commanded load factor (§4.2).
-        let latched = t - self.stall_time < STALL_LATCH;
+        // Commanded load factor (§4.2, Lift 5b13a0). The ground call passes latched = 0 (§14.3).
+        let latched = !self.on_ground && t - self.stall_time < STALL_LATCH;
         let mut stalled = false;
         let mut g = if latched {
             0.0
@@ -426,7 +417,8 @@ impl Aircraft {
             g
         };
         self.buffet = false;
-        if p.use_flight_limits && !latched && !self.on_ground {
+        let g_cmd = g;
+        if p.use_flight_limits && !latched {
             match self.envelope.g_limit(alt, v, g) {
                 GLimit::Stall | GLimit::TooHigh => {
                     g = 0.0;
@@ -439,42 +431,48 @@ impl Aircraft {
                     } else if g >= lim {
                         g = lim;
                     }
-                    self.buffet = lim <= p.start_vibs_g && g > 0.0;
+                    self.buffet = lim <= p.start_vibs_g && g_cmd > 0.0;
                 }
             }
         }
+        let mut lift_noflap = g * mass * G;
+        let mut lift = lift_noflap;
+        let flaps = self.flaps.sample(t);
+        let c_f = p.flaps_lift_coef * flaps * 3.415_883_8;
+        if v < 125.0 {
+            lift += lift_noflap.abs() * c_f;
+        }
+        if self.on_ground {
+            // Ground (FUN_005b7a20): half the lift, flaps added again, gated by speed / pull and gear.
+            lift *= 0.5;
+            lift += lift.abs() * c_f;
+            if !((v > 74.53 || c.stick_y > 0.5) && c.gear_down) {
+                lift = 0.0;
+                lift_noflap = 0.0;
+                stalled = false;
+            }
+        }
+        // A stall sets the departure latch, on the ground too (5a7050).
         if stalled {
             self.stall_time = t;
         }
-        let lift_noflap = g * mass * G;
-        let mut lift = lift_noflap;
-        let flaps = self.flaps.sample(t);
-        if v < 125.0 {
-            lift += lift_noflap.abs() * p.flaps_lift_coef * flaps * 3.415_883_8;
-        }
-        if self.on_ground {
-            lift *= 0.5;
-            if !((v > 74.53 || c.stick_y > 0.5) && c.gear_down) {
-                lift = 0.0;
-            }
-        }
 
-        // Drag (§4.3).
-        let alpha = if stalled { 0.0 } else { self.lift_coefficient_alpha(lift_noflap, qs) };
+        // Drag (§4.3, 5b1730); the ground call passes alpha = 0.
+        let alpha = if stalled || self.on_ground { 0.0 } else { self.lift_coefficient_alpha(lift_noflap, qs) };
         let n = lift / (mass * G);
         let cl = if qs > 0.0 { alpha.cos() * mass * n * G / qs } else { 0.0 };
         let k = 1.0 / (std::f32::consts::PI * p.wing_span * p.wing_span / p.wing_area * 0.85);
-        let brakes = self.speed_brakes.sample(t);
-        let mut cd = p.plane_di + k * cl * cl + p.flaps_di * flaps * 3.415_883_8;
+        let brakes = self.brake_flag(t);
+        let mut cd = p.plane_di + brakes * p.speed_brakes_di + k * cl * cl + p.flaps_di * flaps * 3.415_883_8;
         if p.wave_drag > 0.0 && mach > 0.9 {
             cd += p.wave_drag * ((mach - 0.9) / 0.3).min(1.0);
         }
         if c.gear_down {
             cd += p.gear_di;
         }
-        let mut drag = if self.on_ground { cd * qs } else { (cd + p.speed_brakes_di * brakes) * qs };
+        let mut drag = cd * qs;
         if self.on_ground {
-            let mu = if c.gear_down { brakes * p.wheel_brake_di } else { 20.0 };
+            let mu = if c.gear_down { brakes * p.wheel_brake_di + FRIC1 } else { 20.0 };
             drag = (drag + 0.5 * mu * (mass * G - lift)).max(0.0);
             if v > 1.0 {
                 drag *= 0.7;
@@ -500,14 +498,22 @@ impl Aircraft {
         let (phi, _) = self.roll.sample(t);
         self.roll.set(t, phi, self.roll_target_rate);
 
-        let beta_cmd = c.rudder * p.max_beta;
-        let beta_rate = if v >= 375.0 { p.beta_rate } else { (p.beta_rate * 0.0025 * v).max(0.25 * p.beta_rate) };
-        self.beta.set(t, beta_cmd, beta_rate);
+        // Beta is not updated on the ground (the nose-wheel yaw is used there).
+        if !self.on_ground {
+            let beta_cmd = c.rudder * p.max_beta;
+            let beta_rate = if v >= 375.0 { p.beta_rate } else { (p.beta_rate * 0.0025 * v).max(0.25 * p.beta_rate) };
+            self.beta.set(t, beta_cmd, beta_rate);
+        }
+        // The aero update also recomputes the acceleration at once, with the lift ramp sampled
+        // before its new target (5a42e0 @5a4a17, §14.1).
+        self.apply_forces(t, lift_before, false);
     }
 
     /// 5 Hz update: α target, forces, new constant accelerations (§5).
     fn accel_update(&mut self) {
         let t = self.t;
+        // Air / ground transitions are checked once per 5 Hz tick, before the forces (5b87d0).
+        self.transitions(t);
         let p = &self.params;
         let pos = self.position_at(t);
         let alt = pos[2] as f32;
@@ -517,7 +523,9 @@ impl Aircraft {
         let lift_aoa = self.lift_aoa.sample(t);
 
         // Alpha dynamics toward the target implied by lift.
-        let alpha_target = if qs > 0.0 {
+        let alpha_target = if self.on_ground {
+            0.0 // 5b1b90 returns 0 on the ground
+        } else if qs > 0.0 {
             ((lift_aoa - self.cl0 * qs) / (self.cl_alpha * qs)).clamp(p.max_neg_alpha, p.max_pos_alpha.min(p.limit_alpha_visual))
         } else {
             0.0
@@ -532,8 +540,15 @@ impl Aircraft {
         let target_rate = (err / std::f32::consts::PI * p.alpha_k * f / self.alpha.max_rate - damp).clamp(-1.0, 1.0) * self.alpha.max_rate;
         self.alpha.set(t, a_now, target_rate);
 
+        self.apply_forces(t, lift, true);
+    }
+
+    /// Forces → constant accelerations, re-basing the axes (§5; ground §14.5). `tick` = the 5 Hz
+    /// update (the only place the ground stop rule runs).
+    fn apply_forces(&mut self, t: f64, lift: f32, tick: bool) {
+        let (_, v) = self.speed_at(t);
         if self.on_ground {
-            self.ground_roll_update(t, lift);
+            self.ground_forces(t, lift, v, tick);
             return;
         }
         let (fwd, right, up) = self.attitude(t);
@@ -546,68 +561,102 @@ impl Aircraft {
         let force = add(add(scale(fwd, fy as f64), scale(up, fz as f64)), scale(right, fx as f64));
         let mut acc = scale(force, 1.0 / mass as f64);
         acc[2] -= G as f64;
-        if self.on_ground && acc[2] < 0.0 {
-            acc[2] = 0.0;
-        }
         for (axis, a) in self.axes.iter_mut().zip(acc) {
             axis.set(t, a as f32);
         }
-        if self.on_ground {
-            let (p, _) = self.axes[2].sample(t);
-            self.axes[2].set_state(t, p, 0.0, acc[2] as f32);
+        if tick {
+            // Re-base the wing vector on the current attitude (§5, §6).
+            self.wing = right;
+            self.wing_roll = self.roll.sample(t).0;
         }
-
-        // Re-base the wing vector on the current attitude (§5, §6).
-        self.wing = right;
-        self.wing_roll = self.roll.sample(t).0;
     }
 
-    /// Ground roll (§7): the jet rolls along `ground_dir`; thrust minus drag (which includes wheel
-    /// friction and brakes) accelerates it; it leaves the ground once lift exceeds weight.
-    /// Nose-wheel steering is not modelled: its constant is never set in the original (UNCERTAIN).
-    fn ground_roll_update(&mut self, t: f64, lift: f32) {
-        let dir = self.ground_dir;
-        let (vel, _) = self.speed_at(t);
-        let mut along = dot(vel, dir).max(0.0) as f32;
-        let mut a_long = (self.thrust - self.drag) / self.mass;
-        if along < 0.05 && a_long < 0.0 {
-            along = 0.0;
-            a_long = 0.0;
-        }
-        let az = (lift / self.mass - G).max(0.0);
-        for i in 0..2 {
-            let (p, _) = self.axes[i].sample(t);
-            self.axes[i].set_state(t, p, (dir[i] * along as f64) as f32, (dir[i] * a_long as f64) as f32);
-        }
-        let (z, vz) = self.axes[2].sample(t);
-        self.axes[2].set_state(t, z, vz.max(0.0), az);
-        let (_, _) = self.alpha.sample(t);
-        self.alpha.set(t, 0.0, 0.0);
-        self.wing = norm(cross(dir, [0.0, 0.0, 1.0]));
-        self.wing_roll = self.roll.sample(t).0;
-    }
-
-    fn ground_contact(&mut self) {
-        let t = self.t;
-        let floor = (self.ground_height + self.gear_clearance) as f64;
-        let (z, vz) = self.axes[2].sample(t);
-        if z <= floor {
-            if !self.on_ground {
-                // Touchdown: keep only the horizontal motion, pointing where we were going.
-                let (fwd, _, _) = self.attitude(t);
-                let (vel, speed) = self.speed_at(t);
-                let h = if speed > 1.0 { [vel[0], vel[1], 0.0] } else { [fwd[0], fwd[1], 0.0] };
-                self.ground_dir = norm(h);
-                self.on_ground = true;
-                let (_, _) = self.roll.sample(t);
-                self.roll = Angle::new(0.0, self.params.roll_accel, self.params.stop_accel, self.params.max_roll_rate);
-                self.aero_update();
-                self.accel_update();
+    /// Ground acceleration (FUN_005b7e40, §14.5): level attitude along the heading; the nose wheel
+    /// pushes sideways (Fc), which scrubs speed and can multiply the vertical lift by 4.
+    fn ground_forces(&mut self, t: f64, lift: f32, v: f32, tick: bool) {
+        let (fwd, right, up) = self.attitude(t);
+        let m = self.mass;
+        let fc = match self.params.nose_wheel {
+            // Real data set: geometric steering from the pedals, limited by the tyres' grip.
+            Some(nw) if self.controls.gear_down && v > 0.1 => {
+                let rate = v * (self.controls.rudder * nw.max_angle).tan() / nw.wheelbase;
+                m * (v * rate).clamp(-nw.max_lateral, nw.max_lateral)
             }
-            self.axes[2].set_state(t, floor, vz.max(0.0), 0.0);
-        } else if self.on_ground && z > floor + 1.0 {
-            self.on_ground = false;
+            Some(_) => 0.0,
+            None => {
+                let yaw = self.nose_wheel_yaw(v);
+                let mut r = if yaw == 0.0 { 5.0 } else { v / (G * yaw.tan()) };
+                if r.abs() < 2.0 {
+                    r = 2.0 * r.signum();
+                }
+                let mut fc = if v > 2.0 && yaw != 0.0 { v * v * m / r } else { 0.0 };
+                fc *= if v < 25.736 { 1.0 } else { (0.1 - 0.000_777_118 * v).abs() };
+                fc
+            }
+        };
+        let mut lz = lift;
+        if fc.abs() > 0.1 * lz && v > 20.5889 {
+            lz *= 4.0;
+        }
+        let (thrust, drag) = (self.thrust, self.drag);
+        let fx = if v < 0.01 && thrust < drag { 0.0 } else { thrust - drag - fc.abs() * 0.0625 };
+        let f = add(add(scale(right, fc as f64), scale(fwd, fx as f64)), scale(up, lz as f64));
+        let mut acc = [f[0] / m as f64, f[1] / m as f64, ((f[2] - (m * G) as f64).max(0.0)) / m as f64];
+        let mut stop = false;
+        if tick {
+            // Stop rule (5 Hz only): a deceleration that would reverse the motion within 0.2 s
+            // stops the jet (all three velocities 0).
+            let (vel, _) = self.speed_at(t);
+            let a_fwd = dot(acc, fwd);
+            if a_fwd < 0.0 && dot(vel, fwd) + 0.2 * a_fwd < 0.0 {
+                acc = add(acc, scale(fwd, -a_fwd));
+                stop = true;
+            }
+            if v > 0.5 {
+                self.ground_dir = fwd;
+            }
+            self.wing = right;
+            self.wing_roll = self.roll.sample(t).0;
+        }
+        for (i, axis) in self.axes.iter_mut().enumerate() {
+            if stop {
+                let (p, _) = axis.sample(t);
+                axis.set_state(t, p, 0.0, acc[i] as f32);
+            } else {
+                axis.set(t, acc[i] as f32);
+            }
+        }
+    }
+
+    /// Touchdown / lift-off (FUN_005b87d0, §14.6), at the start of every 5 Hz tick.
+    fn transitions(&mut self, t: f64) {
+        let clear = (self.ground_height + self.gear_clearance) as f64;
+        let (z, vz) = self.axes[2].sample(t);
+        if !self.on_ground {
+            if z > clear {
+                return;
+            }
+            // Touchdown: vz := 0 (acceleration kept), Z onto the ground, aero update (ground branch).
+            let (fwd, _, _) = self.attitude(t);
+            self.ground_dir = norm([fwd[0], fwd[1], 0.0]);
+            self.on_ground = true;
+            let a = self.axes[2].accel();
+            self.axes[2].set_state(t, clear, 0.0, a);
             self.aero_update();
+            return;
+        }
+        if z > clear && vz > 0.001 {
+            // Lift-off: airborne branch; roll angle 0, its rate and target kept.
+            self.on_ground = false;
+            self.roll.reset_angle(t, 0.0);
+            self.aero_update();
+            return;
+        }
+        // Still rolling: keep the wheels on the terrain as it rises or falls under us (the original's
+        // runways are flat; our streamed terrain is not — deviation, UNCERTAIN).
+        if (z - clear).abs() > 0.01 && vz <= 0.001 {
+            let a = self.axes[2].accel();
+            self.axes[2].set_state(t, clear, 0.0, a);
         }
     }
 
