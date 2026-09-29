@@ -119,8 +119,7 @@ func _spawn_f16() -> void:
 		return
 	# Your own jet rides on the rig; converted models face -Z like Godot, so no rotation needed.
 	aircraft = preload("res://aircraft/aircraft_model.gd").new()
-	aircraft.setup(doc.generate_scene(state) as Node3D)
-	aircraft.gear_pos = 1.0 if gear_down else 0.0
+	aircraft.setup(doc.generate_scene(state) as Node3D, gear_down)
 	rig.add_child(aircraft)
 
 

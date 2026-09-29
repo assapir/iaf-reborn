@@ -1,94 +1,90 @@
-# Animates the moving parts of a converted IAF aircraft model.
+# Animates the moving parts of a converted IAF aircraft model exactly like the original
+# (docs/part-animation.md, flight-model callback FUN_0059dd70). F-16 rules for now.
 #
-# Each moving frame `X` in the original model has two helper frames `X1`, `X2`; their
-# positions define the hinge axis (converted as empty nodes, see docs/formats/x.md).
-# A part is rotated about that axis through `X1`. The models are stored with the gear
-# down and everything neutral, so 0° is the rest pose.
+# Hinge (FUN_0053c030): axis from the helper frame (`X1`/`X2`) nearer the model origin toward
+# the farther one; the part turns about its OWN origin by +θ in our Z-mirrored glTF space.
 extends Node3D
 
-## Part -> [helper A, helper B, sign]. The sign makes positive angles mean: trailing edge
-## down (flaperons, stabilators), trailing edge right (rudder), open (brakes), retracted (gear).
-const PARTS := {
-	"AilerL": ["AilerL1", "AilerL2", 1.0],
-	"AilerR": ["AilerR1", "AilerR2", 1.0],
-	"ElevaL": ["ElevaL1", "ElevaL2", -1.0],
-	"ElevaR": ["ElevaR1", "ElevaR2", 1.0],
-	"RuddeL": ["RuddeL1", "RuddeL2", 1.0],
-	"SpdbrU": ["SpdbrU1", "SpdbrU2", 1.0],
-	"SpdbrD": ["SpdbrD1", "SpdbrD2", 1.0],
-	"LdgF": ["LdgF1", "LdgF2", -1.0],
-	"LdgL": ["LdgL1", "LdgL2", 1.0],
-	"LdgR": ["LdgR1", "LdgR2", -1.0],
-	"Canopy": ["Canopy1", "Canopy2", 1.0],
-	"Hook": ["Hook1", "Hook2", 1.0],
-}
+const GEAR_MAX := 1.569  # rad (89.9°), 0 = down
+const FLAPS_MAX := 0.29275  # rad (16.8°)
+const F16_FLAPS_FACTOR := 0.33  # the F-16 droops its flaperons by a third of that
+const SPEED_BRAKE_MAX := 0.855  # rad (49°)
+const HOOK_MAX := 0.7855  # rad (45°)
+const RUDDER_MAX := 0.3926  # rad (22.5°)
+const ELEVATOR_MAX := 0.5236  # rad (30°)
+const AILERON_MAX := 0.7855  # rad (45°)
+## F-16 pitch mixer: share of the stabilator travel used for pitch (the rest mixes in roll).
+const F16_PITCH_SHARE := 0.65
+## Ramp rates, rad/s: configuration items / control surfaces.
+const RATE_CONFIG := 0.5
+const RATE_SURFACE := 0.7
 
-## Deflection limits, degrees (F-16 values where known).
-const FLAPERON_ROLL := 20.0
-const FLAPERON_FLAPS := 20.0
-const STAB_PITCH := 25.0
-const STAB_ROLL := 5.0
-const RUDDER := 30.0
-const SPEED_BRAKE := 60.0
-const GEAR_NOSE := 105.0
-const GEAR_MAIN := 65.0  # the 1998 gear bays are shallow; more pokes through the skin
-## Actuator rates, degrees per second.
-const SURFACE_RATE := 60.0
-const BRAKE_RATE := 60.0
-const GEAR_TIME := 3.0  # seconds for full travel
-
-var parts := {}  # name -> {node, base, pivot, axis, sign, angle}
-var gear_pos := 1.0  # 1 = down, 0 = up
-var brake_pos := 0.0
+## Parts that exist on the model: name -> {node, basis, origin, axis}.
+var parts := {}
+## Current values of the original's animation ramps (radians).
+var ramps := {"flaps": 0.0, "gear": GEAR_MAX, "speed_brake": 0.0, "hook": 0.0,
+	"rudder": 0.0, "elevator_l": 0.0, "elevator_r": 0.0, "aileron": 0.0}
 
 
 ## `scene` is the generated glTF scene; call once after loading.
-func setup(scene: Node3D) -> void:
+func setup(scene: Node3D, gear_down: bool) -> void:
 	add_child(scene)
+	ramps.gear = 0.0 if gear_down else GEAR_MAX
 	var by_name := {}
 	for n in scene.find_children("*", "Node3D", true, false):
-		by_name[str(n.name)] = n
-	for part in PARTS:
-		var cfg: Array = PARTS[part]
-		if not (by_name.has(part) and by_name.has(cfg[0]) and by_name.has(cfg[1])):
+		by_name[str(n.name).to_lower()] = n
+	for n in scene.find_children("*", "Node3D", true, false):
+		var name := str(n.name)
+		var h1: Node3D = by_name.get((name + "1").to_lower())
+		var h2: Node3D = by_name.get((name + "2").to_lower())
+		if h1 == null or h2 == null or n.get_meta("extras", {}).get("iaf_helper", false):
 			continue
-		var node: Node3D = by_name[part]
-		var a: Vector3 = by_name[cfg[0]].position
-		var b: Vector3 = by_name[cfg[1]].position
-		if a.distance_to(b) < 1e-4:
+		var p1 := h1.position
+		var p2 := h2.position
+		var axis := (p2 - p1) if p1.length() <= p2.length() else (p1 - p2)
+		if axis.length() < 1e-6:
 			continue
-		parts[part] = {"node": node, "base": node.transform, "pivot": a, "axis": (b - a).normalized(), "sign": cfg[2], "angle": 0.0}
+		parts[name] = {"node": n, "basis": n.transform.basis, "origin": n.transform.origin, "axis": axis.normalized()}
 
 
-func _set_angle(part: String, deg: float, rate: float, delta: float) -> void:
-	if not parts.has(part):
+func _pose(name: String, theta: float, show := true) -> void:
+	if not parts.has(name):
 		return
-	var p: Dictionary = parts[part]
-	p.angle = move_toward(p.angle, deg, rate * delta) if delta > 0.0 else deg
-	var basis := Basis(p.axis, deg_to_rad(p.angle * p.sign))
-	var hinge := Transform3D(basis, p.pivot - basis * p.pivot)
-	p.node.transform = hinge * p.base
+	var p: Dictionary = parts[name]
+	p.node.visible = show
+	p.node.transform = Transform3D(Basis(p.axis, theta) * p.basis, p.origin)
 
 
-## Drive the parts from the controls (stick x/y −1..1, pull positive; rudder −1..1; flaps 0..1).
+func _ramp(key: String, target: float, rate: float, delta: float) -> float:
+	ramps[key] = move_toward(ramps[key], target, rate * delta)
+	return ramps[key]
+
+
+## Drive the parts from the pilot's controls (stick −1..1, pull +; rudder −1..1; flaps 0..1).
 func animate(stick: Vector2, rudder: float, flaps: float, gear_down: bool, brakes: bool, delta: float) -> void:
-	# Flaperons: roll right = right trailing edge up, left down; flaps droop both.
-	var roll := stick.x * FLAPERON_ROLL
-	var droop := flaps * FLAPERON_FLAPS
-	_set_angle("AilerL", clamp(droop + roll, -FLAPERON_ROLL, FLAPERON_ROLL + FLAPERON_FLAPS), SURFACE_RATE, delta)
-	_set_angle("AilerR", clamp(droop - roll, -FLAPERON_ROLL, FLAPERON_ROLL + FLAPERON_FLAPS), SURFACE_RATE, delta)
-	# Stabilators: pull = trailing edge up (nose up), plus a little differential for roll.
-	_set_angle("ElevaL", -stick.y * STAB_PITCH + stick.x * STAB_ROLL, SURFACE_RATE, delta)
-	_set_angle("ElevaR", -stick.y * STAB_PITCH - stick.x * STAB_ROLL, SURFACE_RATE, delta)
-	_set_angle("RuddeL", rudder * RUDDER, SURFACE_RATE, delta)
-	brake_pos = move_toward(brake_pos, 1.0 if brakes else 0.0, BRAKE_RATE / SPEED_BRAKE * delta)
-	_set_angle("SpdbrU", brake_pos * SPEED_BRAKE, 1e9, 0.0)
-	_set_angle("SpdbrD", brake_pos * SPEED_BRAKE, 1e9, 0.0)
-	gear_pos = move_toward(gear_pos, 1.0 if gear_down else 0.0, delta / GEAR_TIME)
-	var up := 1.0 - gear_pos
-	_set_angle("LdgF", up * GEAR_NOSE, 1e9, 0.0)
-	_set_angle("LdgL", up * GEAR_MAIN, 1e9, 0.0)
-	_set_angle("LdgR", up * GEAR_MAIN, 1e9, 0.0)
-	# Gear door: stays visible while any gear is out.
+	var fl := _ramp("flaps", FLAPS_MAX * F16_FLAPS_FACTOR * flaps, RATE_CONFIG, delta)
+	var g := _ramp("gear", 0.0 if gear_down else GEAR_MAX, RATE_CONFIG, delta)
+	var sb := _ramp("speed_brake", SPEED_BRAKE_MAX if brakes else 0.0, RATE_CONFIG, delta)
+	var hook := _ramp("hook", 0.0, RATE_CONFIG, delta)
+	var ru := _ramp("rudder", rudder * RUDDER_MAX, RATE_SURFACE, delta)
+	# Pitch mixer (FUN_0059da00, F-16): tailerons share pitch and roll.
+	var roll_mix := (1.0 - F16_PITCH_SHARE) * stick.x * ELEVATOR_MAX
+	var el := _ramp("elevator_l", stick.y * F16_PITCH_SHARE * ELEVATOR_MAX - roll_mix, RATE_SURFACE, delta)
+	var er := _ramp("elevator_r", -stick.y * F16_PITCH_SHARE * ELEVATOR_MAX - roll_mix, RATE_SURFACE, delta)
+	var ail := _ramp("aileron", -AILERON_MAX * stick.x, RATE_SURFACE, delta)
+
+	_pose("AilerL", ail - fl)  # flaperons: roll plus flap droop
+	_pose("AilerR", ail + fl)
+	_pose("RuddeL", ru)
+	_pose("ElevaL", el)
+	_pose("ElevaR", er)
+	_pose("SpdbrU", sb)
+	_pose("SpdbrD", -sb)
+	var gear_out := absf(g - GEAR_MAX) >= 1e-5
+	_pose("LdgL", g, gear_out)
+	_pose("LdgR", -g, gear_out)
+	_pose("LdgF", -g, gear_out)
+	# The gear doors never rotate; they are hidden once the gear is fully up.
 	for n in find_children("LdgDr", "Node3D", true, false):
-		n.visible = gear_pos > 0.02
+		n.visible = gear_out
+	_pose("Hook", hook, absf(hook) >= 1e-5)
