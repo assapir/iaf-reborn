@@ -49,6 +49,14 @@ var route: Array = []
 const CAMERA_MIN_AGL := 0.5
 ## Highest true airspeed at which the gear may be lowered (player controller case 0xe, docs/flight-model.md §12).
 const GEAR_DOWN_MAX_KT := 300.0
+## Gear leg travel and flaps step times (s).
+const GEAR_LEG_TIME := 2.0
+const FLAPS_STEP_TIME := 2.0
+## Gear legs (0 up, 1 moving, 2 down & locked) and flaps state (0 up, 1 moving, 2 down).
+var gear_legs := [2, 2, 2]
+var leg_timers := [0.0, 0.0, 0.0]
+var flaps_state := 0
+var flaps_timer := 0.0
 
 
 func _ready() -> void:
@@ -82,6 +90,8 @@ func _ready() -> void:
 	var thr := args.find("--throttle")
 	if thr >= 0:
 		throttle = float(args[thr + 1])
+	gear_legs = [2, 2, 2] if gear_down else [0, 0, 0]
+	flaps_state = 2 if flaps > 0.0 else 0
 	cockpit.hud.camera = camera
 	cockpit.waypoints = route
 	_start_flight()
@@ -316,6 +326,26 @@ func _apply_view() -> void:
 	chase.look_at(rig.global_position, Vector3.UP)
 
 
+## Gear legs / flaps lamps and the panel indicators the cockpit shows.
+func _update_indicators(delta: float) -> void:
+	for i in 3:
+		if gear_legs[i] == 1:
+			leg_timers[i] -= delta
+			if leg_timers[i] <= 0.0:
+				gear_legs[i] = 2 if gear_down else 0
+	# With both main legs up the nose leg reads up (FUN_0045a6a0).
+	if gear_legs[1] == 0 and gear_legs[2] == 0:
+		gear_legs[0] = 0
+	if flaps_state == 1:
+		flaps_timer -= delta
+		if flaps_timer <= 0.0:
+			flaps_state = 2 if flaps > 0.0 else 0
+	cockpit.gear_legs = gear_legs
+	cockpit.flaps_state = flaps_state
+	cockpit.gear_handle_down = gear_down
+	cockpit.indicators[5] = brakes  # air brake light follows the brakes toggle
+
+
 ## Any throttle command starts the engine (FUN_0059cb60 sets S+0x1d0), even at idle.
 func _throttle_event() -> void:
 	if flight != null:
@@ -334,6 +364,11 @@ func _toggle_gear() -> void:
 	if not gear_down and st.speed_kt > GEAR_DOWN_MAX_KT:
 		return
 	gear_down = not gear_down
+	# Each leg only starts moving from locked (flight-model.md §12): 2 -> 1 -> 0 or 0 -> 1 -> 2.
+	for i in 3:
+		if gear_legs[i] == (0 if gear_down else 2):
+			gear_legs[i] = 1
+			leg_timers[i] = GEAR_LEG_TIME
 
 
 func _zoom_cockpit(step: float) -> void:
@@ -384,6 +419,9 @@ func _unhandled_input(event: InputEvent) -> void:
 				_toggle_gear()
 			KEY_F:
 				flaps = 0.0 if flaps > 0.0 else 1.0
+				if flaps_state != 1:
+					flaps_state = 1
+					flaps_timer = FLAPS_STEP_TIME
 			KEY_B:
 				brakes = not brakes
 			KEY_PAGEUP:
@@ -415,6 +453,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _process(delta: float) -> void:
 	_read_controls(delta)
+	_update_indicators(delta)
 	if flight != null:
 		var ground = terrain.height_at(rig.position)
 		flight.set_ground_height(ground if ground != null else -1.0e9)

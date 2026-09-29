@@ -29,6 +29,17 @@ var current_waypoint := 0
 ## The MFD TSD map (map.emf) as world-coordinate polygons: [{points, color}].
 var tsd_map: Array = []
 var mfds: Array = []
+
+## Panel lights (docs/cockpit.md "Panel lights"). Indicators 0..8: master, (left) engine fire,
+## right engine fire, AI, SAM, air brake, ECM, hook, autopilot; the gear handle (LIGHT009) follows
+## `gear_handle_down`; SLIGHT000..002 show the gear legs, SLIGHT003 the flaps (0 up / 1 moving / 2 down).
+var indicators := [false, false, false, false, false, false, false, false, false]
+var gear_handle_down := true
+var gear_legs := [2, 2, 2]
+var flaps_state := 0
+var _blink := {}  # light index -> [phase, ms]
+var _handle_frame := -1
+var _handle_ms := 0.0
 ## How far the panel is raised: 0 = forward view (original MainOffsetY), 1 = full panel
 ## ("panel down" view). `panel_target` is where it is sliding to.
 var panel_shift := 0.6
@@ -62,6 +73,11 @@ func _ready() -> void:
 			if img != null:
 				img.generate_mipmaps()
 				tex[key] = ImageTexture.create_from_image(img)
+	var lights_file: String = layout.get("LIGHTSON", {}).get("FileName", "")
+	if lights_file != "":
+		var limg := Image.load_from_file(dir.path_join(lights_file.get_basename().to_lower() + ".png"))
+		if limg != null:
+			tex["LIGHTS"] = ImageTexture.create_from_image(limg)
 	var atlas := Image.load_from_file(dir.path_join("mfds.png"))
 	if atlas != null:
 		tex["MFDS"] = ImageTexture.create_from_image(atlas)
@@ -216,6 +232,7 @@ func _draw() -> void:
 		var width: float = tex.PANEL.get_width() / art_scale
 		draw_texture_rect(tex.PANEL, Rect2(tl, Vector2(width, p.PanelHeight) * s), false)
 
+	_draw_lights(s)
 	_draw_needle("SPEEDCLOCK", state.speed_kt, s)
 	_draw_needle("ALTITUDELOCK", state.alt_ft, s)
 	_draw_needle("RPMCLOCK", state.rpm, s)
@@ -235,6 +252,59 @@ func _draw() -> void:
 		var w: float = h.Width * s
 		var hh: float = h.Height * s
 		draw_texture_rect(tex.HUD, Rect2(size.x / 2 - w / 2, panel_top() - hh, w, hh), false)
+
+
+## One frame of a light (frames stacked under Top in the lights bitmap) at its panel position.
+func _draw_light(l: Dictionary, frame: int, s: float) -> void:
+	if int(l.get("Active", 0)) != 1 or not tex.has("LIGHTS"):
+		return
+	var a: float = layout.get("image_scale", 1)
+	var w := float(l.Right) - float(l.Left)
+	var h := float(l.Bottom) - float(l.Top)
+	var src := Rect2(float(l.Left), float(l.Top) + frame * h, w, h)
+	draw_texture_rect_region(tex.LIGHTS, Rect2(panel_to_screen(l.OffsetX, l.OffsetY), Vector2(w, h) * s),
+			Rect2(src.position * a, src.size * a))
+
+
+func _draw_lights(s: float) -> void:
+	var dt := get_process_delta_time() * 1000.0
+	for i in 9:
+		var l: Dictionary = layout.get("LIGHT%03d" % i, {})
+		if l.is_empty():
+			continue
+		var frame := 1 if indicators[i] else 0
+		if int(l.get("Blink", 0)) == 1:
+			# Blinking lights alternate dark / lit every 300 ms, starting dark.
+			var b: Array = _blink.get(i, [0, 0.0])
+			if indicators[i]:
+				b[1] += dt
+				if b[1] > 300.0:
+					b[1] = 0.0
+					b[0] = 1 - b[0]
+			else:
+				b = [0, 0.0]
+			_blink[i] = b
+			frame = b[0]
+		_draw_light(l, frame, s)
+	# Gear handle: steps one frame per AnimTime / AnimFrames ms toward its end frame.
+	var hl: Dictionary = layout.get("LIGHT009", {})
+	if not hl.is_empty():
+		var frames := maxi(1, int(hl.get("AnimFrames", 2)))
+		var target := frames - 1 if gear_handle_down else 0
+		if _handle_frame < 0:
+			_handle_frame = target
+		var step_ms := float(int(float(hl.get("AnimTime", 2000)) / frames))
+		if _handle_frame != target:
+			_handle_ms += dt
+			if _handle_ms >= step_ms:
+				_handle_ms = 0.0
+				_handle_frame += signi(target - _handle_frame)
+		_draw_light(hl, _handle_frame, s)
+	for j in 4:
+		var sl: Dictionary = layout.get("SLIGHT%03d" % j, {})
+		if not sl.is_empty():
+			var v: int = gear_legs[j] if j < 3 else flaps_state
+			_draw_light(sl, v if v >= 0 and v <= 2 else 0, s)
 
 
 ## Attitude ball: drawn under the panel's round hole, rolled and shifted by pitch.

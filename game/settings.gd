@@ -22,6 +22,8 @@ func isolated() -> bool:
 
 func _ready() -> void:
 	if isolated():
+		# Test windows must never take the player's keyboard focus.
+		get_window().unfocusable = true
 		return
 	var cfg := ConfigFile.new()
 	if cfg.load(PATH) == OK:

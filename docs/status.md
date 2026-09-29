@@ -32,8 +32,8 @@ from Ramat David** in the original F-16 with the original 2D cockpit, everything
 4. **Terrain detail**: airbase insets (levels 0–2, ~1.24 m/px) are streamed as detail tiles within 6 km (149 tiles); the level-3 regions outside airbases, insets outside the level-4 Israel rect (e.g. x < 327680) and the far theatre levels are not used yet.
 5. **Mission objects**: every visible entity of the mission + base missions is placed with its original model (bdb object → Present record → `.x`, `iaf-convert objects`, 219 models). Open: whether ground objects are snapped to the terrain or use their altitude (same here), level-of-detail models (`_m`), damage states, ground-object shadows.
 6. **Mission logic**: triggers/scripts/audio (instructor voice, win sensor) not run.
-7. Controls: original default key table not found yet (current keys provisional, G/F confirmed by the briefing).
-8. Nose-wheel steering, stall/spin modes, AB light-up delay not ported.
+7. Controls: original keys in use (instructor texts + exe: 1–8 presets / 1 starts the engine, 0/9 throttle, B, G, F, T, D, Q, R, S, W, . ,); rudder keys still provisional (Z/X), being checked.
+8. Stall/spin modes, AB light-up delay not ported (nose-wheel steering done).
 9. Gear lever: ground / 300 kt rules enforced; leg timing (2 s), gear sound and weapon-release lock not yet (docs/flight-model.md §12).
 10. Sun shadow is coarse near the aircraft (one 2 km shadow range), so the shadow looks detached from the wheels.
 11. g reads 0.8–0.9 when parked (should be 1.0).
