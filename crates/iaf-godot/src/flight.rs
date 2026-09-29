@@ -60,6 +60,22 @@ impl IafFlight {
         }
     }
 
+    /// Height of the aircraft origin above its wheels (the model's `height` helper).
+    #[func]
+    fn set_gear_clearance(&mut self, metres: f64) {
+        if let Some(ac) = &mut self.aircraft {
+            ac.gear_clearance = metres as f32;
+        }
+    }
+
+    /// Place the aircraft on the ground (mission ground start).
+    #[func]
+    fn set_on_ground(&mut self) {
+        if let Some(ac) = &mut self.aircraft {
+            ac.on_ground = true;
+        }
+    }
+
     #[func]
     fn step(&mut self, dt: f64) {
         if let Some(ac) = &mut self.aircraft {

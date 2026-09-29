@@ -9,6 +9,8 @@ uniform float sea_level_raw = 20342.0;
 uniform float height_scale = 9.2575;
 uniform float chunk_span = 16384.0;
 uniform float chunk_pixels = 1024.0;
+// Terrain units are 1.2411389 m (the original engine's PlaneScalePR), heights included.
+uniform float units_to_metres = 1.0;
 // The generated sea colour in the imagery (open water only, not the Dead Sea / lakes).
 uniform vec3 sea_colour = vec3(0.035, 0.059, 0.302);
 
@@ -18,7 +20,7 @@ float height_at(ivec2 p) {
 	p = clamp(p, ivec2(0), ivec2(int(chunk_pixels)));
 	vec2 rg = texelFetch(height_tex, p, 0).rg;
 	float raw = rg.r * 65280.0 + rg.g * 255.0;
-	return (raw - sea_level_raw) / height_scale;
+	return (raw - sea_level_raw) / height_scale * units_to_metres;
 }
 
 bool is_open_sea(vec2 uv) {

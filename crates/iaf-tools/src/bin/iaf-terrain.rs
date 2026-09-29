@@ -235,7 +235,13 @@ fn export(path: &str, index: usize, out: &std::path::Path) -> Result<()> {
         "chunks": [ccols, crows],
         "heights_from_level": source.as_ref().map_or(level.level, |s| s.level.level),
         "units_per_pixel": span as f64 / n as f64,
-        // metres = (raw - sea_level_raw) / height_scale  (tgen defaults; to be verified)
+        // Engine world (metres, X east / Y north) from terrain units (FUN_004053b0/…420):
+        //   X = tx * units_to_metres + x_shift ;  Y = y_shift - ty * units_to_metres
+        // Heights: metres = (raw - sea_level_raw) / height_scale * units_to_metres
+        // (checked: Ramat David runway 63.7 m vs 63 m in takeoff.mis).
+        "units_to_metres": 1.2411389,
+        "x_shift": -166850,
+        "y_shift": 1043780,
         "sea_level_raw": 20342,
         "height_scale": 9.2575,
     });

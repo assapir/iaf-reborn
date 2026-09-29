@@ -3,9 +3,11 @@
 #   Arrows: stick (sprung: hold to deflect, release to centre)   Z/X: rudder
 #   W/S: throttle   1..8: idle / 65 / 70 / 80 / 90 % / military / AB1 / AB2   G: gear   F: flaps   B: speed brake
 #   External: RMB-drag orbits the camera, wheel zooms.
-#   `godot --path game res://terrain/terrain_view.tscn -- [--real] [--screenshot out.png] [--at x z alt heading pitch [roll]] [--external]`
+#   `godot --path game res://terrain/terrain_view.tscn -- [--mission 311] [--real] [--screenshot out.png]
+#        [--at X Y alt heading pitch [roll]] [--external]`
+#   --mission: start where the mission puts the player (menu choice by default; Player1 of the
+#   mission's main .mis file). --at: engine world metres (X east, Y north), degrees.
 #   --real: fly the corrected real-world F-16 data instead of the original 1998 numbers.
-#   (angles in degrees for --at)
 # The aircraft is the original IAF F-16 flight model (Rust, crates/iaf-flight) via the IafFlight class.
 extends Node3D
 
@@ -38,21 +40,17 @@ var aircraft: Node3D
 var orbit_yaw := PI  # external camera, relative to the aircraft heading (PI = behind)
 var orbit_pitch := -0.15
 var orbit_dist := 35.0
+## Hold the simulation until the terrain under the aircraft has loaded.
+var waiting_for_ground := true
+var mission_name := ""
 
 
 func _ready() -> void:
 	terrain.focus = rig
 	camera.fov = FOV
 	chase.fov = 60.0
-	var size: Vector2 = terrain.size_metres()
-	rig.position = Vector3(size.x * 0.5, 2500, size.y * 0.5)
 	var args := OS.get_cmdline_user_args()
-	var at := args.find("--at")
-	if at >= 0:
-		rig.position = Vector3(float(args[at + 1]), float(args[at + 3]), float(args[at + 2]))
-		var roll_deg := float(args[at + 6]) if args.size() > at + 6 and args[at + 6].is_valid_float() else 0.0
-		# Heading is clockwise from north (-Z); Godot's yaw is counter-clockwise.
-		rig.basis = Basis.from_euler(Vector3(deg_to_rad(float(args[at + 5])), deg_to_rad(-float(args[at + 4])), deg_to_rad(-roll_deg)), EULER_ORDER_YXZ)
+	_choose_start(args)
 	if args.has("--external"):
 		in_cockpit = false
 	var st_arg := args.find("--stick")
@@ -71,10 +69,19 @@ func _ready() -> void:
 	flaps = 1.0 if args.has("--flaps") else 0.0
 	brakes = args.has("--brakes")
 	frozen = args.has("--freeze")
+	var thr := args.find("--throttle")
+	if thr >= 0:
+		throttle = float(args[thr + 1])
 	cockpit.hud.camera = camera
 	_start_flight()
 	_apply_view()
 	_spawn_f16()
+	if flight != null and aircraft != null:
+		# The model's `height` helper: how far the wheels reach below the aircraft origin.
+		var h := aircraft.find_child("height", true, false) as Node3D
+		flight.set_gear_clearance(-h.position.y if h != null else 0.0)
+		if gear_down and mission_name != "":
+			flight.set_on_ground()
 	var shot := args.find("--screenshot")
 	if shot >= 0:
 		_screenshot(args[shot + 1])
@@ -96,6 +103,59 @@ func _screenshot(path: String) -> void:
 	get_tree().quit()
 
 
+## Where the flight starts: the chosen mission's player aircraft (on the ground, like the original's
+## ground start: gear down, flaps down, brakes on, idle), `--at`, or free flight over the terrain.
+func _choose_start(args: PackedStringArray) -> void:
+	var mission_id := Settings.mission_id
+	var m := args.find("--mission")
+	if m >= 0:
+		mission_id = int(args[m + 1])
+	var player := _mission_player(mission_id) if mission_id >= 0 else {}
+	var at := args.find("--at")
+	var origin: Vector2
+	var alt := 2500.0
+	var heading := 0.0
+	var pitch := 0.0
+	var roll := 0.0
+	if not player.is_empty():
+		origin = Vector2(player["0x2e4"], player["0x2ee"])
+		alt = float(player["0x2f8"])
+		heading = float(player["0x302"])
+		gear_down = true
+		flaps = 1.0
+		brakes = true
+		throttle = 0.0
+	elif at >= 0:
+		origin = Vector2(float(args[at + 1]), float(args[at + 2]))
+		alt = float(args[at + 3])
+		heading = float(args[at + 4])
+		pitch = float(args[at + 5])
+		roll = float(args[at + 6]) if args.size() > at + 6 and args[at + 6].is_valid_float() else 0.0
+	else:
+		origin = terrain.centre_world()
+	terrain.world_origin = origin
+	rig.position = Vector3(0, alt, 0)
+	# Heading is clockwise from north (-Z); Godot's yaw is counter-clockwise.
+	rig.basis = Basis.from_euler(Vector3(deg_to_rad(pitch), deg_to_rad(-heading), deg_to_rad(-roll)), EULER_ORDER_YXZ)
+
+
+## The player's aircraft entity from a mission (menu id -> missionlist -> main .mis -> "Player1").
+func _mission_player(mission_id: int) -> Dictionary:
+	var dir := Settings.assets_dir().path_join("converted/missions")
+	var list = JSON.parse_string(FileAccess.get_file_as_string(dir.path_join("missionlist.json")))
+	if not (list is Dictionary) or not list.has(str(mission_id)):
+		push_error("mission %d not found — run tools/setup.sh" % mission_id)
+		return {}
+	mission_name = list[str(mission_id)][0]
+	var mission = JSON.parse_string(FileAccess.get_file_as_string(dir.path_join(mission_name + ".json")))
+	if not (mission is Dictionary):
+		return {}
+	for e in mission.entities.items:
+		if e is Dictionary and e.get("0x2bc", "") == "Player1":
+			return e
+	return {}
+
+
 func _start_flight() -> void:
 	if not ClassDB.class_exists("IafFlight"):
 		push_error("IafFlight missing: build the extension (cargo build -p iaf-godot)")
@@ -105,7 +165,8 @@ func _start_flight() -> void:
 	var fwd := -rig.global_basis.z
 	var heading := fposmod(rad_to_deg(atan2(fwd.x, -fwd.z)), 360.0)
 	real_data = Settings.real_data() or OS.get_cmdline_user_args().has("--real")
-	var err: String = flight.start(install, "F-16", rig.position, heading, 180.0, real_data)
+	var speed := 0.0 if gear_down else 180.0
+	var err: String = flight.start(install, "F-16", rig.position, heading, speed, real_data)
 	if err != "":
 		push_error("flight model: " + err)
 		flight = null
@@ -203,7 +264,9 @@ func _process(delta: float) -> void:
 		var ground = terrain.height_at(rig.position)
 		flight.set_ground_height(ground if ground != null else -1.0e9)
 		flight.set_controls(stick.x, stick.y, rudder, throttle, flaps, gear_down, brakes)
-		if not frozen:
+		if waiting_for_ground and terrain.height_at(rig.position) != null:
+			waiting_for_ground = false
+		if not frozen and not waiting_for_ground:
 			flight.step(delta)
 		var st: Dictionary = flight.state()
 		rig.position = st.position
@@ -218,8 +281,8 @@ func _process(delta: float) -> void:
 	var ground_h = terrain.height_at(p)
 	var agl := "" if ground_h == null else "  (%.0f m above ground)" % (p.y - ground_h)
 	var st2: Dictionary = cockpit.state
-	hud_label.text = "%s   x %.1f km  y %.1f km  alt %.0f m%s   %d kt  %.1f g  thr %d%%%s%s%s   %d fps\n[F1] cockpit  [F2] external  [C] toggle  [V/PgUp/PgDn] panel  [+/-] zoom  [arrows] stick  [Z/X] rudder  [W/S, 1-8] throttle  [G] gear  [F] flaps  [B] brake" % [
-		"REAL DATA" if real_data else "ORIGINAL 1998 DATA", p.x / 1000.0, p.z / 1000.0, p.y, agl, st2.speed_kt, st2.g, int(throttle * 100),
+	hud_label.text = "%s%s   x %.1f km  y %.1f km  alt %.0f m%s   %d kt  %.1f g  thr %d%%%s%s%s   %d fps\n[F1] cockpit  [F2] external  [C] toggle  [V/PgUp/PgDn] panel  [+/-] zoom  [arrows] stick  [Z/X] rudder  [W/S, 1-8] throttle  [G] gear  [F] flaps  [B] brake" % [
+		"REAL DATA" if real_data else "ORIGINAL 1998 DATA", ("   mission: " + mission_name) if mission_name != "" else "", p.x / 1000.0, p.z / 1000.0, p.y, agl, st2.speed_kt, st2.g, int(throttle * 100),
 		"  GEAR" if gear_down else "", "  FLAPS" if flaps > 0 else "", "  BRAKE" if brakes else "", Engine.get_frames_per_second()]
 
 

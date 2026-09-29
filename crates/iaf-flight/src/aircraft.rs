@@ -134,6 +134,11 @@ pub struct Aircraft {
     pub on_ground: bool,
     /// Terrain elevation under the aircraft, supplied by the host every frame.
     pub ground_height: f32,
+    /// Height of the aircraft origin above the wheels' contact point (the model's `height`
+    /// helper, F-16 1.69 m), so the jet rests on its gear.
+    pub gear_clearance: f32,
+    /// Horizontal direction the aircraft points on the ground (unit, ENU).
+    ground_dir: V3,
 }
 
 impl Aircraft {
@@ -179,6 +184,8 @@ impl Aircraft {
             next_accel: 0.0,
             on_ground: false,
             ground_height: f32::NEG_INFINITY,
+            gear_clearance: 0.0,
+            ground_dir: [s, c, 0.0],
             params,
             envelope,
         };
@@ -258,6 +265,12 @@ impl Aircraft {
 
     /// Body axes from velocity, roll channel, α and β (§6).
     fn attitude(&self, t: f64) -> (V3, V3, V3) {
+        if self.on_ground {
+            // Ground mode: level, pointing along the ground direction.
+            let f = self.ground_dir;
+            let right = norm(cross(f, [0.0, 0.0, 1.0]));
+            return (f, right, [0.0, 0.0, 1.0]);
+        }
         let (v, speed) = self.speed_at(t);
         let f = if speed > 0.5 { norm(v) } else { norm(cross([0.0, 0.0, 1.0], self.wing)) };
         let (phi, _) = self.roll.sample(t);
@@ -467,6 +480,10 @@ impl Aircraft {
         let target_rate = (err / std::f32::consts::PI * p.alpha_k * f / self.alpha.max_rate - damp).clamp(-1.0, 1.0) * self.alpha.max_rate;
         self.alpha.set(t, a_now, target_rate);
 
+        if self.on_ground {
+            self.ground_roll_update(t, lift);
+            return;
+        }
         let (fwd, right, up) = self.attitude(t);
         let alpha = self.alpha.sample(t).0 as f32;
         let beta = self.beta.sample(t);
@@ -493,20 +510,50 @@ impl Aircraft {
         self.wing_roll = self.roll.sample(t).0;
     }
 
+    /// Ground roll (§7): the jet rolls along `ground_dir`; thrust minus drag (which includes wheel
+    /// friction and brakes) accelerates it; it leaves the ground once lift exceeds weight.
+    /// Nose-wheel steering is not modelled: its constant is never set in the original (UNCERTAIN).
+    fn ground_roll_update(&mut self, t: f64, lift: f32) {
+        let dir = self.ground_dir;
+        let (vel, _) = self.speed_at(t);
+        let mut along = dot(vel, dir).max(0.0) as f32;
+        let mut a_long = (self.thrust - self.drag) / self.mass;
+        if along < 0.05 && a_long < 0.0 {
+            along = 0.0;
+            a_long = 0.0;
+        }
+        let az = (lift / self.mass - G).max(0.0);
+        for i in 0..2 {
+            let (p, _) = self.axes[i].sample(t);
+            self.axes[i].set_state(t, p, (dir[i] * along as f64) as f32, (dir[i] * a_long as f64) as f32);
+        }
+        let (z, vz) = self.axes[2].sample(t);
+        self.axes[2].set_state(t, z, vz.max(0.0), az);
+        let (_, _) = self.alpha.sample(t);
+        self.alpha.set(t, 0.0, 0.0);
+        self.wing = norm(cross(dir, [0.0, 0.0, 1.0]));
+        self.wing_roll = self.roll.sample(t).0;
+    }
+
     fn ground_contact(&mut self) {
         let t = self.t;
+        let floor = (self.ground_height + self.gear_clearance) as f64;
         let (z, vz) = self.axes[2].sample(t);
-        if z <= self.ground_height as f64 {
+        if z <= floor {
             if !self.on_ground {
+                // Touchdown: keep only the horizontal motion, pointing where we were going.
+                let (fwd, _, _) = self.attitude(t);
+                let (vel, speed) = self.speed_at(t);
+                let h = if speed > 1.0 { [vel[0], vel[1], 0.0] } else { [fwd[0], fwd[1], 0.0] };
+                self.ground_dir = norm(h);
                 self.on_ground = true;
-                let (x, vx) = self.axes[0].sample(t);
-                let (y, vy) = self.axes[1].sample(t);
-                self.axes[0].set_state(t, x, vx, 0.0);
-                self.axes[1].set_state(t, y, vy, 0.0);
+                let (_, _) = self.roll.sample(t);
+                self.roll = Angle::new(0.0, self.params.roll_accel, self.params.stop_accel, self.params.max_roll_rate);
                 self.aero_update();
+                self.accel_update();
             }
-            self.axes[2].set_state(t, self.ground_height as f64, vz.max(0.0), 0.0);
-        } else if self.on_ground && z > self.ground_height as f64 + 1.0 {
+            self.axes[2].set_state(t, floor, vz.max(0.0), 0.0);
+        } else if self.on_ground && z > floor + 1.0 {
             self.on_ground = false;
             self.aero_update();
         }

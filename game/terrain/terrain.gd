@@ -1,5 +1,9 @@
 # Streams exported terrain chunks (see `iaf-terrain export`) around a focus node.
 # Image decoding runs on worker threads; nearer chunks get denser meshes.
+#
+# Placement uses the original engine's world frame (metres; X east, Y north) with the
+# georeference from meta.json, relative to `world_origin` (engine X/Y at the scene origin):
+#   Godot x = X − origin.x,  Godot z = −(Y − origin.y),  Godot y = metres above sea level.
 extends Node3D
 
 @export var data_dir := "../assets/converted/terrain/israel_l4"
@@ -11,7 +15,10 @@ extends Node3D
 @export var max_jobs := 4
 
 var focus: Node3D
+## Engine world X/Y (metres) placed at the Godot origin (keeps float precision near the player).
+var world_origin := Vector2.ZERO
 var meta := {}
+var m_per_unit := 1.0
 var chunks := {}  # Vector2i -> MeshInstance3D (null mesh while loading)
 var jobs := {}  # Vector2i -> task id
 var results := {}  # Vector2i -> [colour Image, height Image]
@@ -29,7 +36,8 @@ func _ready() -> void:
 		push_error("terrain: %s/meta.json not found — run iaf-terrain export" % dir)
 		return
 	meta = JSON.parse_string(text)
-	var span: float = meta.chunk_span
+	m_per_unit = float(meta.get("units_to_metres", 1.0))
+	var span: float = float(meta.chunk_span) * m_per_unit
 	for res in ring_resolution:
 		var m := PlaneMesh.new()
 		m.size = Vector2(span, span)
@@ -40,14 +48,31 @@ func _ready() -> void:
 		meshes.append(m)
 
 
-func size_metres() -> Vector2:
+## Terrain units (as in map.ptt) -> Godot position (y = 0).
+func terrain_to_godot(tx: float, ty: float) -> Vector3:
+	return Vector3(tx * m_per_unit + float(meta.get("x_shift", 0)) - world_origin.x, 0.0,
+			ty * m_per_unit - float(meta.get("y_shift", 0)) + world_origin.y)
+
+
+## Godot position -> terrain units.
+func godot_to_terrain(p: Vector3) -> Vector2:
+	return Vector2((p.x + world_origin.x - float(meta.get("x_shift", 0))) / m_per_unit,
+			(p.z - world_origin.y + float(meta.get("y_shift", 0))) / m_per_unit)
+
+
+## Engine world coordinates (metres, X east, Y north) at the centre of the exported area.
+func centre_world() -> Vector2:
 	var r: Array = meta.rect
-	return Vector2(r[2] - r[0], r[3] - r[1])
+	var tx := (float(r[0]) + float(r[2])) / 2.0
+	var ty := (float(r[1]) + float(r[3])) / 2.0
+	return Vector2(tx * m_per_unit + float(meta.get("x_shift", 0)), float(meta.get("y_shift", 0)) - ty * m_per_unit)
 
 
 func _chunk_of(pos: Vector3) -> Vector2i:
+	var t := godot_to_terrain(pos)
+	var r: Array = meta.rect
 	var span: float = meta.chunk_span
-	return Vector2i(floori(pos.x / span), floori(pos.z / span))
+	return Vector2i(floori((t.x - float(r[0])) / span), floori((t.y - float(r[1])) / span))
 
 
 func _mesh_for(ring: int) -> PlaneMesh:
@@ -120,7 +145,8 @@ func _add_chunk(c: Vector2i, images: Array, ring: int) -> void:
 	mat.shader = shader
 	mat.set_shader_parameter("colour_tex", ImageTexture.create_from_image(images[0]))
 	mat.set_shader_parameter("height_tex", ImageTexture.create_from_image(images[1]))
-	mat.set_shader_parameter("chunk_span", float(meta.chunk_span))
+	mat.set_shader_parameter("chunk_span", float(meta.chunk_span) * m_per_unit)
+	mat.set_shader_parameter("units_to_metres", m_per_unit)
 	mat.set_shader_parameter("chunk_pixels", float(meta.chunk_pixels))
 	mat.set_shader_parameter("sea_level_raw", float(meta.sea_level_raw))
 	mat.set_shader_parameter("height_scale", float(meta.height_scale))
@@ -130,7 +156,8 @@ func _add_chunk(c: Vector2i, images: Array, ring: int) -> void:
 	# Self-shadowing a 16 km chunk is not worth re-running the displacement per cascade.
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var span: float = meta.chunk_span
-	mi.position = Vector3((c.x + 0.5) * span, 0, (c.y + 0.5) * span)
+	var r: Array = meta.rect
+	mi.position = terrain_to_godot(float(r[0]) + (c.x + 0.5) * span, float(r[1]) + (c.y + 0.5) * span)
 	add_child(mi)
 
 
@@ -154,8 +181,10 @@ func height_at(pos: Vector3) -> Variant:
 	var img: Image = chunks[c].get_meta("height")
 	var span: float = meta.chunk_span
 	var px: float = meta.chunk_pixels
-	var x := int(round((pos.x - c.x * span) / span * px))
-	var y := int(round((pos.z - c.y * span) / span * px))
+	var t := godot_to_terrain(pos)
+	var r: Array = meta.rect
+	var x := int(round((t.x - float(r[0]) - c.x * span) / span * px))
+	var y := int(round((t.y - float(r[1]) - c.y * span) / span * px))
 	var col := img.get_pixel(clampi(x, 0, int(px)), clampi(y, 0, int(px)))
 	var raw := roundi(col.r * 255.0) * 256 + roundi(col.g * 255.0)
-	return (raw - float(meta.sea_level_raw)) / float(meta.height_scale)
+	return (raw - float(meta.sea_level_raw)) / float(meta.height_scale) * m_per_unit

@@ -5,4 +5,4 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 out=$1 yaw=$2 pitch=$3 dist=$4; shift 4
 timeout 150 godot --path game res://terrain/terrain_view.tscn -- --screenshot "$out" \
-  --at 95000 190000 1500 90 0 0 --external --freeze --orbit "$yaw" "$pitch" "$dist" "$@" >/dev/null 2>&1
+  --at 357742 482603 1500 90 0 0 --external --freeze --orbit "$yaw" "$pitch" "$dist" "$@" >/dev/null 2>&1
