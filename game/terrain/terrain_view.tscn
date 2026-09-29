@@ -39,7 +39,12 @@ camera_attributes = SubResource("cam_attr")
 transform = Transform3D(0.866, -0.25, 0.433, 0, 0.866, 0.5, -0.5, -0.433, 0.75, 0, 0, 0)
 light_energy = 1.4
 shadow_enabled = true
-directional_shadow_max_distance = 2000.0
+shadow_blur = 0.5
+directional_shadow_mode = 2
+directional_shadow_split_1 = 0.03
+directional_shadow_split_2 = 0.12
+directional_shadow_split_3 = 0.4
+directional_shadow_max_distance = 800.0
 
 [node name="Terrain" type="Node3D" parent="."]
 script = ExtResource("2")
