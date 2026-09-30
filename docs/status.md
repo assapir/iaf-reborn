@@ -59,8 +59,11 @@ listed below.
 
 ## Plan (in order)
 1. ~~Front end~~, ~~TSD~~, ~~MFDs~~, ~~airbase~~, ~~mission runtime (Engines ON)~~, ~~lights (gear / flaps / brake)~~.
-2. Remaining front-end screens from the decoded specs: original Preferences pages (incl. "No blackouts"), QUIT
+2. **Finish the flight physics** (airborne port audit §15, stall / spin / departure, AB light-up, landing / crash
+   check, preference branches, airborne start), then **complete the F-16 model**: afterburner flame / nozzle and
+   the other visual parts driven by the flight state.
+3. Remaining front-end screens from the decoded specs: original Preferences pages (incl. "No blackouts"), QUIT
    confirmation, pilot records and mission unlocking, TSD selected-unit label and 3D-model / target windows, Arming.
-3. In-flight sounds (engine, wind, gear, warnings) and the landing / crash check.
-4. Next training missions (docs/mission-coverage.md): what Landing (312) and Low Level Navigation (313) need.
-5. Later: see docs/roadmap.md (other aircraft, AI, weapons, better model, 3D cockpit, satellite imagery).
+4. In-flight sounds (engine, wind, gear, warnings) and the landing / crash check.
+5. Next training missions (docs/mission-coverage.md): what Landing (312) and Low Level Navigation (313) need.
+6. Later: see docs/roadmap.md (other aircraft, AI, weapons, better model, 3D cockpit, satellite imagery).
