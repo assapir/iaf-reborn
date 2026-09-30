@@ -57,6 +57,8 @@ Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user
   (wings, tail, gear from its model) instead of generic shards.
 - Physics tab: the check boxes and their labels are not vertically aligned (20 px rows); and the list needs a
   scrollbar soon (15 options; use the Keyboard page's original scrollbar art / behaviour).
+- Stores look detached: no pylon models drawn (stores float under the wing), single-sided fins (flat white
+  triangles from behind), triple-rack side bombs touch the wing (original formula) — see scratchpad so_behind.png.
 - Keyboard page: the scrollbar arrows are cropped on the right side.
 - Landing tests at the runway edges (Ramat David): touchdowns near the threshold / runway end and just inside /
   outside the left and right edges (inside = tarmac, safe; outside on grass above 25.7 m/s = rough-ground crash),
