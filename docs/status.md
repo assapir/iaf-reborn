@@ -12,7 +12,6 @@
 |---|---|---|
 | Cleanup | remaining ~30 over-engineering items (pure refactor) | — |
 | v1.1 comparison | Ghidra on the v1.1 exe, v1.0→v1.1 function map, what changed in our ported systems → `docs/v1.1.md` | port the changes (below) |
-| Real aircraft data | real-world data sets for all flyable jets → `docs/real-aircraft.md` | rename "Real F-16" → "Real aircraft" |
 
 ## To do next (in this order)
 1. **Switch to v1.1**: patch step in `tools/setup.sh` (patch before the Hebrew pack; skip when no patch is given),
@@ -46,7 +45,7 @@ Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user
 | Mission runtime | scripts, triggers, events, voices + subtitles, win / lose rules, mission boxes, debrief; player = the default (or chosen) flight's leader |
 | Flight model | original ground + airborne logic ported line by line (docs/flight-model.md §14–§15): envelope, stall, spin, landing / crash check, afterburner delay, gear / flaps / brakes, start rules, Gameplay prefs |
 | Physics switches | 12 "Better physics" options (incl. F-16 deep stall, ground effect) + 2 original-bug fixes (falling-jet heading, enemies tougher on easy AI) |
-| Real F-16 data | real weights, thrust, roll, fuel, stall; pedal nose-wheel steering |
+| Real aircraft data | Real set for all 6 flyable jets (F-16, F-15C, F-4E / Kurnass 2000, Kfir C7, Lavi, Mirage IIICJ): weights, thrust, drag, roll, fuel, stall, pedal steering (docs/real-aircraft.md); the flight data loader reads the v1.1 files (`bdgen.dat`, `*gen.skp`, XOR-encoded); AI types: reference table only |
 | Damage | original damage model: hits, blast formula, destruction, falling jets, explosions / smoke, the player's systems damage, collisions |
 | Eject | E ×3: seat, canopy, parachute, mission lost |
 | Cockpit | all 9 original 2D cockpits, gauges, HUD (11 colours), panel lights, MFDs (radar, TSD, RWR, NAV, stores, damage) |
