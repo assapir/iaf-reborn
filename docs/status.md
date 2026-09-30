@@ -15,8 +15,8 @@
 1. **Terrain (original data) — convert all of `map.ptt`** (running): ground for every mission area, all insets,
    runway-number check, `terraintype.dat`, loading behind the loading screen.
 2. **Combat core** (unlocks the first ~9–11 missions): player weapons first (gun + IR missiles, stores on the
-   pylons, the weapon HUD / MFD pages; targets already take damage; Original / Real weapon data like the flight
-   data: public data per weapon, docs/roadmap.md "Real weapons") → AI brain flight → AI air-to-ground /
+   pylons, the weapon HUD / MFD pages; targets already take damage; its own Extras switch "Weapon data: Original /
+   Real" (separate from Flight data), public data per weapon, docs/roadmap.md "Real weapons") → AI brain flight → AI air-to-ground /
    air-to-air → AAA, radar SAMs, RWR → script ops 2 / 21 / 22.
 3. **Bombs + CCIP**, armed vehicles / boats (→ ~20 missions).
 4. **Other jets**: flight data + cockpit per jet — Phantom 2000 (19 missions), F-4E (17), F-15 (16), Lavi / Mirage
