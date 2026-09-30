@@ -5,10 +5,10 @@
 #   PgDn panel, F12 info, +/- or wheel zoom.
 #   External: RMB-drag orbits the camera, wheel zooms.
 #   `godot --path game res://terrain/terrain_view.tscn -- [--mission 311] [--real] [--screenshot out.png]
-#        [--at X Y alt heading pitch [roll]] [--external]`
+#        [--at X Y alt heading pitch [roll]] [--external] [--shots N [--orbit-step deg]]`
 #   --mission: start where the mission puts the player (menu choice by default; the leader of the
 #   TSD-picked or default flight of the mission's main .mis file). --at: engine world metres
-#   (X east, Y north), degrees.
+#   (X east, Y north), degrees; it overrides the mission's start (the mission's units still spawn).
 #   --real: fly the corrected real-world data (docs/real-aircraft.md) instead of the original 1998 numbers.
 # The aircraft is the original IAF F-16 flight model (Rust, crates/iaf-flight) via the IafFlight class.
 extends Node3D
@@ -211,7 +211,12 @@ func _ready() -> void:
 		flight.set_gear_clearance(-h.position.y if h != null else 0.0)
 	var shot := args.find("--screenshot")
 	if shot >= 0:
-		_screenshot(args[shot + 1])
+		# Captures ignore stray keyboard / mouse input (the window may receive the user's typing).
+		set_process_unhandled_input(false)
+		var n := args.find("--shots")
+		var step := args.find("--orbit-step")
+		_screenshot(args[shot + 1], int(args[n + 1]) if n >= 0 else 1,
+				deg_to_rad(float(args[step + 1])) if step >= 0 else 0.0)
 
 
 ## The player's stores and weapons: the mission entity's loadout, else (free flight) the F-16's
@@ -235,8 +240,10 @@ func _setup_weapons() -> void:
 	cockpit.on_station_select = weapons.select_station
 
 
-## Waits for the terrain in range (bounded), measures fps, saves a PNG and quits.
-func _screenshot(path: String) -> void:
+## Waits for the terrain in range (bounded), measures fps, saves a PNG and quits. `--shots N` saves N
+## consecutive frames (path_00.png ..), turning the external camera `--orbit-step` degrees per frame
+## (flicker / popping checks).
+func _screenshot(path: String, shots := 1, orbit_step := 0.0) -> void:
 	var t0 := Time.get_ticks_msec()
 	while terrain.missing_after_frame() and Time.get_ticks_msec() - t0 < SCREENSHOT_TIMEOUT_MS:
 		await get_tree().process_frame
@@ -247,6 +254,13 @@ func _screenshot(path: String) -> void:
 	for i in 120:
 		await get_tree().process_frame
 	print("average %.1f fps over 120 frames" % (1000.0 * (Engine.get_frames_drawn() - f0) / (Time.get_ticks_msec() - m0)))
+	if shots > 1:
+		for i in shots:
+			orbit_yaw += orbit_step
+			await RenderingServer.frame_post_draw
+			get_viewport().get_texture().get_image().save_png(path.get_basename() + "_%02d.png" % i)
+		get_tree().quit()
+		return
 	preload("res://util/img.gd").screenshot_and_quit(self, path)
 
 
@@ -264,7 +278,13 @@ func _choose_start(args: PackedStringArray) -> void:
 	var heading := 0.0
 	var pitch := 0.0
 	var roll := 0.0
-	if not player.is_empty():
+	if at >= 0:
+		origin = Vector2(float(args[at + 1]), float(args[at + 2]))
+		alt = float(args[at + 3])
+		heading = float(args[at + 4])
+		pitch = float(args[at + 5])
+		roll = float(args[at + 6]) if args.size() > at + 6 and args[at + 6].is_valid_float() else 0.0
+	elif not player.is_empty():
 		origin = Vector2(player["0x2e4"], player["0x2ee"])
 		alt = float(player["0x2f8"])
 		heading = float(player["0x302"])
@@ -282,12 +302,6 @@ func _choose_start(args: PackedStringArray) -> void:
 			flaps = 1.0
 			brakes = true
 			throttle = 0.0
-	elif at >= 0:
-		origin = Vector2(float(args[at + 1]), float(args[at + 2]))
-		alt = float(args[at + 3])
-		heading = float(args[at + 4])
-		pitch = float(args[at + 5])
-		roll = float(args[at + 6]) if args.size() > at + 6 and args[at + 6].is_valid_float() else 0.0
 	else:
 		origin = terrain.centre_world()
 	start_pitch = pitch
