@@ -41,3 +41,9 @@ Optional sound additions behind an Extras switch, original default off: wind / a
 original has an unused `SFX_WIND` code), canopy, engine start-up / spool-down, the shipped-but-unused engine idle
 loops, `afterburner1/2`, `gearup` / `geardown`, `speedbreak(loop)`, and the silent Betty rows whose files exist
 (`cock_bty_pull.wav`, `cock_bty_bingo.wav`, `cock_bty_spin.wav`) — see docs/sound.md.
+
+## Low-end profile (low priority) — e.g. Raspberry Pi 5
+Performance pass (draw calls, streaming cost; the dev machine dips to 13–24 fps in places) plus a low-end profile:
+Godot Compatibility renderer (GLES3) with the terrain / detail / afterburner shaders checked there, ETC2 instead of
+BC1 texture compression (the Pi's GPU has no S3TC), lower terrain detail and resolution. Rust / godot-rust already
+build for ARM64 Linux.
