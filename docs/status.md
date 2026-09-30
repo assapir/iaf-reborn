@@ -83,16 +83,19 @@ listed below.
 - In-flight subtitles stay English in Hebrew mode (no Hebrew source exists).
 - Rendering improvements allowed: smooth text, Lanczos-upscaled art, mirrored runway digits re-flipped.
 
-## Plan (in order)
-1. ~~Front end~~, ~~TSD~~, ~~MFDs~~, ~~airbase~~, ~~mission runtime (Engines ON)~~, ~~lights~~, ~~flight physics (§14/§15
-   port + Better physics options)~~, ~~aircraft model for every plane~~, ~~original Preferences~~.
-2. ~~Key table + Controls page, eject, canopy/pilot option~~.
-3. **In-flight sounds** (engine, wind, gear, warnings, touchdown / crash) and the in-flight pause menu.
-4. **Next training missions** (docs/mission-coverage.md): Landing (312, airborne start now supported) and Low Level
-   Navigation (313); then what the rest of the training set needs (AI aircraft, vehicles, SAM / AAA, combat ops).
-5. **Remaining front-end screens**: QUIT confirmation, pilot records and mission unlocking, TSD selected-unit label and
-   3D-model / target windows, Arming; the stored Gameplay / Graphics / Sound prefs' in-game effects.
-6. **Loading**: terrain behind the loading screen.
-7. **Weapons and combat** (radar contacts / lock, stores, missiles, gun, damage), then **AI** and **other flyable jets**
-   (the aircraft model is ready; each needs its flight-model data set).
-8. Later: docs/roadmap.md (mission replayer, 3D cockpit, satellite imagery, newer aircraft, canopy open).
+## Plan — by missions unlocked (docs/mission-coverage.md, greedy order; user decision 2026-09-30)
+Playable today: **2 / 68** (311, 312). Almost every mission needs the combat core together; no smaller feature
+completes a mission on its own.
+1. ~~Front end, TSD, MFDs, airbase, mission runtime, lights, flight physics + Better physics, aircraft model (all
+   planes), Preferences, key table / Controls, eject~~. Running: in-flight sounds (+ pause menu spec).
+2. **Player = default-flight leader** (S): the runtime only knows `player1`; campaign missions and 324 fail today.
+3. **Combat core** (unlocks 11 with the F-15, 9 F-16-only): damage & destruction (M) → AI brain flight (L: route,
+   formation, take-off / landing from the bdb brains) → player weapons: gun + IR missiles (M), external stores on
+   the model → AI air-to-ground / air-to-air (M / L) → AAA and radar SAMs with the RWR (M each) → script ops 2 / 21 / 22.
+   Closest missions: 313 Pathfinder (damage + AAA), 315 Cold Steel (AI wingman + damage + bombs), 323 Hair Pin.
+4. **Bombs + CCIP, armed vehicles / boats fire, motion op 11** (→ 20 / 15 F-16-only).
+5. **Other jets** (flight-model data set + cockpit each, L): Phantom 2000 (19 missions), F-4E (17), F-15 (16), Lavi /
+   Mirage (13), Kfir (8) — together ~30 missions.
+6. Radar missiles with lock, IR SAMs, TV / IR-guided weapons, night, anti-radiation, rockets, brain-driven vehicles.
+7. Arming screen (9 missions need a different loadout), multiplayer (8), remaining front-end screens, loading screen.
+8. Later: docs/roadmap.md (Better AI, Real weapons, mission replayer, 3D cockpit, satellite imagery, canopy open).
