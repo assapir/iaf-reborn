@@ -42,6 +42,7 @@
 Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user decisions.
 
 ## Small bugs (fix between jobs)
+- **Airbase flickers badly in the external view** (since the new terrain; likely z-fighting between the runway / airbase object models and the terrain imagery that already shows them, or overlapping quadtree levels). First to fix.
 - Keyboard page: the scrollbar arrows are cropped on the right side.
 
 ## Done
