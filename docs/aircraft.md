@@ -1,5 +1,7 @@
 # How an aircraft is defined
 
+Addresses are `IAFJets.exe` **v1.1** (the reference version); [v1.1.md](v1.1.md) maps them to v1.0 and lists what the patch changed.
+
 An aircraft in iaf-reborn is **data from the original install + one generic piece of code**:
 
 | what | where | produced by |
@@ -8,8 +10,8 @@ An aircraft in iaf-reborn is **data from the original install + one generic piec
 | descriptor: parts, hinges, nozzles, stations, type codes | `assets/converted/planes/<p>/aircraft.json` | `iaf-convert aircraft` (`crates/iaf-tools/src/aircraft.rs`) |
 | index of all aircraft | `assets/converted/planes/aircraft.json` | same |
 | afterburner texture (`afterburn.tga`) | `assets/converted/planes/afterburn.png` | same |
-| per-type part rules (the original callback `FUN_0059dd70`) | `game/aircraft/aircraft_model.gd` `part_pose()` | code (a port) |
-| afterburner flame (`FUN_004121b0`) | `game/aircraft/afterburner.gd` | code (a port) |
+| per-type part rules (the original callback `FUN_005a09c0`) | `game/aircraft/aircraft_model.gd` `part_pose()` | code (a port) |
+| afterburner flame (`FUN_004121e0`) | `game/aircraft/afterburner.gd` | code (a port) |
 | flight model data | `resource/md/bd.ibx` `[<SECTION>]` + `<n>.dat` envelope | `crates/iaf-flight` (docs/flight-model.md) |
 | cockpit | `resource/cockpits/<c>` | `iaf-convert cockpit` (docs/cockpit.md) |
 
@@ -19,8 +21,8 @@ unscaled X-file units; the original scales every clump by 5, `error.c` "Scale= 5
 
 ## 1. The descriptor (`aircraft.json`, format 1)
 
-The converter replays what the original loader does with the frame file (`FUN_0041c850` → `FUN_0041c240`,
-`FUN_0041c650`, `FUN_0041c7c0`, `FUN_0053c030`):
+The converter replays what the original loader does with the frame file (`FUN_0041c880` → `FUN_0041c270`,
+`FUN_0041c680`, `FUN_0041c7f0`, `FUN_0053da00`):
 
 * `root`: the root frame (its own mesh is the airframe, always drawn).
 * `parts`: every direct child of the root whose name is in the original name table (case-insensitive: the AI planes'
@@ -39,7 +41,7 @@ The converter replays what the original loader does with the frame file (`FUN_00
   model's gear clearance), `eye` (Pilon, else Camera).
 * `type` / `types`: aircraft type codes from the object database (`default6_1.bdb`, object field `0x5b4`, via the
   Present record `0x53c` → model path); `type` = the most common. `fm_section`: the `bd.ibx` section that type loads
-  (`FUN_005a5bb0`); `null` = the type keeps the F-16 data (230/240 transports) or is a helicopter (−1).
+  (`FUN_005a8980`); `null` = the type keeps the F-16 data (230/240 transports) or is a helicopter (−1).
 * `label`, `objects`: the database objects that use the model (name, class, label, type).
 * optional `part_rules` (not written by the converter): per-part overrides `{ "<part>": {"sign": -1, "visible": false} }`
   for a future model whose helper order does not fit the type's rules.
@@ -82,20 +84,20 @@ from `IafFlight.state()`.
 | others (turret, radar, wheels, engines) | 0 | no | |
 
 Control ramps: rudder = pedal·22.5° in the air, −stick roll·22.5° on the ground. Ailerons = −45°·stick roll, both
-sides, in the air only and not on the deltas (130, 190). Pitch mixer (`FUN_0059da00`): `A` = 45° (130, 190) else
+sides, in the air only and not on the deltas (130, 190). Pitch mixer (`FUN_005a0650`): `A` = 45° (130, 190) else
 30°; `f` = 0.5 (110, 130, 190), 0.65 (100), else 1; `m = (1−f)·sr·A` for 100, 110, 130, 190 else 0;
 `L = sp·f·A − m`, `R = −sp·f·A − m`, ×0.6 for the F-4 (120, 200); deltas write L/R to the elevons (aileron ramps),
 the others to the elevators. Flaps target = lever·16.8° (·0.33 on the F-16).
 
-### 2.2 Afterburner flame (`FUN_0041e1f0` → `FUN_004121b0`)
-* Level per nozzle (`FUN_005a8d40` left / `FUN_005a8e70` right, render bytes +0x3d / +0x3c):
+### 2.2 Afterburner flame (`FUN_0041e220` → `FUN_004121e0`)
+* Level per nozzle (`FUN_005abc90` left / `FUN_005abdc0` right, render bytes +0x3d / +0x3c):
   `stage > 0` (the flight model's AB stage, `vehicle+0x568`+0x28, set in the 1 Hz aero update) and that side's
   "After burner damage" flag (8 left / 9 right) clear → `75 + 12.5·stage` (87 / 100); otherwise RPM ramp·0.74 ≤ 74.
   **Nothing is drawn at level ≤ 74**, so the flame appears exactly at the AB stages (throttle ≥ 0.75 once the
   light-up delay has passed, flight-model.md §15.8) and both nozzles always show the same level.
 * `k = (level − 75)·0.04` (0.5 at stage 1, 1.0 at stage 2); `j = (rand % 21 − 10)·0.01` per nozzle per frame.
 * Cones of 12 segments from the nozzle ring (radius `r`) toward the tail to a ring of radius `r·(j + 0.25)` at
-  `length = (3.5 + j)·k + 1.5·i / 5` metres. The 3D-card path (`DAT_007ccf90`) draws two: i = 2 with radius 0.7·r
+  `length = (3.5 + j)·k + 1.5·i / 5` metres. The 3D-card path (`DAT_007d1960`) draws two: i = 2 with radius 0.7·r
   and i = 3 with radius r; the software path only i = 3. We draw the 3D-card path.
 * Texture `afterburn.tga`: u = random offset − s/12 per segment (a fresh offset per cone per frame), v = 1 at the
   nozzle (opaque end) and 0 at the tip. Double-sided, no depth write. Blend: additive glow in our port (the
@@ -103,8 +105,9 @@ the others to the elevators. Flaps target = lever·16.8° (·0.33 on the F-16).
 * F-16 at full AB: ≈ 4.4 m flame (3.5 + 0.9), base radius 0.44 m.
 
 ### 2.3 Deviations / open points
-* **Canopy and pilot** (ids 0x14–0x17): drawn by the crew object's callback `0x53d180` whenever the crew is aboard
-  and the view is not a cockpit view (`crew+8`), on every jet, the player's included (found while tracing the
+* **Canopy and pilot** (ids 0x14–0x17): drawn by the crew object's callback `0x53eb50` whenever the crew is aboard
+  and the cockpit flag `crew+8` is clear (v1.1: 0 from the ctor, set only while the own jet is drawn from the cockpit),
+  on every jet, the player's included (found while tracing the
   ejection, docs/part-animation.md "Ejection"). Our port: `crew_visible = true` on every aircraft; the ejection takes
   pilot / seat / canopy off the jet. (An earlier reading "hidden on flown aircraft", which showed the F-16 with a flat
   grey cockpit cover, was wrong; the Extras option built on it was removed.)
@@ -113,7 +116,7 @@ the others to the elevators. Flaps target = lever·16.8° (·0.33 on the F-16).
 * Flicker: the flame's random numbers change every rendered frame, as in the original (so faster at high fps).
 * The flaps / speed-brake ramps are recomputed in GDScript with the original rule; the flight model's own ramps
   (`S+0x300`, `S+0x340`) are private in `iaf-flight` (the gear ramp is exported).
-* Muzzle flash (`FUN_00411d60` at StationGun) and stores on stations: need weapons (not implemented).
+* Muzzle flash (`FUN_00411d90` at StationGun) and stores on stations: need weapons (not implemented).
 
 ## 3. Per-aircraft table (the shipped install)
 
@@ -161,7 +164,7 @@ The controllable jets are the eight in `controllableplanes`; `bd.ibx` also has `
    overrides until gear, flaps, speed brakes and the flame are right. `tests/godot/test_aircraft_parts.gd` loads
    every descriptor.
 5. **Flight model data set.** Flying it needs a `bd.ibx` section (parameters, docs/flight-model.md §1) and its
-   envelope `<n>.dat` (§3), selected by the type (`FUN_005a5bb0`, `fm_section` in the descriptor); a corrected
+   envelope `<n>.dat` (§3), selected by the type (`FUN_005a8980`, `fm_section` in the descriptor); a corrected
    real-world set is one more row in `crates/iaf-flight/src/data_set.rs` (docs/real-aircraft.md) plus a reference
    row in `crates/iaf-flight/tests/validation.rs`.
 6. **Cockpit** (flyable jets): a `resource/cockpits/<c>` folder converted with `iaf-convert cockpit` (docs/cockpit.md).

@@ -1,5 +1,7 @@
 # Controls — the original key table
 
+Addresses are `IAFJets.exe` **v1.1** (the reference version); [v1.1.md](v1.1.md) maps them to v1.0 and lists what the patch changed.
+
 Jane's IAF drives every keyboard / joystick command through one table of **117 records** in
 `iafjets.exe`. iaf-reborn converts it (`iaf-convert keys` → `assets/converted/keys.json`), shows it on
 the Preferences Controls page (docs/front-end.md §12.7) and looks every in-flight key up in it
@@ -7,10 +9,10 @@ the Preferences Controls page (docs/front-end.md §12.7) and looks every in-flig
 
 ## 1. The table
 
-* **Default table** `0x647ff8` (`.data`), 117 × 36 bytes, copied (`rep movs 0x41d` dwords) into the
-  working table `0x836e14` (prefs object `0x836c88 + 0x18c`) by the prefs constructor `FUN_004eee10`
-  and by the prefs loader `FUN_004eefb0` before it reads `prefs.dat`. DEFAULT on the Controls page
-  copies it again (@5102a5).
+* **Default table** `0x64c3c8` (`.data`), 117 × 36 bytes, copied (`rep movs 0x41d` dwords) into the
+  working table `0x83b99c` (prefs object `0x83b810 + 0x18c`) by the prefs constructor `FUN_004f0750`
+  and by the prefs loader `FUN_004f08f0` before it reads `prefs.dat`. DEFAULT on the Controls page
+  copies it again (@511ca5).
 * Record layout (9 dwords):
 
   | offset | field |
@@ -23,37 +25,40 @@ the Preferences Controls page (docs/front-end.md §12.7) and looks every in-flig
   | +0x1c | joystick button, 0-based (−1 = none) |
   | +0x20 | listed on the Controls page (≠ 0) |
 
-* **Record i ↔ `txt/keys.trx` line i (0-based).** Resolved: `FUN_004e24d0` loads the 117 lines of
-  keys.trx into `0x82eea8 + 100·i` (loop to `0x831c5c` = 117 × 100), and the dispatcher
-  `FUN_004df3d0` traces `"pressed %s"` / `"released %s"` with `0x82eea8 + 100·i` for the record i it
-  just matched; the Controls row painter `FUN_00510660` also draws label i next to record i's key. So
+* **Record i ↔ `txt/keys.trx` line i (0-based).** Resolved: `FUN_004e3c70` loads the 117 lines of
+  keys.trx into `0x833900 + 100·i` (loop to `0x8366b4` = 117 × 100), and the dispatcher
+  `FUN_004e0b80` traces `"pressed %s"` / `"released %s"` with `0x833900 + 100·i` for the record i it
+  just matched; the Controls row painter `FUN_00512080` also draws label i next to record i's key. So
   line 0 "TSD and cockpit toggle" is record 0 (Esc, command 122), and the earlier "116 records at
-  0x648018" reading was off by one: `0x648018` is record 0's +0x20 (the listed flag), which is the
-  field `FUN_005102f0` walks (`0x648018 .. 0x64908c`, stride 36) to fill the list.
-* **Modifiers** (one per key): 0x11 Ctrl, 0x22 Shift, 0x44 Alt, 0x88 Win (`FUN_004df110`: L/R Ctrl
+  0x64c3e8" reading was off by one: `0x64c3e8` is record 0's +0x20 (the listed flag), which is the
+  field `FUN_00511cf0` walks (`0x64c3e8 .. 0x64d45c`, stride 36) to fill the list.
+* **Modifiers** (one per key): 0x11 Ctrl, 0x22 Shift, 0x44 Alt, 0x88 Win (`FUN_004e08c0`: L/R Ctrl
   0x1d/0x9d, Shift 0x2a/0x36, Alt 0x38/0xb8, Win 0xdb/0xdc). A key matches only with exactly its
-  modifier (`FUN_004df3d0` compares the scancode and the modifier byte), so W and Shift+W are
+  modifier (`FUN_004e0b80` compares the scancode and the modifier byte), so W and Shift+W are
   different keys.
-* **Key names** (`FUN_005107c0` → `FUN_00510890`): "Ctrl + " / "Shift + " / "Alt + " / "Win + "
+* **Key names** (`FUN_005121e0` → `FUN_005122b0`): "Ctrl + " / "Shift + " / "Alt + " / "Win + "
   (the first bit set, in that order) + the scancode's name from a switch of 121 names ("Esc", "1",
   "Backspace", "Numpad 7", "Up", "SysRQ", …; codes without a case have no name). The converter reads
   the strings from the exe at the addresses of that switch (`keys.json` `key_names`).
-* **Joystick button names** (`FUN_00511070`): `"Button %d"` with button + 1; none = empty.
+* **Joystick button names** (`FUN_00512a90`): `"Button %d"` with button + 1; none = empty.
 
 ## 2. Dispatch (in flight)
 
-* Keyboard (`FUN_004df3d0`, called per DirectInput key event by `FUN_004df2b0`): the **first**
+* Keyboard (`FUN_004e0b80`, called per DirectInput key event by `FUN_004e0a60`): the **first**
   record whose key equals scancode | modifier; a press sends its press command, a release its release
   command (id 0 = nothing), as `WM 0x532` (wParam = id, lParam = p2 << 16 | p1 & 0xffff).
-  Joystick buttons (`FUN_004df610`) do the same through +0x1c.
+  Joystick buttons (`FUN_004e0dc0`) do the same through +0x1c.
 * Rewrites before sending: ids 2 (roll) and 3 (pitch) become id 1 (stick) with the other axis taken
-  from the last keyboard value (`DAT_0082ee98` x, `DAT_0082ee9c` y); ids 0x8b / 0x8c (EO pan) become
+  from the last keyboard value (`DAT_008338f0` x, `DAT_008338f4` y); ids 0x8b / 0x8c (EO pan) become
   0x8a the same way.
 * Dropped: ids 2 / 3 while a joystick stick axis is used, 5 / 6 / 9 while a throttle axis is used,
   10 while a rudder axis is used (`this+0x18..0x2c`, UNCERTAIN flag names; docs/flight-model.md §7);
   every id except 0x84 while `this+0x10 < 1` (UNCERTAIN: not in flight).
 * Held commands are the records with a release command: pitch / roll / rudder, EO pan, view pan,
   zoom. Everything else is one-shot.
+* v1.1: the key table (all 117 records byte-identical, `0x64c3c8`; v1.0 `0x647ff8`), this dispatch and the mute key
+  are unchanged. One handler changed: **Z "Full screen weapon MFD"** (event 0x1f in `FUN_004cd630`) now forwards to
+  the cockpit and sets view 1 / 5 (v1.0 did nothing). Not ported (no full-screen MFD yet).
 
 ### iaf-reborn
 
@@ -214,7 +219,7 @@ original's `WM 0x532` wParam; p1 / p2 as stored.
 
 Notes on the list:
 * Throttle presets (records 7–14) send command 9 with p1 = 0, 10, 19, 38, 56, 74, 78, 100; the
-  player controller (`FUN_004493a0` case 9 → `FUN_0044de50` motion 2) sets throttle = p1 · 0.01.
+  player controller (`FUN_0044a240` case 9 → `FUN_0044e470` motion 2) sets throttle = p1 · 0.01.
   (Earlier ports guessed 0.0925 steps; these are the exe's numbers.)
 * Snap views (28–36): command 22 with (angle, n) and release (22, −1, −n); padlock / external views
   (73–84) are command 28 with the view id.

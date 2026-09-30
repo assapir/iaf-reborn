@@ -13,7 +13,7 @@ pub const FORMAT: u32 = 1;
 /// Clump scale of the flown models (`error.c`: "Scale= 5.000" for the F-16 and the MiG-17).
 pub const SCALE: f32 = 5.0;
 
-/// The frame-name table built by `FUN_00585040` (`x3ds_<name>` → id). Ids 1..=0x27 also get the
+/// The frame-name table built by `FUN_005876a0` (`x3ds_<name>` → id). Ids 1..=0x27 also get the
 /// hinge helpers `<name>1` (id + 0x3f) and `<name>2` (id + 0x67). Matching is case-insensitive.
 pub const PART_NAMES: &[(&str, u32)] = &[
     ("AilerL", 0x01),
@@ -77,7 +77,7 @@ pub const PART_NAMES: &[(&str, u32)] = &[
     ("top02", 0x3c),
 ];
 
-/// Flight-model data section per aircraft type (`FUN_005a5bb0`); other types keep the F-16 data.
+/// Flight-model data section per aircraft type (`FUN_005a8980`); other types keep the F-16 data.
 pub fn fm_section(type_code: i64) -> Option<&'static str> {
     Some(match type_code {
         100 => "F-16",
@@ -152,7 +152,7 @@ pub struct DbObject {
 pub fn describe(model: &Model, folder: &str, gltf: &str, source: &str, objects: &[DbObject]) -> Value {
     let root = model.frames.first();
     let children: &[Frame] = root.map_or(&[], |r| r.children.as_slice());
-    // FUN_0041c240: each direct child of the root is looked up in the table (a later frame with
+    // FUN_0041c270: each direct child of the root is looked up in the table (a later frame with
     // the same name replaces the entry); unmatched children are dropped (never drawn).
     let mut entries: Vec<(u32, &Frame)> = Vec::new();
     let mut dropped = Vec::new();
@@ -168,7 +168,7 @@ pub fn describe(model: &Model, folder: &str, gltf: &str, source: &str, objects: 
     let pos = |id: u32| entries.iter().find(|(i, _)| *i == id).map(|(_, f)| origin(f));
     let name_of = |id: u32| entries.iter().find(|(i, _)| *i == id).map(|(_, f)| f.name.clone());
 
-    // Subparts (FUN_0053c030): ids 1..=0x27 and the engines; hinge axis from the X1/X2 helpers.
+    // Subparts (FUN_0053da00): ids 1..=0x27 and the engines; hinge axis from the X1/X2 helpers.
     let mut parts = serde_json::Map::new();
     for &(id, f) in &entries {
         if !(1..=0x27).contains(&id) && id != 0x3a && id != 0x3b {
@@ -189,7 +189,7 @@ pub fn describe(model: &Model, folder: &str, gltf: &str, source: &str, objects: 
         parts.insert(f.name.clone(), json!({ "id": id, "pivot": round(gl(origin(f))), "axis": axis }));
     }
 
-    // FUN_0041c650: afterburner nozzles. The pair (EngineX, EngineX1) gives the radius |ΔY|; the
+    // FUN_0041c680: afterburner nozzles. The pair (EngineX, EngineX1) gives the radius |ΔY|; the
     // stored position ends up as the plain EngineX frame; each completed pair counts once.
     const UNSET: f32 = 99999.0;
     let (mut right, mut left) = ([UNSET; 3], [UNSET; 3]);
@@ -216,7 +216,7 @@ pub fn describe(model: &Model, folder: &str, gltf: &str, source: &str, objects: 
     }
     let engine = |p: [f32; 3]| if p[0] == UNSET { Value::Null } else { round(gl(p)) };
 
-    // FUN_0041c7c0: the gun muzzle (last StationGun frame).
+    // FUN_0041c7f0: the gun muzzle (last StationGun frame).
     let gun = children.iter().filter(|c| c.name.eq_ignore_ascii_case("StationGun")).last().map(|c| round(gl(origin(c))));
 
     let mut stations = serde_json::Map::new();

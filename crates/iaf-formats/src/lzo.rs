@@ -1,5 +1,5 @@
 //! LZO1X decompression (the classic `lzo1x_decompress`), as used by the terrain
-//! elevation blocks in `map.ptt` (`FUN_0042c750` in iafjets.exe).
+//! elevation blocks in `map.ptt` (`FUN_0042c7e0` in iafjets.exe).
 //!
 //! Bounds-checked: malformed input returns an error instead of panicking.
 

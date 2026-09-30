@@ -6,14 +6,14 @@
 //!
 //! Rules ported from the original (docs/front-end.md §8 / §15, docs/mission-runtime.md,
 //! docs/formats/mis.md):
-//! * Player: the leader of the lowest existing flight 1..4 (`FUN_004bab1c` asks the flight map for 1,
+//! * Player: the leader of the lowest existing flight 1..4 (`FUN_004bb439` asks the flight map for 1,
 //!   then 2..4; the TSD's default flight is the formation holding that object). A flight's leader is
 //!   member 0 if spawned, else member 1. Training missions 3xx except 325 load the jet picked in the
-//!   Jet list instead of the file's type (`FUN_004c2560`), 325 and the rest fly the file's type.
+//!   Jet list instead of the file's type (`FUN_004c2e30`), 325 and the rest fly the file's type.
 //! * Win: every role-1 (`0x32a`) entity destroyed; role 0 must survive. A role-1 entity with an
 //!   Explode (trigger op 5) in its own scripts is destroyed by the mission; any other must be killed.
 //! * Loadout: pylons 0..8 from the entity's `CArmament` when any is set, else from the object type;
-//!   9..11 (gun, chaff, flares) always from the type (`FUN_00592ba0` / `FUN_00592c00`).
+//!   9..11 (gun, chaff, flares) always from the type (`FUN_005951c0` / `FUN_00595220`).
 //! * Brain-controlled (`0x320` bit 0 = 0) units are flown by the AI brain (`0x2da`, else the type's
 //!   default brain by name); mission-controlled ones only move by their scripts.
 
@@ -29,16 +29,16 @@ const SUPPORTED_TRIGGER: &[i64] = &[3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16
 const SUPPORTED_MOTION: &[i64] = &[1, 16];
 /// Player aircraft type codes (bdb Objects 0x5b4) that can be flown by the engine.
 const FLYABLE_NOW: &[i64] = &[100];
-/// Type codes the original lets the player fly (`FUN_005063e0`).
+/// Type codes the original lets the player fly (`FUN_00507d00`).
 const FLYABLE_ORIGINAL: &[i64] = &[100, 110, 120, 130, 140, 160, 180, 190, 200];
-/// Jet list per training mission: jets disabled (`FUN_005082b0`), by type code.
+/// Jet list per training mission: jets disabled (`FUN_00509b80`), by type code.
 const JET_LIST_DISABLED: &[(i64, &[i64])] = &[(314, &[190, 130]), (322, &[190, 130, 110]), (323, &[190, 130, 120, 110])];
 /// The seven jets of the Jet list (Mirage, Kfir, F-4E, F-4 2000, F-15, F-16, Lavi).
 const JET_LIST: &[i64] = &[190, 130, 120, 200, 110, 100, 140];
 const AIRCRAFT: &[i64] = &[28, 3];
 const HELICOPTER: i64 = 2;
 const GROUND_UNITS: &[i64] = &[5, 6, 8, 9, 10, 15, 16];
-/// Night in the original's rule (cockpit night dimming `FUN_0052c420`): 20 ≤ hour or hour ≤ 5.
+/// Night in the original's rule (cockpit night dimming `FUN_0052df40`): 20 ≤ hour or hour ≤ 5.
 fn is_night(t: f64) -> bool {
     let h = (t / 3600.0).floor() as i64 % 24;
     h >= 20 || h <= 5
@@ -703,15 +703,15 @@ const NOTES: &str = r#"
 ## 4. Rules used (ported from the original)
 
 * **Player aircraft.** At mission load the player object is the leader of flight 1, else of flights 2..4
-  (`FUN_004bab1c` asks the flight map for 1, then 2..4); the TSD's default flight is the formation holding it
-  (`FUN_005b9bc0`, docs/front-end.md §8). A flight is formation `0x3f2` 1..4; its leader is member 0 if placed,
+  (`FUN_004bb439` asks the flight map for 1, then 2..4); the TSD's default flight is the formation holding it
+  (`FUN_005bcd70`, docs/front-end.md §8). A flight is formation `0x3f2` 1..4; its leader is member 0 if placed,
   else member 1. Campaign and scramble missions have no `Player1`: the player flies that leader's bdb type
   (`0x5b4`). Training missions 311–326 except 325 are entered through the Jet list and load the chosen jet
-  (`FUN_004c2560`; jets disabled per mission by `FUN_005082b0`), so any allowed jet flies them. Only the F-16 (100)
+  (`FUN_004c2e30`; jets disabled per mission by `FUN_00509b80`), so any allowed jet flies them. Only the F-16 (100)
   is flyable in the engine today; the runtime also takes the player from the entity named `Player1`, so every
   other mission needs "player = default-flight leader".
 * **Other flights.** The "other flyable flights" column lists flights 2..4 the player could pick instead
-  (flyable type and side 1, `FUN_00503f40`). Playability is judged on the default flight only.
+  (flyable type and side 1, `FUN_00505820`). Playability is judged on the default flight only.
 * **Win condition** (docs/mission-runtime.md §5.1): all role-1 (`0x32a`) entities destroyed. A role-1 entity with
   Explode (trigger op 5) in its own scripts is destroyed by the mission ("scripted"); any other one must be killed:
   aircraft / helicopters that move (brain-controlled, or a Path / Turn script) are air targets, everything else

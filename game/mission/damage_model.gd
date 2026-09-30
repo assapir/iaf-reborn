@@ -12,8 +12,8 @@ const HIT_AT := 0.8
 const MIN_STEP := 0.01
 ## AI skill (Preferences > Gameplay, pref +0x50): damage to units not on the player's side is scaled
 ## by 0.8 (Rookie, 0x63900c) / 0.9 (Normal, 0x639010) / 1.0 (Expert) in FUN_004642f0.
-## Original bug: that makes the enemies tougher on the easier levels (the other skill readers 4404d0 /
-## 443f60 do weaken them). Preferences > Physics "fix_skill_damage" turns the scaling off (ours).
+## Original bug, still in v1.1: that makes the enemies tougher on the easier levels (docs/damage.md §4.1).
+## Preferences > Physics "fix_skill_damage" turns the scaling off (ours).
 const SKILL_SCALE := [0.8, 0.9, 1.0]
 static var no_skill_scale := false
 ## Damage smoke of a hit controlled aircraft (class 0x1c, FUN_004a9c60 / FUN_004a7de0): starts at

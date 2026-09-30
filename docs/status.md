@@ -3,7 +3,8 @@
 ## Where we are
 - **Playable missions: 2 of 68** — Training "Engines ON" (311) and "Landing" (312), start to debrief.
 - **Flyable jet: F-16 only.** Other jets have models and cockpits, but no flight data set yet.
-- **Game version: v1.1 logic** (switch in progress, see below). Players with only v1.0 data must still be able to play.
+- **Game version: v1.1 logic**, v1.1 data when setup is given the patch (`--patch`); v1.0 data still plays. Doc
+  addresses are v1.1 (docs/v1.1.md maps them to v1.0). Flight model v1.1 port in progress.
 - Everything comes from the player's own ISO; the repo (github.com/assapir/iaf-reborn, GPL-3.0) holds no game data.
 - Rule: logic, layout, timing and colours as the original. Improvements are opt-in switches, original by default.
 
@@ -11,25 +12,22 @@
 | work | what | then |
 |---|---|---|
 | Cleanup | remaining ~30 over-engineering items (pure refactor) | — |
-| v1.1 comparison | Ghidra on the v1.1 exe, v1.0→v1.1 function map, what changed in our ported systems → `docs/v1.1.md` | port the changes (below) |
+| v1.1 flight model | β channel, roll axis, spin, taxi constants (docs/v1.1.md F1–F4) in `iaf-flight` / docs/flight-model.md | — |
 
 ## To do next (in this order)
-1. **Switch to v1.1**: patch step in `tools/setup.sh` (patch before the Hebrew pack; skip when no patch is given),
-   port every v1.1 logic change in our systems, move doc addresses to v1.1, keep v1.0 data working, delete our
-   fixes that v1.1 makes redundant.
-2. **Terrain (original data) — convert all of `map.ptt`**: all 57 levels: the whole theatre (levels 6–11: today
+1. **Terrain (original data) — convert all of `map.ptt`**: all 57 levels: the whole theatre (levels 6–11: today
    there is *no ground* outside the Israel rectangle) and every inset (foreign airbases, target areas, level 3);
    run the runway-number check on every new airbase; decode `terraintype.dat` (water / rough / runway); load terrain
    behind the loading screen.
-3. **Combat core** (unlocks the first ~9–11 missions): AI brain flight → player gun + IR missiles, stores on the
+2. **Combat core** (unlocks the first ~9–11 missions): AI brain flight → player gun + IR missiles, stores on the
    pylons → AI air-to-ground / air-to-air → AAA, radar SAMs, RWR → script ops 2 / 21 / 22.
-4. **Bombs + CCIP**, armed vehicles / boats (→ ~20 missions).
-5. **Other jets**: flight data + cockpit per jet — Phantom 2000 (19 missions), F-4E (17), F-15 (16), Lavi / Mirage
+3. **Bombs + CCIP**, armed vehicles / boats (→ ~20 missions).
+4. **Other jets**: flight data + cockpit per jet — Phantom 2000 (19 missions), F-4E (17), F-15 (16), Lavi / Mirage
    (13), Kfir (8).
-6. Radar missiles with lock, IR SAMs, TV / IR-guided weapons, night, anti-radiation missiles, rockets.
-7. Arming screen, pilot records / unlocking, remaining front-end screens, multiplayer.
-8. Joystick / throttle / pedals (original input handling; Devices page).
-9. Later (docs/roadmap.md): Better AI, Real weapons, Extra sounds, mission replayer, 3D cockpit, satellite imagery,
+5. Radar missiles with lock, IR SAMs, TV / IR-guided weapons, night, anti-radiation missiles, rockets.
+6. Arming screen, pilot records / unlocking, remaining front-end screens, multiplayer.
+7. Joystick / throttle / pedals (original input handling; Devices page).
+8. Later (docs/roadmap.md): Better AI, Real weapons, Extra sounds, mission replayer, 3D cockpit, satellite imagery,
    canopy open.
 
 Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user decisions.
@@ -37,9 +35,10 @@ Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user
 ## Done
 | area | state |
 |---|---|
-| Setup | `tools/setup.sh <ISO> [Hebrew packs]` builds everything; ISO + `setup.esa` extraction; `iaf-patch` applies the official v1.1 patch (RTPatch) without Windows |
+| Setup | `tools/setup.sh [--patch <v1.1>] <ISO> [Hebrew packs]` builds everything; ISO + `setup.esa` extraction; `iaf-patch` applies the official v1.1 patch (RTPatch) without Windows, before the Hebrew packs and every conversion |
+| v1.1 | `docs/v1.1.md` (v1.0→v1.1 diff and address map); ported outside the flight model: HUD (FPM, 12 px/deg ladder on the marker, gun cross at GunRetPositionY), ejection throw straight up, training debrief → Jet list, event counter order / missing-entity skip / combat ops 21–22; v1.1 rules of unported systems recorded (damage.md §4.4, front-end.md §17); docs and code comments on v1.1 addresses |
 | Front end | original screens, animations, sounds, music; training + campaign; Jet list; Hebrew packs |
-| Preferences | original 5 pages (Graphics, Sound, Keyboard, Devices, Gameplay) + our **Extras** (flight data, language, info line, blackbox) and **Physics** (14 improvement switches) tabs, EN + HE |
+| Preferences | original 5 pages (Graphics, Sound, Keyboard, Devices, Gameplay) + our **Extras** (flight data, language, info line, blackbox, HUD pitch ladder) and **Physics** (14 improvement switches) tabs, EN + HE |
 | Controls | original key table, rebinding on the Keyboard page, in-flight keys through the table (keyboard only) |
 | TSD / briefing | vector map, units, flights, waypoints, fly any flight, briefing texts and links |
 | Mission runtime | scripts, triggers, events, voices + subtitles, win / lose rules, mission boxes, debrief; player = the default (or chosen) flight's leader |
@@ -52,7 +51,7 @@ Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user
 | Aircraft models | all 22 models: moving parts per the original rules, gear, afterburner flame, canopy / pilot, damage visuals |
 | Sounds | original sound table: engine, gear, flaps, air brake, AoA tone, Betty warnings, touchdown, crash; volume sliders |
 | Terrain | Israel rectangle (level 4) with heights + 149 airbase detail tiles; mirrored runway digits fixed |
-| Tests | `tools/test.sh`: Rust + 16 headless Godot tests, isolated from the player's settings; fails on any script error |
+| Tests | `tools/test.sh`: Rust + 19 headless Godot tests, isolated from the player's settings; fails on any script error |
 
 ## Open gaps (by area)
 - **Terrain**: no ground outside the Israel rectangle; foreign / target insets missing; no terrain types; visible
@@ -69,7 +68,8 @@ Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user
 - **Eject details**: the original fly-by camera, callsign in the radio call, parachute landing.
 
 ## Decisions (agreed with the user)
-- Game logic from v1.1 only; v1.0 data must still work. A v1.1 fix that makes one of ours redundant → ours is deleted.
+- Game logic from v1.1 only ("logic v1.1"); v1.0 data must still work. A v1.1 fix that makes one of ours redundant → ours
+  is deleted (so far only the HUD: the projected FPM is v1.1's own, the conformal ladder became an Extras option).
 - Improvements over the original are opt-in switches, original by default: Physics tab (flight + gameplay bugs),
   Extras tab (visual / sound additions), Flight data (Original / Real).
 - Rendering may be better: smooth text, 4× Lanczos art (never AI upscaling), fixed runway digits.

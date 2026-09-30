@@ -19,7 +19,7 @@ fn main() -> Result<()> {
 
 /// Elevation sampler over the finest whole-theatre level. Inset levels carry
 /// colour only; the original engine derives their heights from the level above
-/// (`FUN_004280a0`), we do the same with bilinear filtering.
+/// (`FUN_004281e0`), we do the same with bilinear filtering.
 struct HeightSource {
     level: iaf_formats::ptt::Level,
     tiles: Vec<iaf_formats::ptt::TileEntry>,
@@ -156,7 +156,7 @@ fn export(path: &str, index: usize, out: &std::path::Path) -> Result<()> {
         "chunks": [ccols, crows],
         "heights_from_level": source.as_ref().map_or(level.level, |s| s.level.level),
         "units_per_pixel": span as f64 / n as f64,
-        // Engine world (metres, X east / Y north) from terrain units (FUN_004053b0/…420):
+        // Engine world (metres, X east / Y north) from terrain units (FUN_004053f0/…420):
         //   X = tx * units_to_metres + x_shift ;  Y = y_shift - ty * units_to_metres
         // Heights: metres = (raw - sea_level_raw) / height_scale * units_to_metres
         // (checked: Ramat David runway 63.7 m vs 63 m in takeoff.mis).

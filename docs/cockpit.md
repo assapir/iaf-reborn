@@ -1,7 +1,9 @@
 # Cockpit data, all aircraft (`resource/cockpits/<dir>/cockpit.ibx`)
 
+Addresses are `IAFJets.exe` **v1.1** (the reference version); [v1.1.md](v1.1.md) maps them to v1.0 and lists what the patch changed.
+
 Companion to `mfd.md` (MFD pages, defaults, per-aircraft MFD table in its §7). Source: the nine `cockpit.ibx` files plus the
-reader `FUN_00520d90` in `assets/ghidra/iafjets.c`. Sections/keys are read with `GetPrivateProfileInt` (missing key = the
+reader `FUN_005228a0` in `assets/ghidra_v11/iafjets.c`. Sections/keys are read with `GetPrivateProfileInt` (missing key = the
 per-key default in the exe; an empty value such as `MiddleOffsetX =` reads as 0). The first duplicate key wins. Only the file
 named `cockpit.ibx` is read (`cfir/cockpit.ini` differs by one key, `[CHAFF] OffY` 86 vs 87, and is unused).
 
@@ -26,15 +28,38 @@ referenced but not shipped. Unreferenced extras: `cfir/cfir-lights.bmp`, `lavi/l
 ## `[HUD]` per aircraft
 | Dir | Glass | W x H | MaskX/Y/Y2 | CenterY | Bore | GunRet | VertSclOffY | L/R/T/B border | TxtOff X,Y | Flags |
 |---|---|---|---|---|---|---|---|---|---|---|
-| mirage | mrghud.bmp | 264x166 | 23/18/142 | 75 | 115 | 130 | 20 | 85/78/67/52 | 100,52 | - |
-| cfir | cfir-h.bmp | 250x205 | 24/20/165 | 110 | 150 | 170 | 0 | 67/68/73/52 | 82,60 | - |
+| mirage | mrghud.bmp | 264x166 | 23/18/142 | 75 | 115 | 120 (v1.0 130) | 20 | 85/78/67/52 | 100,52 | - |
+| cfir | cfir-h.bmp | 250x205 | 24/20/165 | 110 | 150 | 160 (v1.0 170) | 0 | 67/68/73/52 | 82,60 | - |
 | phantom | f4hud.bmp | 231x141 | 57/8/140 | 70 | 100 | 110 | 0 | 69/64/53/52 | 82,45 | ShowHorizon 0, ShowLRScales 0 |
-| f4-2000 | hud.bmp | 275x190 | 14/24/163 | 102 | 130 | 155 | 5 | 85/81/70/52 | 92,53 | Dash 1 |
-| f15 | F15hud.bmp | 313x212 | 30/45/149 | 120 | 140 | 170 | 5 | 98/98/60/70 | 109,70 | Dash 1 |
-| f16 | F16hud.bmp | 319x182 | 56/23/164 | 88 | 135 | 150 | 15 | 69/70/75/60 | 82,48 | Dash 1 |
+| f4-2000 | hud.bmp | 275x190 | 14/24/163 | 102 | 130 | 145 (v1.0 155) | 5 | 85/81/70/52 | 92,53 | Dash 1 |
+| f15 | F15hud.bmp | 313x212 | 30/45/149 | 120 | 140 | 160 (v1.0 170) | 5 | 98/98/60/70 | 109,70 | Dash 1 |
+| f16 | F16hud.bmp | 319x182 | 56/23/164 | 88 | 135 | 140 (v1.0 150) | 15 | 69/70/75/60 | 82,48 | Dash 1 |
 | lavi | lavi-hud.bmp | 298x163 | 37/16/148 | 88 | 110 | 130 | -5 | 95/95/55/52 | 92,53 | Dash 1 |
 | mig23 | hud.bmp | 239x165 | 35/29/141 | 90 | 110 | 138 | 0 | 65/56/58/52 | 82,45 | ShowHorizon 0, ShowLRScales 0, Dash 1 |
 | mig29 | hud.bmp | 385x181 (bmp 386) | 104/15/156 | 100 | 120 | 140 | 0 | 70/67/56/52 | 82,55 | ShowHorizon 1, ShowLRScales 1, Dash 1 |
+
+The v1.1 patch lowered `GunRetPositionY` by 10 px in these five cockpits (the gun now fires 1° up onto the cross,
+docs/damage.md §4.4); nothing else in `cockpit.ibx` changed.
+
+### HUD symbology (v1.1, `FUN_00530b70` → pitch ladder / FPM `FUN_00538c90`)
+* **Flight path marker**: the producer in `FUN_00448b20` (@448cf9–448fa8, new in v1.1) projects pos + 200·velocity
+  direction with the view's perspective and stores the screen point in S+0x1c/0x20 (the 8 bytes v1.1 inserted into the
+  cockpit state). The marker (a 5 px circle with 3 px wings and a tail) is drawn there, and only when it lies inside
+  the HUD clip. v1.0 drew it from the boresight plus 12 px/deg × (α, β).
+* **Pitch ladder**: hung on the marker, **12 px/deg** (ui-scaled), rolled with the jet. With γ the flight path angle
+  (pitch minus the marker's angular offset, `(S+0xc − (S+0x40·R+0x272c + S+0x50·R+0x2730))·57.3`), the rung for angle
+  e sits (e − γ)·12 px above the marker along the rolled vertical, so the γ rung passes through the marker. Seven 5°
+  rungs, from ⌊γ⌋₅ + 15° down to ⌊γ⌋₅ − 15° (none past ±90°); the horizon is one long line, positive rungs solid,
+  negative rungs dashed; the angle is printed on every 10° rung except the horizon. v1.0 anchored the ladder on the
+  boresight.
+* **Gun cross**: at `MainOffsetY − GunRetPositionY + vpan` (as in v1.0; only the data changed). The boresight is at
+  `BorePositionY`.
+* **With v1.0 cockpit data** the file's `GunRetPositionY` is 10 px higher than the v1.1 bullet line (~0.8°). Ours
+  subtracts 10 when one of the five cockpits above still has its v1.0 value.
+* **Port** (`game/cockpit/hud.gd`): the marker is our camera's projection of the velocity; the ladder follows the v1.1
+  rule by default. **Extras > HUD pitch ladder > Conformal** (ours, `Settings.hud_ladder`) instead projects every
+  5° rung through the 3D camera, so the horizon rung lies on the world's horizon (our world view is not 12 px/deg: the
+  HUD glass spans the real ~25°).
 
 ## Horizon / RWR / ADI sections
 | Dir | `[HORIZON]` OnMfd, Active, ClockCenter, Radius | `[LENHORIZON]` file, Center, Radius | `[PANELRWR]` |
@@ -65,85 +90,85 @@ referenced but not shipped. Unreferenced extras: `cfir/cfir-lights.bmp`, `lavi/l
   and `game/aircraft/aircraft_model.gd` has F-16 flaperon/stabilator mixing constants (not cockpit, listed for completeness).
 
 ## Panel lights (`[LIGHTSON]`, `[LIGHT000..009]`, `[SLIGHT000..003]`, `[TEXTMESSAGE]`, `[CHAFF]`/`[FLARE]`, `[PANELST]`)
-Generic code, the same for every cockpit. Reader `FUN_00520d90`; light objects are built by `FUN_005208a0` inside the ini copy at
-renderer+0x20c0. The light bitmap is loaded by `FUN_00526b30` and lights are drawn by `FUN_00526870` (draw pass 3, called every frame
-from the cockpit frame function @181877). Offsets below are relative to renderer (R) or cockpit state S = `*(R+0x20b8)`. S is the
-global `0x67fda8` (`FUN_00459e30`).
+Generic code, the same for every cockpit. Reader `FUN_005228a0`; light objects are built by `FUN_005223b0` inside the ini copy at
+renderer+0x20c8. The light bitmap is loaded by `FUN_00528660` and lights are drawn by `FUN_005283a0` (draw pass 3, called every frame
+from the cockpit frame function @181877). Offsets below are relative to renderer (R) or cockpit state S = `*(R+0x20c0)`. S is the
+global `0x684760` (`FUN_0045a900`).
 
 ### Keys and objects
-* `[LIGHT000]..[LIGHT008]` (loop, `FUN_00526ca0`): `Active` (default 0), `Left/Top/Right/Bottom/OffsetX/OffsetY` (default 1;
-  an empty value reads as 0), `Blink` (default 0). Object = 0x38 bytes at R+0x226c+0x38*i: +4 OffsetX, +8 OffsetY,
+* `[LIGHT000]..[LIGHT008]` (loop, `FUN_005287d0`): `Active` (default 0), `Left/Top/Right/Bottom/OffsetX/OffsetY` (default 1;
+  an empty value reads as 0), `Blink` (default 0). Object = 0x38 bytes at R+0x2274+0x38*i: +4 OffsetX, +8 OffsetY,
   +0xc w = Right-Left, +0x10 h = Bottom-Top, +0x14 Active, +0x18 Blink, +0x1c blink phase, +0x20 blink timer, +0x24 Left, +0x28 Top,
-  +0x2c last value, +0x30 re-blit flag, +0x34 slice. vtable `0x608320` = {draw `FUN_00526d90`, source rect `0x526d20`}.
-* `[SLIGHT000]..[SLIGHT003]`: same keys and the same class, but `Blink` is not read (forced to 0). Objects at R+0x2464+0x38*j.
-* `[LIGHT009]` is read separately into an animated object at R+0x2544 (vtable `0x608338` = {draw `FUN_005271e0`, rect `0x527320`}).
+  +0x2c last value, +0x30 re-blit flag, +0x34 slice. vtable `0x60c1e8` = {draw `FUN_005288c0`, source rect `0x528850`}.
+* `[SLIGHT000]..[SLIGHT003]`: same keys and the same class, but `Blink` is not read (forced to 0). Objects at R+0x246c+0x38*j.
+* `[LIGHT009]` is read separately into an animated object at R+0x254c (vtable `0x60c200` = {draw `FUN_00528d10`, rect `0x528e50`}).
   It has no `Blink`; it reads `AnimTime` (default 2000) and `AnimFrames` (default 2), and step time = AnimTime / AnimFrames (integer,
-  `FUN_00527360`).
-* `[LIGHTSON]`: `FileName`, `Width`/`Height` (surface size, defaults 141x55, `FUN_00521e50`), `NightRScale/NightGScale/NightBScale`
-  (defaults **0/2/4**, packed at R+0x2588). The surface (R+0x600) has colour key cyan RGB(0,255,255), like the MFDs.
+  `FUN_00528e90`).
+* `[LIGHTSON]`: `FileName`, `Width`/`Height` (surface size, defaults 141x55, `FUN_00523960`), `NightRScale/NightGScale/NightBScale`
+  (defaults **0/2/4**, packed at R+0x2590). The surface (R+0x600) has colour key cyan RGB(0,255,255), like the MFDs.
 * **`[LIGHTSOFF]` and `[SLIGHTS]` (`StateLights.bmp`) are never read.** The strings are not in the exe. The SLIGHTs use the
   `[LIGHTSON]` bitmap, which is why the missing `StateLights.bmp` does not matter.
 
 ### Source frames: the "off" look is in the light bitmap, not the panel
-The source rect for value/frame v is `x = Left..Left+w`, `y = Top + v*h .. Top + (v+1)*h` (`0x526d20`). The frames are stacked
+The source rect for value/frame v is `x = Left..Left+w`, `y = Top + v*h .. Top + (v+1)*h` (`0x528850`). The frames are stacked
 vertically under `Top`:
 * LIGHT000..008: frame 0 = unlit art (a dim or dark lamp with its label), frame 1 = lit art. If `Blink` = 1, the frame is the blink
   phase instead of the value (see below).
 * SLIGHT000..003: three frames, where frame = state 0/1/2 (any other value is treated as 0).
 * LIGHT009 (gear handle): AnimFrames frames, where frame 0 = handle up and the last frame = handle down.
-At load (`FUN_00526b30`), frame 0 of every active light is stamped into the panel slices. **So "off" = frame 0 of the lights bitmap
+At load (`FUN_00528660`), frame 0 of every active light is stamped into the panel slices. **So "off" = frame 0 of the lights bitmap
 pasted over the panel, not the bare panel art.** (Cyan pixels in it stay transparent.)
 
-### Drawing (`FUN_00526d90`)
-* If `Active` = 0, the light is never drawn or stamped. (But the click hit-test `FUN_0051fc80` ignores `Active`, so the rect of an
+### Drawing (`FUN_005288c0`)
+* If `Active` = 0, the light is never drawn or stamped. (But the click hit-test `FUN_00521790` ignores `Active`, so the rect of an
   inactive light is still clickable.)
-* When the value changes, or when the force flag R+0x2fc is set, the light is redrawn. `FUN_00526eb0` BltFasts the source rect
+* When the value changes, or when the force flag R+0x2fc is set, the light is redrawn. `FUN_005289e0` BltFasts the source rect
   (src colour key) into the 320-px panel slice: slice = OffsetX/320, x = OffsetX%320, y = OffsetY - slice top (the
-  MaskOffsetY table at R+0x20c4). It is split over two slices when it crosses a 320 boundary, exactly as for the MFDs. Then
-  `FUN_005270f0` also blits it straight to the back buffer at screen `(OffsetX - pan(R+0x564) - 640, OffsetY + MainOffsetY + vpan(R+0x568))`.
+  MaskOffsetY table at R+0x20cc). It is split over two slices when it crosses a 320 boundary, exactly as for the MFDs. Then
+  `FUN_00528c20` also blits it straight to the back buffer at screen `(OffsetX - pan(R+0x564) - 640, OffsetY + MainOffsetY + vpan(R+0x568))`.
   If R+0xc ≠ 0 (UNCERTAIN: flip/back-buffer mode), the next frame re-blits to the screen once more (+0x30).
   Unchanged lights cost nothing: their current frame is already baked into the panel slices.
-* **Blink** (`Blink` = 1): while the stored value (+0x2c) ≠ 0, the frame time dt (ms, `timeGetTime` delta R+0x574 - `DAT_00839444`)
+* **Blink** (`Blink` = 1): while the stored value (+0x2c) ≠ 0, the frame time dt (ms, `timeGetTime` delta R+0x574 - `DAT_0083dfcc`)
   is added to +0x20. When the total exceeds **300 ms**, it resets and the phase +0x1c toggles, so the light alternates dark and lit
   every 300 ms (a period of about 600 ms, quantised to frames). When the light turns on it starts at phase 0 (dark). Value 0 resets
   the phase to 0. In every cockpit only LIGHT001/LIGHT002 (engine fire) have `Blink = 1`.
-* **Gear handle animation** (`FUN_005271e0`): when the value changes, a global anim flag is set (`DAT_00839440`, so there is one
+* **Gear handle animation** (`FUN_00528d10`): when the value changes, a global anim flag is set (`DAT_0083dfc8`, so there is one
   animation at a time). The frame starts at 0 (going down) or at AnimFrames-1 (going up). Each time the accumulated dt exceeds the
   step time, it moves by one frame toward AnimFrames-1 (down) or toward 0 (up). F-15 `AnimTime = 0` gives a step time of 0, so it
   moves one frame per rendered frame.
-* Order in `FUN_00526870`: LIGHT000..008, then LIGHT009, then the SLIGHTs. If the handle moved to down (value 1), the SLIGHTs are
+* Order in `FUN_005283a0`: LIGHT000..008, then LIGHT009, then the SLIGHTs. If the handle moved to down (value 1), the SLIGHTs are
   force-redrawn. If any SLIGHT redrew while the handle is up, the handle is redrawn with force. These rects overlap on the F-15
   (handle 637..695 x 227..274 over the wheel lamps).
-* **Night** (`FUN_0052c420`, applied once when the bitmap is loaded): hour = t·0.001/60/60, with t = the time-of-day argument
-  of `FUN_0051cf10` (from `FUN_004cf110`, apparently ms since midnight; UNCERTAIN unit). It is night if **20 ≤ hour < 24 or
+* **Night** (`FUN_0052df40`, applied once when the bitmap is loaded): hour = t·0.001/60/60, with t = the time-of-day argument
+  of `FUN_0051ea20` (from `FUN_004cf8c0`, apparently ms since midnight; UNCERTAIN unit). It is night if **20 ≤ hour < 24 or
   0 ≤ hour ≤ 5**. At night every non-colour-key pixel of the 16-bit surface is darkened per channel: **R >>= NightRScale,
-  G >>= NightGScale, B >>= NightBScale** (the values are shift counts, `FUN_0052c290`). The panel (`[PANEL] Night*Scale`, R+0x20e8)
-  and the HUD glass bitmap (`FUN_00527380`) are darkened the same way with the panel values. Note: the surface-lost reload paths
-  call `FUN_0051cf10(cockpit, 0)`, i.e. hour 0, which is night (UNCERTAIN quirk).
+  G >>= NightGScale, B >>= NightBScale** (the values are shift counts, `FUN_0052ddc0`). The panel (`[PANEL] Night*Scale`, R+0x20f0)
+  and the HUD glass bitmap (`FUN_00528eb0`) are darkened the same way with the panel values. Note: the surface-lost reload paths
+  call `FUN_0051ea20(cockpit, 0)`, i.e. hour 0, which is night (UNCERTAIN quirk).
 
 ### What drives each light (all aircraft)
-S+0x518+4i = indicator i of the player controller (`ctl+0x4ec+4i`, flushed by `FUN_0045aa20` -> `FUN_00445ea0`, 10 dwords).
-S+0x540+4j = the "special indicator" j (`ctl+0x548+4j`, flushed by `FUN_0045a6a0` -> `FUN_00445e70`, 4 dwords).
-Indicators are set with `FUN_0045a920(i, duration)` (duration 0.0 = stays on) and cleared with `FUN_0045a9b0(i)`.
+S+0x520+4i = indicator i of the player controller (`ctl+0x4ec+4i`, flushed by `FUN_0045b4d0` -> `FUN_00445e90`, 10 dwords).
+S+0x548+4j = the "special indicator" j (`ctl+0x548+4j`, flushed by `FUN_0045b150` -> `FUN_00445e60`, 4 dwords).
+Indicators are set with `FUN_0045b3d0(i, duration)` (duration 0.0 = stays on) and cleared with `FUN_0045b460(i)`.
 
 | Light | ini comment | State | On when (code) | Off when |
 |---|---|---|---|---|
-| LIGHT000 | master | S+0x518 | any damage event: end of the damage handler `FUN_0044ca90` -> `FUN_0045aa00` (plus warning sound 0x2c006000/0x18001000) | GEV 0x69 = clicking the light (`FUN_0051fcf0` case 0xf) |
-| LIGHT001 | left eng | S+0x51c | damage 0x10 "Engine on fire"/"Left engine on fire" | GEV 0x49 fire extinguisher (clears 1 and 2, @44a9c2) |
-| LIGHT002 | right eng | S+0x520 | damage 0x11 (right engine fire) | GEV 0x49 |
-| LIGHT003 | ai | S+0x524 | RWR: a missile is guiding on us (`FUN_0044db40` <- missile object @4d69db sets the RWR entry launch flag +0x20) and its emitter's class (unit+0x30)+8 is **not** in {5,8,9,10,0x10}; sound 0x18002000 (`FUN_004504d0`, `FUN_0044d890`) | no such entry, RWR off or damaged (damage 0xe), emitter dropped (`FUN_0044da10`) |
-| LIGHT004 | sam | S+0x528 | same, but the emitter class is in {5,8,9,10,0x10} (ground; UNCERTAIN class names) | same |
-| LIGHT005 | air brake | S+0x52c | GEV 0x11 TGL_BRAKES toggles it (speed brakes out) | toggle |
-| LIGHT006 | radar jammer (ecm) | S+0x530 | GEV 0x46 TGLECM when ECM is fitted (ctl[0x6e]) | toggle off; ECM damage (1) |
-| LIGHT007 | landing hook | S+0x534 | **never set** (no call with i = 7); `Active = 0` in every cockpit | - |
-| LIGHT008 | ap | S+0x538 | autopilot mode ctl+0x974 ≠ 0: GEV 0x10 cycles 0->1 (on)->2->0 (off); **on at an airborne start** (@447805) | stick deflection beyond ±0x33 (GEV 1), mode 2->0, on-ground press, AP damage (6) |
-| LIGHT009 | gear handle | S+0x53c | handle down, `ind[9]` (flight-model.md §12) | handle up |
-| SLIGHT000 | wheels mid | S+0x540 | gear leg 0: 0 up, 1 transit, 2 down & locked | - |
-| SLIGHT001 | wheels left | S+0x544 | gear leg 1 | - |
-| SLIGHT002 | wheels right | S+0x548 | gear leg 2 | - |
-| SLIGHT003 | flaps | S+0x54c | flaps state 0/1/2 (GEV 0xc; player: 0->1->2 with a 2.0 s step, 2->1->0 on retract) | - |
+| LIGHT000 | master | S+0x520 | any damage event: end of the damage handler `FUN_0044d760` -> `FUN_0045b4b0` (plus warning sound 0x2c006000/0x18001000) | GEV 0x69 = clicking the light (`FUN_00521800` case 0xf) |
+| LIGHT001 | left eng | S+0x524 | damage 0x10 "Engine on fire"/"Left engine on fire" | GEV 0x49 fire extinguisher (clears 1 and 2, @44b506) |
+| LIGHT002 | right eng | S+0x528 | damage 0x11 (right engine fire) | GEV 0x49 |
+| LIGHT003 | ai | S+0x52c | RWR: a missile is guiding on us (`FUN_0044e160` <- missile object @4d814b sets the RWR entry launch flag +0x20) and its emitter's class (unit+0x30)+8 is **not** in {5,8,9,10,0x10}; sound 0x18002000 (`FUN_00450bc0`, `FUN_0044deb0`) | no such entry, RWR off or damaged (damage 0xe), emitter dropped (`FUN_0044e030`) |
+| LIGHT004 | sam | S+0x530 | same, but the emitter class is in {5,8,9,10,0x10} (ground; UNCERTAIN class names) | same |
+| LIGHT005 | air brake | S+0x534 | GEV 0x11 TGL_BRAKES toggles it (speed brakes out) | toggle |
+| LIGHT006 | radar jammer (ecm) | S+0x538 | GEV 0x46 TGLECM when ECM is fitted (ctl[0x6e]) | toggle off; ECM damage (1) |
+| LIGHT007 | landing hook | S+0x53c | **never set** (no call with i = 7); `Active = 0` in every cockpit | - |
+| LIGHT008 | ap | S+0x540 | autopilot mode ctl+0x974 ≠ 0: GEV 0x10 cycles 0->1 (on)->2->0 (off); **on at an airborne start** (@4483f5) | stick deflection beyond ±0x33 (GEV 1), mode 2->0, on-ground press, AP damage (6) |
+| LIGHT009 | gear handle | S+0x544 | handle down, `ind[9]` (flight-model.md §12) | handle up |
+| SLIGHT000 | wheels mid | S+0x548 | gear leg 0: 0 up, 1 transit, 2 down & locked | - |
+| SLIGHT001 | wheels left | S+0x54c | gear leg 1 | - |
+| SLIGHT002 | wheels right | S+0x550 | gear leg 2 | - |
+| SLIGHT003 | flaps | S+0x554 | flaps state 0/1/2 (GEV 0xc; player: 0->1->2 with a 2.0 s step, 2->1->0 on retract) | - |
 
-Clicking lights (hit-test `FUN_0051f2a0` via `FUN_0051f930`, only in view modes 1/0x12/0x16; actions `FUN_0051fcf0`): LIGHT009 -> GEV 0xe gear, SLIGHT003 -> 0xc flaps,
+Clicking lights (hit-test `FUN_00520db0` via `FUN_00521440`, only in view modes 1/0x12/0x16; actions `FUN_00521800`): LIGHT009 -> GEV 0xe gear, SLIGHT003 -> 0xc flaps,
 LIGHT008 -> 0x10 AP, LIGHT005 -> 0x11 brakes, LIGHT006 -> 0x46 ECM, LIGHT001 -> 0x49(0) extinguisher, LIGHT002 -> 0x49(1),
 LIGHT000 -> 0x69(1) master caution reset.
 
@@ -156,7 +181,7 @@ shows frame = its own leg state from flight-model.md §12:
 
 The legs move independently, so the three lamps can differ (for example a leg that cannot move). Two special cases:
 * Gear damage (damage 7) sets all three legs to 1, so all three stay red permanently.
-* When the flush runs (`FUN_0045a6a0`) with legs 1 and 2 both 0, leg 0 is forced to 0.
+* When the flush runs (`FUN_0045b150`) with legs 1 and 2 both 0, leg 0 is forced to 0.
 
 The handle (LIGHT009) animates to its down frame on ind[9] = 1, independently of the lamps. Mirage, F-15 and MiG-23 use one source
 rect for all three lamps, so the art is identical.
@@ -182,11 +207,11 @@ L1 = "FIRE" (single-engine planes: the only engine). L2 is active only on F-4E, 
 Source rects (Left,Top,Right,Bottom) are in each `cockpit.ibx`; all of them fit inside their bitmaps. Every frame-0 image is an unlit
 lamp and every frame-1/2 image is lit (checked by sampling the bitmaps).
 
-### `[TEXTMESSAGE]` (`FUN_0052cd00`), `[CHAFF]`/`[FLARE]` (`FUN_0052cf90`)
-* Keys and defaults: `OffsetX1` 1072, `OffsetY1` 21, `OffsetX2` 1072, `OffsetY2` 36, `LengthChar` 20 (R+0x26ec..0x26fc);
-  `[CHAFF]`/`[FLARE]` `OffX`/`OffY` default 36/36 (R+0x2700..0x270c).
-* Text = the NUL-terminated string at S+0x109c. Every frame `FUN_00447f50` copies it with `FUN_004465a0` =
-  `strncpy(S+0x109c, *(char**)(ctl+0x64), 20)`, so at most 20 chars. What ctl+0x64 points to was not traced (UNCERTAIN).
+### `[TEXTMESSAGE]` (`FUN_0052e820`), `[CHAFF]`/`[FLARE]` (`FUN_0052eab0`)
+* Keys and defaults: `OffsetX1` 1072, `OffsetY1` 21, `OffsetX2` 1072, `OffsetY2` 36, `LengthChar` 20 (R+0x26f4..0x2704);
+  `[CHAFF]`/`[FLARE]` `OffX`/`OffY` default 36/36 (R+0x2708..0x2714).
+* Text = the NUL-terminated string at S+0x10a4. Every frame `FUN_00448b20` copies it with `FUN_00446590` =
+  `strncpy(S+0x10a4, *(char**)(ctl+0x64), 20)`, so at most 20 chars. What ctl+0x64 points to was not traced (UNCERTAIN).
 * Pass 2 erases two boxes of `LengthChar*5` x 9 px at (X1,Y1) and (X2,Y2) by re-blitting the panel slice.
 * Pass 4 uses GDI `TextOutA`, font R+0x57c (Arial h10 w5 weight 100), TA_LEFT|TA_TOP, transparent background, at screen
   (X - pan - 640, Y + MainOffsetY + vpan). The colour is not set by the routine; the caller last set 0x00ff00 green before the MFD
@@ -194,9 +219,9 @@ lamp and every frame-1/2 image is lit (checked by sampling the bitmaps).
 * **Two lines**: if len < LengthChar, one line at (X1,Y1). Otherwise the break is at the last space at or before index LengthChar-1
   (line 1 keeps that space), and the rest goes at (X2,Y2), truncated to LengthChar chars. The search has no lower bound, so a string
   without a space would run backwards (latent bug). With 20 chars at most, only the F-16 (`LengthChar = 19`) can ever wrap.
-* Chaff/flare: `sprintf("%03d")` of S+0x4bc (chaff) and S+0x4d8 (flare), drawn with the same font, colour **0xb3ffff = RGB(255,255,179)**
+* Chaff/flare: `sprintf("%03d")` of S+0x4c4 (chaff) and S+0x4e0 (flare), drawn with the same font, colour **0xb3ffff = RGB(255,255,179)**
   (pale yellow), top-left at `OffX,OffY` (screen transform as above). These addresses are the count fields of stores stations 10 and 11
-  in the stores array S+0x3a0 (0x1c stride, `mfd.md` §3), an inference from the layout. The erase box is `TEXTMESSAGE LengthChar*5`
+  in the stores array S+0x3a8 (0x1c stride, `mfd.md` §3), an inference from the layout. The erase box is `TEXTMESSAGE LengthChar*5`
   x 9 (it reuses that key).
 
 | Dir | Lights bitmap (W x H) | Night R/G/B shift | Text line 1 / line 2 | LengthChar | Chaff | Flare | PANELST |
@@ -215,9 +240,9 @@ The `[PANEL]` Night shifts are listed separately. File names are case-insensitiv
 `f15light.bmp`.
 
 ### `[PANELST]`
-`NUM` (default 16) and `OFFSET00..` (default PanelHeight) are read into ini[0xb..] (R+0x20ec..). The file comment is "16 points
+`NUM` (default 16) and `OFFSET00..` (default PanelHeight) are read into ini[0xb..] (R+0x20f4..). The file comment is "16 points
 describing an horizon of the panel" at panel x = 0,120,…,1800, and the values are the panel's top-edge row (e.g. F-16 352 at the
-edges, 4 at the centre). **No reader of R+0x20ec.. was found in the exe** (UNCERTAIN: probably unused or read via an unfound alias).
+edges, 4 at the centre). **No reader of R+0x20f4.. was found in the exe** (UNCERTAIN: probably unused or read via an unfound alias).
 
 ### Open
 * ctl+0x64 text source; exact GEV key names for 0x46/0x49/0x69; emitter class ids behind AI vs SAM; R+0xc double-blit flag.

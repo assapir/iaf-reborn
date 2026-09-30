@@ -78,7 +78,7 @@ impl<'a> Reader<'a> {
         ids.iter().try_for_each(|&id| self.field(o, id))
     }
 
-    /// CDMEDataItem::Read (FUN_00590610): length, 0x14, 0x1e, then 512 junk bytes.
+    /// CDMEDataItem::Read (FUN_00592bf0): length, 0x14, 0x1e, then 512 junk bytes.
     fn item_base(&mut self, o: &mut Map<String, Value>) -> Result<()> {
         o.insert("_len".into(), json!(self.u32()?));
         self.fields(o, &[0x14, 0x1e])?;
@@ -155,7 +155,7 @@ impl<'a> Reader<'a> {
                 self.item_base(o)?;
                 self.fields(o, &[0x5dc, 0x5e6])?;
                 self.skip(JUNK)?;
-                // FUN_00596870: {i32 id, f32 x, f32 y, f32 alt, i32, i32}
+                // FUN_00598ea0: {i32 id, f32 x, f32 y, f32 alt, i32, i32}
                 o.insert("points".into(), self.records(['i', 'f', 'f', 'f', 'i', 'i'])?);
             }
             "CDMEEntitiesItem" => {
@@ -323,7 +323,7 @@ impl<'a> Reader<'a> {
     }
 }
 
-/// Parses a `.mis` file (loader FUN_00589720).
+/// Parses a `.mis` file (loader FUN_0058bce0).
 pub fn parse_mission(d: &[u8]) -> Result<Value> {
     let mut r = Reader::new(d, 9);
     let magic = r.u32()?;
@@ -341,7 +341,7 @@ pub fn parse_mission(d: &[u8]) -> Result<Value> {
     Ok(Value::Object(doc))
 }
 
-/// Parses the object database (`.bdb`, loader FUN_0058a080). The game reads it with the
+/// Parses the object database (`.bdb`, loader FUN_0058c640). The game reads it with the
 /// version of the mission that references it.
 pub fn parse_bdb(d: &[u8], version: i32) -> Result<Value> {
     let mut r = Reader::new(d, version);

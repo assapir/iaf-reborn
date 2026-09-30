@@ -1,8 +1,10 @@
 # map.ptt — "Sonic" streaming terrain
 
+Addresses are `IAFJets.exe` **v1.1** (the reference version); [v1.1.md](../v1.1.md) maps them to v1.0 and lists what the patch changed.
+
 `resource/terrain/map.ptt` (394 MB, read straight from the CD by the original game; `tgen.ini [Sonic] FileName`).
-Loader in `iafjets.exe` (`ObjectsLayer\Terrain\*.cpp`), header check `FUN_00427220`, level setup `FUN_00429940` /
-`FUN_004295e0`, tile lookup `FUN_00422450`. All integers little-endian.
+Loader in `iafjets.exe` (`ObjectsLayer\Terrain\*.cpp`), header check `FUN_00427360`, level setup `FUN_00429a10` /
+`FUN_004296b0`, tile lookup `FUN_00422490`. All integers little-endian.
 
 ```
 0x0000  "STRTH"
@@ -36,10 +38,10 @@ u16  elevation block size (follows the JPEG)
 ## Tile data
 - **Colour**: abbreviated baseline JPEG (SOI, SOF0 128×128 YCbCr 4:2:0, SOS…EOI) without tables — splice the shared
   tables in to decode.
-- **Elevation**: LZO1X-compressed (`FUN_0042b860` → `FUN_0042c750` = `lzo1x_decompress`) to 128×128 **u16**, row-major;
+- **Elevation**: LZO1X-compressed (`FUN_0042b8f0` → `FUN_0042c7e0` = `lzo1x_decompress`) to 128×128 **u16**, row-major;
   each row is **delta-coded along x** (prefix-sum to decode, wrapping u16). Every theatre tile has one.
   Only the whole-theatre levels (11..6) have elevation; inset levels are colour only and the engine derives
-  their heights from the level above (`FUN_004280a0`). Raw range (level 7): 12593..59038. Game constants: `SeaLevelPR = 20342`, `HeightStretchFactorPR = 9.2575`
+  their heights from the level above (`FUN_004281e0`). Raw range (level 7): 12593..59038. Game constants: `SeaLevelPR = 20342`, `HeightStretchFactorPR = 9.2575`
   → probably `metres = (raw - 20342) / 9.2575` (gives −837..+4180 m; seas include bathymetry) — to be verified
   against real peaks once the map is georeferenced. Other defaults: `DataXShiftPR = -166850`, `DataYShiftPR = 1043780`.
 
