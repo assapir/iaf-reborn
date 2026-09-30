@@ -74,6 +74,9 @@ There is **no SFX_WIND row** and no caller of code 0x24: the original has no air
   (`FUN_004fcb80`, `FUN_004e11c0`). **Mute** `FUN_004c5100(on)` (0x542fa0 / 0x542ff0: all sounds).
   The in-flight "Mute sound toggle" (command 135, Ctrl+M, 0x4e1ca2) flips `DAT_00836d30` and calls it.
 * **Stop** `FUN_004c4bf0(handle)`.
+* **Pause / resume all** (game events 0x75 / 0x76: Ctrl+P pause and the On-The-Fly menu):
+  `FUN_004c50b0` → 0x542eb0 stops every channel, `FUN_004c50c0` → 0x542ef0 resumes them where they
+  stopped (docs/front-end.md §16; not built yet, the port has no pause).
 * **Object sounds** (`FUN_004c3290` / `FUN_004c3760` / `FUN_004c33e0`): up to 4 slots per object;
   slot 0 is the engine (§3). A code change stops the old sound and starts the new one
   (`FUN_004c3a70` + `FUN_004c4670`); otherwise the position and pitch are updated (`FUN_004c49f0`).

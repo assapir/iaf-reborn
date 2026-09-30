@@ -1719,3 +1719,91 @@ dragging, the arrow otherwise (`SETCURSOR 504e40`).
     * code 2 in MP → `FUN_00506310` locks all buttons (`+0x54`=1) and waits for the session.
 * **MAIN** uses the default vfunc `+0xd8` (returns 1), so it shows msg 8 as documented in §3.2. An
   unsaved loadout is neither applied nor reverted.
+
+## 16. In-flight pause and On-The-Fly menu (flight window `CFlightWnd::OnGameEvent` 0x4daad0)
+
+Traced from the disassembly (unless marked UNCERTAIN). **Not built yet**: the keys belong to the
+key-table / in-flight input work in `game/terrain/terrain_view.gd`, so this is the spec for it.
+
+Key commands reach several windows (`FUN_004df3d0` → WM 0x532 to CIAFWindow and, via `FUN_005df3b7`,
+its children); the real handler is the flight window's map entry 0x601440 → **0x4daad0** (byte table
+0x4dad38, jump table 0x4dad20): 0x7a Esc → 0x4dab65, 0x84 Ctrl+P → 0x4dac6f, 0x85 Ctrl+O → 0x4dacc9,
+0x88 → screenshot `IafJets%03d.bmp` (0x4db120). The CIAFWindow default path (0x4e1f45 → `FUN_004ccb80`)
+drops them. Globals: `DAT_00836454` paused (`FUN_004e0160`), 0x82edb0 menu object (+0 open,
+`FUN_004ed1d0`), 0x836460 message box (`FUN_004e5100`), `DAT_0069492c+8` sim clock (0 stopped,
+1 running, 2 paused). **Single player only** (both keys ignored when `[0x694990+4]` ≠ 0).
+
+**Game events** (`FUN_004cce00`, dispatched at once): **0x75 pause**: param 0 → pause every sound
+channel (`FUN_004c50b0` → 0x542eb0, buffers stopped, state 2), stop force feedback (`FUN_004dd840`),
+freeze the clock (`FUN_004d0ff0`); **0x76 resume**: clock runs (`FUN_004d0f80`), channels resume where
+they stopped (`FUN_004c50c0` → 0x542ef0). While the clock is not running `FUN_004ccb80` drops every
+event except 0x6d, 0x73, 0x74, 0x76, 0x83: no flight commands while paused or in the menu.
+
+### 16.1 Ctrl+P "Pause mission" (0x4dac6f)
+Only with no message box and the menu closed; toggles `FUN_004da750` / `FUN_004da7e0`.
+* Pause: the key manager's enable counter −1 (`FUN_004ddd50(-1)`): from the next poll **every key
+  except Ctrl+P is ignored** (`FUN_004df3d0` @4df527; joystick buttons are not filtered); held keys get
+  their release commands (`FUN_004df2b0(1)`, plus 0x532 id 0x16 lParam 0xfffbffff, UNCERTAIN: view-pan
+  reset); if the clock runs, `this+0x40 = 1` and event 0x75(0): sim frozen, sounds paused (not muted);
+  `DAT_00836454 = 1`. The mouse is not passed to the cockpit (0x4db020 / 0x4db060).
+* Unpause: counter +1; event 0x76 if `this+0x40`; `DAT_00836454 = 0`.
+* Drawn in the flight render `FUN_004d7960` (@4d7c31..4d7dba) over the frozen scene: **"II  PAUSE"**
+  (0x6456c8, two spaces), blinking 500 ms on / 500 ms off (timeGetTime, `DAT_0082ee78/7c`), GDI on the
+  back surface, Arial size 50 weight 900 (`FUN_004ed600`, created @4d7366), transparent, RGB(0,255,0),
+  TA_BOTTOM|TA_LEFT at (30, 450); then a full-screen white wash alpha 0x63 (`FUN_00402280` → D3D
+  `FUN_00419d60`; the software renderer draws none). UNCERTAIN: the wash is drawn after the text, so
+  it also covers it.
+* On the FlyTSD screen (0x20) the menu frame handles Ctrl+P itself (`FUN_004ec3a0` / `FUN_004ec610`):
+  screen snapshot dithered with `misc/pat1.bmp` (SRCAND) + `pat2.bmp` (SRCPAINT), window disabled,
+  same "II  PAUSE" at (30, 450) (`FUN_004e7a90`).
+
+### 16.2 Ctrl+O "On-The-Fly menu" (0x4dacc9)
+Only when not paused; toggles open (`FUN_004da840`) / close (`FUN_004da8c0`). **Esc does not open it**:
+Esc (0x4dab65) unpauses if paused, else closes the menu if open, else leaves the flight for the FlyTSD
+screen 0x20 (flight window +0x150 = 1, `FUN_004d7670(1)`; the "TSD and cockpit toggle"); in network
+mission 0x21d Esc shows msg 8 (host) / msg 11 (client).
+* Open: builds the layout (`FUN_004ecf90(hdc, 5, 10)`), releases held keys, event 0x75(0) (sim and
+  sounds paused). The key counter and `DAT_00836454` are not touched. Close: frees the GDI objects,
+  event 0x76, `[+0x154]+0x300 = 1` (UNCERTAIN: cockpit redraw).
+* Not a dialog or bitmap: GDI drawn every frame into the 640×480 back surface (`FUN_004ed1e0`, from
+  `FUN_004d7960` @4d7d4f); while a message box is up the box is drawn instead of the menu.
+* **Six items** (ctor `FUN_004ecf40`, msgs lines upper-cased with `_strupr`): RESUME MISSION (18),
+  END MISSION (19), RESTART MISSION (20), NEW MISSION (21), PREFERENCES (22), QUIT GAME (24).
+  "Calibrate joystick" (23) is not in the menu (no other user found, UNCERTAIN).
+* GDI: normal brush RGB(191,191,175), hover brush RGB(159,159,128), frame pens 2 px RGB(186,186,173)
+  (PS_INSIDEFRAME) and 1 px RGB(21,21,19); font Arial size 10 weight 400 (`FUN_004ed600`; exact cell
+  height UNCERTAIN).
+* Layout: W = widest label, H = tallest label (GetTextExtentPoint32); item i: left 15, right
+  15 + W + 16, top 20 + i·(H + 23), bottom top + H + 16 (7 px gaps). Outer frame (5, 10) to (item right
+  + 10, last bottom + 10).
+* Draw: each item a RoundRect 16×16 with the 1 px dark pen, filled with the hover brush when the
+  cursor is inside, else the normal brush; label black, transparent, TA_CENTER|TA_TOP at
+  ((l + r)/2, top + 8). Then the frame with NULL_BRUSH (scene visible between items): RoundRect 20×20
+  with the 2 px light pen, then with the 1 px dark pen.
+* Mouse only (no keyboard navigation): left click → hit test `FUN_004ed450` → `FUN_004da920(item)`
+  (jump table 0x4daab8).
+
+### 16.3 Item actions (`FUN_004da920`)
+Boxes: `FUN_004e2790(msg, reply, group, 4 = Yes/No)`, the in-surface box (`FUN_004e2810`, which also
+disables the keys). **NO closes the box; the menu stays open, paused.**
+* **Resume mission**: as closing the menu.
+* **End mission**: msg 8 Yes/No → reply 0x559 wParam 3 (`FUN_004e1a10`): event 0x76 + 0x7e (unload
+  0x74, IAFWnd 0x7d → `FUN_004d7670(1)`), exit code 3 → **Debrief (screen 0x22)**.
+* **Restart mission**: msg 9 → code 4 → screen 0x23: the debrief content with "Replay_Mission"
+  (`FUN_004fcfb0`; still records the attempt, `FUN_004f4fb0`), which after 50 ms (SetTimer in
+  `FUN_004fd6d0`, WM_TIMER 0x4fd850) presses Replay itself → mission reloaded (`FUN_004ec6a0`,
+  `Mis\Wait.bmp`) → pre-flight TSD (0x1e); missions 400–499 go straight into the flight. (The debrief
+  art may flash for ~50 ms, UNCERTAIN.)
+* **New mission**: msg 10 → code 6 → screen 0x25 ("New_Mission", auto-pressed the same way) →
+  `FUN_004fdd00`: missions 111–117 → 0xe, 121–127 → 0xf, 131–137 → 0x10, 211–217 → 0x11,
+  221–227 → 0x12, 231–237 → 0x13, 311–315 → 7 Basic, 321–326 → 8 Combat, 0x213 / 0x29a → 0x14,
+  multiplayer → 0x18, else 1 Main.
+* **Preferences**: no box; flight window +0x150 = 2, `FUN_004d7670(1)` → screen 0x21 (in-flight
+  Preferences, §12; Gameplay tab disabled). BACK or Esc (frame +0x5c = 5) → `CMainWindow::OnMenuDestroyed` 0x4e2030, exit 5 (@4e20d0): the
+  flight window is recreated (`FUN_004d7310`), event 0x76, and the menu **reopens** (paused again).
+* **Quit game**: msg 7 Yes/No → reply 0x556 (`FUN_004e1660`): unload, credits, exit (§3.2).
+* Compare Ctrl+Q (0x86 → `FUN_004e1800`): msg 8 with the DEBRIEF / CONTINUE / EXIT buttons (not
+  Yes/No); msg 11 for a multiplayer client.
+
+Sounds: pause and menu pause all channels and resume them on 0x76 (docs/sound.md); the FlyTSD entry
+posts 0x75 with param 1, which does not pause sounds.

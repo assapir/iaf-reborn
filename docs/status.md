@@ -51,7 +51,10 @@ listed below.
    touchdown / crash sounds; the start velocity source of airborne starts is not traced (180 m/s used).
 8. **Loading**: terrain chunks / detail tiles still stream in after the cockpit appears; load them behind the
    loading screen and enter the cockpit when done.
-9. **In-flight sounds**: engine, wind, gear, cockpit warnings (only voices, "Over G" and the G sound play); in-flight pause menu.
+9. **In-flight sounds / pause** (docs/sound.md): the player's sounds are ported from SoundProp.trx (engine, gear, flaps, air brake,
+   AoA tone, Betty altitude / fuel / over-G, touchdown, crash explosion, eject voice hook, Preferences volumes); the rest needs
+   damage / RWR / weapons / terrain types (docs/sound.md §5). Ctrl+P pause and the Ctrl+O On-The-Fly menu are traced
+   (docs/front-end.md §16) but not built (in-flight input is being reworked).
 
 10. **Keys**: of the 117 original commands only those in docs/controls.md §3 marked as built work (views other than
    cockpit / chase, autopilot, weapons, time compression, pause, TSD toggle… are not built); no joystick input yet.
