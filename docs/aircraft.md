@@ -103,17 +103,11 @@ the others to the elevators. Flaps target = lever·16.8° (·0.33 on the F-16).
 * F-16 at full AB: ≈ 4.4 m flame (3.5 + 0.9), base radius 0.44 m.
 
 ### 2.3 Deviations / open points
-* **Canopy and pilot are hidden on flown aircraft** (callback ids 0x14–0x17 → not drawn; the ejection object
-  `0x53d180` draws them only after an ejection). The F-16 then shows the flat cockpit cover of the airframe mesh.
-  **Our option** (user decision): Preferences > Extras "Show canopy and pilot" (`Settings.show_crew`, off by
-  default = the original) sets `crew_visible = true` on the player's jet, so the F-16 shows its bubble canopy and
-  pilot instead of the grey cover. The ejection takes pilot / seat / canopy off the jet either way (docs/part-animation.md
-  "Ejection"): after it they are hidden on the jet whatever the option says.
-  **Finding (ejection trace, docs/part-animation.md "Ejection"):** the renderer's part callback for pilot / canopy is
-  the crew object's `0x53d180`, which draws them whenever the crew is aboard and the view is **not** a cockpit view
-  (`crew+8`). So the original most likely shows canopy and pilot on every jet seen from outside, the player's too, and
-  the "hidden on flown aircraft" rule above is probably wrong (UNCERTAIN: `crew+8` is never initialised in the
-  constructor). The option's default stays off until the user decides.
+* **Canopy and pilot** (ids 0x14–0x17): drawn by the crew object's callback `0x53d180` whenever the crew is aboard
+  and the view is not a cockpit view (`crew+8`), on every jet, the player's included (found while tracing the
+  ejection, docs/part-animation.md "Ejection"). Our port: `crew_visible = true` on every aircraft; the ejection takes
+  pilot / seat / canopy off the jet. (An earlier reading "hidden on flown aircraft", which showed the F-16 with a flat
+  grey cockpit cover, was wrong; the Extras option built on it was removed.)
 * Hook and drag chute have no key in our game yet (the component supports them).
 * No damage model: the AB damage flags are never set.
 * Flicker: the flame's random numbers change every rendered frame, as in the original (so faster at high fps).

@@ -6,12 +6,11 @@ extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
-	# Free flight, airborne at 2500 m, with our "Show canopy and pilot" on.
-	Settings().show_crew = true
+	# Free flight, airborne at 2500 m (canopy and pilot drawn from outside, as the original).
 	var tv = await start_mission(-1)
 	await frames(10)
 	var pilot: Node3D = tv.aircraft.part_node("pilot")
-	check(pilot != null and pilot.visible, "Show canopy and pilot: pilot drawn before the ejection")
+	check(pilot != null and pilot.visible, "pilot drawn before the ejection")
 	key(tv, KEY_E)
 	await frames(3)
 	check(not tv.ejected, "one press does not eject")
@@ -37,7 +36,6 @@ func run() -> void:
 		await process_frame
 	check(tv.aircraft.canopy_offset.y > 60.0 or tv.aircraft.canopy_gone, "canopy thrown up (%.0f m)" % tv.aircraft.canopy_offset.y)
 	check(tv._seat != null or tv._chute != null, "seat leaves after 2 s")
-	Settings().show_crew = false
 
 	# Mission 311 on the ground: short ejection, the mission is lost.
 	Settings().debrief = {}

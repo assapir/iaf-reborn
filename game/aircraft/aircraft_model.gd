@@ -46,9 +46,9 @@ var ramps := {"flaps": 0.0, "gear": GEAR_MAX, "speed_brake": 0.0, "hook": 0.0,
 var _targets := {}
 ## Last lever positions: like the original's events, a ramp is retargeted only when its lever moves.
 var _levers := {}
-## Pilot / canopy (ids 0x14..0x17): the flight-model callback hides them on a flown aircraft
-## (docs/aircraft.md §2.3; the F-16 then shows a flat cockpit cover). Off = the original.
-var crew_visible := false
+## Pilot / canopy (ids 0x14..0x17): the crew object's callback 0x53d180 draws them whenever the crew is
+## aboard and the view is not a cockpit view (docs/aircraft.md §2.3), on every jet including the player's.
+var crew_visible := true
 ## Ejection (docs/part-animation.md "Ejection", crew object callback 0x53d180): the pilots are gone,
 ## the canopies ride `canopy_offset` (metres in the jet frame: +y up, +z aft) until `canopy_gone`.
 var ejected := false

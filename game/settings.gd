@@ -15,7 +15,7 @@ const PREFS := {
 	"devices": ["flight_controls", "rudder", "throttle"],
 	"gameplay": ["no_wind", "no_blackouts", "no_spins", "no_stalls", "easy_landing", "easy_aiming",
 		"no_malfunctions", "ai_level", "invulnerable", "no_crashes", "unlimited_ammo", "unlimited_fuel",
-		"flight_data", "language", "show_info", "blackbox", "show_crew"],
+		"flight_data", "language", "show_info", "blackbox"],
 	"physics": ["bp_flight_path_hold", "bp_force_angles", "bp_start_lift", "bp_start_rpm", "bp_start_alpha",
 		"bp_landing_limits", "bp_spin_fixes", "bp_fbw_departure", "bp_lift_rate_floor", "bp_low_speed_roll",
 		"bp_no_nose_wheel_lift", "bp_ground_effect"],
@@ -78,9 +78,6 @@ var bp_ground_effect := false
 var show_info := true
 ## Blackbox: the flight recorder user://last_flight.csv (for diagnosing flights; on for now).
 var blackbox := true
-## Show canopy and pilot on your own jet (Preferences > Extras; ours). Off = the original: the part
-## callback hides pilot / canopy on a flown aircraft (docs/aircraft.md §2.3).
-var show_crew := false
 ## Key bindings changed on the Controls page (docs/controls.md): {record index: [key, joystick
 ## button]}, key = DIK | modifier << 16; records not listed keep the original default. Stored in the
 ## [keys] section as r<index> = [key, button].

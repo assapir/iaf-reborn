@@ -14,7 +14,7 @@ listed below.
 | **Pipeline** | `tools/setup.sh <ISO> [Brief.zip Menu.zip]`: extraction, models, all 9 cockpits, fonts, menus (+ Hebrew pack), briefings, missions, object models, terrain + airbase detail, Godot extension |
 | Install extraction | ISO 9660 + EA `setup.esa` (PKWARE DCL) → `assets/install` (docs/formats/esa.md) |
 | Aircraft models | `.x/.xfr` → glTF, Lanczos 4× textures, smoothing (docs/formats/x.md); moving parts with the original hinge rules (docs/part-animation.md) |
-| **Aircraft parts (all planes)** | generic, data-driven (docs/aircraft.md): `iaf-convert aircraft` writes a descriptor per plane (22 models: 8 flyable jets, AI jets, transports, helicopters; parts / hinges / nozzles / stations / type codes from the object database); one component ports the flight-model part callback per type (control surfaces, flaperons, pitch mixer, flaps, speed brakes, gear legs / doors with the per-type signs and vanish points, hook, drag chute) and the afterburner flame (level 75 + 12.5·stage, 3D-card double cone, afterburn.tga); the F-16 follows the flight model's gear ramp. Canopy / pilot hidden in flight as the original; Extras "Show canopy and pilot" shows them (ours). Test: test_aircraft_parts |
+| **Aircraft parts (all planes)** | generic, data-driven (docs/aircraft.md): `iaf-convert aircraft` writes a descriptor per plane (22 models: 8 flyable jets, AI jets, transports, helicopters; parts / hinges / nozzles / stations / type codes from the object database); one component ports the flight-model part callback per type (control surfaces, flaperons, pitch mixer, flaps, speed brakes, gear legs / doors with the per-type signs and vanish points, hook, drag chute) and the afterburner flame (level 75 + 12.5·stage, 3D-card double cone, afterburn.tga); the F-16 follows the flight model's gear ramp. Canopy / pilot drawn in outside views as the original (crew object 0x53d180). Test: test_aircraft_parts |
 | Terrain | `map.ptt` imagery + heights, chunk streaming, original georeference (docs/formats/ptt.md); **airbase detail tiles** from the level 0–2 insets (~1.24 m/px, 149 tiles, streamed within 6 km) |
 | Runway numbers | rendering fix over the 1998 art: Ramat David's two mirrored "33" re-flipped at conversion (data: `crates/iaf-tools/data/runway_number_fixes.json`, docs/formats/ptt.md); wrong-but-upright numbers (template 09/27, 15/33 copies) left as original |
 | Mission objects | every entity of the mission + base missions with its original model (bdb object → Present → `.x`, 219 models); hidden / moved by the mission scripts |
@@ -70,18 +70,15 @@ listed below.
 - **Eject** (E ×3 within 1 s each): engine off, stick fixed, commands ignored, jet flies on to its crash; pilot off,
   canopy and seat thrown (3 m up / 1.5 m aft per 0.05 s to 100 m), seat after 2 s → parachuter; external view; the
   player counts as lost at once (role rules, debrief 5 s later); low / inverted ejection ends at once. Test: test_eject.
-- Extras "Show canopy and pilot".
 
 ## Decisions / deviations (agreed with the user)
-- Canopy and pilot on your own jet: hidden as in the original by default; Preferences > Extras "Show canopy and
-  pilot" (ours) shows them (docs/aircraft.md §2.3).
 - g readout on the ground shows 1.0 (display only; the original's ground readout is not traced).
 - Terrain under a rolling aircraft: the wheels follow our terrain (the original's runways are flat).
 - Real data set: pedal nose-wheel steering and no ×4 ground-lift quirk; the original set keeps the original formula
   (stick steering; steering above ~40 kt can hop the jet off).
 - "Better physics": each improvement over the original model is its own switch (Preferences → Physics, all off
   by default; separate from the Original / Real data set). Original bugs found in the port go there.
-- Visual additions not in the original live on the Extras tab, off / original by default (canopy and pilot; later
+- Visual additions not in the original live on the Extras tab, off / original by default (later
   canopy open).
 - In-flight subtitles stay English in Hebrew mode (no Hebrew source exists).
 - Rendering improvements allowed: smooth text, Lanczos-upscaled art, mirrored runway digits re-flipped.

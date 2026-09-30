@@ -59,7 +59,7 @@ func run() -> void:
 	check(f16.flame_lit() and f16.flames[0].level == 87, "flame at AB stage 1 (level 87)")
 	f16.update({"afterburner": 0}, 0.1)
 	check(not f16.flame_lit(), "flame out after AB")
-	check(not f16.part_node("Canopy").visible, "canopy hidden on a flown aircraft (original callback)")
+	check(f16.part_node("Canopy").visible, "canopy drawn from outside (crew object 0x53d180)")
 	f16.free()
 
 	# Per-type rule: the MiG-29 main legs vanish at 8/9 of the travel.
