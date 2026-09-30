@@ -26,10 +26,13 @@
    redundant) + Tu-22 Real row (the variant flown in the missions), **pilot records** / login / unlocking.
 7. Arming screen, remaining front-end screens, multiplayer.
 8. Joystick / throttle / pedals (original input handling; Devices page).
-9. **Sea level west of Suez**: map.ptt has no elevation there (sea, Nile delta and Western desert are a flat plane
+9. **Original cheats** (key table 108–113: Ctrl+W reload weapons, Shift+D / Ctrl+Return flight-model data dump,
+   Shift+S explosion, Shift+R flight-model hover, U target cheat view): trace the handlers (live in the retail exe or
+   debug-only?) and port the working ones behind an Extras "Cheats" switch; the dump could validate our flight model.
+10. **Sea level west of Suez**: map.ptt has no elevation there (sea, Nile delta and Western desert are a flat plane
    at −557 m, ships placed at −557 m); kept as the original for now — decide a fix (e.g. shift that plane and its
    objects to 0 m) later.
-10. Later (docs/roadmap.md): Better AI, Real weapons, Extra sounds, mission replayer, 3D cockpit, satellite imagery,
+11. Later (docs/roadmap.md): Better AI, Real weapons, Extra sounds, mission replayer, 3D cockpit, satellite imagery,
    canopy open.
 
 Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user decisions.
