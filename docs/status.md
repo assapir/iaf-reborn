@@ -15,6 +15,7 @@ listed below.
 | Install extraction | ISO 9660 + EA `setup.esa` (PKWARE DCL) → `assets/install` (docs/formats/esa.md) |
 | Aircraft models | `.x/.xfr` → glTF, Lanczos 4× textures, smoothing (docs/formats/x.md); moving parts with the original hinge rules (docs/part-animation.md) |
 | Terrain | `map.ptt` imagery + heights, chunk streaming, original georeference (docs/formats/ptt.md); **airbase detail tiles** from the level 0–2 insets (~1.24 m/px, 149 tiles, streamed within 6 km) |
+| Runway numbers | rendering fix over the 1998 art: Ramat David's two mirrored "33" re-flipped at conversion (data: `crates/iaf-tools/data/runway_number_fixes.json`, docs/formats/ptt.md); wrong-but-upright numbers (template 09/27, 15/33 copies) left as original |
 | Mission objects | every entity of the mission + base missions with its original model (bdb object → Present → `.x`, 219 models); hidden / moved by the mission scripts |
 | **Mission runtime** | generic (docs/mission-runtime.md): timer queue, trigger/motion scripts, 4 s reached/left checks, events (max count, voice + subtitle, debrief notes, script jumps), role win/lose rules, "Mission Accomplished!" / "Mission failed." box (DEBRIEF / CONTINUE / EXIT), Esc "quit mission?", debrief screen (headline + notes, Replay / New / Next). Instructor voices from `resource/soundfiles`. Tested: Engines ON start to finish |
 | Subtitles | the original console: 40 slots, empty line every 3 s of sim time, newest 14 drawn (~40 s lifetime), x=4 y=10+15n, Arial 12/4, HUD colour; English only (no Hebrew exists — user decision) |
@@ -58,7 +59,7 @@ listed below.
 - "Better physics" option (Preferences, off by default; separate from the data set): γ-based 1 g hold (the
   original's neutral stick slowly dives at high speed). Ground effect: later, same option.
 - In-flight subtitles stay English in Hebrew mode (no Hebrew source exists).
-- Rendering improvements allowed: smooth text, Lanczos-upscaled art.
+- Rendering improvements allowed: smooth text, Lanczos-upscaled art, mirrored runway digits re-flipped.
 
 ## Plan (in order)
 1. ~~Front end~~, ~~TSD~~, ~~MFDs~~, ~~airbase~~, ~~mission runtime (Engines ON)~~, ~~lights (gear / flaps / brake)~~.
