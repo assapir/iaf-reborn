@@ -1,7 +1,8 @@
 # Terrain fly-over with the original 2D F-16 cockpit and an external view of your jet.
-#   F1: cockpit   F2: external   C: toggle   V: panel up/down   PgUp/PgDn: slide panel   +/- or wheel: zoom
-#   Arrows: stick (sprung: hold to deflect, release to centre)   Ins/Del (Numpad 0/.): rudder
-#   1..8: throttle presets idle / 65 / 70 / 80 / 90 % / military / AB1 / AB2 (1 also starts the engine)   0/9: throttle +/- 5 %   G: gear   F: flaps   B: brakes
+#   Keys: the original key table with the player's rebinds (docs/controls.md): arrows stick (sprung),
+#   Numpad 0/. rudder, 1..8 throttle presets (1 also starts the engine), 0/9 throttle +/- 5 %, G gear,
+#   F flaps, B brakes, E x3 eject, F1 cockpit, F10 chase; ours: Esc quit box, C / F2 views, V / PgUp /
+#   PgDn panel, F12 info, +/- or wheel zoom.
 #   External: RMB-drag orbits the camera, wheel zooms.
 #   `godot --path game res://terrain/terrain_view.tscn -- [--mission 311] [--real] [--screenshot out.png]
 #        [--at X Y alt heading pitch [roll]] [--external]`
@@ -78,8 +79,37 @@ const AIR_START_SPEED := 180.0
 ## rules test the nearest airbase (5 km / 15 m) and its runway start point (engine on within 100 m);
 ## the full airbase table (54f100) is not decoded, so these three stand in (UNCERTAIN).
 const AIRBASES := [Vector3(312984, 500459, 59), Vector3(356404, 602402, 28), Vector3(317439, 411135, 579)]
-## Ejection (docs/part-animation.md "Ejection"): the pilot left the jet.
+## Ejection (docs/part-animation.md "Ejection", docs/mission-runtime.md §5.4): the pilot left the jet.
 var ejected := false
+## "Eject (x3)" (FUN_00546280): presses less than EjectKeyTimeDistance apart count (sim time).
+const EJECT_KEY_WINDOW := 1.0
+var _eject_count := 0
+var _eject_last := 0.0
+## The throw (crew object FUN_0053de30): every 0.05 s canopy and seat rise 3 m and move 1.5 m aft in
+## the jet frame until 100 m up; the seat starts after Eject/Interval (2 s) and then becomes the
+## parachuter. The jet flies on with the engine off and the stick at (0.1, push 0.2).
+const EJECT_TICK := 0.05
+const EJECT_STEP := Vector3(0, 3.0, 1.5)
+const EJECT_TOP := 100.0
+const EJECT_SEAT_DELAY := 2.0
+const EJECT_RADIO := 4.5
+const EJECT_STICK := Vector2(0.1, -0.2)
+## Short ejection: AGL < 50 m, or < 200 m while |roll| > 90° (UNCERTAIN: attitude angle 1 = roll).
+const EJECT_LOW := 50.0
+const EJECT_LOW_INVERTED := 200.0
+## Parachuter (ejectb): p0 + v0·t + a·t²/2 in world axes (X east, Y north, Z up), until 20 m AGL.
+const CHUTE_V0 := Vector3(25, 30, -5)
+const CHUTE_ACCEL := Vector3(0, 0, -3)
+const CHUTE_STOP_AGL := 20.0
+var eject_short := false
+var _eject_t0 := 0.0
+var _eject_ticks := 0.0
+var _eject_radio_done := false
+var _seat: Node3D
+var _seat_offset := Vector3.ZERO
+var _chute: Node3D
+var _chute_p0 := Vector3.ZERO
+var _chute_t0 := 0.0
 ## The crash was handled (flight ends like the original's player death).
 var crashed := false
 
@@ -470,6 +500,8 @@ func _pref(name: String, fallback: bool) -> bool:
 func _on_crashed(reason: String) -> void:
 	crashed = true
 	print("player crashed: ", reason)
+	if ejected:
+		return  # the outcome was settled at the ejection
 	if runtime != null:
 		runtime.player_destroyed()
 	else:
@@ -620,6 +652,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		# The original key table first (docs/controls.md, with the player's rebinds); our own keys
 		# only where the table has no command we implement for that key.
 		var rec: int = keys.find_key(keys.key_of_event(event), Settings.key_bindings)
+		if rec >= 0 and ejected and not int(keys.records[rec].press[0]) in [18, 20, 21, 28, 134]:
+			return  # control mode 0: the jet no longer takes the player's commands
 		if rec >= 0 and _command(keys.records[rec].press):
 			return
 		_own_key(event)
@@ -749,6 +783,8 @@ func _process(delta: float) -> void:
 		if not frozen and not waiting_for_ground:
 			flight.step(delta)
 		var st: Dictionary = flight.state()
+		if ejected:
+			_eject_update(delta)
 		if st.crashed and not crashed:
 			_on_crashed(st.crash_reason)
 		rig.position = st.position
@@ -777,7 +813,7 @@ func _process(delta: float) -> void:
 	var agl := "" if ground_h == null else "  (%.0f m above ground)" % (p.y - ground_h)
 	var st2: Dictionary = cockpit.state
 	hud_label.visible = Settings.show_info
-	hud_label.text = "%s%s   x %.1f km  y %.1f km  alt %.0f m%s   %d kt  %.1f g  thr %d%%%s%s%s   %d fps\n[F1] cockpit  [F2] external  [C] toggle  [V/PgUp/PgDn] panel  [+/-] zoom  [arrows] stick  [Ins/Del] rudder  [1-8, 0/9] throttle  [G] gear  [F] flaps  [B] brake  [F12] hide" % [
+	hud_label.text = "%s%s   x %.1f km  y %.1f km  alt %.0f m%s   %d kt  %.1f g  thr %d%%%s%s%s   %d fps\n[F1] cockpit  [F2] external  [C] toggle  [V/PgUp/PgDn] panel  [+/-] zoom  [arrows] stick  [Num0/Num.] rudder  [1-8, 0/9] throttle  [G] gear  [F] flaps  [B] brake  [E x3] eject  [F12] hide" % [
 		"REAL DATA" if real_data else "ORIGINAL 1998 DATA", ("   mission: " + mission_name) if mission_name != "" else "", p.x / 1000.0, p.z / 1000.0, p.y, agl, st2.speed_kt, st2.g, int(throttle * 100),
 		"  GEAR" if gear_down else "", "  FLAPS" if flaps > 0 else "", "  BRAKE" if brakes else "", Engine.get_frames_per_second()]
 
@@ -791,6 +827,10 @@ var frozen := false
 
 ## Keyboard as a sprung joystick: held keys deflect the stick progressively, release centres it.
 func _read_controls(delta: float) -> void:
+	if ejected:
+		stick = EJECT_STICK
+		rudder = 0.0
+		return
 	if scripted_stick != null:
 		stick = scripted_stick
 		if scripted_rudder != null:
@@ -822,6 +862,110 @@ func _read_controls(delta: float) -> void:
 
 
 
-## "Eject (x3)" (command 18): placeholder until the ejection is ported.
+# --- ejection -----------------------------------------------------------------------------------
+
+## "Eject (x3)" (command 18, FUN_00546280): three presses, each less than 1 s after the previous one.
+## Nothing is shown or said per press.
 func _eject_key() -> void:
-	pass
+	if ejected or crashed:
+		return
+	var now := _sim_time
+	if now - _eject_last >= EJECT_KEY_WINDOW:
+		_eject_count = 1
+		_eject_last = now
+	else:
+		_eject_count += 1
+		if _eject_count >= 3:
+			_eject_count = 0
+			_eject_last = 0.0
+			_eject()
+		else:
+			_eject_last = now
+
+
+## FUN_005464f0: engine off, stick fixed, controls ignored; the jet flies on until it crashes. The
+## mission counts the player as lost at once (debrief 5 s later). Low (short ejection): no seat
+## flight or camera, straight to the end (the original jumps to its in-flight TSD, not built here).
+func _eject() -> void:
+	ejected = true
+	_eject_t0 = _sim_time
+	print("player ejected")
+	var st: Dictionary = flight.state() if flight != null else {}
+	if flight != null:
+		flight.set_engine_on(false)
+	var ground = terrain.height_at(rig.position)
+	var agl: float = rig.position.y - ground if ground != null else 1.0e9
+	var roll: float = absf(float(st.get("roll", 0.0)))
+	eject_short = agl < EJECT_LOW or (agl < EJECT_LOW_INVERTED and roll > 90.0)
+	if aircraft != null:
+		aircraft.ejected = true
+	if runtime != null:
+		runtime.player_ejected()
+	if eject_short:
+		if aircraft != null:
+			aircraft.canopy_gone = true
+		_end_flight(runtime != null)
+		return
+	# Fly-by view on the jet (view 0x13): our external view (UNCERTAIN: the fly-by camera placement).
+	in_cockpit = false
+	if runtime == null:
+		get_tree().create_timer(5.0).timeout.connect(func(): _end_flight(false))
+
+
+## Per frame after a full ejection: the 0.05 s throw ticks, the seat, the parachuter and the radio.
+func _eject_update(delta: float) -> void:
+	if eject_short:
+		return
+	var t := _sim_time - _eject_t0
+	_eject_ticks += delta
+	while _eject_ticks >= EJECT_TICK:
+		_eject_ticks -= EJECT_TICK
+		if aircraft != null and not aircraft.canopy_gone:
+			aircraft.canopy_offset += EJECT_STEP
+			if aircraft.canopy_offset.y > EJECT_TOP:
+				aircraft.canopy_gone = true
+		if _seat != null:
+			_seat_offset += EJECT_STEP
+			if _seat_offset.y > EJECT_TOP:
+				_spawn_parachuter(_seat.global_position)
+				_seat.queue_free()
+				_seat = null
+	if t >= EJECT_SEAT_DELAY and _seat == null and _chute == null:
+		_seat = _load_eject_model("ejecta")
+	if _seat != null:
+		var pilot: Node3D = aircraft.part_node("pilot") if aircraft != null else null
+		var base: Vector3 = pilot.global_position if pilot != null else rig.global_position
+		_seat.global_transform = Transform3D(rig.global_basis.orthonormalized(), base + rig.global_basis.orthonormalized() * _seat_offset)
+	if _chute != null:
+		var ct := _sim_time - _chute_t0
+		var w := _chute_p0 + CHUTE_V0 * ct + 0.5 * CHUTE_ACCEL * ct * ct
+		var pos := Vector3(w.x - terrain.world_origin.x, w.z, -(w.y - terrain.world_origin.y))
+		var g = terrain.height_at(pos)
+		if g == null or pos.y - g > CHUTE_STOP_AGL:
+			_chute.position = pos
+	if t >= EJECT_RADIO and not _eject_radio_done:
+		_eject_radio_done = true
+		if _voice != null:
+			mission_play_wav("gejected")  # "<callsign> ejected": the callsign part is not ported
+
+
+func _spawn_parachuter(at: Vector3) -> void:
+	_chute = _load_eject_model("ejectb")
+	if _chute == null:
+		return
+	_chute_t0 = _sim_time
+	_chute_p0 = Vector3(terrain.world_origin.x + at.x, terrain.world_origin.y - at.z, at.y)
+	_chute.position = at
+
+
+## The seat (pilot on chair) and the parachuter models from the converted objects (Pilot\ejectA, ejectB).
+func _load_eject_model(name: String) -> Node3D:
+	var path := Settings.assets_dir().path_join("converted/objects/pilot/%s/%s.gltf" % [name, name])
+	var doc := GLTFDocument.new()
+	var state := GLTFState.new()
+	if not FileAccess.file_exists(path) or doc.append_from_file(path, state) != OK:
+		return null
+	var node: Node3D = doc.generate_scene(state)
+	node.name = name
+	add_child(node)
+	return node

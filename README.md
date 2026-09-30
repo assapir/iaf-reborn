@@ -72,23 +72,34 @@ Use google to find the original game ISO if you do not have them. I trust you. S
 
 Community mods (e.g. Hebrew briefings) can be imported as overlay packs — see [docs/packs.md](docs/packs.md).
 
-## Flying (original keys where known, from the game's own instructor texts and the exe)
+## Flying (the original key table)
 
-| key            | action                                                                    |
+Every key comes from the original game's own key table (converted from `iafjets.exe`); you can
+rebind them on **Preferences → Keyboard** (the original Controls page). The full list of the 117
+original commands, and which ones work yet, is in [docs/controls.md](docs/controls.md).
+
+| key (default)  | action                                                                    |
 | -------------- | ------------------------------------------------------------------------- |
 | arrows         | stick (↑ forward = nose down, ↓ pull), sprung; ←/→ steer the nose wheel on the ground |
-| Ins / Del (Numpad 0 / .) | rudder (ignored on the ground, as in the original)              |
-| 1–8            | throttle presets idle, 65, 70, 80, 90 %, military, AB1, AB2; **1 starts the engine** |
+| Numpad 0 / Numpad . | rudder (ignored on the ground, as in the original)                   |
+| 1–8            | throttle presets idle, 65, 70, 80, 90 %, military, AB1, AB2 (throttle 0 / 0.10 / 0.19 / 0.38 / 0.56 / 0.74 / 0.78 / 1.0); **1 starts the engine** |
 | 0 / 9          | throttle +/− 5 % RPM                                                      |
 | G / F / B      | gear / flaps / brakes (wheel brakes on the ground, speed brake in the air) |
+| E (×3)         | eject: press three times                                                  |
 | T / D          | MFD: TSD / damage page                                                    |
 | Q / R / S      | radar: cycle mode / A-A ↔ A-G / standby                                   |
 | . / ,          | radar range + / −                                                         |
 | W, Shift+W     | next / previous waypoint                                                  |
-| F1 / F2 / C    | cockpit / external / toggle                                               |
-| Esc            | back to the menus                                                         |
-| V, PgUp / PgDn | panel down / slide panel                                                  |
-| + / −, wheel   | cockpit zoom (external: orbit distance); RMB drag orbits in external view |
+| H              | HUD colour                                                                |
+| F1 / F10       | cockpit / external (chase) view                                           |
+| = / − (Numpad + / −) | cockpit zoom                                                        |
+| Ctrl+Q         | quit mission? (debrief)                                                   |
+
+Our own keys (not in the original, or on original keys whose command isn't built yet — see
+docs/controls.md): **Esc** quit mission? (original: TSD toggle), **C** cockpit ↔ external
+(original: time compression), **F2** external (original: back view), **F12** flight-info line
+(original: I-mode), **V** / **PgUp** / **PgDn** panel, mouse wheel zoom, RMB drag orbits the external
+view.
 
 ### Tests / captures
 

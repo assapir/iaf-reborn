@@ -36,8 +36,7 @@ listed below.
 | Tools | `iaf-mission-report` → docs/mission-coverage.md (what each mission needs); Blackbox flight recorder `user://last_flight.csv` (Preferences > Extras); replay of a recorded path through the mission runtime (ad hoc, see roadmap) |
 
 ## Known gaps (open)
-1. **Front end** (all decoded in docs/front-end.md, not built): Preferences Controls key list / key editing (§12.7: the
-   key table is not converted; the page shows its art only) and the in-game effect of the stored prefs other than
+1. **Front end** (all decoded in docs/front-end.md, not built): the in-game effect of the stored prefs other than
    No blackouts, Login / Pilot Records and mission unlocking (§13), Reference (§14), Arming (§15), QUIT confirmation (msg 7), TSD 3D-model and target
    windows (§10–§11), TSD selected-unit label (§8.1). Out of scope for now: Multiplayer, Mission Creator, Jump In.
 2. **Only the F-16 is flyable**: other jets are shown disabled; campaign missions start in the F-16 whatever the mission says.
@@ -54,9 +53,21 @@ listed below.
    loading screen and enter the cockpit when done.
 9. **In-flight sounds**: engine, wind, gear, cockpit warnings (only voices, "Over G" and the G sound play); in-flight pause menu.
 
-## In progress
-- **Original key table** → keys.json, Controls page key list + rebinding, in-flight keys through the table.
-- **Eject** ("Eject (x3)", ejection object `FUN_0053d0b0`): seat / pilot / canopy, jet flies on, mission outcome.
+10. **Keys**: of the 117 original commands only those in docs/controls.md §3 marked as built work (views other than
+   cockpit / chase, autopilot, weapons, time compression, pause, TSD toggle… are not built); no joystick input yet.
+11. **Eject** (not ported): the fly-by camera placement (our external view instead), the in-flight TSD after a low
+   ejection / the parachuter landing (we end the flight), the "<callsign> ejected" callsign wav, the parachuter swing,
+   the "eject" warning sound on a fatal hit (no damage model).
+
+## Done since checkpoint 2
+- **Original key table** (`iaf-convert keys` → keys.json; docs/controls.md: all 117 commands, record ↔ keys.trx line
+  resolved), **Controls page** (key list, scrollbar, rebinding with msg 36, DEFAULT; `[keys]` in settings.cfg),
+  **in-flight keys through the table** with the player's rebinds (throttle presets now the exe's p1 · 0.01). Test:
+  test_controls.
+- **Eject** (E ×3 within 1 s each): engine off, stick fixed, commands ignored, jet flies on to its crash; pilot off,
+  canopy and seat thrown (3 m up / 1.5 m aft per 0.05 s to 100 m), seat after 2 s → parachuter; external view; the
+  player counts as lost at once (role rules, debrief 5 s later); low / inverted ejection ends at once. Test: test_eject.
+- Extras "Show canopy and pilot".
 
 ## Decisions / deviations (agreed with the user)
 - Canopy and pilot on your own jet: hidden as in the original by default; Preferences > Extras "Show canopy and
@@ -75,7 +86,7 @@ listed below.
 ## Plan (in order)
 1. ~~Front end~~, ~~TSD~~, ~~MFDs~~, ~~airbase~~, ~~mission runtime (Engines ON)~~, ~~lights~~, ~~flight physics (§14/§15
    port + Better physics options)~~, ~~aircraft model for every plane~~, ~~original Preferences~~.
-2. (running) Key table + Controls page, eject, canopy/pilot option.
+2. ~~Key table + Controls page, eject, canopy/pilot option~~.
 3. **In-flight sounds** (engine, wind, gear, warnings, touchdown / crash) and the in-flight pause menu.
 4. **Next training missions** (docs/mission-coverage.md): Landing (312, airborne start now supported) and Low Level
    Navigation (313); then what the rest of the training set needs (AI aircraft, vehicles, SAM / AAA, combat ops).

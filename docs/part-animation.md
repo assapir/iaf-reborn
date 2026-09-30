@@ -122,7 +122,7 @@ Initial state (`FUN_005a2a10`): airborne start → gear 1.569 (up), flaps 0, spe
 | 0x12 LdgDr | 0 (never rotates) | \|g−max\|≥1e-5 | the doors are a static mesh, hidden only when the gear is fully up |
 | 0x13 Hook | +hook (S+0x360) | \|θ\|≥1e-5 | |
 | 0x27 Parach | jitter (below) | S+0x2cc==2 | |
-| 0x14-0x26 (pilot, pilotB, canopy, canopyB, turret…, wheels) | 0 | **0** | hidden on the flying aircraft; the ejection object (`0x53d180`) draws pilot/canopy only after an ejection. The F-16 canopy glass exists only in the `Canopy` frame (port: `crew_visible` switch, docs/aircraft.md §2.3) |
+| 0x14-0x26 (pilot, pilotB, canopy, canopyB, turret…, wheels) | 0 | **0** | the FM callback hides them, but for aircraft entities the renderer's owner is the crew object `entity+0x3c` (callback `0x53d180`), which answers ids 0x14–0x17 and 0x1d–0x20 **before** the FM: pilot/canopy **are drawn** outside the cockpit view (see "Ejection" below). The F-16 canopy glass exists only in the `Canopy` frame (port: `crew_visible` switch, docs/aircraft.md §2.3) |
 | 0x3a/0x3b EngineL/R, other ids | 0 | 0 | |
 
 Gear sequencing: legs and doors share one ramp, so there is no separate door ramp and no door motion. A full cycle
@@ -135,12 +135,81 @@ Pressing again at 2 → 3 (jettisoned). Only types 120,130,160,180,190,200 alloc
 (the models with `Parach`: Kfir, F-4, MiG-23/29, Mirage). While the state is 2, the callback does
 `if now − t0 > 0.1: θ = uniform(−π/36, +π/36) (±5°); t0 = now` (`FUN_0059ff30`, `rand()/32767`).
 
-**Ejection** (`FUN_0053d0b0` object, vtable `0x608840`, callback `0x53d180`; **UNCERTAIN** details). It reuses
-the aircraft's `pilot` (0x14), `pilotB` (0x15) and `canopy` (0x16) subparts. The canopy and canopyB positions are
-captured by `FUN_0053de30`. pilot and pilotB: θ=0, visible while `obj+0xc && !obj+8`. Canopy: `obj+0x10 += 10°`
-**every call** (frame-rate dependent), wrapping at 360°, θ = that angle in radians about the canopy's X1/X2 axis.
-canopyB (0x17) is drawn at the stored canopy position, ids 0x1d-0x20 at the canopyB position, visible while `obj+0x14 && !obj+8`.
-Config `Eject/Speed`.
+### Ejection (crew object, seat / canopy "throwing", parachuter)
+Generic for every aircraft entity. Mission-side consequences (3-press rule, outcome, camera, TSD) are in
+docs/mission-runtime.md §5.4. All times are **sim time** (`[0x694910]+0x38`, scheduler `DAT_0069492c`).
+
+**Crew object** = `entity+0x3c`, 0x40 bytes, ctor `FUN_0053d0b0` (called from the aircraft entity ctor
+`FUN_00599bd0` @268107), vtable `0x608840`. The renderer (`FUN_004d8930`: owner = `*(entity+0x3c)`) calls its
+slot 1 `0x53d180` for every part. Ids other than 0x14–0x17 and 0x1d–0x20 are forwarded to the vehicle's callback (`0x463aff` → FM `0x59dd70`).
+
+| off | meaning |
+|---|---|
+| +4 | entity |
+| +8 | **cockpit flag**: `FUN_0053e070(v)` sets it. The view code sets 1 for cockpit views and 0 for external views (`FUN_004cce00` case 0x1c). Never initialised in the ctor (**UNCERTAIN** for AI aircraft) |
+| +0xc | crew aboard: 1 (ctor, via `FUN_00459f50(1)`, and `FUN_0053de30`), 0 at ejection (`FUN_0053d4b0`). `FUN_0053e300` = `(+0xc == 0)` = "already ejected" |
+| +0x10 | rotor angle, degrees |
+| +0x14 | canopy present: 1 (ctor, `FUN_0053de30`), 0 when a thrown canopy reaches the height limit |
+| +0x18 / +0x24 | canopy / canopyB position (E frame, m). Copied from the part positions by `FUN_0053de30` at spawn, then moved by the throw |
+| +0x30/+0x34/+0x38 | vector of thrown seats (begin/end/cap). Slots 2..7 = count / add / get / remove (`0x53df30`, `0x53e080`, `0x53df90`, `0x53df40`) |
+
+Callback `0x53d180` (jump table `0x53d484`/`0x53d49c`):
+
+| id | output |
+|---|---|
+| 0x14 pilot, 0x15 pilotB | θ = 0. visible = `+0xc && !+8` |
+| 0x16 canopy / 0x17 canopyB | **position** := `+0x18` / `+0x24` (θ not written = 0). visible = `+0x14 && !+8` |
+| 0x1d–0x20 RotorA–D | `+0x10 += 10.0` (`0x608808`), reset to 0 when > 360 (`0x60881c`), **per call** (frame-rate dependent). θ = that angle in radians. This is the helicopter rotor spin; it is not the canopy |
+| 0x18–0x1c | forwarded to the vehicle |
+
+So in the original, **the pilot and the canopy are drawn on every aircraft seen from outside** and hidden only in the cockpit
+view. The old "hidden on the flying aircraft" note was wrong: it described only the FM callback.
+
+**Ejection graphics** (called by `FUN_005464f0`, docs/mission-runtime.md §5.4):
+1. `FUN_0053dd40`, at t0: two "Throwing subpart motion" objects (vtable `0x608860`, 0x18 bytes: +4 crew obj,
+   +8 `&pos`, +0x10 `&flag`, +0x14 `isSeat`). One is for canopy (`&+0x18`), one for canopyB (`&+0x24`). Both have
+   `flag = &crew+0x14` and isSeat = 0. They are scheduled at **t0, period 0.05 s** (`0x3fa99999a0000000`).
+2. `FUN_0053d4b0(t0 + Interval)`: `+0xc = 0`, so the pilot parts vanish from the jet **at once**. It pushes a seat record
+   (0x20 bytes: `{model = res 0x755b "Pilot on chair" = Pilot\ejectA\ejectA.x, pos = pilot part pos (E frame),
+   rot = (0,0,0), visible = 1}`) into `+0x30`. UNCERTAIN: the drawer of the `+0x30` records was not traced. They are probably drawn in the body frame like stores, so from t0 the seat model sits where the pilot was. A second record at the pilotB position is added only if the model has a `pilotB` (0x15) part.
+   Each seat gets a throwing object (`FUN_0053d850`: isSeat = 1, flag = `&record.visible`), scheduled at
+   **t0 + Interval** (`Eject/Interval`, default **2.0 s**, `DAT_0065d000`), period 0.05 s.
+   The model's scale is `Cull/PilotOnChairSize`, default 2.0 (`FUN_00586840` @255633).
+3. Tick `0x53d910`, every 0.05 s, in the **aircraft's body frame** (E frame: +x left, +y aft, +z up, metres):
+   ```
+   pos.z += Speed            // Eject/Speed, default 3.0 (DAT_0065bc74, .data) -> 60 m/s up
+   pos.y += Speed * 0.5      // 0x608828 -> 30 m/s aft
+   if pos.z > 100.0 (0x60882c):
+       if isSeat: world = aircraftPose(now) * pos     // +0x70 pos, +0x7c orientation of the vehicle
+                  spawn parachuter at world (FUN_00546b60, below); remove the record from +0x30
+       *flag = 0; unschedule                          // canopy: crew+0x14 = 0 hides BOTH canopies
+   ```
+   The thrown parts stay attached to the aircraft frame: they rise "up" relative to the jet, whatever its attitude.
+   They are not ballistic in world space, and there is no gravity, drag or rotation.
+   From a pilot at z ≈ 1 m the seat needs ⌈99/3⌉ = 33 ticks (1.65 s). So the parachuter appears ≈ Interval + 1.65 s = 3.65 s after t0.
+4. **Parachuter** `FUN_00546b60`: it takes the next entity from a pool of `SpecialEject/ParachuterCount` (default
+   **4**, `DAT_0066aa08`) "Parachute" objects. The pool is created at mission start by `FUN_005899d0`: object type 84 "Parachute",
+   name "Parachuting pilot", ids 1000+i, model 184 = `pilot/ejectb/ejectb.gltf`. It is used round-robin (`DAT_0083af2c`). Its
+   motion is class 0x1f (`FUN_00547d10`, vtable `0x608ae8`):
+   * set-up `0x5471e0`: pos = the seat's world position, rot = (0,0,0), **v0 = (25, 30, −5) m/s** (world x, y, z;
+     `FUN_0043b640(25,30,-5)` @546ba2). Field +0x70 = −3.0.
+   * init `0x547510(now)`: angles (·, 30°, 20°) (UNCERTAIN which axes), accel **a = (0, 0, −3.0) m/s²**, h = z − ground(x,y).
+     Pure ballistic: p(t) = p0 + v0·dt + ½·a·dt² (`0x468670`, `0x467cd0`). There is **no drag and no terminal velocity**.
+   * "landing" time `+0xc0 = now + t` with D = sqrt(4·v0z² − 8·a·h); t = (D + 4·v0z)/(2a), and if t < 0,
+     t = (4·v0z − D)/(2a). The original has a factor error (4 instead of 2). From h = 1000 m: t = 29.2 s, but the real impact is at 24.2 s.
+   * tick `0x548080` every **0.2 s** ("CMParachuteUpdateEvent", vtable `0x608ad8`, first at now+0.2): re-bases p/v,
+     then swing rates `−40·sin(θa)` and `−20·sin(θb)` °/s (`0x608aac`, `0x608ab0`; zeroed if the previous tick was > 0.4 s ago).
+     **Stop** when `now > land − 10 s` (`0x608ac0`) **or** AGL ≤ 20 m (`0x608a80`). Stop sets +0xc8 = 1 and `0x547940` zeroes
+     velocity and acceleration, so the parachuter **freezes in place** (from 1000 m it freezes at ≈ 351 m AGL). This is an original bug.
+   * For the player's ejection (above 50 m, see §5.4), "Jump to tactical display event" (`0x608a50`) is scheduled at `land − 10 s`.
+There is no parachute-open animation or sound (`parachute open.wav` is not referenced).
+
+**Port (linux-iaf, `game/terrain/terrain_view.gd` `_eject*`, `aircraft_model.gd` `ejected` / `canopy_offset`):**
+the pilots are hidden, the canopies ride the 0.05 s ticks (+3 m up, +1.5 m aft in the jet frame) until 100 m, the seat
+(`objects/pilot/ejecta`, unscaled: `Cull/PilotOnChairSize` is a cull size) starts after 2 s and turns into the
+parachuter (`ejectb`) at 100 m, which follows p0 + v0·t + a·t²/2 with v0 = (25, 30, −5), a = (0, 0, −3) in world
+X east / Y north / Z up and stops at 20 m AGL (the original's `land − 10 s` factor-4 freeze is not copied; in single
+player the flight has ended by then). Not ported: the parachuter swing, the fly-by camera (our external view).
 
 ## 3. Other helpers
 * **Stations** (A..I = index 0..8, Gun 9, Cha 10, Fla 11): the store object (`FUN_0053a820`) takes its

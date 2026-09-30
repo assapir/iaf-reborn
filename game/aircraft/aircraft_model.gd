@@ -49,6 +49,11 @@ var _levers := {}
 ## Pilot / canopy (ids 0x14..0x17): the flight-model callback hides them on a flown aircraft
 ## (docs/aircraft.md §2.3; the F-16 then shows a flat cockpit cover). Off = the original.
 var crew_visible := false
+## Ejection (docs/part-animation.md "Ejection", crew object callback 0x53d180): the pilots are gone,
+## the canopies ride `canopy_offset` (metres in the jet frame: +y up, +z aft) until `canopy_gone`.
+var ejected := false
+var canopy_offset := Vector3.ZERO
+var canopy_gone := false
 var _chute_angle := 0.0
 var _chute_t := 0.0
 var _time := 0.0
@@ -265,7 +270,11 @@ func part_pose(id: int) -> Array:
 			return [0.0, gear_out]
 		19:  # Hook
 			return [ramps.hook, absf(ramps.hook) >= EPS]
-		0x14, 0x15, 0x16, 0x17:  # pilot, pilotB, canopy, canopyB
+		0x14, 0x15:  # pilot, pilotB
+			return [0.0, crew_visible and not ejected]
+		0x16, 0x17:  # canopy, canopyB
+			if ejected:
+				return [0.0, not canopy_gone]
 			return [0.0, crew_visible]
 		0x27:  # Parach
 			return [_chute_angle, _chute_state == 2]
@@ -292,6 +301,8 @@ func _apply() -> void:
 		if p.axis != null and pose[1]:
 			b = Basis(p.axis, pose[0]) * b
 		p.node.transform = Transform3D(b, p.origin)
+		if ejected and p.id in [0x16, 0x17] and is_inside_tree():
+			p.node.global_position += global_basis.orthonormalized() * canopy_offset
 
 
 ## True while any afterburner flame is drawn.

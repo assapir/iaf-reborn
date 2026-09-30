@@ -306,7 +306,10 @@ factories. They are listed only where the Execute was read.
 ## 5. Mission end
 
 ### 5.1 Role accounting — `FUN_00597730(entity)`
-Called from the entity final-status path `FUN_004a7e30` (after destroy) and from `FUN_005464f0` (player crash).
+Called from the entity final-status path `FUN_004a7e30` (after destroy) and from `FUN_005464f0` (**ejection**, §5.4).
+`FUN_00598250(slot)` counts a player slot as alive only if its entity has state ≠ 4/5 **and** control mode
+(status+0x14) ≠ 0. In a campaign (`DAT_0082e084`), a second aircraft of the slot also counts if it is a flyable jet
+(type 100…200). UNCERTAIN: which aircraft that is (`FUN_005b99e0`).
 Mission start (`FUN_00597350`) sets `unit+0x6618 = #entities with role 1` (`FUN_005981b0`), and clears passed
 (+0x34), failed (+0x35) and result (+0x6615).
 
@@ -379,6 +382,111 @@ Misc fields as the engine uses them (via doc vtbl+0x90 `FUN_0058b160` → unit f
 mis.md's "second failure" labels for 0x4a6 and 0x4ce are wrong.
 
 The start time (0x460) is overridden by option +0x584 (0..3 → 43200 / 21600 / 68400 / 79200 s).
+
+### 5.4 Ejection / player lost (`FUN_005464f0`)
+Generic for every mission and aircraft. The graphics side (seat, canopy, parachuter kinematics) is in
+docs/part-animation.md "Ejection". All times are **sim time** `[0x694910]+0x38`.
+
+**Key → 3-press rule.** Key record 17 "Eject (x3)" sends GEV 0x12 (DIK_E, params ignored). It goes through the usual chain
+(0x532 → CIAFWindow default → `FUN_004ccb80` → `FUN_004cce00`). Case 0x12 (@137847) requires the player controller
+`DAT_00694948` ≠ 0. It calls `FUN_004493a0(0x12, p, forced = 1)`. Because of `forced`, the controller's "control mode ≠ 3 → ignore" guard
+(@4493e0) is bypassed, so the key also works after the controls were taken away (state 3, see below). Case 0x12 (@44aa71):
+`FUN_00546280(player entity)` on the eject singleton `DAT_0083af28` (`FUN_00546350`, 0x20 bytes: +0 pool begin, +4 pool end, +8 cap,
++0x10 "player's ejection" flag (**not initialised**), +0x14 press count, +0x18 last press time, double):
+```
+if now − last >= EjectKeyTimeDistance:  count = 1; last = now          // gap too long (or first press): restart
+else: count += 1
+      if count >= 3: count = 0; last = 0; Eject(entity)                  // FUN_005464f0
+      else: last = now
+```
+`Eject/EjectKeyTimeDistance` defaults to **1.0 s** (`0x65d00c`). The window is **between consecutive presses**, not the total.
+Nothing is displayed or played on any press. In a network game each press is also sent to the other players (@44aa80,
+`FUN_004506d0(0x10,9)`, UNCERTAIN). The `[Eject]` defaults are read once, by `FUN_00546350`:
+
+| key | default | global |
+|---|---|---|
+| `Interval` | 2.0 s (seat launch delay) | `0x65d000` |
+| `ParachuterFlyBy` | 5.0 s (camera switch to the parachuter) | `0x65d004` |
+| `RandomFlyby` | 1 (byte) | `0x65d008` |
+| `EjectKeyTimeDistance` | 1.0 s | `0x65d00c` |
+| `Speed` (crew ctor) | 3.0 m per 0.05 s tick | `0x65bc74` |
+
+**`FUN_005464f0(entity)`** (disassembly @5464f0; the Ghidra output is stack-garbled):
+1. Abort if the crew is already out (`FUN_0053e300`: crew obj +0xc == 0). Abort unless control mode (status+0x14) == 3
+   (player-controlled) **or** state (status+0xc) == 3 (fatally hit, "going down").
+2. Schedule the "FlightControllerEjectReport" event (vtable `0x608a40` → `FUN_0054c3d0`) at **t0 + 4.5 s** (`0x6089f8` = −4.5).
+   The radio says `EJECTED_PHRASE` = "%S1 EJECTED" (phrasetemplates.trx; `GEjected.wav` "ejected" after the callsign).
+   This happens only if `DAT_0082e080` == 0, the ejector is on the player's side (`FUN_004a41e0`) and its callsign (`FUN_0054ab20`) is not empty.
+3. The aircraft is left to itself. Three FM motions go to `(entity+0x38)->vtbl[0]`:
+   * **0x0f** arg 0: `FUN_0059f1f0` → `FUN_005c56b0`, `DAT_0083f264 = 0` (UNCERTAIN: autopilot / steering mode off; args 1/2 = fly to point / follow target);
+   * **0x19** arg 0: **engine off**, `S+0x1d0 = 0` (`FUN_0059fc40`), so there is no thrust;
+   * **1** stick: in+0x10 = 0.2, in+0x14 = 0.1 → `sY = S+0x2e4 = −0.2` (a slight push), `sX = S+0x2e8 = +0.1`
+     (`FUN_0059c740`; ×0.25 if controller flag 0x12 is set, 0 if flag 0x18 is set, UNCERTAIN: damage flags).
+   Throttle, gear, flaps and brakes are not touched. Then `FUN_004a8600(0)`: **control mode 0**. The player's inputs are now
+   ignored, and the FM keeps flying the unmanned jet until it hits the ground (normal crash path `FUN_004a7e30`). UNCERTAIN: the
+   FM integrates normally in mode 0. The crashing-aircraft path `FUN_004a7880` uses the same mode.
+4. `FUN_00597730(unit, entity)` (§5.1) runs **at the moment of ejection**. The player now has mode 0, so rule 1 fires in single
+   player: result 0, unit+0x661c = 1, **game event 0x82 at t0 + 5 s**. Rule 2 applies with the player's role (normally 0):
+   `PlayMessage(misc 0x4c4)`, failed = 1, **0x81 at t0 + 10 s**. So an ejection counts exactly like losing the aircraft.
+5. Altitude test: `agl = z − ground(x, y)` of the aircraft (vehicle +0x70 at t0).
+   * **agl < 50 m** (`0x6089f0`), or **50 ≤ agl < 200 m** (`0x6089f4`) with |state angle[1]| > 90° (`0x608a10`, a double;
+     UNCERTAIN: roll, i.e. inverted): **short ejection**. The canopy is thrown, the seat record is pushed (`FUN_0053dd40`,
+     `FUN_0053d4b0(t0+Interval)`), and game event **0x7f** is posted at once with the entity's packed id. No camera change.
+   * otherwise, **full ejection**:
+     * singleton+0x10 = (entity == player `DAT_00694960`);
+     * `entity+4 → +8 = 1` (external viewer mode) and crew obj +8 = 0 (`FUN_0053e070(0)`), so the jet shows canopy and pilot from outside;
+     * **camera**: if it is the player's ejection, **or** the current view is Radar-target (9), Chase (6) or Fly-by (0x13) and
+       it looks at this entity: `FUN_0057e260(now, entity, {1500, 900, −200, −10°, 0°, 120°}, 2.0, **0x13 Fly-by
+       view**, RandomFlyby)` looks at the **aircraft**. With RandomFlyby, the x and z offsets get a random sign, and each offset is multiplied by
+       `0.5 + rand/32767` ∈ [0.5, 1.5]. The eye is kept ≥ ground + 15 m (`0x60cf48`). (The offset frame is UNCERTAIN.)
+       The cockpit is left at once;
+     * canopy throw at t0, seats at t0 + Interval (as above);
+     * if the player's ejection or the view condition holds: schedule "Eject camera change view event" (vtable `0x608a30`,
+       `0x546970`) at **t0 + ParachuterFlyBy = t0 + 5 s**. It sets the fly-by view (0x13) on the **parachuter** entity (the pool slot
+       captured at t0) with `{1000, 600, 200, 230° (4.014257 rad), ·, 160° (2.792527 rad)}` (`0x6089dc..ec`), 2.0, RandomFlyby.
+       UNCERTAIN: the slot layout; the call is the same as above.
+6. **Game event 0x7f "jump to tactical display"** (short ejection: at once; full ejection: at the parachuter's `land − 10 s`,
+   only if singleton+0x10). In `FUN_004cce00` case 0x7f, single player: if the id is the player's and the player is dead
+   (state 4/5) or has mode 0 → `SendMessage(IAFWnd, 0x532, 0x7f)`. That message is also sent to the descendants (`FUN_005df3b7`).
+   `CFlightWnd::OnGameEvent` (`0x4daad0`, 0x7f → `0x4dab03`): flight window +0x150 = **1**, then `FUN_004d7670(1)` closes the
+   flight view. The parent (`0x681` handler `0x4e2130`) posts game event 0x75(1) and opens screen **0x20 FlyTSD**
+   (`dat/flytsd.trx`: Fly / Visit, formation Alpha–Delta). In network mission 0x21d it opens a box instead:
+   msgs 12 "Do you want to rejoin?" (reply 0x55b). CIAFWindow ignores 0x7f.
+
+**What the player sees (single player, not campaign):**
+
+| t | event |
+|---|---|
+| 3rd press (each < 1.0 s after the previous one) | t0. The pilot part vanishes from the jet, and the seat model (ejectA) takes its place. Canopy flies up and aft. Fly-by camera on the jet (full ejection). Jet: engine off, stick (−0.2, +0.1), no pilot input |
+| t0 + 2.0 | seat (ejectA) starts rising 60 m/s, drifting 30 m/s aft, relative to the jet |
+| ≈ t0 + 3.65 | seat passes 100 m → becomes the parachuter entity (ejectB), v0 (25, 30, −5), gravity 3 m/s² |
+| t0 + 4.5 | radio "<callsign> ejected" (friendly side only) |
+| t0 + 5.0 | game event 0x82: the flight ends and the **debrief** opens (`FUN_004e1a90`, flight window +0x150 = 3). The camera event at t0 + 5 also fires (order UNCERTAIN) |
+| t0 + 10 | 0x81 ("Mission failed." box) — normally never seen, because the flight has ended (§5.2) |
+
+A **short ejection** (low, or inverted at 50–200 m) posts 0x7f at t0. So the flight view closes at once into FlyTSD, and 0x82
+still follows at t0 + 5 s (UNCERTAIN: how the two interact).
+In a **campaign**, if the slot still has a live flyable aircraft, rule 1 does not end the flight. The full ejection then plays the
+parachute and "jumps" to FlyTSD at `land − 10 s`, where the player can pick another aircraft (Fly). UNCERTAIN: the Fly
+button logic was not traced.
+
+**Debrief / score.** There is no special ejection text, pilot status or score. The ejection only goes through §5.1:
+- result 0: headline misc 0x492 (default "Mission failed");
+- "Mission failed." is msgs line 14; "Mission Accomplished! " is msgs line 13.
+
+No "ejected"/"rescued"/"MIA" strings exist in the exe or the menu texts. The player's slot-1 "destroyed" event does **not**
+fire on ejection, because the jet is not destroyed. UNCERTAIN: whether the still-flying jet gets the slot-2 "not destroyed" debrief line at flight end (§5.3 step 1).
+
+**Voices.** Nothing is played on the key presses or at t0.
+- `WINGMAN_EJECT_EJECT` (code `0x37007000`, `eject.wav`) is played only when the player's jet goes from state 1 to 3, i.e. is fatally hit
+  (`FUN_004a7880` @108832). That path also sets control mode 0 and the crash motion, and switches the view to mode 0x10. This is the cue to press E three times.
+- `BACKSEAT_EJECT` (0x36/7) is defined but not referenced.
+- `parachute open.wav` is not referenced.
+
+**Port:** `mission_runtime.gd` `player_ejected()` runs the role rules for the player at once and ends the flight
+into the debrief 5 s later (event 0x82); the jet's later crash does not count again. A short ejection (AGL < 50 m,
+or < 200 m with |roll| > 90°) ends the flight at once (the original opens its in-flight TSD, not built). Without a
+mission the flight ends after 5 s. The radio plays `gejected.wav` at +4.5 s (the callsign part is not ported).
 
 ## 6. Implementation checklist
 1. Spawn entities. For `0x320&1` entities, start both script lists at list index 1 and arm the radius check

@@ -312,6 +312,18 @@ func player_destroyed() -> void:
 			_after(ALL_DEAD_DELAY, func(): end_flight.emit(true))
 
 
+## The player ejected (FUN_005464f0, docs/mission-runtime.md §5.4): the player no longer counts as
+## alive (control mode 0), so the role rules run at once (role "survive": misc audio 0x4c4, failed)
+## and game event 0x82 ends the flight into the debrief 5 s later. The jet itself is not destroyed
+## here; its later crash does not run the rules again.
+func player_ejected() -> void:
+	for ent in entities.values():
+		if ent.player and ent.alive_scenario:
+			ent.alive_scenario = false
+			_role_rules(ent)
+			_after(ALL_DEAD_DELAY, func(): end_flight.emit(true))
+
+
 func _role_rules(ent: Dictionary) -> void:
 	if ent.role == ROLE_SURVIVE and not failed:
 		play_message(int(misc.get("0x4c4", -1)))
