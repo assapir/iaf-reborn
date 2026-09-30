@@ -163,7 +163,7 @@ func setup(host_node: Node, mission_files: Array, bdb: Dictionary, player_id := 
 				"current": [-1, -1], "path": null, "type": int(e.get("0x2c6", -1)),
 				"control": 3 if is_player else (2 if int(e.get("0x320", 0)) & 1 == 1 else 1),
 				"side": int(e.get("0x2d0", 0)), "heading": float(e.get("0x302", 0)),
-				"vel": Vector3.ZERO, "fall": null, "combat": true,
+				"vel": Vector3.ZERO, "fall": null, "combat": true, "brain": int(e.get("0x2da", -1)),
 			}
 			_init_damage(ent, objects.get(ent.type, {}))
 			entities[ent.key] = ent
@@ -282,12 +282,16 @@ func _trigger(ent: Dictionary, sc: Dictionary) -> void:
 		17:
 			ent.sensor = false
 		21:
-			# Enable combat (FUN_00440830): v1.1 also resets the brain (not ported: no AI yet).
+			# Enable combat (FUN_00440830): combat allowed again, the brain reset (docs/ai.md §6).
 			ent["combat"] = true
+			if host.has_method("mission_combat"):
+				host.mission_combat(ent, true)
 		22:
-			# Disable combat (FUN_004407e0): v1.1 also hands an engaged unit back to its motion script
-			# (FUN_004aa900(1)); our units always follow their scripts.
+			# Disable combat (FUN_004407e0): an engaged unit's weapons go safe and its brain stops
+			# (transferControl, docs/ai.md §6).
 			ent["combat"] = false
+			if host.has_method("mission_combat"):
+				host.mission_combat(ent, false)
 		_:
 			pass  # 3, 4, 15 (Wait), 18, 19 (Destroy entity: no-op in this build), 23, 26 …
 

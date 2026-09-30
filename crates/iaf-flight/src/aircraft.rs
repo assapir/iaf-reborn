@@ -80,7 +80,7 @@ const DS_YAW_AMP: f32 = 5.0 * PI / 180.0;
 const DS_YAW_PERIOD: f64 = 6.7;
 const DS_ATT_RATE: f32 = 20.0 * PI / 180.0;
 
-type V3 = [f64; 3];
+pub type V3 = [f64; 3];
 
 fn add(a: V3, b: V3) -> V3 {
     [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
@@ -156,6 +156,31 @@ impl Euler {
         let up0 = cross(right_h, fwd);
         (fwd, add(scale(right_h, cr), scale(up0, -sr)), add(scale(up0, cr), scale(right_h, sr)))
     }
+}
+
+/// The autopilot's view of the FM (see [`Aircraft::ap_view`]); ENU metres, rad, rad/s.
+#[derive(Debug, Clone, Copy)]
+pub struct ApView {
+    pub t: f64,
+    pub pos: V3,
+    pub vel: V3,
+    pub acc: V3,
+    pub speed: f32,
+    pub att: Euler,
+    /// (pitch rate of the flight path, roll rate, turn rate), rad/s.
+    pub rates: [f32; 3],
+    pub max_roll_rate: f32,
+    pub max_g: f32,
+    pub min_g: f32,
+    pub on_ground: bool,
+    pub gear_down: bool,
+    pub flaps: bool,
+    pub brakes: bool,
+    pub type_code: u32,
+    pub gear_clearance: f32,
+    pub ground_height: f32,
+    /// Stick-centre line (P+0x144, P+0x180, P+0x184): centre g = V < v ? a·V + b : 1.
+    pub stick_centre: [f32; 3],
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -467,6 +492,8 @@ pub struct Aircraft {
     pub ai_level: u8,
     /// The AI jet's damage fraction is ≤ 0.1 (`dmgObj+0x10`, crash immunity "lowDmg").
     pub ai_low_damage: bool,
+    /// Current fuel flow (kg/s), from the last aero update.
+    pub fuel_flow: f32,
     /// External stores (docs/weapons.md "Weight and drag"): extra mass `S+0x424` (kg, added to the empty
     /// weight with the fuel), stores drag index of the left wing (stations A–E, `S+0x42c`) and the right
     /// wing (E–I, `S+0x428`), already ×1e-4, added to CD; right − left is the asymmetry that biases the
@@ -502,6 +529,29 @@ pub struct Aircraft {
     /// its 0 → 1 edges, i.e. the calls of the landed handler (`440f90`).
     landed: bool,
     landings: u32,
+    /// Motion 0x16 scripted heading turn (mode `veh+0xc78`, `5a8d40`), the AI's taxi pivots.
+    pivot: Option<Pivot>,
+}
+
+/// A flat 3 s turn about a point 30 m to the side of the turn (docs/ai.md §8.2).
+#[derive(Debug, Clone, Copy)]
+struct Pivot {
+    t0: f64,
+    s0: f32,
+    target: f32,
+    rate: f32,
+    t_end: f32,
+    p: V3,
+    r: f64,
+    v0: f32,
+}
+
+impl Pivot {
+    fn heading(&self, t: f64) -> f32 {
+        let tau = ((t - self.t0) as f32).clamp(0.0, 3.5);
+        let psi = if tau < self.t_end { self.s0 + self.rate * tau } else { self.target };
+        psi.clamp(-2.0 * PI, 2.0 * PI)
+    }
 }
 
 impl Aircraft {
@@ -599,6 +649,7 @@ impl Aircraft {
             ai_team: false,
             ai_level: 2,
             ai_low_damage: true,
+            fuel_flow: 0.0,
             stores_mass: 0.0,
             stores_di_left: 0.0,
             stores_di_right: 0.0,
@@ -619,6 +670,7 @@ impl Aircraft {
             ground_dir: [sh, ch, 0.0],
             landed: false,
             landings: 0,
+            pivot: None,
             params,
             envelope,
         };
@@ -786,6 +838,11 @@ impl Aircraft {
     /// timer on schedule. Nothing moves after a crash.
     pub fn step(&mut self, dt: f64) {
         let end = self.t + dt;
+        if self.pivot.is_some() {
+            // The pose comes from the pivot (mode c78); the axes are re-based when it ends.
+            self.t = end;
+            return;
+        }
         loop {
             if self.crashed.is_some() {
                 return;
@@ -815,11 +872,20 @@ impl Aircraft {
 
     /// Velocity and |v| (not capped: the 1 Hz path).
     fn velocity_at(&self, t: f64) -> (V3, f32) {
+        if let Some(pv) = &self.pivot {
+            // Slot 3 of mode c78: the entry speed along the heading (not the arc's own speed).
+            let h = pv.heading(t) as f64;
+            return ([pv.v0 as f64 * h.sin(), pv.v0 as f64 * h.cos(), 0.0], pv.v0);
+        }
         let v = [self.axes[0].sample(t).1 as f64, self.axes[1].sample(t).1 as f64, self.axes[2].sample(t).1 as f64];
         (v, dot(v, v).sqrt() as f32)
     }
 
     fn position_at(&self, t: f64) -> V3 {
+        if let Some(pv) = &self.pivot {
+            let h = pv.heading(t) as f64;
+            return [pv.p[0] - pv.r * h.cos(), pv.p[1] + pv.r * h.sin(), pv.p[2]];
+        }
         [self.axes[0].sample(t).0, self.axes[1].sample(t).0, self.axes[2].sample(t).0]
     }
 
@@ -870,6 +936,9 @@ impl Aircraft {
 
     /// Attitude of the current mode (mode object slot 0).
     fn attitude(&self, t: f64) -> Euler {
+        if let Some(pv) = &self.pivot {
+            return Euler { pitch: 0.0, roll: 0.0, heading: wrap(pv.heading(t) as f64) as f32 };
+        }
         if self.mode == Mode::DeepStall {
             // BP deep stall: mean attitude from the spin channels plus pitch rocking, wing rock, yaw wander.
             let osc = |period: f64| ((t - self.ds_t0) * std::f64::consts::TAU / period).sin() as f32;
@@ -1233,6 +1302,7 @@ impl Aircraft {
             r.rebase(t);
         }
         self.fuel.set(t, 0.0, ff);
+        self.fuel_flow = ff;
         self.rpm.set(t, 100.0 * rpm, RPM_RATE);
     }
 
@@ -1727,6 +1797,112 @@ impl Aircraft {
     /// Internal fuel capacity (FuelWeight, kg).
     pub fn internal_fuel_kg(&self) -> f32 {
         self.params.fuel_mass
+    }
+
+    /// What the autopilot's control loops read from the FM (docs/ai.md §8): the pose `5a68f0`, the rates
+    /// `5a6b10` (flight-path pitch rate, roll rate, turn rate), TAS, the acceleration (slot 0x44) and the
+    /// getters.
+    pub fn ap_view(&self) -> ApView {
+        let t = self.t;
+        let (v, speed) = self.velocity_at(t);
+        let a = [self.axes[0].accel() as f64, self.axes[1].accel() as f64, self.axes[2].accel() as f64];
+        let h2 = v[0] * v[0] + v[1] * v[1];
+        let turn = if h2 > 1e-6 { (a[0] * v[1] - a[1] * v[0]) / h2 } else { 0.0 };
+        let s2 = h2 + v[2] * v[2];
+        let path = if h2 > 1e-6 && s2 > 1e-6 { (a[2] * s2 - v[2] * dot(v, a)) / (s2 * h2.sqrt()) } else { 0.0 };
+        let p = &self.params;
+        ApView {
+            t,
+            pos: self.position_at(t),
+            vel: v,
+            acc: a,
+            speed,
+            att: self.attitude(t),
+            rates: [path as f32, self.roll.sample(t).1, turn as f32],
+            max_roll_rate: p.max_roll_rate,
+            max_g: p.max_g_m1 + 1.0,
+            min_g: p.min_g_m1 + 1.0,
+            on_ground: self.on_ground,
+            gear_down: self.gear_flag(t),
+            flaps: self.flaps.sample(t) > 0.0,
+            brakes: self.brakes.sample(t) > 0.0,
+            type_code: p.type_code,
+            gear_clearance: self.gear_clearance,
+            ground_height: self.ground_height,
+            stick_centre: [self.stick_centre_v, self.stick_centre_a, self.stick_centre_b],
+        }
+    }
+
+    /// `5b5070` Vmin(alt, g) of the envelope.
+    pub fn vmin(&self, alt: f32, g: f32) -> f32 {
+        self.envelope.vmin(alt, g)
+    }
+
+    /// `5a4d40` re-placement at rest on the ground (taxi / park): position, heading, velocity 0, throttle 0
+    /// (docs/flight-model.md §15.6.4).
+    pub fn replace_on_ground(&mut self, x: f64, y: f64, heading: f32) {
+        let t = self.t;
+        let z = self.axes[2].sample(t).0;
+        self.axes = [Axis::new(x, 0.0), Axis::new(y, 0.0), Axis::new(z, 0.0)];
+        for ax in &mut self.axes {
+            ax.set(t, 0.0);
+        }
+        self.ground_dir = [heading.sin() as f64, heading.cos() as f64, 0.0];
+        self.throttle = 0.0;
+        self.controls.throttle = 0.0;
+        self.aero_update();
+    }
+
+    /// Motion 0x16 (`5a8d40`): `Some(heading)` starts a flat pivot turn of 3 s about a point 30 m to the
+    /// turn's side (heading rate |Δψ|/3); `None` ends it with the re-placement `5a4d40` at the arc point,
+    /// the entry speed along the new heading (on the ground: throttle 0).
+    pub fn set_pivot(&mut self, target: Option<f32>) {
+        let t = self.t;
+        let pos = self.position_at(t);
+        let (_, speed) = self.velocity_at(t);
+        let h = self.attitude(t).heading;
+        match target {
+            Some(tt) => {
+                let tw = wrap(tt as f64) as f32;
+                let d = wrap((tw - h) as f64) as f32;
+                let (s0, e) = if tt < 0.0 && h > 0.0 { (h, d + h) } else { (tt - d, tt) };
+                let sg = if d > 0.0 { 1.0 } else if d < 0.0 { -1.0 } else { 0.0 };
+                let (ch, sh) = ((h as f64).cos(), (h as f64).sin());
+                self.pivot = Some(Pivot {
+                    t0: t,
+                    s0,
+                    target: e,
+                    rate: (d.abs() / 3.0) * (e - s0).signum(),
+                    t_end: if d == 0.0 { 0.0 } else { 3.0 },
+                    p: [pos[0] + 30.0 * sg * ch, pos[1] - 30.0 * sg * sh, pos[2]],
+                    r: 30.0 * sg,
+                    v0: speed,
+                });
+            }
+            None => {
+                self.pivot = None;
+                let hh = h as f64;
+                let v = [speed as f64 * hh.sin(), speed as f64 * hh.cos(), 0.0];
+                for i in 0..3 {
+                    self.axes[i] = Axis::new(pos[i], v[i] as f32);
+                    self.axes[i].set(t, 0.0);
+                }
+                self.ground_dir = [hh.sin(), hh.cos(), 0.0];
+                self.next_aero = t + AERO_PERIOD;
+                self.next_accel = t + ACCEL_PERIOD;
+                if self.on_ground {
+                    self.throttle = 0.0;
+                    self.controls.throttle = 0.0;
+                }
+                self.aero_update();
+            }
+        }
+    }
+
+    /// Motion 0x19 with 0: engine off (`5a2890`).
+    pub fn engine_off(&mut self) {
+        self.engine_on = false;
+        self.aero_update();
     }
 
     pub fn state(&self) -> State {

@@ -2,7 +2,9 @@
 //! spec in `docs/flight-model.md`. Pure Rust, no engine dependencies.
 
 pub mod aircraft;
+pub mod airbase;
 pub mod atmosphere;
+pub mod autopilot;
 pub mod channels;
 pub mod data_set;
 pub mod envelope;

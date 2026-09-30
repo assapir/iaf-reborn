@@ -3,12 +3,24 @@
 //! Godot frame: X east, Y up, Z south (−north), metres — the same frame as the terrain.
 
 use godot::prelude::*;
+use iaf_flight::airbase::Airbase;
+use iaf_flight::autopilot::{self, Autopilot, Leader, Waypoint};
 use iaf_flight::{Aircraft, Controls, Start};
 
 #[derive(GodotClass)]
 #[class(init, base = RefCounted)]
 pub struct IafFlight {
     aircraft: Option<Aircraft>,
+    /// The AI's autopilot (docs/ai.md), in the FM's frame: world minus `origin`.
+    ap: Option<Autopilot>,
+    origin: (f64, f64),
+    /// Terrain height at a scene position (Callable(Vector3) -> float).
+    ground: Option<Callable>,
+}
+
+/// Godot scene position → the FM's ENU frame.
+fn to_enu(v: Vector3) -> [f64; 3] {
+    [v.x as f64, -v.z as f64, v.y as f64]
 }
 
 /// ENU (east, north, up) → Godot (x, y, z) = (east, up, −north).
@@ -57,6 +69,19 @@ impl IafFlight {
             }
             Err(e) => GString::from(e.as_str()),
         }
+    }
+
+    /// The start rule's base tests (`FUN_005a5820`, docs/ai.md §7.1): the base is the one whose lineup point
+    /// (iaf.ibx) is nearest; x = at the base (within 5000 m horizontally and 15 m vertically of its tower),
+    /// y = the engine runs (within 100 m of its lineup point). World coordinates.
+    #[func]
+    fn start_rule(install: GString, x: f64, y: f64, z: f64) -> Vector2i {
+        let path = std::path::PathBuf::from(install.to_string()).join("iaf.ibx");
+        let bases = std::fs::read(path).map(|b| Airbase::load_all(&b)).unwrap_or_default();
+        let Some(b) = Airbase::nearest(&bases, [x as f32, y as f32, z as f32]) else { return Vector2i::ZERO };
+        let near = (b.tower[0] as f64 - x).hypot(b.tower[1] as f64 - y) < 5000.0 && (z - b.tower[2] as f64).abs() < 15.0;
+        let engine = (b.lineup[0] as f64 - x).hypot(b.lineup[1] as f64 - y) <= 100.0;
+        Vector2i::new(near as i32, engine as i32)
     }
 
     /// The original's start decision: airborne ⇔ altitude > 800 m and not at a base.
@@ -208,6 +233,142 @@ impl IafFlight {
         }
     }
 
+    // --- AI (docs/ai.md) ------------------------------------------------------------------------------
+
+    /// An AI jet: the FM's AI "team" test (not on the player's side) and the Preferences AI level (0..2).
+    #[func]
+    fn set_ai(&mut self, team: bool, level: i64) {
+        if let Some(ac) = &mut self.aircraft {
+            ac.ai_team = team;
+            ac.ai_level = level.clamp(0, 2) as u8;
+        }
+    }
+
+    /// The AI jet's damage is ≤ 0.1 (crash immunity).
+    #[func]
+    fn set_ai_damage(&mut self, low: bool) {
+        if let Some(ac) = &mut self.aircraft {
+            ac.ai_low_damage = low;
+        }
+    }
+
+    /// Current fuel flow, kg/s.
+    #[func]
+    fn fuel_flow(&self) -> f64 {
+        self.aircraft.as_ref().map_or(0.0, |ac| ac.fuel_flow as f64)
+    }
+
+    /// Creates the autopilot: `[Autopilot]` of bd.ibx and the airbases of iaf.ibx; world coordinates (X east,
+    /// Y north) are shifted by the terrain origin into the FM's frame.
+    #[func]
+    fn ap_setup(&mut self, install: GString, origin_x: f64, origin_y: f64) {
+        let dir = std::path::PathBuf::from(install.to_string());
+        let mut ap = Autopilot::new(autopilot::Config::load(&dir));
+        let mut bases = std::fs::read(dir.join("iaf.ibx")).map(|b| Airbase::load_all(&b)).unwrap_or_default();
+        let (ox, oy) = (origin_x as f32, origin_y as f32);
+        for b in &mut bases {
+            for p in [&mut b.tower, &mut b.lineup] {
+                p[0] -= ox;
+                p[1] -= oy;
+            }
+            for list in [&mut b.to_taxi, &mut b.from_taxi, &mut b.hangars, &mut b.to_hangar_turn, &mut b.from_hangar_turn] {
+                for p in list.iter_mut() {
+                    p.x -= ox;
+                    p.y -= oy;
+                }
+            }
+        }
+        ap.bases = bases;
+        self.ap = Some(ap);
+        self.origin = (origin_x, origin_y);
+    }
+
+    /// Terrain height for the control loops: Callable(Vector3 scene position) -> float.
+    #[func]
+    fn ap_set_ground(&mut self, f: Callable) {
+        self.ground = Some(f);
+    }
+
+    /// The formation's route: [X, Y, alt, T, action] per waypoint (world coordinates, T = arrival time s).
+    #[func]
+    fn ap_set_route(&mut self, flat: PackedFloat64Array) {
+        let (ox, oy) = self.origin;
+        if let Some(ap) = &mut self.ap {
+            ap.route = flat
+                .as_slice()
+                .chunks_exact(5)
+                .map(|w| Waypoint { x: w[0] - ox, y: w[1] - oy, z: w[2], t: w[3], action: w[4] as i32 })
+                .collect();
+        }
+    }
+
+    /// `setMode` (docs/ai.md §5, §8.1); an identical mode is ignored.
+    #[func]
+    fn ap_set_mode(&mut self, mode: i64, _now: f64) {
+        if let (Some(ap), Some(ac)) = (&mut self.ap, &mut self.aircraft) {
+            ap.set_mode(ac, mode.clamp(0, 255) as u8);
+        }
+    }
+
+    #[func]
+    fn ap_mode(&self) -> i64 {
+        self.ap.as_ref().map_or(0, |ap| ap.mode() as i64)
+    }
+
+    /// Runs the control loop's tick when due (call before `step`).
+    #[func]
+    fn ap_step(&mut self, _now: f64) {
+        let (Some(ap), Some(ac)) = (&mut self.ap, &mut self.aircraft) else { return };
+        let ground = self.ground.clone();
+        let g = move |x: f64, y: f64| -> f32 {
+            match &ground {
+                Some(f) => f.call(&[Vector3::new(x as f32, 0.0, -y as f32).to_variant()]).try_to::<f32>().unwrap_or(-1.0e9),
+                None => 0.0,
+            }
+        };
+        ap.step(ac, &g);
+    }
+
+    /// The current waypoint index (brain +0x88).
+    #[func]
+    fn ap_waypoint_index(&self) -> i64 {
+        self.ap.as_ref().map_or(0, |ap| ap.wp_index as i64)
+    }
+
+    #[func]
+    fn ap_set_waypoint_index(&mut self, i: i64) {
+        if let Some(ap) = &mut self.ap {
+            ap.wp_index = i.max(0) as usize;
+        }
+    }
+
+    /// The formation leader (member 0) for the formation / taxi / take-off loops: scene position and
+    /// velocity, attitude in degrees; `has` false = I lead (or no formation).
+    #[func]
+    #[allow(clippy::too_many_arguments)]
+    fn ap_set_leader(&mut self, has: bool, active: bool, pos: Vector3, vel: Vector3, pitch: f64, roll: f64, heading: f64) {
+        if let Some(ap) = &mut self.ap {
+            ap.leader = has.then(|| Leader {
+                pos: to_enu(pos),
+                vel: to_enu(vel),
+                att: [(pitch as f32).to_radians(), (roll as f32).to_radians(), (heading as f32).to_radians()],
+                active,
+            });
+        }
+    }
+
+    /// The landing's StopPlane has run (the landed handler, controller +0xe0).
+    #[func]
+    fn ap_landed(&self) -> bool {
+        self.ap.as_ref().is_some_and(|ap| ap.landed)
+    }
+
+    /// Frees every airbase hangar (a new mission, `54f920`).
+    #[func]
+    fn ap_reset_hangars() {
+        autopilot::reset_hangars();
+    }
+
     #[func]
     fn step(&mut self, dt: f64) {
         if let Some(ac) = &mut self.aircraft {
@@ -227,6 +388,7 @@ impl IafFlight {
         d.set("forward", to_godot(s.forward));
         d.set("right", to_godot(s.right));
         d.set("up", to_godot(s.up));
+        d.set("speed", s.speed);
         d.set("speed_kt", s.speed * 1.943844);
         d.set("mach", s.mach);
         d.set("alt_ft", s.position[2] as f32 * 3.28084);

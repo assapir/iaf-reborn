@@ -80,7 +80,6 @@ const AIR_START_SPEED := 180.0
 ## Airbases known from the exe (hard-coded spawn points, docs/formats/mis.md §5: X, Y, Z). The start
 ## rules test the nearest airbase (5 km / 15 m) and its runway start point (engine on within 100 m);
 ## the full airbase table (551280) is not decoded, so these three stand in (UNCERTAIN).
-const AIRBASES := [Vector3(312984, 500459, 59), Vector3(356404, 602402, 28), Vector3(317439, 411135, 579)]
 ## Ejection (docs/part-animation.md "Ejection", docs/mission-runtime.md §5.4): the pilot left the jet.
 var ejected := false
 ## "Eject (x3)" (FUN_00548330): presses less than EjectKeyTimeDistance apart count (sim time).
@@ -293,14 +292,12 @@ func _choose_start(args: PackedStringArray) -> void:
 		origin = Vector2(player["0x2e4"], player["0x2ee"])
 		alt = float(player["0x2f8"])
 		heading = float(player["0x302"])
-		# FUN_005a5820: airborne above 800 m unless at a base; a ground start has gear down, full
-		# flaps, brakes on, throttle 0, and the engine runs only within 100 m of the runway start point.
-		var near_base := false
-		start_engine_on = false
-		for b in AIRBASES:
-			var d := Vector2(b.x, b.y).distance_to(origin)
-			near_base = near_base or (d < 5000.0 and absf(alt - b.z) < 15.0)
-			start_engine_on = start_engine_on or d <= 100.0
+		# FUN_005a5820: airborne above 800 m unless at a base (the base with the nearest lineup point:
+		# within 5 km / 15 m of its tower); a ground start has gear down, full flaps, brakes on, throttle 0,
+		# and the engine runs only within 100 m of the lineup point (docs/ai.md §7.1).
+		var rule: Vector2i = ClassDB.class_call_static("IafFlight", "start_rule", Settings.assets_dir().path_join("install"), origin.x, origin.y, alt) if ClassDB.class_exists("IafFlight") else Vector2i.ZERO
+		var near_base := rule.x != 0
+		start_engine_on = rule.y != 0
 		start_airborne = alt > 800.0 and not near_base
 		if not start_airborne:
 			gear_down = true
@@ -355,6 +352,8 @@ func _mission_player() -> Dictionary:
 ## hide / show / move them. Ground objects sit on the terrain (UNCERTAIN whether the original
 ## snaps them or uses the entity altitude, which matches here).
 var runtime: Node
+## AI aircraft (game/ai/ai_flights.gd); `ai.contacts()` for radar / RWR.
+var ai: Node
 var _voice: AudioStreamPlayer
 ## The console (docs/mission-runtime.md §3.3): 40 slots, every push moves the lines back one slot;
 ## an empty line is pushed every 3 s of sim time (also on the first frame), so a line lasts ~39-42 s.
@@ -383,6 +382,12 @@ func _spawn_mission_objects() -> void:
 	runtime = preload("res://mission/mission_runtime.gd").new()
 	add_child(runtime)
 	runtime.setup(self, files, bdb, player_entity_id)
+	# AI aircraft (docs/ai.md): brain-controlled jets fly the flight model under their autopilot.
+	if ClassDB.class_exists("IafFlight"):
+		ClassDB.class_call_static("IafFlight", "ap_reset_hangars")
+		ai = preload("res://ai/ai_flights.gd").new()
+		add_child(ai)
+		ai.setup(self, runtime, bdb, files)
 	runtime.subtitle.connect(_on_subtitle)
 	runtime.message_box.connect(_on_mission_box)
 	runtime.end_flight.connect(_end_flight)
@@ -391,7 +396,7 @@ func _spawn_mission_objects() -> void:
 	add_child(_voice)
 	var scenes := {}
 	for ent in runtime.entities.values():
-		if ent.player:
+		if ent.player or ent.has("pilot"):
 			continue
 		var obj: Dictionary = objs.get(ent.type, {})
 		var path: String = paths.get(str(int(obj.get("0x53c", -1))), "")
@@ -499,6 +504,26 @@ func _entity_scene_pos(ent: Dictionary) -> Vector3:
 	return Vector3(w.x - terrain.world_origin.x, w.z, -(w.y - terrain.world_origin.y))
 
 
+## World (X east, Y north, alt) ↔ scene position.
+func world_to_scene(w: Vector3) -> Vector3:
+	return Vector3(w.x - terrain.world_origin.x, w.z, -(w.y - terrain.world_origin.y))
+
+
+func scene_to_world(p: Vector3) -> Vector3:
+	return Vector3(terrain.world_origin.x + p.x, terrain.world_origin.y - p.z, p.y)
+
+
+## Not on the player's side (FUN_004a4cf0; no player: sides 2 / 3).
+func enemy_of_player(ent: Dictionary) -> bool:
+	return runtime != null and runtime._enemy_of_player(ent)
+
+
+## Trigger ops 21 / 22 for AI units (docs/ai.md §6).
+func mission_combat(ent: Dictionary, on: bool) -> void:
+	if ai != null:
+		ai.set_combat(ent, on)
+
+
 ## Terrain height (m) under a world position (X, Y, alt); null where not loaded.
 func mission_ground(w: Vector3) -> Variant:
 	return terrain.height_at(Vector3(w.x - terrain.world_origin.x, 0, -(w.y - terrain.world_origin.y)))
@@ -511,6 +536,9 @@ func mission_unit_motion(ent: Dictionary) -> Array:
 		var st: Dictionary = flight.state()
 		var v: Vector3 = st.velocity
 		return [Vector3(st.pitch, st.roll, st.heading), Vector3(v.x, -v.z, v.y)]
+	if ent.has("pilot"):
+		var ps: Dictionary = ent.pilot.state()
+		return [Vector3(ps.pitch, ps.roll, ps.heading), ent.vel]
 	return [Vector3(0, 0, ent.heading), ent.vel]
 
 
