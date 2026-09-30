@@ -174,6 +174,15 @@ impl IafFlight {
         }
     }
 
+    /// External stores (docs/weapons.md "Weight and drag"): extra mass `S+0x424` in kg and the left /
+    /// right wing stores drag index `S+0x42c` / `S+0x428` (×1e-4 applied). Read at the next aero update.
+    #[func]
+    fn set_stores(&mut self, mass_kg: f64, di_left: f64, di_right: f64) {
+        if let Some(ac) = &mut self.aircraft {
+            ac.set_stores(mass_kg as f32, di_left as f32, di_right as f32);
+        }
+    }
+
     /// Engine running or off (a ground start begins with the engine off).
     #[func]
     fn set_engine_on(&mut self, on: bool) {
@@ -214,6 +223,7 @@ impl IafFlight {
         d.set("throttle", s.throttle);
         d.set("afterburner", s.afterburner as i64);
         d.set("fuel_lbs", s.fuel_kg / 0.45359);
+        d.set("mass_kg", s.mass_kg);
         d.set("stalled", s.stalled);
         d.set("buffet", s.buffet);
         d.set("drag_x", s.drag_x);

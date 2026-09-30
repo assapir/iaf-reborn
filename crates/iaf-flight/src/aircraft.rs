@@ -452,6 +452,13 @@ pub struct Aircraft {
     pub invulnerable: bool,
     pub no_crashes: bool,
     pub unlimited_fuel: bool,
+    /// External stores (docs/weapons.md "Weight and drag"): extra mass `S+0x424` (kg, added to the empty
+    /// weight with the fuel), stores drag index of the left wing (stations A–E, `S+0x42c`) and the right
+    /// wing (E–I, `S+0x428`), already ×1e-4, added to CD; right − left is the asymmetry that biases the
+    /// β command. Set by the host at the start and after every release; read at the next aero update.
+    pub stores_mass: f32,
+    pub stores_di_left: f32,
+    pub stores_di_right: f32,
     // Load-time derived constants.
     cl0: f32,
     cl_alpha: f32,
@@ -572,6 +579,9 @@ impl Aircraft {
             invulnerable: false,
             no_crashes: false,
             unlimited_fuel: false,
+            stores_mass: 0.0,
+            stores_di_left: 0.0,
+            stores_di_right: 0.0,
             cl0,
             cl_alpha,
             stick_centre_v,
@@ -1051,7 +1061,8 @@ impl Aircraft {
         let gear = self.gear_flag(t);
         let brakes = self.brake_flag(t);
         let fuel = self.fuel.sample(t);
-        let mass = p.empty_mass + fuel;
+        // m = EmptyWeight + m_x, m_x = S+0x424 + fuel (§4).
+        let mass = p.empty_mass + self.stores_mass + fuel;
         let ground = self.on_ground;
         let latched = self.latched(t);
         let gamma = if v > 1.0 { (vel[2] / v as f64).clamp(-1.0, 1.0).asin() as f32 } else { 0.0 };
@@ -1082,7 +1093,8 @@ impl Aircraft {
             k *= self.ground_effect(alt);
         }
         let gear_f = if gear { 1.0 } else { 0.0 };
-        let mut cd = p.plane_di + brakes * p.speed_brakes_di + gear_f * p.gear_di + p.flaps_di * flaps * FLAPS_K + k * cl * cl;
+        let stores_di = self.stores_di_left + self.stores_di_right;
+        let mut cd = p.plane_di + brakes * p.speed_brakes_di + gear_f * p.gear_di + p.flaps_di * flaps * FLAPS_K + stores_di + k * cl * cl;
         if p.wave_drag > 0.0 && mach > 0.9 {
             cd += p.wave_drag * ((mach - 0.9) / 0.3).min(1.0);
         }
@@ -1099,7 +1111,8 @@ impl Aircraft {
             }
             yaw_nw = self.nose_wheel_yaw(v, gear);
         }
-        let beta_cmd = self.rudder * p.max_beta;
+        // 5b4910: β_cmd = (ru + 10·asym)·MaxBeta, asym = S+0x428 − S+0x42c (the spin tick passes 0).
+        let beta_cmd = (self.rudder + 10.0 * self.stores_asym()) * p.max_beta;
         let p_cmd = if ground { 0.0 } else { p.max_roll_rate * c.stick_x };
 
         self.thrust = thrust;
@@ -1262,7 +1275,7 @@ impl Aircraft {
         }
         self.roll.reset_angle(t, att.roll as f64);
         self.alpha_step(t, alpha_t);
-        let beta_cmd = self.rudder * self.params.max_beta;
+        let beta_cmd = (self.rudder + 10.0 * self.stores_asym()) * self.params.max_beta;
         self.beta_update(t, v, beta_cmd);
     }
 
@@ -1621,6 +1634,19 @@ impl Aircraft {
         self.axes[2].set_state(t, clear, vz_now, a);
     }
 
+    /// Stores asymmetry `S+0x428 − S+0x42c` (right minus left drag index).
+    fn stores_asym(&self) -> f32 {
+        self.stores_di_right - self.stores_di_left
+    }
+
+    /// External stores: extra mass `S+0x424` (kg) and the left (`S+0x42c`) / right (`S+0x428`) stores
+    /// drag index (×1e-4 already applied).
+    pub fn set_stores(&mut self, mass_kg: f32, di_left: f32, di_right: f32) {
+        self.stores_mass = mass_kg;
+        self.stores_di_left = di_left;
+        self.stores_di_right = di_right;
+    }
+
     pub fn state(&self) -> State {
         let t = self.t;
         let position = self.position_at(t);
@@ -1629,7 +1655,7 @@ impl Aircraft {
         let att = self.attitude(t);
         let (fwd, right, up) = att.basis();
         let alt = position[2] as f32;
-        let mass = self.params.empty_mass + self.fuel.sample(t);
+        let mass = self.params.empty_mass + self.stores_mass + self.fuel.sample(t);
         // On the wheels the load factor is 1 (the ground carries the weight); in the air it is L / (m·g).
         // Display only; the original's ground readout is not traced (UNCERTAIN).
         let g = if self.on_ground { 1.0 } else { self.lift.sample(t) / (mass * G) };
@@ -1712,6 +1738,24 @@ mod tests {
         for _ in 0..(seconds * 100.0).round() as usize {
             ac.step(0.01);
         }
+    }
+
+    /// External stores (docs/weapons.md): the extra mass adds to the weight, the drag indices to CD
+    /// (less speed), and right − left heavier biases β_cmd = (ru + 10·asym)·MaxBeta.
+    #[test]
+    fn stores_mass_drag_and_asymmetry() {
+        let mut clean = airborne(100, 3000.0, 200.0);
+        let mut loaded = airborne(100, 3000.0, 200.0);
+        loaded.set_stores(1500.0, 0.002, 0.002);
+        run(&mut clean, 10.0);
+        run(&mut loaded, 10.0);
+        let (sc, sl) = (clean.state(), loaded.state());
+        assert!((sl.mass_kg - sc.mass_kg - 1500.0).abs() < 1.0, "mass {} vs {}", sl.mass_kg, sc.mass_kg);
+        assert!(sl.speed < sc.speed, "stores drag slows the jet: {} vs {}", sl.speed, sc.speed);
+        let mut asym = airborne(100, 3000.0, 200.0);
+        asym.set_stores(0.0, 0.0, 0.001);
+        run(&mut asym, 1.5);
+        assert!((asym.beta_cmd - 0.01 * asym.params.max_beta).abs() < 1e-6, "β_cmd {}", asym.beta_cmd);
     }
 
     #[test]
