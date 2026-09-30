@@ -121,6 +121,8 @@ const PHYSICS_LABELS := {
 	"low_speed_roll": "No reversed roll at low speed",
 	"no_nose_wheel_lift": "No nose-wheel lift quirk",
 	"ground_effect": "Ground effect",
+	"fix_fall_heading": "Falling jets keep their heading",
+	"fix_skill_damage": "No tougher enemies on easy AI levels",
 }
 const PHYSICS_ROW := 21.0
 ## Our options on the Extras page: [setting, label, [[choice label, value], ...]].
@@ -974,9 +976,10 @@ func _draw_extras() -> void:
 func _physics_items() -> Array:
 	var items := []
 	var w := CONTENT.size.x
-	for i in Settings.BETTER.size():
+	var ids: Array = Settings.BETTER + Settings.FIXES
+	for i in ids.size():
 		var r := Rect2(24, 45.0 + PHYSICS_ROW * i, w - 48, PHYSICS_ROW)
-		items.append({"rect": r, "key": "bp_" + Settings.BETTER[i], "label": PHYSICS_LABELS[Settings.BETTER[i]]})
+		items.append({"rect": r, "key": "bp_" + ids[i], "label": PHYSICS_LABELS[ids[i]]})
 	for j in 2:
 		var r := Rect2(w - 24 - 70 * (2 - j), 12, 64, 22)
 		if _he():
@@ -1080,7 +1083,7 @@ func _pref_press(q: Vector2) -> bool:
 		for it in _physics_items():
 			if it.rect.has_point(q):
 				if it.key == "all" or it.key == "none":
-					for id in Settings.BETTER:
+					for id in Settings.BETTER + Settings.FIXES:
 						pref_work["bp_" + id] = it.key == "all"
 				else:
 					pref_work[it.key] = not pref_work[it.key]

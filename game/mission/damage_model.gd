@@ -12,7 +12,10 @@ const HIT_AT := 0.8
 const MIN_STEP := 0.01
 ## AI skill (Preferences > Gameplay, pref +0x50): damage to units not on the player's side is scaled
 ## by 0.8 (Rookie, 0x634dac) / 0.9 (Normal, 0x634db0) / 1.0 (Expert) in FUN_00463660.
+## Original bug: that makes the enemies tougher on the easier levels (the other skill readers 440480 /
+## 443fd0 do weaken them). Preferences > Physics "fix_skill_damage" turns the scaling off (ours).
 const SKILL_SCALE := [0.8, 0.9, 1.0]
+static var no_skill_scale := false
 ## Damage smoke of a hit controlled aircraft (class 0x1c, FUN_004a93f0 / FUN_004a7560): starts at
 ## damage >= 0.25 (0x5ff1e8); after 20 s (0x82d748) it stops unless damage >= 0.5 (0x5ff1ec).
 const SMOKE_AT := 0.25
@@ -44,7 +47,7 @@ static func blast(pos: Vector3, size: float, point: Vector3, power: float, radiu
 ## The rest of FUN_00463660: scale by the AI skill for units not on the player's side, then
 ## returns [new damage fraction, destroyed]. `strength` = the target's damage object +4.
 static func add_damage(damage: float, dmg: float, strength: float, enemy_of_player: bool, ai_level: int) -> Array:
-	if enemy_of_player and ai_level >= 0 and ai_level < 2:
+	if enemy_of_player and ai_level >= 0 and ai_level < 2 and not no_skill_scale:
 		dmg *= SKILL_SCALE[ai_level]
 	if strength <= dmg:
 		return [1.0, true]
@@ -183,8 +186,9 @@ const FALL_IMPACT_AGL := 2.0
 ## FlightModel/pitchEpsilon (5°, 0x82d6a0): a falling jet's nose goes to -(90° - ε) at 18°/s.
 const PITCH_EPS := 5.0
 ## Original bug kept: a falling fixed-wing aircraft's heading reads 0 (north) — the heading output is
-## only written on the helicopter path (docs/damage.md §3). true = keep its heading (ours).
-const FALL_KEEP_HEADING := false
+## only written on the helicopter path (docs/damage.md §3). true = keep its heading (Preferences >
+## Physics "fix_fall_heading").
+static var fall_keep_heading := false
 
 
 ## FUN_004966fe: start the fall of a unit of `klass` at `pos` (world X, Y, alt), attitude `angles`
@@ -236,7 +240,7 @@ static func fall_at(m: Dictionary, tau: float) -> Array:
 			var pitch := move_toward(a.x, -(90.0 - PITCH_EPS), 18.0 * tau)
 			if not (a.x > -85.0 and a.x < 90.0) and s > 0.0:
 				pitch = -95.0
-			a = Vector3(pitch, roll, a.z if FALL_KEEP_HEADING else 0.0)
+			a = Vector3(pitch, roll, a.z if fall_keep_heading else 0.0)
 		3:
 			if tau < m.T:
 				var th := deg_to_rad(a.x)

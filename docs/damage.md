@@ -104,7 +104,7 @@ player the flight model is frozen (`FUN_005a3700`) and the jet no longer answers
   z ≥ terrain where the terrain is above 0.1 m.
 - Attitude, fixed wing: roll = φ0 + s·180°/s·τ; the nose goes to −(90° − 5°) (FlightModel/pitchEpsilon) at 18°/s
   (s = −1 when −85° < θ0 < 90°; otherwise s > 0 snaps it to −95°). **Heading = 0** (the output is written only on
-  the helicopter path: an original bug, kept; `DamageModel.FALL_KEEP_HEADING` = true keeps the heading instead —
+  the helicopter path: an original bug, kept; Preferences > Physics "Falling jets keep their heading" (`bp_fix_fall_heading`) keeps it instead —
   to decide with the user). Helicopters: pitch = θ0 + s·ω·τ, ω = (n·2π − s·θ0)/T, n ∈ {0,1,2}; roll levels
   linearly; heading turns at s·U·π rad/s.
 - End (`FUN_00496162`, **every 0.5 s**, kinds 2 and 3 only): past T → state 5; at **≤ 2 m above the ground** → the
@@ -131,7 +131,9 @@ damage += dmg / strength; ≥ 1.0  -> destroyed
 The skill factors are `[DifficultyLevel] RookieDamagePercent` / `RegularDamagePercent` of `iaf.ibx` (defaults 0.8 /
 0.9, 0x634dac / 0x634db0; the shipped file has no such section), read by the damage-object ctor. "Not on the
 player's side" = `FUN_004a41e0(target side, player side)` (with no player: sides 2 / 3). **So at Rookie and Normal
-the enemies are tougher** — backwards for an "easier" setting; kept as the original (to decide with the user).
+the enemies are tougher** — backwards for an "easier" setting (verified at 4639a6–4639ec: the call returns 1 for a
+different side; the other skill readers 440480 / 443fd0 do weaken enemies). Original bug, kept by default;
+Preferences > Physics "No tougher enemies on easy AI levels" (`bp_fix_skill_damage`) turns the scaling off.
 
 ### 4.2 The hit handler (`FUN_004a8f40` → `FUN_004a9100`)
 1. The player's jet with **Invulnerable** (pref +0x1c; always applies in single player) takes no hits.

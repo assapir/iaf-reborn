@@ -7,6 +7,8 @@ const PATH := "user://settings.cfg"
 const BETTER := ["flight_path_hold", "force_angles", "start_lift", "start_rpm", "start_alpha",
 	"landing_limits", "spin_fixes", "fbw_departure", "lift_rate_floor", "low_speed_roll",
 	"no_nose_wheel_lift", "ground_effect"]
+## Fixes of original gameplay bugs outside the flight model (Preferences > Physics), stored as bp_<id>.
+const FIXES := ["fix_fall_heading", "fix_skill_damage"]
 ## Stored preferences by config section: the original pages, then our own options (Extras tab).
 const PREFS := {
 	"sound": ["mute", "music_volume", "engine_volume", "sfx_volume", "speech_volume"],
@@ -18,7 +20,7 @@ const PREFS := {
 		"flight_data", "language", "show_info", "blackbox"],
 	"physics": ["bp_flight_path_hold", "bp_force_angles", "bp_start_lift", "bp_start_rpm", "bp_start_alpha",
 		"bp_landing_limits", "bp_spin_fixes", "bp_fbw_departure", "bp_lift_rate_floor", "bp_low_speed_roll",
-		"bp_no_nose_wheel_lift", "bp_ground_effect"],
+		"bp_no_nose_wheel_lift", "bp_ground_effect", "bp_fix_fall_heading", "bp_fix_skill_damage"],
 }
 
 ## Flight data: "original" (Jane's IAF 1998 numbers) or "real" (corrected real-world F-16 data).
@@ -74,6 +76,8 @@ var bp_lift_rate_floor := false
 var bp_low_speed_roll := false
 var bp_no_nose_wheel_lift := false
 var bp_ground_effect := false
+var bp_fix_fall_heading := false
+var bp_fix_skill_damage := false
 ## Our flight-info line at the bottom left (not in the original); F12 toggles it.
 var show_info := true
 ## Blackbox: the flight recorder user://last_flight.csv (for diagnosing flights; on for now).

@@ -29,6 +29,8 @@
   "No reversed roll at low speed": "ללא היפוך גלגול במהירות נמוכה",
   "No nose-wheel lift quirk": "ללא עילוי מגלגל האף",
   "Ground effect": "אפקט קרקע",
-  "Better physics": "פיזיקה משופרת"
+  "Better physics": "פיזיקה משופרת",
+  "Falling jets keep their heading": "מטוס נופל שומר על כיוונו",
+  "No tougher enemies on easy AI levels": "אויבים לא עמידים יותר ברמות קלות"
  }
 }
