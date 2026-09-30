@@ -55,6 +55,9 @@ Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user
 - (not urgent) Weapons / stores, gear legs and other small parts look faceted (sharp, not rounded): smoothed
   normals for the stores / object models and the separate part meshes (`iaf-convert --smooth`, per-part smoothing
   groups / angle threshold).
+- Crash debris floats: the wreck pieces of a crash don't come to rest on the ground (terrain height / fall of
+  the shattered pieces, docs/damage.md §6). Bonus (Extras, if possible): pieces made from the aircraft's own parts
+  (wings, tail, gear from its model) instead of generic shards.
 - Keyboard page: the scrollbar arrows are cropped on the right side.
 - Terrain loads only after Fly, and the flight's loading screen (game/terrain/loading_screen.gd) does not show —
   only the front end's wait screen before the briefing appears; the ground pops in for a few seconds. Fix the
