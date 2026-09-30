@@ -45,7 +45,9 @@ listed below.
 6. **Mission objects**: level-of-detail models, damage states, moving units / AI, weapons.
 7. **Flight model**: stall / spin / departure modes, AB light-up delay, landing / crash check (`5b85b0`), gear leg
    timing in the flight model (drag), gear sound, weapon-release gear lock; "stalls off" / "easy" preference branches.
-8. **In-flight sounds**: engine, wind, gear, cockpit warnings (only voices, "Over G" and the G sound play); in-flight pause menu.
+8. **Loading**: terrain chunks / detail tiles still stream in after the cockpit appears; load them behind the
+   loading screen and enter the cockpit when done.
+9. **In-flight sounds**: engine, wind, gear, cockpit warnings (only voices, "Over G" and the G sound play); in-flight pause menu.
 
 ## Decisions / deviations (agreed with the user)
 - g readout on the ground shows 1.0 (display only; the original's ground readout is not traced).

@@ -13,6 +13,8 @@ var no_blackouts := false
 var better_physics := false
 ## Our flight-info line at the bottom left (not in the original); F12 toggles it.
 var show_info := true
+## Blackbox: the flight recorder user://last_flight.csv (for diagnosing flights; on for now).
+var blackbox := true
 ## Mission picked in the front end (briefing id, e.g. 311), -1 = free flight.
 var mission_id := -1
 ## Aircraft picked on the Jet list (original ids, FUN_00508470): 0 F-15, 1 F-16, 2 F-4E,
@@ -44,6 +46,7 @@ func _ready() -> void:
 		no_blackouts = cfg.get_value("gameplay", "no_blackouts", no_blackouts)
 		better_physics = cfg.get_value("gameplay", "better_physics", better_physics)
 		show_info = cfg.get_value("gameplay", "show_info", show_info)
+		blackbox = cfg.get_value("gameplay", "blackbox", blackbox)
 	if language == "he" and not hebrew_available():
 		language = "en"
 
@@ -57,6 +60,7 @@ func save() -> void:
 	cfg.set_value("gameplay", "no_blackouts", no_blackouts)
 	cfg.set_value("gameplay", "better_physics", better_physics)
 	cfg.set_value("gameplay", "show_info", show_info)
+	cfg.set_value("gameplay", "blackbox", blackbox)
 	cfg.save(PATH)
 
 

@@ -73,7 +73,7 @@ var dir := ""
 
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	dir = ProjectSettings.globalize_path("res://").path_join(cockpit_dir).simplify_path()
 	var text := FileAccess.get_file_as_string(dir.path_join("cockpit.json"))

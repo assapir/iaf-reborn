@@ -102,7 +102,7 @@ var sounds := {}
 
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_load_menu_data()
 	font = _arial(400)
 	font_bold = _arial(700)
@@ -111,7 +111,7 @@ func _ready() -> void:
 	add_child(music)
 	add_child(sfx)
 	top_layer = Control.new()
-	top_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	top_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	top_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	top_layer.draw.connect(_draw_msgbox)
 	top_layer.gui_input.connect(_msgbox_input)
@@ -546,6 +546,7 @@ func _draw_prefs() -> void:
 		["No blackouts", [["Off", false], ["On", true]], "no_blackouts"],
 		["Better physics", [["Off", false], ["On", true]], "better_physics"],
 		["Flight info (F12)", [["Hide", false], ["Show", true]], "show_info"],
+		["Blackbox", [["Off", false], ["On", true]], "blackbox"],
 	]
 	var rtl := _he()
 	var fs := int(round(LIST_TITLE_PX * _scale()))

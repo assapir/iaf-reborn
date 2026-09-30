@@ -28,6 +28,7 @@ func run() -> void:
 	check(rt.passed, "mission passed when the win sensor exploded")
 	await seconds(10.5)
 	check(tv._msgbox != null and tv._msgbox.buttons == ["deb", "fly"], "Mission Accomplished box with DEBRIEF / CONTINUE")
+	check(tv._msgbox != null and tv._msgbox.size.x > 0, "the box covers the screen (size %s)" % (tv._msgbox.size if tv._msgbox else Vector2.ZERO))
 	var d: Dictionary = rt.debrief_text()
 	check(String(d.headline).begins_with("Mission - successful"), "debrief headline: %s" % d.headline)
 

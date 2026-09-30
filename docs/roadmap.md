@@ -15,3 +15,8 @@
 Improvements over the 1998 model that the player can opt into, decided case by case with the user:
 - Ground effect.
 - 1 g hold on the flight path instead of the nose pitch (no slow dive at high speed) — **done** (`better_physics`).
+
+## Mission replayer (after the missions work)
+Generalize the blackbox replay used to debug "Engines ON" (feed a recorded `last_flight.csv` path into the mission
+runtime at 8× speed and print every subtitle / pass / box with its time) into a tool for any mission: record →
+replay → timeline, and replay recorded flights as regression tests.

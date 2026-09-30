@@ -18,7 +18,7 @@ var font: SystemFont
 
 func setup(msg: int, button_names: Array) -> void:
 	buttons = button_names
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	dir = Settings.assets_dir().path_join("converted/menu_he" if Settings.language == "he" else "converted/menu")
 	var strings = JSON.parse_string(FileAccess.get_file_as_string(dir.path_join("strings.json")))

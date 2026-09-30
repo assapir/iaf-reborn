@@ -46,7 +46,7 @@ var mission_name := ""
 ## The player's waypoints: [{name, world}] (mission world coordinates).
 var route: Array = []
 var g_effects: Control
-## Flight recorder: the last flight's state twice a second (user://last_flight.csv) for diagnosing
+## Blackbox (Preferences, on by default): the last flight's state twice a second (user://last_flight.csv) for diagnosing
 ## glitches reported from play.
 var _log: FileAccess
 var _log_next := 0.0
@@ -479,7 +479,7 @@ func _update_indicators(delta: float) -> void:
 
 func _record(st: Dictionary, delta: float) -> void:
 	_log_t += delta
-	if Settings.isolated():
+	if Settings.isolated() or not Settings.blackbox:
 		return  # tests never write into the player's data
 	if _log == null:
 		_log = FileAccess.open("user://last_flight.csv", FileAccess.WRITE)

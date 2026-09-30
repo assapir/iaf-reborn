@@ -69,7 +69,7 @@ var drag_offset := 0.0
 func setup(front_end: Control, mission: int) -> void:
 	fe = front_end
 	mission_id = mission
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_PASS
 	# Missions 110–119 use the 1967 map, 120–129 the 1973 map (FUN_004fe280).
 	if mission_id >= 110 and mission_id <= 119:
