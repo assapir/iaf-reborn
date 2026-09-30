@@ -197,10 +197,6 @@ func flight_enabled(n: int) -> bool:
 	return int(leader.type) in FLYABLE_TYPES and int(leader.side) == 1
 
 
-func flight_exists(n: int) -> bool:
-	return flights.has(n)
-
-
 ## Selects a flight: its leader becomes the selected unit and the view centres on it.
 func select_flight(n: int) -> void:
 	if not flights.has(n):
@@ -305,14 +301,15 @@ func _new_window(r: Rect2, tab: String) -> Control:
 	return w
 
 
-## Briefing text in the current language; "<header>" becomes "<rank> <callsign>".
+## Briefing text in the current language; "<header>" becomes "<rank> <callsign>" (DAT_00836c98 /
+## DAT_00836cac); no pilot records yet: a new pilot's rank.
 func _text_of(entry: Dictionary) -> String:
 	var lang := "he" if fe._he() else "en"
 	var text: String = entry.get("text", {}).get(lang, "")
 	if text == "":
 		text = entry.get("text", {}).get("en", "")
 	var re := RegEx.create_from_string("(?i)<header>")
-	return re.sub(text, fe.pilot_header(), false)
+	return re.sub(text, "Second Lieutenant", false)
 
 
 func _link_names(entry: Dictionary) -> Array:

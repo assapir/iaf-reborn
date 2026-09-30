@@ -98,6 +98,7 @@ const CTRL_ARROW := Vector2(15, 18)
 const CTRL_THUMB := Vector2(10, 23)
 const KeyTable := preload("res://controls/key_table.gd")
 const Img := preload("res://util/img.gd")
+const Tsd := preload("res://menu/tsd.gd")
 
 ## Our own "Extras" tab (not in the original): directly below Gameplay at the panel's spacing
 ## (44 px). Drawn from the pPref art: the band holding the Gameplay button (panel coordinates, inside
@@ -136,11 +137,10 @@ const BACK := {"pref": "main", "ref": "main", "training": "main", "ctype": "main
 	"basic": "training", "combat": "training", "camp": "main", "mc": "main",
 	"his": "camp", "fut": "camp", "his1mis": "his", "his2mis": "his", "his3mis": "his",
 	"fut1mis": "fut", "fut2mis": "fut", "fut3mis": "fut", "tcp": "ctype", "ipx": "ctype"}
-## BACK shows its disabled plate here; QUIT replaces MAIN on these (FUN_004e8a80).
+## No BACK here (FUN_004e8a80): its disabled plate, and the blank lower clip (lowclipc, which
+## otherwise holds the BACK plate). QUIT replaces MAIN on QUIT_SCREENS.
 const NO_BACK := ["log", "main", "deb", "jump"]
 const QUIT_SCREENS := ["log", "main"]
-## Screens with the blank lower clip plate (lowclipc).
-const BLANK_CLIP := ["log", "main", "deb", "jump"]
 
 ## Jet buttons -> aircraft id (FUN_00508470, DAT_00836c90).
 const JET_IDS := {"mirage": 6, "kfir": 5, "f4": 2, "f42000": 3, "f15": 0, "f16": 1, "lavi": 4}
@@ -193,9 +193,8 @@ var tsd: Control
 var tsd_return := "jet"
 var tsd_checks := {}
 var briefings := {}
-## Modal message box (§3.3): {text, buttons: [[art, Callable]], pressed: index}.
-var msgbox := {}
-var top_layer: Control
+## The open message box (§3.3, game/mission/mission_box.gd), or null.
+var msgbox: Control
 
 var music: AudioStreamPlayer
 var sfx: AudioStreamPlayer
@@ -214,12 +213,6 @@ func _ready() -> void:
 	add_child(music)
 	add_child(sfx)
 	add_child(preview)
-	top_layer = Control.new()
-	top_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	top_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	top_layer.draw.connect(_draw_msgbox)
-	top_layer.gui_input.connect(_msgbox_input)
-	add_child(top_layer)
 	briefings = Settings.load_json(Settings.assets_dir().path_join("converted/briefings/briefings.json"))
 	var args := OS.get_cmdline_user_args()
 	var at := args.find("--menu")
@@ -308,11 +301,16 @@ func _start_music() -> void:
 	var s := _sound("menu_m")
 	if s == null:
 		return
-	s.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	s.loop_end = int(s.get_length() * s.mix_rate)
-	music.stream = s
+	music.stream = _looped(s)
 	_apply_music_volume()
 	music.play()
+
+
+## A sound set to loop over its whole length.
+static func _looped(s: AudioStreamWAV) -> AudioStreamWAV:
+	s.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	s.loop_end = int(s.get_length() * s.mix_rate)
+	return s
 
 
 ## Music volume and Mute (Sound page); while on Preferences the working copy is previewed.
@@ -376,15 +374,14 @@ func _enter_screen() -> void:
 	if screen in ["tsd", "arm"]:
 		_restore_tsd_checks()
 	if screen == "tsd" and tsd == null:
-		tsd = preload("res://menu/tsd.gd").new()
+		tsd = Tsd.new()
 		add_child(tsd)
-		move_child(top_layer, -1)
 		tsd.setup(self, Settings.mission_id)
 		if tsd_checks.get("player_flight", false):
 			tsd_checks.erase("player_flight")
 			var n: int = tsd.default_flight()
 			if n >= 1 and n <= 4:
-				tsd_checks[["alpha", "bravo", "charlie", "delta"][n - 1]] = true
+				tsd_checks[Tsd.FLIGHT_NAMES[n - 1]] = true
 			_restore_tsd_checks()
 		else:
 			var n := _flight_number(_selected_flight())
@@ -431,18 +428,18 @@ func _button_enabled(label: String) -> bool:
 			"zoomout":
 				return tsd.can_zoom_out()
 			"arm":
-				return _selected_flight() != "" and tsd.flight_exists(_flight_number(_selected_flight()))
-			"alpha", "bravo", "charlie", "delta":
-				return tsd.flight_enabled(_flight_number(_norm(label)))
+				return _selected_flight() != "" and tsd.flights.has(_flight_number(_selected_flight()))
+		if _norm(label) in Tsd.FLIGHT_NAMES:
+			return tsd.flight_enabled(_flight_number(_norm(label)))
 	return true
 
 
 func _flight_number(name: String) -> int:
-	return ["alpha", "bravo", "charlie", "delta"].find(name) + 1
+	return Tsd.FLIGHT_NAMES.find(name) + 1
 
 
 func _selected_flight() -> String:
-	for f in ["alpha", "bravo", "charlie", "delta"]:
+	for f in Tsd.FLIGHT_NAMES:
 		if tsd_checks.get(f, false):
 			return f
 	return ""
@@ -501,7 +498,6 @@ func _blit_region(path: String, src: Rect2, dest: Vector2) -> void:
 
 func _process(_delta: float) -> void:
 	queue_redraw()
-	top_layer.queue_redraw()
 
 
 func _draw() -> void:
@@ -528,7 +524,7 @@ func _draw_frame_pieces() -> void:
 		_blit("titles/%s_%d.png" % [title, title_frame], TITLE_POS)
 	var clip := 1 + int(round(panel_shown * 4.0))
 	_blit("misc/upclip%d.png" % clip, UPCLIP_POS)
-	_blit("misc/%s%d.png" % ["lowclipc" if screen in BLANK_CLIP else "lowclip", clip], LOWCLIP_POS)
+	_blit("misc/%s%d.png" % ["lowclipc" if screen in NO_BACK else "lowclip", clip], LOWCLIP_POS)
 	var back_frame: int = frames.get("back", 3 if screen in NO_BACK else 0)
 	_blit("misc/backbut_%d.png" % back_frame, BACK_POS)
 	var main_art := "quitbut" if screen in QUIT_SCREENS else "mainbut"
@@ -1006,7 +1002,7 @@ func _gui_input(event: InputEvent) -> void:
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		var p := _to_menu(event.position)
 		if event.pressed:
-			if screen == "pref" and msgbox.is_empty() and _pref_press(p - CONTENT.position):
+			if screen == "pref" and msgbox == null and _pref_press(p - CONTENT.position):
 				return
 			held = _hit(p)
 			if held != "":
@@ -1070,9 +1066,7 @@ func _pref_press(q: Vector2) -> bool:
 					if PREF_PREVIEW.has(c[1]):
 						var s := _sound(PREF_PREVIEW[c[1]])
 						if s != null:
-							s.loop_mode = AudioStreamWAV.LOOP_FORWARD
-							s.loop_end = int(s.get_length() * s.mix_rate)
-							preview.stream = s
+							preview.stream = _looped(s)
 							preview.volume_db = linear_to_db(maxf(_pref_value(c[1]), 0.0001))
 							preview.play()
 					return true
@@ -1266,10 +1260,10 @@ func _debrief_button(label: String) -> void:
 func _tsd_button(key: String, label: String, btn: Dictionary) -> void:
 	if btn.kind in ["Check", "CheckGroup"]:
 		if btn.kind == "CheckGroup":
-			for f in ["alpha", "bravo", "charlie", "delta"]:
+			for f in Tsd.FLIGHT_NAMES:
 				tsd_checks[f] = false
 		tsd_checks[label] = checked.get(key, false)
-	if label in ["alpha", "bravo", "charlie", "delta"]:
+	if label in Tsd.FLIGHT_NAMES:
 		tsd.select_flight(_flight_number(label))
 	match label:
 		"fly":
@@ -1297,12 +1291,6 @@ func tsd_briefing_closed() -> void:
 	checked.erase(_key_for_label("Briefing"))
 
 
-## "<rank> <callsign>" for the briefing's <header> (DAT_00836c98 / DAT_00836cac).
-## No pilot records yet: a new pilot's rank.
-func pilot_header() -> String:
-	return "Second Lieutenant"
-
-
 ## A briefing diagram / card, from the Hebrew pack when the language is Hebrew.
 func briefing_image(stem: String) -> Texture2D:
 	var base := Settings.assets_dir().path_join("converted/briefings")
@@ -1315,9 +1303,9 @@ func briefing_image(stem: String) -> Texture2D:
 
 ## Double-click on a flight leader in the TSD: select that flight and fly.
 func tsd_fly_flight(n: int) -> void:
-	for f in ["alpha", "bravo", "charlie", "delta"]:
+	for f in Tsd.FLIGHT_NAMES:
 		tsd_checks[f] = false
-	tsd_checks[["alpha", "bravo", "charlie", "delta"][n - 1]] = true
+	tsd_checks[Tsd.FLIGHT_NAMES[n - 1]] = true
 	tsd.select_flight(n)
 	_fly()
 
@@ -1362,14 +1350,11 @@ func _go(to: String) -> void:
 		return
 	busy = true
 	hover_key = ""
-	var old_panels := _panel_names()
+	var old_panels := _panel_names(screen)
 	for f in [1, 0]:
 		title_frame = f
 		await get_tree().create_timer(TITLE_FRAME).timeout
-	var new_panels: Array = []
-	for p in menus[to].get("panels", []):
-		new_panels.append(String(p.name).to_lower())
-	var slide := old_panels != new_panels
+	var slide := old_panels != _panel_names(to)
 	if slide:
 		await _slide(0.0, "palettein")
 	screen = to
@@ -1383,9 +1368,10 @@ func _go(to: String) -> void:
 	busy = false
 
 
-func _panel_names() -> Array:
+## The panels of screen `of` (lower-case names): the panels slide only when they change.
+func _panel_names(of: String) -> Array:
 	var names: Array = []
-	for p in _panels():
+	for p in menus.get(of, {}).get("panels", []):
 		names.append(String(p.name).to_lower())
 	return names
 
@@ -1416,11 +1402,11 @@ func _load_mission() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if screen == "pref" and Settings.pref_page == "Controls" and ctrl_focus and msgbox.is_empty() \
+	if screen == "pref" and Settings.pref_page == "Controls" and ctrl_focus and msgbox == null \
 			and event is InputEventKey and event.pressed and not event.echo:
 		_ctrl_key(event)
 		return
-	if busy or not msgbox.is_empty() or not (event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE):
+	if busy or msgbox != null or not (event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE):
 		return
 	if screen in QUIT_SCREENS:
 		get_tree().quit()
@@ -1430,74 +1416,17 @@ func _unhandled_input(event: InputEvent) -> void:
 
 # --- message box (§3.3) ---------------------------------------------------------------------
 
-const MSGBOX_SIZE := Vector2(320, 140)
-const MSGBOX_BUTTON := Vector2(60, 30)
-
-
-## Shows txt/msgs.trx line `msg` with buttons [[art, action]] ("yes", "no", "ok", ...).
+## Shows txt/msgs.trx line `msg` with buttons [[art, action]] ("yes", "no", "can", "ok"); a button
+## closes the box, then runs its action.
 func _message(msg: int, buttons: Array) -> void:
-	var lines: PackedStringArray = _string("msgs").split("\n")
-	msgbox = {"text": lines[msg].strip_edges() if msg < lines.size() else "", "buttons": buttons, "pressed": -1}
-	top_layer.mouse_filter = Control.MOUSE_FILTER_STOP
-
-
-func _msgbox_origin() -> Vector2:
-	return ((Vector2(W, H) - MSGBOX_SIZE) / 2).floor()
-
-
-## Button rects (menu coordinates), top H - 5/3 bh: 1 centred; 2 at W/2 - bw - bw/4 and W/2 + bw/4;
-## 3 (Yes/No/Cancel) at W/2 - 2 bw, W/2 - bw/2 and W/2 + bw.
-func _msgbox_buttons() -> Array:
-	var o := _msgbox_origin()
-	var bw := MSGBOX_BUTTON.x
-	var y := MSGBOX_SIZE.y - MSGBOX_BUTTON.y * 5.0 / 3.0
-	var cx := MSGBOX_SIZE.x / 2
-	var xs: Array = [[cx - bw / 2], [cx - bw - bw / 4, cx + bw / 4], [cx - 2 * bw, cx - bw / 2, cx + bw]][clampi(msgbox.buttons.size(), 1, 3) - 1]
-	var out := []
-	for i in mini(xs.size(), msgbox.buttons.size()):
-		out.append(Rect2(o + Vector2(xs[i], y), MSGBOX_BUTTON))
-	return out
-
-
-func _draw_msgbox() -> void:
-	if msgbox.is_empty():
-		return
-	var o := _msgbox_origin()
-	var t := _tex("misc/mbgback.png")
-	if t != null:
-		top_layer.draw_texture_rect(t, _rect(Rect2(o, MSGBOX_SIZE)), false)
-	var box := _rect(Rect2(o + Vector2(10, 20), MSGBOX_SIZE - Vector2(20, 70)))
-	var fs := int(round(12 * _scale()))
-	top_layer.draw_multiline_string(font_bold, box.position + Vector2(0, font_bold.get_ascent(fs)), msgbox.text, HORIZONTAL_ALIGNMENT_CENTER, box.size.x, fs, 4, Color.WHITE)
-	var rects := _msgbox_buttons()
-	for i in rects.size():
-		var art := _tex("misc/mbg%s_%d.png" % [msgbox.buttons[i][0], 2 if msgbox.pressed == i else 0])
-		if art != null:
-			top_layer.draw_texture_rect(art, _rect(rects[i]), false)
-
-
-func _msgbox_input(event: InputEvent) -> void:
-	if msgbox.is_empty() or not (event is InputEventMouseButton) or event.button_index != MOUSE_BUTTON_LEFT:
-		return
-	var p := _to_menu(event.position)
-	var rects := _msgbox_buttons()
-	var hit := -1
-	for i in rects.size():
-		if rects[i].has_point(p):
-			hit = i
-	if event.pressed:
-		msgbox.pressed = hit
-		if hit >= 0:
-			_play("buttonin")
-	else:
-		if hit >= 0 and hit == msgbox.pressed:
-			_play("buttonout")
-			var action: Callable = msgbox.buttons[hit][1]
-			msgbox = {}
-			top_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			if action.is_valid():
-				action.call()
-		elif not msgbox.is_empty():
-			msgbox.pressed = -1
-	top_layer.queue_redraw()
-	top_layer.accept_event()
+	var arts: Array = buttons.map(func(b): return b[0])
+	msgbox = preload("res://mission/mission_box.gd").new()
+	add_child(msgbox)
+	msgbox.setup(msg, arts)
+	msgbox.on_click = _play
+	msgbox.chosen.connect(func(art: String):
+		var action: Callable = buttons[arts.find(art)][1]
+		msgbox.queue_free()
+		msgbox = null
+		if action.is_valid():
+			action.call())

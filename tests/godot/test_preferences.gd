@@ -9,6 +9,13 @@ func click(fe: Node, menu_pos: Vector2) -> void:
 	fe._gui_input(mouse_button(fe._to_screen(menu_pos), false))
 
 
+## Clicks message box button `i`.
+func click_box(box: Control, i: int) -> void:
+	var r: Rect2 = box.rects()[i]
+	box._gui_input(mouse_button(r.get_center(), true))
+	box._gui_input(mouse_button(r.get_center(), false))
+
+
 ## Waits for the screen change (title tab, panel slide) to finish.
 func settle(fe: Node) -> void:
 	await frames(2)
@@ -39,18 +46,14 @@ func run() -> void:
 	click(fe, fe.CONTENT.position + Vector2(200, 95))
 	fe._on_button("back")
 	await settle(fe)
-	check(not fe.msgbox.is_empty() and fe.msgbox.text == "Save changes?", "leaving asks Save changes?")
-	check(fe.msgbox.buttons.size() == 3 and fe._msgbox_buttons()[0].position.x == fe._msgbox_origin().x + 40, "Yes / No / Cancel at 40 / 130 / 220")
+	check(fe.msgbox != null and fe.msgbox.text == "Save changes?", "leaving asks Save changes?")
+	check(fe.msgbox.buttons == ["yes", "no", "can"] and fe.msgbox.button_xs() == [40.0, 130.0, 220.0], "Yes / No / Cancel at 40 / 130 / 220")
 	# Cancel stays on the screen.
-	var cancel: Rect2 = fe._msgbox_buttons()[2]
-	fe._msgbox_input(mouse_button(fe._to_screen(cancel.get_center()), true))
-	fe._msgbox_input(mouse_button(fe._to_screen(cancel.get_center()), false))
+	click_box(fe.msgbox, 2)
 	await settle(fe)
-	check(fe.screen == "pref" and fe.msgbox.is_empty() and fe.pref_work.no_blackouts, "Cancel stays with the edits")
+	check(fe.screen == "pref" and fe.msgbox == null and fe.pref_work.no_blackouts, "Cancel stays with the edits")
 	fe._on_button("back")
-	var yes: Rect2 = fe._msgbox_buttons()[0]
-	fe._msgbox_input(mouse_button(fe._to_screen(yes.get_center()), true))
-	fe._msgbox_input(mouse_button(fe._to_screen(yes.get_center()), false))
+	click_box(fe.msgbox, 0)
 	await settle(fe)
 	check(Settings().no_blackouts, "Yes commits NO BLACKOUTS")
 	check(fe.screen == "main", "then goes back to Main")
@@ -59,7 +62,7 @@ func run() -> void:
 	check(Settings().pref_page == "Gameplay", "Preferences reopens the last page")
 	fe._on_button("back")
 	await settle(fe)
-	check(fe.msgbox.is_empty() and fe.screen == "main", "no changes: no question")
+	check(fe.msgbox == null and fe.screen == "main", "no changes: no question")
 	# Physics tab (ours): one check per "Better physics" option, ALL ON / ALL OFF.
 	fe._on_button(fe._key_for_label("Preferences"))
 	await settle(fe)

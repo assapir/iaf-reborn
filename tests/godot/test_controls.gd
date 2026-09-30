@@ -56,10 +56,11 @@ func run() -> void:
 	check(Settings().key_bindings.is_empty(), "only the working copy changed")
 	# A taken key (G = gear): msg 36, Yes takes it from the gear.
 	press(fe, KEY_G)
-	check(not fe.msgbox.is_empty() and fe.msgbox.text.begins_with("This key is already assigned"), "taken key asks msg 36")
-	var yes: Rect2 = fe._msgbox_buttons()[0]
-	fe._msgbox_input(mouse_button(fe._to_screen(yes.get_center()), true))
-	fe._msgbox_input(mouse_button(fe._to_screen(yes.get_center()), false))
+	check(fe.msgbox != null and fe.msgbox.text.begins_with("This key is already assigned"), "taken key asks msg 36")
+	var box = fe.msgbox
+	var yes: Rect2 = box.rects()[0]
+	box._gui_input(mouse_button(yes.get_center(), true))
+	box._gui_input(mouse_button(yes.get_center(), false))
 	check(kt.key_of(19, fe.pref_work.key_bindings) == 0x22 and kt.key_of(20, fe.pref_work.key_bindings) == 0, "Yes: flaps on G, gear unbound")
 	# Shift + key is a different key.
 	press(fe, KEY_K, true)
