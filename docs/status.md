@@ -48,6 +48,7 @@ Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user
   too; user to decide whether to add an Extras keyboard stick option (not added).
 - Real data: real service ceilings per aircraft (the envelope's g ceilings from public ceiling figures), all jets
   incl. AI types (docs/real-aircraft.md).
+- Extras / Graphics: VSync on / off option.
 - Keyboard page: the scrollbar arrows are cropped on the right side.
 - Terrain loads only after Fly, and the flight's loading screen (game/terrain/loading_screen.gd) does not show —
   only the front end's wait screen before the briefing appears; the ground pops in for a few seconds. Fix the
@@ -92,6 +93,14 @@ Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user
 - **Eject details**: the original fly-by camera, callsign in the radio call, parachute landing.
 
 ## Decisions (agreed with the user)
+- Keys: when an original command gets built, the original key wins; our own functions move to Ctrl+F-keys.
+- The other camera views (padlock, back view, fly-by, weapon camera, external list) and the wingman radio commands
+  are ported with the AI work.
+- Screenshots (SysRQ): PNG, timestamped, in the user data folder (original: IafJets000.bmp in the game folder).
+- Multiplayer (incl. the original's TCP/IP lobby mode): after the single-player game is finished.
+- Jump In after the combat core (also useful for testing). Mission Creator much later.
+- Setup ends with one launcher you can click / call (a run script + a .desktop entry with the game's icon from the
+  CD; macOS: an .app later). CI and release packages: not urgent.
 - Every change from the original is listed in `docs/deviations.md`.
 - Game logic from v1.1 only ("logic v1.1"); v1.0 data must still work. A v1.1 fix that makes one of ours redundant → ours
   is deleted (so far only the HUD: the projected FPM is v1.1's own, the conformal ladder became an Extras option).
