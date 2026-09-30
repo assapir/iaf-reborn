@@ -44,6 +44,30 @@ impl Ramp {
     pub fn target(&self) -> f32 {
         self.target
     }
+
+    /// Current rate (signed toward the target).
+    pub fn rate(&self) -> f32 {
+        self.rate
+    }
+
+    /// Re-base at `now` with the same target and rate (the original re-bases its ramps at every
+    /// update so the 3.5 s sample clamp never bites).
+    pub fn rebase(&mut self, now: f64) {
+        let (target, rate) = (self.target, self.rate);
+        self.set(now, target, rate);
+    }
+
+    /// The ramp has reached its target (`τ ≥ t_end`, τ clamped to 3.5 s like the sampler).
+    pub fn finished(&self, t: f64) -> bool {
+        let tau = ((t - self.t0) as f32).clamp(0.0, 3.5);
+        tau >= self.t_end
+    }
+
+    /// Set a new value and target at once, keeping the limits (placement inits).
+    pub fn place(&mut self, now: f64, value: f32, target: f32, rate: f32) {
+        self.reset(now, value);
+        self.set(now, target, rate);
+    }
 }
 
 fn wrap(a: f64) -> f64 {
@@ -77,7 +101,12 @@ impl Angle {
 
     /// (angle, rate) at time `t`.
     pub fn sample(&self, t: f64) -> (f64, f32) {
-        let tau = ((t - self.t0) as f32).clamp(0.0, 1.1);
+        self.sample_tau((t - self.t0) as f32)
+    }
+
+    /// (angle, rate) `tau` seconds after the base (clamped to 1.1 s like the original sampler).
+    pub fn sample_tau(&self, tau: f32) -> (f64, f32) {
+        let tau = tau.clamp(0.0, 1.1);
         if tau <= self.t_end {
             let pos = self.pos0 + (self.rate0 * tau + 0.5 * self.accel * tau * tau) as f64;
             (wrap(pos), self.rate0 + self.accel * tau)
@@ -137,6 +166,11 @@ impl Axis {
     pub fn set(&mut self, now: f64, a: f32) {
         let (p, v) = self.sample(now);
         *self = Self { p0: p, t0: now, v, a };
+    }
+
+    /// Base time.
+    pub fn t0(&self) -> f64 {
+        self.t0
     }
 
     /// Current (constant) acceleration.

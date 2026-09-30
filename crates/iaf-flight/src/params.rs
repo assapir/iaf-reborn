@@ -59,6 +59,31 @@ pub struct Params {
     /// Real nose-wheel steering (real data set only): wheel angle from the rudder pedals, turn rate
     /// from the geometry. None = the original's formula (flight-model.md §7).
     pub nose_wheel: Option<NoseWheel>,
+    /// Aircraft type `veh+0xc54` (set by `FUN_005a5bb0`, docs/part-animation.md): 100 F-16, 110 F-15,
+    /// 120 F-4, 130 Kfir, 140 Lavi, 150 MiG-21, 160 MiG-23, 170 MiG-25, 180 MiG-29, 190 Mirage,
+    /// 210 MiG-17, 220 Tu-22, 225 C-130; 0 = unknown. Types 100/140 never spin (§15.5); type 100
+    /// lowers its flaps to a third (§15.6.4).
+    pub type_code: u32,
+}
+
+/// `veh+0xc54` for a bd.ibx section name (0 if unknown, e.g. SU24).
+pub fn type_code(section: &str) -> u32 {
+    match section.to_ascii_uppercase().as_str() {
+        "F-16" => 100,
+        "F-15" => 110,
+        "F-4" => 120,
+        "KFIR" => 130,
+        "LAVI" => 140,
+        "MIG21" => 150,
+        "MIG23" => 160,
+        "MIG25" => 170,
+        "MIG29" => 180,
+        "MIRAGE" => 190,
+        "MIG17" => 210,
+        "TU22" => 220,
+        "C130" => 225,
+        _ => 0,
+    }
 }
 
 /// Wrap degrees to (-180, 180] then convert to radians (the original's "deg→rad*").
@@ -126,6 +151,7 @@ impl Params {
             envelope_file: s.get("FlightEnvelopeFile").unwrap_or("").to_string(),
             wave_drag: 0.0,
             nose_wheel: None,
+            type_code: 0,
         }
     }
 }

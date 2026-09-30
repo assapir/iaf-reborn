@@ -92,7 +92,7 @@ fn report(set: DataSet) {
     rows.push(Row { item: "neutral stick, 60 s @10k ft", iaf: format!("alt change {dz:+.0} ft, {:.0} kt", s.speed * KT), real: "holds altitude (1 g hold)", verdict: if dz.abs() < 300.0 { "ok" } else { "OFF" } });
     // Same with the "better physics" 1 g hold (flight path instead of nose pitch).
     let mut better = f16(10000.0, 400.0).unwrap();
-    better.better_physics = true;
+    better.set_better_physics(true);
     let b0 = better.state();
     let b = fly(&mut better, mil, 60.0);
     let dzb = (b.position[2] - b0.position[2]) as f32 * FT;
@@ -101,7 +101,7 @@ fn report(set: DataSet) {
     // Maximum level speed (full AB, neutral stick holds the flight path): peak while fuel lasts.
     for (alt, lo, hi, real) in [(0.0, 780.0, 800.0, "~795 kt (Mach 1.2)"), (40000.0, 1100.0, 1180.0, "~1,150 kt (Mach 2.0)")] {
         let mut ac = f16(alt, 500.0).unwrap();
-        ac.better_physics = true; // level flight needs the flight-path hold
+        ac.set_better_physics(true); // level flight needs the flight-path hold
         ac.set_controls(ab);
         let mut best = ac.state();
         for _ in 0..(600 * 60) {

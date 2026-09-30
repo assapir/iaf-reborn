@@ -8,7 +8,7 @@ pub mod data_set;
 pub mod envelope;
 pub mod params;
 
-pub use aircraft::{Aircraft, Controls, State};
+pub use aircraft::{Aircraft, Controls, Crash, Start, State};
 pub use data_set::DataSet;
 pub use envelope::Envelope;
 pub use params::Params;
@@ -27,7 +27,8 @@ pub fn load(install: &Path, section: &str) -> Result<(Params, Envelope), String>
     let md = install.join("resource/md");
     let ini = iaf_formats::ini::Ini::parse(&std::fs::read(md.join("bd.ibx")).map_err(|e| format!("bd.ibx: {e}"))?);
     let s = ini.section(section).ok_or_else(|| format!("no [{section}] in bd.ibx"))?;
-    let params = Params::from_section(s);
+    let mut params = Params::from_section(s);
+    params.type_code = params::type_code(section);
     let env_path = md.join(params.envelope_file.to_lowercase());
     let envelope = Envelope::parse(&std::fs::read(&env_path).map_err(|e| format!("{}: {e}", env_path.display()))?);
     Ok((params, envelope))
