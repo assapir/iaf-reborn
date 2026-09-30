@@ -52,6 +52,9 @@ Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user
 - Aircraft shadow is very pixelated (shadow map resolution / cascade split / filtering), and the afterburner
   flame casts a shadow even when the afterburner is off (the flame mesh must not cast shadows, and hidden flames
   must not render). Also wire the Graphics "SHADOWS" pref.
+- (not urgent) Weapons / stores, gear legs and other small parts look faceted (sharp, not rounded): smoothed
+  normals for the stores / object models and the separate part meshes (`iaf-convert --smooth`, per-part smoothing
+  groups / angle threshold).
 - Keyboard page: the scrollbar arrows are cropped on the right side.
 - Terrain loads only after Fly, and the flight's loading screen (game/terrain/loading_screen.gd) does not show —
   only the front end's wait screen before the briefing appears; the ground pops in for a few seconds. Fix the
