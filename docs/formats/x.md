@@ -9,7 +9,7 @@ Per aircraft folder (`resource/3dobjects/controllableplanes/<plane>/`):
 |------|----------|
 | `<p>_h.xfr` | "frame file": materials + frame hierarchy with per-part meshes (high detail). Used for animation. |
 | `<p>_h.x`, `_m.x`, `_l.x` | single merged mesh, high / medium / low LOD, inline materials |
-| `<p>_bc.x` | alternative mesh with `bc<p>.bmp` texture (likely damaged/burnt) |
+| `<p>_bc.x` | the jet's exterior as seen from its own cockpit (`bc<p>.bmp` = seat back; bdb Objects `0x546`, shown in the cockpit views) — not a damaged model (docs/damage.md §2.2) |
 | `*.bmp` | 8-bit paletted textures; palette colour **(0,255,255) cyan = transparent** |
 | `*.tga` | 32-bit RGBA textures (cockpit glass) |
 | `<p>_h.rtf` | reference card (dimensions, weights, performance) |

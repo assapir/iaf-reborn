@@ -145,7 +145,7 @@ GDI: "%dQnt" (1,94), "int%d" right-aligned (131,94), gun rounds "%03d" (68,85), 
 station (+0x4f0) boxed 15x8 (gun: 36x10 at (48,82)). Buttons: station select (0xd,0xc,0xb,1,3,5,0x10,0x11,0x12 →
 stations 0..8, event 0x4c), 0xe/0xf quantity ±1 (0x4a), 0x13/0x14 interval ±10 (0x4b).
 
-**Damage (4)** — "NAME GO"/"NAME NOGO" rows; left x=12: ENG (y10), [ENG R y19 twin only], FUEL 43, AILN 52, FLTC 61,
+**Damage (4)** — "NAME GO"/"NAME NOGO" rows (flags → rows: docs/damage.md §5.2); left x=12: ENG (y10), [ENG R y19 twin only], FUEL 43, AILN 52, FLTC 61,
 FLAP 70, GEAR 79, HUD 88, BRAK 97; right x=72: AB 10, [AB R 19], INS 34, RDR 43, RWR 52, WPNS 61, GUN 70, ECM 79,
 A/P 88, ELCT 97, GNRT 106. Redrawn when state+0x550.. flags change.
 

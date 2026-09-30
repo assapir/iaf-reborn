@@ -288,13 +288,13 @@ execute that entry and schedule its end timer.
 | 1 | Launch at location | `0x5c0d30` | fire weapon at point (floats 0x852/0x85c…) — UNCERTAIN args |
 | 2 | Launch at target | `0x5c0ec0` | `FUN_004aa5b0(target key from 0x8ac entity id, …)` |
 | 3, 4, 15, 18, 19, 23, 26 | (15 = **Wait**, 19 = "Destroy entity") | `0x5c0ee0` | **no-op** (only the duration). Op 19 is a no-op in this build |
-| 5 | **Explode** | `0x5c0ef0` | `FUN_004a8280(0,5,…)`: set damage level 5, entity destroyed. Skipped for the player when `FUN_004d7040()` is true (UNCERTAIN) |
+| 5 | **Explode** | `0x5c0ef0` | `FUN_004a8280(0,5,…)`: set damage level 5, entity destroyed (docs/damage.md §3). Skipped for the player when `FUN_004d7040()` is true (UNCERTAIN) |
 | 6 | — | `0x5c0f20` | fire scenario event (arg) |
 | 7 | **Play message** | `0x5c0f40` | `PlayMessage(0x8ac)` (§3.3); 0 = none |
 | 8 | — | `0x5c0f60` | subtitle console `FUN_004491c0(string 0x848)` |
 | 9 | — | `0x5c0f80` | `FUN_0044ca90(arg)` — UNCERTAIN |
 | 10 | — | `0x5c0fa0` | killScenario |
-| 11 / 12 | Shield on / off | `0x5c0fb0` / `0x5c0fd0` | entity+0x10 → +8 = 1 / 0 (invulnerable) |
+| 11 / 12 | Shield on / off | `0x5c0fb0` / `0x5c0fd0` | entity+0x10 → +8 = 1 / 0 (no damage, no collisions; docs/damage.md §2.1) |
 | 13 / 14 | **Visible on / off** | `0x5c0ff0` / `0x5c1000` | `FUN_00463300` / `FUN_004632b0` (show / hide model) |
 | 16 / 17 | — | `0x5c1010` / `0x5c1030` | sensor flag on / off (scenario+0xdc) |
 | 20 | — | `0x5c1050` | `FUN_004baaec(arg)` + `FUN_004a8600(1)` (back to brain control) — UNCERTAIN |
@@ -506,8 +506,11 @@ mission the flight ends after 5 s. The radio plays `gejected.wav` at +4.5 s (the
 ## 6. Implementation checklist
 1. Spawn entities. For `0x320&1` entities, start both script lists at list index 1 and arm the radius check
    (4 s period, 3-D).
-2. Hook entity hit, destroy and death: fire slot 0 or 1 (if the sensor flag is on), then kill the scenario, then
-   run the §5.1 rules.
+2. Hook entity hit, destroy and death (docs/damage.md §3: hit = state 1 → 3 at damage ≥ 0.8, destroy = state
+   4 / 5): fire slot 0 or 1 (if the sensor flag is on), then kill the scenario, then run the §5.1 rules.
+   **Port:** `mission_runtime.gd` `area_damage` / `apply_damage` / `set_damage_level` (docs/damage.md §4.3); the
+   player's crash, collisions and Explode go through `set_damage_level(…, 5)`; rule 1 ("all players dead" →
+   0x82 after 5 s) and rule 2 run once per unit (an ejection, then the jet's crash, counts once).
 3. Firing an event: executions-left, PlayMessage (wav + subtitle console), debrief append, script jumps.
 4. Script entries run on enter and hold for `0x87a` seconds. The opcode tables are in §4.
 5. End: 0x80/0x81 box after 10 s, 0x82 auto-end after 5 s. The debrief headline is 0x47e or 0x492, plus the notes.

@@ -39,16 +39,19 @@ listed below.
 1. **Front end** (all decoded in docs/front-end.md, not built): the in-game effect of the stored prefs other than
    No blackouts, Login / Pilot Records and mission unlocking (§13), Reference (§14), Arming (§15), QUIT confirmation (msg 7), TSD 3D-model and target
    windows (§10–§11), TSD selected-unit label (§8.1). Out of scope for now: Multiplayer, Mission Creator, Jump In.
-2. **Only the F-16 is flyable**: other jets are shown disabled; campaign missions start in the F-16 whatever the mission says.
+2. **Only the F-16 is flyable**: other jets are shown disabled; campaign missions start in the F-16 whatever the mission says
+   (the player is the default / TSD-picked flight's leader, docs/mission-runtime.md §1.1; another jet type is logged).
 3. **MFDs**: radar contacts / lock / STT, radar MAP (isr.bmp) and GMT content, RWR threats, HARM / TV / FLIR content,
    full-screen weapon MFD, NAV distances / ETA, stores stations. Initial radar mode / range not traced (LRS, 20 NM used).
-4. **Panel lights**: master caution, fire, AI / SAM, ECM and autopilot lights have no systems driving them yet
-   (no damage / RWR / ECM / autopilot); night dimming, the `[TEXTMESSAGE]` line and chaff / flare counters are not drawn.
+4. **Panel lights**: AI / SAM, ECM and autopilot lights have no systems driving them yet (master caution, fire and
+   gear lamps follow the systems damage, docs/damage.md §5); night dimming, the `[TEXTMESSAGE]` line and chaff / flare counters are not drawn.
 5. **Terrain**: level-3 regions outside the airbases, insets outside the level-4 Israel rectangle, far theatre levels.
-6. **Mission objects**: level-of-detail models, damage states, moving units / AI, weapons.
+6. **Mission objects**: level-of-detail models, moving units / AI, weapons. **Damage** (docs/damage.md §8): the flight
+   model ignores systems damage; radio kill calls, score, brain reactions not ported; decisions pending: heading-0
+   fall, Rookie / Normal enemy damage factor, smoke puffs per frame.
 7. **Flight model** (ported through §15; remaining): terrain types (water / rough ground / runway surface; our
-   terrain has no type data), map-edge "Tornado" push-back, damage-forced spins, hook drag, crash explosion and
-   touchdown / crash sounds; the start velocity source of airborne starts is not traced (180 m/s used).
+   terrain has no type data), map-edge "Tornado" push-back, damage-forced spins, hook drag, touchdown / crash
+   sounds (the crash explosion is docs/damage.md §6); the start velocity source of airborne starts is not traced (180 m/s used).
 8. **Loading**: terrain chunks / detail tiles still stream in after the cockpit appears; load them behind the
    loading screen and enter the cockpit when done.
 9. **In-flight sounds / pause** (docs/sound.md): the player's sounds are ported from SoundProp.trx (engine, gear, flaps, air brake,
@@ -59,8 +62,8 @@ listed below.
 10. **Keys**: of the 117 original commands only those in docs/controls.md §3 marked as built work (views other than
    cockpit / chase, autopilot, weapons, time compression, pause, TSD toggle… are not built); no joystick input yet.
 11. **Eject** (not ported): the fly-by camera placement (our external view instead), the in-flight TSD after a low
-   ejection / the parachuter landing (we end the flight), the "<callsign> ejected" callsign wav, the parachuter swing,
-   the "eject" warning sound on a fatal hit (no damage model).
+   ejection / the parachuter landing (we end the flight), the "<callsign> ejected" callsign wav, the parachuter swing
+   (the "Eject! Eject!" call on a fatal hit is played, docs/damage.md §3.2).
 
 ## Done since checkpoint 2
 - **Original key table** (`iaf-convert keys` → keys.json; docs/controls.md: all 117 commands, record ↔ keys.trx line
@@ -88,8 +91,9 @@ Playable today: **2 / 68** (311, 312). Almost every mission needs the combat cor
 completes a mission on its own.
 1. ~~Front end, TSD, MFDs, airbase, mission runtime, lights, flight physics + Better physics, aircraft model (all
    planes), Preferences, key table / Controls, eject~~. Running: in-flight sounds (+ pause menu spec).
-2. **Player = default-flight leader** (S): the runtime only knows `player1`; campaign missions and 324 fail today.
-3. **Combat core** (unlocks 11 with the F-15, 9 F-16-only): damage & destruction (M) → AI brain flight (L: route,
+2. ~~**Player = default-flight leader**~~ (docs/mission-runtime.md §1.1; test_player_flight).
+3. **Combat core** (unlocks 11 with the F-15, 9 F-16-only): ~~damage & destruction~~ (docs/damage.md: blast formula,
+   states, destruction motion, explosions / smoke, the player's systems, collisions; test_damage) → AI brain flight (L: route,
    formation, take-off / landing from the bdb brains) → player weapons: gun + IR missiles (M), external stores on
    the model → AI air-to-ground / air-to-air (M / L) → AAA and radar SAMs with the RWR (M each) → script ops 2 / 21 / 22.
    Closest missions: 313 Pathfinder (damage + AAA), 315 Cold Steel (AI wingman + damage + bombs), 323 Hair Pin.
