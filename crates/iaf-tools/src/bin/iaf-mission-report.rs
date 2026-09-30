@@ -23,8 +23,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 /// Trigger-list (scripts1) opcodes the mission runtime implements (docs/mission-runtime.md §4);
-/// 3, 4, 15, 18, 19, 23, 26 are no-ops in the original too.
-const SUPPORTED_TRIGGER: &[i64] = &[3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 23, 26];
+/// 3, 4, 15, 18, 19, 23, 26 are no-ops in the original too; 21 / 22 enable / disable combat (docs/ai.md §6).
+const SUPPORTED_TRIGGER: &[i64] = &[3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 26];
 /// Motion-list (scripts0) opcodes implemented: 1 Hover, 16 Path.
 const SUPPORTED_MOTION: &[i64] = &[1, 16];
 /// Player aircraft type codes (bdb Objects 0x5b4) that can be flown by the engine.
@@ -85,7 +85,7 @@ const W_ARM: &str = "weapon: anti-radiation (AGM-88, Shrike)";
 
 /// Features built today (docs/status.md): the player flight choice, the damage model, the gun and the IR
 /// missiles (docs/weapons.md).
-const SUPPORTED_FEATURES: &[&str] = &[F_PLAYER_FLIGHT, F_DAMAGE, W_GUN, W_IR];
+const SUPPORTED_FEATURES: &[&str] = &[F_PLAYER_FLIGHT, F_DAMAGE, W_GUN, W_IR, F_AI_FLIGHT];
 
 /// Rough implementation size (S ≈ days, M ≈ a week, L ≈ weeks) — an estimate for planning only.
 fn size(f: &str) -> &'static str {
@@ -428,7 +428,7 @@ fn analyse(dir: &Path, id: i64, names: &[String], bdbs: &mut BTreeMap<String, Bd
             units.push(Unit { side, kind, class, brain_ctl, fights, b_aa, b_ag, b_sc, weapons });
         }
     }
-    for op in combat_ops {
+    for op in combat_ops.into_iter().filter(|op| !SUPPORTED_TRIGGER.contains(op)) {
         let n = TRIGGER_NAMES.iter().find(|(k, _)| *k == op).map_or("?", |(_, n)| n);
         clauses.push(one(&format!("script: trigger op {op} {n}")));
     }
@@ -765,7 +765,7 @@ const NOTES: &str = r#"
 * **Damage & destruction** is needed as soon as anything shoots or a target must be killed.
 * **Start**: airborne when the player's altitude is above 800 m (docs/flight-model.md, start rules); both
   starts are supported. **Night**: start hour ≥ 20 or ≤ 5, the cockpit night rule (docs/cockpit.md).
-* **Scripts**: trigger ops the runtime implements: 3–8, 10–19, 23, 26; motion: 1 Hover, 16 Path. Event
+* **Scripts**: trigger ops the runtime implements: 3–8, 10–19, 21, 22, 23, 26; motion: 1 Hover, 16 Path. Event
   conditions never take effect in the shipped missions (docs/mission-runtime.md §3.1).
 * **Multiplayer**: 511–516 and 666 / 777 are multiplayer ids (the 0x1ff–0x207 range, 0x29a; 777 has sixteen
   `PlayerN` slots). They are analysed like the others plus a "multiplayer session" feature.
