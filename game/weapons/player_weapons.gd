@@ -72,7 +72,7 @@ func setup(host_node: Node, entity: Dictionary, object: Dictionary, bdb: Diction
 	stores.player = true
 	stores.weight_fix = bool(Settings.better.get("fix_stores_weight", false))
 	stores.unlimited = Settings.unlimited_ammo
-	stores.setup(Stores.loadout(entity, object), db, desc, _pilon_of, jet_type)
+	stores.setup(_arm(Stores.loadout(entity, object), entity), db, desc, _pilon_of, jet_type)
 	easy_aiming = Settings.easy_aiming
 	gun = GunRounds.new()
 	var gm: Dictionary = db.motion_for(Stores.GUN, 0).duplicate()
@@ -89,6 +89,19 @@ func setup(host_node: Node, entity: Dictionary, object: Dictionary, bdb: Diction
 	if host.flight != null:
 		host.flight.set_fuel_capacity(stores.tank_fuel)
 	_build_visuals()
+
+
+## The Arming screen's pylon loads of the player's flight replace pylons 0..8 (FUN_004f00f0 ->
+## FUN_004f0140 writes them to the flight's aircraft; docs/front-end.md §15). Only for the mission's
+## own jet (`entity` set): a jet flown in place of another keeps its type's load.
+func _arm(load: Array, entity: Dictionary) -> Array:
+	var n = host.get("player_flight_number") if host != null else null
+	if entity.is_empty() or n == null or not Settings.arm_loadouts.has(int(n)):
+		return load
+	var arm: Array = Settings.arm_loadouts[int(n)]
+	for i in mini(9, arm.size()):
+		load[i] = [int(arm[i][0]), int(arm[i][1])]
+	return load
 
 
 ## The flight model carries the stores (S+0x424, S+0x42c, S+0x428).

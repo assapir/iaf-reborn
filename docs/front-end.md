@@ -1732,6 +1732,49 @@ dragging, the arrow otherwise (`SETCURSOR 506720`).
 * **MAIN** uses the default vfunc `+0xd8` (returns 1), so it shows msg 8 as documented in §3.2. An
   unsaved loadout is neither applied nor reverted.
 
+**Rules (confirmed in the exe).**
+* The original **blocks** an overweight load: `FUN_00507480` returns 0 when MAX T.O.W. (`+0x68`) < current
+  (`+0x6c`), and every way out (Fly, TacticalDisplay, BACK, a flight button) is cancelled. So there is no
+  "enforce max take-off weight" option to add. The wing balance check (5 % of the current load, stations 1–4
+  against 6–9, the centreline not counted) blocks the same way.
+* Station compatibility = the allowed counts: a weapon drops only on a station with `max[i] ≠ 0`, always with
+  `max[i]` stores. There is no symmetry rule other than the balance check.
+* The loads go on the aircraft (`FUN_004f0140`) of **both** members of the flight (`FUN_004f0330` leader,
+  `FUN_004f0380` = `FUN_005bcb90`, the second member): `FUN_004541d0` sets the station, `FUN_00459410` redoes the
+  weight / drag. Yes applies the saved tables to every existing flight (`FUN_004eff50`), DEFAULT the defaults to
+  slots 0..10. AI flights are edited only by picking their button (Alpha..Delta, enabled like the TSD's).
+* Any flight's leader type with jet art can be armed (the nine types); only the flyable-type rule of the buttons
+  limits it.
+* **Sounds:** none in the Arming handlers (paint, drag, drop, right-click, list, `5061c0`–`507c30`,
+  `518ca0`–`519e10`). The panel buttons and DEFAULT (bottom-bar button class) click like every button
+  (ButtonIn / ButtonOut); the message boxes as §3.3; no music (§9).
+* **Messages:** 0x32 "WARNING! Overweight.", 0x33 "WARNING! Plane not balanced - left wing heavy.", 0x34 "… right
+  wing heavy." (OK box), 0x23 "Use weapon load?" (Yes / No / Cancel).
+* Quirk: picking up a station's weapon looks for its list row from row 1 (`506810`), so with the tab unchanged a
+  weapon in row 0 does not become the selection.
+
+**Implementation** (`game/menu/arming.gd`, `game/weapons/mission_weapons.gd`, `game/menu/front_end.gd`):
+* `mission_weapons.gd` = `CMissionWeapons`: the list (bdb order, tabs), `reset(n)` = `FUN_004ef8a0` from the
+  leader object's `loads` (`CDMEWeaponLoadItem` `raw` = 9 int32 station flags), the three tables for flights
+  1..6 (defaults = `Stores.loadout()` of the leader matched by name, `FUN_004efd50`), `check()` =
+  `FUN_00507480`, `put()` = `FUN_00507aa0`, the jet `.trx`. Created on the first visit to Arming after a mission
+  loads, dropped when one loads (`_reset_tsd_checks`). Weights are the ones the flight uses (Weapon data: Real
+  shows the real ones).
+* `arming.gd` draws the content (jet art, name, the two numbers, highlight frames, loaded stations), the weapon
+  list with its scrollbar and the drag image, and handles the mouse (list icon drag, station pick-up / drop,
+  right-click, DEFAULT, cursors `move.cur` / `grab.cur` read from the install). The front end forwards the panel
+  buttons (`_arm_button`), BACK (`arm.leave(3)`) and the flight buttons (checks first).
+* The TSD node stays loaded (hidden) while Arming is shown, so a flight picked on either screen is the other's
+  (`DAT_0083b8a4`) and Fly from Arming flies that flight's leader with the TSD's route.
+* Yes / DEFAULT write `Settings.arm_loadouts` {flight: 9 × [id, count]} (= the aircraft's loads); at the flight,
+  `player_weapons.gd` replaces pylons 0..8 of the player's loadout with its flight's entry, so the stores, their
+  models, counts and weight / drag follow (gun, chaff, flares unchanged). Cleared when a mission loads.
+* Not ported: the multiplayer paths (AG / Misc disabled in 0x29a / 0x213, the session wait, the `FUN_004f0000`
+  messages). Ours: Esc on Arming acts as BACK (the original's Esc here is not traced); the scrollbar's track
+  click pages by 6 rows (UNCERTAIN, as the Controls page); AI aircraft carry no stores yet, so only the player's
+  jet gets the load (the table is kept for every flight); a jet flown in place of a non-flyable type keeps its
+  type's load. Text is clipped to its box by whole characters.
+
 ## 16. In-flight pause and On-The-Fly menu (flight window `CFlightWnd::OnGameEvent` 0x4dc280)
 
 Traced from the disassembly (unless marked UNCERTAIN). **Not built yet**: the keys belong to the

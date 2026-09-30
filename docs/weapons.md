@@ -5,7 +5,7 @@ How Jane's IAF v1.1 arms the player's jet and how iaf-reborn ports it (`game/wea
 seconds. `ctl` = the player controller (`this` of the GEV handler `FUN_0044a240`), `W` = its weapon system
 `ctl+0xf0`, `C` = the station container `ctl+0xfc` (= `W+0xc`), `S` = the flight-model state.
 
-Built: the stores (loadout, pylons, selection, release, weight / drag, fuel tanks and their jettison), the master /
+Built: the stores (loadout incl. the Arming screen's, pylons, selection, release, weight / drag, fuel tanks and their jettison), the master /
 HUD modes, the gun (trigger, rounds, hits, muzzle flash, sounds, LCOS / strafe pippers), the IR seeker and the IR
 missiles (types 570 / 580), the weapon HUD text and symbols, the stores MFD page. Not built yet: bombs (CCIP / CCRP,
 ripple quantity / interval, the bombs jettison), rockets, radar missiles and the radar lock (so the seeker is never
@@ -48,7 +48,10 @@ Gun record: `_limitVel` 1200, `_limitDist` 4500 (only the AG lead reads it), `_v
 ### 2.1 Loadout (`FUN_0058f110`, stations `FUN_004b7ea3` → `FUN_0053b580` → `FUN_0053c1f0`)
 12 slots {weapon id, count}: 0..8 the pylons StationA..I, 9 the gun (StationGun), 10 chaff, 11 flares. Pylons from the
 mission entity's `CArmament` when any of its 0..8 ids is set, else from the object type's; 9..11 always from the type.
-The Arming screen would override the pylons (not built). Count 0 or an unknown id = no station.
+The Arming screen (docs/front-end.md §15) replaces pylons 0..8 of both aircraft of a flight with its table
+(`FUN_004f00f0` → `FUN_004f0140` → `FUN_004541d0`, then `FUN_00459410` redoes the weight / drag): ours puts
+`Settings.arm_loadouts[flight]` on the player's pylons before the stores are built (`player_weapons.gd _arm`),
+so the models, counts and §2.5 weight / drag follow; the gun, chaff and flares are not Arming stations. Count 0 or an unknown id = no station.
 Displayed count (`FUN_0053cfd0`): the gun's count ×4 when its name contains "20 MM" (`W+0xc4`), else ×2 (DEFA); F-16
 235 → 940, 5 shots/s → empty after 47 s. Gun counts per jet: F-16 / F-15 / Lavi 235, F-4 160, Mirage DEFA 125, Kfir
 DEFA 150, MiG-29 140, MiG-21 550, MiG-23 DEFA 175.
@@ -229,7 +232,8 @@ with the bombs).
 
 ## 7. Weapon data: Real (Extras)
 Preferences > Extras > Weapon data = Real overlays public numbers (docs/real-weapons.md): missile weights, top speed
-(β) and range (burn), gun rounds per jet, rate of fire and muzzle velocity. Original by default.
+(β) and range (burn), gun rounds per jet, rate of fire and muzzle velocity. Original by default. The Arming screen's
+CURRENT LOAD and weights use the same numbers as the flight (so Real shows the real weights).
 
 ## 8. Corrections to earlier docs
 - damage.md §4.4 named `FUN_004604c0` as the LCOS solver: it is a seeker for weapon 0x27b. The gun pippers are

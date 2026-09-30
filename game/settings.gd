@@ -103,6 +103,10 @@ var route_override: Array = []
 ## Flight picked on the TSD (1..4 = Alpha..Delta; Fly / double-click makes its leader the player);
 ## 0 = the mission's default flight (mission_runtime.gd player_flight()).
 var player_flight := 0
+## Pylon loads the Arming screen put on the aircraft of each flight (docs/front-end.md §15):
+## {flight 1..6: [[weapon id, count] × 9]}; a flight not listed keeps the mission's own. Cleared when
+## a mission loads.
+var arm_loadouts := {}
 ## Result of the last flight for the debrief screen: {passed, headline, notes}; empty = none.
 var debrief := {}
 

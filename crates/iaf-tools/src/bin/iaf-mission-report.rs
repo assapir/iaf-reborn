@@ -72,7 +72,7 @@ const F_AAA: &str = "ground: AAA guns";
 const F_GROUND_FIRE: &str = "ground: armed vehicles / boats fire (rockets)";
 const F_DAMAGE: &str = "damage & destruction (hits, kills, explosions)";
 const F_NIGHT: &str = "night (lighting, cockpit dimming)";
-const F_ARMING: &str = "Arming screen (default loadout cannot kill the targets)";
+const F_NO_WEAPON: &str = "no weapon the jet can load kills the targets";
 const F_MP: &str = "multiplayer session";
 const W_GUN: &str = "weapon: gun";
 const W_IR: &str = "weapon: IR AAM (AIM-9, Python, Shafrir)";
@@ -322,6 +322,23 @@ fn analyse(dir: &Path, id: i64, names: &[String], bdbs: &mut BTreeMap<String, Bd
     let ag_w = |emitter: bool| -> Clause {
         [W_BOMB, W_ROCKET, W_LGB, W_TV].iter().chain(if emitter { &[W_ARM][..] } else { &[][..] }).filter(|f| player_w.contains(*f)).map(|f| f.to_string()).collect()
     };
+    // The Arming screen (built, docs/front-end.md §15): the weapons the leader's bdb object may load
+    // (its CDMEWeaponLoadItems with a count and a station flag), SAM types excluded.
+    let mut arm_w: BTreeSet<&'static str> = BTreeSet::new();
+    if let Some(p) = player_ent {
+        for it in obj(p)["loads"]["items"].as_array().into_iter().flatten() {
+            let flags = it["raw"].as_str().unwrap_or("");
+            if i(it, "0x906") > 0 && flags.chars().any(|c| c != '0') {
+                if let Some(f) = bdb.weapon_type.get(&i(it, "0x910")).and_then(|t| weapon_feature(*t)) {
+                    arm_w.insert(f);
+                }
+            }
+        }
+    }
+    let arm_aa: Clause = [W_IR, W_RADAR].iter().filter(|f| arm_w.contains(*f)).map(|f| f.to_string()).collect();
+    let arm_ag = |emitter: bool| -> Clause {
+        [W_BOMB, W_ROCKET, W_LGB, W_TV].iter().chain(if emitter { &[W_ARM][..] } else { &[][..] }).filter(|f| arm_w.contains(*f)).map(|f| f.to_string()).collect()
+    };
 
     // ---- every entity of every file ----
     struct Unit {
@@ -469,13 +486,14 @@ fn analyse(dir: &Path, id: i64, names: &[String], bdbs: &mut BTreeMap<String, Bd
             }
         }
     }
-    // What kills the role-1 targets: the player's default loadout, else the Arming screen (or the
-    // friendly AI flights, when they carry the right weapons).
+    // What kills the role-1 targets: the player's default loadout or a load from the Arming screen
+    // (else the friendly AI flights, when they carry the right weapons).
     let mut kill_clauses: Vec<Clause> = Vec::new();
     for (air, emitter) in kills {
         let mut c: Clause = if air { aa_w.clone() } else { ag_w(emitter) };
+        c.extend(if air { arm_aa.clone() } else { arm_ag(emitter) });
         if c.is_empty() {
-            c.insert(F_ARMING.to_string());
+            c.insert(F_NO_WEAPON.to_string());
             if air && friendly_aa {
                 c.insert(F_AI_AA.to_string());
             }
@@ -729,8 +747,9 @@ const NOTES: &str = r#"
   AAM, 500/510 bombs, 560 rockets, 650 laser-guided, 635/640 TV / IR guided, 590 anti-radiation (counted only
   against radars, classes 8 and 11); 540/550/660 (chaff, flares, tanks, pods) are not weapons. Air targets need
   one of the AAM / gun features the loadout has; ground targets one of its air-to-ground features (the gun is
-  not counted against ground targets). If the loadout has none, the Arming screen is needed, or friendly AI
-  flights carrying the right weapons (the or-choice in the table).
+  not counted against ground targets). The Arming screen adds the weapons the leader's bdb object may load
+  (its `CDMEWeaponLoadItem`s, docs/front-end.md §15) as further choices. If none of them fits, friendly AI
+  flights carrying the right weapons are the only way (the or-choice in the table).
 * **AI aircraft** (classes 28 controlled aircraft, 3 aircraft, 2 helicopters). `0x320` bit 0 = 0 is
   brain-controlled: it needs the AI brain flight. A unit *fights* when it carries a weapon, its brain (`0x2da`,
   else the type's default brain `0x532` by name) has an attack action (bdb Actions: launch weapon, dog chase,
@@ -763,8 +782,8 @@ const NOTES: &str = r#"
 * **What really needs combat**: a unit whose combat is enabled but that never gets within range still counts.
   Side 0 / 3 units are treated as neutral (they fight nobody).
 * **Base missions** (bmis*) are included like the main file: their SAMs / AAA count even far from the route.
-* **Jet choice**: a player who picks another flight on the TSD, or changes the loadout on the Arming screen,
-  can make more missions playable; not counted.
+* **Jet choice**: a player who picks another flight on the TSD can make more missions playable; not counted
+  (the Arming screen's loads of the default flight are).
 * **Weather** (`0x46a` / `0x474`, probably wind) and the time-of-day option (+0x584, which overrides `0x460`) are
   not decoded; nothing about refuelling, carriers or a landing end condition exists in the data (there is no
   landing / time / waypoint end rule, docs/mission-runtime.md §5.1).

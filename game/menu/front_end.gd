@@ -196,6 +196,10 @@ var tsd: Control
 var tsd_return := "jet"
 var tsd_checks := {}
 var briefings := {}
+## Arming (screen 0x1f): its content node (game/menu/arming.gd) and the mission's loadout tables
+## (game/weapons/mission_weapons.gd, the original's CMissionWeapons), kept while the mission is loaded.
+var arm: Control
+var mission_weapons: RefCounted
 ## The open message box (§3.3, game/mission/mission_box.gd), or null.
 var msgbox: Control
 
@@ -393,14 +397,47 @@ func _enter_screen() -> void:
 		# Briefing only when its file exists.
 		tsd_checks["briefing"] = tsd_checks.get("briefing", false) and tsd.has_briefing()
 		tsd.open_briefing(tsd_checks.briefing)
-	elif screen != "tsd" and tsd != null:
+	elif not screen in ["tsd", "arm"] and tsd != null:
 		tsd.queue_free()
 		tsd = null
+	_enter_arm()
+
+
+## The Arming screen (§15) is drawn over the TSD, which stays loaded (hidden) for its flights; the
+## loadout tables live while the mission is loaded (created on first use).
+func _enter_arm() -> void:
+	if tsd != null:
+		tsd.visible = screen == "tsd"
+	if screen != "arm":
+		if arm != null:
+			arm.queue_free()
+			arm = null
+		return
+	if tsd == null:
+		tsd = Tsd.new()
+		add_child(tsd)
+		tsd.setup(self, Settings.mission_id)
+		tsd.visible = false
+	if mission_weapons == null:
+		mission_weapons = preload("res://weapons/mission_weapons.gd").create(Settings.mission_id, Settings.real_weapons())
+	var n := _flight_number(_selected_flight())
+	if n <= 0:
+		n = tsd.default_flight()
+	for f in Tsd.FLIGHT_NAMES:
+		tsd_checks[f] = f == Tsd.FLIGHT_NAMES[n - 1] if n >= 1 and n <= 4 else false
+	_restore_tsd_checks()
+	if arm == null:
+		arm = preload("res://menu/arming.gd").new()
+		add_child(arm)
+	arm.setup(self, mission_weapons, n)
 
 
 ## TSD defaults on mission load (FUN_004f15a0): every unit filter, Text, Waypoint, Grid and
-## Briefing on; the flight holding the player is selected when the TSD opens.
+## Briefing on; the flight holding the player is selected when the TSD opens. The Arming tables
+## start again from the mission's loads (FUN_004efef0).
 func _reset_tsd_checks() -> void:
+	mission_weapons = null
+	Settings.arm_loadouts = {}
 	tsd_checks = {"waypoint": true, "text": true, "grid": true, "briefing": true, "player_flight": true}
 	for kind in ["aircrafts", "vehicles", "ships", "samsites", "aaasites", "structures", "airports"]:
 		for side in [1, 2]:
@@ -436,6 +473,9 @@ func _button_enabled(label: String) -> bool:
 				return _selected_flight() != "" and tsd.flights.has(_flight_number(_selected_flight()))
 		if _norm(label) in Tsd.FLIGHT_NAMES:
 			return tsd.flight_enabled(_flight_number(_norm(label)))
+	# Arming's flight buttons: the TSD's rule (FUN_00507df0 = FUN_00505820 in single player).
+	if screen == "arm" and _norm(label) in Tsd.FLIGHT_NAMES:
+		return tsd != null and tsd.flight_enabled(_flight_number(_norm(label)))
 	return true
 
 
@@ -1207,7 +1247,9 @@ func _on_button(key: String) -> void:
 	if key == "back":
 		if screen == "tsd":
 			_message(8, [["yes", _go.bind(tsd_return)], ["no", Callable()]])
-		elif screen != "arm":  # BACK has no case on Arm (FUN_004ed1b0)
+		elif screen == "arm":  # the content's vfunc +0xd4 (FUN_005073e0): checks, then TSD
+			arm.leave(3)
+		else:
 			_leave(_back_target())
 		return
 	if key == "main":
@@ -1231,8 +1273,10 @@ func _on_button(key: String) -> void:
 		"Check":
 			checked[key] = not checked.get(key, false)
 		"CheckGroup":
+			# Only the buttons of the same panel (Arming has two groups: AA / AG / Misc, the flights).
 			for k in checked.keys():
-				checked[k] = false
+				if k.get_slice("/", 0) == key.get_slice("/", 0):
+					checked[k] = false
 			checked[key] = true
 	var label: String = btn.label
 	if screen == "pref":
@@ -1326,6 +1370,9 @@ static func next_mission(id: int, passed: bool) -> int:
 
 ## TSD / Arming buttons (§8; Fly FUN_005045b0, Arming FUN_005070c0).
 func _tsd_button(key: String, label: String, btn: Dictionary) -> void:
+	if screen == "arm":
+		_arm_button(key, label)
+		return
 	if btn.kind in ["Check", "CheckGroup"]:
 		if btn.kind == "CheckGroup":
 			for f in Tsd.FLIGHT_NAMES:
@@ -1351,6 +1398,30 @@ func _tsd_button(key: String, label: String, btn: Dictionary) -> void:
 			tsd.open_briefing(tsd_checks.briefing)
 		"waypoint", "text", "grid":
 			tsd.set_layer(label, tsd_checks[label])
+
+
+## Arming buttons (FUN_005070c0). A flight change runs the checks first; on failure the old flight
+## button is checked again (FUN_00505a10). The flight picked here is the TSD's too (DAT_0083b8a4).
+func _arm_button(key: String, label: String) -> void:
+	var tab := ["aa", "ag", "misc"].find(label)
+	if tab >= 0:
+		arm.set_tab(tab)
+		return
+	if label in Tsd.FLIGHT_NAMES:
+		var n := _flight_number(label)
+		if arm.change_flight(n):
+			for f in Tsd.FLIGHT_NAMES:
+				tsd_checks[f] = f == label
+			tsd.select_flight(n)
+		else:
+			checked.erase(key)
+			_restore_tsd_checks()
+		return
+	match label:
+		"fly":
+			arm.leave(2)
+		"tacticaldisplay":
+			arm.leave(1)
 
 
 ## The briefing window's close button unchecks Briefing.
@@ -1477,6 +1548,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if screen in QUIT_SCREENS:
 		get_tree().quit()
+	elif screen == "arm":
+		_on_button("back")
 	elif not screen in NO_BACK:
 		_leave(_back_target())
 

@@ -33,6 +33,9 @@ func run() -> void:
 					_dismiss_box(fe)
 					await _open(fe, s)
 		check(visited > 10, "%s: visited %d screens and pressed their buttons" % [lang, visited])
+		# TSD and Arming: a mission with two flights (231) and (English) one with four (136).
+		for id in ([231, 136] if lang == "en" else [231]):
+			await _tsd_and_arm(fe, id, lang)
 		# Preferences: every tab, then leave by BACK (Yes / No / Cancel) and MAIN.
 		for exit_path in ["yes", "no", "cancel", "main"]:
 			await _open(fe, "pref")
@@ -80,6 +83,117 @@ func run() -> void:
 		fe.queue_free()
 		await frames(3)
 	Settings().language = "en"
+
+
+## The TSD's buttons (all but Fly), then Arming: every flight and tab button, a drag from one station
+## to another, a right-click, DEFAULT, a failed check, TacticalDisplay / BACK with "Use weapon load?".
+func _tsd_and_arm(fe, id: int, lang: String) -> void:
+	Settings().mission_id = id
+	fe._reset_tsd_checks()
+	fe.tsd_return = "jet"
+	await _open(fe, "tsd")
+	var flights := ["alpha", "bravo", "charlie", "delta"]
+	var exist: Array = flights.filter(func(f): return fe.tsd.flights.has(flights.find(f) + 1))
+	for p in fe._panels().size():
+		for b in fe._panels()[p].buttons.size():
+			var label := String(fe._panels()[p].buttons[b].label).to_lower()
+			if label in ["fly", "arm"] or not fe._button_enabled(label):
+				continue
+			fe._on_button("%d/%d" % [p, b])
+			await _settle(fe)
+			_dismiss_box(fe)
+	check(fe.screen == "tsd", "%s %d: TSD buttons pressed" % [lang, id])
+	fe._on_button(fe._key_for_label(exist[0].capitalize()))
+	await _settle(fe)
+	fe._on_button(fe._key_for_label("Arm"))
+	await _settle(fe)
+	check(fe.screen == "arm" and fe.arm != null, "%s %d: Arming opened from the TSD" % [lang, id])
+	var enabled: Array = flights.filter(func(f): return fe._button_enabled(f.capitalize()))
+	check(enabled == exist.filter(func(f): return fe.tsd.flight_enabled(flights.find(f) + 1)) and enabled.size() <= exist.size(),
+		"%s %d: Arming flight buttons enabled only for the mission's flights %s" % [lang, id, enabled])
+	if id == 231:
+		check(not fe._button_enabled("Charlie") and not fe._button_enabled("Delta"), "%s 231: no Charlie / Delta flight -> disabled" % lang)
+	for f in enabled + [enabled[0]]:
+		fe._on_button(fe._key_for_label(f.capitalize()))
+		await _settle(fe)
+		_dismiss_box(fe)
+		check(fe.arm.flight == flights.find(f) + 1 and fe.tsd_checks.get(f, false), "%s %d: Arming shows %s" % [lang, id, f])
+	for t in ["AG", "Misc", "AA"]:
+		fe._on_button(fe._key_for_label(t))
+		await frames(2)
+	check(fe.arm.tab == 0 and fe.checked.get(fe._key_for_label(enabled[0].capitalize()), false), "%s %d: tabs keep the flight checked" % [lang, id])
+	var arm = fe.arm
+	var st: Dictionary = arm.jet.get("stations", {})
+	var ld: Array = arm.current_load()
+	var from := -1
+	for i in st:
+		if int(ld[i][1]) > 0:
+			from = i
+			break
+	if from >= 0:
+		# Drag the store to the mirror station, right-click it, then DEFAULT.
+		var to := 8 - from if st.has(8 - from) else from
+		var box = func(i): return fe._to_screen(arm.CLIENT.position + st[i] + Vector2(10, 10))
+		arm._gui_input(mouse_button(box.call(from), true))
+		var mv := InputEventMouseMotion.new()
+		mv.position = box.call(to)
+		arm._gui_input(mv)
+		await frames(2)
+		arm._gui_input(mouse_button(box.call(to), false))
+		check(int(arm.current_load()[to][1]) > 0, "%s %d: dragged station %d to %d" % [lang, id, from + 1, to + 1])
+		var rc := InputEventMouseButton.new()
+		rc.button_index = MOUSE_BUTTON_RIGHT
+		rc.pressed = true
+		rc.position = box.call(to)
+		arm._gui_input(rc)
+		var def: Vector2 = fe._to_screen(arm.CLIENT.position + arm.DEFAULT_RECT.get_center())
+		arm._gui_input(mouse_button(def, true))
+		arm._gui_input(mouse_button(def, false))
+		check(arm.current_load() == fe.mission_weapons.defaults[arm.flight], "%s %d: DEFAULT restores the loads" % [lang, id])
+	# A list row: select it and drag its icon onto a station.
+	var row: Vector2 = fe._to_screen(arm._row_box(0) + Vector2(20, 12))
+	arm._gui_input(mouse_button(row, true))
+	arm._gui_input(mouse_button(row, false))
+	await frames(2)
+	# A load that fails the checks: TacticalDisplay shows the warning and stays.
+	for i in st:
+		fe.mission_weapons.put(arm.flight, i, {})
+	var heavy := {}
+	for w in fe.mission_weapons.weapons:
+		if w.max[0] > 0 and w.weight > heavy.get("weight", 0.0):
+			heavy = w
+	if not heavy.is_empty():
+		fe.mission_weapons.put(arm.flight, 0, heavy)
+		fe._on_button(fe._key_for_label("TacticalDisplay"))
+		await _settle(fe)
+		check(fe.msgbox != null and fe.screen == "arm", "%s %d: unbalanced load -> warning, stays on Arming" % [lang, id])
+		_dismiss_box(fe)
+		fe.mission_weapons.put(arm.flight, 0, {})
+	# Changed load: TacticalDisplay asks "Use weapon load?"; No reverts.
+	fe._on_button(fe._key_for_label("TacticalDisplay"))
+	await _settle(fe)
+	check(fe.msgbox != null, "%s %d: Use weapon load? asked" % [lang, id])
+	if fe.msgbox != null:
+		_click_box(fe.msgbox, 1)
+		await _settle(fe)
+	check(fe.screen == "tsd" and not fe.mission_weapons.changed(), "%s %d: No -> TSD, load reverted" % [lang, id])
+	# Arming again, change and leave by BACK with Yes: the load goes on the aircraft.
+	fe._on_button(fe._key_for_label("Arm"))
+	await _settle(fe)
+	var n: int = fe.arm.flight
+	fe.mission_weapons.put(n, 0, {})
+	fe.mission_weapons.put(n, 8, {})
+	fe._on_button("back")
+	await _settle(fe)
+	if fe.msgbox != null:
+		_click_box(fe.msgbox, 0)
+		await _settle(fe)
+	check(fe.screen == "tsd" and Settings().arm_loadouts.get(n, []) == fe.mission_weapons.saved[n], "%s %d: BACK + Yes -> TSD, load on the aircraft" % [lang, id])
+	fe._on_button("main")
+	await _settle(fe)
+	_dismiss_box(fe)
+	await _settle(fe)
+	Settings().arm_loadouts = {}
 
 
 func _open(fe, s: String) -> void:
