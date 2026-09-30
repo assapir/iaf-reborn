@@ -23,3 +23,18 @@ func run() -> void:
 	await frames(120)
 	var turned: float = hdg0 - tv.flight.state().heading
 	check(turned > 20.0, "left pedal turns left fast at taxi speed (%.1f deg in 2 s, %.0f kt)" % [turned, tv.flight.state().speed_kt])
+	# Takeoff roll with steering corrections: no early lift-off (the original's x4 quirk is off).
+	tv.scripted_stick = Vector2.ZERO
+	key(tv, KEY_8)
+	var early := false
+	var t0 := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t0 < 20000:
+		await process_frame
+		var roll: Dictionary = tv.flight.state()
+		tv.scripted_rudder = sin(Time.get_ticks_msec() * 0.003) * 0.5
+		tv.scripted_stick = Vector2(sin(Time.get_ticks_msec() * 0.002) * 0.4, 0.0)
+		if not roll.on_ground and roll.speed_kt < 140.0:
+			early = true
+		if roll.speed_kt > 145.0:
+			break
+	check(not early, "no lift-off below 140 kt while steering")

@@ -595,7 +595,9 @@ impl Aircraft {
             }
         };
         let mut lz = lift;
-        if fc.abs() > 0.1 * lz && v > 20.5889 {
+        // Original quirk (5b7e40 @5b7f37): a strong side force multiplies the vertical lift by 4.
+        // Not physical, so the real data set leaves it out.
+        if self.params.nose_wheel.is_none() && fc.abs() > 0.1 * lz && v > 20.5889 {
             lz *= 4.0;
         }
         let (thrust, drag) = (self.thrust, self.drag);
