@@ -1,4 +1,4 @@
-//! Standard atmosphere as coded in the original (`FUN_005b0f00`), capped at 20 km.
+//! Standard atmosphere as coded in the original (`FUN_005b3fd0`), capped at 20 km.
 
 /// Sea-level pressure in the original's unit (kgf/m²).
 const P0: f32 = 10332.27;

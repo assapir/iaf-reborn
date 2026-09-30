@@ -266,6 +266,29 @@ fn report(dir: &std::path::Path, r: &Ref, set: DataSet) {
     }
     rows.push(Row { item: "roll 0→90°, 350 kt @10k ft", iaf: format!("{t90:.2} s, peak {peak:.0} deg/s"), real: label(r.roll90), verdict: verdict(t90, r.roll90) });
 
+    // Rudder: full pedal for 4 s, then neutral, 350 kt @ 10k ft. The v1.1 β channel (2nd-order, RudderK; v1.0 data:
+    // the exe's defaults) — time to 90 % of MaxBeta, β at the end of the hold, and the overshoot past 0 after release
+    // (RudderBeta = 0 in all data: no damping term). No public reference (the model's sideslip is a visual/force angle).
+    let mut ac = jet(10000.0, 350.0);
+    let mb = p.max_beta.to_degrees();
+    let (mut t90, mut hold, mut under) = (f32::NAN, 0.0f32, 0.0f32);
+    for i in 1..=(8 * 60) {
+        let t = i as f32 / 60.0;
+        ac.set_controls(Controls { rudder: if t <= 4.0 { 1.0 } else { 0.0 }, ..mil });
+        ac.step(1.0 / 60.0);
+        let b = ac.state().beta.to_degrees();
+        assert!(b.is_finite());
+        if t <= 4.0 {
+            hold = b;
+            if t90.is_nan() && b >= 0.9 * mb {
+                t90 = t;
+            }
+        } else {
+            under = under.min(b);
+        }
+    }
+    rows.push(Row { item: "rudder step, 350 kt @10k ft", iaf: format!("K {:.2}: 90% in {t90:.2} s, {hold:.1}/{mb:.0}°, overshoot {under:.1}°", p.rudder_k), real: "(no public figure)", verdict: "-" });
+
     // Instantaneous turn: full pull at ~390 KCAS (420 kt true) @ 10k ft, heading rate over 2..3 s.
     let mut ac = jet(10000.0, 420.0);
     // Hold ~80° of bank with a simple bank controller (like a pilot would), full pull.

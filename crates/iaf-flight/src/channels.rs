@@ -3,7 +3,7 @@
 
 use std::f64::consts::PI;
 
-/// Rate-limited ramp toward a target (type A: `FUN_0059fe30` / `FUN_0059feb0`).
+/// Rate-limited ramp toward a target (type A: `FUN_005a2a80` / `FUN_005a2b00`).
 #[derive(Debug, Clone, Copy)]
 pub struct Ramp {
     t0: f64,
@@ -78,7 +78,7 @@ fn wrap(a: f64) -> f64 {
     a
 }
 
-/// Acceleration-limited angle (type B: `FUN_005aac90`): the rate accelerates
+/// Acceleration-limited angle (type B: `FUN_005adc70`): the rate accelerates
 /// toward a target rate, then the angle continues at that rate.
 #[derive(Debug, Clone, Copy)]
 pub struct Angle {
@@ -143,7 +143,7 @@ impl Angle {
     }
 }
 
-/// Constant-acceleration axis (type C: `FUN_005aab30` / `FUN_005aab50`).
+/// Constant-acceleration axis (type C: `FUN_005ada80` / `FUN_005adaa0`).
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Axis {
     p0: f64,

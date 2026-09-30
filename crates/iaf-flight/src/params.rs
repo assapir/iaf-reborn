@@ -1,4 +1,4 @@
-//! Per-aircraft parameters from `bd.ibx` (loader `FUN_005af920`), converted to SI
+//! Per-aircraft parameters from `bd.ibx` (loader `FUN_005b2940`, v1.0 `5af920`), converted to SI
 //! exactly as the original does at load time.
 
 use iaf_formats::ini::Section;
@@ -49,6 +49,12 @@ pub struct Params {
     pub alpha_start_accel: f32,
     pub alpha_k: f32,
     pub alpha_beta: f32,
+    /// v1.1 sideslip channel gains (`P+0x16c..0x178`, stored raw like the α keys; docs/flight-model.md
+    /// §15.2.6). A v1.0 `bd.ibx` has none of them, so the exe's defaults apply: 5 / 0 / 0.5 / 0.5.
+    pub rudder_k: f32,
+    pub rudder_beta: f32,
+    pub rudder_start_accel: f32,
+    pub rudder_stop_accel: f32,
     pub start_move_stick_center_g: f32,
     pub map_center_stick: f32,
     pub over_g_thresh: f32,
@@ -64,7 +70,7 @@ pub struct Params {
     /// Real nose-wheel steering (real data set only): wheel angle from the rudder pedals, turn rate
     /// from the geometry. None = the original's formula (flight-model.md §7).
     pub nose_wheel: Option<NoseWheel>,
-    /// Aircraft type `veh+0xc54` (set by `FUN_005a5bb0`, docs/part-animation.md): 100 F-16, 110 F-15,
+    /// Aircraft type `veh+0xc54` (set by `FUN_005a8980`, docs/part-animation.md): 100 F-16, 110 F-15,
     /// 120 F-4, 130 Kfir, 140 Lavi, 150 MiG-21, 160 MiG-23, 170 MiG-25, 180 MiG-29, 190 Mirage,
     /// 210 MiG-17, 220 Tu-22, 225 C-130; 0 = unknown. Types 100/140 never spin (§15.5); type 100
     /// lowers its flaps to a third (§15.6.4).
@@ -150,6 +156,10 @@ impl Params {
             alpha_start_accel: f("AlphaStartAccel", 0.5),
             alpha_k: f("AlphaK", 8.0),
             alpha_beta: f("AlphaBeta", 0.1),
+            rudder_k: f("RudderK", 5.0),
+            rudder_beta: f("RudderBeta", 0.0),
+            rudder_start_accel: f("RudderStartAccel", 0.5),
+            rudder_stop_accel: f("RudderStopAccel", 0.5),
             start_move_stick_center_g: f("StartMoveStickCenterG", 2.0),
             map_center_stick: f("MapCenterStick", 0.0),
             over_g_thresh: f("OverGThresh", 6.7),

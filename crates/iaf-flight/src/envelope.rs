@@ -1,8 +1,8 @@
 //! Flight envelope (`16.dat` & co.): minimum speed per integer load factor and altitude,
-//! ported exactly from the original (docs/flight-model.md §15.9): loader `FUN_005b23c0`
-//! (passes `5b2f10` / `5b2b20`), Ceiling `5b22e0`, Vmin `5b1fa0` / `5b2170` (3-point plane fit
-//! `5bbf00`), GLimit `5b2810` (per-altitude-level point lists, bracket `5b3330`, high-altitude
-//! line `5b2770`).
+//! ported exactly from the original (docs/flight-model.md §15.9): loader `FUN_005b5490`
+//! (passes `5b5fe0` / `5b5bf0`), Ceiling `5b53b0`, Vmin `5b5070` / `5b5240` (3-point plane fit
+//! `5bf2a0`), GLimit `5b58e0` (per-altitude-level point lists, bracket `5b6400`, high-altitude
+//! line `5b5840`).
 //!
 //! Faithful quirks: rows are parsed with `%d %d %d`, so a row with a decimal value is silently
 //! skipped (e.g. `0 70.3 13000` in the F-16 file) and trailing text after the third integer is
@@ -44,7 +44,7 @@ fn scan3(line: &str) -> Vec<i32> {
     out
 }
 
-/// Plane z = a·x + b·y + c through three points (`5bbf00`).
+/// Plane z = a·x + b·y + c through three points (`5bf2a0`).
 fn plane(p1: (f64, f64, f64), p2: (f64, f64, f64), p3: (f64, f64, f64)) -> (f64, f64, f64) {
     let ((x1, y1, z1), (x2, y2, z2), (x3, y3, z3)) = (p1, p2, p3);
     let det = (y3 - y1) * x2 + (y2 - y3) * x1 + (y1 - y2) * x3;
@@ -62,13 +62,13 @@ fn plane(p1: (f64, f64, f64), p2: (f64, f64, f64), p3: (f64, f64, f64)) -> (f64,
 /// A point of a per-level list: (g, V m/s).
 type Point = (f64, f64);
 
-/// Insert keeping the list ascending by V, a new point going after equal V (`5b33c0`).
+/// Insert keeping the list ascending by V, a new point going after equal V (`5b64d0`).
 fn insert(list: &mut Vec<Point>, p: Point) {
     let i = list.iter().position(|q| p.1 < q.1).unwrap_or(list.len());
     list.insert(i, p);
 }
 
-/// `5b3330`: lo = last point with V_p ≤ V, hi = first with V_p ≥ V. Returns 1 if no hi (V above
+/// `5b6400`: lo = last point with V_p ≤ V, hi = first with V_p ≥ V. Returns 1 if no hi (V above
 /// all points, also for an empty list), −1 if no lo, else 0.
 fn bracket(list: &[Point], v: f64) -> (i32, Point, Point) {
     let (mut lo, mut hi) = (None, None);
@@ -116,7 +116,7 @@ pub struct Envelope {
     pub stall_floor: Option<f32>,
 }
 
-/// Result of `GLimit` (`FUN_005b2810`).
+/// Result of `GLimit` (`FUN_005b58e0`).
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum GLimit {
     /// Below the minimum speed of level k or k+1 (original code 0).
@@ -152,7 +152,7 @@ impl Envelope {
             })
             .collect();
 
-        // Pass 1 (5b2f10): graphs by change of g, sentinel, pads, ceilings, high-altitude lines.
+        // Pass 1 (5b5fe0): graphs by change of g, sentinel, pads, ceilings, high-altitude lines.
         let mut slots: Vec<Vec<(f64, f64)>> = vec![Vec::new()];
         let (mut idx0, mut gmin, mut prev_g, mut last_g) = (-20i32, 0.0f64, None, 0);
         for &(g, v, a) in &rows {
@@ -212,7 +212,7 @@ impl Envelope {
             e.b38 = e.gmin - cmin * e.a34;
         }
 
-        // Pass 2 (5b2b20): per-level (g, V) points from the raw rows (no sentinel, no pads).
+        // Pass 2 (5b5bf0): per-level (g, V) points from the raw rows (no sentinel, no pads).
         let (mut prev, mut k, mut inv, mut icpt) = (None::<(i32, i32, i32)>, 0usize, 0.0f64, 0.0f64);
         for &(g, v, a) in &rows {
             let Some(p) = prev.filter(|p| p.0 == g) else {
@@ -270,7 +270,7 @@ impl Envelope {
         g.max(self.gmin).min(self.gmax)
     }
 
-    /// Highest altitude at which load factor `g` can be pulled (`5b22e0`, linear between graphs).
+    /// Highest altitude at which load factor `g` can be pulled (`5b53b0`, linear between graphs).
     pub fn ceiling(&self, g: f32) -> f32 {
         self.ceiling64(g as f64) as f32
     }
@@ -285,7 +285,7 @@ impl Envelope {
         cb + (ca - cb) * f
     }
 
-    /// Minimum speed (m/s) for load factor `g` at `alt` (`5b1fa0` / `5b2170` with
+    /// Minimum speed (m/s) for load factor `g` at `alt` (`5b5070` / `5b5240` with
     /// `ceil = Ceiling(g)` as every FM caller passes).
     pub fn vmin(&self, alt: f32, g: f32) -> f32 {
         let table = self.vmin64(alt as f64, g as f64) as f32;
@@ -317,13 +317,13 @@ impl Envelope {
         pa_ * alt + pb_ * g + pc_
     }
 
-    /// High-altitude limit line (`5b2770`).
+    /// High-altitude limit line (`5b5840`).
     fn lim_line(&self, g: f64, alt: f64) -> f64 {
         let g = self.clamp_g(g);
         if g <= 0.0 { (self.a34 * alt + self.b38).min(0.0) } else { (self.a28 * alt + self.b2c).max(0.0) }
     }
 
-    /// The original's code and limit (`5b2810`): 0 stall, 2 too high, 3 no limit, 4 limited.
+    /// The original's code and limit (`5b58e0`): 0 stall, 2 too high, 3 no limit, 4 limited.
     pub fn g_limit_code(&self, alt: f32, v: f32, g: f32) -> (i32, f32) {
         let (alt, v, g) = (alt as f64, v as f64, g as f64);
         let step = self.altitude_step as f64;
@@ -353,7 +353,7 @@ impl Envelope {
         (4, lim as f32)
     }
 
-    /// Load-factor limit at `alt` and speed `v` for a commanded `g` (`FUN_005b2810`).
+    /// Load-factor limit at `alt` and speed `v` for a commanded `g` (`FUN_005b58e0`).
     pub fn g_limit(&self, alt: f32, v: f32, g_cmd: f32) -> GLimit {
         let (code, lim) = self.g_limit_code(alt, v, g_cmd);
         let mut out = match code {

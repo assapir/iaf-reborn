@@ -18,7 +18,7 @@ fn to_godot(v: [f64; 3]) -> Vector3 {
 
 #[godot_api]
 impl IafFlight {
-    /// Loads `section` (e.g. "F-16") from `<install>/resource/md` and starts it (`FUN_005a2a10`,
+    /// Loads `section` (e.g. "F-16") from `<install>/resource/md` and starts it (`FUN_005a5820`,
     /// docs/flight-model.md §15.6.4) at `position` (Godot frame) with `heading_deg` (clockwise from
     /// north), `pitch_deg` / `roll_deg`, and `velocity` (Godot frame, m/s; the horizontal speed is
     /// re-aimed along the heading). `airborne`: see `is_airborne_start`; a ground start has gear
@@ -222,6 +222,8 @@ impl IafFlight {
         d.set("gear", s.gear);
         d.set("crashed", s.crashed.is_some());
         d.set("crash_reason", s.crashed.map_or("", |c| c.name()));
+        // Successful gear-down touchdowns so far: the mission's landed handler fires on each (v1.1).
+        d.set("landings", s.landings as i64);
         d.set("time", s.time);
         d.set("alpha", s.alpha);
         d.set("beta", s.beta);
