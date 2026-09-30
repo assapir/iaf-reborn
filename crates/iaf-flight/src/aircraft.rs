@@ -34,6 +34,10 @@ const FLAPS_K: f32 = 3.415_883_8;
 const MILITARY: f32 = 0.74;
 const AB: f32 = 0.75;
 const THROTTLE_DEADBAND: f32 = 0.015;
+/// v1.1 AI wheel-brake factor (`0x612474`; v1.0 2.0).
+const AI_BRAKE: f32 = 4.0;
+/// Crash immunity: an AI control loop older than this (s) (`0x611d20`).
+const AI_OLD: f64 = 3.5;
 /// RPM ramp: 0..100 % at 15 %/s; AB light-up delay 1/15 s per missing % (`0x612050`).
 const RPM_RATE: f32 = 15.0;
 /// Start rules (`FUN_005a5820`): airborne above 800 m unless at a base.
@@ -452,6 +456,17 @@ pub struct Aircraft {
     pub invulnerable: bool,
     pub no_crashes: bool,
     pub unlimited_fuel: bool,
+    /// AI pilot (docs/ai.md, docs/flight-model.md §14/§15 "ai"): the control-loop mode the FM reads through
+    /// `FUN_005c89f0(veh+0xc50)`; 0 = no control loop (the player flying by hand).
+    pub ai_mode: u8,
+    /// Sim time the AI's control loop took over (`[veh+0xc50]+0x10`, crash immunity "aiOld").
+    pub ai_since: f64,
+    /// The FM's AI "team" test: the jet is not on the player's side (`FUN_004a4cf0`; no player: side 2 / 3).
+    pub ai_team: bool,
+    /// Preferences AI level (pref +0x50): 0 Rookie, 1 Normal, 2 Expert (the default).
+    pub ai_level: u8,
+    /// The AI jet's damage fraction is ≤ 0.1 (`dmgObj+0x10`, crash immunity "lowDmg").
+    pub ai_low_damage: bool,
     /// External stores (docs/weapons.md "Weight and drag"): extra mass `S+0x424` (kg, added to the empty
     /// weight with the fuel), stores drag index of the left wing (stations A–E, `S+0x42c`) and the right
     /// wing (E–I, `S+0x428`), already ×1e-4, added to CD; right − left is the asymmetry that biases the
@@ -579,6 +594,11 @@ impl Aircraft {
             invulnerable: false,
             no_crashes: false,
             unlimited_fuel: false,
+            ai_mode: 0,
+            ai_since: 0.0,
+            ai_team: false,
+            ai_level: 2,
+            ai_low_damage: true,
             stores_mass: 0.0,
             stores_di_left: 0.0,
             stores_di_right: 0.0,
@@ -741,12 +761,19 @@ impl Aircraft {
     /// ignored; any other move cancels a pending afterburner request (v1.1; v1.0 kept the older one), and
     /// crossing into AB sets 0.74 and applies the request once the RPM would be at 100 %.
     fn throttle_event(&mut self, new: f32) {
-        self.engine_on = true;
-        if (new - self.throttle).abs() < THROTTLE_DEADBAND {
+        let ai = self.ai();
+        if !ai {
+            self.engine_on = true;
+        }
+        // The AI's moves all count; it lights the afterburner at once (no RPM delay).
+        if if ai { new == self.throttle } else { (new - self.throttle).abs() < THROTTLE_DEADBAND } {
             return;
         }
-        self.ab_request = None;
-        if self.throttle < AB && new >= AB {
+        self.engine_on = true;
+        if !ai {
+            self.ab_request = None;
+        }
+        if !ai && self.throttle < AB && new >= AB {
             self.throttle = MILITARY;
             let delay = ((100.0 - self.rpm.sample(self.t)) / RPM_RATE).max(0.0) as f64;
             self.ab_request = Some((self.t + delay, new));
@@ -816,8 +843,29 @@ impl Aircraft {
         if on { 1.0 } else { 0.0 }
     }
 
+    /// A control loop flies the jet (`FUN_005c89f0() != 0`).
+    fn ai(&self) -> bool {
+        self.ai_mode != 0
+    }
+
+    /// The player's "No crashes" / "Invulnerable" preferences (never for an AI jet).
+    fn cheat(&self) -> bool {
+        !self.ai() && (self.invulnerable || self.no_crashes)
+    }
+
+    /// Crash immunity `5abef0` (§15.6.3): the preferences, or an AI jet in mode 9 with fuel, or one whose
+    /// control loop has run > 3.5 s with fuel and damage ≤ 0.1 (not in mode 0x11 when on the enemy team).
     fn immune(&self) -> bool {
-        self.invulnerable || self.no_crashes
+        if self.cheat() {
+            return true;
+        }
+        if !self.ai() {
+            return false;
+        }
+        let fuel = self.fuel.sample(self.t) > 0.0;
+        let old = self.t - self.ai_since > AI_OLD;
+        let team_ok = !(self.ai_team && self.ai_mode == 0x11);
+        (self.ai_mode == 9 && fuel) || (old && fuel && self.ai_low_damage && team_ok)
     }
 
     /// Attitude of the current mode (mode object slot 0).
@@ -941,7 +989,9 @@ impl Aircraft {
     #[allow(clippy::too_many_arguments)]
     fn lift_fn(&self, v: f32, alt: f32, mass: f32, att: Euler, latched: bool, gamma: f32, alpha_now: f32, flaps: f32) -> LiftOut {
         let p = &self.params;
-        let b_stall = !self.no_stalls;
+        // An AI jet stalls unless it is an Expert (AI level 2) on the enemy team.
+        let ai = self.ai();
+        let b_stall = if ai { !(self.ai_level == 2 && self.ai_team) } else { !self.no_stalls };
         if latched && b_stall {
             return LiftOut { lift: 0.0, lift_noflap: 0.0, drag_x: 1.2, stall: false, vib: false };
         }
@@ -997,9 +1047,13 @@ impl Aircraft {
                 }
             }
         }
+        // A Rookie enemy AI pulls softer above 4.3 g (single player).
+        if ai && self.ai_level == 0 && self.ai_team && g > 4.3 {
+            g = 4.0 + 0.02 * g * g;
+        }
         let lift_noflap = g * mass * G;
         // Vibration needs `P+0x84` (vibration allowed = "No stalls" off) and a player.
-        let vib = lim <= p.start_vibs_g && code == 4 && g_cmd > 0.0 && b_stall;
+        let vib = lim <= p.start_vibs_g && code == 4 && g_cmd > 0.0 && !self.no_stalls && !ai;
         let mut lift = lift_noflap;
         if v < 125.0 {
             lift += lift_noflap.abs() * p.flaps_lift_coef * flaps * FLAPS_K;
@@ -1067,18 +1121,21 @@ impl Aircraft {
         let latched = self.latched(t);
         let gamma = if v > 1.0 { (vel[2] / v as f64).clamp(-1.0, 1.0).asin() as f32 } else { 0.0 };
 
-        let (mut thrust, rpm, ff, stage) = self.thrust_at(alt, mach, if ground { false } else { !p.has_afterburner });
+        // noAB: the ground call passes "ai"; airborne !HasAfterBurner, or an AI outside modes 7 / 8.
+        let ai = self.ai();
+        let no_ab = if ground { ai } else { !p.has_afterburner || (ai && !matches!(self.ai_mode, 7 | 8)) };
+        let (mut thrust, rpm, ff, stage) = self.thrust_at(alt, mach, no_ab);
         // The ground call passes latched = 0 (§14.3).
         let lo = self.lift_fn(v, alt, mass, att, latched && !ground, gamma, alpha_s, flaps);
         let (mut lift, mut lift_noflap, drag_x, mut stall) = (lo.lift, lo.lift_noflap, lo.drag_x, lo.stall);
         let c_f = p.flaps_lift_coef * flaps * FLAPS_K;
-        let easy = self.immune();
+        let easy = self.cheat();
         if ground {
             // 5bac40: half the lift, flaps added again, gated by speed / pull and gear.
             thrust = thrust.max(0.0);
             lift *= 0.5;
             lift += lift.abs() * c_f;
-            if !((v > 74.53 || c.stick_y > 0.5) && (gear || self.easy_landing || easy)) {
+            if !((v > 74.53 || c.stick_y > 0.5) && (gear || ai || self.easy_landing || easy)) {
                 lift = 0.0;
                 lift_noflap = 0.0;
                 stall = false;
@@ -1092,7 +1149,8 @@ impl Aircraft {
         if self.better.ground_effect {
             k *= self.ground_effect(alt);
         }
-        let gear_f = if gear { 1.0 } else { 0.0 };
+        // An AI jet's gear has no drag (5b4800: cfg[7]·GearDI·(ai ? 0 : 1)).
+        let gear_f = if gear && !ai { 1.0 } else { 0.0 };
         let stores_di = self.stores_di_left + self.stores_di_right;
         let mut cd = p.plane_di + brakes * p.speed_brakes_di + gear_f * p.gear_di + p.flaps_di * flaps * FLAPS_K + stores_di + k * cl * cl;
         if p.wave_drag > 0.0 && mach > 0.9 {
@@ -1101,8 +1159,9 @@ impl Aircraft {
         let mut drag = cd * qs;
         let mut yaw_nw = 0.0;
         if ground {
-            let mut mu = brakes * p.wheel_brake_di + FRIC1;
-            if !gear && !easy {
+            // v1.1: the AI's wheel brakes ×4 (v1.0 ×2).
+            let mut mu = brakes * p.wheel_brake_di * if ai { AI_BRAKE } else { 1.0 } + FRIC1;
+            if !gear && !ai && !easy {
                 mu = 20.0; // belly
             }
             drag = (drag + 0.5 * mu * (mass * G - lift)).max(0.0);
@@ -1821,6 +1880,40 @@ mod tests {
             assert_eq!(g.engine_on, engine);
             assert_eq!(g.lift.sample(0.0), 0.0);
         }
+    }
+
+    /// AI special cases (docs/flight-model.md §14/§15): an AI jet (control-loop mode ≠ 0) lights the AB at
+    /// once and uses the AB curve only in modes 7 / 8, its gear has no drag, and a jet with fuel whose loop ran > 3.5 s
+    /// cannot crash.
+    #[test]
+    fn ai_special_cases() {
+        let mut a = airborne(100, 5000.0, 200.0);
+        a.ai_mode = 7;
+        a.set_controls(Controls { throttle: 1.0, ..Default::default() });
+        run(&mut a, 0.05);
+        assert_eq!((a.state().throttle, a.state().afterburner), (1.0, 2));
+        a.ai_mode = 3;
+        a.set_controls(Controls { throttle: 0.99, ..Default::default() });
+        run(&mut a, 0.05);
+        assert_eq!(a.state().afterburner, 2, "stage from the throttle");
+        // Outside modes 7 / 8 the no-AB curve: k = (thr − 0.2)·1.25 (0.9875), in them the AB step 1.0.
+        let no_ab = a.thrust;
+        a.ai_mode = 7;
+        a.set_controls(Controls { throttle: 1.0, ..Default::default() });
+        assert!(a.thrust > no_ab, "{} vs {no_ab}", a.thrust);
+        let mut up = airborne(100, 3000.0, 150.0);
+        let mut down = airborne(100, 3000.0, 150.0);
+        up.ai_mode = 3;
+        down.ai_mode = 3;
+        down.set_controls(Controls { gear_down: true, throttle: 0.74, ..Default::default() });
+        up.set_controls(Controls { throttle: 0.74, ..Default::default() });
+        run(&mut down, 5.0);
+        run(&mut up, 5.0);
+        assert!((up.drag - down.drag).abs() < 0.01 * up.drag, "no gear drag (a player: +30 %): {} {}", up.drag, down.drag);
+        down.ai_since = down.t - 3.0;
+        assert!(!down.immune());
+        down.ai_since = down.t - 4.0;
+        assert!(down.immune());
     }
 
     #[test]
