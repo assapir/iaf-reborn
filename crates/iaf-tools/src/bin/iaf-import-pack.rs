@@ -40,25 +40,17 @@ fn read_zip(path: &Path) -> Result<Vec<ModFile>> {
 }
 
 fn read_dir(root: &Path) -> Result<Vec<ModFile>> {
-    let mut files = Vec::new();
-    let mut stack = vec![root.to_path_buf()];
-    while let Some(dir) = stack.pop() {
-        for entry in fs::read_dir(&dir)? {
-            let p = entry?.path();
-            if p.is_dir() {
-                stack.push(p);
-            } else {
-                let rel = p.strip_prefix(root)?.to_string_lossy().replace('\\', "/");
-                files.push(ModFile { path: rel, data: fs::read(&p)? });
-            }
-        }
-    }
-    Ok(files)
+    iaf_tools::walk_files(root)?
+        .into_iter()
+        .map(|p| {
+            let rel = p.strip_prefix(root)?.to_string_lossy().replace('\\', "/");
+            Ok(ModFile { path: rel, data: fs::read(&p)? })
+        })
+        .collect()
 }
 
-fn extension(path: &str) -> Option<String> {
-    let name = path.rsplit('/').next()?;
-    name.rsplit_once('.').map(|(_, e)| e.to_lowercase())
+fn extension(path: impl AsRef<Path>) -> Option<String> {
+    Some(path.as_ref().extension()?.to_string_lossy().to_lowercase())
 }
 
 /// Extensions used by files directly inside `dir`.
@@ -67,7 +59,7 @@ fn extensions_in(dir: &Path) -> HashSet<String> {
         .into_iter()
         .flatten()
         .flatten()
-        .filter_map(|e| extension(&e.file_name().to_string_lossy()))
+        .filter_map(|e| extension(e.file_name()))
         .collect()
 }
 
@@ -98,7 +90,7 @@ fn main() -> Result<()> {
         }
         let rel: PathBuf = file.path.split('/').map(str::to_lowercase).collect();
         let base = install.join(&rel);
-        let known_ext = extension(&file.path).is_some_and(|e| extensions_in(base.parent().unwrap()).contains(&e));
+        let known_ext = extension(&rel).is_some_and(|e| extensions_in(base.parent().unwrap()).contains(&e));
         if base.is_file() {
             if fs::read(&base)? == file.data {
                 unchanged += 1;
