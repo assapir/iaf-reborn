@@ -118,6 +118,9 @@ var _landings := 0
 ## The crash was handled (flight ends like the original's player death).
 var crashed := false
 const MissionRuntime := preload("res://mission/mission_runtime.gd")
+const Gltf := preload("res://util/gltf.gd")
+## Models flatter than this (m) are ground underlays (util/gltf.gd make_underlay).
+const UNDERLAY_MAX_HEIGHT := 0.05
 const DamageModel := preload("res://mission/damage_model.gd")
 ## The only flyable jet today (bdb type code 100).
 const F16_TYPE := 100
@@ -389,12 +392,10 @@ func _spawn_mission_objects() -> void:
 		if path == "" or ent.klass in [0x11, 0x12, 0x1b]:
 			continue
 		if not scenes.has(path):
-			var doc := GLTFDocument.new()
-			var state := GLTFState.new()
-			scenes[path] = [doc, state] if doc.append_from_file(base.path_join("objects").path_join(path), state) == OK else null
+			scenes[path] = Gltf.open(base.path_join("objects").path_join(path))
 		if scenes[path] == null:
 			continue
-		var node: Node3D = scenes[path][0].generate_scene(scenes[path][1])
+		var node: Node3D = Gltf.instance(scenes[path])
 		ent.node = node
 		ent["airborne_class"] = int(obj.get("0x5aa", -1)) in [2, 3, 0x1c]
 		add_child(node)
@@ -402,6 +403,10 @@ func _spawn_mission_objects() -> void:
 		# Collision radius (FUN_0043b1c0): 0.25 · (sx + sy + sz) of the model's extents (UNCERTAIN:
 		# full or half extents; full used).
 		var box := _model_aabb(node)
+		# Flat ground models (runway / taxiway / apron underlays) lie on the terrain: drawn with a
+		# depth offset so they don't z-fight with it.
+		if box.size.y < UNDERLAY_MAX_HEIGHT:
+			Gltf.make_underlay(node)
 		ent["coll_radius"] = 0.25 * (box.size.x + box.size.y + box.size.z)
 		ent["max_extent"] = maxf(box.size.x, maxf(box.size.y, box.size.z))
 		mission_entity_moved(ent)
@@ -1322,12 +1327,10 @@ func _spawn_parachuter(at: Vector3) -> void:
 
 ## The seat (pilot on chair) and the parachuter models from the converted objects (Pilot\ejectA, ejectB).
 func _load_eject_model(name: String) -> Node3D:
-	var path := Settings.assets_dir().path_join("converted/objects/pilot/%s/%s.gltf" % [name, name])
-	var doc := GLTFDocument.new()
-	var state := GLTFState.new()
-	if not FileAccess.file_exists(path) or doc.append_from_file(path, state) != OK:
+	var model = Gltf.open(Settings.assets_dir().path_join("converted/objects/pilot/%s/%s.gltf" % [name, name]))
+	if model == null:
 		return null
-	var node: Node3D = doc.generate_scene(state)
+	var node: Node3D = Gltf.instance(model)
 	node.name = name
 	add_child(node)
 	return node

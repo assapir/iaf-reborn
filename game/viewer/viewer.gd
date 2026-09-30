@@ -75,14 +75,12 @@ func _load() -> void:
 		_update_hud()
 		return
 	var path := models[index]
-	var doc := GLTFDocument.new()
-	var state := GLTFState.new()
-	var err := doc.append_from_file(path, state)
-	if err != OK:
-		status = "Failed to load %s (error %d)" % [path, err]
+	var model = preload("res://util/gltf.gd").open(path)
+	if model == null:
+		status = "Failed to load %s" % path
 		_update_hud()
 		return
-	var scene := doc.generate_scene(state)
+	var scene := preload("res://util/gltf.gd").instance(model)
 	model_root.add_child(scene)
 	loaded_mtime = FileAccess.get_modified_time(path)
 	_apply_helpers()

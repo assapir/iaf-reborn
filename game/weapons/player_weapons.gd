@@ -56,7 +56,7 @@ var easy_aiming := false
 var _round_nodes: Array = []
 var _flash: Node3D
 var _store_nodes := {}  # station -> [Node3D per slot]
-var _models := {}  # model path -> [GLTFDocument, GLTFState] or null
+var _models := {}  # model path -> util/gltf.gd open() result or null
 ## The AA gun LCOS pipper (FUN_0045f410) state.
 var lcos := {"x": 0.0, "y": 0.0, "w28": 0.0, "w2c": 0.0, "prev0": 0.0, "prev2": 0.0, "next": 0.0}
 
@@ -662,13 +662,10 @@ func _instance(path: String) -> Node3D:
 	if path == "":
 		return null
 	if not _models.has(path):
-		var doc := GLTFDocument.new()
-		var state := GLTFState.new()
-		var full := Settings.assets_dir().path_join("converted/objects").path_join(path)
-		_models[path] = [doc, state] if FileAccess.file_exists(full) and doc.append_from_file(full, state) == OK else null
+		_models[path] = preload("res://util/gltf.gd").open(Settings.assets_dir().path_join("converted/objects").path_join(path))
 	if _models[path] == null:
 		return null
-	return _models[path][0].generate_scene(_models[path][1])
+	return preload("res://util/gltf.gd").instance(_models[path])
 
 
 ## The store model's `pilon` helper (glTF, the sum of its and its parents' translations), or null.

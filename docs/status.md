@@ -41,7 +41,6 @@
 Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user decisions.
 
 ## Small bugs (fix between jobs)
-- **Airbase flickers badly in the external view** (since the new terrain; likely z-fighting between the runway / airbase object models and the terrain imagery that already shows them, or overlapping quadtree levels). First to fix.
 - **Keyboard stick too sensitive** (taps ≥ ~0.45 s give 3+ g): traced — the original sets full stick at once on
   press, 0 on release; only the lift ramp (G_Rate) smooths it (F-16 350 kt: 0.1 s → 1.4 g, 0.3 s → 2.3 g, 0.5 s →
   3.2 g, 1 s → 5.4 g). Our invented ramp is replaced by that law (it gave *more* g). Taps give 3+ g in the original

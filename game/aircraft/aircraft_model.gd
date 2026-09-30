@@ -66,13 +66,12 @@ static func create(plane: String, type := -1, on_ground := false) -> Node3D:
 	var d: Dictionary = load_descriptor(plane)
 	if d.is_empty():
 		return null
-	var doc := GLTFDocument.new()
-	var state := GLTFState.new()
-	if doc.append_from_file(dir.path_join(d.model), state) != OK:
+	var model = preload("res://util/gltf.gd").open(dir.path_join(d.model))
+	if model == null:
 		return null
 	var m: Node3D = load("res://aircraft/aircraft_model.gd").new()
 	m.name = plane
-	m.setup(doc.generate_scene(state) as Node3D, d, type, on_ground)
+	m.setup(preload("res://util/gltf.gd").instance(model), d, type, on_ground)
 	return m
 
 
