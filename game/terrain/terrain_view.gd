@@ -19,7 +19,7 @@ const SCREENSHOT_TIMEOUT_MS := 20000
 @onready var terrain: Node3D = $Terrain
 @onready var rig: Node3D = $Rig
 @onready var camera: Camera3D = $Rig/Camera
-@onready var hud_label: Label = $HUD
+@onready var hud_label: Label = $InfoLayer/HUD
 @onready var cockpit: Control = $CockpitLayer/Cockpit
 @onready var chase: Camera3D = $Chase
 
