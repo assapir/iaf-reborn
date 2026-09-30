@@ -312,11 +312,13 @@ fn convert_menu(install: &Path, pack: Option<&Path>, out: &Path, opts: &Options)
         img.save(&dest)?;
         n += 1;
     }
-    // Sounds (button clicks, panel slides, menu music).
+    // Sounds (button clicks, panel slides, menu music; wav/pref: the Preferences volume previews).
     std::fs::create_dir_all(out.join("wav"))?;
     for (rel, p) in overlay_files(&root, pack_root.as_deref(), "wav") {
-        if rel.extension().is_some_and(|x| x == "wav") && rel.parent().is_some_and(|d| d == Path::new("wav")) {
-            std::fs::copy(&p, out.join("wav").join(rel.file_name().unwrap()))?;
+        let dir = rel.parent();
+        if rel.extension().is_some_and(|x| x == "wav") && dir.is_some_and(|d| d == Path::new("wav") || d == Path::new("wav/pref")) {
+            std::fs::create_dir_all(out.join(dir.unwrap()))?;
+            std::fs::copy(&p, out.join(&rel))?;
         }
     }
     // TSD maps and overlays (vector, see docs/front-end.md §8).

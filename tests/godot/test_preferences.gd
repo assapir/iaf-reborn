@@ -1,0 +1,62 @@
+# Preferences (docs/front-end.md §12): the first visit opens Sound; Gameplay's NO BLACKOUTS toggles in
+# the working copy only; leaving asks "Save changes?" (Yes / No / Cancel) and Yes commits; the
+# scoring strip shows frame 4 (100 %) for the defaults.
+extends "res://../tests/godot/base.gd"
+
+
+func click(fe: Node, menu_pos: Vector2) -> void:
+	fe._gui_input(mouse_button(fe._to_screen(menu_pos), true))
+	fe._gui_input(mouse_button(fe._to_screen(menu_pos), false))
+
+
+## Waits for the screen change (title tab, panel slide) to finish.
+func settle(fe: Node) -> void:
+	await frames(2)
+	while fe.busy:
+		await process_frame
+
+
+func run() -> void:
+	var fe = load("res://menu/front_end.tscn").instantiate()
+	root.add_child(fe)
+	await frames(2)
+	fe._on_button(fe._key_for_label("Preferences"))
+	await settle(fe)
+	check(fe.screen == "pref", "Main -> Preferences")
+	check(Settings().pref_page == "Sound", "first visit opens Sound")
+	check(fe.checked.get(fe._key_for_label("Sound"), false), "Sound tab lit")
+	check(fe._score_frame(fe.pref_work) == 4, "defaults score 100 % (frame 4)")
+	check(fe.pref_work.easy_landing and fe.pref_work.ai_level == 1, "defaults: Easy Landing on, Normal AI")
+	fe._on_button(fe._key_for_label("Gameplay"))
+	check(Settings().pref_page == "Gameplay", "Gameplay tab")
+	# NO BLACKOUTS: page rect (24,78)-(154,113).
+	click(fe, fe.CONTENT.position + Vector2(60, 95))
+	check(fe.pref_work.no_blackouts and not Settings().no_blackouts, "NO BLACKOUTS toggled in the working copy only")
+	check(fe._score_frame(fe.pref_work) == 6, "NO BLACKOUTS costs 10 % (frame 6)")
+	# Expert AI adds 20 %.
+	click(fe, fe.CONTENT.position + Vector2(200, 130))
+	check(fe.pref_work.ai_level == 2 and fe._score_frame(fe.pref_work) == 2, "Expert AI: 110 % (frame 2)")
+	click(fe, fe.CONTENT.position + Vector2(200, 95))
+	fe._on_button("back")
+	await settle(fe)
+	check(not fe.msgbox.is_empty() and fe.msgbox.text == "Save changes?", "leaving asks Save changes?")
+	check(fe.msgbox.buttons.size() == 3 and fe._msgbox_buttons()[0].position.x == fe._msgbox_origin().x + 40, "Yes / No / Cancel at 40 / 130 / 220")
+	# Cancel stays on the screen.
+	var cancel: Rect2 = fe._msgbox_buttons()[2]
+	fe._msgbox_input(mouse_button(fe._to_screen(cancel.get_center()), true))
+	fe._msgbox_input(mouse_button(fe._to_screen(cancel.get_center()), false))
+	await settle(fe)
+	check(fe.screen == "pref" and fe.msgbox.is_empty() and fe.pref_work.no_blackouts, "Cancel stays with the edits")
+	fe._on_button("back")
+	var yes: Rect2 = fe._msgbox_buttons()[0]
+	fe._msgbox_input(mouse_button(fe._to_screen(yes.get_center()), true))
+	fe._msgbox_input(mouse_button(fe._to_screen(yes.get_center()), false))
+	await settle(fe)
+	check(Settings().no_blackouts, "Yes commits NO BLACKOUTS")
+	check(fe.screen == "main", "then goes back to Main")
+	fe._on_button(fe._key_for_label("Preferences"))
+	await settle(fe)
+	check(Settings().pref_page == "Gameplay", "Preferences reopens the last page")
+	fe._on_button("back")
+	await settle(fe)
+	check(fe.msgbox.is_empty() and fe.screen == "main", "no changes: no question")

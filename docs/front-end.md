@@ -110,10 +110,12 @@ the Log screen (not traced).
   into the art; **"CONTINUE" is `mbgfly`**. Top edge `y = H - bh*5/3 = 90`.
   * 1 button: `x = W/2 - bw/2 = 130`.
   * 2 buttons: `x = W/2 - bw - bw/4 = 85` and `W/2 + bw/4 = 175`.
+  * 3 buttons (type 3, `4e3195`): YES at `W/2 - 2·bw = 40`, NO at `W/2 - bw/2 = 130`, CANCEL
+    (`misc/MBGCan`) at `W/2 + bw = 220`.
 * Types:
   * 0 OK
   * 1 OK+Cancel (loads `MBGCancel`, which is not in the install, UNCERTAIN)
-  * 3 Yes/No/Can
+  * 3 Yes/No/Cancel (`MBGYes`, `MBGNo`, `MBGCan`)
   * 4 Yes/No
   * 0x10000 Debrief+Fly (CONTINUE)
   * 0x20000 Debrief+Fly+Exit
@@ -689,6 +691,8 @@ message `0x55c` to the frame with wParam = the target screen and lParam = the bu
 * `PaletteIn.wav` and `PaletteOut.wav` play with the panel slides (§2).
 * `credits.wav` plays with the credits.
 * `menu_mo.wav` and `menu_mo.pk` are not referenced by name in the exe (UNCERTAIN).
+* `wav/pref/engines.wav`, `sfx.wav`, `speech.wav` loop while the matching Sound-page slider is dragged
+  (§12.5). `iaf-convert menu` copies them to `wav/pref/`.
 
 ## 10. TSD target window (brl type 5, `targ_t`, `FUN_005164f0`)
 
@@ -1057,6 +1061,49 @@ Three two-way choices. The top option has value 1.
   (UNCERTAIN: the caller was not traced).
 * DEFAULT restores the table from `0x647ff8` (UNCERTAIN: that is 0x20 before the list base
   `0x648018`).
+
+### 12.8 Hebrew pack art
+The Hebrew menu pack (docs/packs.md) replaces the page art (`pref/*_0/_1`, `cntrl_2`, `score`,
+`defbut_*`) and the `pPref` tab strip; the exe and its rects are unchanged. Checked by diffing `_1`
+against `_0` in both languages (pixel colour distance > 90, connected regions):
+* **Gameplay, Graphics, Devices:** the lit regions (LEDs, slider fills) are at exactly the English
+  positions. The Hebrew columns keep the English order (left column = Player skills, then Enemy level,
+  then Cheats; Devices: Flight controls, Rudder, Throttle); only the labels are translated.
+* **Sound:** the slider fills and the MUTE LED match too. The Hebrew `sound_1` also has brighter
+  labels (titles, "סגור" / "מקסימום"). These are outside the copied control rects, so they never
+  show, as in the original.
+* `score.bmp` keeps the 25 × 34 px frame layout, and `defbut` keeps the same size.
+
+So the Hebrew pages use the same rects as §12.3–§12.6.
+
+### 12.9 Implementation (game/menu/front_end.gd, game/settings.gd)
+* Everything above is ported: the tabs, "first visit Sound, then the last page" (`Settings.pref_page`,
+  kept for the session, not saved), the `_0` art plus lit rects from `_1`, sliders with the
+  `slider.bmp` thumb (image through its mask), the scoring strip, DEFAULT on every page but Devices,
+  the working copy, and msg 38 Yes/No/Cancel when leaving by BACK, MAIN or Esc.
+* The live previews are ported: music volume and Mute on the front-end music, and the wav/pref loops
+  for engine / SFX / speech. MASTER VOLUME sets the Godot master bus and is not stored, like the
+  original's mixer write.
+* Stored in `user://settings.cfg` (sections sound / graphics / devices / gameplay) with the original
+  defaults. The hardware detection that overrides the graphics defaults is not ported.
+* In-game effect so far: only No blackouts. The other flags are stored for when their readers are
+  built.
+* Graphics sliders snap to `round(v/step)·step` (UNCERTAIN, see §12.4).
+* **Controls page:** it shows the `cntrl_2` art only. The key table (`0x648018`) is not converted, so
+  the list, scrollbar and key editing are not built, and DEFAULT does nothing there.
+* **Extras tab (ours, not in the original).** A 6th tab, 44 px below Gameplay, the panel's button
+  spacing (rect 16,287,109,39).
+  * **Button art:** the `pPref` band around the Gameplay button (panel rect 12,203,116,54 from `_0`,
+    the button rect from the current frame), moved down 44 px. Its label (panel 42,219,62,16) is
+    filled in per row by blending the pixels on either side, then "EXTRAS" / "תוספות" is drawn in
+    Arial bold.
+  * **Page:** `screens/sgeneral` background, rows 35 px apart on the Gameplay page's grid, and LEDs
+    copied from `gamep_0/_1`. Mirrored in Hebrew.
+  * **Options:** Flight data (Original 1998 / Real F-16), Language (English / Hebrew; Hebrew only when
+    the pack is installed), Better physics, Flight info (F12) show/hide, Blackbox.
+  * **Behaviour:** the options go through the same working copy and "Save changes?" box. A language
+    change reloads the menus on Yes.
+  * The original has no language setting: the Hebrew pack simply replaces the resource files.
 
 ## 13. Login / Pilot Records screen (screen 0, `log.trx`)
 

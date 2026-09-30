@@ -20,21 +20,22 @@ listed below.
 | Subtitles | the original console: 40 slots, empty line every 3 s of sim time, newest 14 drawn (~40 s lifetime), x=4 y=10+15n, Arial 12/4, HUD colour; English only (no Hebrew exists — user decision) |
 | **Flight model** | Rust port (docs/flight-model.md), audited against the exe (§14): envelope on the ground, flaps, friction 0.05, brake flag, nose-wheel side force (stick X), 5 Hz touchdown / lift-off / stop rule, aero update re-bases the acceleration; engine off at a ground start ("1" starts it); gear lever rules (no gear-up on the ground, no gear-down > 300 kt); **original / real data sets** (Preferences); validation suite vs public F-16 data |
 | Real data set | real F-16 weights / thrust / roll / fuel / stall; geometric pedal nose-wheel steering; no ×4 ground-lift quirk; lift-off ~159 kt |
-| Blackout / redout | original accumulators and tunnel / red overlays, "Over G" voice and G sound; "No blackouts" option (on our stand-in Preferences page for now) |
+| Blackout / redout | original accumulators and tunnel / red overlays, "Over G" voice and G sound; "No blackouts" option (Preferences > Gameplay) |
 | Cockpit | original 2D panels of all cockpits from `cockpit.ibx`, gauges, ADI, standby horizon, conformal HUD in the original HUD colour table (H cycles 11 colours) |
 | **MFDs** | generic per cockpit (placement and default pages from the ini): radar (B-scope, horizon bars, range), TSD (map.emf, heading-up, route), RWR, MENU, NAV, stores, damage, ADI; OSB clicks; keys T / D / Q / R / S / . / , / W (docs/mfd.md) |
 | **Panel lights** | all cockpits (docs/cockpit.md): gear lamps per leg (grey up / red moving 2 s / green locked) + animated gear handle, flaps lamp, air brake, blink rule |
 | Controls | original keys from the default key table (0x647ff8) and the instructor texts: 1–8 throttle presets (1 starts the engine), 0 / 9 throttle ±5 %, B brakes, G gear, F flaps, arrows stick (← → steer on the ground), Ins / Del rudder, MFD / radar / waypoint keys, H HUD colour |
 | **Front end** | original screens / buttons / animations / sounds / music (docs/front-end.md), training + campaign navigation, Jet list with per-mission locks, Hebrew via the community packs |
+| **Preferences** | original Graphics / Sound / Controls / Devices / Gameplay pages (§12): art with lit controls, sliders, scoring strip, DEFAULT, working copy + "Save changes?" Yes/No/Cancel, all original prefs stored with their defaults (only No blackouts, music volume and Mute have an effect so far); our own **Extras** tab for Flight data / Language / Better physics / Flight info / Blackbox |
 | **TSD** | EMF vector map (+ grid / text), units (known flag, icons, sides, headings), flights and default flight, waypoints (drag to edit, route goes to the flight), double-click a leader to fly, zoom / scrollbars, mission title / clock, briefing window with links (lesson RTF, instructor card), message boxes |
 | Briefings | RTF with colours → BBCode (EN + HE pack), `.brl` link types |
-| Tests | `tools/test.sh`: Rust tests + 10 headless Godot tests (mission start, taxi, gear rules, menu → TSD → fly, mission runtime, console, G effects, takeoff roll, the ground-pull glitch, real steering); `IAF_DEFAULT_SETTINGS=1` isolates tests from the player's settings and data |
+| Tests | `tools/test.sh`: Rust tests + 11 headless Godot tests (mission start, taxi, gear rules, menu → TSD → fly, Preferences, mission runtime, console, G effects, takeoff roll, the ground-pull glitch, real steering); `IAF_DEFAULT_SETTINGS=1` isolates tests from the player's settings and data |
 | Tools | `iaf-mission-report` → docs/mission-coverage.md (what each mission needs); flight recorder `user://last_flight.csv` |
 
 ## Known gaps (open)
-1. **Front end** (all decoded in docs/front-end.md, not built): original Preferences pages (Graphics / Sound / Controls /
-   Devices / Gameplay art, §12 — "No blackouts" lives on the original Gameplay page; ours is a stand-in), Login / Pilot
-   Records and mission unlocking (§13), Reference (§14), Arming (§15), QUIT confirmation (msg 7), TSD 3D-model and target
+1. **Front end** (all decoded in docs/front-end.md, not built): Preferences Controls key list / key editing (§12.7: the
+   key table is not converted; the page shows its art only) and the in-game effect of the stored prefs other than
+   No blackouts, Login / Pilot Records and mission unlocking (§13), Reference (§14), Arming (§15), QUIT confirmation (msg 7), TSD 3D-model and target
    windows (§10–§11), TSD selected-unit label (§8.1). Out of scope for now: Multiplayer, Mission Creator, Jump In.
 2. **Only the F-16 is flyable**: other jets are shown disabled; campaign missions start in the F-16 whatever the mission says.
 3. **MFDs**: radar contacts / lock / STT, radar MAP (isr.bmp) and GMT content, RWR threats, HARM / TV / FLIR content,
@@ -64,7 +65,8 @@ listed below.
 2. **Finish the flight physics** (airborne port audit §15, stall / spin / departure, AB light-up, landing / crash
    check, preference branches, airborne start), then **complete the F-16 model**: afterburner flame / nozzle and
    the other visual parts driven by the flight state.
-3. Remaining front-end screens from the decoded specs: original Preferences pages (incl. "No blackouts"), QUIT
+3. Remaining front-end screens from the decoded specs: ~~original Preferences pages~~ (done; Controls key list
+   pending), QUIT
    confirmation, pilot records and mission unlocking, TSD selected-unit label and 3D-model / target windows, Arming.
 4. In-flight sounds (engine, wind, gear, warnings) and the landing / crash check.
 5. Next training missions (docs/mission-coverage.md): what Landing (312) and Low Level Navigation (313) need.

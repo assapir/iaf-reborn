@@ -2,13 +2,57 @@
 extends Node
 
 const PATH := "user://settings.cfg"
+## Stored preferences by config section: the original pages, then our own options (Extras tab).
+const PREFS := {
+	"sound": ["mute", "music_volume", "engine_volume", "sfx_volume", "speech_volume"],
+	"graphics": ["terrain_detail", "object_detail", "visual_effects", "smoke_trails", "textured_sky",
+		"shadows", "external_stores"],
+	"devices": ["flight_controls", "rudder", "throttle"],
+	"gameplay": ["no_wind", "no_blackouts", "no_spins", "no_stalls", "easy_landing", "easy_aiming",
+		"no_malfunctions", "ai_level", "invulnerable", "no_crashes", "unlimited_ammo", "unlimited_fuel",
+		"flight_data", "language", "better_physics", "show_info", "blackbox"],
+}
 
 ## Flight data: "original" (Jane's IAF 1998 numbers) or "real" (corrected real-world F-16 data).
 var flight_data := "original"
 ## Briefing language: "en" or "he" (Hebrew only when the Hebrew pack is installed).
 var language := "en"
-## Gameplay preference "No blackouts" (original pref, default off = blackouts on).
+
+## --- Original preferences (docs/front-end.md §12), original defaults (FUN_004eee10) ---------
+## Sound page. The master volume is not stored (the original sets the Windows mixer).
+var mute := false
+var music_volume := 1.0
+var engine_volume := 0.8
+var sfx_volume := 1.0
+var speech_volume := 1.0
+## Graphics page (the original then overwrites these defaults from hardware detection).
+var terrain_detail := 0.75
+var object_detail := 1.0
+var visual_effects := 1.0
+var smoke_trails := true
+var textured_sky := true
+var shadows := true
+var external_stores := true
+## Devices page: 1 = joystick / pedals, 0 = keyboard.
+var flight_controls := 1
+var rudder := 0
+var throttle := 0
+## Gameplay page. ai_level: 0 Rookie, 1 Normal, 2 Expert.
+var no_wind := false
 var no_blackouts := false
+var no_spins := false
+var no_stalls := false
+var easy_landing := true
+var easy_aiming := false
+var no_malfunctions := false
+var ai_level := 1
+var invulnerable := false
+var no_crashes := false
+var unlimited_ammo := false
+var unlimited_fuel := false
+## Preferences page shown when the screen opens (DAT_00836d2c: zero = Sound on the first visit,
+## then the last page used; not saved).
+var pref_page := "Sound"
 ## "Better physics": opt-in fixes of original flight-model quirks (docs/roadmap.md).
 var better_physics := false
 ## Our flight-info line at the bottom left (not in the original); F12 toggles it.
@@ -41,12 +85,11 @@ func _ready() -> void:
 		return
 	var cfg := ConfigFile.new()
 	if cfg.load(PATH) == OK:
-		flight_data = cfg.get_value("gameplay", "flight_data", flight_data)
-		language = cfg.get_value("gameplay", "language", language)
-		no_blackouts = cfg.get_value("gameplay", "no_blackouts", no_blackouts)
-		better_physics = cfg.get_value("gameplay", "better_physics", better_physics)
-		show_info = cfg.get_value("gameplay", "show_info", show_info)
-		blackbox = cfg.get_value("gameplay", "blackbox", blackbox)
+		for section in PREFS:
+			for key in PREFS[section]:
+				var value = cfg.get_value(section, key, get(key))
+				if typeof(value) == typeof(get(key)):
+					set(key, value)
 	if language == "he" and not hebrew_available():
 		language = "en"
 
@@ -55,13 +98,24 @@ func save() -> void:
 	if isolated():
 		return
 	var cfg := ConfigFile.new()
-	cfg.set_value("gameplay", "flight_data", flight_data)
-	cfg.set_value("gameplay", "language", language)
-	cfg.set_value("gameplay", "no_blackouts", no_blackouts)
-	cfg.set_value("gameplay", "better_physics", better_physics)
-	cfg.set_value("gameplay", "show_info", show_info)
-	cfg.set_value("gameplay", "blackbox", blackbox)
+	for section in PREFS:
+		for key in PREFS[section]:
+			cfg.set_value(section, key, get(key))
 	cfg.save(PATH)
+
+
+## The original default of a stored preference (the DEFAULT button, §12.2).
+func default_value(key: String) -> Variant:
+	if _defaults.is_empty():
+		var fresh: Node = get_script().new()
+		for section in PREFS:
+			for k in PREFS[section]:
+				_defaults[k] = fresh.get(k)
+		fresh.free()
+	return _defaults.get(key)
+
+
+var _defaults := {}
 
 
 func real_data() -> bool:

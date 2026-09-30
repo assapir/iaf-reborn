@@ -24,9 +24,79 @@ const LIST_DESC_PX := 11.0
 const LIST_TITLE := Color8(0, 255, 0)
 const LIST_DESC := Color8(0, 128, 0)
 const LIST_DESC_LIT := Color8(0, 255, 0)
-## Our preference page (not in the original) uses the same text style.
-const PREF_TEXT := LIST_DESC_LIT
-const PREF_DIM := LIST_DESC
+
+## Preferences (docs/front-end.md §12). Page rects are (l, t, r, b) in page coordinates; a page
+## covers the content window, so screen = page + CONTENT.position.
+## Page art: <art>_0 unlit, <art>_1 lit (Controls: cntrl_2 only).
+const PREF_ART := {"Sound": "sound", "Graphics": "graph", "Controls": "cntrl", "Devices": "cntrl", "Gameplay": "gamep"}
+## Controls per page: [kind, setting, value (radio) / step (slider, 0 = continuous), rect].
+const PREF_CONTROLS := {
+	"Sound": [
+		["slider", "master_volume", 0.0, [19, 17, 419, 32]],
+		["slider", "music_volume", 0.0, [19, 78, 419, 93]],
+		["slider", "engine_volume", 0.0, [19, 139, 419, 164]],
+		["slider", "sfx_volume", 0.0, [19, 200, 419, 215]],
+		["slider", "speech_volume", 0.0, [19, 261, 419, 276]],
+		["check", "mute", true, [8, 307, 68, 327]],
+	],
+	"Graphics": [
+		["slider", "terrain_detail", 0.25, [19, 62, 419, 77]],
+		["slider", "object_detail", 0.5, [19, 148, 419, 163]],
+		["slider", "visual_effects", 0.5, [19, 236, 419, 251]],
+		["check", "smoke_trails", true, [7, 306, 112, 326]],
+		["check", "textured_sky", true, [112, 306, 217, 326]],
+		["check", "shadows", true, [217, 306, 303, 326]],
+		["check", "external_stores", true, [303, 306, 423, 326]],
+	],
+	"Controls": [],
+	"Devices": [
+		["radio", "flight_controls", 1, [25, 73, 102, 92]],
+		["radio", "flight_controls", 0, [25, 108, 109, 127]],
+		["radio", "rudder", 1, [193, 73, 267, 92]],
+		["radio", "rudder", 0, [193, 108, 276, 127]],
+		["radio", "throttle", 1, [317, 73, 394, 92]],
+		["radio", "throttle", 0, [317, 108, 399, 127]],
+	],
+	"Gameplay": [
+		["check", "no_wind", true, [24, 45, 154, 78]],
+		["check", "no_blackouts", true, [24, 78, 154, 113]],
+		["check", "no_spins", true, [24, 113, 154, 148]],
+		["check", "no_stalls", true, [24, 148, 154, 183]],
+		["check", "easy_landing", true, [24, 183, 154, 218]],
+		["check", "easy_aiming", true, [24, 218, 154, 253]],
+		["check", "no_malfunctions", true, [24, 253, 154, 287]],
+		["radio", "ai_level", 0, [164, 45, 275, 78]],
+		["radio", "ai_level", 1, [164, 78, 275, 113]],
+		["radio", "ai_level", 2, [164, 113, 275, 148]],
+		["check", "invulnerable", true, [285, 45, 435, 78]],
+		["check", "no_crashes", true, [285, 78, 435, 113]],
+		["check", "unlimited_ammo", true, [285, 113, 435, 148]],
+		["check", "unlimited_fuel", true, [285, 148, 435, 183]],
+	],
+}
+## Slider thumb pref/slider.bmp (19x30: image over mask), drawn 15 high at x0 + fill - 6.
+const PREF_THUMB := Vector2(19, 15)
+## DEFAULT button (pref/defbut_0/_2), on every page except Devices.
+const PREF_DEFAULT := Rect2(357, 330, 85, 23)
+## Gameplay scoring strip: pref/score.bmp, 25 frames of 151x34.
+const PREF_SCORE := Rect2(290, 184, 151, 34)
+## Live preview sounds while dragging (wav/pref, FUN_005424c0).
+const PREF_PREVIEW := {"engine_volume": "pref/engines", "sfx_volume": "pref/sfx", "speech_volume": "pref/speech"}
+## Our own "Extras" tab (not in the original): directly below Gameplay at the panel's spacing
+## (44 px). Drawn from the pPref art: the band holding the Gameplay button (panel coordinates, inside
+## the edge rulers) moved down 44 px, its label filled in row by row, our text on top.
+const EXTRAS_TAB := Rect2(16, 287, 109, 39)
+const EXTRAS_BAND := Rect2(12, 203, 116, 54)
+const EXTRAS_LABEL := Rect2(42, 219, 62, 16)
+const EXTRAS_STEP := 44.0
+## Our options on the Extras page: [setting, label, [[choice label, value], ...]].
+const EXTRAS := [
+	["flight_data", "Flight data", [["Original (1998)", "original"], ["Real F-16", "real"]]],
+	["language", "Language", [["English", "en"], ["Hebrew", "he"]]],
+	["better_physics", "Better physics", [["Off", false], ["On", true]]],
+	["show_info", "Flight info (F12)", [["Show", true], ["Hide", false]]],
+	["blackbox", "Blackbox", [["On", true], ["Off", false]]],
+]
 
 ## Button-release dispatcher FUN_004eaf50: screen -> {button label -> next screen}.
 ## Basic/Combat mission buttons go to the Jet list; Jet and campaign mission buttons load the
@@ -83,8 +153,11 @@ var frames := {}
 var checked := {}
 var held := ""  # key of the button the mouse is holding down
 var hover_key := ""
-var pref_page := "Gameplay"
-var pref_hotspots: Array = []  # [Rect2 (menu coordinates), setting, value]
+## Preferences working copy (§12.2): committed to Settings only on "Save changes?" Yes.
+var pref_work := {}
+## Slider being dragged ([setting, rect, step]) and whether DEFAULT is held down.
+var pref_drag: Array = []
+var pref_default_held := false
 
 ## TSD (screen 0x1e): the map/briefing node, where BACK returns to, and its check buttons,
 ## which persist while the mission is loaded (DAT_00836cd4..d1c, defaults FUN_004efc60).
@@ -98,6 +171,7 @@ var top_layer: Control
 
 var music: AudioStreamPlayer
 var sfx: AudioStreamPlayer
+var preview: AudioStreamPlayer
 var sounds := {}
 
 
@@ -108,8 +182,10 @@ func _ready() -> void:
 	font_bold = _arial(700)
 	music = AudioStreamPlayer.new()
 	sfx = AudioStreamPlayer.new()
+	preview = AudioStreamPlayer.new()
 	add_child(music)
 	add_child(sfx)
+	add_child(preview)
 	top_layer = Control.new()
 	top_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	top_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -225,8 +301,15 @@ func _start_music() -> void:
 	s.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	s.loop_end = int(s.get_length() * s.mix_rate)
 	music.stream = s
-	music.volume_db = 0.0
+	_apply_music_volume()
 	music.play()
+
+
+## Music volume and Mute (Sound page); while on Preferences the working copy is previewed.
+func _apply_music_volume() -> void:
+	var w: Dictionary = pref_work if screen == "pref" else {}
+	var vol: float = w.get("music_volume", Settings.music_volume)
+	music.volume_db = -80.0 if w.get("mute", Settings.mute) or vol <= 0.0 else linear_to_db(vol)
 
 
 # --- screen model -----------------------------------------------------------------------
@@ -270,7 +353,11 @@ func _enter_screen() -> void:
 	frames.clear()
 	checked.clear()
 	if screen == "pref":
-		checked[_key_for_label(pref_page)] = true
+		checked[_key_for_label(Settings.pref_page)] = true
+		pref_work.clear()
+		for section in Settings.PREFS:
+			for k in Settings.PREFS[section]:
+				pref_work[k] = Settings.get(k)
 	if screen in ["tsd", "arm"]:
 		_restore_tsd_checks()
 	if screen == "tsd" and tsd == null:
@@ -462,6 +549,8 @@ func _draw_panels() -> void:
 			var r: Array = btn.rect
 			var src := Rect2(r[0] - panel.pos[0], r[1] - panel.pos[1], r[2], r[3])
 			_blit_region(path, src, Vector2(r[0], r[1]) + delta)
+		if screen == "pref" and panel.side == "left":
+			_draw_extras_tab(delta)
 
 
 func _draw_content(def: Dictionary) -> void:
@@ -530,44 +619,173 @@ func _text_block(box: Rect2, text: String, px: float, color: Color) -> void:
 	draw_multiline_string(font, r.position + Vector2(0, font.get_ascent(fs)), text, align, r.size.x, fs, lines, color)
 
 
-## Our own settings on the Preferences "Gameplay" page (the original's pages are not built).
+## Preferences page (§12.1): the page's _0 art, every control that is on copied from _1, sliders
+## with their thumb, the Gameplay scoring strip and the DEFAULT button.
 func _draw_prefs() -> void:
-	pref_hotspots.clear()
-	var x := CONTENT.position.x + 30
-	var y := CONTENT.position.y + 60
-	var width := CONTENT.size.x - 60
-	_text_line(Rect2(x, y - 34, width, 20), _t(pref_page).to_upper(), LIST_TITLE_PX + 3, LIST_TITLE, font_bold)
-	if pref_page != "Gameplay":
-		_text_line(Rect2(x, y, width, 16), _t("(not available yet)"), LIST_TITLE_PX, PREF_DIM)
+	var page: String = Settings.pref_page
+	if page == "Extras":
+		_draw_extras()
 		return
-	var options := [
-		["Flight data", [["Original (Jane's IAF 1998)", "original"], ["Real F-16", "real"]], "flight_data"],
-		["Language", [["English", "en"], ["Hebrew", "he"]], "language"],
-		["No blackouts", [["Off", false], ["On", true]], "no_blackouts"],
-		["Better physics", [["Off", false], ["On", true]], "better_physics"],
-		["Flight info (F12)", [["Hide", false], ["Show", true]], "show_info"],
-		["Blackbox", [["Off", false], ["On", true]], "blackbox"],
-	]
-	var rtl := _he()
-	var fs := int(round(LIST_TITLE_PX * _scale()))
-	for opt in options:
-		_text_line(Rect2(x, y, width, 16), _t(opt[0]), LIST_TITLE_PX, LIST_TITLE)
-		var ox := x + width - 130 if rtl else x + 130
-		for choice in opt[1]:
-			var value = choice[1]
-			var label := _t(choice[0])
+	var art: String = PREF_ART.get(page, "")
+	var at := CONTENT.position
+	_blit("pref/%s_%d.png" % [art, 2 if page == "Controls" else 0], at)
+	var lit := "pref/%s_1.png" % art
+	for c in PREF_CONTROLS.get(page, []):
+		var r := _ltrb(c[3])
+		match c[0]:
+			"check", "radio":
+				if pref_work.get(c[1]) == c[2]:
+					_blit_region(lit, r, at + r.position)
+			"slider":
+				var fill := int(_pref_value(c[1]) * r.size.x)
+				if fill > 0:
+					_blit_region(lit, Rect2(r.position, Vector2(fill, r.size.y)), at + r.position)
+				var thumb := _slider_thumb()
+				if thumb != null:
+					draw_texture_rect(thumb, _rect(Rect2(at + r.position + Vector2(fill - 6, 0), PREF_THUMB)), false)
+	if page == "Gameplay":
+		var src := Rect2(Vector2(0, PREF_SCORE.size.y * _score_frame(pref_work)), PREF_SCORE.size)
+		_blit_region("pref/score.png", src, at + PREF_SCORE.position)
+	if page != "Devices":
+		_blit("pref/defbut_%d.png" % (2 if pref_default_held else 0), at + PREF_DEFAULT.position)
+
+
+static func _ltrb(a: Array) -> Rect2:
+	return Rect2(a[0], a[1], a[2] - a[0], a[3] - a[1])
+
+
+## Slider value 0..1; the master volume is not stored (the original sets the system mixer).
+func _pref_value(key: String) -> float:
+	if key == "master_volume":
+		return AudioServer.get_bus_volume_linear(0)
+	return float(pref_work.get(key, 0.0))
+
+
+## pref/slider.bmp: the top half drawn through the bottom half's mask (SRCAND, then SRCPAINT).
+func _slider_thumb() -> Texture2D:
+	var key := "pref/slider_thumb"
+	if not textures.has(key):
+		var path := dir.path_join("img/pref/slider.png")
+		var img := Image.load_from_file(path) if FileAccess.file_exists(path) else null
+		if img == null:
+			textures[key] = null
+			return null
+		img.convert(Image.FORMAT_RGBA8)
+		var h := img.get_height() / 2
+		var out := Image.create(img.get_width(), h, false, Image.FORMAT_RGBA8)
+		for y in h:
+			for x in img.get_width():
+				var c := img.get_pixel(x, y)
+				c.a = 1.0 - img.get_pixel(x, y + h).get_luminance()
+				out.set_pixel(x, y, c)
+		textures[key] = ImageTexture.create_from_image(out)
+	return textures[key]
+
+
+## Scoring strip frame (§12.3, FUN_004ef7e0): 0 = 120 % ... 20 = 20 % ... 24 = no scoring.
+static func _score_frame(p: Dictionary) -> int:
+	var m := 1.0 + (0.2 if p.get("ai_level") == 2 else 0.0)
+	var costs := {"no_wind": 0.05, "no_blackouts": 0.1, "no_spins": 0.05, "no_stalls": 0.05,
+		"easy_aiming": 0.1, "no_malfunctions": 0.05, "invulnerable": 1.0, "no_crashes": 0.5,
+		"unlimited_ammo": 0.5, "unlimited_fuel": 0.25}
+	for k in costs:
+		if p.get(k, false):
+			m -= costs[k]
+	if p.get("ai_level") == 0:
+		m -= 0.2
+	m = maxf(m, 0.0)
+	return clampi(24 - int(20.0 * m + 0.5), 0, 24)
+
+
+## Our Extras tab button (EXTRAS_BAND) for the current frame, with our label.
+func _draw_extras_tab(delta: Vector2) -> void:
+	var f: int = frames.get("extras", 2 if Settings.pref_page == "Extras" else 0)
+	var t := _extras_tab_tex(f)
+	if t == null:
+		return
+	var panel_pos := Vector2(0, 35)
+	var dest := panel_pos + EXTRAS_BAND.position + Vector2(0, EXTRAS_STEP) + delta
+	draw_texture_rect(t, _rect(Rect2(dest, EXTRAS_BAND.size)), false)
+	var label := Rect2(panel_pos + EXTRAS_LABEL.position + Vector2(0, EXTRAS_STEP) + delta, EXTRAS_LABEL.size)
+	var fs := int(round(12 * _scale()))
+	var box := _rect(label)
+	var base := box.position.y + (box.size.y + font_bold.get_ascent(fs) - font_bold.get_descent(fs)) / 2.0
+	draw_string(font_bold, Vector2(box.position.x, base), _t("Extras") if _he() else "EXTRAS", HORIZONTAL_ALIGNMENT_CENTER, box.size.x, fs, Color8(185, 185, 185))
+
+
+## The band cut from palettes/ppref_<f>, label pixels replaced per row by a blend of the pixels
+## left and right of the label.
+func _extras_tab_tex(f: int) -> Texture2D:
+	var key := "extras_tab_%d" % f
+	if not textures.has(key):
+		var imgs := []
+		for n in [0, f]:
+			var path := dir.path_join("img/palettes/ppref_%d.png" % n)
+			var img := Image.load_from_file(path) if FileAccess.file_exists(path) else null
+			if img == null:
+				textures[key] = null
+				return null
+			img.convert(Image.FORMAT_RGBA8)
+			imgs.append(img)
+		# The panel from _0, the button rect (Gameplay: panel (16,208) 109x39) from _<f>.
+		var band: Image = imgs[0].get_region(Rect2i(EXTRAS_BAND.position * art_scale, EXTRAS_BAND.size * art_scale))
+		var button := Rect2(16, 208, 109, 39)
+		band.blit_rect(imgs[1], Rect2i(button.position * art_scale, button.size * art_scale), Vector2i((button.position - EXTRAS_BAND.position) * art_scale))
+		var a := Rect2i((EXTRAS_LABEL.position - EXTRAS_BAND.position) * art_scale, EXTRAS_LABEL.size * art_scale)
+		for y in range(a.position.y, a.end.y):
+			var c0 := band.get_pixel(a.position.x - 1, y)
+			var c1 := band.get_pixel(a.end.x, y)
+			for x in range(a.position.x, a.end.x):
+				band.set_pixel(x, y, c0.lerp(c1, float(x - a.position.x + 1) / float(a.size.x + 1)))
+		band.generate_mipmaps()
+		textures[key] = ImageTexture.create_from_image(band)
+	return textures[key]
+
+
+## Extras page (ours): one row per option in the Gameplay page's grid (rows 35 apart from y 45,
+## columns at x 24 / 164 / 285), LEDs copied from the Gameplay art. Mirrored in Hebrew.
+func _extras_items() -> Array:
+	var items := []
+	for i in EXTRAS.size():
+		var opt: Array = EXTRAS[i]
+		var y := 45.0 + 35.0 * i
+		var choices: Array = opt[2]
+		for j in choices.size():
+			var r := Rect2(164.0 + 121.0 * j, y, 111.0 if j == 0 else 150.0, 35.0)
+			if _he():
+				r.position.x = CONTENT.size.x - r.end.x
+			var value = choices[j][1]
 			var available: bool = not (typeof(value) == TYPE_STRING and value == "he" and not Settings.hebrew_available())
-			var current: bool = Settings.get(opt[2]) == value
-			var w: float = font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x / _scale() + 12
-			var r := Rect2(ox - w if rtl else ox, y, w, 18)
-			if current:
-				draw_rect(_rect(r), Color(LIST_DESC, 0.6))
-			var color := LIST_DESC_LIT if current else (PREF_TEXT if available else PREF_DIM)
-			_text_line(Rect2(r.position + Vector2(6, 0), r.size - Vector2(6, 2)), label, LIST_TITLE_PX, color if available else PREF_DIM)
-			if available:
-				pref_hotspots.append([r, opt[2], value])
-			ox += -(w + 8) if rtl else w + 8
-		y += 34
+			items.append({"rect": r, "key": opt[0], "value": value, "label": choices[j][0], "available": available})
+	return items
+
+
+func _draw_extras() -> void:
+	var at := CONTENT.position
+	_blit("screens/sgeneral.png", at)
+	var he := _he()
+	var line := Color(LIST_TITLE, 0.55)
+	# Header band and row separators, as on the original pages.
+	_text_line(Rect2(at + Vector2(24, 12), Vector2(CONTENT.size.x - 48, 22)), _t("Extras") if he else "EXTRAS", LIST_TITLE_PX + 2, LIST_TITLE, font_bold)
+	for i in EXTRAS.size() + 1:
+		var y := 45.0 + 35.0 * i
+		draw_line(_to_screen(at + Vector2(18, y)), _to_screen(at + Vector2(CONTENT.size.x - 18, y)), line, maxf(1.0, _scale() * 0.5))
+	for i in EXTRAS.size():
+		var y := 45.0 + 35.0 * i
+		var r := Rect2(24, y + 4, 136, 20)
+		if he:
+			r.position.x = CONTENT.size.x - r.end.x
+		_text_line(Rect2(at + r.position, r.size), _t(EXTRAS[i][1]), LIST_TITLE_PX, LIST_TITLE, font_bold)
+	for it in _extras_items():
+		var r: Rect2 = it.rect
+		var on: bool = pref_work.get(it.key) == it.value
+		# The LED with its frame, from the Gameplay page's NO WIND row (page (28,55) in row (24,45)).
+		var led := Rect2(Vector2(4, 10), Vector2(11, 11))
+		var led_x := r.end.x - led.end.x if he else r.position.x + led.position.x
+		if it.available:
+			_blit_region("pref/gamep_%d.png" % (1 if on else 0), Rect2(Vector2(28, 55), led.size), at + Vector2(led_x, r.position.y + led.position.y))
+		var label := Rect2(at + Vector2(r.position.x + (0.0 if he else 22.0), r.position.y + 4), Vector2(r.size.x - 22, 20))
+		_text_line(label, _t(it.label), LIST_TITLE_PX, (LIST_DESC_LIT if on else LIST_DESC) if it.available else Color(LIST_DESC, 0.5))
 
 
 # --- input ------------------------------------------------------------------------------
@@ -578,6 +796,8 @@ func _hit(p: Vector2) -> String:
 		return "" if screen in NO_BACK else "back"
 	if Rect2(MAIN_POS, Vector2(35, 59)).has_point(p):
 		return "main"
+	if screen == "pref" and EXTRAS_TAB.has_point(p):
+		return "extras"
 	var panels := _panels()
 	for pi in panels.size():
 		for bi in panels[pi].buttons.size():
@@ -592,6 +812,8 @@ func _gui_input(event: InputEvent) -> void:
 	if busy:
 		return
 	if event is InputEventMouseMotion:
+		if not pref_drag.is_empty():
+			_pref_slide(_to_menu(event.position).x - CONTENT.position.x)
 		var k := _hit(_to_menu(event.position))
 		hover_key = k if "/" in k else ""
 		# Dragging out of a held button releases it; back in presses it again (§3.1).
@@ -604,26 +826,130 @@ func _gui_input(event: InputEvent) -> void:
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		var p := _to_menu(event.position)
 		if event.pressed:
-			if screen == "pref" and _pref_click(p):
+			if screen == "pref" and msgbox.is_empty() and _pref_press(p - CONTENT.position):
 				return
 			held = _hit(p)
 			if held != "":
 				_animate_press(held)
+		elif not pref_drag.is_empty() or pref_default_held:
+			_pref_release(p - CONTENT.position)
 		elif held != "":
 			var key := held
 			held = ""
 			_animate_release(key, _hit(p) == key)
 
 
-func _pref_click(p: Vector2) -> bool:
-	for h in pref_hotspots:
-		if h[0].has_point(p):
-			Settings.set(h[1], h[2])
-			Settings.save()
-			if h[1] == "language":
-				_load_menu_data()
+## Mouse down on a Preferences page (page coordinates): checks toggle, radios select, sliders
+## start a drag (the hit area extends a thumb width past both ends), DEFAULT presses.
+func _pref_press(q: Vector2) -> bool:
+	var page: String = Settings.pref_page
+	if not Rect2(Vector2.ZERO, CONTENT.size).has_point(q):
+		return false
+	if page == "Extras":
+		for it in _extras_items():
+			if it.available and it.rect.has_point(q):
+				pref_work[it.key] = it.value
+				return true
+		return false
+	if page != "Devices" and PREF_DEFAULT.has_point(q):
+		pref_default_held = true
+		_play("buttonin")
+		return true
+	for c in PREF_CONTROLS.get(page, []):
+		var r := _ltrb(c[3])
+		match c[0]:
+			"check":
+				if r.has_point(q):
+					pref_work[c[1]] = not pref_work[c[1]]
+					if c[1] == "mute":
+						_apply_music_volume()
+					return true
+			"radio":
+				if r.has_point(q):
+					pref_work[c[1]] = c[2]
+					return true
+			"slider":
+				if r.grow_individual(PREF_THUMB.x, 0, PREF_THUMB.x, 0).has_point(q):
+					pref_drag = [c[1], r, c[2]]
+					_pref_slide(q.x)
+					if PREF_PREVIEW.has(c[1]):
+						var s := _sound(PREF_PREVIEW[c[1]])
+						if s != null:
+							s.loop_mode = AudioStreamWAV.LOOP_FORWARD
+							s.loop_end = int(s.get_length() * s.mix_rate)
+							preview.stream = s
+							preview.volume_db = linear_to_db(maxf(_pref_value(c[1]), 0.0001))
+							preview.play()
+					return true
+	return false
+
+
+## Slider drag: v = (x - x0) / (x1 - x0) clamped to [0, 1]; Graphics sliders snap to their step
+## (UNCERTAIN: the original's rounding).
+func _pref_slide(x: float) -> void:
+	var key: String = pref_drag[0]
+	var r: Rect2 = pref_drag[1]
+	var step: float = pref_drag[2]
+	var v := clampf((x - r.position.x) / r.size.x, 0.0, 1.0)
+	if step > 0.0:
+		v = roundf(v / step) * step
+	if key == "master_volume":
+		AudioServer.set_bus_volume_linear(0, v)
+		return
+	pref_work[key] = v
+	if key == "music_volume":
+		_apply_music_volume()
+	elif PREF_PREVIEW.has(key):
+		preview.volume_db = linear_to_db(maxf(v, 0.0001))
+
+
+func _pref_release(q: Vector2) -> void:
+	if pref_default_held:
+		pref_default_held = false
+		if PREF_DEFAULT.has_point(q):
+			_play("buttonout")
+			_pref_defaults()
+	pref_drag = []
+	preview.stop()
+
+
+## DEFAULT (§12.2): the page's settings back to the original defaults (Controls: the key table,
+## which is not built).
+func _pref_defaults() -> void:
+	for c in PREF_CONTROLS.get(Settings.pref_page, []):
+		if c[1] != "master_volume":
+			pref_work[c[1]] = Settings.default_value(c[1])
+	_apply_music_volume()
+
+
+func _pref_changed() -> bool:
+	for k in pref_work:
+		if pref_work[k] != Settings.get(k):
 			return true
 	return false
+
+
+## Leaving a screen by BACK / MAIN / Esc. Preferences first asks msg 38 "Save changes?"
+## (Yes / No / Cancel) when the working copy differs (FUN_004fc900).
+func _leave(to: String) -> void:
+	if screen == "pref" and _pref_changed():
+		_message(38, [["yes", _pref_close.bind(to, true)], ["no", _pref_close.bind(to, false)], ["can", Callable()]])
+		return
+	_go(to)
+
+
+## Yes commits the working copy (and saves it); No drops it and restores the previewed volumes.
+func _pref_close(to: String, commit: bool) -> void:
+	var language := Settings.language
+	if commit:
+		for k in pref_work:
+			Settings.set(k, pref_work[k])
+		Settings.save()
+	pref_work.clear()
+	_apply_music_volume()
+	if Settings.language != language:
+		_load_menu_data()
+	_go(to)
 
 
 ## Press: frames _1, _2 with ButtonIn.wav, each held for half the sound (FUN_004e7f40).
@@ -657,7 +983,7 @@ func _on_button(key: String) -> void:
 		if screen == "tsd":
 			_message(8, [["yes", _go.bind(tsd_return)], ["no", Callable()]])
 		elif screen != "arm":  # BACK has no case on Arm (FUN_004eb990)
-			_go(_back_target())
+			_leave(_back_target())
 		return
 	if key == "main":
 		if screen in QUIT_SCREENS:
@@ -665,7 +991,12 @@ func _on_button(key: String) -> void:
 		elif screen in ["tsd", "arm"]:
 			_message(8, [["yes", _go.bind("main")], ["no", Callable()]])
 		else:
-			_go("main")
+			_leave("main")
+		return
+	if key == "extras":
+		for k in checked.keys():
+			checked[k] = false
+		Settings.pref_page = "Extras"
 		return
 	var btn := _button(key)
 	if btn.is_empty():
@@ -679,7 +1010,7 @@ func _on_button(key: String) -> void:
 			checked[key] = true
 	var label: String = btn.label
 	if screen == "pref":
-		pref_page = label
+		Settings.pref_page = label
 		return
 	if screen in ["tsd", "arm"]:
 		_tsd_button(key, _norm(label), btn)
@@ -887,12 +1218,12 @@ func _load_mission() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if busy or not (event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE):
+	if busy or not msgbox.is_empty() or not (event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE):
 		return
 	if screen in QUIT_SCREENS:
 		get_tree().quit()
 	elif not screen in NO_BACK:
-		_go(_back_target())
+		_leave(_back_target())
 
 
 # --- message box (§3.3) ---------------------------------------------------------------------
@@ -912,12 +1243,14 @@ func _msgbox_origin() -> Vector2:
 	return ((Vector2(W, H) - MSGBOX_SIZE) / 2).floor()
 
 
-## Button rects (menu coordinates): 1 centred, 2 at W/2 - bw - bw/4 and W/2 + bw/4, top H - 5/3 bh.
+## Button rects (menu coordinates), top H - 5/3 bh: 1 centred; 2 at W/2 - bw - bw/4 and W/2 + bw/4;
+## 3 (Yes/No/Cancel) at W/2 - 2 bw, W/2 - bw/2 and W/2 + bw.
 func _msgbox_buttons() -> Array:
 	var o := _msgbox_origin()
 	var bw := MSGBOX_BUTTON.x
 	var y := MSGBOX_SIZE.y - MSGBOX_BUTTON.y * 5.0 / 3.0
-	var xs: Array = [MSGBOX_SIZE.x / 2 - bw / 2] if msgbox.buttons.size() == 1 else [MSGBOX_SIZE.x / 2 - bw - bw / 4, MSGBOX_SIZE.x / 2 + bw / 4]
+	var cx := MSGBOX_SIZE.x / 2
+	var xs: Array = [[cx - bw / 2], [cx - bw - bw / 4, cx + bw / 4], [cx - 2 * bw, cx - bw / 2, cx + bw]][clampi(msgbox.buttons.size(), 1, 3) - 1]
 	var out := []
 	for i in mini(xs.size(), msgbox.buttons.size()):
 		out.append(Rect2(o + Vector2(xs[i], y), MSGBOX_BUTTON))

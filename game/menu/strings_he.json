@@ -1,17 +1,19 @@
 {
- "_note": "Hebrew texts for our own additions only (the Preferences > Gameplay options). Everything else in Hebrew comes from the Hebrew menu and briefing packs (docs/packs.md).",
+ "_note": "Hebrew texts for our own additions only (the Preferences > Extras tab). Everything else in Hebrew comes from the Hebrew menu and briefing packs (docs/packs.md).",
  "labels": {
-  "Gameplay": "רמת משחק",
-  "Graphics": "גרפיקה",
-  "Sound": "קול",
-  "Controls": "מקלדת",
-  "Devices": "התקנים",
-  "(not available yet)": "(עדיין לא זמין)",
+  "Extras": "תוספות",
   "Flight data": "נתוני טיסה",
-  "Original (Jane's IAF 1998)": "מקורי (Jane's IAF 1998)",
+  "Original (1998)": "מקורי (1998)",
   "Real F-16": "F-16 אמיתי",
   "Language": "שפה",
-  "English": "English",
-  "Hebrew": "עברית"
+  "English": "אנגלית",
+  "Hebrew": "עברית",
+  "Better physics": "פיזיקה משופרת",
+  "Flight info (F12)": "מידע טיסה (F12)",
+  "Blackbox": "קופסה שחורה",
+  "Show": "הצג",
+  "Hide": "הסתר",
+  "On": "פעיל",
+  "Off": "כבוי"
  }
 }
