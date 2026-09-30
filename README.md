@@ -74,6 +74,8 @@ directory; format notes in [docs/formats/rtpatch.md](docs/formats/rtpatch.md)):
 cargo run --release -p iaf-tools --bin iaf-patch -- apply /path/to/v1.1-patch.exe assets/install assets/v1.1
 ```
 
+What v1.1 changes against v1.0, and the v1.0 → v1.1 address map: [docs/v1.1.md](docs/v1.1.md).
+
 Use google to find the original game ISO if you do not have them. I trust you. Same for the optional Hebrew packs.
 
 ## Optional packs
