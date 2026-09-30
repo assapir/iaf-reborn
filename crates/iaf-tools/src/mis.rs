@@ -1,5 +1,5 @@
 //! Mission files (`.mis`) and the object database (`.bdb`) — MFC CArchive object graphs from
-//! the original mission editor. Port of `tools/probe_mis.py`; see docs/formats/mis.md for the
+//! the original mission editor. See docs/formats/mis.md for the
 //! meaning of the fields. Produces a generic JSON tree (class name + tagged fields).
 
 use anyhow::{Context, Result, bail};

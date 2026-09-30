@@ -193,10 +193,6 @@ func _add_chunk(c: Vector2i, images: Array, ring: int) -> void:
 	add_child(mi)
 
 
-func loaded_count() -> int:
-	return chunks.size()
-
-
 ## True while chunks in range are still waiting to load.
 func missing_after_frame() -> bool:
 	return _missing > 0

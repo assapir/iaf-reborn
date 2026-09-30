@@ -4,6 +4,3 @@
 *.esa
 *.PTT
 .godot/
-/game/.godot/
-__pycache__/
-*.pyc

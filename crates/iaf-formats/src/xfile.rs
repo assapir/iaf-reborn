@@ -51,16 +51,6 @@ impl XObject {
     pub fn children_of<'a>(&'a self, template: &'a str) -> impl Iterator<Item = &'a XObject> {
         self.children.iter().filter(move |c| c.template == template)
     }
-
-    /// Depth-first search through this object and all descendants.
-    pub fn find_all<'a>(&'a self, template: &str, out: &mut Vec<&'a XObject>) {
-        if self.template == template {
-            out.push(self);
-        }
-        for c in &self.children {
-            c.find_all(template, out);
-        }
-    }
 }
 
 /// Reads a flattened value list positionally.

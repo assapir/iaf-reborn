@@ -1,7 +1,7 @@
 # .mis — mission files (and the .bdb object database they reference)
 
 `resource/missions/*.mis` (131 files) are MFC `CArchive` dumps written by the original mission editor ("DME").
-Every file parses end-to-end with `tools/probe_mis.py` (which also parses `default6_1.bdb`), so the
+Every file parses end-to-end with `crates/iaf-tools/src/mis.rs` (which also parses `default6_1.bdb`), so the
 layout below is exact. Field *meanings* come from the game's use of them plus value statistics over all
 131 missions; anything not backed by code is marked **UNCERTAIN**.
 
@@ -182,7 +182,7 @@ Present (221 3D models: `0x640 S` name, `0x64a S` model path `CONTROLLABLEPLANES
 20-byte records, `Serialize` `0x592480`), Objects (182 unit types: `0x514 S` name "f16", `0x51e S` category
 "Controlled aircraft", `0x528 S` display "F16", `0x532 S` default brain, 18 ints `0x53c..0x5d7`, Junk,
 u32, `Obj CArmament` default loadout, u32, `Obj CObArray` of `CDMEWeaponLoadItem` (`FUN_00595930`),
-Junk). Entity `type` → Objects id; Objects `0x53c` → Present id (model). Full parser: `probe_mis.load_bdb`.
+Junk). Entity `type` → Objects id; Objects `0x53c` → Present id (model). Full parser: `mis.rs` `parse_bdb`.
 
 ## 5. Coordinates
 
