@@ -47,3 +47,9 @@ Performance pass (draw calls, streaming cost; the dev machine dips to 13–24 fp
 Godot Compatibility renderer (GLES3) with the terrain / detail / afterburner shaders checked there, ETC2 instead of
 BC1 texture compression (the Pi's GPU has no S3TC), lower terrain detail and resolution. Rust / godot-rust already
 build for ARM64 Linux.
+
+## "Real HUD" option
+The original HUD is a simplified 1998 F-16 HUD. Offer a realistic HUD per aircraft behind its own Extras switch
+(original by default): real symbology and layout (e.g. F-16 Block 30/40 HUD: airspeed / altitude tapes, heading
+tape, real pitch ladder with dashed negative rungs, flight path marker, AoA bracket, g / Mach / max-g window,
+master arm / weapon modes, bingo / waypoint data), from public references.
