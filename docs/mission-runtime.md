@@ -29,6 +29,21 @@ A re-implementation needs only a timer queue and hooks for the entity state chan
 Registry `[Scenario] LoadScripts` (default 1; `FUN_00588d80` → `DAT_0066aa04`): when it is 0,
 `FUN_0058cb50` zeroes every slot, the radius and both script counts, so the mission runs with no scenario logic.
 
+### 1.1 The player object (`FUN_004bab1c`, at mission load)
+- `DAT_00694960` (the player entity) = the flight map's leader of flight **1**, else of flight 2, 3, 4
+  (`FUN_005b9990(n)`). A flight is a formation with `0x3f2` = 1..4 of the main file; its leader is member 0
+  if spawned, else member 1 (docs/front-end.md §8 flight table). The name does not matter: campaign and
+  scramble missions have no `Player1` (e.g. 324 "Player", 221 "alpha_1").
+- The TSD's default flight is the formation holding that object (`FUN_005b9bc0`). Picking another flight
+  (Alpha–Delta button + Fly, or double-clicking its leader) makes that flight's leader the player object
+  (`FUN_00502c90` → `FUN_004d2ae0`).
+- The player's position, altitude and heading are the leader entity's; the ground / airborne start rules are
+  docs/flight-model.md §15.6.4. The aircraft type is the leader's bdb type (`0x5b4`), except in the training
+  missions entered through the Jet list.
+- **Port:** `mission_runtime.gd` `player_flight(mission, wanted)`; `Settings.player_flight` carries the TSD
+  choice; `terrain_view.gd` starts at that entity and hands its id to the runtime (the entity flagged
+  `player`). Only the F-16 flies: another type is logged and flown as the F-16. Test: test_player_flight.
+
 ### Control mode (entity 0x320 bit 0) — `FUN_004b6d17` @`0x4b70b1`, activation `FUN_004a8890`
 - `0x320 & 1 = 1`: status+0x14 = 2, **MISSION_CONTROLLED**. At activation `FUN_004a5960` runs. It jumps both
   script lists to **entry index 1** (scenario +0xe0/+0xe4, set to 1 in `FUN_004a5c40`). It then arms the radius

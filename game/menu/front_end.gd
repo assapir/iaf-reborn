@@ -1379,9 +1379,11 @@ func _draw_debrief() -> void:
 
 func _fly() -> void:
 	Settings.last_list = jet_parent if tsd_return == "jet" else tsd_return
-	# The route as left on the TSD (waypoints may have been dragged).
+	# The route as left on the TSD (waypoints may have been dragged) and the flight picked there.
+	Settings.player_flight = 0
 	if tsd != null:
 		Settings.route_override = tsd.selected_route()
+		Settings.player_flight = tsd.default_flight()
 	busy = true
 	get_tree().change_scene_to_file("res://terrain/terrain_view.tscn")
 

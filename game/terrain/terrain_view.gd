@@ -6,8 +6,9 @@
 #   External: RMB-drag orbits the camera, wheel zooms.
 #   `godot --path game res://terrain/terrain_view.tscn -- [--mission 311] [--real] [--screenshot out.png]
 #        [--at X Y alt heading pitch [roll]] [--external]`
-#   --mission: start where the mission puts the player (menu choice by default; Player1 of the
-#   mission's main .mis file). --at: engine world metres (X east, Y north), degrees.
+#   --mission: start where the mission puts the player (menu choice by default; the leader of the
+#   TSD-picked or default flight of the mission's main .mis file). --at: engine world metres
+#   (X east, Y north), degrees.
 #   --real: fly the corrected real-world F-16 data instead of the original 1998 numbers.
 # The aircraft is the original IAF F-16 flight model (Rust, crates/iaf-flight) via the IafFlight class.
 extends Node3D
@@ -112,6 +113,12 @@ var _chute_p0 := Vector3.ZERO
 var _chute_t0 := 0.0
 ## The crash was handled (flight ends like the original's player death).
 var crashed := false
+const MissionRuntime := preload("res://mission/mission_runtime.gd")
+## The only flyable jet today (bdb type code 100).
+const F16_TYPE := 100
+## The mission entity the player flies (0x1e of the main file) and its flight (1..4); -1 / 0 = none.
+var player_entity_id := -1
+var player_flight_number := 0
 
 
 func _ready() -> void:
@@ -233,7 +240,10 @@ func _choose_start(args: PackedStringArray) -> void:
 	rig.basis = Basis.from_euler(Vector3(deg_to_rad(pitch), deg_to_rad(-heading), deg_to_rad(-roll)), EULER_ORDER_YXZ)
 
 
-## The player's aircraft entity from a mission (menu id -> missionlist -> main .mis -> "Player1").
+## The player's aircraft entity from a mission (menu id -> missionlist -> main .mis): the leader of
+## the flight picked on the TSD, else of flight 1, 2, 3, 4 (mission_runtime.gd player_flight(),
+## FUN_004bab1c). It starts at that entity's position, altitude and heading (start rules in
+## _choose_start). Only the F-16 flies today: another jet type is logged and flown as the F-16.
 func _mission_player(mission_id: int) -> Dictionary:
 	var dir := Settings.assets_dir().path_join("converted/missions")
 	var list = JSON.parse_string(FileAccess.get_file_as_string(dir.path_join("missionlist.json")))
@@ -244,11 +254,29 @@ func _mission_player(mission_id: int) -> Dictionary:
 	var mission = JSON.parse_string(FileAccess.get_file_as_string(dir.path_join(mission_name + ".json")))
 	if not (mission is Dictionary):
 		return {}
-	for e in mission.entities.items:
-		if e is Dictionary and String(e.get("0x2bc", "")).to_lower() == "player1":
-			_load_route(mission, int(e["0x1e"]))
-			return e
-	return {}
+	var pf: Dictionary = MissionRuntime.player_flight(mission, Settings.player_flight)
+	if pf.is_empty():
+		print("mission %d has no flight 1..4: free flight" % mission_id)
+		return {}
+	var e: Dictionary = pf.entity
+	player_entity_id = int(e["0x1e"])
+	player_flight_number = int(pf.flight)
+	var jet := _bdb_type(dir, String(mission.get("bdb", "")), int(e.get("0x2c6", -1)))
+	print("player: %s (flight %d, type %d)" % [e.get("0x2bc", ""), player_flight_number, jet])
+	if jet != F16_TYPE:
+		print("mission jet type %d is not flyable yet: flying the F-16" % jet)
+	_load_route(mission, player_entity_id)
+	return e
+
+
+## bdb type code (Objects 0x5b4) of a bdb object id; -1 when unknown.
+static func _bdb_type(dir: String, bdb_name: String, object_id: int) -> int:
+	var b = JSON.parse_string(FileAccess.get_file_as_string(dir.path_join(bdb_name.to_lower() + ".json")))
+	if b is Dictionary:
+		for o in b.get("objects", {}).get("items", []):
+			if int(o.get("0x1e", -2)) == object_id:
+				return int(o.get("0x5b4", -1))
+	return -1
 
 
 ## The mission and its base missions (missionlist) run by the mission runtime
@@ -290,7 +318,7 @@ func _spawn_mission_objects() -> void:
 	var paths: Dictionary = models.get(bdb_name, {}) if models is Dictionary else {}
 	runtime = preload("res://mission/mission_runtime.gd").new()
 	add_child(runtime)
-	runtime.setup(self, files, bdb)
+	runtime.setup(self, files, bdb, player_entity_id)
 	runtime.subtitle.connect(_on_subtitle)
 	runtime.message_box.connect(_on_mission_box)
 	runtime.end_flight.connect(_end_flight)

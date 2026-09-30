@@ -92,6 +92,9 @@ var mission_id := -1
 var jet_id := 1
 ## The player's route as set on the TSD ([Vector2 world]); empty = the mission's own.
 var route_override: Array = []
+## Flight picked on the TSD (1..4 = Alpha..Delta; Fly / double-click makes its leader the player);
+## 0 = the mission's default flight (mission_runtime.gd player_flight()).
+var player_flight := 0
 ## Result of the last flight for the debrief screen: {passed, headline, notes}; empty = none.
 var debrief := {}
 ## The mission list the flight was chosen from (front-end screen), for the debrief buttons.

@@ -37,8 +37,41 @@ var debrief_notes := ["", ""]  # flag 0 texts, flag 1 texts
 var _shown_debriefs := {}
 
 
-func setup(host_node: Node, mission_files: Array, bdb: Dictionary) -> void:
+## The player's aircraft at mission load (FUN_004bab1c): the leader of flight 1, else of flight 2,
+## 3, 4 (the flight map, FUN_005b9990). A flight is a formation with 0x3f2 = 1..4 of the main
+## mission file; its leader is member 0 if placed, else member 1 (unplaced = both coordinates
+## negative, like the unused PlayerN slots). `wanted` = the flight picked on the TSD (Fly makes that
+## flight's leader the player object, FUN_00502c90 -> FUN_004d2ae0); 0 or a flight without a
+## leader = the default. Returns {flight, entity} or {} when the mission has no flight 1..4.
+static func player_flight(mission: Dictionary, wanted := 0) -> Dictionary:
+	var by_id := {}
+	for e in mission.get("entities", {}).get("items", []):
+		if e is Dictionary:
+			by_id[int(e.get("0x1e", -1))] = e
+	var leaders := {}
+	for f in mission.get("formations", {}).get("items", []):
+		var n := int(f.get("0x3f2", 0))
+		if n < 1 or n > 4 or leaders.has(n):
+			continue
+		for mem in f.get("members", []):
+			var e: Dictionary = by_id.get(int(mem.get("0x41a", -1)), {})
+			if not e.is_empty() and not (float(e.get("0x2e4", -1)) < 0 and float(e.get("0x2ee", -1)) < 0):
+				leaders[n] = e
+				break
+	var order := [wanted] if leaders.has(wanted) else []
+	order.append_array([1, 2, 3, 4])
+	for n in order:
+		if leaders.has(n):
+			return {"flight": n, "entity": leaders[n]}
+	return {}
+
+
+## `player_id`: entity id (0x1e) of the player's aircraft in the main file (player_flight());
+## -1 = the default flight's leader.
+func setup(host_node: Node, mission_files: Array, bdb: Dictionary, player_id := -1) -> void:
 	host = host_node
+	if player_id < 0 and not mission_files.is_empty():
+		player_id = int(player_flight(mission_files[0]).get("entity", {}).get("0x1e", -1))
 	for a in bdb.get("audio", {}).get("items", []):
 		audio[int(a["0x1e"])] = {"wav": String(a.get("0x136", "")), "subtitle": String(a.get("0x140", ""))}
 	for fi in mission_files.size():
@@ -63,8 +96,9 @@ func setup(host_node: Node, mission_files: Array, bdb: Dictionary) -> void:
 			var name := String(e.get("0x2bc", ""))
 			# Unused player slots (Player2..7 at -1, -1) are not spawned; other entities are, wherever
 			# they are (sensors are logic nodes, e.g. the takeoff "Win sensor" at -1).
+			var is_player := fi == 0 and int(e["0x1e"]) == player_id
 			var unplaced := float(e.get("0x2e4", -1)) < 0 and float(e.get("0x2ee", -1)) < 0
-			if unplaced and name.to_lower().begins_with("player") and name.to_lower() != "player1":
+			if unplaced and name.to_lower().begins_with("player") and not is_player:
 				continue
 			var ent := {
 				"key": "%d:%d" % [fi, int(e["0x1e"])], "name": name, "file": fi, "id": int(e["0x1e"]),
@@ -72,7 +106,7 @@ func setup(host_node: Node, mission_files: Array, bdb: Dictionary) -> void:
 				"role": int(e.get("0x32a", 2)), "mission_ctl": int(e.get("0x320", 0)) & 1 == 1,
 				"slots": e.get("slots", []), "watched": int(e.get("0xac", -1)),
 				"sensor": true, "alive_scenario": true, "state": 1, "visible": true, "node": null,
-				"player": fi == 0 and name.to_lower() == "player1",
+				"player": is_player,
 				"lists": [_list(e.get("scripts0", {})), _list(e.get("scripts1", {}))],
 				"current": [-1, -1], "path": null, "type": int(e.get("0x2c6", -1)),
 			}
