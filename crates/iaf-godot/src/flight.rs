@@ -221,9 +221,18 @@ impl IafFlight {
         d.set("gear", s.gear);
         d.set("crashed", s.crashed.is_some());
         d.set("crash_reason", s.crashed.map_or("", |c| c.name()));
-        if let Some(ac) = &self.aircraft {
-            d.set("engine_on", ac.engine_on);
-        }
+        d.set("time", s.time);
+        d.set("alpha", s.alpha);
+        d.set("beta", s.beta);
+        // The pilot's controls as the flight model holds them (the part animation reads these).
+        let c = ac.controls();
+        d.set("stick_x", c.stick_x);
+        d.set("stick_y", c.stick_y);
+        d.set("rudder", c.rudder);
+        d.set("flaps", c.flaps);
+        d.set("gear_down", c.gear_down);
+        d.set("brakes", c.brakes);
+        d.set("engine_on", ac.engine_on);
         d
     }
 }

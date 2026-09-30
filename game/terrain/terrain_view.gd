@@ -435,7 +435,12 @@ func _start_flight() -> void:
 		push_error("flight model: " + err)
 		flight = null
 		return
-	flight.set_better_physics(Settings.better_physics or OS.get_cmdline_user_args().has("--better"))
+	# "Better physics" options (Preferences > Physics); --better turns them all on.
+	if OS.get_cmdline_user_args().has("--better"):
+		flight.set_better_physics(true)
+	else:
+		for id in Settings.BETTER:
+			flight.set_better_option(id, Settings.get("bp_" + id))
 	# Gameplay preferences (docs/flight-model.md §15.7); Easy landing is on by default.
 	flight.set_no_stalls(_pref("no_stalls", false))
 	flight.set_no_spins(_pref("no_spins", false))
@@ -477,14 +482,11 @@ func _ground_normal_z(p: Vector3) -> float:
 
 
 func _spawn_f16() -> void:
-	var path := ProjectSettings.globalize_path("res://").path_join("../assets/converted/planes/f16/f16_h.gltf").simplify_path()
-	var doc := GLTFDocument.new()
-	var state := GLTFState.new()
-	if doc.append_from_file(path, state) != OK:
+	# Generic aircraft model (docs/aircraft.md): the F-16, type 100; ground-start ramps on the ground.
+	aircraft = preload("res://aircraft/aircraft_model.gd").create("f16", 100, not start_airborne)
+	if aircraft == null:
 		return
 	# Your own jet rides on the rig; converted models face -Z like Godot, so no rotation needed.
-	aircraft = preload("res://aircraft/aircraft_model.gd").new()
-	aircraft.setup(doc.generate_scene(state) as Node3D, gear_down)
 	rig.add_child(aircraft)
 
 
@@ -708,7 +710,13 @@ func _process(delta: float) -> void:
 		cockpit.state["world"] = Vector2(terrain.world_origin.x + rig.position.x, terrain.world_origin.y - rig.position.z)
 		cockpit.hud.velocity_dir = st.velocity.normalized() if st.velocity.length() > 1.0 else null
 	if aircraft != null:
-		aircraft.animate(stick, rudder, flaps, gear_down, brakes, delta)
+		var parts_in := {"stick_x": stick.x, "stick_y": stick.y, "rudder": rudder, "flaps": flaps,
+			"gear_down": gear_down, "brakes": brakes}
+		if flight != null:
+			var fs: Dictionary = flight.state()
+			for k in ["gear", "on_ground", "afterburner", "rpm"]:
+				parts_in[k] = fs[k]
+		aircraft.update(parts_in, delta)
 	_apply_view()
 	var p := rig.position
 	var ground_h = terrain.height_at(p)
