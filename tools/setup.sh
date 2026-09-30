@@ -20,9 +20,6 @@ cargo build --release -p iaf-tools
 step "extracting the original install from the CD image"
 ./target/release/iaf-extract "$iso" assets/install
 
-step "aircraft models (glTF, Lanczos-upscaled textures, smoothed geometry)"
-./target/release/iaf-convert --upscale --smooth planes assets/install assets/converted/planes
-
 step "original HUD / MFD fonts"
 ./target/release/iaf-convert fonts assets/install assets/converted/fonts
 
@@ -51,6 +48,9 @@ fi
 
 step "missions (all .mis + object database -> JSON, mission list)"
 ./target/release/iaf-convert missions assets/install assets/converted/missions
+
+step "aircraft: every plane's model (glTF, Lanczos textures, smoothed) + descriptor (docs/aircraft.md)"
+./target/release/iaf-convert --upscale --smooth aircraft assets/install assets/converted/missions assets/converted/planes
 
 step "mission object models (every model the object database references)"
 ./target/release/iaf-convert --upscale objects assets/install assets/converted/missions assets/converted/objects

@@ -2,6 +2,8 @@
 //!
 //! `iaf-convert model <file.x|file.xfr> <out-dir>` — one model → glTF + PNG textures.
 //! `iaf-convert planes <install-dir> <out-dir>` — every controllable plane (`*_h.xfr`).
+//! `iaf-convert aircraft <install-dir> <missions-dir> <out-dir>` — every aircraft (controllable and
+//! non-controllable `*_h.xfr`) plus its descriptor `aircraft.json` (docs/aircraft.md).
 //!
 //! `iaf-convert cockpit <install-dir> <cockpit> <out-dir>` — cockpit art (PNG) + layout (`cockpit.json`).
 //! `iaf-convert briefings <install-dir> <packs-dir> <out-dir>` — briefing/lesson texts (RTF → BBCode,
@@ -74,6 +76,7 @@ fn main() -> Result<()> {
             }
             Ok(())
         }
+        [_, "aircraft", install, missions, out] => convert_aircraft(Path::new(install), Path::new(missions), Path::new(out), &opts),
         [_, "missions", install, out] => convert_missions(Path::new(install), Path::new(out)),
         [_, "objects", install, missions, out] => convert_objects(Path::new(install), Path::new(missions), Path::new(out), &opts),
         [_, "fonts", install, out] => convert_fonts(Path::new(install), Path::new(out)),
@@ -81,8 +84,62 @@ fn main() -> Result<()> {
         [_, "menu", install, out] => convert_menu(Path::new(install), None, Path::new(out), &opts),
         [_, "menu", install, out, "--pack", pack] => convert_menu(Path::new(install), Some(Path::new(pack)), Path::new(out), &opts),
         [_, "cockpit", install, name, out] => convert_cockpit(Path::new(install), name, Path::new(out), &opts),
-        _ => bail!("usage: iaf-convert [--upscale] [--smooth] model <file.x|file.xfr> <out-dir>\n       iaf-convert [--upscale] [--smooth] planes <install-dir> <out-dir>\n       iaf-convert [--upscale] cockpit <install-dir> <cockpit> <out-dir>\n       iaf-convert [--upscale] menu <install-dir> <out-dir> [--pack <pack-dir>]\n       iaf-convert [--upscale] briefings <install-dir> <packs-dir> <out-dir>"),
+        _ => bail!("usage: iaf-convert [--upscale] [--smooth] model <file.x|file.xfr> <out-dir>\n       iaf-convert [--upscale] [--smooth] planes <install-dir> <out-dir>\n       iaf-convert [--upscale] [--smooth] aircraft <install-dir> <missions-dir> <out-dir>\n       iaf-convert [--upscale] cockpit <install-dir> <cockpit> <out-dir>\n       iaf-convert [--upscale] menu <install-dir> <out-dir> [--pack <pack-dir>]\n       iaf-convert [--upscale] briefings <install-dir> <packs-dir> <out-dir>"),
     }
+}
+
+/// Every aircraft of the install (controllable and non-controllable `*_h.xfr` frame files):
+/// the glTF model plus `aircraft.json` (docs/aircraft.md) per plane folder, the index
+/// `<out>/aircraft.json` and the afterburner texture `<out>/afterburn.png`. `missions` is the
+/// converted mission folder (the object database gives each model its aircraft type codes).
+fn convert_aircraft(install: &Path, missions: &Path, out: &Path, opts: &Options) -> Result<()> {
+    use iaf_tools::aircraft;
+    let objects_root = install.join("resource/3dobjects");
+    let mut db = std::collections::HashMap::new();
+    for entry in std::fs::read_dir(missions)?.flatten() {
+        if entry.file_name().to_string_lossy().ends_with(".bdb.json") {
+            let v: serde_json::Value = serde_json::from_slice(&std::fs::read(entry.path())?)?;
+            for (k, list) in aircraft::db_objects(&v) {
+                db.entry(k).or_insert_with(Vec::new).extend(list);
+            }
+        }
+    }
+    std::fs::create_dir_all(out)?;
+    let mut index = serde_json::Map::new();
+    for group in ["controllableplanes", "noncontrollableplanes"] {
+        let mut dirs: Vec<_> = std::fs::read_dir(objects_root.join(group))?.flatten().map(|e| e.path()).collect();
+        dirs.sort();
+        for dir in dirs {
+            let plane = dir.file_name().unwrap().to_string_lossy().to_lowercase();
+            let mut files: Vec<_> = std::fs::read_dir(&dir)?.flatten().map(|e| e.path()).collect();
+            files.sort();
+            for src in files.iter().filter(|p| p.to_string_lossy().to_lowercase().ends_with("_h.xfr")) {
+                let plane_out = out.join(&plane);
+                convert(src, &plane_out, std::slice::from_ref(&objects_root), opts)?;
+                let model = Model::parse(&std::fs::read(src)?)?;
+                let stem = src.file_stem().unwrap().to_string_lossy().to_lowercase();
+                let rel = format!("{group}/{plane}/{}", src.file_name().unwrap().to_string_lossy().to_lowercase());
+                let objs = db.get(&rel).cloned().unwrap_or_default();
+                let d = aircraft::describe(&model, &plane, &format!("{stem}.gltf"), &rel, &objs);
+                std::fs::write(plane_out.join("aircraft.json"), serde_json::to_string_pretty(&d)?)?;
+                index.insert(
+                    plane.clone(),
+                    serde_json::json!({ "model": format!("{plane}/{stem}.gltf"), "descriptor": format!("{plane}/aircraft.json"),
+                        "type": d["type"], "label": d["label"], "group": group }),
+                );
+            }
+        }
+    }
+    std::fs::write(out.join("aircraft.json"), serde_json::to_string_pretty(&index)?)?;
+    // The afterburner flame texture (FUN_004121b0; the hardware path uses the 32-bit TGA).
+    let (img, _) = iaf_tools::gltf::load_texture(&objects_root.join("afterburn.tga"))?;
+    let img = match &opts.upscaler {
+        Some(u) => u.upscale(&img, None)?,
+        None => img,
+    };
+    img.save(out.join("afterburn.png"))?;
+    println!("aircraft: {} models -> {}", index.len(), out.display());
+    Ok(())
 }
 
 /// Every model the object databases reference: `.bdb` Present records (`0x64a` model path under

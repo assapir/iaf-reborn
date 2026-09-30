@@ -1,5 +1,6 @@
 //! Shared code for the linux-iaf command-line tools.
 
+pub mod aircraft;
 pub mod gltf;
 pub mod mis;
 pub mod runway_fix;
