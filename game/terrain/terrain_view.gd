@@ -555,6 +555,9 @@ func _unhandled_input(event: InputEvent) -> void:
 				in_cockpit = true
 			KEY_F2:
 				in_cockpit = false
+			KEY_F12:
+				Settings.show_info = not Settings.show_info
+				Settings.save()
 			KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8:
 				throttle = THROTTLE_PRESETS[event.keycode - KEY_1]
 				_throttle_event()
@@ -641,7 +644,8 @@ func _process(delta: float) -> void:
 	var ground_h = terrain.height_at(p)
 	var agl := "" if ground_h == null else "  (%.0f m above ground)" % (p.y - ground_h)
 	var st2: Dictionary = cockpit.state
-	hud_label.text = "%s%s   x %.1f km  y %.1f km  alt %.0f m%s   %d kt  %.1f g  thr %d%%%s%s%s   %d fps\n[F1] cockpit  [F2] external  [C] toggle  [V/PgUp/PgDn] panel  [+/-] zoom  [arrows] stick  [Ins/Del] rudder  [1-8, 0/9] throttle  [G] gear  [F] flaps  [B] brake" % [
+	hud_label.visible = Settings.show_info
+	hud_label.text = "%s%s   x %.1f km  y %.1f km  alt %.0f m%s   %d kt  %.1f g  thr %d%%%s%s%s   %d fps\n[F1] cockpit  [F2] external  [C] toggle  [V/PgUp/PgDn] panel  [+/-] zoom  [arrows] stick  [Ins/Del] rudder  [1-8, 0/9] throttle  [G] gear  [F] flaps  [B] brake  [F12] hide" % [
 		"REAL DATA" if real_data else "ORIGINAL 1998 DATA", ("   mission: " + mission_name) if mission_name != "" else "", p.x / 1000.0, p.z / 1000.0, p.y, agl, st2.speed_kt, st2.g, int(throttle * 100),
 		"  GEAR" if gear_down else "", "  FLAPS" if flaps > 0 else "", "  BRAKE" if brakes else "", Engine.get_frames_per_second()]
 

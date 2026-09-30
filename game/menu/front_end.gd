@@ -545,6 +545,7 @@ func _draw_prefs() -> void:
 		["Language", [["English", "en"], ["Hebrew", "he"]], "language"],
 		["No blackouts", [["Off", false], ["On", true]], "no_blackouts"],
 		["Better physics", [["Off", false], ["On", true]], "better_physics"],
+		["Flight info (F12)", [["Hide", false], ["Show", true]], "show_info"],
 	]
 	var rtl := _he()
 	var fs := int(round(LIST_TITLE_PX * _scale()))
