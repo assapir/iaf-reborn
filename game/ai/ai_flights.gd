@@ -110,6 +110,7 @@ func setup(h: Node, rt: Node, bdb: Dictionary, files: Array) -> void:
 		p.node = model
 		ent.node = model
 		ent["pilot"] = p
+		ent["airborne_class"] = true
 		ent["coll_radius"] = 0.25 * _extent_sum(model)
 		ent["max_extent"] = 10.0
 		var rules: Array = _brains.get(int(ent.get("brain", -1)), [])
