@@ -381,6 +381,27 @@ Throttle presets (keys 1–8, key-table records 7–14) send GEV 9 with p1 = 0, 
 idle 0, 65 % 0.10, 70 % 0.19, 80 % 0.38, 90 % 0.56, military 0.74, AB1 0.78, AB2 1.0 (docs/controls.md). Key names are loaded from `keys.trx` into `0x833900` (100-byte stride) by
 `FUN_004e3c70`; the default key→command table is at `0x64c3c8` (record layout in §7 "Nose-wheel steering input").
 
+**Keyboard stick (traced, v1.0 = v1.1).** A pitch / roll key press sends GEV 3 / 2 with ±100, its release 0
+(`FUN_004e0b80`, per DirectInput key event, rewritten to GEV 1 with the other axis's last keyboard value). The
+controller `FUN_0044a240` case 1 posts motion 1 at once (it only first clears indicator 8 when |x| or |y| ≥ 51);
+motion 1 `FUN_0059f3d0` stores `sY = −y·0.01`, `sX = x·0.01` and the event runs UpdateAeroData (§0). So the
+stick is **full at once** and centred at once: no ramp, no spring, no curve, no keyboard-specific scaling
+(the joystick poller `FUN_004df560` is linear, `MulDiv` to ±100, no curve either). Commanded g jumps to
+`c + sY·(MaxG−1)` (§4.2); the only smoothing is the lift ramp, `G_Rate` g/s (× `gRateSlope` below 220 m/s:
+≈ 4.4 g/s for the F-16 at 350 kt). Peak g of a Down-arrow (pull) tap, 10,000 ft, 350 kt, military (port,
+original / real data; push taps are the mirror down to MinG):
+
+| tap | F-16 | F-15 | F-4 | Kfir | Lavi | Mirage | MiG-29 |
+|---|---|---|---|---|---|---|---|
+| 0.1 s | 1.44 / 1.46 | 1.44 / 1.46 | 1.25 / 1.27 | 1.34 / 1.36 | 1.45 / 1.46 | 1.34 / 1.36 | 1.35 / 1.38 |
+| 0.3 s | 2.31 / 2.38 | 2.33 / 2.40 | 1.75 / 1.81 | 2.01 / 2.08 | 2.35 / 2.39 | 2.01 / 2.07 | 2.07 / 2.13 |
+| 0.5 s | 3.18 / 3.31 | | 2.26 / 2.35 | | | | |
+| 1.0 s | 5.36 / 5.61 | 5.43 / 5.68 | 3.52 / 3.71 | 4.38 / 4.59 | 5.49 / 5.64 | 4.38 / 4.58 | 4.56 / 4.76 |
+
+So in the original an F-16 key tap longer than ≈ 0.45 s gives 3+ g. (Our former invented ramp, 2.5 /s out,
+4 /s back, gave *more*: 0.3 s → 2.82 g, 0.5 s → 3.83 g, because the stick was still off centre after the
+release while the lift ramp kept rising.) `tests/godot/test_keyboard_stick.gd`.
+
 ## 9. Misc
 * g = 9.806 everywhere; lbf→N 4.4479; dt clamps: ramps 3.5 s, angles/axes 1.1 s.
 * Stall shake/buffet: `FUN_005a9e60` sets `S+0x1a8/0x1ac = 0.5` while the vibration flag is set (only if

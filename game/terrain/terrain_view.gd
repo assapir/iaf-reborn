@@ -37,8 +37,6 @@ var throttle := 0.74
 var flaps := 0.0
 var gear_down := false
 var brakes := false
-const STICK_RATE := 2.5  # full deflection per second while a key is held
-const STICK_RETURN := 4.0
 var in_cockpit := true
 var aircraft: Node3D
 var orbit_yaw := PI  # external camera, relative to the aircraft heading (PI = behind)
@@ -1110,8 +1108,14 @@ var scripted_rudder = null
 var frozen := false
 
 
-## Keyboard as a sprung joystick: held keys deflect the stick progressively, release centres it.
-func _read_controls(delta: float) -> void:
+## Keyboard stick, the original's law (FUN_004e0b80 → GEV 1 → FUN_0059f3d0, docs/controls.md): each key
+## press or release sets its axis at once to the record's value (±1 or 0), the last event wins (Up held +
+## Down pressed = pull; releasing either centres). No ramp, curve or spring: the flight model's lift ramp
+## (G_Rate, docs/flight-model.md §4) is the only smoothing.
+var _key_was_held := {}
+
+
+func _read_controls(_delta: float) -> void:
 	if ejected:
 		stick = EJECT_STICK
 		rudder = 0.0
@@ -1123,30 +1127,21 @@ func _read_controls(delta: float) -> void:
 		if scripted_rudder != null:
 			rudder = scripted_rudder
 		return
-	# Held table keys (roll GEV 2 x = p1, pitch GEV 3 y = p2, rudder GEV 10 x = p1, all ±100; the
-	# release records send 0). Original y +100 (Up arrow, "Pitch up") = our stick forward (−1).
-	var want := Vector2.ZERO
-	var want_rudder := 0.0
-	if not ejected:
-		for i in _held_records:
-			if keys.held(i, Settings.key_bindings):
-				var cmd: Array = keys.records[i].press
-				match int(cmd[0]):
-					2:
-						want.x += cmd[1] * 0.01
-					3:
-						want.y -= cmd[2] * 0.01
-					10:
-						want_rudder += cmd[1] * 0.01
-	want = want.clamp(Vector2(-1, -1), Vector2(1, 1))
-	want_rudder = clampf(want_rudder, -1.0, 1.0)
-	for i in 2:
-		if want[i] != 0.0:
-			stick[i] = move_toward(stick[i], want[i], STICK_RATE * delta)
-		else:
-			stick[i] = move_toward(stick[i], 0.0, STICK_RETURN * delta)
-	rudder = move_toward(rudder, want_rudder, (STICK_RATE if want_rudder != 0.0 else STICK_RETURN) * delta)
-
+	# Table records: roll GEV 2 x = p1, pitch GEV 3 y = p2, rudder GEV 10 x = p1, all ±100; the release
+	# records send 0. Original y +100 (Up arrow, "Pitch up") = our stick forward (−1).
+	for i in _held_records:
+		var now_held: bool = keys.held(i, Settings.key_bindings)
+		if now_held == _key_was_held.get(i, false):
+			continue
+		_key_was_held[i] = now_held
+		var cmd: Array = keys.records[i].press if now_held else keys.records[i].release
+		match int(cmd[0]):
+			2:
+				stick.x = clampf(cmd[1] * 0.01, -1.0, 1.0)
+			3:
+				stick.y = clampf(-cmd[2] * 0.01, -1.0, 1.0)
+			10:
+				rudder = clampf(cmd[1] * 0.01, -1.0, 1.0)
 
 
 ## The mission's landed handler (FUN_00440f90, called by the flight model at each gear-down touchdown that

@@ -65,11 +65,15 @@ the Preferences Controls page (docs/front-end.md §12.7) and looks every in-flig
 * The Godot key is turned into the scancode by its **physical** position (`physical_keycode`, the
   US layout, like DirectInput; the tests send plain keycodes, which are used when there is no
   physical code) and one modifier (Ctrl, then Shift, Alt, Meta = Win).
-* One-shot commands run on the key press. The held commands (ids 2, 3, 10) are polled every frame:
-  while a record's key and exactly its modifier are down, its press value is the stick / rudder
-  target; our sprung keyboard stick then moves toward it (2.5 /s, back at 4 /s — ours, the original
-  sets the value at once). Original y +100 (Up arrow, "Pitch up") is our stick **forward** (nose
-  down), as before (docs/flight-model.md §7: `S+0x2e4 = −y`); the keys.trx wording is the original's.
+* One-shot commands run on the key press. The held commands (ids 2, 3, 10) are polled every frame for
+  press / release edges (a record's key and exactly its modifier down): a press sets its axis **at once**
+  to the press value (±1), a release to the release value (0), the last event wins — as the original
+  (no ramp, curve or spring anywhere between the key and `S+0x2e4/0x2e8`: `FUN_004e0b80` → controller
+  `FUN_0044a240` case 1 → motion 1 `FUN_0059f3d0`, v1.0 identical; the joystick poller `FUN_004df560` is
+  linear too, ±100 by `MulDiv`). So Up held + Down pressed = full pull, releasing either centres. The only
+  smoothing is the flight model's lift ramp (G_Rate, docs/flight-model.md §8 "Keyboard stick"). Original
+  y +100 (Up arrow, "Pitch up") is our stick **forward** (nose down), as before (docs/flight-model.md §7:
+  `S+0x2e4 = −y`); the keys.trx wording is the original's.
 * **Own keys** (not in the table, or on an original key whose command we do not implement yet) run
   only when the table gives no implemented command for that key:
 

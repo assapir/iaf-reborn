@@ -10,7 +10,7 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 | Terrain rendering | software renderer, row by row, nearest-pixel level by distance | GPU mesh quadtree with LOD and skirts | modern renderer; same data and level choice | formats/ptt.md |
 | View distance | `min(100 km, (AGL·1e-4 + 0.7) × base)` ≈ 21 km on the ground, 30 km at 3 km AGL | drawn to 200 km with fog | better visibility (rendering) | terrain.gd |
 | Cockpit camera field of view | the original 3D projection (not traced yet) | invented (`HUD_REAL_FOV = 25`) | **to fix** (queued: original projection) | cockpit.gd |
-| Keyboard stick | arrow keys send ±100 (full deflection); any original ramp / spring not traced | our ramp 2.5 /s, return 4 /s | **to fix** (queued: trace and port) | terrain_view.gd |
+| Keyboard stick edges | a DirectInput key event per press / release | Godot key state polled once per frame for edges | a press + release within one frame is lost; a modifier pressed while an arrow is held counts as its release | terrain_view.gd `_read_controls` |
 | g readout on the ground | not traced | 1.0 | display only | flight.rs |
 | Envelope math | float32 / x87 | f64 | last-digit rounding only | flight-model.md §15.9 |
 | Flight channels | sampled with the X-axis time; angles fmod 2π | each channel's own base time (re-based together); angles wrapped ±180° | negligible difference | flight-model.md §15.11 |
