@@ -30,11 +30,14 @@ const PREFS := {
 	"devices": ["flight_controls", "rudder", "throttle"],
 	"gameplay": ["no_wind", "no_blackouts", "no_spins", "no_stalls", "easy_landing", "easy_aiming",
 		"no_malfunctions", "ai_level", "invulnerable", "no_crashes", "unlimited_ammo", "unlimited_fuel",
-		"flight_data", "language", "show_info", "blackbox", "hud_ladder", "show_all_keys"],
+		"flight_data", "weapon_data", "language", "show_info", "blackbox", "hud_ladder", "show_all_keys"],
 }
 
 ## Flight data: "original" (Jane's IAF 1998 numbers) or "real" (corrected real-world data for every flyable jet, docs/real-aircraft.md).
 var flight_data := "original"
+## Weapon data: "original" (the 1998 numbers of the bdb Weapons table and weapons.ibx) or "real"
+## (public real-world data per weapon, docs/real-weapons.md). Separate from the flight data.
+var weapon_data := "original"
 ## Briefing language: "en" or "he" (Hebrew only when the Hebrew pack is installed).
 var language := "en"
 
@@ -167,6 +170,10 @@ var _defaults := {}
 
 func real_data() -> bool:
 	return flight_data == "real"
+
+
+func real_weapons() -> bool:
+	return weapon_data == "real"
 
 
 ## True when the Hebrew packs are installed and converted (menus: assets/converted/menu_he;
