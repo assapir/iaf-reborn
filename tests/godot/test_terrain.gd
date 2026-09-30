@@ -43,6 +43,17 @@ func run() -> void:
 	check(tv.terrain.ground_ready() and tv._loading == null, "cockpit only once the near ground is at full detail")
 	var surf: int = tv.terrain.surface_at(tv.rig.position)
 	check((surf & tv.terrain.SURFACE_ANY_RUNWAY) != 0, "mission 311 starts on a runway (surface %x)" % surf)
+	# The airbase underlay (runway / apron model) is a unit but not drawn: the inset imagery shows the
+	# airbase. Tarmac comes from terraintype.dat, not from the model: the apron by the hangars
+	# (schacha2, bmisrdvd) is not rough ground.
+	var base: Dictionary = {}
+	for e in tv.runtime.entities.values():
+		if e.get("name", "") == "Ramat David":
+			base = e
+	check(not base.is_empty() and base.node != null and not base.node.visible, "Ramat David underlay: unit kept, not drawn")
+	var apron := Vector3(354722.0 - tv.terrain.world_origin.x, 0, -(602038.0 - 25.0 - tv.terrain.world_origin.y))
+	var apron_s: int = tv.terrain.surface_at(apron)
+	check((apron_s & tv.terrain.SURFACE_ROUGH) == 0 or (apron_s & tv.terrain.SURFACE_ANY_RUNWAY) != 0, "Ramat David apron is tarmac, not rough (surface %x)" % apron_s)
 	var h = tv.terrain.height_at(tv.rig.position)
 	check(h != null and absf(h - 63.7) < 2.0, "Ramat David runway height %s m (takeoff.mis: 63 m)" % h)
 	tv.queue_free()

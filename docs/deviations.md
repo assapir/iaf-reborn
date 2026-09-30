@@ -23,7 +23,7 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 | Hit shake | flight-model side not traced | 2° camera shake for 0.5 s | stand-in | damage.md |
 | Sounds | DirectSound 3-D | Godot 3-D audio with the DirectSound distance rule; a busy voice channel queues | queue vs replace not traced | sound.md |
 | Text and art | GDI text, 8-bit art | smooth text, 4× Lanczos art (never AI upscaling) | rendering (user decision) | — |
-| Airbase underlay models (ul_rw*: runways, taxiways, aprons) | drawn over the flattened terrain (the drawing order / z handling is not traced) | a depth offset towards the camera (3 cm + 0.05 % of the distance, terrain/underlay.gdshader); no shadow | they lie exactly on the ground and z-fought with it (flicker); the offset doesn't move them on screen | util/gltf.gd `make_underlay` |
+| Airbase underlay models (ul_rw*: runways, taxiways, aprons) | drawn over the terrain (how is not traced) | not drawn (the units stay for the mission logic) | the terrain's inset imagery already shows the airbase; drawn, they z-fought with it and do not register with it (the model is half the imagery's size) — user decision | terrain_view.gd `_spawn_mission_objects` |
 | Model textures | 8-bit textures as the 1998 renderer sampled them | mipmaps + anisotropic filtering on every runtime-loaded model texture | without mipmaps distant models shimmer | util/gltf.gd `open` |
 | Runway numbers | two mirrored "33" at Ramat David | re-flipped at conversion | 1998 art error | formats/ptt.md |
 | In-flight subtitles in Hebrew mode | — (no Hebrew exists) | English | user decision | — |

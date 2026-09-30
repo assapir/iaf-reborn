@@ -119,7 +119,7 @@ var _landings := 0
 var crashed := false
 const MissionRuntime := preload("res://mission/mission_runtime.gd")
 const Gltf := preload("res://util/gltf.gd")
-## Models flatter than this (m) are ground underlays (util/gltf.gd make_underlay).
+## Models flatter than this (m) are ground underlays (not drawn, _spawn_mission_objects).
 const UNDERLAY_MAX_HEIGHT := 0.05
 const DamageModel := preload("res://mission/damage_model.gd")
 ## The only flyable jet today (bdb type code 100).
@@ -403,10 +403,12 @@ func _spawn_mission_objects() -> void:
 		# Collision radius (FUN_0043b1c0): 0.25 · (sx + sy + sz) of the model's extents (UNCERTAIN:
 		# full or half extents; full used).
 		var box := _model_aabb(node)
-		# Flat ground models (runway / taxiway / apron underlays) lie on the terrain: drawn with a
-		# depth offset so they don't z-fight with it.
+		# Flat ground models (the airbases' runway / taxiway / apron underlays, ul_rw*.x) are not
+		# drawn: the terrain's inset imagery already shows the airbase (they z-fought with it and do
+		# not register with it, docs/deviations.md). The unit stays for the mission logic.
 		if box.size.y < UNDERLAY_MAX_HEIGHT:
-			Gltf.make_underlay(node)
+			ent["drawn"] = false
+			node.visible = false
 		ent["coll_radius"] = 0.25 * (box.size.x + box.size.y + box.size.z)
 		ent["max_extent"] = maxf(box.size.x, maxf(box.size.y, box.size.z))
 		mission_entity_moved(ent)
@@ -465,7 +467,7 @@ func mission_entity_moved(ent: Dictionary) -> void:
 
 func mission_entity_visible(ent: Dictionary) -> void:
 	if ent.node != null:
-		ent.node.visible = ent.visible
+		ent.node.visible = ent.visible and ent.get("drawn", true)
 
 
 # --- damage and destruction host (docs/damage.md) -------------------------------------------------
