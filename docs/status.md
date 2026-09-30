@@ -8,26 +8,28 @@
 - Everything comes from the player's own ISO; the repo (github.com/assapir/iaf-reborn, GPL-3.0) holds no game data.
 - Rule: logic, layout, timing and colours as the original. Improvements are opt-in switches, original by default.
 
-## In progress (running now)
-| work | what | then |
-|---|---|---|
-| Cleanup | remaining ~30 over-engineering items (pure refactor) | — |
-| v1.1 flight model | β channel, roll axis, spin, taxi constants (docs/v1.1.md F1–F4) in `iaf-flight` / docs/flight-model.md | — |
+## In progress (one job at a time)
+**Terrain** — convert all of `map.ptt` (item 1 below).
 
 ## To do next (in this order)
 1. **Terrain (original data) — convert all of `map.ptt`**: all 57 levels: the whole theatre (levels 6–11: today
    there is *no ground* outside the Israel rectangle) and every inset (foreign airbases, target areas, level 3);
    run the runway-number check on every new airbase; decode `terraintype.dat` (water / rough / runway); load terrain
    behind the loading screen.
-2. **Combat core** (unlocks the first ~9–11 missions): AI brain flight → player gun + IR missiles, stores on the
+2. **Autopilot** (A key; original modes, incl. the approach mode the Landing mission 312 uses to follow the
+   guide; AP lamp).
+3. **Cockpit camera = the original projection** (so the original 12 px/deg HUD ladder lines up; drop the conformal
+   ladder option if redundant) + Tu-22 Real row = the variant flown in the missions (likely the Blinder).
+4. **Pilot records** / login screen and mission unlocking (docs/front-end.md §13).
+5. **Combat core** (unlocks the first ~9–11 missions): AI brain flight → player gun + IR missiles, stores on the
    pylons → AI air-to-ground / air-to-air → AAA, radar SAMs, RWR → script ops 2 / 21 / 22.
-3. **Bombs + CCIP**, armed vehicles / boats (→ ~20 missions).
-4. **Other jets**: flight data + cockpit per jet — Phantom 2000 (19 missions), F-4E (17), F-15 (16), Lavi / Mirage
+6. **Bombs + CCIP**, armed vehicles / boats (→ ~20 missions).
+7. **Other jets**: flight data + cockpit per jet — Phantom 2000 (19 missions), F-4E (17), F-15 (16), Lavi / Mirage
    (13), Kfir (8).
-5. Radar missiles with lock, IR SAMs, TV / IR-guided weapons, night, anti-radiation missiles, rockets.
-6. Arming screen, pilot records / unlocking, remaining front-end screens, multiplayer.
-7. Joystick / throttle / pedals (original input handling; Devices page).
-8. Later (docs/roadmap.md): Better AI, Real weapons, Extra sounds, mission replayer, 3D cockpit, satellite imagery,
+8. Radar missiles with lock, IR SAMs, TV / IR-guided weapons, night, anti-radiation missiles, rockets.
+9. Arming screen, remaining front-end screens, multiplayer.
+10. Joystick / throttle / pedals (original input handling; Devices page).
+11. Later (docs/roadmap.md): Better AI, Real weapons, Extra sounds, mission replayer, 3D cockpit, satellite imagery,
    canopy open.
 
 Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user decisions.
