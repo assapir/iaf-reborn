@@ -376,14 +376,51 @@ found; UNCERTAIN). Key names are loaded from `keys.trx` into `0x82eea8` (100-byt
 * Ceiling/Vmin extras: `P+0x14c` (Vmin 1 g @10 km) used by AI only (UNCERTAIN).
 
 ## 10. Deviations in our port (`crates/iaf-flight`)
-* **1 g hold** (§4.2): original formula `cos(pitch)/cos(roll)` by default. With it the jet slowly dives at high
-  speed (α goes negative there, tilting thrust downward). The **"Better physics"** option (Preferences, user
-  decision) holds the flight-path angle γ instead and subtracts the thrust's vertical share:
-  `g = cos γ / cos φ − T·sin α /(m·g)`.
-* **Envelope** (§3): linear interpolation within/between g-graphs instead of the 3-point plane fit.
-* Not yet ported: AB light-up delay, departure/spin modes, landing/crash check, preference gates, engine damage
-  flags, stores drag. Full list with fixes: §15.10; exact envelope algorithm: §15.9.
+The airborne branch, modes, landing check, start rules, throttle rules and preferences follow §15 (checklist §15.11).
+What still differs:
+* **"Better physics"** (Preferences, off by default = the original). The original stays the default; each item below
+  is an opt-in fix of an original quirk (§15.10 "BP"):
+  * **1 g hold** (§4.2): the original `cos(pitch)/cos(roll)` makes the jet slowly dive/climb at high speed (α < 0 tilts
+    the thrust). BP holds the flight-path angle γ and subtracts the thrust's vertical share:
+    `g = cos γ / cos φ − T·sin α /(m·g)`.
+  * **Force angles** (§15.2.2): the original decomposes with the α *target* at 5 Hz (free forward force `L·sin(αT − α)`
+    during a pull) and the *commanded* β at 1 Hz. BP uses α(t) and β(t) in both paths.
+  * **Start lift ramps** (§15.6.4): MaxWeight·g gives a short up-jolt (F-16: ≈ +1.9 m/s vz in the first 0.2 s). BP starts
+    them at m·g.
+  * **Landing check** (§15.6.1): sink limit 4 m/s (≈ 13 ft/s, real gear) instead of 40 m/s, a tail-strike limit of 15°
+    nose-up (both ×2 with Easy landing; sink ×0.25 with the gear not down), and the current attitude instead of the one
+    saved at the last update. Crash reasons "sink rate" / "tail strike".
+  * **Spin** (§15.5): "No spins" blocks entry (original: it skips the arm step so spins start *earlier*); the entry
+    condition must hold for 1.2 s (original: the second consecutive qualifying update); during the spin drag bleeds the
+    horizontal speed and the descent settles near 65 m/s (original: horizontal velocity frozen, `acc.z = min(0, 0.04V − g)`
+    with the total speed, so a spin above 245 m/s never descends); the velocity is kept at recovery (original: snapped to
+    nose·V); no yaw rotation (s1 = 0) is recoverable; the yaw-rate sign uses the channel's own τ.
+* **Envelope** (§15.9, `envelope.rs`): exact algorithm, computed in f64 instead of float32/x87 (UNCERTAIN: last-digit
+  rounding). Slot indices are clamped for broken files (the original does not bounds-check). Checked against a Python
+  rebuild (`envelope_ref.rs`) and the F-16 values of §15.9.
+* **Real data set only** (not original): `stall_floor` (also caps the GLimit), `wave_drag`, the geometric nose-wheel
+  steering (no ×4 lift quirk), §11.
+* **Host (game/terrain/terrain_view.gd)**:
+  * Airborne start speed 180 m/s along the heading, vz 0: the original takes the velocity from the mover that hands over
+    to the FM (UNCERTAIN which); missions carry no speed.
+  * Near-base and runway-start-point tests (§15.6.4) use the three hard-coded airbase spawn points of docs/formats/mis.md
+    §5 in place of the undecoded airbase table `54f100` (UNCERTAIN). All three are below 800 m, so in practice a mission
+    start is airborne ⇔ z > 800 m; mission 311 (1.7 km from the Ramat David spawn point) starts with the engine off.
+  * `--at` / free flight: always airborne (debug starts).
+  * Terrain type flags (water, rough ground, runway, map edge) do not exist in our terrain data: water/rough are passed as
+    false (UNCERTAIN), so the water/rough-ground crashes, the `S+0x2c8` surface states, the OutRunway effect and the
+    "Tornado" push-back are not active. The slope for the landing check comes from `height_at` samples ±3 m.
+  * No force feedback, no touchdown/screech sounds, no crash explosion. On a crash the flight model freezes and the
+    mission runtime runs the player's death (destroy event, role rules, flight ends after 5 s → debrief, §5 of
+    docs/mission-runtime.md); without a mission the flight ends after 5 s.
+  * The cockpit gear lamps keep the controller's 2.0 s leg timer (§12) while the FM gear ramp takes 3.1 s, as in the
+    original.
+* **Sampling**: every channel uses its own base time (the original samples all with the X-axis τ, §15.10 13d; the
+  channels are re-based together, so this differs only between updates), and angles are wrapped to (−π, π] instead of
+  `fmod(x, 2π)`. The spin's yaw-rate sign keeps the axis-τ quirk (off with better physics).
 * Validation against public F-16 data: `cargo test --release -p iaf-flight --test validation -- --nocapture`.
+  The "climb (Ps)" row measures 1.5–2.5 s after the throttle goes to full AB, which now includes the original's AB
+  light-up delay (`(100 − 70)/15` = 2 s from the airborne start's 70 % RPM).
 
 ## 11. Data sets (`crates/iaf-flight/src/data_set.rs`) — chosen before the flight
 * **Original**: the 1998 numbers as shipped.
@@ -1247,7 +1284,7 @@ value and clears c68, so the second does nothing. Keys use the same handler: mot
 result stays ≤ 1.0 (so keys top out at 0.925 = AB2), motion 4 (`59c6e0`) = max(thr − 0.0925, 0). Motion @59fc40 writes
 `S+0x1d0` (engine on/off). RPM ramp target = 100·rpm (`S+0x1c8` = 100), so full AB (rpm 1.14) shows 100.
 
-### 15.9 Exact envelope algorithm (for porting; the port currently interpolates linearly, §10)
+### 15.9 Exact envelope algorithm (ported in `envelope.rs`)
 All float32 with x87 intermediates; `trunc` = `_ftol` (toward 0). Constants: `0x60e2ec` = 0.5147222 (kt→m/s),
 `0x60e2e8` = 0.3048, `0x60e2c4` = 0, `0x60e2c8` = 1, `0x60e2f8` = −1, `0x60e2d0/d8/e0` = 0/−1/1 (f64), `0x60e2f0` = 1e-5
 (f64), sentinel altitude `0x46ea6000` = **30000.0 m**. `E` = `P+0` in the static per-type array `0x83f2a8`
@@ -1348,7 +1385,8 @@ return 4                                               // code 1 is never return
 min(a34·alt + b38, 0) : max(a28·alt + b2c, 0)` — the line from (ceilAlt(gmax graph), gmax) to (ceilAlt(g0), 0), and the
 mirror with gmin. F-16: `14 − 6.5617e-4·alt` (9 g at 7620 m, 0 at 21336 m), `−10.5 + 4.9213e-4·alt`.
 
-**F-16 `16.dat` check** (Python reconstruction `scratchpad/env/orig.py` vs the current `envelope.rs`):
+**F-16 `16.dat` check** (Python reconstruction `scratchpad/env/orig.py` vs the old linear `envelope.rs`; the ported
+version now matches the "original" column, test `f16_file_matches_the_audit_table`):
 
 | quantity | original | port |
 |---|---|---|
@@ -1449,3 +1487,26 @@ the original). Already decided and not repeated: the 1 g hold (original by defau
 Items still UNCERTAIN: the Euler convention of `46c556` and the Rodrigues order in the mode exits, which unit types
 are 100/140, the Tornado timing, the terrain flag meanings, modes c74/c78, the mover that supplies the start velocity,
 `402050`'s return value and `441000`.
+
+### 15.11 Ported (checklist of §15.10)
+"done" = ported as the original; "BP" = the better behaviour is behind `Aircraft::better_physics` (the original stays the
+default, §10). Rust unit tests in `aircraft.rs` / `envelope.rs`; headless Godot test `tests/godot/test_crash.gd`.
+
+| # | item | status |
+|---|---|---|
+| 1 | Envelope | done: `envelope.rs` is §15.9 exactly (parser, pads, ceilings, lines, per-level lists, bracket, plane fits, codes 0/2/3/4). Tests: Python reference `envelope_ref.rs` (ceilings, Vmin, 540 GLimit points) and the F-16 values of §15.9. `stall_floor` stays Real-only |
+| 2 | Landing / crash check | done: `landing_check` at touchdown (saved Euler, Easy landing ×2 default on, gear-not-down ×0.2/0.2/0.25, slope > 10°, immunity = Invulnerable / No crashes); water and rough ground (> 25.7 m/s) destroy while rolling; the sim freezes (`crashed` + reason). Host: slope from `height_at`, water = false (no terrain types, UNCERTAIN), crash → mission runtime player death → flight ends after 5 s. BP: sink 4 m/s, tail strike 15°, current attitude |
+| 3 | Spin mode | done: mode, three channels with their limits, two-stage entry (with the "No spins" quirk), update in both updates (5 Hz skips the forces), spin attitude, exit (velocity := rotated nose·V, `p_cmd = s1·0.1`), types 100/140 (F-16, Lavi) never spin — so the F-16 we fly cannot spin. BP: (a)–(f). Damage 0x18 not modelled (no damage system) |
+| 4 | Nose-wheel yaw ramp | done: `S+0x2a8` at \|BetaRate\|, ±MaxBeta; 5 Hz uses the ramp, 1 Hz the raw target |
+| 5 | Force angles | done: 5 Hz αT and β(t) (ground: nose-wheel ramp), 1 Hz α(t) and β_cmd. BP: α(t)/β(t) in both |
+| 6 | α 1 Hz update | done: `5a7590` at every aero update with αT from the new Lnoflap, gains only there, ×0.5 damping above π |
+| 7 | Gear / brake / flap ramps, `cfg` | done: gear 0..1.569, flaps 0..0.29275 (F-16 lever ×0.33), brakes 0..0.855, all 0.5/s; gear flag exactly at 0, brake flag (air: finished at max; ground: ≥ 1e-5). The model's gear animation already used 0.5/s (3.1 s); the cockpit lamps keep the controller's 2 s (§12). Hook (`cfg[8]`) not wired (no hook control) |
+| 8 | Throttle / AB | done: AB request after `(100 − RPM)/15` s (older request wins, non-AB change cancels), 0.015 dead band, first event starts the engine, RPM ramp 0..100 at 15 %/s; host keys step the FM throttle by 0.0925 only while ≤ 1.0 and reach the FM at once |
+| 9 | Start rules | done: `Aircraft::start` / `start_is_airborne` (z > 800 m, not near a base); air: throttle 0.74, RPM 70, gear up, lift ramps MaxWeight·g; ground: gear down, full flaps, brakes, throttle 0, RPM 0, engine only near the runway start point. Host: base / runway start point from the 3 known spawn points, start speed 180 m/s (both UNCERTAIN, §10). BP: lift ramps m·g |
+| 10 | Stall latch | done: `≤ 3.0`, set only when unset, cleared only by an update with `now − t > 3`, set on the ground too. FF "StallShake" skipped (no force feedback) |
+| 11 | Preferences | done: No stalls (code 0/2/4 rules, no latch, no vibration), No spins (quirk; BP blocks), Easy landing (default on; landing ×2, ground lift gate), Invulnerable / No crashes (immunity, ground "easy" gate, no belly μ), Unlimited fuel. Pub fields on `Aircraft`, setters on `IafFlight`, set from `Settings` in `terrain_view.gd`. Multiplayer overrides n/a |
+| 12 | β at 5 Hz and on the ground | done; the rudder `S+0x2ec` is taken only while airborne |
+| 13 | Roll / attitude | done: (a) no `kroll` clamp; (b) roll re-based on the attitude roll and `5a7520` at 1 Hz and 5 Hz; (c) no re-orthogonalisation, roll from the raw left wing in the heading/pitch frame, force matrix from the Euler angles. (d) skipped: channels use their own base time (§10) |
+| 14 | Lift-ramp rate factor | done: no `.max(0.01)` floor. The per-type slope globals: n/a (our slopes are per aircraft; identical while one type flies) |
+| 15 | Terrain types, map edge | partly: water / rough-ground rules are in the FM, but the host has no terrain flags (false). `S+0x2c8` states, OutRunway FF and the "Tornado" push-back skipped |
+| 16 | Minor | done: the 1 Hz V is not capped (5 Hz caps at 1200 m/s); airborne thrust unclamped. Skipped: `S+0x420` effects flag, FF effects, SFX 0x28/0x29, EndWorld/Kramer wavs |
