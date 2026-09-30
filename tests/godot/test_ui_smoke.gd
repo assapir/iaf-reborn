@@ -50,6 +50,19 @@ func run() -> void:
 					fe._gui_input(mouse_button(fe._to_screen(fe.CONTENT.position + it.rect.get_center()), true))
 					fe._gui_input(mouse_button(fe._to_screen(fe.CONTENT.position + it.rect.get_center()), false))
 			await frames(2)
+			# Extras "Weapon data: Real" and Physics "Stores weight fix" (their rows fit the page).
+			for it in fe._extras_items():
+				if it.key == "weapon_data" and it.value == "real":
+					fe._gui_input(mouse_button(fe._to_screen(fe.CONTENT.position + it.rect.get_center()), true))
+					fe._gui_input(mouse_button(fe._to_screen(fe.CONTENT.position + it.rect.get_center()), false))
+			await frames(2)
+			check(fe.pref_work.get("weapon_data") == "real", "%s: Extras Weapon data set to Real" % lang)
+			fe._on_button("physics")
+			await frames(2)
+			var rows: Array = fe._physics_items().filter(func(i): return i.key == "fix_stores_weight")
+			check(rows.size() == 1 and rows[0].rect.end.y <= fe.CONTENT.size.y, "%s: Physics lists Stores weight fix inside the page" % lang)
+			fe._on_button("extras")
+			await frames(2)
 			fe._on_button(fe._key_for_label("Keyboard"))
 			fe._ctrl_scroll(fe._ctrl_max_top())
 			await frames(3)

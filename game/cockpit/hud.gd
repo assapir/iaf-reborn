@@ -73,6 +73,8 @@ func _draw() -> void:
 		if fpm != null:
 			_draw_fpm(fpm, s, w)
 
+	_draw_weapons(s, w, font, fs, gun)
+
 	# Heading tape (top), speed (left), altitude (right), G / Mach.
 	var top := 6.0 * s
 	var hdg: float = fposmod(st.heading, 360.0)
@@ -178,3 +180,70 @@ func _draw_fpm(p: Vector2, s: float, w: float) -> void:
 	draw_line(p + Vector2(r, 0), p + Vector2(r * 2.5, 0), cockpit.hud_colour(), w)
 	draw_line(p - Vector2(r, 0), p - Vector2(r * 2.5, 0), cockpit.hud_colour(), w)
 	draw_line(p - Vector2(0, r), p - Vector2(0, r * 2), cockpit.hud_colour(), w)
+
+
+# --- weapon symbology (docs/weapons.md §6; FUN_0052ef20, FUN_0052fa10, FUN_0052ffb0) ----------------
+
+## The gun pipper sprite: mfds.bmp (132,792)–(164,824), colour key 0xffff00 (FUN_00530040).
+var _pipper: Texture2D
+
+
+func _pipper_tex() -> Texture2D:
+	if _pipper == null and cockpit.tex.has("MFDS"):
+		var img: Image = cockpit.tex.MFDS.get_image()
+		if img != null:
+			if img.is_compressed():
+				img.decompress()
+			var a: float = cockpit.layout.get("image_scale", 1)
+			var r := img.get_region(Rect2i(Vector2i(132, 792) * a, Vector2i(32, 32) * a))
+			r.convert(Image.FORMAT_RGBA8)
+			for y in r.get_height():
+				for x in r.get_width():
+					var c := r.get_pixel(x, y)
+					if c.r > 0.9 and c.g > 0.9 and c.b < 0.1:
+						r.set_pixel(x, y, Color(0, 0, 0, 0))
+			_pipper = ImageTexture.create_from_image(r)
+	return _pipper
+
+
+func _draw_weapons(s: float, w: float, font: Font, fs: int, gun: Vector2) -> void:
+	var wp: Dictionary = cockpit.weapons
+	if wp.is_empty():
+		return
+	var col: Color = cockpit.hud_colour()
+	var h: Dictionary = cockpit.layout.HUD
+	# Text block, left column (FUN_0052ef20 pass 3): x = centre − TxtOffX, rows 7 px apart from
+	# centre + TxtOffY; row 2 = the weapon line "%1d %s %s" (total, name, RDY / MAL), "NAV" in HUD
+	# mode 0. (The original draws it with the MFD sprite font; ours with the HUD font.)
+	var line := "NAV" if int(wp.hud_mode) == 0 else "%d %s %s" % [int(wp.total), wp.name, "RDY" if wp.ready else "MAL"]
+	var at := Vector2(size.x / 2.0 - float(h.get("TxtOffX", 82)) * s, size.y / 2.0 + (float(h.get("TxtOffY", 48)) + 2 * 7 + 7) * s)
+	draw_string(font, at, line, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
+	var bore: Vector2 = cockpit.boresight() - position
+	match int(wp.hud_mode):
+		1:
+			# SRM: missile circle r = size · 12 px (min 10) on the boresight; the seeker diamond ±7 px.
+			var r := maxf(float(wp.circle) * 12.0, 10.0) * s
+			draw_arc(bore, r, 0, TAU, 48, col, w)
+			if wp.have_missiles:
+				var d: Vector2 = bore + wp.seeker * s
+				var k := 7.0 * s
+				draw_polyline(PackedVector2Array([d + Vector2(0, -k), d + Vector2(k, 0), d + Vector2(0, k), d + Vector2(-k, 0), d + Vector2(0, -k)]), col, w)
+		3, 4:
+			var pip = wp.pipper
+			var p = null
+			if int(wp.hud_mode) == 3 and pip != null:
+				p = gun + Vector2(float(int(pip.x)), float(int(pip.y))) * s
+			elif pip != null and camera != null and host_world_to_scene.is_valid():
+				var sp: Vector3 = host_world_to_scene.call(pip)
+				if not camera.is_position_behind(sp):
+					p = camera.unproject_position(sp) - position
+			if p != null:
+				var t := _pipper_tex()
+				if t != null:
+					draw_texture_rect(t, Rect2(p - Vector2(16, 16) * s, Vector2(32, 32) * s), false, col)
+				else:
+					draw_arc(p, 8 * s, 0, TAU, 24, col, w)
+
+
+## World point -> scene (set by the flight scene for the AG pipper).
+var host_world_to_scene: Callable

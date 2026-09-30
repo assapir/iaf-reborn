@@ -36,6 +36,10 @@ var state := {
 	"rpm": 0.0, "throttle": 0.0, "fuel_lbs": 0.0,
 	"world": Vector2.ZERO,  # ownship in mission world coordinates (X east, Y north, metres)
 }
+## The weapons snapshot for the HUD and the stores page (player_weapons.gd _publish; {} = none).
+var weapons := {}
+## Stores page station buttons (event 0x4c(station)), set by the flight scene.
+var on_station_select: Callable
 ## The player's route: [{name, world: Vector2}], and the current waypoint index.
 var waypoints: Array = []
 var current_waypoint := 0

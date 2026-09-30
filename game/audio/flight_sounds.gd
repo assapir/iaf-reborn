@@ -339,6 +339,11 @@ func _on_finished(p: Node) -> void:
 	p.queue_free()
 
 
+## Stops a sound started by play() (loops: the gun, the IR tones).
+func stop(p: Node) -> void:
+	_stop(p)
+
+
 func _stop(p: Node) -> void:
 	if p != null and is_instance_valid(p):
 		p.stop()

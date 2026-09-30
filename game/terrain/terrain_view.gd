@@ -123,6 +123,12 @@ const DamageModel := preload("res://mission/damage_model.gd")
 const F16_TYPE := 100
 ## The mission entity the player flies (0x1e of the main file) and its flight (1..4); -1 / 0 = none.
 var player_entity_id := -1
+## The player's mission entity and its bdb object / database (the loadout, docs/weapons.md §2).
+var mission_entity := {}
+var mission_object := {}
+var mission_bdb := {}
+## The player's weapons (game/weapons/player_weapons.gd).
+var weapons: Node
 var player_flight_number := 0
 ## The flight-sounds node (game/audio/flight_sounds.gd), the damage effects layer and the player's
 ## systems damage (docs/damage.md).
@@ -198,6 +204,7 @@ func _ready() -> void:
 	_start_flight()
 	_apply_view()
 	_spawn_f16()
+	_setup_weapons()
 	if flight != null and aircraft != null:
 		# The model's `height` helper: how far the wheels reach below the aircraft origin.
 		var h := aircraft.find_child("height", true, false) as Node3D
@@ -205,6 +212,27 @@ func _ready() -> void:
 	var shot := args.find("--screenshot")
 	if shot >= 0:
 		_screenshot(args[shot + 1])
+
+
+## The player's stores and weapons: the mission entity's loadout, else (free flight) the F-16's
+## default load from the default object database.
+func _setup_weapons() -> void:
+	var bdb := mission_bdb
+	if bdb.is_empty():
+		bdb = Settings.load_json(Settings.assets_dir().path_join("converted/missions/default6_1.bdb.json"))
+	var obj := mission_object
+	if obj.is_empty() or int(obj.get("0x5b4", -1)) != F16_TYPE:
+		# Only the F-16 flies today: another mission jet flies as the F-16 with the F-16's type load.
+		for o in bdb.get("objects", {}).get("items", []):
+			if int(o.get("0x5b4", -1)) == F16_TYPE and int(o.get("0x5aa", -1)) == 0x1c:
+				obj = o
+				break
+	var ent := mission_entity if int(mission_object.get("0x5b4", -1)) == F16_TYPE else {}
+	weapons = preload("res://weapons/player_weapons.gd").new()
+	add_child(weapons)
+	weapons.setup(self, ent, obj, bdb, preload("res://aircraft/aircraft_model.gd").load_descriptor("f16"))
+	cockpit.hud.host_world_to_scene = weapons.to_scene
+	cockpit.on_station_select = weapons.select_station
 
 
 ## Waits for the terrain in range (bounded), measures fps, saves a PNG and quits.
@@ -290,7 +318,10 @@ func _mission_player() -> Dictionary:
 	var e: Dictionary = pf.entity
 	player_entity_id = int(e["0x1e"])
 	player_flight_number = int(pf.flight)
-	var obj: Dictionary = MissionRuntime.bdb_objects(MissionRuntime.load_bdb(mission)).get(int(e.get("0x2c6", -1)), {})
+	mission_bdb = MissionRuntime.load_bdb(mission)
+	var obj: Dictionary = MissionRuntime.bdb_objects(mission_bdb).get(int(e.get("0x2c6", -1)), {})
+	mission_entity = e
+	mission_object = obj
 	var jet := int(obj.get("0x5b4", -1))
 	print("player: %s (flight %d, type %d)" % [e.get("0x2bc", ""), player_flight_number, jet])
 	if jet != F16_TYPE:
@@ -910,6 +941,15 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventMouseMotion and looking and not in_cockpit:
 		orbit_yaw -= event.relative.x * 0.005
 		orbit_pitch = clamp(orbit_pitch - event.relative.y * 0.005, -1.4, 1.4)
+	elif event is InputEventKey and not event.pressed:
+		# Release commands of the table (Space up 0x41, Tab up 0x43).
+		var rel: int = keys.find_key(keys.key_of_event(event), Settings.key_bindings)
+		if rel >= 0 and weapons != null:
+			match int(keys.records[rel].release[0]):
+				65:
+					weapons.release_selected()
+				67:
+					weapons.gun_stop()
 	elif event is InputEventKey and event.pressed:
 		if event.echo:
 			# Held PgUp / PgDn keep sliding the panel (our keys); other repeats do nothing.
@@ -988,6 +1028,20 @@ func _command(cmd: Array) -> bool:
 				cockpit.show_mfd_page(p1)
 			else:
 				return false
+		60:
+			weapons.select_ag()
+		62:
+			weapons.select_aa()
+		64:
+			weapons.fire_selected()
+		66:
+			weapons.gun_key()
+		72:
+			weapons.jettison()
+		98:
+			weapons.nav_key(p1)
+		99:
+			weapons.master_key()
 		101, 102:
 			var n: int = maxi(cockpit.waypoints.size(), 1)
 			cockpit.current_waypoint = posmod(cockpit.current_waypoint + (1 if int(cmd[0]) == 101 else -1), n)
@@ -1078,6 +1132,8 @@ func _process(delta: float) -> void:
 		if not frozen and not waiting_for_ground:
 			_sim_time += delta
 			_console_update(_sim_time)
+			if weapons != null:
+				weapons.update(_sim_time)
 		g_effects.g = st.g
 		g_effects.over_g = st.over_g
 		cockpit.state["world"] = Vector2(terrain.world_origin.x + rig.position.x, terrain.world_origin.y - rig.position.z)

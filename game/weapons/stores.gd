@@ -43,6 +43,8 @@ var fm_di_right := 0.0
 var weight_fix := false
 ## W+0xc0: a fuel tank ("LB" in the name) is carried.
 var has_tank := false
+## The fuel the tanks add to the fuel maximum at the start (kg field; see init_weight_drag).
+var tank_fuel := 0.0
 ## W+0x94 Unlimited ammo: no decrement, no weight / drag updates.
 var unlimited := false
 
@@ -264,14 +266,29 @@ func fire_station() -> int:
 func fired(i: int) -> void:
 	if not stations.has(i):
 		return
-	var st: Dictionary = stations[i]
 	last_fired = i
 	just_fired = true
+	consume(i)
+	if not unlimited and i < 9:
+		_release_weight_drag(i, stations[i].w)
+
+
+## A tank jettisoned from station i (FUN_00458760): count −1 and the drag update only.
+func jettisoned(i: int) -> void:
+	last_fired = i
+	just_fired = true
+	consume(i)
+	_release_drag(i, stations[i].w)
+
+
+## FUN_0053c8b0 alone (the gun's shots): the count drops by one unless unlimited.
+func consume(i: int) -> void:
+	if not stations.has(i):
+		return
+	var st: Dictionary = stations[i]
 	if not st.unlimited and st.count > 0:
 		# Weapon data Real: a gun shot tick uses rate · 0.2 s rounds (ours; the original 1).
 		st.count = maxf(st.count - float(st.w.get("rounds_per_tick", 1.0)), 0.0)
-	if not unlimited and i < 9:
-		_release_weight_drag(i, st.w)
 
 
 ## W+0x94 / FUN_0053bf60: unlimited on every station but chaff and flares.
@@ -282,23 +299,26 @@ func set_unlimited(on: bool) -> void:
 			stations[i].unlimited = on
 
 
-## FUN_00454010: one store per station 0..8 whatever the count (original); weights of tanks ("LB" in
-## the name) are left out; drag of stations 0..3 left, 5..8 right, station 4 half to each. The weight
-## (pounds) goes into the kg field as is. With the weight fix: every store, in kg, tanks included.
+## FUN_00454010: one store per station 0..8 whatever the count (original); tanks ("LB" in the name)
+## go to the fuel (tank_fuel) instead of the stores weight; drag of stations 0..3 left, 5..8 right,
+## station 4 half to each. The weight (pounds) goes into the kg field as is. With the weight fix
+## (Physics "Stores weight fix"): every store counted, in kg, tank fuel in kg.
 func init_weight_drag() -> void:
 	var weight := 0.0
 	var left := 0.0
 	var right := 0.0
 	has_tank = false
+	tank_fuel = 0.0
 	for i in 9:
 		if not stations.has(i):
 			continue
 		var w: Dictionary = stations[i].w
 		var n: float = float(stations[i].count) if weight_fix else 1.0
 		if "LB" in String(w.name):
+			# out[3]: the tank's bdb weight becomes fuel (FUN_005a8980: fuel maximum FuelWeight +
+			# out[3], the pounds number in the kg field); with the fix, every tank in kg.
 			has_tank = true
-			if weight_fix:
-				weight += n * float(w.weight_lb) * KG_PER_LB
+			tank_fuel += n * float(w.weight_lb) * (KG_PER_LB if weight_fix else 1.0)
 		else:
 			weight += n * float(w.weight_lb) * (KG_PER_LB if weight_fix else 1.0)
 		var d: float = n * float(w.drag)
@@ -318,6 +338,14 @@ func init_weight_drag() -> void:
 ## store's drag (half at station 4, both sides), the mass loses its weight (S+0x424·2.2046 − lb,
 ## back ×0.45359); each only when it stays ≥ 0 (motions 0x10 / 0x11 / 0x13).
 func _release_weight_drag(i: int, w: Dictionary) -> void:
+	_release_drag(i, w)
+	var m := fm_mass * LB_PER_KG - float(w.weight_lb)
+	if m >= 0.0:
+		fm_mass = maxf(m * KG_PER_LB, 0.0)
+
+
+## FUN_004583a0 alone.
+func _release_drag(i: int, w: Dictionary) -> void:
 	var d: float = float(w.drag) * (0.5 if i == 4 else 1.0)
 	if i <= 4:
 		var v := fm_di_left * 10000.0 - d
@@ -327,9 +355,6 @@ func _release_weight_drag(i: int, w: Dictionary) -> void:
 		var v := fm_di_right * 10000.0 - d
 		if v >= 0.0:
 			fm_di_right = maxf(v * 1e-4, 0.0)
-	var m := fm_mass * LB_PER_KG - float(w.weight_lb)
-	if m >= 0.0:
-		fm_mass = maxf(m * KG_PER_LB, 0.0)
 
 
 ## The cheat reload (FUN_0053bed0): every station back to its initial count (weight / drag not

@@ -207,8 +207,40 @@ func _draw_nav() -> void:
 	_text(Vector2(72, 124), "ETA   :")
 
 
+## Stores page (FUN_0052c740, docs/mfd.md): per pylon station 0..8 the count and name positions
+## (stations 6..8 right-aligned to x 128), the MRM / SRM totals, the gun rounds, the fuel and the
+## selected station's box. OSBs 0xd, 0xc, 0xb, 1, 3, 5, 0x10, 0x11, 0x12 select stations 0..8.
+const STORES_POS := [[4, 62, 4, 72], [4, 42, 4, 52], [4, 22, 4, 32], [24, 3, 17, 12], [64, 3, 57, 12],
+	[104, 3, 97, 12], [128, 22, 128, 32], [128, 42, 128, 52], [128, 62, 128, 72]]
+const STORES_OSB := [0xd, 0xc, 0xb, 1, 3, 5, 0x10, 0x11, 0x12]
+
+
 func _draw_stores() -> void:
 	_tile(TILE_STORES)
+	var wp: Dictionary = cockpit.weapons
+	if not wp.is_empty():
+		for i in 9:
+			var st: Dictionary = wp.stations[i]
+			if int(st.type) == 0:
+				continue
+			var pos: Array = STORES_POS[i]
+			var count := "%d" % int(st.count)
+			var name := String(st.name)
+			if i >= 6:
+				_text_right(pos[0], pos[1], count)
+				_text_right(pos[2], pos[3], name)
+			else:
+				_text(Vector2(pos[0], pos[1]), count)
+				_text(Vector2(pos[2], pos[3]), name)
+			if i == int(wp.selected):
+				# Box 15x8 around the count (placement UNCERTAIN).
+				var x: float = pos[0] - (5 * count.length() if i >= 6 else 0)
+				draw_rect(Rect2(x - 2, pos[1] - 2, 15, 8), GREEN, false, 1.0)
+		_text_right(59, 53, "%d" % int(wp.mrm))
+		_text_right(59, 63, "%d" % int(wp.srm))
+		_text(Vector2(68, 85), "%03d" % int(wp.gun))
+		if int(wp.selected) == 9:
+			draw_rect(Rect2(48, 82, 36, 10), GREEN, false, 1.0)
 	_text(Vector2(55, 124), "Fuel : %5dLB" % int(cockpit.state.fuel_lbs))
 
 
@@ -378,6 +410,10 @@ func press(osb: int) -> void:
 				0xb: tsd_scale = TSD_SCALES[mini(TSD_SCALES.find(tsd_scale) + 1, TSD_SCALES.size() - 1)]
 				0xc: tsd_scale = TSD_SCALES[maxi(TSD_SCALES.find(tsd_scale) - 1, 0)]
 				0x10, 0x11, 0x12, 0x13: tsd_options[osb - 0x10] = not tsd_options[osb - 0x10]
+		STORES:
+			var i := STORES_OSB.find(osb)
+			if i >= 0 and cockpit.on_station_select.is_valid():
+				cockpit.on_station_select.call(i)
 		NAV:
 			match osb:
 				0xb: nav_scroll = maxi(nav_scroll - 1, 0)

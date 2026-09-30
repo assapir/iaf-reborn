@@ -110,7 +110,7 @@ const EXTRAS_STEP := 44.0
 ## Our tabs below Gameplay, 44 px apart: [page, English button label].
 const OUR_TABS := [["Extras", "EXTRAS"], ["Physics", "PHYSICS"]]
 ## Physics page (ours): one row per Settings.BETTER option.
-const PHYSICS_ROW := 21.0
+const PHYSICS_ROW := 20.0
 ## Our options on the Extras page: [setting, label, [[choice label, value], ...]].
 const EXTRAS := [
 	["flight_data", "Flight data", [["Original (1998)", "original"], ["Real aircraft", "real"]]],
