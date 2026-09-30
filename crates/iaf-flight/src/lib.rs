@@ -15,11 +15,17 @@ pub use params::Params;
 
 use std::path::Path;
 
-/// Loads an aircraft's parameters (`bd.ibx` section, e.g. "F-16") and envelope from an
-/// extracted install (`<install>/resource/md`), with the chosen data set applied.
-pub fn load_with(install: &Path, section: &str, set: DataSet) -> Result<(Params, Envelope), String> {
-    let (p, e) = load(install, section)?;
-    Ok(data_set::apply(set, section, &p, &e))
+/// Loads an aircraft's parameters and envelope from an extracted install (`<install>/resource/md`), with
+/// the chosen data set applied. `name` is an aircraft type (`data_set::TYPES`: "SU22", "A-4", "707", or
+/// its model folder "boing"), or a `bd.ibx` section ("F-16"; a shared section selects its first type). The
+/// section is the one the original loads for the type (`data_set::section`) and the type code is the
+/// type's (the transports fly the F-16's section as type 230).
+pub fn load_with(install: &Path, name: &str, set: DataSet) -> Result<(Params, Envelope), String> {
+    let (mut p, e) = load(install, data_set::section(set, name))?;
+    if let Some(t) = data_set::find_type(name) {
+        p.type_code = t.type_code;
+    }
+    Ok(data_set::apply(set, name, &p, &e))
 }
 
 /// Loads the original data (see [`load_with`]). The v1.1 patch's files win over v1.0's when present
