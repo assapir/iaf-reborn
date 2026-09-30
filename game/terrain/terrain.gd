@@ -51,14 +51,32 @@ func _ready() -> void:
 	m_per_unit = float(meta.get("units_to_metres", 1.0))
 	var span: float = float(meta.chunk_span) * m_per_unit
 	for res in ring_resolution:
-		var m := PlaneMesh.new()
-		m.size = Vector2(span, span)
-		m.subdivide_width = res - 1
-		m.subdivide_depth = res - 1
-		# Heights are applied in the shader; give culling a generous box.
-		m.custom_aabb = AABB(Vector3(-span / 2, -1000, -span / 2), Vector3(span, 6000, span))
-		meshes.append(m)
+		meshes.append(_grid_mesh(span, res))
 	_load_details()
+
+
+## A flat `span`-metre square of `res` × `res` vertices; heights are applied in the shader, so
+## culling gets a generous box.
+static func _grid_mesh(span: float, res: int) -> PlaneMesh:
+	var m := PlaneMesh.new()
+	m.size = Vector2(span, span)
+	m.subdivide_width = res - 1
+	m.subdivide_depth = res - 1
+	m.custom_aabb = AABB(Vector3(-span / 2, -1000, -span / 2), Vector3(span, 6000, span))
+	return m
+
+
+## Material with the colour/height textures and the height decoding shared by chunks and detail tiles.
+func _material(s: Shader, colour: Image, height_tex: Texture2D) -> ShaderMaterial:
+	var mat := ShaderMaterial.new()
+	mat.shader = s
+	mat.set_shader_parameter("colour_tex", ImageTexture.create_from_image(colour))
+	mat.set_shader_parameter("height_tex", height_tex)
+	mat.set_shader_parameter("units_to_metres", m_per_unit)
+	mat.set_shader_parameter("chunk_pixels", float(meta.chunk_pixels))
+	mat.set_shader_parameter("sea_level_raw", float(meta.sea_level_raw))
+	mat.set_shader_parameter("height_scale", float(meta.height_scale))
+	return mat
 
 
 func _load_details() -> void:
@@ -71,12 +89,7 @@ func _load_details() -> void:
 	# Same vertex lattice as a ring-0 base chunk: one vertex per chunk_pixels / ring_resolution[0] texels.
 	var tile_texels: float = float(details.span) / float(meta.units_per_pixel)
 	var segments := int(tile_texels / (float(meta.chunk_pixels) / ring_resolution[0]))
-	detail_mesh = PlaneMesh.new()
-	var span_m: float = float(details.span) * m_per_unit
-	detail_mesh.size = Vector2(span_m, span_m)
-	detail_mesh.subdivide_width = segments - 1
-	detail_mesh.subdivide_depth = segments - 1
-	detail_mesh.custom_aabb = AABB(Vector3(-span_m / 2, -1000, -span_m / 2), Vector3(span_m, 6000, span_m))
+	detail_mesh = _grid_mesh(float(details.span) * m_per_unit, segments)
 
 
 ## Terrain units (as in map.ptt) -> Godot position (y = 0).
@@ -173,15 +186,8 @@ func _add_chunk(c: Vector2i, images: Array, ring: int) -> void:
 	chunks[c] = mi
 	if images.is_empty():
 		return  # outside the data: keep an empty placeholder so we don't retry
-	var mat := ShaderMaterial.new()
-	mat.shader = shader
-	mat.set_shader_parameter("colour_tex", ImageTexture.create_from_image(images[0]))
-	mat.set_shader_parameter("height_tex", ImageTexture.create_from_image(images[1]))
+	var mat := _material(shader, images[0], ImageTexture.create_from_image(images[1]))
 	mat.set_shader_parameter("chunk_span", float(meta.chunk_span) * m_per_unit)
-	mat.set_shader_parameter("units_to_metres", m_per_unit)
-	mat.set_shader_parameter("chunk_pixels", float(meta.chunk_pixels))
-	mat.set_shader_parameter("sea_level_raw", float(meta.sea_level_raw))
-	mat.set_shader_parameter("height_scale", float(meta.height_scale))
 	mi.mesh = _mesh_for(ring)
 	mi.material_override = mat
 	mi.set_meta("height", images[1])
@@ -303,14 +309,7 @@ func _add_detail(g: Vector2i, img: Image, c: Vector2i) -> void:
 	var span: float = details.span
 	var per_chunk := int(float(meta.chunk_span) / span)
 	var texels_per_tile: float = span / float(meta.units_per_pixel)
-	var mat := ShaderMaterial.new()
-	mat.shader = detail_shader
-	mat.set_shader_parameter("colour_tex", ImageTexture.create_from_image(img))
-	mat.set_shader_parameter("height_tex", chunks[c].material_override.get_shader_parameter("height_tex"))
-	mat.set_shader_parameter("units_to_metres", m_per_unit)
-	mat.set_shader_parameter("chunk_pixels", float(meta.chunk_pixels))
-	mat.set_shader_parameter("sea_level_raw", float(meta.sea_level_raw))
-	mat.set_shader_parameter("height_scale", float(meta.height_scale))
+	var mat := _material(detail_shader, img, chunks[c].material_override.get_shader_parameter("height_tex"))
 	mat.set_shader_parameter("texel_origin", Vector2(g.x - c.x * per_chunk, g.y - c.y * per_chunk) * texels_per_tile)
 	mat.set_shader_parameter("tile_texels", texels_per_tile)
 	mat.set_shader_parameter("texel_metres", float(meta.units_per_pixel) * m_per_unit)
