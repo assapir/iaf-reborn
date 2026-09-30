@@ -49,6 +49,9 @@ Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user
 - Real data: real service ceilings per aircraft (the envelope's g ceilings from public ceiling figures), all jets
   incl. AI types (docs/real-aircraft.md).
 - VSync on / off switch on the Graphics page (ours; default on).
+- Aircraft shadow is very pixelated (shadow map resolution / cascade split / filtering), and the afterburner
+  flame casts a shadow even when the afterburner is off (the flame mesh must not cast shadows, and hidden flames
+  must not render). Also wire the Graphics "SHADOWS" pref.
 - Keyboard page: the scrollbar arrows are cropped on the right side.
 - Terrain loads only after Fly, and the flight's loading screen (game/terrain/loading_screen.gd) does not show —
   only the front end's wait screen before the briefing appears; the ground pops in for a few seconds. Fix the
