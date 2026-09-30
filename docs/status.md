@@ -26,7 +26,10 @@
    redundant) + Tu-22 Real row (the variant flown in the missions), **pilot records** / login / unlocking.
 7. Arming screen, remaining front-end screens, multiplayer.
 8. Joystick / throttle / pedals (original input handling; Devices page).
-9. Later (docs/roadmap.md): Better AI, Real weapons, Extra sounds, mission replayer, 3D cockpit, satellite imagery,
+9. **Sea level west of Suez**: map.ptt has no elevation there (sea, Nile delta and Western desert are a flat plane
+   at −557 m, ships placed at −557 m); kept as the original for now — decide a fix (e.g. shift that plane and its
+   objects to 0 m) later.
+10. Later (docs/roadmap.md): Better AI, Real weapons, Extra sounds, mission replayer, 3D cockpit, satellite imagery,
    canopy open.
 
 Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user decisions.
@@ -67,6 +70,7 @@ Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user
 - **Eject details**: the original fly-by camera, callsign in the radio call, parachute landing.
 
 ## Decisions (agreed with the user)
+- Every change from the original is listed in `docs/deviations.md`.
 - Game logic from v1.1 only ("logic v1.1"); v1.0 data must still work. A v1.1 fix that makes one of ours redundant → ours
   is deleted (so far only the HUD: the projected FPM is v1.1's own, the conformal ladder became an Extras option).
 - Improvements over the original are opt-in switches, original by default: Physics tab (flight + gameplay bugs),

@@ -1,0 +1,41 @@
+# Changes from the original
+
+The rule is to follow the original (v1.1 logic) exactly. This is the list of every place where we knowingly don't,
+so it can be reviewed in one spot. Keep it updated whenever a change is made or removed.
+
+## 1. Always-on changes (no switch)
+| area | original | ours | why | where |
+|---|---|---|---|---|
+| Ground height (physics) | 5-tap smoothed sample of the finest decoded tile, 1.24 m height steps (`FUN_004047a0`) | the triangle-interpolated surface that is drawn (level 6 heights) | wheels sit on what you see; < 1 m on runways, can differ more over hills | formats/ptt.md, terrain.gd `height_at` |
+| Terrain rendering | software renderer, row by row, nearest-pixel level by distance | GPU mesh quadtree with LOD and skirts | modern renderer; same data and level choice | formats/ptt.md |
+| View distance | `min(100 km, (AGL·1e-4 + 0.7) × base)` ≈ 21 km on the ground, 30 km at 3 km AGL | drawn to 200 km with fog | better visibility (rendering) | terrain.gd |
+| Cockpit camera field of view | the original 3D projection (not traced yet) | invented (`HUD_REAL_FOV = 25`) | **to fix** (queued: original projection) | cockpit.gd |
+| g readout on the ground | not traced | 1.0 | display only | flight.rs |
+| Envelope math | float32 / x87 | f64 | last-digit rounding only | flight-model.md §15.9 |
+| Flight channels | sampled with the X-axis time; angles fmod 2π | each channel's own base time (re-based together); angles wrapped ±180° | negligible difference | flight-model.md §15.11 |
+| Lift-ramp / β slopes | globals from the **last aircraft type set up** (leak between types) | each aircraft keeps its own | only matters with several flight-model types | flight-model.md §10 |
+| Ejection camera | fly-by camera | our external view | fly-by placement not traced | part-animation.md "Ejection" |
+| Low ejection | opens the in-flight TSD | ends the flight | no in-flight TSD yet | part-animation.md |
+| Parachuter | freezes at "land − 10 s" (factor 4) | descends to 20 m AGL | original bug; flight has ended by then in single player | part-animation.md |
+| Frame-rate-dependent effects | canopy spin 10°/frame, smoke puffs once per frame, flame flicker per frame | time-based (smoke 30 Hz) except the flame flicker | same look at any frame rate | damage.md, aircraft.md |
+| Explosions, smoke, afterburner flame | 1998 sprites / blend modes (partly not decoded) | our soft billboards / additive glow, original sizes and timings | rendering | damage.md §6, aircraft.md |
+| Hit shake | flight-model side not traced | 2° camera shake for 0.5 s | stand-in | damage.md |
+| Sounds | DirectSound 3-D | Godot 3-D audio with the DirectSound distance rule; a busy voice channel queues | queue vs replace not traced | sound.md |
+| Text and art | GDI text, 8-bit art | smooth text, 4× Lanczos art (never AI upscaling) | rendering (user decision) | — |
+| Runway numbers | two mirrored "33" at Ramat David | re-flipped at conversion | 1998 art error | formats/ptt.md |
+| In-flight subtitles in Hebrew mode | — (no Hebrew exists) | English | user decision | — |
+| Keys Esc / C / F2 / F12 | TSD toggle / time compression / back view / I-mode | ours (quit box / view toggle / external / info line) until those commands exist | not built yet | controls.md |
+
+## 2. Opt-in switches (original by default)
+- **Preferences → Physics**: the "Better physics" options and the original-bug fixes (falling-jet heading, tougher
+  enemies on easy AI levels) — flight-model.md §10, damage.md.
+- **Preferences → Extras**: Flight data (Original / Real aircraft), HUD pitch ladder (conformal), flight info line,
+  blackbox, language. Later: Weapon data (Original / Real), Real HUD, extra sounds, canopy open (docs/roadmap.md).
+
+## 3. Original quirks we keep on purpose (decided)
+- The sea west of Suez (and the Nile delta / Western desert) is one flat plane at −557 m in map.ptt; ships there sit
+  at −557 m. Kept as the original for now — **to revisit** (docs/status.md).
+- Cyprus is marked as water in terraintype.dat, so landing there destroys the jet (outside the area you fly in).
+- Upright but wrong runway numbers (template 09/27, copies of 15/33).
+- The F-16 / Lavi never spin in the original (the deep stall is a Physics option).
+- Everything listed as "not changed by better physics" in flight-model.md §10.
