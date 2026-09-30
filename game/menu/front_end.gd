@@ -89,11 +89,28 @@ const EXTRAS_TAB := Rect2(16, 287, 109, 39)
 const EXTRAS_BAND := Rect2(12, 203, 116, 54)
 const EXTRAS_LABEL := Rect2(42, 219, 62, 16)
 const EXTRAS_STEP := 44.0
+## Our tabs below Gameplay, 44 px apart: [page, English button label].
+const OUR_TABS := [["Extras", "EXTRAS"], ["Physics", "PHYSICS"]]
+## Physics page (ours): the "Better physics" options (Settings.BETTER order), short labels.
+const PHYSICS_LABELS := {
+	"flight_path_hold": "Flight-path hold (neutral stick)",
+	"force_angles": "Forces at current AoA / sideslip",
+	"start_lift": "Air start without jolt",
+	"start_rpm": "Air start with engine spooled up",
+	"start_alpha": "Air start trimmed",
+	"landing_limits": "Real landing limits (sink, tail strike)",
+	"spin_fixes": "Realistic spins",
+	"fbw_departure": "F-16 / Lavi deep stall",
+	"lift_rate_floor": "Low-speed lift rate fix",
+	"low_speed_roll": "No reversed roll at low speed",
+	"no_nose_wheel_lift": "No nose-wheel lift quirk",
+	"ground_effect": "Ground effect",
+}
+const PHYSICS_ROW := 21.0
 ## Our options on the Extras page: [setting, label, [[choice label, value], ...]].
 const EXTRAS := [
 	["flight_data", "Flight data", [["Original (1998)", "original"], ["Real F-16", "real"]]],
 	["language", "Language", [["English", "en"], ["Hebrew", "he"]]],
-	["better_physics", "Better physics", [["Off", false], ["On", true]]],
 	["show_info", "Flight info (F12)", [["Show", true], ["Hide", false]]],
 	["blackbox", "Blackbox", [["On", true], ["Off", false]]],
 ]
@@ -626,6 +643,9 @@ func _draw_prefs() -> void:
 	if page == "Extras":
 		_draw_extras()
 		return
+	if page == "Physics":
+		_draw_physics()
+		return
 	var art: String = PREF_ART.get(page, "")
 	var at := CONTENT.position
 	_blit("pref/%s_%d.png" % [art, 2 if page == "Controls" else 0], at)
@@ -697,20 +717,23 @@ static func _score_frame(p: Dictionary) -> int:
 	return clampi(24 - int(20.0 * m + 0.5), 0, 24)
 
 
-## Our Extras tab button (EXTRAS_BAND) for the current frame, with our label.
+## Our tab buttons (EXTRAS_BAND moved down 44 px per tab) for the current frame, with our labels.
 func _draw_extras_tab(delta: Vector2) -> void:
-	var f: int = frames.get("extras", 2 if Settings.pref_page == "Extras" else 0)
-	var t := _extras_tab_tex(f)
-	if t == null:
-		return
-	var panel_pos := Vector2(0, 35)
-	var dest := panel_pos + EXTRAS_BAND.position + Vector2(0, EXTRAS_STEP) + delta
-	draw_texture_rect(t, _rect(Rect2(dest, EXTRAS_BAND.size)), false)
-	var label := Rect2(panel_pos + EXTRAS_LABEL.position + Vector2(0, EXTRAS_STEP) + delta, EXTRAS_LABEL.size)
-	var fs := int(round(12 * _scale()))
-	var box := _rect(label)
-	var base := box.position.y + (box.size.y + font_bold.get_ascent(fs) - font_bold.get_descent(fs)) / 2.0
-	draw_string(font_bold, Vector2(box.position.x, base), _t("Extras") if _he() else "EXTRAS", HORIZONTAL_ALIGNMENT_CENTER, box.size.x, fs, Color8(185, 185, 185))
+	for k in OUR_TABS.size():
+		var page: String = OUR_TABS[k][0]
+		var f: int = frames.get(page.to_lower(), 2 if Settings.pref_page == page else 0)
+		var t := _extras_tab_tex(f)
+		if t == null:
+			return
+		var step := Vector2(0, EXTRAS_STEP * (k + 1))
+		var panel_pos := Vector2(0, 35)
+		var dest := panel_pos + EXTRAS_BAND.position + step + delta
+		draw_texture_rect(t, _rect(Rect2(dest, EXTRAS_BAND.size)), false)
+		var label := Rect2(panel_pos + EXTRAS_LABEL.position + step + delta, EXTRAS_LABEL.size)
+		var fs := int(round(12 * _scale()))
+		var box := _rect(label)
+		var base := box.position.y + (box.size.y + font_bold.get_ascent(fs) - font_bold.get_descent(fs)) / 2.0
+		draw_string(font_bold, Vector2(box.position.x, base), _t(page) if _he() else OUR_TABS[k][1], HORIZONTAL_ALIGNMENT_CENTER, box.size.x, fs, Color8(185, 185, 185))
 
 
 ## The band cut from palettes/ppref_<f>, label pixels replaced per row by a blend of the pixels
@@ -788,6 +811,43 @@ func _draw_extras() -> void:
 		_text_line(label, _t(it.label), LIST_TITLE_PX, (LIST_DESC_LIT if on else LIST_DESC) if it.available else Color(LIST_DESC, 0.5))
 
 
+## Physics page (ours): one check per "Better physics" option (rows of 21 px from y 45, LEDs
+## from the Gameplay art), plus ALL / NONE in the header. Mirrored in Hebrew.
+func _physics_items() -> Array:
+	var items := []
+	var w := CONTENT.size.x
+	for i in Settings.BETTER.size():
+		var r := Rect2(24, 45.0 + PHYSICS_ROW * i, w - 48, PHYSICS_ROW)
+		items.append({"rect": r, "key": "bp_" + Settings.BETTER[i], "label": PHYSICS_LABELS[Settings.BETTER[i]]})
+	for j in 2:
+		var r := Rect2(w - 24 - 70 * (2 - j), 12, 64, 22)
+		if _he():
+			r.position.x = w - r.end.x
+		items.append({"rect": r, "key": ["all", "none"][j], "label": ["All on", "All off"][j]})
+	return items
+
+
+func _draw_physics() -> void:
+	var at := CONTENT.position
+	_blit("screens/sgeneral.png", at)
+	var he := _he()
+	var line := Color(LIST_TITLE, 0.55)
+	var w := CONTENT.size.x
+	_text_line(Rect2(at + Vector2(24, 12), Vector2(w - 48, 22)), _t("Better physics") if he else "BETTER PHYSICS", LIST_TITLE_PX + 2, LIST_TITLE, font_bold)
+	draw_line(_to_screen(at + Vector2(18, 45)), _to_screen(at + Vector2(w - 18, 45)), line, maxf(1.0, _scale() * 0.5))
+	for it in _physics_items():
+		var r: Rect2 = it.rect
+		if it.key == "all" or it.key == "none":
+			_text_line(Rect2(at + r.position + Vector2(0, 3), r.size), _t(it.label), LIST_TITLE_PX, LIST_DESC_LIT, font_bold)
+			continue
+		var on: bool = pref_work.get(it.key, false)
+		var led := Rect2(Vector2(4, 5), Vector2(11, 11))
+		var led_x := r.end.x - led.end.x if he else r.position.x + led.position.x
+		_blit_region("pref/gamep_%d.png" % (1 if on else 0), Rect2(Vector2(28, 55), led.size), at + Vector2(led_x, r.position.y + led.position.y))
+		var label := Rect2(at + Vector2(r.position.x + (0.0 if he else 22.0), r.position.y + 1), Vector2(r.size.x - 22, 20))
+		_text_line(label, _t(it.label), LIST_TITLE_PX, LIST_DESC_LIT if on else LIST_DESC)
+
+
 # --- input ------------------------------------------------------------------------------
 
 ## Button under a point (menu coordinates): "panel/button", "back", "main" or "".
@@ -796,8 +856,10 @@ func _hit(p: Vector2) -> String:
 		return "" if screen in NO_BACK else "back"
 	if Rect2(MAIN_POS, Vector2(35, 59)).has_point(p):
 		return "main"
-	if screen == "pref" and EXTRAS_TAB.has_point(p):
-		return "extras"
+	if screen == "pref":
+		for k in OUR_TABS.size():
+			if Rect2(EXTRAS_TAB.position + Vector2(0, EXTRAS_STEP * k), EXTRAS_TAB.size).has_point(p):
+				return OUR_TABS[k][0].to_lower()
 	var panels := _panels()
 	for pi in panels.size():
 		for bi in panels[pi].buttons.size():
@@ -849,6 +911,16 @@ func _pref_press(q: Vector2) -> bool:
 		for it in _extras_items():
 			if it.available and it.rect.has_point(q):
 				pref_work[it.key] = it.value
+				return true
+		return false
+	if page == "Physics":
+		for it in _physics_items():
+			if it.rect.has_point(q):
+				if it.key == "all" or it.key == "none":
+					for id in Settings.BETTER:
+						pref_work["bp_" + id] = it.key == "all"
+				else:
+					pref_work[it.key] = not pref_work[it.key]
 				return true
 		return false
 	if page != "Devices" and PREF_DEFAULT.has_point(q):
@@ -993,10 +1065,10 @@ func _on_button(key: String) -> void:
 		else:
 			_leave("main")
 		return
-	if key == "extras":
+	if key in ["extras", "physics"]:
 		for k in checked.keys():
 			checked[k] = false
-		Settings.pref_page = "Extras"
+		Settings.pref_page = key.capitalize()
 		return
 	var btn := _button(key)
 	if btn.is_empty():

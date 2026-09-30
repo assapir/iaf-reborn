@@ -60,3 +60,18 @@ func run() -> void:
 	fe._on_button("back")
 	await settle(fe)
 	check(fe.msgbox.is_empty() and fe.screen == "main", "no changes: no question")
+	# Physics tab (ours): one check per "Better physics" option, ALL ON / ALL OFF.
+	fe._on_button(fe._key_for_label("Preferences"))
+	await settle(fe)
+	fe._on_button("physics")
+	check(Settings().pref_page == "Physics", "Physics tab")
+	var items: Array = fe._physics_items()
+	click(fe, fe.CONTENT.position + items[7].rect.get_center())
+	check(fe.pref_work.bp_fbw_departure and not fe.pref_work.bp_ground_effect, "one option toggles alone")
+	click(fe, fe.CONTENT.position + items[Settings().BETTER.size()].rect.get_center())
+	check(Settings().BETTER.all(func(id): return fe.pref_work["bp_" + id]), "ALL ON sets every option")
+	if OS.get_environment("IAF_SHOT") != "":
+		await frames(5)
+		root.get_viewport().get_texture().get_image().save_png(OS.get_environment("IAF_SHOT"))
+	click(fe, fe.CONTENT.position + items[Settings().BETTER.size() + 1].rect.get_center())
+	check(not Settings().BETTER.any(func(id): return fe.pref_work["bp_" + id]), "ALL OFF clears them")

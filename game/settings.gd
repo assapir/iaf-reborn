@@ -2,6 +2,11 @@
 extends Node
 
 const PATH := "user://settings.cfg"
+## "Better physics" options (ids of iaf_flight::BetterPhysics::OPTIONS, docs/flight-model.md §10),
+## each stored as bp_<id>; all off = the original model.
+const BETTER := ["flight_path_hold", "force_angles", "start_lift", "start_rpm", "start_alpha",
+	"landing_limits", "spin_fixes", "fbw_departure", "lift_rate_floor", "low_speed_roll",
+	"no_nose_wheel_lift", "ground_effect"]
 ## Stored preferences by config section: the original pages, then our own options (Extras tab).
 const PREFS := {
 	"sound": ["mute", "music_volume", "engine_volume", "sfx_volume", "speech_volume"],
@@ -10,7 +15,10 @@ const PREFS := {
 	"devices": ["flight_controls", "rudder", "throttle"],
 	"gameplay": ["no_wind", "no_blackouts", "no_spins", "no_stalls", "easy_landing", "easy_aiming",
 		"no_malfunctions", "ai_level", "invulnerable", "no_crashes", "unlimited_ammo", "unlimited_fuel",
-		"flight_data", "language", "better_physics", "show_info", "blackbox"],
+		"flight_data", "language", "show_info", "blackbox"],
+	"physics": ["bp_flight_path_hold", "bp_force_angles", "bp_start_lift", "bp_start_rpm", "bp_start_alpha",
+		"bp_landing_limits", "bp_spin_fixes", "bp_fbw_departure", "bp_lift_rate_floor", "bp_low_speed_roll",
+		"bp_no_nose_wheel_lift", "bp_ground_effect"],
 }
 
 ## Flight data: "original" (Jane's IAF 1998 numbers) or "real" (corrected real-world F-16 data).
@@ -53,8 +61,19 @@ var unlimited_fuel := false
 ## Preferences page shown when the screen opens (DAT_00836d2c: zero = Sound on the first visit,
 ## then the last page used; not saved).
 var pref_page := "Sound"
-## "Better physics": opt-in fixes of original flight-model quirks (docs/roadmap.md).
-var better_physics := false
+## "Better physics" options (Preferences > Physics), off = original.
+var bp_flight_path_hold := false
+var bp_force_angles := false
+var bp_start_lift := false
+var bp_start_rpm := false
+var bp_start_alpha := false
+var bp_landing_limits := false
+var bp_spin_fixes := false
+var bp_fbw_departure := false
+var bp_lift_rate_floor := false
+var bp_low_speed_roll := false
+var bp_no_nose_wheel_lift := false
+var bp_ground_effect := false
 ## Our flight-info line at the bottom left (not in the original); F12 toggles it.
 var show_info := true
 ## Blackbox: the flight recorder user://last_flight.csv (for diagnosing flights; on for now).
