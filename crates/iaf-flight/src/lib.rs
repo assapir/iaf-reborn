@@ -41,19 +41,16 @@ pub fn load(install: &Path, section: &str) -> Result<(Params, Envelope), String>
 
 /// A `resource/md` file. The v1.1 patch ships its flight data as new, encoded files that its exe reads
 /// instead of v1.0's (`bd.ibx` → `bdgen.dat`, `<n>.dat` → `<n>gen.skp`; each byte XOR (0x67 + offset),
-/// docs/real-aircraft.md §1). They are looked for in the install itself and in the `iaf-patch` output
-/// next to it (`assets/v1.1` beside `assets/install`); otherwise the v1.0 file is read.
+/// docs/real-aircraft.md §1). `tools/setup.sh --patch` puts them into the install itself; without them
+/// the v1.0 file is read.
 pub fn read_md(install: &Path, name: &str) -> Result<Vec<u8>, String> {
     let name = name.to_lowercase();
     let v11 = match name.as_str() {
         "bd.ibx" => "bdgen.dat".to_string(),
         n => format!("{}gen.skp", n.strip_suffix(".dat").unwrap_or(n)),
     };
-    let sibling = install.parent().map(|p| p.join("v1.1/resource/md"));
-    for dir in std::iter::once(install.join("resource/md")).chain(sibling) {
-        if let Ok(b) = std::fs::read(dir.join(&v11)) {
-            return Ok(decode_v11(&b));
-        }
+    if let Ok(b) = std::fs::read(install.join("resource/md").join(&v11)) {
+        return Ok(decode_v11(&b));
     }
     let path = install.join("resource/md").join(&name);
     std::fs::read(&path).map_err(|e| format!("{}: {e}", path.display()))
