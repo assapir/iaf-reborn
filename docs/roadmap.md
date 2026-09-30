@@ -18,6 +18,7 @@ Improvements over the 1998 model that the player can opt into, decided case by c
 - 1 g hold on the flight path instead of the nose pitch (no slow dive at high speed) — **done** (`flight_path_hold`).
 - F-16 / Lavi departure: FLCS deep stall with MPO rocking recovery — **done** (`fbw_departure`, §10.1). Every
   "better physics" option has its own switch; all are listed in docs/flight-model.md §10.
+- Braking pitch (later): the wheel brakes pitch the nose down (weight transfer / nose-gear compression).
 
 ## Mission replayer (after the missions work)
 Generalize the blackbox replay used to debug "Engines ON" (feed a recorded `last_flight.csv` path into the mission
