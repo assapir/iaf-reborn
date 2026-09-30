@@ -16,9 +16,7 @@
 2. **Combat core** (unlocks the first ~9–11 missions): ~~player weapons~~ (done: gun + IR missiles, stores, fuel
    tanks, HUD / MFD, Weapon data Real — docs/weapons.md) → **AI brain flight** (next) → AI air-to-ground /
    air-to-air → AAA, radar SAMs, RWR → script ops 2 / 21 / 22.
-3. **Arming screen** (right after weapons; 9 missions need a different loadout): port whatever the original enforces
-   (per-station counts, CURRENT LOAD vs MAX T.O.W.; if it does not block overweight loads, "Enforce max take-off
-   weight" becomes an Extras option).
+3. ~~Arming screen~~ — done (see Done).
 4. **Bombs + CCIP**, armed vehicles / boats (→ ~20 missions).
 5. **Other jets**: flight data + cockpit per jet — Phantom 2000 (19 missions), F-4E (17), F-15 (16), Lavi / Mirage
    (13), Kfir (8) (→ ~30 more missions).
@@ -57,6 +55,8 @@ Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user
 - Crash debris floats: the wreck pieces of a crash don't come to rest on the ground (terrain height / fall of
   the shattered pieces, docs/damage.md §6). Bonus (Extras, if possible): pieces made from the aircraft's own parts
   (wings, tail, gear from its model) instead of generic shards.
+- Physics tab: the check boxes and their labels are not vertically aligned (20 px rows); and the list needs a
+  scrollbar soon (15 options; use the Keyboard page's original scrollbar art / behaviour).
 - Keyboard page: the scrollbar arrows are cropped on the right side.
 - Terrain loads only after Fly, and the flight's loading screen (game/terrain/loading_screen.gd) does not show —
   only the front end's wait screen before the briefing appears; the ground pops in for a few seconds. Fix the
@@ -76,6 +76,7 @@ Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user
 | Flight model | original ground + airborne logic ported line by line (docs/flight-model.md §14–§15): envelope, stall, spin, landing / crash check, afterburner delay, gear / flaps / brakes, start rules, Gameplay prefs |
 | Physics switches | 12 "Better physics" options (incl. F-16 deep stall, ground effect) + 3 original-bug fixes (falling-jet heading, enemies tougher on easy AI, stores weight / tank fuel) |
 | Player weapons | gun (0.2 s timer, analytic rounds, 25 / 50 m hit sphere, candidate list, muzzle flash, sounds, LCOS / strafe pippers), IR seeker + missiles (per-generation lock, tones, q, dog / proportional chase), stores on the pylons, selection / master / HUD modes, release, weight / drag, external fuel tanks + jettison, HUD weapon line / missile circle / seeker diamond, stores MFD page; Extras "Weapon data: Real" (docs/weapons.md, docs/real-weapons.md) |
+| Arming screen | original screen 0x1f (docs/front-end.md §15): jet front views + stations, weapon list AA / AG / Misc, drag and drop with the per-station allowed counts, right-click, DEFAULT, CURRENT LOAD / MAX T.O.W., the original's blocking checks (overweight, wing balance) and "Use weapon load?"; the load goes on the player's pylons (stores, weight / drag). Coverage: of the 9 missions whose default load cannot kill the targets (116, 122, 136, 212, 214, 215, 216, 227, 237), 8 now need a player weapon instead of the AI (bombs for 215 / 227 / 237, bombs / rockets / guided for the rest; 136 has none loadable); none becomes playable before the bombs |
 | Real aircraft data | Real set for all 6 flyable jets (F-16, F-15C, F-4E / Kurnass 2000, Kfir C7, Lavi, Mirage IIICJ): weights, thrust, drag, roll, fuel, stall, pedal steering (docs/real-aircraft.md); the flight data loader reads the v1.1 files (`bdgen.dat`, `*gen.skp`, XOR-encoded); AI types: reference table only |
 | Damage | original damage model: hits, blast formula, destruction, falling jets, explosions / smoke, the player's systems damage, collisions |
 | Eject | E ×3: seat, canopy, parachute, mission lost |
@@ -83,7 +84,7 @@ Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user
 | Aircraft models | all 22 models: moving parts per the original rules, gear, afterburner flame, canopy / pilot, damage visuals |
 | Sounds | original sound table: engine, gear, flaps, air brake, AoA tone, Betty warnings, touchdown, crash; volume sliders |
 | Terrain | all of `map.ptt` (levels 11..6 + all 51 insets, 2342 nodes) as a streamed quadtree with distance LOD to 200 km, level-6 heights with the original's inset interpolation, skirts; runway digits surveyed on every airbase (2 mirrored fixed); `terraintype.dat` surface types (water / rough / runway) feed the flight model; loaded behind the wait screen (docs/formats/ptt.md) |
-| Tests | `tools/test.sh`: Rust + 25 headless Godot tests, isolated from the player's settings; fails on any script error |
+| Tests | `tools/test.sh`: Rust + 26 headless Godot tests, isolated from the player's settings; fails on any script error |
 
 ## Open gaps (by area)
 - **Terrain**: map-edge push-back / EndWorld and craters (terraintype bits known, systems missing); no elevation
@@ -96,7 +97,7 @@ Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user
 - **Controls**: no joystick; not built: views other than cockpit / chase, autopilot, time compression, pause
   (Ctrl+P) and the in-flight menu (Ctrl+O), in-flight TSD.
 - **Sounds**: damage / RWR / weapon / AI sounds wait for those systems.
-- **Front end**: pilot records and mission unlocking, Reference, Arming, QUIT confirmation, TSD 3D-model / target
+- **Front end**: pilot records and mission unlocking, Reference, QUIT confirmation, TSD 3D-model / target
   windows; most stored prefs have no effect yet.
 - **Eject details**: the original fly-by camera, callsign in the radio call, parachute landing.
 
