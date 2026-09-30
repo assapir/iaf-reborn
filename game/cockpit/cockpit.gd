@@ -11,6 +11,7 @@ extends Control
 
 const ORIGINAL_HEIGHT := 480.0
 const Img := preload("res://util/img.gd")
+const Tsd := preload("res://menu/tsd.gd")
 const PANEL_CENTRE_X := 960.0
 ## HUD colour table (renderer+0x285c, COLORREFs 0x2400 … 0xbcf8): eight greens dark to bright,
 ## near-white, red, amber. Index 0 at the start of a run; key H cycles (idx + 1) % 11 (docs/mfd.md §2).
@@ -106,22 +107,21 @@ func _add_tex(key: String, file: String, mipmaps := false) -> void:
 		tex[key] = t
 
 
-## map.emf logical units (12601 x 16383 frame) -> world (FUN_0052ff30 inverse):
-## u = (X + 166850) / 819200 · 12601 · 1.0071394, v = (1043816 − Y) / 1064960 · 16383 · 1.0071394.
+## map.emf points (normalised to its 12601 x 16383 frame) -> world (FUN_0052ff30 inverse), in the
+## TSD's world frame: u = (X + WORLD_X_SHIFT) / WORLD_W · f, v = (WORLD_H − WORLD_Y_SHIFT − Y) / WORLD_H · f
+## with f = MAP_X_FACTOR (1043816 = WORLD_H − WORLD_Y_SHIFT).
 func _load_tsd_map() -> void:
 	var data := Settings.load_json(dir.path_join("map.json"))
 	if data.is_empty():
 		return
-	var f := 1.0071394
+	var f: float = Tsd.MAP_X_FACTOR
 	for op in data.ops:
 		if op.t != "polygon" or op.brush == null:
 			continue
 		var pts := PackedVector2Array()
 		var ring: Array = op.rings[0]
 		for i in range(0, ring.size(), 2):
-			var u: float = ring[i] * 12601.0
-			var v: float = ring[i + 1] * 16383.0
-			pts.append(Vector2(u / f / 12601.0 * 819200.0 - 166850.0, 1043816.0 - v / f / 16383.0 * 1064960.0))
+			pts.append(Vector2(ring[i] / f * Tsd.WORLD_W - Tsd.WORLD_X_SHIFT, Tsd.WORLD_H - Tsd.WORLD_Y_SHIFT - ring[i + 1] / f * Tsd.WORLD_H))
 		tsd_map.append({"points": pts, "color": Color8(op.brush[0], op.brush[1], op.brush[2])})
 
 
@@ -183,7 +183,7 @@ const HUD_GLASS_PIXELS := 200.0
 
 ## Vertical field of view for the 3D world, chosen so the HUD glass spans its real ~25° of
 ## the world at any zoom (zooming out widens the view instead of shrinking the world).
-func world_fov(_base_fov: float = 0.0) -> float:
+func world_fov() -> float:
 	var glass_px := HUD_GLASS_PIXELS * ui_scale()
 	var px_per_rad := (glass_px / 2.0) / tan(deg_to_rad(HUD_REAL_FOV) / 2.0)
 	return rad_to_deg(2.0 * atan((size.y / 2.0) / px_per_rad))

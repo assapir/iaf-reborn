@@ -370,8 +370,8 @@ func press(osb: int) -> void:
 				0x14: if int(h.get("OnMfd", 0)) == 1: page = ADI
 		RADAR:
 			match osb:
-				0xb: radar_range = mini(radar_range + 1, RADAR_RANGES.size() - 1)
-				0xc: radar_range = maxi(radar_range - 1, 0)
+				0xb: step_range(1)
+				0xc: step_range(-1)
 				1: cycle_radar_mode()
 		TSD:
 			match osb:
@@ -382,6 +382,11 @@ func press(osb: int) -> void:
 			match osb:
 				0xb: nav_scroll = maxi(nav_scroll - 1, 0)
 				0xf: nav_scroll = mini(nav_scroll + 1, maxi(0, cockpit.waypoints.size() - 3))
+
+
+## Radar range one step up (+1) or down (-1) within RADAR_RANGES (OSB 0xb / 0xc, key commands 33 / 34).
+func step_range(d: int) -> void:
+	radar_range = clampi(radar_range + d, 0, RADAR_RANGES.size() - 1)
 
 
 ## Radar modes key / OSB (event 0x24): A-A 4 -> 5 -> 6 -> 4, A-G 7 <-> 8.

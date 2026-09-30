@@ -13,7 +13,6 @@
 # The aircraft is the original IAF F-16 flight model (Rust, crates/iaf-flight) via the IafFlight class.
 extends Node3D
 
-const FOV := 55.0
 ## Screenshot runs give up waiting for terrain after this long.
 const SCREENSHOT_TIMEOUT_MS := 20000
 
@@ -142,7 +141,6 @@ func _ready() -> void:
 		if int(keys.records[i].press[0]) in [2, 3, 10]:
 			_held_records.append(i)
 	terrain.focus = rig
-	camera.fov = FOV
 	chase.fov = 60.0
 	var args := OS.get_cmdline_user_args()
 	_choose_start(args)
@@ -738,18 +736,12 @@ func _start_flight() -> void:
 	DamageModel.fall_keep_heading = all_better or Settings.better.fix_fall_heading
 	DamageModel.no_skill_scale = all_better or Settings.better.fix_skill_damage
 	# Gameplay preferences (docs/flight-model.md §15.7); Easy landing is on by default.
-	flight.set_no_stalls(_pref("no_stalls", false))
-	flight.set_no_spins(_pref("no_spins", false))
-	flight.set_easy_landing(_pref("easy_landing", true))
-	flight.set_invulnerable(_pref("invulnerable", false))
-	flight.set_no_crashes(_pref("no_crashes", false))
-	flight.set_unlimited_fuel(_pref("unlimited_fuel", false))
-
-
-## A Settings preference, or `fallback` when this build's Settings has no such field.
-func _pref(name: String, fallback: bool) -> bool:
-	var v = Settings.get(name)
-	return fallback if v == null else bool(v)
+	flight.set_no_stalls(Settings.no_stalls)
+	flight.set_no_spins(Settings.no_spins)
+	flight.set_easy_landing(Settings.easy_landing)
+	flight.set_invulnerable(Settings.invulnerable)
+	flight.set_no_crashes(Settings.no_crashes)
+	flight.set_unlimited_fuel(Settings.unlimited_fuel)
 
 
 ## The player's jet was destroyed (landing check, water): like the original's player death, the
@@ -805,7 +797,7 @@ func _apply_view() -> void:
 	camera.current = in_cockpit
 	chase.current = not in_cockpit
 	# In the cockpit the camera looks slightly down so the nose axis sits on the HUD boresight.
-	camera.fov = cockpit.world_fov(FOV)
+	camera.fov = cockpit.world_fov()
 	camera.rotation = Vector3(-cockpit.camera_pitch_offset(camera.fov), 0, 0)
 	# A hit shakes the view (FM motion 0xd, amplitude 0..1; our rendering: up to 2° decaying in 0.5 s).
 	if _shake > 0.0:
@@ -910,9 +902,12 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventMouseMotion and looking and not in_cockpit:
 		orbit_yaw -= event.relative.x * 0.005
 		orbit_pitch = clamp(orbit_pitch - event.relative.y * 0.005, -1.4, 1.4)
-	elif event is InputEventKey and event.pressed and event.echo and event.keycode in [KEY_PAGEUP, KEY_PAGEDOWN]:
-		cockpit.slide_panel(-1 if event.keycode == KEY_PAGEUP else 1)
-	elif event is InputEventKey and event.pressed and not event.echo:
+	elif event is InputEventKey and event.pressed:
+		if event.echo:
+			# Held PgUp / PgDn keep sliding the panel (our keys); other repeats do nothing.
+			if event.keycode in [KEY_PAGEUP, KEY_PAGEDOWN]:
+				_own_key(event)
+			return
 		# The original key table first (docs/controls.md, with the player's rebinds); our own keys
 		# only where the table has no command we implement for that key.
 		var rec: int = keys.find_key(keys.key_of_event(event), Settings.key_bindings)
@@ -970,11 +965,9 @@ func _command(cmd: Array) -> bool:
 			else:
 				return false
 		33:
-			var r = cockpit.radar_mfd()
-			r.radar_range = mini(r.radar_range + 1, r.RADAR_RANGES.size() - 1)
+			cockpit.radar_mfd().step_range(1)
 		34:
-			var r = cockpit.radar_mfd()
-			r.radar_range = maxi(r.radar_range - 1, 0)
+			cockpit.radar_mfd().step_range(-1)
 		36:
 			cockpit.radar_mfd().cycle_radar_mode()
 		43:
