@@ -10,15 +10,14 @@ const CLIENT := Rect2(155, 42, 453, 357)
 const MAP_SIZE := Vector2(454, 590)
 const ZOOM_STEP := 1.5
 const ZOOM_MAX := 32.0
-## Scrollbars (screen coordinates) and their art sizes.
-const VBAR := Rect2(608, 42, 10, 356)
-const HBAR := Rect2(146, 399, 462, 10)
-const V_UP := Vector2(10, 23)
-const V_DOWN := Vector2(10, 21)
-const V_THUMB := Vector2(10, 75)
-const H_UP := Vector2(24, 10)
-const H_DOWN := Vector2(21, 10)
-const H_THUMB := Vector2(74, 10)
+## Scrollbars by axis (0 = horizontal, 1 = vertical), screen coordinates, and the lengths of their
+## arrow / thumb art along the bar.
+const BARS := [Rect2(146, 399, 462, 10), Rect2(608, 42, 10, 356)]
+const BAR_UP := [24.0, 23.0]
+const BAR_DOWN := [21.0, 21.0]
+const BAR_THUMB := [74.0, 75.0]
+const BAR_ART := ["h", "v"]
+const BAR_ARROWS := [["left", "right"], ["up", "down"]]
 ## Scroll arrow step: 5 map units (round(5·z) px).
 const ARROW_STEP := 5.0
 ## World -> map (FUN_004ff5a0): X shift = DataXShiftPR, Y shift, width / height of the world.
@@ -38,6 +37,8 @@ const ICON_ART := {1: "icair", 2: "icshp", 3: "icstr", 4: "icveh", 5: "icsam", 6
 const FILTERS := {1: "aircrafts", 2: "ships", 3: "structures", 4: "vehicles", 5: "samsites", 6: "aaasites"}
 ## SAM ring radius (world units) by type code (class 8).
 const SAM_RING := {290: 37080.0, 340: 37080.0, 300: 16686.0, 320: 22248.0}
+
+const Img := preload("res://util/img.gd")
 
 static var _map_cache := {}
 
@@ -62,7 +63,7 @@ var selected := -1  # unit index
 var sel_textures := {}
 var drag_wp := -1  # waypoint of the selected flight being dragged
 var pressed_arrow := ""
-var dragging := ""  # "v" / "h" while a thumb is dragged
+var dragging := -1  # axis of the thumb being dragged
 var drag_offset := 0.0
 
 
@@ -124,7 +125,6 @@ func _load_units() -> void:
 	if not (list is Dictionary) or not list.has(str(mission_id)):
 		return
 	var bdbs := {}
-	var player_unit := -1
 	var first := true
 	for name in list[str(mission_id)]:
 		var m = JSON.parse_string(FileAccess.get_file_as_string(dir.path_join(String(name) + ".json")))
@@ -160,8 +160,6 @@ func _load_units() -> void:
 				"airport": type == 450,
 			}
 			by_id[int(e["0x1e"])] = units.size()
-			if first and String(e.get("0x2bc", "")).to_lower() == "player1":
-				player_unit = units.size()
 			units.append(u)
 		for f in m.formations.items:
 			var n := int(f.get("0x3f2", 0))
@@ -185,9 +183,12 @@ func _load_units() -> void:
 			for i in alive:
 				units[i].flight = n
 		first = false
-	# The player's flight (the formation holding Player1) is the default selection.
-	if player_unit >= 0 and units[player_unit].flight > 0:
-		select_flight(units[player_unit].flight)
+	# The default selection is the flight holding the player object (FUN_005b9bc0), which is the
+	# leader of flight 1, else 2, 3, 4 (FUN_004bab1c; mission_runtime.gd player_flight()).
+	for n in [1, 2, 3, 4]:
+		if flights.has(n):
+			select_flight(n)
+			break
 
 
 ## Flight number the player starts in (0 = none).
@@ -372,17 +373,14 @@ func _on_link(name: String, entry: Dictionary) -> void:
 # --- drawing ------------------------------------------------------------------------------
 
 func _draw() -> void:
-	# Vertical bar: track, arrows at the ends, thumb between them.
-	var vt := _v_thumb()
-	fe_blit("tsd/vscroll.png", VBAR.position)
-	fe_blit("tsd/vslupb_%d.png" % (1 if pressed_arrow == "up" else 0), VBAR.position)
-	fe_blit("tsd/vsldownb_%d.png" % (1 if pressed_arrow == "down" else 0), Vector2(VBAR.position.x, VBAR.end.y - V_DOWN.y))
-	fe_blit("tsd/vslider.png", Vector2(VBAR.position.x, vt))
-	var ht := _h_thumb()
-	fe_blit("tsd/hscroll.png", HBAR.position)
-	fe_blit("tsd/hslupb_%d.png" % (1 if pressed_arrow == "left" else 0), HBAR.position)
-	fe_blit("tsd/hsldownb_%d.png" % (1 if pressed_arrow == "right" else 0), Vector2(HBAR.end.x - H_DOWN.x, HBAR.position.y))
-	fe_blit("tsd/hslider.png", Vector2(ht, HBAR.position.y))
+	# Each bar: track, arrows at the ends, thumb between them.
+	for axis in 2:
+		var bar: Rect2 = BARS[axis]
+		var a: String = BAR_ART[axis]
+		fe_blit("tsd/%sscroll.png" % a, bar.position)
+		fe_blit("tsd/%sslupb_%d.png" % [a, 1 if pressed_arrow == BAR_ARROWS[axis][0] else 0], bar.position)
+		fe_blit("tsd/%ssldownb_%d.png" % [a, 1 if pressed_arrow == BAR_ARROWS[axis][1] else 0], _along(bar.position, axis, bar.end[axis] - BAR_DOWN[axis]))
+		fe_blit("tsd/%sslider.png" % a, _along(bar.position, axis, _thumb(axis)))
 
 
 func fe_blit(path: String, pos: Vector2) -> void:
@@ -391,18 +389,22 @@ func fe_blit(path: String, pos: Vector2) -> void:
 		draw_texture_rect(t, fe._rect(Rect2(pos, fe._art_size(t))), false)
 
 
-func _v_thumb() -> float:
-	var lo := VBAR.position.y + V_UP.y
-	var hi := VBAR.end.y - V_DOWN.y - V_THUMB.y
-	var room := MAP_SIZE.y - _view_size().y
-	return lo if room <= 0.0 else lerpf(lo, hi, scroll.y / room)
+## `v` with its `axis` component replaced by `value`.
+static func _along(v: Vector2, axis: int, value: float) -> Vector2:
+	v[axis] = value
+	return v
 
 
-func _h_thumb() -> float:
-	var lo := HBAR.position.x + H_UP.x
-	var hi := HBAR.end.x - H_DOWN.x - H_THUMB.x
-	var room := MAP_SIZE.x - _view_size().x
-	return lo if room <= 0.0 else lerpf(lo, hi, scroll.x / room)
+## Thumb travel along a bar (screen coordinates of the thumb's start).
+func _thumb_range(axis: int) -> Vector2:
+	var bar: Rect2 = BARS[axis]
+	return Vector2(bar.position[axis] + BAR_UP[axis], bar.end[axis] - BAR_DOWN[axis] - BAR_THUMB[axis])
+
+
+func _thumb(axis: int) -> float:
+	var r := _thumb_range(axis)
+	var room := MAP_SIZE[axis] - _view_size()[axis]
+	return r.x if room <= 0.0 else lerpf(r.x, r.y, scroll[axis] / room)
 
 
 ## Labels of text.emf: re-issued at their map position without scaling (4ff740); then units,
@@ -473,23 +475,14 @@ func _draw_units(s: float) -> void:
 			overlay.draw_texture_rect(t, Rect2(((_to_client(u.pos) - (sz / 2).floor()).floor()) * s, sz * s), false)
 
 
-## Selection art: top half is the sprite, bottom half its AND mask (black = sprite).
+## Selection art: a masked sprite (top half sprite, bottom half its AND mask).
 func _selection_texture(name: String) -> Texture2D:
 	if sel_textures.has(name):
 		return sel_textures[name]
 	var src: Texture2D = fe._tex("tsd/%s.png" % name)
 	if src == null:
 		return null
-	var img := src.get_image()
-	img.decompress()
-	var h := img.get_height() / 2
-	var out := Image.create(img.get_width(), h, false, Image.FORMAT_RGBA8)
-	for y in h:
-		for x in img.get_width():
-			var c := img.get_pixel(x, y)
-			var m := img.get_pixel(x, y + h)
-			out.set_pixel(x, y, Color(c.r, c.g, c.b, 1.0 - m.get_luminance()))
-	sel_textures[name] = ImageTexture.create_from_image(out)
+	sel_textures[name] = ImageTexture.create_from_image(Img.masked_sprite(src.get_image()))
 	return sel_textures[name]
 
 
@@ -521,25 +514,18 @@ func _gui_input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
-			if VBAR.has_point(p):
-				_bar_press(p, true)
-				accept_event()
-			elif HBAR.has_point(p):
-				_bar_press(p, false)
-				accept_event()
-		elif pressed_arrow != "" or dragging != "":
+			for axis in [1, 0]:
+				if BARS[axis].has_point(p):
+					_bar_press(p, axis)
+					accept_event()
+					break
+		elif pressed_arrow != "" or dragging >= 0:
 			pressed_arrow = ""
-			dragging = ""
+			dragging = -1
 			accept_event()
-	elif event is InputEventMouseMotion and dragging != "":
-		if dragging == "v":
-			var lo := VBAR.position.y + V_UP.y
-			var hi := VBAR.end.y - V_DOWN.y - V_THUMB.y
-			scroll.y = clampf(inverse_lerp(lo, hi, p.y - drag_offset), 0, 1) * maxf(0, MAP_SIZE.y - _view_size().y)
-		else:
-			var lo := HBAR.position.x + H_UP.x
-			var hi := HBAR.end.x - H_DOWN.x - H_THUMB.x
-			scroll.x = clampf(inverse_lerp(lo, hi, p.x - drag_offset), 0, 1) * maxf(0, MAP_SIZE.x - _view_size().x)
+	elif event is InputEventMouseMotion and dragging >= 0:
+		var r := _thumb_range(dragging)
+		scroll[dragging] = clampf(inverse_lerp(r.x, r.y, p[dragging] - drag_offset), 0, 1) * maxf(0, MAP_SIZE[dragging] - _view_size()[dragging])
 		accept_event()
 
 
@@ -576,31 +562,18 @@ func _map_input(event: InputEvent, c: Vector2) -> bool:
 	return false
 
 
-func _bar_press(p: Vector2, vertical: bool) -> void:
-	if vertical:
-		var t := _v_thumb()
-		if p.y < VBAR.position.y + V_UP.y:
-			pressed_arrow = "up"
-			scroll.y -= ARROW_STEP / zoom
-		elif p.y >= VBAR.end.y - V_DOWN.y:
-			pressed_arrow = "down"
-			scroll.y += ARROW_STEP / zoom
-		elif p.y >= t and p.y < t + V_THUMB.y:
-			dragging = "v"
-			drag_offset = p.y - t
-		else:
-			scroll.y += _view_size().y * (1 if p.y > t else -1)
+func _bar_press(p: Vector2, axis: int) -> void:
+	var bar: Rect2 = BARS[axis]
+	var t := _thumb(axis)
+	if p[axis] < bar.position[axis] + BAR_UP[axis]:
+		pressed_arrow = BAR_ARROWS[axis][0]
+		scroll[axis] -= ARROW_STEP / zoom
+	elif p[axis] >= bar.end[axis] - BAR_DOWN[axis]:
+		pressed_arrow = BAR_ARROWS[axis][1]
+		scroll[axis] += ARROW_STEP / zoom
+	elif p[axis] >= t and p[axis] < t + BAR_THUMB[axis]:
+		dragging = axis
+		drag_offset = p[axis] - t
 	else:
-		var t := _h_thumb()
-		if p.x < HBAR.position.x + H_UP.x:
-			pressed_arrow = "left"
-			scroll.x -= ARROW_STEP / zoom
-		elif p.x >= HBAR.end.x - H_DOWN.x:
-			pressed_arrow = "right"
-			scroll.x += ARROW_STEP / zoom
-		elif p.x >= t and p.x < t + H_THUMB.x:
-			dragging = "h"
-			drag_offset = p.x - t
-		else:
-			scroll.x += _view_size().x * (1 if p.x > t else -1)
+		scroll[axis] += _view_size()[axis] * (1 if p[axis] > t else -1)
 	_clamp_scroll()
