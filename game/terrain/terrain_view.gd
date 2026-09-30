@@ -74,9 +74,9 @@ var start_airborne := true
 var start_engine_on := true
 var start_pitch := 0.0
 var start_roll := 0.0
-## Airborne start speed (m/s). The original takes the velocity from the mover that hands over to
-## the flight model (UNCERTAIN which); missions carry no speed, so this is our choice.
-const AIR_START_SPEED := 180.0
+## Airborne start speed (m/s): the activation (FUN_004a9100, brain and player alike) starts the flight model with
+## the velocity (200, 200, 0), re-aimed along the heading: 282.84 m/s (docs/ai.md §7.1).
+const AIR_START_SPEED := 282.842712
 ## Airbases known from the exe (hard-coded spawn points, docs/formats/mis.md §5: X, Y, Z). The start
 ## rules test the nearest airbase (5 km / 15 m) and its runway start point (engine on within 100 m);
 ## the full airbase table (551280) is not decoded, so these three stand in (UNCERTAIN).

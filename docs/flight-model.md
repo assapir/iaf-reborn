@@ -468,11 +468,10 @@ What still differs:
 * **Real data set only** (not original): `stall_floor` (also caps the GLimit), `wave_drag`, the geometric nose-wheel
   steering (no ×4 lift quirk), §11.
 * **Host (game/terrain/terrain_view.gd)**:
-  * Airborne start speed 180 m/s along the heading, vz 0: the original takes the velocity from the mover that hands over
-    to the FM (UNCERTAIN which); missions carry no speed.
-  * Near-base and runway-start-point tests (§15.6.4) use the three hard-coded airbase spawn points of docs/formats/mis.md
-    §5 in place of the undecoded airbase table `551280` (UNCERTAIN). All three are below 800 m, so in practice a mission
-    start is airborne ⇔ z > 800 m; mission 311 (1.7 km from the Ramat David spawn point) starts with the engine off.
+  * Airborne start speed 282.84 m/s along the heading, vz 0: the activation `FUN_004a9100` passes the velocity
+    (200, 200, 0) (docs/ai.md §7.1).
+  * Near-base and runway-start-point tests (§15.6.4): the iaf.ibx airbases (`551280`, docs/ai.md §9, `IafFlight.start_rule`);
+    mission 311 (1.7 km from Ramat David's lineup point) starts with the engine off.
   * `--at` / free flight: always airborne (debug starts).
   * Terrain type flags (water, rough ground, runway, map edge) do not exist in our terrain data: water/rough are passed as
     false (UNCERTAIN), so the water/rough-ground crashes, the `S+0x2c8` surface states, the OutRunway effect and the
@@ -1219,7 +1218,7 @@ velocity, slot 4 shared `5b7760`.
 | veh+0xc70 | 0x611d98 | 5b8b70, 5b8dc0, 5b9000, 5b9110, 5b7760 | **spin** (the only departure mode) |
 | veh+0xc7c | 0x611d80 | 5b6fb0, 5b7230, 5b74a0, 5b75b0, 5b7760 | "Tornado": player map-edge push-back (`CancelTornadoEvent`) |
 | veh+0xc74 | 0x611d68 | 5b7fd0, 5b83b0, 5b8950, 5b8a60, 5b7760 | scripted, motion 21 (`5b0b00`), own channels S+0x4e0..0x5e0 (UNCERTAIN) |
-| veh+0xc78 | 0x611d50 | 5b7870, 5b7a70, 5b7c50, 5b7d40, 5b7e30 | scripted, motion 22 (`5a8d40`); heading ramp S+0x130, re-based by `5b7e60` at the end of each normal 5 Hz tick (UNCERTAIN: constant-bank turn) |
+| veh+0xc78 | 0x611d50 | 5b7870, 5b7a70, 5b7c50, 5b7d40, 5b7e30 | scripted, motion 22 (`5a8d40`); heading ramp S+0x130, re-based by `5b7e60` at the end of each normal 5 Hz tick — a flat 3 s pivot turn about a point 30 m to the turn's side, the AI's taxi turns (docs/ai.md §8.2; ported: `Aircraft::set_pivot`) |
 
 **There is no separate stall mode and no tail-slide mode.** "Stall" = the 3 s zero-lift latch (§15.2.4) inside normal
 mode; the only departure is the spin. c74/c78 are scripted (mission/AI) manoeuvres, not triggered by the flight model.
@@ -1389,7 +1388,8 @@ axes: p0 = pos, t0 = now, v, a = 0;   roll channel S+0x80: pos = pos[4], rate 0,
 sticks 0; S+0x128 = −1; stall latch S+0x2f8 = −1; S+0x420 = 0; S+0x1d8 = EmptyWeight
 ramps S+0x360 := 0 (rate 0.5); S+0x380/3a0/3c0/3e0/400 := 0 (rate 0.7)
 airborne ⇔ z > 800 (0x611c40) && !(dist_h(pos, base) < 5000 (0x611c44) && |z − base.z| < 15 (0x611c18))
-           base = 551280(x, y, z) (UNCERTAIN: nearest airbase; [3..4] = runway start point)
+           base = 551280(x, y, z) = the iaf.ibx airbase with the nearest Lineup point; the 5000 / 15 m test is
+           against its Tower point, the 100 m engine test against its Lineup point (docs/ai.md §7.1, §9)
 AIRBORNE: S+0x2a0 = 0; engine on; Euler = (asin(v̂z), pos[4], pos[5]) via 5aa330
           gear S+0x320 = 1.569 (up), flaps 0, brakes S+0x340 = 0, all rate 0.5
           throttle 0.74; RPM ramp 70 → 70, rate 15
