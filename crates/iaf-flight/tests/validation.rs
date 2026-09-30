@@ -64,7 +64,7 @@ fn f16_against_public_data() {
 }
 
 fn report(set: DataSet) {
-    let Some(mut probe) = f16(10000.0, 350.0) else {
+    let Some(probe) = f16(10000.0, 350.0) else {
         eprintln!("skipped: no extracted game data (assets/install)");
         return;
     };
@@ -84,19 +84,18 @@ fn report(set: DataSet) {
     rows.push(Row { item: "1 g stall speed, SL", iaf: format!("{stall:.0} kt"), real: "~120-130 kt (FLCS AoA limit, landing weight)", verdict: verdict(stall, 115.0, 135.0) });
     rows.push(Row { item: "max roll rate", iaf: format!("{:.0} deg/s", p.max_roll_rate.to_degrees()), real: "~240-308 deg/s (FLCS limit 308)", verdict: verdict(p.max_roll_rate.to_degrees(), 240.0, 308.0) });
 
-    // Level flight hold with neutral stick.
-    let s0 = probe.state();
-    let s = fly(&mut probe, mil, 60.0);
-    assert!(s.position[2].is_finite() && s.speed.is_finite());
-    let dz = (s.position[2] - s0.position[2]) as f32 * FT;
-    rows.push(Row { item: "neutral stick, 60 s @10k ft", iaf: format!("alt change {dz:+.0} ft, {:.0} kt", s.speed * KT), real: "holds altitude (1 g hold)", verdict: if dz.abs() < 300.0 { "ok" } else { "OFF" } });
-    // Same with the "better physics" 1 g hold (flight path instead of nose pitch).
-    let mut better = f16(10000.0, 400.0).unwrap();
-    better.set_better_physics(true);
-    let b0 = better.state();
-    let b = fly(&mut better, mil, 60.0);
-    let dzb = (b.position[2] - b0.position[2]) as f32 * FT;
-    rows.push(Row { item: "  same, better physics", iaf: format!("alt change {dzb:+.0} ft, {:.0} kt", b.speed * KT), real: "holds altitude (1 g hold)", verdict: if dzb.abs() < 300.0 { "ok" } else { "OFF" } });
+    // Level flight hold with neutral stick, military power, from 350 kt. Measured after 5 s so the start
+    // transient (the original's MaxWeight·g lift ramps give a short up-jolt, §15.6.4) is not counted.
+    for bp in [false, true] {
+        let mut ac = f16(10000.0, 350.0).unwrap();
+        ac.set_better_physics(bp);
+        let s0 = fly(&mut ac, mil, 5.0);
+        let s = fly(&mut ac, mil, 60.0);
+        assert!(s.position[2].is_finite() && s.speed.is_finite());
+        let dz = (s.position[2] - s0.position[2]) as f32 * FT;
+        let item = if bp { "  same, better physics" } else { "neutral stick, 60 s @10k ft, 350 kt" };
+        rows.push(Row { item, iaf: format!("alt change {dz:+.0} ft, vz {:+.0} ft/min, {:.0} kt", s.velocity[2] * FT * 60.0, s.speed * KT), real: "holds altitude (1 g hold)", verdict: if dz.abs() < 300.0 { "ok" } else { "OFF" } });
+    }
 
     // Maximum level speed (full AB, neutral stick holds the flight path): peak while fuel lasts.
     for (alt, lo, hi, real) in [(0.0, 780.0, 800.0, "~795 kt (Mach 1.2)"), (40000.0, 1100.0, 1180.0, "~1,150 kt (Mach 2.0)")] {
@@ -151,13 +150,24 @@ fn report(set: DataSet) {
     let turn = ((b.heading - a.heading).rem_euclid(std::f32::consts::TAU)).to_degrees();
     rows.push(Row { item: "instantaneous turn, 420 kt TAS @10k ft", iaf: format!("{turn:.1} deg/s at {:.1} g, bank {:.0}°", b.g, b.roll.to_degrees()), real: "~20-26 deg/s at 9 g", verdict: verdict(turn, 18.0, 26.0) });
 
-    // Specific excess power at SL, 350 kt, full AB (instant climb rate).
-    let mut ac = f16(0.0, 350.0).unwrap();
-    let s = fly(&mut ac, ab, 1.5);
-    let v0 = s.speed;
-    let s2 = fly(&mut ac, ab, 1.0);
-    let ps = (s2.speed * s2.speed - v0 * v0) / (2.0 * 9.806) + (s2.position[2] - s.position[2]) as f32;
-    rows.push(Row { item: "climb (Ps) SL, 350 kt, full AB", iaf: format!("{:.0} ft/min", ps * FT * 60.0), real: "~50,000 ft/min", verdict: verdict(ps * FT * 60.0, 45000.0, 55000.0) });
+    // Specific excess power at SL, 350 kt, full AB (instant climb rate). The throttle goes to full AB first;
+    // the original lights the afterburner only when the RPM would reach 100 % (2 s from the airborne start's
+    // 70 %, §15.8), so the measurement starts once the AB is lit and the jet has accelerated to 350 kt
+    // (from 320 kt); neutral stick (1 g).
+    for bp in [false, true] {
+        let mut ac = f16(0.0, 320.0).unwrap();
+        ac.set_better_physics(bp);
+        ac.set_controls(ab);
+        let mut s = ac.state();
+        while (s.afterburner < 2 || s.speed * KT < 350.0) && s.time < 30.0 {
+            s = fly(&mut ac, ab, 1.0 / 60.0);
+        }
+        let s = fly(&mut ac, ab, 0.1);
+        let s2 = fly(&mut ac, ab, 1.0);
+        let ps = (s2.speed * s2.speed - s.speed * s.speed) / (2.0 * 9.806) + (s2.position[2] - s.position[2]) as f32;
+        let item = if bp { "  same, better physics" } else { "climb (Ps) SL, ~350 kt, full AB" };
+        rows.push(Row { item, iaf: format!("{:.0} ft/min at {:.0} kt", ps * FT * 60.0, s.speed * KT), real: "~50,000 ft/min", verdict: verdict(ps * FT * 60.0, 45000.0, 55000.0) });
+    }
 
     // Fuel flow.
     let ff = |thr: f32| {

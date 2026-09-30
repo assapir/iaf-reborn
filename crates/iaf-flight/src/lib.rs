@@ -8,7 +8,7 @@ pub mod data_set;
 pub mod envelope;
 pub mod params;
 
-pub use aircraft::{Aircraft, Controls, Crash, Start, State};
+pub use aircraft::{Aircraft, BetterPhysics, Controls, Crash, Start, State};
 pub use data_set::DataSet;
 pub use envelope::Envelope;
 pub use params::Params;

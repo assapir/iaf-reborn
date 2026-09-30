@@ -2,8 +2,8 @@
 //! (docs/flight-model.md §4–§7, §14, §15).
 //!
 //! World frame is ENU: X east, Y north, Z up (metres). Positive roll = right wing down.
-//! Faithful to the original by default; `better_physics` switches on the fixes listed in
-//! docs/flight-model.md §10 / §15.11 ("BP").
+//! Faithful to the original by default; the [`BetterPhysics`] options switch on the fixes listed in
+//! docs/flight-model.md §10 / §15.11 ("BP"), each on its own.
 
 use crate::atmosphere::{air, q_s};
 use crate::channels::{Angle, Axis, Ramp};
@@ -40,6 +40,34 @@ const RPM_RATE: f32 = 15.0;
 const AIRBORNE_START_Z: f32 = 800.0;
 /// Rough-ground crash speed (0x60e5c4 = 25.736 m/s = 50 kt).
 const ROUGH_CRASH_SPEED: f32 = 25.736;
+
+// Better physics: FLCS (fly-by-wire) departure = deep stall (types 100 F-16, 140 Lavi; not in the
+// original, which never lets them depart). Estimates from public F-16 high-AoA data (NASA TP-1538 wind-tunnel
+// data, the F-16 deep-stall reports and the -1 recovery procedure); docs/flight-model.md §10.1.
+/// Deep-stall trim AoA (the F-16's second pitch trim point, ~60°, beyond the horizontal tail's nose-down power).
+const DS_ALPHA: f32 = 60.0 * PI / 180.0;
+/// Normal-force coefficient at the trim AoA (flat-plate-like, NASA TP-1538 CN(60°) ≈ 1.5): lift = N·cos α,
+/// drag = N·sin α, so L/D = cot α and the path settles near γ = −α = −60°, at the speed where N = W
+/// (F-16 at sea level ≈ 63 m/s along the path, ≈ 55 m/s = 10,800 ft/min down).
+const DS_CN: f32 = 1.5;
+/// Entry: stalled (latch, §15.2.4), below the 1 g minimum speed and the nose at least this high.
+const DS_ENTRY_PITCH: f32 = 30.0 * PI / 180.0;
+/// Pitch rocking: natural amplitude, maximum, period; the pilot pumps it at DS_PUMP (rad/s) by moving
+/// the stick in phase with the pitch rate (MPO + "rocking"); it decays back at DS_DECAY.
+const DS_AMP0: f32 = 8.0 * PI / 180.0;
+const DS_AMP_MAX: f32 = 50.0 * PI / 180.0;
+const DS_PERIOD: f64 = 4.0;
+const DS_PUMP: f32 = 5.0 * PI / 180.0;
+const DS_DECAY: f32 = 2.0 * PI / 180.0;
+/// Recovery: the nose below this AoA (the FLCS AoA limiter, ~25°) with the rocking pumped up.
+const DS_EXIT_ALPHA: f32 = 25.0 * PI / 180.0;
+const DS_EXIT_AMP: f32 = 20.0 * PI / 180.0;
+/// Wing rock and yaw wander (amplitude rad, period s), and how fast the mean attitude follows (rad/s).
+const DS_ROLL_AMP: f32 = 10.0 * PI / 180.0;
+const DS_ROLL_PERIOD: f64 = 5.3;
+const DS_YAW_AMP: f32 = 5.0 * PI / 180.0;
+const DS_YAW_PERIOD: f64 = 6.7;
+const DS_ATT_RATE: f32 = 20.0 * PI / 180.0;
 
 type V3 = [f64; 3];
 
@@ -174,6 +202,94 @@ pub struct Start {
     pub engine_on: bool,
 }
 
+/// "Better physics" options (docs/flight-model.md §10): each one an opt-in fix of an original quirk
+/// or a missing effect. All off (the default) = the original.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct BetterPhysics {
+    /// Neutral-stick 1 g hold on the flight path (γ) with the thrust's lift share, not the nose pitch.
+    pub flight_path_hold: bool,
+    /// Forces decomposed with α(t) and β(t) in both updates (not the α target / commanded β).
+    pub force_angles: bool,
+    /// Airborne start: lift ramps at m·g instead of MaxWeight·g (no up-jolt).
+    pub start_lift: bool,
+    /// Airborne start: RPM at the start throttle's value instead of 70 % (no AB light-up delay).
+    pub start_rpm: bool,
+    /// Airborne start: α at its trim value instead of 0 (no nose rise in the first second).
+    pub start_alpha: bool,
+    /// Landing check: 4 m/s sink limit, 15° tail strike, the current attitude.
+    pub landing_limits: bool,
+    /// Spin: "No spins" blocks, 1.2 s entry, descent with drag, velocity kept at recovery, s1 = 0 recoverable.
+    pub spin_fixes: bool,
+    /// F-16 / Lavi: FLCS deep stall with MPO rocking recovery (the original never lets them depart).
+    pub fbw_departure: bool,
+    /// Lift-ramp rate factor floored at 1 % below 20 m/s (the original's grows again below 18 m/s).
+    pub lift_rate_floor: bool,
+    /// No reversed roll command below Veff ≈ 9.5 m/s.
+    pub low_speed_roll: bool,
+    /// No ×4 vertical lift from a strong nose-wheel side force.
+    pub no_nose_wheel_lift: bool,
+    /// Ground effect on the induced drag.
+    pub ground_effect: bool,
+}
+
+impl BetterPhysics {
+    /// Stable ids (snake_case) and English labels, in menu order.
+    pub const OPTIONS: [(&'static str, &'static str); 12] = [
+        ("flight_path_hold", "1 g hold keeps the flight path (no slow climb/dive with neutral stick)"),
+        ("force_angles", "Forces use the current angle of attack and sideslip"),
+        ("start_lift", "Airborne start without the upward jolt"),
+        ("start_rpm", "Airborne start with the engine at speed (afterburner at once)"),
+        ("start_alpha", "Airborne start trimmed (no nose rise)"),
+        ("landing_limits", "Realistic landing limits: sink rate and tail strike"),
+        ("spin_fixes", "Realistic spins: entry, descent and recovery"),
+        ("fbw_departure", "F-16 / Lavi deep stall (fly-by-wire departure, rocking recovery)"),
+        ("lift_rate_floor", "No faster lift changes below 20 m/s"),
+        ("low_speed_roll", "No reversed roll at very low speed"),
+        ("no_nose_wheel_lift", "No lift jump from nose-wheel steering"),
+        ("ground_effect", "Ground effect (less induced drag near the ground)"),
+    ];
+
+    pub fn none() -> Self {
+        Self::default()
+    }
+
+    pub fn all() -> Self {
+        let mut b = Self::default();
+        for (id, _) in Self::OPTIONS {
+            b.set(id, true);
+        }
+        b
+    }
+
+    fn field(&mut self, id: &str) -> Option<&mut bool> {
+        Some(match id {
+            "flight_path_hold" => &mut self.flight_path_hold,
+            "force_angles" => &mut self.force_angles,
+            "start_lift" => &mut self.start_lift,
+            "start_rpm" => &mut self.start_rpm,
+            "start_alpha" => &mut self.start_alpha,
+            "landing_limits" => &mut self.landing_limits,
+            "spin_fixes" => &mut self.spin_fixes,
+            "fbw_departure" => &mut self.fbw_departure,
+            "lift_rate_floor" => &mut self.lift_rate_floor,
+            "low_speed_roll" => &mut self.low_speed_roll,
+            "no_nose_wheel_lift" => &mut self.no_nose_wheel_lift,
+            "ground_effect" => &mut self.ground_effect,
+            _ => return None,
+        })
+    }
+
+    /// Sets the option `id`; false if there is no such option.
+    pub fn set(&mut self, id: &str, on: bool) -> bool {
+        self.field(id).map(|f| *f = on).is_some()
+    }
+
+    pub fn get(&self, id: &str) -> Option<bool> {
+        let mut c = *self;
+        c.field(id).map(|f| *f)
+    }
+}
+
 /// Everything the cockpit, HUD and renderer need, sampled at the current time.
 #[derive(Debug, Clone, Copy)]
 pub struct State {
@@ -208,6 +324,8 @@ pub struct State {
     pub over_g: bool,
     pub on_ground: bool,
     pub spinning: bool,
+    /// Better physics only: F-16 / Lavi deep stall (§10.1). `alpha` then shows the stalled AoA (~60°).
+    pub deep_stall: bool,
     /// Gear ramp: 0 = down and locked … 1.569 = up.
     pub gear: f32,
     pub crashed: Option<Crash>,
@@ -227,6 +345,8 @@ enum Mode {
     Normal,
     /// `veh+0xc70` (§15.5).
     Spin,
+    /// Better physics only: the fly-by-wire jets' deep stall (§10.1). Not in the original.
+    DeepStall,
 }
 
 struct LiftOut {
@@ -283,11 +403,16 @@ pub struct Aircraft {
     spin_pitch: Ramp,
     spin_roll: Ramp,
     spin_arm: Option<f64>,
+    /// Deep stall (BP): entry time (phase origin of the rocking) and the pitch-rocking amplitude (rad). The
+    /// mean pitch / roll / heading reuse the spin channels.
+    ds_t0: f64,
+    ds_amp: Ramp,
     /// Engine running (`S+0x1d0`): off at a ground start away from the runway start point, turned on
     /// by any throttle event (§8, §15.8); on at an airborne start.
     pub engine_on: bool,
-    /// "Better physics" option: opt-in fixes of original quirks (§10, §15.11), off = original.
-    pub better_physics: bool,
+    /// "Better physics" options (§10, §15.11); none = the original. Change them with [`Aircraft::set_better`]
+    /// so the start options apply.
+    pub better: BetterPhysics,
     /// Preferences (§15.7, pref instance `DAT_00694a64`). Single player: all apply.
     pub no_stalls: bool,
     pub no_spins: bool,
@@ -396,8 +521,10 @@ impl Aircraft {
             spin_pitch: Ramp::new(0.0, -PI / 2.0, PI / 2.0),
             spin_roll: Ramp::new(0.0, -PI, PI),
             spin_arm: None,
+            ds_t0: 0.0,
+            ds_amp: Ramp::new(DS_AMP0, 0.0, DS_AMP_MAX),
             engine_on: st.airborne || st.engine_on,
-            better_physics: false,
+            better: BetterPhysics::none(),
             no_stalls: false,
             no_spins: false,
             easy_landing: true,
@@ -461,17 +588,51 @@ impl Aircraft {
         self.aero_update();
     }
 
-    /// Switches the "better physics" option. At the start (t = 0) it also replaces the airborne
-    /// lift-ramp start value MaxWeight·g by m·g (BP, §15.10 item 9).
+    /// All "better physics" options on or off (the game's single switch).
     pub fn set_better_physics(&mut self, on: bool) {
-        self.better_physics = on;
-        if on && self.t == 0.0 && !self.on_ground {
+        self.set_better(if on { BetterPhysics::all() } else { BetterPhysics::none() });
+    }
+
+    /// One "better physics" option by id ([`BetterPhysics::OPTIONS`]); false if there is no such option.
+    pub fn set_better_option(&mut self, id: &str, on: bool) -> bool {
+        let mut b = self.better;
+        let ok = b.set(id, on);
+        self.set_better(b);
+        ok
+    }
+
+    /// Sets the "better physics" options. At an airborne start (t = 0) the start options also re-initialise
+    /// what they change (§15.6.4): `start_lift` puts the lift ramps at m·g (original MaxWeight·g), `start_rpm` the
+    /// RPM at the start throttle's value (original 70 %), `start_alpha` α at its trim value (original 0).
+    /// Switching them off later does not undo that.
+    pub fn set_better(&mut self, b: BetterPhysics) {
+        let old = self.better;
+        self.better = b;
+        if self.t != 0.0 || self.on_ground {
+            return;
+        }
+        let mut changed = false;
+        if b.start_lift && !old.start_lift {
             let w = self.mass * G;
             for r in [&mut self.lift, &mut self.lift_aoa] {
                 let (target, rate) = (r.target(), r.rate());
                 r.place(0.0, w, target, rate);
             }
-            self.aero_update(); // the start acceleration used the old lift sample
+            changed = true;
+        }
+        if b.start_rpm && !old.start_rpm {
+            let target = self.rpm.target();
+            self.rpm.reset(0.0, target);
+        }
+        if b.start_alpha && !old.start_alpha {
+            let alt = self.axes[2].sample(0.0).0 as f32;
+            let (_, v) = self.velocity_at(0.0);
+            let at = self.alpha_target(self.lift_aoa.target(), q_s(alt, v, self.params.wing_area));
+            self.alpha.set(0.0, at as f64, 0.0);
+            changed = true;
+        }
+        if changed || b != old {
+            self.aero_update(); // the start acceleration used the old lift sample / α / rules
         }
     }
 
@@ -611,6 +772,16 @@ impl Aircraft {
 
     /// Attitude of the current mode (mode object slot 0).
     fn attitude(&self, t: f64) -> Euler {
+        if self.mode == Mode::DeepStall {
+            // BP deep stall: mean attitude from the spin channels plus pitch rocking, wing rock, yaw wander.
+            let osc = |period: f64| ((t - self.ds_t0) * std::f64::consts::TAU / period).sin() as f32;
+            let pitch = self.spin_pitch.sample(t) + self.ds_amp.sample(t) * osc(DS_PERIOD);
+            return Euler {
+                pitch: pitch.clamp(-PI / 2.0 + 1e-3, PI / 2.0 - 1e-3),
+                roll: wrap((self.spin_roll.sample(t) + DS_ROLL_AMP * osc(DS_ROLL_PERIOD)) as f64) as f32,
+                heading: wrap(self.spin_yaw.sample(t).0 + (DS_YAW_AMP * osc(DS_YAW_PERIOD)) as f64) as f32,
+            };
+        }
         if self.mode == Mode::Spin {
             // 5b3ea0: pitch / roll ramps, heading = yaw angle.
             return Euler {
@@ -729,7 +900,7 @@ impl Aircraft {
             // Neutral stick: 1 g hold, cos(pitch)/cos(roll) in the original. The jet slowly
             // dives with it at high speed (α < 0 there tilts the thrust down); "better physics"
             // holds the flight path instead and subtracts the thrust's lift share.
-            g = if self.better_physics {
+            g = if self.better.flight_path_hold {
                 gamma.cos() / att.roll.cos() - self.thrust * alpha_now.sin() / (mass * G)
             } else {
                 att.pitch.cos() / att.roll.cos()
@@ -781,6 +952,18 @@ impl Aircraft {
             lift += lift_noflap.abs() * p.flaps_lift_coef * flaps * FLAPS_K;
         }
         LiftOut { lift, lift_noflap, drag_x, stall, vib }
+    }
+
+    /// Better physics: ground effect on the induced drag, McCormick's `φ = (16h/b)² / (1 + (16h/b)²)`
+    /// (h = wing height above the terrain, b = span): 0.5 at h ≈ b/16, 0.8 at b/8, 0.94 at b/4. Not in the
+    /// original (no ground effect at all).
+    fn ground_effect(&self, alt: f32) -> f32 {
+        let h = (alt - self.ground_height).max(0.0);
+        let r = 16.0 * h / self.params.wing_span.max(1.0);
+        if !r.is_finite() || r > 64.0 {
+            return 1.0;
+        }
+        (r * r / (1.0 + r * r)).max(0.05)
     }
 
     /// Nose-wheel yaw target (7a20 arg 19): clamp(stickX · V · K / 74.53, ±K), 0 with the gear not
@@ -856,7 +1039,10 @@ impl Aircraft {
         let alpha_d = if stall || ground { 0.0 } else { self.alpha_of_lift(lift_noflap, qs).clamp(p.max_neg_alpha, p.max_pos_alpha) };
         let n = lift / (mass * G);
         let cl = if qs > 0.0 { alpha_d.cos() * mass * n * G / qs } else { 0.0 };
-        let k = 1.0 / (std::f32::consts::PI * p.wing_span * p.wing_span / p.wing_area * 0.85);
+        let mut k = 1.0 / (std::f32::consts::PI * p.wing_span * p.wing_span / p.wing_area * 0.85);
+        if self.better.ground_effect {
+            k *= self.ground_effect(alt);
+        }
         let gear_f = if gear { 1.0 } else { 0.0 };
         let mut cd = p.plane_di + brakes * p.speed_brakes_di + gear_f * p.gear_di + p.flaps_di * flaps * FLAPS_K + k * cl * cl;
         if p.wave_drag > 0.0 && mach > 0.9 {
@@ -889,16 +1075,18 @@ impl Aircraft {
         let acc = if ground {
             self.ground_acc(t, lift_old, v, yaw_nw, att)
         } else {
-            let beta = if self.better_physics { beta_s } else { beta_cmd };
+            let beta = if self.better.force_angles { beta_s } else { beta_cmd };
             self.air_acc(att, lift_old, v, alpha_s, beta)
         };
         self.latch(t, stall, lo.vib);
         let mut io = ModeIo { acc, lift, lift_noflap, p_cmd };
-        self.spin_hook(t, drag_x, v, beta_s, att, &mut io, true);
+        self.mode_hook(t, drag_x, v, beta_s, att, &mut io, true);
         self.drag_x = drag_x;
 
-        // Lift ramps; rate factor 1 % at 20 m/s … 100 % at 220, no floor (|negative| below 18 m/s).
-        let rate = |r: f32| if v >= 220.0 { r } else { r * (0.01 + 0.99 * (v - 20.0) / 200.0) };
+        // Lift ramps; rate factor 1 % at 20 m/s … 100 % at 220, no floor (|negative| below 18 m/s, so the
+        // lift changes faster the slower the jet: at 0 m/s as fast as at 20). BP: floor at 1 %.
+        let floor = if self.better.lift_rate_floor { 0.01 } else { f32::NEG_INFINITY };
+        let rate = |r: f32| if v >= 220.0 { r } else { r * (0.01 + 0.99 * (v - 20.0) / 200.0).max(floor) };
         self.lift.set(t, io.lift, rate(p.g_rate) * mass * G);
         self.lift_aoa.set(t, io.lift_noflap, rate(p.g_rate_for_aoa) * mass * G);
 
@@ -925,7 +1113,10 @@ impl Aircraft {
         self.save_attitude(att);
         // Roll: re-base on the attitude roll, new target k·p_cmd (no lower clamp on k).
         let veff = ((-1.305e-5 + 3.1825e-9 * v) * alt + 1.0017) * v - 3.122;
-        let kroll = if veff < 220.0 { 0.00475 * veff - 0.045 } else { 1.0 };
+        let mut kroll = if veff < 220.0 { 0.00475 * veff - 0.045 } else { 1.0 };
+        if self.better.low_speed_roll {
+            kroll = kroll.max(0.0); // BP: no reversed roll below Veff ≈ 9.5 m/s
+        }
         self.roll.set(t, att.roll as f64, kroll * io.p_cmd);
         for r in [&mut self.flaps, &mut self.gear, &mut self.brakes] {
             r.rebase(t);
@@ -960,6 +1151,15 @@ impl Aircraft {
         let beta_air = self.beta.sample(t);
         // On the ground the beta slot carries the nose-wheel yaw ramp (5b87d0).
         let beta_s = if self.on_ground { self.nose_yaw.sample(t) } else { beta_air };
+        if self.mode == Mode::DeepStall {
+            let att = self.attitude(t);
+            let mut io = ModeIo { acc: [0.0; 3], lift: 0.0, lift_noflap: 0.0, p_cmd: 0.0 };
+            self.deep_stall_hook(t, att, &mut io, false);
+            if self.mode == Mode::DeepStall {
+                return;
+            }
+            // Recovered: this tick continues as a normal one.
+        }
         let att = self.attitude(t);
         if self.mode == Mode::Spin {
             let mut io = ModeIo { acc: [0.0; 3], lift: 0.0, lift_noflap: 0.0, p_cmd: 0.0 };
@@ -973,7 +1173,7 @@ impl Aircraft {
             self.ground_acc(t, lift, v, beta_s, att)
         } else {
             // The 5 Hz force uses the α target (better physics: α(t)).
-            let alpha = if self.better_physics { wrap(self.alpha.sample(t).0) as f32 } else { alpha_t };
+            let alpha = if self.better.force_angles { wrap(self.alpha.sample(t).0) as f32 } else { alpha_t };
             self.air_acc(att, lift, v, alpha, beta_s)
         };
         let mut stop = false;
@@ -1044,13 +1244,122 @@ impl Aircraft {
         let mut lz = lift;
         // Original quirk (5b7e40 @5b7f37): a strong side force multiplies the vertical lift by 4.
         // Not physical, so the real data set leaves it out.
-        if self.params.nose_wheel.is_none() && fc.abs() > 0.1 * lz && v > 20.5889 {
+        // Better physics leaves it out too.
+        if self.params.nose_wheel.is_none() && !self.better.no_nose_wheel_lift && fc.abs() > 0.1 * lz && v > 20.5889 {
             lz *= 4.0;
         }
         let (thrust, drag) = (self.thrust, self.drag);
         let fx = if v < 0.01 && thrust < drag { 0.0 } else { thrust - drag - fc.abs() * 0.0625 };
         let f = add(add(scale(right, fc as f64), scale(fwd, fx as f64)), scale(up, lz as f64));
         [f[0] / m as f64, f[1] / m as f64, ((f[2] - (m * G) as f64).max(0.0)) / m as f64]
+    }
+
+    // --- departure modes ------------------------------------------------------------------------
+
+    /// Better physics: the fly-by-wire jets (F-16, Lavi) get the FLCS deep stall instead of the spin.
+    fn fbw_departure(&self) -> bool {
+        self.better.fbw_departure && matches!(self.params.type_code, 100 | 140)
+    }
+
+    /// Mode hook (`5a7d50`'s place in both updates): the deep stall (BP, FBW jets) or the spin.
+    #[allow(clippy::too_many_arguments)]
+    fn mode_hook(&mut self, t: f64, drag_x: f32, v: f32, beta: f32, att: Euler, io: &mut ModeIo, aero: bool) {
+        if self.mode == Mode::DeepStall {
+            self.deep_stall_hook(t, att, io, aero);
+        } else if self.fbw_departure() {
+            if aero && self.mode == Mode::Normal {
+                self.deep_stall_entry(t, v, att);
+            }
+        } else {
+            self.spin_hook(t, drag_x, v, beta, att, io, aero);
+        }
+    }
+
+    /// Deep-stall entry (BP, aero updates): the FLCS AoA limiter holds ~25° AoA until the airspeed is gone.
+    /// Stalled (the latch, §15.2.4: below the envelope's lowest speed) with the nose ≥ 30° up and below the
+    /// 1 g minimum speed — a zoom climb run out of airspeed — the nose falls through to the deep-stall
+    /// trim. "No spins" or "No stalls" prevent it.
+    fn deep_stall_entry(&mut self, t: f64, v: f32, att: Euler) {
+        if self.no_spins || self.no_stalls || self.on_ground || !self.latched(t) || att.pitch < DS_ENTRY_PITCH {
+            return;
+        }
+        let alt = self.axes[2].sample(t).0 as f32;
+        if v >= self.envelope.vmin(alt, 1.0) {
+            return;
+        }
+        let p = &self.params;
+        self.mode = Mode::DeepStall;
+        self.spin_arm = None;
+        self.ds_t0 = t;
+        self.ds_amp.reset(t, DS_AMP0);
+        self.spin_pitch.place(t, att.pitch.clamp(-PI / 2.0, PI / 2.0), att.pitch.clamp(-PI / 2.0, PI / 2.0), DS_ATT_RATE);
+        self.spin_roll.place(t, att.roll.clamp(-PI, PI), 0.0, 0.5 * DS_ATT_RATE);
+        self.spin_yaw = Angle::new(att.heading as f64, (0.4 * p.roll_accel).abs(), (0.2 * p.stop_accel).abs(), (0.4 * p.max_roll_rate).abs());
+        self.spin_yaw.set(t, att.heading as f64, 0.0);
+    }
+
+    /// Deep-stall update (both updates). The jet hangs at the trim AoA: normal force `CN·qS` (lift N·cos α,
+    /// drag N·sin α) plus thrust along the nose and gravity, so the path settles near −60° at the speed
+    /// where N = W. The nose rocks in pitch; a full forward stick alone does not recover (the tail has no
+    /// nose-down power left), but rocking the stick in phase with the pitch motion (MPO) pumps the rocking
+    /// up until the nose falls below the FLCS AoA limit, where the FLCS takes over again.
+    fn deep_stall_hook(&mut self, t: f64, att: Euler, io: &mut ModeIo, aero: bool) {
+        if self.on_ground {
+            self.mode = Mode::Normal; // touchdown (the landing check already ran)
+            return;
+        }
+        let (vel, v) = self.velocity_at(t);
+        let gamma = if v > 1.0 { (vel[2] / v as f64).clamp(-1.0, 1.0).asin() as f32 } else { -PI / 2.0 };
+        let alpha = att.pitch - gamma;
+        if self.ds_amp.sample(t) >= DS_EXIT_AMP && alpha < DS_EXIT_ALPHA {
+            // Recovered: the velocity is kept; α continues from the nose-to-path angle.
+            self.mode = Mode::Normal;
+            self.save_attitude(att);
+            self.alpha.set(t, alpha as f64, 0.0);
+            self.roll.set(t, att.roll as f64, 0.0);
+            self.stall_time = None;
+            self.ds_amp.reset(t, DS_AMP0);
+            return;
+        }
+        // Mean attitude: the nose DS_ALPHA above the path; wings toward level; heading held.
+        self.spin_pitch.set(t, (gamma + DS_ALPHA).clamp(-PI / 4.0, 85f32.to_radians()), DS_ATT_RATE);
+        self.spin_roll.set(t, 0.0, 0.5 * DS_ATT_RATE);
+        let (h, _) = self.spin_yaw.sample(t);
+        self.spin_yaw.reset_angle(t, h);
+        // Rocking: the stick in phase with the pitch rate pumps it, against the phase damps it.
+        let rising = ((t - self.ds_t0) * std::f64::consts::TAU / DS_PERIOD).cos().signum() as f32;
+        let pump = self.controls.stick_y * rising;
+        if pump > 0.5 {
+            self.ds_amp.set(t, DS_AMP_MAX, DS_PUMP * pump);
+        } else if pump < -0.5 {
+            self.ds_amp.set(t, DS_AMP0, -DS_PUMP * pump);
+        } else {
+            self.ds_amp.set(t, DS_AMP0, DS_DECAY);
+        }
+        // Forces.
+        let (fwd, _, up) = att.basis();
+        let m = self.mass as f64;
+        let mut acc = scale(fwd, self.thrust as f64 / m);
+        acc[2] -= G as f64;
+        let mut n = 0.0;
+        if v > 0.5 {
+            let alt = self.axes[2].sample(t).0 as f32;
+            n = DS_CN * q_s(alt, v, self.params.wing_area);
+            let vh = scale(vel, 1.0 / v as f64);
+            let l = add(up, scale(vh, -dot(up, vh)));
+            let l = if dot(l, l) > 1e-9 { norm(l) } else { [0.0; 3] };
+            let f = add(scale(vh, -(n * DS_ALPHA.sin()) as f64), scale(l, (n * DS_ALPHA.cos()) as f64));
+            acc = add(acc, scale(f, 1.0 / m));
+        }
+        io.lift = n;
+        io.lift_noflap = n;
+        io.p_cmd = 0.0;
+        io.acc = acc;
+        if !aero {
+            for (axis, a) in self.axes.iter_mut().zip(acc) {
+                axis.set(t, a as f32);
+            }
+        }
     }
 
     // --- spin (§15.5) --------------------------------------------------------------------------
@@ -1062,10 +1371,10 @@ impl Aircraft {
         let max_beta = p.max_beta.abs();
         if self.mode == Mode::Normal {
             if !aero || p.type_code == 100 || p.type_code == 140 {
-                return; // the F-16 and the Lavi never spin
+                return; // the F-16 and the Lavi never spin (better physics: the deep stall, `mode_hook`)
             }
             let qual = beta.abs() >= 0.8 * max_beta && drag_x > 0.57;
-            if self.better_physics {
+            if self.better.spin_fixes {
                 // BP: "No spins" blocks entry; the condition must hold for 1.2 s.
                 if self.no_spins || !qual {
                     self.spin_arm = None;
@@ -1094,7 +1403,7 @@ impl Aircraft {
         }
         // Update.
         let tau_axis = (t - self.axes[0].t0()) as f32;
-        let yaw_rate = if self.better_physics { self.spin_yaw.sample(t).1 } else { self.spin_yaw.sample_tau(tau_axis).1 };
+        let yaw_rate = if self.better.spin_fixes { self.spin_yaw.sample(t).1 } else { self.spin_yaw.sample_tau(tau_axis).1 };
         let s1 = sign(yaw_rate);
         let s2 = sign(beta);
         if s1 == -s2 && s1 != 0.0 {
@@ -1104,14 +1413,14 @@ impl Aircraft {
         }
         let recovering = (s1 > 0.0 && beta <= -0.9 * max_beta) || (s1 < 0.0 && beta >= 0.9 * max_beta);
         let mut stay = !self.on_ground && (!recovering || drag_x >= 0.1);
-        if self.better_physics && s1 == 0.0 {
+        if self.better.spin_fixes && s1 == 0.0 {
             stay = !self.on_ground && drag_x >= 0.1; // BP: no rotation → recoverable
         }
         if stay {
             io.lift = 0.0;
             io.lift_noflap = 0.0;
             io.p_cmd = 0.0;
-            if self.better_physics {
+            if self.better.spin_fixes {
                 // BP: drag bleeds the horizontal speed; the descent settles near 65 m/s.
                 let (vel, _) = self.velocity_at(t);
                 let vh = [vel[0], vel[1], 0.0];
@@ -1132,7 +1441,7 @@ impl Aircraft {
         let (f, right, _) = att.basis();
         self.save_attitude(att);
         let w = scale(right, -1.0);
-        if !self.better_physics {
+        if !self.better.spin_fixes {
             let u = norm(cross(f, w));
             let alpha = self.alpha.sample(t).0;
             let f2 = rotate(rotate(f, u, beta as f64), w, alpha);
@@ -1157,7 +1466,7 @@ impl Aircraft {
         if self.immune() {
             return None;
         }
-        let bp = self.better_physics;
+        let bp = self.better.landing_limits;
         // The original uses the Euler angles saved at the last update; better physics the current ones.
         let att = if bp { self.attitude(t) } else { self.saved };
         let (mut lp, mut lr, mut lv) = (5f32.to_radians(), 10f32.to_radians(), -40.0f32);
@@ -1202,6 +1511,9 @@ impl Aircraft {
             self.ground_dir = norm([fwd[0], fwd[1], 0.0]);
             self.on_ground = true;
             self.crashed = self.landing_check(t, vz);
+            if self.mode == Mode::DeepStall {
+                self.mode = Mode::Normal; // the ground attitude takes over
+            }
             let a = self.axes[2].accel();
             self.axes[2].set_state(t, clear, 0.0, a);
             if self.crashed.is_some() {
@@ -1259,7 +1571,12 @@ impl Aircraft {
             pitch: att.pitch,
             roll: att.roll,
             heading: att.heading.rem_euclid(std::f32::consts::TAU),
-            alpha: wrap(self.alpha.sample(t).0) as f32,
+            alpha: if self.mode == Mode::DeepStall {
+                let gamma = if speed > 1.0 { (v[2] as f32 / speed).clamp(-1.0, 1.0).asin() } else { -PI / 2.0 };
+                att.pitch - gamma
+            } else {
+                wrap(self.alpha.sample(t).0) as f32
+            },
             beta: self.beta.sample(t),
             g,
             rpm: self.rpm.sample(t),
@@ -1273,6 +1590,7 @@ impl Aircraft {
             over_g: g > self.params.over_g_thresh,
             on_ground: self.on_ground,
             spinning: self.mode == Mode::Spin,
+            deep_stall: self.mode == Mode::DeepStall,
             gear: self.gear.sample(t),
             crashed: self.crashed,
         }
@@ -1464,7 +1782,7 @@ mod tests {
         assert_eq!(check(&a, -60.0, 0.0, -100.0), None);
         a.invulnerable = false;
         // Better physics: real sink limit (4 m/s, ×2 easy) and a tail-strike limit (15°, ×2 easy).
-        a.better_physics = true;
+        a.better.landing_limits = true;
         let now = |a: &Aircraft, vz: f32| a.landing_check(a.t, vz);
         a.easy_landing = false;
         assert_eq!(now(&a, -3.9), None);
@@ -1476,8 +1794,7 @@ mod tests {
         for (vz, crash) in [(-60.0, true), (-1.5, false)] {
             let mut a = airborne(0, 20.0, 80.0);
             // Start the lift ramps at m·g (no start jolt) but keep the original rules.
-            a.set_better_physics(true);
-            a.better_physics = false;
+            a.set_better_option("start_lift", true);
             a.easy_landing = false;
             a.ground_height = 0.0;
             a.gear.reset(0.0, 0.0);
@@ -1520,7 +1837,7 @@ mod tests {
         assert_eq!(c.mode, Mode::Spin);
         // Better physics: "No spins" blocks; otherwise the condition must hold for 1.2 s.
         let mut d = airborne(0, 3000.0, 100.0);
-        d.better_physics = true;
+        d.better.spin_fixes = true;
         for t in [1.0, 2.0, 2.2] {
             d.spin_hook(t, 1.2, 100.0, 0.9 * mb, att, &mut io(), true);
             assert_eq!(d.mode, Mode::Normal, "{t}");
@@ -1528,7 +1845,7 @@ mod tests {
         d.spin_hook(2.3, 1.2, 100.0, 0.9 * mb, att, &mut io(), true);
         assert_eq!(d.mode, Mode::Spin);
         let mut e = airborne(0, 3000.0, 100.0);
-        e.better_physics = true;
+        e.better.spin_fixes = true;
         e.no_spins = true;
         for t in [1.0, 2.0, 3.0, 4.0] {
             e.spin_hook(t, 1.2, 100.0, 0.9 * mb, att, &mut io(), true);
@@ -1565,6 +1882,172 @@ mod tests {
         assert!((o.p_cmd - 0.1).abs() < 1e-6);
         let v = a.velocity_at(t + 2.2).0;
         assert!((dot(v, v).sqrt() - 100.0).abs() < 0.5);
+    }
+
+    /// A near-vertical zoom at low speed, the "pilot" holding the flight path at 85° until the jet departs
+    /// (or 20 s), then neutral stick. Returns whether a deep stall / spin ever started.
+    fn zoom(type_code: u32, bp: bool, setup: impl Fn(&mut Aircraft)) -> (Aircraft, bool, bool) {
+        let r = 85f64.to_radians();
+        let st = Start { position: [0.0, 0.0, 3000.0], pitch: 0.0, roll: 0.0, heading: 0.0, velocity: [0.0, 70.0 * r.cos(), 70.0 * r.sin()], airborne: true, engine_on: true };
+        let mut a = Aircraft::start(params(type_code), Envelope::parse(ENV), st);
+        a.set_better_physics(bp);
+        setup(&mut a);
+        let (mut ds, mut spin) = (false, false);
+        for _ in 0..(40 * 60) {
+            let s = a.state();
+            let gamma = (s.velocity[2] / s.speed.max(0.01)).asin().to_degrees();
+            let sy = if s.deep_stall || s.time > 20.0 { 0.0 } else { ((85.0 - gamma) / 10.0).clamp(-1.0, 1.0) };
+            a.set_controls(Controls { stick_y: sy, ..Default::default() });
+            a.step(1.0 / 60.0);
+            ds |= a.state().deep_stall;
+            spin |= a.state().spinning;
+            if ds {
+                break;
+            }
+        }
+        (a, ds, spin)
+    }
+
+    #[test]
+    fn fbw_deep_stall_only_with_better_physics() {
+        // The F-16 and the Lavi: never without better physics (the original exempts them), a deep stall with it.
+        for ty in [100, 140] {
+            let (_, ds, spin) = zoom(ty, false, |_| {});
+            assert!(!ds && !spin, "type {ty}, original: no departure");
+            let (a, ds, spin) = zoom(ty, true, |_| {});
+            assert!(ds && !spin, "type {ty}, better physics: deep stall");
+            let s = a.state();
+            assert!(s.stalled && s.speed < a.envelope.vmin(s.position[2] as f32, 1.0), "entered stalled, below the 1 g Vmin");
+        }
+        // The option alone is enough (each better-physics behaviour has its own switch).
+        assert!(zoom(100, false, |a| assert!(a.set_better_option("fbw_departure", true))).1);
+        // Not for the other jets (they keep the spin), and "No spins" / "No stalls" prevent it.
+        assert!(!zoom(0, true, |_| {}).1);
+        assert!(!zoom(100, true, |a| a.no_spins = true).1);
+        assert!(!zoom(100, true, |a| a.no_stalls = true).1);
+        // Level flight at a normal speed never departs, even pulling hard.
+        let mut a = airborne(100, 3000.0, 150.0);
+        a.set_better_physics(true);
+        a.set_controls(Controls { stick_y: 1.0, ..Default::default() });
+        for _ in 0..600 {
+            a.step(0.01);
+            assert!(!a.state().deep_stall);
+        }
+    }
+
+    #[test]
+    fn fbw_deep_stall_behaviour_and_recovery() {
+        let (mut a, ds, _) = zoom(100, true, |_| {});
+        assert!(ds);
+        // Established after ~15 s: nose near the horizon, AoA around 60°, a steep fast descent, ~1 g normal load.
+        let fly = |a: &mut Aircraft, secs: f64, stick: &dyn Fn(&State, f32) -> f32| {
+            let mut last = a.state().pitch;
+            for _ in 0..(secs * 60.0) as usize {
+                let s = a.state();
+                let rate = (s.pitch - last) * 60.0;
+                last = s.pitch;
+                a.set_controls(Controls { stick_y: stick(&s, rate), ..Default::default() });
+                a.step(1.0 / 60.0);
+            }
+            a.state()
+        };
+        let s = fly(&mut a, 15.0, &|_, _| 0.0);
+        assert!(s.deep_stall);
+        let gamma = (s.velocity[2] / s.speed).asin().to_degrees();
+        assert!((-75.0..-40.0).contains(&gamma), "path {gamma}");
+        assert!((40.0..80.0).contains(&s.alpha.to_degrees()), "AoA {}", s.alpha.to_degrees());
+        assert!((-80.0..-35.0).contains(&s.velocity[2]), "vz {}", s.velocity[2]);
+        assert!(s.pitch.abs() < 40f32.to_radians(), "pitch {}", s.pitch.to_degrees());
+        // Full forward stick alone does not recover (the tail has no nose-down power left).
+        let s = fly(&mut a, 20.0, &|_, _| -1.0);
+        assert!(s.deep_stall, "a steady push does not recover");
+        // Rocking the stick in phase with the pitch motion (MPO) does, within a few cycles.
+        let z0 = s.position[2];
+        let s = fly(&mut a, 20.0, &|s, rate| if s.deep_stall { rate.signum() } else { 0.0 });
+        assert!(!s.deep_stall && !s.crashed.is_some(), "recovered");
+        assert!(s.alpha < 30f32.to_radians(), "flying again: AoA {}", s.alpha.to_degrees());
+        assert!(z0 - s.position[2] < 2500.0, "height lost {}", z0 - s.position[2]);
+    }
+
+    #[test]
+    fn better_physics_options() {
+        let all = BetterPhysics::all();
+        assert_eq!(BetterPhysics::default(), BetterPhysics::none());
+        for (id, _) in BetterPhysics::OPTIONS {
+            assert_eq!(all.get(id), Some(true), "{id}");
+            assert_eq!(BetterPhysics::none().get(id), Some(false), "{id}");
+            let mut one = BetterPhysics::none();
+            assert!(one.set(id, true));
+            assert_eq!(BetterPhysics::OPTIONS.iter().filter(|(o, _)| one.get(o) == Some(true)).count(), 1, "{id} is its own switch");
+        }
+        assert!(!BetterPhysics::none().set("warp_drive", true));
+        assert_eq!(all.get("warp_drive"), None);
+        let mut a = airborne(0, 3000.0, 180.0);
+        a.set_better_physics(true);
+        assert_eq!(a.better, all);
+        assert!(a.set_better_option("ground_effect", false));
+        assert!(!a.better.ground_effect && a.better.spin_fixes);
+        a.set_better_physics(false);
+        assert_eq!(a.better, BetterPhysics::none());
+    }
+
+    #[test]
+    fn better_physics_minor_fixes() {
+        // Lift-ramp rate factor: the original grows again below 18 m/s (|0.01 + 0.99·(V − 20)/200|); BP 1 %.
+        for (bp, factor) in [(false, (0.01f32 + 0.99 * (5.0 - 20.0) / 200.0).abs()), (true, 0.01)] {
+            let mut a = airborne(0, 3000.0, 5.0);
+            a.better = if bp { BetterPhysics::all() } else { BetterPhysics::none() };
+            a.aero_update();
+            let expect = factor * a.params.g_rate * a.mass * G;
+            assert!((a.lift.rate().abs() - expect).abs() < 1e-2 * expect, "bp {bp}: {} vs {expect}", a.lift.rate());
+        }
+        // Roll command below Veff ≈ 9.5 m/s: reversed in the original, none with BP.
+        for (bp, sign) in [(false, -1.0f32), (true, 0.0)] {
+            let mut a = airborne(0, 3000.0, 5.0);
+            a.better = if bp { BetterPhysics::all() } else { BetterPhysics::none() };
+            a.set_controls(Controls { stick_x: 1.0, ..Default::default() });
+            let r = a.roll.sample(a.t + 0.1).1;
+            assert_eq!(r.signum() * (r.abs() > 1e-6) as i32 as f32, sign, "bp {bp}: roll rate {r}");
+        }
+        // Ground effect (BP): less induced drag near the ground, none without BP or far from it.
+        let drag = |bp: bool, ground: f32| {
+            let mut a = airborne(0, 11.0, 80.0);
+            a.better = if bp { BetterPhysics::all() } else { BetterPhysics::none() };
+            a.ground_height = ground;
+            a.aero_update();
+            a.drag
+        };
+        assert_eq!(drag(false, 10.0), drag(false, f32::NEG_INFINITY));
+        assert_eq!(drag(true, -1000.0), drag(true, f32::NEG_INFINITY));
+        assert!(drag(true, 10.0) < 0.95 * drag(true, f32::NEG_INFINITY));
+        let a = airborne(0, 12.0, 80.0);
+        let b = a.params.wing_span;
+        let phi = |h: f32| {
+            let mut c = a.clone();
+            c.ground_height = 0.0;
+            c.ground_effect(h)
+        };
+        assert!((phi(b / 16.0) - 0.5).abs() < 1e-3 && phi(b / 4.0) > 0.93 && phi(5.0 * b) == 1.0);
+        // The nose-wheel side force's ×4 vertical lift (original data set): gone with BP.
+        let az = |bp: bool| {
+            let mut g = ground(true);
+            g.better = if bp { BetterPhysics::all() } else { BetterPhysics::none() };
+            g.mass = 10000.0;
+            g.ground_acc(0.0, 0.5 * g.mass * G, 40.0, 0.2, Euler::default())[2]
+        };
+        assert!(az(false) > 0.0, "×4: {}", az(false));
+        assert_eq!(az(true), 0.0);
+        // Airborne start: the RPM at the start throttle's value (AB at once) and α at its trim value.
+        let mut a = airborne(100, 3000.0, 180.0);
+        a.set_better_physics(true);
+        assert!((a.state().rpm - 100.0).abs() < 1e-3);
+        let at = a.alpha.sample(0.0).0 as f32;
+        let trim = a.alpha_target(a.lift_aoa.target(), q_s(3000.0, 180.0, a.params.wing_area));
+        assert!(at.abs() > 0.01 && (at - trim).abs() < 0.01, "α {at} trim {trim}");
+        assert_eq!(airborne(100, 3000.0, 180.0).alpha.sample(0.0).0, 0.0, "original: α starts at 0");
+        a.set_controls(Controls { throttle: 1.0, ..Default::default() });
+        a.step(0.01);
+        assert_eq!(a.state().throttle, 1.0, "no light-up delay at 100 %");
     }
 
     #[test]

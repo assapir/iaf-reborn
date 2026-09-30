@@ -116,6 +116,19 @@ impl IafFlight {
         }
     }
 
+    /// One "better physics" option by its id (see `better_options`); set the start options right
+    /// after `start`. Returns false for an unknown id.
+    #[func]
+    fn set_better_option(&mut self, name: GString, on: bool) -> bool {
+        self.aircraft.as_mut().is_some_and(|ac| ac.set_better_option(&name.to_string(), on))
+    }
+
+    /// The ids of the "better physics" options (stable snake_case, menu order).
+    #[func]
+    fn better_options() -> PackedStringArray {
+        iaf_flight::BetterPhysics::OPTIONS.iter().map(|(id, _)| GString::from(*id)).collect()
+    }
+
     /// Preferences (docs/flight-model.md §15.7): No stalls, No spins, Easy landing, Invulnerable,
     /// No crashes, Unlimited fuel.
     #[func]

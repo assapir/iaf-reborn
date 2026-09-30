@@ -379,22 +379,52 @@ found; UNCERTAIN). Key names are loaded from `keys.trx` into `0x82eea8` (100-byt
 The airborne branch, modes, landing check, start rules, throttle rules and preferences follow §15 (checklist §15.11).
 What still differs:
 * **"Better physics"** (Preferences, off by default = the original). The original stays the default; each item below
-  is an opt-in fix of an original quirk (§15.10 "BP"):
-  * **1 g hold** (§4.2): the original `cos(pitch)/cos(roll)` makes the jet slowly dive/climb at high speed (α < 0 tilts
+  is an opt-in fix of an original quirk (§15.10 "BP") with its own switch: `Aircraft::better: BetterPhysics` (one bool
+  per item, id in brackets; `BetterPhysics::OPTIONS` lists the ids with English labels; `none()` = default, `all()`).
+  `set_better_physics(on)` switches all of them (the game's single setting so far); `set_better_option(id, on)` one
+  (Godot: `IafFlight.set_better_option(id, on)`, `IafFlight.better_options()`). The start options act when set at t = 0.
+  * **1 g hold** [`flight_path_hold`] (§4.2): the original `cos(pitch)/cos(roll)` makes the jet slowly dive/climb at high speed (α < 0 tilts
     the thrust). BP holds the flight-path angle γ and subtracts the thrust's vertical share:
     `g = cos γ / cos φ − T·sin α /(m·g)`.
-  * **Force angles** (§15.2.2): the original decomposes with the α *target* at 5 Hz (free forward force `L·sin(αT − α)`
+  * **Force angles** [`force_angles`] (§15.2.2): the original decomposes with the α *target* at 5 Hz (free forward force `L·sin(αT − α)`
     during a pull) and the *commanded* β at 1 Hz. BP uses α(t) and β(t) in both paths.
-  * **Start lift ramps** (§15.6.4): MaxWeight·g gives a short up-jolt (F-16: ≈ +1.9 m/s vz in the first 0.2 s). BP starts
-    them at m·g.
-  * **Landing check** (§15.6.1): sink limit 4 m/s (≈ 13 ft/s, real gear) instead of 40 m/s, a tail-strike limit of 15°
+  * **Airborne start** (§15.6.4): MaxWeight·g gives a short up-jolt (F-16: ≈ +1.9 m/s vz in the first 0.2 s); BP
+    [`start_lift`] starts the lift ramps at m·g. The original also starts the RPM at 70 % while the throttle is at
+    military (the engine then spools to 100 %, and the afterburner lights only after `(100 − 70)/15` = 2 s); BP
+    [`start_rpm`] starts it at the start throttle's value. And it starts the α channel at 0 (the nose rises by the trim
+    α during the first second); BP [`start_alpha`] starts α at its trim value.
+  * **Landing check** [`landing_limits`] (§15.6.1): sink limit 4 m/s (≈ 13 ft/s, real gear) instead of 40 m/s, a tail-strike limit of 15°
     nose-up (both ×2 with Easy landing; sink ×0.25 with the gear not down), and the current attitude instead of the one
     saved at the last update. Crash reasons "sink rate" / "tail strike".
-  * **Spin** (§15.5): "No spins" blocks entry (original: it skips the arm step so spins start *earlier*); the entry
+  * **Spin** [`spin_fixes`] (§15.5): "No spins" blocks entry (original: it skips the arm step so spins start *earlier*); the entry
     condition must hold for 1.2 s (original: the second consecutive qualifying update); during the spin drag bleeds the
     horizontal speed and the descent settles near 65 m/s (original: horizontal velocity frozen, `acc.z = min(0, 0.04V − g)`
     with the total speed, so a spin above 245 m/s never descends); the velocity is kept at recovery (original: snapped to
     nose·V); no yaw rotation (s1 = 0) is recoverable; the yaw-rate sign uses the channel's own τ.
+  * **Fly-by-wire departure** [`fbw_departure`] (F-16 type 100, Lavi 140; §10.1): the original never lets them depart (early return in
+    the spin entry). BP gives them the FLCS deep stall instead of the spin; the other jets keep the (BP) spin.
+  * **Lift-ramp rate factor** [`lift_rate_floor`] (§15.10 item 14): the original's factor `0.01 + 0.99·(V − 20)/200` has no floor, so below
+    18 m/s it turns negative and its magnitude grows again (the lift changes as fast at 0 m/s as at 20 m/s). BP floors
+    it at 1 %.
+  * **Roll command at very low speed** [`low_speed_roll`] (§15.10 item 13a): `kroll = 0.00475·Veff − 0.045` has no lower clamp, so below
+    Veff ≈ 9.5 m/s the stick rolls the jet the wrong way. BP clamps it at 0.
+  * **Nose-wheel ×4 lift** [`no_nose_wheel_lift`] (§14.5): in the original data set a nose-wheel side force above 0.1·L (V > 20.6 m/s)
+    multiplies the vertical lift by 4, which throws the jet into the air when steering during the take-off run. Not
+    physical; BP leaves it out (the real data set already does, with its geometric steering).
+  * **Ground effect** [`ground_effect`] (not in the original): the induced drag `K·CL²` is multiplied by McCormick's
+    `φ = (16h/b)² / (1 + (16h/b)²)` with h = height of the aircraft origin above the terrain and b = span (F-16:
+    φ = 0.5 at 0.6 m, 0.8 at 1.3 m, 0.94 at 2.5 m, ≈ 1 above ~10 m; on the wheels h = the gear clearance, 1.69 m →
+    0.9). It lengthens the flare/float and shortens the take-off run slightly. Lift, α and the envelope are unchanged
+    (the model commands g, not CL). Like all drag it is refreshed by the 1 Hz / event update.
+* **Not changed by better physics** (original quirks that stay in both modes):
+  * §15.10 item 14, the slope globals: the original's lift-ramp / β slopes below 220 / 375 m/s come from the **last
+    aircraft type set up** (shared globals). Our `Aircraft` keeps its own parameters, so every jet uses its own slopes in
+    both modes; reproducing the leak would need a process-wide "last type" and only matters once several types fly the
+    FM (only the player's jet does).
+  * §15.10 item 15, the "Tornado" map-edge push-back (acceleration ramps that never decay): not ported (no map-edge
+    terrain flags).
+  * The 3 s zero-lift stall latch itself (§15.2.4) — the model's only stall — is kept; the F-16's deep stall starts
+    from it.
 * **Envelope** (§15.9, `envelope.rs`): exact algorithm, computed in f64 instead of float32/x87 (UNCERTAIN: last-digit
   rounding). Slot indices are clamped for broken files (the original does not bounds-check). Checked against a Python
   rebuild (`envelope_ref.rs`) and the F-16 values of §15.9.
@@ -419,8 +449,51 @@ What still differs:
   channels are re-based together, so this differs only between updates), and angles are wrapped to (−π, π] instead of
   `fmod(x, 2π)`. The spin's yaw-rate sign keeps the axis-τ quirk (off with better physics).
 * Validation against public F-16 data: `cargo test --release -p iaf-flight --test validation -- --nocapture`.
-  The "climb (Ps)" row measures 1.5–2.5 s after the throttle goes to full AB, which now includes the original's AB
-  light-up delay (`(100 − 70)/15` = 2 s from the airborne start's 70 % RPM).
+  The neutral-stick row starts at 350 kt in both modes and measures from 5 s after the start (the original's start
+  up-jolt is not part of the 1 g hold). The "climb (Ps)" row starts at 320 kt, waits until the afterburner is lit (the
+  original's light-up delay, 2 s from the airborne start's 70 % RPM) and the jet is at 350 kt, then measures over 1 s.
+  Rows with "better physics" are shown under the original ones. Only the 1 g hold row is a physics quirk that BP fixes
+  (original +1,400 ft/min climb at 540 kt → level); the other OFF rows (weights, thrust, stall speed, roll rate, Ps,
+  fuel flow) are the 1998 data and belong to the real data set (§11).
+
+### 10.1 Fly-by-wire departure: the deep stall (better physics, F-16 and Lavi)
+Not in the original (`5a7d50` returns at once for types 100 and 140, so they cannot depart; §15.5). A plausible model,
+**not extracted**: numbers are estimates from public sources, marked below.
+
+**The real thing.** The F-16's flight control system (FLCS) limits AoA to ≈ 25° (with a g limiter), so a normal pull
+cannot stall or spin it and the yaw-rate limiter makes it spin resistant. Its known departure is the **deep stall**:
+the relaxed-stability airframe has a second stable pitch trim point at ≈ 60° AoA (NASA TP-1538 wind-tunnel data, the
+basis of the JSBSim/FlightGear F-16 model: Cm stays ≥ 0 around 50–60° AoA even with full nose-down stabilator). It is
+entered when the airspeed runs out nose-high (vertical/near-vertical zoom, low-speed high-AoA manoeuvring, aft CG or
+asymmetric stores) so that the limiter can no longer hold the AoA. In it the jet "hangs" at high AoA with the nose near
+the horizon, pitching back and forth, with little airspeed and a high sink rate, and holding full forward stick does not
+recover it. The recovery (T.O. 1F-16-1): the manual pitch override (MPO) switch and "rocking" the stick in phase with the
+pitch oscillation until the nose falls through, then the dive pull-out.
+
+**Model** (`Mode::DeepStall`, `deep_stall_entry` / `deep_stall_hook` in `aircraft.rs`; reuses the spin's mode slot,
+its pitch/roll/yaw channels and the stall latch):
+* **Entry** (aero updates, airborne): the stall latch is set (the envelope's code 0/2, i.e. below the lowest speed of
+  the envelope, §15.2.4), the nose is ≥ 30° up and V < Vmin(alt, 1 g). "No spins" or "No stalls" prevent it. In
+  practice a zoom climb held near vertical until the speed is gone; a normal pull at any speed or a loop does not
+  depart.
+* **Attitude**: mean pitch → γ + 60° (the trim AoA above the flight path), clamped to [−45°, 85°], at 20°/s — so the nose
+  first hangs high while the jet stops and falls, then settles near the horizon; plus pitch rocking `A·sin(2πt/4 s)`
+  (A = 8° by itself), wing rock ±10° (5.3 s) and heading wander ±5° (6.7 s). The HUD α is pitch − γ (≈ 60°).
+* **Forces**: a normal force `N = CN·qS` with CN = 1.5 (flat-plate-like, TP-1538 order of magnitude), split as drag
+  `N·sin 60°` along −v and lift `N·cos 60°` perpendicular to v toward the jet's up axis, plus thrust along the nose and
+  gravity; axes updated at both the 1 Hz and the 5 Hz update. The path settles near γ = −60° at the speed where N = W:
+  F-16 at 23,000 lb at sea level ≈ 63 m/s along the path, ≈ 55 m/s (≈ 11,000 ft/min) down, faster at altitude. Power
+  flattens it (military ≈ −35°, ≈ 8,000 ft/min) but does not recover it. The load factor shows N/W ≈ 1.
+* **Recovery**: the stick moved in phase with the pitch rate (pull while the nose rises, push while it falls; > 50 %)
+  pumps the rocking amplitude up at 5°/s (to 50°), against the phase damps it at 5°/s, otherwise it decays at 2°/s. A
+  steady push or pull therefore does nothing on average. When A ≥ 20° and the nose is less than 25° above the path (the
+  FLCS AoA limit), the FLCS takes over again: normal mode, the velocity kept, α continues from the nose-to-path angle,
+  the stall latch cleared. From a sea-level-ish entry a few rocking cycles (≈ 8 s) and ≈ 300 m, plus the dive
+  pull-out. Touchdown ends it (the landing check decides).
+* **Lavi**: the same numbers (no public high-AoA data; canard-delta FBW, UNCERTAIN whether it had a deep stall at all).
+* UNCERTAIN (estimates): the 60° trim AoA and CN, the entry thresholds (30° pitch, 1 g Vmin), the oscillation periods
+  and amplitudes, the pumping rates; descent rates reported for real F-16 deep stalls are of the same order
+  (≈ 10,000 ft/min class) but were not checked against a primary source.
 
 ## 11. Data sets (`crates/iaf-flight/src/data_set.rs`) — chosen before the flight
 * **Original**: the 1998 numbers as shipped.
@@ -1408,8 +1481,8 @@ The effective stall speed is the g0 speed of the **next** level up (F-16 sea lev
 check used doubles).
 
 ### 15.10 Mismatches, most important first (`crates/iaf-flight/src/aircraft.rs`, `envelope.rs`)
-"PO" = port as original. "BP" = original looks wrong → candidate for `Aircraft::better_physics` (the default stays
-the original). Already decided and not repeated: the 1 g hold (original by default, γ-based under better_physics).
+"PO" = port as original. "BP" = original looks wrong → candidate for an `Aircraft::better` option (`BetterPhysics`) (the default stays
+the original). Already decided and not repeated: the 1 g hold (original by default, γ-based under `flight_path_hold`).
 
 1. **Envelope** (`envelope.rs` l. 141–174; known deliberate deviation, §10) — PO, using §15.9 exactly. The linear
    version is not just smoother: (a) the stall test must be "V below the lowest point of level k **or** k+1" (F-16 sea
@@ -1489,24 +1562,25 @@ are 100/140, the Tornado timing, the terrain flag meanings, modes c74/c78, the m
 `402050`'s return value and `441000`.
 
 ### 15.11 Ported (checklist of §15.10)
-"done" = ported as the original; "BP" = the better behaviour is behind `Aircraft::better_physics` (the original stays the
+"done" = ported as the original; "BP" = the better behaviour is behind an `Aircraft::better` option (`BetterPhysics`, one switch each) (the original stays the
 default, §10). Rust unit tests in `aircraft.rs` / `envelope.rs`; headless Godot test `tests/godot/test_crash.gd`.
 
 | # | item | status |
 |---|---|---|
 | 1 | Envelope | done: `envelope.rs` is §15.9 exactly (parser, pads, ceilings, lines, per-level lists, bracket, plane fits, codes 0/2/3/4). Tests: Python reference `envelope_ref.rs` (ceilings, Vmin, 540 GLimit points) and the F-16 values of §15.9. `stall_floor` stays Real-only |
 | 2 | Landing / crash check | done: `landing_check` at touchdown (saved Euler, Easy landing ×2 default on, gear-not-down ×0.2/0.2/0.25, slope > 10°, immunity = Invulnerable / No crashes); water and rough ground (> 25.7 m/s) destroy while rolling; the sim freezes (`crashed` + reason). Host: slope from `height_at`, water = false (no terrain types, UNCERTAIN), crash → mission runtime player death → flight ends after 5 s. BP: sink 4 m/s, tail strike 15°, current attitude |
-| 3 | Spin mode | done: mode, three channels with their limits, two-stage entry (with the "No spins" quirk), update in both updates (5 Hz skips the forces), spin attitude, exit (velocity := rotated nose·V, `p_cmd = s1·0.1`), types 100/140 (F-16, Lavi) never spin — so the F-16 we fly cannot spin. BP: (a)–(f). Damage 0x18 not modelled (no damage system) |
+| 3 | Spin mode | done: mode, three channels with their limits, two-stage entry (with the "No spins" quirk), update in both updates (5 Hz skips the forces), spin attitude, exit (velocity := rotated nose·V, `p_cmd = s1·0.1`), types 100/140 (F-16, Lavi) never spin — so the F-16 we fly cannot depart in the original. BP: (a)–(f); types 100/140 get the FLCS deep stall instead (§10.1, tests `fbw_deep_stall_*`). Damage 0x18 not modelled (no damage system) |
 | 4 | Nose-wheel yaw ramp | done: `S+0x2a8` at \|BetaRate\|, ±MaxBeta; 5 Hz uses the ramp, 1 Hz the raw target |
 | 5 | Force angles | done: 5 Hz αT and β(t) (ground: nose-wheel ramp), 1 Hz α(t) and β_cmd. BP: α(t)/β(t) in both |
 | 6 | α 1 Hz update | done: `5a7590` at every aero update with αT from the new Lnoflap, gains only there, ×0.5 damping above π |
 | 7 | Gear / brake / flap ramps, `cfg` | done: gear 0..1.569, flaps 0..0.29275 (F-16 lever ×0.33), brakes 0..0.855, all 0.5/s; gear flag exactly at 0, brake flag (air: finished at max; ground: ≥ 1e-5). The model's gear animation already used 0.5/s (3.1 s); the cockpit lamps keep the controller's 2 s (§12). Hook (`cfg[8]`) not wired (no hook control) |
 | 8 | Throttle / AB | done: AB request after `(100 − RPM)/15` s (older request wins, non-AB change cancels), 0.015 dead band, first event starts the engine, RPM ramp 0..100 at 15 %/s; host keys step the FM throttle by 0.0925 only while ≤ 1.0 and reach the FM at once |
-| 9 | Start rules | done: `Aircraft::start` / `start_is_airborne` (z > 800 m, not near a base); air: throttle 0.74, RPM 70, gear up, lift ramps MaxWeight·g; ground: gear down, full flaps, brakes, throttle 0, RPM 0, engine only near the runway start point. Host: base / runway start point from the 3 known spawn points, start speed 180 m/s (both UNCERTAIN, §10). BP: lift ramps m·g |
+| 9 | Start rules | done: `Aircraft::start` / `start_is_airborne` (z > 800 m, not near a base); air: throttle 0.74, RPM 70, gear up, lift ramps MaxWeight·g; ground: gear down, full flaps, brakes, throttle 0, RPM 0, engine only near the runway start point. Host: base / runway start point from the 3 known spawn points, start speed 180 m/s (both UNCERTAIN, §10). BP: lift ramps m·g, RPM at the start throttle's value (no AB light-up delay), α at its trim value |
 | 10 | Stall latch | done: `≤ 3.0`, set only when unset, cleared only by an update with `now − t > 3`, set on the ground too. FF "StallShake" skipped (no force feedback) |
 | 11 | Preferences | done: No stalls (code 0/2/4 rules, no latch, no vibration), No spins (quirk; BP blocks), Easy landing (default on; landing ×2, ground lift gate), Invulnerable / No crashes (immunity, ground "easy" gate, no belly μ), Unlimited fuel. Pub fields on `Aircraft`, setters on `IafFlight`, set from `Settings` in `terrain_view.gd`. Multiplayer overrides n/a |
 | 12 | β at 5 Hz and on the ground | done; the rudder `S+0x2ec` is taken only while airborne |
-| 13 | Roll / attitude | done: (a) no `kroll` clamp; (b) roll re-based on the attitude roll and `5a7520` at 1 Hz and 5 Hz; (c) no re-orthogonalisation, roll from the raw left wing in the heading/pitch frame, force matrix from the Euler angles. (d) skipped: channels use their own base time (§10) |
-| 14 | Lift-ramp rate factor | done: no `.max(0.01)` floor. The per-type slope globals: n/a (our slopes are per aircraft; identical while one type flies) |
+| 13 | Roll / attitude | done: (a) no `kroll` clamp; (b) roll re-based on the attitude roll and `5a7520` at 1 Hz and 5 Hz; (c) no re-orthogonalisation, roll from the raw left wing in the heading/pitch frame, force matrix from the Euler angles. (d) skipped: channels use their own base time (§10). BP: `kroll ≥ 0` (no reversed roll below Veff ≈ 9.5 m/s) |
+| 14 | Lift-ramp rate factor | done: no `.max(0.01)` floor; BP: floor 1 %. The per-type slope globals: not reproduced in either mode (our slopes are per aircraft, i.e. the better behaviour; identical while one type flies, §10) |
 | 15 | Terrain types, map edge | partly: water / rough-ground rules are in the FM, but the host has no terrain flags (false). `S+0x2c8` states, OutRunway FF and the "Tornado" push-back skipped |
 | 16 | Minor | done: the 1 Hz V is not capped (5 Hz caps at 1200 m/s); airborne thrust unclamped. Skipped: `S+0x420` effects flag, FF effects, SFX 0x28/0x29, EndWorld/Kramer wavs |
+| — | Also BP (§10): the nose-wheel ×4 lift quirk off (§14.5), ground effect on the induced drag (not in the original) | done, test `better_physics_minor_fixes` |
