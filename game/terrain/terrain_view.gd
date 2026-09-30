@@ -113,6 +113,8 @@ var _seat_offset := Vector3.ZERO
 var _chute: Node3D
 var _chute_p0 := Vector3.ZERO
 var _chute_t0 := 0.0
+## Landings the flight model has reported (its `landings` counter; the landed handler runs on each new one).
+var _landings := 0
 ## The crash was handled (flight ends like the original's player death).
 var crashed := false
 const MissionRuntime := preload("res://mission/mission_runtime.gd")
@@ -1049,6 +1051,9 @@ func _process(delta: float) -> void:
 			_eject_update(delta)
 		if st.crashed and not crashed:
 			_on_crashed(st.crash_reason)
+		if int(st.get("landings", 0)) > _landings:
+			_landings = int(st.landings)
+			_on_landed()
 		if not fm_stopped:
 			rig.position = st.position
 			rig.basis = Basis(st.right, st.up, -st.forward)
@@ -1127,6 +1132,16 @@ func _read_controls(delta: float) -> void:
 			stick[i] = move_toward(stick[i], 0.0, STICK_RETURN * delta)
 	rudder = move_toward(rudder, want_rudder, (STICK_RATE if want_rudder != 0.0 else STICK_RETURN) * delta)
 
+
+
+## The mission's landed handler (FUN_00440f90, called by the flight model at each gear-down touchdown that
+## passes the landing check; v1.1 re-arms it at lift-off, so every landing counts, docs/flight-model.md
+## §15.6.2): when the player's formation has a route, the NAV steering jumps to its last waypoint
+## (FUN_00440e90 → FUN_00453450(count − 1)). UNCERTAIN: the route flag +0x2c it checks is taken as
+## "the route has waypoints".
+func _on_landed() -> void:
+	if not route.is_empty():
+		cockpit.current_waypoint = route.size() - 1
 
 
 # --- ejection -----------------------------------------------------------------------------------

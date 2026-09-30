@@ -509,6 +509,17 @@ into the debrief 5 s later (event 0x82); the jet's later crash does not count ag
 or < 200 m with |roll| > 90°) ends the flight at once (the original opens its in-flight TSD, not built). Without a
 mission the flight ends after 5 s. The radio plays `gejected.wav` at +4.5 s (the callsign part is not ported).
 
+### 5.5 Landed handler (`FUN_00440f90`)
+The flight model calls it at a gear-down touchdown of the player that passes the landing check, while the
+controller's landed flag (`ctl+0xe0`) is 0, then sets the flag (docs/flight-model.md §15.6.2). v1.1 clears the flag at
+lift-off, so it runs on **every** landing (v1.0: only the first landing of a flight). It looks up the route of the
+player's formation (`FUN_005bcb90` / `FUN_005bcd70`) and, if the route's +0x2c is set, makes its last waypoint the
+current NAV waypoint (`FUN_00440e90(count − 1)` → `FUN_00453450`: +0x44 = index, the waypoint copied, NAV state 5). It
+fires no mission event: there is no scripted "landed" trigger (§5, §8). UNCERTAIN: route+0x2c, taken as "the route
+has waypoints".
+**Port:** `terrain_view.gd` `_on_landed()` runs whenever the flight state's `landings` counter grows and sets
+`cockpit.current_waypoint` to the route's last waypoint (test `test_landed.gd`).
+
 ## 6. Implementation checklist
 1. Spawn entities. For `0x320&1` entities, start both script lists at list index 1 and arm the radius check
    (4 s period, 3-D).

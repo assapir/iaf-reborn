@@ -36,7 +36,7 @@ Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user
 | area | state |
 |---|---|
 | Setup | `tools/setup.sh [--patch <v1.1>] <ISO> [Hebrew packs]` builds everything; ISO + `setup.esa` extraction; `iaf-patch` applies the official v1.1 patch (RTPatch) without Windows, before the Hebrew packs and every conversion |
-| v1.1 | `docs/v1.1.md` (v1.0→v1.1 diff and address map); ported outside the flight model: HUD (FPM, 12 px/deg ladder on the marker, gun cross at GunRetPositionY), ejection throw straight up, training debrief → Jet list, event counter order / missing-entity skip / combat ops 21–22; v1.1 rules of unported systems recorded (damage.md §4.4, front-end.md §17); docs and code comments on v1.1 addresses |
+| v1.1 | `docs/v1.1.md` (v1.0→v1.1 diff and address map); ported outside the flight model: HUD (FPM, 12 px/deg ladder on the marker, gun cross at GunRetPositionY), ejection throw straight up, training debrief → Jet list, event counter order / missing-entity skip / combat ops 21–22, landed handler on every landing; v1.1 rules of unported systems recorded (damage.md §4.4, front-end.md §17); docs and code comments on v1.1 addresses |
 | Front end | original screens, animations, sounds, music; training + campaign; Jet list; Hebrew packs |
 | Preferences | original 5 pages (Graphics, Sound, Keyboard, Devices, Gameplay) + our **Extras** (flight data, language, info line, blackbox, HUD pitch ladder) and **Physics** (14 improvement switches) tabs, EN + HE |
 | Controls | original key table, rebinding on the Keyboard page, in-flight keys through the table (keyboard only) |
@@ -51,7 +51,7 @@ Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user
 | Aircraft models | all 22 models: moving parts per the original rules, gear, afterburner flame, canopy / pilot, damage visuals |
 | Sounds | original sound table: engine, gear, flaps, air brake, AoA tone, Betty warnings, touchdown, crash; volume sliders |
 | Terrain | Israel rectangle (level 4) with heights + 149 airbase detail tiles; mirrored runway digits fixed |
-| Tests | `tools/test.sh`: Rust + 19 headless Godot tests, isolated from the player's settings; fails on any script error |
+| Tests | `tools/test.sh`: Rust + 20 headless Godot tests, isolated from the player's settings; fails on any script error |
 
 ## Open gaps (by area)
 - **Terrain**: no ground outside the Israel rectangle; foreign / target insets missing; no terrain types; visible
