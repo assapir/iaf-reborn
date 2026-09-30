@@ -428,7 +428,7 @@ What still differs:
     from it.
 * **Envelope** (§15.9, `envelope.rs`): exact algorithm, computed in f64 instead of float32/x87 (UNCERTAIN: last-digit
   rounding). Slot indices are clamped for broken files (the original does not bounds-check). Checked against a Python
-  rebuild (`envelope_ref.rs`) and the F-16 values of §15.9.
+  rebuild (`tools/envelope_ref.py`, run at test time on a synthetic text and on every `md/*.dat` of the local install) and the F-16 values of §15.9.
 * **Real data set only** (not original): `stall_floor` (also caps the GLimit), `wave_drag`, the geometric nose-wheel
   steering (no ×4 lift quirk), §11.
 * **Host (game/terrain/terrain_view.gd)**:
@@ -1459,7 +1459,7 @@ return 4                                               // code 1 is never return
 min(a34·alt + b38, 0) : max(a28·alt + b2c, 0)` — the line from (ceilAlt(gmax graph), gmax) to (ceilAlt(g0), 0), and the
 mirror with gmin. F-16: `14 − 6.5617e-4·alt` (9 g at 7620 m, 0 at 21336 m), `−10.5 + 4.9213e-4·alt`.
 
-**F-16 `16.dat` check** (Python reconstruction `scratchpad/env/orig.py` vs the old linear `envelope.rs`; the ported
+**F-16 `16.dat` check** (Python reconstruction `tools/envelope_ref.py` vs the old linear `envelope.rs`; the ported
 version now matches the "original" column, test `f16_file_matches_the_audit_table`):
 
 | quantity | original | port |
@@ -1568,7 +1568,7 @@ default, §10). Rust unit tests in `aircraft.rs` / `envelope.rs`; headless Godot
 
 | # | item | status |
 |---|---|---|
-| 1 | Envelope | done: `envelope.rs` is §15.9 exactly (parser, pads, ceilings, lines, per-level lists, bracket, plane fits, codes 0/2/3/4). Tests: Python reference `envelope_ref.rs` (ceilings, Vmin, 540 GLimit points) and the F-16 values of §15.9. `stall_floor` stays Real-only |
+| 1 | Envelope | done: `envelope.rs` is §15.9 exactly (parser, pads, ceilings, lines, per-level lists, bracket, plane fits, codes 0/2/3/4). Tests: Python reference `tools/envelope_ref.py` run at test time (ceilings, Vmin, GLimit grid on a synthetic text and on every install `md/*.dat`) and the F-16 values of §15.9. `stall_floor` stays Real-only |
 | 2 | Landing / crash check | done: `landing_check` at touchdown (saved Euler, Easy landing ×2 default on, gear-not-down ×0.2/0.2/0.25, slope > 10°, immunity = Invulnerable / No crashes); water and rough ground (> 25.7 m/s) destroy while rolling; the sim freezes (`crashed` + reason). Host: slope from `height_at`, water = false (no terrain types, UNCERTAIN), crash → mission runtime player death → flight ends after 5 s. BP: sink 4 m/s, tail strike 15°, current attitude |
 | 3 | Spin mode | done: mode, three channels with their limits, two-stage entry (with the "No spins" quirk), update in both updates (5 Hz skips the forces), spin attitude, exit (velocity := rotated nose·V, `p_cmd = s1·0.1`), types 100/140 (F-16, Lavi) never spin — so the F-16 we fly cannot depart in the original. BP: (a)–(f); types 100/140 get the FLCS deep stall instead (§10.1, tests `fbw_deep_stall_*`). Damage 0x18 not modelled (no damage system) |
 | 4 | Nose-wheel yaw ramp | done: `S+0x2a8` at \|BetaRate\|, ±MaxBeta; 5 Hz uses the ramp, 1 Hz the raw target |

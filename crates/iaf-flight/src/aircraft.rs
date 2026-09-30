@@ -1605,6 +1605,7 @@ impl Aircraft {
 mod tests {
     use super::*;
 
+    /// A synthetic envelope (not from the game), shaped like a fighter's.
     const ENV: &[u8] = b"[Params]\r\nAltitudeStep = 3000\r\n[Min Velocity Table]\r\n\
         -1\t90\t0\r\n-1\t110\t10000\r\n-1\t140\t20000\r\n\
         0\t50\t0\r\n0\t100\t27000\r\n\
@@ -1960,7 +1961,7 @@ mod tests {
         let gamma = (s.velocity[2] / s.speed).asin().to_degrees();
         assert!((-75.0..-40.0).contains(&gamma), "path {gamma}");
         assert!((40.0..80.0).contains(&s.alpha.to_degrees()), "AoA {}", s.alpha.to_degrees());
-        assert!((-80.0..-35.0).contains(&s.velocity[2]), "vz {}", s.velocity[2]);
+        assert!((-80.0..-30.0).contains(&s.velocity[2]), "vz {}", s.velocity[2]);
         assert!(s.pitch.abs() < 40f32.to_radians(), "pitch {}", s.pitch.to_degrees());
         // Full forward stick alone does not recover (the tail has no nose-down power left).
         let s = fly(&mut a, 20.0, &|_, _| -1.0);

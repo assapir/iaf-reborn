@@ -381,6 +381,8 @@ impl Envelope {
 mod tests {
     use super::*;
 
+    /// A synthetic envelope text (not from the game) with the file format's quirks: a decimal
+    /// row (skipped by `%d %d %d`), trailing text after the third integer, uneven graphs.
     const F16: &[u8] = b"[Params]\r\nNumberOfG-Graphs=13\r\nAltitudeStep = 3000\r\n[Min Velocity Table]\r\ng\tVel\tAlt\r\n\
         -1\t90\t0\r\n-1\t110\t10000\r\n-1\t140\t20000\r\n\
         0\t50\t0\r\n0\t70.3\t13000\r\n0\t100\t27000\r\n\
@@ -397,31 +399,82 @@ mod tests {
         assert_eq!(e.slots[e.idx0 as usize + 1].len(), 4 + 1);
     }
 
-    /// Reference values from the Python rebuild of §15.9 (scratchpad env/orig.py) on the same text.
-    #[test]
-    fn matches_the_python_reference() {
-        let e = Envelope::parse(F16);
-        let close = |a: f32, b: f64, what: &str| assert!((a as f64 - b).abs() < 1e-3 * b.abs().max(1.0), "{what}: {a} vs {b}");
-        for &(g, c) in REF_CEIL {
-            close(e.ceiling(g), c, &format!("ceiling({g})"));
+    /// Checks `e` against the independent Python rebuild of §15.9 (tools/envelope_ref.py) run on
+    /// `text`. Returns false (skipped) when python3 is not available.
+    fn check_against_python(text: &[u8], name: &str) -> bool {
+        use std::io::Write;
+        use std::process::{Command, Stdio};
+        let script = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/envelope_ref.py");
+        let child = Command::new("python3").arg(&script).arg("-").stdin(Stdio::piped()).stdout(Stdio::piped()).spawn();
+        let Ok(mut child) = child else {
+            eprintln!("skipped: python3 not found (needed for the envelope reference, tools/envelope_ref.py)");
+            return false;
+        };
+        child.stdin.take().unwrap().write_all(text).unwrap();
+        let out = child.wait_with_output().unwrap();
+        assert!(out.status.success(), "{name}: tools/envelope_ref.py failed");
+        let e = Envelope::parse(text);
+        let close = |a: f32, b: f64, what: &str| assert!((a as f64 - b).abs() < 1e-3 * b.abs().max(1.0), "{name} {what}: {a} vs {b}");
+        let mut n = 0;
+        for line in String::from_utf8(out.stdout).unwrap().lines() {
+            let f: Vec<&str> = line.split(' ').collect();
+            let x = |i: usize| f[i].parse::<f32>().unwrap();
+            let r = |i: usize| f[i].parse::<f64>().unwrap();
+            match f[0] {
+                "ceil" => close(e.ceiling(x(1)), r(2), &format!("ceiling({})", f[1])),
+                "vmin" => close(e.vmin(x(1), x(2)), r(3), &format!("vmin({}, {})", f[1], f[2])),
+                "glimit" => {
+                    let (c, l) = e.g_limit_code(x(1), x(2), x(3));
+                    assert_eq!(c.to_string(), f[4], "{name}: code of glimit({}, {}, {})", f[1], f[2], f[3]);
+                    close(l, r(5), &format!("lim of glimit({}, {}, {})", f[1], f[2], f[3]));
+                }
+                other => panic!("unexpected reference line {other}"),
+            }
+            n += 1;
         }
-        for &(alt, g, v) in REF_VMIN {
-            close(e.vmin(alt, g), v, &format!("vmin({alt}, {g})"));
-        }
-        for &(alt, v, g, code, lim) in REF_GLIMIT {
-            let (c, l) = e.g_limit_code(alt, v, g);
-            assert_eq!(c, code, "code of glimit({alt}, {v}, {g})");
-            close(l, lim, &format!("lim of glimit({alt}, {v}, {g})"));
-        }
+        assert!(n > 100, "{name}: only {n} reference values");
+        true
     }
 
-    include!("envelope_ref.rs");
+    /// The port against the Python reference on the synthetic text (needs only python3).
+    #[test]
+    fn matches_the_python_reference() {
+        check_against_python(F16, "synthetic");
+    }
+
+    /// The port against the Python reference on every envelope file of the local install
+    /// (assets/install/resource/md/*.dat; skipped when the game data or python3 is absent).
+    #[test]
+    fn install_files_match_the_python_reference() {
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../assets/install/resource/md");
+        let Ok(rd) = std::fs::read_dir(&dir) else {
+            eprintln!("skipped: no extracted game data (assets/install/resource/md)");
+            return;
+        };
+        let mut files: Vec<_> = rd.flatten().map(|d| d.path()).filter(|p| p.extension().is_some_and(|x| x == "dat")).collect();
+        files.sort();
+        let mut checked = 0;
+        for p in files {
+            let data = std::fs::read(&p).unwrap();
+            if !String::from_utf8_lossy(&data).contains("[Min Velocity Table]") {
+                continue;
+            }
+            if !check_against_python(&data, &p.file_name().unwrap().to_string_lossy()) {
+                return;
+            }
+            checked += 1;
+        }
+        assert!(checked > 0, "no envelope files in {}", dir.display());
+    }
 
     /// The shipped F-16 file (when the game data is present) against the §15.9 table.
     #[test]
     fn f16_file_matches_the_audit_table() {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../assets/install/resource/md/16.dat");
-        let Ok(data) = std::fs::read(path) else { return };
+        let Ok(data) = std::fs::read(path) else {
+            eprintln!("skipped: no extracted game data (assets/install/resource/md/16.dat)");
+            return;
+        };
         let e = Envelope::parse(&data);
         let kt = |v: f32| v as f64 / KT;
         assert!((kt(e.vmin(330.0, 1.0)) - 87.95).abs() < 0.01);
