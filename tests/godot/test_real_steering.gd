@@ -10,7 +10,10 @@ func run() -> void:
 	key(tv, KEY_B)
 	for i in 2:
 		key(tv, KEY_0)
-	await frames(240)
+	# The brakes release over 1.7 s (docs/flight-model.md §15.6.4); taxi at >= 5 kt.
+	var t0 := Time.get_ticks_msec()
+	while tv.flight.state().speed_kt < 5.0 and Time.get_ticks_msec() - t0 < 15000:
+		await process_frame
 	var st: Dictionary = tv.flight.state()
 	var hdg0: float = st.heading
 	tv.scripted_stick = Vector2(-1, 0)
@@ -27,7 +30,7 @@ func run() -> void:
 	tv.scripted_stick = Vector2.ZERO
 	key(tv, KEY_8)
 	var early := false
-	var t0 := Time.get_ticks_msec()
+	t0 = Time.get_ticks_msec()
 	while Time.get_ticks_msec() - t0 < 20000:
 		await process_frame
 		var roll: Dictionary = tv.flight.state()

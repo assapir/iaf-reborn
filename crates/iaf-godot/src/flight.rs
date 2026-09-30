@@ -3,7 +3,7 @@
 //! Godot frame: X east, Y up, Z south (−north), metres — the same frame as the terrain.
 
 use godot::prelude::*;
-use iaf_flight::{Aircraft, Controls};
+use iaf_flight::{Aircraft, Controls, Start};
 
 #[derive(GodotClass)]
 #[class(init, base = RefCounted)]
@@ -18,21 +18,51 @@ fn to_godot(v: [f64; 3]) -> Vector3 {
 
 #[godot_api]
 impl IafFlight {
-    /// Loads `section` (e.g. "F-16") from `<install>/resource/md` and starts airborne at `position`
-    /// (Godot frame), `heading_deg` (clockwise from north) and `speed` (m/s). `real_data` picks the
-    /// corrected real-world data set instead of the original 1998 numbers (chosen before the flight).
+    /// Loads `section` (e.g. "F-16") from `<install>/resource/md` and starts it (`FUN_005a2a10`,
+    /// docs/flight-model.md §15.6.4) at `position` (Godot frame) with `heading_deg` (clockwise from
+    /// north), `pitch_deg` / `roll_deg`, and `velocity` (Godot frame, m/s; the horizontal speed is
+    /// re-aimed along the heading). `airborne`: see `is_airborne_start`; a ground start has gear
+    /// down, full flaps, brakes on, throttle 0, RPM 0 and the engine running only if `engine_on`.
+    /// `real_data` picks the corrected real-world data set (chosen before the flight).
     /// Returns an error string or "" on success.
     #[func]
-    fn start(&mut self, install: GString, section: GString, position: Vector3, heading_deg: f64, speed: f64, real_data: bool) -> GString {
+    #[allow(clippy::too_many_arguments)]
+    fn start(
+        &mut self,
+        install: GString,
+        section: GString,
+        position: Vector3,
+        heading_deg: f64,
+        pitch_deg: f64,
+        roll_deg: f64,
+        velocity: Vector3,
+        airborne: bool,
+        engine_on: bool,
+        real_data: bool,
+    ) -> GString {
         let set = if real_data { iaf_flight::DataSet::Real } else { iaf_flight::DataSet::Original };
         match iaf_flight::load_with(std::path::Path::new(&install.to_string()), &section.to_string(), set) {
             Ok((params, envelope)) => {
-                let enu = [position.x as f64, -position.z as f64, position.y as f64];
-                self.aircraft = Some(Aircraft::new(params, envelope, enu, (heading_deg as f32).to_radians(), speed as f32));
+                let st = Start {
+                    position: [position.x as f64, -position.z as f64, position.y as f64],
+                    pitch: (pitch_deg as f32).to_radians(),
+                    roll: (roll_deg as f32).to_radians(),
+                    heading: (heading_deg as f32).to_radians(),
+                    velocity: [velocity.x as f64, -velocity.z as f64, velocity.y as f64],
+                    airborne,
+                    engine_on,
+                };
+                self.aircraft = Some(Aircraft::start(params, envelope, st));
                 GString::new()
             }
             Err(e) => GString::from(e.as_str()),
         }
+    }
+
+    /// The original's start decision: airborne ⇔ altitude > 800 m and not at a base.
+    #[func]
+    fn is_airborne_start(altitude: f64, near_base: bool) -> bool {
+        Aircraft::start_is_airborne(altitude as f32, near_base)
     }
 
     /// Stick x/y −1..1 (y: pull positive), rudder −1..1, throttle 0..1 (0.74 military, ≥0.75 AB).
@@ -68,19 +98,65 @@ impl IafFlight {
         }
     }
 
-    /// Place the aircraft on the ground (mission ground start).
+    /// Terrain under the wheels: the surface normal's vertical share `nz/|n|` (1 = flat; the
+    /// landing check fails above 10° of slope) and water (§15.6).
     #[func]
-    fn set_on_ground(&mut self) {
+    fn set_ground_surface(&mut self, normal_z: f64, water: bool) {
         if let Some(ac) = &mut self.aircraft {
-            ac.on_ground = true;
+            ac.ground_normal_z = normal_z as f32;
+            ac.ground_water = water;
         }
     }
 
-    /// "Better physics" option: opt-in fixes of original quirks (docs/flight-model.md §10).
+    /// "Better physics" option: opt-in fixes of original quirks (docs/flight-model.md §10, §15.11).
     #[func]
     fn set_better_physics(&mut self, on: bool) {
         if let Some(ac) = &mut self.aircraft {
-            ac.better_physics = on;
+            ac.set_better_physics(on);
+        }
+    }
+
+    /// Preferences (docs/flight-model.md §15.7): No stalls, No spins, Easy landing, Invulnerable,
+    /// No crashes, Unlimited fuel.
+    #[func]
+    fn set_no_stalls(&mut self, on: bool) {
+        if let Some(ac) = &mut self.aircraft {
+            ac.no_stalls = on;
+        }
+    }
+
+    #[func]
+    fn set_no_spins(&mut self, on: bool) {
+        if let Some(ac) = &mut self.aircraft {
+            ac.no_spins = on;
+        }
+    }
+
+    #[func]
+    fn set_easy_landing(&mut self, on: bool) {
+        if let Some(ac) = &mut self.aircraft {
+            ac.easy_landing = on;
+        }
+    }
+
+    #[func]
+    fn set_invulnerable(&mut self, on: bool) {
+        if let Some(ac) = &mut self.aircraft {
+            ac.invulnerable = on;
+        }
+    }
+
+    #[func]
+    fn set_no_crashes(&mut self, on: bool) {
+        if let Some(ac) = &mut self.aircraft {
+            ac.no_crashes = on;
+        }
+    }
+
+    #[func]
+    fn set_unlimited_fuel(&mut self, on: bool) {
+        if let Some(ac) = &mut self.aircraft {
+            ac.unlimited_fuel = on;
         }
     }
 
@@ -128,6 +204,10 @@ impl IafFlight {
         d.set("buffet", s.buffet);
         d.set("over_g", s.over_g);
         d.set("on_ground", s.on_ground);
+        d.set("spinning", s.spinning);
+        d.set("gear", s.gear);
+        d.set("crashed", s.crashed.is_some());
+        d.set("crash_reason", s.crashed.map_or("", |c| c.name()));
         if let Some(ac) = &self.aircraft {
             d.set("engine_on", ac.engine_on);
         }

@@ -63,6 +63,20 @@ var gear_legs := [2, 2, 2]
 var leg_timers := [0.0, 0.0, 0.0]
 var flaps_state := 0
 var flaps_timer := 0.0
+## Start (FUN_005a2a10, docs/flight-model.md §15.6.4): airborne or on the ground, engine running.
+var start_airborne := true
+var start_engine_on := true
+var start_pitch := 0.0
+var start_roll := 0.0
+## Airborne start speed (m/s). The original takes the velocity from the mover that hands over to
+## the flight model (UNCERTAIN which); missions carry no speed, so this is our choice.
+const AIR_START_SPEED := 180.0
+## Airbases known from the exe (hard-coded spawn points, docs/formats/mis.md §5: X, Y, Z). The start
+## rules test the nearest airbase (5 km / 15 m) and its runway start point (engine on within 100 m);
+## the full airbase table (54f100) is not decoded, so these three stand in (UNCERTAIN).
+const AIRBASES := [Vector3(312984, 500459, 59), Vector3(356404, 602402, 28), Vector3(317439, 411135, 579)]
+## The crash was handled (flight ends like the original's player death).
+var crashed := false
 
 
 func _ready() -> void:
@@ -110,11 +124,6 @@ func _ready() -> void:
 		# The model's `height` helper: how far the wheels reach below the aircraft origin.
 		var h := aircraft.find_child("height", true, false) as Node3D
 		flight.set_gear_clearance(-h.position.y if h != null else 0.0)
-		if gear_down and mission_name != "":
-			flight.set_on_ground()
-			# A ground start begins with the engine off; any throttle change starts it (§8).
-			flight.set_controls(stick.x, stick.y, rudder, throttle, flaps, gear_down, brakes)
-			flight.set_engine_on(false)
 	var shot := args.find("--screenshot")
 	if shot >= 0:
 		_screenshot(args[shot + 1])
@@ -154,10 +163,20 @@ func _choose_start(args: PackedStringArray) -> void:
 		origin = Vector2(player["0x2e4"], player["0x2ee"])
 		alt = float(player["0x2f8"])
 		heading = float(player["0x302"])
-		gear_down = true
-		flaps = 1.0
-		brakes = true
-		throttle = 0.0
+		# FUN_005a2a10: airborne above 800 m unless at a base; a ground start has gear down, full
+		# flaps, brakes on, throttle 0, and the engine runs only within 100 m of the runway start point.
+		var near_base := false
+		start_engine_on = false
+		for b in AIRBASES:
+			var d := Vector2(b.x, b.y).distance_to(origin)
+			near_base = near_base or (d < 5000.0 and absf(alt - b.z) < 15.0)
+			start_engine_on = start_engine_on or d <= 100.0
+		start_airborne = alt > 800.0 and not near_base
+		if not start_airborne:
+			gear_down = true
+			flaps = 1.0
+			brakes = true
+			throttle = 0.0
 	elif at >= 0:
 		origin = Vector2(float(args[at + 1]), float(args[at + 2]))
 		alt = float(args[at + 3])
@@ -166,6 +185,8 @@ func _choose_start(args: PackedStringArray) -> void:
 		roll = float(args[at + 6]) if args.size() > at + 6 and args[at + 6].is_valid_float() else 0.0
 	else:
 		origin = terrain.centre_world()
+	start_pitch = pitch
+	start_roll = roll
 	terrain.world_origin = origin
 	rig.position = Vector3(0, alt, 0)
 	# Heading is clockwise from north (-Z); Godot's yaw is counter-clockwise.
@@ -406,13 +427,53 @@ func _start_flight() -> void:
 	var fwd := -rig.global_basis.z
 	var heading := fposmod(rad_to_deg(atan2(fwd.x, -fwd.z)), 360.0)
 	real_data = Settings.real_data() or OS.get_cmdline_user_args().has("--real")
-	var speed := 0.0 if gear_down else 180.0
-	var err: String = flight.start(install, "F-16", rig.position, heading, speed, real_data)
+	var h := deg_to_rad(heading)
+	var velocity := Vector3(sin(h), 0, -cos(h)) * (AIR_START_SPEED if start_airborne else 0.0)
+	var err: String = flight.start(install, "F-16", rig.position, heading, start_pitch, start_roll, velocity,
+			start_airborne, start_engine_on, real_data)
 	if err != "":
 		push_error("flight model: " + err)
 		flight = null
 		return
 	flight.set_better_physics(Settings.better_physics or OS.get_cmdline_user_args().has("--better"))
+	# Gameplay preferences (docs/flight-model.md §15.7); Easy landing is on by default.
+	flight.set_no_stalls(_pref("no_stalls", false))
+	flight.set_no_spins(_pref("no_spins", false))
+	flight.set_easy_landing(_pref("easy_landing", true))
+	flight.set_invulnerable(_pref("invulnerable", false))
+	flight.set_no_crashes(_pref("no_crashes", false))
+	flight.set_unlimited_fuel(_pref("unlimited_fuel", false))
+
+
+## A Settings preference, or `fallback` when this build's Settings has no such field.
+func _pref(name: String, fallback: bool) -> bool:
+	var v = Settings.get(name)
+	return fallback if v == null else bool(v)
+
+
+## The player's jet was destroyed (landing check, water): like the original's player death, the
+## mission runtime runs the destroy event and role rules and ends the flight after 5 s (event 0x82,
+## docs/mission-runtime.md §5.2); without a mission the flight just ends after 5 s.
+func _on_crashed(reason: String) -> void:
+	crashed = true
+	print("player crashed: ", reason)
+	if runtime != null:
+		runtime.player_destroyed()
+	else:
+		get_tree().create_timer(5.0).timeout.connect(func(): _end_flight(false))
+
+
+## Terrain slope under the aircraft: the vertical share of the surface normal (1 = flat), from
+## height samples 3 m either side. Water is not known (the terrain has no type data: UNCERTAIN).
+func _ground_normal_z(p: Vector3) -> float:
+	const D := 3.0
+	var hx0 = terrain.height_at(p - Vector3(D, 0, 0))
+	var hx1 = terrain.height_at(p + Vector3(D, 0, 0))
+	var hz0 = terrain.height_at(p - Vector3(0, 0, D))
+	var hz1 = terrain.height_at(p + Vector3(0, 0, D))
+	if hx0 == null or hx1 == null or hz0 == null or hz1 == null:
+		return 1.0
+	return Vector3(-(hx1 - hx0) / (2.0 * D), 1.0, -(hz1 - hz0) / (2.0 * D)).normalized().y
 
 
 func _spawn_f16() -> void:
@@ -501,6 +562,8 @@ func _record(st: Dictionary, delta: float) -> void:
 func _throttle_event() -> void:
 	if flight != null:
 		flight.set_engine_on(true)
+		# The event reaches the flight model at once (several keys in one frame add up, §15.8).
+		flight.set_controls(stick.x, stick.y, rudder, throttle, flaps, gear_down, brakes)
 
 
 ## The gear lever (docs/flight-model.md §12): raising it is ignored on the ground, lowering it
@@ -562,11 +625,15 @@ func _unhandled_input(event: InputEvent) -> void:
 				throttle = THROTTLE_PRESETS[event.keycode - KEY_1]
 				_throttle_event()
 			# "0" / "9": RPM +/- 5 % = throttle +/- 0.0925 (events 3/4, docs/flight-model.md §8).
+			# Events 3/4 step the flight model's throttle; +0.0925 only if it stays <= 1 (max 0.925).
 			KEY_0:
-				throttle = minf(throttle + 0.0925, 1.0)
+				var cur: float = flight.state().throttle if flight != null else throttle
+				if cur + 0.0925 <= 1.0:
+					throttle = cur + 0.0925
 				_throttle_event()
 			KEY_9:
-				throttle = maxf(throttle - 0.0925, 0.0)
+				var cur: float = flight.state().throttle if flight != null else throttle
+				throttle = maxf(cur - 0.0925, 0.0)
 				_throttle_event()
 			KEY_S:
 				cockpit.radar_mfd().radar_mode = 1  # radar standby (event 0x2c)
@@ -618,6 +685,7 @@ func _process(delta: float) -> void:
 	if flight != null:
 		var ground = terrain.height_at(rig.position)
 		flight.set_ground_height(ground if ground != null else -1.0e9)
+		flight.set_ground_surface(_ground_normal_z(rig.position), false)
 		flight.set_controls(stick.x, stick.y, rudder, throttle, flaps, gear_down, brakes)
 		if waiting_for_ground and terrain.height_at(rig.position) != null:
 			waiting_for_ground = false
@@ -625,6 +693,8 @@ func _process(delta: float) -> void:
 		if not frozen and not waiting_for_ground:
 			flight.step(delta)
 		var st: Dictionary = flight.state()
+		if st.crashed and not crashed:
+			_on_crashed(st.crash_reason)
 		rig.position = st.position
 		rig.basis = Basis(st.right, st.up, -st.forward)
 		for k in ["speed_kt", "mach", "alt_ft", "vs_fpm", "pitch", "roll", "heading", "aoa", "g", "rpm", "throttle", "fuel_lbs"]:
