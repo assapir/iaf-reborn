@@ -23,3 +23,8 @@ Improvements over the 1998 model that the player can opt into, decided case by c
 Generalize the blackbox replay used to debug "Engines ON" (feed a recorded `last_flight.csv` path into the mission
 runtime at 8× speed and print every subtitle / pass / box with its time) into a tool for any mission: record →
 replay → timeline, and replay recorded flights as regression tests.
+
+## "Real weapons" option (like the Real flight data set)
+When the weapons are ported, compare the original's weapon data (ranges, speeds, seeker limits, warhead / Pk,
+drag and weight on the stations) with public data. Where the 1998 numbers are off, offer a corrected set behind an
+Extras / Physics switch; the original stays the default. Same method as the flight model's validation report.
