@@ -8,10 +8,14 @@ use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
-/// Script opcodes the mission runtime implements (docs/formats/mis.md opcode list).
-const SUPPORTED_OPCODES: &[i64] = &[];
-/// Event condition variables the runtime evaluates ("" = plain trigger).
-const SUPPORTED_CONDITIONS: &[&str] = &[];
+/// Trigger-list (scripts1) opcodes the mission runtime implements (docs/mission-runtime.md §4);
+/// 3, 4, 15, 18, 19, 23, 26 are no-ops in the original too.
+const SUPPORTED_TRIGGER: &[i64] = &[3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 23, 26];
+/// Motion-list (scripts0) opcodes implemented: 1 Hover, 16 Path.
+const SUPPORTED_MOTION: &[i64] = &[1, 16];
+/// Event conditions: every shipped mission leaves the counter id unset, so conditions never take
+/// effect (docs/mission-runtime.md §3.1) — all supported.
+const SUPPORTED_CONDITIONS: &[&str] = &["", "COUNT", "NUMOFLAUNCHERS"];
 /// Object classes (bdb Objects 0x5aa) that are shown / simulated: static buildings, runways,
 /// markers and trees are drawn; units that must move or fight are not yet.
 const SUPPORTED_CLASSES: &[i64] = &[0xc, 0xd, 0xe, 0x1d, 0x1e, 11, 18];
@@ -33,6 +37,7 @@ const OPCODE_NAMES: &[(i64, &str)] = &[
     (21, "Enable combat"),
     (22, "Disable combat"),
 ];
+const MOTION_NAMES: &[(i64, &str)] = &[(1, "Hover"), (5, "Turn"), (11, "Yaw to target"), (16, "Path")];
 
 fn load(dir: &Path, name: &str) -> Result<Value> {
     Ok(serde_json::from_slice(&std::fs::read(dir.join(format!("{name}.json"))).with_context(|| name.to_string())?)?)
@@ -49,7 +54,7 @@ fn main() -> Result<()> {
     let list = load(dir, "missionlist")?;
     let mut bdbs: BTreeMap<String, BTreeMap<i64, Value>> = BTreeMap::new();
     let mut rows = Vec::new();
-    let mut need_opcodes: BTreeMap<i64, usize> = BTreeMap::new();
+    let mut need_opcodes: BTreeMap<(bool, i64), usize> = BTreeMap::new();
     let mut need_classes: BTreeMap<String, usize> = BTreeMap::new();
     let mut need_conds: BTreeMap<String, usize> = BTreeMap::new();
     let mut ids: Vec<(i64, &Vec<Value>)> = list
@@ -60,7 +65,7 @@ fn main() -> Result<()> {
         .collect();
     ids.sort_by_key(|(k, _)| *k);
     for (id, names) in ids {
-        let (mut opcodes, mut conds, mut classes) = (BTreeSet::new(), BTreeSet::new(), BTreeMap::<i64, String>::new());
+        let (mut opcodes, mut conds, mut classes) = (BTreeSet::<(bool, i64)>::new(), BTreeSet::new(), BTreeMap::<i64, String>::new());
         let mut player = String::from("?");
         let mut title = String::new();
         for (i, name) in names.iter().filter_map(|n| n.as_str()).enumerate() {
@@ -75,10 +80,10 @@ fn main() -> Result<()> {
             }
             let objs = &bdbs[&bdb_name];
             for e in items(&m, "entities") {
-                for part in ["scripts0", "scripts1"] {
+                for (motion, part) in [(true, "scripts0"), (false, "scripts1")] {
                     for sc in e[part]["items"].as_array().into_iter().flatten() {
                         if let Some(op) = sc["0x83e"].as_i64() {
-                            opcodes.insert(op);
+                            opcodes.insert((motion, op));
                         }
                     }
                 }
@@ -87,9 +92,10 @@ fn main() -> Result<()> {
                 }
                 let Some(o) = e["0x2c6"].as_i64().and_then(|t| objs.get(&t)) else { continue };
                 let class = o["0x5aa"].as_i64().unwrap_or(-1);
-                classes.insert(class, o["0x51e"].as_str().unwrap_or("").to_string());
-                if e["0x2bc"].as_str() == Some("Player1") {
+                if e["0x2bc"].as_str().is_some_and(|n| n.eq_ignore_ascii_case("player1")) {
                     player = format!("{} ({})", o["0x528"].as_str().unwrap_or(""), o["0x5b4"].as_i64().unwrap_or(-1));
+                } else {
+                    classes.insert(class, o["0x51e"].as_str().unwrap_or("").to_string());
                 }
             }
             for ev in items(&m, "events") {
@@ -102,13 +108,18 @@ fn main() -> Result<()> {
                 }
             }
         }
-        let missing_ops: Vec<i64> = opcodes.iter().copied().filter(|o| !SUPPORTED_OPCODES.contains(o)).collect();
+        let missing_ops: Vec<(bool, i64)> = opcodes
+            .iter()
+            .copied()
+            .filter(|(m, o)| !(if *m { SUPPORTED_MOTION } else { SUPPORTED_TRIGGER }).contains(o))
+            .collect();
         let missing_classes: Vec<String> = classes
             .iter()
             .filter(|(c, _)| !SUPPORTED_CLASSES.contains(c))
             .map(|(c, n)| format!("{n} ({c})"))
             .collect();
-        let missing_conds: Vec<String> = conds.iter().filter(|c| !SUPPORTED_CONDITIONS.iter().any(|s| c.starts_with(s) && !s.is_empty())).cloned().collect();
+        // Conditions never take effect in the shipped missions (counter ids unset), so none is missing.
+        let missing_conds: Vec<String> = conds.iter().filter(|c| !SUPPORTED_CONDITIONS.iter().any(|s| c.starts_with(s))).cloned().collect();
         for o in &missing_ops {
             *need_opcodes.entry(*o).or_default() += 1;
         }
@@ -118,20 +129,23 @@ fn main() -> Result<()> {
         for c in &missing_conds {
             *need_conds.entry(c.clone()).or_default() += 1;
         }
-        let flyable = FLYABLE.iter().any(|t| player.ends_with(&format!("({t})"))) || player == "?";
+        let flyable = FLYABLE.iter().any(|t| player.ends_with(&format!("({t})")));
         let ready = flyable && missing_ops.is_empty() && missing_classes.is_empty() && missing_conds.is_empty();
         rows.push(format!(
             "| {id} | {} | {title} | {player} | {} | {} | {} | {} |",
             names.first().and_then(|n| n.as_str()).unwrap_or(""),
             if ready { "yes" } else { "no" },
-            missing_ops.iter().map(|o| o.to_string()).collect::<Vec<_>>().join(", "),
+            missing_ops.iter().map(|(m, o)| format!("{}{o}", if *m { "m" } else { "t" })).collect::<Vec<_>>().join(", "),
             missing_conds.join(", "),
             missing_classes.join(", "),
         ));
     }
-    let name_of = |o: i64| OPCODE_NAMES.iter().find(|(k, _)| *k == o).map_or("?", |(_, n)| n);
+    let name_of = |(m, o): (bool, i64)| (if m { MOTION_NAMES } else { OPCODE_NAMES }).iter().find(|(k, _)| *k == o).map_or("?", |(_, n)| n);
     let mut md = String::from("# Mission coverage\n\nGenerated by `iaf-mission-report` from the converted missions; \"missing\" = used by the mission but not supported by the engine yet.\n\n## What unlocks the most missions\n\n| feature | missions needing it |\n|---|---|\n");
-    let mut needs: Vec<(String, usize)> = need_opcodes.iter().map(|(o, n)| (format!("script opcode {o} {}", name_of(*o)), *n)).collect();
+    let mut needs: Vec<(String, usize)> = need_opcodes
+        .iter()
+        .map(|(o, n)| (format!("{} script op {} {}", if o.0 { "motion" } else { "trigger" }, o.1, name_of(*o)), *n))
+        .collect();
     needs.extend(need_classes.iter().map(|(c, n)| (format!("objects: {c}"), *n)));
     needs.extend(need_conds.iter().map(|(c, n)| (format!("event condition `{c}`"), *n)));
     needs.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));

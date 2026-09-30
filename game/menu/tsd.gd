@@ -160,7 +160,7 @@ func _load_units() -> void:
 				"airport": type == 450,
 			}
 			by_id[int(e["0x1e"])] = units.size()
-			if first and String(e.get("0x2bc", "")) == "Player1":
+			if first and String(e.get("0x2bc", "")).to_lower() == "player1":
 				player_unit = units.size()
 			units.append(u)
 		for f in m.formations.items:

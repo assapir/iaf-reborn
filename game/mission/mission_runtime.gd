@@ -64,7 +64,7 @@ func setup(host_node: Node, mission_files: Array, bdb: Dictionary) -> void:
 			# Unused player slots (Player2..7 at -1, -1) are not spawned; other entities are, wherever
 			# they are (sensors are logic nodes, e.g. the takeoff "Win sensor" at -1).
 			var unplaced := float(e.get("0x2e4", -1)) < 0 and float(e.get("0x2ee", -1)) < 0
-			if unplaced and name.begins_with("Player") and name != "Player1":
+			if unplaced and name.to_lower().begins_with("player") and name.to_lower() != "player1":
 				continue
 			var ent := {
 				"key": "%d:%d" % [fi, int(e["0x1e"])], "name": name, "file": fi, "id": int(e["0x1e"]),
@@ -72,7 +72,7 @@ func setup(host_node: Node, mission_files: Array, bdb: Dictionary) -> void:
 				"role": int(e.get("0x32a", 2)), "mission_ctl": int(e.get("0x320", 0)) & 1 == 1,
 				"slots": e.get("slots", []), "watched": int(e.get("0xac", -1)),
 				"sensor": true, "alive_scenario": true, "state": 1, "visible": true, "node": null,
-				"player": fi == 0 and name == "Player1",
+				"player": fi == 0 and name.to_lower() == "player1",
 				"lists": [_list(e.get("scripts0", {})), _list(e.get("scripts1", {}))],
 				"current": [-1, -1], "path": null, "type": int(e.get("0x2c6", -1)),
 			}

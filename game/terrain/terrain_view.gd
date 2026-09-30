@@ -184,7 +184,7 @@ func _mission_player(mission_id: int) -> Dictionary:
 	if not (mission is Dictionary):
 		return {}
 	for e in mission.entities.items:
-		if e is Dictionary and e.get("0x2bc", "") == "Player1":
+		if e is Dictionary and String(e.get("0x2bc", "")).to_lower() == "player1":
 			_load_route(mission, int(e["0x1e"]))
 			return e
 	return {}
