@@ -57,3 +57,8 @@ master arm / weapon modes, bingo / waypoint data), from public references.
 ## Updated maps (later, just for fun)
 The static maps (TSD / briefing EMF maps, map texts, borders, city names) show the 1998 situation. Optional Extras
 switch: an updated overlay with today's borders, names and places (drawn by us; original maps by default).
+
+## Setup wizard (after the features)
+A first-run wizard in the game itself (Linux + macOS) instead of `tools/setup.sh`: pick the ISO, optionally the v1.1
+patch and the Hebrew packs (file dialogs, with checks: right ISO, patch version, pack contents), show progress per
+step, and re-run individual steps later from a menu. The CLI stays for scripting / CI.
