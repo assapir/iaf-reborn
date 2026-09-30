@@ -53,6 +53,10 @@ listed below.
    loading screen and enter the cockpit when done.
 9. **In-flight sounds**: engine, wind, gear, cockpit warnings (only voices, "Over G" and the G sound play); in-flight pause menu.
 
+## Next up
+- **Eject** (original: "Eject (x3)" key; ejection object `FUN_0053d0b0`, docs/part-animation.md) — needs the original key table converted (also for the Controls page).
+- Later: canopy open (our addition, Extras).
+
 ## Decisions / deviations (agreed with the user)
 - g readout on the ground shows 1.0 (display only; the original's ground readout is not traced).
 - Terrain under a rolling aircraft: the wheels follow our terrain (the original's runways are flat).

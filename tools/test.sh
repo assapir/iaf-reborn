@@ -13,5 +13,6 @@ for t in tests/godot/test_*.gd; do
 	out=$(IAF_DEFAULT_SETTINGS=1 timeout 180 godot --headless --audio-driver Dummy --path game -s "../$t" 2>&1)
 	echo "$out" | grep -E "^(PASS|FAIL|RESULT)|SCRIPT ERROR"
 	echo "$out" | grep -q "RESULT PASS" || fail=1
+	echo "$out" | grep -q "SCRIPT ERROR" && { echo "FAIL script errors"; fail=1; }
 done
 [[ $fail == 0 ]] && echo "ALL TESTS PASSED" || { echo "SOME TESTS FAILED"; exit 1; }
