@@ -19,7 +19,7 @@ listed below.
 | Mission objects | every entity of the mission + base missions with its original model (bdb object → Present → `.x`, 219 models); hidden / moved by the mission scripts |
 | **Mission runtime** | generic (docs/mission-runtime.md): timer queue, trigger/motion scripts, 4 s reached/left checks, events (max count, voice + subtitle, debrief notes, script jumps), role win/lose rules, "Mission Accomplished!" / "Mission failed." box (DEBRIEF / CONTINUE / EXIT), Esc "quit mission?", debrief screen (headline + notes, Replay / New / Next). Instructor voices from `resource/soundfiles`. Tested: Engines ON start to finish |
 | Subtitles | the original console: 40 slots, empty line every 3 s of sim time, newest 14 drawn (~40 s lifetime), x=4 y=10+15n, Arial 12/4, HUD colour; English only (no Hebrew exists — user decision) |
-| **Flight model** | Rust port (docs/flight-model.md), audited against the exe (§14): envelope on the ground, flaps, friction 0.05, brake flag, nose-wheel side force (stick X), 5 Hz touchdown / lift-off / stop rule, aero update re-bases the acceleration; engine off at a ground start ("1" starts it); gear lever rules (no gear-up on the ground, no gear-down > 300 kt); **original / real data sets** (Preferences); validation suite vs public F-16 data |
+| **Flight model** | Rust port (docs/flight-model.md), audited against the exe (§14 ground, §15 airborne; §15.11 port checklist): exact envelope (per-level point lists + plane fit), stall latch, spin mode (the F-16 / Lavi are exempt in the original), landing / crash check with Easy landing / No crashes / Invulnerable, AB light-up delay, original gear / flap / brake ramps (gear 3.1 s), start rules (airborne above 800 m away from a base), preference gates, envelope on the ground, flaps, friction 0.05, brake flag, nose-wheel side force (stick X), 5 Hz touchdown / lift-off / stop rule, aero update re-bases the acceleration; engine off at a ground start ("1" starts it); gear lever rules (no gear-up on the ground, no gear-down > 300 kt); **original / real data sets** (Preferences); validation suite vs public F-16 data |
 | Real data set | real F-16 weights / thrust / roll / fuel / stall; geometric pedal nose-wheel steering; no ×4 ground-lift quirk; lift-off ~159 kt |
 | Blackout / redout | original accumulators and tunnel / red overlays, "Over G" voice and G sound; "No blackouts" option (Preferences > Gameplay) |
 | Cockpit | original 2D panels of all cockpits from `cockpit.ibx`, gauges, ADI, standby horizon, conformal HUD in the original HUD colour table (H cycles 11 colours) |
@@ -45,8 +45,9 @@ listed below.
    (no damage / RWR / ECM / autopilot); night dimming, the `[TEXTMESSAGE]` line and chaff / flare counters are not drawn.
 5. **Terrain**: level-3 regions outside the airbases, insets outside the level-4 Israel rectangle, far theatre levels.
 6. **Mission objects**: level-of-detail models, damage states, moving units / AI, weapons.
-7. **Flight model**: stall / spin / departure modes, AB light-up delay, landing / crash check (`5b85b0`), gear leg
-   timing in the flight model (drag), gear sound, weapon-release gear lock; "stalls off" / "easy" preference branches.
+7. **Flight model** (ported through §15; remaining): terrain types (water / rough ground / runway surface; our
+   terrain has no type data), map-edge "Tornado" push-back, damage-forced spins, hook drag, crash explosion and
+   touchdown / crash sounds; the start velocity source of airborne starts is not traced (180 m/s used).
 8. **Loading**: terrain chunks / detail tiles still stream in after the cockpit appears; load them behind the
    loading screen and enter the cockpit when done.
 9. **In-flight sounds**: engine, wind, gear, cockpit warnings (only voices, "Over G" and the G sound play); in-flight pause menu.
@@ -56,15 +57,16 @@ listed below.
 - Terrain under a rolling aircraft: the wheels follow our terrain (the original's runways are flat).
 - Real data set: pedal nose-wheel steering and no ×4 ground-lift quirk; the original set keeps the original formula
   (stick steering; steering above ~40 kt can hop the jet off).
-- "Better physics" option (Preferences, off by default; separate from the data set): γ-based 1 g hold (the
-  original's neutral stick slowly dives at high speed). Ground effect: later, same option.
+- "Better physics" option (Preferences → Extras, off by default; separate from the data set): γ-based 1 g hold,
+  α(t)/β(t) force angles, weight-based start lift (no start jolt), realistic landing limits (4 m/s sink, 15° tail
+  strike), spin fixes ("No spins" really blocks spins, 1.2 s entry, drag in the spin, velocity kept at recovery). Ground effect: later, same option.
 - In-flight subtitles stay English in Hebrew mode (no Hebrew source exists).
 - Rendering improvements allowed: smooth text, Lanczos-upscaled art, mirrored runway digits re-flipped.
 
 ## Plan (in order)
 1. ~~Front end~~, ~~TSD~~, ~~MFDs~~, ~~airbase~~, ~~mission runtime (Engines ON)~~, ~~lights (gear / flaps / brake)~~.
-2. **Finish the flight physics** (airborne port audit §15, stall / spin / departure, AB light-up, landing / crash
-   check, preference branches, airborne start), then **complete the F-16 model**: afterburner flame / nozzle and
+2. ~~Finish the flight physics~~ (done: §15 port, "Better physics" options listed in docs/flight-model.md §10), then
+   **complete the F-16 model**: afterburner flame / nozzle and
    the other visual parts driven by the flight state.
 3. Remaining front-end screens from the decoded specs: ~~original Preferences pages~~ (done; Controls key list
    pending), QUIT
