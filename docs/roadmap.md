@@ -33,3 +33,5 @@ Extras / Physics switch; the original stays the default. Same method as the flig
 After the original AI brain is ported (AI jets fly the same flight model with AI special cases, docs/flight-model.md
 §15; the brain itself is not decoded yet), offer smarter behaviour behind its own switches (e.g. energy-aware BFM,
 realistic missile employment / defence, wingman coordination, SAM/AAA radar discipline). The original stays the default.
+Separate switches for enemies and wingmen (the original's skill level seems to apply to sides 2/3 only; wingmen
+probably have their own command-driven logic), and an option to apply the skill level to both sides.
