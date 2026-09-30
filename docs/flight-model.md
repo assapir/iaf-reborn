@@ -337,8 +337,9 @@ and none adds rudder from roll.
 runtime table `0x836e14` (`rep movs 0x41d` @4eef80; "defaults" button @5102a5). Record layout:
 * +0 press GEV, +4/+8 press arg (x, y); +0xc release GEV, +0x10/+0x14 release args;
 * +0x18 key: DirectInput DIK code (ushort), modifier byte at +0x1a (0x22 = Shift, e.g. Shift+W);
-* +0x1c: −1, overwritten by a file loader @4dff56 (UNCERTAIN);
-* +0x20: 1 = one-shot, 0 = held with release.
+* +0x1c: joystick button (0-based, −1 = none; `FUN_004df610`, Controls page "Button n");
+* +0x20: listed on the Controls page (not one-shot / held: held keys are the ones with a release
+  command). Full table and dispatch: docs/controls.md.
 
 The key code of record k is at `0x648010 + k·0x24`, which is where the `0x648010` in docs/mfd.md comes from.
 
@@ -362,9 +363,9 @@ input-mode 0x12 active, zeroed by 0x18 (UNCERTAIN meaning). 2 throttle (`FUN_005
 `max(0,(100−RPM%)·0.0667)` s (`FUN_0059cea0`); any throttle change turns the engine on (`S+0x1d0`).
 3/4 RPM ±5 %: throttle ±0.0925 (`FUN_0059c6a0`/`c6e0`). 5 rudder (`S+0x2ec`, ramp ×0.3926; ignored on the ground, see §7).
 6 flaps (`S+0x300`, ×0.33 target for aircraft type 100), 7/8/9 ramps `S+0x320/0x340/0x360`.
-Throttle presets from keys.trx map naturally to RPM: idle 0, 65 % 0.0925, 70 % 0.185,
-80 % 0.37, 90 % 0.555, military 0.74, AB1 [0.75,0.875), AB2 ≥0.875 (preset values themselves not
-found; UNCERTAIN). Key names are loaded from `keys.trx` into `0x82eea8` (100-byte stride) by
+Throttle presets (keys 1–8, key-table records 7–14) send GEV 9 with p1 = 0, 10, 19, 38, 56, 74,
+78, 100; the controller (`FUN_004493a0` case 9 → `FUN_0044de50` motion 2) makes throttle = p1 · 0.01:
+idle 0, 65 % 0.10, 70 % 0.19, 80 % 0.38, 90 % 0.56, military 0.74, AB1 0.78, AB2 1.0 (docs/controls.md). Key names are loaded from `keys.trx` into `0x82eea8` (100-byte stride) by
 `FUN_004e24d0`; the default key→command table is at `0x647ff8` (record layout in §7 "Nose-wheel steering input").
 
 ## 9. Misc

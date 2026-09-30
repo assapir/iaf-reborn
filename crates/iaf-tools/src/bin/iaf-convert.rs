@@ -15,6 +15,11 @@
 //! (`menus.json`), strings (`strings.json`), art (`img/…png`) and TrueType fonts; with `--pack`,
 //! files present in the pack (e.g. assets/packs/he, Hebrew art/strings in Windows-1255) win.
 //!
+//! `iaf-convert keys <install-dir> <packs-dir> <out.json>` — the original default key table from
+//! `iafjets.exe` (117 records at 0x647ff8) with the `keys.trx` labels (+ the Hebrew pack's when
+//! present), the DirectInput key names and modifier prefixes of the Controls page
+//! (docs/front-end.md §12.7, docs/controls.md).
+//!
 //! `--upscale` resamples textures 4× (Lanczos). `--upscale-ai` uses the experimental AI
 //! upscaler instead (needs `realesrgan-ncnn-vulkan`; not recommended: it redraws text).
 //! `--smooth` rounds the low-poly geometry (smooth normals + Phong tessellation).
@@ -83,8 +88,9 @@ fn main() -> Result<()> {
         [_, "briefings", install, packs, out] => convert_briefings(Path::new(install), Path::new(packs), Path::new(out), &opts),
         [_, "menu", install, out] => convert_menu(Path::new(install), None, Path::new(out), &opts),
         [_, "menu", install, out, "--pack", pack] => convert_menu(Path::new(install), Some(Path::new(pack)), Path::new(out), &opts),
+        [_, "keys", install, packs, out] => convert_keys(Path::new(install), Path::new(packs), Path::new(out)),
         [_, "cockpit", install, name, out] => convert_cockpit(Path::new(install), name, Path::new(out), &opts),
-        _ => bail!("usage: iaf-convert [--upscale] [--smooth] model <file.x|file.xfr> <out-dir>\n       iaf-convert [--upscale] [--smooth] planes <install-dir> <out-dir>\n       iaf-convert [--upscale] [--smooth] aircraft <install-dir> <missions-dir> <out-dir>\n       iaf-convert [--upscale] cockpit <install-dir> <cockpit> <out-dir>\n       iaf-convert [--upscale] menu <install-dir> <out-dir> [--pack <pack-dir>]\n       iaf-convert [--upscale] briefings <install-dir> <packs-dir> <out-dir>"),
+        _ => bail!("usage: iaf-convert [--upscale] [--smooth] model <file.x|file.xfr> <out-dir>\n       iaf-convert [--upscale] [--smooth] planes <install-dir> <out-dir>\n       iaf-convert [--upscale] [--smooth] aircraft <install-dir> <missions-dir> <out-dir>\n       iaf-convert [--upscale] cockpit <install-dir> <cockpit> <out-dir>\n       iaf-convert [--upscale] menu <install-dir> <out-dir> [--pack <pack-dir>]\n       iaf-convert [--upscale] briefings <install-dir> <packs-dir> <out-dir>\n       iaf-convert keys <install-dir> <packs-dir> <out.json>"),
     }
 }
 
@@ -623,5 +629,135 @@ fn convert_missions(install: &Path, out: &Path) -> Result<()> {
     for f in failed {
         println!("  {f}");
     }
+    Ok(())
+}
+
+/// Key table (docs/front-end.md §12.7, docs/controls.md): 117 records of 9 dwords at 0x647ff8 in
+/// `.data` — press command, press p1, p2, release command, release p1, p2, key (DIK scancode |
+/// modifier << 16), joystick button (−1 none), shown in the Controls list. Record i is `keys.trx`
+/// line i (both are indexed by the same i in `FUN_004df3d0`'s "pressed %s" trace).
+const KEY_TABLE_VA: u32 = 0x647ff8;
+const KEY_RECORDS: usize = 117;
+/// `FUN_00510890`: DIK scancode -> the address of its name string (other codes: no name).
+const DIK_NAME_VA: &[(u32, u32)] = &[
+    (0x01, 0x654af8), (0x02, 0x649690), (0x03, 0x654af4), (0x04, 0x654af0), (0x05, 0x654aec), (0x06, 0x654ae8),
+    (0x07, 0x654ae4), (0x08, 0x654ae0), (0x09, 0x654adc), (0x0a, 0x654ad8), (0x0b, 0x654ad4), (0x0c, 0x654ad0),
+    (0x0d, 0x654acc), (0x0e, 0x654ac0), (0x0f, 0x654abc), (0x10, 0x654ab8), (0x11, 0x654ab4), (0x12, 0x654ab0),
+    (0x13, 0x654aac), (0x14, 0x654aa8), (0x15, 0x654aa4), (0x16, 0x654aa0), (0x17, 0x654a9c), (0x18, 0x654a98),
+    (0x19, 0x654a94), (0x1a, 0x654a90), (0x1b, 0x654a8c), (0x1c, 0x654a84), (0x1d, 0x654a7c), (0x1e, 0x654a78),
+    (0x1f, 0x654a74), (0x20, 0x654a70), (0x21, 0x654a6c), (0x22, 0x654a68), (0x23, 0x654a64), (0x24, 0x654a60),
+    (0x25, 0x654a5c), (0x26, 0x654a58), (0x27, 0x654a54), (0x28, 0x654a50), (0x29, 0x654a4c), (0x2a, 0x654a44),
+    (0x2b, 0x6240d0), (0x2c, 0x654a40), (0x2d, 0x654a3c), (0x2e, 0x654a38), (0x2f, 0x654a34), (0x30, 0x654a30),
+    (0x31, 0x654a2c), (0x32, 0x654a28), (0x33, 0x63bb14), (0x34, 0x654a24), (0x35, 0x654a20), (0x36, 0x654a18),
+    (0x37, 0x654a0c), (0x38, 0x654a04), (0x39, 0x6549fc), (0x3a, 0x6549f0), (0x3b, 0x6549ec), (0x3c, 0x6549e8),
+    (0x3d, 0x6549e4), (0x3e, 0x652ba4), (0x3f, 0x6549e0), (0x40, 0x6549dc), (0x41, 0x6549d8), (0x42, 0x6549d4),
+    (0x43, 0x6549d0), (0x44, 0x6549cc), (0x45, 0x6549c4), (0x46, 0x6549b8), (0x47, 0x6549ac), (0x48, 0x6549a0),
+    (0x49, 0x654994), (0x4a, 0x654988), (0x4b, 0x65497c), (0x4c, 0x654970), (0x4d, 0x654964), (0x4e, 0x654958),
+    (0x4f, 0x65494c), (0x50, 0x654940), (0x51, 0x654934), (0x52, 0x654928), (0x53, 0x654920), (0x56, 0x654918),
+    (0x57, 0x654914), (0x58, 0x654910), (0x64, 0x65490c), (0x65, 0x654908), (0x66, 0x65146c), (0x70, 0x654900),
+    (0x79, 0x6548f8), (0x7b, 0x6548ec), (0x7d, 0x6548e8), (0x8d, 0x6548dc), (0x90, 0x6548d0), (0x91, 0x6548cc),
+    (0x92, 0x6548c4), (0x93, 0x6548b8), (0x94, 0x6548b0), (0x95, 0x6548a8), (0x96, 0x6548a4), (0x97, 0x65489c),
+    (0x9c, 0x654894), (0x9d, 0x65488c), (0xb3, 0x65487c), (0xb5, 0x654870), (0xb7, 0x654868), (0xb8, 0x654860),
+    (0xc7, 0x654858), (0xc8, 0x654854), (0xc9, 0x65484c), (0xcb, 0x654844), (0xcd, 0x65483c), (0xcf, 0x654838),
+    (0xd0, 0x654830), (0xd1, 0x654824), (0xd2, 0x65481c), (0xd3, 0x654814), (0xdb, 0x65480c), (0xdc, 0x654804),
+    (0xdd, 0x6547fc),
+];
+/// `FUN_005107c0`: modifier bits (tested in this order) -> prefix string address.
+const MODIFIER_VA: &[(u32, u32)] = &[(0x11, 0x6547d8), (0x22, 0x6547e0), (0x44, 0x6547ec), (0x88, 0x6547f4)];
+/// `FUN_00511070`: joystick button n (0-based) is shown as this format with n + 1.
+const BUTTON_FORMAT_VA: u32 = 0x654afc;
+
+/// Maps a virtual address of iafjets.exe to a file offset (PE section table).
+struct PeImage {
+    data: Vec<u8>,
+    sections: Vec<(u32, u32, u32)>, // (va, raw size, raw offset)
+}
+
+impl PeImage {
+    fn load(path: &Path) -> Result<Self> {
+        let data = std::fs::read(path).with_context(|| format!("reading {}", path.display()))?;
+        let u16_at = |o: usize| u16::from_le_bytes([data[o], data[o + 1]]) as usize;
+        let u32_at = |o: usize| u32::from_le_bytes(data[o..o + 4].try_into().unwrap());
+        let pe = u32_at(0x3c) as usize;
+        if data.get(pe..pe + 4) != Some(b"PE\0\0") {
+            bail!("{}: not a PE file", path.display());
+        }
+        let count = u16_at(pe + 6);
+        let base = u32_at(pe + 24 + 28);
+        let table = pe + 24 + u16_at(pe + 20);
+        let sections = (0..count)
+            .map(|i| {
+                let s = table + i * 40;
+                (base + u32_at(s + 12), u32_at(s + 16), u32_at(s + 20))
+            })
+            .collect();
+        Ok(Self { data, sections })
+    }
+
+    fn offset(&self, va: u32) -> Option<usize> {
+        self.sections
+            .iter()
+            .find(|(start, size, _)| va >= *start && va < start + size)
+            .map(|(start, _, raw)| (raw + va - start) as usize)
+    }
+
+    fn i32_at(&self, va: u32) -> Result<i32> {
+        let o = self.offset(va).with_context(|| format!("address {va:#x} not in the file"))?;
+        Ok(i32::from_le_bytes(self.data[o..o + 4].try_into().unwrap()))
+    }
+
+    fn cstr(&self, va: u32) -> Result<String> {
+        let o = self.offset(va).with_context(|| format!("address {va:#x} not in the file"))?;
+        let end = self.data[o..].iter().position(|&c| c == 0).unwrap_or(0);
+        Ok(decode_text(&self.data[o..o + end], false))
+    }
+}
+
+fn convert_keys(install: &Path, packs: &Path, out: &Path) -> Result<()> {
+    use serde_json::json;
+    let exe = PeImage::load(&install.join("iafjets.exe"))?;
+    let lines = |path: &Path, hebrew: bool| -> Option<Vec<String>> {
+        let data = std::fs::read(path).ok()?;
+        Some(decode_text(&data, hebrew).lines().map(|l| l.trim().to_string()).collect())
+    };
+    let labels = lines(&install.join("resource/menu/txt/keys.trx"), false).context("keys.trx missing")?;
+    // The Hebrew packs carry no keys.trx so far; use it when a pack has one.
+    let labels_he = lines(&packs.join("he/resource/menu/txt/keys.trx"), true);
+    let mut names = serde_json::Map::new();
+    for &(dik, va) in DIK_NAME_VA {
+        names.insert(dik.to_string(), exe.cstr(va)?.into());
+    }
+    let mut modifiers = Vec::new();
+    for &(bits, va) in MODIFIER_VA {
+        modifiers.push(json!({"bits": bits, "prefix": exe.cstr(va)?}));
+    }
+    let mut records = Vec::new();
+    for i in 0..KEY_RECORDS {
+        let f = (0..9).map(|k| exe.i32_at(KEY_TABLE_VA + (i * 36 + k * 4) as u32)).collect::<Result<Vec<_>>>()?;
+        let key = f[6] as u32;
+        records.push(json!({
+            "index": i,
+            "label": labels.get(i).cloned().unwrap_or_default(),
+            "label_he": labels_he.as_ref().and_then(|l| l.get(i).cloned()),
+            "press": [f[0], f[1], f[2]],
+            "release": [f[3], f[4], f[5]],
+            "dik": key & 0xffff,
+            "modifiers": (key >> 16) & 0xff,
+            "joystick": f[7],
+            "shown": f[8] != 0,
+        }));
+    }
+    let doc = json!({
+        "source": format!("iafjets.exe default key table {KEY_TABLE_VA:#x}, {KEY_RECORDS} records x 36 bytes"),
+        "records": records,
+        "key_names": names,
+        "modifiers": modifiers,
+        "button_format": exe.cstr(BUTTON_FORMAT_VA)?,
+    });
+    if let Some(dir) = out.parent() {
+        std::fs::create_dir_all(dir)?;
+    }
+    std::fs::write(out, serde_json::to_string_pretty(&doc)?)?;
+    println!("keys: {KEY_RECORDS} records, {} key names -> {}", DIK_NAME_VA.len(), out.display());
     Ok(())
 }

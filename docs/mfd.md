@@ -240,7 +240,7 @@ A/P 88, ELCT 97, GNRT 106. Redrawn when state+0x550.. flags change.
   origin (66,66). Sampling step `S = R·1853·832/((top−bottom)·94)` isr px per MFD px (94 px = R NM; 1853 m/NM at
   `0x6085b0`); outside the image → black. Symbol scale k = R·19.7128 m/px (`0x6085c0`).
 
-## 5. Keys and events (keys.trx = 115 command names, one per line; bindings table `0x648010 + k·0x24`)
+## 5. Keys and events (keys.trx = 117 command names, one per line = key-table record; docs/controls.md)
 
 | keys.trx command | Default key | Event → effect |
 |---|---|---|

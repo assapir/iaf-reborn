@@ -46,6 +46,9 @@ if [[ -d assets/packs/he/resource/menu ]]; then
 	./target/release/iaf-convert --upscale menu assets/install assets/converted/menu_he --pack assets/packs/he
 fi
 
+step "key table (default keys from the exe + keys.trx labels, docs/controls.md)"
+./target/release/iaf-convert keys assets/install assets/packs assets/converted/keys.json
+
 step "missions (all .mis + object database -> JSON, mission list)"
 ./target/release/iaf-convert missions assets/install assets/converted/missions
 

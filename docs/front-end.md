@@ -1039,28 +1039,43 @@ Three two-way choices. The top option has value 1.
 * `menu/joy/*.joy` is not referenced by this page (UNCERTAIN).
 
 ### 12.7 Controls page (`cntrl_2.bmp`; `FUN_0050fba0`)
-* **Key-binding list** (`FUN_005102f0`): page (0,53)-(400,323), 9 rows (30 px each, UNCERTAIN).
-  * Row art: `bmp/log/item.bmp`; the highlighted row uses `hiitem.bmp`.
-  * Font: Arial p11, weight 400.
-  * Columns (x within a row, y 1..28): FUNCTION 11..181, KEYBOARD ASSIGNED 187..328, JOYSTICK BUTTON
-    331..409.
-* **Scrollbar** at page (422,53)-(433,323): thumb `pref/sldcntrl.bmp` 10×23; arrows
-  `pref/slupb_0..2` / `sldownb_0..2` 15×18.
-* **Data**: 116 command records of 36 bytes at `0x648018`. The working copy is at `0x836e14`, and
-  that copy is what `prefs.dat` stores. Each record holds:
-  * a shown-in-list flag;
-  * the command id;
-  * 5 parameters;
-  * the key: DIK scancode | modifier<<16 (0x11 Ctrl, 0x22 Shift, 0x44 Alt, 0x88 not decoded);
-  * the joystick button (−1 = none).
-* Only records whose first field ≠ 0 are listed.
-* Key names: `FUN_005107c0`/`510890` (e.g. "Ctrl + " + key name).
-* Function labels: `txt/keys.trx`. Record i appears to match line i+1 (record 0 = Ctrl+Q, "Quit
-  mission"). UNCERTAIN: line 0, "TSD and cockpit toggle", has no record.
-* Conflicts: msg 36 "This key is already assigned…" and msg 37 "This button is already assigned…"
-  (UNCERTAIN: the caller was not traced).
-* DEFAULT restores the table from `0x647ff8` (UNCERTAIN: that is 0x20 before the list base
-  `0x648018`).
+The key table itself (records, modifiers, key names, dispatch, the full list) is in
+**docs/controls.md**.
+* **Key-binding list** (class vtable `0x606208`, base list `FUN_004f2a80`; ctor `FUN_005102f0`):
+  * Created (`FUN_004f2b60`) at page (0,53) with 9 rows over a copy of the page art (0,53)-(400,323):
+    row height = 270 / 9 = **30 px**, row width 400.
+  * Rows = the records whose listed flag (+0x20) ≠ 0, in table order (92 of 117).
+  * Row paint `FUN_00510660` is **text only** (`log/item.bmp` / `hiitem.bmp` are loaded into the
+    list but only the base painter `FUN_004f35d0` would draw them, and this class overrides it):
+    transparent, font Arial p11 weight 400 (`this+0x1070`), colour RGB(0,255,0) for the selected row,
+    RGB(0,180,0) (`0xb400`) otherwise. Cells (row coordinates, `0x605fa8..d4`):
+    * function label (keys.trx line i) (11,1)-(181,28), `DT_VCENTER|DT_SINGLELINE` (left);
+    * key name (`FUN_005107c0`) (187,1)-(328,28), centred;
+    * joystick button (`FUN_00511070`, "Button n") (331,1)-(409,28), centred (clipped at x 400).
+  * The first row is selected on creation (`FUN_004f2df0(0)`).
+* **Scrollbar** (`FUN_004f1df0`) at page (422,53)-(433,323), vertical. The first arrow child
+  (`pref/slupb_0..2`, whose art points **down**) is moved to the bar's bottom (`SetWindowPos` y = bar
+  height − arrow height @4f1f9e); the second (`sldownb_0..2`, pointing up) stays at (0,0), the top. Both
+  15×18, clipped to the 11 px bar. Thumb `pref/sldcntrl.bmp` 10×23 between them. (The same class
+  serves other scrollbars: check the TSD's `vslupb` / `vsldownb` placement against this.)
+* **Key capture** (`FUN_005103c0`, the list's key-down handler):
+  * VK_LEFT/UP/RIGHT/DOWN go to the list (move the selection); arrows therefore cannot be bound.
+  * Otherwise the DirectInput keyboard state is scanned for the first pressed key that is not a
+    modifier (skips 0x1d/0x9d, 0x2a/0x36, 0x38/0xb8, 0xdb/0xdc); the modifier is Ctrl (0x11), else
+    Shift (0x22), else Alt (0x44), else Win (0x88); key = modifier << 16 | scancode.
+  * If no other record has that key it is stored in the selected record (+0x18). Otherwise msg 36
+    "This key is already assigned to another function. Change anyway?" (Yes/No, `FUN_004e4f00` type 4);
+    Yes clears the other record's key (0) and assigns it.
+  * Joystick buttons (`FUN_005105b0`) the same on +0x1c with msg 37 and −1 for the cleared record.
+* **Data**: the working table `0x836e14` (see docs/controls.md; it is what `prefs.dat` stores).
+* DEFAULT restores the whole table from `0x647ff8` (@5102a5) — the default table's start; there is no
+  offset puzzle (`0x648018` is record 0's +0x20 field).
+
+**linux-iaf**: the list, scrollbar (arrows, thumb drag, track click = one page, UNCERTAIN), a click on
+a row selects it **and gives the list the keyboard** (UNCERTAIN: the original list takes the focus the
+same way; until then keys go to the screen, so Esc still leaves), the key capture with msg 36, DEFAULT,
+all in the Preferences working copy (Save changes? Yes stores `[keys]` in settings.cfg). Up/Down move
+the selection. The Hebrew pack has no keys.trx: labels stay English on the pack's art.
 
 ### 12.8 Hebrew pack art
 The Hebrew menu pack (docs/packs.md) replaces the page art (`pref/*_0/_1`, `cntrl_2`, `score`,
@@ -1089,8 +1104,8 @@ So the Hebrew pages use the same rects as §12.3–§12.6.
 * In-game effect so far: only No blackouts. The other flags are stored for when their readers are
   built.
 * Graphics sliders snap to `round(v/step)·step` (UNCERTAIN, see §12.4).
-* **Controls page:** it shows the `cntrl_2` art only. The key table (`0x648018`) is not converted, so
-  the list, scrollbar and key editing are not built, and DEFAULT does nothing there.
+* **Controls page:** built (§12.7): the original key list, scrollbar, key capture with msg 36 and
+  DEFAULT; rebinds are stored in `[keys]` and used in flight (docs/controls.md).
 * **Extras tab (ours, not in the original).** A 6th tab, 44 px below Gameplay, the panel's button
   spacing (rect 16,287,109,39).
   * **Button art:** the `pPref` band around the Gameplay button (panel rect 12,203,116,54 from `_0`,
