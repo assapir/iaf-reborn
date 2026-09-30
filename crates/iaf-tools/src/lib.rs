@@ -3,6 +3,7 @@
 pub mod aircraft;
 pub mod gltf;
 pub mod mis;
+pub mod rtpatch;
 pub mod runway_fix;
 pub mod smooth;
 pub mod upscale;

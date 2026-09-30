@@ -24,7 +24,8 @@ See [docs/status.md](docs/status.md) for what works, known gaps and the plan.
 ### What you need from the original game
 
 - `Jane's IAF.iso` — the original CD image (English, v1.0).
-- _(later)_ the v1.1 patch `iafp1_1.exe` — not used yet.
+- _(optional)_ the official v1.1 patch (the WinZip self-extractor holding `iafp1_1.exe`) — `iaf-patch` applies it
+  without Windows (see below); the rest of the pipeline still uses v1.0.
 
 ### Arch Linux packages
 
@@ -68,6 +69,13 @@ cargo run --release -p iaf-tools --bin iaf-extract -- "/path/to/Jane's IAF.iso" 
 ```
 
 This reproduces the original "Full Install" (lower-cased paths) without Windows.
+
+The v1.1 update can be applied the same way (it only reads the install; the 41 updated files go to the output
+directory; format notes in [docs/formats/rtpatch.md](docs/formats/rtpatch.md)):
+
+```sh
+cargo run --release -p iaf-tools --bin iaf-patch -- apply /path/to/v1.1-patch.exe assets/install assets/v1.1
+```
 
 Use google to find the original game ISO if you do not have them. I trust you. Same for the optional Hebrew packs.
 
