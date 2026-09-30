@@ -1647,6 +1647,29 @@ impl Aircraft {
         self.stores_di_right = di_right;
     }
 
+    /// External fuel tanks at mission start (docs/weapons.md "Fuel tanks"): FUN_005a8980 sets the fuel
+    /// ramp's maximum `S+0x448` to FuelWeight + the tanks' bdb weight (one per station, the pounds
+    /// number added to the kg field), and the start (FUN_005a5820 @5a6145) fills the fuel to that
+    /// maximum. One pool: the fuel above FuelWeight is the external fuel, burnt first.
+    pub fn set_fuel_capacity(&mut self, extra_kg: f32) {
+        self.fuel.max = self.params.fuel_mass + extra_kg.max(0.0);
+        self.fuel.reset(self.t, self.fuel.max);
+    }
+
+    /// Motion 0x18 (FUN_005a2270): fuel maximum and fuel := `kg` (the tank jettison sends FuelWeight
+    /// when the fuel is at or above it, FUN_00458760).
+    pub fn set_fuel(&mut self, kg: f32) {
+        if kg >= self.fuel.min {
+            self.fuel.max = kg;
+            self.fuel.reset(self.t, kg);
+        }
+    }
+
+    /// Internal fuel capacity (FuelWeight, kg).
+    pub fn internal_fuel_kg(&self) -> f32 {
+        self.params.fuel_mass
+    }
+
     pub fn state(&self) -> State {
         let t = self.t;
         let position = self.position_at(t);
@@ -1756,6 +1779,20 @@ mod tests {
         asym.set_stores(0.0, 0.0, 0.001);
         run(&mut asym, 1.5);
         assert!((asym.beta_cmd - 0.01 * asym.params.max_beta).abs() < 1e-6, "β_cmd {}", asym.beta_cmd);
+    }
+
+    #[test]
+    fn external_fuel_tanks() {
+        let mut a = airborne(100, 3000.0, 200.0);
+        let internal = a.internal_fuel_kg();
+        a.set_fuel_capacity(1000.0);
+        assert!((a.state().fuel_kg - internal - 1000.0).abs() < 1e-3);
+        run(&mut a, 10.0);
+        let f = a.state().fuel_kg;
+        assert!(f < internal + 1000.0 && f > internal, "the external part burns first: {f}");
+        // Jettison with the fuel above FuelWeight: fuel := FuelWeight, the maximum too.
+        a.set_fuel(internal);
+        assert!((a.state().fuel_kg - internal).abs() < 1e-3);
     }
 
     #[test]

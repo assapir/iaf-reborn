@@ -183,6 +183,23 @@ impl IafFlight {
         }
     }
 
+    /// External fuel tanks at the start: fuel maximum = FuelWeight + `extra_kg`, filled (FUN_005a8980
+    /// then the start, docs/weapons.md "Fuel tanks").
+    #[func]
+    fn set_fuel_capacity(&mut self, extra_kg: f64) {
+        if let Some(ac) = &mut self.aircraft {
+            ac.set_fuel_capacity(extra_kg as f32);
+        }
+    }
+
+    /// Motion 0x18: fuel and its maximum := `kg` (tank jettison).
+    #[func]
+    fn set_fuel(&mut self, kg: f64) {
+        if let Some(ac) = &mut self.aircraft {
+            ac.set_fuel(kg as f32);
+        }
+    }
+
     /// Engine running or off (a ground start begins with the engine off).
     #[func]
     fn set_engine_on(&mut self, on: bool) {
@@ -224,6 +241,7 @@ impl IafFlight {
         d.set("afterburner", s.afterburner as i64);
         d.set("fuel_lbs", s.fuel_kg / 0.45359);
         d.set("mass_kg", s.mass_kg);
+        d.set("internal_fuel_kg", ac.internal_fuel_kg());
         d.set("stalled", s.stalled);
         d.set("buffet", s.buffet);
         d.set("drag_x", s.drag_x);
