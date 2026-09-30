@@ -82,6 +82,22 @@ const PREF_DEFAULT := Rect2(357, 330, 85, 23)
 const PREF_SCORE := Rect2(290, 184, 151, 34)
 ## Live preview sounds while dragging (wav/pref, FUN_005424c0).
 const PREF_PREVIEW := {"engine_volume": "pref/engines", "sfx_volume": "pref/sfx", "speech_volume": "pref/speech"}
+## Controls page (§12.7, FUN_0050fba0 / 5102f0): the key list over the page art (page (0,53)-(400,323),
+## 9 rows of 30 px = the background height / 9, FUN_004f2b60), text only (FUN_00510660: item.bmp /
+## hiitem.bmp are loaded but never drawn): function (11,1)-(181,28) left, key (187,1)-(328,28) and
+## joystick button (331,1)-(409,28) centred, Arial 11, RGB(0,255,0) selected, RGB(0,180,0) others.
+const CTRL_LIST := Rect2(0, 53, 400, 270)
+const CTRL_ROWS := 9
+const CTRL_COLS := [Rect2(11, 1, 170, 27), Rect2(187, 1, 141, 27), Rect2(331, 1, 78, 27)]
+const CTRL_TEXT := Color8(0, 180, 0)
+const CTRL_TEXT_SEL := Color8(0, 255, 0)
+## Scrollbar (FUN_004f1df0): the bar (422,53)-(433,323), arrows 15x18 at its top (sldownb) and
+## bottom (slupb), clipped to the bar, thumb pref/sldcntrl 10x23 between them. One row per arrow click.
+const CTRL_BAR := Rect2(422, 53, 11, 270)
+const CTRL_ARROW := Vector2(15, 18)
+const CTRL_THUMB := Vector2(10, 23)
+const KeyTable := preload("res://controls/key_table.gd")
+
 ## Our own "Extras" tab (not in the original): directly below Gameplay at the panel's spacing
 ## (44 px). Drawn from the pPref art: the band holding the Gameplay button (panel coordinates, inside
 ## the edge rulers) moved down 44 px, its label filled in row by row, our text on top.
@@ -175,6 +191,14 @@ var pref_work := {}
 ## Slider being dragged ([setting, rect, step]) and whether DEFAULT is held down.
 var pref_drag: Array = []
 var pref_default_held := false
+## Controls page: the key table, the selected list row, the first row shown, whether the list has
+## the keyboard (after a click on a row), the arrow held down and a thumb drag offset (or -1).
+var key_table: RefCounted
+var ctrl_sel := 0
+var ctrl_top := 0
+var ctrl_focus := false
+var ctrl_arrow := ""
+var ctrl_drag := -1.0
 
 ## TSD (screen 0x1e): the map/briefing node, where BACK returns to, and its check buttons,
 ## which persist while the mission is loaded (DAT_00836cd4..d1c, defaults FUN_004efc60).
@@ -375,6 +399,10 @@ func _enter_screen() -> void:
 		for section in Settings.PREFS:
 			for k in Settings.PREFS[section]:
 				pref_work[k] = Settings.get(k)
+		pref_work["key_bindings"] = Settings.key_bindings.duplicate(true)
+		ctrl_sel = 0  # FUN_0050fba0 selects the first row
+		ctrl_top = 0
+		ctrl_focus = false
 	if screen in ["tsd", "arm"]:
 		_restore_tsd_checks()
 	if screen == "tsd" and tsd == null:
@@ -649,6 +677,8 @@ func _draw_prefs() -> void:
 	var art: String = PREF_ART.get(page, "")
 	var at := CONTENT.position
 	_blit("pref/%s_%d.png" % [art, 2 if page == "Controls" else 0], at)
+	if page == "Controls":
+		_draw_controls(at)
 	var lit := "pref/%s_1.png" % art
 	for c in PREF_CONTROLS.get(page, []):
 		var r := _ltrb(c[3])
@@ -668,6 +698,134 @@ func _draw_prefs() -> void:
 		_blit_region("pref/score.png", src, at + PREF_SCORE.position)
 	if page != "Devices":
 		_blit("pref/defbut_%d.png" % (2 if pref_default_held else 0), at + PREF_DEFAULT.position)
+
+
+func _keys() -> RefCounted:
+	if key_table == null:
+		key_table = KeyTable.load_table()
+	return key_table
+
+
+## The records listed (shown flag set), in table order.
+func _ctrl_rows() -> Array:
+	return _keys().shown_records()
+
+
+func _ctrl_max_top() -> int:
+	return maxi(0, _ctrl_rows().size() - CTRL_ROWS)
+
+
+func _draw_controls(at: Vector2) -> void:
+	var kt := _keys()
+	var rows := _ctrl_rows()
+	var binds: Dictionary = pref_work.get("key_bindings", {})
+	var fs := int(round(11 * _scale()))
+	var row_h := CTRL_LIST.size.y / CTRL_ROWS
+	for n in CTRL_ROWS:
+		var idx := ctrl_top + n
+		if idx >= rows.size():
+			break
+		var rec: int = rows[idx]
+		var colour := CTRL_TEXT_SEL if idx == ctrl_sel else CTRL_TEXT
+		var texts := [kt.label(rec, _he()), kt.key_name(kt.key_of(rec, binds)), kt.button_name(kt.joystick_of(rec, binds))]
+		for c in 3:
+			var cell: Rect2 = CTRL_COLS[c]
+			cell.position += at + CTRL_LIST.position + Vector2(0, row_h * n)
+			# The list window clips at its right edge (x 400).
+			cell.size.x = minf(cell.size.x, at.x + CTRL_LIST.end.x - cell.position.x)
+			var r := _rect(cell)
+			var base := r.position.y + (r.size.y + font.get_ascent(fs) - font.get_descent(fs)) / 2.0
+			draw_string(font, Vector2(r.position.x, base), texts[c], HORIZONTAL_ALIGNMENT_LEFT if c == 0 else HORIZONTAL_ALIGNMENT_CENTER, r.size.x, fs, colour)
+	# Scrollbar: arrows at the ends (frame 2 while held), the thumb in between.
+	var bar := Rect2(at + CTRL_BAR.position, CTRL_BAR.size)
+	var clip := Vector2(CTRL_BAR.size.x, CTRL_ARROW.y)
+	# FUN_004f1df0 moves the first button (SlUpB, a down-pointing arrow) to the bottom and leaves the
+	# second (SlDownB, pointing up) at the top.
+	_blit_region("pref/sldownb_%d.png" % (2 if ctrl_arrow == "up" else 0), Rect2(Vector2.ZERO, clip), bar.position)
+	_blit_region("pref/slupb_%d.png" % (2 if ctrl_arrow == "down" else 0), Rect2(Vector2.ZERO, clip), Vector2(bar.position.x, bar.end.y - CTRL_ARROW.y))
+	_blit("pref/sldcntrl.png", Vector2(bar.position.x, at.y + _ctrl_thumb_y()))
+
+
+## Thumb top (page y): between the arrows, proportional to the first row shown.
+func _ctrl_thumb_y() -> float:
+	var lo := CTRL_BAR.position.y + CTRL_ARROW.y
+	var hi := CTRL_BAR.end.y - CTRL_ARROW.y - CTRL_THUMB.y
+	var m := _ctrl_max_top()
+	return lo if m == 0 else lerpf(lo, hi, float(ctrl_top) / m)
+
+
+func _ctrl_scroll(to: int) -> void:
+	ctrl_top = clampi(to, 0, _ctrl_max_top())
+
+
+## Selects list row `idx` and scrolls it into view (FUN_004f2df0).
+func _ctrl_select(idx: int) -> void:
+	ctrl_sel = clampi(idx, 0, _ctrl_rows().size() - 1)
+	if ctrl_sel < ctrl_top:
+		ctrl_top = ctrl_sel
+	elif ctrl_sel > ctrl_top + CTRL_ROWS - 1:
+		ctrl_top = ctrl_sel - CTRL_ROWS + 1
+
+
+## Mouse down on the Controls page (page coordinates): a row takes the selection and the keyboard,
+## the arrows scroll one row, the track one page (UNCERTAIN: the page step), the thumb drags.
+func _ctrl_press(q: Vector2) -> bool:
+	if CTRL_LIST.has_point(q):
+		var idx := ctrl_top + int((q.y - CTRL_LIST.position.y) / (CTRL_LIST.size.y / CTRL_ROWS))
+		if idx < _ctrl_rows().size():
+			_ctrl_select(idx)
+			ctrl_focus = true
+		return true
+	if not CTRL_BAR.has_point(q):
+		return false
+	if q.y < CTRL_BAR.position.y + CTRL_ARROW.y:
+		ctrl_arrow = "up"
+		_ctrl_scroll(ctrl_top - 1)
+	elif q.y >= CTRL_BAR.end.y - CTRL_ARROW.y:
+		ctrl_arrow = "down"
+		_ctrl_scroll(ctrl_top + 1)
+	else:
+		var t := _ctrl_thumb_y()
+		if q.y >= t and q.y < t + CTRL_THUMB.y:
+			ctrl_drag = q.y - t
+		else:
+			_ctrl_scroll(ctrl_top + CTRL_ROWS * (1 if q.y > t else -1))
+	return true
+
+
+func _ctrl_drag_to(y: float) -> void:
+	var lo := CTRL_BAR.position.y + CTRL_ARROW.y
+	var hi := CTRL_BAR.end.y - CTRL_ARROW.y - CTRL_THUMB.y
+	_ctrl_scroll(roundi(clampf(inverse_lerp(lo, hi, y - ctrl_drag), 0.0, 1.0) * _ctrl_max_top()))
+
+
+## A key pressed while the list has the keyboard (FUN_005103c0): the arrow keys move in the list;
+## any other key (with one modifier: Ctrl, Shift, Alt or Win) is assigned to the selected function.
+## If another function has it, msg 36 asks; Yes takes it from that function.
+func _ctrl_key(event: InputEventKey) -> void:
+	match event.keycode:
+		KEY_UP:
+			_ctrl_select(ctrl_sel - 1)
+			return
+		KEY_DOWN:
+			_ctrl_select(ctrl_sel + 1)
+			return
+		KEY_LEFT, KEY_RIGHT:
+			return
+	var kt := _keys()
+	var key: int = kt.key_of_event(event)
+	var rows := _ctrl_rows()
+	if key == 0 or ctrl_sel >= rows.size():
+		return
+	var rec: int = rows[ctrl_sel]
+	var binds: Dictionary = pref_work.key_bindings
+	var other: int = kt.find_key(key, binds, rec)
+	if other < 0:
+		kt.set_binding(binds, rec, key, kt.joystick_of(rec, binds))
+		return
+	_message(36, [["yes", func():
+		kt.set_binding(binds, other, 0, kt.joystick_of(other, binds))
+		kt.set_binding(binds, rec, key, kt.joystick_of(rec, binds))], ["no", Callable()]])
 
 
 static func _ltrb(a: Array) -> Rect2:
@@ -876,6 +1034,8 @@ func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		if not pref_drag.is_empty():
 			_pref_slide(_to_menu(event.position).x - CONTENT.position.x)
+		if ctrl_drag >= 0.0:
+			_ctrl_drag_to(_to_menu(event.position).y - CONTENT.position.y)
 		var k := _hit(_to_menu(event.position))
 		hover_key = k if "/" in k else ""
 		# Dragging out of a held button releases it; back in presses it again (§3.1).
@@ -893,6 +1053,9 @@ func _gui_input(event: InputEvent) -> void:
 			held = _hit(p)
 			if held != "":
 				_animate_press(held)
+		elif ctrl_drag >= 0.0 or ctrl_arrow != "":
+			ctrl_drag = -1.0
+			ctrl_arrow = ""
 		elif not pref_drag.is_empty() or pref_default_held:
 			_pref_release(p - CONTENT.position)
 		elif held != "":
@@ -927,6 +1090,8 @@ func _pref_press(q: Vector2) -> bool:
 		pref_default_held = true
 		_play("buttonin")
 		return true
+	if page == "Controls":
+		return _ctrl_press(q)
 	for c in PREF_CONTROLS.get(page, []):
 		var r := _ltrb(c[3])
 		match c[0]:
@@ -985,12 +1150,13 @@ func _pref_release(q: Vector2) -> void:
 	preview.stop()
 
 
-## DEFAULT (§12.2): the page's settings back to the original defaults (Controls: the key table,
-## which is not built).
+## DEFAULT (§12.2): the page's settings back to the original defaults (Controls: the key table).
 func _pref_defaults() -> void:
 	for c in PREF_CONTROLS.get(Settings.pref_page, []):
 		if c[1] != "master_volume":
 			pref_work[c[1]] = Settings.default_value(c[1])
+	if Settings.pref_page == "Controls":
+		pref_work.key_bindings = {}  # the whole table from 0x647ff8 (@5102a5)
 	_apply_music_volume()
 
 
@@ -1069,6 +1235,7 @@ func _on_button(key: String) -> void:
 		for k in checked.keys():
 			checked[k] = false
 		Settings.pref_page = key.capitalize()
+		ctrl_focus = false
 		return
 	var btn := _button(key)
 	if btn.is_empty():
@@ -1083,6 +1250,7 @@ func _on_button(key: String) -> void:
 	var label: String = btn.label
 	if screen == "pref":
 		Settings.pref_page = label
+		ctrl_focus = false
 		return
 	if screen in ["tsd", "arm"]:
 		_tsd_button(key, _norm(label), btn)
@@ -1290,6 +1458,10 @@ func _load_mission() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if screen == "pref" and Settings.pref_page == "Controls" and ctrl_focus and msgbox.is_empty() \
+			and event is InputEventKey and event.pressed and not event.echo:
+		_ctrl_key(event)
+		return
 	if busy or not msgbox.is_empty() or not (event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE):
 		return
 	if screen in QUIT_SCREENS:

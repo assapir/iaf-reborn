@@ -78,6 +78,10 @@ var bp_ground_effect := false
 var show_info := true
 ## Blackbox: the flight recorder user://last_flight.csv (for diagnosing flights; on for now).
 var blackbox := true
+## Key bindings changed on the Controls page (docs/controls.md): {record index: [key, joystick
+## button]}, key = DIK | modifier << 16; records not listed keep the original default. Stored in the
+## [keys] section as r<index> = [key, button].
+var key_bindings := {}
 ## Mission picked in the front end (briefing id, e.g. 311), -1 = free flight.
 var mission_id := -1
 ## Aircraft picked on the Jet list (original ids, FUN_00508470): 0 F-15, 1 F-16, 2 F-4E,
@@ -109,6 +113,11 @@ func _ready() -> void:
 				var value = cfg.get_value(section, key, get(key))
 				if typeof(value) == typeof(get(key)):
 					set(key, value)
+		if cfg.has_section("keys"):
+			for k in cfg.get_section_keys("keys"):
+				var v = cfg.get_value("keys", k)
+				if k.begins_with("r") and k.substr(1).is_valid_int() and v is Array and v.size() == 2:
+					key_bindings[int(k.substr(1))] = [int(v[0]), int(v[1])]
 	if language == "he" and not hebrew_available():
 		language = "en"
 
@@ -120,6 +129,8 @@ func save() -> void:
 	for section in PREFS:
 		for key in PREFS[section]:
 			cfg.set_value(section, key, get(key))
+	for i in key_bindings:
+		cfg.set_value("keys", "r%d" % i, key_bindings[i])
 	cfg.save(PATH)
 
 

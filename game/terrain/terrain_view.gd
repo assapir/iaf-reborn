@@ -23,6 +23,11 @@ const SCREENSHOT_TIMEOUT_MS := 20000
 @onready var chase: Camera3D = $Chase
 
 var looking := false
+## The original key table with the player's rebinds (docs/controls.md) and its held records
+## (press command 2 roll / 3 pitch / 10 rudder), polled every frame.
+const KeyTable := preload("res://controls/key_table.gd")
+var keys: RefCounted = KeyTable.load_table()
+var _held_records: Array = []
 var flight = null  # IafFlight
 var real_data := false
 var stick := Vector2.ZERO  # x roll right+, y pull+
@@ -31,8 +36,6 @@ var throttle := 0.74
 var flaps := 0.0
 var gear_down := false
 var brakes := false
-## Original throttle presets (keys.trx order): idle, 65%, 70%, 80%, 90%, military, AB1, AB2.
-const THROTTLE_PRESETS := [0.0, 0.0925, 0.185, 0.37, 0.555, 0.74, 0.8, 1.0]
 const STICK_RATE := 2.5  # full deflection per second while a key is held
 const STICK_RETURN := 4.0
 var in_cockpit := true
@@ -75,11 +78,16 @@ const AIR_START_SPEED := 180.0
 ## rules test the nearest airbase (5 km / 15 m) and its runway start point (engine on within 100 m);
 ## the full airbase table (54f100) is not decoded, so these three stand in (UNCERTAIN).
 const AIRBASES := [Vector3(312984, 500459, 59), Vector3(356404, 602402, 28), Vector3(317439, 411135, 579)]
+## Ejection (docs/part-animation.md "Ejection"): the pilot left the jet.
+var ejected := false
 ## The crash was handled (flight ends like the original's player death).
 var crashed := false
 
 
 func _ready() -> void:
+	for i in keys.size():
+		if int(keys.records[i].press[0]) in [2, 3, 10]:
+			_held_records.append(i)
 	terrain.focus = rig
 	camera.fov = FOV
 	chase.fov = 60.0
@@ -607,78 +615,122 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventKey and event.pressed and event.echo and event.keycode in [KEY_PAGEUP, KEY_PAGEDOWN]:
 		cockpit.slide_panel(-1 if event.keycode == KEY_PAGEUP else 1)
 	elif event is InputEventKey and event.pressed and not event.echo:
-		match event.keycode:
-			KEY_ESCAPE:
-				# In a mission: "Are you sure you want to quit the mission?" (YES = debrief).
-				if runtime != null:
-					_on_mission_box(8, ["yes", "no"])
-				else:
-					get_tree().change_scene_to_file("res://menu/front_end.tscn")
-			KEY_C:
-				in_cockpit = not in_cockpit
-			KEY_F1:
+		# The original key table first (docs/controls.md, with the player's rebinds); our own keys
+		# only where the table has no command we implement for that key.
+		var rec: int = keys.find_key(keys.key_of_event(event), Settings.key_bindings)
+		if rec >= 0 and _command(keys.records[rec].press):
+			return
+		_own_key(event)
+
+
+## Runs a key-table command [id, p1, p2] (docs/controls.md: the ids reach the game as WM 0x532);
+## false for the commands not implemented yet.
+func _command(cmd: Array) -> bool:
+	var p1 := int(cmd[1])
+	match int(cmd[0]):
+		2, 3, 10:
+			return true  # roll / pitch / rudder: held keys, polled in _read_controls
+		9:
+			# Throttle presets 1-8: GEV 9 -> motion 2 with p1 * 0.01 (FUN_0044de50).
+			throttle = p1 * 0.01
+			_throttle_event()
+		5:
+			# "RPM + 5": throttle +0.0925 only if it stays <= 1 (events 3/4, docs/flight-model.md §8).
+			var cur: float = flight.state().throttle if flight != null else throttle
+			if cur + 0.0925 <= 1.0:
+				throttle = cur + 0.0925
+			_throttle_event()
+		6:
+			var cur: float = flight.state().throttle if flight != null else throttle
+			throttle = maxf(cur - 0.0925, 0.0)
+			_throttle_event()
+		12:
+			flaps = 0.0 if flaps > 0.0 else 1.0
+			if flaps_state != 1:
+				flaps_state = 1
+				flaps_timer = FLAPS_STEP_TIME
+		14:
+			_toggle_gear()
+		17:
+			brakes = not brakes
+		18:
+			_eject_key()
+		20:
+			_zoom_cockpit(0.05)  # zoom in (the original zooms while held; our step)
+		21:
+			_zoom_cockpit(-0.05)
+		28:
+			# Views: 1 cockpit / HUD, 6 chase (our external orbit view); the others are not built.
+			if p1 == 1:
 				in_cockpit = true
-			KEY_F2:
+			elif p1 == 6:
 				in_cockpit = false
-			KEY_F12:
-				Settings.show_info = not Settings.show_info
-				Settings.save()
-			KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8:
-				throttle = THROTTLE_PRESETS[event.keycode - KEY_1]
-				_throttle_event()
-			# "0" / "9": RPM +/- 5 % = throttle +/- 0.0925 (events 3/4, docs/flight-model.md §8).
-			# Events 3/4 step the flight model's throttle; +0.0925 only if it stays <= 1 (max 0.925).
-			KEY_0:
-				var cur: float = flight.state().throttle if flight != null else throttle
-				if cur + 0.0925 <= 1.0:
-					throttle = cur + 0.0925
-				_throttle_event()
-			KEY_9:
-				var cur: float = flight.state().throttle if flight != null else throttle
-				throttle = maxf(cur - 0.0925, 0.0)
-				_throttle_event()
-			KEY_S:
-				cockpit.radar_mfd().radar_mode = 1  # radar standby (event 0x2c)
-			KEY_W:
-				var n: int = maxi(cockpit.waypoints.size(), 1)
-				cockpit.current_waypoint = posmod(cockpit.current_waypoint + (-1 if event.shift_pressed else 1), n)
-			KEY_G:
-				_toggle_gear()
-			KEY_F:
-				flaps = 0.0 if flaps > 0.0 else 1.0
-				if flaps_state != 1:
-					flaps_state = 1
-					flaps_timer = FLAPS_STEP_TIME
-			KEY_B:
-				brakes = not brakes
-			KEY_PAGEUP:
-				cockpit.slide_panel(-1)  # look up: the panel slides away
-			KEY_PAGEDOWN:
-				cockpit.slide_panel(1)  # look down at more of the panel
-			KEY_EQUAL, KEY_PLUS, KEY_KP_ADD:
-				_zoom_cockpit(0.05)
-			KEY_MINUS, KEY_KP_SUBTRACT:
-				_zoom_cockpit(-0.05)
-			KEY_V:
-				cockpit.toggle_panel()
-			# MFD keys (docs/mfd.md §5).
-			KEY_H:
-				# Change HUD color (event 0x7b): next of the 11 table colours.
-				cockpit.hud_colour_index = (cockpit.hud_colour_index + 1) % 11
-			KEY_T:
-				cockpit.show_mfd_page(3)
-			KEY_D:
-				cockpit.show_mfd_page(4)
-			KEY_Q:
-				cockpit.radar_mfd().cycle_radar_mode()
-			KEY_R:
-				cockpit.radar_mfd().toggle_radar_aa_ag()
-			KEY_PERIOD:
-				var r = cockpit.radar_mfd()
-				r.radar_range = mini(r.radar_range + 1, r.RADAR_RANGES.size() - 1)
-			KEY_COMMA:
-				var r = cockpit.radar_mfd()
-				r.radar_range = maxi(r.radar_range - 1, 0)
+			else:
+				return false
+		33:
+			var r = cockpit.radar_mfd()
+			r.radar_range = mini(r.radar_range + 1, r.RADAR_RANGES.size() - 1)
+		34:
+			var r = cockpit.radar_mfd()
+			r.radar_range = maxi(r.radar_range - 1, 0)
+		36:
+			cockpit.radar_mfd().cycle_radar_mode()
+		43:
+			cockpit.radar_mfd().toggle_radar_aa_ag()
+		44:
+			cockpit.radar_mfd().radar_mode = 1  # radar standby (event 0x2c)
+		90:
+			# SET_MFD_SCREEN(page) (docs/mfd.md §5): 3 TSD, 4 damage; FLIR (6) / 7 not built.
+			if p1 in [3, 4]:
+				cockpit.show_mfd_page(p1)
+			else:
+				return false
+		101, 102:
+			var n: int = maxi(cockpit.waypoints.size(), 1)
+			cockpit.current_waypoint = posmod(cockpit.current_waypoint + (1 if int(cmd[0]) == 101 else -1), n)
+		123:
+			# Change HUD color (event 0x7b): next of the 11 table colours.
+			cockpit.hud_colour_index = (cockpit.hud_colour_index + 1) % 11
+		134:
+			_quit_key()
+		_:
+			return false
+	return true
+
+
+## "Are you sure you want to quit the mission?" (YES = debrief); outside a mission: the menus.
+func _quit_key() -> void:
+	if runtime != null:
+		_on_mission_box(8, ["yes", "no"])
+	else:
+		get_tree().change_scene_to_file("res://menu/front_end.tscn")
+
+
+## Our own keys (not in the original table, or on original keys whose command is not built yet:
+## Esc = TSD toggle, C = time compression, F2 = back view, F12 = I-mode; docs/controls.md).
+func _own_key(event: InputEventKey) -> void:
+	match event.keycode:
+		KEY_ESCAPE:
+			_quit_key()
+		KEY_C:
+			in_cockpit = not in_cockpit
+		KEY_F1:
+			in_cockpit = true
+		KEY_F2:
+			in_cockpit = false
+		KEY_F12:
+			Settings.show_info = not Settings.show_info
+			Settings.save()
+		KEY_PAGEUP:
+			cockpit.slide_panel(-1)  # look up: the panel slides away
+		KEY_PAGEDOWN:
+			cockpit.slide_panel(1)  # look down at more of the panel
+		KEY_EQUAL, KEY_PLUS, KEY_KP_ADD:
+			_zoom_cockpit(0.05)
+		KEY_MINUS, KEY_KP_SUBTRACT:
+			_zoom_cockpit(-0.05)
+		KEY_V:
+			cockpit.toggle_panel()
 
 
 func _process(delta: float) -> void:
@@ -742,16 +794,32 @@ func _read_controls(delta: float) -> void:
 		if scripted_rudder != null:
 			rudder = scripted_rudder
 		return
-	var want := Vector2(
-		float(Input.is_key_pressed(KEY_RIGHT)) - float(Input.is_key_pressed(KEY_LEFT)),
-		float(Input.is_key_pressed(KEY_DOWN)) - float(Input.is_key_pressed(KEY_UP)))  # down = pull
+	# Held table keys (roll GEV 2 x = p1, pitch GEV 3 y = p2, rudder GEV 10 x = p1, all ±100; the
+	# release records send 0). Original y +100 (Up arrow, "Pitch up") = our stick forward (−1).
+	var want := Vector2.ZERO
+	var want_rudder := 0.0
+	if not ejected:
+		for i in _held_records:
+			if keys.held(i, Settings.key_bindings):
+				var cmd: Array = keys.records[i].press
+				match int(cmd[0]):
+					2:
+						want.x += cmd[1] * 0.01
+					3:
+						want.y -= cmd[2] * 0.01
+					10:
+						want_rudder += cmd[1] * 0.01
+	want = want.clamp(Vector2(-1, -1), Vector2(1, 1))
+	want_rudder = clampf(want_rudder, -1.0, 1.0)
 	for i in 2:
 		if want[i] != 0.0:
 			stick[i] = move_toward(stick[i], want[i], STICK_RATE * delta)
 		else:
 			stick[i] = move_toward(stick[i], 0.0, STICK_RETURN * delta)
-	# Original default keys: rudder left Numpad 0 / Ins, right Numpad . / Del (table 0x647ff8).
-	var want_rudder := float(Input.is_key_pressed(KEY_KP_PERIOD) or Input.is_key_pressed(KEY_DELETE)) \
-			- float(Input.is_key_pressed(KEY_KP_0) or Input.is_key_pressed(KEY_INSERT))
 	rudder = move_toward(rudder, want_rudder, (STICK_RATE if want_rudder != 0.0 else STICK_RETURN) * delta)
 
+
+
+## "Eject (x3)" (command 18): placeholder until the ejection is ported.
+func _eject_key() -> void:
+	pass
