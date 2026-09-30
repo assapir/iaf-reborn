@@ -35,3 +35,9 @@ After the original AI brain is ported (AI jets fly the same flight model with AI
 realistic missile employment / defence, wingman coordination, SAM/AAA radar discipline). The original stays the default.
 Separate switches for enemies and wingmen (the original's skill level seems to apply to sides 2/3 only; wingmen
 probably have their own command-driven logic), and an option to apply the skill level to both sides.
+
+## Extra sounds (not in the original)
+Optional sound additions behind an Extras switch, original default off: wind / airflow noise vs speed (the
+original has an unused `SFX_WIND` code), canopy, engine start-up / spool-down, the shipped-but-unused engine idle
+loops, `afterburner1/2`, `gearup` / `geardown`, `speedbreak(loop)`, and the silent Betty rows whose files exist
+(`cock_bty_pull.wav`, `cock_bty_bingo.wav`, `cock_bty_spin.wav`) — see docs/sound.md.
