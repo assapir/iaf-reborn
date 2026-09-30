@@ -24,8 +24,9 @@ See [docs/status.md](docs/status.md) for what works, known gaps and the plan.
 ### What you need from the original game
 
 - `Jane's IAF.iso` — the original CD image (English, v1.0).
-- _(optional)_ the official v1.1 patch (the WinZip self-extractor holding `iafp1_1.exe`) — `iaf-patch` applies it
-  without Windows (see below); the rest of the pipeline still uses v1.0.
+- _(optional, recommended)_ the official v1.1 patch (the WinZip self-extractor holding `iafp1_1.exe`). Setup applies
+  it without Windows, so the game runs on v1.1 data. The engine's logic is always v1.1; without the patch it plays
+  the v1.0 data ([docs/v1.1.md](docs/v1.1.md#v10-data-compatibility)).
 
 ### Arch Linux packages
 
@@ -45,17 +46,21 @@ Handy for development (not required): `ffmpeg` (image/video inspection), `python
 
 ### macOS (planned, untested)
 
-`brew install rustup godot` (Godot as a cask), then `rustup default stable`.
+See [docs/macos.md](docs/macos.md).
 
 ## Quick start
 
 ```sh
-tools/setup.sh "/path/to/Jane's IAF.iso" [/path/to/Brief.zip]   # everything, from your own ISO (~2 min)
+tools/setup.sh [--patch /path/to/v1.1-patch.exe] "/path/to/Jane's IAF.iso" [/path/to/Brief.zip /path/to/Menu.zip]
 godot --path game                                                 # front end → Training → mission → Continue
 ```
 
-`tools/setup.sh` runs the whole pipeline (extract → aircraft → cockpit → menus → terrain → optional Hebrew pack →
-Godot extension); the individual commands are listed in it. Conversion is a one-time step; re-run after updating the
+`tools/setup.sh` runs the whole pipeline (extract → v1.1 patch → Hebrew packs → cockpits, briefings, menus, keys,
+missions, aircraft, objects → terrain → Godot extension); the individual commands are listed in it. `--patch` (or the
+`IAF_PATCH` environment variable) takes the downloaded v1.1 update, `iafp1_1.exe` or a bare patch file; the patched
+files replace the v1.0 ones in `assets/install` (the originals are kept in `assets/v1.0`, the patch output in
+`assets/v1.1`) before anything is converted. Without it setup builds everything from the v1.0 files. The Hebrew packs
+(optional, docs/packs.md) go on top of the patched English files. Conversion is a one-time step; re-run after updating the
 converters. Other entry points: `godot --path game res://terrain/terrain_view.tscn` (straight into the air),
 `godot --path game res://viewer/viewer.tscn` (model viewer with hot reload).
 
@@ -67,8 +72,9 @@ cargo run --release -p iaf-tools --bin iaf-extract -- "/path/to/Jane's IAF.iso" 
 
 This reproduces the original "Full Install" (lower-cased paths) without Windows.
 
-The v1.1 update can be applied the same way (it only reads the install; the 41 updated files go to the output
-directory; format notes in [docs/formats/rtpatch.md](docs/formats/rtpatch.md)):
+The v1.1 update is applied the same way (`tools/setup.sh --patch` does this, then copies the 41 files over the
+install; `apply` itself only reads the install and writes the updated files to the output directory; format notes in
+[docs/formats/rtpatch.md](docs/formats/rtpatch.md)):
 
 ```sh
 cargo run --release -p iaf-tools --bin iaf-patch -- apply /path/to/v1.1-patch.exe assets/install assets/v1.1

@@ -1,24 +1,65 @@
 #!/usr/bin/env bash
 # One-shot setup: build everything the game needs from your own copy of Jane's IAF.
 #
-#   tools/setup.sh "/path/to/Jane's IAF.iso" [/path/to/Brief.zip /path/to/Menu.zip]
+#   tools/setup.sh [--patch /path/to/v1.1-patch.exe] "/path/to/Jane's IAF.iso" [Brief.zip] [Menu.zip]
 #
-# Brief.zip / Menu.zip are the optional Hebrew briefings and menus packs (see docs/packs.md).
+# --patch (or the IAF_PATCH environment variable) is the official v1.1 update: the downloaded
+# WinZip self-extractor, iafp1_1.exe or a bare patch file (docs/formats/rtpatch.md). It is applied to
+# the extracted install before anything is converted, so every later step reads v1.1 data; without
+# it the install stays v1.0, which the engine also plays (docs/v1.1.md "v1.0 data compatibility").
+# Brief.zip / Menu.zip are the optional Hebrew briefings and menus packs (see docs/packs.md); they
+# overlay the (patched) English files.
 # Safe to re-run: each step overwrites its own output under assets/.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-iso=${1:?usage: tools/setup.sh "/path/to/Jane's IAF.iso" [Brief.zip]}
-hebrew_zip=${2:-}
-hebrew_menu_zip=${3:-}
+usage='usage: tools/setup.sh [--patch <v1.1 patch>] "/path/to/Jane'"'"'s IAF.iso" [Brief.zip] [Menu.zip]'
+patch=${IAF_PATCH:-}
+args=()
+while (($#)); do
+	case $1 in
+		--patch) patch=${2:?$usage}; shift 2 ;;
+		--patch=*) patch=${1#--patch=}; shift ;;
+		-h|--help) echo "$usage"; exit 0 ;;
+		*) args+=("$1"); shift ;;
+	esac
+done
+iso=${args[0]:?$usage}
+hebrew_zip=${args[1]:-}
+hebrew_menu_zip=${args[2]:-}
 
 step() { printf '\n==> %s\n' "$*"; }
 
 step "building tools"
 cargo build --release -p iaf-tools
 
+# Files a previous run overlaid from the v1.1 patch: removed first, so the extraction below brings back
+# the v1.0 ones and files only v1.1 has do not linger in an unpatched install.
+manifest=assets/install/.v1.1-files
+if [[ -f $manifest ]]; then
+	while IFS= read -r f; do rm -f "assets/install/$f"; done < "$manifest"
+	rm -f "$manifest"
+fi
+rm -rf assets/v1.0
+
 step "extracting the original install from the CD image"
 ./target/release/iaf-extract "$iso" assets/install
+
+if [[ -n $patch ]]; then
+	step "v1.1 patch (41 files; the v1.0 originals are kept in assets/v1.0)"
+	./target/release/iaf-patch unwrap "$patch" assets/patch/iafp1_1.exe
+	rm -rf assets/v1.1
+	./target/release/iaf-patch apply assets/patch/iafp1_1.exe assets/install assets/v1.1
+	(cd assets/v1.1 && find . -type f | sed 's|^\./||') | sort > "$manifest.new"
+	while IFS= read -r f; do
+		if [[ -f assets/install/$f ]]; then
+			mkdir -p "assets/v1.0/$(dirname "$f")"
+			cp "assets/install/$f" "assets/v1.0/$f"
+		fi
+	done < "$manifest.new"
+	cp -r assets/v1.1/. assets/install/
+	mv "$manifest.new" "$manifest"
+fi
 
 step "original HUD / MFD fonts"
 ./target/release/iaf-convert fonts assets/install assets/converted/fonts

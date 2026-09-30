@@ -1031,19 +1031,29 @@ mod tests {
         assert_eq!(find_embedded(b"MZ"), None);
     }
 
-    /// The real v1.1 patch against the extracted v1.0 install. Skipped unless both
-    /// exist: the patch is read from `$IAF_PATCH` or `assets/patch/iafp1_1.exe`.
+    /// The real v1.1 patch against the extracted v1.0 exe. Skipped unless both exist: the
+    /// patch is read from `$IAF_PATCH` or `assets/patch/iafp1_1.exe` (tools/setup.sh puts it
+    /// there), the v1.0 exe from `assets/v1.0` (the originals setup keeps when it patches the
+    /// install) or else the unpatched `assets/install`.
     #[test]
     fn iaf_v11_patch() {
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../assets");
         let patch = std::env::var_os("IAF_PATCH")
             .map(std::path::PathBuf::from)
             .unwrap_or_else(|| root.join("patch/iafp1_1.exe"));
-        let exe = root.join("install/iafjets.exe");
+        let exe = ["v1.0/iafjets.exe", "install/iafjets.exe"]
+            .map(|p| root.join(p))
+            .into_iter()
+            .find(|p| p.exists())
+            .unwrap_or_default();
         let (Ok(patch), Ok(v10)) = (std::fs::read(&patch), std::fs::read(&exe)) else {
             eprintln!("skipped: no v1.1 patch ($IAF_PATCH / assets/patch/iafp1_1.exe) or no assets/install");
             return;
         };
+        if crate::exe::PeImage::parse(v10.clone()).and_then(|e| e.release()).ok() != Some(crate::exe::Release::V10) {
+            eprintln!("skipped: {} is not the v1.0 exe (install already patched, no assets/v1.0)", exe.display());
+            return;
+        }
         let p = Patch::parse(find_embedded(&patch).expect("patch exe without an RTPatch trailer")).unwrap();
         assert_eq!(p.version, 500);
         assert_eq!(p.records.len(), 41);

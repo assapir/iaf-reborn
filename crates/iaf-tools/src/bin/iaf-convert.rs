@@ -15,7 +15,7 @@
 //! files present in the pack (e.g. assets/packs/he, Hebrew art/strings in Windows-1255) win.
 //!
 //! `iaf-convert keys <install-dir> <packs-dir> <out.json>` — the original default key table from
-//! `iafjets.exe` (117 records at 0x647ff8) with the `keys.trx` labels (+ the Hebrew pack's when
+//! `iafjets.exe` (117 records at 0x64c3c8) with the `keys.trx` labels (+ the Hebrew pack's when
 //! present), the DirectInput key names and modifier prefixes of the Controls page
 //! (docs/front-end.md §12.7, docs/controls.md).
 //!
@@ -26,6 +26,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, bail};
 use iaf_formats::model::Model;
+use iaf_tools::exe::{PeImage, Release};
 use iaf_tools::gltf::write_model;
 use iaf_tools::upscale;
 use image::RgbaImage;
@@ -114,7 +115,7 @@ fn convert_aircraft(install: &Path, missions: &Path, out: &Path, opts: &Options)
         }
     }
     std::fs::write(out.join("aircraft.json"), serde_json::to_string_pretty(&index)?)?;
-    // The afterburner flame texture (FUN_004121b0; the hardware path uses the 32-bit TGA).
+    // The afterburner flame texture (FUN_004121e0; the hardware path uses the 32-bit TGA).
     let (img, _) = iaf_tools::gltf::load_texture(&objects_root.join("afterburn.tga"))?;
     opts.scaled(img).save(out.join("afterburn.png"))?;
     println!("aircraft: {} models -> {}", index.len(), out.display());
@@ -271,8 +272,20 @@ fn convert_menu(install: &Path, pack: Option<&Path>, out: &Path, opts: &Options)
 
     // Strings (mission / jet titles and descriptions), Windows-1252.
     let mut strings = serde_json::Map::new();
-    for (_, f) in overlay_files(&root, pack_root.as_deref(), "txt")?.iter().filter(|(r, _)| r.extension().is_some_and(|e| e == "trx")) {
-        let text = decode_text(&std::fs::read(f)?, from_pack(f));
+    for (rel, f) in overlay_files(&root, pack_root.as_deref(), "txt")?.iter().filter(|(r, _)| r.extension().is_some_and(|e| e == "trx")) {
+        let mut text = decode_text(&std::fs::read(f)?, from_pack(f));
+        // msgs.trx is indexed by line number (the message box, docs/front-end.md §3.3). A pack made
+        // for an older version lacks the lines added later (v1.1 added line 56, docs/v1.1.md): keep
+        // the install's lines past the pack's end.
+        if from_pack(f) && rel.file_name().is_some_and(|n| n == "msgs.trx") {
+            if let Ok(base) = std::fs::read(root.join(rel)) {
+                let base = decode_text(&base, false);
+                let (have, all): (Vec<&str>, Vec<&str>) = (text.trim_end().lines().collect(), base.trim_end().lines().collect());
+                if all.len() > have.len() {
+                    text = [&have[..], &all[have.len()..]].concat().join("\r\n");
+                }
+            }
+        }
         strings.insert(f.file_stem().unwrap().to_string_lossy().to_lowercase(), text.trim().replace("\r\n", "\n").into());
     }
     std::fs::write(out.join("strings.json"), serde_json::to_string_pretty(&strings)?)?;
@@ -564,90 +577,111 @@ fn convert_missions(install: &Path, out: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Key table (docs/front-end.md §12.7, docs/controls.md): 117 records of 9 dwords at 0x647ff8 in
-/// `.data` — press command, press p1, p2, release command, release p1, p2, key (DIK scancode |
-/// modifier << 16), joystick button (−1 none), shown in the Controls list. Record i is `keys.trx`
-/// line i (both are indexed by the same i in `FUN_004df3d0`'s "pressed %s" trace).
-const KEY_TABLE_VA: u32 = 0x647ff8;
+/// Key table (docs/front-end.md §12.7, docs/controls.md): 117 records of 9 dwords in `.data` — press
+/// command, press p1, p2, release command, release p1, p2, key (DIK scancode | modifier << 16),
+/// joystick button (−1 none), shown in the Controls list. Record i is `keys.trx` line i (both are
+/// indexed by the same i in `FUN_004e0b80`'s "pressed %s" trace). The records are byte-identical in
+/// v1.0 and v1.1 (docs/v1.1.md); only their addresses moved, so both exes are read.
 const KEY_RECORDS: usize = 117;
-/// `FUN_00510890`: DIK scancode -> the address of its name string (other codes: no name).
-const DIK_NAME_VA: &[(u32, u32)] = &[
-    (0x01, 0x654af8), (0x02, 0x649690), (0x03, 0x654af4), (0x04, 0x654af0), (0x05, 0x654aec), (0x06, 0x654ae8),
-    (0x07, 0x654ae4), (0x08, 0x654ae0), (0x09, 0x654adc), (0x0a, 0x654ad8), (0x0b, 0x654ad4), (0x0c, 0x654ad0),
-    (0x0d, 0x654acc), (0x0e, 0x654ac0), (0x0f, 0x654abc), (0x10, 0x654ab8), (0x11, 0x654ab4), (0x12, 0x654ab0),
-    (0x13, 0x654aac), (0x14, 0x654aa8), (0x15, 0x654aa4), (0x16, 0x654aa0), (0x17, 0x654a9c), (0x18, 0x654a98),
-    (0x19, 0x654a94), (0x1a, 0x654a90), (0x1b, 0x654a8c), (0x1c, 0x654a84), (0x1d, 0x654a7c), (0x1e, 0x654a78),
-    (0x1f, 0x654a74), (0x20, 0x654a70), (0x21, 0x654a6c), (0x22, 0x654a68), (0x23, 0x654a64), (0x24, 0x654a60),
-    (0x25, 0x654a5c), (0x26, 0x654a58), (0x27, 0x654a54), (0x28, 0x654a50), (0x29, 0x654a4c), (0x2a, 0x654a44),
-    (0x2b, 0x6240d0), (0x2c, 0x654a40), (0x2d, 0x654a3c), (0x2e, 0x654a38), (0x2f, 0x654a34), (0x30, 0x654a30),
-    (0x31, 0x654a2c), (0x32, 0x654a28), (0x33, 0x63bb14), (0x34, 0x654a24), (0x35, 0x654a20), (0x36, 0x654a18),
-    (0x37, 0x654a0c), (0x38, 0x654a04), (0x39, 0x6549fc), (0x3a, 0x6549f0), (0x3b, 0x6549ec), (0x3c, 0x6549e8),
-    (0x3d, 0x6549e4), (0x3e, 0x652ba4), (0x3f, 0x6549e0), (0x40, 0x6549dc), (0x41, 0x6549d8), (0x42, 0x6549d4),
-    (0x43, 0x6549d0), (0x44, 0x6549cc), (0x45, 0x6549c4), (0x46, 0x6549b8), (0x47, 0x6549ac), (0x48, 0x6549a0),
-    (0x49, 0x654994), (0x4a, 0x654988), (0x4b, 0x65497c), (0x4c, 0x654970), (0x4d, 0x654964), (0x4e, 0x654958),
-    (0x4f, 0x65494c), (0x50, 0x654940), (0x51, 0x654934), (0x52, 0x654928), (0x53, 0x654920), (0x56, 0x654918),
-    (0x57, 0x654914), (0x58, 0x654910), (0x64, 0x65490c), (0x65, 0x654908), (0x66, 0x65146c), (0x70, 0x654900),
-    (0x79, 0x6548f8), (0x7b, 0x6548ec), (0x7d, 0x6548e8), (0x8d, 0x6548dc), (0x90, 0x6548d0), (0x91, 0x6548cc),
-    (0x92, 0x6548c4), (0x93, 0x6548b8), (0x94, 0x6548b0), (0x95, 0x6548a8), (0x96, 0x6548a4), (0x97, 0x65489c),
-    (0x9c, 0x654894), (0x9d, 0x65488c), (0xb3, 0x65487c), (0xb5, 0x654870), (0xb7, 0x654868), (0xb8, 0x654860),
-    (0xc7, 0x654858), (0xc8, 0x654854), (0xc9, 0x65484c), (0xcb, 0x654844), (0xcd, 0x65483c), (0xcf, 0x654838),
-    (0xd0, 0x654830), (0xd1, 0x654824), (0xd2, 0x65481c), (0xd3, 0x654814), (0xdb, 0x65480c), (0xdc, 0x654804),
-    (0xdd, 0x6547fc),
-];
-/// `FUN_005107c0`: modifier bits (tested in this order) -> prefix string address.
-const MODIFIER_VA: &[(u32, u32)] = &[(0x11, 0x6547d8), (0x22, 0x6547e0), (0x44, 0x6547ec), (0x88, 0x6547f4)];
-/// `FUN_00511070`: joystick button n (0-based) is shown as this format with n + 1.
-const BUTTON_FORMAT_VA: u32 = 0x654afc;
 
-/// Maps a virtual address of iafjets.exe to a file offset (PE section table).
-struct PeImage {
-    data: Vec<u8>,
-    sections: Vec<(u32, u32, u32)>, // (va, raw size, raw offset)
+/// Where the key table and its strings are in one version of iafjets.exe.
+struct KeyAddrs {
+    version: &'static str,
+    table: u32,
+    /// `FUN_005122b0`: DIK scancode -> the address of its name string (other codes: no name).
+    dik_names: &'static [(u32, u32)],
+    /// `FUN_005121e0`: modifier bits (tested in this order) -> prefix string address.
+    modifiers: [(u32, u32); 4],
+    /// `FUN_00512a90`: joystick button n (0-based) is shown as this format with n + 1.
+    button_format: u32,
 }
 
-impl PeImage {
-    fn load(path: &Path) -> Result<Self> {
-        let data = std::fs::read(path).with_context(|| format!("reading {}", path.display()))?;
-        let u16_at = |o: usize| u16::from_le_bytes([data[o], data[o + 1]]) as usize;
-        let u32_at = |o: usize| u32::from_le_bytes(data[o..o + 4].try_into().unwrap());
-        let pe = u32_at(0x3c) as usize;
-        if data.get(pe..pe + 4) != Some(b"PE\0\0") {
-            bail!("{}: not a PE file", path.display());
+const KEYS_V11: KeyAddrs = KeyAddrs {
+    version: "v1.1",
+    table: 0x64c3c8,
+    dik_names: &[
+        (0x01, 0x658ec4), (0x02, 0x64da60), (0x03, 0x658ec0), (0x04, 0x658ebc), (0x05, 0x658eb8), (0x06, 0x658eb4),
+        (0x07, 0x658eb0), (0x08, 0x658eac), (0x09, 0x658ea8), (0x0a, 0x658ea4), (0x0b, 0x64f7b4), (0x0c, 0x658ea0),
+        (0x0d, 0x658e9c), (0x0e, 0x658e90), (0x0f, 0x658e8c), (0x10, 0x658e88), (0x11, 0x658e84), (0x12, 0x658e80),
+        (0x13, 0x658e7c), (0x14, 0x658e78), (0x15, 0x658e74), (0x16, 0x658e70), (0x17, 0x658e6c), (0x18, 0x658e68),
+        (0x19, 0x658e64), (0x1a, 0x658e60), (0x1b, 0x658e5c), (0x1c, 0x658e54), (0x1d, 0x658e4c), (0x1e, 0x658e48),
+        (0x1f, 0x658e44), (0x20, 0x658e40), (0x21, 0x658e3c), (0x22, 0x658e38), (0x23, 0x658e34), (0x24, 0x658e30),
+        (0x25, 0x658e2c), (0x26, 0x658e28), (0x27, 0x658e24), (0x28, 0x658e20), (0x29, 0x658e1c), (0x2a, 0x658e14),
+        (0x2b, 0x628140), (0x2c, 0x658e10), (0x2d, 0x658e0c), (0x2e, 0x658e08), (0x2f, 0x658e04), (0x30, 0x658e00),
+        (0x31, 0x658dfc), (0x32, 0x658df8), (0x33, 0x63fd54), (0x34, 0x658df4), (0x35, 0x658df0), (0x36, 0x658de8),
+        (0x37, 0x658ddc), (0x38, 0x658dd4), (0x39, 0x658dcc), (0x3a, 0x658dc0), (0x3b, 0x658dbc), (0x3c, 0x658db8),
+        (0x3d, 0x658db4), (0x3e, 0x656f74), (0x3f, 0x658db0), (0x40, 0x658dac), (0x41, 0x658da8), (0x42, 0x658da4),
+        (0x43, 0x658da0), (0x44, 0x658d9c), (0x45, 0x658d94), (0x46, 0x658d88), (0x47, 0x658d7c), (0x48, 0x658d70),
+        (0x49, 0x658d64), (0x4a, 0x658d58), (0x4b, 0x658d4c), (0x4c, 0x658d40), (0x4d, 0x658d34), (0x4e, 0x658d28),
+        (0x4f, 0x658d1c), (0x50, 0x658d10), (0x51, 0x658d04), (0x52, 0x658cf8), (0x53, 0x658cf0), (0x56, 0x658ce8),
+        (0x57, 0x658ce4), (0x58, 0x658ce0), (0x64, 0x658cdc), (0x65, 0x658cd8), (0x66, 0x65583c), (0x70, 0x658cd0),
+        (0x79, 0x658cc8), (0x7b, 0x658cbc), (0x7d, 0x658cb8), (0x8d, 0x658cac), (0x90, 0x658ca0), (0x91, 0x658c9c),
+        (0x92, 0x658c94), (0x93, 0x658c88), (0x94, 0x658c80), (0x95, 0x658c78), (0x96, 0x658c74), (0x97, 0x658c6c),
+        (0x9c, 0x658c64), (0x9d, 0x658c5c), (0xb3, 0x658c4c), (0xb5, 0x658c40), (0xb7, 0x658c38), (0xb8, 0x658c30),
+        (0xc7, 0x658c28), (0xc8, 0x658c24), (0xc9, 0x658c1c), (0xcb, 0x658c14), (0xcd, 0x658c0c), (0xcf, 0x658c08),
+        (0xd0, 0x658c00), (0xd1, 0x658bf4), (0xd2, 0x658bec), (0xd3, 0x658be4), (0xdb, 0x658bdc), (0xdc, 0x658bd4),
+        (0xdd, 0x658bcc),
+    ],
+    modifiers: [(0x11, 0x658ba8), (0x22, 0x658bb0), (0x44, 0x658bbc), (0x88, 0x658bc4)],
+    button_format: 0x658ec8,
+};
+
+// v1.0 key-name addresses (the unpatched exe; the v1.1 ones above are these moved, docs/v1.1.md).
+const KEYS_V10: KeyAddrs = KeyAddrs {
+    version: "v1.0",
+    table: 0x647ff8,
+    dik_names: &[
+        (0x01, 0x654af8), (0x02, 0x649690), (0x03, 0x654af4), (0x04, 0x654af0), (0x05, 0x654aec), (0x06, 0x654ae8),
+        (0x07, 0x654ae4), (0x08, 0x654ae0), (0x09, 0x654adc), (0x0a, 0x654ad8), (0x0b, 0x654ad4), (0x0c, 0x654ad0),
+        (0x0d, 0x654acc), (0x0e, 0x654ac0), (0x0f, 0x654abc), (0x10, 0x654ab8), (0x11, 0x654ab4), (0x12, 0x654ab0),
+        (0x13, 0x654aac), (0x14, 0x654aa8), (0x15, 0x654aa4), (0x16, 0x654aa0), (0x17, 0x654a9c), (0x18, 0x654a98),
+        (0x19, 0x654a94), (0x1a, 0x654a90), (0x1b, 0x654a8c), (0x1c, 0x654a84), (0x1d, 0x654a7c), (0x1e, 0x654a78),
+        (0x1f, 0x654a74), (0x20, 0x654a70), (0x21, 0x654a6c), (0x22, 0x654a68), (0x23, 0x654a64), (0x24, 0x654a60),
+        (0x25, 0x654a5c), (0x26, 0x654a58), (0x27, 0x654a54), (0x28, 0x654a50), (0x29, 0x654a4c), (0x2a, 0x654a44),
+        (0x2b, 0x6240d0), (0x2c, 0x654a40), (0x2d, 0x654a3c), (0x2e, 0x654a38), (0x2f, 0x654a34), (0x30, 0x654a30),
+        (0x31, 0x654a2c), (0x32, 0x654a28), (0x33, 0x63bb14), (0x34, 0x654a24), (0x35, 0x654a20), (0x36, 0x654a18),
+        (0x37, 0x654a0c), (0x38, 0x654a04), (0x39, 0x6549fc), (0x3a, 0x6549f0), (0x3b, 0x6549ec), (0x3c, 0x6549e8),
+        (0x3d, 0x6549e4), (0x3e, 0x652ba4), (0x3f, 0x6549e0), (0x40, 0x6549dc), (0x41, 0x6549d8), (0x42, 0x6549d4),
+        (0x43, 0x6549d0), (0x44, 0x6549cc), (0x45, 0x6549c4), (0x46, 0x6549b8), (0x47, 0x6549ac), (0x48, 0x6549a0),
+        (0x49, 0x654994), (0x4a, 0x654988), (0x4b, 0x65497c), (0x4c, 0x654970), (0x4d, 0x654964), (0x4e, 0x654958),
+        (0x4f, 0x65494c), (0x50, 0x654940), (0x51, 0x654934), (0x52, 0x654928), (0x53, 0x654920), (0x56, 0x654918),
+        (0x57, 0x654914), (0x58, 0x654910), (0x64, 0x65490c), (0x65, 0x654908), (0x66, 0x65146c), (0x70, 0x654900),
+        (0x79, 0x6548f8), (0x7b, 0x6548ec), (0x7d, 0x6548e8), (0x8d, 0x6548dc), (0x90, 0x6548d0), (0x91, 0x6548cc),
+        (0x92, 0x6548c4), (0x93, 0x6548b8), (0x94, 0x6548b0), (0x95, 0x6548a8), (0x96, 0x6548a4), (0x97, 0x65489c),
+        (0x9c, 0x654894), (0x9d, 0x65488c), (0xb3, 0x65487c), (0xb5, 0x654870), (0xb7, 0x654868), (0xb8, 0x654860),
+        (0xc7, 0x654858), (0xc8, 0x654854), (0xc9, 0x65484c), (0xcb, 0x654844), (0xcd, 0x65483c), (0xcf, 0x654838),
+        (0xd0, 0x654830), (0xd1, 0x654824), (0xd2, 0x65481c), (0xd3, 0x654814), (0xdb, 0x65480c), (0xdc, 0x654804),
+        (0xdd, 0x6547fc),
+    ],
+    modifiers: [(0x11, 0x6547d8), (0x22, 0x6547e0), (0x44, 0x6547ec), (0x88, 0x6547f4)],
+    button_format: 0x654afc,
+};
+
+/// The key table of `exe` (told apart by its PE link time, `iaf_tools::exe`), checked before use: the
+/// names of Esc / Ctrl / joystick buttons and every record's fields must read as expected.
+fn key_addrs(exe: &PeImage) -> Result<&'static KeyAddrs> {
+    let k = match exe.release()? {
+        Release::V10 => &KEYS_V10,
+        Release::V11 => &KEYS_V11,
+    };
+    let esc = k.dik_names.iter().find(|(d, _)| *d == 1).map(|&(_, va)| va).unwrap();
+    if exe.cstr(esc)? != b"Esc" || exe.cstr(k.modifiers[0].1)? != b"Ctrl + " || exe.cstr(k.button_format)? != b"Button %d" {
+        bail!("iafjets.exe {}: the key-name strings are not where expected", k.version);
+    }
+    for i in 0..KEY_RECORDS {
+        let at = |j: usize| exe.i32_at(k.table + (i * 36 + j * 4) as u32);
+        let (key, button, shown) = (at(6)? as u32, at(7)?, at(8)?);
+        if key >> 24 != 0 || key & 0xff00 != 0 || button < -1 || !(0..=1).contains(&shown) {
+            bail!("iafjets.exe {}: key record {i} does not look like a key record", k.version);
         }
-        let count = u16_at(pe + 6);
-        let base = u32_at(pe + 24 + 28);
-        let table = pe + 24 + u16_at(pe + 20);
-        let sections = (0..count)
-            .map(|i| {
-                let s = table + i * 40;
-                (base + u32_at(s + 12), u32_at(s + 16), u32_at(s + 20))
-            })
-            .collect();
-        Ok(Self { data, sections })
     }
-
-    fn offset(&self, va: u32) -> Option<usize> {
-        self.sections
-            .iter()
-            .find(|(start, size, _)| va >= *start && va < start + size)
-            .map(|(start, _, raw)| (raw + va - start) as usize)
-    }
-
-    fn i32_at(&self, va: u32) -> Result<i32> {
-        let o = self.offset(va).with_context(|| format!("address {va:#x} not in the file"))?;
-        Ok(i32::from_le_bytes(self.data[o..o + 4].try_into().unwrap()))
-    }
-
-    fn cstr(&self, va: u32) -> Result<String> {
-        let o = self.offset(va).with_context(|| format!("address {va:#x} not in the file"))?;
-        let end = self.data[o..].iter().position(|&c| c == 0).unwrap_or(0);
-        Ok(decode_text(&self.data[o..o + end], false))
-    }
+    Ok(k)
 }
 
 fn convert_keys(install: &Path, packs: &Path, out: &Path) -> Result<()> {
     use serde_json::json;
     let exe = PeImage::load(&install.join("iafjets.exe"))?;
+    let k = key_addrs(&exe)?;
     let lines = |path: &Path, hebrew: bool| -> Option<Vec<String>> {
         let data = std::fs::read(path).ok()?;
         Some(decode_text(&data, hebrew).lines().map(|l| l.trim().to_string()).collect())
@@ -656,16 +690,16 @@ fn convert_keys(install: &Path, packs: &Path, out: &Path) -> Result<()> {
     // The Hebrew packs carry no keys.trx so far; use it when a pack has one.
     let labels_he = lines(&packs.join("he/resource/menu/txt/keys.trx"), true);
     let mut names = serde_json::Map::new();
-    for &(dik, va) in DIK_NAME_VA {
-        names.insert(dik.to_string(), exe.cstr(va)?.into());
+    for &(dik, va) in k.dik_names {
+        names.insert(dik.to_string(), decode_text(exe.cstr(va)?, false).into());
     }
     let mut modifiers = Vec::new();
-    for &(bits, va) in MODIFIER_VA {
-        modifiers.push(json!({"bits": bits, "prefix": exe.cstr(va)?}));
+    for &(bits, va) in &k.modifiers {
+        modifiers.push(json!({"bits": bits, "prefix": decode_text(exe.cstr(va)?, false)}));
     }
     let mut records = Vec::new();
     for i in 0..KEY_RECORDS {
-        let f = (0..9).map(|k| exe.i32_at(KEY_TABLE_VA + (i * 36 + k * 4) as u32)).collect::<Result<Vec<_>>>()?;
+        let f = (0..9).map(|j| exe.i32_at(k.table + (i * 36 + j * 4) as u32)).collect::<Result<Vec<_>>>()?;
         let key = f[6] as u32;
         records.push(json!({
             "index": i,
@@ -680,16 +714,46 @@ fn convert_keys(install: &Path, packs: &Path, out: &Path) -> Result<()> {
         }));
     }
     let doc = json!({
-        "source": format!("iafjets.exe default key table {KEY_TABLE_VA:#x}, {KEY_RECORDS} records x 36 bytes"),
+        "source": format!("iafjets.exe {} default key table {:#x}, {KEY_RECORDS} records x 36 bytes", k.version, k.table),
         "records": records,
         "key_names": names,
         "modifiers": modifiers,
-        "button_format": exe.cstr(BUTTON_FORMAT_VA)?,
+        "button_format": decode_text(exe.cstr(k.button_format)?, false),
     });
     if let Some(dir) = out.parent() {
         std::fs::create_dir_all(dir)?;
     }
     std::fs::write(out, serde_json::to_string_pretty(&doc)?)?;
-    println!("keys: {KEY_RECORDS} records, {} key names -> {}", DIK_NAME_VA.len(), out.display());
+    println!("keys ({}): {KEY_RECORDS} records, {} key names -> {}", k.version, k.dik_names.len(), out.display());
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Both real exes (when present: v1.0 in `assets/v1.0` or an unpatched `assets/install`, v1.1 in
+    /// `assets/v1.1`) pass the key-table checks and hold the same records and names.
+    #[test]
+    fn key_table_in_both_releases() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../assets");
+        let read = |exe: &PeImage| -> Vec<Vec<u8>> {
+            let k = key_addrs(exe).unwrap();
+            let mut out: Vec<Vec<u8>> = (0..KEY_RECORDS * 9)
+                .map(|n| exe.i32_at(k.table + 4 * n as u32).unwrap().to_le_bytes().to_vec())
+                .collect();
+            out.extend(k.dik_names.iter().map(|&(_, va)| exe.cstr(va).unwrap().to_vec()));
+            out
+        };
+        let mut tables = std::collections::HashMap::new();
+        for p in ["v1.0/iafjets.exe", "install/iafjets.exe", "v1.1/iafjets.exe"] {
+            if let Ok(exe) = PeImage::load(&root.join(p)) {
+                tables.insert(exe.release().unwrap(), read(&exe));
+            }
+        }
+        match (tables.get(&Release::V10), tables.get(&Release::V11)) {
+            (Some(a), Some(b)) => assert_eq!(a, b),
+            _ => eprintln!("skipped: needs both the v1.0 and the v1.1 iafjets.exe under assets/"),
+        }
+    }
 }

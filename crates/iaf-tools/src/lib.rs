@@ -1,6 +1,7 @@
 //! Shared code for the iaf-reborn command-line tools.
 
 pub mod aircraft;
+pub mod exe;
 pub mod gltf;
 pub mod mis;
 pub mod rtpatch;

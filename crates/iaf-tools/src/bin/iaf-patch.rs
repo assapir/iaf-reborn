@@ -1,8 +1,9 @@
 //! Apply a Pocket Soft .RTPatch update (e.g. the official IAF v1.1 patch) to
 //! an extracted install, without Windows.
 //!
-//!   iaf-patch list  <patch>
-//!   iaf-patch apply <patch> <install-dir> <out-dir>
+//!   iaf-patch list   <patch>
+//!   iaf-patch apply  <patch> <install-dir> <out-dir>
+//!   iaf-patch unwrap <patch> <out.exe>
 //!
 //! `<patch>` is a bare .rtp file, a self-applying patch executable
 //! (`iafp1_1.exe`), or a zip / WinZip self-extractor holding one (the
@@ -10,7 +11,8 @@
 //!
 //! `apply` writes each updated file to `<out-dir>/<lower-cased relative path>`;
 //! the install directory is only read. Every source and result is checked
-//! against the size and checksums the patch carries.
+//! against the size and checksums the patch carries. `unwrap` writes the patch exe (or bare patch)
+//! found inside a zip / self-extractor, e.g. `iafp1_1.exe` out of the downloaded v1.1 update.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -62,13 +64,21 @@ fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
     let (cmd, patch_path) = match &args[..] {
         [_, c, p, ..] => (c.as_str(), p),
-        _ => bail!("usage: iaf-patch list <patch>  |  iaf-patch apply <patch> <install-dir> <out-dir>"),
+        _ => bail!("usage: iaf-patch list <patch>  |  iaf-patch apply <patch> <install-dir> <out-dir>  |  iaf-patch unwrap <patch> <out.exe>"),
     };
     let raw = read_patch(patch_path)?;
     let data = find_embedded(&raw).unwrap_or(&raw);
     let patch = Patch::parse(data)?;
 
     match (cmd, &args[3..]) {
+        ("unwrap", [out]) => {
+            let out = Path::new(out);
+            if let Some(dir) = out.parent() {
+                fs::create_dir_all(dir)?;
+            }
+            fs::write(out, &raw).with_context(|| format!("writing {}", out.display()))?;
+            println!("{} ({} bytes)", out.display(), raw.len());
+        }
         ("list", []) => {
             println!("RTPatch container version {}, {} records", patch.version, patch.records.len());
             for r in &patch.records {
@@ -106,7 +116,7 @@ fn main() -> Result<()> {
                 bail!("{failed} of {} records not applied", patch.records.len());
             }
         }
-        _ => bail!("usage: iaf-patch list <patch>  |  iaf-patch apply <patch> <install-dir> <out-dir>"),
+        _ => bail!("usage: iaf-patch list <patch>  |  iaf-patch apply <patch> <install-dir> <out-dir>  |  iaf-patch unwrap <patch> <out.exe>"),
     }
     Ok(())
 }

@@ -13,7 +13,10 @@ Import a community mod with:
 cargo run --release -p iaf-tools --bin iaf-import-pack -- <mod.zip|dir> <name> assets/install assets/packs [--into resource]
 ```
 `--into` is the folder the mod's readme says to extract into (relative to the install root). Only files that differ
-from the base install, or new files with an extension already used in that folder, are copied.
+from the base install, or new files with an extension already used in that folder, are copied. `tools/setup.sh` imports
+the packs after the v1.1 patch, so a pack overlays the patched English files (both Hebrew packs replace v1.1-patched
+files: `brief/txt/112.rtf` and `menu/txt/msgs.trx`). The pack's `msgs.trx` already has the v1.1 line 56; a shorter
+one would get the install's missing lines (docs/front-end.md §3.3).
 
 ## Known packs
 
