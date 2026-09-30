@@ -69,7 +69,7 @@ cargo run --release -p iaf-tools --bin iaf-extract -- "/path/to/Jane's IAF.iso" 
 
 This reproduces the original "Full Install" (lower-cased paths) without Windows.
 
-You need your own copy of the original game; the ISO is not provided here. The same goes for the optional Hebrew packs.
+Use google to find the original game ISO if you do not have them. I trust you. Same for the optional Hebrew packs.
 
 ## Optional packs
 
