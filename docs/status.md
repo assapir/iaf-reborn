@@ -9,11 +9,10 @@
 - Rule: logic, layout, timing and colours as the original. Improvements are opt-in switches, original by default.
 
 ## In progress (one job at a time)
-**Terrain** — convert all of `map.ptt` (item 1 below).
+— (terrain finished; next: item 2)
 
 ## To do next (ordered by overall progress: missions unlocked first)
-1. **Terrain (original data) — convert all of `map.ptt`** (running): ground for every mission area, all insets,
-   runway-number check, `terraintype.dat`, loading behind the loading screen.
+1. ~~Terrain (original data) — convert all of `map.ptt`~~ — done (see Done).
 2. **Combat core** (unlocks the first ~9–11 missions): player weapons first (gun + IR missiles, stores on the
    pylons, the weapon HUD / MFD pages; targets already take damage; its own Extras switch "Weapon data: Original /
    Real" (separate from Flight data), public data per weapon, docs/roadmap.md "Real weapons") → AI brain flight → AI air-to-ground /
@@ -50,13 +49,13 @@ Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user
 | Cockpit | all 9 original 2D cockpits, gauges, HUD (11 colours), panel lights, MFDs (radar, TSD, RWR, NAV, stores, damage) |
 | Aircraft models | all 22 models: moving parts per the original rules, gear, afterburner flame, canopy / pilot, damage visuals |
 | Sounds | original sound table: engine, gear, flaps, air brake, AoA tone, Betty warnings, touchdown, crash; volume sliders |
-| Terrain | Israel rectangle (level 4) with heights + 149 airbase detail tiles; mirrored runway digits fixed |
+| Terrain | all of `map.ptt` (levels 11..6 + all 51 insets, 2342 nodes) as a streamed quadtree with distance LOD to 200 km, level-6 heights with the original's inset interpolation, skirts; runway digits surveyed on every airbase (2 mirrored fixed); `terraintype.dat` surface types (water / rough / runway) feed the flight model; loaded behind the wait screen (docs/formats/ptt.md) |
 | Tests | `tools/test.sh`: Rust + 20 headless Godot tests, isolated from the player's settings; fails on any script error |
 
 ## Open gaps (by area)
-- **Terrain**: no ground outside the Israel rectangle; foreign / target insets missing; no terrain types; visible
-  loading after the cockpit appears.
-- **Flight**: only the F-16; systems damage doesn't affect flying yet; no hook, map-edge push-back, water / rough crashes.
+- **Terrain**: map-edge push-back / EndWorld and craters (terraintype bits known, systems missing); no elevation
+  west of Suez in the original data (flat −557 m, kept).
+- **Flight**: only the F-16; systems damage doesn't affect flying yet; no hook, map-edge push-back.
 - **Combat**: no weapons, no AI flight or combat, no AAA / SAMs (so no combat mission can be won).
 - **Cockpit / MFDs**: radar contacts and lock, radar map, RWR threats, weapon pages, NAV distances; AI / SAM / ECM /
   autopilot lights have no systems; night lighting.

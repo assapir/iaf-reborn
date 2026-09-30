@@ -1325,7 +1325,7 @@ ground is a touchdown that fails this test (nose-down, sink, roll or slope > 10�
 up to 0.2·|vz| below the ground when it runs. UNCERTAIN: meaning of `4020a0`'s return value.
 
 #### 15.6.2 `5bb9f0` side effects (adds to §14.6)
-Terrain flags `f = 4024b0(round X, round Y)` (names inferred, UNCERTAIN): `f&6` water, `f&0x30` runway, `f&9` rough
+Terrain flags `f = 4024b0(trunc X, trunc Y)` (terraintype.dat, formats/ptt.md "Terrain types"): `f&6` water, `f&0x30` runway, `f&9` rough
 ground, `f&0x300` map edge, `f&0xc0` border (Tornado, §15.5a).
 * **Touchdown** @5bbd1e: `S+0x2a0 = 1`. Check failed → `4a8ae0(dmgObj, 0.0, 5, 0x832150)`: unit state 5 = destroyed
   (`4a8420`), player gets the FF "Crash" effect. Z axis as §14.6, `5a70f0(now)`. Rough ground and V > 25.736 m/s and not
@@ -1678,7 +1678,7 @@ default, §10). Rust unit tests in `aircraft.rs` / `envelope.rs`; headless Godot
 | 12 | β channel | done (v1.1): `beta_update` = `5aa700` (second-order, RudderK/Beta/StartAccel/StopAccel with the exe defaults for v1.0 data, 400 m/s, K ×1.5 near centre, no clamp), `beta_step` = the ground 1 Hz step, 5 Hz also in the spin; the rudder `S+0x2ec` is taken only while airborne. Tests `rudder_keys_and_v10_defaults`, `beta_channel_second_order`, `beta_steps_on_the_ground_and_in_the_spin`; validation row "rudder step" |
 | 13 | Roll / attitude | done: (0) v1.1 roll about the saved body nose (test `roll_about_the_body_nose`); (a) no `kroll` clamp; (b) roll re-based on the attitude roll and `5aa330` at 1 Hz and 5 Hz; (c) no re-orthogonalisation, roll from the raw left wing in the heading/pitch frame, force matrix from the Euler angles. (d) skipped: channels use their own base time (§10). BP: `kroll ≥ 0` (no reversed roll below Veff ≈ 9.5 m/s) |
 | 14 | Lift-ramp rate factor | done: no `.max(0.01)` floor; BP: floor 1 %. The per-type slope globals: not reproduced in either mode (our slopes are per aircraft, i.e. the better behaviour; identical while one type flies, §10) |
-| 15 | Terrain types, map edge | partly: water / rough-ground rules are in the FM, but the host has no terrain flags (false). `S+0x2c8` states, OutRunway FF and the "Tornado" push-back skipped |
+| 15 | Terrain types, map edge | partly: water / rough-ground rules are in the FM; the host passes the terraintype.dat flags (`terrain.gd surface_at`, formats/ptt.md "Terrain types"). `S+0x2c8` states, OutRunway FF and the "Tornado" push-back skipped |
 | 16 | Minor | done: the 1 Hz V is not capped (5 Hz caps at 1200 m/s); airborne thrust unclamped; v1.1 rolling drag ×0.8 (test `ground_roll_drag_factor`; the AI brake ×4 waits for AI jets). Skipped: `S+0x420` effects flag, FF effects, SFX 0x28/0x29, EndWorld/Kramer wavs |
 | 17 | Landed flag | done (v1.1): `State::landings` / Godot `landings` +1 at each gear-down touchdown that passes the check, re-armed at lift-off (test `landed_flag_rearmed_at_lift_off`); the mission runtime's landed trigger is the host's |
 | — | Also BP (§10): the nose-wheel ×4 lift quirk off (§14.5), ground effect on the induced drag (not in the original) | done, test `better_physics_minor_fixes` |
