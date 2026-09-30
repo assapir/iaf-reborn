@@ -29,9 +29,10 @@
    redundant) + Tu-22 Real row (the variant flown in the missions), **pilot records** / login / unlocking.
 8. Remaining front-end screens, multiplayer.
 9. Joystick / throttle / pedals (original input handling; Devices page).
-10. **Original cheats** (key table 108–113: Ctrl+W reload weapons, Shift+D / Ctrl+Return flight-model data dump,
-   Shift+S explosion, Shift+R flight-model hover, U target cheat view): trace the handlers (live in the retail exe or
-   debug-only?) and port the working ones behind an Extras "Cheats" switch; the dump could validate our flight model.
+10. **Original cheats / hidden keys** (docs/controls.md §4; live in the retail exe, the keys.trx labels are wrong):
+   Shift+F refuel internal tank, Shift+S safety off (fire with gear down), Shift+R reload weapons (single player),
+   Shift+D mission text messages on/off, Ctrl+W re-read weapons.ibx, U RWR page, Ctrl+Return HARM target step,
+   SysRQ screenshot (IafJets000.bmp…); port them (cheats behind an Extras "Cheats" switch), show corrected labels
 11. **Sea level west of Suez**: map.ptt has no elevation there (sea, Nile delta and Western desert are a flat plane
    at −557 m, ships placed at −557 m); kept as the original for now — decide a fix (e.g. shift that plane and its
    objects to 0 m) later.
