@@ -28,3 +28,8 @@ replay → timeline, and replay recorded flights as regression tests.
 When the weapons are ported, compare the original's weapon data (ranges, speeds, seeker limits, warhead / Pk,
 drag and weight on the stations) with public data. Where the 1998 numbers are off, offer a corrected set behind an
 Extras / Physics switch; the original stays the default. Same method as the flight model's validation report.
+
+## "Better AI" option
+After the original AI brain is ported (AI jets fly the same flight model with AI special cases, docs/flight-model.md
+§15; the brain itself is not decoded yet), offer smarter behaviour behind its own switches (e.g. energy-aware BFM,
+realistic missile employment / defence, wingman coordination, SAM/AAA radar discipline). The original stays the default.
