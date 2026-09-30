@@ -231,3 +231,43 @@ Notes on the list:
 * 86–93: view pan with Shift + Numpad 8/2/4/6 (listed) and Shift + arrows (not listed).
 * Wingman commands (98–103) use Alt; the chat keys (104–107) use `~` with modifiers.
 * Cheats (108–115) and screen capture (116, SysRQ) are not listed.
+
+## 4. Unlabelled and cheat commands
+
+Traced in v1.1 (objdump; v1.0 has the same handlers). **The keys.trx labels of 108–114 do not match
+what the exe does**: the strings the handlers print are the reliable names. Records 115 / 116 are hidden
+and unlabelled, but work.
+
+**Common path.** The dispatcher (`FUN_004e0b80`) does not look at the "shown" flag: a hidden record fires
+like any other (first matching key; in flight only, `this+0x10 ≥ 1`). There is **no debug flag or build
+switch**: every handler below is live in the retail exe. Commands 0x6e (110), 0x33 (51) and 0x5a (90) go
+through `FUN_004cd3b0` (queued while the sim clock runs, dropped while paused / in the menu) to
+`FUN_004cd630`. Case 0x6e → `FUN_004d19d0`, a switch on p1 (jump table 0x4d1a8c / bytes 0x4d1ab4):
+
+| p1 | handler |
+|---|---|
+| 4, 12, 25, 27, 28 | `FUN_00450780(p)` on the player controller `DAT_00699308` |
+| 26 | `FUN_0055fa00` (this = 0x8415a8) |
+| 13 | `FUN_004d1ad0`; 19 → `FUN_004081a0` (empty); 20 / 21 → FM `+0xca8` = 1 / 0 (no key uses 13, 19–21) |
+
+`FUN_00450780` (jump table 0x450a20 / bytes 0x450a38) does nothing unless `DAT_00699320` ≠ 0, the
+controller's unit is that unit (the four id words at `+0x30` +8..+0x14 match), and the control mode
+(status `+0x14`) is 3 (the player flies). "Local" below = `!netgame(DAT_0082f398) || unit local`.
+Messages go to the console line (`FUN_0044a060`).
+
+| # | key | keys.trx label | what it really does | gate in retail v1.1 |
+|---|---|---|---|---|
+| 108 | Ctrl+W | Cheat: reload weapons | Re-reads the weapon-motion table: clears the `0x8415a8` map (`FUN_0055fba0`) and re-parses `<[Weapons] weaponsPath of iaf.ibx = WeaponsMotion>\Weapons.ibx` (`FUN_0055f420`, `WEAPON_%03d` sections). A developer hot-reload; with the shipped file it changes nothing. No message. | **Live**, SP and MP. |
+| 109 | Shift+D | Cheat: dump flight model data | Toggles `DAT_0062f064` (starts 1): "Cheat: Text messages on" / "Cheat: Text messages off". Off = mission subtitles skipped (docs/mission-runtime.md). | **Live**; only when local. |
+| 110 | Ctrl+Return | Cheat: stop dump flight model data | Controller case 0x33: only in HUD mode 8 (`ctl+0x5c`, set by `FUN_00449810` for master mode 4 with the HARM, weapon 0x24e): if the object from `ctl+0x44c` vfunc +0x20 has `+0x348` > 1, calls `ctl+0x44c` vfunc +0x2c(1). UNCERTAIN: probably steps the HARM target list. Command 0x34 (no key) calls +0x2c(0). | **Live**. |
+| 111 | Shift+S | Cheat: explosion effect | Toggles `ctl+0x970`, the weapons-safety override: "Safety Off" / "Safety On" (v1.1 texts from `[DamageLocalization] SafetyOff / SafetyOn`, defaults as shown). While `ind[9]` ≠ 0 (gear handle down) "Fire gun" (0x42) and "Fire selected weapon" (0x40) are refused unless it is set. | **Live**; the toggle always, the message only when local. |
+| 112 | Shift+R | Cheat: flight model hover | Prints "Cheat: Reload Weapons" after `FUN_00456ce0` on the stores (`ctl+0xf0`): resets them (`FUN_0053bed0`, `FUN_00454010`, state 5) unless busy (`+0xb8` / `+0xbc`). UNCERTAIN: the exact refill. | **Single player only** (`[DAT_00699350+4]` = 0), and only if `ind[9]` = 0, `ind[5]` ≠ 0, `ctl+0xb4` = 1 and HUD mode `ctl+0x5c` = 4 (meanings UNCERTAIN). |
+| 113 | U | Cheat: toggle target cheat view | Command 0x5a(7) = SET_MFD_SCREEN(7): puts the RWR page on an MFD (the same event as T / I / D; ignored if it already shows). Not a cheat. | **Live**. |
+| 114 | Shift+T | Capture screen image | p1 25 → `FUN_004081a0`, which is a bare `ret` (v1.0 `FUN_004d5560` is empty too): **does nothing**. | Dead (the handler was compiled out). |
+| 115 | Shift+F | (none) | **"Cheat: Refuel internal tank"** (`FUN_0044e250`): if the unit's FM vfunc +0x6c = 0x1e (controlled aircraft) and `FUN_0045ee10(unit, now)` = 0 (UNCERTAIN meaning), and fuel (`veh+0x568`+0x1c) < internal capacity (FM `+0xc4c`→`+0xc0`) × 2.2046 (kg→lb, 0x600b28), sends the unit motion input 0x18 with value = capacity (refill). The message shows even when already full. | **Live**, SP and MP (no local test). |
+| 116 | SysRQ | (none) | **The real screen capture**: command 0x88, handled by the flight window (`FUN_004dc280` → `FUN_004dc8d0`). GetDC on the primary / back surface, DIB of its bitmap + palette, written with `OpenFile(OF_CREATE)` to **`IafJets%03d.bmp`** in the working directory; the counter `DAT_008338d8` starts at 0 each run, so old captures are overwritten. | **Live**, SP and MP. |
+
+So the retail cheats are: refuel (Shift+F), stores reload (Shift+R, SP only), weapons safety off
+(Shift+S), text messages on/off (Shift+D), and the SysRQ screenshot; Ctrl+W re-reads weapons.ibx,
+Ctrl+Return is a HARM-mode function and U the RWR page. The "flight model dump / hover", "explosion
+effect" and "target cheat view" of the labels do not exist in the retail exe.
