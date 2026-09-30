@@ -28,14 +28,11 @@ for c in f16 f15 f4-2000 phantom cfir lavi mirage mig23 mig29; do
 	./target/release/iaf-convert --upscale cockpit assets/install "$c" "assets/converted/cockpits/$c"
 done
 
-if [[ -n "$hebrew_zip" ]]; then
-	step "Hebrew briefings pack"
-	./target/release/iaf-import-pack "$hebrew_zip" he assets/install assets/packs
-fi
-if [[ -n "$hebrew_menu_zip" ]]; then
-	step "Hebrew menus pack"
-	./target/release/iaf-import-pack "$hebrew_menu_zip" he assets/install assets/packs
-fi
+for pack in "$hebrew_zip" "$hebrew_menu_zip"; do
+	[[ -n "$pack" ]] || continue
+	step "Hebrew pack $(basename "$pack")"
+	./target/release/iaf-import-pack "$pack" he assets/install assets/packs
+done
 
 step "briefings (English + Hebrew pack when imported)"
 ./target/release/iaf-convert --upscale briefings assets/install assets/packs assets/converted/briefings
