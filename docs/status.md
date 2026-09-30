@@ -1,4 +1,4 @@
-# Status — checkpoint 2
+# Status — checkpoint 3 (2026-09-30)
 
 Milestone 1: **start the game → Training → Basic → "Engines ON" (311) → briefing / TSD → take off from Ramat David
 → "Mission Accomplished!" → debrief**, in the original F-16 with the original 2D cockpit, everything extracted from the
@@ -14,7 +14,7 @@ listed below.
 | **Pipeline** | `tools/setup.sh <ISO> [Brief.zip Menu.zip]`: extraction, models, all 9 cockpits, fonts, menus (+ Hebrew pack), briefings, missions, object models, terrain + airbase detail, Godot extension |
 | Install extraction | ISO 9660 + EA `setup.esa` (PKWARE DCL) → `assets/install` (docs/formats/esa.md) |
 | Aircraft models | `.x/.xfr` → glTF, Lanczos 4× textures, smoothing (docs/formats/x.md); moving parts with the original hinge rules (docs/part-animation.md) |
-| **Aircraft parts (all planes)** | generic, data-driven (docs/aircraft.md): `iaf-convert aircraft` writes a descriptor per plane (22 models: 8 flyable jets, AI jets, transports, helicopters; parts / hinges / nozzles / stations / type codes from the object database); one component ports the flight-model part callback per type (control surfaces, flaperons, pitch mixer, flaps, speed brakes, gear legs / doors with the per-type signs and vanish points, hook, drag chute) and the afterburner flame (level 75 + 12.5·stage, 3D-card double cone, afterburn.tga); the F-16 follows the flight model's gear ramp. Canopy / pilot hidden in flight as the original (switch `crew_visible`, to decide). Test: test_aircraft_parts |
+| **Aircraft parts (all planes)** | generic, data-driven (docs/aircraft.md): `iaf-convert aircraft` writes a descriptor per plane (22 models: 8 flyable jets, AI jets, transports, helicopters; parts / hinges / nozzles / stations / type codes from the object database); one component ports the flight-model part callback per type (control surfaces, flaperons, pitch mixer, flaps, speed brakes, gear legs / doors with the per-type signs and vanish points, hook, drag chute) and the afterburner flame (level 75 + 12.5·stage, 3D-card double cone, afterburn.tga); the F-16 follows the flight model's gear ramp. Canopy / pilot hidden in flight as the original; Extras "Show canopy and pilot" option (in progress). Test: test_aircraft_parts |
 | Terrain | `map.ptt` imagery + heights, chunk streaming, original georeference (docs/formats/ptt.md); **airbase detail tiles** from the level 0–2 insets (~1.24 m/px, 149 tiles, streamed within 6 km) |
 | Runway numbers | rendering fix over the 1998 art: Ramat David's two mirrored "33" re-flipped at conversion (data: `crates/iaf-tools/data/runway_number_fixes.json`, docs/formats/ptt.md); wrong-but-upright numbers (template 09/27, 15/33 copies) left as original |
 | Mission objects | every entity of the mission + base missions with its original model (bdb object → Present → `.x`, 219 models); hidden / moved by the mission scripts |
@@ -28,11 +28,12 @@ listed below.
 | **Panel lights** | all cockpits (docs/cockpit.md): gear lamps per leg (grey up / red moving 2 s / green locked) + animated gear handle, flaps lamp, air brake, blink rule |
 | Controls | original keys from the default key table (0x647ff8) and the instructor texts: 1–8 throttle presets (1 starts the engine), 0 / 9 throttle ±5 %, B brakes, G gear, F flaps, arrows stick (← → steer on the ground), Ins / Del rudder, MFD / radar / waypoint keys, H HUD colour |
 | **Front end** | original screens / buttons / animations / sounds / music (docs/front-end.md), training + campaign navigation, Jet list with per-mission locks, Hebrew via the community packs |
-| **Preferences** | original Graphics / Sound / Controls / Devices / Gameplay pages (§12): art with lit controls, sliders, scoring strip, DEFAULT, working copy + "Save changes?" Yes/No/Cancel, all original prefs stored with their defaults (only No blackouts, music volume and Mute have an effect so far); our own **Extras** tab for Flight data / Language / Better physics / Flight info / Blackbox |
+| **Preferences** | original Graphics / Sound / Controls / Devices / Gameplay pages (§12): art with lit controls, sliders, scoring strip, DEFAULT, working copy + "Save changes?" Yes/No/Cancel, all original prefs stored with their defaults (only No blackouts, music volume and Mute have an effect so far); our own **Extras** tab (Flight data / Language / Flight info / Blackbox) and **Physics** tab (one switch per "Better physics" option, ALL ON / ALL OFF), EN + HE |
 | **TSD** | EMF vector map (+ grid / text), units (known flag, icons, sides, headings), flights and default flight, waypoints (drag to edit, route goes to the flight), double-click a leader to fly, zoom / scrollbars, mission title / clock, briefing window with links (lesson RTF, instructor card), message boxes |
 | Briefings | RTF with colours → BBCode (EN + HE pack), `.brl` link types |
-| Tests | `tools/test.sh`: Rust tests + 11 headless Godot tests (mission start, taxi, gear rules, menu → TSD → fly, Preferences, mission runtime, console, G effects, takeoff roll, the ground-pull glitch, real steering); `IAF_DEFAULT_SETTINGS=1` isolates tests from the player's settings and data |
-| Tools | `iaf-mission-report` → docs/mission-coverage.md (what each mission needs); flight recorder `user://last_flight.csv` |
+| Tests | `tools/test.sh`: Rust tests + 13 headless Godot tests (mission start, taxi, gear rules, menu → TSD → fly, Preferences, mission runtime, console, G effects, takeoff roll, the ground-pull glitch, real steering, crash, aircraft parts); fails on any GDScript error; `IAF_DEFAULT_SETTINGS=1` isolates tests from the player's settings and data |
+| Better physics | 12 opt-in options, each its own switch (docs/flight-model.md §10): flight-path 1 g hold, force angles, air start (no jolt / engine spooled / trimmed), real landing limits, realistic spins, **F-16 / Lavi deep stall** (MPO rocking recovery), low-speed lift / roll fixes, no nose-wheel lift quirk, ground effect |
+| Tools | `iaf-mission-report` → docs/mission-coverage.md (what each mission needs); Blackbox flight recorder `user://last_flight.csv` (Preferences > Extras); replay of a recorded path through the mission runtime (ad hoc, see roadmap) |
 
 ## Known gaps (open)
 1. **Front end** (all decoded in docs/front-end.md, not built): Preferences Controls key list / key editing (§12.7: the
@@ -53,29 +54,33 @@ listed below.
    loading screen and enter the cockpit when done.
 9. **In-flight sounds**: engine, wind, gear, cockpit warnings (only voices, "Over G" and the G sound play); in-flight pause menu.
 
-## Next up
-- **Eject** (original: "Eject (x3)" key; ejection object `FUN_0053d0b0`, docs/part-animation.md) — needs the original key table converted (also for the Controls page).
-- Later: canopy open (our addition, Extras).
+## In progress
+- **Original key table** → keys.json, Controls page key list + rebinding, in-flight keys through the table.
+- **Eject** ("Eject (x3)", ejection object `FUN_0053d0b0`): seat / pilot / canopy, jet flies on, mission outcome.
+- **"Show canopy and pilot"** option (Extras; original hides them on the flown jet).
 
 ## Decisions / deviations (agreed with the user)
 - g readout on the ground shows 1.0 (display only; the original's ground readout is not traced).
 - Terrain under a rolling aircraft: the wheels follow our terrain (the original's runways are flat).
 - Real data set: pedal nose-wheel steering and no ×4 ground-lift quirk; the original set keeps the original formula
   (stick steering; steering above ~40 kt can hop the jet off).
-- "Better physics" option (Preferences → Extras, off by default; separate from the data set): γ-based 1 g hold,
-  α(t)/β(t) force angles, weight-based start lift (no start jolt), realistic landing limits (4 m/s sink, 15° tail
-  strike), spin fixes ("No spins" really blocks spins, 1.2 s entry, drag in the spin, velocity kept at recovery). Ground effect: later, same option.
+- "Better physics": each improvement over the original model is its own switch (Preferences → Physics, all off
+  by default; separate from the Original / Real data set). Original bugs found in the port go there.
+- Visual additions not in the original live on the Extras tab, off / original by default (canopy and pilot; later
+  canopy open).
 - In-flight subtitles stay English in Hebrew mode (no Hebrew source exists).
 - Rendering improvements allowed: smooth text, Lanczos-upscaled art, mirrored runway digits re-flipped.
 
 ## Plan (in order)
-1. ~~Front end~~, ~~TSD~~, ~~MFDs~~, ~~airbase~~, ~~mission runtime (Engines ON)~~, ~~lights (gear / flaps / brake)~~.
-2. ~~Finish the flight physics~~ (done: §15 port, "Better physics" options listed in docs/flight-model.md §10), then
-   ~~complete the F-16 model~~ (done for every aircraft, docs/aircraft.md; open: canopy/pilot visibility decision,
-   hook / drag-chute keys, muzzle flash and stores with the weapons).
-3. Remaining front-end screens from the decoded specs: ~~original Preferences pages~~ (done; Controls key list
-   pending), QUIT
-   confirmation, pilot records and mission unlocking, TSD selected-unit label and 3D-model / target windows, Arming.
-4. In-flight sounds (engine, wind, gear, warnings) and the landing / crash check.
-5. Next training missions (docs/mission-coverage.md): what Landing (312) and Low Level Navigation (313) need.
-6. Later: see docs/roadmap.md (other aircraft, AI, weapons, better model, 3D cockpit, satellite imagery).
+1. ~~Front end~~, ~~TSD~~, ~~MFDs~~, ~~airbase~~, ~~mission runtime (Engines ON)~~, ~~lights~~, ~~flight physics (§14/§15
+   port + Better physics options)~~, ~~aircraft model for every plane~~, ~~original Preferences~~.
+2. (running) Key table + Controls page, eject, canopy/pilot option.
+3. **In-flight sounds** (engine, wind, gear, warnings, touchdown / crash) and the in-flight pause menu.
+4. **Next training missions** (docs/mission-coverage.md): Landing (312, airborne start now supported) and Low Level
+   Navigation (313); then what the rest of the training set needs (AI aircraft, vehicles, SAM / AAA, combat ops).
+5. **Remaining front-end screens**: QUIT confirmation, pilot records and mission unlocking, TSD selected-unit label and
+   3D-model / target windows, Arming; the stored Gameplay / Graphics / Sound prefs' in-game effects.
+6. **Loading**: terrain behind the loading screen.
+7. **Weapons and combat** (radar contacts / lock, stores, missiles, gun, damage), then **AI** and **other flyable jets**
+   (the aircraft model is ready; each needs its flight-model data set).
+8. Later: docs/roadmap.md (mission replayer, 3D cockpit, satellite imagery, newer aircraft, canopy open).
