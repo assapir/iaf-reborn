@@ -64,6 +64,13 @@ Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user
 - Terrain loading is frame-bound (at most 6 decodes started per frame): in a hidden / throttled window (~1 fps)
   the flight's ground takes 25-60 s; start jobs independently of the frame rate.
 
+- Stores seen from behind (user report: "not in place"): checked — the stations sit on the model (F-16 tip rails at
+  x ±4.78, airframe ±4.73; each single store's Pilon point on its station; test_arming.gd). What can look wrong: the
+  TER shoulder slots (2–3 bombs) hang at the pylon height ±Pilon sideways (original `FUN_0053c990`), so they touch
+  the wing, and the store fins are single-sided. User to say which view is wrong (original vs better).
+- Arming: when the machine is busy, `tools/test.sh` can time out test_ui_smoke / test_controls (180 s limit); they
+  pass alone.
+
 ## Done
 | area | state |
 |---|---|

@@ -34,9 +34,9 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 | Weapon targets | every object in the spatial database | units with a model (sensors / logic nodes left out) | UNCERTAIN whether they are in it | player_weapons.gd |
 | Weapon effects look | muzzle flash scale / blend, splash, missile explosion (partly not decoded) | muzzle flash 1 m additive, white puff splash, fireball + puff | rendering | weapons.md §3.5–3.6 |
 | HUD weapon line | MFD sprite font | HUD font at the original position | rendering | weapons.md §6 |
+| Jettisoned tanks | fall as objects | vanish | the falling store comes with the bombs | weapons.md §2.6 |
 | Arming loads on the aircraft | both members of the flight (and every flight on Yes / DEFAULT) | the player's jet only (the tables are kept for every flight) | AI aircraft carry no stores yet | front-end.md §15 |
 | Esc on the Arming screen | not traced | acts as BACK (checks, "Use weapon load?", TSD) | the generic Esc went to Main without the question | front_end.gd |
-| Jettisoned tanks | fall as objects | vanish | the falling store comes with the bombs | weapons.md §2.6 |
 | Keys Esc / C / F2 / F12 | TSD toggle / time compression / back view / I-mode | ours (quit box / view toggle / external / info line) until those commands exist | not built yet | controls.md |
 
 ## 2. Opt-in switches (original by default)
