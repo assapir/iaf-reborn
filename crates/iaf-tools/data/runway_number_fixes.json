@@ -1,0 +1,34 @@
+{
+  "_doc": [
+    "Runway-number corrections applied by `iaf-terrain details` (deliberate rendering improvement over the 1998 data).",
+    "Some runway-end numbers in the map.ptt airbase insets were painted wrongly by the original artists: a number N",
+    "must read upright to a pilot landing on that end (facing heading N*10), but these read as mirror images.",
+    "The terrain itself is correctly oriented; only the digit patch is re-sampled. See docs/formats/ptt.md,",
+    "'Runway number fix (rendering improvement)', for the survey of every number in the detail tiles.",
+    "Fields: centre = patch centre in world units (the map.ptt / detail-tile coordinate system: x east, y south,",
+    "1 unit = 1 detail pixel; pixel (px,py) of tile d_gx_gy covers base_rect[0]+gx*2048+px .. +1);",
+    "heading_deg = landing direction of that runway end (compass: 0 = north = -y, 90 = east = +x), i.e. the runway",
+    "axis; half_across / half_along = half size of the rectangular patch across / along the runway (units);",
+    "op = 'mirror' (reflect across the runway centreline through `centre`) or 'rotate180' (point reflection about",
+    "`centre`); feather = width of the linear blend at the patch edge (units)."
+  ],
+  "feather": 2.0,
+  "fixes": [
+    {
+      "name": "Ramat David, runway 15/33, SE end ('33', lands 330)",
+      "centre": [421811.5, 357393.7],
+      "heading_deg": 329.94,
+      "half_across": 14.0,
+      "half_along": 10.0,
+      "op": "mirror"
+    },
+    {
+      "name": "Ramat David, SW-NE runway (true heading 030/210, painted '15'/'33'), NE end ('33', lands 210)",
+      "centre": [419874.5, 354651.7],
+      "heading_deg": 209.93,
+      "half_across": 14.0,
+      "half_along": 10.0,
+      "op": "mirror"
+    }
+  ]
+}

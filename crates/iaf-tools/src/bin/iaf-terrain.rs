@@ -261,13 +261,15 @@ const DETAIL_MAX_LEVEL: u32 = 2;
 /// Writes `<out>/d_<gx>_<gy>.jpg` (2048², 1 unit per pixel) for every 2048-unit cell of the base
 /// level's grid touched by an inset of level <= 2, plus `details.json`. Each tile is painted
 /// coarse to fine: the base level, then every inset of level 3..0 that covers it, each level
-/// mosaicked at its own resolution and Lanczos-resampled to the tile.
+/// mosaicked at its own resolution and Lanczos-resampled to the tile. Then the runway-number
+/// fixes (`iaf_tools::runway_fix`, a deliberate improvement over the original imagery) that touch
+/// the tile are applied, each re-sampled from its own composition so it is seamless across tiles.
 fn details(path: &str, base_index: usize, out: &std::path::Path) -> Result<()> {
     use image::codecs::jpeg::JpegEncoder;
-    use image::imageops::{FilterType, resize};
     let mut ptt = Ptt::open(path)?;
     let base = ptt.levels.get(base_index).context("no such level")?.clone();
     std::fs::create_dir_all(out)?;
+    let fixes = iaf_tools::runway_fix::load()?;
     // Painting order: base, then insets inside the base from coarse to fine.
     let mut sources: Vec<iaf_formats::ptt::Level> = ptt
         .levels
@@ -292,6 +294,7 @@ fn details(path: &str, base_index: usize, out: &std::path::Path) -> Result<()> {
         tile_lists.insert(i, ptt.tiles(l)?);
     }
     let mut written = Vec::new();
+    let mut fixed = 0;
     for &(gx, gy) in &cells {
         let cell = [
             base.rect[0] + gx * DETAIL_SPAN,
@@ -299,31 +302,15 @@ fn details(path: &str, base_index: usize, out: &std::path::Path) -> Result<()> {
             base.rect[0] + (gx + 1) * DETAIL_SPAN,
             base.rect[1] + (gy + 1) * DETAIL_SPAN,
         ];
-        let mut img = RgbImage::new(DETAIL_SPAN, DETAIL_SPAN);
-        for (i, l) in sources.iter().enumerate() {
-            if !overlaps(&l.rect, &cell) {
-                continue;
-            }
-            let r = clip(&l.rect, &cell);
-            let upp = l.tile_span() / TILE_PIXELS; // units per source pixel
-            // Source tiles covering r, mosaicked at native resolution.
-            let (c0, r0) = ((r[0] - l.rect[0]) / l.tile_span(), (r[1] - l.rect[1]) / l.tile_span());
-            let (c1, r1) = ((r[2] - l.rect[0]).div_ceil(l.tile_span()), (r[3] - l.rect[1]).div_ceil(l.tile_span()));
-            let mut mosaic = RgbImage::new((c1 - c0) * TILE_PIXELS, (r1 - r0) * TILE_PIXELS);
-            for tr in r0..r1 {
-                for tc in c0..c1 {
-                    let t = &tile_lists[&i][(tr * l.columns() + tc) as usize];
-                    if let Ok(tile) = ptt.tile_jpeg(t).map_err(anyhow::Error::from).and_then(|j| Ok(image::load_from_memory(&j)?)) {
-                        mosaic.copy_from(&tile.to_rgb8(), (tc - c0) * TILE_PIXELS, (tr - r0) * TILE_PIXELS)?;
-                    }
-                }
-            }
-            // Crop to r (source pixels), resample to 1 unit per pixel, paste.
-            let (ox, oy) = ((r[0] - l.rect[0]) / upp - c0 * TILE_PIXELS, (r[1] - l.rect[1]) / upp - r0 * TILE_PIXELS);
-            let (w, h) = ((r[2] - r[0]).div_ceil(upp), (r[3] - r[1]).div_ceil(upp));
-            let crop = image::imageops::crop_imm(&mosaic, ox, oy, w, h).to_image();
-            let scaled = if upp == 1 { crop } else { resize(&crop, r[2] - r[0], r[3] - r[1], FilterType::Lanczos3) };
-            img.copy_from(&scaled, r[0] - cell[0], r[1] - cell[1])?;
+        let mut img = compose(&mut ptt, &sources, &tile_lists, cell)?;
+        for fix in fixes.iter().filter(|f| f.intersects(&cell)) {
+            // Source: the unfixed imagery around the patch (aligned to the coarsest source pixel,
+            // 16 units, so the resampled levels line up exactly with the tile's own composition).
+            let r = clip(&fix.source_rect(16, 16), &base.rect);
+            let src = compose(&mut ptt, &sources, &tile_lists, r)?;
+            fix.apply(&mut img, [cell[0], cell[1]], &src, [r[0], r[1]]);
+            println!("d_{gx}_{gy}: runway number fix '{}'", fix.name);
+            fixed += 1;
         }
         let mut f = std::io::BufWriter::new(std::fs::File::create(out.join(format!("d_{gx}_{gy}.jpg")))?);
         img.write_with_encoder(JpegEncoder::new_with_quality(&mut f, 90))?;
@@ -337,8 +324,46 @@ fn details(path: &str, base_index: usize, out: &std::path::Path) -> Result<()> {
         "tiles": written,
     });
     std::fs::write(out.join("details.json"), serde_json::to_string(&meta)?)?;
-    println!("{} detail tiles -> {}", written.len(), out.display());
+    println!("{} detail tiles -> {} ({fixed} runway-number patches)", written.len(), out.display());
     Ok(())
+}
+
+/// Paints the world rect `rect` (1 unit per pixel) from `sources`, coarse to fine: each level is
+/// mosaicked at its own resolution and Lanczos-resampled to 1 unit per pixel.
+fn compose(
+    ptt: &mut Ptt,
+    sources: &[iaf_formats::ptt::Level],
+    tile_lists: &std::collections::HashMap<usize, Vec<iaf_formats::ptt::TileEntry>>,
+    cell: [u32; 4],
+) -> Result<RgbImage> {
+    use image::imageops::{FilterType, resize};
+    let mut img = RgbImage::new(cell[2] - cell[0], cell[3] - cell[1]);
+    for (i, l) in sources.iter().enumerate() {
+        if !overlaps(&l.rect, &cell) {
+            continue;
+        }
+        let r = clip(&l.rect, &cell);
+        let upp = l.tile_span() / TILE_PIXELS; // units per source pixel
+        // Source tiles covering r, mosaicked at native resolution.
+        let (c0, r0) = ((r[0] - l.rect[0]) / l.tile_span(), (r[1] - l.rect[1]) / l.tile_span());
+        let (c1, r1) = ((r[2] - l.rect[0]).div_ceil(l.tile_span()), (r[3] - l.rect[1]).div_ceil(l.tile_span()));
+        let mut mosaic = RgbImage::new((c1 - c0) * TILE_PIXELS, (r1 - r0) * TILE_PIXELS);
+        for tr in r0..r1 {
+            for tc in c0..c1 {
+                let t = &tile_lists[&i][(tr * l.columns() + tc) as usize];
+                if let Ok(tile) = ptt.tile_jpeg(t).map_err(anyhow::Error::from).and_then(|j| Ok(image::load_from_memory(&j)?)) {
+                    mosaic.copy_from(&tile.to_rgb8(), (tc - c0) * TILE_PIXELS, (tr - r0) * TILE_PIXELS)?;
+                }
+            }
+        }
+        // Crop to r (source pixels), resample to 1 unit per pixel, paste.
+        let (ox, oy) = ((r[0] - l.rect[0]) / upp - c0 * TILE_PIXELS, (r[1] - l.rect[1]) / upp - r0 * TILE_PIXELS);
+        let (w, h) = ((r[2] - r[0]).div_ceil(upp), (r[3] - r[1]).div_ceil(upp));
+        let crop = image::imageops::crop_imm(&mosaic, ox, oy, w, h).to_image();
+        let scaled = if upp == 1 { crop } else { resize(&crop, r[2] - r[0], r[3] - r[1], FilterType::Lanczos3) };
+        img.copy_from(&scaled, r[0] - cell[0], r[1] - cell[1])?;
+    }
+    Ok(img)
 }
 
 fn overlaps(a: &[u32; 4], b: &[u32; 4]) -> bool {
