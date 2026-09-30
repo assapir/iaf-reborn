@@ -17,24 +17,25 @@
    pylons, the weapon HUD / MFD pages; targets already take damage; its own Extras switch "Weapon data: Original /
    Real" (separate from Flight data), public data per weapon, docs/roadmap.md "Real weapons") → AI brain flight → AI air-to-ground /
    air-to-air → AAA, radar SAMs, RWR → script ops 2 / 21 / 22.
-3. **Bombs + CCIP**, armed vehicles / boats (→ ~20 missions).
-4. **Other jets**: flight data + cockpit per jet — Phantom 2000 (19 missions), F-4E (17), F-15 (16), Lavi / Mirage
+3. **Arming screen** (right after weapons; 9 missions need a different loadout): port whatever the original enforces
+   (per-station counts, CURRENT LOAD vs MAX T.O.W.; if it does not block overweight loads, "Enforce max take-off
+   weight" becomes an Extras option).
+4. **Bombs + CCIP**, armed vehicles / boats (→ ~20 missions).
+5. **Other jets**: flight data + cockpit per jet — Phantom 2000 (19 missions), F-4E (17), F-15 (16), Lavi / Mirage
    (13), Kfir (8) (→ ~30 more missions).
-5. Radar missiles with lock, IR SAMs, TV / IR-guided weapons, night, anti-radiation missiles, rockets.
-6. Smaller items (no missions unlocked; fit in between milestones): **autopilot** (A key, incl. the approach mode
+6. Radar missiles with lock, IR SAMs, TV / IR-guided weapons, night, anti-radiation missiles, rockets.
+7. Smaller items (no missions unlocked; fit in between milestones): **autopilot** (A key, incl. the approach mode
    of Landing 312), **cockpit camera = the original projection** (HUD ladder lines up; drop the conformal option if
    redundant) + Tu-22 Real row (the variant flown in the missions), **pilot records** / login / unlocking.
-7. Arming screen (port whatever the original enforces: per-station counts, CURRENT LOAD vs MAX T.O.W.; if it does
-   not block overweight loads, "Enforce max take-off weight" becomes an Extras option), remaining front-end screens,
-   multiplayer.
-8. Joystick / throttle / pedals (original input handling; Devices page).
-9. **Original cheats** (key table 108–113: Ctrl+W reload weapons, Shift+D / Ctrl+Return flight-model data dump,
+8. Remaining front-end screens, multiplayer.
+9. Joystick / throttle / pedals (original input handling; Devices page).
+10. **Original cheats** (key table 108–113: Ctrl+W reload weapons, Shift+D / Ctrl+Return flight-model data dump,
    Shift+S explosion, Shift+R flight-model hover, U target cheat view): trace the handlers (live in the retail exe or
    debug-only?) and port the working ones behind an Extras "Cheats" switch; the dump could validate our flight model.
-10. **Sea level west of Suez**: map.ptt has no elevation there (sea, Nile delta and Western desert are a flat plane
+11. **Sea level west of Suez**: map.ptt has no elevation there (sea, Nile delta and Western desert are a flat plane
    at −557 m, ships placed at −557 m); kept as the original for now — decide a fix (e.g. shift that plane and its
    objects to 0 m) later.
-11. Later (docs/roadmap.md): Better AI, Real weapons, Extra sounds, mission replayer, 3D cockpit, satellite imagery,
+12. Later (docs/roadmap.md): Better AI, Real weapons, Extra sounds, mission replayer, 3D cockpit, satellite imagery,
    canopy open.
 
 Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user decisions.
