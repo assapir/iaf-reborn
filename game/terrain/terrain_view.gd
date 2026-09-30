@@ -375,6 +375,11 @@ func _spawn_mission_objects() -> void:
 	var bdb := MissionRuntime.load_bdb(files[0])
 	var objs := MissionRuntime.bdb_objects(bdb)
 	var paths: Dictionary = Settings.load_json(base.path_join("objects/objects.json")).get(String(files[0].bdb).to_lower(), {})
+	# Present record 0x65e: the model's uniform scale (FUN_00593b60, default 10.0 before version 5), applied by
+	# the original's mesh loader (FUN_0041bb00 → IDirect3DRMMeshBuilder::Scale) about the model origin.
+	var scales := {}
+	for pr in bdb.get("present", {}).get("items", []):
+		scales[int(pr.get("0x1e", -1))] = float(pr.get("0x65e", 10.0))
 	runtime = preload("res://mission/mission_runtime.gd").new()
 	add_child(runtime)
 	runtime.setup(self, files, bdb, player_entity_id)
@@ -402,12 +407,14 @@ func _spawn_mission_objects() -> void:
 		ent["airborne_class"] = int(obj.get("0x5aa", -1)) in [2, 3, 0x1c]
 		add_child(node)
 		node.rotation.y = -deg_to_rad(float(_entity_heading(files, ent)))
-		# Collision radius (FUN_0043b1c0): 0.25 · (sx + sy + sz) of the model's extents (UNCERTAIN:
-		# full or half extents; full used).
+		node.scale = Vector3.ONE * float(scales.get(int(obj.get("0x53c", -1)), 1.0))
+		# Collision radius (FUN_0043b1c0): 0.25 · (dx + dy + dz) of the scaled model's full extents
+		# (object +0x268..0x270, FUN_0041bb00).
 		var box := _model_aabb(node)
+		box = AABB(box.position * node.scale.x, box.size * node.scale.x)  # the local box is unscaled
 		# Flat ground models (the airbases' runway / taxiway / apron underlays, ul_rw*.x) are not
-		# drawn: the terrain's inset imagery already shows the airbase (they z-fought with it and do
-		# not register with it, docs/deviations.md). The unit stays for the mission logic.
+		# drawn: the terrain's inset imagery already shows the airbase (user decision, docs/deviations.md).
+		# At the Present scale they register with it. The unit stays for the mission logic.
 		if box.size.y < UNDERLAY_MAX_HEIGHT:
 			ent["drawn"] = false
 			node.visible = false
@@ -596,6 +603,7 @@ func _player_final() -> void:
 func _burned_copy(node: Node3D, p: float, max_extent: float) -> void:
 	var rng := RandomNumberGenerator.new()
 	var dark := Color8(0x14, 0x14, 0x14)
+	max_extent /= maxf(node.scale.x, 1e-6)  # the scaled mesh moves by that much: local units
 	for m in node.find_children("*", "MeshInstance3D", true, false):
 		var mi := m as MeshInstance3D
 		if mi.mesh == null:
