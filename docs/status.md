@@ -48,7 +48,7 @@ Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user
   too; user to decide whether to add an Extras keyboard stick option (not added).
 - Real data: real service ceilings per aircraft (the envelope's g ceilings from public ceiling figures), all jets
   incl. AI types (docs/real-aircraft.md).
-- Extras / Graphics: VSync on / off option.
+- VSync on / off switch on the Graphics page (ours; default on).
 - Keyboard page: the scrollbar arrows are cropped on the right side.
 - Terrain loads only after Fly, and the flight's loading screen (game/terrain/loading_screen.gd) does not show —
   only the front end's wait screen before the briefing appears; the ground pops in for a few seconds. Fix the
@@ -96,6 +96,8 @@ Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user
 - Keys: when an original command gets built, the original key wins; our own functions move to Ctrl+F-keys.
 - The other camera views (padlock, back view, fly-by, weapon camera, external list) and the wingman radio commands
   are ported with the AI work.
+- Pilot records: our own JSON format with the same data as the original (Pilots.dat + Pilots\<id>.mis);
+  no import of original files (maybe a converter later if easy).
 - Screenshots (SysRQ): PNG, timestamped, in the user data folder (original: IafJets000.bmp in the game folder).
 - Multiplayer (incl. the original's TCP/IP lobby mode): after the single-player game is finished.
 - Jump In after the combat core (also useful for testing). Mission Creator much later.
