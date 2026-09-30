@@ -14,8 +14,9 @@
 ## To do next (ordered by overall progress: missions unlocked first)
 1. **Terrain (original data) — convert all of `map.ptt`** (running): ground for every mission area, all insets,
    runway-number check, `terraintype.dat`, loading behind the loading screen.
-2. **Combat core** (unlocks the first ~9–11 missions): AI brain flight → player gun + IR missiles, stores on the
-   pylons → AI air-to-ground / air-to-air → AAA, radar SAMs, RWR → script ops 2 / 21 / 22.
+2. **Combat core** (unlocks the first ~9–11 missions): player weapons first (gun + IR missiles, stores on the
+   pylons, the weapon HUD / MFD pages; targets already take damage) → AI brain flight → AI air-to-ground /
+   air-to-air → AAA, radar SAMs, RWR → script ops 2 / 21 / 22.
 3. **Bombs + CCIP**, armed vehicles / boats (→ ~20 missions).
 4. **Other jets**: flight data + cockpit per jet — Phantom 2000 (19 missions), F-4E (17), F-15 (16), Lavi / Mirage
    (13), Kfir (8) (→ ~30 more missions).
