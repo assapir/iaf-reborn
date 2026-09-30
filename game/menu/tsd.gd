@@ -118,7 +118,8 @@ func selected_route() -> Array:
 
 
 ## What the spawner creates from the mission and its base missions (docs/front-end.md §8.1):
-## entities whose bdb class has an icon, placed in the world (the unused player slots sit at -1).
+## entities whose bdb class has an icon, placed in the world (the unused player slots sit at (-1, -1);
+## as in mission_runtime.gd only both coordinates negative means unplaced).
 func _load_units() -> void:
 	var dir := Settings.assets_dir().path_join("converted/missions")
 	var list = JSON.parse_string(FileAccess.get_file_as_string(dir.path_join("missionlist.json")))
@@ -146,7 +147,7 @@ func _load_units() -> void:
 			mission_clock = "%02d:%02d:%02d" % [t / 3600, t / 60 % 60, t % 60]
 		var by_id := {}
 		for e in m.entities.items:
-			if not (e is Dictionary) or int(e.get("0x2e4", -1)) < 0 or int(e.get("0x2ee", -1)) < 0:
+			if not (e is Dictionary) or (float(e.get("0x2e4", -1)) < 0 and float(e.get("0x2ee", -1)) < 0):
 				continue
 			var obj: Dictionary = objects.get(int(e.get("0x2c6", -1)), {})
 			var klass: int = ICON_CLASS.get(int(obj.get("0x5aa", -1)), 0)
