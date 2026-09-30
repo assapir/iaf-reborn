@@ -271,15 +271,33 @@ pub fn describe(model: &Model, folder: &str, gltf: &str, source: &str, objects: 
     })
 }
 
+/// Every converted object database of a missions folder (`<missions>/*.bdb.json`), as
+/// (file stem, e.g. `iaf`, JSON).
+pub fn read_bdbs(missions: &std::path::Path) -> anyhow::Result<Vec<(String, Value)>> {
+    let mut out = Vec::new();
+    for entry in std::fs::read_dir(missions)?.flatten() {
+        let name = entry.file_name().to_string_lossy().to_string();
+        let Some(stem) = name.strip_suffix(".bdb.json") else { continue };
+        out.push((stem.to_string(), serde_json::from_slice(&std::fs::read(entry.path())?)?));
+    }
+    Ok(out)
+}
+
+/// The Present records of an object database, in order: (id `0x1e`, model path `0x64a` under
+/// `3dobjects`, lower case with `/`; empty when the record has no model).
+pub fn present_models(bdb: &Value) -> Vec<(i64, String)> {
+    bdb["present"]["items"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|it| Some((it["0x1e"].as_i64()?, it["0x64a"].as_str()?.replace('\\', "/").to_lowercase())))
+        .collect()
+}
+
 /// The flying objects of a converted object database (`<missions>/*.bdb.json`), keyed by the
 /// lower-case model path (`controllableplanes/f16/f16_h.xfr`).
 pub fn db_objects(bdb: &Value) -> std::collections::HashMap<String, Vec<DbObject>> {
-    let mut present = std::collections::HashMap::new();
-    for it in bdb["present"]["items"].as_array().into_iter().flatten() {
-        if let (Some(id), Some(path)) = (it["0x1e"].as_i64(), it["0x64a"].as_str()) {
-            present.insert(id, path.replace('\\', "/").to_lowercase());
-        }
-    }
+    let present: std::collections::HashMap<_, _> = present_models(bdb).into_iter().collect();
     let mut out: std::collections::HashMap<String, Vec<DbObject>> = std::collections::HashMap::new();
     for o in bdb["objects"]["items"].as_array().into_iter().flatten() {
         let Some(path) = o["0x53c"].as_i64().and_then(|id| present.get(&id)) else { continue };

@@ -1,7 +1,6 @@
 //! Convert original IAF assets into engine-friendly formats.
 //!
 //! `iaf-convert model <file.x|file.xfr> <out-dir>` — one model → glTF + PNG textures.
-//! `iaf-convert planes <install-dir> <out-dir>` — every controllable plane (`*_h.xfr`).
 //! `iaf-convert aircraft <install-dir> <missions-dir> <out-dir>` — every aircraft (controllable and
 //! non-controllable `*_h.xfr`) plus its descriptor `aircraft.json` (docs/aircraft.md).
 //!
@@ -62,22 +61,6 @@ fn main() -> Result<()> {
     let opts = Options { upscale: flag("--upscale"), smooth: flag("--smooth") };
     match args.iter().map(String::as_str).collect::<Vec<_>>()[..] {
         [_, "model", src, out] => convert(Path::new(src), Path::new(out), &[], &opts),
-        [_, "planes", install, out] => {
-            let planes = Path::new(install).join("resource/3dobjects/controllableplanes");
-            let shared = vec![Path::new(install).join("resource/3dobjects")];
-            let mut dirs: Vec<_> = std::fs::read_dir(&planes)?.flatten().map(|e| e.path()).collect();
-            dirs.sort();
-            for dir in dirs {
-                let plane = dir.file_name().unwrap().to_string_lossy().to_string();
-                for entry in std::fs::read_dir(&dir)?.flatten() {
-                    let p = entry.path();
-                    if p.to_string_lossy().ends_with("_h.xfr") {
-                        convert(&p, &Path::new(out).join(&plane), &shared, &opts)?;
-                    }
-                }
-            }
-            Ok(())
-        }
         [_, "aircraft", install, missions, out] => convert_aircraft(Path::new(install), Path::new(missions), Path::new(out), &opts),
         [_, "missions", install, out] => convert_missions(Path::new(install), Path::new(out)),
         [_, "objects", install, missions, out] => convert_objects(Path::new(install), Path::new(missions), Path::new(out), &opts),
@@ -87,7 +70,7 @@ fn main() -> Result<()> {
         [_, "menu", install, out, "--pack", pack] => convert_menu(Path::new(install), Some(Path::new(pack)), Path::new(out), &opts),
         [_, "keys", install, packs, out] => convert_keys(Path::new(install), Path::new(packs), Path::new(out)),
         [_, "cockpit", install, name, out] => convert_cockpit(Path::new(install), name, Path::new(out), &opts),
-        _ => bail!("usage: iaf-convert [--upscale] [--smooth] model <file.x|file.xfr> <out-dir>\n       iaf-convert [--upscale] [--smooth] planes <install-dir> <out-dir>\n       iaf-convert [--upscale] [--smooth] aircraft <install-dir> <missions-dir> <out-dir>\n       iaf-convert [--upscale] cockpit <install-dir> <cockpit> <out-dir>\n       iaf-convert [--upscale] menu <install-dir> <out-dir> [--pack <pack-dir>]\n       iaf-convert [--upscale] briefings <install-dir> <packs-dir> <out-dir>\n       iaf-convert keys <install-dir> <packs-dir> <out.json>"),
+        _ => bail!("usage: iaf-convert [--upscale] [--smooth] model <file.x|file.xfr> <out-dir>\n       iaf-convert [--upscale] [--smooth] aircraft <install-dir> <missions-dir> <out-dir>\n       iaf-convert [--upscale] cockpit <install-dir> <cockpit> <out-dir>\n       iaf-convert [--upscale] menu <install-dir> <out-dir> [--pack <pack-dir>]\n       iaf-convert [--upscale] briefings <install-dir> <packs-dir> <out-dir>\n       iaf-convert keys <install-dir> <packs-dir> <out.json>"),
     }
 }
 
@@ -99,12 +82,9 @@ fn convert_aircraft(install: &Path, missions: &Path, out: &Path, opts: &Options)
     use iaf_tools::aircraft;
     let objects_root = install.join("resource/3dobjects");
     let mut db = std::collections::HashMap::new();
-    for entry in std::fs::read_dir(missions)?.flatten() {
-        if entry.file_name().to_string_lossy().ends_with(".bdb.json") {
-            let v: serde_json::Value = serde_json::from_slice(&std::fs::read(entry.path())?)?;
-            for (k, list) in aircraft::db_objects(&v) {
-                db.entry(k).or_insert_with(Vec::new).extend(list);
-            }
+    for (_, v) in aircraft::read_bdbs(missions)? {
+        for (k, list) in aircraft::db_objects(&v) {
+            db.entry(k).or_insert_with(Vec::new).extend(list);
         }
     }
     std::fs::create_dir_all(out)?;
@@ -148,17 +128,13 @@ fn convert_objects(install: &Path, missions: &Path, out: &Path, opts: &Options) 
     let root = install.join("resource/3dobjects");
     let mut index = serde_json::Map::new();
     let mut done = std::collections::HashMap::new();
-    for entry in std::fs::read_dir(missions)?.flatten() {
-        let name = entry.file_name().to_string_lossy().to_string();
-        let Some(bdb) = name.strip_suffix(".bdb.json") else { continue };
-        let data: serde_json::Value = serde_json::from_slice(&std::fs::read(entry.path())?)?;
+    for (bdb, data) in iaf_tools::aircraft::read_bdbs(missions)? {
         let mut map = serde_json::Map::new();
-        for item in data["present"]["items"].as_array().into_iter().flatten() {
-            let (Some(id), Some(path)) = (item["0x1e"].as_i64(), item["0x64a"].as_str()) else { continue };
+        for (id, path) in iaf_tools::aircraft::present_models(&data) {
             if path.is_empty() {
                 continue;
             }
-            let rel = PathBuf::from(path.replace('\\', "/").to_lowercase());
+            let rel = PathBuf::from(path);
             let gltf = rel.with_extension("gltf").with_file_name(format!(
                 "{}.gltf",
                 rel.file_stem().unwrap().to_string_lossy()
@@ -234,41 +210,28 @@ fn convert_cockpit(install: &Path, name: &str, out: &Path, opts: &Options) -> Re
     Ok(())
 }
 
-fn walk_files(dir: &Path, out: &mut Vec<PathBuf>) {
-    for e in std::fs::read_dir(dir).into_iter().flatten().flatten() {
-        let p = e.path();
-        if p.is_dir() {
-            walk_files(&p, out);
-        } else {
-            out.push(p);
-        }
-    }
-}
-
 /// Files under `rel` (relative to resource/menu) from the base install, each replaced by the
-/// pack's copy when the pack has one, plus pack-only files. Returned as (relative path, file).
-fn overlay_files(root: &Path, pack_root: Option<&Path>, rel: &str) -> Vec<(PathBuf, PathBuf)> {
+/// pack's copy when the pack has one, plus pack-only files (a folder missing from either is
+/// skipped). Returned as (relative path, file).
+fn overlay_files(root: &Path, pack_root: Option<&Path>, rel: &str) -> Result<Vec<(PathBuf, PathBuf)>> {
     let mut map = std::collections::BTreeMap::new();
     for r in [Some(root), pack_root].into_iter().flatten() {
-        let mut files = Vec::new();
-        walk_files(&r.join(rel), &mut files);
-        for f in files {
+        let dir = r.join(rel);
+        if !dir.is_dir() {
+            continue;
+        }
+        for f in iaf_tools::walk_files(&dir)? {
             let key = f.strip_prefix(r).unwrap().to_string_lossy().to_lowercase();
             map.insert(PathBuf::from(key), f);
         }
     }
-    map.into_iter().collect()
+    Ok(map.into_iter().collect())
 }
 
 /// Windows-1252, or Windows-1255 Hebrew for pack files. Stray NUL bytes are dropped.
 fn decode_text(data: &[u8], hebrew: bool) -> String {
-    data.iter()
-        .filter(|&&c| c != 0)
-        .map(|&c| match (hebrew, c) {
-            (true, 0xe0..=0xfa) => char::from_u32(0x05d0 + (c - 0xe0) as u32).unwrap_or('?'),
-            _ => c as char,
-        })
-        .collect()
+    let codepage = if hebrew { 1255 } else { 1252 };
+    data.iter().filter(|&&c| c != 0).map(|&c| iaf_formats::rtf::decode_byte(c, codepage)).collect()
 }
 
 fn convert_menu(install: &Path, pack: Option<&Path>, out: &Path, opts: &Options) -> Result<()> {
@@ -282,7 +245,7 @@ fn convert_menu(install: &Path, pack: Option<&Path>, out: &Path, opts: &Options)
 
     // Screens and lists.
     let mut menus = serde_json::Map::new();
-    for (_, f) in &overlay_files(&root, pack_root.as_deref(), "dat") {
+    for (_, f) in &overlay_files(&root, pack_root.as_deref(), "dat")? {
         let key = f.file_stem().unwrap().to_string_lossy().to_lowercase();
         let value = match menu::parse(&std::fs::read(f)?) {
             Some(MenuFile::Screen(s)) => json!({
@@ -308,14 +271,14 @@ fn convert_menu(install: &Path, pack: Option<&Path>, out: &Path, opts: &Options)
 
     // Strings (mission / jet titles and descriptions), Windows-1252.
     let mut strings = serde_json::Map::new();
-    for (_, f) in overlay_files(&root, pack_root.as_deref(), "txt").iter().filter(|(r, _)| r.extension().is_some_and(|e| e == "trx")) {
+    for (_, f) in overlay_files(&root, pack_root.as_deref(), "txt")?.iter().filter(|(r, _)| r.extension().is_some_and(|e| e == "trx")) {
         let text = decode_text(&std::fs::read(f)?, from_pack(f));
         strings.insert(f.file_stem().unwrap().to_string_lossy().to_lowercase(), text.trim().replace("\r\n", "\n").into());
     }
     std::fs::write(out.join("strings.json"), serde_json::to_string_pretty(&strings)?)?;
 
     // Fonts.
-    for (rel, p) in overlay_files(&root, pack_root.as_deref(), "fnt") {
+    for (rel, p) in overlay_files(&root, pack_root.as_deref(), "fnt")? {
         if rel.extension().is_some_and(|x| x == "ttf") {
             std::fs::copy(&p, out.join(rel.file_name().unwrap()))?;
         }
@@ -329,7 +292,7 @@ fn convert_menu(install: &Path, pack: Option<&Path>, out: &Path, opts: &Options)
         .collect();
     let img_root = out.join("img");
     let mut n = 0;
-    for (rel, src) in overlay_files(&root, pack_root.as_deref(), "bmp").iter().filter(|(r, _)| r.extension().is_some_and(|e| e == "bmp")) {
+    for (rel, src) in overlay_files(&root, pack_root.as_deref(), "bmp")?.iter().filter(|(r, _)| r.extension().is_some_and(|e| e == "bmp")) {
         let dest = img_root.join(rel.strip_prefix("bmp")?.with_extension("png"));
         let mut img = match load_texture_keyed(src, COCKPIT_KEYS) {
             Ok((img, _)) => img,
@@ -361,7 +324,7 @@ fn convert_menu(install: &Path, pack: Option<&Path>, out: &Path, opts: &Options)
     }
     // Sounds (button clicks, panel slides, menu music; wav/pref: the Preferences volume previews).
     std::fs::create_dir_all(out.join("wav"))?;
-    for (rel, p) in overlay_files(&root, pack_root.as_deref(), "wav") {
+    for (rel, p) in overlay_files(&root, pack_root.as_deref(), "wav")? {
         let dir = rel.parent();
         if rel.extension().is_some_and(|x| x == "wav") && dir.is_some_and(|d| d == Path::new("wav") || d == Path::new("wav/pref")) {
             std::fs::create_dir_all(out.join(dir.unwrap()))?;
@@ -371,7 +334,7 @@ fn convert_menu(install: &Path, pack: Option<&Path>, out: &Path, opts: &Options)
     // TSD maps and overlays (vector, see docs/front-end.md §8).
     std::fs::create_dir_all(out.join("emf"))?;
     let mut emfs = 0;
-    for (rel, p) in overlay_files(&root, pack_root.as_deref(), "emf") {
+    for (rel, p) in overlay_files(&root, pack_root.as_deref(), "emf")? {
         if !rel.extension().is_some_and(|x| x.eq_ignore_ascii_case("emf")) {
             continue;
         }
@@ -428,17 +391,7 @@ fn strip_bbcode(line: &str) -> String {
 /// the original, Windows-1255 in the Hebrew pack). Type: 0 RTF, 1 unused, 2 3D model (.x),
 /// 3 bitmap, 5 target (docs/front-end.md §6).
 fn parse_brl(data: &[u8], hebrew: bool) -> Vec<(String, i32, String)> {
-    let text = |b: &[u8]| -> String {
-        let b = b.split(|&c| c == 0).next().unwrap_or(&[]);
-        b.iter()
-            .map(|&c| match (hebrew, c) {
-                (true, 0xe0..=0xfa) => char::from_u32(0x05d0 + (c - 0xe0) as u32).unwrap_or('?'),
-                _ => c as char,
-            })
-            .collect::<String>()
-            .trim()
-            .to_string()
-    };
+    let text = |b: &[u8]| decode_text(b.split(|&c| c == 0).next().unwrap_or(&[]), hebrew).trim().to_string();
     data.chunks_exact(516)
         .map(|e| (text(&e[..256]), i32::from_le_bytes(e[256..260].try_into().unwrap()), text(&e[260..]).replace('\\', "/").to_lowercase()))
         .filter(|(t, _, f)| !t.is_empty() || !f.is_empty())
@@ -549,11 +502,10 @@ fn convert_fonts(install: &Path, out: &Path) -> Result<()> {
                     img.put_pixel(gx + px, gy + py, image::Rgba([255, 255, 255, v]));
                 }
             }
-            // Windows-1252 code → Unicode.
-            let ch = if (0x80..0xa0).contains(&g.code) { g.code } else { g.code };
+            // The glyph id is the font's Windows-1252 byte code, kept as is (HUD / MFD text is ASCII).
             desc.push_str(&format!(
-                "char id={ch} x={gx} y={gy} width={} height={h} xoffset=0 yoffset=0 xadvance={} page=0 chnl=15\n",
-                g.width, g.width
+                "char id={} x={gx} y={gy} width={} height={h} xoffset=0 yoffset=0 xadvance={} page=0 chnl=15\n",
+                g.code, g.width, g.width
             ));
         }
         img.save(out.join(format!("{name}.png")))?;

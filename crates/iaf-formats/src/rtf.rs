@@ -11,7 +11,8 @@ const CP1252_80: [char; 32] = [
     '“', '”', '•', '–', '—', '˜', '™', 'š', '›', 'œ', '\u{9d}', 'ž', 'Ÿ',
 ];
 
-fn decode_byte(b: u8, codepage: u32) -> char {
+/// One byte of Windows-1252 (or Windows-1255 Hebrew when `codepage` is 1255) as Unicode.
+pub fn decode_byte(b: u8, codepage: u32) -> char {
     match (codepage, b) {
         (_, 0x00..=0x7f) => b as char,
         (1255, 0xe0..=0xfa) => char::from_u32(0x05d0 + (b - 0xe0) as u32).unwrap_or('?'),
