@@ -14,6 +14,7 @@ listed below.
 | **Pipeline** | `tools/setup.sh <ISO> [Brief.zip Menu.zip]`: extraction, models, all 9 cockpits, fonts, menus (+ Hebrew pack), briefings, missions, object models, terrain + airbase detail, Godot extension |
 | Install extraction | ISO 9660 + EA `setup.esa` (PKWARE DCL) → `assets/install` (docs/formats/esa.md) |
 | Aircraft models | `.x/.xfr` → glTF, Lanczos 4× textures, smoothing (docs/formats/x.md); moving parts with the original hinge rules (docs/part-animation.md) |
+| **Aircraft parts (all planes)** | generic, data-driven (docs/aircraft.md): `iaf-convert aircraft` writes a descriptor per plane (22 models: 8 flyable jets, AI jets, transports, helicopters; parts / hinges / nozzles / stations / type codes from the object database); one component ports the flight-model part callback per type (control surfaces, flaperons, pitch mixer, flaps, speed brakes, gear legs / doors with the per-type signs and vanish points, hook, drag chute) and the afterburner flame (level 75 + 12.5·stage, 3D-card double cone, afterburn.tga); the F-16 follows the flight model's gear ramp. Canopy / pilot hidden in flight as the original (switch `crew_visible`, to decide). Test: test_aircraft_parts |
 | Terrain | `map.ptt` imagery + heights, chunk streaming, original georeference (docs/formats/ptt.md); **airbase detail tiles** from the level 0–2 insets (~1.24 m/px, 149 tiles, streamed within 6 km) |
 | Runway numbers | rendering fix over the 1998 art: Ramat David's two mirrored "33" re-flipped at conversion (data: `crates/iaf-tools/data/runway_number_fixes.json`, docs/formats/ptt.md); wrong-but-upright numbers (template 09/27, 15/33 copies) left as original |
 | Mission objects | every entity of the mission + base missions with its original model (bdb object → Present → `.x`, 219 models); hidden / moved by the mission scripts |
@@ -66,8 +67,8 @@ listed below.
 ## Plan (in order)
 1. ~~Front end~~, ~~TSD~~, ~~MFDs~~, ~~airbase~~, ~~mission runtime (Engines ON)~~, ~~lights (gear / flaps / brake)~~.
 2. ~~Finish the flight physics~~ (done: §15 port, "Better physics" options listed in docs/flight-model.md §10), then
-   **complete the F-16 model**: afterburner flame / nozzle and
-   the other visual parts driven by the flight state.
+   ~~complete the F-16 model~~ (done for every aircraft, docs/aircraft.md; open: canopy/pilot visibility decision,
+   hook / drag-chute keys, muzzle flash and stores with the weapons).
 3. Remaining front-end screens from the decoded specs: ~~original Preferences pages~~ (done; Controls key list
    pending), QUIT
    confirmation, pilot records and mission unlocking, TSD selected-unit label and 3D-model / target windows, Arming.

@@ -24,7 +24,7 @@ EngineL 0x3a, EngineR 0x3b.
 `FUN_0041cb80` → `FUN_0041c850`. That loads the root frame and, for **every direct child of the root**,
 calls `FUN_0041c240`:
 * The frame name is looked up in the table with `_stricmp` (`FUN_005682b0`, case-insensitive: `x3ds_Canopy`
-  and `x3ds_height` both match). The first match wins. Children that match no name are dropped.
+  and `x3ds_height` both match; the AI planes' `LdGr` is `LdgR`). The first match wins. Children that match no name are dropped.
 * `pos = (-tx, -tz, ty) * scale`, where `(tx,ty,tz)` is row 3 of the child's `FrameTransformMatrix`
   (the frame origin, **not** the centroid of the helper triangle), and `scale` is the clump scale (F-16: 5.0).
   Call this frame "E". Only the frame translation is used. In all shipped models every frame rotation is identity.
@@ -122,7 +122,7 @@ Initial state (`FUN_005a2a10`): airborne start → gear 1.569 (up), flaps 0, spe
 | 0x12 LdgDr | 0 (never rotates) | \|g−max\|≥1e-5 | the doors are a static mesh, hidden only when the gear is fully up |
 | 0x13 Hook | +hook (S+0x360) | \|θ\|≥1e-5 | |
 | 0x27 Parach | jitter (below) | S+0x2cc==2 | |
-| 0x14-0x26 (pilot, pilotB, canopy, canopyB, turret…, wheels) | 0 | **0** | hidden on the flying aircraft (**UNCERTAIN** whether another path draws canopy/pilot; the F-16 canopy glass exists only in the `Canopy` frame) |
+| 0x14-0x26 (pilot, pilotB, canopy, canopyB, turret…, wheels) | 0 | **0** | hidden on the flying aircraft; the ejection object (`0x53d180`) draws pilot/canopy only after an ejection. The F-16 canopy glass exists only in the `Canopy` frame (port: `crew_visible` switch, docs/aircraft.md §2.3) |
 | 0x3a/0x3b EngineL/R, other ids | 0 | 0 | |
 
 Gear sequencing: legs and doors share one ramp, so there is no separate door ramp and no door motion. A full cycle
@@ -148,10 +148,14 @@ Config `Eject/Speed`.
   stations 0..8 are drawn by `FUN_0053ca60`. The muzzle flash `FUN_00411d60` is drawn at raw `clump+0x29c` (StationGun)
   when the render flag `+0x3e` is set.
 * **EngineL/R (+L1/R1)** → afterburner `FUN_004121b0(level, x,y,z, r, scale)`, called from `FUN_0041e1f0` with level = render bytes +0x3c (right) / +0x3d (left), 0..100.
-  Nothing is drawn if level ≤ 74. `k = (level−75)·0.04`. Two to three nested 12-segment cones start at the raw
-  nozzle position, with base radius `r = |ΔY(EngineX, EngineX1)|`. The tip is at
-  `z − ((3.5+j)·k·scale + 1.5·i)` (toward −Z, aft) with radius `r·(j+0.25)`, where `j = (rand%21−10)·0.01` and
-  i = 3 (2 in one render mode). Each extra cone adds `0.3·r` of radius. **UNCERTAIN** exact texture/alpha.
+  The level comes from `FUN_005a8e70` / `FUN_005a8d40`: `75 + 12.5·stage` while the flight model's AB stage
+  (`vehicle+0x568`+0x28, written in the 1 Hz aero update) is > 0 and that side's AB-damage flag (8 / 9) is clear,
+  else RPM ramp·0.74 (≤ 74). Nothing is drawn if level ≤ 74, so the flame shows exactly at AB stages 1 / 2 (k = 0.5 / 1).
+  `k = (level−75)·0.04`, `j = (rand%21−10)·0.01`. 12-segment cones start at the raw nozzle position with base radius
+  `r = |ΔY(EngineX, EngineX1)|`; the tip is at `z − ((3.5+j)·k·scale + 1.5·i)` (toward −Z, aft) with radius
+  `base·(j+0.25)`. 3D-card path (`DAT_007ccf90`): i = 2 (base 0.7·r) then i = 3 (base r); software path: only i = 3.
+  Texture `afterburn.tga`, u = rand/32767 − s/12, v = 0.9999 at the base, 0 at the tip. Blend state UNCERTAIN.
+  Port: `game/aircraft/afterburner.gd`, docs/aircraft.md §2.2.
 * **Camera**: eye point `obj+0x2c`, E frame. A `Pilon` frame takes priority if present. The default is (0,0,`PilonDefaultZ`).
   Config `Camera/BackCockpitDistance` (default 20) goes to `global[0]`. **UNCERTAIN** which view uses which.
 * **EndWingL/R**: stored as `(−x·s, z·s, y·s)` in `obj+0x38/+0x44`, with flag `obj+0x50`. The consumer was not found
