@@ -1,6 +1,6 @@
 {
   "_doc": [
-    "Runway-number corrections applied by `iaf-terrain details` (deliberate rendering improvement over the 1998 data).",
+    "Runway-number corrections applied by `iaf-terrain theatre` (nodes of levels 0..2) (deliberate rendering improvement over the 1998 data).",
     "Some runway-end numbers in the map.ptt airbase insets were painted wrongly by the original artists: a number N",
     "must read upright to a pilot landing on that end (facing heading N*10), but these read as mirror images.",
     "The terrain itself is correctly oriented; only the digit patch is re-sampled. See docs/formats/ptt.md,",

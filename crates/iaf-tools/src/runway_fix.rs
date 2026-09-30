@@ -1,4 +1,4 @@
-//! Runway-number correction for the airbase detail tiles (a deliberate rendering improvement over
+//! Runway-number correction for the airbase terrain nodes (a deliberate rendering improvement over
 //! the 1998 imagery; see docs/formats/ptt.md, "Runway number fix").
 //!
 //! Some runway-end numbers in the map.ptt insets were painted as mirror images. The fixes are data
@@ -93,22 +93,23 @@ impl Fix {
         b[0] < rect[2] as f64 && rect[0] as f64 <= b[2] && b[1] < rect[3] as f64 && rect[1] as f64 <= b[3]
     }
 
-    /// Applies the fix to `dst`, whose pixel (0,0) is the world unit square at `dst_origin`, reading
-    /// the unmodified imagery from `src` (origin `src_origin`), which must cover `source_rect`.
-    /// Returns the number of pixels changed.
-    pub fn apply(&self, dst: &mut RgbImage, dst_origin: [u32; 2], src: &RgbImage, src_origin: [u32; 2]) -> usize {
+    /// Applies the fix to `dst`, whose pixel (0,0) is the world square of `upp` units at
+    /// `dst_origin`, reading the unmodified imagery from `src` (origin `src_origin`, same `upp`),
+    /// which must cover `source_rect`. Returns the number of pixels changed.
+    pub fn apply(&self, dst: &mut RgbImage, dst_origin: [u32; 2], src: &RgbImage, src_origin: [u32; 2], upp: f64) -> usize {
         let (r, f) = self.frame();
         let b = self.bounds();
-        let x0 = (b[0].floor() as i64 - dst_origin[0] as i64).max(0);
-        let y0 = (b[1].floor() as i64 - dst_origin[1] as i64).max(0);
-        let x1 = (b[2].ceil() as i64 - dst_origin[0] as i64).min(dst.width() as i64);
-        let y1 = (b[3].ceil() as i64 - dst_origin[1] as i64).min(dst.height() as i64);
+        let px_of = |v: f64, o: u32| (v - o as f64) / upp;
+        let x0 = (px_of(b[0], dst_origin[0]).floor() as i64).max(0);
+        let y0 = (px_of(b[1], dst_origin[1]).floor() as i64).max(0);
+        let x1 = (px_of(b[2], dst_origin[0]).ceil() as i64).min(dst.width() as i64);
+        let y1 = (px_of(b[3], dst_origin[1]).ceil() as i64).min(dst.height() as i64);
         let mut changed = 0;
         for py in y0..y1 {
             for px in x0..x1 {
                 // World position of the pixel centre, in the runway frame.
-                let wx = dst_origin[0] as f64 + px as f64 + 0.5;
-                let wy = dst_origin[1] as f64 + py as f64 + 0.5;
+                let wx = dst_origin[0] as f64 + (px as f64 + 0.5) * upp;
+                let wy = dst_origin[1] as f64 + (py as f64 + 0.5) * upp;
                 let (dx, dy) = (wx - self.centre[0], wy - self.centre[1]);
                 let (u, v) = (dx * r[0] + dy * r[1], dx * f[0] + dy * f[1]);
                 let fe = self.feather.max(1e-6);
@@ -120,8 +121,8 @@ impl Fix {
                     Op::Mirror => (-u, v),
                     Op::Rotate180 => (-u, -v),
                 };
-                let sx = self.centre[0] + su * r[0] + sv * f[0] - src_origin[0] as f64 - 0.5;
-                let sy = self.centre[1] + su * r[1] + sv * f[1] - src_origin[1] as f64 - 0.5;
+                let sx = px_of(self.centre[0] + su * r[0] + sv * f[0], src_origin[0]) - 0.5;
+                let sy = px_of(self.centre[1] + su * r[1] + sv * f[1], src_origin[1]) - 0.5;
                 let s = bilinear(src, sx, sy);
                 let d = dst.get_pixel_mut(px as u32, py as u32);
                 for c in 0..3 {
@@ -175,7 +176,7 @@ mod tests {
         // Landing north: across = x, so the bar at x 143..147 must end up at x 153..157.
         let src = scene();
         let mut dst = src.clone();
-        fix(Op::Mirror, 0.0).apply(&mut dst, [100, 200], &src, [100, 200]);
+        fix(Op::Mirror, 0.0).apply(&mut dst, [100, 200], &src, [100, 200], 1.0);
         assert_eq!(dst.get_pixel(55, 50)[0], 250);
         assert_eq!(dst.get_pixel(45, 50)[0], 100);
         // Outside the patch nothing changes.
@@ -187,9 +188,9 @@ mod tests {
         let src = scene();
         for op in [Op::Mirror, Op::Rotate180] {
             let mut once = src.clone();
-            fix(op, 90.0).apply(&mut once, [100, 200], &src, [100, 200]);
+            fix(op, 90.0).apply(&mut once, [100, 200], &src, [100, 200], 1.0);
             let mut twice = once.clone();
-            fix(op, 90.0).apply(&mut twice, [100, 200], &once, [100, 200]);
+            fix(op, 90.0).apply(&mut twice, [100, 200], &once, [100, 200], 1.0);
             // Axis-aligned heading: sampling hits pixel centres, so applying twice restores the input
             // everywhere except in the feathered rim.
             for y in 243..257 {
@@ -207,11 +208,11 @@ mod tests {
         let src = scene();
         let f = fix(Op::Mirror, 33.0);
         let mut whole = src.clone();
-        f.apply(&mut whole, [100, 200], &src, [100, 200]);
+        f.apply(&mut whole, [100, 200], &src, [100, 200], 1.0);
         let mut left = image::imageops::crop_imm(&src, 0, 0, 50, 100).to_image();
         let mut right = image::imageops::crop_imm(&src, 50, 0, 50, 100).to_image();
-        f.apply(&mut left, [100, 200], &src, [100, 200]);
-        f.apply(&mut right, [150, 200], &src, [100, 200]);
+        f.apply(&mut left, [100, 200], &src, [100, 200], 1.0);
+        f.apply(&mut right, [150, 200], &src, [100, 200], 1.0);
         for y in 0..100 {
             for x in 0..100 {
                 let p = if x < 50 { left.get_pixel(x, y) } else { right.get_pixel(x - 50, y) };

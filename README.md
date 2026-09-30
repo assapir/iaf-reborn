@@ -56,7 +56,7 @@ godot --path game                                                 # front end �
 ```
 
 `tools/setup.sh` runs the whole pipeline (extract → v1.1 patch → Hebrew packs → cockpits, briefings, menus, keys,
-missions, aircraft, objects → terrain → Godot extension); the individual commands are listed in it. `--patch` (or the
+missions, aircraft, objects → terrain (all of map.ptt, ~730 MB) → Godot extension); the individual commands are listed in it. `--patch` (or the
 `IAF_PATCH` environment variable) takes the downloaded v1.1 update, `iafp1_1.exe` or a bare patch file; the patched
 files replace the v1.0 ones in `assets/install` (the originals are kept in `assets/v1.0`, the patch output in
 `assets/v1.1`) before anything is converted. Without it setup builds everything from the v1.0 files. The Hebrew packs

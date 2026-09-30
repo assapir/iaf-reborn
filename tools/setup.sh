@@ -96,9 +96,9 @@ step "aircraft: every plane's model (glTF, Lanczos textures, smoothed) + descrip
 step "mission object models (every model the object database references)"
 ./target/release/iaf-convert --upscale objects assets/install assets/converted/missions assets/converted/objects
 
-step "terrain around Israel (colour: level-4 inset, heights: level 6)"
-./target/release/iaf-terrain export assets/install/resource/terrain/map.ptt 7 assets/converted/terrain/israel_l4
-./target/release/iaf-terrain details assets/install/resource/terrain/map.ptt 7 assets/converted/terrain/israel_l4/details
+step "terrain: every level and inset of map.ptt as a node quadtree (docs/formats/ptt.md, ~30 s, ~730 MB)"
+rm -rf assets/converted/terrain/israel_l4  # the old Israel-only layout
+./target/release/iaf-terrain theatre assets/install/resource/terrain/map.ptt assets/converted/terrain/theatre
 
 step "Godot extension (flight model)"
 cargo build -p iaf-godot
