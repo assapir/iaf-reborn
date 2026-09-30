@@ -41,6 +41,9 @@
 
 Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user decisions.
 
+## Small bugs (fix between jobs)
+- Keyboard page: the scrollbar arrows are cropped on the right side.
+
 ## Done
 | area | state |
 |---|---|
