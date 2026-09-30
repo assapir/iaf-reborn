@@ -1,7 +1,8 @@
 # Ejection (docs/part-animation.md "Ejection", docs/mission-runtime.md §5.4): "Eject (x3)" needs three
 # presses less than 1 s apart; one does nothing. In the air: engine off, stick fixed, commands
-# ignored, external view, pilot gone, canopy thrown, seat after 2 s, flight ends after 5 s. In a
-# mission on the ground (short ejection): the player counts as lost at once -> failed debrief.
+# ignored, external view, pilot gone, canopy thrown straight up (v1.1: 3 m per 0.05 s, no aft drift,
+# gone at 100 m), seat after 2 s, flight ends after 5 s. In a mission on the ground (short ejection):
+# the player counts as lost at once -> failed debrief.
 extends "res://../tests/godot/base.gd"
 
 
@@ -32,9 +33,15 @@ func run() -> void:
 	check(tv.stick == tv.EJECT_STICK, "stick held at (0.1, push 0.2)")
 	check(not pilot.visible, "pilot gone from the jet")
 	t0 = tv._sim_time
+	while tv._sim_time - t0 < 0.5:
+		await process_frame
+	var c: Vector3 = tv.aircraft.canopy_offset
+	check(c.y > 10.0 and c.y < 40.0 and is_equal_approx(fmod(c.y, 3.0), 0.0), "canopy rises 3 m per tick (%.1f m after 0.5 s)" % c.y)
+	check(c.x == 0.0 and c.z == 0.0, "straight up, no aft drift (v1.1)")
 	while tv._sim_time - t0 < 2.3:
 		await process_frame
 	check(tv.aircraft.canopy_offset.y > 60.0 or tv.aircraft.canopy_gone, "canopy thrown up (%.0f m)" % tv.aircraft.canopy_offset.y)
+	check(tv.aircraft.canopy_gone == (tv.aircraft.canopy_offset.y > 100.0), "canopy gone once past 100 m")
 	check(tv._seat != null or tv._chute != null, "seat leaves after 2 s")
 
 	# Mission 311 on the ground: short ejection, the mission is lost.

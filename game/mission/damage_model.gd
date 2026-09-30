@@ -4,20 +4,20 @@
 # terrain_view.gd / damage_effects.gd.
 extends RefCounted
 
-## MStatus+0x10 damage fraction thresholds (FUN_004a8530): >= 1.0 (0x5ff214) -> level 5
-## (destroyed / exploded), >= 0.8 (0x63b20c) -> level 3 (fatally hit, "going down").
+## MStatus+0x10 damage fraction thresholds (FUN_004a8da0): >= 1.0 (0x6030dc) -> level 5
+## (destroyed / exploded), >= 0.8 (0x63f454) -> level 3 (fatally hit, "going down").
 const DESTROY_AT := 1.0
 const HIT_AT := 0.8
-## A hit counts only when it adds at least 0.01 (0x5ff240) or destroys (FUN_004a8f40).
+## A hit counts only when it adds at least 0.01 (0x603108) or destroys (FUN_004a97b0).
 const MIN_STEP := 0.01
 ## AI skill (Preferences > Gameplay, pref +0x50): damage to units not on the player's side is scaled
-## by 0.8 (Rookie, 0x634dac) / 0.9 (Normal, 0x634db0) / 1.0 (Expert) in FUN_00463660.
-## Original bug: that makes the enemies tougher on the easier levels (the other skill readers 440480 /
-## 443fd0 do weaken them). Preferences > Physics "fix_skill_damage" turns the scaling off (ours).
+## by 0.8 (Rookie, 0x63900c) / 0.9 (Normal, 0x639010) / 1.0 (Expert) in FUN_004642f0.
+## Original bug: that makes the enemies tougher on the easier levels (the other skill readers 4404d0 /
+## 443f60 do weaken them). Preferences > Physics "fix_skill_damage" turns the scaling off (ours).
 const SKILL_SCALE := [0.8, 0.9, 1.0]
 static var no_skill_scale := false
-## Damage smoke of a hit controlled aircraft (class 0x1c, FUN_004a93f0 / FUN_004a7560): starts at
-## damage >= 0.25 (0x5ff1e8); after 20 s (0x82d748) it stops unless damage >= 0.5 (0x5ff1ec).
+## Damage smoke of a hit controlled aircraft (class 0x1c, FUN_004a9c60 / FUN_004a7de0): starts at
+## damage >= 0.25 (0x6030b0); after 20 s (0x8321a0) it stops unless damage >= 0.5 (0x6030b4).
 const SMOKE_AT := 0.25
 const SMOKE_KEEP_AT := 0.5
 const SMOKE_CHECK := 20.0
@@ -29,7 +29,7 @@ const DESTROYED := 4
 const EXPLODED := 5
 
 
-## FUN_00463660: damage of a blast at `point` with `power` and `radius` on a target at `pos` whose
+## FUN_004642f0: damage of a blast at `point` with `power` and `radius` on a target at `pos` whose
 ## size is `size` (0 when it has none). Per axis the distance is reduced by the size (clamped at 0);
 ## outside the radius on any axis there is no damage, else
 ## |(dx - R)(dy - R)(dz - R)| * power / R^3 (= power at the centre, falling off per axis).
@@ -44,7 +44,7 @@ static func blast(pos: Vector3, size: float, point: Vector3, power: float, radiu
 	return absf((d.x - radius) * (d.y - radius) * (d.z - radius)) * power / (radius * radius * radius)
 
 
-## The rest of FUN_00463660: scale by the AI skill for units not on the player's side, then
+## The rest of FUN_004642f0: scale by the AI skill for units not on the player's side, then
 ## returns [new damage fraction, destroyed]. `strength` = the target's damage object +4.
 static func add_damage(damage: float, dmg: float, strength: float, enemy_of_player: bool, ai_level: int) -> Array:
 	if enemy_of_player and ai_level >= 0 and ai_level < 2 and not no_skill_scale:
@@ -58,7 +58,7 @@ static func add_damage(damage: float, dmg: float, strength: float, enemy_of_play
 	return [damage, false]
 
 
-## FUN_004a8530: the level a damage fraction asks for (-1 = none, only stored).
+## FUN_004a8da0: the level a damage fraction asks for (-1 = none, only stored).
 static func level_for(damage: float) -> int:
 	if damage >= DESTROY_AT:
 		return EXPLODED
@@ -67,10 +67,10 @@ static func level_for(damage: float) -> int:
 	return -1
 
 
-# --- the player's systems (player controller damage, FUN_0044c8c0 -> FUN_0045c300 -> FUN_0044ca90) ----
+# --- the player's systems (player controller damage, FUN_0044d590 -> FUN_0045cd80 -> FUN_0044d760) ----
 
-## Damage codes (FUN_0044ca90): the console text (the left / right variant for twin-engine jets) and the
-## other flags a code sets. Flag n = damage page row (FUN_0052a0d0, cockpit state +0x550 + 4n).
+## Damage codes (FUN_0044d760): the console text (the left / right variant for twin-engine jets) and the
+## other flags a code sets. Flag n = damage page row (FUN_0052bc00, cockpit state +0x550 + 4n).
 const SYSTEMS := {
 	1: {"text": "ECM damage"},
 	2: {"text": "Engine cut out - restart throttle", "twin": "Left engine cut out - restart throttle", "also": [8]},
@@ -99,8 +99,8 @@ const SYSTEMS := {
 }
 
 
-## FUN_0045c4a0: may system `n` be damaged. `twin` = twin-engine jet (controller +8 -> +0x24),
-## `player` = the player's own jet, `ecm` = ECM fitted (FUN_00457b10), `cut_out` = +0x70 (an engine
+## FUN_0045cf20: may system `n` be damaged. `twin` = twin-engine jet (controller +8 -> +0x24),
+## `player` = the player's own jet, `ecm` = ECM fitted (FUN_004581d0), `cut_out` = +0x70 (an engine
 ## cut-out was picked), `flags` = the damage flags (index 0..24).
 static func system_allowed(n: int, flags: Array, twin: bool, player: bool, ecm: bool, cut_out: bool) -> bool:
 	if not twin and n in [9, 3, 0x17, 0x11]:
@@ -118,7 +118,7 @@ static func system_allowed(n: int, flags: Array, twin: bool, player: bool, ecm: 
 	return not (flags[9] or flags[0x17] or flags[0x11])
 
 
-## FUN_0045c300: which system a hit that left the jet at `damage` (0 < damage < 1) breaks; 0 = none.
+## FUN_0045cd80: which system a hit that left the jet at `damage` (0 < damage < 1) breaks; 0 = none.
 ## Returns [code, cut_out]. `rand` returns the CRT rand() (0..32767). Quirk kept: picking 2 or 3 sets
 ## the cut-out flag before the test, and the test refuses 2 once that flag is set and 3 always, so an
 ## engine cut-out never happens; the search then steps to a neighbour.
@@ -158,9 +158,9 @@ static func pick_system(damage: float, flags: Array, twin: bool, player: bool, e
 	return [n, cut_out]
 
 
-# --- the destruction motion (motion 0x14, DestructionMotion.cpp; FUN_004a7880 -> FUN_00464f89) ------
+# --- the destruction motion (motion 0x14, DestructionMotion.cpp; FUN_004a8100 -> FUN_00465c19) ------
 
-## Mover kinds (mover +0x58, FUN_004652f3) by unit class.
+## Mover kinds (mover +0x58, FUN_00465f83) by unit class.
 static func mover_kind(klass: int) -> int:
 	if klass in [5, 6, 8, 9, 10, 11]:
 		return 1  # ground vehicles, SAM, AAA, radar
@@ -176,14 +176,14 @@ static func mover_kind(klass: int) -> int:
 		return 6
 	return 7  # buildings, trees, sensors …
 
-## Gravity of the fall: 4 g for fixed-wing aircraft (0x638e8c), none for boats, else 1 g.
+## Gravity of the fall: 4 g for fixed-wing aircraft (0x63d0e4), none for boats, else 1 g.
 const G := 9.806
 const FIXED_WING_G := 39.224
-## The end check runs every 0.5 s (StopDestructionMotionEvent, 0x82d698): at 2 m above the ground
-## or less (0x5feee8) the wreck is snapped to the terrain, explodes and goes to state 5.
+## The end check runs every 0.5 s (StopDestructionMotionEvent, 0x8320f0): at 2 m above the ground
+## or less (0x602db0) the wreck is snapped to the terrain, explodes and goes to state 5.
 const FALL_CHECK := 0.5
 const FALL_IMPACT_AGL := 2.0
-## FlightModel/pitchEpsilon (5°, 0x82d6a0): a falling jet's nose goes to -(90° - ε) at 18°/s.
+## FlightModel/pitchEpsilon (5°, 0x8320f8): a falling jet's nose goes to -(90° - ε) at 18°/s.
 const PITCH_EPS := 5.0
 ## Original bug kept: a falling fixed-wing aircraft's heading reads 0 (north) — the heading output is
 ## only written on the helicopter path (docs/damage.md §3). true = keep its heading (Preferences >
@@ -191,7 +191,7 @@ const PITCH_EPS := 5.0
 static var fall_keep_heading := false
 
 
-## FUN_004966fe: start the fall of a unit of `klass` at `pos` (world X, Y, alt), attitude `angles`
+## FUN_004971ae: start the fall of a unit of `klass` at `pos` (world X, Y, alt), attitude `angles`
 ## (pitch, roll, heading, degrees), velocity `vel` (world m/s), terrain height `ground`. Returns the
 ## motion; "timer" = whether the 0.5 s end check runs (fixed-wing aircraft and helicopters only:
 ## the others stay at state 3 where they are).
@@ -225,7 +225,7 @@ static func fall_start(klass: int, pos: Vector3, angles: Vector3, vel: Vector3, 
 	return m
 
 
-## FUN_004970cc: position (world) and attitude (pitch, roll, heading, degrees) `tau` s into the fall;
+## FUN_00497b7c: position (world) and attitude (pitch, roll, heading, degrees) `tau` s into the fall;
 ## the terrain clamp (z >= terrain where the terrain is above 0.1 m) is the caller's.
 static func fall_at(m: Dictionary, tau: float) -> Array:
 	var az := -FIXED_WING_G if m.kind == 2 else (0.0 if m.kind == 4 else -G)
@@ -252,14 +252,14 @@ static func fall_at(m: Dictionary, tau: float) -> Array:
 
 
 ## The damage object's strength (hit points, damage object +4): bdb Objects 0x56e (the type record
-## +0x28, spawner FUN_004b7586 @4b75a7), or the class init's 10.0 when it is 0.
+## +0x28, spawner FUN_004b7ea3 @4b7ec4), or the class init's 10.0 when it is 0.
 static func strength_of(obj: Dictionary) -> float:
 	var v := float(obj.get("0x56e", 0))
 	return v if v != 0.0 else 10.0
 
 
 ## The unit's size used by the blast formula (entity+8 -> +0x4c): half the spawn radius, which is
-## bdb Objects 0x564 (type record +0x30; FUN_004b6d17), 5.0 when <= 0 (always for fire sensors,
+## bdb Objects 0x564 (type record +0x30; FUN_004b7634), 5.0 when <= 0 (always for fire sensors,
 ## class 0x12).
 static func size_of(obj: Dictionary) -> float:
 	var r := float(obj.get("0x564", 0))
@@ -268,9 +268,9 @@ static func size_of(obj: Dictionary) -> float:
 	return 0.5 * r
 
 
-## Collision groups / masks (entity+0x18 collider, FUN_0043b250) by class: [group, mask]. A unit A
+## Collision groups / masks (entity+0x18 collider, FUN_0043b1c0) by class: [group, mask]. A unit A
 ## collides with B when (B.group & A.mask) != 0 and the centres are closer than B's radius
-## (FUN_0043c1f0). Runways and their lights (type 450) are not registered, nor trees, sensors,
+## (FUN_0043c140). Runways and their lights (type 450) are not registered, nor trees, sensors,
 ## parachutes.
 static func collider(klass: int, type_code: int) -> Array:
 	if klass in [1, 2, 3, 0x1c]:

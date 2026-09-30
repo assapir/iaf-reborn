@@ -27,7 +27,9 @@ var _seq := 0
 ## current: [index, index], path, control, side, heading, vel; damage (docs/damage.md): klass,
 ## type_code, strength, size, damage, requested, killer, shield, smoke, fall}.
 var entities := {}
-var events := {}  # "<file index>:<event id>" -> {debrief, audio, left, actions}
+var events := {}  # "<file index>:<event id>" -> {debrief, audio, left, actions, conds, counter}
+## Mission counters (§3.1): id -> value, all 0 at load; ids 1..max counter id any event names.
+var counters := {}
 var paths := {}  # "<file index>:<path id>" -> [Vector3 world]
 var audio := {}  # bdb Audio id -> {wav, subtitle}
 var debriefs := {}  # "<file index>:<id>" -> {text, flag}
@@ -65,11 +67,11 @@ static func bdb_objects(bdb: Dictionary) -> Dictionary:
 	return out
 
 
-## The player's aircraft at mission load (FUN_004bab1c): the leader of flight 1, else of flight 2,
-## 3, 4 (the flight map, FUN_005b9990). A flight is a formation with 0x3f2 = 1..4 of the main
+## The player's aircraft at mission load (FUN_004bb439): the leader of flight 1, else of flight 2,
+## 3, 4 (the flight map, FUN_005bcb40). A flight is a formation with 0x3f2 = 1..4 of the main
 ## mission file; its leader is member 0 if placed, else member 1 (unplaced = both coordinates
 ## negative, like the unused PlayerN slots). `wanted` = the flight picked on the TSD (Fly makes that
-## flight's leader the player object, FUN_00502c90 -> FUN_004d2ae0); 0 or a flight without a
+## flight's leader the player object, FUN_005045b0 -> FUN_004d31f0); 0 or a flight without a
 ## leader = the default. Returns {flight, entity} or {} when the mission has no flight 1..4.
 static func player_flight(mission: Dictionary, wanted := 0) -> Dictionary:
 	var by_id := {}
@@ -117,9 +119,15 @@ func setup(host_node: Node, mission_files: Array, bdb: Dictionary, player_id := 
 				pts.append(Vector3(q[1], q[2], q[3]))
 			paths["%d:%d" % [fi, int(p["0x1e"])]] = pts
 		for ev in m.get("events", {}).get("items", []):
+			var conds: Array = ev.get("conds", [])
+			for c in conds:
+				if int(c.get("0x3de", -1)) >= 1:
+					for id in range(1, int(c["0x3de"]) + 1):
+						counters[id] = 0
 			events["%d:%d" % [fi, int(ev["0x1e"])]] = {
 				"debrief": int(ev.get("0x38e", -1)), "audio": int(ev.get("0x3ac", -1)),
 				"left": int(ev.get("0x398", 0)), "actions": ev.get("list", []),
+				"conds": conds.slice(0, 2), "counter": conds[2] if conds.size() > 2 else {},
 			}
 		for e in m.entities.items:
 			if not (e is Dictionary):
@@ -142,7 +150,7 @@ func setup(host_node: Node, mission_files: Array, bdb: Dictionary, player_id := 
 				"current": [-1, -1], "path": null, "type": int(e.get("0x2c6", -1)),
 				"control": 3 if is_player else (2 if int(e.get("0x320", 0)) & 1 == 1 else 1),
 				"side": int(e.get("0x2d0", 0)), "heading": float(e.get("0x302", 0)),
-				"vel": Vector3.ZERO, "fall": null,
+				"vel": Vector3.ZERO, "fall": null, "combat": true,
 			}
 			_init_damage(ent, objects.get(ent.type, {}))
 			entities[ent.key] = ent
@@ -174,7 +182,7 @@ static func _list(obj: Dictionary) -> Dictionary:
 	return out
 
 
-## Activation (FUN_004a8890): mission-controlled entities start both script lists at index 1
+## Activation (FUN_004a9100): mission-controlled entities start both script lists at index 1
 ## and arm their reached / left checks.
 func start() -> void:
 	for ent in entities.values():
@@ -260,6 +268,13 @@ func _trigger(ent: Dictionary, sc: Dictionary) -> void:
 			ent.sensor = true
 		17:
 			ent.sensor = false
+		21:
+			# Enable combat (FUN_00440830): v1.1 also resets the brain (not ported: no AI yet).
+			ent["combat"] = true
+		22:
+			# Disable combat (FUN_004407e0): v1.1 also hands an engaged unit back to its motion script
+			# (FUN_004aa900(1)); our units always follow their scripts.
+			ent["combat"] = false
 		_:
 			pass  # 3, 4, 15 (Wait), 18, 19 (Destroy entity: no-op in this build), 23, 26 …
 
@@ -345,15 +360,21 @@ func _world_of(ent: Dictionary) -> Vector3:
 
 # --- events (§3) -------------------------------------------------------------------------------
 
+## Fire (FUN_004c3425): the counter action runs on every trigger, before the executions and the
+## condition are checked (v1.1; v1.0 ran it only when the event fired).
 func fire_event(file: int, id: int) -> void:
 	var ev: Dictionary = events.get("%d:%d" % [file, id], {})
-	if ev.is_empty() or ev.left <= 0:
+	if ev.is_empty():
+		return
+	_counter_action(ev.counter)
+	if ev.left <= 0 or not _condition(ev.conds):
 		return
 	ev.left -= 1
 	if ev.audio != 0 and ev.audio != -1:
 		play_message(ev.audio)
 	if ev.debrief != 0 and ev.debrief != -1:
 		_add_debrief(file, ev.debrief)
+	# Actions (FUN_004c35d6): one whose entity is not found is skipped (v1.1).
 	for a in ev.actions:
 		var target: Dictionary = entities.get("%d:%d" % [file, int(a[0])], {})
 		if target.is_empty():
@@ -364,7 +385,45 @@ func fire_event(file: int, id: int) -> void:
 			_jump(target, 1, int(a[2]))
 
 
-## PlayMessage (FUN_004ba7ee): the bdb Audio wav on the speech channel and its subtitle.
+## A condition {0x3de counter id, 0x3d4 operator, 0x3ca value} exists only for a counter id in 1..#counters
+## (FUN_004ba32c); cond0 AND cond1, or whichever exists, or none (always true). Operators
+## (FUN_004b5e6a): 0 ==, 1 >, 2 <, 3 >=, 4 <=, 5 != (another code: UNCERTAIN, taken as false).
+func _condition(conds: Array) -> bool:
+	for c in conds:
+		var k := int(c.get("0x3de", -1))
+		if not counters.has(k):
+			continue
+		var v: int = counters[k]
+		var x := int(c.get("0x3ca", 0))
+		var ok: bool
+		match int(c.get("0x3d4", -1)):
+			0: ok = v == x
+			1: ok = v > x
+			2: ok = v < x
+			3: ok = v >= x
+			4: ok = v <= x
+			5: ok = v != x
+			_: ok = false
+		if not ok:
+			return false
+	return true
+
+
+## The counter action (cond 2, FUN_004ba4ce): 6 =, 7 +=, 8 -=, 9 --, 10 ++ the value.
+func _counter_action(c: Dictionary) -> void:
+	var k := int(c.get("0x3de", -1))
+	if not counters.has(k):
+		return
+	var x := int(c.get("0x3ca", 0))
+	match int(c.get("0x3d4", -1)):
+		6: counters[k] = x
+		7: counters[k] += x
+		8: counters[k] -= x
+		9: counters[k] -= 1
+		10: counters[k] += 1
+
+
+## PlayMessage (FUN_004bb10b): the bdb Audio wav on the speech channel and its subtitle.
 func play_message(id: int) -> void:
 	var a: Dictionary = audio.get(id, {})
 	if a.is_empty():
@@ -389,8 +448,8 @@ func _add_debrief(file: int, id: int) -> void:
 # (entity+0x10): strength (hit points) and the shield flag (trigger ops 11 / 12).
 
 ## A blast at `point` (world X, Y, alt) of `power` within `radius` m: every unit it reaches takes
-## FUN_00463660's share (DamageModel.blast). `source` = the entity that fired (hits need one, as in
-## FUN_004a9100); `kind` = "gun" for gun rounds (the player's hit thump), else a weapon / "blast".
+## FUN_004642f0's share (DamageModel.blast). `source` = the entity that fired (hits need one, as in
+## FUN_004a9970); `kind` = "gun" for gun rounds (the player's hit thump), else a weapon / "blast".
 ## Returns the entities it damaged.
 func area_damage(point: Vector3, power: float, radius: float, source: Dictionary, kind := "blast") -> Array:
 	var out := []
@@ -411,19 +470,19 @@ func apply_damage(target: Dictionary, amount: float, kind: String, source: Dicti
 	return _hit(target, amount, source, kind)
 
 
-## The hit handler (FUN_004a8f40 -> FUN_00463660 -> FUN_004a9100). Returns true when it counted.
+## The hit handler (FUN_004a97b0 -> FUN_004642f0 -> FUN_004a9970). Returns true when it counted.
 func _hit(ent: Dictionary, dmg: float, source: Dictionary, kind: String) -> bool:
 	# The player's jet takes no hits with Invulnerable (pref +0x1c, single player).
 	if ent.player and host.mission_pref("invulnerable"):
 		return false
-	# A unit does not hit itself; the shooter must exist (FUN_004a9100 looks it up).
+	# A unit does not hit itself; the shooter must exist (FUN_004a9970 looks it up).
 	if source.is_empty() or source == ent:
 		return false
 	var old: float = ent.damage
 	var new := 0.0
 	var kill := false
 	if ent.shield:
-		# FUN_00463660: a shielded unit takes nothing, and damage it had is cleared (FUN_00583f70).
+		# FUN_004642f0: a shielded unit takes nothing, and damage it had is cleared (FUN_005865c0).
 		if ent.damage > 0.0:
 			ent.damage = 0.0
 		return false
@@ -440,14 +499,14 @@ func _hit(ent: Dictionary, dmg: float, source: Dictionary, kind: String) -> bool
 	return true
 
 
-## Sets a unit's damage level (FUN_004a8280 with damage 0 and a level): 3 fatally hit, 4 destroyed,
+## Sets a unit's damage level (FUN_004a8ae0 with damage 0 and a level): 3 fatally hit, 4 destroyed,
 ## 5 exploded. Used by trigger op 5 Explode (level 5), the flight model's crash (5), the crash motion's
 ## ground contact and the weapons later.
 func set_damage_level(ent: Dictionary, level: int, source := {}, kind := "") -> void:
 	_set_damage(ent, 0.0, level, source, kind)
 
 
-## FUN_004a8280 / FUN_004a8530: store the damage, derive the requested level (MStatus+0x28, kept
+## FUN_004a8ae0 / FUN_004a8da0: store the damage, derive the requested level (MStatus+0x28, kept
 ## between calls), run the transition, then the alive-hit reaction.
 func _set_damage(ent: Dictionary, damage: float, level: int, source: Dictionary, kind: String) -> void:
 	if ent.state == DamageModel.EXPLODED:
@@ -477,8 +536,8 @@ func _set_damage(ent: Dictionary, damage: float, level: int, source: Dictionary,
 		_damaged_alive(ent, source, kind)
 
 
-## FUN_004a93f0: a hit that left the unit alive. Controlled aircraft (class 0x1c): the controller's
-## hit reaction (FUN_0044c8c0: the player's shake, thump and systems damage) and the damage smoke
+## FUN_004a9c60: a hit that left the unit alive. Controlled aircraft (class 0x1c): the controller's
+## hit reaction (FUN_0044d590: the player's shake, thump and systems damage) and the damage smoke
 ## from 0.25 (checked again 20 s later: it stops unless the damage reached 0.5).
 func _damaged_alive(ent: Dictionary, source: Dictionary, kind: String) -> void:
 	if ent.klass != 0x1c or ent.damage <= 0.0:
@@ -490,7 +549,7 @@ func _damaged_alive(ent: Dictionary, source: Dictionary, kind: String) -> void:
 		ent.smoke_timer = true
 		ent.smoke = true
 		host.mission_entity_smoke(ent, true)
-		# FUN_004a7560: below 0.5 the smoke stops and the timer handle (+0x48) is cleared, so a later
+		# FUN_004a7de0: below 0.5 the smoke stops and the timer handle (+0x48) is cleared, so a later
 		# hit can start it again; at 0.5 or more it smokes for good.
 		_after(DamageModel.SMOKE_CHECK, func():
 			if ent.damage < DamageModel.SMOKE_KEEP_AT:
@@ -500,8 +559,8 @@ func _damaged_alive(ent: Dictionary, source: Dictionary, kind: String) -> void:
 				ent.smoke_timer = false)
 
 
-## State 1 -> 3 (FUN_004a7880): the hit event (slot 0, sensor on), control mode 0 (a mission-controlled
-## unit's scenario is killed, FUN_004a8600), the damaged model, and an aircraft goes down (crash
+## State 1 -> 3 (FUN_004a8100): the hit event (slot 0, sensor on), control mode 0 (a mission-controlled
+## unit's scenario is killed, FUN_004a8e70), the damaged model, and an aircraft goes down (crash
 ## motion 0x14); the player hears "Eject! Eject!" and loses the controls.
 func _fatally_hit(ent: Dictionary) -> void:
 	if ent.sensor and ent.alive_scenario:
@@ -541,7 +600,7 @@ func _fall_update(ent: Dictionary) -> void:
 		host.mission_entity_moved(ent)
 
 
-## StopDestructionMotionEvent (FUN_00496162), every 0.5 s: past its time -> state 5; at 2 m above
+## StopDestructionMotionEvent (FUN_00496c12), every 0.5 s: past its time -> state 5; at 2 m above
 ## the ground or less -> snapped to the terrain, explosion, state 5; the first tick higher up starts
 ## the smoke trail (type 2).
 func _fall_tick(ent: Dictionary) -> void:
@@ -574,9 +633,9 @@ func _fall_tick(ent: Dictionary) -> void:
 	_after(DamageModel.FALL_CHECK, _fall_tick.bind(ent))
 
 
-## State 4 or 5 (FUN_004a7a00 / FUN_004a7ba0 -> FUN_004a7e30): the destroy event (slot 1, sensor on)
+## State 4 or 5 (FUN_004a8280 / FUN_004a8420 -> FUN_004a86b0): the destroy event (slot 1, sensor on)
 ## and killScenario, control mode 0, then the final status: the explosion at the unit, its smoke and
-## sounds stop, and the role accounting (FUN_00597730).
+## sounds stop, and the role accounting (FUN_00599da0).
 func _destroyed(ent: Dictionary) -> void:
 	if ent.sensor and ent.alive_scenario:
 		fire_event(ent.file, int(_slot(ent, 1).get("0x33e", 0)))
@@ -594,7 +653,7 @@ func _destroy(ent: Dictionary) -> void:
 	set_damage_level(ent, DamageModel.EXPLODED)
 
 
-## The player's aircraft was destroyed (the flight model's crash: FUN_005b87d0 -> level 5).
+## The player's aircraft was destroyed (the flight model's crash: FUN_005bb9f0 -> level 5).
 func player_destroyed() -> void:
 	var p := player_entity()
 	if not p.is_empty():
@@ -609,7 +668,7 @@ func player_entity() -> Dictionary:
 	return {}
 
 
-## FUN_004a41e0 as FUN_00463660 uses it: a unit not on the player's side (without a player: sides 2 / 3).
+## FUN_004a4cf0 as FUN_004642f0 uses it: a unit not on the player's side (without a player: sides 2 / 3).
 func _enemy_of_player(ent: Dictionary) -> bool:
 	var p := player_entity()
 	if p.is_empty():
@@ -617,7 +676,7 @@ func _enemy_of_player(ent: Dictionary) -> bool:
 	return ent.side != p.side
 
 
-## The player ejected (FUN_005464f0, docs/mission-runtime.md §5.4): the player no longer counts as
+## The player ejected (FUN_005485a0, docs/mission-runtime.md §5.4): the player no longer counts as
 ## alive (control mode 0), so the role rules run at once (role "survive": misc audio 0x4c4, failed)
 ## and game event 0x82 ends the flight into the debrief 5 s later. The jet itself is not destroyed
 ## here; its later crash does not run the rules again.
@@ -628,7 +687,7 @@ func player_ejected() -> void:
 		_role_rules(p)
 
 
-## FUN_00597730 (docs/mission-runtime.md §5.1). Rule 1: when no player is alive any more (state 4 / 5
+## FUN_00599da0 (docs/mission-runtime.md §5.1). Rule 1: when no player is alive any more (state 4 / 5
 ## or control mode 0), game event 0x82 ends the flight into the debrief 5 s later. Rule 2: the role of
 ## the unit (0 must survive -> misc audio 0x4c4, failed, box 14 after 10 s; 1 target -> when the last
 ## one goes, misc audio 0x4ce, passed, box 13 after 10 s).
@@ -651,7 +710,7 @@ func _role_rules(ent: Dictionary) -> void:
 			_after(END_BOX_DELAY, func(): message_box.emit(13, ["deb", "fly"]))
 
 
-## Debrief (FUN_00597a80): headline 0x47e if passed else 0x492, then the notes.
+## Debrief (FUN_0059a0f0): headline 0x47e if passed else 0x492, then the notes.
 func debrief_text() -> Dictionary:
 	var headline := String(misc.get("0x47e" if passed else "0x492", ""))
 	return {"passed": passed, "headline": headline, "notes": (debrief_notes[0] + debrief_notes[1]).strip_edges()}

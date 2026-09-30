@@ -23,7 +23,7 @@ func seconds(s: float) -> void:
 
 
 func run() -> void:
-	# Blast (FUN_00463660): full power at the centre, falling off per axis, nothing outside R.
+	# Blast (FUN_004642f0): full power at the centre, falling off per axis, nothing outside R.
 	check(is_equal_approx(DamageModel.blast(Vector3.ZERO, 0.0, Vector3.ZERO, 100.0, 50.0), 100.0), "blast at the centre = power")
 	check(is_equal_approx(DamageModel.blast(Vector3(25, 0, 0), 0.0, Vector3.ZERO, 100.0, 50.0), 50.0), "half the radius on one axis = half")
 	check(is_equal_approx(DamageModel.blast(Vector3(30, 0, 0), 10.0, Vector3.ZERO, 100.0, 40.0), 50.0), "the unit's size shortens the distance")
@@ -33,7 +33,7 @@ func run() -> void:
 	check(is_equal_approx(r[0], 0.4) and not r[1], "Rookie: an enemy takes 0.8 of the damage (%.2f)" % r[0])
 	r = DamageModel.add_damage(0.5, 60.0, 100.0, false, 0)
 	check(is_equal_approx(r[0], 1.0) and r[1], "accumulated damage reaching 1 destroys")
-	# Systems pick (FUN_0045c300): a light hit breaks one of the first systems; an engine cut-out never happens.
+	# Systems pick (FUN_0045cd80): a light hit breaks one of the first systems; an engine cut-out never happens.
 	var flags := []
 	flags.resize(25)
 	flags.fill(false)

@@ -13,12 +13,12 @@ const ORIGINAL_HEIGHT := 480.0
 const Img := preload("res://util/img.gd")
 const Tsd := preload("res://menu/tsd.gd")
 const PANEL_CENTRE_X := 960.0
-## HUD colour table (renderer+0x285c, COLORREFs 0x2400 … 0xbcf8): eight greens dark to bright,
+## HUD colour table (renderer+0x2864, COLORREFs 0x2400 … 0xbcf8): eight greens dark to bright,
 ## near-white, red, amber. Index 0 at the start of a run; key H cycles (idx + 1) % 11 (docs/mfd.md §2).
 const HUD_COLOURS := [Color8(0, 0x24, 0), Color8(0, 0x34, 0), Color8(0, 0x54, 0), Color8(0, 0x6c, 0),
 	Color8(0, 0x88, 0), Color8(0, 0xa4, 0), Color8(0, 0xe4, 0), Color8(0, 0xfc, 0),
 	Color8(0xf8, 0xf4, 0xf0), Color8(0xf8, 0, 0), Color8(0xf8, 0xbc, 0)]
-## Kept for the run (the original's global 0x82aa70), not saved.
+## Kept for the run (the original's global 0x82f4c4), not saved.
 static var hud_colour_index := 0
 
 
@@ -58,7 +58,7 @@ var _blink := {}  # light index -> [phase, ms]
 var _handle_frame := -1
 var _handle_ms := 0.0
 ## Mission subtitle console lines (newest last), drawn at x=4, y=10+15n of the 640x480 screen in
-## 12 px Arial and the HUD colour (FUN_0051e6a0).
+## 12 px Arial and the HUD colour (FUN_005201b0).
 var subtitles: Array[String] = []
 var _console_font: SystemFont
 var _console_squeeze := 1.0
@@ -107,7 +107,7 @@ func _add_tex(key: String, file: String, mipmaps := false) -> void:
 		tex[key] = t
 
 
-## map.emf points (normalised to its 12601 x 16383 frame) -> world (FUN_0052ff30 inverse), in the
+## map.emf points (normalised to its 12601 x 16383 frame) -> world (FUN_00531a50 inverse), in the
 ## TSD's world frame: u = (X + WORLD_X_SHIFT) / WORLD_W · f, v = (WORLD_H − WORLD_Y_SHIFT − Y) / WORLD_H · f
 ## with f = MAP_X_FACTOR (1043816 = WORLD_H − WORLD_Y_SHIFT).
 func _load_tsd_map() -> void:
@@ -125,7 +125,7 @@ func _load_tsd_map() -> void:
 		tsd_map.append({"points": pts, "color": Color8(op.brush[0], op.brush[1], op.brush[2])})
 
 
-## One MFD node per active [MFD] side, with the default pages of FUN_00447530: Left radar;
+## One MFD node per active [MFD] side, with the default pages of FUN_00448120: Left radar;
 ## 3 MFDs: Right RWR, Middle TSD; 2 MFDs: Right RWR without a panel RWR, else TSD.
 func _create_mfds() -> void:
 	var m: Dictionary = layout.get("MFD", {})

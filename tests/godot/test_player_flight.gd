@@ -1,4 +1,4 @@
-# Player = default-flight leader (FUN_004bab1c, docs/mission-runtime.md §1.1): the leader of flight
+# Player = default-flight leader (FUN_004bb439, docs/mission-runtime.md §1.1): the leader of flight
 # 1, else 2, 3, 4, or the flight picked on the TSD. 324 "All for One" has no Player1 (its leader is
 # "Player", airborne at 2000 m); campaign 221 "Back to the Wall" flies alpha_1 (F-16); 136 picks
 # Bravo when the TSD chose it.

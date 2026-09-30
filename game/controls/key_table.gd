@@ -6,7 +6,7 @@
 extends RefCounted
 
 const PATH := "converted/keys.json"
-## Modifier bits of a key (FUN_004df110 / 5103c0): one modifier per key, tested in this order.
+## Modifier bits of a key (FUN_004e08c0 / 511dc0): one modifier per key, tested in this order.
 const CTRL := 0x11
 const SHIFT := 0x22
 const ALT := 0x44
@@ -32,7 +32,7 @@ const DIK_TO_KEY := {
 	0xc9: KEY_PAGEUP, 0xcb: KEY_LEFT, 0xcd: KEY_RIGHT, 0xcf: KEY_END, 0xd0: KEY_DOWN,
 	0xd1: KEY_PAGEDOWN, 0xd2: KEY_INSERT, 0xd3: KEY_DELETE, 0xdd: KEY_MENU,
 }
-## Modifier keys are never bound on their own (the capture skips them, 5103c0).
+## Modifier keys are never bound on their own (the capture skips them, 511dc0).
 const MODIFIER_KEYS := [KEY_CTRL, KEY_SHIFT, KEY_ALT, KEY_META]
 
 var records: Array = []
@@ -101,7 +101,7 @@ func label(i: int, hebrew := false) -> String:
 	return r.label
 
 
-## Key name as the Controls page shows it (FUN_005107c0): "Ctrl + " etc. + the DIK name.
+## Key name as the Controls page shows it (FUN_005121e0): "Ctrl + " etc. + the DIK name.
 func key_name(key: int) -> String:
 	if key == 0:
 		return ""
@@ -114,12 +114,12 @@ func key_name(key: int) -> String:
 	return prefix + String(key_names.get(str(key & 0xffff), ""))
 
 
-## Joystick button name (FUN_00511070): "Button n" (1-based), empty for none.
+## Joystick button name (FUN_00512a90): "Button n" (1-based), empty for none.
 func button_name(joystick: int) -> String:
 	return button_format.replace("%d", str(joystick + 1)) if joystick > -1 else ""
 
 
-## The records listed on the Controls page (shown flag ≠ 0, FUN_005102f0), in table order.
+## The records listed on the Controls page (shown flag ≠ 0, FUN_00511cf0), in table order.
 func shown_records() -> Array:
 	var out := []
 	for i in records.size():
@@ -159,7 +159,7 @@ func key_of_event(event: InputEventKey) -> int:
 	return dik | (modifiers_of(event) << 16)
 
 
-## The first record bound to this key (FUN_004df3d0 stops at the first match), -1 = none.
+## The first record bound to this key (FUN_004e0b80 stops at the first match), -1 = none.
 func find_key(key: int, overrides: Dictionary, exclude := -1) -> int:
 	if key == 0:
 		return -1

@@ -11,7 +11,7 @@ const BORDER := 5.0
 const TITLE_Y := 4.0
 const TITLE_H := 11.0
 const BTN := Vector2(9, 8)
-## Briefing rich edit background (EM_SETBKGNDCOLOR 0x685e5e, FUN_0050be40).
+## Briefing rich edit background (EM_SETBKGNDCOLOR 0x685e5e, FUN_0050d710).
 const RICH_BG := Color8(94, 94, 104)
 const SCROLL_W := 10.0
 ## Briefing text: \fs24 = 12 pt at 96 dpi.

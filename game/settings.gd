@@ -30,7 +30,7 @@ const PREFS := {
 	"devices": ["flight_controls", "rudder", "throttle"],
 	"gameplay": ["no_wind", "no_blackouts", "no_spins", "no_stalls", "easy_landing", "easy_aiming",
 		"no_malfunctions", "ai_level", "invulnerable", "no_crashes", "unlimited_ammo", "unlimited_fuel",
-		"flight_data", "language", "show_info", "blackbox"],
+		"flight_data", "language", "show_info", "blackbox", "hud_ladder"],
 }
 
 ## Flight data: "original" (Jane's IAF 1998 numbers) or "real" (corrected real-world data for every flyable jet, docs/real-aircraft.md).
@@ -38,7 +38,7 @@ var flight_data := "original"
 ## Briefing language: "en" or "he" (Hebrew only when the Hebrew pack is installed).
 var language := "en"
 
-## --- Original preferences (docs/front-end.md §12), original defaults (FUN_004eee10) ---------
+## --- Original preferences (docs/front-end.md §12), original defaults (FUN_004f0750) ---------
 ## Sound page. The master volume is not stored (the original sets the Windows mixer).
 var mute := false
 var music_volume := 1.0
@@ -70,7 +70,7 @@ var invulnerable := false
 var no_crashes := false
 var unlimited_ammo := false
 var unlimited_fuel := false
-## Preferences page shown when the screen opens (DAT_00836d2c: zero = Sound on the first visit,
+## Preferences page shown when the screen opens (DAT_0083b8b4: zero = Sound on the first visit,
 ## then the last page used; not saved).
 var pref_page := "Sound"
 ## "Better physics" (Preferences > Physics): BETTER id -> on.
@@ -79,13 +79,16 @@ var better := {}
 var show_info := true
 ## Blackbox: the flight recorder user://last_flight.csv (for diagnosing flights; on for now).
 var blackbox := true
+## HUD pitch ladder: "original" (v1.1: 12 px/deg hung on the flight path marker, docs/cockpit.md) or
+## "conformal" (ours: rungs projected through the camera, on the world's horizon).
+var hud_ladder := "original"
 ## Key bindings changed on the Controls page (docs/controls.md): {record index: [key, joystick
 ## button]}, key = DIK | modifier << 16; records not listed keep the original default. Stored in the
 ## [keys] section as r<index> = [key, button].
 var key_bindings := {}
 ## Mission picked in the front end (briefing id, e.g. 311), -1 = free flight.
 var mission_id := -1
-## Aircraft picked on the Jet list (original ids, FUN_00508470): 0 F-15, 1 F-16, 2 F-4E,
+## Aircraft picked on the Jet list (original ids, FUN_00509d60): 0 F-15, 1 F-16, 2 F-4E,
 ## 3 F-4 2000, 4 Lavi, 5 Kfir, 6 Mirage.
 var jet_id := 1
 ## The player's route as set on the TSD ([Vector2 world]); empty = the mission's own.
@@ -95,8 +98,6 @@ var route_override: Array = []
 var player_flight := 0
 ## Result of the last flight for the debrief screen: {passed, headline, notes}; empty = none.
 var debrief := {}
-## The mission list the flight was chosen from (front-end screen), for the debrief buttons.
-var last_list := ""
 
 
 ## Tests and captures run with IAF_DEFAULT_SETTINGS=1: defaults only, the player's settings file

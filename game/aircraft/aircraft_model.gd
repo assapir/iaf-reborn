@@ -1,5 +1,5 @@
 # Generic external model of any IAF aircraft, animated exactly like the original's flight-model
-# part callback FUN_0059dd70 (docs/part-animation.md, docs/aircraft.md).
+# part callback FUN_005a09c0 (docs/part-animation.md, docs/aircraft.md).
 #
 # Data: `assets/converted/planes/<plane>/aircraft.json` (written by `iaf-convert aircraft`): the
 # parts the original loader keeps (table ids, pivots, hinge axes), the nozzles, stations and other
@@ -7,11 +7,11 @@
 # (100 F-16, 110 F-15, 120/200 F-4, 130 Kfir, 140 Lavi, 150 MiG-21, 160 MiG-23, 170 MiG-25,
 # 180 MiG-29, 190 Mirage, 210 MiG-17, 220 Tu-22 …). A descriptor may add `part_rules` overrides.
 #
-# Hinge (FUN_0053c030): the part turns about its OWN origin, axis from the helper frame (X1/X2)
+# Hinge (FUN_0053da00): the part turns about its OWN origin, axis from the helper frame (X1/X2)
 # nearer the model origin toward the farther one, by +θ in our Z-mirrored glTF space.
 extends Node3D
 
-## Ramp limits (rad) and rates (rad/s), constructor FUN_005b72d0 / FUN_005a2a10.
+## Ramp limits (rad) and rates (rad/s), constructor FUN_005ba430 / FUN_005a5820.
 const FLAPS_MAX := 0.29275  # 16.8°
 const F16_FLAPS_FACTOR := 0.33  # event 6 on the F-16 (type 100)
 const GEAR_MAX := 1.569  # 89.9°, 0 = down
@@ -44,11 +44,13 @@ var ramps := {"flaps": 0.0, "gear": GEAR_MAX, "speed_brake": 0.0, "hook": 0.0,
 var _targets := {}
 ## Last lever positions: like the original's events, a ramp is retargeted only when its lever moves.
 var _levers := {}
-## Pilot / canopy (ids 0x14..0x17): the crew object's callback 0x53d180 draws them whenever the crew is
-## aboard and the view is not a cockpit view (docs/aircraft.md §2.3), on every jet including the player's.
+## Pilot / canopy (ids 0x14..0x17): the crew object's callback 0x53eb50 draws them whenever the crew is
+## aboard and the cockpit flag is clear (docs/aircraft.md §2.3), on every jet including the player's. v1.1
+## starts the flag at 0 and sets it only while the own jet is drawn from the cockpit (ours: hidden then).
 var crew_visible := true
-## Ejection (docs/part-animation.md "Ejection", crew object callback 0x53d180): the pilots are gone,
-## the canopies ride `canopy_offset` (metres in the jet frame: +y up, +z aft) until `canopy_gone`.
+## Ejection (docs/part-animation.md "Ejection", crew object callback 0x53eb50): the pilots are gone,
+## the canopies ride `canopy_offset` (metres in the jet frame: +y up; v1.1 throws straight up) until
+## `canopy_gone`.
 var ejected := false
 var canopy_offset := Vector3.ZERO
 var canopy_gone := false
@@ -58,7 +60,7 @@ var _time := 0.0
 
 
 ## Loads `<planes>/<plane>/aircraft.json` and its glTF. `type` < 0 takes the descriptor's type.
-## `on_ground`: the ground-start ramps (gear down, full flaps, speed brake open; FUN_005a2a10).
+## `on_ground`: the ground-start ramps (gear down, full flaps, speed brake open; FUN_005a5820).
 static func create(plane: String, type := -1, on_ground := false) -> Node3D:
 	var dir := _planes_dir().path_join(plane)
 	var d: Dictionary = load_descriptor(plane)
@@ -102,7 +104,7 @@ func setup(gltf_scene: Node3D, descriptor: Dictionary, type := -1, on_ground := 
 		var p = info.get(str(n.name))
 		if p == null:
 			# Not a part: the loader drops unknown frames and never draws helpers, stations,
-			# EndWing, Pilon / Camera, height (FUN_0041c240, FUN_0053c030).
+			# EndWing, Pilon / Camera, height (FUN_0041c270, FUN_0053da00).
 			n.visible = false
 			continue
 		var axis = null
@@ -123,7 +125,7 @@ func setup(gltf_scene: Node3D, descriptor: Dictionary, type := -1, on_ground := 
 			f.scale_factor = float(desc.get("scale", 5.0))
 			root_frame.add_child(f)
 			flames.append(f)
-	# Start ramps (FUN_005a2a10): airborne gear up, flaps 0, speed brake 0; ground start gear 0,
+	# Start ramps (FUN_005a5820): airborne gear up, flaps 0, speed brake 0; ground start gear 0,
 	# flaps 0.29275 (the full value, also on the F-16), speed brake 0.855.
 	ramps.gear = 0.0 if on_ground else GEAR_MAX
 	ramps.flaps = FLAPS_MAX if on_ground else 0.0
@@ -140,7 +142,7 @@ func setup(gltf_scene: Node3D, descriptor: Dictionary, type := -1, on_ground := 
 func update(input: Dictionary, delta: float) -> void:
 	_time += delta
 	var on_ground: bool = input.get("on_ground", false)
-	# Events (FUN_0059cf50 / d170 / d370 / d570): retarget only when the lever moves.
+	# Events (FUN_0059fba0 / d170 / d370 / d570): retarget only when the lever moves.
 	if _lever("flaps", float(input.get("flaps", 0.0))):
 		_targets.flaps = float(input.get("flaps", 0.0)) * FLAPS_MAX * (F16_FLAPS_FACTOR if type_code == 100 else 1.0)
 	var gear_down: bool = input.get("gear_down", _targets.gear < GEAR_MAX)
@@ -154,14 +156,14 @@ func update(input: Dictionary, delta: float) -> void:
 		_targets.hook = HOOK_MAX if hook else 0.0
 	var sr: float = input.get("stick_x", 0.0)
 	var sp: float = input.get("stick_y", 0.0)
-	# Rudder (FUN_0059c910 / FUN_0059d770): the pedals in the air, the stick roll on the ground.
+	# Rudder (FUN_0059f5a0 / FUN_005a03c0): the pedals in the air, the stick roll on the ground.
 	_targets.rudder = (-sr * RUDDER_MAX) if on_ground else float(input.get("rudder", 0.0)) * RUDDER_MAX
-	# Ailerons (FUN_0059d770): airborne only, not on the deltas (their elevons come from the mixer).
+	# Ailerons (FUN_005a03c0): airborne only, not on the deltas (their elevons come from the mixer).
 	var delta_wing := type_code in [130, 190]
 	if not on_ground and not delta_wing:
 		_targets.aileron_l = -AILERON_MAX * sr
 		_targets.aileron_r = -AILERON_MAX * sr
-	# Pitch mixer FUN_0059da00.
+	# Pitch mixer FUN_005a0650.
 	var a := AILERON_MAX if delta_wing else ELEVATOR_MAX
 	var f := 0.5 if type_code in [110, 190, 130] else (0.65 if type_code == 100 else 1.0)
 	var m := (1.0 - f) * sr * a if type_code in [110, 100, 190, 130] else 0.0
@@ -181,13 +183,13 @@ func update(input: Dictionary, delta: float) -> void:
 		ramps[k] = move_toward(ramps[k], _targets[k], rate * delta)
 	if input.has("gear"):
 		ramps.gear = float(input.gear)  # the flight model's own gear ramp (exact timing)
-	# Drag chute (FUN_0059ff30): jitter while deployed.
+	# Drag chute (FUN_005a2b80): jitter while deployed.
 	var chute: int = input.get("chute", 0)
 	if chute == 2 and _time - _chute_t > CHUTE_PERIOD:
 		_chute_angle = randf_range(-CHUTE_JITTER, CHUTE_JITTER)
 		_chute_t = _time
 	_chute_state = chute
-	# Afterburner level (FUN_005a8d40): 75 + 12.5·stage when lit, else RPM·100·0.74 (never drawn).
+	# Afterburner level (FUN_005abc90): 75 + 12.5·stage when lit, else RPM·100·0.74 (never drawn).
 	var stage: int = input.get("afterburner", 0)
 	var level := int(75.0 + 12.5 * stage) if stage > 0 else int(clampf(float(input.get("rpm", 0.0)), 0.0, 1.0) * 100.0 * 0.74)
 	for fl in flames:
@@ -215,7 +217,7 @@ func _lever(key: String, value) -> bool:
 	return true
 
 
-## Angle θ and visibility of part `id` (FUN_0059dd70), from the current ramps.
+## Angle θ and visibility of part `id` (FUN_005a09c0), from the current ramps.
 func part_pose(id: int) -> Array:
 	var t := type_code
 	var g: float = ramps.gear

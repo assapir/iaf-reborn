@@ -1,7 +1,7 @@
 # In-flight sounds of the player's own aircraft (docs/sound.md): a port of the original sound
-# manager's rules for the player (engine object sound FUN_004c33e0 / FUN_004c35d0, player
-# controller FUN_00447f50 / FUN_004493a0, engine object FUN_00459fd0, flight-model touchdown
-# FUN_005b87d0, unit destroy FUN_004a7e30, eject FUN_004a7880). Which sound plays, its file, loop,
+# manager's rules for the player (engine object sound FUN_004c3c10 / FUN_004c3e00, player
+# controller FUN_00448b20 / FUN_0044a240, engine object FUN_0045aa80, flight-model touchdown
+# FUN_005bb9f0, unit destroy FUN_004a86b0, eject FUN_004a8100). Which sound plays, its file, loop,
 # volume, 3-D distances and logical channel come from the original table SoundProp.trx
 # (game/audio/sound_table.gd); the rules below only pick the sound code.
 # Generic for every aircraft: the engine set is the same for all types (the engine rule applies to
@@ -18,28 +18,28 @@ const SoundBuses := preload("res://audio/sound_buses.gd")
 const SoundTable := preload("res://audio/sound_table.gd")
 
 ## Aircraft types whose player controller carries the Betty voice warnings: ctl+0x964, set per type
-## code in FUN_00447280 (switch @4472a5, byte table 0x4474a4): F-16 100, F-15 110, Lavi 140,
+## code in FUN_00447e70 (switch @447e95, byte table 0x448094): F-16 100, F-15 110, Lavi 140,
 ## MiG-29 180, F-4 200 = 1; F-4 120, Kfir 130, MiG-21 150, MiG-23 160, MiG-25 170, Mirage 190,
 ## 210 / 220 / 225 = 0.
 const BETTY_TYPES := [100, 110, 140, 180, 200]
-## [Sound] registry values read by FUN_004c3290 (defaults; the install sets none):
+## [Sound] registry values read by FUN_004c3ac0 (defaults; the install sets none):
 ## PitchIntrPercent, PitchIntrShift, Ab1PitchPerc, Ab2PitchPerc. (InsideReduceVolume 0.75 is read
 ## too but never used.)
 const PITCH_INTR_PERCENT := 0.25
 const PITCH_INTR_SHIFT := 0.5
 const AB1_PITCH := 0.8
 const AB2_PITCH := 1.2
-## MCockpitSoundEvent repeat period (DAT_0082aa40 = 4.0, initialiser @446c50).
+## MCockpitSoundEvent repeat period (DAT_0082f468 = 4.0, initialiser @446c40).
 const BETTY_PERIOD := 4.0
-## "Altitude" below 100 ft above the terrain with the gear handle up (FUN_0044f2d0, 0x5fcc08).
+## "Altitude" below 100 ft above the terrain with the gear handle up (FUN_0044fe30, 0x600aa8).
 const ALT_WARN_FT := 100.0
-const FT_PER_M := 3.281  # 0x5fcc88
-## AoA / stall warning tone while the flight model's dragX (getter 0x12, S+0x2f0) > 0.5 in the air (@4483a5).
+const FT_PER_M := 3.281  # 0x600b34
+## AoA / stall warning tone while the flight model's dragX (getter 0x12, S+0x2f0) > 0.5 in the air (@449247).
 const AOA_DRAG_X := 0.5
-## Betty "Fuel" once below 1000 lb and once more below 500 lb (FUN_00459fd0, 0x5fd1fc / 0x5fd200).
+## Betty "Fuel" once below 1000 lb and once more below 500 lb (FUN_0045aa80, 0x6010b4 / 0x6010b8).
 const FUEL_LOW_LB := 1000.0
 const FUEL_VERY_LOW_LB := 500.0
-## Gear ramp value below which the gear counts as fully down at touchdown (0x60e608).
+## Gear ramp value below which the gear counts as fully down at touchdown (0x6124e0).
 const GEAR_DOWN_EPS := 1e-5
 
 var host: Node
@@ -50,7 +50,7 @@ var betty := true
 var on_runway := false
 var table: RefCounted
 
-## Engine object sound (slot 0): the current code and pitch (FUN_004c35d0).
+## Engine object sound (slot 0): the current code and pitch (FUN_004c3e00).
 var engine_code := ""
 var engine_pitch := 1.0
 var _engine_last := 0.0  # param_1[10]: the last RPM or AB pitch the pitch was set from
@@ -120,14 +120,14 @@ func update(st: Dictionary, inp: Dictionary) -> void:
 	# Levers: the host changes them only when the original accepts the command.
 	if _was.has("gear_down"):
 		if inp.gear_down != _was.gear_down:
-			play("SFX_LANDING_GEAR")  # GEV 0xe (@44c6eb): gear lever, both ways
+			play("SFX_LANDING_GEAR")  # GEV 0xe (@44d26e): gear lever, both ways
 		if inp.flaps != _was.flaps and _was.flaps_state != 1:
-			play("SFX_FLAPS")  # GEV 0xc (@44c094): flaps lever while not moving
+			play("SFX_FLAPS")  # GEV 0xc (@44cc36): flaps lever while not moving
 		if inp.brakes != _was.brakes:
 			_speed_brake_toggle(inp.brakes, airborne)
 		if airborne != _was.airborne and not airborne:
 			_touchdown(float(st.gear))
-	# Per frame (FUN_00447f50).
+	# Per frame (FUN_00448b20).
 	_aoa_warning(float(st.get("drag_x", 0.0)) > AOA_DRAG_X and airborne)
 	if inp.brakes:
 		if airborne:
@@ -146,7 +146,7 @@ func update(st: Dictionary, inp: Dictionary) -> void:
 var _inside := true
 
 
-# --- engine (FUN_004c35d0 via FUN_004c33e0, every frame and on throttle events) -----------------
+# --- engine (FUN_004c3e00 via FUN_004c3c10, every frame and on throttle events) -----------------
 
 func _update_engine(stage: int, rpm: float, inside: bool) -> void:
 	var code := engine_code
@@ -170,7 +170,7 @@ func _update_engine(stage: int, rpm: float, inside: bool) -> void:
 			engine_pitch = AB2_PITCH
 			_engine_last = AB2_PITCH
 	if code != engine_code:
-		# A new code stops the slot's sound and starts the new one (FUN_004c3a70 + FUN_004c4670).
+		# A new code stops the slot's sound and starts the new one (FUN_004c42a0 + FUN_004c4ea0).
 		engine_code = code
 		_engine.stop()
 		_engine_row = table.row(code)
@@ -185,7 +185,7 @@ func _update_engine(stage: int, rpm: float, inside: bool) -> void:
 
 # --- controller rules ---------------------------------------------------------------------------
 
-## GEV 0x11 (@44bdd8): the air brake sound on every toggle; the loop starts when the brake comes out
+## GEV 0x11 (@44c97b): the air brake sound on every toggle; the loop starts when the brake comes out
 ## in the air, otherwise a running loop stops.
 func _speed_brake_toggle(on: bool, airborne: bool) -> void:
 	play("SFX_SPEED_BREAKES")
@@ -198,7 +198,7 @@ func _speed_brake_toggle(on: bool, airborne: bool) -> void:
 		_speed_brake_loop = null
 
 
-## AoA warning tone (SFX_WARNING / WRN_AOA, cyclic): on while the condition holds (@4483a5).
+## AoA warning tone (SFX_WARNING / WRN_AOA, cyclic): on while the condition holds (@449247).
 func _aoa_warning(on: bool) -> void:
 	if on:
 		if _aoa_loop == null:
@@ -208,7 +208,7 @@ func _aoa_warning(on: bool) -> void:
 		_aoa_loop = null
 
 
-## FUN_0044f2d0: below 100 ft above the terrain with the gear handle up, Betty "altitude" at once
+## FUN_0044fe30: below 100 ft above the terrain with the gear handle up, Betty "altitude" at once
 ## and every 4 s (only on jets with Betty). "Pull up" needs an air-to-ground HUD mode (not built).
 func _altitude_warning(h_ft: float, gear_down: bool, now: float) -> void:
 	if h_ft < ALT_WARN_FT and not gear_down:
@@ -223,7 +223,7 @@ func _altitude_warning(h_ft: float, gear_down: bool, now: float) -> void:
 		_alt_timer = -1.0
 
 
-## FUN_00459fd0 (every fuel update): Betty "fuel" once between 1000 and 500 lb, and once below 500.
+## FUN_0045aa80 (every fuel update): Betty "fuel" once between 1000 and 500 lb, and once below 500.
 func _fuel_warning(lbs: float) -> void:
 	if lbs < FUEL_LOW_LB and lbs > FUEL_VERY_LOW_LB and _fuel_flags[0]:
 		play("VOC_BBETTY", "BTY_FUEL")
@@ -234,7 +234,7 @@ func _fuel_warning(lbs: float) -> void:
 		_fuel_flags[1] = false
 
 
-## FUN_005b87d0 @5b8b14: touchdown with the landing check passed (a failed one is a crash). Gear
+## FUN_005bb9f0 @5bbd1e: touchdown with the landing check passed (a failed one is a crash). Gear
 ## fully down: SFX_TOUCHDOWN; belly: SFX_SCREECH only on a runway.
 func _touchdown(gear: float) -> void:
 	if absf(gear) < GEAR_DOWN_EPS:
@@ -243,9 +243,9 @@ func _touchdown(gear: float) -> void:
 		play("SFX_SCREECH")
 
 
-## Destroyed (unit state 5 -> FUN_004a7e30): the explosion effect of an aircraft (FUN_0059b3b0,
+## Destroyed (unit state 5 -> FUN_004a86b0): the explosion effect of an aircraft (FUN_0059df20,
 ## classes 1/2/3/0x1c -> SFX_AIRCRAFT_EXPLODED, 3-D at the jet) and the object's sounds stop
-## (FUN_004c3ae0). The controller's loops end with the player.
+## (FUN_004c4310). The controller's loops end with the player.
 func _crash() -> void:
 	_crashed = true
 	_engine.stop()
@@ -259,17 +259,17 @@ func _crash() -> void:
 	play("SFX_AIRCRAFT_EXPLODED")
 
 
-## The ejection (unit state 3 -> FUN_004a7880): "Eject! Eject!" (VOC_WINGMAN / WINGMAN_EJECT_EJECT,
+## The ejection (unit state 3 -> FUN_004a8100): "Eject! Eject!" (VOC_WINGMAN / WINGMAN_EJECT_EJECT,
 ## eject.wav) for the player. Called by the ejection code.
 func play_eject() -> Node:
 	return play("VOC_WINGMAN", "WINGMAN_EJECT_EJECT")
 
 
-# --- playing a table sound (FUN_004c4670) --------------------------------------------------------
+# --- playing a table sound (FUN_004c4ea0) --------------------------------------------------------
 
 ## Plays the row of `code` / `sub1`; returns its player (null when the row or its file is missing).
 ## Resident rows: volume = table volume (inside / outside the cockpit) × the category bus; 3-D rows
-## sit at the jet. Non-resident rows go through FUN_004c4c20 -> FUN_004c4c40: plain wav, speech
+## sit at the jet. Non-resident rows go through FUN_004c5450 -> FUN_004c5470: plain wav, speech
 ## volume, no table volume (quirk kept: e.g. the touchdown and screech follow the speech slider);
 ## channel 101 is the phrase channel of the mission voices.
 func play(code: String, sub1 := "None") -> Node:

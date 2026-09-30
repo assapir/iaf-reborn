@@ -1,4 +1,4 @@
-# The afterburner flame of one nozzle, drawn like the original's hardware path (FUN_004121b0,
+# The afterburner flame of one nozzle, drawn like the original's hardware path (FUN_004121e0,
 # docs/aircraft.md §3): two nested 12-segment cones from the nozzle ring toward the tail (+Z),
 # rebuilt every frame with fresh random length / tip / texture offset, textured with
 # afterburn.tga (opaque at the nozzle, fading at the tip). Nothing is drawn below level 75.
@@ -10,7 +10,7 @@ var nozzle := Vector3.ZERO
 var radius := 0.4
 ## Clump scale of the model (5.0): the fixed part of the flame length is 1.5·i scaled units.
 var scale_factor := 5.0
-## Render level 0..100 (FUN_005a8d40: 75 + 12.5·afterburner stage, else RPM·0.74 ≤ 74).
+## Render level 0..100 (FUN_005abc90: 75 + 12.5·afterburner stage, else RPM·0.74 ≤ 74).
 var level := 0
 
 const SEGMENTS := 12
@@ -39,7 +39,7 @@ func _init() -> void:
 		_material.albedo_color = Color(1.0, 0.75, 0.45, 0.6)
 
 
-## True while a flame is drawn (level > 74, 'J' in FUN_004121b0).
+## True while a flame is drawn (level > 74, 'J' in FUN_004121e0).
 func lit() -> bool:
 	return level > 74
 

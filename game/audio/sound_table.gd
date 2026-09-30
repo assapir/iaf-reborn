@@ -1,5 +1,5 @@
 # The original sound table: resource/soundfiles/SoundProp.trx (read by the sound manager at load,
-# row parser FUN_004c7b50; docs/sound.md §1). One row per (sound code, sub code 1, sub code 2):
+# row parser FUN_004c82f0; docs/sound.md §1). One row per (sound code, sub code 1, sub code 2):
 #   category E/F/V/S, resident Y/N, cyclic C/O/T, 3d Y/N, logical channel, # random files,
 #   inside volume, outside volume, 3d min / max distance, raw file name (".wav" appended).
 # Codes resolve to files case-insensitively (the install is lower-case); rows whose file is not
@@ -51,7 +51,7 @@ static func _parse_row(c: PackedStringArray) -> Dictionary:
 		"cyclic": c[5].strip_edges().to_upper() == "C",
 		"is3d": c[6].strip_edges().to_upper() == "Y",
 		"channel": int(c[7]),
-		"random": mini(int(c[8]), 5),  # FUN_004c7b50 clamps the count to 5
+		"random": mini(int(c[8]), 5),  # FUN_004c82f0 clamps the count to 5
 		"vol_in": float(c[9]), "vol_out": float(c[10]),
 		"min_d": float(c[11]), "max_d": float(c[12]),
 		"file": c[13].strip_edges(),

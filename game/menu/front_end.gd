@@ -6,7 +6,7 @@ extends Control
 
 const W := 640.0
 const H := 480.0
-## Content window (FUN_004e7560).
+## Content window (FUN_004e8d70).
 const CONTENT := Rect2(155, 42, 453, 357)
 ## Fixed frame pieces (docs/front-end.md §2, §3.2).
 const TITLE_POS := Vector2(485, 16)
@@ -17,8 +17,8 @@ const MAIN_POS := Vector2(605, 421)
 ## Title tab frames are 50 ms apart.
 const TITLE_FRAME := 0.05
 
-## Arial sizes (FUN_004ed600: em = cy * p / 100 with cy = 112 for Arial) and list colours
-## (FUN_00508590).
+## Arial sizes (FUN_004eee10: em = cy * p / 100 with cy = 112 for Arial) and list colours
+## (FUN_00509e80).
 const LIST_TITLE_PX := 12.0
 const LIST_DESC_PX := 11.0
 const LIST_TITLE := Color8(0, 255, 0)
@@ -80,10 +80,10 @@ const PREF_THUMB := Vector2(19, 15)
 const PREF_DEFAULT := Rect2(357, 330, 85, 23)
 ## Gameplay scoring strip: pref/score.bmp, 25 frames of 151x34.
 const PREF_SCORE := Rect2(290, 184, 151, 34)
-## Live preview sounds while dragging (wav/pref, FUN_005424c0).
+## Live preview sounds while dragging (wav/pref, FUN_00544560).
 const PREF_PREVIEW := {"engine_volume": "pref/engines", "sfx_volume": "pref/sfx", "speech_volume": "pref/speech"}
-## Controls page (§12.7, FUN_0050fba0 / 5102f0): the key list over the page art (page (0,53)-(400,323),
-## 9 rows of 30 px = the background height / 9, FUN_004f2b60), text only (FUN_00510660: item.bmp /
+## Controls page (§12.7, FUN_00511580 / 511cf0): the key list over the page art (page (0,53)-(400,323),
+## 9 rows of 30 px = the background height / 9, FUN_004f4470), text only (FUN_00512080: item.bmp /
 ## hiitem.bmp are loaded but never drawn): function (11,1)-(181,28) left, key (187,1)-(328,28) and
 ## joystick button (331,1)-(409,28) centred, Arial 11, RGB(0,255,0) selected, RGB(0,180,0) others.
 const CTRL_LIST := Rect2(0, 53, 400, 270)
@@ -91,7 +91,7 @@ const CTRL_ROWS := 9
 const CTRL_COLS := [Rect2(11, 1, 170, 27), Rect2(187, 1, 141, 27), Rect2(331, 1, 78, 27)]
 const CTRL_TEXT := Color8(0, 180, 0)
 const CTRL_TEXT_SEL := Color8(0, 255, 0)
-## Scrollbar (FUN_004f1df0): the bar (422,53)-(433,323), arrows 15x18 at its top (sldownb) and
+## Scrollbar (FUN_004f3700): the bar (422,53)-(433,323), arrows 15x18 at its top (sldownb) and
 ## bottom (slupb), clipped to the bar, thumb pref/sldcntrl 10x23 between them. One row per arrow click.
 const CTRL_BAR := Rect2(422, 53, 11, 270)
 const CTRL_ARROW := Vector2(15, 18)
@@ -117,9 +117,10 @@ const EXTRAS := [
 	["language", "Language", [["English", "en"], ["Hebrew", "he"]]],
 	["show_info", "Flight info (F12)", [["Show", true], ["Hide", false]]],
 	["blackbox", "Blackbox", [["On", true], ["Off", false]]],
+	["hud_ladder", "HUD pitch ladder", [["Original", "original"], ["Conformal", "conformal"]]],
 ]
 
-## Button-release dispatcher FUN_004eaf50: screen -> {button label -> next screen}.
+## Button-release dispatcher FUN_004ec770: screen -> {button label -> next screen}.
 ## Basic/Combat mission buttons go to the Jet list; Jet and campaign mission buttons load the
 ## mission (-> TSD).
 const FORWARD := {
@@ -132,19 +133,19 @@ const FORWARD := {
 }
 const TO_JET := ["basic", "combat"]
 const LOADS_MISSION := ["jet", "his1mis", "his2mis", "his3mis", "fut1mis", "fut2mis", "fut3mis"]
-## BACK (FUN_004eb990). The Jet list goes back to where it came from (screen 9 / 10).
+## BACK (FUN_004ed1b0). The Jet list goes back to where it came from (screen 9 / 10).
 const BACK := {"pref": "main", "ref": "main", "training": "main", "ctype": "main",
 	"basic": "training", "combat": "training", "camp": "main", "mc": "main",
 	"his": "camp", "fut": "camp", "his1mis": "his", "his2mis": "his", "his3mis": "his",
 	"fut1mis": "fut", "fut2mis": "fut", "fut3mis": "fut", "tcp": "ctype", "ipx": "ctype"}
-## No BACK here (FUN_004e8a80): its disabled plate, and the blank lower clip (lowclipc, which
+## No BACK here (FUN_004ea2a0): its disabled plate, and the blank lower clip (lowclipc, which
 ## otherwise holds the BACK plate). QUIT replaces MAIN on QUIT_SCREENS.
 const NO_BACK := ["log", "main", "deb", "jump"]
 const QUIT_SCREENS := ["log", "main"]
 
-## Jet buttons -> aircraft id (FUN_00508470, DAT_00836c90).
+## Jet buttons -> aircraft id (FUN_00509d60, DAT_0083b818).
 const JET_IDS := {"mirage": 6, "kfir": 5, "f4": 2, "f42000": 3, "f15": 0, "f16": 1, "lavi": 4}
-## Jets the original disables per mission (FUN_005082b0), by aircraft id.
+## Jets the original disables per mission (FUN_00509b80), by aircraft id.
 const JETS_DISABLED := {314: [6, 5], 322: [6, 5, 0], 323: [6, 5, 2, 0], 325: [6, 5, 2, 1, 4]}
 ## Aircraft this engine can fly so far (cockpit + flight model converted): F-16 only.
 const FLYABLE_JETS := [1]
@@ -188,7 +189,7 @@ var ctrl_arrow := ""
 var ctrl_drag := -1.0
 
 ## TSD (screen 0x1e): the map/briefing node, where BACK returns to, and its check buttons,
-## which persist while the mission is loaded (DAT_00836cd4..d1c, defaults FUN_004efc60).
+## which persist while the mission is loaded (DAT_0083b85c..d1c, defaults FUN_004f15a0).
 var tsd: Control
 var tsd_return := "jet"
 var tsd_checks := {}
@@ -294,7 +295,7 @@ func _play(name: String) -> void:
 		sfx.play()
 
 
-## Menu_M.wav loops on every screen except TSD / Arm (FUN_004e8a80).
+## Menu_M.wav loops on every screen except TSD / Arm (FUN_004ea2a0).
 func _start_music() -> void:
 	if screen in ["tsd", "arm"] or music.playing:
 		return
@@ -368,7 +369,7 @@ func _enter_screen() -> void:
 				pref_work[k] = Settings.get(k)
 		pref_work["key_bindings"] = Settings.key_bindings.duplicate(true)
 		pref_work["better"] = Settings.better.duplicate()
-		ctrl_sel = 0  # FUN_0050fba0 selects the first row
+		ctrl_sel = 0  # FUN_00511580 selects the first row
 		ctrl_top = 0
 		ctrl_focus = false
 	if screen in ["tsd", "arm"]:
@@ -395,7 +396,7 @@ func _enter_screen() -> void:
 		tsd = null
 
 
-## TSD defaults on mission load (FUN_004efc60): every unit filter, Text, Waypoint, Grid and
+## TSD defaults on mission load (FUN_004f15a0): every unit filter, Text, Waypoint, Grid and
 ## Briefing on; the flight holding the player is selected when the TSD opens.
 func _reset_tsd_checks() -> void:
 	tsd_checks = {"waypoint": true, "text": true, "grid": true, "briefing": true, "player_flight": true}
@@ -414,6 +415,8 @@ func _restore_tsd_checks() -> void:
 
 
 func _button_enabled(label: String) -> bool:
+	if screen == "deb" and _norm(label) == "nextmission":
+		return next_mission(Settings.mission_id, Settings.debrief.get("passed", false)) != 0
 	if screen == "jet":
 		var id: int = JET_IDS.get(_norm(label), -1)
 		if id in JETS_DISABLED.get(Settings.mission_id, []):
@@ -577,7 +580,7 @@ func _draw_content(def: Dictionary) -> void:
 	if not list.is_empty():
 		_draw_list(list)
 	elif screen == "main":
-		# Hovering an enabled main button shows main_N (FUN_004faa70).
+		# Hovering an enabled main button shows main_N (FUN_004fc350).
 		var hb := _button(hover_key)
 		if not hb.is_empty() and _button_enabled(hb.label):
 			_blit("main/main_%d.png" % (int(hover_key.split("/")[1]) + 1), CONTENT.position)
@@ -591,7 +594,7 @@ func _draw_content(def: Dictionary) -> void:
 			_draw_prefs()
 
 
-## List screens (FUN_00508590): rows copied from mis_1, the row of the hovered same-named
+## List screens (FUN_00509e80): rows copied from mis_1, the row of the hovered same-named
 ## button from mis_2; Arial title and description drawn over them.
 func _draw_list(list: Dictionary) -> void:
 	var prefix := "mis/mismp" if screen == "netaow" else "mis/mis"
@@ -705,7 +708,7 @@ func _draw_controls(at: Vector2) -> void:
 	# Scrollbar: arrows at the ends (frame 2 while held), the thumb in between.
 	var bar := Rect2(at + CTRL_BAR.position, CTRL_BAR.size)
 	var clip := Vector2(CTRL_BAR.size.x, CTRL_ARROW.y)
-	# FUN_004f1df0 moves the first button (SlUpB, a down-pointing arrow) to the bottom and leaves the
+	# FUN_004f3700 moves the first button (SlUpB, a down-pointing arrow) to the bottom and leaves the
 	# second (SlDownB, pointing up) at the top.
 	_blit_region("pref/sldownb_%d.png" % (2 if ctrl_arrow == "up" else 0), Rect2(Vector2.ZERO, clip), bar.position)
 	_blit_region("pref/slupb_%d.png" % (2 if ctrl_arrow == "down" else 0), Rect2(Vector2.ZERO, clip), Vector2(bar.position.x, bar.end.y - CTRL_ARROW.y))
@@ -724,7 +727,7 @@ func _ctrl_scroll(to: int) -> void:
 	ctrl_top = clampi(to, 0, _ctrl_max_top())
 
 
-## Selects list row `idx` and scrolls it into view (FUN_004f2df0).
+## Selects list row `idx` and scrolls it into view (FUN_004f4700).
 func _ctrl_select(idx: int) -> void:
 	ctrl_sel = clampi(idx, 0, _ctrl_rows().size() - 1)
 	if ctrl_sel < ctrl_top:
@@ -765,7 +768,7 @@ func _ctrl_drag_to(y: float) -> void:
 	_ctrl_scroll(roundi(clampf(inverse_lerp(lo, hi, y - ctrl_drag), 0.0, 1.0) * _ctrl_max_top()))
 
 
-## A key pressed while the list has the keyboard (FUN_005103c0): the arrow keys move in the list;
+## A key pressed while the list has the keyboard (FUN_00511dc0): the arrow keys move in the list;
 ## any other key (with one modifier: Ctrl, Shift, Alt or Win) is assigned to the selected function.
 ## If another function has it, msg 36 asks; Yes takes it from that function.
 func _ctrl_key(event: InputEventKey) -> void:
@@ -814,7 +817,7 @@ func _slider_thumb() -> Texture2D:
 	return textures[key]
 
 
-## Scoring strip frame (§12.3, FUN_004ef7e0): 0 = 120 % ... 20 = 20 % ... 24 = no scoring.
+## Scoring strip frame (§12.3, FUN_004f1120): 0 = 120 % ... 20 = 20 % ... 24 = no scoring.
 static func _score_frame(p: Dictionary) -> int:
 	var m := 1.0 + (0.2 if p.get("ai_level") == 2 else 0.0)
 	var costs := {"no_wind": 0.05, "no_blackouts": 0.1, "no_spins": 0.05, "no_stalls": 0.05,
@@ -1108,7 +1111,7 @@ func _pref_defaults() -> void:
 		if c[1] != "master_volume":
 			pref_work[c[1]] = Settings.default_value(c[1])
 	if Settings.pref_page == "Controls":
-		pref_work.key_bindings = {}  # the whole table from 0x647ff8 (@5102a5)
+		pref_work.key_bindings = {}  # the whole table from 0x64c3c8 (@511ca5)
 	_apply_music_volume()
 
 
@@ -1120,7 +1123,7 @@ func _pref_changed() -> bool:
 
 
 ## Leaving a screen by BACK / MAIN / Esc. Preferences first asks msg 38 "Save changes?"
-## (Yes / No / Cancel) when the working copy differs (FUN_004fc900).
+## (Yes / No / Cancel) when the working copy differs (FUN_004fe1b0).
 func _leave(to: String) -> void:
 	if screen == "pref" and _pref_changed():
 		_message(38, [["yes", _pref_close.bind(to, true)], ["no", _pref_close.bind(to, false)], ["can", Callable()]])
@@ -1142,7 +1145,7 @@ func _pref_close(to: String, commit: bool) -> void:
 	_go(to)
 
 
-## Press: frames _1, _2 with ButtonIn.wav, each held for half the sound (FUN_004e7f40).
+## Press: frames _1, _2 with ButtonIn.wav, each held for half the sound (FUN_004e9760).
 func _animate_press(key: String) -> void:
 	_play("buttonin")
 	var step := _sound_length("buttonin") / 2.0
@@ -1172,7 +1175,7 @@ func _on_button(key: String) -> void:
 	if key == "back":
 		if screen == "tsd":
 			_message(8, [["yes", _go.bind(tsd_return)], ["no", Callable()]])
-		elif screen != "arm":  # BACK has no case on Arm (FUN_004eb990)
+		elif screen != "arm":  # BACK has no case on Arm (FUN_004ed1b0)
 			_leave(_back_target())
 		return
 	if key == "main":
@@ -1227,36 +1230,69 @@ func _on_button(key: String) -> void:
 		_load_mission()
 
 
-## Debrief buttons: Replay (the same mission again), New Mission (its list), Next Mission (the next
-## row of that list). Mapping UNCERTAIN (not traced in the exe).
+## Debrief buttons (FUN_004ff440). New Mission: back to the mission's list (FUN_004ff620). Replay
+## (same mission) and Next Mission (FUN_004ff7e0) then go through FUN_004ff540: a training mission
+## 311–319 / 321–329 opens the Jet list (screen 9 / 10) so a plane is picked before each training
+## flight (v1.1; v1.0 reloaded the mission), other 300–399 ids do nothing, the rest reload the mission
+## (-> TSD).
 func _debrief_button(label: String) -> void:
-	var list_screen: String = Settings.last_list if Settings.last_list != "" else "main"
-	if list_screen in TO_JET:
-		jet_parent = list_screen
+	var passed: bool = Settings.debrief.get("passed", false)
 	Settings.debrief = {}
-	match label:
-		"replaymission":
-			screen = "jet" if list_screen in TO_JET else list_screen
-			_load_mission()
-		"newmission":
-			_go(list_screen)
-		"nextmission":
-			var parent := list_screen
-			var rows: Array = menus.get(String(menus.get(parent, {}).get("name", "")).to_lower(), {}).get("rows", [])
-			for i in rows.size() - 1:
-				if int(rows[i].id) == Settings.mission_id:
-					Settings.mission_id = int(rows[i + 1].id)
-					screen = parent
-					if parent in TO_JET:
-						jet_parent = parent
-						_go("jet")
-					else:
-						_load_mission()
-					return
-			_go(parent)
+	var id: int = Settings.mission_id
+	if label == "newmission":
+		_go(new_mission_screen(id))
+		return
+	if label == "nextmission":
+		id = next_mission(id, passed)
+		Settings.mission_id = id
+	elif label != "replaymission":
+		return
+	if id >= 300 and id <= 399:
+		if id >= 311 and id <= 319:
+			jet_parent = "basic"
+			_go("jet")
+		elif id >= 321 and id <= 329:
+			jet_parent = "combat"
+			_go("jet")
+		return
+	screen = new_mission_screen(id)
+	_load_mission()
 
 
-## TSD / Arming buttons (§8; Fly FUN_00502c90, Arming FUN_005057e0).
+## The list a mission belongs to (FUN_004ff620, single player): New Mission and the TSD's BACK go there.
+static func new_mission_screen(id: int) -> String:
+	for r in [[111, 117, "his1mis"], [121, 127, "his2mis"], [131, 137, "his3mis"], [211, 217, "fut1mis"],
+			[221, 227, "fut2mis"], [231, 237, "fut3mis"], [311, 315, "basic"], [321, 326, "combat"]]:
+		if id >= r[0] and id <= r[1]:
+			return r[2]
+	return "mc" if id == 0x213 or id == 0x29a else "main"
+
+
+## The mission Next Mission flies (FUN_004ff7e0; 0 = none, the button is disabled): the next one of the
+## war or course, a Future front's next only when this one was passed (FUN_004f6d40; or the "make sim" /
+## "not war" cheat, not ported). Not ported: the Jump_In pick for 401–407 (FUN_004f1650) and the
+## multiplayer-only 511–516 rules (single player gets 1 / 0 there).
+static func next_mission(id: int, passed: bool) -> int:
+	match id:
+		117:
+			return 121
+		127:
+			return 131
+		137:
+			return 211
+		315:
+			return 321
+		511, 512, 513, 514, 515:
+			return 1
+	if (id >= 111 and id <= 116) or (id >= 121 and id <= 126) or (id >= 131 and id <= 136) \
+			or (id >= 311 and id <= 314) or (id >= 321 and id <= 325):
+		return id + 1
+	if (id >= 211 and id <= 216) or (id >= 221 and id <= 226) or (id >= 231 and id <= 236):
+		return id + 1 if passed else 0
+	return 0
+
+
+## TSD / Arming buttons (§8; Fly FUN_005045b0, Arming FUN_005070c0).
 func _tsd_button(key: String, label: String, btn: Dictionary) -> void:
 	if btn.kind in ["Check", "CheckGroup"]:
 		if btn.kind == "CheckGroup":
@@ -1321,7 +1357,6 @@ func _draw_debrief() -> void:
 
 
 func _fly() -> void:
-	Settings.last_list = jet_parent if tsd_return == "jet" else tsd_return
 	# The route as left on the TSD (waypoints may have been dragged) and the flight picked there.
 	Settings.player_flight = 0
 	if tsd != null:
@@ -1344,7 +1379,7 @@ func _back_target() -> String:
 	return BACK.get(screen, "main")
 
 
-## Screen change (FUN_004e9f40): title tab and panels out, new screen, panels and title in.
+## Screen change (FUN_004eb760): title tab and panels out, new screen, panels and title in.
 func _go(to: String) -> void:
 	if not menus.has(to) or busy:
 		return
@@ -1384,7 +1419,7 @@ func _slide(to: float, wav: String) -> void:
 	await t.finished
 
 
-## Mission load (FUN_004ec6a0): wait.bmp in the content window, music fades out over 6 s,
+## Mission load (FUN_004edec0): wait.bmp in the content window, music fades out over 6 s,
 ## then the TSD.
 func _load_mission() -> void:
 	busy = true

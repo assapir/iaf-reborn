@@ -1,12 +1,12 @@
 # Explosions, debris and smoke of destroyed / damaged units (docs/damage.md §6). Timing, sizes,
-# speeds and counts are the original's (the Tgen explosion object FUN_00416850 and its per-flag
-# updates, the class switch FUN_0059b3b0, the damage-smoke emitter FUN_004d1990); the drawing is
+# speeds and counts are the original's (the Tgen explosion object FUN_00416880 and its per-flag
+# updates, the class switch FUN_0059df20, the damage-smoke emitter FUN_004d20a0); the drawing is
 # ours: soft procedural billboards in one MultiMesh per material instead of the 1998 sprite strips
 # (airexp1 / smoke3), and a short light for the one-frame lens flash.
 # Positions are Godot scene coordinates (metres, Y up).
 extends Node3D
 
-## Explosion flag bits (FUN_00416850 / FUN_00416a40, docs/damage.md §6.1).
+## Explosion flag bits (FUN_00416880 / FUN_00416a70, docs/damage.md §6.1).
 const F_SHATTER := 0x2
 const F_SMOKE_TRAILS := 0x8
 const F_FIREBALL := 0x10
@@ -20,7 +20,7 @@ const F_REST := 0x1000
 const F_FLASH := 0x4000
 const F_SMALL_FIRE := 0x10000000
 
-## World size of a sprite: full width = 0.2 · size · texture width (FUN_00410660; UNCERTAIN, see
+## World size of a sprite: full width = 0.2 · size · texture width (FUN_00410690; UNCERTAIN, see
 ## docs/damage.md §6.1): AirExp1 (128 px, size 10) and smoke3 (64 px, size 1).
 const FIREBALL_WIDTH := 0.2 * 10.0 * 128.0
 const SMALL_FIRE_WIDTH := FIREBALL_WIDTH * 0.15
@@ -29,7 +29,7 @@ const FIREBALL_TIME := 1.2
 const PUFF_TIME := 2.5
 ## Gravity of pieces and streamers: z -= 15 t² (g = 30 world units / s²).
 const PIECE_G := 30.0
-## Smoke column (FUN_00416ea0): 33 / (4 - detail) puffs, one every 1.6 s, visible from 0.3 s until
+## Smoke column (FUN_00416ed0): 33 / (4 - detail) puffs, one every 1.6 s, visible from 0.3 s until
 ## 36 / (4 - detail) s. The detail setting's default is not traced: the highest (3) is used.
 const COLUMN_DETAIL := 3
 ## Puff emitters (damage smoke, smoking pieces, streamers) spawn one puff per rendered frame in the
@@ -44,7 +44,7 @@ var _puffs: Array = []
 var _pieces: Array = []  # {node, vel, spin, age, life, rest_y, ground_y, large, delay, smoke_t}
 var _streamers: Array = []
 var _columns: Array = []  # {pos, age, n, end}
-var _smokers := {}  # Node3D -> accumulated time (damage smoke, FUN_004d1990)
+var _smokers := {}  # Node3D -> accumulated time (damage smoke, FUN_004d20a0)
 var _mm_smoke: MultiMeshInstance3D
 var _mm_fire: MultiMeshInstance3D
 ## Terrain height at a scene position (null when unknown), supplied by the host.
@@ -95,10 +95,10 @@ static func _soft_texture(fire: bool) -> Texture2D:
 	return ImageTexture.create_from_image(img)
 
 
-# --- the explosion object (FUN_00416850) ---------------------------------------------------------
+# --- the explosion object (FUN_00416880) ---------------------------------------------------------
 
-## What a destroyed unit's explosion looks like (FUN_0059b3b0) by unit class, bdb type code (0x5b4)
-## and where it is: `low` = below ground + 10.5 m (0x60db1c), `water` = terrain type 1 / 2 (our
+## What a destroyed unit's explosion looks like (FUN_0059df20) by unit class, bdb type code (0x5b4)
+## and where it is: `low` = below ground + 10.5 m (0x6119ec), `water` = terrain type 1 / 2 (our
 ## terrain has no types: never). Returns {flags, scale, duration} ({} = none); the constructor's
 ## scale 4 and the event duration 95 s unless the class says otherwise. Aircraft low on land also
 ## place a crater 1 s later (CreateCraterEv; the pool of class-0x1f objects is empty in the shipped
@@ -176,7 +176,7 @@ func _flash(pos: Vector3) -> void:
 	t.tween_callback(l.queue_free)
 
 
-## 0x2: the model shatters (FUN_00417280 / FUN_004175e0): each piece flies at
+## 0x2: the model shatters (FUN_004172b0 / FUN_00417610): each piece flies at
 ## (offset + base) · k · scale, k in {0.5, 1, 1.5}, base = 5 up with 0x80; spin up to ±0.96 rad/s;
 ## g = 30; life (1 + rand%100·0.01) · duration · 0.5; start delay 0..0.3 s unless 0x40. With 0x1000
 ## pieces come to rest at the origin altitude - 0.5 and lie there, else they vanish at the ground.
@@ -209,7 +209,7 @@ func _shatter(pos: Vector3, flags: int, scale: float, duration: float, ground_y:
 		})
 
 
-## 0x8 without 0x2 (FUN_004182b0): 12 smoke streamers every 30°, 5·scale sideways and 3·scale up,
+## 0x8 without 0x2 (FUN_004182e0): 12 smoke streamers every 30°, 5·scale sideways and 3·scale up,
 ## g = 30, each trailing puffs until it drops 1 m below the origin; then a 9 s smoke column.
 func _streamers_at(pos: Vector3, scale: float) -> void:
 	var s := {"pos": pos, "items": [], "t": 0.0}
@@ -219,7 +219,7 @@ func _streamers_at(pos: Vector3, scale: float) -> void:
 	_streamers.append(s)
 
 
-# --- damage smoke (FUN_004d1880 / FUN_004d1990) --------------------------------------------------
+# --- damage smoke (FUN_004d1f90 / FUN_004d20a0) --------------------------------------------------
 
 ## Start / stop the damage smoke of a unit: one 0x100 puff per frame at the unit.
 func set_smoke(node: Node3D, on: bool) -> void:
@@ -307,7 +307,7 @@ func _update_streamers(delta: float, step: float) -> void:
 			_streamers.remove_at(i)
 
 
-## 0x800 column (FUN_00416fd0): puff i is born at i·1.6 s, rises 2.5..5.8 m/s with ±1.5 m/s
+## 0x800 column (FUN_00417000): puff i is born at i·1.6 s, rises 2.5..5.8 m/s with ±1.5 m/s
 ## sideways, is visible from 0.3 s to 36/(4 - detail) s, width 12.8 m · (1 + 0.32·age), grey 10..79.
 func _update_columns(delta: float) -> void:
 	for i in range(_columns.size() - 1, -1, -1):

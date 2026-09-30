@@ -1,10 +1,10 @@
 # The original's sound categories as Godot audio buses (docs/sound.md §2).
-# soundprop.trx gives every sound a category: E = engine, F = effect, V/S = voice (FUN_004c7de0:
+# soundprop.trx gives every sound a category: E = engine, F = effect, V/S = voice (FUN_004c8580:
 # 1 / 2 / 3). The sound manager keeps one volume per category (manager+0x40+cat·4), set from the
-# Preferences Sound page (FUN_004c50d0(1, engine), (2, sfx), (3, speech), called by FUN_004fcb80 when
-# the preferences are applied), and multiplies each sound's table volume by it (FUN_004c4670).
-# Mute (pref d30) silences everything (FUN_004c5100 -> 0x542fa0 / 0x542ff0); the in-flight
-# "Mute sound toggle" (command 135, Ctrl+M) flips it (0x4e1ca2).
+# Preferences Sound page (FUN_004c5900(1, engine), (2, sfx), (3, speech), called by FUN_004fe430 when
+# the preferences are applied), and multiplies each sound's table volume by it (FUN_004c4ea0).
+# Mute (pref d30) silences everything (FUN_004c5930 -> 0x545040 / 0x545090); the in-flight
+# "Mute sound toggle" (command 135, Ctrl+M) flips it (0x4e3442).
 extends RefCounted
 
 const ENGINE := "IafEngine"
@@ -40,8 +40,8 @@ static func apply() -> void:
 		AudioServer.set_bus_mute(i, bool(s.mute))
 
 
-## The in-flight "Mute sound toggle" (command 135): flips the Mute preference (0x4e1ca2 toggles
-## DAT_00836d30, the Sound page's MUTE; whether it is saved with the preferences is UNCERTAIN, so
+## The in-flight "Mute sound toggle" (command 135): flips the Mute preference (0x4e3442 toggles
+## DAT_0083b8b8, the Sound page's MUTE; whether it is saved with the preferences is UNCERTAIN, so
 ## it is not saved here).
 static func toggle_mute() -> void:
 	var s := _settings()

@@ -69,7 +69,7 @@ var gear_legs := [2, 2, 2]
 var leg_timers := [0.0, 0.0, 0.0]
 var flaps_state := 0
 var flaps_timer := 0.0
-## Start (FUN_005a2a10, docs/flight-model.md §15.6.4): airborne or on the ground, engine running.
+## Start (FUN_005a5820, docs/flight-model.md §15.6.4): airborne or on the ground, engine running.
 var start_airborne := true
 var start_engine_on := true
 var start_pitch := 0.0
@@ -79,19 +79,20 @@ var start_roll := 0.0
 const AIR_START_SPEED := 180.0
 ## Airbases known from the exe (hard-coded spawn points, docs/formats/mis.md §5: X, Y, Z). The start
 ## rules test the nearest airbase (5 km / 15 m) and its runway start point (engine on within 100 m);
-## the full airbase table (54f100) is not decoded, so these three stand in (UNCERTAIN).
+## the full airbase table (551280) is not decoded, so these three stand in (UNCERTAIN).
 const AIRBASES := [Vector3(312984, 500459, 59), Vector3(356404, 602402, 28), Vector3(317439, 411135, 579)]
 ## Ejection (docs/part-animation.md "Ejection", docs/mission-runtime.md §5.4): the pilot left the jet.
 var ejected := false
-## "Eject (x3)" (FUN_00546280): presses less than EjectKeyTimeDistance apart count (sim time).
+## "Eject (x3)" (FUN_00548330): presses less than EjectKeyTimeDistance apart count (sim time).
 const EJECT_KEY_WINDOW := 1.0
 var _eject_count := 0
 var _eject_last := 0.0
-## The throw (crew object FUN_0053de30): every 0.05 s canopy and seat rise 3 m and move 1.5 m aft in
-## the jet frame until 100 m up; the seat starts after Eject/Interval (2 s) and then becomes the
-## parachuter. The jet flies on with the engine off and the stick at (0.1, push 0.2).
+## The throw (throwers FUN_0053f230 / FUN_0053fb00, tick FUN_0053f460): every 0.05 s canopy and seat
+## rise Eject/Speed (3 m) straight up, with no aft drift (v1.1; v1.0 also moved them 0.5·Speed aft),
+## until 100 m; the seat starts after Eject/Interval (2 s) and then becomes the parachuter. The jet
+## flies on with the engine off and the stick at (0.1, push 0.2).
 const EJECT_TICK := 0.05
-const EJECT_STEP := Vector3(0, 3.0, 1.5)
+const EJECT_STEP := Vector3(0, 3.0, 0)
 const EJECT_TOP := 100.0
 const EJECT_SEAT_DELAY := 2.0
 const EJECT_RADIO := 4.5
@@ -126,7 +127,7 @@ var player_flight_number := 0
 var sounds: Node
 var effects: Node3D
 var player_damage: RefCounted
-## The player's jet was fatally hit (unit state 3, FUN_004a7880): controls gone, going down.
+## The player's jet was fatally hit (unit state 3, FUN_004a8100): controls gone, going down.
 var fatal_hit := false
 ## The player's jet exploded in the air (not a crash): it is no longer drawn.
 var jet_gone := false
@@ -232,7 +233,7 @@ func _choose_start(args: PackedStringArray) -> void:
 		origin = Vector2(player["0x2e4"], player["0x2ee"])
 		alt = float(player["0x2f8"])
 		heading = float(player["0x302"])
-		# FUN_005a2a10: airborne above 800 m unless at a base; a ground start has gear down, full
+		# FUN_005a5820: airborne above 800 m unless at a base; a ground start has gear down, full
 		# flaps, brakes on, throttle 0, and the engine runs only within 100 m of the runway start point.
 		var near_base := false
 		start_engine_on = false
@@ -264,7 +265,7 @@ func _choose_start(args: PackedStringArray) -> void:
 
 ## The player's aircraft entity from a mission (menu id -> missionlist -> main .mis): the leader of
 ## the flight picked on the TSD, else of flight 1, 2, 3, 4 (mission_runtime.gd player_flight(),
-## FUN_004bab1c). It starts at that entity's position, altitude and heading (start rules in
+## FUN_004bb439). It starts at that entity's position, altitude and heading (start rules in
 ## _choose_start). Only the F-16 flies today: another jet type is logged and flown as the F-16.
 func _mission_player() -> Dictionary:
 	var files := MissionRuntime.mission_files(mission_id)
@@ -332,7 +333,7 @@ func _spawn_mission_objects() -> void:
 			continue
 		var obj: Dictionary = objs.get(ent.type, {})
 		var path: String = paths.get(str(int(obj.get("0x53c", -1))), "")
-		# Classes 0x11, 0x12 (fire sensors), 0x1b are never drawn (FUN_004b7330).
+		# Classes 0x11, 0x12 (fire sensors), 0x1b are never drawn (FUN_004b7c4d).
 		if path == "" or ent.klass in [0x11, 0x12, 0x1b]:
 			continue
 		if not scenes.has(path):
@@ -346,7 +347,7 @@ func _spawn_mission_objects() -> void:
 		ent["airborne_class"] = int(obj.get("0x5aa", -1)) in [2, 3, 0x1c]
 		add_child(node)
 		node.rotation.y = -deg_to_rad(float(_entity_heading(files, ent)))
-		# Collision radius (FUN_0043b250): 0.25 · (sx + sy + sz) of the model's extents (UNCERTAIN:
+		# Collision radius (FUN_0043b1c0): 0.25 · (sx + sy + sz) of the model's extents (UNCERTAIN:
 		# full or half extents; full used).
 		var box := _model_aabb(node)
 		ent["coll_radius"] = 0.25 * (box.size.x + box.size.y + box.size.z)
@@ -451,17 +452,17 @@ func mission_player_fall(p: Vector3, a: Vector3) -> void:
 	rig.basis = Basis.from_euler(Vector3(deg_to_rad(a.x), deg_to_rad(-a.z), deg_to_rad(-a.y)), EULER_ORDER_YXZ)
 
 
-## The player's jet was hit and is still alive (FUN_0044c8c0 via the runtime).
+## The player's jet was hit and is still alive (FUN_0044d590 via the runtime).
 func mission_player_hit(ent: Dictionary, _source: Dictionary, kind: String) -> void:
 	player_damage.hit(ent.damage, kind, _sim_time)
 
 
-## Damage smoke on / off (FUN_004d1880 / FUN_004d18e0).
+## Damage smoke on / off (FUN_004d1f90 / FUN_004d1ff0).
 func mission_entity_smoke(ent: Dictionary, on: bool) -> void:
 	effects.set_smoke(rig if ent.player else ent.node, on)
 
 
-## A unit changed state (FUN_004a7880 at 3, FUN_004a7e30 at 4 / 5).
+## A unit changed state (FUN_004a8100 at 3, FUN_004a86b0 at 4 / 5).
 func mission_entity_state(ent: Dictionary) -> void:
 	match ent.state:
 		3:
@@ -476,14 +477,14 @@ func mission_entity_state(ent: Dictionary) -> void:
 ## State 3 of a unit: the damaged model where the data has one (Present display 2), and an
 ## aircraft goes down (crash motion 0x14).
 func _entity_fatally_hit(ent: Dictionary) -> void:
-	# Buildings (classes 0xc, 0xd, 0x1d) get a burned copy (FUN_0053c8d0(1, 0.25)); the other
+	# Buildings (classes 0xc, 0xd, 0x1d) get a burned copy (FUN_0053e2a0(1, 0.25)); the other
 	# classes' damaged model is their normal one.
 	if ent.node != null and ent.klass in [0xc, 0xd, 0x1d]:
 		_burned_copy(ent.node, 0.25, ent.get("max_extent", 10.0))
 
 
-## State 3 of the player (FUN_004a7880): control mode 0 (the keys no longer fly the jet; Eject still
-## works, FUN_005464f0 accepts state 3), "Eject! Eject!" (VOC_WINGMAN / WINGMAN_EJECT_EJECT) and the
+## State 3 of the player (FUN_004a8100): control mode 0 (the keys no longer fly the jet; Eject still
+## works, FUN_005485a0 accepts state 3), "Eject! Eject!" (VOC_WINGMAN / WINGMAN_EJECT_EJECT) and the
 ## outside view on the jet (view 0x10; canopy and pilot are drawn from outside anyway).
 func _player_fatally_hit() -> void:
 	fatal_hit = true
@@ -492,7 +493,7 @@ func _player_fatally_hit() -> void:
 	in_cockpit = false
 
 
-## The final status (FUN_004a7e30): the explosion of the unit's class at its position (FUN_0059b3b0)
+## The final status (FUN_004a86b0): the explosion of the unit's class at its position (FUN_0059df20)
 ## with SFX_AIRCRAFT_EXPLODED (the player's crash explosion is played by FlightSounds), the smoke
 ## stops, and the unit is gone (its destroyed model where the data has one).
 func _entity_final(ent: Dictionary) -> void:
@@ -511,7 +512,7 @@ func _entity_final(ent: Dictionary) -> void:
 	if ent.player:
 		_player_final()
 	elif ent.node != null:
-		# The destroyed model: buildings of types 400 / 410 stay as a burned copy (FUN_0053c8d0(0,
+		# The destroyed model: buildings of types 400 / 410 stay as a burned copy (FUN_0053e2a0(0,
 		# 0.5)); every other unit's destroyed model is the empty dummy, so it vanishes.
 		if ent.klass in [0xc, 0xd, 0x1d] and ent.type_code in [400, 410]:
 			_burned_copy(ent.node, 0.5, ent.get("max_extent", 10.0))
@@ -520,7 +521,7 @@ func _entity_final(ent: Dictionary) -> void:
 
 
 ## The player's jet exploded (crash or shot down): its destroyed model is the empty dummy (class 0x1c,
-## FUN_004b7330), so it is gone; the outside view (0x10) stays on the spot and the flight ends 5 s
+## FUN_004b7c4d), so it is gone; the outside view (0x10) stays on the spot and the flight ends 5 s
 ## later (rule 1, event 0x82).
 func _player_final() -> void:
 	fm_stopped = true
@@ -528,7 +529,7 @@ func _player_final() -> void:
 	jet_gone = true
 
 
-## createBurnedCopy (FUN_0041f950): each vertex, with probability `p`, moves by
+## createBurnedCopy (FUN_0041f980): each vertex, with probability `p`, moves by
 ## (rand%200 - 100) · max extent · 1e-4 per axis and turns dark (diffuse 0xFF141414); the others keep
 ## their colour. Applied to the unit's model in place (vertex colours on duplicated materials).
 func _burned_copy(node: Node3D, p: float, max_extent: float) -> void:
@@ -561,7 +562,7 @@ func _burned_copy(node: Node3D, p: float, max_extent: float) -> void:
 		mi.mesh = out
 
 
-## Collisions of the player's jet with units (FUN_0043c1f0 -> FUN_0043b3d0), every frame: a unit
+## Collisions of the player's jet with units (FUN_0043c140 -> FUN_0043b340), every frame: a unit
 ## whose collision group is in the aircraft mask (0x1b: sites and buildings, aircraft, vehicles,
 ## boats) and whose centre is closer than its radius. Both are destroyed (level 5): the jet unless
 ## Invulnerable, the other unless shielded. Hidden units are skipped (UNCERTAIN: whether a hidden
@@ -625,10 +626,10 @@ func mission_play_wav(wav: String) -> void:
 		_voice.play()
 
 
-## Subtitle console (FUN_004491c0): wrapped at the last space before 40 characters, first letter
+## Subtitle console (FUN_0044a060): wrapped at the last space before 40 characters, first letter
 ## upper-cased; the newest 14 lines are shown (drawn by the cockpit HUD layer).
 func _on_subtitle(text: String) -> void:
-	# FUN_004491c0: first letter upper-cased, wrapped at the last space before 40 characters.
+	# FUN_0044a060: first letter upper-cased, wrapped at the last space before 40 characters.
 	var t := text
 	if t == "":
 		return
@@ -648,7 +649,7 @@ func _console_push(line: String) -> void:
 		_console.fill("")
 	_console.pop_front()
 	_console.append(line)
-	# Drawn: the non-empty lines among the newest 14 slots, oldest on top (FUN_0051e6a0).
+	# Drawn: the non-empty lines among the newest 14 slots, oldest on top (FUN_005201b0).
 	var shown: Array[String] = []
 	for l in _console.slice(CONSOLE_SLOTS - 14):
 		if l != "":
@@ -656,7 +657,7 @@ func _console_push(line: String) -> void:
 	cockpit.subtitles = shown
 
 
-## The 3 s ticker (0x4d7ec0): pushes the empty string; fires on the first frame, then every 3 s.
+## The 3 s ticker (0x4d95e0): pushes the empty string; fires on the first frame, then every 3 s.
 func _console_update(sim_time: float) -> void:
 	if _console_tick < 0.0 or sim_time >= _console_tick:
 		_console_tick = sim_time + 3.0
@@ -750,7 +751,7 @@ func _start_flight() -> void:
 func _on_crashed(reason: String) -> void:
 	crashed = true
 	print("player crashed: ", reason)
-	# The crash is a level-5 destruction of the player's unit (FUN_005b87d0 -> FUN_004a8280(0, 5)):
+	# The crash is a level-5 destruction of the player's unit (FUN_005bb9f0 -> FUN_004a8ae0(0, 5)):
 	# destroy event, explosion, role rules (after an ejection they were already settled).
 	if runtime != null and not runtime.player_entity().is_empty():
 		runtime.player_destroyed()
@@ -823,7 +824,7 @@ func _update_indicators(delta: float) -> void:
 			leg_timers[i] -= delta
 			if leg_timers[i] <= 0.0:
 				gear_legs[i] = 2 if gear_down else 0
-	# With both main legs up the nose leg reads up (FUN_0045a6a0).
+	# With both main legs up the nose leg reads up (FUN_0045b150).
 	if gear_legs[1] == 0 and gear_legs[2] == 0:
 		gear_legs[0] = 0
 	if flaps_state == 1:
@@ -856,7 +857,7 @@ func _record(st: Dictionary, delta: float) -> void:
 	_log.flush()
 
 
-## Any throttle command starts the engine (FUN_0059cb60 sets S+0x1d0), even at idle.
+## Any throttle command starts the engine (FUN_0059f7d0 sets S+0x1d0), even at idle.
 func _throttle_event() -> void:
 	if flight != null:
 		flight.set_engine_on(true)
@@ -868,7 +869,7 @@ func _throttle_event() -> void:
 ## is refused above 300 kt true airspeed; both silently.
 func _toggle_gear() -> void:
 	if player_damage.flags[7]:
-		return  # gear damage: no leg can move, the command is ignored (FUN_0044ee10)
+		return  # gear damage: no leg can move, the command is ignored (FUN_0044f970)
 	if flight == null:
 		gear_down = not gear_down
 		return
@@ -926,7 +927,7 @@ func _command(cmd: Array) -> bool:
 		2, 3, 10:
 			return true  # roll / pitch / rudder: held keys, polled in _read_controls
 		9:
-			# Throttle presets 1-8: GEV 9 -> motion 2 with p1 * 0.01 (FUN_0044de50).
+			# Throttle presets 1-8: GEV 9 -> motion 2 with p1 * 0.01 (FUN_0044e470).
 			throttle = p1 * 0.01
 			_throttle_event()
 		5:
@@ -1039,7 +1040,7 @@ func _process(delta: float) -> void:
 		if waiting_for_ground and terrain.height_at(rig.position) != null:
 			waiting_for_ground = false
 			_spawn_mission_objects()
-		# A fatally hit jet leaves the flight model (frozen by FUN_005a3700) for the destruction
+		# A fatally hit jet leaves the flight model (frozen by FUN_005a6510) for the destruction
 		# motion, which the mission runtime drives (mission_player_fall).
 		if not frozen and not waiting_for_ground and not fm_stopped:
 			flight.step(delta)
@@ -1130,7 +1131,7 @@ func _read_controls(delta: float) -> void:
 
 # --- ejection -----------------------------------------------------------------------------------
 
-## "Eject (x3)" (command 18, FUN_00546280): three presses, each less than 1 s after the previous one.
+## "Eject (x3)" (command 18, FUN_00548330): three presses, each less than 1 s after the previous one.
 ## Nothing is shown or said per press.
 func _eject_key() -> void:
 	if ejected or crashed:
@@ -1149,7 +1150,7 @@ func _eject_key() -> void:
 			_eject_last = now
 
 
-## FUN_005464f0: engine off, stick fixed, controls ignored; the jet flies on until it crashes. The
+## FUN_005485a0: engine off, stick fixed, controls ignored; the jet flies on until it crashes. The
 ## mission counts the player as lost at once (debrief 5 s later). Low (short ejection): no seat
 ## flight or camera, straight to the end (the original jumps to its in-flight TSD, not built here).
 func _eject() -> void:

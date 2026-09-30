@@ -36,7 +36,7 @@ func run() -> void:
 		"SoundProp.trx: dry thrust = Cock_Eng_Brnr, looped, 0.75 inside")
 	check(fs.table.stream(fs.table.row("SFX_LANDING_GEAR")) != null, "gear.wav resolves case-insensitively")
 
-	# Engine (FUN_004c35d0): off -> SFX_LANDING, running -> StartEngine with the RPM pitch, AB -> burner.
+	# Engine (FUN_004c3e00): off -> SFX_LANDING, running -> StartEngine with the RPM pitch, AB -> burner.
 	fs.update(_state({"on_ground": true, "gear": 0.0}), _inp({"gear_down": true}))
 	check(fs.engine_code == "SFX_LANDING", "engine off: SFX_LANDING (near-silent Landing.wav)")
 	fs.update(_state({"on_ground": true, "gear": 0.0, "rpm": 0.6}), _inp({"gear_down": true}))
@@ -85,7 +85,7 @@ func run() -> void:
 	check(_count(fs, "SFX_AIRCRAFT_EXPLODED/None") == 1 and fs.engine_code == "", "crash: explosion, engine stops")
 	fs.queue_free()
 
-	# Betty only on the types that carry it (FUN_00447280): the Mirage (190) has none.
+	# Betty only on the types that carry it (FUN_00447e70): the Mirage (190) has none.
 	fs = FlightSounds.create(null, 190)
 	root.add_child(fs)
 	for i in 3:

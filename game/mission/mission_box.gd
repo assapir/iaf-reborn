@@ -46,7 +46,7 @@ func _origin() -> Vector2:
 
 
 ## Button x in the box, top at H - 5/3 bh: one centred; two at W/2 - bw - bw/4 and W/2 + bw/4;
-## Yes / No / Cancel (type 3, 4e3195) at W/2 - 2 bw, W/2 - bw/2 and W/2 + bw; the other three-button
+## Yes / No / Cancel (type 3, 4e4480) at W/2 - 2 bw, W/2 - bw/2 and W/2 + bw; the other three-button
 ## box (DEBRIEF / CONTINUE / EXIT) spread by a quarter button.
 func button_xs() -> Array:
 	var bw := BUTTON.x

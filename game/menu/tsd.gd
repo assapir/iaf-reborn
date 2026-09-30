@@ -6,7 +6,7 @@ extends Control
 
 ## Content window (TSD client) in 640x480 space.
 const CLIENT := Rect2(155, 42, 453, 357)
-## Map extent at zoom 1 (0x6040e0/e4).
+## Map extent at zoom 1 (0x607fa8/e4).
 const MAP_SIZE := Vector2(454, 590)
 const ZOOM_STEP := 1.5
 const ZOOM_MAX := 32.0
@@ -20,7 +20,7 @@ const BAR_ART := ["h", "v"]
 const BAR_ARROWS := [["left", "right"], ["up", "down"]]
 ## Scroll arrow step: 5 map units (round(5·z) px).
 const ARROW_STEP := 5.0
-## World -> map (FUN_004ff5a0): X shift = DataXShiftPR, Y shift, width / height of the world.
+## World -> map (FUN_00500ec0): X shift = DataXShiftPR, Y shift, width / height of the world.
 const WORLD_X_SHIFT := 166850.0
 const WORLD_Y_SHIFT := 21144.0
 const WORLD_W := 819200.0
@@ -29,7 +29,7 @@ const MAP_X_FACTOR := 1.0071394
 ## Flight colours 1..4 (Alpha..Delta), 5-6 white.
 const FLIGHT_COLORS := [Color8(226, 0, 180), Color8(4, 178, 39), Color8(0, 82, 250), Color8(215, 134, 1), Color.WHITE, Color.WHITE]
 const FLIGHT_NAMES := ["alpha", "bravo", "charlie", "delta"]
-## Flyable type codes (FUN_00503e50).
+## Flyable type codes (FUN_00505730).
 const FLYABLE_TYPES := [100, 110, 120, 130, 140, 160, 180, 190, 200]
 ## bdb object class (0x5aa) -> icon class: 1 aircraft, 2 ship, 3 structure, 4 vehicle, 5 SAM, 6 AAA.
 const ICON_CLASS := {2: 1, 3: 1, 0x1c: 1, 0xf: 2, 0x10: 2, 0xc: 3, 0xd: 3, 0x1d: 3, 0x1e: 3, 5: 4, 6: 4, 8: 5, 9: 5, 10: 6}
@@ -73,7 +73,7 @@ func setup(front_end: Control, mission: int) -> void:
 	mission_id = mission
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_PASS
-	# Missions 110–119 use the 1967 map, 120–129 the 1973 map (FUN_004fe280).
+	# Missions 110–119 use the 1967 map, 120–129 the 1973 map (FUN_004ffba0).
 	if mission_id >= 110 and mission_id <= 119:
 		map_name = "67"
 	elif mission_id >= 120 and mission_id <= 129:
@@ -97,12 +97,12 @@ func setup(front_end: Control, mission: int) -> void:
 	_load_units()
 
 
-## World (mission) coordinates -> TSD map units (FUN_004ff5a0).
+## World (mission) coordinates -> TSD map units (FUN_00500ec0).
 static func world_to_map(x: float, y: float) -> Vector2:
 	return Vector2((x + WORLD_X_SHIFT) * MAP_SIZE.x * MAP_X_FACTOR / WORLD_W, MAP_SIZE.y - (y + WORLD_Y_SHIFT) * MAP_SIZE.y / WORLD_H)
 
 
-## Inverse (FUN_004ff650).
+## Inverse (FUN_00500f70).
 static func map_to_world(m: Vector2) -> Vector2:
 	return Vector2(m.x * WORLD_W / (MAP_SIZE.x * MAP_X_FACTOR) - WORLD_X_SHIFT, (MAP_SIZE.y - m.y) * WORLD_H / MAP_SIZE.y - WORLD_Y_SHIFT)
 
@@ -176,8 +176,8 @@ func _load_units() -> void:
 			for i in alive:
 				units[i].flight = n
 		first = false
-	# The default selection is the flight holding the player object (FUN_005b9bc0), which is the
-	# leader of flight 1, else 2, 3, 4 (FUN_004bab1c; mission_runtime.gd player_flight()).
+	# The default selection is the flight holding the player object (FUN_005bcd70), which is the
+	# leader of flight 1, else 2, 3, 4 (FUN_004bb439; mission_runtime.gd player_flight()).
 	for n in [1, 2, 3, 4]:
 		if flights.has(n):
 			select_flight(n)
@@ -189,7 +189,7 @@ func default_flight() -> int:
 	return int(units[selected].flight) if selected >= 0 else 0
 
 
-## Alpha..Delta enable rule (FUN_00503f40).
+## Alpha..Delta enable rule (FUN_00505820).
 func flight_enabled(n: int) -> bool:
 	if not flights.has(n) or n > 4:
 		return false
@@ -234,7 +234,7 @@ func _clamp_scroll() -> void:
 	scroll = scroll.clamp(Vector2.ZERO, (MAP_SIZE - _view_size()).max(Vector2.ZERO))
 
 
-## Zoom, then centre the selected unit, or keep the view centre (5019b0).
+## Zoom, then centre the selected unit, or keep the view centre (5032d0).
 func zoom_by(factor: float) -> void:
 	var centre: Vector2 = units[selected].pos if selected >= 0 else scroll + _view_size() / 2
 	var new_zoom := clampf(zoom * factor, 1.0, ZOOM_MAX)
@@ -301,8 +301,8 @@ func _new_window(r: Rect2, tab: String) -> Control:
 	return w
 
 
-## Briefing text in the current language; "<header>" becomes "<rank> <callsign>" (DAT_00836c98 /
-## DAT_00836cac); no pilot records yet: a new pilot's rank.
+## Briefing text in the current language; "<header>" becomes "<rank> <callsign>" (DAT_0083b820 /
+## DAT_0083b834); no pilot records yet: a new pilot's rank.
 func _text_of(entry: Dictionary) -> String:
 	var lang := "he" if fe._he() else "en"
 	var text: String = entry.get("text", {}).get(lang, "")
@@ -321,7 +321,7 @@ func _link_names(entry: Dictionary) -> Array:
 	return names
 
 
-## A link opens a window by its .brl type (FUN_005013b0); an open slot is reused.
+## A link opens a window by its .brl type (FUN_00502cd0); an open slot is reused.
 func _on_link(name: String, entry: Dictionary) -> void:
 	var names := _link_names(entry)
 	var i := names.find(name)
@@ -396,7 +396,7 @@ func _thumb(axis: int) -> float:
 	return r.x if room <= 0.0 else lerpf(r.x, r.y, scroll[axis] / room)
 
 
-## Labels of text.emf: re-issued at their map position without scaling (4ff740); then units,
+## Labels of text.emf: re-issued at their map position without scaling (501060); then units,
 ## waypoints and the mission title / clock.
 func _draw_overlay() -> void:
 	var s: float = fe._scale()
@@ -431,7 +431,7 @@ func _unit_visible(u: Dictionary) -> bool:
 	return fe.tsd_checks.get("%s%d" % [filter, 1 if u.side == 1 else 2], true)
 
 
-## Unit icons (FUN_005035c0), centred on the unit; plain copies of the icon cell.
+## Unit icons (FUN_00504ea0), centred on the unit; plain copies of the icon cell.
 func _draw_units(s: float) -> void:
 	for i in units.size():
 		var u: Dictionary = units[i]
@@ -519,7 +519,7 @@ func _gui_input(event: InputEvent) -> void:
 
 
 ## Map clicks (client coordinates): drag a waypoint of the selected flight (within 10 px,
-## FUN_005034f0); double-click an own flight leader of a flyable type to fly it (FUN_005005d0).
+## FUN_00504dd0); double-click an own flight leader of a flyable type to fly it (FUN_00501ef0).
 func _map_input(event: InputEvent, c: Vector2) -> bool:
 	if not Rect2(Vector2.ZERO, CLIENT.size).has_point(c) and drag_wp < 0:
 		return false

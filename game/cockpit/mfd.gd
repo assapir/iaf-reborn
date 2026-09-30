@@ -10,11 +10,11 @@ const BEZEL := 16.0
 const GREEN := Color8(0, 255, 0)
 const DIM_GREEN := Color8(0, 128, 0)
 
-## Pages (state+0x4fc): 0 NAV, 1 stores, 2 radar, 3 TSD, 4 damage, 5 TV, 6 FLIR, 7 RWR, 8 MENU,
+## Pages (state+0x504): 0 NAV, 1 stores, 2 radar, 3 TSD, 4 damage, 5 TV, 6 FLIR, 7 RWR, 8 MENU,
 ## 9 ADI, 10 HARM.
 enum { NAV, STORES, RADAR, TSD, DAMAGE, TV, FLIR, RWR, MENU, ADI, HARM }
 
-## mfds.bmp tiles (table 0x658cd8), by page / radar mode.
+## mfds.bmp tiles (table 0x65d068), by page / radar mode.
 const TILE_BLANK := Vector2(0, 0)
 const TILE_RWR := Vector2(132, 0)
 const TILE_STORES := Vector2(0, 132)
@@ -25,7 +25,7 @@ const TILE_FLIR := Vector2(0, 660)
 const TILE_GMT := Vector2(132, 660)
 const TILE_TV := Vector2(0, 792)
 
-## Radar sub-modes (state+0x9fc) and their labels.
+## Radar sub-modes (state+0xa04) and their labels.
 const RADAR_MODES := ["OFF", "STBY", "STT", "BORE", "LRS", "TWS", "ACM", "GMT", "MAP"]
 const RADAR_RANGES := [5, 10, 20, 40, 80, 160]
 const TSD_SCALES := [10, 20, 40, 80]
@@ -38,7 +38,7 @@ var radar_mode := 4
 var radar_range := 2
 var radar_last_aa := 4
 var radar_last_ag := 7
-## TSD: scale (+0x2794, default 40) and the SAM / WPT / MAP / SCL options (default on).
+## TSD: scale (+0x279c, default 40) and the SAM / WPT / MAP / SCL options (default on).
 var tsd_scale := 40
 var tsd_options := [true, true, true, true]
 var nav_scroll := 0
@@ -84,7 +84,7 @@ func _tile(at: Vector2) -> void:
 	_blit(Rect2(at, Vector2(SIZE, SIZE)), Vector2.ZERO)
 
 
-## 5x5 sprite font (FUN_00523d70): letters from (132,850), digits and symbols from (132,840).
+## 5x5 sprite font (FUN_00525890): letters from (132,850), digits and symbols from (132,840).
 static func _glyph_x(c: String) -> int:
 	var u := c.unicode_at(0)
 	if u >= 65 and u <= 90:
@@ -165,7 +165,7 @@ func _draw_radar() -> void:
 		_draw_horizon_bars()
 
 
-## Artificial horizon bars (FUN_00531b00): centre (66,66), rolled, 1 px per degree of pitch.
+## Artificial horizon bars (FUN_00533620): centre (66,66), rolled, 1 px per degree of pitch.
 func _draw_horizon_bars() -> void:
 	var st: Dictionary = cockpit.state
 	var pitch := clampf(st.pitch, -40.0, 40.0)
@@ -212,8 +212,8 @@ func _draw_stores() -> void:
 	_text(Vector2(55, 124), "Fuel : %5dLB" % int(cockpit.state.fuel_lbs))
 
 
-## Damage page rows (FUN_0052a0d0): format, x, y, the damage flags that make it NOGO (cockpit state
-## +0x550 + 4n = the controller's damage flags, docs/damage.md §5). "ENG %s %s" / "AB %s %s" take
+## Damage page rows (FUN_0052bc00): format, x, y, the damage flags that make it NOGO (cockpit state
+## +0x558 + 4n = the controller's damage flags, docs/damage.md §5). "ENG %s %s" / "AB %s %s" take
 ## "L" on twin-engine jets (else ""); the ENG R / AB R rows appear on twin-engine jets only.
 const DAMAGE_ROWS := [
 	["ENG %s %s", 12, 10, [22, 16, 2]], ["AB %s %s", 72, 10, [8]], ["INS  %s", 72, 34, [11]],
@@ -259,7 +259,7 @@ func _draw_adi() -> void:
 		y += 1.0
 
 
-## TSD page (FUN_0052ff30): heading-up, ownship at (65,85), 1 px = 112·scale m.
+## TSD page (FUN_00531a50): heading-up, ownship at (65,85), 1 px = 112·scale m.
 func _draw_tsd() -> void:
 	_tile(TILE_TSD)
 	var st: Dictionary = cockpit.state
@@ -317,7 +317,7 @@ func _draw_tsd() -> void:
 	_blit(Rect2(132 + 8 * TSD_SCALES.find(tsd_scale), 845, 8, 5), Vector2(1, 33))
 
 
-# --- bezel buttons (FUN_0051f2a0 hit test, FUN_0051fed0 actions) ---------------------------------
+# --- bezel buttons (FUN_00520db0 hit test, FUN_005219e0 actions) ---------------------------------
 
 ## OSB id under an MFD-local point: top 1-5, bottom 6-10, left 11-15, right 16-20; -1 = none.
 static func osb_at(p: Vector2) -> int:
