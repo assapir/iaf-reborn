@@ -114,11 +114,25 @@ var _chute_t0 := 0.0
 ## The crash was handled (flight ends like the original's player death).
 var crashed := false
 const MissionRuntime := preload("res://mission/mission_runtime.gd")
+const DamageModel := preload("res://mission/damage_model.gd")
 ## The only flyable jet today (bdb type code 100).
 const F16_TYPE := 100
 ## The mission entity the player flies (0x1e of the main file) and its flight (1..4); -1 / 0 = none.
 var player_entity_id := -1
 var player_flight_number := 0
+## The flight-sounds node (game/audio/flight_sounds.gd), the damage effects layer and the player's
+## systems damage (docs/damage.md).
+var sounds: Node
+var effects: Node3D
+var player_damage: RefCounted
+## The player's jet was fatally hit (unit state 3, FUN_004a7880): controls gone, going down.
+var fatal_hit := false
+## The player's jet exploded in the air (not a crash): it is no longer drawn.
+var jet_gone := false
+## The flight model no longer moves the jet (fatal hit: the destruction motion; exploded).
+var fm_stopped := false
+## Camera shake of a hit (FM motion 0xd): amplitude, decays (ours: the FM shake is not traced).
+var _shake := 0.0
 
 
 func _ready() -> void:
@@ -162,7 +176,16 @@ func _ready() -> void:
 	g_effects.disabled = Settings.no_blackouts
 	$CockpitLayer.add_child(g_effects)
 	# In-flight sounds of your jet (game/audio/flight_sounds.gd, docs/sound.md); polls this node.
-	add_child(preload("res://audio/flight_sounds.gd").create(self, 100))
+	sounds = preload("res://audio/flight_sounds.gd").create(self, F16_TYPE)
+	add_child(sounds)
+	# Explosions, debris and smoke (docs/damage.md §6) and the player's systems damage (§5).
+	effects = preload("res://mission/damage_effects.gd").new()
+	effects.ground_at = func(p: Vector3): return terrain.height_at(p)
+	add_child(effects)
+	player_damage = preload("res://mission/player_damage.gd").new()
+	player_damage.host = self
+	player_damage.betty = F16_TYPE in sounds.BETTY_TYPES
+	cockpit.damage_flags = player_damage.flags
 	cockpit.waypoints = route
 	_start_flight()
 	_apply_view()
@@ -331,7 +354,8 @@ func _spawn_mission_objects() -> void:
 			continue
 		var obj: Dictionary = objs.get(ent.type, {})
 		var path: String = paths.get(str(int(obj.get("0x53c", -1))), "")
-		if path == "":
+		# Classes 0x11, 0x12 (fire sensors), 0x1b are never drawn (FUN_004b7330).
+		if path == "" or ent.klass in [0x11, 0x12, 0x1b]:
 			continue
 		if not scenes.has(path):
 			var doc := GLTFDocument.new()
@@ -344,8 +368,27 @@ func _spawn_mission_objects() -> void:
 		ent["airborne_class"] = int(obj.get("0x5aa", -1)) in [2, 3, 0x1c]
 		add_child(node)
 		node.rotation.y = -deg_to_rad(float(_entity_heading(files, ent)))
+		# Collision radius (FUN_0043b250): 0.25 · (sx + sy + sz) of the model's extents (UNCERTAIN:
+		# full or half extents; full used).
+		var box := _model_aabb(node)
+		ent["coll_radius"] = 0.25 * (box.size.x + box.size.y + box.size.z)
+		ent["max_extent"] = maxf(box.size.x, maxf(box.size.y, box.size.z))
 		mission_entity_moved(ent)
 	runtime.start()
+
+
+## The model's bounds in its own frame (all meshes).
+static func _model_aabb(node: Node3D) -> AABB:
+	var box := AABB()
+	var first := true
+	for m in node.find_children("*", "MeshInstance3D", true, false):
+		var mi := m as MeshInstance3D
+		if mi.mesh == null:
+			continue
+		var b: AABB = (node.global_transform.affine_inverse() * mi.global_transform) * mi.get_aabb() if node.is_inside_tree() else mi.get_aabb()
+		box = b if first else box.merge(b)
+		first = false
+	return box
 
 
 static func _entity_heading(files: Array, ent: Dictionary) -> float:
@@ -383,11 +426,216 @@ func mission_entity_moved(ent: Dictionary) -> void:
 	if ground != null and not (ent.get("airborne_class", false) and pos.y > ground + 10.0):
 		pos.y = ground
 	node.position = pos
+	ent["alt"] = pos.y  # the altitude the unit stands at (blast distances, reached checks)
+	if ent.has("angles"):
+		var a: Vector3 = ent.angles  # destruction motion attitude (pitch, roll, heading)
+		node.basis = Basis.from_euler(Vector3(deg_to_rad(a.x), deg_to_rad(-a.z), deg_to_rad(-a.y)), EULER_ORDER_YXZ)
 
 
 func mission_entity_visible(ent: Dictionary) -> void:
 	if ent.node != null:
 		ent.node.visible = ent.visible
+
+
+# --- damage and destruction host (docs/damage.md) -------------------------------------------------
+
+## A gameplay preference the damage rules read (Preferences > Gameplay): "invulnerable", "ai_level".
+func mission_pref(name: String) -> Variant:
+	var v = Settings.get(name)
+	if name == "ai_level":
+		return 1 if v == null else int(v)
+	return false if v == null else bool(v)
+
+
+## Scene position of a unit (the player: the jet).
+func _entity_scene_pos(ent: Dictionary) -> Vector3:
+	if ent.player:
+		return rig.position
+	if ent.node != null:
+		return ent.node.position
+	var w: Vector3 = ent.world
+	return Vector3(w.x - terrain.world_origin.x, w.z, -(w.y - terrain.world_origin.y))
+
+
+## Terrain height (m) under a world position (X, Y, alt); null where not loaded.
+func mission_ground(w: Vector3) -> Variant:
+	return terrain.height_at(Vector3(w.x - terrain.world_origin.x, 0, -(w.y - terrain.world_origin.y)))
+
+
+## A unit's attitude (pitch, roll, heading, degrees) and world velocity (X east, Y north, up m/s)
+## when its destruction motion starts.
+func mission_unit_motion(ent: Dictionary) -> Array:
+	if ent.player and flight != null:
+		var st: Dictionary = flight.state()
+		var v: Vector3 = st.velocity
+		return [Vector3(st.pitch, st.roll, st.heading), Vector3(v.x, -v.z, v.y)]
+	return [Vector3(0, 0, ent.heading), ent.vel]
+
+
+## The player's jet on its destruction motion: world position and attitude (degrees).
+func mission_player_fall(p: Vector3, a: Vector3) -> void:
+	rig.position = Vector3(p.x - terrain.world_origin.x, p.z, -(p.y - terrain.world_origin.y))
+	rig.basis = Basis.from_euler(Vector3(deg_to_rad(a.x), deg_to_rad(-a.z), deg_to_rad(-a.y)), EULER_ORDER_YXZ)
+
+
+## The player's jet was hit and is still alive (FUN_0044c8c0 via the runtime).
+func mission_player_hit(ent: Dictionary, _source: Dictionary, kind: String) -> void:
+	player_damage.hit(ent.damage, kind, _sim_time)
+
+
+## Damage smoke on / off (FUN_004d1880 / FUN_004d18e0).
+func mission_entity_smoke(ent: Dictionary, on: bool) -> void:
+	effects.set_smoke(rig if ent.player else ent.node, on)
+
+
+## A unit changed state (FUN_004a7880 at 3, FUN_004a7e30 at 4 / 5).
+func mission_entity_state(ent: Dictionary) -> void:
+	match ent.state:
+		3:
+			if ent.player:
+				_player_fatally_hit()
+			else:
+				_entity_fatally_hit(ent)
+		4, 5:
+			_entity_final(ent)
+
+
+## State 3 of a unit: the damaged model where the data has one (Present display 2), and an
+## aircraft goes down (crash motion 0x14).
+func _entity_fatally_hit(ent: Dictionary) -> void:
+	# Buildings (classes 0xc, 0xd, 0x1d) get a burned copy (FUN_0053c8d0(1, 0.25)); the other
+	# classes' damaged model is their normal one.
+	if ent.node != null and ent.klass in [0xc, 0xd, 0x1d]:
+		_burned_copy(ent.node, 0.25, ent.get("max_extent", 10.0))
+
+
+## State 3 of the player (FUN_004a7880): control mode 0 (the keys no longer fly the jet; Eject still
+## works, FUN_005464f0 accepts state 3), "Eject! Eject!" (VOC_WINGMAN / WINGMAN_EJECT_EJECT) and the
+## outside view on the jet (view 0x10; canopy and pilot are drawn from outside anyway).
+func _player_fatally_hit() -> void:
+	fatal_hit = true
+	fm_stopped = true
+	sounds.play_eject()
+	in_cockpit = false
+
+
+## The final status (FUN_004a7e30): the explosion of the unit's class at its position (FUN_0059b3b0)
+## with SFX_AIRCRAFT_EXPLODED (the player's crash explosion is played by FlightSounds), the smoke
+## stops, and the unit is gone (its destroyed model where the data has one).
+func _entity_final(ent: Dictionary) -> void:
+	var pos := _entity_scene_pos(ent)
+	var ground = terrain.height_at(pos)
+	var g: float = ground if ground != null else pos.y
+	var e: Dictionary = effects.explosion_for(ent.klass, ent.type_code, pos.y < g + 10.5, false)
+	if not e.is_empty():
+		effects.explosion(pos, e.flags, e.scale, e.duration, g, maxf(ent.size, 3.0))
+		if not (ent.player and crashed):
+			var p = sounds.play("SFX_AIRCRAFT_EXPLODED")
+			if p is Node3D:
+				p.top_level = true
+				p.global_position = pos
+	effects.set_smoke(rig if ent.player else ent.node, false)
+	if ent.player:
+		_player_final()
+	elif ent.node != null:
+		# The destroyed model: buildings of types 400 / 410 stay as a burned copy (FUN_0053c8d0(0,
+		# 0.5)); every other unit's destroyed model is the empty dummy, so it vanishes.
+		if ent.klass in [0xc, 0xd, 0x1d] and ent.type_code in [400, 410]:
+			_burned_copy(ent.node, 0.5, ent.get("max_extent", 10.0))
+		else:
+			ent.node.visible = false
+
+
+## The player's jet exploded (crash or shot down): its destroyed model is the empty dummy (class 0x1c,
+## FUN_004b7330), so it is gone; the outside view (0x10) stays on the spot and the flight ends 5 s
+## later (rule 1, event 0x82).
+func _player_final() -> void:
+	fm_stopped = true
+	in_cockpit = false
+	jet_gone = true
+
+
+## createBurnedCopy (FUN_0041f950): each vertex, with probability `p`, moves by
+## (rand%200 - 100) · max extent · 1e-4 per axis and turns dark (diffuse 0xFF141414); the others keep
+## their colour. Applied to the unit's model in place (vertex colours on duplicated materials).
+func _burned_copy(node: Node3D, p: float, max_extent: float) -> void:
+	var rng := RandomNumberGenerator.new()
+	var dark := Color8(0x14, 0x14, 0x14)
+	for m in node.find_children("*", "MeshInstance3D", true, false):
+		var mi := m as MeshInstance3D
+		if mi.mesh == null:
+			continue
+		var out := ArrayMesh.new()
+		for si in mi.mesh.get_surface_count():
+			var arr: Array = mi.mesh.surface_get_arrays(si)
+			var verts: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+			var cols := PackedColorArray()
+			cols.resize(verts.size())
+			for i in verts.size():
+				if rng.randf() < p:
+					verts[i] += Vector3(rng.randi() % 200 - 100, rng.randi() % 200 - 100, rng.randi() % 200 - 100) * max_extent * 1e-4
+					cols[i] = dark
+				else:
+					cols[i] = Color.WHITE
+			arr[Mesh.ARRAY_VERTEX] = verts
+			arr[Mesh.ARRAY_COLOR] = cols
+			out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+			var mat = mi.get_active_material(si)
+			if mat is BaseMaterial3D:
+				mat = mat.duplicate()
+				mat.vertex_color_use_as_albedo = true
+			out.surface_set_material(si, mat)
+		mi.mesh = out
+
+
+## Collisions of the player's jet with units (FUN_0043c1f0 -> FUN_0043b3d0), every frame: a unit
+## whose collision group is in the aircraft mask (0x1b: sites and buildings, aircraft, vehicles,
+## boats) and whose centre is closer than its radius. Both are destroyed (level 5): the jet unless
+## Invulnerable, the other unless shielded. Hidden units are skipped (UNCERTAIN: whether a hidden
+## unit keeps its collider).
+func _check_collisions() -> void:
+	if runtime == null:
+		return
+	var me: Dictionary = runtime.player_entity()
+	if me.is_empty() or not me.state in [1, 3] or me.shield:
+		return
+	for ent in runtime.entities.values():
+		if ent.player or ent.node == null or not ent.visible or ent.state == 5 or not ent.has("coll_radius"):
+			continue
+		var c: Array = DamageModel.collider(ent.klass, ent.type_code)
+		if c.is_empty() or (c[0] & 0x1b) == 0:
+			continue
+		var r: float = ent.coll_radius
+		if rig.position.distance_squared_to(ent.node.position) >= r * r:
+			continue
+		print("collision with ", ent.name)
+		if not ent.shield:
+			runtime.set_damage_level(ent, 5)
+		if not mission_pref("invulnerable"):
+			runtime.set_damage_level(me, 5)
+		return
+
+
+# The player's systems damage callbacks (game/mission/player_damage.gd).
+func damage_console(text: String) -> void:
+	_on_subtitle(text)
+
+
+func damage_sound(code: String, sub1: String) -> void:
+	sounds.play(code, sub1)
+
+
+func damage_light(i: int, on: bool) -> void:
+	cockpit.indicators[i] = on
+
+
+## Gear damage (7): all three legs show "in transit" for good and the lever no longer moves them.
+func damage_gear() -> void:
+	gear_legs = [1, 1, 1]
+
+
+func damage_shake(amount: float) -> void:
+	_shake = maxf(_shake, absf(amount))
 
 
 ## Speech channel: the bdb Audio wav from resource/soundfiles (matched case-insensitively).
@@ -531,11 +779,13 @@ func _pref(name: String, fallback: bool) -> bool:
 func _on_crashed(reason: String) -> void:
 	crashed = true
 	print("player crashed: ", reason)
-	if ejected:
-		return  # the outcome was settled at the ejection
-	if runtime != null:
+	# The crash is a level-5 destruction of the player's unit (FUN_005b87d0 -> FUN_004a8280(0, 5)):
+	# destroy event, explosion, role rules (after an ejection they were already settled).
+	if runtime != null and not runtime.player_entity().is_empty():
 		runtime.player_destroyed()
-	else:
+		return
+	_entity_final({"player": true, "klass": 0x1c, "type_code": F16_TYPE, "size": 2.5, "node": null})
+	if not ejected:
 		get_tree().create_timer(5.0).timeout.connect(func(): _end_flight(false))
 
 
@@ -557,8 +807,6 @@ func _spawn_f16() -> void:
 	aircraft = preload("res://aircraft/aircraft_model.gd").create("f16", 100, not start_airborne)
 	if aircraft == null:
 		return
-	# Extras "Show canopy and pilot" (ours); off = the original's hidden crew on a flown aircraft.
-	aircraft.crew_visible = Settings.show_crew
 	# Your own jet rides on the rig; converted models face -Z like Godot, so no rotation needed.
 	rig.add_child(aircraft)
 
@@ -574,12 +822,16 @@ func _keep_above_ground() -> void:
 func _apply_view() -> void:
 	cockpit.visible = in_cockpit
 	if aircraft != null:
-		aircraft.visible = not in_cockpit
+		aircraft.visible = not in_cockpit and not jet_gone
 	camera.current = in_cockpit
 	chase.current = not in_cockpit
 	# In the cockpit the camera looks slightly down so the nose axis sits on the HUD boresight.
 	camera.fov = cockpit.world_fov(FOV)
 	camera.rotation = Vector3(-cockpit.camera_pitch_offset(camera.fov), 0, 0)
+	# A hit shakes the view (FM motion 0xd, amplitude 0..1; our rendering: up to 2° decaying in 0.5 s).
+	if _shake > 0.0:
+		_shake = maxf(_shake - get_process_delta_time() * 2.0, 0.0)
+		camera.rotation += Vector3(randf_range(-1, 1), randf_range(-1, 1), 0) * deg_to_rad(2.0) * _shake
 	# External: orbit around the jet, relative to its heading, horizon kept level.
 	var fwd := -rig.global_basis.z
 	var heading_yaw := atan2(-fwd.x, -fwd.z)
@@ -596,7 +848,7 @@ func _apply_view() -> void:
 ## Gear legs / flaps lamps and the panel indicators the cockpit shows.
 func _update_indicators(delta: float) -> void:
 	for i in 3:
-		if gear_legs[i] == 1:
+		if gear_legs[i] == 1 and not player_damage.flags[7]:
 			leg_timers[i] -= delta
 			if leg_timers[i] <= 0.0:
 				gear_legs[i] = 2 if gear_down else 0
@@ -644,6 +896,8 @@ func _throttle_event() -> void:
 ## The gear lever (docs/flight-model.md §12): raising it is ignored on the ground, lowering it
 ## is refused above 300 kt true airspeed; both silently.
 func _toggle_gear() -> void:
+	if player_damage.flags[7]:
+		return  # gear damage: no leg can move, the command is ignored (FUN_0044ee10)
 	if flight == null:
 		gear_down = not gear_down
 		return
@@ -683,7 +937,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		# The original key table first (docs/controls.md, with the player's rebinds); our own keys
 		# only where the table has no command we implement for that key.
 		var rec: int = keys.find_key(keys.key_of_event(event), Settings.key_bindings)
-		if rec >= 0 and ejected and not int(keys.records[rec].press[0]) in [18, 20, 21, 28, 134]:
+		if rec >= 0 and (ejected or fatal_hit) and not int(keys.records[rec].press[0]) in [18, 20, 21, 28, 134]:
 			return  # control mode 0: the jet no longer takes the player's commands
 		if rec >= 0 and _command(keys.records[rec].press):
 			return
@@ -712,6 +966,8 @@ func _command(cmd: Array) -> bool:
 			throttle = maxf(cur - 0.0925, 0.0)
 			_throttle_event()
 		12:
+			if player_damage.flags[4]:
+				return true  # flaps damaged: GEV 0xc refused
 			flaps = 0.0 if flaps > 0.0 else 1.0
 			if flaps_state != 1:
 				flaps_state = 1
@@ -811,15 +1067,20 @@ func _process(delta: float) -> void:
 		if waiting_for_ground and terrain.height_at(rig.position) != null:
 			waiting_for_ground = false
 			_spawn_mission_objects()
-		if not frozen and not waiting_for_ground:
+		# A fatally hit jet leaves the flight model (frozen by FUN_005a3700) for the destruction
+		# motion, which the mission runtime drives (mission_player_fall).
+		if not frozen and not waiting_for_ground and not fm_stopped:
 			flight.step(delta)
 		var st: Dictionary = flight.state()
 		if ejected:
 			_eject_update(delta)
 		if st.crashed and not crashed:
 			_on_crashed(st.crash_reason)
-		rig.position = st.position
-		rig.basis = Basis(st.right, st.up, -st.forward)
+		if not fm_stopped:
+			rig.position = st.position
+			rig.basis = Basis(st.right, st.up, -st.forward)
+		if not waiting_for_ground:
+			_check_collisions()
 		for k in ["speed_kt", "mach", "alt_ft", "vs_fpm", "pitch", "roll", "heading", "aoa", "g", "rpm", "throttle", "fuel_lbs"]:
 			cockpit.state[k] = st[k]
 		_record(st, delta)
@@ -862,6 +1123,8 @@ func _read_controls(delta: float) -> void:
 		stick = EJECT_STICK
 		rudder = 0.0
 		return
+	if fatal_hit:
+		return  # control mode 0: the keys no longer move the stick
 	if scripted_stick != null:
 		stick = scripted_stick
 		if scripted_rudder != null:

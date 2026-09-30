@@ -44,6 +44,10 @@ var mfds: Array = []
 ## right engine fire, AI, SAM, air brake, ECM, hook, autopilot; the gear handle (LIGHT009) follows
 ## `gear_handle_down`; SLIGHT000..002 show the gear legs, SLIGHT003 the flaps (0 up / 1 moving / 2 down).
 var indicators := [false, false, false, false, false, false, false, false, false]
+## The player's damage flags 0..24 (docs/damage.md §5) for the MFD damage page, and whether the jet
+## has two engines (damage page ENG L / ENG R rows).
+var damage_flags: Array = []
+var twin_engines := false
 var gear_handle_down := true
 var gear_legs := [2, 2, 2]
 var flaps_state := 0

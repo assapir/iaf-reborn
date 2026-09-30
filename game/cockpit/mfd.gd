@@ -212,12 +212,31 @@ func _draw_stores() -> void:
 	_text(Vector2(55, 124), "Fuel : %5dLB" % int(cockpit.state.fuel_lbs))
 
 
+## Damage page rows (FUN_0052a0d0): format, x, y, the damage flags that make it NOGO (cockpit state
+## +0x550 + 4n = the controller's damage flags, docs/damage.md §5). "ENG %s %s" / "AB %s %s" take
+## "L" on twin-engine jets (else ""); the ENG R / AB R rows appear on twin-engine jets only.
+const DAMAGE_ROWS := [
+	["ENG %s %s", 12, 10, [22, 16, 2]], ["AB %s %s", 72, 10, [8]], ["INS  %s", 72, 34, [11]],
+	["FUEL %s", 12, 43, [10]], ["RDR  %s", 72, 43, [15]], ["AILN %s", 12, 52, [18]],
+	["RWR  %s", 72, 52, [14]], ["FLTC %s", 12, 61, [24]], ["WPNS %s", 72, 61, [20]],
+	["FLAP %s", 12, 70, [4]], ["GUN  %s", 72, 70, [13]], ["GEAR %s", 12, 79, [7]],
+	["ECM  %s", 72, 79, [1]], ["HUD  %s", 12, 88, [12]], ["A/P  %s", 72, 88, [6]],
+	["BRAK %s", 12, 97, [5]], ["ELCT %s", 72, 97, [19]], ["GNRT %s", 72, 106, [21]],
+]
+const DAMAGE_ROWS_TWIN := [["ENG R %s", 12, 19, [23, 17, 3]], ["AB R %s", 72, 19, [9]]]
+
+
 func _draw_damage() -> void:
 	_tile(TILE_BLANK)
-	for row in [["ENG", 10], ["FUEL", 43], ["AILN", 52], ["FLTC", 61], ["FLAP", 70], ["GEAR", 79], ["HUD", 88], ["BRAK", 97]]:
-		_text(Vector2(12, row[1]), "%s GO" % row[0])
-	for row in [["AB", 10], ["INS", 34], ["RDR", 43], ["RWR", 52], ["WPNS", 61], ["GUN", 70], ["ECM", 79], ["A/P", 88], ["ELCT", 97], ["GNRT", 106]]:
-		_text(Vector2(72, row[1]), "%s GO" % row[0])
+	var flags: Array = cockpit.damage_flags
+	var twin: bool = cockpit.twin_engines
+	for row in DAMAGE_ROWS + (DAMAGE_ROWS_TWIN if twin else []):
+		var nogo := false
+		for f in row[3]:
+			nogo = nogo or (f < flags.size() and flags[f])
+		var state := "NOGO" if nogo else "GO"
+		var fmt: String = row[0]
+		_text(Vector2(row[1], row[2]), fmt % [("L" if twin else ""), state] if fmt.count("%s") == 2 else fmt % state)
 
 
 ## ADI page (9) for cockpits with [HORIZON] OnMfd: ball at (65,74), radius [HORIZON] Radius.

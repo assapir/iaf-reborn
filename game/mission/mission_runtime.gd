@@ -15,6 +15,7 @@ const ALL_DEAD_DELAY := 5.0
 ## Control mode (entity 0x320 bit 0) and roles (0x32a).
 const ROLE_SURVIVE := 0
 const ROLE_TARGET := 1
+const DamageModel := preload("res://mission/damage_model.gd")
 
 var host: Node
 var now := 0.0
@@ -23,7 +24,8 @@ var _seq := 0
 
 ## Entities by key "<file index>:<entity id>": {name, file, id, world (X, Y, alt), role, mission_ctl,
 ## slots, watched, sensor, alive_scenario, state, visible, node, player, lists: [motion, trigger],
-## current: [index, index], path}.
+## current: [index, index], path, control, side, heading, vel; damage (docs/damage.md): klass,
+## type_code, strength, size, damage, requested, killer, shield, smoke, fall}.
 var entities := {}
 var events := {}  # "<file index>:<event id>" -> {debrief, audio, left, actions}
 var paths := {}  # "<file index>:<path id>" -> [Vector3 world]
@@ -35,6 +37,7 @@ var passed := false
 var failed := false
 var debrief_notes := ["", ""]  # flag 0 texts, flag 1 texts
 var _shown_debriefs := {}
+var _all_dead := false  # rule 1 posted (debrief unit +0x661c)
 
 
 ## The player's aircraft at mission load (FUN_004bab1c): the leader of flight 1, else of flight 2,
@@ -74,6 +77,9 @@ func setup(host_node: Node, mission_files: Array, bdb: Dictionary, player_id := 
 		player_id = int(player_flight(mission_files[0]).get("entity", {}).get("0x1e", -1))
 	for a in bdb.get("audio", {}).get("items", []):
 		audio[int(a["0x1e"])] = {"wav": String(a.get("0x136", "")), "subtitle": String(a.get("0x140", ""))}
+	var objects := {}
+	for o in bdb.get("objects", {}).get("items", []):
+		objects[int(o.get("0x1e", -1))] = o
 	for fi in mission_files.size():
 		var m: Dictionary = mission_files[fi]
 		if fi == 0:
@@ -109,10 +115,30 @@ func setup(host_node: Node, mission_files: Array, bdb: Dictionary, player_id := 
 				"player": is_player,
 				"lists": [_list(e.get("scripts0", {})), _list(e.get("scripts1", {}))],
 				"current": [-1, -1], "path": null, "type": int(e.get("0x2c6", -1)),
+				"control": 3 if is_player else (2 if int(e.get("0x320", 0)) & 1 == 1 else 1),
+				"side": int(e.get("0x2d0", 0)), "heading": float(e.get("0x302", 0)),
+				"vel": Vector3.ZERO, "fall": null,
 			}
+			_init_damage(ent, objects.get(ent.type, {}))
 			entities[ent.key] = ent
 			if ent.role == ROLE_TARGET:
 				targets_left += 1
+
+
+## The unit's damage object and status from its bdb object (docs/damage.md §2): class, type code,
+## strength, size; damage 0, alive, no shield.
+static func _init_damage(ent: Dictionary, obj: Dictionary) -> void:
+	ent.klass = int(obj.get("0x5aa", -1))
+	ent.type_code = int(obj.get("0x5b4", -1))
+	ent.strength = DamageModel.strength_of(obj)
+	ent.size = DamageModel.size_of(obj)
+	ent.damageable = true
+	ent.damage = 0.0
+	ent.requested = -1
+	ent.killer = {}
+	ent.shield = false
+	ent.smoke = false
+	ent.smoke_timer = false
 
 
 ## A script list by list index ("raw10").
@@ -139,7 +165,11 @@ func _process(delta: float) -> void:
 	now += delta
 	for ent in entities.values():
 		if ent.path != null:
+			var was: Vector3 = ent.world
 			_move_on_path(ent)
+			ent.vel = (ent.world - was) / delta if delta > 0.0 else Vector3.ZERO
+		if ent.fall != null:
+			_fall_update(ent)
 	while not _timers.is_empty() and _timers[0][0] <= now:
 		var t: Array = _timers.pop_front()
 		t[2].call()
@@ -279,8 +309,13 @@ func _left_tick(ent: Dictionary) -> void:
 		_after(RADIUS_PERIOD, _left_tick.bind(ent))
 
 
+## A unit's current position (world X, Y, altitude): the player's jet, else the unit's position with
+## the altitude it stands at (the host snaps ground units to the terrain: "alt").
 func _world_of(ent: Dictionary) -> Vector3:
-	return host.player_world() if ent.player else ent.world
+	if ent.player:
+		return host.player_world()
+	var w: Vector3 = ent.world
+	return Vector3(w.x, w.y, ent.get("alt", w.z))
 
 
 # --- events (§3) -------------------------------------------------------------------------------
@@ -323,27 +358,238 @@ func _add_debrief(file: int, id: int) -> void:
 	debrief_notes[1 if d.flag == 1 else 0] += "\n\n" + d.text
 
 
-# --- entity state and mission end (§2, §5) ----------------------------------------------------
+# --- damage and destruction (docs/damage.md) ------------------------------------------------------
+# The unit status (MStatus, entity+0x1c): state 1 alive, 3 fatally hit ("going down"), 4 destroyed,
+# 5 exploded; +0x10 the damage fraction 0..1, +0x28 the requested level. The damage object
+# (entity+0x10): strength (hit points) and the shield flag (trigger ops 11 / 12).
 
-## Destroyed (Explode, or killed): destroy event, killScenario, role rules.
-func _destroy(ent: Dictionary) -> void:
-	if ent.state >= 4:
+## A blast at `point` (world X, Y, alt) of `power` within `radius` m: every unit it reaches takes
+## FUN_00463660's share (DamageModel.blast). `source` = the entity that fired (hits need one, as in
+## FUN_004a9100); `kind` = "gun" for gun rounds (the player's hit thump), else a weapon / "blast".
+## Returns the entities it damaged.
+func area_damage(point: Vector3, power: float, radius: float, source: Dictionary, kind := "blast") -> Array:
+	var out := []
+	for ent in entities.values():
+		if ent.state == DamageModel.EXPLODED or ent == source or not ent.damageable:
+			continue
+		var dmg := DamageModel.blast(_world_of(ent), ent.size, point, power, radius)
+		if dmg > 0.0 and _hit(ent, dmg, source, kind):
+			out.append(ent)
+	return out
+
+
+## Direct damage (a hit on the unit itself): `amount` in the same units as a blast's power, i.e.
+## compared with the unit's strength (a blast at distance 0).
+func apply_damage(target: Dictionary, amount: float, kind: String, source: Dictionary) -> bool:
+	if target.is_empty() or not target.damageable or target.state == DamageModel.EXPLODED:
+		return false
+	return _hit(target, amount, source, kind)
+
+
+## The hit handler (FUN_004a8f40 -> FUN_00463660 -> FUN_004a9100). Returns true when it counted.
+func _hit(ent: Dictionary, dmg: float, source: Dictionary, kind: String) -> bool:
+	# The player's jet takes no hits with Invulnerable (pref +0x1c, single player).
+	if ent.player and host.mission_pref("invulnerable"):
+		return false
+	# A unit does not hit itself; the shooter must exist (FUN_004a9100 looks it up).
+	if source.is_empty() or source == ent:
+		return false
+	var old: float = ent.damage
+	var new := 0.0
+	var kill := false
+	if ent.shield:
+		# FUN_00463660: a shielded unit takes nothing, and damage it had is cleared (FUN_00583f70).
+		if ent.damage > 0.0:
+			ent.damage = 0.0
+		return false
+	var r := DamageModel.add_damage(old, dmg, ent.strength, _enemy_of_player(ent), host.mission_pref("ai_level"))
+	new = r[0]
+	kill = r[1]
+	if not kill and new - old < DamageModel.MIN_STEP:
+		return false
+	ent.killer = source
+	if kill:
+		set_damage_level(ent, DamageModel.EXPLODED, source, kind)
+	elif new > 0.0:
+		_set_damage(ent, new, -1, source, kind)
+	return true
+
+
+## Sets a unit's damage level (FUN_004a8280 with damage 0 and a level): 3 fatally hit, 4 destroyed,
+## 5 exploded. Used by trigger op 5 Explode (level 5), the flight model's crash (5), the crash motion's
+## ground contact and the weapons later.
+func set_damage_level(ent: Dictionary, level: int, source := {}, kind := "") -> void:
+	_set_damage(ent, 0.0, level, source, kind)
+
+
+## FUN_004a8280 / FUN_004a8530: store the damage, derive the requested level (MStatus+0x28, kept
+## between calls), run the transition, then the alive-hit reaction.
+func _set_damage(ent: Dictionary, damage: float, level: int, source: Dictionary, kind: String) -> void:
+	if ent.state == DamageModel.EXPLODED:
 		return
-	ent.state = 5
-	if ent.sensor:
+	if level >= 1 and level <= 5:
+		ent.requested = level
+	else:
+		var l := DamageModel.level_for(damage)
+		if l > 0:
+			ent.requested = l
+	if damage >= 0.0 and damage <= 1.0:
+		ent.damage = damage
+	match ent.requested:
+		DamageModel.HIT:
+			if ent.state == DamageModel.ALIVE:
+				ent.state = DamageModel.HIT
+				_fatally_hit(ent)
+		DamageModel.DESTROYED:
+			if ent.state == DamageModel.ALIVE or ent.state == DamageModel.HIT:
+				ent.state = DamageModel.DESTROYED
+				_destroyed(ent)
+		DamageModel.EXPLODED:
+			if ent.state == DamageModel.ALIVE or ent.state == DamageModel.HIT:
+				ent.state = DamageModel.EXPLODED
+				_destroyed(ent)
+	if ent.state == DamageModel.ALIVE:
+		_damaged_alive(ent, source, kind)
+
+
+## FUN_004a93f0: a hit that left the unit alive. Controlled aircraft (class 0x1c): the controller's
+## hit reaction (FUN_0044c8c0: the player's shake, thump and systems damage) and the damage smoke
+## from 0.25 (checked again 20 s later: it stops unless the damage reached 0.5).
+func _damaged_alive(ent: Dictionary, source: Dictionary, kind: String) -> void:
+	if ent.klass != 0x1c or ent.damage <= 0.0:
+		return
+	if ent.player:
+		host.mission_player_hit(ent, source, kind)
+	if ent.damage >= DamageModel.SMOKE_AT and not ent.smoke_timer and ent.state != DamageModel.EXPLODED \
+			and ent.state != DamageModel.DESTROYED:
+		ent.smoke_timer = true
+		ent.smoke = true
+		host.mission_entity_smoke(ent, true)
+		# FUN_004a7560: below 0.5 the smoke stops and the timer handle (+0x48) is cleared, so a later
+		# hit can start it again; at 0.5 or more it smokes for good.
+		_after(DamageModel.SMOKE_CHECK, func():
+			if ent.damage < DamageModel.SMOKE_KEEP_AT:
+				if ent.smoke:
+					ent.smoke = false
+					host.mission_entity_smoke(ent, false)
+				ent.smoke_timer = false)
+
+
+## State 1 -> 3 (FUN_004a7880): the hit event (slot 0, sensor on), control mode 0 (a mission-controlled
+## unit's scenario is killed, FUN_004a8600), the damaged model, and an aircraft goes down (crash
+## motion 0x14); the player hears "Eject! Eject!" and loses the controls.
+func _fatally_hit(ent: Dictionary) -> void:
+	if ent.sensor and ent.alive_scenario:
+		fire_event(ent.file, int(_slot(ent, 0).get("0x33e", 0)))
+	if ent.mission_ctl:
+		ent.alive_scenario = false
+	ent.control = 0
+	ent.path = null
+	# The destruction motion (0x14) replaces the unit's motion (the player's flight model too).
+	var w := _world_of(ent)
+	var mv: Array = host.mission_unit_motion(ent)  # [angles (pitch, roll, heading), velocity]
+	var g = host.mission_ground(w)
+	ent.fall = DamageModel.fall_start(ent.klass, w, mv[0], mv[1], g if g != null else 0.0,
+			func(): return randi() & 0x7fff)
+	ent.fall.t0 = now
+	ent.fall.smoked = false
+	if ent.fall.timer:
+		_after(DamageModel.FALL_CHECK, _fall_tick.bind(ent))
+	host.mission_entity_state(ent)
+
+
+## Per frame: the unit follows its destruction motion (terrain clamp where the terrain is above 0.1 m).
+func _fall_update(ent: Dictionary) -> void:
+	var r := DamageModel.fall_at(ent.fall, now - ent.fall.t0)
+	var p: Vector3 = r[0]
+	var g = host.mission_ground(p)
+	if g != null and g > 0.1 and p.z < g:
+		p.z = g
+	ent.fall.pos = p
+	ent.fall.angles = r[1]
+	if ent.player:
+		host.mission_player_fall(p, r[1])
+	else:
+		ent.world = p
+		ent.alt = p.z
+		ent.angles = r[1]
+		host.mission_entity_moved(ent)
+
+
+## StopDestructionMotionEvent (FUN_00496162), every 0.5 s: past its time -> state 5; at 2 m above
+## the ground or less -> snapped to the terrain, explosion, state 5; the first tick higher up starts
+## the smoke trail (type 2).
+func _fall_tick(ent: Dictionary) -> void:
+	if ent.fall == null or ent.state != DamageModel.HIT:
+		return
+	var tau: float = now - ent.fall.t0
+	if tau >= ent.fall.T:
+		ent.fall = null
+		set_damage_level(ent, DamageModel.EXPLODED)
+		return
+	var p: Vector3 = ent.fall.get("pos", _world_of(ent))
+	var g = host.mission_ground(p)
+	var agl: float = p.z - (g if g != null else 0.0)
+	if agl <= DamageModel.FALL_IMPACT_AGL:
+		if g != null and g > 0.1:
+			p.z = g
+		ent.fall = null
+		if not ent.player:
+			ent.world = p
+			ent.alt = p.z
+			host.mission_entity_moved(ent)
+		ent.smoke = false
+		host.mission_entity_smoke(ent, false)
+		set_damage_level(ent, DamageModel.EXPLODED)
+		return
+	if not ent.fall.smoked:
+		ent.fall.smoked = true
+		ent.smoke = true
+		host.mission_entity_smoke(ent, true)
+	_after(DamageModel.FALL_CHECK, _fall_tick.bind(ent))
+
+
+## State 4 or 5 (FUN_004a7a00 / FUN_004a7ba0 -> FUN_004a7e30): the destroy event (slot 1, sensor on)
+## and killScenario, control mode 0, then the final status: the explosion at the unit, its smoke and
+## sounds stop, and the role accounting (FUN_00597730).
+func _destroyed(ent: Dictionary) -> void:
+	if ent.sensor and ent.alive_scenario:
 		fire_event(ent.file, int(_slot(ent, 1).get("0x33e", 0)))
 	ent.alive_scenario = false
-	_set_visible(ent, false)
+	ent.path = null
+	ent.fall = null
+	ent.control = 0
+	ent.smoke = false
+	host.mission_entity_state(ent)
 	_role_rules(ent)
 
 
-## The player's aircraft was destroyed (crash).
+## Explode (trigger op 5) and the flight model's crash: level 5.
+func _destroy(ent: Dictionary) -> void:
+	set_damage_level(ent, DamageModel.EXPLODED)
+
+
+## The player's aircraft was destroyed (the flight model's crash: FUN_005b87d0 -> level 5).
 func player_destroyed() -> void:
+	var p := player_entity()
+	if not p.is_empty():
+		set_damage_level(p, DamageModel.EXPLODED)
+
+
+## The runtime entity the player flies ({} without one).
+func player_entity() -> Dictionary:
 	for ent in entities.values():
 		if ent.player:
-			_destroy(ent)
-			# All players dead: the flight ends after 5 s and goes to the debrief (event 0x82).
-			_after(ALL_DEAD_DELAY, func(): end_flight.emit(true))
+			return ent
+	return {}
+
+
+## FUN_004a41e0 as FUN_00463660 uses it: a unit not on the player's side (without a player: sides 2 / 3).
+func _enemy_of_player(ent: Dictionary) -> bool:
+	var p := player_entity()
+	if p.is_empty():
+		return ent.side == 2 or ent.side == 3
+	return ent.side != p.side
 
 
 ## The player ejected (FUN_005464f0, docs/mission-runtime.md §5.4): the player no longer counts as
@@ -351,14 +597,23 @@ func player_destroyed() -> void:
 ## and game event 0x82 ends the flight into the debrief 5 s later. The jet itself is not destroyed
 ## here; its later crash does not run the rules again.
 func player_ejected() -> void:
-	for ent in entities.values():
-		if ent.player and ent.alive_scenario:
-			ent.alive_scenario = false
-			_role_rules(ent)
-			_after(ALL_DEAD_DELAY, func(): end_flight.emit(true))
+	var p := player_entity()
+	if not p.is_empty() and p.control != 0:
+		p.control = 0
+		_role_rules(p)
 
 
+## FUN_00597730 (docs/mission-runtime.md §5.1). Rule 1: when no player is alive any more (state 4 / 5
+## or control mode 0), game event 0x82 ends the flight into the debrief 5 s later. Rule 2: the role of
+## the unit (0 must survive -> misc audio 0x4c4, failed, box 14 after 10 s; 1 target -> when the last
+## one goes, misc audio 0x4ce, passed, box 13 after 10 s).
 func _role_rules(ent: Dictionary) -> void:
+	if ent.get("accounted", false):
+		return
+	ent.accounted = true
+	if ent.player and not _all_dead:
+		_all_dead = true
+		_after(ALL_DEAD_DELAY, func(): end_flight.emit(true))
 	if ent.role == ROLE_SURVIVE and not failed:
 		play_message(int(misc.get("0x4c4", -1)))
 		failed = true
