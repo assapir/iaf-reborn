@@ -14,7 +14,7 @@ use image::RgbaImage;
 use serde_json::{Value, json};
 
 use crate::smooth::{self, Tri};
-use crate::upscale::Upscaler;
+use crate::upscale;
 
 /// Palette colour the original engine treats as transparent.
 pub const COLOR_KEY: [u8; 3] = [0, 255, 255];
@@ -63,8 +63,9 @@ pub fn load_texture_keyed(path: &Path, keys: &[[u8; 3]]) -> Result<(RgbaImage, b
 }
 
 #[derive(Default)]
-struct Builder<'a> {
-    upscaler: Option<&'a Upscaler>,
+struct Builder {
+    /// Resample textures 4× (see [`upscale`]).
+    upscale: bool,
     /// Smooth normals + Phong tessellation (see [`smooth`]).
     smooth: bool,
     bin: Vec<u8>,
@@ -91,7 +92,7 @@ fn mirror_matrix(m: &[f32; 16]) -> [f32; 16] {
     out
 }
 
-impl Builder<'_> {
+impl Builder {
     fn push_view(&mut self, bytes: &[u8], target: Option<u32>) -> usize {
         while self.bin.len() % 4 != 0 {
             self.bin.push(0);
@@ -140,14 +141,7 @@ impl Builder<'_> {
         }
         let result = match find_texture(name, dirs).map(|p| load_texture(&p)) {
             Some(Ok((img, transparent))) => {
-                let img = match self.upscaler.map(|u| u.upscale(&img, transparent.then_some(COLOR_KEY))) {
-                    Some(Ok(up)) => up,
-                    Some(Err(e)) => {
-                        self.warnings.push(format!("upscaling {name}: {e:#}"));
-                        img
-                    }
-                    None => img,
-                };
+                let img = if self.upscale { upscale::upscale(&img) } else { img };
                 let file = format!("{}.png", key.rsplit_once('.').map_or(key.as_str(), |(s, _)| s));
                 match img.save(out_dir.join(&file)) {
                     Ok(()) => {
@@ -320,11 +314,11 @@ pub fn write_model(
     name: &str,
     texture_dirs: &[PathBuf],
     out_dir: &Path,
-    upscaler: Option<&Upscaler>,
+    upscale: bool,
     smooth: bool,
 ) -> Result<Vec<String>> {
     fs::create_dir_all(out_dir)?;
-    let mut b = Builder { upscaler, smooth, ..Default::default() };
+    let mut b = Builder { upscale, smooth, ..Default::default() };
     let roots: Vec<usize> = model.frames.iter().map(|f| b.frame(f, &model.frames, texture_dirs, out_dir)).collect();
     let bin_name = format!("{name}.bin");
     let doc = json!({

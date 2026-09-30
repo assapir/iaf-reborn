@@ -33,22 +33,19 @@ See [docs/status.md](docs/status.md) for what works, known gaps and the plan.
 | ------------------------------------------------------------------ | ------ | ------------------------------------------------------------------------- |
 | `rustup` (then `rustup default stable`)                            | extra  | building the tools (`crates/`)                                            |
 | `godot` (4.7+)                                                     | extra  | running the viewer / game (`game/`)                                       |
-| `vulkan-intel` / `vulkan-radeon` / `nvidia-utils` (match your GPU) | extra  | Vulkan rendering + GPU upscaling                                          |
+| `vulkan-intel` / `vulkan-radeon` / `nvidia-utils` (match your GPU) | extra  | Vulkan rendering                                                          |
 | `ttf-liberation` (or `ttf-ms-fonts` from AUR for real Arial)         | extra  | menu text (the original uses Arial; Liberation Sans is metric-compatible) |
-| `realesrgan-ncnn-vulkan` (or `-bin`)                               | AUR    | _optional, experimental_: `--upscale-ai` (not recommended — redraws text) |
 
 ```sh
 sudo pacman -S --needed rustup godot vulkan-intel
 rustup default stable
-paru -S realesrgan-ncnn-vulkan   # optional, experimental AI upscaling only
 ```
 
 Handy for development (not required): `ffmpeg` (image/video inspection), `python` (quick format probes).
 
 ### macOS (planned, untested)
 
-`brew install rustup godot` (Godot as a cask), then `rustup default stable`. Real-ESRGAN ships a macOS build on its
-[GitHub releases](https://github.com/xinntao/Real-ESRGAN/releases) page.
+`brew install rustup godot` (Godot as a cask), then `rustup default stable`.
 
 ## Quick start
 

@@ -20,8 +20,7 @@
 //! present), the DirectInput key names and modifier prefixes of the Controls page
 //! (docs/front-end.md §12.7, docs/controls.md).
 //!
-//! `--upscale` resamples textures 4× (Lanczos). `--upscale-ai` uses the experimental AI
-//! upscaler instead (needs `realesrgan-ncnn-vulkan`; not recommended: it redraws text).
+//! `--upscale` resamples textures 4× (Lanczos).
 //! `--smooth` rounds the low-poly geometry (smooth normals + Phong tessellation).
 
 use std::path::{Path, PathBuf};
@@ -29,11 +28,19 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result, bail};
 use iaf_formats::model::Model;
 use iaf_tools::gltf::write_model;
-use iaf_tools::upscale::{self, Upscaler};
+use iaf_tools::upscale;
+use image::RgbaImage;
 
 struct Options {
-    upscaler: Option<Upscaler>,
+    upscale: bool,
     smooth: bool,
+}
+
+impl Options {
+    /// `img` resampled 4× with `--upscale`, else unchanged.
+    fn scaled(&self, img: RgbaImage) -> RgbaImage {
+        if self.upscale { upscale::upscale(&img) } else { img }
+    }
 }
 
 fn convert(src: &Path, out_dir: &Path, extra_texture_dirs: &[PathBuf], opts: &Options) -> Result<()> {
@@ -41,7 +48,7 @@ fn convert(src: &Path, out_dir: &Path, extra_texture_dirs: &[PathBuf], opts: &Op
     let name = src.file_stem().unwrap().to_string_lossy().to_lowercase();
     let mut dirs = vec![src.parent().unwrap().to_path_buf()];
     dirs.extend_from_slice(extra_texture_dirs);
-    let warnings = write_model(&model, &name, &dirs, out_dir, opts.upscaler.as_ref(), opts.smooth)?;
+    let warnings = write_model(&model, &name, &dirs, out_dir, opts.upscale, opts.smooth)?;
     println!("{} -> {}/{name}.gltf", src.display(), out_dir.display());
     for w in warnings {
         println!("  warning: {w}");
@@ -52,17 +59,7 @@ fn convert(src: &Path, out_dir: &Path, extra_texture_dirs: &[PathBuf], opts: &Op
 fn main() -> Result<()> {
     let mut args: Vec<String> = std::env::args().collect();
     let mut flag = |name: &str| args.iter().position(|a| a == name).map(|i| args.remove(i)).is_some();
-    let upscale_ai = flag("--upscale-ai");
-    let upscale = flag("--upscale");
-    let smooth = flag("--smooth");
-    let upscaler = if upscale_ai {
-        Some(Upscaler::find_ai(upscale::MODEL_PAINTED)?)
-    } else if upscale {
-        Some(Upscaler::Lanczos)
-    } else {
-        None
-    };
-    let opts = Options { upscaler, smooth };
+    let opts = Options { upscale: flag("--upscale"), smooth: flag("--smooth") };
     match args.iter().map(String::as_str).collect::<Vec<_>>()[..] {
         [_, "model", src, out] => convert(Path::new(src), Path::new(out), &[], &opts),
         [_, "planes", install, out] => {
@@ -139,11 +136,7 @@ fn convert_aircraft(install: &Path, missions: &Path, out: &Path, opts: &Options)
     std::fs::write(out.join("aircraft.json"), serde_json::to_string_pretty(&index)?)?;
     // The afterburner flame texture (FUN_004121b0; the hardware path uses the 32-bit TGA).
     let (img, _) = iaf_tools::gltf::load_texture(&objects_root.join("afterburn.tga"))?;
-    let img = match &opts.upscaler {
-        Some(u) => u.upscale(&img, None)?,
-        None => img,
-    };
-    img.save(out.join("afterburn.png"))?;
+    opts.scaled(img).save(out.join("afterburn.png"))?;
     println!("aircraft: {} models -> {}", index.len(), out.display());
     Ok(())
 }
@@ -197,7 +190,7 @@ const SHARED_COCKPIT_IMAGES: &[&str] = &["mfds.bmp", "rwrsymb.bmp", "isr.bmp"];
 
 fn convert_cockpit(install: &Path, name: &str, out: &Path, opts: &Options) -> Result<()> {
     use iaf_formats::ini::Ini;
-    use iaf_tools::gltf::{COCKPIT_KEYS, COLOR_KEY, load_texture_keyed};
+    use iaf_tools::gltf::{COCKPIT_KEYS, load_texture_keyed};
     let root = install.join("resource/cockpits");
     let dir = root.join(name.to_lowercase());
     std::fs::create_dir_all(out)?;
@@ -218,7 +211,7 @@ fn convert_cockpit(install: &Path, name: &str, out: &Path, opts: &Options) -> Re
         }
         layout.insert(section.name.clone(), serde_json::Value::Object(obj));
     }
-    let scale = if opts.upscaler.is_some() { upscale::FACTOR } else { 1 };
+    let scale = if opts.upscale { upscale::FACTOR } else { 1 };
     layout.insert("image_scale".into(), scale.into());
     std::fs::write(out.join("cockpit.json"), serde_json::to_string_pretty(&layout)?)?;
     // The MFD TSD map (shared by every cockpit, docs/mfd.md §3).
@@ -232,11 +225,7 @@ fn convert_cockpit(install: &Path, name: &str, out: &Path, opts: &Options) -> Re
         .collect();
     images.extend(SHARED_COCKPIT_IMAGES.iter().map(|f| root.join(f)));
     for src in images {
-        let (img, transparent) = load_texture_keyed(&src, COCKPIT_KEYS)?;
-        let img = match &opts.upscaler {
-            Some(u) => u.upscale(&img, transparent.then_some(COLOR_KEY))?,
-            None => img,
-        };
+        let img = opts.scaled(load_texture_keyed(&src, COCKPIT_KEYS)?.0);
         let file = format!("{}.png", src.file_stem().unwrap().to_string_lossy().to_lowercase());
         img.save(out.join(&file))?;
         println!("  {file} {}x{}", img.width(), img.height());
@@ -284,7 +273,7 @@ fn decode_text(data: &[u8], hebrew: bool) -> String {
 
 fn convert_menu(install: &Path, pack: Option<&Path>, out: &Path, opts: &Options) -> Result<()> {
     use iaf_formats::menu::{self, MenuFile};
-    use iaf_tools::gltf::{COCKPIT_KEYS, COLOR_KEY, load_texture_keyed};
+    use iaf_tools::gltf::{COCKPIT_KEYS, load_texture_keyed};
     use serde_json::json;
     let root = install.join("resource/menu");
     let pack_root = pack.map(|p| p.join("resource/menu"));
@@ -342,8 +331,8 @@ fn convert_menu(install: &Path, pack: Option<&Path>, out: &Path, opts: &Options)
     let mut n = 0;
     for (rel, src) in overlay_files(&root, pack_root.as_deref(), "bmp").iter().filter(|(r, _)| r.extension().is_some_and(|e| e == "bmp")) {
         let dest = img_root.join(rel.strip_prefix("bmp")?.with_extension("png"));
-        let (mut img, mut transparent) = match load_texture_keyed(src, COCKPIT_KEYS) {
-            Ok(v) => v,
+        let mut img = match load_texture_keyed(src, COCKPIT_KEYS) {
+            Ok((img, _)) => img,
             Err(e) => {
                 println!("  skipped {}: {e:#}", src.display());
                 continue;
@@ -361,18 +350,13 @@ fn convert_menu(install: &Path, pack: Option<&Path>, out: &Path, opts: &Options)
                         };
                         if !visible {
                             p[3] = 0;
-                            transparent = true;
                         }
                     }
                 }
             }
         }
-        let img = match &opts.upscaler {
-            Some(u) => u.upscale(&img, transparent.then_some(COLOR_KEY))?,
-            None => img,
-        };
         std::fs::create_dir_all(dest.parent().unwrap())?;
-        img.save(&dest)?;
+        opts.scaled(img).save(&dest)?;
         n += 1;
     }
     // Sounds (button clicks, panel slides, menu music; wav/pref: the Preferences volume previews).
@@ -396,7 +380,7 @@ fn convert_menu(install: &Path, pack: Option<&Path>, out: &Path, opts: &Options)
         std::fs::write(out.join("emf").join(format!("{name}.json")), serde_json::to_string(&emf_json(&mf))?)?;
         emfs += 1;
     }
-    std::fs::write(out.join("image_scale.txt"), if opts.upscaler.is_some() { "4" } else { "1" })?;
+    std::fs::write(out.join("image_scale.txt"), if opts.upscale { "4" } else { "1" })?;
     println!("menu: {emfs} maps,");
     println!("menu: {} screens/lists, {} strings, {n} images -> {}", menus.len(), strings.len(), out.display());
     Ok(())
@@ -463,7 +447,7 @@ fn parse_brl(data: &[u8], hebrew: bool) -> Vec<(String, i32, String)> {
 
 fn convert_briefings(install: &Path, packs: &Path, out: &Path, opts: &Options) -> Result<()> {
     use iaf_formats::rtf::to_bbcode;
-    use iaf_tools::gltf::{COLOR_KEY, load_texture};
+    use iaf_tools::gltf::load_texture;
     use serde_json::json;
     let base = install.join("resource/brief");
     let he = packs.join("he/resource/brief");
@@ -519,12 +503,8 @@ fn convert_briefings(install: &Path, packs: &Path, out: &Path, opts: &Options) -
             if !p.extension().is_some_and(|x| x.eq_ignore_ascii_case("bmp")) {
                 continue;
             }
-            let Ok((img, transparent)) = load_texture(&p) else { continue };
-            let img = match &opts.upscaler {
-                Some(u) => u.upscale(&img, transparent.then_some(COLOR_KEY))?,
-                None => img,
-            };
-            img.save(dest.join(format!("{}.png", p.file_stem().unwrap().to_string_lossy().to_lowercase())))?;
+            let Ok((img, _)) = load_texture(&p) else { continue };
+            opts.scaled(img).save(dest.join(format!("{}.png", p.file_stem().unwrap().to_string_lossy().to_lowercase())))?;
             n += 1;
         }
     }
