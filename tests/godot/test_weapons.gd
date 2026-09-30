@@ -92,6 +92,14 @@ func run() -> void:
 	check(w.stores.displayed(9) < 940, "rounds used: %d left" % w.stores.displayed(9))
 	check(mig.damage > 0.0 or mig.state != 1, "gun rounds damage the unit ahead (damage %.2f, state %d)" % [mig.damage, mig.state])
 
+	# AA gun mode (']' onto the gun): the LCOS pipper settles near the gun cross in steady flight.
+	w.stores.cur = 9
+	w._master_from_type(true)
+	for i in 40:
+		t += 0.05
+		w.update(t)
+	check(w.hud_mode == 3 and tv.cockpit.weapons.pipper != null and tv.cockpit.weapons.pipper.length() < 20.0,
+		"AA gun: LCOS pipper %s px from the gun cross" % str(tv.cockpit.weapons.pipper))
 	# IR missile: select the AIM-9, the seeker locks a unit 3 km ahead, launch, it hits.
 	var mig2: Dictionary = tv.runtime.entities.values().filter(func(e): return e.name == "mig23_1")[0]
 	mig2.world = o.pos + o.fwd * 3000.0 + Vector3(0, 0, 30)
@@ -106,6 +114,7 @@ func run() -> void:
 		if w.stores.type_of(i) in [570, 580]:
 			aim_station = i
 	check(aim_station >= 0, "an IR missile is loaded")
+	w.nav_key(0)  # N: NAV (from NAV, ']' enters the selected AA missile without cycling)
 	w.stores.cur = aim_station
 	w.select_aa()
 	check(w.hud_mode == 1, "']' with an IR missile: SRM HUD mode")

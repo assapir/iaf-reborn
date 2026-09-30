@@ -211,13 +211,6 @@ func _draw_weapons(s: float, w: float, font: Font, fs: int, gun: Vector2) -> voi
 	if wp.is_empty():
 		return
 	var col: Color = cockpit.hud_colour()
-	var h: Dictionary = cockpit.layout.HUD
-	# Text block, left column (FUN_0052ef20 pass 3): x = centre − TxtOffX, rows 7 px apart from
-	# centre + TxtOffY; row 2 = the weapon line "%1d %s %s" (total, name, RDY / MAL), "NAV" in HUD
-	# mode 0. (The original draws it with the MFD sprite font; ours with the HUD font.)
-	var line := "NAV" if int(wp.hud_mode) == 0 else "%d %s %s" % [int(wp.total), wp.name, "RDY" if wp.ready else "MAL"]
-	var at := Vector2(size.x / 2.0 - float(h.get("TxtOffX", 82)) * s, size.y / 2.0 + (float(h.get("TxtOffY", 48)) + 2 * 7 + 7) * s)
-	draw_string(font, at, line, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
 	var bore: Vector2 = cockpit.boresight() - position
 	match int(wp.hud_mode):
 		1:
@@ -240,7 +233,7 @@ func _draw_weapons(s: float, w: float, font: Font, fs: int, gun: Vector2) -> voi
 			if p != null:
 				var t := _pipper_tex()
 				if t != null:
-					draw_texture_rect(t, Rect2(p - Vector2(16, 16) * s, Vector2(32, 32) * s), false, col)
+					draw_texture_rect(t, Rect2(p - Vector2(16, 16) * s, Vector2(32, 32) * s), false)
 				else:
 					draw_arc(p, 8 * s, 0, TAU, 24, col, w)
 

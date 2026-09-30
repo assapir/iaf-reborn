@@ -277,6 +277,25 @@ func _draw() -> void:
 		var w: float = h.Width * s
 		var hh: float = h.Height * s
 		draw_texture_rect(tex.HUD, Rect2(size.x / 2 - w / 2, panel_top() - hh, w, hh), false)
+	_draw_weapon_line(s)
+
+
+## The HUD text block's weapon row (FUN_0052ef20 pass 3): left column at the HUD centre − TxtOffX, rows
+## 7 px apart from the centre + TxtOffY, row 2 = "%1d %s %s" (total of the selected store, name,
+## RDY / MAL), "NAV" in HUD mode 0. On the glass, not clipped to the symbology field. (The original
+## draws it with the MFD sprite font; ours with the HUD font.)
+func _draw_weapon_line(s: float) -> void:
+	if weapons.is_empty() or not layout.has("HUD"):
+		return
+	var h: Dictionary = layout.HUD
+	var fs := int(8 * s)
+	if fs < 1:
+		return
+	var centre := Vector2(size.x / 2, panel_top() - float(h.CenterY) * s)
+	var line := "NAV" if int(weapons.hud_mode) == 0 else "%d %s %s" % [int(weapons.total), weapons.name, "RDY" if weapons.ready else "MAL"]
+	var at := centre + Vector2(-float(h.get("TxtOffX", 82)), float(h.get("TxtOffY", 48)) + 2 * 7 + 6) * s
+	var font: Font = hud.hud_font if hud.hud_font != null else get_theme_default_font()
+	draw_string(font, at, line, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, hud_colour())
 
 
 func _draw_console() -> void:

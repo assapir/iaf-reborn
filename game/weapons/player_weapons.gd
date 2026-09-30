@@ -571,6 +571,8 @@ func update(t: float) -> void:
 		seeker.update(now, own(), _units(), int(st.get("w", {}).get("type", 0)), stores.total(stores.current_type(), stores.current_name()) > 0)
 	if hud_mode == 3:
 		_lcos(now)
+	else:
+		lcos.fresh = true
 	_update_visuals()
 	_publish()
 
@@ -585,6 +587,12 @@ func _lcos(t: float) -> void:
 	if st.is_empty():
 		return
 	const DT := 0.15
+	if lcos.get("fresh", true):
+		# Ours: the rate filters start from the current attitude (the original's first values are
+		# untraced; from 0 the first heading step would throw the pipper off for ~1 s).
+		lcos.prev0 = deg_to_rad(float(st.pitch)) / PI
+		lcos.prev2 = deg_to_rad(float(st.heading)) / PI
+		lcos.fresh = false
 	var a0 := deg_to_rad(float(st.pitch))
 	var a1 := deg_to_rad(float(st.roll))
 	var a2 := deg_to_rad(float(st.heading))

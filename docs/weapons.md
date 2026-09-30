@@ -177,7 +177,9 @@ Gun cross in every mode (docs/cockpit.md). Pipper: the 32×32 sprite of mfds.bmp
 integrated with dt = 0.15 (quirk kept): R = locked range else 1476.378 ft (450 m), ≤ 3148.8 ft; the filtered pitch /
 heading rates w28 / w2c (int16 fixed point), tf = R / (3300 − (V + 1650)·R·0.00024667423), gd = π·tf²·16.087/R,
 D = 0.2 + 1.35·tf, x* = gd·cos θ·sin φ − tf·Q, y* = tf·P + (g − 1)·gd − ((3300·tf − R)·V·α/R)/(V + 3300) + 5.0617/R,
-x += dt·(x* − x)/D, y likewise; drawn at the gun cross + (x, y)·57.29578·12 px. **Mode 4** (`FUN_0045ef10`, new in
+x += dt·(x* − x)/D, y likewise; drawn at the gun cross + (x, y)·57.29578·12 px. (Ours: the rate filters start from
+the attitude at mode entry; the original's first values are untraced, from 0 the first heading step would throw the
+pipper off for about a second.) **Mode 4** (`FUN_0045ef10`, new in
 v1.1): the projection of the mode-4 aim point A.
 
 ## 4. Master mode keys (summary)
@@ -219,7 +221,8 @@ launch.
 ## 6. HUD and MFD
 Weapon text (`FUN_0052ef20` pass 3, left column at HUD centre − TxtOffX, rows 7 px from centre + TxtOffY; row 2):
 "%1d %s %s" = total of the selected store (same type and name), name, RDY / MAL (MAL with flags 20 / 21, or 13 with
-the gun), "NAV" in HUD mode 0. (Ours: drawn with the HUD font; the original uses the MFD sprite font.) Stores page
+the gun), "NAV" in HUD mode 0; drawn on the glass, outside the symbology field's clip. (Ours: the HUD font; the
+original uses the MFD sprite font. Our own G / Mach readouts of the HUD sit near it.) Stores page
 (`FUN_0052c740`): per pylon count / name at the docs/mfd.md positions, MRM / SRM totals, gun rounds "%03d" at (68,85),
 fuel, the selected station boxed (gun 36×10 at (48,82)); ours leaves out "%dQnt" / "int%d" (bomb quantity / interval,
 with the bombs).
