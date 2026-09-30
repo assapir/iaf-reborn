@@ -9,7 +9,7 @@
 #   --mission: start where the mission puts the player (menu choice by default; the leader of the
 #   TSD-picked or default flight of the mission's main .mis file). --at: engine world metres
 #   (X east, Y north), degrees.
-#   --real: fly the corrected real-world F-16 data instead of the original 1998 numbers.
+#   --real: fly the corrected real-world data (docs/real-aircraft.md) instead of the original 1998 numbers.
 # The aircraft is the original IAF F-16 flight model (Rust, crates/iaf-flight) via the IafFlight class.
 extends Node3D
 

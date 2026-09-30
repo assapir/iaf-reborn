@@ -56,6 +56,11 @@ pub struct Params {
     /// Transonic wave-drag rise (not in the original model; used by the real data set):
     /// ΔCD grows linearly from Mach 0.9 to `wave_drag` at Mach 1.2 and stays there.
     pub wave_drag: f32,
+    /// Real data set only: scales the dry (non-afterburner) part of the thrust curve so military power
+    /// gives the engine's real dry / max-AB ratio (the original fixes it at k = 0.6). 1 = original.
+    pub dry_thrust: f32,
+    /// Fuel flow below the afterburner as a fraction of `thr · FuelFlowAtMaxThrust` (the original's 0.25).
+    pub dry_fuel_frac: f32,
     /// Real nose-wheel steering (real data set only): wheel angle from the rudder pedals, turn rate
     /// from the geometry. None = the original's formula (flight-model.md §7).
     pub nose_wheel: Option<NoseWheel>,
@@ -150,6 +155,8 @@ impl Params {
             over_g_thresh: f("OverGThresh", 6.7),
             envelope_file: s.get("FlightEnvelopeFile").unwrap_or("").to_string(),
             wave_drag: 0.0,
+            dry_thrust: 1.0,
+            dry_fuel_frac: 0.25,
             nose_wheel: None,
             type_code: 0,
         }

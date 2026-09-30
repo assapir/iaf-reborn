@@ -33,7 +33,7 @@ const PREFS := {
 		"flight_data", "language", "show_info", "blackbox"],
 }
 
-## Flight data: "original" (Jane's IAF 1998 numbers) or "real" (corrected real-world F-16 data).
+## Flight data: "original" (Jane's IAF 1998 numbers) or "real" (corrected real-world data for every flyable jet, docs/real-aircraft.md).
 var flight_data := "original"
 ## Briefing language: "en" or "he" (Hebrew only when the Hebrew pack is installed).
 var language := "en"

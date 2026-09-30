@@ -112,7 +112,7 @@ const OUR_TABS := [["Extras", "EXTRAS"], ["Physics", "PHYSICS"]]
 const PHYSICS_ROW := 21.0
 ## Our options on the Extras page: [setting, label, [[choice label, value], ...]].
 const EXTRAS := [
-	["flight_data", "Flight data", [["Original (1998)", "original"], ["Real F-16", "real"]]],
+	["flight_data", "Flight data", [["Original (1998)", "original"], ["Real aircraft", "real"]]],
 	["language", "Language", [["English", "en"], ["Hebrew", "he"]]],
 	["show_info", "Flight info (F12)", [["Show", true], ["Hide", false]]],
 	["blackbox", "Blackbox", [["On", true], ["Off", false]]],

@@ -860,12 +860,14 @@ impl Aircraft {
         let a = (alt * 5e-5).clamp(0.0, 1.0);
         let m = (mach / 1.2).clamp(0.0, 1.0);
         let lerp = |t: f32, x: f32, y: f32| x + (y - x) * t;
-        let tk = |mach_i: usize, alt_i: usize| lerp(k, p.thrust[mach_i][alt_i][0], p.thrust[mach_i][alt_i][1]);
+        // Real data set: the dry range scaled to the engine's military / max-AB ratio (1 = original).
+        let kt = if !no_ab && stage == 0 { k * p.dry_thrust } else { k };
+        let tk = |mach_i: usize, alt_i: usize| lerp(kt, p.thrust[mach_i][alt_i][0], p.thrust[mach_i][alt_i][1]);
         let thrust = lerp(a, lerp(m, tk(0, 0), tk(1, 0)), lerp(m, tk(0, 1), tk(1, 1))) * LBF;
         let rpm = 0.6 + 0.4 * thr * 1.351_351_4;
         let mut ff = thr * p.fuel_flow_max;
         if k <= 0.6 {
-            ff *= 0.25;
+            ff *= p.dry_fuel_frac;
         }
         if self.unlimited_fuel {
             ff = 0.0;

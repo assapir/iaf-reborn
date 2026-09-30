@@ -449,7 +449,7 @@ What still differs:
 * **Sampling**: every channel uses its own base time (the original samples all with the X-axis τ, §15.10 13d; the
   channels are re-based together, so this differs only between updates), and angles are wrapped to (−π, π] instead of
   `fmod(x, 2π)`. The spin's yaw-rate sign keeps the axis-τ quirk (off with better physics).
-* Validation against public F-16 data: `cargo test --release -p iaf-flight --test validation -- --nocapture`.
+* Validation against public data for every flyable jet (docs/real-aircraft.md): `cargo test --release -p iaf-flight --test validation -- --nocapture`.
   The neutral-stick row starts at 350 kt in both modes and measures from 5 s after the start (the original's start
   up-jolt is not part of the 1 g hold). The "climb (Ps)" row starts at 320 kt, waits until the afterburner is lit (the
   original's light-up delay, 2 s from the airborne start's 70 % RPM) and the jet is at 350 kt, then measures over 1 s.
@@ -497,12 +497,17 @@ its pitch/roll/yaw channels and the stall latch):
   (≈ 10,000 ft/min class) but were not checked against a primary source.
 
 ## 11. Data sets (`crates/iaf-flight/src/data_set.rs`) — chosen before the flight
-* **Original**: the 1998 numbers as shipped.
-* **Real** (F-16 only so far): empty 19,000 lb; thrust table ×1.5 (F110-GE-100, ~17.4k/29k lbf SL);
-  1 g stall floor 118 kt (Vmin ≥ 118·√g·√(ρ0/ρ) kt → ~355 kt corner); roll 280 deg/s with 900 deg/s²
-  start/stop (FLCS ~0.3 s time constant; the original's 170 deg/s² stop overshoots ~1 s); fuel flow
-  16.5 lb/s at full AB (~60k lb/h, ~11k lb/h military); transonic wave drag ΔCD 0 → 0.02 over Mach 0.9–1.2.
-* In-game: `--real` launch option (pre-flight menu later).
+* **Original**: the 1998 numbers as shipped — the v1.1 files (`bdgen.dat`, `<n>gen.skp`, XOR-encoded) when the
+  patch output is present, else v1.0's (`iaf_flight::read_md`; v1.1 changes: docs/real-aircraft.md §1).
+* **Real**: one table row per flyable jet (F-16, F-15, F-4 / Kurnass 2000, Kfir, Lavi, Mirage) with public
+  real-world values; fields left out keep the original. Per jet: weights, fuel, thrust (SL static full AB, military
+  ratio via `Params::dry_thrust`), fuel flow at AB and military (`Params::dry_fuel_frac`), roll, g limits, wing
+  area, 1 g stall floor (Vmin ≥ floor·√g·√(ρ0/ρ)), pedal nose-wheel steering (angle, wheelbase), and a fit of
+  CD0 / transonic wave drag (ΔCD Mach 0.9–1.2) / 20 km thrust to the published max speeds. Values, sources and the
+  original-vs-real verdicts: docs/real-aircraft.md. The F-16 row is the earlier F-16 set unchanged (empty 19,000 lb,
+  thrust ×1.5, stall floor 118 kt, roll 280 deg/s at 900 deg/s², fuel 16.5 lb/s, wave drag 0.02, NWS ±32°).
+  AI types fly the original data in both sets.
+* In-game: Preferences "Flight data" (Original / Real aircraft) or the `--real` launch option.
 
 ## 12. Gear lever rules (player controller `FUN_004493a0`, case GEV 0xe)
 Generic for every aircraft (no per-type data involved).

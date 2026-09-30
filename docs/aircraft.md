@@ -162,5 +162,6 @@ The controllable jets are the eight in `controllableplanes`; `bd.ibx` also has `
    every descriptor.
 5. **Flight model data set.** Flying it needs a `bd.ibx` section (parameters, docs/flight-model.md §1) and its
    envelope `<n>.dat` (§3), selected by the type (`FUN_005a5bb0`, `fm_section` in the descriptor); a corrected
-   real-world set is added the same way as the F-16's (docs/flight-model.md §11, `crates/iaf-flight/src/data_set.rs`).
+   real-world set is one more row in `crates/iaf-flight/src/data_set.rs` (docs/real-aircraft.md) plus a reference
+   row in `crates/iaf-flight/tests/validation.rs`.
 6. **Cockpit** (flyable jets): a `resource/cockpits/<c>` folder converted with `iaf-convert cockpit` (docs/cockpit.md).
