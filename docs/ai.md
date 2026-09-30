@@ -334,10 +334,22 @@ until the leader rolls at ≥ 50 kt.
 | P4 | L + (0, −3708 (C-130 −1854)) | hT + 250 | RN |
 | P5 | L | hT | RN |
 
-  Children: CH1(P1), ChangeAlt(P1), LevelWings 250 kt, KeepAttitude(P1, < k·AllowedErrPt2); CH2(P2), ChangeAlt,
-  LevelWings 200 kt, KeepAttitude(P2, < k·AllowedErrPt3); CH3(P3), ChangeAlt, KeepAttitude 170 kt (P3, < 1852);
-  CH4(P4); CH5(P5); FinalApproach(P5, < k·AllowedErrPt6); StopPlane; TaxiCL(to park); ParkInHangar. At step 7
-  (downwind): flaps and gear down; at step 13 (final approach): brakes (speed brake) on.
+  Children (ctor `5c6370`): CH1(P1), CA1 (|Δz| < 50; C-130: within k·Pt2 or |Δz| < 250), LW1 128.681 m/s (C-130
+  113.239), KA1(P1, same speed, < k·AllowedErrPt2); CH2(P2), CA2 (50 m), LW2 102.944, KA2(P2, < k·AllowedErrPt3);
+  CH3(P3), CA3 (**250 m**), KA3 87.503 (P3, < 1852); CH4(P4); [CA4 (50 m), C-130 only]; CH5(P5);
+  FinalApproach(P5, < k·AllowedErrPt6); StopPlane; TaxiCL(to park); ParkInHangar (the last two in mode 8 only). Next
+  `5d43e0`: at step 7 flaps and gear down; at step 13 speed brake on and the ground watch off. ChangeAlt sends no
+  throttle.
+- **ChangeHeading2PtAcu** (vtable 0x6138a0, Run `5dbe70`, FirstRun `5dd1f0`, period 0.2 s): target = bearing to the
+  point; CH2–CH5 add a "line capture" `e −= ±acos(cos α)` (α between the line prev → point and the bearing; the sign from
+  sgn(e) and sgn(cos α), as coded); tolerance CH1 1° / others 0.5° (C-130 2 / 1 / 0.5°); bank limit 80° (CH3 / CH4
+  60°, CH5 20°; C-130 always 40°); `bank = clamp(e/(π/6)·Lim·ChangeHeadK − turnRate·ChangeHeadBeta, ±Lim)`; the
+  "Acu" search (|e| > 2°): iterate the bank (≤ 100 times, `bank += gap·1.745e-4`) until the turn circle
+  (`R = V²/(|tan bank|·9.806)`) is tangent to the line (original bug: the perpendicular with slope −m, truncated to
+  integers); pitch law(0); throttle `min(speed law(vt), 0.7)`, vt = the entry speed (CH4 / CH5 72.0611 m/s); no ground
+  watch in mode 8; rudder 0. Done on two consecutive ticks with |e| ≤ tol or roll ≤ 0.2° (signed, as coded): wings
+  level, throttle **0.1** (kept through the following ChangeAlt). DelicateYawLim (rudder branch) is 0 in bd.ibx:
+  dead.
 - **FinalApproachCL** (`5d4c50`): ends within k·AllowedErrPt6 (50 m) of P5. Glide frame pitched −6° along RN:
   (cross, along, above) of pos − P5; `vt = max(Vmin(z, n) + 10.29, 72.06 m/s)`; throttle min(speed law(vt), 0.5);
   `bank = clamp(−0.0013963·cross + e·ChangeHeadK/3 − ChangeHeadBeta·turn rate, ±80°)`, e = RN − heading;

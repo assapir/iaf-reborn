@@ -123,7 +123,6 @@ pub struct Leader {
 }
 
 // Constants (docs/ai.md §7–§8).
-const KT: f32 = 0.514_444;
 const V_MIN_NAV: f32 = 180.0; // 0x6134f0
 const V_MAX_NAV: f32 = 300.0; // 0x6134f4
 const V_NO_ETA: f32 = 275.0;
@@ -776,6 +775,132 @@ struct Landing {
     park: Option<(f64, f64, f32, f64)>,
     /// StopPlane passed (the landed handler, controller +0xe0).
     landed: bool,
+    /// The current ChangeHeading2PtAcu leg's state.
+    acu: Option<Acu>,
+}
+
+/// A LandingCL child (docs/ai.md §8.3).
+#[derive(Debug, Clone, Copy)]
+enum Leg {
+    /// ChangeHeading2PtAcu to point i: heading tolerance, bank limit, fixed speed (else the entry speed).
+    Ch(usize, f32, f32, Option<f32>),
+    /// ChangeAlt to point i's altitude until |Δz| < r.
+    Ca(usize, f64),
+    /// ChangeAlt (C-130 CA1) until within r (2-D) or |Δz| < 250.
+    CaOr(usize, f64),
+    /// LevelWingsPitch0Accel at a speed.
+    Lw(f32),
+    /// KeepAttitude2PtAtSpeed to point i until within r (2-D).
+    Ka(usize, f32, f64),
+    Fa(f64),
+    Stop,
+    Taxi,
+    Park,
+}
+
+/// ChangeHeading2PtAcu (vtable 0x6138a0, Run `5dbe70`, FirstRun `5dd1f0`).
+#[derive(Debug, Clone, Copy)]
+struct Acu {
+    vt: f32,
+    done_latch: bool,
+    acu: bool,
+}
+
+impl Acu {
+    fn new(entry_speed: f32, vt: Option<f32>) -> Self {
+        Acu { vt: vt.unwrap_or(entry_speed), done_latch: false, acu: true }
+    }
+
+    fn step(&mut self, l: &mut Laws, p: V3, prev: Option<V3>, tol: f32, lim: f32) -> Leaf {
+        let v = l.v;
+        let pos = v.pos;
+        let (dx, dy) = (p[0] - pos[0], p[1] - pos[1]);
+        let target = if dx == 0.0 && dy == 0.0 { 0.0 } else { wrap((dx as f32).atan2(dy as f32)) };
+        let mut cos_a = 1.0f64;
+        if let Some(q) = prev {
+            let (lx, ly) = (p[0] - q[0], p[1] - q[1]);
+            let (ln, dn) = (lx.hypot(ly), dx.hypot(dy));
+            if ln > 0.0 && dn > 0.0 {
+                cos_a = (lx * dx + ly * dy) / (ln * dn);
+            }
+        }
+        let mut e = wrap(target - v.att.heading);
+        if prev.is_some() {
+            // Line capture (as coded, UNCERTAIN intent): e −= ±acos(cos α).
+            let mut sg = if e.to_degrees() > 0.0 { -1.0 } else { 1.0 };
+            if cos_a > 0.0 {
+                sg = -sg;
+            }
+            let a = wrap((cos_a.clamp(-1.0, 1.0).acos() as f32) * sg);
+            e = wrap(e - a);
+        }
+        // Done on two consecutive ticks (the roll test is signed, as the original).
+        let roll_deg = v.att.roll.to_degrees();
+        if (e.abs() <= tol || roll_deg <= 0.2) && self.done_latch {
+            l.period = Some(0.5);
+            l.out.rudder = Some(0.0);
+            let y = l.pitch(0.0);
+            let x = l.roll(0.0);
+            l.stick(y, x);
+            l.throttle(0.1);
+            return Leaf::Done;
+        }
+        self.done_latch = e.abs() <= tol && roll_deg <= 0.2;
+        let c = l.c;
+        let bank0 = (e / (PI / 6.0) * lim * c.change_head_k - v.rates[2] * c.change_head_beta).clamp(-lim, lim);
+        let mut bank = bank0;
+        if let (Some(q), true) = (prev, self.acu && e.abs() > 0.034_906_6) {
+            // The "Acu" search: the bank whose turn circle is tangent to the line prev → p.
+            let (mut conv, mut n, mut d_t) = (false, 0, f64::MAX);
+            loop {
+                if bank.abs() <= 0.017_453_3 || bank.abs() > lim {
+                    break;
+                }
+                let r = (v.speed * v.speed / (bank.tan().abs() * 9.806)) as f64;
+                let (m, cc) = if p[0] != q[0] { let m = (p[1] - q[1]) / (p[0] - q[0]); (m, p[1] - p[0] * m) } else { (0.0, 0.0) };
+                let h = v.att.heading as f64;
+                let sb = bank.signum() as f64;
+                let cx = pos[0] + sb * r * h.cos();
+                let cy = pos[1] - sb * r * h.sin();
+                let (dist_cl, t) = if q[1] == p[1] {
+                    ((m * cx + cc - cy).abs(), (pos[0], m * pos[0] + cc))
+                } else if q[0] == p[0] {
+                    ((p[0] - cx).abs(), (p[0], pos[1]))
+                } else if m == 0.0 {
+                    (0.0, (0.0, 0.0))
+                } else {
+                    // Original bug: the perpendicular uses the slope −m, and the foot is truncated to integers.
+                    let ix = ((cy + m * cx - cc) / (2.0 * m)).trunc();
+                    let iy = (-m * ix + cy + m * cx).trunc();
+                    let jx = ((pos[1] + m * pos[0] - cc) / (2.0 * m)).trunc();
+                    let jy = (-m * jx + pos[1] + m * pos[0]).trunc();
+                    ((ix - cx).hypot(iy - cy), (jx, jy))
+                };
+                n += 1;
+                let gap = dist_cl - r;
+                d_t = (t.0 - pos[0]).hypot(t.1 - pos[1]);
+                if gap.abs() < 1.0 || n >= 100 {
+                    conv = true;
+                    if d_t < 2.0 {
+                        bank = bank0;
+                    }
+                    break;
+                }
+                bank += (gap * 0.01 * 0.017_453_3) as f32;
+            }
+            if !conv || d_t < 2.0 {
+                self.acu = false;
+            }
+        }
+        let thr = l.thr(self.vt).min(0.7);
+        l.throttle(thr);
+        let y = l.pitch(0.0);
+        let x = l.roll(bank);
+        // Watch-ground is skipped in modes 0 and 8 (the landing).
+        l.out.rudder = Some(0.0);
+        l.stick(y, x);
+        Leaf::Run
+    }
 }
 
 /// Hangars taken at every base (TowersManager +0x4f4 flags), shared by all jets of the flight.
@@ -1415,74 +1540,80 @@ impl Landing {
             taxi: None,
             park: None,
             landed: false,
+            acu: None,
         })
+    }
+
+    /// The child list of LandingCL (ctor `5c6370`): CH1, CA1, LW1, KA1, CH2, CA2, LW2, KA2, CH3, CA3, KA3, CH4,
+    /// [CA4: C-130], CH5, FinalApproach, StopPlane, TaxiCL (to park), ParkInHangar.
+    fn legs(&self, c130: bool, cfg: &Config) -> Vec<Leg> {
+        let k = self.k;
+        let ae = cfg.allowed_err;
+        let d = |x: f32| x.to_radians();
+        let tol = |i: usize| d(if c130 { [2.0, 1.0, 0.5, 0.5, 0.5][i] } else { [1.0, 0.5, 0.5, 0.5, 0.5][i] });
+        let lim80 = if c130 { d(40.0) } else { d(80.0) };
+        let (lim60, lim20) = if c130 { (lim80, lim80) } else { (d(60.0), d(20.0)) };
+        let s1 = if c130 { 113.239 } else { 128.681 };
+        let mut v = vec![
+            Leg::Ch(0, tol(0), lim80, None),
+            if c130 { Leg::CaOr(0, k * ae[0] as f64) } else { Leg::Ca(0, 50.0) },
+            Leg::Lw(s1),
+            Leg::Ka(0, s1, k * ae[0] as f64),
+            Leg::Ch(1, tol(1), lim80, None),
+            Leg::Ca(1, 50.0),
+            Leg::Lw(102.944),
+            Leg::Ka(1, 102.944, k * ae[1] as f64),
+            Leg::Ch(2, tol(2), lim60, None),
+            Leg::Ca(2, 250.0),
+            Leg::Ka(2, 87.503, 1852.0),
+            Leg::Ch(3, tol(3), lim60, Some(72.0611)),
+        ];
+        if c130 {
+            v.push(Leg::Ca(3, 50.0));
+        }
+        v.extend([Leg::Ch(4, tol(4), lim20, Some(72.0611)), Leg::Fa(k * ae[4] as f64), Leg::Stop, Leg::Taxi, Leg::Park]);
+        v
     }
 
     /// One tick of the current child; `Next` (`5d43e0`) at the step boundaries.
     fn step(&mut self, l: &mut Laws, ap: &Autopilot, period: &mut f64, vmin1: f32) -> Leaf {
-        let v = l.v;
-        let pos = v.pos;
-        let c130 = v.type_code == C130;
-        let k = self.k;
-        let ae = ap.cfg.allowed_err;
-        let within = |p: V3, r: f64| dist2(pos, p[0], p[1]) < r;
-        let dz_ok = |p: V3| (pos[2] - p[2]).abs() < 50.0;
-        let pt = self.pts;
-        let deg = |d: f32| d.to_radians();
-        let lim = if c130 { deg(40.0) } else { deg(80.0) };
-        let tol = |i: usize| {
-            if c130 {
-                [2.0, 1.0, 0.5, 0.5, 0.5][i]
-            } else {
-                [1.0, 0.5, 0.5, 0.5, 0.5][i]
-            }
+        let c130 = l.v.type_code == C130;
+        let legs = self.legs(c130, &ap.cfg);
+        let Some(leg) = legs.get(self.step).copied() else {
+            *period = 0.5;
+            l.throttle(0.0);
+            return Leaf::Done;
         };
-        let r = match self.step {
-            0 => change_heading(l, [pt[0][0], pt[0][1]], deg(tol(0)), lim, None),
-            1 => {
-                if dz_ok(pt[0]) || (c130 && (pos[2] - pt[0][2]).abs() < 250.0) {
+        let pos = l.v.pos;
+        let pt = self.pts;
+        let r = match leg {
+            Leg::Ch(i, tol, lim, vt) => {
+                *period = 0.2;
+                let prev = if i > 0 { Some(pt[i - 1]) } else { None };
+                let acu = self.acu.get_or_insert_with(|| Acu::new(l.v.speed, vt));
+                acu.step(l, pt[i], prev, tol, lim)
+            }
+            Leg::Ca(i, r) => {
+                if (pos[2] - pt[i][2]).abs() < r {
                     Leaf::Done
                 } else {
-                    change_alt(l, pt[0][2]);
+                    change_alt(l, pt[i][2]);
                     Leaf::Run
                 }
             }
-            2 => level_wings_accel(
-                l,
-                &mut self.lw_pitch,
-                if c130 { 220.0 } else { 250.0 } * KT,
-                vmin1 * 1.0,
-            ),
-            3 => self.ka(
-                l,
-                0,
-                if c130 { 220.0 } else { 250.0 } * KT,
-                k * ae[0] as f64,
-            ),
-            4 => change_heading(l, [pt[1][0], pt[1][1]], deg(tol(1)), lim, None),
-            5 => self.ca(l, 1),
-            6 => level_wings_accel(l, &mut self.lw_pitch, 200.0 * KT, vmin1),
-            7 => self.ka(l, 1, 200.0 * KT, k * ae[1] as f64),
-            8 => change_heading(l, [pt[2][0], pt[2][1]], deg(tol(2)), deg(60.0), None),
-            9 => self.ca(l, 2),
-            10 => self.ka(l, 2, 170.0 * KT, 1852.0),
-            11 => change_heading(
-                l,
-                [pt[3][0], pt[3][1]],
-                deg(tol(3)),
-                deg(60.0),
-                Some(140.0 * KT),
-            ),
-            12 => change_heading(
-                l,
-                [pt[4][0], pt[4][1]],
-                deg(tol(4)),
-                deg(20.0),
-                Some(140.0 * KT),
-            ),
-            13 => {
+            Leg::CaOr(i, r) => {
+                if dist2(pos, pt[i][0], pt[i][1]) < r || (pos[2] - pt[i][2]).abs() < 250.0 {
+                    Leaf::Done
+                } else {
+                    change_alt(l, pt[i][2]);
+                    Leaf::Run
+                }
+            }
+            Leg::Lw(speed) => level_wings_accel(l, &mut self.lw_pitch, speed, vmin1),
+            Leg::Ka(i, speed, r) => self.ka(l, i, speed, r),
+            Leg::Fa(r) => {
                 *period = 0.1;
-                if within(pt[4], k * ae[4] as f64) {
+                if dist2(pos, pt[4][0], pt[4][1]) < r {
                     l.out.rudder = Some(0.0);
                     Leaf::Done
                 } else {
@@ -1490,11 +1621,11 @@ impl Landing {
                     Leaf::Run
                 }
             }
-            14 => {
+            Leg::Stop => {
                 *period = 0.2;
                 self.stop_plane(l)
             }
-            15 => {
+            Leg::Taxi => {
                 *period = 0.2;
                 let t = self.taxi.get_or_insert(Taxi {
                     park: true,
@@ -1509,18 +1640,16 @@ impl Landing {
                 });
                 t.step(l, ap, true)
             }
-            16 => {
+            Leg::Park => {
                 *period = 0.2;
                 self.park_step(l, ap)
             }
-            _ => {
-                *period = 0.5;
-                l.throttle(0.0);
-                return Leaf::Done;
-            }
         };
         if r == Leaf::Done {
-            l.stick(0.0, 0.0);
+            if !matches!(leg, Leg::Ch(..)) {
+                l.stick(0.0, 0.0);
+            }
+            self.acu = None;
             self.step += 1;
             match self.step {
                 7 => {
@@ -1542,14 +1671,6 @@ impl Landing {
             return Leaf::Done;
         }
         keep_attitude(l, self.pts[i], Some(speed));
-        Leaf::Run
-    }
-
-    fn ca(&mut self, l: &mut Laws, i: usize) -> Leaf {
-        if (l.v.pos[2] - self.pts[i][2]).abs() < 50.0 {
-            return Leaf::Done;
-        }
-        change_alt(l, self.pts[i][2]);
         Leaf::Run
     }
 
