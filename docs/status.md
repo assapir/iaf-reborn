@@ -24,7 +24,9 @@
 6. Smaller items (no missions unlocked; fit in between milestones): **autopilot** (A key, incl. the approach mode
    of Landing 312), **cockpit camera = the original projection** (HUD ladder lines up; drop the conformal option if
    redundant) + Tu-22 Real row (the variant flown in the missions), **pilot records** / login / unlocking.
-7. Arming screen, remaining front-end screens, multiplayer.
+7. Arming screen (port whatever the original enforces: per-station counts, CURRENT LOAD vs MAX T.O.W.; if it does
+   not block overweight loads, "Enforce max take-off weight" becomes an Extras option), remaining front-end screens,
+   multiplayer.
 8. Joystick / throttle / pedals (original input handling; Devices page).
 9. **Original cheats** (key table 108–113: Ctrl+W reload weapons, Shift+D / Ctrl+Return flight-model data dump,
    Shift+S explosion, Shift+R flight-model hover, U target cheat view): trace the handlers (live in the retail exe or
