@@ -3,6 +3,7 @@
 //! meaning of the fields. Produces a generic JSON tree (class name + tagged fields).
 
 use anyhow::{Context, Result, bail};
+use iaf_formats::bytes::{Cursor, latin1};
 use serde_json::{Map, Value, json};
 
 const MIS_MAGIC: u32 = 0x68b3f;
@@ -10,41 +11,29 @@ const BDB_MAGIC: u32 = 0x4d769;
 const JUNK: usize = 0x200;
 
 struct Reader<'a> {
-    d: &'a [u8],
-    p: usize,
+    c: Cursor<'a>,
     /// CArchive load map: index 0 = NULL, then classes and objects in load order.
     map: Vec<Option<Value>>,
     classes: Vec<Option<String>>,
     version: i32,
 }
 
+impl<'a> std::ops::Deref for Reader<'a> {
+    type Target = Cursor<'a>;
+    fn deref(&self) -> &Cursor<'a> {
+        &self.c
+    }
+}
+
+impl std::ops::DerefMut for Reader<'_> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.c
+    }
+}
+
 impl<'a> Reader<'a> {
     fn new(d: &'a [u8], version: i32) -> Self {
-        Self { d, p: 0, map: vec![None], classes: vec![None], version }
-    }
-
-    fn raw(&mut self, n: usize) -> Result<&'a [u8]> {
-        let v = self.d.get(self.p..self.p + n).with_context(|| format!("truncated at {:#x}", self.p))?;
-        self.p += n;
-        Ok(v)
-    }
-    fn u8(&mut self) -> Result<u8> {
-        Ok(self.raw(1)?[0])
-    }
-    fn u16(&mut self) -> Result<u16> {
-        Ok(u16::from_le_bytes(self.raw(2)?.try_into()?))
-    }
-    fn u32(&mut self) -> Result<u32> {
-        Ok(u32::from_le_bytes(self.raw(4)?.try_into()?))
-    }
-    fn i32(&mut self) -> Result<i32> {
-        Ok(i32::from_le_bytes(self.raw(4)?.try_into()?))
-    }
-    fn f32(&mut self) -> Result<f32> {
-        Ok(f32::from_le_bytes(self.raw(4)?.try_into()?))
-    }
-    fn skip(&mut self, n: usize) -> Result<()> {
-        self.raw(n).map(|_| ())
+        Self { c: Cursor::new(d, 0), map: vec![None], classes: vec![None], version }
     }
 
     /// MFC CString: u8 length (0xFF → u16, 0xFFFF → u32), Windows-1252.
@@ -56,7 +45,7 @@ impl<'a> Reader<'a> {
                 n = self.u32()? as usize;
             }
         }
-        Ok(self.raw(n)?.iter().filter(|&&c| c != 0).map(|&c| c as char).collect())
+        Ok(latin1(self.take(n)?).replace('\0', ""))
     }
 
     /// CArchive::ReadCount.
@@ -76,10 +65,10 @@ impl<'a> Reader<'a> {
                 let f = self.f32()?;
                 if f.is_finite() { json!(f) } else { Value::Null }
             }
-            _ => bail!("bad field type {:?} (id {id:#x}) at {:#x}", t as char, self.p),
+            _ => bail!("bad field type {:?} (id {id:#x}) at {:#x}", t as char, self.pos),
         };
         if id != want {
-            bail!("expected field {want:#x}, got {id:#x} at {:#x}", self.p);
+            bail!("expected field {want:#x}, got {id:#x} at {:#x}", self.pos);
         }
         o.insert(format!("{id:#x}"), v);
         Ok(())
@@ -93,7 +82,7 @@ impl<'a> Reader<'a> {
     fn item_base(&mut self, o: &mut Map<String, Value>) -> Result<()> {
         o.insert("_len".into(), json!(self.u32()?));
         self.fields(o, &[0x14, 0x1e])?;
-        self.skip(JUNK)
+        Ok(self.skip(JUNK)?)
     }
 
     fn records<const N: usize>(&mut self, fmt: [char; N]) -> Result<Value> {
@@ -118,7 +107,7 @@ impl<'a> Reader<'a> {
         let class = if tag == 0xffff {
             self.u16()?; // schema
             let len = self.u16()? as usize;
-            let name = String::from_utf8_lossy(self.raw(len)?).to_string();
+            let name = String::from_utf8_lossy(self.take(len)?).to_string();
             self.map.push(None);
             self.classes.push(Some(name.clone()));
             name
@@ -212,14 +201,14 @@ impl<'a> Reader<'a> {
                 self.skip(0x1f8)?;
             }
             "CArmament" => {
-                let hp = (0..24).map(|_| self.u32().map(|x| json!(x))).collect::<Result<Vec<_>>>()?;
+                let hp = (0..24).map(|_| self.u32().map(|x| json!(x))).collect::<Result<Vec<_>, _>>()?;
                 o.insert("hardpoints".into(), Value::Array(hp));
             }
             "CDMEWeaponLoadItem" => {
                 self.item_base(o)?;
                 self.fields(o, &[0x906, 0x910])?;
                 self.u32()?;
-                let raw: String = self.raw(0x24)?.iter().map(|b| format!("{b:02x}")).collect();
+                let raw: String = self.take(0x24)?.iter().map(|b| format!("{b:02x}")).collect();
                 o.insert("raw".into(), json!(raw));
                 self.skip(JUNK)?;
             }

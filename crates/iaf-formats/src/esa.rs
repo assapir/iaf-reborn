@@ -3,6 +3,7 @@
 //! See `docs/formats/esa.md` for the layout.
 
 use crate::Error;
+use crate::bytes::{Cursor, latin1};
 
 const MAGIC: &[u8] = b"ELECTRONIC_ARTS_ARCHIVE_FILE\0";
 
@@ -32,40 +33,12 @@ pub struct Esa<'a> {
     pub entries: Vec<EsaEntry>,
 }
 
-struct Cursor<'a> {
-    data: &'a [u8],
-    pos: usize,
-}
-
-impl<'a> Cursor<'a> {
-    fn cstr(&mut self) -> Result<&'a [u8], Error> {
-        let rest = self.data.get(self.pos..).ok_or_else(truncated)?;
-        let end = rest.iter().position(|&b| b == 0).ok_or_else(truncated)?;
-        self.pos += end + 1;
-        Ok(&rest[..end])
-    }
-
-    fn u32(&mut self) -> Result<u32, Error> {
-        let b = self.data.get(self.pos..self.pos + 4).ok_or_else(truncated)?;
-        self.pos += 4;
-        Ok(u32::from_le_bytes(b.try_into().unwrap()))
-    }
-}
-
-fn truncated() -> Error {
-    Error::Format("truncated ESA directory".into())
-}
-
-fn latin1(b: &[u8]) -> String {
-    b.iter().map(|&c| c as char).collect()
-}
-
 impl<'a> Esa<'a> {
     pub fn parse(data: &'a [u8]) -> Result<Self, Error> {
         if !data.starts_with(MAGIC) {
             return Err(Error::Format("missing ESA magic".into()));
         }
-        let mut cur = Cursor { data, pos: MAGIC.len() };
+        let mut cur = Cursor::new(data, MAGIC.len());
         let mut entries = Vec::new();
         // The directory is terminated by an empty name, right before the first file's data.
         loop {

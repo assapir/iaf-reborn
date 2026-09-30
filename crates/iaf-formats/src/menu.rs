@@ -63,7 +63,7 @@ fn ints<const N: usize>(t: &[&str]) -> Option<[i32; N]> {
 }
 
 pub fn parse(data: &[u8]) -> Option<MenuFile> {
-    let text: String = data.iter().map(|&b| b as char).collect();
+    let text = crate::bytes::latin1(data);
     let lines: Vec<Vec<&str>> =
         text.lines().map(|l| l.split_whitespace().collect::<Vec<_>>()).filter(|t| !t.is_empty()).collect();
     let first = lines.first()?;

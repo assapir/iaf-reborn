@@ -8,6 +8,7 @@
 //! the templates we use (Mesh, Material, Frame…) live in [`crate::model`].
 
 use crate::Error;
+use crate::bytes::{Cursor, latin1};
 
 mod tok {
     pub const NAME: u16 = 1;
@@ -101,41 +102,10 @@ impl<'a> Values<'a> {
     }
 }
 
-struct Lexer<'a> {
-    data: &'a [u8],
-    pos: usize,
-}
-
-impl Lexer<'_> {
-    fn eof(&self) -> bool {
-        self.pos >= self.data.len()
-    }
-
-    fn take(&mut self, n: usize) -> Result<&[u8], Error> {
-        let b = self
-            .data
-            .get(self.pos..self.pos + n)
-            .ok_or_else(|| Error::Format(format!("X file truncated at {}", self.pos)))?;
-        self.pos += n;
-        Ok(b)
-    }
-
-    fn u16(&mut self) -> Result<u16, Error> {
-        Ok(u16::from_le_bytes(self.take(2)?.try_into().unwrap()))
-    }
-
-    fn u32(&mut self) -> Result<u32, Error> {
-        Ok(u32::from_le_bytes(self.take(4)?.try_into().unwrap()))
-    }
-
-    fn peek(&self) -> Option<u16> {
-        self.data.get(self.pos..self.pos + 2).map(|b| u16::from_le_bytes([b[0], b[1]]))
-    }
-
-    fn name(&mut self) -> Result<String, Error> {
-        let len = self.u32()? as usize;
-        Ok(self.take(len)?.iter().map(|&c| c as char).collect())
-    }
+/// Name / string payload: u32 length + Latin-1 bytes.
+fn read_name(lx: &mut Cursor) -> Result<String, Error> {
+    let len = lx.u32()? as usize;
+    Ok(latin1(lx.take(len)?))
 }
 
 pub fn parse(data: &[u8]) -> Result<Vec<XObject>, Error> {
@@ -148,14 +118,14 @@ pub fn parse(data: &[u8]) -> Result<Vec<XObject>, Error> {
     if &data[12..16] != b"0032" {
         return Err(Error::Format("only 32-bit float .X files are supported".into()));
     }
-    let mut lx = Lexer { data, pos: 16 };
+    let mut lx = Cursor::new(data, 16);
     let mut objects = Vec::new();
     while !lx.eof() {
-        match lx.peek() {
+        match lx.peek_u16() {
             Some(tok::TEMPLATE) => skip_template(&mut lx)?,
             Some(tok::NAME) => {
                 lx.u16()?;
-                let template = lx.name()?;
+                let template = read_name(&mut lx)?;
                 objects.push(parse_object(&mut lx, template)?);
             }
             Some(0) => break, // padding at end of file
@@ -166,7 +136,7 @@ pub fn parse(data: &[u8]) -> Result<Vec<XObject>, Error> {
     Ok(objects)
 }
 
-fn skip_template(lx: &mut Lexer) -> Result<(), Error> {
+fn skip_template(lx: &mut Cursor) -> Result<(), Error> {
     let mut depth = 0;
     loop {
         match lx.u16()? {
@@ -178,7 +148,7 @@ fn skip_template(lx: &mut Lexer) -> Result<(), Error> {
                 }
             }
             tok::NAME => {
-                lx.name()?;
+                read_name(lx)?;
             }
             tok::GUID => {
                 lx.take(16)?;
@@ -192,16 +162,16 @@ fn skip_template(lx: &mut Lexer) -> Result<(), Error> {
 }
 
 /// Parses an object after its template NAME token has been consumed.
-fn parse_object(lx: &mut Lexer, template: String) -> Result<XObject, Error> {
+fn parse_object(lx: &mut Cursor, template: String) -> Result<XObject, Error> {
     let mut obj = XObject { template, ..Default::default() };
-    if lx.peek() == Some(tok::NAME) {
+    if lx.peek_u16() == Some(tok::NAME) {
         lx.u16()?;
-        obj.name = Some(lx.name()?);
+        obj.name = Some(read_name(lx)?);
     }
     if lx.u16()? != tok::OBRACE {
         return Err(Error::Format(format!("expected '{{' after {} at {}", obj.template, lx.pos)));
     }
-    if lx.peek() == Some(tok::GUID) {
+    if lx.peek_u16() == Some(tok::GUID) {
         lx.u16()?;
         lx.take(16)?;
     }
@@ -217,7 +187,7 @@ fn parse_object(lx: &mut Lexer, template: String) -> Result<XObject, Error> {
             tok::FLOAT_LIST => {
                 let n = lx.u32()?;
                 for _ in 0..n {
-                    obj.values.push(Value::Float(f32::from_le_bytes(lx.take(4)?.try_into().unwrap())));
+                    obj.values.push(Value::Float(lx.f32()?));
                 }
             }
             tok::INTEGER => {
@@ -225,17 +195,16 @@ fn parse_object(lx: &mut Lexer, template: String) -> Result<XObject, Error> {
                 obj.values.push(Value::Int(v));
             }
             tok::STRING => {
-                let len = lx.u32()? as usize;
-                let s = lx.take(len)?.iter().map(|&c| c as char).collect::<String>();
+                let s = read_name(lx)?;
                 obj.values.push(Value::Str(s.trim_end_matches('\0').to_string()));
                 // A string is terminated by ';' or ','.
-                if matches!(lx.peek(), Some(tok::SEMICOLON | tok::COMMA)) {
+                if matches!(lx.peek_u16(), Some(tok::SEMICOLON | tok::COMMA)) {
                     lx.u16()?;
                 }
             }
             tok::SEMICOLON | tok::COMMA => {}
             tok::NAME => {
-                let template = lx.name()?;
+                let template = read_name(lx)?;
                 obj.children.push(parse_object(lx, template)?);
             }
             tok::OBRACE => {
@@ -243,7 +212,7 @@ fn parse_object(lx: &mut Lexer, template: String) -> Result<XObject, Error> {
                 let mut name = None;
                 loop {
                     match lx.u16()? {
-                        tok::NAME => name = Some(lx.name()?),
+                        tok::NAME => name = Some(read_name(lx)?),
                         tok::GUID => {
                             lx.take(16)?;
                         }

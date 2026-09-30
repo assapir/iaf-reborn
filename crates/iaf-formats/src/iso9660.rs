@@ -8,6 +8,7 @@ use std::io::{self, Read, Seek, SeekFrom, Take};
 use std::path::Path;
 
 use crate::Error;
+use crate::bytes::{latin1, u32_at};
 
 const SECTOR: u64 = 2048;
 
@@ -63,10 +64,6 @@ fn read_sectors(file: &mut File, lba: u32, len: u32) -> io::Result<Vec<u8>> {
     Ok(buf)
 }
 
-fn le32(b: &[u8], at: usize) -> u32 {
-    u32::from_le_bytes(b[at..at + 4].try_into().unwrap())
-}
-
 /// Returns (root dir LBA, root dir size, joliet?). Prefers the Joliet
 /// supplementary descriptor because it preserves the original file-name case.
 fn find_root(file: &mut File) -> Result<(u32, u32, bool), Error> {
@@ -77,7 +74,7 @@ fn find_root(file: &mut File) -> Result<(u32, u32, bool), Error> {
             return Err(Error::Format("not an ISO 9660 image".into()));
         }
         let root = &vd[156..156 + 34];
-        let loc = (le32(root, 2), le32(root, 10));
+        let loc = (u32_at(root, 2)?, u32_at(root, 10)?);
         match vd[0] {
             1 => primary = Some(loc),
             2 if vd[88] == b'%' && vd[89] == b'/' && matches!(vd[90], b'@' | b'C' | b'E') => {
@@ -96,7 +93,7 @@ fn decode_name(raw: &[u8], joliet: bool) -> String {
         let units: Vec<u16> = raw.chunks_exact(2).map(|c| u16::from_be_bytes([c[0], c[1]])).collect();
         String::from_utf16_lossy(&units)
     } else {
-        raw.iter().map(|&b| b as char).collect()
+        latin1(raw)
     };
     let name = name.split(';').next().unwrap_or_default();
     name.strip_suffix('.').unwrap_or(name).to_string()
@@ -127,7 +124,7 @@ fn walk(
             continue; // "." and ".."
         }
         let path = format!("{prefix}{}", decode_name(raw_name, joliet));
-        let entry = IsoEntry { path, lba: le32(rec, 2), size: le32(rec, 10), is_dir: rec[25] & 2 != 0 };
+        let entry = IsoEntry { path, lba: u32_at(rec, 2)?, size: u32_at(rec, 10)?, is_dir: rec[25] & 2 != 0 };
         if entry.is_dir {
             walk(file, entry.lba, entry.size, joliet, &format!("{}/", entry.path), out)?;
         }

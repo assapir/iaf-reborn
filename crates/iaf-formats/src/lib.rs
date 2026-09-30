@@ -1,5 +1,6 @@
 //! Parsers for the data files of Jane's IAF: Israeli Air Force (1998).
 
+pub mod bytes;
 pub mod emf;
 pub mod esa;
 pub mod ini;
@@ -13,10 +14,32 @@ pub mod winfnt;
 pub mod ssf;
 pub mod xfile;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 pub enum Error {
-    #[error("I/O error: {0}")]
-    Io(#[from] std::io::Error),
-    #[error("bad format: {0}")]
+    Io(std::io::Error),
     Format(String),
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Error::Io(e) => write!(f, "I/O error: {e}"),
+            Error::Format(s) => write!(f, "bad format: {s}"),
+        }
+    }
+}
+
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Error::Io(e) => Some(e),
+            Error::Format(_) => None,
+        }
+    }
+}
+
+impl From<std::io::Error> for Error {
+    fn from(e: std::io::Error) -> Self {
+        Error::Io(e)
+    }
 }

@@ -7,6 +7,7 @@
 //! `PlayEnhMetaFile` stretches the frame onto the destination rectangle.
 
 use crate::Error;
+use crate::bytes::{i16_at, i32_at, u32_at};
 
 /// RGB colour.
 pub type Rgb = [u8; 3];
@@ -55,26 +56,6 @@ enum Obj {
 
 fn rgb(c: u32) -> Rgb {
     [(c & 0xff) as u8, (c >> 8 & 0xff) as u8, (c >> 16 & 0xff) as u8]
-}
-
-struct Reader<'a>(&'a [u8]);
-
-impl Reader<'_> {
-    fn u32(&self, o: usize) -> Result<u32, Error> {
-        self.0
-            .get(o..o + 4)
-            .map(|b| u32::from_le_bytes(b.try_into().unwrap()))
-            .ok_or_else(|| Error::Format("emf: record truncated".into()))
-    }
-    fn i32(&self, o: usize) -> Result<i32, Error> {
-        self.u32(o).map(|v| v as i32)
-    }
-    fn i16(&self, o: usize) -> Result<i16, Error> {
-        self.0
-            .get(o..o + 2)
-            .map(|b| i16::from_le_bytes(b.try_into().unwrap()))
-            .ok_or_else(|| Error::Format("emf: record truncated".into()))
-    }
 }
 
 /// Logical → device → frame mapping state.
@@ -132,13 +113,12 @@ fn stock(index: u32) -> Option<Obj> {
 }
 
 pub fn parse(data: &[u8]) -> Result<Metafile, Error> {
-    let r = Reader(data);
-    if r.u32(0)? != 1 || data.get(40..44) != Some(b" EMF") {
+    if u32_at(data, 0)? != 1 || data.get(40..44) != Some(b" EMF") {
         return Err(Error::Format("not an enhanced metafile".into()));
     }
-    let frame = [r.i32(24)?, r.i32(28)?, r.i32(32)?, r.i32(36)?];
-    let device_px = [r.i32(72)?, r.i32(76)?];
-    let device_mm = [r.i32(80)?, r.i32(84)?];
+    let frame = [i32_at(data, 24)?, i32_at(data, 28)?, i32_at(data, 32)?, i32_at(data, 36)?];
+    let device_px = [i32_at(data, 72)?, i32_at(data, 76)?];
+    let device_mm = [i32_at(data, 80)?, i32_at(data, 84)?];
     let fw = (frame[2] - frame[0]).max(1) as f32;
     let fh = (frame[3] - frame[1]).max(1) as f32;
     let px_to_frame = [
@@ -165,48 +145,48 @@ pub fn parse(data: &[u8]) -> Result<Metafile, Error> {
 
     let mut o = 0usize;
     while o + 8 <= data.len() {
-        let kind = r.u32(o)?;
-        let size = r.u32(o + 4)? as usize;
+        let kind = u32_at(data, o)?;
+        let size = u32_at(data, o + 4)? as usize;
         if size < 8 || o + size > data.len() {
             return Err(Error::Format(format!("emf: bad record size at {o:#x}")));
         }
-        let pair = |a: usize| -> Result<[f32; 2], Error> { Ok([r.i32(o + a)? as f32, r.i32(o + a + 4)? as f32]) };
+        let pair = |a: usize| -> Result<[f32; 2], Error> { Ok([i32_at(data, o + a)? as f32, i32_at(data, o + a + 4)? as f32]) };
         match kind {
             14 => break, // EOF
             9 => map.win_ext = pair(8)?,
             10 => map.win_org = pair(8)?,
             11 => map.vp_ext = pair(8)?,
             12 => map.vp_org = pair(8)?,
-            17 => map.anisotropic = matches!(r.u32(o + 8)?, 7 | 8), // MM_ISOTROPIC / MM_ANISOTROPIC
-            19 => alternate = r.u32(o + 8)? == 1,
-            22 => text_align = r.u32(o + 8)?,
-            24 => text_color = rgb(r.u32(o + 8)?),
+            17 => map.anisotropic = matches!(u32_at(data, o + 8)?, 7 | 8), // MM_ISOTROPIC / MM_ANISOTROPIC
+            19 => alternate = u32_at(data, o + 8)? == 1,
+            22 => text_align = u32_at(data, o + 8)?,
+            24 => text_color = rgb(u32_at(data, o + 8)?),
             38 => {
                 // CREATEPEN: ih, LOGPEN { style, width.x, width.y, color }
-                let ih = r.u32(o + 8)? as usize;
-                let style = r.u32(o + 12)?;
-                let p = (style & 0xf != 5).then(|| Pen { color: rgb(r.u32(o + 24).unwrap_or(0)), width: map.len_x(r.i32(o + 16).unwrap_or(0) as f32) });
+                let ih = u32_at(data, o + 8)? as usize;
+                let style = u32_at(data, o + 12)?;
+                let p = (style & 0xf != 5).then(|| Pen { color: rgb(u32_at(data, o + 24).unwrap_or(0)), width: map.len_x(i32_at(data, o + 16).unwrap_or(0) as f32) });
                 set(&mut objects, ih, Obj::Pen(p));
             }
             39 => {
                 // CREATEBRUSHINDIRECT: ih, LOGBRUSH { style, color, hatch }
-                let ih = r.u32(o + 8)? as usize;
-                let style = r.u32(o + 12)?;
-                set(&mut objects, ih, Obj::Brush((style != 1).then(|| rgb(r.u32(o + 16).unwrap_or(0)))));
+                let ih = u32_at(data, o + 8)? as usize;
+                let style = u32_at(data, o + 12)?;
+                set(&mut objects, ih, Obj::Brush((style != 1).then(|| rgb(u32_at(data, o + 16).unwrap_or(0)))));
             }
             82 => {
                 // EXTCREATEFONTINDIRECTW: ih, LOGFONTW
-                let ih = r.u32(o + 8)? as usize;
+                let ih = u32_at(data, o + 8)? as usize;
                 let lf = o + 12;
-                let height = r.i32(lf)? as f32;
-                let weight = r.i32(lf + 16)?;
+                let height = i32_at(data, lf)? as f32;
+                let weight = i32_at(data, lf + 16)?;
                 let italic = data[lf + 20] != 0;
-                let face: Vec<u16> = (0..32).map(|i| r.i16(lf + 28 + i * 2).unwrap_or(0) as u16).take_while(|&c| c != 0).collect();
+                let face: Vec<u16> = (0..32).map(|i| i16_at(data, lf + 28 + i * 2).unwrap_or(0) as u16).take_while(|&c| c != 0).collect();
                 let f = Font { height: map.len_y(height), weight, italic, face: String::from_utf16_lossy(&face) };
                 set(&mut objects, ih, Obj::Font(f));
             }
             37 => {
-                let ih = r.u32(o + 8)?;
+                let ih = u32_at(data, o + 8)?;
                 let obj = if ih & 0x8000_0000 != 0 { stock(ih) } else { objects.get(ih as usize).cloned().flatten() };
                 match obj {
                     Some(Obj::Pen(p)) => pen = p,
@@ -216,15 +196,15 @@ pub fn parse(data: &[u8]) -> Result<Metafile, Error> {
                 }
             }
             40 => {
-                if let Some(slot) = objects.get_mut(r.u32(o + 8)? as usize) {
+                if let Some(slot) = objects.get_mut(u32_at(data, o + 8)? as usize) {
                     *slot = None;
                 }
             }
             86 | 87 => {
                 // POLYGON16 / POLYLINE16: bounds, count, POINTS
-                let n = r.u32(o + 24)? as usize;
+                let n = u32_at(data, o + 24)? as usize;
                 let pts = (0..n)
-                    .map(|i| Ok(map.point(r.i16(o + 28 + i * 4)? as f32, r.i16(o + 30 + i * 4)? as f32)))
+                    .map(|i| Ok(map.point(i16_at(data, o + 28 + i * 4)? as f32, i16_at(data, o + 30 + i * 4)? as f32)))
                     .collect::<Result<Vec<_>, Error>>()?;
                 if kind == 86 {
                     ops.push(Op::Polygon { rings: vec![pts], pen, brush, alternate });
@@ -234,13 +214,13 @@ pub fn parse(data: &[u8]) -> Result<Metafile, Error> {
             }
             91 => {
                 // POLYPOLYGON16: bounds, nPolys, total, counts[nPolys], POINTS
-                let polys = r.u32(o + 24)? as usize;
+                let polys = u32_at(data, o + 24)? as usize;
                 let mut p = o + 32 + polys * 4;
                 let mut rings = Vec::with_capacity(polys);
                 for i in 0..polys {
-                    let n = r.u32(o + 32 + i * 4)? as usize;
+                    let n = u32_at(data, o + 32 + i * 4)? as usize;
                     let ring = (0..n)
-                        .map(|k| Ok(map.point(r.i16(p + k * 4)? as f32, r.i16(p + 2 + k * 4)? as f32)))
+                        .map(|k| Ok(map.point(i16_at(data, p + k * 4)? as f32, i16_at(data, p + 2 + k * 4)? as f32)))
                         .collect::<Result<Vec<_>, Error>>()?;
                     p += n * 4;
                     rings.push(ring);
@@ -250,9 +230,9 @@ pub fn parse(data: &[u8]) -> Result<Metafile, Error> {
             84 => {
                 // EXTTEXTOUTW: bounds, mode, exScale, eyScale, EMRTEXT { ref, nChars, offString, ... }
                 let reference = pair(36)?;
-                let n = r.u32(o + 44)? as usize;
-                let off = r.u32(o + 48)? as usize;
-                let chars: Vec<u16> = (0..n).map(|i| r.i16(o + off + i * 2).unwrap_or(0) as u16).collect();
+                let n = u32_at(data, o + 44)? as usize;
+                let off = u32_at(data, o + 48)? as usize;
+                let chars: Vec<u16> = (0..n).map(|i| i16_at(data, o + off + i * 2).unwrap_or(0) as u16).collect();
                 ops.push(Op::Text {
                     pos: map.point(reference[0], reference[1]),
                     text: String::from_utf16_lossy(&chars),

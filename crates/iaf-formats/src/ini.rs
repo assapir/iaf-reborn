@@ -31,7 +31,7 @@ pub struct Ini {
 
 impl Ini {
     pub fn parse(data: &[u8]) -> Self {
-        let text: String = data.iter().map(|&b| b as char).collect();
+        let text = crate::bytes::latin1(data);
         let mut ini = Ini::default();
         for line in text.lines() {
             let line = line.split(';').next().unwrap_or("").trim();

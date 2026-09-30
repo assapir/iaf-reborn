@@ -7,4 +7,3 @@ description = "Parsers for Jane's IAF (1998) data files"
 
 [dependencies]
 explode = "0.1.2"
-thiserror = "2"

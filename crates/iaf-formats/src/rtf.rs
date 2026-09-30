@@ -38,7 +38,7 @@ struct Style {
 
 /// The `\colortbl` entries as RGB (index 0 is "auto" and has no colour).
 fn color_table(data: &[u8]) -> Vec<Option<[u8; 3]>> {
-    let text: String = data.iter().map(|&b| b as char).collect();
+    let text = crate::bytes::latin1(data);
     let Some(start) = text.find("\\colortbl") else { return Vec::new() };
     let body = &text[start + 9..];
     let body = &body[..body.find('}').unwrap_or(body.len())];
@@ -58,7 +58,7 @@ fn color_table(data: &[u8]) -> Vec<Option<[u8; 3]>> {
 /// Font number → code page, from `\fN … \fcharsetM` in the font table
 /// (177 Hebrew → 1255, 178 Arabic → 1256; anything else uses the document code page).
 fn font_codepages(data: &[u8]) -> Vec<(i32, u32)> {
-    let text: String = data.iter().map(|&b| b as char).collect();
+    let text = crate::bytes::latin1(data);
     let Some(start) = text.find("\\fonttbl") else { return Vec::new() };
     let table = &text[start..];
     // Each font entry starts with `{\fN` (N digits); its charset follows before the next entry.

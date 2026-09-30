@@ -10,6 +10,7 @@ use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 
 use crate::Error;
+use crate::bytes::{u16_at, u32_at};
 
 const MAGIC: &[u8] = b"STRT";
 const TABLES_OFFSET: u64 = 0x25;
@@ -60,10 +61,6 @@ pub struct Ptt {
     pub levels: Vec<Level>,
 }
 
-fn le32(b: &[u8], at: usize) -> u32 {
-    u32::from_le_bytes(b[at..at + 4].try_into().unwrap())
-}
-
 impl Ptt {
     pub fn open(path: impl AsRef<Path>) -> Result<Self, Error> {
         let mut file = File::open(path)?;
@@ -72,7 +69,7 @@ impl Ptt {
         if !hdr.starts_with(MAGIC) {
             return Err(Error::Format("not a PTT terrain file".into()));
         }
-        let tables_len = le32(&hdr, 0x21) as usize;
+        let tables_len = u32_at(&hdr, 0x21)? as usize;
         let tables = hdr[TABLES_OFFSET as usize..TABLES_OFFSET as usize + tables_len].to_vec();
         if !tables.starts_with(&[0xff, 0xd8]) || !tables.ends_with(&[0xff, 0xd9]) {
             return Err(Error::Format("PTT: JPEG tables not found".into()));
@@ -81,9 +78,9 @@ impl Ptt {
         let mut at = RECORDS_OFFSET;
         while at + RECORD_SIZE <= hdr.len() && hdr[at..at + 24].iter().any(|&b| b != 0) {
             levels.push(Level {
-                rect: [le32(&hdr, at), le32(&hdr, at + 4), le32(&hdr, at + 8), le32(&hdr, at + 12)],
-                level: le32(&hdr, at + 16),
-                offset: le32(&hdr, at + 20),
+                rect: [u32_at(&hdr, at)?, u32_at(&hdr, at + 4)?, u32_at(&hdr, at + 8)?, u32_at(&hdr, at + 12)?],
+                level: u32_at(&hdr, at + 16)?,
+                offset: u32_at(&hdr, at + 20)?,
                 flag: hdr[at + 24],
             });
             at += RECORD_SIZE;
@@ -102,14 +99,15 @@ impl Ptt {
     pub fn tiles(&mut self, level: &Level) -> Result<Vec<TileEntry>, Error> {
         let n = (level.columns() * level.rows()) as usize;
         let raw = self.read_at(level.offset as u64, n * 8)?;
-        Ok(raw
-            .chunks_exact(8)
-            .map(|e| TileEntry {
-                offset: level.offset as u64 + le32(e, 0) as u64,
-                jpeg_size: u16::from_le_bytes([e[4], e[5]]),
-                height_size: u16::from_le_bytes([e[6], e[7]]),
+        raw.chunks_exact(8)
+            .map(|e| {
+                Ok(TileEntry {
+                    offset: level.offset as u64 + u32_at(e, 0)? as u64,
+                    jpeg_size: u16_at(e, 4)?,
+                    height_size: u16_at(e, 6)?,
+                })
             })
-            .collect())
+            .collect()
     }
 
     /// A complete, standalone JPEG for the tile (shared tables spliced in).
