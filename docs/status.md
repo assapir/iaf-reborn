@@ -44,7 +44,9 @@ Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user
 ## Small bugs (fix between jobs)
 - **Airbase flickers badly in the external view** (since the new terrain; likely z-fighting between the runway / airbase object models and the terrain imagery that already shows them, or overlapping quadtree levels). First to fix.
 - Keyboard page: the scrollbar arrows are cropped on the right side.
-- Terrain loads only after Fly (a few seconds behind the loading screen): start loading the ground around the
+- Terrain loads only after Fly, and the flight's loading screen (game/terrain/loading_screen.gd) does not show —
+  only the front end's wait screen before the briefing appears; the ground pops in for a few seconds. Fix the
+  loading screen, then: start loading the ground around the
   player's start point in the background while the briefing / TSD is open, so the flight starts at once.
 
 ## Done
