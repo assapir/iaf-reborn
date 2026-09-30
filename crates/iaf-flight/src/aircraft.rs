@@ -130,6 +130,8 @@ pub struct Aircraft {
     /// Engine running (`S+0x1d0`): off at a ground start, turned on by any throttle change
     /// (§8, `FUN_0059cb60`); on at an airborne start (`FUN_005a2a10`).
     pub engine_on: bool,
+    /// "Better physics" option (docs/roadmap.md): opt-in fixes of original quirks, off = original.
+    pub better_physics: bool,
     // Load-time derived constants.
     cl0: f32,
     cl_alpha: f32,
@@ -181,6 +183,7 @@ impl Aircraft {
             mass,
             fuel_flow: 0.0,
             engine_on: true,
+            better_physics: false,
             stall_time: f64::NEG_INFINITY,
             buffet: false,
             cl0,
@@ -393,7 +396,7 @@ impl Aircraft {
         let fuel = self.fuel.sample(t);
         let mass = p.empty_mass + fuel;
         let (fwd, right, _) = self.attitude(t);
-        let (_, roll, _) = Self::euler(fwd, right);
+        let (pitch, roll, _) = Self::euler(fwd, right);
         let (vel, _) = self.speed_at(t);
         let gamma = if v > 1.0 { (vel[2] / v as f64).clamp(-1.0, 1.0).asin() as f32 } else { 0.0 };
         let alpha_now = self.alpha.sample(t).0 as f32;
@@ -408,11 +411,14 @@ impl Aircraft {
             let sp = c.stick_y;
             let mut g = if sp > 0.0 { centre + sp * p.max_g_m1 } else { centre + (-sp) * ((p.min_g_m1 + 1.0) - centre) };
             if (g - 1.0).abs() < 1e-5 && roll.abs() < 10f32.to_radians() {
-                // Neutral stick: hold the flight path. The original uses the nose pitch
-                // (cos(pitch)/cos(roll)); we use the flight-path angle and subtract the thrust's
-                // lift component, otherwise the jet slowly dives at high speed where the
-                // original's alpha goes negative (deviation, see docs/flight-model.md).
-                g = gamma.cos() / roll.cos() - self.thrust * alpha_now.sin() / (mass * G);
+                // Neutral stick: 1 g hold, cos(pitch)/cos(roll) in the original. The jet slowly
+                // dives with it at high speed (α < 0 there tilts the thrust down); "better physics"
+                // holds the flight path instead and subtracts the thrust's lift share.
+                g = if self.better_physics {
+                    gamma.cos() / roll.cos() - self.thrust * alpha_now.sin() / (mass * G)
+                } else {
+                    pitch.cos() / roll.cos()
+                };
             }
             g
         };

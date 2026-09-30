@@ -361,9 +361,10 @@ found; UNCERTAIN). Key names are loaded from `keys.trx` into `0x82eea8` (100-byt
 * Ceiling/Vmin extras: `P+0x14c` (Vmin 1 g @10 km) used by AI only (UNCERTAIN).
 
 ## 10. Deviations in our port (`crates/iaf-flight`)
-* **1 g hold** (§4.2): uses the flight-path angle γ instead of the nose pitch and subtracts the thrust's
-  vertical share: `g = cos γ / cos φ − T·sin α /(m·g)`. With the original formula the jet slowly dives at high
-  speed (α goes negative there, tilting thrust downward).
+* **1 g hold** (§4.2): original formula `cos(pitch)/cos(roll)` by default. With it the jet slowly dives at high
+  speed (α goes negative there, tilting thrust downward). The **"Better physics"** option (Preferences, user
+  decision) holds the flight-path angle γ instead and subtracts the thrust's vertical share:
+  `g = cos γ / cos φ − T·sin α /(m·g)`.
 * **Envelope** (§3): linear interpolation within/between g-graphs instead of the 3-point plane fit.
 * Not yet ported: AB light-up delay, departure/spin modes (§6 other modes), engine damage flags, stores drag.
 * Validation against public F-16 data: `cargo test --release -p iaf-flight --test validation -- --nocapture`.

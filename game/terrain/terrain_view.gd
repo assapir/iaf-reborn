@@ -411,6 +411,8 @@ func _start_flight() -> void:
 	if err != "":
 		push_error("flight model: " + err)
 		flight = null
+		return
+	flight.set_better_physics(Settings.better_physics or OS.get_cmdline_user_args().has("--better"))
 
 
 func _spawn_f16() -> void:

@@ -76,6 +76,14 @@ impl IafFlight {
         }
     }
 
+    /// "Better physics" option: opt-in fixes of original quirks (docs/flight-model.md §10).
+    #[func]
+    fn set_better_physics(&mut self, on: bool) {
+        if let Some(ac) = &mut self.aircraft {
+            ac.better_physics = on;
+        }
+    }
+
     /// Engine running or off (a ground start begins with the engine off).
     #[func]
     fn set_engine_on(&mut self, on: bool) {

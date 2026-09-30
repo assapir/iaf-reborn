@@ -544,6 +544,7 @@ func _draw_prefs() -> void:
 		["Flight data", [["Original (Jane's IAF 1998)", "original"], ["Real F-16", "real"]], "flight_data"],
 		["Language", [["English", "en"], ["Hebrew", "he"]], "language"],
 		["No blackouts", [["Off", false], ["On", true]], "no_blackouts"],
+		["Better physics", [["Off", false], ["On", true]], "better_physics"],
 	]
 	var rtl := _he()
 	var fs := int(round(LIST_TITLE_PX * _scale()))

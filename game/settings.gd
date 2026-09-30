@@ -9,6 +9,8 @@ var flight_data := "original"
 var language := "en"
 ## Gameplay preference "No blackouts" (original pref, default off = blackouts on).
 var no_blackouts := false
+## "Better physics": opt-in fixes of original flight-model quirks (docs/roadmap.md).
+var better_physics := false
 ## Mission picked in the front end (briefing id, e.g. 311), -1 = free flight.
 var mission_id := -1
 ## Aircraft picked on the Jet list (original ids, FUN_00508470): 0 F-15, 1 F-16, 2 F-4E,
@@ -38,6 +40,7 @@ func _ready() -> void:
 		flight_data = cfg.get_value("gameplay", "flight_data", flight_data)
 		language = cfg.get_value("gameplay", "language", language)
 		no_blackouts = cfg.get_value("gameplay", "no_blackouts", no_blackouts)
+		better_physics = cfg.get_value("gameplay", "better_physics", better_physics)
 	if language == "he" and not hebrew_available():
 		language = "en"
 
@@ -49,6 +52,7 @@ func save() -> void:
 	cfg.set_value("gameplay", "flight_data", flight_data)
 	cfg.set_value("gameplay", "language", language)
 	cfg.set_value("gameplay", "no_blackouts", no_blackouts)
+	cfg.set_value("gameplay", "better_physics", better_physics)
 	cfg.save(PATH)
 
 

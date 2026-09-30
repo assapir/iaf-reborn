@@ -52,7 +52,8 @@ listed below.
 - Terrain under a rolling aircraft: the wheels follow our terrain (the original's runways are flat).
 - Real data set: pedal nose-wheel steering and no ×4 ground-lift quirk; the original set keeps the original formula
   (stick steering; steering above ~40 kt can hop the jet off).
-- Ground effect: later, behind a separate "better physics" option (not in the real data set).
+- "Better physics" option (Preferences, off by default; separate from the data set): γ-based 1 g hold (the
+  original's neutral stick slowly dives at high speed). Ground effect: later, same option.
 - In-flight subtitles stay English in Hebrew mode (no Hebrew source exists).
 - Rendering improvements allowed: smooth text, Lanczos-upscaled art.
 
