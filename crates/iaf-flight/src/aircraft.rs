@@ -936,6 +936,11 @@ impl Aircraft {
 
     /// Attitude of the current mode (mode object slot 0).
     fn attitude(&self, t: f64) -> Euler {
+        self.attitude_ab(t, true)
+    }
+
+    /// `with_ab` false: the flight-path attitude (α = β = 0), what `5a68f0` gives the control loops.
+    fn attitude_ab(&self, t: f64, with_ab: bool) -> Euler {
         if let Some(pv) = &self.pivot {
             return Euler { pitch: 0.0, roll: 0.0, heading: wrap(pv.heading(t) as f64) as f32 };
         }
@@ -971,11 +976,11 @@ impl Aircraft {
         if dphi != 0.0 {
             w = rotate(w, self.saved.basis().0, dphi);
         }
-        let alpha = wrap(self.alpha.sample(t).0);
+        let alpha = if with_ab { wrap(self.alpha.sample(t).0) } else { 0.0 };
         if alpha != 0.0 {
             f = rotate(f, w, -alpha);
         }
-        let beta = self.beta.sample(t).0;
+        let beta = if with_ab { self.beta.sample(t).0 } else { 0.0 };
         if beta != 0.0 {
             let n = norm(cross(w, f));
             f = rotate(f, n, wrap(beta));
@@ -1799,7 +1804,8 @@ impl Aircraft {
         self.params.fuel_mass
     }
 
-    /// What the autopilot's control loops read from the FM (docs/ai.md §8): the pose `5a68f0`, the rates
+    /// What the autopilot's control loops read from the FM (docs/ai.md §8): the pose `5a68f0` (position and
+    /// the flight-path attitude: velocity direction and roll, α = β = 0), the rates
     /// `5a6b10` (flight-path pitch rate, roll rate, turn rate), TAS, the acceleration (slot 0x44) and the
     /// getters.
     pub fn ap_view(&self) -> ApView {
@@ -1817,7 +1823,7 @@ impl Aircraft {
             vel: v,
             acc: a,
             speed,
-            att: self.attitude(t),
+            att: self.attitude_ab(t, false),
             rates: [path as f32, self.roll.sample(t).1, turn as f32],
             max_roll_rate: p.max_roll_rate,
             max_g: p.max_g_m1 + 1.0,

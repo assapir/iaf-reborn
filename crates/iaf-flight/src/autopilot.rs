@@ -834,6 +834,20 @@ impl Autopilot {
         self.mode
     }
 
+    /// The loop's stage, for logs and tests.
+    pub fn stage(&self) -> String {
+        match &self.lp {
+            Loop::Nav { idx, .. } => format!("nav wp {}", idx),
+            Loop::GoHome { land: None, .. } => "go home: fly to the last waypoint".into(),
+            Loop::GoHome { land: Some(l), .. } => format!("landing step {}", l.step),
+            Loop::TakeOff { stage, taxi, .. } => format!("take-off stage {stage} taxi point {}", taxi.i),
+            Loop::Formation { recover, .. } => format!("formation{}", if *recover { " (recovering)" } else { "" }),
+            Loop::Hold { .. } => "hold".into(),
+            Loop::Straight { .. } => "straight".into(),
+            Loop::None => "none".into(),
+        }
+    }
+
     /// `setMode` (`5a8410`): an identical command is ignored; else the loop starts (first tick after 0.5 s).
     pub fn set_mode(&mut self, ac: &mut Aircraft, mode: u8) {
         if mode == self.mode {

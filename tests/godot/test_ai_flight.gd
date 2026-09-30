@@ -23,4 +23,20 @@ func run() -> void:
 		if (p.ent.world - p0[p].world).length() > 10000.0:
 			moved += 1
 	check(moved >= 6, "the AI jets flew (%d moved > 10 km in 120 s)" % moved)
+	# Wingmen in formation (tactical, mode 3) stay near their leaders; the leaders navigate (mode 7).
+	var close := 0
+	var pairs := 0
+	for p in tv.ai.pilots:
+		var lead = p.formation.members[0] if not p.formation.is_empty() else {}
+		if p.mode == 3 and not lead.is_empty() and lead.has("pilot"):
+			pairs += 1
+			var d: float = (p.ent.world - lead.world).length()
+			print("  %s -> %s: %.0f m" % [p.ent.name, lead.name, d])
+			if d < 2000.0:
+				close += 1
+	check(pairs >= 4 and close == pairs, "wingmen keep formation (%d of %d within 2 km)" % [close, pairs])
+	# Bravo starts on Ramon's runway (ground start at the lineup) and takes off.
+	for p in tv.ai.pilots:
+		if p.ent.name == "bravo_1":
+			check(not p.state().on_ground and p.ent.world.z > 700.0, "bravo_1 took off from Ramon (alt %.0f)" % p.ent.world.z)
 	check(tv.ai.contacts().size() == tv.ai.pilots.size(), "contacts for radar / RWR")
