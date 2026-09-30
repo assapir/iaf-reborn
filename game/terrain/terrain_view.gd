@@ -756,11 +756,12 @@ func _start_flight() -> void:
 	if OS.get_cmdline_user_args().has("--better"):
 		flight.set_better_physics(true)
 	else:
+		# The fixes outside the flight model are unknown to it (set_better_option ignores them).
 		for id in Settings.BETTER:
-			flight.set_better_option(id, Settings.get("bp_" + id))
+			flight.set_better_option(id, Settings.better[id])
 	var all_better: bool = OS.get_cmdline_user_args().has("--better")
-	DamageModel.fall_keep_heading = all_better or Settings.bp_fix_fall_heading
-	DamageModel.no_skill_scale = all_better or Settings.bp_fix_skill_damage
+	DamageModel.fall_keep_heading = all_better or Settings.better.fix_fall_heading
+	DamageModel.no_skill_scale = all_better or Settings.better.fix_skill_damage
 	# Gameplay preferences (docs/flight-model.md §15.7); Easy landing is on by default.
 	flight.set_no_stalls(_pref("no_stalls", false))
 	flight.set_no_spins(_pref("no_spins", false))

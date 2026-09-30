@@ -2,13 +2,26 @@
 extends Node
 
 const PATH := "user://settings.cfg"
-## "Better physics" options (ids of iaf_flight::BetterPhysics::OPTIONS, docs/flight-model.md §10),
-## each stored as bp_<id>; all off = the original model.
-const BETTER := ["flight_path_hold", "force_angles", "start_lift", "start_rpm", "start_alpha",
-	"landing_limits", "spin_fixes", "fbw_departure", "lift_rate_floor", "low_speed_roll",
-	"no_nose_wheel_lift", "ground_effect"]
-## Fixes of original gameplay bugs outside the flight model (Preferences > Physics), stored as bp_<id>.
-const FIXES := ["fix_fall_heading", "fix_skill_damage"]
+## "Better physics" (Preferences > Physics), id -> label, in page order: the flight-model options
+## (ids of iaf_flight::BetterPhysics::OPTIONS, docs/flight-model.md §10), then fixes of original
+## gameplay bugs outside the flight model (docs/damage.md). All off = the original. Stored in the
+## [physics] section as bp_<id>.
+const BETTER := {
+	"flight_path_hold": "Flight-path hold (neutral stick)",
+	"force_angles": "Forces at current AoA / sideslip",
+	"start_lift": "Air start without jolt",
+	"start_rpm": "Air start with engine spooled up",
+	"start_alpha": "Air start trimmed",
+	"landing_limits": "Real landing limits (sink, tail strike)",
+	"spin_fixes": "Realistic spins",
+	"fbw_departure": "F-16 / Lavi deep stall",
+	"lift_rate_floor": "Low-speed lift rate fix",
+	"low_speed_roll": "No reversed roll at low speed",
+	"no_nose_wheel_lift": "No nose-wheel lift quirk",
+	"ground_effect": "Ground effect",
+	"fix_fall_heading": "Falling jets keep their heading",
+	"fix_skill_damage": "No tougher enemies on easy AI levels",
+}
 ## Stored preferences by config section: the original pages, then our own options (Extras tab).
 const PREFS := {
 	"sound": ["mute", "music_volume", "engine_volume", "sfx_volume", "speech_volume"],
@@ -18,9 +31,6 @@ const PREFS := {
 	"gameplay": ["no_wind", "no_blackouts", "no_spins", "no_stalls", "easy_landing", "easy_aiming",
 		"no_malfunctions", "ai_level", "invulnerable", "no_crashes", "unlimited_ammo", "unlimited_fuel",
 		"flight_data", "language", "show_info", "blackbox"],
-	"physics": ["bp_flight_path_hold", "bp_force_angles", "bp_start_lift", "bp_start_rpm", "bp_start_alpha",
-		"bp_landing_limits", "bp_spin_fixes", "bp_fbw_departure", "bp_lift_rate_floor", "bp_low_speed_roll",
-		"bp_no_nose_wheel_lift", "bp_ground_effect", "bp_fix_fall_heading", "bp_fix_skill_damage"],
 }
 
 ## Flight data: "original" (Jane's IAF 1998 numbers) or "real" (corrected real-world F-16 data).
@@ -63,21 +73,8 @@ var unlimited_fuel := false
 ## Preferences page shown when the screen opens (DAT_00836d2c: zero = Sound on the first visit,
 ## then the last page used; not saved).
 var pref_page := "Sound"
-## "Better physics" options (Preferences > Physics), off = original.
-var bp_flight_path_hold := false
-var bp_force_angles := false
-var bp_start_lift := false
-var bp_start_rpm := false
-var bp_start_alpha := false
-var bp_landing_limits := false
-var bp_spin_fixes := false
-var bp_fbw_departure := false
-var bp_lift_rate_floor := false
-var bp_low_speed_roll := false
-var bp_no_nose_wheel_lift := false
-var bp_ground_effect := false
-var bp_fix_fall_heading := false
-var bp_fix_skill_damage := false
+## "Better physics" (Preferences > Physics): BETTER id -> on.
+var better := {}
 ## Our flight-info line at the bottom left (not in the original); F12 toggles it.
 var show_info := true
 ## Blackbox: the flight recorder user://last_flight.csv (for diagnosing flights; on for now).
@@ -108,7 +105,16 @@ func isolated() -> bool:
 	return OS.get_environment("IAF_DEFAULT_SETTINGS") == "1"
 
 
+func _init() -> void:
+	for id in BETTER:
+		better[id] = false
+
+
 func _ready() -> void:
+	# The original defaults, for the DEFAULT button (§12.2).
+	for section in PREFS:
+		for key in PREFS[section]:
+			_defaults[key] = get(key)
 	if isolated():
 		# Test windows must never take the player's keyboard focus.
 		get_window().unfocusable = true
@@ -120,6 +126,10 @@ func _ready() -> void:
 				var value = cfg.get_value(section, key, get(key))
 				if typeof(value) == typeof(get(key)):
 					set(key, value)
+		for id in BETTER:
+			var on = cfg.get_value("physics", "bp_" + id, false)
+			if on is bool:
+				better[id] = on
 		if cfg.has_section("keys"):
 			for k in cfg.get_section_keys("keys"):
 				var v = cfg.get_value("keys", k)
@@ -136,6 +146,8 @@ func save() -> void:
 	for section in PREFS:
 		for key in PREFS[section]:
 			cfg.set_value(section, key, get(key))
+	for id in BETTER:
+		cfg.set_value("physics", "bp_" + id, better[id])
 	for i in key_bindings:
 		cfg.set_value("keys", "r%d" % i, key_bindings[i])
 	cfg.save(PATH)
@@ -143,12 +155,6 @@ func save() -> void:
 
 ## The original default of a stored preference (the DEFAULT button, §12.2).
 func default_value(key: String) -> Variant:
-	if _defaults.is_empty():
-		var fresh: Node = get_script().new()
-		for section in PREFS:
-			for k in PREFS[section]:
-				_defaults[k] = fresh.get(k)
-		fresh.free()
 	return _defaults.get(key)
 
 

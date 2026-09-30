@@ -107,23 +107,7 @@ const EXTRAS_LABEL := Rect2(42, 219, 62, 16)
 const EXTRAS_STEP := 44.0
 ## Our tabs below Gameplay, 44 px apart: [page, English button label].
 const OUR_TABS := [["Extras", "EXTRAS"], ["Physics", "PHYSICS"]]
-## Physics page (ours): the "Better physics" options (Settings.BETTER order), short labels.
-const PHYSICS_LABELS := {
-	"flight_path_hold": "Flight-path hold (neutral stick)",
-	"force_angles": "Forces at current AoA / sideslip",
-	"start_lift": "Air start without jolt",
-	"start_rpm": "Air start with engine spooled up",
-	"start_alpha": "Air start trimmed",
-	"landing_limits": "Real landing limits (sink, tail strike)",
-	"spin_fixes": "Realistic spins",
-	"fbw_departure": "F-16 / Lavi deep stall",
-	"lift_rate_floor": "Low-speed lift rate fix",
-	"low_speed_roll": "No reversed roll at low speed",
-	"no_nose_wheel_lift": "No nose-wheel lift quirk",
-	"ground_effect": "Ground effect",
-	"fix_fall_heading": "Falling jets keep their heading",
-	"fix_skill_damage": "No tougher enemies on easy AI levels",
-}
+## Physics page (ours): one row per Settings.BETTER option.
 const PHYSICS_ROW := 21.0
 ## Our options on the Extras page: [setting, label, [[choice label, value], ...]].
 const EXTRAS := [
@@ -402,6 +386,7 @@ func _enter_screen() -> void:
 			for k in Settings.PREFS[section]:
 				pref_work[k] = Settings.get(k)
 		pref_work["key_bindings"] = Settings.key_bindings.duplicate(true)
+		pref_work["better"] = Settings.better.duplicate()
 		ctrl_sel = 0  # FUN_0050fba0 selects the first row
 		ctrl_top = 0
 		ctrl_focus = false
@@ -943,32 +928,42 @@ func _extras_items() -> Array:
 	return items
 
 
-func _draw_extras() -> void:
+## Our pages (Extras, Physics): the general background and the header, as on the original pages.
+func _draw_our_page(title: String) -> void:
+	_blit("screens/sgeneral.png", CONTENT.position)
+	_text_line(Rect2(CONTENT.position + Vector2(24, 12), Vector2(CONTENT.size.x - 48, 22)), _t(title) if _he() else title.to_upper(), LIST_TITLE_PX + 2, LIST_TITLE, font_bold)
+
+
+## A row separator across our pages at page height `y`.
+func _draw_rule(y: float) -> void:
 	var at := CONTENT.position
-	_blit("screens/sgeneral.png", at)
-	var he := _he()
-	var line := Color(LIST_TITLE, 0.55)
-	# Header band and row separators, as on the original pages.
-	_text_line(Rect2(at + Vector2(24, 12), Vector2(CONTENT.size.x - 48, 22)), _t("Extras") if he else "EXTRAS", LIST_TITLE_PX + 2, LIST_TITLE, font_bold)
+	draw_line(_to_screen(at + Vector2(18, y)), _to_screen(at + Vector2(CONTENT.size.x - 18, y)), Color(LIST_TITLE, 0.55), maxf(1.0, _scale() * 0.5))
+
+
+## An option of our pages (page rect `r`): the LED with its frame from the Gameplay page's NO WIND
+## row (page (28,55)), `led_y` into the row (lit when `on`; none when unavailable), then the label
+## `text_y` into the row. Mirrored in Hebrew.
+func _draw_option(r: Rect2, label: String, on: bool, led_y: float, text_y: float, available := true) -> void:
+	var at := CONTENT.position
+	var led := Rect2(Vector2(4, led_y), Vector2(11, 11))
+	var led_x := r.end.x - led.end.x if _he() else r.position.x + led.position.x
+	if available:
+		_blit_region("pref/gamep_%d.png" % (1 if on else 0), Rect2(Vector2(28, 55), led.size), at + Vector2(led_x, r.position.y + led.position.y))
+	var box := Rect2(at + Vector2(r.position.x + (0.0 if _he() else 22.0), r.position.y + text_y), Vector2(r.size.x - 22, 20))
+	_text_line(box, _t(label), LIST_TITLE_PX, (LIST_DESC_LIT if on else LIST_DESC) if available else Color(LIST_DESC, 0.5))
+
+
+func _draw_extras() -> void:
+	_draw_our_page("Extras")
 	for i in EXTRAS.size() + 1:
-		var y := 45.0 + 35.0 * i
-		draw_line(_to_screen(at + Vector2(18, y)), _to_screen(at + Vector2(CONTENT.size.x - 18, y)), line, maxf(1.0, _scale() * 0.5))
+		_draw_rule(45.0 + 35.0 * i)
 	for i in EXTRAS.size():
-		var y := 45.0 + 35.0 * i
-		var r := Rect2(24, y + 4, 136, 20)
-		if he:
+		var r := Rect2(24, 45.0 + 35.0 * i + 4, 136, 20)
+		if _he():
 			r.position.x = CONTENT.size.x - r.end.x
-		_text_line(Rect2(at + r.position, r.size), _t(EXTRAS[i][1]), LIST_TITLE_PX, LIST_TITLE, font_bold)
+		_text_line(Rect2(CONTENT.position + r.position, r.size), _t(EXTRAS[i][1]), LIST_TITLE_PX, LIST_TITLE, font_bold)
 	for it in _extras_items():
-		var r: Rect2 = it.rect
-		var on: bool = pref_work.get(it.key) == it.value
-		# The LED with its frame, from the Gameplay page's NO WIND row (page (28,55) in row (24,45)).
-		var led := Rect2(Vector2(4, 10), Vector2(11, 11))
-		var led_x := r.end.x - led.end.x if he else r.position.x + led.position.x
-		if it.available:
-			_blit_region("pref/gamep_%d.png" % (1 if on else 0), Rect2(Vector2(28, 55), led.size), at + Vector2(led_x, r.position.y + led.position.y))
-		var label := Rect2(at + Vector2(r.position.x + (0.0 if he else 22.0), r.position.y + 4), Vector2(r.size.x - 22, 20))
-		_text_line(label, _t(it.label), LIST_TITLE_PX, (LIST_DESC_LIT if on else LIST_DESC) if it.available else Color(LIST_DESC, 0.5))
+		_draw_option(it.rect, it.label, pref_work.get(it.key) == it.value, 10, 4, it.available)
 
 
 ## Physics page (ours): one check per "Better physics" option (rows of 21 px from y 45, LEDs
@@ -976,10 +971,9 @@ func _draw_extras() -> void:
 func _physics_items() -> Array:
 	var items := []
 	var w := CONTENT.size.x
-	var ids: Array = Settings.BETTER + Settings.FIXES
-	for i in ids.size():
-		var r := Rect2(24, 45.0 + PHYSICS_ROW * i, w - 48, PHYSICS_ROW)
-		items.append({"rect": r, "key": "bp_" + ids[i], "label": PHYSICS_LABELS[ids[i]]})
+	for id in Settings.BETTER:
+		var r := Rect2(24, 45.0 + PHYSICS_ROW * items.size(), w - 48, PHYSICS_ROW)
+		items.append({"rect": r, "key": id, "label": Settings.BETTER[id]})
 	for j in 2:
 		var r := Rect2(w - 24 - 70 * (2 - j), 12, 64, 22)
 		if _he():
@@ -989,24 +983,14 @@ func _physics_items() -> Array:
 
 
 func _draw_physics() -> void:
-	var at := CONTENT.position
-	_blit("screens/sgeneral.png", at)
-	var he := _he()
-	var line := Color(LIST_TITLE, 0.55)
-	var w := CONTENT.size.x
-	_text_line(Rect2(at + Vector2(24, 12), Vector2(w - 48, 22)), _t("Better physics") if he else "BETTER PHYSICS", LIST_TITLE_PX + 2, LIST_TITLE, font_bold)
-	draw_line(_to_screen(at + Vector2(18, 45)), _to_screen(at + Vector2(w - 18, 45)), line, maxf(1.0, _scale() * 0.5))
+	_draw_our_page("Better physics")
+	_draw_rule(45)
 	for it in _physics_items():
 		var r: Rect2 = it.rect
 		if it.key == "all" or it.key == "none":
-			_text_line(Rect2(at + r.position + Vector2(0, 3), r.size), _t(it.label), LIST_TITLE_PX, LIST_DESC_LIT, font_bold)
-			continue
-		var on: bool = pref_work.get(it.key, false)
-		var led := Rect2(Vector2(4, 5), Vector2(11, 11))
-		var led_x := r.end.x - led.end.x if he else r.position.x + led.position.x
-		_blit_region("pref/gamep_%d.png" % (1 if on else 0), Rect2(Vector2(28, 55), led.size), at + Vector2(led_x, r.position.y + led.position.y))
-		var label := Rect2(at + Vector2(r.position.x + (0.0 if he else 22.0), r.position.y + 1), Vector2(r.size.x - 22, 20))
-		_text_line(label, _t(it.label), LIST_TITLE_PX, LIST_DESC_LIT if on else LIST_DESC)
+			_text_line(Rect2(CONTENT.position + r.position + Vector2(0, 3), r.size), _t(it.label), LIST_TITLE_PX, LIST_DESC_LIT, font_bold)
+		else:
+			_draw_option(r, it.label, pref_work.better[it.key], 5, 1)
 
 
 # --- input ------------------------------------------------------------------------------
@@ -1083,10 +1067,10 @@ func _pref_press(q: Vector2) -> bool:
 		for it in _physics_items():
 			if it.rect.has_point(q):
 				if it.key == "all" or it.key == "none":
-					for id in Settings.BETTER + Settings.FIXES:
-						pref_work["bp_" + id] = it.key == "all"
+					for id in Settings.BETTER:
+						pref_work.better[id] = it.key == "all"
 				else:
-					pref_work[it.key] = not pref_work[it.key]
+					pref_work.better[it.key] = not pref_work.better[it.key]
 				return true
 		return false
 	if page != "Devices" and PREF_DEFAULT.has_point(q):
