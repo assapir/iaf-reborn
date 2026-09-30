@@ -75,3 +75,8 @@ Newer aircraft (e.g. F-16I Sufa, F-15I Ra'am, F-35I Adir, and modern threats) to
 AIM-120 AMRAAM, AIM-9X, Python 5, Derby, JDAM / SPICE / GBU families, Delilah, modern SAMs), following docs/aircraft.md
 "adding a new aircraft" and the weapon data format from docs/weapons.md; real public data with sources. Needs new
 models and cockpits (not in the original data).
+
+## More airbases, pick your base (post everything)
+Let the player choose the home airbase (the original has 3 spawn bases: Tel Nof, Ramat David, Ramon); add more
+Israeli bases (e.g. Hatzerim, Nevatim, Hatzor, Palmachim, Ovda) with their real layouts where the terrain has no
+inset (our own airbase imagery / models, real coordinates), selectable in the briefing / Jump In.
