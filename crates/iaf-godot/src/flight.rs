@@ -99,12 +99,13 @@ impl IafFlight {
     }
 
     /// Terrain under the wheels: the surface normal's vertical share `nz/|n|` (1 = flat; the
-    /// landing check fails above 10° of slope) and water (§15.6).
+    /// landing check fails above 10° of slope), water and rough ground (terraintype.dat, §15.6).
     #[func]
-    fn set_ground_surface(&mut self, normal_z: f64, water: bool) {
+    fn set_ground_surface(&mut self, normal_z: f64, water: bool, rough: bool) {
         if let Some(ac) = &mut self.aircraft {
             ac.ground_normal_z = normal_z as f32;
             ac.ground_water = water;
+            ac.ground_rough = rough;
         }
     }
 

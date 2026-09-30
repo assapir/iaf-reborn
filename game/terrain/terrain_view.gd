@@ -44,8 +44,10 @@ var aircraft: Node3D
 var orbit_yaw := PI  # external camera, relative to the aircraft heading (PI = behind)
 var orbit_pitch := -0.15
 var orbit_dist := 35.0
-## Hold the simulation until the terrain under the aircraft has loaded.
+## Hold the simulation until the terrain under the aircraft has loaded (terrain.ground_ready()),
+## showing the loading screen.
 var waiting_for_ground := true
+var _loading: CanvasLayer
 ## The menu mission flown (--mission, else the one picked in the menus); -1 = free flight.
 var mission_id := -1
 var mission_name := ""
@@ -144,6 +146,11 @@ func _ready() -> void:
 		if int(keys.records[i].press[0]) in [2, 3, 10]:
 			_held_records.append(i)
 	terrain.focus = rig
+	terrain.view_range = camera.far
+	_loading = CanvasLayer.new()
+	_loading.layer = 20
+	_loading.add_child(preload("res://terrain/loading_screen.gd").new())
+	add_child(_loading)
 	chase.fov = 60.0
 	var args := OS.get_cmdline_user_args()
 	_choose_start(args)
@@ -1037,10 +1044,18 @@ func _process(delta: float) -> void:
 	if flight != null:
 		var ground = terrain.height_at(rig.position)
 		flight.set_ground_height(ground if ground != null else -1.0e9)
-		flight.set_ground_surface(_ground_normal_z(rig.position), false)
+		# Water / rough ground from terraintype.dat (FUN_005bb9f0: f & 6, f & 9).
+		var surface: int = terrain.surface_at(rig.position)
+		flight.set_ground_surface(_ground_normal_z(rig.position), (surface & terrain.SURFACE_WATER) != 0,
+				(surface & terrain.SURFACE_ROUGH) != 0)
 		flight.set_controls(stick.x, stick.y, rudder, throttle, flaps, gear_down, brakes)
-		if waiting_for_ground and terrain.height_at(rig.position) != null:
+		# The flight starts once the ground around the jet is loaded at full detail (behind the
+		# loading screen).
+		if waiting_for_ground and terrain.ground_ready():
 			waiting_for_ground = false
+			if _loading != null:
+				_loading.queue_free()
+				_loading = null
 			_spawn_mission_objects()
 		# A fatally hit jet leaves the flight model (frozen by FUN_005a6510) for the destruction
 		# motion, which the mission runtime drives (mission_player_fall).

@@ -53,12 +53,12 @@ script = ExtResource("2")
 
 [node name="Camera" type="Camera3D" parent="Rig"]
 near = 0.5
-far = 120000.0
+far = 200000.0
 fov = 60.0
 
 [node name="Chase" type="Camera3D" parent="."]
 near = 0.5
-far = 120000.0
+far = 200000.0
 
 [node name="InfoLayer" type="CanvasLayer" parent="."]
 layer = 5
