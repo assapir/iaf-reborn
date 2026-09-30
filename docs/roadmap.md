@@ -28,7 +28,9 @@ replay → timeline, and replay recorded flights as regression tests.
 ## "Real weapons" option (like the Real flight data set)
 When the weapons are ported, compare the original's weapon data (ranges, speeds, seeker limits, warhead / Pk,
 drag and weight on the stations) with public data. Where the 1998 numbers are off, offer a corrected set behind its own
-Extras switch "Weapon data: Original / Real" (separate from Flight data); the original stays the default. Same method as the flight model's validation report.
+Extras switch "Weapon data: Original / Real" (separate from Flight data); also the real station rules per jet (which
+stores may go on which station, counts per rack, e.g. F-16 stations 1/9 wingtip rails, centreline 5 tank / pod) vs
+the game's CDMEWeaponLoadItem lists; the original stays the default. Same method as the flight model's validation report.
 **Started** for the gun and IR missiles (docs/real-weapons.md: weights, top speed, range, gun rounds / rate / muzzle
 velocity); to extend with each new weapon type (seeker limits and g limits need sources).
 
