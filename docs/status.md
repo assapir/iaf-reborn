@@ -43,9 +43,12 @@ Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user
 
 ## Small bugs (fix between jobs)
 - **Airbase flickers badly in the external view** (since the new terrain; likely z-fighting between the runway / airbase object models and the terrain imagery that already shows them, or overlapping quadtree levels). First to fix.
-- **Keyboard stick too sensitive** (small movements give 3+ g): our key → stick ramp (2.5 /s, return 4 /s,
-  terrain_view.gd STICK_RATE) is invented; trace how the original turns the arrow keys (GEV 2/3, ±100) into stick
-  movement and port it; if still twitchy, an Extras "Keyboard stick sensitivity" option.
+- **Keyboard stick too sensitive** (taps ≥ ~0.45 s give 3+ g): traced — the original sets full stick at once on
+  press, 0 on release; only the lift ramp (G_Rate) smooths it (F-16 350 kt: 0.1 s → 1.4 g, 0.3 s → 2.3 g, 0.5 s →
+  3.2 g, 1 s → 5.4 g). Our invented ramp is replaced by that law (it gave *more* g). Taps give 3+ g in the original
+  too; user to decide whether to add an Extras keyboard stick option (not added).
+- Real data: real service ceilings per aircraft (the envelope's g ceilings from public ceiling figures), all jets
+  incl. AI types (docs/real-aircraft.md).
 - Keyboard page: the scrollbar arrows are cropped on the right side.
 - Terrain loads only after Fly, and the flight's loading screen (game/terrain/loading_screen.gd) does not show —
   only the front end's wait screen before the briefing appears; the ground pops in for a few seconds. Fix the
