@@ -18,9 +18,10 @@
 1. **Switch to v1.1**: patch step in `tools/setup.sh` (patch before the Hebrew pack; skip when no patch is given),
    port every v1.1 logic change in our systems, move doc addresses to v1.1, keep v1.0 data working, delete our
    fixes that v1.1 makes redundant.
-2. **Terrain (original data)**: the whole theatre (levels 6–11: today there is *no ground* outside the Israel
-   rectangle), the remaining insets (foreign airbases, target areas, level 3), decode `terraintype.dat` (water /
-   rough / runway), load terrain behind the loading screen.
+2. **Terrain (original data) — convert all of `map.ptt`**: all 57 levels: the whole theatre (levels 6–11: today
+   there is *no ground* outside the Israel rectangle) and every inset (foreign airbases, target areas, level 3);
+   run the runway-number check on every new airbase; decode `terraintype.dat` (water / rough / runway); load terrain
+   behind the loading screen.
 3. **Combat core** (unlocks the first ~9–11 missions): AI brain flight → player gun + IR missiles, stores on the
    pylons → AI air-to-ground / air-to-air → AAA, radar SAMs, RWR → script ops 2 / 21 / 22.
 4. **Bombs + CCIP**, armed vehicles / boats (→ ~20 missions).
