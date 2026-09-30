@@ -6,7 +6,8 @@
 #   Godot x = X − origin.x,  Godot z = −(Y − origin.y),  Godot y = metres above sea level.
 extends Node3D
 
-@export var data_dir := "../assets/converted/terrain/israel_l4"
+## Under assets/.
+@export var data_dir := "converted/terrain/israel_l4"
 ## Chunks kept around the focus in each direction.
 @export var radius := 3
 ## Vertex grid per chunk side by ring distance (ring 0 = the 3x3 chunks around the focus, so
@@ -42,12 +43,11 @@ var detail_shader := preload("res://terrain/terrain_detail.gdshader")
 
 
 func _ready() -> void:
-	dir = ProjectSettings.globalize_path("res://").path_join(data_dir).simplify_path()
-	var text := FileAccess.get_file_as_string(dir.path_join("meta.json"))
-	if text.is_empty():
+	dir = Settings.assets_dir().path_join(data_dir)
+	meta = Settings.load_json(dir.path_join("meta.json"))
+	if meta.is_empty():
 		push_error("terrain: %s/meta.json not found — run iaf-terrain export" % dir)
 		return
-	meta = JSON.parse_string(text)
 	m_per_unit = float(meta.get("units_to_metres", 1.0))
 	var span: float = float(meta.chunk_span) * m_per_unit
 	for res in ring_resolution:
@@ -80,10 +80,9 @@ func _material(s: Shader, colour: Image, height_tex: Texture2D) -> ShaderMateria
 
 
 func _load_details() -> void:
-	var data = JSON.parse_string(FileAccess.get_file_as_string(dir.path_join("details/details.json")))
-	if not (data is Dictionary):
+	details = Settings.load_json(dir.path_join("details/details.json"))
+	if details.is_empty():
 		return
-	details = data
 	for t in details.tiles:
 		detail_cells[Vector2i(int(t[0]), int(t[1]))] = true
 	# Same vertex lattice as a ring-0 base chunk: one vertex per chunk_pixels / ring_resolution[0] texels.

@@ -10,6 +10,7 @@
 extends Control
 
 const ORIGINAL_HEIGHT := 480.0
+const Img := preload("res://util/img.gd")
 const PANEL_CENTRE_X := 960.0
 ## HUD colour table (renderer+0x285c, COLORREFs 0x2400 … 0xbcf8): eight greens dark to bright,
 ## near-white, red, amber. Index 0 at the start of a run; key H cycles (idx + 1) % 11 (docs/mfd.md §2).
@@ -23,7 +24,8 @@ static var hud_colour_index := 0
 static func hud_colour() -> Color:
 	return HUD_COLOURS[hud_colour_index]
 
-@export var cockpit_dir := "../assets/converted/cockpits/f16"
+## Under assets/.
+@export var cockpit_dir := "converted/cockpits/f16"
 
 ## Flight state shown by the instruments. Angles in degrees, speed in knots,
 ## altitude in feet, vertical speed in ft/min, fuel in lbs, rpm/throttle 0..1.
@@ -79,37 +81,36 @@ var dir := ""
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	dir = ProjectSettings.globalize_path("res://").path_join(cockpit_dir).simplify_path()
-	var text := FileAccess.get_file_as_string(dir.path_join("cockpit.json"))
-	if text.is_empty():
+	dir = Settings.assets_dir().path_join(cockpit_dir)
+	layout = Settings.load_json(dir.path_join("cockpit.json"))
+	if layout.is_empty():
 		push_error("cockpit: %s/cockpit.json not found — run iaf-convert cockpit" % dir)
 		return
-	layout = JSON.parse_string(text)
 	for key in ["PANEL", "HUD", "LENHORIZON", "PANELVARIO", "PANELAOA"]:
 		var file: String = layout.get(key, {}).get("FileName", "")
 		if file != "":
-			var img := Image.load_from_file(dir.path_join(file.get_basename().to_lower() + ".png"))
-			if img != null:
-				img.generate_mipmaps()
-				tex[key] = ImageTexture.create_from_image(img)
+			_add_tex(key, file, true)
 	var lights_file: String = layout.get("LIGHTSON", {}).get("FileName", "")
 	if lights_file != "":
-		var limg := Image.load_from_file(dir.path_join(lights_file.get_basename().to_lower() + ".png"))
-		if limg != null:
-			tex["LIGHTS"] = ImageTexture.create_from_image(limg)
-	var atlas := Image.load_from_file(dir.path_join("mfds.png"))
-	if atlas != null:
-		tex["MFDS"] = ImageTexture.create_from_image(atlas)
+		_add_tex("LIGHTS", lights_file)
+	_add_tex("MFDS", "mfds.bmp")
 	_load_tsd_map()
 	_create_mfds()
 	hud.cockpit = self
 
 
+## The converted art of an original cockpit image file (lower-case .png), when present.
+func _add_tex(key: String, file: String, mipmaps := false) -> void:
+	var t := Img.load_texture(dir.path_join(file.get_basename().to_lower() + ".png"), mipmaps)
+	if t != null:
+		tex[key] = t
+
+
 ## map.emf logical units (12601 x 16383 frame) -> world (FUN_0052ff30 inverse):
 ## u = (X + 166850) / 819200 · 12601 · 1.0071394, v = (1043816 − Y) / 1064960 · 16383 · 1.0071394.
 func _load_tsd_map() -> void:
-	var data = JSON.parse_string(FileAccess.get_file_as_string(dir.path_join("map.json")))
-	if not (data is Dictionary):
+	var data := Settings.load_json(dir.path_join("map.json"))
+	if data.is_empty():
 		return
 	var f := 1.0071394
 	for op in data.ops:
@@ -282,8 +283,7 @@ func _draw_console() -> void:
 	# width: Arial squeezed horizontally to that width.
 	var em := 12.0 / 1.15
 	if _console_font == null:
-		_console_font = SystemFont.new()
-		_console_font.font_names = PackedStringArray(["Arial", "Liberation Sans"])
+		_console_font = Img.arial()
 		var avg: float = _console_font.get_string_size("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", HORIZONTAL_ALIGNMENT_LEFT, -1, 100).x / 52.0 / 100.0 * em
 		_console_squeeze = 4.0 / avg
 	var fs := int(round(em * s))

@@ -22,7 +22,7 @@ static func load_table() -> RefCounted:
 
 
 func _load() -> void:
-	var dir: String = _settings_assets().path_join(DIR)
+	var dir: String = Settings.assets_dir().path_join(DIR)
 	var d := DirAccess.open(dir)
 	if d != null:
 		for f in d.get_files():
@@ -82,12 +82,3 @@ func stream_file(name: String) -> AudioStreamWAV:
 		s = AudioStreamWAV.load_from_file(_files[key])
 	_streams[key] = s
 	return s
-
-
-static func _settings_assets() -> String:
-	var loop := Engine.get_main_loop()
-	if loop is SceneTree:
-		var s = (loop as SceneTree).root.get_node_or_null("Settings")
-		if s != null:
-			return s.assets_dir()
-	return ProjectSettings.globalize_path("res://").path_join("../assets").simplify_path()

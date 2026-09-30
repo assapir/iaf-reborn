@@ -57,11 +57,7 @@ func set_text(bbcode: String, links: Array) -> void:
 		rich.meta_underlined = false
 		rich.meta_clicked.connect(func(meta): link_clicked.emit(str(meta)))
 		for pair in [["normal_font", 400, false], ["bold_font", 700, false], ["italics_font", 400, true], ["bold_italics_font", 700, true]]:
-			var f := SystemFont.new()
-			f.font_names = PackedStringArray(["Arial", "Liberation Sans"])
-			f.font_weight = pair[1]
-			f.font_italic = pair[2]
-			rich.add_theme_font_override(pair[0], f)
+			rich.add_theme_font_override(pair[0], preload("res://util/img.gd").arial(pair[1], pair[2]))
 		body_clip = Control.new()
 		body_clip.clip_contents = true
 		body_clip.mouse_filter = Control.MOUSE_FILTER_PASS

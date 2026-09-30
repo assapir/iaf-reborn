@@ -4,13 +4,12 @@
 # Bravo when the TSD chose it.
 extends "res://../tests/godot/base.gd"
 
-const MissionRuntime := preload("res://mission/mission_runtime.gd")
+## Loaded at run time: scripts that use the Settings autoload do not compile before it exists.
+var MissionRuntime: GDScript
 
 
 func mission(id: int) -> Dictionary:
-	var dir: String = Settings().assets_dir().path_join("converted/missions")
-	var list = JSON.parse_string(FileAccess.get_file_as_string(dir.path_join("missionlist.json")))
-	return JSON.parse_string(FileAccess.get_file_as_string(dir.path_join(String(list[str(id)][0]) + ".json")))
+	return MissionRuntime.mission_files(id)[0].data
 
 
 func leader_name(id: int, wanted := 0) -> String:
@@ -19,6 +18,7 @@ func leader_name(id: int, wanted := 0) -> String:
 
 
 func run() -> void:
+	MissionRuntime = load("res://mission/mission_runtime.gd")
 	check(leader_name(311) == "Player1/1", "311: Player1 leads flight 1 (%s)" % leader_name(311))
 	check(leader_name(324) == "Player/1", "324: the flight-1 leader 'Player' (%s)" % leader_name(324))
 	check(leader_name(136) == "Alpha Leader/1", "136: Alpha Leader (%s)" % leader_name(136))

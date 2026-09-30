@@ -3,6 +3,8 @@
 # "deb" DEBRIEF, "fly" CONTINUE, "exit" EXIT, "yes"/"no".
 extends Control
 
+const Img := preload("res://util/img.gd")
+
 signal chosen(button: String)
 
 const SIZE := Vector2(320, 140)
@@ -21,18 +23,14 @@ func setup(msg: int, button_names: Array) -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	dir = Settings.assets_dir().path_join("converted/menu_he" if Settings.language == "he" else "converted/menu")
-	var strings = JSON.parse_string(FileAccess.get_file_as_string(dir.path_join("strings.json")))
-	var lines: PackedStringArray = String(strings.get("msgs", "") if strings is Dictionary else "").split("\n")
+	var lines: PackedStringArray = String(Settings.load_json(dir.path_join("strings.json")).get("msgs", "")).split("\n")
 	text = lines[msg].strip_edges() if msg < lines.size() else ""
-	font = SystemFont.new()
-	font.font_names = PackedStringArray(["Arial", "Liberation Sans"])
-	font.font_weight = 700
+	font = Img.arial(700)
 
 
 func _tex(path: String) -> Texture2D:
 	if not textures.has(path):
-		var file := dir.path_join("img").path_join(path)
-		textures[path] = ImageTexture.create_from_image(Image.load_from_file(file)) if FileAccess.file_exists(file) else null
+		textures[path] = Img.load_texture(dir.path_join("img").path_join(path))
 	return textures[path]
 
 

@@ -6,11 +6,13 @@
 extends SceneTree
 
 const CELL := Vector2i(640, 400)
-const AircraftModel := preload("res://aircraft/aircraft_model.gd")
+## Loaded at run time: scripts that use the Settings autoload do not compile before it exists.
+var AircraftModel: GDScript
 
 
 func _initialize() -> void:
 	await process_frame
+	AircraftModel = load("res://aircraft/aircraft_model.gd")
 	var args := OS.get_cmdline_user_args()
 	var out := args[0] if args.size() > 0 else "user://aircraft_sheet"
 	DirAccess.make_dir_recursive_absolute(out)

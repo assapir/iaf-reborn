@@ -1,5 +1,7 @@
 # Base for headless Godot tests (tools/test.sh): run with IAF_DEFAULT_SETTINGS=1 so the player's
 # settings are never read or written. Prints PASS/FAIL lines and exits 1 on any failure.
+# A test script compiles before the autoloads exist: game scripts that use Settings are load()ed in
+# run(), not preloaded.
 extends SceneTree
 
 var failures := 0

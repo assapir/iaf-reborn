@@ -6,7 +6,7 @@ extends "res://../tests/godot/base.gd"
 
 
 func restart(tv, pos: Vector3, heading: float, velocity: Vector3) -> void:
-	var install := ProjectSettings.globalize_path("res://").path_join("../assets/install").simplify_path()
+	var install: String = Settings().assets_dir().path_join("install")
 	tv.flight.start(install, "F-16", pos, heading, 0.0, 0.0, velocity, true, true, false)
 	var h := tv.aircraft.find_child("height", true, false) as Node3D
 	tv.flight.set_gear_clearance(-h.position.y if h != null else 0.0)

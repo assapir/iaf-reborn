@@ -32,10 +32,9 @@ func _init() -> void:
 	_material.no_depth_test = false
 	_material.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
 	_material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-	var path := ProjectSettings.globalize_path("res://").path_join("../assets/converted/planes/afterburn.png").simplify_path()
-	var img := Image.load_from_file(path) if FileAccess.file_exists(path) else null
-	if img != null:
-		_material.albedo_texture = ImageTexture.create_from_image(img)
+	var tex := preload("res://util/img.gd").load_texture(Settings.assets_dir().path_join("converted/planes/afterburn.png"))
+	if tex != null:
+		_material.albedo_texture = tex
 	else:
 		_material.albedo_color = Color(1.0, 0.75, 0.45, 0.6)
 

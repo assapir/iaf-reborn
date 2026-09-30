@@ -40,6 +40,31 @@ var _shown_debriefs := {}
 var _all_dead := false  # rule 1 posted (debrief unit +0x661c)
 
 
+## The files of menu mission `id` (missionlist.json: the main .mis, then its base missions, as
+## converted by `iaf-convert missions`): [{name, data}] in that order, data {} for a missing file;
+## [] when the id is not listed.
+static func mission_files(id: int) -> Array:
+	var dir := Settings.assets_dir().path_join("converted/missions")
+	var out := []
+	for name in Settings.load_json(dir.path_join("missionlist.json")).get(str(id), []):
+		out.append({"name": String(name), "data": Settings.load_json(dir.path_join(String(name) + ".json"))})
+	return out
+
+
+## The object database a mission file names (converted .bdb); {} when missing.
+static func load_bdb(mission: Dictionary) -> Dictionary:
+	var name := String(mission.get("bdb", "")).to_lower()
+	return Settings.load_json(Settings.assets_dir().path_join("converted/missions").path_join(name + ".json"))
+
+
+## A bdb's Objects by id (0x1e).
+static func bdb_objects(bdb: Dictionary) -> Dictionary:
+	var out := {}
+	for o in bdb.get("objects", {}).get("items", []):
+		out[int(o["0x1e"])] = o
+	return out
+
+
 ## The player's aircraft at mission load (FUN_004bab1c): the leader of flight 1, else of flight 2,
 ## 3, 4 (the flight map, FUN_005b9990). A flight is a formation with 0x3f2 = 1..4 of the main
 ## mission file; its leader is member 0 if placed, else member 1 (unplaced = both coordinates

@@ -173,3 +173,11 @@ func hebrew_available() -> bool:
 
 func assets_dir() -> String:
 	return ProjectSettings.globalize_path("res://").path_join("../assets").simplify_path()
+
+
+## A JSON file's top-level object; {} when the file is missing or holds something else.
+func load_json(path: String) -> Dictionary:
+	if not FileAccess.file_exists(path):
+		return {}
+	var d = JSON.parse_string(FileAccess.get_file_as_string(path))
+	return d if d is Dictionary else {}

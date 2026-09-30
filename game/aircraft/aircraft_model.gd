@@ -11,8 +11,6 @@
 # nearer the model origin toward the farther one, by +θ in our Z-mirrored glTF space.
 extends Node3D
 
-const PLANES_DIR := "../assets/converted/planes"
-
 ## Ramp limits (rad) and rates (rad/s), constructor FUN_005b72d0 / FUN_005a2a10.
 const FLAPS_MAX := 0.29275  # 16.8°
 const F16_FLAPS_FACTOR := 0.33  # event 6 on the F-16 (type 100)
@@ -62,7 +60,7 @@ var _time := 0.0
 ## Loads `<planes>/<plane>/aircraft.json` and its glTF. `type` < 0 takes the descriptor's type.
 ## `on_ground`: the ground-start ramps (gear down, full flaps, speed brake open; FUN_005a2a10).
 static func create(plane: String, type := -1, on_ground := false) -> Node3D:
-	var dir := ProjectSettings.globalize_path("res://").path_join(PLANES_DIR).path_join(plane).simplify_path()
+	var dir := _planes_dir().path_join(plane)
 	var d: Dictionary = load_descriptor(plane)
 	if d.is_empty():
 		return null
@@ -77,20 +75,16 @@ static func create(plane: String, type := -1, on_ground := false) -> Node3D:
 
 
 static func load_descriptor(plane: String) -> Dictionary:
-	var path := ProjectSettings.globalize_path("res://").path_join(PLANES_DIR).path_join(plane).path_join("aircraft.json").simplify_path()
-	if not FileAccess.file_exists(path):
-		return {}
-	var d = JSON.parse_string(FileAccess.get_file_as_string(path))
-	return d if d is Dictionary else {}
+	return Settings.load_json(_planes_dir().path_join(plane).path_join("aircraft.json"))
 
 
 ## Every aircraft of the install (the converter's index): plane folder -> {model, type, label, …}.
 static func index() -> Dictionary:
-	var path := ProjectSettings.globalize_path("res://").path_join(PLANES_DIR).path_join("aircraft.json").simplify_path()
-	if not FileAccess.file_exists(path):
-		return {}
-	var d = JSON.parse_string(FileAccess.get_file_as_string(path))
-	return d if d is Dictionary else {}
+	return Settings.load_json(_planes_dir().path_join("aircraft.json"))
+
+
+static func _planes_dir() -> String:
+	return Settings.assets_dir().path_join("converted/planes")
 
 
 func setup(gltf_scene: Node3D, descriptor: Dictionary, type := -1, on_ground := false) -> void:

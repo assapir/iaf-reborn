@@ -47,6 +47,8 @@ var orbit_pitch := -0.15
 var orbit_dist := 35.0
 ## Hold the simulation until the terrain under the aircraft has loaded.
 var waiting_for_ground := true
+## The menu mission flown (--mission, else the one picked in the menus); -1 = free flight.
+var mission_id := -1
 var mission_name := ""
 ## The player's waypoints: [{name, world}] (mission world coordinates).
 var route: Array = []
@@ -211,18 +213,17 @@ func _screenshot(path: String) -> void:
 	for i in 120:
 		await get_tree().process_frame
 	print("average %.1f fps over 120 frames" % (1000.0 * (Engine.get_frames_drawn() - f0) / (Time.get_ticks_msec() - m0)))
-	get_viewport().get_texture().get_image().save_png(path)
-	get_tree().quit()
+	preload("res://util/img.gd").screenshot_and_quit(self, path)
 
 
 ## Where the flight starts: the chosen mission's player aircraft (on the ground, like the original's
 ## ground start: gear down, flaps down, brakes on, idle), `--at`, or free flight over the terrain.
 func _choose_start(args: PackedStringArray) -> void:
-	var mission_id := Settings.mission_id
+	mission_id = Settings.mission_id
 	var m := args.find("--mission")
 	if m >= 0:
 		mission_id = int(args[m + 1])
-	var player := _mission_player(mission_id) if mission_id >= 0 else {}
+	var player := _mission_player() if mission_id >= 0 else {}
 	var at := args.find("--at")
 	var origin: Vector2
 	var alt := 2500.0
@@ -267,15 +268,14 @@ func _choose_start(args: PackedStringArray) -> void:
 ## the flight picked on the TSD, else of flight 1, 2, 3, 4 (mission_runtime.gd player_flight(),
 ## FUN_004bab1c). It starts at that entity's position, altitude and heading (start rules in
 ## _choose_start). Only the F-16 flies today: another jet type is logged and flown as the F-16.
-func _mission_player(mission_id: int) -> Dictionary:
-	var dir := Settings.assets_dir().path_join("converted/missions")
-	var list = JSON.parse_string(FileAccess.get_file_as_string(dir.path_join("missionlist.json")))
-	if not (list is Dictionary) or not list.has(str(mission_id)):
+func _mission_player() -> Dictionary:
+	var files := MissionRuntime.mission_files(mission_id)
+	if files.is_empty():
 		push_error("mission %d not found — run tools/setup.sh" % mission_id)
 		return {}
-	mission_name = list[str(mission_id)][0]
-	var mission = JSON.parse_string(FileAccess.get_file_as_string(dir.path_join(mission_name + ".json")))
-	if not (mission is Dictionary):
+	mission_name = files[0].name
+	var mission: Dictionary = files[0].data
+	if mission.is_empty():
 		return {}
 	var pf: Dictionary = MissionRuntime.player_flight(mission, Settings.player_flight)
 	if pf.is_empty():
@@ -284,22 +284,13 @@ func _mission_player(mission_id: int) -> Dictionary:
 	var e: Dictionary = pf.entity
 	player_entity_id = int(e["0x1e"])
 	player_flight_number = int(pf.flight)
-	var jet := _bdb_type(dir, String(mission.get("bdb", "")), int(e.get("0x2c6", -1)))
+	var obj: Dictionary = MissionRuntime.bdb_objects(MissionRuntime.load_bdb(mission)).get(int(e.get("0x2c6", -1)), {})
+	var jet := int(obj.get("0x5b4", -1))
 	print("player: %s (flight %d, type %d)" % [e.get("0x2bc", ""), player_flight_number, jet])
 	if jet != F16_TYPE:
 		print("mission jet type %d is not flyable yet: flying the F-16" % jet)
 	_load_route(mission, player_entity_id)
 	return e
-
-
-## bdb type code (Objects 0x5b4) of a bdb object id; -1 when unknown.
-static func _bdb_type(dir: String, bdb_name: String, object_id: int) -> int:
-	var b = JSON.parse_string(FileAccess.get_file_as_string(dir.path_join(bdb_name.to_lower() + ".json")))
-	if b is Dictionary:
-		for o in b.get("objects", {}).get("items", []):
-			if int(o.get("0x1e", -2)) == object_id:
-				return int(o.get("0x5b4", -1))
-	return -1
 
 
 ## The mission and its base missions (missionlist) run by the mission runtime
@@ -319,26 +310,15 @@ var _msgbox: Control
 
 
 func _spawn_mission_objects() -> void:
-	if _mission_id() < 0:
+	if mission_id < 0:
 		return
 	var base := Settings.assets_dir().path_join("converted")
-	var list = JSON.parse_string(FileAccess.get_file_as_string(base.path_join("missions/missionlist.json")))
-	if not (list is Dictionary) or not list.has(str(_mission_id())):
-		return
-	var files: Array = []
-	for name in list[str(_mission_id())]:
-		var m = JSON.parse_string(FileAccess.get_file_as_string(base.path_join("missions/%s.json" % name)))
-		if m is Dictionary:
-			files.append(m)
+	var files: Array = MissionRuntime.mission_files(mission_id).map(func(f): return f.data).filter(func(m): return not m.is_empty())
 	if files.is_empty():
 		return
-	var bdb_name := String(files[0].bdb).to_lower()
-	var bdb: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(base.path_join("missions/%s.json" % bdb_name)))
-	var objs := {}
-	for o in bdb.objects.items:
-		objs[int(o["0x1e"])] = o
-	var models = JSON.parse_string(FileAccess.get_file_as_string(base.path_join("objects/objects.json")))
-	var paths: Dictionary = models.get(bdb_name, {}) if models is Dictionary else {}
+	var bdb := MissionRuntime.load_bdb(files[0])
+	var objs := MissionRuntime.bdb_objects(bdb)
+	var paths: Dictionary = Settings.load_json(base.path_join("objects/objects.json")).get(String(files[0].bdb).to_lower(), {})
 	runtime = preload("res://mission/mission_runtime.gd").new()
 	add_child(runtime)
 	runtime.setup(self, files, bdb, player_entity_id)
@@ -396,11 +376,6 @@ static func _entity_heading(files: Array, ent: Dictionary) -> float:
 		if e is Dictionary and int(e.get("0x1e", -1)) == ent.id:
 			return float(e.get("0x302", 0))
 	return 0.0
-
-
-func _mission_id() -> int:
-	var m := OS.get_cmdline_user_args().find("--mission")
-	return int(OS.get_cmdline_user_args()[m + 1]) if m >= 0 else Settings.mission_id
 
 
 # --- mission runtime host -----------------------------------------------------------------------
@@ -740,7 +715,7 @@ func _start_flight() -> void:
 		push_error("IafFlight missing: build the extension (cargo build -p iaf-godot)")
 		return
 	flight = ClassDB.instantiate("IafFlight")
-	var install := ProjectSettings.globalize_path("res://").path_join("../assets/install").simplify_path()
+	var install := Settings.assets_dir().path_join("install")
 	var fwd := -rig.global_basis.z
 	var heading := fposmod(rad_to_deg(atan2(fwd.x, -fwd.z)), 360.0)
 	real_data = Settings.real_data() or OS.get_cmdline_user_args().has("--real")

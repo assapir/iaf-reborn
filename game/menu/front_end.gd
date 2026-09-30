@@ -97,6 +97,7 @@ const CTRL_BAR := Rect2(422, 53, 11, 270)
 const CTRL_ARROW := Vector2(15, 18)
 const CTRL_THUMB := Vector2(10, 23)
 const KeyTable := preload("res://controls/key_table.gd")
+const Img := preload("res://util/img.gd")
 
 ## Our own "Extras" tab (not in the original): directly below Gameplay at the panel's spacing
 ## (44 px). Drawn from the pPref art: the band holding the Gameplay button (panel coordinates, inside
@@ -205,8 +206,8 @@ var sounds := {}
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_load_menu_data()
-	font = _arial(400)
-	font_bold = _arial(700)
+	font = Img.arial(400)
+	font_bold = Img.arial(700)
 	music = AudioStreamPlayer.new()
 	sfx = AudioStreamPlayer.new()
 	preview = AudioStreamPlayer.new()
@@ -219,9 +220,7 @@ func _ready() -> void:
 	top_layer.draw.connect(_draw_msgbox)
 	top_layer.gui_input.connect(_msgbox_input)
 	add_child(top_layer)
-	briefings = JSON.parse_string(FileAccess.get_file_as_string(Settings.assets_dir().path_join("converted/briefings/briefings.json")))
-	if not (briefings is Dictionary):
-		briefings = {}
+	briefings = Settings.load_json(Settings.assets_dir().path_join("converted/briefings/briefings.json"))
 	var args := OS.get_cmdline_user_args()
 	var at := args.find("--menu")
 	if at >= 0:
@@ -240,10 +239,7 @@ func _ready() -> void:
 		hover_key = _key_for_label(args[at + 1])
 	var shot := args.find("--screenshot")
 	if shot >= 0:
-		for i in 5:
-			await get_tree().process_frame
-		get_viewport().get_texture().get_image().save_png(args[shot + 1])
-		get_tree().quit()
+		Img.screenshot_and_quit(self, args[shot + 1], 5)
 
 
 ## (Re)load screens, strings and art for the current language. Hebrew uses the Hebrew menu
@@ -251,24 +247,14 @@ func _ready() -> void:
 func _load_menu_data() -> void:
 	dir = Settings.assets_dir().path_join("converted/menu_he" if _he() else "converted/menu")
 	textures.clear()
-	menus = JSON.parse_string(FileAccess.get_file_as_string(dir.path_join("menus.json")))
-	strings = JSON.parse_string(FileAccess.get_file_as_string(dir.path_join("strings.json")))
-	if menus == null:
+	menus = Settings.load_json(dir.path_join("menus.json"))
+	strings = Settings.load_json(dir.path_join("strings.json"))
+	if menus.is_empty():
 		push_error("front end: run tools/setup.sh (menus not converted)")
-		menus = {}
-		strings = {}
-	hebrew = JSON.parse_string(FileAccess.get_file_as_string("res://menu/strings_he.json"))
+	hebrew = Settings.load_json("res://menu/strings_he.json")
 	var scale_file := dir.path_join("image_scale.txt")
 	art_scale = float(FileAccess.get_file_as_string(scale_file).strip_edges()) if FileAccess.file_exists(scale_file) else 1.0
 	sounds.clear()
-
-
-## All menu text is Arial (docs/front-end.md §4); Liberation Sans is metric-compatible.
-func _arial(weight: int) -> SystemFont:
-	var f := SystemFont.new()
-	f.font_names = PackedStringArray(["Arial", "Liberation Sans"])
-	f.font_weight = weight
-	return f
 
 
 func _he() -> bool:
@@ -292,10 +278,7 @@ static func _norm(label: String) -> String:
 
 func _tex(path: String) -> Texture2D:
 	if not textures.has(path):
-		var img := Image.load_from_file(dir.path_join("img").path_join(path)) if FileAccess.file_exists(dir.path_join("img").path_join(path)) else null
-		if img != null:
-			img.generate_mipmaps()
-		textures[path] = ImageTexture.create_from_image(img) if img != null else null
+		textures[path] = Img.load_texture(dir.path_join("img").path_join(path), true)
 	return textures[path]
 
 
@@ -830,20 +813,8 @@ func _pref_value(key: String) -> float:
 func _slider_thumb() -> Texture2D:
 	var key := "pref/slider_thumb"
 	if not textures.has(key):
-		var path := dir.path_join("img/pref/slider.png")
-		var img := Image.load_from_file(path) if FileAccess.file_exists(path) else null
-		if img == null:
-			textures[key] = null
-			return null
-		img.convert(Image.FORMAT_RGBA8)
-		var h := img.get_height() / 2
-		var out := Image.create(img.get_width(), h, false, Image.FORMAT_RGBA8)
-		for y in h:
-			for x in img.get_width():
-				var c := img.get_pixel(x, y)
-				c.a = 1.0 - img.get_pixel(x, y + h).get_luminance()
-				out.set_pixel(x, y, c)
-		textures[key] = ImageTexture.create_from_image(out)
+		var src := _tex("pref/slider.png")
+		textures[key] = ImageTexture.create_from_image(Img.masked_sprite(src.get_image())) if src != null else null
 	return textures[key]
 
 
@@ -1336,11 +1307,9 @@ func pilot_header() -> String:
 func briefing_image(stem: String) -> Texture2D:
 	var base := Settings.assets_dir().path_join("converted/briefings")
 	for sub in (["img_he", "img"] if _he() else ["img"]):
-		var path := base.path_join(sub).path_join(stem + ".png")
-		if FileAccess.file_exists(path):
-			var img := Image.load_from_file(path)
-			img.generate_mipmaps()
-			return ImageTexture.create_from_image(img)
+		var t := Img.load_texture(base.path_join(sub).path_join(stem + ".png"), true)
+		if t != null:
+			return t
 	return null
 
 

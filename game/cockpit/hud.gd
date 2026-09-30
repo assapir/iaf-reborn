@@ -21,7 +21,7 @@ func _ready() -> void:
 
 ## Loads an original raster font converted by `iaf-convert fonts` (BMFont), scalable.
 static func load_original_font(name: String) -> FontFile:
-	var path := ProjectSettings.globalize_path("res://").path_join("../assets/converted/fonts/%s.fnt" % name).simplify_path()
+	var path := Settings.assets_dir().path_join("converted/fonts/%s.fnt" % name)
 	var f := FontFile.new()
 	if f.load_bitmap_font(path) != OK:
 		return null

@@ -3,7 +3,8 @@
 # (engine off at the ground start, "1" starts it and the pitch rises with the RPM).
 extends "res://../tests/godot/base.gd"
 
-const FlightSounds := preload("res://audio/flight_sounds.gd")
+## Loaded at run time: scripts that use the Settings autoload do not compile before it exists.
+var FlightSounds: GDScript
 const SoundBuses := preload("res://audio/sound_buses.gd")
 
 
@@ -26,6 +27,7 @@ func _count(fs, what: String) -> int:
 
 
 func run() -> void:
+	FlightSounds = load("res://audio/flight_sounds.gd")
 	# The original table.
 	var fs = FlightSounds.create(null, 100)
 	root.add_child(fs)

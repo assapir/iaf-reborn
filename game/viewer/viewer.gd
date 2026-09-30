@@ -3,7 +3,6 @@
 # whenever the converter rewrites them.
 extends Node3D
 
-const ASSETS := "../assets/converted"
 const POLL_SECONDS := 0.5
 
 @onready var pivot: Node3D = $Pivot
@@ -26,7 +25,7 @@ var reloading := false
 
 
 func _ready() -> void:
-	models = _find_models(ProjectSettings.globalize_path("res://").path_join(ASSETS).simplify_path())
+	models = _find_models(Settings.assets_dir().path_join("converted"))
 	var start := models.find(_path_for("f16_h.gltf"))
 	index = max(start, 0)
 	_load()
@@ -44,10 +43,7 @@ func _ready() -> void:
 		var ang := args.find("--yaw")
 		if ang >= 0:
 			yaw = float(args[ang + 1])
-		for i in 10:
-			await get_tree().process_frame
-		get_viewport().get_texture().get_image().save_png(args[shot + 1])
-		get_tree().quit()
+		preload("res://util/img.gd").screenshot_and_quit(self, args[shot + 1], 10)
 
 
 func _path_for(file: String) -> String:
@@ -75,7 +71,7 @@ func _load() -> void:
 	for c in model_root.get_children():
 		c.queue_free()
 	if models.is_empty():
-		status = "No models found in %s — run iaf-convert first." % ASSETS
+		status = "No models found in %s — run iaf-convert first." % Settings.assets_dir().path_join("converted")
 		_update_hud()
 		return
 	var path := models[index]

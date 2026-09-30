@@ -4,10 +4,12 @@
 # F-16 in a mission carries the model and follows the flight model's gear ramp.
 extends "res://../tests/godot/base.gd"
 
-const AircraftModel := preload("res://aircraft/aircraft_model.gd")
+## Loaded at run time: scripts that use the Settings autoload do not compile before it exists.
+var AircraftModel: GDScript
 
 
 func run() -> void:
+	AircraftModel = load("res://aircraft/aircraft_model.gd")
 	var idx: Dictionary = AircraftModel.index()
 	check(idx.size() >= 8, "aircraft index lists every plane (%d)" % idx.size())
 	var bad := []

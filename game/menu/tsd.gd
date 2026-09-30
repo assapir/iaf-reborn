@@ -39,6 +39,7 @@ const FILTERS := {1: "aircrafts", 2: "ships", 3: "structures", 4: "vehicles", 5:
 const SAM_RING := {290: 37080.0, 340: 37080.0, 300: 16686.0, 320: 22248.0}
 
 const Img := preload("res://util/img.gd")
+const MissionRuntime := preload("res://mission/mission_runtime.gd")
 
 static var _map_cache := {}
 
@@ -121,24 +122,15 @@ func selected_route() -> Array:
 ## entities whose bdb class has an icon, placed in the world (the unused player slots sit at (-1, -1);
 ## as in mission_runtime.gd only both coordinates negative means unplaced).
 func _load_units() -> void:
-	var dir := Settings.assets_dir().path_join("converted/missions")
-	var list = JSON.parse_string(FileAccess.get_file_as_string(dir.path_join("missionlist.json")))
-	if not (list is Dictionary) or not list.has(str(mission_id)):
-		return
 	var bdbs := {}
 	var first := true
-	for name in list[str(mission_id)]:
-		var m = JSON.parse_string(FileAccess.get_file_as_string(dir.path_join(String(name) + ".json")))
-		if not (m is Dictionary):
+	for file in MissionRuntime.mission_files(mission_id):
+		var m: Dictionary = file.data
+		if m.is_empty():
 			continue
 		var bdb_name := String(m.get("bdb", "")).to_lower()
 		if not bdbs.has(bdb_name):
-			var b = JSON.parse_string(FileAccess.get_file_as_string(dir.path_join(bdb_name + ".json")))
-			var objects := {}
-			if b is Dictionary:
-				for o in b.objects.items:
-					objects[int(o["0x1e"])] = o
-			bdbs[bdb_name] = objects
+			bdbs[bdb_name] = MissionRuntime.bdb_objects(MissionRuntime.load_bdb(m))
 		var objects: Dictionary = bdbs[bdb_name]
 		if first:
 			var misc: Dictionary = m.misc.items[0]
@@ -220,8 +212,7 @@ func select_flight(n: int) -> void:
 func _map(name: String) -> Dictionary:
 	if not _map_cache.has(name):
 		var path: String = fe.dir.path_join("emf/%s.json" % name)
-		var data = JSON.parse_string(FileAccess.get_file_as_string(path))
-		_map_cache[name] = data if data is Dictionary else {}
+		_map_cache[name] = Settings.load_json(path)
 	return _map_cache[name]
 
 

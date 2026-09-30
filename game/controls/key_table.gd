@@ -54,8 +54,8 @@ func _load(path: String) -> void:
 	if not FileAccess.file_exists(path):
 		push_error("key table missing (%s): run tools/setup.sh" % path)
 		return
-	var d = JSON.parse_string(FileAccess.get_file_as_string(path))
-	if not (d is Dictionary):
+	var d := Settings.load_json(path)
+	if d.is_empty():
 		return
 	records = d.records
 	key_names = d.key_names
