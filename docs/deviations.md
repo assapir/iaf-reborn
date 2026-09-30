@@ -25,6 +25,7 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 | Text and art | GDI text, 8-bit art | smooth text, 4× Lanczos art (never AI upscaling) | rendering (user decision) | — |
 | Airbase underlay models (ul_rw*: runways, taxiways, aprons) | drawn over the terrain (how is not traced) | not drawn (the units stay for the mission logic) | the terrain's inset imagery already shows the airbase; drawn, they z-fought with it and do not register with it (the model is half the imagery's size) — user decision | terrain_view.gd `_spawn_mission_objects` |
 | Model textures | 8-bit textures as the 1998 renderer sampled them | mipmaps + anisotropic filtering on every runtime-loaded model texture | without mipmaps distant models shimmer | util/gltf.gd `open` |
+| Ground preload | the mission loads behind the progress bar after Fly | the ground around the chosen flight leader's start also loads in the background while the TSD / briefing / Arming screens are open | Fly starts almost at once | terrain_preload.gd, front_end.gd |
 | Runway numbers | two mirrored "33" at Ramat David | re-flipped at conversion | 1998 art error | formats/ptt.md |
 | In-flight subtitles in Hebrew mode | — (no Hebrew exists) | English | user decision | — |
 | Weapon HUD geometry | the HUD projector (not traced) | seeker / circle offsets at 12 px/deg from the boresight | projector untraced | weapons.md §5.1 |

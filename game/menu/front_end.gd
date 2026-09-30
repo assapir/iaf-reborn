@@ -503,6 +503,27 @@ func _blit_region(path: String, src: Rect2, dest: Vector2) -> void:
 
 func _process(_delta: float) -> void:
 	queue_redraw()
+	_preload_ground()
+
+
+## While the mission's screens are open (TSD / briefing / Arming), the ground around the chosen
+## flight leader's start loads in the background (terrain/terrain_preload.gd) so Fly starts at once;
+## a flight change on the TSD re-aims it, leaving the mission screens stops it.
+var _preload_flight := -1
+
+
+func _preload_ground() -> void:
+	const TerrainPreload := preload("res://terrain/terrain_preload.gd")
+	if tsd != null:
+		var n: int = tsd.default_flight()
+		if n != _preload_flight:
+			_preload_flight = n
+			var w = preload("res://mission/mission_runtime.gd").player_start(Settings.mission_id, n)
+			if w != null:
+				TerrainPreload.target(get_tree(), w)
+	elif _preload_flight != -1:
+		_preload_flight = -1
+		TerrainPreload.stop()
 
 
 func _draw() -> void:

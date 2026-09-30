@@ -58,10 +58,11 @@ Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user
 - Physics tab: the check boxes and their labels are not vertically aligned (20 px rows); and the list needs a
   scrollbar soon (15 options; use the Keyboard page's original scrollbar art / behaviour).
 - Keyboard page: the scrollbar arrows are cropped on the right side.
-- Terrain loads only after Fly, and the flight's loading screen (game/terrain/loading_screen.gd) does not show —
-  only the front end's wait screen before the briefing appears; the ground pops in for a few seconds. Fix the
-  loading screen, then: start loading the ground around the
-  player's start point in the background while the briefing / TSD is open, so the flight starts at once.
+- Landing tests at the runway edges (Ramat David): touchdowns near the threshold / runway end and just inside /
+  outside the left and right edges (inside = tarmac, safe; outside on grass above 25.7 m/s = rough-ground crash),
+  so terraintype.dat's runway footprint matches the imagery at its borders.
+- Terrain loading is frame-bound (at most 6 decodes started per frame): in a hidden / throttled window (~1 fps)
+  the flight's ground takes 25-60 s; start jobs independently of the frame rate.
 
 ## Done
 | area | state |

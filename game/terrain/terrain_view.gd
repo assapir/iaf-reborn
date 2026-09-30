@@ -161,6 +161,8 @@ func _ready() -> void:
 	chase.fov = 60.0
 	var args := OS.get_cmdline_user_args()
 	_choose_start(args)
+	# The ground the front end preloaded around the start (briefing / TSD time).
+	preload("res://terrain/terrain_preload.gd").hand_over(terrain)
 	if args.has("--external"):
 		in_cockpit = false
 	var st_arg := args.find("--stick")
@@ -1124,6 +1126,8 @@ func _process(delta: float) -> void:
 		flight.set_controls(stick.x, stick.y, rudder, throttle, flaps, gear_down, brakes)
 		# The flight starts once the ground around the jet is loaded at full detail (behind the
 		# loading screen).
+		if _loading != null:
+			_loading.get_child(0).progress = terrain.ground_progress()
 		if waiting_for_ground and terrain.ground_ready():
 			waiting_for_ground = false
 			if _loading != null:

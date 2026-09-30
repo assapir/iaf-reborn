@@ -96,6 +96,19 @@ static func player_flight(mission: Dictionary, wanted := 0) -> Dictionary:
 	return {}
 
 
+## Where the player starts (engine world X, Y, altitude): the leader of flight `wanted` (else the
+## default flight, player_flight()) of the menu mission's main file; null when there is none.
+static func player_start(id: int, wanted := 0) -> Variant:
+	var files := mission_files(id)
+	if files.is_empty() or files[0].data.is_empty():
+		return null
+	var pf := player_flight(files[0].data, wanted)
+	if pf.is_empty():
+		return null
+	var e: Dictionary = pf.entity
+	return Vector3(float(e["0x2e4"]), float(e["0x2ee"]), float(e["0x2f8"]))
+
+
 ## `player_id`: entity id (0x1e) of the player's aircraft in the main file (player_flight());
 ## -1 = the default flight's leader.
 func setup(host_node: Node, mission_files: Array, bdb: Dictionary, player_id := -1) -> void:

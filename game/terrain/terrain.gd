@@ -72,6 +72,11 @@ var _wanted := {}  # key -> distance (this frame's requests)
 var _drawn := {}  # Vector3i -> MeshInstance3D
 var _blocked := 1  # splits waiting for data this frame
 var _blocked_near := 1
+## The resources ground_ready() waits for in this selection (the nodes within `near_range` at full
+## detail, every drawn node, the heights under the focus): key -> loaded (ground_progress()).
+var _near := {}
+## false: load only, draw nothing (the front end's preload, terrain_preload.gd).
+var draw_nodes := true
 var _eye := Vector3.ZERO  # focus in terrain units (x, y) and height above the ground (z, metres)
 var _last_focus := Vector3(INF, INF, INF)
 var _last_select := 0
@@ -208,14 +213,17 @@ func _key(kind: int, n: Vector3i) -> Vector4i:
 
 
 ## True when the node's textures are loaded; requests the missing ones (and marks them used).
-func _ready_node(n: Vector3i, d: float) -> bool:
+func _ready_node(n: Vector3i, d: float, counts := false) -> bool:
 	var ok := true
 	for key in [_key(0, _colour_source(n)), _key(1, _height_source(n))]:
-		if _res.has(key):
+		var have := _res.has(key)
+		if have:
 			_res[key].used = Time.get_ticks_msec()
 		else:
 			ok = false
 			_wanted[key] = minf(_wanted.get(key, INF), d)
+		if counts or d < near_range:
+			_near[key] = have
 	return ok
 
 
@@ -238,7 +246,8 @@ func _select(n: Vector3i, d: float, draw: bool, selected: Dictionary) -> void:
 		if all:
 			return
 	if draw:
-		if _ready_node(n, d):
+		# ground_ready() waits for every drawn node, near or far: all count for ground_progress().
+		if _ready_node(n, d, true):
 			selected[n] = true
 		else:
 			_blocked += 1
@@ -263,6 +272,7 @@ func _reselect(fp: Vector3) -> void:
 	var g = height_at(fp)
 	_eye = Vector3(t.x, t.y, maxf(0.0, fp.y - (g if g != null else 0.0)))
 	_wanted.clear()
+	_near.clear()
 	_blocked = 0
 	_blocked_near = 0
 	var selected := {}
@@ -277,7 +287,8 @@ func _reselect(fp: Vector3) -> void:
 	var under := _height_source(Vector3i(floori(t.x / _span0), floori(t.y / _span0), 0))
 	if _inside(under):
 		_ready_node(under, 0.0)
-	_update_drawn(selected)
+	if draw_nodes:
+		_update_drawn(selected)
 	_evict()
 
 
@@ -409,11 +420,12 @@ func _decode(key: Vector4i) -> void:
 	_results_mutex.unlock()
 
 
-## Takes the finished decode jobs' images (texture upload on the main thread); true if any.
-func _finish_jobs() -> bool:
+## Takes the finished decode jobs' images (texture upload on the main thread); true if any. `block`:
+## waits for the running ones too.
+func _finish_jobs(block := false) -> bool:
 	var any := false
 	for key in _jobs.keys():
-		if not WorkerThreadPool.is_task_completed(_jobs[key]):
+		if not block and not WorkerThreadPool.is_task_completed(_jobs[key]):
 			continue
 		WorkerThreadPool.wait_for_task_completion(_jobs[key])
 		_jobs.erase(key)
@@ -444,6 +456,33 @@ func _evict() -> void:
 ## True while any node in range is still waiting for its data (full detail everywhere).
 func missing_after_frame() -> bool:
 	return _blocked > 0 or not _jobs.is_empty()
+
+
+## How much of the ground_ready() work is done (0..1): the loaded share of the resources it waits
+## for (the loading screen keeps its maximum).
+func ground_progress() -> float:
+	if ground_ready():
+		return 1.0
+	if _near.is_empty():
+		return 0.0
+	var n := 0
+	for k in _near:
+		if _near[k]:
+			n += 1
+	return float(n) / float(_near.size())
+
+
+## Takes over the textures another terrain node has loaded (the front end's preload of the start
+## area, terrain_preload.gd): its running decodes finish first. The next frame re-chooses the tree.
+func adopt(other: Node) -> void:
+	other._finish_jobs(true)
+	var now := Time.get_ticks_msec()
+	for k in other._res:
+		if not _res.has(k):
+			_res[k] = other._res[k]
+			_res[k].used = now
+	_last_select = 0
+	_last_focus = Vector3(INF, INF, INF)
 
 
 ## True once the ground around the focus is at full detail (nodes within `near_range`) and its
