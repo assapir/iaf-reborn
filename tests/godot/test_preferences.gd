@@ -78,3 +78,12 @@ func run() -> void:
 		root.get_viewport().get_texture().get_image().save_png(OS.get_environment("IAF_SHOT"))
 	click(fe, fe.CONTENT.position + items[Settings().BETTER.size() + 1].rect.get_center())
 	check(not Settings().BETTER.keys().any(func(id): return fe.pref_work.better[id]), "ALL OFF clears them")
+	# Leaving from the Physics page (Save changes? -> Yes) draws the page while the working copy is gone.
+	click(fe, fe.CONTENT.position + items[0].rect.get_center())
+	fe._on_button("back")
+	await settle(fe)
+	click_box(fe.msgbox, 0)
+	await settle(fe)
+	await frames(10)
+	check(fe.screen == "main" and Settings().better.flight_path_hold, "leaving from Physics commits without errors")
+	Settings().better.flight_path_hold = false
