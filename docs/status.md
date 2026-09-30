@@ -14,8 +14,9 @@
 ## To do next (ordered by overall progress: missions unlocked first)
 1. ~~Terrain (original data) — convert all of `map.ptt`~~ — done (see Done).
 2. **Combat core** (unlocks the first ~9–11 missions): ~~player weapons~~ (done: gun + IR missiles, stores, fuel
-   tanks, HUD / MFD, Weapon data Real — docs/weapons.md) → **AI brain flight** (next) → AI air-to-ground /
-   air-to-air → AAA, radar SAMs, RWR → script ops 2 / 21 / 22.
+   tanks, HUD / MFD, Weapon data Real — docs/weapons.md) → ~~AI brain flight~~ (done: docs/ai.md) → **AI
+   air-to-ground / air-to-air** (next: targets, weapons, combat manoeuvres; hooks in game/ai) → AAA, radar SAMs,
+   RWR → script op 2.
 3. ~~Arming screen~~ — done (see Done).
 4. **Bombs + CCIP**, armed vehicles / boats (→ ~20 missions).
 5. **Other jets**: flight data + cockpit per jet — Phantom 2000 (19 missions), F-4E (17), F-15 (16), Lavi / Mirage
@@ -39,6 +40,11 @@
 Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user decisions.
 
 ## Small bugs (fix between jobs)
+- **Decide: model scale.** The original draws every mission model at its bdb Present scale (0x65e: ×2 for aircraft,
+  buildings, underlays; ×3–4 for vehicles / SAMs) — now ported for mission objects and AI jets (the airbases match the
+  imagery). The player's own jet is still 1:1: scale it too (original), or keep jets / vehicles 1:1 as an option?
+- **Player flight choice** (docs/ai.md §7.2): the original picks flight N by formation **id**, we by its kind (0x3f2);
+  they differ in 124 of 307 formations — check which missions change their player and port.
 - **Keyboard stick too sensitive** (taps ≥ ~0.45 s give 3+ g): traced — the original sets full stick at once on
   press, 0 on release; only the lift ramp (G_Rate) smooths it (F-16 350 kt: 0.1 s → 1.4 g, 0.3 s → 2.3 g, 0.5 s →
   3.2 g, 1 s → 5.4 g). Our invented ramp is replaced by that law (it gave *more* g). Taps give 3+ g in the original
@@ -85,6 +91,7 @@ Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user
 | Mission runtime | scripts, triggers, events, voices + subtitles, win / lose rules, mission boxes, debrief; player = the default (or chosen) flight's leader |
 | Flight model | original ground + airborne logic ported line by line (docs/flight-model.md §14–§15): envelope, stall, spin, landing / crash check, afterburner delay, gear / flaps / brakes, start rules, Gameplay prefs |
 | Physics switches | 12 "Better physics" options (incl. F-16 deep stall, ground effect) + 3 original-bug fixes (falling-jet heading, enemies tougher on easy AI, stores weight / tank fuel) |
+| AI flight | docs/ai.md: the bdb brains (rule engine, conditions, sub-brains, combat ops 21 / 22) and the original's autopilot control loops fly every brain-controlled jet through the same flight model (all AI types, Original / Real data, the FM's AI rules): routes with timed waypoints, close / tactical formation, take-off from the hangar (taxi, pivot turns, rotation), go home and land (left-hand pattern, 6° final, roll-out, taxi to a hangar, engine off — UNCERTAIN legs: the landing test still fails in the final turn), hold, straight; the player's wingman follows the player; `ai.contacts()` for radar / RWR |
 | Player weapons | gun (0.2 s timer, analytic rounds, 25 / 50 m hit sphere, candidate list, muzzle flash, sounds, LCOS / strafe pippers), IR seeker + missiles (per-generation lock, tones, q, dog / proportional chase), stores on the pylons, selection / master / HUD modes, release, weight / drag, external fuel tanks + jettison, HUD weapon line / missile circle / seeker diamond, stores MFD page; Extras "Weapon data: Real" (docs/weapons.md, docs/real-weapons.md) |
 | Arming screen | original screen 0x1f (docs/front-end.md §15): jet front views + stations, weapon list AA / AG / Misc, drag and drop with the per-station allowed counts, right-click, DEFAULT, CURRENT LOAD / MAX T.O.W., the original's blocking checks (overweight, wing balance) and "Use weapon load?"; the load goes on the player's pylons (stores, weight / drag). Coverage: of the 9 missions whose default load cannot kill the targets (116, 122, 136, 212, 214, 215, 216, 227, 237), 8 now need a player weapon instead of the AI (bombs for 215 / 227 / 237, bombs / rockets / guided for the rest; 136 has none loadable); none becomes playable before the bombs |
 | Real aircraft data | Real set for all 6 flyable jets (F-16, F-15C, F-4E / Kurnass 2000, Kfir C7, Lavi, Mirage IIICJ): weights, thrust, drag, roll, fuel, stall, pedal steering (docs/real-aircraft.md); the flight data loader reads the v1.1 files (`bdgen.dat`, `*gen.skp`, XOR-encoded); AI types: reference table only |
@@ -101,7 +108,7 @@ Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user
   west of Suez in the original data (flat −557 m, kept).
 - **Flight**: only the F-16; systems damage doesn't affect flying yet; no hook, map-edge push-back.
 - **Combat**: player gun + IR missiles only (no bombs, rockets, radar missiles / lock, chaff / flares, TV / laser,
-  HARM); no AI flight or combat, no AAA / SAMs (so no combat mission can be won yet).
+  HARM); no AI combat (AI jets fly, don't fight), no AAA / SAMs (so no combat mission can be won yet).
 - **Cockpit / MFDs**: radar contacts and lock, radar map, RWR threats, FLIR / TV / HARM pages, NAV distances; AI / SAM / ECM /
   autopilot lights have no systems; night lighting.
 - **Controls**: no joystick; not built: views other than cockpit / chase, autopilot, time compression, pause
