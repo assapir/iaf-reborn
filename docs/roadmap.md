@@ -64,3 +64,7 @@ switch: an updated overlay with today's borders, names and places (drawn by us; 
 A first-run wizard in the game itself (Linux + macOS) instead of `tools/setup.sh`: pick the ISO, optionally the v1.1
 patch and the Hebrew packs (file dialogs, with checks: right ISO, patch version, pack contents), show progress per
 step, and re-run individual steps later from a menu. The CLI stays for scripting / CI.
+
+## Keyboard stick option (maybe, post game)
+The original keyboard stick is full deflection at once (taps > ~0.45 s reach 3 g in the F-16; docs/flight-model.md §8).
+Possible Extras option: a key ramp / sensitivity setting for keyboard players, original by default.
