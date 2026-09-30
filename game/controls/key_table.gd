@@ -119,11 +119,10 @@ func button_name(joystick: int) -> String:
 	return button_format.replace("%d", str(joystick + 1)) if joystick > -1 else ""
 
 
-## The records listed on the Controls page (shown flag ≠ 0, FUN_00511cf0), in table order.
-func shown_records() -> Array:
+func shown_records(all := false) -> Array:
 	var out := []
 	for i in records.size():
-		if records[i].shown:
+		if records[i].shown or (all and String(records[i].label) != ""):
 			out.append(i)
 	return out
 

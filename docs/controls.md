@@ -93,7 +93,12 @@ the Preferences Controls page (docs/front-end.md §12.7) and looks every in-flig
 
 ## 3. Full original key list
 
-"Listed" = shown on the Controls page (92 of 117). "iaf-reborn" = what the command does here (— = not
+"Listed" = shown on the Controls page (92 of 117). Our Extras option **"All keys on the Keyboard page"**
+(`show_all_keys`, off = the original list) also lists every unlisted record with a label (115 of 117: stick,
+rudder, RPM ± 5, view / EO pans, the cheats, screen capture; not the two unlabelled records 115 / 116), in table
+order, so they can be rebound (e.g. the numpad rudder on keyboards without a numpad); they are stored in `[keys]`
+like the others and the flight looks every key up through the table. Rebinding a cheat only stores its key (the
+cheats are not built). "iaf-reborn" = what the command does here (— = not
 implemented yet: the key is ignored unless one of our own keys above is on it). Command ids are the
 original's `WM 0x532` wParam; p1 / p2 as stored.
 

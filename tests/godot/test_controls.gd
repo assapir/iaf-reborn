@@ -87,3 +87,40 @@ func run() -> void:
 	# Throttle presets from the table: key 2 = p1 10 -> 0.10.
 	key(tv, KEY_2)
 	check(is_equal_approx(tv.throttle, 0.10), "key 2 = throttle 0.10 (%.3f)" % tv.throttle)
+
+	# Extras "All keys on the Keyboard page" (ours): the hidden records (stick, rudder, RPM ± 5, pans)
+	# are listed too (cheats and screen capture included), except the two unlabelled records; they rebind like the rest.
+	var all: Array = kt.shown_records(true)
+	check(all.size() == 115 and 37 in all and 38 in all and 15 in all and 108 in all and 114 in all, "all keys: 115 records incl. rudder, RPM ± 5, cheats, capture (%d)" % all.size())
+	check(not 115 in all and not 116 in all, "the two unlabelled records stay out")
+	Settings().show_all_keys = true
+	fe = load("res://menu/front_end.tscn").instantiate()
+	root.add_child(fe)
+	await frames(2)
+	fe._on_button(fe._key_for_label("Preferences"))
+	await settle(fe)
+	fe._on_button(fe._key_for_label("Controls"))
+	rows = fe._ctrl_rows()
+	var rudder_row: int = rows.find(37)
+	check(rudder_row >= 0 and rows.size() == 115, "Keyboard page lists Rudder left")
+	fe._ctrl_scroll(rudder_row - 2)
+	click(fe, at + Vector2(100, 53 + 2 * 30 + 15))
+	check(fe.ctrl_sel == rudder_row and fe.ctrl_focus, "click selects Rudder left")
+	press(fe, KEY_K)
+	check(kt.key_name(kt.key_of(37, fe.pref_work.key_bindings)) == "K", "Rudder left rebound to K")
+	fe.queue_free()
+	await frames(2)
+	Settings().key_bindings = {37: [0x25, -1]}
+	tv = await start_mission(311)
+	var e := InputEventKey.new()
+	e.keycode = KEY_K
+	e.physical_keycode = KEY_K
+	e.pressed = true
+	Input.parse_input_event(e)
+	await frames(20)
+	check(tv.rudder < -0.05, "held K deflects the rudder left (%.2f)" % tv.rudder)
+	e = e.duplicate()
+	e.pressed = false
+	Input.parse_input_event(e)
+	Settings().key_bindings = {}
+	Settings().show_all_keys = false

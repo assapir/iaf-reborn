@@ -42,6 +42,18 @@ func run() -> void:
 			for tab in ["extras", "physics"]:
 				fe._on_button(tab)
 				await frames(3)
+			# Extras "All keys on the Keyboard page": the longer list draws and scrolls to its end.
+			fe._on_button("extras")
+			await frames(2)
+			for it in fe._extras_items():
+				if it.key == "show_all_keys" and it.value == true:
+					fe._gui_input(mouse_button(fe._to_screen(fe.CONTENT.position + it.rect.get_center()), true))
+					fe._gui_input(mouse_button(fe._to_screen(fe.CONTENT.position + it.rect.get_center()), false))
+			await frames(2)
+			fe._on_button(fe._key_for_label("Keyboard"))
+			fe._ctrl_scroll(fe._ctrl_max_top())
+			await frames(3)
+			check(fe._ctrl_rows().size() == 115, "%s: all keys listed with the Extras option" % lang)
 			fe.pref_work["no_blackouts"] = not fe.pref_work.get("no_blackouts", false)  # a change -> Save changes?
 			fe._on_button("main" if exit_path == "main" else "back")
 			await _settle(fe)

@@ -118,6 +118,7 @@ const EXTRAS := [
 	["show_info", "Flight info (F12)", [["Show", true], ["Hide", false]]],
 	["blackbox", "Blackbox", [["On", true], ["Off", false]]],
 	["hud_ladder", "HUD pitch ladder", [["Original", "original"], ["Conformal", "conformal"]]],
+	["show_all_keys", "All keys on the Keyboard page", [["Original", false], ["All", true]]],
 ]
 
 ## Button-release dispatcher FUN_004ec770: screen -> {button label -> next screen}.
@@ -624,6 +625,15 @@ func _text_line(box: Rect2, text: String, px: float, color: Color, f: Font = nul
 	draw_string(f, Vector2(r.position.x, r.end.y - f.get_descent(fs)), text, align, r.size.x, fs, color)
 
 
+## `_text_line` with the size reduced (down to 60 %) until the text fits the box (our long labels).
+func _text_fit(box: Rect2, text: String, px: float, color: Color, f: Font = null) -> void:
+	f = f if f != null else font
+	var p := px
+	while p > px * 0.6 and f.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, int(round(p * _scale()))).x > _rect(box).size.x:
+		p -= 0.5
+	_text_line(box, text, p, color, f)
+
+
 ## Word-wrapped block from the top (DT_WORDBREAK).
 func _text_block(box: Rect2, text: String, px: float, color: Color) -> void:
 	var r := _rect(box)
@@ -677,7 +687,7 @@ func _keys() -> RefCounted:
 
 ## The records listed (shown flag set), in table order.
 func _ctrl_rows() -> Array:
-	return _keys().shown_records()
+	return _keys().shown_records(bool(pref_work.get("show_all_keys", Settings.show_all_keys)))
 
 
 func _ctrl_max_top() -> int:
@@ -931,7 +941,7 @@ func _draw_extras() -> void:
 		var r := Rect2(24, 45.0 + 35.0 * i + 4, 136, 20)
 		if _he():
 			r.position.x = CONTENT.size.x - r.end.x
-		_text_line(Rect2(CONTENT.position + r.position, r.size), _t(EXTRAS[i][1]), LIST_TITLE_PX, LIST_TITLE, font_bold)
+		_text_fit(Rect2(CONTENT.position + r.position, r.size), _t(EXTRAS[i][1]), LIST_TITLE_PX, LIST_TITLE, font_bold)
 	for it in _extras_items():
 		_draw_option(it.rect, it.label, pref_work.get(it.key) == it.value, 10, 4, it.available)
 

@@ -30,7 +30,8 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 - **Preferences → Physics**: the "Better physics" options and the original-bug fixes (falling-jet heading, tougher
   enemies on easy AI levels) — flight-model.md §10, damage.md.
 - **Preferences → Extras**: Flight data (Original / Real aircraft), HUD pitch ladder (conformal), flight info line,
-  blackbox, language. Later: Weapon data (Original / Real), Real HUD, extra sounds, canopy open (docs/roadmap.md).
+  blackbox, language, "All keys on the Keyboard page" (the original lists 92 of the 117 key records; the option lists
+  all 115 labelled ones so the stick, rudder, RPM ± 5 and pans can be rebound — controls.md §3). Later: Weapon data (Original / Real), Real HUD, extra sounds, canopy open (docs/roadmap.md).
 
 ## 3. Original quirks we keep on purpose (decided)
 - The sea west of Suez (and the Nile delta / Western desert) is one flat plane at −557 m in map.ptt; ships there sit
