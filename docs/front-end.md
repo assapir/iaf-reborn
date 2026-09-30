@@ -1071,7 +1071,7 @@ The key table itself (records, modifiers, key names, dispatch, the full list) is
 * DEFAULT restores the whole table from `0x647ff8` (@5102a5) — the default table's start; there is no
   offset puzzle (`0x648018` is record 0's +0x20 field).
 
-**linux-iaf**: the list, scrollbar (arrows, thumb drag, track click = one page, UNCERTAIN), a click on
+**iaf-reborn**: the list, scrollbar (arrows, thumb drag, track click = one page, UNCERTAIN), a click on
 a row selects it **and gives the list the keyboard** (UNCERTAIN: the original list takes the focus the
 same way; until then keys go to the screen, so Esc still leaves), the key capture with msg 36, DEFAULT,
 all in the Preferences working copy (Save changes? Yes stores `[keys]` in settings.cfg). Up/Down move

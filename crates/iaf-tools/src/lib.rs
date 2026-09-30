@@ -1,4 +1,4 @@
-//! Shared code for the linux-iaf command-line tools.
+//! Shared code for the iaf-reborn command-line tools.
 
 pub mod aircraft;
 pub mod gltf;

@@ -204,7 +204,7 @@ view. The old "hidden on the flying aircraft" note was wrong: it described only 
    * For the player's ejection (above 50 m, see §5.4), "Jump to tactical display event" (`0x608a50`) is scheduled at `land − 10 s`.
 There is no parachute-open animation or sound (`parachute open.wav` is not referenced).
 
-**Port (linux-iaf, `game/terrain/terrain_view.gd` `_eject*`, `aircraft_model.gd` `ejected` / `canopy_offset`):**
+**Port (iaf-reborn, `game/terrain/terrain_view.gd` `_eject*`, `aircraft_model.gd` `ejected` / `canopy_offset`):**
 the pilots are hidden, the canopies ride the 0.05 s ticks (+3 m up, +1.5 m aft in the jet frame) until 100 m, the seat
 (`objects/pilot/ejecta`, unscaled: `Cull/PilotOnChairSize` is a cull size) starts after 2 s and turns into the
 parachuter (`ejectb`) at 100 m, which follows p0 + v0·t + a·t²/2 with v0 = (25, 30, −5), a = (0, 0, −3) in world

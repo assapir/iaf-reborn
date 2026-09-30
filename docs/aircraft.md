@@ -1,6 +1,6 @@
 # How an aircraft is defined
 
-An aircraft in linux-iaf is **data from the original install + one generic piece of code**:
+An aircraft in iaf-reborn is **data from the original install + one generic piece of code**:
 
 | what | where | produced by |
 |---|---|---|

@@ -328,7 +328,7 @@ pub fn write_model(
     let roots: Vec<usize> = model.frames.iter().map(|f| b.frame(f, &model.frames, texture_dirs, out_dir)).collect();
     let bin_name = format!("{name}.bin");
     let doc = json!({
-        "asset": { "version": "2.0", "generator": "linux-iaf iaf-convert" },
+        "asset": { "version": "2.0", "generator": "iaf-reborn iaf-convert" },
         "scene": 0,
         "scenes": [{ "name": name, "nodes": roots }],
         "nodes": b.nodes,

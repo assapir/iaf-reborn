@@ -1,7 +1,7 @@
 # Controls — the original key table
 
 Jane's IAF drives every keyboard / joystick command through one table of **117 records** in
-`iafjets.exe`. linux-iaf converts it (`iaf-convert keys` → `assets/converted/keys.json`), shows it on
+`iafjets.exe`. iaf-reborn converts it (`iaf-convert keys` → `assets/converted/keys.json`), shows it on
 the Preferences Controls page (docs/front-end.md §12.7) and looks every in-flight key up in it
 (`game/controls/key_table.gd`, `game/terrain/terrain_view.gd`).
 
@@ -55,7 +55,7 @@ the Preferences Controls page (docs/front-end.md §12.7) and looks every in-flig
 * Held commands are the records with a release command: pitch / roll / rudder, EO pan, view pan,
   zoom. Everything else is one-shot.
 
-### linux-iaf
+### iaf-reborn
 
 * The Godot key is turned into the scancode by its **physical** position (`physical_keycode`, the
   US layout, like DirectInput; the tests send plain keycodes, which are used when there is no
@@ -88,11 +88,11 @@ the Preferences Controls page (docs/front-end.md §12.7) and looks every in-flig
 
 ## 3. Full original key list
 
-"Listed" = shown on the Controls page (92 of 117). "linux-iaf" = what the command does here (— = not
+"Listed" = shown on the Controls page (92 of 117). "iaf-reborn" = what the command does here (— = not
 implemented yet: the key is ignored unless one of our own keys above is on it). Command ids are the
 original's `WM 0x532` wParam; p1 / p2 as stored.
 
-| # | Function (keys.trx) | Default key | Joy | Press (id, p1, p2) | Release | Listed | linux-iaf |
+| # | Function (keys.trx) | Default key | Joy | Press (id, p1, p2) | Release | Listed | iaf-reborn |
 |---|---|---|---|---|---|---|---|
 | 0 | TSD and cockpit toggle | Esc |  | (122, 0, 0) |  | yes | — |
 | 1 | Quit mission | Ctrl + Q |  | (134, 3, 0) |  | yes | quit-mission box (msg 8) |

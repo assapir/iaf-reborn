@@ -1,4 +1,4 @@
-//! Godot extension entry point for linux-iaf.
+//! Godot extension entry point for iaf-reborn.
 
 use godot::prelude::*;
 

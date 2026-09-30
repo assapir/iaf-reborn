@@ -1,9 +1,12 @@
-# linux-iaf
+# iaf-reborn
 
 A native (Linux, and later macOS) re-implementation of the engine for **Jane's IAF: Israeli Air Force** (1998).
 
 The engine loads the game data from **your own copy** of the original game (ISO + v1.1 patch) and renders it with
-modern graphics. No original game assets are stored in this repository.
+modern graphics. **You need your own copy of the original game (the CD / ISO).** No original game assets or data are
+included in this repository; everything the engine uses is extracted and converted locally from your ISO.
+
+Platforms: **Linux** (primary), **macOS** (planned).
 
 ## Status
 
@@ -66,7 +69,7 @@ cargo run --release -p iaf-tools --bin iaf-extract -- "/path/to/Jane's IAF.iso" 
 
 This reproduces the original "Full Install" (lower-cased paths) without Windows.
 
-Use google to find the original game ISO if you do not have them. I trust you. Same for the optional Hebrew packs.
+You need your own copy of the original game; the ISO is not provided here. The same goes for the optional Hebrew packs.
 
 ## Optional packs
 
@@ -103,6 +106,17 @@ view.
 
 ### Tests / captures
 
+`cargo test -q --workspace` runs the Rust tests; tests that need game data or `python3` (the envelope
+reference, `tools/envelope_ref.py`) are skipped with a message when those are missing.
 `tools/test.sh` runs everything: the Rust tests and the headless Godot tests in `tests/godot`
 (mission start, taxi, gear rules, menu flow → TSD → fly). It needs the converted assets, so it runs
 locally rather than on a hosted CI. Run scripted tests and captures with `IAF_DEFAULT_SETTINGS=1` so they use default settings and never read or write your saved preferences (`user://settings.cfg`).
+
+## License and trademarks
+
+The code in this repository is licensed under the GNU General Public License v3.0 or later — see [LICENSE](LICENSE).
+It contains no data from the original game; you must supply your own copy.
+
+"Jane's" and "Jane's IAF" are trademarks of their respective owners. This project is an independent, non-commercial
+re-implementation and is not affiliated with, endorsed by or sponsored by them or by the original publisher
+(Electronic Arts) or developer.
