@@ -154,6 +154,8 @@ func _ready() -> void:
 	g_effects = preload("res://cockpit/g_effects.gd").new()
 	g_effects.disabled = Settings.no_blackouts
 	$CockpitLayer.add_child(g_effects)
+	# In-flight sounds of your jet (game/audio/flight_sounds.gd, docs/sound.md); polls this node.
+	add_child(preload("res://audio/flight_sounds.gd").create(self, 100))
 	cockpit.waypoints = route
 	_start_flight()
 	_apply_view()
@@ -293,6 +295,7 @@ func _spawn_mission_objects() -> void:
 	runtime.message_box.connect(_on_mission_box)
 	runtime.end_flight.connect(_end_flight)
 	_voice = AudioStreamPlayer.new()
+	_voice.bus = "IafSpeech"  # speech volume (docs/sound.md §2)
 	add_child(_voice)
 	var scenes := {}
 	for ent in runtime.entities.values():

@@ -321,6 +321,9 @@ pub struct State {
     /// Stall / departure latch active (no lift for up to 3 s).
     pub stalled: bool,
     pub buffet: bool,
+    /// The lift rule's stall / limit measure `dragX` (`S+0x2f0`, getter 0x12): 1.2 when stalled or too
+    /// slow, (g − limit) / MaxG when the G is limited; drives the AoA warning tone (docs/sound.md).
+    pub drag_x: f32,
     pub over_g: bool,
     pub on_ground: bool,
     pub spinning: bool,
@@ -1587,6 +1590,7 @@ impl Aircraft {
             mass_kg: mass,
             stalled: self.latched(t),
             buffet: self.buffet,
+            drag_x: self.drag_x,
             over_g: g > self.params.over_g_thresh,
             on_ground: self.on_ground,
             spinning: self.mode == Mode::Spin,

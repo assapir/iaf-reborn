@@ -215,6 +215,7 @@ impl IafFlight {
         d.set("fuel_lbs", s.fuel_kg / 0.45359);
         d.set("stalled", s.stalled);
         d.set("buffet", s.buffet);
+        d.set("drag_x", s.drag_x);
         d.set("over_g", s.over_g);
         d.set("on_ground", s.on_ground);
         d.set("spinning", s.spinning);

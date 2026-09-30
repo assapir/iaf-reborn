@@ -9,6 +9,8 @@
 # Whether the original overlay also covered the cockpit art is UNCERTAIN; drawn over everything.
 extends Control
 
+const SoundBuses := preload("res://audio/sound_buses.gd")
+
 var g := 1.0
 var over_g := false
 ## "No blackouts" preference: no integration or drawing (the G sound still plays).
@@ -18,13 +20,21 @@ var redout := 0.0
 var _voice_next := 0.0
 var _gsound_next := 0.0
 var _now := 0.0
+## Voice (Betty, category V -> speech volume) and effect (SFX_G_EFFECT, category F -> effects volume)
+## players on the sound buses (game/audio/sound_buses.gd, docs/sound.md).
+var _voice: AudioStreamPlayer
 var _player: AudioStreamPlayer
 
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	SoundBuses.ensure()
+	_voice = AudioStreamPlayer.new()
+	_voice.bus = SoundBuses.SPEECH
+	add_child(_voice)
 	_player = AudioStreamPlayer.new()
+	_player.bus = SoundBuses.SFX
 	add_child(_player)
 
 
@@ -39,18 +49,18 @@ func _process(delta: float) -> void:
 			redout = minf(redout + 0.25 * dt, 0.0)
 		if over_g and _now >= _voice_next:
 			_voice_next = _now + 4.0
-			_play("cock_bty_over.wav")
+			_play(_voice, "cock_bty_over.wav")
 	if g > 6.0 and _now >= _gsound_next:
 		_gsound_next = _now + 17.0
-		_play("cock_g_02.wav")
+		_play(_player, "cock_g_02.wav")
 	queue_redraw()
 
 
-func _play(file: String) -> void:
+func _play(player: AudioStreamPlayer, file: String) -> void:
 	var path := Settings.assets_dir().path_join("install/resource/soundfiles").path_join(file)
 	if FileAccess.file_exists(path):
-		_player.stream = AudioStreamWAV.load_from_file(path)
-		_player.play()
+		player.stream = AudioStreamWAV.load_from_file(path)
+		player.play()
 
 
 func _draw() -> void:
