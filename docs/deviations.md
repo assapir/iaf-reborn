@@ -37,6 +37,10 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 | Jettisoned tanks | fall as objects | vanish | the falling store comes with the bombs | weapons.md §2.6 |
 | Arming loads on the aircraft | both members of the flight (and every flight on Yes / DEFAULT) | the player's jet only (the tables are kept for every flight) | AI aircraft carry no stores yet | front-end.md §15 |
 | Esc on the Arming screen | not traced | acts as BACK (checks, "Use weapon load?", TSD) | the generic Esc went to Main without the question | front_end.gd |
+| AI watch-ground line of sight | terrain ray `0x4020d0` | 8 terrain samples along the segment | ray not decoded | ai.md §8.4 |
+| AI landing pattern height | terrain height at the lineup point | the lineup point's iaf.ibx altitude | the loop runs without terrain access (they agree to a few m) | ai.md §8.3 |
+| AI FM data per type | Kfir and Mirage share one parameter block, loaded once: the second type flies on the first's data | each jet loads its own section | original bug; **to decide with the user** | ai.md UNCERTAIN |
+| AI radio (FlightController reports, contact calls, "Roger" replies of wingman commands) | spoken | not yet | AI voices wait for the radio work | ai.md §10 |
 | Keys Esc / C / F2 / F12 | TSD toggle / time compression / back view / I-mode | ours (quit box / view toggle / external / info line) until those commands exist | not built yet | controls.md |
 
 ## 2. Opt-in switches (original by default)

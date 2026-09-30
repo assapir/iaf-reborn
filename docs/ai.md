@@ -321,8 +321,8 @@ No afterburner (mode 9). Wingmen: 10 s after the leader, 3 s holds when closer t
 until the leader rolls at ≥ 50 kt.
 
 ### 8.3 Landing (mode 8, GoHomeCL, Init `5cd390`)
-- Target G = the route's **last** waypoint (no route: the given point). Children: **Fly2WayPt(G)** with ETA now − 60
-  (so 275 m/s), slow-down 180.15 m/s (C-130 128.68) within 6000 m, ends within 100 m (2-D); then **LandingCL(G)**.
+- Target G = the route's **last** waypoint (no route: the given point). Children: **Fly2WayPt(G)** with ETA = now + 60
+  (the constant −60 at 0x612ff0 is subtracted; UNCERTAIN, another reading gives now − 60), slow-down 180.15 m/s (C-130 128.68) within 6000 m, ends within 100 m (2-D); then **LandingCL(G)**.
 - **LandingCL** (`5d2b30`): base B nearest G, RN = RunwayNumber, L = Lineup, hT = terrain(L); local frame x right,
   y along RN, `world = L + (x·cos RN + y·sin RN, −x·sin RN + y·cos RN)`; **left-hand** pattern (k = 2 for the C-130):
 
@@ -348,8 +348,47 @@ until the leader rolls at ≥ 50 kt.
 - **ParkInHangarCL** (`5d66b0`): creeps at 2 kt to Hangar[h]; when the distance grows: stop, brakes, re-placed at rest,
   **engine off**. No despawn, **no AI go-around**.
 
-### 8.4 Formation loops
-(see §8.5 when decoded)
+### 8.4 Navigation leaves (Fly2WayPt's children, `5d6ad0`)
+The loops read `s = (x, y, z, pitch, roll, heading)` from `5a68f0`: the position and the **flight-path attitude**
+(velocity direction and roll; `5a68f0` passes α = β = 0 to the attitude slot), and the rates `5a6b10` (flight-path
+pitch rate, roll rate, turn rate). Fly2WayPt: its condition first (PassWaypoint `5d70a0`: passed once the 2-D
+distance was ≤ R and then grows; R = 1852 m, or at the first step 9265 / 6485.5 / 3983.95 m for MaxG ≤ 4 / < 6.5 /
+else when starting inside it), then the ETA speed → throttle, then the current child; a finished child centres the
+stick and the next one starts on the next tick:
+1. **LevelWingsPitch0Accel** `5d2400` (180 m/s; C-130 90, type 220 135): pitch target 0, or FpmPitchReqAtLowVels
+   (−5°) below Vmin(z, 1.2 g) until Vmin + 15; done when |pitch − target| ≤ 0.02π, |roll| ≤ 0.01π and the speed is
+   reached (±3 m/s); throttle from the speed law.
+2. **ChangeHeading2Pt** `5ddef0`: bearing to the point; `bank = clamp(e/(π/6)·ChangeHeadK·80° − turnRate·ChangeHeadBeta,
+   ±80°)` (C-130 ±30°), pitch 0; done within 0.02π; no throttle.
+3. **ChangeAlt** `5cf320` until |Δz| < 250 m or the point is passed (a second PassWaypoint, 1852 m): wings level,
+   `pitch = clamp(Δz·ChangeAltK·(π/12)·0.001 − vz·ChangeAltBeta, −π/6, π/12)` (C-130 ×0.002, [−π/12, π/18]).
+4. **KeepAttitude2Pt** `5db510` until passed: bank ±45° on the bearing error, pitch = the elevation of the point; ring
+   period 0.5 s (near / manoeuvring), 1.5 s (< 3708 m, clear ahead 1.9 s), 3 s (clear ahead 3.4 s).
+5. LevelWingsPitch0 (normally never reached).
+**Watch-ground** `5ca480` in every leaf (off only from the landing's final approach): the point `pos + vel·t`,
+`t = max(−vz/15, 0) + WatchGroundDeltaTime`; below terrain + hAboveGround (200 m) or no line of sight → wings level,
+climb `max(π/24 + atan2(h − z, d), 0)`, throttle ≥ the 250 m/s law.
+At the route's end the stick stays centred and the throttle frozen; the brain decides what comes next (the data:
+"Land" / "go home" rules on waypoint action 7).
+
+### 8.5 Formation loops (modes 1 / 3, vtables 0x613220 / 0x613238, step `5cfb50`)
+- Slot: Close lateral 100 m, Tactical 200 m (150 m when the leader is below 1524 m), longitudinal −20 m; the leader is
+  the formation's member 0. Every 0.25 s.
+- Below Vmin(z, 1.25 g): LevelWingsAccel (wings level, −11°, 300 m/s) until above Vmin(z, 2.5 g).
+- A = the leader's horizontal nose, C = its left; `k = 2000 − min(|Δz|, 200)·8.5`; steering point
+  `Q = L + k·A − d·C` at `max(2·Lz − z, terrain + 91.44)`; the slot `S = L − 20·A − d·C`. The side flag is set only in
+  network play, so in single player **every wingman takes the right slot** (UNCERTAIN).
+- Steering: LookAt `5ca7d0` case 1 on Q: outside a 10° cone roll the target into the lift plane; inside it, wings
+  level while Q is ≥ 1854 m away, else the leader's bank ± a blend to SlowConeRollK; stick law `5cb4d0` (DogChaseRollK,
+  LookAtK / LookAtBeta).
+- Speed `5d0870`: `x = (angle(pos − S, leader velocity) − π/2)·min(|pos − S|, 5562)/4500`,
+  `spd = VL + 2·VL·(x − x²/2 + x³/6 − x⁴/24) − 30`, clamped [103, 515] m/s; then the speed law.
+- Consequence (as decoded): Q is 300–2000 m ahead, so a lateral error of less than ~10° of that is not corrected: a
+  loose formation that wanders a few hundred metres (test: `crates/iaf-flight/tests/autopilot.rs`).
+
+### 8.6 Other modes
+HoldPositionCL (10): KeepAttitude2PtAtSpeed at 180 m/s around the entry point (z ≥ terrain + 300), never ends.
+FlyStraightCL (0xb): LevelWingsPitch0Accel at 180 m/s. The combat modes (0xd–0x18): combat job.
 
 ## 9. Airbase data (`iaf.ibx`, TowersManager `54eda0`)
 Ten sections in record order: Ramon, David, TelNof, Refidim, Inshas, Damescuss, Kuzeir, Bley, Ryak, Aman. Keys:
@@ -381,6 +420,18 @@ Correction to flight-model.md §15.6.4: the start's "base" is the nearest by the
 its Tower point, the engine test its Lineup point.
 
 ## 12. Port
+- `crates/iaf-flight/src/autopilot.rs`: the control loops of §7–§8 (modes 1, 3, 7, 8, 9, 10, 0xb) on an `Aircraft`,
+  one tick per ring period; outputs through `set_controls` (stick y = −pull), `set_pivot` (motion 0x16),
+  `replace_on_ground` (`5a4d40`), `engine_off` (motion 0x19). `airbase.rs`: iaf.ibx. Tests: `tests/autopilot.rs`.
+- `crates/iaf-flight/src/aircraft.rs`: the AI cases (§11), `ap_view` (the loops' inputs), the pivot turn.
+- `crates/iaf-godot/src/flight.rs`: `set_ai`, `ap_setup` / `ap_set_route` / `ap_set_mode` / `ap_step` / `ap_set_leader`
+  / `ap_waypoint_index`, `start_rule` (§7.1, also used for the player's start).
+- `game/ai/brain.gd`: the rule engine (§2–§6); combat measures and actions are hooks (`combat_hook`).
+- `game/ai/ai_flights.gd`: every brain-controlled aircraft (class 0x1c) with an FM type flies (one IafFlight, the
+  aircraft model at the Present scale); `contacts()` for radar / RWR; ops 21 / 22 via `mission_runtime.gd`.
+- Not yet: combat (targets, weapons, the combat manoeuvres), wingman commands, radio reports (§10), helicopters,
+  AI on MISSION-controlled units (their brain runs without manoeuvres: not started), network paths.
+- Tests: `test_ai_flight.gd` (mission 221: 13 AI jets navigate, wingmen in formation, a take-off from Ramon).
 
 ## UNCERTAIN
 - Avionics sensors behind conditions 8, 10, 14, 19, 21, 26, 27, 38, 39; what writes brain+0x7c.

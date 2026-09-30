@@ -1263,12 +1263,11 @@ func _read_controls(_delta: float) -> void:
 
 ## The mission's landed handler (FUN_00440f90, called by the flight model at each gear-down touchdown that
 ## passes the landing check; v1.1 re-arms it at lift-off, so every landing counts, docs/flight-model.md
-## §15.6.2): when the player's formation has a route, the NAV steering jumps to its last waypoint
-## (FUN_00440e90 → FUN_00453450(count − 1)). UNCERTAIN: the route flag +0x2c it checks is taken as
-## "the route has waypoints".
+## §15.6.2): the player's wingman (getWingman FUN_005bcb90) goes to the route's last waypoint
+## (FUN_00440e90 on the wingman's brain, docs/ai.md §7.2); the player's own NAV is not touched.
 func _on_landed() -> void:
-	if not route.is_empty():
-		cockpit.current_waypoint = route.size() - 1
+	if ai != null and runtime != null:
+		ai.landed_handler(runtime.player_entity())
 
 
 # --- ejection -----------------------------------------------------------------------------------

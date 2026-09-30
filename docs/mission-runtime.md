@@ -304,7 +304,7 @@ execute that entry and schedule its end timer.
 | 13 / 14 | **Visible on / off** | `0x5c4410` / `0x5c4420` | `FUN_00463f10` / `FUN_00463ec0` (show / hide model) |
 | 16 / 17 | — | `0x5c4430` / `0x5c4450` | sensor flag on / off (scenario+0xdc) |
 | 20 | — | `0x5c4470` | `FUN_004bb409(arg)` + `FUN_004a8e70(1)` (back to brain control) — UNCERTAIN |
-| 21 / 22 | Enable / Disable combat | `0x5c44b0` / `0x5c44c0` | `FUN_00440830` / `FUN_004407e0` on the unit's brain. Enable: +0x6c = 0, then (v1.1) the brain is reset (`FUN_0043eef0`: unschedules it, drops its current plan and target). Disable: +0x6c = 1; if engaged (+0x68): clear it, control mode 1 (`FUN_004aa900(1)`, the mission script drives the unit), tell the plan, and (v1.1) `MBrain::transferControl` (`FUN_004401d0`: drops the brain's scheduled event, mode 1 again, aircraft (class 0x1c) re-set up). Port: an entity `combat` flag only (no AI brains yet) |
+| 21 / 22 | Enable / Disable combat | `0x5c44b0` / `0x5c44c0` | `FUN_00440830` / `FUN_004407e0` on the unit's brain (docs/ai.md §6). Enable: +0x6c = 0, then (v1.1) the brain is reset (`FUN_0043eef0`: flags cleared, the tick scheduled again). Disable: +0x6c = 1; if engaged (+0x68): clear it, weapons safe (`FUN_004aa900(1)` is the weapon handler's SAFE flag), tell the target selector, and (v1.1) `MBrain::transferControl` (`FUN_004401d0`: the brain stops ticking, the autopilot off). Port: `game/ai/brain.gd` `enable_combat` / `disable_combat` |
 | 24, 25, 27, 28 | — | `0x5c44d0`… | status+0x1c = 0, 1, 2, 3 — UNCERTAIN |
 
 ### Motion list (scripts0)
@@ -517,8 +517,12 @@ player's formation (`FUN_005bcb90` / `FUN_005bcd70`) and, if the route's +0x2c i
 current NAV waypoint (`FUN_00440e90(count − 1)` → `FUN_00453450`: +0x44 = index, the waypoint copied, NAV state 5). It
 fires no mission event: there is no scripted "landed" trigger (§5, §8). UNCERTAIN: route+0x2c, taken as "the route
 has waypoints".
-**Port:** `terrain_view.gd` `_on_landed()` runs whenever the flight state's `landings` counter grows and sets
-`cockpit.current_waypoint` to the route's last waypoint (test `test_landed.gd`).
+**Correction (docs/ai.md §7.2):** `FUN_005bcb90` is getWingman: the handler moves the **wingman's** waypoint index
+(brain +0x88, and the wingman's NAV) to the route's last waypoint; "route+0x2c" is the wingman's brain. The player's own
+NAV is not touched. It is called for the player (FM @5bbf4f), for an AI leader at the end of its roll-out
+(StopPlaneCL) and by the brain's "Land" action, once per unit (brain +0xe0).
+**Port:** `terrain_view.gd` `_on_landed()` runs whenever the flight state's `landings` counter grows and hands the
+player's landing to `ai_flights.gd` `landed_handler` (test `test_landed.gd`).
 
 ## 6. Implementation checklist
 1. Spawn entities. For `0x320&1` entities, start both script lists at list index 1 and arm the radius check
