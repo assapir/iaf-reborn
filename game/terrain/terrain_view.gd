@@ -494,6 +494,8 @@ func _spawn_f16() -> void:
 	aircraft = preload("res://aircraft/aircraft_model.gd").create("f16", 100, not start_airborne)
 	if aircraft == null:
 		return
+	# Extras "Show canopy and pilot" (ours); off = the original's hidden crew on a flown aircraft.
+	aircraft.crew_visible = Settings.show_crew
 	# Your own jet rides on the rig; converted models face -Z like Godot, so no rotation needed.
 	rig.add_child(aircraft)
 

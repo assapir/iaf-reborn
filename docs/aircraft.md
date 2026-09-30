@@ -105,7 +105,10 @@ the others to the elevators. Flaps target = lever·16.8° (·0.33 on the F-16).
 ### 2.3 Deviations / open points
 * **Canopy and pilot are hidden on flown aircraft** (callback ids 0x14–0x17 → not drawn; the ejection object
   `0x53d180` draws them only after an ejection). The F-16 then shows the flat cockpit cover of the airframe mesh.
-  `aircraft_model.gd` `crew_visible = true` shows them (decision pending with the user).
+  **Our option** (user decision): Preferences > Extras "Show canopy and pilot" (`Settings.show_crew`, off by
+  default = the original) sets `crew_visible = true` on the player's jet, so the F-16 shows its bubble canopy and
+  pilot instead of the grey cover. The ejection takes pilot / seat / canopy off the jet either way (docs/part-animation.md
+  "Ejection"): after it they are hidden on the jet whatever the option says.
 * Hook and drag chute have no key in our game yet (the component supports them).
 * No damage model: the AB damage flags are never set.
 * Flicker: the flame's random numbers change every rendered frame, as in the original (so faster at high fps).
