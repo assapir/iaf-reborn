@@ -153,7 +153,7 @@ the AI fire decision `4440d0`, §4.4. `443f60`, once listed here as a skill read
 ### 4.3 Weapons (for the weapons port)
 The only caller of the hit handler is the weapon detonation `FUN_004d6130` (@4d664d), which loops over the units the
 weapon's vtable +0x1c returns and passes S = {impact position, time, **power = weapon+0x70**, **radius =
-weapon+0x80**}. From the bdb Weapons record (`FUN_004c37c2`): power = **`0x744`**, radius = **`0x74e`**, +0x74 weight
+weapon+0x80**}. From the bdb Weapons record (parser `FUN_00593ee0`): power = **`0x744`**, radius = **`0x74e`**, +0x74 weight
 `0x758` (lb), +0x78 `0x73a`, +0x7c `0x762`, model `0x730`, type `0x780`; +0x84 = radius + 20.
 
 | weapon | power | radius (m) |
@@ -170,19 +170,21 @@ centre (UNCERTAIN).
 unit), `apply_damage(target, amount, kind, source)` (a blast at distance 0), `set_damage_level(target, level,
 source)`; `kind` "gun" selects the gun-rounds thump for the player.
 
-### 4.4 v1.1 weapon and AI rules (not ported yet; port them as written here)
+### 4.4 v1.1 weapon and AI rules (gun and missile rules ported: docs/weapons.md; AI rules not yet)
 The v1.1 patch changed these; the v1.0 behaviour is given only for comparison (docs/v1.1.md).
 - **Gun** (fire `FUN_00456ff0`): the player's shot direction is rotated **+1° about the lateral axis** before the lead
   is applied (bullets 1° higher, onto the gun cross, docs/cockpit.md); with no lock the aim distance is **2781 m**
   (1.5 mi; v1.0 1854 m), and the AI's auto-hit sphere scales with it.
-- **LCOS** (pipper solver `FUN_004604c0` + `FUN_0045ef10`): the same +1° elevation is applied in the lead solution;
-  the HUD drawing is unchanged.
-- **Ballistic correction** (`FUN_005611b0`, `FUN_00468470`): single player, player's rounds only: the homing
+- **Gun pippers** (corrected, docs/weapons.md §3.7): AA LCOS `FUN_0045f410` (unchanged from v1.0, no +1°) and the new
+  AG pipper `FUN_0045ef10` (the projection of the +1° aim point); `FUN_004604c0` is a seeker for weapon 0x27b.
+- **Ballistic correction** (`FUN_005611b0`, `FUN_00468470`; corrected: the bomb / shell class 0x16, not gun rounds,
+  docs/weapons.md §8): single player, player's rounds only: the homing
   correction is clamped to **±`weapons.ibx [DEBUGDATA] _debugParam016`** m/s² (15 in v1.1), and the flight time is no
   longer capped at impact. v1.0 data has `_debugParam016` = `_debugParam018` = 1: then skip the clamp (the v1.0
   behaviour) rather than clamp at 1 m/s².
-- **Missiles** (`FUN_005604a0`, `FUN_005605c0`, `FUN_00457f70`): `_spiralAccel` ×0.5 unless single player with Easy
-  aiming; the player's launch value ×0.8 without Easy aiming (its reader was not traced).
+- **Missiles** (`FUN_005604a0`, `FUN_005605c0`, `FUN_00457f70`; corrected, docs/weapons.md §3.4 / §5.2): the
+  `_spiralAccel` ×0.5 unless Easy aiming is the **gun round / fixed weapon hit sphere** (25 / 50 m); the player's
+  missile launch q ×0.8 without Easy aiming (read by the chase init: gain and dog vs proportional chase).
 - **AI fire decision** (`FUN_004440d0`): fire when the angle between the shooter's nose and the target, acos of the
   clamped dot product, is ≤ the cone: **30°** for missiles, **5°** for guns (v1.0 7°), ×**0.5** Rookie / ×1 Normal /
   ×**1.5** Expert. v1.0 compared the cosine with a threshold scaled 0.75 / 1 / 1.5, so an Expert enemy (threshold > 1)

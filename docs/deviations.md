@@ -25,14 +25,25 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 | Text and art | GDI text, 8-bit art | smooth text, 4× Lanczos art (never AI upscaling) | rendering (user decision) | — |
 | Runway numbers | two mirrored "33" at Ramat David | re-flipped at conversion | 1998 art error | formats/ptt.md |
 | In-flight subtitles in Hebrew mode | — (no Hebrew exists) | English | user decision | — |
+| Weapon HUD geometry | the HUD projector (not traced) | seeker / circle offsets at 12 px/deg from the boresight | projector untraced | weapons.md §5.1 |
+| Gun candidate list order | the spatial query's order | nearest first | order untraced | weapons.md §3.3 |
+| Weapon targets | every object in the spatial database | units with a model (sensors / logic nodes left out) | UNCERTAIN whether they are in it | player_weapons.gd |
+| Weapon effects look | muzzle flash scale / blend, splash, missile explosion (partly not decoded) | muzzle flash 1 m additive, white puff splash, fireball + puff | rendering | weapons.md §3.5–3.6 |
+| HUD weapon line | MFD sprite font | HUD font at the original position | rendering | weapons.md §6 |
+| Jettisoned tanks | fall as objects | vanish | the falling store comes with the bombs | weapons.md §2.6 |
 | Keys Esc / C / F2 / F12 | TSD toggle / time compression / back view / I-mode | ours (quit box / view toggle / external / info line) until those commands exist | not built yet | controls.md |
 
 ## 2. Opt-in switches (original by default)
 - **Preferences → Physics**: the "Better physics" options and the original-bug fixes (falling-jet heading, tougher
   enemies on easy AI levels) — flight-model.md §10, damage.md.
+- **Preferences → Physics → "Stores weight fix"**: every store counted in the stores weight, in kg, and the fuel
+  tanks' fuel in kg (the original: one store per station, pounds in the kg field, tank fuel = the pounds number as
+  kg) — weapons.md §2.5–2.6.
+- **Preferences → Extras → Weapon data (Original / Real)**: public missile weights, top speed, range and gun rounds /
+  rate / muzzle velocity — real-weapons.md.
 - **Preferences → Extras**: Flight data (Original / Real aircraft), HUD pitch ladder (conformal), flight info line,
   blackbox, language, "All keys on the Keyboard page" (the original lists 92 of the 117 key records; the option lists
-  all 115 labelled ones so the stick, rudder, RPM ± 5 and pans can be rebound — controls.md §3). Later: Weapon data (Original / Real), Real HUD, extra sounds, canopy open (docs/roadmap.md).
+  all 115 labelled ones so the stick, rudder, RPM ± 5 and pans can be rebound — controls.md §3). Later: Real HUD, extra sounds, canopy open (docs/roadmap.md).
 
 ## 3. Original quirks we keep on purpose (decided)
 - The sea west of Suez (and the Nile delta / Western desert) is one flat plane at −557 m in map.ptt; ships there sit
@@ -41,3 +52,7 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 - Upright but wrong runway numbers (template 09/27, copies of 15/33).
 - The F-16 / Lavi never spin in the original (the deep stall is a Physics option).
 - Everything listed as "not changed by better physics" in flight-model.md §10.
+- Weapons (weapons.md): Shift+[ / Shift+] cycle forward like [ / ]; the IR seeker and the gun rounds take friendly
+  units too; the gun rounds can step over the 25 m hit sphere; the limited-heat (580) gate is a ±60° bearing test,
+  not tail aspect; the LCOS integrates with dt 0.15 at a 0.05 s gate; with the gear handle down Tab needs Safety off;
+  no "out of ammo" message or sound.

@@ -153,7 +153,7 @@ original's `WM 0x532` wParam; p1 / p2 as stored.
 | 42 | Damage report | D |  | (90, 4, 0) |  | yes | MFD: damage |
 | 43 | ECM Jammer on/off | J |  | (70, 0, 0) |  | yes | — |
 | 44 | Laser on/off | L |  | (106, 0, 0) |  | yes | — |
-| 45 | NAV mode on | N |  | (98, 0, 0) |  | yes | — |
+| 45 | NAV mode on | N |  | (98, 0, 0) |  | yes | master mode NAV (weapons.md §4) |
 | 46 | Change HUD color | H |  | (123, 0, 0) |  | yes | HUD colour |
 | 47 | Contact tower | Ctrl + T |  | (107, 0, 0) |  | yes | — |
 | 48 | Pan EO weapon/FLIR up | Ctrl + Up |  | (140, 0, 100) | (140, 0, 0) | no | — |
@@ -162,7 +162,7 @@ original's `WM 0x532` wParam; p1 / p2 as stored.
 | 51 | Pan EO weapon/FLIR down | Ctrl + Down |  | (140, 0, -100) | (140, 0, 0) | no | — |
 | 52 | Full screen weapon MFD | Z |  | (31, 0, 0) |  | yes | — |
 | 53 | Activate TSD on MFD | T |  | (90, 3, 0) |  | yes | MFD: TSD |
-| 54 | Master modes | M |  | (99, 0, 0) |  | yes | — |
+| 54 | Master modes | M |  | (99, 0, 0) |  | yes | master mode cycle NAV / AA / AG + button click |
 | 55 | Deselect target | Backspace |  | (49, 0, 0) |  | yes | — |
 | 56 | Radar modes | Q |  | (36, 0, 0) |  | yes | radar mode cycle |
 | 57 | Radar on/AA/AG | R |  | (43, 0, 0) |  | yes | radar A-A / A-G |
@@ -172,15 +172,15 @@ original's `WM 0x532` wParam; p1 / p2 as stored.
 | 61 | Boresight mode on | \ |  | (45, 0, 0) | (46, 0, 0) | yes | — |
 | 62 | Increase radar range | . |  | (33, 0, 0) |  | yes | radar range + |
 | 63 | Decrease radar range | , |  | (34, 0, 0) |  | yes | radar range − |
-| 64 | Fire gun | Tab | Button 1 | (66, 0, 0) | (67, 0, 0) | yes | — |
-| 65 | Select next AG weapon | [ |  | (60, 0, 0) |  | yes | — |
-| 66 | Select next AA weapon | ] |  | (62, 0, 0) |  | yes | — |
-| 67 | Back toggle AG weapons | Shift + [ |  | (60, 0, 0) |  | yes | — |
-| 68 | Back toggle AA weapons | Shift + ] |  | (62, 0, 0) |  | yes | — |
-| 69 | Fire selected weapon | Space | Button 2 | (64, 0, 0) | (65, 0, 0) | yes | — |
+| 64 | Fire gun | Tab | Button 1 | (66, 0, 0) | (67, 0, 0) | yes | gun: fire while held (gear down only with Safety off) |
+| 65 | Select next AG weapon | [ |  | (60, 0, 0) |  | yes | next AG store |
+| 66 | Select next AA weapon | ] |  | (62, 0, 0) |  | yes | next AA store |
+| 67 | Back toggle AG weapons | Shift + [ |  | (60, 0, 0) |  | yes | next AG store (the same event: forward, as the original) |
+| 68 | Back toggle AA weapons | Shift + ] |  | (62, 0, 0) |  | yes | next AA store (the same event) |
+| 69 | Fire selected weapon | Space | Button 2 | (64, 0, 0) | (65, 0, 0) | yes | release the selected store (gun, IR missiles; HUD mode 1..8) |
 | 70 | Chaff | Insert |  | (68, 0, 0) |  | yes | — |
 | 71 | Flare | Delete | Button 4 | (69, 0, 0) |  | yes | — |
-| 72 | Jettison fuel tanks/bombs | Shift + C |  | (72, 0, 0) |  | yes | — |
+| 72 | Jettison fuel tanks/bombs | Shift + C |  | (72, 0, 0) |  | yes | jettison the tanks (1st press; bombs: not built) |
 | 73 | Cockpit/HUD view | F1 |  | (28, 1, 0) |  | yes | cockpit view |
 | 74 | Back view | F2 |  | (22, 180, 0) | (22, -1, 0) | yes | — |
 | 75 | Padlock view | F3 |  | (28, 22, 0) |  | yes | — |
