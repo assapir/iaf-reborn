@@ -53,3 +53,7 @@ The original HUD is a simplified 1998 F-16 HUD. Offer a realistic HUD per aircra
 (original by default): real symbology and layout (e.g. F-16 Block 30/40 HUD: airspeed / altitude tapes, heading
 tape, real pitch ladder with dashed negative rungs, flight path marker, AoA bracket, g / Mach / max-g window,
 master arm / weapon modes, bingo / waypoint data), from public references.
+
+## Updated maps (later, just for fun)
+The static maps (TSD / briefing EMF maps, map texts, borders, city names) show the 1998 situation. Optional Extras
+switch: an updated overlay with today's borders, names and places (drawn by us; original maps by default).
