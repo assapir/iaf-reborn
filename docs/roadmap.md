@@ -75,6 +75,11 @@ step, and re-run individual steps later from a menu. The CLI stays for scripting
 The original keyboard stick is full deflection at once (taps > ~0.45 s reach 3 g in the F-16; docs/flight-model.md §8).
 Possible Extras option: a key ramp / sensitivity setting for keyboard players, original by default.
 
+## Pilot photo: your own picture (after the work)
+The original already lets you change it: left click on the Dossier photo cycles the 14 stock photos, right click opens a
+file dialog for a custom .bmp (ported, docs/front-end.md §13.4). Later: any image (PNG / JPEG / camera), with a crop to
+the photo frame, and an easier way to find it than a right click (e.g. a small "Change" hint).
+
 ## Glance-down key (Extras, later)
 Hold a key to slide the panel fully into view, release to look ahead again (as modern sims do; a real pilot glances
 down with the eyes). The original only has the stepped panel slide (PgUp / PgDn, V).
