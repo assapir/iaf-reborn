@@ -65,6 +65,8 @@ Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user
   scrollbar soon (15 options; use the Keyboard page's original scrollbar art / behaviour).
 - Stores look detached: no pylon models drawn (stores float under the wing), single-sided fins (flat white
   triangles from behind), triple-rack side bombs touch the wing (original formula) — see scratchpad so_behind.png.
+- Model scale: every unit at the original's Present-record scale (×2 aircraft / buildings, ×3–4 vehicles) by
+  default, the player's jet too; with Flight data = Real, aircraft (and units) at their true size.
 - Kfir / Mirage data: the original loads one shared block (the second type flies on the first's data) — do that
   with Flight data = Original; each jet's own section only with Flight data = Real (user decision).
 - Keyboard page: the scrollbar arrows are cropped on the right side.
