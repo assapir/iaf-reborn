@@ -111,8 +111,11 @@ const EXTRAS_LABEL := Rect2(42, 219, 62, 16)
 const EXTRAS_STEP := 44.0
 ## Our tabs below Gameplay, 44 px apart: [page, English button label].
 const OUR_TABS := [["Extras", "EXTRAS"], ["Physics", "PHYSICS"]]
-## Physics page (ours): one row per Settings.BETTER option.
+## Physics page (ours): one row per Settings.BETTER option, PHYSICS_ROWS at a time, with the Keyboard
+## page's scrollbar from the first row to the page bottom (mirrored to the left in Hebrew).
 const PHYSICS_ROW := 20.0
+const PHYSICS_ROWS := 15
+const PHYSICS_BAR := Rect2(422, 45, 11, 300)
 ## Our options on the Extras page: [setting, label, [[choice label, value], ...]].
 const EXTRAS := [
 	["flight_data", "Flight data", [["Original (1998)", "original"], ["Real aircraft", "real"]]],
@@ -187,11 +190,14 @@ var pref_work := {}
 var pref_drag: Array = []
 var pref_default_held := false
 ## Controls page: the key table, the selected list row, the first row shown, whether the list has
-## the keyboard (after a click on a row), the arrow held down and a thumb drag offset (or -1).
+## the keyboard (after a click on a row), the arrow held down and a thumb drag offset (or -1); the
+## last two are the Physics page's scrollbar's too.
 var key_table: RefCounted
 var ctrl_sel := 0
 var ctrl_top := 0
 var ctrl_focus := false
+## Physics page: the first option row shown.
+var phys_top := 0
 var ctrl_arrow := ""
 var ctrl_drag := -1.0
 
@@ -385,6 +391,7 @@ func _enter_screen() -> void:
 		ctrl_sel = 0  # FUN_00511580 selects the first row
 		ctrl_top = 0
 		ctrl_focus = false
+		phys_top = 0
 	if screen in ["tsd", "arm"]:
 		_restore_tsd_checks()
 	if screen == "tsd" and tsd == null:
@@ -791,23 +798,50 @@ func _draw_controls(at: Vector2) -> void:
 			var r := _rect(cell)
 			var base := r.position.y + (r.size.y + font.get_ascent(fs) - font.get_descent(fs)) / 2.0
 			draw_string(font, Vector2(r.position.x, base), texts[c], HORIZONTAL_ALIGNMENT_LEFT if c == 0 else HORIZONTAL_ALIGNMENT_CENTER, r.size.x, fs, colour)
-	# Scrollbar: arrows at the ends (frame 2 while held), the thumb in between.
-	var bar := Rect2(at + CTRL_BAR.position, CTRL_BAR.size)
+	_draw_bar(at, CTRL_BAR, ctrl_top, _ctrl_max_top())
+
+
+## The Keyboard page's scrollbar at page rect `bar`, showing first row `top` of `max_top`: arrows at the
+## ends (frame 2 while held), the thumb in between.
+func _draw_bar(at: Vector2, page_bar: Rect2, top: int, max_top: int) -> void:
+	var bar := Rect2(at + page_bar.position, page_bar.size)
 	var clip := CTRL_ARROW  # the whole 15×18 arrow (clipping it to the 11 px bar cropped its right side)
 	# FUN_004f3700 moves the first button (SlUpB, a down-pointing arrow) to the bottom and leaves the
 	# second (SlDownB, pointing up) at the top.
 	var ax := bar.position.x - (CTRL_ARROW.x - CTRL_BAR.size.x) / 2.0  # centred on the 11 px bar
 	_blit_region("pref/sldownb_%d.png" % (2 if ctrl_arrow == "up" else 0), Rect2(Vector2.ZERO, clip), Vector2(ax, bar.position.y))
 	_blit_region("pref/slupb_%d.png" % (2 if ctrl_arrow == "down" else 0), Rect2(Vector2.ZERO, clip), Vector2(ax, bar.end.y - CTRL_ARROW.y))
-	_blit("pref/sldcntrl.png", Vector2(bar.position.x, at.y + _ctrl_thumb_y()))
+	_blit("pref/sldcntrl.png", Vector2(bar.position.x, at.y + _bar_thumb_y(page_bar, top, max_top)))
 
 
-## Thumb top (page y): between the arrows, proportional to the first row shown.
-func _ctrl_thumb_y() -> float:
-	var lo := CTRL_BAR.position.y + CTRL_ARROW.y
-	var hi := CTRL_BAR.end.y - CTRL_ARROW.y - CTRL_THUMB.y
-	var m := _ctrl_max_top()
-	return lo if m == 0 else lerpf(lo, hi, float(ctrl_top) / m)
+## Thumb top (page y) of a scrollbar: between the arrows, proportional to the first row shown.
+func _bar_thumb_y(bar: Rect2, top: int, max_top: int) -> float:
+	var lo := bar.position.y + CTRL_ARROW.y
+	var hi := bar.end.y - CTRL_ARROW.y - CTRL_THUMB.y
+	return lo if max_top == 0 else lerpf(lo, hi, float(top) / max_top)
+
+
+## Mouse down on a scrollbar (page coordinates): the new first row. The arrows scroll one row, the
+## track a page of `rows` (UNCERTAIN: the page step), the thumb starts a drag.
+func _bar_press(q: Vector2, bar: Rect2, top: int, max_top: int, rows: int) -> int:
+	if q.y < bar.position.y + CTRL_ARROW.y:
+		ctrl_arrow = "up"
+		return top - 1
+	if q.y >= bar.end.y - CTRL_ARROW.y:
+		ctrl_arrow = "down"
+		return top + 1
+	var t := _bar_thumb_y(bar, top, max_top)
+	if q.y >= t and q.y < t + CTRL_THUMB.y:
+		ctrl_drag = q.y - t
+		return top
+	return top + rows * (1 if q.y > t else -1)
+
+
+## The first row for a thumb dragged to page y `y`.
+func _bar_drag_top(y: float, bar: Rect2, max_top: int) -> int:
+	var lo := bar.position.y + CTRL_ARROW.y
+	var hi := bar.end.y - CTRL_ARROW.y - CTRL_THUMB.y
+	return roundi(clampf(inverse_lerp(lo, hi, y - ctrl_drag), 0.0, 1.0) * max_top)
 
 
 func _ctrl_scroll(to: int) -> void:
@@ -834,25 +868,8 @@ func _ctrl_press(q: Vector2) -> bool:
 		return true
 	if not CTRL_BAR.has_point(q):
 		return false
-	if q.y < CTRL_BAR.position.y + CTRL_ARROW.y:
-		ctrl_arrow = "up"
-		_ctrl_scroll(ctrl_top - 1)
-	elif q.y >= CTRL_BAR.end.y - CTRL_ARROW.y:
-		ctrl_arrow = "down"
-		_ctrl_scroll(ctrl_top + 1)
-	else:
-		var t := _ctrl_thumb_y()
-		if q.y >= t and q.y < t + CTRL_THUMB.y:
-			ctrl_drag = q.y - t
-		else:
-			_ctrl_scroll(ctrl_top + CTRL_ROWS * (1 if q.y > t else -1))
+	_ctrl_scroll(_bar_press(q, CTRL_BAR, ctrl_top, _ctrl_max_top(), CTRL_ROWS))
 	return true
-
-
-func _ctrl_drag_to(y: float) -> void:
-	var lo := CTRL_BAR.position.y + CTRL_ARROW.y
-	var hi := CTRL_BAR.end.y - CTRL_ARROW.y - CTRL_THUMB.y
-	_ctrl_scroll(roundi(clampf(inverse_lerp(lo, hi, y - ctrl_drag), 0.0, 1.0) * _ctrl_max_top()))
 
 
 ## A key pressed while the list has the keyboard (FUN_00511dc0): the arrow keys move in the list;
@@ -1043,14 +1060,17 @@ func _draw_extras() -> void:
 		_draw_option(it.rect, it.label, pref_work.get(it.key) == it.value, 10, 4, it.available)
 
 
-## Physics page (ours): one check per "Better physics" option (rows of 21 px from y 45, LEDs
-## from the Gameplay art), plus ALL / NONE in the header. Mirrored in Hebrew.
+## Physics page (ours): one check per "Better physics" option (rows of 20 px from y 45, LEDs
+## from the Gameplay art; the rows scrolled into view), plus ALL / NONE in the header. Mirrored in Hebrew.
 func _physics_items() -> Array:
 	var items := []
 	var w := CONTENT.size.x
-	for id in Settings.BETTER:
-		var r := Rect2(24, 45.0 + PHYSICS_ROW * items.size(), w - 48, PHYSICS_ROW)
-		items.append({"rect": r, "key": id, "label": Settings.BETTER[id]})
+	var ids: Array = Settings.BETTER.keys()
+	for i in range(phys_top, mini(ids.size(), phys_top + PHYSICS_ROWS)):
+		var r := Rect2(24, 45.0 + PHYSICS_ROW * (i - phys_top), PHYSICS_BAR.position.x - 24 - 8, PHYSICS_ROW)
+		if _he():
+			r.position.x = w - r.end.x
+		items.append({"rect": r, "key": ids[i], "label": Settings.BETTER[ids[i]]})
 	for j in 2:
 		var r := Rect2(w - 24 - 70 * (2 - j), 12, 64, 22)
 		if _he():
@@ -1059,9 +1079,26 @@ func _physics_items() -> Array:
 	return items
 
 
+## The Physics page's scrollbar (page rect), on the left in Hebrew.
+func _phys_bar() -> Rect2:
+	var bar := PHYSICS_BAR
+	if _he():
+		bar.position.x = CONTENT.size.x - bar.end.x
+	return bar
+
+
+func _phys_max_top() -> int:
+	return maxi(0, Settings.BETTER.size() - PHYSICS_ROWS)
+
+
+func _phys_scroll(to: int) -> void:
+	phys_top = clampi(to, 0, _phys_max_top())
+
+
 func _draw_physics() -> void:
 	_draw_our_page("Better physics")
 	_draw_rule(45)
+	_draw_bar(CONTENT.position, _phys_bar(), phys_top, _phys_max_top())
 	for it in _physics_items():
 		var r: Rect2 = it.rect
 		if it.key == "all" or it.key == "none":
@@ -1099,7 +1136,11 @@ func _gui_input(event: InputEvent) -> void:
 		if not pref_drag.is_empty():
 			_pref_slide(_to_menu(event.position).x - CONTENT.position.x)
 		if ctrl_drag >= 0.0:
-			_ctrl_drag_to(_to_menu(event.position).y - CONTENT.position.y)
+			var y := _to_menu(event.position).y - CONTENT.position.y
+			if Settings.pref_page == "Physics":
+				_phys_scroll(_bar_drag_top(y, _phys_bar(), _phys_max_top()))
+			else:
+				_ctrl_scroll(_bar_drag_top(y, CTRL_BAR, _ctrl_max_top()))
 		var k := _hit(_to_menu(event.position))
 		hover_key = k if "/" in k else ""
 		# Dragging out of a held button releases it; back in presses it again (§3.1).
@@ -1145,6 +1186,9 @@ func _pref_press(q: Vector2) -> bool:
 				return true
 		return false
 	if page == "Physics":
+		if _phys_bar().has_point(q):
+			_phys_scroll(_bar_press(q, _phys_bar(), phys_top, _phys_max_top(), PHYSICS_ROWS))
+			return true
 		for it in _physics_items():
 			if it.rect.has_point(q):
 				if it.key == "all" or it.key == "none":

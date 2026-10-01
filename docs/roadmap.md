@@ -106,8 +106,9 @@ per-land-cover colour matching), modern colours as its own switch. Comparisons: 
   sheets in a browser). Outside Israel: SPOT 5 (CNES SWH, 5 m; maybe also over Israel if it is smaller).
 - Cyprus orthophotos: not used. (No inquiry to the Survey of Israel for now.)
 
-## Hebrew retail edition ("כוכב כחול" / Blue Star)
-The Israeli Hebrew release of Jane's IAF has its own v1.0 → v1.1 patch (preflight.us download 27, 2 MB, 2005; a
-correction patch, id 39, exists too). If its exe / data differ from the English release, support it: detect the
-release by content (iaf_tools::exe), apply its patch with iaf-patch (if it is RTPatch too), and use its own Hebrew
-texts instead of the community packs. Needs a copy of that ISO and patch to analyse.
+## Hebrew retail edition ("כוכב כחול" / Blue Star) — analysed (docs/packs.md)
+The Hebrew CD (archive.org `iaf_20230527`, `IAF.Iso`) is v1.0 with copy protection; its 591 translated files are
+byte-identical to Brief.zip + Menu.zip. Setup's `--hebrew-iso` takes the only extras (startup splash, Graphics page).
+Its patch `IAFheb1_1.EXE` does not apply to the CD's protected `iafjets.exe` (it wants preflight.us's
+`IAF_Hebrew_Fix.zip`, offline) and turns those extras back into the English v1.1 files. Left: the CD's Hebrew
+briefing 112 is v1.0 text (v1.1 changed its objective), unused unless that sentence is corrected.
