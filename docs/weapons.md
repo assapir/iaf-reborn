@@ -246,6 +246,38 @@ CURRENT LOAD and weights use the same numbers as the flight (so Real shows the r
 - controls.md §4 already has the right meanings of (110,27) Shift+S = Safety toggle, (110,4) Shift+R = reload stores,
   (110,26) Ctrl+W = re-read Weapons.ibx (the keys.trx labels are wrong).
 
+## 9. Bombs and rockets: release (traced, not built)
+Types 500 / 510 / 560 / 650 share the release path ("bomb types", `FUN_00457bc0`); rockets too, except the jettison.
+- **Space** (`FUN_00454270(target, ai)`; player (0, 0), AI `FUN_00452680(T)` → (T, 1)): refused with `W+0xa0`,
+  outside HUD mode 1..8 (player), while releasing (`W+0xac`) or without rounds; then `W+0xac` = 1. Bomb types, player:
+  HUD mode 5 or 6 only; without a running ripple timer (`W+0x288`): remaining `W+0xd0` = quantity `W+0xd4`, the HUD
+  mode object's +0x3c = 1 (`FUN_0045d130`), timer `FUN_004cf270(cb 0x601020 / FUN_0045a680, start now, period
+  W+0xdc)` → the first bomb on the next scheduler tick, then one per period. AI: `W+0xe4` / `W+0xe8`, period `W+0xf0`.
+- **Space up** (`FUN_00456100`): timer killed, `W+0xd0` = `W+0xe4` = 0, HUD +0x3c cleared (`FUN_0045d150(1)`): the
+  ripple runs only while Space is held.
+- **One release** (`FUN_004545e0`): no rounds / `W+0xa0` → timer killed; the weapon object still flying (+0x48) →
+  wait; `FUN_00454b70` hands it the aim; player bombs need `FUN_0045ee10` (release permission, untraced) and, when the
+  HUD mode object's +0x2c == 1 and this is the first bomb, mode+0x30 ≤ `_DAT_0082f528` (UNCERTAIN: a CCRP cue);
+  `--W+0xd0`, at 0 the timer ends (`FUN_0045d150(0)`); force-feedback "BombRelease"; release point / launch / count /
+  drag / weight as §2.4.
+- **Aim** (`FUN_00454b70`): player P = HUD mode-5 object +0x18 if +0x2c == 1 else +0xc (meaning untraced); AI with a
+  target: P = T + V·t + ½A·t², t = |T − own| / own speed; AI without: `FUN_0045ed10` (predicted impact).
+  `FUN_00457c20` freezes the ripple line at the first bomb: aim[k] = P + (k − qty/2)·spacing·(sin h, cos h, 0) on the
+  terrain, bomb n uses aim[qty − remaining].
+- **Quantity / interval** (`FUN_004585f0`, events 0x4a / 0x4b → `FUN_004562f0`): defaults 2, 10, period 0.3 s
+  (0x600eb0); quantity 1..14, interval 10..200 step 10, period = max(0.1, interval·0.001) (0x600f48) — once changed
+  the period is 0.1 s up to 100 (quirk). "int" is both the spacing (m, assumed) and the period (ms).
+- **Bombs jettison** (`FUN_00458d10`, once, `W+0xbc`): Unlimited ammo off during the loop; stations 0..8 with a bomb
+  type other than 560 release every round at the `_fireEndVec` point dropped to the terrain.
+- Sounds (soundprop.trx; type → OST UNCERTAIN): 500 WPN_BGBMB_RLS / WPN_BGMB_FLY / EXT_WPN_GRNDBGEPLSN, 510
+  WPN_SMLBMB_RLS / WPN_SMLBNB_FLY, 560 WPN_RDRMIS_RLS / WPN_RDRMIS_FLY / WpnMiss.
+- AI bomb runs release through `FUN_00440440` (gate `FUN_004d4100`) from `FUN_005cd0d0` (impact within the tolerance
+  or 1000 m, 0x612fc0), `FUN_005d8590` (miss < 400 m, 600 m for kinds 0xd2 / 0xdc, angle < 15°, state 9 → 0xb),
+  `FUN_005d9290`.
+- **Untraced**: the bomb motion (class 0x16, `FUN_005611b0` / `FUN_00468470`, the ±`_debugParam016` clamp, cluster
+  submunitions "prepareClusterExplosion"), the mode-5 HUD (CCIP / CCRP, `FUN_0045ed10`, `FUN_0045ee10`), rocket motion
+  and pods.
+
 ## UNCERTAIN
 Candidate order of the spatial query; event 0x4e (pre-explosion) receiver; hit effects look; tracer look; muzzle flash
 scale / blend / cockpit visibility; the MFD page placement for weapon modes (taken as event 0x5a's rule); the missile
