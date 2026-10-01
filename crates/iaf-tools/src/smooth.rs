@@ -17,7 +17,7 @@ pub struct Tri {
 }
 
 /// Faces meeting at more than this angle keep a hard edge.
-pub const CREASE_DEGREES: f32 = 50.0;
+pub const CREASE_DEGREES: f32 = 65.0;
 /// How strongly new vertices follow the curved surface (0 = flat, 1 = full).
 pub const SHAPE_FACTOR: f32 = 0.75;
 /// Each triangle becomes `LEVEL * LEVEL` triangles.

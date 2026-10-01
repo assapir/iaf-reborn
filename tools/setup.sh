@@ -94,7 +94,7 @@ step "aircraft: every plane's model (glTF, Lanczos textures, smoothed) + descrip
 ./target/release/iaf-convert --upscale --smooth aircraft assets/install assets/converted/missions assets/converted/planes
 
 step "mission object models (every model the object database references)"
-./target/release/iaf-convert --upscale objects assets/install assets/converted/missions assets/converted/objects
+./target/release/iaf-convert --upscale --smooth objects assets/install assets/converted/missions assets/converted/objects
 
 step "terrain: every level and inset of map.ptt as a node quadtree (docs/formats/ptt.md, ~30 s, ~730 MB)"
 rm -rf assets/converted/terrain/israel_l4  # the old Israel-only layout

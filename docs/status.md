@@ -46,9 +46,6 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 - Aircraft shadow is very pixelated (shadow map resolution / cascade split / filtering), and the afterburner
   flame casts a shadow even when the afterburner is off (the flame mesh must not cast shadows, and hidden flames
   must not render). Also wire the Graphics "SHADOWS" pref.
-- (not urgent) Weapons / stores, gear legs and other small parts look faceted (sharp, not rounded): smoothed
-  normals for the stores / object models and the separate part meshes (`iaf-convert --smooth`, per-part smoothing
-  groups / angle threshold).
 - Crash debris floats: the wreck pieces of a crash don't come to rest on the ground (terrain height / fall of
   the shattered pieces, docs/damage.md §6). Bonus (Extras, if possible): pieces made from the aircraft's own parts
   (wings, tail, gear from its model) instead of generic shards.
