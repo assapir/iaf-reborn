@@ -193,12 +193,13 @@ func explosion(pos: Vector3, flags: int, scale: float, duration: float, ground_y
 
 
 ## 0x100: smoke3 puff, 2.5 s, width 1x -> 3x, grey 40 (0x400: white), rising 5.6..10.1 m/s with
-## ±2.4 m/s sideways jitter (no wind: the mission weather is not decoded).
-func smoke_puff(pos: Vector3, white := false) -> void:
+## ±2.4 m/s sideways jitter (no wind: the mission weather is not decoded). The flare's smoke (0x8000,
+## docs/weapons.md §10) is the same puff with its own `life` and start `width`.
+func smoke_puff(pos: Vector3, white := false, life := PUFF_TIME, width := SMOKE_WIDTH) -> void:
 	var v := Vector3((_rng.randi() & 15) - 8, 8.0 + ((_rng.randi() & 15) - 8) * 0.3, (_rng.randi() & 15) - 8)
 	v.x *= 0.3
 	v.z *= 0.3
-	_add_puff(pos, v, PUFF_TIME, SMOKE_WIDTH, SMOKE_WIDTH * 3.0, 255 if white else 40, false, 0.0, true)
+	_add_puff(pos, v, life, width, width * 3.0, 255 if white else 40, false, 0.0, true)
 
 
 func _add_puff(pos: Vector3, vel: Vector3, life: float, w0: float, w1: float, grey: int, fire: bool, delay: float,

@@ -214,9 +214,24 @@ func run() -> void:
 	var behind: float = (w.decoy_position(fl) - own0.pos).dot(own0.fwd)
 	# The test jet is held still: the flare leaves at |V| + 10 m/s toward the point 200 m aft.
 	check(behind < -5.0, "the flare goes aft (%.0f m along the nose)" % behind)
+	# The look (decoy_fx.gd): the flare sprite at the decoy, chaff bursts along the decoy path.
+	var fx = w.decoy_fx
+	var ch: Dictionary = w.decoys.filter(func(d): return d.type == 540)[0]
+	check(fx.counts(t).flares == 1 and fx.counts(t).chaff > 0, "a flare sprite and chaff pieces drawn (%s)" % fx.counts(t))
+	check(fx._flares[fl].node.position.distance_to(w.to_scene(w.decoy_position(fl))) < 0.01, "the flare sprite is at the decoy")
+	var on_path := true
+	for b in fx.bursts:
+		on_path = on_path and b[1].distance_to(w.to_scene(w._decoy_motion[540].position(ch.r, b[0]))) < 0.01
+	check(fx.bursts.size() >= 30 and on_path, "chaff bursts at 30 Hz along the decoy path (%d)" % fx.bursts.size())
+	# The jet is still: |V| + 10 m/s decelerating to 5 m/s never reaches A within 4 s -> ends at 4 s.
+	check(is_equal_approx(fl.end, fl.r.t0 + 4.0), "end = min(time to A, 4 s)")
 	t += 3.5
 	w.update(t)
 	check(w.decoys.is_empty(), "decoys end after 4 s")
+	check(fx.counts(t).flares == 0 and fx.counts(t).chaff > 0, "flare gone, the chaff still falls")
+	t += 3.3
+	w.update(t)
+	check(fx.counts(t).chaff == 0, "the last chaff pieces end 3 s (+ delay) after the decoy")
 	tv.gear_down = true
 	check(not w.dispense(550), "no flares with the gear handle down")
 	tv.gear_down = false

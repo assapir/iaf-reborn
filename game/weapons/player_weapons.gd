@@ -671,11 +671,13 @@ func radar_snapshot() -> Dictionary:
 
 # --- chaff and flares (events 0x44 / 0x45, docs/weapons.md §10) ------------------------------------
 
-## A decoy lives 4.0 s after its release (FUN_004d7690: the end time of types 0x21c / 0x226 is capped
-## at 4.0, _DAT_00605120); its pool object is busy until then.
+## A decoy ends when it reaches its aim point A, at most 4.0 s after its release (FUN_004d7690: the
+## motion's time left (+0x78 - now) capped at 4.0, _DAT_00605120); its pool object is busy until then.
 const DECOY_LIFE := 4.0
-## Decoys in the air: {type, r (round record of the decoy motion), end, node}.
+## Decoys in the air: {type, r (round record of the decoy motion), end}.
 var decoys: Array = []
+## Their look (decoy_fx.gd).
+var decoy_fx: Node3D
 ## Per type: the fixed-weapon motion (gun_rounds.gd configured with weapons.ibx 540 / 550) and the
 ## ring pool of `_maxNumInAir` (15) end times.
 var _decoy_motion := {}
@@ -709,7 +711,6 @@ func dispense(type: int) -> bool:
 	if now < float(_decoy_pool[type][k]):
 		return false  # that pool object is still alive (w+0x48)
 	_decoy_next[type] = (k + 1) % _decoy_pool[type].size()
-	_decoy_pool[type][k] = now + DECOY_LIFE
 	# Release point: the station (StationCha / StationFla) through the attitude; aim point: the
 	# _fireEndVec in body axes (0, -200, -10: 200 m aft, 10 m below; composition UNCERTAIN).
 	var o := own()
@@ -724,8 +725,9 @@ func dispense(type: int) -> bool:
 	var dist := d.length()
 	var r := {"p0": p0, "u": d / dist if dist > 0.0 else -o.fwd, "s": s, "t0": now, "A": a,
 		"t_end": now + g._flight_time(s, dist)}
-	var node := _decoy_visual(type)
-	decoys.append({"type": type, "r": r, "end": now + DECOY_LIFE, "node": node})
+	var end: float = minf(r.t_end, now + DECOY_LIFE)
+	_decoy_pool[type][k] = end
+	decoys.append({"type": type, "r": r, "end": end})
 	stores.consume(i)
 	var ost := "OST_CHAFF" if type == Stores.CHAFF else "OST_FLARE"
 	_place_sound(host.sounds.play("SFX_AIRCRAFT_FIRED_WEAPON", ost), p0)
@@ -739,39 +741,16 @@ func _decoy_effect(_type: int) -> void:
 	pass
 
 
-## The decoy's look is UNCERTAIN (bdb model 0): ours draws a flare as a small bright glow, chaff
-## not at all.
-func _decoy_visual(type: int) -> Node3D:
-	if type != Stores.FLARE:
-		return null
-	var mi := MeshInstance3D.new()
-	var q := QuadMesh.new()
-	q.size = Vector2(3, 3)
-	mi.mesh = q
-	var mat := StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	mat.albedo_color = Color(1.0, 0.85, 0.5)
-	mi.material_override = mat
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	host.add_child(mi)
-	return mi
-
-
 func _update_decoys() -> void:
-	for dc in decoys.duplicate():
-		var node: Node3D = dc.node
-		if now >= dc.end:
-			decoys.erase(dc)
-			if node != null:
-				node.queue_free()
-			continue
-		if node != null:
-			node.position = to_scene(decoy_position(dc))
+	if decoy_fx == null:
+		decoy_fx = preload("res://weapons/decoy_fx.gd").new()
+		decoy_fx.effects = host.get("effects")
+		host.add_child(decoy_fx)
+	decoy_fx.update(now, decoys, func(dc, t): return to_scene(_decoy_motion[dc.type].position(dc.r, t)))
+	decoys = decoys.filter(func(dc): return now < dc.end)
 
 
-## A decoy's world position now (at A after its flight; UNCERTAIN what it does until the 4 s end).
+## A decoy's world position now.
 func decoy_position(dc: Dictionary) -> Vector3:
 	return _decoy_motion[dc.type].position(dc.r, now)
 
