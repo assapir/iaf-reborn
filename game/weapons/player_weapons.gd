@@ -14,6 +14,7 @@ const IrMissile := preload("res://weapons/ir_missile.gd")
 const Radar := preload("res://weapons/radar.gd")
 const Rwr := preload("res://weapons/rwr.gd")
 const DamageEffects := preload("res://mission/damage_effects.gd")
+const Bombs := preload("res://weapons/bombs.gd")
 
 ## The gun's shot timer period (DAT_0082f4e8 = 0.2 s, sim time).
 const GUN_PERIOD := 0.2
@@ -357,13 +358,20 @@ func fire_selected() -> void:
 			gun_trigger()
 		570, 580:
 			_release_missile()
+		500, 510, 560, 650:
+			_bomb_space()
 
 
-## Space up (event 0x41, FUN_00456100).
+## Space up (event 0x41, FUN_00456100): bomb types stop the ripple timer and unfreeze the HUD.
 func release_selected() -> void:
 	releasing = false
 	if stores.current_type() == Stores.GUN:
 		gun_stop()
+	if stores.current_type() in BOMB_TYPES:
+		_ripple_next = INF
+		ripple_left = 0
+		if hud_mode in [5, 6]:
+			ag.frozen = false  # FUN_0045d150(1)
 
 
 # --- jettison (Shift+C, event 0x48) ----------------------------------------------------------------
@@ -374,23 +382,34 @@ var bombs_jettisoned := false
 
 
 ## Event 0x48: nothing with the gear handle down; the first press drops the tanks (FUN_00458760), the
-## next ones the bombs (FUN_00458d10: not built yet, no bombs).
+## next ones the bombs (FUN_00458d10).
 func jettison() -> void:
 	if host.gear_down:
 		return
-	if tanks_jettisoned:
-		return  # bombs jettison: with the bombs (docs/weapons.md)
-	_jettison_tanks()
+	if not tanks_jettisoned:
+		_jettison_tanks()
+	elif not bombs_jettisoned:
+		_jettison_bombs()
 
 
-## FUN_00458760: every pylon whose store name contains "LB" releases one store (count −1 even with
-## Unlimited ammo, drag updated, no weight update); then, when the fuel is at or above FuelWeight, the
-## fuel and its maximum become FuelWeight (motion 0x18): the tanks' remaining fuel is gone.
+## FUN_0045ee10, the release permission of bombs and jettisons: load factor ≥ 0 and |roll| ≤ 90°.
+func release_allowed() -> bool:
+	var st: Dictionary = host.flight.state() if host.flight != null else {}
+	return st.is_empty() or (float(st.g) >= 0.0 and absf(float(st.roll)) <= 90.0)
+
+
+## FUN_00458760 (with the release permission): every pylon whose store name contains "LB" releases
+## one store (count −1 even with Unlimited ammo, drag updated, no weight update), falling as a
+## ballistic object to the ground 500 m ahead (_fireEndVec); then, when the fuel is at or above
+## FuelWeight, the fuel and its maximum become FuelWeight (motion 0x18): the tanks' fuel is gone.
 func _jettison_tanks() -> void:
+	if not release_allowed():
+		return
 	var was: bool = stores.unlimited
 	stores.set_unlimited(false)
 	for i in 9:
 		if stores.stations.has(i) and "LB" in stores.name_of(i) and stores.displayed(i) > 0:
+			_drop_store(i, _jettison_aim(int(stores.type_of(i))))
 			stores.jettisoned(i)
 	stores.set_unlimited(was)
 	if host.flight != null:
@@ -400,6 +419,37 @@ func _jettison_tanks() -> void:
 	tanks_jettisoned = true
 	_push_stores()
 	_update_store_nodes()
+
+
+## FUN_00458d10 (with the release permission; Unlimited ammo off meanwhile): every round of the
+## stations 0..8 holding a bomb type other than rockets (500, 510, 650) falls to the ground 500 m
+## ahead (_fireEndVec), with the usual drag / weight updates; then W+0xbc.
+func _jettison_bombs() -> void:
+	if not release_allowed():
+		return
+	var was: bool = stores.unlimited
+	stores.set_unlimited(false)
+	for i in 9:
+		var t: int = stores.type_of(i)
+		if not t in [500, 510, 650]:
+			continue
+		while stores.displayed(i) > 0:
+			_drop_store(i, _jettison_aim(t))
+			stores.fired(i)
+	stores.set_unlimited(was)
+	bombs_jettisoned = true
+	_push_stores()
+	_update_store_nodes()
+
+
+## FUN_004d7260: the store's _fireEndVec (0, 500, 0) in body axes from the jet, on the terrain.
+func _jettison_aim(type: int) -> Vector3:
+	var m: Dictionary = db.motion_for(type, 0)
+	var fe := Vector3(m.get("_fireEndVecX", 0.0), m.get("_fireEndVecY", 500.0), m.get("_fireEndVecZ", 0.0))
+	var o := own()
+	var a: Vector3 = o.pos + o.right * fe.x + o.fwd * fe.y + o.up * fe.z
+	a.z = Bombs._h(_ground, a)
+	return a
 
 
 # --- the gun ----------------------------------------------------------------------------------------
@@ -602,6 +652,319 @@ func _tone(kind: String) -> void:
 			set(pair[1], null)
 
 
+# --- bombs and rockets (docs/weapons.md §9) ----------------------------------------------------------
+
+## The bomb types ("bomb types" of FUN_00457bc0): 500 bomb, 510 cluster, 560 rockets, 650 laser bomb.
+const BOMB_TYPES := [500, 510, 560, 650]
+const OST := {500: "OST_BOMB", 510: "OST_CLUSTERBOMB", 560: "OST_ROCKET", 650: "OST_LASERBOMB", 660: "OST_SHELL"}
+## The delayed release: the first bomb waits for time-to-go ≤ 0.9 s (_DAT_0082f528).
+const TTG_RELEASE := 0.9
+## After the last bomb the symbols blink for 1.0 s (_DAT_0082f620).
+const BLINK_TIME := 1.0
+## Ripple period defaults (FUN_004585f0: 0.3 s @0x600eb0) and the setter's rule (FUN_004562f0:
+## interval × 0.001 s @0x600f48, at least 0.1 s @0x600f0c).
+const RIPPLE_PERIOD0 := 0.3
+## The player's bombs: along-track correction clamped to ±_debugParam016 (single player).
+const BOMB_CLAMP_PARAM := 16
+
+## W+0xd4 quantity (1..14), W+0xd8 interval (10..200, the spacing in m and the period in ms),
+## W+0xdc the period (s), W+0xd0 bombs left in this ripple, W+0x288 the ripple timer (next tick).
+var ripple_qty := 2
+var ripple_int := 10
+var ripple_period := RIPPLE_PERIOD0
+var ripple_left := 0
+var _ripple_next := INF
+## W+0xf4..: the ripple line frozen at the first bomb.
+var _ripple_line: Array = []
+## The mode-5 HUD object (FUN_0045d0a0 / update FUN_0045d1d0): +0xc impact, +0x18 target, +0x2c off the
+## HUD (cockpit views), +0x30 time-to-go, +0x3c frozen (Space held), +0x40 blinking (until), and
+## the world point the pipper is drawn at.
+var ag := {"impact": Vector3.ZERO, "target": Vector3.ZERO, "off": false, "ttg": -1.0, "frozen": false,
+	"blink_until": -INF, "pipper": null}
+## The host's HUD test (cockpit views only): world point -> {off: bool, origin, dir (scene ray through
+## the point clipped to the HUD edge toward the flight path marker)}; unset = always on the HUD
+## (the original's other views).
+var hud_clip: Callable
+## Physics "fix_bomb_burst" (ours): bombs burst where they meet the terrain.
+var bomb_burst_fix := false
+## Falling stores: {b (bombs.gd state), w, node, sound, t0}.
+var bombs: Array = []
+## Rockets (560): the fixed-weapon motion of the gun rounds with weapons.ibx 560; {r, w, node}.
+var rockets: RefCounted
+var _rocket_nodes := {}  # pool index -> {node, w}
+
+
+## Events 0x4a / 0x4b (stores MFD OSBs 0xe / 0xf quantity ±1, 0x13 / 0x14 interval ±10) ->
+## FUN_004562a0 -> FUN_004562f0: quantity 1..14, interval 10..200, period max(0.1, interval / 1000).
+func ripple_event(ev: int, up: bool) -> void:
+	var q := ripple_qty
+	var n := ripple_int
+	if ev == 0x4a:
+		q += 1 if up else -1
+	else:
+		n += 10 if up else -10
+	ripple_qty = clampi(q, 1, 14)
+	ripple_int = clampi(n, 10, 200)
+	ripple_period = maxf(float(ripple_int) * 0.001, 0.1)
+
+
+## FUN_00454270, bomb types (player): HUD mode 5 or 6; without a running ripple: W+0xd0 = quantity,
+## the HUD freezes (FUN_0045d130: one update, then +0x3c), the timer starts now (the first bomb on
+## the next tick), then one per period while Space is held.
+func _bomb_space() -> void:
+	if not hud_mode in [5, 6]:
+		return
+	if _ripple_next != INF:
+		return
+	ripple_left = ripple_qty
+	_update_ag()
+	ag.frozen = true
+	_ripple_next = now
+
+
+## The ripple timer callback (FUN_0045a680 -> FUN_004545e0, player bombs).
+func _ripple_tick() -> void:
+	var t: int = stores.current_type()
+	if stores.total(t, stores.current_name()) == 0 or _weapons_down():
+		_ripple_end()
+		return
+	var i: int = stores.fire_station()
+	if i < 0 or stores.displayed(i) <= 0:
+		releasing = false
+		return
+	if t == 560 and _rockets().next_round().is_empty():
+		return  # the station's pool object is still flying: wait for the next tick
+	# FUN_00454b70: the aim = the HUD target (off the HUD) or the impact, spread on the ripple line.
+	var p: Vector3 = ag.target if ag.off else ag.impact
+	if ripple_left == ripple_qty or _ripple_line.size() != ripple_qty:
+		_ripple_line = Bombs.ripple_line(p, ripple_qty, float(ripple_int), own().yaw, _ground)
+	var aim: Vector3 = _ripple_line[clampi(ripple_qty - ripple_left, 0, ripple_qty - 1)]
+	# FUN_0045ee10 and the delayed release (the first bomb waits for time-to-go ≤ 0.9 s).
+	if not release_allowed():
+		return
+	if ag.off and ripple_left == ripple_qty and float(ag.ttg) > TTG_RELEASE:
+		return
+	ripple_left -= 1
+	if ripple_left <= 0:
+		_ripple_end()
+	_drop_store(i, aim)
+	stores.fired(i)
+	_push_stores()
+	_update_store_nodes()
+
+
+## The ripple ends (timer killed, FUN_0045d150(0): the symbols blink for 1 s); W+0xac cleared.
+func _ripple_end() -> void:
+	_ripple_next = INF
+	releasing = false
+	ag.blink_until = now + BLINK_TIME
+
+
+## One store leaves station i toward `aim` (the release of FUN_004545e0): from its slot (the last
+## drawn) or the pylon through the attitude, at the jet's velocity; rockets (560) fly the
+## fixed-weapon motion, everything else the ballistic one. Sounds: the release
+## (SFX_AIRCRAFT_FIRED_WEAPON) and the fall loop (SFX_OBJECT_SPECIFIC).
+func _drop_store(i: int, aim: Vector3) -> void:
+	var st: Dictionary = stores.station(i)
+	var w: Dictionary = st.w
+	var type := int(w.type)
+	var o := own()
+	var slots: Array = st.slots
+	var n := int(st.count)
+	var at: Vector3 = slots[n - 1] if n >= 1 and n <= slots.size() else st.attach
+	var p0 := body_to_world(at)
+	var ost: String = OST.get(type, "OST_BOMB")
+	_place_sound(host.sounds.play("SFX_AIRCRAFT_FIRED_WEAPON", ost), p0)
+	if type == 560:
+		var g: RefCounted = _rockets()
+		var k: int = g._next
+		g.fire(now, o.pos, p0, o.vel, aim, "", String(_me().get("key", "")), false)
+		var node := _instance(String(w.model_path))
+		if node != null:
+			host.add_child(node)
+			node.scale = Vector3.ONE * float(w.get("scale", 1.0))
+		_rocket_nodes[k] = {"node": node, "w": w}
+		return
+	var clamp_acc: float = db.debug_param(BOMB_CLAMP_PARAM, 15.0)
+	var b := Bombs.launch(now, p0, o.vel, aim, clamp_acc)
+	var node := _instance(String(w.model_path))
+	if node != null:
+		host.add_child(node)
+	var snd = host.sounds.play("SFX_OBJECT_SPECIFIC", ost)
+	bombs.append({"b": b, "w": w, "node": node, "sound": snd, "t0": now})
+	_place_bomb(bombs[-1])
+
+
+func _rockets() -> RefCounted:
+	if rockets == null:
+		rockets = GunRounds.new()
+		var m: Dictionary = {"_spiralAccel": 0.0}
+		m.merge(db.motion_for(560, 0), true)
+		rockets.configure(m)
+		rockets.units = _units
+		rockets.ground = _ground
+		rockets.detonate = _rocket_detonate
+	return rockets
+
+
+## The mode-5 HUD object update (FUN_0045d1d0). Not frozen: the impact I (FUN_0045e7f0) and, when its
+## pipper is off the HUD (cockpit views), the target T = the ground under the pipper clipped to the
+## HUD edge, time-to-go = horizontal |I − T| / ground speed. Frozen (Space): off the HUD I and the
+## time-to-go follow the jet and the pipper shows the frozen T; on the HUD the frozen I.
+func _update_ag() -> void:
+	var o := own()
+	var st: Dictionary = stores.station(stores.cur)
+	var w: Dictionary = st.get("w", {})
+	var extra := 0.0
+	if int(w.get("type", 0)) == 560:
+		extra = float(db.motion_for(560, 0).get("_limitVel", 1000.0))
+	var gs := Vector2(o.vel.x, o.vel.y).length()
+	if not ag.frozen:
+		ag.impact = Bombs.predict_impact(o.pos, o.vel, o.fwd, float(w.get("drag", 0.0)), extra, _ground).point
+		var c: Dictionary = hud_clip.call(ag.impact) if hud_clip.is_valid() else {}
+		ag.off = bool(c.get("off", false))
+		ag.pipper = ag.impact
+		if ag.off:
+			var t = _ray_ground(c.origin, c.dir)
+			if t != null:
+				ag.target = t
+			ag.ttg = _hdist(ag.impact, ag.target) / maxf(gs, 1.0)
+	elif ag.off:
+		ag.impact = Bombs.predict_impact(o.pos, o.vel, o.fwd, float(w.get("drag", 0.0)), extra, _ground).point
+		ag.ttg = _hdist(ag.impact, ag.target) / maxf(gs, 1.0)
+		ag.pipper = ag.target
+	else:
+		ag.ttg = -1.0
+		ag.pipper = ag.impact
+
+
+static func _hdist(a: Vector3, b: Vector3) -> float:
+	return Vector2(a.x - b.x, a.y - b.y).length()
+
+
+## The terrain point on a scene ray (the renderer's screen-point query FUN_00401fc0), world frame.
+func _ray_ground(origin: Vector3, dir: Vector3) -> Variant:
+	var o := to_world(origin)
+	var d := dir_world(dir).normalized()
+	if d.z >= -1e-4:
+		return null
+	var step := 50.0
+	var prev := o
+	for k in 1200:
+		var q := o + d * step * float(k + 1)
+		if q.z <= Bombs._h(_ground, q):
+			var lo := prev
+			var hi := q
+			for j in 12:
+				var m := (lo + hi) * 0.5
+				if m.z <= Bombs._h(_ground, m):
+					hi = m
+				else:
+					lo = m
+			return hi
+		prev = q
+	return null
+
+
+func _update_bombs() -> void:
+	for bm in bombs.duplicate():
+		var hit: Dictionary = Bombs.check(bm.b, now, _ground, bomb_burst_fix)
+		_place_bomb(bm)
+		if not hit.is_empty():
+			bombs.erase(bm)
+			_bomb_detonate(bm, hit.pos)
+	if rockets != null:
+		rockets.update(now)
+		for k in _rocket_nodes:
+			var e: Dictionary = _rocket_nodes[k]
+			var r: Dictionary = rockets.pool[k]
+			if e.node != null and r.flying:
+				e.node.position = to_scene(rockets.position(r, now))
+				_orient(e.node, r.u)
+
+
+func _place_bomb(bm: Dictionary) -> void:
+	var p := Bombs.position(bm.b, now)
+	if bm.node != null:
+		bm.node.position = to_scene(p)
+		_orient(bm.node, Bombs.velocity(bm.b, now))
+		bm.node.scale = Vector3.ONE * float(bm.w.get("scale", 1.0))
+	_place_sound(bm.sound, p)
+
+
+## A store's attitude from its velocity (world vector).
+static func _orient(node: Node3D, v: Vector3) -> void:
+	var dv := Vector3(v.x, v.z, -v.y)
+	if dv.length() > 1.0:
+		var s := node.scale
+		node.basis = Basis.looking_at(dv.normalized(), Vector3.UP if absf(dv.normalized().y) < 0.99 else Vector3.RIGHT).scaled(s)
+
+
+## FUN_004d6130 for a falling store: one area blast (bdb power / radius) over every unit, the
+## explosion of the ballistic class (FUN_0059df20, class 0x16 / 0x19): on water a splash; 510 the
+## cluster (0x2000, radius 100, 3 s: 48 small fires in 3 rings, every second one smoking); else
+## 0x4008 (flash, smoke streamers, column); low bursts are drawn at the ground. Sound
+## SFX_WEAPON_EXPLODED of the store's OST.
+func _bomb_detonate(bm: Dictionary, p: Vector3) -> void:
+	var w: Dictionary = bm.w
+	var me := _me()
+	var hit := []
+	if host.runtime != null and not me.is_empty() and float(w.power) > 0.0:
+		hit = host.runtime.area_damage(p, float(w.power), float(w.radius), me, "bomb")
+	var type := int(w.type)
+	_explosion_effect(p, type)
+	_place_sound(host.sounds.play("SFX_WEAPON_EXPLODED", OST.get(type, "OST_BOMB")), p)
+	if not hit.is_empty():
+		_place_sound(host.sounds.play("SFX_WEAPON_HIT_TARGET"), p)
+	if bm.node != null:
+		bm.node.queue_free()
+	if bm.sound != null:
+		host.sounds.stop(bm.sound)
+
+
+## The weapon explosion of FUN_0059df20 by type; `p` world.
+func _explosion_effect(p: Vector3, type: int) -> void:
+	var sp := to_scene(p)
+	var g = host.terrain.height_at(sp)
+	var gy: float = g if g != null else sp.y
+	var low := sp.y < gy + 10.5
+	if low and sp.y < gy:
+		sp.y = gy
+	var water := false
+	if host.terrain.has_method("surface_at"):
+		water = (host.terrain.surface_at(sp) & host.terrain.SURFACE_WATER) != 0
+	if water and low:
+		host.effects.smoke_puff(sp, true)  # splash 0x60000 (look UNCERTAIN, as the gun's)
+		return
+	match type:
+		510:
+			host.effects.explosion(sp, DamageEffects.F_CLUSTER, 4.0, 3.0, gy, 100.0)
+		560:
+			var f := DamageEffects.F_FIREBALL | (DamageEffects.F_KICK | DamageEffects.F_SMOKE_TRAILS if low else 0)
+			host.effects.explosion(sp, f, 4.0, 95.0, gy)
+		_:
+			host.effects.explosion(sp, DamageEffects.F_FLASH | DamageEffects.F_SMOKE_TRAILS, 4.0, 95.0, gy)
+
+
+## A rocket's end (FUN_004d6130): hit sphere 0, so at the terrain or at its aim; the blast over every
+## unit around, the fixed-weapon explosion (0x10, low 0x98), SFX_WEAPON_EXPLODED / OST_ROCKET.
+func _rocket_detonate(r: Dictionary, pos: Vector3, _cands, _hit: Dictionary) -> void:
+	var k := -1
+	for j in rockets.pool.size():
+		if is_same(rockets.pool[j], r):
+			k = j
+	var e: Dictionary = _rocket_nodes.get(k, {})
+	_rocket_nodes.erase(k)
+	var w: Dictionary = e.get("w", {"power": 0.0, "radius": 0.0, "type": 560})
+	var me := _me()
+	if host.runtime != null and not me.is_empty() and float(w.power) > 0.0:
+		host.runtime.area_damage(pos, float(w.power), float(w.radius), me, "rocket")
+	_explosion_effect(pos, 560)
+	_place_sound(host.sounds.play("SFX_WEAPON_EXPLODED", "OST_ROCKET"), pos)
+	if e.get("node") != null:
+		e.node.queue_free()
+
+
 # --- radar (docs/radar.md) ---------------------------------------------------------------------------
 
 ## Radar key events (FUN_0044a240): 0x21 / 0x22 range, 0x24 Q modes, 0x2b R A-A / A-G, 0x2c S standby,
@@ -764,6 +1127,12 @@ func update(t: float) -> void:
 		_gun_shot()  # catch-up shots share the timestamp
 		_gun_next += GUN_PERIOD
 	gun.update(now)
+	if hud_mode in [5, 6]:
+		_update_ag()
+	while _ripple_next <= now:
+		_ripple_next += ripple_period
+		_ripple_tick()
+	_update_bombs()
 	_update_missiles()
 	_update_decoys()
 	radar.update(now)
@@ -863,9 +1232,13 @@ func _publish() -> void:
 		"name": stores.current_name(), "type": t, "total": stores.total(t, stores.current_name()),
 		"ready": not mal, "srm": srm, "mrm": mrm, "gun": stores.displayed(9),
 		"chaff": stores.displayed(10), "flares": stores.displayed(11),
-		"quantity": 1, "interval": 10, "seeker": seeker.symbol, "lock": seeker.lock,
+		"quantity": ripple_qty, "interval": ripple_int, "seeker": seeker.symbol, "lock": seeker.lock,
 		"have_missiles": stores.total(t, stores.current_name()) > 0, "circle": 5.0,
 		"pipper": pip, "pipper_world": hud_mode == 4, "firing": firing,
+		# The mode-5 object's cockpit state (FUN_00445db0: +0x620 off, +0x624 point, +0x638 time-to-go
+		# capped at 1000, +0x62c frozen, +0x630 blinking).
+		"ag": {"pipper": ag.pipper if hud_mode in [5, 6] else null, "off": ag.off, "frozen": ag.frozen,
+			"ttg": minf(float(ag.ttg), 1000.0), "blink": now < float(ag.blink_until)},
 	}
 
 

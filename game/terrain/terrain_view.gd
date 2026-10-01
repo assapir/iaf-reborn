@@ -310,6 +310,9 @@ func _setup_weapons() -> void:
 	weapons.setup(self, ent, obj, bdb, preload("res://aircraft/aircraft_model.gd").load_descriptor(player.plane))
 	cockpit.hud.host_world_to_scene = weapons.to_scene
 	cockpit.on_station_select = weapons.select_station
+	cockpit.on_ripple_event = weapons.ripple_event
+	weapons.bomb_burst_fix = Settings.better.get("fix_bomb_burst", false)
+	weapons.hud_clip = cockpit.hud.ccip_clip
 	cockpit.on_radar_event = weapons.radar_event
 
 
@@ -1526,16 +1529,23 @@ func wingman() -> Node3D:
 	return null
 
 
-## FUN_00450a80: the last released weapon still in flight (our IR missiles; chaff / flares / gun rounds
-## are never it).
+## FUN_00450a80: the last released weapon still in flight (our IR missiles and falling bombs; chaff /
+## flares / gun rounds / rockets are never it).
 func last_weapon() -> Node3D:
 	if weapons == null:
 		return null
-	for i in range(weapons.missiles.size() - 1, -1, -1):
-		var n = weapons.missiles[i].get_meta("node")
-		if n is Node3D and is_instance_valid(n):
-			return n
-	return null
+	var best: Node3D = null
+	var t0 := -INF
+	for m in weapons.missiles:
+		var n = m.get_meta("node")
+		if n is Node3D and is_instance_valid(n) and float(m.t0) >= t0:
+			best = n
+			t0 = float(m.t0)
+	for b in weapons.bombs:
+		if b.node is Node3D and is_instance_valid(b.node) and float(b.t0) >= t0:
+			best = b.node
+			t0 = float(b.t0)
+	return best
 
 
 func _entity_of_node(n: Node3D) -> Dictionary:

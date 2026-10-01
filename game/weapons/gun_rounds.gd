@@ -117,18 +117,16 @@ func fire(now: float, p: Vector3, muzzle: Vector3, vel: Vector3, a: Vector3, loc
 	return true
 
 
-## Time to cover `dist` from speed `s` at the deceleration −abs_accel (the gun's case of
-## FUN_0047a491: the deceleration phase covers the whole path; a constant-speed tail at
-## _limitVel once the speed would fall below it).
+## Time to cover `dist` from speed `s` at the acceleration _absAcceleration (FUN_0047a491: the gun
+## decelerates at −10, a rocket accelerates at +100) until the speed reaches _limitVel, then at
+## _limitVel. (The rocket's accelerating branch follows the same formula: UNCERTAIN.)
 func _flight_time(s: float, dist: float) -> float:
-	var dec := -abs_accel
-	if dec <= 0.0:
-		return dist / maxf(s, 1.0)
-	var t_c := (s - limit_vel) / dec
+	var a := abs_accel
+	var t_c := (limit_vel - s) / a if a != 0.0 else -1.0
 	if t_c > 0.0:
-		var d_c := s * t_c - 0.5 * dec * t_c * t_c
+		var d_c := s * t_c + 0.5 * a * t_c * t_c
 		if d_c >= dist:
-			return (s - sqrt(maxf(s * s - 2.0 * dec * dist, 0.0))) / dec
+			return (sqrt(maxf(s * s + 2.0 * a * dist, 0.0)) - s) / a
 		return t_c + (dist - d_c) / limit_vel
 	return dist / maxf(s, 1.0)
 
@@ -138,11 +136,13 @@ func position(r: Dictionary, now: float) -> Vector3:
 	if now >= r.t_end:
 		return r.A
 	var dt: float = now - r.t0
-	var dec := -abs_accel
-	var t_c: float = (r.s - limit_vel) / dec if dec > 0.0 else INF
+	var a := abs_accel
+	var t_c: float = (limit_vel - r.s) / a if a != 0.0 else -1.0
+	if t_c <= 0.0:
+		return r.p0 + r.u * (r.s * dt)
 	if dt <= t_c:
-		return r.p0 + r.u * (r.s * dt - 0.5 * dec * dt * dt)
-	var d_c: float = r.s * t_c - 0.5 * dec * t_c * t_c
+		return r.p0 + r.u * (r.s * dt + 0.5 * a * dt * dt)
+	var d_c: float = r.s * t_c + 0.5 * a * t_c * t_c
 	return r.p0 + r.u * (d_c + limit_vel * (dt - t_c))
 
 

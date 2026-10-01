@@ -261,6 +261,95 @@ func _draw_weapons(s: float, w: float, font: Font, fs: int, gun: Vector2) -> voi
 					draw_texture_rect(t, Rect2(p - Vector2(16, 16) * s, Vector2(32, 32) * s), false)
 				else:
 					draw_arc(p, 8 * s, 0, TAU, 24, col, w)
+		5, 6:
+			_draw_ag(wp.get("ag", {}), s, w, col)
+
+
+## The mode-5 symbols (FUN_005302d0; px of the 640x480 HUD × s). P = the pipper's projection clipped
+## to the HUD edge along the line from the flight path marker A (itself held inside the HUD). The
+## symbols blink (300 ms phases) for 1 s after the last bomb.
+## - CCIP (on the HUD): the fall line from the circle's edge (9 px) to A, a circle r 8, a centre dot.
+## - Delayed (off the HUD): the same, plus a 20 px cue bar across the line that moves from A to P as
+##   the time-to-go runs from 10 to 0 s.
+## - Delayed, frozen (Space held): the circle at the frozen target, a steering line 400 px up the
+##   rolled vertical, and the release cue bar on it 100·min(0.1·ttg, 1) px above the marker's level.
+func _draw_ag(ag: Dictionary, s: float, w: float, col: Color) -> void:
+	if ag.is_empty() or ag.get("pipper") == null or camera == null or not host_world_to_scene.is_valid():
+		return
+	if ag.get("blink", false) and (Time.get_ticks_msec() / 300) % 2 == 1:
+		return
+	var sp: Vector3 = host_world_to_scene.call(ag.pipper)
+	if camera.is_position_behind(sp):
+		return
+	var a := _ag_anchor()
+	var p := clip_toward(a, camera.unproject_position(sp) - position)
+	var d := p - a
+	var len := d.length()
+	var u := d / len if len > 0.0 else Vector2(0, 1)
+	if ag.get("off", false) and ag.get("frozen", false):
+		var roll := deg_to_rad(float(cockpit.state.roll))
+		var down := Vector2(sin(roll), cos(roll))
+		var perp := Vector2(-down.y, down.x)
+		draw_arc(p, 8 * s, 0, TAU, 24, col, w)
+		draw_line(p - down * 9 * s, p - down * 400 * s, col, w)
+		var k := clampf(0.1 * float(ag.ttg), 0.0, 1.0)
+		var l := d.dot(down) + 100.0 * k * s
+		var q := p - down * l
+		draw_line(q + perp * 10 * s, q - perp * 10 * s, col, w)
+		draw_rect(Rect2(p, Vector2(1, 1) * maxf(1.0, s)), col)
+		return
+	if ag.get("off", false):
+		var n := len * clampf((10.0 - float(ag.ttg)) * 0.1, 0.0, 1.0)
+		var perp := Vector2(-u.y, u.x)
+		draw_line(a + u * n + perp * 10 * s, a + u * n - perp * 10 * s, col, w)
+	if len > 9 * s:
+		draw_line(p - u * 9 * s, a, col, w)
+	draw_arc(p, 8 * s, 0, TAU, 24, col, w)
+	draw_rect(Rect2(p, Vector2(1, 1) * maxf(1.0, s)), col)
+
+
+## The flight path marker held inside the HUD (R+0x2780 / 0x2784), else the HUD centre.
+func _ag_anchor() -> Vector2:
+	var f = _fpm_position() if camera != null else null
+	if f == null:
+		return size / 2
+	return Vector2(clampf(f.x, 0.0, size.x), clampf(f.y, 0.0, size.y))
+
+
+## A point clipped to the HUD rectangle along the line from `a` (inside) (FUN_0052db30).
+func clip_toward(a: Vector2, p: Vector2) -> Vector2:
+	var r := Rect2(Vector2.ZERO, size)
+	if r.has_point(p):
+		return p
+	var d := p - a
+	var k := 1.0
+	if d.x > 0.0:
+		k = minf(k, (r.end.x - a.x) / d.x)
+	elif d.x < 0.0:
+		k = minf(k, (r.position.x - a.x) / d.x)
+	if d.y > 0.0:
+		k = minf(k, (r.end.y - a.y) / d.y)
+	elif d.y < 0.0:
+		k = minf(k, (r.position.y - a.y) / d.y)
+	return a + d * maxf(k, 0.0)
+
+
+## The mode-5 HUD test (FUN_0045d1d0 → FUN_004dc6d0, cockpit views only): {off} for a world point on
+## the HUD; off it, the scene ray through the point clipped to the HUD edge (the renderer's ground
+## query FUN_00401fc0 then finds the target under it).
+func ccip_clip(world: Vector3) -> Dictionary:
+	if camera == null or not is_visible_in_tree() or not host_world_to_scene.is_valid():
+		return {"off": false}
+	var sp: Vector3 = host_world_to_scene.call(world)
+	var p: Vector2
+	if camera.is_position_behind(sp):
+		p = size / 2 + Vector2(0, size.y)
+	else:
+		p = camera.unproject_position(sp) - position
+	if Rect2(Vector2.ZERO, size).has_point(p):
+		return {"off": false}
+	var c := clip_toward(_ag_anchor(), p) + position
+	return {"off": true, "origin": camera.project_ray_origin(c), "dir": camera.project_ray_normal(c)}
 
 
 ## The target designator box (FUN_00537330): drawn with a radar lock, 15 px (10 px in GMT / MAP) at the

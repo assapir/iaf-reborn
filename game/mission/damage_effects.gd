@@ -17,6 +17,7 @@ const F_PUFF := 0x100
 const F_WHITE := 0x400
 const F_COLUMN := 0x800
 const F_REST := 0x1000
+const F_CLUSTER := 0x2000
 const F_FLASH := 0x4000
 const F_SMALL_FIRE := 0x10000000
 
@@ -86,6 +87,7 @@ var _shards: Array = []
 var _shard_shader: Shader
 var _streamers: Array = []
 var _columns: Array = []  # {pos, age, n, end}
+var _clusters: Array = []  # {age, end, subs: [{pos, delay, column, done}]}
 var _smokers := {}  # Node3D -> accumulated time (damage smoke, FUN_004d20a0)
 var _mm_smoke: MultiMeshInstance3D
 var _mm_fire: MultiMeshInstance3D
@@ -190,6 +192,41 @@ func explosion(pos: Vector3, flags: int, scale: float, duration: float, ground_y
 		_streamers_at(pos, scale)
 	if flags & F_COLUMN:
 		_columns.append({"pos": pos, "age": 0.0, "n": 33 / (4 - COLUMN_DETAIL), "born": 0, "end": duration})
+	if flags & F_CLUSTER:
+		_cluster(pos, radius, duration)
+
+
+## 0x2000 (FUN_00418000 / FUN_004181c0): 48 sub-bursts in 3 rings of 16, 10 m below the burst; ring
+## radius r = max(radius, 5)·0.65^k, each burst at r ± a jitter of 0.15·r (rand % 2j + r − j), the
+## angle stepping −π/8 (−π/16 more per ring); each goes off after (rand & 7)·0.1 s as a small fire,
+## every second one with a 5 s smoke column; the bursts end with the event (age / duration ≥ 1).
+func _cluster(pos: Vector3, radius: float, duration: float) -> void:
+	var subs := []
+	var r := maxf(radius, 5.0)
+	var a := 0.0
+	for ring in 3:
+		var j := maxi(int(r * 0.15), 1)
+		for k in 16:
+			var d := float(_rng.randi() % (2 * j)) + r - float(j)
+			subs.append({"pos": pos + Vector3(cos(a) * d, -10.0, -sin(a) * d), "delay": float(_rng.randi() & 7) * 0.1,
+				"column": subs.size() % 2 == 1, "done": false})
+			a -= PI / 8.0
+		r *= 0.65
+		a -= PI / 16.0
+	_clusters.append({"age": 0.0, "end": duration, "subs": subs})
+
+
+func _update_clusters(delta: float) -> void:
+	for c in _clusters.duplicate():
+		c.age += delta
+		for b in c.subs:
+			if not b.done and c.age > b.delay:
+				b.done = true
+				_add_puff(b.pos, Vector3.ZERO, FIREBALL_TIME, SMALL_FIRE_WIDTH, SMALL_FIRE_WIDTH, 250, true, 0.0, true)
+				if b.column:
+					_columns.append({"pos": b.pos, "age": 0.0, "n": 33 / (4 - COLUMN_DETAIL), "born": 0, "end": 5.0})
+		if c.age >= c.end or c.subs.all(func(b): return b.done):
+			_clusters.erase(c)
 
 
 ## 0x100: smoke3 puff, 2.5 s, width 1x -> 3x, grey 40 (0x400: white), rising 5.6..10.1 m/s with
@@ -469,6 +506,7 @@ func _process(delta: float) -> void:
 	_update_pieces(delta, step)
 	_update_shards(delta, step)
 	_update_streamers(delta, step)
+	_update_clusters(delta)
 	_update_columns(delta)
 	_update_puffs(delta)
 
@@ -586,4 +624,4 @@ func _fill(mm: MultiMesh, list: Array) -> void:
 
 ## Live counts, for tests.
 func counts() -> Dictionary:
-	return {"puffs": _puffs.size(), "pieces": _pieces.size(), "shards": _shards.size(), "columns": _columns.size(), "smokers": _smokers.size()}
+	return {"puffs": _puffs.size(), "pieces": _pieces.size(), "shards": _shards.size(), "columns": _columns.size(), "smokers": _smokers.size(), "clusters": _clusters.size()}

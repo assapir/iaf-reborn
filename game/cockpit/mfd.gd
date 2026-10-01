@@ -598,6 +598,9 @@ func _draw_stores() -> void:
 		_text_right(59, 53, "%d" % int(wp.mrm))
 		_text_right(59, 63, "%d" % int(wp.srm))
 		_text(Vector2(68, 85), "%03d" % int(wp.gun))
+		# The ripple quantity / interval (state +0x374 / +0x378).
+		_text(Vector2(1, 94), "%dQnt" % int(wp.get("quantity", 2)))
+		_text_right(131, 94, "int%d" % int(wp.get("interval", 10)))
 		if int(wp.selected) == 9:
 			draw_rect(Rect2(48, 82, 36, 10), GREEN, false, 1.0)
 	_text(Vector2(55, 124), "Fuel : %5dLB" % int(cockpit.state.fuel_lbs))
@@ -798,6 +801,10 @@ func press(osb: int) -> void:
 			var i := STORES_OSB.find(osb)
 			if i >= 0 and cockpit.on_station_select.is_valid():
 				cockpit.on_station_select.call(i)
+			# OSBs 0xe / 0xf quantity +1 / −1 (event 0x4a), 0x13 / 0x14 interval +10 / −10 (0x4b).
+			var rip := {0xe: [0x4a, true], 0xf: [0x4a, false], 0x13: [0x4b, true], 0x14: [0x4b, false]}
+			if rip.has(osb) and cockpit.on_ripple_event.is_valid():
+				cockpit.on_ripple_event.call(rip[osb][0], rip[osb][1])
 		NAV:
 			match osb:
 				0xb: nav_scroll = maxi(nav_scroll - 1, 0)
