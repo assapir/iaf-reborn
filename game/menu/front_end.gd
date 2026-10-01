@@ -122,7 +122,7 @@ const EXTRAS := [
 	["flight_data", "Flight data", [["Original (1998)", "original"], ["Real aircraft", "real"]]],
 	["weapon_data", "Weapon data", [["Original (1998)", "original"], ["Real weapons", "real"]]],
 	["language", "Language", [["English", "en"], ["Hebrew", "he"]]],
-	["show_info", "Flight info (F12)", [["Show", true], ["Hide", false]]],
+	["show_info", "Flight info (Ctrl+F12)", [["Show", true], ["Hide", false]]],
 	["blackbox", "Blackbox", [["On", true], ["Off", false]]],
 	["hud_ladder", "HUD pitch ladder", [["Original", "original"], ["Conformal", "conformal"]]],
 	["show_all_keys", "All keys on the Keyboard page", [["Original", false], ["All", true]]],
@@ -219,6 +219,10 @@ var msgbox: Control
 ## mission history for the list locks (§13.11), read on each screen change.
 var records: Control
 var history: Array = []
+## In flight (docs/front-end.md §16): the flight scene that opened this front end over itself for the
+## FlyTSD (Esc, screen 0x20) or the in-flight Preferences (screen 0x21); null in the menus. Set with
+## `screen` before the node enters the tree; leaving those screens returns to the flight.
+var flight: Node = null
 
 var music: AudioStreamPlayer
 var sfx: AudioStreamPlayer
@@ -240,6 +244,13 @@ func _ready() -> void:
 	add_child(sfx)
 	add_child(preview)
 	briefings = Settings.load_json(Settings.assets_dir().path_join("converted/briefings/briefings.json"))
+	if flight != null:
+		# The TSD layers as on mission load, the player's flight selected (not the Arming tables).
+		var loads: Dictionary = Settings.arm_loadouts
+		_reset_tsd_checks()
+		Settings.arm_loadouts = loads
+		_enter_screen()
+		return
 	var args := OS.get_cmdline_user_args()
 	var at := args.find("--menu")
 	if at >= 0:
@@ -259,6 +270,11 @@ func _ready() -> void:
 		_reset_tsd_checks()
 	_enter_screen()
 	_start_music()
+	# On-The-Fly menu Restart / New mission (docs/front-end.md §16.3): the debrief screen 0x23 / 0x25
+	# presses its Replay / New Mission button itself after 50 ms (SetTimer in FUN_004fef80).
+	if screen == "deb" and Settings.debrief.has("auto"):
+		var auto: String = Settings.debrief.auto
+		get_tree().create_timer(0.05).timeout.connect(func(): _debrief_button(auto))
 	at = args.find("--hover")
 	if at >= 0:
 		hover_key = _key_for_label(args[at + 1])
@@ -328,7 +344,7 @@ func _play(name: String) -> void:
 
 ## Menu_M.wav loops on every screen except TSD / Arm (FUN_004ea2a0).
 func _start_music() -> void:
-	if screen in ["tsd", "arm"] or music.playing:
+	if screen in ["tsd", "arm", "flytsd"] or flight != null or music.playing:
 		return
 	var s := _sound("menu_m")
 	if s == null:
@@ -404,9 +420,9 @@ func _enter_screen() -> void:
 		ctrl_top = 0
 		ctrl_focus = false
 		phys_top = 0
-	if screen in ["tsd", "arm"]:
+	if screen in ["tsd", "arm", "flytsd"]:
 		_restore_tsd_checks()
-	if screen == "tsd" and tsd == null:
+	if _is_tsd() and tsd == null:
 		tsd = Tsd.new()
 		add_child(tsd)
 		tsd.setup(self, Settings.mission_id)
@@ -423,7 +439,7 @@ func _enter_screen() -> void:
 		# Briefing only when its file exists.
 		tsd_checks["briefing"] = tsd_checks.get("briefing", false) and tsd.has_briefing()
 		tsd.open_briefing(tsd_checks.briefing)
-	elif not screen in ["tsd", "arm"] and tsd != null:
+	elif not screen in ["tsd", "arm", "flytsd"] and tsd != null:
 		tsd.queue_free()
 		tsd = null
 	_enter_arm()
@@ -441,7 +457,7 @@ func _enter_screen() -> void:
 ## loadout tables live while the mission is loaded (created on first use).
 func _enter_arm() -> void:
 	if tsd != null:
-		tsd.visible = screen == "tsd"
+		tsd.visible = _is_tsd()
 	if screen != "arm":
 		if arm != null:
 			arm.queue_free()
@@ -501,7 +517,9 @@ func _button_enabled(label: String) -> bool:
 		if id in JETS_DISABLED.get(Settings.mission_id, []):
 			return false
 		return id in FLYABLE_JETS
-	if screen == "tsd" and tsd != null:
+	if flight != null and _norm(label) == "gameplay":
+		return false  # the in-flight Preferences disable the Gameplay tab (§16.3)
+	if _is_tsd() and tsd != null:
 		match _norm(label):
 			"briefing":
 				return tsd.has_briefing()
@@ -522,6 +540,10 @@ func _button_enabled(label: String) -> bool:
 ## The "make sim" / "not war" cheat of the logged-in pilot (FUN_004f1610).
 func _cheat() -> bool:
 	return Pilots.cheat(Settings.pilot_name, Settings.pilot_callsign)
+
+
+func _is_tsd() -> bool:
+	return screen in ["tsd", "flytsd"]
 
 
 func _flight_number(name: String) -> int:
@@ -599,6 +621,8 @@ var _preload_flight := -1
 
 func _preload_ground() -> void:
 	const TerrainPreload := preload("res://terrain/terrain_preload.gd")
+	if flight != null:
+		return
 	if tsd != null:
 		var n: int = tsd.default_flight()
 		if n != _preload_flight:
@@ -679,7 +703,7 @@ func _draw_content(def: Dictionary) -> void:
 	if loading:
 		_blit("mis/wait.png", CONTENT.position)
 		return
-	if screen == "tsd":
+	if _is_tsd():
 		return
 	if screen == "deb":
 		_draw_debrief()
@@ -1380,6 +1404,11 @@ func _on_button(key: String) -> void:
 			_leave(_back_target())
 		return
 	if key == "main":
+		if flight != null:
+			# MAIN (FUN_004ecff0) on the FlyTSD / in-flight Preferences: the quit-mission box of Ctrl+Q
+			# (FUN_004e2fa0(3)), as the flight shows it (game/terrain/terrain_view.gd _quit_key).
+			_message(8, [["yes", flight._end_flight.bind(true)], ["no", Callable()]])
+			return
 		if screen in QUIT_SCREENS:
 			get_tree().quit()
 		elif screen in ["tsd", "arm"]:
@@ -1410,7 +1439,7 @@ func _on_button(key: String) -> void:
 		Settings.pref_page = label
 		ctrl_focus = false
 		return
-	if screen in ["tsd", "arm"]:
+	if screen in ["tsd", "arm", "flytsd"]:
 		_tsd_button(key, _norm(label), btn)
 		return
 	if screen == "deb":
@@ -1518,6 +1547,10 @@ func _tsd_button(key: String, label: String, btn: Dictionary) -> void:
 	if label in Tsd.FLIGHT_NAMES:
 		tsd.select_flight(_flight_number(label))
 	match label:
+		"fly" when flight != null:
+			# FlyTSD Fly (FUN_005045b0, exit 4): back to the flight. Not ported: flying another
+			# formation's aircraft (FUN_004d31f0); Visit (FUN_005046b0) is not ported either.
+			_go("")
 		"fly":
 			if _selected_flight() == "":
 				_message(25, [["ok", Callable()]])
@@ -1621,6 +1654,10 @@ func _back_target() -> String:
 
 ## Screen change (FUN_004eb760): title tab and panels out, new screen, panels and title in.
 func _go(to: String) -> void:
+	if flight != null and screen in ["flytsd", "pref"]:
+		# BACK / Esc / Fly leave the FlyTSD (exit 4) and the in-flight Preferences (exit 5): the flight.
+		flight.close_front_end()
+		return
 	if not menus.has(to) or busy:
 		return
 	busy = true

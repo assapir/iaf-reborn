@@ -1,8 +1,8 @@
 # Terrain fly-over with the original 2D F-16 cockpit and an external view of your jet.
 #   Keys: the original key table with the player's rebinds (docs/controls.md): arrows stick (sprung),
 #   Numpad 0/. rudder, 1..8 throttle presets (1 also starts the engine), 0/9 throttle +/- 5 %, G gear,
-#   F flaps, B brakes, E x3 eject, F1 cockpit, F10 chase; ours: Esc quit box, C / F2 views, V / PgUp /
-#   PgDn panel, F12 info, +/- or wheel zoom.
+#   F flaps, B brakes, E x3 eject, F1 cockpit, F10 chase, Ctrl+P pause, Ctrl+O menu, Esc FlyTSD, C time
+#   compression; ours: Ctrl+F1 quit box, Ctrl+F2 views, V / PgUp / PgDn panel, Ctrl+F12 info, +/- or wheel zoom.
 #   External: RMB-drag orbits the camera, wheel zooms.
 #   `godot --path game res://terrain/terrain_view.tscn -- [--mission 311] [--real] [--screenshot out.png]
 #        [--at X Y alt heading pitch [roll]] [--external] [--shots N [--orbit-step deg]]`
@@ -147,6 +147,20 @@ var fm_stopped := false
 var _shake := 0.0
 ## The player's autopilot and waypoint sequencing (game/controls/autopilot.gd, docs/autopilot.md).
 var autopilot: RefCounted
+## Pause (Ctrl+P, DAT_0083afdc), the On-The-Fly menu (Ctrl+O, menu object 0x833808 +0) and the FlyTSD /
+## in-flight Preferences (front_end.gd over the flight): the sim is frozen by pausing the scene tree
+## (game event 0x75; the overlays run while paused). docs/front-end.md §16, docs/views.md §1.
+var paused := false
+var menu_open := false
+var overlay: Control
+var fe_overlay: Control
+## Ctrl+P froze the sim (flight window +0x40: only when the clock was running).
+var _pause_froze := false
+var _frozen_sounds: Array = []
+## Time compression (C, game event 0x77; Ctrl+C 0x78): the sim clock's rate (clock +0x48), 1 → 2 → 4 → 1.
+## The sim clock runs at rate × real time (FUN_004cfa50), so every sim system gets rate × the frame time:
+## Engine.time_scale. docs/views.md §2.
+var time_factor := 1
 
 
 func _ready() -> void:
@@ -209,6 +223,13 @@ func _ready() -> void:
 	player_damage.betty = F16_TYPE in sounds.BETTY_TYPES
 	cockpit.damage_flags = player_damage.flags
 	cockpit.waypoints = route
+	var ol := CanvasLayer.new()
+	ol.layer = 15
+	ol.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(ol)
+	overlay = preload("res://terrain/flight_overlay.gd").new()
+	overlay.host = self
+	ol.add_child(overlay)
 	_start_flight()
 	_apply_view()
 	_spawn_f16()
@@ -774,19 +795,25 @@ func _console_update(sim_time: float) -> void:
 		_console_push("")
 
 
-func _on_mission_box(msg: int, buttons: Array) -> void:
+func _on_mission_box(msg: int, buttons: Array, on_choice := Callable()) -> void:
 	if _msgbox != null:
 		_msgbox.queue_free()
 	_msgbox = preload("res://mission/mission_box.gd").new()
+	_msgbox.process_mode = Node.PROCESS_MODE_ALWAYS  # also over the paused On-The-Fly menu
 	$CockpitLayer.add_child(_msgbox)
 	_msgbox.setup(msg, buttons)
-	_msgbox.chosen.connect(_on_box_choice)
+	_msgbox.chosen.connect(_on_box_choice.bind(on_choice))
 
 
 ## DEBRIEF: end the flight and show the debrief; CONTINUE: keep flying; EXIT: back to the menus.
-func _on_box_choice(choice: String) -> void:
+## A box with its own action (the On-The-Fly menu's) runs it on YES; NO just closes the box.
+func _on_box_choice(choice: String, on_choice: Callable) -> void:
 	_msgbox.queue_free()
 	_msgbox = null
+	if on_choice.is_valid():
+		if choice == "yes":
+			on_choice.call()
+		return
 	match choice:
 		"deb", "yes":
 			_end_flight(true)
@@ -794,9 +821,20 @@ func _on_box_choice(choice: String) -> void:
 			_end_flight(false)
 
 
-func _end_flight(debrief: bool) -> void:
+## `auto`: the debrief's button the front end presses itself (On-The-Fly Restart / New mission).
+func _end_flight(debrief: bool, auto := "") -> void:
 	Settings.debrief = runtime.debrief_text(Settings.mission_id) if debrief and runtime != null else {}
+	if auto != "":
+		Settings.debrief["auto"] = auto
+	get_tree().paused = false
 	get_tree().change_scene_to_file("res://menu/front_end.tscn")
+
+
+func _exit_tree() -> void:
+	# The sim clock and its rate belong to this flight.
+	Engine.time_scale = 1.0
+	if get_tree() != null:
+		get_tree().paused = false
 
 
 ## The route of the formation holding the player (its waypoints and their names) for the MFDs.
@@ -887,7 +925,7 @@ func _on_crashed(reason: String) -> void:
 		return
 	_entity_final({"player": true, "klass": 0x1c, "type_code": F16_TYPE, "size": 2.5, "node": null})
 	if not ejected:
-		get_tree().create_timer(5.0).timeout.connect(func(): _end_flight(false))
+		get_tree().create_timer(5.0, false).timeout.connect(func(): _end_flight(false))
 
 
 ## Terrain slope under the aircraft: the vertical share of the surface normal (1 = flat), from
@@ -1082,6 +1120,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		# The original key table first (docs/controls.md, with the player's rebinds); our own keys
 		# only where the table has no command we implement for that key.
 		var rec: int = keys.find_key(keys.key_of_event(event), Settings.key_bindings)
+		# The flight window's own commands (CFlightWnd::OnGameEvent 0x4dc280): Esc, Ctrl+P, Ctrl+O.
+		if rec >= 0 and window_key(int(keys.records[rec].press[0])):
+			return
 		if rec >= 0 and (ejected or fatal_hit) and not int(keys.records[rec].press[0]) in [18, 20, 21, 28, 134]:
 			return  # control mode 0: the jet no longer takes the player's commands
 		if rec >= 0 and _command(keys.records[rec].press):
@@ -1180,6 +1221,13 @@ func _command(cmd: Array) -> bool:
 				autopilot.set_waypoint(i)
 			else:
 				cockpit.current_waypoint = posmod(i, maxi(cockpit.waypoints.size(), 1))
+		119:
+			_time_compress()
+		120:
+			_set_time_factor(1)  # Normal time (event 0x78): clock vfunc +4
+		135:
+			# Mute sound toggle (0x4e3442): flips the Sound page's MUTE (game/audio/sound_buses.gd).
+			preload("res://audio/sound_buses.gd").toggle_mute()
 		123:
 			# Change HUD color (event 0x7b): next of the 11 table colours.
 			cockpit.hud_colour_index = (cockpit.hud_colour_index + 1) % 11
@@ -1198,21 +1246,188 @@ func _quit_key() -> void:
 		get_tree().change_scene_to_file("res://menu/front_end.tscn")
 
 
-## Our own keys (not in the original table, or on original keys whose command is not built yet:
-## Esc = TSD toggle, C = time compression, F2 = back view, F12 = I-mode; docs/controls.md).
+# --- pause, On-The-Fly menu, FlyTSD, time compression (docs/front-end.md §16, docs/views.md) --------
+
+## The flight window's commands (FUN_004dc280); true when `id` is one of them. Single player only. While
+## paused the key manager passes only Ctrl+P (FUN_004df500(-1), @4e0cd7); while the menu is open the sim
+## clock is stopped, so the other commands are dropped (FUN_004cd3b0).
+func window_key(id: int) -> bool:
+	if paused and id != 132:
+		return true
+	match id:
+		122:
+			_esc_key()
+		132:
+			_pause_key()
+		133:
+			_menu_key()
+		_:
+			return menu_open
+	return true
+
+
+## Ctrl+P (0x4dc41f): only with no message box and the menu closed. Pause (FUN_004dbf00): held keys get
+## their release commands, the sim and sounds freeze if the clock runs (event 0x75(0)); unpause
+## (FUN_004dbf90) resumes them if the pause froze them (event 0x76).
+func _pause_key() -> void:
+	if _msgbox != null or menu_open or fe_overlay != null:
+		return
+	if not paused:
+		_release_held_keys()
+		_pause_froze = not get_tree().paused
+		if _pause_froze:
+			_freeze(true, true)
+		paused = true
+	else:
+		if _pause_froze:
+			_freeze(false, true)
+		paused = false
+
+
+## Ctrl+O (0x4dc479): only when not paused; opens (FUN_004dbff0: held keys released, event 0x75(0)) or
+## closes (FUN_004dc070: event 0x76) the On-The-Fly menu.
+func _menu_key() -> void:
+	if paused:
+		return
+	if menu_open:
+		menu_open = false
+		_freeze(false, true)
+	else:
+		_release_held_keys()
+		menu_open = true
+		_freeze(true, true)
+
+
+## Esc, "TSD and cockpit toggle" (0x4dc315): unpauses if paused, else closes the menu if open, else
+## leaves the flight for the FlyTSD (screen 0x20; event 0x75(1): the sim freezes, the sounds go on).
+func _esc_key() -> void:
+	if paused:
+		_pause_key()
+	elif menu_open:
+		_menu_key()
+	elif _msgbox == null:
+		_open_front_end("flytsd")
+
+
+## Game events 0x75 / 0x76: the sim clock stops / runs (here the scene tree's pause; the overlays,
+## message boxes and the front end over the flight run while paused). `sounds`: param 0 also pauses
+## every sound channel where it is (FUN_004c58e0) and 0x76 resumes them (FUN_004c58f0).
+func _freeze(on: bool, sounds: bool) -> void:
+	get_tree().paused = on
+	if on and sounds:
+		_frozen_sounds.clear()
+		for n in find_children("*", "AudioStreamPlayer", true, false) + find_children("*", "AudioStreamPlayer3D", true, false):
+			if n.playing and not n.stream_paused:
+				n.stream_paused = true
+				_frozen_sounds.append(n)
+	elif not on:
+		for n in _frozen_sounds:
+			if is_instance_valid(n):
+				n.stream_paused = false
+		_frozen_sounds.clear()
+
+
+## FUN_004e0a60(1): every held key sends its release command (stick / rudder centre, gun and weapon
+## release, boresight up); a key still down does not press again until it is pressed again.
+func _release_held_keys() -> void:
+	for i in _held_records:
+		if _key_was_held.get(i, false):
+			_apply_held(i, keys.records[i].release)
+	for i in keys.size():
+		if keys.held(i, Settings.key_bindings) and weapons != null:
+			match int(keys.records[i].release[0]):
+				65:
+					weapons.release_selected()
+				67:
+					weapons.gun_stop()
+				46:
+					weapons.radar_event(0x2e)
+
+
+## On-The-Fly menu items (FUN_004dc0d0). The boxes are Yes / No; NO closes the box and the menu stays.
+func menu_choice(action: String) -> void:
+	match action:
+		"resume":
+			_menu_key()
+		"end":
+			_on_mission_box(8, ["yes", "no"], func(): _end_flight(true))
+		"restart":
+			_on_mission_box(9, ["yes", "no"], func(): _end_flight(true, "replaymission"))
+		"new":
+			_on_mission_box(10, ["yes", "no"], func(): _end_flight(true, "newmission"))
+		"prefs":
+			_open_front_end("pref")
+		"quit":
+			_on_mission_box(7, ["yes", "no"], func(): get_tree().quit())
+
+
+## The front end over the frozen flight: the FlyTSD (Esc) or the in-flight Preferences (menu item).
+func _open_front_end(to: String) -> void:
+	if to == "flytsd":
+		_release_held_keys()
+		_freeze(true, false)
+	var layer := CanvasLayer.new()
+	layer.layer = 16
+	layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(layer)
+	fe_overlay = preload("res://menu/front_end.gd").new()
+	fe_overlay.flight = self
+	fe_overlay.screen = to
+	layer.add_child(fe_overlay)
+
+
+## Leaving the FlyTSD (exit 4: the flight resumes, event 0x76) or the in-flight Preferences (exit 5: the
+## flight window is recreated and the menu reopens, still paused). Changed preferences apply now.
+func close_front_end() -> void:
+	if fe_overlay == null:
+		return
+	var was: String = fe_overlay.screen
+	fe_overlay.get_parent().queue_free()
+	fe_overlay = null
+	if was == "pref":
+		_apply_preferences()
+	else:
+		_freeze(false, false)
+
+
+## Preferences the flight reads while flying (the in-flight page has no Gameplay tab).
+func _apply_preferences() -> void:
+	preload("res://audio/sound_buses.gd").apply()
+	($Sun as DirectionalLight3D).shadow_enabled = Settings.shadows
+	g_effects.disabled = Settings.no_blackouts
+
+
+## C, "Time compress toggle x2 x4 x1" (event 0x77): rate = clock vfunc +0x20 (ftol of +0x48); below 4.0
+## (0x604ba8) vfunc 0 adds the rate to itself (kept only while < 16.0, +0x58), else vfunc +4 sets 1.0.
+## No other rule: not refused near enemies or on the ground, never reset by the game (single player clock
+## vtable 0x604c50; no other caller of its rate functions).
+func _time_compress() -> void:
+	_set_time_factor(time_factor * 2 if time_factor < 4 else 1)
+
+
+func _set_time_factor(f: int) -> void:
+	time_factor = f
+	Engine.time_scale = f
+	cockpit.time_factor = f
+
+
+## Our own keys (not in the original table; docs/controls.md "Own keys"). The ones that sat on original
+## keys moved to Ctrl + F-keys when those commands were built (user decision): Ctrl+F1 the quit box
+## (was Esc), Ctrl+F2 cockpit / external (was C and F2), Ctrl+F12 the flight-info line (was F12).
 func _own_key(event: InputEventKey) -> void:
+	if event.ctrl_pressed:
+		match event.keycode:
+			KEY_F1:
+				_quit_key()
+			KEY_F2:
+				in_cockpit = not in_cockpit
+			KEY_F12:
+				Settings.show_info = not Settings.show_info
+				Settings.save()
+		return
 	match event.keycode:
-		KEY_ESCAPE:
-			_quit_key()
-		KEY_C:
-			in_cockpit = not in_cockpit
 		KEY_F1:
 			in_cockpit = true
-		KEY_F2:
-			in_cockpit = false
-		KEY_F12:
-			Settings.show_info = not Settings.show_info
-			Settings.save()
 		KEY_PAGEUP:
 			cockpit.slide_panel(-1)  # look up: the panel slides away
 		KEY_PAGEDOWN:
@@ -1251,7 +1466,11 @@ func _process(delta: float) -> void:
 		if not frozen and not waiting_for_ground and not fm_stopped:
 			if autopilot != null and not ejected and not fatal_hit:
 				autopilot.update(Vector2(terrain.world_origin.x + rig.position.x, terrain.world_origin.y - rig.position.z))
-			flight.step(delta)
+			# Time compression: the frame's sim time is rate × the real frame time (Engine.time_scale); the
+			# flight model takes it in `time_factor` equal steps (its 1 Hz / 5 Hz updates fall on fixed sim
+			# times, so this is the same as one step of the whole time, docs/views.md §2).
+			for i in time_factor:
+				flight.step(delta / time_factor)
 		var st: Dictionary = flight.state()
 		if ejected:
 			_eject_update(delta)
@@ -1332,22 +1551,25 @@ func _read_controls(_delta: float) -> void:
 		if now_held == _key_was_held.get(i, false):
 			continue
 		_key_was_held[i] = now_held
-		var cmd: Array = keys.records[i].press if now_held else keys.records[i].release
-		# The keys rewrite roll / pitch into one stick event with the other axis's last value; the autopilot
-		# may drop it or go off (game/controls/autopilot.gd).
-		var kb: Vector2 = autopilot.kb_stick if autopilot != null else stick
-		match int(cmd[0]):
-			2:
-				kb.x = clampf(cmd[1] * 0.01, -1.0, 1.0)
-			3:
-				kb.y = clampf(-cmd[2] * 0.01, -1.0, 1.0)
-			10:
-				rudder = clampf(cmd[1] * 0.01, -1.0, 1.0)
-				if autopilot != null:
-					autopilot.rudder_event(rudder)
-				continue
-		if autopilot == null or autopilot.stick_event(kb):
-			stick = kb
+		_apply_held(i, keys.records[i].press if now_held else keys.records[i].release)
+
+
+## One stick / rudder key event. The keys rewrite roll / pitch into one stick event with the other axis's
+## last value; the autopilot may drop it or go off (game/controls/autopilot.gd).
+func _apply_held(_i: int, cmd: Array) -> void:
+	var kb: Vector2 = autopilot.kb_stick if autopilot != null else stick
+	match int(cmd[0]):
+		2:
+			kb.x = clampf(cmd[1] * 0.01, -1.0, 1.0)
+		3:
+			kb.y = clampf(-cmd[2] * 0.01, -1.0, 1.0)
+		10:
+			rudder = clampf(cmd[1] * 0.01, -1.0, 1.0)
+			if autopilot != null:
+				autopilot.rudder_event(rudder)
+			return
+	if autopilot == null or autopilot.stick_event(kb):
+		stick = kb
 
 
 ## The mission's landed handler (FUN_00440f90, called by the flight model at each gear-down touchdown that
@@ -1408,7 +1630,7 @@ func _eject() -> void:
 	# Fly-by view on the jet (view 0x13): our external view (UNCERTAIN: the fly-by camera placement).
 	in_cockpit = false
 	if runtime == null:
-		get_tree().create_timer(5.0).timeout.connect(func(): _end_flight(false))
+		get_tree().create_timer(5.0, false).timeout.connect(func(): _end_flight(false))
 
 
 ## Per frame after a full ejection: the 0.05 s throw ticks, the seat, the parachuter and the radio.

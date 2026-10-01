@@ -79,7 +79,7 @@ There is **no SFX_WIND row** and no caller of code 0x24: the original has no air
 * **Stop** `FUN_004c5420(handle)`.
 * **Pause / resume all** (game events 0x75 / 0x76: Ctrl+P pause and the On-The-Fly menu):
   `FUN_004c58e0` → 0x544f50 stops every channel, `FUN_004c58f0` → 0x544f90 resumes them where they
-  stopped (docs/front-end.md §16; not built yet, the port has no pause).
+  stopped (docs/front-end.md §16; terrain_view.gd `_freeze`, docs/views.md §1).
 * **Object sounds** (`FUN_004c3ac0` / `FUN_004c3f90` / `FUN_004c3c10`): up to 4 slots per object;
   slot 0 is the engine (§3). A code change stops the old sound and starts the new one
   (`FUN_004c42a0` + `FUN_004c4ea0`); otherwise the position and pitch are updated (`FUN_004c5220`).

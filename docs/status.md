@@ -86,8 +86,8 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
   HARM); no AI combat (AI jets fly, don't fight), no AAA / SAMs (so no combat mission can be won yet).
 - **Cockpit / MFDs**: radar MAP picture, ECM, RWR threats, FLIR / TV / HARM pages, NAV distances; AI / SAM / ECM /
   lights have no systems; night lighting.
-- **Controls**: no joystick; not built: views other than cockpit / chase, time compression, pause
-  (Ctrl+P) and the in-flight menu (Ctrl+O), in-flight TSD.
+- **Controls**: no joystick; not built: views other than cockpit / chase; FlyTSD Fly into another aircraft / Visit
+  (docs/views.md).
 - **Sounds**: damage / RWR / weapon / AI sounds wait for those systems.
 - **Front end**: Reference, QUIT confirmation, TSD 3D-model / target
   windows; most stored prefs have no effect yet.

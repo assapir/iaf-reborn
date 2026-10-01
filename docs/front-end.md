@@ -1813,8 +1813,8 @@ dragging, the arrow otherwise (`SETCURSOR 506720`).
 
 ## 16. In-flight pause and On-The-Fly menu (flight window `CFlightWnd::OnGameEvent` 0x4dc280)
 
-Traced from the disassembly (unless marked UNCERTAIN). **Not built yet**: the keys belong to the
-key-table / in-flight input work in `game/terrain/terrain_view.gd`, so this is the spec for it.
+Traced from the disassembly (unless marked UNCERTAIN). Built: docs/views.md §1 (`game/terrain/flight_overlay.gd`,
+`terrain_view.gd`).
 
 Key commands reach several windows (`FUN_004e0b80` → WM 0x532 to CIAFWindow and, via `FUN_005e24c3`,
 its children); the real handler is the flight window's map entry 0x605308 → **0x4dc280** (byte table

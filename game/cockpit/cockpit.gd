@@ -67,6 +67,8 @@ var _handle_ms := 0.0
 ## Mission subtitle console lines (newest last), drawn at x=4, y=10+15n of the 640x480 screen in
 ## 12 px Arial and the HUD colour (FUN_005201b0).
 var subtitles: Array[String] = []
+## Time compression rate (sim clock +0x48 via HUD +0x10f4): "%1dX" top right while > 1 (docs/views.md §2).
+var time_factor := 1
 var _console_font: SystemFont
 var _counter_font: SystemFont
 var _console_squeeze := 1.0
@@ -366,7 +368,7 @@ func _draw_decoy_counters(s: float) -> void:
 
 
 func _draw_console() -> void:
-	if subtitles.is_empty():
+	if subtitles.is_empty() and time_factor <= 1:
 		return
 	var s := size.y / ORIGINAL_HEIGHT
 	# CreateFontA(12, 4, …, "ARIAL"): a 12 px cell (em = 12 / 1.15) with a 4 px average character
@@ -384,6 +386,13 @@ func _draw_console() -> void:
 		var pos := Vector2(left + 4 * s, (10 + 15 * n) * s + _console_font.get_ascent(fs))
 		draw_set_transform(pos, 0.0, Vector2(_console_squeeze, 1.0))
 		draw_string(_console_font, Vector2.ZERO, subtitles[n], HORIZONTAL_ALIGNMENT_LEFT, -1, fs, hud_colour())
+	# Time compression (FUN_005201b0 @520414): "%1dX" (0x65c6c4) with TA_RIGHT at (630, 10), same font
+	# and colour, while the rate is > 1.0.
+	if time_factor > 1:
+		var t := "%1dX" % time_factor
+		var w := _console_font.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x * _console_squeeze
+		draw_set_transform(Vector2(left + 630 * s - w, 10 * s + _console_font.get_ascent(fs)), 0.0, Vector2(_console_squeeze, 1.0))
+		draw_string(_console_font, Vector2.ZERO, t, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, hud_colour())
 	draw_set_transform(Vector2.ZERO)
 
 

@@ -39,7 +39,9 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	var dt := minf(delta, 0.2)
+	# The original integrates the frame's real time (DAT_007d1980, timeGetTime), not the sim clock:
+	# time compression (Engine.time_scale) does not speed it up.
+	var dt := minf(delta / maxf(Engine.time_scale, 1e-6), 0.2)
 	_now += delta
 	if not disabled:
 		blackout = minf(blackout + 0.43 * g * dt, 24.0)

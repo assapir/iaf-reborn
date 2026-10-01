@@ -111,12 +111,14 @@ original commands, and which ones work yet, is in [docs/controls.md](docs/contro
 | F1 / F10       | cockpit / external (chase) view                                           |
 | = / − (Numpad + / −) | cockpit zoom                                                        |
 | Ctrl+Q         | quit mission? (debrief)                                                   |
+| Ctrl+P / Ctrl+O | pause / On-The-Fly menu                                                  |
+| Esc            | tactical display (FlyTSD) and back; closes the menu                       |
+| C / Ctrl+C     | time compression x2 / x4 / x1, normal time                                |
+| Ctrl+M         | mute                                                                      |
 
-Our own keys (not in the original, or on original keys whose command isn't built yet — see
-docs/controls.md): **Esc** quit mission? (original: TSD toggle), **C** cockpit ↔ external
-(original: time compression), **F2** external (original: back view), **F12** flight-info line
-(original: I-mode), **V** / **PgUp** / **PgDn** panel, mouse wheel zoom, RMB drag orbits the external
-view.
+Our own keys (not in the original — see docs/controls.md): **Ctrl+F1** quit mission?, **Ctrl+F2** cockpit ↔
+external, **Ctrl+F12** flight-info line, **V** / **PgUp** / **PgDn** panel, mouse wheel zoom, RMB drag orbits the
+external view.
 
 ### Tests / captures
 

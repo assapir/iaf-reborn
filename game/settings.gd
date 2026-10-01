@@ -79,7 +79,7 @@ var unlimited_fuel := false
 var pref_page := "Sound"
 ## "Better physics" (Preferences > Physics): BETTER id -> on.
 var better := {}
-## Our flight-info line at the bottom left (not in the original); F12 toggles it.
+## Our flight-info line at the bottom left (not in the original); Ctrl+F12 toggles it.
 var show_info := true
 ## Blackbox: the flight recorder user://last_flight.csv (for diagnosing flights; on for now).
 var blackbox := true

@@ -421,6 +421,13 @@ func _draw_overlay() -> void:
 	var line_h: float = fe.font_bold.get_height(fs) / s
 	overlay.draw_string(fe.font_bold, Vector2(4, 4) * s + Vector2(0, fe.font_bold.get_ascent(fs)), mission_title, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
 	overlay.draw_string(fe.font_bold, Vector2(14, line_h + 6) * s + Vector2(0, fe.font_bold.get_ascent(fs)), mission_clock, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
+	# In flight (FlyTSD): the time compression rate "%dx" (0x654b74) with TA_RIGHT at (Wc - 4, 4) while > 1
+	# (@5013f0).
+	var rate: int = fe.flight.time_factor if fe.flight != null else 1
+	if rate > 1:
+		var t := "%dx" % rate
+		var w: float = fe.font_bold.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		overlay.draw_string(fe.font_bold, Vector2((CLIENT.size.x - 4) * s - w, 4 * s + fe.font_bold.get_ascent(fs)), t, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
 
 
 ## Map units -> client pixels (640 space).

@@ -79,16 +79,17 @@ the Preferences Controls page (docs/front-end.md §12.7) and looks every in-flig
 
   | key | ours | the original's command on that key |
   |---|---|---|
-  | Esc | quit-mission box (msg 8) / menus | TSD and cockpit toggle (122, not built) |
-  | C | cockpit ↔ external | Time compress (119, not built) |
+  | Ctrl+F1 | quit-mission box (msg 8) | — (was on Esc, now the TSD toggle 122) |
+  | Ctrl+F2 | cockpit ↔ external | — (was on C, now time compression 119, and F2, now the back view) |
+  | Ctrl+F12 | flight-info line on / off | — (was on F12, I-mode 124, which is not built) |
   | F1 | cockpit | Cockpit / HUD view (28,1) — the same, runs through the table |
-  | F2 | external view | Back view (22,180, not built) |
-  | F12 | flight-info line on / off | I-mode (124, not built) |
   | V | panel up / down | — |
   | PgUp / PgDn | slide the panel | — |
   | = / − / Numpad + / − | cockpit zoom | Zoom in / out (20 / 21) — runs through the table, one step per press (the original zooms while held) |
 
-  If the player binds one of these keys to a command we implement, the command wins.
+  If the player binds one of these keys to a command we implement, the command wins. Moving our functions to
+  Ctrl + F-keys when the original commands on their keys were built is a user decision; no table record uses
+  Ctrl + F-keys.
 * Joystick buttons are not handled in flight yet (no joystick support); the Controls page shows and
   edits the button column only as data.
 * Rebinds: `Settings.key_bindings` = {record: [key, button]} for the records that differ from the
@@ -108,13 +109,13 @@ original's `WM 0x532` wParam; p1 / p2 as stored.
 
 | # | Function (keys.trx) | Default key | Joy | Press (id, p1, p2) | Release | Listed | iaf-reborn |
 |---|---|---|---|---|---|---|---|
-| 0 | TSD and cockpit toggle | Esc |  | (122, 0, 0) |  | yes | — |
+| 0 | TSD and cockpit toggle | Esc |  | (122, 0, 0) |  | yes | unpause / close the menu / FlyTSD and back (views.md §1) |
 | 1 | Quit mission | Ctrl + Q |  | (134, 3, 0) |  | yes | quit-mission box (msg 8) |
-| 2 | Pause mission | Ctrl + P |  | (132, 0, 0) |  | yes | — |
-| 3 | On-The-Fly menu | Ctrl + O |  | (133, 0, 0) |  | yes | — |
-| 4 | Mute sound toggle | Ctrl + M |  | (135, 0, 0) |  | yes | — |
-| 5 | Time compress toggle x2 x4 x1 | C |  | (119, 0, 0) |  | yes | — |
-| 6 | Normal time | Ctrl + C |  | (120, 0, 0) |  | yes | — |
+| 2 | Pause mission | Ctrl + P |  | (132, 0, 0) |  | yes | pause (views.md §1) |
+| 3 | On-The-Fly menu | Ctrl + O |  | (133, 0, 0) |  | yes | On-The-Fly menu (views.md §1) |
+| 4 | Mute sound toggle | Ctrl + M |  | (135, 0, 0) |  | yes | Mute on / off |
+| 5 | Time compress toggle x2 x4 x1 | C |  | (119, 0, 0) |  | yes | time rate 1 → 2 → 4 → 1 (views.md §2) |
+| 6 | Normal time | Ctrl + C |  | (120, 0, 0) |  | yes | time rate 1 |
 | 7 | Idle thrust | 1 |  | (9, 0, 0) |  | yes | throttle = p1 · 0.01 |
 | 8 | 65% thrust | 2 |  | (9, 10, 0) |  | yes | throttle = p1 · 0.01 |
 | 9 | 70% thrust | 3 |  | (9, 19, 0) |  | yes | throttle = p1 · 0.01 |
