@@ -39,6 +39,10 @@
 
 Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user decisions.
 
+## After AI combat
+- Short demo video (menus → briefing / Arming → take-off → AI combat → debrief); WebM/VP9 (h264 didn't play
+  for the user last time), sent with the report.
+
 ## Small bugs (fix between jobs)
 - **Decide: model scale.** The original draws every mission model at its bdb Present scale (0x65e: ×2 for aircraft,
   buildings, underlays; ×3–4 for vehicles / SAMs) — now ported for mission objects and AI jets (the airbases match the
