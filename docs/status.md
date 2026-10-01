@@ -25,7 +25,7 @@
 flares / chaff and decoy rules, script op 2, armed vehicles / boats; then the demo video (H.264).
 
 **3. Missions and general fixes:** remaining small bugs below, player flight by
-formation id, pilot records (JSON), Jump In, remaining front-end screens, more weapons (radar missiles, TV / IR,
+formation id, Jump In, remaining front-end screens, more weapons (radar missiles, TV / IR,
 anti-radiation, rockets), night.
 
 **PARKED (docs/roadmap.md):** modern imagery outside Israel + georeference, 1:1 world scale, better AI, cheats,
@@ -77,7 +77,8 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 | Aircraft models | all 22 models: moving parts per the original rules, gear, afterburner flame, canopy / pilot, damage visuals |
 | Sounds | original sound table: engine, gear, flaps, air brake, AoA tone, Betty warnings, touchdown, crash; volume sliders |
 | Terrain | all of `map.ptt` (levels 11..6 + all 51 insets, 2342 nodes) as a streamed quadtree with distance LOD to 200 km, level-6 heights with the original's inset interpolation, skirts; runway digits surveyed on every airbase (2 mirrored fixed); `terraintype.dat` surface types (water / rough / runway) feed the flight model; loaded behind the wait screen (docs/formats/ptt.md) |
-| Tests | `tools/test.sh`: Rust + 30 headless Godot tests, isolated from the player's settings; fails on any script error |
+| Pilot records | screen 0 at startup (docs/front-end.md §13): pilot list, Dossier (edit boxes, photo, rank, score, missions), Records / Kills / Losses, New / Remove / Login; each debriefed flight recorded (result, MissBonus, destroyed units as kills / losses, score multiplier), best-attempt score and rank, the briefing's "<rank> <name>"; Future Missions 2–7 locked until the previous pass; JSON in the user dir. Not filled yet: kills / losses only from what the damage code destroys (no AI weapons / SAMs), the debrief page's own statistics |
+| Tests | `tools/test.sh`: Rust + 31 headless Godot tests, isolated from the player's settings; fails on any script error |
 
 ## Open gaps (by area)
 - **Terrain**: map-edge push-back / EndWorld and craters (terraintype bits known, systems missing); no elevation
@@ -90,7 +91,7 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 - **Controls**: no joystick; not built: views other than cockpit / chase, time compression, pause
   (Ctrl+P) and the in-flight menu (Ctrl+O), in-flight TSD.
 - **Sounds**: damage / RWR / weapon / AI sounds wait for those systems.
-- **Front end**: pilot records and mission unlocking, Reference, QUIT confirmation, TSD 3D-model / target
+- **Front end**: Reference, QUIT confirmation, TSD 3D-model / target
   windows; most stored prefs have no effect yet.
 - **Eject details**: the original fly-by camera, callsign in the radio call, parachute landing.
 

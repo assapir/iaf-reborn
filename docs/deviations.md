@@ -49,6 +49,9 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 | AI radio (FlightController reports, contact calls, "Roger" replies of wingman commands) | spoken | not yet | AI voices wait for the radio work | ai.md §10 |
 | Flare look | the decoy's bdb model is 0 (no picture found) | a small bright glow quad for a flare; chaff draws nothing | the original's look is UNCERTAIN | player_weapons.gd `_decoy_visual`, weapons.md §10 |
 | Radar line of sight | `FUN_004020d0` (sampling not traced) | terrain sampled every 100 m along the segment | UNCERTAIN original sampling | radar.gd, radar.md §8 |
+| Pilot records storage | `Pilots.dat` + `Pilots\<id>.mis` / `.bmp` next to the exe | our own JSON with the same data in the user data dir (`user://pilots`: `pilots.json`, `<id>.json`, custom photo `<id>.png`); original files are not imported | user decision | front-end.md §13.13 |
+| Pilot list box during panel slides | a frame child created after the slide-in (destroy order on leaving not traced) | drawn only while the left panel is fully in | order untraced | pilot_records.gd |
+| Pilot list / Dossier details | the scrollbar's track click page step not traced; an empty pilot list never occurs | track click pages 11 rows (as Arming / Controls); the last pilot is kept when the list is written even if blank | untraced / edge case | pilot_records.gd, pilots.gd |
 | Keys Esc / C / F2 / F12 | TSD toggle / time compression / back view / I-mode | ours (quit box / view toggle / external / info line) until those commands exist | not built yet | controls.md |
 
 ## 2. Opt-in switches (original by default)

@@ -1218,6 +1218,8 @@ MISSIONS COMPLETED, plus a photo frame.
   * It is a child window whose background is a copy of the page bitmap under it.
   * Text is drawn at (0, h) with TA_BOTTOM, in the same green and font.
   * Caret: `misc/LoginCaret.bmp` (1×16), bottom-aligned, blinking on a 200 ms timer (`SetTimer(…,1,200)`).
+  * The Dossier draws the rank, score and missions completed when the page is (re)created (`FUN_0051bb90`, on
+    every `FUN_0050b230(0)`), so they follow the selected pilot.
   * A click places the caret at the nearest character (`FUN_004f24f0`).
   * WM_CHAR (`4f1da0`, jump table `4f2084`):
     * Only **space, `.`, `0-9`, `a-z`, `A-Z`** are accepted, inserted at the caret.
@@ -1321,10 +1323,22 @@ mission `DAT_0083b810`.
        221, 231, 311, 321, 331, 401, 511);
      * mission id − 1 has not been passed.
    * **bonus** = `R[1]`.
-   * **kills**: 1000 entries at `R+0x48`. **losses**: 1000 entries at `R+0x1f48`. Each entry is
-     8 bytes. For each entry, `FUN_004f6da0(typeCode)` gives a category, and that category's counter
-     is incremented.
+   * **kills**: 1000 entries at `R+8`. **losses**: 1000 entries at `R+0x1f48`. Each entry is
+     8 bytes {type code, class}. For each entry, `FUN_004f6da0(typeCode)` gives a category, and that
+     category's counter is incremented (the loop runs `0x1f48..0x3e88` and reads `R + i − 8000` and `R + i`).
 3. Save the file, except for the MP ids 0x21d, 0x29a, 0x213 and 0x1ff–0x207.
+
+**Where R comes from** (the debrief compile `FUN_0059a0f0` at flight shutdown, called with the engine's
+mission id `+0x118`; objdump `59a2f0..59a3e4`):
+* **result** `R[0]` (unit+0x1f84) = the mission's passed flag (+0x6615, docs/mission-runtime.md §5.1).
+* **bonus** `R[1]` (+0x1f88) = `GetPrivateProfileInt("MissBonus", "<mission id>", 0, ScoreFile)` (`FUN_0059add0`;
+  ScoreFile = iaf.ibx `[Scenario]` → `Resource\Missions\Scores.ibx`: 1500 historical, 1000–5000 Future,
+  500 basic, 1000 combat training, 1000 scramble) when passed; when not passed `__ftol(bonus · −0.5)` (`.rdata
+  0x611820` = −0.5), i.e. **half the bonus as a penalty**.
+* Every entity of the entity table with state 4 or 5 is listed as {unitinfo+0x24 type code, unitinfo+8 class}:
+  on the player's side (`FUN_004a4cd0`: same side as the player; without a player, side 1) → **losses**
+  (+0x3ecc), otherwise → **kills** (+0x1f8c, count +0x38). So "kills" are all enemy units destroyed in the
+  flight, by anyone; "losses" include the player's own jet. (Multiplayer swaps this for the host's side test.)
 
 Categories are the same indices as the TSD label table in §8.1 ("Selected-unit label"):
 * 0–36 by type code;
@@ -1351,15 +1365,19 @@ L_class += losses · pts · (mult > 0 ? 1 : 0)
 score    = trunc((ΣK − ΣL) + bonus · (bonus > 0 ? mult : 1.0))
 ```
 
-**Best attempt** of a mission: the one with the highest score (the later one on a tie). Pilot totals
-sum each mission's best attempt and skip the MP ids (§13.7).
+`K` is accumulated as `__ftol(K + kills·pts·mult)` (objdump `4f7c3f`), the score as `__ftol((ΣK − ΣL) +
+bonus·…)`; `__ftol` truncates toward zero.
+
+**Best attempt** of a mission: the one with the highest score (the later one on a tie: `best ≤ this`), over
+**all** its attempts (failed and −1 ones included). Pilot totals sum each mission's best attempt and skip the MP
+ids (§13.7); the kill / loss counts per display group are summed from the same best attempts.
 
 | global | meaning |
 |---|---|
 | `DAT_0083d278` | **pilot score** = sum of best scores. The rank comes from it (table in §8.1: < 5000 Second Lieutenant … ≥ 100000 General). |
 | `DAT_0083d25c` | number of missions with at least one pass |
-| `DAT_0083d260/dc/e0` | kill points: air / ground / structure |
-| `DAT_0083d26c/e8/ec` | loss points: air / ground / structure |
+| `DAT_0083d260/264/268` | kill points: air / ground / structure |
+| `DAT_0083d26c/270/274` | loss points: air / ground / structure |
 | `0x83d27c + 8g` / `0x83d2d4 + 8g` | kills / losses per display group: {row, count} |
 
 **Display groups** (`FUN_004f7120`; names from `FUN_004f78d0`; row from `FUN_004f74f0`):
@@ -1404,8 +1422,8 @@ sum each mission's best attempt and skip the MP ids (§13.7).
   Drawn at (slotX+13, slotY+17), TA_CENTER|TA_TOP, green, font from **`fnt/key.fnt`**.
 * **Class totals**: font **`fnt/hud.fnt`**, right-aligned at x=378, vertically centred on y=58 (air),
   128 (ground) and 184 (structure).
-  * Kills page: `DAT_0083d260/dc/e0` in green.
-  * Losses page: `−DAT_0083d26c/e8/ec` in red RGB(255,0,0).
+  * Kills page: `DAT_0083d260/264/268` in green.
+  * Losses page: `−DAT_0083d26c/270/274` in red RGB(255,0,0).
   * A total is drawn only if it is non-zero or its row has icons.
 * Both `.fnt` files are loaded with `AddFontResource` + `EnumFontFamilies(<file title>)`
   (`FUN_004eecd0`). This is a second font use besides the credits (§4).
@@ -1464,11 +1482,26 @@ v1.0 reloaded the training missions with the same plane. Port: `front_end.gd` `_
 * If all are passed: a random one of the other six.
 
 ### 13.12 Notes / UNCERTAIN
-* UNCERTAIN meanings: `R[0]` (assumed to be the pass flag) and `R[1]` (the bonus).
+* `R[0]` / `R[1]` are traced (§13.7: the passed flag and the MissBonus).
+* No edit box has the keyboard when the Dossier is shown (page +0x68 = 0 in `FUN_0051bb90`); a click gives it.
 * `FUN_004e66c0` is the message-box call used here (type 0 OK; type 4 Yes/No, returns 6 on Yes). It is
   assumed to behave like `FUN_004e3f30` (§3.3).
 * Page coordinates (Dossier, Records, Kills, Losses) are relative to content (26,55), so
   screen = (181 + x, 97 + y). The list box is already in screen coordinates.
+
+### 13.13 Implementation (game/menu/pilots.gd, pilot_records.gd)
+* `pilots.gd`: the list, the histories, `record()` = `FUN_004f68b0`, `attempt_score()` = `FUN_004f7b30`,
+  `totals()` = `FUN_004f66d0`, `rank()`, the categories / groups / points tables, the MissBonus read from the
+  install's `scores.ibx`. Storage is our own JSON in `user://pilots` (docs/deviations.md): `pilots.json` = the
+  selected index and the records, `<id>.json` = the history, `<id>.png` = a custom photo. Tests use a temp dir.
+* `pilot_records.gd`: the list box, scrollbar, tabs, the four pages, the edit boxes (character rules, max
+  length / width, caret, Enter / Tab, the checks and messages), the photo (click cycles, right button up opens
+  the system's file dialog for a .bmp), New_Pilot / Remove_Pilot / Login, double-click. The list is written when
+  the screen is left (the node is freed), as `FUN_0051ce30`.
+* `front_end.gd`: starts on screen 0; the debrief records the attempt for the logged-in pilot
+  (`mission_runtime.gd debrief_text()` = the `FUN_0059a0f0` results); the list rows' f1 lock and the cheat.
+* The ranks, group names and pages' numbers are the exe's English strings in both languages (the Hebrew packs
+  translate only the art and msgs.trx).
 
 ## 14. Reference screen (screen 5, `ref.trx`, content class ctor `FUN_004fc490`, vtable `0x607b18`)
 
