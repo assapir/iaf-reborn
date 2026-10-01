@@ -176,6 +176,22 @@ water bit, so touching down on Cyprus counts as water. Ported: `terrain.gd` read
 at start and `surface_at(pos)` returns the mask; the flight gets water / rough every frame
 (`set_ground_surface`).
 
+The 0x10 polygons are the whole airbase (runway, taxiways, aprons and the grass between), not the runway strip:
+landing beside the runway inside the base is safe. Measured from each iaf.ibx lineup point along the runway heading
+(length, of which behind the lineup point; width across the middle), `tests/godot/test_runway_edges.gd`:
+
+| base | length (behind) m | width m | | base | length (behind) m | width m |
+|---|---|---|---|---|---|---|
+| Ramon | 3740 (305) | 1003 | | Damascus | 5660 (1015) | 1750 |
+| Tel Nof | 4635 (460) | 802 | | Kuzeir | 6370 (1295) | 3627 |
+| Ramat David | 4610 (420) | 842 | | Bley | 5645 (800) | 3371 |
+| Refidim | 4610 (1130) | 547 | | Rayak | 8690 (255) | 5719 |
+| Inshas | 12920 (6440) | 8585 | | Amman | 17575 (8205) | 13744 |
+
+The foreign bases (Inshas, Rayak, Amman most of all) are coarse: kilometres of open ground count as airbase. The
+test lands 40 m inside and outside each footprint's threshold end, far end and sides at all ten: inside never
+crashes, outside is rough ground (water where the mask has 0x6).
+
 ## Runway number fix (rendering improvement)
 **Deliberate improvement over the 1998 data** (applied to the converted nodes of levels 0..2). Rule: a runway-end number N must read upright to a pilot landing on
 that end (facing heading N×10°). The terrain itself is correctly oriented (coastline, match with the coarse levels,
