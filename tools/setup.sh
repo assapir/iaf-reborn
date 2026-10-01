@@ -107,4 +107,4 @@ step "icon and desktop launcher (the original icon from iafjets.exe)"
 ./target/release/iaf-convert icon assets/install assets/converted/icon.png
 tools/install-launcher.sh
 
-step "done — run: ./iafjets (or the \"Jane's IAF (iaf-reborn)\" launcher)"
+step "done — run: ./iafjets (or the \"Jane's IAF (reborn)\" launcher)"

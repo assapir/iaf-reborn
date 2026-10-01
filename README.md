@@ -53,7 +53,7 @@ See [docs/macos.md](docs/macos.md).
 ```sh
 tools/setup.sh [--patch /path/to/v1.1-patch.exe] "/path/to/Jane's IAF.iso" [/path/to/Brief.zip /path/to/Menu.zip]
 ./iafjets                                                          # builds what changed and starts the game (front end → Training → mission)
-# setup also installs a desktop launcher, "Jane's IAF (iaf-reborn)", with the original icon
+# setup also installs a desktop launcher, "Jane's IAF (reborn)", with the original icon
 ```
 
 `tools/setup.sh` runs the whole pipeline (extract → v1.1 patch → Hebrew packs → cockpits, briefings, menus, keys,
