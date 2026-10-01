@@ -33,6 +33,7 @@ func run() -> void:
 					_dismiss_box(fe)
 					await _open(fe, s)
 		check(visited > 10, "%s: visited %d screens and pressed their buttons" % [lang, visited])
+		await _log_screen(fe, lang)
 		# TSD and Arming: a mission with two flights (231) and (English) one with four (136).
 		for id in ([231, 136] if lang == "en" else [231]):
 			await _tsd_and_arm(fe, id, lang)
@@ -194,6 +195,55 @@ func _tsd_and_arm(fe, id: int, lang: String) -> void:
 	_dismiss_box(fe)
 	await _settle(fe)
 	Settings().arm_loadouts = {}
+
+
+## Pilot Records (screen 0): a dozen pilots (the list scrolls), every tab by mouse with a recorded history
+## (Kills / Losses icons and totals), the list's rows, arrows, track and thumb, both edit boxes, the photo.
+func _log_screen(fe, lang: String) -> void:
+	var Pilots = load("res://menu/pilots.gd")
+	await _open(fe, "log")
+	var rec = fe.records
+	var kills := [[110, 28], [150, 28], [220, 3], [230, 3], [0, 2], [250, 5], [260, 6], [270, 5], [290, 8], [380, 15], [400, 12], [410, 12]]
+	Pilots.record(rec.data.current().id, 111, {"result": 1, "bonus": 1500, "kills": kills + kills, "losses": [[100, 28], [250, 5], [400, 12]]}, 1.0)
+	Pilots.record(rec.data.current().id, 112, {"result": 0, "bonus": -750, "kills": [], "losses": []}, 1.0)
+	rec._select(rec.data.selected)
+	while rec.data.pilots.size() < 13:
+		rec.new_pilot()
+		rec.edit = ["P%d" % rec.data.pilots.size(), "C%d" % rec.data.pilots.size()]
+		await frames(1)
+	var at = func(p: Vector2) -> Vector2: return fe._to_screen(p)
+	var press = func(p: Vector2, double := false):
+		rec._gui_input(mouse_button(at.call(p), true, double))
+		rec._gui_input(mouse_button(at.call(p), false))
+	var bar: Rect2 = Rect2(rec.LIST + rec.BAR.position, rec.BAR.size)
+	for y in [bar.position.y + 5, bar.end.y - 5, bar.end.y - 25, bar.position.y + 25]:
+		press.call(Vector2(bar.get_center().x, y))
+		await frames(2)
+	var thumb := Vector2(bar.get_center().x, rec._thumb_y() + 10)
+	rec._gui_input(mouse_button(at.call(thumb), true))
+	var mv := InputEventMouseMotion.new()
+	mv.position = at.call(thumb + Vector2(0, 100))
+	rec._gui_input(mv)
+	rec._gui_input(mouse_button(mv.position, false))
+	check(rec.top == rec._max_top(), "%s: Pilot Records list scrolled to the end by the thumb" % lang)
+	press.call(rec.LIST + rec.ITEMS.position + Vector2(20, 3))
+	rec._select(0)
+	for t in [1, 2, 3, 0]:
+		press.call(rec.CONTENT + Vector2(rec.TAB_X[t] + 10, rec.STRIP.y + 10))
+		await frames(3)
+		check(rec.tab == t, "%s: Pilot Records tab %s" % [lang, rec.TAB_ART[t]])
+	var page: Vector2 = rec.CONTENT + rec.PAGE
+	for box in [rec.NAME_BOX, rec.CALL_BOX]:
+		press.call(page + box.get_center())
+		var e := InputEventKey.new()
+		e.pressed = true
+		e.unicode = "x".unicode_at(0)
+		rec._unhandled_input(e)
+		await frames(2)
+	press.call(page + rec.PHOTO.get_center())
+	await frames(2)
+	_dismiss_box(fe)
+	check(rec.totals.score > 0 and rec.totals.kill_groups.max() > 0, "%s: Pilot Records shows a history" % lang)
 
 
 func _open(fe, s: String) -> void:
