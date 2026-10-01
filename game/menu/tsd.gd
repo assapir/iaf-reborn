@@ -305,9 +305,11 @@ func _new_window(r: Rect2, tab: String) -> Control:
 ## DAT_0083b834); no pilot records yet: a new pilot's rank.
 func _text_of(entry: Dictionary) -> String:
 	var lang := "he" if fe._he() else "en"
-	var text: String = entry.get("text", {}).get(lang, "")
+	# null = no translation (briefings.json has "he": null where the Hebrew pack lacks the file).
+	var texts: Dictionary = entry.get("text", {})
+	var text: String = texts.get(lang) if texts.get(lang) != null else ""
 	if text == "":
-		text = entry.get("text", {}).get("en", "")
+		text = texts.get("en") if texts.get("en") != null else ""
 	var re := RegEx.create_from_string("(?i)<header>")
 	return re.sub(text, "Second Lieutenant", false)
 

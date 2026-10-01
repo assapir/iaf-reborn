@@ -747,7 +747,7 @@ func _draw_prefs() -> void:
 	if page != "Devices":
 		_blit("pref/defbut_%d.png" % (2 if pref_default_held else 0), at + PREF_DEFAULT.position)
 	if page == "Graphics":
-		# Not mirrored in Hebrew: the Graphics art (both packs) is English and left-to-right.
+		# Not mirrored in Hebrew: the Graphics art is left-to-right in both languages (the Hebrew CD's too).
 		var vs_on := bool(pref_work.get("vsync", true))
 		_blit_region("pref/gamep_%d.png" % (1 if vs_on else 0), Rect2(Vector2(28, 55), Vector2(11, 11)), at + PREF_VSYNC.position + Vector2(4, 6))
 		var r := _rect(Rect2(at + PREF_VSYNC.position + Vector2(22, 0), Vector2(PREF_VSYNC.size.x - 22, 20)))

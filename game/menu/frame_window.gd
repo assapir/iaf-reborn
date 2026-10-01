@@ -63,9 +63,10 @@ func set_text(bbcode: String, links: Array) -> void:
 		body_clip.mouse_filter = Control.MOUSE_FILTER_PASS
 		add_child(body_clip)
 		body_clip.add_child(rich)
-	# Hebrew briefings are right-to-left paragraphs.
+	# Hebrew briefings are right-to-left paragraphs; one without a Hebrew version (English text) stays left-aligned.
 	var text := _linkify(bbcode, links)
-	rich.text = "[right]%s[/right]" % text if fe._he() else text
+	var hebrew: bool = fe._he() and RegEx.create_from_string("[\\x{05D0}-\\x{05EA}]").search(text) != null
+	rich.text = "[right]%s[/right]" % text if hebrew else text
 	image = null
 	scroll = 0.0
 
