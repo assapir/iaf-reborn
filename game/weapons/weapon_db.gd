@@ -27,8 +27,13 @@ static func create(bdb: Dictionary, real_data := false) -> RefCounted:
 	db._load_ibx(Settings.assets_dir().path_join(IBX))
 	var models: Dictionary = Settings.load_json(Settings.assets_dir().path_join("converted/objects/objects.json"))
 	var paths: Dictionary = models.get(String(bdb.get("_file", "default6_1.bdb")).to_lower(), models.get("default6_1.bdb", {}))
+	# Present record 0x65e: the model's uniform scale (as for every mission model, terrain_view.gd).
+	var scales := {}
+	for pr in bdb.get("present", {}).get("items", []):
+		scales[int(pr.get("0x1e", -1))] = float(pr.get("0x65e", 10.0))
 	for w in bdb.get("weapons", {}).get("items", []):
 		var r := _record(w, paths)
+		r["scale"] = float(scales.get(r.model, 1.0))
 		db.weapons[r.id] = r
 	if real_data:
 		preload("res://weapons/real_weapons.gd").apply(db)
