@@ -4,9 +4,9 @@ compatibility_minimum = 4.7
 reloadable = true
 
 [libraries]
-linux.debug.x86_64 = "res://../target/debug/libiaf_godot.so"
+linux.debug.x86_64 = "res://../target/release/libiaf_godot.so"
 linux.release.x86_64 = "res://../target/release/libiaf_godot.so"
-macos.debug = "res://../target/debug/libiaf_godot.dylib"
+macos.debug = "res://../target/release/libiaf_godot.dylib"
 macos.release = "res://../target/release/libiaf_godot.dylib"
-macos.debug.arm64 = "res://../target/debug/libiaf_godot.dylib"
+macos.debug.arm64 = "res://../target/release/libiaf_godot.dylib"
 macos.release.arm64 = "res://../target/release/libiaf_godot.dylib"

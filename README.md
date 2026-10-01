@@ -52,7 +52,7 @@ See [docs/macos.md](docs/macos.md).
 
 ```sh
 tools/setup.sh [--patch /path/to/v1.1-patch.exe] "/path/to/Jane's IAF.iso" [/path/to/Brief.zip /path/to/Menu.zip]
-godot --path game                                                 # front end → Training → mission → Continue
+./iafjets                                                          # builds what changed and starts the game (front end → Training → mission)
 ```
 
 `tools/setup.sh` runs the whole pipeline (extract → v1.1 patch → Hebrew packs → cockpits, briefings, menus, keys,

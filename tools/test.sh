@@ -7,7 +7,7 @@ cd "$(dirname "$0")/.."
 fail=0
 echo "== cargo test"
 cargo test -q --workspace 2>&1 | grep -E "test result|FAILED|panicked" || fail=1
-cargo build -q -p iaf-godot || fail=1
+cargo build -q --release -p iaf-godot || fail=1
 for t in tests/godot/test_*.gd; do
 	echo "== $t"
 	out=$(IAF_DEFAULT_SETTINGS=1 timeout 180 godot --headless --audio-driver Dummy --path game -s "../$t" 2>&1)

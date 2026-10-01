@@ -101,6 +101,6 @@ rm -rf assets/converted/terrain/israel_l4  # the old Israel-only layout
 ./target/release/iaf-terrain theatre assets/install/resource/terrain/map.ptt assets/converted/terrain/theatre
 
 step "Godot extension (flight model)"
-cargo build -p iaf-godot
+cargo build --release -p iaf-godot
 
 step "done — run: godot --path game"
