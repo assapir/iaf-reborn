@@ -274,9 +274,18 @@ Types 500 / 510 / 560 / 650 share the release path ("bomb types", `FUN_00457bc0`
 - AI bomb runs release through `FUN_00440440` (gate `FUN_004d4100`) from `FUN_005cd0d0` (impact within the tolerance
   or 1000 m, 0x612fc0), `FUN_005d8590` (miss < 400 m, 600 m for kinds 0xd2 / 0xdc, angle < 15°, state 9 → 0xb),
   `FUN_005d9290`.
+- **Mode-5 HUD (CCIP with a delayed release, no true CCRP)** (object `FUN_0045d0a0`): pipper on the HUD (M+0x2c = 0)
+  = the predicted impact M+0xc; off the HUD (M+0x2c = 1, cockpit views) it is clipped to the HUD edge and the target
+  M+0x18 is the ground under it. Space freezes the target (M+0x3c); the first bomb goes once time-to-go M+0x30 =
+  horizontal |I − T| / ground speed ≤ 0.9 s (`_DAT_0082f528`). Impact (`FUN_0045e7f0` HUD / `FUN_0045e400` release, AI):
+  V = jet velocity (HUD path: minus the bdb drag 0x73a as m/s along the nose), t = (vz + √(vz² + 19.612·h)) / 9.806
+  (h above terrain), I = P + V·t − (0, 0, 4.903·t²), one re-solve for the terrain at I and a terrain ray check.
+  Rockets add `_limitVel` 1000 m/s along the nose (the 6 s `_limitDist / _limitVel` cap is overwritten with 1e7:
+  dead store). Release permission `FUN_0045ee10`: g ≥ 0 and |roll| ≤ 90°. Symbols (GDI): fall line FPM → pipper,
+  r 8 circle, centre dot; delayed: a 20 px cue bar FPM → pipper as time-to-go 10 → 0 s; frozen: 400 px steering line;
+  after the last bomb they blink ~300 ms for 1.0 s (`_DAT_0082f620`); "%2d SEC" ("XX SEC" ≥ 90) while off the HUD.
 - **Untraced**: the bomb motion (class 0x16, `FUN_005611b0` / `FUN_00468470`, the ±`_debugParam016` clamp, cluster
-  submunitions "prepareClusterExplosion"), the mode-5 HUD (CCIP / CCRP, `FUN_0045ed10`, `FUN_0045ee10`), rocket motion
-  and pods.
+  submunitions "prepareClusterExplosion"), rocket motion and pods.
 
 ## UNCERTAIN
 Candidate order of the spatial query; event 0x4e (pre-explosion) receiver; hit effects look; tracer look; muzzle flash
