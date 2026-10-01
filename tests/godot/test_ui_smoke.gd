@@ -37,7 +37,7 @@ func run() -> void:
 		# TSD and Arming: a mission with two flights (231) and (English) one with four (136).
 		for id in ([231, 136] if lang == "en" else [231]):
 			await _tsd_and_arm(fe, id, lang)
-		await _graphics_imagery(fe, lang)
+		await _extras_imagery(fe, lang)
 		# Preferences: every tab, then leave by BACK (Yes / No / Cancel) and MAIN.
 		for exit_path in ["yes", "no", "cancel", "main"]:
 			await _open(fe, "pref")
@@ -88,31 +88,31 @@ func run() -> void:
 	Settings().language = "en"
 
 
-## Graphics page: each imagery drop-down opens upwards with Original first, greys the layers that are
-## not converted (a click on one keeps the choice), picks Original, and closes on a click elsewhere.
-func _graphics_imagery(fe, lang: String) -> void:
+## Extras page (scrolls like Physics): one terrain-imagery row per region, Original first; a layer that is not converted is greyed
+## and a click on it keeps the choice; every row fits the page.
+func _extras_imagery(fe, lang: String) -> void:
 	await _open(fe, "pref")
-	fe._on_button(fe._key_for_label("Graphics"))
+	fe._on_button("extras")
 	await frames(2)
 	var click := func(q: Vector2):
 		fe._gui_input(mouse_button(fe._to_screen(fe.CONTENT.position + q), true))
 		fe._gui_input(mouse_button(fe._to_screen(fe.CONTENT.position + q), false))
-	for key in fe.PREF_IMAGERY:
-		click.call(fe.PREF_IMAGERY[key][1].get_center())
-		await frames(2)
-		var items: Array = fe._imagery_items()
-		check(fe.pref_dropdown == key and items.size() >= 2 and items[0].id == "original" and items[0].available
-				and items[-1].rect.end.y <= fe.PREF_IMAGERY[key][1].position.y, "%s: %s drop-down opens upwards, Original first" % [lang, key])
-		var missing: Array = items.filter(func(i): return not i.available)
+	check(fe._extras_max_top() > 0 and fe._extras_items().all(func(i): return i.rect.end.y <= fe.PREF_DEFAULT.position.y),
+			"%s: Extras scrolls; the shown rows end above DEFAULT" % lang)
+	fe._extras_scroll(fe._extras_max_top())  # the imagery rows are the last ones
+	await frames(2)
+	var items: Array = fe._extras_items()
+	check(items.all(func(i): return i.rect.end.y <= fe.CONTENT.size.y and i.rect.position.x >= 0.0 and i.rect.end.x <= fe.CONTENT.size.x),
+			"%s: every Extras choice inside the page" % lang)
+	for key in ["imagery_israel", "imagery_outside"]:
+		var row: Array = items.filter(func(i): return i.key == key)
+		check(row.size() >= 2 and row[0].value == "original" and row[0].available, "%s: %s row, Original first" % [lang, key])
+		var missing: Array = row.filter(func(i): return not i.available)
 		if not missing.is_empty():
 			click.call(missing[0].rect.get_center())
-			check(fe.pref_dropdown == key and fe.pref_work[key] == "original", "%s: %s: %s is not converted -> greyed, not picked" % [lang, key, missing[0].id])
-		click.call(items[0].rect.get_center())
-		await frames(2)
-		check(fe.pref_dropdown == "" and fe.pref_work[key] == "original", "%s: %s set to Original" % [lang, key])
-	click.call(fe.PREF_IMAGERY["imagery_outside"][1].get_center())
-	click.call(Vector2(200, 100))
-	check(fe.pref_dropdown == "", "%s: a click elsewhere closes the drop-down" % lang)
+			check(fe.pref_work[key] == "original", "%s: %s: %s is not converted -> greyed, not picked" % [lang, key, missing[0].value])
+		click.call(row[0].rect.get_center())
+		check(fe.pref_work[key] == "original", "%s: %s set to Original" % [lang, key])
 	await frames(2)
 
 

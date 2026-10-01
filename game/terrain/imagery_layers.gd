@@ -8,11 +8,11 @@ const DIR := "converted/imagery"
 ## Per region (Settings key): [id, label] in drop-down order. Sources not converted (or not
 ## implemented yet) are listed greyed out.
 const REGIONS := {
-	"imagery_israel": [["original", "Original (1998)"], ["mapi2015", "Survey of Israel 2 m"]],
-	"imagery_outside": [["original", "Original (1998)"], ["sentinel2", "Sentinel-2 (1998 colours)"],
-			["sentinel2_modern", "Sentinel-2 (modern colours)"]],
+	"imagery_israel": [["original", "Original"], ["mapi2015", "Survey of Israel 2 m"]],
+	"imagery_outside": [["original", "Original"], ["sentinel2", "Sentinel-2"],
+			["sentinel2_modern", "Sentinel-2 modern"]],
 }
-## Drop-down labels on the Graphics page.
+## Row labels on the Extras page ("Sentinel-2" = 1998 colours, "modern" = the source's own colours).
 const REGION_LABELS := {"imagery_israel": "Imagery Israel", "imagery_outside": "Imagery outside Israel"}
 
 

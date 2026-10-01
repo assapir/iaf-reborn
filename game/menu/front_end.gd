@@ -80,16 +80,6 @@ const PREF_THUMB := Vector2(19, 15)
 const PREF_DEFAULT := Rect2(357, 330, 85, 23)
 ## Ours on the Graphics page: the VSync check in the empty strip left of DEFAULT (page coordinates).
 const PREF_VSYNC := Rect2(8, 330, 110, 23)
-## Ours on the Graphics page: one terrain-imagery drop-down per region (docs/imagery.md §5) in the
-## empty strip between VISUAL EFFECTS and the check row: setting -> [label rect, box rect]. The list
-## opens upwards, PREF_IMAGERY_ROW per option; options not converted are greyed out.
-const PREF_IMAGERY := {
-	"imagery_israel": [Rect2(8, 281, 80, 20), Rect2(90, 281, 128, 20)],
-	"imagery_outside": [Rect2(224, 281, 88, 20), Rect2(314, 281, 128, 20)],
-}
-const PREF_IMAGERY_ROW := 18.0
-## The credit the picked layers require (CC BY), in the strip between VSYNC and DEFAULT.
-const PREF_CREDIT := Rect2(122, 330, 232, 23)
 ## Gameplay scoring strip: pref/score.bmp, 25 frames of 151x34.
 const PREF_SCORE := Rect2(290, 184, 151, 34)
 ## Live preview sounds while dragging (wav/pref, FUN_00544560).
@@ -128,6 +118,11 @@ const OUR_TABS := [["Extras", "EXTRAS"], ["Physics", "PHYSICS"]]
 const PHYSICS_ROW := 20.0
 const PHYSICS_ROWS := 15
 const PHYSICS_BAR := Rect2(422, 45, 11, 300)
+## Extras rows: the Gameplay page's 35 px, EXTRAS_ROWS at a time above DEFAULT (y 330), with the Physics /
+## Keyboard scrollbar when there are more (mirrored to the left in Hebrew).
+const EXTRAS_ROW := 35.0
+const EXTRAS_ROWS := 8
+const EXTRAS_BAR := Rect2(422, 45, 11, 280)
 ## Our options on the Extras page: [setting, label, [[choice label, value], ...]].
 const EXTRAS := [
 	["flight_data", "Flight data", [["Original (1998)", "original"], ["Real aircraft", "real"]]],
@@ -139,6 +134,15 @@ const EXTRAS := [
 	["show_all_keys", "All keys on the Keyboard page", [["Original", false], ["All", true]]],
 	["fullscreen", "Window", [["Framed", false], ["Full screen", true]]],
 ]
+
+
+## The Extras rows: EXTRAS, then one terrain-imagery row per region (docs/imagery.md; layers not
+## converted are greyed out and cannot be picked).
+func _extras_rows() -> Array:
+	var rows: Array = EXTRAS.duplicate()
+	for key in ImageryLayers.REGIONS:
+		rows.append([key, ImageryLayers.REGION_LABELS[key], ImageryLayers.REGIONS[key].map(func(o): return [o[1], o[0]])])
+	return rows
 
 ## Button-release dispatcher FUN_004ec770: screen -> {button label -> next screen}.
 ## Basic/Combat mission buttons go to the Jet list; Jet and campaign mission buttons load the
@@ -199,8 +203,6 @@ var held := ""  # key of the button the mouse is holding down
 var hover_key := ""
 ## Preferences working copy (§12.2): committed to Settings only on "Save changes?" Yes.
 var pref_work := {}
-## The open imagery drop-down on the Graphics page (its setting), "" = none.
-var pref_dropdown := ""
 ## Slider being dragged ([setting, rect, step]) and whether DEFAULT is held down.
 var pref_drag: Array = []
 var pref_default_held := false
@@ -213,6 +215,7 @@ var ctrl_top := 0
 var ctrl_focus := false
 ## Physics page: the first option row shown.
 var phys_top := 0
+var extras_top := 0
 var ctrl_arrow := ""
 var ctrl_drag := -1.0
 
@@ -424,7 +427,6 @@ func _enter_screen() -> void:
 	if screen == "pref":
 		checked[_key_for_label(Settings.pref_page)] = true
 		pref_work.clear()
-		pref_dropdown = ""
 		for section in Settings.PREFS:
 			for k in Settings.PREFS[section]:
 				pref_work[k] = Settings.get(k)
@@ -434,6 +436,7 @@ func _enter_screen() -> void:
 		ctrl_top = 0
 		ctrl_focus = false
 		phys_top = 0
+		extras_top = 0
 	if screen in ["tsd", "arm", "flytsd"]:
 		_restore_tsd_checks()
 	if _is_tsd() and tsd == null:
@@ -829,91 +832,6 @@ func _draw_prefs() -> void:
 		var r := _rect(Rect2(at + PREF_VSYNC.position + Vector2(22, 0), Vector2(PREF_VSYNC.size.x - 22, 20)))
 		var fs := int(round(LIST_TITLE_PX * _scale()))
 		draw_string(font_art, Vector2(r.position.x, r.end.y - font_art.get_descent(fs)), "VSYNC", HORIZONTAL_ALIGNMENT_LEFT, r.size.x, fs, LIST_DESC_LIT if vs_on else LIST_DESC)
-		_draw_imagery(at)
-
-
-## The imagery drop-downs (ours): label, the picked option in a framed box with a down arrow, the
-## open list above its box (the picked option on a lit row, options not converted in grey), and the
-## picked layers' credit line. One text size per drop-down: the largest that fits its longest option.
-func _draw_imagery(at: Vector2) -> void:
-	for key in PREF_IMAGERY:
-		var lr: Rect2 = PREF_IMAGERY[key][0]
-		var br: Rect2 = PREF_IMAGERY[key][1]
-		_text_fit(Rect2(at + lr.position, lr.size), _art(ImageryLayers.REGION_LABELS[key]), LIST_TITLE_PX - 1.0, LIST_TITLE, font_art)
-		var px := _imagery_px(key, br.size.x - 22.0)
-		var box := _rect(Rect2(at + br.position, br.size))
-		draw_rect(box, Color(0.0, 0.09, 0.0, 0.9))
-		draw_rect(box, LIST_DESC_LIT if pref_dropdown == key else LIST_DESC, false, maxf(1.0, _scale()))
-		_text_line(Rect2(at + br.position + Vector2(4, -1), br.size - Vector2(18, 0)), _art(_imagery_label(key, String(pref_work.get(key, "original")))), px, LIST_DESC_LIT, font_art)
-		var c := _to_screen(at + br.position + Vector2(br.size.x - 8, br.size.y / 2))
-		var a := 3.0 * _scale()
-		draw_colored_polygon(PackedVector2Array([c + Vector2(-a, -a / 2), c + Vector2(a, -a / 2), c + Vector2(0, a)]), LIST_DESC_LIT)
-	if pref_dropdown != "":
-		var px := _imagery_px(pref_dropdown, PREF_IMAGERY[pref_dropdown][1].size.x - 22.0)
-		for it in _imagery_items():
-			var r := _rect(Rect2(at + it.rect.position, it.rect.size))
-			var on: bool = pref_work.get(pref_dropdown) == it.id
-			draw_rect(r, Color(0.0, 0.3, 0.0, 0.97) if on else Color(0.0, 0.09, 0.0, 0.97))
-			draw_rect(r, LIST_DESC, false, maxf(1.0, _scale()))
-			_text_line(Rect2(at + it.rect.position + Vector2(4, -1), it.rect.size - Vector2(8, 0)), _art(it.label), px, LIST_DESC_LIT if it.available else Color(0.5, 0.55, 0.5, 0.7), font_art)
-	var credits: Array[String] = []
-	for key in PREF_IMAGERY:
-		var m := ImageryLayers.manifest(String(pref_work.get(key, "original")))
-		if m.get("attribution", "") != "":
-			credits.append(String(m.attribution))
-	if not credits.is_empty():
-		var r := _rect(Rect2(at + PREF_CREDIT.position, PREF_CREDIT.size))
-		var fs := int(round(6.5 * _scale()))
-		draw_multiline_string(font, r.position + Vector2(0, font.get_ascent(fs)), "\n".join(credits), HORIZONTAL_ALIGNMENT_LEFT, r.size.x, fs, 3, Color(LIST_DESC_LIT, 0.85))
-
-
-## The text size (page px) for a drop-down's options: the largest up to LIST_TITLE_PX - 1 at which
-## every option fits `width`.
-func _imagery_px(key: String, width: float) -> float:
-	var px := LIST_TITLE_PX - 1.0
-	for opt in ImageryLayers.REGIONS[key]:
-		while px > 6.0 and font_art.get_string_size(_art(opt[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, int(round(px * _scale()))).x > width * _scale():
-			px -= 0.5
-	return px
-
-
-func _imagery_label(key: String, id: String) -> String:
-	for opt in ImageryLayers.REGIONS[key]:
-		if opt[0] == id:
-			return opt[1]
-	return id
-
-
-## The open drop-down's options (page rects, upwards from its box): {id, label, available, rect}.
-func _imagery_items() -> Array:
-	var items := []
-	if pref_dropdown == "":
-		return items
-	var br: Rect2 = PREF_IMAGERY[pref_dropdown][1]
-	var opts: Array = ImageryLayers.REGIONS[pref_dropdown]
-	for k in opts.size():
-		var r := Rect2(br.position.x, br.position.y - PREF_IMAGERY_ROW * (opts.size() - k), br.size.x, PREF_IMAGERY_ROW)
-		items.append({"id": opts[k][0], "label": opts[k][1], "available": ImageryLayers.available(opts[k][0]), "rect": r})
-	return items
-
-
-## Mouse down on the Graphics page's imagery drop-downs: a box opens / closes its list, an available
-## option is picked; any other click closes an open list. True when the click was taken.
-func _imagery_press(q: Vector2) -> bool:
-	if pref_dropdown != "":
-		for it in _imagery_items():
-			if it.rect.has_point(q):
-				if it.available:
-					pref_work[pref_dropdown] = it.id
-					pref_dropdown = ""
-				return true
-		pref_dropdown = ""
-		return true
-	for key in PREF_IMAGERY:
-		if PREF_IMAGERY[key][1].has_point(q):
-			pref_dropdown = key
-			return true
-	return false
 
 
 func _keys() -> RefCounted:
@@ -1177,16 +1095,21 @@ func _extras_tab_tex(f: int) -> Texture2D:
 ## columns at x 24 / 164 / 285), LEDs copied from the Gameplay art. Mirrored in Hebrew.
 func _extras_items() -> Array:
 	var items := []
-	for i in EXTRAS.size():
-		var opt: Array = EXTRAS[i]
-		var y := 45.0 + 35.0 * i
+	var rows := _extras_rows()
+	for i in range(extras_top, mini(rows.size(), extras_top + EXTRAS_ROWS)):
+		var opt: Array = rows[i]
+		var y := 45.0 + EXTRAS_ROW * (i - extras_top)
 		var choices: Array = opt[2]
 		for j in choices.size():
-			var r := Rect2(164.0 + 121.0 * j, y, 111.0 if j == 0 else 150.0, 35.0)
+			# Two choices in the Gameplay page's columns (x 164 / 285); three narrower; all left of the scrollbar.
+			var r := Rect2(164.0 + 121.0 * j, y, 111.0 if j == 0 else 129.0, EXTRAS_ROW) if choices.size() < 3 \
+					else Rect2([164.0, 240.0, 314.0][j], y, [74.0, 72.0, 100.0][j], EXTRAS_ROW)
 			if _he():
 				r.position.x = CONTENT.size.x - r.end.x
 			var value = choices[j][1]
 			var available: bool = not (typeof(value) == TYPE_STRING and value == "he" and not Settings.hebrew_available())
+			if String(opt[0]).begins_with("imagery_"):
+				available = ImageryLayers.available(String(value))
 			items.append({"rect": r, "key": opt[0], "value": value, "label": choices[j][0], "available": available})
 	return items
 
@@ -1225,13 +1148,18 @@ func _draw_option(r: Rect2, label: String, on: bool, led_y: float, text_y: float
 func _draw_extras() -> void:
 	_draw_our_page("Extras")
 	_blit("pref/defbut_%d.png" % (2 if pref_default_held else 0), CONTENT.position + PREF_DEFAULT.position)
-	for i in EXTRAS.size() + 1:
-		_draw_rule(45.0 + 35.0 * i)
-	for i in EXTRAS.size():
-		var r := Rect2(24, 45.0 + 35.0 * i + 4, 136, 20)
+	var rows := _extras_rows()
+	var shown := mini(rows.size() - extras_top, EXTRAS_ROWS)
+	for i in shown + 1:
+		_draw_rule(45.0 + EXTRAS_ROW * i)
+	if _extras_max_top() > 0:
+		_draw_bar(CONTENT.position, _extras_bar(), extras_top, _extras_max_top())
+	for k in shown:
+		var i := extras_top + k
+		var r := Rect2(24, 45.0 + EXTRAS_ROW * k + 4, 136, 20)
 		if _he():
 			r.position.x = CONTENT.size.x - r.end.x
-		_text_fit(Rect2(CONTENT.position + r.position, r.size), _art(EXTRAS[i][1]), LIST_TITLE_PX, LIST_TITLE, font_art)
+		_text_fit(Rect2(CONTENT.position + r.position, r.size), _art(rows[i][1]), LIST_TITLE_PX, LIST_TITLE, font_art)
 	for it in _extras_items():
 		_draw_option(it.rect, it.label, pref_work.get(it.key) == it.value, 10, 4, it.available)
 
@@ -1253,6 +1181,22 @@ func _physics_items() -> Array:
 			r.position.x = w - r.end.x
 		items.append({"rect": r, "key": ["all", "none"][j], "label": ["All on", "All off"][j]})
 	return items
+
+
+## The Extras page's scrollbar (page rect), on the left in Hebrew.
+func _extras_bar() -> Rect2:
+	var bar := EXTRAS_BAR
+	if _he():
+		bar.position.x = CONTENT.size.x - bar.end.x
+	return bar
+
+
+func _extras_max_top() -> int:
+	return maxi(0, _extras_rows().size() - EXTRAS_ROWS)
+
+
+func _extras_scroll(to: int) -> void:
+	extras_top = clampi(to, 0, _extras_max_top())
 
 
 ## The Physics page's scrollbar (page rect), on the left in Hebrew.
@@ -1315,6 +1259,8 @@ func _gui_input(event: InputEvent) -> void:
 			var y := _to_menu(event.position).y - CONTENT.position.y
 			if Settings.pref_page == "Physics":
 				_phys_scroll(_bar_drag_top(y, _phys_bar(), _phys_max_top()))
+			elif Settings.pref_page == "Extras":
+				_extras_scroll(_bar_drag_top(y, _extras_bar(), _extras_max_top()))
 			else:
 				_ctrl_scroll(_bar_drag_top(y, CTRL_BAR, _ctrl_max_top()))
 		var k := _hit(_to_menu(event.position))
@@ -1356,6 +1302,9 @@ func _pref_press(q: Vector2) -> bool:
 		_play("buttonin")
 		return true
 	if page == "Extras":
+		if _extras_max_top() > 0 and _extras_bar().has_point(q):
+			_extras_scroll(_bar_press(q, _extras_bar(), extras_top, _extras_max_top(), EXTRAS_ROWS))
+			return true
 		for it in _extras_items():
 			if it.available and it.rect.has_point(q):
 				pref_work[it.key] = it.value
@@ -1374,8 +1323,6 @@ func _pref_press(q: Vector2) -> bool:
 					pref_work.better[it.key] = not pref_work.better[it.key]
 				return true
 		return false
-	if page == "Graphics" and _imagery_press(q):
-		return true
 	if page == "Graphics" and PREF_VSYNC.has_point(q):
 		pref_work["vsync"] = not bool(pref_work.get("vsync", true))
 		return true
@@ -1450,10 +1397,8 @@ func _pref_defaults() -> void:
 		pref_work.key_bindings = {}  # the whole table from 0x64c3c8 (@511ca5)
 	if Settings.pref_page == "Graphics":
 		pref_work["vsync"] = Settings.default_value("vsync")
-		for key in PREF_IMAGERY:
-			pref_work[key] = Settings.default_value(key)
 	if Settings.pref_page == "Extras":  # ours: every Extras option except the language
-		for opt in EXTRAS:
+		for opt in _extras_rows():
 			if opt[0] != "language":
 				pref_work[opt[0]] = Settings.default_value(opt[0])
 	_apply_music_volume()
@@ -1541,7 +1486,6 @@ func _on_button(key: String) -> void:
 		for k in checked.keys():
 			checked[k] = false
 		Settings.pref_page = key.capitalize()
-		pref_dropdown = ""
 		ctrl_focus = false
 		return
 	var btn := _button(key)
@@ -1559,7 +1503,6 @@ func _on_button(key: String) -> void:
 	var label: String = btn.label
 	if screen == "pref":
 		Settings.pref_page = label
-		pref_dropdown = ""
 		ctrl_focus = false
 		return
 	if screen in ["tsd", "arm", "flytsd"]:

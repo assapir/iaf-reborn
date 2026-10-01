@@ -56,18 +56,19 @@ the warp into the game frame: docs/georef.md; user-facing summary: README "Terra
 
 - `game/terrain/imagery_layers.gd`: the options per region (`REGIONS`), `available(id)` (= its manifest exists;
   "original" always), `selected()` (the picked, converted layers, Israel first), `attributions()`.
-- **Preferences → Graphics** (ours): one drop-down per region ("Imagery Israel", "Imagery outside Israel") in the
-  empty strip under VISUAL EFFECTS; the list opens upwards; options whose layer is not converted are shown in grey
-  and cannot be picked (user decision: greyed, not hidden). Default "Original (1998)". Hebrew labels in
-  game/menu/strings_he.json. Settings `imagery_israel` / `imagery_outside` ([graphics] section).
+- **Preferences → Extras** (ours): one row per region ("Imagery Israel", "Imagery outside Israel"; three choices
+  in narrower columns), after the other Extras rows (the page scrolls like Physics, 8 rows shown); options whose layer is not converted are
+  shown in grey and cannot be picked (user decision: greyed, not hidden). Default "Original (1998)"; Extras DEFAULT
+  resets them. Hebrew labels in game/menu/strings_he.json. Settings `imagery_israel` / `imagery_outside`
+  ([gameplay] section, with the other Extras). (First on the Graphics page; moved so that page stays the original.)
 - `terrain.gd`: at `_ready` each picked layer's nodes are added to the colour-node set with their directory
   (`colour_dir(node)`); `_path()` reads those nodes from the layer, everything else (and every height) from the
   original. The preload's textures are not adopted when they were loaded with other layers.
 
 ## 6. Attribution and checks
 
-- CC BY sources need a credit wherever the imagery shows: the picked layers' `attribution` is printed on the
-  Graphics page (under the drop-downs) and at the bottom of the flight loading screen.
+- CC BY sources need a credit wherever the imagery shows: the picked layers' `attribution` is printed at the
+  bottom of the flight loading screen.
 - `iaf-imagery compare <theatre-dir> <layers-root> <level> <i> <j> <out.png>`: the original node, the 1998-colour and
   the modern-colour layer node side by side.
 - Tests: Rust `imagery` unit tests (feather inside only, tone curve), `tests/godot/test_imagery.gd` (layer node
