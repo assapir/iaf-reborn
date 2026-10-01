@@ -91,6 +91,25 @@ Use google to find the original game ISO if you do not have them. I trust you. S
 
 Community mods (e.g. Hebrew briefings) can be imported as overlay packs — see [docs/packs.md](docs/packs.md).
 
+## Terrain imagery data (optional)
+
+The 1998 imagery stays the default. Modern imagery is an opt-in layer per region (Israel / outside Israel), picked on
+Preferences → Graphics; a choice whose data is not converted is greyed out. Nothing is downloaded unless you ask:
+
+```sh
+tools/setup.sh --imagery sentinel2                  # alone: only the imagery steps, on an install set up before
+tools/setup.sh --imagery mapi2015-bases             # or several: --imagery sentinel2,mapi2015
+```
+
+| source | region | where from | licence / credit | size | how | folder |
+|---|---|---|---|---|---|---|
+| **Sentinel-2** (ESA WorldCover 2021 S2 RGB composite, 10 m) — `sentinel2` | outside Israel (two looks: 1998 colours, modern colours) | `https://esa-worldcover-s2.s3.eu-central-1.amazonaws.com/rgbnir/2021/` (public S3, HTTP range reads through GDAL) | CC BY 4.0 — "Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium" (shown on the Graphics page and the loading screen) | ≈ 28 GB of range reads (setup prints the estimate and asks first), ≈ 6 GB on disk for both looks | automatic: fetch + convert, resumable (needs `gdal`) | `assets/converted/imagery/sentinel2`, `…/sentinel2_modern` |
+| _coming:_ **Survey of Israel 2015 aerial photo, 2 m** — `mapi2015` (all 79 sheets), `mapi2015-bases` (the sheets around the airbases) | Israel, West Bank, Golan | data.gov.il, one ZIP per 1:50 000 sheet; links in [tools/imagery/mapi2015_sheets.tsv](tools/imagery/mapi2015_sheets.tsv) | data.gov.il open licence (copy, modify, redistribute; credit) — "© Survey of Israel 2015, via data.gov.il" | ≈ 250 MB per sheet: ≈ 20 GB all, ≈ 2 GB bases | manual-assisted: [tools/imagery/fetch-mapi2015.sh](tools/imagery/fetch-mapi2015.sh) opens the links in your browser (the site's bot challenge blocks curl) and moves the finished ZIPs; conversion not yet | `assets/source/imagery/mapi2015` |
+| _coming:_ **SPOT 5** (CNES SPOT World Heritage, 5 m pan + 10 m colour) | outside Israel (maybe Israel too) | GEODES (`https://geodes-portal.cnes.fr/api/stac/search`), free CNES account | Etalab Open Licence 2.0 — "© CNES, distribution SWH / Airbus DS" | ≈ 20–40 GB | not yet (needs a free CNES account and orthorectification) | — |
+
+Pipeline and how to run it by hand: [docs/imagery.md](docs/imagery.md); the warp to the game frame:
+[docs/georef.md](docs/georef.md); every source we checked and why: [docs/imagery-sources.md](docs/imagery-sources.md).
+
 ## Flying (the original key table)
 
 Every key comes from the original game's own key table (converted from `iafjets.exe`); you can
