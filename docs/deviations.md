@@ -82,6 +82,12 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
   all 115 labelled ones so the stick, rudder, RPM ± 5 and pans can be rebound — controls.md §3). Later: Real HUD, extra sounds, canopy open (docs/roadmap.md).
 
 - **Preferences → Graphics**: a VSYNC check (ours) in the empty strip left of DEFAULT, default on.
+- **Preferences → Graphics → terrain imagery** (ours, docs/imagery.md): one drop-down per region (Israel / outside
+  Israel), default "Original (1998)". A converted modern layer (Sentinel-2 10 m outside Israel, in 1998 or modern
+  colours; later Survey of Israel 2 m, SPOT 5) replaces the original's ground texture only on land in its region,
+  never on water, the game's airbases or the original's fine insets; heights, terrain types and missions stay the
+  original's. The layer's credit (CC BY) shows on the Graphics page and the loading screen. Data only via
+  `tools/setup.sh --imagery …` (off by default).
 
 ## 3. Original quirks we keep on purpose (decided)
 - The sea west of Suez (and the Nile delta / Western desert) is one flat plane at −557 m in map.ptt; ships there sit
