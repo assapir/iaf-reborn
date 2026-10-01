@@ -17,12 +17,13 @@
 - RWR display, other MFD pages, views (padlock, back view, external list), time compression, pause / in-flight menu.
 - Player jet ×2 scale (original), detached-looking stores, shadows / flame shadow.
 - Joystick / throttle / pedals.
-- Other jets flyable (Phantom 2000, F-4E, F-15, …): flight data + cockpit each.
+- Other jets flyable (Phantom 2000, F-4E, F-15, …): flight data + cockpit each (incl. the Kfir / Mirage shared
+  data per the Flight data switch — only matters once they fly).
 
 **2. Enemies:** AI air-to-air / air-to-ground (bomb ballistics), AAA, radar / IR SAMs with RWR threats, enemy
 flares / chaff and decoy rules, script op 2, armed vehicles / boats; then the demo video (H.264).
 
-**3. Missions and general fixes:** remaining small bugs below, Kfir/Mirage data per switch, player flight by
+**3. Missions and general fixes:** remaining small bugs below, player flight by
 formation id, pilot records (JSON), Jump In, remaining front-end screens, more weapons (radar missiles, TV / IR,
 anti-radiation, rockets), night.
 
