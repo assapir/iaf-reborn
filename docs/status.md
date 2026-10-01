@@ -122,7 +122,8 @@ Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user
 
 ## Decisions (agreed with the user)
 - Airbase runway/apron underlay models stay hidden (the imagery shows the airbase) unless it stops looking good.
-- Modern-imagery work may use GDAL as a setup dependency.
+- Modern-imagery work may use GDAL as a setup dependency. Modern imagery defaults to the 1998 colours; "modern
+  colours" is its own Extras switch.
 - Keys: when an original command gets built, the original key wins; our own functions move to Ctrl+F-keys.
 - The other camera views (padlock, back view, fly-by, weapon camera, external list) and the wingman radio commands
   are ported with the AI work.
