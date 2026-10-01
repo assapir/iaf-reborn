@@ -632,14 +632,14 @@ func _draw_damage() -> void:
 
 ## ADI page (9) for cockpits with [HORIZON] OnMfd (FUN_00526fe0 mode 4): the panel's horizon disc
 ## (cockpit.draw_horizon_disc) centred at (65,74), then in white, right-aligned on the baseline: the speed "%03d"
-## at (31,27) (S+0x33c, FM query 0x10, an altitude-corrected speed; ours: speed_kt, UNCERTAIN), the heading "%03d"
+## at (31,27) (S+0x33c, the indicated airspeed), the heading "%03d"
 ## at (74,12) and the height above the ground "%05d" at (124,27) (S+0x3c).
 func _draw_adi() -> void:
 	_tile(TILE_BLANK)
 	cockpit.draw_horizon_disc(self, Vector2(65, 74), 1.0)
 	var st: Dictionary = cockpit.state
 	var hdg := int(st.heading) % 360
-	for t in [[31, 27, "%03d" % int(st.speed_kt)], [74, 12, "%03d" % (hdg + 360 if hdg < 0 else hdg)],
+	for t in [[31, 27, "%03d" % int(st.ias_kt)], [74, 12, "%03d" % (hdg + 360 if hdg < 0 else hdg)],
 			[124, 27, "%05d" % int(st.get("agl_ft", 0.0))]]:
 		var font: Font = cockpit.digits_font()
 		draw_string(font, Vector2(t[0] - font.get_string_size(t[2], HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x, t[1]), t[2],

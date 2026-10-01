@@ -8,6 +8,7 @@ pub mod autopilot;
 pub mod channels;
 pub mod data_set;
 pub mod envelope;
+pub mod instruments;
 pub mod params;
 
 pub use aircraft::{Aircraft, BetterPhysics, Controls, Crash, Start, State};

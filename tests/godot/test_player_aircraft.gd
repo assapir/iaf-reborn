@@ -32,20 +32,23 @@ func run() -> void:
 	check(st.speed_kt > v0 + 10.0 and st.on_ground and not st.crashed, "it accelerates on the runway (%.0f -> %.0f kt)" % [v0, st.speed_kt])
 	check(float(st.internal_fuel_kg) > 0.0 and tv.cockpit.state.internal_fuel_kg == st.internal_fuel_kg, "the fuel gauge's capacity reaches the cockpit")
 
-	# Engine needles (@45ac00): THROTTLE = rpm, RPM / TEMP clamped; right-engine fire (17) only heats TEMP2,
-	# left-engine permanent damage (22) zeroes THROTTLE and RPM. The flags are restored afterwards.
-	var ck = tv.cockpit
-	var rpm0: float = ck.state.rpm
-	var fl: Array = ck.damage_flags.duplicate()
-	ck.state.rpm = 0.3
-	check(ck._engine_needles(0) == [0.3, 0.6, 0.5], "engine needles at rpm 0.3: %s" % [ck._engine_needles(0)])
-	ck.state.rpm = 1.0
-	ck.damage_flags[17] = true
-	ck.damage_flags[22] = true
-	check(ck._engine_needles(0) == [0.0, 0.0, 0.8] and ck._engine_needles(1) == [1.0, 0.97, 0.9],
-			"engine needles with damage: L %s, R %s" % [ck._engine_needles(0), ck._engine_needles(1)])
-	ck.damage_flags.assign(fl)
-	ck.state.rpm = rpm0
+	# The cockpit state from the flight model (IafFlight.instruments, iaf_flight::instruments; its Rust tests hold
+	# the formulas): the engine needles per engine with the damage flags, the fuel fill, the speeds.
+	var flags := []
+	flags.resize(25)
+	flags.fill(false)
+	flags[17] = true  # right engine on fire
+	flags[22] = true  # left engine permanently damaged
+	var ins: Dictionary = tv.flight.instruments(flags)
+	var en: PackedFloat32Array = ins.engines
+	var rpm: float = st.rpm
+	check(en.size() == 6 and is_zero_approx(en[0]) and is_zero_approx(en[1]) and is_equal_approx(en[3], rpm)
+			and is_equal_approx(en[5], 0.9), "engine needles with damage: %s at rpm %.2f" % [en, rpm])
+	check(is_equal_approx(tv.cockpit.state.fuel_fill, ins.fuel_fill) and ins.fuel_fill > 0.9, "fuel fill %.2f in the cockpit" % ins.fuel_fill)
+	var Hud = load("res://cockpit/hud.gd")
+	check(Hud.speed_text({"tas_kt": 300.0, "ground_kt": 280.0, "ias_kt": 250.0}, 0, false) == " 280G"
+			and Hud.speed_text({"tas_kt": 300.0, "ground_kt": 280.0, "ias_kt": 250.0}, 1, false) == " 250"
+			and Hud.speed_text({"tas_kt": 300.0, "ground_kt": 280.0, "ias_kt": 250.0}, 5, true) == " 300T", "HUD speed per HUD mode")
 
 	# Drag chute (Shift+B) on the ground: deployed at once, the model's Parach shown.
 	key(tv, KEY_B, true)

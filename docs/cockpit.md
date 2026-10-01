@@ -160,7 +160,8 @@ The world is drawn by TgenAPI (`DAT_0069942c`, 16-bit renderer vtable `0x5fd900`
 * **Altimeter** `FUN_00527c10`: two needles from S+8 · 3.28084 = ft, **FullClock is not used**: a long one at one turn
   per 1000 ft (·0.001·2π) and one 3 px shorter at one turn per 10,000 ft (·0.0001·2π), both from AngleOffset, floor 0.
   (The MiG-29's `[ALTITUDELOCK]` has no FullClock; a missing one reads 0.)
-* **Port** (`cockpit.gd` `_engine_needles`, `_draw_needle`): exactly the above; `state.rpm` is the FM's RPM ramp / 100.
+* **Port**: the values in Rust (`iaf_flight::instruments::engine_needles`, the fuel fill; unit tests there), the
+  needles drawn by `cockpit.gd` `_draw_needle`.
   Checked on all nine cockpits (tests/godot/test_player_aircraft.gd): every active needle but the altimeter has a
   FullClock > 0 and the scale its input expects (engines ≈ 1, fuel 1.3..1.9, vario 30000, speed 1000).
 
@@ -190,23 +191,39 @@ flight-path angle pairs it with cos roll, S+0x40 = sideslip with sin roll), S+0x
   (0x65cec0): (0,0)→(±20,6) and (0,0)→(±15,15) (ground perspective), ticks at y = ±4, ±8, ±12, ±16 (8° apart, ±3 and ±8
   wide alternately).
 * **MFD ADI page** (9, `FUN_00526fe0`, `[HORIZON]` OnMfd 1: F-15, F-4 2000, Lavi): the same disc centred at (65,74)
-  of the MFD; then white, right-aligned on the baseline (`SetTextAlign 0x1a`): speed `%03d` at (31,27) (S+0x33c =
-  FM query 0x10 · 1.9428, an altitude-corrected speed: UNCERTAIN, ours shows the true speed), heading `%03d` at
+  of the MFD; then white, right-aligned on the baseline (`SetTextAlign 0x1a`): the indicated airspeed `%03d` at
+  (31,27) (S+0x33c, below), heading `%03d` at
   (74,12) (S+0x14 in degrees mod 360), height above the ground `%05d` at (124,27) (S+0x3c).
 * **Tapes** (`FUN_005280b0` vario, `FUN_00528270` AoA; F-16 only): the PanelHeight rows of the tape from
   `Height/2 − PanelHeight/2 ∓ trunc(·)`, clamped to the tape, are blitted to (OffsetX, OffsetY): vario −trunc(S+0x54 ·
   Height / 60000), AoA +trunc(Height · 0.02 · S+0x50·57.2958) (Height / 50 px per degree). At 0 both show the tape's
   middle.
-* **Port**: `cockpit.gd` `_draw_adi` (shader `lens_adi.gdshader` on a child behind the panel, continuous instead of
-  per original pixel), `draw_horizon_disc` (panel and MFD page), `_draw_tape`; `mfd.gd` `_draw_adi`. Checked on all
+* **Speeds** (`FUN_00448b20` → `FUN_004459a0(q5, q6, q7, q0x10)`, FM getter `0x5a9280` = vtable `0x611dc8` slot 26):
+  S+0x330 = query 5 (the airspeed V, vtable +0x3c) · 1.9428 = **true airspeed, kt** (SPEEDCLOCK); S+0x334 = query 6
+  (sqrt(vx² + vy²)) · 1.9428 = **ground speed**; S+0x338 = query 7 (vz) · 1.9428; S+0x54 = vz · 196.848 (ft/min);
+  S+0x33c = query 0x10 · 1.9428 = **indicated airspeed**: with V in kt and h the Z axis height in ft (sampled as the
+  attitude, τ clamped to 0..1.1), `r = ((−1.305e-5 + 3.1825e-9·V)·h + 1.0017)·V − 3.122`; query 0x10 returns r·0.5147
+  (m/s) when 50 ≤ r ≤ 999, else V **in kt**, which the caller converts once more: below 50 kt indicated (taxiing) the
+  cockpit shows 1.94 × the speed (an original unit slip, kept; docs/status.md).
+* **HUD speed** (`FUN_005386c0` @538739, by the HUD mode S+0xfec = the weapon handler's, through the byte table
+  0x538c78 → 0x538c64): mode 0 NAV `% 3dG` (ground speed; `% 3dT` true airspeed with the gear handle down, S+0x544),
+  1..3 (SRM, MRM, AA gun) and 9 `% 3d` (indicated), 4..8 `% 3dT`, above 9 none. (Mode 9 is not in the master-mode
+  table, docs/weapons.md §2.3.)
+* **Port**: the values in Rust, `iaf_flight::instruments` (speeds, vario, height above ground, fuel fill, engine
+  needles with the damage flags; `IafFlight.instruments(damage flags)` → the cockpit state each frame); the drawing in
+  Godot: `cockpit.gd` `_draw_adi` (shader `lens_adi.gdshader` on a child behind the panel, continuous instead of per
+  original pixel), `draw_horizon_disc` (panel and MFD page), `_draw_tape`; `mfd.gd` `_draw_adi`; `hud.gd`
+  `speed_text`. Checked on all
   nine cockpits (tests/godot/test_player_aircraft.gd) and in posed captures (F-16, F-15, F-4 2000, Kfir).
 
 ## What our tooling assumes F-16
 * `crates/iaf-tools/src/bin/iaf-convert.rs` `convert_cockpit` is generic (dir name argument; whole ini -> `cockpit.json`; every
   `*.bmp` in the dir + `mfds.bmp`, `rwrsymb.bmp`, `isr.bmp`). Gaps: it does not convert `fsmfd/fsmfd.bmp`, `fsmfd/data.ibx`,
   `emf/map.emf`, and it ignores that `cockpit.ini` and unreferenced bitmaps exist (harmless extras). Empty ini values
-  (`ClockCenterX =`, `MiddleOffsetX =`) become the number 0 (UNCERTAIN: Windows may return the default, 0x3c0 for
-  ClockCenterX; it only moves the Mirage / MiG-23 standby disc, hidden under the panel either way).
+  (`ClockCenterX =`, `MiddleOffsetX =`) are left out of the JSON, so the reader's default (the exe's) applies:
+  `GetPrivateProfileInt` returns the default when the value reads as an empty string (Wine's `GetPrivateProfileIntW`;
+  0 only for text that is not a number). The Mirage's empty `ClockCenterX` is therefore 960, under the opaque panel:
+  its standby disc is hidden (read as 0 it showed at the panel's left edge).
 * `tools/setup.sh:29-30` converts only `f16` -> `assets/converted/cockpits/f16`.
 * `game/cockpit/cockpit.gd`: `cockpit_dir` default `.../cockpits/f16`; `_draw_mfd_screens` paints a fixed 160x230 black box at offset -6 for each
   active MFD (real MFD is 132x132, at OffsetX/Y); the attitude indicators and the vario / AoA tapes follow the

@@ -179,12 +179,13 @@ fn convert_cockpit(install: &Path, name: &str, out: &Path, opts: &Options) -> Re
     for section in &ini.sections {
         let mut obj = serde_json::Map::new();
         for (k, v) in &section.entries {
-            // GetPrivateProfileInt reads an empty value (`MiddleOffsetX =`) as 0.
-            let value = if v.trim().is_empty() {
-                serde_json::Value::from(0)
-            } else {
-                v.parse::<f64>().map(serde_json::Value::from).unwrap_or_else(|_| serde_json::Value::from(v.as_str()))
-            };
+            // GetPrivateProfileInt returns the caller's default for an empty value (`ClockCenterX =`: it reads the
+            // string first and an empty one gives the default, Wine's GetPrivateProfileIntW): leave the key out,
+            // so the reader's default (the exe's) applies.
+            if v.trim().is_empty() {
+                continue;
+            }
+            let value = v.parse::<f64>().map(serde_json::Value::from).unwrap_or_else(|_| serde_json::Value::from(v.as_str()));
             obj.entry(k.clone()).or_insert(value);
         }
         layout.insert(section.name.clone(), serde_json::Value::Object(obj));

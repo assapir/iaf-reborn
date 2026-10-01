@@ -34,6 +34,9 @@ anti-radiation, rockets), night.
 sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, modern aircraft / weapons, Pi 5 profile.
 
 ## Small bugs (fix between jobs)
+- Original bug (kept, candidate for a Physics fix switch): below 50 kt indicated the cockpit's indicated airspeed
+  (HUD in air-to-air modes, MFD ADI page) reads 1.94 × the speed — FM query 0x10 returns kt where it should return
+  m/s (docs/cockpit.md "Attitude indicators and tapes", Speeds).
 - Stores look detached: no pylon models drawn (stores float under the wing), triple-rack side bombs touch the wing
   (original formula). (The flat white fins seen from behind are gone since the Present scale / smoothing work.)
 - Kfir / Mirage data: the original loads one shared block (the second type flies on the first's data) — do that

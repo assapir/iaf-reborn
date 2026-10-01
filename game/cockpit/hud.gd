@@ -87,7 +87,8 @@ func _draw() -> void:
 		if mark % 10 == 0:
 			var label := "%02d" % int(fposmod(mark, 360) / 10)
 			draw_string(font, Vector2(x - 4 * s, top + 6 * s), label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, cockpit.hud_colour())
-	draw_string(font, Vector2(4 * s, size.y / 2), "%3d" % int(st.speed_kt), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, cockpit.hud_colour())
+	draw_string(font, Vector2(4 * s, size.y / 2), speed_text(st, int(cockpit.weapons.get("hud_mode", 0)), cockpit.gear_handle_down),
+			HORIZONTAL_ALIGNMENT_LEFT, -1, fs, cockpit.hud_colour())
 	draw_string(font, Vector2(size.x - 30 * s, size.y / 2), "%5d" % int(st.alt_ft), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, cockpit.hud_colour())
 	# The autopilot replaces the G readout (FUN_0052efd3: ctl+0x974 1 / 2).
 	var g_text: String = ["G %.1f" % st.g, "AP LVL", "AP NAV"][clampi(int(st.get("ap_mode", 0)), 0, 2)]
@@ -212,6 +213,22 @@ func _pipper_tex() -> Texture2D:
 						r.set_pixel(x, y, Color(0, 0, 0, 0))
 			_pipper = ImageTexture.create_from_image(r)
 	return _pipper
+
+
+## The HUD speed (FUN_005386c0, by the HUD mode S+0xfec through the table 0x538c78): NAV (0) the ground speed
+## "% 3dG", the true speed "% 3dT" with the gear handle down (S+0x544); air-to-air (1 SRM, 2 MRM, 3 gun) and 9 the
+## indicated airspeed "% 3d"; 4..8 the true speed "% 3dT"; above 9 nothing.
+static func speed_text(st: Dictionary, hud_mode: int, gear_down: bool) -> String:
+	var pick: Array
+	if hud_mode == 0:
+		pick = [st.tas_kt, "T"] if gear_down else [st.ground_kt, "G"]
+	elif hud_mode <= 3 or hud_mode == 9:
+		pick = [st.ias_kt, ""]
+	elif hud_mode <= 8:
+		pick = [st.tas_kt, "T"]
+	else:
+		return ""
+	return " %3d%s" % [int(pick[0]), pick[1]]
 
 
 func _draw_weapons(s: float, w: float, font: Font, fs: int, gun: Vector2) -> void:

@@ -426,6 +426,28 @@ impl IafFlight {
         }
     }
 
+    /// The cockpit state the panel / HUD / MFDs draw (iaf_flight::instruments, docs/cockpit.md): speeds in kt
+    /// (`tas_kt`, `ground_kt`, `ias_kt`), `vs_fpm`, `agl_ft`, `fuel_fill`, and `engines` = [THROTTLE, RPM, TEMP]
+    /// left then right (6 floats). `damage`: the player's damage flags 0..24 (docs/damage.md §5), or empty.
+    #[func]
+    fn instruments(&self, damage: VarArray) -> VarDictionary {
+        use iaf_flight::instruments::{self, EngineDamage};
+        let mut d = VarDictionary::new();
+        let Some(ac) = &self.aircraft else { return d };
+        let flag = |i: usize| damage.get(i).is_some_and(|v| v.booleanize());
+        let engine = |e: usize| EngineDamage { cut_out: flag(2 + e), fire: flag(16 + e), permanent: flag(22 + e) };
+        let i = instruments::instruments(&ac.state(), ac.ground_height, ac.gear_clearance, ac.internal_fuel_kg(),
+            [engine(0), engine(1)]);
+        d.set("tas_kt", i.tas_kt);
+        d.set("ground_kt", i.ground_kt);
+        d.set("ias_kt", i.ias_kt);
+        d.set("vs_fpm", i.vs_fpm);
+        d.set("agl_ft", i.agl_ft);
+        d.set("fuel_fill", i.fuel_fill);
+        d.set("engines", &PackedFloat32Array::from(i.engines.concat().as_slice()));
+        d
+    }
+
     /// Current state for the renderer and instruments.
     #[func]
     fn state(&self) -> VarDictionary {

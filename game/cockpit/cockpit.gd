@@ -33,7 +33,9 @@ static func hud_colour() -> Color:
 var state := {
 	"speed_kt": 0.0, "mach": 0.0, "alt_ft": 0.0, "vs_fpm": 0.0,
 	"pitch": 0.0, "roll": 0.0, "heading": 0.0, "aoa": 0.0, "g": 1.0,
-	"rpm": 0.0, "throttle": 0.0, "fuel_lbs": 0.0, "internal_fuel_kg": 0.0, "agl_ft": 0.0,
+	"rpm": 0.0, "throttle": 0.0, "fuel_lbs": 0.0, "internal_fuel_kg": 0.0,
+	# From IafFlight.instruments (iaf_flight::instruments): S+0x330 / 0x334 / 0x33c, 0x3c, 0x1058, the engine needles.
+	"tas_kt": 0.0, "ground_kt": 0.0, "ias_kt": 0.0, "agl_ft": 0.0, "fuel_fill": 0.0, "engines": PackedFloat32Array([0, 0, 0, 0, 0, 0]),
 	"world": Vector2.ZERO,  # ownship in mission world coordinates (X east, Y north, metres)
 }
 ## The weapons snapshot for the HUD and the stores page (player_weapons.gd _publish; {} = none).
@@ -351,24 +353,20 @@ func _draw() -> void:
 
 	_draw_lights(s)
 	_draw_panel_rwr(s)
-	_draw_needle("SPEEDCLOCK", state.speed_kt, s)
+	_draw_needle("SPEEDCLOCK", state.tas_kt, s)
 	# The altimeter (FUN_00527c10) ignores FullClock: a long needle at one turn per 1000 ft and one 3 px shorter at
 	# one turn per 10,000 ft.
 	_draw_needle("ALTITUDELOCK", state.alt_ft, s, 1000.0)
 	_draw_needle("ALTITUDELOCK", state.alt_ft, s, 10000.0, 3.0)
-	# Engine needles (@45ac00, docs/cockpit.md "Round gauges"): all from the flight model's rpm, per engine with
-	# its damage flags; the second engine (the *SECONDARY needles, twin-engine cockpits) reads the same rpm.
+	# Engine needles [THROTTLE, RPM, TEMP] left then right (the *SECONDARY needles, twin-engine cockpits).
+	var en: PackedFloat32Array = state.engines
 	for e in 2:
-		var n := _engine_needles(e)
 		var sfx := "SECONDARY" if e == 1 else ""
-		_draw_needle("THROTTLECLOCK" + sfx, n[0], s)
-		_draw_needle("RPMCLOCK" + sfx, n[1], s)
-		_draw_needle("TEMPCLOCK" + sfx, n[2], s)
-	# Round gauges of the cockpits without the F-16's digits / tape (FUN_00527a40): FUELCLOCK "LBS x1000 TOTAL
-	# INTERNAL" = total fuel / internal capacity, capped at 1 (@45acb9); VARIOCLOCK "CLIMB 1000 FT/MIN" = ft/min
-	# (FUN_004459a0, m/s · 196.848).
-	var cap: float = state.get("internal_fuel_kg", 0.0)
-	_draw_needle("FUELCLOCK", clampf(state.fuel_lbs * 0.45359 / cap, 0.0, 1.0) if cap > 0.0 else 0.0, s)
+		_draw_needle("THROTTLECLOCK" + sfx, en[3 * e], s)
+		_draw_needle("RPMCLOCK" + sfx, en[3 * e + 1], s)
+		_draw_needle("TEMPCLOCK" + sfx, en[3 * e + 2], s)
+	# FUELCLOCK "LBS x1000 TOTAL INTERNAL" (the fill), VARIOCLOCK "CLIMB 1000 FT/MIN".
+	_draw_needle("FUELCLOCK", state.fuel_fill, s)
 	_draw_needle("VARIOCLOCK", state.vs_fpm, s)
 	var fuel: Dictionary = layout.get("FUELDIGITAL", {})
 	if fuel.get("Active", 0) == 1:
@@ -600,7 +598,8 @@ func _draw_standby_horizon(s: float) -> void:
 	var h: Dictionary = layout.get("HORIZON", {})
 	if h.is_empty() or int(h.get("OnMfd", 0)) != 0 or int(h.get("Active", 1)) != 1:
 		return
-	draw_horizon_disc(self, panel_to_screen(h.ClockCenterX, h.ClockCenterY), s)
+	# The exe defaults (FUN_005228a0): ClockCenterX 0x3c0, ClockCenterY 0xbf (the Mirage leaves X empty).
+	draw_horizon_disc(self, panel_to_screen(h.get("ClockCenterX", 960), h.get("ClockCenterY", 191)), s)
 
 
 ## The horizon disc of FUN_005268b0 mode 4 (the MFD ADI page FUN_00526fe0 draws the same), on `ci` (from its
@@ -676,23 +675,6 @@ func _draw_tape(key: String, shift: int, s: float) -> void:
 	var src_y: int = clampi(int(t.Height / 2.0) - int(window / 2.0) + shift, 0, int(t.Height) - window)
 	draw_texture_rect_region(tx, Rect2(panel_to_screen(t.OffsetX, t.OffsetY), Vector2(t.Width, window) * s),
 			Rect2(0, src_y * k, t.Width * k, window * k))
-
-
-## [THROTTLE, RPM, TEMP] for engine `e` (0 left, 1 right), @45ac00: THROTTLE = rpm, RPM = clamp(rpm, 0.6, 0.97),
-## TEMP = clamp(rpm, 0.5, 0.8). Damage flags (docs/damage.md §5; left / right): engine cut out 2 / 3 -> RPM 0,
-## fire 16 / 17 -> TEMP 0.9, permanent damage 22 / 23 -> THROTTLE and RPM 0.
-func _engine_needles(e: int) -> Array:
-	var rpm: float = state.rpm
-	var n := [rpm, clampf(rpm, 0.6, 0.97), clampf(rpm, 0.5, 0.8)]
-	var f := func(i: int) -> bool: return damage_flags.size() > i + e and damage_flags[i + e]
-	if f.call(16):
-		n[2] = 0.9
-	if f.call(2):
-		n[1] = 0.0
-	if f.call(22):
-		n[0] = 0.0
-		n[1] = 0.0
-	return n
 
 
 ## `full` > 0 replaces the gauge's FullClock; `shorter` px off its Radius.
