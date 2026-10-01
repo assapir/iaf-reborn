@@ -78,6 +78,8 @@ const PREF_CONTROLS := {
 const PREF_THUMB := Vector2(19, 15)
 ## DEFAULT button (pref/defbut_0/_2), on every page except Devices.
 const PREF_DEFAULT := Rect2(357, 330, 85, 23)
+## Ours on the Graphics page: the VSync check in the empty strip left of DEFAULT (page coordinates).
+const PREF_VSYNC := Rect2(8, 330, 110, 23)
 ## Gameplay scoring strip: pref/score.bmp, 25 frames of 151x34.
 const PREF_SCORE := Rect2(290, 184, 151, 34)
 ## Live preview sounds while dragging (wav/pref, FUN_00544560).
@@ -739,6 +741,13 @@ func _draw_prefs() -> void:
 		_blit_region("pref/score.png", src, at + PREF_SCORE.position)
 	if page != "Devices":
 		_blit("pref/defbut_%d.png" % (2 if pref_default_held else 0), at + PREF_DEFAULT.position)
+	if page == "Graphics":
+		# Not mirrored in Hebrew: the Graphics art (both packs) is English and left-to-right.
+		var vs_on := bool(pref_work.get("vsync", true))
+		_blit_region("pref/gamep_%d.png" % (1 if vs_on else 0), Rect2(Vector2(28, 55), Vector2(11, 11)), at + PREF_VSYNC.position + Vector2(4, 6))
+		var r := _rect(Rect2(at + PREF_VSYNC.position + Vector2(22, 0), Vector2(PREF_VSYNC.size.x - 22, 20)))
+		var fs := int(round(LIST_TITLE_PX * _scale()))
+		draw_string(font_bold, Vector2(r.position.x, r.end.y - font_bold.get_descent(fs)), "VSYNC", HORIZONTAL_ALIGNMENT_LEFT, r.size.x, fs, LIST_DESC_LIT if vs_on else LIST_DESC)
 
 
 func _keys() -> RefCounted:
@@ -1121,6 +1130,9 @@ func _pref_press(q: Vector2) -> bool:
 					pref_work.better[it.key] = not pref_work.better[it.key]
 				return true
 		return false
+	if page == "Graphics" and PREF_VSYNC.has_point(q):
+		pref_work["vsync"] = not bool(pref_work.get("vsync", true))
+		return true
 	if page != "Devices" and PREF_DEFAULT.has_point(q):
 		pref_default_held = true
 		_play("buttonin")
@@ -1190,6 +1202,8 @@ func _pref_defaults() -> void:
 			pref_work[c[1]] = Settings.default_value(c[1])
 	if Settings.pref_page == "Controls":
 		pref_work.key_bindings = {}  # the whole table from 0x64c3c8 (@511ca5)
+	if Settings.pref_page == "Graphics":
+		pref_work["vsync"] = Settings.default_value("vsync")
 	if Settings.pref_page == "Extras":  # ours: every Extras option except the language
 		for opt in EXTRAS:
 			if opt[0] != "language":

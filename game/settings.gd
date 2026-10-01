@@ -27,7 +27,7 @@ const BETTER := {
 const PREFS := {
 	"sound": ["mute", "music_volume", "engine_volume", "sfx_volume", "speech_volume"],
 	"graphics": ["terrain_detail", "object_detail", "visual_effects", "smoke_trails", "textured_sky",
-		"shadows", "external_stores"],
+		"shadows", "external_stores", "vsync"],
 	"devices": ["flight_controls", "rudder", "throttle"],
 	"gameplay": ["no_wind", "no_blackouts", "no_spins", "no_stalls", "easy_landing", "easy_aiming",
 		"no_malfunctions", "ai_level", "invulnerable", "no_crashes", "unlimited_ammo", "unlimited_fuel",
@@ -89,6 +89,8 @@ var hud_ladder := "original"
 ## Keyboard page: false = the original list (92 records); true (ours) also lists the hidden records
 ## (stick, rudder, RPM ± 5, pans, cheats, screen capture) so they can be rebound, e.g. on keyboards without a numpad.
 var show_all_keys := false
+## VSync (ours, on the Graphics page): frames in step with the display (no tearing, frame rate capped).
+var vsync := true
 ## Key bindings changed on the Controls page (docs/controls.md): {record index: [key, joystick
 ## button]}, key = DIK | modifier << 16; records not listed keep the original default. Stored in the
 ## [keys] section as r<index> = [key, button].
@@ -149,9 +151,16 @@ func _ready() -> void:
 					key_bindings[int(k.substr(1))] = [int(v[0]), int(v[1])]
 	if language == "he" and not hebrew_available():
 		language = "en"
+	apply_display()
+
+
+## Display settings that act at once (VSync).
+func apply_display() -> void:
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if vsync else DisplayServer.VSYNC_DISABLED)
 
 
 func save() -> void:
+	apply_display()
 	if isolated():
 		return
 	var cfg := ConfigFile.new()

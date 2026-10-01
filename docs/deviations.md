@@ -55,6 +55,8 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
   blackbox, language, "All keys on the Keyboard page" (the original lists 92 of the 117 key records; the option lists
   all 115 labelled ones so the stick, rudder, RPM ± 5 and pans can be rebound — controls.md §3). Later: Real HUD, extra sounds, canopy open (docs/roadmap.md).
 
+- **Preferences → Graphics**: a VSYNC check (ours) in the empty strip left of DEFAULT, default on.
+
 ## 3. Original quirks we keep on purpose (decided)
 - The sea west of Suez (and the Nile delta / Western desert) is one flat plane at −557 m in map.ptt; ships there sit
   at −557 m. Kept as the original for now — **to revisit** (docs/status.md).

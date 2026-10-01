@@ -42,7 +42,6 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
   too; user to decide whether to add an Extras keyboard stick option (not added).
 - Real data: real service ceilings per aircraft (the envelope's g ceilings from public ceiling figures), all jets
   incl. AI types (docs/real-aircraft.md).
-- VSync on / off switch on the Graphics page (ours; default on).
 - Aircraft shadow is very pixelated (shadow map resolution / cascade split / filtering), and the afterburner
   flame casts a shadow even when the afterburner is off (the flame mesh must not cast shadows, and hidden flames
   must not render). Also wire the Graphics "SHADOWS" pref.
