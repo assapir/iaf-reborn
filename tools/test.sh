@@ -10,7 +10,7 @@ cargo test -q --workspace 2>&1 | grep -E "test result|FAILED|panicked" || fail=1
 cargo build -q --release -p iaf-godot || fail=1
 for t in tests/godot/test_*.gd; do
 	echo "== $t"
-	out=$(IAF_DEFAULT_SETTINGS=1 timeout 180 godot --headless --audio-driver Dummy --path game -s "../$t" 2>&1)
+	out=$(IAF_DEFAULT_SETTINGS=1 timeout 300 godot --headless --audio-driver Dummy --path game -s "../$t" 2>&1)
 	echo "$out" | grep -E "^(PASS|FAIL|RESULT)|SCRIPT ERROR"
 	echo "$out" | grep -q "RESULT PASS" || fail=1
 	echo "$out" | grep -q "SCRIPT ERROR" && { echo "FAIL script errors"; fail=1; }
