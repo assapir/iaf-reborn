@@ -43,8 +43,6 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 - Landing tests at the runway edges (Ramat David): touchdowns near the threshold / runway end and just inside /
   outside the left and right edges (inside = tarmac, safe; outside on grass above 25.7 m/s = rough-ground crash),
   so terraintype.dat's runway footprint matches the imagery at its borders.
-- Terrain loading is frame-bound (at most 6 decodes started per frame): in a hidden / throttled window (~1 fps)
-  the flight's ground takes 25-60 s; start jobs independently of the frame rate.
 
 - Stores seen from behind (user report: "not in place"): checked — the stations sit on the model (F-16 tip rails at
   x ±4.78, airframe ±4.73; each single store's Pilon point on its station; test_arming.gd). What can look wrong: the

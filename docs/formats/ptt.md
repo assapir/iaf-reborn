@@ -139,7 +139,8 @@ units (`FUN_004053f0`): `X = tx·1.2411389 − 166850`, `Y = 1043780 − ty·1.2
   `height_at()` (the physics); coarser nodes 32 quads. **Skirts** (10 m + half a quad deep) hide the cracks
   between levels. The sea is drawn at the data height like the original (ships are placed on it), only shaded
   flat.
-- **Streaming**: JPEG decode, mipmaps and BC1 compression on worker threads (6 at once), nearest first; a split
+- **Streaming**: JPEG decode, mipmaps and BC1 compression on worker threads (6 at once; each takes the next
+  key from the frame's nearest-first queue when it finishes, so loading does not wait for frames); a split
   waits until all four children are loaded (the parent stays drawn), deeper levels are requested at the same
   time; textures unused for 20 s are dropped. The tree is re-chosen after 100 m of movement, 0.5 s, or new data.
 - **Loading**: the flight scene shows the front end's mission wait screen and starts the simulation only when

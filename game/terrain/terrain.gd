@@ -23,7 +23,8 @@ extends Node3D
 @export var split_factor := 1.5
 ## Nothing farther than this is loaded or drawn (metres; the camera's far plane).
 @export var view_range := 200000.0
-## Decode jobs running at once.
+## Decode workers running at once. Each takes the next wanted key itself when it finishes one, so
+## loading does not wait for frames (a hidden / throttled window runs at ~1 fps).
 @export var max_jobs := 6
 ## "Near" for `ground_ready()`: nodes within this distance (m) must be at their full detail.
 @export var near_range := 8000.0
@@ -65,8 +66,10 @@ var shader := preload("res://terrain/terrain.gdshader")
 # Resources (colour texture per textured node, height texture + image per theatre node), keyed by
 # Vector4i(kind, i, j, level) with kind 0 = colour, 1 = height.
 var _res := {}  # key -> {"tex": Texture2D, "img": Image, "used": msec}
-var _jobs := {}  # key -> task id
-var _results := {}  # key -> Image (from the workers)
+var _jobs: Array[int] = []  # worker task ids
+var _queue: Array = []  # keys to decode, nearest first (main thread fills, workers take; under the mutex)
+var _busy := {}  # keys being decoded (under the mutex)
+var _results := {}  # key -> Image (from the workers; under the mutex)
 var _results_mutex := Mutex.new()
 var _wanted := {}  # key -> distance (this frame's requests)
 var _drawn := {}  # Vector3i -> MeshInstance3D
@@ -391,23 +394,43 @@ static func _grid_mesh(span: float, quads: int) -> ArrayMesh:
 
 # --- loading -------------------------------------------------------------------------------------
 
+## Hands this frame's wanted keys (nearest first) to the workers and starts workers up to max_jobs.
 func _start_jobs() -> void:
-	if _jobs.size() >= max_jobs:
-		return
-	var keys := _wanted.keys().filter(func(k): return not _jobs.has(k))
+	_results_mutex.lock()
+	var keys := _wanted.keys().filter(func(k): return not _res.has(k) and not _busy.has(k) and not _results.has(k))
 	keys.sort_custom(func(a, b): return _wanted[a] < _wanted[b])
-	for key in keys:
-		if _jobs.size() >= max_jobs:
-			break
-		_jobs[key] = WorkerThreadPool.add_task(_decode.bind(key))
+	_queue = keys
+	_results_mutex.unlock()
+	for id in _jobs.filter(func(t): return WorkerThreadPool.is_task_completed(t)):
+		WorkerThreadPool.wait_for_task_completion(id)
+		_jobs.erase(id)
+	while _jobs.size() < mini(max_jobs, keys.size()):
+		_jobs.append(WorkerThreadPool.add_task(_work))
 
 
 func _path(key: Vector4i) -> String:
 	return dir.path_join("L%d/%s_%d_%d.%s" % [key.w, "c" if key.x == 0 else "h", key.y, key.z, "jpg" if key.x == 0 else "png"])
 
 
-## Worker: colour -> mipmapped BC1; heights -> RG8 (R = high byte, G = low byte of the raw u16).
-func _decode(key: Vector4i) -> void:
+## Worker: decodes queued keys until the queue is empty.
+func _work() -> void:
+	while true:
+		_results_mutex.lock()
+		if _queue.is_empty():
+			_results_mutex.unlock()
+			return
+		var key: Vector4i = _queue.pop_front()
+		_busy[key] = true
+		_results_mutex.unlock()
+		var img := _decode(key)
+		_results_mutex.lock()
+		_results[key] = img
+		_busy.erase(key)
+		_results_mutex.unlock()
+
+
+## Colour -> mipmapped BC1; heights -> RG8 (R = high byte, G = low byte of the raw u16).
+func _decode(key: Vector4i) -> Image:
 	var img := Image.load_from_file(_path(key))
 	if img != null:
 		if key.x == 0:
@@ -415,24 +438,21 @@ func _decode(key: Vector4i) -> void:
 			img.compress(Image.COMPRESS_S3TC)
 		else:
 			img.convert(Image.FORMAT_RG8)
-	_results_mutex.lock()
-	_results[key] = img
-	_results_mutex.unlock()
+	return img
 
 
-## Takes the finished decode jobs' images (texture upload on the main thread); true if any. `block`:
-## waits for the running ones too.
+## Takes the decoded images (texture upload on the main thread); true if any. `block`: stops the
+## queue and waits for the running decodes too.
 func _finish_jobs(block := false) -> bool:
+	if block:
+		_stop_jobs()
+	_results_mutex.lock()
+	var done := _results
+	_results = {}
+	_results_mutex.unlock()
 	var any := false
-	for key in _jobs.keys():
-		if not block and not WorkerThreadPool.is_task_completed(_jobs[key]):
-			continue
-		WorkerThreadPool.wait_for_task_completion(_jobs[key])
-		_jobs.erase(key)
-		_results_mutex.lock()
-		var img: Image = _results.get(key)
-		_results.erase(key)
-		_results_mutex.unlock()
+	for key in done:
+		var img: Image = done[key]
 		if img == null:
 			push_error("terrain: cannot load %s" % _path(key))
 			img = Image.create(1, 1, false, Image.FORMAT_RG8 if key.x == 1 else Image.FORMAT_RGB8)
@@ -455,7 +475,20 @@ func _evict() -> void:
 
 ## True while any node in range is still waiting for its data (full detail everywhere).
 func missing_after_frame() -> bool:
-	return _blocked > 0 or not _jobs.is_empty()
+	_results_mutex.lock()
+	var pending := not (_queue.is_empty() and _busy.is_empty() and _results.is_empty())
+	_results_mutex.unlock()
+	return _blocked > 0 or pending
+
+
+## Empties the queue and waits for the running decodes (their images stay in _results).
+func _stop_jobs() -> void:
+	_results_mutex.lock()
+	_queue.clear()
+	_results_mutex.unlock()
+	for id in _jobs:
+		WorkerThreadPool.wait_for_task_completion(id)
+	_jobs.clear()
 
 
 ## How much of the ground_ready() work is done (0..1): the loaded share of the resources it waits
@@ -583,6 +616,4 @@ func surface_at(pos: Vector3) -> int:
 
 ## Let running decode jobs finish before the node (and its mutex) goes away.
 func _exit_tree() -> void:
-	for id in _jobs.values():
-		WorkerThreadPool.wait_for_task_completion(id)
-	_jobs.clear()
+	_stop_jobs()
