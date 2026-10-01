@@ -57,9 +57,12 @@ imagery_steps() {
 				[[ -f assets/converted/terrain/theatre/meta.json ]] || { echo "run the base setup (with the ISO) first"; exit 1; }
 				cargo build -q --release -p iaf-tools
 				./target/release/iaf-imagery sentinel2 assets/install assets/converted/terrain/theatre assets/converted/imagery --dry-run
+				# A ~28 GB fetch: asked on a terminal; without one only with IAF_IMAGERY_YES=1.
 				if [[ -t 0 ]]; then
 					read -rp "fetch and convert now? [y/N] " a
 					[[ $a == [yY]* ]] || { echo "skipped"; continue; }
+				elif [[ ${IAF_IMAGERY_YES:-} != 1 ]]; then
+					echo "not a terminal: skipped (set IAF_IMAGERY_YES=1 to fetch without asking)"; continue
 				fi
 				./target/release/iaf-imagery sentinel2 assets/install assets/converted/terrain/theatre assets/converted/imagery
 				;;
