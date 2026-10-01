@@ -59,6 +59,12 @@ var _theatre := PackedFloat64Array([0, 0, 0, 0])  # x0, y0, x1, y1 (terrain unit
 var _height_level := 6
 var _root_level := 11
 var _colour_nodes := {}  # Vector3i(i, j, level) -> true (nodes with their own texture)
+## Imagery layers (docs/imagery.md): nodes whose colour texture comes from a layer -> its directory
+## (else the original's). Set from the Graphics page choice at _ready (or `layers` before it).
+var _layer_dir := {}
+var layers: Array[String] = []
+var _layers_set := false
+const ImageryLayers := preload("res://terrain/imagery_layers.gd")
 var _finest := {}  # Vector3i -> finest level with its own texture in the node's subtree
 var _meshes: Array[ArrayMesh] = []
 var shader := preload("res://terrain/terrain.gdshader")
@@ -105,15 +111,41 @@ func _ready() -> void:
 	_root_level = int(meta.root_level)
 	for l in meta.nodes:
 		for ij in meta.nodes[l]:
-			var n := Vector3i(int(ij[0]), int(ij[1]), int(l))
-			_colour_nodes[n] = true
-			var a := n
-			while a.z <= _root_level and _finest.get(a, 99) > n.z:
-				_finest[a] = n.z
-				a = _parent(a)
+			_add_colour_node(Vector3i(int(ij[0]), int(ij[1]), int(l)))
+	if not _layers_set:
+		layers = ImageryLayers.selected()
+	# Later layers do not override earlier ones (Israel's first).
+	for id in layers:
+		var m := ImageryLayers.manifest(id)
+		var ldir := ImageryLayers.layer_dir(id)
+		for l in m.get("nodes", {}):
+			for ij in m.nodes[l]:
+				var n := Vector3i(int(ij[0]), int(ij[1]), int(l))
+				if not _layer_dir.has(n):
+					_layer_dir[n] = ldir
+					_add_colour_node(n)
 	for l in _root_level + 1:
 		_meshes.append(_grid_mesh(_span_m(l), _quads(l)))
 	_load_terrain_types(Settings.assets_dir().path_join("install/terraintype.dat"))
+
+
+func _add_colour_node(n: Vector3i) -> void:
+	_colour_nodes[n] = true
+	var a := n
+	while a.z <= _root_level and _finest.get(a, 99) > n.z:
+		_finest[a] = n.z
+		a = _parent(a)
+
+
+## Picks the imagery layers before _ready (tests, the preload); default: the Graphics page choice.
+func set_layers(ids: Array[String]) -> void:
+	layers = ids
+	_layers_set = true
+
+
+## The directory a node's colour texture is read from: its layer's, else the original's.
+func colour_dir(n: Vector3i) -> String:
+	return _layer_dir.get(n, dir)
 
 
 ## Terrain units (as in map.ptt) -> Godot position (y = 0).
@@ -409,7 +441,8 @@ func _start_jobs() -> void:
 
 
 func _path(key: Vector4i) -> String:
-	return dir.path_join("L%d/%s_%d_%d.%s" % [key.w, "c" if key.x == 0 else "h", key.y, key.z, "jpg" if key.x == 0 else "png"])
+	var base: String = _layer_dir.get(Vector3i(key.y, key.z, key.w), dir) if key.x == 0 else dir
+	return base.path_join("L%d/%s_%d_%d.%s" % [key.w, "c" if key.x == 0 else "h", key.y, key.z, "jpg" if key.x == 0 else "png"])
 
 
 ## Worker: decodes queued keys until the queue is empty.
@@ -509,6 +542,8 @@ func ground_progress() -> float:
 ## area, terrain_preload.gd): its running decodes finish first. The next frame re-chooses the tree.
 func adopt(other: Node) -> void:
 	other._finish_jobs(true)
+	if other.layers != layers:
+		return  # loaded with other imagery (the Graphics page changed since)
 	var now := Time.get_ticks_msec()
 	for k in other._res:
 		if not _res.has(k):

@@ -80,6 +80,16 @@ const PREF_THUMB := Vector2(19, 15)
 const PREF_DEFAULT := Rect2(357, 330, 85, 23)
 ## Ours on the Graphics page: the VSync check in the empty strip left of DEFAULT (page coordinates).
 const PREF_VSYNC := Rect2(8, 330, 110, 23)
+## Ours on the Graphics page: one terrain-imagery drop-down per region (docs/imagery.md §5) in the
+## empty strip between VISUAL EFFECTS and the check row: setting -> [label rect, box rect]. The list
+## opens upwards, PREF_IMAGERY_ROW per option; options not converted are greyed out.
+const PREF_IMAGERY := {
+	"imagery_israel": [Rect2(8, 281, 80, 20), Rect2(90, 281, 128, 20)],
+	"imagery_outside": [Rect2(224, 281, 88, 20), Rect2(314, 281, 128, 20)],
+}
+const PREF_IMAGERY_ROW := 18.0
+## The credit the picked layers require (CC BY), in the strip between VSYNC and DEFAULT.
+const PREF_CREDIT := Rect2(122, 330, 232, 23)
 ## Gameplay scoring strip: pref/score.bmp, 25 frames of 151x34.
 const PREF_SCORE := Rect2(290, 184, 151, 34)
 ## Live preview sounds while dragging (wav/pref, FUN_00544560).
@@ -102,6 +112,7 @@ const KeyTable := preload("res://controls/key_table.gd")
 const Img := preload("res://util/img.gd")
 const Tsd := preload("res://menu/tsd.gd")
 const Pilots := preload("res://menu/pilots.gd")
+const ImageryLayers := preload("res://terrain/imagery_layers.gd")
 
 ## Our own "Extras" tab (not in the original): directly below Gameplay at the panel's spacing
 ## (44 px). Drawn from the pPref art: the band holding the Gameplay button (panel coordinates, inside
@@ -188,6 +199,8 @@ var held := ""  # key of the button the mouse is holding down
 var hover_key := ""
 ## Preferences working copy (§12.2): committed to Settings only on "Save changes?" Yes.
 var pref_work := {}
+## The open imagery drop-down on the Graphics page (its setting), "" = none.
+var pref_dropdown := ""
 ## Slider being dragged ([setting, rect, step]) and whether DEFAULT is held down.
 var pref_drag: Array = []
 var pref_default_held := false
@@ -411,6 +424,7 @@ func _enter_screen() -> void:
 	if screen == "pref":
 		checked[_key_for_label(Settings.pref_page)] = true
 		pref_work.clear()
+		pref_dropdown = ""
 		for section in Settings.PREFS:
 			for k in Settings.PREFS[section]:
 				pref_work[k] = Settings.get(k)
@@ -815,6 +829,80 @@ func _draw_prefs() -> void:
 		var r := _rect(Rect2(at + PREF_VSYNC.position + Vector2(22, 0), Vector2(PREF_VSYNC.size.x - 22, 20)))
 		var fs := int(round(LIST_TITLE_PX * _scale()))
 		draw_string(font_art, Vector2(r.position.x, r.end.y - font_art.get_descent(fs)), "VSYNC", HORIZONTAL_ALIGNMENT_LEFT, r.size.x, fs, LIST_DESC_LIT if vs_on else LIST_DESC)
+		_draw_imagery(at)
+
+
+## The imagery drop-downs (ours): label, the picked option in a framed box with a down arrow, the
+## open list above its box, and the picked layers' credit line.
+func _draw_imagery(at: Vector2) -> void:
+	var px := LIST_TITLE_PX - 1.0
+	for key in PREF_IMAGERY:
+		var lr: Rect2 = PREF_IMAGERY[key][0]
+		var br: Rect2 = PREF_IMAGERY[key][1]
+		_text_fit(Rect2(at + lr.position, lr.size), _art(ImageryLayers.REGION_LABELS[key]), px, LIST_TITLE, font_art)
+		var box := _rect(Rect2(at + br.position, br.size))
+		draw_rect(box, Color(0.0, 0.09, 0.0, 0.9))
+		draw_rect(box, LIST_DESC_LIT if pref_dropdown == key else LIST_DESC, false, maxf(1.0, _scale()))
+		_text_fit(Rect2(at + br.position + Vector2(4, -1), br.size - Vector2(18, 0)), _art(_imagery_label(key, String(pref_work.get(key, "original")))), px, LIST_DESC_LIT, font_art)
+		var c := _to_screen(at + br.position + Vector2(br.size.x - 8, br.size.y / 2))
+		var a := 3.0 * _scale()
+		draw_colored_polygon(PackedVector2Array([c + Vector2(-a, -a / 2), c + Vector2(a, -a / 2), c + Vector2(0, a)]), LIST_DESC_LIT)
+	if pref_dropdown != "":
+		for it in _imagery_items():
+			var r := _rect(Rect2(at + it.rect.position, it.rect.size))
+			draw_rect(r, Color(0.0, 0.09, 0.0, 0.97))
+			draw_rect(r, LIST_DESC, false, maxf(1.0, _scale()))
+			var on: bool = pref_work.get(pref_dropdown) == it.id
+			var col := (LIST_DESC_LIT if on else LIST_DESC) if it.available else Color(LIST_DESC, 0.45)
+			_text_fit(Rect2(at + it.rect.position + Vector2(4, -1), it.rect.size - Vector2(8, 0)), _art(it.label), px, col, font_art)
+	var credits: Array[String] = []
+	for key in PREF_IMAGERY:
+		var m := ImageryLayers.manifest(String(pref_work.get(key, "original")))
+		if m.get("attribution", "") != "":
+			credits.append(String(m.attribution))
+	if not credits.is_empty():
+		var r := _rect(Rect2(at + PREF_CREDIT.position, PREF_CREDIT.size))
+		var fs := int(round(7.0 * _scale()))
+		draw_multiline_string(font, r.position + Vector2(0, font.get_ascent(fs)), "\n".join(credits), HORIZONTAL_ALIGNMENT_LEFT, r.size.x, fs, 3, LIST_DESC)
+
+
+func _imagery_label(key: String, id: String) -> String:
+	for opt in ImageryLayers.REGIONS[key]:
+		if opt[0] == id:
+			return opt[1]
+	return id
+
+
+## The open drop-down's options (page rects, upwards from its box): {id, label, available, rect}.
+func _imagery_items() -> Array:
+	var items := []
+	if pref_dropdown == "":
+		return items
+	var br: Rect2 = PREF_IMAGERY[pref_dropdown][1]
+	var opts: Array = ImageryLayers.REGIONS[pref_dropdown]
+	for k in opts.size():
+		var r := Rect2(br.position.x, br.position.y - PREF_IMAGERY_ROW * (opts.size() - k), br.size.x, PREF_IMAGERY_ROW)
+		items.append({"id": opts[k][0], "label": opts[k][1], "available": ImageryLayers.available(opts[k][0]), "rect": r})
+	return items
+
+
+## Mouse down on the Graphics page's imagery drop-downs: a box opens / closes its list, an available
+## option is picked; any other click closes an open list. True when the click was taken.
+func _imagery_press(q: Vector2) -> bool:
+	if pref_dropdown != "":
+		for it in _imagery_items():
+			if it.rect.has_point(q):
+				if it.available:
+					pref_work[pref_dropdown] = it.id
+					pref_dropdown = ""
+				return true
+		pref_dropdown = ""
+		return true
+	for key in PREF_IMAGERY:
+		if PREF_IMAGERY[key][1].has_point(q):
+			pref_dropdown = key
+			return true
+	return false
 
 
 func _keys() -> RefCounted:
@@ -1275,6 +1363,8 @@ func _pref_press(q: Vector2) -> bool:
 					pref_work.better[it.key] = not pref_work.better[it.key]
 				return true
 		return false
+	if page == "Graphics" and _imagery_press(q):
+		return true
 	if page == "Graphics" and PREF_VSYNC.has_point(q):
 		pref_work["vsync"] = not bool(pref_work.get("vsync", true))
 		return true
@@ -1349,6 +1439,8 @@ func _pref_defaults() -> void:
 		pref_work.key_bindings = {}  # the whole table from 0x64c3c8 (@511ca5)
 	if Settings.pref_page == "Graphics":
 		pref_work["vsync"] = Settings.default_value("vsync")
+		for key in PREF_IMAGERY:
+			pref_work[key] = Settings.default_value(key)
 	if Settings.pref_page == "Extras":  # ours: every Extras option except the language
 		for opt in EXTRAS:
 			if opt[0] != "language":
@@ -1438,6 +1530,7 @@ func _on_button(key: String) -> void:
 		for k in checked.keys():
 			checked[k] = false
 		Settings.pref_page = key.capitalize()
+		pref_dropdown = ""
 		ctrl_focus = false
 		return
 	var btn := _button(key)
@@ -1455,6 +1548,7 @@ func _on_button(key: String) -> void:
 	var label: String = btn.label
 	if screen == "pref":
 		Settings.pref_page = label
+		pref_dropdown = ""
 		ctrl_focus = false
 		return
 	if screen in ["tsd", "arm", "flytsd"]:

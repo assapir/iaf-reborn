@@ -28,7 +28,7 @@ const BETTER := {
 const PREFS := {
 	"sound": ["mute", "music_volume", "engine_volume", "sfx_volume", "speech_volume"],
 	"graphics": ["terrain_detail", "object_detail", "visual_effects", "smoke_trails", "textured_sky",
-		"shadows", "external_stores", "vsync"],
+		"shadows", "external_stores", "vsync", "imagery_israel", "imagery_outside"],
 	"devices": ["flight_controls", "rudder", "throttle", "joy_axes"],
 	"gameplay": ["no_wind", "no_blackouts", "no_spins", "no_stalls", "easy_landing", "easy_aiming",
 		"no_malfunctions", "ai_level", "invulnerable", "no_crashes", "unlimited_ammo", "unlimited_fuel",
@@ -97,6 +97,10 @@ var show_all_keys := false
 var fullscreen := false
 ## VSync (ours, on the Graphics page): frames in step with the display (no tearing, frame rate capped).
 var vsync := true
+## Terrain imagery per region (ours, Graphics page; docs/imagery.md): "original" or a converted layer
+## (terrain/imagery_layers.gd), e.g. "sentinel2" / "sentinel2_modern" outside Israel.
+var imagery_israel := "original"
+var imagery_outside := "original"
 ## Key bindings changed on the Controls page (docs/controls.md): {record index: [key, joystick
 ## button]}, key = DIK | modifier << 16; records not listed keep the original default. Stored in the
 ## [keys] section as r<index> = [key, button].

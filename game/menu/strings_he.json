@@ -1,5 +1,5 @@
 {
- "_note": "Hebrew texts for our own additions only (the Preferences > Extras tab). Everything else in Hebrew comes from the Hebrew menu and briefing packs (docs/packs.md).",
+ "_note": "Hebrew texts for our own additions only (Preferences: the Extras / Physics tabs, the Graphics page's imagery choices). Everything else in Hebrew comes from the Hebrew menu and briefing packs (docs/packs.md).",
  "labels": {
   "Extras": "תוספות",
   "Flight data": "נתוני טיסה",
@@ -43,6 +43,11 @@
   "Framed": "עם מסגרת",
   "Full screen": "מסך מלא",
   "All": "הכל",
-  "Stores weight fix": "תיקון משקל חימוש"
+  "Stores weight fix": "תיקון משקל חימוש",
+  "Imagery Israel": "צילום שטח: ישראל",
+  "Imagery outside Israel": "צילום שטח: מחוץ לישראל",
+  "Survey of Israel 2 m": "המרכז למיפוי ישראל 2 מ'",
+  "Sentinel-2 (1998 colours)": "סנטינל-2 (צבעי 1998)",
+  "Sentinel-2 (modern colours)": "סנטינל-2 (צבעים עדכניים)"
  }
 }

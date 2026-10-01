@@ -28,6 +28,8 @@ var _pb_back: Texture2D
 var _pb_bar: Texture2D
 var _knob: Texture2D
 var _art_scale := 1.0
+## Ours: the credit lines the picked imagery layers require (CC BY, docs/imagery.md §6), at the bottom.
+var _credits: Array[String] = []
 
 
 func _ready() -> void:
@@ -37,6 +39,7 @@ func _ready() -> void:
 	var dir := Settings.assets_dir().path_join("converted/menu_he" if Settings.language == "he" else "converted/menu")
 	var scale_file := dir.path_join("image_scale.txt")
 	_art_scale = float(FileAccess.get_file_as_string(scale_file).strip_edges()) if FileAccess.file_exists(scale_file) else 1.0
+	_credits = preload("res://terrain/imagery_layers.gd").attributions()
 	var Img := preload("res://util/img.gd")
 	_back = Img.load_texture(dir.path_join("img/back.png"), true)
 	_wait = Img.load_texture(dir.path_join("img/mis/wait.png"), true)
@@ -66,6 +69,10 @@ func _draw() -> void:
 	for t in [[_back, Vector2.ZERO], [content, CONTENT_POS]]:
 		if t[0] != null:
 			draw_texture_rect(t[0], Rect2(origin + t[1] * s, t[0].get_size() / _art_scale * s), false)
+	var fs := int(round(9.0 * s))
+	for i in _credits.size():
+		var y := origin.y + (H - 6.0 - 11.0 * (_credits.size() - 1 - i)) * s
+		draw_string(ThemeDB.fallback_font, Vector2(origin.x + 8.0 * s, y), _credits[i], HORIZONTAL_ALIGNMENT_LEFT, (W - 16.0) * s, fs, Color8(0, 200, 0))
 	if _pb_back == null or _pb_bar == null:
 		return
 	var bar := CONTENT_POS + BAR_POS
