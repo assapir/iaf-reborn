@@ -72,6 +72,10 @@ step, and re-run individual steps later from a menu. The CLI stays for scripting
 The original keyboard stick is full deflection at once (taps > ~0.45 s reach 3 g in the F-16; docs/flight-model.md §8).
 Possible Extras option: a key ramp / sensitivity setting for keyboard players, original by default.
 
+## Glance-down key (Extras, later)
+Hold a key to slide the panel fully into view, release to look ahead again (as modern sims do; a real pilot glances
+down with the eyes). The original only has the stepped panel slide (PgUp / PgDn, V).
+
 ## Modern aircraft and weapons (post everything)
 Newer aircraft (e.g. F-16I Sufa, F-15I Ra'am, F-35I Adir, and modern threats) together with their weapons (e.g.
 AIM-120 AMRAAM, AIM-9X, Python 5, Derby, JDAM / SPICE / GBU families, Delilah, modern SAMs), following docs/aircraft.md

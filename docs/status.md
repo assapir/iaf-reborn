@@ -32,28 +32,17 @@ anti-radiation, rockets), night.
 sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, modern aircraft / weapons, Pi 5 profile.
 
 ## Small bugs (fix between jobs)
-- **Decide: model scale.** The original draws every mission model at its bdb Present scale (0x65e: ×2 for aircraft,
-  buildings, underlays; ×3–4 for vehicles / SAMs) — now ported for mission objects and AI jets (the airbases match the
-  imagery). The player's own jet is still 1:1: scale it too (original), or keep jets / vehicles 1:1 as an option?
 - **Player flight choice** (docs/ai.md §7.2): the original picks flight N by formation **id**, we by its kind (0x3f2);
   they differ in 124 of 307 formations — check which missions change their player and port.
-- **Keyboard stick too sensitive** (taps ≥ ~0.45 s give 3+ g): traced — the original sets full stick at once on
-  press, 0 on release; only the lift ramp (G_Rate) smooths it (F-16 350 kt: 0.1 s → 1.4 g, 0.3 s → 2.3 g, 0.5 s →
-  3.2 g, 1 s → 5.4 g). Our invented ramp is replaced by that law (it gave *more* g). Taps give 3+ g in the original
-  too; user to decide whether to add an Extras keyboard stick option (not added).
 - Real data: real service ceilings per aircraft (the envelope's g ceilings from public ceiling figures), all jets
   incl. AI types (docs/real-aircraft.md).
-- Aircraft shadow is very pixelated (shadow map resolution / cascade split / filtering), and the afterburner
-  flame casts a shadow even when the afterburner is off (the flame mesh must not cast shadows, and hidden flames
-  must not render). Also wire the Graphics "SHADOWS" pref.
 - Crash debris floats: the wreck pieces of a crash don't come to rest on the ground (terrain height / fall of
   the shattered pieces, docs/damage.md §6). Bonus (Extras, if possible): pieces made from the aircraft's own parts
   (wings, tail, gear from its model) instead of generic shards.
+- Extras / Physics tab buttons: restyle their labels like the original buttons (user request).
 - Physics tab: the list needs a scrollbar soon (15 options; use the Keyboard page's original scrollbar art / behaviour).
 - Stores look detached: no pylon models drawn (stores float under the wing), single-sided fins (flat white
   triangles from behind), triple-rack side bombs touch the wing (original formula) — see scratchpad so_behind.png.
-- Model scale: every unit at the original's Present-record scale (×2 aircraft / buildings, ×3–4 vehicles) by
-  default, the player's jet too; with Flight data = Real, aircraft (and units) at their true size.
 - Kfir / Mirage data: the original loads one shared block (the second type flies on the first's data) — do that
   with Flight data = Original; each jet's own section only with Flight data = Real (user decision).
 - Landing tests at the runway edges (Ramat David): touchdowns near the threshold / runway end and just inside /
