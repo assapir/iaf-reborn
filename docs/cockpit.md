@@ -134,7 +134,7 @@ The world is drawn by TgenAPI (`DAT_0069942c`, 16-bit renderer vtable `0x5fd900`
 * `game/cockpit/cockpit.gd`: `cockpit_dir` default `.../cockpits/f16`; `_draw_mfd_screens` paints a fixed 160x230 black box at offset -6 for each
   active MFD (real MFD is 132x132, at OffsetX/Y); `_draw_standby_horizon` ignores `[HORIZON] Active` (would draw a disc on
   phantom/mig23/mig29) and would fail on empty `ClockCenterX`; `OnMfd = 1` planes (F-15, F-4-2000, Lavi) show no ADI at all;
-  `[PANELRWR]` is not drawn; `_draw_tape` covers only `PANELVARIO`/`PANELAOA` (F-16 only) and `VARIOCLOCK` (F-4-2000, Lavi, MiG-23,
+  `_draw_tape` covers only `PANELVARIO`/`PANELAOA` (F-16 only) and `VARIOCLOCK` (F-4-2000, Lavi, MiG-23,
   MiG-29) is not drawn; `FUELDIGITAL` (F-16) is drawn but `FUELCLOCK` (others) is not; lights (`LIGHTSON`) are not drawn (see "Panel lights" below).
 * `game/terrain/terrain_view.gd` uses the F-16 model/flight ("F-16", `f16_h.gltf`, `_spawn_f16`),
   and `game/aircraft/aircraft_model.gd` has F-16 flaperon/stabilator mixing constants (not cockpit, listed for completeness).
@@ -206,8 +206,8 @@ Indicators are set with `FUN_0045b3d0(i, duration)` (duration 0.0 = stays on) an
 | LIGHT000 | master | S+0x520 | any damage event: end of the damage handler `FUN_0044d760` -> `FUN_0045b4b0` (plus warning sound 0x2c006000/0x18001000) | GEV 0x69 = clicking the light (`FUN_00521800` case 0xf) |
 | LIGHT001 | left eng | S+0x524 | damage 0x10 "Engine on fire"/"Left engine on fire" | GEV 0x49 fire extinguisher (clears 1 and 2, @44b506) |
 | LIGHT002 | right eng | S+0x528 | damage 0x11 (right engine fire) | GEV 0x49 |
-| LIGHT003 | ai | S+0x52c | RWR: a missile is guiding on us (`FUN_0044e160` <- missile object @4d814b sets the RWR entry launch flag +0x20) and its emitter's class (unit+0x30)+8 is **not** in {5,8,9,10,0x10}; sound 0x18002000 (`FUN_00450bc0`, `FUN_0044deb0`) | no such entry, RWR off or damaged (damage 0xe), emitter dropped (`FUN_0044e030`) |
-| LIGHT004 | sam | S+0x530 | same, but the emitter class is in {5,8,9,10,0x10} (ground; UNCERTAIN class names) | same |
+| LIGHT003 | ai | S+0x52c | RWR (docs/rwr.md §3): an **active** RWR entry (a lock or a launch) whose emitter class (unit+0x30)+8 is **not** in {5,8,9,10,0x10}; WRN_NEW_GUY 0x18002000 when it comes on (`FUN_00450bc0`, `FUN_0044deb0`; ≤ once per 1 s) | no such entry (every frame), the list empty, RWR damage 14 (cleared) |
+| LIGHT004 | sam | S+0x530 | same, but the emitter class is in {5,8,9,10,0x10} (ground) | same |
 | LIGHT005 | air brake | S+0x534 | GEV 0x11 TGL_BRAKES toggles it (speed brakes out) | toggle |
 | LIGHT006 | radar jammer (ecm) | S+0x538 | GEV 0x46 TGLECM when ECM is fitted (ctl[0x6e]) | toggle off; ECM damage (1) |
 | LIGHT007 | landing hook | S+0x53c | **never set** (no call with i = 7); `Active = 0` in every cockpit | - |

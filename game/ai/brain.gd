@@ -39,6 +39,9 @@ var wingman_command := 0
 var engaged := false
 var combat_disabled := false
 var target: Dictionary = {}
+## +0x7c: set by a radar's on-lock when free (FUN_004b0510; the locked unit itself, original bug), cleared by
+## its on-unlock; the threat of condition 38 / action 430 for a unit without a controller.
+var attacker: Dictionary = {}
 var primary: Dictionary = {}
 
 
@@ -211,7 +214,13 @@ func measure(code: int) -> Variant:
 			return pilot.fuel_ratio()
 		36:
 			return float(ent.damage) * 100.0
-	return null  # 3, 8, 10, 12, 14, 17, 19–21, 26–28, 37–39: combat job (UNCERTAIN sensors)
+		38:
+			# T == my threat (FUN_005c1410): without a controller the threat is brain+0x7c.
+			return int(not target.is_empty() and not attacker.is_empty() and is_same(target, attacker))
+		39:
+			# An RWR launch flag (FUN_005c1490): AI aircraft have no controller, so 0.
+			return 0
+	return null  # 3, 8, 10, 12, 14, 17, 19–21, 26–28, 37: combat job (UNCERTAIN sensors); 19 needs a controller
 
 
 ## One action: type gate (5, 6 never marked; sub-brains never gated), its effect, its audio.

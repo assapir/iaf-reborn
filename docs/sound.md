@@ -165,8 +165,8 @@ Mission instructor voices (`FUN_004bb10b` → `FUN_004c5470(wav, 0, 1)`): phrase
 | Betty "Fire" | BTY_FIRE 0x2c004000 | damage handler, engine fire (@44db29, @44db9d; ctl+0x964) | damage |
 | Betty "Engine" | BTY_ENGINE 0x2c005000 | damage handler (@44ddf2) | damage |
 | damage thumps | SFX_AIRCRAFT_DAMAGED 0x10001000–0x10003000 (`Cock_Dmgd_01/03/05`) | hit handler `FUN_0044d590` (@44d6b2, @44d6d9) and damage handler `FUN_0044d760` (@44da25, @44dac0) | damage / weapons |
-| RWR new emitter | SFX_WARNING WRN_NEW_GUY 0x18002000 (`WrnSfxNewGuy`, channel 5) | `FUN_0044deb0`, `FUN_00450bc0` | RWR |
-| missile launch | SFX_WARNING WRN_MISSILE_LAUNCH 0x18003000 (`WrnSfxMissile`, loop) + Betty BTY_MISS 0x2c002000 | `FUN_0044e160` (@44e197, @44e1b6), `FUN_00448120` (@4482f9) | RWR / missiles |
+| RWR new emitter | SFX_WARNING WRN_NEW_GUY 0x18002000 (`WrnSfxNewGuy`, channel 5) | `FUN_0044deb0`, `FUN_00450bc0` | ported (`rwr.gd`, docs/rwr.md §3); waits for something that locks the player |
+| missile launch | SFX_WARNING WRN_MISSILE_LAUNCH 0x18003000 (`WrnSfxMissile`, loop) + Betty BTY_MISS 0x2c002000 | `FUN_0044e160` (@44e197, @44e1b6), `FUN_00448120` (@4482f9) | ported (`rwr.gd` `launch`); waits for enemy missiles |
 | IR seeker / lock | SFX_IR_SEEK 0x25 / SFX_IR_LOCK 0x26 (`Wpn_IRCHIRP`, `WPN_IRCHIRPON`) | `FUN_00461b00`, `FUN_00461bf0` | weapons |
 | gun, weapon release / flight / hits | SFX_AIRCRAFT_FIRED_WEAPON 0xf, SFX_OBJECT_SPECIFIC 0xe, WEAPON_EXPLODED 10, … | `FUN_004579f0`, `FUN_0059d9c0`, `FUN_0059dad0`, `FUN_004d5d10` | weapons |
 | Betty "Pull up" | BTY_PULL_UP | §4 | A-G HUD modes |

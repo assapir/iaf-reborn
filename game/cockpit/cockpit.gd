@@ -43,6 +43,8 @@ var on_station_select: Callable
 ## The radar snapshot (player_weapons.gd radar_snapshot()) and its key events (radar_event(ev, arg)).
 var radar := {}
 var on_radar_event: Callable
+## The RWR copy (FUN_00446200 → state+0xe80..: the first `count` slots): [{type, pos: Vector2, launch, active}].
+var rwr: Array = []
 ## The player's route: [{name, world: Vector2}], and the current waypoint index.
 var waypoints: Array = []
 var current_waypoint := 0
@@ -110,6 +112,7 @@ func _ready() -> void:
 	if lights_file != "":
 		_add_tex("LIGHTS", lights_file)
 	_add_tex("MFDS", "mfds.bmp")
+	_add_tex("RWRSYMB", "rwrsymb.bmp")
 	_measure_view_bottom()
 	_load_tsd_map()
 	_create_mfds()
@@ -329,6 +332,7 @@ func _draw() -> void:
 		draw_texture_rect(tex.PANEL, Rect2(tl, Vector2(width, p.PanelHeight) * s), false)
 
 	_draw_lights(s)
+	_draw_panel_rwr(s)
 	_draw_needle("SPEEDCLOCK", state.speed_kt, s)
 	_draw_needle("ALTITUDELOCK", state.alt_ft, s)
 	_draw_needle("RPMCLOCK", state.rpm, s)
@@ -422,6 +426,59 @@ func _draw_console() -> void:
 		draw_set_transform(Vector2(left + 630 * s - w, 10 * s + _console_font.get_ascent(fs) - position.y), 0.0, Vector2(_console_squeeze, 1.0))
 		draw_string(_console_font, Vector2.ZERO, t, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, hud_colour())
 	draw_set_transform(Vector2.ZERO)
+
+
+## rwrsymb.bmp glyph row (10 × 10 at (0, y)) per emitter bdb type code (FUN_00531470): SAM / AAA radars
+## 290–390, aircraft 100–200; other types are not drawn.
+const RWR_GLYPH := {290: 0, 300: 10, 310: 20, 320: 30, 330: 40, 340: 50, 360: 60, 380: 60, 390: 60, 350: 70,
+	150: 80, 160: 90, 180: 100, 170: 110, 120: 120, 200: 120, 110: 130, 100: 140, 130: 150, 190: 150, 140: 160}
+## The RWR distance scale: 37060 m (0x60c3d8 / 0x60c3e0) at the radius, farther emitters on the rim.
+const RWR_RANGE := 37060.0
+
+
+## The RWR symbols (FUN_00531470) on `ci` about `centre` with `radius` (the MFD page: (66,66) r 56; the panel
+## dial: [PANELRWR] Center / Radius), `s` = canvas px per original px: heading-up, the active entries,
+## launch-flag ones blinking at 300 ms.
+func draw_rwr_symbols(ci: CanvasItem, centre: Vector2, radius: float, s: float) -> void:
+	if not tex.has("RWRSYMB"):
+		return
+	var a: float = layout.get("image_scale", 1)
+	var own: Vector2 = state.get("world", Vector2.ZERO)
+	var hdg := deg_to_rad(float(state.heading))
+	var blink_on := int(Time.get_ticks_msec() / 300) % 2 == 0
+	for e in rwr:
+		if not e.active or not RWR_GLYPH.has(int(e.type)):
+			continue
+		if e.launch and not blink_on:
+			continue
+		var off := rwr_offset(e.pos, own, hdg, radius)
+		var src := Rect2(0, RWR_GLYPH[int(e.type)], 10, 10)
+		ci.draw_texture_rect_region(tex.RWRSYMB, Rect2(centre + (off - Vector2(5, 5)) * s, Vector2(10, 10) * s),
+				Rect2(src.position * a, src.size * a))
+
+
+## An emitter's symbol centre from the dial centre (FUN_00531470 @53160d): heading-up, 37060 m = radius, the
+## horizontal offset clamped to 37060 m, each axis truncated.
+static func rwr_offset(pos: Vector2, own: Vector2, hdg: float, radius: float) -> Vector2:
+	var k := RWR_RANGE / radius
+	var S := sin(hdg)
+	var C := cos(hdg)
+	var dx: float = pos.x - own.x
+	var dy: float = own.y - pos.y
+	var d := sqrt(dx * dx + dy * dy)
+	if d > RWR_RANGE:
+		dx = dx / d * RWR_RANGE
+		dy = dy / d * RWR_RANGE
+	return Vector2(int((C * dx + S * dy) / k), int((C * dy - S * dx) / k))
+
+
+## The panel RWR dial (FUN_00531330, [PANELRWR] Active): the symbols at Center with Radius; nothing with RWR
+## damage (state+0x590 = damage flag 14).
+func _draw_panel_rwr(s: float) -> void:
+	var r: Dictionary = layout.get("PANELRWR", {})
+	if int(r.get("Active", 0)) != 1 or (damage_flags.size() > 14 and damage_flags[14]):
+		return
+	draw_rwr_symbols(self, panel_to_screen(float(r.CenterX), float(r.CenterY)), float(r.Radius), s)
 
 
 ## One frame of a light (frames stacked under Top in the lights bitmap) at its panel position.

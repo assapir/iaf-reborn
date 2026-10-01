@@ -22,7 +22,7 @@ var ecm := false
 ## Betty voice calls (controller +0x964, FlightSounds.BETTY_TYPES).
 var betty := true
 var rng := RandomNumberGenerator.new()
-## Host callbacks: console(text), sound(code, sub1), light(index, on), gear_stuck(), shake(amount).
+## Host callbacks: console(text), sound(code, sub1), light(index, on), gear_stuck(), shake(amount), rwr().
 var host: Object
 
 
@@ -83,14 +83,16 @@ func system_damage(n: int) -> void:
 		7:
 			host.damage_gear()  # all three legs 1 (red) for good
 		14:
-			host.damage_light(3, false)  # RWR off: AI / SAM lights
+			host.damage_light(3, false)  # RWR off: AI / SAM lights, the list cleared (FUN_00451b90)
 			host.damage_light(4, false)
+			host.damage_rwr()
 		16, 17:
 			host.damage_light(1 if n == 16 else 2, true)  # engine fire light, stays on
 			if betty:
 				host.damage_sound("VOC_BBETTY", "BTY_FIRE")
 		19, 21:
 			host.damage_sound("SFX_AIRCRAFT_DAMAGED", "DAMAGED_ELECTRICITY")
+			host.damage_rwr()  # the RWR list cleared (FUN_00451b90)
 			if n == 21:
 				host.damage_light(6, false)
 		2, 3, 22, 23:

@@ -769,6 +769,12 @@ func damage_light(i: int, on: bool) -> void:
 	cockpit.indicators[i] = on
 
 
+## RWR damage (14) and the generator failures (19, 21): the RWR list cleared (FUN_00451b90).
+func damage_rwr() -> void:
+	if weapons != null:
+		weapons.rwr.clear()
+
+
 ## Autopilot damage (system 6): lamp off, the loop stopped (game/controls/autopilot.gd).
 func damage_autopilot() -> void:
 	if autopilot != null:
@@ -1343,9 +1349,9 @@ func _view_command(id: int) -> void:
 			if is_instance_valid(padlock_target):
 				views.set_padlock(padlock_target)
 		0x17, 0x18:
-			# F5 threat (the RWR's launch / lock record, else its nearest contact: no RWR yet, so none), F6 the
-			# wingman (FUN_005bcb90 / 5bcc20). A new key: the two-object view; again: padlock it; again: back.
-			var o: Node3D = null if id == 0x17 else wingman()
+			# F5 the threat (the RWR's nearest emitter, FUN_00451f70), F6 the wingman (FUN_005bcb90 / 5bcc20).
+			# A new key: the two-object view; again: padlock it; again: back.
+			var o: Node3D = threat() if id == 0x17 else wingman()
 			if o != null:
 				if is_new or views.type == Views.PADLOCK:
 					views.set_two(rig, o)
@@ -1400,6 +1406,16 @@ func radar_target() -> Node3D:
 		return null
 	var key := String(weapons.radar.locked().get("key", ""))
 	var ent: Dictionary = runtime.entities.get(key, {})
+	var n = ent.get("node")
+	return n if n is Node3D and is_instance_valid(n) and n.visible else null
+
+
+## F5's threat (@4cdffd: ctl+0x5b0 FUN_00451f70): the RWR's nearest listed emitter within 370.8 km, after a
+## refresh, as a scene node; null = none.
+func threat() -> Node3D:
+	if weapons == null or runtime == null:
+		return null
+	var ent: Dictionary = runtime.entities.get(weapons.rwr.nearest(), {})
 	var n = ent.get("node")
 	return n if n is Node3D and is_instance_valid(n) and n.visible else null
 

@@ -12,6 +12,7 @@ const GunRounds := preload("res://weapons/gun_rounds.gd")
 const IrSeeker := preload("res://weapons/ir_seeker.gd")
 const IrMissile := preload("res://weapons/ir_missile.gd")
 const Radar := preload("res://weapons/radar.gd")
+const Rwr := preload("res://weapons/rwr.gd")
 const DamageEffects := preload("res://mission/damage_effects.gd")
 
 ## The gun's shot timer period (DAT_0082f4e8 = 0.2 s, sim time).
@@ -33,6 +34,8 @@ var gun: RefCounted
 var seeker: RefCounted
 ## The radar (ctl+0x84, docs/radar.md).
 var radar: RefCounted
+## The RWR (ctl+0x5b0, docs/rwr.md).
+var rwr: RefCounted
 var missiles: Array = []  # IrMissile with .node, .sound
 var now := 0.0
 
@@ -95,6 +98,14 @@ func setup(host_node: Node, entity: Dictionary, object: Dictionary, bdb: Diction
 	radar.own = own
 	radar.on_lock = _radar_lock
 	radar.setup(jet_type, preload("res://weapons/real_weapons.gd").radar_nm(jet_type) if Settings.real_weapons() else 0.0)
+	rwr = Rwr.new()
+	rwr.unit = _rwr_unit
+	rwr.own = own
+	rwr.now = func(): return now
+	rwr.betty = jet_type in preload("res://audio/flight_sounds.gd").BETTY_TYPES
+	if host.get("sounds") != null:
+		rwr.play = host.sounds.play
+		rwr.stop = host.sounds.stop
 	_push_stores()
 	# The tanks' fuel (FUN_005a8980 before the start fills the fuel to FuelWeight + tanks).
 	if host.flight != null:
@@ -605,10 +616,29 @@ func radar_event(ev: int, arg = null) -> void:
 		0x30: radar.toggle_exp()
 
 
-## On-lock / on-unlock (4b0510 / 4b04d0): the target's RWR hears the lock (AI conditions 19 / 26);
-## the RWR and the AI's reaction come with the enemies.
-func _radar_lock(_key: String, _on: bool) -> void:
-	pass
+## On-lock / on-unlock (FUN_004b0510 / FUN_004b04d0): a target with a controller hears it on its RWR;
+## an AI aircraft (no controller) gets brain+0x7c = the target itself when free (original bug: not the
+## radar's owner) and loses it on the unlock (docs/rwr.md §2).
+func _radar_lock(key: String, on: bool) -> void:
+	var ent: Dictionary = host.runtime.entities.get(key, {}) if host.runtime != null else {}
+	var p = ent.get("pilot")
+	if p == null or p.get("brain") == null:
+		return
+	if on:
+		if p.brain.attacker.is_empty():
+			p.brain.attacker = ent
+	elif is_same(p.brain.attacker, ent):
+		p.brain.attacker = {}
+
+
+## An emitter for the RWR: {pos, klass, type, state} of a mission unit, {} when gone.
+func _rwr_unit(key: String) -> Dictionary:
+	var rt = host.runtime if host != null else null
+	if rt == null or not rt.entities.has(key):
+		return {}
+	var ent: Dictionary = rt.entities[key]
+	return {"pos": rt._world_of(ent), "klass": int(ent.get("klass", -1)), "type": int(ent.get("type_code", 0)),
+		"state": int(ent.get("state", 1))}
 
 
 ## The cockpit's radar snapshot (FUN_00445f10 → state+0x640.., +0xa00..): mode, range index (1..6),
@@ -745,6 +775,8 @@ func update(t: float) -> void:
 	_update_missiles()
 	_update_decoys()
 	radar.update(now)
+	rwr.damaged = _flag(14)
+	rwr.update(now)
 	# FUN_00461680: an A-A radar lock slaves the IR seeker (any lock clears the seeker's own target).
 	seeker.radar_key = String(radar.locked().get("key", ""))
 	seeker.radar_aa = radar.aa
@@ -831,6 +863,9 @@ func _publish() -> void:
 		var d: Vector3 = GunRounds.shot_dir(o.fwd, o.up)
 		pip = gun.aim_point(o.pos, o.vel, d, true)  # world point, projected by the HUD
 	c.radar = radar_snapshot()
+	c.rwr = rwr.display()
+	c.indicators[Rwr.LAMP_AI] = rwr.lamps[Rwr.LAMP_AI]
+	c.indicators[Rwr.LAMP_SAM] = rwr.lamps[Rwr.LAMP_SAM]
 	c.weapons = {
 		"hud_mode": hud_mode, "master": master, "stations": list, "selected": stores.cur,
 		"name": stores.current_name(), "type": t, "total": stores.total(t, stores.current_name()),

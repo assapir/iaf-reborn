@@ -580,7 +580,8 @@ B+0x7c); 39 any RWR entry's launch flag.
   (classes 8, 9, 10, 5, 16) or 3 'ai' (corrects docs/cockpit.md: any active entry, not only a guiding missile) and
   plays WRN_NEW_GUY 0x18002000 (≤ once per 1.0 s, ctl+0x860). Launch `FUN_0044e160` (every class-0x18 missile): launch
   flag, WRN_MISSILE_LAUNCH 0x18003000 loop until no flag is left (`FUN_00451e30`), Betty "Missile" 0x2c002000 on
-  every launch (ctl+0x964). Every 0.25 s positions refreshed, active = emitter test or launch flag. Display
+  every launch (ctl+0x964). Every 2.0 s positions refreshed, active = emitter test or launch flag (full trace and
+  the port: docs/rwr.md). Display
   `FUN_00531470`: active entries, launch-flag ones blink (300 ms), distance clamped 37060 m; original bug: slots are
   not compacted and only the first `count` are copied (`FUN_00446200`). No separate lock tone. Damage 14 / 19 / 21
   clear the list. brain+0x7c is written with the target itself (original bug).

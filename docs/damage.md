@@ -227,7 +227,7 @@ ECM; 3 always; 2 once an engine cut-out was picked (+0x70) or with 9 / 17 / 23 s
 | 11 | Instuments damage | – | – | INS |
 | 12 | Hud damage | – | – | HUD |
 | 13 | Gun damage | – | `FUN_00456200` (gun, UNCERTAIN) | GUN |
-| 14 | RWR damage | – | `FUN_00451b90` (RWR, UNCERTAIN), lights 3 / 4 off | RWR |
+| 14 | RWR damage | – | `FUN_00451b90` (the RWR list cleared; flag 14 then blocks it, docs/rwr.md), lights 3 / 4 off | RWR |
 | 15 | Radar damage | – | `FUN_004adb20` (radar, UNCERTAIN) | RDR |
 | 16 / 17 | Engine on fire - use extinguisher (Left / Right …) | 8 / 9 | fire light 1 / 2 on, Betty "Fire" | ENG / ENG R |
 | 18 | Hydraulic control | – | – | AILN |

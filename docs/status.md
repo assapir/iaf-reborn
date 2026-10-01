@@ -16,7 +16,8 @@
   the centreline: docs/autopilot.md §3).
 - ~~Cockpit camera = the original projection (HUD ladder lines up)~~ — done (docs/cockpit.md "3D view").
 - ~~Views, time compression, pause / in-flight menu~~ — done (docs/views.md).
-- RWR display, radar MAP picture, other MFD pages.
+- ~~RWR (list, lights, sounds, MFD page / panel dial, F5 threat), radar MAP picture~~ — done (docs/rwr.md, docs/mfd.md
+  §4); nothing locks the player until AI combat / SAMs. Other MFD pages (FLIR / TV / HARM).
 - Detached-looking stores.
 - Joystick / throttle / pedals.
 - Other jets flyable (Phantom 2000, F-4E, F-15, …): flight data + cockpit each (incl. the Kfir / Mirage shared
@@ -66,12 +67,12 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 | Real aircraft data | Real set for all 6 flyable jets (F-16, F-15C, F-4E / Kurnass 2000, Kfir C7, Lavi, Mirage IIICJ): weights, thrust, drag, roll, fuel, stall, pedal steering (docs/real-aircraft.md); the flight data loader reads the v1.1 files (`bdgen.dat`, `*gen.skp`, XOR-encoded); AI types: reference table only |
 | Damage | original damage model: hits, blast formula, destruction, falling jets, explosions / smoke, the player's systems damage, collisions |
 | Eject | E ×3: seat, canopy, parachute, mission lost |
-| Cockpit | all 9 original 2D cockpits, gauges, HUD (11 colours), panel lights, MFDs (radar, TSD, RWR, NAV, stores, damage) |
+| Cockpit | all 9 original 2D cockpits, gauges, HUD (11 colours), panel lights, MFDs (radar incl. the MAP ground picture, TSD, RWR page and panel dial, NAV, stores, damage); RWR (docs/rwr.md) |
 | Aircraft models | all 22 models: moving parts per the original rules, gear, afterburner flame, canopy / pilot, damage visuals |
 | Sounds | original sound table: engine, gear, flaps, air brake, AoA tone, Betty warnings, touchdown, crash; volume sliders |
 | Terrain | all of `map.ptt` (levels 11..6 + all 51 insets, 2342 nodes) as a streamed quadtree with distance LOD to 200 km, level-6 heights with the original's inset interpolation, skirts; runway digits surveyed on every airbase (2 mirrored fixed); `terraintype.dat` surface types (water / rough / runway) feed the flight model; loaded behind the wait screen (docs/formats/ptt.md) |
 | Pilot records | screen 0 at startup (docs/front-end.md §13): pilot list, Dossier (edit boxes, photo, rank, score, missions), Records / Kills / Losses, New / Remove / Login; each debriefed flight recorded (result, MissBonus, destroyed units as kills / losses, score multiplier), best-attempt score and rank, the briefing's "<rank> <name>"; Future Missions 2–7 locked until the previous pass; JSON in the user dir. Not filled yet: kills / losses only from what the damage code destroys (no AI weapons / SAMs), the debrief page's own statistics |
-| Tests | `tools/test.sh`: Rust + 31 headless Godot tests, isolated from the player's settings; fails on any script error |
+| Tests | `tools/test.sh`: Rust + 32 headless Godot tests, isolated from the player's settings; fails on any script error |
 
 ## Open gaps (by area)
 - **Terrain**: map-edge push-back / EndWorld and craters (terraintype bits known, systems missing); no elevation
@@ -79,11 +80,11 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 - **Flight**: only the F-16; systems damage doesn't affect flying yet; no hook, map-edge push-back.
 - **Combat**: player gun, IR missiles, radar lock, chaff / flares (no bombs, rockets, radar missiles, TV / laser,
   HARM); no AI combat (AI jets fly, don't fight), no AAA / SAMs (so no combat mission can be won yet).
-- **Cockpit / MFDs**: radar MAP picture, ECM, RWR threats, FLIR / TV / HARM pages, NAV distances; AI / SAM / ECM /
-  lights have no systems; night lighting.
-- **Controls**: no joystick; not built: the threat view's RWR threats, the EO weapon camera, FlyTSD Fly into another
+- **Cockpit / MFDs**: ECM, FLIR / TV / HARM pages, NAV distances; the RWR's feeds (AI sensors, SAMs, enemy missiles);
+  ECM light has no system; night lighting; what uses the radar's designated point.
+- **Controls**: no joystick; not built: the EO weapon camera, FlyTSD Fly into another
   aircraft / Visit (docs/views.md).
-- **Sounds**: damage / RWR / weapon / AI sounds wait for those systems.
+- **Sounds**: weapon / AI sounds wait for those systems (the RWR's wait for something to lock the player).
 - **Front end**: Reference, QUIT confirmation, TSD 3D-model / target
   windows; most stored prefs have no effect yet.
 - **Eject details**: callsign in the radio call, parachute landing.

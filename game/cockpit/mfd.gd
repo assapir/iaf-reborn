@@ -146,7 +146,7 @@ func _draw() -> void:
 		TSD:
 			_draw_tsd()
 		RWR:
-			_tile(TILE_RWR)
+			_draw_rwr()
 		MENU:
 			_draw_menu()
 		NAV:
@@ -511,6 +511,17 @@ func _click_gmt(p: Vector2) -> void:
 func _radar_event(ev: int, arg = null) -> void:
 	if cockpit.on_radar_event.is_valid():
 		cockpit.on_radar_event.call(ev, arg)
+
+
+## The RWR page (FUN_00531290): the tile; with RWR damage (state+0x590 = flag 14) "Mal" at (101,3), else the
+## symbols about (66,66), radius 56.
+func _draw_rwr() -> void:
+	_tile(TILE_RWR)
+	var f: Array = cockpit.damage_flags
+	if f.size() > 14 and f[14]:
+		_text(Vector2(101, 3), "Mal")
+	else:
+		cockpit.draw_rwr_symbols(self, Vector2(66, 66), 56.0, 1.0)
 
 
 ## Artificial horizon bars (FUN_00533620): centre (66,66), rolled, 1 px per degree of pitch.

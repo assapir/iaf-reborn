@@ -217,7 +217,9 @@ A/P 88, ELCT 97, GNRT 106. Redrawn when state+0x558.. flags change.
 - SAM sites (state+0x1148.., stride 0x14, count +0x1288): 3x3 box+diagonal and ring of radius r/k px.
 
 ### RWR (7) and panel RWR
-- Symbols centred (66,66), radius 56 (`FUN_00531470`); if state+0x590 ≠ 0 draws "Mal" at (101,3) instead.
+(The RWR itself, the positions and the per-cockpit dials: docs/rwr.md.)
+- Symbols centred (66,66), radius 56 (`FUN_00531470`); if state+0x590 (damage flag 14) ≠ 0 draws "Mal" at (101,3)
+  instead.
 - rwrsymb.bmp glyphs 10x10 at src (0,Y,10,Y+10), drawn at pos−5. Threat type → Y: 0x122→0 "2", 300→10 "3",
   0x136→20 "5", 0x140→30 "6", 0x14a→40 "8", 0x154→50 "H", 0x168/0x17c/0x186→60 (ship? UNCERTAIN), 0x15e→70 "A",
   150→80, 160→90, 180→100, 170→110, 120/200→120, 110→130, 100→140, 130/190→150, 140→160 (aircraft glyphs).

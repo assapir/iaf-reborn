@@ -100,7 +100,7 @@ Traced in v1.1 (view manager `DAT_00699304`, setters `FUN_0057f2a0` / `FUN_00580
 | F3 | 0x16 | padlock: the radar target (stored in `ctl+0x804`) or the stored one | nothing |
 | Shift+F3 | event 0x67 | padlock the on-screen object nearest the screen centre inside a 4635 m sphere 4635 m ahead (`FUN_0045de60`; cockpit / HUD views only) | nothing |
 | F4 | 9 | radar target: path-follow with the swoop (aircraft {300, 700, 300, 10°, ·, 2°} ×1, others {500, 900, 500, 30°, ·, 120°} ×3) | nothing |
-| F5 | 0x17 | two-object player → threat (RWR launch / lock record, else its nearest contact ≤ 370.8 km); again: padlock it; again: back | nothing |
+| F5 | 0x17 | two-object player → threat (the RWR's nearest listed emitter ≤ 370.8 km after a refresh, `FUN_00451f70`, docs/rwr.md §5); again: padlock it; again: back | nothing |
 | F6 | 0x18 | two-object player → wingman (next formation member, else the leader; alive); again: padlock; again: back | nothing |
 | F7 / F8 | 0x19 / 0x1a | two-object player → radar target / target → player | nothing |
 | F9 | 0x13 | fly-by: random offset point → glides into the chase (type 9) | — |
@@ -135,8 +135,9 @@ orbit instead (8 / 2 pitch, 6 / 4 heading; F2 and 1 / 3 / 7 / 9 do nothing there
   {1000, 600, 200, 230°, ·, 160°} ×2 (docs/mission-runtime.md §5.4).
 
 ### 4.4 iaf-reborn
-* All of the above, with these gaps: **F5 threat** never finds one (no RWR threat list yet), so it does nothing, as the
-  original with no threat; **F4 / F7 / F8 / F3** use the radar's A-A lock / TWS selection (`radar.locked()`); **F6** the AI
+* All of the above, with these gaps: **F5 threat** follows the RWR (`terrain_view.threat()`), but nothing locks the
+  player yet (AI combat / enemy weapons), so in flight it finds none and does nothing, as the original with no threat;
+  **F4 / F7 / F8 / F3** use the radar's A-A lock / TWS selection (`radar.locked()`); **F6** the AI
   formation (`ai_flights.gd` `_formation_of`); **F11** our IR missiles (the only released weapons; bombs etc. are not
   built); the wreck circle never knows an attacker (no attacker field), so it is always the wreck.
 * UNCERTAIN, chosen here: the fly-by offset axes (x right, y forward, z up), the orbit signs (+heading swings the camera
