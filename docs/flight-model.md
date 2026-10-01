@@ -323,7 +323,7 @@ Evidence (all checked in objdump):
 * **Stick handler.** Motion 1 `FUN_0059f3d0` writes `S+0x2e8 = clamp(in+0x14, ±1)` (X) and
   `S+0x2e4 = −clamp(in+0x10, ±1)` (Y). It has no ground test. `FUN_0044e470` type 1 sets
   `+0x14 = arg[0]·0.01` and `+0x10 = arg[1]·0.01` (`0x600b2c` = 0.01). The controller `FUN_0044a240` case 1 (@44bd01)
-  posts motion 1 with the raw `(x,y)` in the range ±100. When indicator 8 is set (UNCERTAIN: autopilot) and
+  posts motion 1 with the raw `(x,y)` in the range ±100. When indicator 8 (the autopilot lamp, docs/autopilot.md) is set and
   |x| or |y| ≥ 51, it first clears that indicator. Case 10 posts motion 5. Cases 2/3 fall to the default
   and return (jump table `0x44c714`, index bytes `0x44d390`).
 * **K = 20°/s.** `DAT_008454d4` is set by a static initialiser: CRT table `.data 0x6277ac` → `0x5bab70` →
