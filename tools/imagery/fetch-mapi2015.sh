@@ -42,12 +42,16 @@ free=$(( $(df -Pm "$dest" | awk 'NR==2 {print $4}') ))
 echo "$n sheets to fetch (~${need} MB); ${free} MB free on the assets disk"
 (( free < need + 2000 )) && { echo "not enough free space (need ~$((need + 2000)) MB incl. conversion headroom)"; exit 1; }
 
-# A finished download: the file exists and the browser's partial file is gone and its size is stable.
+# A finished download, in the browser's download folder or saved straight into $dest (a browser that asks where to
+# save): the file exists, the browser's partial file is gone and its size is stable. Prints the path.
 finished() {
-	local f=$1
-	[[ -s "$dl/$f" && ! -e "$dl/$f.part" ]] || return 1
-	local a b; a=$(stat -c %s "$dl/$f"); sleep 2; b=$(stat -c %s "$dl/$f")
-	[[ $a == "$b" ]]
+	local f=$1 d
+	for d in "$dl" "$dest"; do
+		[[ -s "$d/$f" && ! -e "$d/$f.part" ]] || continue
+		local a b; a=$(stat -c %s "$d/$f"); sleep 2; b=$(stat -c %s "$d/$f")
+		[[ $a == "$b" ]] && { echo "$d/$f"; return 0; }
+	done
+	return 1
 }
 
 i=0
@@ -58,15 +62,15 @@ while (( i < n )); do
 	for u in "${group[@]}"; do
 		f=${u##*/}
 		t=0
-		until finished "$f"; do
+		until p=$(finished "$f"); do
 			sleep 5; t=$((t + 5))
-			(( t % 60 == 0 )) && echo "  waiting for $f in $dl ($((t / 60)) min)…"
+			(( t % 60 == 0 )) && echo "  waiting for $f in $dl or $dest ($((t / 60)) min)…"
 			(( t > 3600 )) && { echo "  $f did not arrive in 60 min; re-run to retry"; exit 1; }
 		done
-		if unzip -tq "$dl/$f" >/dev/null 2>&1; then
-			mv "$dl/$f" "$dest/$f"; echo "  ok $f"
+		if unzip -tq "$p" >/dev/null 2>&1; then
+			[[ $p != "$dest/$f" ]] && mv "$p" "$dest/$f"; echo "  ok $f"
 		else
-			echo "  $f is not a valid ZIP (challenge page?); removed, re-run to retry"; rm -f "$dl/$f"
+			echo "  $f is not a valid ZIP (challenge page?); removed, re-run to retry"; rm -f "$p"
 		fi
 	done
 	i=$((i + batch))
