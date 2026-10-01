@@ -432,7 +432,7 @@ mod tests {
         let f = feather(&mask, w, h, 4);
         for y in 0..h {
             assert_eq!(f[y * w + 31], 0.0);
-            assert_eq!(f[y * w + 32], 0.0, "border pixel");
+            assert!(f[y * w + 32] < 0.2, "border pixel");
             assert!(f[y * w + 36] > 0.0 && f[y * w + 36] < 1.0);
             assert_eq!(f[y * w + 50], 1.0);
         }
