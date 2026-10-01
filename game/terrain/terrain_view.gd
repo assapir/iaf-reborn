@@ -795,7 +795,7 @@ func _on_box_choice(choice: String) -> void:
 
 
 func _end_flight(debrief: bool) -> void:
-	Settings.debrief = runtime.debrief_text() if debrief and runtime != null else {}
+	Settings.debrief = runtime.debrief_text(Settings.mission_id) if debrief and runtime != null else {}
 	get_tree().change_scene_to_file("res://menu/front_end.tscn")
 
 

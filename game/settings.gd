@@ -111,8 +111,15 @@ var player_flight := 0
 ## {flight 1..6: [[weapon id, count] × 9]}; a flight not listed keeps the mission's own. Cleared when
 ## a mission loads.
 var arm_loadouts := {}
-## Result of the last flight for the debrief screen: {passed, headline, notes}; empty = none.
+## Result of the last flight for the debrief screen: {passed, headline, notes} and what the pilot records
+## keep {result, bonus, kills, losses} (mission_runtime.gd debrief_text()); empty = none.
 var debrief := {}
+## The pilot logged in on the Pilot Records screen (FUN_0051d940, not saved): id (DAT_0083b814, -1 none),
+## name (DAT_0083b834), callsign (DAT_0083b848) and rank (DAT_0083b820, from the pilot's score).
+var pilot_id := -1
+var pilot_name := ""
+var pilot_callsign := ""
+var pilot_rank := ""
 
 
 ## Tests and captures run with IAF_DEFAULT_SETTINGS=1: defaults only, the player's settings file

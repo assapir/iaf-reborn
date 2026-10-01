@@ -730,7 +730,20 @@ func _role_rules(ent: Dictionary) -> void:
 			_after(END_BOX_DELAY, func(): message_box.emit(13, ["deb", "fly"]))
 
 
-## Debrief (FUN_0059a0f0): headline 0x47e if passed else 0x492, then the notes.
-func debrief_text() -> Dictionary:
+## Debrief (FUN_0059a0f0): headline 0x47e if passed else 0x492, then the notes; and the results the pilot
+## records keep (docs/front-end.md §13.7): result = passed, bonus = the score file's MissBonus for the mission
+## (halved and negative when not passed: trunc(-0.5 · bonus)), and every destroyed unit (state 4 / 5) as
+## [type code, class]: on the player's side (side 1 without a player) a loss, otherwise a kill.
+func debrief_text(mission_id := -1) -> Dictionary:
 	var headline := String(misc.get("0x47e" if passed else "0x492", ""))
-	return {"passed": passed, "headline": headline, "notes": (debrief_notes[0] + debrief_notes[1]).strip_edges()}
+	var bonus: int = preload("res://menu/pilots.gd").mission_bonus(mission_id)
+	var kills: Array = []
+	var losses: Array = []
+	var p := player_entity()
+	for ent in entities.values():
+		if ent.state != DamageModel.DESTROYED and ent.state != DamageModel.EXPLODED:
+			continue
+		var own: bool = ent.side == 1 if p.is_empty() else ent.side == p.side
+		(losses if own else kills).append([ent.type_code, ent.klass])
+	return {"passed": passed, "headline": headline, "notes": (debrief_notes[0] + debrief_notes[1]).strip_edges(),
+		"result": 1 if passed else 0, "bonus": bonus if passed else int(-0.5 * bonus), "kills": kills, "losses": losses}

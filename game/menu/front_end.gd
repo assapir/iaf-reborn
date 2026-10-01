@@ -101,6 +101,7 @@ const CTRL_THUMB := Vector2(10, 23)
 const KeyTable := preload("res://controls/key_table.gd")
 const Img := preload("res://util/img.gd")
 const Tsd := preload("res://menu/tsd.gd")
+const Pilots := preload("res://menu/pilots.gd")
 
 ## Our own "Extras" tab (not in the original): directly below Gameplay at the panel's spacing
 ## (44 px). Drawn from the pPref art: the band holding the Gameplay button (panel coordinates, inside
@@ -171,7 +172,8 @@ var font_bold: SystemFont
 ## Our own labels in the style of the original art's baked labels: bold italic condensed capitals.
 var font_art: SystemFont
 
-var screen := "main"
+## The game starts on the Login / Pilot Records screen (screen 0, docs/front-end.md §13.1).
+var screen := "log"
 ## Where TSD and the Jet list return to.
 var jet_parent := "basic"
 ## Transition state: left/bottom panels 0 = hidden .. 1 = shown; title tab frame 0..2.
@@ -213,6 +215,10 @@ var arm: Control
 var mission_weapons: RefCounted
 ## The open message box (§3.3, game/mission/mission_box.gd), or null.
 var msgbox: Control
+## Pilot Records (screen 0): its content node (game/menu/pilot_records.gd), and the logged-in pilot's
+## mission history for the list locks (§13.11), read on each screen change.
+var records: Control
+var history: Array = []
 
 var music: AudioStreamPlayer
 var sfx: AudioStreamPlayer
@@ -238,9 +244,15 @@ func _ready() -> void:
 	var at := args.find("--menu")
 	if at >= 0:
 		screen = args[at + 1]
-	# Back from a flight with a debrief (docs/mission-runtime.md §5.3).
+	# Back from a flight with a debrief (docs/mission-runtime.md §5.3): the Debrief records the attempt
+	# (FUN_004fe860 -> FUN_004f68b0) for the logged-in pilot.
 	if not Settings.debrief.is_empty():
 		screen = "deb"
+		if Settings.pilot_id >= 0:
+			var p := {}
+			for k in Settings.PREFS.gameplay:
+				p[k] = Settings.get(k)
+			Pilots.record(Settings.pilot_id, Settings.mission_id, Settings.debrief, score_multiplier(p))
 	at = args.find("--mission")
 	if at >= 0:
 		Settings.mission_id = int(args[at + 1])
@@ -415,6 +427,14 @@ func _enter_screen() -> void:
 		tsd.queue_free()
 		tsd = null
 	_enter_arm()
+	if screen == "log" and records == null:
+		records = preload("res://menu/pilot_records.gd").new()
+		add_child(records)
+		records.setup(self)
+	elif screen != "log" and records != null:
+		records.queue_free()
+		records = null
+	history = Pilots.history(Settings.pilot_id) if Settings.pilot_id >= 0 else []
 
 
 ## The Arming screen (§15) is drawn over the TSD, which stays loaded (hidden) for its flights; the
@@ -469,7 +489,13 @@ func _restore_tsd_checks() -> void:
 
 func _button_enabled(label: String) -> bool:
 	if screen == "deb" and _norm(label) == "nextmission":
-		return next_mission(Settings.mission_id, Settings.debrief.get("passed", false)) != 0
+		return next_mission(Settings.mission_id, Settings.debrief.get("passed", false) or _cheat()) != 0
+	# List rows (FUN_00509e80 @50a5b9): a row with f1 set is locked until the row above has a pass (the
+	# first row: never), unless the cheat is on. Only the Future fronts' Missions 2–7 have f1 set.
+	var rows: Array = _list().get("rows", [])
+	for i in rows.size():
+		if _norm(rows[i].name) == _norm(label) and int(rows[i].get("flags", [0])[0]) != 0 and not _cheat():
+			return i > 0 and Pilots.passes(history, int(rows[i - 1].id)) > 0
 	if screen == "jet":
 		var id: int = JET_IDS.get(_norm(label), -1)
 		if id in JETS_DISABLED.get(Settings.mission_id, []):
@@ -491,6 +517,11 @@ func _button_enabled(label: String) -> bool:
 	if screen == "arm" and _norm(label) in Tsd.FLIGHT_NAMES:
 		return tsd != null and tsd.flight_enabled(_flight_number(_norm(label)))
 	return true
+
+
+## The "make sim" / "not war" cheat of the logged-in pilot (FUN_004f1610).
+func _cheat() -> bool:
+	return Pilots.cheat(Settings.pilot_name, Settings.pilot_callsign)
 
 
 func _flight_number(name: String) -> int:
@@ -921,8 +952,13 @@ func _slider_thumb() -> Texture2D:
 	return textures[key]
 
 
-## Scoring strip frame (§12.3, FUN_004f1120): 0 = 120 % ... 20 = 20 % ... 24 = no scoring.
+## Scoring strip frame (§12.3): 0 = 120 % ... 20 = 20 % ... 24 = no scoring.
 static func _score_frame(p: Dictionary) -> int:
+	return clampi(24 - int(20.0 * score_multiplier(p) + 0.5), 0, 24)
+
+
+## The score multiplier of the Gameplay options (FUN_004f1120, DAT_0083b998), kept with each attempt.
+static func score_multiplier(p: Dictionary) -> float:
 	var m := 1.0 + (0.2 if p.get("ai_level") == 2 else 0.0)
 	var costs := {"no_wind": 0.05, "no_blackouts": 0.1, "no_spins": 0.05, "no_stalls": 0.05,
 		"easy_aiming": 0.1, "no_malfunctions": 0.05, "invulnerable": 1.0, "no_crashes": 0.5,
@@ -932,8 +968,7 @@ static func _score_frame(p: Dictionary) -> int:
 			m -= costs[k]
 	if p.get("ai_level") == 0:
 		m -= 0.2
-	m = maxf(m, 0.0)
-	return clampi(24 - int(20.0 * m + 0.5), 0, 24)
+	return maxf(m, 0.0)
 
 
 const TAB_SQUEEZE := 0.8
@@ -1381,6 +1416,16 @@ func _on_button(key: String) -> void:
 	if screen == "deb":
 		_debrief_button(_norm(label))
 		return
+	if screen == "log":
+		match _norm(label):
+			"login":
+				if records.login():
+					_go("main")
+			"newpilot":
+				records.new_pilot()
+			"removepilot":
+				records.remove_pilot()
+		return
 	var target: String = FORWARD.get(screen, {}).get(_norm(label), "")
 	if target != "":
 		_go(target)
@@ -1411,7 +1456,7 @@ func _debrief_button(label: String) -> void:
 		_go(new_mission_screen(id))
 		return
 	if label == "nextmission":
-		id = next_mission(id, passed)
+		id = next_mission(id, passed or _cheat())
 		Settings.mission_id = id
 	elif label != "replaymission":
 		return

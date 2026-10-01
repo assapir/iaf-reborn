@@ -301,8 +301,8 @@ func _new_window(r: Rect2, tab: String) -> Control:
 	return w
 
 
-## Briefing text in the current language; "<header>" becomes "<rank> <callsign>" (DAT_0083b820 /
-## DAT_0083b834); no pilot records yet: a new pilot's rank.
+## Briefing text in the current language; "<header>" becomes "<rank> <pilot name>" (DAT_0083b820 /
+## DAT_0083b834, set at Login).
 func _text_of(entry: Dictionary) -> String:
 	var lang := "he" if fe._he() else "en"
 	# null = no translation (briefings.json has "he": null where the Hebrew pack lacks the file).
@@ -311,7 +311,7 @@ func _text_of(entry: Dictionary) -> String:
 	if text == "":
 		text = texts.get("en") if texts.get("en") != null else ""
 	var re := RegEx.create_from_string("(?i)<header>")
-	return re.sub(text, "Second Lieutenant", false)
+	return re.sub(text, "%s %s" % [Settings.pilot_rank, Settings.pilot_name], false)
 
 
 func _link_names(entry: Dictionary) -> Array:
