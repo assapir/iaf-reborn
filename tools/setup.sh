@@ -103,4 +103,8 @@ rm -rf assets/converted/terrain/israel_l4  # the old Israel-only layout
 step "Godot extension (flight model)"
 cargo build --release -p iaf-godot
 
-step "done — run: godot --path game"
+step "icon and desktop launcher (the original icon from iafjets.exe)"
+./target/release/iaf-convert icon assets/install assets/converted/icon.png
+tools/install-launcher.sh
+
+step "done — run: ./iafjets (or the \"Jane's IAF (iaf-reborn)\" launcher)"

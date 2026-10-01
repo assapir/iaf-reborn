@@ -70,6 +70,7 @@ fn main() -> Result<()> {
         [_, "menu", install, out] => convert_menu(Path::new(install), None, Path::new(out), &opts),
         [_, "menu", install, out, "--pack", pack] => convert_menu(Path::new(install), Some(Path::new(pack)), Path::new(out), &opts),
         [_, "keys", install, packs, out] => convert_keys(Path::new(install), Path::new(packs), Path::new(out)),
+        [_, "icon", install, out] => convert_icon(Path::new(install), Path::new(out)),
         [_, "cockpit", install, name, out] => convert_cockpit(Path::new(install), name, Path::new(out), &opts),
         _ => bail!("usage: iaf-convert [--upscale] [--smooth] model <file.x|file.xfr> <out-dir>\n       iaf-convert [--upscale] [--smooth] aircraft <install-dir> <missions-dir> <out-dir>\n       iaf-convert [--upscale] cockpit <install-dir> <cockpit> <out-dir>\n       iaf-convert [--upscale] menu <install-dir> <out-dir> [--pack <pack-dir>]\n       iaf-convert [--upscale] briefings <install-dir> <packs-dir> <out-dir>\n       iaf-convert keys <install-dir> <packs-dir> <out.json>"),
     }
@@ -756,4 +757,14 @@ mod tests {
             _ => eprintln!("skipped: needs both the v1.0 and the v1.1 iafjets.exe under assets/"),
         }
     }
+}
+
+/// The game's icon from iafjets.exe (the largest RT_ICON), 4× Lanczos, as PNG (for the desktop launcher).
+fn convert_icon(install: &Path, out: &Path) -> Result<()> {
+    let exe = iaf_tools::exe::PeImage::load(&install.join("iafjets.exe"))?;
+    let icon = exe.icons()?.into_iter().next().context("no icon in iafjets.exe")?;
+    let big = image::imageops::resize(&icon, icon.width() * 4, icon.height() * 4, image::imageops::FilterType::Lanczos3);
+    big.save(out)?;
+    println!("icon {}x{} -> {}", icon.width(), icon.height(), out.display());
+    Ok(())
 }

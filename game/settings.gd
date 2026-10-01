@@ -152,6 +152,10 @@ func _ready() -> void:
 	if language == "he" and not hebrew_available():
 		language = "en"
 	apply_display()
+	# The original icon (setup: iaf-convert icon) for compositors / desktops that take the window icon.
+	var icon := assets_dir().path_join("converted/icon.png")
+	if FileAccess.file_exists(icon):
+		DisplayServer.set_icon(Image.load_from_file(icon))
 
 
 ## Display settings that act at once (VSync).
