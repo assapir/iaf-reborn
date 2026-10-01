@@ -1042,8 +1042,15 @@ Three two-way choices. The top option has value 1.
 | RUDDER | PEDALS 193,73,267,92 | KEYBOARD 193,108,276,127 | d98 | 0 |
 | THROTTLE | JOYSTICK 317,73,394,92 | KEYBOARD 317,108,399,127 | d94 | 0 |
 
-* Applied with `FUN_004df4e0(flight, throttle, rudder)` on commit and at startup (`4e2ca4`).
-* `menu/joy/*.joy` is not referenced by this page (UNCERTAIN).
+* Applied with `FUN_004df4e0(flight, throttle, rudder)` on commit and at startup (`4e2ca4`): it only stores
+  the three choices (`this+0x24 / 0x28 / 0x2c` of the DirectInput object). They act only together with a
+  joystick that has the axis (`+0x18..0x20`); **without a joystick the page shows and stores the choices and
+  nothing changes** (docs/controls.md §5).
+* `menu/joy/*.joy` is not read by this page: the joystick setup reads it (`FUN_004e1590`, docs/controls.md §5.1).
+
+**iaf-reborn**: the page as the original (Settings `flight_controls`, `rudder`, `throttle`, `[devices]` in
+settings.cfg); the choices act through the `Joystick` autoload only while a joypad is connected
+(docs/controls.md §5.2). The Godot axis numbers (`joy_axes`) have no page: settings.cfg only.
 
 ### 12.7 Controls page (`cntrl_2.bmp`; `FUN_00511580`)
 The key table itself (records, modifiers, key names, dispatch, the full list) is in
@@ -1073,7 +1080,8 @@ The key table itself (records, modifiers, key names, dispatch, the full list) is
   * If no other record has that key it is stored in the selected record (+0x18). Otherwise msg 36
     "This key is already assigned to another function. Change anyway?" (Yes/No, `FUN_004e66c0` type 4);
     Yes clears the other record's key (0) and assigns it.
-  * Joystick buttons (`FUN_00511fb0`) the same on +0x1c with msg 37 and −1 for the cleared record.
+  * Joystick buttons (`FUN_00511fb0`, reached through the poller's msg 0x555, docs/controls.md §5.1) the
+    same on +0x1c with msg 37 and −1 for the cleared record; only a press binds.
 * **Data**: the working table `0x83b99c` (see docs/controls.md; it is what `prefs.dat` stores).
 * DEFAULT restores the whole table from `0x64c3c8` (@511ca5) — the default table's start; there is no
   offset puzzle (`0x64c3e8` is record 0's +0x20 field).
@@ -1082,7 +1090,8 @@ The key table itself (records, modifiers, key names, dispatch, the full list) is
 a row selects it **and gives the list the keyboard** (UNCERTAIN: the original list takes the focus the
 same way; until then keys go to the screen, so Esc still leaves), the key capture with msg 36, DEFAULT,
 all in the Preferences working copy (Save changes? Yes stores `[keys]` in settings.cfg). Up/Down move
-the selection. The Hebrew pack has no keys.trx: labels stay English on the pack's art.
+the selection. A joystick button pressed while the list has the keyboard binds the selected row (msg 37 when
+taken), like the keys. The Hebrew pack has no keys.trx: labels stay English on the pack's art.
 
 ### 12.8 Hebrew pack art
 The Hebrew menu pack (docs/packs.md) replaces the page art (`pref/*_0/_1`, `cntrl_2`, `score`,

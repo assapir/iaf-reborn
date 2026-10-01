@@ -120,6 +120,31 @@ Our own keys (not in the original — see docs/controls.md): **Ctrl+F1** quit mi
 external, **Ctrl+F12** flight-info line, **V** / **PgUp** / **PgDn** panel, mouse wheel zoom, RMB drag orbits the
 external view.
 
+### Joystick, throttle and pedals
+
+One joystick (the first one connected; plug it in any time) works as in the original. No extra packages: Godot
+reads it through SDL. Set it up on **Preferences → Devices**:
+
+* **FLIGHT CONTROLS: JOYSTICK** (the default) — the stick flies the jet and the hat is the snap views; the arrow
+  keys are ignored while a joystick is connected (as in the original). KEYBOARD = arrows again.
+* **THROTTLE: JOYSTICK** — the throttle lever; the 1–8 / 0 / 9 throttle keys are then ignored.
+* **RUDDER: PEDALS** — the twist / pedals; the rudder keys are then ignored.
+* Buttons: Button 1 fire gun, 2 fire weapon, 3 next target, 4 flare (the original defaults). To rebind, open
+  **Preferences → Keyboard**, click a function and press the joystick button.
+
+With no joystick connected these choices change nothing. What to try first when it arrives:
+
+1. Start the game with the stick plugged in and check the log: it prints `joystick: <name> (device 0, …); axes
+   x / y / throttle / rudder = [0, 1, 2, 3]`.
+2. Fly Training "Engines ON" with FLIGHT CONTROLS JOYSTICK: stick right = roll right, pull = nose up. The
+   original has a large dead zone (25 % around the centre), so small movements do nothing.
+3. Set THROTTLE JOYSTICK and RUDDER PEDALS, move the lever (forward = full power) and the twist / pedals. If the
+   wrong control moves something, swap the numbers in `~/.local/share/godot/app_userdata/iaf-reborn/settings.cfg`,
+   `[devices]` → `joy_axes=[x, y, throttle, rudder]` (Godot axis numbers 0–9; SDL names no axes).
+4. Press the hat (snap views) and buttons 1–4; rebind on the Keyboard page.
+
+Details: [docs/controls.md](docs/controls.md) §5. A separate throttle / pedals device is not supported yet.
+
 ### Tests / captures
 
 `cargo test -q --workspace` runs the Rust tests; tests that need game data or `python3` (the envelope

@@ -90,8 +90,7 @@ the Preferences Controls page (docs/front-end.md §12.7) and looks every in-flig
   If the player binds one of these keys to a command we implement, the command wins. Moving our functions to
   Ctrl + F-keys when the original commands on their keys were built is a user decision; no table record uses
   Ctrl + F-keys.
-* Joystick buttons are not handled in flight yet (no joystick support); the Controls page shows and
-  edits the button column only as data.
+* Joystick buttons, axes and the hat: §5.
 * Rebinds: `Settings.key_bindings` = {record: [key, button]} for the records that differ from the
   default, saved in the `[keys]` section of `user://settings.cfg` as `r<index> = [key, button]`.
   Configs without that section load the defaults.
@@ -276,3 +275,111 @@ So the retail cheats are: refuel (Shift+F), stores reload (Shift+R, SP only), we
 (Shift+S), text messages on/off (Shift+D), and the SysRQ screenshot; Ctrl+W re-reads weapons.ibx,
 Ctrl+Return is a HARM-mode function and U the RWR page. The "flight model dump / hover", "explosion
 effect" and "target cheat view" of the labels do not exist in the retail exe.
+
+## 5. Joystick (DirectInput)
+
+One DirectInput joystick, polled every idle frame (in the menus too) by `FUN_004df560` from the app's idle
+handler `FUN_004e1df0`; there is no joystick code anywhere else. Addresses v1.1 (v1.0 has the same code).
+
+### 5.1 The original
+
+* **Setup** (`FUN_004df3c0`, at startup only): `DirectInputCreateA` (version 0x500), keyboard, then
+  `EnumDevices(DIDEVTYPE_JOYSTICK, FUN_004e0f90, attached only)` (`FUN_004e01b0`). The callback keeps the
+  **first joystick it can open** (returns DIENUM_STOP after it, CONTINUE on a failure): `c_dfDIJoystick2`
+  (`0x57c690`, `DIJOYSTATE2`), cooperative level 5 (exclusive | foreground), buffer size 1024; then
+  `this+0x18 = 1` (a stick). No hot-plug: a device plugged in later is not seen; a lost one only logs errors.
+* **Axes** (`FUN_004e0f90` @4e10fb..4e1352, DIPROP_RANGE read with GetProperty, DIPROP_DEADZONE set):
+
+  | role | DirectInput axis | range kept at | dead zone | "has the axis" flag |
+  |---|---|---|---|---|
+  | stick x | lX (ofs 0) | +0x154 / +0x164 | 2500 | (+0x18) |
+  | stick y | lY (ofs 4) | +0x158 / +0x168 | 2500 | (+0x18) |
+  | throttle | lZ (ofs 8) | +0x15c / +0x16c | none | +0x1c when lZ has a range |
+  | rudder | **range and dead zone of slider 0 (ofs 0x18), else lRz (0x14)** | +0x160 / +0x170 | 2500 | +0x20 when either exists |
+
+  The poller always **reads lRz** for the rudder: a stick with a slider but no Rz reads 0 there (full left
+  rudder with the PEDALS choice). Original quirk, kept in spirit (§5.2: Godot cannot tell axes apart anyway).
+  DIPROP_DEADZONE 2500 = DirectInput reports the centre within 25 % of the half range and scales the rest over
+  the full range (DirectInput's behaviour, not the exe's; UNCERTAIN detail of the scaling).
+* **No calibration, curves or centring of its own.** The ranges are DirectInput's (Windows' joystick
+  calibration); "Calibrate joystick" (msg 23) is in msgs.trx but nothing shows it (docs/front-end.md §16).
+  The formulas ignore the range minimum (`MulDiv(v, ±scale, max − min)`), i.e. they assume DirectInput's
+  default 0..65535.
+* **The poller** (`FUN_004df560`, only while acquired, `this+0xc`): keyboard state and buffered keys, then
+  `Poll` + `GetDeviceState` of the joystick (0x110 bytes), then, **each sent only when its integer value
+  changed** (`WM 0x532`, the key table's message):
+
+  | when | value | event |
+  |---|---|---|
+  | `+0x24` (FLIGHT CONTROLS joystick) | x = `MulDiv(lX, 200, range) − 100` (log "X_AXIS : movement") | GEV 1 (x, last y) |
+  | `+0x24` | y = `MulDiv(lY, −200, range) + 100` (pushed = +100) | GEV 1 (last x, y) |
+  | `+0x28` (THROTTLE joystick) | t = `MulDiv(lZ, −100, range) + 100` (lever forward = 100) | GEV 9 (t, ·) |
+  | `+0x2c` (RUDDER pedals) | r = `MulDiv(lRz, 200, range) − 100` ("Z_AXIS : rotation") | GEV 10 (r, ·) |
+  | `+0x24` and POV 0 changed | see below | GEV 22 |
+
+  GEV 1 / 9 / 10 are the same events as the stick, throttle-preset and rudder keys (docs/flight-model.md §8),
+  so the axis drives `S+0x2e4 / 0x2e8` (stick, `−y·0.01`, `x·0.01`), the throttle (`t·0.01`, with the AB
+  delay of motion 2) and the rudder (`r·0.01`) exactly like the keys, linear, no curve. The keyboard's
+  pitch / roll rewrite is not involved (the joystick sends GEV 1 itself); the autopilot's ±51 rule (case 1 /
+  0xa) and the NAV throttle drop (case 9) apply as to the keys. The stored values (+0x144 x, +0x148 y,
+  +0x14c throttle, +0x150 rudder) live as long as the program, so a lever that did not move since the last
+  flight sends nothing at the next start.
+* **POV hat** (rgdwPOV[0], `DAT_0064ace0`, compared with the last `DAT_0064acdc`, both 0xffff at start):
+  0 → (0, 8), 4500 → (45, 9), 9000 → (90, 6), 13500 → (135, 3), 18000 → (180, 2), 22500 → (225, 1),
+  27000 → (270, 4), 31500 → (315, 7), 0xffff → (−1, 5); other values send nothing. Before each new one the
+  previous one's release (−1, −digit) is sent (`DAT_008338e0 / e4`, `DAT_008338ec` = something was sent).
+  These are the numpad snap-view keys' own (p1, p2) (records 28–36), so the hat **is** the snap views (and
+  turns the orbit in the external views, docs/views.md §4.2).
+* **Buttons** (buffered data, offsets 0x30..0xaf = buttons 0..127, merged with the key events by sequence
+  number): a press (data & 0x80) is queued in the held list and `FUN_004e0dc0(data, button)` runs; a release
+  runs it only if that button is in the held list (and removes it); an event equal to a held one is skipped.
+  `FUN_004e0dc0` posts msg 0x555 (the Keyboard page's capture, `FUN_00511fb0`, docs/front-end.md §12.7) and
+  sends the press / release command of the **first record whose +0x1c is that button** — as stored: no
+  drops, no "not in flight" gate, no roll / pitch rewrite (so a button on Roll / Pitch sends GEV 2 / 3, which
+  the controller `FUN_0044a240` has no case for: nothing; a button on Rudder sends GEV 10: works).
+* **Key drops** (`FUN_004e0b80`, keys only): ids 2 / 3 while `+0x24 && +0x18`, 5 / 6 / 9 while
+  `+0x28 && +0x1c`, 10 while `+0x2c && +0x20` — the Devices choice **and** a device with that axis. Without a
+  joystick the flags +0x18..0x20 are 0 (`FUN_004e0230`), so the Devices page changes nothing.
+* **Flush** (`FUN_004e0a60(1)`: pause, On-The-Fly menu, losing focus): every held key and button sends its
+  release, then GEV 22 (−1, −5) and the last POV becomes 0xffff (a held hat direction is sent again).
+* **Getters**: `FUN_004e0f00 / 0f20` = stick x / y while used (else 0), `FUN_004e0f40` = throttle (0..100)
+  while used (else −1). `FUN_005a29d0` (autopilot leaving NAV) posts motion 2 with `throttle · 0.01`, 0.74
+  without an axis (docs/autopilot.md); `FUN_005a28c0` (taking over a jet, from `4a8e70` / `4a9100`) also
+  posts the stick at (x · −0.01, y · 0.01) (not ported: no jet switch yet).
+* **menu/joy/*.joy** (`FUN_004e1590`, called by the callback with the device's product name,
+  `DIDEVICEINSTANCE.tszProductName`): for each `<install>\Joy\*.JOY` in directory order, line 1 is a name;
+  if it is **contained in** the product name (`strstr`), the **default** table's button column (`0x64c3e4`,
+  stride 36) is set to −1 for all 117 records, then line k (k = 0 for the line after the name) = n puts
+  button k on record n − 1 (n in 1..117; 0 or junk = no record); the first matching file wins. Shipped:
+  CH F-16 Combat Stick, CH ForceFx, SideWinder Force Feedback Pro, SideWinder Precision Pro, Logitech WingMan
+  Extreme. The working table comes from prefs.dat when it exists, so a .joy changes the buttons only on a
+  first run and through DEFAULT on the Keyboard page.
+* **Force feedback** (`+0x30`, `iaforce.ifr`, the SideWinder FF check): not ported (no hardware; docs/status.md).
+
+### 5.2 iaf-reborn
+
+* `game/controls/joystick.gd` (autoload `Joystick`) = the poller, on **Godot's joypad API** (SDL3 since
+  Godot 4.5) instead of DirectInput. Device: the **first connected joypad** (lowest id); one device only.
+  Hot-plug works (Godot reports it; the next poll uses the new device; the last values are kept). The log
+  prints the device's name, GUID and the axis numbers when one is connected.
+* **Axis mapping** (Godot axis numbers in `Settings.joy_axes`, settings.cfg `[devices] joy_axes`, default
+  `[0, 1, 2, 3]`): 0 → lX (stick x), 1 → lY (stick y), 2 → lZ (throttle), 3 → lRz (rudder). Godot gives
+  −1..1; the port maps it to DirectInput's 0..65535 and runs the original formulas (MulDiv rounding), with
+  the 25 % dead zone on x, y and the rudder, none on the throttle. Godot / SDL do not name the axes: a stick
+  SDL knows as a gamepad uses the gamepad layout (2 = right stick x, 3 = right stick y), others the device's
+  own axis order, so if the throttle or the rudder sit on other numbers, edit `joy_axes`.
+* "Has the axis" (+0x1c / +0x20) cannot be read from Godot: a connected device counts as having all four.
+* Hat: Godot reports it as the D-pad buttons 11–14 (up, down, left, right); two at once = a diagonal. Raw
+  buttons 12–15 of a stick with more than 11 buttons share those numbers (UNCERTAIN: Godot's SDL driver).
+* Buttons: `InputEventJoypadButton` from the device → the flight scene (`terrain_view.gd _joy_button`): the
+  first record with that button, its press / release command as the original (no drops, Roll / Pitch do
+  nothing, Rudder moves the rudder), a release only after its press; pause / menu release held buttons.
+  Godot button n = DirectInput button n ("Button n+1" on the Keyboard page).
+* Keyboard page: with the list focused, a joystick button binds the selected function; a taken one asks msg
+  37, Yes clears it from the other (−1). Stored with the keys (`[keys] r<i> = [key, button]`).
+* `menu/joy/*.joy`: read when a device connects, matched against Godot's device name (SDL's name, which
+  may differ from the DirectInput product name), files sorted by name. It changes the **defaults**; our
+  rebinds are stored as differences from the defaults, so un-rebound records follow the file.
+* Without a device nothing changes: no event, no key dropped, the Devices page stores its choices.
+* Not ported: force feedback; the stick re-sync when taking over another jet.
+

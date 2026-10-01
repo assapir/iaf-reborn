@@ -19,7 +19,7 @@
 - ~~RWR (list, lights, sounds, MFD page / panel dial, F5 threat), radar MAP picture~~ — done (docs/rwr.md, docs/mfd.md
   §4); nothing locks the player until AI combat / SAMs. Other MFD pages (FLIR / TV / HARM).
 - Detached-looking stores.
-- Joystick / throttle / pedals.
+- ~~Joystick / throttle / pedals~~ — done, untested on hardware (docs/controls.md §5).
 - Other jets flyable (Phantom 2000, F-4E, F-15, …): flight data + cockpit each (incl. the Kfir / Mirage shared
   data per the Flight data switch — only matters once they fly).
 
@@ -54,7 +54,7 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 | v1.1 | `docs/v1.1.md` (v1.0→v1.1 diff and address map); ported outside the flight model: HUD (FPM, 12 px/deg ladder on the marker, gun cross at GunRetPositionY), ejection throw straight up, training debrief → Jet list, event counter order / missing-entity skip / combat ops 21–22, landed handler on every landing; v1.1 rules of unported systems recorded (damage.md §4.4, front-end.md §17); docs and code comments on v1.1 addresses |
 | Front end | original screens, animations, sounds, music; training + campaign; Jet list; Hebrew packs |
 | Preferences | original 5 pages (Graphics, Sound, Keyboard, Devices, Gameplay) + our **Extras** (flight data, weapon data, language, info line, blackbox, HUD pitch ladder, all keys, window) and **Physics** (16 improvement switches, the Keyboard page's scrollbar once there are more than 15) tabs, EN + HE |
-| Controls | original key table, rebinding on the Keyboard page, in-flight keys through the table (keyboard only) |
+| Controls | original key table, rebinding on the Keyboard page, in-flight keys through the table; joystick (one device: stick / throttle / rudder axes per the Devices page, hat = snap views, buttons through the table and bound on the Keyboard page, menu/joy/*.joy), untested on hardware |
 | TSD / briefing | vector map, units, flights, waypoints, fly any flight, briefing texts and links |
 | Mission runtime | scripts, triggers, events, voices + subtitles, win / lose rules, mission boxes, debrief; player = the default (or chosen) flight's leader |
 | Flight model | original ground + airborne logic ported line by line (docs/flight-model.md §14–§15): envelope, stall, spin, landing / crash check, afterburner delay, gear / flaps / brakes, start rules, Gameplay prefs |
@@ -82,7 +82,7 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
   HARM); no AI combat (AI jets fly, don't fight), no AAA / SAMs (so no combat mission can be won yet).
 - **Cockpit / MFDs**: ECM, FLIR / TV / HARM pages, NAV distances; the RWR's feeds (AI sensors, SAMs, enemy missiles);
   ECM light has no system; night lighting; what uses the radar's designated point.
-- **Controls**: no joystick; not built: the EO weapon camera, FlyTSD Fly into another
+- **Controls**: joystick untested on real hardware (one device; no force feedback); not built: the EO weapon camera, FlyTSD Fly into another
   aircraft / Visit (docs/views.md).
 - **Sounds**: weapon / AI sounds wait for those systems (the RWR's wait for something to lock the player).
 - **Front end**: Reference, QUIT confirmation, TSD 3D-model / target

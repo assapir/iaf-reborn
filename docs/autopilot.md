@@ -27,7 +27,9 @@ dropped. The keys build one GEV 1 from both axes (`FUN_004e0b80`: the other axis
 sees both.
 
 **Throttle re-sync** (`FUN_005a29d0`, when leaving NAV): motion 2 with the throttle axis × 0.01. Without a throttle
-axis (`FUN_004e0f40` returns −1) the value is 0.74 (military), and it is posted only when airborne. UNCERTAIN: the
+axis (`FUN_004e0f40` returns −1: THROTTLE keyboard on the Devices page, or no joystick) the value is 0.74
+(military), and it is posted only when airborne. With one, the throttle goes back to the lever (the axis's last
+value, docs/controls.md §5); the port does the same (`Joystick.throttle_axis()`). UNCERTAIN: the
 controller gates this on a vehicle getter (vtbl+0x6c) == 0x1e that was not traced. The port re-syncs on every exit
 from NAV.
 

@@ -340,9 +340,10 @@ So a keyboard-only player steers the nose wheel with **Left/Right arrow** as a f
 is held. The release record sends x = 0.
 GEV 2/3 keys are dropped when `this+0x24 && this+0x18`. GEV 10 rudder keys are dropped when
 `this+0x2c && this+0x20`. GEV 5/6/9 throttle keys are dropped when `this+0x28 && this+0x1c`.
-(UNCERTAIN: these are "joystick stick/rudder/throttle axis in use" flags. The DirectInput poller `FUN_004df560` sends
-GEV 1 from lX/lY when `+0x24`, GEV 9 from the throttle axis when `+0x28`, and GEV 10 from a 4th axis
-(`param_6`, rudder pedals/twist) when `+0x2c`.) No code path turns the Rudder keys into stick X on the ground,
+(Resolved: `+0x18 / 0x1c / 0x20` = the joystick has a stick / throttle (lZ) / rudder (slider 0 or lRz) axis
+(`FUN_004e0f90`), `+0x24 / 0x28 / 0x2c` = the Devices page's choices (`FUN_004df4e0`). The DirectInput poller
+`FUN_004df560` sends GEV 1 from lX / lY when `+0x24`, GEV 9 from lZ when `+0x28` and GEV 10 from lRz when
+`+0x2c`; docs/controls.md §5.) No code path turns the Rudder keys into stick X on the ground,
 and none adds rudder from roll.
 
 **Default key table.** `0x64c3c8 + n·0x24`, n = keys.trx line (0-based), 117 records, copied into the
@@ -369,6 +370,13 @@ steering authority at 74.53 m/s and above. It is 0 with the gear up. Ignore the 
 The sign convention of the yaw rate (right stick → right turn) was not traced (UNCERTAIN).
 
 ## 8. Controls / keys (dispatcher `FUN_0059f180`, event type → handler)
+**Joystick axes → the flight model** (`FUN_004df560`, docs/controls.md §5): the axes reach it through the same
+game events as the keys, sent when their integer value changes: stick x = `MulDiv(lX, 200, range) − 100`, y =
+`MulDiv(lY, −200, range) + 100` → GEV 1 → motion 1 (`S+0x2e4 = −y·0.01`, `S+0x2e8 = x·0.01`); throttle =
+`MulDiv(lZ, −100, range) + 100` → GEV 9 → motion 2 (`t·0.01`, the AB delay below); rudder = `MulDiv(lRz, 200,
+range) − 100` → GEV 10 → motion 5. Linear, 1 % steps, DirectInput's 25 % dead zone on x, y and rudder, none on
+the throttle; no curve, no filtering. The only smoothing stays the lift ramp (G_Rate) and the rudder ramp.
+
 1 stick (`FUN_0059f3d0`): `S+0x2e4 = −clamp(y,−1,1)`, `S+0x2e8 = clamp(x,−1,1)`; ×0.25 when
 input-mode 0x12 active, zeroed by 0x18 (UNCERTAIN meaning). 2 throttle (`FUN_0059f7d0`): clamp
 [0,1]; any (player) change first cancels a pending AB request (v1.1); crossing into AB (≥0.75) from below sets 0.74
