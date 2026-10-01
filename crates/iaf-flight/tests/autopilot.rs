@@ -251,8 +251,9 @@ fn lands_at_ramat_david() {
     let st = ac.state();
     println!("touchdown {touchdown:?}; landed {} after {t} s at {:.0} {:.0}, speed {:.1}", ap.landed, st.position[0], st.position[1], st.speed);
     let (p, _) = touchdown.expect("touched down");
-    // On the runway: within 100 m of the 270° centreline through the lineup point, west of it.
-    assert!((p[1] - rd.lineup[1] as f64).abs() < 100.0, "on the runway centreline ({:.0} m off)", p[1] - rd.lineup[1] as f64);
+    // On the runway: within 30 m of the 270° centreline through the lineup point, between its ends.
+    assert!((p[1] - rd.lineup[1] as f64).abs() < 30.0, "on the runway centreline ({:.0} m off)", p[1] - rd.lineup[1] as f64);
+    assert!(p[0] > RD_RUNWAY_X[0] && p[0] < RD_RUNWAY_X[1], "touchdown on the runway (x {:.0})", p[0]);
     assert!(ap.landed, "stopped on the runway");
     // Then taxis to a hangar and parks with the engine off.
     fly(&mut ac, &mut ap, 600.0, z as f32);
@@ -343,11 +344,16 @@ fn player_nav_flies_to_the_selected_waypoint() {
     assert_eq!(ap.stage(), "nav (passed)");
 }
 
+/// Ramat David's runway 09/27: the painted "09" / "27" of the terrain imagery (docs/formats/ptt.md, terrain
+/// (418606, 355638) / (421704, 355638), world = terrain × 1.2411389 − 166850) bound the runway's length.
+const RD_RUNWAY_X: [f64; 2] = [352697.0, 356543.0];
+
 #[test]
 fn player_approach_mission_312() {
     // Landing 312 "Eagle Baby": the player starts at 2000 m heading 270° east of Ramat David; the route's
     // only waypoint "Approach" (action 7) makes the NAV autopilot GoHomeCL: over the runway to the waypoint,
-    // then the left-hand circuit (the mission's markers sit on its corners) and the final approach.
+    // then the left-hand circuit (the mission's markers sit on its corners), the final approach and the
+    // roll-out, after which StopPlane posts the A key (autopilot off).
     let Some(inst) = install() else { return };
     let bases = Airbase::load_all(&std::fs::read(inst.join("iaf.ibx")).unwrap());
     let rd = bases.iter().find(|b| b.name == "David").unwrap().clone();
@@ -363,10 +369,11 @@ fn player_approach_mission_312() {
     // The markers of landing.mis: crosswind end ("Point 2"), downwind end ("Point 3"), base end ("Point 4").
     let markers = [(351083.0, 596983.0), (363683.0, 596983.0), (363683.0, 602382.0)];
     let mut closest = [f64::MAX; 3];
-    let (mut gear, mut final_at) = (false, None);
-    for t in 0..600 {
+    let (mut gear, mut final_at, mut touchdown, mut ap_key) = (false, None, None, false);
+    for t in 0..700 {
         for o in fly_player(&mut ac, &mut ap, 1.0, z as f32) {
             gear |= o.gear == Some(true);
+            ap_key |= o.ap_key;
         }
         let st = ac.state();
         for (i, m) in markers.iter().enumerate() {
@@ -375,16 +382,26 @@ fn player_approach_mission_312() {
         if t % 30 == 0 {
             println!("{t}: {} pos {:.0} {:.0} {:.0} v {:.0}", ap.stage(), st.position[0], st.position[1], st.position[2], st.speed);
         }
-        if ap.stage() == "landing step 13" {
+        if ap.stage() == "landing step 13" && final_at.is_none() {
             final_at = Some(st.position);
-            break;
+        }
+        if touchdown.is_none() && st.on_ground {
+            touchdown = Some(st.position);
         }
         assert!(st.crashed.is_none(), "crashed ({:?}) at {:?} in {}", st.crashed, st.position, ap.stage());
+        if ap_key {
+            break;
+        }
     }
-    println!("closest to the markers {closest:?}; final approach from {final_at:?}");
+    println!("closest to the markers {closest:?}; final approach from {final_at:?}; touchdown {touchdown:?}");
     assert!(closest.iter().all(|d| *d < 2500.0), "flew the circuit over the markers ({closest:?})");
     assert!(gear, "gear lowered on the downwind");
     let p = final_at.expect("reached the final approach");
-    assert!((p[1] - rd.lineup[1] as f64).abs() < 100.0 && p[0] > rd.lineup[0] as f64, "on the extended centreline");
+    // The turn onto final ends on the centreline, well out: the final approach starts beyond P4 (3708 m).
+    assert!((p[1] - rd.lineup[1] as f64).abs() < 30.0 && p[0] > rd.lineup[0] as f64 + 3708.0, "final from the extended centreline ({p:?})");
+    let p = touchdown.expect("touched down");
+    assert!((p[1] - rd.lineup[1] as f64).abs() < 30.0, "touchdown on the centreline ({:.0} m off)", p[1] - rd.lineup[1] as f64);
+    assert!(p[0] > RD_RUNWAY_X[0] && p[0] < RD_RUNWAY_X[1], "touchdown on the runway (x {:.0})", p[0]);
+    assert!(ap_key, "stopped: StopPlane posts the A key");
     assert!(!ap.landed, "no AI landed handler for the player");
 }

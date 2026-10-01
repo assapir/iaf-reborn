@@ -1603,12 +1603,19 @@ impl Landing {
         let base = Airbase::nearest(bases, [g[0] as f32, g[1] as f32, g[2] as f32])?;
         let c130 = type_code == C130;
         let rn = base.runway_deg.to_radians();
-        let l = [base.lineup[0] as f64, base.lineup[1] as f64];
+        let l = [base.lineup[0], base.lineup[1]];
         let ht = base.lineup[2] as f64; // UNCERTAIN: terrain(L); the lineup's altitude here
-        let (s, c) = ((rn as f64).sin(), (rn as f64).cos());
-        let at = |o: [f64; 2], x: f64, y: f64| [o[0] + x * c + y * s, o[1] - x * s + y * c];
+        // The frame and the points are f32, as the original (`459bd0` / `459c90`: θ = rad(fmod(−RN, 360)), the
+        // matrix `43ecd0` rotated by θ, `43dd70`, then L + the offset rounded to f32). So for an axis-aligned
+        // runway the residue of cos θ (~1e-8) vanishes and the legs P1→P2, P2→P3 and P3→P4→P5 are exactly
+        // horizontal / vertical lines: ChangeHeading2PtAcu's tangent search takes its axis-parallel branches.
+        let th = std::f32::consts::PI * ((-base.runway_deg) % 360.0) / 180.0;
+        let (s, c) = (-th.sin(), th.cos());
+        let at = |o: [f32; 2], x: f32, y: f32| {
+            [(o[0] + (x * c + y * s)) as f64, (o[1] + (-x * s + y * c)) as f64]
+        };
         let side = if c130 { -9270.0 } else { -5562.0 };
-        let p1 = at([g[0], g[1]], side, 0.0);
+        let p1 = at([g[0] as f32, g[1] as f32], side, 0.0);
         let p2 = at(l, side, -7416.0);
         let p3 = at(l, 0.0, -7416.0);
         let p4 = at(l, 0.0, if c130 { -1854.0 } else { -3708.0 });
@@ -1619,7 +1626,7 @@ impl Landing {
                 [p2[0], p2[1], ht + if c130 { 600.0 } else { 500.0 }],
                 [p3[0], p3[1], ht + if c130 { 350.0 } else { 300.0 }],
                 [p4[0], p4[1], ht + 250.0],
-                [l[0], l[1], ht],
+                [l[0] as f64, l[1] as f64, ht],
             ],
             rn,
             k: if c130 { 2.0 } else { 1.0 },
@@ -1864,4 +1871,30 @@ impl Landing {
 
 fn deg80() -> f32 {
     80f32.to_radians()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn landing_points_are_f32_like_the_original() {
+        // Runway 270 at Ramat David: in f32 the cos θ residue (~1e-8) vanishes, so the downwind, base and final
+        // legs are exactly axis-parallel (the tangent search's x == x / y == y branches).
+        let b = Airbase {
+            lineup: [356483.0, 602383.0, 63.0],
+            runway_deg: 270.0,
+            ..Default::default()
+        };
+        let l = Landing::new(&[b], [351083.0, 602383.0, 1500.0], 0, true).unwrap();
+        let p = l.pts;
+        assert_eq!((p[0][1], p[1][1]), (596821.0, 596821.0), "downwind P1 → P2");
+        assert_eq!((p[1][0], p[2][0]), (363899.0, 363899.0), "base P2 → P3");
+        assert_eq!(
+            (p[2][1], p[3][1], p[4][1]),
+            (602383.0, 602383.0, 602383.0),
+            "final P3 → P4 → P5"
+        );
+        assert_eq!(p[3][0], 360191.0);
+    }
 }
