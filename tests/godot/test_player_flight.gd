@@ -1,5 +1,5 @@
-# Player = default-flight leader (FUN_004bb439, docs/mission-runtime.md §1.1): the leader of flight
-# 1, else 2, 3, 4, or the flight picked on the TSD. 324 "All for One" has no Player1 (its leader is
+# Player = default-flight leader (FUN_004bb439, docs/mission-runtime.md §1.1): the leader of the formation
+# with id 1, else 2, 3, 4, or the flight picked on the TSD. 324 "All for One" has no Player1 (its leader is
 # "Player", airborne at 2000 m); campaign 221 "Back to the Wall" flies alpha_1 (F-16); 136 picks
 # Bravo when the TSD chose it.
 extends "res://../tests/godot/base.gd"
@@ -24,6 +24,9 @@ func run() -> void:
 	check(leader_name(136) == "Alpha Leader/1", "136: Alpha Leader (%s)" % leader_name(136))
 	check(leader_name(136, 2) == "Bravo Leader/2", "136 with Bravo picked on the TSD (%s)" % leader_name(136, 2))
 	check(leader_name(136, 7) == "Alpha Leader/1", "a flight that does not exist falls back to the default")
+	# The default is by formation id (FUN_005bcb40 keys the map by 0x1e): 117 "engaged" has formation id 1 =
+	# Bravo (0x3f2 2) and id 2 = Alpha, so the player leads Bravo.
+	check(leader_name(117).ends_with("/2"), "117: formation id 1 is Bravo -> the player leads Bravo (%s)" % leader_name(117))
 
 	# 324: airborne start at the leader's position / altitude / heading, the runtime knows it.
 	Settings().player_flight = 0

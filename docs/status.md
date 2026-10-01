@@ -33,12 +33,10 @@ anti-radiation, rockets), night.
 sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, modern aircraft / weapons, Pi 5 profile.
 
 ## Small bugs (fix between jobs)
-- **Player flight choice** (docs/ai.md §7.2): the original picks flight N by formation **id**, we by its kind (0x3f2);
-  they differ in 124 of 307 formations — check which missions change their player and port.
 - Real data: real service ceilings per aircraft (the envelope's g ceilings from public ceiling figures), all jets
   incl. AI types (docs/real-aircraft.md).
-- Stores look detached: no pylon models drawn (stores float under the wing), single-sided fins (flat white
-  triangles from behind), triple-rack side bombs touch the wing (original formula) — see scratchpad so_behind.png.
+- Stores look detached: no pylon models drawn (stores float under the wing), triple-rack side bombs touch the wing
+  (original formula). (The flat white fins seen from behind are gone since the Present scale / smoothing work.)
 - Kfir / Mirage data: the original loads one shared block (the second type flies on the first's data) — do that
   with Flight data = Original; each jet's own section only with Flight data = Real (user decision).
 - Landing tests at the runway edges (Ramat David): touchdowns near the threshold / runway end and just inside /
@@ -48,7 +46,7 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 - Stores seen from behind (user report: "not in place"): checked — the stations sit on the model (F-16 tip rails at
   x ±4.78, airframe ±4.73; each single store's Pilon point on its station; test_arming.gd). What can look wrong: the
   TER shoulder slots (2–3 bombs) hang at the pylon height ±Pilon sideways (original `FUN_0053c990`), so they touch
-  the wing, and the store fins are single-sided. User to say which view is wrong (original vs better).
+  the wing. User to say which view is wrong (original vs better).
 - Tests: in a full `tools/test.sh` run while other Godot runs are busy (parallel jobs), a test (test_ui_smoke,
   test_damage, test_arming) occasionally hangs until the 300 s timeout with no output; alone they pass every time (8/8
   on 2026-10-01). test.sh now prints "FAIL timeout" and the last output lines — use that next time to find the cause.

@@ -176,12 +176,12 @@ func _load_units() -> void:
 			for i in alive:
 				units[i].flight = n
 		first = false
-	# The default selection is the flight holding the player object (FUN_005bcd70), which is the
-	# leader of flight 1, else 2, 3, 4 (FUN_004bb439; mission_runtime.gd player_flight()).
-	for n in [1, 2, 3, 4]:
-		if flights.has(n):
-			select_flight(n)
-			break
+	# The default selection is the flight holding the player object (FUN_005bcd70): the leader of the
+	# formation with id 1, else 2, 3, 4 (FUN_004bb439; mission_runtime.gd player_flight()).
+	var files := MissionRuntime.mission_files(mission_id)
+	var pf: Dictionary = MissionRuntime.player_flight(files[0].data) if not files.is_empty() else {}
+	if not pf.is_empty() and flights.has(int(pf.flight)):
+		select_flight(int(pf.flight))
 
 
 ## Flight number the player starts in (0 = none).

@@ -67,32 +67,38 @@ static func bdb_objects(bdb: Dictionary) -> Dictionary:
 	return out
 
 
-## The player's aircraft at mission load (FUN_004bb439): the leader of flight 1, else of flight 2,
-## 3, 4 (the flight map, FUN_005bcb40). A flight is a formation with 0x3f2 = 1..4 of the main
-## mission file; its leader is member 0 if placed, else member 1 (unplaced = both coordinates
-## negative, like the unused PlayerN slots). `wanted` = the flight picked on the TSD (Fly makes that
-## flight's leader the player object, FUN_005045b0 -> FUN_004d31f0); 0 or a flight without a
-## leader = the default. Returns {flight, entity} or {} when the mission has no flight 1..4.
+## The player's aircraft at mission load (FUN_004bb439): the leader of the formation with id (0x1e)
+## 1, else 2, 3, 4 (the formation map is keyed by the formation id, FUN_005bcb40 / insert FUN_005bc980
+## from FUN_004b3604), whatever its flight letter. A formation's leader is member 0 if placed, else
+## member 1 (unplaced = both coordinates negative, like the unused PlayerN slots). `wanted` = the
+## flight (0x3f2 = 1..4, Alpha..Delta) picked on the TSD (Fly makes that flight's leader the player
+## object, FUN_005045b0 -> FUN_004d31f0); 0 or a flight without a leader = the default. Returns
+## {flight (the formation's 0x3f2), entity} or {} when there is none.
 static func player_flight(mission: Dictionary, wanted := 0) -> Dictionary:
 	var by_id := {}
 	for e in mission.get("entities", {}).get("items", []):
 		if e is Dictionary:
 			by_id[int(e.get("0x1e", -1))] = e
-	var leaders := {}
-	for f in mission.get("formations", {}).get("items", []):
-		var n := int(f.get("0x3f2", 0))
-		if n < 1 or n > 4 or leaders.has(n):
-			continue
+	var leader := func(f: Dictionary) -> Dictionary:
 		for mem in f.get("members", []):
 			var e: Dictionary = by_id.get(int(mem.get("0x41a", -1)), {})
 			if not e.is_empty() and not (float(e.get("0x2e4", -1)) < 0 and float(e.get("0x2ee", -1)) < 0):
-				leaders[n] = e
+				return e
+		return {}
+	var formations: Array = mission.get("formations", {}).get("items", [])
+	if wanted >= 1 and wanted <= 4:
+		for f in formations:
+			if int(f.get("0x3f2", 0)) == wanted:
+				var e: Dictionary = leader.call(f)
+				if not e.is_empty():
+					return {"flight": wanted, "entity": e}
+	for id in [1, 2, 3, 4]:
+		for f in formations:
+			if int(f.get("0x1e", -1)) == id:
+				var e: Dictionary = leader.call(f)
+				if not e.is_empty():
+					return {"flight": int(f.get("0x3f2", 0)), "entity": e}
 				break
-	var order := [wanted] if leaders.has(wanted) else []
-	order.append_array([1, 2, 3, 4])
-	for n in order:
-		if leaders.has(n):
-			return {"flight": n, "entity": leaders[n]}
 	return {}
 
 

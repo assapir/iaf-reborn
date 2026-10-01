@@ -32,8 +32,10 @@ Registry `[Scenario] LoadScripts` (default 1; `FUN_0058b340` → `DAT_0066f2cc`)
 `FUN_0058f110` zeroes every slot, the radius and both script counts, so the mission runs with no scenario logic.
 
 ### 1.1 The player object (`FUN_004bb439`, at mission load)
-- `DAT_00699320` (the player entity) = the flight map's leader of flight **1**, else of flight 2, 3, 4
-  (`FUN_005bcb40(n)`). A flight is a formation with `0x3f2` = 1..4 of the main file; its leader is member 0
+- `DAT_00699320` (the player entity) = the leader of the formation with **id** (`0x1e`) **1**, else 2, 3, 4
+  (`FUN_005bcb40(n)`: the formation map `DAT_00699340` is keyed by the formation id — insert `FUN_005bc980(id,
+  kind)` from `FUN_004b3604` @4b367b pushes rec[1] = kind, then rec[0] = id), whatever its flight letter (`0x3f2`).
+  Of the 131 mission files only 117 "engaged" differs from "flight 1": id 1 is Bravo (a Mirage). Its leader is member 0
   if spawned, else member 1 (docs/front-end.md §8 flight table). The name does not matter: campaign and
   scramble missions have no `Player1` (e.g. 324 "Player", 221 "alpha_1").
 - The TSD's default flight is the formation holding that object (`FUN_005bcd70`). Picking another flight
