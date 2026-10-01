@@ -1,6 +1,6 @@
 # A bombing mission end to end (docs/mission-coverage.md: 315 "Cold Steel" became playable with the
 # bombs): with its default MK-83 load, a CCIP release over each target (jet 1000 m above it, 200 m/s,
-# the pipper on the target) until every target is destroyed. The flight model
+# the pipper on the target) until every target is destroyed and the mission passes. The flight model
 # is frozen; the test moves the jet along its velocity on a scripted sim time. Original burst rule.
 extends "res://../tests/godot/base.gd"
 
@@ -17,6 +17,9 @@ func run() -> void:
 	tv.fm_stopped = true
 	tv.gear_down = false
 	w = tv.weapons
+	# CCIP with the pipper taken as on the HUD (level at 1000 m it sits below the HUD's bottom edge in
+	# the cockpit view, which would give the delayed release): as from an outside view.
+	w.hud_clip = Callable()
 	var rt = tv.runtime
 	var targets: Array = rt.entities.values().filter(func(e): return int(e.role) == rt.ROLE_TARGET)
 	check(targets.size() == rt.targets_left and targets.size() > 0, "mission 315: %d targets" % targets.size())
@@ -53,9 +56,13 @@ func run() -> void:
 		if int(e.state) >= 4 and int(e.role) != rt.ROLE_TARGET:
 			print("also destroyed: %s (role %d)" % [e.name, e.role])
 	check(targets.all(func(e): return int(e.state) >= 4) and rt.targets_left == 0, "every target destroyed (%d bombs)" % used)
-	# Not checked: rt.passed. The jet is lost at the spawn already (with schacha3, its shelter: a
-	# pre-existing start problem of 315), and a bomb on "runway ccip2" also takes the "Start motion
-	# sensor" (role survive) next to it — either fails the mission.
+	# The jet starts inside its shelter (schacha3, no collider: 0x58c = 0, docs/damage.md §7) and lives.
+	check(int(rt.player_entity().state) == 1, "the jet survives its shelter start")
+	# The Merkava's bomb also destroys the "Start motion sensor" at the same spot: the original does too
+	# (a sensor is in the blast map, FUN_004a8060 / FUN_004d2620, strength 1000); its role is 2 (neutral).
+	var sensor: Array = rt.entities.values().filter(func(e): return e.name == "Start motion sensor")
+	check(sensor.size() == 1 and int(sensor[0].role) == 2, "the Start motion sensor is neutral (role 2)")
+	check(rt.passed, "mission passed")
 
 
 func _start_over(ground_pt: Vector3) -> void:
