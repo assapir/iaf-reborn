@@ -833,28 +833,29 @@ func _draw_prefs() -> void:
 
 
 ## The imagery drop-downs (ours): label, the picked option in a framed box with a down arrow, the
-## open list above its box, and the picked layers' credit line.
+## open list above its box (the picked option on a lit row, options not converted in grey), and the
+## picked layers' credit line. One text size per drop-down: the largest that fits its longest option.
 func _draw_imagery(at: Vector2) -> void:
-	var px := LIST_TITLE_PX - 1.0
 	for key in PREF_IMAGERY:
 		var lr: Rect2 = PREF_IMAGERY[key][0]
 		var br: Rect2 = PREF_IMAGERY[key][1]
-		_text_fit(Rect2(at + lr.position, lr.size), _art(ImageryLayers.REGION_LABELS[key]), px, LIST_TITLE, font_art)
+		_text_fit(Rect2(at + lr.position, lr.size), _art(ImageryLayers.REGION_LABELS[key]), LIST_TITLE_PX - 1.0, LIST_TITLE, font_art)
+		var px := _imagery_px(key, br.size.x - 22.0)
 		var box := _rect(Rect2(at + br.position, br.size))
 		draw_rect(box, Color(0.0, 0.09, 0.0, 0.9))
 		draw_rect(box, LIST_DESC_LIT if pref_dropdown == key else LIST_DESC, false, maxf(1.0, _scale()))
-		_text_fit(Rect2(at + br.position + Vector2(4, -1), br.size - Vector2(18, 0)), _art(_imagery_label(key, String(pref_work.get(key, "original")))), px, LIST_DESC_LIT, font_art)
+		_text_line(Rect2(at + br.position + Vector2(4, -1), br.size - Vector2(18, 0)), _art(_imagery_label(key, String(pref_work.get(key, "original")))), px, LIST_DESC_LIT, font_art)
 		var c := _to_screen(at + br.position + Vector2(br.size.x - 8, br.size.y / 2))
 		var a := 3.0 * _scale()
 		draw_colored_polygon(PackedVector2Array([c + Vector2(-a, -a / 2), c + Vector2(a, -a / 2), c + Vector2(0, a)]), LIST_DESC_LIT)
 	if pref_dropdown != "":
+		var px := _imagery_px(pref_dropdown, PREF_IMAGERY[pref_dropdown][1].size.x - 22.0)
 		for it in _imagery_items():
 			var r := _rect(Rect2(at + it.rect.position, it.rect.size))
-			draw_rect(r, Color(0.0, 0.09, 0.0, 0.97))
-			draw_rect(r, LIST_DESC, false, maxf(1.0, _scale()))
 			var on: bool = pref_work.get(pref_dropdown) == it.id
-			var col := (LIST_DESC_LIT if on else LIST_DESC) if it.available else Color(LIST_DESC, 0.45)
-			_text_fit(Rect2(at + it.rect.position + Vector2(4, -1), it.rect.size - Vector2(8, 0)), _art(it.label), px, col, font_art)
+			draw_rect(r, Color(0.0, 0.3, 0.0, 0.97) if on else Color(0.0, 0.09, 0.0, 0.97))
+			draw_rect(r, LIST_DESC, false, maxf(1.0, _scale()))
+			_text_line(Rect2(at + it.rect.position + Vector2(4, -1), it.rect.size - Vector2(8, 0)), _art(it.label), px, LIST_DESC_LIT if it.available else Color(0.5, 0.55, 0.5, 0.7), font_art)
 	var credits: Array[String] = []
 	for key in PREF_IMAGERY:
 		var m := ImageryLayers.manifest(String(pref_work.get(key, "original")))
@@ -862,8 +863,18 @@ func _draw_imagery(at: Vector2) -> void:
 			credits.append(String(m.attribution))
 	if not credits.is_empty():
 		var r := _rect(Rect2(at + PREF_CREDIT.position, PREF_CREDIT.size))
-		var fs := int(round(7.0 * _scale()))
-		draw_multiline_string(font, r.position + Vector2(0, font.get_ascent(fs)), "\n".join(credits), HORIZONTAL_ALIGNMENT_LEFT, r.size.x, fs, 3, LIST_DESC)
+		var fs := int(round(6.5 * _scale()))
+		draw_multiline_string(font, r.position + Vector2(0, font.get_ascent(fs)), "\n".join(credits), HORIZONTAL_ALIGNMENT_LEFT, r.size.x, fs, 3, Color(LIST_DESC_LIT, 0.85))
+
+
+## The text size (page px) for a drop-down's options: the largest up to LIST_TITLE_PX - 1 at which
+## every option fits `width`.
+func _imagery_px(key: String, width: float) -> float:
+	var px := LIST_TITLE_PX - 1.0
+	for opt in ImageryLayers.REGIONS[key]:
+		while px > 6.0 and font_art.get_string_size(_art(opt[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, int(round(px * _scale()))).x > width * _scale():
+			px -= 0.5
+	return px
 
 
 func _imagery_label(key: String, id: String) -> String:
