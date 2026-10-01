@@ -164,6 +164,8 @@ var dir := ""
 var art_scale := 1.0
 var font: SystemFont
 var font_bold: SystemFont
+## Our own labels in the style of the original art's baked labels: bold italic condensed capitals.
+var font_art: SystemFont
 
 var screen := "main"
 ## Where TSD and the Jet list return to.
@@ -216,6 +218,8 @@ func _ready() -> void:
 	_load_menu_data()
 	font = Img.arial(400)
 	font_bold = Img.arial(700)
+	font_art = Img.arial(800, true)
+	font_art.font_stretch = 85
 	music = AudioStreamPlayer.new()
 	sfx = AudioStreamPlayer.new()
 	preview = AudioStreamPlayer.new()
@@ -747,7 +751,7 @@ func _draw_prefs() -> void:
 		_blit_region("pref/gamep_%d.png" % (1 if vs_on else 0), Rect2(Vector2(28, 55), Vector2(11, 11)), at + PREF_VSYNC.position + Vector2(4, 6))
 		var r := _rect(Rect2(at + PREF_VSYNC.position + Vector2(22, 0), Vector2(PREF_VSYNC.size.x - 22, 20)))
 		var fs := int(round(LIST_TITLE_PX * _scale()))
-		draw_string(font_bold, Vector2(r.position.x, r.end.y - font_bold.get_descent(fs)), "VSYNC", HORIZONTAL_ALIGNMENT_LEFT, r.size.x, fs, LIST_DESC_LIT if vs_on else LIST_DESC)
+		draw_string(font_art, Vector2(r.position.x, r.end.y - font_art.get_descent(fs)), "VSYNC", HORIZONTAL_ALIGNMENT_LEFT, r.size.x, fs, LIST_DESC_LIT if vs_on else LIST_DESC)
 
 
 func _keys() -> RefCounted:
@@ -983,7 +987,12 @@ func _extras_items() -> Array:
 ## Our pages (Extras, Physics): the general background and the header, as on the original pages.
 func _draw_our_page(title: String) -> void:
 	_blit("screens/sgeneral.png", CONTENT.position)
-	_text_line(Rect2(CONTENT.position + Vector2(24, 12), Vector2(CONTENT.size.x - 48, 22)), _t(title) if _he() else title.to_upper(), LIST_TITLE_PX + 2, LIST_TITLE, font_bold)
+	_text_line(Rect2(CONTENT.position + Vector2(24, 12), Vector2(CONTENT.size.x - 48, 22)), _art(title), LIST_TITLE_PX + 2, LIST_TITLE, font_art)
+
+
+## Our label text in the art's style: capitals (English); Hebrew as is.
+func _art(text: String) -> String:
+	return _t(text) if _he() else text.to_upper()
 
 
 ## A row separator across our pages at page height `y`.
@@ -1002,7 +1011,7 @@ func _draw_option(r: Rect2, label: String, on: bool, led_y: float, text_y: float
 	if available:
 		_blit_region("pref/gamep_%d.png" % (1 if on else 0), Rect2(Vector2(28, 55), led.size), at + Vector2(led_x, r.position.y + led.position.y))
 	var box := Rect2(at + Vector2(r.position.x + (0.0 if _he() else 22.0), r.position.y + text_y), Vector2(r.size.x - 22, 20))
-	_text_line(box, _t(label), LIST_TITLE_PX, (LIST_DESC_LIT if on else LIST_DESC) if available else Color(LIST_DESC, 0.5))
+	_text_fit(box, _art(label), LIST_TITLE_PX, (LIST_DESC_LIT if on else LIST_DESC) if available else Color(LIST_DESC, 0.5), font_art)
 
 
 func _draw_extras() -> void:
@@ -1014,7 +1023,7 @@ func _draw_extras() -> void:
 		var r := Rect2(24, 45.0 + 35.0 * i + 4, 136, 20)
 		if _he():
 			r.position.x = CONTENT.size.x - r.end.x
-		_text_fit(Rect2(CONTENT.position + r.position, r.size), _t(EXTRAS[i][1]), LIST_TITLE_PX, LIST_TITLE, font_bold)
+		_text_fit(Rect2(CONTENT.position + r.position, r.size), _art(EXTRAS[i][1]), LIST_TITLE_PX, LIST_TITLE, font_art)
 	for it in _extras_items():
 		_draw_option(it.rect, it.label, pref_work.get(it.key) == it.value, 10, 4, it.available)
 
@@ -1041,7 +1050,7 @@ func _draw_physics() -> void:
 	for it in _physics_items():
 		var r: Rect2 = it.rect
 		if it.key == "all" or it.key == "none":
-			_text_line(Rect2(CONTENT.position + r.position + Vector2(0, 3), r.size), _t(it.label), LIST_TITLE_PX, LIST_DESC_LIT, font_bold)
+			_text_line(Rect2(CONTENT.position + r.position + Vector2(0, 3), r.size), _art(it.label), LIST_TITLE_PX, LIST_DESC_LIT, font_art)
 		else:
 			_draw_option(r, it.label, pref_work.get("better", Settings.better)[it.key], 7, 1)
 
