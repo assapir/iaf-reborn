@@ -100,4 +100,4 @@ per-land-cover colour matching), modern colours as its own switch. Comparisons: 
   Original / SPOT 5 / Sentinel-2). Options are disabled when their data isn't downloaded / converted.
 - Israel: Survey of Israel 2015 2 m (data.gov.il, open licence, no account; large download, the user fetches the
   sheets in a browser). Outside Israel: SPOT 5 (CNES SWH, 5 m; maybe also over Israel if it is smaller).
-- Cyprus orthophotos: not used. Survey of Israel: ask about the newer 25–50 cm orthophoto licence.
+- Cyprus orthophotos: not used. (No inquiry to the Survey of Israel for now.)
