@@ -603,7 +603,7 @@ func _entity_final(ent: Dictionary) -> void:
 	var g: float = ground if ground != null else pos.y
 	var e: Dictionary = effects.explosion_for(ent.klass, ent.type_code, pos.y < g + 10.5, false)
 	if not e.is_empty():
-		effects.explosion(pos, e.flags, e.scale, e.duration, g, maxf(ent.size, 3.0))
+		effects.explosion(pos, e.flags, e.scale, e.duration, g, maxf(ent.size, 3.0), aircraft if ent.player else ent.node)
 		if not (ent.player and crashed):
 			var p = sounds.play("SFX_AIRCRAFT_EXPLODED")
 			if p is Node3D:

@@ -297,7 +297,10 @@ reached **0.5** (`FUN_004a7de0`). A falling aircraft (§3.3) trails smoke from t
 per rendered frame at model hot point 0x3a (0x3b for some models); at most 100 emitters.
 
 **Port** (`damage_effects.gd`): the same flags, sizes, speeds and lifetimes with soft procedural billboards (one
-MultiMesh per material), box chunks for the shattered polygons (24 per explosion, from within the unit's size), a
+MultiMesh per material), the shattered polygons are the unit model's own (textured; one shader-driven mesh per
+material; our triangulated / subdivided models fly up to 600 pieces, neighbouring triangles together above that; the
+original's "large" polygons of > 6 vertices are our largest 10 % by area; a flaring piece stops smoking but stays
+drawn), box chunks only when there is no model, a
 0.1 s light for the flash. Our choices: puffs at a fixed 30 Hz instead of per frame (the original's density follows
 the frame rate), the column at detail 3 (default not traced), no wind (the mission weather is not decoded), no water
 (our terrain has no types).

@@ -35,13 +35,55 @@ const COLUMN_DETAIL := 3
 ## Puff emitters (damage smoke, smoking pieces, streamers) spawn one puff per rendered frame in the
 ## original, so the density follows the frame rate; here a fixed 30 Hz "frame" (our choice).
 const PUFF_RATE := 30.0
-## Shatter: one piece per model polygon in the original; we fly a fixed number of chunks.
+## Shatter: one piece per model polygon (FUN_004172b0). Without a model (tests), box chunks.
 const PIECES := 24
+## Our models are triangulated (and subdivided by --smooth): above this many triangles, neighbouring
+## triangles (consecutive in the index list) fly together as one piece.
+const MAX_MODEL_PIECES := 600
+## A "large" piece (smoke trail, may flare) is an original polygon of more than 6 vertices; our
+## triangles don't keep that, so the largest pieces by area, this share of them, count as large.
+const LARGE_SHARE := 0.1
+const SHATTER_SHADER := """
+shader_type spatial;
+render_mode cull_disabled;
+uniform float age;
+uniform float g = 30.0;
+uniform sampler2D tex : source_color, filter_linear_mipmap, repeat_enable;
+uniform bool has_tex = false;
+uniform vec4 albedo : source_color = vec4(1.0);
+varying float hide;
+mat3 rot(vec3 a) {
+	vec3 c = cos(a), s = sin(a);
+	mat3 rx = mat3(vec3(1, 0, 0), vec3(0, c.x, s.x), vec3(0, -s.x, c.x));
+	mat3 ry = mat3(vec3(c.y, 0, -s.y), vec3(0, 1, 0), vec3(s.y, 0, c.y));
+	mat3 rz = mat3(vec3(c.z, s.z, 0), vec3(-s.z, c.z, 0), vec3(0, 0, 1));
+	return rz * ry * rx;
+}
+void vertex() {
+	// CUSTOM0 = centre (xyz) + start delay, CUSTOM1 = velocity + stop time, CUSTOM2 = spin + end time.
+	float t = age - CUSTOM0.w;
+	hide = (t < 0.0 || t > CUSTOM2.w) ? 1.0 : 0.0;
+	float tf = clamp(t, 0.0, CUSTOM1.w);
+	mat3 r = rot(CUSTOM2.xyz * tf);
+	VERTEX = CUSTOM0.xyz + CUSTOM1.xyz * tf + vec3(0.0, -0.5 * g * tf * tf, 0.0) + r * VERTEX;
+	NORMAL = r * NORMAL;
+}
+void fragment() {
+	if (hide > 0.5) { discard; }
+	vec4 c = albedo;
+	if (has_tex) { c *= texture(tex, UV); }
+	if (c.a < 0.5) { discard; }
+	ALBEDO = c.rgb;
+}
+"""
 
 var _rng := RandomNumberGenerator.new()
 ## Live puffs: {pos, vel, age, life, w0, w1 (width at birth / death), grey, fire, delay}.
 var _puffs: Array = []
 var _pieces: Array = []  # {node, vel, spin, age, life, rest, ground_y, large, delay, smoke_t}
+## Model shatters: {node, materials, age, end, large: [{c, vel, delay, stop, end, burn_t, smoke_t}], smoke, burn}
+var _shards: Array = []
+var _shard_shader: Shader
 var _streamers: Array = []
 var _columns: Array = []  # {pos, age, n, end}
 var _smokers := {}  # Node3D -> accumulated time (damage smoke, FUN_004d20a0)
@@ -131,7 +173,8 @@ static func explosion_for(klass: int, type_code: int, low: bool, water: bool) ->
 ## One explosion event at `pos`: `flags` as above, `scale` (param[7]), `duration` (param[6], the
 ## lifetime of the whole event), `ground_y` = terrain height under it, `radius` = the unit's size
 ## (the shatter pieces start within it).
-func explosion(pos: Vector3, flags: int, scale: float, duration: float, ground_y: float, radius := 6.0) -> void:
+func explosion(pos: Vector3, flags: int, scale: float, duration: float, ground_y: float, radius := 6.0,
+		model: Node3D = null) -> void:
 	if flags & F_FLASH:
 		_flash(pos)
 	if flags & F_FIREBALL:
@@ -141,7 +184,8 @@ func explosion(pos: Vector3, flags: int, scale: float, duration: float, ground_y
 	if flags & F_PUFF:
 		smoke_puff(pos, flags & F_WHITE != 0)
 	if flags & F_SHATTER:
-		_shatter(pos, flags, scale, duration, ground_y, radius)
+		if model == null or not _shatter_model(model, pos, flags, scale, duration, ground_y):
+			_shatter(pos, flags, scale, duration, ground_y, radius)
 	elif flags & F_SMOKE_TRAILS:
 		_streamers_at(pos, scale)
 	if flags & F_COLUMN:
@@ -211,6 +255,184 @@ func _shatter(pos: Vector3, flags: int, scale: float, duration: float, ground_y:
 		})
 
 
+## 0x2 with the unit's model (FUN_004172b0): one piece per polygon, starting where it is drawn. Its
+## velocity is (centre in the model frame, rotated with the unit, + base) · k · scale with the other
+## rules as `_shatter`; the original's "large" polygons (> 6 vertices) are our largest by area. All
+## pieces of one material are one mesh moved by a shader (CUSTOM0..2 per piece); the CPU solves when
+## each piece reaches the terrain (rest there with 0x1000, else vanish) and runs the large pieces'
+## smoke and fire. Returns false when the model has no triangles.
+func _shatter_model(model: Node3D, pos: Vector3, flags: int, scale: float, duration: float, ground_y: float) -> bool:
+	var root_inv := model.global_transform.affine_inverse()
+	var basis := model.global_transform.basis.orthonormalized()
+	var base := Vector3(0, 5.0, 0) if flags & F_KICK else Vector3.ZERO
+	var groups := {}  # material -> {v, n, uv, c0, c1, c2}
+	var all: Array = []  # [area, centre, vel, delay, stop, end]
+	var tris := 0
+	var meshes: Array = model.find_children("*", "MeshInstance3D", true, false)
+	if model is MeshInstance3D:
+		meshes.append(model)
+	for mi in meshes:
+		if mi.mesh != null and _shown_in(mi, model):
+			for si in mi.mesh.get_surface_count():
+				if mi.mesh.surface_get_primitive_type(si) == Mesh.PRIMITIVE_TRIANGLES:
+					var ix = mi.mesh.surface_get_arrays(si)[Mesh.ARRAY_INDEX]
+					tris += (ix.size() if ix != null else mi.mesh.surface_get_arrays(si)[Mesh.ARRAY_VERTEX].size()) / 3
+	if tris == 0:
+		return false
+	var per := ceili(float(tris) / MAX_MODEL_PIECES)
+	if _shard_shader == null:
+		_shard_shader = Shader.new()
+		_shard_shader.code = SHATTER_SHADER
+	for mi in meshes:
+		if mi.mesh == null or not _shown_in(mi, model):
+			continue
+		var xf: Transform3D = mi.global_transform
+		for si in mi.mesh.get_surface_count():
+			if mi.mesh.surface_get_primitive_type(si) != Mesh.PRIMITIVE_TRIANGLES:
+				continue
+			var a: Array = mi.mesh.surface_get_arrays(si)
+			var vs: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
+			var ns = a[Mesh.ARRAY_NORMAL]
+			var uvs = a[Mesh.ARRAY_TEX_UV]
+			var ix = a[Mesh.ARRAY_INDEX]
+			if ix == null:
+				ix = PackedInt32Array(range(vs.size()))
+			var mat: Material = mi.get_active_material(si)
+			if not groups.has(mat):
+				groups[mat] = {"v": PackedVector3Array(), "n": PackedVector3Array(), "uv": PackedVector2Array(),
+						"c0": PackedFloat32Array(), "c1": PackedFloat32Array(), "c2": PackedFloat32Array()}
+			var g: Dictionary = groups[mat]
+			var t := 0
+			while t < ix.size() / 3:
+				var n_t := mini(per, ix.size() / 3 - t)
+				var wv: Array = []
+				var c := Vector3.ZERO
+				var area := 0.0
+				for k in n_t * 3:
+					var w: Vector3 = xf * vs[ix[(t * 3) + k]]
+					wv.append(w)
+					c += w
+				c /= wv.size()
+				for k in n_t:
+					area += (wv[k * 3 + 1] - wv[k * 3]).cross(wv[k * 3 + 2] - wv[k * 3]).length() * 0.5
+				var kk: float = [0.5, 1.0, 1.5][_rng.randi() % 3]
+				var vel: Vector3 = (basis * (root_inv * c) + base) * kk * scale
+				var delay := 0.0 if flags & F_NO_DELAY else (_rng.randi() % 100) * 0.003
+				var life := (1.0 + (_rng.randi() % 100) * 0.01) * duration * 0.5
+				var stop := _ground_time(c, vel, life, ground_y)
+				var end := life if (flags & F_REST and stop < life) else minf(stop, life)
+				var spin := Vector3((_rng.randi() & 63) - 32, (_rng.randi() & 63) - 32, (_rng.randi() & 63) - 32) * 0.03
+				var rel := c - pos
+				for k in n_t * 3:
+					var vi: int = ix[(t * 3) + k]
+					g.v.append(wv[k] - c)
+					g.n.append((xf.basis * ns[vi]).normalized() if ns != null else Vector3.UP)
+					g.uv.append(uvs[vi] if uvs != null else Vector2.ZERO)
+					g.c0.append_array([rel.x, rel.y, rel.z, delay])
+					g.c1.append_array([vel.x, vel.y, vel.z, stop])
+					g.c2.append_array([spin.x, spin.y, spin.z, end])
+				all.append([area, c, vel, delay, stop, end])
+				t += n_t
+	var node := MeshInstance3D.new()
+	var mesh := ArrayMesh.new()
+	var fmt: int = Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT \
+			| Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM1_SHIFT \
+			| Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM2_SHIFT
+	var mats: Array = []
+	for mat in groups:
+		var g: Dictionary = groups[mat]
+		var arr := []
+		arr.resize(Mesh.ARRAY_MAX)
+		arr[Mesh.ARRAY_VERTEX] = g.v
+		arr[Mesh.ARRAY_NORMAL] = g.n
+		arr[Mesh.ARRAY_TEX_UV] = g.uv
+		arr[Mesh.ARRAY_CUSTOM0] = g.c0
+		arr[Mesh.ARRAY_CUSTOM1] = g.c1
+		arr[Mesh.ARRAY_CUSTOM2] = g.c2
+		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr, [], {}, fmt)
+		var sm := ShaderMaterial.new()
+		sm.shader = _shard_shader
+		if mat is BaseMaterial3D:
+			sm.set_shader_parameter("albedo", mat.albedo_color)
+			if mat.albedo_texture != null:
+				sm.set_shader_parameter("tex", mat.albedo_texture)
+				sm.set_shader_parameter("has_tex", true)
+		mesh.surface_set_material(mesh.get_surface_count() - 1, sm)
+		mats.append(sm)
+	node.mesh = mesh
+	node.position = pos
+	node.extra_cull_margin = 16384.0  # the vertices move in the shader
+	add_child(node)
+	# The largest pieces trail smoke (0x8) and may flare into a small fire and vanish (0x20).
+	all.sort_custom(func(x, y): return x[0] > y[0])
+	var large: Array = []
+	for i in ceili(all.size() * LARGE_SHARE):
+		var e: Array = all[i]
+		large.append({"c": e[1], "vel": e[2], "delay": e[3], "stop": e[4], "end": e[5], "smoke_t": 0.0, "burnt": false})
+	var last := 0.0
+	for e in all:
+		last = maxf(last, e[3] + e[5])
+	_shards.append({"node": node, "mats": mats, "age": 0.0, "last": last, "large": large,
+			"smoke": flags & F_SMOKE_TRAILS != 0, "burn": flags & F_BURN_PIECES != 0})
+	return true
+
+
+## `mi` is drawn as part of `model` (its own and its parents' visibility below the model; the model
+## itself may be hidden, e.g. the player's jet in the cockpit view).
+static func _shown_in(mi: Node3D, model: Node3D) -> bool:
+	var n: Node = mi
+	while n != null and n != model:
+		if n is Node3D and not n.visible:
+			return false
+		n = n.get_parent()
+	return true
+
+
+## When a piece from `c` at `vel` (g = 30) reaches the terrain: the ballistic time to the height under
+## its landing point, refined three times; `life` when it never does.
+func _ground_time(c: Vector3, vel: Vector3, life: float, ground_y: float) -> float:
+	var h := ground_y
+	var t := life
+	for i in 3:
+		# c.y + vel.y t - 15 t² = h
+		var disc := vel.y * vel.y + 2.0 * PIECE_G * (c.y - h)
+		if disc < 0.0:
+			return life
+		t = (vel.y + sqrt(disc)) / PIECE_G
+		if ground_at.is_valid():
+			var p := c + vel * t
+			var gh = ground_at.call(Vector3(p.x, c.y, p.z))
+			if gh != null:
+				h = gh
+	return minf(t, life)
+
+
+func _update_shards(delta: float, step: float) -> void:
+	for i in range(_shards.size() - 1, -1, -1):
+		var s: Dictionary = _shards[i]
+		s.age += delta
+		if s.age > s.last:
+			s.node.queue_free()
+			_shards.remove_at(i)
+			continue
+		for m in s.mats:
+			m.set_shader_parameter("age", s.age)
+		for p in s.large:
+			var t: float = s.age - p.delay
+			if p.burnt or t < 0.0 or t > minf(p.stop, p.end):
+				continue
+			p.smoke_t += delta
+			while p.smoke_t >= step:
+				p.smoke_t -= step
+				var at: Vector3 = p.c + p.vel * t + Vector3(0, -0.5 * PIECE_G * t * t, 0)
+				if s.smoke:
+					smoke_puff(at)
+				if s.burn and _rng.randi() % 32 == 0:
+					_add_puff(at, Vector3.ZERO, FIREBALL_TIME, SMALL_FIRE_WIDTH, SMALL_FIRE_WIDTH, 250, true, 0.0, true)
+					p.burnt = true
+					break
+
+
 ## 0x8 without 0x2 (FUN_004182e0): 12 smoke streamers every 30°, 5·scale sideways and 3·scale up,
 ## g = 30, each trailing puffs until it drops 1 m below the origin; then a 9 s smoke column.
 func _streamers_at(pos: Vector3, scale: float) -> void:
@@ -244,6 +466,7 @@ func _process(delta: float) -> void:
 			_smokers[node] -= step
 			smoke_puff(node.global_position)
 	_update_pieces(delta, step)
+	_update_shards(delta, step)
 	_update_streamers(delta, step)
 	_update_columns(delta)
 	_update_puffs(delta)
@@ -362,4 +585,4 @@ func _fill(mm: MultiMesh, list: Array) -> void:
 
 ## Live counts, for tests.
 func counts() -> Dictionary:
-	return {"puffs": _puffs.size(), "pieces": _pieces.size(), "columns": _columns.size(), "smokers": _smokers.size()}
+	return {"puffs": _puffs.size(), "pieces": _pieces.size(), "shards": _shards.size(), "columns": _columns.size(), "smokers": _smokers.size()}

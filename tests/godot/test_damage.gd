@@ -81,6 +81,17 @@ func run() -> void:
 	var off: Array = resting.filter(func(p): return absf(p.node.position.y - tv.terrain.height_at(p.node.position)) > 0.05)
 	check(resting.size() > 0 and off.is_empty(), "debris rests on the terrain (%d resting, %d off)" % [resting.size(), off.size()])
 
+	# With the unit's model the pieces are its polygons (FUN_004172b0): one shatter mesh; the resting
+	# ones (0x1000) end on the terrain under their landing point.
+	fx.explosion(Vector3(at.x, gy + 8.0, at.z), 0x58ba, 4.0, 95.0, gy, 6.0, tv.aircraft)
+	var sh: Dictionary = fx._shards.back()
+	var bad := 0
+	for p in sh.large:
+		var q: Vector3 = p.c + p.vel * p.stop + Vector3(0, -0.5 * fx.PIECE_G * p.stop * p.stop, 0)
+		if p.stop < p.end and absf(q.y - tv.terrain.height_at(q)) > 0.5:
+			bad += 1
+	check(fx.counts().shards >= 1 and sh.large.size() > 0 and bad == 0, "model shatter: %d large pieces, %d not on the terrain" % [sh.large.size(), bad])
+
 	# Destroying the must-survive post fails the mission.
 	tv = await start_mission(231)
 	rt = tv.runtime
