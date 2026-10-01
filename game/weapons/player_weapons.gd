@@ -440,7 +440,8 @@ func _gun_shot() -> bool:
 
 func _gun_offset() -> Vector3:
 	var g = descriptor.get("stations", {}).get("StationGun", descriptor.get("gun"))
-	return Vector3(g[0], g[1], g[2]) if g is Array else Vector3.ZERO
+	var k: float = host.aircraft.scale.x if host.aircraft != null else 1.0  # the model's Present scale
+	return Vector3(g[0], g[1], g[2]) * k if g is Array else Vector3.ZERO
 
 
 ## FUN_004d6130 for a round: a sphere hit blasts the round's candidate list, a ground / end-of-flight
@@ -886,7 +887,7 @@ func _build_visuals() -> void:
 	_flash = _muzzle_flash()
 	if _flash != null and host.aircraft != null:
 		host.aircraft.add_child(_flash)
-		_flash.position = _gun_offset()
+		_flash.position = _gun_offset() / host.aircraft.scale.x  # local to the (scaled) model
 		_flash.visible = false
 	for i in stores.stations:
 		var st: Dictionary = stores.stations[i]

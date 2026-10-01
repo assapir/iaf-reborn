@@ -15,7 +15,7 @@
 - NOW: Autopilot (A key; reuses the AI control loops; Landing 312 approach mode).
 - Cockpit camera = the original projection (HUD ladder lines up).
 - RWR display, other MFD pages, views (padlock, back view, external list), time compression, pause / in-flight menu.
-- Player jet ×2 scale (original), detached-looking stores, shadows / flame shadow.
+- Detached-looking stores, shadows / flame shadow.
 - Joystick / throttle / pedals.
 - Other jets flyable (Phantom 2000, F-4E, F-15, …): flight data + cockpit each (incl. the Kfir / Mirage shared
   data per the Flight data switch — only matters once they fly).

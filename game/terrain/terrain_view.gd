@@ -212,7 +212,7 @@ func _ready() -> void:
 	if flight != null and aircraft != null:
 		# The model's `height` helper: how far the wheels reach below the aircraft origin.
 		var h := aircraft.find_child("height", true, false) as Node3D
-		flight.set_gear_clearance(-h.position.y if h != null else 0.0)
+		flight.set_gear_clearance(-h.position.y * aircraft.scale.y if h != null else 0.0)
 	var shot := args.find("--screenshot")
 	if shot >= 0:
 		# Captures ignore stray keyboard / mouse input (the window may receive the user's typing).
@@ -877,8 +877,25 @@ func _spawn_f16() -> void:
 	aircraft = preload("res://aircraft/aircraft_model.gd").create("f16", 100, not start_airborne)
 	if aircraft == null:
 		return
+	# The original draws every model at its Present-record scale (0x65e, ×2 for the F-16), the player's jet
+	# too (docs/ai.md: AI jets and mission models already use it).
+	aircraft.scale = Vector3.ONE * _player_model_scale()
 	# Your own jet rides on the rig; converted models face -Z like Godot, so no rotation needed.
 	rig.add_child(aircraft)
+
+
+## Present scale (0x65e) of the F-16's bdb object (type 100) in the mission's database (default6_1 otherwise).
+func _player_model_scale() -> float:
+	var files: Array = MissionRuntime.mission_files(mission_id).map(func(f): return f.data).filter(func(m): return not m.is_empty())
+	var bdb: Dictionary = MissionRuntime.load_bdb(files[0]) if not files.is_empty() else \
+			Settings.load_json(Settings.assets_dir().path_join("converted/missions/default6_1.bdb.json"))
+	var present := {}
+	for pr in bdb.get("present", {}).get("items", []):
+		present[int(pr.get("0x1e", -1))] = pr
+	for o in bdb.get("objects", {}).get("items", []):
+		if int(o.get("0x5b4", -1)) == F16_TYPE:
+			return float(present.get(int(o.get("0x53c", -1)), {}).get("0x65e", 1.0))
+	return 1.0
 
 
 ## Lift the rig (and the parked F-16) if the terrain under it is too close.

@@ -156,7 +156,14 @@ func _ready() -> void:
 
 ## Display settings that act at once (VSync).
 func apply_display() -> void:
-	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if vsync else DisplayServer.VSYNC_DISABLED)
+	# Off = uncapped: Mailbox (no tearing) where the platform offers it (Wayland has no Disabled mode),
+	# else Disabled.
+	if vsync:
+		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED)
+	elif DisplayServer.get_name() == "Wayland":
+		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_MAILBOX)
+	else:
+		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 
 
 func save() -> void:
