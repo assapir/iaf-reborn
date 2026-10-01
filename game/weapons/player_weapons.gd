@@ -11,6 +11,7 @@ const Stores := preload("res://weapons/stores.gd")
 const GunRounds := preload("res://weapons/gun_rounds.gd")
 const IrSeeker := preload("res://weapons/ir_seeker.gd")
 const IrMissile := preload("res://weapons/ir_missile.gd")
+const Radar := preload("res://weapons/radar.gd")
 const DamageEffects := preload("res://mission/damage_effects.gd")
 
 ## The gun's shot timer period (DAT_0082f4e8 = 0.2 s, sim time).
@@ -30,6 +31,8 @@ var db: RefCounted
 var stores: RefCounted
 var gun: RefCounted
 var seeker: RefCounted
+## The radar (ctl+0x84, docs/radar.md).
+var radar: RefCounted
 var missiles: Array = []  # IrMissile with .node, .sound
 var now := 0.0
 
@@ -86,6 +89,12 @@ func setup(host_node: Node, entity: Dictionary, object: Dictionary, bdb: Diction
 	gun.detonate = _gun_detonate
 	seeker = IrSeeker.new()
 	seeker.tone = _tone
+	radar = Radar.new()
+	radar.units = _units
+	radar.ground = _ground
+	radar.own = own
+	radar.on_lock = _radar_lock
+	radar.setup(jet_type, preload("res://weapons/real_weapons.gd").radar_nm(jet_type) if Settings.real_weapons() else 0.0)
 	_push_stores()
 	# The tanks' fuel (FUN_005a8980 before the start fills the fuel to FuelWeight + tanks).
 	if host.flight != null:
@@ -159,7 +168,8 @@ func _units() -> Array:
 	for ent in rt.entities.values():
 		if ent.player or ent.node == null or not ent.visible or ent.state == 5:
 			continue
-		out.append({"key": ent.key, "pos": rt._world_of(ent), "vel": ent.vel, "afterburner": false, "ent": ent})
+		out.append({"key": ent.key, "pos": rt._world_of(ent), "vel": ent.vel, "afterburner": false, "ent": ent,
+			"hostile": rt._enemy_of_player(ent)})
 	return out
 
 
@@ -212,7 +222,7 @@ func _set_hud_mode(h: int) -> void:
 	var entering_ir := h == 1 and hud_mode != 1
 	hud_mode = h
 	if entering_ir:
-		seeker.set_generation(int(stores.station(stores.cur).get("w", {}).get("generation", 0)))
+		seeker.set_weapon(stores.station(stores.cur).get("w", {}))
 		# FUN_00461b00: the seek tone starts only when the store is empty (the next update stops it).
 		if stores.total(stores.current_type(), stores.current_name()) == 0:
 			_tone("seek")
@@ -423,7 +433,7 @@ func _gun_shot() -> bool:
 	var d: Vector3 = GunRounds.shot_dir(o.fwd, o.up)
 	var a: Vector3 = gun.aim_point(o.pos, o.vel, d, hud_mode == 4)
 	var me := _me()
-	gun.fire(now, o.pos, body_to_world(_gun_offset()), o.vel, a, "", String(me.get("key", "")), easy_aiming)
+	gun.fire(now, o.pos, body_to_world(_gun_offset()), o.vel, a, String(radar.locked().get("key", "")), String(me.get("key", "")), easy_aiming)
 	stores.consume(9)
 	return true
 
@@ -571,6 +581,45 @@ func _tone(kind: String) -> void:
 			set(pair[1], null)
 
 
+# --- radar (docs/radar.md) ---------------------------------------------------------------------------
+
+## Radar key events (FUN_0044a240): 0x21 / 0x22 range, 0x24 Q modes, 0x2b R A-A / A-G, 0x2c S standby,
+## 0x2d / 0x2e boresight down / up, 0x26 / 0x27 next / previous target, 0x31 deselect, 0x2a lock (key).
+func radar_event(ev: int, arg = null) -> void:
+	match ev:
+		0x21: radar.step_range(1, now)
+		0x22: radar.step_range(-1, now)
+		0x24: radar.cycle_mode(now)
+		0x2b: radar.toggle_aa_ag(now)
+		0x2c: radar.standby()
+		0x2d: radar.boresight(true)
+		0x2e: radar.boresight(false)
+		0x26: radar.next_target(true, now)
+		0x27: radar.next_target(false, now)
+		0x31: radar.deselect(now)
+		0x2a: radar.lock_key(String(arg))
+
+
+## On-lock / on-unlock (4b0510 / 4b04d0): the target's RWR hears the lock (AI conditions 19 / 26);
+## the RWR and the AI's reaction come with the enemies.
+func _radar_lock(_key: String, _on: bool) -> void:
+	pass
+
+
+## The cockpit's radar snapshot (FUN_00445f10 → state+0x640.., +0xa00..): mode, range index (1..6),
+## scope width, heading shift, antenna carets, the contacts and the lock.
+func radar_snapshot() -> Dictionary:
+	var lk: Dictionary = radar.locked()
+	var o := own()
+	var closure := 0.0
+	if not lk.is_empty():
+		var d: Vector3 = (lk.pos - o.pos).normalized()
+		closure = (o.vel - (lk.unit.vel as Vector3)).dot(d)
+	return {"mode": radar.mode, "idx": radar.range_index(), "width": radar.scope_width(),
+		"shift": radar.heading_shift, "antenna": radar.antenna, "contacts": radar.contacts,
+		"lock": lk, "closure": closure, "has_lock": not lk.is_empty()}
+
+
 # --- chaff and flares (events 0x44 / 0x45, docs/weapons.md §10) ------------------------------------
 
 ## A decoy lives 4.0 s after its release (FUN_004d7690: the end time of types 0x21c / 0x226 is capped
@@ -689,6 +738,10 @@ func update(t: float) -> void:
 	gun.update(now)
 	_update_missiles()
 	_update_decoys()
+	radar.update(now)
+	# FUN_00461680: an A-A radar lock slaves the IR seeker (any lock clears the seeker's own target).
+	seeker.radar_key = String(radar.locked().get("key", ""))
+	seeker.radar_aa = radar.aa
 	if hud_mode == 1:
 		var st: Dictionary = stores.station(stores.cur)
 		seeker.update(now, own(), _units(), int(st.get("w", {}).get("type", 0)), stores.total(stores.current_type(), stores.current_name()) > 0)
@@ -722,7 +775,9 @@ func _lcos(t: float) -> void:
 	var v := float(st.velocity.length()) * 3.2808
 	var g0 := float(st.g)
 	var alpha := float(st.alpha)
-	var r := minf(1476.378, 3148.8)
+	# R (ft): the locked range ×3.28084 (0x601478), else 1476.378; at most 3148.8.
+	var lk: Dictionary = radar.locked()
+	var r := minf(float(lk.dist) * 3.28084 if not lk.is_empty() else 1476.378, 3148.8)
 	var e0: float = a0 / PI - lcos.prev0
 	lcos.prev0 = a0 / PI
 	var e2: float = a2 / PI - lcos.prev2
@@ -769,6 +824,7 @@ func _publish() -> void:
 	elif hud_mode == 4:
 		var d: Vector3 = GunRounds.shot_dir(o.fwd, o.up)
 		pip = gun.aim_point(o.pos, o.vel, d, true)  # world point, projected by the HUD
+	c.radar = radar_snapshot()
 	c.weapons = {
 		"hud_mode": hud_mode, "master": master, "stations": list, "selected": stores.cur,
 		"name": stores.current_name(), "type": t, "total": stores.total(t, stores.current_name()),

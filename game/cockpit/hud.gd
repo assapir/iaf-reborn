@@ -74,6 +74,7 @@ func _draw() -> void:
 			_draw_fpm(fpm, s, w)
 
 	_draw_weapons(s, w, font, fs, gun)
+	_draw_target_box(s, w)
 
 	# Heading tape (top), speed (left), altitude (right), G / Mach.
 	var top := 6.0 * s
@@ -236,6 +237,48 @@ func _draw_weapons(s: float, w: float, font: Font, fs: int, gun: Vector2) -> voi
 					draw_texture_rect(t, Rect2(p - Vector2(16, 16) * s, Vector2(32, 32) * s), false)
 				else:
 					draw_arc(p, 8 * s, 0, TAU, 24, col, w)
+
+
+## The target designator box (FUN_00537330): drawn with a radar lock, 15 px (10 px in GMT / MAP) at the
+## locked unit's projection, held at the HUD edge with a line from the HUD centre when outside; an X
+## inside for a friendly unit.
+func _draw_target_box(s: float, w: float) -> void:
+	var b := target_box(s)
+	if b.is_empty():
+		return
+	var col: Color = cockpit.hud_colour()
+	var p: Vector2 = b.p
+	var h: float = b.h
+	if b.edge:
+		draw_line(size / 2, p, col, w)
+	draw_rect(Rect2(p - Vector2(h, h), Vector2(2 * h, 2 * h)), col, false, w)
+	if not b.hostile:
+		draw_line(p - Vector2(h, h), p + Vector2(h, h), col, w)
+		draw_line(p + Vector2(-h, h), p + Vector2(h, -h), col, w)
+
+
+## The box: {p (HUD px), h (half size), edge (held at the HUD edge), hostile}; {} without a lock.
+func target_box(s: float) -> Dictionary:
+	var r: Dictionary = cockpit.radar
+	var lk: Dictionary = r.get("lock", {})
+	if lk.is_empty() or camera == null or not host_world_to_scene.is_valid():
+		return {}
+	var sp: Vector3 = host_world_to_scene.call(lk.pos)
+	var centre := size / 2
+	var p: Vector2
+	if camera.is_position_behind(sp):
+		var d := camera.global_basis.inverse() * (sp - camera.global_position)
+		p = centre + Vector2(d.x, -d.y).normalized() * size.length()
+	else:
+		p = camera.unproject_position(sp) - position
+	var h := (5.0 if int(r.get("mode", 0)) >= 7 else 7.5) * s
+	var inner := Rect2(Vector2(h, h), size - Vector2(2 * h, 2 * h))
+	var edge := not inner.has_point(p)
+	if edge:
+		var d := p - centre
+		var k := minf(absf((inner.size.x / 2) / d.x) if d.x != 0.0 else INF, absf((inner.size.y / 2) / d.y) if d.y != 0.0 else INF)
+		p = centre + d * k
+	return {"p": p, "h": h, "edge": edge, "hostile": bool(lk.get("hostile", true))}
 
 
 ## World point -> scene (set by the flight scene for the AG pipper).

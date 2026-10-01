@@ -18,15 +18,21 @@ const MACH_M_S := 340.3
 ## The chase motion flies burn + 6 s (0x60ce98).
 const END_AFTER_BURN := 6.0
 
-## bdb weapon name -> {kg, mach, range_km}. Sources in docs/real-weapons.md.
+## bdb weapon name -> {kg, mach, range_km} and, where sourced, rear (rear-aspect seeker only), max_g
+## (turn limit) and cone_deg (seeker off-boresight half-angle). Sources in docs/real-weapons.md.
 const MISSILES := {
-	"AIM-9D": {"kg": 88.5, "mach": 2.5, "range_km": 18.0},
+	"AIM-9D": {"kg": 88.5, "mach": 2.5, "range_km": 18.0, "rear": true, "max_g": 12.0},
 	"AIM-9L": {"kg": 86.0, "mach": 2.5, "range_km": 35.4},
 	"AIM-9M": {"kg": 86.0, "mach": 2.5, "range_km": 35.4},
-	"PYTH-3": {"kg": 120.0, "mach": 3.5, "range_km": 15.0},
-	"PYTH-4": {"kg": 120.0, "mach": 3.5, "range_km": 15.0},
-	"SHFR 2": {"kg": 93.0, "mach": 2.1, "range_km": 5.0},
+	"PYTH-3": {"kg": 120.0, "mach": 3.5, "range_km": 15.0, "cone_deg": 30.0},
+	"PYTH-4": {"kg": 120.0, "mach": 3.5, "range_km": 15.0, "cone_deg": 60.0},
+	"SHFR 2": {"kg": 93.0, "mach": 2.1, "range_km": 5.0, "rear": true},
 }
+## Radar detection range (LRS / STT) in km by bdb object type code; jets not listed keep the
+## original table (docs/radar.md). F-16C (Barak): AN/APG-68, 80 km.
+const RADAR_KM := {100: 80.0}
+## The radar's NM (0x603390).
+const RADAR_NM_M := 1854.0
 ## bdb gun name -> {rpm (all barrels / guns of one jet), muzzle m/s}.
 const GUNS := {
 	"20 MM": {"rpm": 6000.0, "muzzle": 1030.0, "guns": 1},  # M61A1, M56 round
@@ -54,6 +60,9 @@ static func apply(db: RefCounted) -> void:
 			var a := float(m.get("_absAcceleration", 100.0))
 			var v := float(r.mach) * MACH_M_S
 			w["motion"] = {"_spiralAccelBeta": a / v, "burn": maxf(float(r.range_km) * 1000.0 / v - END_AFTER_BURN, 1.0)}
+			for k in ["rear", "max_g", "cone_deg"]:
+				if r.has(k):
+					w["real_" + k] = r[k]
 			w["real"] = true
 		elif GUNS.has(w.name):
 			var g: Dictionary = GUNS[w.name]
@@ -65,3 +74,8 @@ static func apply(db: RefCounted) -> void:
 ## The real gun rounds of a jet (bdb object type code), or -1 = keep the original count.
 static func gun_rounds(type_code: int) -> int:
 	return int(GUN_ROUNDS.get(type_code, -1))
+
+
+## The real radar detection range (NM of the radar, LRS / STT) of a jet, or 0 = keep the original.
+static func radar_nm(type_code: int) -> float:
+	return float(RADAR_KM.get(type_code, 0.0)) * 1000.0 / RADAR_NM_M

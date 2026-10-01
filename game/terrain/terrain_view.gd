@@ -242,6 +242,7 @@ func _setup_weapons() -> void:
 	weapons.setup(self, ent, obj, bdb, preload("res://aircraft/aircraft_model.gd").load_descriptor("f16"))
 	cockpit.hud.host_world_to_scene = weapons.to_scene
 	cockpit.on_station_select = weapons.select_station
+	cockpit.on_radar_event = weapons.radar_event
 
 
 ## Waits for the terrain in range (bounded), measures fps, saves a PNG and quits. `--shots N` saves N
@@ -1009,6 +1010,8 @@ func _unhandled_input(event: InputEvent) -> void:
 					weapons.release_selected()
 				67:
 					weapons.gun_stop()
+				46:
+					weapons.radar_event(0x2e)  # boresight up
 	elif event is InputEventKey and event.pressed:
 		if event.echo:
 			# Held PgUp / PgDn keep sliding the panel (our keys); other repeats do nothing.
@@ -1071,16 +1074,16 @@ func _command(cmd: Array) -> bool:
 				in_cockpit = false
 			else:
 				return false
-		33:
-			cockpit.radar_mfd().step_range(1)
-		34:
-			cockpit.radar_mfd().step_range(-1)
-		36:
-			cockpit.radar_mfd().cycle_radar_mode()
+		33, 34, 36, 38, 39, 44, 45, 49:
+			# Radar events (docs/radar.md): the radar page goes on an MFD first if none shows it.
+			cockpit.radar_mfd()
+			weapons.radar_event(int(cmd[0]))
 		43:
-			cockpit.radar_mfd().toggle_radar_aa_ag()
-		44:
-			cockpit.radar_mfd().radar_mode = 1  # radar standby (event 0x2c)
+			# R (event 0x2b): shows the radar page if no MFD shows it, else A-A / A-G (and on).
+			if cockpit.mfds.any(func(m): return m.page == 2):
+				weapons.radar_event(0x2b)
+			else:
+				cockpit.radar_mfd()
 		90:
 			# SET_MFD_SCREEN(page) (docs/mfd.md §5): 3 TSD, 4 damage; FLIR (6) / 7 not built.
 			if p1 in [3, 4]:

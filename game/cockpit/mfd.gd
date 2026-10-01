@@ -33,11 +33,6 @@ const TSD_SCALES := [10, 20, 40, 80]
 var cockpit: Control
 var index := 0  # 0 left, 1 right, 2 middle
 var page := RADAR
-## Radar: mode and range index (initial values UNCERTAIN: not traced in the exe).
-var radar_mode := 4
-var radar_range := 2
-var radar_last_aa := 4
-var radar_last_ag := 7
 ## TSD: scale (+0x279c, default 40) and the SAM / WPT / MAP / SCL options (default on).
 var tsd_scale := 40
 var tsd_options := [true, true, true, true]
@@ -152,17 +147,121 @@ func _draw() -> void:
 	draw_set_transform(Vector2.ZERO)
 
 
+## The radar page (FUN_005333d0 and helpers) from the radar snapshot (cockpit.radar, state+0x640..
+## / +0xa00..; docs/radar.md): tile and label, range sprite, horizon bars, antenna carets, contacts.
 func _draw_radar() -> void:
-	match radar_mode:
+	var r: Dictionary = cockpit.radar
+	var mode := int(r.get("mode", 0))
+	var idx := int(r.get("idx", 1))
+	match mode:
 		7: _tile(TILE_GMT)
 		8: _tile(TILE_MAP)
 		_:
 			_tile(TILE_RADAR_AA)
-			_text(Vector2(17, 3), RADAR_MODES[radar_mode])
-	if radar_mode >= 3:
-		_blit(Rect2(132 + 8 * radar_range, 845, 8, 5), Vector2(1, 33))
-	if radar_mode <= 6 and radar_mode >= 2:
+			_text(Vector2(17, 3), RADAR_MODES[mode])
+	if mode >= 3:
+		_blit(Rect2(132 + 8 * (idx - 1), 845, 8, 5), Vector2(1, 33))
+	if mode <= 6 and mode >= 2:
 		_draw_horizon_bars()
+	if mode < 2:
+		return
+	_draw_carets(r.get("antenna", Vector2.ZERO))
+	var nm: float = RADAR_RANGES[clampi(idx, 1, 6) - 1]
+	for c in r.get("contacts", []):
+		if mode >= 7:
+			_draw_ground_contact(c, mode, nm)
+			continue
+		# B-scope: x = 66 + (az + shift)·112 / width, y = 115 − range / (R·16.5446) (R NM = 112 px).
+		var p := Vector2(66.0 + (float(c.az) + float(r.get("shift", 0.0))) * 112.0 / float(r.get("width", TAU / 3.0)),
+				115.0 - float(c.dist) / (nm * 16.5446))
+		if p.x <= 8 or p.x >= 124 or p.y <= 8 or p.y >= 124:
+			continue
+		p = p.round()
+		match mode:
+			3, 6:
+				_box(p, 1)
+				_line(p + Vector2(-1, 1), p + Vector2(1, -1))
+			4:
+				_box(p, 2)
+				_box(p, 1)
+			5:
+				if c.selected:
+					draw_circle(p, 3.5, GREEN)
+					_aspect_stub(p, c)
+				else:
+					_box(p, 2)
+			2:
+				draw_circle(p, 3.5, GREEN)
+				_aspect_stub(p, c)
+	if mode == 2 and not r.get("lock", {}).is_empty():
+		_draw_stt_text(r, nm)
+
+
+## Antenna carets (FUN_00533500): v = clamp(⌊val·106⌋, 0, 106); azimuth at x = 13 + v (y 117..120,
+## bar x 11+v..16+v at y 117), elevation at y = 13 + v (x 11..14, bar at x 14).
+func _draw_carets(a: Vector2) -> void:
+	var vx := clampi(int(a.x * 106.0), 0, 106)
+	var vy := clampi(int(a.y * 106.0), 0, 106)
+	_line(Vector2(13 + vx, 117), Vector2(13 + vx, 120))
+	_line(Vector2(11 + vx, 117), Vector2(16 + vx, 117))
+	_line(Vector2(11, 13 + vy), Vector2(14, 13 + vy))
+	_line(Vector2(14, 11 + vy), Vector2(14, 16 + vy))
+
+
+func _box(p: Vector2, h: int) -> void:
+	draw_rect(Rect2(p - Vector2(h, h), Vector2(2 * h, 2 * h)), GREEN, false, 1.0)
+
+
+## The 4 px aspect stub, quantised to 45° (TWS / STT): the target's heading on the heading-up scope
+## (UNCERTAIN: the reference of the stub).
+func _aspect_stub(p: Vector2, c: Dictionary) -> void:
+	var own_h: float = cockpit.state.get("heading", 0.0)
+	var a := deg_to_rad(round(wrapf(float(c.heading) - own_h, -180.0, 180.0) / 45.0) * 45.0)
+	_line(p, p + Vector2(sin(a), -cos(a)) * 4.0)
+
+
+## STT text (FUN_00533db0 / FUN_00534160): "%3dK" target speed at (86,3), aspect "%2dL" / "%2dR" at
+## (62,3), the range scale at x 121 (y 10..122) with the "<" caret at y = 115 − r·112/(R·1853) and the
+## closure "%3dK" at (111, caret + 8). (The two envelope ticks of the scale are not drawn: DLZ untraced.)
+func _draw_stt_text(r: Dictionary, nm: float) -> void:
+	var lk: Dictionary = r.lock
+	_text(Vector2(86, 3), "%3dK" % int(lk.speed))
+	_text(Vector2(62, 3), aspect_text(float(lk.aspect)))
+	_line(Vector2(121, 10), Vector2(121, 122))
+	var y := 115.0 - float(lk.dist) * 112.0 / (nm * 1853.0)
+	y = clampf(y, 10.0, 122.0)
+	_line(Vector2(118, y - 2), Vector2(116, y))
+	_line(Vector2(116, y), Vector2(118, y + 2))
+	_text_right(128, y + 8, "%3dK" % int(float(r.get("closure", 0.0)) * 1.9427955))
+
+
+## Aspect "%2dL" / "%2dR" (FUN_0052ef20): n = (⌊aspect°⌋ % 360) / 10 wrapped to ±18; the sign gives
+## L or R (UNCERTAIN which), |n| shown.
+static func aspect_text(aspect: float) -> String:
+	var n := (int(rad_to_deg(aspect)) % 360) / 10
+	if n > 18:
+		n -= 36
+	elif n < -18:
+		n += 36
+	return "%2d%s" % [absi(n), "R" if n >= 0 else "L"]
+
+
+## GMT (FUN_00535400): heading-up PPI from (66,109), R·1853/56 m/px; MAP (FUN_00535ea0) symbols at
+## R·19.7128 m/px from (65,109). 3×3 box (MAP: with a diagonal); the locked one a ±10 cross.
+func _draw_ground_contact(c: Dictionary, mode: int, nm: float) -> void:
+	var k := nm * 1853.0 / 56.0 if mode == 7 else nm * 19.7128
+	var o := Vector2(66, 109) if mode == 7 else Vector2(65, 109)
+	var d := float(c.dist) * cos(float(c.el))
+	var p := (o + Vector2(sin(float(c.az)), -cos(float(c.az))) * d / k).round()
+	if p.x <= 8 or p.x >= 124 or p.y <= 8 or p.y >= 124:
+		return
+	if c.locked:
+		_line(p - Vector2(10, 0), p + Vector2(10, 0))
+		_line(p - Vector2(0, 10), p + Vector2(0, 10))
+	else:
+		_box(p, 1)
+		if mode == 8:
+			_line(p + Vector2(-1, 1), p + Vector2(1, -1))
 
 
 ## Artificial horizon bars (FUN_00533620): centre (66,66), rolled, 1 px per degree of pitch.
@@ -381,6 +480,21 @@ func _gui_input(event: InputEvent) -> void:
 	if osb > 0:
 		press(osb)
 		accept_event()
+	elif page == RADAR and int(cockpit.radar.get("mode", 0)) == 4:
+		_click_blip(p)
+
+
+## LRS (FUN_00534840): a click on a blip sends event 0x2a (lock that contact). Ours: within 4 px.
+func _click_blip(p: Vector2) -> void:
+	var r: Dictionary = cockpit.radar
+	var nm: float = RADAR_RANGES[clampi(int(r.get("idx", 1)), 1, 6) - 1]
+	for c in r.get("contacts", []):
+		var b := Vector2(66.0 + (float(c.az) + float(r.get("shift", 0.0))) * 112.0 / float(r.get("width", TAU / 3.0)),
+				115.0 - float(c.dist) / (nm * 16.5446))
+		if b.distance_to(p) <= 4.0 and cockpit.on_radar_event.is_valid():
+			cockpit.on_radar_event.call(0x2a, c.key)
+			accept_event()
+			return
 
 
 ## OSB actions.
@@ -420,26 +534,12 @@ func press(osb: int) -> void:
 				0xf: nav_scroll = mini(nav_scroll + 1, maxi(0, cockpit.waypoints.size() - 3))
 
 
-## Radar range one step up (+1) or down (-1) within RADAR_RANGES (OSB 0xb / 0xc, key commands 33 / 34).
+## Radar OSBs (0xb range +, 0xc range −, top 1 Q) and keys go to the radar (docs/radar.md).
 func step_range(d: int) -> void:
-	radar_range = clampi(radar_range + d, 0, RADAR_RANGES.size() - 1)
+	if cockpit.on_radar_event.is_valid():
+		cockpit.on_radar_event.call(0x21 if d > 0 else 0x22)
 
 
-## Radar modes key / OSB (event 0x24): A-A 4 -> 5 -> 6 -> 4, A-G 7 <-> 8.
 func cycle_radar_mode() -> void:
-	if radar_mode >= 7:
-		radar_mode = 8 if radar_mode == 7 else 7
-		radar_last_ag = radar_mode
-	elif radar_mode >= 4:
-		radar_mode = 4 + (radar_mode - 4 + 1) % 3
-		radar_last_aa = radar_mode
-	else:
-		radar_mode = radar_last_aa
-
-
-## Radar on / AA / AG (event 0x2b): toggles between the last A-A and A-G modes.
-func toggle_radar_aa_ag() -> void:
-	if radar_mode >= 7:
-		radar_mode = radar_last_aa
-	else:
-		radar_mode = radar_last_ag
+	if cockpit.on_radar_event.is_valid():
+		cockpit.on_radar_event.call(0x24)

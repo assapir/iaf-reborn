@@ -40,6 +40,9 @@ var state := {
 var weapons := {}
 ## Stores page station buttons (event 0x4c(station)), set by the flight scene.
 var on_station_select: Callable
+## The radar snapshot (player_weapons.gd radar_snapshot()) and its key events (radar_event(ev, arg)).
+var radar := {}
+var on_radar_event: Callable
 ## The player's route: [{name, world: Vector2}], and the current waypoint index.
 var waypoints: Array = []
 var current_waypoint := 0
@@ -298,6 +301,13 @@ func _draw_weapon_line(s: float) -> void:
 	var at := centre + Vector2(-float(h.get("TxtOffX", 82)), float(h.get("TxtOffY", 48)) + 2 * 7 + 6) * s
 	var font: Font = hud.hud_font if hud.hud_font != null else get_theme_default_font()
 	draw_string(font, at, line, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, hud_colour())
+	# With a radar lock: "R %2.1f" (NM, ×0.00053937, 0x600f58) and, in HUD modes 1 and 3, the aspect
+	# "%2dL" / "%2dR" on the waypoint row (rows 0 / 1: placement UNCERTAIN).
+	var lk: Dictionary = radar.get("lock", {})
+	if not lk.is_empty():
+		draw_string(font, at - Vector2(0, 2 * 7) * s, "R %2.1f" % (float(lk.dist) * 0.00053937), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, hud_colour())
+		if int(weapons.hud_mode) in [1, 3]:
+			draw_string(font, at - Vector2(0, 7) * s, preload("res://cockpit/mfd.gd").aspect_text(float(lk.aspect)), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, hud_colour())
 
 
 ## Chaff / flare counters (FUN_0052eab0): "%03d" of stores stations 10 / 11 at [CHAFF] / [FLARE]

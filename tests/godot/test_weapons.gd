@@ -41,6 +41,24 @@ func run() -> void:
 	var m9: Dictionary = real.by_id(11).motion
 	check(absf(100.0 / m9._spiralAccelBeta - 2.5 * 340.3) < 0.1 and absf((m9.burn + 6.0) * 2.5 * 340.3 - 35400.0) < 1.0,
 		"Real AIM-9L chase: top speed Mach 2.5, range 35.4 km")
+	var by_name := {}
+	for id in real.weapons:
+		by_name[real.weapons[id].name] = real.weapons[id]
+	check(by_name.has("AIM-9D") and by_name["AIM-9D"].get("real_rear", false) and by_name["AIM-9D"].get("real_max_g", 0.0) == 12.0
+		and by_name["PYTH-4"].get("real_cone_deg", 0.0) == 60.0, "Real flags: AIM-9D rear-aspect 12 g, Python 4 cone 60°")
+	var sk = load("res://weapons/ir_seeker.gd").new()
+	sk.set_weapon(by_name["AIM-9D"])
+	var me := {"pos": Vector3.ZERO, "yaw": 0.0}
+	check(sk.can_track(me, {"pos": Vector3(0, 2000, 0), "vel": Vector3(0, 200, 0)}, 570)
+		and not sk.can_track(me, {"pos": Vector3(0, 2000, 0), "vel": Vector3(0, -200, 0)}, 570), "Real AIM-9D: tail chase only")
+	sk.set_weapon(db.by_id(11))
+	check(not sk.rear_only and sk.can_track(me, {"pos": Vector3(0, 2000, 0), "vel": Vector3(0, -200, 0)}, 570), "original: all aspects")
+	var mi = load("res://weapons/ir_missile.gd").new()
+	mi.launch(by_name["AIM-9D"], {"_absAcceleration": 300.0, "_spiralAccel": 0.0, "_timeConstOrientation": 0.0, "burn": 10.0}, 0.0, Vector3(0, 0, 1000), Vector3(0, 300, 0), Vector3(0, 1, 0), "x", Vector3.ZERO, 1.0, func(_i, d): return d)
+	mi.update(0.0, Vector3(3000, 0, 1000), Vector3.ZERO, Callable())
+	mi.update(0.1, Vector3(3000, 0, 1000), Vector3.ZERO, Callable())
+	var lat: Vector3 = mi.acc - mi.v0.normalized() * mi.acc.dot(mi.v0.normalized())
+	check(absf(lat.length() - 12.0 * 9.80665) < 0.01, "Real AIM-9D: turn limited to 12 g (%.1f m/s²)" % lat.length())
 	var rst = Stores.new()
 	rst.setup(Stores.loadout({}, f16), real, desc, Callable(), 100)
 	check(rst.displayed(9) == 511, "Weapon data Real: F-16 gun 511 rounds")

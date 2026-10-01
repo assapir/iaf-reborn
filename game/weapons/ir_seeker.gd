@@ -28,12 +28,19 @@ const SNAP_PX := 5.0
 
 var cone_cos := cos(deg_to_rad(70.0))
 var lock_range := 15.0 * NM
+## Weapon data Real (real_weapons.gd): a rear-aspect seeker sees only a target moving away (ours:
+## the target's velocity has a component away from the launcher; docs/real-weapons.md).
+var rear_only := false
 var target_key := ""  # this+0x14
 var lock := false  # 0x82f6ec
 ## The seeker symbol (diamond), px from the boresight.
 var symbol := Vector2.ZERO
 var _next_search := -1.0e9
 var _next_update := -1.0e9
+
+## The radar's locked unit ("" none) and its A-A flag (FUN_00461680 / FUN_004625f0: slaved).
+var radar_key := ""
+var radar_aa := true
 
 ## Tone callback tone(kind): "seek", "lock" or "" (both off).
 var tone: Callable
@@ -44,6 +51,14 @@ func set_generation(gen: int) -> void:
 	if CONE_DEG.has(gen):
 		cone_cos = cos(deg_to_rad(CONE_DEG[gen]))
 		lock_range = RANGE_NM[gen] * NM
+
+
+## The selected missile record (weapon_db.gd): its generation, then the Real overrides (cone, rear).
+func set_weapon(w: Dictionary) -> void:
+	set_generation(int(w.get("generation", 0)))
+	if w.has("real_cone_deg"):
+		cone_cos = cos(deg_to_rad(float(w.real_cone_deg)))
+	rear_only = bool(w.get("real_rear", false))
 
 
 ## Screen offset (px, x right, y down) of a world point from the boresight for the own attitude
@@ -65,20 +80,35 @@ func can_track(own: Dictionary, u: Dictionary, type: int) -> bool:
 		if absf(az) > deg_to_rad(LIMITED_AZ_DEG):
 			return false
 	var r := d.length()
+	if rear_only and (u.get("vel", Vector3.ZERO) as Vector3).dot(d) <= 0.0:
+		return false
 	if r > lock_range:
 		return false
 	return r <= lock_range / 2.0 or bool(u.get("afterburner", false))
 
 
 ## FUN_00461f10 (not slaved, the cockpit views): the target within 6° of the nose.
-static func in_view(own: Dictionary, u: Dictionary) -> bool:
+## Slaved to an A-A radar lock (FUN_004625f0): the per-generation cone instead.
+func in_view(own: Dictionary, u: Dictionary) -> bool:
 	var d: Vector3 = u.pos - own.pos
-	return d.length() > 0.0 and own.fwd.dot(d.normalized()) >= cos(deg_to_rad(FOV_DEG))
+	var c := cone_cos if slaved() else cos(deg_to_rad(FOV_DEG))
+	return d.length() > 0.0 and own.fwd.dot(d.normalized()) >= c
+
+
+func slaved() -> bool:
+	return radar_key != "" and radar_aa and target_key == radar_key
 
 
 ## FUN_00461680: keep a target that still passes can-track; else, at most every 0.5 s, the unit
 ## nearest the boresight inside the 6000 px² circle that passes can-track (no side test).
 func search(now: float, own: Dictionary, units: Array, type: int) -> Dictionary:
+	# A radar lock clears the seeker's own target; in A-A the seeker takes the locked unit at once
+	# (no 0.5 s gate, no HUD circle).
+	if radar_key != "":
+		target_key = ""
+		if radar_aa:
+			target_key = radar_key
+			return _find(units, radar_key)
 	var cur := _find(units, target_key)
 	if not cur.is_empty():
 		if can_track(own, cur, type):

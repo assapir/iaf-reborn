@@ -37,6 +37,9 @@ var burn := 16.0  # +0x108 tAcc + tConstVel + tDecel
 var high_angle_turn := false
 var overshoot_dist := 1.0e7  # _debugParam001 (or 015 with _highAngleTurn)
 var no_end := false  # _debugParam005 == 1
+## Weapon data Real: the turn limit in g (0 = none, the original): the acceleration across the
+## velocity is clamped to max_g · 9.80665 m/s² (docs/real-weapons.md).
+var max_g := 0.0
 
 var t_start := 0.0
 var t0 := 0.0
@@ -55,6 +58,7 @@ var hit_ground := false
 ## (FUN_00457f70); `target` "" = aim at `point`.
 func launch(w: Dictionary, m: Dictionary, now: float, pos: Vector3, vel: Vector3, nose: Vector3, target: String, point: Vector3, q: float, debug: Callable) -> void:
 	weapon = w
+	max_g = float(w.get("real_max_g", 0.0))
 	accel = float(m.get("_absAcceleration", accel))
 	beta = float(m.get("_spiralAccelBeta", beta))
 	t_co = float(m.get("_timeConstOrientation", t_co))
@@ -147,6 +151,11 @@ func update(now: float, t_pos: Vector3, t_vel: Vector3, ground: Callable) -> boo
 			var gv := dist * d - gain * v_perp
 			gdir = gv.normalized() if gv.length() > 0.0 else d
 		acc += gdir * (accel - beta * sp * gdir.dot(uv))
+		if max_g > 0.0:
+			var lat := acc - uv * acc.dot(uv)
+			var lim := max_g * 9.80665
+			if lat.length() > lim:
+				acc += lat * (lim / lat.length() - 1.0)
 	# End of flight.
 	var cos_old := cos_prev
 	var cos_new := uv.dot(u)
