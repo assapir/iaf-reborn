@@ -58,7 +58,8 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 - **Preferences → Extras → Weapon data (Original / Real)**: public missile weights, top speed, range, rear-aspect
   seekers (ours: a target-moving-away test), seeker cones, the AIM-9D's 12 g, the F-16's APG-68 range and gun rounds /
   rate / muzzle velocity — real-weapons.md.
-- **Preferences → Extras**: Flight data (Original / Real aircraft), flight info line,
+- **Preferences → Extras**: Flight data (Original / Real aircraft), HUD pitch ladder (conformal: each rung projected
+  through the camera; the original's linear 12 px/deg ladder is a few px off away from the marker), flight info line,
   blackbox, language, "All keys on the Keyboard page" (the original lists 92 of the 117 key records; the option lists
   all 115 labelled ones so the stick, rudder, RPM ± 5 and pans can be rebound — controls.md §3). Later: Real HUD, extra sounds, canopy open (docs/roadmap.md).
 

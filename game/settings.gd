@@ -31,7 +31,7 @@ const PREFS := {
 	"devices": ["flight_controls", "rudder", "throttle"],
 	"gameplay": ["no_wind", "no_blackouts", "no_spins", "no_stalls", "easy_landing", "easy_aiming",
 		"no_malfunctions", "ai_level", "invulnerable", "no_crashes", "unlimited_ammo", "unlimited_fuel",
-		"flight_data", "weapon_data", "language", "show_info", "blackbox", "show_all_keys", "fullscreen"],
+		"flight_data", "weapon_data", "language", "show_info", "blackbox", "hud_ladder", "show_all_keys", "fullscreen"],
 }
 
 ## Flight data: "original" (Jane's IAF 1998 numbers) or "real" (corrected real-world data for every flyable jet, docs/real-aircraft.md).
@@ -83,6 +83,9 @@ var better := {}
 var show_info := true
 ## Blackbox: the flight recorder user://last_flight.csv (for diagnosing flights; on for now).
 var blackbox := true
+## HUD pitch ladder: "original" (v1.1: 12 px/deg hung on the flight path marker, docs/cockpit.md) or
+## "conformal" (ours: rungs projected through the camera, on the world's horizon).
+var hud_ladder := "original"
 ## Keyboard page: false = the original list (92 records); true (ours) also lists the hidden records
 ## (stick, rudder, RPM ± 5, pans, cheats, screen capture) so they can be rebound, e.g. on keyboards without a numpad.
 var show_all_keys := false

@@ -70,3 +70,11 @@ func run() -> void:
 		var horizon := cam.unproject_position(cam.global_position + Vector3(0, 0, -1) * 100000.0)
 		check(absf(r[0].y - horizon.y) < 0.5 * s, "pitch %d°: the horizon rung on the world's horizon (%.2f vs %.2f)" % [pitch, r[0].y, horizon.y])
 		check(r[int(pitch)].distance_to(fpm2) < 0.01, "pitch %d°: the %d° rung through the marker" % [pitch, pitch])
+	# Our conformal ladder (Extras): at 20° nose up the horizon rung is exactly on the world's horizon,
+	# where the linear v1.1 rung is a few pixels off.
+	tv.rig.global_basis = Basis.from_euler(Vector3(deg_to_rad(20.0), 0, 0))
+	var hz := cam.unproject_position(cam.global_position + Vector3(0, 0, -1) * 100000.0)
+	var conf := {}
+	for rr in hud.conformal_rungs(0.0):
+		conf[rr[0]] = rr[1] + hud.position
+	check(absf(conf[0].y - hz.y) < 0.5, "conformal: the horizon rung on the world's horizon at 20° (%.2f vs %.2f)" % [conf[0].y, hz.y])
