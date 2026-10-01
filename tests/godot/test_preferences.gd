@@ -87,3 +87,16 @@ func run() -> void:
 	await frames(10)
 	check(fe.screen == "main" and Settings().better.flight_path_hold, "leaving from Physics commits without errors")
 	Settings().better.flight_path_hold = false
+	# Extras DEFAULT (ours): every Extras option back to its default, the language kept.
+	fe._on_button(fe._key_for_label("Preferences"))
+	await settle(fe)
+	fe._on_button("extras")
+	fe.pref_work["blackbox"] = false
+	fe.pref_work["flight_data"] = "real"
+	click(fe, fe.CONTENT.position + fe.PREF_DEFAULT.get_center())
+	check(fe.pref_work.blackbox and fe.pref_work.flight_data == "original", "Extras DEFAULT restores the defaults")
+	fe._on_button("back")
+	await settle(fe)
+	if fe.msgbox != null:
+		click_box(fe.msgbox, 1)
+		await settle(fe)

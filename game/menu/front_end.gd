@@ -998,6 +998,7 @@ func _draw_option(r: Rect2, label: String, on: bool, led_y: float, text_y: float
 
 func _draw_extras() -> void:
 	_draw_our_page("Extras")
+	_blit("pref/defbut_%d.png" % (2 if pref_default_held else 0), CONTENT.position + PREF_DEFAULT.position)
 	for i in EXTRAS.size() + 1:
 		_draw_rule(45.0 + 35.0 * i)
 	for i in EXTRAS.size():
@@ -1100,6 +1101,10 @@ func _pref_press(q: Vector2) -> bool:
 	var page: String = Settings.pref_page
 	if not Rect2(Vector2.ZERO, CONTENT.size).has_point(q):
 		return false
+	if page == "Extras" and PREF_DEFAULT.has_point(q):
+		pref_default_held = true
+		_play("buttonin")
+		return true
 	if page == "Extras":
 		for it in _extras_items():
 			if it.available and it.rect.has_point(q):
@@ -1185,6 +1190,10 @@ func _pref_defaults() -> void:
 			pref_work[c[1]] = Settings.default_value(c[1])
 	if Settings.pref_page == "Controls":
 		pref_work.key_bindings = {}  # the whole table from 0x64c3c8 (@511ca5)
+	if Settings.pref_page == "Extras":  # ours: every Extras option except the language
+		for opt in EXTRAS:
+			if opt[0] != "language":
+				pref_work[opt[0]] = Settings.default_value(opt[0])
 	_apply_music_volume()
 
 
