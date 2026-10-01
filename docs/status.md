@@ -8,39 +8,23 @@
 - Everything comes from the player's own ISO; the repo (github.com/assapir/iaf-reborn, GPL-3.0) holds no game data.
 - Rule: logic, layout, timing and colours as the original. Improvements are opt-in switches, original by default.
 
-## In progress (one job at a time)
-— (terrain finished; next: item 2)
+## Priorities (one main job at a time; small bugs in short rounds between them)
+**NOW:** AI combat — player radar contacts + lock first, then AI air-to-air / air-to-ground (incl. bomb ballistics),
+AAA / radar + IR SAMs with the RWR, chaff / flares, real weapon capabilities, script op 2. Goal: first playable
+combat missions (313, 321, 221, 226). Then the demo video (H.264).
 
-## To do next (ordered by overall progress: missions unlocked first)
-1. ~~Terrain (original data) — convert all of `map.ptt`~~ — done (see Done).
-2. **Combat core** (unlocks the first ~9–11 missions): ~~player weapons~~ (done: gun + IR missiles, stores, fuel
-   tanks, HUD / MFD, Weapon data Real — docs/weapons.md) → ~~AI brain flight~~ (done: docs/ai.md) → **AI
-   air-to-ground / air-to-air** (next: targets, weapons, combat manoeuvres; hooks in game/ai) → AAA, radar SAMs,
-   RWR → script op 2.
-3. ~~Arming screen~~ — done (see Done).
-4. **Bombs + CCIP**, armed vehicles / boats (→ ~20 missions).
-5. **Other jets**: flight data + cockpit per jet — Phantom 2000 (19 missions), F-4E (17), F-15 (16), Lavi / Mirage
-   (13), Kfir (8) (→ ~30 more missions).
-6. Radar missiles with lock, IR SAMs, TV / IR-guided weapons, night, anti-radiation missiles, rockets.
-7. Smaller items (no missions unlocked; fit in between milestones): **autopilot** (A key; reuse the AI's control loops, crates/iaf-flight/src/autopilot.rs — the original's AI flies through the same autopilot; incl. the approach mode
-   of Landing 312), **cockpit camera = the original projection** (HUD ladder lines up; drop the conformal option if
-   redundant) + Tu-22 Real row (the variant flown in the missions), **pilot records** / login / unlocking.
-8. Remaining front-end screens, multiplayer.
-9. Joystick / throttle / pedals (original input handling; Devices page).
-10. **Original cheats / hidden keys** (docs/controls.md §4; live in the retail exe, the keys.trx labels are wrong):
-   Shift+F refuel internal tank, Shift+S safety off (fire with gear down), Shift+R reload weapons (single player),
-   Shift+D mission text messages on/off, Ctrl+W re-read weapons.ibx, U RWR page, Ctrl+Return HARM target step,
-   SysRQ screenshot (IafJets000.bmp…); port them (cheats behind an Extras "Cheats" switch), show corrected labels
-11. **Sea level west of Suez**: map.ptt has no elevation there (sea, Nile delta and Western desert are a flat plane
-   at −557 m, ships placed at −557 m); kept as the original for now — decide a fix (e.g. shift that plane and its
-   objects to 0 m) later.
-12. Later (docs/roadmap.md): Better AI, Real weapons, Extra sounds, mission replayer, 3D cockpit, satellite imagery,
-   canopy open.
+**NEXT, in order:**
+1. Small-bugs round 1 (the ones that hurt play): player jet ×2 scale, Kfir/Mirage data per Flight data switch,
+   player flight choice by formation id, stores look detached, shadows / flame shadow.
+2. Other jets flyable: Phantom 2000, F-4E, F-15 first (~30 missions with the combat core).
+3. Bombs + CCIP polish, armed vehicles / boats, radar missiles (AIM-7 / AMRAAM), TV / IR-guided, anti-radiation,
+   rockets, night.
+4. Small items: player autopilot (reuses the AI control loops; Landing 312 approach), cockpit camera = original
+   projection, pilot records (JSON), Jump In.
+5. Joystick / throttle / pedals.
 
-Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user decisions.
-
-## After AI combat
-- Short demo video (menus → briefing / Arming → take-off → AI combat → debrief); H.264 MP4, sent with the report.
+**PARKED (docs/roadmap.md):** modern imagery outside Israel + georeference, 1:1 world scale, better AI, cheats,
+sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, modern aircraft / weapons, Pi 5 profile.
 
 ## Small bugs (fix between jobs)
 - **Decide: model scale.** The original draws every mission model at its bdb Present scale (0x65e: ×2 for aircraft,
