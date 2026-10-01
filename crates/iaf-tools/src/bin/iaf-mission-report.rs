@@ -83,9 +83,9 @@ const W_LGB: &str = "weapon: laser-guided bombs";
 const W_TV: &str = "weapon: TV / IR guided (AGM-65, AGM-62, GBU-15, Popeye)";
 const W_ARM: &str = "weapon: anti-radiation (AGM-88, Shrike)";
 
-/// Features built today (docs/status.md): the player flight choice, the damage model, the gun and the IR
-/// missiles (docs/weapons.md).
-const SUPPORTED_FEATURES: &[&str] = &[F_PLAYER_FLIGHT, F_DAMAGE, W_GUN, W_IR, F_AI_FLIGHT];
+/// Features built today (docs/status.md): the player flight choice, the damage model, the gun, the IR
+/// missiles, the bombs (incl. cluster) and the rockets (docs/weapons.md).
+const SUPPORTED_FEATURES: &[&str] = &[F_PLAYER_FLIGHT, F_DAMAGE, W_GUN, W_IR, F_AI_FLIGHT, W_BOMB, W_ROCKET];
 
 /// Rough implementation size (S ≈ days, M ≈ a week, L ≈ weeks) — an estimate for planning only.
 fn size(f: &str) -> &'static str {

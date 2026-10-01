@@ -67,6 +67,12 @@ var _round_nodes: Array = []
 var _round_scale := 1.0
 var _flash: Node3D
 var _store_nodes := {}  # station -> [Node3D per slot]
+var _pod_nodes: Array = []  # rocket boxes
+## The rocket box model and its scale ([Weapons] RocketBoxScale, default 4.0).
+const ROCKET_BOX := "weapons/lau61/lau61_m.gltf"
+const ROCKET_BOX_SCALE := 4.0
+## The Present scale of the store models (bdb weapons: 2.0), the scale the stores on the jet get.
+const STORE_PRESENT_SCALE := 2.0
 var _models := {}  # model path -> util/gltf.gd open() result or null
 ## The AA gun LCOS pipper (FUN_0045f410) state.
 var lcos := {"x": 0.0, "y": 0.0, "w28": 0.0, "w2c": 0.0, "prev0": 0.0, "prev2": 0.0, "next": 0.0}
@@ -1307,6 +1313,18 @@ func _build_visuals() -> void:
 			n.position = s
 			nodes.append(n)
 		_store_nodes[i] = nodes
+	# Rockets (560): one "Rocket box" per pylon (FUN_0053c1f0: object 0x753d, weapons\\Lau61\\Lau61_m,
+	# [Weapons] RocketBoxScale 4.0 instead of the stores' Present scale 2) at the attach point; it stays
+	# when empty (UNCERTAIN).
+	for i in stores.stations:
+		var st: Dictionary = stores.stations[i]
+		if i < 9 and stores.type_of(i) == 560 and host.aircraft != null:
+			var n := _instance(ROCKET_BOX)
+			if n != null:
+				host.aircraft.add_child(n)
+				n.position = st.attach
+				n.scale = Vector3.ONE * ROCKET_BOX_SCALE / STORE_PRESENT_SCALE  # the stores ride on the jet's scale
+				_pod_nodes.append(n)
 	_update_store_nodes()
 
 
@@ -1319,6 +1337,8 @@ func _update_store_nodes() -> void:
 		var n := int(stores.station(i).get("count", 0))
 		for k in _store_nodes[i].size():
 			_store_nodes[i][k].visible = Settings.external_stores and near and k < n
+	for b in _pod_nodes:
+		b.visible = Settings.external_stores and near
 
 
 ## FUN_00411d90: two crossed quads along the gun line, gunFire.tga, 0.85–1.15 long × 0.6 wide
