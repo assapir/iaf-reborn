@@ -52,7 +52,7 @@ const TABLES := [
 	[[4, 25], [0, 0], [2, 10], [2, 10], [4, 40], [4, 25]],
 ]
 ## bdb type code → cockpit index (FUN_00447e70).
-const COCKPIT := {110: 0, 100: 1, 200: 2, 140: 3, 130: 4, 120: 5, 190: 6, 180: 7, 160: 8}
+const COCKPIT := preload("res://aircraft/player_aircraft.gd").COCKPIT
 
 ## Mode objects: mode → {max (range index), nm, idx (current range index 1..max)}.
 var modes := {}

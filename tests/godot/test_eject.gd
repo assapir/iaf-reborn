@@ -42,7 +42,8 @@ func run() -> void:
 		await process_frame
 	check(tv.aircraft.canopy_offset.y > 60.0 or tv.aircraft.canopy_gone, "canopy thrown up (%.0f m)" % tv.aircraft.canopy_offset.y)
 	check(tv.aircraft.canopy_gone == (tv.aircraft.canopy_offset.y > 100.0), "canopy gone once past 100 m")
-	check(tv._seat != null or tv._chute != null, "seat leaves after 2 s")
+	# One seat per crew part of the model (FUN_0053ee90): the F-16 model has pilot and pilotB, so two.
+	check(tv._seats.size() + tv._parachuters.size() == 2, "the seats leave after 2 s (%d: pilot + pilotB)" % (tv._seats.size() + tv._parachuters.size()))
 
 	# Mission 311 on the ground: short ejection, the mission is lost.
 	Settings().debrief = {}

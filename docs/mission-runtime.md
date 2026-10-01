@@ -482,7 +482,7 @@ Nothing is displayed or played on any press. In a network game each press is als
 |---|---|
 | 3rd press (each < 1.0 s after the previous one) | t0. The pilot part vanishes from the jet, and the seat model (ejectA) takes its place. Canopy flies straight up (v1.1; v1.0 also aft). Fly-by camera on the jet (full ejection). Jet: engine off, stick (−0.2, +0.1), no pilot input |
 | t0 + 2.0 | seat (ejectA) starts rising 60 m/s relative to the jet (v1.1: straight up; v1.0 also drifted 30 m/s aft) |
-| ≈ t0 + 3.65 | seat passes 100 m → becomes the parachuter entity (ejectB), v0 (25, 30, −5), gravity 3 m/s² |
+| ≈ t0 + 3.65 | seat passes 100 m → becomes the parachuter entity (ejectB), v0 (25, 30, −5), gravity 3 m/s². Two-seat models (a `pilotB` part: F-16D, F-4, Lavi) throw two seats and get two parachuters; the fly-by follows the first |
 | t0 + 4.5 | radio "<callsign> ejected" (friendly side only) |
 | t0 + 5.0 | game event 0x82: the flight ends and the **debrief** opens (`FUN_004e3230`, flight window +0x150 = 3). The camera event at t0 + 5 also fires (order UNCERTAIN) |
 | t0 + 10 | 0x81 ("Mission failed." box) — normally never seen, because the flight has ended (§5.2) |

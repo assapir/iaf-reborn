@@ -104,8 +104,8 @@ var key_bindings := {}
 ## Mission picked in the front end (briefing id, e.g. 311), -1 = free flight.
 var mission_id := -1
 ## Aircraft picked on the Jet list (original ids, FUN_00509d60): 0 F-15, 1 F-16, 2 F-4E,
-## 3 F-4 2000, 4 Lavi, 5 Kfir, 6 Mirage.
-var jet_id := 1
+## 3 F-4 2000, 4 Lavi, 5 Kfir, 6 Mirage; -1 = the mission's own jet (missions not started from the Jet list).
+var jet_id := -1
 ## The player's route as set on the TSD ([Vector2 world]); empty = the mission's own.
 var route_override: Array = []
 ## Flight picked on the TSD (1..4 = Alpha..Delta; Fly / double-click makes its leader the player);

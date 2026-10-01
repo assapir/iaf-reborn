@@ -168,3 +168,19 @@ The controllable jets are the eight in `controllableplanes`; `bd.ibx` also has `
    real-world set is one more row in `crates/iaf-flight/src/data_set.rs` (docs/real-aircraft.md) plus a reference
    row in `crates/iaf-flight/tests/validation.rs`.
 6. **Cockpit** (flyable jets): a `resource/cockpits/<c>` folder converted with `iaf-convert cockpit` (docs/cockpit.md).
+
+## 5. Making a type flyable
+
+The flight scene flies any type through `game/aircraft/player_aircraft.gd`: `profile(type)` gives the plane folder
+(the descriptor whose `types` list holds the type: `f42000` serves F-4E 120 and F-4 2000 200), the flight-model
+section (descriptor `fm_section`), the cockpit (`COCKPIT`, the exe's type → `cockpits.ibx` index table
+`FUN_00447e70`, then `Cockpit00k = <dir>`) and the twin-engine flag (`TWIN`, logic+0x24). The Jet list's aircraft id
+picks the type (`JET_TYPES`); otherwise the mission's jet flies. A type not in `FLYABLE` flies as the F-16.
+
+To add one: put its type in `FLYABLE`, check that its cockpit draws (each cockpit uses its own gauge sections:
+`cockpit.gd` draws SPEED / ALTITUDE / RPM / THROTTLE / TEMP clocks and their SECONDARY twins, FUELDIGITAL or
+FUELCLOCK, PANELVARIO or VARIOCLOCK, PANELAOA), and extend `tests/godot/test_player_aircraft.gd` (profile, cockpit,
+model, weapons, Real data, gear / flaps / speed brake / afterburner / chute / ejection). Its Real rows are per type
+too: `crates/iaf-flight/src/data_set.rs` (flight data, incl. `ceiling_ft` and `chute`) and
+`game/weapons/real_weapons.gd` (`RADAR_KM`, `GUN_ROUNDS`). Ejection throws one seat per crew part of the model
+(`pilot`, `pilotB`). Flyable: F-16 (100), F-4 2000 (200).

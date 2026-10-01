@@ -28,9 +28,14 @@ const MISSILES := {
 	"PYTH-4": {"kg": 120.0, "mach": 3.5, "range_km": 15.0, "cone_deg": 60.0},
 	"SHFR 2": {"kg": 93.0, "mach": 2.1, "range_km": 5.0, "rear": true},
 }
-## Radar detection range (LRS / STT) in km by bdb object type code; jets not listed keep the
-## original table (docs/radar.md). F-16C (Barak): AN/APG-68, 80 km.
-const RADAR_KM := {100: 80.0}
+## Radar detection range (LRS / STT) of a fighter-size target in km by bdb object type code; jets not listed keep
+## the original table (docs/radar.md). Sources and confidence in docs/real-weapons.md §1.3.
+const RADAR_KM := {
+	100: 80.0,  # F-16C (Barak): AN/APG-68
+	110: 135.0,  # F-15: AN/APG-63, 110-160 km tracking a small fighter (U)
+	120: 61.0,  # F-4E: AN/APQ-120, 30-35 NM average, 40 NM max
+	200: 44.0,  # Kurnass 2000: AN/APG-76, 22-25 NM frontal (U, one forum source)
+}
 ## The radar's NM (0x603390).
 const RADAR_NM_M := 1854.0
 ## bdb gun name -> {rpm (all barrels / guns of one jet), muzzle m/s}.

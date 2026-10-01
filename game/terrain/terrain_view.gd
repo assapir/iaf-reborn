@@ -125,11 +125,13 @@ var eject_short := false
 var _eject_t0 := 0.0
 var _eject_ticks := 0.0
 var _eject_radio_done := false
-var _seat: Node3D
-var _seat_offset := Vector3.ZERO
+## The thrown seats, one per crew part of the model (pilot, and pilotB on two-seaters: FUN_0053ee90 adds the
+## second record only when the model has a pilotB): {node, part, offset}; and the parachuters they become:
+## {node, p0, t0}. _chute is the first parachuter (the fly-by view follows it).
+var _seats: Array = []
+var _seats_thrown := false
+var _parachuters: Array = []
 var _chute: Node3D
-var _chute_p0 := Vector3.ZERO
-var _chute_t0 := 0.0
 ## Landings the flight model has reported (its `landings` counter; the landed handler runs on each new one).
 var _landings := 0
 ## The crash was handled (flight ends like the original's player death).
@@ -139,8 +141,11 @@ const Gltf := preload("res://util/gltf.gd")
 ## Models flatter than this (m) are ground underlays (not drawn, _spawn_mission_objects).
 const UNDERLAY_MAX_HEIGHT := 0.05
 const DamageModel := preload("res://mission/damage_model.gd")
-## The only flyable jet today (bdb type code 100).
-const F16_TYPE := 100
+const PlayerAircraft := preload("res://aircraft/player_aircraft.gd")
+## The player's aircraft (player_aircraft.gd): type, plane folder, flight-model section, cockpit, twin engines.
+## Chosen after the start (_choose_start): the Jet list's pick, else the mission's jet; an unflyable type flies
+## as the F-16.
+var player := {}
 ## The mission entity the player flies (0x1e of the main file) and its flight (1..4); -1 / 0 = none.
 var player_entity_id := -1
 ## The player's mission entity and its bdb object / database (the loadout, docs/weapons.md §2).
@@ -197,6 +202,7 @@ func _ready() -> void:
 	chase.fov = 60.0
 	var args := OS.get_cmdline_user_args()
 	_choose_start(args)
+	_choose_player()
 	# The ground the front end preloaded around the start (briefing / TSD time).
 	preload("res://terrain/terrain_preload.gd").hand_over(terrain)
 	if args.has("--external"):
@@ -227,7 +233,7 @@ func _ready() -> void:
 	g_effects.disabled = Settings.no_blackouts
 	$CockpitLayer.add_child(g_effects)
 	# In-flight sounds of your jet (game/audio/flight_sounds.gd, docs/sound.md); polls this node.
-	sounds = preload("res://audio/flight_sounds.gd").create(self, F16_TYPE)
+	sounds = preload("res://audio/flight_sounds.gd").create(self, player.type)
 	add_child(sounds)
 	# Explosions, debris and smoke (docs/damage.md §6) and the player's systems damage (§5).
 	effects = preload("res://mission/damage_effects.gd").new()
@@ -235,7 +241,8 @@ func _ready() -> void:
 	add_child(effects)
 	player_damage = preload("res://mission/player_damage.gd").new()
 	player_damage.host = self
-	player_damage.betty = F16_TYPE in sounds.BETTY_TYPES
+	player_damage.betty = player.type in sounds.BETTY_TYPES
+	player_damage.twin = player.twin
 	cockpit.damage_flags = player_damage.flags
 	cockpit.waypoints = route
 	var ol := CanvasLayer.new()
@@ -247,7 +254,7 @@ func _ready() -> void:
 	ol.add_child(overlay)
 	_start_flight()
 	_apply_view()
-	_spawn_f16()
+	_spawn_player()
 	_setup_views(args)
 	_setup_weapons()
 	if flight != null and aircraft != null:
@@ -286,24 +293,21 @@ func _setup_views(args: PackedStringArray) -> void:
 		views.dmin = minf(views.dmin, views.dist)
 
 
-## The player's stores and weapons: the mission entity's loadout, else (free flight) the F-16's
-## default load from the default object database.
+## The player's stores and weapons: the mission entity's loadout when it is the player's type, else the type's
+## default load (its object in the mission's, or the default, object database).
 func _setup_weapons() -> void:
 	var bdb := mission_bdb
 	if bdb.is_empty():
 		bdb = Settings.load_json(Settings.assets_dir().path_join("converted/missions/default6_1.bdb.json"))
 	var obj := mission_object
-	if obj.is_empty() or int(obj.get("0x5b4", -1)) != F16_TYPE:
-		# Only the F-16 flies today: another mission jet flies as the F-16 with the F-16's type load.
-		for o in bdb.get("objects", {}).get("items", []):
-			if int(o.get("0x5b4", -1)) == F16_TYPE and int(o.get("0x5aa", -1)) == 0x1c:
-				obj = o
-				break
-	var ent := mission_entity if int(mission_object.get("0x5b4", -1)) == F16_TYPE else {}
+	if obj.is_empty() or int(obj.get("0x5b4", -1)) != player.type:
+		# Another jet picked on the Jet list (or an unflyable mission jet): the player's type and its load.
+		obj = _player_object(bdb)
+	var ent := mission_entity if int(mission_object.get("0x5b4", -1)) == player.type else {}
 	weapons = preload("res://weapons/player_weapons.gd").new()
 	weapons.lock_threat_fix = OS.get_cmdline_user_args().has("--better") or Settings.better.get("fix_lock_threat", false)
 	add_child(weapons)
-	weapons.setup(self, ent, obj, bdb, preload("res://aircraft/aircraft_model.gd").load_descriptor("f16"))
+	weapons.setup(self, ent, obj, bdb, preload("res://aircraft/aircraft_model.gd").load_descriptor(player.plane))
 	cockpit.hud.host_world_to_scene = weapons.to_scene
 	cockpit.on_station_select = weapons.select_station
 	cockpit.on_radar_event = weapons.radar_event
@@ -403,12 +407,40 @@ func _mission_player() -> Dictionary:
 	var obj: Dictionary = MissionRuntime.bdb_objects(mission_bdb).get(int(e.get("0x2c6", -1)), {})
 	mission_entity = e
 	mission_object = obj
-	var jet := int(obj.get("0x5b4", -1))
-	print("player: %s (flight %d, type %d)" % [e.get("0x2bc", ""), player_flight_number, jet])
-	if jet != F16_TYPE:
-		print("mission jet type %d is not flyable yet: flying the F-16" % jet)
+	print("player: %s (flight %d, type %d)" % [e.get("0x2bc", ""), player_flight_number, int(obj.get("0x5b4", -1))])
 	_load_route(mission, player_entity_id)
 	return e
+
+
+## Drag chute (Shift+B, event 0x17 FUN_005a2500, docs/part-animation.md): 0 → 1 (armed) in the air, 0 → 2
+## (deployed) on the ground, 2 → 3 (jettisoned); armed deploys at touchdown. Only the jets with a chute
+## (the model's Parach part). The original's is visual only (no drag reads it, docs/flight-model.md); the Real
+## flight data set gives it its drag (Params::chute_cd, docs/real-aircraft.md §2.2).
+var drag_chute := 0
+
+
+func _chute_key() -> void:
+	if aircraft == null or aircraft.part_node("Parach") == null:
+		return
+	var ground: bool = flight != null and flight.state().on_ground
+	if drag_chute == 0:
+		drag_chute = 2 if ground else 1
+	elif drag_chute == 2:
+		drag_chute = 3
+
+
+## The player's aircraft: the Jet list's pick (training missions, Settings.jet_id ≥ 0), else the mission's jet
+## (free flight: the F-16). Its cockpit replaces the scene's default one before anything reads it.
+func _choose_player() -> void:
+	var jet := int(mission_object.get("0x5b4", PlayerAircraft.FALLBACK))
+	if Settings.jet_id >= 0:
+		jet = PlayerAircraft.JET_TYPES.get(Settings.jet_id, jet)
+	player = PlayerAircraft.profile(jet)
+	if player.type != jet:
+		print("jet type %d is not flyable yet: flying the %s" % [jet, player.fm_section])
+	if cockpit.cockpit_dir != player.cockpit_dir:
+		cockpit.load_cockpit(player.cockpit_dir)
+	cockpit.twin_engines = player.twin
 
 
 ## The mission and its base missions (missionlist) run by the mission runtime
@@ -926,7 +958,7 @@ func _start_flight() -> void:
 	# In the air the flight model takes the pitch from the velocity (0 for mission starts; `--at` pitch).
 	var p := deg_to_rad(start_pitch)
 	var velocity := Vector3(sin(h) * cos(p), sin(p), -cos(h) * cos(p)) * (AIR_START_SPEED if start_airborne else 0.0)
-	var err: String = flight.start(install, "F-16", rig.position, heading, start_pitch, start_roll, velocity,
+	var err: String = flight.start(install, player.fm_section, rig.position, heading, start_pitch, start_roll, velocity,
 			start_airborne, start_engine_on, real_data)
 	if err != "":
 		push_error("flight model: " + err)
@@ -978,7 +1010,7 @@ func _on_crashed(reason: String) -> void:
 	if runtime != null and not runtime.player_entity().is_empty():
 		runtime.player_destroyed()
 		return
-	_entity_final({"player": true, "klass": 0x1c, "type_code": F16_TYPE, "size": 2.5, "node": null})
+	_entity_final({"player": true, "klass": 0x1c, "type_code": player.type, "size": 2.5, "node": null})
 	if not ejected:
 		get_tree().create_timer(5.0, false).timeout.connect(func(): _end_flight(false))
 
@@ -996,9 +1028,9 @@ func _ground_normal_z(p: Vector3) -> float:
 	return Vector3(-(hx1 - hx0) / (2.0 * D), 1.0, -(hz1 - hz0) / (2.0 * D)).normalized().y
 
 
-func _spawn_f16() -> void:
-	# Generic aircraft model (docs/aircraft.md): the F-16, type 100; ground-start ramps on the ground.
-	aircraft = preload("res://aircraft/aircraft_model.gd").create("f16", 100, not start_airborne)
+func _spawn_player() -> void:
+	# Generic aircraft model (docs/aircraft.md): the player's plane and type; ground-start ramps on the ground.
+	aircraft = preload("res://aircraft/aircraft_model.gd").create(player.plane, player.type, not start_airborne)
 	if aircraft == null:
 		return
 	# The original draws every model at its Present-record scale (0x65e, ×2 for the F-16), the player's jet
@@ -1008,18 +1040,32 @@ func _spawn_f16() -> void:
 	rig.add_child(aircraft)
 
 
-## Present scale (0x65e) of the F-16's bdb object (type 100) in the mission's database (default6_1 otherwise).
+## Present scale (0x65e) of the player's type's bdb object in the mission's database (default6_1 otherwise).
 func _player_model_scale() -> float:
 	var files: Array = MissionRuntime.mission_files(mission_id).map(func(f): return f.data).filter(func(m): return not m.is_empty())
 	var bdb: Dictionary = MissionRuntime.load_bdb(files[0]) if not files.is_empty() else \
 			Settings.load_json(Settings.assets_dir().path_join("converted/missions/default6_1.bdb.json"))
-	var present := {}
-	for pr in bdb.get("present", {}).get("items", []):
-		present[int(pr.get("0x1e", -1))] = pr
-	for o in bdb.get("objects", {}).get("items", []):
-		if int(o.get("0x5b4", -1)) == F16_TYPE:
-			return float(present.get(int(o.get("0x53c", -1)), {}).get("0x65e", 1.0))
+	for db in [bdb, Settings.load_json(Settings.assets_dir().path_join("converted/missions/default6_1.bdb.json"))]:
+		var o := _player_object(db, false)
+		if o.is_empty():
+			continue
+		for pr in db.get("present", {}).get("items", []):
+			if int(pr.get("0x1e", -1)) == int(o.get("0x53c", -1)):
+				return float(pr.get("0x65e", 1.0))
 	return 1.0
+
+
+## The player's type's jet object (class 0x1c) in `bdb`, else (`fallback`) in the default object database
+## ({} if neither).
+func _player_object(bdb: Dictionary, fallback := true) -> Dictionary:
+	var dbs := [bdb]
+	if fallback:
+		dbs.append(Settings.load_json(Settings.assets_dir().path_join("converted/missions/default6_1.bdb.json")))
+	for db in dbs:
+		for o in db.get("objects", {}).get("items", []):
+			if int(o.get("0x5b4", -1)) == player.type and int(o.get("0x5aa", -1)) == 0x1c:
+				return o
+	return {}
 
 
 ## Lift the rig (and the parked F-16) if the terrain under it is too close.
@@ -1278,6 +1324,8 @@ func _command(cmd: Array) -> bool:
 			brakes = not brakes
 		18:
 			_eject_key()
+		19:
+			_chute_key()
 		20, 21:
 			# Zoom (events 0x14 / 0x15, held): the orbit distance ±60 m/s in the external orbit views; in the
 			# cockpit our art zoom, one step per press (the original's z only sets the culling angle).
@@ -1787,7 +1835,7 @@ func _process(delta: float) -> void:
 			rig.basis = Basis(st.right, st.up, -st.forward)
 		if not waiting_for_ground:
 			_check_collisions()
-		for k in ["speed_kt", "mach", "alt_ft", "vs_fpm", "pitch", "roll", "heading", "aoa", "g", "rpm", "throttle", "fuel_lbs"]:
+		for k in ["speed_kt", "mach", "alt_ft", "vs_fpm", "pitch", "roll", "heading", "aoa", "g", "rpm", "throttle", "fuel_lbs", "internal_fuel_kg"]:
 			cockpit.state[k] = st[k]
 		_record(st, delta)
 		if not frozen and not waiting_for_ground:
@@ -1802,9 +1850,12 @@ func _process(delta: float) -> void:
 		cockpit.hud.velocity_dir = st.velocity.normalized() if st.velocity.length() > 1.0 else null
 	if aircraft != null:
 		var parts_in := {"stick_x": stick.x, "stick_y": stick.y, "rudder": rudder, "flaps": flaps,
-			"gear_down": gear_down, "brakes": brakes}
+			"gear_down": gear_down, "brakes": brakes, "chute": drag_chute}
 		if flight != null:
 			var fs: Dictionary = flight.state()
+			if drag_chute == 1 and fs.on_ground:
+				drag_chute = 2
+			flight.set_drag_chute(drag_chute == 2)
 			for k in ["gear", "on_ground", "afterburner", "rpm"]:
 				parts_in[k] = fs[k]
 		aircraft.update(parts_in, delta)
@@ -1970,25 +2021,31 @@ func _eject_update(delta: float) -> void:
 			aircraft.canopy_offset += EJECT_STEP
 			if aircraft.canopy_offset.y > EJECT_TOP:
 				aircraft.canopy_gone = true
-		if _seat != null:
-			_seat_offset += EJECT_STEP
-			if _seat_offset.y > EJECT_TOP:
-				_spawn_parachuter(_seat.global_position)
-				_seat.queue_free()
-				_seat = null
-	if t >= EJECT_SEAT_DELAY and _seat == null and _chute == null:
-		_seat = _load_eject_model("ejecta")
-	if _seat != null:
-		var pilot: Node3D = aircraft.part_node("pilot") if aircraft != null else null
+		for seat in _seats.duplicate():
+			seat.offset += EJECT_STEP
+			if seat.offset.y > EJECT_TOP:
+				_spawn_parachuter(seat.node.global_position)
+				seat.node.queue_free()
+				_seats.erase(seat)
+	if t >= EJECT_SEAT_DELAY and not _seats_thrown:
+		_seats_thrown = true
+		for part in ["pilot", "pilotB"]:
+			if aircraft != null and aircraft.part_node(part) == null and part == "pilotB":
+				continue
+			var node := _load_eject_model("ejecta")
+			if node != null:
+				_seats.append({"node": node, "part": part, "offset": Vector3.ZERO})
+	for seat in _seats:
+		var pilot: Node3D = aircraft.part_node(seat.part) if aircraft != null else null
 		var base: Vector3 = pilot.global_position if pilot != null else rig.global_position
-		_seat.global_transform = Transform3D(rig.global_basis.orthonormalized(), base + rig.global_basis.orthonormalized() * _seat_offset)
-	if _chute != null:
-		var ct := _sim_time - _chute_t0
-		var w := _chute_p0 + CHUTE_V0 * ct + 0.5 * CHUTE_ACCEL * ct * ct
+		seat.node.global_transform = Transform3D(rig.global_basis.orthonormalized(), base + rig.global_basis.orthonormalized() * seat.offset)
+	for pc in _parachuters:
+		var ct: float = _sim_time - pc.t0
+		var w: Vector3 = pc.p0 + CHUTE_V0 * ct + 0.5 * CHUTE_ACCEL * ct * ct
 		var pos := Vector3(w.x - terrain.world_origin.x, w.z, -(w.y - terrain.world_origin.y))
 		var g = terrain.height_at(pos)
 		if g == null or pos.y - g > CHUTE_STOP_AGL:
-			_chute.position = pos
+			pc.node.position = pos
 	if t >= EJECT_CHUTE_VIEW and not _chute_view_done and _chute != null:
 		_chute_view_done = true
 		views.set_orbit(_chute, [1000.0, 600.0, 200.0, 4.014257, 0.0, 2.792527], 2.0, Views.FLYBY, true)
@@ -1999,12 +2056,13 @@ func _eject_update(delta: float) -> void:
 
 
 func _spawn_parachuter(at: Vector3) -> void:
-	_chute = _load_eject_model("ejectb")
-	if _chute == null:
+	var node := _load_eject_model("ejectb")
+	if node == null:
 		return
-	_chute_t0 = _sim_time
-	_chute_p0 = Vector3(terrain.world_origin.x + at.x, terrain.world_origin.y - at.z, at.y)
-	_chute.position = at
+	node.position = at
+	_parachuters.append({"node": node, "t0": _sim_time, "p0": Vector3(terrain.world_origin.x + at.x, terrain.world_origin.y - at.z, at.y)})
+	if _chute == null:
+		_chute = node
 
 
 ## The seat (pilot on chair) and the parachuter models from the converted objects (Pilot\ejectA, ejectB).

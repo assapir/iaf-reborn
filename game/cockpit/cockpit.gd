@@ -33,7 +33,7 @@ static func hud_colour() -> Color:
 var state := {
 	"speed_kt": 0.0, "mach": 0.0, "alt_ft": 0.0, "vs_fpm": 0.0,
 	"pitch": 0.0, "roll": 0.0, "heading": 0.0, "aoa": 0.0, "g": 1.0,
-	"rpm": 0.0, "throttle": 0.0, "fuel_lbs": 0.0,
+	"rpm": 0.0, "throttle": 0.0, "fuel_lbs": 0.0, "internal_fuel_kg": 0.0,
 	"world": Vector2.ZERO,  # ownship in mission world coordinates (X east, Y north, metres)
 }
 ## The weapons snapshot for the HUD and the stores page (player_weapons.gd _publish; {} = none).
@@ -99,6 +99,18 @@ var dir := ""
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	load_cockpit(cockpit_dir)
+
+
+## Loads the cockpit `rel` (e.g. "converted/cockpits/f4-2000"): layout, art, TSD map and MFDs. A second call
+## replaces the first (the flight scene loads the player's jet's cockpit once it knows the type).
+func load_cockpit(rel: String) -> void:
+	cockpit_dir = rel
+	for m in mfds:
+		m.free()
+	mfds.clear()
+	tex.clear()
+	tsd_map.clear()
 	dir = Settings.assets_dir().path_join(cockpit_dir)
 	layout = Settings.load_json(dir.path_join("cockpit.json"))
 	if layout.is_empty():
@@ -338,6 +350,18 @@ func _draw() -> void:
 	_draw_needle("RPMCLOCK", state.rpm, s)
 	_draw_needle("THROTTLECLOCK", state.throttle, s)
 	_draw_needle("TEMPCLOCK", lerp(0.25, 0.7, state.rpm), s)
+	# Twin-engine cockpits (F-4 2000, F-4E, F-15, MiG-29): the second engine's RPM and TEMP needles (the panel draw
+	# FUN_00527a40 has its own values for them; the flight model has one engine state, so both read the same). It
+	# never draws THROTTLECLOCKSECONDARY.
+	_draw_needle("RPMCLOCKSECONDARY", state.rpm, s)
+	_draw_needle("TEMPCLOCKSECONDARY", lerp(0.25, 0.7, state.rpm), s)
+	# Round gauges of the cockpits without the F-16's digits / tape. UNCERTAIN inputs (the panel draw reads cockpit
+	# data +0x54 for FUELCLOCK and +0x1044 for VARIOCLOCK; their writers are not traced, docs/cockpit.md):
+	# FUELCLOCK "LBS x1000 TOTAL INTERNAL", 0..10 over half a turn (FullClock 1.9): the internal fill fraction.
+	# VARIOCLOCK "CLIMB 1000 FT/MIN": ft/min against its FullClock (30000).
+	var cap: float = state.get("internal_fuel_kg", 0.0)
+	_draw_needle("FUELCLOCK", clampf(state.fuel_lbs * 0.45359 / cap, 0.0, 1.0) if cap > 0.0 else 0.0, s)
+	_draw_needle("VARIOCLOCK", state.vs_fpm, s)
 	var fuel: Dictionary = layout.get("FUELDIGITAL", {})
 	if fuel.get("Active", 0) == 1:
 		var col := Color8(int(fuel.ColorR), int(fuel.ColorG), int(fuel.ColorB))
@@ -593,7 +617,9 @@ func _draw_needle(key: String, value: float, s: float) -> void:
 	if g.get("Active", 0) != 1:
 		return
 	var c := panel_to_screen(g.OffsetX, g.OffsetY)
-	var angle: float = g.AngleOffset + value / g.FullClock * TAU
+	# FUN_00527e50: angle = max(value · 2π / FullClock, 0) + AngleOffset — no needle turns below its zero (the vario
+	# rests at 0 in a descent).
+	var angle: float = g.AngleOffset + maxf(value / g.FullClock * TAU, 0.0)
 	var tip: Vector2 = c + Vector2(cos(angle), sin(angle)) * float(g.Radius) * s * 0.9
 	var col := _colorref(int(g.NeedleColor))
 	draw_line(c, tip, col, max(1.0, g.NeedleWidth * s * 0.6), true)

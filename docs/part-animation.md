@@ -175,7 +175,7 @@ view. The old "hidden on the flying aircraft" note was wrong: it described only 
    They are scheduled at **t0, period 0.05 s** (`0x3fa99999a0000000`).
 2. `FUN_0053ee90(t0 + Interval)`: `+0xc = 0`, so the pilot parts vanish from the jet **at once**. It pushes a seat record
    (0x20 bytes: `{model = res 0x755b "Pilot on chair" = Pilot\ejectA\ejectA.x, pos = pilot part pos (E frame),
-   rot = (0,0,0), visible = 1}`) into `+0x30`. UNCERTAIN: the drawer of the `+0x30` records was not traced. They are probably drawn in the body frame like stores, so from t0 the seat model sits where the pilot was. A second record at the pilotB position is added only if the model has a `pilotB` (0x15) part.
+   rot = (0,0,0), visible = 1}`) into `+0x30`. UNCERTAIN: the drawer of the `+0x30` records was not traced. They are probably drawn in the body frame like stores, so from t0 the seat model sits where the pilot was. A second record at the pilotB position is added only if the model has a `pilotB` (0x15) part. Port: one seat per crew part, each its own parachuter (`terrain_view.gd` `_seats` / `_parachuters`); the models with `pilotB` are the F-16 (an F-16D, two-seat), the F-4 2000 / F-4E and the Lavi.
    Each seat gets a throwing object (`FUN_0053f230`: isSeat = 1, flag = `&record.visible`), scheduled at
    **t0 + Interval** (`Eject/Interval`, default **2.0 s**, `DAT_00661350`), period 0.05 s.
    The model's scale is `Cull/PilotOnChairSize`, default 2.0 (`FUN_00588ea0` @255633).

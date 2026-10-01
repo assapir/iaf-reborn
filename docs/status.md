@@ -2,7 +2,7 @@
 
 ## Where we are
 - **Playable missions: 2 of 68** — Training "Engines ON" (311) and "Landing" (312), start to debrief.
-- **Flyable jet: F-16 only.** Other jets have models and cockpits, but no flight data set yet.
+- **Flyable jets: F-16 and F-4 Kurnass 2000** (Jet list or a mission's jet; docs/aircraft.md §5). The others fly as the F-16.
 - **Game version: v1.1 logic**, v1.1 data when setup is given the patch (`--patch`); v1.0 data still plays. Doc
   addresses are v1.1 (docs/v1.1.md maps them to v1.0). Flight model v1.1 port in progress.
 - Everything comes from the player's own ISO; the repo (github.com/assapir/iaf-reborn, GPL-3.0) holds no game data.
@@ -34,6 +34,11 @@ anti-radiation, rockets), night.
 sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, modern aircraft / weapons, Pi 5 profile.
 
 ## Small bugs (fix between jobs)
+- Twin-engine jets (F-15, F-4E, F-4 2000, MiG-29): the flight model has one engine state, so both engines' RPM / TEMP
+  needles and the damage page's engine rows read the same; the original keeps separate second-engine values for the
+  gauges (docs/cockpit.md "Round gauges"). Check whether its flight model has two engine states.
+- Round gauge inputs: FUELCLOCK / VARIOCLOCK (and the secondary RPM / TEMP) values are not traced past the setter
+  `FUN_00446490` (docs/cockpit.md "Round gauges"): needs the Ghidra decompile.
 - Stores look detached: no pylon models drawn (stores float under the wing), triple-rack side bombs touch the wing
   (original formula). (The flat white fins seen from behind are gone since the Present scale / smoothing work.)
 - Kfir / Mirage data: the original loads one shared block (the second type flies on the first's data) — do that

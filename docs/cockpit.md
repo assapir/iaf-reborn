@@ -125,6 +125,23 @@ The world is drawn by TgenAPI (`DAT_0069942c`, 16-bit renderer vtable `0x5fd900`
 | mig23 | 0, **0**, X empty, Y91, r17 | adi.bmp, 824,133, r32 | Active 0 |
 | mig29 | 0, **0**, X 0, Y91, r31 | adi.bmp, 1038,181, r32 | absent |
 
+## Round gauges (traced, v1.1)
+* **Records**: the reader stores each needle gauge as a 0x20-byte record in the cockpit data (`SPEEDCLOCK` +0x4ec,
+  `ALTITUDELOCK` +0x4cc, `FUELCLOCK` +0x50c, `VARIOCLOCK` +0x52c, `RPMCLOCK` +0x54c, `RPMCLOCKSECONDARY` +0x56c,
+  `TEMPCLOCK` +0x58c, `TEMPCLOCKSECONDARY` +0x5ac, `THROTTLECLOCK` +0x5cc, `THROTTLECLOCKSECONDARY` +0x5ec;
+  `FUELDIGITAL` +0x60c, reader calls @523608..523736). Setup `FUN_00523a40`: +0 Active, +4/+8 OffsetX/Y, +0xc Radius,
+  +0x10 OffsetX / 320 (panel slice), +0x14 AngleOffset, +0x18 2π / FullClock (`0x60c1f8` = 6.283185), +0x1c pen.
+* **Needle** `FUN_00527e50`: `angle = max(value · 2π / FullClock, 0) + AngleOffset` (the floor is `0x60c2b0` = 0.0), a
+  line of length Radius from the centre (MoveToEx / LineTo). Linear, and **no needle turns below its zero**: the
+  vario rests at 0 in a descent.
+* **Panel draw** `FUN_00527a40` (records copied at +0x20e8 into the window): ALTITUDE ← data+0x330, SPEED ← +0x1058,
+  FUEL ← +0x54, VARIO ← +0x1044, RPM ← +0x1064, RPM2 ← +0x1048, TEMP ← +0x1068, TEMP2 ← +0x1040, THROTTLE ← +0x1060.
+  **`THROTTLECLOCKSECONDARY` is never drawn.** The second engine has its own RPM / TEMP values.
+* The values come from the setter `FUN_00446490` (8 floats → +0x103c..+0x1058), called by the flight logic @45ad08
+  with helper results (`FUN_0045aa10`, `FUN_0045a9d0`) and damage-flag tests. UNCERTAIN: which flight quantity each
+  is (the hand trace stopped there; needs the Ghidra decompile, `tools/ghidra/DumpDecompiled.java`). Port: FUEL = the
+  internal fill fraction, VARIO = ft/min, RPM2 / TEMP2 = the one engine's (docs/status.md).
+
 ## What our tooling assumes F-16
 * `crates/iaf-tools/src/bin/iaf-convert.rs` `convert_cockpit` is generic (dir name argument; whole ini -> `cockpit.json`; every
   `*.bmp` in the dir + `mfds.bmp`, `rwrsymb.bmp`, `isr.bmp`). Gaps: it does not convert `fsmfd/fsmfd.bmp`, `fsmfd/data.ibx`,
@@ -134,9 +151,11 @@ The world is drawn by TgenAPI (`DAT_0069942c`, 16-bit renderer vtable `0x5fd900`
 * `game/cockpit/cockpit.gd`: `cockpit_dir` default `.../cockpits/f16`; `_draw_mfd_screens` paints a fixed 160x230 black box at offset -6 for each
   active MFD (real MFD is 132x132, at OffsetX/Y); `_draw_standby_horizon` ignores `[HORIZON] Active` (would draw a disc on
   phantom/mig23/mig29) and would fail on empty `ClockCenterX`; `OnMfd = 1` planes (F-15, F-4-2000, Lavi) show no ADI at all;
-  `_draw_tape` covers only `PANELVARIO`/`PANELAOA` (F-16 only) and `VARIOCLOCK` (F-4-2000, Lavi, MiG-23,
-  MiG-29) is not drawn; `FUELDIGITAL` (F-16) is drawn but `FUELCLOCK` (others) is not; lights (`LIGHTSON`) are not drawn (see "Panel lights" below).
-* `game/terrain/terrain_view.gd` uses the F-16 model/flight ("F-16", `f16_h.gltf`, `_spawn_f16`),
+  `_draw_tape` covers `PANELVARIO`/`PANELAOA` (F-16 only); `VARIOCLOCK` (ft/min against FullClock)
+  and `FUELCLOCK` (internal fill fraction) and the RPM / TEMP `*SECONDARY` needles are drawn, not
+  `THROTTLECLOCKSECONDARY` (the original never draws it; inputs UNCERTAIN, see "Round gauges"); lights (`LIGHTSON`) are not drawn (see "Panel lights" below).
+* `game/terrain/terrain_view.gd` flies the player's type (`aircraft/player_aircraft.gd`, docs/aircraft.md §5) and
+  loads its cockpit (`cockpit.load_cockpit`),
   and `game/aircraft/aircraft_model.gd` has F-16 flaperon/stabilator mixing constants (not cockpit, listed for completeness).
 
 ## Panel lights (`[LIGHTSON]`, `[LIGHT000..009]`, `[SLIGHT000..003]`, `[TEXTMESSAGE]`, `[CHAFF]`/`[FLARE]`, `[PANELST]`)

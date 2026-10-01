@@ -134,6 +134,14 @@ impl IafFlight {
         }
     }
 
+    /// Drag chute deployed (Shift+B on the ground): its drag under the Real data set (`Params::chute_cd`).
+    #[func]
+    fn set_drag_chute(&mut self, on: bool) {
+        if let Some(ac) = &mut self.aircraft {
+            ac.drag_chute = on;
+        }
+    }
+
     /// "Better physics" option: opt-in fixes of original quirks (docs/flight-model.md §10, §15.11).
     #[func]
     fn set_better_physics(&mut self, on: bool) {

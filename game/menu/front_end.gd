@@ -156,8 +156,8 @@ const QUIT_SCREENS := ["log", "main"]
 const JET_IDS := {"mirage": 6, "kfir": 5, "f4": 2, "f42000": 3, "f15": 0, "f16": 1, "lavi": 4}
 ## Jets the original disables per mission (FUN_00509b80), by aircraft id.
 const JETS_DISABLED := {314: [6, 5], 322: [6, 5, 0], 323: [6, 5, 2, 0], 325: [6, 5, 2, 1, 4]}
-## Aircraft this engine can fly so far (cockpit + flight model converted): F-16 only.
-const FLYABLE_JETS := [1]
+## Jet list ids -> flyable: aircraft/player_aircraft.gd (FLYABLE, JET_TYPES).
+const PlayerAircraft := preload("res://aircraft/player_aircraft.gd")
 
 var menus := {}
 var strings := {}
@@ -516,7 +516,7 @@ func _button_enabled(label: String) -> bool:
 		var id: int = JET_IDS.get(_norm(label), -1)
 		if id in JETS_DISABLED.get(Settings.mission_id, []):
 			return false
-		return id in FLYABLE_JETS
+		return PlayerAircraft.flyable(PlayerAircraft.JET_TYPES.get(id, -1))
 	if flight != null and _norm(label) == "gameplay":
 		return false  # the in-flight Preferences disable the Gameplay tab (§16.3)
 	if _is_tsd() and tsd != null:
@@ -1485,8 +1485,10 @@ func _on_button(key: String) -> void:
 	elif screen in LOADS_MISSION:
 		if screen == "jet":
 			Settings.jet_id = JET_IDS.get(_norm(label), 1)
-		elif not row.is_empty():
-			Settings.mission_id = int(row.id)
+		else:
+			Settings.jet_id = -1  # the mission's own jet
+			if not row.is_empty():
+				Settings.mission_id = int(row.id)
 		_load_mission()
 
 

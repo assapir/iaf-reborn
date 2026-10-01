@@ -140,6 +140,9 @@ struct Real {
     /// Service ceiling, ft: the envelope's altitudes are scaled so that its 1 g ceiling is this
     /// (`Envelope::with_ceiling`).
     ceiling_ft: Option<f32>,
+    /// Drag chute: canopy area m² and drag coefficient (`Params::chute_cd` = cd · area / wing area). The
+    /// original's chute is visual only.
+    chute: Option<(f32, f32)>,
     nose_wheel: Option<Nws>,
     /// Some(false): no afterburner (`HasAfterBurner = 0`: full throttle is the rated dry thrust).
     afterburner: Option<bool>,
@@ -164,6 +167,7 @@ const NONE: Real = Real {
     stall_kt: None,
     g: None,
     ceiling_ft: None,
+    chute: None,
     nose_wheel: None,
     afterburner: None,
 };
@@ -239,6 +243,9 @@ const REAL: &[Real] = &[
         nose_wheel: Some(Nws { angle_deg: 70.0, wheelbase_ft: 23.3, grip_g: 0.3 }),
         // Service ceiling: F-4E: 58,750 ft at maximum power, 100 ft/min (airfighters.com, SAC figure).
         ceiling_ft: Some(58_750.0),
+        // 16 ft ring-slot deceleration chute (Mills Manufacturing; 4 slot rings), CD ~0.63 (ring-slot brake
+        // chutes 0.56-0.65); deployed below 200 KIAS (T.O. limit, Heatblur manual).
+        chute: Some((std::f32::consts::PI * (8.0 * FT) * (8.0 * FT), 0.63)),
         ..NONE
     },
     // IAI Lavi (production design figures, Jane's 1987-88) with the PW1120.
@@ -655,6 +662,9 @@ pub fn apply(set: DataSet, name: &str, params: &Params, envelope: &Envelope) -> 
         p.max_g_m1 = max - 1.0;
         p.min_g_m1 = min - 1.0;
     }
+    if let Some((area, cd)) = r.chute {
+        p.chute_cd = cd * area / p.wing_area;
+    }
     if let Some(c) = r.ceiling_ft {
         e = e.with_ceiling(c * FT);
     }
@@ -673,6 +683,16 @@ pub fn apply(set: DataSet, name: &str, params: &Params, envelope: &Envelope) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn real_f4_chute() {
+        // The F-4 row's 16 ft chute: 0.63 · 18.68 m² / 49.24 m² ≈ 0.239; the original set keeps 0.
+        let p = Params::from_section(iaf_formats::ini::Ini::parse(b"[F-4]\r\nWingArea = 530\r\n").section("F-4").unwrap());
+        let e = Envelope::parse(b"[Min Velocity Table]\r\n0 100 0\r\n1 150 0\r\n1 160 40000\r\n");
+        assert_eq!(apply(DataSet::Original, "F-4", &p, &e).0.chute_cd, 0.0);
+        let (r, _) = apply(DataSet::Real, "F-4", &p, &e);
+        assert!((r.chute_cd - 0.63 * 18.68 / r.wing_area).abs() < 0.01, "{} (wing {} m²)", r.chute_cd, r.wing_area);
+    }
 
     #[test]
     fn types_and_rows() {

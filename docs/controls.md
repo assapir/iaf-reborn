@@ -131,7 +131,7 @@ original's `WM 0x532` wParam; p1 / p2 as stored.
 | 20 | Landing gear up/down | G |  | (14, 0, 0) |  | yes | gear |
 | 21 | Fire extinguisher | X |  | (73, 0, 0) |  | yes | — |
 | 22 | Brakes in/out | B |  | (17, 0, 0) |  | yes | brakes |
-| 23 | Landing parachute | Shift + B |  | (19, 0, 0) |  | yes | — |
+| 23 | Landing parachute | Shift + B |  | (19, 0, 0) |  | yes | drag chute: armed in the air, deployed on the ground / at touchdown, again = jettison (visual only in the original; with Flight data = Real it brakes, docs/real-aircraft.md §2.2) |
 | 24 | Pitch up | Up |  | (3, 0, 100) | (3, 0, 0) | no | stick pitch (held) |
 | 25 | Pitch down | Down |  | (3, 0, -100) | (3, 0, 0) | no | stick pitch (held) |
 | 26 | Roll left | Left |  | (2, -100, 0) | (2, 0, 0) | no | stick roll (held) |

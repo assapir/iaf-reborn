@@ -65,7 +65,7 @@ DragIndex ×1e-4. "deg→rad*" = wrapped to (-180,180] then ×π/180.
 | SpeedBrakesDragIndex | 0xf8 | 320 | DI | ×1e-4 |
 | LandingGearDragIndex | 0xfc | 300 | DI | ×1e-4 |
 | LandingHookDragIndex | 0x100 | 100 | DI | ×1e-4 |
-| ParachuteDragIndex | 0x104 | 0 | DI | ×1e-4 (no reader found) |
+| ParachuteDragIndex | 0x104 | 0 | DI | ×1e-4 (no reader found: the original chute is visual only; the Real set adds its own chute drag, docs/real-aircraft.md §2.2) |
 | PlaneDragIndex | 0x108 | 500 | DI | ×1e-4 (= CD0) |
 | WheelsBrakeDragIndex | 0x10c | 5000 | DI | ×1e-4 (= friction coeff) |
 | FlapsLiftCoef | 0x110 | 0.2 | – | clamped to [0,0.5] |

@@ -520,6 +520,8 @@ pub struct Aircraft {
     pub ground_normal_z: f32,
     pub ground_water: bool,
     pub ground_rough: bool,
+    /// Drag chute deployed (adds `Params::chute_cd`, 0 in the original set).
+    pub drag_chute: bool,
     /// Destroyed (§15.6); the simulation stops.
     pub crashed: Option<Crash>,
     /// Horizontal direction the aircraft points on the ground (unit, ENU).
@@ -666,6 +668,7 @@ impl Aircraft {
             ground_normal_z: 1.0,
             ground_water: false,
             ground_rough: false,
+            drag_chute: false,
             crashed: None,
             ground_dir: [sh, ch, 0.0],
             landed: false,
@@ -1229,6 +1232,9 @@ impl Aircraft {
         let mut cd = p.plane_di + brakes * p.speed_brakes_di + gear_f * p.gear_di + p.flaps_di * flaps * FLAPS_K + stores_di + k * cl * cl;
         if p.wave_drag > 0.0 && mach > 0.9 {
             cd += p.wave_drag * ((mach - 0.9) / 0.3).min(1.0);
+        }
+        if self.drag_chute {
+            cd += p.chute_cd;
         }
         let mut drag = cd * qs;
         let mut yaw_nw = 0.0;
@@ -2623,6 +2629,22 @@ mod tests {
         let (_, rate) = a.spin_yaw.sample(3.5);
         let expect = PI / 2.0 - 0.95 * PI / SPIN_SLOPE;
         assert!(rate > 0.0 && (rate - expect).abs() < 1e-3, "yaw rate {rate} vs {expect}");
+    }
+
+    #[test]
+    fn drag_chute_adds_its_cd() {
+        // Rolling at 60 m/s: the deployed chute adds chute_cd · q·S (× the ground factor 0.8); 0 = no change.
+        let mut g = ground(true);
+        g.axes[1] = Axis::new(0.0, 60.0);
+        g.aero_update();
+        let d0 = g.drag;
+        g.drag_chute = true;
+        g.aero_update();
+        assert_eq!(g.drag, d0, "chute_cd 0 (original): no drag");
+        g.params.chute_cd = 0.24;
+        g.aero_update();
+        let qs = q_s(10.0, 60.0, g.params.wing_area);
+        assert!((g.drag - d0 - 0.8 * 0.24 * qs).abs() < 0.02 * (g.drag - d0), "chute drag {} vs {}", g.drag - d0, 0.8 * 0.24 * qs);
     }
 
     #[test]

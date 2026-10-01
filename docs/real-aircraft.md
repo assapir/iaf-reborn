@@ -111,6 +111,22 @@ game's own Jane's extracts were only a cross-check: their F-4 10,975 m and Su-24
 The transports' Real rows start from `[C130]` (34,000 ft envelope). The C-130's 33,000 ft is the light-weight
 figure: the game's aircraft fly at empty + fuel (§2 "Mass"). Validation prints the "1 g ceiling (envelope)" row.
 
+### 2.2 Drag chute
+
+The original's drag chute (Shift+B, docs/controls.md) is visual only: `ParachuteDragIndex` is read but no code uses
+it (docs/flight-model.md §1). With Flight data = Real, a deployed chute adds `Params::chute_cd` = CD · area / wing
+area to the drag coefficient (`Aircraft::drag_chute`, set by the flight scene while the chute is out). Rows set
+`chute: (area m², CD)`; rows without one keep the visual-only chute.
+
+| type | chute | area | CD | ΔCD | sources |
+|---|---|---|---|---|---|
+| F-4E / Kurnass 2000 | 16 ft ring-slot deceleration chute (4 slot rings) | 18.68 m² | 0.63 | 0.24 | Mills Manufacturing (deceleration parachutes), PPRuNe; ring-slot brake chutes CD 0.56–0.65 (Springer, J. Inst. Eng. India 2022) |
+
+Not filled (no aircraft-specific CD, and none of them is flyable yet): MiG-29 17 m², MiG-23 21 m² cross chute
+(ru.wikipedia, sovetarmy forum); Kfir / Mirage III sizes not found. The F-4E chute's limit is 200 KIAS (T.O.,
+Heatblur F-4E manual); there is no shear or failure model. Measured (tests/godot/test_player_aircraft.gd): from
+~90 kt at idle the Kurnass 2000 loses 0.74 m/s in 2 s with the chute, 0.07 m/s without.
+
 ## 3. F-15C Baz (2 × F100-PW-220)
 
 Variant: the IAF flew F-15A/B from 1976 and F-15C/D from 1981 (F100-PW-100, later -220). The row uses the F-15C

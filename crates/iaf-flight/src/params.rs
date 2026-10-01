@@ -62,6 +62,9 @@ pub struct Params {
     /// Transonic wave-drag rise (not in the original model; used by the real data set):
     /// ΔCD grows linearly from Mach 0.9 to `wave_drag` at Mach 1.2 and stays there.
     pub wave_drag: f32,
+    /// Deployed drag chute ΔCD (wing reference). 0 in the original (its ParachuteDragIndex is never read,
+    /// docs/flight-model.md); the Real set's chute area · CD / wing area (docs/real-aircraft.md).
+    pub chute_cd: f32,
     /// Real data set only: scales the dry (non-afterburner) part of the thrust curve so military power
     /// gives the engine's real dry / max-AB ratio (the original fixes it at k = 0.6). 1 = original.
     pub dry_thrust: f32,
@@ -165,6 +168,7 @@ impl Params {
             over_g_thresh: f("OverGThresh", 6.7),
             envelope_file: s.get("FlightEnvelopeFile").unwrap_or("").to_string(),
             wave_drag: 0.0,
+            chute_cd: 0.0,
             dry_thrust: 1.0,
             dry_fuel_frac: 0.25,
             nose_wheel: None,
