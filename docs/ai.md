@@ -451,7 +451,7 @@ Partial decode for the AI combat job (scratch work; argument orders of `4440d0` 
 Corrections to §4 / §5: action **430 is "target = my nearest RWR emitter"** (`CTL.451f70()`, within 370 800 m;
 without a controller B+0x7c), **440 runs the same exec as 400**; **condition 8 = no external tanks attached**
 (`4593e0`: !(W+0xb8 == 0 && W+0xc0 != 0)); **condition 21 = the selected store's round count** (`456cd0`); flares
-(310) set the busy flag for **4.0 s** (0x600920 = −4.0, not 2.25), chaff likewise (not verified separately); the type
+(310) set the busy flag for **4.0 s** (0x600920 = −4.0; a second reading gives 2.25 s: UNCERTAIN), chaff likewise; the type
 gate is marked only when an action really fires (a Launch that does not fire leaves type 1 free).
 
 ### 13.1 Actions (class by bdb 0xbe in `4b62b6`; exec = vtable +4 with the entity E; act+8 = 0xc8, +0xc = 0x82,
@@ -533,6 +533,58 @@ B+0x7c); 39 any RWR entry's launch flag.
 - Not traced: Shandel / SplitS / Horizontal / Himmelman / TailClear / DiveBomb steps, LookAt cases 2 and 4, the AI's
   fire per weapon (`454270(T, 1)`: gun burst / aim, missile q, bomb ripple), the target selectors, the decoy logic,
   B+0x7c writers, the RWR internals, the hit reactions `44d590` / `43ff50`.
+
+## 14. Ground defences, RWR, script ops 1 / 2 (traced, not built yet)
+
+- **Spawn** (`FUN_004b7634` → `FUN_004b7ad6`): an entity with record +0x3c ≠ 0 → vehicle `FUN_0059bb00` with a
+  MWeaponHandler `FUN_004aa650` (entity[9], vtable 0x603200); non-aircraft units get only their first 2 valid weapon
+  stations (`FUN_004b7ea3`), each a ring pool of `_maxNumInAir` objects (`FUN_004d8570` / `FUN_004d8760`). Weapon
+  class by sub type (`FUN_004bb5d4`): 0x16 500 / 510; 0x17 fixed 540 / 550 / 560 / 565; 0x18 homing 570–635; 0x19
+  640 / 650; 0x1a 660.
+- **Target sensor** (brain+0x40, selector `FUN_004ac5f0`, vtable 0x603298) by class: 5 / 9 kind 1, 8 kind 3, 10 /
+  0x10 kind 2 (5 slots, period 6 s), 0x1c kind 4 (10 slots, 2 s); other classes (6, 11 ground radar, 15 boat) none:
+  they never target or fire. Scan `FUN_004af300`: R = nm(type) × 1854 (0x603390; `FUN_004acae0`: 250–280 → 3, 290 /
+  310 / 330 / 340 → 20, 300 / 320 / 370–390 → 10, 350 / 360 AAA → 5, else 40). Air mode (400, `FUN_004ac820`)
+  classes {0x1c, 3, 2, 1}; ground mode (410, `FUN_004ac900`) {10, 8, 9, 0xb, 0xd, 0x1d, 0x1e, 5, 6, 0xf, 0x10}. The
+  player is seen only within 0.7·R while its radar is OFF / STBY (ctl+0xb4 ∈ {0, 1}); an emitter with ECM on is seen
+  at any range; a sensing unit with ECM on: 0.8R vs a jamming target, else 0.5R. Accept (`FUN_004ac740`): hostile
+  (`FUN_004a4cf0`) and terrain line of sight (`FUN_004020d0`, both ends +1.5 m). Score 100 / dist, best 5 kept
+  (`FUN_004b08e0`), full rescan at most every 5.0 s.
+- **Start combat** 550 (`FUN_00444b20`): engaged, `FUN_004aa900(0)` → `FUN_004ac120(1)`: fire timer, first shot at
+  now + `_reactionTime`, then every `_fireReleaseInterval`, slot 0; the target locked on its RWR. 560: timer off.
+- **Fire tick** (`FUN_004ab110`): T = brain+0x70 dead → timer stops. Class 0x17 (gun / rockets): range =
+  `_limitDist` (×0.5 for 565 → 2250 m), t = |T − P| / `_limitVel`, aim = T + V_T·t + ½A_T·t² (lead). Class 0x18
+  (missiles / SAMs): fire within the chase envelope (§13.1). Release `FUN_004ab810`: turret parts of types 250 and
+  290–340 turn to the target; a **global truce** for all handlers (DAT_008321d0..d8): after each shot no other ground
+  shot for 0.1 + rand·0.9 s ("Entities in truce"); busy pool object → skipped; terrain LOS +1.5 m; fire
+  `FUN_004d7630` → `FUN_005604a0(T)` (single candidate); 565 / 660 play SFX_ENTITY_FIRED_WEAPON. Pool quirk: the ring
+  advances 3–4 times per shot.
+- **AAA round**: bdb 50 "AAA" (565, power 15, radius 30), the player's gun round model aimed at the lead point; hit
+  sphere 25 m against T only (50 m with Easy aiming, original quirk: the option also helps the enemy); at the end time
+  it bursts in the air (flak, area blast). Mission 313's ZSUs: brain 'mission' / 'zsu' start within 4000 m, shots
+  only inside 2250 m, first 10 s later, then every 0.5 s (truce permitting).
+- **SAMs**: class 8 launchers carry SA2 / 3 / 5 / 6 / 8 / Hawk (630), class 9 SA13 (620); no link between a site's
+  radar and its launchers was found (each launcher fires on its own sensor). 000630: absAcc 70, burn 20 + 15 + 10, tCO
+  3, 1 in the air, interval 30 s, reaction 20 s; 000620: absAcc 100, burn 5 + 10 + 5, interval 10 s, reaction 1 s;
+  both spiral 1000 / β 0.08, chase 2, highAngleTurn (overshoot ends the flight only within 1000 m). Ground launch at
+  100.1 m/s along the nose, q = 1.0, the IR missile engine (docs/weapons.md §5.3): no illumination needed.
+- **Decoys** (`FUN_00454b70` at the release, the releasing jet's RWR missile list): see docs/weapons.md §10.
+- **RWR** (ctl+0x5b0, ctor `FUN_004515d0`): 10 slots × 0x24 (+0 unit, +4 threat type = bdb type code, +8 position,
+  +0x14 launch flag, +0x18 missiles in flight, +0x1c drop pending, +0x20 active), count +0x174, missile list +0x178.
+  Emitter test `FUN_004521c0`: ≤ 37080 m (0x600d14); classes 8, 9, 10, 5, 16 always; others only > 120° off the
+  nose or after a launch. Add `FUN_0044deb0` when a sensor locks (start combat, 420, retargets, a radar in STT);
+  blocked by damage flag 14; types 220 / 250 / 270 ignored; list full refuses. A new active entry lights lamp 4 'sam'
+  (classes 8, 9, 10, 5, 16) or 3 'ai' (corrects docs/cockpit.md: any active entry, not only a guiding missile) and
+  plays WRN_NEW_GUY 0x18002000 (≤ once per 1.0 s, ctl+0x860). Launch `FUN_0044e160` (every class-0x18 missile): launch
+  flag, WRN_MISSILE_LAUNCH 0x18003000 loop until no flag is left (`FUN_00451e30`), Betty "Missile" 0x2c002000 on
+  every launch (ctl+0x964). Every 0.25 s positions refreshed, active = emitter test or launch flag. Display
+  `FUN_00531470`: active entries, launch-flag ones blink (300 ms), distance clamped 37060 m; original bug: slots are
+  not compacted and only the first `count` are copied (`FUN_00446200`). No separate lock tone. Damage 14 / 19 / 21
+  clear the list. brain+0x7c is written with the target itself (original bug).
+- **Script op 2** (0x5c42f0 → `FUN_004aae40(handler, key, p3)`): ignored when handler+0x48 == 2; the target from the
+  key (`FUN_00439b40`), {target pose, target, q 1.0} → `FUN_004ab810(…, p3 ? 2 : 0)` (turret / truce / LOS / fire);
+  with handler+0x28 == 1 the truce is skipped ("Fired a weapon by the Scenario"); the current slot, no range check.
+  **Op 1** (0x5c4160 → `FUN_004aad10`): `FUN_004ab810(pose, 1)` at a point. UNCERTAIN: the trigger fields → args.
 
 ## UNCERTAIN
 - Avionics sensors behind conditions 8, 10, 14, 19, 21, 26, 27, 38, 39; what writes brain+0x7c.
