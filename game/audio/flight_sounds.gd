@@ -177,7 +177,10 @@ func _update_engine(stage: int, rpm: float, inside: bool) -> void:
 		var s: AudioStreamWAV = table.stream(_engine_row)
 		_engine.stream = _looped(s) if s != null and _engine_row.cyclic else s
 		if s != null:
-			_engine.play()
+			# SFX_LANDING (engine off) is landing.wav, 86 samples of near-silence; looped that short it
+			# becomes an audible tone here, so it is not played (silence, as intended; docs/deviations.md).
+			if code != "SFX_LANDING":
+				_engine.play()
 			played.append(code + "/None")
 	_engine.pitch_scale = engine_pitch
 	_engine.set_meta("base_volume", _row_volume(_engine_row, inside))
