@@ -95,6 +95,35 @@ pub fn section(set: DataSet, name: &str) -> &str {
     }
 }
 
+/// The original's FM parameter blocks (`FUN_005a8980`: type → block, `FUN_005b2940` reads the section into it only
+/// while its counter +0x17c is 0) are statics built once at program start (`FUN_005a2fa0`, a C++ static
+/// initializer): each is read on the first use in a game session and kept. The Kfir (130) and the Mirage (190) share
+/// one (`0x8442d4`), so the one that flies second in a session (the player's or an AI's, any mission) flies on the
+/// first one's section until the game exits. `Blocks` is that session state; the Real set gives each its own.
+#[derive(Debug, Default)]
+pub struct Blocks {
+    shared: Option<&'static str>,
+}
+
+/// The sections that share one block.
+const SHARED_BLOCK: [&str; 2] = ["KFIR", "MIRAGE"];
+
+impl Blocks {
+    pub const fn new() -> Self {
+        Blocks { shared: None }
+    }
+
+    /// [`section`] for `name` in `set` this session: with the original set the shared block keeps the section
+    /// it was first read from.
+    pub fn section<'a>(&mut self, set: DataSet, name: &'a str) -> &'a str {
+        let s = section(set, name);
+        match SHARED_BLOCK.iter().find(|b| b.eq_ignore_ascii_case(s)) {
+            Some(b) if set == DataSet::Original => self.shared.get_or_insert(b),
+            _ => s,
+        }
+    }
+}
+
 fn real(t: &Type) -> Option<&'static Real> {
     REAL.iter().find(|r| r.aircraft == t.name)
 }
@@ -694,6 +723,20 @@ mod tests {
         assert_eq!(apply(DataSet::Original, "F-4", &p, &e).0.chute_cd, 0.0);
         let (r, _) = apply(DataSet::Real, "F-4", &p, &e);
         assert!((r.chute_cd - 0.63 * 18.68 / r.wing_area).abs() < 0.01, "{} (wing {} m²)", r.chute_cd, r.wing_area);
+    }
+
+    #[test]
+    fn kfir_and_mirage_share_the_first_section_with_original_data() {
+        let mut b = Blocks::new();
+        assert_eq!(b.section(DataSet::Original, "MIRAGE"), "MIRAGE");
+        assert_eq!(b.section(DataSet::Original, "KFIR"), "MIRAGE");
+        assert_eq!(b.section(DataSet::Original, "cfir"), "MIRAGE");
+        // The Real set: each its own; other types untouched.
+        assert_eq!(b.section(DataSet::Real, "KFIR"), section(DataSet::Real, "KFIR"));
+        assert_eq!(b.section(DataSet::Original, "F-16"), "F-16");
+        let mut b = Blocks::new();
+        assert_eq!(b.section(DataSet::Original, "KFIR"), "KFIR");
+        assert_eq!(b.section(DataSet::Original, "MIRAGE"), "KFIR");
     }
 
     #[test]

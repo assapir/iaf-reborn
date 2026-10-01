@@ -13,7 +13,7 @@ func run() -> void:
 	await frames(90)
 	check(fe.screen == "jet", "Takeoff -> Jet list")
 	check(Settings().mission_id == 311, "mission 311 selected")
-	check(not fe._button_enabled("Mirage") and fe._button_enabled("F16"), "only flyable jets enabled")
+	check(fe._button_enabled("Mirage") and fe._button_enabled("F16"), "the Jet list jets are enabled (all seven fly)")
 	fe._on_button(fe._key_for_label("F16"))
 	await frames(90)
 	check(fe.screen == "tsd" and fe.tsd != null, "F-16 -> TSD")

@@ -46,7 +46,7 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 | Esc on the Arming screen | not traced | acts as BACK (checks, "Use weapon load?", TSD) | the generic Esc went to Main without the question | front_end.gd |
 | AI watch-ground line of sight | terrain ray `0x4020d0` | 8 terrain samples along the segment | ray not decoded | ai.md §8.4 |
 | AI landing pattern height | terrain height at the lineup point | the lineup point's iaf.ibx altitude | the loop runs without terrain access (they agree to a few m) | ai.md §8.3 |
-| AI FM data per type | Kfir and Mirage share one parameter block, loaded once: the second type flies on the first's data | each jet loads its own section | original bug; **to decide with the user** | ai.md UNCERTAIN |
+| FM data per type, Flight data = Real | Kfir and Mirage share one parameter block, loaded once per game session: the second type flies on the first's data | Real: each jet its own section (Original: shared, as the original) | original bug, fixed with the Real set (user decision) | flight-model.md §1 |
 | AI radio (FlightController reports, contact calls, "Roger" replies of wingman commands) | spoken | not yet | AI voices wait for the radio work | ai.md §10 |
 | Flare look | the decoy's bdb model is 0 (no picture found) | a small bright glow quad for a flare; chaff draws nothing | the original's look is UNCERTAIN | player_weapons.gd `_decoy_visual`, weapons.md §10 |
 | Radar MAP picture | isr.bmp sampled per pixel, nearest, the centre truncated to whole isr pixels (`FUN_0053b0a0`) | the 4× isr art as a textured polygon (smooth scrolling and turning), same window, scale, centre and green channel | rendering | mfd.gd `map_picture`, mfd.md §4 |

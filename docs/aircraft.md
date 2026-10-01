@@ -183,4 +183,7 @@ FUELCLOCK, PANELVARIO or VARIOCLOCK, PANELAOA), and extend `tests/godot/test_pla
 model, weapons, Real data, gear / flaps / speed brake / afterburner / chute / ejection). Its Real rows are per type
 too: `crates/iaf-flight/src/data_set.rs` (flight data, incl. `ceiling_ft` and `chute`) and
 `game/weapons/real_weapons.gd` (`RADAR_KM`, `GUN_ROUNDS`). Ejection throws one seat per crew part of the model
-(`pilot`, `pilotB`). Flyable: F-16 (100), F-4 2000 (200).
+(`pilot`, `pilotB`). Flyable: the Jet list's seven — F-15 (110), F-16 (100), F-4E (120), F-4 2000 (200), Lavi (140),
+Kfir (130), Mirage (190); tests/godot/test_jet_list.gd flies each (roll-out, gear, flaps, speed brake, afterburner,
+ejection). With Flight data = Original the Kfir and the Mirage share one parameter block per game session, as in the
+original (`iaf_flight::data_set::Blocks`, docs/flight-model.md §1).

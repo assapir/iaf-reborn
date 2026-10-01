@@ -53,7 +53,11 @@ impl IafFlight {
         real_data: bool,
     ) -> GString {
         let set = if real_data { iaf_flight::DataSet::Real } else { iaf_flight::DataSet::Original };
-        match iaf_flight::load_with(std::path::Path::new(&install.to_string()), &section.to_string(), set) {
+        // The game session's parameter blocks (iaf_flight::data_set::Blocks): this process is one session.
+        static BLOCKS: std::sync::Mutex<iaf_flight::data_set::Blocks> =
+            std::sync::Mutex::new(iaf_flight::data_set::Blocks::new());
+        let mut blocks = BLOCKS.lock().unwrap_or_else(|e| e.into_inner());
+        match iaf_flight::load_in(std::path::Path::new(&install.to_string()), &section.to_string(), set, &mut blocks) {
             Ok((params, envelope)) => {
                 let st = Start {
                     position: [position.x as f64, -position.z as f64, position.y as f64],

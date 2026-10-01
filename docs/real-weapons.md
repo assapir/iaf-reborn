@@ -35,9 +35,10 @@ and g limits, warhead power / radius (game damage units), drag index.
 | F-15 (Baz) | AN/APG-63 | 135 km (U: 110–160 km tracking a small fighter; ~100 NM velocity search) | forecastinternational.com APG-63 report, cmano-db |
 | F-4E (Kurnass) | AN/APQ-120 | 61 km (33 NM: average 30–35 NM, max 40 NM at 15–30k ft) | flyandwire.com, secretprojects.co.uk (test reports) |
 | Kurnass 2000 | AN/APG-76 | 44 km (U: 22–25 NM frontal, one forum source) | key.aero forum |
-The other jets keep the original table (docs/radar.md §1): the Kfir C7's EL/M-2001B ranging radar and the Mirage
-IIICJ's Cyrano I bis have none published, and the Lavi's EL/M-2035 has no sourced figure. The table is per type
-(`RADAR_KM`, like `GUN_ROUNDS`): a new jet needs only its row.
+| Lavi | EL/M-2035 (from the EL/M-2021B) | 46 km (tracks several targets at 46 km in five air-to-air modes) | aviationsmilitaires.net (EL/M-2035), Jewish Virtual Library (IAI Lavi) |
+| Kfir C7 | EL/M-2001B ranging radar (no search mode) | 14.8 km (U: one database) | Wikipedia "IAI Kfir" (radar type), cmano-db.com (range) |
+| Mirage IIICJ | Cyrano I bis | 27 km (U: nominal air-to-air lock, one game wiki; the later Cyrano II ~30 km) | War Thunder wiki (Mirage IIIC), migflug.com (Cyrano II) |
+The table is per type (`RADAR_KM`, like `GUN_ROUNDS`): a new jet needs only its row.
 
 ### 1.2 Guns
 | gun (bdb) | rate | muzzle velocity | rounds per jet | sources |

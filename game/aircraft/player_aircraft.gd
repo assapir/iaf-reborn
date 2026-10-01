@@ -7,8 +7,8 @@ extends RefCounted
 
 const AircraftModel := preload("res://aircraft/aircraft_model.gd")
 
-## Types the player can fly: F-16, F-4 Kurnass 2000.
-const FLYABLE := [100, 200]
+## Types the player can fly: the Jet list's seven (F-15, F-16, F-4E, F-4 Kurnass 2000, Lavi, Kfir, Mirage).
+const FLYABLE := [110, 100, 120, 200, 140, 130, 190]
 const FALLBACK := 100
 ## bdb type code -> cockpit index (FUN_00447e70; also the radar tables' index, radar.gd).
 const COCKPIT := {110: 0, 100: 1, 200: 2, 140: 3, 130: 4, 120: 5, 190: 6, 180: 7, 160: 8}

@@ -44,6 +44,16 @@ the push order is authoritative). All physics is SI: m, kg, s, N, rad. Constants
 Conversion constants: lb→kg ×0.45359, ft²→m² ×0.092903, ft→m ×0.3048, deg→rad ×0.0174533,
 DragIndex ×1e-4. "deg→rad*" = wrapped to (-180,180] then ×π/180.
 
+**Parameter blocks, once per game session.** `FUN_005a8980` points the vehicle at a static block per type
+(`veh+0xc4c`: 100 → `0x843e30` (also every unlisted type), 110 → `0x843fbc`, 120 / 200 → `0x844148`, **130 and 190 →
+`0x8442d4`**, 140 → `0x844460`, …) and calls the loader with the type's section; the loader reads the section only
+while the block's counter +0x17c is 0, then counts up. The 14 blocks (0x18c bytes) are built by a C++ static
+initializer at program start (`FUN_005a2fa0`, in the `.data` initializer table) and never reset. So each block is
+read on its first use in a game session, and **the Kfir and the Mirage share one**: whichever flies first in a
+session (player or AI, any mission) gives both its section until the game exits. Port: `iaf_flight::load_in` with
+`data_set::Blocks` (one per process in `IafFlight`), Flight data = Original only; the Real set gives each its own
+section (docs/deviations.md).
+
 | key | P+off | default (hex) | file unit | stored |
 |---|---|---|---|---|
 | EmptyWeight | 0x8c | 16000 (0x467a0000) | lb | kg |

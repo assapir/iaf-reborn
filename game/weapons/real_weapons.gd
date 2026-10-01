@@ -35,6 +35,9 @@ const RADAR_KM := {
 	110: 135.0,  # F-15: AN/APG-63, 110-160 km tracking a small fighter (U)
 	120: 61.0,  # F-4E: AN/APQ-120, 30-35 NM average, 40 NM max
 	200: 44.0,  # Kurnass 2000: AN/APG-76, 22-25 NM frontal (U, one forum source)
+	140: 46.0,  # Lavi: EL/M-2035, tracks several targets at 46 km
+	130: 14.8,  # Kfir C7: EL/M-2001B ranging radar (no search mode), 14.8 km (U, one database)
+	190: 27.0,  # Mirage IIICJ: Cyrano I bis, ~27 km air-to-air lock (U, one game wiki)
 }
 ## The radar's NM (0x603390).
 const RADAR_NM_M := 1854.0

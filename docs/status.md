@@ -2,7 +2,8 @@
 
 ## Where we are
 - **Playable missions: 2 of 68** — Training "Engines ON" (311) and "Landing" (312), start to debrief.
-- **Flyable jets: F-16 and F-4 Kurnass 2000** (Jet list or a mission's jet; docs/aircraft.md §5). The others fly as the F-16.
+- **Flyable jets: all seven of the Jet list** — F-15, F-16, F-4E, F-4 Kurnass 2000, Lavi, Kfir, Mirage (Jet list or a
+  mission's jet; docs/aircraft.md §5). Other types (MiGs, transports) fly as the F-16.
 - **Game version: v1.1 logic**, v1.1 data when setup is given the patch (`--patch`); v1.0 data still plays. Doc
   addresses are v1.1 (docs/v1.1.md maps them to v1.0). Flight model v1.1 port in progress.
 - Everything comes from the player's own ISO; the repo (github.com/assapir/iaf-reborn, GPL-3.0) holds no game data.
@@ -20,8 +21,8 @@
   §4); nothing locks the player until AI combat / SAMs. Other MFD pages (FLIR / TV / HARM).
 - Detached-looking stores.
 - ~~Joystick / throttle / pedals~~ — done, untested on hardware (docs/controls.md §5).
-- Other jets flyable (Phantom 2000, F-4E, F-15, …): flight data + cockpit each (incl. the Kfir / Mirage shared
-  data per the Flight data switch — only matters once they fly).
+- ~~Other jets flyable~~ — done: the Jet list's seven (tests/godot/test_jet_list.gd), the Kfir / Mirage shared data
+  with Flight data = Original.
 
 **2. Enemies:** AI air-to-air / air-to-ground (bomb ballistics), AAA, radar / IR SAMs with RWR threats, enemy
 flares / chaff and decoy rules, script op 2, armed vehicles / boats; then the demo video (H.264).
@@ -36,8 +37,6 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 ## Small bugs (fix between jobs)
 - Stores look detached: no pylon models drawn (stores float under the wing), triple-rack side bombs touch the wing
   (original formula). (The flat white fins seen from behind are gone since the Present scale / smoothing work.)
-- Kfir / Mirage data: the original loads one shared block (the second type flies on the first's data) — do that
-  with Flight data = Original; each jet's own section only with Flight data = Real (user decision).
 
 - Stores seen from behind (user report: "not in place"): checked — the stations sit on the model (F-16 tip rails at
   x ±4.78, airframe ±4.73; each single store's Pilon point on its station; test_arming.gd). What can look wrong: the
@@ -73,7 +72,7 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 | Sounds | original sound table: engine, gear, flaps, air brake, AoA tone, Betty warnings, touchdown, crash; volume sliders |
 | Terrain | all of `map.ptt` (levels 11..6 + all 51 insets, 2342 nodes) as a streamed quadtree with distance LOD to 200 km, level-6 heights with the original's inset interpolation, skirts; runway digits surveyed on every airbase (2 mirrored fixed); `terraintype.dat` surface types (water / rough / runway) feed the flight model; loaded behind the wait screen (docs/formats/ptt.md) |
 | Pilot records | screen 0 at startup (docs/front-end.md §13): pilot list, Dossier (edit boxes, photo, rank, score, missions), Records / Kills / Losses, New / Remove / Login; each debriefed flight recorded (result, MissBonus, destroyed units as kills / losses, score multiplier), best-attempt score and rank, the briefing's "<rank> <name>"; Future Missions 2–7 locked until the previous pass; JSON in the user dir. Not filled yet: kills / losses only from what the damage code destroys (no AI weapons / SAMs), the debrief page's own statistics |
-| Tests | `tools/test.sh`: Rust + 37 headless Godot tests, isolated from the player's settings; fails on any script error |
+| Tests | `tools/test.sh`: Rust + 38 headless Godot tests, isolated from the player's settings; fails on any script error |
 
 ## Open gaps (by area)
 - **Terrain**: map-edge push-back / EndWorld and craters (terraintype bits known, systems missing); no elevation

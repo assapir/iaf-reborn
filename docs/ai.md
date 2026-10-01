@@ -596,5 +596,5 @@ B+0x7c); 39 any RWR entry's launch flag.
 - Waypoint actions 1, 4, 5, 6; the sim clock origin of the waypoint times (mission start taken).
 - The leader flag gating the wingman's take-off roll; the taxi re-placement's 60 m sign; what happens after parking
   (the root timer keeps running ParkInHangar).
-- Kfir and Mirage share one FM parameter block loaded once (`0x8442d4`): in the original the second of the two
-  types in a mission flies on the first one's data (original bug, not ported: each jet loads its own section).
+- (Resolved) Kfir and Mirage share one FM parameter block (`0x8442d4`), read once per game session: ported with
+  Flight data = Original (docs/flight-model.md §1, `iaf_flight::data_set::Blocks`).
