@@ -309,8 +309,10 @@ func _shatter_model(model: Node3D, pos: Vector3, flags: int, scale: float, durat
 	var meshes: Array = model.find_children("*", "MeshInstance3D", true, false)
 	if model is MeshInstance3D:
 		meshes.append(model)
+	# Only array meshes (the model's polygons): an ImmediateMesh (e.g. the jet's drawn lines) has none.
+	meshes = meshes.filter(func(mi): return mi.mesh is ArrayMesh)
 	for mi in meshes:
-		if mi.mesh != null and _shown_in(mi, model):
+		if _shown_in(mi, model):
 			for si in mi.mesh.get_surface_count():
 				if mi.mesh.surface_get_primitive_type(si) == Mesh.PRIMITIVE_TRIANGLES:
 					var ix = mi.mesh.surface_get_arrays(si)[Mesh.ARRAY_INDEX]
