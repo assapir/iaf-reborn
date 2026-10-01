@@ -6,6 +6,7 @@ Nothing in the code is Linux-only, but macOS has not been tried yet. Reports wel
 ```sh
 brew install rustup coreutils      # coreutils: `timeout` for tools/test.sh
 brew install --cask godot          # needs Godot 4.7 or newer (game/iaf.gdextension requires it)
+brew install gdal                  # optional: modern terrain imagery (tools/setup.sh --imagery)
 rustup default stable
 ```
 The cask does not put `godot` on the PATH; use the app binary or an alias:

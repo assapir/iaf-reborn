@@ -36,9 +36,11 @@ See [docs/status.md](docs/status.md) for what works, known gaps and the plan.
 | `godot` (4.7+)                                                     | extra  | running the viewer / game (`game/`)                                       |
 | `vulkan-intel` / `vulkan-radeon` / `nvidia-utils` (match your GPU) | extra  | Vulkan rendering                                                          |
 | `ttf-liberation` (or `ttf-ms-fonts` from AUR for real Arial)         | extra  | menu text (the original uses Arial; Liberation Sans is metric-compatible) |
+| `gdal` _(optional)_                                                | extra  | modern terrain imagery (`tools/setup.sh --imagery …`): fetch, warp, mosaic |
 
 ```sh
 sudo pacman -S --needed rustup godot vulkan-intel
+sudo pacman -S --needed gdal          # optional: modern terrain imagery
 rustup default stable
 ```
 
