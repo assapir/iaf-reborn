@@ -963,6 +963,9 @@ pub struct Autopilot {
     pub cfg: Config,
     pub route: Vec<Waypoint>,
     pub bases: Vec<Airbase>,
+    /// World position of the frame's origin (X east, Y north): the host may shift `bases`, `route` and the jet
+    /// by it. LandingCL rounds its points to f32 in world coordinates, as the original.
+    pub origin: [f64; 2],
     /// Formation leader (None: I am the leader, or no formation).
     pub leader: Option<Leader>,
     /// Current waypoint index (brain +0x88).
@@ -982,6 +985,7 @@ impl Autopilot {
             cfg,
             route: Vec::new(),
             bases: Vec::new(),
+            origin: [0.0; 2],
             leader: None,
             wp_index: 0,
             landed: false,
@@ -1162,7 +1166,7 @@ impl Autopilot {
                 if land.is_none() {
                     if f.step(&mut l, vmin12) == Leaf::Done {
                         l.stick(0.0, 0.0);
-                        *land = Landing::new(&self.bases, f.t, v.type_code, self.mode == 0);
+                        *land = Landing::new(&self.bases, self.origin, f.t, v.type_code, self.mode == 0);
                     }
                 } else if let Some(ld) = land {
                     ld.step(&mut l, self, &mut period, vmin1);
@@ -1599,26 +1603,29 @@ impl Taxi {
 
 impl Landing {
     /// LandingCL Init `5d2b30`: the left-hand pattern from G to the nearest base's lineup.
-    fn new(bases: &[Airbase], g: V3, type_code: u32, player: bool) -> Option<Self> {
+    fn new(bases: &[Airbase], origin: [f64; 2], g: V3, type_code: u32, player: bool) -> Option<Self> {
         let base = Airbase::nearest(bases, [g[0] as f32, g[1] as f32, g[2] as f32])?;
         let c130 = type_code == C130;
         let rn = base.runway_deg.to_radians();
-        let l = [base.lineup[0], base.lineup[1]];
         let ht = base.lineup[2] as f64; // UNCERTAIN: terrain(L); the lineup's altitude here
-        // The frame and the points are f32, as the original (`459bd0` / `459c90`: θ = rad(fmod(−RN, 360)), the
-        // matrix `43ecd0` rotated by θ, `43dd70`, then L + the offset rounded to f32). So for an axis-aligned
-        // runway the residue of cos θ (~1e-8) vanishes and the legs P1→P2, P2→P3 and P3→P4→P5 are exactly
-        // horizontal / vertical lines: ChangeHeading2PtAcu's tangent search takes its axis-parallel branches.
+        // The frame and the points are f32 in world coordinates, as the original (`459bd0` / `459c90`: θ =
+        // rad(fmod(−RN, 360)), the matrix `43ecd0` rotated by θ, `43dd70`, then L + the offset rounded to f32). So
+        // for an axis-aligned runway the residue of cos θ (~1e-8) vanishes and the legs P1→P2, P2→P3 and
+        // P3→P4→P5 are exactly horizontal / vertical lines: ChangeHeading2PtAcu's tangent search takes its
+        // axis-parallel branches.
+        let w = |x: f64, y: f64| [(x + origin[0]) as f32, (y + origin[1]) as f32];
+        let lw = w(base.lineup[0] as f64, base.lineup[1] as f64);
         let th = std::f32::consts::PI * ((-base.runway_deg) % 360.0) / 180.0;
         let (s, c) = (-th.sin(), th.cos());
         let at = |o: [f32; 2], x: f32, y: f32| {
-            [(o[0] + (x * c + y * s)) as f64, (o[1] + (-x * s + y * c)) as f64]
+            [(o[0] + (x * c + y * s)) as f64 - origin[0], (o[1] + (-x * s + y * c)) as f64 - origin[1]]
         };
         let side = if c130 { -9270.0 } else { -5562.0 };
-        let p1 = at([g[0] as f32, g[1] as f32], side, 0.0);
-        let p2 = at(l, side, -7416.0);
-        let p3 = at(l, 0.0, -7416.0);
-        let p4 = at(l, 0.0, if c130 { -1854.0 } else { -3708.0 });
+        let p1 = at(w(g[0], g[1]), side, 0.0);
+        let l = at(lw, 0.0, 0.0);
+        let p2 = at(lw, side, -7416.0);
+        let p3 = at(lw, 0.0, -7416.0);
+        let p4 = at(lw, 0.0, if c130 { -1854.0 } else { -3708.0 });
         Some(Landing {
             step: 0,
             pts: [
@@ -1626,7 +1633,7 @@ impl Landing {
                 [p2[0], p2[1], ht + if c130 { 600.0 } else { 500.0 }],
                 [p3[0], p3[1], ht + if c130 { 350.0 } else { 300.0 }],
                 [p4[0], p4[1], ht + 250.0],
-                [l[0] as f64, l[1] as f64, ht],
+                [l[0], l[1], ht],
             ],
             rn,
             k: if c130 { 2.0 } else { 1.0 },
@@ -1886,7 +1893,7 @@ mod tests {
             runway_deg: 270.0,
             ..Default::default()
         };
-        let l = Landing::new(&[b], [351083.0, 602383.0, 1500.0], 0, true).unwrap();
+        let l = Landing::new(&[b], [0.0; 2], [351083.0, 602383.0, 1500.0], 0, true).unwrap();
         let p = l.pts;
         assert_eq!((p[0][1], p[1][1]), (596821.0, 596821.0), "downwind P1 → P2");
         assert_eq!((p[1][0], p[2][0]), (363899.0, 363899.0), "base P2 → P3");
@@ -1896,5 +1903,23 @@ mod tests {
             "final P3 → P4 → P5"
         );
         assert_eq!(p[3][0], 360191.0);
+    }
+
+    #[test]
+    fn landing_points_round_in_world_coordinates() {
+        // The Godot host shifts the bases by the terrain origin; the f32 rounding must still happen in world
+        // coordinates, else the small scene coordinates keep the ~1e-8 residue and the legs are not axis-parallel.
+        let o = [356400.25, 602350.5];
+        let b = Airbase {
+            lineup: [356483.0 - o[0] as f32, 602383.0 - o[1] as f32, 63.0],
+            runway_deg: 270.0,
+            ..Default::default()
+        };
+        let l = Landing::new(&[b], o, [351083.0 - o[0], 602383.0 - o[1], 1500.0], 0, true).unwrap();
+        let p = l.pts;
+        assert_eq!(p[0][1], p[1][1]);
+        assert_eq!(p[1][0], p[2][0]);
+        assert_eq!((p[2][1], p[3][1]), (p[4][1], p[4][1]));
+        assert_eq!(p[4][1] + o[1], 602383.0);
     }
 }

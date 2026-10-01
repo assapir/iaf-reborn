@@ -279,6 +279,7 @@ impl IafFlight {
             }
         }
         ap.bases = bases;
+        ap.origin = [origin_x, origin_y];
         self.ap = Some(ap);
         self.origin = (origin_x, origin_y);
     }
