@@ -114,6 +114,10 @@ pub struct Envelope {
     /// never below `floor·√|g|·√(ρ0/ρ)` and the g limit is capped accordingly — used by the
     /// "real data" set only (not in the original).
     pub stall_floor: Option<f32>,
+    /// The file's (g, kt, ft) rows and altitude step (ft), kept to rebuild the envelope with
+    /// scaled altitudes (`with_ceiling`).
+    rows: Vec<(i32, i32, i32)>,
+    step_ft: i32,
 }
 
 /// Result of `GLimit` (`FUN_005b58e0`).
@@ -141,7 +145,6 @@ impl Envelope {
                 step_ft = n;
             }
         }
-        let step = step_ft as f64 * FT;
         let start = lines.iter().position(|l| l.trim().eq_ignore_ascii_case("[Min Velocity Table]")).map_or(lines.len(), |i| i + 1);
         let body: Vec<&str> = lines[start..].iter().take_while(|l| !l.starts_with('[')).copied().collect();
         let rows: Vec<(i32, i32, i32)> = body
@@ -151,7 +154,22 @@ impl Envelope {
                 _ => None,
             })
             .collect();
+        Self::build(rows, step_ft)
+    }
 
+    /// The same envelope with every altitude scaled so that the 1 g ceiling is `ceiling` (m): the
+    /// shape (every g's ceiling, the minimum speeds against altitude) stretches with it. Used by the
+    /// "real data" set (public service ceilings, docs/real-aircraft.md); not in the original.
+    pub fn with_ceiling(&self, ceiling: f32) -> Self {
+        let k = ceiling as f64 / self.ceiling64(1.0);
+        let rows = self.rows.iter().map(|&(g, v, a)| (g, v, (a as f64 * k).round() as i32)).collect();
+        let mut e = Self::build(rows, self.step_ft);
+        e.stall_floor = self.stall_floor;
+        e
+    }
+
+    fn build(rows: Vec<(i32, i32, i32)>, step_ft: i32) -> Self {
+        let step = step_ft as f64 * FT;
         // Pass 1 (5b5fe0): graphs by change of g, sentinel, pads, ceilings, high-altitude lines.
         let mut slots: Vec<Vec<(f64, f64)>> = vec![Vec::new()];
         let (mut idx0, mut gmin, mut prev_g, mut last_g) = (-20i32, 0.0f64, None, 0);
@@ -199,6 +217,8 @@ impl Envelope {
             neg: Vec::new(),
             altitude_step: step as f32,
             stall_floor: None,
+            rows: Vec::new(),
+            step_ft,
         };
         let c0 = e.ceil_alt(e.idx0);
         let cmax = e.ceil_alt(e.idx0 + e.gmax.trunc() as i32);
@@ -248,6 +268,7 @@ impl Envelope {
             }
             prev = Some((g, v, a));
         }
+        e.rows = rows;
         e
     }
 
@@ -437,6 +458,24 @@ mod tests {
     }
 
     /// The port against the Python reference on the synthetic text (needs only python3).
+    #[test]
+    fn with_ceiling_scales_every_altitude() {
+        let e = Envelope::parse(F16);
+        let target = e.ceiling(1.0) * 1.2;
+        let r = e.with_ceiling(target);
+        assert!((r.ceiling(1.0) - target).abs() < 1.0, "{}", r.ceiling(1.0));
+        // Every g's ceiling scales by the same factor (to the file's 1 ft resolution); sea level is unchanged.
+        let k = target / e.ceiling(1.0);
+        for g in [0.0, 2.0, 5.0, e.g_range().1] {
+            assert!((r.ceiling(g) - e.ceiling(g) * k).abs() < 1.0, "g {g}: {} vs {}", r.ceiling(g), e.ceiling(g) * k);
+        }
+        assert_eq!(r.vmin(0.0, 1.0), e.vmin(0.0, 1.0));
+        // Between the old and the new 1 g ceiling: the old envelope cannot hold 1 g there, the new one can.
+        let between = (e.ceiling(1.0) + target) / 2.0;
+        assert!(matches!(e.g_limit(between, 300.0, 1.0), GLimit::Max(_) | GLimit::TooHigh), "{:?}", e.g_limit(between, 300.0, 1.0));
+        assert_eq!(r.g_limit(between, 300.0, 1.0), GLimit::None);
+    }
+
     #[test]
     fn matches_the_python_reference() {
         check_against_python(F16, "synthetic");

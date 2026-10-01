@@ -33,15 +33,10 @@ anti-radiation, rockets), night.
 sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, modern aircraft / weapons, Pi 5 profile.
 
 ## Small bugs (fix between jobs)
-- Real data: real service ceilings per aircraft (the envelope's g ceilings from public ceiling figures), all jets
-  incl. AI types (docs/real-aircraft.md).
 - Stores look detached: no pylon models drawn (stores float under the wing), triple-rack side bombs touch the wing
   (original formula). (The flat white fins seen from behind are gone since the Present scale / smoothing work.)
 - Kfir / Mirage data: the original loads one shared block (the second type flies on the first's data) — do that
   with Flight data = Original; each jet's own section only with Flight data = Real (user decision).
-- Landing tests at the runway edges (Ramat David): touchdowns near the threshold / runway end and just inside /
-  outside the left and right edges (inside = tarmac, safe; outside on grass above 25.7 m/s = rough-ground crash),
-  so terraintype.dat's runway footprint matches the imagery at its borders.
 
 - Stores seen from behind (user report: "not in place"): checked — the stations sit on the model (F-16 tip rails at
   x ±4.78, airframe ±4.73; each single store's Pilon point on its station; test_arming.gd). What can look wrong: the

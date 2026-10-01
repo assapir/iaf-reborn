@@ -49,8 +49,8 @@ change is large at altitude: v1.0 reached Mach 2.11 at 40k ft, v1.1 Mach 1.80.
 Per row (`data_set.rs`, `Real`): empty weight, internal fuel, thrust (whole table scaled so the SL static full-AB
 value is the real one), military / full-AB ratio, a factor on the table's 20 km corners, clean drag coefficient,
 transonic wave drag (ΔCD from Mach 0.9 to 1.2, not in the original), wing area, roll rate and roll accelerations,
-fuel flow at full AB and at military, 1 g stall speed (`Envelope::stall_floor`), g limits, and rudder-pedal
-nose-wheel steering (max wheel angle, wheelbase, tyre grip). Two fields are new in `Params` for this and are
+fuel flow at full AB and at military, 1 g stall speed (`Envelope::stall_floor`), g limits, the service ceiling
+(`Envelope::with_ceiling`, §2.1), and rudder-pedal nose-wheel steering (max wheel angle, wheelbase, tyre grip). Two fields are new in `Params` for this and are
 neutral in the original set: `dry_thrust` (1.0) and `dry_fuel_frac` (0.25).
 
 The original thrust and fuel model limits what a row can match:
@@ -77,6 +77,39 @@ The original thrust and fuel model limits what a row can match:
   fuel flow at full throttle is the row's `ff_ab`.
 * Roll acceleration is only changed for the F-16 (FLCS); the other jets keep the original start / stop values, so
   their 0 → 90° roll takes ~1 s.
+
+### 2.1 Service ceilings
+
+The envelope's 1 g ceiling (the highest altitude where 1 g can be pulled, `Ceiling(1)`; above it the g limit falls
+along the high-altitude line and the jet sinks) is set to the public service ceiling: `Envelope::with_ceiling`
+scales **every altitude** of the envelope file by one factor, so every g's ceiling and the minimum speeds against
+altitude stretch with it (sea level is unchanged). The public figures give no per-g ceilings, so the file's shape is
+kept. Thrust can still stop the climb lower (the original thrust table, §2). All values are from online sources (the
+game's own Jane's extracts were only a cross-check: their F-4 10,975 m and Su-24 17,500 m are wrong).
+
+| type (variant) | original 1 g ceiling | real | source | factor |
+|---|---|---|---|---|
+| F-16C | 54,000 ft | above 50,000 ft | USAF fact sheet | 0.93 |
+| F-15C | 55,000 | 65,000 | USAF fact sheet | 1.18 |
+| F-4E (and Kurnass 2000) | 72,000 | 58,750 (max power, 100 ft/min) | airfighters.com (SAC figure) | 0.82 |
+| Kfir C7 | 45,001 | above 58,000 (17,680 m) | milavia.net | 1.29 |
+| Lavi | 54,000 (the F-16's file) | 50,000 (design, unproven) | Jewish Virtual Library, Wikipedia | 0.93 |
+| Mirage IIICJ | 45,001 | 17,000 m (55,770) | flugzeuginfo.net, Jewish Virtual Library | 1.24 |
+| MiG-21MF | 50,000 | 18,200 m (59,710) | airwar.ru | 1.19 |
+| MiG-23ML | 60,000 | 18,500 m (60,700) | victorymuseum.ru | 1.01 |
+| MiG-25PD | 70,000 | 20,700 m (67,910) | airwar.ru | 0.97 |
+| MiG-29 9.12 | 55,000 | 18,000 m (59,060) | ru.wikipedia, Russian MoD | 1.07 |
+| MiG-17F | 45,001 | 16,600 m (54,460) | airwar.ru | 1.21 |
+| Su-22M4 | 45,000 ([TU22]) | 14,200 m (46,590; Su-17M4 15,200 m) | ru.wikipedia | 1.04 |
+| Su-24MK | 45,000 ([TU22]) | 11,000 m (36,090) | Russian MoD (Su-24M) | 0.80 |
+| Tu-22M3 | 45,000 | 13,300 m (43,640) | Great Russian Encyclopedia, RIA | 0.97 |
+| A-4N | 45,000 ([TU22]) | 42,250 (U) | airfighters.com | 0.94 |
+| C-130H | 54,000 (the F-16's data) | 33,000 light; 23,000 at the max 42,000 lb payload | FAS, USAF fact sheet | 0.97 of [C130] |
+| 707-320C | 54,000 (the F-16's data) | 42,000 (max operating altitude) | flugzeuginfo.net, Wikipedia | 1.24 of [C130] |
+| Il-76MD | 54,000 (the F-16's data) | 12,000 m (39,370) | airwar.ru | 1.16 of [C130] |
+
+The transports' Real rows start from `[C130]` (34,000 ft envelope). The C-130's 33,000 ft is the light-weight
+figure: the game's aircraft fly at empty + fuel (§2 "Mass"). Validation prints the "1 g ceiling (envelope)" row.
 
 ## 3. F-15C Baz (2 × F100-PW-220)
 
@@ -194,7 +227,7 @@ its weight is the largest single error in the game's data.
 ## 8. F-16 (unchanged)
 
 The F-16C Block 30/40 row (F110-GE-100) is the previous F-16 set moved into the table, value for value
-(validation output identical): empty 19,000 lb, thrust × 1.5, wave drag 0.02, roll 280 deg/s at 900 deg/s²,
+(validation output identical; since then also the service ceiling, §2.1): empty 19,000 lb, thrust × 1.5, wave drag 0.02, roll 280 deg/s at 900 deg/s²,
 fuel flow 16.5 lb/s, stall floor 118 kt, NWS ±32° / 13.2 ft.
 
 ## 9. AI types
@@ -471,6 +504,10 @@ Fit: CD0 0.0834, no wave drag.
 * Mirage IIICJ: Wikipedia (Atar 09C, Mirage III), thisdayinaviation.com, migflug.com, aatlse.org, FlightGear wiki
   (Dassault approach speed), hushkit (pilot interview), SAAF history (nose-wheel steering).
 * F-16: see the comments in `data_set.rs` and docs/flight-model.md §11.
+* Service ceilings (§2.1): USAF fact sheets (F-16, F-15, C-130H); airfighters.com (F-4E, A-4N); milavia.net (Kfir);
+  Jewish Virtual Library and Wikipedia (Lavi); flugzeuginfo.net (Mirage III, 707); airwar.ru (MiG-21MF, MiG-25PD,
+  MiG-17F, Il-76MD); victorymuseum.ru (MiG-23ML); ru.wikipedia (MiG-29, Su-22M4); mil.ru (Su-24M); Great Russian
+  Encyclopedia and RIA (Tu-22M3); FAS (C-130).
 * AI types:
   * The Jane's 1997 extracts the game ships (`resource/ref/<model>/<model>_0.rtf`, cited as "Jane's").
   * en.wikipedia and ru.wikipedia spec tables and their cited books:

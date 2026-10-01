@@ -137,6 +137,9 @@ struct Real {
     stall_kt: Option<f32>,
     /// Max / min load factor (MaxG, MinG).
     g: Option<(f32, f32)>,
+    /// Service ceiling, ft: the envelope's altitudes are scaled so that its 1 g ceiling is this
+    /// (`Envelope::with_ceiling`).
+    ceiling_ft: Option<f32>,
     nose_wheel: Option<Nws>,
     /// Some(false): no afterburner (`HasAfterBurner = 0`: full throttle is the rated dry thrust).
     afterburner: Option<bool>,
@@ -160,6 +163,7 @@ const NONE: Real = Real {
     ff_mil_lb_h: None,
     stall_kt: None,
     g: None,
+    ceiling_ft: None,
     nose_wheel: None,
     afterburner: None,
 };
@@ -186,6 +190,8 @@ const REAL: &[Real] = &[
         // Nose-wheel steering through the rudder pedals, ±32° (low-gain / taxi NWS), wheelbase
         // 13.2 ft; side grip ~0.3 g (approximate). The original instead turns at stick · V · 20°/s / 145 kt.
         nose_wheel: Some(Nws { angle_deg: 32.0, wheelbase_ft: 13.2, grip_g: 0.3 }),
+        // Service ceiling: USAF F-16 fact sheet: ceiling above 50,000 ft.
+        ceiling_ft: Some(50_000.0),
         ..NONE
     },
     // F-15C Baz, 2 x F100-PW-220: USAF Standard Aircraft Characteristics (SAC) chart, Feb 1992.
@@ -207,6 +213,8 @@ const REAL: &[Real] = &[
         stall_kt: Some(130.0),
         // NWS ±45° in manoeuvre mode (±15° normal); wheelbase 17.78 ft (SAC).
         nose_wheel: Some(Nws { angle_deg: 45.0, wheelbase_ft: 17.78, grip_g: 0.3 }),
+        // Service ceiling: USAF F-15 fact sheet: 65,000 ft.
+        ceiling_ft: Some(65_000.0),
         ..NONE
     },
     // F-4E Kurnass, 2 x J79-GE-17 (the Kurnass 2000 kept the engines and airframe: same row).
@@ -229,6 +237,8 @@ const REAL: &[Real] = &[
         g: Some((7.33, -3.0)),
         // NWS ±70° (button, below ~70 kt); wheelbase ~23.3 ft (uncertain).
         nose_wheel: Some(Nws { angle_deg: 70.0, wheelbase_ft: 23.3, grip_g: 0.3 }),
+        // Service ceiling: F-4E: 58,750 ft at maximum power, 100 ft/min (airfighters.com, SAC figure).
+        ceiling_ft: Some(58_750.0),
         ..NONE
     },
     // IAI Lavi (production design figures, Jane's 1987-88) with the PW1120.
@@ -249,6 +259,8 @@ const REAL: &[Real] = &[
         stall_kt: Some(110.0),
         // Wheelbase 12.66 ft (Jane's); the steering angle is not public: the F-16's ±32° as a stand-in.
         nose_wheel: Some(Nws { angle_deg: 32.0, wheelbase_ft: 12.66, grip_g: 0.3 }),
+        // Service ceiling: Design figure, 15,240 m (Jewish Virtual Library, Wikipedia; the prototypes flew too little to confirm it).
+        ceiling_ft: Some(50_000.0),
         ..NONE
     },
     // Kfir C7 (IAI J79-J1E, licence-built J79-GE-17), Jane's.
@@ -271,6 +283,8 @@ const REAL: &[Real] = &[
         stall_kt: Some(127.0),
         g: Some((7.5, -3.5)),
         nose_wheel: Some(Nws { angle_deg: 30.0, wheelbase_ft: 15.96, grip_g: 0.3 }),
+        // Service ceiling: Kfir C7: above 17,680 m / 58,000 ft (milavia.net).
+        ceiling_ft: Some(58_000.0),
         ..NONE
     },
     // Mirage IIICJ Shahak (SNECMA Atar 09C), jet only (no SEPR rocket).
@@ -291,6 +305,8 @@ const REAL: &[Real] = &[
         // Approach ~180 kt / 1.3 (no flaps; Dassault 170 kt, pilots 185 kt).
         stall_kt: Some(140.0),
         nose_wheel: Some(Nws { angle_deg: 30.0, wheelbase_ft: 15.96, grip_g: 0.3 }),
+        // Service ceiling: Mirage IIICJ: 17,000 m (flugzeuginfo.net, Jewish Virtual Library).
+        ceiling_ft: Some(55_770.0),
         ..NONE
     },
     // --- AI types (docs/real-aircraft.md §9). No public roll rate was found for any of them: the
@@ -314,6 +330,8 @@ const REAL: &[Real] = &[
         // Landing speed 146 kt (Jane's) / 1.1.
         stall_kt: Some(133.0),
         g: Some((8.5, -3.0)),
+        // Service ceiling: MiG-21MF: 18,200 m (airwar.ru).
+        ceiling_ft: Some(59_710.0),
         ..NONE
     },
     // MiG-23ML (R-35-300), Syria / Iraq / Libya: Jane's, airwar.ru, leteckemotory.cz, Wikipedia.
@@ -335,6 +353,8 @@ const REAL: &[Real] = &[
         stall_kt: Some(132.0),
         // +8.5 below Mach 0.85 (+7.5 above); negative limit not public (original kept).
         g: Some((8.5, -3.0)),
+        // Service ceiling: MiG-23ML: 18,500 m (victorymuseum.ru).
+        ceiling_ft: Some(60_700.0),
         ..NONE
     },
     // MiG-25PD (2 x R-15BD-300), Syria / Iraq / Libya: Jane's, Gordon via ru.wikipedia, airwar.ru.
@@ -358,6 +378,8 @@ const REAL: &[Real] = &[
         stall_kt: Some(137.0),
         // PD +5 (P +4.5, aileron reversal); negative not public (original kept).
         g: Some((5.0, -2.0)),
+        // Service ceiling: MiG-25PD: 20,700 m (airwar.ru).
+        ceiling_ft: Some(67_910.0),
         ..NONE
     },
     // MiG-29 9.12 (2 x RD-33), Syria / Iraq: Jane's, airwar.ru, ru.wikipedia.
@@ -379,6 +401,8 @@ const REAL: &[Real] = &[
         ff_mil_lb_h: Some(17_100.0),
         // Landing 127 kt / 1.1.
         stall_kt: Some(115.0),
+        // Service ceiling: MiG-29 9.12: 18,000 m (ru.wikipedia, Russian MoD).
+        ceiling_ft: Some(59_060.0),
         ..NONE
     },
     // MiG-17F (VK-1F), Egypt / Syria 1967-73: Jane's, Wikipedia, airwar.ru, leteckemotory.cz.
@@ -398,6 +422,8 @@ const REAL: &[Real] = &[
         ff_ab_lb_s: Some(19_400.0 / 3600.0),
         ff_mil_lb_h: Some(6_100.0),
         g: Some((8.0, -1.0)),
+        // Service ceiling: MiG-17F: 16,600 m (airwar.ru).
+        ceiling_ft: Some(54_460.0),
         ..NONE
     },
     // Su-22M4 (AL-21F-3), Syria / Iraq / Libya (the Su-22M3 had the R-29BS-300): Jane's, ru.wikipedia.
@@ -423,6 +449,8 @@ const REAL: &[Real] = &[
         stall_kt: Some(140.0),
         // +7; negative not public (original kept).
         g: Some((7.0, -2.0)),
+        // Service ceiling: Su-22M4: 14,200 m (ru.wikipedia; Su-17M4 15,200 m).
+        ceiling_ft: Some(46_590.0),
         ..NONE
     },
     // Su-24MK (2 x AL-21F-3A), Libya / Syria / Iraq: Jane's, Sukhoi MK brochure via globalsecurity,
@@ -445,6 +473,8 @@ const REAL: &[Real] = &[
         // Stall 151 kt, flaps and gear down (Jane's).
         stall_kt: Some(151.0),
         g: Some((6.0, -2.0)),
+        // Service ceiling: Su-24M / MK: 11,000 m (Russian MoD).
+        ceiling_ft: Some(36_090.0),
         ..NONE
     },
     // Tu-22M3 Backfire-C (2 x NK-25): the game's model and reference card are the Backfire (the
@@ -469,6 +499,8 @@ const REAL: &[Real] = &[
         // Landing 154-165 kt at 78-88 t / 1.1 (U).
         stall_kt: Some(140.0),
         g: Some((2.5, -2.0)),
+        // Service ceiling: Tu-22M3: 13,300 m (Great Russian Encyclopedia, RIA).
+        ceiling_ft: Some(43_640.0),
         ..NONE
     },
     // A-4N Ayit (J52-P-408A), Israeli (the missions place the A-4 on the Israeli side): Jane's (A-4M),
@@ -494,6 +526,8 @@ const REAL: &[Real] = &[
         stall_kt: Some(121.0),
         // +8 / -3 (U).
         g: Some((8.0, -3.0)),
+        // Service ceiling: A-4N: 42,250 ft (airfighters.com) (U).
+        ceiling_ft: Some(42_250.0),
         ..NONE
     },
     // C-130H Karnaf (4 x T56-A-15). The original flies the transports with the F-16's data; the real set
@@ -514,6 +548,8 @@ const REAL: &[Real] = &[
         stall_kt: Some(100.0),
         // 14 CFR 25.337 minimum (the C-130's own limit not found, U).
         g: Some((2.5, -1.0)),
+        // Service ceiling: C-130H light (FAS, Lockheed: 33,000 ft; 23,000 ft at the max 42,000 lb payload, USAF fact sheet) — the game's C-130s fly at empty + fuel.
+        ceiling_ft: Some(33_000.0),
         ..NONE
     },
     // Boeing 707-320C Re'em (4 x JT3D-7): Jane's, Jenkinson. Starts from [C130].
@@ -531,6 +567,8 @@ const REAL: &[Real] = &[
         // Approach 135 kt at max landing weight / 1.3.
         stall_kt: Some(104.0),
         g: Some((2.5, -1.0)),
+        // Service ceiling: 707-320C: 42,000 ft max operating altitude (flugzeuginfo.net, Wikipedia).
+        ceiling_ft: Some(42_000.0),
         ..NONE
     },
     // Il-76MD (4 x D-30KP), Syria / Iraq / Libya: airwar.ru, ru.wikipedia, Jane's. Starts from [C130].
@@ -547,6 +585,8 @@ const REAL: &[Real] = &[
         cd0: Some(0.0834),
         wave_drag: 0.0,
         g: Some((2.5, -1.0)),
+        // Service ceiling: Il-76MD: 12,000 m (airwar.ru).
+        ceiling_ft: Some(39_370.0),
         ..NONE
     },
 ];
@@ -614,6 +654,9 @@ pub fn apply(set: DataSet, name: &str, params: &Params, envelope: &Envelope) -> 
     if let Some((max, min)) = r.g {
         p.max_g_m1 = max - 1.0;
         p.min_g_m1 = min - 1.0;
+    }
+    if let Some(c) = r.ceiling_ft {
+        e = e.with_ceiling(c * FT);
     }
     if let Some(v) = r.stall_kt {
         e.stall_floor = Some(v * KT);
