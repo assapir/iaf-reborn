@@ -269,7 +269,7 @@ Parameters: flags, position, radius [4], model [5], **duration** [6] (lifetime o
 | 0x100 | smoke puff (smoke3) | 2.5 s, 12.8 → 38 m wide, grey 40, rising 5.6–10.1 m/s, ±2.4 m/s drift |
 | 0x400 | white instead of dark smoke | |
 | 0x800 | smoke column | 33 / (4 − detail) puffs, one per 1.6 s, each visible 0.3 s … 36 / (4 − detail) s, width 12.8·(1 + 0.32·age) m, rising 2.5–5.8 m/s, grey 10–79 |
-| 0x2000 | cluster: 48 sub-bursts in 3 rings | weapons |
+| 0x2000 | cluster: 48 sub-bursts in 3 rings (small fires, every second one with a 5 s column) | CBU (510) bursts, weapons.md §9.5 |
 | 0x20000 / 0x40000 | water splash / ring | 1.2 s / 2.4 s |
 | 0x1, 0x200, 0x4 | dead (animation never registered) / unused | |
 

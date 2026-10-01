@@ -7,9 +7,11 @@ seconds. `ctl` = the player controller (`this` of the GEV handler `FUN_0044a240`
 
 Built: chaff / flares (§10), the stores (loadout incl. the Arming screen's, pylons, selection, release, weight / drag, fuel tanks and their jettison), the master /
 HUD modes, the gun (trigger, rounds, hits, muzzle flash, sounds, LCOS / strafe pippers), the IR seeker and the IR
-missiles (types 570 / 580), the weapon HUD text and symbols, the stores MFD page. Not built yet: bombs (CCIP / CCRP,
-ripple quantity / interval, the bombs jettison), rockets, radar missiles and the radar lock (so the seeker is never
-"slaved", no DLZ), HARM, TV / laser weapons, the decoys' effect on missiles, the AI's weapons, AAA.
+missiles (types 570 / 580), the bombs (500, 510 incl. the cluster bursts, 650 as a free bomb) and rockets (560) with
+the ripple quantity / interval, the mode-5 HUD (CCIP and the delayed release) and the bombs jettison (§9), the weapon
+HUD text and symbols, the stores MFD page. Not built yet: radar missiles and the radar lock (so the seeker is never
+"slaved", no DLZ), HARM, TV weapons and the laser guidance (FLIR designation), the decoys' effect on missiles, the
+AI's weapons, AAA.
 
 ## 1. Data
 
@@ -123,11 +125,13 @@ every store, in kg (the updates then stay consistent), and the tank fuel in kg (
 - **Weight**: the tank's fuel weighs as fuel; the empty tank's own weight is not in the data (never counted). Its drag
   counts until it is released.
 - **Jettison** (Shift+C, event 0x48): nothing with the gear handle down; the first press (`FUN_00458760`, once,
-  `W+0xb8`) releases one store from every pylon whose name contains "LB" (count −1 even with Unlimited ammo, drag
-  update, no weight update), then, when the fuel is at or above FuelWeight (`FuelWeight·2.2046 ≤ fuel lb`), motion
-  0x18 (`FUN_005a2270`) sets the fuel and its maximum to FuelWeight: the tanks' remaining fuel is gone. Later presses
-  drop the bombs (500 / 510 / 650, `FUN_00458d10`, once, `W+0xbc`): with the bombs. Tanks are never selectable, so
-  the jettison is their only release. (Ours: the dropped tank is not drawn falling.)
+  `W+0xb8`, only with the release permission `FUN_0045ee10`, §9.2) releases one store from every pylon whose name
+  contains "LB" (count −1 even with Unlimited ammo, drag update, no weight update): the tank falls as a ballistic
+  object (class 0x16, §9.5) aimed at its `_fireEndVec` (0, 500, 0) from the jet, on the terrain, and bursts there
+  (power 0: the explosion only, SFX_WEAPON_EXPLODED / OST_SHELL); then, when the fuel is at or above FuelWeight
+  (`FuelWeight·2.2046 ≤ fuel lb`), motion 0x18 (`FUN_005a2270`) sets the fuel and its maximum to FuelWeight: the
+  tanks' remaining fuel is gone. Later presses drop the bombs (`FUN_00458d10`, §9.6). Tanks are never selectable, so
+  the jettison is their only release.
 - **Stores weight fix**: the tank fuel is added in kg (count × bdb weight × 0.45359), same pool and jettison rule.
 
 ## 3. The gun
@@ -228,8 +232,9 @@ Weapon text (`FUN_0052ef20` pass 3, left column at HUD centre − TxtOffX, rows 
 the gun), "NAV" in HUD mode 0; drawn on the glass, outside the symbology field's clip. (Ours: the HUD font; the
 original uses the MFD sprite font. Our own G / Mach readouts of the HUD sit near it.) Stores page
 (`FUN_0052c740`): per pylon count / name at the docs/mfd.md positions, MRM / SRM totals, gun rounds "%03d" at (68,85),
-fuel, the selected station boxed (gun 36×10 at (48,82)); ours leaves out "%dQnt" / "int%d" (bomb quantity / interval,
-with the bombs).
+fuel, the selected station boxed (gun 36×10 at (48,82)), the ripple quantity "%dQnt" at (1,94) and interval "int%d"
+right-aligned at (131,94) (state +0x374 / +0x378 = W+0xd4 / W+0xd8; OSBs 0xe / 0xf quantity +1 / −1, 0x13 / 0x14
+interval +10 / −10, §9.1). The HUD weapon line has no quantity / interval (the two strings are used only here).
 
 ## 7. Weapon data: Real (Extras)
 Preferences > Extras > Weapon data = Real overlays public numbers (docs/real-weapons.md): missile weights, top speed
@@ -247,59 +252,149 @@ CURRENT LOAD and weights use the same numbers as the flight (so Real shows the r
 - controls.md §4 already has the right meanings of (110,27) Shift+S = Safety toggle, (110,4) Shift+R = reload stores,
   (110,26) Ctrl+W = re-read Weapons.ibx (the keys.trx labels are wrong).
 
-## 9. Bombs and rockets: release (traced, not built)
+## 9. Bombs and rockets (500, 510, 560, 650)
+Built (`game/weapons/bombs.gd`, `player_weapons.gd`, HUD `hud.gd _draw_ag`; test_bombs.gd, test_bomb_missions.gd).
 Types 500 / 510 / 560 / 650 share the release path ("bomb types", `FUN_00457bc0`); rockets too, except the jettison.
+Master mode 1 (5 for 650), HUD mode 5 (6 for 650 with a FLIR pod: not built), the stores MFD page (§2.3).
+
+### 9.1 Ripple quantity / interval (`FUN_004585f0`, events 0x4a / 0x4b → `FUN_004562a0` → `FUN_004562f0`)
+Defaults quantity `W+0xd4` 2, interval `W+0xd8` 10, period `W+0xdc` 0.3 s (0x600eb0). Stores page OSB 0xe / 0xf send
+0x4a with 1 / 0 (quantity +1 / −1), 0x13 / 0x14 send 0x4b (interval +10 / −10) (`FUN_005219e0`); no key does. Clamps:
+quantity 1..14, interval 10..200, period = max(0.1, interval·0.001) (0x600f48, 0x600f0c) — once changed the period is
+0.1 s up to 100 (quirk). "int" is both the spacing on the ground (m) and the period (ms). No check while releasing.
+
+### 9.2 Release (Space 0x40 / up 0x41)
 - **Space** (`FUN_00454270(target, ai)`; player (0, 0), AI `FUN_00452680(T)` → (T, 1)): refused with `W+0xa0`,
   outside HUD mode 1..8 (player), while releasing (`W+0xac`) or without rounds; then `W+0xac` = 1. Bomb types, player:
-  HUD mode 5 or 6 only; without a running ripple timer (`W+0x288`): remaining `W+0xd0` = quantity `W+0xd4`, the HUD
-  mode object's +0x3c = 1 (`FUN_0045d130`), timer `FUN_004cf270(cb 0x601020 / FUN_0045a680, start now, period
-  W+0xdc)` → the first bomb on the next scheduler tick, then one per period. AI: `W+0xe4` / `W+0xe8`, period `W+0xf0`.
-- **Space up** (`FUN_00456100`): timer killed, `W+0xd0` = `W+0xe4` = 0, HUD +0x3c cleared (`FUN_0045d150(1)`): the
-  ripple runs only while Space is held.
-- **One release** (`FUN_004545e0`): no rounds / `W+0xa0` → timer killed; the weapon object still flying (+0x48) →
-  wait; `FUN_00454b70` hands it the aim; player bombs need `FUN_0045ee10` (release permission, untraced) and, when the
-  HUD mode object's +0x2c == 1 and this is the first bomb, mode+0x30 ≤ `_DAT_0082f528` (UNCERTAIN: a CCRP cue);
-  `--W+0xd0`, at 0 the timer ends (`FUN_0045d150(0)`); force-feedback "BombRelease"; release point / launch / count /
-  drag / weight as §2.4.
-- **Aim** (`FUN_00454b70`): player P = HUD mode-5 object +0x18 if +0x2c == 1 else +0xc (meaning untraced); AI with a
-  target: P = T + V·t + ½A·t², t = |T − own| / own speed; AI without: `FUN_0045ed10` (predicted impact).
-  `FUN_00457c20` freezes the ripple line at the first bomb: aim[k] = P + (k − qty/2)·spacing·(sin h, cos h, 0) on the
-  terrain, bomb n uses aim[qty − remaining].
-- **Quantity / interval** (`FUN_004585f0`, events 0x4a / 0x4b → `FUN_004562f0`): defaults 2, 10, period 0.3 s
-  (0x600eb0); quantity 1..14, interval 10..200 step 10, period = max(0.1, interval·0.001) (0x600f48) — once changed
-  the period is 0.1 s up to 100 (quirk). "int" is both the spacing (m, assumed) and the period (ms).
-- **Bombs jettison** (`FUN_00458d10`, once, `W+0xbc`): Unlimited ammo off during the loop; stations 0..8 with a bomb
-  type other than 560 release every round at the `_fireEndVec` point dropped to the terrain.
-- Sounds (soundprop.trx; type → OST UNCERTAIN): 500 WPN_BGBMB_RLS / WPN_BGMB_FLY / EXT_WPN_GRNDBGEPLSN, 510
-  WPN_SMLBMB_RLS / WPN_SMLBNB_FLY, 560 WPN_RDRMIS_RLS / WPN_RDRMIS_FLY / WpnMiss.
-- AI bomb runs release through `FUN_00440440` (gate `FUN_004d4100`) from `FUN_005cd0d0` (impact within the tolerance
-  or 1000 m, 0x612fc0), `FUN_005d8590` (miss < 400 m, 600 m for kinds 0xd2 / 0xdc, angle < 15°, state 9 → 0xb),
-  `FUN_005d9290`.
-- **Mode-5 HUD (CCIP with a delayed release, no true CCRP)** (object `FUN_0045d0a0`): pipper on the HUD (M+0x2c = 0)
-  = the predicted impact M+0xc; off the HUD (M+0x2c = 1, cockpit views) it is clipped to the HUD edge and the target
-  M+0x18 is the ground under it. Space freezes the target (M+0x3c); the first bomb goes once time-to-go M+0x30 =
-  horizontal |I − T| / ground speed ≤ 0.9 s (`_DAT_0082f528`). Impact (`FUN_0045e7f0` HUD / `FUN_0045e400` release, AI):
-  V = jet velocity (HUD path: minus the bdb drag 0x73a as m/s along the nose), t = (vz + √(vz² + 19.612·h)) / 9.806
-  (h above terrain), I = P + V·t − (0, 0, 4.903·t²), one re-solve for the terrain at I and a terrain ray check.
-  Rockets add `_limitVel` 1000 m/s along the nose (the 6 s `_limitDist / _limitVel` cap is overwritten with 1e7:
-  dead store). Release permission `FUN_0045ee10`: g ≥ 0 and |roll| ≤ 90°. Symbols (GDI): fall line FPM → pipper,
-  r 8 circle, centre dot; delayed: a 20 px cue bar FPM → pipper as time-to-go 10 → 0 s; frozen: 400 px steering line;
-  after the last bomb they blink ~300 ms for 1.0 s (`_DAT_0082f620`); "%2d SEC" ("XX SEC" ≥ 90) while off the HUD.
-- **Bomb motion** (500 / 510 / 660 → class 0x16, BallisticMotion 0x1c, ctor `FUN_00467ed0`, vtable 0x601b40; 650
-  motion 0x1a; **rockets 560 use the gun-round motion 0x18**). Aim = the ripple point on the terrain (`FUN_004d6c10` →
-  `FUN_00561b40`). Solver `FUN_005611b0`: the horizontal velocity is turned toward the aim (speed kept, cross-track
-  fully corrected); t = (v.z + √(v.z² + 19.612·(p.z − A.z))) / 9.806; along-track a = 2·(dist − vh·t)/t², clamped
-  ±`_debugParam016` (15) for the player in single player; acc = (û·a, −9.806); aim above the arc → t = a = 0. Motion
-  p = p0 + v0·dt + ½acc·dt², no drag, attitude from the velocity. v1.0 `FUN_00467910` capped dt at the impact (a
-  sure hit); v1.1 `FUN_00468470` does not. Impact check `FUN_00561750` at launch then every 0.5 s: 510 opens 1000 m
-  above the terrain (visual); within 800 m (`_debugParam010`) the pre-explosion event; ends within 2 m of the aim or
-  z ≤ terrain + 1 and bursts at the raw check point (**quirk**: up to ~0.5·|vz| below the ground, the blast's z term
-  cuts the damage; decide original vs fix with the user). One area blast (bdb power / radius), no submunition units
-  (510: 48 small fires in 3 rings, `FUN_00418000` / `FUN_004181c0`), a crater 1 s later near the ground, a splash on
-  water. weapons.ibx: 000500 absAcc 0, β 0.02; 000510 absAcc 200, velocityJump 1000; 000560 absAcc 100, limitVel
-  1000, limitDist 6000, velocityJump 100, no `_spiralAccel` (hit sphere 0). UNCERTAIN (original bug?): the setter
-  writes the ballistic layout into a rocket's fixed-motion state (aim (0, 6000, 100)).
-- **Untraced**: rocket pods ("Rocket box", `RocketBoxScale`).
+  HUD mode 5 or 6 only (else `W+0xac` stays set until Space up); without a running ripple timer (`W+0x288`):
+  remaining `W+0xd0` = quantity, the mode-5 object updates once and freezes (`FUN_0045d130`: +0x3c), timer
+  `FUN_004cf270(cb 0x601020 / FUN_0045a680, start now, period W+0xdc)` → the first store on the next scheduler tick,
+  then one per period. AI: `W+0xe4` / `W+0xe8`, period `W+0xf0`.
+- **Space up** (`FUN_00456100`): timer killed, `W+0xd0` = `W+0xe4` = 0, in HUD mode 5 / 6 the freeze cleared
+  (`FUN_0045d150(1)`): the ripple runs only while Space is held.
+- **One release** (`FUN_004545e0`, the timer callback): no rounds or `W+0xa0` → timer killed, the symbols blink
+  (`FUN_0045d150(0)`); the station (`FUN_0053b680`, the farthest same weapon after a shot: §2.4) — its pool object
+  still flying (+0x48) → wait for the next tick (a station's pool holds `count` objects when count ≤ 6, else
+  `_maxNumInAir`: bombs never wait, rockets with 20 in the air do); `FUN_00454b70` sets the aim (§9.3); then the
+  release permission **`FUN_0045ee10`**: the entity's selector 0 (the load factor) ≥ 0 and |roll| ≤ 90° (0x82f63c
+  = π/2), else no release this tick; the **delayed release**: when the mode-5 pipper is off the HUD (+0x2c) and this is
+  the first store (`W+0xd0 == W+0xd4`), only once the time-to-go +0x30 ≤ **0.9 s** (`_DAT_0082f528`, set by
+  `FUN_00453880`); then `--W+0xd0`, at 0 the timer ends, the symbols blink and `W+0xac` clears; force feedback
+  "BombRelease" (not ported); the release point / velocity / count / drag / weight as §2.4. Sounds:
+  SFX_AIRCRAFT_FIRED_WEAPON / OST_BOMB (WPN_BGBMB_RLS), OST_CLUSTERBOMB (WPN_SMLBMB_RLS), OST_ROCKET, OST_LASERBOMB
+  (WPN_RDRMIS_RLS); a falling store loops SFX_OBJECT_SPECIFIC / its OST (WPN_BGMB_FLY, WPN_SMLBNB_FLY, WPN_RDRMIS_FLY).
+- No master arm, no minimum release altitude, no arming / fuse time: a store released at any height bursts at the
+  ground (or at its aim). The gear rule is Space's (§2.4: gear handle down → only the gun with Safety off).
+
+### 9.3 The aim and the ripple line (`FUN_00454b70` cases 500 / 510 / 560 and 650 without a designation)
+Player: P = the mode-5 object's target +0x18 when its pipper is off the HUD (+0x2c = 1), else its impact +0xc.
+`FUN_00457c20(P, remaining, quantity, interval)`: at the first store (remaining == quantity) the line is frozen in
+`W+0xf4..`: aim[k] = P + (k − ⌊qty/2⌋)·interval·(sin h, cos h, 0), h the jet's heading, each on the terrain; store n
+aims at aim[qty − remaining]. AI: P = T + V·t + ½A·t² (t = |T − own| / own speed) with a target, else `FUN_0045ed10`
+(`FUN_0045e400`, the impact without the drag term). 650: `ctl+0x960` (the FLIR designation, `FUN_00450430`) set →
+the guided path toward the designated point; else the same as a bomb. **The radar's GMT / MAP designation
+(radar.gd `designate`) is not an input**: neither the mode-5 update nor the aim reads it (no true CCRP).
+
+### 9.4 The mode-5 HUD object (`FUN_0045d0a0`, update vtable +0x10 `FUN_0045d470` → `FUN_0045d1d0`)
+Fields: +0xc impact I, +0x18 target T, +0x24 / +0x28 the pipper's screen point, +0x2c off the HUD, +0x30 time-to-go
+(double), +0x38 the distance, +0x3c frozen, +0x40 blinking, +0x48 a time cap (1e7 for every type: the rockets'
+`_limitDist / _limitVel` of `FUN_0045d4d0` is overwritten, dead store), +0x50 the extra speed (rockets: `_limitVel`
+1000). To the cockpit state by `FUN_00445db0`: +0x620 off, +0x624 point, +0x638 time-to-go (above 1000 → 1000),
++0x62c frozen, +0x630 blinking.
+- **Impact** (`FUN_0045e7f0`, v1.1): P = the jet's origin, V = its velocity − the selected store's bdb drag (0x73a,
+  MK-82 23) as m/s along the nose (+ 1000 m/s along the nose for rockets); h = P.z − terrain(P); t = (vz + √(vz² +
+  19.612·h)) / 9.806 (`FUN_0045e330`); I = P + V·t − (0, 0, 4.903·t²) (`FUN_0045e3b0`); when the terrain at I is
+  below I: once more with h = P.z − terrain(I), and I.z = min(I.z, terrain(I)); then a terrain ray P → I
+  (`FUN_0045ed40`; ours: not done). The drag term puts the pipper short of the drag-free fall; the bomb's solver
+  (§9.5) then pulls it onto that point. Level release from 1000 m at 200 m/s: drag-free 2856 m ahead, the MK-82
+  prediction 2528 m.
+- **Not frozen**: I → its screen point (`FUN_0045a790`, the 3-D view's projection: docs/cockpit.md "3D view");
+  +0x2c = not `FUN_004dc6d0` (PtInRect on the HUD clip R+0x2770, **only in the cockpit views 1 / 5 / 0x12 / 0x16**;
+  other views count as inside). Off the HUD: T = the terrain under the pipper point the HUD drew last frame, i.e.
+  the projection clipped to the HUD edge along the line from the flight path marker (`FUN_005302d0` with p4 = 1 →
+  the cached point; `FUN_00401fc0`, the renderer's screen-point ground query), +0x38 = horizontal |I − T|, time-to-go
+  = that / speed (selector 6; ours: the ground speed).
+- **Frozen** (Space): off the HUD I and the time-to-go are recomputed against the frozen T and the pipper is T's
+  projection; on the HUD +0x30 = −1, +0x38 = 1 and the pipper stays on the frozen I.
+- **Symbols** (`FUN_005302d0`, GDI on the HUD, 640×480 px): A = the flight path marker held inside the HUD rectangle
+  (R+0x2760 + R+0x2780); P = the pipper point clipped to the HUD edge along A → P (`FUN_0052db30`).
+  - on the HUD (CCIP): the fall line from the circle's edge (P − 9·û, û = (P − A)/|P − A|) to A, a circle r 8 at P, a
+    one-pixel dot at P;
+  - off the HUD, not frozen (delayed): the same plus a 20 px cue bar across the line at A + n·û, n = |P − A|·clamp((10
+    − ttg)·0.1, 0, 1): it runs from A to P as the time-to-go goes 10 → 0 s;
+  - off the HUD, frozen: the circle at P, a steering line from P − 9·ĉ to P − 400·ĉ and a 20 px release cue across it
+    at P − L·ĉ, L = (P − A)·ĉ + 100·clamp(0.1·ttg, 0, 1), clipped to the HUD; ĉ = (R+0x272c, R+0x2730), the roll vector
+    the pitch ladder uses (docs/cockpit.md), i.e. the rolled screen-down direction: the line goes up from the target
+    and the cue comes down onto the marker's level as the time-to-go runs out; then the dot;
+  - blinking (+0x630, for 1.0 s after the last store: `_DAT_0082f620`, cleared by `FUN_0045d6e0`): drawn only every
+    other 300 ms.
+  - HUD text (`FUN_0052ef20` case 5): row 3 "R %2.1f" with a lock, row 4 "W%02d %02.1f" (waypoint), and only off the
+    HUD row 5 "%2d SEC" of the time-to-go, "XX SEC" from 90 s (0x65d4ac, 0x65d4bc).
+- So the original's A-G modes are CCIP and a "delayed CCIP" (the target under the HUD-edge pipper, release on the
+  0.9 s cue), with the 12 px/deg 3-D projection of the cockpit view. Ours: the HUD rectangle is our HUD Control, the
+  ray through the clipped point comes from our camera (docs/deviations.md).
+
+### 9.5 The falling store (500 / 510 / 660 → class 0x16, BallisticMotion 0x1c, ctor `FUN_00467ed0`, vtable 0x601b40)
+- **Launch** (`FUN_004d6c10` → `FUN_00561b40` sets the aim; the launch variants `FUN_00560c20` / `FUN_00560e80` /
+  `FUN_00560f60` then run the solver `FUN_005611b0` on the release state): the horizontal velocity is turned toward the
+  aim (speed kept: the cross-track error is fully corrected); t = (vz + √(vz² + 19.612·(p.z − A.z))) / 9.806, the end
+  time +0x68 = now + t (none: now); along-track a = 2·(dist − vh·t)/t², clamped ±`_debugParam016` (15 m/s²) when
+  the owner is the player in single player; acc = (û·a, −9.806). The aim above the arc → t = a = 0.
+- **Motion** (`FUN_00468470`, `FUN_004684d0`): p = p0 + v0·dt + ½acc·dt², no drag, attitude from the velocity. v1.0
+  `FUN_00467910` capped dt at the impact (a sure hit); v1.1 does not.
+- **Impact check** (`FUN_00561750`, at launch then every 0.5 s: 0x60ce20): the state is re-based (p0, v0 = now; same
+  curve); 510 opens `_velocityJump` 1000 m above the terrain (+0x2c, `FUN_00463ec0`, a visual: not drawn); within
+  `_debugParam010` 800 m of the aim the pre-explosion event 0x4e (`FUN_004012c0`, broadcast once; no detonation
+  receiver found); within 2 m of the aim (0x60cddc) or at / below terrain + 1 (0x60ce18) → the detonation
+  `FUN_004d6130` **at the check point**: up to ~0.5·|vz| under the ground (a level release from 1000 m: up to 70 m),
+  where the blast's z term (docs/damage.md §4.1) weakens or cancels the damage (MK-82 radius 50) — a direct hit often
+  does nothing (test_bomb_missions: 3 of 7 targets needed a second MK-83). **Original bug, kept by default**; Physics "Bombs burst at the ground" moves the burst to where
+  the last step met the terrain (docs/deviations.md).
+- **Detonation** (`FUN_004d6130`): one area blast (bdb power 0x744 / radius 0x74e) over every unit around (MK-82
+  5000 / 50, MK-83 7000 / 80, MK-84 20000 / 100, M117 10000 / 75, CBU-87 2000 / 150, CBU-97 3000 / 150, ZUNNI 500 /
+  50; T-55 strength 200), no submunition units; the explosion `FUN_0059df20` (weapon event class 0xa000000, the
+  weapon's class and type): a burst below terrain + 10.5 m is drawn at the terrain;
+  | class | where | flags | sound |
+  |---|---|---|---|
+  | 0x16 / 0x19 (bombs, tanks, laser bombs) | water | 0x60000 splash + ring, scale 3 | class 0xd (splash) |
+  | 0x16 / 0x19, 510 | land / air | **0x2000** cluster, radius 100, 3 s | SFX_WEAPON_EXPLODED / OST |
+  | 0x16 / 0x19, others | land / air | 0x4008 flash + 12 smoke streamers and column, scale 4, 95 s; a crater 1 s later when low (pool empty) | SFX_WEAPON_EXPLODED / OST (EXT_WPN_GRNDBGEPLSN) |
+  | 0x17 rocket 560 | low / air | 0x98 (fireball, kick, streamers) / 0x10 | OST_ROCKET (WpnMiss) |
+  | 0x17 gun 565 | | 0x10000000, 1 s | §3.5 |
+  | 0x18 missiles | water / air | splash / 0x10 | |
+- **Cluster bursts** (flag 0x2000, `FUN_00418000` at the start, `FUN_004181c0` per frame): 48 sub-bursts in 3 rings of
+  16, 10 m below the burst; ring k radius r·0.65^k (r = max(radius, 5) = 100: 100, 65, 42 m), each at r ± j (rand %
+  2j + r − j, j = max(1, ⌊0.15·r⌋)), the angle stepping −π/8 (−π/16 more per ring); each goes off after (rand & 7)·0.1
+  s as a small fire (0x10000000) and every odd one adds a smoke column (0x800, 5 s); the flag ends when age /
+  duration ≥ 1 (`_DAT_005ff288`). Visual only: the damage is the one blast.
+
+### 9.6 Bombs jettison (Shift+C after the tanks, `FUN_00458d10`, once, `W+0xbc`)
+Only with the release permission (§9.2); Unlimited ammo off during the loop; stations 0..8 with a bomb type other
+than 560 (500 / 510 / 650) release every round toward the `_fireEndVec` (0, 500, 0) point from the jet dropped to the
+terrain, each with the drag / weight updates and the count −1; they fall and burst like released bombs (armed: the
+blast hits what is there).
+
+### 9.7 Rockets (560)
+Released like the bombs (§9.2, the ripple included), aimed at the ripple point of the mode-5 impact (whose prediction
+adds `_limitVel` 1000 m/s along the nose). Motion: the fixed-weapon motion 0x18 of the gun rounds (§3.4) with
+weapons.ibx 000560: speed |V| + `_velocityJump` 100 along the line to the aim, accelerating at `_absAcceleration`
+100 m/s² up to `_limitVel` 1000 (ours: the gun formula's accelerating branch, UNCERTAIN), no hit sphere (no
+`_spiralAccel`), so the rocket ends at the terrain or at its aim: the blast there (ZUNNI 500 / 50). `_maxNumInAir`
+20 per pod. UNCERTAIN: the setter writes the ballistic layout into a rocket's fixed-motion state (aim (0, 6000, 100));
+ours aims at the ripple point. Pods: one "Rocket box" per rocket pylon (`FUN_0053c1f0`: object 0x753d =
+`weapons\Lau61\Lau61_m`, `[Weapons] RocketBoxScale` default 4.0, not in the shipped iaf.ibx) at the attach point
+(ours: kept when empty, UNCERTAIN).
+
+### 9.8 Laser bombs (650)
+With the FLIR designation (`ctl+0x960`) the guided motion 0x1a (weapons.ibx 000650) flies to the designated point;
+without one the aim is the bomb's (§9.3). Ours: always the bomb path and the ballistic motion (the FLIR designation is
+not built; docs/deviations.md).
+
+### 9.9 AI bomb runs (not built)
+Through `FUN_00440440` (gate `FUN_004d4100`) from `FUN_005cd0d0` (impact within the tolerance or 1000 m, 0x612fc0),
+`FUN_005d8590` (miss < 400 m, 600 m for kinds 0xd2 / 0xdc, angle < 15°, state 9 → 0xb), `FUN_005d9290`; release
+`FUN_00454270(T, 1)`, quantity `W+0xe8`, period `W+0xf0`, aim §9.3.
+
 ## 10. Chaff and flares
 **Built** (player): keys, release, counters, the decoy flight and look. **Not yet**: the decoy effect on missiles (no enemy
 missiles exist yet), ECM.
@@ -364,7 +459,8 @@ missiles exist yet), ECM.
   still flying, with rand < 0.6 (0x600f68): its motion +0x148 = 1 (guidance off, UNCERTAIN). No effect on SAMs.
 
 ## UNCERTAIN
-Candidate order of the spatial query; event 0x4e (pre-explosion) receiver; hit effects look; tracer look; muzzle flash
+Candidate order of the spatial query; event 0x4e (pre-explosion) receiver; the bomb time-to-go speed (selector 6);
+the rockets' accelerating motion; the rocket box when empty; hit effects look; tracer look; muzzle flash
 scale / blend / cockpit visibility; the MFD page placement for weapon modes (taken as event 0x5a's rule); the missile
 flight loop sound and explosion look; `FUN_0045ee10` (release permission, not ported); views 0x12 / 0x16 of the seeker
 field of view; what a missile aims at when its target is gone (`FUN_0045a180`, taken as the origin); the HUD text

@@ -41,7 +41,14 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 | Weapon targets | every object in the spatial database | units with a model (sensors / logic nodes left out) | UNCERTAIN whether they are in it | player_weapons.gd |
 | Weapon effects look | muzzle flash scale / blend, splash, missile explosion (partly not decoded) | muzzle flash 1 m additive, white puff splash, fireball + puff | rendering | weapons.md §3.5–3.6 |
 | HUD weapon line | MFD sprite font | HUD font at the original position | rendering | weapons.md §6 |
-| Jettisoned tanks | fall as objects | vanish | the falling store comes with the bombs | weapons.md §2.6 |
+| Laser bombs (650) | guided motion 0x1a toward a FLIR-designated point (ctl+0x960) | fall as free bombs (the bomb aim and ballistic motion) | the FLIR designation is not built | weapons.md §9.8 |
+| Bomb HUD prediction | after the terrain re-solve, a terrain ray from the jet to the impact (`FUN_0045ed40`) | no ray (a hill in front of the impact is not seen) | ray not decoded | weapons.md §9.4 |
+| Mode-5 HUD rectangle | PtInRect on the HUD clip R+0x2770 in cockpit views | our HUD symbology field (the HUD Control) when the HUD is shown; the target ray through the clipped point from our camera | same geometry, our projector | weapons.md §9.4 |
+| Bomb time-to-go speed | the speed of the entity's selector 6 (not decoded) | the ground speed | UNCERTAIN which speed | weapons.md §9.4 |
+| Rocket flight (560) | `FUN_0047a491` with a positive acceleration (branch not traced) | the gun rounds' formula with +100 m/s² up to _limitVel; aim = the ripple point | UNCERTAIN | weapons.md §9.7 |
+| Cluster opening (510) | the canister opens 1000 m above the terrain (`FUN_00463ec0`, a model change) | not drawn | visual only | weapons.md §9.5 |
+| Rocket box | drawn per FUN_0053e430 (empty box behaviour not traced) | one LAU-61 box per rocket pylon, kept when empty | UNCERTAIN | weapons.md §9.7 |
+| "%2d SEC" position | row 5 of the HUD text block (right column) | right-aligned at the right column, at the weapon line's height | the HUD text block layout is approximated | weapons.md §9.4 |
 | Arming loads on the aircraft | both members of the flight (and every flight on Yes / DEFAULT) | the player's jet only (the tables are kept for every flight) | AI aircraft carry no stores yet | front-end.md §15 |
 | Esc on the Arming screen | not traced | acts as BACK (checks, "Use weapon load?", TSD) | the generic Esc went to Main without the question | front_end.gd |
 | AI watch-ground line of sight | terrain ray `0x4020d0` | 8 terrain samples along the segment | ray not decoded | ai.md §8.4 |
@@ -70,6 +77,10 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
   makes the player the AI target's threat (brain+0x7c; the original writes the target itself) — rwr.md §2.
 - **Flight data = Real**: the RWR display lists every used slot (the original copies the first `count` slots without
   compacting, so an entry can vanish after a removal) — rwr.md.
+- **Preferences → Physics → "Bombs burst at the ground"** (`fix_bomb_burst`): the original checks a falling bomb only
+  every 0.5 s and bursts it at the first check point at or below terrain + 1 m, up to ~0.5·|vz| (70 m) under the
+  ground, where the blast's height term weakens or cancels the damage; the fix moves the burst up to where the bomb
+  met the terrain — weapons.md §9.5.
 - **Preferences → Physics → "Stores weight fix"**: every store counted in the stores weight, in kg, and the fuel
   tanks' fuel in kg (the original: one store per station, pounds in the kg field, tank fuel = the pounds number as
   kg) — weapons.md §2.5–2.6.
