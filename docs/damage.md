@@ -262,7 +262,7 @@ Parameters: flags, position, radius [4], model [5], **duration** [6] (lifetime o
 | 0x2 | the model shatters: one piece per polygon | velocity (offset + base)·k·scale, k ∈ {0.5,1,1.5}; spin ±0.96 rad/s; g = 30; life (1 + U)·duration/2 = 47–94 s; delay 0–0.3 s |
 | 0x40 | no piece delay | |
 | 0x80 | upward kick (base 5) | |
-| 0x1000 | pieces rest at origin − 0.5 m (else vanish at the ground) | |
+| 0x1000 | pieces rest at origin − 0.5 m (else vanish at the ground) | ours: on the terrain under each piece (deviations.md) |
 | 0x8 (+0x2) | large flying pieces trail smoke puffs | one puff per frame |
 | 0x20 | large flying pieces may flare (1/32 per frame) into a small fire | |
 | 0x8 (no 0x2) | 12 smoke streamers (5·scale sideways, 3·scale up, g 30) then a 9 s column | weapons |

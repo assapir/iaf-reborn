@@ -41,7 +41,7 @@ const PIECES := 24
 var _rng := RandomNumberGenerator.new()
 ## Live puffs: {pos, vel, age, life, w0, w1 (width at birth / death), grey, fire, delay}.
 var _puffs: Array = []
-var _pieces: Array = []  # {node, vel, spin, age, life, rest_y, ground_y, large, delay, smoke_t}
+var _pieces: Array = []  # {node, vel, spin, age, life, rest, ground_y, large, delay, smoke_t}
 var _streamers: Array = []
 var _columns: Array = []  # {pos, age, n, end}
 var _smokers := {}  # Node3D -> accumulated time (damage smoke, FUN_004d20a0)
@@ -179,7 +179,9 @@ func _flash(pos: Vector3) -> void:
 ## 0x2: the model shatters (FUN_004172b0 / FUN_00417610): each piece flies at
 ## (offset + base) · k · scale, k in {0.5, 1, 1.5}, base = 5 up with 0x80; spin up to ±0.96 rad/s;
 ## g = 30; life (1 + rand%100·0.01) · duration · 0.5; start delay 0..0.3 s unless 0x40. With 0x1000
-## pieces come to rest at the origin altitude - 0.5 and lie there, else they vanish at the ground.
+## pieces come to rest at the origin altitude - 0.5 and lie there (ours: on the terrain under each
+## piece, so a crash up to 10.5 m above the ground or on a slope leaves no pieces in the air), else
+## they vanish at the ground.
 ## With 0x8 large flying pieces trail smoke; with 0x20 they may flare into a small fire (1/32 per
 ## frame) and vanish.
 func _shatter(pos: Vector3, flags: int, scale: float, duration: float, ground_y: float, radius: float) -> void:
@@ -203,7 +205,7 @@ func _shatter(pos: Vector3, flags: int, scale: float, duration: float, ground_y:
 			"spin": Vector3((_rng.randi() & 63) - 32, (_rng.randi() & 63) - 32, (_rng.randi() & 63) - 32) * 0.03,
 			"age": 0.0, "life": (1.0 + (_rng.randi() % 100) * 0.01) * duration * 0.5,
 			"delay": 0.0 if flags & F_NO_DELAY else (_rng.randi() % 100) * 0.003,
-			"rest_y": pos.y - 0.5 if flags & F_REST else -INF, "ground_y": ground_y,
+			"rest": flags & F_REST != 0, "ground_y": ground_y,
 			"large": i % 3 == 0, "smoke": flags & F_SMOKE_TRAILS != 0, "burn": flags & F_BURN_PIECES != 0,
 			"smoke_t": 0.0, "resting": false,
 		})
@@ -264,11 +266,16 @@ func _update_pieces(delta: float, step: float) -> void:
 		p.vel.y -= PIECE_G * delta
 		node.position += p.vel * delta
 		node.rotation += p.spin * delta
-		if node.position.y <= p.rest_y:
-			node.position.y = p.rest_y
+		var g: float = p.ground_y
+		if ground_at.is_valid():
+			var h = ground_at.call(node.position)
+			if h != null:
+				g = h
+		if node.position.y <= g and p.rest:
+			node.position.y = g
 			p.resting = true
 			continue
-		if node.position.y <= p.ground_y and p.rest_y == -INF:
+		if node.position.y <= g:
 			node.queue_free()
 			_pieces.remove_at(i)
 			continue

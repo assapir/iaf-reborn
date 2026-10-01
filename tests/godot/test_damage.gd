@@ -70,6 +70,17 @@ func run() -> void:
 	await seconds(10.5)
 	check(tv._msgbox != null and tv._msgbox.buttons == ["deb", "fly"], "Mission Accomplished box after 10 s")
 
+	# A low aircraft explosion (0x58ba, pieces rest) 8 m above the ground: every resting piece lies on
+	# the terrain under it, none in the air.
+	var fx = tv.effects
+	var at: Vector3 = tv.rig.global_position
+	var gy: float = tv.terrain.height_at(at)
+	fx.explosion(Vector3(at.x, gy + 8.0, at.z), 0x58ba, 4.0, 95.0, gy, 6.0)
+	await seconds(4.0)
+	var resting: Array = fx._pieces.filter(func(p): return p.resting)
+	var off: Array = resting.filter(func(p): return absf(p.node.position.y - tv.terrain.height_at(p.node.position)) > 0.05)
+	check(resting.size() > 0 and off.is_empty(), "debris rests on the terrain (%d resting, %d off)" % [resting.size(), off.size()])
+
 	# Destroying the must-survive post fails the mission.
 	tv = await start_mission(231)
 	rt = tv.runtime

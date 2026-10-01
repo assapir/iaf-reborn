@@ -36,9 +36,8 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
   they differ in 124 of 307 formations — check which missions change their player and port.
 - Real data: real service ceilings per aircraft (the envelope's g ceilings from public ceiling figures), all jets
   incl. AI types (docs/real-aircraft.md).
-- Crash debris floats: the wreck pieces of a crash don't come to rest on the ground (terrain height / fall of
-  the shattered pieces, docs/damage.md §6). Bonus (Extras, if possible): pieces made from the aircraft's own parts
-  (wings, tail, gear from its model) instead of generic shards.
+- Crash debris bonus (Extras, if possible): pieces made from the aircraft's own parts (wings, tail, gear from its
+  model) instead of generic shards.
 - Physics tab: the list needs a scrollbar soon (15 options; use the Keyboard page's original scrollbar art / behaviour).
 - Stores look detached: no pylon models drawn (stores float under the wing), single-sided fins (flat white
   triangles from behind), triple-rack side bombs touch the wing (original formula) — see scratchpad so_behind.png.
