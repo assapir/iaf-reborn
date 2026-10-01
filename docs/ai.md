@@ -445,6 +445,95 @@ its Tower point, the engine test its Lineup point.
   AI on MISSION-controlled units (their brain runs without manoeuvres: not started), network paths.
 - Tests: `test_ai_flight.gd` (mission 221: 13 AI jets navigate, wingmen in formation, a take-off from Ramon).
 
+## 13. Combat (traced, not built yet)
+
+Partial decode for the AI combat job (scratch work; argument orders of `4440d0` checked in the disassembly).
+Corrections to §4 / §5: action **430 is "target = my nearest RWR emitter"** (`CTL.451f70()`, within 370 800 m;
+without a controller B+0x7c), **440 runs the same exec as 400**; **condition 8 = no external tanks attached**
+(`4593e0`: !(W+0xb8 == 0 && W+0xc0 != 0)); **condition 21 = the selected store's round count** (`456cd0`); flares
+(310) set the busy flag for **4.0 s** (0x600920 = −4.0, not 2.25), chaff likewise (not verified separately); the type
+gate is marked only when an action really fires (a Launch that does not fire leaves type 1 free).
+
+### 13.1 Actions (class by bdb 0xbe in `4b62b6`; exec = vtable +4 with the entity E; act+8 = 0xc8, +0xc = 0x82,
++0x10 = 0x96, +0x14 = 0x8c)
+| code | exec | effect |
+|---|---|---|
+| 300 | 4440d0 | below |
+| 310 / 320 | 444640 / 4446d0 | free gate and B+0x4c (B+0x50) == 0: busy 1, expiry now + 4.0; `4545e0(0x226 / 0x21c, 0, 1)` = one flare (station 11) / chaff (station 10), released like a store (`454b70`), count −1 |
+| 330 / 340 | 444760 / 4447c0 | `W.452690(1 / 2, act+0xc, act+0x10)` (one `53b8b0` cycle step, rounds > 0); success: fire gate interval := act+0x14, mark |
+| 350 / 360 / 380 | 444820 / 444880 / 444950 | `W.452710(code)`: wants 600 / 570 (580 also, v1.1) / 500; up to 10 `53b8b0` steps until that type with rounds; refused while W+0xac; `4562f0` stores W+0xe8 / 0xec / 0xf0 |
+| 370 | 4448e0 | gun: station 9 (`53bfb0(9)`), fire gate interval 5.0 s |
+| 390 | 4449b0 | not a weapon change: with a controller and tanks attached, the tank jettison `458760` (once); never gated |
+| 400 / 410 / 420 | 444ac0 / 4449e0 / 444a20 | B+0x70 = selector `4ac820` / `4ac900` / `4ac9e0` (selectors not traced) |
+
+**Fire gate** B+0x98 (`4d4100`, init `4d3fa0(0, 1.0, 0)` in `43eda0`): passes when now < last or now > next, then
+next = now + interval (default 1.0 s; the weapon-change actions set act.0x8c: 330 → 15, 350 → 30, 360 → 20, 380 → 45,
+370 → 5 s in default6_1.bdb).
+
+**300 Launch** (`4440d0`):
+```
+gate(type 1) taken or no controller: return
+S = the current station's weapon; T = B+0x70
+inRange = S, T and min ≤ |Tp − P| ≤ max  (S motion vt+0x74 → out[2] min, out[0] max; 3-D distance)
+ang = acos(clamp(nose · unit(Tp − P))) ; cone = 30° (0x6008f8), gun 565: 5° (0x6008fc)
+single player, hostile to the player (network: level Normal): cone ×0.5 Rookie (0x600918), ×1.5 Expert (0x600914)
+ang > cone: return; 580 and |relative bearing 44e770(T)| > 60° (0x60091c): return
+if fire gate passes: W.452680(T) = 454270(T, 1); mark type 1
+```
+**Envelopes** (motion vt+0x74; also condition 20): IR chase class (`5624f0`): dist(v, t) = v·t + 0.5·absAcc·(1 −
+4β)·t² (0x60ce90, 0x60ce94); s = |own V|; no T: max = dist(s, burn), min = dist(s, 1); with T: x = s − d̂·V_T, max =
+dist(x, burn − 2) (0x60ce78); off-boresight ≥ 90° → both 0; min = dist(s, tCO + 2), min > max → both 0 (AIM-9L at 250
+m/s: ≈ 1.5–6.7 km). Fixed weapons (`561700`, gun / rockets): max = _limitDist × 3.281 (0x60cdd8), min = 328.1 m
+(0x60ce10). Bombs (`5641c0`): ballistic throw, min 0 (partly read). Radar 600 / 610 on the chase envelope: UNCERTAIN.
+weapons.ibx AI fields: `_fireReleaseInterval` +0x48, `_maxNumInAir` +0x4c, `_reactionTime` +0x50 (callers not traced).
+
+### 13.2 Conditions (resolved)
+RWR = CTL+0x5b0 (10 entries × 0x24 from +0xc; +0 emitter, +0x14 launch flag; +0x174 locked; names UNCERTAIN).
+3 B+0x78 period code; 10 relative bearing to T (deg, `44e770`); 12 T speed kt; 14 closure d̂·(V_own − V_T) m/s;
+17 T load factor; 19 I am locked (RWR+0x174, invalid without a controller); 20 gun: distance ≤ _limitDist (4500)
+and, for an aircraft, its loop is Dogchase with the nose within NoseOnTargetAng 7° (0x67bad0); other weapons: the
+envelope with max ≠ 0 (bug: no station → max = vx, min = vz); 26 T attacking (T.brain+0x7c) or T locked; 27 leader
+locked; 37 leader's target == mine (no leader target: 1 but invalid); 38 T == threat (nearest RWR emitter, else
+B+0x7c); 39 any RWR entry's launch flag.
+
+### 13.3 Combat manoeuvres (setMode at 5b155c: cancel, Init2(now, fm, T, 0, no end condition), start, root timer
+0.5 s; full military throttle = `5ca420(100)`, no afterburner)
+| mode | mgr | vtable | Run / Init2 |
+|---|---|---|---|
+| 0xd Shandel / 0xf SplitS / 0x10 Horizontal | +0x5b18 / +0x5838 / +0x5df8 | 0x6132d0 / 0x6132b8 / 0x6132e8 | 5d1100 / 5d0eb0 (kinds 0x17 / 0x16 / 0x18) |
+| 0xe Himmelman | +0x48 | 0x612cc8 | 5ce8c0 / 5ce5a0 |
+| 0x11 Dogchase | +0x1de8 | 0x612c90 | 5cea30 / 5c91d0 |
+| 0x12 RunAway | +0x5078 | 0x612e40 | 5dd4a0 / 5dd330 |
+| 0x13 Break90 | +0x5268 | 0x612d48 | 5da7a0 / 5da210 |
+| 0x14 TailClear | +0x64a8 | 0x612d90 | 5dac30 / 5daa80 |
+| 0x16 LevelBomb / 0x17 DiveBomb | +0x49d0 / +0x4ca8 | 0x612cf8 / 0x612d30 | 5d9290 / 5d90b0, 5d8590 / 5d83c0 |
+| 0x18 PopupRelease | +0x1180 | 0x612ca8 | 5cc0f0 / 5ccbd0 |
+
+- **Dogchase** (5cea30, 0.5 s, never ends): aim = T (dist < 1000 m, 0x6130f8) else T − DistanceBehindTarget·F̂_T,
+  LookAt `5ca7d0` case 1 (sets the nose-on flag); speed: dist > 1000: |V_T| + 0.027762795·dist (0x61310c); V_T·d ≤ 0:
+  0; else a = −51.472221/(D − 1854), b = −D·a, vt = (|V_T| + a·dist + b)·(V_T·V)/(|V|·|V_T|); max(vt, 0) → speed
+  law; watch-ground. D = bd.ibx [Autopilot] DistanceBehindTarget (exe 500, v1.1 bdgen.dat 300); the v1.1 data also
+  has DogChaseRollK 4, LookAtBeta 1.0, ChangeHeadBeta 2.5, ChangeRollCone 10, NoChangeRollCone 1.75.
+- **Fly2TargetXyzSt** (0x612d10, 5d9740): LookAt(case +0xf0) on its point; throttle = speed law(+0xe8) or +0xec or
+  0.75; watch-ground unless case 4.
+- **RunAway** (5dd330 / 5dd4a0): horizontal distance > 18540 m → run directly away (point 1854 km away, z ≥ T.z +
+  914.4) at 800 m/s target; > 9270 m, after 60 s, or the target's nose within 60° of me → fly to −1854000·F_T (absolute:
+  quirk); else at the target (+30 m each axis, throttle 1.0); throttle 1.0 for 30 s, then 0.75. Never ends; states
+  flip every tick at the borders (quirk).
+- **Break90** (5da210 / 5da7a0): Fly2Target(B = P + 185400·sgn·(−F_T.y, F_T.x)) until within 10° → level wings (|roll|
+  < 10°) → PullGFullThrottle (7 g, full throttle) until pitch > 45° → KeepOrientation until z > +0x5b0 + 1066.8 →
+  Fly2Target(A = 1854 km ahead) until within 10° → done.
+- **LevelBomb** (5d9290): Fly2TargetXyzSt at 257.5 m/s to (T.x, T.y, max(z, T.z + 609.6)); release `440440` (fire
+  gate, then the selected weapon as 300) when the vacuum impact `45ed10` is within 2·(z − T.z) of T; then
+  LevelWingsPitch0Accel 180 m/s.
+- **PopupRelease** (5ccbd0): Fly2WayPt to me + Rz(bearing to T)·(3708, D − 4635) at terrain + 300 (ETA D/308.4 used
+  as an absolute time: quirk); PullGFullThrottle to 45°; KeepOrientation to T.z + 1828.8; Fly2PtXYZ to T + 500 up
+  until within 15°; KeepAttitude2Pt with the release when the impact is within 600 m of it (again within 1000 m);
+  ChangeAlt T.z + 1000; LevelWingsPitch0Accel 180.
+- Not traced: Shandel / SplitS / Horizontal / Himmelman / TailClear / DiveBomb steps, LookAt cases 2 and 4, the AI's
+  fire per weapon (`454270(T, 1)`: gun burst / aim, missile q, bomb ripple), the target selectors, the decoy logic,
+  B+0x7c writers, the RWR internals, the hit reactions `44d590` / `43ff50`.
+
 ## UNCERTAIN
 - Avionics sensors behind conditions 8, 10, 14, 19, 21, 26, 27, 38, 39; what writes brain+0x7c.
 - The pitch law's tail (`5ca010`), the speed law's acceleration term, the formation loops' details (§8.4).
