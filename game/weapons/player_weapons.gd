@@ -712,6 +712,7 @@ func _build_visuals() -> void:
 		var n := _instance(gunsh)
 		if n == null:
 			break
+		_tracer_look(n)
 		n.visible = false
 		host.add_child(n)
 		_round_nodes.append(n)
@@ -734,6 +735,44 @@ func _build_visuals() -> void:
 			nodes.append(n)
 		_store_nodes[i] = nodes
 	_update_store_nodes()
+
+
+## The gunsh round is a flat ribbon (0.13 × 5 m, 1 mm thick), invisible edge-on from the cockpit. Ours: a crossed
+## copy turned 90° about its length, unshaded, additive and two-sided, so it reads as a tracer from any angle
+## plus a glowing dot of fixed screen size (rendering, docs/deviations.md).
+func _tracer_look(n: Node3D) -> void:
+	var meshes := n.find_children("*", "MeshInstance3D", true, false)
+	for m in meshes:
+		var mi: MeshInstance3D = m
+		var mat := StandardMaterial3D.new()
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+		var src := mi.get_active_material(0) as StandardMaterial3D
+		mat.albedo_color = Color(1.0, 0.85, 0.5)
+		if src != null and src.albedo_texture != null:
+			mat.albedo_texture = src.albedo_texture
+		mi.material_override = mat
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var twin := mi.duplicate() as MeshInstance3D
+		twin.transform = Transform3D(Basis(Vector3.BACK, PI / 2), Vector3.ZERO) * mi.transform
+		mi.get_parent().add_child(twin)
+	# Seen from behind (the usual case) the streak is end-on: a glowing dot of fixed screen size marks it.
+	var dot := MeshInstance3D.new()
+	var q := QuadMesh.new()
+	q.size = Vector2(0.01, 0.01)
+	dot.mesh = q
+	var dm := StandardMaterial3D.new()
+	dm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	dm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	dm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	dm.fixed_size = true
+	dm.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	dm.albedo_color = Color(1.0, 0.8, 0.4)
+	dot.material_override = dm
+	dot.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	n.add_child(dot)
 
 
 ## Stations 0..8 draw `count` stores at slot[0..count−1] (FUN_0053e430) with EXTERNAL STORES on
