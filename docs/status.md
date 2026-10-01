@@ -65,6 +65,8 @@ Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user
   scrollbar soon (15 options; use the Keyboard page's original scrollbar art / behaviour).
 - Stores look detached: no pylon models drawn (stores float under the wing), single-sided fins (flat white
   triangles from behind), triple-rack side bombs touch the wing (original formula) — see scratchpad so_behind.png.
+- Kfir / Mirage data: the original loads one shared block (the second type flies on the first's data) — do that
+  with Flight data = Original; each jet's own section only with Flight data = Real (user decision).
 - Keyboard page: the scrollbar arrows are cropped on the right side.
 - Landing tests at the runway edges (Ramat David): touchdowns near the threshold / runway end and just inside /
   outside the left and right edges (inside = tarmac, safe; outside on grass above 25.7 m/s = rough-ground crash),
@@ -119,6 +121,8 @@ Order source: `docs/mission-coverage.md` (greedy "most missions unlocked"), user
 - **Eject details**: the original fly-by camera, callsign in the radio call, parachute landing.
 
 ## Decisions (agreed with the user)
+- Airbase runway/apron underlay models stay hidden (the imagery shows the airbase) unless it stops looking good.
+- Modern-imagery work may use GDAL as a setup dependency.
 - Keys: when an original command gets built, the original key wins; our own functions move to Ctrl+F-keys.
 - The other camera views (padlock, back view, fly-by, weapon camera, external list) and the wingman radio commands
   are ported with the AI work.
