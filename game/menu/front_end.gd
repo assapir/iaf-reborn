@@ -1033,7 +1033,7 @@ func _draw_physics() -> void:
 		if it.key == "all" or it.key == "none":
 			_text_line(Rect2(CONTENT.position + r.position + Vector2(0, 3), r.size), _t(it.label), LIST_TITLE_PX, LIST_DESC_LIT, font_bold)
 		else:
-			_draw_option(r, it.label, pref_work.get("better", Settings.better)[it.key], 5, 1)
+			_draw_option(r, it.label, pref_work.get("better", Settings.better)[it.key], 7, 1)
 
 
 # --- input ------------------------------------------------------------------------------
