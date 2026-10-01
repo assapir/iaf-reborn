@@ -88,3 +88,8 @@ The original world is enlarged (~1.5× real: runways, base distances 0.75–1.13
 real size would touch mission coordinates, terrain, route timing, weapon/sensor ranges; fits naturally with the
 modern imagery (which is real-scale and gets warped to the game frame). Evaluate as an option once modern imagery
 and the georeference warp exist.
+
+## Better imagery outside Israel (Extras switch)
+Sentinel-2 10 m (WorldCover 2021 / EOX 2017, CC BY) where the original has only ~79 m/px (Sinai, Egypt, Jordan,
+Syria, Lebanon, Cyprus); the original stays over Israel (≈10 m, as good or better). 1998 colours by default (needs
+per-land-cover colour matching), modern colours as its own switch. Comparisons: docs/imagery-research.md.
