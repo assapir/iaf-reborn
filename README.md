@@ -108,7 +108,8 @@ tools/setup.sh --imagery mapi2015-bases             # or several: --imagery sent
 | _coming:_ **SPOT 5** (CNES SPOT World Heritage, 5 m pan + 10 m colour) | outside Israel (maybe Israel too) | GEODES (`https://geodes-portal.cnes.fr/api/stac/search`), free CNES account | Etalab Open Licence 2.0 — "© CNES, distribution SWH / Airbus DS" | ≈ 20–40 GB | not yet (needs a free CNES account and orthorectification) | — |
 
 Pipeline and how to run it by hand: [docs/imagery.md](docs/imagery.md); the warp to the game frame:
-[docs/georef.md](docs/georef.md); every source we checked and why: [docs/imagery-sources.md](docs/imagery-sources.md).
+[docs/georef.md](docs/georef.md) (`iaf-terrain geo <points.json> <X> <Y>` → lat lon, `iaf-terrain game <points.json> <lat> <lon>` →
+engine metres X Y, with `crates/iaf-tools/data/georef_points.json`); every source we checked and why: [docs/imagery-sources.md](docs/imagery-sources.md).
 
 ## Flying (the original key table)
 

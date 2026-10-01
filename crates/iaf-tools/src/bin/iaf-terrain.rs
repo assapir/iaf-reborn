@@ -25,14 +25,23 @@ fn main() -> Result<()> {
             // Engine metres (X east, Y north) -> lon / lat with the given control points.
             let (pts, lambda) = iaf_tools::georef::parse(&std::fs::read_to_string(points)?)?;
             let g = iaf_tools::georef::Georef::fit(pts, lambda)?;
-            let u = iaf_tools::georef::UNITS_TO_METRES;
-            let [lon, lat] = g.to_geo((x.parse::<f64>()? + 166850.0) / u, (1043780.0 - y.parse::<f64>()?) / u);
+            let [lon, lat] = g.engine_to_geo(x.parse()?, y.parse()?);
             println!("{lat:.6} {lon:.6}");
+            Ok(())
+        }
+        [_, "game", points, lat, lon] => {
+            // lat / lon -> engine metres (X east, Y north): the inverse of `geo`.
+            let (pts, lambda) = iaf_tools::georef::parse(&std::fs::read_to_string(points)?)?;
+            let g = iaf_tools::georef::Georef::fit(pts, lambda)?;
+            let [x, y] = g.geo_to_engine(lon.parse()?, lat.parse()?);
+            println!("{x:.1} {y:.1}");
             Ok(())
         }
         _ => bail!(
             "usage: iaf-terrain theatre <map.ptt> <out-dir> [threads]\n       \
-             iaf-terrain georef-points <theatre-dir> <eox-z9-dir> <eox-z10-dir> <out.json> <lambda>"
+             iaf-terrain georef-points <theatre-dir> <eox-z9-dir> <eox-z10-dir> <out.json> <lambda>\n       \
+             iaf-terrain geo <points.json> <X> <Y>      (engine metres -> lat lon)\n       \
+             iaf-terrain game <points.json> <lat> <lon>  (lat lon -> engine metres X Y)"
         ),
     }
 }

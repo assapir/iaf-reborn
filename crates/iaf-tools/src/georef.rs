@@ -97,6 +97,17 @@ impl Georef {
         out
     }
 
+    /// Engine metres (X east, Y north) → (lon, lat).
+    pub fn engine_to_geo(&self, x: f64, y: f64) -> [f64; 2] {
+        self.to_geo((x + 166850.0) / UNITS_TO_METRES, (1043780.0 - y) / UNITS_TO_METRES)
+    }
+
+    /// (lon, lat) → engine metres (X east, Y north): the inverse of `engine_to_geo`.
+    pub fn geo_to_engine(&self, lon: f64, lat: f64) -> [f64; 2] {
+        let [tx, ty] = self.to_game(lon, lat);
+        [tx * UNITS_TO_METRES - 166850.0, 1043780.0 - ty * UNITS_TO_METRES]
+    }
+
     /// (lon, lat) → terrain units: the inverse of `to_geo` (Newton iteration from the affine
     /// part's inverse; converges to well below a millimetre in a few steps).
     pub fn to_game(&self, lon: f64, lat: f64) -> [f64; 2] {
@@ -229,6 +240,8 @@ mod tests {
     fn committed_points_fit_and_round_trip() {
         let g = Georef::load().unwrap();
         assert!(g.points.len() >= 100, "{} control points", g.points.len());
+        let [x, y] = g.geo_to_engine(36.226, 33.479); // Mezzeh (§4) to engine metres and back
+        assert!((g.engine_to_geo(x, y)[0] - 36.226).hypot(g.engine_to_geo(x, y)[1] - 33.479) < 1e-7, "engine round trip");
         // Well spread: every region of the theatre has points (docs/georef.md §4).
         for (name, lon0, lat0, lon1, lat1) in [
             ("Israel", 34.3, 29.5, 35.9, 33.3),

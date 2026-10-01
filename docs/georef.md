@@ -92,7 +92,9 @@ airbase would sit in empty modern desert with the real base kilometres away.
 
 ## 5. Use
 
-- `iaf_tools::georef::Georef::load()` → `to_geo(tx, ty)`, `to_game(lon, lat)`, `residuals_m()`.
+- `iaf_tools::georef::Georef::load()` → `to_geo(tx, ty)`, `to_game(lon, lat)`, `residuals_m()`, and in engine metres `engine_to_geo(X, Y)` / `geo_to_engine(lon, lat)`.
 - `iaf-terrain geo <points.json> <X> <Y>`: engine metres → lat, lon (checks like §4).
+- `iaf-terrain game <points.json> <lat> <lon>`: the inverse, lat, lon → engine metres `X Y` (e.g. to start a
+  capture over a real place: `--at X Y alt heading pitch`). Example: Mezzeh 33.479 36.226 → `451063.7 699129.0`.
 - Re-measuring: fetch the two EOX levels (a `curl --parallel` over the tile list), run `georef-points`,
   review the printed residuals, commit the JSON.
