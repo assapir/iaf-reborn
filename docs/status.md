@@ -77,7 +77,7 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 ## Open gaps (by area)
 - **Terrain**: map-edge push-back / EndWorld and craters (terraintype bits known, systems missing); no elevation
   west of Suez in the original data (flat −557 m, kept).
-- **Flight**: only the F-16; systems damage doesn't affect flying yet; no hook, map-edge push-back.
+- **Flight**: the seven Jet list jets fly (the two MiGs are AI-only, as in the original); systems damage doesn't affect flying yet; no hook, map-edge push-back.
 - **Combat**: player gun, IR missiles, radar lock, chaff / flares (no bombs, rockets, radar missiles, TV / laser,
   HARM); no AI combat (AI jets fly, don't fight), no AAA / SAMs (so no combat mission can be won yet).
 - **Cockpit / MFDs**: ECM, FLIR / TV / HARM pages, NAV distances; the RWR's feeds (AI sensors, SAMs, enemy missiles);
