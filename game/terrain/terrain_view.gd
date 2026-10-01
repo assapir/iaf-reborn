@@ -309,6 +309,9 @@ func _setup_weapons() -> void:
 	add_child(weapons)
 	weapons.setup(self, ent, obj, bdb, preload("res://aircraft/aircraft_model.gd").load_descriptor(player.plane))
 	cockpit.hud.host_world_to_scene = weapons.to_scene
+	cockpit.hud.host_ground = func(x: float, y: float):
+		var g = terrain.height_at(world_to_scene(Vector3(x, y, 0.0)))
+		return g
 	cockpit.on_station_select = weapons.select_station
 	cockpit.on_ripple_event = weapons.ripple_event
 	weapons.bomb_burst_fix = Settings.better.get("fix_bomb_burst", false)
@@ -1846,8 +1849,10 @@ func _process(delta: float) -> void:
 			rig.basis = Basis(st.right, st.up, -st.forward)
 		if not waiting_for_ground:
 			_check_collisions()
-		for k in ["speed_kt", "mach", "alt_ft", "vs_fpm", "pitch", "roll", "heading", "aoa", "g", "rpm", "throttle", "fuel_lbs", "internal_fuel_kg"]:
+		for k in ["speed_kt", "mach", "alt_ft", "vs_fpm", "pitch", "roll", "heading", "aoa", "g", "rpm", "throttle", "fuel_lbs", "internal_fuel_kg", "time", "afterburner"]:
 			cockpit.state[k] = st[k]
+		# The HUD ILS deviations (NAV HUD mode update 460130, docs/cockpit.md "ILS").
+		cockpit.state["ils"] = flight.ils()
 		# The cockpit state's instrument values (iaf_flight::instruments, docs/cockpit.md).
 		var ins: Dictionary = flight.instruments(player_damage.flags if player_damage != null else [])
 		for k in ins:

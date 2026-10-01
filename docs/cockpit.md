@@ -42,24 +42,96 @@ referenced but not shipped. Unreferenced extras: `cfir/cfir-lights.bmp`, `lavi/l
 The v1.1 patch lowered `GunRetPositionY` by 10 px in these five cockpits (the gun now fires 1° up onto the cross,
 docs/damage.md §4.4); nothing else in `cockpit.ibx` changed.
 
-### HUD symbology (v1.1, `FUN_00530b70` → pitch ladder / FPM `FUN_00538c90`)
-* **Flight path marker**: the producer in `FUN_00448b20` (@448cf9–448fa8, new in v1.1) projects pos + 200·velocity
-  direction with the view's perspective and stores the screen point in S+0x1c/0x20 (the 8 bytes v1.1 inserted into the
-  cockpit state). The marker (a 5 px circle with 3 px wings and a tail) is drawn there, and only when it lies inside
-  the HUD clip. v1.0 drew it from the boresight plus 12 px/deg × (α, β).
-* **Pitch ladder**: hung on the marker, **12 px/deg** (ui-scaled), rolled with the jet. With γ the flight path angle
-  (pitch minus the marker's angular offset, `(S+0xc − (S+0x40·R+0x272c + S+0x50·R+0x2730))·57.3`), the rung for angle
-  e sits (e − γ)·12 px above the marker along the rolled vertical, so the γ rung passes through the marker. Seven 5°
-  rungs, from ⌊γ⌋₅ + 15° down to ⌊γ⌋₅ − 15° (none past ±90°); the horizon is one long line, positive rungs solid,
-  negative rungs dashed; the angle is printed on every 10° rung except the horizon. v1.0 anchored the ladder on the
-  boresight.
-* **Gun cross**: at `MainOffsetY − GunRetPositionY + vpan` (as in v1.0; only the data changed). The boresight is at
-  `BorePositionY`.
-* **With v1.0 cockpit data** the file's `GunRetPositionY` is 10 px higher than the v1.1 bullet line (~0.8°). Ours
-  subtracts 10 when one of the five cockpits above still has its v1.0 value.
-* **Port** (`game/cockpit/hud.gd`): the marker is the velocity projected through our camera, which uses the
-  original projection (next section); the ladder follows the v1.1 rule. With that projection the 12 px/deg ladder
-  matches the world (the focal length is 686.2 px = 11.98 px/deg), so the horizon rung lies on the world's horizon.
+### HUD symbology (v1.1, `FUN_00530b70`)
+Traced from v1.1 (objdump for the FPU operands and push order). R = the renderer, S = the cockpit state
+(`0x82f544`); the `[HUD]` keys sit at R+0x2208.. (`FUN_0051ff70`): CenterY +0x2208, GunRetPositionY +0x220c,
+BorePositionY +0x2210, −VertSclOffY +0x2214, TxtOffX / Y +0x2218 / +0x221c, −LeftBorder, −TopBorder, RightBorder,
+BottomBorder +0x2220..+0x222c, Dash +0x2230, ShowHorizon +0x2234, ShowLRScales +0x2238. **Every cockpit uses the
+same code; only these keys differ** (table above); nothing in the HUD path tests the aircraft type, and all units are
+kt / ft / NM for every jet.
+
+* **Frame** (`FUN_00530b70`, views 1 / 0x12 / 0x16 = cockpit): HUD centre (cx, cy) = (320 − pan, MainOffsetY − CenterY +
+  vpan); the field = cx − LeftBorder .. cx + RightBorder, cy − TopBorder .. cy + BottomBorder (R+0x2770 RECT); scale k = 1.
+  View 5 (HUD only) draws at k = 2 around (320, 240) (not ported, deviations.md). With `Dash` 1 and the panel panned
+  ≥ 250 px aside or ≥ 200 px down the HUD becomes a "dash repeater" at (320, 220) (R+0x2788 = 1: no tapes, no ladder,
+  `FUN_00539ac0`; not ported). Two passes: 4 (GDI lines and Arial h10 w5 text, R+0x57c, 1 px pen in the HUD colour, null
+  brush) and 3 (the 5x5 sprite font, recoloured to the HUD colour, `FUN_00525920` right-aligned / `FUN_00525a30`
+  left-aligned, glyph tops at y). GDI text align TA_BASELINE (0x18, 0x1a with TA_RIGHT).
+* **Clip**: only the pitch ladder and marker are clipped to the field (a region); everything else is drawn where it
+  falls: the tapes and boxes sit on and beyond the field's edges, the text block below it.
+* **Altitude** (`FUN_005381c0`) at x = cx + RightBorder, y = cy − VertSclOffY: in HUD modes 0 / 4 / 5 with the gear
+  handle up (S+0x544 = 0) the radar altitude S+0x3c (ft above the ground, ≥ 0) `"%5d R"`, otherwise the barometric
+  S+8 · 3.28084 (m when ≤ 0) `"%5d B"`. Text TA_RIGHT at (x + 43, y + 4); box (x, y ± 6)–(x + 34, y ± 6). With
+  ShowLRScales: the line (x, y ± 51); 20 ticks every 5 px = 100 ft (20 ft per px, off = ⌊A/20⌋ % 5, tick i at
+  (i − 10)·5 + off), 3 px long on the ⌊A/100⌋ % 5 + 5n ones (every 500 ft) and 4 px otherwise, rightwards; labels
+  `"%4.1f"` (thousands of ft) every 25 px: y = (⌊A/20⌋ % 25 + 5) + 25(i − 2), value ⌊A/500⌋·0.5 − (i − 2)·0.5,
+  i = −1..3, shown for −46 < y < 0 or 10 < y < 53, sprite text ending at x + 25, top y − 7.
+* **Speed** (`FUN_005386c0`) at x = cx − LeftBorder, same y: by the HUD mode (S+0xfec): 0 NAV ground speed `"% 3dG"`
+  (true airspeed `"% 3dT"` with the gear handle down), 1–3 / 9 indicated `"% 3d"`, 4–8 true `"% 3dT"`, none above 9.
+  Text TA_RIGHT at (x − 2, y + 4); box (x − 34 .. x, y ± 6). With ShowLRScales: line (x, y ± 51); unless gun mode 3
+  the **required-speed caret** at c = ⌊clamp((S+0x324 − V)·0.6, ±51)⌋: (x + 4, y − c − 3)–(x + 1, y − c)–(x + 5, y − c +
+  4); 17 ticks of 6 px = 10 kt (0.6 px per kt, off = ⌊0.6V⌋ % 6), 3 px on the 50 kt ones, else 4, leftwards; labels
+  `"%d"` every 50 kt (≥ 0) at y = (⌊0.6V⌋ % 30 + 5) + 30(i − 1), i = −1..2, same visibility rule, ending at x − 3.
+* **Heading tape** (`FUN_00537cd0`), y0 = cy − TopBorder: line cx ± 57, centre tick (cx, y0 .. y0 + 4), box (cx ± 11,
+  y0 − 12 .. y0) with `"%03d"` of ⌊heading°⌋ mod 360 at (cx − 8, y0 − 2); **2 px per degree**: ticks every 5° (2 px up)
+  and `"%02d"` labels (tens) every 10° (sprite, ending at x + 6, top y0 − 7), both only for 11 < |x| < 57 (outside the
+  box); the **steering caret** (cx + x − 3, y0 + 4)–(cx + x, y0 + 1)–(cx + x + 4, y0 + 5), x = ⌊2·wrap180(S+0x58° −
+  heading)⌋ clamped ±57.
+* **NAV cues** (waypoint object `FUN_00452e60` → `FUN_004459f0`): S+0x58 = bearing to the current waypoint
+  (atan2(Δx, Δy), clockwise from north), S+0x5c = its 2-D distance · 0.00053937 (NM), S+0x60 = distance / horizontal
+  speed / 60 (minutes; 1000 s when not moving), S+0x320 = its index, S+0x324 = distance / (its time T − now) · 1.9428
+  (kt; 0 once T has passed).
+* **Pitch ladder / flight path marker** (`FUN_00538c90`, v1.1): the marker is the velocity projected (producer in
+  `FUN_00448b20` @448cf9: pos + 200·velocity direction → S+0x1c/0x20), Ellipse(x − 2, y − 2, x + 3, y + 3) with wings
+  x ∓ 4 → x ∓ 1 and a tail y − 4 → y − 1, drawn only when inside the field. The ladder (ShowHorizon only) hangs on it at
+  **12 px/deg**, rolled with the jet: with γ the flight path angle (pitch minus the marker's angular offset,
+  `(S+0xc − (S+0x40·R+0x272c + S+0x50·R+0x2730))·57.3`), the rung for angle e sits (e − γ)·12 px above the marker
+  along the rolled vertical, so the γ rung passes through the marker. Seven 5° rungs from ⌊γ⌋₅ + 15° to ⌊γ⌋₅ − 15°
+  (none past ±90°). In the rung's frame (u along it, r down): positive rungs solid from u = ±9 to ±32 with 3 px end
+  ticks toward the horizon (r + 3); the horizon ±9 to ±46; negative rungs dashed ±9–20, ±22–25, ±27–32 with the end
+  ticks up (r − 3); `"%02d"` of |e| on every 10° rung but the horizon, sprite text ending at P(±39, 0) + (5, −2), shown
+  when that point lies in the field. v1.0 anchored the ladder on the boresight.
+* **ILS** (`FUN_005309a0`, NAV HUD mode 0 only, with the **gear handle down** (S+0x544) and the HUD not a dash
+  repeater; no distance limit): the NAV mode object's update (`FUN_00460130`, vtable 0x600cc0 slot 4) takes the
+  airbase whose **Lineup** point (iaf.ibx) is nearest in 2-D (`FUN_005511a0`, TowersManager `0x699344`) and its
+  `RunwayNumber` (read as an int, record +0x4e0); u = unit vector from the jet to the Lineup point (`FUN_00444d30`
+  returns 1/|d|);
+  **glideslope** = wrap(−5° − asin(u.z)) clamped ±5° (`0x82f678` = −5°, `0x82f67c` = 5°), **localizer** =
+  wrap(atan2(u.x, u.y) − RunwayNumber) clamped ±19° (`0x82f670`), both radians in S+0x1034 / S+0x1030 (`FUN_004463f0`).
+  Drawn: the glideslope line y = cy − ⌊−12·gs°⌋ (held in [top + 1, bottom − 1]) from cx − 16 to cx + 16 with end ticks
+  (y − 1 .. y + 2); the localizer line x = cx − ⌊−12·loc°⌋ (held in [left + 1, right − 1]) from cy − 16 to cy + 16
+  with end ticks (x − 1 .. x + 2). **Both lines cross at the HUD centre when the jet is on the runway's extended
+  centre line and on a 5° glide path to the Lineup point**; high → the glideslope line drops, the runway to the right →
+  the localizer moves right (12 px per degree, the ladder's scale). The 312 briefing ("glide slope 4° below the
+  horizon") describes the picture: the HUD centre is ~4° below the boresight (F-16 (135 − 88)/12). The briefing's
+  final-approach illustration (`brief/bmp/final_ap.bmp`, a pre-release HUD) shows the same 32 px cross.
+* **FUN_0052f690** (every mode): the target box with a lock (`FUN_00537330`); the **gun cross** with the gear handle
+  **up** at (cx, MainOffsetY − GunRetPositionY + vpan): (x − 4 .. x + 5, y) and (x, y − 5 .. y + 10); the **waypoint
+  marker** in NAV and modes 4–8 (S+0x102c, `FUN_00450460`): the current waypoint on the ground (S+0x70 at the terrain
+  height, `FUN_00402080`) projected (S+0x328), held on the field's edge along the line from the HUD centre
+  (`FUN_0052db30`), a 10 px circle with `"%d"` (its number) or `"T"` (action 5) in Arial at (+6, +6); weapon cues of
+  the bombs / radar (S+0x1460 text, S+0xe68 marks, S+0x100c designator, S+0xa04 = 3 cross, S+0x1024 break X:
+  docs/weapons.md).
+* **Text block** (`FUN_0052ef20`, k = 1: sprite font; left column left-aligned at cx − TxtOffX, right column ending at
+  cx + TxtOffX, rows at cy + TxtOffY + 0 / 7 / 14): left 0 `"AB %1d"` while the afterburner is lit (S+0x1054; with two
+  engines (S+0x1038 > 1) the larger of both), else `"T %03d%"` of ⌊rpm·100⌋ (S+0x1040; the lone `%` prints nothing,
+  as the briefing's "T 060"); left 1 `"AP LVL"` / `"AP NAV"` (autopilot S+0x1028 1 / 2) or the load factor S+0x344
+  `"+%3.1fG"` (≥ 0) / `"%4.1fG"`; left 2 `"NAV"` in NAV, else `"%1d %s %s"` (store total, name, RDY / MAL); right 0
+  `"R %2.1f"` (lock range, NM) with a lock (S+0xa20); right 1: NAV and modes 2, 4–8 `"W%02d  %02.1f"` (waypoint number,
+  NM), modes 1 / 3 the lock's aspect `"%2dL"` / `"%2dR"` (or `"AUD"` in 1 without a lock, S+0x3a4); right 2: NAV
+  `"%3.1f MIN"` below 60 min, modes 1 / 2 / 8 `"%2d SEC"` and 4 `"%2d"` of S+0x380, mode 5 `"%2d SEC"` / `"XX SEC"`
+  (≥ 90) of S+0x638 when S+0x620 = 1. **No Mach, AoA or G-limit readout** exists in the original HUD.
+* **Per jet** (the keys above): the F-4E (phantom) and MiG-23 have **ShowHorizon 0** (no ladder, the marker stays)
+  and **ShowLRScales 0** (the speed / altitude boxes without tapes or carets); the others show both. VertSclOffY
+  moves both boxes (F-16 15 px above the centre, Mirage 20, F-15 / F-4 2000 5, Lavi 5 below, others at the centre).
+  Dash 1 (repeater) on F-15, F-16, F-4 2000, Lavi, MiG-23, MiG-29. The ILS, cues and text block are the same for all.
+* **Port** (`game/cockpit/hud.gd`, tests/godot/test_hud.gd; the ILS in Rust `iaf_flight::airbase::ils`,
+  `IafFlight.ils()`): the field and ladder in the Hud control (clipped), the tapes / boxes / text block on the
+  unclipped sibling `HudOuter`; the original geometry in 640x480 pixels × the ui scale. The marker is the velocity
+  projected through our camera, which uses the original projection (next section); with it the 12 px/deg ladder
+  matches the world (focal length 686.2 px = 11.98 px/deg). Deviations: docs/deviations.md (HUD rows).
+* **Gun cross with v1.0 cockpit data**: the file's `GunRetPositionY` is 10 px higher than the v1.1 bullet line
+  (~0.8°); ours subtracts 10 when one of the five cockpits above still has its v1.0 value.
 
 ### 3D view: the cockpit camera's projection (v1.1)
 The world is drawn by TgenAPI (`DAT_0069942c`, 16-bit renderer vtable `0x5fd900`) into viewport 0, every frame from

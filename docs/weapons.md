@@ -229,8 +229,8 @@ launch.
 ## 6. HUD and MFD
 Weapon text (`FUN_0052ef20` pass 3, left column at HUD centre − TxtOffX, rows 7 px from centre + TxtOffY; row 2):
 "%1d %s %s" = total of the selected store (same type and name), name, RDY / MAL (MAL with flags 20 / 21, or 13 with
-the gun), "NAV" in HUD mode 0; drawn on the glass, outside the symbology field's clip. (Ours: the HUD font; the
-original uses the MFD sprite font. Our own G / Mach readouts of the HUD sit near it.) Stores page
+the gun), "NAV" in HUD mode 0; drawn on the glass, outside the symbology field's clip. The whole text block (six rows) is
+in docs/cockpit.md "HUD symbology". Stores page
 (`FUN_0052c740`): per pylon count / name at the docs/mfd.md positions, MRM / SRM totals, gun rounds "%03d" at (68,85),
 fuel, the selected station boxed (gun 36×10 at (48,82)), the ripple quantity "%dQnt" at (1,94) and interval "int%d"
 right-aligned at (131,94) (state +0x374 / +0x378 = W+0xd4 / W+0xd8; OSBs 0xe / 0xf quantity +1 / −1, 0x13 / 0x14

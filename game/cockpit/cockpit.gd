@@ -384,40 +384,6 @@ func _draw() -> void:
 		var w: float = h.Width * s
 		var hh: float = h.Height * s
 		draw_texture_rect(tex.HUD, Rect2(size.x / 2 - w / 2, panel_top() - hh, w, hh), false)
-	_draw_weapon_line(s)
-
-
-## The HUD text block's weapon row (FUN_0052ef20 pass 3): left column at the HUD centre − TxtOffX, rows
-## 7 px apart from the centre + TxtOffY, row 2 = "%1d %s %s" (total of the selected store, name,
-## RDY / MAL), "NAV" in HUD mode 0. On the glass, not clipped to the symbology field. (The original
-## draws it with the MFD sprite font; ours with the HUD font.)
-func _draw_weapon_line(s: float) -> void:
-	if weapons.is_empty() or not layout.has("HUD"):
-		return
-	var h: Dictionary = layout.HUD
-	var fs := int(8 * s)
-	if fs < 1:
-		return
-	var centre := Vector2(size.x / 2, panel_top() - float(h.CenterY) * s)
-	var line := "NAV" if int(weapons.hud_mode) == 0 else "%d %s %s" % [int(weapons.total), weapons.name, "RDY" if weapons.ready else "MAL"]
-	var at := centre + Vector2(-float(h.get("TxtOffX", 82)), float(h.get("TxtOffY", 48)) + 2 * 7 + 6) * s
-	var font: Font = hud.hud_font if hud.hud_font != null else get_theme_default_font()
-	draw_string(font, at, line, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, hud_colour())
-	# With a radar lock: "R %2.1f" (NM, ×0.00053937, 0x600f58) and, in HUD modes 1 and 3, the aspect
-	# "%2dL" / "%2dR" on the waypoint row (rows 0 / 1: placement UNCERTAIN).
-	# HUD mode 5 with the pipper off the HUD (FUN_0052ef20 case 5, row 5 = the right column's last
-	# row): the time-to-go "%2d SEC", "XX SEC" from 90 s.
-	var ag: Dictionary = weapons.get("ag", {})
-	if int(weapons.hud_mode) == 5 and ag.get("off", false):
-		var sec := int(round(float(ag.ttg)))
-		var txt := "XX SEC" if sec >= 90 else "%2d SEC" % sec
-		var right := centre + Vector2(float(h.get("TxtOffX", 82)), float(h.get("TxtOffY", 48)) + 2 * 7 + 6) * s
-		draw_string(font, right - Vector2(font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x, 0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, hud_colour())
-	var lk: Dictionary = radar.get("lock", {})
-	if not lk.is_empty():
-		draw_string(font, at - Vector2(0, 2 * 7) * s, "R %2.1f" % (float(lk.dist) * 0.00053937), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, hud_colour())
-		if int(weapons.hud_mode) in [1, 3]:
-			draw_string(font, at - Vector2(0, 7) * s, preload("res://cockpit/mfd.gd").aspect_text(float(lk.aspect)), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, hud_colour())
 
 
 ## Chaff / flare counters (FUN_0052eab0): "%03d" of stores stations 10 / 11 at [CHAFF] / [FLARE]
