@@ -167,21 +167,61 @@ struct Ring {
 /// A body built from coaxial rings (bomb, missile, tank, strut, tyre): along axis `k` (0 = x, 1 = y, 2 = z), every
 /// ring with `n` sides.
 struct Loft {
-    k: usize,
+    axis: V3,
+    u: V3,
+    v: V3,
     n: usize,
     rings: Vec<Ring>,
 }
 
-/// The two in-plane coordinates for axis `k`.
-fn plane(p: V3, k: usize) -> [f32; 2] {
-    match k {
-        0 => [p[1], p[2]],
-        1 => [p[2], p[0]],
-        _ => [p[0], p[1]],
-    }
+/// An orthonormal basis (u, v) perpendicular to `axis`.
+fn basis(axis: V3) -> (V3, V3) {
+    let helper = if axis[0].abs() < 0.9 { [1.0, 0.0, 0.0] } else { [0.0, 1.0, 0.0] };
+    let u = normalize(cross(axis, helper));
+    (u, cross(axis, u))
 }
 
-/// Rings of 5–16 vertices in planes perpendicular to x, y or z (concentric rings in one plane are separated
+/// Candidate loft axes: x, y, z and the normal of every flat face group whose corners lie near-evenly on a
+/// circle (the side of a canted wheel, a tilted tank end).
+fn axes(tris: &[Tri]) -> Vec<V3> {
+    let mut out: Vec<V3> = vec![[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
+    let mut groups: Vec<(V3, f32, Vec<V3>)> = Vec::new();
+    for t in tris {
+        let fnrm = cross(sub(t.p[1], t.p[0]), sub(t.p[2], t.p[0]));
+        if dot(fnrm, fnrm) < 1e-14 {
+            continue;
+        }
+        let n = normalize(fnrm);
+        let d = dot(n, t.p[0]);
+        let g = match groups.iter().position(|g| dot(g.0, n).abs() > 0.999 && (g.1 - d * dot(g.0, n).signum()).abs() < 1e-3) {
+            Some(g) => g,
+            None => {
+                groups.push((n, d, Vec::new()));
+                groups.len() - 1
+            }
+        };
+        for p in t.p {
+            if !groups[g].2.iter().any(|q| key(*q) == key(p)) {
+                groups[g].2.push(p);
+            }
+        }
+    }
+    for (n, _, pts) in groups {
+        let rim: Vec<V3> = pts;
+        if !(5..=16).contains(&rim.len()) || out.iter().any(|a| dot(*a, n).abs() > 0.995) {
+            continue;
+        }
+        let c = scale(rim.iter().fold([0.0; 3], |a, p| add(a, *p)), 1.0 / rim.len() as f32);
+        let d: Vec<f32> = rim.iter().map(|p| dot(sub(*p, c), sub(*p, c)).sqrt()).collect();
+        let r = d.iter().sum::<f32>() / d.len() as f32;
+        if r > 1e-4 && d.iter().all(|x| (x - r).abs() < 0.08 * r) {
+            out.push(n);
+        }
+    }
+    out
+}
+
+/// Rings of 5–16 vertices in planes perpendicular to x, y, z or a tilted flat polygon's normal (concentric rings in one plane are separated
 /// by radius), joined into lofts of ≥ 2 coaxial rings with the same side count.
 fn find_caps(tris: &[Tri]) -> Vec<Loft> {
     let mut pts: Vec<V3> = Vec::new();
@@ -195,13 +235,16 @@ fn find_caps(tris: &[Tri]) -> Vec<Loft> {
     let size = pts.iter().fold(0f32, |m, p| m.max(p[0].abs()).max(p[1].abs()).max(p[2].abs())).max(1e-3);
     let tol = 2e-3 * size;
     let mut lofts = Vec::new();
-    for k in 0..3 {
-        // Planes along axis k.
+    for axis in axes(tris) {
+        let (bu, bv) = basis(axis);
+        let proj = |p: V3| [dot(p, bu), dot(p, bv)];
+        // Planes along the axis.
         let mut planes: Vec<(f32, Vec<[f32; 2]>)> = Vec::new();
         for p in &pts {
-            match planes.iter_mut().find(|(t, _)| (t - p[k]).abs() < tol) {
-                Some(pl) => pl.1.push(plane(*p, k)),
-                None => planes.push((p[k], vec![plane(*p, k)])),
+            let t = dot(*p, axis);
+            match planes.iter_mut().find(|(pt, _)| (pt - t).abs() < tol) {
+                Some(pl) => pl.1.push(proj(*p)),
+                None => planes.push((t, vec![proj(*p)])),
             }
         }
         let mut rings: Vec<(usize, Ring)> = Vec::new();
@@ -267,7 +310,7 @@ fn find_caps(tris: &[Tri]) -> Vec<Loft> {
             }
             if members.len() >= 2 {
                 members.sort_by(|a, b| a.t.partial_cmp(&b.t).unwrap());
-                lofts.push(Loft { k, n, rings: members });
+                lofts.push(Loft { axis, u: bu, v: bv, n, rings: members });
             }
         }
     }
@@ -283,7 +326,7 @@ fn round_caps(tris: &mut [Tri], lofts: &[Loft]) {
         for p in t.p.iter_mut() {
             let mut best: Option<(f32, V3)> = None;
             for l in lofts {
-                let tk = p[l.k];
+                let tk = dot(*p, l.axis);
                 let (first, last) = (l.rings[0], l.rings[l.rings.len() - 1]);
                 if tk < first.t - 1e-4 || tk > last.t + 1e-4 {
                     continue;
@@ -293,7 +336,7 @@ fn round_caps(tris: &mut [Tri], lofts: &[Loft]) {
                 let f = if (b.t - a.t).abs() > 1e-6 { ((tk - a.t) / (b.t - a.t)).clamp(0.0, 1.0) } else { 0.0 };
                 let c = [a.c[0] + (b.c[0] - a.c[0]) * f, a.c[1] + (b.c[1] - a.c[1]) * f];
                 let r = a.r + (b.r - a.r) * f;
-                let q = plane(*p, l.k);
+                let q = [dot(*p, l.u), dot(*p, l.v)];
                 let (dx, dy) = (q[0] - c[0], q[1] - c[1]);
                 let dist = (dx * dx + dy * dy).sqrt();
                 if dist < 1e-6 {
@@ -307,13 +350,7 @@ fn round_caps(tris: &mut [Tri], lofts: &[Loft]) {
                     continue; // outside the body (fins, struts' brackets)
                 }
                 let s = r / rp;
-                let nq = [c[0] + dx * s, c[1] + dy * s];
-                let mut np = *p;
-                match l.k {
-                    0 => { np[1] = nq[0]; np[2] = nq[1]; }
-                    1 => { np[2] = nq[0]; np[0] = nq[1]; }
-                    _ => { np[0] = nq[0]; np[1] = nq[1]; }
-                }
+                let np = add(*p, add(scale(l.u, dx * (s - 1.0)), scale(l.v, dy * (s - 1.0))));
                 // Several lofts may contain the point (concentric layers): the one whose surface it is nearest.
                 let err = (dist - rp).abs() / rp;
                 if best.is_none_or(|b| err < b.0) {
