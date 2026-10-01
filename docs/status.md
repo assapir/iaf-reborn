@@ -10,9 +10,9 @@
 
 ## Priorities (user decision: 1. player experience, 2. enemies, 3. missions and general fixes)
 **1. Player experience** (in order):
-- NOW: radar contacts / lock / STT, HUD target box, IR missile slaved to the radar; chaff / flares (player side);
-  Real weapon capabilities for the player's weapons and radar.
-- Autopilot (A key; reuses the AI control loops; Landing 312 approach mode).
+- ~~Radar contacts / lock / STT, HUD target box, IR missile slaved to the radar; chaff / flares (player side); Real
+  weapon capabilities~~ — done (see Done).
+- NOW: Autopilot (A key; reuses the AI control loops; Landing 312 approach mode).
 - Cockpit camera = the original projection (HUD ladder lines up).
 - RWR display, other MFD pages, views (padlock, back view, external list), time compression, pause / in-flight menu.
 - Player jet ×2 scale (original), detached-looking stores, shadows / flame shadow.
