@@ -181,6 +181,60 @@ fn basis(axis: V3) -> (V3, V3) {
     (u, cross(axis, u))
 }
 
+/// Flat pieces: connected groups of coplanar triangles (sharing vertices), as (normal, unique vertices).
+fn flat_pieces(tris: &[Tri]) -> Vec<(V3, Vec<V3>)> {
+    let planes: Vec<Option<(V3, f32)>> = tris
+        .iter()
+        .map(|t| {
+            let f = cross(sub(t.p[1], t.p[0]), sub(t.p[2], t.p[0]));
+            if dot(f, f) < 1e-14 { None } else { let n = normalize(f); Some((n, dot(n, t.p[0]))) }
+        })
+        .collect();
+    let mut comp = vec![usize::MAX; tris.len()];
+    let mut out = Vec::new();
+    for i in 0..tris.len() {
+        let Some((n, d)) = planes[i] else { continue };
+        if comp[i] != usize::MAX {
+            continue;
+        }
+        let id = out.len();
+        comp[i] = id;
+        let mut stack = vec![i];
+        let mut pts: Vec<V3> = Vec::new();
+        while let Some(a) = stack.pop() {
+            for p in tris[a].p {
+                if !pts.iter().any(|q| key(*q) == key(p)) {
+                    pts.push(p);
+                }
+            }
+            for b in 0..tris.len() {
+                if comp[b] != usize::MAX {
+                    continue;
+                }
+                let Some((nb, db)) = planes[b] else { continue };
+                let shares = tris[b].p.iter().any(|p| tris[a].p.iter().any(|q| key(*p) == key(*q)));
+                if shares && dot(n, nb) > 0.999 && (d - db).abs() < 1e-3 {
+                    comp[b] = id;
+                    stack.push(b);
+                }
+            }
+        }
+        out.push((n, pts));
+    }
+    out
+}
+
+/// A near-regular polygon (5–16 corners around their own centroid): (centre, radius, corners).
+fn regular(pts: &[V3]) -> Option<(V3, f32)> {
+    if !(5..=16).contains(&pts.len()) {
+        return None;
+    }
+    let c = scale(pts.iter().fold([0.0; 3], |a, p| add(a, *p)), 1.0 / pts.len() as f32);
+    let d: Vec<f32> = pts.iter().map(|p| dot(sub(*p, c), sub(*p, c)).sqrt()).collect();
+    let r = d.iter().sum::<f32>() / d.len() as f32;
+    (r > 1e-4 && d.iter().all(|x| (x - r).abs() < 0.08 * r)).then_some((c, r))
+}
+
 /// Candidate loft axes: x, y, z and the normal of every flat face group whose corners lie near-evenly on a
 /// circle (the side of a canted wheel, a tilted tank end).
 fn axes(tris: &[Tri]) -> Vec<V3> {
@@ -235,6 +289,7 @@ fn find_caps(tris: &[Tri]) -> Vec<Loft> {
     let size = pts.iter().fold(0f32, |m, p| m.max(p[0].abs()).max(p[1].abs()).max(p[2].abs())).max(1e-3);
     let tol = 2e-3 * size;
     let mut lofts = Vec::new();
+    let pieces = flat_pieces(tris);
     for axis in axes(tris) {
         let (bu, bv) = basis(axis);
         let proj = |p: V3| [dot(p, bu), dot(p, bv)];
@@ -290,6 +345,24 @@ fn find_caps(tris: &[Tri]) -> Vec<Loft> {
             for r in rings[before..].iter_mut() {
                 r.1.t = t;
             }
+        }
+        // Flat polygons ∥ to this axis' planes (a wheel side sharing its plane with other parts) are rings too.
+        for (n, pts) in &pieces {
+            if dot(*n, axis).abs() < 0.995 {
+                continue;
+            }
+            let Some((c3, r)) = regular(pts) else { continue };
+            let t = dot(c3, axis);
+            if rings.iter().any(|(m, rg)| *m == pts.len() && (rg.t - t).abs() < tol) {
+                continue;
+            }
+            let c = proj(c3);
+            let q = proj(pts[0]);
+            let phase = (0..pts.len())
+                .map(|i| { let q = proj(pts[i]); (q[1] - c[1]).atan2(q[0] - c[0]) })
+                .fold(f32::INFINITY, f32::min);
+            let _ = q;
+            rings.push((pts.len(), Ring { t, c, r, phase }));
         }
         // Join coaxial rings with the same side count into lofts (centres within 15 % of the radius).
         let mut used = vec![false; rings.len()];
