@@ -12,8 +12,8 @@
 **1. Player experience** (in order):
 - ~~Radar contacts / lock / STT, HUD target box, IR missile slaved to the radar; chaff / flares (player side); Real
   weapon capabilities~~ — done (see Done).
-- ~~Autopilot (A key; the AI control loops; Landing 312 approach mode)~~ — done (see Done; 312's final approach dives:
-  docs/autopilot.md §3).
+- ~~Autopilot (A key; the AI control loops; Landing 312 approach mode)~~ — done (see Done; 312's demonstration lands on
+  the centreline: docs/autopilot.md §3).
 - Cockpit camera = the original projection (HUD ladder lines up).
 - RWR display, other MFD pages, views (padlock, back view, external list), time compression, pause / in-flight menu.
 - Detached-looking stores.

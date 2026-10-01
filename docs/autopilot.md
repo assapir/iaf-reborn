@@ -103,13 +103,18 @@ makes this **GoHomeCL**:
 The mission's markers sit on these corners: "Point 2" (start of downwind), "Point 3" (green point), "Point 4"
 (base), "Point 5" (P4) and "Point 6" (the lineup). Their radius slots fire the instructor's lines.
 
-**UNCERTAIN / open:** in this geometry the KeepAttitude to P3 ends 1852 m early, so the turn onto final starts about
-1 km off the centreline. ChangeHeading2PtAcu (bank ≈ 1.6·e, ChangeHeadBeta 2.5) then chases P5 with a steady ~1°
-error. It reaches its 0.5° done test only about 600 m before the lineup, at the circuit's ~400 m height. FinalApproach
-therefore starts high and dives (pitch target −Kz·above: 0.3 × 300 m). In our port the player's jet hits the ground there. The
-AI's jets come through on the same path only thanks to their crash immunity. The loops were checked against the
-disassembly (Acu done test, line capture, bank law, Fly2WayPt, KeepOrientation), but the cause was not found. The
-landing in this mission is therefore not yet reliable.
+**The turn onto final.** The pattern points are f32 in the original (LandingCL Init `5d2b30`, [ai.md](ai.md) §8.3),
+so for runway 270 the downwind P1 → P2, the base P2 → P3 and the final P3 → P4 → P5 are exactly horizontal /
+vertical lines. ChangeHeading2PtAcu's tangent search then takes its axis-parallel branches and banks the jet on the
+circle tangent to the centreline (about 23° at 87 m/s from the KeepAttitude's end 1852 m before P3). CH4 ends on
+the centreline and CH5 at once; FinalApproach starts about 5.5 km out at about 400 m above the runway, below the 6°
+path. The F-16 crosses the threshold a few metres high, StopPlane's flare (throttle 0, flight-path pitch 0) floats it,
+and it touches down on the centreline (about 1 m off) 1–2 km down the runway and stops.
+
+(The port rounds in world coordinates even though the Godot host shifts the bases by the terrain origin:
+`Autopilot::origin`. An earlier port built the points in f64: P3 and P4 then differed by ~4·10⁻⁵ m, the search took its general branch
+with a ~10⁻⁸ slope, diverged and switched itself off. The turn onto final ended ~1 km off the centreline and the
+final approach began 600 m short at 400 m: the dive into the ground.)
 
 ## 4. Port
 - `crates/iaf-flight/src/autopilot.rs`: `Autopilot::player_mode` (motion 0xf), `player_active`, the `Level` / `Fly`
@@ -121,4 +126,4 @@ landing in this mission is therefore not yet reliable.
   `hud.gd` draws `AP LVL` / `AP NAV`.
 - Tests: `crates/iaf-flight/tests/autopilot.rs` (`player_level_mode_…`, `player_nav_…`, `player_approach_mission_312`)
   and `tests/godot/test_autopilot.gd` (312: start in level mode, A cycle, stick break-out, NAV throttle drop, the
-  circuit to the base leg with gear and flaps on the levers).
+  circuit with gear and flaps on the levers, touchdown on the runway centreline, StopPlane's A key).

@@ -324,7 +324,10 @@ until the leader rolls at ≥ 50 kt.
 - Target G = the route's **last** waypoint (no route: the given point). Children: **Fly2WayPt(G)** with ETA = now + 60
   (the constant −60 at 0x612ff0 is subtracted; UNCERTAIN, another reading gives now − 60), slow-down 180.15 m/s (C-130 128.68) within 6000 m, ends within 100 m (2-D); then **LandingCL(G)**.
 - **LandingCL** (`5d2b30`): base B nearest G, RN = RunwayNumber, L = Lineup, hT = terrain(L); local frame x right,
-  y along RN, `world = L + (x·cos RN + y·sin RN, −x·sin RN + y·cos RN)`; **left-hand** pattern (k = 2 for the C-130):
+  y along RN, `world = L + (x·cos RN + y·sin RN, −x·sin RN + y·cos RN)`; **left-hand** pattern (k = 2 for the C-130).
+  All in **f32**: θ = rad(fmod(−RN, 360)) (`459bd0` / `459c90`), the matrix `43ecd0` rotated by θ, `43dd70`, and
+  L + offset stored as floats. For RN 270 the cos θ residue (~1e-8) is lost, so the legs are exactly axis-parallel and
+  ChangeHeading2PtAcu's search takes its `x == x` / `y == y` branches (an f64 port breaks this):
 
 | point | position | z | heading |
 |---|---|---|---|
