@@ -16,11 +16,11 @@ alias godot=/Applications/Godot.app/Contents/MacOS/Godot
 ## Build and run
 ```sh
 git clone https://github.com/assapir/iaf-reborn && cd iaf-reborn
-tools/setup.sh [--patch /path/to/v1.1-patch.exe] [--hebrew-iso /path/to/IAF.Iso] "/path/to/Jane's IAF.iso" [/path/to/Brief.zip /path/to/Menu.zip]
+tools/setup.sh "/path/to/Jane's IAF.iso"     # options (v1.1 patch, Hebrew packs) as in the README
 ./iafjets                                # builds the extension (target/release/libiaf_godot.dylib) and starts the game
 ```
-`setup.sh` runs the same Rust tools as on Linux, so extraction and conversion behave identically. The v1.1 patch
-step works the same way (see README).
+`setup.sh` runs the same Rust tools as on Linux, so extraction, the v1.1 patch, the Hebrew packs and conversion
+behave identically (see README).
 
 ## Tests
 `tools/test.sh` calls `timeout`: with coreutils installed either put GNU tools first
