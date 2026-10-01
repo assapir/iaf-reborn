@@ -301,23 +301,53 @@ Types 500 / 510 / 560 / 650 share the release path ("bomb types", `FUN_00457bc0`
   writes the ballistic layout into a rocket's fixed-motion state (aim (0, 6000, 100)).
 - **Untraced**: rocket pods ("Rocket box", `RocketBoxScale`).
 ## 10. Chaff and flares
-**Built** (player): keys, release, counters, the decoy flight. **Not yet**: the decoy effect on missiles (no enemy
+**Built** (player): keys, release, counters, the decoy flight and look. **Not yet**: the decoy effect on missiles (no enemy
 missiles exist yet), ECM.
 - **Keys** (`FUN_0044a240`): Insert = event 0x44 chaff, Delete = 0x45 flare. Refused with the gear handle down (no
   Safety override) or weapon systems damage (flag 20); then `FUN_004545e0(0x21c / 0x226, 0, 0)`. One press = one
   decoy: no repeat, no program, no busy timer (the AI uses the same call with p4 = 1 and its brain busy flag).
 - **Release**: station 10 (chaff, bdb 33) / 11 (flares, bdb 34), counts from the type's loadout slots 10 / 11 (F-16 90
   / 60), never ×2 / ×4, decremented even with Unlimited ammo; count 0 → nothing (no message, no sound). The next object
-  of the station's ring pool (`_maxNumInAir` 15) must not be alive, so at most 15 decoys per type per 4 s; a refused
-  press is silent. Release point: the station (StationCha / StationFla) through the attitude.
+  of the station's ring pool (`_maxNumInAir` 15) must not be alive (until its end, below), so at most 15 decoys per
+  type in the air; a refused press is silent. Release point: the station (StationCha / StationFla) through the
+  attitude.
 - **Flight** (fixed-weapon class, `FUN_004d7630` → `FUN_005605c0` → `FUN_0047a1e2`, the gun round's model): aim point
   A = release point + attitude·`_fireEndVec` (0, −200, −10): 200 m aft, 10 m below (composition UNCERTAIN); speed |V|
   + `_velocityJump` 10 along the line to A, decelerating at 50 m/s² (`_limitVel` 5): ≈ 0.85 s at 250 m/s. No hit
-  sphere (`_spiralAccel` 0). Ends **4.0 s** after release (`FUN_004d7690`, the end time of 0x21c / 0x226 capped at
-  4.0, `_DAT_00605120`); between reaching A and 4 s ours holds it at A (UNCERTAIN).
+  sphere (`_spiralAccel` 0). **End** (`FUN_004d7690` @4d7797..4d77de): the motion's time left (vtable +0x80 =
+  `FUN_00467760`: +0x78 (the time at A) − now) capped at **4.0 s** (`_DAT_00605120`, types 0x21c / 0x226 only):
+  a decoy ends **when it reaches A**, at most 4 s after the release (≈ 0.85 s at 250 m/s; the full 4 s only below
+  |V| ≈ 130 m/s, where the 5 m/s crawl never reaches A). There is no motion after A (`FUN_00466fc0` past +0x78 moves
+  nothing). Not built: before that, for a weapon with no target (+0xb8 = 0, decoys included) `FUN_004d7690` cuts A
+  at the terrain (`FUN_004020d0`, the segment from the weapon to A).
 - **Sounds**: SFX_AIRCRAFT_FIRED_WEAPON / OST_CHAFF, OST_FLARE (WPN_RDRMIS_RLS); the end sound SFX_WEAPON_EXPLODED
-  (WpnMiss) is in the table but its call site is UNCERTAIN (not played). **Look** UNCERTAIN (bdb model 0): ours draws a
-  flare as a small bright glow, chaff nothing.
+  (WpnMiss) is in the table but its call site is UNCERTAIN (not played).
+- **Look** (the bdb model is 0; the renderer's own sprites). At load (`FUN_0058a420`, [Animations] in IAF.ibx via
+  `FUN_004d3b50`, the install sets none) weapon type 0x226 gets model **0x753e** and 0x21c **0x753f** (`FUN_004b3316`);
+  0x753e = render type 5 with sprite 0xcd **missFLR.tga** (64×64 RGBA, `[Animations] Flare` 0.5, slot 8 @0x7d2e08),
+  0x753f = type 6 with sprite 0xce **chaff.bmp** (64×64 8-bit, `[Animations] Chaff` 0.3, slot 9 @0x7d2e14); both
+  sizes are stored but neither drawing reads them. The flare's smoke is slot 7: the smoke3.pal animation with
+  lifetime 0.3 s and `[Animations] smokeFlare` 0.25 (`FUN_00402410(sprite, 7, 0.3, size)`). Sprites load centred
+  (6th argument 1 → +0x178). Every rendered frame, per live decoy in the display list (`FUN_00412c60`):
+  - **flare** (type 5): `FUN_00411f80` "drawFlare" draws missFLR at the decoy, size 0.8 + (rand % 41)·0.01
+    (flicker), colour 0xff (white), frame 0 — width = 0.2 · size · 64 ≈ 10–15 m (docs/damage.md §6.1; the 0.2 is the
+    hardware path: `0x6284d8` = width / tan(fov/2)); and, on the 3D-card path (`DAT_007d1960`), an event **0x8400**
+    (`FUN_00416880`, lifetime 10 s): one smoke3 puff, **white** (0x400), 0.3 s, width 3.2 m growing ×3, drifting
+    like the 0x100 puff (`FUN_00416e20`, `FUN_00416a70`). One puff per frame = the flare's smoke trail.
+  - **chaff** (type 6, not drawn itself): an event **0x10004** (scale 2, lifetime 10 s) per frame: 20 pieces
+    (`FUN_00417bb0`, flag 0x10000; without it 10 dark debris pieces), each a triangle (0x4163df: (0.25, 0.4, −0.25),
+    (0.6, 0.15, 0.5), (−0.15, −0.1, 0.3) m, uv (0,0) (1,0) (1,1), drawn both sides) textured with chaff.bmp
+    (black / white / grey noise), pre-lit grey 0xdcdcdc, no blend state of its own (`FUN_00417d40`). Per piece:
+    from the decoy's spot, velocity (rand % 15 − 7)·2 m/s on each axis (nothing from the jet), spin (rand % 65 − 32)·0.1 rad/s on
+    each axis, start delay (rand % 30)·0.01 s, then 3.0 s at p0 + v·t − 15·t² (g = 30). A falling stream of glitter
+    along the decoy's path that outlives the decoy by up to 3.3 s.
+  - `MissileFlareDistance` ([SFX], default 1.0) is not a decoy setting: how far behind a missile (types 0x230,
+    0x23a..0x27b) its trail starts; missFLR is also the missile motor glow at the trail's head ("renderTrailFlare",
+    `FUN_00415a60`).
+
+  **Port** (`decoy_fx.gd`): the same sprites (iaf-convert, 4× Lanczos: converted/objects/missflr.png, chaff.png),
+  sizes, timing and motion; the flare additive, its smoke = damage_effects.gd white puffs; the chaff pieces one
+  shader-driven MultiMesh; emission at a fixed 30 Hz instead of per frame (docs/deviations.md).
 - **Panel counters** (`FUN_0052eab0`): "%03d" of stations 10 / 11 at `[CHAFF]` / `[FLARE]` OffX / OffY, Arial h10
   w5, pale yellow RGB(255, 255, 179) (docs/cockpit.md).
 - **Decoy rule** (`FUN_00454b70`, cases 0x21c @455775 / 0x226 @455968; decided once at the release): candidates = the
