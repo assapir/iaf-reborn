@@ -38,9 +38,10 @@ var default_buttons = null
 var _device := -1
 
 
-## The joystick in use: the first connected joypad, −1 = none.
+## The joystick in use: the first connected joypad, −1 = none. Tests (Settings.isolated()) see only
+## their fake devices, never a real stick that happens to be plugged in.
 func device() -> int:
-	var ids: Array = fake_devices + Input.get_connected_joypads()
+	var ids: Array = fake_devices + ([] if Settings.isolated() else Input.get_connected_joypads())
 	return int(ids[0]) if not ids.is_empty() else -1
 
 

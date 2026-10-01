@@ -45,7 +45,7 @@ func run() -> void:
 	var S := Settings()
 	var J := joy()
 	S.player_flight = 0
-	check(Input.get_connected_joypads().is_empty() and J.device() == -1, "no joystick connected (headless)")
+	check(J.device() == -1, "no joystick in tests (a real one plugged in is ignored)")
 	# The original defaults: FLIGHT CONTROLS joystick, rudder / throttle keyboard (FUN_004f0750).
 	check(S.flight_controls == 1 and S.rudder == 0 and S.throttle == 0, "Devices defaults 1 / 0 / 0")
 

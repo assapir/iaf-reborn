@@ -1157,15 +1157,16 @@ func _record(st: Dictionary, delta: float) -> void:
 		_log = FileAccess.open("user://last_flight.csv", FileAccess.WRITE)
 		if _log == null:
 			return
-		_log.store_line("t,x,y,alt_m,ground_m,speed_kt,on_ground,engine,throttle,brakes,gear,stick_x,stick_y,heading,pitch,fps")
+		_log.store_line("t,x,y,alt_m,ground_m,speed_kt,on_ground,engine,throttle,brakes,gear,stick_x,stick_y,heading,pitch,fps,ap_mode,ap_stage,roll")
 	if _log_t < _log_next:
 		return
 	_log_next = _log_t + 0.5
 	var ground = terrain.height_at(rig.position)
-	_log.store_line("%.1f,%.1f,%.1f,%.1f,%s,%.1f,%s,%s,%.2f,%s,%s,%.2f,%.2f,%.1f,%.1f,%d" % [
+	_log.store_line("%.1f,%.1f,%.1f,%.1f,%s,%.1f,%s,%s,%.2f,%s,%s,%.2f,%.2f,%.1f,%.1f,%d,%d,%s,%.1f" % [
 		_log_t, rig.position.x, rig.position.z, rig.position.y, "%.1f" % ground if ground != null else "none",
 		st.speed_kt, st.on_ground, st.get("engine_on", true), throttle, brakes, gear_down, stick.x, stick.y,
-		st.heading, st.pitch, Engine.get_frames_per_second()])
+		st.heading, st.pitch, Engine.get_frames_per_second(),
+		autopilot.mode if autopilot != null else 0, String(flight.ap_stage()).replace(",", ";"), st.roll])
 	_log.flush()
 
 
