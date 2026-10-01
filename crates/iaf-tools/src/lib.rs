@@ -2,6 +2,8 @@
 
 pub mod aircraft;
 pub mod exe;
+pub mod georef;
+pub mod georef_measure;
 pub mod gltf;
 pub mod mis;
 pub mod rtpatch;
