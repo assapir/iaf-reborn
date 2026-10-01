@@ -31,7 +31,7 @@ const PREFS := {
 	"devices": ["flight_controls", "rudder", "throttle"],
 	"gameplay": ["no_wind", "no_blackouts", "no_spins", "no_stalls", "easy_landing", "easy_aiming",
 		"no_malfunctions", "ai_level", "invulnerable", "no_crashes", "unlimited_ammo", "unlimited_fuel",
-		"flight_data", "weapon_data", "language", "show_info", "blackbox", "hud_ladder", "show_all_keys"],
+		"flight_data", "weapon_data", "language", "show_info", "blackbox", "hud_ladder", "show_all_keys", "fullscreen"],
 }
 
 ## Flight data: "original" (Jane's IAF 1998 numbers) or "real" (corrected real-world data for every flyable jet, docs/real-aircraft.md).
@@ -89,6 +89,8 @@ var hud_ladder := "original"
 ## Keyboard page: false = the original list (92 records); true (ours) also lists the hidden records
 ## (stick, rudder, RPM ± 5, pans, cheats, screen capture) so they can be rebound, e.g. on keyboards without a numpad.
 var show_all_keys := false
+## Window (ours, Extras page): false = a framed window, true = full screen (no window frame).
+var fullscreen := false
 ## VSync (ours, on the Graphics page): frames in step with the display (no tearing, frame rate capped).
 var vsync := true
 ## Key bindings changed on the Controls page (docs/controls.md): {record index: [key, joystick
@@ -158,8 +160,15 @@ func _ready() -> void:
 		DisplayServer.set_icon(Image.load_from_file(icon))
 
 
-## Display settings that act at once (VSync).
+var _applied_fullscreen := false
+
+
+## Display settings that act at once (VSync, full screen).
 func apply_display() -> void:
+	# Only on a change, so a window made full screen by hand (macOS green button) is left alone.
+	if fullscreen != _applied_fullscreen:
+		_applied_fullscreen = fullscreen
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if fullscreen else DisplayServer.WINDOW_MODE_WINDOWED)
 	# Off = uncapped: Mailbox (no tearing) where the platform offers it (Wayland has no Disabled mode),
 	# else Disabled.
 	if vsync:

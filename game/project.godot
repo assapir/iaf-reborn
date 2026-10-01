@@ -14,6 +14,8 @@ config/name="iaf-reborn"
 config/description="Native re-implementation of Jane's IAF (1998)"
 run/main_scene="res://menu/front_end.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
+boot_splash/image="res://../assets/converted/menu/img/back0.png"
+boot_splash/bg_color=Color(0, 0, 0, 1)
 
 [autoload]
 

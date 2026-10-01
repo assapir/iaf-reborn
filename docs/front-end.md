@@ -1120,7 +1120,7 @@ So the Hebrew pages use the same rects as §12.3–§12.6.
   * **Page:** `screens/sgeneral` background, rows 35 px apart on the Gameplay page's grid, and LEDs
     copied from `gamep_0/_1`. Mirrored in Hebrew.
   * **Options:** Flight data (Original 1998 / Real F-16), Language (English / Hebrew; Hebrew only when
-    the pack is installed), Better physics, Flight info (F12) show/hide, Blackbox.
+    the pack is installed), Better physics, Flight info (F12) show/hide, Blackbox, Window (framed / full screen).
   * **Behaviour:** the options go through the same working copy and "Save changes?" box. A language
     change reloads the menus on Yes.
   * The original has no language setting: the Hebrew pack simply replaces the resource files.
