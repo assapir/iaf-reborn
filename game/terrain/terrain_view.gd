@@ -150,6 +150,8 @@ var autopilot: RefCounted
 
 
 func _ready() -> void:
+	# Graphics page SHADOWS (our renderer's sun shadows; the original's shadow method is not used).
+	($Sun as DirectionalLight3D).shadow_enabled = Settings.shadows
 	for i in keys.size():
 		if int(keys.records[i].press[0]) in [2, 3, 10]:
 			_held_records.append(i)

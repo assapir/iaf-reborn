@@ -41,10 +41,10 @@ light_energy = 1.4
 shadow_enabled = true
 shadow_blur = 0.5
 directional_shadow_mode = 2
-directional_shadow_split_1 = 0.03
-directional_shadow_split_2 = 0.12
-directional_shadow_split_3 = 0.4
-directional_shadow_max_distance = 800.0
+directional_shadow_split_1 = 0.1
+directional_shadow_split_2 = 0.25
+directional_shadow_split_3 = 0.55
+directional_shadow_max_distance = 400.0
 
 [node name="Terrain" type="Node3D" parent="."]
 script = ExtResource("2")
