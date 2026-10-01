@@ -689,11 +689,10 @@ impl Fly2Wp {
         } else {
             V_NO_ETA
         };
-        if let Some(cap) = self.cap {
-            if d < 6000.0 && v >= cap {
+        if let Some(cap) = self.cap
+            && d < 6000.0 && v >= cap {
                 v = cap;
             }
-        }
         let thr = l.thr(v);
         l.throttle(thr);
         // The current child.
@@ -766,7 +765,8 @@ enum Loop {
     },
     GoHome {
         f: Fly2Wp,
-        land: Option<Landing>,
+        /// Boxed: the landing's pattern is large next to the other states.
+        land: Option<Box<Landing>>,
     },
     TakeOff {
         stage: u8,
@@ -1141,12 +1141,11 @@ impl Autopilot {
         match &mut lp {
             Loop::Nav { f, idx } => {
                 let mut advance = f.is_none();
-                if let Some(ff) = f {
-                    if ff.step(&mut l, vmin12) == Leaf::Done {
+                if let Some(ff) = f
+                    && ff.step(&mut l, vmin12) == Leaf::Done {
                         l.stick(0.0, 0.0); // 5c99e0
                         advance = true;
                     }
-                }
                 if advance {
                     // WayPtSet next (5d7450): the next waypoint, or the stick centred past the last.
                     match self.route.get(*idx).copied() {
@@ -1166,7 +1165,7 @@ impl Autopilot {
                 if land.is_none() {
                     if f.step(&mut l, vmin12) == Leaf::Done {
                         l.stick(0.0, 0.0);
-                        *land = Landing::new(&self.bases, self.origin, f.t, v.type_code, self.mode == 0);
+                        *land = Landing::new(&self.bases, self.origin, f.t, v.type_code, self.mode == 0).map(Box::new);
                     }
                 } else if let Some(ld) = land {
                     ld.step(&mut l, self, &mut period, vmin1);
@@ -1238,12 +1237,11 @@ impl Autopilot {
                 }
             },
             Loop::Fly { f } => {
-                if let Some(ff) = f {
-                    if ff.step(&mut l, vmin12) == Leaf::Done {
+                if let Some(ff) = f
+                    && ff.step(&mut l, vmin12) == Leaf::Done {
                         l.stick(0.0, 0.0);
                         *f = None;
                     }
-                }
             }
             Loop::None => {}
         }
@@ -1469,14 +1467,13 @@ impl Taxi {
                 let at_hangar = h.is_some_and(|h| {
                     dist2(pos, base.hangars[h].x as f64, base.hangars[h].y as f64) <= 100.0
                 });
-                if !at_hangar {
-                    if let Some(p0) = path.first() {
+                if !at_hangar
+                    && let Some(p0) = path.first() {
                         // Re-placed 60 m before the first point on its heading, at rest (UNCERTAIN: the sign).
                         let x = p0.x as f64 - 60.0 * (p0.hdg as f64).sin();
                         let y = p0.y as f64 - 60.0 * (p0.hdg as f64).cos();
                         l.out.replace = Some((x, y, p0.hdg));
                     }
-                }
                 if path.first().is_some_and(|p| {
                     dist2(
                         [p.x as f64, p.y as f64, 0.0],

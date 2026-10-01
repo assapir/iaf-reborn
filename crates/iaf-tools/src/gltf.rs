@@ -92,9 +92,13 @@ fn mirror_matrix(m: &[f32; 16]) -> [f32; 16] {
     out
 }
 
+/// One material's mesh: material, positions, normals, UVs, indices, and the corner (position, normal, UV bits)
+/// → index map that shares identical corners.
+type Group = (u32, Vec<[f32; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>, Vec<u32>, HashMap<[u32; 8], u32>);
+
 impl Builder {
     fn push_view(&mut self, bytes: &[u8], target: Option<u32>) -> usize {
-        while self.bin.len() % 4 != 0 {
+        while !self.bin.len().is_multiple_of(4) {
             self.bin.push(0);
         }
         let offset = self.bin.len();
@@ -225,8 +229,7 @@ impl Builder {
         }
 
         // Split by material, sharing identical corners.
-        let mut groups: Vec<(u32, Vec<[f32; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>, Vec<u32>, HashMap<[u32; 8], u32>)> =
-            Vec::new();
+        let mut groups: Vec<Group> = Vec::new();
         for t in &tris {
             let gi = match groups.iter().position(|g| g.0 == t.material) {
                 Some(i) => i,

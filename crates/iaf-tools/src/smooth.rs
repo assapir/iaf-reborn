@@ -46,7 +46,10 @@ fn normalize(a: V3) -> V3 {
 }
 
 /// Position key that welds vertices duplicated for UV seams / materials.
-fn key(p: V3) -> [i32; 3] {
+type Key = [i32; 3];
+
+/// The [`Key`] of a position.
+fn key(p: V3) -> Key {
     p.map(|c| (c * 1e4).round() as i32)
 }
 
@@ -75,7 +78,7 @@ pub fn smooth_normals(tris: &mut [Tri]) {
     }
 }
 
-fn edge_key(a: V3, b: V3) -> ([i32; 3], [i32; 3]) {
+fn edge_key(a: V3, b: V3) -> (Key, Key) {
     let (a, b) = (key(a), key(b));
     if a < b { (a, b) } else { (b, a) }
 }
@@ -83,7 +86,8 @@ fn edge_key(a: V3, b: V3) -> ([i32; 3], [i32; 3]) {
 /// Edges shared by exactly two triangles with matching normals at both ends
 /// can bulge; everything else stays straight.
 fn smooth_edges(tris: &[Tri]) -> Vec<[bool; 3]> {
-    let mut edges: HashMap<([i32; 3], [i32; 3]), Vec<(usize, usize)>> = HashMap::new();
+    // Edge (sorted end keys) → its (triangle, edge) users.
+    let mut edges: HashMap<(Key, Key), Vec<(usize, usize)>> = HashMap::new();
     for (i, t) in tris.iter().enumerate() {
         for e in 0..3 {
             edges.entry(edge_key(t.p[e], t.p[(e + 1) % 3])).or_default().push((i, e));
@@ -110,10 +114,10 @@ fn smooth_edges(tris: &[Tri]) -> Vec<[bool; 3]> {
 fn phong(t: &Tri, w: [f32; 3]) -> V3 {
     let p = add(add(scale(t.p[0], w[0]), scale(t.p[1], w[1])), scale(t.p[2], w[2]));
     let mut q = [0.0; 3];
-    for i in 0..3 {
+    for ((n, c), wi) in t.n.iter().zip(&t.p).zip(w) {
         // Project the flat point onto the tangent plane of corner i.
-        let proj = sub(p, scale(t.n[i], dot(sub(p, t.p[i]), t.n[i])));
-        q = add(q, scale(proj, w[i]));
+        let proj = sub(p, scale(*n, dot(sub(p, *c), *n)));
+        q = add(q, scale(proj, wi));
     }
     add(scale(p, 1.0 - SHAPE_FACTOR), scale(q, SHAPE_FACTOR))
 }
@@ -334,11 +338,10 @@ fn find_caps(tris: &[Tri]) -> Vec<Loft> {
                 if d.1 < 1e-4 {
                     continue; // a centre vertex
                 }
-                if let Some(last) = layer.last() {
-                    if d.1 > last.1 * 1.15 {
+                if let Some(last) = layer.last()
+                    && d.1 > last.1 * 1.15 {
                         flush(&mut layer, &mut rings);
                     }
-                }
                 layer.push(d);
             }
             flush(&mut layer, &mut rings);

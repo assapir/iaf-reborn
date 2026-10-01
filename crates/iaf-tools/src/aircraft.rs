@@ -175,8 +175,8 @@ pub fn describe(model: &Model, folder: &str, gltf: &str, source: &str, objects: 
             continue;
         }
         let mut axis = Value::Null;
-        if (1..=0x27).contains(&id) {
-            if let Some(p1) = pos(id + 0x3f) {
+        if (1..=0x27).contains(&id)
+            && let Some(p1) = pos(id + 0x3f) {
                 // X2 is not checked: a missing X2 reads as the origin.
                 let p2 = pos(id + 0x67).unwrap_or([0.0; 3]);
                 let d = if len(p1) <= len(p2) { [p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2]] } else { [p1[0] - p2[0], p1[1] - p2[1], p1[2] - p2[2]] };
@@ -185,7 +185,6 @@ pub fn describe(model: &Model, folder: &str, gltf: &str, source: &str, objects: 
                     axis = round(gl([d[0] / l, d[1] / l, d[2] / l]));
                 }
             }
-        }
         parts.insert(f.name.clone(), json!({ "id": id, "pivot": round(gl(origin(f))), "axis": axis }));
     }
 
@@ -217,7 +216,7 @@ pub fn describe(model: &Model, folder: &str, gltf: &str, source: &str, objects: 
     let engine = |p: [f32; 3]| if p[0] == UNSET { Value::Null } else { round(gl(p)) };
 
     // FUN_0041c7f0: the gun muzzle (last StationGun frame).
-    let gun = children.iter().filter(|c| c.name.eq_ignore_ascii_case("StationGun")).last().map(|c| round(gl(origin(c))));
+    let gun = children.iter().rfind(|c| c.name.eq_ignore_ascii_case("StationGun")).map(|c| round(gl(origin(c))));
 
     let mut stations = serde_json::Map::new();
     for id in 0x29..=0x34 {

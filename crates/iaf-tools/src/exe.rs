@@ -99,42 +99,6 @@ impl PeImage {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// The real exes, when present: v1.0 in `assets/v1.0` (kept by tools/setup.sh when it patches)
-    /// or an unpatched `assets/install`, v1.1 in `assets/v1.1` (the `iaf-patch` output).
-    #[test]
-    fn releases_of_the_real_exes() {
-        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../assets");
-        let mut seen = vec![];
-        for p in ["v1.0/iafjets.exe", "install/iafjets.exe", "v1.1/iafjets.exe"] {
-            let Ok(exe) = PeImage::load(&root.join(p)) else { continue };
-            let r = exe.release().unwrap();
-            if p.starts_with("v1.") {
-                assert_eq!(r.name(), &p[..4], "{p}");
-            }
-            seen.push(r);
-        }
-        if seen.is_empty() {
-            eprintln!("skipped: no iafjets.exe under assets/");
-        }
-    }
-
-    #[test]
-    fn unknown_exe_is_rejected() {
-        // Minimal PE: header at 0x40, no sections, link time 1.
-        let mut d = vec![0u8; 0x100];
-        d[0x3c] = 0x40;
-        d[0x40..0x44].copy_from_slice(b"PE\0\0");
-        d[0x48] = 1;
-        let exe = PeImage::parse(d).unwrap();
-        assert!(exe.release().is_err());
-        assert!(PeImage::parse(vec![0; 0x80]).is_err());
-    }
-}
-
 impl PeImage {
     /// The icon images in the resources (RT_ICON, type 3) as RGBA, largest first. Supports the 1/4/8/24/32-bit
     /// DIBs icons use (height doubled: colour bitmap, then the 1-bit AND mask).
@@ -186,8 +150,8 @@ fn dib_icon(b: &[u8]) -> Option<image::RgbaImage> {
     let colours = match u32a(32) { 0 if bpp <= 8 => 1usize << bpp, n => n as usize };
     let pal = hdr;
     let xor = pal + if bpp <= 8 { colours * 4 } else { 0 };
-    let row = |bits: u32| (((w * bits + 31) / 32) * 4) as usize;
-    let and = xor + row(bpp as u32) * h as usize;
+    let row = |bits: u32| ((w * bits).div_ceil(32) * 4) as usize;
+    let and = xor + row(bpp) * h as usize;
     if b.len() < and + row(1) * h as usize {
         return None;
     }
@@ -196,7 +160,7 @@ fn dib_icon(b: &[u8]) -> Option<image::RgbaImage> {
         let src = (h - 1 - y) as usize; // bottom-up
         for x in 0..w {
             let px = |i: usize| -> [u8; 4] { [b[pal + i * 4 + 2], b[pal + i * 4 + 1], b[pal + i * 4], 255] };
-            let r = xor + src * row(bpp as u32);
+            let r = xor + src * row(bpp);
             let mut c = match bpp {
                 1 => px(((b[r + x as usize / 8] >> (7 - x % 8)) & 1) as usize),
                 4 => px(((b[r + x as usize / 2] >> if x % 2 == 0 { 4 } else { 0 }) & 15) as usize),
@@ -213,4 +177,40 @@ fn dib_icon(b: &[u8]) -> Option<image::RgbaImage> {
         }
     }
     Some(img)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The real exes, when present: v1.0 in `assets/v1.0` (kept by tools/setup.sh when it patches)
+    /// or an unpatched `assets/install`, v1.1 in `assets/v1.1` (the `iaf-patch` output).
+    #[test]
+    fn releases_of_the_real_exes() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../assets");
+        let mut seen = vec![];
+        for p in ["v1.0/iafjets.exe", "install/iafjets.exe", "v1.1/iafjets.exe"] {
+            let Ok(exe) = PeImage::load(&root.join(p)) else { continue };
+            let r = exe.release().unwrap();
+            if p.starts_with("v1.") {
+                assert_eq!(r.name(), &p[..4], "{p}");
+            }
+            seen.push(r);
+        }
+        if seen.is_empty() {
+            eprintln!("skipped: no iafjets.exe under assets/");
+        }
+    }
+
+    #[test]
+    fn unknown_exe_is_rejected() {
+        // Minimal PE: header at 0x40, no sections, link time 1.
+        let mut d = vec![0u8; 0x100];
+        d[0x3c] = 0x40;
+        d[0x40..0x44].copy_from_slice(b"PE\0\0");
+        d[0x48] = 1;
+        let exe = PeImage::parse(d).unwrap();
+        assert!(exe.release().is_err());
+        assert!(PeImage::parse(vec![0; 0x80]).is_err());
+    }
 }

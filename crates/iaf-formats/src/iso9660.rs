@@ -90,7 +90,7 @@ fn find_root(file: &mut File) -> Result<(u32, u32, bool), Error> {
 
 fn decode_name(raw: &[u8], joliet: bool) -> String {
     let name = if joliet {
-        let units: Vec<u16> = raw.chunks_exact(2).map(|c| u16::from_be_bytes([c[0], c[1]])).collect();
+        let units: Vec<u16> = raw.as_chunks::<2>().0.iter().map(|c| u16::from_be_bytes([c[0], c[1]])).collect();
         String::from_utf16_lossy(&units)
     } else {
         latin1(raw)

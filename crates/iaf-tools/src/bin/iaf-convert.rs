@@ -143,7 +143,7 @@ fn convert_objects(install: &Path, missions: &Path, out: &Path, opts: &Options) 
             ));
             if !done.contains_key(&rel) {
                 let src = root.join(&rel);
-                let ok = match convert(&src, &out.join(rel.parent().unwrap()), &[root.clone()], opts) {
+                let ok = match convert(&src, &out.join(rel.parent().unwrap()), std::slice::from_ref(&root), opts) {
                     Ok(()) => true,
                     Err(e) => {
                         println!("  skipped {}: {e:#}", src.display());
@@ -279,15 +279,14 @@ fn convert_menu(install: &Path, pack: Option<&Path>, out: &Path, opts: &Options)
         // msgs.trx is indexed by line number (the message box, docs/front-end.md §3.3). A pack made
         // for an older version lacks the lines added later (v1.1 added line 56, docs/v1.1.md): keep
         // the install's lines past the pack's end.
-        if from_pack(f) && rel.file_name().is_some_and(|n| n == "msgs.trx") {
-            if let Ok(base) = std::fs::read(root.join(rel)) {
+        if from_pack(f) && rel.file_name().is_some_and(|n| n == "msgs.trx")
+            && let Ok(base) = std::fs::read(root.join(rel)) {
                 let base = decode_text(&base, false);
                 let (have, all): (Vec<&str>, Vec<&str>) = (text.trim_end().lines().collect(), base.trim_end().lines().collect());
                 if all.len() > have.len() {
                     text = [&have[..], &all[have.len()..]].concat().join("\r\n");
                 }
             }
-        }
         strings.insert(f.file_stem().unwrap().to_string_lossy().to_lowercase(), text.trim().replace("\r\n", "\n").into());
     }
     std::fs::write(out.join("strings.json"), serde_json::to_string_pretty(&strings)?)?;
@@ -318,8 +317,8 @@ fn convert_menu(install: &Path, pack: Option<&Path>, out: &Path, opts: &Options)
         };
         if rel.starts_with("bmp/palettes") {
             // The mask whose size is closest to the panel (bottom panels are a few pixels larger).
-            if let Some(mask) = masks.iter().min_by_key(|m| (m.width() as i64 - img.width() as i64).abs() + (m.height() as i64 - img.height() as i64).abs()) {
-                if (mask.width() as i64 - img.width() as i64).abs() <= 4 && (mask.height() as i64 - img.height() as i64).abs() <= 4 {
+            if let Some(mask) = masks.iter().min_by_key(|m| (m.width() as i64 - img.width() as i64).abs() + (m.height() as i64 - img.height() as i64).abs())
+                && (mask.width() as i64 - img.width() as i64).abs() <= 4 && (mask.height() as i64 - img.height() as i64).abs() <= 4 {
                     for (x, y, p) in img.enumerate_pixels_mut() {
                         let visible = if x < mask.width() && y < mask.height() {
                             mask.get_pixel(x, y)[0] < 128
@@ -331,7 +330,6 @@ fn convert_menu(install: &Path, pack: Option<&Path>, out: &Path, opts: &Options)
                         }
                     }
                 }
-            }
         }
         std::fs::create_dir_all(dest.parent().unwrap())?;
         opts.scaled(img).save(&dest)?;
@@ -407,7 +405,7 @@ fn strip_bbcode(line: &str) -> String {
 /// 3 bitmap, 5 target (docs/front-end.md §6).
 fn parse_brl(data: &[u8], hebrew: bool) -> Vec<(String, i32, String)> {
     let text = |b: &[u8]| decode_text(b.split(|&c| c == 0).next().unwrap_or(&[]), hebrew).trim().to_string();
-    data.chunks_exact(516)
+    data.as_chunks::<516>().0.iter()
         .map(|e| (text(&e[..256]), i32::from_le_bytes(e[256..260].try_into().unwrap()), text(&e[260..]).replace('\\', "/").to_lowercase()))
         .filter(|(t, _, f)| !t.is_empty() || !f.is_empty())
         .collect()
@@ -730,6 +728,16 @@ fn convert_keys(install: &Path, packs: &Path, out: &Path) -> Result<()> {
     Ok(())
 }
 
+/// The game's icon from iafjets.exe (the largest RT_ICON), 4× Lanczos, as PNG (for the desktop launcher).
+fn convert_icon(install: &Path, out: &Path) -> Result<()> {
+    let exe = iaf_tools::exe::PeImage::load(&install.join("iafjets.exe"))?;
+    let icon = exe.icons()?.into_iter().next().context("no icon in iafjets.exe")?;
+    let big = image::imageops::resize(&icon, icon.width() * 4, icon.height() * 4, image::imageops::FilterType::Lanczos3);
+    big.save(out)?;
+    println!("icon {}x{} -> {}", icon.width(), icon.height(), out.display());
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -758,14 +766,4 @@ mod tests {
             _ => eprintln!("skipped: needs both the v1.0 and the v1.1 iafjets.exe under assets/"),
         }
     }
-}
-
-/// The game's icon from iafjets.exe (the largest RT_ICON), 4× Lanczos, as PNG (for the desktop launcher).
-fn convert_icon(install: &Path, out: &Path) -> Result<()> {
-    let exe = iaf_tools::exe::PeImage::load(&install.join("iafjets.exe"))?;
-    let icon = exe.icons()?.into_iter().next().context("no icon in iafjets.exe")?;
-    let big = image::imageops::resize(&icon, icon.width() * 4, icon.height() * 4, image::imageops::FilterType::Lanczos3);
-    big.save(out)?;
-    println!("icon {}x{} -> {}", icon.width(), icon.height(), out.display());
-    Ok(())
 }

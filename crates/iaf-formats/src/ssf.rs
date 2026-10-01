@@ -25,18 +25,15 @@ impl InstallScript {
         for line in text.lines() {
             let args = quoted(line);
             if line.starts_with("INSTALL_FILES") {
-                if let [_, group, dest] = args[..] {
-                    if let Some(dest) = rel(dest, "[INSTALL_PATH]") {
+                if let [_, group, dest] = args[..]
+                    && let Some(dest) = rel(dest, "[INSTALL_PATH]") {
                         script.groups.push((group.to_string(), dest));
                     }
-                }
-            } else if line.starts_with("INSTALL_EX_FILES") {
-                if let [src, dest] = args[..] {
-                    if let (Some(src), Some(dest)) = (rel(src, "[EXE_FOLDER]"), rel(dest, "[INSTALL_PATH]")) {
+            } else if line.starts_with("INSTALL_EX_FILES")
+                && let [src, dest] = args[..]
+                    && let (Some(src), Some(dest)) = (rel(src, "[EXE_FOLDER]"), rel(dest, "[INSTALL_PATH]")) {
                         script.cd_files.push((src, dest));
                     }
-                }
-            }
         }
         script
     }

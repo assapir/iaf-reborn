@@ -305,7 +305,7 @@ impl IafFlight {
         if let Some(ap) = &mut self.ap {
             ap.route = flat
                 .as_slice()
-                .chunks_exact(5)
+                .as_chunks::<5>().0.iter()
                 .map(|w| Waypoint { x: w[0] - ox, y: w[1] - oy, z: w[2], t: w[3], action: w[4] as i32 })
                 .collect();
         }

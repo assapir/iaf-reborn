@@ -99,7 +99,7 @@ impl Ptt {
     pub fn tiles(&mut self, level: &Level) -> Result<Vec<TileEntry>, Error> {
         let n = (level.columns() * level.rows()) as usize;
         let raw = self.read_at(level.offset as u64, n * 8)?;
-        raw.chunks_exact(8)
+        raw.as_chunks::<8>().0.iter()
             .map(|e| {
                 Ok(TileEntry {
                     offset: level.offset as u64 + u32_at(e, 0)? as u64,
@@ -133,7 +133,7 @@ impl Ptt {
         if raw.len() != n * n * 2 {
             return Err(Error::Format(format!("PTT: elevation block is {} bytes, expected {}", raw.len(), n * n * 2)));
         }
-        let mut h: Vec<u16> = raw.chunks_exact(2).map(|b| u16::from_le_bytes([b[0], b[1]])).collect();
+        let mut h: Vec<u16> = raw.as_chunks::<2>().0.iter().map(|b| u16::from_le_bytes([b[0], b[1]])).collect();
         // Each row is delta-coded along x.
         for row in h.chunks_exact_mut(n) {
             for x in 1..n {

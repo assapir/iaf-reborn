@@ -328,11 +328,10 @@ fn analyse(dir: &Path, id: i64, names: &[String], bdbs: &mut BTreeMap<String, Bd
     if let Some(p) = player_ent {
         for it in obj(p)["loads"]["items"].as_array().into_iter().flatten() {
             let flags = it["raw"].as_str().unwrap_or("");
-            if i(it, "0x906") > 0 && flags.chars().any(|c| c != '0') {
-                if let Some(f) = bdb.weapon_type.get(&i(it, "0x910")).and_then(|t| weapon_feature(*t)) {
+            if i(it, "0x906") > 0 && flags.chars().any(|c| c != '0')
+                && let Some(f) = bdb.weapon_type.get(&i(it, "0x910")).and_then(|t| weapon_feature(*t)) {
                     arm_w.insert(f);
                 }
-            }
         }
     }
     let arm_aa: Clause = [W_IR, W_RADAR].iter().filter(|f| arm_w.contains(*f)).map(|f| f.to_string()).collect();

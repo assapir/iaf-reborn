@@ -1,7 +1,7 @@
 //! The AI autopilot (docs/ai.md §7–§8) flying the original data: route following (mode 7), close
 //! formation (mode 1) and the take-off sequence (mode 9) at Ramat David. Needs `assets/install`.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use iaf_flight::airbase::Airbase;
 use iaf_flight::autopilot::{Autopilot, Config, Leader, Waypoint};
@@ -14,7 +14,7 @@ fn install() -> Option<PathBuf> {
     p.join("resource/md").is_dir().then_some(p)
 }
 
-fn jet(install: &PathBuf, name: &str, pos: [f64; 3], heading_deg: f32, airborne: bool) -> Aircraft {
+fn jet(install: &Path, name: &str, pos: [f64; 3], heading_deg: f32, airborne: bool) -> Aircraft {
     let (p, e) = iaf_flight::load_with(install, name, DataSet::Original).unwrap();
     let h = heading_deg.to_radians();
     let v = if airborne { 282.84 } else { 0.0 };
