@@ -602,6 +602,8 @@ const REAL: &[Real] = &[
 /// [`section`]`(set, name)`; the original set, and types without real data, are returned unchanged.
 pub fn apply(set: DataSet, name: &str, params: &Params, envelope: &Envelope) -> (Params, Envelope) {
     let (mut p, mut e) = (params.clone(), envelope.clone());
+    // A fix of the original's instrument logic, for every type with Real data.
+    p.ias_low_speed_fix = set == DataSet::Real;
     let Some(r) = find_type(name).and_then(real) else {
         return (p, e);
     };
@@ -692,6 +694,16 @@ mod tests {
         assert_eq!(apply(DataSet::Original, "F-4", &p, &e).0.chute_cd, 0.0);
         let (r, _) = apply(DataSet::Real, "F-4", &p, &e);
         assert!((r.chute_cd - 0.63 * 18.68 / r.wing_area).abs() < 0.01, "{} (wing {} m²)", r.chute_cd, r.wing_area);
+    }
+
+    #[test]
+    fn real_set_fixes_the_low_speed_ias() {
+        // Every type with the Real set, also one without a Real row (the TU22); never the original set.
+        let p = Params::from_section(iaf_formats::ini::Ini::parse(b"[F-4]\r\nWingArea = 530\r\n").section("F-4").unwrap());
+        let e = Envelope::parse(b"[Min Velocity Table]\r\n0 100 0\r\n1 150 0\r\n1 160 40000\r\n");
+        assert!(!apply(DataSet::Original, "F-4", &p, &e).0.ias_low_speed_fix);
+        assert!(apply(DataSet::Real, "F-4", &p, &e).0.ias_low_speed_fix);
+        assert!(apply(DataSet::Real, "TU22", &p, &e).0.ias_low_speed_fix);
     }
 
     #[test]

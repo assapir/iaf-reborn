@@ -42,11 +42,18 @@ pub struct Instruments {
 /// FM query 0x10 (@5a9894): with V the airspeed in kt and h the height in ft,
 /// `r = ((−1.305e-5 + 3.1825e-9·V)·h + 1.0017)·V − 3.122`; it returns r in m/s (·0.5147222) when
 /// 50 ≤ r ≤ 999, else V itself — in kt, which the caller converts to kt once more (below 50 kt indicated,
-/// e.g. taxiing, the cockpit shows 1.94 × the speed: the original's unit slip, kept).
-pub fn ias(speed: f32, height_m: f32) -> f32 {
+/// e.g. taxiing, the cockpit shows 1.94 × the speed: the original's unit slip). `fix` (Real data,
+/// `Params::ias_low_speed_fix`): the airspeed in m/s instead.
+pub fn ias(speed: f32, height_m: f32, fix: bool) -> f32 {
     let v = speed * KT;
     let r = ((-1.305e-5 + 3.1825e-9 * v) * (height_m * FT) + 1.0017) * v - 3.122;
-    if (50.0..=999.0).contains(&r) { r * 0.514_722_2 } else { v }
+    if (50.0..=999.0).contains(&r) {
+        r * 0.514_722_2
+    } else if fix {
+        speed
+    } else {
+        v
+    }
 }
 
 /// The engine needles (@45ac00) from the RPM fraction: THROTTLE = rpm, RPM = clamp(rpm, 0.6, 0.97),
@@ -67,12 +74,14 @@ pub fn engine_needles(rpm: f32, d: EngineDamage) -> [f32; 3] {
 }
 
 /// The cockpit state from the FM state. `ground_height` / `gear_clearance` in m, `internal_fuel_kg` the
-/// capacity (FuelWeight). Both engines read the one RPM (the original has one engine state too).
+/// capacity (FuelWeight), `ias_fix` = `Params::ias_low_speed_fix`. Both engines read the one RPM (the original
+/// has one engine state too).
 pub fn instruments(
     s: &State,
     ground_height: f32,
     gear_clearance: f32,
     internal_fuel_kg: f32,
+    ias_fix: bool,
     damage: [EngineDamage; 2],
 ) -> Instruments {
     let v = s.velocity;
@@ -85,7 +94,7 @@ pub fn instruments(
     Instruments {
         tas_kt: s.speed * KT,
         ground_kt: (v[0] * v[0] + v[1] * v[1]).sqrt() * KT,
-        ias_kt: ias(s.speed, height) * KT,
+        ias_kt: ias(s.speed, height, ias_fix) * KT,
         vs_fpm: v[2] * FPM,
         agl_ft: if agl < 1.0 { 0.0 } else { agl },
         fuel_fill: if cap > 0.0 { (fuel / cap).min(1.0) } else { fuel },
@@ -98,15 +107,18 @@ mod tests {
     use super::*;
 
     #[test]
-    fn ias_reads_low_at_altitude_and_slips_below_50() {
+    fn ias_reads_low_at_altitude_and_slips_below_50_unless_fixed() {
         // Sea level: about the airspeed (1.0017·V − 3.1).
-        let sl = ias(150.0, 0.0) * KT;
+        let sl = ias(150.0, 0.0, false) * KT;
         assert!((sl - (1.0017 * 150.0 * KT - 3.122)).abs() < 0.1, "{sl}");
         // 30,000 ft at 250 m/s (486 kt): well below the true speed.
-        let hi = ias(250.0, 9144.0) * KT;
+        let hi = ias(250.0, 9144.0, false) * KT;
         assert!(hi < 0.75 * 250.0 * KT && hi > 50.0, "{hi}");
         // 10 m/s (19 kt) taxiing: r < 50, so V in kt comes back and reads ×1.94 again.
-        assert!((ias(10.0, 0.0) * KT - 10.0 * KT * KT).abs() < 0.01);
+        assert!((ias(10.0, 0.0, false) * KT - 10.0 * KT * KT).abs() < 0.01);
+        // Real data: the airspeed itself.
+        assert!((ias(10.0, 0.0, true) * KT - 10.0 * KT).abs() < 0.001);
+        assert_eq!(ias(150.0, 0.0, true), ias(150.0, 0.0, false));
     }
 
     #[test]

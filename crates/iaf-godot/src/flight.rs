@@ -437,7 +437,7 @@ impl IafFlight {
         let flag = |i: usize| damage.get(i).is_some_and(|v| v.booleanize());
         let engine = |e: usize| EngineDamage { cut_out: flag(2 + e), fire: flag(16 + e), permanent: flag(22 + e) };
         let i = instruments::instruments(&ac.state(), ac.ground_height, ac.gear_clearance, ac.internal_fuel_kg(),
-            [engine(0), engine(1)]);
+            ac.params.ias_low_speed_fix, [engine(0), engine(1)]);
         d.set("tas_kt", i.tas_kt);
         d.set("ground_kt", i.ground_kt);
         d.set("ias_kt", i.ias_kt);

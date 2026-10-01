@@ -73,6 +73,9 @@ pub struct Params {
     /// Real nose-wheel steering (real data set only): wheel angle from the rudder pedals, turn rate
     /// from the geometry. None = the original's formula (flight-model.md §7).
     pub nose_wheel: Option<NoseWheel>,
+    /// Real data set: the indicated airspeed below 50 kt is the airspeed (the original returns it in kt where
+    /// m/s is due, so the cockpit read 1.94 × the speed; docs/cockpit.md "Speeds"). false = original.
+    pub ias_low_speed_fix: bool,
     /// Aircraft type `veh+0xc54` (set by `FUN_005a8980`, docs/part-animation.md): 100 F-16, 110 F-15,
     /// 120 F-4, 130 Kfir, 140 Lavi, 150 MiG-21, 160 MiG-23, 170 MiG-25, 180 MiG-29, 190 Mirage,
     /// 210 MiG-17, 220 Tu-22, 225 C-130; 0 = unknown. Types 100/140 never spin (§15.5); type 100
@@ -172,6 +175,7 @@ impl Params {
             dry_thrust: 1.0,
             dry_fuel_frac: 0.25,
             nose_wheel: None,
+            ias_low_speed_fix: false,
             type_code: 0,
         }
     }

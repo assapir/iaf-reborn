@@ -204,7 +204,8 @@ flight-path angle pairs it with cos roll, S+0x40 = sideslip with sin roll), S+0x
   S+0x33c = query 0x10 · 1.9428 = **indicated airspeed**: with V in kt and h the Z axis height in ft (sampled as the
   attitude, τ clamped to 0..1.1), `r = ((−1.305e-5 + 3.1825e-9·V)·h + 1.0017)·V − 3.122`; query 0x10 returns r·0.5147
   (m/s) when 50 ≤ r ≤ 999, else V **in kt**, which the caller converts once more: below 50 kt indicated (taxiing) the
-  cockpit shows 1.94 × the speed (an original unit slip, kept; docs/status.md).
+  cockpit shows 1.94 × the speed (an original unit slip, kept with Flight data = Original; Real fixes it,
+  docs/real-aircraft.md §2.3).
 * **HUD speed** (`FUN_005386c0` @538739, by the HUD mode S+0xfec = the weapon handler's, through the byte table
   0x538c78 → 0x538c64): mode 0 NAV `% 3dG` (ground speed; `% 3dT` true airspeed with the gear handle down, S+0x544),
   1..3 (SRM, MRM, AA gun) and 9 `% 3d` (indicated), 4..8 `% 3dT`, above 9 none. (Mode 9 is not in the master-mode

@@ -127,6 +127,14 @@ Not filled (no aircraft-specific CD, and none of them is flyable yet): MiG-29 17
 Heatblur F-4E manual); there is no shear or failure model. Measured (tests/godot/test_player_aircraft.gd): from
 ~90 kt at idle the Kurnass 2000 loses 0.74 m/s in 2 s with the chute, 0.07 m/s without.
 
+### 2.3 Instrument fixes
+
+With Flight data = Real, for every type (`Params::ias_low_speed_fix`, set by `data_set::apply`):
+* **Indicated airspeed below 50 kt.** The original's indicated airspeed (FM query 0x10, docs/cockpit.md "Speeds")
+  returns the airspeed in kt where m/s is due whenever its formula gives under 50 kt, so taxiing the HUD (air-to-air
+  modes) and the MFD ADI page read 1.94 × the speed. Real returns the airspeed in m/s
+  (`iaf_flight::instruments::ias`); from 50 kt up both sets are the same.
+
 ## 3. F-15C Baz (2 × F100-PW-220)
 
 Variant: the IAF flew F-15A/B from 1976 and F-15C/D from 1981 (F100-PW-100, later -220). The row uses the F-15C
