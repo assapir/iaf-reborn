@@ -9,4 +9,7 @@ godot=${GODOT:-godot}
 if ! command -v "$godot" >/dev/null && [[ -x /Applications/Godot.app/Contents/MacOS/Godot ]]; then
 	godot=/Applications/Godot.app/Contents/MacOS/Godot
 fi
+# Godot only loads iaf.gdextension once an import has listed it in .godot/extension_list.cfg (a fresh clone has
+# no .godot): without it the mission starts with no flight model and hangs after the briefing.
+[[ -f game/.godot/extension_list.cfg ]] || "$godot" --headless --path game --import >/dev/null 2>&1
 exec "$godot" --path game -- "$@"
