@@ -144,6 +144,18 @@ func run() -> void:
 	check(cp.harm.list.size() == 1 and not cp.harm.no_source, "HARM page lists the synthetic emitter (%d)" % cp.harm.get("list", []).size())
 	var hs: Array = Mfd.harm_symbols(cp.harm)
 	check(hs.size() == 1 and absf(hs[0].pos.x - 66) <= 2, "ahead: near the centre column (%s)" % [hs[0].pos if not hs.is_empty() else null])
+	# MENU "FLIR" (with the pod) and the stores page quantity / interval OSBs.
+	var other = cp.mfds.filter(func(m): return m.page != 10)[0]
+	other.page = 8
+	other.press(0xb)
+	check(other.page == 6 and w.eo.mode == Eo.FLIR, "MENU OSB 0xb 'FLIR': page 6, the FLIR on")
+	other.page = 1
+	other.press(0xe)
+	other.press(0x13)
+	other.press(0x14)
+	other.press(0x14)
+	w.update(t)
+	check(cp.weapons.quantity == 3 and cp.weapons.interval == 10, "stores OSBs: quantity 2 → 3, interval 10 → 20 → 10 → 10")
 	await frames(2)
 	# Every page draws on the F-16 and the Lavi (3 MFDs, ADI page).
 	for dir in ["converted/cockpits/f16", "converted/cockpits/lavi"]:
