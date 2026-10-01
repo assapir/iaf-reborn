@@ -8,20 +8,23 @@
 - Everything comes from the player's own ISO; the repo (github.com/assapir/iaf-reborn, GPL-3.0) holds no game data.
 - Rule: logic, layout, timing and colours as the original. Improvements are opt-in switches, original by default.
 
-## Priorities (one main job at a time; small bugs in short rounds between them)
-**NOW:** AI combat — player radar contacts + lock first, then AI air-to-air / air-to-ground (incl. bomb ballistics),
-AAA / radar + IR SAMs with the RWR, chaff / flares, real weapon capabilities, script op 2. Goal: first playable
-combat missions (313, 321, 221, 226). Then the demo video (H.264).
+## Priorities (user decision: 1. player experience, 2. enemies, 3. missions and general fixes)
+**1. Player experience** (in order):
+- NOW: radar contacts / lock / STT, HUD target box, IR missile slaved to the radar; chaff / flares (player side);
+  Real weapon capabilities for the player's weapons and radar.
+- Autopilot (A key; reuses the AI control loops; Landing 312 approach mode).
+- Cockpit camera = the original projection (HUD ladder lines up).
+- RWR display, other MFD pages, views (padlock, back view, external list), time compression, pause / in-flight menu.
+- Player jet ×2 scale (original), detached-looking stores, shadows / flame shadow.
+- Joystick / throttle / pedals.
+- Other jets flyable (Phantom 2000, F-4E, F-15, …): flight data + cockpit each.
 
-**NEXT, in order:**
-1. Small-bugs round 1 (the ones that hurt play): player jet ×2 scale, Kfir/Mirage data per Flight data switch,
-   player flight choice by formation id, stores look detached, shadows / flame shadow.
-2. Other jets flyable: Phantom 2000, F-4E, F-15 first (~30 missions with the combat core).
-3. Bombs + CCIP polish, armed vehicles / boats, radar missiles (AIM-7 / AMRAAM), TV / IR-guided, anti-radiation,
-   rockets, night.
-4. Small items: player autopilot (reuses the AI control loops; Landing 312 approach), cockpit camera = original
-   projection, pilot records (JSON), Jump In.
-5. Joystick / throttle / pedals.
+**2. Enemies:** AI air-to-air / air-to-ground (bomb ballistics), AAA, radar / IR SAMs with RWR threats, enemy
+flares / chaff and decoy rules, script op 2, armed vehicles / boats; then the demo video (H.264).
+
+**3. Missions and general fixes:** remaining small bugs below, Kfir/Mirage data per switch, player flight by
+formation id, pilot records (JSON), Jump In, remaining front-end screens, more weapons (radar missiles, TV / IR,
+anti-radiation, rockets), night.
 
 **PARKED (docs/roadmap.md):** modern imagery outside Israel + georeference, 1:1 world scale, better AI, cheats,
 sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, modern aircraft / weapons, Pi 5 profile.
