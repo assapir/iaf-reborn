@@ -830,7 +830,9 @@ func _start_flight() -> void:
 	var heading := fposmod(rad_to_deg(atan2(fwd.x, -fwd.z)), 360.0)
 	real_data = Settings.real_data() or OS.get_cmdline_user_args().has("--real")
 	var h := deg_to_rad(heading)
-	var velocity := Vector3(sin(h), 0, -cos(h)) * (AIR_START_SPEED if start_airborne else 0.0)
+	# In the air the flight model takes the pitch from the velocity (0 for mission starts; `--at` pitch).
+	var p := deg_to_rad(start_pitch)
+	var velocity := Vector3(sin(h) * cos(p), sin(p), -cos(h) * cos(p)) * (AIR_START_SPEED if start_airborne else 0.0)
 	var err: String = flight.start(install, "F-16", rig.position, heading, start_pitch, start_roll, velocity,
 			start_airborne, start_engine_on, real_data)
 	if err != "":
@@ -941,9 +943,12 @@ func _apply_view() -> void:
 		aircraft.visible = not in_cockpit and not jet_gone
 	camera.current = in_cockpit
 	chase.current = not in_cockpit
-	# In the cockpit the camera looks slightly down so the nose axis sits on the HUD boresight.
-	camera.fov = cockpit.world_fov()
-	camera.rotation = Vector3(-cockpit.camera_pitch_offset(camera.fov), 0, 0)
+	# The original cockpit projection (docs/cockpit.md "3D view"): its focal length and projection
+	# centre, scaled and placed like the 2D art, the camera 5.5° below the nose.
+	var f: float = cockpit.focal_length()
+	var dy: float = cockpit.projection_centre().y - cockpit.size.y / 2.0
+	camera.set_frustum(camera.near * cockpit.size.y / f, Vector2(0, dy * camera.near / f), camera.near, camera.far)
+	camera.rotation = Vector3(-deg_to_rad(cockpit.VIEW_LOOK_DOWN_DEG), 0, 0)
 	# A hit shakes the view (FM motion 0xd, amplitude 0..1; our rendering: up to 2° decaying in 0.5 s).
 	if _shake > 0.0:
 		_shake = maxf(_shake - get_process_delta_time() * 2.0, 0.0)

@@ -56,10 +56,61 @@ docs/damage.md §4.4); nothing else in `cockpit.ibx` changed.
   `BorePositionY`.
 * **With v1.0 cockpit data** the file's `GunRetPositionY` is 10 px higher than the v1.1 bullet line (~0.8°). Ours
   subtracts 10 when one of the five cockpits above still has its v1.0 value.
-* **Port** (`game/cockpit/hud.gd`): the marker is our camera's projection of the velocity; the ladder follows the v1.1
-  rule by default. **Extras > HUD pitch ladder > Conformal** (ours, `Settings.hud_ladder`) instead projects every
-  5° rung through the 3D camera, so the horizon rung lies on the world's horizon (our world view is not 12 px/deg: the
-  HUD glass spans the real ~25°).
+* **Port** (`game/cockpit/hud.gd`): the marker is the velocity projected through our camera, which uses the
+  original projection (next section); the ladder follows the v1.1 rule. With that projection the 12 px/deg ladder
+  matches the world (the focal length is 686.2 px = 11.98 px/deg), so the horizon rung lies on the world's horizon.
+
+### 3D view: the cockpit camera's projection (v1.1)
+The world is drawn by TgenAPI (`DAT_0069942c`, 16-bit renderer vtable `0x5fd900`) into viewport 0, every frame from
+`FUN_004d9790` (`CFlightWnd::prepareTerrainData`).
+* **Field of view**: `FUN_00401f90(0, renderer+0x1ac)` → slot 0x54 `FUN_00404fb0` → `FUN_00403a20(fov)` →
+  `FUN_00413490(tan(fov·π/360))`: `0x6284dc = 0.5 / tan(fov/2)`. renderer+0x1ac = **50°** (`0x605250`, set in
+  `FUN_004dc9d0` and never changed for viewport 0; `FUN_004dc990` (zoom `50 / z`) is called only for viewport 1, the
+  weapon view). The TgenAPI init value 40° (`0x403225`) is overwritten.
+* **Projection** (`FUN_00413f90`, used by `FUN_004142b0` / `FUN_004143d0` = slot 0x38, which also projects the
+  flight path marker in `FUN_00448b20` @448f82): focal length `0x7d2e54 = (x0 − x1) · 0x6284dc`, i.e.
+  **640 / 2 / tan 25° = 686.2 px** (the sign flips the axis), the same for x and y (square pixels; the Direct3D
+  matrix `FUN_004133b0` and viewport `FUN_0040b3c0` use the same value). The centre is the viewport's middle:
+  `0x7d2e58 = (x0 + x1)/2`, `0x7d2e40 = (y0 + y1)/2`. Near plane 4, far 30000 (`0x6284d0`, `0x6284cc`).
+  The 50° is horizontal over the full 640 px; vertically the angle follows from the viewport height.
+* **Viewport** (`FUN_00520980` → `FUN_00405b10` → slot 0x58 → `FUN_0040b3c0`): x 0..640, y 0..renderer+0x5b0. In the
+  cockpit views (S+0x1088 = 1, 0x12, 0x16; else 480) `FUN_0051f610` sets
+  `+0x5b0 = min(480, (D + MainOffsetY + 7 + vpan) & ~7)`, where D (`FUN_0052e750`) is, for the panel columns under
+  the two screen edges (panel x = pan + 640 and pan + 1280), the panel row just below the column's lowest
+  transparent pixel (colour key RGB(0,210,255), `FUN_0052e6a0` scans the 320-px slice from its bottom), the larger of
+  the two; a column without one gives its slice's top row. So the 3D view ends where the panel's see-through
+  area ends at the screen edges, and its centre is half that height. Straight ahead (pan = vpan = 0):
+
+  | Dir | D (x 640 / 1280) | viewport rows | centre y | centre above the panel top |
+  |---|---|---|---|---|
+  | f16 | 104 / 94 | 0..296 | 148 | 42 |
+  | f15 | 64 / 79 | 0..288 | 144 | 62 |
+  | f4-2000 | 106 / 88 | 0..312 | 156 | 44 |
+  | lavi | 95 / 95 | 0..280 | 140 | 40 |
+  | cfir | 102 / 104 | 0..304 | 152 | 48 |
+  | mirage | 66 / 36 | 0..240 | 120 | 50 |
+  | phantom | 136 / 118 | 0..320 | 160 | 20 |
+  | mig23 | 128 / 138 | 0..328 | 164 | 26 |
+  | mig29 | 45 / 45 | 0..240 | 120 | 70 |
+
+* **Pans** (`FUN_0051f610`): pan(+0x564) = round(20·S+0x1094) + round(1920 / AzimutAngleDeg(rad) · S+0x108c),
+  vpan(+0x568) = round(20·S+0x1098) + round((PanelHeight + [HUD] CenterY) / ElevationAngleDeg(rad) · S+0x1090),
+  vpan ≥ 480 − MainOffsetY − PanelHeight. `[PANEL] AzimutAngleDeg` (default 90) and `ElevationAngleDeg` (default
+  15) are read by `FUN_005228a0` (only the F-15 sets them: 100 / 50). S+0x108c/0x1090 are the head yaw / pitch and
+  S+0x1094/0x1098 the view pan (`FUN_0057ff60`, `FUN_00580420`, stored by `FUN_004465c0` @449400); in the forward
+  cockpit view (`FUN_0057f2a0` case 1, targets 0 in `FUN_0057fa10`) all four are 0, so **pan = vpan = 0**.
+* **Eye and orientation** (`FUN_00582880`, orientation case 0 @5841e9): the eye is the aircraft's position (no
+  cockpit offset; kept ≥ 1 m above the terrain, `0x610e14`). The camera has the aircraft's heading and roll and is
+  rotated by the head yaw and by `FUN_00585270(head pitch, head yaw) = max(pitch − 5.5°, 0.1·(|yaw| − 90°))`
+  (`0x610fa8` = 0.0959931 rad; v1.0 `FUN_00582c20`: 8°). Straight ahead the camera **looks 5.5° below the nose**,
+  so the nose axis is 686.2·tan 5.5° = 66 px above the centre (F-16: y 82; the HUD boresight symbol is at
+  190 − 135 = 55, the gun cross at 50).
+* **Port** (`cockpit.gd` `focal_length` / `projection_centre`, `terrain_view.gd` `_apply_view`): a frustum camera
+  with the 686.2 px focal length and the straight-ahead centre (rows measured from the converted panel art at load),
+  both in original pixels × the 2D art's scale (`ui_scale`, zoom included) and placed relative to the panel top like
+  the art, pitched 5.5° down. The world therefore keeps its place under the HUD when the panel slides (PgUp/PgDn/V,
+  ours) or zooms (+/−). A window wider than 4:3 (or the zoomed-out cockpit) shows more world around the original
+  frame at the same focal length; nothing is stretched.
 
 ## Horizon / RWR / ADI sections
 | Dir | `[HORIZON]` OnMfd, Active, ClockCenter, Radius | `[LENHORIZON]` file, Center, Radius | `[PANELRWR]` |
@@ -80,8 +131,7 @@ docs/damage.md §4.4); nothing else in `cockpit.ibx` changed.
   `emf/map.emf`, and it ignores that `cockpit.ini` and unreferenced bitmaps exist (harmless extras). Empty ini values
   (`ClockCenterX =`, `MiddleOffsetX =`) become the JSON string `""`, not the exe default 0 / 0x3c0.
 * `tools/setup.sh:29-30` converts only `f16` -> `assets/converted/cockpits/f16`.
-* `game/cockpit/cockpit.gd`: `cockpit_dir` default `.../cockpits/f16`; `HUD_REAL_FOV = 25` and `HUD_GLASS_PIXELS = 200`
-  (F-16 HUD width 319-2*56 = 207) are F-16 constants; `_draw_mfd_screens` paints a fixed 160x230 black box at offset -6 for each
+* `game/cockpit/cockpit.gd`: `cockpit_dir` default `.../cockpits/f16`; `_draw_mfd_screens` paints a fixed 160x230 black box at offset -6 for each
   active MFD (real MFD is 132x132, at OffsetX/Y); `_draw_standby_horizon` ignores `[HORIZON] Active` (would draw a disc on
   phantom/mig23/mig29) and would fail on empty `ClockCenterX`; `OnMfd = 1` planes (F-15, F-4-2000, Lavi) show no ADI at all;
   `[PANELRWR]` is not drawn; `_draw_tape` covers only `PANELVARIO`/`PANELAOA` (F-16 only) and `VARIOCLOCK` (F-4-2000, Lavi, MiG-23,

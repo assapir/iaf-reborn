@@ -103,6 +103,7 @@ func _ready() -> void:
 	if lights_file != "":
 		_add_tex("LIGHTS", lights_file)
 	_add_tex("MFDS", "mfds.bmp")
+	_measure_view_bottom()
 	_load_tsd_map()
 	_create_mfds()
 	hud.cockpit = self
@@ -184,17 +185,60 @@ func ui_scale() -> float:
 	return size.y / ORIGINAL_HEIGHT * zoom
 
 
-## Real F-16 HUD field of view through the combiner glass, degrees.
-const HUD_REAL_FOV := 25.0
-## Width of the combiner glass in the original HUD art (the frame is 319 px wide).
-const HUD_GLASS_PIXELS := 200.0
+## The original 3D projection (docs/cockpit.md "3D view"): viewport 0 has a 50° field of view across
+## its 640 px width (renderer+0x1ac, FUN_004d9790 → TgenAPI FUN_00403a20), so the focal length is
+## 320 / tan 25° = 686.2 px of the 640x480 screen (FUN_00413f90), with square pixels.
+const VIEW_FOV_DEG := 50.0
+const VIEW_WIDTH := 640.0
+## The cockpit camera looks this far below the nose axis (v1.1 FUN_00585270: max(head pitch − 5.5°,
+## 0.1·(|head yaw| − 90°)) with the head straight ahead; v1.0 8°).
+const VIEW_LOOK_DOWN_DEG := 5.5
 
-## Vertical field of view for the 3D world, chosen so the HUD glass spans its real ~25° of
-## the world at any zoom (zooming out widens the view instead of shrinking the world).
-func world_fov() -> float:
-	var glass_px := HUD_GLASS_PIXELS * ui_scale()
-	var px_per_rad := (glass_px / 2.0) / tan(deg_to_rad(HUD_REAL_FOV) / 2.0)
-	return rad_to_deg(2.0 * atan((size.y / 2.0) / px_per_rad))
+
+## Focal length of the 3D view in screen pixels: the original's, scaled like the 2D art. A wider or
+## taller window keeps it and shows more of the world around the original frame.
+func focal_length() -> float:
+	return VIEW_WIDTH / 2.0 / tan(deg_to_rad(VIEW_FOV_DEG) / 2.0) * ui_scale()
+
+
+## Bottom of the original 3D viewport below the panel top (original pixels, straight-ahead view):
+## the viewport ends where the panel's see-through area ends at the two screen-edge columns
+## (FUN_0052e750 → FUN_0052e6a0), ((D + MainOffsetY + 7) & ~7) capped at 480 (FUN_0051f610).
+var _view_bottom := 480.0
+
+
+## The original viewport's projection centre: the middle of the viewport rows [0, bottom) and the
+## screen's centre column (FUN_00413f90), placed like the 2D art (relative to the panel top).
+func projection_centre() -> Vector2:
+	var main_y: float = layout.get("PANEL", {}).get("MainOffsetY", 190)
+	return Vector2(size.x / 2, panel_top() + (_view_bottom / 2.0 - main_y) * ui_scale())
+
+
+## D of FUN_0052e750 for the straight-ahead pan (screen columns 0 and 640 = panel x 640 and 1280):
+## per column, the panel row below its lowest transparent pixel inside its 320-px slice (slices start
+## at {MaskOffsetY1, MaskOffsetY2, 0, 0, MaskOffsetY2, MaskOffsetY1}); the slice top if none.
+func _measure_view_bottom() -> void:
+	var p: Dictionary = layout.get("PANEL", {})
+	var main_y: float = p.get("MainOffsetY", 190)
+	var img: Image = tex.PANEL.get_image() if tex.has("PANEL") else null
+	if img == null:
+		return
+	if img.is_compressed():
+		img.decompress()
+	var a: float = layout.get("image_scale", 1)
+	var y1: float = p.get("MaskOffsetY1", 0)
+	var y2: float = p.get("MaskOffsetY2", 0)
+	var starts := [y1, y2, 0.0, 0.0, y2, y1]
+	var d := 0
+	for x in [640, 1280]:
+		var top := int(starts[x / 320])
+		var col := top
+		for y in range(int(img.get_height() / a) - 1, top - 1, -1):
+			if img.get_pixel(int((x + 0.5) * a), int((y + 0.5) * a)).a < 0.5:
+				col = y + 1
+				break
+		d = maxi(d, col)
+	_view_bottom = minf(480.0, (d + int(main_y) + 7) & ~7)
 
 
 ## Top of the panel in screen pixels. The forward view shows only the top part of the
@@ -216,12 +260,6 @@ func panel_to_screen(x: float, y: float) -> Vector2:
 func boresight() -> Vector2:
 	var h: Dictionary = layout.get("HUD", {})
 	return Vector2(size.x / 2, panel_top() - h.get("BorePositionY", 135) * ui_scale())
-
-
-## Camera pitch-down (radians) that puts the aircraft's nose axis on the boresight.
-func camera_pitch_offset(vertical_fov_deg: float) -> float:
-	var f := (size.y / 2) / tan(deg_to_rad(vertical_fov_deg) / 2)
-	return atan((size.y / 2 - boresight().y) / f)
 
 
 ## One PgUp/PgDn step: a tenth of the panel's travel (positive = show more panel).
