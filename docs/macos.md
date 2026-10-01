@@ -28,5 +28,6 @@ step works the same way (see README).
 
 ## Known differences
 - Godot renders with Metal on macOS; terrain shaders may look slightly different.
+- Launcher: setup installs `~/Applications/Jane's IAF (reborn).app` (Linux gets a `.desktop` file instead).
 - Fonts: Arial exists on macOS and is used directly (Linux uses Liberation Sans as the fallback).
 - User data (settings, key bindings, blackbox) lives in `~/Library/Application Support/Godot/app_userdata/iaf-reborn/`.
