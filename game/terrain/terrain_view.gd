@@ -29,6 +29,8 @@ var looking := false
 const KeyTable := preload("res://controls/key_table.gd")
 var keys: RefCounted = KeyTable.load_table()
 var _held_records: Array = []
+## Joystick buttons down (the poller's held list, FUN_004e0a60 releases them): button → true.
+var _held_buttons := {}
 var flight = null  # IafFlight
 var real_data := false
 var stick := Vector2.ZERO  # x roll right+, y pull+
@@ -180,6 +182,7 @@ var time_factor := 1
 
 
 func _ready() -> void:
+	Joystick.consumer = self
 	# Graphics page SHADOWS (our renderer's sun shadows; the original's shadow method is not used).
 	($Sun as DirectionalLight3D).shadow_enabled = Settings.shadows
 	for i in keys.size():
@@ -881,6 +884,8 @@ func _end_flight(debrief: bool, auto := "") -> void:
 
 
 func _exit_tree() -> void:
+	if Joystick.consumer == self:
+		Joystick.consumer = null
 	# The sim clock and its rate belong to this flight.
 	Engine.time_scale = 1.0
 	if get_tree() != null:
@@ -1176,6 +1181,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		# Ours: RMB drag turns the orbit (heading / pitch, as the pan keys).
 		views.orbit_heading += event.relative.x * 0.005
 		views.orbit_pitch += event.relative.y * 0.005
+	elif event is InputEventJoypadButton and Joystick.ours(event):
+		_joy_button(event)
 	elif event is InputEventKey and not event.pressed:
 		# Release commands of the table (Space up 0x41, Tab up 0x43).
 		var rel: int = keys.find_key(keys.key_of_event(event), Settings.key_bindings)
@@ -1190,14 +1197,46 @@ func _unhandled_input(event: InputEvent) -> void:
 		# The original key table first (docs/controls.md, with the player's rebinds); our own keys
 		# only where the table has no command we implement for that key.
 		var rec: int = keys.find_key(keys.key_of_event(event), Settings.key_bindings)
-		# The flight window's own commands (CFlightWnd::OnGameEvent 0x4dc280): Esc, Ctrl+P, Ctrl+O.
-		if rec >= 0 and window_key(int(keys.records[rec].press[0])):
-			return
-		if rec >= 0 and (ejected or fatal_hit) and not int(keys.records[rec].press[0]) in [18, 20, 21, 28, 134]:
-			return  # control mode 0: the jet no longer takes the player's commands
-		if rec >= 0 and _command(keys.records[rec].press):
+		if rec >= 0 and Joystick.drops_key(int(keys.records[rec].press[0])):
+			return  # RPM ± 5 / throttle presets while the throttle axis is used (FUN_004e0b80)
+		if rec >= 0 and _press(keys.records[rec].press):
 			return
 		_own_key(event)
+
+
+## A record's press command from a key or a joystick button; false for the commands not implemented yet.
+func _press(cmd: Array) -> bool:
+	# The flight window's own commands (CFlightWnd::OnGameEvent 0x4dc280): Esc, Ctrl+P, Ctrl+O.
+	if window_key(int(cmd[0])):
+		return true
+	if (ejected or fatal_hit) and not int(cmd[0]) in [18, 20, 21, 28, 134]:
+		return true  # control mode 0: the jet no longer takes the player's commands
+	return _command(cmd)
+
+
+## A joystick button (FUN_004e0dc0): the first record with that button (+0x1c) sends its press / release
+## command as it is — no drops and no roll / pitch rewrite, so a button on Roll / Pitch does nothing (the
+## controller has no case for events 2 / 3), one on Rudder moves the rudder. A release counts only after its
+## press (the poller's held list).
+func _joy_button(event: InputEventJoypadButton) -> void:
+	var b := int(event.button_index)
+	if event.pressed:
+		if _held_buttons.has(b):
+			return
+		_held_buttons[b] = true
+	elif not _held_buttons.erase(b):
+		return
+	var rec: int = keys.find_joystick(b, Settings.key_bindings)
+	if rec < 0:
+		return
+	var cmd: Array = keys.records[rec].press if event.pressed else keys.records[rec].release
+	if int(cmd[0]) == 10:
+		if not (ejected or fatal_hit):
+			_apply_held(rec, cmd)
+	elif event.pressed:
+		_press(cmd)
+	else:
+		_release_command(cmd)
 
 
 ## Runs a key-table command [id, p1, p2] (docs/controls.md: the ids reach the game as WM 0x532);
@@ -1577,6 +1616,16 @@ func _release_held_keys() -> void:
 	for i in keys.size():
 		if keys.held(i, Settings.key_bindings):
 			_release_command(keys.records[i].release)
+	for b in _held_buttons:
+		var rec: int = keys.find_joystick(int(b), Settings.key_bindings)
+		if rec >= 0:
+			var cmd: Array = keys.records[rec].release
+			if int(cmd[0]) == 10:
+				_apply_held(rec, cmd)
+			else:
+				_release_command(cmd)
+	_held_buttons.clear()
+	_joy_event(Joystick.flush())
 
 
 ## A key's release command (Space up 0x41, Tab up 0x43, boresight up 0x2e, the view keys).
@@ -1805,7 +1854,27 @@ func _read_controls(_delta: float) -> void:
 		if now_held == _key_was_held.get(i, false):
 			continue
 		_key_was_held[i] = now_held
-		_apply_held(i, keys.records[i].press if now_held else keys.records[i].release)
+		var cmd: Array = keys.records[i].press if now_held else keys.records[i].release
+		if not Joystick.drops_key(int(cmd[0])):  # the stick / rudder keys while that axis is used
+			_apply_held(i, cmd)
+	for e in Joystick.poll():
+		_joy_event(e)
+
+
+## One event of the joystick poller (FUN_004df560): GEV 1 stick (x, y ±100), 9 throttle (0..100), 10 rudder,
+## 22 the hat's snap views. Original y +100 (stick pushed) = our stick forward (−1).
+func _joy_event(e: Array) -> void:
+	match int(e[0]):
+		1:
+			var v := Vector2(e[1], -e[2]) * 0.01
+			if autopilot == null or autopilot.stick_event(v, false):
+				stick = v
+		9:
+			_command(e)
+		10:
+			_apply_held(-1, e)
+		22:
+			_snap_command(int(e[1]), int(e[2]))
 
 
 ## One stick / rudder key event. The keys rewrite roll / pitch into one stick event with the other axis's

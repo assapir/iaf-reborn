@@ -29,7 +29,7 @@ const PREFS := {
 	"sound": ["mute", "music_volume", "engine_volume", "sfx_volume", "speech_volume"],
 	"graphics": ["terrain_detail", "object_detail", "visual_effects", "smoke_trails", "textured_sky",
 		"shadows", "external_stores", "vsync"],
-	"devices": ["flight_controls", "rudder", "throttle"],
+	"devices": ["flight_controls", "rudder", "throttle", "joy_axes"],
 	"gameplay": ["no_wind", "no_blackouts", "no_spins", "no_stalls", "easy_landing", "easy_aiming",
 		"no_malfunctions", "ai_level", "invulnerable", "no_crashes", "unlimited_ammo", "unlimited_fuel",
 		"flight_data", "weapon_data", "language", "show_info", "blackbox", "hud_ladder", "show_all_keys", "fullscreen"],
@@ -62,6 +62,9 @@ var external_stores := true
 var flight_controls := 1
 var rudder := 0
 var throttle := 0
+## Ours (no page; settings.cfg [devices]): the Godot axis numbers of the original's DirectInput lX (stick x),
+## lY (stick y), lZ (throttle) and lRz (rudder), docs/controls.md §4.2.
+var joy_axes := [0, 1, 2, 3]
 ## Gameplay page. ai_level: 0 Rookie, 1 Normal, 2 Expert.
 var no_wind := false
 var no_blackouts := false
@@ -145,20 +148,7 @@ func _ready() -> void:
 		return
 	var cfg := ConfigFile.new()
 	if cfg.load(PATH) == OK:
-		for section in PREFS:
-			for key in PREFS[section]:
-				var value = cfg.get_value(section, key, get(key))
-				if typeof(value) == typeof(get(key)):
-					set(key, value)
-		for id in BETTER:
-			var on = cfg.get_value("physics", "bp_" + id, false)
-			if on is bool:
-				better[id] = on
-		if cfg.has_section("keys"):
-			for k in cfg.get_section_keys("keys"):
-				var v = cfg.get_value("keys", k)
-				if k.begins_with("r") and k.substr(1).is_valid_int() and v is Array and v.size() == 2:
-					key_bindings[int(k.substr(1))] = [int(v[0]), int(v[1])]
+		read_config(cfg)
 	if language == "he" and not hebrew_available():
 		language = "en"
 	apply_display()
@@ -211,6 +201,11 @@ func save() -> void:
 	if isolated():
 		return
 	_update_splash()
+	write_config().save(PATH)
+
+
+## The stored preferences as settings.cfg holds them.
+func write_config() -> ConfigFile:
 	var cfg := ConfigFile.new()
 	for section in PREFS:
 		for key in PREFS[section]:
@@ -219,7 +214,26 @@ func save() -> void:
 		cfg.set_value("physics", "bp_" + id, better[id])
 	for i in key_bindings:
 		cfg.set_value("keys", "r%d" % i, key_bindings[i])
-	cfg.save(PATH)
+	return cfg
+
+
+## Takes the stored preferences from a settings.cfg (values of the wrong type are ignored).
+func read_config(cfg: ConfigFile) -> void:
+	for section in PREFS:
+		for key in PREFS[section]:
+			var value = cfg.get_value(section, key, get(key))
+			if typeof(value) == typeof(get(key)):
+				set(key, value)
+	for id in BETTER:
+		var on = cfg.get_value("physics", "bp_" + id, false)
+		if on is bool:
+			better[id] = on
+	key_bindings = {}
+	if cfg.has_section("keys"):
+		for k in cfg.get_section_keys("keys"):
+			var v = cfg.get_value("keys", k)
+			if k.begins_with("r") and k.substr(1).is_valid_int() and v is Array and v.size() == 2:
+				key_bindings[int(k.substr(1))] = [int(v[0]), int(v[1])]
 
 
 ## The original default of a stored preference (the DEFAULT button, §12.2).

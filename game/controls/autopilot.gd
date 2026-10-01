@@ -51,11 +51,13 @@ func key() -> void:
 			_resync_throttle()
 
 
-## A keyboard stick event (GEV 1 from roll / pitch keys, FUN_004e0b80): with the autopilot lamp on, an event
+## A stick event (GEV 1 from the roll / pitch keys, FUN_004e0b80, or the joystick, FUN_004df560; only the keys'
+## is kept as the last keyboard stick): with the autopilot lamp on, an event
 ## within ±51 is dropped (the autopilot keeps the stick); beyond, the autopilot goes off first. Returns whether
 ## the stick reaches the flight model.
-func stick_event(v: Vector2) -> bool:
-	kb_stick = v
+func stick_event(v: Vector2, from_keys := true) -> bool:
+	if from_keys:
+		kb_stick = v
 	if not host.cockpit.indicators[8]:
 		return true
 	if absf(v.x) < BREAK_OUT and absf(v.y) < BREAK_OUT:
@@ -155,9 +157,10 @@ func _engage(m: int) -> void:
 
 
 ## FUN_005a29d0 (leaving NAV; UNCERTAIN: gated on a vehicle getter == 0x1e): the throttle goes back to the
-## throttle axis, i.e. 0.74 without one, only when airborne.
+## throttle axis (FUN_004e0f40 × 0.01), 0.74 without one, only when airborne.
 func _resync_throttle() -> void:
 	if host.flight.state().on_ground:
 		return
-	host.throttle = RESYNC_THROTTLE
+	var axis: int = Joystick.throttle_axis()
+	host.throttle = axis * 0.01 if axis >= 0 else RESYNC_THROTTLE
 	host._throttle_event()

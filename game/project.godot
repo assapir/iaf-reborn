@@ -20,6 +20,7 @@ boot_splash/bg_color=Color(0, 0, 0, 1)
 [autoload]
 
 Settings="*res://settings.gd"
+Joystick="*res://controls/joystick.gd"
 
 [display]
 

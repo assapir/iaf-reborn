@@ -72,7 +72,10 @@ func default_key(i: int) -> int:
 	return int(records[i].dik) | (int(records[i].modifiers) << 16)
 
 
+## The default button of record i: the table's, or the matching menu/joy/*.joy's (FUN_004e1590).
 func default_joystick(i: int) -> int:
+	if Joystick.default_buttons != null:
+		return int(Joystick.default_buttons.get(i, -1))
 	return int(records[i].joystick)
 
 

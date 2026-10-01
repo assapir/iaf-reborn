@@ -956,6 +956,24 @@ func _ctrl_key(event: InputEventKey) -> void:
 		kt.set_binding(binds, rec, key, kt.joystick_of(rec, binds))], ["no", Callable()]])
 
 
+## A joystick button pressed while the list has the keyboard (FUN_00511fb0, the poller's msg 0x555): it is
+## assigned to the selected function; if another function has it, msg 37 asks and Yes takes it from that one.
+func _ctrl_button(button: int) -> void:
+	var kt := _keys()
+	var rows := _ctrl_rows()
+	if ctrl_sel >= rows.size():
+		return
+	var rec: int = rows[ctrl_sel]
+	var binds: Dictionary = pref_work.key_bindings
+	var other: int = kt.find_joystick(button, binds, rec)
+	if other < 0:
+		kt.set_binding(binds, rec, kt.key_of(rec, binds), button)
+		return
+	_message(37, [["yes", func():
+		kt.set_binding(binds, other, kt.key_of(other, binds), -1)
+		kt.set_binding(binds, rec, kt.key_of(rec, binds), button)], ["no", Callable()]])
+
+
 static func _ltrb(a: Array) -> Rect2:
 	return Rect2(a[0], a[1], a[2] - a[0], a[3] - a[1])
 
@@ -1717,6 +1735,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if screen == "pref" and Settings.pref_page == "Controls" and ctrl_focus and msgbox == null \
 			and event is InputEventKey and event.pressed and not event.echo:
 		_ctrl_key(event)
+		return
+	if screen == "pref" and Settings.pref_page == "Controls" and ctrl_focus and msgbox == null \
+			and event is InputEventJoypadButton and event.pressed and Joystick.ours(event):
+		_ctrl_button(event.button_index)
 		return
 	if busy or msgbox != null or not (event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE):
 		return
