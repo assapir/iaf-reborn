@@ -60,7 +60,6 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
   default, the player's jet too; with Flight data = Real, aircraft (and units) at their true size.
 - Kfir / Mirage data: the original loads one shared block (the second type flies on the first's data) — do that
   with Flight data = Original; each jet's own section only with Flight data = Real (user decision).
-- Keyboard page: the scrollbar arrows are cropped on the right side.
 - Landing tests at the runway edges (Ramat David): touchdowns near the threshold / runway end and just inside /
   outside the left and right edges (inside = tarmac, safe; outside on grass above 25.7 m/s = rough-ground crash),
   so terraintype.dat's runway footprint matches the imagery at its borders.

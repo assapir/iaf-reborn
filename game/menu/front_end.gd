@@ -779,11 +779,12 @@ func _draw_controls(at: Vector2) -> void:
 			draw_string(font, Vector2(r.position.x, base), texts[c], HORIZONTAL_ALIGNMENT_LEFT if c == 0 else HORIZONTAL_ALIGNMENT_CENTER, r.size.x, fs, colour)
 	# Scrollbar: arrows at the ends (frame 2 while held), the thumb in between.
 	var bar := Rect2(at + CTRL_BAR.position, CTRL_BAR.size)
-	var clip := Vector2(CTRL_BAR.size.x, CTRL_ARROW.y)
+	var clip := CTRL_ARROW  # the whole 15×18 arrow (clipping it to the 11 px bar cropped its right side)
 	# FUN_004f3700 moves the first button (SlUpB, a down-pointing arrow) to the bottom and leaves the
 	# second (SlDownB, pointing up) at the top.
-	_blit_region("pref/sldownb_%d.png" % (2 if ctrl_arrow == "up" else 0), Rect2(Vector2.ZERO, clip), bar.position)
-	_blit_region("pref/slupb_%d.png" % (2 if ctrl_arrow == "down" else 0), Rect2(Vector2.ZERO, clip), Vector2(bar.position.x, bar.end.y - CTRL_ARROW.y))
+	var ax := bar.position.x - (CTRL_ARROW.x - CTRL_BAR.size.x) / 2.0  # centred on the 11 px bar
+	_blit_region("pref/sldownb_%d.png" % (2 if ctrl_arrow == "up" else 0), Rect2(Vector2.ZERO, clip), Vector2(ax, bar.position.y))
+	_blit_region("pref/slupb_%d.png" % (2 if ctrl_arrow == "down" else 0), Rect2(Vector2.ZERO, clip), Vector2(ax, bar.end.y - CTRL_ARROW.y))
 	_blit("pref/sldcntrl.png", Vector2(bar.position.x, at.y + _ctrl_thumb_y()))
 
 
