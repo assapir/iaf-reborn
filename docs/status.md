@@ -22,7 +22,7 @@
 5. **Other jets**: flight data + cockpit per jet — Phantom 2000 (19 missions), F-4E (17), F-15 (16), Lavi / Mirage
    (13), Kfir (8) (→ ~30 more missions).
 6. Radar missiles with lock, IR SAMs, TV / IR-guided weapons, night, anti-radiation missiles, rockets.
-7. Smaller items (no missions unlocked; fit in between milestones): **autopilot** (A key, incl. the approach mode
+7. Smaller items (no missions unlocked; fit in between milestones): **autopilot** (A key; reuse the AI's control loops, crates/iaf-flight/src/autopilot.rs — the original's AI flies through the same autopilot; incl. the approach mode
    of Landing 312), **cockpit camera = the original projection** (HUD ladder lines up; drop the conformal option if
    redundant) + Tu-22 Real row (the variant flown in the missions), **pilot records** / login / unlocking.
 8. Remaining front-end screens, multiplayer.
