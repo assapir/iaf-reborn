@@ -161,6 +161,13 @@ func current(units: Array) -> Dictionary:
 	return _find(units, target_key)
 
 
+## FUN_00461b00 on entering IR with an empty station: the seek tone starts; the next update stops it.
+func start_empty_chirp() -> void:
+	_tone = "seek"
+	if tone.is_valid():
+		tone.call("seek")
+
+
 ## FUN_00461bf0: no rounds → both tones off and no lock; else the lock or the seek tone.
 func _set_tone(on: bool, have_rounds: bool) -> void:
 	lock = on and have_rounds

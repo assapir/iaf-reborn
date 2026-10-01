@@ -148,6 +148,19 @@ func run() -> void:
 	check(w.missiles.size() == 1, "Space: missile launched")
 	check(w.stores.total(w.stores.current_type(), w.stores.current_name()) == n0 - 1, "missile count -1")
 	check(_drawn(w) == drawn0 - 1, "the store left its pylon")
+	# The fired station is empty: in IR mode on it (FUN_0053bcd0 checks the selected station, not the weapon's
+	# total) the seek tone only chirps on entry (FUN_00461b00) and the next update stops it (FUN_00461bf0).
+	if float(w.stores.station(aim_station).count) == 0.0:
+		var keep_t := t
+		w._set_hud_mode(0)
+		w.stores.cur = aim_station
+		w._set_hud_mode(1)
+		for i in 3:
+			keep_t += 0.05
+			w.seeker.update(keep_t, w.own(), w._units(), 570, w._station_has_rounds())
+		check(w._seek_sound == null and w._lock_sound == null and not w.seeker.lock, "empty station: no seeker tone (chirp stopped)")
+		w._set_hud_mode(0)
+		w.select_aa()
 	check(tv.flight.state().mass_kg < before_mass, "flight model mass dropped (%.0f -> %.0f kg)" % [before_mass, tv.flight.state().mass_kg])
 	var m0 = w.missiles[0]
 	for i in 300:

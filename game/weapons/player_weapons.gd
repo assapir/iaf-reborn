@@ -237,9 +237,10 @@ func _set_hud_mode(h: int) -> void:
 	hud_mode = h
 	if entering_ir:
 		seeker.set_weapon(stores.station(stores.cur).get("w", {}))
-		# FUN_00461b00: the seek tone starts only when the store is empty (the next update stops it).
-		if stores.total(stores.current_type(), stores.current_name()) == 0:
-			_tone("seek")
+		# FUN_00461b00: the seek tone starts only when the selected station is empty (FUN_0053bcd0); the
+		# next update (FUN_00461bf0, no rounds) stops it, so the seeker must know it is playing.
+		if not _station_has_rounds():
+			seeker.start_empty_chirp()
 
 
 ## FUN_00449810: the MFD page of the master mode (NAV 0; bombs / AG gun stores; AA gun radar; the
@@ -585,6 +586,11 @@ func _missile_detonate(mis: RefCounted) -> void:
 		host.sounds.stop(mis.get_meta("sound"))
 
 
+## FUN_0053bcd0: the selected station has rounds left (not the weapon's total over every station).
+func _station_has_rounds() -> bool:
+	return float(stores.station(stores.cur).get("count", 0.0)) > 0.0
+
+
 func _tone(kind: String) -> void:
 	for pair in [["seek", "_seek_sound", "SFX_IR_SEEK"], ["lock", "_lock_sound", "SFX_IR_LOCK"]]:
 		var cur = get(pair[1])
@@ -789,7 +795,7 @@ func update(t: float) -> void:
 	seeker.radar_aa = radar.aa
 	if hud_mode == 1:
 		var st: Dictionary = stores.station(stores.cur)
-		seeker.update(now, own(), _units(), int(st.get("w", {}).get("type", 0)), stores.total(stores.current_type(), stores.current_name()) > 0)
+		seeker.update(now, own(), _units(), int(st.get("w", {}).get("type", 0)), _station_has_rounds())
 	if hud_mode == 3:
 		_lcos(now)
 	else:

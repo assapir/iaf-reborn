@@ -198,7 +198,8 @@ Per generation of the selected store (`FUN_00462460`): gen 1 15° / 6 NM, gen 2 
 **no side test** (friendlies too). Can-track (`FUN_00461d10`): 580 only within ±60° of the own heading (a bearing
 test, not the "tail" of the comment); range ≤ R; beyond **R/2 only a target with its afterburner on** (AI jets have
 no afterburner state yet, so for now R/2). Visible (`FUN_00461f10`): within 6° of the nose. Every 0.05 s: tone seek /
-lock (SFX_IR_SEEK Wpn_IRCHIRP / SFX_IR_LOCK WPN_IRCHIRPON; none without rounds); lock = a visible trackable target (no
+lock (SFX_IR_SEEK Wpn_IRCHIRP / SFX_IR_LOCK WPN_IRCHIRPON; none without rounds on the **selected station**, `FUN_0053bcd0`;
+entering IR on an empty station chirps the seek tone once, `FUN_00461b00`, stopped by the next update); lock = a visible trackable target (no
 lock timer; lost at once). The seeker diamond (±7 px) eases 0.3 / 0.7 toward the target's HUD point (snaps within
 5 px), back to the boresight without one. Missile circle r = 5·12 px (min 10) on the boresight. Ours: the HUD
 screen offsets are 12 px/deg from the boresight (the original projector is not traced).
