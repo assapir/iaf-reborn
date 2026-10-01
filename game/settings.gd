@@ -182,10 +182,12 @@ func _update_splash() -> void:
 
 ## Display settings that act at once (VSync, full screen).
 func apply_display() -> void:
-	# Only on a change, so a window made full screen by hand (macOS green button) is left alone.
+	# Only on a change, so a window made full screen by hand (macOS green button) is left alone. Deferred:
+	# save() runs inside a click handler (the "Save changes?" box), and macOS resizes the window at once,
+	# which freed the box mid-signal and crashed.
 	if fullscreen != _applied_fullscreen:
 		_applied_fullscreen = fullscreen
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if fullscreen else DisplayServer.WINDOW_MODE_WINDOWED)
+		DisplayServer.window_set_mode.call_deferred(DisplayServer.WINDOW_MODE_FULLSCREEN if fullscreen else DisplayServer.WINDOW_MODE_WINDOWED)
 	# Off = uncapped: Mailbox (no tearing) where the platform offers it (Wayland has no Disabled mode),
 	# else Disabled.
 	if vsync:
