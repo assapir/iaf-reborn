@@ -1,4 +1,4 @@
-# Status — 2026-09-30
+# Status — 2026-10-01
 
 ## Where we are
 - **Playable missions: 2 of 68** — Training "Engines ON" (311) and "Landing" (312), start to debrief.
@@ -12,7 +12,8 @@
 **1. Player experience** (in order):
 - ~~Radar contacts / lock / STT, HUD target box, IR missile slaved to the radar; chaff / flares (player side); Real
   weapon capabilities~~ — done (see Done).
-- NOW: Autopilot (A key; reuses the AI control loops; Landing 312 approach mode).
+- ~~Autopilot (A key; the AI control loops; Landing 312 approach mode)~~ — done (see Done; 312's final approach dives:
+  docs/autopilot.md §3).
 - Cockpit camera = the original projection (HUD ladder lines up).
 - RWR display, other MFD pages, views (padlock, back view, external list), time compression, pause / in-flight menu.
 - Detached-looking stores, shadows / flame shadow.
@@ -84,6 +85,7 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 | Flight model | original ground + airborne logic ported line by line (docs/flight-model.md §14–§15): envelope, stall, spin, landing / crash check, afterburner delay, gear / flaps / brakes, start rules, Gameplay prefs |
 | Physics switches | 12 "Better physics" options (incl. F-16 deep stall, ground effect) + 3 original-bug fixes (falling-jet heading, enemies tougher on easy AI, stores weight / tank fuel) |
 | AI flight | docs/ai.md: the bdb brains (rule engine, conditions, sub-brains, combat ops 21 / 22) and the original's autopilot control loops fly every brain-controlled jet through the same flight model (all AI types, Original / Real data, the FM's AI rules): routes with timed waypoints, close / tactical formation, take-off from the hangar (taxi, pivot turns, rotation), go home and land (left-hand pattern, 6° final, roll-out, taxi to a hangar, engine off), hold, straight; the player's wingman follows the player; `ai.contacts()` for radar / RWR |
+| Autopilot | docs/autopilot.md: A key off → level → NAV → off, on at an airborne start, lamp 8, HUD `AP LVL` / `AP NAV`, stick / rudder break-out at ±51 %, throttle keys dropped in NAV and re-synced on exit; level = wings level + heading / flight-path hold (no autothrottle), NAV = Fly2WayPt to the current waypoint with the waypoint sequencing (`FUN_00452960`), a land waypoint = the AI's go-home circuit and landing (312's demonstration); the AI's control loops, the player's FM rules |
 | Player weapons | gun (0.2 s timer, analytic rounds, 25 / 50 m hit sphere, candidate list, muzzle flash, sounds, LCOS / strafe pippers), IR seeker + missiles (per-generation lock, tones, q, dog / proportional chase), stores on the pylons, selection / master / HUD modes, release, weight / drag, external fuel tanks + jettison, HUD weapon line / missile circle / seeker diamond, stores MFD page; Extras "Weapon data: Real" (docs/weapons.md, docs/real-weapons.md) |
 | Radar | docs/radar.md: the player's radar (OFF / STBY / STT / BORE / LRS / TWS / ACM / GMT / MAP, per-jet tables, 2 s scan, 60° cone, terrain line of sight, 15 contacts, lock keys, STT track + auto-range), MFD B-scope / PPI symbols, HUD target box and "R" range, slaves the IR seeker, feeds the gun / LCOS range; chaff / flares (keys, counters, decoy flight); Real: F-16 APG-68 range, missile rear-aspect / cone / g |
 | Arming screen | original screen 0x1f (docs/front-end.md §15): jet front views + stations, weapon list AA / AG / Misc, drag and drop with the per-station allowed counts, right-click, DEFAULT, CURRENT LOAD / MAX T.O.W., the original's blocking checks (overweight, wing balance) and "Use weapon load?"; the load goes on the player's pylons (stores, weight / drag). Coverage: of the 9 missions whose default load cannot kill the targets (116, 122, 136, 212, 214, 215, 216, 227, 237), 8 now need a player weapon instead of the AI (bombs for 215 / 227 / 237, bombs / rockets / guided for the rest; 136 has none loadable); none becomes playable before the bombs |
@@ -94,7 +96,7 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 | Aircraft models | all 22 models: moving parts per the original rules, gear, afterburner flame, canopy / pilot, damage visuals |
 | Sounds | original sound table: engine, gear, flaps, air brake, AoA tone, Betty warnings, touchdown, crash; volume sliders |
 | Terrain | all of `map.ptt` (levels 11..6 + all 51 insets, 2342 nodes) as a streamed quadtree with distance LOD to 200 km, level-6 heights with the original's inset interpolation, skirts; runway digits surveyed on every airbase (2 mirrored fixed); `terraintype.dat` surface types (water / rough / runway) feed the flight model; loaded behind the wait screen (docs/formats/ptt.md) |
-| Tests | `tools/test.sh`: Rust + 29 headless Godot tests, isolated from the player's settings; fails on any script error |
+| Tests | `tools/test.sh`: Rust + 30 headless Godot tests, isolated from the player's settings; fails on any script error |
 
 ## Open gaps (by area)
 - **Terrain**: map-edge push-back / EndWorld and craters (terraintype bits known, systems missing); no elevation
@@ -103,8 +105,8 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 - **Combat**: player gun, IR missiles, radar lock, chaff / flares (no bombs, rockets, radar missiles, TV / laser,
   HARM); no AI combat (AI jets fly, don't fight), no AAA / SAMs (so no combat mission can be won yet).
 - **Cockpit / MFDs**: radar MAP picture, ECM, RWR threats, FLIR / TV / HARM pages, NAV distances; AI / SAM / ECM /
-  autopilot lights have no systems; night lighting.
-- **Controls**: no joystick; not built: views other than cockpit / chase, autopilot, time compression, pause
+  lights have no systems; night lighting.
+- **Controls**: no joystick; not built: views other than cockpit / chase, time compression, pause
   (Ctrl+P) and the in-flight menu (Ctrl+O), in-flight TSD.
 - **Sounds**: damage / RWR / weapon / AI sounds wait for those systems.
 - **Front end**: pilot records and mission unlocking, Reference, QUIT confirmation, TSD 3D-model / target

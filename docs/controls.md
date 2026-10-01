@@ -126,7 +126,7 @@ original's `WM 0x532` wParam; p1 / p2 as stored.
 | 15 | RPM - 5 | 9 |  | (6, 0, 0) |  | no | throttle −0.0925 |
 | 16 | RPM + 5 | 0 |  | (5, 0, 0) |  | no | throttle +0.0925 |
 | 17 | Eject (x3) | E |  | (18, 0, 0) |  | yes | eject |
-| 18 | Autopilot level/navigation/off | A |  | (16, 0, 0) |  | yes | — |
+| 18 | Autopilot level/navigation/off | A |  | (16, 0, 0) |  | yes | autopilot off → level → NAV → off (docs/autopilot.md); in NAV the throttle keys are dropped |
 | 19 | Flaps up/down | F |  | (12, 0, 0) |  | yes | flaps |
 | 20 | Landing gear up/down | G |  | (14, 0, 0) |  | yes | gear |
 | 21 | Fire extinguisher | X |  | (73, 0, 0) |  | yes | — |
@@ -147,8 +147,8 @@ original's `WM 0x532` wParam; p1 / p2 as stored.
 | 36 | Snap view 45 right | Numpad 9 |  | (22, 45, 9) | (22, -1, -9) | yes | — |
 | 37 | Rudder left | Numpad 0 |  | (10, -100, 0) | (10, 0, 0) | no | rudder (held) |
 | 38 | Rudder right | Decimal |  | (10, 100, 0) | (10, 0, 0) | no | rudder (held) |
-| 39 | Next waypoint | W |  | (101, 0, 0) |  | yes | next waypoint |
-| 40 | Previous waypoint | Shift + W |  | (102, 0, 0) |  | yes | previous waypoint |
+| 39 | Next waypoint | W |  | (101, 0, 0) |  | yes | next waypoint (NAV re-targets it) |
+| 40 | Previous waypoint | Shift + W |  | (102, 0, 0) |  | yes | previous waypoint (NAV re-targets it) |
 | 41 | FLIR on/off | I |  | (90, 6, 0) |  | yes | — |
 | 42 | Damage report | D |  | (90, 4, 0) |  | yes | MFD: damage |
 | 43 | ECM Jammer on/off | J |  | (70, 0, 0) |  | yes | — |
