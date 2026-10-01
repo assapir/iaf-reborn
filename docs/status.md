@@ -36,8 +36,6 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
   they differ in 124 of 307 formations — check which missions change their player and port.
 - Real data: real service ceilings per aircraft (the envelope's g ceilings from public ceiling figures), all jets
   incl. AI types (docs/real-aircraft.md).
-- Parked aircraft (e.g. the F-15s at Ramat David) sit too low: belly on the runway (Present scale ×2 without the
-  gear clearance?).
 - Physics tab: the list needs a scrollbar soon (15 options; use the Keyboard page's original scrollbar art / behaviour).
 - Stores look detached: no pylon models drawn (stores float under the wing), single-sided fins (flat white
   triangles from behind), triple-rack side bombs touch the wing (original formula) — see scratchpad so_behind.png.

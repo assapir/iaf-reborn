@@ -107,6 +107,10 @@ func setup(h: Node, rt: Node, bdb: Dictionary, files: Array) -> void:
 		if model != null:
 			model.scale = Vector3.ONE * float(pr.get("0x65e", 10.0))
 			host.add_child(model)
+			# As the player's jet: the model's `height` helper (how far the wheels reach below the
+			# origin) at the Present scale.
+			var hp := model.find_child("height", true, false) as Node3D
+			p.flight.set_gear_clearance(-hp.position.y * model.scale.y if hp != null else 0.0)
 		p.node = model
 		ent.node = model
 		ent["pilot"] = p
