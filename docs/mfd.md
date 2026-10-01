@@ -129,23 +129,31 @@ the MFD count and `[PANELRWR] Active`. F-16: Left = radar, Right = TSD (3).
 | 10 | HARM | blank | "harm" | `FUN_005358b0` |
 | 11/12/13 | placeholder | blank | "inventory"/"lt"/"comm" | label only |
 
-**MENU (8)** — left labels at x=5, right labels right-aligned to x=124; black rect erases "MENU" at (14,124)
-(extent UNCERTAIN). Buttons: 0xb "FLIR"→6 (only if MenuFlirOn and FLIR available, state+0x610); 0xd "stores"→1;
-0xe "rwr"→7 (only if PANELRWR inactive → hidden on F-16); 0xf "radar"→2; 0x11 "NAV"→0; 0x12 "damage"→4;
-0x13 "tactical"→3; 0x14 "adi"→9 (only if OnMfd → hidden on F-16). Label y = 22/42/62/82/102 for left 0xb..0xf,
-42/62/82/102 for right 0x11..0x14.
+**MENU (8)** (`FUN_0052b800`) — left labels at x=5, right labels right-aligned to x=124; a black colour-fill
+(14,124)–(33,129) erases the tile's "MENU". Labels: "FLIR" (5,22) only if MenuFlirOn (ini+0x226c) and the FLIR pod
+(state+0x610); "NAV" (124,42); "stores" (5,62); "damage" (124,62); "rwr" (5,82) only if PANELRWR inactive (+0x21e4)
+→ hidden on F-16; "tactical" (124,82); "adi" (124,102) only if [HORIZON] OnMfd (+0x217c) → hidden on F-16; "radar"
+(5,102). Buttons (`FUN_005219e0` case 8, event 0x5b(page, mfd)): 0xb "FLIR"→6 (same gates); 0xd→1; 0xe→7; 0xf→2;
+0x11→0; 0x12→4; 0x13→3; 0x14→9.
 
-**NAV (0)** — "ETA   :" at (72,124). 3 rows at y=42,62,82 from scroll index +0x27b0: "%1d" waypoint number
-right-aligned at x=8; name (state+0x88+i·0x2c, ≤12 chars) at (12,y+1); GDI pass: "% 3dM" distance at x+77 and "%03d"
-bearing at x+102, y+43+20·row; ETA "%02d %02d" right-aligned (117,124). Scroll arrows at (1,22)/(1,107); buttons
-0xb/0xf scroll. Current waypoint (state+0x320) boxed (x1..x8). List auto-scrolls to keep it visible.
+**NAV (0)** (`FUN_0052b410`, `FUN_0052c450`) — "ETA   :" at (72,124). 3 rows at y=42,62,82 from scroll index
++0x27b0: "%1d" waypoint number right-aligned at x=8; name (state+0x88+i·0x2c, ≤12 chars) at (12,y+1). Pass 3 (sprite
+font) per row at y = 43 + 20·row: "% 3dM" = ftol(distance·(1/1853)) NM at x 77 and "%03d" = ftol(bearing°) (+360 if
+negative) at x 102, where the nav update `FUN_004459f0` fills each waypoint record (state+0x7c + 0x2c·i) with the
+bearing atan2(dx, dy) from the ownship (+0x9c, rad, true north) and the 3-D distance (+0xa0, m). ETA "%02d %02d" =
+hours, minutes of the double state+0x318 (h = ftol(t/3600), m = ftol((t − 3600h)/60)) right-aligned at (117,124);
+state+0x318 is a clock time computed in `0x4530a0` from the sim clock and the waypoint's own time (not fully traced).
+Scroll arrows at (1,22)/(1,107); buttons 0xb/0xf scroll (clamped 0..count). Pass 4: the current waypoint (state+0x320,
+clamped to the count) when visible: box (1, 20·(row+2))–(8, 20·(row+2)+8). The list scrolls to the current waypoint
+when the names change.
 
 **Stores (1)** — stations = 0x1c-byte {type,count,name[20]} at state+0x3a8. Count/name positions: st0 (4,62)/(4,72),
 st1 (4,42)/(4,52), st2 (4,22)/(4,32), st3 (24,3)/(17,12), st4 (64,3)/(57,12), st5 (104,3)/(97,12), st6..8 right-
 aligned to 128 at y 22/32, 42/52, 62/72. MRM total (types 600/0x262) right-aligned (59,53); SRM (0x23a/0x244) (59,63).
 GDI: "%dQnt" (1,94), "int%d" right-aligned (131,94), gun rounds "%03d" (68,85), "Fuel : %5dLB" (55,124). Selected
 station (+0x4f8) boxed 15x8 (gun: 36x10 at (48,82)). Buttons: station select (0xd,0xc,0xb,1,3,5,0x10,0x11,0x12 →
-stations 0..8, event 0x4c), 0xe/0xf quantity ±1 (0x4a), 0x13/0x14 interval ±10 (0x4b).
+stations 0..8, event 0x4c), 0xe quantity +1 / 0xf −1 (0x4a(1) / (0)), 0x13 interval +10 / 0x14 −10 (0x4b(1) / (0));
+quantity 1..14, interval 10..200, defaults 2 / 10 (weapons.md §9).
 
 **Damage (4)** — "NAME GO"/"NAME NOGO" rows (flags → rows: docs/damage.md §5.2); left x=12: ENG (y10), [ENG R y19 twin only], FUEL 43, AILN 52, FLTC 61,
 FLAP 70, GEAR 79, HUD 88, BRAK 97; right x=72: AB 10, [AB R 19], INS 34, RDR 43, RWR 52, WPNS 61, GUN 70, ECM 79,
@@ -227,15 +235,129 @@ A/P 88, ELCT 97, GNRT 106. Redrawn when state+0x558.. flags change.
 - Panel RWR (`FUN_00531330`): same drawer at [PANELRWR] Center (805,84) in panel coords, radius 28; background from
   the panel bitmap.
 
-### HARM (10), TV (5), FLIR (6)
-- HARM: emitters as one sprite-font char at (x−2,y−2), x = 66+(a58+pan)·112/range, y = 66−(…); status right-aligned
-  at (114,3): "no source"/"In Range"/"No Range"; 8x8 box on selected; click → event 0x37.
-- TV: tile used only when state+0x5e8 ≠ 0; status right-aligned (114,3): "RDY"/"TRA"/"TER"/"NO SOURCE"; zoom
-  "%1d" right-aligned (11,33); "%3d" at (111,110) (UNCERTAIN meaning); seeker ticks at x = 66−56u / y = 66+56v.
-- FLIR: zoom (11,33); "WIDE"/"SPOT" right (114,3); "LASER OFF"/"LASER ON" at (42,3); range NM "%3.1f" (or "XXX.X"
-  ≥20) right-aligned (98,124); 5x5 blob at (66−56u, 66+56v). Video = screen rect MFD (10,10)-(122,122) rendered
-  by the 3D view (`FUN_005209d0`); cyan box is the colour key. OSB 0xb/0xc zoom (events 0x14/0x15), top 3 = laser
-  (0x6a), top 5 = event 0x20 (UNCERTAIN).
+### FLIR (6), TV (5): the EO sensor and its camera
+
+**Who owns what.** The controller's EO mode `ctl+0x7f4` (0 none, 1 TV weapon, 2 FLIR) picks one of two "mcp"
+objects (`ctl+0x7cc + 4·mode`: +0x7d0 TV, vtable 0x600c28, update `FUN_004604c0`; +0x7d4 FLIR, vtable 0x601360, update
+`FUN_0045d7f0`); their `+0xc` is the store the camera sits on. The picture is **view-manager camera slot 1**
+(`DAT_00699304 + 0x498`, type **0xb**, set up by `FUN_005817a0`, pose `FUN_00582880` case 1/2, angles `FUN_005805e0`),
+rendered by the 3D engine as **viewport 1** into the MFD's screen rect (10,10)–(122,122) (`FUN_004d9080` →
+`FUN_004d9590` / `FUN_005209d0`; `FUN_004d9790(1)`) **after** the tile was blitted with its cyan key, so the
+picture shows only through the tile's cyan box. The viewport is the ordinary 3D scene: **colour, same renderer, no
+polarity / greyscale / green mode** (no such call exists), its resolution = the 112 × 112 screen px of the rect, one
+render per frame. Its field of view = renderer `+0x1ac[1]` = **50° / zoom** across the rect width (`FUN_004dc990(1,
+zoom)`: `0x605250` = 50.0, the main view's 50°).
+
+**Availability.**
+- **FLIR** = a FLIR pod on a pylon: `ctl+0x93c` (= `FUN_004586b0` at the flight start `0x4487ac`) is set when any of
+  stations 0..8 holds a store whose name **contains "FLIR"** (`0x600eb8`); `FUN_00446ac0` copies it to state+0x610 (the
+  MENU "FLIR" label / button). In the shipped bdb only store 55 "FLIR" (660 "Shell") is one, loadable on the **F-16
+  (station 3), F-4 2000 (station 4) and Lavi (station 3)** (`CDMEWeaponLoadItem`s of default6_1.bdb). `FUN_004592d0`
+  finds (and caches at `ctl+0x280`) that pod store.
+- **TV** = the selected store is a 635 Maverick (0x27b) or 640 TV missile (AGM-62 / POPEYE / GBU15 in the bdb; 0x280);
+  the status code also accepts 650 (0x28a) (`FUN_00460470`).
+- Entering: master mode 5 (650 laser bomb) **with** the pod → HUD mode 6, EO mode 2, page 6 (`FUN_00449810` case 5);
+  without it HUD 5, stores page. Master mode 6 (635 / 640) → HUD 7, EO mode 1, page 5 (case 6). The replaced page is
+  remembered (`ctl+0x930` for 5, `+0x934` for 6) and put back when a master mode change leaves 5 / 6
+  (`FUN_0044e6e0`, which also sets EO mode 0). Key **I** (event 0x5a(6)) and the MENU "FLIR" OSB (event 0x5b(6, mfd))
+  open page 6 when it is not shown, page 5 is not shown and the pod is fitted: EO mode 2, aimed as master mode 5. I
+  is not a toggle (a shown page 6 ignores it). Event 0x5a(5) is refused (page 5 only through master mode 6).
+
+**Initial aim** (`FUN_00449810` / event 0x5a): when the radar has a target (`ctl+0xc4` = 0 and (TWS with a selection
+`FUN_004adab0` or a lock `FUN_004ada80`), target `FUN_0044e430`) the camera **tracks that object**; FLIR only: else
+with the laser on (`ctl+0x960`) it tracks the EO centre point (below); else it starts **free** at az 0, el −5°.
+TV: only a Maverick takes the radar target; the others start free. `FUN_00450280(store, point)` → `FUN_005817a0`.
+
+**Camera (slot 1, `FUN_005817a0`)**, per start with a store: az `+0x1ec` = 0, el `+0x1f0` = −5° (0xbdb2b8c2),
+rates 0, start time `+0x1d8` = now, zoom `+0xc` = 1 when the slot was not already type 0xb (kept otherwise), tracking
+`+0x50` = 1 free / 2 a point (`+0x1e0`) or an object (`+0x60`), frozen base off (`+0x220` = 0). **Gimbal limits by the
+store's class** (`+0x30`→+8): **0x1a (660: the pod) az ±45°, el +30° / −80°**; any other (the weapons) **az ±30°, el
++15° / −45°** (`+0x1fc` / `+0x200` / `+0x204`).
+- **Angles** (`FUN_005805e0(t, &az, &el, pose)`): free: az = az0 + rate_az·(t − t0), el = el0 + rate_el·(t − t0);
+  tracking: az = atan2(dx, dy) − pose heading, el = atan2(dz, √(dx² + dy²)) − pose pitch (wrapped to ±π), d = target −
+  eye, and stored as az0 / el0; then **clamped** to the limits (the output, so a stored value never winds up).
+- **Pose** (`FUN_00582880` case 1/2): eye = the store's world position (`+0x224` node), heading = the base heading +
+  az, pitch = the base pitch + el, **roll 0**; base = the jet's live heading / pitch, or the frozen base (`+0x208`)
+  when `+0x220` is set.
+- **Slew** (keys Ctrl+arrows, records 48–51: ids 0x8b / 0x8c rewritten into **0x8a(x, y)** with the other axis's last
+  value from their own store `DAT_008338f8` / `+0x8338fc`, ±100; release 0): controller case 0x8a, only with an EO
+  mode and slot 1 of type 0xb. With |x| < 10 and |y| < 10 (the keys released) **and** (the store's `+0x48` = 1, i.e. a
+  launched TV weapon, or FLIR) it **locks**: tracks the EO centre point (`FUN_00450480`, below) — for a launched TV
+  weapon other than the Maverick that point also becomes the weapon's aim (vfunc +0x2c). Otherwise `FUN_00581b30(t,
+  y, x)`, only when (x, y) changed since the last call (`DAT_00843b84 / 88`, reset to 6 / 6 by every camera start):
+  from tracking it switches to free with the **base frozen** at the current pose (world-stabilised: the picture no
+  longer follows the jet's turns), else az0 / el0 = the current angles; t0 = now; rates **az = 0.09·x / zoom °/s, el =
+  0.09·y / zoom °/s** (0.09 = `weapons.ibx [DEBUGDATA] _debugParam008` "CAMERA: reduceParam of tv missile", read at
+  `0x8415a8 + 0x40`; ×π/180 `0x610ee4`), so full deflection is **9°/s at zoom 1**. Right / up are positive
+  (atan2(dx, dy) − heading: clockwise). A pre-launch TV weapon therefore only slews (release = stop).
+- **Zoom** (events 0x14 / 0x15 with p1 = 0 while slot 1 is type 0xb — the zoom keys' **release** records (p1 0; the
+  press has p1 −1 and zooms the main view) and the MFD OSBs 0xb / 0xc): in `FUN_005820e0` ×2 while < 8, rates ×0.5;
+  out `FUN_00582160` ×0.5 while > 1, rates ×2 → **1, 2, 4, 8** (FoV 50°, 25°, 12.5°, 6.25°). az0 / t0 are not reset
+  (original quirk: zooming during a slew makes the picture jump), then `FUN_004dc990(1, zoom)`.
+- **WIDE / SPOT** (event 0x20, FLIR OSB 5): flips the FLIR object's `+0x14` (`FUN_00545a90` / `FUN_0057e830` on
+  `ctl+0x7d4`; starts 0 = WIDE) and zooms **3 steps** in (to SPOT) or out (to WIDE).
+- **Laser** (key L / FLIR OSB 3, event 0x6a): `ctl+0x960` flips, only with the pod fitted. (What it designates for the
+  laser bombs: with the bombs.)
+- **EO centre point** (`FUN_00450480`): in the cockpit-like main views (1, 0x12, 0x16) or with `ctl+0x938` the world
+  point under the centre pixel of viewport 1 (`FUN_00401fc0` depth pick in `FUN_004d9080`, saved at game window
+  +0x198; nothing hit → 1e8 m along the line of sight); in other views a point 1e7 m along the camera's line of sight.
+
+**FLIR page** (`FUN_00536c10`, data `FUN_0045d7f0` → `FUN_00446a60`, state+0x5e0..0x600):
+- Pass 3 (sprite font): zoom "%1d" (ftol(zoom) clamped 1..10) right-aligned at (11,33); "WIDE" / "SPOT" (state+0x600)
+  right-aligned at (114,3); "LASER OFF" / "LASER ON" (+0x5f8) at (42,3); range = |centre point − eye|·(1/1853)
+  (`0x60c4a0`) NM: "%3.1f", or "XXX.X" from 20 NM, right-aligned at (98,124).
+- Pass 4 (pen): the gimbal marker, a 5×5 blob of lines (x−1..x+1 at y−2, x−2..x+2 at y−1..y+1, x−1..x+2 at y+2) at
+  **x = 66 − 56u, y = 66 + 56v**, u = az·4/π (`0x601354`), v = (el + 5°)·4/π (`0x601358` = −5°): ±45° = ±56 px about
+  the −5° boresight. (As the code: a pod looking right puts the marker left of centre.)
+- OSBs (`FUN_005219e0` case 6): 0xb zoom in (0x14), 0xc zoom out (0x15), top 5 WIDE / SPOT (0x20), top 3 laser (0x6a).
+- The tile (0,660) has "FLIR", the cyan video box, a centre reticle and "NM".
+
+**TV page** (`FUN_005369e0`, data `FUN_004604c0` → `FUN_00446450`): status state+0x5e8 = the TV mcp's vfunc +0x1c
+`FUN_00460940`: 0 when the store is not 635 / 640 / 650, **1 "RDY"** before launch (store `+0x48` ≠ 1) and for a
+launched Maverick, else the launched weapon's own vfunc +0x30 (2 "TRA" / 3 "TER", with the TV weapons); and 0 when
+no round of that store is left (`FUN_00456cd0` → `FUN_0053bcd0`) unless a launched non-Maverick weapon still flies.
+- Tile (0,792) ("TV", the cyan box, a cross) only while the status ≠ 0, else the blank tile (no picture).
+- Pass 3: with status ≠ 0: zoom "%1d" right-aligned at (11,33); "%3d" right-aligned at (111,110) = ftol of the
+  weapon's motion object vfunc +0x80 (`FUN_004d6ac0`: < 0 → 0, > 300 → 60; meaning not traced); always: "RDY" /
+  "TRA" / "TER" / "NO SOURCE" right-aligned at (114,3).
+- Pass 4, status ≠ 0: the seeker ticks — a vertical one at x = 66 − 56u, y 64..69, and a horizontal one at y = 66 +
+  56v, x 63..69; u = az·6/π, v = el·6/π (`0x601524`): ±30° = ±56 px.
+- OSBs (case 5): 0xb zoom in, 0xc zoom out. No pass 2.
+- Key Z (event 0x1f): full-screen weapon MFD (`ctl+0x24e`) only with an EO mode whose mcp vfunc +0x1c ≠ 0 or FLIR —
+  not built (below).
+
+### HARM (10) — `FUN_005358b0`, data `FUN_0045bb00` → `FUN_00446050`
+- Source: the **HARM sensor** (vtable 0x601190, a subclass of the AI target sensor of docs/ai.md §14: ctor `0x45b880`,
+  scan `FUN_004af300`, list vfunc +0x20 `FUN_004af260`) with a cone of **±15°** (cos 15° at sensor +0x60 / +0x64, from
+  `0x601168` = 15.0 in the static init `0x45b68e`). Only in HUD mode 8 (master 4 with 590 selected: `FUN_00449810`
+  → `FUN_0045c2b0` on, `FUN_0045c2f0` off).
+- State: list count state+0xde8 (≤ 15 entries of 0x40 from state+0xa28), +0xdf8 = the field width = **2·acos(+0x64)
+  = 30°**, +0xe00 = **"no source" flag** = no round of the selected store left (`FUN_00456cd0` = 0), or the sensor
+  off; +0xdf4 / +0xdfc = the heading / pitch change since the list was captured (`DAT_0082f574` / `0x82f568`, latched
+  when the mcp refreshes (state 5: a selection, a sensor notification), wrapped to ±π) — so between refreshes the
+  symbols move with the jet's turns; +0xdf0 = **"In Range"** = distance to the sensor's target < the selected weapon's
+  DLZ max range (`FUN_00460ac0`, weapon vfunc +0x24).
+- Entry: +0xa38 type (the unit's bdb type, or its class when the type is −1), +0xa44 selected, +0xa4c id, +0xa58 az,
+  +0xa5c el (rad, relative to the nose at capture).
+- Pass 4: while this MFD owns the cursor, the cross-hair to the display edges with 3 px gaps (no ticks); per selected
+  entry an **8×8 box** (x−4..x+4, y−4..y+4); positions **x = 66 + (az + dpsi)·112/30°, y = 66 − (el + dtheta)·112/30°**
+  (`0x60c478` = 112), only when 8 < x, y < 124 (MFD px).
+- Pass 3: per entry inside that window one sprite-font character at (x−2, y−2): type 290 "2", 300 "3", 310 "5", 320
+  "6", 330 "8", 340 "H", 350 "A", 360 "G", class 9 "I", class 0xb "R", anything else "0". A click (cursor in the ±4 px
+  box, `+0x27d8`) on an entry sends **event 0x37(id)** → `FUN_0045c280`: the sensor selects it (vfunc +0x38) and
+  refreshes; `DAT_0083e344` blocks a repeat until that id is the selected one. Status right-aligned at (114,3):
+  **"no source"** when +0xe00, else **"In Range"** when +0xdf0, else **"No Range"** when the list is not empty, else
+  nothing.
+- Ctrl+Return (cmd 0x33, HUD mode 8, more than one entry) / cmd 0x34: next / previous target (vfunc +0x2c(1) / (0)).
+
+**iaf-reborn** (`weapons/eo_sensor.gd`, `cockpit/mfd.gd`, `terrain/terrain_view.gd`): all of the above except: the
+TV weapons do not fly yet (no launch, so the status is RDY / NO SOURCE and the TV lock never happens; "%3d" not
+drawn: its source is the weapon's motion object); the EO centre point is the terrain under the line of sight
+(ray-marched; buildings / units not hit); the eye is the jet's position (not the pylon); the picture is a SubViewport
+camera of the same world at the display's on-screen resolution (deviations.md); the full-screen weapon MFD (Z) is not
+built. HARM: the emitters are the **RWR's** active entries inside the ±15° cone (the HARM sensor itself waits for the
+AI target sensor), the nearest preselected, refreshed with the RWR (2 s) and on a click; "In Range" needs the HARM's
+DLZ (with the weapon), so a list shows "No Range"; Ctrl+Return not built.
 
 ## 4. isr.bmp / MAPFRAME georeference
 
@@ -352,4 +474,5 @@ can put the player in a MiG (`Player1` type) is not verified - UNCERTAIN. `fsmfd
 - Straight-ahead vertical pan (+0x568) → exact on-screen MFD y.
 - Meaning of the TSD ×1.0071394 factor and the ~20 m offsets between TSD, MAP and DataShift constants.
 - state+0x70 (steerpoint vs ownship copy); contact +0x67c; state+0x348/+0x3a0 (STT envelope/closure).
-- FLIR OSB 5 (event 0x20); names of master modes 1–6; RWR aircraft glyph identities.
+- Names of master modes 1–6; RWR aircraft glyph identities; the TV page's "%3d" (weapon motion vfunc +0x80); the NAV ETA's
+  clock source (`0x4530a0`).
