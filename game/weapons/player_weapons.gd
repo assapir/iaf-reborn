@@ -13,6 +13,8 @@ const IrSeeker := preload("res://weapons/ir_seeker.gd")
 const IrMissile := preload("res://weapons/ir_missile.gd")
 const Radar := preload("res://weapons/radar.gd")
 const Rwr := preload("res://weapons/rwr.gd")
+const EoSensor := preload("res://weapons/eo_sensor.gd")
+const HarmSensor := preload("res://weapons/harm_sensor.gd")
 const DamageEffects := preload("res://mission/damage_effects.gd")
 const Bombs := preload("res://weapons/bombs.gd")
 
@@ -37,6 +39,17 @@ var seeker: RefCounted
 var radar: RefCounted
 ## The RWR (ctl+0x5b0, docs/rwr.md).
 var rwr: RefCounted
+## The EO sensor (FLIR pod / TV weapon camera, docs/mfd.md "FLIR (6), TV (5)") and the HARM page's list.
+var eo: RefCounted
+var harm: RefCounted
+## ctl+0x93c: a store named "...FLIR..." on stations 0..8 (FUN_004586b0 at the flight start).
+var flir_pod := false
+## The EO camera this frame: (az, el), line of sight (world), the EO centre point (FUN_00450480).
+var eo_ae := Vector2.ZERO
+var eo_dir := Vector3(0, 1, 0)
+var eo_centre := Vector3.ZERO
+## Pages 5 / 6 put up by the master modes: page -> [mfd, the page it replaced] (ctl+0x930 / +0x934).
+var _eo_replaced := {}
 ## Physics "fix_lock_threat" (ours): a radar lock makes the player the AI target's threat (brain+0x7c).
 var lock_threat_fix := false
 var missiles: Array = []  # IrMissile with .node, .sound
@@ -116,6 +129,15 @@ func setup(host_node: Node, entity: Dictionary, object: Dictionary, bdb: Diction
 	if host.get("sounds") != null:
 		rwr.play = host.sounds.play
 		rwr.stop = host.sounds.stop
+	eo = EoSensor.new()
+	eo.pan_k = db.debug_param(8, 0.09)
+	eo.unit_pos = func(key: String):
+		var u: Dictionary = _rwr_unit(key)
+		return u.get("pos")
+	harm = HarmSensor.new()
+	for i in 9:
+		if "FLIR" in stores.name_of(i):
+			flir_pod = true
 	_push_stores()
 	# The tanks' fuel (FUN_005a8980 before the start fills the fuel to FuelWeight + tanks).
 	if host.flight != null:
@@ -226,7 +248,7 @@ func _master_from_type(aa_key: bool) -> void:
 		590:
 			m = 4; h = 8
 		650:
-			m = 5; h = 5  # 6 with a FLIR pod (not built)
+			m = 5; h = 6 if flir_pod else 5
 		635, 640:
 			m = 6; h = 7
 	if m < 0:
@@ -251,7 +273,9 @@ func _set_hud_mode(h: int) -> void:
 
 
 ## FUN_00449810: the MFD page of the master mode (NAV 0; bombs / AG gun stores; AA gun radar; the
-## IR missiles leave the pages; radar missiles radar).
+## IR missiles leave the pages; radar missiles radar; HARM 10; laser bombs with the FLIR pod 6, TV weapons 5)
+## and the EO sensor: 5 with the pod starts the FLIR, 6 the TV camera; the other modes leave them
+## (FUN_0044e6e0: the pages they replaced come back).
 func _mfd_page() -> void:
 	var page := -1
 	match master:
@@ -262,11 +286,146 @@ func _mfd_page() -> void:
 			match stores.current_type():
 				600, 610: page = 2
 				590: page = 10
-		5: page = 1
+		5: page = 6 if flir_pod else 1
 		6: page = 5
+	harm.active = master == 4 and stores.current_type() == 590
+	if master < 5:
+		_eo_leave()
 	# Placed like event 0x5a (FUN_00449f90 / FUN_00449f20; UNCERTAIN: same rule).
 	if page >= 0 and host.cockpit != null:
-		host.cockpit.show_mfd_page(page)
+		var m = host.cockpit.show_mfd_page(page)
+		if page in [5, 6] and m != null:
+			_eo_replaced[page] = [m, host.cockpit.replaced_page]
+	if master == 5 and flir_pod:
+		_eo_start(EoSensor.FLIR)
+	elif master == 6:
+		_eo_start(EoSensor.TV)
+
+
+## FUN_0044e6e0: with an EO mode and the previous master mode 5 / 6, page 5 (and page 6 when leaving 5 for
+## another mode) go back to what they replaced; EO mode 0.
+func _eo_leave() -> void:
+	if eo.mode == EoSensor.NONE or not master_prev in [5, 6]:
+		return
+	for page in [5, 6]:
+		if not _eo_replaced.has(page) or (page == 6 and master_prev != 5):
+			continue
+		var r: Array = _eo_replaced[page]
+		if is_instance_valid(r[0]) and r[0].page == page:
+			r[0].page = r[1]
+		_eo_replaced.erase(page)
+	eo.stop()
+
+
+## The EO start of master modes 5 / 6 and event 0x5a(6) (FUN_00449810, FUN_00450280): FLIR on the pod (class
+## 0x1a limits), TV on the selected store; aimed at the radar's target (FLIR; TV only the Maverick 635), else
+## (FLIR) at the EO centre point with the laser on, else free.
+func _eo_start(mode: int) -> void:
+	var aim = null
+	var lk: Dictionary = radar.locked()
+	if not radar.damaged and not lk.is_empty() and (mode == EoSensor.FLIR or stores.current_type() == 635):
+		aim = String(lk.key)
+	elif mode == EoSensor.FLIR and eo.laser:
+		aim = eo_centre
+	eo.start(mode, mode == EoSensor.FLIR, aim, now)
+
+
+## Event 0x5a(6) (key I) / 0x5b(6) (MENU "FLIR"): only with the pod, page 6 not shown and page 5 not shown;
+## then page 6 (on `mfd`, or placed like 0x5a) and the FLIR. Not a toggle.
+func flir_on(mfd = null) -> bool:
+	var c = host.cockpit
+	if not flir_pod or c == null or c.mfds.any(func(m): return m.page in [5, 6]):
+		return false
+	if mfd != null:
+		mfd.page = 6
+	else:
+		c.show_mfd_page(6)
+	_eo_start(EoSensor.FLIR)
+	return true
+
+
+## The MFD and key events of the EO / HARM / stores pages (FUN_005219e0 → the controller): 0x14 / 0x15 EO zoom,
+## 0x20 WIDE / SPOT, 0x6a laser, 0x37 HARM select.
+func mfd_event(ev: int, arg = null) -> void:
+	match ev:
+		0x14, 0x15:
+			eo.zoom_step(ev == 0x14)
+		0x20:
+			eo.wide_spot()
+		0x6a:
+			eo.laser_key(flir_pod)
+		0x37:
+			harm.select(String(arg))
+			_harm_capture()
+
+
+## Event 0x8a(x, y): the EO slew / lock (docs/mfd.md); no TV weapon flies yet, so a TV camera never locks.
+func eo_pan(x: int, y: int) -> void:
+	var o := own()
+	eo.pan(x, y, now, _base(o), o.pos, eo_centre, false)
+
+
+## The jet's (heading, pitch) for the EO camera's base (roll 0).
+static func _base(o: Dictionary) -> Vector2:
+	var f: Vector3 = o.fwd
+	return Vector2(atan2(f.x, f.y), asin(clampf(f.z, -1.0, 1.0)))
+
+
+## The EO camera this frame and its centre point (FUN_00450480): with the cockpit drawn (views 1, 0x12, 0x16,
+## the snaps) the terrain under the line of sight (ours: ray-marched; nothing → 1e8 m along it), else 1e7 m
+## along it.
+func _eo_update() -> void:
+	if not eo.camera:
+		return
+	var o := own()
+	var b := _base(o)
+	eo_ae = eo.angles(now, b, o.pos)
+	eo_dir = eo.los(eo_ae, b)
+	var views = host.get("views")
+	if views != null and not views.cockpit_drawn():
+		eo_centre = o.pos + eo_dir * 1.0e7
+		return
+	var hit = ground_hit(o.pos, eo_dir)
+	eo_centre = hit if hit != null else o.pos + eo_dir * 1.0e8
+
+
+## The first terrain point along a ray (world), or null within 100 km: steps of 2 % of the distance (at
+## least 25 m), then 8 halvings.
+func ground_hit(from: Vector3, dir: Vector3) -> Variant:
+	var a := 0.0
+	var s := 25.0
+	while a < 100000.0:
+		var b := a + s
+		var p := from + dir * b
+		var g = _ground(p)
+		if g != null and p.z <= float(g):
+			for i in 8:
+				var m := (a + b) * 0.5
+				var q := from + dir * m
+				var gm = _ground(q)
+				if gm != null and q.z <= float(gm):
+					b = m
+				else:
+					a = m
+			return from + dir * b
+		a = b
+		s = maxf(25.0, b * 0.02)
+	return null
+
+
+## The HARM list capture from the RWR's slots (the mcp's refresh, with the RWR's 2 s refresh and a selection).
+func _harm_capture() -> void:
+	var o := own()
+	harm.capture(rwr.slots, o.pos, _base(o))
+
+
+## The TV status (FUN_00460940): 1 RDY with a 635 / 640 / 650 store and rounds of it left, else 0 NO SOURCE (no
+## TV weapon flies yet: TRA / TER never).
+func tv_status() -> int:
+	var t: int = stores.current_type()
+	if not t in [635, 640, 650]:
+		return 0
+	return 1 if stores.total(t, stores.current_name()) > 0 else 0
 
 
 ## ']' (event 0x3e): next AA store unless an AA missile is already selected in NAV.
@@ -1143,7 +1302,11 @@ func update(t: float) -> void:
 	_update_decoys()
 	radar.update(now)
 	rwr.damaged = _flag(14)
+	var refreshed: bool = now >= rwr._next_refresh
 	rwr.update(now)
+	if harm.active and (refreshed or harm.list.is_empty()):
+		_harm_capture()
+	_eo_update()
 	# FUN_00461680: an A-A radar lock slaves the IR seeker (any lock clears the seeker's own target).
 	seeker.radar_key = String(radar.locked().get("key", ""))
 	seeker.radar_aa = radar.aa
@@ -1230,6 +1393,9 @@ func _publish() -> void:
 		var d: Vector3 = GunRounds.shot_dir(o.fwd, o.up)
 		pip = gun.aim_point(o.pos, o.vel, d, true)  # world point, projected by the HUD
 	c.radar = radar_snapshot()
+	c.eo = {"mode": eo.mode, "camera": eo.camera, "fov": eo.FOV_DEG / eo.zoom, "flir": eo.flir_page(eo_ae,
+		(eo_centre - o.pos).length()), "tv": eo.tv_page(eo_ae, tv_status()), "flir_pod": flir_pod}
+	c.harm = harm.page(_base(o), stores.total(stores.current_type(), stores.current_name()))
 	c.rwr = rwr.display()
 	c.indicators[Rwr.LAMP_AI] = rwr.lamps[Rwr.LAMP_AI]
 	c.indicators[Rwr.LAMP_SAM] = rwr.lamps[Rwr.LAMP_SAM]

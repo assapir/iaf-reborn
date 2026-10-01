@@ -47,6 +47,14 @@ var on_ripple_event: Callable
 ## The radar snapshot (player_weapons.gd radar_snapshot()) and its key events (radar_event(ev, arg)).
 var radar := {}
 var on_radar_event: Callable
+## The EO sensor snapshot (player_weapons.gd: mode, camera, fov, flir {..}, tv {..}, flir_pod), its picture
+## (the EO camera's SubViewport, terrain_view.gd) and the HARM list ({list, field, dpsi, dtheta, no_source,
+## in_range}); MFD events for them (mfd_event(ev, arg)) and MENU "FLIR" (flir_on(mfd) -> bool).
+var eo := {}
+var eo_texture: Texture2D
+var harm := {}
+var on_mfd_event: Callable
+var on_flir: Callable
 ## The RWR copy (FUN_00446200 → state+0xe80..: the first `count` slots): [{type, pos: Vector2, launch, active}].
 var rwr: Array = []
 ## The player's route: [{name, world: Vector2}], and the current waypoint index.
@@ -182,17 +190,23 @@ func _create_mfds() -> void:
 
 
 ## "Activate TSD / Damage report" keys (event 0x5a): the page replaces Left, or Right when Left
-## shows the radar; ignored when already shown.
-func show_mfd_page(page: int) -> void:
+## shows the radar; ignored when already shown. Returns the MFD changed (null = none) and keeps the page it
+## showed in `replaced_page`.
+var replaced_page := -1
+
+
+func show_mfd_page(page: int) -> Node:
 	for m in mfds:
 		if m.page == page:
-			return
+			return null
 	if mfds.is_empty():
-		return
+		return null
 	var target = mfds[0]
 	if target.page == 2 and mfds.size() > 1:
 		target = mfds[1]
+	replaced_page = target.page
 	target.page = page
+	return target
 
 
 ## The MFD showing the radar (radar keys first put the radar on the Left MFD if none shows it).

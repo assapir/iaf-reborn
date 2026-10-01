@@ -191,7 +191,7 @@ func _ready() -> void:
 	# Graphics page SHADOWS (our renderer's sun shadows; the original's shadow method is not used).
 	($Sun as DirectionalLight3D).shadow_enabled = Settings.shadows
 	for i in keys.size():
-		if int(keys.records[i].press[0]) in [2, 3, 10]:
+		if int(keys.records[i].press[0]) in [2, 3, 10, 139, 140]:
 			_held_records.append(i)
 	terrain.focus = rig
 	terrain.view_range = camera.far
@@ -317,6 +317,43 @@ func _setup_weapons() -> void:
 	weapons.bomb_burst_fix = Settings.better.get("fix_bomb_burst", false)
 	weapons.hud_clip = cockpit.hud.ccip_clip
 	cockpit.on_radar_event = weapons.radar_event
+	cockpit.on_mfd_event = weapons.mfd_event
+	cockpit.on_flir = weapons.flir_on
+
+
+## The EO picture (docs/mfd.md: view slot 1, type 0xb, rendered as viewport 1 into the MFD's video rect): a
+## camera in a SubViewport of the same world at the jet, heading / pitch = the jet's (or the frozen base) + az /
+## el, roll 0, 50° / zoom across its width; rendered only while an MFD shows page 5 or 6 with the cockpit drawn.
+var eo_viewport: SubViewport
+var eo_camera: Camera3D
+
+
+func _update_eo_view() -> void:
+	var show: bool = weapons != null and weapons.eo.camera and views.cockpit_drawn() \
+			and cockpit.mfds.any(func(m): return m.page in [5, 6])
+	if eo_viewport == null:
+		if not show:
+			return
+		eo_viewport = SubViewport.new()
+		eo_viewport.world_3d = get_viewport().world_3d
+		eo_camera = Camera3D.new()
+		eo_camera.keep_aspect = Camera3D.KEEP_WIDTH
+		eo_viewport.add_child(eo_camera)
+		add_child(eo_viewport)
+		cockpit.eo_texture = eo_viewport.get_texture()
+	eo_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS if show else SubViewport.UPDATE_DISABLED
+	if not show:
+		return
+	var px := maxi(int(round(112.0 * cockpit.ui_scale())), 16)
+	eo_viewport.size = Vector2i(px, px)
+	eo_camera.near = camera.near
+	eo_camera.far = camera.far
+	eo_camera.fov = weapons.eo.FOV_DEG / weapons.eo.zoom
+	var eye := rig.global_position
+	var w: Vector3 = weapons.to_world(eye)
+	var ahead: Vector3 = weapons.to_scene(w + weapons.eo_dir * 1000.0)
+	eo_camera.current = true
+	eo_camera.look_at_from_position(eye, ahead, Vector3.UP)
 
 
 ## Waits for the terrain in range (bounded), measures fps, saves a PNG and quits. `--shots N` saves N
@@ -1297,8 +1334,8 @@ func _joy_button(event: InputEventJoypadButton) -> void:
 func _command(cmd: Array) -> bool:
 	var p1 := int(cmd[1])
 	match int(cmd[0]):
-		2, 3, 10:
-			return true  # roll / pitch / rudder: held keys, polled in _read_controls
+		2, 3, 10, 139, 140:
+			return true  # roll / pitch / rudder / EO pan: held keys, polled in _read_controls
 		9:
 			# Throttle presets 1-8: GEV 9 -> motion 2 with p1 * 0.01 (FUN_0044e470); dropped in AP NAV.
 			if autopilot != null and not autopilot.throttle_allowed():
@@ -1359,11 +1396,18 @@ func _command(cmd: Array) -> bool:
 			else:
 				cockpit.radar_mfd()
 		90:
-			# SET_MFD_SCREEN(page) (docs/mfd.md §5): 3 TSD, 4 damage; FLIR (6) / 7 not built.
+			# SET_MFD_SCREEN(page) (docs/mfd.md §5): 3 TSD, 4 damage, 6 FLIR (I: with the pod); 7 not built.
 			if p1 in [3, 4]:
 				cockpit.show_mfd_page(p1)
+			elif p1 == 6:
+				if weapons != null:
+					weapons.flir_on()
 			else:
 				return false
+		106:
+			# L (event 0x6a): the laser, with the FLIR pod.
+			if weapons != null:
+				weapons.mfd_event(0x6a)
 		60:
 			weapons.select_ag()
 		62:
@@ -1706,6 +1750,9 @@ func _release_command(cmd: Array) -> void:
 			_snap_command(int(cmd[1]), int(cmd[2]))
 		20, 21, 23, 24, 26, 27:
 			views.pan(int(cmd[0]), false)
+			# The zoom keys' release (p1 0) zooms the EO camera (FUN_004cd630 cases 0x14 / 0x15, slot 1 type 0xb).
+			if int(cmd[0]) in [20, 21] and weapons != null and weapons.eo.camera:
+				weapons.mfd_event(0x14 if int(cmd[0]) == 20 else 0x15)
 
 
 ## On-The-Fly menu items (FUN_004dc0d0). The boxes are Yes / No; NO closes the box and the menu stays.
@@ -1863,6 +1910,7 @@ func _process(delta: float) -> void:
 			_console_update(_sim_time)
 			if weapons != null:
 				weapons.update(_sim_time)
+		_update_eo_view()
 		g_effects.g = st.g
 		g_effects.over_g = st.over_g
 		cockpit.state["ap_mode"] = autopilot.mode if autopilot != null and cockpit.indicators[8] else 0
@@ -1902,6 +1950,7 @@ var frozen := false
 ## Down pressed = pull; releasing either centres). No ramp, curve or spring: the flight model's lift ramp
 ## (G_Rate, docs/flight-model.md §4) is the only smoothing.
 var _key_was_held := {}
+var _eo_pan := Vector2i.ZERO
 
 
 func _read_controls(_delta: float) -> void:
@@ -1953,6 +2002,16 @@ func _joy_event(e: Array) -> void:
 func _apply_held(_i: int, cmd: Array) -> void:
 	var kb: Vector2 = autopilot.kb_stick if autopilot != null else stick
 	match int(cmd[0]):
+		139, 140:
+			# EO pan (FUN_004e0b80): 0x8b x / 0x8c y become 0x8a(x, y) with the other axis's last value
+			# (their own store DAT_008338f8 / 0x8338fc).
+			if int(cmd[0]) == 139:
+				_eo_pan.x = int(cmd[1])
+			else:
+				_eo_pan.y = int(cmd[2])
+			if weapons != null:
+				weapons.eo_pan(_eo_pan.x, _eo_pan.y)
+			return
 		2:
 			kb.x = clampf(cmd[1] * 0.01, -1.0, 1.0)
 		3:

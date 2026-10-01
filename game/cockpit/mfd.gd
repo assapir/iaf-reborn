@@ -513,6 +513,93 @@ func _radar_event(ev: int, arg = null) -> void:
 		cockpit.on_radar_event.call(ev, arg)
 
 
+## The EO picture (viewport 1 into the video rect (10,10)–(122,122), before the tile: it shows through the
+## tile's cyan box).
+func _eo_picture() -> void:
+	if cockpit.eo_texture != null and cockpit.eo.get("camera", false):
+		draw_texture_rect(cockpit.eo_texture, Rect2(10, 10, 112, 112), false)
+
+
+## FLIR page (FUN_00536c10): the picture, the tile (0,660), zoom "%1d" right-aligned at (11,33), WIDE / SPOT
+## right-aligned at (114,3), LASER OFF / ON at (42,3), the range NM right-aligned at (98,124), the gimbal blob
+## at (66 − 56u, 66 + 56v).
+func _draw_flir() -> void:
+	_eo_picture()
+	_tile(TILE_FLIR)
+	var f: Dictionary = cockpit.eo.get("flir", {})
+	if f.is_empty():
+		return
+	_text_right(11, 33, "%d" % int(f.zoom))
+	_text_right(114, 3, "SPOT" if f.spot else "WIDE")
+	_text(Vector2(42, 3), "LASER ON" if f.laser else "LASER OFF")
+	_text_right(98, 124, String(f.range))
+	var x := int(66.0 - 56.0 * float(f.u))
+	var y := int(66.0 + 56.0 * float(f.v))
+	draw_polyline(PackedVector2Array([Vector2(x - 1, y - 2), Vector2(x + 1, y - 2), Vector2(x + 2, y - 1),
+		Vector2(x - 2, y - 1), Vector2(x - 2, y), Vector2(x + 2, y), Vector2(x + 2, y + 1), Vector2(x - 2, y + 1),
+		Vector2(x - 1, y + 2), Vector2(x + 2, y + 2)]), GREEN, 1.0)
+
+
+## TV page (FUN_005369e0): with a source (status ≠ 0) the picture, the tile (0,792), zoom "%1d" (11,33) and the
+## seeker ticks (x = 66 − 56u, y 64..69; y = 66 + 56v, x 63..69), else the blank tile; the status right-aligned at
+## (114,3). (The "%3d" at (111,110) comes from a launched weapon: not drawn, deviations.md.)
+const TV_STATUS := ["NO SOURCE", "RDY", "TRA", "TER"]
+
+
+func _draw_tv() -> void:
+	var tv: Dictionary = cockpit.eo.get("tv", {})
+	var st := int(tv.get("status", 0))
+	if st != 0:
+		_eo_picture()
+		_tile(TILE_TV)
+		_text_right(11, 33, "%d" % int(tv.zoom))
+		var x := int(66.0 - 56.0 * float(tv.u))
+		var y := int(66.0 + 56.0 * float(tv.v))
+		_line(Vector2(x, 64), Vector2(x, 69))
+		_line(Vector2(63, y), Vector2(69, y))
+	else:
+		_tile(TILE_BLANK)
+	_text_right(114, 3, TV_STATUS[clampi(st, 0, 3)])
+
+
+## HARM page (FUN_005358b0): "harm"; per emitter in the window 8 < x, y < 124 its character at (x − 2, y − 2)
+## and a 8×8 box on the selected one, x = 66 + (az + dpsi)·112 / field, y = 66 − (el + dtheta)·112 / field;
+## the cross-hair while the mouse is over the display; "no source" / "In Range" / "No Range" right-aligned at
+## (114,3).
+const HARM_CHAR := {290: "2", 300: "3", 310: "5", 320: "6", 330: "8", 340: "H", 350: "A", 360: "G", 9: "I", 0xb: "R"}
+
+
+func _draw_harm() -> void:
+	_tile(TILE_BLANK)
+	_text(Vector2(17, 3), "harm")
+	_cross_hair(false)
+	var h: Dictionary = cockpit.harm
+	for e in harm_symbols(h):
+		_text(e.pos - Vector2(2, 2), HARM_CHAR.get(int(e.type), "0"))
+		if e.selected:
+			draw_rect(Rect2(e.pos - Vector2(4, 4), Vector2(8, 8)), GREEN, false, 1.0)
+	var status := ""
+	if h.get("no_source", true):
+		status = "no source"
+	elif h.get("in_range", false):
+		status = "In Range"
+	elif not h.get("list", []).is_empty():
+		status = "No Range"
+	_text_right(114, 3, status)
+
+
+## The HARM symbols inside the window: [{key, type, selected, pos}].
+static func harm_symbols(h: Dictionary) -> Array:
+	var out := []
+	var k: float = 112.0 / float(h.get("field", 0.5235988))
+	for e in h.get("list", []):
+		var x := 66 + int((float(e.az) + float(h.get("dpsi", 0.0))) * k)
+		var y := 66 + int(-(float(e.el) + float(h.get("dtheta", 0.0))) * k)
+		if x > 8 and x < 124 and y > 8 and y < 124:
+			out.append({"key": e.key, "type": e.type, "selected": e.selected, "pos": Vector2(x, y)})
+	return out
+
+
 ## The RWR page (FUN_00531290): the tile; with RWR damage (state+0x590 = flag 14) "Mal" at (101,3), else the
 ## symbols about (66,66), radius 56.
 func _draw_rwr() -> void:
@@ -538,11 +625,18 @@ func _draw_horizon_bars() -> void:
 			_line(centre + pts[i].rotated(rot), centre + pts[i + 1].rotated(rot))
 
 
+## MENU (FUN_0052b800): the labels by their OSBs; a black fill (14,124)–(33,129) erases the tile's "MENU";
+## "FLIR" only with MenuFlirOn and the FLIR pod (state+0x610).
+func _flir_menu() -> bool:
+	return int(cockpit.layout.get("MFD", {}).get("MenuFlirOn", 1)) == 1 and cockpit.eo.get("flir_pod", false)
+
+
 func _draw_menu() -> void:
 	_tile(TILE_BLANK)
+	draw_rect(Rect2(14, 124, 19, 5), Color.BLACK)
 	var h: Dictionary = cockpit.layout.get("HORIZON", {})
 	var rwr_panel := int(cockpit.layout.get("PANELRWR", {}).get("Active", 0)) == 1
-	var left := {0xb: "", 0xd: "stores", 0xe: "" if rwr_panel else "rwr", 0xf: "radar"}
+	var left := {0xb: "FLIR" if _flir_menu() else "", 0xd: "stores", 0xe: "" if rwr_panel else "rwr", 0xf: "radar"}
 	var right := {0x11: "NAV", 0x12: "damage", 0x13: "tactical", 0x14: "adi" if int(h.get("OnMfd", 0)) == 1 else ""}
 	for id in left:
 		_text(Vector2(5, 22 + 20 * (id - 0xb)), left[id])
@@ -554,6 +648,7 @@ func _draw_nav() -> void:
 	_tile(TILE_BLANK)
 	var wps: Array = cockpit.waypoints
 	var cur: int = cockpit.current_waypoint
+	var own: Vector2 = cockpit.state.get("world", Vector2.ZERO)
 	for row in 3:
 		var i := nav_scroll + row
 		if i >= wps.size():
@@ -561,8 +656,15 @@ func _draw_nav() -> void:
 		var y := 42 + 20 * row
 		_text_right(8, y, "%d" % (i + 1))
 		_text(Vector2(12, y + 1), String(wps[i].name).substr(0, 12))
+		# FUN_0052c450: "% 3dM" NM at x 77, "%03d" bearing (true, from the ownship) at x 102, y + 1 (the original's
+		# distance is 3-D; our route has no waypoint heights: horizontal).
+		var d: Vector2 = wps[i].world - own
+		var b := int(rad_to_deg(atan2(d.x, d.y)))
+		_text(Vector2(77, y + 1), "%3dM" % int(d.length() / 1853.0))
+		_text(Vector2(102, y + 1), "%03d" % (b + 360 if b < 0 else b))
 		if i == cur:
-			draw_rect(Rect2(1, y - 2, 8, 9), GREEN, false, 1.0)
+			draw_polyline(PackedVector2Array([Vector2(8, y - 2), Vector2(8, y + 6), Vector2(1, y + 6), Vector2(1, y - 2),
+				Vector2(8, y - 2)]), GREEN, 1.0)
 	_text(Vector2(72, 124), "ETA   :")
 
 
@@ -743,6 +845,13 @@ func _gui_input(event: InputEvent) -> void:
 	if osb > 0:
 		press(osb)
 		accept_event()
+	elif page == HARM and Rect2(10, 10, 112, 112).has_point(p):
+		# FUN_005358b0 pass 3: a click in an emitter's ±4 px box sends event 0x37(id).
+		for e in harm_symbols(cockpit.harm):
+			if Rect2(e.pos - Vector2(4, 4), Vector2(8, 8)).has_point(p):
+				_mfd_event(0x37, e.key)
+				break
+		accept_event()
 	elif page == RADAR and Rect2(10, 10, 112, 112).has_point(p):
 		match int(cockpit.radar.get("mode", 0)):
 			4: _click_blip(p)
@@ -779,6 +888,7 @@ func press(osb: int) -> void:
 			var h: Dictionary = cockpit.layout.get("HORIZON", {})
 			var rwr_panel := int(cockpit.layout.get("PANELRWR", {}).get("Active", 0)) == 1
 			match osb:
+				0xb: if _flir_menu() and cockpit.on_flir.is_valid(): cockpit.on_flir.call(self)
 				0xd: page = STORES
 				0xe: if not rwr_panel: page = RWR
 				0xf: page = RADAR
@@ -805,10 +915,23 @@ func press(osb: int) -> void:
 			var rip := {0xe: [0x4a, true], 0xf: [0x4a, false], 0x13: [0x4b, true], 0x14: [0x4b, false]}
 			if rip.has(osb) and cockpit.on_ripple_event.is_valid():
 				cockpit.on_ripple_event.call(rip[osb][0], rip[osb][1])
+		TV, FLIR:
+			# FUN_005219e0 cases 5 / 6: 0xb zoom in (0x14), 0xc out (0x15); FLIR: top 5 WIDE / SPOT (0x20),
+			# top 3 laser (0x6a).
+			match osb:
+				0xb: _mfd_event(0x14)
+				0xc: _mfd_event(0x15)
+				5: if page == FLIR: _mfd_event(0x20)
+				3: if page == FLIR: _mfd_event(0x6a)
 		NAV:
 			match osb:
 				0xb: nav_scroll = maxi(nav_scroll - 1, 0)
 				0xf: nav_scroll = mini(nav_scroll + 1, maxi(0, cockpit.waypoints.size() - 3))
+
+
+func _mfd_event(ev: int, arg = null) -> void:
+	if cockpit.on_mfd_event.is_valid():
+		cockpit.on_mfd_event.call(ev, arg)
 
 
 ## Radar OSBs (0xb range +, 0xc range −, top 1 Q) and keys go to the radar (docs/radar.md).
