@@ -93,3 +93,11 @@ and the georeference warp exist.
 Sentinel-2 10 m (WorldCover 2021 / EOX 2017, CC BY) where the original has only ~79 m/px (Sinai, Egypt, Jordan,
 Syria, Lebanon, Cyprus); the original stays over Israel (≈10 m, as good or better). 1998 colours by default (needs
 per-land-cover colour matching), modern colours as its own switch. Comparisons: docs/imagery-research.md.
+
+## Imagery sources — decisions (2026-10-01, docs/imagery-sources.md)
+- Generic, pluggable imagery layers: each source is converted into its own node set; the game picks per region from
+  what was converted (a drop-down per region, e.g. Israel: Original / Survey of Israel 2 m / SPOT 5; outside Israel:
+  Original / SPOT 5 / Sentinel-2). Options are disabled when their data isn't downloaded / converted.
+- Israel: Survey of Israel 2015 2 m (data.gov.il, open licence, no account; large download, the user fetches the
+  sheets in a browser). Outside Israel: SPOT 5 (CNES SWH, 5 m; maybe also over Israel if it is smaller).
+- Cyprus orthophotos: not used. Survey of Israel: ask about the newer 25–50 cm orthophoto licence.
