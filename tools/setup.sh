@@ -10,12 +10,19 @@
 # Brief.zip / Menu.zip are the optional Hebrew briefings and menus packs (see docs/packs.md); they
 # overlay the (patched) English files. --hebrew-iso (or IAF_HEBREW_ISO) is the Hebrew retail CD (v1.0): the
 # three Hebrew images the packs lack (the startup splash and the Graphics page) are taken from it.
+# --imagery <source>[,<source>…] (off by default) adds modern terrain imagery (docs/imagery.md, README
+# "Terrain imagery data"): sentinel2 = ESA WorldCover 2021 Sentinel-2 outside Israel, fetched and
+# converted (needs GDAL; ~28 GB of range reads, ~6 GB on disk); mapi2015 / mapi2015-bases = the Survey of
+# Israel 2015 2 m sheets (all / around the airbases), downloaded through your browser
+# (tools/imagery/fetch-mapi2015.sh); their conversion comes later. Without the ISO argument only the
+# imagery steps run (on an install set up before).
 # Safe to re-run: each step overwrites its own output under assets/.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-usage='usage: tools/setup.sh [--patch <v1.1 patch>] [--hebrew-iso <Hebrew CD>] "/path/to/Jane'"'"'s IAF.iso" [Brief.zip] [Menu.zip]'
+usage='usage: tools/setup.sh [--patch <v1.1 patch>] [--hebrew-iso <Hebrew CD>] [--imagery sentinel2,mapi2015,mapi2015-bases] ["/path/to/Jane'"'"'s IAF.iso" [Brief.zip] [Menu.zip]]'
 patch=${IAF_PATCH:-}
+imagery=
 hebrew_iso=${IAF_HEBREW_ISO:-}
 args=()
 while (($#)); do
@@ -24,15 +31,52 @@ while (($#)); do
 		--patch=*) patch=${1#--patch=}; shift ;;
 		--hebrew-iso) hebrew_iso=${2:?$usage}; shift 2 ;;
 		--hebrew-iso=*) hebrew_iso=${1#--hebrew-iso=}; shift ;;
+		--imagery) imagery=${2:?$usage}; shift 2 ;;
+		--imagery=*) imagery=${1#--imagery=}; shift ;;
 		-h|--help) echo "$usage"; exit 0 ;;
 		*) args+=("$1"); shift ;;
 	esac
 done
-iso=${args[0]:?$usage}
+[[ ${#args[@]} -gt 0 || -n $imagery ]] || { echo "$usage"; exit 1; }
+iso=${args[0]:-}
 hebrew_zip=${args[1]:-}
 hebrew_menu_zip=${args[2]:-}
+for src in ${imagery//,/ }; do
+	[[ $src =~ ^(sentinel2|mapi2015|mapi2015-bases)$ ]] || { echo "unknown imagery source '$src' (sentinel2, mapi2015, mapi2015-bases)"; exit 1; }
+done
 
 step() { printf '\n==> %s\n' "$*"; }
+
+# Modern terrain imagery (--imagery): after the base setup, or alone on an install set up before.
+imagery_steps() {
+	for src in ${imagery//,/ }; do
+		case $src in
+			sentinel2)
+				step "imagery: Sentinel-2 outside Israel (ESA WorldCover 2021, CC BY 4.0; GDAL range reads, resumable)"
+				command -v gdal_translate >/dev/null || { echo "GDAL is needed (README: prerequisites)"; exit 1; }
+				[[ -f assets/converted/terrain/theatre/meta.json ]] || { echo "run the base setup (with the ISO) first"; exit 1; }
+				cargo build -q --release -p iaf-tools
+				./target/release/iaf-imagery sentinel2 assets/install assets/converted/terrain/theatre assets/converted/imagery --dry-run
+				if [[ -t 0 ]]; then
+					read -rp "fetch and convert now? [y/N] " a
+					[[ $a == [yY]* ]] || { echo "skipped"; continue; }
+				fi
+				./target/release/iaf-imagery sentinel2 assets/install assets/converted/terrain/theatre assets/converted/imagery
+				;;
+			mapi2015|mapi2015-bases)
+				step "imagery: Survey of Israel 2015 2 m sheets (data.gov.il, through your browser)"
+				tools/imagery/fetch-mapi2015.sh $([[ $src == mapi2015-bases ]] && echo --bases)
+				echo "the sheets are in assets/source/imagery/mapi2015/; their conversion into a layer comes in phase 2 (docs/imagery.md)"
+				;;
+		esac
+	done
+}
+
+if [[ -z $iso ]]; then
+	imagery_steps
+	step "done"
+	exit 0
+fi
 
 step "building tools"
 cargo build --release -p iaf-tools
@@ -124,5 +168,7 @@ cargo build --release -p iaf-godot
 step "icon and desktop launcher (the original icon from iafjets.exe)"
 ./target/release/iaf-convert icon assets/install assets/converted/icon.png
 tools/install-launcher.sh
+
+[[ -n $imagery ]] && imagery_steps
 
 step "done — run: ./iafjets (or the \"Jane's IAF (reborn)\" launcher)"
