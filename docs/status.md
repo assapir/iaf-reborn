@@ -34,11 +34,6 @@ anti-radiation, rockets), night.
 sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, modern aircraft / weapons, Pi 5 profile.
 
 ## Small bugs (fix between jobs)
-- Twin-engine jets (F-15, F-4E, F-4 2000, MiG-29): the flight model has one engine state, so both engines' RPM / TEMP
-  needles and the damage page's engine rows read the same; the original keeps separate second-engine values for the
-  gauges (docs/cockpit.md "Round gauges"). Check whether its flight model has two engine states.
-- Round gauge inputs: FUELCLOCK / VARIOCLOCK (and the secondary RPM / TEMP) values are not traced past the setter
-  `FUN_00446490` (docs/cockpit.md "Round gauges"): needs the Ghidra decompile.
 - Stores look detached: no pylon models drawn (stores float under the wing), triple-rack side bombs touch the wing
   (original formula). (The flat white fins seen from behind are gone since the Present scale / smoothing work.)
 - Kfir / Mirage data: the original loads one shared block (the second type flies on the first's data) — do that
@@ -72,7 +67,7 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 | Real aircraft data | Real set for all 6 flyable jets (F-16, F-15C, F-4E / Kurnass 2000, Kfir C7, Lavi, Mirage IIICJ): weights, thrust, drag, roll, fuel, stall, pedal steering (docs/real-aircraft.md); the flight data loader reads the v1.1 files (`bdgen.dat`, `*gen.skp`, XOR-encoded); AI types: reference table only |
 | Damage | original damage model: hits, blast formula, destruction, falling jets, explosions / smoke, the player's systems damage, collisions |
 | Eject | E ×3: seat, canopy, parachute, mission lost |
-| Cockpit | all 9 original 2D cockpits, gauges, HUD (11 colours), panel lights, MFDs (radar incl. the MAP ground picture, TSD, RWR page and panel dial, NAV, stores, damage); RWR (docs/rwr.md) |
+| Cockpit | all 9 original 2D cockpits, gauges (round gauges traced: engine needles from the rpm per engine with its damage flags, the two-needle altimeter, fuel fill, vario; docs/cockpit.md "Round gauges"), HUD (11 colours), panel lights, MFDs (radar incl. the MAP ground picture, TSD, RWR page and panel dial, NAV, stores, damage); RWR (docs/rwr.md) |
 | Aircraft models | all 22 models: moving parts per the original rules, gear, afterburner flame, canopy / pilot, damage visuals |
 | Sounds | original sound table: engine, gear, flaps, air brake, AoA tone, Betty warnings, touchdown, crash; volume sliders |
 | Terrain | all of `map.ptt` (levels 11..6 + all 51 insets, 2342 nodes) as a streamed quadtree with distance LOD to 200 km, level-6 heights with the original's inset interpolation, skirts; runway digits surveyed on every airbase (2 mirrored fixed); `terraintype.dat` surface types (water / rough / runway) feed the flight model; loaded behind the wait screen (docs/formats/ptt.md) |

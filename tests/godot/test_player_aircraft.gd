@@ -32,6 +32,21 @@ func run() -> void:
 	check(st.speed_kt > v0 + 10.0 and st.on_ground and not st.crashed, "it accelerates on the runway (%.0f -> %.0f kt)" % [v0, st.speed_kt])
 	check(float(st.internal_fuel_kg) > 0.0 and tv.cockpit.state.internal_fuel_kg == st.internal_fuel_kg, "the fuel gauge's capacity reaches the cockpit")
 
+	# Engine needles (@45ac00): THROTTLE = rpm, RPM / TEMP clamped; right-engine fire (17) only heats TEMP2,
+	# left-engine permanent damage (22) zeroes THROTTLE and RPM. The flags are restored afterwards.
+	var ck = tv.cockpit
+	var rpm0: float = ck.state.rpm
+	var fl: Array = ck.damage_flags.duplicate()
+	ck.state.rpm = 0.3
+	check(ck._engine_needles(0) == [0.3, 0.6, 0.5], "engine needles at rpm 0.3: %s" % [ck._engine_needles(0)])
+	ck.state.rpm = 1.0
+	ck.damage_flags[17] = true
+	ck.damage_flags[22] = true
+	check(ck._engine_needles(0) == [0.0, 0.0, 0.8] and ck._engine_needles(1) == [1.0, 0.97, 0.9],
+			"engine needles with damage: L %s, R %s" % [ck._engine_needles(0), ck._engine_needles(1)])
+	ck.damage_flags.assign(fl)
+	ck.state.rpm = rpm0
+
 	# Drag chute (Shift+B) on the ground: deployed at once, the model's Parach shown.
 	key(tv, KEY_B, true)
 	await frames(2)
@@ -113,3 +128,18 @@ func run() -> void:
 	tv = await start_mission(311)
 	check(tv.player.type == 100 and tv.cockpit.cockpit_dir.ends_with("/f16") and not tv.cockpit.twin_engines,
 			"without a pick: the mission's F-16, its cockpit")
+
+	# Every cockpit of cockpits.ibx loads and draws its round gauges: each active needle other than the altimeter
+	# (which ignores it) has a FullClock > 0 (the MiG-29's altimeter has none).
+	for t in PlayerAircraft.COCKPIT:
+		var dir: String = "converted/cockpits/" + PlayerAircraft.cockpit_folder(t)
+		tv.cockpit.load_cockpit(dir)
+		tv.cockpit.queue_redraw()
+		await frames(2)
+		var bad := []
+		for k in tv.cockpit.layout:
+			var g = tv.cockpit.layout[k]
+			if k.contains("CLOCK") and k != "ALTITUDELOCK" and g is Dictionary and g.get("Active", 0) == 1 \
+					and not float(g.get("FullClock", 0.0)) > 0.0:
+				bad.append(k)
+		check(tv.cockpit.cockpit_dir == dir and bad.is_empty(), "type %d: %s draws (bad gauges %s)" % [t, dir, bad])

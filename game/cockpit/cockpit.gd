@@ -346,19 +346,21 @@ func _draw() -> void:
 	_draw_lights(s)
 	_draw_panel_rwr(s)
 	_draw_needle("SPEEDCLOCK", state.speed_kt, s)
-	_draw_needle("ALTITUDELOCK", state.alt_ft, s)
-	_draw_needle("RPMCLOCK", state.rpm, s)
-	_draw_needle("THROTTLECLOCK", state.throttle, s)
-	_draw_needle("TEMPCLOCK", lerp(0.25, 0.7, state.rpm), s)
-	# Twin-engine cockpits (F-4 2000, F-4E, F-15, MiG-29): the second engine's RPM and TEMP needles (the panel draw
-	# FUN_00527a40 has its own values for them; the flight model has one engine state, so both read the same). It
-	# never draws THROTTLECLOCKSECONDARY.
-	_draw_needle("RPMCLOCKSECONDARY", state.rpm, s)
-	_draw_needle("TEMPCLOCKSECONDARY", lerp(0.25, 0.7, state.rpm), s)
-	# Round gauges of the cockpits without the F-16's digits / tape. UNCERTAIN inputs (the panel draw reads cockpit
-	# data +0x54 for FUELCLOCK and +0x1044 for VARIOCLOCK; their writers are not traced, docs/cockpit.md):
-	# FUELCLOCK "LBS x1000 TOTAL INTERNAL", 0..10 over half a turn (FullClock 1.9): the internal fill fraction.
-	# VARIOCLOCK "CLIMB 1000 FT/MIN": ft/min against its FullClock (30000).
+	# The altimeter (FUN_00527c10) ignores FullClock: a long needle at one turn per 1000 ft and one 3 px shorter at
+	# one turn per 10,000 ft.
+	_draw_needle("ALTITUDELOCK", state.alt_ft, s, 1000.0)
+	_draw_needle("ALTITUDELOCK", state.alt_ft, s, 10000.0, 3.0)
+	# Engine needles (@45ac00, docs/cockpit.md "Round gauges"): all from the flight model's rpm, per engine with
+	# its damage flags; the second engine (the *SECONDARY needles, twin-engine cockpits) reads the same rpm.
+	for e in 2:
+		var n := _engine_needles(e)
+		var sfx := "SECONDARY" if e == 1 else ""
+		_draw_needle("THROTTLECLOCK" + sfx, n[0], s)
+		_draw_needle("RPMCLOCK" + sfx, n[1], s)
+		_draw_needle("TEMPCLOCK" + sfx, n[2], s)
+	# Round gauges of the cockpits without the F-16's digits / tape (FUN_00527a40): FUELCLOCK "LBS x1000 TOTAL
+	# INTERNAL" = total fuel / internal capacity, capped at 1 (@45acb9); VARIOCLOCK "CLIMB 1000 FT/MIN" = ft/min
+	# (FUN_004459a0, m/s · 196.848).
 	var cap: float = state.get("internal_fuel_kg", 0.0)
 	_draw_needle("FUELCLOCK", clampf(state.fuel_lbs * 0.45359 / cap, 0.0, 1.0) if cap > 0.0 else 0.0, s)
 	_draw_needle("VARIOCLOCK", state.vs_fpm, s)
@@ -612,14 +614,32 @@ func _draw_tape(key: String, value: float, s: float) -> void:
 			Rect2(0, src_y * k, t.Width * k, window * k))
 
 
-func _draw_needle(key: String, value: float, s: float) -> void:
+## [THROTTLE, RPM, TEMP] for engine `e` (0 left, 1 right), @45ac00: THROTTLE = rpm, RPM = clamp(rpm, 0.6, 0.97),
+## TEMP = clamp(rpm, 0.5, 0.8). Damage flags (docs/damage.md §5; left / right): engine cut out 2 / 3 -> RPM 0,
+## fire 16 / 17 -> TEMP 0.9, permanent damage 22 / 23 -> THROTTLE and RPM 0.
+func _engine_needles(e: int) -> Array:
+	var rpm: float = state.rpm
+	var n := [rpm, clampf(rpm, 0.6, 0.97), clampf(rpm, 0.5, 0.8)]
+	var f := func(i: int) -> bool: return damage_flags.size() > i + e and damage_flags[i + e]
+	if f.call(16):
+		n[2] = 0.9
+	if f.call(2):
+		n[1] = 0.0
+	if f.call(22):
+		n[0] = 0.0
+		n[1] = 0.0
+	return n
+
+
+## `full` > 0 replaces the gauge's FullClock; `shorter` px off its Radius.
+func _draw_needle(key: String, value: float, s: float, full := 0.0, shorter := 0.0) -> void:
 	var g: Dictionary = layout.get(key, {})
 	if g.get("Active", 0) != 1:
 		return
 	var c := panel_to_screen(g.OffsetX, g.OffsetY)
 	# FUN_00527e50: angle = max(value · 2π / FullClock, 0) + AngleOffset — no needle turns below its zero (the vario
 	# rests at 0 in a descent).
-	var angle: float = g.AngleOffset + maxf(value / g.FullClock * TAU, 0.0)
-	var tip: Vector2 = c + Vector2(cos(angle), sin(angle)) * float(g.Radius) * s * 0.9
+	var angle: float = g.AngleOffset + maxf(value / (full if full > 0.0 else float(g.FullClock)) * TAU, 0.0)
+	var tip: Vector2 = c + Vector2(cos(angle), sin(angle)) * (float(g.Radius) - shorter) * s * 0.9
 	var col := _colorref(int(g.NeedleColor))
 	draw_line(c, tip, col, max(1.0, g.NeedleWidth * s * 0.6), true)

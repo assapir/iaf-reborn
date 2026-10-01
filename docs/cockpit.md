@@ -134,13 +134,34 @@ The world is drawn by TgenAPI (`DAT_0069942c`, 16-bit renderer vtable `0x5fd900`
 * **Needle** `FUN_00527e50`: `angle = max(value · 2π / FullClock, 0) + AngleOffset` (the floor is `0x60c2b0` = 0.0), a
   line of length Radius from the centre (MoveToEx / LineTo). Linear, and **no needle turns below its zero**: the
   vario rests at 0 in a descent.
-* **Panel draw** `FUN_00527a40` (records copied at +0x20e8 into the window): ALTITUDE ← data+0x330, SPEED ← +0x1058,
-  FUEL ← +0x54, VARIO ← +0x1044, RPM ← +0x1064, RPM2 ← +0x1048, TEMP ← +0x1068, TEMP2 ← +0x1040, THROTTLE ← +0x1060.
-  **`THROTTLECLOCKSECONDARY` is never drawn.** The second engine has its own RPM / TEMP values.
-* The values come from the setter `FUN_00446490` (8 floats → +0x103c..+0x1058), called by the flight logic @45ad08
-  with helper results (`FUN_0045aa10`, `FUN_0045a9d0`) and damage-flag tests. UNCERTAIN: which flight quantity each
-  is (the hand trace stopped there; needs the Ghidra decompile, `tools/ghidra/DumpDecompiled.java`). Port: FUEL = the
-  internal fill fraction, VARIO = ft/min, RPM2 / TEMP2 = the one engine's (docs/status.md).
+* **Panel draw** `FUN_00527a40` (records copied at +0x20c8 into the window, so record +0x4ec is at window +0x25b4;
+  `S` = the cockpit state `*(window+0x20c0)`, the global `0x684760`): mode 2 = redraw the backgrounds, mode 4 = needles.
+  | gauge | input | what it is (writer) |
+  |---|---|---|
+  | `ALTITUDELOCK` | S+8 | own drawer `FUN_00527c10`, below |
+  | `SPEEDCLOCK` | S+0x330 | speed · 1.9428 = **kt** (`FUN_004459a0`, `0x600a70`) |
+  | `FUELCLOCK` | S+0x1058 | **total fuel / internal capacity, capped at 1** (@45acb9) |
+  | `VARIOCLOCK` | S+0x54 | vertical speed · 196.848 = **ft/min** (`FUN_004459a0`, `0x600a74`) |
+  | `THROTTLECLOCK` / `…SECONDARY` | S+0x1040 / +0x1060 | **rpm** (0..1) |
+  | `RPMCLOCK` / `…SECONDARY` | S+0x1044 / +0x1064 | **clamp(rpm, 0.6, 0.97)** (`FUN_0045aa10`) |
+  | `TEMPCLOCK` / `…SECONDARY` | S+0x1048 / +0x1068 | **clamp(rpm, 0.5, 0.8)** (`FUN_0045aa40`) |
+  All the round needles are drawn, `THROTTLECLOCKSECONDARY` included (it is active only on the twin-engine cockpits).
+* **Engine values** (@45ac00, the player controller: damage flags at +0x3d8): `rpm` = FM query 0x11 · 0.01 (`FUN_0045a9d0` → FM
+  vtable `0x611dc8` slot 26 `0x5a9280`, case 0x11 @5a997a: the RPM ramp `S+0x1b0` of the FM read copy `veh+0xc30`,
+  docs/flight-model.md "RPM ramp" — 100·rpm at 15 %/s). The setter `FUN_00446490` (left engine → S+0x103c..+0x1058) and
+  `FUN_004464f0` (right → S+0x105c..+0x1078) get **the same rpm**: the original has one engine state too. Only the
+  damage flags differ (docs/damage.md §5, left / right): cut out 2 / 3 → RPM 0; fire 16 / 17 → TEMP 0.9; permanent
+  damage 22 / 23 → THROTTLE 0 and RPM 0 (and the AB flag S+0x1054 0, with AB damage 8 / 9 too). The other setter fields:
+  +0x103c = controller +0xc, +0x104c = total fuel lb, +0x1050 = controller +0x24.
+* **Fuel** (`FUN_0045aa80`, controller +0x1c, lb): set from the FM fuel ramp ·2.2046 (@5a21a6, @5a82cc, @5a8c78; at the
+  start internal + tank fuel); the capacity +0x20 = the FM's internal fuel (`+0xc4c`+0xc0, kg) · 2.2046, once. Below
+  1000 lb and again below 500 lb it plays `0x2c003000` once (the player's own jet only).
+* **Altimeter** `FUN_00527c10`: two needles from S+8 · 3.28084 = ft, **FullClock is not used**: a long one at one turn
+  per 1000 ft (·0.001·2π) and one 3 px shorter at one turn per 10,000 ft (·0.0001·2π), both from AngleOffset, floor 0.
+  (The MiG-29's `[ALTITUDELOCK]` has no FullClock; a missing one reads 0.)
+* **Port** (`cockpit.gd` `_engine_needles`, `_draw_needle`): exactly the above; `state.rpm` is the FM's RPM ramp / 100.
+  Checked on all nine cockpits (tests/godot/test_player_aircraft.gd): every active needle but the altimeter has a
+  FullClock > 0 and the scale its input expects (engines ≈ 1, fuel 1.3..1.9, vario 30000, speed 1000).
 
 ## What our tooling assumes F-16
 * `crates/iaf-tools/src/bin/iaf-convert.rs` `convert_cockpit` is generic (dir name argument; whole ini -> `cockpit.json`; every
@@ -151,9 +172,7 @@ The world is drawn by TgenAPI (`DAT_0069942c`, 16-bit renderer vtable `0x5fd900`
 * `game/cockpit/cockpit.gd`: `cockpit_dir` default `.../cockpits/f16`; `_draw_mfd_screens` paints a fixed 160x230 black box at offset -6 for each
   active MFD (real MFD is 132x132, at OffsetX/Y); `_draw_standby_horizon` ignores `[HORIZON] Active` (would draw a disc on
   phantom/mig23/mig29) and would fail on empty `ClockCenterX`; `OnMfd = 1` planes (F-15, F-4-2000, Lavi) show no ADI at all;
-  `_draw_tape` covers `PANELVARIO`/`PANELAOA` (F-16 only); `VARIOCLOCK` (ft/min against FullClock)
-  and `FUELCLOCK` (internal fill fraction) and the RPM / TEMP `*SECONDARY` needles are drawn, not
-  `THROTTLECLOCKSECONDARY` (the original never draws it; inputs UNCERTAIN, see "Round gauges"); lights (`LIGHTSON`) are not drawn (see "Panel lights" below).
+  `_draw_tape` covers `PANELVARIO`/`PANELAOA` (F-16 only); all round needles are drawn with the original's inputs (see "Round gauges"); lights (`LIGHTSON`) are not drawn (see "Panel lights" below).
 * `game/terrain/terrain_view.gd` flies the player's type (`aircraft/player_aircraft.gd`, docs/aircraft.md §5) and
   loads its cockpit (`cockpit.load_cockpit`),
   and `game/aircraft/aircraft_model.gd` has F-16 flaperon/stabilator mixing constants (not cockpit, listed for completeness).
