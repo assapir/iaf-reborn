@@ -20,7 +20,8 @@ referenced but not shipped. Unreferenced extras: `cfir/cfir-lights.bmp`, `lavi/l
 * Panel = 1920 wide, cut into 320-px slices; any panel-space X = 320*slice + x (the exe splits `ClockCenterX`,
   `LENHORIZON CenterX` with /320, %320). The screen y of a panel-space point is y + MainOffsetY + vpan
   (`mfd.md` §1); `PanelHeight` = bitmap height.
-* `LENHORIZON`: lens ADI bitmap (128x128, 8-bit) behind a panel hole, Center/Radius/Factor (deg per radius); `Factor` 15 except F-15 20.
+* `LENHORIZON`: lens ADI bitmap (128x128, 8-bit) behind a panel hole, Center/Radius/Factor (the lens depth, see
+  "Attitude indicators"); `Factor` 15 except F-15 20.
 * `HUD`: glass bitmap `FileName` (Width x Height ~ bitmap size), `MaskOffsetX/Y/Y2` (glass slicing, meaning UNCERTAIN), `CenterY`,
   `BorePositionY`, `GunRetPositionY` (px above the panel top), `VertSclOffY` (stored negated), `Left/Right/Top/BottomBorder`
   (clip from centre), `TxtOffX/Y`, `Dash` (default 0), `ShowHorizon` (default 1), `ShowLRScales` (default 1).
@@ -163,16 +164,53 @@ The world is drawn by TgenAPI (`DAT_0069942c`, 16-bit renderer vtable `0x5fd900`
   Checked on all nine cockpits (tests/godot/test_player_aircraft.gd): every active needle but the altimeter has a
   FullClock > 0 and the scale its input expects (engines ≈ 1, fuel 1.3..1.9, vario 30000, speed 1000).
 
+## Attitude indicators and tapes (traced, v1.1)
+Window offsets (R) as in "Round gauges"; the ini copy is at R+0x20c8 (`[HORIZON]` R+0x2178.., `[LENHORIZON]`
+R+0x219c.., `[PANELVARIO]` R+0x21b4.., `[PANELAOA]` R+0x21cc..). S = the cockpit state: S+0xc / +0x10 / +0x14 =
+pitch / roll / heading (rad, copied from the unit's attitude by `FUN_004458b0`), S+8 = height (m), S+0x3c = height
+above the ground in ft (`(z − ground)·3.28084 − clearance·3.28084`, 0 below 1), S+0x50 = AoA (rad; the HUD's
+flight-path angle pairs it with cos roll, S+0x40 = sideslip with sin roll), S+0x54 = vertical speed in ft/min.
+`FUN_00522190` caches roll / pitch / heading as whole degrees mod 360 (truncated, `0x566ef0` chops) at R+0x2720 /
++0x2724 / +0x2728 and their sin / cos.
+
+* **Lens ADI** `[LENHORIZON]` (`FUN_005276f0`; every cockpit but those with Active 0): the 128×128 ball bitmap is
+  sampled through a lens table built once (`FUN_00532fc0(2R, Factor)`): for a pixel (x, y) from the centre of the 2R
+  square, inside the disc `z = sqrt(F² − (x² + y² − R²)) + 1` and `(u, v) = (x, y)·(1 + 2F / (z + F))`, outside
+  `(u, v) = 2·(x, y)`. Each frame (mode 1, `FUN_00532ad4`) with s, c = sin / cos(S+0x10) · 32766 in 16-bit fixed point:
+  texture column `(u·c − v·s) >> 16` + 64, row `((v·c + u·s) >> 16) + 62 − fmod(pitch°, 360)·128/360`, the row
+  wrapping at 128: **the ball's 128 rows are 360° of pitch (0.36 texel per degree), the horizon at row 62; Factor is
+  the lens depth, not degrees per radius.** Mode 2 blits the 2R square (colour key cyan) under the panel, which shows
+  it through its hole (key `0xffd200` = RGB 0,210,255).
+* **Panel horizon disc** `[HORIZON]` with OnMfd 0 (`FUN_005268b0` mode 4, the GDI pass; mode 3 then blits the panel
+  square back with its colour key, so it shows only through the hole): pitch p and roll r from R+0x2724 / R+0x2720
+  (−ve + 360; 90 < p < 270 → p = 180 − p, r + 180; p > 270 → p − 360, never reached with |pitch| ≤ 90°); sn, cs =
+  sin / cos(r) · `Scale`; a point (x, y) → (trunc(sn·y + cs·x), trunc(cs·y − sn·x)) + (trunc(p·sn/2), trunc(p·cs/2)) +
+  centre: **0.5 px per degree of pitch at Scale 1**. Clipped to the ±Radius square: FillRect `GndColor`, the `SkyColor`
+  polygon (−30, 0) (30, 0) (30, −90) (−30, −90) with the white 1 px pen (R+0x59c, `0xffffff`), then 12 white lines
+  (0x65cec0): (0,0)→(±20,6) and (0,0)→(±15,15) (ground perspective), ticks at y = ±4, ±8, ±12, ±16 (8° apart, ±3 and ±8
+  wide alternately).
+* **MFD ADI page** (9, `FUN_00526fe0`, `[HORIZON]` OnMfd 1: F-15, F-4 2000, Lavi): the same disc centred at (65,74)
+  of the MFD; then white, right-aligned on the baseline (`SetTextAlign 0x1a`): speed `%03d` at (31,27) (S+0x33c =
+  FM query 0x10 · 1.9428, an altitude-corrected speed: UNCERTAIN, ours shows the true speed), heading `%03d` at
+  (74,12) (S+0x14 in degrees mod 360), height above the ground `%05d` at (124,27) (S+0x3c).
+* **Tapes** (`FUN_005280b0` vario, `FUN_00528270` AoA; F-16 only): the PanelHeight rows of the tape from
+  `Height/2 − PanelHeight/2 ∓ trunc(·)`, clamped to the tape, are blitted to (OffsetX, OffsetY): vario −trunc(S+0x54 ·
+  Height / 60000), AoA +trunc(Height · 0.02 · S+0x50·57.2958) (Height / 50 px per degree). At 0 both show the tape's
+  middle.
+* **Port**: `cockpit.gd` `_draw_adi` (shader `lens_adi.gdshader` on a child behind the panel, continuous instead of
+  per original pixel), `draw_horizon_disc` (panel and MFD page), `_draw_tape`; `mfd.gd` `_draw_adi`. Checked on all
+  nine cockpits (tests/godot/test_player_aircraft.gd) and in posed captures (F-16, F-15, F-4 2000, Kfir).
+
 ## What our tooling assumes F-16
 * `crates/iaf-tools/src/bin/iaf-convert.rs` `convert_cockpit` is generic (dir name argument; whole ini -> `cockpit.json`; every
   `*.bmp` in the dir + `mfds.bmp`, `rwrsymb.bmp`, `isr.bmp`). Gaps: it does not convert `fsmfd/fsmfd.bmp`, `fsmfd/data.ibx`,
   `emf/map.emf`, and it ignores that `cockpit.ini` and unreferenced bitmaps exist (harmless extras). Empty ini values
-  (`ClockCenterX =`, `MiddleOffsetX =`) become the JSON string `""`, not the exe default 0 / 0x3c0.
+  (`ClockCenterX =`, `MiddleOffsetX =`) become the number 0 (UNCERTAIN: Windows may return the default, 0x3c0 for
+  ClockCenterX; it only moves the Mirage / MiG-23 standby disc, hidden under the panel either way).
 * `tools/setup.sh:29-30` converts only `f16` -> `assets/converted/cockpits/f16`.
 * `game/cockpit/cockpit.gd`: `cockpit_dir` default `.../cockpits/f16`; `_draw_mfd_screens` paints a fixed 160x230 black box at offset -6 for each
-  active MFD (real MFD is 132x132, at OffsetX/Y); `_draw_standby_horizon` ignores `[HORIZON] Active` (would draw a disc on
-  phantom/mig23/mig29) and would fail on empty `ClockCenterX`; `OnMfd = 1` planes (F-15, F-4-2000, Lavi) show no ADI at all;
-  `_draw_tape` covers `PANELVARIO`/`PANELAOA` (F-16 only); all round needles are drawn with the original's inputs (see "Round gauges"); lights (`LIGHTSON`) are not drawn (see "Panel lights" below).
+  active MFD (real MFD is 132x132, at OffsetX/Y); the attitude indicators and the vario / AoA tapes follow the
+  original (see "Attitude indicators"); all round needles are drawn with the original's inputs (see "Round gauges"); lights (`LIGHTSON`) are not drawn (see "Panel lights" below).
 * `game/terrain/terrain_view.gd` flies the player's type (`aircraft/player_aircraft.gd`, docs/aircraft.md §5) and
   loads its cockpit (`cockpit.load_cockpit`),
   and `game/aircraft/aircraft_model.gd` has F-16 flaperon/stabilator mixing constants (not cockpit, listed for completeness).

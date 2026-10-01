@@ -128,7 +128,7 @@ func _line(a: Vector2, b: Vector2, color := GREEN) -> void:
 		return
 	var c := _clip
 	var poly := PackedVector2Array([c.position, Vector2(c.end.x, c.position.y), c.end, Vector2(c.position.x, c.end.y)])
-	for seg in Geometry2D.clip_polyline_with_polygon(PackedVector2Array([a, b]), poly):
+	for seg in Geometry2D.intersect_polyline_with_polygon(PackedVector2Array([a, b]), poly):
 		if seg.size() >= 2:
 			draw_polyline(seg, color, 1.0)
 
@@ -630,24 +630,20 @@ func _draw_damage() -> void:
 		_text(Vector2(row[1], row[2]), fmt % [("L" if twin else ""), state] if fmt.count("%s") == 2 else fmt % state)
 
 
-## ADI page (9) for cockpits with [HORIZON] OnMfd: ball at (65,74), radius [HORIZON] Radius.
+## ADI page (9) for cockpits with [HORIZON] OnMfd (FUN_00526fe0 mode 4): the panel's horizon disc
+## (cockpit.draw_horizon_disc) centred at (65,74), then in white, right-aligned on the baseline: the speed "%03d"
+## at (31,27) (S+0x33c, FM query 0x10, an altitude-corrected speed; ours: speed_kt, UNCERTAIN), the heading "%03d"
+## at (74,12) and the height above the ground "%05d" at (124,27) (S+0x3c).
 func _draw_adi() -> void:
 	_tile(TILE_BLANK)
-	var h: Dictionary = cockpit.layout.get("HORIZON", {})
-	var r := float(h.get("Radius", 40))
+	cockpit.draw_horizon_disc(self, Vector2(65, 74), 1.0)
 	var st: Dictionary = cockpit.state
-	var sky: Color = cockpit._colorref(int(h.get("SkyColor", 0x804000)))
-	var gnd: Color = cockpit._colorref(int(h.get("GndColor", 0x004080)))
-	var offset := clampf(st.pitch / 90.0, -1.0, 1.0) * r
-	var c := Vector2(65, 74)
-	var rot := deg_to_rad(-st.roll)
-	var y := -r
-	while y < r:
-		var half := sqrt(maxf(r * r - y * y, 0.0))
-		var a := c + Vector2(-half, y).rotated(rot)
-		var b := c + Vector2(half, y).rotated(rot)
-		draw_line(a, b, sky if y < offset else gnd, 1.0)
-		y += 1.0
+	var hdg := int(st.heading) % 360
+	for t in [[31, 27, "%03d" % int(st.speed_kt)], [74, 12, "%03d" % (hdg + 360 if hdg < 0 else hdg)],
+			[124, 27, "%05d" % int(st.get("agl_ft", 0.0))]]:
+		var font: Font = cockpit.digits_font()
+		draw_string(font, Vector2(t[0] - font.get_string_size(t[2], HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x, t[1]), t[2],
+				HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
 
 
 ## TSD page (FUN_00531a50): heading-up, ownship at (65,85), 1 px = 112·scale m.
@@ -692,7 +688,7 @@ func _draw_tsd() -> void:
 		for i in wps.size():
 			var p: Vector2 = to_mfd.call(wps[i].world)
 			if prev != null:
-				for seg in Geometry2D.clip_polyline_with_polygon(PackedVector2Array([prev, p]), clip):
+				for seg in Geometry2D.intersect_polyline_with_polygon(PackedVector2Array([prev, p]), clip):
 					draw_polyline(seg, GREEN, 1.0)
 			prev = p
 			if Rect2(10, 10, 112, 112).has_point(p):

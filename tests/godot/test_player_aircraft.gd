@@ -143,3 +143,13 @@ func run() -> void:
 					and not float(g.get("FullClock", 0.0)) > 0.0:
 				bad.append(k)
 		check(tv.cockpit.cockpit_dir == dir and bad.is_empty(), "type %d: %s draws (bad gauges %s)" % [t, dir, bad])
+		# Attitude indicators (docs/cockpit.md "Attitude indicators"): the lens ball where [LENHORIZON] is active,
+		# and on the OnMfd cockpits the MFD ADI page (9) draws.
+		var lens_on: bool = int(tv.cockpit.layout.get("LENHORIZON", {}).get("Active", 0)) == 1
+		var lens = tv.cockpit._lens
+		check((lens != null and lens.visible and lens.size.x > 0.0) == lens_on, "%s: lens ADI %s" % [dir, "shown" if lens_on else "none"])
+		if int(tv.cockpit.layout.get("HORIZON", {}).get("OnMfd", 0)) == 1:
+			tv.cockpit.mfds[0].page = 9
+			tv.cockpit.mfds[0].queue_redraw()
+			await frames(2)
+			check(tv.cockpit.mfds[0].page == 9, "%s: the MFD ADI page draws" % dir)

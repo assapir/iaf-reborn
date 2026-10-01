@@ -125,7 +125,7 @@ the MFD count and `[PANELRWR] Active`. F-16: Left = radar, Right = TSD (3).
 | 6 | FLIR | (0,660) | – | `FUN_00536c10` |
 | 7 | RWR | (132,0) | – | `FUN_00531290` → `FUN_00531470` |
 | 8 | MENU | blank | – | `FUN_0052b800` |
-| 9 | ADI | blank | – | `FUN_00526fe0` (only if [HORIZON] OnMfd; not F-16) |
+| 9 | ADI | blank | – | `FUN_00526fe0` (only if [HORIZON] OnMfd; not F-16): horizon disc + speed / heading / height, docs/cockpit.md "Attitude indicators" |
 | 10 | HARM | blank | "harm" | `FUN_005358b0` |
 | 11/12/13 | placeholder | blank | "inventory"/"lt"/"comm" | label only |
 
@@ -321,7 +321,7 @@ page (`FUN_00449810`): NAV→0; modes 1/2→stores; 3→radar; 4→HARM(10)/rada
    the MFD, radius = `[HORIZON] Radius` (`FUN_00526fe0`, ini+0x218c). With OnMfd = 0 and `[HORIZON] Active` (default 1) it is
    the panel horizon disc at ClockCenter (X split into 320-px slice, `FUN_005268b0`). `Active = 0` -> neither. `[LENHORIZON]`
    (lens ADI bitmap on the panel) is independent. On OnMfd planes ClockCenter equals the centre of one MFD (F-15 Left, Lavi
-   Left; F-4-2000 approx Right), unused by the page code as far as read - UNCERTAIN.
+   Left; F-4-2000 approx Right); the page code does not use it (it draws at (65,74) of whichever MFD shows page 9).
 
 ### Table
 Screen = top-left on the 640x480 screen at pan 0 (MFD is 132x132). "Panel" = panel bitmap / HUD glass bitmap.

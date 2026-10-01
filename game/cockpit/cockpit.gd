@@ -33,7 +33,7 @@ static func hud_colour() -> Color:
 var state := {
 	"speed_kt": 0.0, "mach": 0.0, "alt_ft": 0.0, "vs_fpm": 0.0,
 	"pitch": 0.0, "roll": 0.0, "heading": 0.0, "aoa": 0.0, "g": 1.0,
-	"rpm": 0.0, "throttle": 0.0, "fuel_lbs": 0.0, "internal_fuel_kg": 0.0,
+	"rpm": 0.0, "throttle": 0.0, "fuel_lbs": 0.0, "internal_fuel_kg": 0.0, "agl_ft": 0.0,
 	"world": Vector2.ZERO,  # ownship in mission world coordinates (X east, Y north, metres)
 }
 ## The weapons snapshot for the HUD and the stores page (player_weapons.gd _publish; {} = none).
@@ -328,13 +328,19 @@ func _draw() -> void:
 	if layout.is_empty():
 		return
 	if view_mode != 0:
+		if _lens != null:
+			_lens.visible = false
 		_draw_console()
 		return
 	var s := ui_scale()
 	_draw_adi(s)
 	_draw_standby_horizon(s)
-	_draw_tape("PANELVARIO", clamp(state.vs_fpm / 6000.0, -1.0, 1.0), s)
-	_draw_tape("PANELAOA", clamp(state.aoa / 32.0, 0.0, 1.0) * 2.0 - 1.0, s)
+	# The tapes (FUN_005280b0 / FUN_00528270): the window shows the tape's middle at 0, moved Height / 60000 px per
+	# ft/min (vario, up for a climb) and Height / 50 px per degree of AoA (S+0x50, down), truncated.
+	var vario: Dictionary = layout.get("PANELVARIO", {})
+	_draw_tape("PANELVARIO", -int(state.vs_fpm * float(vario.get("Height", 0)) / 60000.0), s)
+	var aoa: Dictionary = layout.get("PANELAOA", {})
+	_draw_tape("PANELAOA", int(float(aoa.get("Height", 0)) * 0.02 * state.aoa), s)
 
 	var p: Dictionary = layout.PANEL
 	if tex.has("PANEL"):
@@ -367,9 +373,7 @@ func _draw() -> void:
 	var fuel: Dictionary = layout.get("FUELDIGITAL", {})
 	if fuel.get("Active", 0) == 1:
 		var col := Color8(int(fuel.ColorR), int(fuel.ColorG), int(fuel.ColorB))
-		if mfd_font == null:
-			mfd_font = preload("res://cockpit/hud.gd").load_original_font("mfd")
-		var font: Font = mfd_font if mfd_font != null else get_theme_default_font()
+		var font := digits_font()
 		draw_string(font, panel_to_screen(fuel.OffsetX, fuel.OffsetY + 9), "%05d" % int(state.fuel_lbs),
 				HORIZONTAL_ALIGNMENT_LEFT, -1, int(11 * s), col)
 
@@ -560,40 +564,99 @@ func _draw_lights(s: float) -> void:
 			_draw_light(sl, v if v >= 0 and v <= 2 else 0, s)
 
 
-## Attitude ball: drawn under the panel's round hole, rolled and shifted by pitch.
+## The lens ADI ([LENHORIZON], FUN_005276f0): the ball shader (lens_adi.gdshader) on a 2R square behind the
+## panel (show_behind_parent), seen through the panel's hole. Roll / pitch: the state's (S+0x10 / S+0xc).
+var _lens: ColorRect
+
+
 func _draw_adi(s: float) -> void:
 	var a: Dictionary = layout.get("LENHORIZON", {})
-	if a.get("Active", 0) != 1 or not tex.has("LENHORIZON"):
+	var on: bool = a.get("Active", 0) == 1 and tex.has("LENHORIZON")
+	if on and _lens == null:
+		_lens = ColorRect.new()
+		_lens.show_behind_parent = true
+		_lens.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_lens.material = ShaderMaterial.new()
+		_lens.material.shader = preload("res://cockpit/lens_adi.gdshader")
+		add_child(_lens)
+	if _lens == null:
 		return
-	var centre := panel_to_screen(a.CenterX, a.CenterY)
-	var r: float = a.Radius * s * 1.15
-	var t: Texture2D = tex.LENHORIZON
-	var px_per_deg: float = t.get_height() / 128.0 * a.Radius / a.Factor
-	var src_centre := Vector2(t.get_width() / 2.0, t.get_height() / 2.0 - state.pitch * px_per_deg)
-	var src_half := r / s * t.get_height() / 128.0
-	draw_set_transform(centre, deg_to_rad(-state.roll))
-	draw_texture_rect_region(t, Rect2(-r, -r, 2 * r, 2 * r), Rect2(src_centre - Vector2(src_half, src_half), Vector2(2 * src_half, 2 * src_half)))
-	draw_set_transform(Vector2.ZERO)
+	_lens.visible = on
+	if not on:
+		return
+	var r := float(a.Radius)
+	_lens.position = panel_to_screen(a.CenterX, a.CenterY) - Vector2(r, r) * s
+	_lens.size = Vector2(2 * r, 2 * r) * s
+	var m: ShaderMaterial = _lens.material
+	m.set_shader_parameter("ball", tex.LENHORIZON)
+	m.set_shader_parameter("radius", r)
+	m.set_shader_parameter("factor", float(a.Factor))
+	m.set_shader_parameter("roll", deg_to_rad(state.roll))
+	m.set_shader_parameter("pitch", state.pitch)
 
 
-## Small standby attitude indicator, drawn by the game in two flat colours (HORIZON).
+## The panel horizon disc ([HORIZON] with OnMfd 0, FUN_005268b0): drawn under the panel, shown through its hole.
 func _draw_standby_horizon(s: float) -> void:
 	var h: Dictionary = layout.get("HORIZON", {})
-	if h.is_empty() or h.get("OnMfd", 0) != 0 or h.get("Active", 1) != 1:
+	if h.is_empty() or int(h.get("OnMfd", 0)) != 0 or int(h.get("Active", 1)) != 1:
 		return
-	var centre := panel_to_screen(h.ClockCenterX, h.ClockCenterY)
-	var r: float = h.Radius * s * 1.1
-	var sky := _colorref(int(h.SkyColor))
-	var ground := _colorref(int(h.GndColor))
-	var offset: float = clamp(state.pitch / 90.0, -1.0, 1.0) * r * float(h.get("Scale", 1.0))
-	draw_set_transform(centre, deg_to_rad(-state.roll))
-	# Chords of the disc: sky above the (pitch-shifted) horizon, ground below.
-	var y := -r
-	while y < r:
-		var half := sqrt(max(r * r - y * y, 0.0))
-		draw_line(Vector2(-half, y), Vector2(half, y), sky if y < offset else ground, 1.0)
-		y += 1.0
-	draw_set_transform(Vector2.ZERO)
+	draw_horizon_disc(self, panel_to_screen(h.ClockCenterX, h.ClockCenterY), s)
+
+
+## The horizon disc of FUN_005268b0 mode 4 (the MFD ADI page FUN_00526fe0 draws the same), on `ci` (from its
+## _draw) at `c`, `px` screen px per original px. Roll and pitch in whole degrees (truncated, mod 360; a pitch past
+## ±90° folds over with the roll turned 180°); with sin / cos of the roll times [HORIZON] Scale, a point (x, y)
+## maps to (sin·y + cos·x, cos·y − sin·x) + pitch / 2 · (sin, cos), truncated to pixels: 0.5 px per degree of
+## pitch at Scale 1. Clipped to the ±Radius square: GndColor fill, the SkyColor rectangle (−30, 0)..(30, −90) above
+## the horizon, outlined, and the 12 white lines (0x65cec0: four ground perspective lines, pitch ticks every 8°).
+func draw_horizon_disc(ci: CanvasItem, c: Vector2, px: float) -> void:
+	var h: Dictionary = layout.get("HORIZON", {})
+	var r := float(h.get("Radius", 40))
+	var k := float(h.get("Scale", 1.0))
+	var roll := int(state.roll) % 360
+	var pitch := int(state.pitch) % 360
+	if roll < 0:
+		roll += 360
+	if pitch < 0:
+		pitch += 360
+	if pitch > 90 and pitch < 270:
+		pitch = 180 - pitch
+		roll += 180
+	elif pitch > 270:
+		pitch -= 360
+	var sn := sin(deg_to_rad(roll)) * k
+	var cs := cos(deg_to_rad(roll)) * k
+	var o := Vector2(int(pitch * sn * 0.5), int(pitch * cs * 0.5))
+	var at := func(x: float, y: float) -> Vector2:
+		return c + (Vector2(int(sn * y + cs * x), int(cs * y - sn * x)) + o) * px
+	var box := Rect2(c - Vector2(r, r) * px, Vector2(2 * r, 2 * r) * px)
+	var clip := PackedVector2Array([box.position, Vector2(box.end.x, box.position.y), box.end, Vector2(box.position.x, box.end.y)])
+	ci.draw_rect(box, _colorref(int(h.get("GndColor", 0x9bb4))))
+	var sky := PackedVector2Array([at.call(-30, 0), at.call(30, 0), at.call(30, -90), at.call(-30, -90)])
+	for piece in Geometry2D.intersect_polygons(sky, clip):
+		if piece.size() >= 3 and not Geometry2D.triangulate_polygon(piece).is_empty():
+			ci.draw_colored_polygon(piece, _colorref(int(h.get("SkyColor", 0xa06cfc))))
+	var lines := [sky[0], sky[1], sky[1], sky[2], sky[2], sky[3], sky[3], sky[0]]
+	for l in HORIZON_LINES:
+		lines.append(at.call(l[0], l[1]))
+		lines.append(at.call(l[2], l[3]))
+	for i in range(0, lines.size(), 2):
+		for seg in Geometry2D.intersect_polyline_with_polygon(PackedVector2Array([lines[i], lines[i + 1]]), clip):
+			if seg.size() >= 2:
+				ci.draw_polyline(seg, Color.WHITE, maxf(1.0, px * 0.6))
+
+
+## The disc's white lines (0x65cec0, x0 y0 x1 y1): ground perspective lines, then pitch ticks (4 px = 8°).
+const HORIZON_LINES := [[0, 0, 20, 6], [0, 0, -20, 6], [0, 0, 15, 15], [0, 0, -15, 15],
+		[-3, -4, 3, -4], [-8, -8, 8, -8], [-3, -12, 3, -12], [-8, -16, 8, -16],
+		[-3, 4, 3, 4], [-8, 8, 8, 8], [-3, 12, 3, 12], [-8, 16, 8, 16]]
+
+
+## The original MFD font (FUELDIGITAL, the MFD ADI page's numbers), loaded once.
+func digits_font() -> Font:
+	if mfd_font == null:
+		mfd_font = preload("res://cockpit/hud.gd").load_original_font("mfd")
+	return mfd_font if mfd_font != null else get_theme_default_font()
 
 
 func _colorref(c: int) -> Color:
@@ -601,15 +664,16 @@ func _colorref(c: int) -> Color:
 	return Color8(c & 0xff, (c >> 8) & 0xff, (c >> 16) & 0xff)
 
 
-## Vertical tape (vario / AOA) behind a panel window; `value` in -1..1 scrolls it.
-func _draw_tape(key: String, value: float, s: float) -> void:
+## Vertical tape (vario / AOA) behind a panel window: the PanelHeight rows from Height / 2 − PanelHeight / 2 +
+## `shift`, clamped to the tape.
+func _draw_tape(key: String, shift: int, s: float) -> void:
 	var t: Dictionary = layout.get(key, {})
 	if t.get("Active", 0) != 1 or not tex.has(key):
 		return
 	var tx: Texture2D = tex[key]
 	var k := tx.get_height() / float(t.Height)
-	var window: float = t.PanelHeight
-	var src_y: float = (t.Height - window) / 2.0 * (1.0 - value)
+	var window: int = int(t.PanelHeight)
+	var src_y: int = clampi(int(t.Height / 2.0) - int(window / 2.0) + shift, 0, int(t.Height) - window)
 	draw_texture_rect_region(tx, Rect2(panel_to_screen(t.OffsetX, t.OffsetY), Vector2(t.Width, window) * s),
 			Rect2(0, src_y * k, t.Width * k, window * k))
 

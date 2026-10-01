@@ -260,7 +260,8 @@ func _ready() -> void:
 	if flight != null and aircraft != null:
 		# The model's `height` helper: how far the wheels reach below the aircraft origin.
 		var h := aircraft.find_child("height", true, false) as Node3D
-		flight.set_gear_clearance(-h.position.y * aircraft.scale.y if h != null else 0.0)
+		gear_clearance = -h.position.y * aircraft.scale.y if h != null else 0.0
+		flight.set_gear_clearance(gear_clearance)
 	var shot := args.find("--screenshot")
 	if shot >= 0:
 		# Captures ignore stray keyboard / mouse input (the window may receive the user's typing).
@@ -1837,6 +1838,10 @@ func _process(delta: float) -> void:
 			_check_collisions()
 		for k in ["speed_kt", "mach", "alt_ft", "vs_fpm", "pitch", "roll", "heading", "aoa", "g", "rpm", "throttle", "fuel_lbs", "internal_fuel_kg"]:
 			cockpit.state[k] = st[k]
+		# S+0x3c (FUN_004458b0): the wheels' height above the ground in ft, 0 below 1 ft.
+		var gh = terrain.height_at(st.position)
+		var agl_ft: float = (st.position.y - gh - gear_clearance) * 3.28084 if gh != null else 0.0
+		cockpit.state.agl_ft = agl_ft if agl_ft >= 1.0 else 0.0
 		_record(st, delta)
 		if not frozen and not waiting_for_ground:
 			_sim_time += delta
@@ -1875,6 +1880,8 @@ var scripted_stick = null
 var scripted_rudder = null
 ## --freeze: don't advance the flight model (for posed test captures).
 var frozen := false
+## How far the wheels reach below the aircraft origin (the model's `height` helper), m.
+var gear_clearance := 0.0
 
 
 ## Keyboard stick, the original's law (FUN_004e0b80 → GEV 1 → FUN_0059f3d0, docs/controls.md): each key
