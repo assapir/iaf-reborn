@@ -9,7 +9,6 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 | Ground height (physics) | 5-tap smoothed sample of the finest decoded tile, 1.24 m height steps (`FUN_004047a0`) | the triangle-interpolated surface that is drawn (level 6 heights) | wheels sit on what you see; < 1 m on runways, can differ more over hills | formats/ptt.md, terrain.gd `height_at` |
 | Terrain rendering | software renderer, row by row, nearest-pixel level by distance | GPU mesh quadtree with LOD and skirts | modern renderer; same data and level choice | formats/ptt.md |
 | View distance | `min(100 km, (AGL·1e-4 + 0.7) × base)` ≈ 21 km on the ground, 30 km at 3 km AGL | drawn to 200 km with fog | better visibility (rendering) | terrain.gd |
-| Cockpit camera field of view | the original 3D projection (not traced yet) | invented (`HUD_REAL_FOV = 25`) | **to fix** (queued: original projection) | cockpit.gd |
 | Keyboard stick edges | a DirectInput key event per press / release | Godot key state polled once per frame for edges | a press + release within one frame is lost; a modifier pressed while an arrow is held counts as its release | terrain_view.gd `_read_controls` |
 | g readout on the ground | not traced | 1.0 | display only | flight.rs |
 | Envelope math | float32 / x87 | f64 | last-digit rounding only | flight-model.md §15.9 |
@@ -59,7 +58,7 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 - **Preferences → Extras → Weapon data (Original / Real)**: public missile weights, top speed, range, rear-aspect
   seekers (ours: a target-moving-away test), seeker cones, the AIM-9D's 12 g, the F-16's APG-68 range and gun rounds /
   rate / muzzle velocity — real-weapons.md.
-- **Preferences → Extras**: Flight data (Original / Real aircraft), HUD pitch ladder (conformal), flight info line,
+- **Preferences → Extras**: Flight data (Original / Real aircraft), flight info line,
   blackbox, language, "All keys on the Keyboard page" (the original lists 92 of the 117 key records; the option lists
   all 115 labelled ones so the stick, rudder, RPM ± 5 and pans can be rebound — controls.md §3). Later: Real HUD, extra sounds, canopy open (docs/roadmap.md).
 

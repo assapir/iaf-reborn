@@ -1,6 +1,6 @@
 # HUD (docs/cockpit.md "HUD"): the gun cross at GunRetPositionY (v1.1), the v1.1 value also with v1.0
 # cockpit data (−10 px on the five cockpits v1.1 changed); the v1.1 pitch ladder hangs off the flight
-# path marker at 12 px/deg, 7 rungs ±15°, rolled with the jet; the conformal ladder is our option.
+# path marker at 12 px/deg, 7 rungs ±15°, rolled with the jet.
 extends "res://../tests/godot/base.gd"
 
 
@@ -42,9 +42,31 @@ func run() -> void:
 	# Past ±90°, no rungs.
 	check(hud.ladder_rungs(fpm, 88.0, 0.0, s).all(func(r): return absi(r[0]) <= 90), "no rung beyond 90°")
 
-	check(Settings().hud_ladder == "original", "the original (v1.1) ladder is the default")
-	Settings().hud_ladder = "conformal"
-	hud.queue_redraw()
-	await frames(2)
-	check(true, "conformal ladder draws")
-	Settings().hud_ladder = "original"
+
+	# The original 3D projection (docs/cockpit.md "3D view"): 50° across 640 px, centred on the
+	# viewport above the panel (F-16: rows 0..296, centre 42 px above the panel top), 5.5° below the nose.
+	check(absf(cp.focal_length() - 686.2414 * s) < 0.01 * s, "focal length 320 / tan 25° = 686.2 px (×s)")
+	check(cp._view_bottom == 296.0, "F-16 viewport bottom 296 (D 104 + MainOffsetY 190 + 7, & ~7) (%.0f)" % cp._view_bottom)
+	var c: Vector2 = cp.projection_centre()
+	check(absf(c.y - (cp.panel_top() - 42.0 * s)) < 0.01, "projection centre 296/2 − 190 = 42 px above the panel top")
+	tv.in_cockpit = true
+	tv._apply_view()
+	var cam: Camera3D = tv.camera
+	var axis := cam.unproject_position(cam.global_position - cam.global_basis.z * 1000.0)
+	check(axis.distance_to(c) < 0.5, "the camera axis projects on the projection centre (%s vs %s)" % [axis, c])
+	var nose := cam.unproject_position(cam.global_position - tv.rig.global_basis.z * 1000.0)
+	check(absf(nose.y - (c.y - cp.focal_length() * tan(deg_to_rad(5.5)))) < 0.5, "the nose 5.5° above the centre")
+	var up := cam.unproject_position(cam.global_position + (-cam.global_basis.z + cam.global_basis.y * tan(deg_to_rad(10.0))) * 1000.0)
+	check(absf((c.y - up.y) - cp.focal_length() * tan(deg_to_rad(10.0))) < 0.5, "10° above the axis: f·tan 10° (square pixels)")
+	# Level flight and 10° nose up: the v1.1 ladder's horizon rung on the world's horizon (the rungs are
+	# linear, 12 px/deg, so rungs far from the centre differ from the perspective by a few pixels, as in the original).
+	for pitch in [0.0, 10.0]:
+		tv.rig.global_basis = Basis.from_euler(Vector3(deg_to_rad(pitch), 0, 0))
+		hud.velocity_dir = -tv.rig.global_basis.z
+		var fpm2: Vector2 = hud._fpm_position() + hud.position
+		var r := {}
+		for rr in hud.ladder_rungs(fpm2, pitch, 0.0, s):
+			r[rr[0]] = rr[1]
+		var horizon := cam.unproject_position(cam.global_position + Vector3(0, 0, -1) * 100000.0)
+		check(absf(r[0].y - horizon.y) < 0.5 * s, "pitch %d°: the horizon rung on the world's horizon (%.2f vs %.2f)" % [pitch, r[0].y, horizon.y])
+		check(r[int(pitch)].distance_to(fpm2) < 0.01, "pitch %d°: the %d° rung through the marker" % [pitch, pitch])

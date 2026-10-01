@@ -14,7 +14,7 @@
   weapon capabilities~~ — done (see Done).
 - ~~Autopilot (A key; the AI control loops; Landing 312 approach mode)~~ — done (see Done; 312's demonstration lands on
   the centreline: docs/autopilot.md §3).
-- Cockpit camera = the original projection (HUD ladder lines up).
+- ~~Cockpit camera = the original projection (HUD ladder lines up)~~ — done (docs/cockpit.md "3D view").
 - RWR display, radar MAP picture, other MFD pages, views (padlock, back view, external list), time compression, pause / in-flight menu.
 - Detached-looking stores.
 - Joystick / throttle / pedals.
@@ -63,7 +63,7 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 | Setup | `tools/setup.sh [--patch <v1.1>] <ISO> [Hebrew packs]` builds everything; ISO + `setup.esa` extraction; `iaf-patch` applies the official v1.1 patch (RTPatch) without Windows, before the Hebrew packs and every conversion |
 | v1.1 | `docs/v1.1.md` (v1.0→v1.1 diff and address map); ported outside the flight model: HUD (FPM, 12 px/deg ladder on the marker, gun cross at GunRetPositionY), ejection throw straight up, training debrief → Jet list, event counter order / missing-entity skip / combat ops 21–22, landed handler on every landing; v1.1 rules of unported systems recorded (damage.md §4.4, front-end.md §17); docs and code comments on v1.1 addresses |
 | Front end | original screens, animations, sounds, music; training + campaign; Jet list; Hebrew packs |
-| Preferences | original 5 pages (Graphics, Sound, Keyboard, Devices, Gameplay) + our **Extras** (flight data, weapon data, language, info line, blackbox, HUD pitch ladder, all keys) and **Physics** (15 improvement switches) tabs, EN + HE |
+| Preferences | original 5 pages (Graphics, Sound, Keyboard, Devices, Gameplay) + our **Extras** (flight data, weapon data, language, info line, blackbox, all keys) and **Physics** (15 improvement switches) tabs, EN + HE |
 | Controls | original key table, rebinding on the Keyboard page, in-flight keys through the table (keyboard only) |
 | TSD / briefing | vector map, units, flights, waypoints, fly any flight, briefing texts and links |
 | Mission runtime | scripts, triggers, events, voices + subtitles, win / lose rules, mission boxes, debrief; player = the default (or chosen) flight's leader |
@@ -114,7 +114,8 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
   CD; macOS: an .app later). CI and release packages: not urgent.
 - Every change from the original is listed in `docs/deviations.md`.
 - Game logic from v1.1 only ("logic v1.1"); v1.0 data must still work. A v1.1 fix that makes one of ours redundant → ours
-  is deleted (so far only the HUD: the projected FPM is v1.1's own, the conformal ladder became an Extras option).
+  is deleted (so far only the HUD: the projected FPM is v1.1's own, and with the original cockpit projection the v1.1 ladder
+  matches the world, so our conformal ladder was removed).
 - Improvements over the original are opt-in switches, original by default: Physics tab (flight + gameplay bugs),
   Extras tab (visual / sound additions), Flight data (Original / Real).
 - Rendering may be better: smooth text, 4× Lanczos art (never AI upscaling), fixed runway digits.

@@ -120,7 +120,6 @@ const EXTRAS := [
 	["language", "Language", [["English", "en"], ["Hebrew", "he"]]],
 	["show_info", "Flight info (F12)", [["Show", true], ["Hide", false]]],
 	["blackbox", "Blackbox", [["On", true], ["Off", false]]],
-	["hud_ladder", "HUD pitch ladder", [["Original", "original"], ["Conformal", "conformal"]]],
 	["show_all_keys", "All keys on the Keyboard page", [["Original", false], ["All", true]]],
 	["fullscreen", "Window", [["Framed", false], ["Full screen", true]]],
 ]

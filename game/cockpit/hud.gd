@@ -1,7 +1,6 @@
 # HUD symbology, drawn crisp at screen resolution and clipped to the HUD glass (docs/cockpit.md §HUD).
 # v1.1 (FUN_00538c90, producer in FUN_00448b20): the flight path marker is the perspective projection of
 # the velocity vector; the pitch ladder hangs off the marker at 12 px/deg (5° rungs, rolled with the jet).
-# The conformal ladder (projected through the camera) is our option (Extras > HUD pitch ladder).
 extends Control
 
 ## v1.1 ladder scale (original 640x480 pixels per degree) and rungs drawn: ±15° around the marker.
@@ -66,11 +65,8 @@ func _draw() -> void:
 
 	if camera != null:
 		var fpm = _fpm_position()
-		if Settings.hud_ladder == "conformal":
-			_draw_conformal_ladder(st, s, w, font, fs)
-		elif fpm != null:
-			_draw_ladder(fpm, st, s, w, font, fs)
 		if fpm != null:
+			_draw_ladder(fpm, st, s, w, font, fs)
 			_draw_fpm(fpm, s, w)
 
 	_draw_weapons(s, w, font, fs, gun)
@@ -142,22 +138,6 @@ static func ladder_rungs(fpm: Vector2, gamma: float, roll_deg: float, s: float) 
 		if absi(e) <= 90:
 			out.append([e, fpm + up * (e - gamma) * LADDER_PX_PER_DEG * s])
 	return out
-
-
-## Our conformal ladder: rungs every 5° projected through the camera, rotated with the horizon.
-func _draw_conformal_ladder(st: Dictionary, s: float, w: float, font: Font, fs: int) -> void:
-	var yaw := deg_to_rad(-st.heading)
-	var screen_roll := deg_to_rad(-st.roll)
-	var along := Vector2(cos(screen_roll), sin(screen_roll))
-	for e in range(-90, 91, 5):
-		var el := deg_to_rad(e)
-		var dir := Vector3(0, sin(el), -cos(el)).rotated(Vector3.UP, yaw)
-		if camera.is_position_behind(camera.global_position + dir * 1000.0):
-			continue
-		var c := _project(dir)
-		if c.y < -20 * s or c.y > size.y + 20 * s:
-			continue
-		_draw_rung(c, along, e, s, w, font, fs)
 
 
 ## One rung at `c`: the horizon solid and long, positive rungs solid, negative ones dashed; the angle
