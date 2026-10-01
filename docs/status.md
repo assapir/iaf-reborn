@@ -26,8 +26,8 @@
 **2. Enemies:** AI air-to-air / air-to-ground (bomb ballistics), AAA, radar / IR SAMs with RWR threats, enemy
 flares / chaff and decoy rules, script op 2, armed vehicles / boats; then the demo video (H.264).
 
-**3. Missions and general fixes:** remaining small bugs below, player flight by
-formation id, Jump In, remaining front-end screens, more weapons (radar missiles, TV / IR,
+**3. Missions and general fixes:** remaining small bugs below,
+Jump In, remaining front-end screens, more weapons (radar missiles, TV / IR,
 anti-radiation, rockets), night.
 
 **PARKED (docs/roadmap.md):** imagery phase 2 (Survey of Israel 2 m conversion, SPOT 5), 1:1 world scale, better AI, cheats,
