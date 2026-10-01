@@ -83,7 +83,7 @@ Let the player choose the home airbase (the original has 3 spawn bases: Tel Nof,
 Israeli bases (e.g. Hatzerim, Nevatim, Hatzor, Palmachim, Ovda) with their real layouts where the terrain has no
 inset (our own airbase imagery / models, real coordinates), selectable in the briefing / Jump In.
 
-## Real world scale (research, later)
+## Real world scale — 1:1 mode (decided: we want it; after modern imagery + georeference warp)
 The original world is enlarged (~1.5× real: runways, base distances 0.75–1.13 of real — not uniform). Scaling it to
 real size would touch mission coordinates, terrain, route timing, weapon/sensor ranges; fits naturally with the
 modern imagery (which is real-scale and gets warped to the game frame). Evaluate as an option once modern imagery
