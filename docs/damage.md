@@ -306,9 +306,27 @@ the frame rate), the column at detail 3 (default not traced), no wind (the missi
 (our terrain has no types).
 
 ## 7. Collisions between units (`FUN_0043c140` → `FUN_0043b340`)
-Colliders (`FUN_0043b1c0`): radius = 0.25 · (sx + sy + sz) of the normal model's extents (UNCERTAIN: full or half).
+**Registration.** The collision manager (`DAT_0069934c`) keeps two hash tables of colliders (entity+0x18,
+`FUN_0043bd90`): **active** (+4) and **passive** (+0x20). `FUN_0043b1c0(active)` fills the collider and inserts it;
+with `active` = 0 the mask is forced to 0.
+- **Every unit at its spawn** (`FUN_004b7634` → `FUN_004b8118` @4b7938): a **passive** collider **only when its bdb
+  Objects `0x58c` is set** (`FUN_004be470`: +0x28 of the type record `FUN_004c09e0` hands the spawner, whose +0x24 is the strength; copied from the bdb by `FUN_00591fd0` / `FUN_0058d390`); with `0x58c` = 0
+  the unit gets none (`FUN_0043b330` removes it). `0x58c` = 0 in default6_1.bdb: the shelters **schacha**, hangars
+  **HGR_UL_1 / HGR_UL_2**, **SHK_UL_1**, the revetments **datak1 / datak2**, the runways **RWdavid / RWtelnof /
+  RWramon**, the runway lights, bridge2, Damesek, the sensor, Crater and the runway signs. So a jet that starts in
+  a shelter (mission 315: 2.1 m from schacha3's centre, inside its 36 m radius) or a hangar has nothing to hit
+  and taxis out.
+- **The player's jet**: **active**, at the switch to PLAYER_CONTROLLED (`FUN_004a8e70` @4a8fd7; `FUN_004a9470`
+  when the player takes over a jet); switching away makes it passive again. The player's missiles (type 0x230,
+  `FUN_004d7690`) and some other weapons (`FUN_004d7f30`, `FUN_0043bc30`, `FUN_0054a660`) are active too.
+- Removed (`FUN_0043b330`): an aircraft (classes 1–3, 0x1c) at its final status (`FUN_004a86b0`), weapons at their
+  end. **Nothing else unregisters**: a destroyed building or vehicle (even one whose model vanished, §2.2) and a
+  hidden unit (trigger op 14 `FUN_00463ec0` only changes the model) keep their collider.
 
-| class | group | mask |
+Colliders (`FUN_0043b1c0`): radius = 0.25 · (sx + sy + sz) of the normal model's extents (renderer vtable +0xb0,
+`DAT_006005b8` = 0.25), stored squared (+0x14).
+
+| class | group | mask (active only) |
 |---|---|---|
 | aircraft 1, 2, 3, 0x1c | 2 | 0x1b |
 | vehicles 5, 6 | 8 | 0 |
@@ -317,12 +335,25 @@ Colliders (`FUN_0043b1c0`): radius = 0.25 · (sx + sy + sz) of the normal model'
 | weapons 0x16–0x1a | 4 | 0x19 |
 | crater 0x1f | 0x20 | 2 |
 
-Trees, sensors and parachutes have none. A collides with B when (B.group & A.mask) ≠ 0 and the centres are closer
-than **B's** radius. Reaction on each side: a weapon detonates; a shielded unit ignores it; an AI aircraft, a
-vehicle, site, building or boat is destroyed (level 5); the player's jet is destroyed unless Invulnerable. So a jet
-hitting a building, a vehicle or another aircraft destroys both.
-**Port:** the player's jet is tested every frame against the visible units (UNCERTAIN: whether hidden units keep
-their collider; the shipped missions use hidden houses as audio markers on taxiways).
+Other classes (trees, sensors, parachutes) have none, whatever `0x58c` says.
+
+**The test** (`FUN_0043c140`, every frame): for each **active** collider A, every collider B after it in the active
+table and every passive one: B ≠ A, (B.group & A.mask) ≠ 0 and the **3D** distance of the centres (motion
+positions, `FUN_0043cb00`) < **B's** radius. Passive pairs are never tested: AI aircraft, vehicles and buildings
+never collide with each other; the player's jet meets every registered unit in its mask. On contact A reacts once
+per frame and each B it touches reacts (`FUN_0043b340(time, other)`).
+
+**Reaction** (`FUN_0043b340`): nothing when the other is a weapon (0x16–0x1a), or when this unit is shielded
+(damage object, `FUN_0058a350`), or in network play for a remote unit. Else by this unit's class: a weapon
+detonates (`FUN_004d6130`); an AI aircraft, a vehicle, site, building or boat goes to level 5 (a unit already at
+state 5 stays); the player's jet goes to level 5 unless Invulnerable. So a jet hitting a building, a vehicle or
+another aircraft destroys both — and every registered unit within range in that frame.
+
+**Port** (`terrain_view.gd` `_check_collisions`): the player's jet against every unit with `0x58c` set
+(`ent.collidable`), its group in 0x1b, closer than its radius (0.25 · the scaled model's full extents); hidden units
+and wrecks included, aircraft wrecks not. Physics "No collisions with hidden units / wrecks"
+(`fix_ghost_collision`, ours) skips hidden units and wrecks whose model vanished — the original's invisible
+obstacles. The weapons' own colliders are not ported (weapons use their fuse rules, docs/weapons.md).
 
 ## 8. Uncertain / not ported
 - Sprite world size (the 256 m fireball), the lens-flash texture, the column detail default, wind.
@@ -330,6 +361,6 @@ their collider; the shipped missions use hidden houses as audio markers on taxiw
 - Radio kill / "is down" calls, score and hit feedback, the brain's reaction to hits, FlyTSD 6.5 s after the
   player's death (campaign), network play.
 - The flight model's reaction to systems damage (§5.2) and to the hit shake.
-- Collision: full vs half extents, hidden units.
+- Collision: full vs half extents (the renderer call behind vtable +0xb0 is not traced).
 - Original-vs-better decisions for the user: the heading-0 fall (§3.3), the Rookie / Normal enemy damage factor
   (§4.1), puffs per frame (§6.3).

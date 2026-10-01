@@ -25,7 +25,7 @@ var _seq := 0
 ## Entities by key "<file index>:<entity id>": {name, file, id, world (X, Y, alt), role, mission_ctl,
 ## slots, watched, sensor, alive_scenario, state, visible, node, player, lists: [motion, trigger],
 ## current: [index, index], path, control, side, heading, vel; damage (docs/damage.md): klass,
-## type_code, strength, size, damage, requested, killer, shield, smoke, fall}.
+## type_code, strength, size, collidable, damage, requested, killer, shield, smoke, fall}.
 var entities := {}
 var events := {}  # "<file index>:<event id>" -> {debrief, audio, left, actions, conds, counter}
 ## Mission counters (§3.1): id -> value, all 0 at load; ids 1..max counter id any event names.
@@ -185,6 +185,8 @@ static func _init_damage(ent: Dictionary, obj: Dictionary) -> void:
 	ent.strength = DamageModel.strength_of(obj)
 	ent.size = DamageModel.size_of(obj)
 	ent.damageable = true
+	# bdb Objects 0x58c: the unit gets a collider (FUN_004b8118, docs/damage.md §7).
+	ent.collidable = int(obj.get("0x58c", 0)) != 0
 	ent.damage = 0.0
 	ent.requested = -1
 	ent.killer = {}

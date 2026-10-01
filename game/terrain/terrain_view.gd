@@ -807,19 +807,30 @@ func _burned_copy(node: Node3D, p: float, max_extent: float) -> void:
 		mi.mesh = out
 
 
-## Collisions of the player's jet with units (FUN_0043c140 -> FUN_0043b340), every frame: a unit
-## whose collision group is in the aircraft mask (0x1b: sites and buildings, aircraft, vehicles,
-## boats) and whose centre is closer than its radius. Both are destroyed (level 5): the jet unless
-## Invulnerable, the other unless shielded. Hidden units are skipped (UNCERTAIN: whether a hidden
-## unit keeps its collider).
+## Collisions of the player's jet with units (FUN_0043c140 -> FUN_0043b340, docs/damage.md §7), every
+## frame. The jet is the only active collider a unit can meet (weapons aside): every other unit is
+## registered passive at its spawn (FUN_004b8118) — and only when its bdb Objects 0x58c ("collides") is
+## set: shelters, hangars, revetments, airbase runways / lights and sensors have 0x58c = 0, so the jet
+## can start inside a shelter (mission 315) and taxi out. A unit collides when its group is in the jet's
+## mask (0x1b: sites and buildings, aircraft, vehicles, boats) and the centres are closer (3D) than the
+## unit's radius. The jet is destroyed unless Invulnerable or shielded, every unit it touches unless
+## shielded. Hidden units keep their collider (op 14 changes only the model), and so do wrecks, except
+## aircraft (FUN_004a86b0 unregisters them at state 5); Physics "fix_ghost_collision" (ours) skips
+## hidden units and vanished wrecks.
 func _check_collisions() -> void:
 	if runtime == null:
 		return
 	var me: Dictionary = runtime.player_entity()
-	if me.is_empty() or not me.state in [1, 3] or me.shield:
+	if me.is_empty() or not me.state in [1, 3]:
 		return
+	var ghost_fix: bool = Settings.better.get("fix_ghost_collision", false)
+	var hit := false
 	for ent in runtime.entities.values():
-		if ent.player or ent.node == null or not ent.visible or ent.state == 5 or not ent.has("coll_radius"):
+		if ent.player or ent.node == null or not ent.get("collidable", false) or not ent.has("coll_radius"):
+			continue
+		if ent.state == 5 and ent.klass in [1, 2, 3, 0x1c]:
+			continue
+		if ghost_fix and (not ent.visible or (ent.state == 5 and not ent.node.visible)):
 			continue
 		var c: Array = DamageModel.collider(ent.klass, ent.type_code)
 		if c.is_empty() or (c[0] & 0x1b) == 0:
@@ -828,11 +839,11 @@ func _check_collisions() -> void:
 		if rig.position.distance_squared_to(ent.node.position) >= r * r:
 			continue
 		print("collision with ", ent.name)
+		hit = true
 		if not ent.shield:
 			runtime.set_damage_level(ent, 5)
-		if not mission_pref("invulnerable"):
-			runtime.set_damage_level(me, 5)
-		return
+	if hit and not me.shield and not mission_pref("invulnerable"):
+		runtime.set_damage_level(me, 5)
 
 
 # The player's systems damage callbacks (game/mission/player_damage.gd).

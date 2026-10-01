@@ -92,6 +92,9 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
   every 0.5 s and bursts it at the first check point at or below terrain + 1 m, up to ~0.5·|vz| (70 m) under the
   ground, where the blast's height term weakens or cancels the damage; the fix moves the burst up to where the bomb
   met the terrain — weapons.md §9.5.
+- **Preferences → Physics → "No collisions with hidden units / wrecks"** (`fix_ghost_collision`): the original keeps
+  the collider of a hidden unit (e.g. the invisible houses used as audio markers) and of a destroyed building or
+  vehicle whose model vanished, so the jet can die on an invisible obstacle; the fix skips them — damage.md §7.
 - **Preferences → Physics → "Stores weight fix"**: every store counted in the stores weight, in kg, and the fuel
   tanks' fuel in kg (the original: one store per station, pounds in the kg field, tank fuel = the pounds number as
   kg) — weapons.md §2.5–2.6.

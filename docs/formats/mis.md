@@ -184,7 +184,7 @@ Present (221 3D models: `0x640 S` name, `0x64a S` model path `CONTROLLABLEPLANES
 20-byte records, `Serialize` `0x594a90`), Objects (182 unit types: `0x514 S` name "f16", `0x51e S` category
 "Controlled aircraft", `0x528 S` display "F16", `0x532 S` default brain, 18 ints `0x53c..0x5d7`, Junk,
 u32, `Obj CArmament` default loadout, u32, `Obj CObArray` of `CDMEWeaponLoadItem` (`FUN_00597f80`),
-Junk). Entity `type` → Objects id; Objects `0x53c` → Present id (model). Full parser: `mis.rs` `parse_bdb`.
+Junk). Entity `type` → Objects id; Objects `0x53c` → Present id (model); `0x58c` 1 = the unit has a collider (docs/damage.md §7). Full parser: `mis.rs` `parse_bdb`.
 
 ## 5. Coordinates
 

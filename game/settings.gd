@@ -24,6 +24,7 @@ const BETTER := {
 	"fix_lock_threat": "Locked enemies know who locked them",
 	"fix_stores_weight": "Stores weight fix",
 	"fix_bomb_burst": "Bombs burst at the ground",
+	"fix_ghost_collision": "No collisions with hidden units / wrecks",
 }
 ## Stored preferences by config section: the original pages, then our own options (Extras tab).
 const PREFS := {
