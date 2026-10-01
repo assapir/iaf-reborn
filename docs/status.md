@@ -39,7 +39,6 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 - Crash debris floats: the wreck pieces of a crash don't come to rest on the ground (terrain height / fall of
   the shattered pieces, docs/damage.md §6). Bonus (Extras, if possible): pieces made from the aircraft's own parts
   (wings, tail, gear from its model) instead of generic shards.
-- Extras / Physics tab buttons: restyle their labels like the original buttons (user request).
 - Physics tab: the list needs a scrollbar soon (15 options; use the Keyboard page's original scrollbar art / behaviour).
 - Stores look detached: no pylon models drawn (stores float under the wing), single-sided fins (flat white
   triangles from behind), triple-rack side bombs touch the wing (original formula) — see scratchpad so_behind.png.

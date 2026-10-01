@@ -919,6 +919,9 @@ static func _score_frame(p: Dictionary) -> int:
 	return clampi(24 - int(20.0 * m + 0.5), 0, 24)
 
 
+const TAB_SQUEEZE := 0.8
+
+
 ## Our tab buttons (EXTRAS_BAND moved down 44 px per tab) for the current frame, with our labels.
 func _draw_extras_tab(delta: Vector2) -> void:
 	for k in OUR_TABS.size():
@@ -932,10 +935,20 @@ func _draw_extras_tab(delta: Vector2) -> void:
 		var dest := panel_pos + EXTRAS_BAND.position + step + delta
 		draw_texture_rect(t, _rect(Rect2(dest, EXTRAS_BAND.size)), false)
 		var label := Rect2(panel_pos + EXTRAS_LABEL.position + step + delta, EXTRAS_LABEL.size)
-		var fs := int(round(12 * _scale()))
+		# Like the labels baked into the original buttons: light grey on a dark shadow; English heavy and
+		# condensed, Hebrew regular weight (as the Hebrew pack's buttons).
+		var lf: Font = font if _he() else font_bold
+		var fs := int(round(14 * _scale()))
 		var box := _rect(label)
-		var base := box.position.y + (box.size.y + font_bold.get_ascent(fs) - font_bold.get_descent(fs)) / 2.0
-		draw_string(font_bold, Vector2(box.position.x, base), _t(page) if _he() else OUR_TABS[k][1], HORIZONTAL_ALIGNMENT_CENTER, box.size.x, fs, Color8(185, 185, 185))
+		var base := box.position.y + (box.size.y + lf.get_ascent(fs) - lf.get_descent(fs)) / 2.0
+		var text: String = _t(page) if _he() else OUR_TABS[k][1]
+		var sq := TAB_SQUEEZE if not _he() else 1.0
+		var w := lf.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x * sq
+		var x := box.position.x + (box.size.x - w) / 2.0
+		draw_set_transform(Vector2(x, base), 0.0, Vector2(sq, 1.0))
+		draw_string(lf, Vector2(_scale(), _scale()), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color8(25, 25, 25))
+		draw_string(lf, Vector2.ZERO, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color8(205, 208, 212))
+		draw_set_transform(Vector2.ZERO)
 
 
 ## The band cut from palettes/ppref_<f>, label pixels replaced per row by a blend of the pixels
