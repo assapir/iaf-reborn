@@ -36,6 +36,8 @@ func run() -> void:
 	var fe = load("res://menu/front_end.tscn").instantiate()
 	root.add_child(fe)
 	await frames(2)
+	fe.screen = "main"  # the game starts on Pilot Records
+	fe._enter_screen()
 	fe._on_button(fe._key_for_label("Preferences"))
 	await settle(fe)
 	fe._on_button(fe._key_for_label("Controls"))
@@ -97,6 +99,8 @@ func run() -> void:
 	fe = load("res://menu/front_end.tscn").instantiate()
 	root.add_child(fe)
 	await frames(2)
+	fe.screen = "main"
+	fe._enter_screen()
 	fe._on_button(fe._key_for_label("Preferences"))
 	await settle(fe)
 	fe._on_button(fe._key_for_label("Controls"))
