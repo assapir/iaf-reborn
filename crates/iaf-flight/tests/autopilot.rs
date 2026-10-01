@@ -262,3 +262,129 @@ fn lands_at_ramat_david() {
     assert!(parked && !ac.engine_on, "parked at a hangar, engine off");
 }
 
+
+/// The player's autopilot (docs/autopilot.md) runs in FM mode 0 and returns the commands it posted.
+fn fly_player(ac: &mut Aircraft, ap: &mut Autopilot, seconds: f64, ground: f32) -> Vec<iaf_flight::autopilot::Out> {
+    let g = |_: f64, _: f64| ground;
+    let mut outs = Vec::new();
+    for _ in 0..(seconds / DT) as usize {
+        ac.ground_height = ground;
+        outs.push(ap.step(ac, &g));
+        ac.step(DT);
+    }
+    outs
+}
+
+#[test]
+fn player_level_mode_holds_heading_and_altitude() {
+    let Some(inst) = install() else { return };
+    // Engaged in a 20° bank, nose 5° up: LevelWingsPitch0, then KeepOrientation.
+    let (p, e) = iaf_flight::load_with(&inst, "F-16", DataSet::Original).unwrap();
+    let mut ac = Aircraft::start(
+        p,
+        e,
+        Start {
+            position: [0.0, 0.0, 3000.0],
+            pitch: 5f32.to_radians(),
+            roll: 20f32.to_radians(),
+            heading: 0.0,
+            velocity: [0.0, 250.0, 0.0],
+            airborne: true,
+            engine_on: true,
+        },
+    );
+    ac.ground_height = 0.0;
+    let mut c = ac.controls();
+    c.throttle = 0.74;
+    ac.set_controls(c);
+    let mut ap = Autopilot::new(Config::load(&inst));
+    ap.player_mode(&mut ac, 1, 0);
+    assert!(ap.player_active());
+    assert_eq!(ac.ai_mode, 0, "the FM keeps the player's rules");
+    fly_player(&mut ac, &mut ap, 30.0, 0.0);
+    let s0 = ac.state();
+    println!("after 30 s: {} roll {:.1} pitch {:.1} hdg {:.1} alt {:.0}", ap.stage(), s0.roll.to_degrees(), s0.pitch.to_degrees(), s0.heading.to_degrees(), s0.position[2]);
+    assert!(ap.stage().contains("keep orientation"), "levelled, then keeps orientation ({})", ap.stage());
+    let outs = fly_player(&mut ac, &mut ap, 60.0, 0.0);
+    let s1 = ac.state();
+    println!("after 90 s: roll {:.1} hdg {:.1} alt {:.0} speed {:.0}", s1.roll.to_degrees(), s1.heading.to_degrees(), s1.position[2], s1.speed);
+    assert!(s1.roll.to_degrees().abs() < 3.0, "wings level");
+    assert!(wrap_deg(s1.heading.to_degrees() - s0.heading.to_degrees()).abs() < 2.0, "heading held");
+    assert!((s1.position[2] - s0.position[2]).abs() < 150.0, "altitude held");
+    assert!(outs.iter().all(|o| o.thr.is_none()), "no autothrottle in level mode");
+    ap.player_mode(&mut ac, 0, 0);
+    assert!(!ap.player_active());
+}
+
+fn wrap_deg(a: f32) -> f32 {
+    (a + 540.0).rem_euclid(360.0) - 180.0
+}
+
+#[test]
+fn player_nav_flies_to_the_selected_waypoint() {
+    let Some(inst) = install() else { return };
+    let mut ac = jet(&inst, "F-16", [0.0, 0.0, 3000.0], 90.0, true);
+    let mut ap = Autopilot::new(Config::load(&inst));
+    ap.route = vec![
+        Waypoint { x: 0.0, y: 40000.0, z: 4000.0, t: 0.0, action: 3 },
+        Waypoint { x: 40000.0, y: 40000.0, z: 4000.0, t: 0.0, action: 3 },
+    ];
+    ap.player_mode(&mut ac, 2, 0);
+    let mut closest = f64::MAX;
+    let mut thr = false;
+    for _ in 0..300 {
+        thr |= fly_player(&mut ac, &mut ap, 1.0, 0.0).iter().any(|o| o.thr.is_some());
+        let p = ac.state().position;
+        closest = closest.min(p[0].hypot(p[1] - 40000.0));
+    }
+    println!("closest {closest:.0} m, {}", ap.stage());
+    assert!(closest < 1852.0, "reached waypoint 0 ({closest:.0} m)");
+    assert!(thr, "NAV holds the throttle");
+    assert_eq!(ap.stage(), "nav (passed)");
+}
+
+#[test]
+fn player_approach_mission_312() {
+    // Landing 312 "Eagle Baby": the player starts at 2000 m heading 270° east of Ramat David; the route's
+    // only waypoint "Approach" (action 7) makes the NAV autopilot GoHomeCL: over the runway to the waypoint,
+    // then the left-hand circuit (the mission's markers sit on its corners) and the final approach.
+    let Some(inst) = install() else { return };
+    let bases = Airbase::load_all(&std::fs::read(inst.join("iaf.ibx")).unwrap());
+    let rd = bases.iter().find(|b| b.name == "David").unwrap().clone();
+    let z = rd.lineup[2] as f64;
+    let mut ac = jet(&inst, "F-16", [366755.0, 602361.0, 2000.0], 270.0, true);
+    let mut c = ac.controls();
+    c.throttle = 0.74;
+    ac.set_controls(c);
+    let mut ap = Autopilot::new(Config::load(&inst));
+    ap.bases = bases;
+    ap.route = vec![Waypoint { x: 351083.0, y: 602383.0, z: 1500.0, t: 60.0, action: 7 }];
+    ap.player_mode(&mut ac, 2, 0);
+    // The markers of landing.mis: crosswind end ("Point 2"), downwind end ("Point 3"), base end ("Point 4").
+    let markers = [(351083.0, 596983.0), (363683.0, 596983.0), (363683.0, 602382.0)];
+    let mut closest = [f64::MAX; 3];
+    let (mut gear, mut final_at) = (false, None);
+    for t in 0..600 {
+        for o in fly_player(&mut ac, &mut ap, 1.0, z as f32) {
+            gear |= o.gear == Some(true);
+        }
+        let st = ac.state();
+        for (i, m) in markers.iter().enumerate() {
+            closest[i] = closest[i].min((st.position[0] - m.0).hypot(st.position[1] - m.1));
+        }
+        if t % 30 == 0 {
+            println!("{t}: {} pos {:.0} {:.0} {:.0} v {:.0}", ap.stage(), st.position[0], st.position[1], st.position[2], st.speed);
+        }
+        if ap.stage() == "landing step 13" {
+            final_at = Some(st.position);
+            break;
+        }
+        assert!(st.crashed.is_none(), "crashed ({:?}) at {:?} in {}", st.crashed, st.position, ap.stage());
+    }
+    println!("closest to the markers {closest:?}; final approach from {final_at:?}");
+    assert!(closest.iter().all(|d| *d < 2500.0), "flew the circuit over the markers ({closest:?})");
+    assert!(gear, "gear lowered on the downwind");
+    let p = final_at.expect("reached the final approach");
+    assert!((p[1] - rd.lineup[1] as f64).abs() < 100.0 && p[0] > rd.lineup[0] as f64, "on the extended centreline");
+    assert!(!ap.landed, "no AI landed handler for the player");
+}

@@ -132,17 +132,23 @@ const PASS_R: f64 = 1852.0;
 /// Terrain height (m) at a world point (x, y), supplied by the host.
 pub type Ground<'a> = &'a dyn Fn(f64, f64) -> f32;
 
+/// The commands one loop tick posted (applied to the aircraft by [`Autopilot::step`] and returned, so the
+/// player's host can mirror them on its levers like the original's controller `44a240` does).
 #[derive(Debug, Clone, Copy, Default)]
-struct Out {
-    stick: Option<(f32, f32)>,
-    thr: Option<f32>,
-    rudder: Option<f32>,
-    gear: Option<bool>,
-    flaps: Option<bool>,
-    brakes: Option<bool>,
-    pivot: Option<Option<f32>>,
-    replace: Option<(f64, f64, f32)>,
-    engine_off: bool,
+pub struct Out {
+    /// (pitch law output a, roll x); the stick's pull is −a.
+    pub stick: Option<(f32, f32)>,
+    pub thr: Option<f32>,
+    pub rudder: Option<f32>,
+    pub gear: Option<bool>,
+    pub flaps: Option<bool>,
+    pub brakes: Option<bool>,
+    pub pivot: Option<Option<f32>>,
+    pub replace: Option<(f64, f64, f32)>,
+    pub engine_off: bool,
+    /// The player's landing stopped (StopPlaneCL in FM mode 0, @5d4b40): it presses the autopilot key
+    /// (GEV 0x10, forced), which turns the autopilot off from NAV.
+    pub ap_key: bool,
 }
 
 fn wrap(a: f32) -> f32 {
@@ -558,9 +564,10 @@ fn level_wings_accel(l: &mut Laws, pitch_t: &mut f32, speed: f32, vmin: f32) -> 
     Leaf::Run
 }
 
-/// LevelWingsPitch0 `5d2140`.
-fn level_wings(l: &mut Laws) -> Leaf {
-    if l.v.att.pitch.abs() <= 0.01 * PI && l.v.att.roll.abs() <= PI / 180.0 {
+/// LevelWingsPitch0 `5d2140`: done within `pitch_tol` (ctor default 0.01π; LevelFlightCL sets 0.0035 rad) and
+/// |roll| ≤ 1°.
+fn level_wings(l: &mut Laws, pitch_tol: f32) -> Leaf {
+    if l.v.att.pitch.abs() <= pitch_tol && l.v.att.roll.abs() <= PI / 180.0 {
         return Leaf::Done;
     }
     let mut x = l.roll(0.0);
@@ -569,6 +576,23 @@ fn level_wings(l: &mut Laws) -> Leaf {
     l.watch_ground(&mut x, &mut y, &mut thr);
     l.stick(y, x);
     Leaf::Run
+}
+
+/// KeepOrientation `5d9d30` (FirstRun `5da010` stores `keep` = flight-path pitch, heading and the speed): bank
+/// = clamp(heading error, ±30°), pitch law to the stored pitch; throttle (speed law to the stored speed) only in
+/// an AI mode, else only when the ground watch takes over. Ends only by its condition (none here).
+fn keep_orientation(l: &mut Laws, keep: (f32, f32, f32)) {
+    let (pitch, heading, speed) = keep;
+    let e = wrap(heading - l.v.att.heading);
+    let roll_t = (e / (PI / 6.0) * (PI / 6.0)).clamp(-PI / 6.0, PI / 6.0);
+    let mut y = l.pitch(pitch);
+    let mut x = l.roll(roll_t);
+    let mut thr = if l.mode != 0 { l.thr(speed) } else { 0.0 };
+    // UNCERTAIN: the player's throttle slot is never initialised before the watch (@5d9efd); taken as 0.
+    if l.watch_ground(&mut x, &mut y, &mut thr) || l.mode != 0 {
+        l.throttle(thr);
+    }
+    l.stick(y, x);
 }
 
 /// LevelWingsAccel `5d27e0` (formation recovery, 300 m/s): wings level, pitch −11°.
@@ -624,7 +648,8 @@ impl Fly2Wp {
         let pos = l.v.pos;
         if self.first {
             self.first = false;
-            // 5d6fb0 (mode ≠ 0): a larger capture radius when starting inside it.
+            // 5d6fb0: in an AI mode (≠ 0; not the player's autopilot) a larger capture radius when starting
+            // inside it.
             let g = l.v.max_g;
             let r = if g <= 4.0 {
                 9265.0
@@ -633,7 +658,7 @@ impl Fly2Wp {
             } else {
                 3983.95
             };
-            self.pass.r = if dist2(pos, self.t[0], self.t[1]) < r {
+            self.pass.r = if l.mode != 0 && dist2(pos, self.t[0], self.t[1]) < r {
                 r
             } else {
                 PASS_R
@@ -704,7 +729,7 @@ impl Fly2Wp {
                     Leaf::Run
                 }
             }
-            _ => level_wings(l),
+            _ => level_wings(l, 0.01 * PI),
         };
         if r == Leaf::Done {
             l.stick(0.0, 0.0); // 5c99e0
@@ -761,6 +786,16 @@ enum Loop {
     Straight {
         pitch: f32,
     },
+    /// The player's LevelFlightCL (manager +0x4528, Init `5cd8c0`): LevelWingsPitch0 (pitch within 0.0035 rad),
+    /// then KeepOrientation on what it holds then.
+    Level {
+        keep: Option<(f32, f32, f32)>,
+    },
+    /// The player's NAV to one waypoint: the manager's Fly2WayPt (+0x4f8) set up by `5c7bc0`; done = stick
+    /// centred (the HUD's waypoint sequencing posts the next one).
+    Fly {
+        f: Option<Fly2Wp>,
+    },
 }
 
 /// LandingCL (docs/ai.md §8.3): the pattern points and the step list.
@@ -777,6 +812,9 @@ struct Landing {
     landed: bool,
     /// The current ChangeHeading2PtAcu leg's state.
     acu: Option<Acu>,
+    /// Flown by the player's autopilot (FM mode 0): no taxi / park children (`5d43e0`), StopPlane ends at
+    /// 1.0295 m/s instead of 25.736 (`5d36d2`), no landed handler, then the autopilot key.
+    player: bool,
 }
 
 /// A LandingCL child (docs/ai.md §8.3).
@@ -969,6 +1007,9 @@ impl Autopilot {
             Loop::Formation { recover, .. } => format!("formation{}", if *recover { " (recovering)" } else { "" }),
             Loop::Hold { .. } => "hold".into(),
             Loop::Straight { .. } => "straight".into(),
+            Loop::Level { keep: None } => "level: wings level".into(),
+            Loop::Level { .. } => "level: keep orientation".into(),
+            Loop::Fly { f } => format!("nav{}", if f.is_none() { " (passed)" } else { "" }),
             Loop::None => "none".into(),
         }
     }
@@ -993,19 +1034,7 @@ impl Autopilot {
                 f: None,
                 idx: self.wp_index,
             },
-            8 => {
-                let (t, cap) = match self.route.last() {
-                    Some(w) => (
-                        [w.x, w.y, w.z],
-                        if v.type_code == C130 { 128.68 } else { 180.15 },
-                    ),
-                    None => (v.pos, 180.15),
-                };
-                let mut f = Fly2Wp::new(t, now + 60.0);
-                f.cap = Some(cap);
-                f.end_radius = Some(100.0);
-                Loop::GoHome { f, land: None }
-            }
+            8 => self.go_home(&v, now),
             9 => {
                 let (ka_target, ka_speed, ka_radius) = match self.route.first() {
                     Some(w) => ([w.x, w.y, w.z], 205.889, Some(500.0)),
@@ -1045,14 +1074,49 @@ impl Autopilot {
         };
     }
 
-    /// Runs the loop's ring tick when due and applies its outputs to the aircraft.
-    pub fn step(&mut self, ac: &mut Aircraft, ground: Ground) {
-        if self.mode == 0 {
-            return;
+    /// GoHomeCL Init `5cd390`: Fly2WayPt to the route's last waypoint (no route: here), then LandingCL.
+    fn go_home(&self, v: &ApView, now: f64) -> Loop {
+        let (t, cap) = match self.route.last() {
+            Some(w) => ([w.x, w.y, w.z], if v.type_code == C130 { 128.68 } else { 180.15 }),
+            None => (v.pos, 180.15),
+        };
+        let mut f = Fly2Wp::new(t, now + 60.0);
+        f.cap = Some(cap);
+        f.end_radius = Some(100.0);
+        Loop::GoHome { f, land: None }
+    }
+
+    /// The player's autopilot, FM motion 0xf (`5a1e40`, docs/autopilot.md): 0 off (`5c8800`), 1 LevelFlightCL
+    /// (`5c82c0`), 2 NAV to route waypoint `wp` (`5c7bc0`: Fly2WayPt with its ETA), or GoHomeCL (`5c7d80`) when
+    /// that waypoint's action is 7 (land). The FM mode stays 0: the jet keeps the player's rules. The loop
+    /// starts on the next ring tick (0.5 s, `5c9a90`).
+    pub fn player_mode(&mut self, ac: &mut Aircraft, mode: u8, wp: usize) {
+        let v = ac.ap_view();
+        self.lp = match (mode, self.route.get(wp)) {
+            (1, _) => Loop::Level { keep: None },
+            (2, Some(w)) if w.action == 7 => self.go_home(&v, v.t),
+            (2, Some(w)) => Loop::Fly { f: Some(Fly2Wp::new([w.x, w.y, w.z], w.t)) },
+            // 5c7bc0 without a route starts the loop uninitialised (UNCERTAIN): nothing flies.
+            _ => Loop::None,
+        };
+        self.watch = true;
+        self.period = 0.5;
+        self.next_tick = v.t + 0.5;
+    }
+
+    /// The player's autopilot loop is running (FM motion 0xf mode ≠ 0).
+    pub fn player_active(&self) -> bool {
+        self.mode == 0 && !matches!(self.lp, Loop::None)
+    }
+
+    /// Runs the loop's ring tick when due, applies its outputs to the aircraft and returns them.
+    pub fn step(&mut self, ac: &mut Aircraft, ground: Ground) -> Out {
+        if matches!(self.lp, Loop::None) {
+            return Out::default();
         }
         let v = ac.ap_view();
         if v.t < self.next_tick {
-            return;
+            return Out::default();
         }
         let vmin12 = ac.vmin(v.pos[2] as f32, 1.2);
         let vmin125 = ac.vmin(v.pos[2] as f32, 1.25);
@@ -1098,7 +1162,7 @@ impl Autopilot {
                 if land.is_none() {
                     if f.step(&mut l, vmin12) == Leaf::Done {
                         l.stick(0.0, 0.0);
-                        *land = Landing::new(&self.bases, f.t, v.type_code, &self.cfg);
+                        *land = Landing::new(&self.bases, f.t, v.type_code, self.mode == 0);
                     }
                 } else if let Some(ld) = land {
                     ld.step(&mut l, self, &mut period, vmin1);
@@ -1155,6 +1219,28 @@ impl Autopilot {
             Loop::Straight { pitch } => {
                 let _ = level_wings_accel(&mut l, pitch, 180.0, vmin12);
             }
+            Loop::Level { keep } => match keep {
+                None => {
+                    if level_wings(&mut l, 0.0035) == Leaf::Done {
+                        l.stick(0.0, 0.0); // 5c99e0; KeepOrientation's FirstRun on the next tick
+                        *keep = Some((f32::NAN, 0.0, 0.0));
+                    }
+                }
+                Some(k) => {
+                    if k.0.is_nan() {
+                        *k = (v.att.pitch, v.att.heading, v.speed);
+                    }
+                    keep_orientation(&mut l, *k);
+                }
+            },
+            Loop::Fly { f } => {
+                if let Some(ff) = f {
+                    if ff.step(&mut l, vmin12) == Leaf::Done {
+                        l.stick(0.0, 0.0);
+                        *f = None;
+                    }
+                }
+            }
             Loop::None => {}
         }
         if let Some(p) = l.period {
@@ -1169,6 +1255,7 @@ impl Autopilot {
         self.period = period;
         self.next_tick = v.t + period;
         self.apply(ac, out);
+        out
     }
 
     fn apply(&self, ac: &mut Aircraft, o: Out) {
@@ -1512,7 +1599,7 @@ impl Taxi {
 
 impl Landing {
     /// LandingCL Init `5d2b30`: the left-hand pattern from G to the nearest base's lineup.
-    fn new(bases: &[Airbase], g: V3, type_code: u32, _cfg: &Config) -> Option<Self> {
+    fn new(bases: &[Airbase], g: V3, type_code: u32, player: bool) -> Option<Self> {
         let base = Airbase::nearest(bases, [g[0] as f32, g[1] as f32, g[2] as f32])?;
         let c130 = type_code == C130;
         let rn = base.runway_deg.to_radians();
@@ -1541,6 +1628,7 @@ impl Landing {
             park: None,
             landed: false,
             acu: None,
+            player,
         })
     }
 
@@ -1571,7 +1659,10 @@ impl Landing {
         if c130 {
             v.push(Leg::Ca(3, 50.0));
         }
-        v.extend([Leg::Ch(4, tol(4), lim20, Some(72.0611)), Leg::Fa(k * ae[4] as f64), Leg::Stop, Leg::Taxi, Leg::Park]);
+        v.extend([Leg::Ch(4, tol(4), lim20, Some(72.0611)), Leg::Fa(k * ae[4] as f64), Leg::Stop]);
+        if !self.player {
+            v.extend([Leg::Taxi, Leg::Park]);
+        }
         v
     }
 
@@ -1710,9 +1801,13 @@ impl Landing {
     /// StopPlaneCL `5d44d0`.
     fn stop_plane(&mut self, l: &mut Laws) -> Leaf {
         let v = l.v;
-        if v.speed <= 25.736 {
+        if v.speed <= if self.player { 1.0295 } else { 25.736 } {
             l.out.rudder = Some(0.0);
-            self.landed = true;
+            if self.player {
+                l.out.ap_key = true;
+            } else {
+                self.landed = true;
+            }
             return Leaf::Done;
         }
         let rolling = v.att.pitch.abs() <= 0.2f32.to_radians()
