@@ -38,6 +38,18 @@ var tsd_scale := 40
 var tsd_options := [true, true, true, true]
 var nav_scroll := 0
 var hover_osb := -1
+## The mouse over the display (MFD px; null = elsewhere): the MAP / GMT cross-hair (renderer +0x27b4 while
+## this MFD owns the cursor, +0x27e4).
+var mouse = null
+## The MAP page's latches (FUN_00535ea0 globals): the last EXP flag (DAT_0083e358), the heading and the
+## centre frozen on entering EXP (DAT_0083e368, DAT_0083e350 / 354), the last clicked point
+## (DAT_0083e360 / 364, world X / Y).
+var _map_exp_prev := false
+var _map_heading := 0.0
+var _map_centre := Vector2.ZERO
+var _map_point := Vector2.ZERO
+## Line clipping (MFD px): the whole display (the GDI clip rect of pass 4), the MAP window there.
+var _clip := Rect2(0, 0, SIZE, SIZE)
 
 
 func setup(c: Control, idx: int, start_page: int) -> void:
@@ -109,7 +121,16 @@ func _text_right(end_x: float, y: float, text: String) -> void:
 
 
 func _line(a: Vector2, b: Vector2, color := GREEN) -> void:
-	draw_line(a, b, color, 1.0)
+	if _clip.has_point(a) and _clip.has_point(b):
+		draw_line(a, b, color, 1.0)
+		return
+	if a.is_equal_approx(b):
+		return
+	var c := _clip
+	var poly := PackedVector2Array([c.position, Vector2(c.end.x, c.position.y), c.end, Vector2(c.position.x, c.end.y)])
+	for seg in Geometry2D.clip_polyline_with_polygon(PackedVector2Array([a, b]), poly):
+		if seg.size() >= 2:
+			draw_polyline(seg, color, 1.0)
 
 
 # --- pages ------------------------------------------------------------------------------------
@@ -153,24 +174,30 @@ func _draw_radar() -> void:
 	var r: Dictionary = cockpit.radar
 	var mode := int(r.get("mode", 0))
 	var idx := int(r.get("idx", 1))
+	var nm: float = RADAR_RANGES[clampi(idx, 1, 6) - 1]
 	match mode:
 		7: _tile(TILE_GMT)
-		8: _tile(TILE_MAP)
+		8:
+			_draw_map_picture(r, nm)
+			_tile(TILE_MAP)
 		_:
 			_tile(TILE_RADAR_AA)
 			_text(Vector2(17, 3), RADAR_MODES[mode])
 	if mode >= 3:
 		_blit(Rect2(132 + 8 * (idx - 1), 845, 8, 5), Vector2(1, 33))
-	if mode <= 6 and mode >= 2:
+	if mode == 8:
+		_text(Vector2(60, 3), "EXP" if r.get("exp", false) else "NORM")
+		_draw_map_symbols(r, nm)
+		return
+	if mode == 7:
+		_draw_gmt(r, nm)
+		return
+	if mode >= 2:
 		_draw_horizon_bars()
 	if mode < 2:
 		return
 	_draw_carets(r.get("antenna", Vector2.ZERO))
-	var nm: float = RADAR_RANGES[clampi(idx, 1, 6) - 1]
 	for c in r.get("contacts", []):
-		if mode >= 7:
-			_draw_ground_contact(c, mode, nm)
-			continue
 		# B-scope: x = 66 + (az + shift)·112 / width, y = 115 − range / (R·16.5446) (R NM = 112 px).
 		var p := Vector2(66.0 + (float(c.az) + float(r.get("shift", 0.0))) * 112.0 / float(r.get("width", TAU / 3.0)),
 				115.0 - float(c.dist) / (nm * 16.5446))
@@ -193,8 +220,48 @@ func _draw_radar() -> void:
 			2:
 				draw_circle(p, 3.5, GREEN)
 				_aspect_stub(p, c)
+	_draw_steer_bscope(nm)
 	if mode == 2 and not r.get("lock", {}).is_empty():
 		_draw_stt_text(r, nm)
+
+
+## The steerpoint (state+0x70: the current waypoint, from the nav update FUN_004459f0) on the A-A pages
+## (FUN_005338b0): d = distance / (R·16.5446) px, b = ⌊bearing°⌋ − ⌊heading°⌋ wrapped to ±180; within
+## ±60° a triangle at x = 66 + b, its base at y = 125 − d.
+func _draw_steer_bscope(nm: float) -> void:
+	var sp = _steerpoint()
+	if sp == null:
+		return
+	var st: Dictionary = cockpit.state
+	var own: Vector2 = st.get("world", Vector2.ZERO)
+	var dv: Vector2 = sp - own
+	var d := int(dv.length() / (nm * 16.5446))
+	var h := int(st.heading)
+	if h < 0:
+		h += 360
+	var b := int(rad_to_deg(atan2(dv.x, dv.y))) - h
+	if b > 180:
+		b -= 360
+	if b < -180:
+		b += 360
+	if b >= 60 or b <= -60:
+		return
+	_steer_triangle(Vector2(66 + b, 122 - d))
+
+
+## The steer triangle about (x, y) (FUN_005338b0 / FUN_00535400 / FUN_00535ea0): base (x−3, y+3)–(x+4, y+3),
+## sides (x−3, y+2)–(x, y−3)–(x+4, y+4).
+func _steer_triangle(p: Vector2) -> void:
+	_line(p + Vector2(-3, 3), p + Vector2(4, 3))
+	_line(p + Vector2(-3, 2), p + Vector2(0, -3))
+	_line(p + Vector2(0, -3), p + Vector2(4, 4))
+
+
+## The current waypoint's world X / Y (state+0x70), or null.
+func _steerpoint():
+	var wps: Array = cockpit.waypoints
+	var i: int = cockpit.current_waypoint
+	return wps[i].world if i >= 0 and i < wps.size() else null
 
 
 ## Antenna carets (FUN_00533500): v = clamp(⌊val·106⌋, 0, 106); azimuth at x = 13 + v (y 117..120,
@@ -246,22 +313,204 @@ static func aspect_text(aspect: float) -> String:
 	return "%2d%s" % [absi(n), "R" if n >= 0 else "L"]
 
 
-## GMT (FUN_00535400): heading-up PPI from (66,109), R·1853/56 m/px; MAP (FUN_00535ea0) symbols at
-## R·19.7128 m/px from (65,109). 3×3 box (MAP: with a diagonal); the locked one a ±10 cross.
-func _draw_ground_contact(c: Dictionary, mode: int, nm: float) -> void:
-	var k := nm * 1853.0 / 56.0 if mode == 7 else nm * 19.7128
-	var o := Vector2(66, 109) if mode == 7 else Vector2(65, 109)
-	var d := float(c.dist) * cos(float(c.el))
-	var p := (o + Vector2(sin(float(c.az)), -cos(float(c.az))) * d / k).round()
-	if p.x <= 8 or p.x >= 124 or p.y <= 8 or p.y >= 124:
-		return
-	if c.locked:
+## The heading-up transform of a world offset (ex east, ny north) to MFD px at k m/px.
+static func _heading_up(e: Vector2, hdg: float, k: float) -> Vector2:
+	var S := sin(hdg)
+	var C := cos(hdg)
+	return Vector2(e.x * C - e.y * S, -(e.x * S + e.y * C)) / k
+
+
+## A ground contact (GMT / MAP): ±10 cross when locked, then the 3×3 box (MAP: with the \ diagonal).
+func _ground_symbol(p: Vector2, locked: bool, diagonal: bool) -> void:
+	if locked:
 		_line(p - Vector2(10, 0), p + Vector2(10, 0))
 		_line(p - Vector2(0, 10), p + Vector2(0, 10))
-	else:
-		_box(p, 1)
-		if mode == 8:
-			_line(p + Vector2(-1, 1), p + Vector2(1, -1))
+	_line(p + Vector2(-1, -1), p + Vector2(-1, 1))
+	_line(p + Vector2(-1, 1), p + Vector2(1, 1))
+	_line(p + Vector2(1, 1), p + Vector2(1, -1))
+	_line(p + Vector2(1, -1), p + Vector2(-1, -1))
+	if diagonal:
+		_line(p + Vector2(-1, -1), p + Vector2(1, 1))
+
+
+## The mouse cross-hair (GMT / MAP while this MFD owns the cursor): lines to the display edges with a 3 px
+## gap; 5 px ticks at ±31 px (not in EXP).
+func _cross_hair(ticks: bool) -> void:
+	if mouse == null:
+		return
+	var m: Vector2 = mouse
+	_line(Vector2(m.x - 3, m.y), Vector2(0, m.y))
+	_line(Vector2(m.x + 3, m.y), Vector2(SIZE, m.y))
+	_line(Vector2(m.x, m.y - 3), Vector2(m.x, 0))
+	_line(Vector2(m.x, m.y + 3), Vector2(m.x, SIZE))
+	if ticks:
+		for sgn in [-31.0, 31.0]:
+			_line(Vector2(m.x + sgn, m.y - 2), Vector2(m.x + sgn, m.y + 3))
+			_line(Vector2(m.x - 2, m.y + sgn), Vector2(m.x + 3, m.y + sgn))
+
+
+## GMT (FUN_00535400): heading-up PPI from (66,109) at R·1853/56 m/px: the cross-hair, the contacts, the
+## steerpoint triangle, the horizon bars and the antenna carets.
+func _draw_gmt(r: Dictionary, nm: float) -> void:
+	_cross_hair(true)
+	var st: Dictionary = cockpit.state
+	var own: Vector2 = st.get("world", Vector2.ZERO)
+	var hdg := deg_to_rad(st.heading)
+	var k := nm * 1853.0 / 56.0
+	for c in r.get("contacts", []):
+		var w: Vector3 = c.pos
+		var p := (Vector2(66, 109) + _heading_up(Vector2(w.x, w.y) - own, hdg, k)).floor()
+		_ground_symbol(p, c.locked, false)
+	var sp = _steerpoint()
+	if sp != null:
+		_steer_triangle((Vector2(66, 109) + _heading_up(sp - own, hdg, k)).floor())
+	_draw_horizon_bars()
+	_draw_carets(r.get("antenna", Vector2.ZERO))
+
+
+## isr.bmp (640 × 832) georeference, cockpits.ibx [MAPFRAME] (shared by every cockpit; FUN_005226e0):
+## col = (X + 166828 − left) / (right − left) · 640, row = (top − (Y + 21164)) / (top − bottom) · 832
+## (FUN_00535ea0 @53608b), i.e. 1280 m per isr pixel.
+const MAPFRAME := {"left": 0.0, "top": 1064960.0, "bottom": 0.0, "right": 819200.0}
+const ISR_SIZE := Vector2(640, 832)
+## The MAP window (15,15)–(116,109): 101 × 94 px, 94 px = R NM (FUN_0053b0a0 pass 1).
+const MAP_WINDOW := Rect2(15, 15, 101, 94)
+
+
+static func isr_px(w: Vector2) -> Vector2:
+	var f: Dictionary = MAPFRAME
+	return Vector2((w.x + 166828.0 - f.left) / (f.right - f.left) * ISR_SIZE.x,
+			(f.top - (w.y + 21164.0)) / (f.top - f.bottom) * ISR_SIZE.y)
+
+
+## The MAP page centre and heading: NORM = the ownship and its heading; EXP = the point clicked last and
+## the heading, both latched when EXP comes on (DAT_0083e350 / 354, DAT_0083e368).
+func _map_frame(r: Dictionary) -> Dictionary:
+	var st: Dictionary = cockpit.state
+	var e: bool = r.get("exp", false)
+	if e != _map_exp_prev:
+		_map_heading = deg_to_rad(st.heading)
+		_map_centre = _map_point
+		_map_exp_prev = e
+	if e:
+		return {"centre": _map_centre, "hdg": _map_heading, "img": Vector2(65, 62), "sym": Vector2(66, 66)}
+	return {"centre": st.get("world", Vector2.ZERO), "hdg": deg_to_rad(st.heading), "img": Vector2(65, 109),
+		"sym": Vector2(66, 109)}
+
+
+## The MAP picture (FUN_0053b0a0, pass 1, before the tile): isr.bmp's green channel (loaded with the
+## green palette, FUN_0053ae00(…, 1)) turned heading-up about the centre, S = R·1853·832 / ((top −
+## bottom)·94) isr px per MFD px; black outside the image. It shows through the tile's cyan fan.
+func _draw_map_picture(r: Dictionary, nm: float) -> void:
+	draw_rect(MAP_WINDOW, Color.BLACK)
+	var t := _isr()
+	if t == null:
+		return
+	var f := _map_frame(r)
+	for piece in map_picture(f.centre, f.hdg, nm, f.img):
+		draw_colored_polygon(piece.points, Color(0, 1, 0), piece.uvs, t)
+
+
+## The MAP picture's polygons in the window: [{points (MFD px), uvs (0..1 of isr.bmp)}] for the centre
+## (world X / Y) shown at MFD px `img`, heading-up for `hdg` (rad), range `nm`. isr px q of MFD px p:
+## q = q0 + S·(dx·C − dy·S', dx·S' + dy·C), (dx, dy) = p − img.
+static func map_picture(centre: Vector2, hdg: float, nm: float, img: Vector2) -> Array:
+	var s: float = nm * 1853.0 * ISR_SIZE.y / ((MAPFRAME.top - MAPFRAME.bottom) * 94.0)
+	var C := cos(hdg)
+	var S := sin(hdg)
+	var q0 := isr_px(centre)
+	var corners := PackedVector2Array()
+	for q in [Vector2.ZERO, Vector2(ISR_SIZE.x, 0), ISR_SIZE, Vector2(0, ISR_SIZE.y)]:
+		var d: Vector2 = (q - q0) / s
+		corners.append(img + Vector2(d.x * C + d.y * S, -d.x * S + d.y * C))
+	var win := PackedVector2Array([MAP_WINDOW.position, Vector2(MAP_WINDOW.end.x, MAP_WINDOW.position.y),
+		MAP_WINDOW.end, Vector2(MAP_WINDOW.position.x, MAP_WINDOW.end.y)])
+	var out := []
+	for piece in Geometry2D.intersect_polygons(corners, win):
+		if piece.size() < 3:
+			continue
+		var uvs := PackedVector2Array()
+		for p in piece:
+			var d: Vector2 = p - img
+			uvs.append((q0 + s * Vector2(d.x * C - d.y * S, d.x * S + d.y * C)) / ISR_SIZE)
+		out.append({"points": piece, "uvs": uvs})
+	return out
+
+
+func _isr() -> Texture2D:
+	if not cockpit.tex.has("ISR"):
+		cockpit._add_tex("ISR", "isr.bmp")
+		if not cockpit.tex.has("ISR"):
+			cockpit.tex["ISR"] = null
+	return cockpit.tex.ISR
+
+
+## MAP symbols (FUN_00535ea0 pass 4, clipped to the window (15,15)–(116,109)) at R·19.7128 m/px from the
+## centre: the cross-hair, the contacts, the designation cross (a designated point and no locked contact),
+## the steerpoint triangle, the horizon bars and the antenna carets.
+func _draw_map_symbols(r: Dictionary, nm: float) -> void:
+	_clip = MAP_WINDOW
+	var f := _map_frame(r)
+	var k := nm * 19.7128
+	var centre: Vector2 = f.centre
+	var sym: Vector2 = f.sym
+	_cross_hair(not r.get("exp", false))
+	var any_locked := false
+	for c in r.get("contacts", []):
+		var w: Vector3 = c.pos
+		var p := (sym + _heading_up(Vector2(w.x, w.y) - centre, f.hdg, k)).floor()
+		any_locked = any_locked or c.locked
+		_ground_symbol(p, c.locked, true)
+	if r.get("designated", false) and not any_locked:
+		var p := (sym + _heading_up(_map_point - centre, f.hdg, k)).floor()
+		_line(p - Vector2(10, 0), p + Vector2(10, 0))
+		_line(p - Vector2(0, 10), p + Vector2(0, 10))
+	var sp = _steerpoint()
+	if sp != null:
+		_steer_triangle((sym + _heading_up(sp - centre, f.hdg, k)).floor())
+	_draw_horizon_bars()
+	_draw_carets(r.get("antenna", Vector2.ZERO))
+	_clip = Rect2(0, 0, SIZE, SIZE)
+
+
+## A MAP click (FUN_00535ea0 pass 4): on an unlocked contact (±4 px) event 0x2a (lock it), else event 0x2f
+## with the world point under the cursor (designate); either becomes the latched point.
+func _click_map(p: Vector2) -> void:
+	var r: Dictionary = cockpit.radar
+	var nm: float = RADAR_RANGES[clampi(int(r.get("idx", 1)), 1, 6) - 1]
+	var f := _map_frame(r)
+	var k := nm * 19.7128
+	for c in r.get("contacts", []):
+		var w: Vector3 = c.pos
+		var cp := (Vector2(f.sym) + _heading_up(Vector2(w.x, w.y) - f.centre, f.hdg, k)).floor()
+		if not c.locked and absf(p.x - cp.x) < 4 and absf(p.y - cp.y) < 4:
+			_map_point = Vector2(w.x, w.y).floor()
+			_radar_event(0x2a, c.key)
+			return
+	var a := (p.x - 66.0) * k
+	var b := (float(f.sym.y) - p.y) * k
+	var ang := atan2(a, b) + float(f.hdg)
+	_map_point = (Vector2(f.centre) + Vector2(sin(ang), cos(ang)) * sqrt(a * a + b * b)).floor()
+	_radar_event(0x2f, _map_point)
+
+
+## A GMT click (FUN_00535400): on an unlocked contact (±4 px) event 0x2a.
+func _click_gmt(p: Vector2) -> void:
+	var r: Dictionary = cockpit.radar
+	var nm: float = RADAR_RANGES[clampi(int(r.get("idx", 1)), 1, 6) - 1]
+	var st: Dictionary = cockpit.state
+	var own: Vector2 = st.get("world", Vector2.ZERO)
+	for c in r.get("contacts", []):
+		var w: Vector3 = c.pos
+		var cp := (Vector2(66, 109) + _heading_up(Vector2(w.x, w.y) - own, deg_to_rad(st.heading), nm * 1853.0 / 56.0)).floor()
+		if not c.locked and absf(p.x - cp.x) < 4 and absf(p.y - cp.y) < 4:
+			_radar_event(0x2a, c.key)
+			return
+
+
+func _radar_event(ev: int, arg = null) -> void:
+	if cockpit.on_radar_event.is_valid():
+		cockpit.on_radar_event.call(ev, arg)
 
 
 ## Artificial horizon bars (FUN_00533620): centre (66,66), rolled, 1 px per degree of pitch.
@@ -473,6 +722,10 @@ static func osb_at(p: Vector2) -> int:
 
 
 func _gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion:
+		var q: Vector2 = event.position / cockpit.ui_scale() - Vector2(BEZEL, BEZEL)
+		mouse = q if Rect2(10, 10, 112, 112).has_point(q) else null
+		return
 	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
 		return
 	var p: Vector2 = event.position / cockpit.ui_scale() - Vector2(BEZEL, BEZEL)
@@ -480,8 +733,17 @@ func _gui_input(event: InputEvent) -> void:
 	if osb > 0:
 		press(osb)
 		accept_event()
-	elif page == RADAR and int(cockpit.radar.get("mode", 0)) == 4:
-		_click_blip(p)
+	elif page == RADAR and Rect2(10, 10, 112, 112).has_point(p):
+		match int(cockpit.radar.get("mode", 0)):
+			4: _click_blip(p)
+			7: _click_gmt(p)
+			8: _click_map(p)
+		accept_event()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_MOUSE_EXIT:
+		mouse = null
 
 
 ## LRS (FUN_00534840): a click on a blip sends event 0x2a (lock that contact). Ours: within 4 px.
@@ -519,6 +781,7 @@ func press(osb: int) -> void:
 				0xb: step_range(1)
 				0xc: step_range(-1)
 				1: cycle_radar_mode()
+				3: if int(cockpit.radar.get("mode", 0)) == 8: _radar_event(0x30)  # MAP: NORM <-> EXP
 		TSD:
 			match osb:
 				0xb: tsd_scale = TSD_SCALES[mini(TSD_SCALES.find(tsd_scale) + 1, TSD_SCALES.size() - 1)]

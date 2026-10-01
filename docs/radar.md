@@ -41,7 +41,9 @@ STT takes LRS's (max index, NM), else ACM's.
 | \ down / up | 0x2d / 0x2e | BORE while held (A-A only), back to the saved mode |
 | Return / Shift+Return | 0x26 / 0x27 (`FUN_004aefd0`) | the cursor to the next / previous contact (wraps, needs ≥ 2); in LRS it also locks (→ STT); in STT it unlocks |
 | click on a blip (LRS) | 0x2a (`FUN_004adca0`) | lock that contact; from TWS straight to STT |
-| Backspace | 0x31 (`FUN_004add60`) | drop the lock (STT → the last A-A mode) |
+| Backspace | 0x31 (`FUN_004add60`) | drop the lock (STT → the last A-A mode); without a lock: clear the designated point (+0x50 / +0x58 / +0x5c = 0; the EXP flag stays) |
+| MAP click off the contacts | 0x2f (`FUN_004ade90`) | a lock is dropped, then the point is designated: +0x58 / +0x5c = X / Y, +0x60 = the terrain height there (`FUN_00402080`), +0x50 = 1 |
+| MAP OSB 3 | 0x30 (`FUN_004ade70`) | only with a designated point: the EXP flag +0x4c toggles (state+0xa18; +0x50 → state+0xa1c) |
 
 Radar events first put the radar page on an MFD if none shows it (docs/mfd.md).
 
@@ -95,7 +97,7 @@ by the player's damage).
 
 ## 8. Not built / ours
 - ECM and jammers (both sides): no jammer exists yet.
-- The MAP page's ground picture (`FUN_0053b0a0`): only the symbols.
+- What uses the designated point (A-G weapons) is not traced yet.
 - The STT range scale's two envelope ticks (the DLZ is untraced).
 - Terrain line of sight: ours samples every 100 m (the original's sampling is UNCERTAIN).
 - Weapon data Real: the F-16's LRS / STT detection range is the APG-68's 80 km (docs/real-weapons.md); the other jets

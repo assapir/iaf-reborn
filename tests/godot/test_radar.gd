@@ -87,3 +87,56 @@ func run() -> void:
 	w.radar_event(0x2c)
 	check(w.radar.mode == w.radar.STBY and w.radar.contacts.is_empty(), "S: standby, no contacts")
 	await frames(2)
+
+	# --- MAP page (FUN_00535ea0 / FUN_0053b0a0) -----------------------------------------------------
+	var Mfd = load("res://cockpit/mfd.gd")
+	var own2: Vector2 = tv.cockpit.state.world
+	var q: Vector2 = Mfd.isr_px(own2)
+	check(absf(q.x - (own2.x + 166828.0) / 1280.0) < 1e-3 and absf(q.y - (1043796.0 - own2.y) / 1280.0) < 1e-3, "isr.bmp: 1280 m per pixel (col %.1f row %.1f)" % [q.x, q.y])
+	var polys: Array = Mfd.map_picture(own2, 0.0, 10.0, Vector2(65, 109))
+	var area := 0.0
+	for pc in polys:
+		for tri in Geometry2D.triangulate_polygon(pc.points).size() / 3:
+			var ids := Geometry2D.triangulate_polygon(pc.points)
+			var a2: Vector2 = pc.points[ids[3 * tri]]
+			var b2: Vector2 = pc.points[ids[3 * tri + 1]]
+			var c2: Vector2 = pc.points[ids[3 * tri + 2]]
+			area += absf((b2 - a2).cross(c2 - a2)) / 2.0
+	check(absf(area - 101.0 * 94.0) < 1.0, "MAP over the theatre: the 101×94 window is all picture (%.0f px²)" % area)
+	# The UV under a window point: R NM = 94 px, heading-up.
+	var uv_at := func(pcs: Array, p: Vector2) -> Vector2:
+		for pc in pcs:
+			if Geometry2D.is_point_in_polygon(p, pc.points):
+				# Affine map: solve from the first three vertices.
+				var P: PackedVector2Array = pc.points
+				var U: PackedVector2Array = pc.uvs
+				var m := Transform2D(P[1] - P[0], P[2] - P[0], P[0]).affine_inverse()
+				var l: Vector2 = m * p
+				return U[0] + (U[1] - U[0]) * l.x + (U[2] - U[0]) * l.y
+		return Vector2(-1, -1)
+	var top: Vector2 = uv_at.call(polys, Vector2(65, 15)) * Mfd.ISR_SIZE
+	check(top.distance_to(q + Vector2(0, -94.0 * 10.0 * 1853.0 / (94.0 * 1280.0))) < 0.05, "heading 0: the window top is 10 NM north")
+	var east: Array = Mfd.map_picture(own2, PI / 2.0, 10.0, Vector2(65, 109))
+	var e2: Vector2 = uv_at.call(east, Vector2(65, 62)) * Mfd.ISR_SIZE
+	check(e2.distance_to(q + Vector2(47.0 * 10.0 * 1853.0 / (94.0 * 1280.0), 0)) < 0.05, "heading 090: up is east")
+	var img := Image.load_from_file(Settings().assets_dir().path_join("converted/cockpits/f16/isr.png"))
+	var px := img.get_pixelv((q / Mfd.ISR_SIZE * Vector2(img.get_size())).floor())
+	check(px.g > 0.05, "the picture under the jet is land (isr green %.2f)" % px.g)
+	# The page: R → GMT (A-G), Q → MAP; a click off the contacts designates, OSB 3 toggles EXP.
+	w.radar_event(0x2b)
+	w.radar_event(0x2b)
+	w.radar_event(0x24)
+	t += 0.05
+	w.update(t)
+	check(w.radar.mode == w.radar.MAP, "R, R, Q: MAP")
+	var m = tv.cockpit.radar_mfd()
+	m._click_map(Vector2(66, 60))
+	check(w.radar.designated and absf(Vector2(w.radar.desig.x, w.radar.desig.y).distance_to(m._map_point)) < 1.0, "a MAP click designates the point under it")
+	var exp_d: float = Vector2(w.radar.desig.x, w.radar.desig.y).distance_to(own2)
+	check(absf(exp_d - 49.0 * 40.0 * 19.7128) < 60.0, "49 px above the jet at 40 NM: %.0f m" % exp_d)
+	m.press(3)
+	t += 0.05
+	w.update(t)
+	check(w.radar.exp and tv.cockpit.radar.get("exp", false), "OSB 3: EXP")
+	await frames(2)
+	check(m._map_centre == m._map_point, "EXP centres on the designated point")

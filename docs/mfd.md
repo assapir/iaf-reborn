@@ -169,7 +169,11 @@ A/P 88, ELCT 97, GNRT 106. Redrawn when state+0x558.. flags change.
   1 px/deg pitch, pitch clamped ±40 (blink every 300 ms beyond).
 - Antenna carets (`FUN_00533500`): v = clamp(ftol(val·106),0,106); azimuth: x=13+v, y117..120 + bar x11+v..16+v at
   y117 (val state+0xa0c); elevation: y=13+v, x11..14 + bar at x14 (state+0xa10).
-- Steer/bearing triangle (`FUN_005338b0`) to state+0x70 when |bearing|<60°: x = 66+bearing°, y from distance.
+- Steer triangle (`FUN_005338b0`, called by STT, LRS, TWS, BORE / ACM) to the steerpoint state+0x70 (the current
+  waypoint: the nav update `FUN_004459f0` param 8, next to the waypoint list and index): d = ⌊distance / (R·16.5446)⌋,
+  b = ⌊atan2(dx, dy)°⌋ − ⌊heading°⌋ (+0x2728, +360 if negative) wrapped to ±180; only when −60 < b < 60: base
+  (x−3, 125−d)–(x+4, 125−d), sides (x−3, 124−d)–(x, 119−d)–(x+4, 126−d) at x = 66 + b. The same triangle shape (about
+  (x, y): (x−3, y+3)–(x+4, y+3), (x−3, y+2)–(x, y−3)–(x+4, y+4)) marks the steerpoint on the GMT and MAP pages.
 - **B-scope blip**: x = 66 + (az + state+0xa14)·112/state+0xa24; y = 115 − range_m/(R·16.5446) (16.5446 = 1853/112,
   i.e. R NM = 112 px); drawn only inside 8<x,y<124. Contacts (≤15, state+0x640.., stride 0x40): X +0x640, Y +0x644,
   locked +0x658, tracked +0x65c, id +0x664, speed +0x668, aspect +0x66c, az +0x670, range +0x678.
@@ -181,10 +185,19 @@ A/P 88, ELCT 97, GNRT 106. Redrawn when state+0x558.. flags change.
 - STT (`FUN_00533db0`/`FUN_00534160`): disc + aspect stub; carets follow the target; range scale line x=121 y10..122
   with two envelope ticks (UNCERTAIN Rmin/Rmax) and "<" caret at y = 115 − r·112/(R·1853); text "%3dK" speed at
   (86,3), aspect "%2dL"/"%2dR" at (62,3), closure "%3dK" at (111, caret+8).
-- GMT (`FUN_00535400`): heading-up PPI, origin (66,109), R·1853/56 m/px; 3x3 boxes, locked = ±10 cross; mouse
-  crosshair to the edges with 3-px gap and 5-px ticks at ±31.
-- MAP (`FUN_00535ea0`): isr.bmp ground map (§4); label "NORM"/"EXP" at (60,3); contacts 3x3 box+diagonal,
-  locked cross, designation cross, unrotated ownship triangle; click → 0x2a on contact or 0x2f with world x,y.
+- GMT (`FUN_00535400`): heading-up PPI, origin (66,109), R·1853/56 m/px; per contact a ±10 cross when locked, then
+  the 3x3 box (always); the steerpoint triangle; the horizon bars and the antenna carets; while the MFD owns the
+  cursor: the cross-hair to the edges with a 3-px gap and 5-px ticks at ±31, and a click within ±4 px of an
+  unlocked contact sends 0x2a (lock it).
+- MAP (`FUN_00535ea0`, switch on the pass): 0 loads isr.bmp (`FUN_0053ae00(…, 1)`: green palette); 1 the picture
+  (§4); 2 OSB 3 (top middle) → event 0x30 (NORM ↔ EXP, latched per press); 3 label "NORM" / "EXP" (0x65d744 /
+  0x65d740, state+0xa18) at (60,3); 4 the symbols, clipped to the window (15,15)–(116,109) (so the antenna carets
+  never show): the cross-hair (ticks only in NORM), per contact a ±10 cross when locked then the 3x3 box with the
+  \ diagonal; the designation cross at the last clicked point when the radar has a designated point (state+0xa1c)
+  and no contact is locked; the steerpoint triangle; the horizon bars. Symbols at R·19.7128 m/px about (66,109)
+  (NORM: the ownship, current heading) or (66,66) (EXP: the latched point and heading). A click on an unlocked
+  contact (±4 px) → 0x2a and that contact's X / Y become the clicked point; else → 0x2f with the world point under
+  the cursor (angle atan2(dx, −dy)·R·19.71 + heading about the centre), which becomes the clicked point.
 
 ### TSD (3) — `FUN_00531a50`
 - Map = **`Emf\map.emf`**, not isr.bmp (load `FUN_0053a630`, draw `FUN_00539f20`, clip (10,10)-(122,122)). 20
@@ -236,10 +249,14 @@ A/P 88, ELCT 97, GNRT 106. Redrawn when state+0x558.. flags change.
 - 640/832 = 655360/1024 and 851968/1024, so one isr pixel = 1024 PTT units and isr.bmp spans exactly the map.ptt
   theatre; MAPFRAME/PTT extent = 1.25. Hence, UNCERTAIN: `X = 1.25·ptt_x − 166828`, `Y = 1043796 − 1.25·ptt_y` (ptt_y
   from north).
-- Radar MAP rendering (`FUN_0053b0a0`, MMX sampler `FUN_0053ac60`): window (15,15)-(116,109) = 101x94 px, shows only
-  through the tile's cyan fan. NORM (state+0xa18 = 0): centre = ownship at window (50,94) = MFD (65,109), rotated by
-  heading (heading-up). EXP: centre = designated point latched on entry, heading frozen, window centre (50,47), symbol
-  origin (66,66). Sampling step `S = R·1853·832/((top−bottom)·94)` isr px per MFD px (94 px = R NM; 1853 m/NM at
+- Radar MAP rendering (`FUN_0053b0a0`, pass 1, straight to the back buffer before the tile; the MMX sampler
+  `FUN_0053ac60` is not used by it): window (15,15)-(116,109) = 101x94 px, shows only through the tile's cyan fan.
+  No sweep and no terrain heights: the picture is isr.bmp alone, redrawn every frame. Per window pixel (dx, dy) from
+  the centre: col = col0 + (dx·C − dy·S)·s, row = row0 + (dx·S + dy·C)·s (C, S = cos, sin of the heading ×65536,
+  `>>16`), col0 / row0 = the centre's isr pixel (truncated); outside the image → 0 (black). NORM (state+0xa18 = 0): centre = ownship at window (50,94) = MFD (65,109), rotated by
+  heading (heading-up). EXP: centre = the clicked point (DAT_0083e360 / 364) latched when the EXP flag changes
+  (DAT_0083e350 / 354), heading frozen then (DAT_0083e368), window centre (50,47), symbol origin (66,66). The same
+  scale in both (EXP does not zoom). Sampling step `S = R·1853·832/((top−bottom)·94)` isr px per MFD px (94 px = R NM; 1853 m/NM at
   `0x60c480`); outside the image → black. Symbol scale k = R·19.7128 m/px (`0x60c490`).
 
 ## 5. Keys and events (keys.trx = 117 command names, one per line = key-table record; docs/controls.md)

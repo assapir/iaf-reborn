@@ -74,6 +74,11 @@ var sel_locked := false
 ## STT: the locked record (kept between scans).
 var stt: Dictionary = {}
 var antenna := Vector2.ZERO  # carets (az, el) 0..1 (state+0xa0c / +0xa10)
+## The designated ground point (event 0x2f, FUN_004ade90): +0x50 flag, +0x58 / +0x5c X / Y, +0x60 the
+## terrain height there; +0x4c the MAP page's EXP flag (event 0x30, FUN_004ade70).
+var designated := false
+var desig := Vector3.ZERO
+var exp := false
 var heading_shift := 0.0  # state+0xa14 (rad)
 var _href = null
 var _next_scan := 0.0
@@ -550,12 +555,32 @@ func lock_key(key: String) -> bool:
 	return true
 
 
-## Backspace (event 0x31, FUN_004add60): drop the lock (STT → the last A-A mode on the next frame).
+## Backspace (event 0x31, FUN_004add60): drop the lock (STT → the last A-A mode on the next frame);
+## without a lock it clears the designated point (the EXP flag stays).
 func deselect(now: float) -> void:
 	if not has_lock():
+		designated = false
+		desig = Vector3.ZERO
 		return
 	_unlock()
 	_stt_transitions(now)
+
+
+## Event 0x2f (FUN_004ade90, a MAP page click off the contacts): a lock is dropped first, then the
+## point (X, Y, terrain height `z`) is designated.
+func designate(x: float, y: float, z: float, now: float) -> void:
+	if has_lock():
+		deselect(now)
+	desig = Vector3(x, y, z)
+	designated = true
+	dirty = true
+
+
+## Event 0x30 (FUN_004ade70, MAP page OSB 3): NORM <-> EXP, only with a designated point.
+func toggle_exp() -> void:
+	if designated:
+		exp = not exp
+		dirty = true
 
 
 ## Damage (cases 0xf / 0x13 / 0x15, FUN_004adb20): off, every call a no-op.

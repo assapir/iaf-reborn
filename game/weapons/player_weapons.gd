@@ -599,6 +599,10 @@ func radar_event(ev: int, arg = null) -> void:
 		0x27: radar.next_target(false, now)
 		0x31: radar.deselect(now)
 		0x2a: radar.lock_key(String(arg))
+		0x2f:
+			var g = _ground(Vector3(arg.x, arg.y, 0.0))
+			radar.designate(arg.x, arg.y, float(g) if g != null else 0.0, now)
+		0x30: radar.toggle_exp()
 
 
 ## On-lock / on-unlock (4b0510 / 4b04d0): the target's RWR hears the lock (AI conditions 19 / 26);
@@ -618,7 +622,8 @@ func radar_snapshot() -> Dictionary:
 		closure = (o.vel - (lk.unit.vel as Vector3)).dot(d)
 	return {"mode": radar.mode, "idx": radar.range_index(), "width": radar.scope_width(),
 		"shift": radar.heading_shift, "antenna": radar.antenna, "contacts": radar.contacts,
-		"lock": lk, "closure": closure, "has_lock": not lk.is_empty()}
+		"lock": lk, "closure": closure, "has_lock": not lk.is_empty(),
+		"exp": radar.exp, "designated": radar.designated}
 
 
 # --- chaff and flares (events 0x44 / 0x45, docs/weapons.md §10) ------------------------------------
