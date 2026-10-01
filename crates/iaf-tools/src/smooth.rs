@@ -121,6 +121,7 @@ fn phong(t: &Tri, w: [f32; 3]) -> V3 {
 /// Smooth normals, then tessellate every triangle into `LEVEL²` curved ones.
 pub fn refine(tris: &[Tri]) -> Vec<Tri> {
     let mut tris = tris.to_vec();
+    let caps = find_caps(&tris);
     smooth_normals(&mut tris);
     let smooth = smooth_edges(&tris);
     let l = LEVEL as f32;
@@ -150,5 +151,178 @@ pub fn refine(tris: &[Tri]) -> Vec<Tri> {
             }
         }
     }
+    round_caps(&mut out, &caps);
     out
+}
+
+/// One cross-section ring of a loft: a near-regular polygon perpendicular to the loft's axis.
+#[derive(Clone, Copy)]
+struct Ring {
+    t: f32,
+    c: [f32; 2],
+    r: f32,
+    phase: f32,
+}
+
+/// A body built from coaxial rings (bomb, missile, tank, strut, tyre): along axis `k` (0 = x, 1 = y, 2 = z), every
+/// ring with `n` sides.
+struct Loft {
+    k: usize,
+    n: usize,
+    rings: Vec<Ring>,
+}
+
+/// The two in-plane coordinates for axis `k`.
+fn plane(p: V3, k: usize) -> [f32; 2] {
+    match k {
+        0 => [p[1], p[2]],
+        1 => [p[2], p[0]],
+        _ => [p[0], p[1]],
+    }
+}
+
+/// Rings of 5–16 vertices in planes perpendicular to x, y or z (concentric rings in one plane are separated
+/// by radius), joined into lofts of ≥ 2 coaxial rings with the same side count.
+fn find_caps(tris: &[Tri]) -> Vec<Loft> {
+    let mut pts: Vec<V3> = Vec::new();
+    for t in tris {
+        for p in t.p {
+            if !pts.iter().any(|q| key(*q) == key(p)) {
+                pts.push(p);
+            }
+        }
+    }
+    let size = pts.iter().fold(0f32, |m, p| m.max(p[0].abs()).max(p[1].abs()).max(p[2].abs())).max(1e-3);
+    let tol = 2e-3 * size;
+    let mut lofts = Vec::new();
+    for k in 0..3 {
+        // Planes along axis k.
+        let mut planes: Vec<(f32, Vec<[f32; 2]>)> = Vec::new();
+        for p in &pts {
+            match planes.iter_mut().find(|(t, _)| (t - p[k]).abs() < tol) {
+                Some(pl) => pl.1.push(plane(*p, k)),
+                None => planes.push((p[k], vec![plane(*p, k)])),
+            }
+        }
+        let mut rings: Vec<(usize, Ring)> = Vec::new();
+        for (t, ps) in planes {
+            if ps.len() < 5 {
+                continue;
+            }
+            let before = rings.len();
+            let c = ps.iter().fold([0.0f32; 2], |a, q| [a[0] + q[0], a[1] + q[1]]).map(|v| v / ps.len() as f32);
+            // Concentric layers: cluster by distance from the centre.
+            let mut ds: Vec<([f32; 2], f32)> = ps.iter().map(|q| (*q, ((q[0] - c[0]).powi(2) + (q[1] - c[1]).powi(2)).sqrt())).collect();
+            ds.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+            let mut layer: Vec<([f32; 2], f32)> = Vec::new();
+            let flush = |layer: &mut Vec<([f32; 2], f32)>, rings: &mut Vec<(usize, Ring)>| {
+                let n = layer.len();
+                if (5..=16).contains(&n) {
+                    let r = layer.iter().map(|x| x.1).sum::<f32>() / n as f32;
+                    let mut ang: Vec<f32> = layer.iter().map(|(q, _)| (q[1] - c[1]).atan2(q[0] - c[0])).collect();
+                    ang.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                    let step = std::f32::consts::TAU / n as f32;
+                    let even = (0..n).all(|i| {
+                        let g = if i + 1 < n { ang[i + 1] - ang[i] } else { ang[0] + std::f32::consts::TAU - ang[n - 1] };
+                        (g - step).abs() < 0.25 * step
+                    });
+                    if r > 1e-4 && even && layer.iter().all(|x| (x.1 - r).abs() < 0.08 * r) {
+                        rings.push((n, Ring { t: 0.0, c, r, phase: ang[0] }));
+                    }
+                }
+                layer.clear();
+            };
+            for d in ds {
+                if d.1 < 1e-4 {
+                    continue; // a centre vertex
+                }
+                if let Some(last) = layer.last() {
+                    if d.1 > last.1 * 1.15 {
+                        flush(&mut layer, &mut rings);
+                    }
+                }
+                layer.push(d);
+            }
+            flush(&mut layer, &mut rings);
+            for r in rings[before..].iter_mut() {
+                r.1.t = t;
+            }
+        }
+        // Join coaxial rings with the same side count into lofts (centres within 15 % of the radius).
+        let mut used = vec![false; rings.len()];
+        for i in 0..rings.len() {
+            if used[i] {
+                continue;
+            }
+            let (n, r0) = rings[i];
+            let mut members = vec![r0];
+            used[i] = true;
+            for j in i + 1..rings.len() {
+                let (m, r1) = rings[j];
+                let dc = ((r1.c[0] - r0.c[0]).powi(2) + (r1.c[1] - r0.c[1]).powi(2)).sqrt();
+                if !used[j] && m == n && dc < 0.15 * r0.r.max(r1.r) && (r1.t - r0.t).abs() > tol {
+                    members.push(r1);
+                    used[j] = true;
+                }
+            }
+            if members.len() >= 2 {
+                members.sort_by(|a, b| a.t.partial_cmp(&b.t).unwrap());
+                lofts.push(Loft { k, n, rings: members });
+            }
+        }
+    }
+    lofts
+}
+
+/// Moves every point on a loft's surface (between its end rings, within its polygonal cross-section) out to the
+/// circle through the polygon's corners: cross-sections become round. A pure function of position, so coincident
+/// vertices of neighbouring triangles move together (no cracks); corners and points outside (fins) stay put.
+fn round_caps(tris: &mut [Tri], lofts: &[Loft]) {
+    use std::f32::consts::PI;
+    for t in tris.iter_mut() {
+        for p in t.p.iter_mut() {
+            let mut best: Option<(f32, V3)> = None;
+            for l in lofts {
+                let tk = p[l.k];
+                let (first, last) = (l.rings[0], l.rings[l.rings.len() - 1]);
+                if tk < first.t - 1e-4 || tk > last.t + 1e-4 {
+                    continue;
+                }
+                let i = l.rings.windows(2).position(|w| tk <= w[1].t + 1e-4).unwrap_or(0);
+                let (a, b) = (l.rings[i], l.rings[(i + 1).min(l.rings.len() - 1)]);
+                let f = if (b.t - a.t).abs() > 1e-6 { ((tk - a.t) / (b.t - a.t)).clamp(0.0, 1.0) } else { 0.0 };
+                let c = [a.c[0] + (b.c[0] - a.c[0]) * f, a.c[1] + (b.c[1] - a.c[1]) * f];
+                let r = a.r + (b.r - a.r) * f;
+                let q = plane(*p, l.k);
+                let (dx, dy) = (q[0] - c[0], q[1] - c[1]);
+                let dist = (dx * dx + dy * dy).sqrt();
+                if dist < 1e-6 {
+                    continue;
+                }
+                let half = PI / l.n as f32;
+                let phi = dy.atan2(dx) - a.phase;
+                let ang = phi.rem_euclid(2.0 * half) - half;
+                let rp = r * half.cos() / ang.cos();
+                if dist > 1.03 * rp {
+                    continue; // outside the body (fins, struts' brackets)
+                }
+                let s = r / rp;
+                let nq = [c[0] + dx * s, c[1] + dy * s];
+                let mut np = *p;
+                match l.k {
+                    0 => { np[1] = nq[0]; np[2] = nq[1]; }
+                    1 => { np[2] = nq[0]; np[0] = nq[1]; }
+                    _ => { np[0] = nq[0]; np[1] = nq[1]; }
+                }
+                // Several lofts may contain the point (concentric layers): the one whose surface it is nearest.
+                let err = (dist - rp).abs() / rp;
+                if best.is_none_or(|b| err < b.0) {
+                    best = Some((err, np));
+                }
+            }
+            if let Some((_, np)) = best {
+                *p = np;
+            }
+        }
+    }
 }
