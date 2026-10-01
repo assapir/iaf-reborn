@@ -17,8 +17,24 @@ original's (docs/weapons.md).
 | PYTH-4 | 120 (340 → 154.2) | Mach 3.5 | 15 km | [3] |
 | SHFR 2 | 93 (209 → 94.8) | Mach 2.1 | 5 km | [3], [4] |
 
-Not changed (no public figure found): seeker gimbal / lock range (the generation table of `FUN_00462460`), g limit,
-warhead power / radius (game damage units), drag index.
+Seeker and turn (where sourced):
+| bdb name | seeker | turn limit | sources |
+|---|---|---|---|
+| AIM-9D | rear-aspect | 12 g | [1] |
+| SHFR 2 | rear-aspect | – | [3] |
+| PYTH-3 | off-boresight 30° | – | [12] |
+| PYTH-4 | off-boresight 60° | – | [13] |
+
+Not changed (no public figure found): lock range (the generation table of `FUN_00462460`), the other missiles' cones
+and g limits, warhead power / radius (game damage units), drag index.
+
+### 1.3 Radar
+| jet | radar | detection range | sources |
+|---|---|---|---|
+| F-16 (Barak) | AN/APG-68 | 80 km (43.1 NM, LRS / STT) | [14] |
+The other jets keep the original table (docs/radar.md §1): no public range found for the F-15's APG-63 or the
+F-4E's APQ-120; the Kfir C7's EL/M-2001B ranging radar and the Mirage IIICJ's Cyrano I bis have none published; the
+Kurnass 2000's radar (APG-76 / EL/M-2032) and the Lavi's EL/M-2035 have no consistent sourced figure.
 
 ### 1.2 Guns
 | gun (bdb) | rate | muzzle velocity | rounds per jet | sources |
@@ -36,17 +52,24 @@ the original gun and count.
   0.08 → 1250 m/s).
 - **Range**: the flight ends burn + 6 s after launch; Real sets burn = range / top speed − 6 (≥ 1 s): AIM-9L 35.6 s
   (orig. 16), Python 3 / 4 6.6 s, Shafrir 2 1 s (flight 7 s).
+- **Rear-aspect** (ours: the original has no aspect test): the seeker's can-track also needs the target's velocity
+  to point away from the launcher (v · line of sight > 0), so a head-on or a stationary target gives no tone.
+- **Seeker cone**: replaces the per-generation cone, the half-angle used when the seeker is slaved to a radar lock
+  (docs/radar.md §6). The 6° unslaved view is not changed.
+- **Turn limit**: each 0.1 s chase update clamps the acceleration across the velocity to g · 9.80665 m/s².
+- **Radar**: the LRS (and so STT) detection NM = km · 1000 / 1854.
 - **Guns**: the station holds the real rounds and shows them 1:1 (orig. ×4 / ×2); the 0.2 s shot tick uses
   rate · 0.2 s rounds (M61A1 20, two DEFA 8.67); the round's `_velocityJump` / `_limitVel` = the muzzle velocity.
 
 ## 3. Validation
 `tests/godot/test_weapons.gd`: AIM-9L 86 kg, F-16 511 rounds shown, one M61A1 tick = 20 rounds, and the derived
 chase values (stored in the record's `motion`): AIM-9L top speed a/β = 851 m/s = Mach 2.5, flight time (burn + 6 s) ×
-top speed = 35.4 km.
+top speed = 35.4 km; the AIM-9D / Python 4 flags, the AIM-9D seeker refusing a head-on target (the AIM-9L
+accepting it) and its 12 g clamp. `tests/godot/test_radar.gd`: the F-16's 80 km.
 
 ## Sources
 1. designation-systems.net, "Raytheon AIM-9 Sidewinder", https://www.designation-systems.net/dusrm/m-9.html (AIM-9D
-   88 kg, 18 km, Mach 2.5+; AIM-9L / M 86 kg).
+   88 kg, 18 km, Mach 2.5+, rear-aspect, 12 g; AIM-9L / M 86 kg).
 2. Wikipedia, "AIM-9 Sidewinder", https://en.wikipedia.org/wiki/AIM-9_Sidewinder (AIM-9D 88.5 kg; AIM-9L / M 86 kg,
    Mach 2.5+, range 1.0–35.4 km).
 3. Wikipedia, "Python (missile)", https://en.wikipedia.org/wiki/Python_(missile) (Shafrir 2 93 kg, Mach 2.1, 5 km;
@@ -62,3 +85,7 @@ top speed = 35.4 km.
    125–135 rounds per gun).
 10. Wikipedia, "IAI Kfir" (C.7: 2 × DEFA 553 with 140 rounds per gun), https://en.wikipedia.org/wiki/IAI_Kfir.
 11. Wikipedia, "IAI Lavi" (1 × 30 mm DEFA), https://en.wikipedia.org/wiki/IAI_Lavi.
+12. Hebrew Wikipedia, Python 3 article (up to 30° off the firing line).
+13. Air Power Australia, "Fourth Generation AAMs", https://www.ausairpower.net/TE-Gen-4-AAM-97.html (Python 4 > 60°
+    off-boresight).
+14. Wikipedia, "AN/APG-68", https://en.wikipedia.org/wiki/AN/APG-68 (80 km maximum detection).

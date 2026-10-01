@@ -41,6 +41,8 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 | AI landing pattern height | terrain height at the lineup point | the lineup point's iaf.ibx altitude | the loop runs without terrain access (they agree to a few m) | ai.md §8.3 |
 | AI FM data per type | Kfir and Mirage share one parameter block, loaded once: the second type flies on the first's data | each jet loads its own section | original bug; **to decide with the user** | ai.md UNCERTAIN |
 | AI radio (FlightController reports, contact calls, "Roger" replies of wingman commands) | spoken | not yet | AI voices wait for the radio work | ai.md §10 |
+| Flare look | the decoy's bdb model is 0 (no picture found) | a small bright glow quad for a flare; chaff draws nothing | the original's look is UNCERTAIN | player_weapons.gd `_decoy_visual`, weapons.md §10 |
+| Radar line of sight | `FUN_004020d0` (sampling not traced) | terrain sampled every 100 m along the segment | UNCERTAIN original sampling | radar.gd, radar.md §8 |
 | Keys Esc / C / F2 / F12 | TSD toggle / time compression / back view / I-mode | ours (quit box / view toggle / external / info line) until those commands exist | not built yet | controls.md |
 
 ## 2. Opt-in switches (original by default)
@@ -49,7 +51,8 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 - **Preferences → Physics → "Stores weight fix"**: every store counted in the stores weight, in kg, and the fuel
   tanks' fuel in kg (the original: one store per station, pounds in the kg field, tank fuel = the pounds number as
   kg) — weapons.md §2.5–2.6.
-- **Preferences → Extras → Weapon data (Original / Real)**: public missile weights, top speed, range and gun rounds /
+- **Preferences → Extras → Weapon data (Original / Real)**: public missile weights, top speed, range, rear-aspect
+  seekers (ours: a target-moving-away test), seeker cones, the AIM-9D's 12 g, the F-16's APG-68 range and gun rounds /
   rate / muzzle velocity — real-weapons.md.
 - **Preferences → Extras**: Flight data (Original / Real aircraft), HUD pitch ladder (conformal), flight info line,
   blackbox, language, "All keys on the Keyboard page" (the original lists 92 of the 117 key records; the option lists

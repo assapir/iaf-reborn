@@ -85,6 +85,7 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 | Physics switches | 12 "Better physics" options (incl. F-16 deep stall, ground effect) + 3 original-bug fixes (falling-jet heading, enemies tougher on easy AI, stores weight / tank fuel) |
 | AI flight | docs/ai.md: the bdb brains (rule engine, conditions, sub-brains, combat ops 21 / 22) and the original's autopilot control loops fly every brain-controlled jet through the same flight model (all AI types, Original / Real data, the FM's AI rules): routes with timed waypoints, close / tactical formation, take-off from the hangar (taxi, pivot turns, rotation), go home and land (left-hand pattern, 6° final, roll-out, taxi to a hangar, engine off), hold, straight; the player's wingman follows the player; `ai.contacts()` for radar / RWR |
 | Player weapons | gun (0.2 s timer, analytic rounds, 25 / 50 m hit sphere, candidate list, muzzle flash, sounds, LCOS / strafe pippers), IR seeker + missiles (per-generation lock, tones, q, dog / proportional chase), stores on the pylons, selection / master / HUD modes, release, weight / drag, external fuel tanks + jettison, HUD weapon line / missile circle / seeker diamond, stores MFD page; Extras "Weapon data: Real" (docs/weapons.md, docs/real-weapons.md) |
+| Radar | docs/radar.md: the player's radar (OFF / STBY / STT / BORE / LRS / TWS / ACM / GMT / MAP, per-jet tables, 2 s scan, 60° cone, terrain line of sight, 15 contacts, lock keys, STT track + auto-range), MFD B-scope / PPI symbols, HUD target box and "R" range, slaves the IR seeker, feeds the gun / LCOS range; chaff / flares (keys, counters, decoy flight); Real: F-16 APG-68 range, missile rear-aspect / cone / g |
 | Arming screen | original screen 0x1f (docs/front-end.md §15): jet front views + stations, weapon list AA / AG / Misc, drag and drop with the per-station allowed counts, right-click, DEFAULT, CURRENT LOAD / MAX T.O.W., the original's blocking checks (overweight, wing balance) and "Use weapon load?"; the load goes on the player's pylons (stores, weight / drag). Coverage: of the 9 missions whose default load cannot kill the targets (116, 122, 136, 212, 214, 215, 216, 227, 237), 8 now need a player weapon instead of the AI (bombs for 215 / 227 / 237, bombs / rockets / guided for the rest; 136 has none loadable); none becomes playable before the bombs |
 | Real aircraft data | Real set for all 6 flyable jets (F-16, F-15C, F-4E / Kurnass 2000, Kfir C7, Lavi, Mirage IIICJ): weights, thrust, drag, roll, fuel, stall, pedal steering (docs/real-aircraft.md); the flight data loader reads the v1.1 files (`bdgen.dat`, `*gen.skp`, XOR-encoded); AI types: reference table only |
 | Damage | original damage model: hits, blast formula, destruction, falling jets, explosions / smoke, the player's systems damage, collisions |
@@ -93,15 +94,15 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 | Aircraft models | all 22 models: moving parts per the original rules, gear, afterburner flame, canopy / pilot, damage visuals |
 | Sounds | original sound table: engine, gear, flaps, air brake, AoA tone, Betty warnings, touchdown, crash; volume sliders |
 | Terrain | all of `map.ptt` (levels 11..6 + all 51 insets, 2342 nodes) as a streamed quadtree with distance LOD to 200 km, level-6 heights with the original's inset interpolation, skirts; runway digits surveyed on every airbase (2 mirrored fixed); `terraintype.dat` surface types (water / rough / runway) feed the flight model; loaded behind the wait screen (docs/formats/ptt.md) |
-| Tests | `tools/test.sh`: Rust + 26 headless Godot tests, isolated from the player's settings; fails on any script error |
+| Tests | `tools/test.sh`: Rust + 29 headless Godot tests, isolated from the player's settings; fails on any script error |
 
 ## Open gaps (by area)
 - **Terrain**: map-edge push-back / EndWorld and craters (terraintype bits known, systems missing); no elevation
   west of Suez in the original data (flat −557 m, kept).
 - **Flight**: only the F-16; systems damage doesn't affect flying yet; no hook, map-edge push-back.
-- **Combat**: player gun + IR missiles only (no bombs, rockets, radar missiles / lock, chaff / flares, TV / laser,
+- **Combat**: player gun, IR missiles, radar lock, chaff / flares (no bombs, rockets, radar missiles, TV / laser,
   HARM); no AI combat (AI jets fly, don't fight), no AAA / SAMs (so no combat mission can be won yet).
-- **Cockpit / MFDs**: radar contacts and lock, radar map, RWR threats, FLIR / TV / HARM pages, NAV distances; AI / SAM / ECM /
+- **Cockpit / MFDs**: radar MAP picture, ECM, RWR threats, FLIR / TV / HARM pages, NAV distances; AI / SAM / ECM /
   autopilot lights have no systems; night lighting.
 - **Controls**: no joystick; not built: views other than cockpit / chase, autopilot, time compression, pause
   (Ctrl+P) and the in-flight menu (Ctrl+O), in-flight TSD.
