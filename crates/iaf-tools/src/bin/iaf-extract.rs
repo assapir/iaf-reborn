@@ -83,6 +83,10 @@ fn main() -> Result<()> {
                 let name = e.path.rsplit('/').next().unwrap();
                 copy_from_iso(&mut iso, &e.path, &dest_path(out, dest_dir, name))?;
             }
+        } else if iso.find(src).is_none() {
+            // The Hebrew CD's script names Previews/Previewes.gid, which the disc does not have.
+            println!("cd: {src} listed by the install script but not on the CD, skipped");
+            continue;
         } else {
             copy_from_iso(&mut iso, src, &dest_path(out, dest_dir, pattern))?;
         }

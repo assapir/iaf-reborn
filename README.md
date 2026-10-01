@@ -51,7 +51,7 @@ See [docs/macos.md](docs/macos.md).
 ## Quick start
 
 ```sh
-tools/setup.sh [--patch /path/to/v1.1-patch.exe] "/path/to/Jane's IAF.iso" [/path/to/Brief.zip /path/to/Menu.zip]
+tools/setup.sh [--patch /path/to/v1.1-patch.exe] [--hebrew-iso /path/to/IAF.Iso] "/path/to/Jane's IAF.iso" [/path/to/Brief.zip /path/to/Menu.zip]
 ./iafjets                                                          # builds what changed and starts the game (front end → Training → mission)
 # setup also installs a desktop launcher, "Jane's IAF (reborn)", with the original icon
 ```
@@ -61,7 +61,7 @@ missions, aircraft, objects → terrain (all of map.ptt, ~730 MB) → Godot exte
 `IAF_PATCH` environment variable) takes the downloaded v1.1 update, `iafp1_1.exe` or a bare patch file; the patched
 files replace the v1.0 ones in `assets/install` (the originals are kept in `assets/v1.0`, the patch output in
 `assets/v1.1`) before anything is converted. Without it setup builds everything from the v1.0 files. The Hebrew packs
-(optional, docs/packs.md) go on top of the patched English files. Conversion is a one-time step; re-run after updating the
+(optional, docs/packs.md) go on top of the patched English files; `--hebrew-iso` adds the Hebrew CD's startup splash and Graphics page. Conversion is a one-time step; re-run after updating the
 converters. Other entry points: `godot --path game res://terrain/terrain_view.tscn` (straight into the air),
 `godot --path game res://viewer/viewer.tscn` (model viewer with hot reload).
 

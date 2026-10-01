@@ -4,3 +4,4 @@
 *.esa
 *.PTT
 .godot/
+/game/override.cfg

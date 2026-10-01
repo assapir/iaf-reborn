@@ -996,10 +996,11 @@ func _art(text: String) -> String:
 	return _t(text) if _he() else text.to_upper()
 
 
-## A row separator across our pages at page height `y`.
+## A row separator across our pages at page height `y`: opaque and one page pixel thick, so it covers
+## the background's grid lines and every rule looks the same whether or not it falls on one.
 func _draw_rule(y: float) -> void:
 	var at := CONTENT.position
-	draw_line(_to_screen(at + Vector2(18, y)), _to_screen(at + Vector2(CONTENT.size.x - 18, y)), Color(LIST_TITLE, 0.55), maxf(1.0, _scale() * 0.5))
+	draw_line(_to_screen(at + Vector2(18, y)), _to_screen(at + Vector2(CONTENT.size.x - 18, y)), LIST_TITLE.darkened(0.55), maxf(1.0, _scale()))
 
 
 ## An option of our pages (page rect `r`): the LED with its frame from the Gameplay page's NO WIND

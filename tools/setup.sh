@@ -1,25 +1,29 @@
 #!/usr/bin/env bash
 # One-shot setup: build everything the game needs from your own copy of Jane's IAF.
 #
-#   tools/setup.sh [--patch /path/to/v1.1-patch.exe] "/path/to/Jane's IAF.iso" [Brief.zip] [Menu.zip]
+#   tools/setup.sh [--patch /path/to/v1.1-patch.exe] [--hebrew-iso IAF.Iso] "/path/to/Jane's IAF.iso" [Brief.zip] [Menu.zip]
 #
 # --patch (or the IAF_PATCH environment variable) is the official v1.1 update: the downloaded
 # WinZip self-extractor, iafp1_1.exe or a bare patch file (docs/formats/rtpatch.md). It is applied to
 # the extracted install before anything is converted, so every later step reads v1.1 data; without
 # it the install stays v1.0, which the engine also plays (docs/v1.1.md "v1.0 data compatibility").
 # Brief.zip / Menu.zip are the optional Hebrew briefings and menus packs (see docs/packs.md); they
-# overlay the (patched) English files.
+# overlay the (patched) English files. --hebrew-iso (or IAF_HEBREW_ISO) is the Hebrew retail CD (v1.0): the
+# three Hebrew images the packs lack (the startup splash and the Graphics page) are taken from it.
 # Safe to re-run: each step overwrites its own output under assets/.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-usage='usage: tools/setup.sh [--patch <v1.1 patch>] "/path/to/Jane'"'"'s IAF.iso" [Brief.zip] [Menu.zip]'
+usage='usage: tools/setup.sh [--patch <v1.1 patch>] [--hebrew-iso <Hebrew CD>] "/path/to/Jane'"'"'s IAF.iso" [Brief.zip] [Menu.zip]'
 patch=${IAF_PATCH:-}
+hebrew_iso=${IAF_HEBREW_ISO:-}
 args=()
 while (($#)); do
 	case $1 in
 		--patch) patch=${2:?$usage}; shift 2 ;;
 		--patch=*) patch=${1#--patch=}; shift ;;
+		--hebrew-iso) hebrew_iso=${2:?$usage}; shift 2 ;;
+		--hebrew-iso=*) hebrew_iso=${1#--hebrew-iso=}; shift ;;
 		-h|--help) echo "$usage"; exit 0 ;;
 		*) args+=("$1"); shift ;;
 	esac
@@ -74,6 +78,20 @@ for pack in "$hebrew_zip" "$hebrew_menu_zip"; do
 	step "Hebrew pack $(basename "$pack")"
 	./target/release/iaf-import-pack "$pack" he assets/install assets/packs
 done
+
+if [[ -n $hebrew_iso ]]; then
+	# Every other Hebrew file on the CD is already in Brief.zip / Menu.zip; these three the Hebrew v1.1 patch
+	# turned back into the English ones. The Graphics page lacks v1.1's 32MB / 48MB slider labels.
+	step "Hebrew CD: startup splash and Graphics page"
+	rm -rf assets/hebrew-cd assets/hebrew-cd-pick
+	./target/release/iaf-extract "$hebrew_iso" assets/hebrew-cd >/dev/null
+	for f in bmp/back0.bmp bmp/pref/graph_0.bmp bmp/pref/graph_1.bmp; do
+		mkdir -p "assets/hebrew-cd-pick/menu/$(dirname "$f")"
+		cp "assets/hebrew-cd/resource/menu/$f" "assets/hebrew-cd-pick/menu/$f"
+	done
+	./target/release/iaf-import-pack assets/hebrew-cd-pick he assets/install assets/packs
+	rm -rf assets/hebrew-cd assets/hebrew-cd-pick
+fi
 
 step "briefings (English + Hebrew pack when imported)"
 ./target/release/iaf-convert --upscale briefings assets/install assets/packs assets/converted/briefings

@@ -42,3 +42,13 @@ language is Hebrew.
 
 ## In-flight subtitles
 The instructor / radio subtitles come from the object database (`default6_1.bdb` Audio records) and exist only in English; the Hebrew packs translate menus and briefings only. Decided (user): keep the original English subtitles in Hebrew mode.
+
+### `he` — Hebrew retail CD (Hed Arzi, v1.0, copy-protected)
+`tools/setup.sh --hebrew-iso IAF.Iso` (archive.org item `iaf_20230527`, `IAF.Iso`). The CD's 591 translated files are
+byte-identical to `Brief.zip` + `Menu.zip`; what only the CD has is `menu/bmp/back0.bmp` (the startup splash,
+"איתחול...") and the Graphics page `menu/bmp/pref/graph_0/1.bmp`. The official Hebrew v1.1 patch (`IAFheb1_1.EXE`)
+replaces those three with the English v1.1 ones, so setup takes them from the CD into the `he` pack. The Graphics
+page is v1.0 art: it lacks v1.1's 32MB / 48MB labels under the terrain slider. In Hebrew the boot splash is the
+Hebrew one (`game/override.cfg`, written by `settings.gd`). The CD's `iafjets.exe` is the protected build; nothing
+is taken from it, and `IAFheb1_1.EXE` does not apply to it (it wants the 2,623,488-byte exe of preflight.us's
+`IAF_Hebrew_Fix.zip`, now offline).

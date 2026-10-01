@@ -154,6 +154,7 @@ func _ready() -> void:
 	if language == "he" and not hebrew_available():
 		language = "en"
 	apply_display()
+	_update_splash()
 	# The original icon (setup: iaf-convert icon) for compositors / desktops that take the window icon.
 	var icon := assets_dir().path_join("converted/icon.png")
 	if FileAccess.file_exists(icon):
@@ -161,6 +162,22 @@ func _ready() -> void:
 
 
 var _applied_fullscreen := false
+
+
+## The boot splash (project.godot: the English back0) follows the language: Godot reads override.cfg
+## next to project.godot before drawing it, so in Hebrew it points at the Hebrew CD's back0 (setup
+## --hebrew-iso; the Hebrew v1.1 patch itself put the English one back, docs/packs.md).
+func _update_splash() -> void:
+	if isolated():
+		return
+	var path := ProjectSettings.globalize_path("res://override.cfg")
+	var he_splash := "res://../assets/converted/menu_he/img/back0.png"
+	if language == "he" and FileAccess.file_exists(ProjectSettings.globalize_path(he_splash)):
+		var cfg := ConfigFile.new()
+		cfg.set_value("application", "boot_splash/image", he_splash)
+		cfg.save(path)
+	elif FileAccess.file_exists(path):
+		DirAccess.remove_absolute(path)
 
 
 ## Display settings that act at once (VSync, full screen).
@@ -183,6 +200,7 @@ func save() -> void:
 	apply_display()
 	if isolated():
 		return
+	_update_splash()
 	var cfg := ConfigFile.new()
 	for section in PREFS:
 		for key in PREFS[section]:

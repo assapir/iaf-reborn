@@ -12,6 +12,8 @@ Source: `assets/ghidra_v11/iafjets.c`, plus `objdump` of `v1.1/iafjets.exe` for 
 
 * The menu is a GDI/MFC window, **640×480**, centred on the desktop (`FUN_004e8d70`). `bmp/back.bmp`
   is the full-screen frame. `bmp/back0.bmp` is the startup splash, drawn once in `FUN_004e2960`.
+  Ours: it is Godot's boot splash (`project.godot`); in Hebrew `settings.gd` writes `game/override.cfg` pointing at
+  the Hebrew CD's splash (setup `--hebrew-iso`, docs/packs.md).
 * The **content area** is a child window at **(155,42), size 453×357** (`FUN_004e8d70`:
   `0x9b,0x2a,0x1c5,0x165`). Each screen's header in `dat/<screen>.trx` repeats this as
   `155 42 608 399`.
@@ -1118,7 +1120,8 @@ So the Hebrew pages use the same rects as §12.3–§12.6.
     filled in per row by blending the pixels on either side, then "EXTRAS" / "תוספות" is drawn in
     Arial bold.
   * **Page:** `screens/sgeneral` background, rows 35 px apart on the Gameplay page's grid, and LEDs
-    copied from `gamep_0/_1`. Mirrored in Hebrew.
+    copied from `gamep_0/_1`. Mirrored in Hebrew. Row rules are opaque and one page pixel thick, so the ones that
+    fall on the background's grid lines look like the rest.
   * **Options:** Flight data (Original 1998 / Real F-16), Language (English / Hebrew; Hebrew only when
     the pack is installed), Better physics, Flight info (F12) show/hide, Blackbox, Window (framed / full screen).
   * **Behaviour:** the options go through the same working copy and "Save changes?" box. A language
