@@ -35,9 +35,6 @@ anti-radiation, laser guidance with the FLIR), night.
 sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, modern aircraft / weapons, Pi 5 profile.
 
 ## Small bugs (fix between jobs)
-- Mission 315 "Cold Steel": the player's jet is destroyed at the spawn together with "schacha3" (role survive: the
-  shelter it starts in?) — the mission fails at once; a bomb on "runway ccip2" also destroys the "Start motion
-  sensor" (role survive) next to it (whether sensors take blast damage in the original is UNCERTAIN).
 - Stores look detached: no pylon models drawn (stores float under the wing), triple-rack side bombs touch the wing
   (original formula). (The flat white fins seen from behind are gone since the Present scale / smoothing work.)
 
