@@ -37,11 +37,24 @@ var throttle := 0.74
 var flaps := 0.0
 var gear_down := false
 var brakes := false
-var in_cockpit := true
+## The cameras (game/terrain/views.gd, docs/views.md §4). `in_cockpit`: a cockpit-like view (cockpit, HUD
+## only, free look, padlock, snaps); setting it picks the cockpit (F1's choice) or the chase view (F10).
+const Views := preload("res://terrain/views.gd")
+var views: RefCounted = Views.new()
+var in_cockpit: bool:
+	get:
+		return views.cockpit_like()
+	set(v):
+		if v:
+			views.set_cockpit(Views.HUD_ONLY if views.hud_pref else Views.COCKPIT)
+		elif rig != null:
+			views.snap = null
+			views.set_orbit(rig, CHASE_OFFS, 1.0, Views.CHASE, true)
 var aircraft: Node3D
-var orbit_yaw := PI  # external camera, relative to the aircraft heading (PI = behind)
-var orbit_pitch := -0.15
-var orbit_dist := 35.0
+## FUN_0057f2a0 case 6 / 0x13 (F10 chase, F9 fly-by): {300, 700, 300, pitch 10°, ·, heading 2°}, scale 1.
+const CHASE_OFFS := [300.0, 700.0, 300.0, 0.1745329, 0.0, 0.0349066]
+## The padlock target kept for F3 (ctl+0x804).
+var padlock_target: Node3D
 ## Hold the simulation until the terrain under the aircraft has loaded (terrain.ground_ready()),
 ## showing the loading screen.
 var waiting_for_ground := true
@@ -95,6 +108,9 @@ const EJECT_STEP := Vector3(0, 3.0, 0)
 const EJECT_TOP := 100.0
 const EJECT_SEAT_DELAY := 2.0
 const EJECT_RADIO := 4.5
+## ParachuterFlyBy (0x661354): the fly-by moves to the parachuter.
+const EJECT_CHUTE_VIEW := 5.0
+var _chute_view_done := false
 const EJECT_STICK := Vector2(0.1, -0.2)
 ## Short ejection: AGL < 50 m, or < 200 m while |roll| > 90° (UNCERTAIN: attitude angle 1 = roll).
 const EJECT_LOW := 50.0
@@ -181,16 +197,12 @@ func _ready() -> void:
 	# The ground the front end preloaded around the start (briefing / TSD time).
 	preload("res://terrain/terrain_preload.gd").hand_over(terrain)
 	if args.has("--external"):
-		in_cockpit = false
+		_start_external = true
 	var st_arg := args.find("--stick")
 	if st_arg >= 0:
 		scripted_stick = Vector2(float(args[st_arg + 1]), float(args[st_arg + 2]))
 	# Test poses: --orbit yaw pitch dist (degrees, metres), --rudder r, --gear, --flaps, --brakes.
-	var orb := args.find("--orbit")
-	if orb >= 0:
-		orbit_yaw = deg_to_rad(float(args[orb + 1]))
-		orbit_pitch = deg_to_rad(float(args[orb + 2]))
-		orbit_dist = float(args[orb + 3])
+	_orbit_arg = args.find("--orbit")
 	var rud := args.find("--rudder")
 	if rud >= 0:
 		scripted_rudder = float(args[rud + 1])
@@ -233,6 +245,7 @@ func _ready() -> void:
 	_start_flight()
 	_apply_view()
 	_spawn_f16()
+	_setup_views(args)
 	_setup_weapons()
 	if flight != null and aircraft != null:
 		# The model's `height` helper: how far the wheels reach below the aircraft origin.
@@ -246,6 +259,28 @@ func _ready() -> void:
 		var step := args.find("--orbit-step")
 		_screenshot(args[shot + 1], int(args[n + 1]) if n >= 0 else 1,
 				deg_to_rad(float(args[step + 1])) if step >= 0 else 0.0)
+
+
+var _start_external := false
+var _orbit_arg := -1
+
+
+## The cameras start in the cockpit (`--external`: chase; `--orbit yaw pitch dist`: the chase camera's orbit
+## heading (ours: 180 = behind) / pitch (ours: negative = above) / distance for test poses).
+func _setup_views(args: PackedStringArray) -> void:
+	views.player = rig
+	views.ground_at = func(p: Vector3): return terrain.height_at(p)
+	chase.keep_aspect = Camera3D.KEEP_HEIGHT
+	# One 50° horizontal field across the original 640×480 for every view (docs/views.md §4): the
+	# cockpit's 686.2 px focal length over 480 rows.
+	chase.fov = rad_to_deg(2.0 * atan(240.0 / (320.0 / tan(deg_to_rad(25.0)))))
+	if _start_external or _orbit_arg >= 0:
+		in_cockpit = false
+	if _orbit_arg >= 0:
+		views.orbit_heading = deg_to_rad(float(args[_orbit_arg + 1])) - PI
+		views.orbit_pitch = -deg_to_rad(float(args[_orbit_arg + 2]))
+		views.dist = float(args[_orbit_arg + 3])
+		views.dmin = minf(views.dmin, views.dist)
 
 
 ## The player's stores and weapons: the mission entity's loadout, else (free flight) the F-16's
@@ -286,7 +321,7 @@ func _screenshot(path: String, shots := 1, orbit_step := 0.0) -> void:
 	print("average %.1f fps over 120 frames" % (1000.0 * (Engine.get_frames_drawn() - f0) / (Time.get_ticks_msec() - m0)))
 	if shots > 1:
 		for i in shots:
-			orbit_yaw += orbit_step
+			views.orbit_heading += orbit_step
 			await RenderingServer.frame_post_draw
 			get_viewport().get_texture().get_image().save_png(path.get_basename() + "_%02d.png" % i)
 		get_tree().quit()
@@ -612,7 +647,9 @@ func _player_fatally_hit() -> void:
 	fatal_hit = true
 	fm_stopped = true
 	sounds.play_eject()
-	in_cockpit = false
+	# FUN_0057f2a0(0x10, player): circle the jet, r 600 m, +600 m (not when following the parachuter).
+	if not (ejected and views.target == _chute and _chute != null):
+		views.set_circle(rig, 600.0, Views.CIRCLE)
 
 
 ## The final status (FUN_004a86b0): the explosion of the unit's class at its position (FUN_0059df20)
@@ -631,6 +668,11 @@ func _entity_final(ent: Dictionary) -> void:
 				p.top_level = true
 				p.global_position = pos
 	effects.set_smoke(rig if ent.player else ent.node, false)
+	# Event 0x4d: the external view following this object circles its wreck, then the cockpit (6 s).
+	if not ent.player and ent.node != null and views.snap == null and views.type in [Views.CHASE, Views.FOLLOW] \
+			and views.target == ent.node:
+		views._circle_centre = ent.node.global_position
+		_followed_destroyed()
 	if ent.player:
 		_player_final()
 	elif ent.node != null:
@@ -647,8 +689,9 @@ func _entity_final(ent: Dictionary) -> void:
 ## later (rule 1, event 0x82).
 func _player_final() -> void:
 	fm_stopped = true
-	in_cockpit = false
 	jet_gone = true
+	if views.cockpit_like():
+		views.set_circle(rig, 600.0, Views.CIRCLE)
 
 
 ## createBurnedCopy (FUN_0041f980): each vertex, with probability `p`, moves by
@@ -976,32 +1019,56 @@ func _keep_above_ground() -> void:
 
 
 func _apply_view() -> void:
-	cockpit.visible = in_cockpit
+	var dt := get_process_delta_time()
+	var inside: bool = views.cockpit_like()
+	var pose: Array = [] if inside else views.external_pose(dt)
+	if not inside and pose.is_empty():
+		# The followed object is gone (destroyed, a missile burst): events 0x4d / 0x4e circle its last
+		# position (type 0x15, +600 m) and go back to the cockpit 6 s later.
+		_followed_destroyed()
+		pose = views.external_pose(dt)
+	cockpit.view_mode = 0 if views.cockpit_drawn() else (1 if views.hud_only() else 2)
+	cockpit.head = views.head_angles() if views.cockpit_drawn() else Vector2.ZERO
+	cockpit.visible = true
 	if aircraft != null:
-		aircraft.visible = not in_cockpit and not jet_gone
-	camera.current = in_cockpit
-	chase.current = not in_cockpit
+		aircraft.visible = not inside and not jet_gone
+	camera.current = inside
+	chase.current = not inside
 	# The original cockpit projection (docs/cockpit.md "3D view"): its focal length and projection
-	# centre, scaled and placed like the 2D art, the camera 5.5° below the nose.
+	# centre, scaled and placed like the 2D art; the head yaw / pitch with FUN_00585270:
+	# pitch = max(head pitch − 5.5°, 0.1·(|yaw| − 90°)), the jet's roll kept.
 	var f: float = cockpit.focal_length()
 	var dy: float = cockpit.projection_centre().y - cockpit.size.y / 2.0
 	camera.set_frustum(camera.near * cockpit.size.y / f, Vector2(0, dy * camera.near / f), camera.near, camera.far)
-	camera.rotation = Vector3(-deg_to_rad(cockpit.VIEW_LOOK_DOWN_DEG), 0, 0)
+	var h: Vector2 = views.head_angles()
+	var pitch := maxf(h.y - deg_to_rad(cockpit.VIEW_LOOK_DOWN_DEG), 0.1 * (absf(h.x) - PI / 2.0))
+	camera.rotation = Vector3(pitch, -h.x, 0)
+	# Cockpit eye ≥ 1 m above the terrain (0x610e14).
+	var g = terrain.height_at(rig.global_position)
+	camera.position = Vector3.ZERO
+	if g != null and rig.global_position.y < g + 1.0:
+		camera.global_position.y = g + 1.0
 	# A hit shakes the view (FM motion 0xd, amplitude 0..1; our rendering: up to 2° decaying in 0.5 s).
 	if _shake > 0.0:
-		_shake = maxf(_shake - get_process_delta_time() * 2.0, 0.0)
+		_shake = maxf(_shake - dt * 2.0, 0.0)
 		camera.rotation += Vector3(randf_range(-1, 1), randf_range(-1, 1), 0) * deg_to_rad(2.0) * _shake
-	# External: orbit around the jet, relative to its heading, horizon kept level.
-	var fwd := -rig.global_basis.z
-	var heading_yaw := atan2(-fwd.x, -fwd.z)
-	var offset := Vector3(0, 0, orbit_dist).rotated(Vector3.RIGHT, orbit_pitch).rotated(Vector3.UP, heading_yaw + orbit_yaw + PI)
-	var cam := rig.global_position + offset
-	# Keep the external camera above the terrain surface.
-	var ground = terrain.height_at(cam)
-	if ground != null:
-		cam.y = maxf(cam.y, ground + CAMERA_MIN_AGL)
-	chase.global_position = cam
-	chase.look_at(rig.global_position, Vector3.UP)
+	# External views look at their target with roll 0.
+	if not pose.is_empty():
+		chase.global_position = pose[0]
+		if (pose[1] - pose[0]).length() > 0.01:
+			var up := Vector3.UP if absf((pose[1] - pose[0]).normalized().y) < 0.999 else Vector3.FORWARD
+			chase.look_at(pose[1], up)
+
+
+## The followed object of an external view is gone: circle its last position, cockpit after 6 s
+## (FUN_00581390(t, entity, 600) + "Change Camera Mode Event" at now + 6 s; no attacker is known here, so
+## the "attacker within 1000 m" branch never runs).
+func _followed_destroyed() -> void:
+	views.set_circle(null, 600.0, Views.WRECK)
+	var since: float = views.now
+	get_tree().create_timer(6.0, false).timeout.connect(func():
+		if views.type == Views.WRECK and views._circle_t0 == since:
+			views.set_cockpit(Views.HUD_ONLY if views.hud_pref else Views.COCKPIT))
 
 
 ## Gear legs / flaps lamps and the panel indicators the cockpit shows.
@@ -1095,22 +1162,18 @@ func _unhandled_input(event: InputEvent) -> void:
 		var closer: bool = event.button_index == MOUSE_BUTTON_WHEEL_UP
 		if in_cockpit:
 			_zoom_cockpit(0.05 if closer else -0.05)
-		else:
-			orbit_dist = clamp(orbit_dist * (0.9 if closer else 1.1), 12.0, 400.0)
-	elif event is InputEventMouseMotion and looking and not in_cockpit:
-		orbit_yaw -= event.relative.x * 0.005
-		orbit_pitch = clamp(orbit_pitch - event.relative.y * 0.005, -1.4, 1.4)
+		elif views.pos_mode == Views.Pos.ORBIT:
+			# Ours: the wheel steps the orbit distance within the original's limits.
+			views.dist = clampf(views.dist * (0.9 if closer else 1.1), views.dmin, views.dmax)
+	elif event is InputEventMouseMotion and looking and views.pos_mode == Views.Pos.ORBIT:
+		# Ours: RMB drag turns the orbit (heading / pitch, as the pan keys).
+		views.orbit_heading += event.relative.x * 0.005
+		views.orbit_pitch += event.relative.y * 0.005
 	elif event is InputEventKey and not event.pressed:
 		# Release commands of the table (Space up 0x41, Tab up 0x43).
 		var rel: int = keys.find_key(keys.key_of_event(event), Settings.key_bindings)
-		if rel >= 0 and weapons != null:
-			match int(keys.records[rel].release[0]):
-				65:
-					weapons.release_selected()
-				67:
-					weapons.gun_stop()
-				46:
-					weapons.radar_event(0x2e)  # boresight up
+		if rel >= 0:
+			_release_command(keys.records[rel].release)
 	elif event is InputEventKey and event.pressed:
 		if event.echo:
 			# Held PgUp / PgDn keep sliding the panel (our keys); other repeats do nothing.
@@ -1169,18 +1232,21 @@ func _command(cmd: Array) -> bool:
 			brakes = not brakes
 		18:
 			_eject_key()
-		20:
-			_zoom_cockpit(0.05)  # zoom in (the original zooms while held; our step)
-		21:
-			_zoom_cockpit(-0.05)
-		28:
-			# Views: 1 cockpit / HUD, 6 chase (our external orbit view); the others are not built.
-			if p1 == 1:
-				in_cockpit = true
-			elif p1 == 6:
-				in_cockpit = false
+		20, 21:
+			# Zoom (events 0x14 / 0x15, held): the orbit distance ±60 m/s in the external orbit views; in the
+			# cockpit our art zoom, one step per press (the original's z only sets the culling angle).
+			if views.cockpit_like():
+				_zoom_cockpit(0.05 if int(cmd[0]) == 20 else -0.05)
 			else:
-				return false
+				views.pan(int(cmd[0]), true)
+		22:
+			_snap_command(p1, int(cmd[2]))
+		23, 24, 26, 27:
+			views.pan(int(cmd[0]), true)
+		28:
+			_view_command(p1)
+		103:
+			_visual_lock()
 		33, 34, 36, 38, 39, 44, 45, 49:
 			# Radar events (docs/radar.md): the radar page goes on an MFD first if none shows it.
 			cockpit.radar_mfd()
@@ -1244,6 +1310,164 @@ func _quit_key() -> void:
 		_on_mission_box(8, ["yes", "no"])
 	else:
 		get_tree().change_scene_to_file("res://menu/front_end.tscn")
+
+
+# --- views (docs/views.md §4) ----------------------------------------------------------------------
+
+## Event 0x1c "set view" (FUN_004cd630 @4cdb..): only while the player flies the jet (control mode 3) and
+## no snap key is held. A view whose object is missing (no radar target, threat, wingman, weapon) does
+## nothing. DAT_00833704 = the id (not for padlock).
+func _view_command(id: int) -> void:
+	if fatal_hit or ejected or views.snap != null:
+		return
+	var is_new: bool = views.last_id != id
+	match id:
+		1:
+			# F1: cockpit ↔ HUD only; from an external view the last of the two (DAT_0083370c).
+			if views.type == Views.COCKPIT or (not views.type in [Views.COCKPIT, Views.HUD_ONLY] and views.hud_pref):
+				views.set_cockpit(Views.HUD_ONLY)
+				views.hud_pref = true
+			else:
+				views.set_cockpit(Views.COCKPIT)
+				views.hud_pref = false
+		6, Views.FLYBY:
+			views.set_orbit(rig, CHASE_OFFS, 1.0, id, true)
+		9:
+			var t := radar_target()
+			if t != null:
+				_follow_radar_target(t)
+		0x16:
+			var t := radar_target()
+			if t != null:
+				padlock_target = t
+			if is_instance_valid(padlock_target):
+				views.set_padlock(padlock_target)
+		0x17, 0x18:
+			# F5 threat (the RWR's launch / lock record, else its nearest contact: no RWR yet, so none), F6 the
+			# wingman (FUN_005bcb90 / 5bcc20). A new key: the two-object view; again: padlock it; again: back.
+			var o: Node3D = null if id == 0x17 else wingman()
+			if o != null:
+				if is_new or views.type == Views.PADLOCK:
+					views.set_two(rig, o)
+				else:
+					views.set_padlock(o)
+					if id == 0x17:
+						padlock_target = o
+		0x19, 0x1a:
+			var t := radar_target()
+			if t != null:
+				if id == 0x19:
+					views.set_two(rig, t)
+				else:
+					views.set_two(t, rig)
+		0x1b:
+			# F11: the last released weapon still flying (not chaff / flares / gun rounds): fly-by
+			# {300, 700, 300, 10°, ·, 10°}, scale 6, random.
+			var w := last_weapon()
+			if w != null:
+				views.set_orbit(w, [300.0, 700.0, 300.0, 0.1745329, 0.0, 0.1745329], 6.0, Views.FLYBY, true)
+	if id != 0x16:
+		views.last_id = id
+
+
+## FUN_00580f50: the radar-target view: an aircraft {300, 700, 300, 10°, ·, 2°} scale 1, anything else
+## {500, 900, 500, 30°, ·, 120°} scale 3; the swoop without randomness; type 9.
+func _follow_radar_target(t: Node3D) -> void:
+	var ent := _entity_of_node(t)
+	if ent.get("airborne_class", false) or ent.has("pilot"):
+		views.set_orbit(t, CHASE_OFFS, 1.0, Views.FLYBY, false)
+	else:
+		views.set_orbit(t, [500.0, 900.0, 500.0, 0.5235988, 0.0, 2.0943951], 3.0, Views.FLYBY, false)
+
+
+## Event 22: in the external views the Numpad snap keys turn the orbit (p2 8 / 2 pitch, 6 / 4 heading;
+## p2 0 (F2), 1, 3, 7, 9 do nothing there); in the cockpit-like views p1 = the snap angle while held (slot 2),
+## a release (p1 = −1) returns to the view underneath.
+func _snap_command(p1: int, p2: int) -> void:
+	if views.cockpit_like() or views.snap != null:
+		if fatal_hit or ejected:
+			return
+		views.snap_key(p1)
+		return
+	var cmd: int = {8: 26, 2: 27, 6: 23, 4: 24}.get(absi(p2), 0)
+	if cmd != 0:
+		views.pan(cmd, p2 > 0)
+
+
+## The radar's locked target (FUN_004503b0: the A-A lock / TWS selection) as a scene node; null = none.
+func radar_target() -> Node3D:
+	if weapons == null or weapons.radar == null or runtime == null:
+		return null
+	var key := String(weapons.radar.locked().get("key", ""))
+	var ent: Dictionary = runtime.entities.get(key, {})
+	var n = ent.get("node")
+	return n if n is Node3D and is_instance_valid(n) and n.visible else null
+
+
+## The player's wingman (FUN_005bcb90: the next member of the player's formation, FUN_005bcc20: else the
+## leader), alive and not the player.
+func wingman() -> Node3D:
+	if ai == null or runtime == null:
+		return null
+	var me: Dictionary = runtime.player_entity()
+	var f: Dictionary = ai._formation_of(me)
+	if f.is_empty():
+		return null
+	var members: Array = f.members
+	var i := members.find(me)
+	for o in ([members[i + 1]] if i >= 0 and i + 1 < members.size() else []) + [members[0]]:
+		if o != me and not int(o.state) in [4, 5] and o.get("node") is Node3D and is_instance_valid(o.node):
+			return o.node
+	return null
+
+
+## FUN_00450a80: the last released weapon still in flight (our IR missiles; chaff / flares / gun rounds
+## are never it).
+func last_weapon() -> Node3D:
+	if weapons == null:
+		return null
+	for i in range(weapons.missiles.size() - 1, -1, -1):
+		var n = weapons.missiles[i].get_meta("node")
+		if n is Node3D and is_instance_valid(n):
+			return n
+	return null
+
+
+func _entity_of_node(n: Node3D) -> Dictionary:
+	if runtime != null:
+		for ent in runtime.entities.values():
+			if ent.get("node") == n:
+				return ent
+	return {}
+
+
+## Shift+F3 "Visual lock on target close" (event 0x67 → FUN_0045de60): only in the cockpit-like views; the
+## object on screen nearest the screen centre (UNCERTAIN: centre vs boresight) inside the sphere of radius
+## 4635 m (5 NM · 0.5) centred 4635 m ahead of the eye; padlocks it (not stored for F3).
+func _visual_lock() -> void:
+	if not views.cockpit_like() or runtime == null:
+		return
+	const R := 0.5 * 5.0 * 1854.0
+	var eye := camera.global_position
+	var centre := eye - camera.global_basis.z * R
+	var screen := get_viewport().get_visible_rect().size / 2.0
+	var best: Node3D = null
+	var best_d := INF
+	for ent in runtime.entities.values():
+		var n = ent.get("node")
+		if ent.player or not (n is Node3D) or not is_instance_valid(n) or not n.visible or int(ent.state) == 5:
+			continue
+		if n.global_position.distance_to(centre) > R or camera.is_position_behind(n.global_position):
+			continue
+		var sp := camera.unproject_position(n.global_position)
+		if not get_viewport().get_visible_rect().has_point(sp):
+			continue
+		var d := sp.distance_squared_to(screen)
+		if d < best_d:
+			best_d = d
+			best = n
+	if best != null:
+		views.set_padlock(best)
 
 
 # --- pause, On-The-Fly menu, FlyTSD, time compression (docs/front-end.md §16, docs/views.md) --------
@@ -1334,14 +1558,26 @@ func _release_held_keys() -> void:
 		if _key_was_held.get(i, false):
 			_apply_held(i, keys.records[i].release)
 	for i in keys.size():
-		if keys.held(i, Settings.key_bindings) and weapons != null:
-			match int(keys.records[i].release[0]):
-				65:
-					weapons.release_selected()
-				67:
-					weapons.gun_stop()
-				46:
-					weapons.radar_event(0x2e)
+		if keys.held(i, Settings.key_bindings):
+			_release_command(keys.records[i].release)
+
+
+## A key's release command (Space up 0x41, Tab up 0x43, boresight up 0x2e, the view keys).
+func _release_command(cmd: Array) -> void:
+	match int(cmd[0]):
+		65:
+			if weapons != null:
+				weapons.release_selected()
+		67:
+			if weapons != null:
+				weapons.gun_stop()
+		46:
+			if weapons != null:
+				weapons.radar_event(0x2e)  # boresight up
+		22:
+			_snap_command(int(cmd[1]), int(cmd[2]))
+		20, 21, 23, 24, 26, 27:
+			views.pan(int(cmd[0]), false)
 
 
 ## On-The-Fly menu items (FUN_004dc0d0). The boxes are Yes / No; NO closes the box and the menu stays.
@@ -1441,6 +1677,7 @@ func _own_key(event: InputEventKey) -> void:
 
 
 func _process(delta: float) -> void:
+	views.update(delta)
 	_read_controls(delta)
 	_update_indicators(delta)
 	if flight != null:
@@ -1627,8 +1864,10 @@ func _eject() -> void:
 			aircraft.canopy_gone = true
 		_end_flight(runtime != null)
 		return
-	# Fly-by view on the jet (view 0x13): our external view (UNCERTAIN: the fly-by camera placement).
-	in_cockpit = false
+	# Fly-by view on the jet (docs/mission-runtime.md §5.4): {1500, 900, −200, −10°, ·, 120°}, scale 2,
+	# RandomFlyby; the parachuter's at t0 + ParachuterFlyBy (5 s) in _eject_update.
+	views.snap = null
+	views.set_orbit(rig, [1500.0, 900.0, -200.0, deg_to_rad(-10.0), 0.0, deg_to_rad(120.0)], 2.0, Views.FLYBY, true)
 	if runtime == null:
 		get_tree().create_timer(5.0, false).timeout.connect(func(): _end_flight(false))
 
@@ -1664,6 +1903,9 @@ func _eject_update(delta: float) -> void:
 		var g = terrain.height_at(pos)
 		if g == null or pos.y - g > CHUTE_STOP_AGL:
 			_chute.position = pos
+	if t >= EJECT_CHUTE_VIEW and not _chute_view_done and _chute != null:
+		_chute_view_done = true
+		views.set_orbit(_chute, [1000.0, 600.0, 200.0, 4.014257, 0.0, 2.792527], 2.0, Views.FLYBY, true)
 	if t >= EJECT_RADIO and not _eject_radio_done:
 		_eject_radio_done = true
 		if _voice != null:

@@ -99,4 +99,4 @@ func _fly() -> void:
 			tv.in_cockpit = false
 			tv._apply_view()
 		if outside:
-			tv.orbit_yaw += 0.35 / 30.0
+			tv.views.orbit_heading += 0.35 / 30.0

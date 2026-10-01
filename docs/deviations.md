@@ -14,7 +14,6 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 | Envelope math | float32 / x87 | f64 | last-digit rounding only | flight-model.md §15.9 |
 | Flight channels | sampled with the X-axis time; angles fmod 2π | each channel's own base time (re-based together); angles wrapped ±180° | negligible difference | flight-model.md §15.11 |
 | Lift-ramp / β slopes | globals from the **last aircraft type set up** (leak between types) | each aircraft keeps its own | only matters with several flight-model types | flight-model.md §10 |
-| Ejection camera | fly-by camera | our external view | fly-by placement not traced | part-animation.md "Ejection" |
 | Low ejection | opens the in-flight TSD | ends the flight | no in-flight TSD yet | part-animation.md |
 | Parachuter | freezes at "land − 10 s" (factor 4) | descends to 20 m AGL | original bug; flight has ended by then in single player | part-animation.md |
 | Frame-rate-dependent effects | canopy spin 10°/frame, smoke puffs once per frame, flame flicker per frame | time-based (smoke 30 Hz) except the flame flicker | same look at any frame rate | damage.md, aircraft.md |
@@ -54,6 +53,10 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 | Pilot list / Dossier details | the scrollbar's track click page step not traced; an empty pilot list never occurs | track click pages 11 rows (as Arming / Controls); the last pilot is kept when the list is written even if blank | untraced / edge case | pilot_records.gd, pilots.gd |
 | Our keys Ctrl+F1 / F2 / F12 | — (no table record uses them) | quit box / cockpit ↔ external / info line (were on Esc, C, F2, F12 before those commands were built) | user decision | controls.md |
 | FlyTSD (Esc) | Fly can switch to another formation's aircraft; Visit; Ctrl+P there; units probably live | Fly / Esc / BACK return to your jet; Visit does nothing; no pause there; units at their mission start | not built (one flyable jet, Visit untraced) | views.md §1 |
+| Views: unknown conventions | — | fly-by offset axes (x right, y forward, z up), orbit signs, object size = largest scaled-model dimension, visual lock at the screen centre | UNCERTAIN in the trace | views.md §4.4 |
+| HUD-only view (F1 twice) | viewport grows to 480 rows (projection centre moves) | the cockpit projection kept, no panel / MFDs drawn | keeps the HUD registered | views.md §4.4 |
+| Cockpit zoom keys | 20 / 21 enter free look with no motion (the zoom only sets culling) | our cockpit art zoom, one step per press | ours (kept) | views.md §4.4 |
+| Wreck circle | circles the attacker when it is within 1000 m | always the wreck | no attacker field yet | views.md §4.4 |
 | Pause / menu sim freeze | the sim clock stops | the scene tree pauses (sim nodes stop); sounds paused by `stream_paused` | engine mechanism | views.md §1 |
 
 ## 2. Opt-in switches (original by default)

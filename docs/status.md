@@ -15,7 +15,8 @@
 - ~~Autopilot (A key; the AI control loops; Landing 312 approach mode)~~ — done (see Done; 312's demonstration lands on
   the centreline: docs/autopilot.md §3).
 - ~~Cockpit camera = the original projection (HUD ladder lines up)~~ — done (docs/cockpit.md "3D view").
-- RWR display, radar MAP picture, other MFD pages, views (padlock, back view, external list), time compression, pause / in-flight menu.
+- ~~Views, time compression, pause / in-flight menu~~ — done (docs/views.md).
+- RWR display, radar MAP picture, other MFD pages.
 - Detached-looking stores.
 - Joystick / throttle / pedals.
 - Other jets flyable (Phantom 2000, F-4E, F-15, …): flight data + cockpit each (incl. the Kfir / Mirage shared
@@ -86,12 +87,12 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
   HARM); no AI combat (AI jets fly, don't fight), no AAA / SAMs (so no combat mission can be won yet).
 - **Cockpit / MFDs**: radar MAP picture, ECM, RWR threats, FLIR / TV / HARM pages, NAV distances; AI / SAM / ECM /
   lights have no systems; night lighting.
-- **Controls**: no joystick; not built: views other than cockpit / chase; FlyTSD Fly into another aircraft / Visit
-  (docs/views.md).
+- **Controls**: no joystick; not built: the threat view's RWR threats, the EO weapon camera, FlyTSD Fly into another
+  aircraft / Visit (docs/views.md).
 - **Sounds**: damage / RWR / weapon / AI sounds wait for those systems.
 - **Front end**: Reference, QUIT confirmation, TSD 3D-model / target
   windows; most stored prefs have no effect yet.
-- **Eject details**: the original fly-by camera, callsign in the radio call, parachute landing.
+- **Eject details**: callsign in the radio call, parachute landing.
 
 ## Decisions (agreed with the user)
 - Airbase runway/apron underlay models stay hidden (the imagery shows the airbase) unless it stops looking good.

@@ -85,7 +85,7 @@ the Preferences Controls page (docs/front-end.md §12.7) and looks every in-flig
   | F1 | cockpit | Cockpit / HUD view (28,1) — the same, runs through the table |
   | V | panel up / down | — |
   | PgUp / PgDn | slide the panel | — |
-  | = / − / Numpad + / − | cockpit zoom | Zoom in / out (20 / 21) — runs through the table, one step per press (the original zooms while held) |
+  | = / − / Numpad + / − | cockpit art zoom (cockpit views) | Zoom in / out (20 / 21): the orbit distance in the external views (views.md §4) |
 
   If the player binds one of these keys to a command we implement, the command wins. Moving our functions to
   Ctrl + F-keys when the original commands on their keys were built is a user decision; no table record uses
@@ -137,15 +137,15 @@ original's `WM 0x532` wParam; p1 / p2 as stored.
 | 25 | Pitch down | Down |  | (3, 0, -100) | (3, 0, 0) | no | stick pitch (held) |
 | 26 | Roll left | Left |  | (2, -100, 0) | (2, 0, 0) | no | stick roll (held) |
 | 27 | Roll right | Right |  | (2, 100, 0) | (2, 0, 0) | no | stick roll (held) |
-| 28 | Snap view 135 left | Numpad 1 |  | (22, 225, 1) | (22, -1, -1) | yes | — |
-| 29 | Snap view back | Numpad 2 |  | (22, 180, 2) | (22, -1, -2) | yes | — |
-| 30 | Snap view 135 right | Numpad 3 |  | (22, 135, 3) | (22, -1, -3) | yes | — |
-| 31 | Snap view 90 left | Numpad 4 |  | (22, 270, 4) | (22, -1, -4) | yes | — |
-| 32 | Straight ahead view | Numpad 5 |  | (28, 1, 0) |  | yes | cockpit view |
-| 33 | Snap view 90 right | Numpad 6 |  | (22, 90, 6) | (22, -1, -6) | yes | — |
-| 34 | Snap view 45 left | Numpad 7 |  | (22, 315, 7) | (22, -1, -7) | yes | — |
-| 35 | Snap view up 30 | Numpad 8 |  | (22, 0, 8) | (22, -1, -8) | yes | — |
-| 36 | Snap view 45 right | Numpad 9 |  | (22, 45, 9) | (22, -1, -9) | yes | — |
+| 28 | Snap view 135 left | Numpad 1 |  | (22, 225, 1) | (22, -1, -1) | yes | snap view while held (views.md §4) |
+| 29 | Snap view back | Numpad 2 |  | (22, 180, 2) | (22, -1, -2) | yes | snap view while held (views.md §4) |
+| 30 | Snap view 135 right | Numpad 3 |  | (22, 135, 3) | (22, -1, -3) | yes | snap view while held (views.md §4) |
+| 31 | Snap view 90 left | Numpad 4 |  | (22, 270, 4) | (22, -1, -4) | yes | snap view while held (views.md §4) |
+| 32 | Straight ahead view | Numpad 5 |  | (28, 1, 0) |  | yes | cockpit ↔ HUD only |
+| 33 | Snap view 90 right | Numpad 6 |  | (22, 90, 6) | (22, -1, -6) | yes | snap view while held (views.md §4) |
+| 34 | Snap view 45 left | Numpad 7 |  | (22, 315, 7) | (22, -1, -7) | yes | snap view while held (views.md §4) |
+| 35 | Snap view up 30 | Numpad 8 |  | (22, 0, 8) | (22, -1, -8) | yes | snap view while held (views.md §4) |
+| 36 | Snap view 45 right | Numpad 9 |  | (22, 45, 9) | (22, -1, -9) | yes | snap view while held (views.md §4) |
 | 37 | Rudder left | Numpad 0 |  | (10, -100, 0) | (10, 0, 0) | no | rudder (held) |
 | 38 | Rudder right | Decimal |  | (10, 100, 0) | (10, 0, 0) | no | rudder (held) |
 | 39 | Next waypoint | W |  | (101, 0, 0) |  | yes | next waypoint (NAV re-targets it) |
@@ -182,31 +182,31 @@ original's `WM 0x532` wParam; p1 / p2 as stored.
 | 70 | Chaff | Insert |  | (68, 0, 0) |  | yes | — |
 | 71 | Flare | Delete | Button 4 | (69, 0, 0) |  | yes | — |
 | 72 | Jettison fuel tanks/bombs | Shift + C |  | (72, 0, 0) |  | yes | jettison the tanks (1st press; bombs: not built) |
-| 73 | Cockpit/HUD view | F1 |  | (28, 1, 0) |  | yes | cockpit view |
-| 74 | Back view | F2 |  | (22, 180, 0) | (22, -1, 0) | yes | — |
-| 75 | Padlock view | F3 |  | (28, 22, 0) |  | yes | — |
-| 76 | Visual lock on target close | Shift + F3 |  | (103, 0, 0) |  | yes | — |
-| 77 | Radar target view | F4 |  | (28, 9, 0) |  | yes | — |
-| 78 | Threat view | F5 |  | (28, 23, 0) |  | yes | — |
-| 79 | Player-wingman view | F6 |  | (28, 24, 0) |  | yes | — |
-| 80 | Player to target view | F7 |  | (28, 25, 0) |  | yes | — |
-| 81 | Target-player view | F8 |  | (28, 26, 0) |  | yes | — |
-| 82 | Fly-by view | F9 |  | (28, 19, 0) |  | yes | — |
-| 83 | Chase view | F10 |  | (28, 6, 0) |  | yes | external view |
-| 84 | Weapon view | F11 |  | (28, 27, 0) |  | yes | — |
+| 73 | Cockpit/HUD view | F1 |  | (28, 1, 0) |  | yes | cockpit ↔ HUD only (views.md §4) |
+| 74 | Back view | F2 |  | (22, 180, 0) | (22, -1, 0) | yes | back view while held |
+| 75 | Padlock view | F3 |  | (28, 22, 0) |  | yes | padlock (radar target) |
+| 76 | Visual lock on target close | Shift + F3 |  | (103, 0, 0) |  | yes | padlock the object nearest the screen centre |
+| 77 | Radar target view | F4 |  | (28, 9, 0) |  | yes | radar-target view |
+| 78 | Threat view | F5 |  | (28, 23, 0) |  | yes | threat view (no RWR threats yet: nothing) |
+| 79 | Player-wingman view | F6 |  | (28, 24, 0) |  | yes | player-wingman view |
+| 80 | Player to target view | F7 |  | (28, 25, 0) |  | yes | player-to-target view |
+| 81 | Target-player view | F8 |  | (28, 26, 0) |  | yes | target-player view |
+| 82 | Fly-by view | F9 |  | (28, 19, 0) |  | yes | fly-by view |
+| 83 | Chase view | F10 |  | (28, 6, 0) |  | yes | chase view |
+| 84 | Weapon view | F11 |  | (28, 27, 0) |  | yes | weapon view (IR missiles) |
 | 85 | I-mode | F12 |  | (124, 0, 0) |  | yes | — |
-| 86 | Pan up | Shift + Numpad 8 |  | (26, 1, 0) | (26, 0, 0) | yes | — |
-| 87 | Pan down | Shift + Numpad 2 |  | (27, -1, 0) | (27, 0, 0) | yes | — |
-| 88 | Pan left | Shift + Numpad 4 |  | (24, -1, 0) | (24, 0, 0) | yes | — |
-| 89 | Pan right | Shift + Numpad 6 |  | (23, 1, 0) | (23, 0, 0) | yes | — |
-| 90 | Pan up | Shift + Up |  | (26, 1, 0) | (26, 0, 0) | no | — |
-| 91 | Pan down | Shift + Down |  | (27, -1, 0) | (27, 0, 0) | no | — |
-| 92 | Pan left | Shift + Right |  | (23, 1, 0) | (23, 0, 0) | no | — |
-| 93 | Pan right | Shift + Left |  | (24, -1, 0) | (24, 0, 0) | no | — |
-| 94 | Zoom out | Numpad - |  | (21, -1, 0) | (21, 0, 0) | yes | cockpit zoom out (one step) |
-| 95 | Zoom in | Numpad + |  | (20, -1, 0) | (20, 0, 0) | yes | cockpit zoom in (one step) |
-| 96 | Zoom out | - |  | (21, -1, 0) | (21, 0, 0) | yes | cockpit zoom out (one step) |
-| 97 | Zoom in | = |  | (20, -1, 0) | (20, 0, 0) | yes | cockpit zoom in (one step) |
+| 86 | Pan up | Shift + Numpad 8 |  | (26, 1, 0) | (26, 0, 0) | yes | cockpit free look / orbit turn |
+| 87 | Pan down | Shift + Numpad 2 |  | (27, -1, 0) | (27, 0, 0) | yes | cockpit free look / orbit turn |
+| 88 | Pan left | Shift + Numpad 4 |  | (24, -1, 0) | (24, 0, 0) | yes | cockpit free look / orbit turn |
+| 89 | Pan right | Shift + Numpad 6 |  | (23, 1, 0) | (23, 0, 0) | yes | cockpit free look / orbit turn |
+| 90 | Pan up | Shift + Up |  | (26, 1, 0) | (26, 0, 0) | no | cockpit free look / orbit turn |
+| 91 | Pan down | Shift + Down |  | (27, -1, 0) | (27, 0, 0) | no | cockpit free look / orbit turn |
+| 92 | Pan left | Shift + Right |  | (23, 1, 0) | (23, 0, 0) | no | cockpit free look / orbit turn |
+| 93 | Pan right | Shift + Left |  | (24, -1, 0) | (24, 0, 0) | no | cockpit free look / orbit turn |
+| 94 | Zoom out | Numpad - |  | (21, -1, 0) | (21, 0, 0) | yes | orbit distance (external); cockpit art zoom, one step (ours) |
+| 95 | Zoom in | Numpad + |  | (20, -1, 0) | (20, 0, 0) | yes | orbit distance (external); cockpit art zoom, one step (ours) |
+| 96 | Zoom out | - |  | (21, -1, 0) | (21, 0, 0) | yes | orbit distance (external); cockpit art zoom, one step (ours) |
+| 97 | Zoom in | = |  | (20, -1, 0) | (20, 0, 0) | yes | orbit distance (external); cockpit art zoom, one step (ours) |
 | 98 | Engage other target | Alt + W |  | (108, 4, 0) |  | yes | — |
 | 99 | Engage my target | Alt + E |  | (108, 3, 0) |  | yes | — |
 | 100 | Tactical formation | Alt + T |  | (108, 5, 0) |  | yes | — |

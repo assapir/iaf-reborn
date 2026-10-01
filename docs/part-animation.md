@@ -216,7 +216,7 @@ the pilots are hidden, the canopies ride the 0.05 s ticks (+3 m straight up in t
 parachuter (`ejectb`) at 100 m, which follows p0 + v0·t + a·t²/2 with v0 = (25, 30, −5), a = (0, 0, −3) in world
 X east / Y north / Z up and stops at 20 m AGL (the original's `land − 10 s` factor-4 freeze is not copied; in single
 player the flight has ended by then; v1.1 did not change the parachuter, so this deviation stays). The crew flag
-starts at 0 on every jet (`crew_visible`), as in v1.1. Not ported: the parachuter swing, the fly-by camera (our external view).
+starts at 0 on every jet (`crew_visible`), as in v1.1. Not ported: the parachuter swing. The fly-by cameras on the jet and the parachuter: docs/views.md §4.3.
 
 ## 3. Other helpers
 * **Stations** (A..I = index 0..8, Gun 9, Cha 10, Fla 11): the store object (`FUN_0053c1f0`) takes its

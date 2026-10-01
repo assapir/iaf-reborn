@@ -67,6 +67,11 @@ var _handle_ms := 0.0
 ## Mission subtitle console lines (newest last), drawn at x=4, y=10+15n of the 640x480 screen in
 ## 12 px Arial and the HUD colour (FUN_005201b0).
 var subtitles: Array[String] = []
+## What the view draws (FUN_0051f8e0, docs/views.md §4): 0 the cockpit (types 1, 0x12, 0x16), 1 the HUD only
+## (type 5), 2 only the message lines (every external view).
+var view_mode := 0
+## Head yaw / pitch (radians, right / up +): the panel art pans with them (FUN_0051f610, docs/cockpit.md "Pans").
+var head := Vector2.ZERO
 ## Time compression rate (sim clock +0x48 via HUD +0x10f4): "%1dX" top right while > 1 (docs/views.md §2).
 var time_factor := 1
 var _console_font: SystemFont
@@ -280,12 +285,35 @@ func toggle_panel() -> void:
 
 func _process(delta: float) -> void:
 	panel_shift = move_toward(panel_shift, panel_target, PANEL_SLIDE_SPEED * delta)
+	position = head_pan() * ui_scale() if view_mode == 0 else Vector2.ZERO
+	hud.visible = view_mode != 2
+	for m in mfds:
+		m.visible = view_mode == 0
 	queue_redraw()
 	hud.queue_redraw()
 
 
+## The panel's screen shift for the head angles (original pixels): pan = 1920 / AzimutAngleDeg (rad) · yaw,
+## vpan = (PanelHeight + [HUD] CenterY) / ElevationAngleDeg (rad) · pitch, vpan ≥ 480 − MainOffsetY −
+## PanelHeight; the panel moves left by pan and down by vpan.
+func head_pan() -> Vector2:
+	if head == Vector2.ZERO:
+		return Vector2.ZERO
+	var p: Dictionary = layout.get("PANEL", {})
+	var az := deg_to_rad(float(p.get("AzimutAngleDeg", 90.0)))
+	var el := deg_to_rad(float(p.get("ElevationAngleDeg", 15.0)))
+	var ph := float(p.get("PanelHeight", 352))
+	var pan := roundf(1920.0 / az * head.x)
+	var vpan := maxf(roundf((ph + float(layout.get("HUD", {}).get("CenterY", 0))) / el * head.y),
+			480.0 - float(p.get("MainOffsetY", 190)) - ph)
+	return Vector2(-pan, vpan)
+
+
 func _draw() -> void:
 	if layout.is_empty():
+		return
+	if view_mode != 0:
+		_draw_console()
 		return
 	var s := ui_scale()
 	_draw_adi(s)
@@ -381,9 +409,9 @@ func _draw_console() -> void:
 	var fs := int(round(em * s))
 	if fs < 1:
 		return
-	var left := size.x / 2 - 320.0 * s
+	var left := size.x / 2 - 320.0 * s - position.x  # the message lines do not pan with the panel
 	for n in subtitles.size():
-		var pos := Vector2(left + 4 * s, (10 + 15 * n) * s + _console_font.get_ascent(fs))
+		var pos := Vector2(left + 4 * s, (10 + 15 * n) * s + _console_font.get_ascent(fs) - position.y)
 		draw_set_transform(pos, 0.0, Vector2(_console_squeeze, 1.0))
 		draw_string(_console_font, Vector2.ZERO, subtitles[n], HORIZONTAL_ALIGNMENT_LEFT, -1, fs, hud_colour())
 	# Time compression (FUN_005201b0 @520414): "%1dX" (0x65c6c4) with TA_RIGHT at (630, 10), same font
@@ -391,7 +419,7 @@ func _draw_console() -> void:
 	if time_factor > 1:
 		var t := "%1dX" % time_factor
 		var w := _console_font.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x * _console_squeeze
-		draw_set_transform(Vector2(left + 630 * s - w, 10 * s + _console_font.get_ascent(fs)), 0.0, Vector2(_console_squeeze, 1.0))
+		draw_set_transform(Vector2(left + 630 * s - w, 10 * s + _console_font.get_ascent(fs) - position.y), 0.0, Vector2(_console_squeeze, 1.0))
 		draw_string(_console_font, Vector2.ZERO, t, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, hud_colour())
 	draw_set_transform(Vector2.ZERO)
 
