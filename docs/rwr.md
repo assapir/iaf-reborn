@@ -36,7 +36,11 @@ Only a **controller** has an RWR: in single player that is the player's jet. AI 
   then empty its lamp goes off. In multiplayer both also send a network message (`0x600bf0`); the remote side calls
   them with from-network = 1 (`0x5c29b0`).
 - A target **without a controller** (an AI unit): its brain+0x7c is set on the lock when it is 0 and cleared on the
-  unlock when it matches. Original bug: the value written is the locked unit itself, not the radar's owner. Brain
+  unlock when it matches. Original bug: the value written is the locked unit itself, not the radar's owner, so
+  condition 38 ("my target is my threat") never holds and the designed reactions never fire (default6_1.bdb: 8 brains
+  "Tail clear" / weapon + dogfight sub-brain when their aircraft target locks them within 2–9 km; 2 interceptors keep
+  a target that is their threat). Ours: Preferences → Physics "Locked enemies know who locked them"
+  (`fix_lock_threat`) writes the player. Action 430 (target = brain+0x7c) is used by no brain. Brain
   condition 38 (`FUN_005c1410`) and action 430 (`FUN_00444a60`) use brain+0x7c as the threat of a unit without a
   controller; condition 39 (`FUN_005c1490`) is 0 and condition 19 (`FUN_005c14e0`) invalid without one.
 - **Launches** (`FUN_0044e160` ← the missile's guidance start `@4d814b`, ECX = the missile's target's controller,
@@ -58,7 +62,7 @@ an entry goes off. There is no separate lock tone; the launch tone is the WRN_MI
 
 ## 4. The displays
 - Cockpit copy (`FUN_00446200` via `FUN_00451b50` when dirty): **the first `count` slots** (≤ 15) → state+0xe80..
-  (stride 0x18: type, position, launch, active), count → state+0xfe8. Original bug kept: after a removal the slots are
+  (stride 0x18: type, position, launch, active), count → state+0xfe8. Original bug (kept with Flight data = Original; Real lists every used slot): after a removal the slots are
   not compacted, so an entry past the count is not shown while a freed slot is (it is never drawn: inactive).
 - Symbols (`FUN_00531470(cx, cy, radius)`): the 10×10 rwrsymb.bmp glyph of the type (docs/mfd.md §3 "RWR") centred
   at cx + ⌊(C·dx + S·dy)/k⌋, cy + ⌊(C·dy − S·dx)/k⌋ with dx = X − own X, dy = own Y − Y (the horizontal offset clamped

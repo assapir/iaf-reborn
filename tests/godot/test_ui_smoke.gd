@@ -62,6 +62,7 @@ func run() -> void:
 			await frames(2)
 			check(fe.pref_work.get("weapon_data") == "real", "%s: Extras Weapon data set to Real" % lang)
 			fe._on_button("physics")
+			fe.phys_top = fe._phys_max_top()  # the last rows (scrolled to the end)
 			await frames(2)
 			var rows: Array = fe._physics_items().filter(func(i): return i.key == "fix_stores_weight")
 			check(rows.size() == 1 and rows[0].rect.end.y <= fe.CONTENT.size.y, "%s: Physics lists Stores weight fix inside the page" % lang)

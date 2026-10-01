@@ -64,6 +64,10 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 ## 2. Opt-in switches (original by default)
 - **Preferences → Physics**: the "Better physics" options and the original-bug fixes (falling-jet heading, tougher
   enemies on easy AI levels) — flight-model.md §10, damage.md.
+- **Preferences → Physics → "Locked enemies know who locked them"** (`fix_lock_threat`): the player's radar lock
+  makes the player the AI target's threat (brain+0x7c; the original writes the target itself) — rwr.md §2.
+- **Flight data = Real**: the RWR display lists every used slot (the original copies the first `count` slots without
+  compacting, so an entry can vanish after a removal) — rwr.md.
 - **Preferences → Physics → "Stores weight fix"**: every store counted in the stores weight, in kg, and the fuel
   tanks' fuel in kg (the original: one store per station, pounds in the kg field, tank fuel = the pounds number as
   kg) — weapons.md §2.5–2.6.

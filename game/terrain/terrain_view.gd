@@ -298,6 +298,7 @@ func _setup_weapons() -> void:
 				break
 	var ent := mission_entity if int(mission_object.get("0x5b4", -1)) == F16_TYPE else {}
 	weapons = preload("res://weapons/player_weapons.gd").new()
+	weapons.lock_threat_fix = OS.get_cmdline_user_args().has("--better") or Settings.better.get("fix_lock_threat", false)
 	add_child(weapons)
 	weapons.setup(self, ent, obj, bdb, preload("res://aircraft/aircraft_model.gd").load_descriptor("f16"))
 	cockpit.hud.host_world_to_scene = weapons.to_scene

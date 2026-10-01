@@ -61,6 +61,10 @@ func run() -> void:
 	r.update(0.5)
 	check(not r.lamps[4] and r.lamps[3], "no SAM left: 'sam' light off, 'ai' stays")
 	check(r.display().size() == 3 and r.display()[0].type == 0, "original bug kept: the freed slot 0 is copied, the 4th entry is not")
+	r.compact = true
+	var cd: Array = r.display()
+	check(cd.size() == 3 and cd.all(func(e): return e.type != 0), "Real data (compact): the 3 listed entries, no empty slot")
+	r.compact = false
 	units.back.state = 5
 	t[0] = 2.5
 	r.update(2.5)
@@ -124,4 +128,17 @@ func run() -> void:
 	check(is_same(pilot.brain.attacker, ent), "the player's lock: the AI's brain+0x7c")
 	w._radar_lock(ent.key, false)
 	check(pilot.brain.attacker.is_empty(), "the unlock clears it")
+	# Physics "fix_lock_threat": the lock makes the player the threat; condition 38 (T == my threat) then holds
+	# for an AI whose target is the player, and the unlock clears it.
+	w.lock_threat_fix = true
+	w._radar_lock(ent.key, true)
+	var me: Dictionary = tv.runtime.player_entity()
+	check(is_same(pilot.brain.attacker, me), "fix: brain+0x7c = the player")
+	var old_t = pilot.brain.target
+	pilot.brain.target = me
+	check(pilot.brain.measure(38) == 1, "fix: condition 38 holds when the AI targets the player")
+	pilot.brain.target = old_t
+	w._radar_lock(ent.key, false)
+	check(pilot.brain.attacker.is_empty(), "fix: the unlock clears it")
+	w.lock_threat_fix = false
 	loop_node.free()

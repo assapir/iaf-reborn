@@ -73,12 +73,13 @@ func run() -> void:
 	var items: Array = fe._physics_items()
 	click(fe, fe.CONTENT.position + items[7].rect.get_center())
 	check(fe.pref_work.better.fbw_departure and not fe.pref_work.better.ground_effect, "one option toggles alone")
-	click(fe, fe.CONTENT.position + items[Settings().BETTER.size()].rect.get_center())
+	var by_key := func(k): return items.filter(func(i): return i.key == k)[0]
+	click(fe, fe.CONTENT.position + by_key.call("all").rect.get_center())
 	check(Settings().BETTER.keys().all(func(id): return fe.pref_work.better[id]), "ALL ON sets every option")
 	if OS.get_environment("IAF_SHOT") != "":
 		await frames(5)
 		root.get_viewport().get_texture().get_image().save_png(OS.get_environment("IAF_SHOT"))
-	click(fe, fe.CONTENT.position + items[Settings().BETTER.size() + 1].rect.get_center())
+	click(fe, fe.CONTENT.position + by_key.call("none").rect.get_center())
 	check(not Settings().BETTER.keys().any(func(id): return fe.pref_work.better[id]), "ALL OFF clears them")
 	# Leaving from the Physics page (Save changes? -> Yes) draws the page while the working copy is gone.
 	click(fe, fe.CONTENT.position + items[0].rect.get_center())

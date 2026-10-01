@@ -29,6 +29,8 @@ const LAMP_SAM := 4
 ## (+0x14), missiles in flight (+0x18), drop pending (+0x1c), active (+0x20).
 var slots: Array = []
 var count := 0  # +0x174
+## Ours (Flight data = Real): the display lists every used slot (the original copies the first `count`).
+var compact := false
 ## Missiles launched at the jet (+0x178): {dist (missile to jet at the launch), missile}, decoy targets left out.
 var missiles: Array = []
 ## Damage 14 (RWR) blocks every notification (FUN_0045cc90(0xe)).
@@ -293,11 +295,14 @@ func nearest() -> String:
 	return best
 
 
-## The cockpit copy (FUN_00446200): the first `count` slots (at most 15; original bug kept: slots are not
-## compacted), each {type, pos (world X / Y), launch, active}.
+## The cockpit copy (FUN_00446200): the first `count` slots (at most 15; original bug: slots are not
+## compacted, so after a removal an entry past `count` is not shown), each {type, pos (world X / Y), launch,
+## active}. With `compact` (ours, Flight data = Real) every listed slot is shown.
 func display() -> Array:
 	var out := []
-	for i in mini(count, 15):
+	for i in (slots.size() if compact else mini(count, 15)):
 		var s: Dictionary = slots[i]
+		if compact and (int(s.type) == 0 or out.size() >= 15):
+			continue
 		out.append({"type": int(s.type), "pos": Vector2(s.pos.x, s.pos.y), "launch": s.launch, "active": s.active})
 	return out

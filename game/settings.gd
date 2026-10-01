@@ -21,6 +21,7 @@ const BETTER := {
 	"ground_effect": "Ground effect",
 	"fix_fall_heading": "Falling jets keep their heading",
 	"fix_skill_damage": "No tougher enemies on easy AI levels",
+	"fix_lock_threat": "Locked enemies know who locked them",
 	"fix_stores_weight": "Stores weight fix",
 }
 ## Stored preferences by config section: the original pages, then our own options (Extras tab).

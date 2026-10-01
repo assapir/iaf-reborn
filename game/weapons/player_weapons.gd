@@ -36,6 +36,8 @@ var seeker: RefCounted
 var radar: RefCounted
 ## The RWR (ctl+0x5b0, docs/rwr.md).
 var rwr: RefCounted
+## Physics "fix_lock_threat" (ours): a radar lock makes the player the AI target's threat (brain+0x7c).
+var lock_threat_fix := false
 var missiles: Array = []  # IrMissile with .node, .sound
 var now := 0.0
 
@@ -102,6 +104,7 @@ func setup(host_node: Node, entity: Dictionary, object: Dictionary, bdb: Diction
 	rwr.unit = _rwr_unit
 	rwr.own = own
 	rwr.now = func(): return now
+	rwr.compact = Settings.real_data()
 	rwr.betty = jet_type in preload("res://audio/flight_sounds.gd").BETTY_TYPES
 	if host.get("sounds") != null:
 		rwr.play = host.sounds.play
@@ -618,16 +621,20 @@ func radar_event(ev: int, arg = null) -> void:
 
 ## On-lock / on-unlock (FUN_004b0510 / FUN_004b04d0): a target with a controller hears it on its RWR;
 ## an AI aircraft (no controller) gets brain+0x7c = the target itself when free (original bug: not the
-## radar's owner) and loses it on the unlock (docs/rwr.md §2).
+## radar's owner, so its "my target is my threat" condition 38 never holds) and loses it on the unlock
+## (docs/rwr.md §2). Physics "fix_lock_threat" (ours): brain+0x7c = the player, the radar's owner.
 func _radar_lock(key: String, on: bool) -> void:
 	var ent: Dictionary = host.runtime.entities.get(key, {}) if host.runtime != null else {}
 	var p = ent.get("pilot")
 	if p == null or p.get("brain") == null:
 		return
+	var who: Dictionary = ent
+	if lock_threat_fix and host.runtime.has_method("player_entity"):
+		who = host.runtime.player_entity()
 	if on:
 		if p.brain.attacker.is_empty():
-			p.brain.attacker = ent
-	elif is_same(p.brain.attacker, ent):
+			p.brain.attacker = who
+	elif is_same(p.brain.attacker, who):
 		p.brain.attacker = {}
 
 
