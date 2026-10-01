@@ -5,10 +5,12 @@ pub mod exe;
 pub mod georef;
 pub mod georef_measure;
 pub mod gltf;
+pub mod imagery;
 pub mod mis;
 pub mod rtpatch;
 pub mod runway_fix;
 pub mod smooth;
+pub mod terrain_types;
 pub mod upscale;
 
 /// Every file under `dir`, recursively (unordered).
