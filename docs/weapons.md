@@ -9,7 +9,8 @@ Built: chaff / flares (§10), the stores (loadout incl. the Arming screen's, pyl
 HUD modes, the gun (trigger, rounds, hits, muzzle flash, sounds, LCOS / strafe pippers), the IR seeker and the IR
 missiles (types 570 / 580), the bombs (500, 510 incl. the cluster bursts, 650 as a free bomb) and rockets (560) with
 the ripple quantity / interval, the mode-5 HUD (CCIP and the delayed release) and the bombs jettison (§9), the weapon
-HUD text and symbols, the stores MFD page. Not built yet: radar missiles and the radar lock (so the seeker is never
+HUD text and symbols, the stores MFD page, the FLIR pod / TV-weapon camera and the FLIR / TV / HARM MFD pages
+(docs/mfd.md; no TV / HARM weapon flies yet). Not built yet: radar missiles and the radar lock (so the seeker is never
 "slaved", no DLZ), HARM, TV weapons and the laser guidance (FLIR designation), the decoys' effect on missiles, the
 AI's weapons, AAA.
 
@@ -87,8 +88,8 @@ Master mode `ctl+0x78` (`FUN_0044ec80`) → HUD mode `ctl+0x5c` and MFD page (`F
 | 570, 580 | 4 | 1 SRM | unchanged |
 | 600, 610 | 4 | 2 MRM | radar |
 | 590 | 4 | 8 HARM | HARM |
-| 650 | 5 | 5 (6 with a FLIR pod) | stores / FLIR |
-| 635, 640 | 6 | 7 | TV |
+| 650 | 5 | 5 (6 with a FLIR pod: the FLIR starts) | stores / FLIR |
+| 635, 640 | 6 | 7 | TV (the TV camera starts) |
 M (0x63): NAV → AA → AG → NAV (`ctl+0x7c`), SFX_BUTTON; N (0x62, p 0): NAV. No button click on '[' / ']' / N. There is
 no master arm: firing the selected store needs HUD mode 1..8.
 

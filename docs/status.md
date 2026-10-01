@@ -18,7 +18,7 @@
 - ~~Cockpit camera = the original projection (HUD ladder lines up)~~ — done (docs/cockpit.md "3D view").
 - ~~Views, time compression, pause / in-flight menu~~ — done (docs/views.md).
 - ~~RWR (list, lights, sounds, MFD page / panel dial, F5 threat), radar MAP picture~~ — done (docs/rwr.md, docs/mfd.md
-  §4); nothing locks the player until AI combat / SAMs. Other MFD pages (FLIR / TV / HARM).
+  §4); nothing locks the player until AI combat / SAMs. ~~Other MFD pages (FLIR / TV / HARM)~~ — done (docs/mfd.md: EO camera, HARM list from the RWR; TV / HARM weapons, full-screen weapon MFD, NAV ETA still open).
 - Detached-looking stores.
 - ~~Joystick / throttle / pedals~~ — done, untested on hardware (docs/controls.md §5).
 - ~~Other jets flyable~~ — done: the Jet list's seven (tests/godot/test_jet_list.gd), the Kfir / Mirage shared data
@@ -70,7 +70,7 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 | Real aircraft data | Real set for all 6 flyable jets (F-16, F-15C, F-4E / Kurnass 2000, Kfir C7, Lavi, Mirage IIICJ): weights, thrust, drag, roll, fuel, stall, pedal steering, drag chute, the low-speed indicated airspeed fix (docs/real-aircraft.md); the flight data loader reads the v1.1 files (`bdgen.dat`, `*gen.skp`, XOR-encoded); AI types: reference table only |
 | Damage | original damage model: hits, blast formula, destruction, falling jets, explosions / smoke, the player's systems damage, collisions |
 | Eject | E ×3: seat, canopy, parachute, mission lost |
-| Cockpit | all 9 original 2D cockpits, gauges (round gauges traced: engine needles from the rpm per engine with its damage flags, the two-needle altimeter, fuel fill, vario; docs/cockpit.md "Round gauges"), attitude indicators (lens ball, panel disc, MFD ADI page) and the vario / AoA tapes (docs/cockpit.md "Attitude indicators"), HUD (11 colours; traced symbology: heading tape, speed / altitude scales and boxes, text block, ladder, marker, ILS, gun cross, waypoint marker, docs/cockpit.md "HUD symbology"), panel lights, MFDs (radar incl. the MAP ground picture, TSD, RWR page and panel dial, NAV, stores, damage); RWR (docs/rwr.md) |
+| Cockpit | all 9 original 2D cockpits, gauges (round gauges traced: engine needles from the rpm per engine with its damage flags, the two-needle altimeter, fuel fill, vario; docs/cockpit.md "Round gauges"), attitude indicators (lens ball, panel disc, MFD ADI page) and the vario / AoA tapes (docs/cockpit.md "Attitude indicators"), HUD (11 colours; traced symbology: heading tape, speed / altitude scales and boxes, text block, ladder, marker, ILS, gun cross, waypoint marker, docs/cockpit.md "HUD symbology"), panel lights, MFDs (radar incl. the MAP ground picture, TSD, RWR page and panel dial, NAV, stores, damage, FLIR / TV with the EO camera, HARM); RWR (docs/rwr.md) |
 | Aircraft models | all 22 models: moving parts per the original rules, gear, afterburner flame, canopy / pilot, damage visuals |
 | Sounds | original sound table: engine, gear, flaps, air brake, AoA tone, Betty warnings, touchdown, crash; volume sliders |
 | Terrain | all of `map.ptt` (levels 11..6 + all 51 insets, 2342 nodes) as a streamed quadtree with distance LOD to 200 km, level-6 heights with the original's inset interpolation, skirts; runway digits surveyed on every airbase (2 mirrored fixed); `terraintype.dat` surface types (water / rough / runway) feed the flight model; loaded behind the wait screen (docs/formats/ptt.md) |
@@ -83,9 +83,9 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 - **Flight**: the seven Jet list jets fly (the two MiGs are AI-only, as in the original); systems damage doesn't affect flying yet; no hook, map-edge push-back.
 - **Combat**: player gun, IR missiles, radar lock, chaff / flares (no bombs, rockets, radar missiles, TV / laser,
   HARM); no AI combat (AI jets fly, don't fight), no AAA / SAMs (so no combat mission can be won yet).
-- **Cockpit / MFDs**: ECM, FLIR / TV / HARM pages, NAV distances; the RWR's feeds (AI sensors, SAMs, enemy missiles);
+- **Cockpit / MFDs**: ECM, the full-screen weapon MFD (Z), the NAV ETA, HARM "In Range" (DLZ), the TV weapons' TRA / TER; the RWR's feeds (AI sensors, SAMs, enemy missiles);
   ECM light has no system; night lighting; what uses the radar's designated point.
-- **Controls**: joystick untested on real hardware (one device; no force feedback); not built: the EO weapon camera, FlyTSD Fly into another
+- **Controls**: joystick untested on real hardware (one device; no force feedback); not built: FlyTSD Fly into another
   aircraft / Visit (docs/views.md).
 - **Sounds**: weapon / AI sounds wait for those systems (the RWR's wait for something to lock the player).
 - **Front end**: Reference, QUIT confirmation, TSD 3D-model / target

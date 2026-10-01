@@ -61,6 +61,13 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 | AI radio (FlightController reports, contact calls, "Roger" replies of wingman commands) | spoken | not yet | AI voices wait for the radio work | ai.md §10 |
 | Decoy look | missFLR sprite (blend state not traced); chaff bursts and flare smoke once per rendered frame | the flare additive; bursts and smoke at a fixed 30 Hz | rendering; same density at any frame rate | decoy_fx.gd, weapons.md §10 |
 | Radar MAP picture | isr.bmp sampled per pixel, nearest, the centre truncated to whole isr pixels (`FUN_0053b0a0`) | the 4× isr art as a textured polygon (smooth scrolling and turning), same window, scale, centre and green channel | rendering | mfd.gd `map_picture`, mfd.md §4 |
+| EO (FLIR / TV) picture | the 3D engine's viewport 1 at the MFD's 112 × 112 screen px, colour | a SubViewport camera of the same world at the display's on-screen size (same 50° / zoom, eye, attitude, roll 0), only while page 5 / 6 shows with the cockpit drawn | rendering | mfd.md "FLIR (6), TV (5)", terrain_view.gd `_update_eo_view` |
+| EO camera eye / centre point | the store's pylon position; the depth pick of the picture's centre pixel (terrain, buildings, units) | the jet's position; the terrain under the line of sight (ray-marched, 2 % steps, 8 halvings, 100 km) | pylon offsets are metres; the pick is a renderer read-back | player_weapons.gd `_eo_update` / `ground_hit` |
+| TV page "%3d" at (111,110) | the launched weapon's motion value (vfunc +0x80, clamped) | not drawn | no TV weapon flies yet; meaning untraced | mfd.gd `_draw_tv` |
+| HARM page source | the HARM sensor (an AI target-sensor scan, ±15° cone, best 5 by 100 / distance, its own selection) | the RWR's active emitters inside the ±15° cone, nearest 5, nearest preselected; recaptured with the RWR's 2 s refresh and on a click | the AI target sensor is not built (user: use the RWR list) | harm_sensor.gd, mfd.md "HARM (10)" |
+| HARM "In Range" | distance < the HARM's DLZ max range | never (a list shows "No Range") | no HARM DLZ yet | harm_sensor.gd |
+| NAV page distance | 3-D to the waypoint | horizontal (our route has no waypoint heights) | data | mfd.gd `_draw_nav` |
+| NAV page ETA | "%02d %02d" clock time of arrival | the "ETA   :" label only | the clock source (`0x4530a0`) not traced | mfd.md NAV |
 | MAP / GMT cross-hair | drawn while the MFD owns the cursor (a click inside it first) | while the mouse is over the display | no cursor ownership in ours | mfd.gd `_cross_hair` |
 | Radar line of sight | `FUN_004020d0` (sampling not traced) | terrain sampled every 100 m along the segment | UNCERTAIN original sampling | radar.gd, radar.md §8 |
 | Pilot records storage | `Pilots.dat` + `Pilots\<id>.mis` / `.bmp` next to the exe | our own JSON with the same data in the user data dir (`user://pilots`: `pilots.json`, `<id>.json`, custom photo `<id>.png`); original files are not imported | user decision | front-end.md §13.13 |
@@ -115,3 +122,6 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
   units too; the gun rounds can step over the 25 m hit sphere; the limited-heat (580) gate is a ±60° bearing test,
   not tail aspect; the LCOS integrates with dt 0.15 at a 0.05 s gate; with the gear handle down Tab needs Safety off;
   no "out of ammo" message or sound.
+- EO camera (mfd.md): zooming during a slew jumps the picture (the rates change, the slew start is kept); the FLIR
+  gimbal marker is mirrored left / right (x = 66 − 56u as the code); I is not a toggle; a TV weapon before launch
+  never locks on the key release.

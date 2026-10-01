@@ -149,17 +149,17 @@ original's `WM 0x532` wParam; p1 / p2 as stored.
 | 38 | Rudder right | Decimal |  | (10, 100, 0) | (10, 0, 0) | no | rudder (held) |
 | 39 | Next waypoint | W |  | (101, 0, 0) |  | yes | next waypoint (NAV re-targets it) |
 | 40 | Previous waypoint | Shift + W |  | (102, 0, 0) |  | yes | previous waypoint (NAV re-targets it) |
-| 41 | FLIR on/off | I |  | (90, 6, 0) |  | yes | — |
+| 41 | FLIR on/off | I |  | (90, 6, 0) |  | yes | MFD: FLIR page + FLIR on, with a FLIR pod (not a toggle; mfd.md) |
 | 42 | Damage report | D |  | (90, 4, 0) |  | yes | MFD: damage |
 | 43 | ECM Jammer on/off | J |  | (70, 0, 0) |  | yes | — |
-| 44 | Laser on/off | L |  | (106, 0, 0) |  | yes | — |
+| 44 | Laser on/off | L |  | (106, 0, 0) |  | yes | laser flag (FLIR pod only; what it designates: with the bombs) |
 | 45 | NAV mode on | N |  | (98, 0, 0) |  | yes | master mode NAV (weapons.md §4) |
 | 46 | Change HUD color | H |  | (123, 0, 0) |  | yes | HUD colour |
 | 47 | Contact tower | Ctrl + T |  | (107, 0, 0) |  | yes | — |
-| 48 | Pan EO weapon/FLIR up | Ctrl + Up |  | (140, 0, 100) | (140, 0, 0) | no | — |
-| 49 | Pan EO weapon/FLIR left | Ctrl + Left |  | (139, -100, 0) | (139, 0, 0) | no | — |
-| 50 | Pan EO weapon/FLIR right | Ctrl + Right |  | (139, 100, 0) | (139, 0, 0) | no | — |
-| 51 | Pan EO weapon/FLIR down | Ctrl + Down |  | (140, 0, -100) | (140, 0, 0) | no | — |
+| 48 | Pan EO weapon/FLIR up | Ctrl + Up |  | (140, 0, 100) | (140, 0, 0) | no | EO camera slew / lock on release (mfd.md) |
+| 49 | Pan EO weapon/FLIR left | Ctrl + Left |  | (139, -100, 0) | (139, 0, 0) | no | EO camera slew / lock on release (mfd.md) |
+| 50 | Pan EO weapon/FLIR right | Ctrl + Right |  | (139, 100, 0) | (139, 0, 0) | no | EO camera slew / lock on release (mfd.md) |
+| 51 | Pan EO weapon/FLIR down | Ctrl + Down |  | (140, 0, -100) | (140, 0, 0) | no | EO camera slew / lock on release (mfd.md) |
 | 52 | Full screen weapon MFD | Z |  | (31, 0, 0) |  | yes | — |
 | 53 | Activate TSD on MFD | T |  | (90, 3, 0) |  | yes | MFD: TSD |
 | 54 | Master modes | M |  | (99, 0, 0) |  | yes | master mode cycle NAV / AA / AG + button click |
@@ -202,10 +202,10 @@ original's `WM 0x532` wParam; p1 / p2 as stored.
 | 91 | Pan down | Shift + Down |  | (27, -1, 0) | (27, 0, 0) | no | cockpit free look / orbit turn |
 | 92 | Pan left | Shift + Right |  | (23, 1, 0) | (23, 0, 0) | no | cockpit free look / orbit turn |
 | 93 | Pan right | Shift + Left |  | (24, -1, 0) | (24, 0, 0) | no | cockpit free look / orbit turn |
-| 94 | Zoom out | Numpad - |  | (21, -1, 0) | (21, 0, 0) | yes | orbit distance (external); cockpit art zoom, one step (ours) |
-| 95 | Zoom in | Numpad + |  | (20, -1, 0) | (20, 0, 0) | yes | orbit distance (external); cockpit art zoom, one step (ours) |
-| 96 | Zoom out | - |  | (21, -1, 0) | (21, 0, 0) | yes | orbit distance (external); cockpit art zoom, one step (ours) |
-| 97 | Zoom in | = |  | (20, -1, 0) | (20, 0, 0) | yes | orbit distance (external); cockpit art zoom, one step (ours) |
+| 94 | Zoom out | Numpad - |  | (21, -1, 0) | (21, 0, 0) | yes | orbit distance (external); cockpit art zoom, one step (ours); the release zooms the EO camera |
+| 95 | Zoom in | Numpad + |  | (20, -1, 0) | (20, 0, 0) | yes | orbit distance (external); cockpit art zoom, one step (ours); the release zooms the EO camera |
+| 96 | Zoom out | - |  | (21, -1, 0) | (21, 0, 0) | yes | orbit distance (external); cockpit art zoom, one step (ours); the release zooms the EO camera |
+| 97 | Zoom in | = |  | (20, -1, 0) | (20, 0, 0) | yes | orbit distance (external); cockpit art zoom, one step (ours); the release zooms the EO camera |
 | 98 | Engage other target | Alt + W |  | (108, 4, 0) |  | yes | — |
 | 99 | Engage my target | Alt + E |  | (108, 3, 0) |  | yes | — |
 | 100 | Tactical formation | Alt + T |  | (108, 5, 0) |  | yes | — |

@@ -149,4 +149,5 @@ orbit instead (8 / 2 pitch, 6 / 4 heading; F2 and 1 / 3 / 7 / 9 do nothing there
   test poses.
 * HUD only (type 5): the HUD symbology and the message lines, no panel / MFDs; the projection stays the cockpit's (the
   original's viewport grows to 480 rows, which moves the projection centre: not ported, so the HUD stays registered).
-* EO weapon camera (slot 1, type 0xb) and the full-screen weapon MFD: not built (no EO weapons).
+* EO camera (slot 1, type 0xb): built for the FLIR pod and the TV weapons before launch (docs/mfd.md "FLIR (6), TV (5)";
+  a SubViewport camera, terrain_view.gd `_update_eo_view`); the full-screen weapon MFD (Z) is not built.
