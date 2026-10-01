@@ -44,6 +44,8 @@ var _glyph_tex: Texture2D
 ## HUD centre in local pixels and the ui scale, set by _layout.
 var _c := Vector2.ZERO
 var _s := 1.0
+## The ladder's labels of this frame ([top-right, text]): the sprite pass is not clipped (drawn by `outer`).
+var _ladder_labels := []
 
 
 func _ready() -> void:
@@ -108,6 +110,7 @@ func _draw() -> void:
 	var fs := int(8 * s)
 	var w := maxf(1.0, 0.6 * s)
 	var gun: Vector2 = gun_cross() - position
+	_ladder_labels.clear()
 
 	# Ladder (ShowHorizon, R+0x2234) and flight path marker (FUN_00538c90).
 	if camera != null:
@@ -231,6 +234,9 @@ func _draw_outer() -> void:
 	var nav := nav_cues(st, cockpit.waypoints, cockpit.current_waypoint)
 	var vy := -_key("VertSclOffY", 150)
 	var gear: bool = cockpit.gear_handle_down
+
+	for l in _ladder_labels:
+		_sprite(outer, l[0], l[1], true)
 
 	# Altitude (FUN_005381c0) on the right edge.
 	var at := alt_value(st, mode, gear)
@@ -594,7 +600,7 @@ func _draw_rung(c: Vector2, along: Vector2, e: int, s: float, w: float, _font: F
 		if e != 0 and e % 10 == 0:
 			var p: Vector2 = (at.call(39 * side, 0) - _c) / s + Vector2(5, -2)
 			if _field().has_point(p):
-				_sprite(self, p, "%02d" % absi(e), true)
+				_ladder_labels.append([p, "%02d" % absi(e)])
 
 
 ## The marker (FUN_00538c90): Ellipse(x−2, y−2, x+3, y+3) (outline pixels 2 px from the centre), wings from
