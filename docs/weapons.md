@@ -284,9 +284,21 @@ Types 500 / 510 / 560 / 650 share the release path ("bomb types", `FUN_00457bc0`
   dead store). Release permission `FUN_0045ee10`: g ≥ 0 and |roll| ≤ 90°. Symbols (GDI): fall line FPM → pipper,
   r 8 circle, centre dot; delayed: a 20 px cue bar FPM → pipper as time-to-go 10 → 0 s; frozen: 400 px steering line;
   after the last bomb they blink ~300 ms for 1.0 s (`_DAT_0082f620`); "%2d SEC" ("XX SEC" ≥ 90) while off the HUD.
-- **Untraced**: the bomb motion (class 0x16, `FUN_005611b0` / `FUN_00468470`, the ±`_debugParam016` clamp, cluster
-  submunitions "prepareClusterExplosion"), rocket motion and pods.
-
+- **Bomb motion** (500 / 510 / 660 → class 0x16, BallisticMotion 0x1c, ctor `FUN_00467ed0`, vtable 0x601b40; 650
+  motion 0x1a; **rockets 560 use the gun-round motion 0x18**). Aim = the ripple point on the terrain (`FUN_004d6c10` →
+  `FUN_00561b40`). Solver `FUN_005611b0`: the horizontal velocity is turned toward the aim (speed kept, cross-track
+  fully corrected); t = (v.z + √(v.z² + 19.612·(p.z − A.z))) / 9.806; along-track a = 2·(dist − vh·t)/t², clamped
+  ±`_debugParam016` (15) for the player in single player; acc = (û·a, −9.806); aim above the arc → t = a = 0. Motion
+  p = p0 + v0·dt + ½acc·dt², no drag, attitude from the velocity. v1.0 `FUN_00467910` capped dt at the impact (a
+  sure hit); v1.1 `FUN_00468470` does not. Impact check `FUN_00561750` at launch then every 0.5 s: 510 opens 1000 m
+  above the terrain (visual); within 800 m (`_debugParam010`) the pre-explosion event; ends within 2 m of the aim or
+  z ≤ terrain + 1 and bursts at the raw check point (**quirk**: up to ~0.5·|vz| below the ground, the blast's z term
+  cuts the damage; decide original vs fix with the user). One area blast (bdb power / radius), no submunition units
+  (510: 48 small fires in 3 rings, `FUN_00418000` / `FUN_004181c0`), a crater 1 s later near the ground, a splash on
+  water. weapons.ibx: 000500 absAcc 0, β 0.02; 000510 absAcc 200, velocityJump 1000; 000560 absAcc 100, limitVel
+  1000, limitDist 6000, velocityJump 100, no `_spiralAccel` (hit sphere 0). UNCERTAIN (original bug?): the setter
+  writes the ballistic layout into a rocket's fixed-motion state (aim (0, 6000, 100)).
+- **Untraced**: rocket pods ("Rocket box", `RocketBoxScale`).
 ## UNCERTAIN
 Candidate order of the spatial query; event 0x4e (pre-explosion) receiver; hit effects look; tracer look; muzzle flash
 scale / blend / cockpit visibility; the MFD page placement for weapon modes (taken as event 0x5a's rule); the missile
