@@ -120,6 +120,52 @@ impl Airbase {
     }
 }
 
+/// The HUD ILS reference glide path, −5° (`0x82f678`, set from −5.0 at `0x45fbce`).
+pub const ILS_GLIDE_DEG: f32 = -5.0;
+/// The localizer / glideslope deviation limits (`0x82f670` 19°, `0x82f67c` 5°).
+pub const ILS_LOC_LIMIT_DEG: f32 = 19.0;
+pub const ILS_GS_LIMIT_DEG: f32 = 5.0;
+
+/// `5bdd50`: `fmod(a, 2π)` then into (−π, π].
+fn wrap_pi(a: f32) -> f32 {
+    let two_pi = 2.0 * std::f32::consts::PI;
+    let mut r = a % two_pi;
+    if r > std::f32::consts::PI {
+        r -= two_pi;
+    } else if r < -std::f32::consts::PI {
+        r += two_pi;
+    }
+    r
+}
+
+/// The HUD ILS deviations (the NAV HUD mode object's update `460130`, docs/cockpit.md "ILS"): the base whose
+/// lineup point is nearest in 2-D (`5511a0`), u = the unit vector from the jet at `p` to that lineup point;
+/// localizer = wrap(atan2(u.x, u.y) − RunwayNumber) clamped ±19°, glideslope = wrap(−5° − asin(u.z)) clamped ±5°
+/// (radians; both 0 on the 5° glide path down the runway heading; + = the runway point right of / below the
+/// path). All in f32 as the original. None without a base.
+pub fn ils(bases: &[Airbase], p: [f32; 3]) -> Option<(f32, f32)> {
+    let mut best: Option<(&Airbase, f32)> = None;
+    for b in bases {
+        let d = ((b.lineup[1] - p[1]) * (b.lineup[1] - p[1]) + (b.lineup[0] - p[0]) * (b.lineup[0] - p[0])).sqrt();
+        if best.is_none_or(|(_, m)| m == 0.0 || d < m) {
+            best = Some((b, d));
+        }
+    }
+    let b = best?.0;
+    let d = [b.lineup[0] - p[0], b.lineup[1] - p[1], b.lineup[2] - p[2]];
+    let len = (d[0] * d[0] + d[1] * d[1] + d[2] * d[2]).sqrt();
+    let k = if len == 0.0 { 1.0 } else { 1.0 / len };
+    let u = [d[0] * k, d[1] * k, d[2] * k];
+    let lim_gs = ILS_GS_LIMIT_DEG.to_radians();
+    let gs = wrap_pi(ILS_GLIDE_DEG.to_radians() - u[2].clamp(-1.0, 1.0).asin()).clamp(-lim_gs, lim_gs);
+    let bearing = if u[0] == 0.0 && u[1] == 0.0 { 0.0 } else { u[0].atan2(u[1]) };
+    // RunwayNumber is read as an int (`54eda0` __ftol), then fmod 360 into ±180° (`459bd0`) and radians.
+    let rn = hdg((b.runway_deg as i32) as f32);
+    let lim_loc = ILS_LOC_LIMIT_DEG.to_radians();
+    let loc = wrap_pi(wrap_pi(bearing) - rn).clamp(-lim_loc, lim_loc);
+    Some((loc, gs))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -132,5 +178,38 @@ mod tests {
         assert_eq!(b[0].lineup, [356483.0, 602383.0, 63.0]);
         assert_eq!(b[0].runway_deg, 270.0);
         assert!((b[0].from_taxi[0].hdg + 90f32.to_radians()).abs() < 1e-6);
+    }
+
+    fn base(rn: f32) -> Airbase {
+        Airbase { lineup: [1000.0, 2000.0, 100.0], runway_deg: rn, ..Default::default() }
+    }
+
+    #[test]
+    fn ils_centres_on_the_5_degree_path_down_the_runway() {
+        // Runway 090 (landing east): 3 km west of the lineup point, 5° above it.
+        let b = [base(90.0)];
+        let h = 3000.0 * 5f32.to_radians().tan();
+        let (loc, gs) = ils(&b, [-2000.0, 2000.0, 100.0 + h]).unwrap();
+        assert!(loc.abs() < 1e-4 && gs.abs() < 1e-4, "{loc} {gs}");
+        // Higher: the glideslope line goes down (+); 1° steeper → +1°.
+        let h6 = 3000.0 * 6f32.to_radians().tan();
+        let (_, gs) = ils(&b, [-2000.0, 2000.0, 100.0 + h6]).unwrap();
+        assert!((gs.to_degrees() - 1.0).abs() < 0.01, "{}", gs.to_degrees());
+        // North of the centreline (left of it, landing east): the runway point is to the right (+).
+        let (loc, _) = ils(&b, [-2000.0, 2000.0 + 3000.0 * 2f32.to_radians().tan(), 100.0 + h]).unwrap();
+        assert!((loc.to_degrees() - 2.0).abs() < 0.01, "{}", loc.to_degrees());
+        // Limits: ±19° and ±5°.
+        let (loc, gs) = ils(&b, [1000.0, 0.0, 5000.0]).unwrap();
+        assert!((loc.to_degrees() + 19.0).abs() < 1e-3 && (gs.to_degrees() - 5.0).abs() < 1e-3, "{loc} {gs}");
+    }
+
+    #[test]
+    fn ils_uses_the_nearest_lineup_in_2d() {
+        let mut far = base(270.0);
+        far.lineup = [50000.0, 2000.0, 100.0];
+        let b = [far, base(90.0)];
+        let (loc, _) = ils(&b, [-2000.0, 2000.0, 400.0]).unwrap();
+        assert!(loc.abs() < 1e-4);
+        assert!(ils(&[], [0.0; 3]).is_none());
     }
 }

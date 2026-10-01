@@ -383,6 +383,18 @@ impl IafFlight {
         self.ap.as_ref().map_or("none".into(), |ap| ap.stage()).as_str().into()
     }
 
+    /// The HUD ILS deviations in degrees (x = localizer, y = glideslope; `iaf_flight::airbase::ils`, docs/cockpit.md
+    /// "ILS") from the airbases of `ap_setup`; ZERO without them.
+    #[func]
+    fn ils(&self) -> Vector2 {
+        let (Some(ap), Some(ac)) = (&self.ap, &self.aircraft) else { return Vector2::ZERO };
+        let p = ac.state().position;
+        match iaf_flight::airbase::ils(&ap.bases, [p[0] as f32, p[1] as f32, p[2] as f32]) {
+            Some((loc, gs)) => Vector2::new(loc.to_degrees(), gs.to_degrees()),
+            None => Vector2::ZERO,
+        }
+    }
+
     /// The current waypoint index (brain +0x88).
     #[func]
     fn ap_waypoint_index(&self) -> i64 {
