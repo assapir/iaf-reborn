@@ -79,7 +79,7 @@ func system_damage(n: int) -> void:
 		1:
 			host.damage_light(6, false)  # ECM light off, ECM off (+0x188 = 1, +0x1b8 = 0)
 		6:
-			host.damage_light(8, false)  # autopilot off (FM motion 0xf)
+			host.damage_autopilot()  # autopilot lamp off, FM motion 0xf (0)
 		7:
 			host.damage_gear()  # all three legs 1 (red) for good
 		14:

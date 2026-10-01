@@ -89,7 +89,9 @@ func _draw() -> void:
 			draw_string(font, Vector2(x - 4 * s, top + 6 * s), label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, cockpit.hud_colour())
 	draw_string(font, Vector2(4 * s, size.y / 2), "%3d" % int(st.speed_kt), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, cockpit.hud_colour())
 	draw_string(font, Vector2(size.x - 30 * s, size.y / 2), "%5d" % int(st.alt_ft), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, cockpit.hud_colour())
-	draw_string(font, Vector2(4 * s, size.y - 14 * s), "G %.1f" % st.g, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, cockpit.hud_colour())
+	# The autopilot replaces the G readout (FUN_0052efd3: ctl+0x974 1 / 2).
+	var g_text: String = ["G %.1f" % st.g, "AP LVL", "AP NAV"][clampi(int(st.get("ap_mode", 0)), 0, 2)]
+	draw_string(font, Vector2(4 * s, size.y - 14 * s), g_text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, cockpit.hud_colour())
 	draw_string(font, Vector2(4 * s, size.y - 5 * s), "M %.2f" % st.mach, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, cockpit.hud_colour())
 
 

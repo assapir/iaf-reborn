@@ -145,6 +145,8 @@ var jet_gone := false
 var fm_stopped := false
 ## Camera shake of a hit (FM motion 0xd): amplitude, decays (ours: the FM shake is not traced).
 var _shake := 0.0
+## The player's autopilot and waypoint sequencing (game/controls/autopilot.gd, docs/autopilot.md).
+var autopilot: RefCounted
 
 
 func _ready() -> void:
@@ -701,6 +703,14 @@ func damage_light(i: int, on: bool) -> void:
 	cockpit.indicators[i] = on
 
 
+## Autopilot damage (system 6): lamp off, the loop stopped (game/controls/autopilot.gd).
+func damage_autopilot() -> void:
+	if autopilot != null:
+		autopilot.damaged()
+	else:
+		cockpit.indicators[8] = false
+
+
 ## Gear damage (7): all three legs show "in transit" for good and the lever no longer moves them.
 func damage_gear() -> void:
 	gear_legs = [1, 1, 1]
@@ -803,7 +813,8 @@ func _load_route(mission: Dictionary, player_id: int) -> void:
 			# Waypoints moved on the TSD replace the mission's positions.
 			if i < Settings.route_override.size():
 				w = Settings.route_override[i]
-			route.append({"name": names.get(int(p[0]), ""), "world": w})
+			route.append({"name": names.get(int(p[0]), ""), "world": w, "alt": float(p[3]), "t": float(p[4]),
+				"action": int(p[5])})
 		return
 
 
@@ -841,6 +852,22 @@ func _start_flight() -> void:
 	flight.set_invulnerable(Settings.invulnerable)
 	flight.set_no_crashes(Settings.no_crashes)
 	flight.set_unlimited_fuel(Settings.unlimited_fuel)
+	_setup_autopilot(install)
+
+
+## The player's autopilot runs the AI's control loops on this jet: [Autopilot] of bd.ibx, the airbases, the
+## terrain and the player's route ([X, Y, alt, T, action] per waypoint).
+func _setup_autopilot(install: String) -> void:
+	flight.ap_setup(install, terrain.world_origin.x, terrain.world_origin.y)
+	flight.ap_set_ground(func(pos: Vector3):
+		var g = terrain.height_at(pos)
+		return float(g) if g != null else -1.0e9)
+	var pts := PackedFloat64Array()
+	for w in route:
+		pts.append_array([w.world.x, w.world.y, w.get("alt", 0.0), w.get("t", 0.0), w.get("action", 0)])
+	flight.ap_set_route(pts)
+	autopilot = preload("res://controls/autopilot.gd").new(self)
+	autopilot.start(start_airborne)
 
 
 ## The player's jet was destroyed (landing check, water): like the original's player death, the
@@ -980,6 +1007,16 @@ func _throttle_event() -> void:
 		flight.set_controls(stick.x, stick.y, rudder, throttle, flaps, gear_down, brakes)
 
 
+## The flaps lever (GEV 0xc): refused while the flaps are damaged; 2 s per step.
+func _flaps_lever() -> void:
+	if player_damage.flags[4]:
+		return
+	flaps = 0.0 if flaps > 0.0 else 1.0
+	if flaps_state != 1:
+		flaps_state = 1
+		flaps_timer = FLAPS_STEP_TIME
+
+
 ## The gear lever (docs/flight-model.md §12): raising it is ignored on the ground, lowering it
 ## is refused above 300 kt true airspeed; both silently.
 func _toggle_gear() -> void:
@@ -1053,26 +1090,31 @@ func _command(cmd: Array) -> bool:
 		2, 3, 10:
 			return true  # roll / pitch / rudder: held keys, polled in _read_controls
 		9:
-			# Throttle presets 1-8: GEV 9 -> motion 2 with p1 * 0.01 (FUN_0044e470).
+			# Throttle presets 1-8: GEV 9 -> motion 2 with p1 * 0.01 (FUN_0044e470); dropped in AP NAV.
+			if autopilot != null and not autopilot.throttle_allowed():
+				return true
 			throttle = p1 * 0.01
 			_throttle_event()
 		5:
 			# "RPM + 5": throttle +0.0925 only if it stays <= 1 (events 3/4, docs/flight-model.md §8).
+			if autopilot != null and not autopilot.throttle_allowed():
+				return true
 			var cur: float = flight.state().throttle if flight != null else throttle
 			if cur + 0.0925 <= 1.0:
 				throttle = cur + 0.0925
 			_throttle_event()
 		6:
+			if autopilot != null and not autopilot.throttle_allowed():
+				return true
 			var cur: float = flight.state().throttle if flight != null else throttle
 			throttle = maxf(cur - 0.0925, 0.0)
 			_throttle_event()
 		12:
-			if player_damage.flags[4]:
-				return true  # flaps damaged: GEV 0xc refused
-			flaps = 0.0 if flaps > 0.0 else 1.0
-			if flaps_state != 1:
-				flaps_state = 1
-				flaps_timer = FLAPS_STEP_TIME
+			_flaps_lever()
+		16:
+			# Autopilot level / navigation / off (GEV 0x10).
+			if autopilot != null:
+				autopilot.key()
 		14:
 			_toggle_gear()
 		17:
@@ -1126,8 +1168,11 @@ func _command(cmd: Array) -> bool:
 		99:
 			weapons.master_key()
 		101, 102:
-			var n: int = maxi(cockpit.waypoints.size(), 1)
-			cockpit.current_waypoint = posmod(cockpit.current_waypoint + (1 if int(cmd[0]) == 101 else -1), n)
+			var i: int = cockpit.current_waypoint + (1 if int(cmd[0]) == 101 else -1)
+			if autopilot != null:
+				autopilot.set_waypoint(i)
+			else:
+				cockpit.current_waypoint = posmod(i, maxi(cockpit.waypoints.size(), 1))
 		123:
 			# Change HUD color (event 0x7b): next of the 11 table colours.
 			cockpit.hud_colour_index = (cockpit.hud_colour_index + 1) % 11
@@ -1197,6 +1242,8 @@ func _process(delta: float) -> void:
 		# A fatally hit jet leaves the flight model (frozen by FUN_005a6510) for the destruction
 		# motion, which the mission runtime drives (mission_player_fall).
 		if not frozen and not waiting_for_ground and not fm_stopped:
+			if autopilot != null and not ejected and not fatal_hit:
+				autopilot.update(Vector2(terrain.world_origin.x + rig.position.x, terrain.world_origin.y - rig.position.z))
 			flight.step(delta)
 		var st: Dictionary = flight.state()
 		if ejected:
@@ -1221,6 +1268,7 @@ func _process(delta: float) -> void:
 				weapons.update(_sim_time)
 		g_effects.g = st.g
 		g_effects.over_g = st.over_g
+		cockpit.state["ap_mode"] = autopilot.mode if autopilot != null and cockpit.indicators[8] else 0
 		cockpit.state["world"] = Vector2(terrain.world_origin.x + rig.position.x, terrain.world_origin.y - rig.position.z)
 		cockpit.hud.velocity_dir = st.velocity.normalized() if st.velocity.length() > 1.0 else null
 	if aircraft != null:
@@ -1264,7 +1312,9 @@ func _read_controls(_delta: float) -> void:
 	if fatal_hit:
 		return  # control mode 0: the keys no longer move the stick
 	if scripted_stick != null:
-		stick = scripted_stick
+		# A held test stick acts like a joystick: within ±51 % the autopilot keeps the stick.
+		if autopilot == null or autopilot.stick_event(scripted_stick):
+			stick = scripted_stick
 		if scripted_rudder != null:
 			rudder = scripted_rudder
 		return
@@ -1276,13 +1326,21 @@ func _read_controls(_delta: float) -> void:
 			continue
 		_key_was_held[i] = now_held
 		var cmd: Array = keys.records[i].press if now_held else keys.records[i].release
+		# The keys rewrite roll / pitch into one stick event with the other axis's last value; the autopilot
+		# may drop it or go off (game/controls/autopilot.gd).
+		var kb: Vector2 = autopilot.kb_stick if autopilot != null else stick
 		match int(cmd[0]):
 			2:
-				stick.x = clampf(cmd[1] * 0.01, -1.0, 1.0)
+				kb.x = clampf(cmd[1] * 0.01, -1.0, 1.0)
 			3:
-				stick.y = clampf(-cmd[2] * 0.01, -1.0, 1.0)
+				kb.y = clampf(-cmd[2] * 0.01, -1.0, 1.0)
 			10:
 				rudder = clampf(cmd[1] * 0.01, -1.0, 1.0)
+				if autopilot != null:
+					autopilot.rudder_event(rudder)
+				continue
+		if autopilot == null or autopilot.stick_event(kb):
+			stick = kb
 
 
 ## The mission's landed handler (FUN_00440f90, called by the flight model at each gear-down touchdown that
@@ -1320,6 +1378,8 @@ func _eject_key() -> void:
 ## flight or camera, straight to the end (the original jumps to its in-flight TSD, not built here).
 func _eject() -> void:
 	ejected = true
+	if flight != null:
+		flight.ap_player_mode(0, 0)  # FM motion 0xf (0): the autopilot loop stops (the lamp is not touched)
 	_eject_t0 = _sim_time
 	print("player ejected")
 	var st: Dictionary = flight.state() if flight != null else {}

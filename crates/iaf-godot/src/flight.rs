@@ -315,10 +315,13 @@ impl IafFlight {
         self.ap.as_ref().map_or(0, |ap| ap.mode() as i64)
     }
 
-    /// Runs the control loop's tick when due (call before `step`).
+    /// Runs the control loop's tick when due (call before `step`). Returns the commands the tick posted (keys
+    /// stick_x / stick_y (pull +), throttle, rudder, gear_down, flaps, brakes, ap_key; absent = not posted), which
+    /// the player's host mirrors on its levers (docs/autopilot.md).
     #[func]
-    fn ap_step(&mut self, _now: f64) {
-        let (Some(ap), Some(ac)) = (&mut self.ap, &mut self.aircraft) else { return };
+    fn ap_step(&mut self, _now: f64) -> VarDictionary {
+        let mut d = VarDictionary::new();
+        let (Some(ap), Some(ac)) = (&mut self.ap, &mut self.aircraft) else { return d };
         let ground = self.ground.clone();
         let g = move |x: f64, y: f64| -> f32 {
             match &ground {
@@ -326,7 +329,45 @@ impl IafFlight {
                 None => 0.0,
             }
         };
-        ap.step(ac, &g);
+        let o = ap.step(ac, &g);
+        if let Some((y, x)) = o.stick {
+            d.set("stick_x", x);
+            d.set("stick_y", -y);
+        }
+        if let Some(t) = o.thr {
+            d.set("throttle", t);
+        }
+        if let Some(r) = o.rudder {
+            d.set("rudder", r);
+        }
+        if let Some(g) = o.gear {
+            d.set("gear_down", g);
+        }
+        if let Some(f) = o.flaps {
+            d.set("flaps", f);
+        }
+        if let Some(b) = o.brakes {
+            d.set("brakes", b);
+        }
+        if o.ap_key {
+            d.set("ap_key", true);
+        }
+        d
+    }
+
+    /// The player's autopilot (FM motion 0xf, `5a1e40`): 0 off, 1 level, 2 NAV to route waypoint `wp` (GoHome and
+    /// the landing when its action is 7). Needs `ap_setup` and the route.
+    #[func]
+    fn ap_player_mode(&mut self, mode: i64, wp: i64) {
+        if let (Some(ap), Some(ac)) = (&mut self.ap, &mut self.aircraft) {
+            ap.player_mode(ac, mode.clamp(0, 2) as u8, wp.max(0) as usize);
+        }
+    }
+
+    /// The control loop the player's autopilot runs, for logs and tests ("none" when off).
+    #[func]
+    fn ap_stage(&self) -> GString {
+        self.ap.as_ref().map_or("none".into(), |ap| ap.stage()).as_str().into()
     }
 
     /// The current waypoint index (brain +0x88).
