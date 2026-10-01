@@ -571,6 +571,113 @@ func _tone(kind: String) -> void:
 			set(pair[1], null)
 
 
+# --- chaff and flares (events 0x44 / 0x45, docs/weapons.md §10) ------------------------------------
+
+## A decoy lives 4.0 s after its release (FUN_004d7690: the end time of types 0x21c / 0x226 is capped
+## at 4.0, _DAT_00605120); its pool object is busy until then.
+const DECOY_LIFE := 4.0
+## Decoys in the air: {type, r (round record of the decoy motion), end, node}.
+var decoys: Array = []
+## Per type: the fixed-weapon motion (gun_rounds.gd configured with weapons.ibx 540 / 550) and the
+## ring pool of `_maxNumInAir` (15) end times.
+var _decoy_motion := {}
+var _decoy_pool := {}
+var _decoy_next := {}
+
+
+## Insert / Delete (events 0x44 chaff / 0x45 flare, FUN_0044a240): refused with the gear handle down
+## (no Safety override) or weapon systems damage (flag 20); then one decoy (FUN_004545e0(0x21c / 0x226,
+## 0, 0)). No repeat, no program, no busy timer: only the pool limits the rate.
+func dispense(type: int) -> bool:
+	if host.gear_down or _flag(20):
+		return false
+	var i := 10 if type == Stores.CHAFF else 11
+	if not stores.stations.has(i) or stores.displayed(i) == 0:
+		return false  # no message, no sound
+	var st: Dictionary = stores.station(i)
+	var w: Dictionary = st.w
+	if not _decoy_motion.has(type):
+		var m: Dictionary = db.motion_for(type, 0).duplicate()
+		m.merge(w.get("motion", {}), true)
+		var g := GunRounds.new()
+		g.configure(m)
+		_decoy_motion[type] = g
+		_decoy_pool[type] = []
+		for k in maxi(int(m.get("_maxNumInAir", 15)), 1):
+			_decoy_pool[type].append(-INF)
+		_decoy_next[type] = 0
+	var g: RefCounted = _decoy_motion[type]
+	var k: int = _decoy_next[type]
+	if now < float(_decoy_pool[type][k]):
+		return false  # that pool object is still alive (w+0x48)
+	_decoy_next[type] = (k + 1) % _decoy_pool[type].size()
+	_decoy_pool[type][k] = now + DECOY_LIFE
+	# Release point: the station (StationCha / StationFla) through the attitude; aim point: the
+	# _fireEndVec in body axes (0, -200, -10: 200 m aft, 10 m below; composition UNCERTAIN).
+	var o := own()
+	var p0 := body_to_world(st.attach)
+	var m2: Dictionary = db.motion_for(type, 0)
+	var fe := Vector3(m2.get("_fireEndVecX", 0.0), m2.get("_fireEndVecY", -200.0), m2.get("_fireEndVecZ", -10.0))
+	var a: Vector3 = p0 + o.right * fe.x + o.fwd * fe.y + o.up * fe.z
+	# The fixed-weapon flight (FUN_005605c0 -> FUN_0047a1e2, as a gun round): |V| + velocityJump along
+	# the line to A, decelerating at 50 m/s², then at A. No hit sphere (_spiralAccel 0): no damage.
+	var s: float = o.vel.length() + g.velocity_jump
+	var d := a - p0
+	var dist := d.length()
+	var r := {"p0": p0, "u": d / dist if dist > 0.0 else -o.fwd, "s": s, "t0": now, "A": a,
+		"t_end": now + g._flight_time(s, dist)}
+	var node := _decoy_visual(type)
+	decoys.append({"type": type, "r": r, "end": now + DECOY_LIFE, "node": node})
+	stores.consume(i)
+	var ost := "OST_CHAFF" if type == Stores.CHAFF else "OST_FLARE"
+	_place_sound(host.sounds.play("SFX_AIRCRAFT_FIRED_WEAPON", ost), p0)
+	_decoy_effect(type)
+	return true
+
+
+## The decoy rule (FUN_00454b70, cases 0x21c / 0x226) acts on the missiles launched at the jet (its
+## RWR missile list): none exist until the enemies fire (docs/weapons.md §10).
+func _decoy_effect(_type: int) -> void:
+	pass
+
+
+## The decoy's look is UNCERTAIN (bdb model 0): ours draws a flare as a small bright glow, chaff
+## not at all.
+func _decoy_visual(type: int) -> Node3D:
+	if type != Stores.FLARE:
+		return null
+	var mi := MeshInstance3D.new()
+	var q := QuadMesh.new()
+	q.size = Vector2(3, 3)
+	mi.mesh = q
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	mat.albedo_color = Color(1.0, 0.85, 0.5)
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	host.add_child(mi)
+	return mi
+
+
+func _update_decoys() -> void:
+	for dc in decoys.duplicate():
+		var node: Node3D = dc.node
+		if now >= dc.end:
+			decoys.erase(dc)
+			if node != null:
+				node.queue_free()
+			continue
+		if node != null:
+			node.position = to_scene(decoy_position(dc))
+
+
+## A decoy's world position now (at A after its flight; UNCERTAIN what it does until the 4 s end).
+func decoy_position(dc: Dictionary) -> Vector3:
+	return _decoy_motion[dc.type].position(dc.r, now)
+
+
 # --- every frame ------------------------------------------------------------------------------------
 
 ## Advances the weapons to sim time `t`.
@@ -581,6 +688,7 @@ func update(t: float) -> void:
 		_gun_next += GUN_PERIOD
 	gun.update(now)
 	_update_missiles()
+	_update_decoys()
 	if hud_mode == 1:
 		var st: Dictionary = stores.station(stores.cur)
 		seeker.update(now, own(), _units(), int(st.get("w", {}).get("type", 0)), stores.total(stores.current_type(), stores.current_name()) > 0)
@@ -665,6 +773,7 @@ func _publish() -> void:
 		"hud_mode": hud_mode, "master": master, "stations": list, "selected": stores.cur,
 		"name": stores.current_name(), "type": t, "total": stores.total(t, stores.current_name()),
 		"ready": not mal, "srm": srm, "mrm": mrm, "gun": stores.displayed(9),
+		"chaff": stores.displayed(10), "flares": stores.displayed(11),
 		"quantity": 1, "interval": 10, "seeker": seeker.symbol, "lock": seeker.lock,
 		"have_missiles": stores.total(t, stores.current_name()) > 0, "circle": 5.0,
 		"pipper": pip, "pipper_world": hud_mode == 4, "firing": firing,

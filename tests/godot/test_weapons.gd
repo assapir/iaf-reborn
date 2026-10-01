@@ -168,6 +168,27 @@ func run() -> void:
 			check(w2.stores.fm_di_right < di0 and w2.stores.displayed(4) == 0, "jettison: the tank left station E, drag dropped")
 		w2.queue_free()
 	Settings().better["fix_stores_weight"] = false
+	# Chaff / flares (Insert / Delete, events 0x44 / 0x45): one decoy per press from stations 10 / 11,
+	# behind the jet, gone 4 s later; refused with the gear handle down.
+	var ch0: int = w.stores.displayed(10)
+	var fl0: int = w.stores.displayed(11)
+	check(ch0 == 90 and fl0 == 60, "F-16: 90 chaff, 60 flares")
+	check(w.dispense(550) and w.dispense(540), "flare and chaff released")
+	check(w.stores.displayed(11) == fl0 - 1 and w.stores.displayed(10) == ch0 - 1, "counts -1")
+	var own0: Dictionary = w.own()
+	t += 1.0
+	w.update(t)
+	check(tv.cockpit.weapons.get("flares", -1) == fl0 - 1, "panel counter fed")
+	var fl: Dictionary = w.decoys.filter(func(d): return d.type == 550)[0]
+	var behind: float = (w.decoy_position(fl) - own0.pos).dot(own0.fwd)
+	# The test jet is held still: the flare leaves at |V| + 10 m/s toward the point 200 m aft.
+	check(behind < -5.0, "the flare goes aft (%.0f m along the nose)" % behind)
+	t += 3.5
+	w.update(t)
+	check(w.decoys.is_empty(), "decoys end after 4 s")
+	tv.gear_down = true
+	check(not w.dispense(550), "no flares with the gear handle down")
+	tv.gear_down = false
 	# M cycles the master modes: AA -> AG -> NAV.
 	w.master_key()
 	w.master_key()

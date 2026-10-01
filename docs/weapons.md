@@ -5,11 +5,11 @@ How Jane's IAF v1.1 arms the player's jet and how iaf-reborn ports it (`game/wea
 seconds. `ctl` = the player controller (`this` of the GEV handler `FUN_0044a240`), `W` = its weapon system
 `ctl+0xf0`, `C` = the station container `ctl+0xfc` (= `W+0xc`), `S` = the flight-model state.
 
-Built: the stores (loadout incl. the Arming screen's, pylons, selection, release, weight / drag, fuel tanks and their jettison), the master /
+Built: chaff / flares (§10), the stores (loadout incl. the Arming screen's, pylons, selection, release, weight / drag, fuel tanks and their jettison), the master /
 HUD modes, the gun (trigger, rounds, hits, muzzle flash, sounds, LCOS / strafe pippers), the IR seeker and the IR
 missiles (types 570 / 580), the weapon HUD text and symbols, the stores MFD page. Not built yet: bombs (CCIP / CCRP,
 ripple quantity / interval, the bombs jettison), rockets, radar missiles and the radar lock (so the seeker is never
-"slaved", no DLZ), HARM, TV / laser weapons, chaff / flares (and so the flare decoy), the AI's weapons, AAA.
+"slaved", no DLZ), HARM, TV / laser weapons, the decoys' effect on missiles, the AI's weapons, AAA.
 
 ## 1. Data
 
@@ -299,6 +299,39 @@ Types 500 / 510 / 560 / 650 share the release path ("bomb types", `FUN_00457bc0`
   1000, limitDist 6000, velocityJump 100, no `_spiralAccel` (hit sphere 0). UNCERTAIN (original bug?): the setter
   writes the ballistic layout into a rocket's fixed-motion state (aim (0, 6000, 100)).
 - **Untraced**: rocket pods ("Rocket box", `RocketBoxScale`).
+## 10. Chaff and flares
+**Built** (player): keys, release, counters, the decoy flight. **Not yet**: the decoy effect on missiles (no enemy
+missiles exist yet), ECM.
+- **Keys** (`FUN_0044a240`): Insert = event 0x44 chaff, Delete = 0x45 flare. Refused with the gear handle down (no
+  Safety override) or weapon systems damage (flag 20); then `FUN_004545e0(0x21c / 0x226, 0, 0)`. One press = one
+  decoy: no repeat, no program, no busy timer (the AI uses the same call with p4 = 1 and its brain busy flag).
+- **Release**: station 10 (chaff, bdb 33) / 11 (flares, bdb 34), counts from the type's loadout slots 10 / 11 (F-16 90
+  / 60), never ×2 / ×4, decremented even with Unlimited ammo; count 0 → nothing (no message, no sound). The next object
+  of the station's ring pool (`_maxNumInAir` 15) must not be alive, so at most 15 decoys per type per 4 s; a refused
+  press is silent. Release point: the station (StationCha / StationFla) through the attitude.
+- **Flight** (fixed-weapon class, `FUN_004d7630` → `FUN_005605c0` → `FUN_0047a1e2`, the gun round's model): aim point
+  A = release point + attitude·`_fireEndVec` (0, −200, −10): 200 m aft, 10 m below (composition UNCERTAIN); speed |V|
+  + `_velocityJump` 10 along the line to A, decelerating at 50 m/s² (`_limitVel` 5): ≈ 0.85 s at 250 m/s. No hit
+  sphere (`_spiralAccel` 0). Ends **4.0 s** after release (`FUN_004d7690`, the end time of 0x21c / 0x226 capped at
+  4.0, `_DAT_00605120`); between reaching A and 4 s ours holds it at A (UNCERTAIN).
+- **Sounds**: SFX_AIRCRAFT_FIRED_WEAPON / OST_CHAFF, OST_FLARE (WPN_RDRMIS_RLS); the end sound SFX_WEAPON_EXPLODED
+  (WpnMiss) is in the table but its call site is UNCERTAIN (not played). **Look** UNCERTAIN (bdb model 0): ours draws a
+  flare as a small bright glow, chaff nothing.
+- **Panel counters** (`FUN_0052eab0`): "%03d" of stations 10 / 11 at `[CHAFF]` / `[FLARE]` OffX / OffY, Arial h10
+  w5, pale yellow RGB(255, 255, 179) (docs/cockpit.md).
+- **Decoy rule** (`FUN_00454b70`, cases 0x21c @455775 / 0x226 @455968; decided once at the release): candidates = the
+  releasing jet's RWR list of missiles launched at it (`FUN_00452160`; a missile is added at its launch unless RWR
+  damage flag 14 is set — with RWR damage decoys fool nothing). For each missile in list order: skip one already
+  chasing a decoy; chaff only fools 600 / 610 / 630, flares 570 / 580 / 620; r = rand()/32767; chaff p = (g > 4.0 ?
+  0.3 : 0.1) (0x600f18, 0x600f28, 0x600f0c); flare p = afterburner on ? 0 : (g > 4.0 ? 0.5 : 0.33) (0x600f04,
+  0x600f44); r > p **ends the whole scan** (quirk: one resisting missile protects the later ones); else the missile
+  chases the decoy (`FUN_004d83c0` → `FUN_005622e0`, q 1.0). No generation or range test. Bearing gates against
+  doubles 6302.5 / 4010.7 / 5156.6 are dead (the bearing is in radians). When the decoy ends (`FUN_004d8160`) the RWR
+  entry is dropped; what the missile does then is UNCERTAIN.
+- **ECM** (event 0x46, LIGHT006, ctl+0x1b8; refused with ECM damage flag 1): switching on (`FUN_004582f0`, needs an
+  ECM fitted: W+0xcc or a station named "ECM") jams, once, each missile of type 600 / 610 in the RWR list, not decoyed,
+  still flying, with rand < 0.6 (0x600f68): its motion +0x148 = 1 (guidance off, UNCERTAIN). No effect on SAMs.
+
 ## UNCERTAIN
 Candidate order of the spatial query; event 0x4e (pre-explosion) receiver; hit effects look; tracer look; muzzle flash
 scale / blend / cockpit visibility; the MFD page placement for weapon modes (taken as event 0x5a's rule); the missile

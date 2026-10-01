@@ -1097,6 +1097,10 @@ func _command(cmd: Array) -> bool:
 			weapons.gun_key()
 		72:
 			weapons.jettison()
+		68:
+			weapons.dispense(540)  # chaff (event 0x44)
+		69:
+			weapons.dispense(550)  # flare (event 0x45)
 		98:
 			weapons.nav_key(p1)
 		99:

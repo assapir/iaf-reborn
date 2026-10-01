@@ -65,6 +65,7 @@ var _handle_ms := 0.0
 ## 12 px Arial and the HUD colour (FUN_005201b0).
 var subtitles: Array[String] = []
 var _console_font: SystemFont
+var _counter_font: SystemFont
 var _console_squeeze := 1.0
 ## How far the panel is raised: 0 = forward view (original MainOffsetY), 1 = full panel
 ## ("panel down" view). `panel_target` is where it is sliding to.
@@ -271,6 +272,7 @@ func _draw() -> void:
 		draw_string(font, panel_to_screen(fuel.OffsetX, fuel.OffsetY + 9), "%05d" % int(state.fuel_lbs),
 				HORIZONTAL_ALIGNMENT_LEFT, -1, int(11 * s), col)
 
+	_draw_decoy_counters(s)
 	_draw_console()
 	if tex.has("HUD"):
 		var h: Dictionary = layout.HUD
@@ -296,6 +298,23 @@ func _draw_weapon_line(s: float) -> void:
 	var at := centre + Vector2(-float(h.get("TxtOffX", 82)), float(h.get("TxtOffY", 48)) + 2 * 7 + 6) * s
 	var font: Font = hud.hud_font if hud.hud_font != null else get_theme_default_font()
 	draw_string(font, at, line, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, hud_colour())
+
+
+## Chaff / flare counters (FUN_0052eab0): "%03d" of stores stations 10 / 11 at [CHAFF] / [FLARE]
+## OffX / OffY (default 36 / 36), Arial h10 w5, pale yellow 0xb3ffff = RGB(255, 255, 179), top-left.
+func _draw_decoy_counters(s: float) -> void:
+	if weapons.is_empty():
+		return
+	if _counter_font == null:
+		_counter_font = Img.arial()
+	var fs := int(round(10.0 / 1.15 * s))
+	if fs < 1:
+		return
+	for pair in [["CHAFF", "chaff"], ["FLARE", "flares"]]:
+		var c: Dictionary = layout.get(pair[0], {})
+		var at := panel_to_screen(float(c.get("OffX", 36)), float(c.get("OffY", 36)))
+		draw_string(_counter_font, at + Vector2(0, _counter_font.get_ascent(fs)), "%03d" % int(weapons.get(pair[1], 0)),
+				HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color8(255, 255, 179))
 
 
 func _draw_console() -> void:
