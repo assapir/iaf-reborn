@@ -158,13 +158,11 @@ func _draw() -> void:
 		ADI:
 			_draw_adi()
 		HARM:
-			_tile(TILE_BLANK)
-			_text(Vector2(17, 3), "harm")
-			_text_right(114, 3, "no source")
+			_draw_harm()
 		FLIR:
-			_tile(TILE_FLIR)
+			_draw_flir()
 		TV:
-			_tile(TILE_BLANK)
+			_draw_tv()
 	draw_set_transform(Vector2.ZERO)
 
 
