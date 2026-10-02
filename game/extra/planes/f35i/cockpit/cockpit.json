@@ -4,7 +4,7 @@
  "image_scale": 4,
  "PANEL": {
   "FileName": "f35panel.bmp",
-  "MainOffsetY": 150.0,
+  "MainOffsetY": 190.0,
   "PanelHeight": 352.0,
   "MaskOffsetY1": 288.0,
   "MaskOffsetY2": 93.0,
@@ -31,11 +31,11 @@
   "OFFSET15": 187.0
  },
  "HUD": {
-  "BorePositionY": 95.0,
+  "BorePositionY": 112.1,
   "BottomBorder": 60.0,
-  "CenterY": 48.0,
+  "CenterY": 65.1,
   "Dash": 1.0,
-  "GunRetPositionY": 100.0,
+  "GunRetPositionY": 107.1,
   "Height": 182.0,
   "LeftBorder": 69.0,
   "MaskOffsetX": 56.0,
@@ -51,27 +51,27 @@
  "MFD": {
   "Portals": [
    [
-    671.13,
-    68.63,
-    0.9146,
+    706.22,
+    17.64,
+    0.9613,
     2
    ],
    [
-    824.13,
-    68.63,
-    0.9146,
+    833.12,
+    17.64,
+    0.9613,
     3
    ],
    [
-    977.13,
-    68.63,
-    0.9146,
+    960.01,
+    17.64,
+    0.9613,
     1
    ],
    [
-    1130.13,
-    68.63,
-    0.9146,
+    1086.9,
+    17.64,
+    0.9613,
     7
    ]
   ]
@@ -80,32 +80,32 @@
   "Active": 1.0,
   "FileName": "F16adi.bmp",
   "CenterX": 960.0,
-  "CenterY": 321.0,
+  "CenterY": 311.4,
   "Factor": 15.0,
-  "Radius": 22.0
+  "Radius": 26.0
  },
  "FUELDIGITAL": {
   "Active": 1.0,
   "ColorR": 64.0,
   "ColorG": 200.0,
   "ColorB": 40.0,
-  "OffsetX": 668.0,
-  "OffsetY": 226.0
+  "OffsetX": 722.9,
+  "OffsetY": 187.1
  },
  "CHAFF": {
-  "OffX": 1186.0,
-  "OffY": 222.0
+  "OffX": 1173.1,
+  "OffY": 183.1
  },
  "FLARE": {
-  "OffX": 1186.0,
-  "OffY": 236.0
+  "OffX": 1173.1,
+  "OffY": 195.1
  },
  "TEXTMESSAGE": {
-  "LengthChar": 24.0,
-  "OffsetX1": 820.0,
-  "OffsetY1": 222.0,
-  "OffsetX2": 820.0,
-  "OffsetY2": 236.0
+  "LengthChar": 30.0,
+  "OffsetX1": 775.7,
+  "OffsetY1": 183.1,
+  "OffsetX2": 775.7,
+  "OffsetY2": 195.1
  },
  "HORIZON": {
   "ClockCenterX": 1100.0,
@@ -177,128 +177,128 @@
   "Radius": 10.0
  },
  "LIGHTSON": {
-  "FileName": "f35lights.bmp",
-  "Width": 120.0,
-  "Height": 190.0,
+  "FileName": "Lights4.bmp",
+  "Height": 278.0,
+  "Width": 74.0,
   "NightRScale": 1.0,
   "NightGScale": 1.0,
-  "NightBScale": 1.0
+  "NightBScale": 2.0
  },
  "LIGHT000": {
   "Active": 1.0,
-  "Left": 0.0,
+  "Left": 21.0,
   "Top": 0.0,
-  "Right": 44.0,
-  "Bottom": 12.0,
-  "OffsetX": 1294.0,
-  "OffsetY": 54.0
+  "Right": 74.0,
+  "Bottom": 53.0,
+  "OffsetX": 1252.0,
+  "OffsetY": 27.5
  },
  "LIGHT001": {
   "Active": 1.0,
-  "Left": 0.0,
-  "Top": 24.0,
-  "Right": 44.0,
-  "Bottom": 36.0,
-  "OffsetX": 1294.0,
-  "OffsetY": 74.0,
+  "Left": 21.0,
+  "Top": 106.0,
+  "Right": 62.0,
+  "Bottom": 148.0,
+  "OffsetX": 1265.5,
+  "OffsetY": 107.6,
   "Blink": 1.0
- },
- "LIGHT003": {
-  "Active": 1.0,
-  "Left": 0.0,
-  "Top": 48.0,
-  "Right": 44.0,
-  "Bottom": 60.0,
-  "OffsetX": 1294.0,
-  "OffsetY": 94.0
- },
- "LIGHT004": {
-  "Active": 1.0,
-  "Left": 0.0,
-  "Top": 72.0,
-  "Right": 44.0,
-  "Bottom": 84.0,
-  "OffsetX": 1294.0,
-  "OffsetY": 114.0
- },
- "LIGHT005": {
-  "Active": 1.0,
-  "Left": 0.0,
-  "Top": 96.0,
-  "Right": 44.0,
-  "Bottom": 108.0,
-  "OffsetX": 1294.0,
-  "OffsetY": 134.0
- },
- "LIGHT006": {
-  "Active": 1.0,
-  "Left": 0.0,
-  "Top": 120.0,
-  "Right": 44.0,
-  "Bottom": 132.0,
-  "OffsetX": 1294.0,
-  "OffsetY": 154.0
- },
- "LIGHT008": {
-  "Active": 1.0,
-  "Left": 0.0,
-  "Top": 144.0,
-  "Right": 44.0,
-  "Bottom": 156.0,
-  "OffsetX": 1294.0,
-  "OffsetY": 174.0
  },
  "LIGHT002": {
   "Active": 0.0
  },
+ "LIGHT003": {
+  "Active": 1.0,
+  "Left": 0.0,
+  "Top": 258.0,
+  "Right": 18.0,
+  "Bottom": 263.0,
+  "OffsetX": 1270.0,
+  "OffsetY": 227.9
+ },
+ "LIGHT004": {
+  "Active": 1.0,
+  "Left": 0.0,
+  "Top": 268.0,
+  "Right": 21.0,
+  "Bottom": 273.0,
+  "OffsetX": 1302.7,
+  "OffsetY": 227.9
+ },
+ "LIGHT005": {
+  "Active": 1.0,
+  "Left": 21.0,
+  "Top": 255.0,
+  "Right": 43.0,
+  "Bottom": 260.0,
+  "OffsetX": 1281.8,
+  "OffsetY": 194.8
+ },
+ "LIGHT006": {
+  "Active": 1.0,
+  "Left": 43.0,
+  "Top": 230.0,
+  "Right": 60.0,
+  "Bottom": 235.0,
+  "OffsetX": 1286.0,
+  "OffsetY": 211.3
+ },
  "LIGHT007": {
   "Active": 0.0
  },
- "SLIGHT000": {
+ "LIGHT008": {
   "Active": 1.0,
-  "Left": 48.0,
-  "Top": 0.0,
-  "Right": 58.0,
-  "Bottom": 10.0,
-  "OffsetX": 626.0,
-  "OffsetY": 118.0
- },
- "SLIGHT001": {
-  "Active": 1.0,
-  "Left": 48.0,
-  "Top": 30.0,
-  "Right": 58.0,
-  "Bottom": 40.0,
-  "OffsetX": 619.0,
-  "OffsetY": 134.0
- },
- "SLIGHT002": {
-  "Active": 1.0,
-  "Left": 48.0,
-  "Top": 60.0,
-  "Right": 58.0,
-  "Bottom": 70.0,
-  "OffsetX": 633.0,
-  "OffsetY": 134.0
- },
- "SLIGHT003": {
-  "Active": 1.0,
-  "Left": 48.0,
-  "Top": 96.0,
-  "Right": 82.0,
-  "Bottom": 108.0,
-  "OffsetX": 599.0,
-  "OffsetY": 199.0
+  "Left": 21.0,
+  "Top": 220.0,
+  "Right": 33.0,
+  "Bottom": 225.0,
+  "OffsetX": 1285.2,
+  "OffsetY": 178.6
  },
  "LIGHT009": {
   "Active": 1.0,
-  "Left": 90.0,
+  "Left": 0.0,
   "Top": 0.0,
-  "Right": 114.0,
-  "Bottom": 60.0,
-  "OffsetX": 591.0,
-  "OffsetY": 120.0,
+  "Right": 21.0,
+  "Bottom": 86.0,
+  "OffsetX": 620.4,
+  "OffsetY": 65.5,
   "AnimFrames": 3.0,
-  "AnimTime": 600.0
+  "AnimTime": 100.0
+ },
+ "SLIGHT000": {
+  "Active": 1.0,
+  "Left": 43.0,
+  "Top": 190.0,
+  "Right": 55.0,
+  "Bottom": 201.0,
+  "OffsetX": 683.8,
+  "OffsetY": 38.9
+ },
+ "SLIGHT001": {
+  "Active": 1.0,
+  "Left": 21.0,
+  "Top": 190.0,
+  "Right": 32.0,
+  "Bottom": 200.0,
+  "OffsetX": 671.9,
+  "OffsetY": 54.4
+ },
+ "SLIGHT002": {
+  "Active": 1.0,
+  "Left": 32.0,
+  "Top": 190.0,
+  "Right": 42.0,
+  "Bottom": 200.0,
+  "OffsetX": 694.7,
+  "OffsetY": 54.4
+ },
+ "SLIGHT003": {
+  "Active": 1.0,
+  "Left": 21.0,
+  "Top": 230.0,
+  "Right": 43.0,
+  "Bottom": 235.0,
+  "OffsetX": 674.6,
+  "OffsetY": 91.7
  }
 }

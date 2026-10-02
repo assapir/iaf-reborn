@@ -5,3 +5,4 @@
 *.PTT
 .godot/
 /game/override.cfg
+__pycache__/

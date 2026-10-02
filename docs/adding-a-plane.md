@@ -92,8 +92,14 @@ The glTF must be in the converted models' frame:
 **Glass:** a canopy material with partial alpha is blended (`alphaMode` BLEND). A cut-out or opaque canopy draws
 as a solid blob or bare frame bars.
 
-**Moving surfaces** need the mesh split per part. Renaming, re-pivoting and splitting a downloaded model is manual
-work in Blender. Nothing here automates it.
+**Moving surfaces** need the mesh split per part. `tools/plane/kit.py` (Blender, headless) has the reusable steps:
+`normalise` (size, frame), `bisect` / `extract` (cut a surface out by region along a hinge line), `Rig` (root, parts
+on their hinges, `<part>1/2` helpers, points, glTF export), `bake_skin` (our own textures with baked ambient
+occlusion), `decal` / `text_decal` (markings that follow the surface), `pilot`; and for a cockpit panel `box` /
+`cyl` / `arch`, `cockpit_camera` / `panel_px` (the game's projection), `render_panel`, `portals`, `lamp_sections`
+(the F-16's lamps borrowed with `"Shared"`), `update_cockpit_json`. The plane's own script holds only its data:
+which meshes make which part, the hinge lines, the marking and cockpit positions (`tools/f35i/rig.py`,
+`tools/f35i/cockpit3d.py`).
 
 ### 2.3 The descriptor (automated)
 `iaf-convert plane-describe model.gltf out/<plane> --type N --section NAME --label L`:
@@ -191,9 +197,10 @@ Options:
 - **More than three displays** (e.g. one panoramic screen): `[MFD] Portals` = [[x, y, scale, page], …] (the page's
   top-left in panel px), one MFD node per portal drawn at `scale` (`cockpit.gd` `_create_mfds()`, `mfd.gd` `portal_scale`).
 - **A cockpit in the repo:** a `res://` cockpit dir (`player_aircraft.gd` `EXTRA_COCKPIT`), and `"Shared": "<converted
-  cockpit>"` for the original art it borrows (MFD atlas, RWR symbols, TSD map, ADI ball; `cockpit.gd` `_file()`), since
-  that art cannot be committed. Example: `game/extra/planes/f35i/cockpit/`, panel and lights drawn by
-  `tools/f35i/make_panel.py`.
+  cockpit>"` for the original art it borrows (MFD atlas, RWR symbols, TSD map, ADI ball, the lamps and gear lever;
+  `cockpit.gd` `_file()`), since that art cannot be committed. Reuse the original's pieces first; model and render
+  only what it lacks. Example: `game/extra/planes/f35i/cockpit/`, the panel modelled and rendered by
+  `tools/f35i/cockpit3d.py` with the game's cockpit camera, the F-16's lamps placed on its bays.
 
 ## 5. Weapons
 

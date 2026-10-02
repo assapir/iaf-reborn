@@ -28,7 +28,7 @@
   "height": -1.85,
   "label": "F-35I",
   "model": "f35i.gltf",
-  "name": "out",
+  "name": "f35i",
   "objects": [],
   "parts": {
     "AilerL": {
