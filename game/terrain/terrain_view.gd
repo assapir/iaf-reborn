@@ -160,6 +160,8 @@ var player_flight_number := 0
 var sounds: Node
 var effects: Node3D
 var player_damage: RefCounted
+## The smoke trails (game/mission/trails.gd); null with Graphics SMOKE TRAILS off.
+var trails: Node3D
 ## The player's jet was fatally hit (unit state 3, FUN_004a8100): controls gone, going down.
 var fatal_hit := false
 ## The player's jet exploded in the air (not a crash): it is no longer drawn.
@@ -238,6 +240,10 @@ func _ready() -> void:
 	# OBJECT DETAIL (docs/front-end.md §12.4): the level the model loader and the LOD switch use.
 	Gltf.object_level = Gltf.detail_level(float(Settings.object_detail))
 	# Explosions, debris and smoke (docs/damage.md §6) and the player's systems damage (§5).
+	# SMOKE TRAILS (pref +0x48, FUN_004da090): missile / rocket trails with the motor glow, wingtip vortices.
+	if Settings.smoke_trails:
+		trails = preload("res://mission/trails.gd").new()
+		add_child(trails)
 	effects = preload("res://mission/damage_effects.gd").new()
 	effects.ground_at = func(p: Vector3): return terrain.height_at(p)
 	add_child(effects)
@@ -2013,6 +2019,11 @@ func _process(delta: float) -> void:
 			for k in ["gear", "on_ground", "afterburner", "rpm", "stick_x", "stick_y"]:
 				parts_in[k] = fs[k]
 		aircraft.update(parts_in, delta)
+		# Wingtip vortices (FUN_004da090): while the flight model's S+0x420 is set, one trail per EndWing helper.
+		if trails != null and flight != null and bool(flight.state().get("vortex", false)) and not fm_stopped:
+			var tips: Array = aircraft.wingtips()
+			for i in tips.size():
+				trails.emit(["wingtip", i], tips[i], trails.WINGTIP)
 	_apply_view()
 	var p := rig.position
 	var ground_h = terrain.height_at(p)

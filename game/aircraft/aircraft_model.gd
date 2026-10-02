@@ -202,6 +202,16 @@ func update(input: Dictionary, delta: float) -> void:
 var _chute_state := 0
 
 
+## The EndWingL / R helpers in the world (obj+0x38 / +0x44, set when the model has EndWingR: obj+0x50), the heads
+## of the wingtip vortex trails; empty without them.
+func wingtips() -> Array:
+	var ew: Dictionary = desc.get("end_wing", {}) if desc.get("end_wing") is Dictionary else {}
+	if not (ew.get("left") is Array and ew.get("right") is Array) or root_frame == null:
+		return []
+	return [root_frame.to_global(Vector3(ew.left[0], ew.left[1], ew.left[2])),
+		root_frame.to_global(Vector3(ew.right[0], ew.right[1], ew.right[2]))]
+
+
 ## Ends every ramp at its target at once (posed captures and tests).
 func settle() -> void:
 	for k in ramps:

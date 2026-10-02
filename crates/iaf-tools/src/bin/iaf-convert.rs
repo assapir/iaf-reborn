@@ -126,7 +126,7 @@ fn convert_aircraft(install: &Path, missions: &Path, out: &Path, opts: &Options)
 /// Every model the object databases reference: `.bdb` Present records (`0x64a` model path under
 /// `3dobjects`, e.g. `STATIONARY\FCTRY\FCTRY3_H.X`; objects point at them with `0x53c`).
 /// Writes `<out>/<path>.gltf` and `<out>/objects.json` = {bdb: {present id: gltf path}}, plus the
-/// decoy sprites `<out>/missflr.png` and `<out>/chaff.png`.
+/// decoy sprites `<out>/missflr.png` and `<out>/chaff.png` and the trail sprite `<out>/trail.png`.
 fn convert_objects(install: &Path, missions: &Path, out: &Path, opts: &Options) -> Result<()> {
     let root = install.join("resource/3dobjects");
     let mut index = serde_json::Map::new();
@@ -171,7 +171,8 @@ fn convert_objects(install: &Path, missions: &Path, out: &Path, opts: &Options) 
     std::fs::write(out.join("objects.json"), serde_json::to_string_pretty(&index)?)?;
     // The decoy sprites (docs/weapons.md §10): the burning flare (missFLR.tga, sprite 0xcd) and
     // the chaff pieces' texture (chaff.bmp, sprite 0xce).
-    for (src, dst) in [("missflr.tga", "missflr.png"), ("chaff.bmp", "chaff.png")] {
+    // The trail sprite (trail.tga, 4 frames of 64×32: missile and wingtip trails, docs/damage.md §6.4).
+    for (src, dst) in [("missflr.tga", "missflr.png"), ("chaff.bmp", "chaff.png"), ("trail.tga", "trail.png")] {
         let (img, _) = iaf_tools::gltf::load_texture(&root.join(src))?;
         opts.scaled(img).save(out.join(dst))?;
     }

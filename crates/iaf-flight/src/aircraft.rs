@@ -519,6 +519,9 @@ pub struct Aircraft {
     /// The pilot's systems damage (docs/damage.md §5.2): bit n = damage flag n (controller `+0x3d8+0xc+4n`,
     /// 1..24), read by the flight model through `5bc350` (thrust), `59f3d0` (stick) and `5aab90` (spin).
     pub damage: u32,
+    /// `S+0x420` (§15.1 step 16): 75 < V < 150 m/s and the stick pulled more than 0.7, set at each aero update;
+    /// read by getter 0x14 for the wingtip vortex trails (`FUN_004da090`, docs/damage.md §6.4).
+    pub vortex: bool,
     /// Twin-engine jet (controller +0x24): the left / right engine flags are separate (`5bc350`).
     pub twin: bool,
     /// AI pilot (docs/ai.md, docs/flight-model.md §14/§15 "ai"): the control-loop mode the FM reads through
@@ -688,6 +691,7 @@ impl Aircraft {
             no_crashes: false,
             unlimited_fuel: false,
             damage: 0,
+            vortex: false,
             twin: false,
             ai_mode: 0,
             ai_since: 0.0,
@@ -1383,6 +1387,7 @@ impl Aircraft {
         }
         self.fuel.set(t, 0.0, ff);
         self.fuel_flow = ff;
+        self.vortex = v > 75.0 && v < 150.0 && c.stick_y > 0.7;
         self.rpm.set(t, 100.0 * rpm, RPM_RATE);
     }
 

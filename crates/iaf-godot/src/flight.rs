@@ -534,6 +534,7 @@ impl IafFlight {
         d.set("gear_down", c.gear_down);
         d.set("brakes", c.brakes);
         d.set("engine_on", ac.engine_on);
+        d.set("vortex", ac.vortex);
         d
     }
 }

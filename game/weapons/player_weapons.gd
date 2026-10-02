@@ -793,6 +793,8 @@ func _update_missiles() -> void:
 			if dv.length() > 1.0:
 				node.basis = Basis.looking_at(dv.normalized(), Vector3.UP if absf(dv.normalized().y) < 0.99 else Vector3.RIGHT)
 		_place_sound(mis.get_meta("sound"), p)
+		if not gone:
+			_trail(mis, node)
 		if gone:
 			_missile_detonate(mis)
 
@@ -1065,6 +1067,7 @@ func _update_bombs() -> void:
 			if e.node != null and r.flying:
 				e.node.position = to_scene(rockets.position(r, now))
 				_orient(e.node, r.u)
+				_trail(["rocket", k], e.node)
 
 
 func _place_bomb(bm: Dictionary) -> void:
@@ -1074,6 +1077,27 @@ func _place_bomb(bm: Dictionary) -> void:
 		_orient(bm.node, Bombs.velocity(bm.b, now))
 		bm.node.scale = Vector3.ONE * float(bm.w.get("scale", 1.0))
 	_place_sound(bm.sound, p)
+
+
+## The trail of a flying missile / rocket (types 560, 570..635, FUN_004da090): its head is
+## MissileFlareDistance (1.0) + half the model length behind the model's centre, along its axis.
+func _trail(key, node: Node3D) -> void:
+	if host.trails == null or node == null:
+		return
+	if not node.has_meta("half_length"):
+		var box := AABB()
+		var first := true
+		for m in node.find_children("*", "MeshInstance3D", true, false):
+			var b: AABB = (node.global_transform.affine_inverse() * m.global_transform) * m.get_aabb()
+			box = b if first else box.merge(b)
+			first = false
+		node.set_meta("half_length", 0.5 * box.size.z * node.scale.z if not first else 0.0)
+	var back := node.global_basis.z.normalized()  # looking_at: the nose is −Z
+	host.trails.emit(key, node.global_position + back * (MISSILE_FLARE_DISTANCE + float(node.get_meta("half_length"))), host.trails.MISSILE)
+
+
+## [SFX] MissileFlareDistance (default 1.0, 0x6389fc): how far behind the tail the trail starts.
+const MISSILE_FLARE_DISTANCE := 1.0
 
 
 ## A store's attitude from its velocity (world vector).

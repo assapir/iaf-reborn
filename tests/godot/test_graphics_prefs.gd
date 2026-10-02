@@ -1,8 +1,15 @@
 # The Graphics preferences and the effect sprites (docs/front-end.md §12.4, docs/damage.md §6.1):
 # VISUAL EFFECTS sets the smoke column's puff count (33 / (4 − L)); explosion sprites are centred on
 # their position; OBJECT DETAIL switches the units' _h / _m / _l models by the original's pixel
-# thresholds and sets point-sampled textures at level 1.
+# thresholds and sets point-sampled textures at level 1; SMOKE TRAILS draws the missile trails (with the
+# motor glow) and the wingtip vortices, none when off.
 extends "res://../tests/godot/base.gd"
+
+
+func seconds(s: float) -> void:
+	var t := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t < s * 1000.0:
+		await process_frame
 
 
 func run() -> void:
@@ -25,6 +32,25 @@ func run() -> void:
 	var xf: Transform3D = FX.puff_transform(fx._puffs[0])
 	check(fx._puffs.size() == 1 and xf.origin.is_equal_approx(at) and is_equal_approx(xf.basis.get_scale().y, FX.FIREBALL_WIDTH), "fireball centred on its point, %.0f m (%s)" % [xf.basis.get_scale().y, str(xf.origin)])
 	fx.queue_free()
+
+	# SMOKE TRAILS: one point per owner frame, the glow while growing, a gap of > 3 frames restarts.
+	var Trails: GDScript = load("res://mission/trails.gd")
+	var tr = Trails.new()
+	root.add_child(tr)
+	for i in 10:
+		tr.emit("m", Vector3(0, 100, -i * 5.0), Trails.MISSILE)
+		await process_frame
+	check(tr.counts().trails == 1 and tr.counts().points == 10 and tr.counts().glows == 1, "missile trail: 10 points, motor glow (%s)" % str(tr.counts()))
+	for i in 5:
+		await process_frame
+	check(tr.counts().glows == 0, "no new point: the glow goes out")
+	tr.emit("m", Vector3(0, 100, -60), Trails.MISSILE)
+	check(tr.counts().trails == 2, "owner unseen for > 3 frames: a new trail")
+	var w: PackedFloat32Array = Trails.widths(21, Trails.MISSILE)
+	check(is_equal_approx(w[0], 0.6) and w[3] > w[0] and w[20] < 0.05 and w[17] > w[20], "width: 0.6 at the head, growing 15 %%, tapering to 0 (%s)" % str(w))
+	await seconds(4.0)
+	check(tr.counts().points == 0, "points older than 3.5 s are gone")
+	tr.queue_free()
 
 	# OBJECT DETAIL: levels and switch distances (F·extent·0.7 / px, F = 640 / tan 25°).
 	var TV: GDScript = load("res://terrain/terrain_view.gd")
@@ -55,3 +81,8 @@ func run() -> void:
 	tv._drop_lods(tank.node)
 	await process_frame
 	check(tank.node.get_children().filter(func(c): return c.has_meta("lod")).is_empty(), "fatally hit / destroyed: LOD copies dropped")
+	check(tv.trails != null and tv.flight.state().has("vortex"), "smoke trails on: the trail layer exists, the FM gives the vortex flag")
+	Settings().smoke_trails = false
+	tv = await start_mission(231)
+	check(tv.trails == null, "smoke trails off: no trails")
+	Settings().smoke_trails = true
