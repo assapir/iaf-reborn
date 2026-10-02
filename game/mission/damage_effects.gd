@@ -21,8 +21,8 @@ const F_CLUSTER := 0x2000
 const F_FLASH := 0x4000
 const F_SMALL_FIRE := 0x10000000
 
-## World size of a sprite: full width = 0.2 · size · texture width (FUN_00410690; UNCERTAIN, see
-## docs/damage.md §6.1): AirExp1 (128 px, size 10) and smoke3 (64 px, size 1).
+## World size of a sprite: full width = 0.2 · size · texture width (FUN_00410690, docs/damage.md §6.1):
+## AirExp1 (128 px, size 10) and smoke3 (64 px, size 1). Sprites are centred on their position.
 const FIREBALL_WIDTH := 0.2 * 10.0 * 128.0
 const SMALL_FIRE_WIDTH := FIREBALL_WIDTH * 0.15
 const SMOKE_WIDTH := 0.2 * 1.0 * 64.0
@@ -30,9 +30,10 @@ const FIREBALL_TIME := 1.2
 const PUFF_TIME := 2.5
 ## Gravity of pieces and streamers: z -= 15 t² (g = 30 world units / s²).
 const PIECE_G := 30.0
-## Smoke column (FUN_00416ed0): 33 / (4 - detail) puffs, one every 1.6 s, visible from 0.3 s until
-## 36 / (4 - detail) s. The detail setting's default is not traced: the highest (3) is used.
-const COLUMN_DETAIL := 3
+## Smoke column (FUN_00416ed0 / FUN_00417000): 33 / (4 - L) puffs, one every 1.6 s, visible from 0.3 s
+## until 36 / (4 - L) s; L = the VISUAL EFFECTS level 1..3 (1 − ftol(−2·slider), FUN_004d8ce0 → 0x7d1928),
+## the only reader of that level.
+var column_detail := 3
 ## Puff emitters (damage smoke, smoking pieces, streamers) spawn one puff per rendered frame in the
 ## original, so the density follows the frame rate; here a fixed 30 Hz "frame" (our choice).
 const PUFF_RATE := 30.0
@@ -96,8 +97,14 @@ var ground_at: Callable
 
 
 func _ready() -> void:
+	column_detail = effects_level(float(Settings.visual_effects))
 	_mm_smoke = _make_layer(false)
 	_mm_fire = _make_layer(true)
+
+
+## The renderer's VISUAL EFFECTS level 1..3 from the slider 0 / 0.5 / 1 (FUN_004d8ce0).
+static func effects_level(slider: float) -> int:
+	return clampi(1 + floori(2.0 * slider + 1e-4), 1, 3)
 
 
 func _make_layer(fire: bool) -> MultiMeshInstance3D:
@@ -180,9 +187,9 @@ func explosion(pos: Vector3, flags: int, scale: float, duration: float, ground_y
 	if flags & F_FLASH:
 		_flash(pos)
 	if flags & F_FIREBALL:
-		_add_puff(pos, Vector3.ZERO, FIREBALL_TIME, FIREBALL_WIDTH, FIREBALL_WIDTH, 250, true, 0.0, true)
+		_add_puff(pos, Vector3.ZERO, FIREBALL_TIME, FIREBALL_WIDTH, FIREBALL_WIDTH, 250, true, 0.0)
 	if flags & F_SMALL_FIRE:
-		_add_puff(pos, Vector3.ZERO, FIREBALL_TIME, SMALL_FIRE_WIDTH, SMALL_FIRE_WIDTH, 250, true, 0.0, true)
+		_add_puff(pos, Vector3.ZERO, FIREBALL_TIME, SMALL_FIRE_WIDTH, SMALL_FIRE_WIDTH, 250, true, 0.0)
 	if flags & F_PUFF:
 		smoke_puff(pos, flags & F_WHITE != 0)
 	if flags & F_SHATTER:
@@ -191,7 +198,7 @@ func explosion(pos: Vector3, flags: int, scale: float, duration: float, ground_y
 	elif flags & F_SMOKE_TRAILS:
 		_streamers_at(pos, scale)
 	if flags & F_COLUMN:
-		_columns.append({"pos": pos, "age": 0.0, "n": 33 / (4 - COLUMN_DETAIL), "born": 0, "end": duration})
+		_columns.append({"pos": pos, "age": 0.0, "n": 33 / (4 - column_detail), "born": 0, "end": duration})
 	if flags & F_CLUSTER:
 		_cluster(pos, radius, duration)
 
@@ -222,9 +229,9 @@ func _update_clusters(delta: float) -> void:
 		for b in c.subs:
 			if not b.done and c.age > b.delay:
 				b.done = true
-				_add_puff(b.pos, Vector3.ZERO, FIREBALL_TIME, SMALL_FIRE_WIDTH, SMALL_FIRE_WIDTH, 250, true, 0.0, true)
+				_add_puff(b.pos, Vector3.ZERO, FIREBALL_TIME, SMALL_FIRE_WIDTH, SMALL_FIRE_WIDTH, 250, true, 0.0)
 				if b.column:
-					_columns.append({"pos": b.pos, "age": 0.0, "n": 33 / (4 - COLUMN_DETAIL), "born": 0, "end": 5.0})
+					_columns.append({"pos": b.pos, "age": 0.0, "n": 33 / (4 - column_detail), "born": 0, "end": 5.0})
 		if c.age >= c.end or c.subs.all(func(b): return b.done):
 			_clusters.erase(c)
 
@@ -236,13 +243,12 @@ func smoke_puff(pos: Vector3, white := false, life := PUFF_TIME, width := SMOKE_
 	var v := Vector3((_rng.randi() & 15) - 8, 8.0 + ((_rng.randi() & 15) - 8) * 0.3, (_rng.randi() & 15) - 8)
 	v.x *= 0.3
 	v.z *= 0.3
-	_add_puff(pos, v, life, width, width * 3.0, 255 if white else 40, false, 0.0, true)
+	_add_puff(pos, v, life, width, width * 3.0, 255 if white else 40, false, 0.0)
 
 
-func _add_puff(pos: Vector3, vel: Vector3, life: float, w0: float, w1: float, grey: int, fire: bool, delay: float,
-		bottom: bool) -> void:
+func _add_puff(pos: Vector3, vel: Vector3, life: float, w0: float, w1: float, grey: int, fire: bool, delay: float) -> void:
 	_puffs.append({"pos": pos, "vel": vel, "age": 0.0, "life": life, "w0": w0, "w1": w1, "grey": grey,
-			"fire": fire, "delay": delay, "bottom": bottom})
+			"fire": fire, "delay": delay})
 
 
 ## 0x4000: the lens flash, drawn for one frame in the original; a 0.1 s light here.
@@ -468,7 +474,7 @@ func _update_shards(delta: float, step: float) -> void:
 				if s.smoke:
 					smoke_puff(at)
 				if s.burn and _rng.randi() % 32 == 0:
-					_add_puff(at, Vector3.ZERO, FIREBALL_TIME, SMALL_FIRE_WIDTH, SMALL_FIRE_WIDTH, 250, true, 0.0, true)
+					_add_puff(at, Vector3.ZERO, FIREBALL_TIME, SMALL_FIRE_WIDTH, SMALL_FIRE_WIDTH, 250, true, 0.0)
 					p.burnt = true
 					break
 
@@ -550,7 +556,7 @@ func _update_pieces(delta: float, step: float) -> void:
 				if p.smoke:
 					smoke_puff(node.position)
 				if p.burn and _rng.randi() % 32 == 0:
-					_add_puff(node.position, Vector3.ZERO, FIREBALL_TIME, SMALL_FIRE_WIDTH, SMALL_FIRE_WIDTH, 250, true, 0.0, true)
+					_add_puff(node.position, Vector3.ZERO, FIREBALL_TIME, SMALL_FIRE_WIDTH, SMALL_FIRE_WIDTH, 250, true, 0.0)
 					p.age = p.life + 1.0
 
 
@@ -574,7 +580,7 @@ func _update_streamers(delta: float, step: float) -> void:
 				if it.on:
 					smoke_puff(it.p)
 		if not live:
-			_columns.append({"pos": s.pos, "age": 0.0, "n": 33 / (4 - COLUMN_DETAIL), "born": 0, "end": 9.0})
+			_columns.append({"pos": s.pos, "age": 0.0, "n": 33 / (4 - column_detail), "born": 0, "end": 9.0})
 			_streamers.remove_at(i)
 
 
@@ -586,8 +592,8 @@ func _update_columns(delta: float) -> void:
 		c.age += delta
 		while c.born < c.n and c.age >= c.born * 1.6 and c.born * 1.6 < c.end:
 			var v := Vector3((_rng.randi() % 10 - 5) * 0.3, 4.0 + (_rng.randi() % 12 - 5) * 0.3, (_rng.randi() % 10 - 5) * 0.3)
-			var life := minf(36.0 / (4 - COLUMN_DETAIL), c.end - c.born * 1.6)
-			_add_puff(c.pos, v, life, SMOKE_WIDTH, SMOKE_WIDTH * (1.0 + 0.32 * life), 10 + _rng.randi() % 70, false, 0.3, true)
+			var life := minf(36.0 / (4 - column_detail), c.end - c.born * 1.6)
+			_add_puff(c.pos, v, life, SMOKE_WIDTH, SMOKE_WIDTH * (1.0 + 0.32 * life), 10 + _rng.randi() % 70, false, 0.3)
 			c.born += 1
 		if c.born >= c.n or c.age >= c.end:
 			_columns.remove_at(i)
@@ -615,13 +621,17 @@ func _fill(mm: MultiMesh, list: Array) -> void:
 	for i in list.size():
 		var p: Dictionary = list[i]
 		var f: float = p.age / p.life
-		var w: float = lerpf(p.w0, p.w1, f)
-		# Bottom-anchored sprites (the quad rises by its height above the point).
-		var at: Vector3 = p.pos + Vector3(0, w * 0.5 if p.bottom else 0.0, 0)
-		mm.set_instance_transform(i, Transform3D(Basis.from_scale(Vector3(w, w, w)), at))
+		mm.set_instance_transform(i, puff_transform(p))
 		var g: float = p.grey / 255.0
 		var a := 1.0 - f if p.fire else clampf(1.0 - f * f, 0.0, 1.0)
 		mm.set_instance_color(i, Color(g, g, g, a) if not p.fire else Color(1, 1, 1, a))
+
+
+## A puff's billboard: its width at its age, centred on the point (every effect sprite is loaded with the
+## centring flag +0x178 = 1, FUN_0058a420; FUN_00410690 then spans ±h about the position).
+static func puff_transform(p: Dictionary) -> Transform3D:
+	var w: float = lerpf(p.w0, p.w1, p.age / p.life)
+	return Transform3D(Basis.from_scale(Vector3(w, w, w)), p.pos)
 
 
 ## Live counts, for tests.

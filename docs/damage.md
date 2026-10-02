@@ -282,8 +282,15 @@ jets take no systems damage (their reaction is not traced). Tests: `aircraft.rs`
 
 ### 6.1 The explosion object (Tgen `FUN_00416880`, per-frame `FUN_004167b0` / `FUN_00416a70`)
 Parameters: flags, position, radius [4], model [5], **duration** [6] (lifetime of the event; < 0.001 → 3.5 s),
-**scale** [7]. `FUN_0059df20` builds it with scale 4 and duration **95 s**. Sprite sizes: full width
-= 0.2 · size · texture width (`FUN_00410690`; UNCERTAIN, the formula gives a 256 m fireball), bottom-anchored.
+**scale** [7]. `FUN_0059df20` builds it with scale 4 and duration **95 s**. Sprite sizes (`FUN_00410690`):
+half-width px = W′ · size · F · 0.1 / z (min 1 px) with F = viewport width / tan(fov/2) (twice the focal length) and
+W′ = W / 2 (the loader halves the texture), i.e. **full width = 0.2 · size · texture width** in world units (height
+the same with the texture height; smoke3 at size 1: 12.8 m; the fireball 256 m). In the low-video-memory "shrink
+textures" mode (0x7d1cb8) W′ = W and sprites are twice as big (original bug, not ported). **Centred** on the position:
+every effect sprite (AirExp1, smoke3, smokeseg, trail, missFLR, chaff, splash / ring, lens, afterburn, gun) is loaded
+with the 6th loader argument +0x178 = 1 (`FUN_0058a420` → `FUN_004102a0` @41062b), and `FUN_00410690` then spans ±h
+(with 0 it would span −2h..0, bottom-anchored; no effect uses that). Drawn for 4 ≤ z ≤ 30000, depth-tested, no
+z-write. (Earlier versions of this page said bottom-anchored: wrong.)
 
 | flag | effect | size / timing |
 |---|---|---|
@@ -299,7 +306,7 @@ Parameters: flags, position, radius [4], model [5], **duration** [6] (lifetime o
 | 0x8 (no 0x2) | 12 smoke streamers (5·scale sideways, 3·scale up, g 30) then a 9 s column | weapons |
 | 0x100 | smoke puff (smoke3) | 2.5 s, 12.8 → 38 m wide, grey 40, rising 5.6–10.1 m/s, ±2.4 m/s drift |
 | 0x400 | white instead of dark smoke | |
-| 0x800 | smoke column | 33 / (4 − detail) puffs, one per 1.6 s, each visible 0.3 s … 36 / (4 − detail) s, width 12.8·(1 + 0.32·age) m, rising 2.5–5.8 m/s, grey 10–79 |
+| 0x800 | smoke column | 33 / (4 − L) puffs (L = the VISUAL EFFECTS level 1..3, the only reader of that level), one per 1.6 s, each visible 0.3 s … 36 / (4 − detail) s, width 12.8·(1 + 0.32·age) m, rising 2.5–5.8 m/s, grey 10–79 |
 | 0x2000 | cluster: 48 sub-bursts in 3 rings (small fires, every second one with a 5 s column) | CBU (510) bursts, weapons.md §9.5 |
 | 0x20000 / 0x40000 | water splash / ring | 1.2 s / 2.4 s |
 | 0x1, 0x200, 0x4 | dead (animation never registered) / unused | |
@@ -333,7 +340,7 @@ material; our triangulated / subdivided models fly up to 600 pieces, neighbourin
 original's "large" polygons of > 6 vertices are our largest 10 % by area; a flaring piece stops smoking but stays
 drawn), box chunks only when there is no model, a
 0.1 s light for the flash. Our choices: puffs at a fixed 30 Hz instead of per frame (the original's density follows
-the frame rate), the column at detail 3 (default not traced), no wind (the mission weather is not decoded), no water
+the frame rate), the column at the VISUAL EFFECTS level, no wind (the exe has none) (the mission weather is not decoded), no water
 (our terrain has no types).
 
 ## 7. Collisions between units (`FUN_0043c140` → `FUN_0043b340`)
@@ -387,7 +394,7 @@ and wrecks included, aircraft wrecks not. Physics "No collisions with hidden uni
 obstacles. The weapons' own colliders are not ported (weapons use their fuse rules, docs/weapons.md).
 
 ## 8. Uncertain / not ported
-- Sprite world size (the 256 m fireball), the lens-flash texture, the column detail default, wind.
+- The lens-flash texture.
 - Effect 0x18 at a fatal hit; the double explosion at a crash-motion impact; state 4.
 - Radio kill / "is down" calls, score and hit feedback, the brain's reaction to hits, FlyTSD 6.5 s after the
   player's death (campaign), network play.
