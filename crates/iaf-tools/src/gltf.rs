@@ -76,8 +76,8 @@ struct Builder {
     materials: Vec<Value>,
     images: Vec<Value>,
     textures: Vec<Value>,
-    /// texture file name (lower case) -> (texture index, has transparency)
-    texture_cache: HashMap<String, Option<(usize, bool)>>,
+    /// texture file name (lower case) -> (texture index, glTF alphaMode if not opaque)
+    texture_cache: HashMap<String, Option<(usize, Option<&'static str>)>>,
     material_cache: HashMap<String, usize>,
     warnings: Vec<String>,
 }
@@ -138,20 +138,24 @@ impl Builder {
         self.accessors.len() - 1
     }
 
-    fn texture(&mut self, name: &str, dirs: &[PathBuf], out_dir: &Path) -> Option<(usize, bool)> {
+    fn texture(&mut self, name: &str, dirs: &[PathBuf], out_dir: &Path) -> Option<(usize, Option<&'static str>)> {
         let key = name.to_lowercase();
         if let Some(t) = self.texture_cache.get(&key) {
             return *t;
         }
         let result = match find_texture(name, dirs).map(|p| load_texture(&p)) {
             Some(Ok((img, transparent))) => {
+                // Partial alpha (canopy glass) blends; colour-key holes (0 / 255 only) stay a cutout.
+                let alpha = transparent.then(|| {
+                    if img.pixels().any(|p| p[3] > 0 && p[3] < 255) { "BLEND" } else { "MASK" }
+                });
                 let img = if self.upscale { upscale::upscale(&img) } else { img };
                 let file = format!("{}.png", key.rsplit_once('.').map_or(key.as_str(), |(s, _)| s));
                 match img.save(out_dir.join(&file)) {
                     Ok(()) => {
                         self.images.push(json!({ "uri": file }));
                         self.textures.push(json!({ "source": self.images.len() - 1, "sampler": 0 }));
-                        Some((self.textures.len() - 1, transparent))
+                        Some((self.textures.len() - 1, alpha))
                     }
                     Err(e) => {
                         self.warnings.push(format!("saving {file}: {e}"));
@@ -190,8 +194,8 @@ impl Builder {
             "pbrMetallicRoughness": pbr,
             "doubleSided": name.contains("2side"),
         });
-        if texture.is_some_and(|(_, transparent)| transparent) {
-            mat["alphaMode"] = json!("MASK");
+        if let Some((_, Some(alpha))) = texture {
+            mat["alphaMode"] = json!(alpha);
         }
         if m.emissive.iter().any(|&e| e > 0.0) && texture.is_none() {
             mat["emissiveFactor"] = json!(m.emissive);
