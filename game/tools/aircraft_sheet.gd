@@ -34,7 +34,7 @@ func _initialize() -> void:
 	root.add_child(cam)
 	cam.current = true
 	var rows: Array[Image] = []
-	var names := AircraftModel.index().keys()
+	var names: Array = AircraftModel.index().keys()
 	names.sort()
 	for plane in names:
 		if not only.is_empty() and not only.has(plane):
