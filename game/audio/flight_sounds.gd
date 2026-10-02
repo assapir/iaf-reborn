@@ -309,6 +309,26 @@ func play(code: String, sub1 := "None") -> Node:
 	return p
 
 
+## A plain wav of resource/soundfiles on the phrase channel (FUN_004c5470(file, 0, 1) and every part of a
+## radio phrase, FUN_004c5750 → FUN_005448b0): speech volume, not 3-D, queued behind the sound on channel 101
+## (docs/radio.md §1). Null when the file is not shipped (silent, as in the original).
+func play_phrase_wav(file: String) -> Node:
+	var name := file.to_lower()
+	if not "." in name:
+		name += ".wav"
+	var s: AudioStreamWAV = table.stream_file(name) if table != null else null
+	if s == null:
+		return null
+	played.append(name)
+	var p := AudioStreamPlayer.new()
+	p.bus = SoundBuses.SPEECH
+	p.stream = s
+	add_child(p)
+	p.finished.connect(_on_finished.bind(p))
+	_channel_play(101, p)
+	return p
+
+
 func _row_volume(r: Dictionary, inside: bool) -> float:
 	if r.is_empty():
 		return 1.0

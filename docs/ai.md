@@ -181,7 +181,8 @@ weapon 0x244 also `|44e770| ≤ 60°`; fires `FUN_00452680(T)`); 2 / 3 flares / 
 `FUN_004545e0(0x226 / 0x21c, 0, 1)`); 4 change weapon (330–390); 5 target (400 next, 410, 420 best → +0x70); 6 radar
 (430, 440); 7 response (450–540: only the node's audio, e.g. 250 "Roger, closing formation"); 8 scenario: 550 start
 combat (needs +0x68 == 0, +0x6c == 0, T alive: +0x68 = 1, weapons free), 560 stop combat, **1000 sub-brain**
-(`setRules(list(f4), 1)`: +0xd8 = 1, +0xdc = 1, **+0x48 = 0**; f4 0 / −1 / unknown → back to the base list).
+(`setRules(list(f4), 1)` `440790`: +0xd8 = 1, +0xdc = 1, **+0x48 = 0**; f4 0 / −1 / unknown → back to the base list:
++0xd8 = 0, +0xdc = 1, **+0x48 kept**, so the base list then sees the wingman command, docs/radio.md §3).
 
 ## 6. Combat on / off and control modes (v1.1)
 

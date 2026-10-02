@@ -159,6 +159,8 @@ var player_flight_number := 0
 ## The flight-sounds node (game/audio/flight_sounds.gd), the damage effects layer and the player's
 ## systems damage (docs/damage.md).
 var sounds: Node
+## The radio (game/audio/radio.gd, docs/radio.md).
+var radio: Node
 var effects: Node3D
 var player_damage: RefCounted
 ## The cloud layer (game/terrain/cloud_layer.gd); null with Graphics TEXTURED SKY off.
@@ -240,6 +242,10 @@ func _ready() -> void:
 	# In-flight sounds of your jet (game/audio/flight_sounds.gd, docs/sound.md); polls this node.
 	sounds = preload("res://audio/flight_sounds.gd").create(self, player.type)
 	add_child(sounds)
+	# The radio (docs/radio.md): tower, wingman commands, waypoint / eject reports.
+	radio = preload("res://audio/radio.gd").new()
+	radio.host = self
+	add_child(radio)
 	# OBJECT DETAIL (docs/front-end.md §12.4): the level the model loader and the LOD switch use.
 	Gltf.object_level = Gltf.detail_level(float(Settings.object_detail))
 	# Explosions, debris and smoke (docs/damage.md §6) and the player's systems damage (§5).
@@ -1531,6 +1537,10 @@ func _command(cmd: Array) -> bool:
 			weapons.nav_key(p1)
 		99:
 			weapons.master_key()
+		107:
+			radio.contact_tower()  # Contact tower (Ctrl+T, FUN_0054fb40)
+		108:
+			radio.wingman_command(p1)  # Wingman commands (Alt+P/B/E/W/T/C, FUN_0043f8d0)
 		101, 102:
 			var i: int = cockpit.current_waypoint + (1 if int(cmd[0]) == 101 else -1)
 			if autopilot != null:
@@ -2020,6 +2030,7 @@ func _process(delta: float) -> void:
 		if not frozen and not waiting_for_ground:
 			_sim_time += delta
 			_console_update(_sim_time)
+			radio.update(_sim_time)
 			if weapons != null:
 				weapons.update(_sim_time)
 		_update_eo_view()
@@ -2153,7 +2164,14 @@ func _apply_held(_i: int, cmd: Array) -> void:
 ## passes the landing check; v1.1 re-arms it at lift-off, so every landing counts, docs/flight-model.md
 ## §15.6.2): the player's wingman (getWingman FUN_005bcb90) goes to the route's last waypoint
 ## (FUN_00440e90 on the wingman's brain, docs/ai.md §7.2); the player's own NAV is not touched.
+## WayptReport (docs/radio.md §4): the player's waypoint sequencing moved on to waypoint `wp`.
+func waypoint_passed(wp: int) -> void:
+	if runtime != null:
+		radio.waypoint_passed(runtime.player_entity(), wp)
+
+
 func _on_landed() -> void:
+	radio.landed = true  # brain +0xe0 (the tower's "landed" test)
 	if ai != null and runtime != null:
 		ai.landed_handler(runtime.player_entity())
 
@@ -2260,8 +2278,8 @@ func _eject_update(delta: float) -> void:
 		views.set_orbit(_chute, [1000.0, 600.0, 200.0, 4.014257, 0.0, 2.792527], 2.0, Views.FLYBY, true)
 	if t >= EJECT_RADIO and not _eject_radio_done:
 		_eject_radio_done = true
-		if _voice != null:
-			mission_play_wav("gejected")  # "<callsign> ejected": the callsign part is not ported
+		if runtime != null:
+			radio.ejected(runtime.player_entity())  # EjectReport: "<callsign> ejected" (docs/radio.md §4)
 
 
 func _spawn_parachuter(at: Vector3) -> void:

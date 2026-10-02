@@ -284,8 +284,8 @@ func _exec(code: int) -> void:
 			host.combat_hook(ent, str(code), target)  # launch, flares, chaff, weapons, targets, radar
 
 
-## Sub-brain (FUN_00444cc0): the list of brain `id`, or back to the base list for 0 / -1 / unknown; the
-## wingman command is consumed.
+## Sub-brain (FUN_00444cc0 → setRules FUN_00440790(list, 1)): the list of brain `id` (the wingman command is
+## consumed), or back to the base list for 0 / -1 / unknown (the command is kept: the base list sees it).
 func _sub_brain(id: int) -> void:
 	var list: Array = host.brain_rules(id)
 	if list.is_empty():
@@ -294,7 +294,7 @@ func _sub_brain(id: int) -> void:
 	else:
 		rules = list
 		in_sub = true
-	wingman_command = 0
+		wingman_command = 0
 	switched = true
 
 

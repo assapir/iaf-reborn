@@ -23,6 +23,13 @@ func run() -> void:
 		if (p.ent.world - p0[p].world).length() > 10000.0:
 			moved += 1
 	check(moved >= 6, "the AI jets flew (%d moved > 10 km in 120 s)" % moved)
+	# The radio's waypoint report (docs/radio.md §4): every jet whose WayPtSet moved on posts it; only the player's
+	# side is heard ("<callsign> is passing waypoint N").
+	var moved_on: Array = tv.ai.pilots.filter(func(p): return p.waypoint_index() != p0[p].wp).map(func(p): return [p.ent.name, p.waypoint_index()])
+	var reports: Array = tv.radio.said.filter(func(x): return x.template == "PASS_WAYPT_PHRASE").map(func(x): return x.text)
+	print("  moved on: ", moved_on, "  posted: ", tv.radio.posted, "  said: ", reports)
+	check(not moved_on.is_empty() and moved_on.all(func(m): return tv.radio.posted.has(m)), "every jet that moved on posted a waypoint report")
+	check(reports.all(func(x): return x.begins_with("Alpha ") or x.begins_with("Bravo ")), "only the player's side is heard")
 	# Wingmen in formation (tactical, mode 3) stay near their leaders; the leaders navigate (mode 7).
 	var close := 0
 	var pairs := 0

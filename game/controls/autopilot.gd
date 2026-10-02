@@ -122,7 +122,7 @@ func set_waypoint(i: int) -> void:
 ## FUN_00452960, every controller update: the current waypoint is passed once the jet entered its box
 ## (|dx| ≤ 1854, dy ≥ −1854: the box has no northern edge, as coded) and its distance then grows; the next
 ## waypoint is selected unless it was the last. An action-5 waypoint also counts from outside the box beyond
-## 18.54 km, and within that only in NAV. (The 3 s "waypoint report" radio event is not built.)
+## 18.54 km, and within that only in NAV; the radio reports it 3 s later (docs/radio.md §4).
 func _nav_update(p: Vector2) -> void:
 	var route: Array = host.route
 	var i: int = host.cockpit.current_waypoint
@@ -147,6 +147,7 @@ func _nav_update(p: Vector2) -> void:
 	if i + 1 >= route.size():
 		return
 	set_waypoint(i + 1)
+	host.waypoint_passed(i + 1)
 	nav_min = (route[i + 1].world as Vector2).distance_to(p)
 
 

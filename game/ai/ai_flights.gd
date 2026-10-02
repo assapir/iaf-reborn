@@ -218,7 +218,11 @@ func _process(delta: float) -> void:
 		p.flight.set_ground_height(g if g != null else -1.0e9)
 		p.flight.set_ai_damage(float(ent.damage) <= 0.1)
 		_feed_leader(p)
+		var wp: int = p.flight.ap_waypoint_index()
 		p.flight.ap_step(now)
+		# WayPtSet moving on (5d7450: index ≠ brain+0x88) posts the radio's WayptReport (docs/radio.md §4).
+		if p.flight.ap_waypoint_index() != wp and host.get("radio") != null:
+			host.radio.waypoint_passed(ent, p.flight.ap_waypoint_index())
 		p.flight.step(delta)
 		p._state = p.flight.state()
 		p._state["position_world"] = host.scene_to_world(p._state.position)
