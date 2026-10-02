@@ -1,7 +1,8 @@
 # Rendering options
 
 The game logic is the original's; the rendering may be better, but the original look is the default and every
-improvement is opt-in (Preferences → Graphics for the original's own switches, Preferences → Extras for ours).
+improvement is opt-in (Preferences → Graphics for the original's own switches and our VSYNC check, Preferences → Extras for the rest of
+ours).
 Code: `game/terrain/render_options.gd` (applied by `terrain_view.gd apply_render_options()` at the start of a flight
 and when the in-flight Preferences close), `terrain/terrain.gdshader`, `terrain/atmosphere.gdshader`,
 `terrain/cloud_layer.gd`. Tests: `tests/godot/test_graphics_prefs.gd` (switches → render settings, save / load),

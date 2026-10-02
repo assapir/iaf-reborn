@@ -56,9 +56,9 @@ the warp into the game frame: docs/georef.md; user-facing summary: README "Terra
 
 - `game/terrain/imagery_layers.gd`: the options per region (`REGIONS`), `available(id)` (= its manifest exists;
   "original" always), `selected()` (the picked, converted layers, Israel first), `attributions()`.
-- **Preferences → Extras** (ours): one row per region ("Imagery Israel", "Imagery outside Israel"; three choices
-  in narrower columns), after the other Extras rows (the page scrolls like Physics, 8 rows shown); options whose layer is not converted are
-  shown in grey and cannot be picked (user decision: greyed, not hidden). Default "Original (1998)"; Extras DEFAULT
+- **Preferences → Extras** (ours): one row per region ("Imagery Israel", "Imagery outside Israel"; outside Israel's
+  three choices in narrower columns), after the other Extras rows (the page scrolls like Physics, 8 rows shown); options whose layer is not converted are
+  shown in grey and cannot be picked (user decision: greyed, not hidden). Default "Original"; Extras DEFAULT
   resets them. Hebrew labels in game/menu/strings_he.json. Settings `imagery_israel` / `imagery_outside`
   ([gameplay] section, with the other Extras). (First on the Graphics page; moved so that page stays the original.)
 - `terrain.gd`: at `_ready` each picked layer's nodes are added to the colour-node set with their directory
@@ -94,7 +94,7 @@ of the overlapping tiles), ≈ 6 GB written for both looks. Delete `assets/conve
 ## 8. Phase 2: Survey of Israel 2015 (2 m)
 
 The sheets (one ZIP per 1:50 000 sheet, list in tools/imagery/mapi2015_sheets.tsv) arrive in
-`assets/source/imagery/mapi2015/` via `tools/imagery/fetch-mapi2015.sh` (17 already there). Needed: confirm the
+`assets/source/imagery/mapi2015/` via `tools/imagery/fetch-mapi2015.sh`. Needed: confirm the
 ZIP's raster format and grid (ITM, EPSG:2039, expected), a `mapi2015` source in `iaf-imagery` that builds a VRT of
 the local sheets instead of the S3 tiles, a finer `LAYER_LEVEL` (2 m → level 1, 2.5 m/px) with the same rules
 (inside Israel, keep airbases / insets ≤ level 3 — or decide with the user whether the 2 m photo should replace the

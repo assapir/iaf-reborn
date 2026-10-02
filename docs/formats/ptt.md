@@ -120,8 +120,8 @@ aligned to the theatre origin. A node of level L covers `1024·2^L` units with a
   margin and Lanczos-resampled to 2^L units per pixel, so neighbouring nodes match exactly. No heights: the
   runtime uses level 6 (FUN_004281e0).
 - The runway-number fixes are applied to the nodes of levels 0..2 at their own resolution.
-- `meta.json`: theatre rect, `node_pixels`, `height_level` 6, `root_level` 11, the node list per level,
-  georeference (below).
+- `meta.json`: theatre rect, `node_pixels`, `height_level` 6, `root_level` 11, the node list per level, the
+  engine-metre transform (`units_to_metres`, `x_shift`, `y_shift`); the WGS84 georeference is docs/georef.md.
 
 2342 nodes, **732 MB**, **30 s** on 8 threads (the file itself: 394 MB). Engine world metres from terrain
 units (`FUN_004053f0`): `X = tx·1.2411389 − 166850`, `Y = 1043780 − ty·1.2411389`.

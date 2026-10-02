@@ -977,7 +977,7 @@ engine camera = (eye, p, y, 0)             (FUN_004021d0, vtable +0x60)
 | EASY LANDING | 24,183,154,218 | +0xb8 / dbc | +0x3c | **1** | `5bb7d0` doubles the landing tolerances; flight-model gear check |
 | EASY AIMING | 24,218,154,253 | +0xbc / dc0 | +0x40 | 0 | `FUN_004563d0` sets weapon `+0xb4`=1 (effect UNCERTAIN) |
 | NO MALFUNCTIONS | 24,253,154,287 | +0xc8 / dc4 | +0x24 | 0 | no reader: every pref-getter call checked, systems still break (docs/damage.md §5.3) |
-| ROOKIE / NORMAL / EXPERT AI | 164,45,275,78 / 164,78,275,113 / 164,113,275,148 | +0xd4 / dd8 = 0/1/2 | +0x50 | **1 (Normal)** | `4404d0`, `443f60`, `4642f0` (damage % scaled for levels 0/1), `5b4470` |
+| ROOKIE / NORMAL / EXPERT AI | 164,45,275,78 / 164,78,275,113 / 164,113,275,148 | +0xd4 / dd8 = 0/1/2 | +0x50 | **1 (Normal)** | `4404d0`, `4440d0` (AI fire cone), `4642f0` (damage % scaled for levels 0/1), `5b4470` |
 | INVULNERABLE | 285,45,435,78 | +0xc0 / dc8 | +0x1c | 0 | damage skipped in `43b340`, `4a97b0`, `448b20`, `44d760`; crash tests `5abef0`, `5bac40` |
 | NO CRASHES | 285,78,435,113 | +0xc4 / dcc | +0x20 | 0 | ground collision in `5abef0`, `5bac40` |
 | UNLIMITED AMMO | 285,113,435,148 | +0xcc / dd0 | +0x18 | 0 | `4563d0`→`456220`, `53c1f0` |
@@ -1152,14 +1152,15 @@ So the Hebrew pages use the same rects as §12.3–§12.6.
   original's mixer write.
 * Stored in `user://settings.cfg` (sections sound / graphics / devices / gameplay) with the original
   defaults. The hardware detection that overrides the graphics defaults is not ported. The Graphics page acts as
-  §12.4 says (all seven controls wired).
+  §12.4 says (all seven controls wired). Ours: a VSYNC check in the empty strip left of DEFAULT (page rect
+  8,330,110,23), default on, reset by DEFAULT, stored in `[graphics]`.
 * Gameplay flags act where the table above says; NO WIND and NO MALFUNCTIONS are read by nothing in the original
   either (they are stored only).
 * Graphics sliders snap to `round(v/step)·step` (UNCERTAIN, see §12.4).
 * **Controls page:** built (§12.7): the original key list, scrollbar, key capture with msg 36 and
   DEFAULT; rebinds are stored in `[keys]` and used in flight (docs/controls.md).
-* **Extras tab (ours, not in the original).** A 6th tab, 44 px below Gameplay, the panel's button
-  spacing (rect 16,287,109,39).
+* **Extras and Physics tabs (ours, not in the original).** Two tabs below Gameplay, 44 px apart at the panel's
+  button spacing (Extras rect 16,287,109,39; Physics 44 px lower).
   * **Button art:** the `pPref` band around the Gameplay button (panel rect 12,203,116,54 from `_0`,
     the button rect from the current frame), moved down 44 px. Its label (panel 42,219,62,16) is
     filled in per row by blending the pixels on either side, then "EXTRAS" / "תוספות" is drawn in
@@ -1167,8 +1168,16 @@ So the Hebrew pages use the same rects as §12.3–§12.6.
   * **Page:** `screens/sgeneral` background, rows 35 px apart on the Gameplay page's grid, and LEDs
     copied from `gamep_0/_1`. Mirrored in Hebrew. Row rules are opaque and one page pixel thick, so the ones that
     fall on the background's grid lines look like the rest.
-  * **Options:** Flight data (Original 1998 / Real F-16), Language (English / Hebrew; Hebrew only when
-    the pack is installed), Better physics, Flight info (F12) show/hide, Blackbox, Window (framed / full screen).
+  * **Extras options** (`front_end.gd` `EXTRAS`, then one imagery row per region from `imagery_layers.gd`): Flight
+    data (Original (1998) / Real aircraft), Weapon data (Original (1998) / Real weapons), Language (English / Hebrew;
+    Hebrew only when the pack is installed), Flight info (Ctrl+F12) show / hide, Blackbox, HUD pitch ladder
+    (Original / Conformal), All keys on the Keyboard page, Window (framed / full screen), Anti-aliasing (MSAA 4x /
+    + FXAA / TAA), Terrain close up, Sky (docs/rendering.md), Imagery Israel, Imagery outside Israel
+    (docs/imagery.md; layers not converted are greyed out). 8 rows shown, with the Keyboard page's scrollbar beyond;
+    DEFAULT resets every Extras option except the language.
+  * **Physics** (`Settings.BETTER`): one check per option, 18 (12 flight-model improvements, docs/flight-model.md §10,
+    + 6 original-bug fixes, docs/deviations.md §2), rows of 20 px, 15 shown with the scrollbar, All on / All off in
+    the header; mirrored in Hebrew.
   * **Behaviour:** the options go through the same working copy and "Save changes?" box. A language
     change reloads the menus on Yes.
   * The original has no language setting: the Hebrew pack simply replaces the resource files.
@@ -1518,7 +1527,8 @@ Next Mission is disabled when this is 0. **Replay / Next** (`FUN_004ff540`, v1.1
 Jet list (screen 9)**, **321–329 → Jet list (screen 10)**, so a plane is picked before every training flight; other ids
 in 300–399 do nothing; any other mission is reloaded (`FUN_004edec0` → TSD 0x1e; 400–499 straight into the flight).
 v1.0 reloaded the training missions with the same plane. Port: `front_end.gd` `_debrief_button`, `next_mission`,
-`new_mission_screen` (the cheat and the 401–407 pick are not ported).
+`new_mission_screen` (the cheat's row unlock and Next Mission are ported; its Jump_In "40N mission?" prompt and the
+401–407 pick are not).
 
 **Jump_In without the cheat** (`FUN_004f1650`):
 * While 407 has no attempts: the mission after the highest attempted id in 401–406, or 401 if none

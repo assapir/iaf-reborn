@@ -9,9 +9,10 @@ brew install --cask godot          # needs Godot 4.7 or newer (game/iaf.gdextens
 brew install gdal                  # optional: modern terrain imagery (tools/setup.sh --imagery)
 rustup default stable
 ```
-The cask does not put `godot` on the PATH; use the app binary or an alias:
+The cask does not put `godot` on the PATH. `./iafjets` finds /Applications/Godot.app itself (or set `GODOT=`);
+`tools/test.sh` calls `godot`, so link it onto the PATH:
 ```sh
-alias godot=/Applications/Godot.app/Contents/MacOS/Godot
+ln -s /Applications/Godot.app/Contents/MacOS/Godot /usr/local/bin/godot
 ```
 
 ## Build and run
@@ -25,7 +26,7 @@ behave identically (see README).
 
 ## Tests
 `tools/test.sh` calls `timeout`: with coreutils installed either put GNU tools first
-(`PATH="$(brew --prefix coreutils)/libexec/gnubin:$PATH"`) or `alias timeout=gtimeout`.
+(`PATH="$(brew --prefix coreutils)/libexec/gnubin:$PATH"`); an alias is not seen by the script.
 
 ## Known differences
 - Godot renders with Metal on macOS; terrain shaders may look slightly different.

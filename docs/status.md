@@ -4,7 +4,8 @@
 - **Playable missions: 4 of 68** — Training "Engines ON" (311), "Landing" (312), 315 (bombing, tested end to end)
   and 323 (per the coverage report, untested); docs/mission-coverage.md.
 - **Flyable jets: all seven of the Jet list** — F-15, F-16, F-4E, F-4 Kurnass 2000, Lavi, Kfir, Mirage (Jet list or a
-  mission's jet; docs/aircraft.md §5). Other types (MiGs, transports) fly as the F-16.
+  mission's jet; docs/aircraft.md §5). The MiGs are AI-only, as in the original; a mission whose player jet is another
+  type flies it as the F-16.
 - **Game version: v1.1 logic**, v1.1 data when setup is given the patch (`--patch`); v1.0 data still plays. Doc
   addresses are v1.1 (docs/v1.1.md maps them to v1.0). The flight model's v1.1 changes are all ported (docs/flight-model.md §16).
 - Everything comes from the player's own ISO; the repo (github.com/assapir/iaf-reborn, GPL-3.0) holds no game data.
@@ -66,7 +67,7 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 | Player weapons | docs/weapons.md: gun (LCOS / strafe pippers), IR seeker + missiles, bombs (MK-82/83/84, M117, CBU-87/97 cluster, laser bombs as free bombs) and rockets (ZUNNI, LAU-61) with ripple, CCIP / delayed release, jettison (tanks, then bombs); stores on the pylons, master / HUD modes, weight / drag, external fuel tanks, stores MFD page; Extras "Weapon data: Real" (docs/real-weapons.md) |
 | Radar | docs/radar.md: modes OFF / STBY / STT / BORE / LRS / TWS / ACM / GMT / MAP with the per-jet tables, scan, terrain line of sight, lock keys, MFD B-scope / PPI, HUD target box, slaves the IR seeker, feeds the gun range; chaff / flares (docs/weapons.md §10) |
 | Arming screen | original screen 0x1f (docs/front-end.md §15): jet front views + stations, weapon list AA / AG / Misc, drag and drop with the per-station allowed counts, right-click, DEFAULT, CURRENT LOAD / MAX T.O.W., the original's blocking checks (overweight, wing balance) and "Use weapon load?"; the load goes on the player's pylons (stores, weight / drag). What the loads unlock: docs/mission-coverage.md (315 "Cold Steel" bombed end to end destroys all 7 targets, test_bomb_missions.gd) |
-| Real aircraft data | Real set for all seven flyable jets (six data sets: F-16, F-15C, F-4E / Kurnass 2000 shared, Kfir C7, Lavi, Mirage IIICJ): weights, thrust, drag, roll, fuel, stall, pedal steering, drag chute, the low-speed indicated airspeed fix (docs/real-aircraft.md); the flight data loader reads the v1.1 files (`bdgen.dat`, `*gen.skp`, XOR-encoded); AI types: reference table only |
+| Real aircraft data | Real set for all seven flyable jets (six data sets: F-16, F-15C, F-4E / Kurnass 2000 shared, Kfir C7, Lavi, Mirage IIICJ): weights, thrust, drag, roll, fuel, stall, pedal steering, drag chute, the low-speed indicated airspeed fix (docs/real-aircraft.md); the flight data loader reads the v1.1 files (`bdgen.dat`, `*gen.skp`, XOR-encoded); AI types: their own Real rows, used by the AI jets (docs/real-aircraft.md §9) |
 | Damage | docs/damage.md: hits, blast formula, destruction, falling jets, explosions / smoke, the player's systems damage, collisions |
 | Eject | E ×3: seat, canopy, parachute, mission lost |
 | Views | docs/views.md: pause, On-The-Fly menu, FlyTSD (Esc), time compression, the original cameras (snap views, free look, padlock, external / fly-by, radar target, threat, wingman, weapon) |
@@ -88,7 +89,8 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
   ECM light has no system; night lighting; what the TV / laser weapons do with the radar's designated point.
 - **Controls**: joystick untested on real hardware (one device; no force feedback); not built: FlyTSD Fly into another
   aircraft / Visit (docs/views.md).
-- **Sounds**: weapon / AI sounds wait for those systems (the RWR's wait for something to lock the player).
+- **Sounds**: AI / moving-unit sounds (AI jets fly silently), Betty "Pull up", the belly screech (the host never sets
+  `FlightSounds.on_runway`); the RWR's wait for something to lock the player (docs/sound.md §5).
 - **Front end**: Reference screen content (docs/front-end.md §14), QUIT confirmation, TSD 3D-model / target
   windows; Graphics prefs: SHADOWS not limited to the day (no time of day yet), no terrain resolution drop
   (docs/deviations.md §1); No wind / No malfunctions have no reader in the original either.
@@ -106,8 +108,8 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 - Screenshots (SysRQ): PNG, timestamped, in the user data folder (original: IafJets000.bmp in the game folder).
 - Multiplayer (incl. the original's TCP/IP lobby mode): after the single-player game is finished.
 - Jump In after the combat core (also useful for testing). Mission Creator much later.
-- Setup ends with one launcher you can click / call (a run script + a .desktop entry with the game's icon from the
-  CD; macOS: an .app later). CI and release packages: not urgent.
+- Setup ends with one launcher you can click / call (a run script + a .desktop entry, on macOS an .app, with the
+  game's icon from the CD). CI and release packages: not urgent.
 - Every change from the original is listed in `docs/deviations.md`.
 - Game logic from v1.1 only ("logic v1.1"); v1.0 data must still work. A v1.1 fix that makes one of ours redundant → ours
   is deleted (so far only the HUD: the projected FPM is v1.1's own, and with the original cockpit projection the v1.1 ladder
