@@ -46,6 +46,10 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
   they touch the wing. Checked: the stations sit on the model (F-16 tip rails at x ±4.78, airframe ±4.73; each single
   store's Pilon point on its station; test_arming.gd). User to say which view is wrong (original vs better). (The flat
   white fins seen from behind are gone since the Present scale / smoothing work.)
+- Lavi skin (user report: "wrong"): checked — the texture is the original's `lavi_h.bmp` and every model's UVs match
+  the `.x` / `.xfr` exactly (docs/formats/x.md); the plain brown nose top and the white-tinted glass are the original's.
+- `--smooth` bows the stadium (`stationary/stdum_h/stadum_h`): its straight walls curve and the seats show; seen in the
+  UV check, not yet fixed.
 - Tests: in a full `tools/test.sh` run while other Godot runs are busy (parallel jobs), a test (test_ui_smoke,
   test_damage, test_arming) occasionally hangs until the 300 s timeout with no output; alone they pass every time (8/8
   on 2026-10-01). test.sh now prints "FAIL timeout" and the last output lines — use that next time to find the cause.
