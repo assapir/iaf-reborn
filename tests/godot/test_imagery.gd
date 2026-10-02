@@ -20,9 +20,9 @@ func run() -> void:
 
 	check(Layers.available("original") and Layers.available(ID) and not Layers.available("no_such_layer"), "available: original always, layers when converted")
 	Settings().imagery_outside = "no_such_layer"
-	check(Layers.selected().is_empty() and Layers.attributions().is_empty(), "a picked layer that is not converted is ignored")
+	check(Layers.selected().is_empty() and Layers.attributions(["no_such_layer"]).is_empty(), "a picked layer that is not converted is ignored")
 	Settings().imagery_outside = ID
-	check(Layers.selected() == [ID] and Layers.attributions() == ["test credit"], "the picked layer and its credit")
+	check(Layers.selected() == [ID] and Layers.attributions([ID]) == ["test credit"], "the picked layer and its credit")
 
 	# Terrain with the layer (from the setting) vs without.
 	var t: Node3D = load("res://terrain/terrain.gd").new()

@@ -41,11 +41,18 @@ static func selected() -> Array[String]:
 	return out
 
 
-## The attribution lines the picked layers require (CC BY), one per layer.
-static func attributions() -> Array[String]:
+## The credit lines (CC BY / data.gov.il) of the converted layers among `ids` (default: every source in
+## REGIONS), one per distinct attribution, in REGIONS order. Rolled with the credits on Quit
+## (game/menu/credits_roll.gd, docs/imagery.md §6).
+static func attributions(ids: Array = []) -> Array[String]:
+	var all := ids.duplicate()
+	if all.is_empty():
+		for key in REGIONS:
+			for row in REGIONS[key]:
+				all.append(row[0])
 	var out: Array[String] = []
-	for id in selected():
+	for id in all:
 		var a := String(manifest(id).get("attribution", ""))
-		if a != "":
+		if a != "" and not a in out:
 			out.append(a)
 	return out

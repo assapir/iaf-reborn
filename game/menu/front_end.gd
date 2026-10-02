@@ -1489,7 +1489,7 @@ func _on_button(key: String) -> void:
 			_message(8, [["yes", flight._end_flight.bind(true)], ["no", Callable()]])
 			return
 		if screen in QUIT_SCREENS:
-			get_tree().quit()
+			_quit()
 		elif screen in ["tsd", "arm"]:
 			_message(8, [["yes", _go.bind("main")], ["no", Callable()]])
 		else:
@@ -1806,11 +1806,57 @@ func _unhandled_input(event: InputEvent) -> void:
 	if busy or msgbox != null or not (event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE):
 		return
 	if screen in QUIT_SCREENS:
-		get_tree().quit()
+		_quit()
 	elif screen == "arm":
 		_on_button("back")
 	elif not screen in NO_BACK:
 		_leave(_back_target())
+
+
+# --- quit (§3.2) ----------------------------------------------------------------------------
+
+## The credits roll while quitting (game/menu/credits_roll.gd), or null.
+var credits: Control
+## What ends the game after the credits (tests replace it).
+var exit_game := func() -> void: get_tree().quit()
+
+
+## QUIT (FUN_004ecff0 -> WM_CLOSE -> 4e28b0), Esc on its screens and the window's close button: msg 7
+## "Are you sure you want to quit the game?" Yes / No.
+func _quit() -> void:
+	if msgbox == null:
+		_message(7, [["yes", _quit_yes], ["no", Callable()]])
+
+
+## Yes (0x556, FUN_004e2e00): every sound stops (FUN_00544f00), then the credits roll if the game was
+## started without a command line (m_lpCmdLine empty, _DAT_0064d9f4 set at startup; ours: no user
+## arguments after --), then the game exits. A key or a mouse button ends the roll.
+func _quit_yes() -> void:
+	for p in [music, sfx, preview]:
+		p.stop()
+	if not OS.get_cmdline_user_args().is_empty():
+		exit_game.call()
+		return
+	credits = preload("res://menu/credits_roll.gd").new()
+	add_child(credits)
+	credits.finished.connect(func(): exit_game.call())
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		if credits != null or flight != null:
+			exit_game.call()
+		else:
+			_quit()
+
+
+func _enter_tree() -> void:
+	# The window's close button reaches the same OnClose as QUIT (4e28b0) while the menus are up.
+	get_tree().auto_accept_quit = flight != null
+
+
+func _exit_tree() -> void:
+	get_tree().auto_accept_quit = true
 
 
 # --- message box (§3.3) ---------------------------------------------------------------------
