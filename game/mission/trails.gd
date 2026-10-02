@@ -49,6 +49,7 @@ func _ready() -> void:
 	gm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	gm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	gm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	gm.billboard_keep_scale = true
 	gm.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
 	gm.albedo_texture = _texture("missflr.png")
 	quad.material = gm

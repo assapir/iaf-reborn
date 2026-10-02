@@ -50,6 +50,9 @@ func _ready() -> void:
 	var sh := Shader.new()
 	sh.code = SHADER
 	_mat.shader = sh
+	# The layer is the farthest transparent thing (sky): drawn before the other transparent objects, whose
+	# depth-sorted order would otherwise put the camera-centred dome last, over the explosions and smoke.
+	_mat.render_priority = Material.RENDER_PRIORITY_MIN
 	var path: String = Settings.assets_dir().path_join("converted/objects/cloud256_%d.png" % texture_index)
 	var img := Image.load_from_file(path) if FileAccess.file_exists(path) else null
 	if img != null:

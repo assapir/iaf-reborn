@@ -116,6 +116,7 @@ func _make_layer(fire: bool) -> MultiMeshInstance3D:
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	mat.billboard_keep_scale = true  # the instance scale is the sprite width
 	mat.vertex_color_use_as_albedo = true
 	mat.albedo_texture = _soft_texture(fire)
 	mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
