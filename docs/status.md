@@ -19,7 +19,8 @@
 - ~~Cockpit camera = the original projection (HUD ladder lines up)~~ — done (docs/cockpit.md "3D view").
 - ~~Views, time compression, pause / in-flight menu~~ — done (docs/views.md).
 - ~~RWR (list, lights, sounds, MFD page / panel dial, F5 threat), radar MAP picture~~ — done (docs/rwr.md, docs/mfd.md
-  §4); nothing locks the player until AI combat / SAMs. ~~Other MFD pages (FLIR / TV / HARM)~~ — done (docs/mfd.md: EO camera, HARM list from the RWR; TV / HARM weapons, full-screen weapon MFD, NAV ETA still open).
+  §4); nothing locks the player until AI combat / SAMs. ~~Other MFD pages (FLIR / TV / HARM)~~ — done (docs/mfd.md;
+  open: Open gaps → Cockpit / MFDs).
 - Detached-looking stores.
 - ~~Helmet sight DASH~~ — done (weapons.md §5.4: the helmet display in `Dash` 1 cockpits, the IR seeker off-boresight in
   free look / padlock within the generation cone).
@@ -38,13 +39,11 @@ anti-radiation, laser guidance with the FLIR), night.
 sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, modern aircraft / weapons, Pi 5 profile.
 
 ## Small bugs (fix between jobs)
-- Stores look detached: no pylon models drawn (stores float under the wing), triple-rack side bombs touch the wing
-  (original formula). (The flat white fins seen from behind are gone since the Present scale / smoothing work.)
-
-- Stores seen from behind (user report: "not in place"): checked — the stations sit on the model (F-16 tip rails at
-  x ±4.78, airframe ±4.73; each single store's Pilon point on its station; test_arming.gd). What can look wrong: the
-  TER shoulder slots (2–3 bombs) hang at the pylon height ±Pilon sideways (original `FUN_0053c990`), so they touch
-  the wing. User to say which view is wrong (original vs better).
+- Stores look detached (user report: "not in place" from behind): no pylon models are drawn (stores float under the
+  wing), and the TER shoulder slots (2–3 bombs) hang at the pylon height ±Pilon sideways (original `FUN_0053c990`), so
+  they touch the wing. Checked: the stations sit on the model (F-16 tip rails at x ±4.78, airframe ±4.73; each single
+  store's Pilon point on its station; test_arming.gd). User to say which view is wrong (original vs better). (The flat
+  white fins seen from behind are gone since the Present scale / smoothing work.)
 - Tests: in a full `tools/test.sh` run while other Godot runs are busy (parallel jobs), a test (test_ui_smoke,
   test_damage, test_arming) occasionally hangs until the 300 s timeout with no output; alone they pass every time (8/8
   on 2026-10-01). test.sh now prints "FAIL timeout" and the last output lines — use that next time to find the cause.
@@ -56,26 +55,28 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 | v1.1 | `docs/v1.1.md` (v1.0→v1.1 diff and address map); ported outside the flight model: HUD (FPM, 12 px/deg ladder on the marker, gun cross at GunRetPositionY), ejection throw straight up, training debrief → Jet list, event counter order / missing-entity skip / combat ops 21–22, landed handler on every landing; v1.1 rules of unported systems recorded (damage.md §4.4, front-end.md §17); docs and code comments on v1.1 addresses |
 | Front end | original screens, animations, sounds, music; training + campaign; Jet list; Hebrew packs |
 | Terrain imagery | georeference (thin-plate spline, 610 control points, docs/georef.md); Sentinel-2 10 m layers outside Israel (1998 / modern colours, docs/imagery.md), picked per region on the Extras page; `setup.sh --imagery` (sentinel2; Survey of Israel sheets download only) |
-| Preferences | original 5 pages (Graphics, Sound, Keyboard, Devices, Gameplay) + our **Extras** (flight data, weapon data, language, info line, blackbox, HUD pitch ladder, all keys, window, anti-aliasing, terrain close up, sky — docs/rendering.md) and **Physics** (17 improvement switches, the Keyboard page's scrollbar once there are more than 15) tabs, EN + HE |
+| Preferences | original 5 pages (Graphics, Sound, Keyboard, Devices, Gameplay) + our **Extras** (flight data, weapon data, language, info line, blackbox, HUD pitch ladder, all keys, window, anti-aliasing, terrain close up, sky — docs/rendering.md; imagery per region — docs/imagery.md; scrolls 8 rows at a time) and **Physics** (18 improvement switches, the Keyboard page's scrollbar, 15 rows shown) tabs, EN + HE; VSYNC (ours) on the Graphics page (docs/front-end.md §12) |
 | Controls | original key table, rebinding on the Keyboard page, in-flight keys through the table; joystick (one device: stick / throttle / rudder axes per the Devices page, hat = snap views, buttons through the table and bound on the Keyboard page, menu/joy/*.joy), untested on hardware |
 | TSD / briefing | vector map, units, flights, waypoints, fly any flight, briefing texts and links |
 | Mission runtime | scripts, triggers, events, voices + subtitles, win / lose rules, mission boxes, debrief; player = the default (or chosen) flight's leader |
 | Flight model | original ground + airborne logic ported line by line (docs/flight-model.md §14–§15): envelope, stall, spin, landing / crash check, afterburner delay, gear / flaps / brakes, start rules, Gameplay prefs |
-| Physics switches | 12 "Better physics" options (incl. F-16 deep stall, ground effect) + 5 original-bug fixes (falling-jet heading, enemies tougher on easy AI, lock threat, stores weight / tank fuel, bomb burst depth) |
-| AI flight | docs/ai.md: the bdb brains (rule engine, conditions, sub-brains, combat ops 21 / 22) and the original's autopilot control loops fly every brain-controlled jet through the same flight model (all AI types, Original / Real data, the FM's AI rules): routes with timed waypoints, close / tactical formation, take-off from the hangar (taxi, pivot turns, rotation), go home and land (left-hand pattern, 6° final, roll-out, taxi to a hangar, engine off), hold, straight; the player's wingman follows the player; `ai.contacts()` for radar / RWR |
-| Autopilot | docs/autopilot.md: A key off → level → NAV → off, on at an airborne start, lamp 8, HUD `AP LVL` / `AP NAV`, stick / rudder break-out at ±51 %, throttle keys dropped in NAV and re-synced on exit; level = wings level + heading / flight-path hold (no autothrottle), NAV = Fly2WayPt to the current waypoint with the waypoint sequencing (`FUN_00452960`), a land waypoint = the AI's go-home circuit and landing (312's demonstration); the AI's control loops, the player's FM rules |
-| Player weapons | gun (0.2 s timer, analytic rounds, 25 / 50 m hit sphere, candidate list, muzzle flash, sounds, LCOS / strafe pippers), IR seeker + missiles (per-generation lock, tones, q, dog / proportional chase), bombs (MK-82/83/84, M117, CBU-87/97 with the cluster bursts, laser bombs as free bombs) and rockets (ZUNNI, LAU-61 boxes): ripple quantity / interval (stores page), CCIP and the delayed release with its cue / steering line / "SEC", the ballistic fall that corrects onto the aim, area blast, tanks and bombs falling on jettison; stores on the pylons, selection / master / HUD modes, release, weight / drag, external fuel tanks, HUD weapon line / missile circle / seeker diamond, stores MFD page; Extras "Weapon data: Real"; Physics "Bombs burst at the ground" (docs/weapons.md, docs/real-weapons.md) |
-| Radar | docs/radar.md: the player's radar (OFF / STBY / STT / BORE / LRS / TWS / ACM / GMT / MAP, per-jet tables, 2 s scan, 60° cone, terrain line of sight, 15 contacts, lock keys, STT track + auto-range), MFD B-scope / PPI symbols, HUD target box and "R" range, slaves the IR seeker, feeds the gun / LCOS range; chaff / flares (keys, counters, decoy flight); Real: F-16 APG-68 range, missile rear-aspect / cone / g |
-| Arming screen | original screen 0x1f (docs/front-end.md §15): jet front views + stations, weapon list AA / AG / Misc, drag and drop with the per-station allowed counts, right-click, DEFAULT, CURRENT LOAD / MAX T.O.W., the original's blocking checks (overweight, wing balance) and "Use weapon load?"; the load goes on the player's pylons (stores, weight / drag). Coverage: of the 9 missions whose default load cannot kill the targets (116, 122, 136, 212, 214, 215, 216, 227, 237), 8 now need a player weapon instead of the AI; with the bombs 215 / 227 / 237 no longer lack a weapon (Arming bombs kill their targets) but stay blocked by the F-15, AI combat, SAMs / AAA and scripts (docs/mission-coverage.md); the report now counts training 315 "Cold Steel" and 323 "Hair Pin" as playable — 315 bombed end to end destroys all 7 targets (test_bomb_missions.gd), but see the small bugs |
-| Real aircraft data | Real set for all 6 flyable jets (F-16, F-15C, F-4E / Kurnass 2000, Kfir C7, Lavi, Mirage IIICJ): weights, thrust, drag, roll, fuel, stall, pedal steering, drag chute, the low-speed indicated airspeed fix (docs/real-aircraft.md); the flight data loader reads the v1.1 files (`bdgen.dat`, `*gen.skp`, XOR-encoded); AI types: reference table only |
-| Damage | original damage model: hits, blast formula, destruction, falling jets, explosions / smoke, the player's systems damage, collisions |
+| Physics switches | 12 "Better physics" options (incl. F-16 deep stall, ground effect; docs/flight-model.md §10) + 6 original-bug fixes (falling-jet heading, enemies tougher on easy AI, lock threat, stores weight / tank fuel, bomb burst depth, collisions with hidden units / wrecks; docs/deviations.md §2) |
+| AI flight | docs/ai.md: the bdb brains (rule engine, conditions, sub-brains, combat ops 21 / 22) and the original's autopilot control loops fly every brain-controlled jet through the same flight model: routes with timed waypoints, formations, take-off from the hangar, go home and land, hold; the player's wingman follows the player; `ai.contacts()` for radar / RWR |
+| Autopilot | docs/autopilot.md: A key off → level → NAV → off, lamp 8, HUD `AP LVL` / `AP NAV`, stick / rudder break-out, NAV = Fly2WayPt with waypoint sequencing, a land waypoint = the AI's go-home circuit and landing (312's demonstration lands on the centreline) |
+| Player weapons | docs/weapons.md: gun (LCOS / strafe pippers), IR seeker + missiles, bombs (MK-82/83/84, M117, CBU-87/97 cluster, laser bombs as free bombs) and rockets (ZUNNI, LAU-61) with ripple, CCIP / delayed release, jettison (tanks, then bombs); stores on the pylons, master / HUD modes, weight / drag, external fuel tanks, stores MFD page; Extras "Weapon data: Real" (docs/real-weapons.md) |
+| Radar | docs/radar.md: modes OFF / STBY / STT / BORE / LRS / TWS / ACM / GMT / MAP with the per-jet tables, scan, terrain line of sight, lock keys, MFD B-scope / PPI, HUD target box, slaves the IR seeker, feeds the gun range; chaff / flares (docs/weapons.md §10) |
+| Arming screen | original screen 0x1f (docs/front-end.md §15): jet front views + stations, weapon list AA / AG / Misc, drag and drop with the per-station allowed counts, right-click, DEFAULT, CURRENT LOAD / MAX T.O.W., the original's blocking checks (overweight, wing balance) and "Use weapon load?"; the load goes on the player's pylons (stores, weight / drag). What the loads unlock: docs/mission-coverage.md (315 "Cold Steel" bombed end to end destroys all 7 targets, test_bomb_missions.gd) |
+| Real aircraft data | Real set for all seven flyable jets (six data sets: F-16, F-15C, F-4E / Kurnass 2000 shared, Kfir C7, Lavi, Mirage IIICJ): weights, thrust, drag, roll, fuel, stall, pedal steering, drag chute, the low-speed indicated airspeed fix (docs/real-aircraft.md); the flight data loader reads the v1.1 files (`bdgen.dat`, `*gen.skp`, XOR-encoded); AI types: reference table only |
+| Damage | docs/damage.md: hits, blast formula, destruction, falling jets, explosions / smoke, the player's systems damage, collisions |
 | Eject | E ×3: seat, canopy, parachute, mission lost |
-| Cockpit | all 9 original 2D cockpits, gauges (round gauges traced: engine needles from the rpm per engine with its damage flags, the two-needle altimeter, fuel fill, vario; docs/cockpit.md "Round gauges"), attitude indicators (lens ball, panel disc, MFD ADI page) and the vario / AoA tapes (docs/cockpit.md "Attitude indicators"), HUD (11 colours; traced symbology: heading tape, speed / altitude scales and boxes, text block, ladder, marker, ILS, gun cross, waypoint marker, docs/cockpit.md "HUD symbology"), panel lights, MFDs (radar incl. the MAP ground picture, TSD, RWR page and panel dial, NAV, stores, damage, FLIR / TV with the EO camera, HARM); RWR (docs/rwr.md) |
+| Views | docs/views.md: pause, On-The-Fly menu, FlyTSD (Esc), time compression, the original cameras (snap views, free look, padlock, external / fly-by, radar target, threat, wingman, weapon) |
+| Graphics / rendering | the Graphics page wired (terrain / object detail, effects, smoke trails, textured sky with the cloud layer, shadows, external stores; docs/front-end.md §12.4); Extras render options (docs/rendering.md) |
+| Cockpit | all 9 original 2D cockpits (docs/cockpit.md): round gauges, attitude indicators, vario / AoA tapes, HUD (11 colours, traced symbology incl. ILS and the waypoint marker), panel lights; MFDs (docs/mfd.md: radar incl. the MAP picture, TSD, RWR page, NAV, stores, damage, FLIR / TV with the EO camera, HARM); RWR (docs/rwr.md); helmet sight DASH (docs/weapons.md §5.4) |
 | Aircraft models | all 22 models: moving parts per the original rules, gear, afterburner flame, canopy / pilot, damage visuals |
 | Sounds | original sound table: engine, gear, flaps, air brake, AoA tone, Betty warnings, touchdown, crash; volume sliders |
 | Terrain | all of `map.ptt` (levels 11..6 + all 51 insets, 2342 nodes) as a streamed quadtree with distance LOD to 200 km, level-6 heights with the original's inset interpolation, skirts; runway digits surveyed on every airbase (2 mirrored fixed); `terraintype.dat` surface types (water / rough / runway) feed the flight model; loaded behind the wait screen (docs/formats/ptt.md) |
 | Pilot records | screen 0 at startup (docs/front-end.md §13): pilot list, Dossier (edit boxes, photo, rank, score, missions), Records / Kills / Losses, New / Remove / Login; each debriefed flight recorded (result, MissBonus, destroyed units as kills / losses, score multiplier), best-attempt score and rank, the briefing's "<rank> <name>"; Future Missions 2–7 locked until the previous pass; JSON in the user dir. Not filled yet: kills / losses only from what the damage code destroys (no AI weapons / SAMs), the debrief page's own statistics |
-| Tests | `tools/test.sh`: Rust + 40 headless Godot tests, isolated from the player's settings; fails on any script error |
+| Tests | `tools/test.sh`: Rust + 46 headless Godot tests (`tests/godot/test_*.gd`), isolated from the player's settings; fails on any script error or a 300 s timeout |
 
 ## Open gaps (by area)
 - **Terrain**: map-edge push-back / EndWorld and craters (terraintype bits known, systems missing); no elevation
@@ -88,9 +89,9 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 - **Controls**: joystick untested on real hardware (one device; no force feedback); not built: FlyTSD Fly into another
   aircraft / Visit (docs/views.md).
 - **Sounds**: weapon / AI sounds wait for those systems (the RWR's wait for something to lock the player).
-- **Front end**: Reference, QUIT confirmation, TSD 3D-model / target
-  windows; Graphics prefs wired (shadows not day-limited, no terrain resolution drop); No wind / No malfunctions
-  have no reader in the original either.
+- **Front end**: Reference screen content (docs/front-end.md §14), QUIT confirmation, TSD 3D-model / target
+  windows; Graphics prefs: SHADOWS not limited to the day (no time of day yet), no terrain resolution drop
+  (docs/deviations.md §1); No wind / No malfunctions have no reader in the original either.
 - **Eject details**: callsign in the radio call, parachute landing.
 
 ## Decisions (agreed with the user)
@@ -98,8 +99,8 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 - Modern-imagery work may use GDAL as a setup dependency. Modern imagery defaults to the 1998 colours; "modern
   colours" is its own Extras switch.
 - Keys: when an original command gets built, the original key wins; our own functions move to Ctrl+F-keys.
-- The other camera views (padlock, back view, fly-by, weapon camera, external list) and the wingman radio commands
-  are ported with the AI work.
+- The other camera views (padlock, back view, fly-by, weapon camera, external list) — done (docs/views.md); the wingman
+  radio commands come with the AI combat work.
 - Pilot records: our own JSON format with the same data as the original (Pilots.dat + Pilots\<id>.mis);
   no import of original files (maybe a converter later if easy).
 - Screenshots (SysRQ): PNG, timestamped, in the user data folder (original: IafJets000.bmp in the game folder).
