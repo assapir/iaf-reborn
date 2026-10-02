@@ -175,6 +175,13 @@ reference, `tools/envelope_ref.py`) are skipped with a message when those are mi
 (flight, AI, weapons, radar / RWR, cockpit / HUD / MFDs, views, menus, missions; any script error fails). It needs the converted assets, so it runs
 locally rather than on a hosted CI. Run scripted tests and captures with `IAF_DEFAULT_SETTINGS=1` so they use default settings and never read or write your saved preferences (`user://settings.cfg`).
 
+## Contributing
+
+- How the code and the docs are organised: [docs/status.md](docs/status.md), [docs/roadmap.md](docs/roadmap.md); how
+  we differ from the original: [docs/deviations.md](docs/deviations.md).
+- Credits: the credits roll on Quit (the original's, then ours and the imagery credits). To add a credit, see
+  [docs/credits.md](docs/credits.md).
+
 ## License and trademarks
 
 The code in this repository is licensed under the GNU General Public License v3.0 or later — see [LICENSE](LICENSE).

@@ -32,6 +32,7 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 | Terrain detail render resolution | levels 1–3 draw the terrain at 0.7 / 0.8 / 0.9 of the viewport | full resolution | a 1998 performance measure | front-end.md §12.4 |
 | Cloud layer | drawn against the current far plane (0x6284cc), cut at +0x1098 (`407c70`), over a plain clear colour / time-of-day table | far = 30000 (the static value); drawn at the far plane behind all terrain instead of the cut, over our gradient sky (with the layer off too) | same result as the cut at the terrain's horizon (our terrain reaches 200 km); the per-frame far is not traced; our sky is ours | cloud_layer.gd |
 | Shadows | only 08:00–17:00 | whenever SHADOWS is on | no time of day yet | terrain_view.gd |
+| Credits roll (§4.1 front-end.md) | credits.trx only; scroll step `__ftol(0.5 + dt/16)` px and palette steps of ≥ 8 ms per loop pass (so the speed followed the loop / flip rate) | our lines (project, author, source, licence) and the converted imagery layers' credits roll after the original's (game/menu/credits_ours.json, docs/credits.md); scroll a steady 1 px per 16 ms, fades a steady 400 ms | crediting the port and the CC BY imagery; smooth rendering | credits_roll.gd |
 | Trail blending | global blend state (UNCERTAIN) | alpha blend, crossed quads as the original | rendering | trails.gd |
 | Damaged stick (hydraulics 18 / flight control 24) | scaled in the stick motion, so it applies at the next stick event (a keyboard: the next key change) | the host sends the stick every frame, so it applies at the next frame | per-frame input (same as the keyboard-edge row) | aircraft.rs `set_controls` |
 | AI systems damage | the pick has AI rules (no 2, 3, 5, 7), the AI's reaction is not traced | AI jets take no systems damage | untraced | damage.md §5.3 |
@@ -127,7 +128,7 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
   Israel), default "Original". A converted modern layer (Sentinel-2 10 m outside Israel, in 1998 or modern
   colours; later Survey of Israel 2 m, SPOT 5) replaces the original's ground texture only on land in its region,
   never on water, the game's airbases or the original's fine insets; heights, terrain types and missions stay the
-  original's. The layer's credit (CC BY) shows on the loading screen. Data only via
+  original's. The converted layers' credits (CC BY) roll with the credits on Quit (docs/credits.md). Data only via
   `tools/setup.sh --imagery …` (off by default).
 
 ## 3. Original quirks we keep on purpose (decided)

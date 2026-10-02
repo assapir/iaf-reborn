@@ -67,8 +67,12 @@ the warp into the game frame: docs/georef.md; user-facing summary: README "Terra
 
 ## 6. Attribution and checks
 
-- CC BY sources need a credit wherever the imagery shows: the picked layers' `attribution` is printed at the
-  bottom of the flight loading screen.
+- CC BY sources need a credit: every converted layer's `attribution` (manifest) rolls in the credits on Quit,
+  after the original's credits, under "Terrain Imagery" (`imagery_layers.gd attributions()`, docs/credits.md). It
+  is no longer printed on the flight loading screen: CC BY 4.0 §3(a)(1) allows attribution "in any reasonable
+  manner based on the medium", and a game's credits roll is the usual place; the roll comes on every quit from the
+  menus (QUIT, Esc on Main / Login, the window's close button). A new source only needs its `attribution` in the
+  manifest (Survey of Israel: "© Survey of Israel 2015, via data.gov.il").
 - `iaf-imagery compare <theatre-dir> <layers-root> <level> <i> <j> <out.png>`: the original node, the 1998-colour and
   the modern-colour layer node side by side.
 - Tests: Rust `imagery` unit tests (feather inside only, tone curve), `tests/godot/test_imagery.gd` (layer node

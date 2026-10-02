@@ -59,7 +59,7 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 |---|---|
 | Setup | `tools/setup.sh [--patch <v1.1>] <ISO> [Hebrew packs]` builds everything; ISO + `setup.esa` extraction; `iaf-patch` applies the official v1.1 patch (RTPatch) without Windows, before the Hebrew packs and every conversion |
 | v1.1 | `docs/v1.1.md` (v1.0→v1.1 diff and address map); the flight model's changes (docs/flight-model.md §16); outside it: HUD (FPM, 12 px/deg ladder on the marker, gun cross at GunRetPositionY), ejection throw straight up, training debrief → Jet list, event counter order / missing-entity skip / combat ops 21–22, landed handler on every landing; v1.1 rules of unported systems recorded (damage.md §4.4, front-end.md §17); docs and code comments on v1.1 addresses |
-| Front end | original screens, animations, sounds, music; training + campaign; Jet list; Hebrew packs |
+| Front end | original screens, animations, sounds, music; training + campaign; Jet list; Hebrew packs; QUIT box and credits roll |
 | Terrain imagery | georeference (thin-plate spline, 610 control points, docs/georef.md); Sentinel-2 10 m layers outside Israel (1998 / modern colours, docs/imagery.md), picked per region on the Extras page; `setup.sh --imagery` (sentinel2; Survey of Israel sheets download only) |
 | Preferences | original 5 pages (Graphics, Sound, Keyboard, Devices, Gameplay) + our **Extras** (flight data, weapon data, language, info line, blackbox, HUD pitch ladder, all keys, window, anti-aliasing, terrain close up, sky — docs/rendering.md; imagery per region — docs/imagery.md; scrolls 8 rows at a time) and **Physics** (18 improvement switches, the Keyboard page's scrollbar, 15 rows shown) tabs, EN + HE; VSYNC (ours) on the Graphics page (docs/front-end.md §12) |
 | Controls | original key table, rebinding on the Keyboard page, in-flight keys through the table; joystick (one device: stick / throttle / rudder axes per the Devices page, hat = snap views, buttons through the table and bound on the Keyboard page, menu/joy/*.joy), untested on hardware |
@@ -96,7 +96,7 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
   aircraft / Visit (docs/views.md).
 - **Sounds**: AI / moving-unit sounds (AI jets fly silently), Betty "Pull up", the belly screech (the host never sets
   `FlightSounds.on_runway`); the RWR's wait for something to lock the player (docs/sound.md §5).
-- **Front end**: Reference screen content (docs/front-end.md §14), QUIT confirmation, TSD 3D-model / target
+- **Front end**: Reference screen content (docs/front-end.md §14), TSD 3D-model / target
   windows; Graphics prefs: SHADOWS not limited to the day (no time of day yet), no terrain resolution drop
   (docs/deviations.md §1); No wind / No malfunctions have no reader in the original either.
 - **Eject details**: callsign in the radio call, parachute landing.

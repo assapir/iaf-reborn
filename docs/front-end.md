@@ -101,8 +101,14 @@ the Log screen (not traced).
     you want to quit the game?"** as a **Yes/No** box (type 4, reply message `0x556`). Otherwise
     WM_CLOSE is swallowed: there is no default close.
   * `0x556` → **`4e2e00`** acts only on IDYES (lParam 6): engine command 0x74 (unload),
-    `FUN_004d8d90(0)`, `FUN_004e9460`, then the credits sequence if `FUN_00544f00()` ≠ 0 (cr0..4.ttf,
-    credits.wav; condition UNCERTAIN), `FUN_00544300`, DestroyWindow (vtable `+0x60`). NO does nothing.
+    `FUN_004d8d90(0)`, `FUN_004e9460` (the menu frame goes), `FUN_00544f00` (every sound stops), then the
+    **credits roll (§4.1)** if `_DAT_0064d9f4` ≠ 0, `FUN_00544300` (sound off), DestroyWindow (vtable `+0x60`).
+    NO does nothing. `_DAT_0064d9f4` is set once at startup (InitInstance `FUN_004e1960`; read `@4e2e79`) to
+    `*(char*)(app+0x70) == 0`: the app's `m_lpCmdLine` (next to `m_nCmdShow` at `+0x74`, passed to ShowWindow)
+    is empty, i.e. **the credits roll only when the game was started without a command line**. Ours: no user
+    arguments after `--` (`./iafjets` alone); `./iafjets --mission 311` quits without them.
+  * Ours: QUIT, Esc on its screens and the window's close button (Godot's close request, while the menus are
+    up) all show msg 7 (`front_end.gd _quit`).
   * Alt+F4 / system close reach the same OnClose. msg 7 is also used by the in-flight pause menu,
     item 5 (`FUN_004dc0d0`, same reply message `0x556`).
 
@@ -134,8 +140,8 @@ the Log screen (not traced).
   `"ABC…XYZabc…xyz"` at `lfHeight=-100` to get `cy`, then creates
   `lfHeight = -round(cy*p/100 + 0.5)` (constants `0x606528` = 0.01, `0x60652c` = -0.5). With
   Arial, `cy≈112`, so p=10 → about 11 px em and p=11 → about 12 px (UNCERTAIN: exact `cy`).
-* **`fnt/cr0..cr4.ttf` (Gill Sans variants) are only `AddFontResource`d for the credits sequence**
-  (`FUN_004e2960` around `4e2ea0`, removed at `4e2f3f`). No menu screen uses them. The Pilot Records
+* **`fnt/cr0..cr4.ttf` (Gill Sans variants) are only `AddFontResource`d for the credits roll**
+  (`4e2e00`, added at `4e2ea6`, removed at `4e2f4f`; §4.1). No menu screen uses them. The Pilot Records
   Kills/Losses pages load two other font files, `fnt/key.fnt` and `fnt/hud.fnt` (§13.10).
 * Button labels are bitmaps (palette, misc, mbg art). They are not text.
 * Mission/course list (`FUN_00509e80`), transparent background:
@@ -147,6 +153,49 @@ the Log screen (not traced).
 * Briefing RTF: its own fonts (Arial, `\cf1` white); rich-edit background RGB(94,94,104)
   (`EM_SETBKGNDCOLOR 0x685e5e`, `FUN_0050d710`).
 * `II PAUSE` in-flight text: RGB(0,255,0) at (30,450) (`FUN_004e92b0`), for reference.
+
+### 4.1 Credits roll (Quit Yes, `FUN_004e2e00` @4e2e86..4e2f69)
+A window over the whole screen (ctor `FUN_004e7280`, loop `FUN_004e7880`, draw `FUN_004e7de0`, message map
+`0x6060d8`), built as `FUN_004e7280(main, "%s\Txt\credits.trx", 9, "%s\Bmp\Screens\cr")` and run as
+`FUN_004e7880(1, 50, 8, 5000, 0)` (objdump push order: steps 50, step 8 ms, static 5000 ms, fade colour 0).
+* **Fonts**: `%s\Fnt\cr%d.ttf`, d = 0..4, AddFontResource'd around the roll. The faces come from the RTF
+  font table of `credits.trx`: f0 "Gill Sans" = cr4.ttf (family "Gill Sans", style "Bold CondensedA"), f1
+  "Gill Sans Condensed" = cr1.ttf, f2 "Times New Roman" (system; only one empty line). cr0 / cr2 / cr3 (Ultra
+  Bold Condensed, Extra Bold, Ultra Bold) are added but unused. One font per distinct (face, bold, size)
+  (`FUN_004e8930`), `CreateFontA(-MulDiv(fs/2, LOGPIXELSY, 72), weight bold ? 700 : 0, face)`: \fs40 → 27 px,
+  \fs32 → 21 px, \fs24 → 16 px.
+* **credits.trx** (an RTF file, the Hebrew packs' copy is the same English file) is read line by line
+  (`FUN_004e8200` → `8270` font table from the first line, `8330` per line): `\'hh` becomes the byte,
+  `\ldblquote` / `\rdblquote` / `\lquote` / `\rquote` quotes (each eats one more character); then `\line`,
+  `\fs<n>`, `\f<n>`, `\b` close the pending text as a run (on the same line) and set size / face / bold; text
+  *replaces* the pending text; other control words are skipped (to the next space or backslash, one space
+  eaten); the file line's end ends the screen line. A line starting with `}` drops itself and the next line.
+  Quirk kept: `\pard\'a9 ROHR…` makes one control word "pard©", so the © never shows. Styles in the file:
+  team headings and names `\f0\fs40`, roles `\f1\fs40`, spacers empty `\fs24` lines, the satellite
+  copyright `\fs32`.
+* **Layout** (`4e7de0`): every line starts at x = 0x46 (70), runs follow on the line (x += extent); text
+  `TextOut` at the line's top, colour `SetTextColor(0x00adff)` = RGB(255,173,0), transparent. Line advance
+  = tmHeight + 5. A run is drawn only if its rect `(x, y − cy, x + cx, y)` — the box *above* its text — meets
+  the screen, so a line vanishes when its top reaches the top edge; the pass stops at the first run below the
+  screen. `m_nYLastText` = cy + 5 below the line after the last run passed (starts at 100000).
+* **Scroll** (`4e7880`): the first line starts at y = 50 + 480 = 530 (local_188 = −50 − bitmap height);
+  each pass the text moves up `__ftol(0.5 − dt·(−0.0625))` = round(dt / 16) px, dt = ms since the last move
+  (constants `0x6061ec` / `0x6061f0`): 1 px per 16 ms, 62.5 px/s nominal (the rounding made it follow the loop
+  rate). The credits.trx roll lasts about 2 minutes.
+* **Background**: `cr0..cr8.bmp` (640 × 480, 8-bit) in turn, from the start: palette fade in from black in
+  50 steps of ≥ 8 ms (`FadeIn`), 5000 ms `Static`, fade out to black (`FadeOut`), next screen (index mod 9).
+  The text is drawn over the bitmap in a memory DC, then blitted to the DirectDraw surface and flipped.
+* **Music**: `%s\Wav\credits.wav`, started with the same parameters as Menu_M.WAV (the music volume
+  `DAT_0083b8c8`). When `m_nYLastText << 4 < 0x1e00` (the last line is on screen, y < 480) it fades out once over
+  `m_nYLastText · 16` ms (`FUN_00544c20` → `5469d0`: to −10000 mB in 20 ms steps), i.e. just as the text leaves.
+* **End**: when `m_nYLastText` < the client top (the last line has gone), or on WM_KEYDOWN, WM_SYSKEYDOWN,
+  WM_LBUTTONDOWN or WM_RBUTTONDOWN (`FUN_004e8160`); the music stops. WM_SETCURSOR hides the cursor.
+* **Ours** (game/menu/credits_roll.gd, docs/credits.md): the same reader, layout, timings and assets
+  (`strings.json` "credits" = credits.trx, `img/screens/cr*.png`, `wav/credits.wav`, cr1 / cr4.ttf), drawn
+  smooth in the scaled 640 × 480 screen; scroll and fades follow the clock (1 px / 16 ms, 400 ms fades).
+  After the original's lines: our own (game/menu/credits_ours.json, Hebrew in Hebrew, Arial as the Hebrew
+  fallback) and the converted imagery layers' credits (deviation, docs/deviations.md). Empty runs count
+  cy = 0 (UNCERTAIN: GetTextExtentPoint of an empty string); only the end time depends on it.
 
 ## 5. Content windows
 
@@ -696,7 +745,7 @@ message `0x55c` to the frame with wParam = the target screen and lParam = the bu
 * `ButtonIn.wav` plays on button press, `ButtonOut.wav` on release (`FUN_004e2960`, globals
   `0083afd4/50`).
 * `PaletteIn.wav` and `PaletteOut.wav` play with the panel slides (§2).
-* `credits.wav` plays with the credits.
+* `credits.wav` plays with the credits roll (§4.1).
 * `menu_mo.wav` and `menu_mo.pk` are not referenced by name in the exe (UNCERTAIN).
 * `wav/pref/engines.wav`, `sfx.wav`, `speech.wav` loop while the matching Sound-page slider is dragged
   (§12.5). `iaf-convert menu` copies them to `wav/pref/`.
