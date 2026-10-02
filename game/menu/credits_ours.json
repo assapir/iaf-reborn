@@ -10,7 +10,7 @@
 		{"style": "gap"},
 		{"style": "role", "text": "Source Code", "he": "קוד מקור"},
 		{"style": "name", "text": "github.com/assapir/iaf-reborn"},
-		{"style": "small", "text": "GNU General Public License v3.0 or later", "he": "GNU General Public License גרסה 3.0 ואילך"},
+		{"style": "small", "text": "GNU General Public License v3.0 or later", "he": "רישיון GNU General Public License גרסה 3.0 ואילך"},
 		{"style": "gap"},
 		{"style": "imagery", "text": "Terrain Imagery", "he": "צילומי השטח"},
 		{"style": "blank"}
