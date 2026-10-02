@@ -1,11 +1,13 @@
 # The IR missile seeker of the SRM HUD mode (docs/weapons.md §5.2; IR mode object FUN_00461210,
 # update FUN_00461290, search FUN_00461680, can-track FUN_00461d10, field of view FUN_00461f10,
 # per-generation limits FUN_00462460, tones FUN_00461bf0). Scene independent: world frame X east,
-# Y north, Z up. Screen offsets are original 640x480 HUD pixels from the boresight point, at the
-# v1.1 HUD scale of 12 px/deg (ours: the original's projector is not traced, docs/deviations.md).
+# Y north, Z up. Screen offsets are original 640x480 pixels from the HUD centre (cx, cy) through the 3D
+# camera, as angles at 12 px/deg from the camera ray through that point (`own.sight`; the nose without
+# one). The helmet (free look / padlock views, docs/weapons.md §5.4): `own.helmet` and the camera axis
+# `own.view_fwd`.
 extends RefCounted
 
-## Per missile generation (bdb 0x762): seeker cone (0x6016c0.., used only when radar-slaved) and
+## Per missile generation (bdb 0x762): seeker cone (0x6016c0.., the radar- or helmet-slaved gimbal limit) and
 ## lock range in NM (0x82f6c4); generation 0 / other keeps the previous values (static default:
 ## generation 4).
 const CONE_DEG := {1: 15.0, 2: 21.0, 3: 35.0, 4: 70.0}
@@ -13,7 +15,7 @@ const RANGE_NM := {1: 6.0, 2: 8.0, 3: 10.0, 4: 15.0}
 const NM := 1854.0  # 0x6016a0
 ## Narrow seeker field of view (cos 6°, 0x6016c8).
 const FOV_DEG := 6.0
-## The boresight circle for the search and the launch (vfunc +0x44: 60·100 px²).
+## The circle around the HUD centre for the search and the launch (vfunc +0x44: 60·100 px²).
 const CIRCLE_PX2 := 6000.0
 ## Search at most every 0.5 s; the seeker part of the update every 0.05 s.
 const SEARCH_PERIOD := 0.5
@@ -33,7 +35,7 @@ var lock_range := 15.0 * NM
 var rear_only := false
 var target_key := ""  # this+0x14
 var lock := false  # 0x82f6ec
-## The seeker symbol (diamond), px from the boresight.
+## The seeker symbol (diamond), px from the HUD centre.
 var symbol := Vector2.ZERO
 var _next_search := -1.0e9
 var _next_update := -1.0e9
@@ -61,14 +63,16 @@ func set_weapon(w: Dictionary) -> void:
 	rear_only = bool(w.get("real_rear", false))
 
 
-## Screen offset (px, x right, y down) of a world point from the boresight for the own attitude
-## `own` {pos, fwd, up, right}; null when behind.
+## Screen offset (px, x right, y down) of a world point from the HUD centre: from the ray `own.sight`
+## {fwd, up, right} (the camera ray through the HUD centre), else the nose basis of `own` {pos, fwd, up,
+## right}; null when behind.
 static func screen_offset(own: Dictionary, p: Vector3) -> Variant:
+	var b: Dictionary = own.get("sight", own)
 	var d: Vector3 = p - own.pos
-	var f: float = d.dot(own.fwd)
+	var f: float = d.dot(b.fwd)
 	if f <= 0.0:
 		return null
-	return Vector2(rad_to_deg(atan2(d.dot(own.right), f)), -rad_to_deg(atan2(d.dot(own.up), f))) * PX_PER_DEG
+	return Vector2(rad_to_deg(atan2(d.dot(b.right), f)), -rad_to_deg(atan2(d.dot(b.up), f))) * PX_PER_DEG
 
 
 ## FUN_00461d10: limited heat (580) only within ±60° of the own heading (bearing, not aspect); range
@@ -87,12 +91,20 @@ func can_track(own: Dictionary, u: Dictionary, type: int) -> bool:
 	return r <= lock_range / 2.0 or bool(u.get("afterburner", false))
 
 
-## FUN_00461f10 (not slaved, the cockpit views): the target within 6° of the nose.
-## Slaved to an A-A radar lock (FUN_004625f0): the per-generation cone instead.
+## FUN_00461f10. With an A-A radar lock (FUN_004625f0): the target within the per-generation cone of the
+## nose. Else in the free-look / padlock views (`own.helmet`): the camera axis `own.view_fwd` within the cone
+## of the nose and the target within 6° of that axis. Else: within 6° of the nose.
 func in_view(own: Dictionary, u: Dictionary) -> bool:
 	var d: Vector3 = u.pos - own.pos
-	var c := cone_cos if slaved() else cos(deg_to_rad(FOV_DEG))
-	return d.length() > 0.0 and own.fwd.dot(d.normalized()) >= c
+	if d.length() <= 0.0:
+		return false
+	var fov := cos(deg_to_rad(FOV_DEG))
+	if radar_key != "" and radar_aa:
+		return own.fwd.dot(d.normalized()) >= cone_cos
+	if own.get("helmet", false):
+		var a: Vector3 = own.view_fwd
+		return own.fwd.dot(a) >= cone_cos and a.dot(d.normalized()) >= fov
+	return own.fwd.dot(d.normalized()) >= fov
 
 
 func slaved() -> bool:
@@ -100,7 +112,7 @@ func slaved() -> bool:
 
 
 ## FUN_00461680: keep a target that still passes can-track; else, at most every 0.5 s, the unit
-## nearest the boresight inside the 6000 px² circle that passes can-track (no side test).
+## nearest the HUD centre inside the 6000 px² circle that passes can-track (no side test).
 func search(now: float, own: Dictionary, units: Array, type: int) -> Dictionary:
 	# A radar lock clears the seeker's own target; in A-A the seeker takes the locked unit at once
 	# (no 0.5 s gate, no HUD circle).
@@ -148,7 +160,7 @@ func update(now: float, own: Dictionary, units: Array, type: int, have_rounds: b
 			symbol = goal
 
 
-## The target a launch takes (FUN_00462ad0): the seeker target when inside the boresight circle.
+## The target a launch takes (FUN_00462ad0): the seeker target when inside the HUD-centre circle.
 func target_in_circle(own: Dictionary, units: Array) -> Dictionary:
 	var t := _find(units, target_key)
 	if t.is_empty():

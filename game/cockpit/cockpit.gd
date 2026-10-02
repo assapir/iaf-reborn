@@ -137,7 +137,7 @@ func load_cockpit(rel: String) -> void:
 		_add_tex("LIGHTS", lights_file)
 	_add_tex("MFDS", "mfds.bmp")
 	_add_tex("RWRSYMB", "rwrsymb.bmp")
-	_measure_view_bottom()
+	_load_panel_mask()
 	_load_tsd_map()
 	_create_mfds()
 	hud.cockpit = self
@@ -241,44 +241,83 @@ func focal_length() -> float:
 	return VIEW_WIDTH / 2.0 / tan(deg_to_rad(VIEW_FOV_DEG) / 2.0) * ui_scale()
 
 
-## Bottom of the original 3D viewport below the panel top (original pixels, straight-ahead view):
-## the viewport ends where the panel's see-through area ends at the two screen-edge columns
-## (FUN_0052e750 → FUN_0052e6a0), ((D + MainOffsetY + 7) & ~7) capped at 480 (FUN_0051f610).
-var _view_bottom := 480.0
+## The panel art for FUN_0052e750 (null: no art, the viewport is 480 rows) and its per-column D cache.
+var _panel_img: Image
+var _col_d := {}
 
 
-## The original viewport's projection centre: the middle of the viewport rows [0, bottom) and the
-## screen's centre column (FUN_00413f90), placed like the 2D art (relative to the panel top).
+## The original viewport's projection centre: the middle of the viewport rows [0, view_bottom()) and the
+## screen's centre column (FUN_00413f90), placed like the 2D art (relative to the panel top, unpanned).
 func projection_centre() -> Vector2:
 	var main_y: float = layout.get("PANEL", {}).get("MainOffsetY", 190)
-	return Vector2(size.x / 2, panel_top() + (_view_bottom / 2.0 - main_y) * ui_scale())
+	return Vector2(size.x / 2, panel_top() + (view_bottom() / 2.0 - main_y) * ui_scale())
 
 
-## D of FUN_0052e750 for the straight-ahead pan (screen columns 0 and 640 = panel x 640 and 1280):
-## per column, the panel row below its lowest transparent pixel inside its 320-px slice (slices start
-## at {MaskOffsetY1, MaskOffsetY2, 0, 0, MaskOffsetY2, MaskOffsetY1}); the slice top if none.
-func _measure_view_bottom() -> void:
+## Bottom row of the original 3D viewport (FUN_0051f610, cockpit views): min(480, (D + MainOffsetY + 7 +
+## vpan) & ~7), D = FUN_0052e750(pan) = the larger D of the panel columns under the two screen edges (panel x
+## = pan + 640 and pan + 1280). A turned head moves the projection centre with it.
+func view_bottom() -> float:
+	if _panel_img == null:
+		return 480.0
+	var hp := head_pan()
+	var pan := -int(hp.x)
+	var main_y := int(layout.get("PANEL", {}).get("MainOffsetY", 190))
+	var d := maxi(_column_d(pan + 640), _column_d(pan + 1280))
+	return minf(480.0, (d + main_y + 7 + int(hp.y)) & ~7)
+
+
+## D of one panel column x (FUN_0052e750): the panel row below the column's lowest transparent pixel inside
+## its 320-px slice (slices start at {MaskOffsetY1, MaskOffsetY2, 0, 0, MaskOffsetY2, MaskOffsetY1}), the
+## slice top if none; a column off the six slices gives PanelHeight + 1.
+func _column_d(x: int) -> int:
 	var p: Dictionary = layout.get("PANEL", {})
-	var main_y: float = p.get("MainOffsetY", 190)
-	var img: Image = tex.PANEL.get_image() if tex.has("PANEL") else null
-	if img == null:
-		return
-	if img.is_compressed():
-		img.decompress()
+	var slice := x / 320
+	if slice < 0 or slice > 5 or x % 320 < 0:
+		return int(p.get("PanelHeight", 352)) + 1
+	if _col_d.has(x):
+		return _col_d[x]
 	var a: float = layout.get("image_scale", 1)
 	var y1: float = p.get("MaskOffsetY1", 0)
 	var y2: float = p.get("MaskOffsetY2", 0)
-	var starts := [y1, y2, 0.0, 0.0, y2, y1]
-	var d := 0
-	for x in [640, 1280]:
-		var top := int(starts[x / 320])
-		var col := top
-		for y in range(int(img.get_height() / a) - 1, top - 1, -1):
-			if img.get_pixel(int((x + 0.5) * a), int((y + 0.5) * a)).a < 0.5:
-				col = y + 1
-				break
-		d = maxi(d, col)
-	_view_bottom = minf(480.0, (d + int(main_y) + 7) & ~7)
+	var top := int([y1, y2, 0.0, 0.0, y2, y1][slice])
+	var col := top
+	for y in range(int(_panel_img.get_height() / a) - 1, top - 1, -1):
+		if _panel_img.get_pixel(mini(int((x + 0.5) * a), _panel_img.get_width() - 1), int((y + 0.5) * a)).a < 0.5:
+			col = y + 1
+			break
+	_col_d[x] = col
+	return col
+
+
+func _load_panel_mask() -> void:
+	_col_d.clear()
+	_panel_img = tex.PANEL.get_image() if tex.has("PANEL") else null
+	if _panel_img != null and _panel_img.is_compressed():
+		_panel_img.decompress()
+
+
+## The HUD is the helmet display (FUN_00530b70, docs/cockpit.md "HUD dash repeater"): `[HUD] Dash` 1, the
+## cockpit drawn, and the panel panned ≥ 250 px aside or ≥ 200 px down.
+func dash() -> bool:
+	if view_mode != 0 or int(layout.get("HUD", {}).get("Dash", 0)) != 1:
+		return false
+	var hp := head_pan()
+	return absf(hp.x) >= 250.0 or hp.y >= 200.0
+
+
+## Original screen point of the helmet display's centre.
+const DASH_CENTRE := Vector2(320, 220)
+
+
+## The HUD centre (cx, cy) = R+0x2768 / +0x276c in screen pixels (the cockpit's parent): (320 − pan,
+## MainOffsetY − CenterY + vpan), i.e. CenterY above the panned panel top; the helmet display's (320, 220)
+## unpanned.
+func hud_centre_screen() -> Vector2:
+	var s := ui_scale()
+	if dash():
+		var main_y: float = layout.get("PANEL", {}).get("MainOffsetY", 190)
+		return Vector2(size.x / 2 + (DASH_CENTRE.x - 320.0) * s, panel_top() + (DASH_CENTRE.y - main_y) * s)
+	return Vector2(size.x / 2, panel_top() - float(layout.get("HUD", {}).get("CenterY", 0)) * s) + head_pan() * s
 
 
 ## Top of the panel in screen pixels. The forward view shows only the top part of the

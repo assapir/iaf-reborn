@@ -17,6 +17,7 @@ const EoSensor := preload("res://weapons/eo_sensor.gd")
 const HarmSensor := preload("res://weapons/harm_sensor.gd")
 const DamageEffects := preload("res://mission/damage_effects.gd")
 const Bombs := preload("res://weapons/bombs.gd")
+const Views := preload("res://terrain/views.gd")
 
 ## The gun's shot timer period (DAT_0082f4e8 = 0.2 s, sim time).
 const GUN_PERIOD := 0.2
@@ -191,8 +192,26 @@ func own() -> Dictionary:
 	if host.flight != null:
 		vel = dir_world(host.flight.state().velocity)
 	var fwd := dir_world(-b.z)
-	return {"pos": to_world(host.rig.global_position), "vel": vel, "fwd": fwd, "up": dir_world(b.y),
+	var o := {"pos": to_world(host.rig.global_position), "vel": vel, "fwd": fwd, "up": dir_world(b.y),
 		"right": dir_world(b.x), "yaw": atan2(fwd.x, fwd.y)}
+	o.merge(seeker_view())
+	return o
+
+
+## The IR seeker's view of the cockpit camera (docs/weapons.md §5.1 / §5.4), {} outside the cockpit views:
+## `sight` the camera ray through the HUD centre (cx, cy) {fwd, up, right}, `view_fwd` the camera axis,
+## `helmet` in the free-look / padlock views.
+func seeker_view() -> Dictionary:
+	var cam: Camera3D = host.get("camera")
+	var c: Control = host.get("cockpit")
+	if cam == null or c == null or not cam.current or host.get("views") == null or not host.views.cockpit_like():
+		return {}
+	var cb := cam.global_basis.orthonormalized()
+	var f := dir_world(cam.project_ray_normal(c.hud_centre_screen())).normalized()
+	var r := dir_world(cb.x)
+	r = (r - f * r.dot(f)).normalized()
+	return {"sight": {"fwd": f, "right": r, "up": r.cross(f)}, "view_fwd": dir_world(-cb.z),
+		"helmet": host.views.snap == null and host.views.type in [Views.FREE_LOOK, Views.PADLOCK]}
 
 
 ## A body point of the jet (descriptor glTF metres) in the world.

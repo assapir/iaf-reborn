@@ -80,7 +80,8 @@ func _layout() -> void:
 	# The symbology field, from the HUD section (distances from the HUD centre).
 	var h: Dictionary = cockpit.layout.HUD
 	var s: float = cockpit.ui_scale()
-	var centre := Vector2(cockpit.size.x / 2, cockpit.panel_top() - h.CenterY * s)
+	# The HUD centre (cx, cy): on the panned panel, or the helmet display's fixed point.
+	var centre: Vector2 = cockpit.hud_centre_screen() - cockpit.position
 	position = centre - Vector2(h.LeftBorder, h.TopBorder) * s
 	size = Vector2(h.LeftBorder + h.RightBorder, h.TopBorder + h.BottomBorder) * s
 	_c = Vector2(h.LeftBorder, h.TopBorder) * s
@@ -111,9 +112,11 @@ func _draw() -> void:
 	var w := maxf(1.0, 0.6 * s)
 	var gun: Vector2 = gun_cross() - position
 	_ladder_labels.clear()
+	# The helmet display (R+0x2788): no ladder / marker, ILS, gun cross, mode 3–6 aiming symbols.
+	var dash: bool = cockpit.dash()
 
 	# Ladder (ShowHorizon, R+0x2234) and flight path marker (FUN_00538c90).
-	if camera != null:
+	if camera != null and not dash:
 		var fpm = _fpm_position()
 		if _key("ShowHorizon", 1) != 0:
 			if Settings.hud_ladder == "conformal":
@@ -124,7 +127,7 @@ func _draw() -> void:
 			_draw_fpm(fpm, s, w)
 
 	# NAV: the ILS with the gear handle down (FUN_005309a0).
-	if _mode() == 0 and cockpit.gear_handle_down:
+	if _mode() == 0 and cockpit.gear_handle_down and not dash:
 		var il := ils_lines(st.get("ils", Vector2.ZERO), _field())
 		var hx: float = 16
 		_ln(self, Vector2(-hx, il.y), Vector2(hx, il.y), w)
@@ -134,11 +137,11 @@ func _draw() -> void:
 		_ln(self, Vector2(il.x - 1, -hx), Vector2(il.x + 2, -hx), w)
 		_ln(self, Vector2(il.x - 1, hx), Vector2(il.x + 2, hx), w)
 
-	_draw_weapons(s, w, font, fs, gun)
+	_draw_weapons(s, w, font, fs, gun, dash)
 	# FUN_0052f690, every HUD mode: the target box, the gun cross with the gear handle up (GunRetPositionY:
-	# −4..+5 across, −5..+10 down), the waypoint marker in NAV and the air-to-ground modes.
+	# −4..+5 across, −5..+10 down; not on the helmet display), the waypoint marker in NAV and the air-to-ground modes.
 	_draw_target_box(s, w)
-	if not cockpit.gear_handle_down:
+	if not cockpit.gear_handle_down and not dash:
 		var g := (gun - _c) / s
 		_ln(self, g + Vector2(-4, 0), g + Vector2(5, 0), w)
 		_ln(self, g + Vector2(0, -5), g + Vector2(0, 10), w)
@@ -230,7 +233,8 @@ func _draw_outer() -> void:
 	var w := maxf(1.0, 0.6 * _s)
 	var f := _field()
 	var mode := _mode()
-	var scales := _key("ShowLRScales", 1) != 0
+	var dash: bool = cockpit.dash()
+	var scales := _key("ShowLRScales", 1) != 0 and not dash
 	var nav := nav_cues(st, cockpit.waypoints, cockpit.current_waypoint)
 	var vy := -_key("VertSclOffY", 150)
 	var gear: bool = cockpit.gear_handle_down
@@ -269,19 +273,24 @@ func _draw_outer() -> void:
 		for l in sc.labels:
 			_sprite(outer, Vector2(x - 3, vy + l[0] - 7), l[1], true)
 
-	# Heading tape (FUN_00537cd0) on the top edge.
-	var y0 := f.position.y
-	var ht := heading_tape(st.heading, nav.bearing_deg)
-	_ln(outer, Vector2(-57, y0), Vector2(57, y0), w)
-	_ln(outer, Vector2(0, y0), Vector2(0, y0 + 4), w)
-	_poly(outer, [Vector2(-11, y0), Vector2(-11, y0 - 12), Vector2(11, y0 - 12), Vector2(11, y0)], w)
-	_gdi(outer, Vector2(-8, y0 - 2), ht.box)
-	var cx: float = ht.caret
-	_poly(outer, [Vector2(cx - 3, y0 + 4), Vector2(cx, y0 + 1), Vector2(cx + 4, y0 + 5)], w)
-	for tx in ht.ticks:
-		_ln(outer, Vector2(tx, y0), Vector2(tx, y0 - 2), w)
-	for l in ht.labels:
-		_sprite(outer, Vector2(l[0] + 6, y0 - 7), l[1], true)
+	# Heading tape (FUN_00537cd0) on the top edge; the helmet display has the DASH symbol instead.
+	if dash:
+		for line in dash_symbol(st.pitch, st.roll, _dash_steady()):
+			_poly(outer, line, w)
+		outer.draw_arc(_pt(Vector2.ZERO), 2.0 * _s, 0, TAU, 16, cockpit.hud_colour(), w)
+	else:
+		var y0 := f.position.y
+		var ht := heading_tape(st.heading, nav.bearing_deg)
+		_ln(outer, Vector2(-57, y0), Vector2(57, y0), w)
+		_ln(outer, Vector2(0, y0), Vector2(0, y0 + 4), w)
+		_poly(outer, [Vector2(-11, y0), Vector2(-11, y0 - 12), Vector2(11, y0 - 12), Vector2(11, y0)], w)
+		_gdi(outer, Vector2(-8, y0 - 2), ht.box)
+		var cx: float = ht.caret
+		_poly(outer, [Vector2(cx - 3, y0 + 4), Vector2(cx, y0 + 1), Vector2(cx + 4, y0 + 5)], w)
+		for tx in ht.ticks:
+			_ln(outer, Vector2(tx, y0), Vector2(tx, y0 - 2), w)
+		for l in ht.labels:
+			_sprite(outer, Vector2(l[0] + 6, y0 - 7), l[1], true)
 
 	# The text block (FUN_0052ef20 pass 3): three rows each side, 7 px apart from the centre + TxtOffY.
 	var rows := text_block(st, mode, nav, cockpit.weapons, cockpit.radar, cockpit.twin_engines, cockpit.damage_flags)
@@ -293,6 +302,57 @@ func _draw_outer() -> void:
 
 
 # --- traced values (original pixels; tests/godot/test_hud.gd) -----------------------------------------
+
+## The DASH symbol (FUN_00539ac0) as polylines in original pixels from the helmet display's centre: the aircraft
+## symbol's wings and tail (LineTo ∓4 → ∓1 leaves the last pixel: 4..2 px, as the marker; its circle
+## Ellipse(−2, −2, 3, 3) is drawn by the caller) and,
+## when `steady`, the attitude bar (−42, 2)→(−42, 0)→(−5, 0) and its mirror, rolled by the roll and moved down
+## 1.5 px per degree of pitch (held at ±40°). Pitch / roll in degrees (roll right wing down +).
+static func dash_symbol(pitch_deg: float, roll_deg: float, steady: bool) -> Array:
+	var r := fposmod(roll_deg, 360.0)
+	var p := fposmod(pitch_deg, 360.0)
+	if p > 90.0 and p < 270.0:
+		p = 180.0 - p
+		r += 180.0
+	elif p > 270.0:
+		p -= 360.0
+	p = clampf(p, -40.0, 40.0)
+	var sn := sin(deg_to_rad(r))
+	var cs := cos(deg_to_rad(r))
+	var off := 1.5 * p
+	var out := [[Vector2(-4, 0), Vector2(-2, 0)], [Vector2(4, 0), Vector2(2, 0)], [Vector2(0, -4), Vector2(0, -2)]]
+	if steady:
+		for side in [-1.0, 1.0]:
+			var line := []
+			for q in [Vector2(42 * side, 2), Vector2(42 * side, 0), Vector2(5 * side, 0)]:
+				line.append(Vector2(float(int(cs * q.x + sn * q.y)), float(int(off + cs * q.y - sn * q.x))))
+			out.append(line)
+	return out
+
+
+## The bar's blink (DAT_0065d7a4 / DAT_0083e550): beyond ±40° of pitch it flips every 300 ms of the frame
+## clock (R+0x574); steady inside.
+var _blink := 1
+var _blink_ms := 0
+var _blink_last := 0
+
+
+func _dash_steady() -> bool:
+	var now := Time.get_ticks_msec()
+	var p := fposmod(float(cockpit.state.pitch), 360.0)
+	if p > 90.0 and p < 270.0:
+		p = 180.0 - p
+	elif p > 270.0:
+		p -= 360.0
+	if absf(p) > 40.0:
+		_blink_ms += now - _blink_last
+		if _blink_ms > 300:
+			_blink = -_blink
+			_blink_ms = 0
+	else:
+		_blink = 1
+	_blink_last = now
+	return _blink == 1
 
 ## The heading tape (FUN_00537cd0, scale 1): 2 px per degree, ±57 px. `ticks`: x of the 5° ticks outside
 ## the box (|x| 11..57, 2 px up); `labels`: [x, "%02d" tens of degrees] every 10° (sprite font ending at
@@ -636,19 +696,22 @@ func _pipper_tex() -> Texture2D:
 	return _pipper
 
 
-func _draw_weapons(s: float, w: float, font: Font, fs: int, gun: Vector2) -> void:
+func _draw_weapons(s: float, w: float, font: Font, fs: int, gun: Vector2, dash := false) -> void:
 	var wp: Dictionary = cockpit.weapons
 	if wp.is_empty():
 		return
 	var col: Color = cockpit.hud_colour()
-	var bore: Vector2 = cockpit.boresight() - position
-	match int(wp.hud_mode):
+	var mode := int(wp.hud_mode)
+	if dash and mode >= 3 and mode <= 6:
+		return  # FUN_00530040 / FUN_005302d0 test R+0x2788
+	match mode:
 		1:
-			# SRM: missile circle r = size · 12 px (min 10) on the boresight; the seeker diamond ±7 px.
+			# SRM (FUN_00537120 / FUN_00536ff0): missile circle r = size · 12 px (min 10) on the HUD centre;
+			# the seeker diamond ±7 px, held inside the field along the line from the centre (FUN_0052db30).
 			var r := maxf(float(wp.circle) * 12.0, 10.0) * s
-			draw_arc(bore, r, 0, TAU, 48, col, w)
+			draw_arc(_c, r, 0, TAU, 48, col, w)
 			if wp.have_missiles:
-				var d: Vector2 = bore + wp.seeker * s
+				var d: Vector2 = _pt(waypoint_marker_point(wp.seeker, _field()))
 				var k := 7.0 * s
 				draw_polyline(PackedVector2Array([d + Vector2(0, -k), d + Vector2(k, 0), d + Vector2(0, k), d + Vector2(-k, 0), d + Vector2(0, -k)]), col, w)
 		3, 4:

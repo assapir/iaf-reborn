@@ -47,7 +47,7 @@ func run() -> void:
 	# The original 3D projection (docs/cockpit.md "3D view"): 50° across 640 px, centred on the
 	# viewport above the panel (F-16: rows 0..296, centre 42 px above the panel top), 5.5° below the nose.
 	check(absf(cp.focal_length() - 686.2414 * s) < 0.01 * s, "focal length 320 / tan 25° = 686.2 px (×s)")
-	check(cp._view_bottom == 296.0, "F-16 viewport bottom 296 (D 104 + MainOffsetY 190 + 7, & ~7) (%.0f)" % cp._view_bottom)
+	check(cp.view_bottom() == 296.0, "F-16 viewport bottom 296 (D 104 + MainOffsetY 190 + 7, & ~7) (%.0f)" % cp.view_bottom())
 	var c: Vector2 = cp.projection_centre()
 	check(absf(c.y - (cp.panel_top() - 42.0 * s)) < 0.01, "projection centre 296/2 − 190 = 42 px above the panel top")
 	tv.in_cockpit = true
