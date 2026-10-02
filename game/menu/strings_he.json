@@ -1,5 +1,5 @@
 {
- "_note": "Hebrew texts for our own additions only (Preferences: the Extras / Physics tabs, the Graphics page's imagery choices). Everything else in Hebrew comes from the Hebrew menu and briefing packs (docs/packs.md).",
+ "_note": "Hebrew texts for our own additions only (Preferences: the Extras / Physics tabs, the imagery and render choices). Everything else in Hebrew comes from the Hebrew menu and briefing packs (docs/packs.md).",
  "labels": {
   "Extras": "תוספות",
   "Flight data": "נתוני טיסה",
@@ -49,6 +49,11 @@
   "Imagery outside Israel": "צילום שטח: מחוץ לישראל",
   "Survey of Israel 2 m": "המרכז למיפוי ישראל 2 מ'",
   "Sentinel-2": "סנטינל-2",
-  "Sentinel-2 modern": "סנטינל-2 עדכני"
+  "Sentinel-2 modern": "סנטינל-2 עדכני",
+  "Anti-aliasing": "החלקת קצוות",
+  "Terrain close up": "קרקע מקרוב",
+  "Detailed": "מפורט",
+  "Sky": "שמיים",
+  "Atmospheric": "אטמוספרי"
  }
 }

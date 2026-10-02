@@ -23,6 +23,14 @@ uniform float skirt = 20.0;
 uniform vec2 valid_uv = vec2(1.0);
 // The generated sea colour in the imagery (open water only, not the Dead Sea / lakes).
 uniform vec3 sea_colour = vec3(0.035, 0.059, 0.302);
+// Extras "Terrain close up" (render_options.gd, docs/rendering.md): 0 = off (the original look). A tiling
+// detail texture (brightness, mean 1) and normal detail at two scales, fading out by 1.5 km so the colours
+// from afar stay the imagery's own.
+global uniform float terrain_detail;
+global uniform sampler2D terrain_detail_tex : filter_linear_mipmap_anisotropic, repeat_enable;
+global uniform sampler2D terrain_detail_normal : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+varying vec2 world_xz;
+varying float sea;
 
 float raw_at(ivec2 p) {
 	p = clamp(p, ivec2(0), textureSize(height_tex, 0) - 1);
@@ -58,7 +66,8 @@ void vertex() {
 	// bathymetry off Israel, the flat -557 m plane over Egypt west of Suez); open sea is only
 	// shaded flat so the sea-bed relief does not show through the water colour.
 	VERTEX.y = height_at(t);
-	if (is_open_sea(cuv)) {
+	bool open_sea = is_open_sea(cuv);
+	if (open_sea) {
 		NORMAL = vec3(0.0, 1.0, 0.0);
 	} else {
 		float dx = height_at(t + vec2(1.0, 0.0)) - height_at(t - vec2(1.0, 0.0));
@@ -67,10 +76,23 @@ void vertex() {
 	}
 	VERTEX.y -= UV2.x * skirt;
 	UV = cuv;
+	world_xz = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xz;
+	sea = open_sea ? 1.0 : 0.0;
 }
 
 void fragment() {
 	ALBEDO = texture(colour_tex, UV).rgb;
+	if (terrain_detail > 0.0) {
+		float k = terrain_detail * (1.0 - smoothstep(300.0, 1500.0, length(VERTEX))) * (1.0 - sea);
+		if (k > 0.0) {
+			vec2 a = world_xz / 24.0;
+			vec2 b = world_xz / 5.0;
+			float n = texture(terrain_detail_tex, a).r + texture(terrain_detail_tex, b).r - 1.0;
+			ALBEDO *= 1.0 + 0.45 * k * n;
+			vec3 nm = normalize(texture(terrain_detail_normal, a).rgb * 2.0 - 1.0 + texture(terrain_detail_normal, b).rgb * 2.0 - 1.0);
+			NORMAL_MAP = mix(vec3(0.5, 0.5, 1.0), nm * 0.5 + 0.5, k);
+		}
+	}
 	ROUGHNESS = 0.95;
 	SPECULAR = 0.1;
 }

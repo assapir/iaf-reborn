@@ -35,7 +35,7 @@ const PREFS := {
 	"gameplay": ["no_wind", "no_blackouts", "no_spins", "no_stalls", "easy_landing", "easy_aiming",
 		"no_malfunctions", "ai_level", "invulnerable", "no_crashes", "unlimited_ammo", "unlimited_fuel",
 		"flight_data", "weapon_data", "language", "show_info", "blackbox", "hud_ladder", "show_all_keys", "fullscreen",
-		"imagery_israel", "imagery_outside"],
+		"imagery_israel", "imagery_outside", "antialiasing", "terrain_closeup", "sky"],
 }
 
 ## Flight data: "original" (Jane's IAF 1998 numbers) or "real" (corrected real-world data for every flyable jet, docs/real-aircraft.md).
@@ -104,6 +104,12 @@ var vsync := true
 ## (terrain/imagery_layers.gd), e.g. "sentinel2" / "sentinel2_modern" outside Israel.
 var imagery_israel := "original"
 var imagery_outside := "original"
+## Render options for high resolutions (ours, Extras page; docs/rendering.md, terrain/render_options.gd):
+## anti-aliasing "msaa4" (as before) / "msaa4_fxaa" / "taa" (MSAA 4× + TAA); the terrain close up (detail texture, normal detail,
+## 16× anisotropic filtering); the sky "original" (gradient) or "atmospheric" (physical scattering, sun disc).
+var antialiasing := "msaa4"
+var terrain_closeup := false
+var sky := "original"
 ## Key bindings changed on the Controls page (docs/controls.md): {record index: [key, joystick
 ## button]}, key = DIK | modifier << 16; records not listed keep the original default. Stored in the
 ## [keys] section as r<index> = [key, button].

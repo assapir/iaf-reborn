@@ -42,6 +42,7 @@ var brakes := false
 ## The cameras (game/terrain/views.gd, docs/views.md §4). `in_cockpit`: a cockpit-like view (cockpit, HUD
 ## only, free look, padlock, snaps); setting it picks the cockpit (F1's choice) or the chase view (F10).
 const Views := preload("res://terrain/views.gd")
+const RenderOptions := preload("res://terrain/render_options.gd")
 var views: RefCounted = Views.new()
 var in_cockpit: bool:
 	get:
@@ -296,6 +297,7 @@ func apply_render_options() -> void:
 	elif not Settings.textured_sky and clouds != null:
 		clouds.free()
 		clouds = null
+	RenderOptions.apply(get_viewport(), ($WorldEnvironment as WorldEnvironment).environment)
 
 
 ## The cameras start in the cockpit (`--external`: chase; `--orbit yaw pitch dist`: the chase camera's orbit
@@ -1904,6 +1906,7 @@ func close_front_end() -> void:
 func _apply_preferences() -> void:
 	preload("res://audio/sound_buses.gd").apply()
 	($Sun as DirectionalLight3D).shadow_enabled = Settings.shadows
+	apply_render_options()
 	g_effects.disabled = Settings.no_blackouts
 
 

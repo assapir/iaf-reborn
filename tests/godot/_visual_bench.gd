@@ -4,11 +4,15 @@
 # BENCH_ONLY=name,name limits the configs; BENCH_POSES=name,name the poses.
 extends "res://../tests/godot/base.gd"
 
-## Poses: [name, altitude (m), heading, pitch (deg), external orbit [yaw, pitch, dist] or [] (cockpit), explosion].
+## Poses over Ramat David (mission 311 starts on its runway): [name, altitude (m; 0 = the start on the runway),
+## heading, pitch (deg), external orbit [yaw, pitch, dist] or [] (cockpit), explosion].
 const POSES := [
+	["runway", 0.0, 0.0, 0.0, [], false],
+	["runway_ext", 0.0, 0.0, 0.0, [200.0, 8.0, 25.0], false],
+	["low150", 150.0, 0.0, -12.0, [], false],
 	["cruise2000", 2000.0, 40.0, -3.0, [], false],
+	["sun2000", 2000.0, 150.0, 20.0, [], false],
 	["explosion2000", 2000.0, 40.0, 0.0, [160.0, 10.0, 60.0], true],
-	["low", 60.0, 40.0, -8.0, [], false],
 	["near7000", 6900.0, 40.0, 0.0, [], false],
 	["above9000", 9000.0, 40.0, -10.0, [], false],
 ]
@@ -16,6 +20,11 @@ const POSES := [
 const CONFIGS := {
 	"base": {},
 	"no_clouds": {"textured_sky": false},
+	"aa_fxaa": {"antialiasing": "msaa4_fxaa"},
+	"aa_taa": {"antialiasing": "taa"},
+	"closeup": {"terrain_closeup": true},
+	"atmos": {"sky": "atmospheric"},
+	"all": {"antialiasing": "taa", "terrain_closeup": true, "sky": "atmospheric"},
 }
 
 
@@ -25,7 +34,8 @@ func run() -> void:
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	var only := OS.get_environment("BENCH_ONLY").split(",", false)
 	var poses := OS.get_environment("BENCH_POSES").split(",", false)
-	var tv = await start_mission(312)
+	var tv = await start_mission(311)
+	var start: Transform3D = tv.rig.transform
 	tv.frozen = true
 	tv.fm_stopped = true  # the poses move the rig itself
 	await frames(30)
@@ -46,7 +56,7 @@ func run() -> void:
 				tv.clouds.free()
 				tv.clouds = null
 			tv.apply_render_options()
-			await _pose(tv, p)
+			await _pose(tv, p, start)
 			var vp := root.get_viewport().get_viewport_rid()
 			RenderingServer.viewport_set_measure_render_time(vp, true)
 			var gpu := 0.0
@@ -62,10 +72,12 @@ func run() -> void:
 			print("BENCH %-14s %-12s %6.1f fps  gpu %5.2f ms  %s" % [p[0], name, fps, gpu / (60 if p[5] else 180), path])
 
 
-func _pose(tv, p: Array) -> void:
+func _pose(tv, p: Array, start: Transform3D) -> void:
+	tv.rig.transform = start
 	var g: float = tv.terrain.height_at(tv.rig.position)
-	tv.rig.position.y = maxf(p[1], g + 30.0) if p[1] > 100.0 else g + p[1]
-	tv.rig.basis = Basis.from_euler(Vector3(deg_to_rad(p[3]), deg_to_rad(-p[2]), 0.0), EULER_ORDER_YXZ)
+	if p[1] > 0.0:
+		tv.rig.position.y = maxf(p[1], g + 30.0) if p[1] > 500.0 else g + p[1]
+		tv.rig.basis = Basis.from_euler(Vector3(deg_to_rad(p[3]), deg_to_rad(-p[2]), 0.0), EULER_ORDER_YXZ)
 	var orbit: Array = p[4]
 	tv.in_cockpit = orbit.is_empty()
 	if not orbit.is_empty():

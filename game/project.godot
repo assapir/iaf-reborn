@@ -28,6 +28,21 @@ window/size/viewport_width=1920
 window/size/viewport_height=1080
 display_server/driver.linuxbsd="wayland"
 
+[shader_globals]
+
+terrain_detail={
+"type": "float",
+"value": 0.0
+}
+terrain_detail_tex={
+"type": "sampler2D",
+"value": "res://terrain/detail_noise.tres"
+}
+terrain_detail_normal={
+"type": "sampler2D",
+"value": "res://terrain/detail_normal.tres"
+}
+
 [rendering]
 
 lights_and_shadows/directional_shadow/size=8192

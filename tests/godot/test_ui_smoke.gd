@@ -38,6 +38,7 @@ func run() -> void:
 		for id in ([231, 136] if lang == "en" else [231]):
 			await _tsd_and_arm(fe, id, lang)
 		await _extras_imagery(fe, lang)
+		await _extras_render(fe, lang)
 		# Preferences: every tab, then leave by BACK (Yes / No / Cancel) and MAIN.
 		for exit_path in ["yes", "no", "cancel", "main"]:
 			await _open(fe, "pref")
@@ -113,6 +114,33 @@ func _extras_imagery(fe, lang: String) -> void:
 			check(fe.pref_work[key] == "original", "%s: %s: %s is not converted -> greyed, not picked" % [lang, key, missing[0].value])
 		click.call(row[0].rect.get_center())
 		check(fe.pref_work[key] == "original", "%s: %s set to Original" % [lang, key])
+	await frames(2)
+
+
+## Extras render rows (docs/rendering.md): Anti-aliasing (3 choices), Terrain close up, Sky draw inside the page with
+## their labels (Hebrew in Hebrew), the first choice is the default, and a click picks a choice.
+func _extras_render(fe, lang: String) -> void:
+	var click := func(q: Vector2):
+		fe._gui_input(mouse_button(fe._to_screen(fe.CONTENT.position + q), true))
+		fe._gui_input(mouse_button(fe._to_screen(fe.CONTENT.position + q), false))
+	var rows: Array = fe._extras_rows()
+	var keys := ["antialiasing", "terrain_closeup", "sky"]
+	var first := rows.map(func(r): return r[0]).find("antialiasing")
+	fe._extras_scroll(mini(first, fe._extras_max_top()))
+	await frames(2)
+	var items: Array = fe._extras_items()
+	for key in keys:
+		var row: Array = items.filter(func(i): return i.key == key)
+		var opt: Array = rows.filter(func(r): return r[0] == key)[0]
+		check(row.size() == opt[2].size() and row[0].value == Settings().default_value(key)
+				and row.all(func(i): return i.rect.position.x >= 0.0 and i.rect.end.x <= fe.CONTENT.size.x and i.rect.end.y <= fe.PREF_DEFAULT.position.y),
+				"%s: Extras %s row inside the page, default first" % [lang, key])
+		if lang == "he":
+			# The anti-aliasing choices are technical names (MSAA / FXAA / TAA), as in English.
+			check(fe._art(opt[1]) != opt[1] and (key == "antialiasing" or fe._art(row[1].label) != row[1].label), "he: %s row in Hebrew (%s)" % [key, fe._art(opt[1])])
+		click.call(row[1].rect.get_center())
+		check(fe.pref_work[key] == row[1].value, "%s: %s set to %s" % [lang, key, str(row[1].value)])
+		click.call(row[0].rect.get_center())
 	await frames(2)
 
 

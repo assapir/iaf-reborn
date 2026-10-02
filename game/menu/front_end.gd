@@ -133,6 +133,10 @@ const EXTRAS := [
 	["hud_ladder", "HUD pitch ladder", [["Original", "original"], ["Conformal", "conformal"]]],
 	["show_all_keys", "All keys on the Keyboard page", [["Original", false], ["All", true]]],
 	["fullscreen", "Window", [["Framed", false], ["Full screen", true]]],
+	# Render options for high resolutions (terrain/render_options.gd, docs/rendering.md); first = as before.
+	["antialiasing", "Anti-aliasing", [["MSAA 4x", "msaa4"], ["+ FXAA", "msaa4_fxaa"], ["+ TAA", "taa"]]],
+	["terrain_closeup", "Terrain close up", [["Original", false], ["Detailed", true]]],
+	["sky", "Sky", [["Original", "original"], ["Atmospheric", "atmospheric"]]],
 ]
 
 

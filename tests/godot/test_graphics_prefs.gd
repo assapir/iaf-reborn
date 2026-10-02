@@ -99,6 +99,41 @@ func run() -> void:
 	Settings().textured_sky = true
 	tv.apply_render_options()
 	check(tv.clouds != null, "textured sky on in flight: the layer comes back")
+	# Extras render options (docs/rendering.md): defaults = the look before; each switch sets its render settings.
+	var RO: GDScript = load("res://terrain/render_options.gd")
+	var vp: Viewport = tv.get_viewport()
+	var env: Environment = (tv.get_node("WorldEnvironment") as WorldEnvironment).environment
+	var sky0: Sky = env.sky
+	check(Settings().antialiasing == "msaa4" and not Settings().terrain_closeup and Settings().sky == "original", "render options default to the look before")
+	check(vp.msaa_3d == Viewport.MSAA_4X and vp.screen_space_aa == Viewport.SCREEN_SPACE_AA_DISABLED and not vp.use_taa
+			and vp.anisotropic_filtering_level == Viewport.ANISOTROPY_4X and RO.terrain_detail == 0.0
+			and env.sky.sky_material is ProceduralSkyMaterial, "defaults: MSAA 4x, 4x anisotropic, no terrain detail, gradient sky")
+	Settings().antialiasing = "msaa4_fxaa"
+	tv.apply_render_options()
+	check(vp.msaa_3d == Viewport.MSAA_4X and vp.screen_space_aa == Viewport.SCREEN_SPACE_AA_FXAA and not vp.use_taa, "anti-aliasing + FXAA")
+	Settings().antialiasing = "taa"
+	Settings().terrain_closeup = true
+	Settings().sky = "atmospheric"
+	tv.apply_render_options()
+	check(vp.msaa_3d == Viewport.MSAA_4X and vp.screen_space_aa == Viewport.SCREEN_SPACE_AA_DISABLED and vp.use_taa, "anti-aliasing + TAA")
+	check(vp.anisotropic_filtering_level == Viewport.ANISOTROPY_16X and RO.terrain_detail > 0.0,
+			"terrain close up: 16x anisotropic, terrain detail on")
+	var fog_density := env.fog_density
+	check(env.sky.sky_material is ShaderMaterial and env.fog_aerial_perspective == 1.0 and env.fog_density == fog_density,
+			"atmospheric sky: scattering sky shader, haze from the sky, the same fog distances")
+	var cfg: ConfigFile = Settings().write_config()
+	Settings().antialiasing = "msaa4"
+	Settings().terrain_closeup = false
+	Settings().sky = "original"
+	Settings().read_config(cfg)
+	check(Settings().antialiasing == "taa" and Settings().terrain_closeup and Settings().sky == "atmospheric", "render options saved and loaded")
+	Settings().antialiasing = "msaa4"
+	Settings().terrain_closeup = false
+	Settings().sky = "original"
+	tv.apply_render_options()
+	check(vp.msaa_3d == Viewport.MSAA_4X and not vp.use_taa and vp.anisotropic_filtering_level == Viewport.ANISOTROPY_4X
+			and RO.terrain_detail == 0.0 and env.sky == sky0 and is_equal_approx(env.fog_aerial_perspective, 0.6),
+			"render options off again: everything as before")
 	Settings().smoke_trails = false
 	Settings().textured_sky = false
 	tv = await start_mission(231)
