@@ -1168,7 +1168,7 @@ impl Autopilot {
                         *land = Landing::new(&self.bases, self.origin, f.t, v.type_code, self.mode == 0).map(Box::new);
                     }
                 } else if let Some(ld) = land {
-                    ld.step(&mut l, self, &mut period, vmin1);
+                    ld.step(&mut l, self, &mut period, vmin1, vmin12);
                     if ld.landed {
                         self.landed = true;
                     }
@@ -1678,7 +1678,7 @@ impl Landing {
     }
 
     /// One tick of the current child; `Next` (`5d43e0`) at the step boundaries.
-    fn step(&mut self, l: &mut Laws, ap: &Autopilot, period: &mut f64, vmin1: f32) -> Leaf {
+    fn step(&mut self, l: &mut Laws, ap: &Autopilot, period: &mut f64, vmin1: f32, vmin12: f32) -> Leaf {
         let c130 = l.v.type_code == C130;
         let legs = self.legs(c130, &ap.cfg);
         let Some(leg) = legs.get(self.step).copied() else {
@@ -1711,7 +1711,8 @@ impl Landing {
                     Leaf::Run
                 }
             }
-            Leg::Lw(speed) => level_wings_accel(l, &mut self.lw_pitch, speed, vmin1),
+            // 5d2400 takes Vmin at 1.2 g (push 0x3f99999a @5d24ad), as in Fly2WayPt.
+            Leg::Lw(speed) => level_wings_accel(l, &mut self.lw_pitch, speed, vmin12),
             Leg::Ka(i, speed, r) => self.ka(l, i, speed, r),
             Leg::Fa(r) => {
                 *period = 0.1;

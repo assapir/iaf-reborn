@@ -405,3 +405,111 @@ fn player_approach_mission_312() {
     assert!(ap_key, "stopped: StopPlane posts the A key");
     assert!(!ap.landed, "no AI landed handler for the player");
 }
+
+/// One leg of the 312 circuit as flown: the landing step, where it began (x, y, heading °) and the bank range
+/// during it (°).
+#[derive(Debug, Clone, Copy)]
+struct Leg {
+    step: usize,
+    start: [f64; 2],
+    hdg: f32,
+    roll: [f32; 2],
+}
+
+/// The NAV autopilot on 312's landing waypoint from `pos` / `hdg`: the circuit's legs in order, the gear-down
+/// point and the touchdown (None when it crashed or never stopped).
+fn circuit_312(inst: &Path, pos: [f64; 3], hdg: f32) -> (Vec<Leg>, Option<[f64; 2]>, Option<[f64; 2]>) {
+    let bases = Airbase::load_all(&std::fs::read(inst.join("iaf.ibx")).unwrap());
+    let z = bases.iter().find(|b| b.name == "David").unwrap().lineup[2];
+    let mut ac = jet(inst, "F-16", pos, hdg, true);
+    let mut c = ac.controls();
+    c.throttle = 0.74;
+    ac.set_controls(c);
+    let mut ap = Autopilot::new(Config::load(inst));
+    ap.bases = bases;
+    ap.route = vec![Waypoint { x: 351083.0, y: 602383.0, z: 1500.0, t: 60.0, action: 7 }];
+    ap.player_mode(&mut ac, 2, 0);
+    let (mut legs, mut gear, mut touch) = (Vec::<Leg>::new(), None, None);
+    for _ in 0..(900.0 / DT) as usize {
+        ac.ground_height = z;
+        let o = ap.step(&mut ac, &|_: f64, _: f64| z);
+        ac.step(DT);
+        let st = ac.state();
+        if st.crashed.is_some() {
+            return (legs, gear, None);
+        }
+        if o.gear == Some(true) {
+            gear = Some([st.position[0], st.position[1]]);
+        }
+        if touch.is_none() && st.on_ground {
+            touch = Some([st.position[0], st.position[1]]);
+        }
+        if o.ap_key {
+            return (legs, gear, touch);
+        }
+        let step = ap.stage().strip_prefix("landing step ").and_then(|s| s.parse::<usize>().ok());
+        if let Some(step) = step {
+            if legs.last().is_none_or(|l| l.step != step) {
+                let hdg = st.heading.to_degrees().rem_euclid(360.0);
+                legs.push(Leg { step, start: [st.position[0], st.position[1]], hdg, roll: [0.0; 2] });
+            }
+            let l = legs.last_mut().unwrap();
+            let r = st.roll.to_degrees();
+            l.roll = [l.roll[0].min(r), l.roll[1].max(r)];
+        }
+    }
+    (legs, gear, None)
+}
+
+#[test]
+fn player_circuit_312_from_engage_points() {
+    // The GoHomeCL / LandingCL circuit (docs/autopilot.md §3) from the mission start and from engage points
+    // around Ramat David (5 / 15 km, flying toward or away, low and high): every step in order, the left-hand
+    // pattern south of runway 27 (crosswind to P1, downwind east, base north at P2's x, the turn onto final
+    // ending on the centreline beyond P4), the gear on the downwind, the touchdown on the centreline.
+    let Some(inst) = install() else { return };
+    let (lx, ly) = (356483.0, 602383.0);
+    let (p1, p2) = ([351083.0, 596821.0], [363899.0, 596821.0]);
+    let starts = [
+        ("312 start", [366755.0, 602361.0, 2000.0], 270.0),
+        ("15 km west, flying away, low", [lx - 15000.0, ly, 563.0], 270.0),
+        ("15 km east, toward, high", [lx + 15000.0, ly, 3063.0], 270.0),
+        ("5 km north, flying away, low", [lx, ly + 5000.0, 563.0], 0.0),
+        ("15 km south, toward, high", [lx, ly - 15000.0, 3063.0], 0.0),
+        ("5 km south, flying away, high", [lx, ly - 5000.0, 3063.0], 180.0),
+    ];
+    for (name, pos, hdg) in starts {
+        let (legs, gear, touch) = circuit_312(&inst, pos, hdg);
+        let at = |s: usize| *legs.iter().find(|l| l.step == s).unwrap_or_else(|| panic!("{name}: step {s} missing ({legs:?})"));
+        println!("{name}:");
+        for l in &legs {
+            println!("  step {:2} from ({:6.0}, {:6.0}) hdg {:3.0} bank {:4.0}..{:3.0}", l.step, l.start[0] - lx, l.start[1] - ly, l.hdg, l.roll[0], l.roll[1]);
+        }
+        let steps: Vec<usize> = legs.iter().map(|l| l.step).collect();
+        assert_eq!(steps, (0..=14).collect::<Vec<_>>(), "{name}: every step in order");
+        // CH1 ends on the bearing to P1 (no line: the shortest turn, ≤ 80°; done while still banked, so the roll-out
+        // carries on a few degrees).
+        let s1 = at(1);
+        let brg = ((p1[0] - s1.start[0]).atan2(p1[1] - s1.start[1]) as f32).to_degrees();
+        assert!(wrap_deg(brg - s1.hdg).abs() < 12.0, "{name}: crosswind to P1 ({brg:.0} vs {:.0})", s1.hdg);
+        assert!(at(0).roll[0].abs().max(at(0).roll[1]) < 82.0, "{name}: CH1 within 80°");
+        // CH2: a left turn onto the downwind, east, south of the runway.
+        let (ch2, s5) = (at(4), at(5));
+        assert!(ch2.roll[0] < -20.0 && ch2.roll[0] > -82.0, "{name}: CH2 turns left ({:?})", ch2.roll);
+        assert!(wrap_deg(s5.hdg - 90.0).abs() < 10.0 && s5.start[1] < ly - 4500.0, "{name}: downwind east, south side ({s5:?})");
+        let g = gear.expect("gear down");
+        assert!(g[1] < ly - 4500.0 && g[0] < p2[0], "{name}: gear and flaps on the downwind ({g:?})");
+        assert!((at(8).start[0] - p2[0]).hypot(at(8).start[1] - p2[1]) < 1500.0, "{name}: KA2 ends at P2");
+        // CH3: left onto the base, north, at P2's x; CH4: left onto final, on the centreline beyond P4.
+        let (ch3, s9) = (at(8), at(9));
+        assert!(ch3.roll[0] < -20.0 && ch3.roll[0] > -62.0 && ch3.roll[1] < 5.0, "{name}: CH3 turns left ≤ 60° ({:?})", ch3.roll);
+        assert!(wrap_deg(s9.hdg).abs() < 10.0 && (s9.start[0] - p2[0]).abs() < 300.0, "{name}: base north ({s9:?})");
+        let (ch4, s12) = (at(11), at(12));
+        assert!(ch4.roll[0] < -20.0 && ch4.roll[0] > -62.0 && ch4.roll[1] < 5.0, "{name}: CH4 turns left ≤ 60° ({:?})", ch4.roll);
+        assert!(wrap_deg(s12.hdg - 270.0).abs() < 3.0 && (s12.start[1] - ly).abs() < 30.0 && s12.start[0] > lx + 3708.0,
+            "{name}: final from the centreline beyond P4 ({s12:?})");
+        assert!(at(12).roll[0] > -22.0, "{name}: CH5 within 20°");
+        let t = touch.unwrap_or_else(|| panic!("{name}: no touchdown / stop"));
+        assert!((t[1] - ly).abs() < 30.0 && t[0] > RD_RUNWAY_X[0] && t[0] < RD_RUNWAY_X[1], "{name}: touchdown on the centreline ({t:?})");
+    }
+}
