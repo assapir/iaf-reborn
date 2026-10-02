@@ -1,7 +1,8 @@
-# Status — 2026-10-01
+# Status — 2026-10-02
 
 ## Where we are
-- **Playable missions: 2 of 68** — Training "Engines ON" (311) and "Landing" (312), start to debrief.
+- **Playable missions: 4 of 68** — Training "Engines ON" (311), "Landing" (312), 315 (bombing, tested end to end)
+  and 323 (per the coverage report, untested); docs/mission-coverage.md.
 - **Flyable jets: all seven of the Jet list** — F-15, F-16, F-4E, F-4 Kurnass 2000, Lavi, Kfir, Mirage (Jet list or a
   mission's jet; docs/aircraft.md §5). Other types (MiGs, transports) fly as the F-16.
 - **Game version: v1.1 logic**, v1.1 data when setup is given the patch (`--patch`); v1.0 data still plays. Doc
