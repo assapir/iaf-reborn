@@ -70,7 +70,7 @@ static func level_for(damage: float) -> int:
 # --- the player's systems (player controller damage, FUN_0044d590 -> FUN_0045cd80 -> FUN_0044d760) ----
 
 ## Damage codes (FUN_0044d760): the console text (the left / right variant for twin-engine jets) and the
-## other flags a code sets. Flag n = damage page row (FUN_0052bc00, cockpit state +0x550 + 4n).
+## other flags a code sets. Flag n = damage page row (FUN_0052bc00, cockpit state +0x558 + 4n).
 const SYSTEMS := {
 	1: {"text": "ECM damage"},
 	2: {"text": "Engine cut out - restart throttle", "twin": "Left engine cut out - restart throttle", "also": [8]},

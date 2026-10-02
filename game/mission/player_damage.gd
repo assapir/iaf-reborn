@@ -9,7 +9,7 @@ extends RefCounted
 
 const DamageModel := preload("res://mission/damage_model.gd")
 
-## Damage flags 0..24 (controller +0x3d8 + 0xc + 4n; the cockpit state copy +0x550 + 4n).
+## Damage flags 0..24 (controller +0x3d8 + 0xc + 4n; the cockpit state copy +0x558 + 4n).
 var flags: Array = []
 ## +0x70: an engine cut-out was picked (FUN_0045cd80).
 var cut_out := false
