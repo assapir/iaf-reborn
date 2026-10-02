@@ -1,6 +1,15 @@
 # Runtime loading of the converted glTF models (objects, aircraft, weapons, the viewer).
 extends RefCounted
 
+## The renderer's OBJECT DETAIL level 1..3 (1 − ftol(−2·slider), FUN_004d8ce0 → 0x7d1924), set by the flight
+## scene before it loads models. Besides the LOD switch (terrain_view.gd) it sets the render states of every
+## object (FUN_0040bd90): level 1 point-sampled textures (D3D TEXTUREMAG / MIN = NEAREST), level 3 specular.
+static var object_level := 3
+
+
+static func detail_level(slider: float) -> int:
+	return clampi(1 + floori(2.0 * slider + 1e-4), 1, 3)
+
 ## Parses a glTF file: [GLTFDocument, GLTFState], or null when missing / unreadable. Godot's runtime
 ## glTF import creates the textures without mipmaps, so a model seen from afar samples its full-size
 ## texture and shimmers while the camera moves; every texture gets mipmaps and anisotropic filtering.
@@ -16,7 +25,10 @@ static func open(path: String) -> Variant:
 		var bm := m as BaseMaterial3D
 		if bm == null:
 			continue
-		bm.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+		bm.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST if object_level == 1 \
+				else BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+		if object_level < 3:
+			bm.metallic_specular = 0.0  # SPECULARENABLE off
 		var t := bm.albedo_texture
 		if t == null:
 			continue

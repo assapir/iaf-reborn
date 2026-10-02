@@ -152,6 +152,15 @@ fn convert_objects(install: &Path, missions: &Path, out: &Path, opts: &Options) 
                     }
                 };
                 done.insert(rel.clone(), ok);
+                // The level-of-detail siblings the loader takes next to a `_h` model (`FUN_0041c120`: `_m`, `_l`),
+                // drawn by OBJECT DETAIL's pixel-size rule (docs/front-end.md §12.4).
+                if ok {
+                    for sib in lod_siblings(&src) {
+                        if let Err(e) = convert(&sib, &out.join(rel.parent().unwrap()), std::slice::from_ref(&root), opts) {
+                            println!("  skipped {}: {e:#}", sib.display());
+                        }
+                    }
+                }
             }
             if done[&rel] {
                 map.insert(id.to_string(), gltf.to_string_lossy().into());
@@ -168,6 +177,30 @@ fn convert_objects(install: &Path, missions: &Path, out: &Path, opts: &Options) 
     }
     println!("objects: {} models -> {}", done.values().filter(|ok| **ok).count(), out.display());
     Ok(())
+}
+
+/// The existing `_m` / `_l` files next to a `*_h.x` / `*_h.xfr` model (any case, either extension).
+fn lod_siblings(h: &Path) -> Vec<PathBuf> {
+    let stem = h.file_stem().unwrap_or_default().to_string_lossy().to_lowercase();
+    let Some(base) = stem.strip_suffix("_h") else { return vec![] };
+    let Some(dir) = h.parent() else { return vec![] };
+    let mut out = vec![];
+    for lod in ["_m", "_l"] {
+        let want = format!("{base}{lod}");
+        if let Ok(rd) = std::fs::read_dir(dir) {
+            let mut hits: Vec<PathBuf> = rd
+                .flatten()
+                .map(|e| e.path())
+                .filter(|p| {
+                    p.file_stem().is_some_and(|s| s.to_string_lossy().to_lowercase() == want)
+                        && p.extension().is_some_and(|e| matches!(e.to_string_lossy().to_lowercase().as_str(), "x" | "xfr"))
+                })
+                .collect();
+            hits.sort();
+            out.extend(hits.into_iter().next());
+        }
+    }
+    out
 }
 
 /// Cockpit images shared by all aircraft (MFD sprites, RWR symbols, map).

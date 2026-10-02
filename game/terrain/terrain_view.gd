@@ -235,6 +235,8 @@ func _ready() -> void:
 	# In-flight sounds of your jet (game/audio/flight_sounds.gd, docs/sound.md); polls this node.
 	sounds = preload("res://audio/flight_sounds.gd").create(self, player.type)
 	add_child(sounds)
+	# OBJECT DETAIL (docs/front-end.md §12.4): the level the model loader and the LOD switch use.
+	Gltf.object_level = Gltf.detail_level(float(Settings.object_detail))
 	# Explosions, debris and smoke (docs/damage.md §6) and the player's systems damage (§5).
 	effects = preload("res://mission/damage_effects.gd").new()
 	effects.ground_at = func(p: Vector3): return terrain.height_at(p)
@@ -545,6 +547,9 @@ func _spawn_mission_objects() -> void:
 			continue
 		if not scenes.has(path):
 			scenes[path] = Gltf.open(base.path_join("objects").path_join(path))
+			for lod in ["_m", "_l"]:
+				var lp := path.replace("_h.gltf", lod + ".gltf")
+				scenes[lp] = Gltf.open(base.path_join("objects").path_join(lp)) if lp != path else null
 		if scenes[path] == null:
 			continue
 		var node: Node3D = Gltf.instance(scenes[path])
@@ -565,8 +570,61 @@ func _spawn_mission_objects() -> void:
 			node.visible = false
 		ent["coll_radius"] = 0.25 * (box.size.x + box.size.y + box.size.z)
 		ent["max_extent"] = maxf(box.size.x, maxf(box.size.y, box.size.z))
+		_add_lods(node, scenes.get(path.replace("_h.gltf", "_m.gltf")), scenes.get(path.replace("_h.gltf", "_l.gltf")),
+				ent.max_extent)
 		mission_entity_moved(ent)
 	runtime.start()
+
+
+## OBJECT DETAIL's LOD switch (FUN_0040bd20 thresholds, FUN_00412c60 @412de1): the model's size on screen
+## m = F · extent · 0.7 / depth (F = 640 / tan(25°), the original's viewport width over tan(fov/2)); m < A → the
+## `_l` model, m < B → `_m`, else `_h`; a missing `_l` falls back to `_m`, a missing `_m` to `_h` (FUN_0041c120).
+## A / B px by level: 1: 65 / 110, 2: 45 / 70, 3: 25 / 40. Ours: the same switch distances on the camera
+## distance (Godot visibility ranges) instead of the view depth.
+const LOD_PX := {1: [65.0, 110.0], 2: [45.0, 70.0], 3: [25.0, 40.0]}
+const LOD_F := 640.0 / 0.46630765815  # tan(25°)
+
+
+static func lod_distances(level: int, extent: float) -> Vector2:
+	var t: Array = LOD_PX[level]
+	return Vector2(LOD_F * extent * 0.7 / t[1], LOD_F * extent * 0.7 / t[0])  # (to _m, to _l)
+
+
+func _add_lods(node: Node3D, m_model, l_model, extent: float) -> void:
+	if m_model == null and l_model == null:
+		return
+	var d := lod_distances(Gltf.object_level, extent)
+	var bands := [[node, 0.0, d.x]]
+	var m_node: Node3D = Gltf.instance(m_model) if m_model != null else null
+	var l_node: Node3D = Gltf.instance(l_model) if l_model != null else null
+	if m_node != null:
+		bands.append([m_node, d.x, d.y if l_node != null else 0.0])
+	else:
+		bands[0][2] = d.y  # no _m: _h until _l takes over
+	if l_node != null:
+		bands.append([l_node, d.y, 0.0])
+	# The `_h` meshes first, before the copies become its children.
+	for b in bands:
+		for g in (b[0] as Node3D).find_children("*", "GeometryInstance3D", true, false):
+			g.visibility_range_begin = b[1]
+			g.visibility_range_end = b[2]
+		if b[0] != node:
+			b[0].set_meta("lod", true)
+			node.add_child(b[0])
+
+
+## A unit leaves its normal model (fatally hit / destroyed): the LOD copies go, the `_h` model is drawn at
+## every distance (the damaged / burned / shattered model is made from it).
+static func _drop_lods(node: Node3D) -> void:
+	if node == null:
+		return
+	for c in node.get_children():
+		if c.has_meta("lod"):
+			node.remove_child(c)
+			c.queue_free()
+	for g in node.find_children("*", "GeometryInstance3D", true, false):
+		g.visibility_range_begin = 0.0
+		g.visibility_range_end = 0.0
 
 
 ## The model's bounds in its own frame (all meshes).
@@ -713,6 +771,7 @@ func mission_entity_state(ent: Dictionary) -> void:
 ## State 3 of a unit: the damaged model where the data has one (Present display 2), and an
 ## aircraft goes down (crash motion 0x14).
 func _entity_fatally_hit(ent: Dictionary) -> void:
+	_drop_lods(ent.node)
 	# Buildings (classes 0xc, 0xd, 0x1d) get a burned copy (FUN_0053e2a0(1, 0.25)); the other
 	# classes' damaged model is their normal one.
 	if ent.node != null and ent.klass in [0xc, 0xd, 0x1d]:
@@ -735,6 +794,8 @@ func _player_fatally_hit() -> void:
 ## with SFX_AIRCRAFT_EXPLODED (the player's crash explosion is played by FlightSounds), the smoke
 ## stops, and the unit is gone (its destroyed model where the data has one).
 func _entity_final(ent: Dictionary) -> void:
+	if not ent.player:
+		_drop_lods(ent.node)
 	var pos := _entity_scene_pos(ent)
 	var ground = terrain.height_at(pos)
 	var g: float = ground if ground != null else pos.y
