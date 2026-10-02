@@ -83,6 +83,7 @@ fn main() -> Result<()> {
         [_, "icon", install, out] => convert_icon(Path::new(install), Path::new(out)),
         [_, "cockpit", install, name, out] => convert_cockpit(Path::new(install), name, Path::new(out), &opts),
         [_, "plane-describe", model, out] => plane_describe(Path::new(model), Path::new(out), &plane),
+        [_, "arm-extra", menu_img, arm_dir, out] => arm_extra(Path::new(menu_img), Path::new(arm_dir), Path::new(out)),
         [_, "plane-checklist", code] => plane_checklist(code, Path::new(".")),
         [_, "plane-checklist", code, repo] => plane_checklist(code, Path::new(repo)),
         _ => bail!("usage: iaf-convert [--upscale] [--smooth] model <file.x|file.xfr> <out-dir>\n       iaf-convert [--upscale] [--smooth] aircraft <install-dir> <missions-dir> <out-dir>\n       iaf-convert [--upscale] cockpit <install-dir> <cockpit> <out-dir>\n       iaf-convert [--upscale] menu <install-dir> <out-dir> [--pack <pack-dir>]\n       iaf-convert [--upscale] briefings <install-dir> <packs-dir> <out-dir>\n       iaf-convert keys <install-dir> <packs-dir> <out.json>\n       iaf-convert plane-describe <model.gltf> <out-dir> [--type N] [--section NAME] [--label L]\n       iaf-convert plane-checklist <type> [repo-dir]"),
@@ -127,6 +128,37 @@ fn plane_describe(model: &Path, out: &Path, opts: &PlaneOptions) -> Result<()> {
     if findings.is_empty() {
         println!("  no findings");
     }
+    Ok(())
+}
+
+/// An extra plane's arming art (docs/adding-a-plane.md §5) from the original arming art in `menu_img`
+/// (`<converted menu>/img`, its `arm/jets/*.png`) and the plane's `arm_dir` (`front.png`, `arm.json`).
+fn arm_extra(menu_img: &Path, arm_dir: &Path, out: &Path) -> Result<()> {
+    let jets = menu_img.join("arm/jets");
+    let arm: serde_json::Value = serde_json::from_slice(&std::fs::read(arm_dir.join("arm.json"))?).context("arm.json")?;
+    let base_name = arm["base_art"].as_str().unwrap_or("f-16");
+    let mut originals = Vec::new();
+    let mut base = None;
+    for e in std::fs::read_dir(&jets).with_context(|| format!("{}", jets.display()))? {
+        let p = e?.path();
+        let stem = p.file_stem().unwrap_or_default().to_string_lossy().to_string();
+        if p.extension().is_some_and(|x| x == "png") && Path::new(&p) != out && !stem.starts_with("x_") {
+            let img = image::open(&p)?.to_rgba8();
+            if stem == base_name {
+                base = Some(img.clone());
+            }
+            originals.push(img);
+        }
+    }
+    let base = base.with_context(|| format!("no {base_name}.png in {}", jets.display()))?;
+    let front = image::open(arm_dir.join("front.png"))?.to_rgba8();
+    let pairs = |k: &str| -> Vec<(f32, f32)> {
+        arm[k].as_array().into_iter().flatten().map(|p| (p[0].as_f64().unwrap_or(0.0) as f32, p[1].as_f64().unwrap_or(0.0) as f32)).collect()
+    };
+    let scale = base.width() as f32 / 454.0;
+    let img = iaf_tools::plane::compose_arm(&originals, &base, &front, &pairs("boxes"), &pairs("points"), scale);
+    img.save(out)?;
+    println!("{} -> {} ({} originals)", arm_dir.display(), out.display(), originals.len());
     Ok(())
 }
 

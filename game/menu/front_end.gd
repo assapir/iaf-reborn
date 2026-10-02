@@ -781,8 +781,13 @@ func _draw_list(list: Dictionary) -> void:
 		var title := _string(row.title_key)
 		if title == "":
 			title = row.name
+		var desc := _string(row.desc_key)
+		# Ours: the Jet list row of the button the F-35I replaces describes the F-35I.
+		if screen == "jet" and int(Settings.f35i_slot) >= 0 and JET_IDS.get(_norm(row.name), -1) == int(Settings.f35i_slot):
+			title = "אדיר" if _he() else "F-35I"
+			desc = _t(F35I_DESC)
 		_text_line(Rect2(CONTENT.position + Vector2(tb[0], tb[1]), Vector2(tb[2] - tb[0], tb[3] - tb[1])), title, LIST_TITLE_PX, LIST_TITLE)
-		_text_block(Rect2(CONTENT.position + Vector2(db[0], db[1]), Vector2(db[2] - db[0], db[3] - db[1])), _string(row.desc_key), LIST_DESC_PX, LIST_DESC_LIT if lit else LIST_DESC)
+		_text_block(Rect2(CONTENT.position + Vector2(db[0], db[1]), Vector2(db[2] - db[0], db[3] - db[1])), desc, LIST_DESC_PX, LIST_DESC_LIT if lit else LIST_DESC)
 
 
 ## Single line, bottom-aligned (DT_SINGLELINE|DT_BOTTOM); right-aligned in Hebrew.
@@ -1116,17 +1121,36 @@ func _draw_f35i_slot(p: int, panel: Dictionary, delta: Vector2) -> void:
 			return
 		var box := _rect(Rect2(Vector2(r[0], r[1]) + delta, Vector2(r[2], r[3])))
 		draw_texture_rect(t, box, false)
-		var lf: Font = font if _he() else font_bold
+		# As the baked labels: English heavy and condensed; Hebrew regular weight, letter-spaced, a softer grey (the
+		# Hebrew pack's buttons).
+		var he := _he()
+		var lf: Font = font if he else font_bold
 		var fs := int(round(15 * _scale()))
-		var text := "אדיר" if _he() else "F-35I"
-		var sq := TAB_SQUEEZE if not _he() else 1.0
-		var w := lf.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x * sq
-		var base := box.position.y + (box.size.y + lf.get_ascent(fs) - lf.get_descent(fs)) / 2.0
+		var text := "אדיר" if he else "F-35I"
+		var sq := 1.0 if he else TAB_SQUEEZE
+		var gap := 1.0 * _scale() if he else 0.0
+		var w := lf.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x * sq + gap * (text.length() - 1)
+		var base := box.position.y + (box.size.y + lf.get_ascent(fs) - lf.get_descent(fs)) / 2.0 - (_scale() if he else 0.0)
+		# The baked labels' grey (sampled from the Jet list art), dimmer pressed / disabled.
+		var col := Color8(188, 190, 194) if f < 2 else (Color8(160, 162, 166) if f == 2 else Color8(110, 112, 115))
 		draw_set_transform(Vector2(box.position.x + (box.size.x - w) / 2.0, base), 0.0, Vector2(sq, 1.0))
-		var col := Color8(205, 208, 212) if f < 2 else (Color8(165, 168, 172) if f == 2 else Color8(110, 112, 115))
-		draw_string(lf, Vector2(_scale(), _scale()), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color8(25, 25, 25))
-		draw_string(lf, Vector2.ZERO, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
+		if gap == 0.0:
+			draw_string(lf, Vector2(_scale(), _scale()), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color8(25, 25, 25))
+			draw_string(lf, Vector2.ZERO, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
+		else:
+			# Letter by letter (right to left for Hebrew), each a fixed gap apart.
+			var x := w
+			for ch in text:
+				var cw := lf.get_string_size(ch, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+				x -= cw
+				draw_string(lf, Vector2(x + _scale(), _scale()), ch, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color8(25, 25, 25))
+				draw_string(lf, Vector2(x, 0), ch, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
+				x -= gap
 		draw_set_transform(Vector2.ZERO)
+
+
+## The F-35I's Jet list description (Hebrew in strings_he.json).
+const F35I_DESC := "The IAF's fifth-generation stealth fighter: internal weapon bays, sensor fusion, a helmet display."
 
 
 ## The baked label's area inside a Jet list button (button-relative, panel px).

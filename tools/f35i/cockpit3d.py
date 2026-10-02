@@ -23,6 +23,7 @@ TILT = 18.0  # the panel face leans back (deg)
 FACE_Y, FACE_Z = 0.66, -0.25  # the face passes through (0, FACE_Y, FACE_Z)
 PCD = (0.508, 0.203)  # the panoramic display (20 x 8 in)
 PCD_TOP = -0.135
+ESIS_R = 0.024  # the standby display's ball (m)
 
 
 def on_face(x, z, depth=0.0):
@@ -78,7 +79,9 @@ def build():
     box("glareshield_skirt", on_face(0, PCD_TOP + 0.02, 0.016), (0.78, 0.03, 0.04), black, rot=FACE_ROT, bevel=0.008)
     # Under the display: the control strip and the standby display (a holdout: the game's ADI shows through).
     box("icp", on_face(0, -0.39, 0.012), (0.36, 0.022, 0.07), bezel, rot=FACE_ROT, bevel=0.005)
-    box("esis", on_face(0, -0.39, 0.026), (0.075, 0.006, 0.058), hold, rot=FACE_ROT, bevel=0)
+    # The ADI ball is round: a round window exactly its size (ESIS_R), on a dark bezel.
+    box("esis_bezel", on_face(0, -0.39, 0.02), (0.075, 0.008, 0.058), bezel, rot=FACE_ROT, bevel=0.003)
+    cyl("esis", on_face(0, -0.39, 0.026), ESIS_R, 0.004, hold, rot=KNOB_ROT, verts=48)
     for i, x in enumerate((-0.15, -0.11, -0.07, 0.07, 0.11, 0.15)):
         cyl(f"icp_knob{i}", on_face(x, -0.385, 0.032), 0.009, 0.016, knob, rot=KNOB_ROT)
         cyl(f"icp_cap{i}", on_face(x, -0.385, 0.041), 0.004, 0.003, alu, rot=KNOB_ROT)
@@ -127,21 +130,25 @@ def layout(cam):
            # chaff / flares ("%03d", Arial h10 ~ 18 px wide): centred in the last window
            "CHAFF": {"OffX": round(x0 + w8 * 7.5 - 9, 1), "OffY": round(strip, 1)},
            "FLARE": {"OffX": round(x0 + w8 * 7.5 - 9, 1), "OffY": round(strip + 12, 1)},
-           "TEXTMESSAGE": {"LengthChar": 30.0, "OffsetX1": round(x0 + w8 + 6, 1), "OffsetY1": round(strip, 1),
-                           "OffsetX2": round(x0 + w8 + 6, 1), "OffsetY2": round(strip + 12, 1)}}
-    e, er = px(on_face(0, -0.39, 0.03)), px(on_face(0.0375, -0.39, 0.03))
+           # ours: the throttle (percent, AB) in the second window
+           "THROTTLEDIGITAL": {"Active": 1.0, "ColorR": 64.0, "ColorG": 200.0, "ColorB": 40.0,
+                               "OffsetX": round(x0 + w8 * 1.5 - 15, 1), "OffsetY": round(strip + 4, 1)},
+           "TEXTMESSAGE": {"LengthChar": 30.0, "OffsetX1": round(x0 + w8 * 2 + 6, 1), "OffsetY1": round(strip, 1),
+                           "OffsetX2": round(x0 + w8 * 2 + 6, 1), "OffsetY2": round(strip + 12, 1)}}
+    e, er = px(on_face(0, -0.39, 0.03)), px(on_face(ESIS_R, -0.39, 0.03))
     sec["LENHORIZON"] = {"Active": 1.0, "FileName": "F16adi.bmp", "CenterX": round(e.x, 1), "CenterY": round(e.y, 1),
-                         "Factor": 15.0, "Radius": round(min(er.x - e.x, 26.0), 1)}
+                         "Factor": 15.0, "Radius": round(er.x - e.x + 1, 1)}
     centres = {}
     for key, (bay, dx, dz) in LAMPS.items():
         bx, bz = BAYS[bay][:2]
         c = px(on_face(bx + dx, bz + dz, 0.021))
         centres[key] = (c.x, c.y)
     sec.update(kit.lamp_sections(centres))
-    # The helmet HUD: the boresight on the nose axis, the field centre 47 px and the gun cross 5 px lower, as the
-    # F-16's ([HUD] rows count up from the panel's top).
+    # The helmet HUD: the boresight on the nose axis and the field centred on it (not 47 px lower as the F-16's: that
+    # put the field's lower tapes on the glareshield), the gun cross 5 px lower ([HUD] rows count up from the panel's
+    # top).
     nose = px((0, 10, 0))
-    hud = {"BorePositionY": round(-nose.y, 1), "CenterY": round(-nose.y - 47, 1), "GunRetPositionY": round(-nose.y - 5, 1)}
+    hud = {"BorePositionY": round(-nose.y, 1), "CenterY": round(-nose.y + 8, 1), "GunRetPositionY": round(-nose.y - 5, 1)}
     return sec, hud, k
 
 

@@ -377,18 +377,18 @@ class Rig:
         return sum(sum(len(p.vertices) - 2 for p in o.data.polygons) for o in scene().objects if o.type == 'MESH')
 
 
-def pilot(eye, colour=(0.25, 0.27, 0.2)):
+def pilot(eye, colour=(0.25, 0.27, 0.2), helmet=None, head_r=0.16):
     """A stand-in pilot (helmet + torso) for a model without one: ejection throws one seat per pilot part."""
     eye = Vector(eye)
-    bpy.ops.mesh.primitive_uv_sphere_add(segments=12, ring_count=8, radius=0.14, location=eye + Vector((0, 0, 0.02)))
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=16, ring_count=10, radius=head_r, location=eye + Vector((0, 0, 0.02)))
     head = bpy.context.active_object
     bpy.ops.mesh.primitive_cube_add(size=1, location=eye + Vector((0, -0.1, -0.35)))
     torso = bpy.context.active_object
     torso.scale = (0.45, 0.3, 0.55)
     bake_transforms([head, torso])
     suit = material("pilot", colour)
-    for o in (head, torso):
-        o.data.materials.append(suit)
+    torso.data.materials.append(suit)
+    head.data.materials.append(material("helmet", helmet, roughness=0.35) if helmet else suit)
     return join([head, torso], "pilot")
 
 
@@ -553,3 +553,68 @@ def update_cockpit_json(path, sections, hud_rows=None, main_offset_y=None):
     if main_offset_y is not None:
         c["PANEL"]["MainOffsetY"] = float(main_offset_y)
     json.dump(c, open(path, "w"), indent=1)
+
+
+# --- arming screen front view --------------------------------------------------------------------------------
+
+# The arming art's look (menu bmp/arm/jets): a shaded front view in greens, dark green shadows to pale highlights.
+ARM_DARK, ARM_LIGHT = (0.03, 0.08, 0.02), (0.42, 0.7, 0.36)
+ARM_SIZE = (454, 357)  # the arming art, menu px (the converted art is x4)
+
+
+def arm_front_view(gltf, out_png, px_per_m, centre, art=4, samples=64, mirror=True):
+    """The plane's glTF (gear down, its rest pose) rendered from the front, orthographic, in the arming art's greens,
+    transparent around it: `px_per_m` menu px per metre, the aircraft origin at menu px `centre`. Returns the
+    projected points {empty name: (x, y) menu px} (its Station* empties: where the leader lines end). `mirror`: as
+    the original's arming art, which puts station A (the left wing) on the image's left."""
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    bpy.ops.import_scene.gltf(filepath=gltf)
+    sc = scene()
+    w, h = ARM_SIZE
+    sc.render.resolution_x, sc.render.resolution_y = w * art, h * art
+    cam = bpy.data.objects.new("front", bpy.data.cameras.new("front"))
+    sc.collection.objects.link(cam)
+    sc.camera = cam
+    cam.data.type = 'ORTHO'
+    cam.data.ortho_scale = w / px_per_m
+    cam.location = (0, 40, 0)
+    cam.rotation_euler = Euler((math.radians(90), 0, math.radians(180)), 'XYZ')  # looking -Y (at the nose)
+    cam.data.shift_x = (centre[0] - w / 2) / w * -1
+    cam.data.shift_y = (centre[1] - h / 2) / w
+    cam.data.clip_end = 100
+    bpy.context.view_layer.update()
+    pts = {}
+    for o in sc.objects:
+        if o.type == 'EMPTY' and o.name.startswith("Station"):
+            v = world_to_camera_view(sc, cam, o.matrix_world.translation)
+            x = v.x * w
+            pts[o.name] = (round(w - x if mirror else x, 1), round((1 - v.y) * h, 1))
+    eng = [e.identifier for e in bpy.types.RenderSettings.bl_rna.properties['engine'].enum_items]
+    sc.render.engine = 'BLENDER_EEVEE_NEXT' if 'BLENDER_EEVEE_NEXT' in eng else 'BLENDER_EEVEE'
+    sc.render.film_transparent = True
+    sc.view_settings.view_transform = 'Standard'
+    wd = bpy.data.worlds.new("w")
+    sc.world = wd
+    wd.use_nodes = True
+    wd.node_tree.nodes["Background"].inputs[1].default_value = 0.35
+    sun = bpy.data.objects.new("key", bpy.data.lights.new("key", 'SUN'))
+    sun.data.energy = 4.0
+    sun.rotation_euler = Euler((math.radians(-55), math.radians(-30), math.radians(160)), 'XYZ')  # upper left, front
+    sc.collection.objects.link(sun)
+    tmp = out_png + ".raw.png"
+    sc.render.filepath = tmp
+    sc.render.image_settings.color_mode = 'RGBA'
+    bpy.ops.render.render(write_still=True)
+    img = bpy.data.images.load(tmp)
+    px = np.array(img.pixels[:], dtype=np.float32).reshape(h * art, w * art, 4)[::-1]
+    lum = np.clip((px[..., :3] @ np.array([0.30, 0.59, 0.11])) * 2.0, 0, 1) ** 1.1
+    rgb = np.array(ARM_DARK) * (1 - lum[..., None]) + np.array(ARM_LIGHT) * lum[..., None]
+    if mirror:
+        rgb, px = rgb[:, ::-1], px[:, ::-1]
+    save = bpy.data.images.new("arm_front", w * art, h * art, alpha=True)
+    save.pixels.foreach_set(np.ascontiguousarray(np.dstack([rgb, px[..., 3]])[::-1]).astype(np.float32).ravel())
+    save.filepath_raw = out_png
+    save.file_format = 'PNG'
+    save.save()
+    os.remove(tmp)
+    return pts

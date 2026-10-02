@@ -17,7 +17,7 @@ SRC, OUT = sys.argv[sys.argv.index("--") + 1:][:2]
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
 LENGTH = 15.67  # m (Lockheed Martin)
 ORIGIN = Vector((0.0, -1.0, 1.85))  # the aircraft origin (≈ centre of gravity): the game's rig position
-EYE = Vector((0.0, 3.35, 2.85))
+EYE = Vector((0.0, 4.1, 3.0))  # in the seat, at seated head height under the canopy (the helmet clears the rim)
 SKIN_GREY = (0.37, 0.39, 0.41)  # F-35 low-observable grey, matte (sRGB, before the baked shading)
 TAIL_NUMBER = "937"  # 116 Sqn "Lions of the South" (F-35I tails run 901-9xx)
 # Low-visibility markings as on the IAF's F-35Is (photos, docs/f35i.md §5).
@@ -98,13 +98,17 @@ def main():
     parts["LdgDr"] = kit.join([m["64"], m["8"]], "LdgDr")
     strut = kit.extract([m["45"]], lambda c: 4.0 < c.y < 5.2 and c.z < 1.05 and abs(c.x) < 0.3, "nose_strut")
     parts["LdgF"] = kit.join([m["44"], m["46"], m["47"], strut], "LdgF")
-    # Canopy: the bubble, its bow and the frame strip; tinted blended glass on the bubble.
-    parts["canopy"] = kit.join([m["33"], m["34"], m["54"]], "canopy")
+    # The download's cockpit has a HUD-like frame arch and glass ahead of the pilot and a glowing panel strip; the
+    # F-35 has no HUD (its canopy bow is behind the pilot): drop them.
+    for k in ("34", "54", "39", "27"):
+        kit.bpy.data.objects.remove(m[k])
+    # Canopy: the bubble; tinted blended glass.
+    parts["canopy"] = kit.join([m["33"]], "canopy")
     glass = kit.material("canopy_glass", (0.35, 0.30, 0.18), roughness=0.1, alpha=0.4)
     for i, mat in enumerate(parts["canopy"].data.materials):
         if mat and mat.name.startswith("Whitish_grey"):
             parts["canopy"].data.materials[i] = glass
-    parts["pilot"] = kit.pilot(EYE)
+    parts["pilot"] = kit.pilot(EYE, colour=(0.33, 0.35, 0.28), helmet=(0.62, 0.63, 0.62))
     kit.decimate(m["52"], 0.08)  # the nozzle interior: 38k of the 83k triangles
 
     rest = [o for o in kit.scene().objects if o.type == 'MESH' and o.name not in parts]
@@ -132,7 +136,7 @@ def main():
                 (0.55, -2.4, 1.25), (1.15, -2.7, 1.3), (3.4, -2.4, 2.0), (5.2, -2.9, 2.05)]
     for letter, p in zip("ABCDEFGHI", stations):
         rig.empty("Station" + letter, p)
-    rig.empty("Height", (0.0, ORIGIN.y, 0.0))
+    rig.empty("height", (0.0, ORIGIN.y, 0.0))  # lower case: the game finds it with find_child("height")
     rig.empty("Camera", EYE)
     tris = rig.export(os.path.join(OUT, "f35i.gltf"))
     print("RIGGED", OUT, "triangles", tris, "parts", sorted(parts))

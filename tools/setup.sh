@@ -148,6 +148,14 @@ step "front-end menus (screens, strings, art, fonts)"
 if [[ -d assets/packs/he/resource/menu ]]; then
 	./target/release/iaf-convert --upscale menu assets/install assets/converted/menu_he --pack assets/packs/he
 fi
+# Extra planes' arming art (docs/adding-a-plane.md §5): composed from the original arming art above and the plane's
+# front view (game/extra/planes/<p>/arm).
+for arm in game/extra/planes/*/arm; do
+	p=$(basename "$(dirname "$arm")")
+	for m in assets/converted/menu assets/converted/menu_he; do
+		[[ -d $m/img/arm/jets ]] && ./target/release/iaf-convert arm-extra "$m/img" "$arm" "$m/img/arm/jets/x_$p.png"
+	done
+done
 
 step "key table (default keys from the exe + keys.trx labels, docs/controls.md)"
 ./target/release/iaf-convert keys assets/install assets/packs assets/converted/keys.json

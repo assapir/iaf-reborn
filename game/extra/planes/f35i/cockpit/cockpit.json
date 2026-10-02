@@ -33,7 +33,7 @@
  "HUD": {
   "BorePositionY": 112.1,
   "BottomBorder": 60.0,
-  "CenterY": 65.1,
+  "CenterY": 120.1,
   "Dash": 1.0,
   "GunRetPositionY": 107.1,
   "Height": 182.0,
@@ -82,7 +82,7 @@
   "CenterX": 960.0,
   "CenterY": 311.4,
   "Factor": 15.0,
-  "Radius": 26.0
+  "Radius": 27.6
  },
  "FUELDIGITAL": {
   "Active": 1.0,
@@ -102,9 +102,9 @@
  },
  "TEXTMESSAGE": {
   "LengthChar": 30.0,
-  "OffsetX1": 775.7,
+  "OffsetX1": 839.1,
   "OffsetY1": 183.1,
-  "OffsetX2": 775.7,
+  "OffsetX2": 839.1,
   "OffsetY2": 195.1
  },
  "HORIZON": {
@@ -175,6 +175,14 @@
   "OffsetX": 1257.0,
   "OffsetY": 150.0,
   "Radius": 10.0
+ },
+ "THROTTLEDIGITAL": {
+  "Active": 1.0,
+  "ColorR": 64.0,
+  "ColorG": 200.0,
+  "ColorB": 40.0,
+  "OffsetX": 786.4,
+  "OffsetY": 187.1
  },
  "LIGHTSON": {
   "FileName": "Lights4.bmp",

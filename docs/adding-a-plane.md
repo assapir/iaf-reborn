@@ -217,9 +217,16 @@ Options:
 - **Stations** in 3D come from the descriptor's `StationA..I` / `StationGun` (`stores.gd`, `player_weapons.gd`).
   A missing frame hangs the store at the origin.
 - **Arming screen:** `game/weapons/mission_weapons.gd` `JET_ART` → `menu/bmp/arm/jets/<art>.bmp/.trx`. The `.trx`
-  holds the base weight, max take-off weight and the 9 station boxes. Reuse a similar jet's art or draw new.
-  Arming shows the mission's formations, so a jet swapped in from the Jet list uses its default load (as for the
-  seven originals).
+  holds the base weight, max take-off weight and the 9 station boxes. An extra plane (`JET_ART` "x_<plane>"):
+  - `game/extra/planes/<plane>/arm/front.png`: its front view in the arming greens (`tools/plane/kit.py`
+    `arm_front_view`, mirrored like the originals: station A on the image's left) and `arm.json` (base / max lb,
+    `boxes` = a base jet's station boxes, `points` = the stations on the front view, `title`, `base_art`);
+  - `iaf-convert arm-extra <converted menu>/img <arm dir> <out png>` (run by `tools/setup.sh`) composes the screen
+    on the user's machine: the background from the original jets' images (a low percentile per pixel outvotes
+    each jet and its lines), the base jet's boxes and bottom band, our front view and leader lines;
+  - the game draws the title (`arming.gd`), reads `arm.json` (`mission_weapons.gd` `_extra_jet`), and a type in
+    `PlayerAircraft.ARM_AS_PICKED` arms as itself when picked on the Jet list (the originals arm as the mission's
+    jet) with its chosen load used in flight (`player_weapons.gd` `_arm`).
 - **Real data:** `game/weapons/real_weapons.gd` `RADAR_KM` (km) and `GUN_ROUNDS`. Weapons the game lacks map to the
   nearest original (docs/real-weapons.md).
 

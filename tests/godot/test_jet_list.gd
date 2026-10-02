@@ -33,6 +33,10 @@ func run() -> void:
 			check(tv.cockpit.mfds.size() == 4 and tv.cockpit.tex.has("LIGHTS") and tv.cockpit.tex.has("PANEL")
 					and not tv.cockpit.tex.has("HUD") and tv.cockpit.tex.has("MFDS"),
 					"%s: the panoramic display's 4 portals, our panel and lights, no HUD glass, the shared MFD art" % name)
+			var M = tv.cockpit.mfds[0]
+			check(M.touch_osb(Vector2(24, 5)) == 1 and M.touch_osb(Vector2(104, 128)) == 10 and M.touch_osb(Vector2(5, 44)) == 12
+					and M.touch_osb(Vector2(127, 104)) == 20 and M.touch_osb(Vector2(66, 66)) == -1,
+					"%s: the portals are pressed on their labels (top OSB 1, bottom 10, left 12, right 20, none mid-page)" % name)
 		key(tv, KEY_1)
 		key(tv, KEY_B)
 		key(tv, KEY_6)

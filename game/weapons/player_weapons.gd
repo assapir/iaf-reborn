@@ -6,6 +6,7 @@
 # Generic for every aircraft: stations from the descriptor, loadout from the mission / bdb.
 extends Node
 
+const PlayerAircraft := preload("res://aircraft/player_aircraft.gd")
 const WeaponDb := preload("res://weapons/weapon_db.gd")
 const Stores := preload("res://weapons/stores.gd")
 const GunRounds := preload("res://weapons/gun_rounds.gd")
@@ -148,10 +149,12 @@ func setup(host_node: Node, entity: Dictionary, object: Dictionary, bdb: Diction
 
 ## The Arming screen's pylon loads of the player's flight replace pylons 0..8 (FUN_004f00f0 ->
 ## FUN_004f0140 writes them to the flight's aircraft; docs/front-end.md §15). Only for the mission's
-## own jet (`entity` set): a jet flown in place of another keeps its type's load.
+## own jet (`entity` set), or a plane the Arming screen arms as picked (ours, PlayerAircraft.ARM_AS_PICKED): a jet
+## flown in place of another keeps its type's load.
 func _arm(load: Array, entity: Dictionary) -> Array:
 	var n = host.get("player_flight_number") if host != null else null
-	if entity.is_empty() or n == null or not Settings.arm_loadouts.has(int(n)):
+	var as_picked: bool = host != null and int(host.player.get("type", -1)) in PlayerAircraft.ARM_AS_PICKED
+	if (entity.is_empty() and not as_picked) or n == null or not Settings.arm_loadouts.has(int(n)):
 		return load
 	var arm: Array = Settings.arm_loadouts[int(n)]
 	for i in mini(9, arm.size()):

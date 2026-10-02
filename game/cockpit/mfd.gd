@@ -69,6 +69,12 @@ func _panel_offset() -> Vector2:
 	return Vector2(float(m[side + "OffsetX"]), float(m[side + "OffsetY"]))
 
 
+## The bezel the node covers around its page: none for a portal (its neighbours' pages are there; it is pressed on
+## its labels, touch_osb).
+func _bezel() -> float:
+	return 0.0 if cockpit.layout.get("MFD", {}).has("Portals") else BEZEL
+
+
 ## Screen px per MFD px.
 func _s() -> float:
 	return cockpit.ui_scale() * portal_scale
@@ -77,8 +83,9 @@ func _s() -> float:
 func _process(_delta: float) -> void:
 	var s := _s()
 	var o := _panel_offset()
-	position = cockpit.panel_to_screen(o.x - BEZEL * portal_scale, o.y - BEZEL * portal_scale)
-	size = Vector2.ONE * (SIZE + 2 * BEZEL) * s
+	var b := _bezel()
+	position = cockpit.panel_to_screen(o.x - b * portal_scale, o.y - b * portal_scale)
+	size = Vector2.ONE * (SIZE + 2 * b) * s
 	queue_redraw()
 
 
@@ -148,7 +155,7 @@ func _draw() -> void:
 	if cockpit == null or cockpit.layout.is_empty():
 		return
 	var s := _s()
-	draw_set_transform(Vector2(BEZEL, BEZEL) * s, 0.0, Vector2(s, s))
+	draw_set_transform(Vector2.ONE * _bezel() * s, 0.0, Vector2(s, s))
 	match page:
 		RADAR:
 			_draw_radar()
@@ -840,15 +847,41 @@ static func osb_at(p: Vector2) -> int:
 	return base + n if n >= 1 and n <= 5 else -1
 
 
+## A portal of a panoramic display is a touchscreen (ours, the F-35I's): the option labels drawn along the page's
+## edges are pressed themselves. The OSB whose label is under a page point (the 14 px band along each edge, OSB n
+## centred 20 n + 4 px along it, as osb_at's buttons); -1 = none.
+static func touch_osb(p: Vector2) -> int:
+	if not Rect2(0, 0, SIZE, SIZE).has_point(p):
+		return -1
+	var along := -1.0
+	var base := 0
+	if p.y < 14:
+		along = p.x
+	elif p.y >= SIZE - 14:
+		along = p.x
+		base = 5
+	elif p.x < 16:
+		along = p.y
+		base = 10
+	elif p.x >= SIZE - 16:
+		along = p.y
+		base = 15
+	if along < 0:
+		return -1
+	var n := int(round((along - 4.0) / 20.0))
+	return base + n if n >= 1 and n <= 5 else -1
+
+
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
-		var q: Vector2 = event.position / _s() - Vector2(BEZEL, BEZEL)
+		var q: Vector2 = event.position / _s() - Vector2.ONE * _bezel()
 		mouse = q if Rect2(10, 10, 112, 112).has_point(q) else null
 		return
 	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
 		return
-	var p: Vector2 = event.position / _s() - Vector2(BEZEL, BEZEL)
-	var osb := osb_at(p)
+	var p: Vector2 = event.position / _s() - Vector2.ONE * _bezel()
+	# A portal: its labels (its bezel zones would lie over the neighbouring portals' pages).
+	var osb := touch_osb(p) if cockpit.layout.get("MFD", {}).has("Portals") else osb_at(p)
 	if osb > 0:
 		press(osb)
 		accept_event()

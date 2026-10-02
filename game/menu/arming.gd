@@ -34,6 +34,10 @@ const THUMB := Vector2(15, 35)
 const ROW_TEXT := Rect2(1, 22, 49, 9)
 const ICON := Vector2(49, 30)
 const GREEN := Color8(0, 255, 0)
+## The jet name in the originals' arming art (f-16.bmp "F-16"): right end and baseline, size, colour.
+const TITLE_END := Vector2(446, 25)
+const TITLE_PX := 13.0
+const TITLE_GREEN := Color8(40, 205, 40)
 const DIM_GREEN := Color8(0, 128, 0)
 const RED := Color8(255, 0, 0)
 const TAB_LABELS := ["AA", "AG", "Misc"]
@@ -60,6 +64,7 @@ var cursor := -1
 var _cursors := {}
 var key_font: Font
 var name_font: Font
+var title_font: Font
 
 
 func setup(front_end: Control, mission_weapons: RefCounted, n: int) -> void:
@@ -69,6 +74,7 @@ func setup(front_end: Control, mission_weapons: RefCounted, n: int) -> void:
 	mouse_filter = Control.MOUSE_FILTER_PASS
 	key_font = load("res://cockpit/hud.gd").load_original_font("key")
 	name_font = Img.arial(500)
+	title_font = Img.arial(800)
 	for c in ["move", "grab"]:
 		_cursors[c] = Img.load_cursor(Settings.assets_dir().path_join("install/resource/menu/cur/%s.cur" % c))
 	# FUN_00507400: the AA tab is checked on entry.
@@ -188,6 +194,12 @@ func _draw() -> void:
 	if jet.is_empty():
 		return
 	_blit(_art(), at)
+	# Ours: an extra plane's name (the originals have it in their art), top right like theirs.
+	if jet.get("title", "") != "":
+		var tfs := int(round(TITLE_PX * fe._scale()))
+		var tp: Vector2 = fe._to_screen(at + TITLE_END)
+		var tw := title_font.get_string_size(jet.title, HORIZONTAL_ALIGNMENT_LEFT, -1, tfs).x
+		draw_string(title_font, tp + Vector2(-tw, 0), jet.title, HORIZONTAL_ALIGNMENT_LEFT, -1, tfs, TITLE_GREEN)
 	# The flight name (flight table +0x328), Arial p11 weight 500, green, transparent.
 	if flight >= 1 and flight <= MissionWeapons.FLIGHT_NAMES.size():
 		var fs := int(round(NAME_PX * fe._scale()))

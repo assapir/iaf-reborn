@@ -271,3 +271,118 @@ mod tests {
         std::fs::remove_dir_all(dir).ok();
     }
 }
+
+/// The arming screen art of an extra plane (docs/adding-a-plane.md §5), composed on the user's machine from the
+/// original's arming art (never committed) and the plane's own front view:
+/// - the background: a low percentile (the lower quarter) of every original jet image per pixel: each jet's
+///   silhouette and leader lines (brighter than the dark background) are outvoted, the grid and radar ring they
+///   all share remain;
+/// - the station boxes and the bottom band (labels, DEFAULT) copied from `base` (an original jet's image whose box
+///   layout the plane uses);
+/// - the title area cleared (the game draws the plane's title);
+/// - the front view over it, and a leader line from each box's top to its station point.
+///
+/// `scale`: art px per menu px (the converted menu art is 4×). Boxes and points are menu px.
+pub fn compose_arm(
+    originals: &[image::RgbaImage],
+    base: &image::RgbaImage,
+    front: &image::RgbaImage,
+    boxes: &[(f32, f32)],
+    points: &[(f32, f32)],
+    scale: f32,
+) -> image::RgbaImage {
+    let (w, h) = base.dimensions();
+    let mut out = image::RgbaImage::new(w, h);
+    let mut vals: Vec<u8> = Vec::with_capacity(originals.len());
+    for y in 0..h {
+        for x in 0..w {
+            let mut px = [0u8; 4];
+            for (c, slot) in px.iter_mut().enumerate().take(3) {
+                vals.clear();
+                vals.extend(originals.iter().filter(|o| o.dimensions() == (w, h)).map(|o| o.get_pixel(x, y)[c]));
+                vals.sort_unstable();
+                *slot = if vals.is_empty() { 0 } else { vals[vals.len() / 4] };
+            }
+            px[3] = 255;
+            out.put_pixel(x, y, image::Rgba(px));
+        }
+    }
+    let s = |v: f32| (v * scale).round() as i64;
+    let copy = |out: &mut image::RgbaImage, x0: i64, y0: i64, x1: i64, y1: i64| {
+        for y in y0.max(0)..y1.min(h as i64) {
+            for x in x0.max(0)..x1.min(w as i64) {
+                out.put_pixel(x as u32, y as u32, *base.get_pixel(x as u32, y as u32));
+            }
+        }
+    };
+    // The bottom band (CURRENT LOAD, DEFAULT, MAX T.O.W.) and the boxes (51 × 32 with their frame).
+    copy(&mut out, 0, s(322.0), w as i64, h as i64);
+    for &(bx, by) in boxes {
+        copy(&mut out, s(bx - 2.0), s(by - 2.0), s(bx + 53.0), s(by + 34.0));
+    }
+    // The title (top right, the base jet's name): the background of the rows just left of it.
+    let (tx0, ty0, tx1, ty1) = (s(370.0), s(8.0), s(454.0).min(w as i64), s(34.0).min(h as i64));
+    for y in ty0..ty1 {
+        for x in tx0..tx1 {
+            let src = *out.get_pixel((x - (tx1 - tx0)).max(0) as u32, y as u32);
+            out.put_pixel(x as u32, y as u32, src);
+        }
+    }
+    // Leader lines: up from each box's top centre to the station's row, then to the station.
+    let line = image::Rgba([60u8, 190, 50, 255]);
+    let seg = |out: &mut image::RgbaImage, a: (f32, f32), b: (f32, f32)| {
+        let n = (((b.0 - a.0).abs().max((b.1 - a.1).abs())) * scale).ceil().max(1.0) as i64;
+        for i in 0..=n {
+            let t = i as f32 / n as f32;
+            let (x, y) = (s(a.0 + (b.0 - a.0) * t), s(a.1 + (b.1 - a.1) * t));
+            for dy in -1..=1 {
+                for dx in -1..=1 {
+                    let (px, py) = (x + dx, y + dy);
+                    if px >= 0 && py >= 0 && (px as u32) < w && (py as u32) < h {
+                        out.put_pixel(px as u32, py as u32, line);
+                    }
+                }
+            }
+        }
+    };
+    for (&(bx, by), &(px, py)) in boxes.iter().zip(points) {
+        let top = (bx + 25.5, by - 2.0);
+        let elbow = (top.0, (py + 14.0).min(top.1));
+        seg(&mut out, top, elbow);
+        seg(&mut out, elbow, (px, py));
+    }
+    // The front view, alpha over.
+    for y in 0..h.min(front.height()) {
+        for x in 0..w.min(front.width()) {
+            let f = front.get_pixel(x, y);
+            let a = f[3] as f32 / 255.0;
+            if a <= 0.0 {
+                continue;
+            }
+            let o = out.get_pixel_mut(x, y);
+            for c in 0..3 {
+                o[c] = (f[c] as f32 * a + o[c] as f32 * (1.0 - a)).round() as u8;
+            }
+        }
+    }
+    out
+}
+
+#[cfg(test)]
+mod arm_tests {
+    use super::*;
+
+    #[test]
+    fn median_drops_a_lone_silhouette_and_keeps_the_boxes() {
+        let bg = image::Rgba([0u8, 20, 5, 255]);
+        let mut a = image::RgbaImage::from_pixel(80, 80, bg);
+        let b = a.clone();
+        let mut c = a.clone();
+        a.put_pixel(10, 10, image::Rgba([200, 200, 200, 255])); // a jet pixel only in one image
+        c.put_pixel(4, 4, image::Rgba([0, 255, 0, 255])); // the base's box frame
+        let front = image::RgbaImage::new(80, 80);
+        let out = compose_arm(&[a, b, c.clone()], &c, &front, &[(3.0, 3.0)], &[(10.0, 0.0)], 1.0);
+        assert_eq!(*out.get_pixel(10, 10), bg, "outvoted");
+        assert_eq!(*out.get_pixel(4, 4), image::Rgba([0, 255, 0, 255]), "box copied from the base");
+    }
+}

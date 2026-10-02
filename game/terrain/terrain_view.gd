@@ -1208,19 +1208,7 @@ func _player_model_scale() -> float:
 ## The player's type's jet object (class 0x1c) in `bdb`, else (`fallback`) in the default object database
 ## ({} if neither).
 func _player_object(bdb: Dictionary, fallback := true) -> Dictionary:
-	var dbs := [bdb]
-	if fallback:
-		dbs.append(Settings.load_json(Settings.assets_dir().path_join("converted/missions/default6_1.bdb.json")))
-	for db in dbs:
-		for o in db.get("objects", {}).get("items", []):
-			if int(o.get("0x5b4", -1)) == player.type and int(o.get("0x5aa", -1)) == 0x1c:
-				return o
-	if player.type == PlayerAircraft.F35I:
-		for db in dbs:
-			for o in db.get("objects", {}).get("items", []):
-				if int(o.get("0x5b4", -1)) == PlayerAircraft.FALLBACK and int(o.get("0x5aa", -1)) == 0x1c:
-					return PlayerAircraft.f35i_object(o)
-	return {}
+	return PlayerAircraft.object_for(player.type, bdb, fallback)
 
 
 ## Lift the rig (and the parked F-16) if the terrain under it is too close.

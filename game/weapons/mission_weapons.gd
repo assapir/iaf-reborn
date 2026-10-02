@@ -6,6 +6,7 @@
 # (0x83d970) (filled by FUN_004efef0 -> FUN_004efd50). Scene independent.
 extends RefCounted
 
+const PlayerAircraft := preload("res://aircraft/player_aircraft.gd")
 const WeaponDb := preload("res://weapons/weapon_db.gd")
 const Stores := preload("res://weapons/stores.gd")
 const MissionRuntime := preload("res://mission/mission_runtime.gd")
@@ -16,7 +17,7 @@ const TABS := {540: 0, 550: 0, 570: 0, 580: 0, 600: 0, 610: 0,
 	500: 1, 510: 1, 560: 1, 590: 1, 635: 1, 640: 1, 650: 1, 565: 2, 660: 2}
 ## Jet front views bmp/arm/jets/<name>.bmp / .trx by the leader's type code (FUN_00507750).
 const JET_ART := {100: "f-16", 110: "f-15", 120: "f4e", 130: "kfir", 140: "lavi2", 160: "mig23",
-	180: "mig29", 190: "mirage", 200: "phantom", 1000: "f-16"}
+	180: "mig29", 190: "mirage", 200: "phantom", 1000: "x_f35i"}
 const JET_DIR := "install/resource/menu/bmp/arm/jets"
 ## Flight names 1..6 (FUN_005bd3c0; flight table +0x328).
 const FLIGHT_NAMES := ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]
@@ -95,6 +96,14 @@ func _load_flights(mission: Dictionary, bdb: Dictionary) -> void:
 				var obj: Dictionary = objects.get(int(e.get("0x2c6", -1)), {})
 				flights[n] = {"entity": e, "object": obj, "type": int(obj.get("0x5b4", -1))}
 				break
+	# Ours: a plane of ARM_AS_PICKED picked on the Jet list arms as itself on the player's flight (its object's
+	# default load and stations, its art); without an entity, Stores.loadout takes the object's default.
+	var picked := PlayerAircraft.jet_type(Settings.jet_id) if Settings.jet_id >= 0 else -1
+	if picked in PlayerAircraft.ARM_AS_PICKED:
+		var pn := int(MissionRuntime.player_flight(mission, Settings.player_flight).get("flight", -1))
+		var pobj := PlayerAircraft.object_for(picked, bdb)
+		if flights.has(pn) and not pobj.is_empty():
+			flights[pn] = {"entity": {}, "object": pobj, "type": picked}
 
 
 ## FUN_004efd50: station i of the table = the leader's store at mission start (weapon name and
@@ -248,6 +257,8 @@ static func jet(type: int) -> Dictionary:
 	if art == "":
 		return {}
 	var out := {"art": art, "base": 0.0, "max": 0.0, "stations": {}}
+	if art.begins_with("x_"):
+		return _extra_jet(art, out)
 	var path := Settings.assets_dir().path_join(JET_DIR).path_join(art + ".trx")
 	if not FileAccess.file_exists(path):
 		return out
@@ -262,6 +273,19 @@ static func jet(type: int) -> Dictionary:
 		if at + 2 >= tok.size():
 			break
 		out.stations[int(tok[at]) - 1] = Vector2(float(tok[at + 1]), float(tok[at + 2]))
+	return out
+
+
+## An extra plane's arming data (docs/adding-a-plane.md §5): res://extra/planes/<name>/arm/arm.json (weights, station
+## boxes, title) for its art x_<name>.png, which `iaf-convert arm-extra` composed into the converted menu art.
+static func _extra_jet(art: String, out: Dictionary) -> Dictionary:
+	var a := Settings.load_json("res://extra/planes/%s/arm/arm.json" % art.trim_prefix("x_"))
+	out.base = float(a.get("base", 0.0))
+	out.max = float(a.get("max", 0.0))
+	out.title = String(a.get("title", ""))
+	var boxes: Array = a.get("boxes", [])
+	for k in boxes.size():
+		out.stations[k] = Vector2(float(boxes[k][0]), float(boxes[k][1]))
 	return out
 
 

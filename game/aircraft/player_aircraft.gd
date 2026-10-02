@@ -34,6 +34,25 @@ static func jet_type(id: int) -> int:
 	return JET_TYPES.get(id, -1)
 
 
+## The bdb jet object (class 0x1c) of `type`: the mission's object database first, then default6_1 (`fallback`); the
+## F-35I (in no bdb) is built from the F-16's. {} when none.
+static func object_for(type: int, bdb: Dictionary, fallback := true) -> Dictionary:
+	var dbs := [bdb]
+	if fallback:
+		dbs.append(Settings.load_json(Settings.assets_dir().path_join("converted/missions/default6_1.bdb.json")))
+	for want in ([type] if type != F35I else [FALLBACK]):
+		for db in dbs:
+			for o in db.get("objects", {}).get("items", []):
+				if int(o.get("0x5b4", -1)) == want and int(o.get("0x5aa", -1)) == 0x1c:
+					return o if type != F35I else f35i_object(o)
+	return {}
+
+
+## Types the Arming screen arms in place of the mission's jet when the Jet list picks them (ours; the original's
+## seven arm as the mission's jet, docs/front-end.md §15).
+const ARM_AS_PICKED := [F35I]
+
+
 ## The F-35I's object (weapons, stores; no bdb has one): the F-16's with the F-35I's type and loads. Stations
 ## (descriptor): A / I wing tips, B / H wings, C / G and D / F the weapon bays (outboard / inboard), E centre.
 ## Default: internal only, an AMRAAM inboard and an MK-84L (the GBU-31 stand-in) outboard in each bay; 180
