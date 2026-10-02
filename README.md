@@ -177,7 +177,7 @@ locally rather than on a hosted CI. Run scripted tests and captures with `IAF_DE
 
 ## Contributing
 
-- How the code and the docs are organised: [docs/status.md](docs/status.md), [docs/roadmap.md](docs/roadmap.md); how
+- What works and what is open: [docs/status.md](docs/status.md); plans: [docs/roadmap.md](docs/roadmap.md); how
   we differ from the original: [docs/deviations.md](docs/deviations.md).
 - Credits: the credits roll on Quit (the original's, then ours and the imagery credits). To add a credit, see
   [docs/credits.md](docs/credits.md).
