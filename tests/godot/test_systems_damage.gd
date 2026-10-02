@@ -94,3 +94,9 @@ func run() -> void:
 		check(lit.get("Afterburner_left", false) == false, "left AB damaged: no left flame (%s)" % str(lit))
 		if lit.has("Afterburner_right"):
 			check(lit.Afterburner_right, "right flame still lit")
+
+	# Radar damage (15): the radar switches off for good (FUN_004adb20).
+	if tv.weapons != null:
+		pd.system_damage(15)
+		await frames(3)
+		check(tv.weapons.radar.damaged and tv.weapons.radar.off, "radar damage: radar off")

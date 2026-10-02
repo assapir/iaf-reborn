@@ -1319,6 +1319,9 @@ func update(t: float) -> void:
 	_update_bombs()
 	_update_missiles()
 	_update_decoys()
+	# Radar damage (15; generator failures 19 / 21 set it too): FUN_004adb20 switches it off for good.
+	if _flag(15) and not radar.damaged:
+		radar.set_damaged(true)
 	radar.update(now)
 	rwr.damaged = _flag(14)
 	var refreshed: bool = now >= rwr._next_refresh
