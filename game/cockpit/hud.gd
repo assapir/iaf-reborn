@@ -178,6 +178,7 @@ func _glyph(x: int) -> PackedVector2Array:
 	var t: Texture2D = cockpit.tex.get("MFDS")
 	if t != _glyph_tex:
 		_glyphs.clear()
+		_strokes.clear()
 		_glyph_tex = t
 	if _glyphs.has(x):
 		return _glyphs[x]
@@ -197,13 +198,42 @@ func _glyph(x: int) -> PackedVector2Array:
 	return px
 
 
-## Sprite text with its top-left at `p` (FUN_00525a30), or ending at p.x when `right` (FUN_00525920).
+## Sprite text with its top-left at `p` (FUN_00525a30), or ending at p.x when `right` (FUN_00525920). Ours
+## draws each glyph's pixels as antialiased strokes between neighbouring lit pixels (same shapes, crisp at a
+## non-integer scale; the 1998 pixels drawn as squares came out uneven, docs/deviations.md).
 func _sprite(ci: CanvasItem, p: Vector2, text: String, right := false) -> void:
 	var x0 := p.x - (5 * text.length() if right else 0)
 	var col: Color = cockpit.hud_colour()
+	var wd := maxf(_s * 0.95, 1.0)
 	for i in text.length():
-		for q in _glyph(Mfd._glyph_x(text[i])):
-			ci.draw_rect(Rect2(_pt(Vector2(x0 + 5 * i + q.x, p.y + q.y)), Vector2(_s, _s)), col)
+		var o := Vector2(x0 + 5 * i + 0.5, p.y + 0.5)
+		var g: Array = _glyph_strokes(Mfd._glyph_x(text[i]))
+		for seg in g[0]:
+			ci.draw_line(_pt(o + seg[0]), _pt(o + seg[1]), col, wd, true)
+		for q in g[1]:
+			ci.draw_circle(_pt(o + q), wd * 0.5, col, true, -1.0, true)
+
+
+## A glyph as strokes: [segments between 8-neighbouring lit pixels (a diagonal only where no orthogonal step
+## joins the two), every lit pixel as a round joint].
+var _strokes := {}
+func _glyph_strokes(x: int) -> Array:
+	if _strokes.has(x) and _glyph_tex == cockpit.tex.get("MFDS"):
+		return _strokes[x]
+	var px: PackedVector2Array = _glyph(x)
+	var lit := {}
+	for q in px:
+		lit[q] = true
+	var segs := []
+	for q in px:
+		for d in [Vector2(1, 0), Vector2(0, 1), Vector2(1, 1), Vector2(-1, 1)]:
+			if not lit.has(q + d):
+				continue
+			if d.x != 0 and d.y != 0 and (lit.has(q + Vector2(d.x, 0)) or lit.has(q + Vector2(0, d.y))):
+				continue
+			segs.append([q, q + d])
+	_strokes[x] = [segs, px]
+	return _strokes[x]
 
 
 ## GDI text in Arial h10 w5 at baseline `p` (TA_BASELINE; TA_RIGHT when `right`).
