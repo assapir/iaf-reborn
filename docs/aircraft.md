@@ -111,12 +111,15 @@ the others to the elevators. Flaps target = lever·16.8° (·0.33 on the F-16).
   ejection, docs/part-animation.md "Ejection"). Our port: `crew_visible = true` on every aircraft; the ejection takes
   pilot / seat / canopy off the jet. (An earlier reading "hidden on flown aircraft", which showed the F-16 with a flat
   grey cockpit cover, was wrong; the Extras option built on it was removed.)
-* Hook and drag chute have no key in our game yet (the component supports them).
-* No damage model: the AB damage flags are never set.
+* The hook has no key in our game (the component supports it; the FM's `cfg[8]` is not wired, flight-model.md §15.11
+  item 7). The drag chute is Shift+B (`terrain_view.gd` `_chute_key`, controls.md).
+* AB damage: the player's flags 8 / 9 (`player_damage.gd`, damage.md §5) reach the model as `ab_damage` and put that
+  flame out; AI jets take no systems damage.
 * Flicker: the flame's random numbers change every rendered frame, as in the original (so faster at high fps).
 * The flaps / speed-brake ramps are recomputed in GDScript with the original rule; the flight model's own ramps
   (`S+0x300`, `S+0x340`) are private in `iaf-flight` (the gear ramp is exported).
-* Muzzle flash (`FUN_00411d90` at StationGun) and stores on stations: need weapons (not implemented).
+* Muzzle flash (`FUN_00411d90`, at StationGun) and the stores on the stations: `player_weapons.gd` / `stores.gd`
+  (docs/weapons.md).
 
 ## 3. Per-aircraft table (the shipped install)
 

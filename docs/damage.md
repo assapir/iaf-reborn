@@ -94,7 +94,7 @@ level 5 at a failed landing check, water, rough ground), collisions (§7), the d
 - **Final `FUN_004a86b0`:** the explosion at the unit's position (`FUN_0059df20`, §6); the destroyed model; the
   unit's sounds stop (`FUN_004c4310`); its smoke stops (`FUN_004d1ff0`); the brain ends; the role accounting
   `FUN_00599da0` (docs/mission-runtime.md §5.1). For the player, unless every player is dead, game event 0x7f
-  (FlyTSD) 6.5 s later (0x8321a8; the in-flight TSD is not built).
+  (FlyTSD) 6.5 s later (0x8321a8; not ported: our flight ends instead; the FlyTSD itself is Esc, docs/views.md §1).
 
 ### 3.3 The destruction motion (motion 0x14, DestructionMotion.cpp)
 Created by `FUN_00465c19` at 1 → 3 (`FUN_00464a43(0x14)`, vtable 0x602520); it replaces the unit's motion — for the
@@ -108,8 +108,8 @@ player the flight model is frozen (`FUN_005a6510`) and the jet no longer answers
   z ≥ terrain where the terrain is above 0.1 m.
 - Attitude, fixed wing: roll = φ0 + s·180°/s·τ; the nose goes to −(90° − 5°) (FlightModel/pitchEpsilon) at 18°/s
   (s = −1 when −85° < θ0 < 90°; otherwise s > 0 snaps it to −95°). **Heading = 0** (the output is written only on
-  the helicopter path: an original bug, kept; Preferences > Physics "Falling jets keep their heading" (`bp_fix_fall_heading`) keeps it instead —
-  to decide with the user). Helicopters: pitch = θ0 + s·ω·τ, ω = (n·2π − s·θ0)/T, n ∈ {0,1,2}; roll levels
+  the helicopter path: an original bug, kept; Preferences > Physics "Falling jets keep their heading" (`bp_fix_fall_heading`) keeps it instead
+  (opt-in, deviations.md §2)). Helicopters: pitch = θ0 + s·ω·τ, ω = (n·2π − s·θ0)/T, n ∈ {0,1,2}; roll levels
   linearly; heading turns at s·U·π rad/s.
 - End (`FUN_00496c12`, **every 0.5 s**, kinds 2 and 3 only): past T → state 5; at **≤ 2 m above the ground** → the
   wreck is snapped to the terrain, its smoke trail stops, explosion, state 5; the first tick higher up starts the
@@ -341,7 +341,7 @@ original's "large" polygons of > 6 vertices are our largest 10 % by area; a flar
 drawn), box chunks only when there is no model, a
 0.1 s light for the flash. Our choices: puffs at a fixed 30 Hz instead of per frame (the original's density follows
 the frame rate), the column at the VISUAL EFFECTS level, no wind (the exe has none) (the mission weather is not decoded), no water
-(our terrain has no types).
+splash (the host passes water = false to `explosion_for`; the terrain types are not used there yet).
 
 ### 6.4 Smoke trails (Graphics SMOKE TRAILS, pref +0x48 read only by `FUN_004da090`)
 Owners (`4da090`, per rendered frame while the owner is drawn): **missiles and rockets** (entity types 0x230 and
@@ -434,5 +434,5 @@ obstacles. The weapons' own colliders are not ported (weapons use their fuse rul
   player's death (campaign), network play.
 - The flight model's reaction to the hit shake; the AI's systems damage.
 - Collision: full vs half extents (the renderer call behind vtable +0xb0 is not traced).
-- Original-vs-better decisions for the user: the heading-0 fall (§3.3), the Rookie / Normal enemy damage factor
-  (§4.1), puffs per frame (§6.3).
+- Original-vs-better decision for the user: puffs per frame (§6.3). (The heading-0 fall and the Rookie / Normal factor
+  are Physics opt-ins, deviations.md §2.)

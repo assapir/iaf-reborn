@@ -437,8 +437,10 @@ What still differs:
 * **"Better physics"** (Preferences, off by default = the original). The original stays the default; each item below
   is an opt-in fix of an original quirk (§15.10 "BP") with its own switch: `Aircraft::better: BetterPhysics` (one bool
   per item, id in brackets; `BetterPhysics::OPTIONS` lists the ids with English labels; `none()` = default, `all()`).
-  `set_better_physics(on)` switches all of them (the game's single setting so far); `set_better_option(id, on)` one
-  (Godot: `IafFlight.set_better_option(id, on)`, `IafFlight.better_options()`). The start options act when set at t = 0.
+  `set_better_physics(on)` switches all of them (the `--better` launch option); `set_better_option(id, on)` one
+  (Godot: `IafFlight.set_better_option(id, on)`, `IafFlight.better_options()`; the game sets each from Preferences >
+  Physics, `Settings.BETTER`, which also holds six gameplay fixes outside the FM, deviations.md §2). The start options
+  act when set at t = 0. AI jets get none of them.
   * **1 g hold** [`flight_path_hold`] (§4.2): the original `cos(pitch)/cos(roll)` makes the jet slowly dive/climb at high speed (α < 0 tilts
     the thrust). BP holds the flight-path angle γ and subtracts the thrust's vertical share:
     `g = cos γ / cos φ − T·sin α /(m·g)`.
@@ -479,8 +481,8 @@ What still differs:
 * **Not changed by better physics** (original quirks that stay in both modes):
   * §15.10 item 14, the slope globals: the original's lift-ramp / β-gain slopes below 220 / 400 m/s come from the **last
     aircraft type set up** (shared globals). Our `Aircraft` keeps its own parameters, so every jet uses its own slopes in
-    both modes; reproducing the leak would need a process-wide "last type" and only matters once several types fly the
-    FM (only the player's jet does).
+    both modes; reproducing the leak would need a process-wide "last type" and only matters when several types fly the
+    FM at once (AI jets do: docs/ai.md).
   * §15.10 item 15, the "Tornado" map-edge push-back (acceleration ramps that never decay): not ported (no map-edge
     terrain flags).
   * The 3 s zero-lift stall latch itself (§15.2.4) — the model's only stall — is kept; the F-16's deep stall starts
@@ -496,10 +498,10 @@ What still differs:
   * Near-base and runway-start-point tests (§15.6.4): the iaf.ibx airbases (`551280`, docs/ai.md §9, `IafFlight.start_rule`);
     mission 311 (1.7 km from Ramat David's lineup point) starts with the engine off.
   * `--at` / free flight: always airborne (debug starts).
-  * Terrain type flags (water, rough ground, runway, map edge) do not exist in our terrain data: water/rough are passed as
-    false (UNCERTAIN), so the water/rough-ground crashes, the `S+0x2c8` surface states, the OutRunway effect and the
-    "Tornado" push-back are not active. The slope for the landing check comes from `height_at` samples ±3 m.
-  * No force feedback, no touchdown/screech sounds, no crash explosion. On a crash the flight model freezes and the
+  * Terrain type flags: `terrain.gd` `surface_at` (terraintype.dat) passes water and rough ground
+    (`set_ground_surface`), so those crashes are active; the `S+0x2c8` surface states, the OutRunway effect and the
+    "Tornado" push-back are not. The slope for the landing check comes from `height_at` samples ±3 m.
+  * No force feedback. Touchdown / belly sounds: docs/sound.md. On a crash the jet explodes, the flight model freezes and the
     mission runtime runs the player's death (destroy event, role rules, flight ends after 5 s → debrief, §5 of
     docs/mission-runtime.md); without a mission the flight ends after 5 s.
   * The cockpit gear lamps keep the controller's 2.0 s leg timer (§12) while the FM gear ramp takes 3.1 s, as in the
@@ -913,6 +915,7 @@ exceeds the thrust, and az = 3.3 g. The jet decelerates hard and is thrown into 
 would give L = 0 (code 0, below 46 kt), but the port still gives 4.5 W.
 
 ### 14.8 Mismatches, most important first (our file `crates/iaf-flight/src/aircraft.rs`)
+(An audit of an earlier `aircraft.rs`: the line numbers are historical; the fixes are in the port, checklist §15.11.)
 1. **Envelope skipped on the ground** (l. 429, `&& !self.on_ground`). Original: Lift runs GLimit on the ground
    too (latched=0), so g ≤ lim(alt,V), and below Vmin(g=0) it gives g = 0 plus the stall flag. This is the
    direct cause of the report (4.3–4.5 W of lift and matching induced drag at 25–127 kt).
@@ -1711,19 +1714,19 @@ default, §10). Rust unit tests in `aircraft.rs` / `envelope.rs`; headless Godot
 | # | item | status |
 |---|---|---|
 | 1 | Envelope | done: `envelope.rs` is §15.9 exactly (parser, pads, ceilings, lines, per-level lists, bracket, plane fits, codes 0/2/3/4). Tests: Python reference `tools/envelope_ref.py` run at test time (ceilings, Vmin, GLimit grid on a synthetic text and on every install `md/*.dat`) and the F-16 values of §15.9. `stall_floor` stays Real-only |
-| 2 | Landing / crash check | done: `landing_check` at touchdown (saved Euler, Easy landing ×2 default on, gear-not-down ×0.2/0.2/0.25, slope > 10°, immunity = Invulnerable / No crashes); water and rough ground (> 25.7 m/s) destroy while rolling; the sim freezes (`crashed` + reason). Host: slope from `height_at`, water = false (no terrain types, UNCERTAIN), crash → mission runtime player death → flight ends after 5 s. BP: sink 4 m/s, tail strike 15°, current attitude |
+| 2 | Landing / crash check | done: `landing_check` at touchdown (saved Euler, Easy landing ×2 default on, gear-not-down ×0.2/0.2/0.25, slope > 10°, immunity = Invulnerable / No crashes); water and rough ground (> 25.7 m/s) destroy while rolling; the sim freezes (`crashed` + reason). Host: slope from `height_at`, water / rough ground from `terrain.gd surface_at`, crash → mission runtime player death → flight ends after 5 s. BP: sink 4 m/s, tail strike 15°, current attitude |
 | 3 | Spin mode | done: mode, three channels with their limits, two-stage entry (with the "No spins" quirk), update in both updates (5 Hz skips the forces), spin attitude, exit (velocity := rotated nose·V, `p_cmd = s1·0.1`), types 100/140 (F-16, Lavi) never spin — so the F-16 we fly cannot depart in the original. v1.1: recovery slope π/(2.2·MaxBeta), β updated at 5 Hz in the spin, axes re-based in the stay branch (test `spin_recovery_slope_v11`). BP: (a)–(f); types 100/140 get the FLCS deep stall instead (§10.1, tests `fbw_deep_stall_*`). damage 0x18 forces entry (test `hydraulics_and_flight_control_damage`) |
 | 4 | Nose-wheel yaw ramp | done: `S+0x2a8` at \|BetaRate\|, ±MaxBeta; 5 Hz uses the ramp, 1 Hz the raw target |
 | 5 | Force angles | done: 5 Hz αT and β(t) (the β channel; ground: nose-wheel ramp), 1 Hz α(t) and β_cmd. BP: α(t)/β(t) in both |
 | 6 | α 1 Hz update | done: `5aa3a0` at every aero update with αT from the new Lnoflap, gains only there, ×0.5 damping above π |
 | 7 | Gear / brake / flap ramps, `cfg` | done: gear 0..1.569, flaps 0..0.29275 (F-16 lever ×0.33), brakes 0..0.855, all 0.5/s; gear flag exactly at 0, brake flag (air: finished at max; ground: ≥ 1e-5). The model's gear animation already used 0.5/s (3.1 s); the cockpit lamps keep the controller's 2 s (§12). Hook (`cfg[8]`) not wired (no hook control) |
 | 8 | Throttle / AB | done: AB request after `(100 − RPM)/15` s (v1.1: any change cancels a pending request, a new AB request re-times it; test `new_throttle_request_cancels_the_pending_afterburner`), 0.015 dead band, first event starts the engine, RPM ramp 0..100 at 15 %/s; host keys step the FM throttle by 0.0925 only while ≤ 1.0 and reach the FM at once |
-| 9 | Start rules | done: `Aircraft::start` / `start_is_airborne` (z > 800 m, not near a base); air: throttle 0.74, RPM 70, gear up, lift ramps MaxWeight·g; ground: gear down, full flaps, brakes, throttle 0, RPM 0, engine only near the runway start point. Host: base / runway start point from the 3 known spawn points, start speed 180 m/s (both UNCERTAIN, §10). BP: lift ramps m·g, RPM at the start throttle's value (no AB light-up delay), α at its trim value |
+| 9 | Start rules | done: `Aircraft::start` / `start_is_airborne` (z > 800 m, not near a base); air: throttle 0.74, RPM 70, gear up, lift ramps MaxWeight·g; ground: gear down, full flaps, brakes, throttle 0, RPM 0, engine only near the runway start point. Host: near-base / runway start point from the iaf.ibx airbases (`IafFlight.start_rule`), airborne start 282.84 m/s along the heading (§10). BP: lift ramps m·g, RPM at the start throttle's value (no AB light-up delay), α at its trim value |
 | 10 | Stall latch | done: `≤ 3.0`, set only when unset, cleared only by an update with `now − t > 3`, set on the ground too. FF "StallShake" skipped (no force feedback) |
 | 11 | Preferences | done: No stalls (code 0/2/4 rules, no latch, no vibration), No spins (quirk; BP blocks), Easy landing (default on; landing ×2, ground lift gate), Invulnerable / No crashes (immunity, ground "easy" gate, no belly μ), Unlimited fuel. Pub fields on `Aircraft`, setters on `IafFlight`, set from `Settings` in `terrain_view.gd`. Multiplayer overrides n/a |
 | 12 | β channel | done (v1.1): `beta_update` = `5aa700` (second-order, RudderK/Beta/StartAccel/StopAccel with the exe defaults for v1.0 data, 400 m/s, K ×1.5 near centre, no clamp), `beta_step` = the ground 1 Hz step, 5 Hz also in the spin; the rudder `S+0x2ec` is taken only while airborne. Tests `rudder_keys_and_v10_defaults`, `beta_channel_second_order`, `beta_steps_on_the_ground_and_in_the_spin`; validation row "rudder step" |
 | 13 | Roll / attitude | done: (0) v1.1 roll about the saved body nose (test `roll_about_the_body_nose`); (a) no `kroll` clamp; (b) roll re-based on the attitude roll and `5aa330` at 1 Hz and 5 Hz; (c) no re-orthogonalisation, roll from the raw left wing in the heading/pitch frame, force matrix from the Euler angles. (d) skipped: channels use their own base time (§10). BP: `kroll ≥ 0` (no reversed roll below Veff ≈ 9.5 m/s) |
-| 14 | Lift-ramp rate factor | done: no `.max(0.01)` floor; BP: floor 1 %. The per-type slope globals: not reproduced in either mode (our slopes are per aircraft, i.e. the better behaviour; identical while one type flies, §10) |
+| 14 | Lift-ramp rate factor | done: no `.max(0.01)` floor; BP: floor 1 %. The per-type slope globals: not reproduced in either mode (our slopes are per aircraft, i.e. the better behaviour; it differs from the original when several types fly, §10) |
 | 15 | Terrain types, map edge | partly: water / rough-ground rules are in the FM; the host passes the terraintype.dat flags (`terrain.gd surface_at`, formats/ptt.md "Terrain types"). `S+0x2c8` states, OutRunway FF and the "Tornado" push-back skipped |
 | 16 | Minor | done: the 1 Hz V is not capped (5 Hz caps at 1200 m/s); airborne thrust unclamped; v1.1 rolling drag ×0.8 (test `ground_roll_drag_factor`; the AI wheel brake ×4, `AI_BRAKE`). Skipped: `S+0x420` effects flag, FF effects, SFX 0x28/0x29, EndWorld/Kramer wavs |
 | 17 | Landed flag | done (v1.1): `State::landings` / Godot `landings` +1 at each gear-down touchdown that passes the check, re-armed at lift-off (test `landed_flag_rearmed_at_lift_off`); the mission runtime's landed trigger is the host's |

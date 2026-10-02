@@ -537,7 +537,7 @@ B+0x7c); 39 any RWR entry's launch flag.
   fire per weapon (`454270(T, 1)`: gun burst / aim, missile q, bomb ripple), the target selectors, the decoy logic,
   B+0x7c writers, the RWR internals, the hit reactions `44d590` / `43ff50`.
 
-## 14. Ground defences, RWR, script ops 1 / 2 (traced, not built yet)
+## 14. Ground defences, RWR, script ops 1 / 2 (traced; the player's RWR and the decoys are built, docs/rwr.md, docs/weapons.md §10; the rest not built yet)
 
 - **Spawn** (`FUN_004b7634` → `FUN_004b7ad6`): an entity with record +0x3c ≠ 0 → vehicle `FUN_0059bb00` with a
   MWeaponHandler `FUN_004aa650` (entity[9], vtable 0x603200); non-aircraft units get only their first 2 valid weapon

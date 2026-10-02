@@ -23,7 +23,7 @@ Every per-type behaviour is keyed by the aircraft type code (bdb object field `0
 shares this code space:
 - the shipped bdbs use 100–220 for aircraft, 230/240 for the transports, and up to 450 for other units (radars,
   SAMs);
-- `cockpit.gd` `RWR_GLYPH` keys 290–390;
+- `cockpit.gd` `RWR_GLYPH` keys 290–390 (radars) and 100–200 (aircraft);
 - weapon types run 500–660 (`stores.gd`);
 - `game/weapons/rwr.gd` `IGNORED_TYPES` (220, 250, 270) is skipped by the RWR; `plane-describe` refuses these.
 

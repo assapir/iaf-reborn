@@ -124,7 +124,7 @@ Initial state (`FUN_005a5820`): airborne start → gear 1.569 (up), flaps 0, spe
 | 0x12 LdgDr | 0 (never rotates) | \|g−max\|≥1e-5 | the doors are a static mesh, hidden only when the gear is fully up |
 | 0x13 Hook | +hook (S+0x360) | \|θ\|≥1e-5 | |
 | 0x27 Parach | jitter (below) | S+0x2cc==2 | |
-| 0x14-0x26 (pilot, pilotB, canopy, canopyB, turret…, wheels) | 0 | **0** | the FM callback hides them, but for aircraft entities the renderer's owner is the crew object `entity+0x3c` (callback `0x53eb50`), which answers ids 0x14–0x17 and 0x1d–0x20 **before** the FM: pilot/canopy **are drawn** outside the cockpit view (see "Ejection" below). The F-16 canopy glass exists only in the `Canopy` frame (port: `crew_visible` switch, docs/aircraft.md §2.3) |
+| 0x14-0x26 (pilot, pilotB, canopy, canopyB, turret…, wheels) | 0 | **0** | the FM callback hides them, but for aircraft entities the renderer's owner is the crew object `entity+0x3c` (callback `0x53eb50`), which answers ids 0x14–0x17 and 0x1d–0x20 **before** the FM: pilot/canopy **are drawn** outside the cockpit view (see "Ejection" below). The F-16 canopy glass exists only in the `Canopy` frame (port: `crew_visible`, always true, docs/aircraft.md §2.3) |
 | 0x3a/0x3b EngineL/R, other ids | 0 | 0 | |
 
 Gear sequencing: legs and doors share one ramp, so there is no separate door ramp and no door motion. A full cycle

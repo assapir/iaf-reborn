@@ -509,7 +509,7 @@ fire on ejection, because the jet is not destroyed. UNCERTAIN: whether the still
 
 **Port:** `mission_runtime.gd` `player_ejected()` runs the role rules for the player at once and ends the flight
 into the debrief 5 s later (event 0x82); the jet's later crash does not count again. A short ejection (AGL < 50 m,
-or < 200 m with |roll| > 90°) ends the flight at once (the original opens its in-flight TSD, not built). Without a
+or < 200 m with |roll| > 90°) ends the flight at once (the original jumps to its FlyTSD; ours does not, docs/views.md §1). Without a
 mission the flight ends after 5 s. The radio plays `gejected.wav` at +4.5 s (the callsign part is not ported).
 
 ### 5.5 Landed handler (`FUN_00440f90`)

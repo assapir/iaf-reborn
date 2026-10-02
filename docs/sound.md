@@ -138,16 +138,16 @@ volume slider (default 0.8).
 | SFX_SPEED_BREAKES_LOOP 0x1c | `Cock_Arbrks_Loop.wav` | toggle: brake out and airborne → start (handle ctl+0x8cc); else stop. Per frame (@4495d2): brake out: airborne → start if none; on the ground → stop | yes | 1 | effects | yes |
 | SFX_WARNING / WRN_AOA 0x18011000 | `WrnSfxAOA.wav` | per frame (@449247): dragX (getter 0x12 = `S+0x2f0`) > 0.5 and airborne → start (ctl+0x8c4); else stop | yes | 1 | effects | yes (state `drag_x`) |
 | VOC_BBETTY / BTY_ALT 0x2c001000 | `Cock_Bty_Alt.wav` "Altitude" | `FUN_0044fe30`: `(z − terrain(x,y))·3.281 < 100` ft and the gear handle up and ctl+0x964 → MCockpitSoundEvent (vtbl 0x600ce8) at once and every 4.0 s (`DAT_0082f468`, ctl+0x904); cancelled when the condition ends | no | 1 | speech, ch 3 | yes |
-| VOC_BBETTY / BTY_PULL_UP 0x2c00a000 | `Cock_Bty_Alt.wav` (the row reuses "Altitude") | same function, above 100 ft or gear down: pitch-angle·57.3 < 0 and its magnitude > h_ft·0.01, HUD mode ctl+0x5c ∈ {4,5,6} (air-to-ground weapon modes) and ctl+0x964 → every 4 s (ctl+0x908); also sets the HUD pull-up cue (`FUN_00445980`) | no | 1 | speech | needs A-G HUD modes |
+| VOC_BBETTY / BTY_PULL_UP 0x2c00a000 | `Cock_Bty_Alt.wav` (the row reuses "Altitude") | same function, above 100 ft or gear down: pitch-angle·57.3 < 0 and its magnitude > h_ft·0.01, HUD mode ctl+0x5c ∈ {4,5,6} (air-to-ground weapon modes) and ctl+0x964 → every 4 s (ctl+0x908); also sets the HUD pull-up cue (`FUN_00445980`) | no | 1 | speech | not built (the A-G HUD modes exist; neither the Betty nor the HUD pull-up cue is ported) |
 | VOC_BBETTY / BTY_OVER_G 0x2c009000 | `Cock_Bty_Over.wav` | G > OverGThresh, 4 s repeat (@44951e; docs/flight-model.md §13.5) | no | 1 | speech | yes (g_effects.gd) |
 | SFX_G_EFFECT 0x13 | `Cock_G_02.wav` | G > 6, 17 s repeat (@449574) | no | 1 | effects | yes (g_effects.gd) |
 | VOC_BBETTY / BTY_FUEL 0x2c003000 | `Cock_Bty_Fuel.wav` | engine object `FUN_0045aa80` (every fuel update, fuel in lb = kg·2.2046): once when 500 < fuel < 1000 (flag +0x40), once when fuel < 500 (flag +0x44); not gated by ctl+0x964 | no | 1 | speech | yes |
 | SFX_TOUCHDOWN 0x28 | `TD.wav` 0.5 s | `FUN_005bb9f0` @5bbd1e: touchdown, landing check passed, gear ramp fully down (\|gear\| < 1e-5), player | no | (non-resident) | speech (quirk §2) | yes |
-| SFX_SCREECH 0x29 | `screech.wav` 8.9 s | same, gear **not** fully down (belly), on a runway (terrain flag & 0x30) | no | (non-resident) | speech | needs terrain types (never here) |
+| SFX_SCREECH 0x29 | `screech.wav` 8.9 s | same, gear **not** fully down (belly), on a runway (terrain flag & 0x30) | no | (non-resident) | speech | never plays: the host does not set `FlightSounds.on_runway` (the terrain's runway flag exists, `terrain.gd surface_at`) |
 | SFX_AIRCRAFT_EXPLODED 0x11 | `AerialExp.wav` 2.7 s | destroyed (unit state 5, `FUN_004a8420` → `FUN_004a86b0`): explosion effect `FUN_0059df20` of an aircraft (classes 1/2/3/0x1c → code 0x11), 3-D, min 500 / max 1000 m; then `FUN_004c4310` stops the object's sounds (engine) | no | 1 | effects | yes |
 | VOC_WINGMAN / WINGMAN_EJECT_EJECT 0x37007000 | `eject.wav` "Eject! Eject!" | unit state 1 → 3 (ejected), player (`FUN_004a8ae0` → `FUN_004a8100`) | no | (non-resident, ch 101) | speech, phrase channel | `FlightSounds.play_eject()` for the ejection code |
-| SFX_BUTTON 0x23 | `FX_BTT.wav` | HUD / master-mode changes (`FUN_00449810` callers @44ad9b, @44b9fb) and other controller events (@44d269) | no | 1 | effects | needs weapon / HUD modes |
-| SFX_FIRE_EXTINGUISHER 0x27 | `Cock_Extinguisher.wav` | engine object `FUN_0045ae10` (fire out, flag +0x3c) | no | — | speech | needs damage / fire |
+| SFX_BUTTON 0x23 | `FX_BTT.wav` | HUD / master-mode changes (`FUN_00449810` callers @44ad9b, @44b9fb) and other controller events (@44d269) | no | 1 | effects | yes (`player_weapons.gd`, master / HUD mode changes) |
+| SFX_FIRE_EXTINGUISHER 0x27 | `Cock_Extinguisher.wav` | engine object `FUN_0045ae10` (fire out, flag +0x3c) | no | — | speech | yes (`player_damage.gd` `extinguish`) |
 
 Per-type flag **ctl+0x964** ("has Betty"), set in `FUN_00447e70` by type code (switch @447e95):
 F-16 100, F-15 110, Lavi 140, MiG-29 180, F-4 200 → 1; F-4 120, Kfir 130, MiG-21 150, MiG-23 160,
@@ -157,23 +157,23 @@ not Over-G or Fuel. Port: `FlightSounds.BETTY_TYPES`.
 Mission instructor voices (`FUN_004bb10b` → `FUN_004c5470(wav, 0, 1)`): phrase channel, speech volume
 (port: terrain_view `_voice` on the IafSpeech bus).
 
-## 5. Sounds that need other systems
+## 5. Sounds tied to other systems
 
-| sound | code | trigger in the exe | needs |
+| sound | code | trigger in the exe | status |
 |---|---|---|---|
-| Betty "Warning" / master caution | VOC_BBETTY BTY_CAUTION 0x2c006000 + SFX_WARNING WRN_MASTER 0x18001000 (file missing) | end of the damage handler `FUN_0044d760` (@44de24) | damage |
-| Betty "Fire" | BTY_FIRE 0x2c004000 | damage handler, engine fire (@44db29, @44db9d; ctl+0x964) | damage |
-| Betty "Engine" | BTY_ENGINE 0x2c005000 | damage handler (@44ddf2) | damage |
-| damage thumps | SFX_AIRCRAFT_DAMAGED 0x10001000–0x10003000 (`Cock_Dmgd_01/03/05`) | hit handler `FUN_0044d590` (@44d6b2, @44d6d9) and damage handler `FUN_0044d760` (@44da25, @44dac0) | damage / weapons |
+| Betty "Warning" / master caution | VOC_BBETTY BTY_CAUTION 0x2c006000 + SFX_WARNING WRN_MASTER 0x18001000 (file missing) | end of the damage handler `FUN_0044d760` (@44de24) | ported (`player_damage.gd`) |
+| Betty "Fire" | BTY_FIRE 0x2c004000 | damage handler, engine fire (@44db29, @44db9d; ctl+0x964) | ported (`player_damage.gd`) |
+| Betty "Engine" | BTY_ENGINE 0x2c005000 | damage handler (@44ddf2) | ported (`player_damage.gd`) |
+| damage thumps | SFX_AIRCRAFT_DAMAGED 0x10001000–0x10003000 (`Cock_Dmgd_01/03/05`) | hit handler `FUN_0044d590` (@44d6b2, @44d6d9) and damage handler `FUN_0044d760` (@44da25, @44dac0) | ported (`player_damage.gd`) |
 | RWR new emitter | SFX_WARNING WRN_NEW_GUY 0x18002000 (`WrnSfxNewGuy`, channel 5) | `FUN_0044deb0`, `FUN_00450bc0` | ported (`rwr.gd`, docs/rwr.md §3); waits for something that locks the player |
 | missile launch | SFX_WARNING WRN_MISSILE_LAUNCH 0x18003000 (`WrnSfxMissile`, loop) + Betty BTY_MISS 0x2c002000 | `FUN_0044e160` (@44e197, @44e1b6), `FUN_00448120` (@4482f9) | ported (`rwr.gd` `launch`); waits for enemy missiles |
-| IR seeker / lock | SFX_IR_SEEK 0x25 / SFX_IR_LOCK 0x26 (`Wpn_IRCHIRP`, `WPN_IRCHIRPON`) | `FUN_00461b00`, `FUN_00461bf0` | weapons |
-| gun, weapon release / flight / hits | SFX_AIRCRAFT_FIRED_WEAPON 0xf, SFX_OBJECT_SPECIFIC 0xe, WEAPON_EXPLODED 10, … | `FUN_004579f0`, `FUN_0059d9c0`, `FUN_0059dad0`, `FUN_004d5d10` | weapons |
-| Betty "Pull up" | BTY_PULL_UP | §4 | A-G HUD modes |
-| button click | SFX_BUTTON 0x23 | §4 | HUD / weapon modes |
-| extinguisher | SFX_FIRE_EXTINGUISHER 0x27 | §4 | fire |
-| belly screech | SFX_SCREECH 0x29 | §4 | terrain types (runway flag) |
-| other aircraft / vehicles | SFX_OBJECT_SPECIFIC (`StartEngine`, `VprRcket` helicopters, …) | object creation `FUN_004d5d10` / `FUN_004c3f90` | AI / moving units |
+| IR seeker / lock | SFX_IR_SEEK 0x25 / SFX_IR_LOCK 0x26 (`Wpn_IRCHIRP`, `WPN_IRCHIRPON`) | `FUN_00461b00`, `FUN_00461bf0` | ported (`player_weapons.gd`) |
+| gun, weapon release / flight / hits | SFX_AIRCRAFT_FIRED_WEAPON 0xf, SFX_OBJECT_SPECIFIC 0xe, WEAPON_EXPLODED 10, … | `FUN_004579f0`, `FUN_0059d9c0`, `FUN_0059dad0`, `FUN_004d5d10` | ported (`player_weapons.gd`; the AI's weapons not built) |
+| Betty "Pull up" | BTY_PULL_UP | §4 | not built |
+| button click | SFX_BUTTON 0x23 | §4 | ported |
+| extinguisher | SFX_FIRE_EXTINGUISHER 0x27 | §4 | ported |
+| belly screech | SFX_SCREECH 0x29 | §4 | not wired (`on_runway` never set) |
+| other aircraft / vehicles | SFX_OBJECT_SPECIFIC (`StartEngine`, `VprRcket` helicopters, …) | object creation `FUN_004d5d10` / `FUN_004c3f90` | not built (AI jets fly silently) |
 
 Defined in the table but never played (no caller found): SFX_TAKE_OFF, SFX_WHEELS, SFX_LANDING_HOOK,
 SFX_DOOR_OPEN / CLOSE (canopy: no canopy sound), SFX_RADAR_LOCK, SFX_MISSILE_SEEKER_TONE, SFX_WIND,
@@ -183,7 +183,7 @@ The stall buffet and touchdown / off-runway rumble are DirectInput force-feedbac
 
 ## 6. Port notes and UNCERTAIN points
 
-* Host: `game/terrain/terrain_view.gd` adds `FlightSounds` (type code 100) and it polls the host every
+* Host: `game/terrain/terrain_view.gd` adds `FlightSounds` (the player's type, `player.type`) and it polls the host every
   frame (flight state, lever variables, view, terrain height). Lever sounds fire on the host's accepted
   lever changes (the host applies the original's lever rules).
 * 3-D sounds: `AudioStreamPlayer3D` at the jet, gain = min / clamp(distance to the camera, min, max)

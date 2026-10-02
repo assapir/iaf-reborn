@@ -4,7 +4,7 @@ The flight model has two data sets (docs/flight-model.md §11, `crates/iaf-fligh
 
 * **Original**: the numbers Jane's IAF shipped. The reference version is **v1.1**: its flight data files are used
   when present (§1), else v1.0's.
-* **Real**: one table row per aircraft type (the six flyable jets and every AI type, §9) with public real-world
+* **Real**: one table row per aircraft type (the seven flyable jets in six rows, the F-4E and the Kurnass 2000 sharing one, and every AI type, §9) with public real-world
   values. Anything a row leaves out keeps the original value.
 
 Validation, per type and data set (rows without a public figure print `-`; `IAF_JET=F-15` or `IAF_JET=SU22` runs one type):
@@ -40,8 +40,8 @@ effective"):
 | LAVI | 7.5 | 250 → 500 | 15000 → 10000 | PlaneDragIndex 450 → 550; thrust full AB: static SL 25000.4 → 24900.4, static 20 km 4000 → 3100, Mach 1.2 at 20 km 8000 → 4550 |
 | Autopilot | | | | NoChangeRollCone 4 → 1.75; `SmallConeRollK = 60` → `SlowConeRollK = 90` (renamed key) |
 
-`RudderK` ("rudder jumpiness") is a new key read by the v1.1 exe; our loader does not use it yet (its meaning is
-part of the v1.0 → v1.1 exe analysis). The other jets (MIG25/17/21, TU22, C130, SU24) are unchanged. The Lavi
+`RudderK` ("rudder jumpiness") is a new key read by the v1.1 exe: the gain of the v1.1 β channel (flight-model.md
+§16; exe default 5 for v1.0 data). The other jets (MIG25/17/21, TU22, C130, SU24) are unchanged. The Lavi
 change is large at altitude: v1.0 reached Mach 2.11 at 40k ft, v1.1 Mach 1.80.
 
 ## 2. What the Real set can change, and the model's limits

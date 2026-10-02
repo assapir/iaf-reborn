@@ -52,7 +52,7 @@ kt / ft / NM for every jet.
 
 * **Frame** (`FUN_00530b70`, views 1 / 0x12 / 0x16 = cockpit): HUD centre (cx, cy) = (320 − pan, MainOffsetY − CenterY +
   vpan); the field = cx − LeftBorder .. cx + RightBorder, cy − TopBorder .. cy + BottomBorder (R+0x2770 RECT); scale k = 1.
-  View 5 (HUD only) draws at k = 2 around (320, 240) (not ported, deviations.md). With `Dash` 1 and the panel panned
+  View 5 (HUD only) draws at k = 2 around (320, 240) (ours keeps the cockpit scale and place, deviations.md). With `Dash` 1 and the panel panned
   ≥ 250 px aside or ≥ 200 px down the HUD becomes the helmet display (below). Two passes: 4 (GDI lines and Arial h10 w5 text, R+0x57c, 1 px pen in the HUD colour, null
   brush) and 3 (the 5x5 sprite font, recoloured to the HUD colour, `FUN_00525920` right-aligned / `FUN_00525a30`
   left-aligned, glyph tops at y). GDI text align TA_BASELINE (0x18, 0x1a with TA_RIGHT).
@@ -305,21 +305,22 @@ flight-path angle pairs it with cos roll, S+0x40 = sideslip with sin roll), S+0x
   `speed_text`. Checked on all
   nine cockpits (tests/godot/test_player_aircraft.gd) and in posed captures (F-16, F-15, F-4 2000, Kfir).
 
-## What our tooling assumes F-16
+## What our tooling assumes
 * `crates/iaf-tools/src/bin/iaf-convert.rs` `convert_cockpit` is generic (dir name argument; whole ini -> `cockpit.json`; every
-  `*.bmp` in the dir + `mfds.bmp`, `rwrsymb.bmp`, `isr.bmp`). Gaps: it does not convert `fsmfd/fsmfd.bmp`, `fsmfd/data.ibx`,
-  `emf/map.emf`, and it ignores that `cockpit.ini` and unreferenced bitmaps exist (harmless extras). Empty ini values
+  `*.bmp` in the dir + `mfds.bmp`, `rwrsymb.bmp`, `isr.bmp`; `emf/map.emf` -> `map.json`). Gaps: it does not convert
+  `fsmfd/fsmfd.bmp`, `fsmfd/data.ibx`, and it ignores that `cockpit.ini` and unreferenced bitmaps exist (harmless extras). Empty ini values
   (`ClockCenterX =`, `MiddleOffsetX =`) are left out of the JSON, so the reader's default (the exe's) applies:
   `GetPrivateProfileInt` returns the default when the value reads as an empty string (Wine's `GetPrivateProfileIntW`;
   0 only for text that is not a number). The Mirage's empty `ClockCenterX` is therefore 960, under the opaque panel:
   its standby disc is hidden (read as 0 it showed at the panel's left edge).
-* `tools/setup.sh:29-30` converts only `f16` -> `assets/converted/cockpits/f16`.
-* `game/cockpit/cockpit.gd`: `cockpit_dir` default `.../cockpits/f16`; `_draw_mfd_screens` paints a fixed 160x230 black box at offset -6 for each
-  active MFD (real MFD is 132x132, at OffsetX/Y); the attitude indicators and the vario / AoA tapes follow the
-  original (see "Attitude indicators"); all round needles are drawn with the original's inputs (see "Round gauges"); lights (`LIGHTSON`) are not drawn (see "Panel lights" below).
+* `tools/setup.sh` converts every cockpit (step "cockpits": f16, f15, f4-2000, phantom, cfir, lavi, mirage, mig23, mig29).
+* `game/cockpit/cockpit.gd`: `cockpit_dir` defaults to `.../cockpits/f16` and is replaced by the player's cockpit;
+  MFDs placed from `[MFD]` (`_create_mfds`, mfd.md §7); the attitude indicators and the vario / AoA tapes follow the
+  original (see "Attitude indicators"); all round needles are drawn with the original's inputs (see "Round gauges");
+  lights drawn (`_draw_lights`, "Panel lights" below).
 * `game/terrain/terrain_view.gd` flies the player's type (`aircraft/player_aircraft.gd`, docs/aircraft.md §5) and
   loads its cockpit (`cockpit.load_cockpit`),
-  and `game/aircraft/aircraft_model.gd` has F-16 flaperon/stabilator mixing constants (not cockpit, listed for completeness).
+  and `game/aircraft/aircraft_model.gd` keeps the per-type mixing constants (not cockpit, listed for completeness).
 
 ## Panel lights (`[LIGHTSON]`, `[LIGHT000..009]`, `[SLIGHT000..003]`, `[TEXTMESSAGE]`, `[CHAFF]`/`[FLARE]`, `[PANELST]`)
 Generic code, the same for every cockpit. Reader `FUN_005228a0`; light objects are built by `FUN_005223b0` inside the ini copy at
