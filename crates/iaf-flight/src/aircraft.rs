@@ -1546,7 +1546,7 @@ impl Aircraft {
 
     /// Better physics: the fly-by-wire jets (F-16, Lavi) get the FLCS deep stall instead of the spin.
     fn fbw_departure(&self) -> bool {
-        self.better.fbw_departure && matches!(self.params.type_code, 100 | 140)
+        self.better.fbw_departure && matches!(self.params.type_code, 100 | 140 | 1000)
     }
 
     /// Mode hook (`5aab90`'s place in both updates): the deep stall (BP, FBW jets) or the spin.
@@ -1658,7 +1658,7 @@ impl Aircraft {
         let p = self.params.clone();
         let max_beta = p.max_beta.abs();
         if self.mode == Mode::Normal {
-            if !aero || p.type_code == 100 || p.type_code == 140 {
+            if !aero || matches!(p.type_code, 100 | 140 | 1000) {
                 return; // the F-16 and the Lavi never spin (better physics: the deep stall, `mode_hook`)
             }
             let qual = beta.abs() >= 0.8 * max_beta && drag_x > 0.57;

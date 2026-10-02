@@ -24,6 +24,7 @@ use std::path::Path;
 /// section is the one the original loads for the type (`data_set::section`) and the type code is the
 /// type's (the transports fly the F-16's section as type 230).
 pub fn load_with(install: &Path, name: &str, set: DataSet) -> Result<(Params, Envelope), String> {
+    let set = data_set::effective(set, name);
     load_section(install, name, set, data_set::section(set, name))
 }
 
@@ -35,6 +36,7 @@ pub fn load_in(
     set: DataSet,
     blocks: &mut data_set::Blocks,
 ) -> Result<(Params, Envelope), String> {
+    let set = data_set::effective(set, name);
     let section = blocks.section(set, name);
     load_section(install, name, set, section)
 }

@@ -96,6 +96,25 @@ const REFS: &[Ref] = &[
         ..JET
     },
     Ref {
+        aircraft: "F-35I",
+        name: "F-35I Adir (F-35A, F135-PW-100)",
+        empty: Some((29000.0, 29600.0, "29,300 lb (Wikipedia)")),
+        fuel: Some((18000.0, 18500.0, "18,250 lb (Lockheed Martin)")),
+        thrust_mil: Some((25000.0, 28500.0, "25,000 installed .. 28,000 uninstalled lbf")),
+        thrust_ab: Some((40000.0, 43500.0, "40,000 installed .. 43,000 uninstalled lbf")),
+        stall: Some((115.0, 130.0, "~120-125 kt (U, approach ~150 kt)")),
+        ceiling: Some((48500.0, 51500.0, "50,000 ft")),
+        roll_rate: None,
+        vmax_sl: Some((680.0, 720.0, "~700 kt (Mach 1.06)")),
+        vmax_hi: Some((890.0, 945.0, "~918 kt (Mach 1.6 at 40k ft)")),
+        roll90: None,
+        turn: None,
+        climb: None,
+        ff_mil: Some((18000.0, 26000.0, "~20,000-25,000 lb/h (U)")),
+        ff_ab: Some((75000.0, 95000.0, "~86,000 lb/h (U)")),
+        ..JET
+    },
+    Ref {
         aircraft: "F-15",
         name: "F-15C Baz (2x F100-PW-220)",
         empty: Some((28000.0, 29000.0, "28,476 lb (SAC)")),

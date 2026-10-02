@@ -64,6 +64,9 @@ pub const TYPES: &[Type] = &[
     ty("F-4", "f42000", "F-4", 120),
     ty("KFIR", "cfir", "KFIR", 130),
     ty("LAVI", "lavi", "LAVI", 140),
+    // Not in the original: no section of its own, so it always flies its Real row (on the F-16's block;
+    // docs/adding-a-plane.md §3, docs/f35i.md).
+    ty("F-35I", "f35i", "F-16", 1000),
     ty("MIRAGE", "mirage", "MIRAGE", 190),
     ty("MIG21", "mig21", "MIG21", 150),
     ty("MIG23", "mig23", "MIG23", 160),
@@ -78,6 +81,17 @@ pub const TYPES: &[Type] = &[
     ty("707", "boing", "F-16", 230),
     ty("IL-76", "il76", "F-16", 230),
 ];
+
+/// Types the original never had: no Original data, so they always fly their Real row.
+const NO_ORIGINAL: &[&str] = &["F-35I"];
+
+/// The data set a type flies with: `set`, except that a type without original data always takes Real.
+pub fn effective(set: DataSet, name: &str) -> DataSet {
+    match find_type(name) {
+        Some(t) if NO_ORIGINAL.contains(&t.name) => DataSet::Real,
+        _ => set,
+    }
+}
 
 /// The type for a type name, model folder or (first type of) a bd.ibx section, case-insensitive.
 pub fn find_type(name: &str) -> Option<&'static Type> {
@@ -343,6 +357,35 @@ const REAL: &[Real] = &[
         nose_wheel: Some(Nws { angle_deg: 30.0, wheelbase_ft: 15.96, grip_g: 0.3 }),
         // Service ceiling: Mirage IIICJ: 17,000 m (flugzeuginfo.net, Jewish Virtual Library).
         ceiling_ft: Some(55_770.0),
+        ..NONE
+    },
+    // F-35I Adir (F-35A airframe, F135-PW-100): Lockheed Martin F-35A brochure, Wikipedia (docs/f35i.md §2).
+    Real {
+        aircraft: "F-35I",
+        base: Some("F-16"),
+        empty_lb: 29_300.0,
+        fuel_lb: Some(18_250.0),
+        max_lb: Some(65_918.0),
+        // F135 uninstalled: 28,000 lbf military, 43,000 lbf afterburner.
+        thrust: Thrust::StaticAb(43_000.0),
+        mil_ratio: Some(28_000.0 / 43_000.0),
+        wing_ft2: Some(460.0),
+        // Fit: 708 kt (Mach 1.07) at SL, Mach 1.58 at 40k ft (published 700 kt / Mach 1.6).
+        alt_thrust: Some(1.4),
+        cd0: Some(0.05),
+        wave_drag: 0.06,
+        // TSFC ~2.0 in afterburner (~86,000 lb/h), ~0.8 dry (~22,000 lb/h) (U).
+        ff_ab_lb_s: Some(86_000.0 / 3600.0),
+        ff_mil_lb_h: Some(22_000.0),
+        // Approach ~150 kt at 13° AoA -> 1 g stall ~122 kt (U, derived).
+        stall_kt: Some(122.0),
+        // FLCS like the F-16's (no public F-35 roll rate).
+        roll_deg_s: Some(280.0),
+        roll_accel: Some((900.0, 900.0)),
+        g: Some((9.0, -3.0)),
+        ceiling_ft: Some(50_000.0),
+        nose_wheel: Some(Nws { angle_deg: 32.0, wheelbase_ft: 17.6, grip_g: 0.3 }),
+        afterburner: Some(true),
         ..NONE
     },
     // --- AI types (docs/real-aircraft.md §9). No public roll rate was found for any of them: the
@@ -723,6 +766,15 @@ mod tests {
         assert_eq!(apply(DataSet::Original, "F-4", &p, &e).0.chute_cd, 0.0);
         let (r, _) = apply(DataSet::Real, "F-4", &p, &e);
         assert!((r.chute_cd - 0.63 * 18.68 / r.wing_area).abs() < 0.01, "{} (wing {} m²)", r.chute_cd, r.wing_area);
+    }
+
+    #[test]
+    fn f35i_always_flies_its_real_row() {
+        assert_eq!(effective(DataSet::Original, "F-35I"), DataSet::Real);
+        assert_eq!(effective(DataSet::Original, "f35i"), DataSet::Real);
+        assert_eq!(effective(DataSet::Original, "F-16"), DataSet::Original);
+        assert_eq!(section(effective(DataSet::Original, "F-35I"), "F-35I"), "F-16");
+        assert_eq!(find_type("f35i").map(|t| t.type_code), Some(1000));
     }
 
     #[test]
