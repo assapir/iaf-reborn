@@ -547,9 +547,10 @@ func _spawn_mission_objects() -> void:
 			continue
 		if not scenes.has(path):
 			scenes[path] = Gltf.open(base.path_join("objects").path_join(path))
-			for lod in ["_m", "_l"]:
-				var lp := path.replace("_h.gltf", lod + ".gltf")
-				scenes[lp] = Gltf.open(base.path_join("objects").path_join(lp)) if lp != path else null
+			if path.ends_with("_h.gltf"):
+				for lod in ["_m", "_l"]:
+					var lp: String = path.trim_suffix("_h.gltf") + lod + ".gltf"
+					scenes[lp] = Gltf.open(base.path_join("objects").path_join(lp))
 		if scenes[path] == null:
 			continue
 		var node: Node3D = Gltf.instance(scenes[path])
@@ -570,8 +571,9 @@ func _spawn_mission_objects() -> void:
 			node.visible = false
 		ent["coll_radius"] = 0.25 * (box.size.x + box.size.y + box.size.z)
 		ent["max_extent"] = maxf(box.size.x, maxf(box.size.y, box.size.z))
-		_add_lods(node, scenes.get(path.replace("_h.gltf", "_m.gltf")), scenes.get(path.replace("_h.gltf", "_l.gltf")),
-				ent.max_extent)
+		if path.ends_with("_h.gltf"):
+			_add_lods(node, scenes.get(path.trim_suffix("_h.gltf") + "_m.gltf"), scenes.get(path.trim_suffix("_h.gltf") + "_l.gltf"),
+					ent.max_extent)
 		mission_entity_moved(ent)
 	runtime.start()
 
