@@ -1006,17 +1006,46 @@ engine camera = (eye, p, y, 0)             (FUN_004021d0, vtable +0x60)
 
 | control | page rect | global | default (ctor, then hardware detection) | applied |
 |---|---|---|---|---|
-| TERRAIN DETAIL slider | 19,62,419,77 | d68, step 0.25 (5 positions); v1.1 caps it at `(FUN_00402530() − 1)·0.25` (a Tgen capability, new global `0x779508`; UNCERTAIN meaning) | 0.75, then (det−1)·0.25 | renderer `FUN_004d8ce0`: level = 1+4v, min 1 |
-| OBJECT DETAIL slider | 19,148,419,163 | d6c, step 0.5 (3 positions) | 1.0, then (det−1)·0.5 | level = 1+2v |
-| VISUAL EFFECTS slider | 19,236,419,251 | d70, step 0.5 | 1.0, then (det−1)·0.5 | level = 1+2v |
-| SMOKE TRAILS | 7,306,112,326 | d58 | 1 | pref +0x48 (`4da090`) |
-| TEXTURED SKY | 112,306,217,326 | d5c | 1 / detected | renderer init +4 |
-| SHADOWS | 217,306,303,326 | d60 | 1 / detected | renderer init +0x34 |
-| EXTERNAL STORES | 303,306,423,326 | d64 | 1 / `FUN_00402330()` | `FUN_005894b0(d64)` if `DAT_00843bb0` |
+| TERRAIN DETAIL slider | 19,62,419,77 | d68, step 0.25 (5 positions); v1.1 caps it at `(FUN_00402530() − 1)·0.25` (a Tgen capability, new global `0x779508`; UNCERTAIN meaning) | 0.75, then (det−1)·0.25 | level = 1 − ftol(−4v), min 1 (1..5): the LOD tables (`408ea0`, formats/ptt.md), the view-distance base 26000 / 28000 / 29000 / 30000 / 31000 and the terrain render resolution 0.7 / 0.8 / 0.9 / 1 / 1 × the viewport (`405c20` → `405990`) |
+| OBJECT DETAIL slider | 19,148,419,163 | d6c, step 0.5 (3 positions) | 1.0, then (det−1)·0.5 | level = 1 − ftol(−2v) (1..3) → 0x7d1924: the `_h` / `_m` / `_l` model switch and two render states (below) |
+| VISUAL EFFECTS slider | 19,236,419,251 | d70, step 0.5 | 1.0, then (det−1)·0.5 | level 1..3 → 0x7d1928: only the smoke column (explosion flag 0x800): 33 / (4 − L) puffs, each visible until 36 / (4 − L) s (docs/damage.md §6.1) |
+| SMOKE TRAILS | 7,306,112,326 | d58 | 1 | pref +0x48, read only by `4da090` @4da1bb: the missile / rocket trails with the motor glow and the wingtip vortex trails (docs/damage.md §6.4). Damage smoke, decoy and explosion smoke are not gated |
+| TEXTURED SKY | 112,306,217,326 | d5c | 1 / detected | renderer +4 → 0x7d1944: the cloud layer at 7000 m and its whiteout (below); off: neither |
+| SHADOWS | 217,306,303,326 | d60 | 1 / detected | renderer +0x34 → 0x7d1920 = pref and day (0.2 ≤ (t − 05:00) / 15 h ≤ 0.8, i.e. 08:00–17:00, `407920`): per object with a shadow mesh (`.XFR` models, built from `_m`, else `_l`, by `41f630`), projected on the terrain along the sun (`412970`) |
+| EXTERNAL STORES | 303,306,423,326 | d64 | 1 / `FUN_00402330()` | `FUN_005894b0(d64)`: DAT_0066dd54 gates the store drawing `53e430` (and the rocket box record +0x64, UNCERTAIN); the pylons are part of the jet models and stay (docs/weapons.md §2.2) |
 
 * Slider values are quantised to `(float)ftol(x)·step` (UNCERTAIN: the rounding inside the ftol
   argument).
-* The renderer levels are applied at 3D init (640×480, `4d8ce0`).
+* The renderer levels are applied at 3D init (640×480, `4d8ce0` → `401f20` → `405de0`, the TGPreference block
+  0x7793c0; `402af0` / `402a30` build the objects-layer settings 0x775a18, `4037a0` → `40bd90` clamp and copy them
+  to 0x7d18f8).
+* **OBJECT DETAIL.** `40bd20` sets two pixel thresholds A / B (0x6284ec / 0x6284f0): level 1: 65 / 110, 2: 45 / 70,
+  3: 25 / 40 (0: 150 / 15000, unreachable). Per drawn root object (`412c60` @412de1–4130fc) m = max over the axes of
+  ftol(F · extent · 0.7 / depth), F = 0x6284d8 = viewport width / tan(fov / 2); m < A → the `_l` model (+0x2b4), m < B
+  → `_m` (+0x2b0), else `_h`; `41c120` loads `_m` / `_l` next to `_h`, a missing `_l` takes `_m`, a missing `_m` takes
+  `_h`. `40bd90`: level ≥ 2 linear texture filtering (TEXTUREMAG / MIN), level 1 nearest; level 3 SPECULARENABLE.
+  It changes no draw distance and hides nothing. **Port** (`terrain_view.gd _add_lods`, `util/gltf.gd`): the mission
+  units' `_m` / `_l` copies (the converter now converts them) on Godot visibility ranges at the same distances
+  (F = 640 / tan 25°, the camera distance instead of the view depth, the extent of the scaled model as the
+  collision radius uses); point-sampled textures at level 1 and no specular below 3 on every model; the copies are
+  dropped when a unit is fatally hit or destroyed. AI jets and the player's jet keep `_h` (their `_m` models are
+  converted only for some types; UNCERTAIN whether the original switches them).
+* **TEXTURED SKY.** The cloud layer (`41d3d0`, needs the 3D card): height H = 7000 (775a68 → 7d1948), texture
+  `Cloud256_<rand()%6>.pal` picked per mission (`403c30` → `41d290`; ARGB4444, the alpha used), 15 rings × 64 segments
+  around the camera. From below: a dome on the circular arc from the zenith at H to height 0 at R0 = 0.73·far (arc
+  radius √(far² + (c/2)²), centre `far` below the chord's midpoint, c = √(H² + R0²); 15 equal angle steps; cut at
+  +0x1098, from `407c70`, else 0); from above: the same radii flat at H. Ring j's colour = the cloud colour (white,
+  7d194c) moved j/16 toward the fog colour. UVs u = (0.25·j·r·cos φ + Su − Cx) / (1.2·far) (v likewise), the scroll
+  S += −15·dt·(sin, cos)(dir)·speed with direction 90° and speed 6 (775a74 / 78: a fixed "wind" for the clouds only;
+  the NO WIND preference does not read it). Whiteout (`41da60`) within 1000 m of H: a full-screen quad in the cloud
+  colour, alpha = clamp(j + 255 − ftol(0.255·|Δalt|), 0, 255), j a random walk of rand % 9 − 4 per frame, reset
+  outside the band. Off: no layer, no whiteout; the background is the clear colour 90, 90, 255 replaced by the
+  time-of-day table (`407ba0` / `4229c0`). **Port** `terrain/cloud_layer.gd` (far = 30000, the static 0x6284cc;
+  the cut 0; our gradient sky stays behind it in both settings).
+* **Port of the rest:** TERRAIN DETAIL drives our mesh LOD by the tables' ratios (formats/ptt.md); the reduced
+  terrain render resolution of levels 1–3 and the 21–31 km view distance are not ported (performance measures of
+  1998; deviations.md). SHADOWS: Godot sun shadows on / off, not limited to the day (no time of day yet).
+  Test: `tests/godot/test_graphics_prefs.gd`.
 
 ### 12.5 Sound page (paint `513540`, click `513d40`, drag `5144b0`, DEFAULT `513c70`)
 
@@ -1116,9 +1145,10 @@ So the Hebrew pages use the same rects as §12.3–§12.6.
   for engine / SFX / speech. MASTER VOLUME sets the Godot master bus and is not stored, like the
   original's mixer write.
 * Stored in `user://settings.cfg` (sections sound / graphics / devices / gameplay) with the original
-  defaults. The hardware detection that overrides the graphics defaults is not ported.
-* In-game effect so far: only No blackouts. The other flags are stored for when their readers are
-  built.
+  defaults. The hardware detection that overrides the graphics defaults is not ported. The Graphics page acts as
+  §12.4 says (all seven controls wired).
+* Gameplay flags act where the table above says; NO WIND and NO MALFUNCTIONS are read by nothing in the original
+  either (they are stored only).
 * Graphics sliders snap to `round(v/step)·step` (UNCERTAIN, see §12.4).
 * **Controls page:** built (§12.7): the original key list, scrollbar, key capture with msg 36 and
   DEFAULT; rebinds are stored in `[keys]` and used in flight (docs/controls.md).

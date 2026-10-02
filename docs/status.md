@@ -80,7 +80,7 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 ## Open gaps (by area)
 - **Terrain**: map-edge push-back / EndWorld and craters (terraintype bits known, systems missing); no elevation
   west of Suez in the original data (flat −557 m, kept).
-- **Flight**: the seven Jet list jets fly (the two MiGs are AI-only, as in the original); systems damage doesn't affect flying yet; no hook, map-edge push-back.
+- **Flight**: the seven Jet list jets fly (the two MiGs are AI-only, as in the original); systems damage acts on the flight model (AI jets take none); no hook, map-edge push-back.
 - **Combat**: player gun, IR missiles, radar lock, chaff / flares, bombs (CCIP / delayed, ripple, cluster), rockets
   (no radar missiles, TV / laser guidance, HARM); no AI combat (AI jets fly, don't fight), no AAA / SAMs (so no combat mission can be won yet).
 - **Cockpit / MFDs**: ECM, the full-screen weapon MFD (Z), the NAV ETA, HARM "In Range" (DLZ), the TV weapons' TRA / TER; the RWR's feeds (AI sensors, SAMs, enemy missiles);
@@ -89,7 +89,8 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
   aircraft / Visit (docs/views.md).
 - **Sounds**: weapon / AI sounds wait for those systems (the RWR's wait for something to lock the player).
 - **Front end**: Reference, QUIT confirmation, TSD 3D-model / target
-  windows; most stored prefs have no effect yet.
+  windows; Graphics prefs wired (shadows not day-limited, no terrain resolution drop); No wind / No malfunctions
+  have no reader in the original either.
 - **Eject details**: callsign in the radio call, parachute landing.
 
 ## Decisions (agreed with the user)

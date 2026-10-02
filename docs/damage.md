@@ -343,6 +343,40 @@ drawn), box chunks only when there is no model, a
 the frame rate), the column at the VISUAL EFFECTS level, no wind (the exe has none) (the mission weather is not decoded), no water
 (our terrain has no types).
 
+### 6.4 Smoke trails (Graphics SMOKE TRAILS, pref +0x48 read only by `FUN_004da090`)
+Owners (`4da090`, per rendered frame while the owner is drawn): **missiles and rockets** (entity types 0x230 and
+0x23a..0x27b, i.e. 560 and 570..635): a type-5 trail (sprite slot 5: trail.tga, lifetime 3.5 s, size [Animations]
+trail = 0.6, create args (1, 0, 0.15)) whose head is at model (0, −(MissileFlareDistance [SFX] 1.0 + 0.5 · model
+length), 0), i.e. 1 m behind the tail; **wingtip vortices**: aircraft whose model has EndWingL / R (obj+0x50) while
+the flight model's S+0x420 (75 < V < 150 m/s and stick pull > 0.7, flight-model.md §15.1 step 16) is set: two type-6
+trails (slot 6: trail.tga, 1.0 s, [Animations] wingtip = 0.1, args (0, 0, 0.01)) at obj+0x38 / +0x44.
+- Trail record (Trails.cpp, create `4156a0`): a ring of 256 points (position, age); addPoint `415890` once per frame,
+  no spacing test. Ageing `415970` each frame: ages += dt, points past the lifetime drop from the tail, the glow goes
+  out on a frame without a new point, a trail with no points is freed after 3 s idle. An owner not drawn for more
+  than 3 frames drops its trail (it ages out) and starts a new one; a full missile trail starts a new one, a full
+  wingtip trail just stops adding (quirk). At most 99 trails (create refuses at count + 1 ≥ 100, the owner retries).
+- Drawing `415b30`: each segment is **two crossed quads** (one horizontal, offset ± w perpendicular to the averaged
+  horizontal heading of the neighbouring segments; one vertical, ± w along world up), not camera-facing. w is a
+  half-width in world units: w = size at the newest point; the newest ≈ 15 % of the points widen by growth · size ·
+  4.5 each; the older 85 % (k = ftol(0.85 · n)) taper linearly to 0 at the oldest. Texture trail.tga (64 × 128, four
+  frames of 64 × 32, white with a soft alpha profile across the width, frame 3 the faintest): frame =
+  ftol(4 · min(age / lifetime, 0.9999)) of the segment's newer point; u 0 → 1 along each segment, v across; white
+  vertex colour, no z-write. trail.bmp is not used.
+- Motor glow `415a60` (missiles only, while the trail still grows): missFLR centred at the newest point, size
+  (0.85 + (rand % 31) · 0.01) · 1.35 · trail size → 8.8–11.9 m wide, flickering.
+- Not gated by the preference: the damage smoke (§6.3), decoy and explosion smoke.
+
+**Port** `game/mission/trails.gd` (an ImmediateMesh of the crossed quads, the glow a billboard MultiMesh), owners in
+`player_weapons.gd` (missiles, rockets), `terrain_view.gd` (the player's wingtips), `ai_flights.gd` (AI jets); the
+flight model exports `vortex`. Not drawn with the preference off. Blend mode: alpha (UNCERTAIN, the original's is
+global).
+
+### 6.5 Tgen `.pal` textures
+`FUN_00426850` / `FUN_004268d0`: bytes 0..1 = 08 01 (checked), 2..3 not read (smoke3 0x17 / airexp1 0x0f = their frame
+counts), u16 width at +4, u16 height at +6, then width × height 16-bit pixels copied into an alpha surface:
+ARGB4444 (sprite borders 0x0fff = transparent; UNCERTAIN that the surface is exactly 4444). Converter
+`iaf_tools::gltf::load_pal` (the cloud textures).
+
 ## 7. Collisions between units (`FUN_0043c140` → `FUN_0043b340`)
 **Registration.** The collision manager (`DAT_0069934c`) keeps two hash tables of colliders (entity+0x18,
 `FUN_0043bd90`): **active** (+4) and **passive** (+0x20). `FUN_0043b1c0(active)` fills the collider and inserts it;

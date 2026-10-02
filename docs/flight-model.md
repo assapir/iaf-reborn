@@ -1031,8 +1031,8 @@ Channel layouts needed below (offsets inside the channel):
     `Veff ≈ 9.47 m/s`).
 16. Re-base ramps `S+0x300, 0x320, 0x340, 0x360, 0x380, 0x400` (and `0x3c0/0x3a0` unless the type is 0x82 or 0xbe);
     fuel ramp `S+0x430` rate `ff` (target kept, normally 0); `S+0x2f0 = dragX`;
-    `S+0x420 = (75 < V < 150 && sY > 0.7)` (UNCERTAIN: a visual/effects flag; read only by getter `0x14` and the network
-    packer); RPM ramp `S+0x1b0 → S+0x1c8·rpm` (`S+0x1c8` = 100, rate kept); sounds/AB effects; `veh+0xc3c = 1`; swap.
+    `S+0x420 = (75 < V < 150 && sY > 0.7)` (the wingtip vortex trails, read through getter `0x14` by `4da090`,
+    docs/damage.md §6.4; also the network packer; ported as `vortex`); RPM ramp `S+0x1b0 → S+0x1c8·rpm` (`S+0x1c8` = 100, rate kept); sounds/AB effects; `veh+0xc3c = 1`; swap.
 
 **5 Hz — `5a4230`** (disassembly only):
 1. `now = [0x6992d0]+0x38`; `alt = Z(τ)`; `V` = FM slot `0x3c` (`5a68a0`, capped 1200 m/s); `β_s = fmod(β(τ))` (`S+0x260`).
