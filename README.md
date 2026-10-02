@@ -171,8 +171,8 @@ Details: [docs/controls.md](docs/controls.md) §5. A separate throttle / pedals 
 
 `cargo test -q --workspace` runs the Rust tests; tests that need game data or `python3` (the envelope
 reference, `tools/envelope_ref.py`) are skipped with a message when those are missing.
-`tools/test.sh` runs everything: the Rust tests and the headless Godot tests in `tests/godot`
-(mission start, taxi, gear rules, menu flow → TSD → fly). It needs the converted assets, so it runs
+`tools/test.sh` runs everything: the Rust tests and the headless Godot tests `tests/godot/test_*.gd`
+(flight, AI, weapons, radar / RWR, cockpit / HUD / MFDs, views, menus, missions; any script error fails). It needs the converted assets, so it runs
 locally rather than on a hosted CI. Run scripted tests and captures with `IAF_DEFAULT_SETTINGS=1` so they use default settings and never read or write your saved preferences (`user://settings.cfg`).
 
 ## License and trademarks
