@@ -90,6 +90,15 @@ func run() -> void:
 	check(tv.clouds.whiteout_alpha > 0.7, "whiteout 200 m below the layer (%.2f)" % tv.clouds.whiteout_alpha)
 	tv.clouds.update_view(Vector3(0, 8500, 0), 0.016)
 	check(tv.clouds.whiteout_alpha == 0.0 and tv.clouds._flat.visible, "above the layer: flat clouds, no whiteout beyond 1000 m")
+	tv.clouds.update_view(Vector3(0, 6000, 0), 0.016)
+	check(tv.clouds.whiteout_alpha == 0.0, "no whiteout 1000 m or more below the layer (2000 m explosion shots)")
+	check(tv.clouds._mat.shader.code.contains("POSITION.z = 0.0"), "cloud dome at the far plane: behind every terrain point (the cut)")
+	Settings().textured_sky = false
+	tv.apply_render_options()
+	check(tv.clouds == null, "textured sky off in flight: the layer goes")
+	Settings().textured_sky = true
+	tv.apply_render_options()
+	check(tv.clouds != null, "textured sky on in flight: the layer comes back")
 	Settings().smoke_trails = false
 	Settings().textured_sky = false
 	tv = await start_mission(231)

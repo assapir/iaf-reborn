@@ -25,6 +25,16 @@ render_mode unshaded, cull_disabled, depth_draw_never, fog_disabled, blend_mix;
 uniform sampler2D tex : source_color, filter_linear_mipmap, repeat_enable;
 uniform vec2 offset;  // S − C
 uniform float scale;  // 1 / (1.2 · far)
+uniform bool at_far;  // the dome (from below)
+void vertex() {
+	// The dome at the far plane (reverse Z: depth 0): behind every terrain point, as the original cuts it at
+	// the terrain's far horizon (FUN_0041dc30 → +0x1098, v1.1) and fills the gap up to it at the dome's depth.
+	// The flat layer seen from above stays in front of the ground.
+	POSITION = PROJECTION_MATRIX * (MODELVIEW_MATRIX * vec4(VERTEX, 1.0));
+	if (at_far) {
+		POSITION.z = 0.0;
+	}
+}
 void fragment() {
 	vec2 uv = (UV2.x * UV + offset) * scale;
 	vec4 t = texture(tex, uv);
@@ -128,6 +138,7 @@ func update_view(cam: Vector3, dt: float) -> void:
 	var below := cam.y < H
 	_dome.visible = below
 	_flat.visible = not below
+	_mat.set_shader_parameter("at_far", below)
 	_scroll += -15.0 * dt * Vector2(sin(WIND_DIR), cos(WIND_DIR)) * WIND_SPEED
 	_mat.set_shader_parameter("offset", _scroll - Vector2(cam.x, -cam.z))
 	var d := absf(H - cam.y)
@@ -138,3 +149,4 @@ func update_view(cam: Vector3, dt: float) -> void:
 		_walk = 0
 		whiteout_alpha = 0.0
 	_white.color = Color(1, 1, 1, whiteout_alpha)
+	_white.visible = whiteout_alpha > 0.0

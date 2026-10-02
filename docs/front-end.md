@@ -1034,14 +1034,20 @@ engine camera = (eye, p, y, 0)             (FUN_004021d0, vtable +0x60)
   `Cloud256_<rand()%6>.pal` picked per mission (`403c30` → `41d290`; ARGB4444, the alpha used), 15 rings × 64 segments
   around the camera. From below: a dome on the circular arc from the zenith at H to height 0 at R0 = 0.73·far (arc
   radius √(far² + (c/2)²), centre `far` below the chord's midpoint, c = √(H² + R0²); 15 equal angle steps; cut at
-  +0x1098, from `407c70`, else 0); from above: the same radii flat at H. Ring j's colour = the cloud colour (white,
+  +0x1098: `407c70` passes the two ends of Tgen's terrain far-horizon outline (`4210c0`) to `41dc30` (v1.0 `41dc00`), which sets
+  the cut to the dome height where the rays to them meet the dome (else 0) and returns the dome's depth there for
+  the haze fill between the terrain's far edge and the dome; so the dome never covers drawn terrain); from above: the same radii flat at H. Ring j's colour = the cloud colour (white,
   7d194c) moved j/16 toward the fog colour. UVs u = (0.25·j·r·cos φ + Su − Cx) / (1.2·far) (v likewise), the scroll
   S += −15·dt·(sin, cos)(dir)·speed with direction 90° and speed 6 (775a74 / 78: a fixed "wind" for the clouds only;
   the NO WIND preference does not read it). Whiteout (`41da60`) within 1000 m of H: a full-screen quad in the cloud
   colour, alpha = clamp(j + 255 − ftol(0.255·|Δalt|), 0, 255), j a random walk of rand % 9 − 4 per frame, reset
   outside the band. Off: no layer, no whiteout; the background is the clear colour 90, 90, 255 replaced by the
-  time-of-day table (`407ba0` / `4229c0`). **Port** `terrain/cloud_layer.gd` (far = 30000, the static 0x6284cc;
-  the cut 0; our gradient sky stays behind it in both settings).
+  time-of-day table (`407ba0` / `4229c0`). The whiteout applies only within 1000 m of the layer (`fcomp 5fb53c` = 1000, `fmul 5fb540` = 0.255,
+  checked in the disassembly): none at 6000 m or below. **Port** `terrain/cloud_layer.gd` (far = 30000, the static
+  0x6284cc; our gradient sky stays behind it in both settings). The cut: the dome is drawn at the far plane
+  (depth 0), behind every terrain point, so our terrain (drawn to 200 km) hides it below its horizon as the cut
+  does; before this the lower rings were drawn over the distant terrain, a white band over the whole horizon at
+  2000 m. Cost (Iris Xe, 1920×1080): 0.15 ms GPU, see docs/rendering.md.
 * **Port of the rest:** TERRAIN DETAIL drives our mesh LOD by the tables' ratios (formats/ptt.md); the reduced
   terrain render resolution of levels 1–3 and the 21–31 km view distance are not ported (performance measures of
   1998; deviations.md). SHADOWS: Godot sun shadows on / off, not limited to the day (no time of day yet).

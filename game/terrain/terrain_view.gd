@@ -242,11 +242,7 @@ func _ready() -> void:
 	# OBJECT DETAIL (docs/front-end.md §12.4): the level the model loader and the LOD switch use.
 	Gltf.object_level = Gltf.detail_level(float(Settings.object_detail))
 	# Explosions, debris and smoke (docs/damage.md §6) and the player's systems damage (§5).
-	# TEXTURED SKY (renderer +4 → 0x7d1944): the cloud layer at 7000 m and its whiteout.
-	if Settings.textured_sky:
-		clouds = preload("res://terrain/cloud_layer.gd").new()
-		clouds.fog_color = ($WorldEnvironment as WorldEnvironment).environment.fog_light_color
-		add_child(clouds)
+	apply_render_options()
 	# SMOKE TRAILS (pref +0x48, FUN_004da090): missile / rocket trails with the motor glow, wingtip vortices.
 	if Settings.smoke_trails:
 		trails = preload("res://mission/trails.gd").new()
@@ -288,6 +284,18 @@ func _ready() -> void:
 
 var _start_external := false
 var _orbit_arg := -1
+
+
+## The render preferences that can change during a flight: Graphics TEXTURED SKY (renderer +4 → 0x7d1944:
+## the cloud layer at 7000 m and its whiteout) and our render options (docs/rendering.md).
+func apply_render_options() -> void:
+	if Settings.textured_sky and clouds == null:
+		clouds = preload("res://terrain/cloud_layer.gd").new()
+		clouds.fog_color = ($WorldEnvironment as WorldEnvironment).environment.fog_light_color
+		add_child(clouds)
+	elif not Settings.textured_sky and clouds != null:
+		clouds.free()
+		clouds = null
 
 
 ## The cameras start in the cockpit (`--external`: chase; `--orbit yaw pitch dist`: the chase camera's orbit
