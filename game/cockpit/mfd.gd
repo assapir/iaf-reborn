@@ -156,6 +156,9 @@ func _draw() -> void:
 		return
 	var s := _s()
 	draw_set_transform(Vector2.ONE * _bezel() * s, 0.0, Vector2(s, s))
+	# A portal's hovered label: the touch box (ours; the originals' buttons are in their panel art).
+	if _bezel() == 0.0 and hover_osb > 0:
+		draw_rect(touch_rect(hover_osb), DIM_GREEN, false, 1.0)
 	match page:
 		RADAR:
 			_draw_radar()
@@ -850,6 +853,21 @@ static func osb_at(p: Vector2) -> int:
 ## A portal of a panoramic display is a touchscreen (ours, the F-35I's): the option labels drawn along the page's
 ## edges are pressed themselves. The OSB whose label is under a page point (the 14 px band along each edge, OSB n
 ## centred 20 n + 4 px along it, as osb_at's buttons); -1 = none.
+## The touch zone of OSB `osb` on a portal's page (MFD px), the box drawn around a hovered label.
+static func touch_rect(osb: int) -> Rect2:
+	var n := (osb - 1) % 5 + 1
+	var c := 20.0 * n + 4.0
+	match (osb - 1) / 5:
+		0:
+			return Rect2(c - 10, 0, 20, 14)
+		1:
+			return Rect2(c - 10, SIZE - 14, 20, 14)
+		2:
+			return Rect2(0, c - 9, 16, 18)
+		_:
+			return Rect2(SIZE - 16, c - 9, 16, 18)
+
+
 static func touch_osb(p: Vector2) -> int:
 	if not Rect2(0, 0, SIZE, SIZE).has_point(p):
 		return -1
@@ -876,6 +894,8 @@ func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		var q: Vector2 = event.position / _s() - Vector2.ONE * _bezel()
 		mouse = q if Rect2(10, 10, 112, 112).has_point(q) else null
+		if _bezel() == 0.0:
+			hover_osb = touch_osb(q)
 		return
 	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
 		return
@@ -903,6 +923,7 @@ func _gui_input(event: InputEvent) -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_MOUSE_EXIT:
 		mouse = null
+		hover_osb = -1
 
 
 ## LRS (FUN_00534840): a click on a blip sends event 0x2a (lock that contact). Ours: within 4 px.

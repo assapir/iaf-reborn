@@ -243,5 +243,16 @@
   "type": 1000,
   "types": [
     1000
-  ]
+  ],
+  "borrow": {
+    "pilot": {
+      "plane": "f16",
+      "part": "pilot",
+      "offset": [
+        0,
+        -0.15,
+        -0.35
+      ]
+    }
+  }
 }

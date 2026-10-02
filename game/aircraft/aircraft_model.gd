@@ -96,6 +96,43 @@ static func index() -> Dictionary:
 	return idx
 
 
+## An extra plane's descriptor may borrow a part's look from a converted original (`"borrow": {"pilot": {"plane":
+## "f16", "part": "pilot", "offset": [x, y, z]}}`, docs/adding-a-plane.md §2): that part's meshes replace ours, kept
+## where they sit relative to the source's eye, from ours (plus `offset`, metres). Original art, loaded from the user's
+## install, never committed.
+func _borrow_parts() -> void:
+	var b: Dictionary = desc.get("borrow", {})
+	for part in b:
+		var src: Dictionary = b[part]
+		var mine := root_frame.get_node_or_null(NodePath(String(part))) as Node3D
+		var sd := load_descriptor(String(src.plane))
+		if mine == null or sd.is_empty():
+			continue
+		var model = preload("res://util/gltf.gd").open(_planes_dir(String(src.plane)).path_join(String(src.plane)).path_join(sd.model))
+		if model == null:
+			continue
+		var other: Node3D = preload("res://util/gltf.gd").instance(model)
+		var theirs := other.find_child(String(src.get("part", part)), true, false) as Node3D
+		if theirs == null:
+			other.free()
+			continue
+		var pos: Vector3 = theirs.transform.origin
+		var e0 = sd.get("eye")
+		var e1 = desc.get("eye")
+		if e0 != null and e1 != null:
+			pos += Vector3(e1[0], e1[1], e1[2]) - Vector3(e0[0], e0[1], e0[2])
+		var off: Array = src.get("offset", [0, 0, 0])
+		pos += Vector3(off[0], off[1], off[2])
+		if mine is MeshInstance3D:
+			(mine as MeshInstance3D).mesh = null
+		for c in mine.get_children():
+			c.free()
+		var copy := theirs.duplicate() as Node3D
+		mine.add_child(copy)
+		copy.transform = Transform3D(theirs.transform.basis, pos - mine.transform.origin)
+		other.free()
+
+
 static func _planes_dir(plane := "") -> String:
 	if plane != "" and FileAccess.file_exists(EXTRA_DIR.path_join(plane).path_join("aircraft.json")):
 		return EXTRA_DIR
@@ -110,6 +147,7 @@ func setup(gltf_scene: Node3D, descriptor: Dictionary, type := -1, on_ground := 
 	root_frame = scene.find_child(str(desc.get("root", "")), true, false) as Node3D
 	if root_frame == null:
 		root_frame = scene.get_child(0) as Node3D if scene.get_child_count() > 0 else scene
+	_borrow_parts()
 	var info: Dictionary = desc.get("parts", {})
 	for n in root_frame.get_children():
 		if not n is Node3D:

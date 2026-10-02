@@ -111,6 +111,12 @@ which meshes make which part, the hinge lines, the marking and cockpit positions
 
 The converted F-16, Lavi and F-15 round-trip to their converted descriptors with no findings.
 
+Hand-set after the run:
+- `"name"`: the plane's folder name (the tool writes the out dir's).
+- `"borrow"` (optional): `{"<part>": {"plane": "f16", "part": "pilot", "offset": [x, y, z]}}` replaces our part's
+  mesh with an original plane's part at run time (`aircraft_model.gd` `_borrow_parts`). The part is placed by the
+  source's eye-to-part offset applied to our `eye`, plus `offset` (m). Use it for the pilot rather than modelling one.
+
 Edit afterwards if needed:
 - `scale` (5.0, the clump scale);
 - `part_rules` `{part: {sign, visible}}` when a surface moves the wrong way. A new type gets the default rules of
