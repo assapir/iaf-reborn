@@ -21,7 +21,7 @@ const SoundTable := preload("res://audio/sound_table.gd")
 ## code in FUN_00447e70 (switch @447e95, byte table 0x448094): F-16 100, F-15 110, Lavi 140,
 ## MiG-29 180, F-4 200 = 1; F-4 120, Kfir 130, MiG-21 150, MiG-23 160, MiG-25 170, Mirage 190,
 ## 210 / 220 / 225 = 0.
-const BETTY_TYPES := [100, 110, 140, 180, 200]
+const BETTY_TYPES := [100, 110, 140, 180, 200, 1000]
 ## [Sound] registry values read by FUN_004c3ac0 (defaults; the install sets none):
 ## PitchIntrPercent, PitchIntrShift, Ab1PitchPerc, Ab2PitchPerc. (InsideReduceVolume 0.75 is read
 ## too but never used.)

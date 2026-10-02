@@ -510,7 +510,7 @@ func _chute_key() -> void:
 func _choose_player() -> void:
 	var jet := int(mission_object.get("0x5b4", PlayerAircraft.FALLBACK))
 	if Settings.jet_id >= 0:
-		jet = PlayerAircraft.JET_TYPES.get(Settings.jet_id, jet)
+		jet = PlayerAircraft.jet_type(Settings.jet_id) if PlayerAircraft.jet_type(Settings.jet_id) >= 0 else jet
 	player = PlayerAircraft.profile(jet)
 	if player.type != jet:
 		print("jet type %d is AI-only (as in the original): flying the %s" % [jet, player.fm_section])
@@ -1215,6 +1215,11 @@ func _player_object(bdb: Dictionary, fallback := true) -> Dictionary:
 		for o in db.get("objects", {}).get("items", []):
 			if int(o.get("0x5b4", -1)) == player.type and int(o.get("0x5aa", -1)) == 0x1c:
 				return o
+	if player.type == PlayerAircraft.F35I:
+		for db in dbs:
+			for o in db.get("objects", {}).get("items", []):
+				if int(o.get("0x5b4", -1)) == PlayerAircraft.FALLBACK and int(o.get("0x5aa", -1)) == 0x1c:
+					return PlayerAircraft.f35i_object(o)
 	return {}
 
 

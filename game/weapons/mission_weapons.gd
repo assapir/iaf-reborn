@@ -16,7 +16,7 @@ const TABS := {540: 0, 550: 0, 570: 0, 580: 0, 600: 0, 610: 0,
 	500: 1, 510: 1, 560: 1, 590: 1, 635: 1, 640: 1, 650: 1, 565: 2, 660: 2}
 ## Jet front views bmp/arm/jets/<name>.bmp / .trx by the leader's type code (FUN_00507750).
 const JET_ART := {100: "f-16", 110: "f-15", 120: "f4e", 130: "kfir", 140: "lavi2", 160: "mig23",
-	180: "mig29", 190: "mirage", 200: "phantom"}
+	180: "mig29", 190: "mirage", 200: "phantom", 1000: "f-16"}
 const JET_DIR := "install/resource/menu/bmp/arm/jets"
 ## Flight names 1..6 (FUN_005bd3c0; flight table +0x328).
 const FLIGHT_NAMES := ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]

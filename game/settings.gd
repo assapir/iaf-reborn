@@ -35,7 +35,7 @@ const PREFS := {
 	"gameplay": ["no_wind", "no_blackouts", "no_spins", "no_stalls", "easy_landing", "easy_aiming",
 		"no_malfunctions", "ai_level", "invulnerable", "no_crashes", "unlimited_ammo", "unlimited_fuel",
 		"flight_data", "weapon_data", "language", "show_info", "blackbox", "hud_ladder", "show_all_keys", "fullscreen",
-		"imagery_israel", "imagery_outside", "antialiasing", "terrain_closeup", "sky"],
+		"imagery_israel", "imagery_outside", "antialiasing", "terrain_closeup", "sky", "f35i_slot"],
 }
 
 ## Flight data: "original" (Jane's IAF 1998 numbers) or "real" (corrected real-world data for every flyable jet, docs/real-aircraft.md).
@@ -121,6 +121,8 @@ var mission_id := -1
 ## Aircraft picked on the Jet list (original ids, FUN_00509d60): 0 F-15, 1 F-16, 2 F-4E,
 ## 3 F-4 2000, 4 Lavi, 5 Kfir, 6 Mirage; -1 = the mission's own jet (missions not started from the Jet list).
 var jet_id := -1
+## Ours (Extras): the Jet list id whose button flies the F-35I instead (docs/f35i.md); -1 = off (the original's list).
+var f35i_slot := -1
 ## The player's route as set on the TSD ([Vector2 world]); empty = the mission's own.
 var route_override: Array = []
 ## Flight picked on the TSD (1..4 = Alpha..Delta; Fly / double-click makes its leader the player);

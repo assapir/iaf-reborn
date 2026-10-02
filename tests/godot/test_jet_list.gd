@@ -9,9 +9,19 @@ const JETS := {0: [110, "f15", true], 2: [120, "phantom", true], 4: [140, "lavi"
 		6: [190, "mirage", false]}
 
 
+## Ours: the F-35I flown from the Lavi's button (Settings.f35i_slot = 4; F-16 cockpit until it has its own).
+const F35I_CASE := [4, [1000, "f16", false]]
+
+
 func run() -> void:
+	var cases := []
 	for id in JETS:
-		var want: Array = JETS[id]
+		cases.append([id, -1, JETS[id]])
+	cases.append([F35I_CASE[0], F35I_CASE[0], F35I_CASE[1]])
+	for c in cases:
+		var id: int = c[0]
+		var want: Array = c[2]
+		Settings().f35i_slot = c[1]
 		Settings().jet_id = id
 		var tv = await start_mission(311)
 		var name := "jet %d (type %d)" % [id, want[0]]
@@ -54,3 +64,4 @@ func run() -> void:
 			await process_frame
 		check(crew >= 1 and n == crew, "%s: ejection, %d parachuters for %d seats" % [name, n, crew])
 	Settings().jet_id = -1
+	Settings().f35i_slot = -1

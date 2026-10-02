@@ -38,6 +38,7 @@ const RADAR_KM := {
 	140: 46.0,  # Lavi: EL/M-2035, tracks several targets at 46 km
 	130: 14.8,  # Kfir C7: EL/M-2001B ranging radar (no search mode), 14.8 km (U, one database)
 	190: 27.0,  # Mirage IIICJ: Cyrano I bis, ~27 km air-to-air lock (U, one game wiki)
+	1000: 148.0,  # F-35I: AN/APG-81, multiple-target track beyond 80 NM (U, docs/f35i.md)
 }
 ## The radar's NM (0x603390).
 const RADAR_NM_M := 1854.0
@@ -55,6 +56,7 @@ const GUN_ROUNDS := {
 	200: 639,  # Kurnass 2000 (F-4E airframe)
 	130: 280,  # Kfir C7: 2 x DEFA 553, 140 rounds per gun
 	190: 250,  # Mirage IIICJ: 2 x DEFA 552, 125 rounds per gun
+	1000: 180,  # F-35I: GAU-22/A 25 mm, 180 rounds (the 20 MM record stands in)
 }
 
 

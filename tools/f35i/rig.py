@@ -480,8 +480,10 @@ def main():
     empty("EngineL", Vector((0.0, -6.24, 1.94)))
     empty("EngineL1", Vector((0.0, -6.24, 2.49)))
     empty("StationGun", Vector((-0.75, 1.5, 2.45)))
-    stations = [(-4.6, -2.6, 2.0), (-3.4, -2.4, 2.0), (-2.4, -2.3, 2.0), (-0.75, -2.6, 1.35), (0.0, -0.5, 1.2),
-                (0.75, -2.6, 1.35), (2.4, -2.3, 2.0), (3.4, -2.4, 2.0), (4.6, -2.6, 2.0)]
+    # A / I wing tips, B / H wings, C / G the bays' outboard (2,000 lb) and D / F inboard (AMRAAM) stations,
+    # E centre (player_aircraft.gd f35i_object).
+    stations = [(-5.2, -2.9, 2.05), (-3.4, -2.4, 2.0), (-1.15, -2.7, 1.3), (-0.55, -2.4, 1.25), (0.0, -0.5, 1.2),
+                (0.55, -2.4, 1.25), (1.15, -2.7, 1.3), (3.4, -2.4, 2.0), (5.2, -2.9, 2.05)]
     for letter, p in zip("ABCDEFGHI", stations):
         empty("Station" + letter, Vector(p))
     empty("Height", Vector((0.0, ORIGIN.y, 0.0)))

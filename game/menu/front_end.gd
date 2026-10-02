@@ -139,6 +139,9 @@ const EXTRAS := [
 	["antialiasing", "Anti-aliasing", [["MSAA 4x", "msaa4"], ["+ FXAA", "msaa4_fxaa"], ["TAA", "taa"]]],
 	["terrain_closeup", "Terrain close up", [["Original", false], ["Detailed", true]]],
 	["sky", "Sky", [["Original", "original"], ["Atmospheric", "atmospheric"]]],
+	# Ours: the F-35I (docs/f35i.md) flies from the Jet list button it replaces; more than three choices cycle.
+	["f35i_slot", "F-35I replaces", [["Off", -1], ["F-15", 0], ["F-16", 1], ["F-4E", 2], ["Kurnass 2000", 3],
+		["Lavi", 4], ["Kfir", 5], ["Mirage", 6]]],
 ]
 
 
@@ -548,7 +551,7 @@ func _button_enabled(label: String) -> bool:
 		var id: int = JET_IDS.get(_norm(label), -1)
 		if id in JETS_DISABLED.get(Settings.mission_id, []):
 			return false
-		return PlayerAircraft.flyable(PlayerAircraft.JET_TYPES.get(id, -1))
+		return PlayerAircraft.flyable(PlayerAircraft.jet_type(id))
 	if flight != null and _norm(label) == "gameplay":
 		return false  # the in-flight Preferences disable the Gameplay tab (§16.3)
 	if _is_tsd() and tsd != null:
@@ -729,6 +732,8 @@ func _draw_panels() -> void:
 			_blit_region(path, src, Vector2(r[0], r[1]) + delta)
 		if screen == "pref" and panel.side == "left":
 			_draw_extras_tab(delta)
+		if screen == "jet":
+			_draw_f35i_slot(p, panel, delta)
 
 
 func _draw_content(def: Dictionary) -> void:
@@ -1077,6 +1082,62 @@ func _draw_extras_tab(delta: Vector2) -> void:
 		draw_set_transform(Vector2.ZERO)
 
 
+## Ours: the Jet list button the F-35I replaces (Settings.f35i_slot) relabelled "F-35I" in the baked-label style
+## (its own frame's art with the label blended out, as our Extras tab).
+func _draw_f35i_slot(p: int, panel: Dictionary, delta: Vector2) -> void:
+	var slot := int(Settings.f35i_slot)
+	if slot < 0:
+		return
+	for b in panel.buttons.size():
+		var btn: Dictionary = panel.buttons[b]
+		if JET_IDS.get(_norm(btn.label), -1) != slot:
+			continue
+		var f := _frame("%d/%d" % [p, b], btn.label)
+		var r: Array = btn.rect
+		var t := _jet_button_tex(String(panel.name).to_lower(), Rect2(r[0] - panel.pos[0], r[1] - panel.pos[1], r[2], r[3]), f)
+		if t == null:
+			return
+		var box := _rect(Rect2(Vector2(r[0], r[1]) + delta, Vector2(r[2], r[3])))
+		draw_texture_rect(t, box, false)
+		var lf: Font = font if _he() else font_bold
+		var fs := int(round(15 * _scale()))
+		var text := "אדיר" if _he() else "F-35I"
+		var sq := TAB_SQUEEZE if not _he() else 1.0
+		var w := lf.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x * sq
+		var base := box.position.y + (box.size.y + lf.get_ascent(fs) - lf.get_descent(fs)) / 2.0
+		draw_set_transform(Vector2(box.position.x + (box.size.x - w) / 2.0, base), 0.0, Vector2(sq, 1.0))
+		var col := Color8(205, 208, 212) if f < 2 else (Color8(165, 168, 172) if f == 2 else Color8(110, 112, 115))
+		draw_string(lf, Vector2(_scale(), _scale()), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color8(25, 25, 25))
+		draw_string(lf, Vector2.ZERO, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
+		draw_set_transform(Vector2.ZERO)
+
+
+## The baked label's area inside a Jet list button (button-relative, panel px).
+const JET_LABEL := Rect2(14, 9, 81, 21)
+
+
+## A Jet list button (panel-relative rect `src`) from palettes/<panel>_<f>, its baked label blended out.
+func _jet_button_tex(panel: String, src: Rect2, f: int) -> Texture2D:
+	var key := "jet_slot_%s_%d_%d" % [panel, int(src.position.y), f]
+	if not textures.has(key):
+		var path := dir.path_join("img/palettes/%s_%d.png" % [panel, f])
+		var img := Image.load_from_file(path) if FileAccess.file_exists(path) else null
+		if img == null:
+			textures[key] = null
+			return null
+		img.convert(Image.FORMAT_RGBA8)
+		var band: Image = img.get_region(Rect2i(src.position * art_scale, src.size * art_scale))
+		var a := Rect2i(JET_LABEL.position * art_scale, JET_LABEL.size * art_scale)
+		for y in range(a.position.y, a.end.y):
+			var c0 := band.get_pixel(a.position.x - 1, y)
+			var c1 := band.get_pixel(a.end.x, y)
+			for x in range(a.position.x, a.end.x):
+				band.set_pixel(x, y, c0.lerp(c1, float(x - a.position.x + 1) / float(a.size.x + 1)))
+		band.generate_mipmaps()
+		textures[key] = ImageTexture.create_from_image(band)
+	return textures[key]
+
+
 ## The band cut from palettes/ppref_<f>, label pixels replaced per row by a blend of the pixels
 ## left and right of the label.
 func _extras_tab_tex(f: int) -> Texture2D:
@@ -1115,6 +1176,19 @@ func _extras_items() -> Array:
 		var opt: Array = rows[i]
 		var y := 45.0 + EXTRAS_ROW * (i - extras_top)
 		var choices: Array = opt[2]
+		if choices.size() > 3:
+			# Too many for the columns: one cell shows the current choice and a click picks the next.
+			var cur = pref_work.get(opt[0], choices[0][1])
+			var k := 0
+			for j in choices.size():
+				if choices[j][1] == cur:
+					k = j
+			var cell := Rect2(164.0, y, 250.0, EXTRAS_ROW)
+			if _he():
+				cell.position.x = CONTENT.size.x - cell.end.x
+			items.append({"rect": cell, "key": opt[0], "value": choices[(k + 1) % choices.size()][1],
+				"label": choices[k][0], "available": true, "on": true})
+			continue
 		for j in choices.size():
 			# Two choices in the Gameplay page's columns (x 164 / 285); three narrower; all left of the scrollbar.
 			var r := Rect2(164.0 + 121.0 * j, y, 111.0 if j == 0 else 129.0, EXTRAS_ROW) if choices.size() < 3 \
@@ -1178,7 +1252,7 @@ func _draw_extras() -> void:
 			r.position.x = CONTENT.size.x - r.end.x
 		_text_fit(Rect2(CONTENT.position + r.position, r.size), _art(rows[i][1]), LIST_TITLE_PX, LIST_TITLE, font_art)
 	for it in _extras_items():
-		var on: bool = pref_work.get(it.key) == it.value
+		var on: bool = it.get("on", pref_work.get(it.key) == it.value)
 		if it.key == "throttle_detent" and typeof(it.value) == TYPE_STRING:
 			on = int(pref_work.get(it.key, -1)) >= 0
 		_draw_option(it.rect, it.label, on, 10, 4, it.available)
