@@ -31,7 +31,9 @@ const RADAR_RANGES := [5, 10, 20, 40, 80, 160]
 const TSD_SCALES := [10, 20, 40, 80]
 
 var cockpit: Control
-var index := 0  # 0 left, 1 right, 2 middle
+var index := 0  # 0 left, 1 right, 2 middle (a panoramic display: the portal's number)
+## A portal of a panoramic display ([MFD] Portals) is the MFD drawn at this scale.
+var portal_scale := 1.0
 var page := RADAR
 ## TSD: scale (+0x279c, default 40) and the SAM / WPT / MAP / SCL options (default on).
 var tsd_scale := 40
@@ -61,14 +63,21 @@ func setup(c: Control, idx: int, start_page: int) -> void:
 
 func _panel_offset() -> Vector2:
 	var m: Dictionary = cockpit.layout.MFD
+	if m.has("Portals"):
+		return Vector2(float(m.Portals[index][0]), float(m.Portals[index][1]))
 	var side: String = ["Left", "Right", "Middle"][index]
 	return Vector2(float(m[side + "OffsetX"]), float(m[side + "OffsetY"]))
 
 
+## Screen px per MFD px.
+func _s() -> float:
+	return cockpit.ui_scale() * portal_scale
+
+
 func _process(_delta: float) -> void:
-	var s: float = cockpit.ui_scale()
+	var s := _s()
 	var o := _panel_offset()
-	position = cockpit.panel_to_screen(o.x - BEZEL, o.y - BEZEL)
+	position = cockpit.panel_to_screen(o.x - BEZEL * portal_scale, o.y - BEZEL * portal_scale)
 	size = Vector2.ONE * (SIZE + 2 * BEZEL) * s
 	queue_redraw()
 
@@ -138,7 +147,7 @@ func _line(a: Vector2, b: Vector2, color := GREEN) -> void:
 func _draw() -> void:
 	if cockpit == null or cockpit.layout.is_empty():
 		return
-	var s: float = cockpit.ui_scale()
+	var s := _s()
 	draw_set_transform(Vector2(BEZEL, BEZEL) * s, 0.0, Vector2(s, s))
 	match page:
 		RADAR:
@@ -833,12 +842,12 @@ static func osb_at(p: Vector2) -> int:
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
-		var q: Vector2 = event.position / cockpit.ui_scale() - Vector2(BEZEL, BEZEL)
+		var q: Vector2 = event.position / _s() - Vector2(BEZEL, BEZEL)
 		mouse = q if Rect2(10, 10, 112, 112).has_point(q) else null
 		return
 	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
 		return
-	var p: Vector2 = event.position / cockpit.ui_scale() - Vector2(BEZEL, BEZEL)
+	var p: Vector2 = event.position / _s() - Vector2(BEZEL, BEZEL)
 	var osb := osb_at(p)
 	if osb > 0:
 		press(osb)

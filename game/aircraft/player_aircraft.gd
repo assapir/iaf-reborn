@@ -10,8 +10,10 @@ const AircraftModel := preload("res://aircraft/aircraft_model.gd")
 ## Types the player can fly: the Jet list's seven (F-15, F-16, F-4E, F-4 Kurnass 2000, Lavi, Kfir, Mirage), and
 ## ours, the F-35I (docs/f35i.md), on the Jet list slot the Extras page gives it.
 const FLYABLE := [110, 100, 120, 200, 140, 130, 190, 1000]
-## The F-35I Adir: not in the original (docs/adding-a-plane.md); flies the F-16's cockpit until it has its own.
+## The F-35I Adir: not in the original (docs/adding-a-plane.md).
 const F35I := 1000
+## Cockpits of ours (in the repo) by type; the others are the converted cockpits.ibx ones.
+const EXTRA_COCKPIT := {1000: "res://extra/planes/f35i/cockpit"}
 const FALLBACK := 100
 ## bdb type code -> cockpit index (FUN_00447e70; also the radar tables' index, radar.gd).
 const COCKPIT := {110: 0, 100: 1, 200: 2, 140: 3, 130: 4, 120: 5, 190: 6, 180: 7, 160: 8}
@@ -63,7 +65,7 @@ static func profile(type: int) -> Dictionary:
 	var plane := plane_for(type)
 	var d := AircraftModel.load_descriptor(plane)
 	return {"type": type, "plane": plane, "fm_section": String(d.get("fm_section", "F-16")),
-			"cockpit_dir": "converted/cockpits/" + cockpit_folder(type), "twin": type in TWIN}
+			"cockpit_dir": EXTRA_COCKPIT.get(type, "converted/cockpits/" + cockpit_folder(type)), "twin": type in TWIN}
 
 
 ## The converted plane folder whose descriptor lists `type` (f42000 serves both F-4E 120 and F-4 2000 200).

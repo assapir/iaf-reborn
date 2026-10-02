@@ -188,8 +188,12 @@ Options:
   - Head turned ≥ 250 px aside or ≥ 200 px down, it becomes the DASH helmet display at (320, 220) (`cockpit.gd`
     `dash()`, docs/cockpit.md "HUD dash repeater").
   - In free look and padlock, the IR seeker locks off-boresight (docs/weapons.md §5.4).
-- **More than three displays** (e.g. one panoramic screen) needs `_create_mfds()` to take a list of display windows
-  instead of the three fixed MFD indices (not built).
+- **More than three displays** (e.g. one panoramic screen): `[MFD] Portals` = [[x, y, scale, page], …] (the page's
+  top-left in panel px), one MFD node per portal drawn at `scale` (`cockpit.gd` `_create_mfds()`, `mfd.gd` `portal_scale`).
+- **A cockpit in the repo:** a `res://` cockpit dir (`player_aircraft.gd` `EXTRA_COCKPIT`), and `"Shared": "<converted
+  cockpit>"` for the original art it borrows (MFD atlas, RWR symbols, TSD map, ADI ball; `cockpit.gd` `_file()`), since
+  that art cannot be committed. Example: `game/extra/planes/f35i/cockpit/`, panel and lights drawn by
+  `tools/f35i/make_panel.py`.
 
 ## 5. Weapons
 

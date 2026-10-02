@@ -9,8 +9,8 @@ const JETS := {0: [110, "f15", true], 2: [120, "phantom", true], 4: [140, "lavi"
 		6: [190, "mirage", false]}
 
 
-## Ours: the F-35I flown from the Lavi's button (Settings.f35i_slot = 4; F-16 cockpit until it has its own).
-const F35I_CASE := [4, [1000, "f16", false]]
+## Ours: the F-35I flown from the Lavi's button (Settings.f35i_slot = 4), in its own cockpit.
+const F35I_CASE := [4, [1000, "cockpit", false]]
 
 
 func run() -> void:
@@ -29,6 +29,10 @@ func run() -> void:
 		check(tv.cockpit.cockpit_dir.ends_with("/" + want[1]) and tv.cockpit.twin_engines == want[2]
 				and tv.player_damage.twin == want[2], "%s: cockpit %s, twin %s" % [name, tv.cockpit.cockpit_dir, want[2]])
 		check(tv.weapons != null and tv.weapons.jet_type == want[0], "%s: its weapons" % name)
+		if want[0] == 1000:
+			check(tv.cockpit.mfds.size() == 4 and tv.cockpit.tex.has("LIGHTS") and tv.cockpit.tex.has("PANEL")
+					and not tv.cockpit.tex.has("HUD") and tv.cockpit.tex.has("MFDS"),
+					"%s: the panoramic display's 4 portals, our panel and lights, no HUD glass, the shared MFD art" % name)
 		key(tv, KEY_1)
 		key(tv, KEY_B)
 		key(tv, KEY_6)

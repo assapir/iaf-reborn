@@ -123,7 +123,8 @@ func load_cockpit(rel: String) -> void:
 	mfds.clear()
 	tex.clear()
 	tsd_map.clear()
-	dir = Settings.assets_dir().path_join(cockpit_dir)
+	# An extra plane's cockpit lives in the repo (res://extra/..., docs/adding-a-plane.md §4).
+	dir = cockpit_dir if cockpit_dir.begins_with("res://") else Settings.assets_dir().path_join(cockpit_dir)
 	layout = Settings.load_json(dir.path_join("cockpit.json"))
 	if layout.is_empty():
 		push_error("cockpit: %s/cockpit.json not found — run iaf-convert cockpit" % dir)
@@ -145,16 +146,25 @@ func load_cockpit(rel: String) -> void:
 
 ## The converted art of an original cockpit image file (lower-case .png), when present.
 func _add_tex(key: String, file: String, mipmaps := false) -> void:
-	var t := Img.load_texture(dir.path_join(file.get_basename().to_lower() + ".png"), mipmaps)
+	var t := Img.load_texture(_file(file.get_basename().to_lower() + ".png"), mipmaps)
 	if t != null:
 		tex[key] = t
+
+
+## A cockpit file: the cockpit's own, else (an extra plane's cockpit, `"Shared": "<converted cockpit>"`) the
+## converted cockpit's it borrows the original art from (the MFD atlas, RWR symbols, TSD map, ADI ball).
+func _file(name: String) -> String:
+	var own := dir.path_join(name)
+	if FileAccess.file_exists(own) or not layout.has("Shared"):
+		return own
+	return Settings.assets_dir().path_join("converted/cockpits").path_join(String(layout.Shared)).path_join(name)
 
 
 ## map.emf points (normalised to its 12601 x 16383 frame) -> world (FUN_00531a50 inverse), in the
 ## TSD's world frame: u = (X + WORLD_X_SHIFT) / WORLD_W · f, v = (WORLD_H − WORLD_Y_SHIFT − Y) / WORLD_H · f
 ## with f = MAP_X_FACTOR (1043816 = WORLD_H − WORLD_Y_SHIFT).
 func _load_tsd_map() -> void:
-	var data := Settings.load_json(dir.path_join("map.json"))
+	var data := Settings.load_json(_file("map.json"))
 	if data.is_empty():
 		return
 	var f: float = Tsd.MAP_X_FACTOR
@@ -172,6 +182,16 @@ func _load_tsd_map() -> void:
 ## 3 MFDs: Right RWR, Middle TSD; 2 MFDs: Right RWR without a panel RWR, else TSD.
 func _create_mfds() -> void:
 	var m: Dictionary = layout.get("MFD", {})
+	# Ours: a panoramic display (F-35I) as `Portals`, [x, y, scale, page] each (the page's top-left in panel px).
+	if m.has("Portals"):
+		for i in m.Portals.size():
+			var pt: Array = m.Portals[i]
+			var node := preload("res://cockpit/mfd.gd").new()
+			node.setup(self, i, int(pt[3]))
+			node.portal_scale = float(pt[2])
+			add_child(node)
+			mfds.append(node)
+		return
 	var active := []
 	for i in 3:
 		if int(m.get(["Left", "Right", "Middle"][i] + "Active", 1)) == 1:
