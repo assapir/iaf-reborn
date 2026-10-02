@@ -22,6 +22,9 @@ const ELEVATOR_MAX := 0.5236  # 30°
 const AILERON_MAX := 0.7855  # 45°
 const RATE_CONFIG := 0.5  # S+0x300..0x360
 const RATE_SURFACE := 0.7  # S+0x380..0x400
+## Weapon bay doors (ours, the F-35I's BayLi..BayRo): open angle and rate (rad/s).
+const BAY_MAX := 1.4
+const RATE_BAY := 3.0
 ## Visibility thresholds of the callback.
 const EPS := 1e-5
 ## Drag chute jitter: a new ±5° angle every 0.1 s while deployed (state 2).
@@ -40,7 +43,7 @@ var parts := {}
 var flames: Array = []
 ## The original's animation ramps (radians).
 var ramps := {"flaps": 0.0, "gear": GEAR_MAX, "speed_brake": 0.0, "hook": 0.0,
-	"rudder": 0.0, "elevator_l": 0.0, "elevator_r": 0.0, "aileron_l": 0.0, "aileron_r": 0.0}
+	"rudder": 0.0, "elevator_l": 0.0, "elevator_r": 0.0, "aileron_l": 0.0, "aileron_r": 0.0, "bay": 0.0}
 var _targets := {}
 ## Last lever positions: like the original's events, a ramp is retargeted only when its lever moves.
 var _levers := {}
@@ -189,7 +192,8 @@ func setup(gltf_scene: Node3D, descriptor: Dictionary, type := -1, on_ground := 
 ## Drives the parts. `input` (all optional, like the flight state dictionary):
 ##   stick_x (+right), stick_y (+pull), rudder (−1..1), flaps (lever 0..1), gear_down, brakes (speed brake),
 ##   hook, chute (0 off, 1 armed, 2 deployed, 3 gone), on_ground, gear (the flight model's gear ramp, rad),
-##   afterburner (stage 0..2), rpm (0..1.14), ab_damage ([left, right] afterburner damage flags 8 / 9).
+##   afterburner (stage 0..2), rpm (0..1.14), ab_damage ([left, right] afterburner damage flags 8 / 9),
+##   bay_open (ours: the weapon bay doors).
 func update(input: Dictionary, delta: float) -> void:
 	_time += delta
 	var on_ground: bool = input.get("on_ground", false)
@@ -205,6 +209,7 @@ func update(input: Dictionary, delta: float) -> void:
 	var hook: bool = input.get("hook", false)
 	if _lever("hook", hook):
 		_targets.hook = HOOK_MAX if hook else 0.0
+	_targets.bay = BAY_MAX if input.get("bay_open", false) else 0.0
 	var sr: float = input.get("stick_x", 0.0)
 	var sp: float = input.get("stick_y", 0.0)
 	# Rudder (FUN_0059f5a0 / FUN_005a03c0): the pedals in the air, the stick roll on the ground.
@@ -231,6 +236,8 @@ func update(input: Dictionary, delta: float) -> void:
 		_targets.elevator_r = r
 	for k in ramps:
 		var rate := RATE_SURFACE if k in ["rudder", "elevator_l", "elevator_r", "aileron_l", "aileron_r"] else RATE_CONFIG
+		if k == "bay":
+			rate = RATE_BAY
 		ramps[k] = move_toward(ramps[k], _targets[k], rate * delta)
 	if input.has("gear"):
 		ramps.gear = float(input.gear)  # the flight model's own gear ramp (exact timing)
@@ -262,6 +269,11 @@ func wingtips() -> Array:
 		return []
 	return [root_frame.to_global(Vector3(ew.left[0], ew.left[1], ew.left[2])),
 		root_frame.to_global(Vector3(ew.right[0], ew.right[1], ew.right[2]))]
+
+
+## How far the weapon bay doors are open (0 shut .. 1).
+func bay_fraction() -> float:
+	return ramps.bay / BAY_MAX
 
 
 ## Ends every ramp at its target at once (posed captures and tests).
@@ -338,6 +350,8 @@ func part_pose(id: int) -> Array:
 			return [0.0, crew_visible]
 		0x27:  # Parach
 			return [_chute_angle, _chute_state == 2]
+		0x90, 0x91, 0x92, 0x93:  # BayLi, BayLo, BayRi, BayRo (ours)
+			return [ramps.bay, true]
 		0x1d, 0x1e, 0x1f, 0x20:  # RotorA..D
 			# Helicopters (type −1) are not flown by the flight model; their mover's callback is not
 			# decoded (UNCERTAIN): the rotors are shown static.

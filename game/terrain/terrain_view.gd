@@ -2037,7 +2037,8 @@ func _process(delta: float) -> void:
 	if aircraft != null:
 		var parts_in := {"stick_x": stick.x, "stick_y": stick.y, "rudder": rudder, "flaps": flaps,
 			"gear_down": gear_down, "brakes": brakes, "chute": drag_chute,
-			"ab_damage": [player_damage.flags[8], player_damage.flags[9]]}
+			"ab_damage": [player_damage.flags[8], player_damage.flags[9]],
+			"bay_open": weapons != null and weapons.bay_open()}
 		if flight != null:
 			var fs: Dictionary = flight.state()
 			if drag_chute == 1 and fs.on_ground:

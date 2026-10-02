@@ -69,7 +69,7 @@ pub fn report(gltf: &Value, desc: &Value) -> Vec<String> {
     for (name, p) in &parts {
         let id = p["id"].as_u64().unwrap_or(0);
         // The parts the callback turns (docs/aircraft.md §2.1); doors, canards, crew, rotors and wheels stay at 0.
-        let turns = matches!(id, 1 | 2 | 5..=0x11 | 0x13 | 0x27);
+        let turns = matches!(id, 1 | 2 | 5..=0x11 | 0x13 | 0x27 | 0x90..=0x93);
         if turns && p["axis"].is_null() {
             out.push(format!("{name} has no hinge axis ({name}1 / {name}2 helpers): it never rotates"));
         }

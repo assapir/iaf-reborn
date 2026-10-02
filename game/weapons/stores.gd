@@ -30,6 +30,8 @@ var last_aa := 0
 var last_ag := 0
 var last_fired := 0
 var just_fired := false
+## Releases so far (fired / jettisoned; ours: the weapon bay doors watch it).
+var releases := 0
 var visited: Array[String] = []
 var last_kind := 0
 ## True when the owner is the player (the cycle's "may select an empty weapon" rule).
@@ -268,6 +270,7 @@ func fired(i: int) -> void:
 		return
 	last_fired = i
 	just_fired = true
+	releases += 1
 	consume(i)
 	if not unlimited and i < 9:
 		_release_weight_drag(i, stations[i].w)
@@ -277,6 +280,7 @@ func fired(i: int) -> void:
 func jettisoned(i: int) -> void:
 	last_fired = i
 	just_fired = true
+	releases += 1
 	consume(i)
 	_release_drag(i, stations[i].w)
 

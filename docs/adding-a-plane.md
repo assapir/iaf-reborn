@@ -88,6 +88,7 @@ The glTF must be in the converted models' frame:
 | `Camera` / `Pilon` | cockpit eye |
 | `EndWingL/R` | wing tips |
 | `Parach` | drag chute |
+| `BayLi/Lo/Ri/Ro` (ours) | weapon bay doors, inboard / outboard per side: origin on the hinge, open with the bay ramp |
 
 **Glass:** a canopy material with partial alpha is blended (`alphaMode` BLEND). A cut-out or opaque canopy draws
 as a solid blob or bare frame bars.
@@ -116,6 +117,8 @@ Hand-set after the run:
 - `"borrow"` (optional): `{"<part>": {"plane": "f16", "part": "pilot", "offset": [x, y, z]}}` replaces our part's
   mesh with an original plane's part at run time (`aircraft_model.gd` `_borrow_parts`). The part is placed by the
   source's eye-to-part offset applied to our `eye`, plus `offset` (m). Use it for the pilot rather than modelling one.
+- `"internal_stations"` (optional, letters A..I, e.g. `"CDFG"`): bay stations. Their stores are drawn only while
+  the `Bay*` doors are half open; a release from one opens the doors for 2 s (`player_weapons.gd` `bay_open`).
 
 Edit afterwards if needed:
 - `scale` (5.0, the clump scale);
@@ -221,7 +224,9 @@ Options:
   - `0x53c` Present id gives the model scale.
   - Weapon ids are the same in every mission (docs/weapons.md §1–2).
 - **Stations** in 3D come from the descriptor's `StationA..I` / `StationGun` (`stores.gd`, `player_weapons.gd`).
-  A missing frame hangs the store at the origin.
+  A missing frame hangs the store at the origin. A station is the pylon point: the store hangs below it by its
+  `pilon`. Bays: cut the doors from the belly skin and close the hole with `kit.cavity` (`tools/f35i/rig.py`
+  `cut_bays`), then list the bay stations in `internal_stations`.
 - **Arming screen:** `game/weapons/mission_weapons.gd` `JET_ART` → `menu/bmp/arm/jets/<art>.bmp/.trx`. The `.trx`
   holds the base weight, max take-off weight and the 9 station boxes. An extra plane (`JET_ART` "x_<plane>"):
   - `game/extra/planes/<plane>/arm/front.png`: its front view in the arming greens (`tools/plane/kit.py`

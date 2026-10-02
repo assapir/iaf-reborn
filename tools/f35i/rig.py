@@ -86,11 +86,45 @@ def cut_surfaces(m):
     return parts, rudders
 
 
+# The weapon bays (between the keel and the intake chines, behind the nose gear): fore / aft ends, and per side the
+# keel hinge, the doors' split and the outboard hinge (|x|); the inboard door hangs from the keel, the outboard one
+# from the chine.
+BAY_Y = (-1.4, 2.9)
+BAY_X = (0.35, 0.85, 1.35)
+BAY_DEPTH = 0.45
+
+
+def cut_bays(m):
+    belly = [m["42"]]
+    zone = lambda c: 0.25 < abs(c.x) < 1.5 and BAY_Y[0] - 0.2 < c.y < BAY_Y[1] + 0.2 and c.z < 1.6
+    for y in BAY_Y:
+        kit.bisect(belly, zone, (0, y, 0), (0, 1, 0))
+    for s in (1, -1):
+        for x in BAY_X:
+            kit.bisect(belly, zone, (x * s, 0, 0), (1, 0, 0))
+    inside = kit.material("bay_inside", (0.30, 0.31, 0.32), roughness=0.8)
+    parts, hinges = {}, {}
+    for s, side in ((1, "R"), (-1, "L")):
+        doors = []
+        for k, x0, x1, hx in (("i", BAY_X[0], BAY_X[1], BAY_X[0]), ("o", BAY_X[1], BAY_X[2], BAY_X[2])):
+            door = kit.extract(belly, lambda c, s=s, x0=x0, x1=x1: x0 < c.x * s < x1 and BAY_Y[0] < c.y < BAY_Y[1]
+                               and c.z < 1.6, f"Bay{side}{k}")
+            parts[door.name] = door
+            # The hinge on the door's hinged edge, at the belly's height there.
+            z = min((v.co.z for v in door.data.vertices if abs(abs(v.co.x) - hx) < 1e-3), default=1.2)
+            hinges[door.name] = ((hx * s, BAY_Y[0], z), (0, 1 if (k == "i") == (s > 0) else -1, 0))
+            doors.append(door)
+        kit.cavity(f"bay_{side}", doors, BAY_DEPTH, inside)
+    return parts, hinges
+
+
 def main():
     m = kit.normalise(SRC, LENGTH)
     skin(m)
     markings()
     parts, rudders = cut_surfaces(m)
+    bays, bay_hinges = cut_bays(m)
+    parts.update(bays)
     # Gear: main legs (wheel, strut, brace, hub), the doors (static, hidden once up), the nose leg.
     parts["LdgL"] = kit.join([m[k] for k in ("18", "19", "20")], "LdgL")
     parts["LdgR"] = kit.join([m[k] for k in ("66", "67", "68", "70", "72", "74", "75", "77", "79", "81", "83", "85",
@@ -119,6 +153,8 @@ def main():
         rig.part(n, (1.1 * s, -6.3, 2.27), (s, 0, 0))
     for n, (a, b) in rudders.items():
         rig.part(n, a, b - a)
+    for n, (p, axis) in bay_hinges.items():
+        rig.part(n, p, axis)
     # Gear legs fold forward (F-35A): the game turns LdgL by +g, LdgR and LdgF by -g (docs/aircraft.md §2.1); a
     # positive turn about +X swings a wheel below the hinge forward.
     rig.part("LdgL", (-2.05, -2.16, 1.95), (1, 0, 0))
@@ -127,13 +163,14 @@ def main():
     for n in ("LdgDr", "canopy", "pilot"):
         rig.place_centre(n)
     # Points: nozzle (radius 0.55 as the Y difference), gun (left shoulder), stations A..I (A / I wing tips, B / H
-    # wings, C / G the bays' outboard and D / F inboard stations, E centre: player_aircraft.gd f35i_object), wheel
-    # height, eye.
+    # the inner-wing heavy stations 3 / 9 outboard of the main gear, C / G the bays' outboard and D / F inboard
+    # stations, E the keel: player_aircraft.gd f35i_object), wheel height, eye.
     rig.empty("EngineL", (0.0, -6.24, 1.94))
     rig.empty("EngineL1", (0.0, -6.24, 2.49))
     rig.empty("StationGun", (-0.75, 1.5, 2.45))
-    stations = [(-5.2, -2.9, 2.05), (-3.4, -2.4, 2.0), (-1.15, -2.7, 1.3), (-0.55, -2.4, 1.25), (0.0, -0.5, 1.2),
-                (0.55, -2.4, 1.25), (1.15, -2.7, 1.3), (3.4, -2.4, 2.0), (5.2, -2.9, 2.05)]
+    bay_y = (BAY_Y[0] + BAY_Y[1]) / 2
+    stations = [(-5.2, -2.9, 2.05), (-2.9, -1.9, 2.0), (-1.0, bay_y, 1.5), (-0.55, bay_y, 1.55), (0.0, bay_y, 1.0),
+                (0.55, bay_y, 1.55), (1.0, bay_y, 1.5), (2.9, -1.9, 2.0), (5.2, -2.9, 2.05)]
     for letter, p in zip("ABCDEFGHI", stations):
         rig.empty("Station" + letter, p)
     rig.empty("height", (0.0, ORIGIN.y, 0.0))  # lower case: the game finds it with find_child("height")

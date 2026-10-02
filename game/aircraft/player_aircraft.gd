@@ -54,7 +54,8 @@ const ARM_AS_PICKED := [F35I]
 
 
 ## The F-35I's object (weapons, stores; no bdb has one): the F-16's with the F-35I's type and loads. Stations
-## (descriptor): A / I wing tips, B / H wings, C / G and D / F the weapon bays (outboard / inboard), E centre.
+## (descriptor): A / I wing tips, B / H the inner-wing heavy stations (3 / 9), C / G and D / F the weapon bays
+## (outboard / inboard; hidden behind their doors, descriptor internal_stations), E the keel.
 ## Default: internal only, an AMRAAM inboard and an MK-84L (the GBU-31 stand-in) outboard in each bay; 180
 ## rounds of the gun record (GAU-22/A: 180 rounds).
 static func f35i_object(f16: Dictionary) -> Dictionary:

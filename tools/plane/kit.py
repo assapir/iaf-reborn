@@ -87,6 +87,27 @@ def extract(objs, test, name):
     return join(parts, name)
 
 
+def cavity(name, doors, depth, m):
+    """The bay behind `doors` (cut skin): their faces raised `depth` as its roof, walls down to the hole's edge."""
+    bm = bmesh.new()
+    for d in doors:
+        bm.from_mesh(d.data)
+    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-4)
+    floor = list(bm.faces)
+    out = bmesh.ops.extrude_face_region(bm, geom=floor)
+    bmesh.ops.translate(bm, vec=(0, 0, depth), verts=[v for v in out["geom"] if isinstance(v, bmesh.types.BMVert)])
+    bmesh.ops.delete(bm, geom=floor, context='FACES_ONLY')  # the doors themselves close the bay
+    for f in bm.faces:
+        f.material_index = 0
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    bm.free()
+    o = bpy.data.objects.new(name, me)
+    scene().collection.objects.link(o)
+    o.data.materials.append(m)
+    return o
+
+
 def join(objs, name):
     objs = [o for o in objs if o is not None]
     if not objs:

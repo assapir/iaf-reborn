@@ -14,7 +14,8 @@ pub const FORMAT: u32 = 1;
 pub const SCALE: f32 = 5.0;
 
 /// The frame-name table built by `FUN_005876a0` (`x3ds_<name>` → id). Ids 1..=0x27 also get the
-/// hinge helpers `<name>1` (id + 0x3f) and `<name>2` (id + 0x67). Matching is case-insensitive.
+/// hinge helpers `<name>1` (id + 0x3f) and `<name>2` (id + 0x67). Matching is case-insensitive. The last
+/// entries are ours (`OURS`, no original model has them).
 pub const PART_NAMES: &[(&str, u32)] = &[
     ("AilerL", 0x01),
     ("AilerR", 0x02),
@@ -75,7 +76,26 @@ pub const PART_NAMES: &[(&str, u32)] = &[
     ("EngineL", 0x3a),
     ("EngineR", 0x3b),
     ("top02", 0x3c),
+    // Ours: weapon bay doors, inboard / outboard per side (the F-35I; aircraft_model.gd part_pose).
+    ("BayLi", 0x90),
+    ("BayLo", 0x91),
+    ("BayRi", 0x92),
+    ("BayRo", 0x93),
 ];
+
+/// Our moving parts past the original's table; their hinge helpers are id + 0x100 / + 0x200.
+const OURS: std::ops::RangeInclusive<u32> = 0x90..=0x93;
+
+/// A moving part's hinge helper ids (`<name>1`, `<name>2`).
+fn helpers(id: u32) -> Option<(u32, u32)> {
+    if (1..=0x27).contains(&id) {
+        Some((id + 0x3f, id + 0x67))
+    } else if OURS.contains(&id) {
+        Some((id + 0x100, id + 0x200))
+    } else {
+        None
+    }
+}
 
 /// Flight-model data section per aircraft type (`FUN_005a8980`); other types keep the F-16 data.
 pub fn fm_section(type_code: i64) -> Option<&'static str> {
@@ -105,13 +125,11 @@ pub fn part_id(name: &str) -> Option<u32> {
         }
     }
     for &(n, id) in PART_NAMES {
-        if id > 0x27 {
-            continue;
-        }
+        let Some((h1, h2)) = helpers(id) else { continue };
         if name.len() == n.len() + 1 && name.is_char_boundary(n.len()) && name[..n.len()].eq_ignore_ascii_case(n) {
             match &name[n.len()..] {
-                "1" => return Some(id + 0x3f),
-                "2" => return Some(id + 0x67),
+                "1" => return Some(h1),
+                "2" => return Some(h2),
                 _ => {}
             }
         }
@@ -171,14 +189,14 @@ pub fn describe(model: &Model, folder: &str, gltf: &str, source: &str, objects: 
     // Subparts (FUN_0053da00): ids 1..=0x27 and the engines; hinge axis from the X1/X2 helpers.
     let mut parts = serde_json::Map::new();
     for &(id, f) in &entries {
-        if !(1..=0x27).contains(&id) && id != 0x3a && id != 0x3b {
+        if helpers(id).is_none() && id != 0x3a && id != 0x3b {
             continue;
         }
         let mut axis = Value::Null;
-        if (1..=0x27).contains(&id)
-            && let Some(p1) = pos(id + 0x3f) {
+        if let Some((h1, h2)) = helpers(id)
+            && let Some(p1) = pos(h1) {
                 // X2 is not checked: a missing X2 reads as the origin.
-                let p2 = pos(id + 0x67).unwrap_or([0.0; 3]);
+                let p2 = pos(h2).unwrap_or([0.0; 3]);
                 let d = if len(p1) <= len(p2) { [p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2]] } else { [p1[0] - p2[0], p1[1] - p2[1], p1[2] - p2[2]] };
                 let l = len(d);
                 if l > 0.0 {
@@ -322,6 +340,8 @@ mod tests {
         assert_eq!(part_id("Canopy"), Some(0x16));
         assert_eq!(part_id("AilerL1"), Some(0x40));
         assert_eq!(part_id("ailerl2"), Some(0x68));
+        assert_eq!(part_id("BayLo"), Some(0x91));
+        assert_eq!(part_id("BayRi2"), Some(0x292));
         assert_eq!(part_id("Rudde1"), Some(0x45));
         assert_eq!(part_id("RuddeL1"), Some(0x44));
         assert_eq!(part_id("height"), Some(0x39));

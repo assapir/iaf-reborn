@@ -24,6 +24,9 @@ const Views := preload("res://terrain/views.gd")
 const GUN_PERIOD := 0.2
 ## Stores are drawn within 9000 m of the camera (0x638a08).
 const STORES_DRAW_DIST := 9000.0
+## Weapon bays (ours, the F-35I): the doors stay open this long after a release from a bay station.
+## ponytail: the store leaves at once while the doors swing (0.5 s); hold the release until open if it shows.
+const BAY_HOLD := 2.0
 ## Launch q without Easy aiming (v1.1: ×0.8, 0x600f64) and the q of an unlocked target (0x82f6ec).
 const Q_NO_EASY := 0.8
 const Q_UNLOCKED := 0.1
@@ -82,6 +85,8 @@ var _round_nodes: Array = []
 var _round_scale := 1.0
 var _flash: Node3D
 var _store_nodes := {}  # station -> [Node3D per slot]
+var _bay_until := -1.0
+var _releases := 0
 var _pod_nodes: Array = []  # rocket boxes
 ## The rocket box model and its scale ([Weapons] RocketBoxScale, default 4.0).
 const ROCKET_BOX := "weapons/lau61/lau61_m.gltf"
@@ -1338,6 +1343,10 @@ func decoy_position(dc: Dictionary) -> Vector3:
 ## Advances the weapons to sim time `t`.
 func update(t: float) -> void:
 	now = t
+	if stores.releases != _releases:
+		_releases = stores.releases
+		if _internal(stores.last_fired):
+			_bay_until = now + BAY_HOLD
 	while firing and _gun_next <= now:
 		_gun_shot()  # catch-up shots share the timestamp
 		_gun_next += GUN_PERIOD
@@ -1547,15 +1556,26 @@ func _build_visuals() -> void:
 	_update_store_nodes()
 
 
+## The weapon bays' doors are commanded open (a release from a bay station in the last BAY_HOLD s).
+func bay_open() -> bool:
+	return now < _bay_until
+
+
+## Station i is in a weapon bay (descriptor `internal_stations`, letters A..I; ours).
+func _internal(i: int) -> bool:
+	return i >= 0 and i < 9 and "ABCDEFGHI"[i] in String(descriptor.get("internal_stations", ""))
+
+
 ## Stations 0..8 draw `count` stores at slot[0..count−1] (FUN_0053e430) with EXTERNAL STORES on
-## and within 9000 m of the camera.
+## and within 9000 m of the camera. Ours: a bay station's stores only while its doors are half open.
 func _update_store_nodes() -> void:
 	var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
 	var near := cam == null or host.rig == null or cam.global_position.distance_to(host.rig.global_position) < STORES_DRAW_DIST
+	var bay_shown: bool = host.aircraft != null and host.aircraft.has_method("bay_fraction") and host.aircraft.bay_fraction() > 0.5
 	for i in _store_nodes:
 		var n := int(stores.station(i).get("count", 0))
 		for k in _store_nodes[i].size():
-			_store_nodes[i][k].visible = Settings.external_stores and near and k < n
+			_store_nodes[i][k].visible = Settings.external_stores and near and k < n and (bay_shown or not _internal(i))
 	for b in _pod_nodes:
 		b.visible = Settings.external_stores and near
 

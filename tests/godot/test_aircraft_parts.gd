@@ -73,6 +73,19 @@ func run() -> void:
 	check(not mig.part_node("LdgL").visible and mig.part_node("LdgF").visible, "MiG-29 main legs gone at 8/9, nose leg still out")
 	mig.free()
 
+	# Ours: the F-35I's bay doors open on bay_open and shut again; the F-16's pilot borrowed.
+	var f35: Node3D = AircraftModel.create("f35i", -1, false)
+	root.add_child(f35)
+	var door: Node3D = f35.part_node("BayLo")
+	var shut: Basis = door.transform.basis
+	f35.update({"bay_open": true}, 0.0)
+	f35.update({"bay_open": true}, 1.0)
+	check(f35.bay_fraction() == 1.0 and not door.transform.basis.is_equal_approx(shut), "F-35I bay doors open in 0.5 s")
+	f35.update({"bay_open": false}, 1.0)
+	check(f35.bay_fraction() == 0.0 and door.transform.basis.is_equal_approx(shut), "F-35I bay doors shut")
+	check(f35.part_node("pilot").get_child_count() == 1, "F-35I flies the F-16's pilot")
+	f35.free()
+
 	# In a mission: the F-16 follows the flight model's gear ramp.
 	var tv = await start_mission(311)
 	check(tv.aircraft != null and tv.aircraft.desc.name == "f16", "mission jet is the generic F-16 model")
