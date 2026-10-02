@@ -14,7 +14,6 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 | Envelope math | float32 / x87 | f64 | last-digit rounding only | flight-model.md §15.9 |
 | Flight channels | sampled with the X-axis time; angles fmod 2π | each channel's own base time (re-based together); angles wrapped ±180° | negligible difference | flight-model.md §15.11 |
 | Lift-ramp / β slopes | globals from the **last aircraft type set up** (leak between types) | each aircraft keeps its own | only matters with several flight-model types | flight-model.md §10 |
-| Low ejection | opens the in-flight TSD | ends the flight | not wired yet (the FlyTSD itself exists, views.md §1) | part-animation.md, mission-runtime.md |
 | Parachuter | freezes at "land − 10 s" (factor 4) | descends to 20 m AGL | original bug; flight has ended by then in single player | part-animation.md |
 | Frame-rate-dependent effects | canopy spin 10°/frame, smoke puffs once per frame, flame flicker per frame | time-based (smoke 30 Hz) except the flame flicker | same look at any frame rate | damage.md, aircraft.md |
 | Explosions, smoke, afterburner flame | 1998 sprites / blend modes (partly not decoded) | our soft billboards / additive glow, original sizes and timings | rendering | damage.md §6, aircraft.md |

@@ -94,7 +94,8 @@ level 5 at a failed landing check, water, rough ground), collisions (§7), the d
 - **Final `FUN_004a86b0`:** the explosion at the unit's position (`FUN_0059df20`, §6); the destroyed model; the
   unit's sounds stop (`FUN_004c4310`); its smoke stops (`FUN_004d1ff0`); the brain ends; the role accounting
   `FUN_00599da0` (docs/mission-runtime.md §5.1). For the player, unless every player is dead, game event 0x7f
-  (FlyTSD) 6.5 s later (0x8321a8; not ported: our flight ends instead; the FlyTSD itself is Esc, docs/views.md §1).
+  (FlyTSD) 6.5 s later (0x8321a8). In single player the player is the only player, so this never fires and rule 1 ends the
+  flight (as ours).
 
 ### 3.3 The destruction motion (motion 0x14, DestructionMotion.cpp)
 Created by `FUN_00465c19` at 1 → 3 (`FUN_00464a43(0x14)`, vtable 0x602520); it replaces the unit's motion — for the

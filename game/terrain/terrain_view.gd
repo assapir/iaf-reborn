@@ -2197,7 +2197,13 @@ func _eject() -> void:
 	if eject_short:
 		if aircraft != null:
 			aircraft.canopy_gone = true
-		_end_flight(runtime != null)
+		# Game event 0x7f at t0 (docs/mission-runtime.md §5.4): the flight view closes into the FlyTSD (the sim
+		# freezes, event 0x75); rule 1's event 0x82 (the debrief) comes 5 s of sim time later, i.e. after the
+		# player leaves the FlyTSD (UNCERTAIN: how the two interact in the original). Without a mission: the end.
+		if runtime != null:
+			_open_front_end("flytsd")
+		else:
+			_end_flight(false)
 		return
 	# Fly-by view on the jet (docs/mission-runtime.md §5.4): {1500, 900, −200, −10°, ·, 120°}, scale 2,
 	# RandomFlyby; the parachuter's at t0 + ParachuterFlyBy (5 s) in _eject_update.
