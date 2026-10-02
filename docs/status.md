@@ -21,6 +21,8 @@
 - ~~RWR (list, lights, sounds, MFD page / panel dial, F5 threat), radar MAP picture~~ — done (docs/rwr.md, docs/mfd.md
   §4); nothing locks the player until AI combat / SAMs. ~~Other MFD pages (FLIR / TV / HARM)~~ — done (docs/mfd.md: EO camera, HARM list from the RWR; TV / HARM weapons, full-screen weapon MFD, NAV ETA still open).
 - Detached-looking stores.
+- ~~Helmet sight DASH~~ — done (weapons.md §5.4: the helmet display in `Dash` 1 cockpits, the IR seeker off-boresight in
+  free look / padlock within the generation cone).
 - ~~Joystick / throttle / pedals~~ — done, untested on hardware (docs/controls.md §5).
 - ~~Other jets flyable~~ — done: the Jet list's seven (tests/godot/test_jet_list.gd), the Kfir / Mirage shared data
   with Flight data = Original.

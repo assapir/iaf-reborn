@@ -35,7 +35,8 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 | Joystick force feedback | `iaforce.ifr` effects on FF sticks | none | not ported | controls.md §5.1 |
 | Autopilot level mode, ground watch | KeepOrientation posts an uninitialised throttle slot when the ground watch takes over | that slot starts at 0 (the watch's 250 m/s law applies) | undefined value in the original | autopilot.md §2.1 |
 | Waypoint sequencing | each pass schedules the "waypoint report" radio at +3 s; next waypoint also calls `440e90(index)` | neither (radio not built; target of `440e90` not traced) | not built | autopilot.md §2.2 |
-| Weapon HUD geometry | the HUD projector (not traced) | seeker / circle offsets at 12 px/deg from the boresight | projector untraced | weapons.md §5.1 |
+| Weapon HUD geometry | the HUD projector (not traced) | seeker / circle angles at 12 px/deg from the camera ray through the HUD centre | projector untraced | weapons.md §5.1 |
+| Helmet sight in snap views | the seeker's helmet branch tests the view type (free look 0x12 / padlock 0x16); the snap views' slot-2 type is not traced | snap views (numpad / F2) stay on the nose case | type UNCERTAIN | weapons.md §5.4 |
 | AA gun LCOS start | rate filters from untraced first values | start from the attitude at mode entry | avoids a 1 s pipper jump | weapons.md §3.7 |
 | Gun candidate list order | the spatial query's order | nearest first | order untraced | weapons.md §3.3 |
 | Weapon targets | every object in the spatial database | units with a model (sensors / logic nodes left out) | UNCERTAIN whether they are in it | player_weapons.gd |
@@ -49,7 +50,6 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 | Rocket box | drawn per FUN_0053e430 (empty box behaviour not traced) | one LAU-61 box per rocket pylon, kept when empty | UNCERTAIN | weapons.md §9.7 |
 | HUD lines and text | GDI 1 px pen, Arial h10 w5, the 5x5 sprite font, at 640x480 | the same geometry ×ui scale: lines max(1, 0.6·scale) px, Arial squeezed to the 5 px average width, sprite glyph pixels as scale-sized squares | crisp at screen resolution | cockpit.md "HUD symbology", hud.gd |
 | HUD text rows of the weapon timers | rows 4 / 5 in HUD modes 1, 2, 4, 8: "%2d SEC" / "%2d" of S+0x380, "AUD" (S+0x3a4) (mode 5's "%2d SEC" / "XX SEC" of S+0x638 is built) | left empty | the timers are not traced / built | cockpit.md "HUD symbology" |
-| HUD dash repeater | `Dash` 1 and the panel panned ≥ 250 px aside or ≥ 200 px down: the scales / text drawn at a fixed spot, no ladder, `FUN_00539ac0` | not built | the head pans of ours rarely go that far; `FUN_00539ac0` untraced | cockpit.md "HUD symbology" |
 | HUD waypoint marker behind the eye | the projection's result (`FUN_00402000`, untraced for points behind) | held on the field's edge toward the point's direction | untraced | hud.gd `_draw_waypoint_marker` |
 | HUD NAV cues rate | S+0x58 / 0x5c / 0x60 / 0x324 refreshed when the waypoint object runs (`FUN_00452e60`, state 5; rate UNCERTAIN) | every frame | UNCERTAIN rate | hud.gd `nav_cues` |
 | Jettisoned tanks | fall as objects | vanish | the falling store comes with the bombs | weapons.md §2.6 |
