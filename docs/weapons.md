@@ -70,6 +70,17 @@ x = −glTF x, y = glTF z (aft), z = up) from the attach point P and the store m
 Drawn (`FUN_0053e430`, any aircraft with a controller): `count` stores at slot[0..count−1] — a released store
 disappears (the highest slot) — only with Preferences > Graphics EXTERNAL STORES on and within 9000 m of the camera.
 
+**Pylons.** The original has no pylon object: `FUN_0053e430` draws only the store models, `FUN_0053c1f0` attaches only
+the store (weapon record +0x1c) and the 560 rocket box, and neither the bdb Weapons nor the Objects records have a
+pylon / rail field ("Pilon" in the code is the pilot eye or the store's lug helper). The pylons are **part of each
+jet's model**: thin vertical double-sided quads (F-16: material `f16_2side1`, alpha mask, UV v 1.07–1.11 with repeat)
+under stations B..D / F..H, from the wing to ≈ 0.1 model units below the attach point (the wingtip rails A / I have
+none). So they are always drawn, loaded or not, stay after a release, and EXTERNAL STORES does not hide them. The
+store's lug (its `pilon` helper) sits at the attach point, inside the pylon's lower edge. Seen from ahead / behind /
+below the quads are edge-on and nearly invisible, which makes the stores look detached — as in the original. Ported
+as is (the converted models carry the quads; test `test_pylons.gd` checks the geometry under every wing station of
+the six flyable models).
+
 ### 2.3 Selection (`FUN_0053b8b0`)
 ']' (event 0x3e) next AA, '[' (0x3c) next AG; **Shift+[ / Shift+] send the same events (forward, not back)**. Only when
 not releasing / firing. The cycle walks stations 0..9 by distinct name, restarting after 9 or when the kind changes;
