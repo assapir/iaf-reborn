@@ -79,8 +79,8 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 - **Terrain**: map-edge push-back / EndWorld and craters (terraintype bits known, systems missing); no elevation
   west of Suez in the original data (flat −557 m, kept).
 - **Flight**: the seven Jet list jets fly (the two MiGs are AI-only, as in the original); systems damage doesn't affect flying yet; no hook, map-edge push-back.
-- **Combat**: player gun, IR missiles, radar lock, chaff / flares (no bombs, rockets, radar missiles, TV / laser,
-  HARM); no AI combat (AI jets fly, don't fight), no AAA / SAMs (so no combat mission can be won yet).
+- **Combat**: player gun, IR missiles, radar lock, chaff / flares, bombs (CCIP / delayed, ripple, cluster), rockets
+  (no radar missiles, TV / laser guidance, HARM); no AI combat (AI jets fly, don't fight), no AAA / SAMs (so no combat mission can be won yet).
 - **Cockpit / MFDs**: ECM, the full-screen weapon MFD (Z), the NAV ETA, HARM "In Range" (DLZ), the TV weapons' TRA / TER; the RWR's feeds (AI sensors, SAMs, enemy missiles);
   ECM light has no system; night lighting; what uses the radar's designated point.
 - **Controls**: joystick untested on real hardware (one device; no force feedback); not built: FlyTSD Fly into another
