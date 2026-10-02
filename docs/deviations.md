@@ -115,6 +115,11 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
   all 115 labelled ones so the stick, rudder, RPM ± 5 and pans can be rebound — controls.md §3). Later: Real HUD, extra sounds, canopy open (docs/roadmap.md).
 
 - **Preferences → Graphics**: a VSYNC check (ours) in the empty strip left of DEFAULT, default on.
+- **Preferences → Extras → Anti-aliasing / Terrain close up / Sky** (ours, docs/rendering.md): rendering only, first
+  choice = the look before. Anti-aliasing MSAA 4× (as before) / + FXAA / TAA (instead of MSAA); Terrain close up:
+  a procedural detail texture and normal detail on the terrain within 1.5 km (mean 1, so colours from afar are the
+  imagery's) and 16× anisotropic filtering; Sky: Atmospheric = a single-scattering sky shader with the sun's disc
+  and the fog colour taken from it (aerial perspective), same fog density.
 - **Preferences → Extras → terrain imagery** (ours, docs/imagery.md): one row per region (Israel / outside
   Israel), default "Original (1998)". A converted modern layer (Sentinel-2 10 m outside Israel, in 1998 or modern
   colours; later Survey of Israel 2 m, SPOT 5) replaces the original's ground texture only on land in its region,

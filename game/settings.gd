@@ -105,7 +105,7 @@ var vsync := true
 var imagery_israel := "original"
 var imagery_outside := "original"
 ## Render options for high resolutions (ours, Extras page; docs/rendering.md, terrain/render_options.gd):
-## anti-aliasing "msaa4" (as before) / "msaa4_fxaa" / "taa" (MSAA 4× + TAA); the terrain close up (detail texture, normal detail,
+## anti-aliasing "msaa4" (as before) / "msaa4_fxaa" / "taa" (TAA instead of MSAA); the terrain close up (detail texture, normal detail,
 ## 16× anisotropic filtering); the sky "original" (gradient) or "atmospheric" (physical scattering, sun disc).
 var antialiasing := "msaa4"
 var terrain_closeup := false

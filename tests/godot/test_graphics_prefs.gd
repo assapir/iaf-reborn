@@ -115,7 +115,7 @@ func run() -> void:
 	Settings().terrain_closeup = true
 	Settings().sky = "atmospheric"
 	tv.apply_render_options()
-	check(vp.msaa_3d == Viewport.MSAA_4X and vp.screen_space_aa == Viewport.SCREEN_SPACE_AA_DISABLED and vp.use_taa, "anti-aliasing + TAA")
+	check(vp.msaa_3d == Viewport.MSAA_DISABLED and vp.screen_space_aa == Viewport.SCREEN_SPACE_AA_DISABLED and vp.use_taa, "anti-aliasing TAA (instead of MSAA)")
 	check(vp.anisotropic_filtering_level == Viewport.ANISOTROPY_16X and RO.terrain_detail > 0.0,
 			"terrain close up: 16x anisotropic, terrain detail on")
 	var fog_density := env.fog_density

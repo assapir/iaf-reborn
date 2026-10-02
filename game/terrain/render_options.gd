@@ -8,7 +8,7 @@ extends RefCounted
 const AA := {
 	"msaa4": [Viewport.MSAA_4X, Viewport.SCREEN_SPACE_AA_DISABLED, false],
 	"msaa4_fxaa": [Viewport.MSAA_4X, Viewport.SCREEN_SPACE_AA_FXAA, false],
-	"taa": [Viewport.MSAA_4X, Viewport.SCREEN_SPACE_AA_DISABLED, true],
+	"taa": [Viewport.MSAA_DISABLED, Viewport.SCREEN_SPACE_AA_DISABLED, true],
 }
 
 ## Terrain close up: the detail texture's strength (0 = off; global shader parameter, terrain.gdshader).
