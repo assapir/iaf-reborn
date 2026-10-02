@@ -422,7 +422,8 @@ geometry and the hangar flags, and occupy the runway zones for the player's towe
 One-shot scheduler events, radio / subtitle only, friendly units with a callsign: WayptReport (+3 s after WayPtSet
 moves on; "X passing waypoint N"), AirborneReport (+3 s, TakeoffCL at 100 m AGL), LandedReport (+3 s, StopPlane),
 CrashedReport (+2.5 s), kill reports (+5 s), EjectReport; a 12 s AWACS contact timer (first call ≈ 60 s, 30 nm
-around the player). Not ported yet (voices of the AI).
+around the player). Traced in docs/radio.md §4; the waypoint report is built (`ai_flights.gd` posts it when the
+autopilot's waypoint index moves on), the others are not yet.
 
 ## 11. Flight model: AI cases
 `ai = FUN_005c89f0() != 0` (the mode of §8.1). Ported in `crates/iaf-flight/src/aircraft.rs` (fields `ai_mode`,
@@ -445,7 +446,8 @@ its Tower point, the engine test its Lineup point.
 - `game/ai/brain.gd`: the rule engine (§2–§6); combat measures and actions are hooks (`combat_hook`).
 - `game/ai/ai_flights.gd`: every brain-controlled aircraft (class 0x1c) with an FM type flies (one IafFlight, the
   aircraft model at the Present scale); `contacts()` for radar / RWR; ops 21 / 22 via `mission_runtime.gd`.
-- Not yet: combat (targets, weapons, the combat manoeuvres), wingman commands, radio reports (§10), helicopters,
+- Wingman commands (docs/radio.md §3): `radio.gd` sets the wingman brain's command / target; its bdb rules answer.
+- Not yet: combat (targets, weapons, the combat manoeuvres), the radio reports other than the waypoint (§10), helicopters,
   AI on MISSION-controlled units (their brain runs without manoeuvres: not started), network paths.
 - Tests: `test_ai_flight.gd` (mission 221: 13 AI jets navigate, wingmen in formation, a take-off from Ramon).
 

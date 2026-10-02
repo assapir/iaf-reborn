@@ -197,4 +197,4 @@ The stall buffet and touchdown / off-runway rumble are DirectInput force-feedbac
 * v1.1: the sound code audited here (engine and flight sounds `FUN_0044fe30`, `FUN_00447e70` with the byte table
   `0x448094`, the mute toggle) is unchanged. The only data change is the tower phrase key `CHARLY_T` → `CHARLIE_T` in
   `phraseparticalsdata.trx`: the key is built from the callsign, so with v1.0 data the tower cannot say "Charlie"
-  (v1.0 behaviour, kept). The radio phrases are not ported yet.
+  (v1.0 behaviour, kept). The radio phrases: docs/radio.md (`radio.gd`, on the phrase channel 101).

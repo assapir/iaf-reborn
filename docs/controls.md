@@ -155,7 +155,7 @@ original's `WM 0x532` wParam; p1 / p2 as stored.
 | 44 | Laser on/off | L |  | (106, 0, 0) |  | yes | laser flag (FLIR pod only; the designation is not built: laser bombs fall free, weapons.md §9.8) |
 | 45 | NAV mode on | N |  | (98, 0, 0) |  | yes | master mode NAV (weapons.md §4) |
 | 46 | Change HUD color | H |  | (123, 0, 0) |  | yes | HUD colour |
-| 47 | Contact tower | Ctrl + T |  | (107, 0, 0) |  | yes | — |
+| 47 | Contact tower | Ctrl + T |  | (107, 0, 0) |  | yes | the tower: in the air near an Israeli base "proceed to runway" and the landing calls; near no tower / an Arab base a radio click; on the ground nothing (the tower talks by itself; docs/radio.md §2) |
 | 48 | Pan EO weapon/FLIR up | Ctrl + Up |  | (140, 0, 100) | (140, 0, 0) | no | EO camera slew / lock on release (mfd.md) |
 | 49 | Pan EO weapon/FLIR left | Ctrl + Left |  | (139, -100, 0) | (139, 0, 0) | no | EO camera slew / lock on release (mfd.md) |
 | 50 | Pan EO weapon/FLIR right | Ctrl + Right |  | (139, 100, 0) | (139, 0, 0) | no | EO camera slew / lock on release (mfd.md) |
@@ -206,12 +206,12 @@ original's `WM 0x532` wParam; p1 / p2 as stored.
 | 95 | Zoom in | Numpad + |  | (20, -1, 0) | (20, 0, 0) | yes | orbit distance (external); cockpit art zoom, one step (ours); the release zooms the EO camera |
 | 96 | Zoom out | - |  | (21, -1, 0) | (21, 0, 0) | yes | orbit distance (external); cockpit art zoom, one step (ours); the release zooms the EO camera |
 | 97 | Zoom in | = |  | (20, -1, 0) | (20, 0, 0) | yes | orbit distance (external); cockpit art zoom, one step (ours); the release zooms the EO camera |
-| 98 | Engage other target | Alt + W |  | (108, 4, 0) |  | yes | — |
-| 99 | Engage my target | Alt + E |  | (108, 3, 0) |  | yes | — |
-| 100 | Tactical formation | Alt + T |  | (108, 5, 0) |  | yes | — |
-| 101 | Protect me | Alt + P |  | (108, 1, 0) |  | yes | — |
-| 102 | Close formation | Alt + C |  | (108, 6, 0) |  | yes | — |
-| 103 | Go home | Alt + B |  | (108, 2, 0) |  | yes | — |
+| 98 | Engage other target | Alt + W |  | (108, 4, 0) |  | yes | wingman command 4 → the wingman's brain, negative reply if it cannot (docs/radio.md §3) |
+| 99 | Engage my target | Alt + E |  | (108, 3, 0) |  | yes | wingman command 3 → the wingman's brain, negative reply if it cannot (docs/radio.md §3) |
+| 100 | Tactical formation | Alt + T |  | (108, 5, 0) |  | yes | wingman command 5 → the wingman's brain, negative reply if it cannot (docs/radio.md §3) |
+| 101 | Protect me | Alt + P |  | (108, 1, 0) |  | yes | wingman command 1 → the wingman's brain, negative reply if it cannot (docs/radio.md §3) |
+| 102 | Close formation | Alt + C |  | (108, 6, 0) |  | yes | wingman command 6 → the wingman's brain, negative reply if it cannot (docs/radio.md §3) |
+| 103 | Go home | Alt + B |  | (108, 2, 0) |  | yes | wingman command 2 → the wingman's brain, negative reply if it cannot (docs/radio.md §3) |
 | 104 | Chat: Compose message to all players | ~ |  | (137, 0, 0) |  | yes | — |
 | 105 | Chat: Compose message to friends | Alt + ~ |  | (137, 1, 0) |  | yes | — |
 | 106 | Chat: Compose message to foes | Shift + ~ |  | (137, 2, 0) |  | yes | — |
@@ -233,7 +233,8 @@ Notes on the list:
 * Snap views (28–36): command 22 with (angle, n) and release (22, −1, −n); padlock / external views
   (73–84) are command 28 with the view id.
 * 86–93: view pan with Shift + Numpad 8/2/4/6 (listed) and Shift + arrows (not listed).
-* Wingman commands (98–103) use Alt; the chat keys (104–107) use `~` with modifiers.
+* Wingman commands (98–103) use Alt (command 108, p1 = the command; docs/radio.md §3); the chat keys (104–107) use `~`
+  with modifiers.
 * Cheats (108–115) and screen capture (116, SysRQ) are not listed.
 
 ## 4. Unlabelled and cheat commands

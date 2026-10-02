@@ -47,9 +47,13 @@ RunwayNumber (int degrees), +0x4f0 hangar count, +0x4f4 hangar taken flags.
 
 Zones (`5bea90(r, nx, ny, nz, pose)`: nx·ny·nz spheres of radius r, centres 2r apart about the pose, local y along the
 heading). Both at the LineupLoc, heading = RunwayNumber wrapped to (−180, 180]:
-- runway zone +0x331c: r 1500, 1 × 30 × 1 → a corridor ±43.5 km (+r) along the runway, 3 km wide and high
-  (`550850`);
-- lineup zone +0x3344: r 100, 1 × 4 × 1 → ±400 m along the runway, 200 m wide (`550b20`).
+- runway zone +0x331c: r 1500, 1 × 30 × 1 → centres ±43.5 km along the runway (`550850`);
+- lineup zone +0x3344: r 100, 1 × 4 × 1 → centres ±300 m along the runway (`550b20`).
+
+The query (`4d2580` → `43d020`) lists the registered objects (aircraft leave the list at state 5, `4a86b0`) whose
+bounding sphere (radius ro = the collision radius, 0.25 · the model's extents) meets a cell with
+**|p − c|² < (r + ro)² · 3** (0x6006b8 = 3.0): each cell reaches (r + ro)·√3, i.e. ≈ 205 m around the lineup cells for
+an F-16 (ro ≈ 18.8 m) and ≈ 2.6 km around the runway corridor's.
 
 Manager fields: +0x3318 current base (−1 none), +0x336c state, +0x3370 timer, +0x3374 timer period, +0x337c runway
 clear, +0x3388 last message (0xb = none).
@@ -162,6 +166,11 @@ formation leader), if alive; else search around T for its class. Without a targe
 class. Search: within 9270 m, not the player nor W, alive, class ∈ {0x1c, 2, 3, 1, 10, 9, 8, 0xb, 0xd, 0x1d, 0x1e,
 5, 6, 0xf, 0x10}, (around T: the same class as T, not T), hostile; the nearest. Only a hostile result is returned.
 
+**Original quirks kept:** "engage other target" takes the nearest unit of *another side* (`4a4cf0`), so near your
+own base it can pick a side-0 object (mission 221: the Ramon tower); a sub-brain that answers a new command by going
+back to the base list (`setRules(0, 1)`, `440790`) keeps +0x48, so the base list then answers it (e.g. bug out while in
+close formation).
+
 **What the wingman does** is in its bdb brain: condition 29 (own brain +0x48) rules switch to a sub-brain (action
 1000, which clears +0x48) and fire a type-7 response with the reply audio, e.g. "AA wing command" brains 49–52 / 60:
 6 → sub-brain 40 + "Roger, closing formation." (audio 250), 5 → 44 + "Roger, going tactical." (251), 2 → 41 +
@@ -207,5 +216,7 @@ instruction) and ACFT_FCTRL_SHORT; the description / instruction pairs are frien
 - The phrase channel queues (the parts of one phrase must follow each other); whether a new phrase waits for or cuts
   a running one is not traced (queued here). Mission voices (`_voice`) still replace each other.
 - The hangar entry −1 (uninitialised memory) read as "no hangar".
+- The tower's object lists: the port tests the player and the mission's class-0x1c units (AI jets at their flight
+  model positions and speeds, others standing) against the zones; static wrecks (state 4) still count.
 - The zone frame's local y along the runway heading (the chains are symmetric, so only the axis matters).
 - A missing particle key: the entry keeps its previous wav / text (stale); here the part is skipped.

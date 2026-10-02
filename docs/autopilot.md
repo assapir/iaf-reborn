@@ -80,8 +80,8 @@ if near && mode != 2: return
 if +0x44 + 1 < count:  next waypoint (4532a0); +0x40 = distance to it; event "FlightControllerWayptReport" at +3 s
 ```
 Next / previous waypoint (`4532a0` / `453370`, also the W / Shift+W keys) wraps the index, clears +0x48, sets +0x40 =
-1112400, and in NAV posts motion 0xf (2, new index). Not built: the 3 s waypoint-report radio (`54dc00`) and the
-`440e90(index)` call of `4532a0` (its target object was not traced).
+1112400, and in NAV posts motion 0xf (2, new index). The waypoint-report radio (`54dc00`, 3 s later) is built
+(docs/radio.md §4); not built: the `440e90(index)` call of `4532a0` (its target object was not traced).
 
 ### 2.3 Landing (GoHomeCL in FM mode 0)
 - Gear and flaps go down at landing step 7, as for the AI. The commands reach the levers through the controller.

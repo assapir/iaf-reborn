@@ -80,9 +80,10 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 | Cockpit | all 9 original 2D cockpits (docs/cockpit.md): round gauges, attitude indicators, vario / AoA tapes, HUD (11 colours, traced symbology incl. ILS and the waypoint marker), panel lights; MFDs (docs/mfd.md: radar incl. the MAP picture, TSD, RWR page, NAV, stores, damage, FLIR / TV with the EO camera, HARM); RWR (docs/rwr.md); helmet sight DASH (docs/weapons.md §5.4) |
 | Aircraft models | all 22 models: moving parts per the original rules, gear, afterburner flame, canopy / pilot, damage visuals |
 | Sounds | original sound table: engine, gear, flaps, air brake, AoA tone, Betty warnings, touchdown, crash; volume sliders |
+| Radio | docs/radio.md: the phrase engine (word wavs + subtitle); the tower by itself on the ground (taxi / line up / hold / take-off) and Ctrl+T in the air (proceed to runway, cleared to land, gear not down, go around, taxi to hangar; a click elsewhere); wingman commands Alt+P/B/E/W/T/C on the AI wingman's brain (its bdb "Roger" replies, "negative" when it cannot); waypoint and eject reports. Not yet: AWACS contact calls, airborne / landed / crashed / kill reports |
 | Terrain | all of `map.ptt` (levels 11..6 + all 51 insets, 2342 nodes) as a streamed quadtree with distance LOD to 200 km, level-6 heights with the original's inset interpolation, skirts; runway digits surveyed on every airbase (2 mirrored fixed); `terraintype.dat` surface types (water / rough / runway) feed the flight model; loaded behind the wait screen (docs/formats/ptt.md) |
 | Pilot records | screen 0 at startup (docs/front-end.md §13): pilot list, Dossier (edit boxes, photo, rank, score, missions), Records / Kills / Losses, New / Remove / Login; each debriefed flight recorded (result, MissBonus, destroyed units as kills / losses, score multiplier), best-attempt score and rank, the briefing's "<rank> <name>"; Future Missions 2–7 locked until the previous pass; JSON in the user dir. Not filled yet: kills / losses only from what the damage code destroys (no AI weapons / SAMs), the debrief page's own statistics |
-| Tests | `tools/test.sh`: Rust + 46 headless Godot tests (`tests/godot/test_*.gd`), isolated from the player's settings; fails on any script error or a 300 s timeout |
+| Tests | `tools/test.sh`: Rust + 47 headless Godot tests (`tests/godot/test_*.gd`), isolated from the player's settings; fails on any script error or a 300 s timeout |
 
 ## Open gaps (by area)
 - **Terrain**: map-edge push-back / EndWorld and craters (terraintype bits known, systems missing); no elevation
@@ -99,7 +100,7 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 - **Front end**: Reference screen content (docs/front-end.md §14), TSD 3D-model / target
   windows; Graphics prefs: SHADOWS not limited to the day (no time of day yet), no terrain resolution drop
   (docs/deviations.md §1); No wind / No malfunctions have no reader in the original either.
-- **Eject details**: callsign in the radio call, parachute landing.
+- **Eject details**: parachute landing.
 
 ## Decisions (agreed with the user)
 - Airbase runway/apron underlay models stay hidden (the imagery shows the airbase) unless it stops looking good.

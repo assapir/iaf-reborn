@@ -510,7 +510,7 @@ fire on ejection, because the jet is not destroyed. UNCERTAIN: whether the still
 **Port:** `mission_runtime.gd` `player_ejected()` runs the role rules for the player at once and ends the flight
 into the debrief 5 s later (event 0x82); the jet's later crash does not count again. A short ejection (AGL < 50 m,
 or < 200 m with |roll| > 90°) opens the FlyTSD at once (event 0x7f); the debrief follows 5 s of sim time after the player leaves it (UNCERTAIN in the original). Without a
-mission the flight ends after 5 s. The radio plays `gejected.wav` at +4.5 s (the callsign part is not ported).
+mission the flight ends after 5 s. The radio says "<callsign> ejected" (EJECTED_PHRASE, docs/radio.md §4) at +4.5 s.
 
 ### 5.5 Landed handler (`FUN_00440f90`)
 The flight model calls it at a gear-down touchdown of the player that passes the landing check, while the
