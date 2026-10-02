@@ -133,6 +133,8 @@ const EXTRAS := [
 	["hud_ladder", "HUD pitch ladder", [["Original", "original"], ["Conformal", "conformal"]]],
 	["show_all_keys", "All keys on the Keyboard page", [["Original", false], ["All", true]]],
 	["fullscreen", "Window", [["Framed", false], ["Full screen", true]]],
+	# Ours: set while the lever sits in its detent (the click); the detent then maps to MIL (joystick.gd).
+	["throttle_detent", "Throttle detent = MIL", [["Off", -1], ["Set at lever", "set"]]],
 	# Render options for high resolutions (terrain/render_options.gd, docs/rendering.md); first = as before.
 	["antialiasing", "Anti-aliasing", [["MSAA 4x", "msaa4"], ["+ FXAA", "msaa4_fxaa"], ["TAA", "taa"]]],
 	["terrain_closeup", "Terrain close up", [["Original", false], ["Detailed", true]]],
@@ -1121,6 +1123,8 @@ func _extras_items() -> Array:
 				r.position.x = CONTENT.size.x - r.end.x
 			var value = choices[j][1]
 			var available: bool = not (typeof(value) == TYPE_STRING and value == "he" and not Settings.hebrew_available())
+			if typeof(value) == TYPE_STRING and value == "set":
+				available = Joystick.device() >= 0  # needs the lever
 			if String(opt[0]).begins_with("imagery_"):
 				available = ImageryLayers.available(String(value))
 			items.append({"rect": r, "key": opt[0], "value": value, "label": choices[j][0], "available": available})
@@ -1174,7 +1178,10 @@ func _draw_extras() -> void:
 			r.position.x = CONTENT.size.x - r.end.x
 		_text_fit(Rect2(CONTENT.position + r.position, r.size), _art(rows[i][1]), LIST_TITLE_PX, LIST_TITLE, font_art)
 	for it in _extras_items():
-		_draw_option(it.rect, it.label, pref_work.get(it.key) == it.value, 10, 4, it.available)
+		var on: bool = pref_work.get(it.key) == it.value
+		if it.key == "throttle_detent" and typeof(it.value) == TYPE_STRING:
+			on = int(pref_work.get(it.key, -1)) >= 0
+		_draw_option(it.rect, it.label, on, 10, 4, it.available)
 
 
 ## Physics page (ours): one check per "Better physics" option (rows of 20 px from y 45, LEDs
@@ -1320,7 +1327,7 @@ func _pref_press(q: Vector2) -> bool:
 			return true
 		for it in _extras_items():
 			if it.available and it.rect.has_point(q):
-				pref_work[it.key] = it.value
+				pref_work[it.key] = Joystick.raw_throttle() if typeof(it.value) == TYPE_STRING and it.value == "set" else it.value
 				return true
 		return false
 	if page == "Physics":

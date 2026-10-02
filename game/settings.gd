@@ -104,6 +104,8 @@ var vsync := true
 ## (terrain/imagery_layers.gd), e.g. "sentinel2" / "sentinel2_modern" outside Israel.
 var imagery_israel := "original"
 var imagery_outside := "original"
+## Ours (Extras): the throttle lever's detent (raw 0..100) that maps to MIL; −1 = off, the original's linear lever.
+var throttle_detent := -1
 ## Render options for high resolutions (ours, Extras page; docs/rendering.md, terrain/render_options.gd):
 ## anti-aliasing "msaa4" (as before) / "msaa4_fxaa" / "taa" (TAA instead of MSAA); the terrain close up (detail texture, normal detail,
 ## 16× anisotropic filtering); the sky "original" (gradient) or "atmospheric" (physical scattering, sun disc).

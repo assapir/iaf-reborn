@@ -8,10 +8,6 @@
   original reads four (x, y, throttle, rudder). Later: an Extras option to give a spare axis a role (e.g. zoom, panel
   slide, head pan, rudder on the rocker instead of the twist) and an axis-mapping row instead of editing
   `[devices] joy_axes` by hand.
-- **Throttle detent = MIL** (Extras, later): the original maps the lever linearly, so MIL (74 %, the "6" key) and AB1
-  (78 %) fall wherever they fall on the lever, not at a physical detent (e.g. the Hotas X's click). Option: measure
-  the detent's raw value once and map lever → throttle piecewise so the detent is exactly MIL and the travel past it
-  is afterburner.
 - **High-detail F-16 model** to replace the 1998 mesh (~800 triangles): candidate is FlightGear's F-16 (check the licence) or a CC-licensed model. Keep the original dimensions, hinge points (`<part>1/2` helpers), weapon stations, camera eye point and IAF markings; fit it and repaint onto the new UVs.
 - **Modern DEM** (SRTM / Copernicus 30 m) for finer relief. (The modern imagery itself: Sentinel-2 outside Israel is
   done, docs/imagery.md; Survey of Israel 2 m / SPOT 5 are imagery phase 2, below.)

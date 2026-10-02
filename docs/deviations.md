@@ -113,6 +113,10 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
   blackbox, language, "All keys on the Keyboard page" (the original lists 92 of the 117 key records; the option lists
   all 115 labelled ones so the stick, rudder, RPM ± 5 and pans can be rebound — controls.md §3). Later: Real HUD, extra sounds, canopy open (docs/roadmap.md).
 
+- **Preferences → Extras → Throttle detent = MIL** (ours, off by default): "Set at lever" stores the lever position in its
+  detent; the lever then maps piecewise so the detent is MIL (74) and the travel past it afterburner (the original maps it
+  linearly) — joystick.gd `detent_map`, docs/controls.md §5.
+
 - **Preferences → Graphics**: a VSYNC check (ours) in the empty strip left of DEFAULT, default on.
 - **Preferences → Extras → Anti-aliasing / Terrain close up / Sky** (ours, docs/rendering.md): rendering only, first
   choice = the look before. Anti-aliasing MSAA 4× (as before) / + FXAA / TAA (instead of MSAA); Terrain close up:

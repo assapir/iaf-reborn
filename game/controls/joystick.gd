@@ -97,6 +97,25 @@ func _process(_delta: float) -> void:
 
 
 ## One FUN_004df560 pass: the events [id, p1, p2] of the axes and the hat that changed.
+## The lever as the original reads it (0 idle .. 100 forward), before our detent mapping; −1 without a device.
+func raw_throttle() -> int:
+	var d := device()
+	if d < 0:
+		return -1
+	var ax: Array = Settings.joy_axes if Settings.joy_axes.size() == 4 else [0, 1, 2, 3]
+	return 100 - _lin(Input.get_joy_axis(d, ax[2]), 100)
+
+
+## Ours (Extras "Throttle detent = MIL", off = −1): the lever's detent `d` maps to MIL (74, the "6" key) — the
+## travel below it to 0..74, above it to 74..100 (afterburner from 78). The original maps the lever linearly.
+static func detent_map(t: int, d: int) -> int:
+	if d <= 0 or d >= 100:
+		return t
+	if t <= d:
+		return int(round(t * 74.0 / d))
+	return int(round(74.0 + (t - d) * 26.0 / (100 - d)))
+
+
 func poll() -> Array:
 	var d := device()
 	if d < 0:
@@ -115,7 +134,7 @@ func poll() -> Array:
 			out.append([1, last_x, last_y])
 	if Settings.throttle == 1:
 		# MulDiv(lZ, −100, max − min) + 100 (@4df825): lever forward (axis −1) = 100.
-		var t := 100 - _lin(Input.get_joy_axis(d, ax[2]), 100)
+		var t := detent_map(raw_throttle(), Settings.throttle_detent)
 		if t != last_throttle:
 			last_throttle = t
 			out.append([9, last_throttle, 0])

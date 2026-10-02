@@ -226,3 +226,10 @@ func run() -> void:
 	fe.queue_free()
 	J.fake_devices = []
 	await frames(2)
+
+	# Ours: Extras "Throttle detent = MIL" maps the lever's detent to MIL (74), below it 0..74, above it 74..100.
+	var J2 = joy()
+	check(J2.detent_map(60, -1) == 60, "detent off: the original's linear lever")
+	check(J2.detent_map(85, 85) == 74 and J2.detent_map(0, 85) == 0 and J2.detent_map(100, 85) == 100, "detent 85: 85 -> MIL 74, ends kept")
+	check(J2.detent_map(42, 85) == 37 and J2.detent_map(90, 85) == 83, "detent 85: linear on both sides")
+
