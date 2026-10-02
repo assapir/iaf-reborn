@@ -94,7 +94,7 @@ Community mods (e.g. Hebrew briefings) can be imported as overlay packs — see 
 ## Terrain imagery data (optional)
 
 The 1998 imagery stays the default. Modern imagery is an opt-in layer per region (Israel / outside Israel), picked on
-Preferences → Graphics; a choice whose data is not converted is greyed out. Nothing is downloaded unless you ask:
+Preferences → Extras ("Imagery Israel", "Imagery outside Israel"); a choice whose data is not converted is greyed out. Nothing is downloaded unless you ask:
 
 ```sh
 tools/setup.sh --imagery sentinel2                  # alone: only the imagery steps, on an install set up before

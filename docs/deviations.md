@@ -14,7 +14,7 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 | Envelope math | float32 / x87 | f64 | last-digit rounding only | flight-model.md §15.9 |
 | Flight channels | sampled with the X-axis time; angles fmod 2π | each channel's own base time (re-based together); angles wrapped ±180° | negligible difference | flight-model.md §15.11 |
 | Lift-ramp / β slopes | globals from the **last aircraft type set up** (leak between types) | each aircraft keeps its own | only matters with several flight-model types | flight-model.md §10 |
-| Low ejection | opens the in-flight TSD | ends the flight | no in-flight TSD yet | part-animation.md |
+| Low ejection | opens the in-flight TSD | ends the flight | not wired yet (the FlyTSD itself exists, views.md §1) | part-animation.md, mission-runtime.md |
 | Parachuter | freezes at "land − 10 s" (factor 4) | descends to 20 m AGL | original bug; flight has ended by then in single player | part-animation.md |
 | Frame-rate-dependent effects | canopy spin 10°/frame, smoke puffs once per frame, flame flicker per frame | time-based (smoke 30 Hz) except the flame flicker | same look at any frame rate | damage.md, aircraft.md |
 | Explosions, smoke, afterburner flame | 1998 sprites / blend modes (partly not decoded) | our soft billboards / additive glow, original sizes and timings | rendering | damage.md §6, aircraft.md |
@@ -60,7 +60,6 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 | HUD text rows of the weapon timers | rows 4 / 5 in HUD modes 1, 2, 4, 8: "%2d SEC" / "%2d" of S+0x380, "AUD" (S+0x3a4) (mode 5's "%2d SEC" / "XX SEC" of S+0x638 is built) | left empty | the timers are not traced / built | cockpit.md "HUD symbology" |
 | HUD waypoint marker behind the eye | the projection's result (`FUN_00402000`, untraced for points behind) | held on the field's edge toward the point's direction | untraced | hud.gd `_draw_waypoint_marker` |
 | HUD NAV cues rate | S+0x58 / 0x5c / 0x60 / 0x324 refreshed when the waypoint object runs (`FUN_00452e60`, state 5; rate UNCERTAIN) | every frame | UNCERTAIN rate | hud.gd `nav_cues` |
-| Jettisoned tanks | fall as objects | vanish | the falling store comes with the bombs | weapons.md §2.6 |
 | Arming loads on the aircraft | both members of the flight (and every flight on Yes / DEFAULT) | the player's jet only (the tables are kept for every flight) | AI aircraft carry no stores yet | front-end.md §15 |
 | Esc on the Arming screen | not traced | acts as BACK (checks, "Use weapon load?", TSD) | the generic Esc went to Main without the question | front_end.gd |
 | AI watch-ground line of sight | terrain ray `0x4020d0` | 8 terrain samples along the segment | ray not decoded | ai.md §8.4 |
@@ -82,7 +81,7 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 | Pilot list box during panel slides | a frame child created after the slide-in (destroy order on leaving not traced) | drawn only while the left panel is fully in | order untraced | pilot_records.gd |
 | Pilot list / Dossier details | the scrollbar's track click page step not traced; an empty pilot list never occurs | track click pages 11 rows (as Arming / Controls); the last pilot is kept when the list is written even if blank | untraced / edge case | pilot_records.gd, pilots.gd |
 | Our keys Ctrl+F1 / F2 / F12 | — (no table record uses them) | quit box / cockpit ↔ external / info line (were on Esc, C, F2, F12 before those commands were built) | user decision | controls.md |
-| FlyTSD (Esc) | Fly can switch to another formation's aircraft; Visit; Ctrl+P there; units probably live | Fly / Esc / BACK return to your jet; Visit does nothing; no pause there; units at their mission start | not built (one flyable jet, Visit untraced) | views.md §1 |
+| FlyTSD (Esc) | Fly can switch to another formation's aircraft; Visit; Ctrl+P there; units probably live | Fly / Esc / BACK return to your jet; Visit does nothing; no pause there; units at their mission start | not built (taking over another jet; Visit untraced) | views.md §1 |
 | Views: unknown conventions | — | fly-by offset axes (x right, y forward, z up), orbit signs, object size = largest scaled-model dimension, visual lock at the screen centre | UNCERTAIN in the trace | views.md §4.4 |
 | HUD-only view (F1 twice) | viewport grows to 480 rows (projection centre moves); the HUD drawn at scale 2 around (320, 240) (`FUN_00530b70` case 5) | the cockpit projection kept, no panel / MFDs drawn, the HUD at the cockpit scale and place | keeps the HUD registered | views.md §4.4 |
 | Cockpit zoom keys | 20 / 21 enter free look with no motion (the zoom only sets culling) | our cockpit art zoom, one step per press | ours (kept) | views.md §4.4 |
@@ -121,7 +120,7 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
   imagery's) and 16× anisotropic filtering; Sky: Atmospheric = a single-scattering sky shader with the sun's disc
   and the fog colour taken from it (aerial perspective), same fog density.
 - **Preferences → Extras → terrain imagery** (ours, docs/imagery.md): one row per region (Israel / outside
-  Israel), default "Original (1998)". A converted modern layer (Sentinel-2 10 m outside Israel, in 1998 or modern
+  Israel), default "Original". A converted modern layer (Sentinel-2 10 m outside Israel, in 1998 or modern
   colours; later Survey of Israel 2 m, SPOT 5) replaces the original's ground texture only on land in its region,
   never on water, the game's airbases or the original's fine insets; heights, terrain types and missions stay the
   original's. The layer's credit (CC BY) shows on the loading screen. Data only via

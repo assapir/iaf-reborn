@@ -129,7 +129,7 @@ original's `WM 0x532` wParam; p1 / p2 as stored.
 | 18 | Autopilot level/navigation/off | A |  | (16, 0, 0) |  | yes | autopilot off → level → NAV → off (docs/autopilot.md); in NAV the throttle keys are dropped |
 | 19 | Flaps up/down | F |  | (12, 0, 0) |  | yes | flaps |
 | 20 | Landing gear up/down | G |  | (14, 0, 0) |  | yes | gear |
-| 21 | Fire extinguisher | X |  | (73, 0, 0) |  | yes | — |
+| 21 | Fire extinguisher | X |  | (73, 0, 0) |  | yes | fire extinguisher: one charge, puts out an engine fire (damage.md §5.3) |
 | 22 | Brakes in/out | B |  | (17, 0, 0) |  | yes | brakes |
 | 23 | Landing parachute | Shift + B |  | (19, 0, 0) |  | yes | drag chute: armed in the air, deployed on the ground / at touchdown, again = jettison (visual only in the original; with Flight data = Real it brakes, docs/real-aircraft.md §2.2) |
 | 24 | Pitch up | Up |  | (3, 0, 100) | (3, 0, 0) | no | stick pitch (held) |
@@ -152,7 +152,7 @@ original's `WM 0x532` wParam; p1 / p2 as stored.
 | 41 | FLIR on/off | I |  | (90, 6, 0) |  | yes | MFD: FLIR page + FLIR on, with a FLIR pod (not a toggle; mfd.md) |
 | 42 | Damage report | D |  | (90, 4, 0) |  | yes | MFD: damage |
 | 43 | ECM Jammer on/off | J |  | (70, 0, 0) |  | yes | — |
-| 44 | Laser on/off | L |  | (106, 0, 0) |  | yes | laser flag (FLIR pod only; what it designates: with the bombs) |
+| 44 | Laser on/off | L |  | (106, 0, 0) |  | yes | laser flag (FLIR pod only; the designation is not built: laser bombs fall free, weapons.md §9.8) |
 | 45 | NAV mode on | N |  | (98, 0, 0) |  | yes | master mode NAV (weapons.md §4) |
 | 46 | Change HUD color | H |  | (123, 0, 0) |  | yes | HUD colour |
 | 47 | Contact tower | Ctrl + T |  | (107, 0, 0) |  | yes | — |
@@ -163,13 +163,13 @@ original's `WM 0x532` wParam; p1 / p2 as stored.
 | 52 | Full screen weapon MFD | Z |  | (31, 0, 0) |  | yes | — |
 | 53 | Activate TSD on MFD | T |  | (90, 3, 0) |  | yes | MFD: TSD |
 | 54 | Master modes | M |  | (99, 0, 0) |  | yes | master mode cycle NAV / AA / AG + button click |
-| 55 | Deselect target | Backspace |  | (49, 0, 0) |  | yes | — |
+| 55 | Deselect target | Backspace |  | (49, 0, 0) |  | yes | radar: drop the lock (radar.md) |
 | 56 | Radar modes | Q |  | (36, 0, 0) |  | yes | radar mode cycle |
 | 57 | Radar on/AA/AG | R |  | (43, 0, 0) |  | yes | radar A-A / A-G |
-| 58 | Select next target | Return | Button 3 | (38, 0, 0) |  | yes | — |
-| 59 | Select previous target | Shift + Return |  | (39, 0, 0) |  | yes | — |
+| 58 | Select next target | Return | Button 3 | (38, 0, 0) |  | yes | radar: next target (radar.md) |
+| 59 | Select previous target | Shift + Return |  | (39, 0, 0) |  | yes | radar: previous target (radar.md) |
 | 60 | Radar standby | S |  | (44, 0, 0) |  | yes | radar standby |
-| 61 | Boresight mode on | \ |  | (45, 0, 0) | (46, 0, 0) | yes | — |
+| 61 | Boresight mode on | \ |  | (45, 0, 0) | (46, 0, 0) | yes | radar boresight while held (radar.md) |
 | 62 | Increase radar range | . |  | (33, 0, 0) |  | yes | radar range + |
 | 63 | Decrease radar range | , |  | (34, 0, 0) |  | yes | radar range − |
 | 64 | Fire gun | Tab | Button 1 | (66, 0, 0) | (67, 0, 0) | yes | gun: fire while held (gear down only with Safety off) |
@@ -177,22 +177,22 @@ original's `WM 0x532` wParam; p1 / p2 as stored.
 | 66 | Select next AA weapon | ] |  | (62, 0, 0) |  | yes | next AA store |
 | 67 | Back toggle AG weapons | Shift + [ |  | (60, 0, 0) |  | yes | next AG store (the same event: forward, as the original) |
 | 68 | Back toggle AA weapons | Shift + ] |  | (62, 0, 0) |  | yes | next AA store (the same event) |
-| 69 | Fire selected weapon | Space | Button 2 | (64, 0, 0) | (65, 0, 0) | yes | release the selected store (gun, IR missiles; HUD mode 1..8) |
-| 70 | Chaff | Insert |  | (68, 0, 0) |  | yes | — |
-| 71 | Flare | Delete | Button 4 | (69, 0, 0) |  | yes | — |
-| 72 | Jettison fuel tanks/bombs | Shift + C |  | (72, 0, 0) |  | yes | jettison the tanks (1st press; bombs: not built) |
+| 69 | Fire selected weapon | Space | Button 2 | (64, 0, 0) | (65, 0, 0) | yes | release the selected store (gun, IR missiles, bombs, rockets; HUD mode 1..8; weapons.md) |
+| 70 | Chaff | Insert |  | (68, 0, 0) |  | yes | chaff (weapons.md §10) |
+| 71 | Flare | Delete | Button 4 | (69, 0, 0) |  | yes | flare (weapons.md §10) |
+| 72 | Jettison fuel tanks/bombs | Shift + C |  | (72, 0, 0) |  | yes | jettison the tanks (1st press), then the bombs (2nd) |
 | 73 | Cockpit/HUD view | F1 |  | (28, 1, 0) |  | yes | cockpit ↔ HUD only (views.md §4) |
 | 74 | Back view | F2 |  | (22, 180, 0) | (22, -1, 0) | yes | back view while held |
 | 75 | Padlock view | F3 |  | (28, 22, 0) |  | yes | padlock (radar target) |
 | 76 | Visual lock on target close | Shift + F3 |  | (103, 0, 0) |  | yes | padlock the object nearest the screen centre |
 | 77 | Radar target view | F4 |  | (28, 9, 0) |  | yes | radar-target view |
-| 78 | Threat view | F5 |  | (28, 23, 0) |  | yes | threat view (no RWR threats yet: nothing) |
+| 78 | Threat view | F5 |  | (28, 23, 0) |  | yes | threat view (the RWR's nearest emitter; views.md §4) |
 | 79 | Player-wingman view | F6 |  | (28, 24, 0) |  | yes | player-wingman view |
 | 80 | Player to target view | F7 |  | (28, 25, 0) |  | yes | player-to-target view |
 | 81 | Target-player view | F8 |  | (28, 26, 0) |  | yes | target-player view |
 | 82 | Fly-by view | F9 |  | (28, 19, 0) |  | yes | fly-by view |
 | 83 | Chase view | F10 |  | (28, 6, 0) |  | yes | chase view |
-| 84 | Weapon view | F11 |  | (28, 27, 0) |  | yes | weapon view (IR missiles) |
+| 84 | Weapon view | F11 |  | (28, 27, 0) |  | yes | weapon view (IR missiles, falling bombs) |
 | 85 | I-mode | F12 |  | (124, 0, 0) |  | yes | — |
 | 86 | Pan up | Shift + Numpad 8 |  | (26, 1, 0) | (26, 0, 0) | yes | cockpit free look / orbit turn |
 | 87 | Pan down | Shift + Numpad 2 |  | (27, -1, 0) | (27, 0, 0) | yes | cockpit free look / orbit turn |
