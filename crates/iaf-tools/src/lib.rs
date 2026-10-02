@@ -6,6 +6,7 @@ pub mod georef;
 pub mod georef_measure;
 pub mod gltf;
 pub mod imagery;
+pub mod itm;
 pub mod mis;
 pub mod plane;
 pub mod rtpatch;

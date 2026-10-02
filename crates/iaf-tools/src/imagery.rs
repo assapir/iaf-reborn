@@ -16,19 +16,25 @@ use crate::terrain_types::{RUNWAY, TerrainTypes};
 
 /// Pixels per node side (as the converted theatre).
 pub const NODE_PIXELS: u32 = 1024;
-/// Finest level a layer writes (9.9 m per pixel; Sentinel-2's 10 m).
-pub const LAYER_LEVEL: u32 = 3;
 pub const ROOT_LEVEL: u32 = 11;
-/// Original insets of this level or finer always win (the airbase / target insets).
-pub const KEEP_INSET_LEVEL: u32 = 3;
+/// Original insets of this level or finer always win: the airbase / target insets (every site has
+/// level 0–2 records). map.ptt's level-3 inset records are the original's regional 9.9 m cover of
+/// Israel (four large rectangles), which an Israel layer replaces.
+pub const KEEP_INSET_LEVEL: u32 = 2;
+/// The radii below are in pixels at this level (9.9 m per pixel); a finer layer level scales them so
+/// they keep their ground size.
+const REF_LEVEL: u32 = 3;
 /// Extra pixels composed around a node so blurs and feathers match across node borders.
 const MARGIN: i32 = 64;
-/// Feather (pixels at LAYER_LEVEL, box radius; two passes): region / airbase / inset borders
-/// ≈ 240 m, the coast ≈ 20 m.
+/// Feather (box radius; two passes): region / airbase / inset / coverage borders ≈ 240 m, the coast
+/// ≈ 20 m.
 const FEATHER_SOFT: i32 = 24;
 const FEATHER_COAST: i32 = 2;
-/// Colour matching: local means over this box radius (pixels at LAYER_LEVEL, two passes ≈ 500 m).
+/// Colour matching: local means over this box radius (two passes ≈ 500 m).
 const MATCH_RADIUS: i32 = 48;
+/// No-data and water patches narrower than about twice this radius (≈ 80 m) are ignored: a white
+/// roof in a photo is not a sheet border, a pool is not the sea.
+const SPECK: i32 = 8;
 /// Warp evaluated every this many pixels, bilinear in between.
 const WARP_STEP: i32 = 32;
 
@@ -201,8 +207,73 @@ impl Rules {
     }
 }
 
-/// A source raster in lon / lat (EPSG:4326), red, green, blue, near-infrared u16 interleaved (GDAL
-/// ENVI, BIP), 0 = no data.
+/// One source sample: display colour (0..255, the source's own "modern" look), open water, no data.
+#[derive(Clone, Copy, Default)]
+pub struct Px {
+    pub rgb: [f32; 3],
+    pub water: bool,
+    pub nodata: bool,
+}
+
+/// A source raster cut out for one work unit.
+pub trait Imagery: Sync {
+    /// The source pixel position (x, y; pixel (0, 0) covers [0, 1)²) of WGS84 (lon, lat).
+    fn pixel(&self, lon: f64, lat: f64) -> [f64; 2];
+    /// Bilinear sample at a pixel position (no data outside the raster).
+    fn sample(&self, x: f64, y: f64) -> Px;
+}
+
+/// An ENVI file written by `gdal_translate -of ENVI -co INTERLEAVE=BIP`: size, bands, GDAL data type
+/// code, upper-left corner of the upper-left pixel, pixel size, raw samples.
+struct Envi {
+    w: usize,
+    h: usize,
+    bands: usize,
+    dtype: String,
+    ulx: f64,
+    uly: f64,
+    dx: f64,
+    dy: f64,
+    raw: Vec<u8>,
+}
+
+fn read_envi(bin: &Path) -> Result<Envi> {
+    let hdr = std::fs::read_to_string(bin.with_extension("hdr"))?;
+    let field = |k: &str| -> Option<String> {
+        hdr.lines().find(|l| l.trim_start().starts_with(k)).and_then(|l| l.split_once('=')).map(|(_, v)| v.trim().to_string())
+    };
+    let w: usize = field("samples").context("samples")?.parse()?;
+    let h: usize = field("lines").context("lines")?.parse()?;
+    let bands: usize = field("bands").context("bands")?.parse()?;
+    let dtype = field("data type").context("data type")?;
+    // map info = {<projection>, 1, 1, ulx, uly, dx, dy, ...}
+    let mi = field("map info").context("map info")?;
+    let v: Vec<&str> = mi.trim_matches(|c| c == '{' || c == '}').split(',').map(str::trim).collect();
+    let num = |i: usize| -> Result<f64> { Ok(v.get(i).context("map info")?.parse()?) };
+    let (rx, ry) = (num(1)?, num(2)?);
+    let (dx, dy) = (num(5)?, num(6)?);
+    let (ulx, uly) = (num(3)? - (rx - 1.0) * dx, num(4)? + (ry - 1.0) * dy);
+    let raw = std::fs::read(bin)?;
+    Ok(Envi { w, h, bands, dtype, ulx, uly, dx, dy, raw })
+}
+
+/// Bilinear position: the four neighbours' indices (x0, y0, x1, y1) and weights, None outside.
+fn bilinear(x: f64, y: f64, w: usize, h: usize) -> Option<(usize, usize, f32, f32)> {
+    let (u, v) = (x - 0.5, y - 0.5);
+    if u < 0.0 || v < 0.0 || u >= (w - 1) as f64 || v >= (h - 1) as f64 {
+        return None;
+    }
+    let (x0, y0) = (u as usize, v as usize);
+    Some((x0, y0, (u - x0 as f64) as f32, (v - y0 as f64) as f32))
+}
+
+fn lerp4(a: f32, b: f32, c: f32, d: f32, fx: f32, fy: f32) -> f32 {
+    let top = a + (b - a) * fx;
+    top + (c + (d - c) * fx - top) * fy
+}
+
+/// Sentinel-2 (WorldCover): lon / lat (EPSG:4326), red, green, blue, near-infrared u16 (reflectance ×
+/// 10⁴), 0 = no data.
 pub struct Source {
     pub w: usize,
     pub h: usize,
@@ -215,60 +286,140 @@ pub struct Source {
 }
 
 impl Source {
-    /// Reads `<path>.bin` + `<path>.hdr` written by `gdal_translate -of ENVI -co INTERLEAVE=BIP`.
     pub fn read_envi(bin: &Path) -> Result<Self> {
-        let hdr = std::fs::read_to_string(bin.with_extension("hdr"))?;
-        let field = |k: &str| -> Option<String> {
-            hdr.lines().find(|l| l.trim_start().starts_with(k)).and_then(|l| l.split_once('=')).map(|(_, v)| v.trim().to_string())
-        };
-        let w: usize = field("samples").context("samples")?.parse()?;
-        let h: usize = field("lines").context("lines")?.parse()?;
-        let bands: usize = field("bands").context("bands")?.parse()?;
-        if bands != 4 || field("data type").as_deref() != Some("12") {
-            bail!("source: want 4 bands of u16, got {bands} / type {:?}", field("data type"));
+        let e = read_envi(bin)?;
+        if e.bands != 4 || e.dtype != "12" || e.raw.len() != e.w * e.h * 8 {
+            bail!("source: want 4 bands of u16, got {} / type {} / {} bytes", e.bands, e.dtype, e.raw.len());
         }
-        // map info = {Geographic Lat/Lon, 1, 1, ulx, uly, dx, dy, WGS-84, ...}
-        let mi = field("map info").context("map info")?;
-        let v: Vec<&str> = mi.trim_matches(|c| c == '{' || c == '}').split(',').map(str::trim).collect();
-        let num = |i: usize| -> Result<f64> { Ok(v.get(i).context("map info")?.parse()?) };
-        let (rx, ry) = (num(1)?, num(2)?);
-        let (dx, dy) = (num(5)?, num(6)?);
-        let (ulx, uly) = (num(3)? - (rx - 1.0) * dx, num(4)? + (ry - 1.0) * dy);
-        let raw = std::fs::read(bin)?;
-        if raw.len() != w * h * 8 {
-            bail!("source: {} bytes, expected {}", raw.len(), w * h * 8);
-        }
-        let data = raw.as_chunks::<2>().0.iter().map(|b| u16::from_le_bytes([b[0], b[1]])).collect();
-        Ok(Self { w, h, ulx, uly, dx, dy, data })
+        let data = e.raw.as_chunks::<2>().0.iter().map(|b| u16::from_le_bytes([b[0], b[1]])).collect();
+        Ok(Self { w: e.w, h: e.h, ulx: e.ulx, uly: e.uly, dx: e.dx, dy: e.dy, data })
+    }
+}
+
+impl Imagery for Source {
+    fn pixel(&self, lon: f64, lat: f64) -> [f64; 2] {
+        [(lon - self.ulx) / self.dx, (self.uly - lat) / self.dy]
     }
 
-    /// Bilinear sample at (lon, lat): reflectance × 10⁴ per band (R, G, B, NIR); None where any
-    /// neighbour is no data.
-    pub fn sample(&self, lon: f64, lat: f64) -> Option<[f32; 4]> {
-        let u = (lon - self.ulx) / self.dx - 0.5;
-        let v = (self.uly - lat) / self.dy - 0.5;
-        if u < 0.0 || v < 0.0 || u >= (self.w - 1) as f64 || v >= (self.h - 1) as f64 {
-            return None;
-        }
-        let (x0, y0) = (u as usize, v as usize);
-        let (fx, fy) = ((u - x0 as f64) as f32, (v - y0 as f64) as f32);
+    fn sample(&self, x: f64, y: f64) -> Px {
+        let Some((x0, y0, fx, fy)) = bilinear(x, y, self.w, self.h) else { return Px { nodata: true, ..Px::default() } };
         let px = |x: usize, y: usize| {
             let i = (y * self.w + x) * 4;
             [self.data[i], self.data[i + 1], self.data[i + 2], self.data[i + 3]]
         };
         let (a, b, c, d) = (px(x0, y0), px(x0 + 1, y0), px(x0, y0 + 1), px(x0 + 1, y0 + 1));
-        if [a, b, c, d].iter().any(|p| p[..3] == [0, 0, 0]) {
-            return None;
-        }
-        Some([0, 1, 2, 3].map(|k| {
-            let (a, b, c, d) = (a[k] as f32, b[k] as f32, c[k] as f32, d[k] as f32);
-            let top = a + (b - a) * fx;
-            top + (c + (d - c) * fx - top) * fy
-        }))
+        let s = [0, 1, 2, 3].map(|k| lerp4(a[k] as f32, b[k] as f32, c[k] as f32, d[k] as f32, fx, fy));
+        Px { rgb: tone([s[0], s[1], s[2]]), water: is_water(s), nodata: [a, b, c, d].iter().any(|p| p[..3] == [0, 0, 0]) }
     }
 }
 
-/// Open water in the source: near-infrared low and below green (NDWI > 0). Water stays the
+/// A colour photo in a projected grid (the Survey of Israel sheets: Israeli TM Grid, 2 m), RGB bytes;
+/// pure white (the sheets' fill outside the photographed area) and pure black (no sheet) are no data.
+pub struct Photo {
+    pub w: usize,
+    pub h: usize,
+    /// Upper-left corner of the upper-left pixel (easting, northing) and the pixel size (metres).
+    pub ulx: f64,
+    pub uly: f64,
+    pub res: f64,
+    pub data: Vec<u8>,
+    /// WGS84 (lon, lat) → the grid (easting, northing).
+    pub project: fn(f64, f64) -> [f64; 2],
+    /// Levels per sheet: (grid extent e0, n0, e1, n1; per-band dark level and the white level,
+    /// `sheet_levels`). Each band is stretched from [dark, white] to [0, WHITE] (haze removal and
+    /// exposure), the levels blended across sheet borders (`DARK_BLEND`) so the correction adds no seam.
+    pub levels: Vec<([f64; 4], [f32; 4])>,
+}
+
+/// Display gamma after the levels.
+const PHOTO_GAMMA: f32 = 1.1;
+/// A sheet's white level maps to this.
+const WHITE: f32 = 235.0;
+
+/// Width (grid metres) over which neighbouring sheets' dark levels blend, centred on their border.
+const DARK_BLEND: f64 = 4000.0;
+
+/// The levels at grid point (e, n): the sheets' levels weighted by how far inside each one the
+/// point lies (½ on a border, 1 from DARK_BLEND / 2 inside, 0 from DARK_BLEND / 2 outside).
+fn levels_at(levels: &[([f64; 4], [f32; 4])], e: f64, n: f64) -> Option<[f32; 4]> {
+    let (mut sum, mut wsum) = ([0f32; 4], 0f32);
+    for (b, lv) in levels {
+        let inside = (e - b[0]).min(b[2] - e).min(n - b[1]).min(b[3] - n);
+        let w = (0.5 + inside / DARK_BLEND).clamp(0.0, 1.0) as f32;
+        for c in 0..4 {
+            sum[c] += w * lv[c];
+        }
+        wsum += w;
+    }
+    (wsum > 0.0).then(|| sum.map(|v| v / wsum))
+}
+
+/// A sheet's levels from its photo pixels (not the white / black fill): per band the 0.5th
+/// percentile — the haze the aerial photo adds over its darkest shadows and water — and the white
+/// level, the brightest band's 99.5th percentile (one for all bands, so the colour balance stays).
+pub fn sheet_levels(rgb: &[u8]) -> [f32; 4] {
+    let mut hist = [[0u64; 256]; 3];
+    for p in rgb.as_chunks::<3>().0 {
+        if *p != [255; 3] && *p != [0; 3] {
+            for c in 0..3 {
+                hist[c][p[c] as usize] += 1;
+            }
+        }
+    }
+    let pct = |c: usize, q: u64| {
+        let n: u64 = hist[c].iter().sum();
+        let mut acc = 0;
+        hist[c].iter().position(|&v| {
+            acc += v;
+            acc * 1000 >= n * q
+        }).unwrap_or(0) as f32
+    };
+    let lo = [0, 1, 2].map(|c| pct(c, 5));
+    let hi = (0..3).map(|c| pct(c, 995)).fold(0.0, f32::max);
+    [lo[0], lo[1], lo[2], hi.max(lo[0].max(lo[1]).max(lo[2]) + 32.0)]
+}
+
+impl Photo {
+    pub fn read_envi(bin: &Path, project: fn(f64, f64) -> [f64; 2]) -> Result<Self> {
+        let e = read_envi(bin)?;
+        if e.bands != 3 || e.dtype != "1" || e.raw.len() != e.w * e.h * 3 {
+            bail!("photo: want 3 bands of u8, got {} / type {} / {} bytes", e.bands, e.dtype, e.raw.len());
+        }
+        Ok(Self { w: e.w, h: e.h, ulx: e.ulx, uly: e.uly, res: e.dx, data: e.raw, project, levels: Vec::new() })
+    }
+}
+
+impl Imagery for Photo {
+    fn pixel(&self, lon: f64, lat: f64) -> [f64; 2] {
+        let [e, n] = (self.project)(lon, lat);
+        [(e - self.ulx) / self.res, (self.uly - n) / self.res]
+    }
+
+    fn sample(&self, x: f64, y: f64) -> Px {
+        let Some((x0, y0, fx, fy)) = bilinear(x, y, self.w, self.h) else { return Px { nodata: true, ..Px::default() } };
+        let px = |x: usize, y: usize| {
+            let i = (y * self.w + x) * 3;
+            [self.data[i], self.data[i + 1], self.data[i + 2]]
+        };
+        let (a, b, c, d) = (px(x0, y0), px(x0 + 1, y0), px(x0, y0 + 1), px(x0 + 1, y0 + 1));
+        let nodata = [a, b, c, d].iter().any(|p| *p == [255; 3] || *p == [0; 3]);
+        let mut rgb = [0, 1, 2].map(|k| lerp4(a[k] as f32, b[k] as f32, c[k] as f32, d[k] as f32, fx, fy));
+        let (e, n) = (self.ulx + x * self.res, self.uly - y * self.res);
+        if let Some(lv) = levels_at(&self.levels, e, n) {
+            rgb = [0, 1, 2].map(|c| (((rgb[c] - lv[c]) / (lv[3] - lv[c])).max(0.0).powf(1.0 / PHOTO_GAMMA) * WHITE).min(255.0));
+        }
+        Px { rgb, water: is_photo_water(rgb), nodata }
+    }
+}
+
+/// Open water in a colour photo: blue-green clearly above red and not bright (the sea's teal, the
+/// Kinneret's blue; sand, roofs, fields and shadows fail one of the tests). Only patches wider than
+/// ≈ 160 m count (`SPECK`), so pools and small ponds stay the photo's.
+pub fn is_photo_water(c: [f32; 3]) -> bool {
+    c[2] > c[0] + 12.0 && c[1] > c[0] + 6.0 && c[0] + c[1] + c[2] < 480.0
+}
+
+/// Open water in Sentinel-2: near-infrared low and below green (NDWI > 0). Water stays the
 /// original's (docs/imagery.md §3), so the drawn sea keeps the 1998 look and the layer's coast is
 /// the real one.
 pub fn is_water(s: [f32; 4]) -> bool {
@@ -283,27 +434,34 @@ pub fn tone(refl: [f32; 3]) -> [f32; 3] {
     v.map(|c| (m + (c - m) * 1.15).clamp(0.0, 255.0))
 }
 
-/// Separable box blur (radius r, clamped edges), twice ≈ a tent / Gaussian.
+/// Separable box blur (radius r, clamped edges), twice ≈ a tent / Gaussian. The vertical pass runs
+/// over whole rows (cache-friendly).
 fn blur(img: &mut [f32], w: usize, h: usize, r: i32) {
     let mut tmp = vec![0f32; img.len()];
+    let mut acc = vec![0f32; w];
+    let norm = 1.0 / (2 * r + 1) as f32;
     for _ in 0..2 {
         for y in 0..h {
             let row = &img[y * w..(y + 1) * w];
-            let mut acc: f32 = (-r..=r).map(|k| row[k.clamp(0, w as i32 - 1) as usize]).sum();
+            let mut a: f32 = (-r..=r).map(|k| row[k.clamp(0, w as i32 - 1) as usize]).sum();
             for x in 0..w {
-                tmp[y * w + x] = acc / (2 * r + 1) as f32;
+                tmp[y * w + x] = a * norm;
                 let add = (x as i32 + r + 1).min(w as i32 - 1) as usize;
                 let sub = (x as i32 - r).max(0) as usize;
-                acc += row[add] - row[sub];
+                a += row[add] - row[sub];
             }
         }
-        for x in 0..w {
-            let mut acc: f32 = (-r..=r).map(|k| tmp[k.clamp(0, h as i32 - 1) as usize * w + x]).sum();
-            for y in 0..h {
-                img[y * w + x] = acc / (2 * r + 1) as f32;
-                let add = (y as i32 + r + 1).min(h as i32 - 1) as usize;
-                let sub = (y as i32 - r).max(0) as usize;
-                acc += tmp[add * w + x] - tmp[sub * w + x];
+        acc.fill(0.0);
+        for k in -r..=r {
+            let src = &tmp[k.clamp(0, h as i32 - 1) as usize * w..][..w];
+            acc.iter_mut().zip(src).for_each(|(a, v)| *a += v);
+        }
+        for y in 0..h {
+            img[y * w..(y + 1) * w].iter_mut().zip(&acc).for_each(|(o, a)| *o = a * norm);
+            let add = (y as i32 + r + 1).min(h as i32 - 1) as usize * w;
+            let sub = (y as i32 - r).max(0) as usize * w;
+            for x in 0..w {
+                acc[x] += tmp[add + x] - tmp[sub + x];
             }
         }
     }
@@ -316,27 +474,38 @@ fn feather(mask: &[bool], w: usize, h: usize, r: i32) -> Vec<f32> {
     f.iter().zip(mask).map(|(&b, &m)| if m { (2.0 * b - 1.0).clamp(0.0, 1.0) } else { 0.0 }).collect()
 }
 
-/// One layer node in both looks: (1998 colours, modern colours); None when the layer shows nowhere
-/// in it.
-pub fn compose_node(k: Key, theatre: &Theatre, rules: &Rules, warp: &Georef, src: &Source, cache: &mut Cache) -> Result<Option<(RgbImage, RgbImage)>> {
+/// A mask without its small patches and holes (a box blur of radius r, twice, over 0.5).
+fn majority(mask: &[bool], w: usize, h: usize, r: i32) -> Vec<bool> {
+    let mut f: Vec<f32> = mask.iter().map(|&m| m as u8 as f32).collect();
+    blur(&mut f, w, h, r);
+    f.iter().map(|&v| v > 0.5).collect()
+}
+
+/// One layer node (level ≤ 3) in both looks: (1998 colours, the source's colours); None when the
+/// layer shows nowhere in it.
+pub fn compose_node(k: Key, theatre: &Theatre, rules: &Rules, warp: &Georef, src: &dyn Imagery, cache: &mut Cache) -> Result<Option<(RgbImage, RgbImage)>> {
+    let sc = 1i32 << (REF_LEVEL - k.0.min(REF_LEVEL));
+    let (margin, feather_soft, feather_coast, match_radius, speck) = (MARGIN * sc, FEATHER_SOFT * sc, FEATHER_COAST * sc, MATCH_RADIUS * sc, SPECK * sc);
     let n = NODE_PIXELS as i32;
-    let size = (n + 2 * MARGIN) as usize;
+    let size = (n + 2 * margin) as usize;
     let upp = (1u32 << k.0) as f64;
-    let x0 = k.1 as i64 * n as i64 - MARGIN as i64;
-    let y0 = k.2 as i64 * n as i64 - MARGIN as i64;
+    let x0 = k.1 as i64 * n as i64 - margin as i64;
+    let y0 = k.2 as i64 * n as i64 - margin as i64;
     let orig = theatre.original_rect(k.0, x0, y0, size, size, cache)?;
-    // Warp grid: (lon, lat) every WARP_STEP pixels.
+    // Warp grid: the source pixel position every WARP_STEP pixels.
     let g = (size as i32 / WARP_STEP + 2) as usize;
     let grid: Vec<[f64; 2]> = (0..g * g)
         .map(|i| {
             let (gx, gy) = ((i % g) as f64 * WARP_STEP as f64, (i / g) as f64 * WARP_STEP as f64);
-            warp.to_geo((x0 as f64 + gx) * upp, (y0 as f64 + gy) * upp)
+            let [lon, lat] = warp.to_geo((x0 as f64 + gx) * upp, (y0 as f64 + gy) * upp);
+            src.pixel(lon, lat)
         })
         .collect();
     let mut modern = vec![[0f32; 3]; size * size];
     let mut allowed = vec![false; size * size];
     let mut land = vec![false; size * size];
-    let mut valid = vec![false; size * size];
+    let mut nodata = vec![false; size * size];
+    let mut water = vec![false; size * size];
     for y in 0..size {
         for x in 0..size {
             let i = y * size + x;
@@ -349,38 +518,48 @@ pub fn compose_node(k: Key, theatre: &Theatre, rules: &Rules, warp: &Georef, src
             let (fx, fy) = (gx - cx as f64, gy - cy as f64);
             let at = |c: usize, r: usize| grid[r * g + c];
             let (p00, p10, p01, p11) = (at(cx, cy), at(cx + 1, cy), at(cx, cy + 1), at(cx + 1, cy + 1));
-            let geo = [0, 1].map(|c| {
+            let sp = [0, 1].map(|c| {
                 let top = p00[c] + (p10[c] - p00[c]) * fx;
                 top + (p01[c] + (p11[c] - p01[c]) * fx - top) * fy
             });
-            if let Some(s) = src.sample(geo[0], geo[1]) {
-                modern[i] = tone([s[0], s[1], s[2]]);
-                valid[i] = !is_water(s);
-            }
+            let s = src.sample(sp[0], sp[1]);
+            modern[i] = s.rgb;
+            nodata[i] = s.nodata;
+            water[i] = s.water && !s.nodata;
         }
     }
-    let ok: Vec<bool> = (0..size * size).map(|i| allowed[i] && valid[i]).collect();
-    let w_soft = feather(&ok, size, size, FEATHER_SOFT);
-    let w_land = feather(&land, size, size, FEATHER_COAST);
+    // No data (outside the source's coverage) fades over the soft feather; water (the real coast)
+    // over the coast feather, like terraintype.dat's sea.
+    let has: Vec<bool> = majority(&nodata, size, size, speck).iter().map(|&b| !b).collect();
+    // Source water counts only near terraintype.dat's water (≈ 500 m): it moves the coast to the real
+    // one; ponds and rivers elsewhere stay the layer's (else a blurred 1998 blob shows inside them).
+    let mut near: Vec<f32> = land.iter().map(|&l| (!l) as u8 as f32).collect();
+    blur(&mut near, size, size, match_radius / 2);
+    let water: Vec<bool> = (0..size * size).map(|i| water[i] && near[i] > 1e-3).collect();
+    let wet = majority(&water, size, size, speck);
+    let ok: Vec<bool> = (0..size * size).map(|i| allowed[i] && has[i]).collect();
+    let dry: Vec<bool> = (0..size * size).map(|i| land[i] && !wet[i]).collect();
+    let w_soft = feather(&ok, size, size, feather_soft);
+    let w_land = feather(&dry, size, size, feather_coast);
     let weight: Vec<f32> = w_soft.iter().zip(&w_land).map(|(a, b)| a * b).collect();
     let crop = |i: usize| {
         let (x, y) = (i % size, i / size);
-        x >= MARGIN as usize && y >= MARGIN as usize && x < (MARGIN + n) as usize && y < (MARGIN + n) as usize
+        x >= margin as usize && y >= margin as usize && x < (margin + n) as usize && y < (margin + n) as usize
     };
     if !(0..size * size).any(|i| crop(i) && weight[i] > 0.0) {
         return Ok(None);
     }
-    // 1998 colours: the modern pixel times the ratio of the local (land, valid) means of the
+    // 1998 colours: the modern pixel times the ratio of the local (dry land with data) means of the
     // original and the modern image, per channel.
-    let m: Vec<bool> = (0..size * size).map(|i| land[i] && valid[i]).collect();
+    let m: Vec<bool> = (0..size * size).map(|i| dry[i] && !water[i] && !nodata[i] && has[i]).collect();
     let mut mw: Vec<f32> = m.iter().map(|&b| b as u8 as f32).collect();
-    blur(&mut mw, size, size, MATCH_RADIUS);
+    blur(&mut mw, size, size, match_radius);
     let mut ratio = vec![[1f32; 3]; size * size];
     for c in 0..3 {
         let mut so: Vec<f32> = (0..size * size).map(|i| if m[i] { orig[i][c] } else { 0.0 }).collect();
         let mut sm: Vec<f32> = (0..size * size).map(|i| if m[i] { modern[i][c] } else { 0.0 }).collect();
-        blur(&mut so, size, size, MATCH_RADIUS);
-        blur(&mut sm, size, size, MATCH_RADIUS);
+        blur(&mut so, size, size, match_radius);
+        blur(&mut sm, size, size, match_radius);
         for i in 0..size * size {
             if mw[i] > 1e-3 && sm[i] > 1e-3 {
                 ratio[i][c] = ((so[i] + 4.0) / (sm[i] + 4.0)).clamp(0.33, 3.0);
@@ -391,7 +570,7 @@ pub fn compose_node(k: Key, theatre: &Theatre, rules: &Rules, warp: &Georef, src
     let mut b = RgbImage::new(NODE_PIXELS, NODE_PIXELS);
     for y in 0..n as usize {
         for x in 0..n as usize {
-            let i = (y + MARGIN as usize) * size + x + MARGIN as usize;
+            let i = (y + margin as usize) * size + x + margin as usize;
             let w = weight[i];
             let mix = |s: [f32; 3]| image::Rgb([0, 1, 2].map(|c| (w * s[c] + (1.0 - w) * orig[i][c]).round().clamp(0.0, 255.0) as u8));
             a.put_pixel(x as u32, y as u32, mix([0, 1, 2].map(|c| modern[i][c] * ratio[i][c])));
@@ -436,6 +615,47 @@ mod tests {
             assert!(f[y * w + 36] > 0.0 && f[y * w + 36] < 1.0);
             assert!(f[y * w + 50] > 0.999);
         }
+    }
+
+    #[test]
+    fn majority_drops_small_patches() {
+        let (w, h) = (64, 64);
+        // A 4-pixel square (a white roof) and a 40-pixel-wide band (the sea).
+        let mask: Vec<bool> = (0..w * h).map(|i| (i % w >= 10 && i % w < 14 && i / w >= 10 && i / w < 14) || i % w >= 24).collect();
+        let m = majority(&mask, w, h, 4);
+        assert!(!m[12 * w + 12], "small patch dropped");
+        assert!(m[30 * w + 40] && m[30 * w + 25], "large region kept up to its edge");
+        assert!(!m[30 * w + 22]);
+    }
+
+    #[test]
+    fn levels_blend_across_sheets() {
+        let d = [([0.0, 0.0, 20000.0, 20000.0], [10.0; 4]), ([20000.0, 0.0, 40000.0, 20000.0], [30.0; 4])];
+        assert_eq!(levels_at(&d, 5000.0, 10000.0), Some([10.0; 4]), "deep inside a sheet: its own levels");
+        assert_eq!(levels_at(&d, 20000.0, 10000.0), Some([20.0; 4]), "on the border: the mean");
+        let near = levels_at(&d, 19000.0, 10000.0).unwrap()[0];
+        assert!(near > 10.0 && near < 20.0);
+        assert_eq!(levels_at(&d, 5000.0, 30000.0), None, "far outside every sheet");
+    }
+
+    #[test]
+    fn sheet_levels_ignore_the_fill() {
+        let mut px = vec![255u8; 3 * 1000]; // white fill
+        for i in 0..1000 {
+            px.extend([20 + (i % 100) as u8, 30 + (i % 100) as u8, 40 + (i % 100) as u8]);
+        }
+        let l = sheet_levels(&px);
+        assert_eq!(&l[..3], &[20.0, 30.0, 40.0]);
+        assert_eq!(l[3], 139.0, "the brightest band's 99.5th percentile");
+    }
+
+    #[test]
+    fn photo_water() {
+        assert!(is_photo_water([30.0, 75.0, 85.0]), "deep sea");
+        assert!(is_photo_water([110.0, 160.0, 165.0]), "shallow sea");
+        assert!(!is_photo_water([200.0, 185.0, 160.0]), "sand");
+        assert!(!is_photo_water([45.0, 48.0, 52.0]), "shadow");
+        assert!(!is_photo_water([60.0, 80.0, 50.0]), "field");
     }
 
     #[test]

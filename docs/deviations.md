@@ -131,10 +131,11 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
   veil; the original's cloud texture choice (one of six per mission, Cloud256_5 nearly overcast) is kept. No time
   of day yet: the sun is our fixed light, the sky follows it.
 - **Preferences → Extras → terrain imagery** (ours, docs/imagery.md): one row per region (Israel / outside
-  Israel), default "Original". A converted modern layer (Sentinel-2 10 m outside Israel, in 1998 or modern
-  colours; later Survey of Israel 2 m, SPOT 5) replaces the original's ground texture only on land in its region,
-  never on water, the game's airbases or the original's fine insets; heights, terrain types and missions stay the
-  original's. The converted layers' credits (CC BY) roll with the credits on Quit (docs/credits.md). Data only via
+  Israel), default "Original". A converted modern layer (Sentinel-2 10 m outside Israel, Survey of Israel 2015 2 m
+  in Israel at 2.5 m per pixel, each in 1998 or modern colours; later SPOT 5) replaces the original's ground texture
+  only on land in its region, never on water, the game's airbases or the original's site insets (level 0–2); the
+  Israel layer does replace the original's level-3 (9.9 m) cover of Israel. Heights, terrain types and missions stay
+  the original's. The converted layers' credits (CC BY) roll with the credits on Quit (docs/credits.md). Data only via
   `tools/setup.sh --imagery …` (off by default).
 
 ## 3. Original quirks we keep on purpose (decided)

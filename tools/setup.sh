@@ -14,8 +14,9 @@
 # "Terrain imagery data"): sentinel2 = ESA WorldCover 2021 Sentinel-2 outside Israel, fetched and
 # converted (needs GDAL; ~28 GB of range reads, ~6 GB on disk); mapi2015 / mapi2015-bases = the Survey of
 # Israel 2015 2 m sheets (all / around the airbases), downloaded through your browser
-# (tools/imagery/fetch-mapi2015.sh); their conversion comes later. Without the ISO argument only the
-# imagery steps run (on an install set up before).
+# (tools/imagery/fetch-mapi2015.sh), then converted into the Israel layers (needs GDAL; re-run after adding
+# sheets: only the 20 km units they touch are redone). Without the ISO argument only the imagery steps run
+# (on an install set up before).
 # Safe to re-run: each step overwrites its own output under assets/.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -69,7 +70,20 @@ imagery_steps() {
 			mapi2015|mapi2015-bases)
 				step "imagery: Survey of Israel 2015 2 m sheets (data.gov.il, through your browser)"
 				tools/imagery/fetch-mapi2015.sh $([[ $src == mapi2015-bases ]] && echo --bases)
-				echo "the sheets are in assets/source/imagery/mapi2015/; their conversion into a layer comes in phase 2 (docs/imagery.md)"
+				step "imagery: Survey of Israel 2015 2 m layer from the downloaded sheets (resumable, incremental)"
+				command -v gdal_translate >/dev/null || { echo "GDAL is needed (README: prerequisites)"; exit 1; }
+				[[ -f assets/converted/terrain/theatre/meta.json ]] || { echo "run the base setup (with the ISO) first"; exit 1; }
+				cargo build -q --release -p iaf-tools
+				./target/release/iaf-imagery mapi2015 assets/install assets/converted/terrain/theatre assets/converted/imagery --dry-run
+				# About an hour of CPU for all of Israel: asked on a terminal; without one only with IAF_IMAGERY_YES=1.
+				if [[ -t 0 ]]; then
+					read -rp "convert now? [y/N] " a
+					[[ $a == [yY]* ]] || { echo "skipped"; continue; }
+				elif [[ ${IAF_IMAGERY_YES:-} != 1 ]]; then
+					echo "not a terminal: skipped (set IAF_IMAGERY_YES=1 to convert without asking)"; continue
+				fi
+				./target/release/iaf-imagery mapi2015 assets/install assets/converted/terrain/theatre assets/converted/imagery \
+					--threads "$(( $(nproc) > 2 ? $(nproc) - 2 : 1 ))"
 				;;
 		esac
 	done
