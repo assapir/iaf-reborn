@@ -10,11 +10,24 @@
 import math
 import sys
 
+import os
+
 import bmesh
 import bpy
+import numpy as np
 from mathutils import Matrix, Vector
 
 SRC, OUT = sys.argv[sys.argv.index("--") + 1:][:2]
+ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+# The IAF skin: our own textures replace every texture of the download (they were photographs of real
+# jets, some with photographers' watermarks; docs/f35i.md §2).
+SKIN_GREY = np.array([0.37, 0.39, 0.41])  # F-35 low-observable grey, matte (sRGB, before the baked shading)
+TAIL_NUMBER = "937"  # 116 Sqn "Lions of the South" (F-35I tails run 901-9xx)
+# Low-visibility markings as on the IAF's F-35Is (photos, docs/f35i.md §5): a dark grey Magen David on a lighter
+# grey disc, dark grey numbers, a subdued squadron badge.
+STAR_GREY = np.array([0.17, 0.18, 0.19])
+DISC_GREY = np.array([0.46, 0.48, 0.50])
+NUMBER_GREY = (0.16, 0.17, 0.18)
 LENGTH = 15.67  # m (Lockheed Martin)
 # The aircraft origin (≈ centre of gravity) in the normalised model: the game's rig position.
 ORIGIN = Vector((0.0, -1.0, 1.85))
@@ -97,12 +110,229 @@ def join(objs, name):
     return o
 
 
+def _mat(name, colour, metallic=0.0, roughness=0.5, image=None, clip=False):
+    mat = bpy.data.materials.new(name)
+    mat.use_nodes = True
+    bsdf = mat.node_tree.nodes["Principled BSDF"]
+    bsdf.inputs["Base Color"].default_value = (*colour, 1.0)
+    bsdf.inputs["Metallic"].default_value = metallic
+    bsdf.inputs["Roughness"].default_value = roughness
+    if image is not None:
+        tex = mat.node_tree.nodes.new("ShaderNodeTexImage")
+        tex.image = image
+        mat.node_tree.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+        if clip:
+            mat.node_tree.links.new(tex.outputs["Alpha"], bsdf.inputs["Alpha"])
+            mat.blend_method = 'CLIP'
+        mat.node_tree.nodes.active = tex
+    return mat
+
+
+def _image(name, rgba):
+    """A packed image from an (h, w, 4) float array (rows top to bottom)."""
+    h, w = rgba.shape[:2]
+    img = bpy.data.images.new(name, w, h, alpha=True)
+    img.pixels.foreach_set(np.ascontiguousarray(rgba[::-1]).ravel().astype(np.float32))
+    img.pack()
+    return img
+
+
+def _smooth(edge, x):
+    return np.clip((x - edge[0]) / (edge[1] - edge[0]), 0.0, 1.0)
+
+
+def roundel(n=512):
+    """The IAF roundel, low-visibility: a dark grey Magen David (two triangle outlines) on a grey disc."""
+    ys, xs = np.mgrid[0:n, 0:n]
+    px = (xs + 0.5) / n * 2 - 1
+    py = 1 - (ys + 0.5) / n * 2
+    aa = 2.0 / n
+    r = np.hypot(px, py)
+    disc = _smooth((1.0, 1.0 - aa), r)
+    big_r, width = 0.78, 0.13  # circumradius, stroke (of the disc radius)
+
+    def triangle(rot):
+        # Signed distance inside an equilateral triangle of circumradius big_r (inradius big_r / 2).
+        d = np.full(px.shape, np.inf)
+        for k in range(3):
+            a = rot + k * 2 * math.pi / 3
+            d = np.minimum(d, big_r / 2 - (px * math.cos(a) + py * math.sin(a)))
+        return d
+
+    star = np.zeros_like(px)
+    for rot in (-math.pi / 2, math.pi / 2):
+        d = triangle(rot)
+        star = np.maximum(star, _smooth((-aa, aa), d) * _smooth((width + aa, width - aa), d))
+    rgb = DISC_GREY * (1 - star[..., None]) + STAR_GREY * star[..., None]
+    return np.dstack([rgb, disc])
+
+
+def retexture(m):
+    """Every textured / skin material of the download -> ours: F-35 grey with ambient occlusion baked from
+    the model's own geometry (a fresh UV atlas per object), dark metal for the nozzle and the engine face."""
+    sc = bpy.context.scene
+    metal = _mat("nozzle_metal", (0.10, 0.10, 0.11), metallic=0.85, roughness=0.35)
+    for k in ("50", "51", "52", "53"):
+        m[k].data.materials.clear()
+        m[k].data.materials.append(metal)
+    sc.render.engine = 'CYCLES'
+    sc.cycles.samples = 96
+    sc.render.bake.margin = 8
+    if sc.world is None:
+        sc.world = bpy.data.worlds.new("bake")
+    sc.world.light_settings.distance = 0.6
+    def box(o):
+        vs = [v.co for v in o.data.vertices]
+        return Vector(map(min, *vs)), Vector(map(max, *vs))
+
+    meshes = [o for o in sc.objects if o.type == 'MESH']
+    for k, size in (("38", 2048), ("40", 2048), ("42", 2048), ("37", 2048), ("43", 2048), ("45", 2048),
+                    ("29", 1024), ("30", 1024), ("41", 1024), ("48", 1024), ("49", 1024), ("36", 1024)):
+        o = m[k]
+        for x in bpy.context.selected_objects:
+            x.select_set(False)
+        o.select_set(True)
+        bpy.context.view_layer.objects.active = o
+        while o.data.uv_layers:
+            o.data.uv_layers.remove(o.data.uv_layers[0])
+        o.data.uv_layers.new(name="UVMap")
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.select_all(action='SELECT')
+        bpy.ops.uv.smart_project(angle_limit=math.radians(60), island_margin=0.004)
+        bpy.ops.object.mode_set(mode='OBJECT')
+        img = bpy.data.images.new(f"skin_{k}", size, size)
+        mat = _mat(f"skin_{k}", tuple(SKIN_GREY), metallic=0.15, roughness=0.55, image=img)
+        o.data.materials.clear()
+        o.data.materials.append(mat)
+        # The download stacks coincident copies of some surfaces (both fins are 48 + 49): hide an object's
+        # twins while baking it, or each blacks the other out.
+        a, b = box(o)
+        twins = [x for x in meshes if x is not o and (box(x)[0] - a).length < 0.02 and (box(x)[1] - b).length < 0.02]
+        for x in twins:
+            x.hide_render = True
+        if k in ("48", "49"):
+            ao = np.full((size, size), 1.0)  # the thin fins: AO rays hit the opposite face, so no bake
+        else:
+            bpy.ops.object.bake(type='AO')
+            ao = np.array(img.pixels[:], dtype=np.float32).reshape(size, size, 4)[..., 0]
+        for x in twins:
+            x.hide_render = False
+        shade = 0.5 + 0.5 * ao
+        rgb = np.clip(SKIN_GREY[None, None, :] * shade[..., None], 0, 1)
+        img.pixels.foreach_set(np.dstack([rgb, np.ones((size, size))]).astype(np.float32).ravel())
+        img.pack()
+    # Anything else still textured with a downloaded image: plain skin grey (no download image is exported).
+    plain = _mat("skin_plain", tuple(SKIN_GREY * 0.85), metallic=0.15, roughness=0.55)
+    for o in [o for o in sc.objects if o.type == 'MESH']:
+        for i, mat in enumerate(o.data.materials):
+            if mat and mat.use_nodes and any(nd.type == 'TEX_IMAGE' and nd.image and not nd.image.name.startswith("skin_")
+                                             for nd in mat.node_tree.nodes):
+                o.data.materials[i] = plain
+    sc.render.engine = 'BLENDER_EEVEE_NEXT' if 'BLENDER_EEVEE_NEXT' in [e.identifier for e in bpy.types.RenderSettings.bl_rna.properties['engine'].enum_items] else 'BLENDER_EEVEE'
+
+
+def _hit(origin, direction):
+    sc = bpy.context.scene
+    dg = bpy.context.evaluated_depsgraph_get()
+    ok, loc, nor, _i, _o, _m = sc.ray_cast(dg, Vector(origin), Vector(direction).normalized())
+    if not ok:
+        raise SystemExit(f"decal ray {origin} -> {direction} hit nothing")
+    nor = Vector(nor)
+    if nor.dot(Vector(direction)) > 0:
+        nor = -nor
+    return loc, nor.normalized()
+
+
+def decal(name, mat, origin, direction, w, h, right, grid=8):
+    """`mat` on the first surface hit from `origin` along `direction`, its image's x along `right`: an
+    N x N grid whose vertices are each projected onto the skin (so it follows curved panels), 8 mm off it."""
+    loc, n = _hit(origin, direction)
+    r = (Vector(right) - n * n.dot(Vector(right))).normalized()
+    up = n.cross(r)
+    sc = bpy.context.scene
+    dg = bpy.context.evaluated_depsgraph_get()
+    vs, uvs = [], []
+    for j in range(grid + 1):
+        for i in range(grid + 1):
+            u, v = i / grid, j / grid
+            p = loc + r * (u - 0.5) * w + up * (v - 0.5) * h
+            ok, hit, hn, *_ = sc.ray_cast(dg, p + n * 0.4, -n, distance=0.8)
+            if ok:
+                hn = Vector(hn) if Vector(hn).dot(n) > 0 else -Vector(hn)
+                p = Vector(hit) + hn.normalized() * 0.008
+            else:
+                p = p + n * 0.008
+            vs.append(p)
+            uvs.append((u, v))
+    faces = [(j * (grid + 1) + i, j * (grid + 1) + i + 1, (j + 1) * (grid + 1) + i + 1, (j + 1) * (grid + 1) + i)
+             for j in range(grid) for i in range(grid)]
+    me = bpy.data.meshes.new(name)
+    me.from_pydata(vs, [], faces)
+    uv = me.uv_layers.new(name="UVMap")
+    for poly in me.polygons:
+        for li in poly.loop_indices:
+            uv.data[li].uv = uvs[me.loops[li].vertex_index]
+    me.materials.append(mat)
+    o = bpy.data.objects.new(name, me)
+    sc.collection.objects.link(o)
+    return o
+
+
+def text_decal(name, body, mat, origin, direction, height, right):
+    """Block digits (Blender's built-in font) as a flat mesh on the surface hit from `origin`."""
+    loc, n = _hit(origin, direction)
+    r = (Vector(right) - n * n.dot(Vector(right))).normalized()
+    up = n.cross(r)
+    bpy.ops.object.text_add()
+    t = bpy.context.active_object
+    t.data.body = body
+    t.data.align_x = 'CENTER'
+    t.data.align_y = 'CENTER'
+    t.data.size = height
+    bpy.ops.object.convert(target='MESH')
+    o = bpy.context.active_object
+    o.name = name
+    basis = Matrix((r, up, n)).transposed().to_4x4()
+    o.data.transform(Matrix.Translation(loc + n * 0.014) @ basis)
+    o.matrix_world = Matrix.Identity(4)
+    o.data.materials.clear()
+    o.data.materials.append(mat)
+    return o
+
+
+def markings():
+    """IAF markings: roundels on the upper left / lower right wing and both sides of the fuselage, the tail
+    number and the 116 Sqn badge on both fins (outer faces)."""
+    rnd = _mat("iaf_roundel", (1, 1, 1), metallic=0.15, roughness=0.75, image=_image("iaf_roundel", roundel()), clip=True)
+    # The 116 Sqn badge in low-visibility greys (its luminance mapped to dark .. mid grey), alpha kept.
+    src = bpy.data.images.load(os.path.join(ASSETS, "sqn116.png"))
+    w, h = src.size
+    px = np.array(src.pixels[:], dtype=np.float32).reshape(h, w, 4)[::-1]
+    lum = px[..., :3] @ np.array([0.30, 0.59, 0.11])
+    grey = 0.15 + 0.45 * lum
+    badge = _mat("sqn116", (1, 1, 1), metallic=0.15, roughness=0.75,
+                 image=_image("sqn116_lowvis", np.dstack([grey, grey * 1.02, grey * 1.05, px[..., 3]])), clip=True)
+    number = _mat("tail_number", NUMBER_GREY, metallic=0.15, roughness=0.75)
+    decal("roundel_wing_upper_left", rnd, (-3.6, -2.7, 10), (0, 0, -1), 0.8, 0.8, (0, 1, 0))
+    decal("roundel_wing_lower_right", rnd, (3.6, -2.7, -10), (0, 0, 1), 0.8, 0.8, (0, -1, 0))
+    for s in (1, -1):
+        # The big roundel on the intake under the canopy, the full number on the nose, the last two digits
+        # at the fin tip, the badge on the fin.
+        decal(f"roundel_side_{s}", rnd, (8 * s, 2.3, 1.95), (-s, 0, 0), 0.8, 0.8, (0, s, 0))
+        text_decal(f"nose_number_{s}", TAIL_NUMBER, number, (8 * s, 5.55, 2.3), (-s, 0, 0), 0.3, (0, s, 0))
+        text_decal(f"fin_number_{s}", TAIL_NUMBER[-2:], number, (8 * s, -6.0, 4.15), (-s, 0, 0), 0.26, (0, s, 0))
+        # Fins: canted outwards; rays from outside hit the outer faces (forward of the rudder hinge).
+        decal(f"badge_{s}", badge, (8 * s, -5.5, 3.4), (-s, 0, 0), 0.7, 0.7, (0, s, 0))
+
+
 def mirror(p):
     return Vector((-p.x, p.y, p.z))
 
 
 def main():
     m = normalise()
+    retexture(m)
+    markings()
     skins = [m[k] for k in ("38", "40", "42", "29", "30", "41")]
 
     # Flaperons: aft of the y = -3.73 panel line, from the wing root (x 2.2) to x 4.38.
