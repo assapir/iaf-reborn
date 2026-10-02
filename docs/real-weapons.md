@@ -28,6 +28,14 @@ Seeker and turn (where sourced):
 Not changed (no public figure found): lock range (the generation table of `FUN_00462460`), the other missiles' cones
 and g limits, warhead power / radius (game damage units), drag index.
 
+### 1.2 Guns
+| gun (bdb) | rate | muzzle velocity | rounds per jet | sources |
+|---|---|---|---|---|
+| "20 MM" (M61A1) | 6000 rpm | 1030 m/s (M56 HEI) | F-16 511, F-15 940, F-4E / Kurnass 2000 639 | [5], [6], [7], [8] |
+| "DEFA" (552 / 553, 2 guns) | 2 × 1300 rpm | 815 m/s | Kfir C7 2 × 140, Mirage IIICJ 2 × 125 | [9], [10] |
+The Lavi's real gun was a 30 mm DEFA [11] (the game gives it the "20 MM"); its rounds are not published, so it keeps
+the original gun and count.
+
 ### 1.3 Radar
 | jet | radar | detection range | sources |
 |---|---|---|---|
@@ -40,14 +48,6 @@ and g limits, warhead power / radius (game damage units), drag index.
 | Mirage IIICJ | Cyrano I bis | 27 km (U: nominal air-to-air lock, one game wiki; the later Cyrano II ~30 km) | War Thunder wiki (Mirage IIIC), migflug.com (Cyrano II) |
 The table is per type (`RADAR_KM`, like `GUN_ROUNDS`): a new jet needs only its row.
 
-### 1.2 Guns
-| gun (bdb) | rate | muzzle velocity | rounds per jet | sources |
-|---|---|---|---|---|
-| "20 MM" (M61A1) | 6000 rpm | 1030 m/s (M56 HEI) | F-16 511, F-15 940, F-4E / Kurnass 2000 639 | [5], [6], [7], [8] |
-| "DEFA" (552 / 553, 2 guns) | 2 × 1300 rpm | 815 m/s | Kfir C7 2 × 140, Mirage IIICJ 2 × 125 | [9], [10] |
-The Lavi's real gun was a 30 mm DEFA [11] (the game gives it the "20 MM"); its rounds are not published, so it keeps
-the original gun and count.
-
 ## 2. Mapping onto the original's model
 - **Weight**: bdb `0x758` (lb) = kg / 0.45359. It feeds the stores weight (docs/weapons.md §2.5), so with the original
   stores-weight rules it still goes into the kg field; the Physics option "Stores weight fix" makes it right.
@@ -59,7 +59,7 @@ the original gun and count.
 - **Rear-aspect** (ours: the original has no aspect test): the seeker's can-track also needs the target's velocity
   to point away from the launcher (v · line of sight > 0), so a head-on or a stationary target gives no tone.
 - **Seeker cone**: replaces the per-generation cone, the half-angle used when the seeker is slaved to a radar lock
-  (docs/radar.md §6). The 6° unslaved view is not changed.
+  (docs/radar.md §6) or to the helmet (docs/weapons.md §5.4). The 6° view is not changed.
 - **Turn limit**: each 0.1 s chase update clamps the acceleration across the velocity to g · 9.80665 m/s².
 - **Radar**: the LRS (and so STT) detection NM = km · 1000 / 1854.
 - **Guns**: the station holds the real rounds and shows them 1:1 (orig. ×4 / ×2); the 0.2 s shot tick uses

@@ -39,8 +39,8 @@ anti-radiation, laser guidance with the FLIR), night.
 sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, modern aircraft / weapons, Pi 5 profile.
 
 ## Small bugs (fix between jobs)
-- Stores look detached (user report: "not in place" from behind): no pylon models are drawn (stores float under the
-  wing), and the TER shoulder slots (2–3 bombs) hang at the pylon height ±Pilon sideways (original `FUN_0053c990`), so
+- Stores look detached (user report: "not in place" from behind): the pylons are quads in each jet's model, edge-on
+  and nearly invisible from ahead / behind / below, as in the original (docs/weapons.md §2.2), and the TER shoulder slots (2–3 bombs) hang at the pylon height ±Pilon sideways (original `FUN_0053c990`), so
   they touch the wing. Checked: the stations sit on the model (F-16 tip rails at x ±4.78, airframe ±4.73; each single
   store's Pilon point on its station; test_arming.gd). User to say which view is wrong (original vs better). (The flat
   white fins seen from behind are gone since the Present scale / smoothing work.)
@@ -85,7 +85,7 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 - **Combat**: player gun, IR missiles, radar lock, chaff / flares, bombs (CCIP / delayed, ripple, cluster), rockets
   (no radar missiles, TV / laser guidance, HARM); no AI combat (AI jets fly, don't fight), no AAA / SAMs (so no combat mission can be won yet).
 - **Cockpit / MFDs**: ECM, the full-screen weapon MFD (Z), the NAV ETA, HARM "In Range" (DLZ), the TV weapons' TRA / TER; the RWR's feeds (AI sensors, SAMs, enemy missiles);
-  ECM light has no system; night lighting; what uses the radar's designated point.
+  ECM light has no system; night lighting; what the TV / laser weapons do with the radar's designated point.
 - **Controls**: joystick untested on real hardware (one device; no force feedback); not built: FlyTSD Fly into another
   aircraft / Visit (docs/views.md).
 - **Sounds**: weapon / AI sounds wait for those systems (the RWR's wait for something to lock the player).

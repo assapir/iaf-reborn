@@ -106,7 +106,7 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
   tanks' fuel in kg (the original: one store per station, pounds in the kg field, tank fuel = the pounds number as
   kg) — weapons.md §2.5–2.6.
 - **Preferences → Extras → Weapon data (Original / Real)**: public missile weights, top speed, range, rear-aspect
-  seekers (ours: a target-moving-away test), seeker cones, the AIM-9D's 12 g, the F-16's APG-68 range and gun rounds /
+  seekers (ours: a target-moving-away test), seeker cones, the AIM-9D's 12 g, the radar ranges of the seven jets and gun rounds /
   rate / muzzle velocity — real-weapons.md.
 - **Preferences → Extras**: Flight data (Original / Real aircraft), HUD pitch ladder (conformal: each rung projected
   through the camera; the original's linear 12 px/deg ladder is a few px off away from the marker), flight info line,

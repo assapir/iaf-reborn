@@ -27,7 +27,7 @@ Improvements over the 1998 model that the player can opt into, decided case by c
 - Ground effect — **done** for the induced drag (McCormick φ(h/b), docs/flight-model.md §10); lift / α / stall speed
   in ground effect not modelled (the model commands g, not CL).
 - 1 g hold on the flight path instead of the nose pitch (no slow dive at high speed) — **done** (`flight_path_hold`).
-- F-16 / Lavi departure: FLCS deep stall with MPO rocking recovery — **done** (`fbw_departure`, §10.1). Every
+- F-16 / Lavi departure: FLCS deep stall with MPO rocking recovery — **done** (`fbw_departure`, docs/flight-model.md §10.1). Every
   "better physics" option has its own switch; all are listed in docs/flight-model.md §10.
 - Braking pitch (later): the wheel brakes pitch the nose down (weight transfer / nose-gear compression).
 
@@ -43,7 +43,7 @@ Extras switch "Weapon data: Original / Real" (separate from Flight data); also t
 stores may go on which station, counts per rack, e.g. F-16 stations 1/9 wingtip rails, centreline 5 tank / pod) vs
 the game's CDMEWeaponLoadItem lists; the original stays the default. Same method as the flight model's validation report.
 **Started** for the gun and IR missiles (docs/real-weapons.md: weights, top speed, range, gun rounds / rate / muzzle
-velocity) and the F-16's radar range; bombs and rockets keep the 1998 numbers so far. To extend with each new weapon
+velocity) and the radar ranges of the seven jets; bombs and rockets keep the 1998 numbers so far. To extend with each new weapon
 type (seeker limits and g limits need sources).
 
 ## "Better AI" option

@@ -207,7 +207,7 @@ view. The old "hidden on the flying aircraft" note was wrong: it described only 
      then swing rates `−40·sin(θa)` and `−20·sin(θb)` °/s (`0x60c974`, `0x60c978`; zeroed if the previous tick was > 0.4 s ago).
      **Stop** when `now > land − 10 s` (`0x60c988`) **or** AGL ≤ 20 m (`0x60c948`). Stop sets +0xc8 = 1 and `0x549b10` zeroes
      velocity and acceleration, so the parachuter **freezes in place** (from 1000 m it freezes at ≈ 351 m AGL). This is an original bug.
-   * For the player's ejection (above 50 m, see §5.4), "Jump to tactical display event" (`0x60c918`) is scheduled at `land − 10 s`.
+   * For the player's ejection (above 50 m, see mission-runtime.md §5.4), "Jump to tactical display event" (`0x60c918`) is scheduled at `land − 10 s`.
 There is no parachute-open animation or sound (`parachute open.wav` is not referenced).
 
 **Port (iaf-reborn, `game/terrain/terrain_view.gd` `_eject*`, `aircraft_model.gd` `ejected` / `canopy_offset`):**

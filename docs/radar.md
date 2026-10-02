@@ -92,16 +92,17 @@ The locked unit is re-tested (STT's detection range, the 60° cone, terrain, 30 
   disc with aspect stub, STT disc and the speed / aspect / range caret / closure text), GMT / MAP PPI symbols.
 
 ## 7. Damage
-Cases 0xf / 0x13 / 0x15 (`FUN_004adb20`): the radar goes OFF and every call is a no-op (`set_damaged`; not yet called
-by the player's damage).
+Cases 0xf / 0x13 / 0x15 (`FUN_004adb20`): the radar goes OFF and every call is a no-op (`set_damaged`, from `player_weapons.gd`
+when the player's damage flag 15 is set; generator failures 19 / 21 set it too, docs/damage.md §5.2).
 
 ## 8. Not built / ours
 - ECM and jammers (both sides): no jammer exists yet.
-- What uses the designated point (A-G weapons) is not traced yet.
+- What uses the designated point: not the bombs / rockets (docs/weapons.md §9.3); the TV / laser weapons' use is not
+  traced yet.
 - The STT range scale's two envelope ticks (the DLZ is untraced).
 - Terrain line of sight: ours samples every 100 m (the original's sampling is UNCERTAIN).
-- Weapon data Real: the F-16's LRS / STT detection range is the APG-68's 80 km (docs/real-weapons.md); the other jets
-  keep the table.
+- Weapon data Real: the LRS / STT detection range of each Jet list jet is its real radar's (F-16 APG-68 80 km, F-15
+  APG-63 135 km, …; docs/real-weapons.md §1.3); the MiGs keep the table.
 
 ## 9. Validation
 `tests/godot/test_radar.gd`: the F-16 table, the detection range and the kept selection, the 60° cone; in mission 221

@@ -10,9 +10,9 @@ HUD modes, the gun (trigger, rounds, hits, muzzle flash, sounds, LCOS / strafe p
 missiles (types 570 / 580), the bombs (500, 510 incl. the cluster bursts, 650 as a free bomb) and rockets (560) with
 the ripple quantity / interval, the mode-5 HUD (CCIP and the delayed release) and the bombs jettison (§9), the weapon
 HUD text and symbols, the stores MFD page, the FLIR pod / TV-weapon camera and the FLIR / TV / HARM MFD pages
-(docs/mfd.md; no TV / HARM weapon flies yet). Not built yet: radar missiles and the radar lock (so the seeker is never
-"slaved", no DLZ), HARM, TV weapons and the laser guidance (FLIR designation), the decoys' effect on missiles, the
-AI's weapons, AAA.
+(docs/mfd.md; no TV / HARM weapon flies yet). The radar and its lock (the seeker slaved to it): docs/radar.md. Not
+built yet: radar missiles (no DLZ), HARM, TV weapons and the laser guidance (FLIR designation), the decoys' effect on
+missiles, the AI's weapons, AAA.
 
 ## 1. Data
 
@@ -60,8 +60,8 @@ Displayed count (`FUN_0053cfd0`): the gun's count ×4 when its name contains "20
 DEFA 150, MiG-29 140, MiG-21 550, MiG-23 DEFA 175.
 
 ### 2.2 On the model
-Types 500, 510, 570, 580, 590, 600, 610, 635, 640, 650, 660 get their store model on pylons 0..8 (rockets 560 a rocket
-box: not built); gun, chaff and flares are never drawn. Slots (`FUN_0053c990`, once, in the original's E frame
+Types 500, 510, 570, 580, 590, 600, 610, 635, 640, 650, 660 get their store model on pylons 0..8 (rockets 560 get a rocket
+box instead, §9.7); gun, chaff and flares are never drawn. Slots (`FUN_0053c990`, once, in the original's E frame
 x = −glTF x, y = glTF z (aft), z = up) from the attach point P and the store model's `pilon` helper (px, py, pz)
 (default (0, 0, PilonDefaultZ 5)):
 - TER (non-bombs, bombs ≤ 3): A = P+(pz,0,0), B = P+(−pz,0,0), C = P+(px,py,−pz); stations with index > 5 swap A / B
@@ -79,7 +79,7 @@ none). So they are always drawn, loaded or not, stay after a release, and EXTERN
 store's lug (its `pilon` helper) sits at the attach point, inside the pylon's lower edge. Seen from ahead / behind /
 below the quads are edge-on and nearly invisible, which makes the stores look detached — as in the original. Ported
 as is (the converted models carry the quads; test `test_pylons.gd` checks the geometry under every wing station of
-the six flyable models).
+the six models of the seven flyable jets).
 
 ### 2.3 Selection (`FUN_0053b8b0`)
 ']' (event 0x3e) next AA, '[' (0x3c) next AG; **Shift+[ / Shift+] send the same events (forward, not back)**. Only when
@@ -165,7 +165,7 @@ A = P + (V + 1200·d)·t − (0, 0, 4.903·t²), t = `_limitDist / _limitVel` = 
 
 ### 3.3 Candidates (`FUN_004577c0`)
 At most one list per 0.5 s (gate `FUN_004d4100`; with 0.2 s shots about every third round gets one, the others none):
-the locked radar target first (none yet), then every unit within 10·|A − P| other than the shooter (**friendlies
+the locked radar target first (when within 2·|A − P|), then every unit within 10·|A − P| other than the shooter (**friendlies
 included**), at most 10. Ours: nearest first (the original's spatial-query order is UNCERTAIN).
 
 ### 3.4 Flight (`FUN_005605c0`, `FUN_0047a491`, analytic)
@@ -282,7 +282,8 @@ interval +10 / −10, §9.1). The HUD weapon line has no quantity / interval (th
 
 ## 7. Weapon data: Real (Extras)
 Preferences > Extras > Weapon data = Real overlays public numbers (docs/real-weapons.md): missile weights, top speed
-(β) and range (burn), gun rounds per jet, rate of fire and muzzle velocity. Original by default. The Arming screen's
+(β) and range (burn), rear-aspect seekers, seeker cones and g limits, radar detection ranges, gun rounds per jet, rate
+of fire and muzzle velocity. Original by default. The Arming screen's
 CURRENT LOAD and weights use the same numbers as the flight (so Real shows the real weights).
 
 ## 8. Corrections to earlier docs
@@ -299,7 +300,7 @@ CURRENT LOAD and weights use the same numbers as the flight (so Real shows the r
 ## 9. Bombs and rockets (500, 510, 560, 650)
 Built (`game/weapons/bombs.gd`, `player_weapons.gd`, HUD `hud.gd _draw_ag`; test_bombs.gd, test_bomb_missions.gd).
 Types 500 / 510 / 560 / 650 share the release path ("bomb types", `FUN_00457bc0`); rockets too, except the jettison.
-Master mode 1 (5 for 650), HUD mode 5 (6 for 650 with a FLIR pod: not built), the stores MFD page (§2.3).
+Master mode 1 (5 for 650), HUD mode 5 (6 for 650 with a FLIR pod: the FLIR page and camera start, the same mode-5 symbols), the stores MFD page (§2.3).
 
 ### 9.1 Ripple quantity / interval (`FUN_004585f0`, events 0x4a / 0x4b → `FUN_004562a0` → `FUN_004562f0`)
 Defaults quantity `W+0xd4` 2, interval `W+0xd8` 10, period `W+0xdc` 0.3 s (0x600eb0). Stores page OSB 0xe / 0xf send
@@ -506,6 +507,6 @@ missiles exist yet), ECM.
 Candidate order of the spatial query; event 0x4e (pre-explosion) receiver; the bomb time-to-go speed (selector 6);
 the rockets' accelerating motion; the rocket box when empty; hit effects look; tracer look; muzzle flash
 scale / blend / cockpit visibility; the MFD page placement for weapon modes (taken as event 0x5a's rule); the missile
-flight loop sound and explosion look; `FUN_0045ee10` (release permission, not ported); views 0x12 / 0x16 of the seeker
-field of view; what a missile aims at when its target is gone (`FUN_0045a180`, taken as the origin); the HUD text
+flight loop sound and explosion look; `FUN_0045ee10`'s selector 0 (taken as the load factor); the snap views' camera
+type for the seeker's helmet branch (§5.4); what a missile aims at when its target is gone (`FUN_0045a180`, taken as the origin); the HUD text
 font; the store-selected box placement.

@@ -37,7 +37,7 @@ The key commands 0x7a (Esc, "TSD and cockpit toggle"), 0x84 (Ctrl+P) and 0x85 (C
   overlay, message boxes and the front end over the flight run while paused); the sound pause sets `stream_paused` on
   every playing player of the flight and clears it on resume.
 * The FlyTSD and the in-flight Preferences are the front end (`front_end.gd` with `flight` set) on a layer over the
-  frozen flight; leaving them calls `close_front_end()`. Changed preferences apply on return (sound, shadows, blackouts).
+  frozen flight; leaving them calls `close_front_end()`. Changed preferences apply on return (sound, shadows, the textured sky and the Extras render options, blackouts).
 * Restart / New mission end the flight with the debrief and `Settings.debrief.auto` = the button the debrief presses
   after 50 ms (`replaymission` / `newmission`).
 * Not ported: FlyTSD Fly into another formation's aircraft (Fly returns to your own jet), Visit (does nothing),
@@ -141,8 +141,8 @@ orbit instead (8 / 2 pitch, 6 / 4 heading; F2 and 1 / 3 / 7 / 9 do nothing there
 * All of the above, with these gaps: **F5 threat** follows the RWR (`terrain_view.threat()`), but nothing locks the
   player yet (AI combat / enemy weapons), so in flight it finds none and does nothing, as the original with no threat;
   **F4 / F7 / F8 / F3** use the radar's A-A lock / TWS selection (`radar.locked()`); **F6** the AI
-  formation (`ai_flights.gd` `_formation_of`); **F11** our IR missiles (the only released weapons; bombs etc. are not
-  built); the wreck circle never knows an attacker (no attacker field), so it is always the wreck.
+  formation (`ai_flights.gd` `_formation_of`); **F11** our IR missiles and falling bombs / jettisoned tanks (rockets, like chaff / flares / gun
+  rounds, are never it); the wreck circle never knows an attacker (no attacker field), so it is always the wreck.
 * UNCERTAIN, chosen here: the fly-by offset axes (x right, y forward, z up), the orbit signs (+heading swings the camera
   right, +pitch raises it), object size = the largest dimension of the scaled model box, the visual-lock screen point = the
   screen centre, the two-object side N as written. The trail takes one sample per rendered frame (as the original, frame

@@ -5,7 +5,7 @@
 # How the numbers map onto the original's model (docs/real-weapons.md §2):
 # - weight: bdb 0x758 (pounds) = kg / 0.45359.
 # - IR missile top speed: the chase motion's steady speed is absAcceleration / spiralAccelBeta
-#   (docs/weapons.md §5.4), so beta = a / (Mach · 340.3 m/s); a is kept (no public g limit).
+#   (docs/weapons.md §5.3), so beta = a / (Mach · 340.3 m/s); a is kept (no public g limit).
 # - IR missile range: the flight ends burn + 6 s after launch, so burn = range / top speed − 6
 #   (at least 1 s).
 # - gun: rounds per jet (station count, shown 1:1), rate of fire (rounds used per 0.2 s shot tick)
