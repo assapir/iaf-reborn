@@ -448,7 +448,9 @@ What still differs:
     α during the first second); BP [`start_alpha`] starts α at its trim value.
   * **Landing check** [`landing_limits`] (§15.6.1): sink limit 4 m/s (≈ 13 ft/s, real gear) instead of 40 m/s, a tail-strike limit of 15°
     nose-up (both ×2 with Easy landing; sink ×0.25 with the gear not down), and the current attitude instead of the one
-    saved at the last update. Crash reasons "sink rate" / "tail strike".
+    saved at the last update. Crash reasons "sink rate" / "tail strike". Not while the player's autopilot flies the
+    landing (NAV, a "landing" stage; `ap_landing`): the 1998 autopilot's touchdown exceeds 4 m/s (with Original data it
+    crashed), so its landings keep the original's limits.
   * **Spin** [`spin_fixes`] (§15.5): "No spins" blocks entry (original: it skips the arm step so spins start *earlier*); the entry
     condition must hold for 1.2 s (original: the second consecutive qualifying update); during the spin drag bleeds the
     horizontal speed and the descent settles near 65 m/s (original: horizontal velocity frozen, `acc.z = min(0, 0.04V − g)`

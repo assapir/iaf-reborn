@@ -183,6 +183,14 @@ impl IafFlight {
         }
     }
 
+    /// The player's autopilot is flying the landing (see `Aircraft::ap_landing`).
+    #[func]
+    fn set_ap_landing(&mut self, on: bool) {
+        if let Some(ac) = &mut self.aircraft {
+            ac.ap_landing = on;
+        }
+    }
+
     #[func]
     fn set_easy_landing(&mut self, on: bool) {
         if let Some(ac) = &mut self.aircraft {

@@ -1889,6 +1889,8 @@ func _process(delta: float) -> void:
 		if not frozen and not waiting_for_ground and not fm_stopped:
 			if autopilot != null and not ejected and not fatal_hit:
 				autopilot.update(Vector2(terrain.world_origin.x + rig.position.x, terrain.world_origin.y - rig.position.z))
+			# The 1998 autopilot's touchdown exceeds Physics "Real landing limits": its landings use the original's.
+			flight.set_ap_landing(autopilot != null and autopilot.mode == 2 and String(flight.ap_stage()).begins_with("landing"))
 			# Time compression: the frame's sim time is rate × the real frame time (Engine.time_scale); the
 			# flight model takes it in `time_factor` equal steps (its 1 Hz / 5 Hz updates fall on fixed sim
 			# times, so this is the same as one step of the whole time, docs/views.md §2).

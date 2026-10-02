@@ -478,6 +478,9 @@ pub struct Aircraft {
     pub no_spins: bool,
     /// Default on in the original.
     pub easy_landing: bool,
+    /// The autopilot is flying the landing (NAV to a land waypoint): the landing check uses the original's
+    /// limits even with better physics `landing_limits`, which the 1998 autopilot's touchdown exceeds.
+    pub ap_landing: bool,
     pub invulnerable: bool,
     pub no_crashes: bool,
     pub unlimited_fuel: bool,
@@ -643,6 +646,7 @@ impl Aircraft {
             no_stalls: false,
             no_spins: false,
             easy_landing: true,
+            ap_landing: false,
             invulnerable: false,
             no_crashes: false,
             unlimited_fuel: false,
@@ -1686,7 +1690,7 @@ impl Aircraft {
         if self.immune() {
             return None;
         }
-        let bp = self.better.landing_limits;
+        let bp = self.better.landing_limits && !self.ap_landing;
         // The original uses the Euler angles saved at the last update; better physics the current ones.
         let att = if bp { self.attitude(t) } else { self.saved };
         let (mut lp, mut lr, mut lv) = (5f32.to_radians(), 10f32.to_radians(), -40.0f32);
@@ -2226,6 +2230,10 @@ mod tests {
         a.easy_landing = false;
         assert_eq!(now(&a, -3.9), None);
         assert_eq!(now(&a, -4.1), Some(Crash::SinkRate));
+        // The autopilot landing keeps the original's limits (40 m/s sink, no tail strike).
+        a.ap_landing = true;
+        assert_eq!(now(&a, -10.0), None, "autopilot landing: original sink limit");
+        a.ap_landing = false;
     }
 
     #[test]
