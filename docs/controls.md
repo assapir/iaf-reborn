@@ -370,8 +370,14 @@ handler `FUN_004e1df0`; there is no joystick code anywhere else. Addresses v1.1 
   SDL knows as a gamepad uses the gamepad layout (2 = right stick x, 3 = right stick y), others the device's
   own axis order, so if the throttle or the rudder sit on other numbers, edit `joy_axes`.
 * "Has the axis" (+0x1c / +0x20) cannot be read from Godot: a connected device counts as having all four.
-* Hat: Godot reports it as the D-pad buttons 11–14 (up, down, left, right); two at once = a diagonal. Raw
-  buttons 12–15 of a stick with more than 11 buttons share those numbers (UNCERTAIN: Godot's SDL driver).
+* Hat: Godot reports it as the D-pad buttons 11–14 (up, down, left, right); two at once = a diagonal. On a
+  stick SDL does not know as a gamepad, raw buttons 12–15 share those numbers (seen on the T.Flight Hotas X:
+  button 12 and POV up were the same event, each firing the other's binding). So an **unknown stick gets a
+  mapping** at connect (`Joystick._connected`, `Input.add_joy_mapping`): buttons 1–11 keep their numbers,
+  12–17 move to Godot 15–20 (misc1, paddles 1–4, touchpad), the hat stays on 11–14, axes 0–3 unchanged, 4 / 5
+  become triggers (Godot 0..1, read back as −1..1, `Joystick.axis`). Buttons from the 18th on are lost (Godot
+  has 21 gamepad buttons). `Joystick.physical_button` turns an event back into the stick's own number and
+  drops the hat (D-pad 11–14 are the POV, not buttons, as in DirectInput), for the flight and the Keyboard page.
 * Buttons: `InputEventJoypadButton` from the device → the flight scene (`terrain_view.gd _joy_button`): the
   first record with that button, its press / release command as the original (no drops, Roll / Pitch do
   nothing, Rudder moves the rudder), a release only after its press; pause / menu release held buttons.

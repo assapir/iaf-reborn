@@ -16,6 +16,12 @@ const HAT := [JOY_BUTTON_DPAD_UP, JOY_BUTTON_DPAD_RIGHT, JOY_BUTTON_DPAD_DOWN, J
 const POV := {0: [0, 8], 4500: [45, 9], 9000: [90, 6], 13500: [135, 3], 18000: [180, 2],
 	22500: [225, 1], 27000: [270, 4], 31500: [315, 7], 0xffff: [-1, 5]}
 const JOY_DIR := "install/resource/menu/joy"
+## Ours: an unknown stick (no SDL gamepad mapping) reports its buttons by raw index and its hat as the D-pad
+## buttons 11..14, so a 12th..15th button is the same event as a hat direction. Such a stick gets a mapping:
+## buttons 0..10 keep their index, 11..16 move to 15..20 (misc1, paddles, touchpad), the hat stays on 11..14;
+## buttons from the 18th on are lost (Godot has 21 gamepad buttons). docs/controls.md §4.
+const REMAP_BUTTONS := ["a", "b", "x", "y", "back", "guide", "start", "leftstick", "rightstick", "leftshoulder",
+	"rightshoulder", "misc1", "paddle1", "paddle2", "paddle3", "paddle4", "touchpad"]
 
 ## Tests: device ids to treat as connected (Godot has no script hook to plug a joypad in).
 var fake_devices: Array = []
@@ -36,6 +42,8 @@ var _pov_release := [-1, -5]
 ## (records not listed: none); null = no file matched, the table's own column.
 var default_buttons = null
 var _device := -1
+## The device in use got our mapping (see REMAP_BUTTONS).
+var remapped := false
 
 
 ## The joystick in use: the first connected joypad, −1 = none. Tests (Settings.isolated()) see only
@@ -96,6 +104,22 @@ func _process(_delta: float) -> void:
 		poll()
 
 
+## A joypad button event's button as the original numbers it (0-based), −1 for the hat (D-pad 11..14: the
+## POV, not buttons, as DirectInput reports it).
+func physical_button(b: int) -> int:
+	if b >= JOY_BUTTON_DPAD_UP and b <= JOY_BUTTON_DPAD_RIGHT:
+		return -1
+	if remapped and b >= JOY_BUTTON_MISC1 and b <= JOY_BUTTON_TOUCHPAD:
+		return b - 4
+	return b
+
+
+## An axis −1..1; with our mapping axes 4 / 5 are gamepad triggers (0..1 in Godot): back to −1..1.
+func axis(d: int, i: int) -> float:
+	var v := Input.get_joy_axis(d, i)
+	return v * 2.0 - 1.0 if remapped and i >= 4 else v
+
+
 ## One FUN_004df560 pass: the events [id, p1, p2] of the axes and the hat that changed.
 ## The lever as the original reads it (0 idle .. 100 forward), before our detent mapping; −1 without a device.
 func raw_throttle() -> int:
@@ -103,7 +127,7 @@ func raw_throttle() -> int:
 	if d < 0:
 		return -1
 	var ax: Array = Settings.joy_axes if Settings.joy_axes.size() == 4 else [0, 1, 2, 3]
-	return 100 - _lin(Input.get_joy_axis(d, ax[2]), 100)
+	return 100 - _lin(axis(d, ax[2]), 100)
 
 
 ## Ours (Extras "Throttle detent = MIL", off = −1): the lever's detent `d` maps to MIL (74, the "6" key) — the
@@ -124,11 +148,11 @@ func poll() -> Array:
 	var out := []
 	if Settings.flight_controls == 1:
 		# MulDiv(lX, 200, max − min) − 100 and MulDiv(lY, −200, max − min) + 100 (@4df6b8, 4df770).
-		var x := _lin(_dead(Input.get_joy_axis(d, ax[0])), 200) - 100
+		var x := _lin(_dead(axis(d, ax[0])), 200) - 100
 		if x != last_x:
 			last_x = x
 			out.append([1, last_x, last_y])
-		var y := 100 - _lin(_dead(Input.get_joy_axis(d, ax[1])), 200)
+		var y := 100 - _lin(_dead(axis(d, ax[1])), 200)
 		if y != last_y:
 			last_y = y
 			out.append([1, last_x, last_y])
@@ -140,7 +164,7 @@ func poll() -> Array:
 			out.append([9, last_throttle, 0])
 	if Settings.rudder == 1:
 		# MulDiv(lRz, 200, max − min) − 100 (@4df8d7).
-		var r := _lin(_dead(Input.get_joy_axis(d, ax[3])), 200) - 100
+		var r := _lin(_dead(axis(d, ax[3])), 200) - 100
 		if r != last_rudder:
 			last_rudder = r
 			out.append([10, last_rudder, 0])
@@ -203,10 +227,19 @@ func _pov(d: int) -> int:
 
 func _connected(d: int) -> void:
 	default_buttons = null
+	remapped = false
 	if d < 0:
 		print("joystick: none")
 		return
 	var name := Input.get_joy_name(d)
+	if not Settings.isolated() and not Input.is_joy_known(d):
+		var m := "%s,%s," % [Input.get_joy_guid(d), name.replace(",", " ")]
+		for i in REMAP_BUTTONS.size():
+			m += "%s:b%d," % [REMAP_BUTTONS[i], i]
+		m += "dpup:h0.1,dpright:h0.2,dpdown:h0.4,dpleft:h0.8,leftx:a0,lefty:a1,rightx:a2,righty:a3,lefttrigger:a4,righttrigger:a5,"
+		Input.add_joy_mapping(m, true)
+		remapped = true
+		print("joystick: unknown device, buttons 12+ moved off the hat's D-pad indices")
 	print("joystick: %s (device %d, %s); axes x / y / throttle / rudder = %s" % [name, d, Input.get_joy_guid(d), str(Settings.joy_axes)])
 	_load_joy_map(name)
 

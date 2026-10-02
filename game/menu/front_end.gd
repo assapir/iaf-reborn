@@ -1926,7 +1926,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if screen == "pref" and Settings.pref_page == "Controls" and ctrl_focus and msgbox == null \
 			and event is InputEventJoypadButton and event.pressed and Joystick.ours(event):
-		_ctrl_button(event.button_index)
+		if Joystick.physical_button(event.button_index) >= 0:
+			_ctrl_button(Joystick.physical_button(event.button_index))
 		return
 	if busy or msgbox != null or not (event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE):
 		return

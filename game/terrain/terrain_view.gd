@@ -1409,7 +1409,9 @@ func _press(cmd: Array) -> bool:
 ## controller has no case for events 2 / 3), one on Rudder moves the rudder. A release counts only after its
 ## press (the poller's held list).
 func _joy_button(event: InputEventJoypadButton) -> void:
-	var b := int(event.button_index)
+	var b := Joystick.physical_button(int(event.button_index))
+	if b < 0:
+		return  # the hat (the POV snap views, Joystick.poll)
 	if event.pressed:
 		if _held_buttons.has(b):
 			return

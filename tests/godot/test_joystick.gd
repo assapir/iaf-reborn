@@ -233,3 +233,7 @@ func run() -> void:
 	check(J2.detent_map(85, 85) == 74 and J2.detent_map(0, 85) == 0 and J2.detent_map(100, 85) == 100, "detent 85: 85 -> MIL 74, ends kept")
 	check(J2.detent_map(42, 85) == 37 and J2.detent_map(90, 85) == 83, "detent 85: linear on both sides")
 
+	# Unknown sticks: the hat (D-pad 11..14) is never a button; with our mapping Godot 15..20 = buttons 12..17.
+	check(J2.physical_button(3) == 3 and J2.physical_button(JOY_BUTTON_DPAD_UP) == -1 and J2.physical_button(JOY_BUTTON_DPAD_RIGHT) == -1, "hat is not a button")
+	J2.remapped = true
+	check(J2.physical_button(15) == 11 and J2.physical_button(20) == 16 and J2.physical_button(10) == 10, "remapped: misc1 = button 12")
