@@ -147,6 +147,11 @@ The controllable jets are the eight in `controllableplanes`; `bd.ibx` also has `
 
 ## 4. Adding a new aircraft
 
+This section is for a model in the original format (an `.xfr` in the install). A plane the original never had (a
+hand-made glTF, its own flight data, cockpit and Jet list slot) is docs/adding-a-plane.md, with the F-35I as the
+worked example (docs/f35i.md). Note for step 5: a v1.1 install's `bdgen.dat` is read instead of `bd.ibx`, so a
+`TYPES` + `Real` row in `data_set.rs` (adding-a-plane.md §3) is the way to add flight data.
+
 1. **Model.** Provide `<name>_h.xfr` (DirectX frame file, `x3ds_` frame names) in
    `resource/3dobjects/controllableplanes/<name>/` (or `noncontrollableplanes`) with its textures. Put each moving
    part in its own direct child frame of the root, named from the table (§2.1: `AilerL`, `ElevaR`, `LdgF`, …), with

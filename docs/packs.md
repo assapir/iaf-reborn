@@ -1,7 +1,10 @@
 # Content packs
 
 A pack is a folder that mirrors the base install layout (lower-cased paths) and overrides or adds files.
-The engine resolves every data file through the active packs first, then the base install.
+Packs are applied **at convert time**, not at run time: `iaf-convert menu --pack`, `briefings` and `keys` read
+`assets/packs` and let a pack's files win. Nothing else reads packs: the cockpits, aircraft, objects, missions, the
+flight model (`resource/md`) and the game itself read `assets/install` / `assets/converted` only (new planes:
+docs/adding-a-plane.md).
 
 ```
 assets/install/            base game (iaf-extract)
