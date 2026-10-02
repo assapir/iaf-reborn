@@ -41,7 +41,9 @@ overlays `resource/menu`. Overrides 400 files: button strips (`bmp/palettes`), t
 debrief/log/prefs/arm art, and all mission/course strings (`txt/mis/*.trx`, Windows-1255). Screen layouts (`dat/`)
 and fonts are unchanged; Hebrew glyphs come from the system font (the original game relied on Windows' font fallback).
 Converted with `iaf-convert menu … assets/converted/menu_he --pack assets/packs/he`; the front end uses it when the
-language is Hebrew.
+language is Hebrew. Its `txt/msgs.trx` is still all English (message boxes, the On-The-Fly menu items); ours: in
+Hebrew every msgs line the pack leaves in English takes our Hebrew from `game/menu/strings_he.json` "msgs"
+(`Settings.msgs()`, used by the message boxes and the On-The-Fly menu). A pack line in Hebrew wins.
 
 ## In-flight subtitles
 The instructor / radio subtitles come from the object database (`default6_1.bdb` Audio records) and exist only in English; the Hebrew packs translate menus and briefings only. Decided (user): keep the original English subtitles in Hebrew mode.

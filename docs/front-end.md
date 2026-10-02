@@ -1968,6 +1968,9 @@ mission 0x21d Esc shows msg 8 (host) / msg 11 (client).
 * GDI: normal brush RGB(191,191,175), hover brush RGB(159,159,128), frame pens 2 px RGB(186,186,173)
   (PS_INSIDEFRAME) and 1 px RGB(21,21,19); font Arial size 10 weight 400 (`FUN_004eee10`; exact cell
   height UNCERTAIN).
+* Placement: GDI on the flight window's own DC (client coordinates), so the menu sits in the window's
+  **top-left corner** at (5, 10) whatever the resolution (`FUN_004ee7b0(hdc, 5, 10)` from 0x4dc479). Ours: 640×480
+  units scaled to the window height, anchored at the top-left (not a centred 4:3 box), as the "II  PAUSE" text.
 * Layout: W = widest label, H = tallest label (GetTextExtentPoint32); item i: left 15, right
   15 + W + 16, top 20 + i·(H + 23), bottom top + H + 16 (7 px gaps). Outer frame (5, 10) to (item right
   + 10, last bottom + 10).

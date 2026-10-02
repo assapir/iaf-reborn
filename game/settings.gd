@@ -280,6 +280,19 @@ func assets_dir() -> String:
 	return ProjectSettings.globalize_path("res://").path_join("../assets").simplify_path()
 
 
+## txt/msgs.trx lines for the current language. In Hebrew, a line the Hebrew pack leaves in English (the
+## preflight.us menu pack keeps all of msgs.trx English) takes our Hebrew (game/menu/strings_he.json "msgs").
+func msgs() -> PackedStringArray:
+	var he := language == "he"
+	var dir := assets_dir().path_join("converted/menu_he" if he else "converted/menu")
+	var lines: PackedStringArray = String(load_json(dir.path_join("strings.json")).get("msgs", "")).split("\n")
+	if he:
+		var tr: Dictionary = load_json("res://menu/strings_he.json").get("msgs", {})
+		for i in lines.size():
+			lines[i] = tr.get(lines[i].strip_edges(), lines[i])
+	return lines
+
+
 ## A JSON file's top-level object; {} when the file is missing or holds something else.
 func load_json(path: String) -> Dictionary:
 	if not FileAccess.file_exists(path):

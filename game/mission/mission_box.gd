@@ -25,7 +25,7 @@ func setup(msg: int, button_names: Array) -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	dir = Settings.assets_dir().path_join("converted/menu_he" if Settings.language == "he" else "converted/menu")
-	var lines: PackedStringArray = String(Settings.load_json(dir.path_join("strings.json")).get("msgs", "")).split("\n")
+	var lines := Settings.msgs()
 	text = lines[msg].strip_edges() if msg < lines.size() else ""
 	font = Img.arial(700)
 

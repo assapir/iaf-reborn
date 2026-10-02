@@ -42,19 +42,20 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_font = Img.arial(400)
 	_pause_font = Img.arial(900)
-	var dir := Settings.assets_dir().path_join("converted/menu_he" if Settings.language == "he" else "converted/menu")
-	var lines: PackedStringArray = String(Settings.load_json(dir.path_join("strings.json")).get("msgs", "")).split("\n")
+	var lines := Settings.msgs()
 	for i in MENU_ITEMS:
 		labels.append(lines[i].strip_edges().to_upper() if i < lines.size() else "")
 
 
-## The 640×480 screen scaled to fit and centred (as the menus and the message box).
+## GDI on the flight window's own surface (client coordinates, the menu at (5, 10) in its top-left corner,
+## FUN_004ee7b0(hdc, 5, 10)): 640×480 units scaled to the window's height, anchored at its top-left corner
+## (not a centred 4:3 box: on a wide window the menu stays in the corner as in the original).
 func _scale() -> float:
 	return minf(size.x / 640.0, size.y / 480.0)
 
 
 func _origin() -> Vector2:
-	return size / 2 - Vector2(320, 240) * _scale()
+	return Vector2.ZERO
 
 
 func _menu_px() -> int:
@@ -108,6 +109,7 @@ func _draw() -> void:
 		var last: Rect2 = rects[rects.size() - 1]
 		var frame := _to_screen(Rect2(MENU_ORIGIN, Vector2(last.end.x + 10.0, last.end.y + 10.0) - MENU_ORIGIN))
 		_round_rect(frame, 10.0 * s, Color.TRANSPARENT, MENU_PEN_LIGHT, 2.0 * maxf(1.0, s))
+		_round_rect(frame, 10.0 * s, Color.TRANSPARENT, MENU_PEN_DARK, maxf(1.0, s))
 		_round_rect(frame, 10.0 * s, Color.TRANSPARENT, MENU_PEN_DARK, maxf(1.0, s))
 	if host.paused:
 		if (Time.get_ticks_msec() / PAUSE_BLINK_MS) % 2 == 0:
