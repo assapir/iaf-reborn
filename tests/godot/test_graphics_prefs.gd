@@ -133,6 +133,15 @@ func run() -> void:
 	check(RO._surf_origin.is_finite() and ij.x >= 0 and ij.x < RO.SURF_N and ij.y >= 0 and ij.y < RO.SURF_N
 			and (px.g > 0.5) == ((f & 0x10) != 0) and (px.r > 0.5) == ((f & 0x6) != 0 and (f & 0x8) == 0),
 			"terrain close up: terraintype.dat around the camera (water / airbase) for the detail")
+	# The terrain grid has no tangents: a shader using them (NORMAL_MAP / TANGENT / BINORMAL) makes Godot warn on
+	# every node ("requires tangents with a mesh that doesn't contain tangents"); the detail normal is built in
+	# the fragment shader instead.
+	var re := RegEx.create_from_string("\\b(NORMAL_MAP|TANGENT|BINORMAL)\\b")
+	var code: String = load("res://terrain/terrain.gdshader").code
+	var drawn: Array = tv.terrain.find_children("*", "MeshInstance3D", false, false)
+	check(re.search(code) == null and not drawn.is_empty()
+			and drawn.all(func(m): return m.mesh.surface_get_format(0) & Mesh.ARRAY_FORMAT_TANGENT == 0),
+			"terrain shader needs no tangents (the grid has none: no Godot warning)")
 	var cfg: ConfigFile = Settings().write_config()
 	Settings().antialiasing = "msaa4"
 	Settings().terrain_closeup = false
