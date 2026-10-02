@@ -505,7 +505,7 @@ func _choose_player() -> void:
 		jet = PlayerAircraft.JET_TYPES.get(Settings.jet_id, jet)
 	player = PlayerAircraft.profile(jet)
 	if player.type != jet:
-		print("jet type %d is not flyable yet: flying the %s" % [jet, player.fm_section])
+		print("jet type %d is AI-only (as in the original): flying the %s" % [jet, player.fm_section])
 	if cockpit.cockpit_dir != player.cockpit_dir:
 		cockpit.load_cockpit(player.cockpit_dir)
 	cockpit.twin_engines = player.twin
@@ -824,7 +824,9 @@ func _entity_final(ent: Dictionary) -> void:
 	var pos := _entity_scene_pos(ent)
 	var ground = terrain.height_at(pos)
 	var g: float = ground if ground != null else pos.y
-	var e: Dictionary = effects.explosion_for(ent.klass, ent.type_code, pos.y < g + 10.5, false)
+	# Water: terraintype.dat inland water / sea under the unit (FUN_0059df20 terrain type 1 / 2).
+	var water: bool = (terrain.surface_at(pos) & terrain.SURFACE_WATER) != 0
+	var e: Dictionary = effects.explosion_for(ent.klass, ent.type_code, pos.y < g + 10.5, water)
 	if not e.is_empty():
 		effects.explosion(pos, e.flags, e.scale, e.duration, g, maxf(ent.size, 3.0), aircraft if ent.player else ent.node)
 		if not (ent.player and crashed):
@@ -1156,7 +1158,7 @@ func _on_crashed(reason: String) -> void:
 
 
 ## Terrain slope under the aircraft: the vertical share of the surface normal (1 = flat), from
-## height samples 3 m either side. Water is not known (the terrain has no type data: UNCERTAIN).
+## height samples 3 m either side (the surface type comes from terraintype.dat, terrain.surface_at).
 func _ground_normal_z(p: Vector3) -> float:
 	const D := 3.0
 	var hx0 = terrain.height_at(p - Vector3(D, 0, 0))

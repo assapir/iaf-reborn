@@ -336,7 +336,7 @@ fn convert_unit(
     Ok(keys)
 }
 
-/// `manifest.json`: what the runtime and the Graphics page need (docs/imagery.md §5).
+/// `manifest.json`: what the runtime and the Extras page need (docs/imagery.md §5).
 fn write_manifest(dir: &Path, layer: &str) -> Result<()> {
     let mut nodes = serde_json::Map::new();
     let mut count = 0;

@@ -630,7 +630,7 @@ fn main() -> Result<()> {
     );
     md.push_str(&format!(
         "**Playable today: {} of {}** ({}). Missions the F-16 can fly (its campaign / scramble missions, and the \
-         training missions through the Jet list): {}.\n\n",
+         training missions through the Jet list): {} (all seven Jet list jets fly).\n\n",
         now.len(),
         missions.len(),
         now.iter().map(|i| i.to_string()).collect::<Vec<_>>().join(", "),
@@ -731,8 +731,8 @@ const NOTES: &str = r#"
   (`FUN_005bcd70`, docs/front-end.md §8). A flight is formation `0x3f2` 1..4; its leader is member 0 if placed,
   else member 1. Campaign and scramble missions have no `Player1`: the player flies that leader's bdb type
   (`0x5b4`). Training missions 311–326 except 325 are entered through the Jet list and load the chosen jet
-  (`FUN_004c2e30`; jets disabled per mission by `FUN_00509b80`), so any allowed jet flies them. Only the F-16 (100)
-  is flyable in the engine today; the runtime also takes the player from the entity named `Player1`, so every
+  (`FUN_004c2e30`; jets disabled per mission by `FUN_00509b80`), so any allowed jet flies them. The seven Jet list jets
+  (100, 110, 120, 130, 140, 190, 200) are flyable in the engine; the runtime also takes the player from the entity named `Player1`, so every
   other mission needs "player = default-flight leader".
 * **Other flights.** The "other flyable flights" column lists flights 2..4 the player could pick instead
   (flyable type and side 1, `FUN_00505820`). Playability is judged on the default flight only.

@@ -1593,7 +1593,7 @@ static func new_mission_screen(id: int) -> String:
 
 ## The mission Next Mission flies (FUN_004ff7e0; 0 = none, the button is disabled): the next one of the
 ## war or course, a Future front's next only when this one was passed (FUN_004f6d40; or the "make sim" /
-## "not war" cheat, not ported). Not ported: the Jump_In pick for 401–407 (FUN_004f1650) and the
+## "not war" cheat, passed in by the callers as `passed`). Not ported: the Jump_In pick for 401–407 (FUN_004f1650) and the
 ## multiplayer-only 511–516 rules (single player gets 1 / 0 there).
 static func next_mission(id: int, passed: bool) -> int:
 	match id:

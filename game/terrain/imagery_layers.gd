@@ -1,6 +1,6 @@
 # Terrain imagery layers (docs/imagery.md): the sources a region can show, which of them are
 # converted (assets/converted/imagery/<id>/manifest.json, written by `iaf-imagery`), and the layers
-# the player picked on the Graphics page (Settings.imagery_israel / imagery_outside). "original" is
+# the player picked on the Extras page (Settings.imagery_israel / imagery_outside). "original" is
 # the 1998 map.ptt imagery and always available.
 extends RefCounted
 

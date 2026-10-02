@@ -150,8 +150,8 @@ static func _soft_texture(fire: bool) -> Texture2D:
 # --- the explosion object (FUN_00416880) ---------------------------------------------------------
 
 ## What a destroyed unit's explosion looks like (FUN_0059df20) by unit class, bdb type code (0x5b4)
-## and where it is: `low` = below ground + 10.5 m (0x6119ec), `water` = terrain type 1 / 2 (our
-## terrain has no types: never). Returns {flags, scale, duration} ({} = none); the constructor's
+## and where it is: `low` = below ground + 10.5 m (0x6119ec), `water` = terrain type 1 / 2
+## (terraintype.dat under the unit). Returns {flags, scale, duration} ({} = none); the constructor's
 ## scale 4 and the event duration 95 s unless the class says otherwise. Aircraft low on land also
 ## place a crater 1 s later (CreateCraterEv; the pool of class-0x1f objects is empty in the shipped
 ## data). The sound is SFX_AIRCRAFT_EXPLODED for every unit class (code 0x11).

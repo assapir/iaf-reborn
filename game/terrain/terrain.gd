@@ -60,7 +60,7 @@ var _height_level := 6
 var _root_level := 11
 var _colour_nodes := {}  # Vector3i(i, j, level) -> true (nodes with their own texture)
 ## Imagery layers (docs/imagery.md): nodes whose colour texture comes from a layer -> its directory
-## (else the original's). Set from the Graphics page choice at _ready (or `layers` before it).
+## (else the original's). Set from the Extras page choice at _ready (or `layers` before it).
 var _layer_dir := {}
 var layers: Array[String] = []
 var _layers_set := false
@@ -137,7 +137,7 @@ func _add_colour_node(n: Vector3i) -> void:
 		a = _parent(a)
 
 
-## Picks the imagery layers before _ready (tests, the preload); default: the Graphics page choice.
+## Picks the imagery layers before _ready (tests, the preload); default: the Extras page choice.
 func set_layers(ids: Array[String]) -> void:
 	layers = ids
 	_layers_set = true
@@ -543,7 +543,7 @@ func ground_progress() -> float:
 func adopt(other: Node) -> void:
 	other._finish_jobs(true)
 	if other.layers != layers:
-		return  # loaded with other imagery (the Graphics page changed since)
+		return  # loaded with other imagery (the Extras choice changed since)
 	var now := Time.get_ticks_msec()
 	for k in other._res:
 		if not _res.has(k):
