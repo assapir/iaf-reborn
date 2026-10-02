@@ -2,7 +2,8 @@
 
 The 1998 theatre is a planar frame: map.ptt terrain units `tx` (east), `ty` (south), engine metres
 `X = tx·1.2411389 − 166850`, `Y = 1043780 − ty·1.2411389` (docs/formats/ptt.md). It is real geography
-(roughly a lat/lon raster, ~1.5× enlarged, not uniformly), but not any map projection. Every modern
+at real size (engine metres ≈ real metres: over the control-point pairs more than 50 km apart the ratio is
+×0.99–1.01, 5th–95th percentile, median 1.00), but not any map projection and not uniform in shape. Every modern
 source is in lat/lon, so modern imagery needs a **warp**: `iaf_tools::georef` (Rust,
 `crates/iaf-tools/src/georef.rs`), fitted to the control points in `crates/iaf-tools/data/georef_points.json`
 (coordinates only, our measurements). Direction: modern imagery is warped **into** the game frame; the

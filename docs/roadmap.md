@@ -105,7 +105,7 @@ Israeli bases (e.g. Hatzerim, Nevatim, Hatzor, Palmachim, Ovda) with their real 
 inset (our own airbase imagery / models, real coordinates), selectable in the briefing / Jump In.
 
 ## Real world scale — 1:1 mode (decided: we want it; parked, docs/status.md)
-The terrain itself is real size (measured with the georeference: ×0.99–1.03 everywhere, docs/georef.md); what is
+The terrain itself is real size (measured with the georeference: ×0.99–1.01, docs/georef.md); what is
 enlarged are the models (bdb Present scale ×2 aircraft / buildings, ×3–4 vehicles) and the airbases (runways, base
 distances 0.75–1.13 of real, not at their real positions — not uniform). Scaling it to
 real size would touch mission coordinates, terrain, route timing, weapon/sensor ranges; fits naturally with the
