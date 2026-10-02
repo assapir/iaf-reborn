@@ -13,8 +13,8 @@
   the detent's raw value once and map lever → throttle piecewise so the detent is exactly MIL and the travel past it
   is afterburner.
 - **High-detail F-16 model** to replace the 1998 mesh (~800 triangles): candidate is FlightGear's F-16 (check the licence) or a CC-licensed model. Keep the original dimensions, hinge points (`<part>1/2` helpers), weapon stations, camera eye point and IAF markings; fit it and repaint onto the new UVs.
-- v1.1 patch (RTPatch): extract `bdgen.dat`, fixed missions, `msgs.trx` / `credits.trx`.
-- **Better satellite imagery**: after georeferencing, optional modern imagery pack (e.g. Sentinel-2, 10 m/px, free) layered over the 1998 photos; optionally modern DEM (SRTM/Copernicus 30 m) for finer relief.
+- **Modern DEM** (SRTM / Copernicus 30 m) for finer relief. (The modern imagery itself: Sentinel-2 outside Israel is
+  done, docs/imagery.md; Survey of Israel 2 m / SPOT 5 are imagery phase 2, below.)
 - **3D virtual cockpit** (after the original 2D cockpit works), together with the high-detail F-16 model.
 - **Validate the F-16 flight data** against public sources: USAF fact sheet / RTF reference card, NASA TP-1538
   (F-16 wind-tunnel aero data, used by JSBSim), JSBSim/FlightGear F-16, engine thrust data (F100-PW-220/229,
@@ -43,11 +43,12 @@ Extras switch "Weapon data: Original / Real" (separate from Flight data); also t
 stores may go on which station, counts per rack, e.g. F-16 stations 1/9 wingtip rails, centreline 5 tank / pod) vs
 the game's CDMEWeaponLoadItem lists; the original stays the default. Same method as the flight model's validation report.
 **Started** for the gun and IR missiles (docs/real-weapons.md: weights, top speed, range, gun rounds / rate / muzzle
-velocity); to extend with each new weapon type (seeker limits and g limits need sources).
+velocity) and the F-16's radar range; bombs and rockets keep the 1998 numbers so far. To extend with each new weapon
+type (seeker limits and g limits need sources).
 
 ## "Better AI" option
-After the original AI brain is ported (AI jets fly the same flight model with AI special cases, docs/flight-model.md
-§15; the brain itself is not decoded yet), offer smarter behaviour behind its own switches (e.g. energy-aware BFM,
+The original AI brain is ported for flight (docs/ai.md: the bdb brains fly every AI jet through the same flight model,
+docs/flight-model.md §15); its combat is traced, not built (ai.md §13). Once it fights, offer smarter behaviour behind its own switches (e.g. energy-aware BFM,
 realistic missile employment / defence, wingman coordination, SAM/AAA radar discipline). The original stays the default.
 Separate switches for enemies and wingmen (the original's skill level seems to apply to sides 2/3 only; wingmen
 probably have their own command-driven logic), and an option to apply the skill level to both sides.
@@ -103,18 +104,18 @@ Let the player choose the home airbase (the original has 3 spawn bases: Tel Nof,
 Israeli bases (e.g. Hatzerim, Nevatim, Hatzor, Palmachim, Ovda) with their real layouts where the terrain has no
 inset (our own airbase imagery / models, real coordinates), selectable in the briefing / Jump In.
 
-## Real world scale — 1:1 mode (decided: we want it; after modern imagery + georeference warp)
+## Real world scale — 1:1 mode (decided: we want it; parked, docs/status.md)
 The terrain itself is real size (measured with the georeference: ×0.99–1.03 everywhere, docs/georef.md); what is
 enlarged are the models (bdb Present scale ×2 aircraft / buildings, ×3–4 vehicles) and the airbases (runways, base
 distances 0.75–1.13 of real, not at their real positions — not uniform). Scaling it to
 real size would touch mission coordinates, terrain, route timing, weapon/sensor ranges; fits naturally with the
-modern imagery (which is real-scale and gets warped to the game frame). Evaluate as an option once modern imagery
-and the georeference warp exist.
+modern imagery (which is real-scale and gets warped to the game frame). Both exist now (docs/georef.md,
+docs/imagery.md); evaluate the option when it is unparked.
 
-## Better imagery outside Israel (Extras switch)
-Sentinel-2 10 m (WorldCover 2021 / EOX 2017, CC BY) where the original has only ~79 m/px (Sinai, Egypt, Jordan,
-Syria, Lebanon, Cyprus); the original stays over Israel (≈10 m, as good or better). 1998 colours by default (needs
-per-land-cover colour matching), modern colours as its own switch. Comparisons: docs/imagery-research.md.
+## Better imagery outside Israel (Extras switch) — done (imagery phase 1, docs/imagery.md)
+Sentinel-2 10 m (the ESA WorldCover 2021 composite, CC BY 4.0) where the original has only ~79 m/px (Sinai, Egypt, Jordan,
+Syria, Lebanon, Cyprus); the original stays over Israel (≈10 m, as good or better). 1998 colours by default (a
+local colour match to the original, imagery.md §4), modern colours as its own choice. Comparisons: docs/imagery-research.md.
 
 ## Imagery sources — decisions (2026-10-01, docs/imagery-sources.md)
 - Generic, pluggable imagery layers: each source is converted into its own node set; the game picks per region from
