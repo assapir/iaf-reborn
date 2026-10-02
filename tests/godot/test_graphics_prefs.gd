@@ -121,6 +121,18 @@ func run() -> void:
 	var fog_density := env.fog_density
 	check(env.sky.sky_material is ShaderMaterial and env.fog_aerial_perspective == 1.0 and env.fog_density == fog_density,
 			"atmospheric sky: scattering sky shader, haze from the sky, the same fog distances")
+	check(tv.clouds._mat.get_shader_parameter("alpha_range") == Vector2(0.3, 0.9), "atmospheric sky: the clouds separated")
+	await frames(RO.SURF_N / RO.SURF_ROWS + 3)
+	var cam: Vector3 = vp.get_camera_3d().global_position
+	check(env.sky.sky_material.get_shader_parameter("altitude") == snappedf(maxf(cam.y, 0.0), RO.SKY_ALT_STEP),
+			"atmospheric sky: the camera's altitude")
+	var ij: Vector2 = ((Vector2(cam.x, cam.z) - RO._surf_origin) / RO.SURF_CELL).floor()
+	var centre: Vector2 = RO._surf_origin + (ij + Vector2(0.5, 0.5)) * RO.SURF_CELL
+	var f: int = tv.terrain.surface_at(Vector3(centre.x, 0.0, centre.y))
+	var px: Color = RO._surf_img.get_pixel(int(ij.x), int(ij.y))
+	check(RO._surf_origin.is_finite() and ij.x >= 0 and ij.x < RO.SURF_N and ij.y >= 0 and ij.y < RO.SURF_N
+			and (px.g > 0.5) == ((f & 0x10) != 0) and (px.r > 0.5) == ((f & 0x6) != 0 and (f & 0x8) == 0),
+			"terrain close up: terraintype.dat around the camera (water / airbase) for the detail")
 	var cfg: ConfigFile = Settings().write_config()
 	Settings().antialiasing = "msaa4"
 	Settings().terrain_closeup = false
@@ -132,7 +144,8 @@ func run() -> void:
 	Settings().sky = "original"
 	tv.apply_render_options()
 	check(vp.msaa_3d == Viewport.MSAA_4X and not vp.use_taa and vp.anisotropic_filtering_level == Viewport.ANISOTROPY_4X
-			and RO.terrain_detail == 0.0 and env.sky == sky0 and is_equal_approx(env.fog_aerial_perspective, 0.6),
+			and RO.terrain_detail == 0.0 and env.sky == sky0 and is_equal_approx(env.fog_aerial_perspective, 0.6)
+			and tv.clouds._mat.get_shader_parameter("alpha_range") == Vector2(0.0, 1.0),
 			"render options off again: everything as before")
 	Settings().smoke_trails = false
 	Settings().textured_sky = false

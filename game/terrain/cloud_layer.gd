@@ -26,6 +26,9 @@ uniform sampler2D tex : source_color, filter_linear_mipmap, repeat_enable;
 uniform vec2 offset;  // S − C
 uniform float scale;  // 1 / (1.2 · far)
 uniform bool at_far;  // the dome (from below)
+// The texture's alpha mapped from this range to 0..1: (0, 1) = the original's; the atmospheric sky's (0.3, 0.9)
+// separates the clouds with clear sky between them instead of a grey veil over the whole sky.
+uniform vec2 alpha_range = vec2(0.0, 1.0);
 void vertex() {
 	// The dome at the far plane (reverse Z: depth 0): behind every terrain point, as the original cuts it at
 	// the terrain's far horizon (FUN_0041dc30 → +0x1098, v1.1) and fills the gap up to it at the dome's depth.
@@ -39,7 +42,7 @@ void fragment() {
 	vec2 uv = (UV2.x * UV + offset) * scale;
 	vec4 t = texture(tex, uv);
 	ALBEDO = COLOR.rgb * t.rgb;
-	ALPHA = t.a;
+	ALPHA = clamp((t.a - alpha_range.x) / (alpha_range.y - alpha_range.x), 0.0, 1.0);
 }
 """
 
@@ -129,6 +132,11 @@ func _ring_mesh(edges: Array, flat: bool) -> MeshInstance3D:
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.extra_cull_margin = 16384.0
 	return mi
+
+
+## Extras Sky: Atmospheric (render_options.gd): the clouds separated, clear sky between them.
+func set_atmospheric(on: bool) -> void:
+	_mat.set_shader_parameter("alpha_range", Vector2(0.3, 0.9) if on else Vector2(0.0, 1.0))
 
 
 ## Per frame with the camera's scene position: follow it horizontally (heights are absolute), the dome from

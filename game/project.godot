@@ -42,6 +42,14 @@ terrain_detail_normal={
 "type": "sampler2D",
 "value": "res://terrain/detail_normal.tres"
 }
+terrain_surface={
+"type": "sampler2D",
+"value": ""
+}
+terrain_surface_rect={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
 
 [rendering]
 

@@ -298,6 +298,8 @@ func apply_render_options() -> void:
 		clouds.free()
 		clouds = null
 	RenderOptions.apply(get_viewport(), ($WorldEnvironment as WorldEnvironment).environment)
+	if clouds != null:
+		clouds.set_atmospheric(Settings.sky == "atmospheric")
 
 
 ## The cameras start in the cockpit (`--external`: chase; `--orbit yaw pitch dist`: the chase camera's orbit
@@ -2047,6 +2049,9 @@ func _process(delta: float) -> void:
 	_apply_view()
 	if clouds != null and get_viewport().get_camera_3d() != null:
 		clouds.update_view(get_viewport().get_camera_3d().global_position, delta)
+	if get_viewport().get_camera_3d() != null:
+		RenderOptions.update_view(($WorldEnvironment as WorldEnvironment).environment,
+				get_viewport().get_camera_3d().global_position, terrain)
 	var p := rig.position
 	var ground_h = terrain.height_at(p)
 	var agl := "" if ground_h == null else "  (%.0f m above ground)" % (p.y - ground_h)
