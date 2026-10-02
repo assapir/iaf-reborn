@@ -176,6 +176,11 @@ fn convert_objects(install: &Path, missions: &Path, out: &Path, opts: &Options) 
         let (img, _) = iaf_tools::gltf::load_texture(&root.join(src))?;
         opts.scaled(img).save(out.join(dst))?;
     }
+    // The textured sky's cloud layer (Cloud256_<rand()%6>.pal, docs/front-end.md §12.4).
+    for i in 0..6 {
+        let img = iaf_tools::gltf::load_pal(&root.join(format!("cloud256_{i}.pal")))?;
+        opts.scaled(img).save(out.join(format!("cloud256_{i}.png")))?;
+    }
     println!("objects: {} models -> {}", done.values().filter(|ok| **ok).count(), out.display());
     Ok(())
 }

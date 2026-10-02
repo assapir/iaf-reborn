@@ -82,7 +82,18 @@ func run() -> void:
 	await process_frame
 	check(tank.node.get_children().filter(func(c): return c.has_meta("lod")).is_empty(), "fatally hit / destroyed: LOD copies dropped")
 	check(tv.trails != null and tv.flight.state().has("vortex"), "smoke trails on: the trail layer exists, the FM gives the vortex flag")
+	# TEXTURED SKY: the cloud layer, a dome from the zenith at 7000 m down to height 0 at 0.73·30000 m.
+	check(tv.clouds != null and tv.clouds._dome.visible and not tv.clouds._flat.visible, "textured sky: cloud dome seen from below")
+	var e: Array = tv.clouds.ring_edges()
+	check(e.size() == 16 and e[0] == Vector2(0, 7000) and absf(e[15].x - 21900.0) < 1.0 and absf(e[15].y) < 1.0 and e[7].y < 7000.0 and e[7].y > 0.0, "cloud rings: zenith 7000 m to 21.9 km at 0 (%s)" % str(e[7]))
+	tv.clouds.update_view(Vector3(0, 6800, 0), 0.016)
+	check(tv.clouds.whiteout_alpha > 0.7, "whiteout 200 m below the layer (%.2f)" % tv.clouds.whiteout_alpha)
+	tv.clouds.update_view(Vector3(0, 8500, 0), 0.016)
+	check(tv.clouds.whiteout_alpha == 0.0 and tv.clouds._flat.visible, "above the layer: flat clouds, no whiteout beyond 1000 m")
 	Settings().smoke_trails = false
+	Settings().textured_sky = false
 	tv = await start_mission(231)
 	check(tv.trails == null, "smoke trails off: no trails")
+	check(tv.clouds == null, "textured sky off: no cloud layer")
 	Settings().smoke_trails = true
+	Settings().textured_sky = true

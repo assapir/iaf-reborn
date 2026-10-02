@@ -41,6 +41,38 @@ pub fn load_texture(path: &Path) -> Result<(RgbaImage, bool)> {
     load_texture_keyed(path, &[COLOR_KEY])
 }
 
+/// A Tgen `.pal` sprite / texture (`FUN_00426850` header, `FUN_004268d0` pixels): bytes 0..1 = 08 01, u16
+/// width at +4, u16 height at +6, then width × height 16-bit ARGB4444 pixels (little endian), copied straight
+/// into an alpha surface (docs/damage.md §6.5).
+pub fn load_pal(path: &Path) -> Result<RgbaImage> {
+    let d = std::fs::read(path).with_context(|| format!("reading {}", path.display()))?;
+    anyhow::ensure!(d.len() >= 8 && d[0] == 8 && d[1] == 1, "{}: not a .pal texture", path.display());
+    let (w, h) = (u16::from_le_bytes([d[4], d[5]]) as u32, u16::from_le_bytes([d[6], d[7]]) as u32);
+    anyhow::ensure!(d.len() >= 8 + (w * h * 2) as usize, "{}: short", path.display());
+    let mut img = RgbaImage::new(w, h);
+    for (i, p) in img.pixels_mut().enumerate() {
+        let v = u16::from_le_bytes([d[8 + 2 * i], d[9 + 2 * i]]);
+        let n = |s: u16| (((v >> s) & 0xf) as u8) * 17;
+        *p = image::Rgba([n(8), n(4), n(0), n(12)]);
+    }
+    Ok(img)
+}
+
+#[cfg(test)]
+mod pal_tests {
+    #[test]
+    fn pal_is_argb4444() {
+        let dir = std::env::temp_dir().join("iaf_pal_test");
+        std::fs::create_dir_all(&dir).unwrap();
+        let f = dir.join("t.pal");
+        std::fs::write(&f, [8, 1, 1, 0, 2, 0, 1, 0, 0xbb, 0x1b, 0x0f, 0xf4]).unwrap();
+        let img = super::load_pal(&f).unwrap();
+        assert_eq!(img.dimensions(), (2, 1));
+        assert_eq!(img.get_pixel(0, 0).0, [187, 187, 187, 17]);
+        assert_eq!(img.get_pixel(1, 0).0, [68, 0, 255, 255]);
+    }
+}
+
 /// Colour keys used by the cockpit art: the 8-bit palettes use pure cyan, the
 /// 24-bit panels (0, 210, 255).
 pub const COCKPIT_KEYS: &[[u8; 3]] = &[COLOR_KEY, [0, 210, 255]];

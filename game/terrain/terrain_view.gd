@@ -160,6 +160,8 @@ var player_flight_number := 0
 var sounds: Node
 var effects: Node3D
 var player_damage: RefCounted
+## The cloud layer (game/terrain/cloud_layer.gd); null with Graphics TEXTURED SKY off.
+var clouds: Node3D
 ## The smoke trails (game/mission/trails.gd); null with Graphics SMOKE TRAILS off.
 var trails: Node3D
 ## The player's jet was fatally hit (unit state 3, FUN_004a8100): controls gone, going down.
@@ -240,6 +242,11 @@ func _ready() -> void:
 	# OBJECT DETAIL (docs/front-end.md §12.4): the level the model loader and the LOD switch use.
 	Gltf.object_level = Gltf.detail_level(float(Settings.object_detail))
 	# Explosions, debris and smoke (docs/damage.md §6) and the player's systems damage (§5).
+	# TEXTURED SKY (renderer +4 → 0x7d1944): the cloud layer at 7000 m and its whiteout.
+	if Settings.textured_sky:
+		clouds = preload("res://terrain/cloud_layer.gd").new()
+		clouds.fog_color = ($WorldEnvironment as WorldEnvironment).environment.fog_light_color
+		add_child(clouds)
 	# SMOKE TRAILS (pref +0x48, FUN_004da090): missile / rocket trails with the motor glow, wingtip vortices.
 	if Settings.smoke_trails:
 		trails = preload("res://mission/trails.gd").new()
@@ -2025,6 +2032,8 @@ func _process(delta: float) -> void:
 			for i in tips.size():
 				trails.emit(["wingtip", i], tips[i], trails.WINGTIP)
 	_apply_view()
+	if clouds != null and get_viewport().get_camera_3d() != null:
+		clouds.update_view(get_viewport().get_camera_3d().global_position, delta)
 	var p := rig.position
 	var ground_h = terrain.height_at(p)
 	var agl := "" if ground_h == null else "  (%.0f m above ground)" % (p.y - ground_h)
