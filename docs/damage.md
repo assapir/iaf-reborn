@@ -181,8 +181,8 @@ The v1.1 patch changed these; the v1.0 behaviour is given only for comparison (d
 - **Ballistic correction** (`FUN_005611b0`, `FUN_00468470`; corrected: the bomb / shell class 0x16, not gun rounds,
   docs/weapons.md §8): single player, player's rounds only: the homing
   correction is clamped to **±`weapons.ibx [DEBUGDATA] _debugParam016`** m/s² (15 in v1.1), and the flight time is no
-  longer capped at impact. v1.0 data has `_debugParam016` = `_debugParam018` = 1: then skip the clamp (the v1.0
-  behaviour) rather than clamp at 1 m/s².
+  longer capped at impact. v1.0 data has `_debugParam016` = `_debugParam018` = 1: ours then uses the v1.1 value 15
+  (v1.1 logic with any data, user decision).
 - **Missiles** (`FUN_005604a0`, `FUN_005605c0`, `FUN_00457f70`; corrected, docs/weapons.md §3.4 / §5.2): the
   `_spiralAccel` ×0.5 unless Easy aiming is the **gun round / fixed weapon hit sphere** (25 / 50 m); the player's
   missile launch q ×0.8 without Easy aiming (read by the chase init: gain and dog vs proportional chase).

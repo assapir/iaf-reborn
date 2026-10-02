@@ -971,7 +971,11 @@ func _drop_store(i: int, aim: Vector3) -> void:
 			node.scale = Vector3.ONE * float(w.get("scale", 1.0))
 		_rocket_nodes[k] = {"node": node, "w": w}
 		return
+	# v1.1 logic with any data: v1.0's weapons.ibx has 1.0 here (v1.1 changed it to 15, docs/v1.1.md), so a v1.0
+	# install gets the v1.1 value.
 	var clamp_acc: float = db.debug_param(BOMB_CLAMP_PARAM, 15.0)
+	if is_equal_approx(clamp_acc, 1.0):
+		clamp_acc = 15.0
 	var b := Bombs.launch(now, p0, o.vel, aim, clamp_acc)
 	var node := _instance(String(w.model_path))
 	if node != null:
