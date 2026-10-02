@@ -1,5 +1,5 @@
 # Quit -> credits -> exit (docs/front-end.md §3.2 / §4.1, docs/credits.md): QUIT asks msg 7, Yes stops
-# the menu music and rolls the credits (the original's credits.trx, then ours and the imagery credits),
+# the menu music and rolls the credits (ours and the imagery credits, then the original's credits.trx),
 # a key or a click ends the roll, the end of the roll ends it too, and only then the game exits.
 extends "res://../tests/godot/base.gd"
 
@@ -35,7 +35,7 @@ func run() -> void:
 	check(not fe.music.playing, "the menu music stopped")
 	var all: Array = roll.runs.map(func(r): return r.text)
 	check(all.has("PIXEL TEAM") and all.has("Ramy Weitz") and all.has("ROHR PRODUCTIONS LTD. & C.N.E.S"), "the original's credits")
-	var mine: Array = all.slice(roll.ours)
+	var mine: Array = all.slice(0, roll.ours_end)
 	check(mine.has("IAF-REBORN") and mine.has("Assaf Sapir") and mine.has("assaf@sapir.io") and mine.has("github.com/assapir/iaf-reborn"), "our lines after the original's")
 	var credits: Array = Layers.attributions()
 	var joined := " ".join(mine)
@@ -65,7 +65,7 @@ func run() -> void:
 	var roll3 = Roll.new()
 	root.add_child(roll3)
 	await frames(1)
-	check(roll3.runs.slice(roll3.ours).map(func(r): return r.text).has("אסף ספיר"), "Hebrew: our lines in Hebrew")
+	check(roll3.runs.slice(0, roll3.ours_end).map(func(r): return r.text).has("אסף ספיר"), "Hebrew: our lines in Hebrew")
 	roll3._input(mouse_button(Vector2(10, 10), true))
 	check(roll3.done, "a click ends the roll")
 	Settings().language = "en"

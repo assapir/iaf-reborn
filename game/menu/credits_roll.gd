@@ -2,7 +2,7 @@
 # to quit the game?" Yes, the original (FUN_004e2e00) rolls txt/credits.trx over the cr0..cr8 screens with
 # credits.wav, then exits. Ported from the credits window FUN_004e7280 (ctor) / FUN_004e7880 (loop) /
 # FUN_004e7de0 (draw) / FUN_004e8200..8930 (the RTF reader). Ours: our own lines and the imagery
-# credits (game/menu/credits_ours.json) roll after the original's.
+# credits (game/menu/credits_ours.json) roll before the original's (user decision).
 extends Control
 
 signal finished
@@ -37,10 +37,10 @@ const STYLES := {"heading": ["Gill Sans", 40], "name": ["Gill Sans", 40], "role"
 ## Our lines wrap inside the original's margins (it never wraps; its lines are short).
 const WRAP := W - 2 * X0
 
-## The runs ({face, size, bold, text, newline} + layout x, y, cx, cy, next), the original's then ours.
+## The runs ({face, size, bold, text, newline} + layout x, y, cx, cy, next), ours then the original's.
 var runs: Array = []
-## Index of our first run.
-var ours := 0
+## Number of our runs (they come first: runs[0 .. ours_end − 1]).
+var ours_end := 0
 ## Time since the roll started (ms); the scroll and the screens follow it.
 var t_ms := 0.0
 var y_last := 100000.0
@@ -57,9 +57,9 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_dir = Settings.assets_dir().path_join("converted/menu_he" if Settings.language == "he" else "converted/menu")
 	var rtf := String(Settings.load_json(_dir.path_join("strings.json")).get("credits", ""))
-	runs = parse_rtf(rtf)
-	ours = runs.size()
-	runs.append_array(our_runs())
+	runs = our_runs()
+	ours_end = runs.size()
+	runs.append_array(parse_rtf(rtf))
 	_layout()
 	music = AudioStreamPlayer.new()
 	add_child(music)

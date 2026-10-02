@@ -5,7 +5,7 @@ the original: its `credits.trx` over the `cr0..cr8` screens with `credits.wav`. 
 it, and then the game exits. It only rolls when the game was started without arguments (`./iafjets`). How the
 original's roll works: docs/front-end.md §4.1. The code is in game/menu/credits_roll.gd.
 
-Our credits roll after the original's, in the same fonts and colour.
+Our credits roll before the original's, in the same fonts and colour.
 
 ## Adding a credit
 

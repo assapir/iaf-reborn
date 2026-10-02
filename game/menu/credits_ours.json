@@ -1,5 +1,5 @@
 {
-	"_doc": "Our credits, rolled after the original's credits.trx on Quit (game/menu/credits_roll.gd, docs/credits.md). One entry per line. style: heading / name (Gill Sans 20 pt), role (Gill Sans Condensed 20 pt), small (Gill Sans 16 pt), gap (an empty 12 pt line), blank (an empty 20 pt line), imagery (the Terrain Imagery section from the converted imagery layers' manifests; nothing when none is converted). text: the English line; he: the Hebrew line (optional, else text).",
+	"_doc": "Our credits, rolled before the original's credits.trx on Quit (game/menu/credits_roll.gd, docs/credits.md). One entry per line. style: heading / name (Gill Sans 20 pt), role (Gill Sans Condensed 20 pt), small (Gill Sans 16 pt), gap (an empty 12 pt line), blank (an empty 20 pt line), imagery (the Terrain Imagery section from the converted imagery layers' manifests; nothing when none is converted). text: the English line; he: the Hebrew line (optional, else text).",
 	"lines": [
 		{"style": "gap"},
 		{"style": "heading", "text": "IAF-REBORN"},
