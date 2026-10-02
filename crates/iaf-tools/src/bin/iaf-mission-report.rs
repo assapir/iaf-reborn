@@ -27,8 +27,8 @@ use std::path::Path;
 const SUPPORTED_TRIGGER: &[i64] = &[3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 26];
 /// Motion-list (scripts0) opcodes implemented: 1 Hover, 16 Path.
 const SUPPORTED_MOTION: &[i64] = &[1, 16];
-/// Player aircraft type codes (bdb Objects 0x5b4) that can be flown by the engine.
-const FLYABLE_NOW: &[i64] = &[100];
+/// Player aircraft type codes (bdb Objects 0x5b4) that can be flown by the engine: the Jet list's seven.
+const FLYABLE_NOW: &[i64] = &[100, 110, 120, 130, 140, 190, 200];
 /// Type codes the original lets the player fly (`FUN_00507d00`).
 const FLYABLE_ORIGINAL: &[i64] = &[100, 110, 120, 130, 140, 160, 180, 190, 200];
 /// Jet list per training mission: jets disabled (`FUN_00509b80`), by type code.
