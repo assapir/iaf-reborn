@@ -198,16 +198,22 @@ jettisons. Keys and commands: docs/controls.md (records 45, 54, 64–69, 72).
 
 ### 5.1 Seeker (SRM HUD mode 1; `FUN_00461210` object, `FUN_00461290` update)
 Per generation of the selected store (`FUN_00462460`): gen 1 15° / 6 NM, gen 2 21° / 8 NM, gen 3 35° / 10 NM, gen 4
-70° / 15 NM (NM = 1854 m); the cone only matters when radar-slaved (not built). Search (`FUN_00461680`) at most every
-0.5 s: the unit nearest the boresight within **6000 px²** (≈ 77 px) of the HUD boresight that passes can-track —
-**no side test** (friendlies too). Can-track (`FUN_00461d10`): 580 only within ±60° of the own heading (a bearing
-test, not the "tail" of the comment); range ≤ R; beyond **R/2 only a target with its afterburner on** (AI jets have
-no afterburner state yet, so for now R/2). Visible (`FUN_00461f10`): within 6° of the nose. Every 0.05 s: tone seek /
+70° / 15 NM (NM = 1854 m); the cone is the gimbal limit of the radar-slaved and the helmet-slaved seeker (§5.4).
+Search (`FUN_00461680`) at most every 0.5 s: the unit whose screen point (viewport 0, the 3D camera, `FUN_0045a790` →
+TgenAPI slot 0x38) is nearest the **HUD centre** (cx, cy) = R+0x2768 / +0x276c (`FUN_004dc790` → `FUN_00520be0`; not the
+boresight symbol) within **6000 px²** (≈ 77 px) that passes can-track — **no side test** (friendlies too). Can-track
+(`FUN_00461d10`): 580 only within ±60° of the own heading (a bearing test, not the "tail" of the comment); range
+≤ R; beyond **R/2 only a target with its afterburner on** (AI jets have no afterburner state yet, so for now R/2).
+Visible (`FUN_00461f10`): **with an A-A radar lock** (`FUN_004625f0`) the target within the generation cone of the
+nose; **else in the free-look (0x12) or padlock (0x16) view** the helmet test of §5.4; **else** within 6° of the nose.
+Every 0.05 s: tone seek /
 lock (SFX_IR_SEEK Wpn_IRCHIRP / SFX_IR_LOCK WPN_IRCHIRPON; none without rounds on the **selected station**, `FUN_0053bcd0`;
 entering IR on an empty station chirps the seek tone once, `FUN_00461b00`, stopped by the next update); lock = a visible trackable target (no
-lock timer; lost at once). The seeker diamond (±7 px) eases 0.3 / 0.7 toward the target's HUD point (snaps within
-5 px), back to the boresight without one. Missile circle r = 5·12 px (min 10) on the boresight. Ours: the HUD
-screen offsets are 12 px/deg from the boresight (the original projector is not traced).
+lock timer; lost at once). The seeker diamond (±7 px, `FUN_00536ff0`, S+0xe6c) eases 0.3 / 0.7 toward the target's
+screen point (snaps within 5 px), back to the HUD centre without one, and is held inside the symbology field along the
+line from the HUD centre (`FUN_0052db30`). Missile circle (`FUN_00537120`) r = 5·12 px (min 10) on the **HUD centre**.
+Ours: screen offsets are angles at 12 px/deg from the camera ray through the HUD centre (the camera's 686.2 px focal
+length = 11.98 px/deg; tan vs angle differs < 1 % inside the 6° field).
 
 ### 5.2 Launch (`FUN_004545e0` → `FUN_00454b70`, q `FUN_00457f70`)
 Needs HUD mode 1, 2 or 8. Without Easy aiming: the seeker target inside the 6000 px² circle, q = (lock ? 1 : 0.1)
@@ -226,6 +232,32 @@ the target height when within √60 m horizontally and 15 m above it, else ≥ g
 burst moves to the closest point of the last 0.1 s segment), or after burn + 6 s (22 s AIM-9L). No random Pk: the
 blast (AIM-9L power 400, radius 15) at the burst point reaches every unit around. The seeker is not consulted after
 launch.
+
+### 5.4 Helmet sight: DASH (off-boresight IR lock)
+The exe has no "helmet" string; the helmet is the cockpit key `[HUD] Dash` (Elbit's DASH, Display And Sight Helmet;
+docs/cockpit.md "HUD dash repeater") plus a view-dependent branch of the seeker. Traced (v1.1, objdump):
+* **Seeker, `FUN_00461f10` @461fb0**: when the radar has no A-A lock and the current view (`DAT_00699304` camera
+  slot +0x458 → +8) is **free look 0x12 or padlock 0x16**: A = the 3D camera's forward axis (`FUN_00582880`: the
+  head yaw / pitch with the 5.5° look-down, docs/views.md §4.3), B = the jet's nose; **B·A ≥ cos(generation cone)**
+  (`0x82f6e8`) and the target direction from the eye · A ≥ **cos 6°** (`0x82f6c8`), else not visible. No aircraft or
+  weapon test: every jet, every IR missile; only the generation cone differs (gen 1 15°: AIM-9D, Shafrir 2, AA-2,
+  AA-6; gen 2 21°: AA-8; gen 3 35°: AIM-9L / M, Python 3; gen 4 70°: Python 4, AA-11).
+* **Acquisition** is the unchanged search (§5.1): a unit within ≈ 77 px of the HUD centre on the screen. In those
+  views the HUD centre moves with the panel (cx = 320 − pan), so in a `Dash 0` cockpit (Mirage, Kfir, F-4E) a turned
+  head carries the circle off the screen with the HUD and the seeker can only take a unit near the nose, which the
+  camera-axis test then rejects; in a `Dash 1` cockpit (F-15, F-16, F-4 2000, Lavi, MiG-23, MiG-29) the HUD becomes the
+  helmet display at the fixed screen point (320, 220) once the panel is panned ≥ 250 px aside or ≥ 200 px down
+  (`FUN_00530b70`), so the circle sits near the middle of the view and the seeker takes what the pilot looks at.
+* **Padlock (F3 / Shift+F3)** puts the target on the head line: the camera looks 5.5° below it (or max(·, 0.1·(|yaw|
+  − 90°))), so the target is 4–5.5° from A (inside 6°) and ≈ 30–50 px above (320, 220) on the full-height viewport
+  of a turned head (docs/cockpit.md "3D view"); with the head ≤ cone off the nose the seeker locks. The padlock does
+  not hand its target to the seeker; the screen search does.
+* **Symbols**: the helmet display's missile circle on (320, 220), the seeker diamond eased onto the target's screen
+  point (held in the field), the DASH aircraft symbol and attitude bar (docs/cockpit.md). **Sounds**: the same seek /
+  lock tones. **Launch** (§5.2): unchanged — the seeker target inside the 6000 px² circle around the HUD centre, q =
+  (lock ? 1 : 0.1)·0.8; the missile chases that target (no seeker after launch).
+* **Radar-slaved** (any view): the A-A lock's unit at once, visible within the generation cone of the **nose** (the
+  first branch of `FUN_00461f10`).
 
 ## 6. HUD and MFD
 Weapon text (`FUN_0052ef20` pass 3, left column at HUD centre − TxtOffX, rows 7 px from centre + TxtOffY; row 2):

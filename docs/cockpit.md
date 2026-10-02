@@ -53,10 +53,26 @@ kt / ft / NM for every jet.
 * **Frame** (`FUN_00530b70`, views 1 / 0x12 / 0x16 = cockpit): HUD centre (cx, cy) = (320 − pan, MainOffsetY − CenterY +
   vpan); the field = cx − LeftBorder .. cx + RightBorder, cy − TopBorder .. cy + BottomBorder (R+0x2770 RECT); scale k = 1.
   View 5 (HUD only) draws at k = 2 around (320, 240) (not ported, deviations.md). With `Dash` 1 and the panel panned
-  ≥ 250 px aside or ≥ 200 px down the HUD becomes a "dash repeater" at (320, 220) (R+0x2788 = 1: no tapes, no ladder,
-  `FUN_00539ac0`; not ported). Two passes: 4 (GDI lines and Arial h10 w5 text, R+0x57c, 1 px pen in the HUD colour, null
+  ≥ 250 px aside or ≥ 200 px down the HUD becomes the helmet display (below). Two passes: 4 (GDI lines and Arial h10 w5 text, R+0x57c, 1 px pen in the HUD colour, null
   brush) and 3 (the 5x5 sprite font, recoloured to the HUD colour, `FUN_00525920` right-aligned / `FUN_00525a30`
   left-aligned, glyph tops at y). GDI text align TA_BASELINE (0x18, 0x1a with TA_RIGHT).
+* **HUD dash repeater = the helmet display** (`FUN_00530b70` @530bd0, views 1 / 0x12 / 0x16): with `Dash` 1
+  (F-15, F-16, F-4 2000, Lavi, MiG-23, MiG-29) and pan(+0x564) ≥ 250 or ≤ −250 or vpan(+0x568) ≥ 200 (head yaw
+  ≥ 11.7°, F-15 13°; or the head looking up ≈ 7°), the HUD centre is the fixed screen point **(320, 220)** (not panned), the field
+  R+0x2770 around it, and R+0x2788 = 1. Drawn: the speed and altitude boxes **without** tapes (ShowLRScales forced 0),
+  the text block, the mode symbols of `FUN_0052fa10` minus those that test R+0x2788 (mode 1: missile circle and
+  seeker diamond; the target box, waypoint marker, range bar), and the DASH symbol `FUN_00539ac0`. Not drawn: the
+  heading tape, the ladder and flight path marker, the ILS, the gun cross, the mode 3 / 4 pipper (`FUN_00530040`), the
+  mode 5 / 6 bomb symbols (`FUN_005302d0`). The glass bitmap pans away with the panel.
+  **DASH symbol** (`FUN_00539ac0`, pass 4, 1 px HUD pen): at (cx, cy) = (320, 220) the aircraft symbol
+  Ellipse(cx − 2, cy − 2, cx + 3, cy + 3), wings (cx ∓ 4 → cx ∓ 1, cy), tail (cx, cy − 4 → cy − 1) (the marker's
+  shape); and an **attitude bar**: r = roll°, p = pitch° (S+0x10, S+0xc, fmod 360 into [0, 360); p in (90, 270) →
+  p = 180 − p and r += 180; p > 270 → p − 360); two polylines (−42, 2)→(−42, 0)→(−5, 0) and (42, 2)→(42, 0)→(5, 0),
+  each point (X, Y) drawn at (cx + X·cos r + Y·sin r, cy + 1.5·p + Y·cos r − X·sin r) (`0x60c58c` 1.5 px per degree;
+  nose up moves the bar down, the 2 px end ticks point to the ground). |p| > 40° (`0x60c584`): p held at ±40 and the
+  bar blinks (a flag flips when > 300 ms of the frame clock R+0x574 have run, DAT_0083e550 / DAT_0065d7a4; steady
+  again within ±40).
+
 * **Clip**: only the pitch ladder and marker are clipped to the field (a region); everything else is drawn where it
   falls: the tapes and boxes sit on and beyond the field's edges, the text block below it.
 * **Altitude** (`FUN_005381c0`) at x = cx + RightBorder, y = cy − VertSclOffY: in HUD modes 0 / 4 / 5 with the gear
@@ -124,7 +140,7 @@ kt / ft / NM for every jet.
 * **Per jet** (the keys above): the F-4E (phantom) and MiG-23 have **ShowHorizon 0** (no ladder, the marker stays)
   and **ShowLRScales 0** (the speed / altitude boxes without tapes or carets); the others show both. VertSclOffY
   moves both boxes (F-16 15 px above the centre, Mirage 20, F-15 / F-4 2000 5, Lavi 5 below, others at the centre).
-  Dash 1 (repeater) on F-15, F-16, F-4 2000, Lavi, MiG-23, MiG-29. The ILS, cues and text block are the same for all.
+  Dash 1 (helmet display) on F-15, F-16, F-4 2000, Lavi, MiG-23, MiG-29. The ILS, cues and text block are the same for all.
 * **Port** (`game/cockpit/hud.gd`, tests/godot/test_hud.gd; the ILS in Rust `iaf_flight::airbase::ils`,
   `IafFlight.ils()`): the field and ladder in the Hud control (clipped), the tapes / boxes / text block on the
   unclipped sibling `HudOuter`; the original geometry in 640x480 pixels × the ui scale. The marker is the velocity

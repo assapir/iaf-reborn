@@ -121,6 +121,9 @@ orbit instead (8 / 2 pitch, 6 / 4 heading; F2 and 1 / 3 / 7 / 9 do nothing there
   90°/s), pitch −12°…+85°, yaw unlimited; release: the head stays. Panning breaks a padlock.
 * **Padlock** (0x16): the target's direction in the jet's body frame, pitch ≥ −12°, (0, 0) within 5° of the nose; the
   head closes 0.9^(10·dt) of the error per frame step (τ ≈ 0.95 s).
+* **Helmet** (free look 0x12 / padlock 0x16): the IR seeker looks along the camera axis within its generation cone,
+  and `Dash 1` cockpits draw the HUD as a helmet display at (320, 220) once the head is turned (docs/weapons.md §5.4,
+  docs/cockpit.md "HUD dash repeater"). The 3D viewport follows the pan (docs/cockpit.md "3D view").
 * **Orbit / path-follow** (6 chase, 9): the trail keeps the target's last 100 frame positions; the camera sits L back
   along that path (L = rope: min dmin = min(1500, scale·size), start 3·dmin, max 20·dmin; a short path goes on along
   −forward), then rotated about the target by the orbit heading (chase 2°) and pitch (chase 10°). F9 / F4 / F11 add the
