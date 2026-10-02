@@ -34,6 +34,11 @@ const FLAPS_K: f32 = 3.415_883_8;
 const MILITARY: f32 = 0.74;
 const AB: f32 = 0.75;
 const THROTTLE_DEADBAND: f32 = 0.015;
+/// Better physics `ground_idle`: the idle share of the thrust on the ground falls with speed as a jet's net thrust
+/// does (ram drag, ṁ·(Vj − V)), at an idle exhaust speed Vj (m/s). The original's idle is constant (k 0.05 of the
+/// full-AB curve, F-16 ≈ 1000 lbf static), so a light F-16 rolls past 90 kt at idle; a real one settles near 30 kt
+/// (GAO: 50 kt on the first engines, cut to 30). Vj gives the F-16 (Original data, start weight) ≈ 30 kt.
+const IDLE_VJ: f32 = 46.0;
 /// v1.1 AI wheel-brake factor (`0x612474`; v1.0 2.0).
 const AI_BRAKE: f32 = 4.0;
 /// Crash immunity: an AI control loop older than this (s) (`0x611d20`).
@@ -311,11 +316,13 @@ pub struct BetterPhysics {
     pub no_nose_wheel_lift: bool,
     /// Ground effect on the induced drag.
     pub ground_effect: bool,
+    /// On the ground the idle thrust falls with speed (ram drag) and no ×0.8 ground drag: taxi speeds near 30 kt, not 90+.
+    pub ground_idle: bool,
 }
 
 impl BetterPhysics {
     /// Stable ids (snake_case) and English labels, in menu order.
-    pub const OPTIONS: [(&'static str, &'static str); 12] = [
+    pub const OPTIONS: [(&'static str, &'static str); 13] = [
         ("flight_path_hold", "1 g hold keeps the flight path (no slow climb/dive with neutral stick)"),
         ("force_angles", "Forces use the current angle of attack and sideslip"),
         ("start_lift", "Airborne start without the upward jolt"),
@@ -328,6 +335,7 @@ impl BetterPhysics {
         ("low_speed_roll", "No reversed roll at very low speed"),
         ("no_nose_wheel_lift", "No lift jump from nose-wheel steering"),
         ("ground_effect", "Ground effect (less induced drag near the ground)"),
+        ("ground_idle", "Realistic idle thrust on the ground (taxi speed)"),
     ];
 
     pub fn none() -> Self {
@@ -356,6 +364,7 @@ impl BetterPhysics {
             "low_speed_roll" => &mut self.low_speed_roll,
             "no_nose_wheel_lift" => &mut self.no_nose_wheel_lift,
             "ground_effect" => &mut self.ground_effect,
+            "ground_idle" => &mut self.ground_idle,
             _ => return None,
         })
     }
@@ -1084,7 +1093,10 @@ impl Aircraft {
             let stage_of = |thr: f32| if thr < 0.75 { 0 } else if thr < 0.875 { 1 } else { 2 };
             let (mut k, st) = if !no_ab {
                 if thr < 0.75 {
-                    (0.05 + 0.743_243_2 * thr, 0)
+                    // BP ground_idle: the idle share loses its ram drag, ×(1 − V/Vj) (net thrust ṁ·(Vj − V)).
+                    let v = mach * crate::atmosphere::air(alt).sound;
+                    let idle = if self.on_ground && self.better.ground_idle { 0.05 * (1.0 - v / IDLE_VJ).max(0.0) } else { 0.05 };
+                    (idle + 0.743_243_2 * thr, 0)
                 } else if thr < 0.875 {
                     (0.875, 1)
                 } else {
@@ -1318,7 +1330,7 @@ impl Aircraft {
                 mu = 20.0; // belly
             }
             drag = (drag + 0.5 * mu * (mass * G - lift)).max(0.0);
-            if v > 1.0 {
+            if v > 1.0 && !self.better.ground_idle {
                 drag *= ROLL_DRAG;
             }
             yaw_nw = self.nose_wheel_yaw(v, gear);
@@ -2828,6 +2840,24 @@ mod tests {
         g.aero_update();
         let qs = q_s(10.0, 60.0, g.params.wing_area);
         assert!((g.drag - d0 - 0.8 * 0.24 * qs).abs() < 0.02 * (g.drag - d0), "chute drag {} vs {}", g.drag - d0, 0.8 * 0.24 * qs);
+    }
+
+    #[test]
+    fn ground_idle_thrust_falls_with_speed() {
+        // BP ground_idle: on the ground the idle share (k 0.05) is ×(1 − V/Vj); the throttle's share is kept.
+        let mut g = ground(true);
+        g.throttle = 0.0;
+        g.params.thrust = [[[0.0, 20000.0]; 2]; 2];
+        let a = crate::atmosphere::air(10.0).sound;
+        let still = g.thrust_at(10.0, 0.0, false).0;
+        g.better.ground_idle = true;
+        assert_eq!(g.thrust_at(10.0, 0.0, false).0, still, "same idle at rest");
+        let half = g.thrust_at(10.0, 0.5 * IDLE_VJ / a, false).0;
+        g.better.ground_idle = false;
+        let half_orig = g.thrust_at(10.0, 0.5 * IDLE_VJ / a, false).0;
+        assert!((half - 0.5 * half_orig).abs() < 0.01 * half_orig, "{half} vs {half_orig}");
+        g.better.ground_idle = true;
+        assert_eq!(g.thrust_at(10.0, 2.0 * IDLE_VJ / a, false).0, 0.0, "no idle thrust above Vj");
     }
 
     #[test]

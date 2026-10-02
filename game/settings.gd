@@ -19,6 +19,7 @@ const BETTER := {
 	"low_speed_roll": "No reversed roll at low speed",
 	"no_nose_wheel_lift": "No nose-wheel lift quirk",
 	"ground_effect": "Ground effect",
+	"ground_idle": "Real idle thrust on the ground (taxi speed)",
 	"fix_fall_heading": "Falling jets keep their heading",
 	"fix_skill_damage": "No tougher enemies on easy AI levels",
 	"fix_lock_threat": "Locked enemies know who locked them",

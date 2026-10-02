@@ -478,6 +478,13 @@ What still differs:
     φ = 0.5 at 0.6 m, 0.8 at 1.3 m, 0.94 at 2.5 m, ≈ 1 above ~10 m; on the wheels h = the gear clearance, 1.69 m →
     0.9). It lengthens the flare/float and shortens the take-off run slightly. Lift, α and the envelope are unchanged
     (the model commands g, not CL). Like all drag it is refreshed by the 1 Hz / event update.
+  * **Ground idle thrust** [`ground_idle`] (§15.8, §14.3): the original's idle thrust is constant (k 0.05 of the
+    full-AB curve, F-16 ≈ 1000 lbf static) and the ground drag drops ×0.8 above 1 m/s, so at idle with no brakes a
+    jet keeps accelerating (F-16 Original data ≈ 46 kt after 2 min, ≈ 99 kt after 10). A real F-16 settles near 30 kt
+    (a GAO report: up to 50 kt on the first engines, cut to 30). BP: on the ground the idle share loses its ram drag,
+    ×(1 − V/Vj), Vj = 46 m/s (net thrust ṁ·(Vj − V)), and the ×0.8 step is gone (rolling friction μ 0.05/2 is already
+    realistic). Vj gives the F-16 (Original, start weight) ≈ 31 kt; the seven jets settle at 11–40 kt (Original) and
+    35–44 kt (Real data) after 10 min. The throttle's share above idle is unchanged.
 * **Not changed by better physics** (original quirks that stay in both modes):
   * §15.10 item 14, the slope globals: the original's lift-ramp / β-gain slopes below 220 / 400 m/s come from the **last
     aircraft type set up** (shared globals). Our `Aircraft` keeps its own parameters, so every jet uses its own slopes in
