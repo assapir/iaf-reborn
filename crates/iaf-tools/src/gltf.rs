@@ -379,3 +379,41 @@ pub fn write_model(
     fs::write(out_dir.join(format!("{name}.gltf")), serde_json::to_string_pretty(&doc)?)?;
     Ok(b.warnings)
 }
+
+#[cfg(test)]
+mod uv_tests {
+    use iaf_formats::model::{Frame, Mesh, Model};
+
+    /// `MeshTextureCoords` are per vertex with (0,0) = top left, the same as glTF: they pass through unchanged,
+    /// values outside 0..1 included (the Lavi's `lavi_h.x` has u down to −0.883), and the sampler repeats like
+    /// Direct3D's default WRAP address mode (docs/formats/x.md).
+    #[test]
+    fn uvs_pass_through_and_wrap() {
+        let uvs = vec![[-0.883, 0.25], [1.0, -0.864], [0.5, 1.002]];
+        let mesh = Mesh {
+            positions: vec![[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
+            faces: vec![vec![0, 1, 2]],
+            uvs: uvs.clone(),
+            ..Default::default()
+        };
+        let frame = Frame { name: "root".into(), transform: [1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1.], meshes: vec![mesh], children: vec![] };
+        let dir = std::env::temp_dir().join(format!("iaf_uv_test_{}", std::process::id()));
+        super::write_model(&Model { frames: vec![frame] }, "t", &[], &dir, false, false).unwrap();
+        let doc: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(dir.join("t.gltf")).unwrap()).unwrap();
+        let bin = std::fs::read(dir.join("t.bin")).unwrap();
+        let prim = &doc["meshes"][0]["primitives"][0];
+        let acc = &doc["accessors"][prim["attributes"]["TEXCOORD_0"].as_u64().unwrap() as usize];
+        let view = &doc["bufferViews"][acc["bufferView"].as_u64().unwrap() as usize];
+        let off = view["byteOffset"].as_u64().unwrap() as usize;
+        let f = |i: usize| f32::from_le_bytes(bin[off + 4 * i..off + 4 * i + 4].try_into().unwrap());
+        let got: Vec<[f32; 2]> = (0..acc["count"].as_u64().unwrap() as usize).map(|i| [f(2 * i), f(2 * i + 1)]).collect();
+        let mut want = uvs;
+        want.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        let mut got_sorted = got;
+        got_sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        assert_eq!(got_sorted, want);
+        assert_eq!(doc["samplers"][0]["wrapS"], 10497);
+        assert_eq!(doc["samplers"][0]["wrapT"], 10497);
+        std::fs::remove_dir_all(dir).ok();
+    }
+}
