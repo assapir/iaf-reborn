@@ -322,8 +322,17 @@ func _he() -> bool:
 	return Settings.language == "he"
 
 
+## Labels of ours without a Hebrew text, collected while drawing in Hebrew (test_ui_smoke fails on any).
+var missing_he := {}
+
+
 func _t(english: String) -> String:
-	return hebrew.get("labels", {}).get(english, english) if _he() else english
+	if not _he():
+		return english
+	var labels: Dictionary = hebrew.get("labels", {})
+	if not labels.has(english):
+		missing_he[english] = true
+	return labels.get(english, english)
 
 
 func _string(key: String) -> String:

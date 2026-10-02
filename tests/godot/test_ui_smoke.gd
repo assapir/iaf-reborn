@@ -84,6 +84,15 @@ func run() -> void:
 			await frames(10)
 		Settings().no_blackouts = false
 		check(true, "%s: Preferences tabs and exits" % lang)
+		if lang == "he":
+			for page in ["extras", "physics"]:
+				fe._on_button(page)
+				for top in 30:
+					if page == "extras": fe._extras_scroll(top)
+					else: fe._phys_scroll(top)
+					fe.queue_redraw()
+					await frames(1)
+			check(fe.missing_he.is_empty(), "he: every label of ours has a Hebrew text (missing: %s)" % str(fe.missing_he.keys()))
 		fe.queue_free()
 		await frames(3)
 	Settings().language = "en"
