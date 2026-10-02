@@ -115,9 +115,14 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 - **Preferences → Graphics**: a VSYNC check (ours) in the empty strip left of DEFAULT, default on.
 - **Preferences → Extras → Anti-aliasing / Terrain close up / Sky** (ours, docs/rendering.md): rendering only, first
   choice = the look before. Anti-aliasing MSAA 4× (as before) / + FXAA / TAA (instead of MSAA); Terrain close up:
-  a procedural detail texture and normal detail on the terrain within 1.5 km (mean 1, so colours from afar are the
-  imagery's) and 16× anisotropic filtering; Sky: Atmospheric = a single-scattering sky shader with the sun's disc
-  and the fog colour taken from it (aerial perspective), same fog density.
+  detail that follows the imagery within 1.5 km (coloured ground: patches toward a deeper / drier version of the
+  photo's colour, grain and normal detail; grey pavement: a faint grain; water from terraintype.dat: none; centred
+  noise, so colours from afar are the imagery's) and 16× anisotropic filtering; Sky: Atmospheric = a clear-day sky
+  (tuned single scattering: deep blue zenith, pale horizon, darker with altitude, crisp sun disc with a narrow
+  glare), the haze over the ground in the horizon's colour (aerial perspective, same fog density), and the cloud
+  layer's alpha stretched (0.3–0.9 → 0–1) so its clouds stand apart with clear sky between them instead of a grey
+  veil; the original's cloud texture choice (one of six per mission, Cloud256_5 nearly overcast) is kept. No time
+  of day yet: the sun is our fixed light, the sky follows it.
 - **Preferences → Extras → terrain imagery** (ours, docs/imagery.md): one row per region (Israel / outside
   Israel), default "Original". A converted modern layer (Sentinel-2 10 m outside Israel, in 1998 or modern
   colours; later Survey of Israel 2 m, SPOT 5) replaces the original's ground texture only on land in its region,
