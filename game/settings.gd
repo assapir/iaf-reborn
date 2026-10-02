@@ -31,7 +31,7 @@ const PREFS := {
 	"sound": ["mute", "music_volume", "engine_volume", "sfx_volume", "speech_volume"],
 	"graphics": ["terrain_detail", "object_detail", "visual_effects", "smoke_trails", "textured_sky",
 		"shadows", "external_stores", "vsync"],
-	"devices": ["flight_controls", "rudder", "throttle", "joy_axes"],
+	"devices": ["flight_controls", "rudder", "throttle", "joy_axes", "throttle_detent"],
 	"gameplay": ["no_wind", "no_blackouts", "no_spins", "no_stalls", "easy_landing", "easy_aiming",
 		"no_malfunctions", "ai_level", "invulnerable", "no_crashes", "unlimited_ammo", "unlimited_fuel",
 		"flight_data", "weapon_data", "language", "show_info", "blackbox", "hud_ladder", "show_all_keys", "fullscreen",
@@ -104,7 +104,7 @@ var vsync := true
 ## (terrain/imagery_layers.gd), e.g. "sentinel2" / "sentinel2_modern" outside Israel.
 var imagery_israel := "original"
 var imagery_outside := "original"
-## Ours (Extras): the throttle lever's detent (raw 0..100) that maps to MIL; −1 = off, the original's linear lever.
+## Ours (Devices page): the throttle lever's detent (raw 0..100) that maps to MIL; −1 = off, the original's linear lever.
 var throttle_detent := -1
 ## Render options for high resolutions (ours, Extras page; docs/rendering.md, terrain/render_options.gd):
 ## anti-aliasing "msaa4" (as before) / "msaa4_fxaa" / "taa" (TAA instead of MSAA); the terrain close up (detail texture, normal detail,

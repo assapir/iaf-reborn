@@ -103,3 +103,24 @@ func run() -> void:
 	if fe.msgbox != null:
 		click_box(fe.msgbox, 1)
 		await settle(fe)
+	# Devices DETENT = MIL (ours): the click edits the working copy; Back -> No keeps the stored value,
+	# Back -> Yes stores it.
+	Settings().throttle_detent = 60
+	fe._on_button(fe._key_for_label("Preferences"))
+	await settle(fe)
+	fe._on_button(fe._key_for_label("Devices"))
+	click(fe, fe.CONTENT.position + fe.PREF_DETENT.off.get_center())
+	check(fe.pref_work.throttle_detent == -1 and Settings().throttle_detent == 60, "DETENT OFF in the working copy only")
+	fe._on_button("back")
+	await settle(fe)
+	click_box(fe.msgbox, 1)
+	await settle(fe)
+	check(Settings().throttle_detent == 60, "Back -> No keeps the detent")
+	fe._on_button(fe._key_for_label("Preferences"))
+	await settle(fe)
+	click(fe, fe.CONTENT.position + fe.PREF_DETENT.off.get_center())
+	fe._on_button("back")
+	await settle(fe)
+	click_box(fe.msgbox, 0)
+	await settle(fe)
+	check(Settings().throttle_detent == -1, "Back -> Yes stores the detent")

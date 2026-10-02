@@ -385,5 +385,5 @@ handler `FUN_004e1df0`; there is no joystick code anywhere else. Addresses v1.1 
 * Not ported: force feedback; the stick re-sync when taking over another jet.
 
 
-* **Ours: Extras "Throttle detent = MIL"** (off = the original's linear lever): with the lever in its detent, "Set at lever"
+* **Ours: Devices page "Detent = MIL"** (under THROTTLE) (off = the original's linear lever): with the lever in its detent, "Set at lever"
   stores that raw value d; then lever t ≤ d → 74·t/d, t > d → 74 + 26·(t − d)/(100 − d) (`Joystick.detent_map`).

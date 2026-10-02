@@ -80,6 +80,9 @@ const PREF_THUMB := Vector2(19, 15)
 const PREF_DEFAULT := Rect2(357, 330, 85, 23)
 ## Ours on the Graphics page: the VSync check in the empty strip left of DEFAULT (page coordinates).
 const PREF_VSYNC := Rect2(8, 330, 110, 23)
+## Ours on the Devices page, under THROTTLE on the page's 35 px row grid: the throttle detent (joystick.gd
+## `detent_map`): OFF = the original's linear lever, SET AT LEVER stores the lever's position in its detent as MIL.
+const PREF_DETENT := {"title": Rect2(317, 143, 115, 20), "off": Rect2(317, 178, 110, 20), "set": Rect2(317, 213, 115, 20), "note": Rect2(317, 245, 125, 60)}
 ## Gameplay scoring strip: pref/score.bmp, 25 frames of 151x34.
 const PREF_SCORE := Rect2(290, 184, 151, 34)
 ## Live preview sounds while dragging (wav/pref, FUN_00544560).
@@ -133,8 +136,6 @@ const EXTRAS := [
 	["hud_ladder", "HUD pitch ladder", [["Original", "original"], ["Conformal", "conformal"]]],
 	["show_all_keys", "All keys on the Keyboard page", [["Original", false], ["All", true]]],
 	["fullscreen", "Window", [["Framed", false], ["Full screen", true]]],
-	# Ours: set while the lever sits in its detent (the click); the detent then maps to MIL (joystick.gd).
-	["throttle_detent", "Throttle detent = MIL", [["Off", -1], ["Set at lever", "set"]]],
 	# Render options for high resolutions (terrain/render_options.gd, docs/rendering.md); first = as before.
 	["antialiasing", "Anti-aliasing", [["MSAA 4x", "msaa4"], ["+ FXAA", "msaa4_fxaa"], ["TAA", "taa"]]],
 	["terrain_closeup", "Terrain close up", [["Original", false], ["Detailed", true]]],
@@ -845,6 +846,22 @@ func _draw_prefs() -> void:
 		_blit_region("pref/score.png", src, at + PREF_SCORE.position)
 	if page != "Devices":
 		_blit("pref/defbut_%d.png" % (2 if pref_default_held else 0), at + PREF_DEFAULT.position)
+	if page == "Devices":
+		var fs := int(round(LIST_TITLE_PX * _scale()))
+		var tr := _rect(Rect2(at + PREF_DETENT.title.position, PREF_DETENT.title.size))
+		draw_string(font_art, Vector2(tr.position.x, tr.end.y - font_art.get_descent(fs)), _art("Detent = MIL"), HORIZONTAL_ALIGNMENT_LEFT, tr.size.x, fs, LIST_TITLE)
+		var d := int(pref_work.get("throttle_detent", -1))
+		var has_joy := Joystick.device() >= 0
+		for k in ["off", "set"]:
+			var on := (d < 0) if k == "off" else (d >= 0)
+			var r0: Rect2 = PREF_DETENT[k]
+			_blit_region("pref/gamep_%d.png" % (1 if on else 0), Rect2(Vector2(28, 55), Vector2(11, 11)), at + r0.position + Vector2(4, 6))
+			var r := _rect(Rect2(at + r0.position + Vector2(22, 0), Vector2(r0.size.x - 22, 20)))
+			var col: Color = LIST_DESC_LIT if on else LIST_DESC
+			if k == "set" and not has_joy:
+				col = Color(LIST_DESC, 0.45)
+			draw_string(font_art, Vector2(r.position.x, r.end.y - font_art.get_descent(fs)), _art("Off" if k == "off" else "Set at lever"), HORIZONTAL_ALIGNMENT_LEFT, r.size.x, fs, col)
+		_text_block(Rect2(at + PREF_DETENT.note.position, PREF_DETENT.note.size), _t("Put the lever in its MIL click, then choose Set at lever."), LIST_DESC_PX, LIST_DESC)
 	if page == "Graphics":
 		# Not mirrored in Hebrew: the Graphics art is left-to-right in both languages (the Hebrew CD's too).
 		var vs_on := bool(pref_work.get("vsync", true))
@@ -1197,8 +1214,6 @@ func _extras_items() -> Array:
 				r.position.x = CONTENT.size.x - r.end.x
 			var value = choices[j][1]
 			var available: bool = not (typeof(value) == TYPE_STRING and value == "he" and not Settings.hebrew_available())
-			if typeof(value) == TYPE_STRING and value == "set":
-				available = Joystick.device() >= 0  # needs the lever
 			if String(opt[0]).begins_with("imagery_"):
 				available = ImageryLayers.available(String(value))
 			items.append({"rect": r, "key": opt[0], "value": value, "label": choices[j][0], "available": available})
@@ -1253,8 +1268,6 @@ func _draw_extras() -> void:
 		_text_fit(Rect2(CONTENT.position + r.position, r.size), _art(rows[i][1]), LIST_TITLE_PX, LIST_TITLE, font_art)
 	for it in _extras_items():
 		var on: bool = it.get("on", pref_work.get(it.key) == it.value)
-		if it.key == "throttle_detent" and typeof(it.value) == TYPE_STRING:
-			on = int(pref_work.get(it.key, -1)) >= 0
 		_draw_option(it.rect, it.label, on, 10, 4, it.available)
 
 
@@ -1401,7 +1414,7 @@ func _pref_press(q: Vector2) -> bool:
 			return true
 		for it in _extras_items():
 			if it.available and it.rect.has_point(q):
-				pref_work[it.key] = Joystick.raw_throttle() if typeof(it.value) == TYPE_STRING and it.value == "set" else it.value
+				pref_work[it.key] = it.value
 				return true
 		return false
 	if page == "Physics":
@@ -1417,6 +1430,13 @@ func _pref_press(q: Vector2) -> bool:
 					pref_work.better[it.key] = not pref_work.better[it.key]
 				return true
 		return false
+	if page == "Devices":
+		if PREF_DETENT.off.has_point(q):
+			pref_work["throttle_detent"] = -1
+			return true
+		if PREF_DETENT.set.has_point(q) and Joystick.device() >= 0:
+			pref_work["throttle_detent"] = Joystick.raw_throttle()
+			return true
 	if page == "Graphics" and PREF_VSYNC.has_point(q):
 		pref_work["vsync"] = not bool(pref_work.get("vsync", true))
 		return true
