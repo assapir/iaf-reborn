@@ -137,7 +137,7 @@ func setup(gltf_scene: Node3D, descriptor: Dictionary, type := -1, on_ground := 
 ## Drives the parts. `input` (all optional, like the flight state dictionary):
 ##   stick_x (+right), stick_y (+pull), rudder (−1..1), flaps (lever 0..1), gear_down, brakes (speed brake),
 ##   hook, chute (0 off, 1 armed, 2 deployed, 3 gone), on_ground, gear (the flight model's gear ramp, rad),
-##   afterburner (stage 0..2), rpm (0..1.14).
+##   afterburner (stage 0..2), rpm (0..1.14), ab_damage ([left, right] afterburner damage flags 8 / 9).
 func update(input: Dictionary, delta: float) -> void:
 	_time += delta
 	var on_ground: bool = input.get("on_ground", false)
@@ -188,11 +188,14 @@ func update(input: Dictionary, delta: float) -> void:
 		_chute_angle = randf_range(-CHUTE_JITTER, CHUTE_JITTER)
 		_chute_t = _time
 	_chute_state = chute
-	# Afterburner level (FUN_005abc90): 75 + 12.5·stage when lit, else RPM·100·0.74 (never drawn).
+	# Afterburner level (FUN_005abc90 left / FUN_005abdc0 right): 75 + 12.5·stage when lit and that side's
+	# afterburner damage flag (8 / 9) is clear, else RPM·100·0.74 (never drawn).
 	var stage: int = input.get("afterburner", 0)
-	var level := int(75.0 + 12.5 * stage) if stage > 0 else int(clampf(float(input.get("rpm", 0.0)), 0.0, 1.0) * 100.0 * 0.74)
+	var dry := int(clampf(float(input.get("rpm", 0.0)), 0.0, 1.0) * 100.0 * 0.74)
+	var ab_damage: Array = input.get("ab_damage", [false, false])
 	for fl in flames:
-		fl.level = level
+		var dmg: bool = ab_damage[0 if str(fl.name).ends_with("left") else 1]
+		fl.level = int(75.0 + 12.5 * stage) if stage > 0 and not dmg else dry
 	_apply()
 
 

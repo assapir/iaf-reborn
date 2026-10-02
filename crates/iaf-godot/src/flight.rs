@@ -111,6 +111,17 @@ impl IafFlight {
         }
     }
 
+    /// The pilot's systems damage flags 0..24 (docs/damage.md §5.2, `player_damage.gd` flags) and whether the
+    /// jet has two engines: engines / afterburner / fuel leak (thrust), hydraulics / total flight control
+    /// (stick, spin).
+    #[func]
+    fn set_damage(&mut self, flags: VarArray, twin: bool) {
+        if let Some(ac) = &mut self.aircraft {
+            let mask = (0..flags.len().min(25)).filter(|&i| flags.get(i).is_some_and(|v| v.booleanize())).fold(0u32, |m, i| m | 1 << i);
+            ac.set_damage(mask, twin);
+        }
+    }
+
     /// Terrain elevation under the aircraft (metres).
     #[func]
     fn set_ground_height(&mut self, height: f64) {

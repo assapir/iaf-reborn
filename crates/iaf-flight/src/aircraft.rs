@@ -117,6 +117,38 @@ fn wrap(a: f64) -> f64 {
 /// The α law of the second-order channels (α `5aa3a0`/`5ae4c0`, β `5aa700`/`5ae4c0`, §15.2.5): a target rate
 /// `clamp(err/π·K/Rmax − damp, ±1)·Rmax` with `damp = B·rate·Rmax` (halved while |rate| > π), then the
 /// channel re-based at its sampled angle.
+/// `5bc350`: the flight model's damage bits from the systems damage flags (bit n = flag n, docs/damage.md
+/// §5.2). Engine (cut out 2 / on fire 16 / permanent 22, right 3 / 17 / 23) → 4 left, 8 right; afterburner 8 /
+/// 9 → 0x80 / 0x100; a single-engine jet sets both bits from the left flags and never reads the right ones.
+/// Fuel leak 10 → 0x40, hydraulics 18 → 0x10, total flight control 24 → 0x20 (0x10 / 0x20 are not read by
+/// the thrust; the stick and the spin read flags 18 / 24 directly).
+pub fn damage_bits(sys: u32, twin: bool) -> u32 {
+    let f = |n: u32| sys & (1 << n) != 0;
+    let mut b = 0;
+    if f(2) || f(16) || f(22) {
+        b |= if twin { 4 } else { 0xc };
+    }
+    if twin && (f(3) || f(17) || f(23)) {
+        b |= 8;
+    }
+    if f(8) {
+        b |= if twin { 0x80 } else { 0x180 };
+    }
+    if twin && f(9) {
+        b |= 0x100;
+    }
+    if f(10) {
+        b |= 0x40;
+    }
+    if f(18) {
+        b |= 0x10;
+    }
+    if f(24) {
+        b |= 0x20;
+    }
+    b
+}
+
 fn second_order_step(ch: &mut Angle, t: f64, target: f32, b: f32, k: f32) {
     let (pos, rate) = ch.sample(t);
     let pos = wrap(pos);
@@ -484,6 +516,11 @@ pub struct Aircraft {
     pub invulnerable: bool,
     pub no_crashes: bool,
     pub unlimited_fuel: bool,
+    /// The pilot's systems damage (docs/damage.md §5.2): bit n = damage flag n (controller `+0x3d8+0xc+4n`,
+    /// 1..24), read by the flight model through `5bc350` (thrust), `59f3d0` (stick) and `5aab90` (spin).
+    pub damage: u32,
+    /// Twin-engine jet (controller +0x24): the left / right engine flags are separate (`5bc350`).
+    pub twin: bool,
     /// AI pilot (docs/ai.md, docs/flight-model.md §14/§15 "ai"): the control-loop mode the FM reads through
     /// `FUN_005c89f0(veh+0xc50)`; 0 = no control loop (the player flying by hand).
     pub ai_mode: u8,
@@ -650,6 +687,8 @@ impl Aircraft {
             invulnerable: false,
             no_crashes: false,
             unlimited_fuel: false,
+            damage: 0,
+            twin: false,
             ai_mode: 0,
             ai_since: 0.0,
             ai_team: false,
@@ -782,9 +821,18 @@ impl Aircraft {
         if self.crashed.is_some() {
             return;
         }
+        // Motion 1 (`59f3d0`): hydraulics damage (18) leaves a quarter of the stick, total flight control
+        // (24) none; the rudder is not affected.
+        let stick_k = if self.damage & (1 << 24) != 0 {
+            0.0
+        } else if self.damage & (1 << 18) != 0 {
+            0.25
+        } else {
+            1.0
+        };
         let c = Controls {
-            stick_x: c.stick_x.clamp(-1.0, 1.0),
-            stick_y: c.stick_y.clamp(-1.0, 1.0),
+            stick_x: c.stick_x.clamp(-1.0, 1.0) * stick_k,
+            stick_y: c.stick_y.clamp(-1.0, 1.0) * stick_k,
             rudder: c.rudder.clamp(-1.0, 1.0),
             throttle: c.throttle.clamp(0.0, 1.0),
             flaps: c.flaps.clamp(0.0, 1.0),
@@ -1018,33 +1066,50 @@ impl Aircraft {
     /// the ground (§14.2), so the player's ground roll always uses the AB curve.
     fn thrust_at(&self, alt: f32, mach: f32, no_ab: bool) -> (f32, f32, f32, u8) {
         let p = &self.params;
-        let thr = self.throttle;
-        if !self.engine_on || self.fuel.sample(self.t) < 1e-5 {
-            return (0.0, 0.0, 0.0, 0);
-        }
-        let stage_of = |thr: f32| if thr < 0.75 { 0 } else if thr < 0.875 { 1 } else { 2 };
-        let (k, stage) = if !no_ab {
-            if thr < 0.75 {
-                (0.05 + 0.743_243_2 * thr, 0)
-            } else if thr < 0.875 {
-                (0.875, 1)
-            } else {
-                (1.0, 2)
+        // 5a70f0 step 4: bit 2 = no fuel, then the damage bits (`5bc350`).
+        let flags = damage_bits(self.damage, self.twin) | if self.fuel.sample(self.t) < 1e-5 { 2 } else { 0 };
+        let mut thr = if flags & 2 != 0 { 0.0 } else { self.throttle };
+        let (mut thrust, mut rpm, mut ff, mut stage) = (0.0, 0.0, 0.0, 0);
+        // Both engines dead (a single-engine jet: either flag), the engine off or no fuel: nothing, but a
+        // fuel leak still drains (below).
+        if flags & 0xc != 0xc && self.engine_on && flags & 2 == 0 {
+            // Both afterburners damaged (a single-engine jet: flag 8): the throttle stops at military.
+            if flags & 0x180 == 0x180 && thr >= 0.75 {
+                thr = 0.74;
             }
-        } else {
-            ((thr - 0.2) * 1.25, stage_of(thr))
-        };
-        let a = (alt * 5e-5).clamp(0.0, 1.0);
-        let m = (mach / 1.2).clamp(0.0, 1.0);
-        let lerp = |t: f32, x: f32, y: f32| x + (y - x) * t;
-        // Real data set: the dry range scaled to the engine's military / max-AB ratio (1 = original).
-        let kt = if !no_ab && stage == 0 { k * p.dry_thrust } else { k };
-        let tk = |mach_i: usize, alt_i: usize| lerp(kt, p.thrust[mach_i][alt_i][0], p.thrust[mach_i][alt_i][1]);
-        let thrust = lerp(a, lerp(m, tk(0, 0), tk(1, 0)), lerp(m, tk(0, 1), tk(1, 1))) * LBF;
-        let rpm = 0.6 + 0.4 * thr * 1.351_351_4;
-        let mut ff = thr * p.fuel_flow_max;
-        if k <= 0.6 {
-            ff *= p.dry_fuel_frac;
+            let stage_of = |thr: f32| if thr < 0.75 { 0 } else if thr < 0.875 { 1 } else { 2 };
+            let (mut k, st) = if !no_ab {
+                if thr < 0.75 {
+                    (0.05 + 0.743_243_2 * thr, 0)
+                } else if thr < 0.875 {
+                    (0.875, 1)
+                } else {
+                    (1.0, 2)
+                }
+            } else {
+                ((thr - 0.2) * 1.25, stage_of(thr))
+            };
+            // One engine of a twin dead: half the thrust (the dry fuel-flow test below sees the halved k).
+            if flags & 0xc != 0 {
+                k *= 0.5;
+            }
+            let a = (alt * 5e-5).clamp(0.0, 1.0);
+            let m = (mach / 1.2).clamp(0.0, 1.0);
+            let lerp = |t: f32, x: f32, y: f32| x + (y - x) * t;
+            // Real data set: the dry range scaled to the engine's military / max-AB ratio (1 = original).
+            let kt = if !no_ab && st == 0 { k * p.dry_thrust } else { k };
+            let tk = |mach_i: usize, alt_i: usize| lerp(kt, p.thrust[mach_i][alt_i][0], p.thrust[mach_i][alt_i][1]);
+            thrust = lerp(a, lerp(m, tk(0, 0), tk(1, 0)), lerp(m, tk(0, 1), tk(1, 1))) * LBF;
+            rpm = 0.6 + 0.4 * thr * 1.351_351_4;
+            ff = thr * p.fuel_flow_max;
+            if k <= 0.6 {
+                ff *= p.dry_fuel_frac;
+            }
+            stage = st;
+        }
+        // Fuel leak (damage 10): a quarter of the full-throttle flow on top, engine running or not.
+        if flags & 0x40 != 0 {
+            ff += 0.25 * p.fuel_flow_max;
         }
         if self.unlimited_fuel {
             ff = 0.0;
@@ -1592,21 +1657,23 @@ impl Aircraft {
                 return; // the F-16 and the Lavi never spin (better physics: the deep stall, `mode_hook`)
             }
             let qual = beta.abs() >= 0.8 * max_beta && drag_x > 0.57;
+            // Total flight control damage (24) enters the spin whatever β, dragX and the preferences say.
+            let forced = self.damage & (1 << 24) != 0;
             if self.better.spin_fixes {
                 // BP: "No spins" blocks entry; the condition must hold for 1.2 s.
-                if self.no_spins || !qual {
+                if (self.no_spins || !qual) && !forced {
                     self.spin_arm = None;
                     return;
                 }
                 let t0 = *self.spin_arm.get_or_insert(t);
-                if t <= t0 + 1.2 {
+                if t <= t0 + 1.2 && !forced {
                     return;
                 }
             } else {
                 // Original: the arm step resets itself, so the second consecutive qualifying update
                 // enters; with "No spins" the arm step is skipped and the first one enters.
                 self.spin_arm = if self.spin_arm.is_none() && qual && !self.no_spins { Some(t) } else { None };
-                if t <= self.spin_arm.unwrap_or(-1.0) + 1.2 || !qual {
+                if (t <= self.spin_arm.unwrap_or(-1.0) + 1.2 || !qual) && !forced {
                     return;
                 }
             }
@@ -1798,6 +1865,14 @@ impl Aircraft {
     pub fn set_fuel_capacity(&mut self, extra_kg: f32) {
         self.fuel.max = self.params.fuel_mass + extra_kg.max(0.0);
         self.fuel.reset(self.t, self.fuel.max);
+    }
+
+    /// The pilot's systems damage flags (bit n = flag n, docs/damage.md §5.2) and whether the jet has two
+    /// engines. The thrust reads them at the next aero update (`5bc350`, at most 1 s later), the stick at the
+    /// next stick event, the spin entry at the next aero update.
+    pub fn set_damage(&mut self, flags: u32, twin: bool) {
+        self.damage = flags;
+        self.twin = twin;
     }
 
     /// Motion 0x18 (FUN_005a2270): fuel maximum and fuel := `kg` (the tank jettison sends FuelWeight
@@ -2256,6 +2331,101 @@ mod tests {
                 assert_eq!(a.state().position, p, "frozen after the crash");
             }
         }
+    }
+
+    /// A jet with thrust tables (lbf: dry 10000 → AB 20000 everywhere) and fuel.
+    fn engined(twin: bool) -> Aircraft {
+        let mut a = airborne(0, 3000.0, 200.0);
+        a.params.thrust = [[[0.0, 20000.0]; 2]; 2];
+        a.params.fuel_flow_max = 4.0;
+        a.params.has_afterburner = true;
+        a.twin = twin;
+        a.set_fuel(1000.0);
+        a.throttle = 1.0;
+        a
+    }
+
+    #[test]
+    fn damage_bits_follow_5bc350() {
+        let f = |ns: &[u32]| ns.iter().fold(0u32, |m, n| m | 1 << n);
+        assert_eq!(damage_bits(f(&[16]), false), 0xc);
+        assert_eq!(damage_bits(f(&[22]), true), 4);
+        assert_eq!(damage_bits(f(&[17]), true), 8);
+        assert_eq!(damage_bits(f(&[17]), false), 0); // a single-engine jet never reads the right flags
+        assert_eq!(damage_bits(f(&[8]), false), 0x180);
+        assert_eq!(damage_bits(f(&[8, 9]), true), 0x180);
+        assert_eq!(damage_bits(f(&[10, 18, 24]), true), 0x70);
+    }
+
+    #[test]
+    fn engine_damage_cuts_thrust() {
+        let full = engined(false).thrust_at(3000.0, 0.5, false);
+        assert!(full.0 > 80000.0 && full.3 == 2, "{full:?}");
+        // Single engine on fire (16) or permanently damaged (22): no thrust, no RPM.
+        for n in [16, 22] {
+            let mut a = engined(false);
+            a.set_damage(1 << n, false);
+            let t = a.thrust_at(3000.0, 0.5, false);
+            assert_eq!((t.0, t.1, t.3), (0.0, 0.0, 0), "{n}");
+        }
+        // A twin with one engine gone: half the thrust (k 1 → 0.5), and k ≤ 0.6 takes the dry fuel flow.
+        let mut b = engined(true);
+        b.set_damage(1 << 16, true);
+        let t = b.thrust_at(3000.0, 0.5, false);
+        assert!((t.0 - full.0 * 0.5).abs() < 1.0, "{t:?}");
+        assert!((t.2 - 4.0 * b.params.dry_fuel_frac).abs() < 1e-4, "{t:?}");
+        b.set_damage(1 << 16 | 1 << 17, true);
+        assert_eq!(b.thrust_at(3000.0, 0.5, false).0, 0.0);
+    }
+
+    #[test]
+    fn afterburner_damage_and_fuel_leak() {
+        // Single engine, AB damaged (8): full throttle stays at military (0.74).
+        let mut a = engined(false);
+        a.set_damage(1 << 8, false);
+        let t = a.thrust_at(3000.0, 0.5, false);
+        let k = 0.05 + 0.743_243_2 * 0.74;
+        assert_eq!(t.3, 0);
+        assert!((t.0 - k * 20000.0 * LBF).abs() < 1.0, "{t:?}");
+        // A twin with one AB damaged keeps both burning (only its flame goes out).
+        let mut b = engined(true);
+        b.set_damage(1 << 8, true);
+        assert_eq!(b.thrust_at(3000.0, 0.5, false).3, 2);
+        // Fuel leak (10): +0.25·FuelFlowAtMaxThrust, even with the engine off.
+        let mut c = engined(false);
+        let ff = c.thrust_at(3000.0, 0.5, false).2;
+        c.set_damage(1 << 10, false);
+        assert!((c.thrust_at(3000.0, 0.5, false).2 - ff - 1.0).abs() < 1e-4);
+        c.engine_on = false;
+        assert!((c.thrust_at(3000.0, 0.5, false).2 - 1.0).abs() < 1e-4);
+        c.unlimited_fuel = true;
+        assert_eq!(c.thrust_at(3000.0, 0.5, false).2, 0.0);
+    }
+
+    #[test]
+    fn hydraulics_and_flight_control_damage() {
+        let stick = |a: &mut Aircraft| {
+            a.set_controls(Controls { stick_x: 1.0, stick_y: -0.8, rudder: 0.5, ..a.controls() });
+            a.controls()
+        };
+        let mut a = airborne(0, 3000.0, 200.0);
+        a.set_damage(1 << 18, false);
+        let c = stick(&mut a);
+        assert_eq!((c.stick_x, c.stick_y, c.rudder), (0.25, -0.2, 0.5));
+        let mut b = airborne(0, 3000.0, 200.0);
+        b.set_damage(1 << 24, false);
+        let c = stick(&mut b);
+        assert_eq!((c.stick_x, c.stick_y, c.rudder), (0.0, 0.0, 0.5));
+        // Total flight control damage forces the spin at the next aero update, whatever β / dragX
+        // (not on the F-16 / Lavi, which return before the test).
+        let att = Euler { pitch: 0.0, roll: 0.0, heading: 0.5 };
+        let mut io = ModeIo { acc: [0.0; 3], lift: 5.0, lift_noflap: 5.0, p_cmd: 0.0 };
+        b.spin_hook(1.0, 0.0, 200.0, 0.0, att, &mut io, true);
+        assert_eq!(b.mode, Mode::Spin);
+        let mut f16 = airborne(100, 3000.0, 200.0);
+        f16.set_damage(1 << 24, false);
+        f16.spin_hook(1.0, 0.0, 200.0, 0.0, att, &mut io, true);
+        assert_eq!(f16.mode, Mode::Normal);
     }
 
     #[test]

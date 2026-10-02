@@ -2,9 +2,9 @@
 # (FUN_0044d590), the random system pick (FUN_0045cd80 / FUN_0045cf20) and the damage handler
 # (FUN_0044d760): console message, damage flags (the MFD damage page rows, FUN_0052bc00), panel
 # lights (master caution, engine fire, ECM / AP / RWR off), gear legs stuck, flaps lever refused,
-# thumps and Betty calls from the original sound table. Effects on the flight model (engine cut-out,
-# afterburner, fuel leak, hydraulics, flight control) are not wired: the flight model has no damage
-# inputs yet (docs/damage.md §5.3).
+# thumps and Betty calls from the original sound table, the fire extinguisher (GEV 0x49) and the gear
+# overspeed damage (@449082). The flight model reads the flags itself (iaf_flight set_damage:
+# engines / afterburner / fuel leak / hydraulics / flight control, docs/damage.md §5.3).
 extends RefCounted
 
 const DamageModel := preload("res://mission/damage_model.gd")
@@ -22,6 +22,8 @@ var ecm := false
 ## Betty voice calls (controller +0x964, FlightSounds.BETTY_TYPES).
 var betty := true
 var rng := RandomNumberGenerator.new()
+## The fire extinguisher's one charge (engine panel +0x3c, set at the start by FUN_0045af00).
+var extinguisher := true
 ## Host callbacks: console(text), sound(code, sub1), light(index, on), gear_stuck(), shake(amount), rwr().
 var host: Object
 
@@ -104,3 +106,27 @@ func system_damage(n: int) -> void:
 		host.damage_sound("VOC_BBETTY", "BTY_CAUTION")
 	else:
 		host.damage_sound("SFX_WARNING", "WRN_MASTER")
+
+
+## GEV 0x49 (X, @44b8b3): with an engine on fire (16 / 17) and the charge left (FUN_0045ae10: used up
+## by this, SFX_FIRE_EXTINGUISHER for the player's own jet), clear the fire and cut-out flags of both
+## engines (17, 16, 3, 2) and the fire lights (2, 1). The afterburner flags (8 / 9) the fire set stay.
+## Without a fire nothing happens and the charge is kept.
+func extinguish() -> void:
+	if not (flags[16] or flags[17]) or not extinguisher:
+		return
+	extinguisher = false
+	host.damage_sound("SFX_FIRE_EXTINGUISHER", "None")
+	for n in [17, 16, 3, 2]:
+		flags[n] = false
+	host.damage_light(2, false)
+	host.damage_light(1, false)
+
+
+## Per frame (FUN_00448b20 @448fe2..4490a1): above 450 kt true airspeed (FM getter 5, ·1.9428) with the
+## gear handle down and the left main leg down and locked (leg 1 == 2), not Invulnerable and no gear
+## damage yet: gear damage (7) through the damage handler (console text, red lamps, master caution).
+func gear_overspeed(speed_mps: float, handle_down: bool, leg1: int, invulnerable: bool) -> void:
+	if minf(speed_mps, 1200.0) * 1.9427955 > 450.0 and not invulnerable and handle_down \
+			and not flags[7] and leg1 == 2:
+		system_damage(7)

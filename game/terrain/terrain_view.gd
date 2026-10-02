@@ -1376,7 +1376,11 @@ func _command(cmd: Array) -> bool:
 		14:
 			_toggle_gear()
 		17:
-			brakes = not brakes
+			# GEV 0x11: refused while the air brakes are damaged (flag 5, @44cac1).
+			if not player_damage.flags[5]:
+				brakes = not brakes
+		73:
+			player_damage.extinguish()  # GEV 0x49, fire extinguisher (X)
 		18:
 			_eject_key()
 		19:
@@ -1873,6 +1877,8 @@ func _process(delta: float) -> void:
 		var surface: int = terrain.surface_at(rig.position)
 		flight.set_ground_surface(_ground_normal_z(rig.position), (surface & terrain.SURFACE_WATER) != 0,
 				(surface & terrain.SURFACE_ROUGH) != 0)
+		# The systems damage the flight model reads (docs/damage.md §5.3): thrust, stick, spin.
+		flight.set_damage(player_damage.flags, player_damage.twin)
 		flight.set_controls(stick.x, stick.y, rudder, throttle, flaps, gear_down, brakes)
 		# The flight starts once the ground around the jet is loaded at full detail (behind the
 		# loading screen).
@@ -1909,6 +1915,8 @@ func _process(delta: float) -> void:
 			rig.basis = Basis(st.right, st.up, -st.forward)
 		if not waiting_for_ground:
 			_check_collisions()
+		if not (frozen or waiting_for_ground or fm_stopped or crashed):
+			player_damage.gear_overspeed(st.speed, gear_down, gear_legs[1], mission_pref("invulnerable"))
 		for k in ["speed_kt", "mach", "alt_ft", "vs_fpm", "pitch", "roll", "heading", "aoa", "g", "rpm", "throttle", "fuel_lbs", "internal_fuel_kg", "time", "afterburner"]:
 			cockpit.state[k] = st[k]
 		# The HUD ILS deviations (NAV HUD mode update 460130, docs/cockpit.md "ILS").
@@ -1931,13 +1939,15 @@ func _process(delta: float) -> void:
 		cockpit.hud.velocity_dir = st.velocity.normalized() if st.velocity.length() > 1.0 else null
 	if aircraft != null:
 		var parts_in := {"stick_x": stick.x, "stick_y": stick.y, "rudder": rudder, "flaps": flaps,
-			"gear_down": gear_down, "brakes": brakes, "chute": drag_chute}
+			"gear_down": gear_down, "brakes": brakes, "chute": drag_chute,
+			"ab_damage": [player_damage.flags[8], player_damage.flags[9]]}
 		if flight != null:
 			var fs: Dictionary = flight.state()
 			if drag_chute == 1 and fs.on_ground:
 				drag_chute = 2
 			flight.set_drag_chute(drag_chute == 2)
-			for k in ["gear", "on_ground", "afterburner", "rpm"]:
+			# The stick as the flight model took it (hydraulics / flight control damage scale it, 59f3d0).
+			for k in ["gear", "on_ground", "afterburner", "rpm", "stick_x", "stick_y"]:
 				parts_in[k] = fs[k]
 		aircraft.update(parts_in, delta)
 	_apply_view()
