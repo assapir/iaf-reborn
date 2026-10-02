@@ -356,7 +356,7 @@ drawn: its source is the weapon's motion object); the EO centre point is the ter
 (ray-marched; buildings / units not hit); the eye is the jet's position (not the pylon); the picture is a SubViewport
 camera of the same world at the display's on-screen resolution (deviations.md); the full-screen weapon MFD (Z) is not
 built. HARM: the emitters are the **RWR's** active entries inside the ±15° cone (the HARM sensor itself waits for the
-AI target sensor), the nearest preselected, refreshed with the RWR (2 s) and on a click; "In Range" needs the HARM's
+AI target sensor), the nearest 5, the nearest preselected, refreshed with the RWR (2 s) and on a click; "In Range" needs the HARM's
 DLZ (with the weapon), so a list shows "No Range"; Ctrl+Return not built.
 
 ## 4. isr.bmp / MAPFRAME georeference

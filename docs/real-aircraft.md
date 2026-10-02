@@ -122,8 +122,8 @@ area to the drag coefficient (`Aircraft::drag_chute`, set by the flight scene wh
 |---|---|---|---|---|---|
 | F-4E / Kurnass 2000 | 16 ft ring-slot deceleration chute (4 slot rings) | 18.68 m² | 0.63 | 0.24 | Mills Manufacturing (deceleration parachutes), PPRuNe; ring-slot brake chutes CD 0.56–0.65 (Springer, J. Inst. Eng. India 2022) |
 
-Not filled (no aircraft-specific CD, and none of them is flyable yet): MiG-29 17 m², MiG-23 21 m² cross chute
-(ru.wikipedia, sovetarmy forum); Kfir / Mirage III sizes not found. The F-4E chute's limit is 200 KIAS (T.O.,
+Not filled (no aircraft-specific CD; AI-only types): MiG-29 17 m², MiG-23 21 m² cross chute (ru.wikipedia,
+sovetarmy forum). Kfir / Mirage III sizes not found. The F-4E chute's limit is 200 KIAS (T.O.,
 Heatblur F-4E manual); there is no shear or failure model. Measured (tests/godot/test_player_aircraft.gd): from
 ~90 kt at idle the Kurnass 2000 loses 0.74 m/s in 2 s with the chute, 0.07 m/s without.
 
@@ -258,7 +258,7 @@ fuel flow 16.5 lb/s, stall floor 118 kt, NWS ±32° / 13.2 ft.
 
 Every AI aircraft has its own Real row, keyed by **type** (`data_set::TYPES`), not by the original's section: the
 original gives several types one section, and a transport flies the F-16's data. The in-game switch covers every
-aircraft in the mission. The rows take effect once AI flight is ported (the AI brain is not yet ported). Validation:
+aircraft in the mission; the AI jets fly on them (docs/ai.md, `ai_flights.gd` passes the Flight data choice). Validation:
 `IAF_JET=SU22 cargo test --release -p iaf-flight --test validation -- --nocapture`. The reference rows are only filled
 where public data exists.
 

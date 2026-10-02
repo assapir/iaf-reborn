@@ -46,7 +46,8 @@ Registry `[Scenario] LoadScripts` (default 1; `FUN_0058b340` → `DAT_0066f2cc`)
   missions entered through the Jet list.
 - **Port:** `mission_runtime.gd` `player_flight(mission, wanted)`; `Settings.player_flight` carries the TSD
   choice; `terrain_view.gd` starts at that entity and hands its id to the runtime (the entity flagged
-  `player`). Only the F-16 flies: another type is logged and flown as the F-16. Test: test_player_flight.
+  `player`). The seven Jet list types fly (docs/aircraft.md §5); another type is logged and flown as the F-16. Test:
+  test_player_flight.
 
 ### Control mode (entity 0x320 bit 0) — `FUN_004b7634` @`0x4b79ce`, activation `FUN_004a9100`
 - `0x320 & 1 = 1`: status+0x14 = 2, **MISSION_CONTROLLED**. At activation `FUN_004a61e0` runs. It jumps both
