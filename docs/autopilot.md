@@ -108,10 +108,51 @@ The mission's markers sit on these corners: "Point 2" (start of downwind), "Poin
 **The turn onto final.** The pattern points are f32 in the original (LandingCL Init `5d2b30`, [ai.md](ai.md) §8.3),
 so for runway 270 the downwind P1 → P2, the base P2 → P3 and the final P3 → P4 → P5 are exactly horizontal /
 vertical lines. ChangeHeading2PtAcu's tangent search then takes its axis-parallel branches and banks the jet on the
-circle tangent to the centreline (about 23° at 87 m/s from the KeepAttitude's end 1852 m before P3). CH4 ends on
+circle tangent to the centreline (23° if the base were flown at KA3's 87.5 m/s; the jet arrives at ~110 m/s, so
+30–37°, from the KeepAttitude's end 1852 m before P3). CH4 ends on
 the centreline and CH5 at once; FinalApproach starts about 5.5 km out at about 400 m above the runway, below the 6°
 path. The F-16 crosses the threshold a few metres high, StopPlane's flare (throttle 0, flight-path pitch 0) floats it,
 and it touches down on the centreline (about 1 m off) 1–2 km down the runway and stops.
+
+**How the original flies it (checked against the disassembly, step by step).** The circuit is fast and steep by
+design of the loops, not by a port error:
+- GoHome's Fly2WayPt gets ETA = now − (−60 s) (`5cd53b` fld the time, `fsub 0x612ff0` = −60.0), so its ETA law asks
+  for 275–300 m/s until the slow-down to 180.15 m/s (350 kt) within 6 km of G: the circuit starts at about 350–380 kt.
+- LevelWingsPitch0Accel (LW1 250 kt, LW2 200 kt) is done when the jet is *faster* than its speed
+  (`5d2400`: `+0xec < V || |V − +0xec| ≤ 3`), so it never slows the jet; only the KeepAttitude legs' speed law does,
+  and that law is proportional (`0.7 + 0.03·ΔV`): the downwind settles near 230 kt, the base near 210 kt, the final at
+  Vmin + 20 kt ≈ 170 kt (the briefing's 200 / 165 / 165 kt).
+- Bank limits: CH1 / CH2 keep the ctor default 80° (`5dce70`: +0xf0 = π·0.4444 from 0x613834), CH3 / CH4 get 60° and
+  CH5 20° (LandingCL Init, +0x4c0 / +0x5e8 / +0x710). ChangeHeadK = 3 (bd.ibx) makes the plain law saturate above
+  ~10° of heading error, so CH1 (no line) always turns at 80°. CH2–CH5 (`5d68b0` sets their line, +0x124) bank to
+  the circle tangent to the leg (the "Acu" search, checked instruction by instruction: centre = pos + R·sgn(bank)·right
+  via `5ba740` / `5ba600` / `5ba690`, the line `5ada30`, `bank += gap·0.01·(π/180)`); at 350 kt and the 1000 m that
+  KA1 stops short of P1 that circle needs 70–80°, and when the search runs past the limit it is switched off for the
+  leg (`5dc82f`) and the 80° law finishes the turn. CH3 (base) then needs 55–60°, CH4 (onto final) 30–37°, CH5 ~10°.
+- ChangeAlt (CA1 from G's 1500 m down to 700 m AGL, and GoHome's own descent to G) pitches
+  `clamp(Δz·6·(π/12)·0.001 − 0.005·vz, −30°, +15°)` (`5cf320`, limits π·−1/6 and π/12 from 0x613138 / 0x613134):
+  the 25–30° dives.
+- Fly2WayPt's ChangeHeading2Pt banks ±80° (`5ddef0`, 0x613938; C-130 30°): a NAV engaged while flying away turns
+  round at 80°.
+- CH1 has no line: it turns the short way to P1 (right when G is reached flying east), and is done on one tick with
+  |e| ≤ 1° (the roll test ≤ 0.2° is signed, so any left bank passes), still banked: the roll-out overshoots a few
+  degrees.
+
+Ground tracks of the port (flat ground at the lineup height; km from the lineup L, x east, y north), from the 312
+start: G (−5.4, 0) at 375 kt → crosswind 80° left turn to heading 165 → CA dive −30° to 700 m → CH2 80° left at
+(−5.6, −4.6) → downwind east at y ≈ −5.6 / −6.6, gear and flaps at x ≈ −1 → CH3 left at ~58° from (5.9, −5.6) → base
+north at x = 7.4 → CH4 left at ~36° from (7.4, −1.8) onto the centreline at (5.8, 0) → final 6° at 172 kt → touchdown
+at x ≈ −1.8 (1.8 km down the runway), 4 m off the centreline. From 5 / 15 km N, E, S, W, toward and away, 500 and 3000 m
+AGL (32 starts) and with Flight data Real + every Physics option (Godot), the same corners within ~1 km, every step
+in order, all landings on the centreline. Test: `player_circuit_312_from_engage_points`.
+
+**The cockpit cues.** NAV's HUD steering caret and waypoint marker point at the route's waypoint G ("Approach"),
+not at the circuit's corners (the NAV object, `FUN_00452e60`): after G the caret points back at it while the jet
+flies the circuit, as in the original. The ILS (gear handle down, so from the downwind on) is the lineup's 5°
+reference (the landing flies 6°, from below it): localizer pegged right (+19°, the centreline is north) on the
+downwind and the base, moving from about 2.3 km before the centreline on the base, as the briefing says ("final when
+the localizer moves"), centred when CH4 rolls out; the glideslope line above the centre (low: the final starts at
+~4°) and crossing to below it at about 4 km. Checked in the Godot run (caret, ILS values logged every 3 s).
 
 (The port rounds in world coordinates even though the Godot host shifts the bases by the terrain origin:
 `Autopilot::origin`. An earlier port built the points in f64: P3 and P4 then differed by ~4·10⁻⁵ m, the search took its general branch
@@ -127,5 +168,7 @@ final approach began 600 m short at 400 m: the dive into the ground.)
   damage, waypoint sequencing, and the commands mirrored on the levers. `terrain_view.gd` wires it in.
   `hud.gd` draws `AP LVL` / `AP NAV`.
 - Tests: `crates/iaf-flight/tests/autopilot.rs` (`player_level_mode_…`, `player_nav_…`, `player_approach_mission_312`)
+  `player_circuit_312_from_engage_points` (every step in order, the corners, turn directions and bank limits, the
+  gear on the downwind, the touchdown, from six engage points)
   and `tests/godot/test_autopilot.gd` (312: start in level mode, A cycle, stick break-out, NAV throttle drop, the
   circuit with gear and flaps on the levers, touchdown on the runway centreline, StopPlane's A key).
