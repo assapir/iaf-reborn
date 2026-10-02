@@ -208,6 +208,9 @@ rpm = 0.6 + 0.4*thr*1.3513514      (engine off: 0)          // 1.0 at thr=0.74
 ff  = thr * FuelFlowAtMaxThrust;  if k <= 0.6: ff *= 0.25;  if flags&0x40: ff += 0.25*FFmax
 if unlimited-fuel pref (DAT_00699424+0x44): ff = 0
 ```
+The `k ≤ 0.6` test sees k after the engine-damage ×0.5, and the leak is added after the engine-off branch too (a dead
+or stopped engine still leaks). The damage bits come from `5bc350` (docs/damage.md §5.3); ported with
+`Aircraft::set_damage`.
 "0"/"1" suffix = value at k=0 / k=1 (full AB2); interpolation is linear, so idle (k=0.05) ≈ 5 %.
 
 ### 4.2 Commanded G / lift — `FUN_005b4470` @005b4470
@@ -387,8 +390,8 @@ game events as the keys, sent when their integer value changes: stick x = `MulDi
 range) − 100` → GEV 10 → motion 5. Linear, 1 % steps, DirectInput's 25 % dead zone on x, y and rudder, none on
 the throttle; no curve, no filtering. The only smoothing stays the lift ramp (G_Rate) and the rudder ramp.
 
-1 stick (`FUN_0059f3d0`): `S+0x2e4 = −clamp(y,−1,1)`, `S+0x2e8 = clamp(x,−1,1)`; ×0.25 when
-input-mode 0x12 active, zeroed by 0x18 (UNCERTAIN meaning). 2 throttle (`FUN_0059f7d0`): clamp
+1 stick (`FUN_0059f3d0`): `S+0x2e4 = −clamp(y,−1,1)`, `S+0x2e8 = clamp(x,−1,1)`; ×0.25 with
+damage flag 0x12 (hydraulics), zeroed with 0x18 (total flight control) — docs/damage.md §5.3. 2 throttle (`FUN_0059f7d0`): clamp
 [0,1]; any (player) change first cancels a pending AB request (v1.1); crossing into AB (≥0.75) from below sets 0.74
 and schedules the AB value after `max(0,(100−RPM%)·0.0667)` s (`FUN_0059faf0`); any throttle change turns the engine
 on (`S+0x1d0`).
@@ -609,8 +612,10 @@ With `forced`≠0 (explicit set, `arg[0]` = wanted state, probably network/repla
 if the state is already equal, and steps 1–2 are skipped.
 
 **Related:**
-* Gear damage: `FUN_0044d760(7)` comes from combat damage only. It shows "Gear damage" (for the player) and sets
-  the leg lights to 1. No overspeed-with-gear-down damage was found (UNCERTAIN: not searched exhaustively).
+* Gear damage: `FUN_0044d760(7)` shows "Gear damage" (for the player) and sets the leg lights to 1. Besides combat
+  damage it comes from **gear overspeed** (`FUN_00448b20` @448fe2–4490a1, every frame): speed (getter 5) · 1.9428 >
+  450 kt with the handle down, leg 1 == 2, no flag 7 and not Invulnerable (docs/damage.md §5.3; this page said
+  before that none exists).
 * Touchdown check `FUN_005bb7d0`: if the gear ramp is ≥1e-5 (not fully down), the three landing tolerances are
   multiplied by 0.2/0.2/0.25 (and ×2 with the "Easy landing" preference `pref+0x3c`, default on, or in multiplayer; §15.6). The ground roll uses μ=20 for a belly landing (§7).
 * ATC text `ACFT_GEARS_NOT_OPEN` (`FUN_00551c20` case 10). The `BACKSEAT_GEAR_UP/DOWN` voices (category 0x36,
@@ -1277,7 +1282,7 @@ ENTER
 Effective rule: the spin starts at the **second consecutive qualifying aero update**, whatever their spacing (the 1.2 s
 never bites: stage 2 sees −1 + 1.2 < now). **With "No spins" on the timer is never armed, so the spin starts at the
 first qualifying update** (a bug: the preference makes spins easier). Damage 0x18 ("Total flight control",
-`FUN_0044d760`) forces entry regardless of β, dragX and preferences. β ≥ 0.8·MaxBeta needs ≈ 80 % rudder (β_cmd =
+`FUN_0044d760`) forces entry regardless of β, dragX and preferences (ported; it also zeroes the stick in `59f3d0`). β ≥ 0.8·MaxBeta needs ≈ 80 % rudder (β_cmd =
 (ru + 10·asym)·MaxBeta, so heavy asymmetric stores also qualify); dragX > 0.57 means code 0/2 or latched (dragX = 1.2)
 or pulling more than 0.57·MaxG over the envelope limit (dragX = (g_cmd − lim)/MaxG). "No stalls" does not prevent it
 (dragX is still 1.2 on codes 0/2).
@@ -1454,8 +1459,8 @@ motions 8/9 "on" → max, "off" → min. After a `5a4d40` ground re-placement (o
 | +0x18 | Unlimited ammo | 0 | — |
 | +0x1c | Invulnerable | 0 | crash immunity `5abef0`; ground aero `5bac40` "easy" (lift gate, no belly μ) |
 | +0x20 | No crashes | 0 | same as +0x1c |
-| +0x24 | No malfunctions | 1 | — |
-| +0x28 | No wind | 1 | — |
+| +0x24 | No malfunctions | 1 | — (no reader in the exe: all 37 getter `43b5d0` calls checked, docs/damage.md §5.3) |
+| +0x28 | No wind | 1 | — (same; the exe has no wind) |
 | +0x30 | No blackouts | 0 | §13 |
 | +0x34 | **No spins** | 0 | spin arming `5aab90` @5aac7e (only skips the arm step: spins start *earlier*, §15.5) |
 | +0x38 | **No stalls** | 0 | Lift `bStall` @5b44e8 (§14.3); vibration allowed `P+0x84` (`5b2940`) |
@@ -1707,7 +1712,7 @@ default, §10). Rust unit tests in `aircraft.rs` / `envelope.rs`; headless Godot
 |---|---|---|
 | 1 | Envelope | done: `envelope.rs` is §15.9 exactly (parser, pads, ceilings, lines, per-level lists, bracket, plane fits, codes 0/2/3/4). Tests: Python reference `tools/envelope_ref.py` run at test time (ceilings, Vmin, GLimit grid on a synthetic text and on every install `md/*.dat`) and the F-16 values of §15.9. `stall_floor` stays Real-only |
 | 2 | Landing / crash check | done: `landing_check` at touchdown (saved Euler, Easy landing ×2 default on, gear-not-down ×0.2/0.2/0.25, slope > 10°, immunity = Invulnerable / No crashes); water and rough ground (> 25.7 m/s) destroy while rolling; the sim freezes (`crashed` + reason). Host: slope from `height_at`, water = false (no terrain types, UNCERTAIN), crash → mission runtime player death → flight ends after 5 s. BP: sink 4 m/s, tail strike 15°, current attitude |
-| 3 | Spin mode | done: mode, three channels with their limits, two-stage entry (with the "No spins" quirk), update in both updates (5 Hz skips the forces), spin attitude, exit (velocity := rotated nose·V, `p_cmd = s1·0.1`), types 100/140 (F-16, Lavi) never spin — so the F-16 we fly cannot depart in the original. v1.1: recovery slope π/(2.2·MaxBeta), β updated at 5 Hz in the spin, axes re-based in the stay branch (test `spin_recovery_slope_v11`). BP: (a)–(f); types 100/140 get the FLCS deep stall instead (§10.1, tests `fbw_deep_stall_*`). Damage 0x18 not modelled (no damage system) |
+| 3 | Spin mode | done: mode, three channels with their limits, two-stage entry (with the "No spins" quirk), update in both updates (5 Hz skips the forces), spin attitude, exit (velocity := rotated nose·V, `p_cmd = s1·0.1`), types 100/140 (F-16, Lavi) never spin — so the F-16 we fly cannot depart in the original. v1.1: recovery slope π/(2.2·MaxBeta), β updated at 5 Hz in the spin, axes re-based in the stay branch (test `spin_recovery_slope_v11`). BP: (a)–(f); types 100/140 get the FLCS deep stall instead (§10.1, tests `fbw_deep_stall_*`). damage 0x18 forces entry (test `hydraulics_and_flight_control_damage`) |
 | 4 | Nose-wheel yaw ramp | done: `S+0x2a8` at \|BetaRate\|, ±MaxBeta; 5 Hz uses the ramp, 1 Hz the raw target |
 | 5 | Force angles | done: 5 Hz αT and β(t) (the β channel; ground: nose-wheel ramp), 1 Hz α(t) and β_cmd. BP: α(t)/β(t) in both |
 | 6 | α 1 Hz update | done: `5aa3a0` at every aero update with αT from the new Lnoflap, gains only there, ×0.5 damping above π |

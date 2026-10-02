@@ -240,12 +240,43 @@ ECM; 3 always; 2 once an engine cut-out was picked (+0x70) or with 9 / 17 / 23 s
 Then the flag itself (`FUN_0045ccd0`, controller +0x3d8+0xc+4n), the **master caution** light (0, `FUN_0045b4b0`) and
 Betty "Caution" (`VOC_BBETTY / BTY_CAUTION`; `SFX_WARNING / WRN_MASTER` on jets without Betty, file not shipped).
 The damage page (MFD page 4, `FUN_0052bc00`) shows "NAME GO" / "NAME NOGO" per row from the cockpit copy of the flags
-(+0x550+4n); ENG is NOGO with 2, 16 or 22, ENG R with 3, 17 or 23.
+(S+0x558+4n, §5.3); ENG is NOGO with 2, 16 or 22, ENG R with 3, 17 or 23.
 **Port:** `player_damage.gd`; wired: console text, flags → damage page, lights (master caution, fire, ECM, A/P,
-RWR), gear lamps and lever, flaps lever, thumps, Betty calls. **Not wired** (the flight model has no damage inputs
-yet): engine cut-out / fire / permanent damage, afterburner, fuel leak, hydraulics, total flight control (the
-flight model's damage bits `FUN_005bc350`), instruments / HUD / radar / RWR / gun / weapons shutdown, the
-extinguisher (GEV 0x49).
+RWR), gear lamps and lever, flaps lever, thumps, Betty calls, and every consumer of §5.3.
+
+### 5.3 Who reads the flags (every `FUN_0045cc90` call, 67 in the exe, and the cockpit copy)
+The flags live at controller `+0x3d8+0xc+4n`; the cockpit state keeps a copy at `S+0x558+4n` (the damage page reads
+ENG at +0x560 / +0x598 / +0x5b0 = flags 2 / 16 / 22, so the copy starts at +0x558, not +0x550).
+
+| flags | reader | effect |
+|---|---|---|
+| 2, 16, 22 / 3, 17, 23 (engines) | FM `5bc350` (in the 1 Hz aero update, §15.1 step 4 of flight-model.md) | FM bit 4 (left) / 8 (right); a **single-engine** jet (controller +0x24 = 0) sets **4 and 8** from the left flags and never reads the right ones. Thrust `5b4120`: both bits → no thrust, RPM 0, no fuel flow (as engine off); one bit (a twin) → k ×0.5 (half thrust; the dry fuel-flow test `k ≤ 0.6` sees the halved k) |
+| 8 / 9 (afterburner) | `5bc350` | 0x80 / 0x100 (a single engine: 0x180 from flag 8). Both bits and throttle ≥ 0.75 → throttle 0.74 (no AB, military RPM / fuel flow). A twin with one AB damaged keeps full AB thrust |
+| 8 / 9 | `5abc90` / `5abdc0` | that side's afterburner flame stays out (docs/aircraft.md §2.2) |
+| 10 (fuel leak) | `5bc350` → 0x40 | fuel flow += **0.25 · FuelFlowAtMaxThrust** (`0x612148` = −0.25 subtracted), also with the engine off / dead; Unlimited fuel still zeroes it |
+| 18 (hydraulics) | stick motion 1 `59f3d0` | stick pitch and roll **×0.25** (`0x611b08`) at every stick event; rudder unchanged. (`5bc350` also sets FM bit 0x10, which nothing reads) |
+| 24 (total flight control) | `59f3d0`; spin `5aab90` | stick pitch and roll **0**; the spin entry test passes whatever β, dragX, "No spins" (not for the F-16 / Lavi, which return first; flight-model.md §15.5). Bit 0x20 of `5bc350` is not read |
+| 2, 3 (cut out) | throttle events GEV 4 / 9 (≤ 5 %) and 5 / 6 (`44a240`) | the "restart throttle": idle clears 2 (unless 8, 22, 16) / 3 (unless 9, 23, 17); RPM ± clears 2 + 8 / 3 + 9. **Unreachable**: a cut-out is never picked (§5.1), so not ported |
+| 2 / 3, 16 / 17, 22 / 23 | engine panel `45ac00` | gauges (docs/cockpit.md "Engine values"; ported in `instruments.rs`) |
+| 16, 17 | GEV 0x49 extinguisher (X, `44a240` @44b4cf) | with a fire and the panel's one charge (`+0x3c`, set by `45af00`; `45ae10` uses it up and plays `SFX_FIRE_EXTINGUISHER` 0x27 for the player): clears 17, 16, 3, 2 and the fire lights 2, 1. Flags 8 / 9 that the fire set stay. Without a fire nothing happens (the charge is kept) |
+| 4 / 5 / 6 / 7 | GEV 0xc / 0x11 / 0x10 / 0xe and the gear legs `44f970` | flaps lever, **air brakes key** (@44c821) and autopilot key refused; gear legs stuck |
+| 7 | per frame `448b20` @448fe2–4490a1 | **gear overspeed**: FM getter 5 (speed, capped 1200 m/s) · 1.9428 > **450 kt** (`0x600af0`), not Invulnerable, gear handle down (ind[9]), no flag 7 yet, leg 1 (`ctl+0x53c`) == 2 (down and locked) → `FUN_0044d760(7)` (corrects flight-model.md §12, which said none exists) |
+| 1, 20 | GEV 0x46 ECM, 0x40 / 0x42 / 0x44 / 0x45 weapons | refused (docs/weapons.md) |
+| 13, 15, 20 | `44d760` once: `456200` (gun +0x9c), `4adb20` (radar off for good), `456cc0` (weapons +0xa0) | gun / weapons: docs/weapons.md; radar: `radar.gd set_damaged` |
+| 14 | RWR (`44deb0` …, cockpit `S+0x590`) | docs/rwr.md |
+| 11 (instruments), 12 (HUD), 19, 21 | — | **only the damage page** (and 19 / 21 through the flags they set): no gauge or HUD reads them |
+
+**"No malfunctions"** (Gameplay, pref `+0x24`) and **"No wind"** (`+0x28`): the only accesses in the exe are the
+copy from the menu (`4fe5f8`, `4fe676`) and the save / load; none of the 37 pref-getter (`43b5d0`) calls reads
+them. So systems still break with "No malfunctions" on, as in the original. The exe has no wind at all (no
+weather / wind code or strings): nothing to port.
+
+**Port:** `iaf_flight::damage_bits` / `Aircraft::set_damage` (thrust, stick, spin; the host passes the flags every
+frame), `player_damage.gd` (`extinguish`, `gear_overspeed`), `terrain_view.gd` (brakes key, X, parts input: the
+FM's stick and the AB flags), `player_weapons.gd` (radar). AI jets: the pick forbids 2, 3, 5, 7 for them, but our AI
+jets take no systems damage (their reaction is not traced). Tests: `aircraft.rs` (`damage_bits_follow_5bc350`,
+`engine_damage_cuts_thrust`, `afterburner_damage_and_fuel_leak`, `hydraulics_and_flight_control_damage`),
+`tests/godot/test_systems_damage.gd`.
 
 ## 6. Explosions, smoke, debris
 
@@ -360,7 +391,7 @@ obstacles. The weapons' own colliders are not ported (weapons use their fuse rul
 - Effect 0x18 at a fatal hit; the double explosion at a crash-motion impact; state 4.
 - Radio kill / "is down" calls, score and hit feedback, the brain's reaction to hits, FlyTSD 6.5 s after the
   player's death (campaign), network play.
-- The flight model's reaction to systems damage (§5.2) and to the hit shake.
+- The flight model's reaction to the hit shake; the AI's systems damage.
 - Collision: full vs half extents (the renderer call behind vtable +0xb0 is not traced).
 - Original-vs-better decisions for the user: the heading-0 fall (§3.3), the Rookie / Normal enemy damage factor
   (§4.1), puffs per frame (§6.3).

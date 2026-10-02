@@ -1376,7 +1376,7 @@ func _command(cmd: Array) -> bool:
 		14:
 			_toggle_gear()
 		17:
-			# GEV 0x11: refused while the air brakes are damaged (flag 5, @44cac1).
+			# GEV 0x11: refused while the air brakes are damaged (flag 5, @44c821).
 			if not player_damage.flags[5]:
 				brakes = not brakes
 		73:

@@ -970,13 +970,13 @@ engine camera = (eye, p, y, 0)             (FUN_004021d0, vtable +0x60)
 
 | control | page rect | working / global | pref `DAT_00699424+` | default | effect in game (reader) |
 |---|---|---|---|---|---|
-| NO WIND | 24,45,154,78 | +0xa4 / da8 | +0x28 | 0 | no reader found (UNCERTAIN) |
+| NO WIND | 24,45,154,78 | +0xa4 / da8 | +0x28 | 0 | no reader: every pref-getter call checked; the exe has no wind (docs/damage.md §5.3) |
 | NO BLACKOUTS | 24,78,154,113 | +0xac / db0 | +0x30 | 0 | `FUN_0044fbb0` zeroes the G-effect output |
 | NO SPINS | 24,113,154,148 | +0xb0 / db4 | +0x34 | 0 | `FUN_005aab90` skips spin entry |
 | NO STALLS | 24,148,154,183 | +0xb4 / db8 | +0x38 | 0 | `5b4470`/`5b2940`: bStall = (+0x38==0) |
 | EASY LANDING | 24,183,154,218 | +0xb8 / dbc | +0x3c | **1** | `5bb7d0` doubles the landing tolerances; flight-model gear check |
 | EASY AIMING | 24,218,154,253 | +0xbc / dc0 | +0x40 | 0 | `FUN_004563d0` sets weapon `+0xb4`=1 (effect UNCERTAIN) |
-| NO MALFUNCTIONS | 24,253,154,287 | +0xc8 / dc4 | +0x24 | 0 | no reader found (UNCERTAIN) |
+| NO MALFUNCTIONS | 24,253,154,287 | +0xc8 / dc4 | +0x24 | 0 | no reader: every pref-getter call checked, systems still break (docs/damage.md §5.3) |
 | ROOKIE / NORMAL / EXPERT AI | 164,45,275,78 / 164,78,275,113 / 164,113,275,148 | +0xd4 / dd8 = 0/1/2 | +0x50 | **1 (Normal)** | `4404d0`, `443f60`, `4642f0` (damage % scaled for levels 0/1), `5b4470` |
 | INVULNERABLE | 285,45,435,78 | +0xc0 / dc8 | +0x1c | 0 | damage skipped in `43b340`, `4a97b0`, `448b20`, `44d760`; crash tests `5abef0`, `5bac40` |
 | NO CRASHES | 285,78,435,113 | +0xc4 / dcc | +0x20 | 0 | ground collision in `5abef0`, `5bac40` |

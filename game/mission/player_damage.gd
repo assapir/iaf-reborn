@@ -108,7 +108,7 @@ func system_damage(n: int) -> void:
 		host.damage_sound("SFX_WARNING", "WRN_MASTER")
 
 
-## GEV 0x49 (X, @44b8b3): with an engine on fire (16 / 17) and the charge left (FUN_0045ae10: used up
+## GEV 0x49 (X, @44b4cf): with an engine on fire (16 / 17) and the charge left (FUN_0045ae10: used up
 ## by this, SFX_FIRE_EXTINGUISHER for the player's own jet), clear the fire and cut-out flags of both
 ## engines (17, 16, 3, 2) and the fire lights (2, 1). The afterburner flags (8 / 9) the fire set stay.
 ## Without a fire nothing happens and the charge is kept.
