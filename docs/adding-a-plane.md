@@ -113,9 +113,14 @@ Edit afterwards if needed:
 
 ### 2.4 Where it lives
 `iaf-convert aircraft` rewrites `assets/converted/planes/aircraft.json` from the install on every run, so an extra
-plane must not be added to it by hand. Keep the model and descriptor in a tracked folder (e.g.
-`game/extra/<plane>/`) and have `aircraft_model.gd` `index()` merge that folder's entries into the converted index
-(not built yet).
+plane is never added to it. Extra planes live in the repo:
+- `game/extra/planes/<plane>/` holds the glTF, `.bin`, textures, `aircraft.json` and a `CREDITS.md` for third-party
+  sources.
+- `aircraft_model.gd` `index()` merges every folder there into the converted index, and `load_descriptor()` /
+  `create()` read from it.
+- `game/extra/.gdignore` keeps Godot's importer off the raw glTF.
+
+Example: `game/extra/planes/f35i/`, built by `tools/f35i/rig.py` (Blender, headless).
 
 ### 2.5 Check it
 - `godot --path game -s tools/aircraft_sheet.gd -- /tmp/sheet <plane>` renders gear, flaps, speed brakes and the

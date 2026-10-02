@@ -62,7 +62,7 @@ var _time := 0.0
 ## Loads `<planes>/<plane>/aircraft.json` and its glTF. `type` < 0 takes the descriptor's type.
 ## `on_ground`: the ground-start ramps (gear down, full flaps, speed brake open; FUN_005a5820).
 static func create(plane: String, type := -1, on_ground := false) -> Node3D:
-	var dir := _planes_dir().path_join(plane)
+	var dir := _planes_dir(plane).path_join(plane)
 	var d: Dictionary = load_descriptor(plane)
 	if d.is_empty():
 		return null
@@ -76,15 +76,29 @@ static func create(plane: String, type := -1, on_ground := false) -> Node3D:
 
 
 static func load_descriptor(plane: String) -> Dictionary:
-	return Settings.load_json(_planes_dir().path_join(plane).path_join("aircraft.json"))
+	return Settings.load_json(_planes_dir(plane).path_join(plane).path_join("aircraft.json"))
 
 
-## Every aircraft of the install (the converter's index): plane folder -> {model, type, label, …}.
+## Planes the original does not have (docs/adding-a-plane.md §2.4): tracked in the repo, one folder per
+## plane with its glTF and hand-made descriptor; `.gdignore` keeps Godot's importer off them.
+const EXTRA_DIR := "res://extra/planes"
+
+
+## Every aircraft: the install's (the converter's index) and the extra planes: plane folder -> {model, type,
+## label, …}.
 static func index() -> Dictionary:
-	return Settings.load_json(_planes_dir().path_join("aircraft.json"))
+	var idx: Dictionary = Settings.load_json(_planes_dir().path_join("aircraft.json"))
+	for plane in DirAccess.get_directories_at(EXTRA_DIR):
+		var d: Dictionary = load_descriptor(plane)
+		if not d.is_empty():
+			idx[plane] = {"model": plane.path_join(d.model), "descriptor": plane.path_join("aircraft.json"),
+				"type": d.get("type", -1), "label": d.get("label", ""), "group": "extra"}
+	return idx
 
 
-static func _planes_dir() -> String:
+static func _planes_dir(plane := "") -> String:
+	if plane != "" and FileAccess.file_exists(EXTRA_DIR.path_join(plane).path_join("aircraft.json")):
+		return EXTRA_DIR
 	return Settings.assets_dir().path_join("converted/planes")
 
 
