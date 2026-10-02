@@ -2,7 +2,9 @@
 
 Research for the roadmap item "Better satellite imagery" (docs/roadmap.md): an optional, user-downloaded modern
 imagery (and maybe elevation) layer over the 1998 map.ptt photos, behind an Extras switch, original by default.
-Nothing here is implemented yet. Checked 2026-09-30; licences quoted from the providers' own pages / capabilities.
+Checked 2026-09-30; licences quoted from the providers' own pages / capabilities. **Kept as written then**; what was
+built from it: the georeference (docs/georef.md) and the Sentinel-2 layers outside Israel (docs/imagery.md,
+`tools/setup.sh --imagery sentinel2`); the elevation part is not built (docs/roadmap.md "Modern DEM").
 
 ## 1. The theatre in geographic terms (prerequisite)
 
