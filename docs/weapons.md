@@ -12,7 +12,7 @@ the ripple quantity / interval, the mode-5 HUD (CCIP and the delayed release) an
 HUD text and symbols, the stores MFD page, the FLIR pod / TV-weapon camera and the FLIR / TV / HARM MFD pages
 (docs/mfd.md; no TV / HARM weapon flies yet), the radar missiles (600 AMRAAM-like, 610 Sparrow-like) with the DLZ, the
 MRM HUD sight and the semi-active rule (§11). The radar and its lock (the seeker slaved to it): docs/radar.md. Not
-built yet: HARM, TV weapons and the laser guidance (FLIR designation), the decoys' effect on missiles, ECM, the AI's
+built yet: TV weapons and the laser guidance (FLIR designation), the decoys' effect on missiles, ECM, the AI's
 weapons, AAA.
 
 ## 1. Data
@@ -562,11 +562,28 @@ mode change leaving STT) turns the guidance of every 610 in the list off and emp
 call it (original quirk, kept: the Sparrow keeps guiding after the radar dies). The 600 (active) never depends on the
 radar after launch.
 
-### 11.5 Validation
+### 11.5 HARM (590: AGM88, SHRIKE)
+The same launch (`FUN_00454b70` case 0x24e, HUD mode 8) and the same homing motion (weapons.ibx 590: dog chase,
+a 120, β 0.08, burn 23 s, tCO 2 s, `_fireEndVec` 7 km ahead). Selecting a 590 puts HUD mode 8, the HARM sensor on
+(`FUN_0045c2b0`) and the HARM page (10) up (`FUN_00449810`). The HARM HUD object (`FUN_00460a90`, vtable 0x601560)
+differs from the MRM's only in vfunc +0x10 (`FUN_00460ac0`: no circle; "In Range" = the selected emitter nearer than
+the selected store's DLZ max, the seeker diamond at its screen point) and +0x28 / +0x2c (`FUN_00460e10` /
+`FUN_00460e40`: the HARM sensor's selected target and whether it has one). So the launch takes the HARM page's
+selected emitter when its screen point is within 240 px of the HUD centre (Easy aiming: anywhere), q = vfunc +0x38 ×
+0.8; without one the missile flies at its `_fireEndVec` point. After the launch nothing ties the HARM to the emitter
+staying on (no type test in the flight code): it chases the unit like any homing weapon and its blast (AGM88 power
+5000, radius 20; SHRIKE 5000 / 50) hits what is around. The emitters come from the RWR (docs/deviations.md "HARM page
+source"); until the AI / SAM sensors lock the jet (not built), nothing in a mission fills the HARM page.
+
+### 11.6 Validation
 `tests/godot/test_radar_missiles.gd`: the DLZ (AMRAAM example, receding target, target behind, no target), the circle,
 lead and in-circle q; per jet in mission 231 (F-16, Lavi, F-35I AMRAAM; F-15, F-4E, Kurnass 2000 Sparrows) radar lock
 of a MiG 8 km ahead, the MRM HUD (circle inside the DLZ, lead point, shoot cue, DLZ ticks), the launch, the hit, and
 Backspace dropping the Sparrow's guidance but not the AMRAAM's; Real AMRAAM 157 kg, Mach 4, 70 km.
+`tests/godot/test_harm.gd`: per jet (the seven Jet list jets and the F-35I) in mission 231, a ground unit 15 km ahead
+locking the jet (an RWR emitter): '[' selects the AGM88 (master 4, HUD mode 8, the HARM page), the page lists and
+preselects it, the HUD diamond and In Range, the launch at it and the kill; a SHRIKE with no emitter flies at its
+end point.
 
 ## UNCERTAIN
 Candidate order of the spatial query; event 0x4e (pre-explosion) receiver; the bomb time-to-go speed (selector 6);
