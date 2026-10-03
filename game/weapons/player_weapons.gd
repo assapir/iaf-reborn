@@ -26,8 +26,8 @@ const Hud := preload("res://cockpit/hud.gd")
 const GUN_PERIOD := 0.2
 ## Stores are drawn within 9000 m of the camera (0x638a08).
 const STORES_DRAW_DIST := 9000.0
-## Weapon bays (ours, the F-35I): the doors stay open this long after a release from a bay station.
-## ponytail: the store leaves at once while the doors swing (0.5 s); hold the release until open if it shows.
+## Weapon bays (ours, the F-35I): a bay station's release waits for its doors to open (0.5 s); they stay open
+## this long after.
 const BAY_HOLD := 2.0
 ## Launch q without Easy aiming (v1.1: ×0.8, 0x600f64) and the q of an unlocked target (0x82f6ec).
 const Q_NO_EASY := 0.8
@@ -90,6 +90,7 @@ var _flash: Node3D
 var _store_nodes := {}  # station -> [Node3D per slot]
 var _bay_until := -1.0
 var _releases := 0
+var _bay_retry := false  # a missile release waiting for the bay doors
 var _pod_nodes: Array = []  # rocket boxes
 ## The rocket box model and its scale ([Weapons] RocketBoxScale, default 4.0).
 const ROCKET_BOX := "weapons/lau61/lau61_m.gltf"
@@ -752,6 +753,9 @@ func _release_missile() -> void:
 	var i: int = stores.fire_station()
 	if i < 0 or stores.displayed(i) <= 0:
 		return
+	if _bay_wait(i):
+		_bay_retry = true
+		return
 	var st: Dictionary = stores.station(i)
 	var w: Dictionary = st.w
 	var o := own()
@@ -1075,7 +1079,7 @@ func _ripple_tick() -> void:
 		_ripple_line = Bombs.ripple_line(p, ripple_qty, float(ripple_int), own().yaw, _ground)
 	var aim: Vector3 = _ripple_line[clampi(ripple_qty - ripple_left, 0, ripple_qty - 1)]
 	# FUN_0045ee10 and the delayed release (the first bomb waits for time-to-go ≤ 0.9 s).
-	if not release_allowed():
+	if not release_allowed() or _bay_wait(i):
 		return
 	if ag.off and ripple_left == ripple_qty and float(ag.ttg) > TTG_RELEASE:
 		return
@@ -1491,6 +1495,9 @@ func decoy_position(dc: Dictionary) -> Vector3:
 ## Advances the weapons to sim time `t`.
 func update(t: float) -> void:
 	now = t
+	if _bay_retry:
+		_bay_retry = false
+		_release_missile()
 	if stores.releases != _releases:
 		_releases = stores.releases
 		if _internal(stores.last_fired):
@@ -1771,6 +1778,14 @@ func _build_visuals() -> void:
 ## The weapon bays' doors are commanded open (a release from a bay station in the last BAY_HOLD s).
 func bay_open() -> bool:
 	return now < _bay_until
+
+
+## Ours: a release from bay station i opens the doors (and keeps them open); true while they are not fully open.
+func _bay_wait(i: int) -> bool:
+	if not _internal(i):
+		return false
+	_bay_until = maxf(_bay_until, now + BAY_HOLD)
+	return host.aircraft != null and host.aircraft.has_method("bay_fraction") and host.aircraft.bay_fraction() < 1.0
 
 
 ## Station i is in a weapon bay (descriptor `internal_stations`, letters A..I; ours).

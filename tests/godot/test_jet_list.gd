@@ -52,6 +52,15 @@ func run() -> void:
 		var fwd: Vector3 = tv.flight.state().forward
 		tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, p0, tv.flight.state().heading,
 				0.0, 0.0, fwd * 200.0 * 0.5144, true, true, false)
+		if want[0] == 1000:
+			# The bay AMRAAM (station D) waits for the doors, which open first.
+			var w = tv.weapons
+			w.stores.cur = 3
+			w.hud_mode = 1
+			w._release_missile()
+			check(w.stores.displayed(3) == 1 and w.bay_open(), "%s: a bay release opens the doors first" % name)
+			await create_timer(1.0).timeout
+			check(w.stores.displayed(3) == 0 and ac.bay_fraction() == 1.0, "%s: then the AMRAAM leaves" % name)
 		key(tv, KEY_G)
 		key(tv, KEY_F)
 		key(tv, KEY_B)

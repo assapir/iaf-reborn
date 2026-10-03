@@ -37,14 +37,16 @@ KNOB_ROT = (90 - TILT, 0, 0)  # a cylinder's axis along the face normal
 
 # Lamp bays on the face beside the display: name -> (x, z, w, h); the F-16 lamps are centred on them.
 BAYS = {"caution": (0.315, -0.170, 0.058, 0.058), "fire": (0.315, -0.238, 0.048, 0.046),
-        "lamps": (0.315, -0.305, 0.054, 0.060), "gear": (-0.320, -0.220, 0.040, 0.118),
-        "gear_lamps": (-0.268, -0.168, 0.036, 0.030), "flap": (-0.268, -0.207, 0.036, 0.016)}
+        "lamps": (0.315, -0.305, 0.054, 0.064), "gear": (-0.320, -0.220, 0.040, 0.118),
+        "gear_lamps": (-0.315, -0.304, 0.056, 0.046), "flap": (-0.315, -0.338, 0.050, 0.018)}
 # Lamp -> (bay, dx, dz) inside it.
-LAMPS = {"LIGHT000": ("caution", 0, 0), "LIGHT001": ("fire", 0, 0), "LIGHT008": ("lamps", 0, 0.021),
-         "LIGHT005": ("lamps", 0, 0.007), "LIGHT006": ("lamps", 0, -0.007), "LIGHT003": ("lamps", -0.016, -0.021),
-         "LIGHT004": ("lamps", 0.016, -0.021), "LIGHT009": ("gear", 0, 0), "SLIGHT000": ("gear_lamps", 0, 0.007),
-         "SLIGHT001": ("gear_lamps", -0.011, -0.007), "SLIGHT002": ("gear_lamps", 0.011, -0.007),
+# One column for AP / BRAK / ECM / AI / SAM; the gear and flap lamps under the gear lever, twice the F-16's size.
+LAMPS = {"LIGHT000": ("caution", 0, 0), "LIGHT001": ("fire", 0, 0), "LIGHT008": ("lamps", 0, 0.024),
+         "LIGHT005": ("lamps", 0, 0.012), "LIGHT006": ("lamps", 0, 0), "LIGHT003": ("lamps", 0, -0.012),
+         "LIGHT004": ("lamps", 0, -0.024), "LIGHT009": ("gear", 0, 0), "SLIGHT000": ("gear_lamps", 0, 0.011),
+         "SLIGHT001": ("gear_lamps", -0.013, -0.011), "SLIGHT002": ("gear_lamps", 0.013, -0.011),
          "SLIGHT003": ("flap", 0, 0)}
+LAMP_SCALE = {"SLIGHT000": 2.0, "SLIGHT001": 2.0, "SLIGHT002": 2.0, "SLIGHT003": 2.0}
 
 
 def build():
@@ -143,7 +145,7 @@ def layout(cam):
         bx, bz = BAYS[bay][:2]
         c = px(on_face(bx + dx, bz + dz, 0.021))
         centres[key] = (c.x, c.y)
-    sec.update(kit.lamp_sections(centres))
+    sec.update(kit.lamp_sections(centres, LAMP_SCALE))
     # The helmet HUD: the boresight on the nose axis and the field centred on it (not 47 px lower as the F-16's: that
     # put the field's lower tapes on the glareshield), the gun cross 5 px lower ([HUD] rows count up from the panel's
     # top).

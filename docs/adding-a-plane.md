@@ -98,7 +98,7 @@ as a solid blob or bare frame bars.
 on their hinges, `<part>1/2` helpers, points, glTF export), `bake_skin` (our own textures with baked ambient
 occlusion), `decal` / `text_decal` (markings that follow the surface), `pilot`; and for a cockpit panel `box` /
 `cyl` / `arch`, `cockpit_camera` / `panel_px` (the game's projection), `render_panel`, `portals`, `lamp_sections`
-(the F-16's lamps borrowed with `"Shared"`), `update_cockpit_json`. The plane's own script holds only its data:
+(the F-16's lamps borrowed with `"Shared"`; an optional per-lamp `Scale` draws them larger), `update_cockpit_json`. The plane's own script holds only its data:
 which meshes make which part, the hinge lines, the marking and cockpit positions (`tools/f35i/rig.py`,
 `tools/f35i/cockpit3d.py`).
 
@@ -118,7 +118,7 @@ Hand-set after the run:
   mesh with an original plane's part at run time (`aircraft_model.gd` `_borrow_parts`). The part is placed by the
   source's eye-to-part offset applied to our `eye`, plus `offset` (m). Use it for the pilot rather than modelling one.
 - `"internal_stations"` (optional, letters A..I, e.g. `"CDFG"`): bay stations. Their stores are drawn only while
-  the `Bay*` doors are half open; a release from one opens the doors for 2 s (`player_weapons.gd` `bay_open`).
+  the `Bay*` doors are half open; a release from one first opens the doors (0.5 s), then keeps them open 2 s (`player_weapons.gd` `_bay_wait`).
 
 Edit afterwards if needed:
 - `scale` (5.0, the clump scale);

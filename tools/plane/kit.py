@@ -536,9 +536,10 @@ F16_LIGHTSON = {"FileName": "Lights4.bmp", "Height": 278.0, "Width": 74.0,
                 "NightRScale": 1.0, "NightGScale": 1.0, "NightBScale": 2.0}
 
 
-def lamp_sections(centres):
+def lamp_sections(centres, scale=None):
     """[LIGHTnnn] / [SLIGHTnnn] / [LIGHTSON] for the F-16's lamps centred on panel px `centres` {key: (x, y)};
-    lamps not given are off."""
+    lamps not given are off. `scale` {key: k} draws a lamp k times its art size (ours: `Scale`)."""
+    scale = scale or {}
     sec = {"LIGHTSON": dict(F16_LIGHTSON)}
     for key in ["LIGHT%03d" % i for i in range(10)] + ["SLIGHT%03d" % i for i in range(4)]:
         if key not in centres or key not in F16_LAMPS:
@@ -546,8 +547,11 @@ def lamp_sections(centres):
             continue
         l, t, r, b = F16_LAMPS[key]
         c = centres[key]
+        k = scale.get(key, 1.0)
         e = {"Active": 1.0, "Left": float(l), "Top": float(t), "Right": float(r), "Bottom": float(b),
-             "OffsetX": round(c[0] - (r - l) / 2, 1), "OffsetY": round(c[1] - (b - t) / 2, 1)}
+             "OffsetX": round(c[0] - k * (r - l) / 2, 1), "OffsetY": round(c[1] - k * (b - t) / 2, 1)}
+        if k != 1.0:
+            e["Scale"] = float(k)
         if key == "LIGHT001":
             e["Blink"] = 1.0
         if key == "LIGHT009":

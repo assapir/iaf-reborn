@@ -565,7 +565,8 @@ func _draw_panel_rwr(s: float) -> void:
 	draw_rwr_symbols(self, panel_to_screen(float(r.CenterX), float(r.CenterY)), float(r.Radius), s)
 
 
-## One frame of a light (frames stacked under Top in the lights bitmap) at its panel position.
+## One frame of a light (frames stacked under Top in the lights bitmap) at its panel position; ours: `Scale`
+## draws it larger (a new cockpit's small lamps).
 func _draw_light(l: Dictionary, frame: int, s: float) -> void:
 	if int(l.get("Active", 0)) != 1 or not tex.has("LIGHTS"):
 		return
@@ -573,7 +574,7 @@ func _draw_light(l: Dictionary, frame: int, s: float) -> void:
 	var w := float(l.Right) - float(l.Left)
 	var h := float(l.Bottom) - float(l.Top)
 	var src := Rect2(float(l.Left), float(l.Top) + frame * h, w, h)
-	draw_texture_rect_region(tex.LIGHTS, Rect2(panel_to_screen(l.OffsetX, l.OffsetY), Vector2(w, h) * s),
+	draw_texture_rect_region(tex.LIGHTS, Rect2(panel_to_screen(l.OffsetX, l.OffsetY), Vector2(w, h) * s * float(l.get("Scale", 1.0))),
 			Rect2(src.position * a, src.size * a))
 
 

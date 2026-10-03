@@ -220,8 +220,8 @@
   "Top": 258.0,
   "Right": 18.0,
   "Bottom": 263.0,
-  "OffsetX": 1270.0,
-  "OffsetY": 227.9
+  "OffsetX": 1286.1,
+  "OffsetY": 217.2
  },
  "LIGHT004": {
   "Active": 1.0,
@@ -229,8 +229,8 @@
   "Top": 268.0,
   "Right": 21.0,
   "Bottom": 273.0,
-  "OffsetX": 1302.7,
-  "OffsetY": 227.9
+  "OffsetX": 1286.0,
+  "OffsetY": 231.5
  },
  "LIGHT005": {
   "Active": 1.0,
@@ -238,8 +238,8 @@
   "Top": 255.0,
   "Right": 43.0,
   "Bottom": 260.0,
-  "OffsetX": 1281.8,
-  "OffsetY": 194.8
+  "OffsetX": 1281.2,
+  "OffsetY": 189.0
  },
  "LIGHT006": {
   "Active": 1.0,
@@ -247,8 +247,8 @@
   "Top": 230.0,
   "Right": 60.0,
   "Bottom": 235.0,
-  "OffsetX": 1286.0,
-  "OffsetY": 211.3
+  "OffsetX": 1285.1,
+  "OffsetY": 203.1
  },
  "LIGHT007": {
   "Active": 0.0
@@ -259,8 +259,8 @@
   "Top": 220.0,
   "Right": 33.0,
   "Bottom": 225.0,
-  "OffsetX": 1285.2,
-  "OffsetY": 178.6
+  "OffsetX": 1284.9,
+  "OffsetY": 175.1
  },
  "LIGHT009": {
   "Active": 1.0,
@@ -279,8 +279,9 @@
   "Top": 190.0,
   "Right": 55.0,
   "Bottom": 201.0,
-  "OffsetX": 683.8,
-  "OffsetY": 38.9
+  "OffsetX": 615.8,
+  "OffsetY": 180.5,
+  "Scale": 2.0
  },
  "SLIGHT001": {
   "Active": 1.0,
@@ -288,8 +289,9 @@
   "Top": 190.0,
   "Right": 32.0,
   "Bottom": 200.0,
-  "OffsetX": 671.9,
-  "OffsetY": 54.4
+  "OffsetX": 600.4,
+  "OffsetY": 207.4,
+  "Scale": 2.0
  },
  "SLIGHT002": {
   "Active": 1.0,
@@ -297,8 +299,9 @@
   "Top": 190.0,
   "Right": 42.0,
   "Bottom": 200.0,
-  "OffsetX": 694.7,
-  "OffsetY": 54.4
+  "OffsetX": 629.0,
+  "OffsetY": 207.4,
+  "Scale": 2.0
  },
  "SLIGHT003": {
   "Active": 1.0,
@@ -306,7 +309,8 @@
   "Top": 230.0,
   "Right": 43.0,
   "Bottom": 235.0,
-  "OffsetX": 674.6,
-  "OffsetY": 91.7
+  "OffsetX": 600.4,
+  "OffsetY": 239.8,
+  "Scale": 2.0
  }
 }
