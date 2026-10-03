@@ -128,7 +128,7 @@ pub struct Table {
 /// Every place the code tables or switches on aircraft type codes (docs/adding-a-plane.md §1).
 pub const TABLES: &[Table] = &[
     Table { file: "game/aircraft/player_aircraft.gd", anchor: "const FLYABLE :=", what: "flyable types (else flown as the F-16)", list: true },
-    Table { file: "game/aircraft/player_aircraft.gd", anchor: "const COCKPIT :=", what: "cockpit index in cockpits.ibx (also radar.gd's table row)", list: true },
+    Table { file: "game/aircraft/player_aircraft.gd", anchor: "const COCKPIT :=", what: "cockpit index in cockpits.ibx (also iaf-avionics radar.rs TABLES' row)", list: true },
     Table { file: "game/aircraft/player_aircraft.gd", anchor: "const TWIN :=", what: "twin engines (cockpit gauges)", list: true },
     Table { file: "game/aircraft/player_aircraft.gd", anchor: "const JET_TYPES :=", what: "Jet list id -> type", list: true },
     Table { file: "crates/iaf-flight/src/data_set.rs", anchor: "pub const TYPES: &[Type] = &[", what: "flight-model type: name, model folder, section, code", list: true },

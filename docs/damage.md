@@ -263,7 +263,7 @@ ENG at +0x560 / +0x598 / +0x5b0 = flags 2 / 16 / 22, so the copy starts at +0x55
 | 4 / 5 / 6 / 7 | GEV 0xc / 0x11 / 0x10 / 0xe and the gear legs `44f970` | flaps lever, **air brakes key** (@44c821) and autopilot key refused; gear legs stuck |
 | 7 | per frame `448b20` @448fe2–4490a1 | **gear overspeed**: FM getter 5 (speed, capped 1200 m/s) · 1.9428 > **450 kt** (`0x600af0`), not Invulnerable, gear handle down (ind[9]), no flag 7 yet, leg 1 (`ctl+0x53c`) == 2 (down and locked) → `FUN_0044d760(7)` (corrects flight-model.md §12, which said none exists) |
 | 1, 20 | GEV 0x46 ECM, 0x40 / 0x42 / 0x44 / 0x45 weapons | refused (docs/weapons.md) |
-| 13, 15, 20 | `44d760` once: `456200` (gun +0x9c), `4adb20` (radar off for good), `456cc0` (weapons +0xa0) | gun / weapons: docs/weapons.md; radar: `radar.gd set_damaged` |
+| 13, 15, 20 | `44d760` once: `456200` (gun +0x9c), `4adb20` (radar off for good), `456cc0` (weapons +0xa0) | gun / weapons: docs/weapons.md; radar: `radar.rs set_damaged` |
 | 14 | RWR (`44deb0` …, cockpit `S+0x590`) | docs/rwr.md |
 | 11 (instruments), 12 (HUD), 19, 21 | — | **only the damage page** (and 19 / 21 through the flags they set): no gauge or HUD reads them |
 

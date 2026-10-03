@@ -1,7 +1,7 @@
 # The player's radar
 
 The radar manager of the player's controller (`ctl+0x84`, `FUN_004acc20`, v1.1 addresses) and how ours follows it
-(`game/weapons/radar.gd`, owned by `player_weapons.gd`; drawn by `cockpit/mfd.gd` and `cockpit/hud.gd`). The MFD page
+(`crates/iaf-avionics/src/radar.rs`, unit tests there; run through `IafRadar` by `game/weapons/radar.gd`, owned by `player_weapons.gd`; drawn by `cockpit/mfd.gd` and `cockpit/hud.gd`). The MFD page
 geometry is in docs/mfd.md §"Radar (2)". World frame X east, Y north, Z up, metres, sim seconds.
 
 ## 1. Modes and tables

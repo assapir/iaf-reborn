@@ -35,7 +35,7 @@ Then add it to the tables. `iaf-convert plane-checklist <code>` prints this list
 | where | table | what it decides | needed? |
 |---|---|---|---|
 | `game/aircraft/player_aircraft.gd` | `FLYABLE` | flyable (any other type flies as the F-16) | yes |
-| | `COCKPIT` | cockpit index into `cockpits.ibx`, also `radar.gd`'s mode-table row | or a cockpit dir (§4) |
+| | `COCKPIT` | cockpit index into `cockpits.ibx`, also the row of `TABLES` in `crates/iaf-avionics/src/radar.rs` | or a cockpit dir (§4) |
 | | `TWIN` | two engines (gauges, logic+0x24) | if twin |
 | | `JET_TYPES` | Jet list id → type | yes (§6) |
 | `crates/iaf-flight/src/data_set.rs` | `TYPES` | name, model folder, bd.ibx section, code | yes (§3) |
@@ -262,7 +262,7 @@ Hebrew labels go in `game/menu/strings_he.json` (our strings only).
 ## 7. Sounds, radar, RWR
 - **Engine sounds** are the same for every jet (`flight_sounds.gd`). Only `BETTY_TYPES` is per type (voice
   warnings; also `rwr.betty` and `player_damage.betty`).
-- **Radar:** `radar.gd` `TABLES` has one A-A / A-G mode row per cockpit index (`COCKPIT`). A new type gets the
+- **Radar:** `TABLES` in `crates/iaf-avionics/src/radar.rs` has one A-A / A-G mode row per cockpit index (`COCKPIT`). A new type gets the
   F-16 row unless mapped. `RADAR_KM` overrides the long-range-search range with Weapon data = Real.
 - **RWR:** nothing per own type. `RWR_GLYPH` only matters when other aircraft of this type appear.
 

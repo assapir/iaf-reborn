@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/iaf-formats", "crates/iaf-tools", "crates/iaf-flight", "crates/iaf-godot"]
+members = ["crates/iaf-formats", "crates/iaf-tools", "crates/iaf-flight", "crates/iaf-avionics", "crates/iaf-godot"]
 
 [workspace.package]
 edition = "2024"
