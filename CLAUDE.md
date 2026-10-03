@@ -39,10 +39,11 @@ tools/worktree.sh <name>                                      # parallel worktre
 - `crates/iaf-flight` — the original flight model and AI autopilot, pure Rust, re-implemented from
   `docs/flight-model.md` / `docs/autopilot.md`. Tests in `crates/iaf-flight/tests/` (validation against the envelope
   reference `tools/envelope_ref.py`).
-- `crates/iaf-avionics` — the player's avionics, pure Rust: the radar (`radar.rs`) so far; weapon sights and HUD
-  values are being ported here from `game/weapons/*.gd`. Its GDScript front (`game/weapons/radar.gd`) keeps the old
-  interface and mirrors the state.
-- `crates/iaf-godot` — gdext bridge exposing `IafFlight` (`flight.rs`) and `IafRadar` (`radar.rs`) to GDScript. Handles the frame conversion:
+- `crates/iaf-avionics` — the player's avionics, pure Rust: the radar (`radar.rs`), the gun / rounds / LCOS
+  (`gun.rs`); the missile sights, stores and HUD values are being ported here from `game/weapons/*.gd`. Their
+  GDScript fronts (`game/weapons/radar.gd`, `gun_rounds.gd`) keep the old interface and mirror the state.
+- `crates/iaf-godot` — gdext bridge: `IafFlight` (`flight.rs`), `IafRadar` (`radar.rs`), `IafRounds` / `IafLcos`
+  (`gun.rs`); `world.rs` converts the weapons' world frame. Handles the frame conversion:
   FM is ENU (east, north, up); Godot is X east, Y up, Z south. Loaded via `game/iaf.gdextension`.
 - `game/` — Godot project. Main scene `menu/front_end.tscn`; autoloads `Settings` (`settings.gd`) and `Joystick`.
   Flight scene is `terrain/terrain_view.tscn`. Subdirs by system: `aircraft`, `ai`, `cockpit`, `weapons` (radar, RWR,

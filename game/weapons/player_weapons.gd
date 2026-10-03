@@ -108,8 +108,8 @@ const ROCKET_BOX_SCALE := 4.0
 ## The Present scale of the store models (bdb weapons: 2.0), the scale the stores on the jet get.
 const STORE_PRESENT_SCALE := 2.0
 var _models := {}  # model path -> util/gltf.gd open() result or null
-## The AA gun LCOS pipper (FUN_0045f410) state.
-var lcos := {"x": 0.0, "y": 0.0, "w28": 0.0, "w2c": 0.0, "prev0": 0.0, "prev2": 0.0, "next": 0.0}
+## The AA gun LCOS pipper (FUN_0045f3b0 -> FUN_0045f410; iaf_avionics::gun::Lcos).
+var lcos = ClassDB.instantiate("IafLcos")
 
 
 ## Sets up the stores of the player's jet: `entity` = its mission entity ({} in free flight),
@@ -742,7 +742,7 @@ func _gun_shot() -> bool:
 	if stores.displayed(9) == 0:
 		gun_stop()
 		return false
-	if gun.next_round().is_empty():
+	if not gun.next_free():
 		return false
 	var o := own()
 	var d: Vector3 = GunRounds.shot_dir(o.fwd, o.up)
@@ -1194,7 +1194,7 @@ func _ripple_tick() -> void:
 	if i < 0 or stores.displayed(i) <= 0:
 		releasing = false
 		return
-	if t == 560 and _rockets().next_round().is_empty():
+	if t == 560 and not _rockets().next_free():
 		return  # the station's pool object is still flying: wait for the next tick
 	# FUN_00454b70: the aim = the HUD target (off the HUD) or the impact, spread on the ripple line.
 	var p: Vector3 = ag.target if ag.off else ag.impact
@@ -1265,8 +1265,7 @@ func _drop_store(i: int, aim: Vector3) -> void:
 		return
 	if type == 560:
 		var g: RefCounted = _rockets()
-		var k: int = g._next
-		g.fire(now, o.pos, p0, o.vel, aim, "", String(_me().get("key", "")), false)
+		var k: int = g.fire(now, o.pos, p0, o.vel, aim, "", String(_me().get("key", "")), false)
 		var node := _instance(String(w.model_path))
 		if node != null:
 			host.add_child(node)
@@ -1601,11 +1600,7 @@ func dispense(type: int) -> bool:
 	var a: Vector3 = p0 + o.right * fe.x + o.fwd * fe.y + o.up * fe.z
 	# The fixed-weapon flight (FUN_005605c0 -> FUN_0047a1e2, as a gun round): |V| + velocityJump along
 	# the line to A, decelerating at 50 m/s², then at A. No hit sphere (_spiralAccel 0): no damage.
-	var s: float = o.vel.length() + g.velocity_jump
-	var d := a - p0
-	var dist := d.length()
-	var r := {"p0": p0, "u": d / dist if dist > 0.0 else -o.fwd, "s": s, "t0": now, "A": a,
-		"t_end": now + g._flight_time(s, dist)}
+	var r: Dictionary = g.flight(now, p0, o.vel.length() + g.velocity_jump, a)
 	var end: float = minf(r.t_end, now + DECOY_LIFE)
 	_decoy_pool[type][k] = end
 	_decoy_id += 1
@@ -1680,10 +1675,12 @@ func update(t: float) -> void:
 	if hud_mode == 1:
 		var st: Dictionary = stores.station(stores.cur)
 		seeker.update(now, own(), _units(), int(st.get("w", {}).get("type", 0)), _station_has_rounds())
-	if hud_mode == 3:
-		_lcos(now)
+	# The AA gun LCOS (mode 3): the lock's range, else 450 m; out of mode 3 its rate filters restart.
+	if hud_mode == 3 and host.flight != null:
+		var lk: Dictionary = radar.locked()
+		lcos.step(now, host.flight.state(), lk.dist if not lk.is_empty() else null)
 	else:
-		lcos.fresh = true
+		lcos.reset()
 	_update_cockpit_dlz()
 	_update_visuals()
 	_publish()
@@ -1725,53 +1722,6 @@ func _lock_bearing(o: Dictionary) -> Variant:
 		return null
 	var d: Vector3 = lk.pos - o.pos
 	return wrapf(atan2(d.x, d.y) - float(o.yaw), -PI, PI)
-
-
-## The AA gun LCOS pipper (FUN_0045f3b0 -> FUN_0045f410, feet): every 0.05 s, integrated with dt 0.15
-## (quirk kept). Without a radar lock the range is 450 m.
-func _lcos(t: float) -> void:
-	if t < lcos.next:
-		return
-	lcos.next = t + 0.05
-	var st: Dictionary = host.flight.state() if host.flight != null else {}
-	if st.is_empty():
-		return
-	const DT := 0.15
-	if lcos.get("fresh", true):
-		# Ours: the rate filters start from the current attitude (the original's first values are
-		# untraced; from 0 the first heading step would throw the pipper off for ~1 s).
-		lcos.prev0 = deg_to_rad(float(st.pitch)) / PI
-		lcos.prev2 = deg_to_rad(float(st.heading)) / PI
-		lcos.fresh = false
-	var a0 := deg_to_rad(float(st.pitch))
-	var a1 := deg_to_rad(float(st.roll))
-	var a2 := deg_to_rad(float(st.heading))
-	var v := float(st.velocity.length()) * 3.2808
-	var g0 := float(st.g)
-	var alpha := float(st.alpha)
-	# R (ft): the locked range ×3.28084 (0x601478), else 1476.378; at most 3148.8.
-	var lk: Dictionary = radar.locked()
-	var r := minf(float(lk.dist) * 3.28084 if not lk.is_empty() else 1476.378, 3148.8)
-	var e0: float = a0 / PI - lcos.prev0
-	lcos.prev0 = a0 / PI
-	var e2: float = a2 / PI - lcos.prev2
-	lcos.prev2 = a2 / PI
-	lcos.w28 += 4.0 * (_int16(e0) / 65536.0 - DT * lcos.w28)
-	lcos.w2c += 4.0 * (_int16(e2) / 65536.0 - DT * lcos.w2c)
-	var pp: float = PI * (cos(a1) * lcos.w28 + cos(a0) * sin(a1) * lcos.w2c)
-	var qq: float = PI * (cos(a0) * cos(a1) * lcos.w2c - sin(a1) * lcos.w28)
-	var tf := r / (3300.0 - (v + 1650.0) * r * 0.00024667423)
-	var gd := PI * tf * tf * 16.087 / r
-	var dd := 0.2 + 1.35 * tf
-	var xs: float = gd * cos(a0) * sin(a1) - tf * qq
-	var ys: float = tf * pp + (g0 - 1.0) * gd - ((3300.0 * tf - r) * v * alpha / r) / (v + 3300.0) + 5.0617 / r
-	lcos.x += DT * (xs - lcos.x) / dd
-	lcos.y += DT * (ys - lcos.y) / dd
-
-
-static func _int16(e: float) -> int:
-	var n := int(e * 65536.0)
-	return ((n + 32768) & 0xffff) - 32768
 
 
 ## The cockpit snapshot (FUN_00456520 -> FUN_00445bb0) for the HUD and the stores MFD page.
@@ -1818,7 +1768,7 @@ func _publish() -> void:
 		harm_in_range = false
 	var pip = null
 	if hud_mode == 3:
-		pip = Vector2(lcos.x, lcos.y) * rad_to_deg(1.0) * 12.0  # px from the gun cross
+		pip = lcos.offset() * rad_to_deg(1.0) * 12.0  # px from the gun cross
 	elif hud_mode == 4:
 		var d: Vector3 = GunRounds.shot_dir(o.fwd, o.up)
 		pip = gun.aim_point(o.pos, o.vel, d, true)  # world point, projected by the HUD

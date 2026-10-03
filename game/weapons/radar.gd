@@ -16,7 +16,6 @@ var aa := true
 var off := true
 var damaged := false
 var bore_held := false
-var dirty := false
 ## The contact list (15, nearest first): {key, unit, pos, heading, locked, selected, hostile, prio, aspect, az,
 ## el, dist, speed, type, alt}.
 var contacts: Array = []
@@ -73,7 +72,6 @@ func _sync() -> void:
 	off = _st.off
 	damaged = _st.damaged
 	bore_held = _st.bore_held
-	dirty = _st.dirty
 	sel_key = _st.sel_key
 	sel_locked = _st.sel_locked
 	antenna = _st.antenna

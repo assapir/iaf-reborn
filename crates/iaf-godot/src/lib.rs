@@ -3,7 +3,9 @@
 use godot::prelude::*;
 
 mod flight;
+mod gun;
 mod radar;
+mod world;
 
 struct IafExtension;
 
