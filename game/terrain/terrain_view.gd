@@ -43,6 +43,7 @@ var brakes := false
 ## only, free look, padlock, snaps); setting it picks the cockpit (F1's choice) or the chase view (F10).
 const Views := preload("res://terrain/views.gd")
 const RenderOptions := preload("res://terrain/render_options.gd")
+const VehicleParts := preload("res://mission/vehicle_parts.gd")
 var views: RefCounted = Views.new()
 var in_cockpit: bool:
 	get:
@@ -708,6 +709,17 @@ func mission_entity_moved(ent: Dictionary) -> void:
 	if ent.has("angles"):
 		var a: Vector3 = ent.angles  # destruction motion attitude (pitch, roll, heading)
 		node.basis = Basis.from_euler(Vector3(deg_to_rad(a.x), deg_to_rad(-a.z), deg_to_rad(-a.y)), EULER_ORDER_YXZ)
+
+
+## A unit's moving parts and heading changed (script motion op 11, game/mission/vehicle_parts.gd).
+func mission_entity_parts(ent: Dictionary) -> void:
+	var node: Node3D = ent.node
+	if node == null:
+		return
+	if not ent.has("rig"):
+		ent["rig"] = VehicleParts.rig(node)
+	VehicleParts.apply(ent.rig, ent.get("parts", {}))
+	node.rotation.y = -deg_to_rad(float(ent.heading))
 
 
 func mission_entity_visible(ent: Dictionary) -> void:

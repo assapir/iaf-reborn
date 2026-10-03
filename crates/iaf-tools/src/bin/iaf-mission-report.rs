@@ -26,7 +26,7 @@ use std::path::Path;
 /// 3, 4, 15, 18, 19, 23, 26 are no-ops in the original too; 21 / 22 enable / disable combat (docs/ai.md §6).
 const SUPPORTED_TRIGGER: &[i64] = &[3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 26];
 /// Motion-list (scripts0) opcodes implemented: 1 Hover, 16 Path.
-const SUPPORTED_MOTION: &[i64] = &[1, 16];
+const SUPPORTED_MOTION: &[i64] = &[1, 11, 16];
 /// Player aircraft type codes (bdb Objects 0x5b4) that can be flown by the engine: the Jet list's seven.
 const FLYABLE_NOW: &[i64] = &[100, 110, 120, 130, 140, 190, 200];
 /// Type codes the original lets the player fly (`FUN_00507d00`).
@@ -38,10 +38,11 @@ const JET_LIST: &[i64] = &[190, 130, 120, 200, 110, 100, 140];
 const AIRCRAFT: &[i64] = &[28, 3];
 const HELICOPTER: i64 = 2;
 const GROUND_UNITS: &[i64] = &[5, 6, 8, 9, 10, 15, 16];
-/// Night in the original's rule (cockpit night dimming `FUN_0052df40`): 20 ≤ hour or hour ≤ 5.
+/// Night in the original's rules: the cockpit dimming (`FUN_0052df40`) on the fractional hour, 20 ≤ h < 24 or h ≤ 5.0;
+/// the world (`FUN_00407920`) before 05:00 or after 20:00. A 05:30 start is dawn, not night.
 fn is_night(t: f64) -> bool {
-    let h = (t / 3600.0).floor() as i64 % 24;
-    h >= 20 || h <= 5
+    let h = (t / 3600.0).rem_euclid(24.0);
+    h >= 20.0 || h <= 5.0
 }
 
 const TRIGGER_NAMES: &[(i64, &str)] = &[
@@ -787,7 +788,7 @@ const NOTES: &str = r#"
   units. Enable / Disable combat (ops 21 / 22) count only on units that fight.
 * **Damage & destruction** is needed as soon as anything shoots or a target must be killed.
 * **Start**: airborne when the player's altitude is above 800 m (docs/flight-model.md, start rules); both
-  starts are supported. **Night**: start hour ≥ 20 or ≤ 5, the cockpit night rule (docs/cockpit.md).
+  starts are supported. **Night**: hour ≥ 20 or ≤ 5.0 (the cockpit's rule on the fractional hour; the world's is before 05:00 or after 20:00, docs/rendering.md §4): 05:xx starts are dawn.
 * **Scripts**: trigger ops the runtime implements: 3–8, 10–19, 21, 22, 23, 26; motion: 1 Hover, 16 Path. Event
   conditions never take effect in the shipped missions (docs/mission-runtime.md §3.1).
 * **Multiplayer**: 511–516 and 666 / 777 are multiplayer ids (the 0x1ff–0x207 range, 0x29a; 777 has sixteen

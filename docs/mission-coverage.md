@@ -17,10 +17,10 @@ Start: **6** playable.
 | step | add | size | newly playable | cumulative |
 |---|---|---|---|---|
 | 1 | AI: air-to-air combat + AI: air-to-ground attack | L+M | 29 (111, 113, 114, 121, 122, 123, 124, 125, 127, 131, 132, 134, 135, 136, 211, 213, 216, 217, 221, 225, 226, 227, 235, 321, 325, 326, 404, 405, 406) | **35** |
-| 2 | AI: armed helicopters + script: trigger op 2 Launch at target | M+S | 14 (115, 117, 126, 133, 137, 212, 223, 232, 234, 314, 401, 402, 403, 407) | **49** |
-| 3 | multiplayer session | L | 7 (511, 512, 513, 514, 516, 666, 777) | **56** |
-| 4 | night (lighting, cockpit dimming) + script: motion op 11 Yaw to target | S+S | 8 (112, 214, 222, 231, 233, 236, 237, 515) | **64** |
-| 5 | ground: brain-driven vehicles | M | 2 (116, 324) | **66** |
+| 2 | AI: armed helicopters + script: trigger op 2 Launch at target | M+S | 20 (112, 115, 117, 126, 133, 137, 212, 222, 223, 231, 232, 233, 234, 236, 237, 314, 401, 402, 403, 407) | **55** |
+| 3 | multiplayer session | L | 8 (511, 512, 513, 514, 515, 516, 666, 777) | **63** |
+| 4 | ground: brain-driven vehicles | M | 2 (116, 324) | **65** |
+| 5 | night (lighting, cockpit dimming) | S | 1 (214) | **66** |
 | 6 | script: motion op 5 Turn | S | 1 (224) | **67** |
 | 7 | script: trigger op 1 Launch at location | S | 1 (215) | **68** |
 
@@ -33,10 +33,10 @@ Start: **6** playable.
 | step | add | size | newly playable | cumulative |
 |---|---|---|---|---|
 | 1 | AI: air-to-air combat + AI: air-to-ground attack | L+M | 29 (111, 113, 114, 121, 122, 123, 124, 125, 127, 131, 132, 134, 135, 136, 211, 213, 216, 217, 221, 225, 226, 227, 235, 321, 325, 326, 404, 405, 406) | **35** |
-| 2 | AI: armed helicopters + script: trigger op 2 Launch at target | M+S | 14 (115, 117, 126, 133, 137, 212, 223, 232, 234, 314, 401, 402, 403, 407) | **49** |
-| 3 | multiplayer session | L | 7 (511, 512, 513, 514, 516, 666, 777) | **56** |
-| 4 | night (lighting, cockpit dimming) + script: motion op 11 Yaw to target | S+S | 8 (112, 214, 222, 231, 233, 236, 237, 515) | **64** |
-| 5 | ground: brain-driven vehicles | M | 2 (116, 324) | **66** |
+| 2 | AI: armed helicopters + script: trigger op 2 Launch at target | M+S | 20 (112, 115, 117, 126, 133, 137, 212, 222, 223, 231, 232, 233, 234, 236, 237, 314, 401, 402, 403, 407) | **55** |
+| 3 | multiplayer session | L | 8 (511, 512, 513, 514, 515, 516, 666, 777) | **63** |
+| 4 | ground: brain-driven vehicles | M | 2 (116, 324) | **65** |
+| 5 | night (lighting, cockpit dimming) | S | 1 (214) | **66** |
 | 6 | script: motion op 5 Turn | S | 1 (224) | **67** |
 | 7 | script: trigger op 1 Launch at location | S | 1 (215) | **68** |
 
@@ -90,6 +90,7 @@ Missions with at most four missing features (an "or" choice counts once).
 | 326 | Make My Day | Jet list: Mirage, Kfir, F4, Phantom, F15, F16, Lavi | AI: air-to-air combat; AI: air-to-ground attack |
 | 404 | Summer Camp | Phantom (200) | AI: air-to-air combat; AI: air-to-ground attack |
 | 405 | Lethal Cargo | F15 (110) | AI: air-to-air combat; AI: air-to-ground attack |
+| 112 | Predators from Above | Mirage (190) | AI: air-to-air combat; AI: air-to-ground attack; script: trigger op 2 Launch at target |
 | 115 | Close Support | Mirage (190) | AI: air-to-air combat; AI: air-to-ground attack; script: trigger op 2 Launch at target |
 | 116 | To the Inferno | Mirage (190) | AI: air-to-air combat; AI: air-to-ground attack; ground: brain-driven vehicles |
 | 126 | Syrian HQ Assault | F4 (120) | AI: air-to-air combat; AI: air-to-ground attack; script: trigger op 2 Launch at target |
@@ -98,8 +99,10 @@ Missions with at most four missing features (an "or" choice counts once).
 | 137 | Fatal Attack | F15 (110) | AI: air-to-air combat; AI: air-to-ground attack; script: trigger op 2 Launch at target |
 | 212 | Bridge to Success | Phantom (200) | AI: air-to-air combat; AI: air-to-ground attack; AI: armed helicopters |
 | 214 | Damascus Blackout | Phantom (200) | AI: air-to-air combat; AI: air-to-ground attack; night (lighting, cockpit dimming) |
+| 222 | Hide and Seek | Phantom (200) | AI: air-to-air combat; AI: air-to-ground attack; script: trigger op 2 Launch at target |
 | 224 | Say Cheese | Phantom (200) | AI: air-to-air combat; AI: air-to-ground attack; script: motion op 5 Turn |
 | 232 | Armadillo Hunt | Phantom (200) | AI: air-to-air combat; AI: air-to-ground attack; script: trigger op 2 Launch at target |
+| 237 | Hijackers | F15 (110) | AI: air-to-air combat; AI: air-to-ground attack; script: trigger op 2 Launch at target |
 | 324 | All for One | Jet list: Mirage, Kfir, F4, Phantom, F15, F16, Lavi | AI: air-to-air combat; AI: air-to-ground attack; ground: brain-driven vehicles |
 | 401 | Eye In The Sky | F15 (110) | AI: air-to-air combat; AI: air-to-ground attack; script: trigger op 2 Launch at target |
 | 511 | Offense Defense | Phantom (200) | AI: air-to-air combat; AI: air-to-ground attack; multiplayer session |
@@ -109,13 +112,15 @@ Missions with at most four missing features (an "or" choice counts once).
 | 666 | Mission Creator | F16 (100) | AI: air-to-air combat; AI: air-to-ground attack; multiplayer session |
 | 777 | DOG CHASE | F16 (100) | AI: air-to-air combat; AI: air-to-ground attack; multiplayer session |
 | 117 | Engaged at Dusk | Mirage (190) | AI: air-to-air combat; AI: air-to-ground attack; AI: armed helicopters; script: trigger op 2 Launch at target |
-| 222 | Hide and Seek | Phantom (200) | AI: air-to-air combat; AI: air-to-ground attack; script: motion op 11 Yaw to target; script: trigger op 2 Launch at target |
 | 223 | Tumble Down | F16 (100) | AI: air-to-air combat; AI: air-to-ground attack; AI: armed helicopters; script: trigger op 2 Launch at target |
+| 231 | License to Kill | F16 (100) | AI: air-to-air combat; AI: air-to-ground attack; AI: armed helicopters; script: trigger op 2 Launch at target |
+| 233 | Wind,Water,and Fire | F16 (100) | AI: air-to-air combat; AI: air-to-ground attack; AI: armed helicopters; script: trigger op 2 Launch at target |
 | 234 | Saving Energy | Lavi (140) | AI: air-to-air combat; AI: air-to-ground attack; AI: armed helicopters; script: trigger op 2 Launch at target |
-| 237 | Hijackers | F15 (110) | AI: air-to-air combat; AI: air-to-ground attack; night (lighting, cockpit dimming); script: trigger op 2 Launch at target |
+| 236 | Pinata Escort | F15 (110) | AI: air-to-air combat; AI: air-to-ground attack; AI: armed helicopters; script: trigger op 2 Launch at target |
 | 402 | Saving a Friend | F16 (100) | AI: air-to-air combat; AI: air-to-ground attack; AI: armed helicopters; script: trigger op 2 Launch at target |
 | 407 | Peril in Tel Aviv | F15 (110) | AI: air-to-air combat; AI: air-to-ground attack; AI: armed helicopters; script: trigger op 2 Launch at target |
 | 514 | Crucial Moments | Lavi (140) | AI: air-to-air combat; AI: air-to-ground attack; multiplayer session; script: trigger op 2 Launch at target |
+| 515 | Blackhawk Rally | Phantom (200) | AI: air-to-air combat; AI: air-to-ground attack; multiplayer session; script: trigger op 2 Launch at target |
 
 ## 2. Most-needed features
 
@@ -128,9 +133,8 @@ Missions with at most four missing features (an "or" choice counts once).
 | script: trigger op 2 Launch at target | S | 21 | 21 |
 | AI: armed helicopters | M | 11 | 11 |
 | multiplayer session | L | 8 | 8 |
-| script: motion op 11 Yaw to target | S | 6 | 6 |
-| night (lighting, cockpit dimming) | S | 4 | 4 |
 | ground: brain-driven vehicles | M | 2 | 2 |
+| night (lighting, cockpit dimming) | S | 1 | 1 |
 | no weapon the jet can load kills the targets | M | 1 | 1 |
 | script: motion op 5 Turn | S | 1 | 1 |
 | script: trigger op 1 Launch at location | S | 1 | 1 |
@@ -142,7 +146,7 @@ player = default flight's leader type (training: the Jet list); start = air abov
 | id | file | title | player jet | flight | other flyable flights | start | targets | loadout | playable | missing |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 111 | battle against time | Battle Against Time | Mirage (190) | Alpha (1) | 2:Mirage 3:Mirage | air, 07:35 | 11 ground | SHFR 2×1 MK-83×1 MK-83×1 SHFR 2×1 DEFA×125 | no | AI: air-to-air combat; AI: air-to-ground attack |
-| 112 | predators | Predators from Above | Mirage (190) | Alpha (1) | 2:Mirage | air, 05:45 night | 11 ground | SHFR 2×1 ZUNNI×25 ZUNNI×25 SHFR 2×1 DEFA×125 | no | AI: air-to-air combat; AI: air-to-ground attack; night (lighting, cockpit dimming); script: motion op 11 Yaw to target; script: trigger op 2 Launch at target |
+| 112 | predators | Predators from Above | Mirage (190) | Alpha (1) | 2:Mirage | air, 05:45 | 11 ground | SHFR 2×1 ZUNNI×25 ZUNNI×25 SHFR 2×1 DEFA×125 | no | AI: air-to-air combat; AI: air-to-ground attack; script: trigger op 2 Launch at target |
 | 113 | change | Last Minute Change | Mirage (190) | Alpha (1) | 2:Mirage | air, 10:00 | 1 scripted, 2 air, 5 ground | SHFR 2×1 MK-83×1 MK-83×1 MK-83×1 SHFR 2×1 DEFA×125 | no | AI: air-to-air combat; AI: air-to-ground attack |
 | 114 | brothers | Brothers in Arms | Mirage (190) | Alpha (1) | 2:Mirage | air, 17:00 | 1 scripted | SHFR 2×1 SHFR 2×1 DEFA×125 | no | AI: air-to-air combat; AI: air-to-ground attack |
 | 115 | closesupport | Close Support | Mirage (190) | Alpha (1) | 2:Mirage | air, 07:30 | 12 ground | MK-82×1 ZUNNI×25 ZUNNI×25 MK-82×1 DEFA×125 | no | AI: air-to-air combat; AI: air-to-ground attack; script: trigger op 2 Launch at target |
@@ -166,23 +170,23 @@ player = default flight's leader type (training: the Jet list); start = air abov
 | 212 | bridge_to_success | Bridge to Success | Phantom (200) | Alpha (1) | 2:Phantom 3:F16 4:F15 | air, 12:00 | 8 ground | AIM-9L×1 AGM88×1 AGM88×1 AGM88×1 AGM88×1 AIM-9L×1 20 MM×160 | no | AI: air-to-air combat; AI: air-to-ground attack; AI: armed helicopters |
 | 213 | cest_lavi | C'est Lavi | Lavi (140) | Alpha (1) | 2:F15 3:Lavi | air, 08:30 | 4 air | AIM-9L×1 AMRAAM×1 AMRAAM×1 AMRAAM×1 AMRAAM×1 AIM-9L×1 20 MM×235 | no | AI: air-to-air combat; AI: air-to-ground attack |
 | 214 | darkness | Damascus Blackout | Phantom (200) | Alpha (1) | 2:Lavi 3:F15 4:Lavi | air, 01:00 night | 2 ground | AGM88×1 AGM88×1 PYTH-3×1 PYTH-3×1 AGM88×1 AGM88×1 20 MM×160 | no | AI: air-to-air combat; AI: air-to-ground attack; night (lighting, cockpit dimming) |
-| 215 | scuds_on_the_run | Scuds on the Run | F15 (110) | Alpha (1) | 2:F16 3:Phantom | air, 18:00 | 1 scripted, 8 ground | PYTH-4×2 AIM-7M×1 AIM-7M×1 AIM-7M×1 AIM-7M×1 PYTH-4×2 20 MM×235 | no | AI: air-to-air combat; AI: air-to-ground attack; AI: armed helicopters; script: motion op 11 Yaw to target; script: trigger op 1 Launch at location; script: trigger op 2 Launch at target |
+| 215 | scuds_on_the_run | Scuds on the Run | F15 (110) | Alpha (1) | 2:F16 3:Phantom | air, 18:00 | 1 scripted, 8 ground | PYTH-4×2 AIM-7M×1 AIM-7M×1 AIM-7M×1 AIM-7M×1 PYTH-4×2 20 MM×235 | no | AI: air-to-air combat; AI: air-to-ground attack; AI: armed helicopters; script: trigger op 1 Launch at location; script: trigger op 2 Launch at target |
 | 216 | taxi_bley | Taxi Bley | Phantom (200) | Alpha (1) | 2:F15 3:F16 4:Lavi | air, 07:00 | 2 scripted, 13 ground | AIM-9M×1 AGM88×1 AGM88×1 AGM88×1 AGM88×1 AIM-9M×1 20 MM×160 | no | AI: air-to-air combat; AI: air-to-ground attack |
 | 217 | one_way_ticket | One Way Ticket | F15 (110) | Alpha (1) | 2:F16 3:F15 4:Lavi | air, 10:00 | 1 scripted | PYTH-4×2 AIM-7M×1 AIM-7M×1 AIM-7M×1 AIM-7M×1 PYTH-4×2 20 MM×235 | no | AI: air-to-air combat; AI: air-to-ground attack |
 | 221 | backtothewall | Back to the Wall | F16 (100) | Alpha (1) | 2:F16 | air, 09:00 | 8 air | AIM-9L×1 AMRAAM×1 AMRAAM×1 AMRAAM×1 AMRAAM×1 AIM-9L×1 20 MM×235 | no | AI: air-to-air combat; AI: air-to-ground attack |
-| 222 | hideandsick | Hide and Seek | Phantom (200) | Alpha (1) | 2:F15 | air, 16:00 | 3 ground | AGM-65×3 AIM-7M×1 PYTH-3×1 MK-83×3 PYTH-3×1 AIM-7M×1 AGM-65×3 20 MM×160 | no | AI: air-to-air combat; AI: air-to-ground attack; script: motion op 11 Yaw to target; script: trigger op 2 Launch at target |
+| 222 | hideandsick | Hide and Seek | Phantom (200) | Alpha (1) | 2:F15 | air, 16:00 | 3 ground | AGM-65×3 AIM-7M×1 PYTH-3×1 MK-83×3 PYTH-3×1 AIM-7M×1 AGM-65×3 20 MM×160 | no | AI: air-to-air combat; AI: air-to-ground attack; script: trigger op 2 Launch at target |
 | 223 | tumbledown | Tumble Down | F16 (100) | Alpha (1) | 2:F15 | air, 16:00 | 1 scripted | AIM-9L×1 AMRAAM×1 ZUNNI×25 ZUNNI×25 AMRAAM×1 AIM-9L×1 20 MM×235 | no | AI: air-to-air combat; AI: air-to-ground attack; AI: armed helicopters; script: trigger op 2 Launch at target |
 | 224 | saychees | Say Cheese | Phantom (200) | Alpha (1) | 2:F15 | air, 13:00 | 1 scripted, 5 ground | ZUNNI×25 PYTH-3×1 MK-83×3 PYTH-3×1 ZUNNI×25 20 MM×160 | no | AI: air-to-air combat; AI: air-to-ground attack; script: motion op 5 Turn |
 | 225 | disinfectthepest | Disinfect the Pest | Lavi (140) | Alpha (1) | 2:Lavi 3:F15 4:F16 | air, 09:00 | 2 ground | AIM-9L×1 AMRAAM×1 MK-84×1 MK-84×1 MK-84×1 MK-84×1 AMRAAM×1 AIM-9L×1 20 MM×235 | no | AI: air-to-air combat; AI: air-to-ground attack |
 | 226 | retaininghades | Retaining Hades | F16 (100) | Alpha (1) | 2:Lavi 3:F15 | air, 18:00 | 6 air | AIM-9L×1 AMRAAM×1 AMRAAM×1 AMRAAM×1 AMRAAM×1 AIM-9L×1 20 MM×235 | no | AI: air-to-air combat; AI: air-to-ground attack |
 | 227 | handofgod | Hand of God | F15 (110) | Alpha (1) | 2:Lavi 3:F16 4:Lavi | air, 17:30 | 3 air, 1 ground | PYTH-4×2 AIM-7M×1 AIM-7M×1 AIM-7M×1 AIM-7M×1 PYTH-4×2 20 MM×235 | no | AI: air-to-air combat; AI: air-to-ground attack |
-| 231 | license | License to Kill | F16 (100) | Alpha (1) | 2:F15 | ground, 10:30 | 2 ground | AIM-9L×1 AMRAAM×1 MK-83×3 MK-84×1 MK-84×1 MK-83×3 AMRAAM×1 AIM-9L×1 20 MM×235 | no | AI: air-to-air combat; AI: air-to-ground attack; AI: armed helicopters; script: motion op 11 Yaw to target; script: trigger op 2 Launch at target |
+| 231 | license | License to Kill | F16 (100) | Alpha (1) | 2:F15 | ground, 10:30 | 2 ground | AIM-9L×1 AMRAAM×1 MK-83×3 MK-84×1 MK-84×1 MK-83×3 AMRAAM×1 AIM-9L×1 20 MM×235 | no | AI: air-to-air combat; AI: air-to-ground attack; AI: armed helicopters; script: trigger op 2 Launch at target |
 | 232 | armadillo hunt | Armadillo Hunt | Phantom (200) | Alpha (1) | 2:F16 3:F15 | air, 06:30 | 5 ground | PYTH-3×1 AGM88×1 CBU-97×6 CBU-97×6 AGM88×1 PYTH-3×1 20 MM×160 | no | AI: air-to-air combat; AI: air-to-ground attack; script: trigger op 2 Launch at target |
-| 233 | windwaterfire | Wind,Water,and Fire | F16 (100) | Alpha (1) | 2:Phantom 3:F15 | ground, 17:00 | 5 ground | AIM-9L×1 AMRAAM×1 MK-83×3 AGM-65×1 AGM-65×1 MK-83×3 AMRAAM×1 AIM-9L×1 20 MM×235 | no | AI: air-to-air combat; AI: air-to-ground attack; AI: armed helicopters; script: motion op 11 Yaw to target; script: trigger op 2 Launch at target |
+| 233 | windwaterfire | Wind,Water,and Fire | F16 (100) | Alpha (1) | 2:Phantom 3:F15 | ground, 17:00 | 5 ground | AIM-9L×1 AMRAAM×1 MK-83×3 AGM-65×1 AGM-65×1 MK-83×3 AMRAAM×1 AIM-9L×1 20 MM×235 | no | AI: air-to-air combat; AI: air-to-ground attack; AI: armed helicopters; script: trigger op 2 Launch at target |
 | 234 | saving energy | Saving Energy | Lavi (140) | Alpha (1) | 2:Lavi 3:F16 4:F15 | ground, 07:00 | 10 air | PYTH-4×1 PYTH-4×1 AMRAAM×1 AMRAAM×1 PYTH-4×1 PYTH-4×1 20 MM×235 | no | AI: air-to-air combat; AI: air-to-ground attack; AI: armed helicopters; script: trigger op 2 Launch at target |
 | 235 | nowyouseeme | Now You See Me | Phantom (200) | Alpha (1) | 2:F16 3:F15 4:F16 | air, 10:30 | 3 ground | AGM88×1 AGM88×1 PYTH-3×1 PYTH-3×1 AGM88×1 AGM88×1 20 MM×160 | no | AI: air-to-air combat; AI: air-to-ground attack |
-| 236 | pinata | Pinata Escort | F15 (110) | Alpha (1) | 2:F16 3:F15 | air, 16:00 | 3 scripted, 1 air | PYTH-4×2 AMRAAM×1 AMRAAM×1 AMRAAM×1 AMRAAM×1 PYTH-4×2 20 MM×235 | no | AI: air-to-air combat; AI: air-to-ground attack; AI: armed helicopters; script: motion op 11 Yaw to target; script: trigger op 2 Launch at target |
-| 237 | newhijack | Hijackers | F15 (110) | Alpha (1) | 2:Phantom 3:Lavi 4:F15 | air, 05:30 night | 1 scripted, 2 air, 7 ground | PYTH-4×2 AIM-7M×1 AIM-7M×1 AIM-7M×1 AIM-7M×1 PYTH-4×2 20 MM×235 | no | AI: air-to-air combat; AI: air-to-ground attack; night (lighting, cockpit dimming); script: trigger op 2 Launch at target |
+| 236 | pinata | Pinata Escort | F15 (110) | Alpha (1) | 2:F16 3:F15 | air, 16:00 | 3 scripted, 1 air | PYTH-4×2 AMRAAM×1 AMRAAM×1 AMRAAM×1 AMRAAM×1 PYTH-4×2 20 MM×235 | no | AI: air-to-air combat; AI: air-to-ground attack; AI: armed helicopters; script: trigger op 2 Launch at target |
+| 237 | newhijack | Hijackers | F15 (110) | Alpha (1) | 2:Phantom 3:Lavi 4:F15 | air, 05:30 | 1 scripted, 2 air, 7 ground | PYTH-4×2 AIM-7M×1 AIM-7M×1 AIM-7M×1 AIM-7M×1 PYTH-4×2 20 MM×235 | no | AI: air-to-air combat; AI: air-to-ground attack; script: trigger op 2 Launch at target |
 | 311 | takeoff | Engines ON | Jet list: Mirage, Kfir, F4, Phantom, F15, F16, Lavi | Alpha (1) |  | ground, 08:00 | 1 scripted | AIM-9L×1 AMRAAM×1 MK-83×3 MK-84×1 MK-84×1 MK-83×3 AMRAAM×1 AIM-9L×1 20 MM×235 | **yes** |  |
 | 312 | landing | Eagle Baby | Jet list: Mirage, Kfir, F4, Phantom, F15, F16, Lavi | Alpha (1) |  | air, 13:00 | 1 scripted | AIM-9L×1 AMRAAM×1 MK-83×3 MK-84×1 MK-84×1 MK-83×3 AMRAAM×1 AIM-9L×1 20 MM×235 | **yes** |  |
 | 313 | pathfinder | Pathfinder | Jet list: Mirage, Kfir, F4, Phantom, F15, F16, Lavi | Alpha (1) |  | ground, 08:00 | 7 scripted | 20 MM×235 | **yes** |  |
@@ -205,7 +209,7 @@ player = default flight's leader type (training: the Jet list); start = air abov
 | 512 | wild_west | Wild West | F4 (120) | Alpha (1) | 2:F4 | air, 12:00 | 1 ground | AIM-7B×1 AIM-9D×1 MK-82×6 AIM-9D×1 AIM-7B×1 20 MM×160 | no | AI: air-to-air combat; AI: air-to-ground attack; multiplayer session |
 | 513 | head_2_head | Head to Head | Lavi (140) | Alpha (1) | 2:F16 | air, 12:30 | 1 ground | AIM-9L×1 AMRAAM×1 MK-83×3 MK-83×3 AMRAAM×1 AIM-9L×1 20 MM×235 | no | AI: air-to-air combat; AI: air-to-ground attack; multiplayer session |
 | 514 | crucial moments | Crucial Moments | Lavi (140) | Alpha (1) | 2:Kfir | air, 14:00 | 4 scripted | AIM-9L×1 AMRAAM×1 AMRAAM×1 AGM88×1 AGM88×1 AMRAAM×1 AMRAAM×1 AIM-9L×1 20 MM×235 | no | AI: air-to-air combat; AI: air-to-ground attack; multiplayer session; script: trigger op 2 Launch at target |
-| 515 | blackhawk raleigh | Blackhawk Rally | Phantom (200) | Alpha (1) | 2:Lavi | air, 05:55 night | 2 scripted | MK-83×3 PYTH-3×1 MK-82×6 PYTH-3×1 MK-83×3 20 MM×160 | no | AI: air-to-air combat; AI: air-to-ground attack; multiplayer session; night (lighting, cockpit dimming); script: trigger op 2 Launch at target |
+| 515 | blackhawk raleigh | Blackhawk Rally | Phantom (200) | Alpha (1) | 2:Lavi | air, 05:55 | 2 scripted | MK-83×3 PYTH-3×1 MK-82×6 PYTH-3×1 MK-83×3 20 MM×160 | no | AI: air-to-air combat; AI: air-to-ground attack; multiplayer session; script: trigger op 2 Launch at target |
 | 516 | the reactor | The Reactor | Kfir (130) | Alpha (1) | 2:F16 | air, 13:00 | 4 air | AIM-9L×1 AIM-9L×1 AIM-9L×1 AIM-9L×1 DEFA×150 | no | AI: air-to-air combat; AI: air-to-ground attack; multiplayer session |
 | 666 | mission | Mission Creator | F16 (100) | Alpha (1) | 2:F15 | ground, 12:10 | none (cannot be won) | AIM-9L×1 AMRAAM×1 MK-83×3 MK-84×1 MK-84×1 MK-83×3 AMRAAM×1 AIM-9L×1 20 MM×235 | no | AI: air-to-air combat; AI: air-to-ground attack; multiplayer session |
 | 777 | allout | DOG CHASE | F16 (100) | Alpha (1) | 2:F15 3:Phantom | air, 12:10 | none (cannot be won) | AIM-9L×1 AMRAAM×1 MK-83×3 MK-84×1 MK-84×1 MK-83×3 AMRAAM×1 AIM-9L×1 20 MM×235 | no | AI: air-to-air combat; AI: air-to-ground attack; multiplayer session |

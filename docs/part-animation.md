@@ -218,6 +218,21 @@ X east / Y north / Z up and stops at 20 m AGL (the original's `land − 10 s` fa
 player the flight has ended by then; v1.1 did not change the parachuter, so this deviation stays). The crew flag
 starts at 0 on every jet (`crew_visible`), as in v1.1. Not ported: the parachuter swing. The fly-by cameras on the jet and the parachuter: docs/views.md §4.3.
 
+## 2.1 Vehicles (part callback `FUN_005c5460`, part record entity+0x3c `FUN_005c5400`, vtable `0x612a78`)
+
+| id | part | angle |
+|---|---|---|
+| 0x18 | Turret | +0xc (degrees, wrapped ±180, `FUN_00459bd0` / `FUN_00459c90` → radians) |
+| 0x19 | Radar | +0x18, += 0.4 every 2.0 s (`0x612a60` / `0x612a5c`) |
+| 0x1a | Carrier | +0x10 |
+| 0x1b | Launcher | +0x14 |
+| 0x1c | Missile | +0x10, visible = +8 |
+| 0x1d–0x20 | Rotors | +0x20 += 10 per call, wrapped at 360 |
+| 0x21–0x26 | Wheels | +0x20 += 1 per call |
+
+Each turns about its X1 / X2 hinge as the aircraft parts. Writer: script motion op 11 (docs/mission-runtime.md §4).
+Port: `game/mission/vehicle_parts.gd` (Turret, Carrier, Launcher, Missile; not the Radar step, rotors, wheels).
+
 ## 3. Other helpers
 * **Stations** (A..I = index 0..8, Gun 9, Cha 10, Fla 11): the store object (`FUN_0053c1f0`) takes its
   attach point from `axis[index+0x28]` = E-frame station position ((0,0,0) if the frame is missing). Stores on

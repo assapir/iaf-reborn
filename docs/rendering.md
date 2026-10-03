@@ -105,3 +105,32 @@ Terrain close up ≈ +0.5–1.5 ms near the ground (16× anisotropic filtering i
 ≤ 0.6 ms at altitude; atmospheric sky ≈ +0.1–0.4 ms (the sky shader runs per background pixel; its radiance is re-filtered
 only when the altitude step changes). Screenshots of each pose are written by the bench
 (`BENCH_SEED=3` for the broken-cloud texture Cloud256_0 instead of the overcast Cloud256_5).
+
+## 4. Time of day (traced, not built)
+
+The original's day / night rendering, for when night gets built (only mission 214 starts at night by these rules; 112,
+237, 515 start at 05:xx, which is dawn). Not built: the sun is still our fixed light.
+
+- **Clock.** `FUN_004dbe00` every frame: the clock (`FUN_004cf8c0`, s) × 1000 = ms since midnight → renderer vtable
+  +0x64 `FUN_00405020` → `FUN_00407c70` (TerrainType=Stream, the shipped tgen.ini) or `FUN_00407ba0`. The briefing
+  preview uses a fixed 11:00 (`FUN_00405070`).
+- **Colour table** `defcolorset.tcs` (install root, `FUN_00422f30`): rows `HH MM sky light horizB horizC horizD k`
+  (RGB each), linear by minute and clamped (`FUN_00422b90`). 05:00 and 20:00 are the same night row (sky 0,15,38; light
+  43,43,43; B 0,12,30; C 0,0,0; D 0,6,17; k 40); others at 05:42, 06:00, 06:20, 07:01, 12:00, 16:00, 19:30.
+  `FUN_004229c0(minute, heading)`: the sky colour, light and k, and the fog colour blended B (toward the sun) → C → D
+  (away) by 2·|view azimuth (180 − heading) − sun azimuth|/180.
+- **Sun** (`FUN_00407920`): f = (t − 05:00) / 15 h. **Night when f < 0 or f > 1**: night flag (0x775a34), shadows off,
+  light straight down, light colour (20, 20, 60)/255, ambient 0.2, the cloud layer 0xFF14143C, no sun disc / flare.
+  Day: a = 180·f + 90°, direction (−sin a, −cos a, cos a) (the sun peaks at 45° at noon), light = tcs·(1 − k/255) + k,
+  ambient factor 0.2 + 0.4·(−cos a) (0.6 at noon), shadows only for 0.2 ≤ f ≤ 0.8 (08:00–17:00, docs/deviations.md).
+  A D3D directional light with that colour, ambient = factor × light (`FUN_00403ca0` → `FUN_0040b500`).
+- **Fog** colour per frame (render state FOGCOLOR, `FUN_0040bd90`); its density (6.0) does not change at night.
+- **Terrain** pre-lit with the light colour (at night × (20, 20, 60)); **sky** a gradient quad: zenith the tcs sky
+  colour, horizon the fog colour (`FUN_00419a20` / `FUN_004195f0`). Medium certainty.
+- **Objects**: `FUN_0041d0c0` ("updateUnlitedObjectsColors") recolours the pre-lit models of flag 0x11 (UNCERTAIN which)
+  to 0xFF1E1E41 at night, 0xFFDCDCDC by day; the others are lit by the light and ambient. No stars, moon, runway /
+  navigation lights or night glow exist.
+- **Update rate**: on the Stream path the light, night flag and sky change only when the time moved > 60 s.
+- **Gameplay**: none (no sensor reads the night flag). The tower greets by hour (`FUN_00551c20`: < 12 morning, 12–16
+  afternoon, 17–21 evening, ≥ 22 morning, quirk). The time option labels Noon / Dawn / Sunset / Night = 12:00 / 06:00 /
+  19:00 / 22:00.

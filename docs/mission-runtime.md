@@ -316,7 +316,7 @@ execute that entry and schedule its end timer.
 |---|---|---|---|
 | 1 | **Hover** | `0x5c38b0` | motion mode 1: hold position |
 | 5 | Turn | `0x5c3940` | motion mode 5 with arg (heading?) — UNCERTAIN |
-| 11 | Yaw to target | `0x5c39e0` | turn toward the target entity. Helicopter model ids use a 1 s re-aim timer. Otherwise mode 9 |
+| 11 | **Yaw to target** | `0x5c39e0` | target = entity `0x8ac`. Types 250 and 291–339: the "Subpart yaw to target motion" (vtable `0x612898`, tick `FUN_005c3ee0` now and every 1.0 s, no end): the turret (250, part record +0xc) or the launcher (+0x14) at the target's bearing. Type 270: the same timer lowers +0x10 (carrier, missile) 1.5° a tick to −90°: the launcher rises. Others: mover mode 9 at the target. Port: `_yaw_to_target`, parts posed by `game/mission/vehicle_parts.gd`; UNCERTAIN: the angle as the bearing relative to the hull (the −10° term not reproduced), mode 9 as facing the target each tick, a new motion entry ending the timer |
 | 16 | **Path** | `0x5c3d00` | mode 0xe, `FUN_0047b9a9(path, …)`: follow CDMEPathsItem `0x8ac` (details below) |
 
 Path details:

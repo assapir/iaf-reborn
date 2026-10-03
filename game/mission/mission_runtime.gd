@@ -320,13 +320,52 @@ func _trigger(ent: Dictionary, sc: Dictionary) -> void:
 
 ## Motion list opcodes (scripts0).
 func _motion(ent: Dictionary, sc: Dictionary, duration: float) -> void:
+	ent["aim_seq"] = int(ent.get("aim_seq", 0)) + 1  # a new motion ends a running yaw to target (UNCERTAIN)
 	match int(sc.get("0x83e", -1)):
+		11:
+			ent.path = null
+			_yaw_to_target(ent, entities.get("%d:%d" % [ent.file, int(sc.get("0x8ac", -1))], {}))
 		16:
 			var pts: Array = paths.get("%d:%d" % [ent.file, int(sc.get("0x8ac", -1))], [])
 			if not pts.is_empty():
 				ent.path = {"points": pts, "start": now, "duration": maxf(duration, 0.001) if duration > 0.0 else 1e7}
 		_:
 			ent.path = null  # 1 Hover and the rest: hold position
+
+
+## Motion op 11 Yaw to target (FUN_005c39e0, target = entity 0x8ac): types 250 and 291–339 start the "Subpart yaw
+## to target motion" (vtable 0x612898, FUN_005c3ee0, first tick now, then every 1.0 s): the turret (250, part+0xc) or
+## the launcher (part+0x14) is set to the target's bearing each tick, without end. Type 270: the same timer without a
+## target lowers part+0x10 (carrier and missile) by 1.5° a tick down to −90° (0x612878 / 0x612874): the launcher rises.
+## Others: mover mode 9 with the target (its rate not traced: the unit faces the target each tick, UNCERTAIN).
+## UNCERTAIN: the part angle taken as the target's bearing relative to the hull, positive to the left (the original's
+## −10° term in FUN_005c3ee0 not reproduced).
+func _yaw_to_target(ent: Dictionary, target: Dictionary) -> void:
+	var tc := int(ent.get("type_code", -1))
+	if not ent.has("parts"):
+		ent["parts"] = {}
+	var field := "turret" if tc == 250 else ("launcher" if tc > 290 and tc < 340 else "")
+	_aim_tick(ent, target, field, tc == 270, int(ent.aim_seq))
+
+
+func _aim_tick(ent: Dictionary, target: Dictionary, field: String, raise: bool, seq: int) -> void:
+	if int(ent.aim_seq) != seq or int(ent.state) >= 4:
+		return
+	if raise:
+		var e := float(ent.parts.get("elevation", 0.0))
+		if e <= -90.0:
+			return
+		ent.parts["elevation"] = e - 1.5
+	elif not target.is_empty() and int(target.state) < 5:
+		var d: Vector3 = _world_of(target) - _world_of(ent)
+		var bearing := rad_to_deg(atan2(d.x, d.y))
+		if field == "":
+			ent.heading = bearing
+		else:
+			ent.parts[field] = wrapf(float(ent.heading) - bearing, -180.0, 180.0)  # +θ about the hinge turns left
+	if host.has_method("mission_entity_parts"):
+		host.mission_entity_parts(ent)
+	_after(1.0, _aim_tick.bind(ent, target, field, raise, seq))
 
 
 ## Path traversal: along the path's points over the entry's duration (kinematics UNCERTAIN).
