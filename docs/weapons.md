@@ -10,10 +10,11 @@ HUD modes, the gun (trigger, rounds, hits, muzzle flash, sounds, LCOS / strafe p
 missiles (types 570 / 580), the bombs (500, 510 incl. the cluster bursts, 650 as a free bomb) and rockets (560) with
 the ripple quantity / interval, the mode-5 HUD (CCIP and the delayed release) and the bombs jettison (§9), the weapon
 HUD text and symbols, the stores MFD page, the FLIR pod / TV-weapon camera and the FLIR / TV / HARM MFD pages
-(docs/mfd.md; no TV / HARM weapon flies yet), the radar missiles (600 AMRAAM-like, 610 Sparrow-like) with the DLZ, the
-MRM HUD sight and the semi-active rule (§11). The radar and its lock (the seeker slaved to it): docs/radar.md. Not
-built yet: TV weapons and the laser guidance (FLIR designation), the decoys' effect on missiles, ECM, the AI's
-weapons, AAA.
+(docs/mfd.md), the radar missiles (600 AMRAAM-like, 610 Sparrow-like) with the DLZ, the MRM HUD sight and the
+semi-active rule, the HARM / Shrike (§11), the TV weapons (635 Maverick, 640 TV missile) with the guided motion, the
+camera riding the weapon and the TV page's TRA / TER and time (§12). The radar and its lock (the seeker slaved to it):
+docs/radar.md. Not built yet: the laser guidance (FLIR designation), the decoys' effect on missiles, ECM, the HUD
+range scale (`FUN_005397a0`, §12.4), the AI's weapons, AAA.
 
 ## 1. Data
 
@@ -584,6 +585,83 @@ Backspace dropping the Sparrow's guidance but not the AMRAAM's; Real AMRAAM 157 
 locking the jet (an RWR emitter): '[' selects the AGM88 (master 4, HUD mode 8, the HARM page), the page lists and
 preselects it, the HUD diamond and In Range, the launch at it and the kill; a SHRIKE with no emitter flies at its
 end point.
+
+## 12. TV weapons (635, 640) and the guided motion (640, 650)
+
+### 12.1 Classes
+The **Maverick 635** flies the homing motion (class 0x18, §11.1). The **TV missile 640** (AGM-62, POPEYE, GBU15) and
+the **laser bomb 650** fly the **guided motion** (class 0x19; motion vtable 0x601f70, the TV / laser variant 0x601ed0
+differs only in the destructor; ctor `FUN_00469aa0`, size 0x130). The weapon class (vtable 0x605178) configures the
+motion with the launch data's point (+0x14 `FUN_004d7ed0`: the target unit is ignored), sets a new aim with +0x2c
+(`FUN_00469f00`, ignored in mode 2) and reports +0x30 the status (`FUN_004d8030`: (mode ≠ 0) + 2 = 2 TRA / 3 TER).
+Explosion class 0x19: the falling store's (flash + streamers, no trail). `game/weapons/guided.gd`.
+
+### 12.2 Guided motion
+- **Config** (`FUN_00563d30`; weapons.ibx field → its use, the ibx comments name it): `_absAcceleration` +0x78 the
+  engine, `_timeAcceleration` +0x88 its time, `_timeConstVel` +0x74 the **squared** horizontal distance of the switch to
+  mode 1, `_absDeceleration` +0x7c the turn gain, `_timeDecceleration` +0xa0 the up acceleration, `_spiralAccelBeta`
+  +0xa8 the down acceleration, `_spiralAccel` +0x118 the end time, `_absReleaseAcceleration` +0x120 the maximum
+  velocity, `_timeRelease` +0x11c the velocity damp, `_timeConstOrientation` +0x98 tCO, `_rollRate` +0xc8 the maximum
+  up angle. 640: 10 / 2 / 3e7 / 150 / 20 / 70 / 420 / 300 / 8 / 2 / 0.018; 650: 10 / 2 / 3e37 / 170 / 165 / 165 / 420
+  / 200 / 30 / 2 / 0.34; 1640 (POPEYE): 5 / 10 / 3e37 / 100 / 100 / 100 / 180 / 350 / 30 / 5 / 0.8.
+- **Start** (`FUN_00563f90`): p0 = the release point, v0 = the launcher's velocity; one update, then mode 0.
+- **Update** (`FUN_005643a0`, every 0.5 s, 0x60cf48): re-base p0 / v0 from the current motion, the acceleration
+  reset; the pose = the position and the velocity's heading / pitch. At or below the terrain: z held at the terrain,
+  no steering. Else (from age +0x90, UNCERTAIN: the release push via +0x80 / +0x90 reads fields nothing sets, taken as
+  none): the errors (`FUN_00564fe0`): heading = atan2(dx, dy) − heading, wrapped only above π (original quirk: below −π
+  it turns the long way, kept); pitch target = asin(LOS z), in mode 0 the maximum up angle, never above it. Then
+  - lateral: right (D × U, roll 0) · turn gain · heading error;
+  - mode 0: (0, 0, −9.806) + up · (x > 0 ? up accel : down accel) · x, x = min(pitch error + 24°, 40°) (0x60cf58 /
+    0x60cf5c); modes 1 / 2: up · 2 · down accel · pitch error, no gravity;
+  - engine: age < tAcc → + D · engine; else if (max velocity − speed) · damp < 0 → + the **unit** D. **Original bug**
+    (kept): the damping product is computed and dropped, so above the maximum velocity the weapon gains 1 m/s².
+- From age 0.001 s (0x60cf60), on the squared horizontal distance d² to the aim: d² < _debugParam010 (800, not
+  squared) → the weapon's pre-explosion event (vfunc +4, not ported: no receiver traced); the mode for the **next**
+  update: d² > switch → 0, switch > d² > _debugParam014² (200 m) → 1, d² < _debugParam014² → 2. End: (age > end time
+  or below the terrain) and age ≥ tCO; the burst at the aim if within _debugParam013 (200 m, 3D) of it, else where it
+  is (`FUN_004d6130`). The 650's switch distance (3e37) is never passed: after the start's mode 0 its first updates
+  run in mode 1, its 0.5–1 s step in mode 0 (pulled up toward 0.34 rad at up to 165 · 0.698 ≈ 115 m/s²; traced).
+- **Time left** (`FUN_00564f10`): |aim − position| / speed, at most 280 s (0x60cf70).
+- **DLZ** (`FUN_005641c0`, max = min): h = the height above the terrain (≥ 0); a = 9.806 − _debugParam011 (70) · π/180
+  · up accel, at least 1 (0x60cf38: so 1 for every shipped record); t = the larger root (−vz_down ± √(vz_down² + 2ah))
+  / (2a) (UNCERTAIN: 2a, not a); T = min(t, tAcc), d1 = T · |v_xy|, range = d1 + ½ · engine · T²; when t > tAcc: d1 =
+  min(d1, max velocity), range += min(t − tAcc, end time − tAcc) · d1 (**original bug**, kept: d1 is a distance used as
+  a speed). AGM-62 level at 1000 m and 250 m/s: ≈ 6.6 km.
+
+### 12.3 TV release and the camera (`FUN_00454b70` cases 0x27b / 0x280, `FUN_0045db70`, `FUN_004604c0`, `FUN_00460940`)
+- **Launch data** (8 dwords): the camera not started on a unit (mcp+0x10 = 0): the EO centre point (`FUN_00450480`),
+  no unit, q 1. Started on one (mcp+0x10 set by `FUN_00450280` → `FUN_0045dde0`: only the Maverick, on the radar's
+  target): the radar's target (radar not damaged, a lock / a TWS selection) and the point UNCERTAIN (uninitialised;
+  ours: the EO centre). The Maverick flies the homing motion at the unit or the point, the 640 the guided motion at the
+  point. The release needs no HUD-mode test beyond §2's; the selected store gives master 6 / HUD 7.
+- **The camera rides the weapon** (`FUN_004604c0`): while the launched store flies (+0x48 = 1) the camera's eye and base
+  are the weapon's pose; after its end, the jet's. For a launched non-Maverick in TRA / TER with the cockpit drawn
+  (views 1 / 0x12 / 0x16) or ctl+0x938, each TV update sets the weapon's aim to the EO centre point (vfunc +0x2c): the
+  pilot steers it with the camera. With the slew keys released a flying TV weapon's camera locks on the EO centre
+  (docs/mfd.md).
+- **Status** (`FUN_00460940`): 0 unless the TV weapon (the flying one, else the store) is 635 / 640 / 650; 1 RDY before
+  launch and for a launched Maverick, else the weapon's 2 TRA / 3 TER; 0 when the selected store has no rounds left and
+  (nothing flies or a Maverick flies).
+- **TV page "%3d"** (111, 110): the TV weapon's time left through `FUN_004d6ac0` (< 0 → 0, > 300 → 60); before a launch
+  0 (UNCERTAIN: the original reads the store's motion then).
+- **HUD mode 7** (`FUN_0052fa10` case 7): the seeker diamond (`FUN_00536ff0`) on the EO centre point's projection while
+  the status ≠ 0, held inside the field along the line from the HUD centre. No "SEC" row in mode 7.
+
+### 12.4 HUD range scale (not built)
+`FUN_005397a0`, drawn in HUD modes 1, 2 (via `FUN_0052ffb0` / `FUN_0052ff30`) and 7 while the radar has a lock
+(S+0xa20); s = the HUD scale: X = HUD x + (RightBorder R+0x2228 − 4)·s, Y = param_5 − 50·s (param_5 taken as the HUD
+centre y, UNCERTAIN), H = 66·s, k = H / (the radar range R+0x2748 NM × 1853). Pen polyline (X−2, Y) → (X, Y) → (X, Y+H)
+→ (X−3, Y+H). DLZ bracket: ym = clamp(H − ⌊S+0x350·k⌋, 0, H), yM likewise from S+0x348; lines (X+s, Y+ym) → (X−2s,
+Y+ym) → (X−2s, Y+yM) → (X+1+s, Y+yM). Range caret at c = H − ⌊H·S+0x388 (lock range NM) / R+0x2748⌋: (X−3s−3, Y+c−2)
+→ (X−3s−1, Y+c) → (X−3s−4, Y+c+3). Text (sprite font, right-aligned, `FUN_00525920`): "%3dK" (0x65d6b4) of ⌊2·S+0x3a0⌋
+(the closure ×2) ending at (X−3s−4, Y+c−2); "%3d" (0x65d754) of the range scale ending at (X, Y−8).
+
+### 12.5 Validation
+`tests/godot/test_tv_weapons.gd`: the guided DLZ formula, the start in TRA, the terminal TER, the burst snapped to the
+aim; per jet (the seven Jet list jets and the F-35I) in mission 231 with an AGM-62 on station 0 and an AGM-65 on
+station 8: '[' gives master 6, HUD mode 7 and the TV page; the camera on a ground unit 8 km ahead: RDY, the HUD diamond,
+the DLZ; the launch: TRA, the time left, the camera riding the missile; the hit; NO SOURCE with no rounds left; the
+Maverick at the camera's point and its hit.
 
 ## UNCERTAIN
 Candidate order of the spatial query; event 0x4e (pre-explosion) receiver; the bomb time-to-go speed (selector 6);

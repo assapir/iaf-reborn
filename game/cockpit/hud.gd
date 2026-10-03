@@ -759,10 +759,10 @@ func _draw_weapons(s: float, w: float, font: Font, fs: int, gun: Vector2, dash :
 				draw_polyline(PackedVector2Array([d + Vector2(0, -k), d + Vector2(k, 0), d + Vector2(0, k), d + Vector2(-k, 0), d + Vector2(0, -k)]), col, w)
 			if mode == 2 and wp.get("mrm_point") != null:
 				_draw_mrm_point(wp.mrm_point, s, w, col)
-		8:
-			# HARM (FUN_0052fef0): the seeker diamond (FUN_00536ff0, ±7 px) on the selected emitter's projection,
-			# held inside the field along the line from the HUD centre.
-			var hp = wp.get("harm_point")
+		7, 8:
+			# HARM (FUN_0052fef0) / TV (FUN_0052fa10 case 7): the seeker diamond (FUN_00536ff0, ±7 px) on the selected
+			# emitter's / the EO centre point's projection, held inside the field along the line from the HUD centre.
+			var hp = wp.get("harm_point" if mode == 8 else "tv_point")
 			if hp != null and camera != null and host_world_to_scene.is_valid():
 				var sp: Vector3 = host_world_to_scene.call(hp)
 				if not camera.is_position_behind(sp):

@@ -570,7 +570,7 @@ func _draw_flir() -> void:
 
 ## TV page (FUN_005369e0): with a source (status ≠ 0) the picture, the tile (0,792), zoom "%1d" (11,33) and the
 ## seeker ticks (x = 66 − 56u, y 64..69; y = 66 + 56v, x 63..69), else the blank tile; the status right-aligned at
-## (114,3). (The "%3d" at (111,110) comes from a launched weapon: not drawn, deviations.md.)
+## (114,3); with a source the TV weapon's time left "%3d" right-aligned at (111,110) (FUN_004d6ac0).
 const TV_STATUS := ["NO SOURCE", "RDY", "TRA", "TER"]
 
 
@@ -585,6 +585,7 @@ func _draw_tv() -> void:
 		var y := int(66.0 + 56.0 * float(tv.v))
 		_line(Vector2(x, 64), Vector2(x, 69))
 		_line(Vector2(63, y), Vector2(69, y))
+		_text_right(111, 110, "%3d" % int(cockpit.eo.get("tv_time", 0)))
 	else:
 		_tile(TILE_BLANK)
 	_text_right(114, 3, TV_STATUS[clampi(st, 0, 3)])

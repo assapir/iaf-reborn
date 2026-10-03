@@ -355,7 +355,7 @@ func _setup_weapons() -> void:
 
 
 ## The EO picture (docs/mfd.md: view slot 1, type 0xb, rendered as viewport 1 into the MFD's video rect): a
-## camera in a SubViewport of the same world at the jet, heading / pitch = the jet's (or the frozen base) + az /
+## camera in a SubViewport of the same world at the jet (or the launched TV weapon it rides), heading / pitch = the jet's (or the frozen base) + az /
 ## el, roll 0, 50° / zoom across its width; rendered only while an MFD shows page 5 or 6 with the cockpit drawn.
 var eo_viewport: SubViewport
 var eo_camera: Camera3D
@@ -382,7 +382,7 @@ func _update_eo_view() -> void:
 	eo_camera.near = camera.near
 	eo_camera.far = camera.far
 	eo_camera.fov = weapons.eo.FOV_DEG / weapons.eo.zoom
-	var eye := rig.global_position
+	var eye: Vector3 = rig.global_position if weapons.eo_eye == null else weapons.to_scene(weapons.eo_eye)
 	var w: Vector3 = weapons.to_world(eye)
 	var ahead: Vector3 = weapons.to_scene(w + weapons.eo_dir * 1000.0)
 	eo_camera.current = true

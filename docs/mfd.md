@@ -319,7 +319,8 @@ launched Maverick, else the launched weapon's own vfunc +0x30 (2 "TRA" / 3 "TER"
 no round of that store is left (`FUN_00456cd0` → `FUN_0053bcd0`) unless a launched non-Maverick weapon still flies.
 - Tile (0,792) ("TV", the cyan box, a cross) only while the status ≠ 0, else the blank tile (no picture).
 - Pass 3: with status ≠ 0: zoom "%1d" right-aligned at (11,33); "%3d" right-aligned at (111,110) = ftol of the
-  weapon's motion object vfunc +0x80 (`FUN_004d6ac0`: < 0 → 0, > 300 → 60; meaning not traced); always: "RDY" /
+  weapon's motion object vfunc +0x80, its time left (guided `FUN_00564f10`, homing burn − age; `FUN_004d6ac0`: < 0 → 0,
+  > 300 → 60; docs/weapons.md §12.3); always: "RDY" /
   "TRA" / "TER" / "NO SOURCE" right-aligned at (114,3).
 - Pass 4, status ≠ 0: the seeker ticks — a vertical one at x = 66 − 56u, y 64..69, and a horizontal one at y = 66 +
   56v, x 63..69; u = az·6/π, v = el·6/π (`0x601524`): ±30° = ±56 px.

@@ -12,6 +12,7 @@ const Stores := preload("res://weapons/stores.gd")
 const GunRounds := preload("res://weapons/gun_rounds.gd")
 const IrSeeker := preload("res://weapons/ir_seeker.gd")
 const Missile := preload("res://weapons/missile.gd")
+const Guided := preload("res://weapons/guided.gd")
 const MrmSight := preload("res://weapons/mrm_sight.gd")
 const Radar := preload("res://weapons/radar.gd")
 const Rwr := preload("res://weapons/rwr.gd")
@@ -61,6 +62,15 @@ var _eo_replaced := {}
 var lock_threat_fix := false
 ## Homing weapons in flight, any launcher (missile.gd with metas id, owner, node, sound).
 var missiles: Array = []
+## Guided weapons in flight (640 TV missiles, 650 laser bombs; guided.gd).
+var guided: Array = []
+## The TV camera's weapon (mcp+0xc, docs/weapons.md §12): the last TV weapon launched since the camera started
+## (cleared by each EO start); while it flies the camera rides it. eo_on_unit = the camera started on a unit
+## (mcp+0x10, FUN_0045dde0: only the Maverick, on the radar's target).
+var tv_weapon: RefCounted
+var eo_on_unit := false
+## The EO camera's eye (world) while it rides a launched weapon, else null (the jet).
+var eo_eye = null
 var now := 0.0
 
 ## ctl+0x78 master mode, +0x80 the previous one, +0x7c the M key cycle, +0x5c the HUD mode.
@@ -360,6 +370,8 @@ func _eo_start(mode: int) -> void:
 	elif mode == EoSensor.FLIR and eo.laser:
 		aim = eo_centre
 	eo.start(mode, mode == EoSensor.FLIR, aim, now)
+	eo_on_unit = aim is String
+	tv_weapon = null
 
 
 ## Event 0x5a(6) (key I) / 0x5b(6) (MENU "FLIR"): only with the pod, page 6 not shown and page 5 not shown;
@@ -391,10 +403,29 @@ func mfd_event(ev: int, arg = null) -> void:
 			_harm_capture()
 
 
-## Event 0x8a(x, y): the EO slew / lock (docs/mfd.md); no TV weapon flies yet, so a TV camera never locks.
+## Event 0x8a(x, y): the EO slew / lock (docs/mfd.md); a TV camera locks only while its launched weapon flies.
 func eo_pan(x: int, y: int) -> void:
 	var o := own()
-	eo.pan(x, y, now, _base(o), o.pos, eo_centre, false)
+	eo.pan(x, y, now, _eo_base(o), _eo_from(o), eo_centre, tv_flying())
+
+
+## The launched TV weapon still flies (mcp+0xc's +0x48 == 1).
+func tv_flying() -> bool:
+	return tv_weapon != null and not tv_weapon.ended
+
+
+## The camera's eye: the flying TV weapon, else the jet (FUN_004604c0).
+func _eo_from(o: Dictionary) -> Vector3:
+	return tv_weapon.position(now) if tv_flying() else o.pos
+
+
+## The camera's base (heading, pitch): the flying TV weapon's velocity, else the jet's nose.
+func _eo_base(o: Dictionary) -> Vector2:
+	if tv_flying():
+		var v: Vector3 = tv_weapon.velocity(now)
+		if v.length() > 0.0:
+			return Vector2(atan2(v.x, v.y), asin(clampf(v.z / v.length(), -1.0, 1.0)))
+	return _base(o)
 
 
 ## The jet's (heading, pitch) for the EO camera's base (roll 0).
@@ -410,15 +441,17 @@ func _eo_update() -> void:
 	if not eo.camera:
 		return
 	var o := own()
-	var b := _base(o)
-	eo_ae = eo.angles(now, b, o.pos)
+	var b := _eo_base(o)
+	var eye := _eo_from(o)
+	eo_eye = eye if tv_flying() else null
+	eo_ae = eo.angles(now, b, eye)
 	eo_dir = eo.los(eo_ae, b)
 	var views = host.get("views")
 	if views != null and not views.cockpit_drawn():
-		eo_centre = o.pos + eo_dir * 1.0e7
+		eo_centre = eye + eo_dir * 1.0e7
 		return
-	var hit = ground_hit(o.pos, eo_dir)
-	eo_centre = hit if hit != null else o.pos + eo_dir * 1.0e8
+	var hit = ground_hit(eye, eo_dir)
+	eo_centre = hit if hit != null else eye + eo_dir * 1.0e8
 
 
 ## The first terrain point along a ray (world), or null within 100 km: steps of 2 % of the distance (at
@@ -451,13 +484,29 @@ func _harm_capture() -> void:
 	harm.capture(rwr.slots, o.pos, _base(o))
 
 
-## The TV status (FUN_00460940): 1 RDY with a 635 / 640 / 650 store and rounds of it left, else 0 NO SOURCE (no
-## TV weapon flies yet: TRA / TER never).
+## The TV status (FUN_00460940): 0 NO SOURCE unless the TV weapon (the flying one, else the selected store) is a
+## 635 / 640 / 650; 1 RDY before launch and for a launched Maverick, else the guided weapon's 2 TRA / 3 TER; 0 when
+## the selected store has no rounds left and (nothing flies or a Maverick flies).
 func tv_status() -> int:
-	var t: int = stores.current_type()
+	var flying := tv_flying()
+	var t: int = int(tv_weapon.weapon.type) if flying else stores.current_type()
 	if not t in [635, 640, 650]:
 		return 0
-	return 1 if stores.total(t, stores.current_name()) > 0 else 0
+	var st := 1
+	if flying and t != 635:
+		st = tv_weapon.status()
+	if stores.total(stores.current_type(), stores.current_name()) == 0 and (not flying or t == 635):
+		st = 0
+	return st
+
+
+## The TV page's "%3d" (FUN_004d6ac0 of the TV weapon's time left: < 0 → 0, > 300 → 60); 0 before a launch
+## (UNCERTAIN: the original reads the store's motion then).
+func tv_time() -> int:
+	if tv_weapon == null:
+		return 0
+	var v: float = tv_weapon.time_left(now)
+	return 0 if v < 0.0 else (60 if v > 300.0 else int(v))
 
 
 ## ']' (event 0x3e): next AA store unless an AA missile is already selected in NAV.
@@ -556,6 +605,9 @@ func fire_selected() -> void:
 		570, 580, 590, 600, 610:
 			_release_missile()
 			releasing = false  # FUN_004545e0: W+0xac cleared after a non-bomb release
+		635, 640:
+			_release_tv()
+			releasing = false
 		500, 510, 560, 650:
 			_bomb_space()
 
@@ -776,6 +828,74 @@ func _release_missile() -> void:
 	_update_store_nodes()
 
 
+## FUN_004545e0 -> FUN_00454b70 cases 0x27b / 0x280 (the TV weapons, player): the launch data of FUN_0045db70 —
+## the camera not started on a unit: the EO centre point (FUN_00450480), no unit, q 1; started on one (the
+## Maverick): the radar's target (radar on, a lock or a TWS selection) and the EO centre as the point (UNCERTAIN:
+## the original leaves the point uninitialised). The Maverick 635 flies the homing motion at the unit or the
+## point; the TV missile 640 the guided motion at the point. The camera then rides it.
+func _release_tv() -> void:
+	var i: int = stores.fire_station()
+	if i < 0 or stores.displayed(i) <= 0:
+		return
+	var st: Dictionary = stores.station(i)
+	var w: Dictionary = st.w
+	var o := own()
+	var unit := ""
+	if eo_on_unit and not radar.damaged:
+		unit = String(radar.locked().get("key", ""))
+	var slots: Array = st.slots
+	var n := int(st.count)
+	var at: Vector3 = slots[n - 1] if n >= 1 and n <= slots.size() else st.attach
+	var pos := body_to_world(at)
+	if int(w.type) == 635:
+		tv_weapon = launch_homing(w, pos, o, unit, 1.0, _me(), eo_centre)
+	else:
+		tv_weapon = launch_guided(w, pos, o.vel, eo_centre, _me())
+	_place_sound(host.sounds.play("SFX_AIRCRAFT_FIRED_WEAPON", WEAPON_OST.get(int(w.type), "OST_TVMISSILE")), pos)
+	stores.fired(i)
+	_push_stores()
+	_update_store_nodes()
+
+
+## One guided weapon (640 / 650) leaves its launcher (FUN_004d5d10 -> FUN_00563f90) toward the aim point; its
+## model, no trail (FUN_004da090 draws them for 560..635 only). Not player-specific.
+func launch_guided(w: Dictionary, pos: Vector3, vel: Vector3, point: Vector3, owner: Dictionary) -> RefCounted:
+	var g := Guided.new()
+	g.launch(w, _motion(w), now, pos, vel, point, db.debug_param)
+	g.set_meta("owner", owner)
+	var node := _instance(String(w.get("model_path", "")))
+	if node != null:
+		host.add_child(node)
+		node.scale = Vector3.ONE * float(w.get("scale", 1.0))
+	g.set_meta("node", node)
+	g.set_meta("sound", host.sounds.play("SFX_OBJECT_SPECIFIC", WEAPON_OST.get(int(w.type), "OST_TVMISSILE")))
+	guided.append(g)
+	if is_same(owner, _me()):
+		last_launched = g
+	return g
+
+
+## The guided weapons' flight; the TV missile steers to the EO centre point while the cockpit is drawn (each TV
+## update: weapon vfunc +0x2c, a non-Maverick in TRA / TER, views 1 / 0x12 / 0x16). Bursts as a falling store.
+func _update_guided() -> void:
+	var views = host.get("views")
+	if tv_flying() and tv_weapon in guided and (views == null or views.cockpit_drawn()):
+		tv_weapon.set_aim(eo_centre)
+	for g in guided.duplicate():
+		var gone := false
+		while not gone and g.next_update <= now:
+			gone = g.update(g.next_update, _ground)
+		var p: Vector3 = g.last_pos if gone else g.position(now)
+		var node: Node3D = g.get_meta("node")
+		if node != null:
+			node.position = to_scene(p)
+			_orient(node, g.velocity(now))
+		_place_sound(g.get_meta("sound"), p)
+		if gone:
+			guided.erase(g)
+			_bomb_detonate({"w": g.weapon, "node": node, "sound": g.get_meta("sound")}, p)
+
+
 ## FUN_00457f70 with the HUD mode's object: [target unit {} none, q]. Without Easy aiming the object's target
 ## counts only inside its launch circle (vfunc +0x30) and q = vfunc +0x38 × 0.8 (v1.1); with Easy aiming any
 ## target and q = 1. A target with a controller whose ECM is on, against the radar seeker (vfunc +0x18 = 2):
@@ -849,6 +969,9 @@ static func _unit(units: Array, key: String) -> Dictionary:
 func selected_dlz(o: Dictionary, target: Dictionary) -> Array:
 	var w: Dictionary = stores.station(stores.cur).get("w", {})
 	var t := int(w.get("type", 0))
+	if t in [640, 650]:
+		var g = _ground(o.pos)
+		return Guided.dlz(_motion(w), o.pos.z - (float(g) if g != null else 0.1), o.vel, db.debug_param)
 	if not t in [570, 580, 590, 600, 610, 635]:
 		return []
 	return Missile.dlz(_motion(w), {"pos": o.pos, "fwd": o.fwd, "vel": o.vel}, target)
@@ -866,10 +989,10 @@ func _motion(w: Dictionary) -> Dictionary:
 ## in the launcher's body axes) with q. `owner` = the launcher's mission entity (the blast's attacker). The
 ## weapon's model and flight loop; a target with a controller (the player) hears the launch on its RWR
 ## (FUN_004d8130 -> FUN_0044e160). Not player-specific: AI launchers use it too.
-func launch_homing(w: Dictionary, pos: Vector3, from: Dictionary, target: String, q: float, owner: Dictionary) -> RefCounted:
+func launch_homing(w: Dictionary, pos: Vector3, from: Dictionary, target: String, q: float, owner: Dictionary, at = null) -> RefCounted:
 	var m := _motion(w)
 	var fe := Vector3(m.get("_fireEndVecX", 0.0), m.get("_fireEndVecY", 10000.0), m.get("_fireEndVecZ", 0.0))
-	var point: Vector3 = pos + from.right * fe.x + from.fwd * fe.y + from.up * fe.z
+	var point: Vector3 = at if at != null else pos + from.right * fe.x + from.fwd * fe.y + from.up * fe.z
 	var mis := Missile.new()
 	mis.launch(w, m, now, pos, from.vel, from.fwd, target, point, q, db.debug_param, from.up)
 	_missile_id += 1
@@ -1513,6 +1636,7 @@ func update(t: float) -> void:
 		_ripple_tick()
 	_update_bombs()
 	_update_missiles()
+	_update_guided()
 	_update_decoys()
 	# Radar damage (15; generator failures 19 / 21 set it too): FUN_004adb20 switches it off for good.
 	if _flag(15) and not radar.damaged:
@@ -1674,7 +1798,7 @@ func _publish() -> void:
 		pip = gun.aim_point(o.pos, o.vel, d, true)  # world point, projected by the HUD
 	c.radar = radar_snapshot()
 	c.eo = {"mode": eo.mode, "camera": eo.camera, "fov": eo.FOV_DEG / eo.zoom, "flir": eo.flir_page(eo_ae,
-		(eo_centre - o.pos).length()), "tv": eo.tv_page(eo_ae, tv_status()), "flir_pod": flir_pod}
+		(eo_centre - o.pos).length()), "tv": eo.tv_page(eo_ae, tv_status()), "tv_time": tv_time(), "flir_pod": flir_pod}
 	c.harm = harm.page(_base(o), stores.total(stores.current_type(), stores.current_name()), harm_in_range)
 	c.rwr = rwr.display()
 	c.indicators[Rwr.LAMP_AI] = rwr.lamps[Rwr.LAMP_AI]
@@ -1686,7 +1810,7 @@ func _publish() -> void:
 		"chaff": stores.displayed(10), "flares": stores.displayed(11),
 		"quantity": ripple_qty, "interval": ripple_int, "seeker": seeker.symbol, "lock": seeker.lock,
 		"have_missiles": stores.total(t, stores.current_name()) > 0, "circle": circle, "mrm_point": mrm_pt,
-		"shoot": shoot, "harm_point": harm_pt, "sec": s380, "bearing": _lock_bearing(o),
+		"shoot": shoot, "harm_point": harm_pt, "tv_point": eo_centre if hud_mode == 7 and tv_status() != 0 else null, "sec": s380, "bearing": _lock_bearing(o),
 		"pipper": pip, "pipper_world": hud_mode == 4, "firing": firing,
 		# The mode-5 object's cockpit state (FUN_00445db0: +0x620 off, +0x624 point, +0x638 time-to-go
 		# capped at 1000, +0x62c frozen, +0x630 blinking).
