@@ -179,6 +179,12 @@ locally rather than on a hosted CI. Run scripted tests and captures with `IAF_DE
 
 - What works and what is open: [docs/status.md](docs/status.md); plans: [docs/roadmap.md](docs/roadmap.md); how
   we differ from the original: [docs/deviations.md](docs/deviations.md).
+- Dev tools: `tools/test.sh` (all tests; while iterating run single tests: `IAF_DEFAULT_SETTINGS=1 godot --headless
+  --path game -s ../tests/godot/<test>.gd`), `tests/godot/_*_shot.gd` (real-render screenshots: HUD, Preferences
+  pages, the On-The-Fly menu, credits, imagery; usage in each header), `tools/ghidra/fn.sh` (look up the exe's
+  decompiled functions), `tools/joyprobe` (what Godot reports for a joystick: `godot --path tools/joyprobe -s
+  probe.gd`), `cargo run --release -p iaf-flight --example idle_roll` (idle taxi speeds per jet),
+  `tools/worktree.sh` (a git worktree for a parallel job).
 - Credits: the credits roll on Quit (the original's, then ours and the imagery credits). To add a credit, see
   [docs/credits.md](docs/credits.md).
 

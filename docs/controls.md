@@ -378,6 +378,8 @@ handler `FUN_004e1df0`; there is no joystick code anywhere else. Addresses v1.1 
   become triggers (Godot 0..1, read back as −1..1, `Joystick.axis`). Buttons from the 18th on are lost (Godot
   has 21 gamepad buttons). `Joystick.physical_button` turns an event back into the stick's own number and
   drops the hat (D-pad 11–14 are the POV, not buttons, as in DirectInput), for the flight and the Keyboard page.
+  `tools/joyprobe/probe.gd` prints what Godot reports for a stick (name, GUID, known gamepad, each button index
+  pressed, each axis' range; `REMAP=1` with our mapping): `godot --path tools/joyprobe -s probe.gd`.
 * Buttons: `InputEventJoypadButton` from the device → the flight scene (`terrain_view.gd _joy_button`): the
   first record with that button, its press / release command as the original (no drops, Roll / Pitch do
   nothing, Rudder moves the rudder), a release only after its press; pause / menu release held buttons.

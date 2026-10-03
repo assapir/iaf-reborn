@@ -1,0 +1,5 @@
+; Minimal Godot project for tools/joyprobe/probe.gd (no game autoloads).
+config_version=5
+
+[application]
+config/name="joyprobe"

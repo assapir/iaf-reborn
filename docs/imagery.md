@@ -133,7 +133,9 @@ of the overlapping tiles), ≈ 6 GB written for both looks. Delete `assets/conve
 ## 8. Survey of Israel 2015 (2 m): `mapi2015`
 
 The sheets (one ZIP per 1:50 000 sheet, 79 ZIPs, list in tools/imagery/mapi2015_sheets.tsv) arrive in
-`assets/source/imagery/mapi2015/` via `tools/imagery/fetch-mapi2015.sh`; `tools/setup.sh --imagery mapi2015` then
+`assets/source/imagery/mapi2015/` via `tools/imagery/fetch-mapi2015.sh` (browser tabs) or, faster,
+`tools/imagery/fetch-mapi2015-curl.sh [--bases]` (curl with the data.gov.il WAF token Firefox earned; when it stops
+on an expired token it prints a link to open once in Firefox, then re-run); `tools/setup.sh --imagery mapi2015` then
 converts them (by hand: `./target/release/iaf-imagery mapi2015 assets/install assets/converted/terrain/theatre
 assets/converted/imagery [--sheets DIR] [--area …] [--dry-run] [--threads N]`).
 
