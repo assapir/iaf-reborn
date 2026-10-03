@@ -49,7 +49,6 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 | Gun candidate list order | the spatial query's order | nearest first | order untraced | weapons.md §3.3 |
 | Weapon targets | every object in the spatial database | units with a model (sensors / logic nodes left out) | UNCERTAIN whether they are in it | player_weapons.gd |
 | Weapon effects look | muzzle flash scale / blend, splash, missile explosion (partly not decoded) | muzzle flash 1 m additive, white puff splash, fireball + puff | rendering | weapons.md §3.5–3.6 |
-| Laser bombs (650) | guided motion 0x1a toward a FLIR-designated point (ctl+0x960) | fall as free bombs (the bomb aim and ballistic motion) | the FLIR designation is not built | weapons.md §9.8 |
 | Bomb HUD prediction | after the terrain re-solve, a terrain ray from the jet to the impact (`FUN_0045ed40`) | no ray (a hill in front of the impact is not seen) | ray not decoded | weapons.md §9.4 |
 | Mode-5 HUD rectangle | PtInRect on the HUD clip R+0x2770 in cockpit views | our HUD symbology field (the HUD Control) when the HUD is shown; the target ray through the clipped point from our camera | same geometry, our projector | weapons.md §9.4 |
 | Bomb time-to-go speed | the speed of the entity's selector 6 (not decoded) | the ground speed | UNCERTAIN which speed | weapons.md §9.4 |

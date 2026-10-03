@@ -1201,6 +1201,8 @@ func _ripple_tick() -> void:
 	if ripple_left == ripple_qty or _ripple_line.size() != ripple_qty:
 		_ripple_line = Bombs.ripple_line(p, ripple_qty, float(ripple_int), own().yaw, _ground)
 	var aim: Vector3 = _ripple_line[clampi(ripple_qty - ripple_left, 0, ripple_qty - 1)]
+	if t == 650:
+		aim = _laser_aim(p, aim)
 	# FUN_0045ee10 and the delayed release (the first bomb waits for time-to-go ≤ 0.9 s).
 	if not release_allowed() or _bay_wait(i):
 		return
@@ -1215,6 +1217,27 @@ func _ripple_tick() -> void:
 	_update_store_nodes()
 
 
+## FUN_00454b70 case 0x28a: with the laser on (ctl+0x960, `FUN_00450430`) the designation (`FUN_00450410` →
+## `FUN_0045db70`: the EO centre point, or the unit the camera started on, its position now) replaces the ripple aim
+## when it lies within 60° of the line to the bomb's point P (cos 60°, 0x82f4e0 from 0x600ee8) and at most 2 m
+## above the terrain (0x600f08); else the ripple aim (`FUN_00457c20`). Recomputed per store.
+func _laser_aim(p: Vector3, ripple: Vector3) -> Vector3:
+	if not eo.laser:
+		return ripple
+	var d: Vector3 = eo_centre
+	if eo_on_unit and eo.target != "" and eo.unit_pos.is_valid():
+		var u = eo.unit_pos.call(eo.target)
+		if u != null:
+			d = u
+	var o := own()
+	if (d - o.pos).normalized().dot((p - o.pos).normalized()) < cos(deg_to_rad(60.0)):
+		return ripple
+	var g = _ground(d)
+	if d.z > (float(g) if g != null else 0.1) + 2.0:
+		return ripple
+	return d
+
+
 ## The ripple ends (timer killed, FUN_0045d150(0): the symbols blink for 1 s); W+0xac cleared.
 func _ripple_end() -> void:
 	_ripple_next = INF
@@ -1224,7 +1247,7 @@ func _ripple_end() -> void:
 
 ## One store leaves station i toward `aim` (the release of FUN_004545e0): from its slot (the last
 ## drawn) or the pylon through the attitude, at the jet's velocity; rockets (560) fly the
-## fixed-weapon motion, everything else the ballistic one. Sounds: the release
+## fixed-weapon motion, laser bombs (650) the guided one (§12), everything else the ballistic one. Sounds: the release
 ## (SFX_AIRCRAFT_FIRED_WEAPON) and the fall loop (SFX_OBJECT_SPECIFIC).
 func _drop_store(i: int, aim: Vector3) -> void:
 	var st: Dictionary = stores.station(i)
@@ -1237,6 +1260,9 @@ func _drop_store(i: int, aim: Vector3) -> void:
 	var p0 := body_to_world(at)
 	var ost: String = OST.get(type, "OST_BOMB")
 	_place_sound(host.sounds.play("SFX_AIRCRAFT_FIRED_WEAPON", ost), p0)
+	if type == 650:
+		launch_guided(w, p0, o.vel, aim, _me())  # the laser bomb always flies the guided motion (§12)
+		return
 	if type == 560:
 		var g: RefCounted = _rockets()
 		var k: int = g._next

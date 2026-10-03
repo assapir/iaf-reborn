@@ -13,7 +13,7 @@ HUD text and symbols, the stores MFD page, the FLIR pod / TV-weapon camera and t
 (docs/mfd.md), the radar missiles (600 AMRAAM-like, 610 Sparrow-like) with the DLZ, the MRM HUD sight and the
 semi-active rule, the HARM / Shrike (§11), the TV weapons (635 Maverick, 640 TV missile) with the guided motion, the
 camera riding the weapon and the TV page's TRA / TER and time (§12). The radar and its lock (the seeker slaved to it):
-docs/radar.md. Not built yet: the laser guidance (FLIR designation), the decoys' effect on missiles, ECM, the HUD
+docs/radar.md; the laser bombs with the FLIR designation (§9.8). Not built yet: the decoys' effect on missiles, ECM, the HUD
 range scale (`FUN_005397a0`, §12.4), the AI's weapons, AAA.
 
 ## 1. Data
@@ -433,9 +433,12 @@ ours aims at the ripple point. Pods: one "Rocket box" per rocket pylon (`FUN_005
 (ours: kept when empty, UNCERTAIN).
 
 ### 9.8 Laser bombs (650)
-With the FLIR designation (`ctl+0x960`) the guided motion 0x1a (weapons.ibx 000650) flies to the designated point;
-without one the aim is the bomb's (§9.3). Ours: always the bomb path and the ballistic motion (the FLIR designation is
-not built; docs/deviations.md).
+Always the guided motion (§12.2, weapons.ibx 000650), released by the ripple like a bomb (§9.2). `FUN_00454b70` case
+0x28a: with the laser on (`ctl+0x960`, `FUN_00450430`) the designation (`FUN_00450410` → `FUN_0045db70`: the FLIR
+camera's centre point, or the unit it started on, its position now) is the aim when it lies within 60° of the line to
+the bomb's point P (cos 60°, 0x82f4e0) and at most 2 m above the terrain (0x600f08); else the ripple aim (§9.3,
+`FUN_00457c20`); jettisoned, the jettison point. Recomputed per store. `tests/godot/test_laser_bombs.gd` (all jets incl.
+the F-35I: designated hit, laser off, a designation behind refused).
 
 ### 9.9 AI bomb runs (not built)
 Through `FUN_00440440` (gate `FUN_004d4100`) from `FUN_005cd0d0` (impact within the tolerance or 1000 m, 0x612fc0),
