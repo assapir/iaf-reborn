@@ -198,7 +198,12 @@ Gun cross in every mode (docs/cockpit.md). Pipper: the 32×32 sprite of mfds.bmp
 integrated with dt = 0.15 (quirk kept): R = locked range else 1476.378 ft (450 m), ≤ 3148.8 ft; the filtered pitch /
 heading rates w28 / w2c (int16 fixed point), tf = R / (3300 − (V + 1650)·R·0.00024667423), gd = π·tf²·16.087/R,
 D = 0.2 + 1.35·tf, x* = gd·cos θ·sin φ − tf·Q, y* = tf·P + (g − 1)·gd − ((3300·tf − R)·V·α/R)/(V + 3300) + 5.0617/R,
-x += dt·(x* − x)/D, y likewise; drawn at the gun cross + (x, y)·57.29578·12 px. (Ours: the rate filters start from
+x += dt·(x* − x)/D, y likewise; drawn at the gun cross + (x, y)·57.29578·12 px (truncated). Modes 3 and 4: the pipper's centre is held inside the
+field, x in [left, right], y in [top, bottom − 2] (the sprite corner clamped, `FUN_00530040`), and the sprite is only
+clipped to the screen (`FUN_0052da80`). With a radar lock (S+0xa20) the **range arc**: r = the lock range in NM (S+0x388,
+the live distance × 0.00053937, at least 0), drawn when r < 1.95 and r·π > 0.05236 (3°), a 2 px pen arc of radius
+11 px about the pipper centre from 12 o'clock clockwise by r·π (a full turn at 2 NM, GDI `Arc` counterclockwise from
+the end at r·π back to 12 o'clock). (Ours: the rate filters start from
 the attitude at mode entry; the original's first values are untraced, from 0 the first heading step would throw the
 pipper off for about a second.) **Mode 4** (`FUN_0045ef10`, new in
 v1.1): the projection of the mode-4 aim point A.

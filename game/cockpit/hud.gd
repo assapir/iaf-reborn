@@ -46,6 +46,9 @@ var _c := Vector2.ZERO
 var _s := 1.0
 ## The ladder's labels of this frame ([top-right, text]): the sprite pass is not clipped (drawn by `outer`).
 var _ladder_labels := []
+## The gun pipper of this frame ({p (HUD px), arc (range arc angle, 0 none)} or {}): the sprite is only clipped to
+## the screen (FUN_0052da80), so it is drawn by `outer`.
+var _pipper_at := {}
 
 
 func _ready() -> void:
@@ -112,6 +115,7 @@ func _draw() -> void:
 	var w := maxf(1.0, 0.6 * s)
 	var gun: Vector2 = gun_cross() - position
 	_ladder_labels.clear()
+	_pipper_at = {}
 	# The helmet display (R+0x2788): no ladder / marker, ILS, gun cross, mode 3–6 aiming symbols.
 	var dash: bool = cockpit.dash()
 
@@ -141,6 +145,10 @@ func _draw() -> void:
 	# FUN_0052f690, every HUD mode: the target box, the gun cross with the gear handle up (GunRetPositionY:
 	# −4..+5 across, −5..+10 down; not on the helmet display), the waypoint marker in NAV and the air-to-ground modes.
 	_draw_target_box(s, w)
+	# The radar in BORE (S+0xa04 = 3): a cross on the HUD centre, ±30 px across, ±20 px up / down.
+	if int(cockpit.radar.get("mode", 0)) == 3:
+		_ln(self, Vector2(-30, 0), Vector2(30, 0), w)
+		_ln(self, Vector2(0, -20), Vector2(0, 20), w)
 	if not cockpit.gear_handle_down and not dash:
 		var g := (gun - _c) / s
 		_ln(self, g + Vector2(-4, 0), g + Vector2(5, 0), w)
@@ -271,6 +279,8 @@ func _draw_outer() -> void:
 
 	for l in _ladder_labels:
 		_sprite(outer, l[0], l[1], true)
+	if not _pipper_at.is_empty():
+		_draw_pipper(_pipper_at.p, float(_pipper_at.arc), w)
 
 	# Altitude (FUN_005381c0) on the right edge.
 	var at := alt_value(st, mode, gear)
@@ -779,13 +789,40 @@ func _draw_weapons(s: float, w: float, font: Font, fs: int, gun: Vector2, dash :
 				if not camera.is_position_behind(sp):
 					p = camera.unproject_position(sp) - position
 			if p != null:
-				var t := _pipper_tex()
-				if t != null:
-					draw_texture_rect(t, Rect2(p - Vector2(16, 16) * s, Vector2(32, 32) * s), false)
-				else:
-					draw_arc(p, 8 * s, 0, TAU, 24, col, w)
+				var lk: Dictionary = cockpit.radar.get("lock", {})
+				_pipper_at = {"p": pipper_clamp(p, Rect2(Vector2.ZERO, size), s),
+					"arc": range_arc(float(lk.dist)) if not lk.is_empty() else 0.0}
 		5, 6:
 			_draw_ag(wp.get("ag", {}), s, w, col)
+
+
+## The gun pipper (FUN_00530040, HUD modes 3 / 4) on `outer`: the 32×32 sprite and, with a radar lock, the range arc
+## (pen 2 px, r 11 px about the pipper centre) from 12 o'clock clockwise by `arc`.
+func _draw_pipper(p: Vector2, arc: float, w: float) -> void:
+	var col: Color = cockpit.hud_colour()
+	var t := _pipper_tex()
+	if t != null:
+		outer.draw_texture_rect(t, Rect2(p - Vector2(16, 16) * _s, Vector2(32, 32) * _s), false)
+	else:
+		outer.draw_arc(p, 8 * _s, 0, TAU, 24, col, w)
+	if arc > 0.0:
+		outer.draw_arc(p, 11.0 * _s, -PI / 2.0, -PI / 2.0 + arc, 32, col, 2.0 * w)
+
+
+## FUN_00530040: the pipper's centre is held inside the field `f` (HUD px): x in [left, right], y in
+## [top, bottom − 2] (the sprite's corner clamped to −16 / −16 / −16 / −18).
+static func pipper_clamp(p: Vector2, f: Rect2, s: float) -> Vector2:
+	return Vector2(clampf(p.x, f.position.x, f.end.x), clampf(p.y, f.position.y, f.end.y - 2.0 * s))
+
+
+## FUN_00530040's range arc: the lock range (S+0x388, NM = m × 0.00053937, at least 0) → r·0.5·2π rad; none (0) from
+## 1.95 NM up or at most 0.05236 rad (3°).
+static func range_arc(dist_m: float) -> float:
+	var nm := maxf(dist_m * 0.00053937, 0.0)
+	if nm >= 1.95:
+		return 0.0
+	var a := nm * 0.5 * TAU
+	return a if a > 0.05235987715423107 else 0.0
 
 
 ## The MRM's predicted target point (FUN_00536ea0, state+0xe74): a 5×5 blob of lines; clipped to the HUD

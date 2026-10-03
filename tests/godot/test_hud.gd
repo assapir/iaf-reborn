@@ -146,6 +146,14 @@ func _traced(tv) -> void:
 	check(Hud.ils_lines(Vector2(0.0, 2.0), f) == Vector2(0, 24) and Hud.ils_lines(Vector2(0.0, -2.0), f) == Vector2(0, -24),
 			"2° high: the glide slope 24 px below the centre; low: above")
 	check(Hud.ils_lines(Vector2(0.05, 0.0), f) == Vector2.ZERO, "truncated to whole pixels")
+
+	# Gun pipper (FUN_00530040): held inside the field (bottom − 2 px); the range arc r NM · π, under 1.95 NM, over 3°.
+	var hf := Rect2(0, 0, 139, 135)
+	check(Hud.pipper_clamp(Vector2(-40, 300), hf, 1.0) == Vector2(0, 133) and Hud.pipper_clamp(Vector2(60, 50), hf, 1.0) == Vector2(60, 50),
+			"pipper off the field: held at the edge (bottom 2 px up); inside: unchanged")
+	check(absf(Hud.range_arc(1854.0) - PI) < 1e-3 and absf(Hud.range_arc(927.0) - PI / 2.0) < 1e-3,
+			"range arc: 1 NM half a turn, 0.5 NM a quarter")
+	check(Hud.range_arc(1.95 / 0.00053937) == 0.0 and Hud.range_arc(30.0) == 0.0, "no arc from 1.95 NM up or within 3°")
 	check(Hud.ils_lines(Vector2(19.0, 5.0), f) == Vector2(69, 59), "held 1 px inside the field (F-16 borders)")
 	# In flight: the deviations reach the cockpit state; shown in NAV with the gear handle down only.
 	check(cp.state.get("ils") is Vector2, "the ILS deviations in the cockpit state (%s)" % str(cp.state.get("ils")))

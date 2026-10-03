@@ -73,6 +73,9 @@ var sel_key := ""
 var sel_locked := false
 ## STT: the locked record (kept between scans).
 var stt: Dictionary = {}
+## Outside STT: the locked (TWS: selected) record with its unit's position and distance this frame
+## (FUN_0044e370 reads the target's live position; the contact list only changes on a scan).
+var _live: Dictionary = {}
 var antenna := Vector2.ZERO  # carets (az, el) 0..1 (state+0xa0c / +0xa10)
 ## The designated ground point (event 0x2f, FUN_004ade90): +0x50 flag, +0x58 / +0x5c X / Y, +0x60 the
 ## terrain height there; +0x4c the MAP page's EXP flag (event 0x30, FUN_004ade70).
@@ -154,7 +157,7 @@ func locked() -> Dictionary:
 		return stt
 	for c in contacts:
 		if c.key == sel_key:
-			return c
+			return _live if _live.get("key", "") == sel_key else c
 	return {}
 
 
@@ -175,10 +178,29 @@ func update(now: float) -> void:
 		scan(now)
 	if mode == STT:
 		_track()
+	_follow(o)
 	if dirty or mode == STT:
 		heading_shift = 0.0
 		_href = h
 		dirty = false
+
+
+## The lock outside STT at its unit this frame (STT's record is already re-made every frame by _track).
+func _follow(o: Dictionary) -> void:
+	_live = {}
+	if mode == STT or not has_lock():
+		return
+	var c := _find(sel_key)
+	if c.is_empty():
+		return
+	for u in units.call():
+		if u.key == sel_key:
+			_live = c.duplicate()
+			_live.unit = u
+			_live.pos = u.pos
+			_live.alt = u.pos.z
+			_live.dist = (u.pos - o.pos).length()
+			return
 
 
 ## Antenna sweep (FUN_004b0340, cosmetic; one static state shared by the modes).
@@ -258,6 +280,7 @@ func _class_ok(m: int, ent: Dictionary, vel: Vector3) -> bool:
 func scan(now: float) -> void:
 	_next_scan = now + SCAN_PERIOD
 	dirty = true
+	_live = {}
 	if damaged or mode in [OFF, STBY]:
 		return
 	if mode == STT:

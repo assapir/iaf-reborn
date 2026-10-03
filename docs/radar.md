@@ -80,14 +80,18 @@ The locked unit is re-tested (STT's detection range, the 60° cone, terrain, 30 
 (`FUN_004b1590`): below 0.33 · R (`0x60355c`) one scale down, above 0.75 · R (`0x603560`) one up.
 
 ## 6. What uses the lock
+Every user reads the target's position through `FUN_0044e370`: with a lock (TWS: the selection) the locked unit's
+position at the current sim time, every frame, not the scan record (the B-scope blips still move only on a scan). Ours:
+`locked()` outside STT returns the record with its unit's position and distance of this frame (STT's record is re-made
+every frame by the track).
 - **HUD** (`FUN_00537330`): the target designator box, 15 px (10 px in GMT / MAP) at the locked unit's projection,
   held at the HUD edge with a line from the centre when outside; an X inside for a friendly unit. The weapon line gets
   "R %2.1f" (NM, ×0.00053937 `0x600f58`) and, in HUD modes 1 / 3, the aspect "%2dL" / "%2dR" (row placement
-  UNCERTAIN).
+  UNCERTAIN). In BORE (S+0xa04 = 3, `FUN_0052f690`) a cross on the HUD centre, ±30 px across and ±20 px up / down.
 - **IR seeker** (`FUN_00461680`, `FUN_004625f0`): any lock clears the seeker's own target; an A-A lock slaves it to the
   locked unit at once (no 0.5 s gate, no HUD circle), with the per-generation cone in place of the 6° view.
-- **Gun**: the rounds' candidate target and the LCOS range (feet = metres × 3.28084 `0x601478`, at most 3148.8;
-  without a lock 1476.378).
+- **Gun**: the rounds' candidate target, the LCOS range (feet = metres × 3.28084 `0x601478`, at most 3148.8;
+  without a lock 1476.378) and the pipper's range arc (S+0x388, docs/weapons.md §3.7).
 - **MFD**: the page per mode (docs/mfd.md): B-scope blips (BORE / ACM box with diagonal, LRS double box, TWS box /
   disc with aspect stub, STT disc and the speed / aspect / range caret / closure text), GMT / MAP PPI symbols.
 
@@ -109,5 +113,5 @@ when the player's damage flag 15 is set; generator failures 19 / 21 set it too, 
 ## 9. Validation
 `tests/godot/test_radar.gd`: the F-16 table, the detection range and the kept selection, the 60° cone; in mission 221
 an AI jet 20 km out at 20° right shows at that range and bearing, a click-lock goes to STT with auto-range to the 20 NM
-scale, the IR seeker is slaved to it, the HUD box is held at the right edge with the friendly X, Backspace returns to
-LRS, S to STBY.
+scale, the IR seeker is slaved to it, the HUD box is held at the right edge with the friendly X, the lock follows the
+moving unit every frame (STT and TWS; the TWS blip waits for the scan), Backspace returns to LRS, S to STBY.

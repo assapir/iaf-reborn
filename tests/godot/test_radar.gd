@@ -79,11 +79,33 @@ func run() -> void:
 	var box: Dictionary = tv.cockpit.hud.target_box(tv.cockpit.ui_scale())
 	check(not box.is_empty() and box.p.x > tv.cockpit.hud.size.x / 2 and box.edge, "HUD target box held at the right edge (20° off the nose)")
 	check(not box.get("hostile", true), "a friendly (alpha_2): the box gets the X")
+	# The lock follows the unit every frame (FUN_0044e370: the target's live position for the HUD box, LCOS, range).
+	var moved := func(d: Vector3) -> Vector3:
+		ent.world += d
+		ent.alt = ent.world.z
+		t += 0.05
+		w.update(t)
+		return ent.world
+	var p1: Vector3 = moved.call(Vector3(300, 0, 0))
+	lk = tv.cockpit.radar.get("lock", {})
+	check(lk.get("pos", Vector3.ZERO).distance_to(p1) < 0.01 and absf(float(lk.dist) - (p1 - w.own().pos).length()) < 0.01, "STT: the lock is at the unit's position this frame")
 	# Backspace: the lock drops, back to LRS.
 	w.radar_event(0x31)
 	t += 0.05
 	w.update(t)
 	check(w.radar.mode == w.radar.LRS and w.radar.locked().is_empty(), "Backspace: unlocked, LRS")
+	# TWS: the selection is the lock; between scans the blip stays, the lock (HUD box) follows the unit.
+	w.radar_event(0x24)  # Q: LRS -> TWS (a scan)
+	check(w.radar.mode == w.radar.TWS and w.radar.locked().get("key", "") == ent.key, "Q: TWS, %s selected" % ent.name)
+	var blip: Vector3 = w.radar._find(ent.key).pos
+	var p2: Vector3 = moved.call(Vector3(0, 400, 0))
+	lk = tv.cockpit.radar.get("lock", {})
+	check(lk.get("pos", Vector3.ZERO).distance_to(p2) < 0.01 and absf(float(lk.dist) - (p2 - w.own().pos).length()) < 0.01, "TWS: the lock is at the unit's position between scans")
+	check(w.radar._find(ent.key).pos == blip, "TWS: the contact record (MFD blip) waits for the next scan")
+	w.radar_event(0x24)  # Q: TWS -> ACM
+	w.radar_event(0x24)  # Q: ACM -> LRS
+	t += 0.05
+	w.update(t)
 	w.radar_event(0x2c)
 	check(w.radar.mode == w.radar.STBY and w.radar.contacts.is_empty(), "S: standby, no contacts")
 	await frames(2)
