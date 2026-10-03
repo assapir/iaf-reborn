@@ -153,6 +153,9 @@ pub struct Shot<'a> {
     pub locked: Option<&'a str>,
     pub shooter: &'a str,
     pub easy_aiming: bool,
+    /// A ground unit's round (`FUN_004ab810` → `FUN_005604a0(T)`): exactly these candidates, no query and no list
+    /// gate (docs/ai.md §14).
+    pub targets: Option<&'a [String]>,
 }
 
 /// A round in the air.
@@ -215,7 +218,10 @@ impl Rounds {
         }
         let slot = self.next;
         self.next = (self.next + 1) % self.pool.len();
-        let candidates = self.candidates(now, shot, bodies);
+        let candidates = match shot.targets {
+            Some(t) => t.to_vec(),
+            None => self.candidates(now, shot, bodies),
+        };
         // Solver FUN_0047a491: speed = |own velocity| + velocityJump along the line to A, decelerating at
         // _absAcceleration; ends at A (at most 30 km out).
         let to_aim = shot.aim - shot.muzzle;
@@ -376,7 +382,7 @@ mod tests {
 
     fn shot<'a>(aim: Vec3, easy: bool) -> Shot<'a> {
         let p = Vec3::new(0.0, 0.0, 100.0);
-        Shot { origin: p, muzzle: p, velocity: Vec3::new(0.0, 200.0, 0.0), aim, locked: None, shooter: "me", easy_aiming: easy }
+        Shot { origin: p, muzzle: p, velocity: Vec3::new(0.0, 200.0, 0.0), aim, locked: None, shooter: "me", easy_aiming: easy, targets: None }
     }
 
     #[test]
@@ -400,6 +406,20 @@ mod tests {
         assert!(matches!(det.hit, Hit::Unit { ref key, .. } if key == "u"));
         assert_eq!(g.step(2.0, &bodies, &|_| Some(0.0)), None);
         assert!(g.slots()[0].is_none());
+    }
+
+    #[test]
+    fn a_ground_units_round_has_only_its_target() {
+        let mut g = Rounds::new(gun());
+        let bodies = [body("t", 0.0, 500.0, 100.0), body("near", 0.0, 520.0, 100.0)];
+        let aim = Vec3::new(0.0, 2781.0, 100.0);
+        let target = ["t".to_string()];
+        for now in [0.0, 0.3] {
+            g.fire(now, &Shot { targets: Some(&target), ..shot(aim, false) }, &bodies);
+        }
+        let cands = |i: usize| g.slots()[i].as_ref().map(|r| r.candidates.clone());
+        assert_eq!(cands(0), Some(vec!["t".to_string()]));
+        assert_eq!(cands(1), Some(vec!["t".to_string()]), "no list gate");
     }
 
     #[test]

@@ -5,6 +5,7 @@
 extends Node
 
 const Brain := preload("res://ai/brain.gd")
+const GroundFire := preload("res://ai/ground_fire.gd")
 const AircraftModel := preload("res://aircraft/aircraft_model.gd")
 const CLASS_AIRCRAFT := 0x1c
 ## FUN_004a9100: the FM start velocity (200, 200, 0) → 282.84 m/s along the heading.
@@ -13,6 +14,7 @@ const START_SPEED := 282.842712
 var host: Node  # terrain_view.gd
 var runtime: Node  # mission_runtime.gd
 var pilots: Array = []  # Pilot
+var ground: Node  # ground_fire.gd: the armed ground units' brains and weapons
 var _brains := {}  # bdb brain id -> rules
 var _actions := {}  # bdb action id -> item
 var _formations: Array = []  # [{id, kind, members: [entity], targets: [entity], route: [[x, y, alt, T, action]]}]
@@ -124,6 +126,9 @@ func setup(h: Node, rt: Node, bdb: Dictionary, files: Array) -> void:
 		pilots.append(p)
 		_place(p)
 	print("AI aircraft: %d flying" % pilots.size())
+	ground = GroundFire.new()
+	add_child(ground)
+	ground.setup(host, self, bdb)
 
 
 static func MissionRuntime():
@@ -352,14 +357,16 @@ func landed_handler(ent: Dictionary) -> void:
 
 
 ## Weapons, targets, radar, flares / chaff, combat on / off: the combat job (docs/ai.md §5).
-func combat_hook(_ent: Dictionary, _what: String, _target: Dictionary) -> void:
-	pass
+## Armed ground units: ground_fire.gd; AI aircraft: not built.
+func combat_hook(ent: Dictionary, what: String, target: Dictionary) -> void:
+	ground.combat(ent, what, target)
 
 
 ## Trigger ops 21 / 22 (FUN_00440830 / FUN_004407e0).
 func set_combat(ent: Dictionary, on: bool) -> void:
 	var p = ent.get("pilot")
 	if p == null:
+		ground.set_combat(ent, on)
 		return
 	if on:
 		p.brain.enable_combat(runtime.now)

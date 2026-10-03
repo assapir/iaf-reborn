@@ -14,7 +14,7 @@ HUD text and symbols, the stores MFD page, the FLIR pod / TV-weapon camera and t
 semi-active rule, the HARM / Shrike (§11), the TV weapons (635 Maverick, 640 TV missile) with the guided motion, the
 camera riding the weapon and the TV page's TRA / TER and time (§12). The radar and its lock (the seeker slaved to it):
 docs/radar.md; the laser bombs with the FLIR designation (§9.8). Not built yet: the decoys' effect on missiles, ECM, the HUD
-range scale (`FUN_005397a0`, §12.4), the AI's weapons, AAA.
+range scale (`FUN_005397a0`, §12.4), the AI's weapons other than the ground AAA (built: docs/ai.md §14).
 
 ## 1. Data
 

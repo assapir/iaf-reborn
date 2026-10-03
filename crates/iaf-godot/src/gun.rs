@@ -82,7 +82,7 @@ impl IafRounds {
     }
 
     /// One shot: its pool slot, or −1 when the pooled round is still in the air. `locked` "" = no radar lock; the units as keys and
-    /// positions.
+    /// positions; `targets` a PackedStringArray of a ground unit's round's only candidates (docs/ai.md §14), else null.
     #[func]
     #[allow(clippy::too_many_arguments)] // a #[func]: GDScript has no struct to pass
     fn fire(
@@ -97,8 +97,11 @@ impl IafRounds {
         easy_aiming: bool,
         keys: PackedStringArray,
         positions: PackedVector3Array,
+        targets: Variant,
     ) -> i64 {
         let (locked, shooter) = (locked.to_string(), shooter.to_string());
+        let targets: Option<Vec<String>> =
+            targets.try_to::<PackedStringArray>().ok().map(|t| t.as_slice().iter().map(GString::to_string).collect());
         let shot = Shot {
             origin: vec3(origin),
             muzzle: vec3(muzzle),
@@ -107,6 +110,7 @@ impl IafRounds {
             locked: Some(locked.as_str()).filter(|k| !k.is_empty()),
             shooter: &shooter,
             easy_aiming,
+            targets: targets.as_deref(),
         };
         let b = bodies(&keys, &positions);
         self.rounds.as_mut().and_then(|r| r.fire(now, &shot, &b)).map_or(-1, |slot| slot as i64)

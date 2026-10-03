@@ -1,8 +1,9 @@
 # Status — 2026-10-02
 
 ## Where we are
-- **Playable missions: 4 of 68** — Training "Engines ON" (311), "Landing" (312), 315 (bombing, tested end to end)
-  and 323 (per the coverage report, untested); docs/mission-coverage.md.
+- **Playable missions: 6 of 68** — Training "Engines ON" (311), "Landing" (312), 315 (bombing, tested end to end),
+  313 "Pathfinder" (AAA + SA-3s) and 322 "Uncle SAM" (SAMs + rockets) with their ground fire tested (not flown end
+  to end), and 323 (per the coverage report, untested); docs/mission-coverage.md.
 - **Flyable jets: all seven of the Jet list** — F-15, F-16, F-4E, F-4 Kurnass 2000, Lavi, Kfir, Mirage (Jet list or a
   mission's jet; docs/aircraft.md §5). The MiGs are AI-only, as in the original; a mission whose player jet is another
   type flies it as the F-16.
@@ -29,7 +30,7 @@
 - ~~Other jets flyable~~ — done: the Jet list's seven (tests/godot/test_jet_list.gd), the Kfir / Mirage shared data
   with Flight data = Original.
 
-**2. Enemies:** AI air-to-air / air-to-ground (bomb ballistics), AAA, radar / IR SAMs with RWR threats, enemy
+**2. Enemies:** ~~AAA, radar / IR SAMs, ground rockets~~ (done: docs/ai.md §14), the decoys' effect on missiles, AI air-to-air / air-to-ground (bomb ballistics), enemy
 flares / chaff and decoy rules, script op 2, armed vehicles / boats; then the demo video (H.264).
 
 **3. Missions and general fixes:** remaining small bugs below,
@@ -83,14 +84,14 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 | Radio | docs/radio.md: the phrase engine (word wavs + subtitle); the tower by itself on the ground (taxi / line up / hold / take-off) and Ctrl+T in the air (proceed to runway, cleared to land, gear not down, go around, taxi to hangar; a click elsewhere); wingman commands Alt+P/B/E/W/T/C on the AI wingman's brain (its bdb "Roger" replies, "negative" when it cannot); waypoint and eject reports. Not yet: AWACS contact calls, airborne / landed / crashed / kill reports |
 | Terrain | all of `map.ptt` (levels 11..6 + all 51 insets, 2342 nodes) as a streamed quadtree with distance LOD to 200 km, level-6 heights with the original's inset interpolation, skirts; runway digits surveyed on every airbase (2 mirrored fixed); `terraintype.dat` surface types (water / rough / runway) feed the flight model; loaded behind the wait screen (docs/formats/ptt.md) |
 | Pilot records | screen 0 at startup (docs/front-end.md §13): pilot list, Dossier (edit boxes, photo, rank, score, missions), Records / Kills / Losses, New / Remove / Login; each debriefed flight recorded (result, MissBonus, destroyed units as kills / losses, score multiplier), best-attempt score and rank, the briefing's "<rank> <name>"; Future Missions 2–7 locked until the previous pass; JSON in the user dir. Not filled yet: kills / losses only from what the damage code destroys (no AI weapons / SAMs), the debrief page's own statistics |
-| Tests | `tools/test.sh`: Rust + 50 headless Godot tests (`tests/godot/test_*.gd`), isolated from the player's settings; fails on any script error or a 300 s timeout |
+| Tests | `tools/test.sh`: Rust + 53 headless Godot tests (`tests/godot/test_*.gd`), isolated from the player's settings; fails on any script error or a 300 s timeout |
 
 ## Open gaps (by area)
 - **Terrain**: map-edge push-back / EndWorld and craters (terraintype bits known, systems missing); no elevation
   west of Suez in the original data (flat −557 m, kept).
 - **Flight**: the seven Jet list jets fly (the two MiGs are AI-only, as in the original); systems damage acts on the flight model (AI jets take none); no hook, map-edge push-back.
 - **Combat**: player gun, IR missiles, radar missiles (AMRAAM / Sparrow with the DLZ and the MRM sight), radar lock,
-  chaff / flares, bombs (CCIP / delayed, ripple, cluster), rockets, HARM / Shrike at the HARM page's emitter, TV weapons (Maverick, TV missile), laser bombs with the FLIR designation ( nothing feeds the RWR's emitters until the AI / SAM sensors exist); no AI combat (AI jets fly, don't fight), no AAA / SAMs (so no combat mission can be won yet).
+  chaff / flares, bombs (CCIP / delayed, ripple, cluster), rockets, HARM / Shrike at the HARM page's emitter, TV weapons (Maverick, TV missile), laser bombs with the FLIR designation (the ground units' sensors feed the RWR); no AI combat (AI jets fly, don't fight), ground fire built (docs/ai.md §14: AAA, SAMs, rockets; 313 and 322 playable); decoys don't lure missiles yet.
 - **Cockpit / MFDs**: ECM, the full-screen weapon MFD (Z), the NAV ETA, the HUD range scale (weapons.md §12.4); the RWR's feeds (AI sensors, SAMs, enemy missiles);
   ECM light has no system; night lighting; what the TV / laser weapons do with the radar's designated point.
 - **Controls**: joystick untested on real hardware (one device; no force feedback); not built: FlyTSD Fly into another

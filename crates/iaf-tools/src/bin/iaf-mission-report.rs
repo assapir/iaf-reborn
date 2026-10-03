@@ -84,8 +84,12 @@ const W_TV: &str = "weapon: TV / IR guided (AGM-65, AGM-62, GBU-15, Popeye)";
 const W_ARM: &str = "weapon: anti-radiation (AGM-88, Shrike)";
 
 /// Features built today (docs/status.md): the player flight choice, the damage model, the gun, the IR
-/// missiles, the bombs (incl. cluster) and the rockets (docs/weapons.md).
-const SUPPORTED_FEATURES: &[&str] = &[F_PLAYER_FLIGHT, F_DAMAGE, W_GUN, W_IR, F_AI_FLIGHT, W_BOMB, W_ROCKET];
+/// missiles, the radar missiles, the bombs (incl. cluster and laser), the rockets, HARM / Shrike and the TV
+/// weapons (docs/weapons.md); the ground units' AAA, SAMs and rockets (docs/ai.md §14).
+const SUPPORTED_FEATURES: &[&str] = &[
+    F_PLAYER_FLIGHT, F_DAMAGE, W_GUN, W_IR, W_RADAR, F_AI_FLIGHT, W_BOMB, W_ROCKET, W_LGB, W_TV, W_ARM, F_AAA, F_SAM_RADAR,
+    F_SAM_IR, F_GROUND_FIRE,
+];
 
 /// Rough implementation size (S ≈ days, M ≈ a week, L ≈ weeks) — an estimate for planning only.
 fn size(f: &str) -> &'static str {
@@ -184,6 +188,24 @@ fn loadout(e: &Value, obj: &Value) -> Vec<(i64, i64)> {
 
 fn ops(e: &Value, part: &str) -> Vec<i64> {
     e[part]["items"].as_array().into_iter().flatten().filter_map(|s| s["0x83e"].as_i64()).collect()
+}
+
+/// Trigger ops that run at activation: a mission-controlled entity (0x320 bit 0) starts its trigger list at list
+/// index 1 and follows the next links (0x898); other entries run only when an event jumps there.
+fn start_ops(e: &Value) -> Vec<i64> {
+    if i(e, "0x320") & 1 == 0 {
+        return Vec::new();
+    }
+    let list: BTreeMap<i64, &Value> = e["scripts1"]["items"].as_array().into_iter().flatten().map(|s| (i(s, "raw10"), s)).collect();
+    let (mut out, mut at, mut seen) = (Vec::new(), 1, BTreeSet::new());
+    while let Some(s) = list.get(&at) {
+        if !seen.insert(at) {
+            break;
+        }
+        out.push(i(s, "0x83e"));
+        at = i(s, "0x898");
+    }
+    out
 }
 
 fn unplaced(e: &Value) -> bool {
@@ -414,7 +436,9 @@ fn analyse(dir: &Path, id: i64, names: &[String], bdbs: &mut BTreeMap<String, Bd
             };
             let (b_aa, b_ag, b_sc) = bdb.brains.get(&brain).copied().unwrap_or_default();
             let weapons: Vec<i64> = loadout(e, &o).iter().filter_map(|(w, _)| bdb.weapon_type.get(w).copied()).filter(|t| !matches!(t, 0 | 540 | 550 | 660)).collect();
-            let disabled_for_good = trig.contains(&22) && !trig.contains(&21);
+            // Disabled at activation and never enabled (a Disable combat reached by an event, e.g. 313's SA-3 launchers
+            // when their radar dies, leaves the unit fighting until then).
+            let disabled_for_good = start_ops(e).contains(&22) && !trig.contains(&21);
             let fights = !weapons.is_empty() && (b_aa || b_ag || b_sc || trig.contains(&21)) && !disabled_for_good;
             let kind = if AIRCRAFT.contains(&class) { 0 } else if class == HELICOPTER { 1 } else { 2 };
             if fights {

@@ -52,11 +52,12 @@ func next_free() -> bool:
 
 
 ## One shot (FUN_00456d40 after the ammo checks): `p` jet origin, `muzzle` launch point, `vel` jet velocity, `a`
-## aim point, `locked` the radar-locked unit key ("" none), `me` the shooter, `easy` Easy aiming. Returns the
-## round's pool slot, −1 when the pooled round is busy.
-func fire(now: float, p: Vector3, muzzle: Vector3, vel: Vector3, a: Vector3, locked: String, me: String, easy: bool) -> int:
+## aim point, `locked` the radar-locked unit key ("" none), `me` the shooter, `easy` Easy aiming, `only` a ground
+## unit's round's only candidates (its target, docs/ai.md §14) in place of the query. Returns the round's pool slot,
+## −1 when the pooled round is busy.
+func fire(now: float, p: Vector3, muzzle: Vector3, vel: Vector3, a: Vector3, locked: String, me: String, easy: bool, only = null) -> int:
 	var b := _bodies()
-	var slot: int = _r.fire(now, p, muzzle, vel, a, locked, me, easy, b[0], b[1])
+	var slot: int = _r.fire(now, p, muzzle, vel, a, locked, me, easy, b[0], b[1], PackedStringArray(only) if only != null else null)
 	_sync()
 	return slot
 

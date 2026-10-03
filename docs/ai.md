@@ -71,7 +71,7 @@ last hitter (cleared 5 s later); **+0x88 current waypoint index**; +0xd8 in a su
 ## 3. Creation, scheduling, tick
 
 - Spawn (`FUN_004b815f`): brain id 0x2da in the map → rules attached (`FUN_00440790`: +4 = +8). Brain −1: never
-  scheduled.
+  scheduled (but see §14: the object's default brain then applies, UNCERTAIN).
 - Activation (`FUN_004a9100`): BRAIN (0x320 bit 0 = 0): the FM mover is installed, the FM type loaded
   (`FUN_005a8980`), the start pose set (`FUN_005a5820`, §7), then **reset**. MISSION (bit 0 = 1): the scenario starts
   and the brain is reset too, but every non-FM mover's `setMode` is empty (`FUN_0046a430`): **a mission-controlled
@@ -540,7 +540,31 @@ B+0x7c); 39 any RWR entry's launch flag.
   fire per weapon (`454270(T, 1)`: gun burst / aim, missile q, bomb ripple), the target selectors, the decoy logic,
   B+0x7c writers, the RWR internals, the hit reactions `44d590` / `43ff50`.
 
-## 14. Ground defences, RWR, script ops 1 / 2 (traced; the player's RWR and the decoys are built, docs/rwr.md, docs/weapons.md §10; the rest not built yet)
+## 14. Ground defences, RWR, script ops 1 / 2 (traced; built: the player's RWR and the decoys, docs/rwr.md, docs/weapons.md §10, and the ground units' fire, game/ai/ground_fire.gd; not built: script ops 1 / 2, the decoys' effect on missiles)
+
+Port (`game/ai/ground_fire.gd`): every ground unit of a sensor class with a brain and a weapon (its first valid
+station), brain or mission controlled (a mission-controlled unit's brain runs, §2), gets its brain (no manoeuvres),
+the sensor (both modes' classes scanned every 6 s, the selector filters: 400 / 440 air, 410 ground, 420 either, the
+best score; UNCERTAIN while the selectors are untraced), start / stop combat (RWR lock when the target is the player;
+no weapon = "Entity with no weapon handler", no engagement) and the fire tick:
+- **Class 0x17**: 565 AAA (above) and 560 rockets (the player's rocket motion: no hit sphere, they burst at the lead
+  point or the ground; range the full `_limitDist`).
+- **Class 0x18** (SAMs 620 / 630, and 570 / 580 / 610 on some vehicles): fire only inside the missile's DLZ
+  (`FUN_005624f0`) taken from the unit's pose with zero speed. The nose is the unit's heading, so **a site never fires
+  at a target 90° or more off its heading** (original quirk). One in the air (`_maxNumInAir` 1), q 1.0. The launch
+  attitude (`FUN_004ab810`): types 290–340 turn the launcher to the target (heading and pitch), others keep their level
+  heading. The launch point is (0, 4, 1) in that attitude (`FUN_004ab7b0`: 4 m ahead, 1 m up), at 100.1 m/s
+  (_debugParam000, the launcher being slower than 5 m/s). The flight, RWR launch flag, blast and look are the player's
+  homing weapons' (`player_weapons.gd` `launch_homing`).
+- Release order (`FUN_004ab810`): the truce first (taken even when the shot is then skipped), then a busy pool
+  object, then the terrain line of sight.
+- **Brain −1**: the unit takes its object's default brain by name (bdb Objects `0x532`). UNCERTAIN: not traced, but
+  322 "Uncle SAM" has brain −1 on every SAM launcher (object brain 'mission'). Applied to every mission entity
+  (`mission_runtime.gd` `_brain_of`).
+
+Not reproduced: the ring pool's 3–4 steps per gun shot, the turret parts' drawn turning, ECM in the sensor, the
+second weapon station. Test: tests/godot/test_ground_fire.gd (313 AAA and SA-3, 322 rockets).
+
 
 - **Spawn** (`FUN_004b7634` → `FUN_004b7ad6`): an entity with record +0x3c ≠ 0 → vehicle `FUN_0059bb00` with a
   MWeaponHandler `FUN_004aa650` (entity[9], vtable 0x603200); non-aircraft units get only their first 2 valid weapon

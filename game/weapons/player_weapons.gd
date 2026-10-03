@@ -767,9 +767,13 @@ func _gun_detonate(_r: Dictionary, pos: Vector3, cands, hit: Dictionary) -> void
 	var me := _me()
 	if host.runtime != null and not me.is_empty():
 		host.runtime.area_damage(pos, float(w.power), float(w.radius), me, "gun", cands)
-	if hit.is_empty():
-		return
-	var at: Vector3 = hit.pos if hit.has("pos") else pos
+	if not hit.is_empty():
+		gun_hit_effect(hit.pos if hit.has("pos") else pos)
+
+
+## A gun round's impact at world point `at` (also the ground units' AAA rounds): a splash on water, else the
+## small fireball and SFX_WEAPON_EXPLODED/OST_GUNBULLET.
+func gun_hit_effect(at: Vector3) -> void:
 	var sp := to_scene(at)
 	var water := false
 	if host.terrain.has_method("surface_at"):
@@ -1472,10 +1476,15 @@ func _rocket_detonate(r: Dictionary, pos: Vector3, _cands, _hit: Dictionary) -> 
 	var me := _me()
 	if host.runtime != null and not me.is_empty() and float(w.power) > 0.0:
 		host.runtime.area_damage(pos, float(w.power), float(w.radius), me, "rocket")
-	_explosion_effect(pos, 560)
-	_place_sound(host.sounds.play("SFX_WEAPON_EXPLODED", "OST_ROCKET"), pos)
+	rocket_effect(pos)
 	if e.get("node") != null:
 		e.node.queue_free()
+
+
+## A rocket's burst at world point `pos` (also the ground units' rockets).
+func rocket_effect(pos: Vector3) -> void:
+	_explosion_effect(pos, 560)
+	_place_sound(host.sounds.play("SFX_WEAPON_EXPLODED", "OST_ROCKET"), pos)
 
 
 # --- radar (docs/radar.md) ---------------------------------------------------------------------------
