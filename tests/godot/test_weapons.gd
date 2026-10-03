@@ -53,7 +53,7 @@ func run() -> void:
 		and not sk.can_track(me, {"pos": Vector3(0, 2000, 0), "vel": Vector3(0, -200, 0)}, 570), "Real AIM-9D: tail chase only")
 	sk.set_weapon(db.by_id(11))
 	check(not sk.rear_only and sk.can_track(me, {"pos": Vector3(0, 2000, 0), "vel": Vector3(0, -200, 0)}, 570), "original: all aspects")
-	var mi = load("res://weapons/ir_missile.gd").new()
+	var mi = load("res://weapons/missile.gd").new()
 	mi.launch(by_name["AIM-9D"], {"_absAcceleration": 300.0, "_spiralAccel": 0.0, "_timeConstOrientation": 0.0, "burn": 10.0}, 0.0, Vector3(0, 0, 1000), Vector3(0, 300, 0), Vector3(0, 1, 0), "x", Vector3.ZERO, 1.0, func(_i, d): return d)
 	mi.update(0.0, Vector3(3000, 0, 1000), Vector3.ZERO, Callable())
 	mi.update(0.1, Vector3(3000, 0, 1000), Vector3.ZERO, Callable())

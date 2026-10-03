@@ -11,7 +11,8 @@ const WeaponDb := preload("res://weapons/weapon_db.gd")
 const Stores := preload("res://weapons/stores.gd")
 const GunRounds := preload("res://weapons/gun_rounds.gd")
 const IrSeeker := preload("res://weapons/ir_seeker.gd")
-const IrMissile := preload("res://weapons/ir_missile.gd")
+const Missile := preload("res://weapons/missile.gd")
+const MrmSight := preload("res://weapons/mrm_sight.gd")
 const Radar := preload("res://weapons/radar.gd")
 const Rwr := preload("res://weapons/rwr.gd")
 const EoSensor := preload("res://weapons/eo_sensor.gd")
@@ -19,6 +20,7 @@ const HarmSensor := preload("res://weapons/harm_sensor.gd")
 const DamageEffects := preload("res://mission/damage_effects.gd")
 const Bombs := preload("res://weapons/bombs.gd")
 const Views := preload("res://terrain/views.gd")
+const Hud := preload("res://cockpit/hud.gd")
 
 ## The gun's shot timer period (DAT_0082f4e8 = 0.2 s, sim time).
 const GUN_PERIOD := 0.2
@@ -57,7 +59,8 @@ var eo_centre := Vector3.ZERO
 var _eo_replaced := {}
 ## Physics "fix_lock_threat" (ours): a radar lock makes the player the AI target's threat (brain+0x7c).
 var lock_threat_fix := false
-var missiles: Array = []  # IrMissile with .node, .sound
+## Homing weapons in flight, any launcher (missile.gd with metas id, owner, node, sound).
+var missiles: Array = []
 var now := 0.0
 
 ## ctl+0x78 master mode, +0x80 the previous one, +0x7c the M key cycle, +0x5c the HUD mode.
@@ -126,6 +129,7 @@ func setup(host_node: Node, entity: Dictionary, object: Dictionary, bdb: Diction
 	radar.ground = _ground
 	radar.own = own
 	radar.on_lock = _radar_lock
+	radar.illumination_lost = _illumination_lost
 	radar.setup(jet_type, preload("res://weapons/real_weapons.gd").radar_nm(jet_type) if Settings.real_weapons() else 0.0)
 	rwr = Rwr.new()
 	rwr.unit = _rwr_unit
@@ -215,7 +219,7 @@ func seeker_view() -> Dictionary:
 	if cam == null or c == null or not cam.current or host.get("views") == null or not host.views.cockpit_like():
 		return {}
 	var cb := cam.global_basis.orthonormalized()
-	var f := dir_world(cam.project_ray_normal(c.hud_centre_screen())).normalized()
+	var f := dir_world(Hud.ray_normal(cam, c.hud_centre_screen())).normalized()
 	var r := dir_world(cb.x)
 	r = (r - f * r.dot(f)).normalized()
 	return {"sight": {"fwd": f, "right": r, "up": r.cross(f)}, "view_fwd": dir_world(-cb.z),
@@ -548,8 +552,9 @@ func fire_selected() -> void:
 	match stores.current_type():
 		Stores.GUN:
 			gun_trigger()
-		570, 580:
+		570, 580, 590, 600, 610:
 			_release_missile()
+			releasing = false  # FUN_004545e0: W+0xac cleared after a non-bomb release
 		500, 510, 560, 650:
 			_bomb_space()
 
@@ -725,9 +730,22 @@ func _gun_detonate(_r: Dictionary, pos: Vector3, cands, hit: Dictionary) -> void
 	_place_sound(host.sounds.play("SFX_WEAPON_EXPLODED", "OST_GUNBULLET"), at)
 
 
-# --- IR missiles ------------------------------------------------------------------------------------
+# --- homing weapons (class 0x18: 570, 580, 590, 600, 610, 635; docs/weapons.md §5, §11) ---------------
 
-## FUN_004545e0 -> FUN_00454b70 (570 / 580): HUD mode 1, 2 or 8; the target and q of FUN_00457f70.
+## The OST of each weapon type (the sound table's sub code 1).
+const WEAPON_OST := {570: "OST_HEATMISSILE", 580: "OST_LIMITEDHEATMISSILE", 590: "OST_HARM", 600: "OST_RADARMISSILE",
+	610: "OST_SEMIRADARMISSILE", 620: "OST_HEATSAM", 630: "OST_RADARSAM", 635: "OST_MAVRICK", 640: "OST_TVMISSILE",
+	650: "OST_LASERBOMB"}
+## W+0x274: the semi-active (610) missiles launched at a target and still flying; the radar losing its track
+## (FUN_00458130) turns their guidance off.
+var semi_active: Array = []
+var _missile_id := 0
+
+
+## FUN_004545e0 -> FUN_00454b70 (570 / 580 / 590 / 600 / 610): HUD mode 1, 2 or 8; the target and q of
+## FUN_00457f70 from that HUD mode's object (1 the IR seeker, 2 the MRM sight on the radar's target, 8 the HARM
+## sight on the HARM page's selection). A 610 with a target makes the radar lock it (FUN_004ad880(2), STT) and
+## joins the semi-active list.
 func _release_missile() -> void:
 	if not hud_mode in [1, 2, 8]:
 		return
@@ -737,35 +755,133 @@ func _release_missile() -> void:
 	var st: Dictionary = stores.station(i)
 	var w: Dictionary = st.w
 	var o := own()
-	var units := _units()
-	var q := 1.0
-	var target := {}
-	if not easy_aiming:
-		target = seeker.target_in_circle(o, units)
-		if not target.is_empty():
-			q = (1.0 if seeker.lock else Q_UNLOCKED) * Q_NO_EASY
-	else:
-		target = seeker.current(units)
-	if not target.is_empty():
-		q = maxf(q, 0.1)
+	var tq := _launch_target(o)
+	var target: Dictionary = tq[0]
+	var q: float = tq[1]
 	# Release point: the store's slot (the last drawn) or the pylon, through the attitude.
 	var slots: Array = st.slots
 	var n := int(st.count)
 	var at: Vector3 = slots[n - 1] if n >= 1 and n <= slots.size() else st.attach
-	var m: Dictionary = db.motion_for(int(w.type), int(w.generation)).duplicate()
-	m.merge(w.get("motion", {}), true)
-	var mis := IrMissile.new()
-	var fe := Vector3(m.get("_fireEndVecX", 0.0), m.get("_fireEndVecY", 10000.0), m.get("_fireEndVecZ", 0.0))
-	# _fireEndVec in body axes (x right, y forward, z up).
-	var point: Vector3 = o.pos + o.right * fe.x + o.fwd * fe.y + o.up * fe.z
-	mis.launch(w, m, now, body_to_world(at), o.vel, o.fwd, String(target.get("key", "")), point, q, db.debug_param)
-	missiles.append(mis)
-	_missile_visual(mis)
-	var ost := "OST_HEATMISSILE" if int(w.type) == 570 else "OST_LIMITEDHEATMISSILE"
-	_place_sound(host.sounds.play("SFX_AIRCRAFT_FIRED_WEAPON", ost), mis.p0)
+	var mis := launch_homing(w, body_to_world(at), o, String(target.get("key", "")), q, _me())
+	if int(w.type) == 610 and not target.is_empty():
+		radar.lock_stt()
+		semi_active.append(mis)
+	_place_sound(host.sounds.play("SFX_AIRCRAFT_FIRED_WEAPON", WEAPON_OST.get(int(w.type), "OST_RADARMISSILE")), mis.p0)
 	stores.fired(i)
 	_push_stores()
 	_update_store_nodes()
+
+
+## FUN_00457f70 with the HUD mode's object: [target unit {} none, q]. Without Easy aiming the object's target
+## counts only inside its launch circle (vfunc +0x30) and q = vfunc +0x38 × 0.8 (v1.1); with Easy aiming any
+## target and q = 1. A target with a controller whose ECM is on, against the radar seeker (vfunc +0x18 = 2):
+## q − rand. At least 0.1.
+func _launch_target(o: Dictionary) -> Array:
+	var units := _units()
+	var q := 1.0
+	var target := {}
+	match hud_mode:
+		1:
+			if not easy_aiming:
+				target = seeker.target_in_circle(o, units)
+				if not target.is_empty():
+					q = (1.0 if seeker.lock else Q_UNLOCKED) * Q_NO_EASY
+			else:
+				target = seeker.current(units)
+		2, 8:
+			var s := _sight(o, units)
+			if s.target.is_empty():
+				pass
+			elif easy_aiming:
+				target = s.target
+			elif MrmSight.target_in_circle(IrSeeker.screen_offset(o, s.target.pos), s.locked):
+				target = s.target
+				q = float(s.q) * Q_NO_EASY
+	if not target.is_empty():
+		if hud_mode == 2 and bool(target.get("ecm", false)):
+			q -= float(randi() & 0x7fff) / 32767.0
+		q = maxf(q, 0.1)
+	return [target, q]
+
+
+## The MRM (mode 2) / HARM (mode 8) sight this frame: {target (vfunc +0x28: the radar's A-A lock or TWS
+## selection / the HARM page's selected emitter), locked (vfunc +0x2c), dlz [max, min], dist, r (the circle
+## size), pred (the predicted point, world), q (vfunc +0x38)}.
+func _sight(o: Dictionary, units: Array) -> Dictionary:
+	var target := {}
+	var locked := false
+	if hud_mode == 8:
+		locked = harm.selected != ""
+		target = _unit(units, harm.selected)
+	else:
+		locked = radar.has_lock()
+		var lk: Dictionary = radar.locked()
+		if radar.aa and not lk.is_empty():
+			target = _unit(units, String(lk.key))
+	var out := {"target": target, "locked": locked, "dlz": [], "dist": 0.0, "r": MrmSight.R0, "pred": null, "q": 1.0}
+	if target.is_empty() or not locked:
+		return out
+	var d: float = (target.pos - o.pos).length()
+	out.dist = d
+	out.dlz = selected_dlz(o, target)
+	out.r = MrmSight.circle(true, out.dlz, d)
+	out.pred = MrmSight.predicted(target.pos, target.get("vel", Vector3.ZERO), d)
+	var hud_only: bool = host.get("views") != null and host.views.type == Views.HUD_ONLY
+	out.q = MrmSight.in_circle(IrSeeker.screen_offset(o, out.pred), out.r, hud_only)[1]
+	return out
+
+
+static func _unit(units: Array, key: String) -> Dictionary:
+	if key == "":
+		return {}
+	for u in units:
+		if u.key == key:
+			return u
+	return {}
+
+
+## The DLZ (weapon vfunc +0x24 -> its motion's +0x74) of the selected store from the jet at a target ({} none):
+## [max, min] metres; [] for a store without one (gun, decoys, pods).
+func selected_dlz(o: Dictionary, target: Dictionary) -> Array:
+	var w: Dictionary = stores.station(stores.cur).get("w", {})
+	var t := int(w.get("type", 0))
+	if not t in [570, 580, 590, 600, 610, 635]:
+		return []
+	return Missile.dlz(_motion(w), {"pos": o.pos, "fwd": o.fwd, "vel": o.vel}, target)
+
+
+## The weapons.ibx record of a weapon with its Real overrides.
+func _motion(w: Dictionary) -> Dictionary:
+	var m: Dictionary = db.motion_for(int(w.type), int(w.generation)).duplicate()
+	m.merge(w.get("motion", {}), true)
+	return m
+
+
+## One homing weapon leaves its launcher (FUN_004d5d10 -> FUN_004d80c0): the chase motion from `pos` at the
+## launcher's velocity / attitude `from` {vel, fwd, up, right}, at the unit `target` ("" = the _fireEndVec point
+## in the launcher's body axes) with q. `owner` = the launcher's mission entity (the blast's attacker). The
+## weapon's model and flight loop; a target with a controller (the player) hears the launch on its RWR
+## (FUN_004d8130 -> FUN_0044e160). Not player-specific: AI launchers use it too.
+func launch_homing(w: Dictionary, pos: Vector3, from: Dictionary, target: String, q: float, owner: Dictionary) -> RefCounted:
+	var m := _motion(w)
+	var fe := Vector3(m.get("_fireEndVecX", 0.0), m.get("_fireEndVecY", 10000.0), m.get("_fireEndVecZ", 0.0))
+	var point: Vector3 = pos + from.right * fe.x + from.fwd * fe.y + from.up * fe.z
+	var mis := Missile.new()
+	mis.launch(w, m, now, pos, from.vel, from.fwd, target, point, q, db.debug_param, from.up)
+	_missile_id += 1
+	mis.set_meta("id", _missile_id)
+	mis.set_meta("owner", owner)
+	missiles.append(mis)
+	_missile_visual(mis)
+	if is_same(owner, _me()):
+		last_launched = mis
+	if target != "" and target == String(_me().get("key", "")):
+		rwr.launch(String(owner.get("key", "")), _rwr_missile(mis))
+	return mis
+
+
+func _rwr_missile(mis: RefCounted) -> Dictionary:
+	return {"id": mis.get_meta("id"), "pos": mis.position(now), "decoy": String(mis.target_key).begins_with("decoy:"), "m": mis}
 
 
 func _missile_visual(mis: RefCounted) -> void:
@@ -774,10 +890,24 @@ func _missile_visual(mis: RefCounted) -> void:
 		host.add_child(node)
 		node.position = to_scene(mis.p0)
 	mis.set_meta("node", node)
-	# Flight loop (UNCERTAIN: code 0x8337e4, probably SFX_OBJECT_SPECIFIC / OST_HEATMISSILE).
-	var ost := "OST_HEATMISSILE" if int(mis.weapon.type) == 570 else "OST_LIMITEDHEATMISSILE"
-	var s = host.sounds.play("SFX_OBJECT_SPECIFIC", ost)
+	# Flight loop (UNCERTAIN: code 0x8337e4, probably SFX_OBJECT_SPECIFIC / the weapon's OST).
+	var s = host.sounds.play("SFX_OBJECT_SPECIFIC", WEAPON_OST.get(int(mis.weapon.type), "OST_HEATMISSILE"))
 	mis.set_meta("sound", s)
+
+
+## A homing weapon's target now ({pos, vel}, {} gone): a mission unit, the player's jet, or a decoy
+## ("decoy:<n>", its position; after its end it stays where it ended, UNCERTAIN).
+func target_state(key: String, units: Dictionary) -> Dictionary:
+	if key.begins_with("decoy:"):
+		var dc: Dictionary = _decoy_by_id.get(int(key.substr(6)), {})
+		if dc.is_empty():
+			return {}
+		var t: float = minf(now, float(dc.end))
+		return {"pos": _decoy_motion[dc.type].position(dc.r, t), "vel": Vector3.ZERO}
+	if key != "" and key == String(_me().get("key", "")):
+		var o := own()
+		return {"pos": o.pos, "vel": o.vel}
+	return units.get(key, {})
 
 
 func _update_missiles() -> void:
@@ -787,7 +917,7 @@ func _update_missiles() -> void:
 	for mis in missiles.duplicate():
 		var gone := false
 		while not gone and mis.next_update <= now:
-			var t: Dictionary = units.get(mis.target_key, {})
+			var t := target_state(mis.target_key, units)
 			var tp: Vector3 = t.get("pos", mis.last_pos)
 			if mis.has_target and t.is_empty():
 				tp = Vector3.ZERO  # target gone: FUN_0045a180's static default (UNCERTAIN: origin)
@@ -807,20 +937,21 @@ func _update_missiles() -> void:
 			_missile_detonate(mis)
 
 
-## FUN_004d6130 for a player's missile: every unit around (the blast decides), explosion and sound
-## (UNCERTAIN look: a fireball of the weapon explosion), the flight loop stops.
+## FUN_004d6130 for a homing weapon: every unit around (the blast decides), explosion and sound
+## (UNCERTAIN look: a fireball of the weapon explosion), the flight loop stops; a missile at the player
+## leaves its RWR (FUN_004d8160 -> FUN_0044e1d0).
 func _missile_detonate(mis: RefCounted) -> void:
 	missiles.erase(mis)
+	semi_active.erase(mis)
 	var p: Vector3 = mis.last_pos
-	var me := _me()
+	var owner: Dictionary = mis.get_meta("owner", {})
 	var hit := []
-	if host.runtime != null and not me.is_empty():
-		hit = host.runtime.area_damage(p, float(mis.weapon.power), float(mis.weapon.radius), me, "missile")
+	if host.runtime != null and not owner.is_empty():
+		hit = host.runtime.area_damage(p, float(mis.weapon.power), float(mis.weapon.radius), owner, "missile")
 	var sp := to_scene(p)
 	var g = host.terrain.height_at(sp)
 	host.effects.explosion(sp, DamageEffects.F_FIREBALL | DamageEffects.F_PUFF, 1.0, 5.0, g if g != null else sp.y)
-	var ost := "OST_HEATMISSILE" if int(mis.weapon.type) == 570 else "OST_LIMITEDHEATMISSILE"
-	_place_sound(host.sounds.play("SFX_WEAPON_EXPLODED", ost), p)
+	_place_sound(host.sounds.play("SFX_WEAPON_EXPLODED", WEAPON_OST.get(int(mis.weapon.type), "OST_HEATMISSILE")), p)
 	if not hit.is_empty():
 		_place_sound(host.sounds.play("SFX_WEAPON_HIT_TARGET"), p)
 	var node: Node3D = mis.get_meta("node")
@@ -828,6 +959,16 @@ func _missile_detonate(mis: RefCounted) -> void:
 		node.queue_free()
 	if mis.get_meta("sound") != null:
 		host.sounds.stop(mis.get_meta("sound"))
+	if rwr.missiles.any(func(e): return e.missile.id == mis.get_meta("id")):
+		rwr.missile_end(String(owner.get("key", "")), _rwr_missile(mis))
+
+
+## FUN_00458130 (the radar drops or changes its track: Q, R, S, Return, a click lock, Backspace, STT lost, a mode
+## leaving STT): every semi-active missile still flying loses its guidance (motion +0x148 = 1); the list empties.
+func _illumination_lost() -> void:
+	for mis in semi_active:
+		mis.guidance_off = true
+	semi_active.clear()
 
 
 ## FUN_0053bcd0: the selected station has rounds left (not the weapon's total over every station).
@@ -1249,7 +1390,7 @@ func radar_snapshot() -> Dictionary:
 	return {"mode": radar.mode, "idx": radar.range_index(), "width": radar.scope_width(),
 		"shift": radar.heading_shift, "antenna": radar.antenna, "contacts": radar.contacts,
 		"lock": lk, "closure": closure, "has_lock": not lk.is_empty(),
-		"exp": radar.exp, "designated": radar.designated}
+		"exp": radar.exp, "designated": radar.designated, "dlz": s348}
 
 
 # --- chaff and flares (events 0x44 / 0x45, docs/weapons.md §10) ------------------------------------
@@ -1259,6 +1400,10 @@ func radar_snapshot() -> Dictionary:
 const DECOY_LIFE := 4.0
 ## Decoys in the air: {type, r (round record of the decoy motion), end}.
 var decoys: Array = []
+## Every decoy released, by id (a missile chasing one keeps its key "decoy:<id>"; the record stays after the decoy
+## ends: the pool object sits where it ended).
+var _decoy_by_id := {}
+var _decoy_id := 0
 ## Their look (decoy_fx.gd).
 var decoy_fx: Node3D
 ## Per type: the fixed-weapon motion (gun_rounds.gd configured with weapons.ibx 540 / 550) and the
@@ -1310,7 +1455,10 @@ func dispense(type: int) -> bool:
 		"t_end": now + g._flight_time(s, dist)}
 	var end: float = minf(r.t_end, now + DECOY_LIFE)
 	_decoy_pool[type][k] = end
-	decoys.append({"type": type, "r": r, "end": end})
+	_decoy_id += 1
+	var dc := {"type": type, "r": r, "end": end, "id": _decoy_id}
+	decoys.append(dc)
+	_decoy_by_id[_decoy_id] = dc
 	stores.consume(i)
 	var ost := "OST_CHAFF" if type == Stores.CHAFF else "OST_FLARE"
 	_place_sound(host.sounds.play("SFX_AIRCRAFT_FIRED_WEAPON", ost), p0)
@@ -1379,8 +1527,47 @@ func update(t: float) -> void:
 		_lcos(now)
 	else:
 		lcos.fresh = true
+	_update_cockpit_dlz()
 	_update_visuals()
 	_publish()
+
+
+## The cockpit's DLZ and weapon time (FUN_00456520, every frame while the radar has a lock / TWS selection or
+## the HARM sensor a target; otherwise both keep their last values): S+0x348.. = the selected store's DLZ
+## [max, min] at the radar's target (without one: the DLZ with no target), S+0x380 = the time left of the last
+## launched weapon (not decoys / gun / pods: FUN_0053bec0, its motion's vfunc +0x80 clamped by FUN_004d6ac0:
+## below 0 → 0, above 300 → 60).
+var s348: Array = []
+var s380 := 0.0
+var harm_in_range := false
+## The last launched weapon (a homing missile; FUN_0053bec0 → station +0x24).
+var last_launched: RefCounted
+
+
+func _update_cockpit_dlz() -> void:
+	if not (radar.has_lock() or (harm.active and harm.selected != "")):
+		return
+	var o := own()
+	var target := {}
+	var lk: Dictionary = radar.locked()
+	if not lk.is_empty():
+		var u := _unit(_units(), String(lk.key))
+		target = u if not u.is_empty() else {"pos": lk.pos, "vel": Vector3.ZERO}
+	s348 = selected_dlz(o, target)
+	s380 = 0.0
+	if last_launched != null and last_launched.has_method("time_left"):
+		var v: float = last_launched.time_left(now)
+		s380 = 0.0 if v < 0.0 else (60.0 if v > 300.0 else v)
+
+
+## state+0x4c (FUN_00429390 ← FUN_0044e770): the locked target's bearing from the own heading (rad, wrapped
+## ±π; the caret on the missile circle); null without a lock.
+func _lock_bearing(o: Dictionary) -> Variant:
+	var lk: Dictionary = radar.locked()
+	if lk.is_empty():
+		return null
+	var d: Vector3 = lk.pos - o.pos
+	return wrapf(atan2(d.x, d.y) - float(o.yaw), -PI, PI)
 
 
 ## The AA gun LCOS pipper (FUN_0045f3b0 -> FUN_0045f410, feet): every 0.05 s, integrated with dt 0.15
@@ -1448,6 +1635,30 @@ func _publish() -> void:
 		elif stores.type_of(i) in [600, 610]:
 			mrm += stores.displayed(i)
 	var o := own()
+	# The MRM / HARM HUD objects (FUN_00460ee0 / FUN_00460ac0): the circle, the predicted point (with a radar
+	# lock), the shoot cue (state+0x1010: inside the circle, rounds left, the radar in A-A, min ≤ dist ≤ max) and
+	# the HARM's "In Range" (dist < the DLZ max) and its target point (state+0xe6c, the HUD diamond).
+	var circle := 5.0
+	var mrm_pt = null
+	var shoot := false
+	var harm_pt = null
+	if hud_mode in [2, 8]:
+		var sg := _sight(o, _units())
+		var have: bool = stores.total(t, stores.current_name()) > 0
+		if hud_mode == 2:
+			circle = float(sg.r)
+			if sg.pred != null and radar.has_lock():
+				mrm_pt = sg.pred
+				var hud_only: bool = host.get("views") != null and host.views.type == Views.HUD_ONLY
+				shoot = MrmSight.in_circle(IrSeeker.screen_offset(o, sg.pred), sg.r, hud_only)[0] and have and radar.aa \
+					and not (sg.dlz as Array).is_empty() and float(sg.dist) >= float(sg.dlz[1]) and float(sg.dist) <= float(sg.dlz[0])
+		elif not sg.target.is_empty():
+			harm_pt = sg.target.pos
+			harm_in_range = have and not (sg.dlz as Array).is_empty() and float(sg.dist) < float(sg.dlz[0])
+		if sg.target.is_empty():
+			harm_in_range = false
+	if hud_mode != 8:
+		harm_in_range = false
 	var pip = null
 	if hud_mode == 3:
 		pip = Vector2(lcos.x, lcos.y) * rad_to_deg(1.0) * 12.0  # px from the gun cross
@@ -1457,7 +1668,7 @@ func _publish() -> void:
 	c.radar = radar_snapshot()
 	c.eo = {"mode": eo.mode, "camera": eo.camera, "fov": eo.FOV_DEG / eo.zoom, "flir": eo.flir_page(eo_ae,
 		(eo_centre - o.pos).length()), "tv": eo.tv_page(eo_ae, tv_status()), "flir_pod": flir_pod}
-	c.harm = harm.page(_base(o), stores.total(stores.current_type(), stores.current_name()))
+	c.harm = harm.page(_base(o), stores.total(stores.current_type(), stores.current_name()), harm_in_range)
 	c.rwr = rwr.display()
 	c.indicators[Rwr.LAMP_AI] = rwr.lamps[Rwr.LAMP_AI]
 	c.indicators[Rwr.LAMP_SAM] = rwr.lamps[Rwr.LAMP_SAM]
@@ -1467,7 +1678,8 @@ func _publish() -> void:
 		"ready": not mal, "srm": srm, "mrm": mrm, "gun": stores.displayed(9),
 		"chaff": stores.displayed(10), "flares": stores.displayed(11),
 		"quantity": ripple_qty, "interval": ripple_int, "seeker": seeker.symbol, "lock": seeker.lock,
-		"have_missiles": stores.total(t, stores.current_name()) > 0, "circle": 5.0,
+		"have_missiles": stores.total(t, stores.current_name()) > 0, "circle": circle, "mrm_point": mrm_pt,
+		"shoot": shoot, "harm_point": harm_pt, "sec": s380, "bearing": _lock_bearing(o),
 		"pipper": pip, "pipper_world": hud_mode == 4, "firing": firing,
 		# The mode-5 object's cockpit state (FUN_00445db0: +0x620 off, +0x624 point, +0x638 time-to-go
 		# capped at 1000, +0x62c frozen, +0x630 blinking).

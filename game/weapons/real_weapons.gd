@@ -27,6 +27,15 @@ const MISSILES := {
 	"PYTH-3": {"kg": 120.0, "mach": 3.5, "range_km": 15.0, "cone_deg": 30.0},
 	"PYTH-4": {"kg": 120.0, "mach": 3.5, "range_km": 15.0, "cone_deg": 60.0},
 	"SHFR 2": {"kg": 93.0, "mach": 2.1, "range_km": 5.0, "rear": true},
+	# Radar missiles (600 / 610), anti-radiation (590), Maverick (635): the same chase motion.
+	"AMRAAM": {"kg": 157.0, "mach": 4.0, "range_km": 70.0},
+	"AIM-7M": {"kg": 230.0, "mach": 4.0, "range_km": 70.0},
+	"AIM-7F": {"kg": 230.0, "mach": 4.0, "range_km": 70.0},
+	"AIM-7B": {"kg": 176.0, "mach": 2.5, "range_km": 7.0},
+	"AGM88": {"kg": 360.0, "mach": 2.0, "range_km": 150.0},
+	"SHRIKE": {"kg": 177.0, "mach": 2.0, "range_km": 40.0},
+	# No public Mach number ("supersonic"): the original top speed a / β is kept and only the range sets the burn.
+	"AGM-65": {"kg": 209.0, "range_km": 27.0},
 }
 ## Radar detection range (LRS / STT) of a fighter-size target in km by bdb object type code; jets not listed keep
 ## the original table (docs/radar.md). Sources and confidence in docs/real-weapons.md §1.3.
@@ -68,7 +77,7 @@ static func apply(db: RefCounted) -> void:
 			w.weight_lb = r.kg * LB_PER_KG
 			var m: Dictionary = db.motion_for(int(w.type), int(w.generation))
 			var a := float(m.get("_absAcceleration", 100.0))
-			var v := float(r.mach) * MACH_M_S
+			var v := float(r.mach) * MACH_M_S if r.has("mach") else a / float(m.get("_spiralAccelBeta", 0.08))
 			w["motion"] = {"_spiralAccelBeta": a / v, "burn": maxf(float(r.range_km) * 1000.0 / v - END_AFTER_BURN, 1.0)}
 			for k in ["rear", "max_g", "cone_deg"]:
 				if r.has(k):

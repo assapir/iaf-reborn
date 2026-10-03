@@ -191,7 +191,8 @@ A/P 88, ELCT 97, GNRT 106. Redrawn when state+0x558.. flags change.
 - TWS (`FUN_00534b20`): untracked 5x5 box, tracked ~7 px filled disc; 4-px aspect stub quantised to 45°; hover text
   "%02d" (altitude kft and +0x67c·10, UNCERTAIN which side).
 - STT (`FUN_00533db0`/`FUN_00534160`): disc + aspect stub; carets follow the target; range scale line x=121 y10..122
-  with two envelope ticks (UNCERTAIN Rmin/Rmax) and "<" caret at y = 115 − r·112/(R·1853); text "%3dK" speed at
+  with three black ticks at y 39 / 65 / 91 (x 117..121), the selected store's DLZ max / min (S+0x348 / +0x350,
+  docs/weapons.md §11.2) as ticks x 121..117 at y = 122 − ⌊v·112/(R·1853)⌋ while 0 < 112 − ⌊v·k⌋ < 112, and "<" caret at y = 115 − r·112/(R·1853); text "%3dK" speed at
   (86,3), aspect "%2dL"/"%2dR" at (62,3), closure "%3dK" at (111, caret+8).
 - GMT (`FUN_00535400`): heading-up PPI, origin (66,109), R·1853/56 m/px; per contact a ±10 cross when locked, then
   the 3x3 box (always); the steerpoint triangle; the horizon bars and the antenna carets; while the MFD owns the

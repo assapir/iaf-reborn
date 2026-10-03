@@ -126,8 +126,8 @@ func _traced(tv) -> void:
 	ts.ap_mode = 2
 	ts.g = -1.25
 	rows = Hud.text_block(ts, 2, nav, {"total": 2, "name": "AIM-7", "ready": true}, {}, false, [])
-	check(rows[0] == "AB 2" and rows[1] == "AP NAV" and rows[2] == "2 AIM-7 RDY" and rows[4] == "W01  2.0" and rows[5] == "",
-			"MRM: AB 2, AP NAV, the store row, the waypoint (%s)" % str(rows))
+	check(rows[0] == "AB 2" and rows[1] == "AP NAV" and rows[2] == "2 AIM-7 RDY" and rows[4] == "W01  2.0" and rows[5] == " 0 SEC",
+			"MRM: AB 2, AP NAV, the store row, the waypoint, the weapon time (%s)" % str(rows))
 	ts.ap_mode = 0
 	check(Hud.text_block(ts, 2, nav, {}, {}, false, [])[1] == "-1.2G", "negative G: '%4.1fG'")
 	check(Hud.text_block(ts, 0, nav, {}, {}, false, [false, false, false, false, false, false, false, false, true])[0] == "T 060",

@@ -28,6 +28,17 @@ Seeker and turn (where sourced):
 Not changed (no public figure found): lock range (the generation table of `FUN_00462460`), the other missiles' cones
 and g limits, warhead power / radius (game damage units), drag index.
 
+### 1.1b Radar, anti-radiation and TV missiles (600, 610, 590, 635)
+| bdb name | weight kg | top speed | range | sources |
+|---|---|---|---|---|
+| AMRAAM (AIM-120A/B) | 157 | Mach 4 | 70 km (50–70 km) | [15] |
+| AIM-7M | 230 | Mach 4 | 70 km | [16] |
+| AIM-7F | 230 | Mach 4 | 70 km | [16] |
+| AIM-7B | 176 (UNCERTAIN) | Mach 2.5 | 7 km (UNCERTAIN) | [16] |
+| AGM88 (AGM-88A/B/C HARM) | 360 | Mach 2 (Mach 2+) | 150 km | [17] |
+| SHRIKE (AGM-45B) | 177 | Mach 2 | 40 km | [18] |
+| AGM-65 (AGM-65A/B) | 209 | the original top speed (sources say only "supersonic") | 27 km (">27 km") | [19] |
+
 ### 1.2 Guns
 | gun (bdb) | rate | muzzle velocity | rounds per jet | sources |
 |---|---|---|---|---|
@@ -53,8 +64,8 @@ The table is per type (`RADAR_KM`, like `GUN_ROUNDS`): a new jet needs only its 
   stores-weight rules it still goes into the kg field; the Physics option "Stores weight fix" makes it right.
 - **Top speed**: the chase motion's steady speed is `_absAcceleration / _spiralAccelBeta` (docs/weapons.md §5.3); Real
   keeps a (no public g limit) and sets β = a / (Mach · 340.3 m/s, sea level). AIM-9L: 100 / 851 = 0.1175 (orig.
-  0.08 → 1250 m/s).
-- **Range**: the flight ends burn + 6 s after launch; Real sets burn = range / top speed − 6 (≥ 1 s): AIM-9L 35.6 s
+  0.08 → 1250 m/s). A record without a public speed (AGM-65) keeps its a / β and only the range sets the burn.
+- **Range**: the flight ends burn + 6 s after launch (the same for every homing weapon, docs/weapons.md §11); Real sets burn = range / top speed − 6 (≥ 1 s): AIM-9L 35.6 s
   (orig. 16), Python 3 / 4 6.6 s, Shafrir 2 1 s (flight 7 s).
 - **Rear-aspect** (ours: the original has no aspect test): the seeker's can-track also needs the target's velocity
   to point away from the launcher (v · line of sight > 0), so a head-on or a stationary target gives no tone.
@@ -69,7 +80,8 @@ The table is per type (`RADAR_KM`, like `GUN_ROUNDS`): a new jet needs only its 
 `tests/godot/test_weapons.gd`: AIM-9L 86 kg, F-16 511 rounds shown, one M61A1 tick = 20 rounds, and the derived
 chase values (stored in the record's `motion`): AIM-9L top speed a/β = 851 m/s = Mach 2.5, flight time (burn + 6 s) ×
 top speed = 35.4 km; the AIM-9D / Python 4 flags, the AIM-9D seeker refusing a head-on target (the AIM-9L
-accepting it) and its 12 g clamp. `tests/godot/test_radar.gd`: the F-16's 80 km.
+accepting it) and its 12 g clamp. `tests/godot/test_radar.gd`: the F-16's 80 km. `tests/godot/test_radar_missiles.gd`:
+the AMRAAM's 157 kg, a/β = Mach 4 and (burn + 6 s) × top speed = 70 km.
 
 ## Sources
 1. designation-systems.net, "Raytheon AIM-9 Sidewinder", https://www.designation-systems.net/dusrm/m-9.html (AIM-9D
@@ -93,3 +105,13 @@ accepting it) and its 12 g clamp. `tests/godot/test_radar.gd`: the F-16's 80 km.
 13. Air Power Australia, "Fourth Generation AAMs", https://www.ausairpower.net/TE-Gen-4-AAM-97.html (Python 4 > 60°
     off-boresight).
 14. Wikipedia, "AN/APG-68", https://en.wikipedia.org/wiki/AN/APG-68 (80 km maximum detection).
+15. designation-systems.net, "Raytheon AIM-120 AMRAAM", https://www.designation-systems.net/dusrm/m-120.html (AIM-120A/B
+    157 kg, Mach 4, 50–70 km).
+16. Wikipedia, "AIM-7 Sparrow", https://en.wikipedia.org/wiki/AIM-7_Sparrow (AIM-7F / M 230 kg, Mach 4, 70 km; AIM-7B
+    176 kg, Mach 2.5, 7 km: both UNCERTAIN, early-variant figures).
+17. designation-systems.net, "Texas Instruments AGM-88 HARM", https://www.designation-systems.net/dusrm/m-88.html
+    (AGM-88A/B/C 360 kg, Mach 2+, 150 km).
+18. designation-systems.net, "Texas Instruments AGM-45 Shrike", https://www.designation-systems.net/dusrm/m-45.html
+    (AGM-45B 177 kg, Mach 2, 40 km).
+19. designation-systems.net, "Hughes AGM-65 Maverick", https://www.designation-systems.net/dusrm/m-65.html (AGM-65A/B
+    209 kg, > 27 km, "supersonic").

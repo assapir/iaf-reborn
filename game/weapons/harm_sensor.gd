@@ -47,10 +47,10 @@ func select(key: String) -> void:
 
 ## The page snapshot (state+0xa28.., +0xde8..+0xe00): entries {key, type, az, el, selected}, the field width, the
 ## heading / pitch change since the capture (+0xdf4 / +0xdfc, wrapped to ±π), "no source" (+0xe00: no round
-## left or the sensor off) and "In Range" (+0xdf0: the HARM's DLZ, not built: false).
-func page(own_base: Vector2, rounds: int) -> Dictionary:
+## left or the sensor off) and "In Range" (+0xdf0: the selected emitter nearer than the HARM's DLZ max, FUN_00460ac0).
+func page(own_base: Vector2, rounds: int, in_range := false) -> Dictionary:
 	var out := []
 	for e in list:
 		out.append({"key": e.key, "type": e.type, "az": e.az, "el": e.el, "selected": e.key == selected})
 	return {"list": out if active else [], "field": FIELD, "dpsi": wrapf(base.x - own_base.x, -PI, PI),
-		"dtheta": wrapf(base.y - own_base.y, -PI, PI), "no_source": not active or rounds == 0, "in_range": false}
+		"dtheta": wrapf(base.y - own_base.y, -PI, PI), "no_source": not active or rounds == 0, "in_range": in_range}

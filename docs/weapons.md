@@ -10,9 +10,10 @@ HUD modes, the gun (trigger, rounds, hits, muzzle flash, sounds, LCOS / strafe p
 missiles (types 570 / 580), the bombs (500, 510 incl. the cluster bursts, 650 as a free bomb) and rockets (560) with
 the ripple quantity / interval, the mode-5 HUD (CCIP and the delayed release) and the bombs jettison (§9), the weapon
 HUD text and symbols, the stores MFD page, the FLIR pod / TV-weapon camera and the FLIR / TV / HARM MFD pages
-(docs/mfd.md; no TV / HARM weapon flies yet). The radar and its lock (the seeker slaved to it): docs/radar.md. Not
-built yet: radar missiles (no DLZ), HARM, TV weapons and the laser guidance (FLIR designation), the decoys' effect on
-missiles, the AI's weapons, AAA.
+(docs/mfd.md; no TV / HARM weapon flies yet), the radar missiles (600 AMRAAM-like, 610 Sparrow-like) with the DLZ, the
+MRM HUD sight and the semi-active rule (§11). The radar and its lock (the seeker slaved to it): docs/radar.md. Not
+built yet: HARM, TV weapons and the laser guidance (FLIR designation), the decoys' effect on missiles, ECM, the AI's
+weapons, AAA.
 
 ## 1. Data
 
@@ -503,10 +504,74 @@ missiles exist yet), ECM.
   ECM fitted: W+0xcc or a station named "ECM") jams, once, each missile of type 600 / 610 in the RWR list, not decoyed,
   still flying, with rand < 0.6 (0x600f68): its motion +0x148 = 1 (guidance off, UNCERTAIN). No effect on SAMs.
 
+## 11. Homing weapons and the radar missiles (600, 610)
+
+### 11.1 One homing motion (class 0x18)
+Every homing weapon flies the chase motion of §5.3 (`missile.gd`, launcher independent: the player's or an AI's
+`launch_homing`): 570 / 580 IR, 590 HARM, 600 / 610 radar, 620 / 630 SAMs and **635 Maverick** (the other guided
+class, 640 / 650, flies another model). Two additions over §5.3, both in `FUN_005627e0`:
+- **Release drop** (@563358): while age < `_timeRelease` (+0xb0, 0.3 s for the radar missiles) the motor is not lit;
+  the weapon only accelerates by `_absReleaseAcceleration` (+0x9c, 30 m/s²) along +0xd4, set at the start
+  (`FUN_00561ef0`) from the launcher's attitude (taken as the body's down axis: UNCERTAIN which matrix row).
+- **Guidance off** (+0x148 = 1; `FUN_00458130` → `FUN_004d8420`, ECM `FUN_004582f0`): no more steering, the motor
+  still pushes along the velocity; the overshoot end then keeps the weapon's own point.
+- **Retarget** (`FUN_005622e0`, from a decoy's `FUN_004d83c0`): a new target key; q, chase law and gain stay.
+- **Time left** (vfunc +0x80, `FUN_00468db0`): burn − age (the end time stays 1e8 for `_endType` 2 while it flies).
+Launch / flight / explosion sounds use the weapon's OST (570 OST_HEATMISSILE, 580 OST_LIMITEDHEATMISSILE, 590
+OST_HARM, 600 OST_RADARMISSILE, 610 OST_SEMIRADARMISSILE, 635 OST_MAVRICK). A missile launched at the player enters
+its RWR (`FUN_004d8130` → `FUN_0044e160`) and leaves it at its end (`FUN_004d8160`).
+
+### 11.2 DLZ (vfunc +0x74, `FUN_005624f0`)
+flown(s, t) = s·t + ½·a·(1 − 4β)·t² (`FUN_005627b0`, the motion's a = `_absAcceleration`, β = `_spiralAccelBeta`).
+burn = `_timeAcceleration` + `_timeConstVel` + `_timeDecceleration` (Real: its own burn). Without a target: [max, min]
+= [flown(|V|, burn), flown(|V|, 1 s)]. With one: max = flown(|V| − the target's speed away from the launcher, burn −
+2 s) (0x60ce78), min = flown(|V|, `_timeConstOrientation` + 2 s) (0x60ce80); both 0 when the target is 90° or more off
+the nose (acos ≥ π/2, 0x84162c) or min > max. Example, AMRAAM generation 3 (a 120, β 0.1, burn 35 s, tCO 3 s)
+head-on at 250 m/s against a 250 m/s target: **max 55.7 km, min 2.15 km**. The cockpit keeps the selected store's DLZ
+at the radar's target in S+0x348 (max) / S+0x350 (min) every frame while the radar has a lock / TWS selection or the
+HARM sensor a target (`FUN_00456520`), else the last values.
+
+### 11.3 MRM HUD sight (mode 2, `FUN_00460ea0`; HARM mode 8 `FUN_00460a90`; base `FUN_00462ab0`, `mrm_sight.gd`)
+- **Target** (vfunc +0x28): the radar's A-A lock or TWS selection (mode 8: the HARM page's selected emitter);
+  locked = vfunc +0x2c.
+- **Circle** (vfunc +0x3c `FUN_00462c10`): size 5 without a lock (×12 px, at least 10 px, at most the field's
+  extent from the HUD centre); with one, 5·(1 − (dist − min)/(max − min)) inside the DLZ, at least 5/3, and 5/3 at or
+  outside it. On the HUD centre (`FUN_00537120`). With a radar lock a caret outside it at the target's bearing
+  (state+0x4c, `FUN_0044e770`; 4 px deep, 4 px wide, at bearing + π from up: UNCERTAIN sign).
+- **Predicted point** (`FUN_00462f70`, state+0xe74): the target led by dist / 2000 s (√(dist²·2.5e-7)) at its
+  velocity; a 5×5 blob (`FUN_00536ea0`), blinking (300 ms) when held at the HUD edge.
+- **Launch** (`FUN_00457f70`): without Easy aiming the sight's target counts only when its screen point is within
+  **240 px** of the HUD centre with a lock (**60 px** without; vfunc +0x30 `FUN_00462ad0`), and q = vfunc +0x38
+  (`FUN_00463160`: 1 with the predicted point inside the circle, else R / d) **× 0.8** (v1.1); with Easy aiming any
+  target, q = 1. A target with its ECM on, against a radar seeker: q − rand. q ≥ 0.1. In the HUD-only view the
+  in-circle test uses 2·R² (the original's compare).
+- **Shoot cue** (state+0x1010, modes 1 / 2): the predicted point inside the circle, rounds left, the radar in A-A,
+  min ≤ dist ≤ max: a triangle under the target box (apex 2h − 6 px below its centre, base 2h, ±3 px). Mode 1's cue
+  from the IR seeker is not ported yet.
+- **"%2d SEC"** (HUD row 5 in modes 1, 2, 8; S+0x380): the last launched weapon's time left (`FUN_0053bec0` → its
+  motion's vfunc +0x80, clamped by `FUN_004d6ac0`: below 0 → 0, above 300 → 60).
+- **STT envelope ticks** (MFD, `FUN_00534160`): three black ticks at y 39 / 65 / 91 and the DLZ max / min as ticks
+  x 121..117 at y = 122 − ⌊v·112/(R·1853)⌋ while inside the scale (docs/mfd.md).
+- Ours: the screen offsets come from the camera ray through the HUD centre built from the camera's projection matrix
+  (Godot's `project_ray_normal` ignores the cockpit camera's frustum offset: the sight was ≈ 5° low before).
+
+### 11.4 Semi-active (610)
+A 610 launched at a target makes the radar lock it (`FUN_004ad880(2)`, STT) and joins W+0x274. The radar dropping or
+changing its track (`FUN_00458130`: Q, R, S, Return / Shift+Return, a blip click, Backspace with a lock, STT lost, any
+mode change leaving STT) turns the guidance of every 610 in the list off and empties it. Radar damage does **not**
+call it (original quirk, kept: the Sparrow keeps guiding after the radar dies). The 600 (active) never depends on the
+radar after launch.
+
+### 11.5 Validation
+`tests/godot/test_radar_missiles.gd`: the DLZ (AMRAAM example, receding target, target behind, no target), the circle,
+lead and in-circle q; per jet in mission 231 (F-16, Lavi, F-35I AMRAAM; F-15, F-4E, Kurnass 2000 Sparrows) radar lock
+of a MiG 8 km ahead, the MRM HUD (circle inside the DLZ, lead point, shoot cue, DLZ ticks), the launch, the hit, and
+Backspace dropping the Sparrow's guidance but not the AMRAAM's; Real AMRAAM 157 kg, Mach 4, 70 km.
+
 ## UNCERTAIN
 Candidate order of the spatial query; event 0x4e (pre-explosion) receiver; the bomb time-to-go speed (selector 6);
 the rockets' accelerating motion; the rocket box when empty; hit effects look; tracer look; muzzle flash
 scale / blend / cockpit visibility; the MFD page placement for weapon modes (taken as event 0x5a's rule); the missile
 flight loop sound and explosion look; `FUN_0045ee10`'s selector 0 (taken as the load factor); the snap views' camera
 type for the seeker's helmet branch (§5.4); what a missile aims at when its target is gone (`FUN_0045a180`, taken as the origin); the HUD text
-font; the store-selected box placement.
+font; the store-selected box placement; the release drop's direction (§11.1) and the MRM caret's sign (§11.3).

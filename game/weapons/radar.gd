@@ -90,6 +90,9 @@ var units: Callable
 var ground: Callable
 var own: Callable
 var on_lock: Callable
+## FUN_00458130 (the semi-active missiles lose their guidance): called where the original calls it — Q, R, S,
+## Return / Shift+Return, a click lock, Backspace with a lock, STT lost and any mode change leaving STT.
+var illumination_lost: Callable
 
 
 ## Create (FUN_004ace60) for the aircraft of bdb type `type_code`; `lrs_nm` overrides the LRS / STT
@@ -206,12 +209,16 @@ func _stt_transitions(now: float) -> void:
 			_set_mode(STT)
 		return
 	if mode == STT and not has_lock():
+		_illum()
 		_set_mode(BORE if bore_held else last_aa)
 		scan(now)
 
 
-## SetMode (FUN_004ad880): STT takes the current mode's selected record and locks it.
+## SetMode (FUN_004ad880): STT takes the current mode's selected record and locks it; leaving STT drops the
+## semi-active missiles' guidance (FUN_00458130).
 func _set_mode(m: int) -> void:
+	if mode == STT and m != STT:
+		_illum()
 	if m == STT:
 		var r := locked() if mode != TWS else _find(sel_key)
 		if r.is_empty():
@@ -222,6 +229,18 @@ func _set_mode(m: int) -> void:
 		_notify(sel_key, true)
 	mode = m
 	dirty = true
+
+
+func _illum() -> void:
+	if illumination_lost.is_valid():
+		illumination_lost.call()
+
+
+## FUN_004ad880(2) from a semi-active (610) launch with a target: the radar locks its selected record (STT).
+func lock_stt() -> void:
+	if damaged or mode == STT or not modes.has(STT):
+		return
+	_set_mode(STT)
 
 
 # --- the scan (FUN_004af300) -----------------------------------------------------------------------
@@ -438,6 +457,7 @@ func cycle_mode(now: float) -> void:
 		last_ag = MAP if last_ag == GMT else GMT
 		mode = last_ag
 	_on_tail(now)
+	_illum()
 
 
 ## R (event 0x2b, FUN_004ad8f0): A-G or off → the last A-A mode; else the last A-G mode.
@@ -454,6 +474,7 @@ func toggle_aa_ag(now: float) -> void:
 		aa = false
 		mode = last_ag
 	_on_tail(now, old)
+	_illum()
 
 
 ## The tail of Q / R: an off radar starts (lists cleared), then a scan.
@@ -477,6 +498,7 @@ func standby() -> void:
 		aa = true
 	mode = STBY
 	dirty = true
+	_illum()
 
 
 ## '.' / ',' (events 0x21 / 0x22, FUN_004adb70): range index ±1 within [1, max] (STT: none), then a scan.
@@ -511,6 +533,7 @@ func boresight(down: bool) -> void:
 func next_target(forward: bool, _now: float) -> void:
 	if damaged or mode in [OFF, STBY]:
 		return
+	_illum()  # FUN_004adbc0
 	if mode == STT:
 		_unlock()
 		return
@@ -538,6 +561,8 @@ func next_target(forward: bool, _now: float) -> void:
 
 ## Event 0x2a (FUN_004adca0, a click on a blip): lock that contact; from TWS straight to STT.
 func lock_key(key: String) -> bool:
+	if not damaged and not mode in [OFF, STBY]:
+		_illum()  # FUN_004adca0
 	var r := _find(key)
 	if r.is_empty():
 		return false
@@ -563,6 +588,7 @@ func deselect(now: float) -> void:
 		desig = Vector3.ZERO
 		return
 	_unlock()
+	_illum()
 	_stt_transitions(now)
 
 

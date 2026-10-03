@@ -306,12 +306,23 @@ func _aspect_stub(p: Vector2, c: Dictionary) -> void:
 
 ## STT text (FUN_00533db0 / FUN_00534160): "%3dK" target speed at (86,3), aspect "%2dL" / "%2dR" at
 ## (62,3), the range scale at x 121 (y 10..122) with the "<" caret at y = 115 − r·112/(R·1853) and the
-## closure "%3dK" at (111, caret + 8). (The two envelope ticks of the scale are not drawn: DLZ untraced.)
+## closure "%3dK" at (111, caret + 8); three black ticks (pen +0x5a0) at y 39 / 65 / 91 (x 117..121) and the
+## selected store's DLZ (S+0x350 min, S+0x348 max, FUN_00456520) as ticks x 121..117 at y = 122 − ⌊v·112/(R·1853)⌋
+## while 0 < 112 − ⌊v·k⌋ < 112.
 func _draw_stt_text(r: Dictionary, nm: float) -> void:
 	var lk: Dictionary = r.lock
 	_text(Vector2(86, 3), "%3dK" % int(lk.speed))
 	_text(Vector2(62, 3), aspect_text(float(lk.aspect)))
+	for ty in [39, 65, 91]:
+		_line(Vector2(117, ty), Vector2(121, ty), Color.BLACK)
 	_line(Vector2(121, 10), Vector2(121, 122))
+	var dlz: Array = r.get("dlz", [])
+	if dlz.size() == 2:
+		var k := 112.0 / (nm * 1853.0)
+		for v in [dlz[1], dlz[0]]:
+			var n := 112 - int(float(v) * k)
+			if n > 0 and n < 112:
+				_line(Vector2(121, 10 + n), Vector2(117, 10 + n))
 	var y := 115.0 - float(lk.dist) * 112.0 / (nm * 1853.0)
 	y = clampf(y, 10.0, 122.0)
 	_line(Vector2(118, y - 2), Vector2(116, y))

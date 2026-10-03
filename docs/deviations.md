@@ -57,7 +57,7 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 | Cluster opening (510) | the canister opens 1000 m above the terrain (`FUN_00463ec0`, a model change) | not drawn | visual only | weapons.md §9.5 |
 | Rocket box | drawn per FUN_0053e430 (empty box behaviour not traced) | one LAU-61 box per rocket pylon, kept when empty | UNCERTAIN | weapons.md §9.7 |
 | HUD lines and text | GDI 1 px pen, Arial h10 w5, the 5x5 sprite font, at 640x480 | the same geometry ×ui scale: lines max(1, 0.6·scale) px, Arial squeezed to the 5 px average width, sprite glyph pixels as scale-sized squares | crisp at screen resolution | cockpit.md "HUD symbology", hud.gd |
-| HUD text rows of the weapon timers | rows 4 / 5 in HUD modes 1, 2, 4, 8: "%2d SEC" / "%2d" of S+0x380, "AUD" (S+0x3a4) (mode 5's "%2d SEC" / "XX SEC" of S+0x638 is built) | left empty | the timers are not traced / built | cockpit.md "HUD symbology" |
+| HUD text rows of the weapon timers | mode 4's "%2d" of S+0x380 and "AUD" (S+0x3a4) (modes 1, 2, 8 "%2d SEC" and mode 5's "%2d SEC" / "XX SEC" are built) | left empty | mode 4's timer and AUD are not traced | cockpit.md "HUD symbology", weapons.md §11.3 |
 | HUD waypoint marker behind the eye | the projection's result (`FUN_00402000`, untraced for points behind) | held on the field's edge toward the point's direction | untraced | hud.gd `_draw_waypoint_marker` |
 | HUD NAV cues rate | S+0x58 / 0x5c / 0x60 / 0x324 refreshed when the waypoint object runs (`FUN_00452e60`, state 5; rate UNCERTAIN) | every frame | UNCERTAIN rate | hud.gd `nav_cues` |
 | Arming loads on the aircraft | both members of the flight (and every flight on Yes / DEFAULT) | the player's jet only (the tables are kept for every flight) | AI aircraft carry no stores yet | front-end.md §15 |
@@ -69,12 +69,12 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 | Mission voices and radio phrases | one phrase channel: the mission voices (`FUN_004c5470(wav, 0, 1)`) queue with the radio's word wavs | the radio queues on the phrase channel; the mission voices keep their own player (a new one replaces the old) and can overlap a radio phrase | the voice player predates the radio; the channel policy is UNCERTAIN | radio.md §1, sound.md §2 |
 | Tower: hangar −1 | `5521c0` returns −1 beyond 1000 m and the "at the hangar" test reads the entry before the table (uninitialised) | no hangar | undefined memory | radio.md §2 |
 | Decoy look | missFLR sprite (blend state not traced); chaff bursts and flare smoke once per rendered frame | the flare additive; bursts and smoke at a fixed 30 Hz | rendering; same density at any frame rate | decoy_fx.gd, weapons.md §10 |
+| Missile chasing a decoy that ended | it keeps chasing the decoy's pool object (which a later decoy of the ring reuses: UNCERTAIN) | the decoy's end point | pool reuse not traced | player_weapons.gd `target_state` |
 | Radar MAP picture | isr.bmp sampled per pixel, nearest, the centre truncated to whole isr pixels (`FUN_0053b0a0`) | the 4× isr art as a textured polygon (smooth scrolling and turning), same window, scale, centre and green channel | rendering | mfd.gd `map_picture`, mfd.md §4 |
 | EO (FLIR / TV) picture | the 3D engine's viewport 1 at the MFD's 112 × 112 screen px, colour | a SubViewport camera of the same world at the display's on-screen size (same 50° / zoom, eye, attitude, roll 0), only while page 5 / 6 shows with the cockpit drawn | rendering | mfd.md "FLIR (6), TV (5)", terrain_view.gd `_update_eo_view` |
 | EO camera eye / centre point | the store's pylon position; the depth pick of the picture's centre pixel (terrain, buildings, units) | the jet's position; the terrain under the line of sight (ray-marched, 2 % steps, 8 halvings, 100 km) | pylon offsets are metres; the pick is a renderer read-back | player_weapons.gd `_eo_update` / `ground_hit` |
 | TV page "%3d" at (111,110) | the launched weapon's motion value (vfunc +0x80, clamped) | not drawn | no TV weapon flies yet; meaning untraced | mfd.gd `_draw_tv` |
 | HARM page source | the HARM sensor (an AI target-sensor scan, ±15° cone, best 5 by 100 / distance, its own selection) | the RWR's active emitters inside the ±15° cone, nearest 5, nearest preselected; recaptured with the RWR's 2 s refresh and on a click | the AI target sensor is not built (user: use the RWR list) | harm_sensor.gd, mfd.md "HARM (10)" |
-| HARM "In Range" | distance < the HARM's DLZ max range | never (a list shows "No Range") | no HARM DLZ yet | harm_sensor.gd |
 | NAV page distance | 3-D to the waypoint | horizontal (our route has no waypoint heights) | data | mfd.gd `_draw_nav` |
 | NAV page ETA | "%02d %02d" clock time of arrival | the "ETA   :" label only | the clock source (`0x4530a0`) not traced | mfd.md NAV |
 | MAP / GMT cross-hair | drawn while the MFD owns the cursor (a click inside it first) | while the mouse is over the display | no cursor ownership in ours | mfd.gd `_cross_hair` |
@@ -148,7 +148,8 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 - Weapons (weapons.md): Shift+[ / Shift+] cycle forward like [ / ]; the IR seeker and the gun rounds take friendly
   units too; the gun rounds can step over the 25 m hit sphere; the limited-heat (580) gate is a ±60° bearing test,
   not tail aspect; the LCOS integrates with dt 0.15 at a 0.05 s gate; with the gear handle down Tab needs Safety off;
-  no "out of ammo" message or sound.
+  no "out of ammo" message or sound; radar damage does not drop the semi-active (610) missiles' guidance
+  (`FUN_004adb20` never calls `FUN_00458130`), while every track change does (weapons.md §11.4).
 - EO camera (mfd.md): zooming during a slew jumps the picture (the rates change, the slew start is kept); the FLIR
   gimbal marker is mirrored left / right (x = 66 − 56u as the code); I is not a toggle; a TV weapon before launch
   never locks on the key release.

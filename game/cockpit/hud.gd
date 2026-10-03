@@ -543,8 +543,9 @@ static func nav_cues(st: Dictionary, route: Array, index: int) -> Dictionary:
 ## (autopilot S+0x1028 1 / 2) or the load factor "+%3.1fG" (≥ 0) / "%4.1fG"; 2: "NAV" in NAV, else "%1d %s %s"
 ## (selected store total, name, RDY / MAL); 3: "R %2.1f" (radar lock range, NM) with a lock; 4: in NAV and HUD
 ## modes 2 and 4..8 "W%02d  %02.1f" (waypoint number and NM), in modes 1 / 3 the lock's aspect "%2dL" / "%2dR";
-## 5: in NAV "%3.1f MIN" below 60 minutes, in mode 5 the bomb time-to-go "%2d SEC" / "XX SEC" (≥ 90). (The
-## other weapon timers, S+0x380 / 0x3a4, are not built.)
+## 5: in NAV "%3.1f MIN" below 60 minutes, in mode 5 the bomb time-to-go "%2d SEC" / "XX SEC" (≥ 90), in modes
+## 1, 2, 8 "%2d SEC" of the last launched weapon's time left (S+0x380). (Mode 4's "%2d" and "AUD", S+0x3a4, are
+## not built.)
 static func text_block(st: Dictionary, mode: int, nav: Dictionary, wp: Dictionary, radar: Dictionary,
 		twin: bool, flags: Array) -> Array:
 	var rows := ["", "", "", "", "", ""]
@@ -587,6 +588,9 @@ static func text_block(st: Dictionary, mode: int, nav: Dictionary, wp: Dictionar
 			if ag.get("off", false):
 				var sec := int(float(ag.get("ttg", 0.0)))
 				rows[5] = "XX SEC" if sec >= 90 else "%2d SEC" % sec
+	# Modes 1, 2, 8: "%2d SEC" of S+0x380, the last launched weapon's time left (FUN_00456520).
+	if mode in [1, 2, 8]:
+		rows[5] = "%2d SEC" % int(float(wp.get("sec", 0.0)))
 	return rows
 
 
@@ -735,15 +739,36 @@ func _draw_weapons(s: float, w: float, font: Font, fs: int, gun: Vector2, dash :
 	if dash and mode >= 3 and mode <= 6:
 		return  # FUN_00530040 / FUN_005302d0 test R+0x2788
 	match mode:
-		1:
-			# SRM (FUN_00537120 / FUN_00536ff0): missile circle r = size · 12 px (min 10) on the HUD centre;
-			# the seeker diamond ±7 px, held inside the field along the line from the centre (FUN_0052db30).
-			var r := maxf(float(wp.circle) * 12.0, 10.0) * s
+		1, 2:
+			# SRM / MRM (FUN_0052ffb0 / FUN_0052ff30 → FUN_00537120): the missile circle r = size · 12 px (at least
+			# 10, at most the field's right / bottom extent from the HUD centre) on the HUD centre; with a radar lock
+			# a caret outside it at the locked target's bearing (state+0x4c; tip on the circle, 4 px deep, 4 px wide,
+			# at angle bearing + π from up, clockwise: UNCERTAIN sign of FUN_0044e770).
+			var r := minf(maxf(float(wp.circle) * 12.0, 10.0) * s, minf(size.x - _c.x, size.y - _c.y))
 			draw_arc(_c, r, 0, TAU, 48, col, w)
-			if wp.have_missiles:
+			if wp.get("bearing") != null:
+				var a: float = float(wp.bearing) + PI
+				var dir := Vector2(sin(a), -cos(a))
+				var perp := Vector2(cos(a), sin(a))
+				var base := _c + dir * (r + 4.0 * s)
+				draw_polyline(PackedVector2Array([_c + dir * r, base + perp * 2.0 * s, base - perp * 2.0 * s, _c + dir * r]), col, w)
+			if mode == 1 and wp.have_missiles:
+				# The seeker diamond ±7 px, held inside the field along the line from the centre (FUN_0052db30).
 				var d: Vector2 = _pt(waypoint_marker_point(wp.seeker, _field()))
 				var k := 7.0 * s
 				draw_polyline(PackedVector2Array([d + Vector2(0, -k), d + Vector2(k, 0), d + Vector2(0, k), d + Vector2(-k, 0), d + Vector2(0, -k)]), col, w)
+			if mode == 2 and wp.get("mrm_point") != null:
+				_draw_mrm_point(wp.mrm_point, s, w, col)
+		8:
+			# HARM (FUN_0052fef0): the seeker diamond (FUN_00536ff0, ±7 px) on the selected emitter's projection,
+			# held inside the field along the line from the HUD centre.
+			var hp = wp.get("harm_point")
+			if hp != null and camera != null and host_world_to_scene.is_valid():
+				var sp: Vector3 = host_world_to_scene.call(hp)
+				if not camera.is_position_behind(sp):
+					var d := clip_toward(_c, camera.unproject_position(sp) - position)
+					var k := 7.0 * s
+					draw_polyline(PackedVector2Array([d + Vector2(0, -k), d + Vector2(k, 0), d + Vector2(0, k), d + Vector2(-k, 0), d + Vector2(0, -k)]), col, w)
 		3, 4:
 			var pip = wp.pipper
 			var p = null
@@ -761,6 +786,23 @@ func _draw_weapons(s: float, w: float, font: Font, fs: int, gun: Vector2, dash :
 					draw_arc(p, 8 * s, 0, TAU, 24, col, w)
 		5, 6:
 			_draw_ag(wp.get("ag", {}), s, w, col)
+
+
+## The MRM's predicted target point (FUN_00536ea0, state+0xe74): a 5×5 blob of lines; clipped to the HUD
+## rectangle it blinks (300 ms phases).
+func _draw_mrm_point(p_world: Vector3, s: float, w: float, col: Color) -> void:
+	if camera == null or not host_world_to_scene.is_valid():
+		return
+	var sp: Vector3 = host_world_to_scene.call(p_world)
+	if camera.is_position_behind(sp):
+		return
+	var p := camera.unproject_position(sp) - position
+	var r := Rect2(Vector2.ZERO, size)
+	var q := Vector2(clampf(p.x, r.position.x, r.end.x), clampf(p.y, r.position.y, r.end.y))
+	if q != p and (Time.get_ticks_msec() / 300) % 2 == 1:
+		return
+	for row in [[-1, 1, -2], [-2, 2, -1], [-2, 2, 0], [-2, 2, 1], [-1, 2, 2]]:
+		draw_line(q + Vector2(row[0], row[2]) * s, q + Vector2(row[1], row[2]) * s, col, w)
 
 
 ## The mode-5 symbols (FUN_005302d0; px of the 640x480 HUD × s). P = the pipper's projection clipped
@@ -847,7 +889,18 @@ func ccip_clip(world: Vector3) -> Dictionary:
 	if Rect2(Vector2.ZERO, size).has_point(p):
 		return {"off": false}
 	var c := clip_toward(_ag_anchor(), p) + position
-	return {"off": true, "origin": camera.project_ray_origin(c), "dir": camera.project_ray_normal(c)}
+	return {"off": true, "origin": camera.project_ray_origin(c), "dir": ray_normal(camera, c)}
+
+
+## The camera's ray direction (scene, normalized) through viewport point `p`. Camera3D.project_ray_normal and
+## project_position ignore the frustum offset of the cockpit camera (PROJECTION_FRUSTUM), so the ray comes from
+## the inverse of the camera's projection matrix itself (the inverse of unproject_position).
+static func ray_normal(cam: Camera3D, p: Vector2) -> Vector3:
+	var vs := cam.get_viewport().get_visible_rect().size
+	var ndc := Vector4(p.x / vs.x * 2.0 - 1.0, 1.0 - p.y / vs.y * 2.0, 0.5, 1.0)
+	var q: Vector4 = cam.get_camera_projection().inverse() * ndc
+	var local := Vector3(q.x, q.y, q.z) / q.w
+	return (cam.global_basis.orthonormalized() * local).normalized()
 
 
 ## The target designator box (FUN_00537330): drawn with a radar lock, 15 px (10 px in GMT / MAP) at the
@@ -866,6 +919,12 @@ func _draw_target_box(s: float, w: float) -> void:
 	if not b.hostile:
 		draw_line(p - Vector2(h, h), p + Vector2(h, h), col, w)
 		draw_line(p + Vector2(-h, h), p + Vector2(h, -h), col, w)
+	# The shoot cue (state+0x1010 in HUD modes 1 / 2): a triangle under the box, apex 2h − 6 px below its centre,
+	# base 2h below, ±3 px.
+	if bool(cockpit.weapons.get("shoot", false)) and _mode() in [1, 2]:
+		var l := 2.0 * h
+		var a := p + Vector2(0, l - 6.0 * _s)
+		draw_polyline(PackedVector2Array([a, p + Vector2(3, 0) * _s + Vector2(0, l), p + Vector2(-3, 0) * _s + Vector2(0, l), a]), col, w)
 
 
 ## The box: {p (HUD px), h (half size), edge (held at the HUD edge), hostile}; {} without a lock.
