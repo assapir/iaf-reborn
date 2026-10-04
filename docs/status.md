@@ -1,10 +1,10 @@
 # Status — 2026-10-02
 
 ## Where we are
-- **Playable missions: 55 of 68 by the coverage report** (every feature they need is built; docs/mission-coverage.md).
+- **Playable missions: 56 of 68 by the coverage report** (every feature they need is built; docs/mission-coverage.md).
   Flown end to end: 311, 312, 315 (bombing). Checked in part: 313 / 322 ground fire; 134 (Delta flight dive-bombs and
   destroys both P-40 radars) and 406 (the AI wingman destroys its target) — the player's own targets there were not
-  flown. Left: multiplayer (8), brain-driven vehicles (2), night (214), motion op 5 (224), trigger op 1 (215).
+  flown. Left: multiplayer (8), brain-driven vehicles (2), motion op 5 (224), trigger op 1 (215).
 - **Flyable jets: all seven of the Jet list** — F-15, F-16, F-4E, F-4 Kurnass 2000, Lavi, Kfir, Mirage (Jet list or a
   mission's jet; docs/aircraft.md §5). The MiGs are AI-only, as in the original; a mission whose player jet is another
   type flies it as the F-16.
@@ -100,7 +100,7 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 - **Sounds**: AI / moving-unit sounds (AI jets fly silently), Betty "Pull up"; the RWR's wait for something to
   lock the player (docs/sound.md §5).
 - **Front end**: Reference screen content (docs/front-end.md §14), TSD 3D-model / target
-  windows; Graphics prefs: SHADOWS not limited to the day (no time of day yet), no terrain resolution drop
+  windows; Graphics prefs: no terrain resolution drop
   (docs/deviations.md §1); No wind / No malfunctions have no reader in the original either.
 - **Eject details**: parachute landing.
 

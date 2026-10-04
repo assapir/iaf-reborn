@@ -1099,7 +1099,7 @@ engine camera = (eye, p, y, 0)             (FUN_004021d0, vtable +0x60)
   2000 m. Cost (Iris Xe, 1920×1080): 0.15 ms GPU, see docs/rendering.md.
 * **Port of the rest:** TERRAIN DETAIL drives our mesh LOD by the tables' ratios (formats/ptt.md); the reduced
   terrain render resolution of levels 1–3 and the 21–31 km view distance are not ported (performance measures of
-  1998; deviations.md). SHADOWS: Godot sun shadows on / off, not limited to the day (no time of day yet).
+  1998; deviations.md). SHADOWS: Godot sun shadows on / off, only 08:00–17:00 as the original (docs/rendering.md §4).
   Test: `tests/godot/test_graphics_prefs.gd`.
 
 ### 12.5 Sound page (paint `513540`, click `513d40`, drag `5144b0`, DEFAULT `513c70`)

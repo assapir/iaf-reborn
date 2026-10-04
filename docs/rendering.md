@@ -49,8 +49,8 @@ horizon's: the fog over the ground takes it (before: a dark "ground" colour, a b
 (0.53°) has a crisp edge (its angle from the chord: `cos` near 1 lost the disc in float precision before) and a
 narrow glare (e-folding 1.5°). The cloud layer (Graphics TEXTURED SKY, the original's) maps its texture's alpha
 0.3–0.9 to 0–1 with this sky: separate clouds with clear sky between them rather than a grey veil over the
-whole sky; with the nearly opaque Cloud256_5 (one mission in six) it stays overcast. No time of day yet: the sun is
-our fixed light (30° up), the sky follows `LIGHT0_DIRECTION`.
+whole sky; with the nearly opaque Cloud256_5 (one mission in six) it stays overcast. The sun is the original's by the time of day (§4); the sky
+follows `LIGHT0_DIRECTION`.
 
 Not AI upscaling anywhere; the art pipeline stays 4× Lanczos. The canopy frame and the HUD are the 2D cockpit
 art, so the 3D anti-aliasing does not touch them.
@@ -106,10 +106,15 @@ Terrain close up ≈ +0.5–1.5 ms near the ground (16× anisotropic filtering i
 only when the altitude step changes). Screenshots of each pose are written by the bench
 (`BENCH_SEED=3` for the broken-cloud texture Cloud256_0 instead of the overcast Cloud256_5).
 
-## 4. Time of day (traced, not built)
+## 4. Time of day (built: game/terrain/time_of_day.gd)
 
-The original's day / night rendering, for when night gets built (only mission 214 starts at night by these rules; 112,
-237, 515 start at 05:xx, which is dawn). Not built: the sun is still our fixed light.
+The original's day / night rendering (only mission 214 starts at night by these rules; 112, 237, 515 start at 05:xx,
+which is dawn). Port: the time of day = the mission start 0x460 + the mission clock (11:00 without a mission); once a
+sim second the sun node's direction and colour, the ambient factor (Godot ambient energy = factor / 0.6), the gradient
+sky's top colour, SHADOWS only 08:00–17:00, the cloud layer tinted (20, 20, 60) at night (white by day: its day value is
+not traced), no sun disc at night, and at night the atmospheric sky (Extras) falls back to the gradient one; every frame
+the fog / horizon colour by the view's heading (B → C → D). The terrain is lit by the sun node rather than pre-lit with
+the light colour (UNCERTAIN match). The cockpit darkening: game/cockpit/cockpit.gd `night` (docs/cockpit.md).
 
 - **Clock.** `FUN_004dbe00` every frame: the clock (`FUN_004cf8c0`, s) × 1000 = ms since midnight → renderer vtable
   +0x64 `FUN_00405020` → `FUN_00407c70` (TerrainType=Stream, the shipped tgen.ini) or `FUN_00407ba0`. The briefing

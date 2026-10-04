@@ -395,7 +395,9 @@ pasted over the panel, not the bare panel art.** (Cyan pixels in it stay transpa
 * **Night** (`FUN_0052df40`, applied once when the bitmap is loaded): hour = t·0.001/60/60, with t = the time-of-day argument
   of `FUN_0051ea20` (`FUN_004d8eb0`: the clock `FUN_004cf8c0` in seconds × 1000, ms since midnight). It is night if **20 ≤ hour < 24
   or 0 ≤ hour ≤ 5.0** on the fractional hour (05:30 is not night). Three callers: the panel, the lights bitmap, the HUD glass;
-  nothing else in the cockpit (HUD symbology, MFDs) changes at night. At night every non-colour-key pixel of the 16-bit surface is darkened per channel: **R >>= NightRScale,
+  nothing else in the cockpit (HUD symbology, MFDs) changes at night. Port: cockpit.gd `night` (set once at the
+  start, terrain_view.gd), the shifts as a draw modulate 2^−shift per channel on the panel, the HUD glass and the
+  lights bitmap. At night every non-colour-key pixel of the 16-bit surface is darkened per channel: **R >>= NightRScale,
   G >>= NightGScale, B >>= NightBScale** (the values are shift counts, `FUN_0052ddc0`). The panel (`[PANEL] Night*Scale`, R+0x20f0)
   and the HUD glass bitmap (`FUN_00528eb0`) are darkened the same way with the panel values. Note: the surface-lost reload paths
   call `FUN_0051ea20(cockpit, 0)`, i.e. hour 0, which is night (UNCERTAIN quirk).

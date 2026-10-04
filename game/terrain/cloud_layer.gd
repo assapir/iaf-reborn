@@ -29,6 +29,7 @@ uniform bool at_far;  // the dome (from below)
 // The texture's alpha mapped from this range to 0..1: (0, 1) = the original's; the atmospheric sky's (0.3, 0.9)
 // separates the clouds with clear sky between them instead of a grey veil over the whole sky.
 uniform vec2 alpha_range = vec2(0.0, 1.0);
+uniform vec3 tint = vec3(1.0);  // the cloud-layer colour (renderer +0x54): 0xFF14143C at night
 void vertex() {
 	// The dome at the far plane (reverse Z: depth 0): behind every terrain point, as the original cuts it at
 	// the terrain's far horizon (FUN_0041dc30 → +0x1098, v1.1) and fills the gap up to it at the dome's depth.
@@ -41,7 +42,7 @@ void vertex() {
 void fragment() {
 	vec2 uv = (UV2.x * UV + offset) * scale;
 	vec4 t = texture(tex, uv);
-	ALBEDO = COLOR.rgb * t.rgb;
+	ALBEDO = COLOR.rgb * t.rgb * tint;
 	ALPHA = clamp((t.a - alpha_range.x) / (alpha_range.y - alpha_range.x), 0.0, 1.0);
 }
 """
@@ -132,6 +133,12 @@ func _ring_mesh(edges: Array, flat: bool) -> MeshInstance3D:
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.extra_cull_margin = 16384.0
 	return mi
+
+
+## The cloud layer's colour (FUN_00407920 → renderer +0x54): (20, 20, 60) at night; by day white (its day value is
+## not traced: UNCERTAIN).
+func set_tint(c: Color) -> void:
+	_mat.set_shader_parameter("tint", Vector3(c.r, c.g, c.b))
 
 
 ## Extras Sky: Atmospheric (render_options.gd): the clouds separated, clear sky between them.

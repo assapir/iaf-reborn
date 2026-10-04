@@ -43,6 +43,7 @@ var brakes := false
 ## only, free look, padlock, snaps); setting it picks the cockpit (F1's choice) or the chase view (F10).
 const Views := preload("res://terrain/views.gd")
 const RenderOptions := preload("res://terrain/render_options.gd")
+const TimeOfDay := preload("res://terrain/time_of_day.gd")
 const VehicleParts := preload("res://mission/vehicle_parts.gd")
 var views: RefCounted = Views.new()
 var in_cockpit: bool:
@@ -165,6 +166,12 @@ var effects: Node3D
 var player_damage: RefCounted
 ## The cloud layer (game/terrain/cloud_layer.gd); null with Graphics TEXTURED SKY off.
 var clouds: Node3D
+## The time of day's state (docs/rendering.md §4): the last applied sim time, the sun, the table colours.
+var _tod_t := -INF
+var _tod_sun := {}
+var _tod_colors := {}
+var _tod_cockpit_set := false
+var _tod_atmo = null  # the sky RenderOptions applied (atmospheric or not), null = not yet
 ## The smoke trails (game/mission/trails.gd); null with Graphics SMOKE TRAILS off.
 var trails: Node3D
 ## The player's jet was fatally hit (unit state 3, FUN_004a8100): controls gone, going down.
@@ -293,6 +300,60 @@ func apply_render_options() -> void:
 	RenderOptions.apply(get_viewport(), ($WorldEnvironment as WorldEnvironment).environment)
 	if clouds != null:
 		clouds.set_atmospheric(Settings.sky == "atmospheric")
+	_tod_t = -INF
+	_tod_atmo = Settings.sky == "atmospheric"
+
+
+## The time of day (s since midnight): the mission's start time (misc 0x460) + the mission clock; without a mission
+## 11:00 (the briefing preview's fixed time, FUN_00405070).
+func time_of_day() -> float:
+	if runtime != null:
+		return float(runtime.misc.get("0x460", 39600.0)) + runtime.now
+	return 39600.0 + _sim_time
+
+
+## The original's day / night (FUN_00407920, docs/rendering.md §4), refreshed once a sim second (the stream path
+## refreshes after 60 s): the sun's direction and colour (no sun disc at night), the ambient factor, the gradient
+## sky's colours from defcolorset.tcs, SHADOWS only 08:00–17:00; at night the atmospheric sky (Extras) gives way to
+## the gradient one. The fog colour follows the view's heading every frame (horizon B toward the sun → C → D).
+func _update_time_of_day(cam: Camera3D) -> void:
+	var env: Environment = ($WorldEnvironment as WorldEnvironment).environment
+	var t := time_of_day()
+	if not _tod_cockpit_set and (runtime != null or mission_id < 0):
+		# The cockpit's night, once at the start (FUN_004d8eb0 at load: the mission's start time).
+		_tod_cockpit_set = true
+		cockpit.night = TimeOfDay.cockpit_night(t)
+	if absf(t - _tod_t) >= 1.0:
+		_tod_t = t
+		_tod_sun = TimeOfDay.sun(t)
+		_tod_colors = TimeOfDay.colors(fposmod(t, 86400.0) / 60.0)
+		var sun := $Sun as DirectionalLight3D
+		var d: Vector3 = _tod_sun.dir
+		var sd := Vector3(d.x, d.z, -d.y)
+		sun.basis = Basis.looking_at(sd, Vector3.UP if absf(sd.y) < 0.99 else Vector3.FORWARD)
+		sun.light_color = _tod_sun.color
+		sun.sky_mode = DirectionalLight3D.SKY_MODE_LIGHT_ONLY if _tod_sun.night else DirectionalLight3D.SKY_MODE_LIGHT_AND_SKY
+		sun.shadow_enabled = Settings.shadows and _tod_sun.shadows
+		env.ambient_light_energy = float(_tod_sun.ambient) / 0.6
+		if clouds != null:
+			clouds.set_tint(TimeOfDay.NIGHT_LIGHT if _tod_sun.night else Color.WHITE)
+		var atmo: bool = Settings.sky == "atmospheric" and not _tod_sun.night
+		if atmo != _tod_atmo:
+			_tod_atmo = atmo
+			RenderOptions._apply_sky(env, atmo)
+		var mat = env.sky.sky_material if env.sky != null else null
+		if mat is ProceduralSkyMaterial and not _tod_colors.is_empty():
+			mat.sky_top_color = _tod_colors.sky
+	if cam == null or _tod_sun.is_empty():
+		return
+	var f: Vector3 = -cam.global_basis.z
+	var fog := TimeOfDay.fog(_tod_colors, rad_to_deg(atan2(f.x, -f.z)), float(_tod_sun.sun_az))
+	env.fog_light_color = fog
+	var mat2 = env.sky.sky_material if env.sky != null else null
+	if mat2 is ProceduralSkyMaterial:
+		mat2.sky_horizon_color = fog
+		mat2.ground_horizon_color = fog
+		mat2.ground_bottom_color = fog
 
 
 ## The cameras start in the cockpit (`--external`: chase; `--orbit yaw pitch dist`: the chase camera's orbit
@@ -1895,8 +1956,8 @@ func close_front_end() -> void:
 ## Preferences the flight reads while flying (the in-flight page has no Gameplay tab).
 func _apply_preferences() -> void:
 	preload("res://audio/sound_buses.gd").apply()
-	($Sun as DirectionalLight3D).shadow_enabled = Settings.shadows
 	apply_render_options()
+	_tod_t = -INF  # the sun, sky and SHADOWS again
 	g_effects.disabled = Settings.no_blackouts
 
 
@@ -2040,6 +2101,7 @@ func _process(delta: float) -> void:
 	_apply_view()
 	if clouds != null and get_viewport().get_camera_3d() != null:
 		clouds.update_view(get_viewport().get_camera_3d().global_position, delta)
+	_update_time_of_day(get_viewport().get_camera_3d())
 	if get_viewport().get_camera_3d() != null:
 		RenderOptions.update_view(($WorldEnvironment as WorldEnvironment).environment,
 				get_viewport().get_camera_3d().global_position, terrain)

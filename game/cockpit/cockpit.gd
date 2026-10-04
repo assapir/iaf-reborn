@@ -108,6 +108,19 @@ var dir := ""
 @onready var hud: Control = $Hud
 
 
+## Night (FUN_0052df40, applied once at load in the original): the panel and the HUD glass are darkened by the [PANEL]
+## Night*Scale shifts, the lights bitmap by [LIGHTSON]'s (R >>= shift per channel of the 16-bit art: ×2^−shift here).
+var night := false
+
+
+func _night_mod(section: String) -> Color:
+	if not night:
+		return Color.WHITE
+	var p: Dictionary = layout.get(section, {})
+	return Color(pow(2.0, -float(p.get("NightRScale", 0))), pow(2.0, -float(p.get("NightGScale", 0))),
+		pow(2.0, -float(p.get("NightBScale", 0))))
+
+
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -424,7 +437,7 @@ func _draw() -> void:
 		var tl := panel_to_screen(0, 0)
 		var art_scale: float = layout.get("image_scale", 1)
 		var width: float = tex.PANEL.get_width() / art_scale
-		draw_texture_rect(tex.PANEL, Rect2(tl, Vector2(width, p.PanelHeight) * s), false)
+		draw_texture_rect(tex.PANEL, Rect2(tl, Vector2(width, p.PanelHeight) * s), false, _night_mod("PANEL"))
 
 	_draw_lights(s)
 	_draw_panel_rwr(s)
@@ -463,7 +476,7 @@ func _draw() -> void:
 		var h: Dictionary = layout.HUD
 		var w: float = h.Width * s
 		var hh: float = h.Height * s
-		draw_texture_rect(tex.HUD, Rect2(size.x / 2 - w / 2, panel_top() - hh, w, hh), false)
+		draw_texture_rect(tex.HUD, Rect2(size.x / 2 - w / 2, panel_top() - hh, w, hh), false, _night_mod("PANEL"))
 
 
 ## Chaff / flare counters (FUN_0052eab0): "%03d" of stores stations 10 / 11 at [CHAFF] / [FLARE]
@@ -538,7 +551,7 @@ func draw_rwr_symbols(ci: CanvasItem, centre: Vector2, radius: float, s: float) 
 		var off := rwr_offset(e.pos, own, hdg, radius)
 		var src := Rect2(0, RWR_GLYPH[int(e.type)], 10, 10)
 		ci.draw_texture_rect_region(tex.RWRSYMB, Rect2(centre + (off - Vector2(5, 5)) * s, Vector2(10, 10) * s),
-				Rect2(src.position * a, src.size * a))
+				Rect2(src.position * a, src.size * a), _night_mod("LIGHTSON"))
 
 
 ## An emitter's symbol centre from the dial centre (FUN_00531470 @53160d): heading-up, 37060 m = radius, the
