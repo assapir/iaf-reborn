@@ -78,6 +78,8 @@ last hitter (cleared 5 s later); **+0x88 current waypoint index**; +0xd8 in a su
   unit's brain runs, its manoeuvres do nothing** (targeting, weapons, voice, sub-brains still work). The mover is
   installed only for a unit that gets a brain: an unarmed ground unit gets none, so a BRAIN-controlled unarmed vehicle
   (116's, 324's) just stands (UNCERTAIN, from the research of `FUN_004a9100`'s callers).
+  The mover goes by control mode, not class: the transports (class 3: C-130, IL-76) fly too (`ai_flights.gd`; before,
+  only class 0x1c did, and 237's C-130 hung in the air in the player's path).
 - **reset `FUN_0043eef0`**: clears the tick flags, +0x48..+0x50, +0x58..+0x64, +0x68, +0x70, +0x7c..+0x84 (not +0x6c,
   not +0x88); +0x78 = 480; leader +0x44 = `getWingman(e)` (`FUN_005bcb90`), else the formation leader unless that is
   e; +0x74 = the member target; the target selector per class; +0x38 = period; if not yet scheduled, schedules the

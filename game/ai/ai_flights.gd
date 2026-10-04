@@ -11,6 +11,7 @@ const Gltf := preload("res://util/gltf.gd")
 const Terrain := preload("res://terrain/terrain.gd")
 const MissionRuntime := preload("res://mission/mission_runtime.gd")
 const CLASS_AIRCRAFT := 0x1c
+const CLASS_TRANSPORT := 3
 ## FUN_004a9100: the FM start velocity (200, 200, 0) → 282.84 m/s along the heading.
 const START_SPEED := 282.842712
 
@@ -96,7 +97,9 @@ func setup(h: Node, rt: Node, bdb: Dictionary, files: Array) -> void:
 	var planes: Dictionary = AircraftModel.index()
 	var install := Settings.assets_dir().path_join("install")
 	for ent in runtime.entities.values():
-		if ent.player or ent.control != 1 or ent.klass != CLASS_AIRCRAFT:
+		# Activation (FUN_004a9100) gives every BRAIN-controlled unit the FM mover, by control mode, not class: the
+		# transports (class 3: C-130, IL-76) fly as the jets do.
+		if ent.player or ent.control != 1 or not ent.klass in [CLASS_AIRCRAFT, CLASS_TRANSPORT]:
 			continue
 		var obj: Dictionary = objects.get(ent.type, {})
 		var pr: Dictionary = present.get(int(obj.get("0x53c", -1)), {})
