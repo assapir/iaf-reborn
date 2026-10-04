@@ -133,6 +133,14 @@ func setup(host_node: Node, entity: Dictionary, object: Dictionary, bdb: Diction
 	stores.weight_fix = bool(Settings.better.get("fix_stores_weight", false))
 	stores.unlimited = Settings.unlimited_ammo
 	stores.setup(_arm(Stores.loadout(entity, object), entity), db, desc, _pilon_of, jet_type)
+	# The selection starts on a loaded station: the first loaded pylon, else the gun. On an empty station '[' never
+	# cycles (an empty type counts as "not AA" in NAV, master.rs ag_key_cycles), so 315's bombs were unreachable.
+	# UNCERTAIN: the original's initial selection (its store setup FUN_0053b580 is not fully read).
+	if stores.station(stores.cur).is_empty():
+		for i in range(0, 10):
+			if not stores.station(i).is_empty() and int(stores.station(i).get("count", 0)) > 0:
+				stores.cur = i
+				break
 	easy_aiming = Settings.easy_aiming
 	gun = GunRounds.new()
 	var gm: Dictionary = db.motion_for(Stores.GUN, 0).duplicate()
