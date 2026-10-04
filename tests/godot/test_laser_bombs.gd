@@ -27,42 +27,15 @@ func run() -> void:
 
 
 func _case(tv, name: String, shots: bool) -> void:
-	tv.frozen = true
-	tv.fm_stopped = true
-	tv.gear_down = false
-	tv.rig.position.y += 3000.0
-	var st0: Dictionary = tv.flight.state()
-	tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, st0.position, st0.heading,
-			0.0, 0.0, st0.forward * 250.0, true, true, false)
-	var w = tv.weapons
-	var hp := [MK82L, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, FLIR, 1, 25, 235, 33, 90, 34, 60]
-	var w2 = load("res://weapons/player_weapons.gd").new()
-	tv.add_child(w2)
-	var bdb: Dictionary = tv.mission_bdb
-	w2.setup(tv, {"armament": {"hardpoints": hp}}, tv._player_object(bdb), bdb, w.descriptor)
-	tv.weapons = w2
-	tv.cockpit.hud.host_world_to_scene = w2.to_scene
-	w.queue_free()
-	w = w2
+	var w = airborne_case(tv, [MK82L, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, FLIR, 1, 25, 235, 33, 90, 34, 60])
 	var t := 1.0
-	var site := {}
-	for e in tv.runtime.entities.values():
-		if site.is_empty() and not e.player and e.node != null and int(e.get("klass", -1)) in [8, 9, 10] and int(e.get("state", 1)) == 1:
-			site = e
+	var site := _ground_unit(tv)
 	check(not site.is_empty() and w.flir_pod, "%s: a ground unit, the FLIR pod fitted" % name)
 	if site.is_empty():
 		return
-	for e in tv.runtime.entities.values():
-		if e != site and not e.player:
-			e.visible = false
 	var o: Dictionary = w.own()
 	var flat := Vector3(o.fwd.x, o.fwd.y, 0).normalized()
-	var p: Vector3 = o.pos + flat * 6000.0
-	var g = tv.terrain.height_at(w.to_scene(Vector3(p.x, p.y, 0)))
-	p.z = float(g) if g != null else 0.0
-	site.world = p
-	site.alt = p.z
-	tv.mission_entity_moved(site)
+	var p := _place(tv, w, site, o, 6000.0)
 	w.update(t)
 	w.nav_key(0)
 	w.stores.cur = 0
@@ -121,16 +94,3 @@ func _release(w, t: float) -> void:
 	w.fire_selected()
 	w.update(t + 0.01)
 	w.release_selected()
-
-
-## A real-render capture (only without --headless): SHOT_DIR.
-func _save(file: String) -> void:
-	if DisplayServer.get_name() == "headless":
-		return
-	var dir := OS.get_environment("SHOT_DIR")
-	if dir == "":
-		return
-	await RenderingServer.frame_post_draw
-	var img: Image = root.get_viewport().get_texture().get_image()
-	if img != null and not img.is_empty():
-		img.save_png(dir.path_join(file))

@@ -6,21 +6,6 @@
 extends "res://../tests/godot/base.gd"
 
 
-func set_key(k: Key, down: bool) -> void:
-	var e := InputEventKey.new()
-	e.keycode = k
-	e.physical_keycode = k
-	e.pressed = down
-	Input.parse_input_event(e)
-	Input.flush_buffered_events()
-
-
-func fly(tv: Node, seconds: float) -> void:
-	var t0: float = tv._sim_time
-	while tv._sim_time - t0 < seconds:
-		await process_frame
-
-
 func run() -> void:
 	var tv = await start_mission(312)
 	await frames(3)

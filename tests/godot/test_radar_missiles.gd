@@ -108,7 +108,7 @@ func _shot_case(tv, name: String, wid: int, shots: bool) -> void:
 		await frames(2)
 		tv.views.set_cockpit(tv.views.COCKPIT)
 		await frames(2)
-		await _save(tv, "radar_missile_hud.png")
+		await _save("radar_missile_hud.png")
 	w.fire_selected()
 	w.release_selected()
 	check(w.missiles.size() == 1 and w.missiles[0].has_target and w.missiles[0].target_key == mig.key, "%s: launched at the locked MiG" % name)
@@ -120,7 +120,7 @@ func _shot_case(tv, name: String, wid: int, shots: bool) -> void:
 		w.update(t)
 		if shots and i == 30:
 			await frames(2)
-			await _save(tv, "radar_missile_flight.png")
+			await _save("radar_missile_flight.png")
 		if w.missiles.is_empty():
 			break
 	check(w.missiles.is_empty() and (mig.damage > 0.0 or mig.state != 1), "%s: the missile hit (damage %.2f)" % [name, mig.damage])
@@ -144,16 +144,3 @@ func _shot_case(tv, name: String, wid: int, shots: bool) -> void:
 			t += 0.05
 			w.update(t)
 			check(w.missiles[-1].guidance_off == semi, "%s: Backspace: guidance %s" % [name, "off" if semi else "kept"])
-
-
-## A real-render capture (only without --headless): SHOT_DIR (the scratch folder of the weapons job by default).
-func _save(_tv, file: String) -> void:
-	if DisplayServer.get_name() == "headless":
-		return
-	var dir := OS.get_environment("SHOT_DIR")
-	if dir == "":
-		return
-	await RenderingServer.frame_post_draw
-	var img: Image = root.get_viewport().get_texture().get_image()
-	if img != null and not img.is_empty():
-		img.save_png(dir.path_join(file))

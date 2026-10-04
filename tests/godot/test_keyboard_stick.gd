@@ -7,15 +7,6 @@ extends "res://../tests/godot/base.gd"
 const DT := 1.0 / 60.0
 
 
-func set_key(k: Key, down: bool) -> void:
-	var e := InputEventKey.new()
-	e.keycode = k
-	e.physical_keycode = k
-	e.pressed = down
-	Input.parse_input_event(e)
-	Input.flush_buffered_events()
-
-
 func tap_peak_g(tv: Node, real: bool, seconds: float) -> float:
 	var install: String = Settings().assets_dir().path_join("install")
 	tv.flight.start(install, "F-16", Vector3(0, 3048, 0), 0.0, 0.0, 0.0, Vector3(0, 0, -180.06), true, true, real)

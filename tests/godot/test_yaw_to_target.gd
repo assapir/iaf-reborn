@@ -52,13 +52,6 @@ func run() -> void:
 	check(absf(wrapf(float(boat.heading) - rad_to_deg(atan2(d.x, d.y)), -180.0, 180.0)) < 1e-3, "233 speedboat 3 faces its target")
 
 
-func _named(rt, name: String) -> Dictionary:
-	for e in rt.entities.values():
-		if e.name == name:
-			return e
-	return {}
-
-
 func _step(rt, secs: float) -> void:
 	for i in int(secs / 0.05):
 		rt._process(0.05)

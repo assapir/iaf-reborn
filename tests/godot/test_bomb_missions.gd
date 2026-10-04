@@ -37,17 +37,17 @@ func run() -> void:
 		while int(tgt.state) < 4 and w.stores.total(500, w.stores.current_name()) > 0 and tries < 3:
 			tries += 1
 			used += 1
-			_start_over(rt._world_of(tgt))
+			start_over(tv, w, rt._world_of(tgt), vel_scene, tv.player.fm_section)
 			for k in 3:
 				w.update(t)
 				var d: Vector3 = rt._world_of(tgt) - w.ag.impact
 				tv.rig.position += Vector3(d.x, 0, -d.y)
 			w.update(t)
 			w.fire_selected()
-			_fly(0.05)
+			t = fly_step(tv, w, vel_scene, t, 0.05)
 			w.release_selected()
 			for k in 800:
-				_fly(0.05)
+				t = fly_step(tv, w, vel_scene, t, 0.05)
 				if w.bombs.is_empty():
 					break
 		print("target %s: state %d after %d bomb(s)" % [tgt.name, tgt.state, tries])
@@ -63,18 +63,3 @@ func run() -> void:
 	var sensor: Array = rt.entities.values().filter(func(e): return e.name == "Start motion sensor")
 	check(sensor.size() == 1 and int(sensor[0].role) == 2, "the Start motion sensor is neutral (role 2)")
 	check(rt.passed, "mission passed")
-
-
-func _start_over(ground_pt: Vector3) -> void:
-	var g = tv.mission_ground(ground_pt)
-	var sp: Vector3 = tv.world_to_scene(Vector3(ground_pt.x, ground_pt.y, float(g if g != null else 0.0) + 1000.0))
-	tv.rig.position = sp
-	tv.rig.basis = Basis()
-	tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, sp, 0.0, 0.0, 0.0, vel_scene, true, true, false)
-	w._push_stores()
-
-
-func _fly(dt: float) -> void:
-	tv.rig.position += vel_scene * dt
-	t += dt
-	w.update(t)

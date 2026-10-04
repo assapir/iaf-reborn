@@ -38,10 +38,3 @@ func _said(tv, text: String) -> bool:
 		if text in line.to_lower():
 			return true
 	return false
-
-
-func seconds(s: float) -> void:
-	var t := Time.get_ticks_msec()
-	while Time.get_ticks_msec() - t < s * 1000.0:
-		await process_frame
-

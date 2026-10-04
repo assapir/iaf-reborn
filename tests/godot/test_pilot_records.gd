@@ -15,7 +15,7 @@ func type_text(rec, s: String) -> void:
 		rec._unhandled_input(e)
 
 
-func click(p: Vector2, double := false) -> void:
+func click_rec(p: Vector2, double := false) -> void:
 	var at: Vector2 = fe._to_screen(p)
 	fe.records._gui_input(mouse_button(at, true, double))
 	fe.records._gui_input(mouse_button(at, false))
@@ -46,10 +46,10 @@ func run() -> void:
 	check(rec.data.pilots.size() == 2 and rec.data.selected == 1 and rec.data.current().id == 15, "New_Pilot: blank pilot id 15 selected")
 	check(not rec.login() and ok_box(), "Login with an empty name -> msg box")
 	var page: Vector2 = rec.CONTENT + rec.PAGE
-	click(page + rec.NAME_BOX.get_center())
+	click_rec(page + rec.NAME_BOX.get_center())
 	type_text(rec, "Ace!Pilot#1234567")
 	check(rec.edit[0] == "AcePilot12", "name: only space . 0-9 a-z A-Z, at most 10 characters (%s)" % rec.edit[0])
-	click(page + rec.CALL_BOX.get_center())
+	click_rec(page + rec.CALL_BOX.get_center())
 	check(rec.focus == 1 and rec.data.current().name == "AcePilot12", "focus to the callsign box writes the name")
 	type_text(rec, "default")
 	check(not rec.login() and ok_box(), "a callsign another pilot has -> msg 0x1b")
@@ -59,7 +59,7 @@ func run() -> void:
 		bs.keycode = KEY_BACKSPACE
 		rec._unhandled_input(bs)
 	type_text(rec, "viper")
-	click(page + rec.PHOTO.get_center())
+	click_rec(page + rec.PHOTO.get_center())
 	check(rec.photo == 1, "a click on the photo shows the next one")
 	check(rec.login() and Settings().pilot_id == 15 and Settings().pilot_name == "AcePilot12" \
 		and Settings().pilot_callsign == "viper" and Settings().pilot_rank == "Second Lieutenant", "Login sets the pilot and rank")
@@ -148,7 +148,7 @@ func run() -> void:
 	check(rec.data.pilots.size() == 1 and fe.msgbox == null, "the last pilot cannot be removed")
 
 	# A double-click on the selected pilot logs in and goes to Main.
-	click(rec.LIST + rec.ITEMS.position + Vector2(10, 5), true)
+	click_rec(rec.LIST + rec.ITEMS.position + Vector2(10, 5), true)
 	await frames(60)
 	check(fe.screen == "main" and Settings().pilot_id == 14, "double-click logs in -> Main")
 	Settings().pilot_id = -1

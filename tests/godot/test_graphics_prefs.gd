@@ -6,12 +6,6 @@
 extends "res://../tests/godot/base.gd"
 
 
-func seconds(s: float) -> void:
-	var t := Time.get_ticks_msec()
-	while Time.get_ticks_msec() - t < s * 1000.0:
-		await process_frame
-
-
 func run() -> void:
 	var FX: GDScript = load("res://mission/damage_effects.gd")
 	check(FX.effects_level(0.0) == 1 and FX.effects_level(0.5) == 2 and FX.effects_level(1.0) == 3, "effects level 1 + 2·slider")

@@ -44,12 +44,6 @@ func send(tv: Node, k: Key, ctrl := false, alt := false) -> void:
 	tv._unhandled_input(e)
 
 
-func wait_sim(tv: Node, s: float) -> void:
-	var t0: float = tv._sim_time
-	while tv._sim_time - t0 < s:
-		await process_frame
-
-
 var _r: Node
 var _t := 0.0
 
@@ -152,7 +146,7 @@ func run() -> void:
 	# --- in flight: the tower at a hangar (313, Ramat David), Hebrew mode keeps the data's text ------
 	Settings().language = "he"
 	var tv = await start_mission(313)
-	await wait_sim(tv, 2.5)
+	await fly(tv, 2.5)
 	var line := "Alpha, good morning, taxi to runway 27"
 	check(texts(tv.radio).has(line), "313 at the hangar: %s" % line)
 	check(console_has(tv, line), "the subtitle is in the console (Hebrew mode: the data's English text)")
@@ -160,25 +154,25 @@ func run() -> void:
 		check(tv.sounds.played.has(w), "spoken: %s" % w)
 	n = tv.radio.said.size()
 	send(tv, KEY_T, true)
-	await wait_sim(tv, 2.0)
+	await fly(tv, 2.0)
 	check(tv.radio.said.size() == n and not tv.sounds.played.has("kch2.wav"), "Ctrl+T on the ground at the base: no answer (the tower talks by itself)")
 	Settings().language = "en"
 
 	# --- 211: lined up on Ramat David's runway 27; the wingman still on the ground says negative -----
 	tv = await start_mission(211)
-	await wait_sim(tv, 2.5)
+	await fly(tv, 2.5)
 	check(texts(tv.radio).has("Alpha, clear to take-off"), "211 at the lineup: clear to take-off")
 	var me: Dictionary = tv.runtime.player_entity()
 	var wing: Dictionary = tv.ai.partner_of(me)
 	check(not wing.is_empty() and wing.has("pilot") and tv.ai.on_ground(wing), "the wingman is an AI jet on the ground")
 	send(tv, KEY_C, false, true)
 	check(console_has(tv, "Close formation."), "Alt+C: the pilot says close formation")
-	await wait_sim(tv, 3.2)
+	await fly(tv, 3.2)
 	check(console_has(tv, "I'm afraid that's a negative, sir!") and wing.pilot.brain.wingman_command == 0, "wingman on the ground: negative after 3 s, no command")
 
 	# --- 221: airborne by Ramon; Ctrl+T, the wingman commands, the radio click far away ------------
 	tv = await start_mission(221)
-	await wait_sim(tv, 1.5)
+	await fly(tv, 1.5)
 	send(tv, KEY_T, true)
 	check(texts(tv.radio).has("Alpha, proceed to runway 23") and tv.sounds.played.has("prcd2rwy.wav"), "221 Ctrl+T in the air: proceed to runway 23")
 	me = tv.runtime.player_entity()
@@ -190,30 +184,30 @@ func run() -> void:
 	for c in cmds:
 		send(tv, c[0], false, true)
 		check(console_has(tv, c[2]) and b.wingman_command == c[1], "Alt+%s: %s, the wingman's command %d" % [OS.get_keycode_string(c[0]), c[2], b.wingman_command])
-		await wait_sim(tv, 4.5)
+		await fly(tv, 4.5)
 		check(console_has(tv, c[3]), "the wingman's brain answers: %s" % c[3])
 		check(wing.pilot.mode == c[4], "the wingman's mode %d (%d)" % [c[4], wing.pilot.mode])
 	# No threat, no radar target, nothing to engage: negative, the command is kept.
 	for k in [KEY_P, KEY_E]:
 		var was: int = b.wingman_command
 		send(tv, k, false, true)
-		await wait_sim(tv, 3.2)
+		await fly(tv, 3.2)
 		check(b.wingman_command == was and tv.radio.said[-1].text == "I'm afraid that's a negative, sir!", "Alt+%s without a target: negative" % OS.get_keycode_string(k))
 	var any: Dictionary = tv.radio.engage_any(wing)
-	await wait_sim(tv, 1.6)
+	await fly(tv, 1.6)
 	send(tv, KEY_W, false, true)
 	# FUN_004a4cf0 is "another side": near Ramon the nearest such unit can be a side-0 object (original quirk).
 	check((b.wingman_command == 4 and is_same(b.target, any)) == not any.is_empty(), "Alt+W: engage the nearest other-side unit within 9.27 km (%s)" % any.get("name", "none"))
-	await wait_sim(tv, 3.2)
+	await fly(tv, 3.2)
 	# The player's waypoint report.
 	tv.waypoint_passed(2)
-	await wait_sim(tv, 3.2)
+	await fly(tv, 3.2)
 	check(console_has(tv, "Alpha leader is passing waypoint 2") and tv.sounds.played.has("gpaswpnt.wav"), "waypoint report 3 s later")
 	# The ejection's report (EjectReport): "<callsign> ejected".
 	tv.radio.ejected(me)
 	check(console_has(tv, "Alpha leader ejected") and tv.sounds.played.has("gejected.wav"), "eject report: Alpha leader ejected")
 	tv.player_world_override = Vector3(100000, 100000, 3000)
-	await wait_sim(tv, 5.0)
+	await fly(tv, 5.0)
 	send(tv, KEY_T, true)
 	check(tv.sounds.played.has("kch2.wav"), "Ctrl+T far from a tower: the radio click")
 	tv.player_world_override = null

@@ -13,9 +13,9 @@
 # --imagery <source>[,<source>…] (off by default) adds modern terrain imagery (docs/imagery.md, README
 # "Terrain imagery data"): sentinel2 = ESA WorldCover 2021 Sentinel-2 outside Israel, fetched and
 # converted (needs GDAL; ~28 GB of range reads, ~6 GB on disk); mapi2015 / mapi2015-bases = the Survey of
-# Israel 2015 2 m sheets (all / around the airbases), downloaded through your browser
-# (tools/imagery/fetch-mapi2015.sh), then converted into the Israel layers (needs GDAL; re-run after adding
-# sheets: only the 20 km units they touch are redone). Without the ISO argument only the imagery steps run
+# Israel 2015 2 m sheets (all / around the airbases), downloaded with curl and Firefox's data.gov.il
+# token, else through your browser (tools/imagery/fetch-mapi2015-curl.sh), then converted into the
+# Israel layers (needs GDAL; re-run after adding sheets: only the 20 km units they touch are redone). Without the ISO argument only the imagery steps run
 # (on an install set up before).
 # Safe to re-run: each step overwrites its own output under assets/.
 set -euo pipefail
@@ -68,8 +68,8 @@ imagery_steps() {
 				./target/release/iaf-imagery sentinel2 assets/install assets/converted/terrain/theatre assets/converted/imagery
 				;;
 			mapi2015|mapi2015-bases)
-				step "imagery: Survey of Israel 2015 2 m sheets (data.gov.il, through your browser)"
-				tools/imagery/fetch-mapi2015.sh $([[ $src == mapi2015-bases ]] && echo --bases)
+				step "imagery: Survey of Israel 2015 2 m sheets (data.gov.il)"
+				tools/imagery/fetch-mapi2015-curl.sh $([[ $src == mapi2015-bases ]] && echo --bases)
 				step "imagery: Survey of Israel 2015 2 m layer from the downloaded sheets (resumable, incremental)"
 				command -v gdal_translate >/dev/null || { echo "GDAL is needed (README: prerequisites)"; exit 1; }
 				[[ -f assets/converted/terrain/theatre/meta.json ]] || { echo "run the base setup (with the ISO) first"; exit 1; }

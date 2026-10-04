@@ -16,12 +16,6 @@ func unit(rt, name: String) -> Dictionary:
 	return {}
 
 
-func seconds(s: float) -> void:
-	var t := Time.get_ticks_msec()
-	while Time.get_ticks_msec() - t < s * 1000.0:
-		await process_frame
-
-
 func run() -> void:
 	# Blast (FUN_004642f0): full power at the centre, falling off per axis, nothing outside R.
 	check(is_equal_approx(DamageModel.blast(Vector3.ZERO, 0.0, Vector3.ZERO, 100.0, 50.0), 100.0), "blast at the centre = power")

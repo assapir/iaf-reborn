@@ -3,7 +3,7 @@
 # your Firefox earned (faster than fetch-mapi2015.sh's browser tabs). Present sheets are skipped; re-run to resume.
 #   tools/imagery/fetch-mapi2015-curl.sh [--bases]     (--bases: only the sheets around the airbases)
 # When it stops with HTTP 202 the token expired: open the printed link in Firefox once (let the download start,
-# then cancel it) and re-run.
+# then cancel it) and re-run. Without a token (no Firefox, or no visit yet) it hands over to fetch-mapi2015.sh.
 set -uo pipefail
 repo=$(cd "$(dirname "$0")/../.." && pwd)
 bases=0; [[ ${1:-} == --bases ]] && bases=1
@@ -22,7 +22,11 @@ r = c.execute(\"select value from moz_cookies where host like '%data.gov.il' and
 print(r[0] if r else '')")
 	[[ -n $t ]] && token=$t
 done
-[[ -z $token ]] && { echo "no aws-waf-token for data.gov.il in Firefox: open one sheet link in Firefox first"; exit 1; }
+if [[ -z $token ]]; then
+	echo "no aws-waf-token for data.gov.il in Firefox (open one sheet link in Firefox, cancel the download, re-run"
+	echo "for the fast path); fetching through your browser's tabs instead (fetch-mapi2015.sh)"
+	exec "$repo/tools/imagery/fetch-mapi2015.sh" "$@"
+fi
 UA="Mozilla/5.0 (X11; Linux x86_64; rv:140.0) Gecko/20100101 Firefox/140.0"
 mkdir -p "$dest"
 ok=0; bad=0

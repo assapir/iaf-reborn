@@ -6,12 +6,6 @@
 extends "res://../tests/godot/base.gd"
 
 
-func seconds(s: float) -> void:
-	var t := Time.get_ticks_msec()
-	while Time.get_ticks_msec() - t < s * 1000.0:
-		await process_frame
-
-
 func run() -> void:
 	Settings().invulnerable = false
 	var tv = await start_mission(324)  # airborne at 2000 m

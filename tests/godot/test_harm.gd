@@ -26,43 +26,14 @@ func run() -> void:
 
 
 func _case(tv, name: String, shots: bool) -> void:
-	tv.frozen = true
-	tv.fm_stopped = true
-	tv.gear_down = false
-	tv.rig.position.y += 3000.0
-	var st0: Dictionary = tv.flight.state()
-	tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, st0.position, st0.heading,
-			0.0, 0.0, st0.forward * 250.0, true, true, false)
-	var w = tv.weapons
-	var hp := [HARM, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, SHRIKE, 1, 25, 235, 33, 90, 34, 60]
-	var w2 = load("res://weapons/player_weapons.gd").new()
-	tv.add_child(w2)
-	var bdb: Dictionary = tv.mission_bdb
-	w2.setup(tv, {"armament": {"hardpoints": hp}}, tv._player_object(bdb), bdb, w.descriptor)
-	tv.weapons = w2
-	tv.cockpit.hud.host_world_to_scene = w2.to_scene
-	w.queue_free()
-	w = w2
+	var w = airborne_case(tv, [HARM, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, SHRIKE, 1, 25, 235, 33, 90, 34, 60])
 	var t := 1.0
-	var o: Dictionary = w.own()
 	# A ground unit (a radar's class) 15 km ahead on the terrain; every other unit hidden.
-	var site: Dictionary = {}
-	for e in tv.runtime.entities.values():
-		if site.is_empty() and not e.player and e.node != null and int(e.get("klass", -1)) in [8, 9, 10] and int(e.get("state", 1)) == 1:
-			site = e
+	var site := _ground_unit(tv)
 	check(not site.is_empty(), "%s: a ground unit to be the emitter" % name)
 	if site.is_empty():
 		return
-	for e in tv.runtime.entities.values():
-		if e != site and not e.player:
-			e.visible = false
-	var flat := Vector3(o.fwd.x, o.fwd.y, 0).normalized()
-	var p: Vector3 = o.pos + flat * 15000.0
-	var g = tv.terrain.height_at(w.to_scene(Vector3(p.x, p.y, 0)))
-	p.z = float(g) if g != null else 0.0
-	site.world = p
-	site.alt = p.z
-	tv.mission_entity_moved(site)
+	var p := _place(tv, w, site, w.own(), 15000.0)
 	w.update(t)
 	w.rwr.lock(site.key)  # the site's radar locks the jet: an active emitter
 	w.nav_key(0)
@@ -119,16 +90,3 @@ func _case(tv, name: String, shots: bool) -> void:
 	w.fire_selected()
 	w.release_selected()
 	check(w.missiles.size() == 1 and not w.missiles[0].has_target, "%s: no emitter: the SHRIKE flies at its end point" % name)
-
-
-## A real-render capture (only without --headless): SHOT_DIR.
-func _save(file: String) -> void:
-	if DisplayServer.get_name() == "headless":
-		return
-	var dir := OS.get_environment("SHOT_DIR")
-	if dir == "":
-		return
-	await RenderingServer.frame_post_draw
-	var img: Image = root.get_viewport().get_texture().get_image()
-	if img != null and not img.is_empty():
-		img.save_png(dir.path_join(file))

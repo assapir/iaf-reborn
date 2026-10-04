@@ -5,25 +5,6 @@
 extends "res://../tests/godot/base.gd"
 
 
-func click(fe: Node, menu_pos: Vector2) -> void:
-	fe._gui_input(mouse_button(fe._to_screen(menu_pos), true))
-	fe._gui_input(mouse_button(fe._to_screen(menu_pos), false))
-
-
-func press(fe: Node, k: Key, shift := false) -> void:
-	var e := InputEventKey.new()
-	e.keycode = k
-	e.pressed = true
-	e.shift_pressed = shift
-	fe._unhandled_input(e)
-
-
-func settle(fe: Node) -> void:
-	await frames(2)
-	while fe.busy:
-		await process_frame
-
-
 func run() -> void:
 	var kt = load("res://controls/key_table.gd").load_table()
 	check(kt.size() == 117, "117 records (%d)" % kt.size())
@@ -53,11 +34,11 @@ func run() -> void:
 	click(fe, at + Vector2(100, 53 + 2 * 30 + 15))
 	check(fe.ctrl_sel == flaps_row and fe.ctrl_focus, "click selects Flaps up/down")
 	# A free key: assigned at once.
-	press(fe, KEY_K)
+	key(fe, KEY_K)
 	check(kt.key_name(kt.key_of(19, fe.pref_work.key_bindings)) == "K", "Flaps rebound to K")
 	check(Settings().key_bindings.is_empty(), "only the working copy changed")
 	# A taken key (G = gear): msg 36, Yes takes it from the gear.
-	press(fe, KEY_G)
+	key(fe, KEY_G)
 	check(fe.msgbox != null and fe.msgbox.text.begins_with("This key is already assigned"), "taken key asks msg 36")
 	var box = fe.msgbox
 	var yes: Rect2 = box.rects()[0]
@@ -65,7 +46,7 @@ func run() -> void:
 	box._gui_input(mouse_button(yes.get_center(), false))
 	check(kt.key_of(19, fe.pref_work.key_bindings) == 0x22 and kt.key_of(20, fe.pref_work.key_bindings) == 0, "Yes: flaps on G, gear unbound")
 	# Shift + key is a different key.
-	press(fe, KEY_K, true)
+	key(fe, KEY_K, true)
 	check(kt.key_name(kt.key_of(19, fe.pref_work.key_bindings)) == "Shift + K", "Shift + K")
 	# DEFAULT restores the table.
 	click(fe, at + fe.PREF_DEFAULT.get_center())
@@ -110,7 +91,7 @@ func run() -> void:
 	fe._ctrl_scroll(rudder_row - 2)
 	click(fe, at + Vector2(100, 53 + 2 * 30 + 15))
 	check(fe.ctrl_sel == rudder_row and fe.ctrl_focus, "click selects Rudder left")
-	press(fe, KEY_K)
+	key(fe, KEY_K)
 	check(kt.key_name(kt.key_of(37, fe.pref_work.key_bindings)) == "K", "Rudder left rebound to K")
 	fe.queue_free()
 	await frames(2)

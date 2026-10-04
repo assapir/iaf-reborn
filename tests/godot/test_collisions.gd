@@ -58,10 +58,3 @@ func run() -> void:
 		else:
 			check(int(me.state) >= 3 and int(b.state) == 5, "original: the hidden building still collides")
 	Settings().better["fix_ghost_collision"] = false
-
-
-func _named(rt, name: String) -> Dictionary:
-	for e in rt.entities.values():
-		if e.name == name:
-			return e
-	return {}

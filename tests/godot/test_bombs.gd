@@ -54,7 +54,7 @@ func run() -> void:
 	var tanks: Array = tv.runtime.entities.values().filter(func(e): return String(e.name).begins_with("t55"))
 	check(tanks.size() >= 4, "mission 231 has T-55 tanks")
 	var tank0: Dictionary = tanks[0]
-	_start_over(tv.runtime._world_of(tank0))
+	start_over(tv, w, tv.runtime._world_of(tank0), vel_scene, "F-16")
 	check(w.stores.total(500, "MK-82") == 6 and w.stores.type_of(0) == 560 and w.stores.type_of(2) == 510, "MK-82 x6, CBU-87, ZUNNI pods loaded")
 	w.stores.cur = 3
 	w._master_from_type(false)
@@ -73,7 +73,7 @@ func run() -> void:
 	tv.cockpit.mfds[0].press(0xf)
 	check(w.ripple_qty == 1, "stores OSB 0xf: quantity 2 -> 1")
 	w.fire_selected()
-	_fly(0.05)
+	t = fly_step(tv, w, vel_scene, t, 0.05)
 	w.release_selected()
 	check(w.bombs.size() == 1 and w.stores.total(500, "MK-82") == 5, "Space: one bomb released (quantity 1)")
 	check(w.stores.fm_mass < mass0, "stores weight dropped")
@@ -83,7 +83,7 @@ func run() -> void:
 	check(_hd(aim0, tv.runtime._world_of(tank0)) < 2.0, "it aimed at the CCIP point")
 
 	# Ripple: quantity 4, interval 200 (200 m apart, a bomb every 0.2 s), stations alternating.
-	_start_over(tv.runtime._world_of(tanks[1]) + Vector3(0, -3000, 0))
+	start_over(tv, w, tv.runtime._world_of(tanks[1]) + Vector3(0, -3000, 0), vel_scene, "F-16")
 	w.ripple_qty = 1
 	for k in 3:
 		w.ripple_event(0x4a, true)
@@ -95,7 +95,7 @@ func run() -> void:
 	var n0: int = w.bombs.size()
 	w.fire_selected()
 	for k in 30:
-		_fly(0.05)
+		t = fly_step(tv, w, vel_scene, t, 0.05)
 		if w.bombs.size() > n0 + times.size():
 			times.append(t)
 	w.release_selected()
@@ -114,9 +114,9 @@ func run() -> void:
 	w.update(t)
 	n0 = w.bombs.size()
 	w.fire_selected()
-	_fly(0.05)
+	t = fly_step(tv, w, vel_scene, t, 0.05)
 	w.release_selected()
-	_fly(0.5)
+	t = fly_step(tv, w, vel_scene, t, 0.5)
 	check(w.bombs.size() == n0 + 1, "Space up ends the ripple (1 of 4)")
 
 	# Cluster bomb (510): the 0x2000 bursts, damage over its radius.
@@ -126,7 +126,7 @@ func run() -> void:
 	check(cl.max() > c0, "CBU-87: the cluster bursts (48 small fires in 3 rings)")
 
 	# The delayed release: the pipper off the HUD (a fake HUD test: off, ray 10° down ahead).
-	_start_over(tv.runtime._world_of(tanks[2]) + Vector3(0, -6000, 0))
+	start_over(tv, w, tv.runtime._world_of(tanks[2]) + Vector3(0, -6000, 0), vel_scene, "F-16")
 	w.ripple_qty = 1
 	w.stores.cur = 5
 	w._master_from_type(false)
@@ -135,11 +135,11 @@ func run() -> void:
 	var tgt: Vector3 = w.ag.target
 	check(w.ag.off and w.ag.ttg > 5.0, "off the HUD: target ahead, time-to-go %.1f s" % w.ag.ttg)
 	w.fire_selected()
-	_fly(0.5)
+	t = fly_step(tv, w, vel_scene, t, 0.5)
 	check(w.stores.displayed(5) == 1 and w.ag.frozen, "Space: no bomb before the cue, the target frozen")
 	var released := false
 	for k in 400:
-		_fly(0.05)
+		t = fly_step(tv, w, vel_scene, t, 0.05)
 		if w.stores.displayed(5) == 0:
 			released = true
 			break
@@ -151,7 +151,7 @@ func run() -> void:
 	check(_hd(aim2, tgt) < 1.0, "the delayed bomb aimed at the frozen target")
 
 	# Rockets (560): the fixed-weapon flight to the aim, the blast there.
-	_start_over(tv.runtime._world_of(tanks[3]) + Vector3(0, -3000, 0))
+	start_over(tv, w, tv.runtime._world_of(tanks[3]) + Vector3(0, -3000, 0), vel_scene, "F-16")
 	w.stores.cur = 0
 	w._master_from_type(false)
 	w.update(t)
@@ -162,11 +162,11 @@ func run() -> void:
 	tv.mission_entity_moved(tank3)
 	var z0: int = w.stores.total(560, "ZUNNI")
 	w.fire_selected()
-	_fly(0.05)
+	t = fly_step(tv, w, vel_scene, t, 0.05)
 	w.release_selected()
 	check(w.stores.total(560, "ZUNNI") == z0 - 1 and w.rockets.flying_count() == 1, "Space: one rocket away")
 	for k in 600:
-		_fly(0.05)
+		t = fly_step(tv, w, vel_scene, t, 0.05)
 		if w.rockets.flying_count() == 0:
 			break
 	check(w.rockets.flying_count() == 0 and int(tank3.state) == 5, "the rocket hit the tank at its aim (state %d)" % tank3.state)
@@ -184,27 +184,10 @@ func run() -> void:
 	await frames(2)
 
 
-## A fresh airborne flight-model start 1000 m above `ground_pt` (world) heading north at 200 m/s;
-## the frozen rig carries the position, the flight model the velocity.
-func _start_over(ground_pt: Vector3) -> void:
-	var g = tv.mission_ground(ground_pt)
-	var sp: Vector3 = tv.world_to_scene(Vector3(ground_pt.x, ground_pt.y, float(g if g != null else 0.0) + 1000.0))
-	tv.rig.position = sp
-	tv.rig.basis = Basis()
-	tv.flight.start(Settings().assets_dir().path_join("install"), "F-16", sp, 0.0, 0.0, 0.0, vel_scene, true, true, false)
-	w._push_stores()
-
-
-func _fly(dt: float) -> void:
-	tv.rig.position += vel_scene * dt
-	t += dt
-	w.update(t)
-
-
 ## Flies on until every falling store has burst (at most 40 s); `each` runs after every step.
 func _until_landed(each := Callable()) -> void:
 	for k in 800:
-		_fly(0.05)
+		t = fly_step(tv, w, vel_scene, t, 0.05)
 		if each.is_valid():
 			each.call()
 		if w.bombs.is_empty() and (w.rockets == null or w.rockets.flying_count() == 0):

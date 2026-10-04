@@ -16,9 +16,7 @@ func run() -> void:
 	await frames(3)
 	check(not tv.ejected, "one press does not eject")
 	# Presses more than 1 s apart start over.
-	var t0: float = tv._sim_time
-	while tv._sim_time - t0 < 1.1:
-		await process_frame
+	await fly(tv, 1.1)
 	key(tv, KEY_E)
 	check(not tv.ejected and tv._eject_count == 1, "a press after > 1 s counts as the first again")
 	key(tv, KEY_E)
@@ -32,14 +30,11 @@ func run() -> void:
 	await frames(2)
 	check(tv.stick == tv.EJECT_STICK, "stick held at (0.1, push 0.2)")
 	check(not pilot.visible, "pilot gone from the jet")
-	t0 = tv._sim_time
-	while tv._sim_time - t0 < 0.5:
-		await process_frame
+	await fly(tv, 0.5)
 	var c: Vector3 = tv.aircraft.canopy_offset
 	check(c.y > 10.0 and c.y < 40.0 and is_equal_approx(fmod(c.y, 3.0), 0.0), "canopy rises 3 m per tick (%.1f m after 0.5 s)" % c.y)
 	check(c.x == 0.0 and c.z == 0.0, "straight up, no aft drift (v1.1)")
-	while tv._sim_time - t0 < 2.3:
-		await process_frame
+	await fly(tv, 1.8)
 	check(tv.aircraft.canopy_offset.y > 60.0 or tv.aircraft.canopy_gone, "canopy thrown up (%.0f m)" % tv.aircraft.canopy_offset.y)
 	check(tv.aircraft.canopy_gone == (tv.aircraft.canopy_offset.y > 100.0), "canopy gone once past 100 m")
 	# One seat per crew part of the model (FUN_0053ee90): the F-16 model has pilot and pilotB, so two.

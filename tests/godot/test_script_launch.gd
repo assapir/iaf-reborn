@@ -66,10 +66,3 @@ func _place_ahead(tv, shooter: Dictionary, target: Dictionary) -> void:
 	target["airborne_class"] = true  # keep it at that height (mission_entity_moved snaps ground units)
 	tv.mission_entity_moved(target)
 	target.alt = target.world.z
-
-
-func _named(rt, name: String) -> Dictionary:
-	for e in rt.entities.values():
-		if e.name == name:
-			return e
-	return {}

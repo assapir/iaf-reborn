@@ -32,15 +32,6 @@ func button(b: int, down: bool) -> InputEventJoypadButton:
 	return e
 
 
-func set_key(k: Key, down: bool) -> void:
-	var e := InputEventKey.new()
-	e.keycode = k
-	e.physical_keycode = k
-	e.pressed = down
-	Input.parse_input_event(e)
-	Input.flush_buffered_events()
-
-
 func run() -> void:
 	var S := Settings()
 	var J := joy()

@@ -4,23 +4,11 @@
 extends "res://../tests/godot/base.gd"
 
 
-func click(fe: Node, menu_pos: Vector2) -> void:
-	fe._gui_input(mouse_button(fe._to_screen(menu_pos), true))
-	fe._gui_input(mouse_button(fe._to_screen(menu_pos), false))
-
-
 ## Clicks message box button `i`.
 func click_box(box: Control, i: int) -> void:
 	var r: Rect2 = box.rects()[i]
 	box._gui_input(mouse_button(r.get_center(), true))
 	box._gui_input(mouse_button(r.get_center(), false))
-
-
-## Waits for the screen change (title tab, panel slide) to finish.
-func settle(fe: Node) -> void:
-	await frames(2)
-	while fe.busy:
-		await process_frame
 
 
 func run() -> void:
