@@ -6,7 +6,7 @@
 //! Frame: ENU metres (x east, y north, z up) of the aircraft; headings clockwise from north.
 
 use crate::airbase::{Airbase, TaxiPt};
-use crate::aircraft::{Aircraft, ApView, Controls, V3};
+use crate::aircraft::{add, cross, dot, len, scale, sub, unit, Aircraft, ApView, Controls, V3};
 use iaf_formats::ini::Section;
 use std::f32::consts::PI;
 
@@ -869,29 +869,6 @@ fn dogchase(l: &mut Laws, t: &Leader) -> bool {
 
 // --- combat manoeuvres (docs/ai.md §13.3) ----------------------------------------------------------------
 
-fn v_sub(a: V3, b: V3) -> V3 {
-    [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
-}
-fn v_add(a: V3, b: V3) -> V3 {
-    [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
-}
-fn v_mul(a: V3, k: f64) -> V3 {
-    [a[0] * k, a[1] * k, a[2] * k]
-}
-fn v_dot(a: V3, b: V3) -> f64 {
-    a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
-}
-fn v_len(a: V3) -> f64 {
-    v_dot(a, a).sqrt()
-}
-fn v_cross(a: V3, b: V3) -> V3 {
-    [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
-}
-fn v_unit(a: V3) -> Option<V3> {
-    let l = v_len(a);
-    (l > 1e-9).then(|| v_mul(a, 1.0 / l))
-}
-
 /// Fly2TargetXyzSt `5d9740` (vtable 0x612d10): LookAt (`case`) on the point with the target roll 0 (`5d9970`);
 /// throttle: the speed law to `speed` when > 0, else `thr` when > 0, else 0.75; watch-ground unless case 4.
 fn fly_to_point(l: &mut Laws, t: V3, case: u8, speed: f32, thr: f32) {
@@ -913,19 +890,19 @@ fn fly_to_point(l: &mut Laws, t: V3, case: u8, speed: f32, thr: f32) {
 /// `5d18b0`: the point L ahead on the turn that joins the target's track (w the target's direction, m the part of
 /// P − A across it): φ = θ + sqrt(θ² + 2(a − b)/a), θ = atan2(d·w, d·m), a = |V|, b = max(|V_T|, 1).
 fn turn_point(p: V3, v: V3, a: V3, vt: V3, l: f64) -> V3 {
-    let Some(w) = v_unit(vt) else { return a };
-    let d = v_sub(p, a);
-    let Some(u) = v_unit(d) else { return a };
-    let Some(n) = v_unit(v_cross(u, w)) else { return a };
-    let Some(m) = v_unit(v_cross(w, n)) else { return a };
-    let (dx, dy) = (v_dot(d, m), v_dot(d, w));
+    let Some(w) = unit(vt) else { return a };
+    let d = sub(p, a);
+    let Some(u) = unit(d) else { return a };
+    let Some(n) = unit(cross(u, w)) else { return a };
+    let Some(m) = unit(cross(w, n)) else { return a };
+    let (dx, dy) = (dot(d, m), dot(d, w));
     let th = dy.atan2(dx);
-    let (sa, sb) = (v_len(v), v_len(vt).max(1.0));
+    let (sa, sb) = (len(v), len(vt).max(1.0));
     let mut phi = th + (th * th + 2.0 * (sa - sb) / sa.max(1e-9)).max(0.0).sqrt();
     if dx < 0.0 {
         phi = -phi;
     }
-    v_add(p, v_mul(v_sub(v_mul(w, phi.cos()), v_mul(m, phi.sin())), l))
+    add(p, scale(sub(scale(w, phi.cos()), scale(m, phi.sin())), l))
 }
 
 /// Shandel / SplitS / Horizontal (Run `5d1100`): within R (SplitS 5562, others 7416 m) Dogchase; else
@@ -935,9 +912,9 @@ fn turn_point(p: V3, v: V3, a: V3, vt: V3, l: f64) -> V3 {
 /// first tick flies at 0.75).
 fn pursuit(l: &mut Laws, t: &Leader, kind: u8, speed: &mut f32) -> bool {
     let v = l.v;
-    let d = v_sub(t.pos, v.pos);
+    let d = sub(t.pos, v.pos);
     let r = if kind == 0x16 { 5562.0 } else { 7416.0 };
-    if v_len(d) < r {
+    if len(d) < r {
         return dogchase(l, t);
     }
     let a = match kind {
@@ -949,10 +926,10 @@ fn pursuit(l: &mut Laws, t: &Leader, kind: u8, speed: &mut f32) -> bool {
                 0x17 => (t.pos[2] + 1828.8).max(ht + 3048.0),
                 _ => t.pos[2],
             };
-            let f = v_unit([t.vel[0], t.vel[1], 0.0]).unwrap_or([1.0, 0.0, 0.0]);
+            let f = unit([t.vel[0], t.vel[1], 0.0]).unwrap_or([1.0, 0.0, 0.0]);
             let rt = [f[1], -f[0], 0.0];
-            let (a1, a2) = (v_add(t.pos, v_mul(rt, 5191.2)), v_sub(t.pos, v_mul(rt, 5191.2)));
-            let near = if v_len(v_sub(a1, v.pos)) <= v_len(v_sub(a2, v.pos)) { a1 } else { a2 };
+            let (a1, a2) = (add(t.pos, scale(rt, 5191.2)), sub(t.pos, scale(rt, 5191.2)));
+            let near = if len(sub(a1, v.pos)) <= len(sub(a2, v.pos)) { a1 } else { a2 };
             [near[0], near[1], z]
         }
     };
@@ -965,25 +942,25 @@ fn pursuit(l: &mut Laws, t: &Leader, kind: u8, speed: &mut f32) -> bool {
 /// `5cb850`: the heading to intercept the target (lead collision when possible, else pursuit of a lead point; quirk:
 /// the lead scales V_T by |V| / d, 1/s not s) and the speed to fly: (horizontal distance, speed, heading).
 fn intercept(p: V3, s: f64, t: V3, vt: V3) -> (f64, f32, f32) {
-    let d = v_sub(t, p);
+    let d = sub(t, p);
     let dh = [d[0], d[1], 0.0];
-    let dist = v_len(dh);
+    let dist = len(dh);
     if dist <= 0.0 {
         return (0.0, s as f32, 0.0);
     }
-    let u = v_mul(dh, -1.0 / dist);
-    let c = v_dot(u, vt);
-    let w2 = v_dot(vt, vt) - c * c;
+    let u = scale(dh, -1.0 / dist);
+    let c = dot(u, vt);
+    let w2 = dot(vt, vt) - c * c;
     let k = s * s - w2;
     let (dir, speed) = if k > 0.0 && (c > 0.0 || c.abs() <= k.sqrt()) {
         let b0 = d[1].atan2(d[0]);
         let mut g = (k.sqrt() / s.max(1e-9)).clamp(-1.0, 1.0).acos();
-        if v_cross(vt, u)[2] < 0.0 {
+        if cross(vt, u)[2] < 0.0 {
             g = -g;
         }
         ([(b0 + g).cos(), (b0 + g).sin()], s)
     } else {
-        let lp = v_add(t, v_mul(vt, s / dist));
+        let lp = add(t, scale(vt, s / dist));
         ([lp[0] - p[0], lp[1] - p[1]], 2.0 * s)
     };
     (dist, speed as f32, wrap((dir[0] as f32).atan2(dir[1] as f32)))
@@ -1001,7 +978,7 @@ fn himmelman(l: &mut Laws, t: &Leader, child: &mut u8, pt_z: &mut f64, origin: [
     }
     if *child == 0 {
         let dt = c.watch_ground_dt as f64;
-        let p1 = v_add(v.pos, v_mul(v.vel, dt));
+        let p1 = add(v.pos, scale(v.vel, dt));
         let z = (((l.ground)(v.pos[0], v.pos[1]) as f64 + 333.0 + (l.ground)(p1[0], p1[1]) as f64) * 0.5).clamp(-100.0, 3200.0);
         if (*pt_z - z).abs() > 200.0 {
             *pt_z = z;
@@ -1014,9 +991,9 @@ fn himmelman(l: &mut Laws, t: &Leader, child: &mut u8, pt_z: &mut f64, origin: [
         }
     }
     if *child == 1 {
-        let d = v_sub(t.pos, v.pos);
+        let d = sub(t.pos, v.pos);
         let hd = d[0].hypot(d[1]);
-        if v_len(d) <= 3708.0 || (d[2].atan2(hd) as f32) > 35f32.to_radians() {
+        if len(d) <= 3708.0 || (d[2].atan2(hd) as f32) > 35f32.to_radians() {
             *child = 2;
         } else {
             fly_to_impact(l, t);
@@ -1039,7 +1016,7 @@ fn fly_to_impact(l: &mut Laws, t: &Leader) {
     let bank = (e / (PI / 6.0) * c.change_head_k * lim - v.rates[2] * c.change_head_beta).clamp(-lim, lim);
     let mut xs = l.roll(bank);
     let k = v.vel[2] / 15.0;
-    let a = v_add(v_add(v.pos, v_mul(v.vel, c.watch_ground_dt as f64)), [k, k, k]);
+    let a = add(add(v.pos, scale(v.vel, c.watch_ground_dt as f64)), [k, k, k]);
     let ha = (l.ground)(a[0], a[1]) as f64 + 333.0;
     let mut pitch_t = if l.los(v.pos, [a[0], a[1], ha]) {
         ((ha - v.pos[2]) as f32).atan2((a[0] - v.pos[0]).hypot(a[1] - v.pos[1]) as f32)
@@ -1061,19 +1038,19 @@ fn fly_to_impact(l: &mut Laws, t: &Leader) {
 /// it + 182.88, else 309 m/s.
 fn tail_clear(l: &mut Laws, t: &Leader, state: &mut u8, a: f64) -> bool {
     let v = l.v;
-    let Some(f) = v_unit(v.vel) else {
+    let Some(f) = unit(v.vel) else {
         l.stick(0.0, 0.0);
         return false;
     };
-    let d = v_sub(t.pos, v.pos);
-    *state = if v_dot(d, f) > 0.0 && *state != 0x19 { 0x19 } else { 0x1f };
+    let d = sub(t.pos, v.pos);
+    *state = if dot(d, f) > 0.0 && *state != 0x19 { 0x19 } else { 0x1f };
     if *state == 0x19 {
         return dogchase(l, t);
     }
-    let r = v_unit(v_cross(d, f)).unwrap_or([0.0, 0.0, 1.0]);
+    let r = unit(cross(d, f)).unwrap_or([0.0, 0.0, 1.0]);
     let h = v.ground_height as f64;
     let speed = if h + a <= v.pos[2] + 182.88 { 103.0 } else { 309.0 };
-    let mut q = v_add(v_add(v.pos, v_mul(f, 200.0)), v_mul(r, 600.0));
+    let mut q = add(add(v.pos, scale(f, 200.0)), scale(r, 600.0));
     q[2] = q[2].max(h + a);
     fly_to_point(l, q, 1, speed, 0.0);
     false
@@ -1111,8 +1088,8 @@ impl DiveBomb {
     /// the wings within 15° (0xb), zoom climb 13716 m on (0xd), re-attack. Returns the root period when it changes.
     fn step(&mut self, l: &mut Laws, t: &Leader, vmin12: f32) -> Option<f64> {
         let v = l.v;
-        let d = v_sub(t.pos, v.pos);
-        let d3 = v_len(d).max(1e-9);
+        let d = sub(t.pos, v.pos);
+        let d3 = len(d).max(1e-9);
         let dir = [d[0] / d3, d[1] / d3]; // quirk: divided by the 3-D distance
         let dh = d[0].hypot(d[1]);
         let ht = v.pos[2] - t.pos[2];
@@ -1164,7 +1141,7 @@ impl DiveBomb {
             }
             7 | 9 | 0xd => fly_to_point(l, self.b.0, self.b.3, self.b.1, self.b.2),
             0xc => {
-                let hd = v_unit([d[0], d[1], 0.0]).unwrap_or([0.0, 1.0, 0.0]);
+                let hd = unit([d[0], d[1], 0.0]).unwrap_or([0.0, 1.0, 0.0]);
                 let z = v.pos[2].max(t.pos[2] + 9144.0);
                 self.b = ([v.pos[0] + 13716.0 * hd[0], v.pos[1] + 13716.0 * hd[1], z], 0.0, 1.0, 4);
                 period = Some(0.5);
