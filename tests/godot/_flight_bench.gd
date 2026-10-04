@@ -4,9 +4,10 @@
 # time, the GPU time, draw calls, primitives and the terrain nodes drawn.
 #   IAF_DEFAULT_SETTINGS=1 godot --path game --resolution 1920x1080 -s ../tests/godot/_flight_bench.gd
 # BENCH_LEGS=alt:speed:secs,... (default 150:250:20,1500:250:20,6000:300:20). BENCH_BEST=1: the best graphics (every
-# Graphics slider / switch up, MSAA 4× + FXAA, terrain close up, atmospheric sky). BENCH_OFF=a,b: switch parts off to
+# Graphics slider / switch up, MSAA 4× + FXAA, terrain close up, atmospheric sky, the modern imagery layers where
+# converted: mapi2015 in Israel, sentinel2 outside). BENCH_OFF=a,b: switch parts off to
 # see their cost: terrain (streaming), terrain_draw (the nodes hidden), cockpit, runtime, ai, weapons, effects, trails,
-# overlay, sounds, scene (the whole flight scene's _process), mfd, hud.
+# overlay, sounds, scene (the whole flight scene's _process), mfd, hud. BENCH_SPIKES=1 prints every frame over 12 ms.
 extends "res://../tests/godot/base.gd"
 
 
@@ -20,7 +21,8 @@ func run() -> void:
 		legs = [[150.0, 250.0, 20.0], [1500.0, 250.0, 20.0], [6000.0, 300.0, 20.0]]
 	if OS.get_environment("BENCH_BEST") == "1":
 		var best := {"terrain_detail": 1.0, "object_detail": 1.0, "visual_effects": 1.0, "smoke_trails": true, "textured_sky": true,
-			"shadows": true, "external_stores": true, "antialiasing": "msaa4_fxaa", "terrain_closeup": true, "sky": "atmospheric"}
+			"shadows": true, "external_stores": true, "antialiasing": "msaa4_fxaa", "terrain_closeup": true, "sky": "atmospheric",
+			"imagery_israel": "mapi2015", "imagery_outside": "sentinel2"}
 		for k in best:
 			Settings().set(k, best[k])
 	# BENCH_SET=key=value,...: overrides after that (e.g. antialiasing=msaa4 / terrain_closeup=false / shadows=false).
@@ -30,6 +32,7 @@ func run() -> void:
 		Settings().set(p[0], (p[1] == "true") if cur is bool else (float(p[1]) if cur is float else p[1]))
 	var tv = await start_mission(311)
 	tv.apply_render_options()
+	print("layers: ", tv.terrain.layers)
 	tv.frozen = true
 	tv.fm_stopped = true
 	await frames(30)
@@ -91,6 +94,8 @@ func run() -> void:
 			var dt := (now - last) / 1e6
 			last = now
 			times.append(dt * 1000.0)
+			if dt > 0.012 and OS.get_environment("BENCH_SPIKES") == "1":
+				print("  spike %.1f ms at %.2f s" % [dt * 1000.0, (now - start) / 1e6])
 			tv.rig.position += fwd * speed * dt
 			proc += Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0
 			gpu += RenderingServer.viewport_get_measured_render_time_gpu(vp)
