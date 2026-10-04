@@ -31,9 +31,6 @@ const STORES_DRAW_DIST := 9000.0
 ## Weapon bays (ours, the F-35I): a bay station's release waits for its doors to open (0.5 s); they stay open
 ## this long after.
 const BAY_HOLD := 2.0
-## Launch q without Easy aiming (v1.1: ×0.8, 0x600f64) and the q of an unlocked target (0x82f6ec).
-const Q_NO_EASY := 0.8
-const Q_UNLOCKED := 0.1
 ## Player's systems damage flags (docs/damage.md §5): 13 gun, 20 / 21 weapon systems.
 const DMG_GUN := 13
 const DMG_WEAPONS := [20, 21]
@@ -453,15 +450,10 @@ func _harm_capture() -> void:
 ## the selected store has no rounds left and (nothing flies or a Maverick flies).
 func tv_status() -> int:
 	var flying := tv_flying()
-	var t: int = int(tv_weapon.weapon.type) if flying else stores.current_type()
-	if not t in [635, 640, 650]:
-		return 0
-	var st := 1
-	if flying and t != 635:
-		st = tv_weapon.status()
-	if stores.total(stores.current_type(), stores.current_name()) == 0 and (not flying or t == 635):
-		st = 0
-	return st
+	var ft: int = int(tv_weapon.weapon.type) if flying else -1
+	var gs: int = tv_weapon.status() if flying and ft != 635 else 0
+	return ClassDB.class_call_static("IafRelease", "tv_status", ft, gs, stores.current_type(),
+		stores.total(stores.current_type(), stores.current_name()))
 
 
 ## The TV page's "%3d" (FUN_004d6ac0 of the TV weapon's time left: < 0 → 0, > 300 → 60); 0 before a launch
@@ -469,8 +461,7 @@ func tv_status() -> int:
 func tv_time() -> int:
 	if tv_weapon == null:
 		return 0
-	var v: float = tv_weapon.time_left(now)
-	return 0 if v < 0.0 else (60 if v > 300.0 else int(v))
+	return int(ClassDB.class_call_static("IafRelease", "shown_time", tv_weapon.time_left(now)))
 
 
 ## ']' (event 0x3e): next AA store unless an AA missile is already selected in NAV.
@@ -541,11 +532,8 @@ func _weapons_down() -> bool:
 ## Space (event 0x40): HUD mode 1..8; the gear handle down only with Safety off and the gun; not
 ## with weapon systems damage (flag 20).
 func fire_selected() -> void:
-	if hud_mode < 1 or hud_mode > 8:
-		return
-	if host.gear_down and not (safety_off and stores.current_type() == Stores.GUN):
-		return
-	if _flag(20):
+	if not ClassDB.class_call_static("IafRelease", "space_allowed", hud_mode, host.gear_down, safety_off,
+			stores.current_type() == Stores.GUN, _flag(20)):
 		return
 	# FUN_00454270
 	if _weapons_down() or releasing or stores.total(stores.current_type(), stores.current_name()) == 0:
@@ -597,7 +585,7 @@ func jettison() -> void:
 ## FUN_0045ee10, the release permission of bombs and jettisons: load factor ≥ 0 and |roll| ≤ 90°.
 func release_allowed() -> bool:
 	var st: Dictionary = host.flight.state() if host.flight != null else {}
-	return st.is_empty() or (float(st.g) >= 0.0 and absf(float(st.roll)) <= 90.0)
+	return st.is_empty() or ClassDB.class_call_static("IafRelease", "release_allowed", float(st.g), float(st.roll))
 
 
 ## FUN_00458760 (with the release permission): every pylon whose store name contains "LB" releases
@@ -856,30 +844,20 @@ func _update_guided() -> void:
 ## q − rand. At least 0.1.
 func _launch_target(o: Dictionary) -> Array:
 	var units := _units()
-	var q := 1.0
+	var sight_q := 1.0
 	var target := {}
 	match hud_mode:
 		1:
-			if not easy_aiming:
-				target = seeker.target_in_circle(o, units)
-				if not target.is_empty():
-					q = (1.0 if seeker.lock else Q_UNLOCKED) * Q_NO_EASY
-			else:
-				target = seeker.current(units)
+			target = seeker.current(units) if easy_aiming else seeker.target_in_circle(o, units)
 		2, 8:
 			var s := _sight(o, units)
-			if s.target.is_empty():
-				pass
-			elif easy_aiming:
+			if not s.target.is_empty() and (easy_aiming or MrmSight.target_in_circle(IrSeeker.screen_offset(o, s.target.pos), s.locked)):
 				target = s.target
-			elif MrmSight.target_in_circle(IrSeeker.screen_offset(o, s.target.pos), s.locked):
-				target = s.target
-				q = float(s.q) * Q_NO_EASY
-	if not target.is_empty():
-		if hud_mode == 2 and bool(target.get("ecm", false)):
-			q -= float(randi() & 0x7fff) / 32767.0
-		q = maxf(q, 0.1)
-	return [target, q]
+				sight_q = float(s.q)
+	if target.is_empty():
+		return [target, 1.0]
+	var ecm = float(randi() & 0x7fff) / 32767.0 if hud_mode == 2 and bool(target.get("ecm", false)) else null
+	return [target, ClassDB.class_call_static("IafRelease", "launch_q", hud_mode, seeker.lock, sight_q, easy_aiming, ecm)]
 
 
 ## The MRM (mode 2) / HARM (mode 8) sight this frame: {target (vfunc +0x28: the radar's A-A lock or TWS
@@ -1073,21 +1051,26 @@ func _tone(kind: String) -> void:
 ## The bomb types ("bomb types" of FUN_00457bc0): 500 bomb, 510 cluster, 560 rockets, 650 laser bomb.
 const BOMB_TYPES := [500, 510, 560, 650]
 const OST := {500: "OST_BOMB", 510: "OST_CLUSTERBOMB", 560: "OST_ROCKET", 650: "OST_LASERBOMB", 660: "OST_SHELL"}
-## The delayed release: the first bomb waits for time-to-go ≤ 0.9 s (_DAT_0082f528).
-const TTG_RELEASE := 0.9
 ## After the last bomb the symbols blink for 1.0 s (_DAT_0082f620).
 const BLINK_TIME := 1.0
-## Ripple period defaults (FUN_004585f0: 0.3 s @0x600eb0) and the setter's rule (FUN_004562f0:
-## interval × 0.001 s @0x600f48, at least 0.1 s @0x600f0c).
-const RIPPLE_PERIOD0 := 0.3
 ## The player's bombs: along-track correction clamped to ±_debugParam016 (single player).
 const BOMB_CLAMP_PARAM := 16
 
 ## W+0xd4 quantity (1..14), W+0xd8 interval (10..200, the spacing in m and the period in ms),
-## W+0xdc the period (s), W+0xd0 bombs left in this ripple, W+0x288 the ripple timer (next tick).
-var ripple_qty := 2
-var ripple_int := 10
-var ripple_period := RIPPLE_PERIOD0
+## W+0xdc the period (s) (iaf_avionics::release::Ripple), W+0xd0 bombs left in this ripple, W+0x288 the ripple
+## timer (next tick).
+var ripple_qty: int:
+	get:
+		return _ripple.qty()
+	set(v):
+		_ripple.set_qty(v)
+var ripple_int: int:
+	get:
+		return _ripple.interval()
+var ripple_period: float:
+	get:
+		return _ripple.period()
+var _ripple = ClassDB.instantiate("IafRipple")
 var ripple_left := 0
 var _ripple_next := INF
 ## W+0xf4..: the ripple line frozen at the first bomb.
@@ -1113,15 +1096,7 @@ var _rocket_nodes := {}  # pool index -> {node, w}
 ## Events 0x4a / 0x4b (stores MFD OSBs 0xe / 0xf quantity ±1, 0x13 / 0x14 interval ±10) ->
 ## FUN_004562a0 -> FUN_004562f0: quantity 1..14, interval 10..200, period max(0.1, interval / 1000).
 func ripple_event(ev: int, up: bool) -> void:
-	var q := ripple_qty
-	var n := ripple_int
-	if ev == 0x4a:
-		q += 1 if up else -1
-	else:
-		n += 10 if up else -10
-	ripple_qty = clampi(q, 1, 14)
-	ripple_int = clampi(n, 10, 200)
-	ripple_period = maxf(float(ripple_int) * 0.001, 0.1)
+	_ripple.step(ev == 0x4a, up)
 
 
 ## FUN_00454270, bomb types (player): HUD mode 5 or 6; without a running ripple: W+0xd0 = quantity,
@@ -1154,13 +1129,13 @@ func _ripple_tick() -> void:
 	var p: Vector3 = ag.target if ag.off else ag.impact
 	if ripple_left == ripple_qty or _ripple_line.size() != ripple_qty:
 		_ripple_line = Bombs.ripple_line(p, ripple_qty, float(ripple_int), own().yaw, host.mission_ground)
-	var aim: Vector3 = _ripple_line[clampi(ripple_qty - ripple_left, 0, ripple_qty - 1)]
+	var aim: Vector3 = _ripple_line[_ripple.index(ripple_left)]
 	if t == 650:
 		aim = _laser_aim(p, aim)
 	# FUN_0045ee10 and the delayed release (the first bomb waits for time-to-go ≤ 0.9 s).
 	if not release_allowed() or _bay_wait(i):
 		return
-	if ag.off and ripple_left == ripple_qty and float(ag.ttg) > TTG_RELEASE:
+	if ClassDB.class_call_static("IafRelease", "first_bomb_waits", ag.off, ripple_left == ripple_qty, float(ag.ttg)):
 		return
 	ripple_left -= 1
 	if ripple_left <= 0:
@@ -1183,13 +1158,8 @@ func _laser_aim(p: Vector3, ripple: Vector3) -> Vector3:
 		var u = eo.unit_pos.call(eo.target)
 		if u != null:
 			d = u
-	var o := own()
-	if (d - o.pos).normalized().dot((p - o.pos).normalized()) < cos(deg_to_rad(60.0)):
-		return ripple
 	var g = host.mission_ground(d)
-	if d.z > (float(g) if g != null else 0.1) + 2.0:
-		return ripple
-	return d
+	return ClassDB.class_call_static("IafRelease", "laser_aim", own().pos, p, ripple, d, float(g) if g != null else 0.1)
 
 
 ## The ripple ends (timer killed, FUN_0045d150(0): the symbols blink for 1 s); W+0xac cleared.
@@ -1668,8 +1638,7 @@ func _update_cockpit_dlz() -> void:
 	s348 = selected_dlz(o, target)
 	s380 = 0.0
 	if last_launched != null:
-		var v: float = last_launched.time_left(now)
-		s380 = 0.0 if v < 0.0 else (60.0 if v > 300.0 else v)
+		s380 = ClassDB.class_call_static("IafRelease", "shown_time", last_launched.time_left(now))
 
 
 ## state+0x4c (FUN_00429390 ← FUN_0044e770): the locked target's bearing from the own heading (rad, wrapped
@@ -1678,8 +1647,7 @@ func _lock_bearing(o: Dictionary) -> Variant:
 	var lk: Dictionary = radar.locked()
 	if lk.is_empty():
 		return null
-	var d: Vector3 = lk.pos - o.pos
-	return wrapf(atan2(d.x, d.y) - float(o.yaw), -PI, PI)
+	return ClassDB.class_call_static("IafRelease", "lock_bearing", o.pos, float(o.yaw), lk.pos)
 
 
 ## The cockpit snapshot (FUN_00456520 -> FUN_00445bb0) for the HUD and the stores MFD page.
@@ -1692,13 +1660,9 @@ func _publish() -> void:
 		list.append({"type": stores.type_of(i), "count": stores.displayed(i), "name": stores.name_of(i)})
 	var t: int = stores.current_type()
 	var mal := _weapons_down() or (_flag(DMG_GUN) and t == Stores.GUN)
-	var srm := 0
-	var mrm := 0
-	for i in 12:
-		if stores.type_of(i) in [570, 580]:
-			srm += stores.displayed(i)
-		elif stores.type_of(i) in [600, 610]:
-			mrm += stores.displayed(i)
+	var counts: Array = stores.missile_counts()
+	var srm: int = counts[0]
+	var mrm: int = counts[1]
 	var o := own()
 	# The MRM / HARM HUD objects (FUN_00460ee0 / FUN_00460ac0): the circle, the predicted point (with a radar
 	# lock), the shoot cue (state+0x1010: inside the circle, rounds left, the radar in A-A, min ≤ dist ≤ max) and
@@ -1715,11 +1679,11 @@ func _publish() -> void:
 			if sg.pred != null and radar.has_lock():
 				mrm_pt = sg.pred
 				var hud_only: bool = host.get("views") != null and host.views.type == Views.HUD_ONLY
-				shoot = MrmSight.in_circle(IrSeeker.screen_offset(o, sg.pred), sg.r, hud_only)[0] and have and radar.aa \
-					and not (sg.dlz as Array).is_empty() and float(sg.dist) >= float(sg.dlz[1]) and float(sg.dist) <= float(sg.dlz[0])
+				var inside: bool = MrmSight.in_circle(IrSeeker.screen_offset(o, sg.pred), sg.r, hud_only)[0]
+				shoot = ClassDB.class_call_static("IafRelease", "shoot_cue", inside, have, radar.aa, sg.dlz, float(sg.dist))
 		elif not sg.target.is_empty():
 			harm_pt = sg.target.pos
-			harm_in_range = have and not (sg.dlz as Array).is_empty() and float(sg.dist) < float(sg.dlz[0])
+			harm_in_range = ClassDB.class_call_static("IafRelease", "harm_in_range", have, sg.dlz, float(sg.dist))
 		if sg.target.is_empty():
 			harm_in_range = false
 	if hud_mode != 8:
@@ -1749,7 +1713,7 @@ func _publish() -> void:
 		# The mode-5 object's cockpit state (FUN_00445db0: +0x620 off, +0x624 point, +0x638 time-to-go
 		# capped at 1000, +0x62c frozen, +0x630 blinking).
 		"ag": {"pipper": ag.pipper if hud_mode in [5, 6] else null, "off": ag.off, "frozen": ag.frozen,
-			"ttg": minf(float(ag.ttg), 1000.0), "blink": now < float(ag.blink_until)},
+			"ttg": ClassDB.class_call_static("IafRelease", "ttg_shown", float(ag.ttg)), "blink": now < float(ag.blink_until)},
 	}
 
 

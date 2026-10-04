@@ -138,6 +138,11 @@ func current_name() -> String:
 	return name_of(cur)
 
 
+## The SRM (570 / 580) and MRM (600 / 610) rounds over every station: [srm, mrm].
+func missile_counts() -> Array:
+	return _s.missile_counts()
+
+
 ## The selection cycle (FUN_0053b8b0): kind 1 AA, 2 AG; the gun belongs to both when allowed.
 func cycle(kind: int, allow_gun := true) -> void:
 	_s.cycle(kind, allow_gun)

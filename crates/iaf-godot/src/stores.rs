@@ -126,6 +126,13 @@ impl IafStores {
         self.stores.set_unlimited(on);
     }
 
+    /// The SRM and MRM rounds over every station: [srm, mrm].
+    #[func]
+    fn missile_counts(&self) -> VarArray {
+        let (srm, mrm) = iaf_avionics::hud::missile_counts(&self.stores);
+        varray![srm, mrm]
+    }
+
     #[func]
     fn reload(&mut self) {
         self.stores.reload();
