@@ -305,7 +305,7 @@ CURRENT LOAD and weights use the same numbers as the flight (so Real shows the r
   (110,26) Ctrl+W = re-read Weapons.ibx (the keys.trx labels are wrong).
 
 ## 9. Bombs and rockets (500, 510, 560, 650)
-Built (`game/weapons/bombs.gd`, `player_weapons.gd`, HUD `hud.gd _draw_ag`; test_bombs.gd, test_bomb_missions.gd).
+Built (`crates/iaf-avionics/src/bombs.rs` via `game/weapons/bombs.gd`, `player_weapons.gd`, HUD `hud.gd _draw_ag`; test_bombs.gd, test_bomb_missions.gd).
 Types 500 / 510 / 560 / 650 share the release path ("bomb types", `FUN_00457bc0`); rockets too, except the jettison.
 Master mode 1 (5 for 650), HUD mode 5 (6 for 650 with a FLIR pod: the FLIR page and camera start, the same mode-5 symbols), the stores MFD page (§2.3).
 

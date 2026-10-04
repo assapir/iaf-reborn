@@ -24,7 +24,7 @@ shares this code space:
 - the shipped bdbs use 100–220 for aircraft, 230/240 for the transports, and up to 450 for other units (radars,
   SAMs);
 - `cockpit.gd` `RWR_GLYPH` keys 290–390 (radars) and 100–200 (aircraft);
-- weapon types run 500–660 (`stores.gd`);
+- weapon types run 500–660 (`crates/iaf-avionics/src/stores.rs`);
 - `game/weapons/rwr.gd` `IGNORED_TYPES` (220, 250, 270) is skipped by the RWR; `plane-describe` refuses these.
 
 Take a code **≥ 1000** (e.g. 1000) and check it is in no table:

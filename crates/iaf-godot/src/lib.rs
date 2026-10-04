@@ -2,11 +2,13 @@
 
 use godot::prelude::*;
 
+mod bombs;
 mod flight;
 mod gun;
 mod missile;
 mod radar;
 mod sight;
+mod stores;
 mod world;
 
 struct IafExtension;

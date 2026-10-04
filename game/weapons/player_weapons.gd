@@ -73,11 +73,23 @@ var eo_on_unit := false
 var eo_eye = null
 var now := 0.0
 
-## ctl+0x78 master mode, +0x80 the previous one, +0x7c the M key cycle, +0x5c the HUD mode.
-var master := 0
-var master_prev := 0
-var m_cycle := 0
-var hud_mode := 0
+## ctl+0x78 master mode, +0x80 the previous one, +0x7c the M key cycle, +0x5c the HUD mode (iaf_avionics::master
+## through IafModes).
+var master: int:
+	get:
+		return _modes.master()
+var master_prev: int:
+	get:
+		return _modes.master_prev()
+var m_cycle: int:
+	get:
+		return _modes.m_cycle()
+var hud_mode: int:
+	get:
+		return _modes.hud()
+	set(v):
+		_modes.set_hud(v)
+var _modes = ClassDB.instantiate("IafModes")
 ## ctl+0x970: Safety off (the cheat; firing with the gear handle down).
 var safety_off := false
 ## W+0xac release in progress (Space held), W+0xb0 gun firing (also the muzzle flash).
@@ -268,37 +280,13 @@ func _me() -> Dictionary:
 
 # --- master and HUD modes (FUN_0044ec80, FUN_00449810, FUN_0044a220) ---------------------------------
 
-static func is_aa_missile(type: int) -> bool:
-	return type in [570, 580, 600, 610]
-
-
 ## FUN_0044ec80: the master mode and HUD mode of the selected store; `aa_key` = reached by ']'.
 func _master_from_type(aa_key: bool) -> void:
-	var t: int = stores.current_type()
-	var m := -1
-	var h := -1
-	match t:
-		500, 510, 560:
-			m = 1; h = 5
-		565:
-			m = 3 if aa_key else 2
-			h = 3 if aa_key else 4
-		570, 580:
-			m = 4; h = 1
-		600, 610:
-			m = 4; h = 2
-		590:
-			m = 4; h = 8
-		650:
-			m = 5; h = 6 if flir_pod else 5
-		635, 640:
-			m = 6; h = 7
-	if m < 0:
+	var mh: Array = ClassDB.class_call_static("IafModes", "for_store", stores.current_type(), aa_key, flir_pod)
+	if mh.is_empty():
 		return  # type 660 / nothing: the mode stays
-	if m != master:
-		master_prev = master
-	master = m
-	_set_hud_mode(h)
+	_modes.set_master(mh[0])
+	_set_hud_mode(mh[1])
 
 
 func _set_hud_mode(h: int) -> void:
@@ -319,17 +307,7 @@ func _set_hud_mode(h: int) -> void:
 ## and the EO sensor: 5 with the pod starts the FLIR, 6 the TV camera; the other modes leave them
 ## (FUN_0044e6e0: the pages they replaced come back).
 func _mfd_page() -> void:
-	var page := -1
-	match master:
-		0: page = 0
-		1, 2: page = 1
-		3: page = 2
-		4:
-			match stores.current_type():
-				600, 610: page = 2
-				590: page = 10
-		5: page = 6 if flir_pod else 1
-		6: page = 5
+	var page: int = _modes.mfd_page(stores.current_type(), flir_pod)
 	harm.active = master == 4 and stores.current_type() == 590
 	if master < 5:
 		_eo_leave()
@@ -511,11 +489,7 @@ func tv_time() -> int:
 
 ## ']' (event 0x3e): next AA store unless an AA missile is already selected in NAV.
 func select_aa() -> void:
-	var t: int = stores.current_type()
-	var a := is_aa_missile(t)
-	if t == Stores.GUN and master_prev == 2:
-		a = false
-	if master != 0 or not a or t == Stores.SHELL:
+	if _modes.aa_key_cycles(stores.current_type()):
 		_next(1)
 	_master_from_type(true)
 	_mfd_page()
@@ -523,11 +497,7 @@ func select_aa() -> void:
 
 ## '[' (event 0x3c): next AG store unless a non-AA store is already selected in NAV.
 func select_ag() -> void:
-	var t: int = stores.current_type()
-	var a := not is_aa_missile(t)
-	if t != 0 and master_prev == 3:
-		a = false
-	if master != 0 or not a or t == Stores.SHELL:
+	if _modes.ag_key_cycles(stores.current_type()):
 		_next(2)
 	_master_from_type(false)
 	_mfd_page()
@@ -544,15 +514,12 @@ func _next(kind: int) -> void:
 func master_key() -> void:
 	if releasing:
 		return
-	m_cycle = (m_cycle + 1) % 3
-	match m_cycle:
-		1:
+	match _modes.master_key():
+		"aa":
 			select_aa()
-		2:
+		"ag":
 			select_ag()
-		0:
-			master_prev = master
-			master = 0
+		"nav":
 			_set_hud_mode(0)
 			_mfd_page()
 	host.sounds.play("SFX_BUTTON")
@@ -560,8 +527,7 @@ func master_key() -> void:
 
 ## N (event 0x62, p = 0): the master mode p (NAV).
 func nav_key(p: int) -> void:
-	master_prev = master
-	master = p
+	_modes.nav_key(p)
 	if p == 0:
 		_set_hud_mode(0)
 	_mfd_page()
