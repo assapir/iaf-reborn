@@ -90,7 +90,7 @@ const W_ARM: &str = "weapon: anti-radiation (AGM-88, Shrike)";
 /// script op 2: no sensor; docs/ai.md §14).
 const SUPPORTED_FEATURES: &[&str] = &[
     F_PLAYER_FLIGHT, F_DAMAGE, W_GUN, W_IR, W_RADAR, F_AI_FLIGHT, W_BOMB, W_ROCKET, W_LGB, W_TV, W_ARM, F_AAA, F_SAM_RADAR,
-    F_SAM_IR, F_GROUND_FIRE, F_AI_HELI,
+    F_SAM_IR, F_GROUND_FIRE, F_AI_HELI, F_AI_AA, F_AI_AG,
 ];
 
 /// Rough implementation size (S ≈ days, M ≈ a week, L ≈ weeks) — an estimate for planning only.

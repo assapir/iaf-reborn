@@ -1,10 +1,10 @@
 # Status — 2026-10-02
 
 ## Where we are
-- **Playable missions: 7 of 68** — Training "Engines ON" (311), "Landing" (312), 315 (bombing, tested end to end),
-  313 "Pathfinder" (AAA + SA-3s) and 322 "Uncle SAM" (SAMs + rockets) with their ground fire tested (not flown end
-  to end), 323 and 403 (per the coverage report, untested); docs/mission-coverage.md. AI air combat is the gate for
-  48 more.
+- **Playable missions: 55 of 68 by the coverage report** (every feature they need is built; docs/mission-coverage.md).
+  Flown end to end: 311, 312, 315 (bombing). Checked in part: 313 / 322 ground fire; 134 (Delta flight dive-bombs and
+  destroys both P-40 radars) and 406 (the AI wingman destroys its target) — the player's own targets there were not
+  flown. Left: multiplayer (8), brain-driven vehicles (2), night (214), motion op 5 (224), trigger op 1 (215).
 - **Flyable jets: all seven of the Jet list** — F-15, F-16, F-4E, F-4 Kurnass 2000, Lavi, Kfir, Mirage (Jet list or a
   mission's jet; docs/aircraft.md §5). The MiGs are AI-only, as in the original; a mission whose player jet is another
   type flies it as the F-16.
@@ -91,7 +91,8 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
   west of Suez in the original data (flat −557 m, kept).
 - **Flight**: the seven Jet list jets fly (the two MiGs are AI-only, as in the original); systems damage acts on the flight model (AI jets take none); no hook, map-edge push-back.
 - **Combat**: player gun, IR missiles, radar missiles (AMRAAM / Sparrow with the DLZ and the MRM sight), radar lock,
-  chaff / flares, bombs (CCIP / delayed, ripple, cluster), rockets, HARM / Shrike at the HARM page's emitter, TV weapons (Maverick, TV missile), laser bombs with the FLIR designation (the ground units' sensors feed the RWR); no AI combat (AI jets fly, don't fight), ground fire built (docs/ai.md §14: AAA, SAMs, rockets; 313 and 322 playable); decoys don't lure missiles yet.
+  chaff / flares, bombs (CCIP / delayed, ripple, cluster), rockets, HARM / Shrike at the HARM page's emitter, TV weapons (Maverick, TV missile), laser bombs with the FLIR designation (the ground units' sensors feed the RWR); AI combat built (docs/ai.md §13: sensors, Launch, weapon changes, every manoeuvre; not yet: the AI's bomb ripple, AI
+  radar locks on the RWR, decoys from AI jets), ground fire built (docs/ai.md §14: AAA, SAMs, rockets; 313 and 322 playable); decoys don't lure missiles yet.
 - **Cockpit / MFDs**: ECM, the full-screen weapon MFD (Z), the HUD range scale (weapons.md §12.4); the RWR's feeds (AI sensors, SAMs, enemy missiles);
   ECM light has no system; night lighting; what the TV / laser weapons do with the radar's designated point.
 - **Controls**: joystick untested on real hardware (one device; no force feedback); not built: FlyTSD Fly into another
