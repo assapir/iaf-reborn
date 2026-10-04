@@ -385,6 +385,16 @@ func real_hud() -> Dictionary:
 		steer = {"number": int(nav.index) + 1, "bearing": nav.bearing_deg, "dist_m": float(nav.dist_nm) / M_TO_NM,
 			"eta_s": minutes * 60.0 if minutes < 1000.0 / 60.0 else null}
 	var mode := _mode()
+	# The weapon cues: the radar's lock (range, closure) and the selected store's DLZ; the CCIP pipper on the HUD.
+	var rd: Dictionary = cockpit.radar
+	var lk: Dictionary = rd.get("lock", {})
+	var target := {"range_m": float(lk.dist), "closure": float(rd.get("closure", 0.0))} if not lk.is_empty() else {}
+	var ccip = null
+	var ag: Dictionary = cockpit.weapons.get("ag", {})
+	if mode in [5, 6] and ag.get("pipper") != null and host_world_to_scene.is_valid():
+		var sp: Vector3 = host_world_to_scene.call(ag.pipper)
+		if not camera.is_position_behind(sp):
+			ccip = (camera.unproject_position(sp) - position - _c) / _s
 	_real = _real_hud.frame(_field(), {
 		"kcas": st.get("ias_kt", 0.0), "alt_ft": st.get("alt_ft", 0.0), "heading": st.get("heading", 0.0),
 		"roll": st.get("roll", 0.0), "mach": st.get("mach", 0.0), "g": st.get("g", 1.0),
@@ -392,7 +402,8 @@ func real_hud() -> Dictionary:
 		"fpm": (fpm - _c) / _s if fpm != null else null, "horizon": (horizon - _c) / _s,
 		"px_per_deg": (up5 - horizon).length() / 5.0 / _s,
 		"master": REAL_MODE_LABELS[mode] if mode >= 0 and mode < REAL_MODE_LABELS.size() else "",
-		"steerpoint": steer})
+		"steerpoint": steer, "target": target, "dlz": rd.get("dlz", []) if not target.is_empty() else [],
+		"ccip": ccip, "fuel_lbs": st.get("fuel_lbs", 0.0)})
 	return _real
 
 

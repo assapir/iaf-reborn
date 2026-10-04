@@ -115,8 +115,9 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 - **Preferences → Extras → HUD (Original (1998) / Real F-16)**: an F-16 Block 30/40 style HUD from public references
   instead of the original symbology (phase 1, navigation): KCAS / altitude scales and boxes, heading scale with the
   steering caret, conformal ladder centred on the marker, AoA bracket with the gear down, Mach / g / max g and the
-  steerpoint windows; the weapon symbols, ILS, gun cross and helmet display stay the original's — cockpit.md "Real
-  HUD", `iaf-avionics` `real_hud.rs`.
+  steerpoint windows; phase 2 adds the DLZ scale, the target range, the CCIP fall line and a bingo cue (1500 lb, ours);
+  the weapon symbols, ILS, gun cross and helmet display stay the original's — cockpit.md "Real HUD", `iaf-avionics`
+  `real_hud.rs`.
 
 - **Preferences → Devices → Detent = MIL** (ours, under THROTTLE, off by default): "Set at lever" stores the lever position in its
   detent; the lever then maps piecewise so the detent is MIL (74) and the travel past it afterburner (the original maps it

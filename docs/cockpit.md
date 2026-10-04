@@ -167,6 +167,11 @@ cross, the waypoint marker / target box and the helmet display (DASH) are the or
   marker inside from 11° to 15° AoA.
 * **Data windows** under the scales: left the HUD mode's name (NAV, SRM, MRM, EEGS, STRF, CCIP, LGB, EO, HARM), Mach,
   g and max g (latched); right the steerpoint's distance in NM and number ("012>03") and the time to it (mm:ss).
+* Phase 2, the weapon cues: with a radar lock the **DLZ scale** 10 px inside the altitude scale (60 px, 0 at the
+  bottom, the top the smallest of 10 / 20 / 40 / 80 NM above Rmax and the range, labelled; Rmax / Rmin ticks to the
+  left, the target's range caret with the closure in kt beside it) and the target's range **"F 12.3"** (NM) in the
+  right window; in CCIP (HUD modes 5 / 6) the **bomb fall line** from the marker to the pipper; **"FUEL"** above the
+  mode when the fuel is below the bingo (ours: 1500 lb).
 Test: `tests/godot/test_real_hud.gd`; unit tests in `real_hud.rs`.
 
 ### 3D view: the cockpit camera's projection (v1.1)

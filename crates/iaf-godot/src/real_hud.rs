@@ -4,7 +4,8 @@
 
 use crate::world::{get, num};
 use godot::prelude::*;
-use iaf_avionics::real_hud::{Align, Field, Input, Prim, RealHud, Steerpoint};
+use iaf_avionics::missile::Dlz;
+use iaf_avionics::real_hud::{Align, Field, Input, Prim, RealHud, Steerpoint, Target};
 
 fn v2((x, y): (f64, f64)) -> Vector2 {
     Vector2::new(x as f32, y as f32)
@@ -45,7 +46,8 @@ impl IafRealHud {
 
     /// One frame. `field` the symbology field (Rect2, HUD px from the HUD centre); `i` {kcas, alt_ft, heading, roll,
     /// mach, g, aoa, gear_down, fpm (Vector2 or null), horizon (the level point ahead), px_per_deg, master, steerpoint
-    /// ({number, bearing, dist_m, eta_s (null)} or {})}. Returns {field: [prims], outer: [prims]}.
+    /// ({number, bearing, dist_m, eta_s (null)} or {}), target ({range_m, closure} or {}), dlz ([max, min] or []),
+    /// ccip (Vector2 or null), fuel_lbs}. Returns {field: [prims], outer: [prims]}.
     #[func]
     fn frame(&mut self, field: Rect2, i: VarDictionary) -> VarDictionary {
         let f = |k: &str| num(&i, k).unwrap_or_default();
@@ -71,6 +73,16 @@ impl IafRealHud {
             px_per_deg: f("px_per_deg"),
             master: get::<GString>(&i, "master").unwrap_or_default().to_string(),
             steerpoint,
+            target: get::<VarDictionary>(&i, "target").filter(|t| !t.is_empty()).map(|t| Target {
+                range_m: num(&t, "range_m").unwrap_or_default(),
+                closure: num(&t, "closure").unwrap_or_default(),
+            }),
+            dlz: get::<VarArray>(&i, "dlz").and_then(|a| {
+                let at = |k| a.get(k).and_then(|v| v.try_to::<f64>().ok());
+                at(0).zip(at(1)).map(|(max, min)| Dlz { max, min })
+            }),
+            ccip: pt("ccip"),
+            fuel_lbs: f("fuel_lbs"),
         };
         let r = Field {
             left: field.position.x.into(),

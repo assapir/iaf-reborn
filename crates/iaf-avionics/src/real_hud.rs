@@ -6,6 +6,10 @@
 //! the heading scale with the steering caret, the conformal pitch ladder centred on the flight path marker (solid
 //! climb rungs, dashed dive rungs, tips toward the horizon), the flight path marker, the AoA bracket with the gear
 //! down, and the data windows (Mach, g, max g, the master mode; the steerpoint's distance and time).
+//!
+//! Phase 2, the weapon cues: the DLZ scale (Rmax / Rmin ticks, the target's range caret with the closure) beside the
+//! altitude scale while a target is locked, the target's range in the right window ("F 12.3"), the CCIP bomb fall line
+//! from the marker to the pipper, and the bingo cue ("FUEL" below the bingo fuel).
 
 /// Scales: the airspeed 0.6 px per kt (10 kt ticks, labels every 50 kt as kt / 10), the altitude 0.06 px per ft (100 ft
 /// ticks, labels every 500 ft in thousands), the heading 2 px per degree (5° ticks, labels every 10° in tens).
@@ -28,8 +32,16 @@ const FPM_R: f64 = 4.0;
 /// The AoA bracket (gear down): the marker inside it from 11° to 15° AoA, 13° on its centre.
 const AOA_LOW: f64 = 11.0;
 const AOA_HIGH: f64 = 15.0;
-/// m → NM.
+/// m → NM; m/s → kt.
 const NM: f64 = 1852.0;
+const MS_TO_KT: f64 = 1.943844;
+/// The DLZ scale: 60 px tall, 10 px left of the altitude scale; its top the range scale (10, 20, 40 or 80 NM: the
+/// smallest above Rmax and the target's range).
+const DLZ_HALF: f64 = 30.0;
+const DLZ_X: f64 = 10.0;
+const DLZ_SCALES_NM: [f64; 4] = [10.0, 20.0, 40.0, 80.0];
+/// Ours: the bingo fuel (lb) below which "FUEL" shows.
+pub const BINGO_LBS: f64 = 1500.0;
 
 /// Text alignment at its anchor (the anchor is the baseline's left, centre or right end).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -84,6 +96,20 @@ pub struct Input {
     pub master: String,
     /// The steerpoint: its number, bearing (°), distance (m) and the time to it (s; None when not closing).
     pub steerpoint: Option<Steerpoint>,
+    /// The radar's locked target.
+    pub target: Option<Target>,
+    /// The selected store's launch zone at it (metres).
+    pub dlz: Option<crate::missile::Dlz>,
+    /// The CCIP pipper in HUD pixels (HUD modes 5 / 6).
+    pub ccip: Option<(f64, f64)>,
+    pub fuel_lbs: f64,
+}
+
+/// The locked target: range (m) and closure (m/s, positive closing).
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct Target {
+    pub range_m: f64,
+    pub closure: f64,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
@@ -128,6 +154,12 @@ impl RealHud {
         altitude(&mut out.outer, f.right, tape_y, i.alt_ft);
         heading(&mut out.outer, f.bottom - 6.0, i.heading_deg, i.steerpoint.map(|s| s.bearing_deg));
         data(&mut out.outer, f, i, self.max_g);
+        if let (Some(t), Some(z)) = (i.target, i.dlz) {
+            dlz_scale(&mut out.outer, f.right - DLZ_X, tape_y, t, z);
+        }
+        if let (Some(c), Some(fpm)) = (i.ccip, i.fpm) {
+            out.field.push(line(fpm, c));
+        }
         if let Some(fpm) = i.fpm {
             ladder(&mut out.field, i.horizon, fpm, i.roll_deg, i.px_per_deg, f);
             marker(&mut out.field, fpm);
@@ -220,9 +252,15 @@ fn heading(p: &mut Vec<Prim>, y: f64, hdg: f64, bearing: Option<f64>) {
 fn data(p: &mut Vec<Prim>, f: Field, i: &Input, max_g: f64) {
     let (x, y) = (f.left - 30.0, 0.5 * (f.top + f.bottom) - 10.0 + TAPE_HALF + 14.0);
     p.push(text((x, y), i.master.clone(), Align::Left));
+    if i.fuel_lbs < BINGO_LBS {
+        p.push(text((x, y - 9.0), "FUEL", Align::Left));
+    }
     p.push(text((x, y + 9.0), format!("{:.2}", i.mach).trim_start_matches('0').to_owned(), Align::Left));
     p.push(text((x, y + 18.0), format!("{:.1}", i.g), Align::Left));
     p.push(text((x, y + 27.0), format!("{max_g:.1}"), Align::Left));
+    if let Some(t) = i.target {
+        p.push(text((f.right + 36.0, y + 9.0), format!("F {:04.1}", t.range_m / NM), Align::Right));
+    }
     if let Some(s) = i.steerpoint {
         let x = f.right + 36.0;
         p.push(text((x, y + 18.0), format!("{:03}>{:02}", (s.dist_m / NM).round() as i64, s.number), Align::Right));
@@ -231,6 +269,22 @@ fn data(p: &mut Vec<Prim>, f: Field, i: &Input, max_g: f64) {
             p.push(text((x, y + 27.0), format!("{:02}:{:02}", (t / 60).min(99), t % 60), Align::Right));
         }
     }
+}
+
+/// The DLZ scale (vertical, 0 at the bottom, the range scale at the top): Rmax and Rmin ticks to the left, the target's
+/// range caret to the right with the closure in knots beside it.
+fn dlz_scale(p: &mut Vec<Prim>, x: f64, y0: f64, t: Target, z: crate::missile::Dlz) {
+    let top_nm = DLZ_SCALES_NM.iter().copied().find(|&n| n * NM > z.max.max(t.range_m)).unwrap_or(80.0);
+    let y = |m: f64| y0 + DLZ_HALF - (m / (top_nm * NM)).clamp(0.0, 1.0) * 2.0 * DLZ_HALF;
+    p.push(line((x, y0 - DLZ_HALF), (x, y0 + DLZ_HALF)));
+    p.push(text((x, y0 - DLZ_HALF - 2.0), format!("{}", top_nm as i64), Align::Centre));
+    for m in [z.max, z.min] {
+        p.push(line((x - 4.0, y(m)), (x, y(m))));
+    }
+    let r = y(t.range_m);
+    p.push(line((x, r), (x + 3.0, r - 2.0)));
+    p.push(line((x, r), (x + 3.0, r + 2.0)));
+    p.push(text((x - 6.0, r + 3.0), format!("{}", (t.closure * MS_TO_KT).round() as i64), Align::Right));
 }
 
 /// The conformal pitch ladder centred on the marker: rungs every 5° within the field, rolled about the boresight; the
@@ -308,6 +362,7 @@ fn box_poly(x0: f64, y0: f64, x1: f64, y1: f64) -> [Prim; 4] {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::missile::Dlz;
 
     const FIELD: Field = Field { left: -80.0, top: -70.0, right: 80.0, bottom: 70.0 };
 
@@ -331,6 +386,7 @@ mod tests {
             px_per_deg: 6.0,
             master: "NAV".into(),
             steerpoint: Some(Steerpoint { number: 3, bearing_deg: 10.0, dist_m: 12.0 * NM, eta_s: Some(323.0) }),
+            fuel_lbs: 5000.0,
             ..Input::default()
         }
     }
@@ -355,5 +411,24 @@ mod tests {
         assert!(t.contains(&"5") && t.contains(&"10"), "{t:?}");
         // The bracket's ends 2° above and below the marker at 13° AoA.
         assert!(fr.field.contains(&Prim::Line { a: (-16.0, -2.0), b: (-16.0, 22.0) }));
+    }
+
+    #[test]
+    fn weapon_cues() {
+        let mut h = RealHud::default();
+        let t = Target { range_m: 15.0 * NM, closure: 200.0 };
+        let i = Input {
+            target: Some(t),
+            dlz: Some(Dlz { max: 18.0 * NM, min: 2.0 * NM }),
+            ccip: Some((5.0, 40.0)),
+            fuel_lbs: 1000.0,
+            ..input()
+        };
+        let fr = h.frame(FIELD, &i);
+        let tx = texts(&fr.outer);
+        for want in ["F 15.0", "389", "20", "FUEL"] {
+            assert!(tx.contains(&want), "{want} in {tx:?}");
+        }
+        assert!(fr.field.contains(&Prim::Line { a: (0.0, 10.0), b: (5.0, 40.0) }), "the bomb fall line");
     }
 }
