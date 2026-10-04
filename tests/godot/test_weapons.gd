@@ -170,7 +170,7 @@ func run() -> void:
 		if i % 10 == 0 and m0 in w.missiles:
 			print("t %.2f pos %s v %.0f dist %.0f" % [t - 1.0, m0.position(t), m0.velocity(t).length(), m0.position(t).distance_to(tv.runtime._world_of(mig2))])
 		if not m0 in w.missiles:
-			print("end at ", m0.last_pos, " target ", tv.runtime._world_of(mig2), " hitground ", m0.hit_ground)
+			print("end at ", m0.last_pos, " target ", tv.runtime._world_of(mig2))
 			break
 	check(not m0 in w.missiles, "the missile ended")
 	check(mig2.damage > 0.0 or mig2.state != 1, "the missile hit (damage %.2f, state %d)" % [mig2.damage, mig2.state])

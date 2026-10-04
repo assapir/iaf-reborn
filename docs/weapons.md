@@ -516,7 +516,7 @@ missiles exist yet), ECM.
 ## 11. Homing weapons and the radar missiles (600, 610)
 
 ### 11.1 One homing motion (class 0x18)
-Every homing weapon flies the chase motion of §5.3 (`missile.gd`, launcher independent: the player's or an AI's
+Every homing weapon flies the chase motion of §5.3 (`crates/iaf-avionics/src/missile.rs` via `missile.gd`, launcher independent: the player's or an AI's
 `launch_homing`): 570 / 580 IR, 590 HARM, 600 / 610 radar, 620 / 630 SAMs and **635 Maverick** (the other guided
 class, 640 / 650, flies another model). Two additions over §5.3, both in `FUN_005627e0`:
 - **Release drop** (@563358): while age < `_timeRelease` (+0xb0, 0.3 s for the radar missiles) the motor is not lit;
@@ -540,7 +540,7 @@ head-on at 250 m/s against a 250 m/s target: **max 55.7 km, min 2.15 km**. The c
 at the radar's target in S+0x348 (max) / S+0x350 (min) every frame while the radar has a lock / TWS selection or the
 HARM sensor a target (`FUN_00456520`), else the last values.
 
-### 11.3 MRM HUD sight (mode 2, `FUN_00460ea0`; HARM mode 8 `FUN_00460a90`; base `FUN_00462ab0`, `mrm_sight.gd`)
+### 11.3 MRM HUD sight (mode 2, `FUN_00460ea0`; HARM mode 8 `FUN_00460a90`; base `FUN_00462ab0`, `crates/iaf-avionics/src/sight.rs`)
 - **Target** (vfunc +0x28): the radar's A-A lock or TWS selection (mode 8: the HARM page's selected emitter);
   locked = vfunc +0x2c.
 - **Circle** (vfunc +0x3c `FUN_00462c10`): size 5 without a lock (×12 px, at least 10 px, at most the field's
@@ -602,7 +602,7 @@ the **laser bomb 650** fly the **guided motion** (class 0x19; motion vtable 0x60
 differs only in the destructor; ctor `FUN_00469aa0`, size 0x130). The weapon class (vtable 0x605178) configures the
 motion with the launch data's point (+0x14 `FUN_004d7ed0`: the target unit is ignored), sets a new aim with +0x2c
 (`FUN_00469f00`, ignored in mode 2) and reports +0x30 the status (`FUN_004d8030`: (mode ≠ 0) + 2 = 2 TRA / 3 TER).
-Explosion class 0x19: the falling store's (flash + streamers, no trail). `game/weapons/guided.gd`.
+Explosion class 0x19: the falling store's (flash + streamers, no trail). `crates/iaf-avionics/src/guided.rs` via `game/weapons/guided.gd`.
 
 ### 12.2 Guided motion
 - **Config** (`FUN_00563d30`; weapons.ibx field → its use, the ibx comments name it): `_absAcceleration` +0x78 the

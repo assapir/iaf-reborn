@@ -4,7 +4,9 @@ use godot::prelude::*;
 
 mod flight;
 mod gun;
+mod missile;
 mod radar;
+mod sight;
 mod world;
 
 struct IafExtension;

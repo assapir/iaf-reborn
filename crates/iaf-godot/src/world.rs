@@ -16,6 +16,12 @@ pub fn get<T: FromGodot>(d: &VarDictionary, key: &str) -> Option<T> {
     d.get(key).and_then(|v| v.try_to().ok())
 }
 
+/// A number in a dictionary, int or float.
+pub fn num(d: &VarDictionary, key: &str) -> Option<f64> {
+    let v = d.get(key)?;
+    v.try_to::<f64>().ok().or_else(|| v.try_to::<i64>().ok().map(|i| i as f64))
+}
+
 /// The terrain height at a world point through `f` (Callable(Vector3) -> float or null); no terrain when invalid.
 pub fn terrain(f: Option<Callable>) -> impl Fn(Vec3) -> Option<f64> {
     let f = f.filter(Callable::is_valid);
