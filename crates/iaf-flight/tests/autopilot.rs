@@ -655,3 +655,64 @@ fn shandel_split_s_horizontal_himmelman_tail_clear_fly() {
     air_fight(0xe, 3000.0);
     air_fight(0x14, 3000.0);
 }
+
+#[test]
+fn popup_release_pops_up_and_releases() {
+    let Some(_) = install() else { return };
+    // Low and 25 km out: the run to Q 300 m above the terrain, the 7 g pull to 45°, the climb, the dive on U.
+    let r = bomb_run(0x18, [0.0, -5000.0, 300.0], 300.0);
+    assert!(r.is_some(), "a release");
+}
+
+#[test]
+fn break90_breaks_climbs_and_turns_back() {
+    let Some(inst) = install() else { return };
+    let mut tgt = jet(&inst, "F-16", Vec3::new(0.0, 6000.0, 600.0), 180.0, true);
+    let mut me = jet(&inst, "F-16", Vec3::new(0.0, 0.0, 600.0), 0.0, true);
+    let cfg = Config::load(&inst);
+    let mut tap = Autopilot::new(cfg);
+    tap.set_mode(&mut tgt, 10);
+    let mut ap = Autopilot::new(cfg);
+    ap.set_mode(&mut me, 0x13);
+    let g = |_: f64, _: f64| 0.0;
+    let mut stages = Vec::new();
+    for _ in 0..(200.0 / DT) as usize {
+        ap.target = Some(leader_of(&tgt));
+        tap.step(&mut tgt, &g);
+        ap.step(&mut me, &g);
+        tgt.step(DT);
+        me.step(DT);
+        let st = ap.stage();
+        if stages.last() != Some(&st) {
+            println!("{st} alt {:.0}", me.state().position[2]);
+            stages.push(st);
+        }
+        assert!(me.state().position[2] > 50.0, "airborne");
+    }
+    assert!(stages.iter().any(|s| s.ends_with("0x15")), "Break90 reaches its end state: {stages:?}");
+}
+
+#[test]
+fn run_away_opens_the_distance() {
+    let Some(inst) = install() else { return };
+    let mut tgt = jet(&inst, "F-16", Vec3::new(0.0, 20000.0, 3000.0), 180.0, true);
+    let mut me = jet(&inst, "F-16", Vec3::new(0.0, 0.0, 3000.0), 0.0, true);
+    let cfg = Config::load(&inst);
+    let mut tap = Autopilot::new(cfg);
+    tap.set_mode(&mut tgt, 10);
+    let mut ap = Autopilot::new(cfg);
+    ap.set_mode(&mut me, 0x12);
+    let g = |_: f64, _: f64| 0.0;
+    let d0 = (tgt.state().position - me.state().position).length();
+    for _ in 0..(90.0 / DT) as usize {
+        ap.target = Some(leader_of(&tgt));
+        tap.step(&mut tgt, &g);
+        ap.step(&mut me, &g);
+        tgt.step(DT);
+        me.step(DT);
+        assert!(me.state().position[2] > 50.0, "airborne");
+    }
+    let d1 = (tgt.state().position - me.state().position).length();
+    println!("run away: {d0:.0} m -> {d1:.0} m ({})", ap.stage());
+    assert!(d1 > d0, "the distance grows ({d0:.0} -> {d1:.0})");
+}

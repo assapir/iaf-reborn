@@ -466,9 +466,10 @@ its Tower point, the engine test its Lineup point.
 - Conditions 8, 10, 12, 14, 17, 20, 21, 26 (the target's brain+0x7c; locks of AI jets not built), 37; 27 invalid.
 - **Dogchase** (mode 0x11, below) with the target fed every frame (`ap_set_target`) and the nose-on flag.
 
-Not built: the other manoeuvres (Shandel, Himmelman, SplitS, Horizontal, RunAway, Break90, TailClear, LevelBomb,
-DiveBomb, PopupRelease: an unknown mode leaves the autopilot idle), bombs from AI jets, AI radar locks (RWR "AI"
-entries), decoys from AI jets. Tests: crates/iaf-flight/tests/autopilot.rs (Dogchase), tests/godot/test_ai_air_combat.gd.
+All the combat manoeuvres are built (autopilot.rs): Dogchase, Shandel / SplitS / Horizontal, Himmelman, TailClear,
+RunAway, Break90, LevelBomb, DiveBomb, PopupRelease, with the leaves Fly2TargetXyzSt, Fly2ImpactPt, PullGFullThrottle,
+Fly2PtXYZ. Bombs from AI jets: one store per release (`player_weapons.drop_bomb`). Not built: the AI's bomb ripple,
+AI radar locks (RWR "AI" entries), decoys from AI jets. Tests: crates/iaf-flight/tests/autopilot.rs (Dogchase), tests/godot/test_ai_air_combat.gd.
 
 Partial decode for the AI combat job (scratch work; argument orders of `4440d0` checked in the disassembly).
 Corrections to §4 / §5: action **430 is "target = my nearest RWR emitter"** (`CTL.451f70()`, within 370 800 m;
@@ -539,20 +540,27 @@ B+0x7c); 39 any RWR entry's launch flag.
   has DogChaseRollK 4, LookAtBeta 1.0, ChangeHeadBeta 2.5, ChangeRollCone 10, NoChangeRollCone 1.75.
 - **Fly2TargetXyzSt** (0x612d10, 5d9740): LookAt(case +0xf0) on its point; throttle = speed law(+0xe8) or +0xec or
   0.75; watch-ground unless case 4.
-- **RunAway** (5dd330 / 5dd4a0): horizontal distance > 18540 m → run directly away (point 1854 km away, z ≥ T.z +
-  914.4) at 800 m/s target; > 9270 m, after 60 s, or the target's nose within 60° of me → fly to −1854000·F_T (absolute:
-  quirk); else at the target (+30 m each axis, throttle 1.0); throttle 1.0 for 30 s, then 0.75. Never ends; states
-  flip every tick at the borders (quirk).
-- **Break90** (5da210 / 5da7a0): Fly2Target(B = P + 185400·sgn·(−F_T.y, F_T.x)) until within 10° → level wings (|roll|
-  < 10°) → PullGFullThrottle (7 g, full throttle) until pitch > 45° → KeepOrientation until z > +0x5b0 + 1066.8 →
-  Fly2Target(A = 1854 km ahead) until within 10° → done.
+- **RunAway** (5dd330 / 5dd4a0): horizontal distance > 18540 m → state 1, run directly away (P − 1854 km·N.xy, z ≥
+  T.z + 914.4; the speed 800 is dead: the throttle is overridden); > 9270 m, after 60 s, or the target's nose more than
+  60° off me → state 2, fly to −1854000·F_T (absolute: quirk); else state 3, ATTACK the target + 30 m each axis
+  (throttle 1.0). The throttle, posted last, overrides all: 1.0 for 30 s, then 0.75. Never ends; the states flip every
+  tick at the borders (1 ↔ 2 beyond 18540 m, 2 ↔ 3 inside 9270 m: quirk).
+- **Break90** (5da210 / 5da7a0): Fly2TargetXyzSt(B = P + 185400·sgn·(−F_T.y, F_T.x), my height) until within 10°
+  (the angle includes the pitch) → LevelWingsPitch0Accel 180 until |roll| < 10° → PullGFullThrottle (`5da080`: the
+  stick for 7 g, wings level, throttle 1.0, no ground watch) until pitch > 45° → KeepOrientation until z > +0x5b0 +
+  1066.8 (+0x5b0 is never written: an absolute 1066.8 m, quirk) → Fly2TargetXyzSt(A = 1854 km along the entry nose)
+  until within 10° → LevelWingsPitch0Accel 180 forever. sgn = sign(Fh.x·R_T.x + Fh.y·F_T.x): a local→world transform
+  applied to a world vector (original bug, kept).
 - **LevelBomb** (5d9290): Fly2TargetXyzSt at 257.5 m/s to (T.x, T.y, max(z, T.z + 609.6)); release `440440` (fire
   gate, then the selected weapon as 300) when the vacuum impact `45ed10` is within 2·(z − T.z) of T; then
   LevelWingsPitch0Accel 180 m/s.
-- **PopupRelease** (5ccbd0): Fly2WayPt to me + Rz(bearing to T)·(3708, D − 4635) at terrain + 300 (ETA D/308.4 used
-  as an absolute time: quirk); PullGFullThrottle to 45°; KeepOrientation to T.z + 1828.8; Fly2PtXYZ to T + 500 up
-  until within 15°; KeepAttitude2Pt with the release when the impact is within 600 m of it (again within 1000 m);
-  ChangeAlt T.z + 1000; LevelWingsPitch0Accel 180.
+- **PopupRelease** (5ccbd0, base Run 5cc0f0): Fly2WayPt to Q = me + 3708 m right of the line to T + (D − 4635) along
+  it, at terrain + 300 (ETA D/308.4 used as an absolute time: quirk); PullGFullThrottle until |pitch − 45°| starts
+  growing (`5da190`; its stored value is never reset between popups: quirk); KeepOrientation to T.z + 1828.8;
+  Fly2PtXYZ (`5d9580`: LookAt case 0, throttle only from the ground watch) to U = T + 500 up until within 15° (cos
+  0.966, 3-D); KeepAttitude2Pt on U with the release (`440440`) when the impact is within 600 m of U (3-D: only
+  ~332 m horizontally of T) or I am within 1000 m of U (both can fire in one tick); ChangeAlt T.z + 1000, which never
+  ends (no condition), so LevelWingsPitch0Accel is never reached.
 - Not traced: Shandel / SplitS / Horizontal / Himmelman / TailClear / DiveBomb steps, LookAt cases 2 and 4, the AI's
   fire per weapon (`454270(T, 1)`: gun burst / aim, missile q, bomb ripple), the target selectors, the decoy logic,
   B+0x7c writers, the RWR internals, the hit reactions `44d590` / `43ff50`.

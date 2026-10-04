@@ -802,6 +802,33 @@ enum Loop {
     DiveBomb(Box<DiveBomb>),
     /// LevelBomb (0x16, Run `5d9290`): to above the target, release, then LevelWingsPitch0Accel.
     LevelBomb { released: bool, z: f64, lw_pitch: f32 },
+    /// RunAway (0x12, Init `5dd330`, Run `5dd4a0`).
+    RunAway { state: u8, t30: f64, t60: f64, pt: Vec3, speed: f32, thr: f32 },
+    /// Break90 (0x13, Init `5da210`, Run `5da7a0`); set up on its first tick.
+    Break90(Option<Box<Break90>>),
+    /// PopupRelease (0x18, Init `5ccbd0`, Run `5cc0f0`); set up on its first tick.
+    Popup(Option<Box<Popup>>),
+}
+
+/// Break90's state (`5da7a0`): the break point B, the entry-heading point A, the KeepOrientation capture.
+#[derive(Debug, Clone)]
+struct Break90 {
+    state: u8,
+    a: Vec3,
+    b: Vec3,
+    keep: Option<(f32, f32, f32)>,
+    lw_pitch: f32,
+}
+
+/// PopupRelease's children (`5ccbd0`): Fly2WayPt to Q, PullG to 45°, KeepOrientation to T.z + 1828.8, Fly2PtXYZ to U,
+/// KeepAttitude2Pt on U with the release, ChangeAlt T.z + 1000 (no condition: never ends).
+#[derive(Debug, Clone)]
+struct Popup {
+    child: u8,
+    t: Vec3,
+    u: Vec3,
+    f2w: Fly2Wp,
+    keep: Option<(f32, f32, f32)>,
 }
 
 /// DiveBomb's state (`5d8590`): the state code, the two Fly2TargetXyzSt points with their speed / throttle / case.
@@ -1041,6 +1068,223 @@ fn tail_clear(l: &mut Laws, t: &Leader, state: &mut u8, a: f64) -> bool {
     q[2] = q[2].max(h + a);
     fly_to_point(l, q, 1, speed, 0.0);
     false
+}
+
+/// PullGFullThrottle `5da080` (vtable 0x612d78): the stick for 7 g (`5ca310`), wings level, full throttle (no
+/// afterburner in the AI modes); no ground watch; it ends by its parent's condition.
+fn pull_g(l: &mut Laws) {
+    let y = l.inv_g(7.0).clamp(-1.0, 1.0);
+    let x = l.roll(0.0);
+    l.stick(y, x);
+    l.throttle(1.0);
+}
+
+/// Fly2PtXYZ `5d9580` (vtable 0x612e88): LookAt case 0 on the point; the throttle only when the ground watch acts.
+fn fly_to_xyz(l: &mut Laws, p: Vec3) {
+    let (mut y, mut x) = l.look_at(p, 0.0, 0).unwrap_or((0.0, 0.0));
+    let mut thr = 0.0;
+    if l.watch_ground(&mut x, &mut y, &mut thr) {
+        l.throttle(thr);
+    }
+    l.stick(y, x);
+}
+
+/// The nose (pitch included) of an attitude (pitch, roll, heading).
+fn nose(att: [f32; 3]) -> Vec3 {
+    let (sp, cp) = (att[0] as f64).sin_cos();
+    let (sh, ch) = (att[2] as f64).sin_cos();
+    Vec3::new(sh * cp, ch * cp, sp)
+}
+
+/// `5cc1f0`: the angle between a nose (pitch included) and the horizontal direction from `p` to `pt`.
+fn angle_to(att: [f32; 3], p: Vec3, pt: Vec3) -> f32 {
+    let h = Vec3::new(pt[0] - p[0], pt[1] - p[1], 0.0);
+    match h.try_normalize() {
+        Some(h) => (nose(att).dot(h).clamp(-1.0, 1.0)).acos() as f32,
+        None => 0.0,
+    }
+}
+
+/// RunAway (Run `5dd4a0`, every 0.5 s, never ends): beyond 18540 m (horizontal) run 1854 km straight away (state 1);
+/// beyond 9270 m, after 60 s or with the target's nose more than 60° off me, fly to −1854000·F_T, an ABSOLUTE point
+/// (state 2, quirk); else attack the target + 30 m on each axis at throttle 1.0 (state 3). The states flip every tick
+/// at the borders (quirk, as coded). The throttle, posted last, overrides everything: 1.0 for 30 s, then 0.75.
+fn run_away(l: &mut Laws, t: &Leader, state: &mut u8, times: (f64, f64), pt: &mut Vec3, speed: &mut f32, thr: &mut f32) {
+    let v = l.v;
+    let d = t.pos - v.pos;
+    let n = d.try_normalize().unwrap_or(Vec3::ZERO);
+    let h = d[0].hypot(d[1]);
+    if h > 18540.0 && *state != 1 {
+        *state = 1;
+        *pt = v.pos - Vec3::new(n[0], n[1], 0.0) * 1.854e6;
+        pt[2] = (t.pos[2] + 914.4).max(v.pos[2]);
+    } else {
+        let ang = angle_to(t.att, t.pos, v.pos);
+        if h > 9270.0 || v.t > times.1 || (ang > 60f32.to_radians() && *state != 2) {
+            *state = 2;
+            *pt = nose(t.att) * -1.854e6;
+            pt[2] = (pt[2] + 914.4).max(v.pos[2]);
+        } else if *state != 3 {
+            *state = 3;
+        }
+    }
+    match *state {
+        1 => {
+            (*speed, *thr) = (800.0, 0.0);
+            fly_to_point(l, *pt, 1, *speed, *thr);
+        }
+        2 => fly_to_point(l, *pt, 1, *speed, *thr),
+        _ => {
+            (*speed, *thr) = (0.0, 1.0);
+            fly_to_point(l, t.pos + Vec3::new(30.0, 30.0, 30.0), 1, *speed, *thr);
+        }
+    }
+    l.throttle(if v.t < times.0 { 1.0 } else { 0.75 });
+}
+
+impl Break90 {
+    /// Init `5da210`: A 1854 km ahead along my horizontal nose; B 185.4 km to the target's side of its track (sgn from
+    /// a local→world transform applied to a world vector: original bug, kept), both at my height.
+    fn new(v: &ApView, t: &Leader) -> Self {
+        let p = v.pos;
+        let f = nose([v.att.pitch, v.att.roll, v.att.heading]);
+        let fh = Vec3::new(f[0], f[1], 0.0).try_normalize().unwrap_or(Vec3::new(0.0, 1.0, 0.0));
+        let mut a = p + fh * 1.854e6;
+        a[2] = p[2];
+        let e = crate::aircraft::Euler { pitch: t.att[0], roll: t.att[1], heading: t.att[2] };
+        let (ft, rt, _) = e.basis();
+        let sgn = if fh[0] * rt[0] + fh[1] * ft[0] > 0.0 { 1.0 } else { -1.0 };
+        let mut b = p + Vec3::new(-ft[1], ft[0], 0.0) * (185400.0 * sgn);
+        b[2] = p[2];
+        Break90 { state: 0xf, a, b, keep: None, lw_pitch: 0.0 }
+    }
+
+    /// Run `5da7a0`: turn to B (within 10°, pitch included), wings level, pull 7 g at full throttle to 45° pitch, keep
+    /// the orientation until above 1066.8 m (the base +0x5b0 is never written: absolute, quirk), turn to A, then
+    /// LevelWingsPitch0Accel 180 m/s forever.
+    fn step(&mut self, l: &mut Laws, vmin12: f32) {
+        let v = l.v;
+        let att = [v.att.pitch, v.att.roll, v.att.heading];
+        let ten = 10f32.to_radians();
+        match self.state {
+            0xf => {
+                if angle_to(att, v.pos, self.b) < ten {
+                    self.state = 0x10;
+                } else {
+                    fly_to_point(l, self.b, 1, 0.0, 0.0);
+                }
+            }
+            0x10 => {
+                if level_wings_accel(l, &mut self.lw_pitch, 180.0, vmin12) == Leaf::Done {
+                    l.stick(0.0, 0.0);
+                }
+                if v.att.roll.abs() < ten {
+                    self.state = 0x11;
+                }
+            }
+            0x11 => {
+                if v.att.pitch > PI / 4.0 {
+                    self.state = 0x12;
+                } else {
+                    pull_g(l);
+                }
+            }
+            0x12 => {
+                if v.pos[2] > 1066.8 {
+                    self.state = 0x14;
+                } else {
+                    let k = *self.keep.get_or_insert((v.att.pitch, v.att.heading, v.speed));
+                    keep_orientation(l, k);
+                }
+            }
+            0x14 => {
+                if angle_to(att, v.pos, self.a) < ten {
+                    self.state = 0x15;
+                } else {
+                    fly_to_point(l, self.a, 1, 0.0, 0.0);
+                }
+            }
+            _ => {
+                let _ = level_wings_accel(l, &mut self.lw_pitch, 180.0, vmin12);
+            }
+        }
+    }
+}
+
+impl Popup {
+    /// Init `5ccbd0` with the target's pose: Q = 3708 m right of the line to T and 4635 m short of it, 300 m above
+    /// the terrain; U = T + 500 up; Fly2WayPt to Q with the ETA dist / 308.4 taken as an absolute time (quirk).
+    fn new(l: &mut Laws, t: &Leader) -> Self {
+        let p = l.v.pos;
+        let d = t.pos - p;
+        let b = if d[0] == 0.0 && d[1] == 0.0 { 0.0 } else { d[0].atan2(d[1]) };
+        let dist = d.length();
+        let fb = Vec3::new(b.sin(), b.cos(), 0.0);
+        let rb = Vec3::new(b.cos(), -b.sin(), 0.0);
+        let mut q = p + rb * 3708.0 + fb * (dist - 4635.0);
+        q[2] = (l.ground)(q[0], q[1]) as f64 + 300.0;
+        let u = Vec3::new(t.pos[0], t.pos[1], t.pos[2] + 500.0);
+        Popup { child: 0, t: t.pos, u, f2w: Fly2Wp::new(q, dist * 0.003_242_54), keep: None }
+    }
+
+    /// Base Run `5cc0f0` over the children, each ending by its condition and the next starting on the next tick.
+    /// The release (`440440`, l.out.release) when the vacuum impact is within 600 m of U (3-D: U is 500 m up, so only
+    /// within ~332 m horizontally of T, quirk) or I am within 1000 m of U. Returns the root period when it changes.
+    fn step(&mut self, l: &mut Laws, prev: &mut f32) -> Option<f64> {
+        let v = l.v;
+        match self.child {
+            0 => {
+                if self.f2w.step(l, 0.0) == Leaf::Done {
+                    l.stick(0.0, 0.0);
+                    self.child = 1;
+                }
+            }
+            1 => {
+                // 5da190: done once |pitch − 45°| starts growing (prev ≥ 0); prev is never reset (quirk).
+                let cur = (v.att.pitch - PI / 4.0).abs();
+                let done = *prev >= 0.0 && cur > *prev;
+                *prev = cur;
+                if done {
+                    l.stick(0.0, 0.0);
+                    self.child = 2;
+                } else {
+                    pull_g(l);
+                }
+            }
+            2 => {
+                if v.pos[2] > self.t[2] + 1828.8 {
+                    l.stick(0.0, 0.0);
+                    self.child = 3;
+                } else {
+                    let k = *self.keep.get_or_insert((v.att.pitch, v.att.heading, v.speed));
+                    keep_orientation(l, k);
+                }
+            }
+            3 => {
+                let f = nose([v.att.pitch, v.att.roll, v.att.heading]);
+                if (self.u - v.pos).try_normalize().is_some_and(|d| f.dot(d) >= 0.966) {
+                    l.stick(0.0, 0.0);
+                    self.child = 4;
+                } else {
+                    fly_to_xyz(l, self.u);
+                }
+            }
+            4 => {
+                let i = vacuum_impact(v.pos, v.vel, self.t[2]);
+                let r1 = (i - self.u).length() <= 600.0;
+                let r2 = (self.u - v.pos).length() < 1000.0;
+                if r1 || r2 {
+                    l.out.release = true;
+                    l.stick(0.0, 0.0);
+                    self.child = 5;
+                } else {
+                    keep_attitude(l, self.u, None);
+                }
+            }
+            _ => change_alt(l, self.t[2] + 1000.0),
+        }
+        l.period
+    }
 }
 
 /// The vacuum impact of a store released now (`45ed10`, UNCERTAIN: its integration; here the drop to the target's
@@ -1319,6 +1563,9 @@ pub struct Autopilot {
     pub target: Option<Leader>,
     /// Dogchase has the nose on its aim point (LookAt's flag, NoseOnTargetAng; condition 20 for the gun).
     pub nose_on: bool,
+    /// PopupRelease's PullG condition `5da190` (+0xc40): the last |pitch − 45°|, −1 from the manager's ctor and never
+    /// reset by Init (quirk: stale on a second popup).
+    popup_prev: f32,
     /// Current waypoint index (brain +0x88).
     pub wp_index: usize,
     /// Landed once (brain / controller +0xe0).
@@ -1340,6 +1587,7 @@ impl Autopilot {
             leader: None,
             target: None,
             nose_on: false,
+            popup_prev: -1.0,
             wp_index: 0,
             landed: false,
             mode: 0,
@@ -1373,6 +1621,9 @@ impl Autopilot {
             Loop::TailClear { state, .. } => format!("tail clear {state:#x}"),
             Loop::LevelBomb { released, .. } => format!("level bomb{}", if *released { " (released)" } else { "" }),
             Loop::DiveBomb(d) => format!("dive bomb state {:#x}", d.state),
+            Loop::RunAway { state, .. } => format!("run away state {state}"),
+            Loop::Break90(b) => format!("break90 state {:#x}", b.as_ref().map_or(0, |b| b.state)),
+            Loop::Popup(p) => format!("popup child {}", p.as_ref().map_or(0, |p| p.child)),
             Loop::None => "none".into(),
         }
     }
@@ -1441,6 +1692,9 @@ impl Autopilot {
             0xe => Loop::Himmelman { child: 0, pt_z: f64::NAN },
             0x14 => Loop::TailClear { state: 0, a: v.pos[2].max(v.ground_height as f64 + 1219.2) },
             0x16 => Loop::LevelBomb { released: false, z: v.pos[2], lw_pitch: 0.0 },
+            0x12 => Loop::RunAway { state: 0, t30: now + 30.0, t60: now + 60.0, pt: Vec3::ZERO, speed: 0.0, thr: 0.0 },
+            0x13 => Loop::Break90(None),
+            0x18 => Loop::Popup(None),
             0x17 => Loop::DiveBomb(Box::new(DiveBomb { state: 0, a: None, b: (Vec3::ZERO, 0.0, 0.0, 4), lw_pitch: 0.0 })),
             _ => Loop::None,
         };
@@ -1626,6 +1880,26 @@ impl Autopilot {
             },
             Loop::TailClear { state, a } => match self.target {
                 Some(t) => self.nose_on = tail_clear(&mut l, &t, state, *a),
+                None => l.stick(0.0, 0.0),
+            },
+            Loop::RunAway { state, t30, t60, pt, speed, thr } => match self.target {
+                Some(t) => run_away(&mut l, &t, state, (*t30, *t60), pt, speed, thr),
+                None => l.stick(0.0, 0.0),
+            },
+            Loop::Break90(b) => match self.target {
+                Some(t) => {
+                    let b = b.get_or_insert_with(|| Box::new(Break90::new(&v, &t)));
+                    b.step(&mut l, vmin12);
+                }
+                None => l.stick(0.0, 0.0),
+            },
+            Loop::Popup(pp) => match self.target {
+                Some(t) => {
+                    let pp = pp.get_or_insert_with(|| Box::new(Popup::new(&mut l, &t)));
+                    if let Some(p) = pp.step(&mut l, &mut self.popup_prev) {
+                        period = p;
+                    }
+                }
                 None => l.stick(0.0, 0.0),
             },
             Loop::LevelBomb { released, z, lw_pitch } => match self.target {
