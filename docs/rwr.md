@@ -1,7 +1,7 @@
 # The RWR (radar warning receiver)
 
 The RWR of a controller (`ctl+0x5b0`, ctor `FUN_004515d0`, v1.1 addresses) and how ours follows it
-(`game/weapons/rwr.gd`, owned by `player_weapons.gd`; drawn by `cockpit/cockpit.gd` `draw_rwr_symbols` on the MFD
+(`crates/iaf-avionics/src/rwr.rs`, unit tests there; run through `IafRwr` by `game/weapons/rwr.gd`, owned by `player_weapons.gd`; drawn by `cockpit/cockpit.gd` `draw_rwr_symbols` on the MFD
 page 7 (`cockpit/mfd.gd`) and the panel dial). World frame X east, Y north, Z up, metres, sim seconds.
 
 Only a **controller** has an RWR: in single player that is the player's jet. AI aircraft and ground units have none
@@ -80,7 +80,7 @@ A refresh, then the nearest listed emitter (active or not) within 370800 m (3-D)
 (`@4ce003`), AI action 430 and condition 38 (for a unit with a controller).
 
 ## 6. Ours
-- `rwr.gd` ports §1–§3 and §5; `cockpit.gd` §4 (the 4× glyph art; blink from the wall clock).
+- `rwr.rs` ports §1–§3 and §5 (`rwr.gd` plays the sounds); `cockpit.gd` §4 (the 4× glyph art; blink from the wall clock).
 - Feeds today: the player's radar lock hook (`player_weapons._radar_lock`: the AI's brain+0x7c, §2). Nothing locks
   the player yet: the AI target sensors (actions 400 / 410 / 420, docs/ai.md §13–14) and the ground units' brains are
   the AI combat job, and enemy missiles are not built. `rwr.lock(key)` / `unlock(key)` / `launch(key, missile)` /

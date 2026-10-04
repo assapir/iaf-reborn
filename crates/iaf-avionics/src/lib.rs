@@ -7,6 +7,7 @@ pub mod gun;
 pub mod master;
 pub mod missile;
 pub mod radar;
+pub mod rwr;
 pub mod sight;
 pub mod stores;
 pub mod vec3;

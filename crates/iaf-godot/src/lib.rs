@@ -7,6 +7,7 @@ mod flight;
 mod gun;
 mod missile;
 mod radar;
+mod rwr;
 mod sight;
 mod stores;
 mod world;

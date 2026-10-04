@@ -41,13 +41,13 @@ tools/worktree.sh <name>                                      # parallel worktre
   reference `tools/envelope_ref.py`).
 - `crates/iaf-avionics` — the player's avionics, pure Rust: the radar (`radar.rs`), the gun / rounds / LCOS
   (`gun.rs`), the homing / guided missiles (`missile.rs`, `guided.rs`), the IR seeker and MRM sight (`sight.rs`),
-  the stores (`stores.rs`), bombs / CCIP (`bombs.rs`), the master / HUD modes (`master.rs`); the RWR and HUD values
-  are being ported here from `game/weapons/*.gd`. Their GDScript fronts (`game/weapons/radar.gd`, `gun_rounds.gd`,
-  `missile.gd`, `guided.gd`, `ir_seeker.gd`, `mrm_sight.gd`, `stores.gd`, `bombs.gd`; the modes in
+  the stores (`stores.rs`), bombs / CCIP (`bombs.rs`), the master / HUD modes (`master.rs`), the RWR (`rwr.rs`); the
+  HUD values are next. Their GDScript fronts (`game/weapons/radar.gd`, `gun_rounds.gd`, `missile.gd`, `guided.gd`,
+  `ir_seeker.gd`, `mrm_sight.gd`, `stores.gd`, `bombs.gd`, `rwr.gd`; the modes in
   `player_weapons.gd`) keep the old interface and mirror the state.
 - `crates/iaf-godot` — gdext bridge: `IafFlight` (`flight.rs`), `IafRadar` (`radar.rs`), `IafRounds` / `IafLcos`
   (`gun.rs`), `IafMissile` / `IafGuided` (`missile.rs`), `IafSeeker` / `IafMrmSight` (`sight.rs`), `IafStores`
-  (`stores.rs`), `IafBomb` / `IafModes` (`bombs.rs`); `world.rs` converts the weapons' world frame. Handles the frame
+  (`stores.rs`), `IafBomb` / `IafModes` (`bombs.rs`), `IafRwr` (`rwr.rs`); `world.rs` converts the weapons' world frame. Handles the frame
   conversion: FM is ENU (east, north, up); Godot is X east, Y up, Z south. Loaded via `game/iaf.gdextension`.
 - `game/` — Godot project. Main scene `menu/front_end.tscn`; autoloads `Settings` (`settings.gd`) and `Joystick`.
   Flight scene is `terrain/terrain_view.tscn`. Subdirs by system: `aircraft`, `ai`, `cockpit`, `weapons` (radar, RWR,
