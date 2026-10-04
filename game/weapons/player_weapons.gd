@@ -1429,8 +1429,12 @@ func radar_event(ev: int, arg = null) -> void:
 		0x2c: radar.standby()
 		0x2d: radar.boresight(true)
 		0x2e: radar.boresight(false)
-		0x26: radar.next_target(true, now)
-		0x27: radar.next_target(false, now)
+		0x26, 0x27:
+			radar.next_target(ev == 0x26, now)
+			# FUN_0044a240 @44a923: with the TV camera running, a Maverick selected and the radar on a target, the
+			# camera restarts on the new target (FUN_00450280).
+			if eo.mode == EoSensor.TV and stores.current_type() == 635 and not radar.damaged and not radar.locked().is_empty():
+				_eo_start(EoSensor.TV)
 		0x31: radar.deselect(now)
 		0x2a: radar.lock_key(String(arg))
 		0x2f:

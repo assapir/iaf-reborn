@@ -734,38 +734,44 @@ impl Radar {
         }
     }
 
-    /// Return / Shift+Return (events 0x26 / 0x27, `FUN_004aefd0`): the cursor walks to the next (farther) or
-    /// previous contact, wrapping; it becomes the selection; LRS also locks it (→ STT); STT unlocks.
+    /// Return / Shift+Return (events 0x26 / 0x27, `FUN_004adbc0` → the mode's vt+0x2c, cursor walk `FUN_004aefd0`):
+    /// the cursor walks to the next (farther) or previous contact, wrapping; it becomes the selection; LRS also locks
+    /// it (→ STT, `FUN_004b21e0`); GMT / MAP drop the lock, walk and lock the new selection (`FUN_004b0cb0`:
+    /// `FUN_004b0680`, walk, `FUN_004b06b0`), so there a single contact gets locked too; STT unlocks.
     pub fn next_target(&mut self, forward: bool) {
         if !self.radiating() {
             return;
         }
-        self.illumination_lost(); // FUN_004adbc0
+        self.illumination_lost(); // FUN_00458130
         if self.mode == Mode::Stt {
             self.unlock();
             return;
         }
         let n = self.contacts.len();
-        if n <= 1 {
-            return; // (a single contact is locked by clicking its blip, event 0x2a)
-        }
-        let at = self.selection.as_ref().and_then(|s| self.contacts.iter().rposition(|c| c.key == s.key));
-        let next = match (at, forward) {
-            (Some(i), true) => (i + 1) % n,
-            (Some(i), false) => (i + n - 1) % n,
-            (None, true) => 0,
-            (None, false) => n - 2,
-        };
-        let key = self.contacts[next].key.clone();
-        if self.selection.as_ref().is_none_or(|s| s.key != key) {
-            if let Some(s) = self.selection.take() {
-                self.notify(&s.key, false);
+        if n >= 2 {
+            let at = self.selection.as_ref().and_then(|s| self.contacts.iter().rposition(|c| c.key == s.key));
+            let next = match (at, forward) {
+                (Some(i), true) => (i + 1) % n,
+                (Some(i), false) => (i + n - 1) % n,
+                (None, true) => 0,
+                (None, false) => n - 2,
+            };
+            let key = self.contacts[next].key.clone();
+            if self.selection.as_ref().is_none_or(|s| s.key != key) {
+                if let Some(s) = self.selection.take() {
+                    self.notify(&s.key, false);
+                }
+                self.notify(&key, true);
             }
-            self.notify(&key, true);
+            self.selection = Some(Selection { key: key.clone(), locked: false });
+            if self.mode == Mode::Lrs {
+                self.lock_key(&key);
+            }
         }
-        self.selection = Some(Selection { key: key.clone(), locked: false });
-        if self.mode == Mode::Lrs {
-            self.lock_key(&key);
+        if self.mode.air_to_ground()
+            && let Some(s) = &mut self.selection
+        {
+            s.locked = true;
         }
         self.dirty = true;
     }
@@ -968,6 +974,29 @@ mod tests {
         assert_eq!(r.mode(), Mode::Lrs, "behind the jet: the lock drops, back to LRS");
         assert!(r.locked().is_none());
         assert!(r.take_events().contains(&Event::IlluminationLost));
+    }
+
+    #[test]
+    fn gmt_return_locks_the_next_contact() {
+        let units: Vec<Unit> = (0..3)
+            .map(|i| Unit {
+                class: 8,
+                pos: Vec3::new(0.0, 5000.0 + 1000.0 * f64::from(i), 0.0),
+                vel: Vec3::new(5.0, 0.0, 0.0),
+                ..jet(&format!("t{i}"), 0.0, 0.0)
+            })
+            .collect();
+        let mut r = Radar::new(1, None);
+        r.toggle_aa_ag(0.0, &scene(&units));
+        r.toggle_aa_ag(0.0, &scene(&units));
+        assert_eq!(r.mode(), Mode::Gmt);
+        assert_eq!(keys(&r), ["t0", "t1", "t2"]);
+        assert_eq!(r.selection().map(|s| (s.key.as_str(), s.locked)), Some(("t0", false)));
+        r.next_target(true);
+        assert_eq!(r.selection().map(|s| (s.key.as_str(), s.locked)), Some(("t1", true)));
+        r.next_target(false);
+        assert_eq!(r.selection().map(|s| (s.key.as_str(), s.locked)), Some(("t0", true)));
+        assert!(r.has_lock());
     }
 
     #[test]

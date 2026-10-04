@@ -39,7 +39,7 @@ STT takes LRS's (max index, NM), else ACM's.
 | S | 0x2c (`FUN_004ad9c0`) | STBY (an on radar is turned off first: lists cleared) |
 | . / , | 0x21 / 0x22 (`FUN_004adb70`) | range index ±1 in [1, max] (not in STT), then a scan |
 | \ down / up | 0x2d / 0x2e | BORE while held (A-A only), back to the saved mode |
-| Return / Shift+Return | 0x26 / 0x27 (`FUN_004aefd0`) | the cursor to the next / previous contact (wraps, needs ≥ 2); in LRS it also locks (→ STT); in STT it unlocks |
+| Return / Shift+Return | 0x26 / 0x27 (`FUN_004adbc0` → the mode's vt+0x2c, walk `FUN_004aefd0`) | the cursor (record +0x18) to the next / previous contact (wraps, needs ≥ 2); LRS also locks it (→ STT, `FUN_004b21e0`); **GMT / MAP drop the lock, walk and lock the new one** (`FUN_004b0cb0`: `FUN_004b0680`, walk, `FUN_004b06b0`: record +0x14; a single contact gets locked); TWS / BORE / ACM only walk; in STT it unlocks. Then (`FUN_0044a240` @44a923) with the TV camera running, a Maverick (635) selected and the radar on a target, the TV camera restarts on it (`FUN_00450280`) |
 | click on a blip (LRS) | 0x2a (`FUN_004adca0`) | lock that contact; from TWS straight to STT |
 | Backspace | 0x31 (`FUN_004add60`) | drop the lock (STT → the last A-A mode); without a lock: clear the designated point (+0x50 / +0x58 / +0x5c = 0; the EXP flag stays) |
 | MAP click off the contacts | 0x2f (`FUN_004ade90`) | a lock is dropped, then the point is designated: +0x58 / +0x5c = X / Y, +0x60 = the terrain height there (`FUN_00402080`), +0x50 = 1 |
