@@ -2,8 +2,10 @@
 //! reverse-engineered notes in `docs/`. Pure Rust, no engine dependencies; `iaf-godot` exposes it to GDScript.
 
 pub mod bombs;
+pub mod eo;
 pub mod guided;
 pub mod gun;
+pub mod harm;
 pub mod master;
 pub mod missile;
 pub mod radar;

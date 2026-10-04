@@ -8,6 +8,7 @@ mod gun;
 mod missile;
 mod radar;
 mod rwr;
+mod sensors;
 mod sight;
 mod stores;
 mod world;

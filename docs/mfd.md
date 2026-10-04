@@ -352,7 +352,7 @@ no round of that store is left (`FUN_00456cd0` → `FUN_0053bcd0`) unless a laun
   nothing.
 - Ctrl+Return (cmd 0x33, HUD mode 8, more than one entry) / cmd 0x34: next / previous target (vfunc +0x2c(1) / (0)).
 
-**iaf-reborn** (`weapons/eo_sensor.gd`, `cockpit/mfd.gd`, `terrain/terrain_view.gd`): all of the above except: the
+**iaf-reborn** (`crates/iaf-avionics/src/eo.rs` via `weapons/eo_sensor.gd`, `cockpit/mfd.gd`, `terrain/terrain_view.gd`): all of the above except: the
 TV weapons do not fly yet (no launch, so the status is RDY / NO SOURCE and the TV lock never happens; "%3d" not
 drawn: its source is the weapon's motion object); the EO centre point is the terrain under the line of sight
 (ray-marched; buildings / units not hit); the eye is the jet's position (not the pylon); the picture is a SubViewport
