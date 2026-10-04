@@ -151,29 +151,20 @@ kt / ft / NM for every jet.
 
 ### Real HUD (ours, Extras > HUD)
 Not in the original: each jet's real HUD / sight / helmet symbology. The per-aircraft reference with every source
-and its confidence is [docs/real-hud.md](real-hud.md). Laid out in Rust
-(`crates/iaf-avionics/src/real_hud.rs`, `IafRealHud`) as lines / circles / texts in the same HUD pixels and drawn by
-`hud.gd` (`real_hud()`, `_draw_prims`). Phase 1 replaces the navigation symbology; the weapon symbols, the ILS, the gun
-cross, the waypoint marker / target box and the helmet display (DASH) are the original's.
-* **Airspeed** (KCAS, `ias_kt`) on the field's left edge: 0.6 px/kt, 10 kt ticks, labels every 50 kt as kt / 10, the
-  digital box outside pointing at the scale. **Altitude** (barometric) on the right edge: 0.06 px/ft, 100 ft ticks,
-  labels every 500 ft in thousands ("10,5"), the box "10,450". Labels within 8 px of the box are hidden.
-* **Heading scale** along the field's bottom: 2 px/deg, 5° ticks, labels every 10° in tens, the fixed caret and the
-  steering tick at the steerpoint's bearing (held at the scale's ends).
-* **Pitch ladder**, conformal: rung e sits e degrees up from the level point ahead (the view's level direction
-  projected; the view's px/deg measured 5° above it), rolled with the jet and slid along the rungs to the flight path
-  marker; climb rungs solid with their tips down, dive rungs dashed with their tips up, the horizon line long; labels
-  at both ends; none in the heading scale's band.
-* **Flight path marker** (circle, wings, fin) and, with the gear handle down, the **AoA bracket** left of it: the
-  marker inside from 11° to 15° AoA.
-* **Data windows** under the scales: left the HUD mode's name (NAV, SRM, MRM, EEGS, STRF, CCIP, LGB, EO, HARM), Mach,
-  g and max g (latched); right the steerpoint's distance in NM and number ("012>03") and the time to it (mm:ss).
-* Phase 2, the weapon cues: with a radar lock the **DLZ scale** 18 px inside the altitude scale (48 px, 0 at the
-  bottom, the top the smallest of 10 / 20 / 40 / 80 NM above Rmax and the range, labelled; Rmax / Rmin ticks to the
-  left, the target's range caret with the closure in kt beside it) and the target's range **"F 12.3"** (NM) in the
-  right window; in CCIP (HUD modes 5 / 6) the **bomb fall line** from the marker to the pipper; **"FUEL"** above the
-  mode when the fuel is below the bingo (ours: 1500 lb).
-Test: `tests/godot/test_real_hud.gd`; unit tests in `real_hud.rs`.
+and its confidence is [docs/real-hud.md](real-hud.md). Laid out in Rust (`crates/iaf-avionics/src/real_hud/`,
+`IafRealHud`) as lines / circles / dots / arcs / texts in the HUD's pixels and drawn by `hud.gd` (`real_hud()`,
+`_draw_prims`). The display follows the cockpit: `f16`, `lavi`, `f4-2000`, `cfir` the F-16C/D HUD (dash-34; Lavi,
+Kurnass 2000 and Kfir as reconstructions), `f15` the F-15A/C HUD (TO 1F-15A-1), `phantom` the F-4E's ASG-26 optical
+sight (red reticle only), `mirage` the CSF gyro gunsight (orange reticle only), the F-35I its helmet's forward virtual
+HUD (green, its own 32° × 22° field, not clipped to the glass). Symbol sizes are the real ones in milliradians at the
+view's scale. In Real mode the original's ladder, marker, scales, text block, gun cross, waypoint marker, target box
+and weapon symbols are not drawn (the ILS, the BORE cross and the TV / HARM diamonds stay); the sight-only jets draw
+nothing else. Weapon cues per jet: F-16 SRM reticle + seeker diamond, MRM ASEC + steering dot, DLZ (closure, target
+range), EEGS funnel (ours: 35 ft wingspan, M61A1 muzzle speed) with the TD circle, strafe / CCIP pipper and fall line,
+steerpoint diamond; F-15 TD box, ASE circle and dot, range scale with IN RNG, LCOS reticle, bomb fall line to the
+target square; F-35 target X, steering circle, DLZ bracket with the range; the sights' reticles ride the LCOS / CCIP
+pipper (ours: the bombing depression set automatically). Tests: `tests/godot/test_real_hud.gd`, unit tests in each
+module; screenshots: `tests/godot/_real_hud_jets_shot.gd` (every jet), `_hud_compare_shot.gd` (original vs real).
 
 ### 3D view: the cockpit camera's projection (v1.1)
 The world is drawn by TgenAPI (`DAT_0069942c`, 16-bit renderer vtable `0x5fd900`) into viewport 0, every frame from

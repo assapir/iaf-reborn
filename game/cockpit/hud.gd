@@ -124,12 +124,23 @@ func _draw() -> void:
 	# The helmet display (R+0x2788): no ladder / marker, ILS, gun cross, mode 3–6 aiming symbols.
 	var dash: bool = cockpit.dash()
 
-	# The Real HUD: its ladder, marker and AoA bracket instead of the original's.
+	# The Real HUD (docs/real-hud.md): the jet's own symbology instead of the original's; a jet without a HUD (the F-4E's
+	# and the Mirage's gunsights) shows its reticle only. The ILS, the BORE cross and the TV / HARM diamonds stay.
 	var real := real_hud()
 	if not real.is_empty():
-		_draw_prims(self, real.field, w)
+		_draw_prims(self, real.field, w, real.colour)
+		if real.sight:
+			return
+		if _mode() == 0 and cockpit.gear_handle_down:
+			_draw_ils(st, w)
+		if _mode() in [7, 8]:
+			_draw_weapons(s, w, font, fs, gun, dash)
+		if int(cockpit.radar.get("mode", 0)) == 3:
+			_ln(self, Vector2(-30, 0), Vector2(30, 0), w)
+			_ln(self, Vector2(0, -20), Vector2(0, 20), w)
+		return
 	# Ladder (ShowHorizon, R+0x2234) and flight path marker (FUN_00538c90).
-	elif camera != null and not dash:
+	if camera != null and not dash:
 		var fpm = _fpm_position()
 		if _key("ShowHorizon", 1) != 0:
 			if Settings.hud_ladder == "conformal":
@@ -141,14 +152,7 @@ func _draw() -> void:
 
 	# NAV: the ILS with the gear handle down (FUN_005309a0).
 	if _mode() == 0 and cockpit.gear_handle_down and not dash:
-		var il := ils_lines(st.get("ils", Vector2.ZERO), _field())
-		var hx: float = 16
-		_ln(self, Vector2(-hx, il.y), Vector2(hx, il.y), w)
-		_ln(self, Vector2(-hx, il.y - 1), Vector2(-hx, il.y + 2), w)
-		_ln(self, Vector2(hx, il.y - 1), Vector2(hx, il.y + 2), w)
-		_ln(self, Vector2(il.x, -hx), Vector2(il.x, hx), w)
-		_ln(self, Vector2(il.x - 1, -hx), Vector2(il.x + 2, -hx), w)
-		_ln(self, Vector2(il.x - 1, hx), Vector2(il.x + 2, hx), w)
+		_draw_ils(st, w)
 
 	_draw_weapons(s, w, font, fs, gun, dash)
 	# FUN_0052f690, every HUD mode: the target box, the gun cross with the gear handle up (GunRetPositionY:
@@ -163,6 +167,18 @@ func _draw() -> void:
 		_ln(self, g + Vector2(-4, 0), g + Vector2(5, 0), w)
 		_ln(self, g + Vector2(0, -5), g + Vector2(0, 10), w)
 	_draw_waypoint_marker(w)
+
+
+## The ILS deviation lines (FUN_005309a0).
+func _draw_ils(st: Dictionary, w: float) -> void:
+	var il := ils_lines(st.get("ils", Vector2.ZERO), _field())
+	var hx: float = 16
+	_ln(self, Vector2(-hx, il.y), Vector2(hx, il.y), w)
+	_ln(self, Vector2(-hx, il.y - 1), Vector2(-hx, il.y + 2), w)
+	_ln(self, Vector2(hx, il.y - 1), Vector2(hx, il.y + 2), w)
+	_ln(self, Vector2(il.x, -hx), Vector2(il.x, hx), w)
+	_ln(self, Vector2(il.x - 1, -hx), Vector2(il.x + 2, -hx), w)
+	_ln(self, Vector2(il.x - 1, hx), Vector2(il.x + 2, hx), w)
 
 
 ## The field in original pixels from the HUD centre: Rect2(−LeftBorder, −TopBorder, L + R, T + B).
@@ -254,7 +270,7 @@ func _glyph_strokes(x: int) -> Array:
 
 
 ## GDI text in Arial h10 w5 at baseline `p` (TA_BASELINE; TA_RIGHT when `right`).
-func _gdi(ci: CanvasItem, p: Vector2, text: String, right := false) -> void:
+func _gdi(ci: CanvasItem, p: Vector2, text: String, right := false, colour = null) -> void:
 	var em := 10.0 / 1.15
 	if _arial == null:
 		_arial = Img.arial()
@@ -267,7 +283,7 @@ func _gdi(ci: CanvasItem, p: Vector2, text: String, right := false) -> void:
 	if right:
 		at.x -= _arial.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x * _arial_squeeze
 	ci.draw_set_transform(at, 0.0, Vector2(_arial_squeeze, 1.0))
-	ci.draw_string(_arial, Vector2.ZERO, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, cockpit.hud_colour())
+	ci.draw_string(_arial, Vector2.ZERO, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, colour if colour != null else cockpit.hud_colour())
 	ci.draw_set_transform(Vector2.ZERO)
 
 
@@ -292,7 +308,7 @@ func _draw_outer() -> void:
 		_draw_pipper(_pipper_at.p, float(_pipper_at.arc), w)
 	var real := real_hud()
 	if not real.is_empty():
-		_draw_prims(outer, real.outer, w)
+		_draw_prims(outer, real.outer, w, real.colour)
 		return
 
 	# Altitude (FUN_005381c0) on the right edge.
@@ -356,71 +372,108 @@ func _draw_outer() -> void:
 
 # --- the Real HUD (ours, Extras > HUD) ---------------------------------------------------------------------
 
-## The HUD mode's label in the Real HUD's data window.
-const REAL_MODE_LABELS := ["NAV", "SRM", "MRM", "EEGS", "STRF", "CCIP", "LGB", "EO", "HARM"]
-
-
-## The Real HUD's primitives of this frame ({field, outer}; {} with the original HUD, on the helmet display or
-## without a camera), computed once per frame for both layers.
+## The Real HUD's primitives of this frame ({field, outer, colour, sight}; {} with the original HUD or without a
+## camera; on the helmet display only for the F-35, whose display is its helmet), computed once per frame for both
+## layers. Inputs: the flight state, the view (horizon, scale, marker, boresight, gun cross), the steerpoint and the
+## radar's target projected on the HUD, the weapons' HUD points (seeker, LCOS / strafe / CCIP pipper, MRM steering).
 func real_hud() -> Dictionary:
-	if Settings.hud_style != "real" or camera == null or cockpit.dash():
+	if Settings.hud_style != "real" or camera == null:
 		return {}
-	var f := Engine.get_process_frames()
-	if f == _real_frame:
+	var f35 := String(cockpit.cockpit_dir).contains("f35")
+	if cockpit.dash() and not f35:
+		return {}
+	var fr := Engine.get_process_frames()
+	if fr == _real_frame:
 		return _real
-	_real_frame = f
+	_real_frame = fr
 	if _real_hud == null:
 		_real_hud = ClassDB.instantiate("IafRealHud")
 	var st: Dictionary = cockpit.state
+	var wp: Dictionary = cockpit.weapons
+	var rd: Dictionary = cockpit.radar
+	var mode := _mode()
 	# The level direction ahead along the view's heading and the view's scale (5° up from it).
 	var fwd := -camera.global_basis.z
 	var level := Vector3(fwd.x, 0.0, fwd.z).normalized()
 	var horizon := _project(level)
 	var up5 := _project(level.rotated(level.cross(Vector3.UP).normalized(), deg_to_rad(5.0)))
 	var fpm = _fpm_position()
+	var gun: Vector2 = (gun_cross() - position - _c) / _s
 	var nav := nav_cues(st, cockpit.waypoints, cockpit.current_waypoint)
 	var steer := {}
 	if not cockpit.waypoints.is_empty():
+		var i := clampi(cockpit.current_waypoint, 0, cockpit.waypoints.size() - 1)
+		var wpt: Dictionary = cockpit.waypoints[i]
+		var z := 0.0
+		if host_ground.is_valid():
+			var g = host_ground.call(wpt.world.x, wpt.world.y)
+			z = float(g) if g != null else 0.0
 		var minutes := float(nav.minutes)
 		steer = {"number": int(nav.index) + 1, "bearing": nav.bearing_deg, "dist_m": float(nav.dist_nm) / M_TO_NM,
-			"eta_s": minutes * 60.0 if minutes < 1000.0 / 60.0 else null}
-	var mode := _mode()
-	# The weapon cues: the radar's lock (range, closure) and the selected store's DLZ; the CCIP pipper on the HUD.
-	var rd: Dictionary = cockpit.radar
+			"eta_s": minutes * 60.0 if minutes < 1000.0 / 60.0 else null,
+			"at": _hud_point(Vector3(wpt.world.x, wpt.world.y, z), true)}
 	var lk: Dictionary = rd.get("lock", {})
-	var target := {"range_m": float(lk.dist), "closure": float(rd.get("closure", 0.0))} if not lk.is_empty() else {}
-	var ccip = null
-	var ag: Dictionary = cockpit.weapons.get("ag", {})
-	if mode in [5, 6] and ag.get("pipper") != null and host_world_to_scene.is_valid():
-		var sp: Vector3 = host_world_to_scene.call(ag.pipper)
-		if not camera.is_position_behind(sp):
-			ccip = (camera.unproject_position(sp) - position - _c) / _s
+	var target := {}
+	if not lk.is_empty():
+		target = {"range_m": float(lk.dist), "closure": float(rd.get("closure", 0.0)), "at": _hud_point(lk.pos, true)}
+	var pip = null
+	if mode == 4 and wp.get("pipper") != null:
+		pip = _hud_point(wp.pipper, false)
+	elif mode in [5, 6] and wp.get("ag", {}).get("pipper") != null:
+		pip = _hud_point(wp.ag.pipper, false)
+	var lcos = null
+	if mode == 3 and wp.get("pipper") != null:
+		lcos = gun + Vector2(wp.pipper.x, wp.pipper.y)
+	var agl = st.get("agl_ft")
 	_real = _real_hud.frame(_field(), {
-		"kcas": st.get("ias_kt", 0.0), "alt_ft": st.get("alt_ft", 0.0), "heading": st.get("heading", 0.0),
-		"roll": st.get("roll", 0.0), "mach": st.get("mach", 0.0), "g": st.get("g", 1.0),
-		"aoa": st.get("aoa", 0.0), "gear_down": cockpit.gear_handle_down,
-		"fpm": (fpm - _c) / _s if fpm != null else null, "horizon": (horizon - _c) / _s,
-		"px_per_deg": (up5 - horizon).length() / 5.0 / _s,
-		"master": REAL_MODE_LABELS[mode] if mode >= 0 and mode < REAL_MODE_LABELS.size() else "",
+		"cockpit": cockpit.cockpit_dir, "kcas": st.get("ias_kt", 0.0), "ground_kt": st.get("ground_kt", 0.0),
+		"tas_ms": float(st.get("tas_kt", 0.0)) / MS_TO_KT, "alt_ft": st.get("alt_ft", 0.0), "agl_ft": agl,
+		"vs_fpm": st.get("vs_fpm", 0.0), "heading": st.get("heading", 0.0), "roll": st.get("roll", 0.0),
+		"mach": st.get("mach", 0.0), "g": st.get("g", 1.0), "aoa": st.get("aoa", 0.0),
+		"gear_down": cockpit.gear_handle_down, "fuel_lbs": st.get("fuel_lbs", 0.0),
+		"fpm": (fpm - _c) / _s if fpm != null else null, "boresight": (cockpit.boresight() - position - _c) / _s,
+		"gun_cross": gun, "horizon": (horizon - _c) / _s, "px_per_deg": (up5 - horizon).length() / 5.0 / _s,
 		"steerpoint": steer, "target": target, "dlz": rd.get("dlz", []) if not target.is_empty() else [],
-		"ccip": ccip, "fuel_lbs": st.get("fuel_lbs", 0.0)})
+		"weapons": {"hud_mode": mode, "selected": wp.get("total", 0), "srm": wp.get("srm", 0), "mrm": wp.get("mrm", 0),
+			"seeker": wp.get("seeker") if mode == 1 and wp.get("have_missiles", false) else null, "lcos": lcos,
+			"pipper": pip, "steering": _hud_point(wp.mrm_point, false) if mode == 2 and wp.get("mrm_point") != null else null,
+			"circle": wp.get("circle", 5.0), "shoot": wp.get("shoot", false)}})
 	return _real
 
 
-## Draws Real HUD primitives (HUD pixels from the HUD centre) on `ci`.
-func _draw_prims(ci: CanvasItem, prims: Array, w: float) -> void:
-	var col: Color = cockpit.hud_colour()
+## A world point (X east, Y north, Z up) in HUD pixels from the HUD centre; behind the eye: null, or with `far` a
+## point far out in its direction (for symbols held on the field's edge).
+func _hud_point(world: Vector3, far: bool) -> Variant:
+	if not host_world_to_scene.is_valid():
+		return null
+	var sp: Vector3 = host_world_to_scene.call(world)
+	if camera.is_position_behind(sp):
+		if not far:
+			return null
+		var d := camera.global_basis.inverse() * (sp - camera.global_position)
+		return Vector2(d.x, -d.y).normalized() * 10000.0
+	return (camera.unproject_position(sp) - position - _c) / _s
+
+
+## Draws Real HUD primitives (HUD pixels from the HUD centre) on `ci`, in `colour` (null: the HUD's).
+func _draw_prims(ci: CanvasItem, prims: Array, w: float, colour = null) -> void:
+	var col: Color = colour if colour != null else cockpit.hud_colour()
 	for p in prims:
 		match p.k:
 			"line":
-				_ln(ci, p.a, p.b, w)
+				ci.draw_line(_pt(p.a), _pt(p.b), col, w, true)
 			"circle":
-				ci.draw_arc(_pt(p.c), float(p.r) * _s, 0, TAU, 20, col, w)
+				ci.draw_arc(_pt(p.c), float(p.r) * _s, 0, TAU, 32, col, w, true)
+			"dot":
+				ci.draw_circle(_pt(p.c), maxf(float(p.r) * _s, w), col, true, -1.0, true)
+			"arc":
+				var a0: float = float(p.from) - PI / 2.0
+				ci.draw_arc(_pt(p.c), float(p.r) * _s, a0, a0 + float(p.sweep), 24, col, w * 1.6, true)
 			"text":
 				var at: Vector2 = p.at
 				if int(p.align) == 1:
 					at.x += 2.5 * String(p.text).length()
-				_gdi(ci, at, p.text, int(p.align) != 0)
+				_gdi(ci, at, p.text, int(p.align) != 0, col)
 
 
 # --- traced values (original pixels; tests/godot/test_hud.gd) -----------------------------------------
