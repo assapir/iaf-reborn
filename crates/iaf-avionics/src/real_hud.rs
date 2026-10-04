@@ -26,7 +26,7 @@ const RUNG_GAP: f64 = 9.0;
 const RUNG_LEN: f64 = 20.0;
 const TIP: f64 = 4.0;
 /// The band along the field's bottom the heading scale takes (no ladder rungs there).
-const HEADING_BAND: f64 = 16.0;
+const HEADING_BAND: f64 = 26.0;
 /// The flight path marker: a 4 px circle, 8 px wings, a 4 px fin.
 const FPM_R: f64 = 4.0;
 /// The AoA bracket (gear down): the marker inside it from 11° to 15° AoA, 13° on its centre.
@@ -35,10 +35,10 @@ const AOA_HIGH: f64 = 15.0;
 /// m → NM; m/s → kt.
 const NM: f64 = 1852.0;
 const MS_TO_KT: f64 = 1.943844;
-/// The DLZ scale: 60 px tall, 10 px left of the altitude scale; its top the range scale (10, 20, 40 or 80 NM: the
+/// The DLZ scale: 48 px tall, 18 px left of the altitude scale; its top the range scale (10, 20, 40 or 80 NM: the
 /// smallest above Rmax and the target's range).
-const DLZ_HALF: f64 = 30.0;
-const DLZ_X: f64 = 10.0;
+const DLZ_HALF: f64 = 24.0;
+const DLZ_X: f64 = 18.0;
 const DLZ_SCALES_NM: [f64; 4] = [10.0, 20.0, 40.0, 80.0];
 /// Ours: the bingo fuel (lb) below which "FUEL" shows.
 pub const BINGO_LBS: f64 = 1500.0;
