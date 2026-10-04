@@ -695,6 +695,11 @@ func _draw_nav() -> void:
 			draw_polyline(PackedVector2Array([Vector2(8, y - 2), Vector2(8, y + 6), Vector2(1, y + 6), Vector2(1, y - 2),
 				Vector2(8, y - 2)]), GREEN, 1.0)
 	_text(Vector2(72, 124), "ETA   :")
+	# "%02d %02d" hours, minutes of the ETA (a time of day; not wrapped at 24 h, as the original), right-aligned at 117.
+	if not wps.is_empty():
+		var eta: float = preload("res://cockpit/hud.gd").nav_cues(cockpit.state, wps, cur).eta
+		var h := int(eta / 3600.0)
+		_text_right(117, 124, "%02d %02d" % [h, int((eta - 3600.0 * h) / 60.0)])
 
 
 ## Stores page (FUN_0052c740, docs/mfd.md): per pylon station 0..8 the count and name positions

@@ -142,7 +142,7 @@ font) per row at y = 43 + 20·row: "% 3dM" = ftol(distance·(1/1853)) NM at x 77
 negative) at x 102, where the nav update `FUN_004459f0` fills each waypoint record (state+0x7c + 0x2c·i) with the
 bearing atan2(dx, dy) from the ownship (+0x9c, rad, true north) and the 3-D distance (+0xa0, m). ETA "%02d %02d" =
 hours, minutes of the double state+0x318 (h = ftol(t/3600), m = ftol((t − 3600h)/60)) right-aligned at (117,124);
-state+0x318 is a clock time computed in `0x4530a0` from the sim clock and the waypoint's own time (not fully traced).
+state+0x318 is the time of day at arrival (`FUN_00452e60`, the nav object's state-5 handler; 0x4530a0 is inside it): now (clock+0x38 + clock+0x18) + the horizontal distance to the current waypoint over the horizontal ground speed (1000 s when stopped), at most now + 36000 s (0x600e40); not wrapped at 24 h. Port: hud.gd `nav_cues` `eta`, the time of day = mission start 0x460 + the mission clock (UNCERTAIN: that clock+0x18 is 0x460).
 Scroll arrows at (1,22)/(1,107); buttons 0xb/0xf scroll (clamped 0..count). Pass 4: the current waypoint (state+0x320,
 clamped to the count) when visible: box (1, 20·(row+2))–(8, 20·(row+2)+8). The list scrolls to the current waypoint
 when the names change.
@@ -476,5 +476,5 @@ can put the player in a MiG (`Player1` type) is not verified - UNCERTAIN. `fsmfd
 - Straight-ahead vertical pan (+0x568) → exact on-screen MFD y.
 - Meaning of the TSD ×1.0071394 factor and the ~20 m offsets between TSD, MAP and DataShift constants.
 - state+0x70 (steerpoint vs ownship copy); contact +0x67c; state+0x348/+0x3a0 (STT envelope/closure).
-- Names of master modes 1–6; RWR aircraft glyph identities; the TV page's "%3d" (weapon motion vfunc +0x80); the NAV ETA's
-  clock source (`0x4530a0`).
+- Names of master modes 1–6; RWR aircraft glyph identities; the TV page's "%3d" (weapon motion vfunc +0x80); that the NAV ETA's
+  clock offset (clock+0x18) is the mission start time 0x460.

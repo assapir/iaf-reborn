@@ -137,6 +137,11 @@ func _traced(tv) -> void:
 			[{"world": Vector2(1000, 1000), "t": 200.0}], 0)
 	check(absf(nc.bearing_deg - 45.0) < 1e-3 and absf(nc.dist_nm - 1414.2 * 0.00053937) < 1e-3, "waypoint NE: bearing 045, distance in NM")
 	check(absf(nc.minutes - 1414.2 / 100.0 / 60.0) < 1e-3 and absf(nc.req_kt - 1414.2 / 100.0 * 1.9428) < 0.01, "minutes at the ground speed; speed to make T")
+	var eta: float = Hud.nav_cues({"world": Vector2(0, 0), "ground_kt": 194.28, "tod": 28800.0},
+			[{"world": Vector2(1000, 1000), "t": 200.0}], 0).eta
+	check(absf(eta - (28800.0 + 1414.2 / 100.0)) < 0.1, "ETA: the time of day at arrival (08:00 + 14 s)")
+	var still: float = Hud.nav_cues({"world": Vector2(0, 0), "ground_kt": 0.0, "tod": 3600.0}, [{"world": Vector2(1000, 0)}], 0).eta
+	check(is_equal_approx(still, 4600.0), "ETA when stopped: now + 1000 s")
 
 	# ILS (FUN_005309a0): 12 px/deg from the HUD centre, held 1 px inside the field.
 	var f := Rect2(-69, -75, 139, 135)

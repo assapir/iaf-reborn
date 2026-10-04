@@ -544,6 +544,8 @@ static func nav_cues(st: Dictionary, route: Array, index: int) -> Dictionary:
 	out.minutes = (dist / vh if vh != 0.0 else 1000.0) / 60.0
 	var left: float = float(w.get("t", 0.0)) - float(st.get("time", 0.0))
 	out.req_kt = dist / left * MS_TO_KT if left > 0.0 else 0.0
+	# The ETA (state+0x318, FUN_00452e60): the time of day at arrival, at most 10 h ahead (0x600e40).
+	out.eta = float(st.get("tod", st.get("time", 0.0))) + minf(out.minutes * 60.0, 36000.0)
 	return out
 
 

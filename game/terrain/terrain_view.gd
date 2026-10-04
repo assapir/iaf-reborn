@@ -2033,6 +2033,8 @@ func _process(delta: float) -> void:
 			player_damage.gear_overspeed(st.speed, gear_down, gear_legs[1], mission_pref("invulnerable"))
 		for k in ["speed_kt", "mach", "alt_ft", "vs_fpm", "pitch", "roll", "heading", "aoa", "g", "rpm", "throttle", "fuel_lbs", "internal_fuel_kg", "time", "afterburner"]:
 			cockpit.state[k] = st[k]
+		# The time of day (clock+0x38 + clock+0x18, FUN_004cf8c0): the mission start time 0x460 + the mission clock.
+		cockpit.state["tod"] = float(runtime.misc.get("0x460", 0.0)) + runtime.now if runtime != null else float(st.time)
 		# The HUD ILS deviations (NAV HUD mode update 460130, docs/cockpit.md "ILS").
 		cockpit.state["ils"] = flight.ils()
 		# The cockpit state's instrument values (iaf_flight::instruments, docs/cockpit.md).
