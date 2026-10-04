@@ -75,7 +75,9 @@ last hitter (cleared 5 s later); **+0x88 current waypoint index**; +0xd8 in a su
 - Activation (`FUN_004a9100`): BRAIN (0x320 bit 0 = 0): the FM mover is installed, the FM type loaded
   (`FUN_005a8980`), the start pose set (`FUN_005a5820`, §7), then **reset**. MISSION (bit 0 = 1): the scenario starts
   and the brain is reset too, but every non-FM mover's `setMode` is empty (`FUN_0046a430`): **a mission-controlled
-  unit's brain runs, its manoeuvres do nothing** (targeting, weapons, voice, sub-brains still work).
+  unit's brain runs, its manoeuvres do nothing** (targeting, weapons, voice, sub-brains still work). The mover is
+  installed only for a unit that gets a brain: an unarmed ground unit gets none, so a BRAIN-controlled unarmed vehicle
+  (116's, 324's) just stands (UNCERTAIN, from the research of `FUN_004a9100`'s callers).
 - **reset `FUN_0043eef0`**: clears the tick flags, +0x48..+0x50, +0x58..+0x64, +0x68, +0x70, +0x7c..+0x84 (not +0x6c,
   not +0x88); +0x78 = 480; leader +0x44 = `getWingman(e)` (`FUN_005bcb90`), else the formation leader unless that is
   e; +0x74 = the member target; the target selector per class; +0x38 = period; if not yet scheduled, schedules the

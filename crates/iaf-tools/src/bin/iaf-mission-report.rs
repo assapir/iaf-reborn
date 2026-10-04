@@ -369,6 +369,7 @@ fn analyse(dir: &Path, id: i64, names: &[String], bdbs: &mut BTreeMap<String, Bd
         kind: i64, // 0 aircraft, 1 helicopter, 2 ground unit
         class: i64,
         brain_ctl: bool,
+        armed: bool,
         fights: bool,
         b_aa: bool,
         b_ag: bool,
@@ -450,7 +451,9 @@ fn analyse(dir: &Path, id: i64, names: &[String], bdbs: &mut BTreeMap<String, Bd
                     combat_ops.insert(*op);
                 }
             }
-            units.push(Unit { side, kind, class, brain_ctl, fights, b_aa, b_ag, b_sc, weapons });
+            // The original gives an unarmed ground unit no brain (and so no mover, docs/ai.md §3).
+            let armed = loadout(e, &o).iter().any(|(id, _)| *id > 0);
+            units.push(Unit { side, kind, class, brain_ctl, armed, fights, b_aa, b_ag, b_sc, weapons });
         }
     }
     for op in combat_ops.into_iter().filter(|op| !SUPPORTED_TRIGGER.contains(op)) {
@@ -491,7 +494,7 @@ fn analyse(dir: &Path, id: i64, names: &[String], bdbs: &mut BTreeMap<String, Bd
                 }
             }
             _ => {
-                if u.brain_ctl {
+                if u.brain_ctl && u.armed {
                     need.insert(F_GROUND_BRAIN);
                 }
                 if !u.fights {

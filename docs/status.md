@@ -1,10 +1,10 @@
 # Status — 2026-10-02
 
 ## Where we are
-- **Playable missions: 58 of 68 by the coverage report** (every feature they need is built; docs/mission-coverage.md).
+- **Playable missions: 60 of 68 by the coverage report** (every feature they need is built; docs/mission-coverage.md).
   Flown end to end: 311, 312, 315 (bombing). Checked in part: 313 / 322 ground fire; 134 (Delta flight dive-bombs and
   destroys both P-40 radars) and 406 (the AI wingman destroys its target) — the player's own targets there were not
-  flown. Left: multiplayer (8), brain-driven vehicles (2).
+  flown. Left: multiplayer (8).
 - **Flyable jets: all seven of the Jet list** — F-15, F-16, F-4E, F-4 Kurnass 2000, Lavi, Kfir, Mirage (Jet list or a
   mission's jet; docs/aircraft.md §5). The MiGs are AI-only, as in the original; a mission whose player jet is another
   type flies it as the F-16.
