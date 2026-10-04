@@ -9,7 +9,7 @@
 use std::path::PathBuf;
 
 use iaf_flight::atmosphere::air;
-use iaf_flight::{Aircraft, Controls, DataSet, State};
+use iaf_flight::{Aircraft, Controls, DataSet, State, Vec3};
 
 const KT: f32 = 1.943844; // m/s → kt
 const FT: f32 = 3.28084; // m → ft
@@ -449,7 +449,7 @@ fn report(dir: &std::path::Path, r: &Ref, set: DataSet) {
     let (params, envelope) = iaf_flight::load_with(dir, r.aircraft, set).unwrap();
     let v = r.speed_kt;
     let at = |item: &str| -> &'static str { Box::leak(item.replace("350 kt", &format!("{v:.0} kt")).replace("420 kt", &format!("{:.0} kt", v + 70.0)).into_boxed_str()) };
-    let jet = |alt_ft: f32, speed_kt: f32| Aircraft::new(params.clone(), envelope.clone(), [0.0, 0.0, (alt_ft / FT) as f64], 0.0, speed_kt / KT);
+    let jet = |alt_ft: f32, speed_kt: f32| Aircraft::new(params.clone(), envelope.clone(), Vec3::new(0.0, 0.0, (alt_ft / FT) as f64), 0.0, speed_kt / KT);
     let probe = jet(10000.0, v);
     let p = probe.params.clone();
     let mut rows = Vec::new();

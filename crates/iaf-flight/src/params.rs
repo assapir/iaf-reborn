@@ -5,7 +5,7 @@ use iaf_formats::ini::Section;
 
 const LB: f32 = 0.45359;
 const FT2: f32 = 0.092903;
-const FT: f32 = 0.3048;
+pub(crate) const FT: f32 = 0.3048;
 const DEG: f32 = 0.017_453_3;
 const DI: f32 = 1e-4;
 

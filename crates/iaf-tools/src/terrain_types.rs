@@ -1,7 +1,8 @@
 //! `terraintype.dat` surface flags (docs/formats/ptt.md "Terrain types"): the main 2-D BSP tree,
 //! looked up like the original (`FUN_004024b0`) and `game/terrain/terrain.gd surface_at()`.
 
-use anyhow::{Result, bail};
+use anyhow::{Context, Result, bail};
+use iaf_formats::bytes;
 
 pub const INLAND_WATER: i32 = 0x2;
 pub const SEA: i32 = 0x4;
@@ -19,12 +20,8 @@ impl TerrainTypes {
     /// Parses the main tree (pre-order: i32 count, mask, has1, has0, the split line as 4 f64 when
     /// has1, then the child1 subtree, then the child0 subtree).
     pub fn parse(data: &[u8]) -> Result<Self> {
-        let i32_at = |p: usize| -> Result<i32> {
-            data.get(p..p + 4).map(|b| i32::from_le_bytes(b.try_into().unwrap())).ok_or_else(|| anyhow::anyhow!("terraintype: truncated"))
-        };
-        let f64_at = |p: usize| -> Result<f64> {
-            data.get(p..p + 8).map(|b| f64::from_le_bytes(b.try_into().unwrap())).ok_or_else(|| anyhow::anyhow!("terraintype: truncated"))
-        };
+        let i32_at = |p: usize| bytes::i32_at(data, p).context("terraintype: truncated");
+        let f64_at = |p: usize| bytes::bytes_at(data, p).map(f64::from_le_bytes).context("terraintype: truncated");
         let mut t = Self { plane: Vec::new(), child0: Vec::new(), child1: Vec::new(), mask: Vec::new() };
         let mut pos = 0;
         let mut stack: Vec<(i32, u8)> = vec![(-1, 0)];

@@ -9,6 +9,7 @@ use crate::atmosphere::{air, q_s};
 use crate::channels::{Angle, Axis, Ramp};
 use crate::envelope::{Envelope, GLimit};
 use crate::params::Params;
+use crate::vec3::Vec3;
 use std::f32::consts::PI;
 
 pub const G: f32 = 9.806;
@@ -85,39 +86,15 @@ const DS_YAW_AMP: f32 = 5.0 * PI / 180.0;
 const DS_YAW_PERIOD: f64 = 6.7;
 const DS_ATT_RATE: f32 = 20.0 * PI / 180.0;
 
-pub type V3 = [f64; 3];
-
-pub(crate) fn add(a: V3, b: V3) -> V3 {
-    [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
-}
-pub(crate) fn scale(a: V3, s: f64) -> V3 {
-    [a[0] * s, a[1] * s, a[2] * s]
-}
-pub(crate) fn dot(a: V3, b: V3) -> f64 {
-    a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
-}
-pub(crate) fn cross(a: V3, b: V3) -> V3 {
-    [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
-}
-pub(crate) fn sub(a: V3, b: V3) -> V3 {
-    [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
-}
-pub(crate) fn len(a: V3) -> f64 {
-    dot(a, a).sqrt()
-}
 /// The unit vector, or None for (near) zero.
-pub(crate) fn unit(a: V3) -> Option<V3> {
-    let l = len(a);
-    (l > 1e-9).then(|| scale(a, 1.0 / l))
+pub(crate) fn unit(a: Vec3) -> Option<Vec3> {
+    let l = a.length();
+    (l > 1e-9).then(|| a * (1.0 / l))
 }
-pub(crate) fn norm(a: V3) -> V3 {
-    let l = dot(a, a).sqrt();
-    if l > 1e-12 { scale(a, 1.0 / l) } else { [0.0, 1.0, 0.0] }
-}
-/// Rotate `v` about unit `axis` by `angle` (right-hand rule, Rodrigues).
-fn rotate(v: V3, axis: V3, angle: f64) -> V3 {
-    let (s, c) = angle.sin_cos();
-    add(add(scale(v, c), scale(cross(axis, v), s)), scale(axis, dot(axis, v) * (1.0 - c)))
+/// The unit vector, or north for (near) zero.
+fn norm(a: Vec3) -> Vec3 {
+    let l = a.length();
+    if l > 1e-12 { a * (1.0 / l) } else { Vec3::NORTH }
 }
 /// `fmod(x, 2π)`, then −2π if > π (helpers `44f5f0`/`43d460`): (−π, π].
 fn wrap(a: f64) -> f64 {
@@ -130,9 +107,7 @@ fn wrap(a: f64) -> f64 {
     }
     a
 }
-/// The α law of the second-order channels (α `5aa3a0`/`5ae4c0`, β `5aa700`/`5ae4c0`, §15.2.5): a target rate
-/// `clamp(err/π·K/Rmax − damp, ±1)·Rmax` with `damp = B·rate·Rmax` (halved while |rate| > π), then the
-/// channel re-based at its sampled angle.
+
 /// `5bc350`: the flight model's damage bits from the systems damage flags (bit n = flag n, docs/damage.md
 /// §5.2). Engine (cut out 2 / on fire 16 / permanent 22, right 3 / 17 / 23) → 4 left, 8 right; afterburner 8 /
 /// 9 → 0x80 / 0x100; a single-engine jet sets both bits from the left flags and never reads the right ones.
@@ -165,6 +140,9 @@ pub fn damage_bits(sys: u32, twin: bool) -> u32 {
     b
 }
 
+/// The α law of the second-order channels (α `5aa3a0`/`5ae4c0`, β `5aa700`/`5ae4c0`, §15.2.5): a target rate
+/// `clamp(err/π·K/Rmax − damp, ±1)·Rmax` with `damp = B·rate·Rmax` (halved while |rate| > π), then the
+/// channel re-based at its sampled angle.
 fn second_order_step(ch: &mut Angle, t: f64, target: f32, b: f32, k: f32) {
     let (pos, rate) = ch.sample(t);
     let pos = wrap(pos);
@@ -175,7 +153,7 @@ fn second_order_step(ch: &mut Angle, t: f64, target: f32, b: f32, k: f32) {
     ch.set(t, pos, r);
 }
 
-fn sign(x: f32) -> f32 {
+pub(crate) fn sign(x: f32) -> f32 {
     if x > 0.0 {
         1.0
     } else if x < 0.0 {
@@ -195,14 +173,14 @@ pub struct Euler {
 
 impl Euler {
     /// Body axes (forward, right wing, up) in world ENU — the matrix `5ba740` builds.
-    pub fn basis(&self) -> (V3, V3, V3) {
+    pub fn basis(&self) -> (Vec3, Vec3, Vec3) {
         let (sp, cp) = (self.pitch as f64).sin_cos();
         let (sh, ch) = (self.heading as f64).sin_cos();
         let (sr, cr) = (self.roll as f64).sin_cos();
-        let fwd = [cp * sh, cp * ch, sp];
-        let right_h = [ch, -sh, 0.0];
-        let up0 = cross(right_h, fwd);
-        (fwd, add(scale(right_h, cr), scale(up0, -sr)), add(scale(up0, cr), scale(right_h, sr)))
+        let fwd = Vec3::new(cp * sh, cp * ch, sp);
+        let right_h = Vec3::new(ch, -sh, 0.0);
+        let up0 = right_h.cross(fwd);
+        (fwd, right_h * cr + up0 * -sr, up0 * cr + right_h * sr)
     }
 }
 
@@ -210,9 +188,9 @@ impl Euler {
 #[derive(Debug, Clone, Copy)]
 pub struct ApView {
     pub t: f64,
-    pub pos: V3,
-    pub vel: V3,
-    pub acc: V3,
+    pub pos: Vec3,
+    pub vel: Vec3,
+    pub acc: Vec3,
     pub speed: f32,
     pub att: Euler,
     /// (pitch rate of the flight path, roll rate, turn rate), rad/s.
@@ -286,13 +264,13 @@ impl Crash {
 #[derive(Debug, Clone, Copy)]
 pub struct Start {
     /// ENU metres.
-    pub position: V3,
+    pub position: Vec3,
     /// Radians. `pitch` is used on the ground only (in the air it comes from the velocity).
     pub pitch: f32,
     pub roll: f32,
     pub heading: f32,
     /// ENU m/s. The horizontal speed is re-aimed along the heading; vz is kept.
-    pub velocity: V3,
+    pub velocity: Vec3,
     /// See [`Aircraft::start_is_airborne`].
     pub airborne: bool,
     /// Ground start only: the engine runs only within 100 m of the runway start point.
@@ -395,14 +373,14 @@ impl BetterPhysics {
 #[derive(Debug, Clone, Copy)]
 pub struct State {
     pub time: f64,
-    pub position: V3,
+    pub position: Vec3,
     pub velocity: [f32; 3],
     pub speed: f32,
     pub mach: f32,
     /// Body axes in world (ENU) coordinates.
-    pub forward: V3,
-    pub right: V3,
-    pub up: V3,
+    pub forward: Vec3,
+    pub right: Vec3,
+    pub up: Vec3,
     pub pitch: f32,
     pub roll: f32,
     /// Radians clockwise from north, 0..2π.
@@ -440,7 +418,7 @@ pub struct State {
 
 /// In/out values of the mode hooks (`5aab90`): acceleration, lift targets, roll command.
 struct ModeIo {
-    acc: V3,
+    acc: Vec3,
     lift: f32,
     lift_noflap: f32,
     p_cmd: f32,
@@ -497,7 +475,7 @@ pub struct Aircraft {
     gear: Ramp,
     brakes: Ramp,
     /// Left-wing unit vector (`S+0x08`) and the roll and Euler angles saved with it (`5aa330`).
-    wing_left: V3,
+    wing_left: Vec3,
     wing_roll: f64,
     saved: Euler,
     thrust: f32,
@@ -588,7 +566,7 @@ pub struct Aircraft {
     /// Destroyed (§15.6); the simulation stops.
     pub crashed: Option<Crash>,
     /// Horizontal direction the aircraft points on the ground (unit, ENU).
-    ground_dir: V3,
+    ground_dir: Vec3,
     /// The mission's "landed" flag (player object `+0xe0`, `5bb9f0`): set by a touchdown with the gear down
     /// that passes the landing check, cleared at lift-off (v1.1; v1.0 never cleared it). `landings` counts
     /// its 0 → 1 edges, i.e. the calls of the landed handler (`440f90`).
@@ -606,7 +584,7 @@ struct Pivot {
     target: f32,
     rate: f32,
     t_end: f32,
-    p: V3,
+    p: Vec3,
     r: f64,
     v0: f32,
 }
@@ -628,10 +606,10 @@ impl Aircraft {
 
     /// Airborne start at `position` (ENU), `heading` (rad, clockwise from north), `speed` (m/s),
     /// wings level.
-    pub fn new(params: Params, envelope: Envelope, position: V3, heading: f32, speed: f32) -> Self {
+    pub fn new(params: Params, envelope: Envelope, position: Vec3, heading: f32, speed: f32) -> Self {
         let (s, c) = (heading as f64).sin_cos();
         let v = speed as f64;
-        Self::start(params, envelope, Start { position, pitch: 0.0, roll: 0.0, heading, velocity: [v * s, v * c, 0.0], airborne: true, engine_on: true })
+        Self::start(params, envelope, Start { position, pitch: 0.0, roll: 0.0, heading, velocity: Vec3::new(v * s, v * c, 0.0), airborne: true, engine_on: true })
     }
 
     /// Mission start (`FUN_005a5820`, §15.6.4).
@@ -641,11 +619,11 @@ impl Aircraft {
         let (sh, ch) = (st.heading as f64).sin_cos();
         let vh = (st.velocity[0].powi(2) + st.velocity[1].powi(2)).sqrt();
         let (vel, euler) = if st.airborne {
-            let v = [vh * sh, vh * ch, st.velocity[2]];
-            let pitch = (v[2] / dot(v, v).sqrt().max(1e-9)).clamp(-1.0, 1.0).asin() as f32;
+            let v = Vec3::new(vh * sh, vh * ch, st.velocity[2]);
+            let pitch = (v[2] / v.length().max(1e-9)).clamp(-1.0, 1.0).asin() as f32;
             (v, Euler { pitch, roll: st.roll, heading: st.heading })
         } else {
-            ([0.0; 3], Euler { pitch: st.pitch, roll: 0.0, heading: st.heading })
+            (Vec3::ZERO, Euler { pitch: st.pitch, roll: 0.0, heading: st.heading })
         };
         let lift_lo = p.max_mass * p.min_g_m1 * G;
         let lift_hi = p.max_mass * p.max_g_m1 * G;
@@ -684,7 +662,7 @@ impl Aircraft {
             flaps: Ramp::new(if st.airborne { 0.0 } else { FLAPS_MAX }, 0.0, FLAPS_MAX),
             gear: Ramp::new(if st.airborne { GEAR_UP } else { 0.0 }, 0.0, GEAR_UP),
             brakes: Ramp::new(if st.airborne { 0.0 } else { BRAKES_MAX }, 0.0, BRAKES_MAX),
-            wing_left: scale(right, -1.0),
+            wing_left: -right,
             wing_roll: euler.roll as f64,
             saved: euler,
             thrust: 0.0,
@@ -737,7 +715,7 @@ impl Aircraft {
             ground_rough: false,
             drag_chute: false,
             crashed: None,
-            ground_dir: [sh, ch, 0.0],
+            ground_dir: Vec3::new(sh, ch, 0.0),
             landed: false,
             landings: 0,
             pivot: None,
@@ -950,22 +928,22 @@ impl Aircraft {
     // --- sampling ------------------------------------------------------------------------------
 
     /// Velocity and |v| (not capped: the 1 Hz path).
-    fn velocity_at(&self, t: f64) -> (V3, f32) {
+    fn velocity_at(&self, t: f64) -> (Vec3, f32) {
         if let Some(pv) = &self.pivot {
             // Slot 3 of mode c78: the entry speed along the heading (not the arc's own speed).
             let h = pv.heading(t) as f64;
-            return ([pv.v0 as f64 * h.sin(), pv.v0 as f64 * h.cos(), 0.0], pv.v0);
+            return (Vec3::new(pv.v0 as f64 * h.sin(), pv.v0 as f64 * h.cos(), 0.0), pv.v0);
         }
-        let v = [self.axes[0].sample(t).1 as f64, self.axes[1].sample(t).1 as f64, self.axes[2].sample(t).1 as f64];
-        (v, dot(v, v).sqrt() as f32)
+        let v = Vec3::new(self.axes[0].sample(t).1 as f64, self.axes[1].sample(t).1 as f64, self.axes[2].sample(t).1 as f64);
+        (v, v.length() as f32)
     }
 
-    fn position_at(&self, t: f64) -> V3 {
+    fn position_at(&self, t: f64) -> Vec3 {
         if let Some(pv) = &self.pivot {
             let h = pv.heading(t) as f64;
-            return [pv.p[0] - pv.r * h.cos(), pv.p[1] + pv.r * h.sin(), pv.p[2]];
+            return Vec3::new(pv.p[0] - pv.r * h.cos(), pv.p[1] + pv.r * h.sin(), pv.p[2]);
         }
-        [self.axes[0].sample(t).0, self.axes[1].sample(t).0, self.axes[2].sample(t).0]
+        Vec3::new(self.axes[0].sample(t).0, self.axes[1].sample(t).0, self.axes[2].sample(t).0)
     }
 
     fn latched(&self, t: f64) -> bool {
@@ -1044,33 +1022,33 @@ impl Aircraft {
         let (v, speed) = self.velocity_at(t);
         if self.on_ground {
             // Ground attitude: level; the heading follows the velocity (§14.5), else the last heading.
-            let f = if speed > 0.5 { norm([v[0], v[1], 0.0]) } else { self.ground_dir };
+            let f = if speed > 0.5 { norm(Vec3::new(v[0], v[1], 0.0)) } else { self.ground_dir };
             return Euler { pitch: 0.0, roll: 0.0, heading: f[0].atan2(f[1]) as f32 };
         }
         // 5b9530 (§15.3): velocity, roll about the saved body nose axis (v1.1; v1.0 about the velocity), α
         // about the (left) wing, β about w × f.
-        let mut f = if speed > 0.5 { scale(v, 1.0 / speed as f64) } else { self.saved.basis().0 };
+        let mut f = if speed > 0.5 { v * (1.0 / speed as f64) } else { self.saved.basis().0 };
         let mut w = self.wing_left;
         let dphi = wrap(self.roll.sample(t).0 - self.wing_roll);
         if dphi != 0.0 {
-            w = rotate(w, self.saved.basis().0, dphi);
+            w = w.rotated(self.saved.basis().0, dphi);
         }
         let alpha = if with_ab { wrap(self.alpha.sample(t).0) } else { 0.0 };
         if alpha != 0.0 {
-            f = rotate(f, w, -alpha);
+            f = f.rotated(w, -alpha);
         }
         let beta = if with_ab { self.beta.sample(t).0 } else { 0.0 };
         if beta != 0.0 {
-            let n = norm(cross(w, f));
-            f = rotate(f, n, wrap(beta));
+            let n = norm(w.cross(f));
+            f = f.rotated(n, wrap(beta));
         }
         let heading = if f[0] == 0.0 && f[1] == 0.0 { 0.0 } else { f[0].atan2(f[1]) };
         let pitch = f[2].clamp(-1.0, 1.0).asin();
         // Roll from the raw w in the heading/pitch frame (no re-orthogonalisation).
-        let right_h = [heading.cos(), -heading.sin(), 0.0];
-        let up_l = cross(right_h, f);
-        let mut roll = (-dot(w, right_h)).clamp(-1.0, 1.0).acos();
-        if dot(w, up_l) < 0.0 {
+        let right_h = Vec3::new(heading.cos(), -heading.sin(), 0.0);
+        let up_l = right_h.cross(f);
+        let mut roll = (-w.dot(right_h)).clamp(-1.0, 1.0).acos();
+        if w.dot(up_l) < 0.0 {
             roll = -roll;
         }
         Euler { pitch: pitch as f32, roll: wrap(roll) as f32, heading: heading as f32 }
@@ -1079,7 +1057,7 @@ impl Aircraft {
     /// `5aa330`: saves the Euler angles and the left-wing vector for the attitude sampler.
     fn save_attitude(&mut self, att: Euler) {
         self.saved = att;
-        self.wing_left = scale(att.basis().1, -1.0);
+        self.wing_left = -att.basis().1;
         self.wing_roll = att.roll as f64;
     }
 
@@ -1394,7 +1372,7 @@ impl Aircraft {
             self.nose_yaw.set(t, yaw_nw, p.beta_rate);
             self.beta_step(t);
         }
-        for (axis, a) in self.axes.iter_mut().zip(io.acc) {
+        for (axis, a) in self.axes.iter_mut().zip(<[f64; 3]>::from(io.acc)) {
             axis.set(t, a as f32);
         }
         self.save_attitude(att);
@@ -1461,7 +1439,7 @@ impl Aircraft {
         let beta_s = if self.on_ground { self.nose_yaw.sample(t) } else { beta_air };
         if self.mode == Mode::DeepStall {
             let att = self.attitude(t);
-            let mut io = ModeIo { acc: [0.0; 3], lift: 0.0, lift_noflap: 0.0, p_cmd: 0.0 };
+            let mut io = ModeIo { acc: Vec3::ZERO, lift: 0.0, lift_noflap: 0.0, p_cmd: 0.0 };
             self.deep_stall_hook(t, att, &mut io, false);
             if self.mode == Mode::DeepStall {
                 self.beta_update(t, v, self.rudder * self.params.max_beta);
@@ -1471,7 +1449,7 @@ impl Aircraft {
         }
         let att = self.attitude(t);
         if self.mode == Mode::Spin {
-            let mut io = ModeIo { acc: [0.0; 3], lift: 0.0, lift_noflap: 0.0, p_cmd: 0.0 };
+            let mut io = ModeIo { acc: Vec3::ZERO, lift: 0.0, lift_noflap: 0.0, p_cmd: 0.0 };
             self.spin_hook(t, self.drag_x, v, beta_air, att, &mut io, false);
             // v1.1: the β command (asym = 0 in the spin) and the β update also run in the spin tick.
             self.beta_update(t, v, self.rudder * self.params.max_beta);
@@ -1493,9 +1471,9 @@ impl Aircraft {
             // stops the jet (all three velocities 0).
             let (fwd, _, _) = att.basis();
             let (vel, _) = self.velocity_at(t);
-            let a_fwd = dot(acc, fwd);
-            if a_fwd < 0.0 && dot(vel, fwd) + 0.2 * a_fwd < 0.0 {
-                acc = add(acc, scale(fwd, -a_fwd));
+            let a_fwd = acc.dot(fwd);
+            if a_fwd < 0.0 && vel.dot(fwd) + 0.2 * a_fwd < 0.0 {
+                acc += fwd * -a_fwd;
                 stop = true;
             }
             if v > 0.5 {
@@ -1518,21 +1496,21 @@ impl Aircraft {
 
     /// Airborne acceleration `5b4930` (§15.2.2): forces in the body frame of the Euler attitude,
     /// decomposed with the given α / β.
-    fn air_acc(&self, att: Euler, lift: f32, v: f32, alpha: f32, beta: f32) -> V3 {
+    fn air_acc(&self, att: Euler, lift: f32, v: f32, alpha: f32, beta: f32) -> Vec3 {
         let (fwd, right, up) = att.basis();
         let (thrust, drag, mass) = (self.thrust, self.drag, self.mass);
         let fy = thrust + lift * alpha.sin() - drag * alpha.cos() * beta.cos();
         let fz = lift * alpha.cos() + drag * alpha.sin() * beta.cos();
         let fx = drag * beta.sin() + 5.0 * v * v * beta;
-        let force = add(add(scale(fwd, fy as f64), scale(up, fz as f64)), scale(right, fx as f64));
-        let mut acc = scale(force, 1.0 / mass as f64);
+        let force = fwd * fy as f64 + up * fz as f64 + right * fx as f64;
+        let mut acc = force * (1.0 / mass as f64);
         acc[2] -= G as f64;
         acc
     }
 
     /// Ground acceleration (FUN_005bb060, §14.5): level attitude along the heading; the nose wheel
     /// pushes sideways (Fc), which scrubs speed and can multiply the vertical lift by 4.
-    fn ground_acc(&self, _t: f64, lift: f32, v: f32, yaw: f32, att: Euler) -> V3 {
+    fn ground_acc(&self, _t: f64, lift: f32, v: f32, yaw: f32, att: Euler) -> Vec3 {
         let (fwd, right, up) = att.basis();
         let m = self.mass;
         let fc = match self.params.nose_wheel {
@@ -1561,8 +1539,8 @@ impl Aircraft {
         }
         let (thrust, drag) = (self.thrust, self.drag);
         let fx = if v < 0.01 && thrust < drag { 0.0 } else { thrust - drag - fc.abs() * 0.0625 };
-        let f = add(add(scale(right, fc as f64), scale(fwd, fx as f64)), scale(up, lz as f64));
-        [f[0] / m as f64, f[1] / m as f64, ((f[2] - (m * G) as f64).max(0.0)) / m as f64]
+        let f = right * fc as f64 + fwd * fx as f64 + up * lz as f64;
+        Vec3::new(f[0] / m as f64, f[1] / m as f64, ((f[2] - (m * G) as f64).max(0.0)) / m as f64)
     }
 
     // --- departure modes ------------------------------------------------------------------------
@@ -1650,24 +1628,24 @@ impl Aircraft {
         // Forces.
         let (fwd, _, up) = att.basis();
         let m = self.mass as f64;
-        let mut acc = scale(fwd, self.thrust as f64 / m);
+        let mut acc = fwd * (self.thrust as f64 / m);
         acc[2] -= G as f64;
         let mut n = 0.0;
         if v > 0.5 {
             let alt = self.axes[2].sample(t).0 as f32;
             n = DS_CN * q_s(alt, v, self.params.wing_area);
-            let vh = scale(vel, 1.0 / v as f64);
-            let l = add(up, scale(vh, -dot(up, vh)));
-            let l = if dot(l, l) > 1e-9 { norm(l) } else { [0.0; 3] };
-            let f = add(scale(vh, -(n * DS_ALPHA.sin()) as f64), scale(l, (n * DS_ALPHA.cos()) as f64));
-            acc = add(acc, scale(f, 1.0 / m));
+            let vh = vel * (1.0 / v as f64);
+            let l = up + vh * -up.dot(vh);
+            let l = if l.dot(l) > 1e-9 { norm(l) } else { Vec3::ZERO };
+            let f = vh * -(n * DS_ALPHA.sin()) as f64 + l * (n * DS_ALPHA.cos()) as f64;
+            acc += f * (1.0 / m);
         }
         io.lift = n;
         io.lift_noflap = n;
         io.p_cmd = 0.0;
         io.acc = acc;
         if !aero {
-            for (axis, a) in self.axes.iter_mut().zip(acc) {
+            for (axis, a) in self.axes.iter_mut().zip(<[f64; 3]>::from(acc)) {
                 axis.set(t, a as f32);
             }
         }
@@ -1736,13 +1714,13 @@ impl Aircraft {
             if self.better.spin_fixes {
                 // BP: drag bleeds the horizontal speed; the descent settles near 65 m/s.
                 let (vel, _) = self.velocity_at(t);
-                let vh = [vel[0], vel[1], 0.0];
+                let vh = Vec3::new(vel[0], vel[1], 0.0);
                 let d = (self.drag / self.mass) as f64;
-                let h = if dot(vh, vh) > 1e-6 { scale(norm(vh), -d) } else { [0.0; 3] };
+                let h = if vh.dot(vh) > 1e-6 { norm(vh) * -d } else { Vec3::ZERO };
                 let vz = vel[2].min(0.0);
-                io.acc = [h[0], h[1], -(G as f64) + G as f64 * (vz / 65.0).powi(2)];
+                io.acc = Vec3::new(h[0], h[1], -(G as f64) + G as f64 * (vz / 65.0).powi(2));
             } else {
-                io.acc = [0.0, 0.0, (0.04 * v - G).min(0.0) as f64];
+                io.acc = Vec3::new(0.0, 0.0, (0.04 * v - G).min(0.0) as f64);
             }
             let (pos, _) = self.spin_yaw.sample(t);
             self.spin_yaw.reset_angle(t, pos);
@@ -1759,11 +1737,11 @@ impl Aircraft {
         // Exit (@5ab6e7): velocity := nose rotated back by α and β, times V.
         let (f, right, _) = att.basis();
         self.save_attitude(att);
-        let w = scale(right, -1.0);
+        let w = -right;
         if !self.better.spin_fixes {
-            let u = norm(cross(f, w));
+            let u = norm(f.cross(w));
             let alpha = self.alpha.sample(t).0;
-            let f2 = rotate(rotate(f, u, beta as f64), w, alpha);
+            let f2 = f.rotated(u, beta as f64).rotated(w, alpha);
             for (i, axis) in self.axes.iter_mut().enumerate() {
                 let (pos, _) = axis.sample(t);
                 let a = axis.accel();
@@ -1827,7 +1805,7 @@ impl Aircraft {
             // Touchdown: the landing check, vz := 0 (acceleration kept), Z onto the ground, aero
             // update (ground branch).
             let (fwd, _, _) = self.attitude(t).basis();
-            self.ground_dir = norm([fwd[0], fwd[1], 0.0]);
+            self.ground_dir = norm(Vec3::new(fwd[0], fwd[1], 0.0));
             self.on_ground = true;
             self.crashed = self.landing_check(t, vz);
             if self.mode == Mode::DeepStall {
@@ -1924,11 +1902,11 @@ impl Aircraft {
     pub fn ap_view(&self) -> ApView {
         let t = self.t;
         let (v, speed) = self.velocity_at(t);
-        let a = [self.axes[0].accel() as f64, self.axes[1].accel() as f64, self.axes[2].accel() as f64];
+        let a = Vec3::new(self.axes[0].accel() as f64, self.axes[1].accel() as f64, self.axes[2].accel() as f64);
         let h2 = v[0] * v[0] + v[1] * v[1];
         let turn = if h2 > 1e-6 { (a[0] * v[1] - a[1] * v[0]) / h2 } else { 0.0 };
         let s2 = h2 + v[2] * v[2];
-        let path = if h2 > 1e-6 && s2 > 1e-6 { (a[2] * s2 - v[2] * dot(v, a)) / (s2 * h2.sqrt()) } else { 0.0 };
+        let path = if h2 > 1e-6 && s2 > 1e-6 { (a[2] * s2 - v[2] * v.dot(a)) / (s2 * h2.sqrt()) } else { 0.0 };
         let p = &self.params;
         ApView {
             t,
@@ -1966,7 +1944,7 @@ impl Aircraft {
         for ax in &mut self.axes {
             ax.set(t, 0.0);
         }
-        self.ground_dir = [heading.sin() as f64, heading.cos() as f64, 0.0];
+        self.ground_dir = Vec3::new(heading.sin() as f64, heading.cos() as f64, 0.0);
         self.throttle = 0.0;
         self.controls.throttle = 0.0;
         self.aero_update();
@@ -1993,7 +1971,7 @@ impl Aircraft {
                     target: e,
                     rate: (d.abs() / 3.0) * (e - s0).signum(),
                     t_end: if d == 0.0 { 0.0 } else { 3.0 },
-                    p: [pos[0] + 30.0 * sg * ch, pos[1] - 30.0 * sg * sh, pos[2]],
+                    p: Vec3::new(pos[0] + 30.0 * sg * ch, pos[1] - 30.0 * sg * sh, pos[2]),
                     r: 30.0 * sg,
                     v0: speed,
                 });
@@ -2001,12 +1979,12 @@ impl Aircraft {
             None => {
                 self.pivot = None;
                 let hh = h as f64;
-                let v = [speed as f64 * hh.sin(), speed as f64 * hh.cos(), 0.0];
+                let v = Vec3::new(speed as f64 * hh.sin(), speed as f64 * hh.cos(), 0.0);
                 for i in 0..3 {
                     self.axes[i] = Axis::new(pos[i], v[i] as f32);
                     self.axes[i].set(t, 0.0);
                 }
-                self.ground_dir = [hh.sin(), hh.cos(), 0.0];
+                self.ground_dir = Vec3::new(hh.sin(), hh.cos(), 0.0);
                 self.next_aero = t + AERO_PERIOD;
                 self.next_accel = t + ACCEL_PERIOD;
                 if self.on_ground {
@@ -2096,11 +2074,11 @@ mod tests {
     }
 
     fn airborne(type_code: u32, alt: f64, speed: f32) -> Aircraft {
-        Aircraft::new(params(type_code), Envelope::parse(ENV), [0.0, 0.0, alt], 0.0, speed)
+        Aircraft::new(params(type_code), Envelope::parse(ENV), Vec3::new(0.0, 0.0, alt), 0.0, speed)
     }
 
     fn ground(engine_on: bool) -> Aircraft {
-        let st = Start { position: [0.0, 0.0, 10.0], pitch: 0.0, roll: 0.0, heading: 0.0, velocity: [0.0; 3], airborne: false, engine_on };
+        let st = Start { position: Vec3::new(0.0, 0.0, 10.0), pitch: 0.0, roll: 0.0, heading: 0.0, velocity: Vec3::ZERO, airborne: false, engine_on };
         let mut ac = Aircraft::start(params(100), Envelope::parse(ENV), st);
         ac.ground_height = 10.0;
         ac
@@ -2447,7 +2425,7 @@ mod tests {
         // Total flight control damage forces the spin at the next aero update, whatever β / dragX
         // (not on the F-16 / Lavi, which return before the test).
         let att = Euler { pitch: 0.0, roll: 0.0, heading: 0.5 };
-        let mut io = ModeIo { acc: [0.0; 3], lift: 5.0, lift_noflap: 5.0, p_cmd: 0.0 };
+        let mut io = ModeIo { acc: Vec3::ZERO, lift: 5.0, lift_noflap: 5.0, p_cmd: 0.0 };
         b.spin_hook(1.0, 0.0, 200.0, 0.0, att, &mut io, true);
         assert_eq!(b.mode, Mode::Spin);
         let mut f16 = airborne(100, 3000.0, 200.0);
@@ -2460,7 +2438,7 @@ mod tests {
     fn spin_entry_and_exit() {
         let mb = 15f32.to_radians();
         let att = Euler { pitch: 0.0, roll: 0.0, heading: 0.5 };
-        let io = || ModeIo { acc: [1.0, 1.0, 1.0], lift: 5.0, lift_noflap: 5.0, p_cmd: 1.0 };
+        let io = || ModeIo { acc: Vec3::new(1.0, 1.0, 1.0), lift: 5.0, lift_noflap: 5.0, p_cmd: 1.0 };
         // Original: the second consecutive qualifying aero update enters, whatever the spacing.
         let mut a = airborne(0, 3000.0, 100.0);
         a.spin_hook(1.0, 1.2, 100.0, 0.9 * mb, att, &mut io(), true);
@@ -2510,7 +2488,7 @@ mod tests {
         a.spin_hook(t + 1.0, 1.2, 100.0, 0.9 * mb, att, &mut o, true);
         assert_eq!(a.mode, Mode::Spin);
         assert_eq!((o.lift, o.lift_noflap, o.p_cmd), (0.0, 0.0, 0.0));
-        assert_eq!(o.acc, [0.0, 0.0, (0.04 * 100.0 - G) as f64]);
+        assert_eq!(o.acc, Vec3::new(0.0, 0.0, (0.04 * 100.0 - G) as f64));
         let spin_att = a.attitude(t + 1.0);
         assert!(spin_att.pitch < 0.0 && spin_att.heading != 0.5, "nose drops and turns: {spin_att:?}");
         // Recovery: ≥ 90 % opposite rudder but still stalled (dragX ≥ 0.1) → stays.
@@ -2526,14 +2504,14 @@ mod tests {
         assert_eq!(a.mode, Mode::Normal);
         assert!((o.p_cmd - 0.1).abs() < 1e-6);
         let v = a.velocity_at(t + 2.2).0;
-        assert!((dot(v, v).sqrt() - 100.0).abs() < 0.5);
+        assert!((v.length() - 100.0).abs() < 0.5);
     }
 
     /// A near-vertical zoom at low speed, the "pilot" holding the flight path at 85° until the jet departs
     /// (or 20 s), then neutral stick. Returns whether a deep stall / spin ever started.
     fn zoom(type_code: u32, bp: bool, setup: impl Fn(&mut Aircraft)) -> (Aircraft, bool, bool) {
         let r = 85f64.to_radians();
-        let st = Start { position: [0.0, 0.0, 3000.0], pitch: 0.0, roll: 0.0, heading: 0.0, velocity: [0.0, 70.0 * r.cos(), 70.0 * r.sin()], airborne: true, engine_on: true };
+        let st = Start { position: Vec3::new(0.0, 0.0, 3000.0), pitch: 0.0, roll: 0.0, heading: 0.0, velocity: Vec3::new(0.0, 70.0 * r.cos(), 70.0 * r.sin()), airborne: true, engine_on: true };
         let mut a = Aircraft::start(params(type_code), Envelope::parse(ENV), st);
         a.set_better_physics(bp);
         setup(&mut a);
@@ -2804,13 +2782,13 @@ mod tests {
         a.roll.set(t, 1.0, 0.0);
         a.roll.reset_angle(t, 1.0);
         let (v, speed) = a.velocity_at(t);
-        let w = rotate(scale(saved.basis().1, -1.0), saved.basis().0, 1.0);
-        let f = rotate(scale(v, 1.0 / speed as f64), w, -0.2);
+        let w = (-saved.basis().1).rotated(saved.basis().0, 1.0);
+        let f = (v * (1.0 / speed as f64)).rotated(w, -0.2);
         let att = a.attitude(t);
         assert!((att.pitch as f64 - f[2].asin()).abs() < 1e-5 && (att.heading as f64 - f[0].atan2(f[1])).abs() < 1e-5, "{att:?}");
         // Rolling about the velocity (v1.0) gives a different attitude.
-        let w0 = rotate(scale(saved.basis().1, -1.0), scale(v, 1.0 / speed as f64), 1.0);
-        let f0 = rotate(scale(v, 1.0 / speed as f64), w0, -0.2);
+        let w0 = (-saved.basis().1).rotated(v * (1.0 / speed as f64), 1.0);
+        let f0 = (v * (1.0 / speed as f64)).rotated(w0, -0.2);
         assert!((f0[2].asin() - f[2].asin()).abs() > 1e-3);
     }
 
@@ -2821,7 +2799,7 @@ mod tests {
         let mb = 15f32.to_radians();
         let att = Euler { pitch: 0.0, roll: 0.0, heading: 0.5 };
         let mut a = airborne(0, 3000.0, 100.0);
-        let mut io = ModeIo { acc: [0.0; 3], lift: 0.0, lift_noflap: 0.0, p_cmd: 0.0 };
+        let mut io = ModeIo { acc: Vec3::ZERO, lift: 0.0, lift_noflap: 0.0, p_cmd: 0.0 };
         a.spin_hook(1.0, 1.2, 100.0, 0.9 * mb, att, &mut io, true);
         a.spin_hook(1.05, 1.2, 100.0, 0.9 * mb, att, &mut io, true);
         assert_eq!(a.mode, Mode::Spin);

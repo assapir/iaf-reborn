@@ -10,6 +10,5 @@ pub mod radar;
 pub mod rwr;
 pub mod sight;
 pub mod stores;
-pub mod vec3;
 
-pub use vec3::Vec3;
+pub use iaf_flight::vec3::{self, Vec3};

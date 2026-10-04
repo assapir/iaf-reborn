@@ -10,11 +10,13 @@ pub mod data_set;
 pub mod envelope;
 pub mod instruments;
 pub mod params;
+pub mod vec3;
 
 pub use aircraft::{Aircraft, BetterPhysics, Controls, Crash, Start, State};
 pub use data_set::DataSet;
 pub use envelope::Envelope;
 pub use params::Params;
+pub use vec3::Vec3;
 
 use std::path::Path;
 

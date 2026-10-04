@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 use iaf_flight::airbase::Airbase;
 use iaf_flight::autopilot::{Autopilot, Config, Leader, Waypoint};
-use iaf_flight::{Aircraft, DataSet, Start};
+use iaf_flight::{Aircraft, DataSet, Start, Vec3};
 
 fn install() -> Option<PathBuf> {
     let p = std::env::var_os("IAF_INSTALL")
@@ -15,7 +15,7 @@ fn install() -> Option<PathBuf> {
     p.join("resource/md").is_dir().then_some(p)
 }
 
-fn jet(install: &Path, name: &str, pos: [f64; 3], heading_deg: f32, airborne: bool) -> Aircraft {
+fn jet(install: &Path, name: &str, pos: Vec3, heading_deg: f32, airborne: bool) -> Aircraft {
     let (p, e) = iaf_flight::load_with(install, name, DataSet::Original).unwrap();
     let h = heading_deg.to_radians();
     let v = if airborne { 282.84 } else { 0.0 };
@@ -24,7 +24,7 @@ fn jet(install: &Path, name: &str, pos: [f64; 3], heading_deg: f32, airborne: bo
         pitch: 0.0,
         roll: 0.0,
         heading: h,
-        velocity: [(v * h.sin()) as f64, (v * h.cos()) as f64, 0.0],
+        velocity: Vec3::new((v * h.sin()) as f64, (v * h.cos()) as f64, 0.0),
         airborne,
         engine_on: true,
     };
@@ -47,7 +47,7 @@ fn fly(ac: &mut Aircraft, ap: &mut Autopilot, seconds: f64, ground: f32) {
 #[test]
 fn follows_its_route() {
     let Some(inst) = install() else { return };
-    let mut ac = jet(&inst, "MIG29", [0.0, 0.0, 3000.0], 0.0, true);
+    let mut ac = jet(&inst, "MIG29", Vec3::new(0.0, 0.0, 3000.0), 0.0, true);
     let mut ap = Autopilot::new(Config::load(&inst));
     // North 30 km, then east 30 km, climbing to 4000 m.
     ap.route = vec![
@@ -110,8 +110,8 @@ fn follows_its_route() {
 #[test]
 fn keeps_close_formation() {
     let Some(inst) = install() else { return };
-    let mut lead = jet(&inst, "F-16", [0.0, 0.0, 3000.0], 90.0, true);
-    let mut wing = jet(&inst, "F-16", [-1500.0, -1200.0, 2500.0], 90.0, true);
+    let mut lead = jet(&inst, "F-16", Vec3::new(0.0, 0.0, 3000.0), 90.0, true);
+    let mut wing = jet(&inst, "F-16", Vec3::new(-1500.0, -1200.0, 2500.0), 90.0, true);
     let cfg = Config::load(&inst);
     let mut lap = Autopilot::new(cfg);
     lap.route = vec![Waypoint {
@@ -130,11 +130,11 @@ fn keeps_close_formation() {
         let ls = lead.state();
         wap.leader = Some(Leader {
             pos: ls.position,
-            vel: [
+            vel: Vec3::new(
                 ls.velocity[0] as f64,
                 ls.velocity[1] as f64,
                 ls.velocity[2] as f64,
-            ],
+            ),
             att: [ls.pitch, ls.roll, ls.heading],
             active: true,
         });
@@ -182,7 +182,7 @@ fn takes_off_from_ramat_david() {
     let mut ac = jet(
         &inst,
         "F-16",
-        [h.x as f64, h.y as f64, z],
+        Vec3::new(h.x as f64, h.y as f64, z),
         h.hdg.to_degrees(),
         false,
     );
@@ -230,7 +230,7 @@ fn lands_at_ramat_david() {
     let z = rd.lineup[2] as f64;
     // Home = a last waypoint 15 km west of the base at 1500 m; the jet starts 40 km further west.
     let home = Waypoint { x: rd.lineup[0] as f64 - 15000.0, y: rd.lineup[1] as f64, z: 1500.0, t: 0.0, action: 7 };
-    let mut ac = jet(&inst, "F-16", [home.x - 40000.0, home.y + 5000.0, 2000.0], 90.0, true);
+    let mut ac = jet(&inst, "F-16", Vec3::new(home.x - 40000.0, home.y + 5000.0, 2000.0), 90.0, true);
     let mut ap = Autopilot::new(Config::load(&inst));
     ap.bases = bases;
     ap.route = vec![home];
@@ -286,11 +286,11 @@ fn player_level_mode_holds_heading_and_altitude() {
         p,
         e,
         Start {
-            position: [0.0, 0.0, 3000.0],
+            position: Vec3::new(0.0, 0.0, 3000.0),
             pitch: 5f32.to_radians(),
             roll: 20f32.to_radians(),
             heading: 0.0,
-            velocity: [0.0, 250.0, 0.0],
+            velocity: Vec3::new(0.0, 250.0, 0.0),
             airborne: true,
             engine_on: true,
         },
@@ -325,7 +325,7 @@ fn wrap_deg(a: f32) -> f32 {
 #[test]
 fn player_nav_flies_to_the_selected_waypoint() {
     let Some(inst) = install() else { return };
-    let mut ac = jet(&inst, "F-16", [0.0, 0.0, 3000.0], 90.0, true);
+    let mut ac = jet(&inst, "F-16", Vec3::new(0.0, 0.0, 3000.0), 90.0, true);
     let mut ap = Autopilot::new(Config::load(&inst));
     ap.route = vec![
         Waypoint { x: 0.0, y: 40000.0, z: 4000.0, t: 0.0, action: 3 },
@@ -359,7 +359,7 @@ fn player_approach_mission_312() {
     let bases = Airbase::load_all(&std::fs::read(inst.join("iaf.ibx")).unwrap());
     let rd = bases.iter().find(|b| b.name == "David").unwrap().clone();
     let z = rd.lineup[2] as f64;
-    let mut ac = jet(&inst, "F-16", [366755.0, 602361.0, 2000.0], 270.0, true);
+    let mut ac = jet(&inst, "F-16", Vec3::new(366755.0, 602361.0, 2000.0), 270.0, true);
     let mut c = ac.controls();
     c.throttle = 0.74;
     ac.set_controls(c);
@@ -419,7 +419,7 @@ struct Leg {
 
 /// The NAV autopilot on 312's landing waypoint from `pos` / `hdg`: the circuit's legs in order, the gear-down
 /// point and the touchdown (None when it crashed or never stopped).
-fn circuit_312(inst: &Path, pos: [f64; 3], hdg: f32) -> (Vec<Leg>, Option<[f64; 2]>, Option<[f64; 2]>) {
+fn circuit_312(inst: &Path, pos: Vec3, hdg: f32) -> (Vec<Leg>, Option<[f64; 2]>, Option<[f64; 2]>) {
     let bases = Airbase::load_all(&std::fs::read(inst.join("iaf.ibx")).unwrap());
     let z = bases.iter().find(|b| b.name == "David").unwrap().lineup[2];
     let mut ac = jet(inst, "F-16", pos, hdg, true);
@@ -480,7 +480,7 @@ fn player_circuit_312_from_engage_points() {
         ("5 km south, flying away, high", [lx, ly - 5000.0, 3063.0], 180.0),
     ];
     for (name, pos, hdg) in starts {
-        let (legs, gear, touch) = circuit_312(&inst, pos, hdg);
+        let (legs, gear, touch) = circuit_312(&inst, pos.into(), hdg);
         let at = |s: usize| *legs.iter().find(|l| l.step == s).unwrap_or_else(|| panic!("{name}: step {s} missing ({legs:?})"));
         println!("{name}:");
         for l in &legs {
@@ -519,7 +519,7 @@ fn leader_of(ac: &Aircraft) -> Leader {
     let s = ac.state();
     Leader {
         pos: s.position,
-        vel: [s.velocity[0] as f64, s.velocity[1] as f64, s.velocity[2] as f64],
+        vel: Vec3::new(s.velocity[0] as f64, s.velocity[1] as f64, s.velocity[2] as f64),
         att: [s.pitch, s.roll, s.heading],
         active: true,
     }
@@ -529,8 +529,8 @@ fn leader_of(ac: &Aircraft) -> Leader {
 fn dogchase_gets_on_the_targets_tail() {
     let Some(inst) = install() else { return };
     // The target flies a route east, then turns north; the chaser starts 6 km south-west, heading north.
-    let mut tgt = jet(&inst, "F-16", [0.0, 0.0, 3000.0], 90.0, true);
-    let mut ch = jet(&inst, "F-16", [-4000.0, -4500.0, 2500.0], 0.0, true);
+    let mut tgt = jet(&inst, "F-16", Vec3::new(0.0, 0.0, 3000.0), 90.0, true);
+    let mut ch = jet(&inst, "F-16", Vec3::new(-4000.0, -4500.0, 2500.0), 0.0, true);
     let cfg = Config::load(&inst);
     let mut tap = Autopilot::new(cfg);
     tap.route = vec![
@@ -567,18 +567,18 @@ fn dogchase_gets_on_the_targets_tail() {
 }
 
 /// A ground target (a point that does not move).
-fn ground_target(pos: [f64; 3]) -> Leader {
-    Leader { pos, vel: [0.0; 3], att: [0.0; 3], active: true }
+fn ground_target(pos: Vec3) -> Leader {
+    Leader { pos, vel: Vec3::ZERO, att: [0.0; 3], active: true }
 }
 
 /// Flies a bombing manoeuvre at a fixed ground target until the release; returns (release time, the vacuum impact's
 /// miss at the release, the lowest height above the ground).
 fn bomb_run(mode: u8, start: [f64; 3], seconds: f64) -> Option<(f64, f64, f64)> {
     let inst = install()?;
-    let mut ac = jet(&inst, "F-16", start, 0.0, true);
+    let mut ac = jet(&inst, "F-16", start.into(), 0.0, true);
     let mut ap = Autopilot::new(Config::load(&inst));
     let tgt = [0.0, 20000.0, 0.0];
-    ap.target = Some(ground_target(tgt));
+    ap.target = Some(ground_target(tgt.into()));
     ap.set_mode(&mut ac, mode);
     let g = |_: f64, _: f64| 0.0;
     let mut low = f64::MAX;
@@ -620,8 +620,8 @@ fn dive_bomb_dives_and_releases() {
 /// would not catch a cruising jet): the jet stays airborne and gets within `close` m.
 fn air_fight(mode: u8, close: f64) {
     let Some(inst) = install() else { return };
-    let mut tgt = jet(&inst, "F-16", [0.0, 0.0, 3000.0], 90.0, true);
-    let mut ch = jet(&inst, "F-16", [-6000.0, -9000.0, 2500.0], 0.0, true);
+    let mut tgt = jet(&inst, "F-16", Vec3::new(0.0, 0.0, 3000.0), 90.0, true);
+    let mut ch = jet(&inst, "F-16", Vec3::new(-6000.0, -9000.0, 2500.0), 0.0, true);
     let cfg = Config::load(&inst);
     let mut tap = Autopilot::new(cfg);
     tap.set_mode(&mut tgt, 10);

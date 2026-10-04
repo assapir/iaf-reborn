@@ -2,7 +2,7 @@
 //! the Original and Real flight data, with or without the better-physics `ground_idle` option
 //! (docs/flight-model.md §10). Needs the extracted game data in assets/install.
 //!   cargo run --release -p iaf-flight --example idle_roll [-- off]     (off: the original, without ground_idle)
-use iaf_flight::{data_set::DataSet, Aircraft, Controls, Start};
+use iaf_flight::{data_set::DataSet, Aircraft, Controls, Start, Vec3};
 
 fn main() {
     let install = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../assets/install");
@@ -14,7 +14,7 @@ fn main() {
                 println!("{jet}: no data");
                 continue;
             };
-            let st = Start { position: [0.0, 0.0, 10.0], pitch: 0.0, roll: 0.0, heading: 0.0, velocity: [0.0; 3], airborne: false, engine_on: true };
+            let st = Start { position: Vec3::new(0.0, 0.0, 10.0), pitch: 0.0, roll: 0.0, heading: 0.0, velocity: Vec3::ZERO, airborne: false, engine_on: true };
             let mut a = Aircraft::start(p, e, st);
             a.better.ground_idle = ground_idle;
             a.ground_height = 10.0;

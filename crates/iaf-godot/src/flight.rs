@@ -5,7 +5,7 @@
 use godot::prelude::*;
 use iaf_flight::airbase::Airbase;
 use iaf_flight::autopilot::{self, Autopilot, Leader, Waypoint};
-use iaf_flight::{Aircraft, Controls, Start};
+use iaf_flight::{Aircraft, Controls, Start, Vec3};
 
 #[derive(GodotClass)]
 #[class(init, base = RefCounted)]
@@ -19,12 +19,12 @@ pub struct IafFlight {
 }
 
 /// Godot scene position → the FM's ENU frame.
-fn to_enu(v: Vector3) -> [f64; 3] {
-    [v.x as f64, -v.z as f64, v.y as f64]
+fn to_enu(v: Vector3) -> Vec3 {
+    Vec3::new(v.x as f64, -v.z as f64, v.y as f64)
 }
 
 /// ENU (east, north, up) → Godot (x, y, z) = (east, up, −north).
-fn to_godot(v: [f64; 3]) -> Vector3 {
+fn to_godot(v: Vec3) -> Vector3 {
     Vector3::new(v[0] as f32, v[2] as f32, -v[1] as f32)
 }
 
@@ -60,11 +60,11 @@ impl IafFlight {
         match iaf_flight::load_in(std::path::Path::new(&install.to_string()), &section.to_string(), set, &mut blocks) {
             Ok((params, envelope)) => {
                 let st = Start {
-                    position: [position.x as f64, -position.z as f64, position.y as f64],
+                    position: to_enu(position),
                     pitch: (pitch_deg as f32).to_radians(),
                     roll: (roll_deg as f32).to_radians(),
                     heading: (heading_deg as f32).to_radians(),
-                    velocity: [velocity.x as f64, -velocity.z as f64, velocity.y as f64],
+                    velocity: to_enu(velocity),
                     airborne,
                     engine_on,
                 };
@@ -513,7 +513,7 @@ impl IafFlight {
         let s = ac.state();
         let v = s.velocity;
         d.set("position", to_godot(s.position));
-        d.set("velocity", to_godot([v[0] as f64, v[1] as f64, v[2] as f64]));
+        d.set("velocity", to_godot(Vec3::new(v[0] as f64, v[1] as f64, v[2] as f64)));
         d.set("forward", to_godot(s.forward));
         d.set("right", to_godot(s.right));
         d.set("up", to_godot(s.up));

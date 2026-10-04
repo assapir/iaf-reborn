@@ -1,6 +1,6 @@
 //! A 3-vector in the world frame (X east, Y north, Z up, metres).
 
-use std::ops::{Add, AddAssign, Mul, Neg, Sub};
+use std::ops::{Add, AddAssign, Div, Index, IndexMut, Mul, Neg, Sub};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Vec3 {
@@ -88,9 +88,52 @@ impl Mul<f64> for Vec3 {
     }
 }
 
+impl Div<f64> for Vec3 {
+    type Output = Vec3;
+    fn div(self, k: f64) -> Vec3 {
+        Vec3::new(self.x / k, self.y / k, self.z / k)
+    }
+}
+
 impl Neg for Vec3 {
     type Output = Vec3;
     fn neg(self) -> Vec3 {
         self * -1.0
+    }
+}
+
+/// `v[0]`, `v[1]`, `v[2]` = x, y, z (the original's float[3]).
+impl Index<usize> for Vec3 {
+    type Output = f64;
+    fn index(&self, i: usize) -> &f64 {
+        match i {
+            0 => &self.x,
+            1 => &self.y,
+            2 => &self.z,
+            _ => panic!("Vec3 index {i}"),
+        }
+    }
+}
+
+impl IndexMut<usize> for Vec3 {
+    fn index_mut(&mut self, i: usize) -> &mut f64 {
+        match i {
+            0 => &mut self.x,
+            1 => &mut self.y,
+            2 => &mut self.z,
+            _ => panic!("Vec3 index {i}"),
+        }
+    }
+}
+
+impl From<[f64; 3]> for Vec3 {
+    fn from([x, y, z]: [f64; 3]) -> Vec3 {
+        Vec3::new(x, y, z)
+    }
+}
+
+impl From<Vec3> for [f64; 3] {
+    fn from(v: Vec3) -> [f64; 3] {
+        [v.x, v.y, v.z]
     }
 }

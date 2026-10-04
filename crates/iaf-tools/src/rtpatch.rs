@@ -24,6 +24,7 @@
 //! decoded here from the PATCHW32.DLL 5.00 embedded in `iafp1_1.exe`.
 
 use anyhow::{Context, Result, bail, ensure};
+use iaf_formats::bytes::{Cursor, latin1, u32_at};
 
 /// Highest container version PATCHW32.DLL 5.00 accepts.
 pub const MAX_VERSION: u16 = 500;
@@ -35,7 +36,7 @@ pub fn find_embedded(exe: &[u8]) -> Option<&[u8]> {
     if n < 8 || &exe[n - 4..] != b"DKNJ" {
         return None;
     }
-    let off = u32::from_le_bytes(exe[n - 8..n - 4].try_into().unwrap()) as usize;
+    let off = u32_at(exe, n - 8).ok()? as usize;
     (off < n - 8 && exe[off..].starts_with(b"K*")).then(|| &exe[off..n - 8])
 }
 
@@ -102,41 +103,18 @@ pub struct Patch<'a> {
     pub records: Vec<Record>,
 }
 
-struct Reader<'a> {
-    d: &'a [u8],
-    pos: usize,
+/// Length-prefixed ANSI string: u8 length (0xFF: u16 follows) including a trailing NUL.
+fn string(r: &mut Cursor) -> Result<String> {
+    let mut n = r.u8()? as usize;
+    if n == 0xFF {
+        n = r.u16()? as usize;
+    }
+    let s = r.take(n)?;
+    Ok(latin1(s.strip_suffix(&[0]).unwrap_or(s)))
 }
 
-impl<'a> Reader<'a> {
-    fn take(&mut self, n: usize) -> Result<&'a [u8]> {
-        ensure!(self.pos + n <= self.d.len(), "truncated patch at 0x{:x} (+{n})", self.pos);
-        let s = &self.d[self.pos..self.pos + n];
-        self.pos += n;
-        Ok(s)
-    }
-    fn u8(&mut self) -> Result<u8> {
-        Ok(self.take(1)?[0])
-    }
-    fn u16(&mut self) -> Result<u16> {
-        Ok(u16::from_le_bytes(self.take(2)?.try_into().unwrap()))
-    }
-    fn u32(&mut self) -> Result<u32> {
-        Ok(u32::from_le_bytes(self.take(4)?.try_into().unwrap()))
-    }
-    /// Length-prefixed ANSI string: u8 length (0xFF: u16 follows) including a trailing NUL.
-    fn string(&mut self) -> Result<String> {
-        let mut n = self.u8()? as usize;
-        if n == 0xFF {
-            n = self.u16()? as usize;
-        }
-        let s = self.take(n)?;
-        let s = s.strip_suffix(&[0]).unwrap_or(s);
-        Ok(s.iter().map(|&b| b as char).collect())
-    }
-    fn vli(&mut self) -> Result<i64> {
-        let mut src = || self.u8().ok();
-        vli(&mut src).context("truncated VLI")
-    }
+fn read_vli(r: &mut Cursor) -> Result<i64> {
+    vli(&mut || r.u8().ok()).context("truncated VLI")
 }
 
 /// Variable-length integer: lead byte bit 7 = sign; the run of 1-bits from bit 6
@@ -164,7 +142,7 @@ fn vli(next: &mut impl FnMut() -> Option<u8>) -> Option<i64> {
 
 impl<'a> Patch<'a> {
     pub fn parse(data: &'a [u8]) -> Result<Self> {
-        let mut r = Reader { d: data, pos: 0 };
+        let mut r = Cursor::new(data, 0);
         ensure!(r.take(2)? == b"K*", "not an RTPatch file (magic)");
         let version = r.u16()?;
         ensure!(version <= MAX_VERSION, "RTPatch container version {version} > {MAX_VERSION}");
@@ -182,31 +160,31 @@ impl<'a> Patch<'a> {
         r.take(4)?;
         ensure!(cmd & 8 == 0, "wide-string patches are not supported");
         if flags & 1 != 0 {
-            r.string()?; // backup directory
+            string(&mut r)?; // backup directory
         }
         let mut registry = (0, &data[0..0]);
         if cmd & 0x10 != 0 {
             if r.u8()? != 0 {
                 // registry/INI key naming the update directory
                 r.take(4)?;
-                r.string()?;
-                r.string()?;
-                r.string()?;
+                string(&mut r)?;
+                string(&mut r)?;
+                string(&mut r)?;
             }
-            let count = r.vli()? as u64;
-            let len = r.vli()? as usize;
+            let count = read_vli(&mut r)? as u64;
+            let len = read_vli(&mut r)? as usize;
             registry = (count, r.take(len)?);
         }
         if cmd & 0x20 != 0 {
-            r.string()?;
+            string(&mut r)?;
         }
         if cmd & 0x40 != 0 {
-            r.string()?;
+            string(&mut r)?;
         }
         let mut dirs = Vec::new();
         if flags & 0x0200 != 0 {
             for _ in 0..r.u16()? {
-                dirs.push(r.string()?);
+                dirs.push(string(&mut r)?);
             }
         }
 
@@ -223,22 +201,22 @@ impl<'a> Patch<'a> {
                 t => bail!("unknown record type {t} at 0x{:x}", r.pos - 2),
             };
             let opts = if hdr & 2 != 0 { r.u16()? } else { default_opts };
-            let path = if hdr & 4 != 0 { r.string()? } else { String::new() };
+            let path = if hdr & 4 != 0 { string(&mut r)? } else { String::new() };
             if opts & 0xC0 != 0 {
-                r.vli()?;
+                read_vli(&mut r)?;
                 if extra {
-                    r.vli()?;
+                    read_vli(&mut r)?;
                 }
             }
             if hdr & 0x80 != 0 {
-                r.vli()?; // disk index
+                read_vli(&mut r)?; // disk index
             }
             if hdr & 0x100 != 0 {
                 r.u16()?; // attributes
             }
             if hdr & 0x200 != 0 && kind != RecordType::Mkdir {
-                r.string()?;
-                r.string()?;
+                string(&mut r)?;
+                string(&mut r)?;
             }
             if kind == RecordType::Mkdir {
                 r.take(6)?;
@@ -248,18 +226,18 @@ impl<'a> Patch<'a> {
             match kind {
                 RecordType::Mkdir => {}
                 RecordType::New => {
-                    for _ in 0..r.vli()? {
+                    for _ in 0..read_vli(&mut r)? {
                         sources.push(entry(&mut r, extra)?);
                     }
                 }
                 _ => {
                     let nsrc = if kind == RecordType::Modify {
                         r.u16()?;
-                        r.vli()?
+                        read_vli(&mut r)?
                     } else {
                         0
                     };
-                    let ndst = r.vli()?;
+                    let ndst = read_vli(&mut r)?;
                     r.u32()?;
                     let len = r.u32()? as usize;
                     for _ in 0..nsrc {
@@ -314,17 +292,17 @@ impl<'a> Patch<'a> {
     }
 }
 
-fn entry(r: &mut Reader, extra: bool) -> Result<Entry> {
+fn entry(r: &mut Cursor, extra: bool) -> Result<Entry> {
     let d = r.take(24)?;
-    let short_name = d[..13].iter().take_while(|&&b| b != 0).map(|&b| b as char).collect();
-    let size = u32::from_le_bytes(d[16..20].try_into().unwrap());
+    let short_name = latin1(d[..13].split(|&b| b == 0).next().unwrap());
+    let size = u32_at(d, 16)?;
     let c = r.take(10)?;
-    let w1 = u32::from_le_bytes(c[2..6].try_into().unwrap()) & 0x7FFF_FFFF;
-    let w2 = u32::from_le_bytes(c[6..10].try_into().unwrap()) & 0x3FFF_FFFF;
+    let w1 = u32_at(c, 2)? & 0x7FFF_FFFF;
+    let w2 = u32_at(c, 6)? & 0x3FFF_FFFF;
     let mut long_name = String::new();
     if extra {
         r.take(8)?; // timestamps
-        long_name = r.string()?;
+        long_name = string(r)?;
     }
     Ok(Entry { short_name, size, w1, w2, long_name })
 }

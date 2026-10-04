@@ -135,7 +135,7 @@ pub enum GLimit {
 
 impl Envelope {
     pub fn parse(data: &[u8]) -> Self {
-        let text: String = data.iter().map(|&b| b as char).collect();
+        let text = iaf_formats::bytes::latin1(data);
         let lines: Vec<&str> = text.split('\n').map(|l| l.trim_end_matches('\r')).collect();
         // GetPrivateProfileIntA("Params", "AltitudeStep"): the integer part of the value.
         let mut step_ft = 3000;
@@ -281,10 +281,6 @@ impl Envelope {
     fn ceil_alt(&self, i: i32) -> f64 {
         let s = self.slot(i);
         self.slots[s][self.last[s]].0
-    }
-
-    pub fn g_range(&self) -> (f32, f32) {
-        (self.gmin as f32, self.gmax as f32)
     }
 
     fn clamp_g(&self, g: f64) -> f64 {
@@ -466,7 +462,7 @@ mod tests {
         assert!((r.ceiling(1.0) - target).abs() < 1.0, "{}", r.ceiling(1.0));
         // Every g's ceiling scales by the same factor (to the file's 1 ft resolution); sea level is unchanged.
         let k = target / e.ceiling(1.0);
-        for g in [0.0, 2.0, 5.0, e.g_range().1] {
+        for g in [0.0, 2.0, 5.0, e.gmax as f32] {
             assert!((r.ceiling(g) - e.ceiling(g) * k).abs() < 1.0, "g {g}: {} vs {}", r.ceiling(g), e.ceiling(g) * k);
         }
         assert_eq!(r.vmin(0.0, 1.0), e.vmin(0.0, 1.0));

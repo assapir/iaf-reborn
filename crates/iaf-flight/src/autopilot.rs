@@ -6,7 +6,8 @@
 //! Frame: ENU metres (x east, y north, z up) of the aircraft; headings clockwise from north.
 
 use crate::airbase::{Airbase, TaxiPt};
-use crate::aircraft::{add, cross, dot, len, scale, sub, unit, Aircraft, ApView, Controls, V3};
+use crate::aircraft::{sign, unit, Aircraft, ApView, Controls};
+use crate::vec3::Vec3;
 use iaf_formats::ini::Section;
 use std::f32::consts::PI;
 
@@ -117,8 +118,8 @@ pub struct Waypoint {
 /// The formation leader (member 0, `FUN_00587450`) as the formation, taxi and take-off loops see it.
 #[derive(Debug, Clone, Copy)]
 pub struct Leader {
-    pub pos: V3,
-    pub vel: V3,
+    pub pos: Vec3,
+    pub vel: Vec3,
     /// Pitch, roll, heading (rad).
     pub att: [f32; 3],
     /// Alive and controlled (`!free` in the taxi loops).
@@ -167,18 +168,8 @@ fn wrap(a: f32) -> f32 {
     a
 }
 
-fn dist2(a: V3, x: f64, y: f64) -> f64 {
+fn dist2(a: Vec3, x: f64, y: f64) -> f64 {
     (a[0] - x).hypot(a[1] - y)
-}
-
-fn sign(v: f32) -> i32 {
-    if v > 0.0 {
-        1
-    } else if v < 0.0 {
-        -1
-    } else {
-        0
-    }
 }
 
 /// `5d70a0` PassWaypoint: passed once the 2-D distance was ≤ R and then grows.
@@ -197,7 +188,7 @@ impl Pass {
             armed: false,
         }
     }
-    fn test(&mut self, pos: V3, x: f64, y: f64) -> bool {
+    fn test(&mut self, pos: Vec3, x: f64, y: f64) -> bool {
         let d = dist2(pos, x, y);
         let ret = self.armed && d > self.min;
         if d <= self.r {
@@ -337,11 +328,7 @@ impl<'a> Laws<'a> {
         }
         let (p, vel) = (self.v.pos, self.v.vel);
         let t = (vel[2] as f32 * (-1.0 / 15.0)).max(0.0) + self.c.watch_ground_dt;
-        let a = [
-            p[0] + vel[0] * t as f64,
-            p[1] + vel[1] * t as f64,
-            p[2] + vel[2] * t as f64,
-        ];
+        let a = p + vel * t as f64;
         let h = (self.ground)(a[0], a[1]) + self.c.h_above_ground;
         if a[2] as f32 > h && self.los(p, a) {
             return false;
@@ -356,7 +343,7 @@ impl<'a> Laws<'a> {
 
     /// `0x4020d0` line of sight: the segment clears the terrain. UNCERTAIN (the original's terrain ray); here
     /// 8 samples along the segment.
-    fn los(&self, a: V3, b: V3) -> bool {
+    fn los(&self, a: Vec3, b: Vec3) -> bool {
         (1..=8).all(|i| {
             let f = i as f64 / 8.0;
             let z = a[2] + (b[2] - a[2]) * f;
@@ -381,16 +368,16 @@ impl<'a> Laws<'a> {
     }
 
     /// LookAt `5ca7d0` + `5cb4d0` (formation: case 1). Returns (y, x) or None when on the target.
-    fn look_at(&mut self, t: V3, t_roll: f32, case: u8) -> Option<(f32, f32)> {
+    fn look_at(&mut self, t: Vec3, t_roll: f32, case: u8) -> Option<(f32, f32)> {
         let p = self.v.pos;
-        let d = [t[0] - p[0], t[1] - p[1], t[2] - p[2]];
-        let dist = (d[0] * d[0] + d[1] * d[1] + d[2] * d[2]).sqrt();
+        let d = t - p;
+        let dist = d.length();
         if dist <= 0.0 {
             return None;
         }
         let (f, r, u) = self.v.att.basis();
-        let dn = [d[0] / dist, d[1] / dist, d[2] / dist];
-        let dot = |a: V3| (a[0] * dn[0] + a[1] * dn[1] + a[2] * dn[2]) as f32;
+        let dn = d / dist;
+        let dot = |a: Vec3| a.dot(dn) as f32;
         let (v0, v1, v2) = (dot(r), dot(f), dot(u));
         let mut elev = v2.atan2(v0.hypot(v1));
         if v1 < 0.0 {
@@ -515,10 +502,10 @@ fn change_alt(l: &mut Laws, z: f64) {
 
 /// KeepAttitude2Pt `5db510` (+ AtSpeed `5dbb80` with `speed`): bank ≤ 45° on the bearing error, pitch to the
 /// elevation of the point; the ring period from `5db930`.
-fn keep_attitude(l: &mut Laws, t: V3, speed: Option<f32>) {
+fn keep_attitude(l: &mut Laws, t: Vec3, speed: Option<f32>) {
     let thr = speed.map(|s| l.thr(s));
     let p = l.v.pos;
-    let d = [t[0] - p[0], t[1] - p[1], t[2] - p[2]];
+    let d = t - p;
     let e = wrap((d[0] as f32).atan2(d[1] as f32) - l.v.att.heading);
     let roll_t = e.clamp(-PI / 4.0, PI / 4.0);
     let elev = (d[2] as f32).atan2(d[0].hypot(d[1]) as f32);
@@ -527,9 +514,9 @@ fn keep_attitude(l: &mut Laws, t: V3, speed: Option<f32>) {
     let mut dummy = 0.0;
     l.watch_ground(&mut x, &mut y, &mut dummy);
     // 5db930: the ring period.
-    let dist = (d[0] * d[0] + d[1] * d[1] + d[2] * d[2]).sqrt();
+    let dist = d.length();
     let v = l.v.vel;
-    let ahead = |k: f64| [p[0] + k * v[0], p[1] + k * v[1], p[2] + k * v[2]];
+    let ahead = |k: f64| p + v * k;
     l.period = Some(if dist < 1854.0 || y.abs() > 0.01 || x.abs() > 0.01 {
         0.5
     } else if dist < 3708.0 {
@@ -623,7 +610,7 @@ fn level_wings_dive(l: &mut Laws, speed: f32) -> Leaf {
 /// LevelWingsPitch0]; the ETA speed law; ends when its condition holds.
 #[derive(Debug, Clone)]
 struct Fly2Wp {
-    t: V3,
+    t: Vec3,
     eta: f64,
     cap: Option<f32>,
     /// GoHome's condition: within this 2-D radius (else the PassWaypoint at +0x588).
@@ -636,7 +623,7 @@ struct Fly2Wp {
 }
 
 impl Fly2Wp {
-    fn new(t: V3, eta: f64) -> Self {
+    fn new(t: Vec3, eta: f64) -> Self {
         Fly2Wp {
             t,
             eta,
@@ -778,7 +765,7 @@ enum Loop {
     TakeOff {
         stage: u8,
         taxi: Taxi,
-        ka_target: V3,
+        ka_target: Vec3,
         ka_speed: f32,
         ka_radius: Option<f64>,
     },
@@ -788,7 +775,7 @@ enum Loop {
         longitudinal: f32,
     },
     Hold {
-        t: V3,
+        t: Vec3,
     },
     Straight {
         pitch: f32,
@@ -821,8 +808,8 @@ enum Loop {
 #[derive(Debug, Clone)]
 struct DiveBomb {
     state: u8,
-    a: Option<(V3, f32)>,
-    b: (V3, f32, f32, u8),
+    a: Option<(Vec3, f32)>,
+    b: (Vec3, f32, f32, u8),
     lw_pitch: f32,
 }
 
@@ -832,33 +819,33 @@ struct DiveBomb {
 /// a = −51.472221 / (D − 1854), b = −D·a; watch-ground. Returns the nose-on flag.
 fn dogchase(l: &mut Laws, t: &Leader) -> bool {
     let v = l.v;
-    let d = [t.pos[0] - v.pos[0], t.pos[1] - v.pos[1], t.pos[2] - v.pos[2]];
-    let dist = (d[0] * d[0] + d[1] * d[1] + d[2] * d[2]).sqrt() as f32;
+    let d = t.pos - v.pos;
+    let dist = d.length() as f32;
     let behind = l.c.distance_behind_target as f64;
     let aim = if dist < 1000.0 {
         t.pos
     } else {
         let (sp, cp) = t.att[0].sin_cos();
         let (sh, ch) = t.att[2].sin_cos();
-        let f = [(sh * cp) as f64, (ch * cp) as f64, sp as f64];
-        [t.pos[0] - behind * f[0], t.pos[1] - behind * f[1], t.pos[2] - behind * f[2]]
+        let f = Vec3::new((sh * cp) as f64, (ch * cp) as f64, sp as f64);
+        t.pos - f * behind
     };
     let (mut y, mut x) = l.look_at(aim, t.att[1], 1).unwrap_or((0.0, 0.0));
     let (f, _, _) = v.att.basis();
-    let a = [aim[0] - v.pos[0], aim[1] - v.pos[1], aim[2] - v.pos[2]];
-    let an = (a[0] * a[0] + a[1] * a[1] + a[2] * a[2]).sqrt();
-    let nose_on = an > 0.0 && (((f[0] * a[0] + f[1] * a[1] + f[2] * a[2]) / an).clamp(-1.0, 1.0).acos() as f32) < l.c.nose_on_target;
-    let dot = |p: V3, q: V3| (p[0] * q[0] + p[1] * q[1] + p[2] * q[2]) as f32;
-    let tv = dot(t.vel, t.vel).sqrt();
+    let a = aim - v.pos;
+    let an = a.length();
+    let nose_on = an > 0.0 && ((f.dot(a) / an).clamp(-1.0, 1.0).acos() as f32) < l.c.nose_on_target;
+    let dot32 = |p: Vec3, q: Vec3| p.dot(q) as f32;
+    let tv = dot32(t.vel, t.vel).sqrt();
     let vt = if dist > 1000.0 {
         tv + 0.027_762_795 * dist
-    } else if dot(t.vel, d) <= 0.0 {
+    } else if dot32(t.vel, d) <= 0.0 {
         0.0
     } else {
         let k = -51.472_22 / (behind as f32 - 1854.0);
         let b = -(behind as f32) * k;
-        let my = dot(v.vel, v.vel).sqrt();
-        if my > 0.0 && tv > 0.0 { (tv + k * dist + b) * dot(t.vel, v.vel) / (my * tv) } else { 0.0 }
+        let my = dot32(v.vel, v.vel).sqrt();
+        if my > 0.0 && tv > 0.0 { (tv + k * dist + b) * dot32(t.vel, v.vel) / (my * tv) } else { 0.0 }
     };
     let mut thr = l.thr(vt.max(0.0));
     l.watch_ground(&mut x, &mut y, &mut thr);
@@ -871,7 +858,7 @@ fn dogchase(l: &mut Laws, t: &Leader) -> bool {
 
 /// Fly2TargetXyzSt `5d9740` (vtable 0x612d10): LookAt (`case`) on the point with the target roll 0 (`5d9970`);
 /// throttle: the speed law to `speed` when > 0, else `thr` when > 0, else 0.75; watch-ground unless case 4.
-fn fly_to_point(l: &mut Laws, t: V3, case: u8, speed: f32, thr: f32) {
+fn fly_to_point(l: &mut Laws, t: Vec3, case: u8, speed: f32, thr: f32) {
     let (mut y, mut x) = l.look_at(t, 0.0, case).unwrap_or((0.0, 0.0));
     let mut th = if speed > 0.0 {
         l.thr(speed)
@@ -889,20 +876,20 @@ fn fly_to_point(l: &mut Laws, t: V3, case: u8, speed: f32, thr: f32) {
 
 /// `5d18b0`: the point L ahead on the turn that joins the target's track (w the target's direction, m the part of
 /// P − A across it): φ = θ + sqrt(θ² + 2(a − b)/a), θ = atan2(d·w, d·m), a = |V|, b = max(|V_T|, 1).
-fn turn_point(p: V3, v: V3, a: V3, vt: V3, l: f64) -> V3 {
+fn turn_point(p: Vec3, v: Vec3, a: Vec3, vt: Vec3, l: f64) -> Vec3 {
     let Some(w) = unit(vt) else { return a };
-    let d = sub(p, a);
+    let d = p - a;
     let Some(u) = unit(d) else { return a };
-    let Some(n) = unit(cross(u, w)) else { return a };
-    let Some(m) = unit(cross(w, n)) else { return a };
-    let (dx, dy) = (dot(d, m), dot(d, w));
+    let Some(n) = unit(u.cross(w)) else { return a };
+    let Some(m) = unit(w.cross(n)) else { return a };
+    let (dx, dy) = (d.dot(m), d.dot(w));
     let th = dy.atan2(dx);
-    let (sa, sb) = (len(v), len(vt).max(1.0));
+    let (sa, sb) = (v.length(), vt.length().max(1.0));
     let mut phi = th + (th * th + 2.0 * (sa - sb) / sa.max(1e-9)).max(0.0).sqrt();
     if dx < 0.0 {
         phi = -phi;
     }
-    add(p, scale(sub(scale(w, phi.cos()), scale(m, phi.sin())), l))
+    p + (w * phi.cos() - m * phi.sin()) * l
 }
 
 /// Shandel / SplitS / Horizontal (Run `5d1100`): within R (SplitS 5562, others 7416 m) Dogchase; else
@@ -912,13 +899,13 @@ fn turn_point(p: V3, v: V3, a: V3, vt: V3, l: f64) -> V3 {
 /// first tick flies at 0.75).
 fn pursuit(l: &mut Laws, t: &Leader, kind: u8, speed: &mut f32) -> bool {
     let v = l.v;
-    let d = sub(t.pos, v.pos);
+    let d = t.pos - v.pos;
     let r = if kind == 0x16 { 5562.0 } else { 7416.0 };
-    if len(d) < r {
+    if d.length() < r {
         return dogchase(l, t);
     }
     let a = match kind {
-        0x16 => [t.pos[0], t.pos[1], (t.pos[2] + 3048.0).max(3657.6)],
+        0x16 => Vec3::new(t.pos[0], t.pos[1], (t.pos[2] + 3048.0).max(3657.6)),
         _ => {
             let ht = (l.ground)(t.pos[0], t.pos[1]) as f64;
             let z = match kind {
@@ -926,11 +913,11 @@ fn pursuit(l: &mut Laws, t: &Leader, kind: u8, speed: &mut f32) -> bool {
                 0x17 => (t.pos[2] + 1828.8).max(ht + 3048.0),
                 _ => t.pos[2],
             };
-            let f = unit([t.vel[0], t.vel[1], 0.0]).unwrap_or([1.0, 0.0, 0.0]);
-            let rt = [f[1], -f[0], 0.0];
-            let (a1, a2) = (add(t.pos, scale(rt, 5191.2)), sub(t.pos, scale(rt, 5191.2)));
-            let near = if len(sub(a1, v.pos)) <= len(sub(a2, v.pos)) { a1 } else { a2 };
-            [near[0], near[1], z]
+            let f = unit(Vec3::new(t.vel[0], t.vel[1], 0.0)).unwrap_or(Vec3::new(1.0, 0.0, 0.0));
+            let rt = Vec3::new(f[1], -f[0], 0.0);
+            let (a1, a2) = (t.pos + rt * 5191.2, t.pos - rt * 5191.2);
+            let near = if (a1 - v.pos).length() <= (a2 - v.pos).length() { a1 } else { a2 };
+            Vec3::new(near[0], near[1], z)
         }
     };
     let q = turn_point(v.pos, v.vel, a, t.vel, 10000.0);
@@ -941,26 +928,26 @@ fn pursuit(l: &mut Laws, t: &Leader, kind: u8, speed: &mut f32) -> bool {
 
 /// `5cb850`: the heading to intercept the target (lead collision when possible, else pursuit of a lead point; quirk:
 /// the lead scales V_T by |V| / d, 1/s not s) and the speed to fly: (horizontal distance, speed, heading).
-fn intercept(p: V3, s: f64, t: V3, vt: V3) -> (f64, f32, f32) {
-    let d = sub(t, p);
-    let dh = [d[0], d[1], 0.0];
-    let dist = len(dh);
+fn intercept(p: Vec3, s: f64, t: Vec3, vt: Vec3) -> (f64, f32, f32) {
+    let d = t - p;
+    let dh = Vec3::new(d[0], d[1], 0.0);
+    let dist = dh.length();
     if dist <= 0.0 {
         return (0.0, s as f32, 0.0);
     }
-    let u = scale(dh, -1.0 / dist);
-    let c = dot(u, vt);
-    let w2 = dot(vt, vt) - c * c;
+    let u = dh * (-1.0 / dist);
+    let c = u.dot(vt);
+    let w2 = vt.dot(vt) - c * c;
     let k = s * s - w2;
     let (dir, speed) = if k > 0.0 && (c > 0.0 || c.abs() <= k.sqrt()) {
         let b0 = d[1].atan2(d[0]);
         let mut g = (k.sqrt() / s.max(1e-9)).clamp(-1.0, 1.0).acos();
-        if cross(vt, u)[2] < 0.0 {
+        if vt.cross(u)[2] < 0.0 {
             g = -g;
         }
         ([(b0 + g).cos(), (b0 + g).sin()], s)
     } else {
-        let lp = add(t, scale(vt, s / dist));
+        let lp = t + vt * (s / dist);
         ([lp[0] - p[0], lp[1] - p[1]], 2.0 * s)
     };
     (dist, speed as f32, wrap((dir[0] as f32).atan2(dir[1] as f32)))
@@ -978,7 +965,7 @@ fn himmelman(l: &mut Laws, t: &Leader, child: &mut u8, pt_z: &mut f64, origin: [
     }
     if *child == 0 {
         let dt = c.watch_ground_dt as f64;
-        let p1 = add(v.pos, scale(v.vel, dt));
+        let p1 = v.pos + v.vel * dt;
         let z = (((l.ground)(v.pos[0], v.pos[1]) as f64 + 333.0 + (l.ground)(p1[0], p1[1]) as f64) * 0.5).clamp(-100.0, 3200.0);
         if (*pt_z - z).abs() > 200.0 {
             *pt_z = z;
@@ -991,9 +978,9 @@ fn himmelman(l: &mut Laws, t: &Leader, child: &mut u8, pt_z: &mut f64, origin: [
         }
     }
     if *child == 1 {
-        let d = sub(t.pos, v.pos);
+        let d = t.pos - v.pos;
         let hd = d[0].hypot(d[1]);
-        if len(d) <= 3708.0 || (d[2].atan2(hd) as f32) > 35f32.to_radians() {
+        if d.length() <= 3708.0 || (d[2].atan2(hd) as f32) > 35f32.to_radians() {
             *child = 2;
         } else {
             fly_to_impact(l, t);
@@ -1016,9 +1003,9 @@ fn fly_to_impact(l: &mut Laws, t: &Leader) {
     let bank = (e / (PI / 6.0) * c.change_head_k * lim - v.rates[2] * c.change_head_beta).clamp(-lim, lim);
     let mut xs = l.roll(bank);
     let k = v.vel[2] / 15.0;
-    let a = add(add(v.pos, scale(v.vel, c.watch_ground_dt as f64)), [k, k, k]);
+    let a = v.pos + v.vel * c.watch_ground_dt as f64 + Vec3::new(k, k, k);
     let ha = (l.ground)(a[0], a[1]) as f64 + 333.0;
-    let mut pitch_t = if l.los(v.pos, [a[0], a[1], ha]) {
+    let mut pitch_t = if l.los(v.pos, Vec3::new(a[0], a[1], ha)) {
         ((ha - v.pos[2]) as f32).atan2((a[0] - v.pos[0]).hypot(a[1] - v.pos[1]) as f32)
     } else {
         xs = l.roll(0.0);
@@ -1042,15 +1029,15 @@ fn tail_clear(l: &mut Laws, t: &Leader, state: &mut u8, a: f64) -> bool {
         l.stick(0.0, 0.0);
         return false;
     };
-    let d = sub(t.pos, v.pos);
-    *state = if dot(d, f) > 0.0 && *state != 0x19 { 0x19 } else { 0x1f };
+    let d = t.pos - v.pos;
+    *state = if d.dot(f) > 0.0 && *state != 0x19 { 0x19 } else { 0x1f };
     if *state == 0x19 {
         return dogchase(l, t);
     }
-    let r = unit(cross(d, f)).unwrap_or([0.0, 0.0, 1.0]);
+    let r = unit(d.cross(f)).unwrap_or(Vec3::UP);
     let h = v.ground_height as f64;
     let speed = if h + a <= v.pos[2] + 182.88 { 103.0 } else { 309.0 };
-    let mut q = add(add(v.pos, scale(f, 200.0)), scale(r, 600.0));
+    let mut q = v.pos + f * 200.0 + r * 600.0;
     q[2] = q[2].max(h + a);
     fly_to_point(l, q, 1, speed, 0.0);
     false
@@ -1058,11 +1045,11 @@ fn tail_clear(l: &mut Laws, t: &Leader, state: &mut u8, a: f64) -> bool {
 
 /// The vacuum impact of a store released now (`45ed10`, UNCERTAIN: its integration; here the drop to the target's
 /// height under gravity alone).
-fn vacuum_impact(p: V3, v: V3, z: f64) -> V3 {
+fn vacuum_impact(p: Vec3, v: Vec3, z: f64) -> Vec3 {
     let h = p[2] - z;
     let vz = v[2];
     let t = (vz + (vz * vz + 2.0 * 9.80665 * h.max(0.0)).sqrt()) / 9.80665;
-    [p[0] + v[0] * t, p[1] + v[1] * t, z]
+    Vec3::new(p[0] + v[0] * t, p[1] + v[1] * t, z)
 }
 
 /// LevelBomb (Run `5d9290`): Fly2TargetXyzSt at 257.5 m/s to (T.x, T.y, max(z, T.z + 609.6)); the release when the
@@ -1074,7 +1061,7 @@ fn level_bomb(l: &mut Laws, t: &Leader, released: &mut bool, z: f64, lw: &mut f3
         return;
     }
     let zz = z.max(t.pos[2] + 609.6);
-    fly_to_point(l, [t.pos[0], t.pos[1], zz], 1, 257.5, 0.0);
+    fly_to_point(l, Vec3::new(t.pos[0], t.pos[1], zz), 1, 257.5, 0.0);
     let i = vacuum_impact(v.pos, v.vel, t.pos[2]);
     if (i[0] - t.pos[0]).hypot(i[1] - t.pos[1]) <= 2.0 * (v.pos[2] - t.pos[2]).max(0.0) {
         l.out.release = true;
@@ -1088,8 +1075,8 @@ impl DiveBomb {
     /// the wings within 15° (0xb), zoom climb 13716 m on (0xd), re-attack. Returns the root period when it changes.
     fn step(&mut self, l: &mut Laws, t: &Leader, vmin12: f32) -> Option<f64> {
         let v = l.v;
-        let d = sub(t.pos, v.pos);
-        let d3 = len(d).max(1e-9);
+        let d = t.pos - v.pos;
+        let d3 = d.length().max(1e-9);
         let dir = [d[0] / d3, d[1] / d3]; // quirk: divided by the 3-D distance
         let dh = d[0].hypot(d[1]);
         let ht = v.pos[2] - t.pos[2];
@@ -1117,7 +1104,7 @@ impl DiveBomb {
         }
         match self.state {
             4 => {
-                let a = [t.pos[0] - 1524.0 * dir[0], t.pos[1] - 1524.0 * dir[1], t.pos[2] + 4572.0];
+                let a = Vec3::new(t.pos[0] - 1524.0 * dir[0], t.pos[1] - 1524.0 * dir[1], t.pos[2] + 4572.0);
                 self.a = Some((a, 360.5));
                 self.state = 5;
                 fly_to_point(l, a, 1, 360.5, 0.0);
@@ -1128,7 +1115,7 @@ impl DiveBomb {
                 }
             }
             6 => {
-                self.b = ([t.pos[0] - 800.0 * dir[0], t.pos[1] - 800.0 * dir[1], t.pos[2]], 206.0, 0.0, 4);
+                self.b = (Vec3::new(t.pos[0] - 800.0 * dir[0], t.pos[1] - 800.0 * dir[1], t.pos[2]), 206.0, 0.0, 4);
                 period = Some(0.125);
                 self.state = 7;
                 fly_to_point(l, self.b.0, self.b.3, self.b.1, self.b.2);
@@ -1141,9 +1128,9 @@ impl DiveBomb {
             }
             7 | 9 | 0xd => fly_to_point(l, self.b.0, self.b.3, self.b.1, self.b.2),
             0xc => {
-                let hd = unit([d[0], d[1], 0.0]).unwrap_or([0.0, 1.0, 0.0]);
+                let hd = unit(Vec3::new(d[0], d[1], 0.0)).unwrap_or(Vec3::NORTH);
                 let z = v.pos[2].max(t.pos[2] + 9144.0);
-                self.b = ([v.pos[0] + 13716.0 * hd[0], v.pos[1] + 13716.0 * hd[1], z], 0.0, 1.0, 4);
+                self.b = (Vec3::new(v.pos[0] + 13716.0 * hd[0], v.pos[1] + 13716.0 * hd[1], z), 0.0, 1.0, 4);
                 period = Some(0.5);
                 self.state = 0xd;
                 fly_to_point(l, self.b.0, self.b.3, self.b.1, self.b.2);
@@ -1162,7 +1149,7 @@ impl DiveBomb {
 #[derive(Debug, Clone)]
 struct Landing {
     step: usize,
-    pts: [V3; 5],
+    pts: [Vec3; 5],
     rn: f32,
     k: f64,
     lw_pitch: f32,
@@ -1209,7 +1196,7 @@ impl Acu {
         Acu { vt: vt.unwrap_or(entry_speed), done_latch: false, acu: true }
     }
 
-    fn step(&mut self, l: &mut Laws, p: V3, prev: Option<V3>, tol: f32, lim: f32) -> Leaf {
+    fn step(&mut self, l: &mut Laws, p: Vec3, prev: Option<Vec3>, tol: f32, lim: f32) -> Leaf {
         let v = l.v;
         let pos = v.pos;
         let (dx, dy) = (p[0] - pos[0], p[1] - pos[1]);
@@ -1413,7 +1400,7 @@ impl Autopilot {
             8 => self.go_home(&v, now),
             9 => {
                 let (ka_target, ka_speed, ka_radius) = match self.route.first() {
-                    Some(w) => ([w.x, w.y, w.z], 205.889, Some(500.0)),
+                    Some(w) => (Vec3::new(w.x, w.y, w.z), 205.889, Some(500.0)),
                     None => (v.pos, 180.153, None),
                 };
                 Loop::TakeOff {
@@ -1442,7 +1429,7 @@ impl Autopilot {
             10 => {
                 let g = v.ground_height;
                 Loop::Hold {
-                    t: [v.pos[0], v.pos[1], v.pos[2].max(g as f64 + 300.0)],
+                    t: Vec3::new(v.pos[0], v.pos[1], v.pos[2].max(g as f64 + 300.0)),
                 }
             }
             0xb => Loop::Straight { pitch: 0.0 },
@@ -1454,7 +1441,7 @@ impl Autopilot {
             0xe => Loop::Himmelman { child: 0, pt_z: f64::NAN },
             0x14 => Loop::TailClear { state: 0, a: v.pos[2].max(v.ground_height as f64 + 1219.2) },
             0x16 => Loop::LevelBomb { released: false, z: v.pos[2], lw_pitch: 0.0 },
-            0x17 => Loop::DiveBomb(Box::new(DiveBomb { state: 0, a: None, b: ([0.0; 3], 0.0, 0.0, 4), lw_pitch: 0.0 })),
+            0x17 => Loop::DiveBomb(Box::new(DiveBomb { state: 0, a: None, b: (Vec3::ZERO, 0.0, 0.0, 4), lw_pitch: 0.0 })),
             _ => Loop::None,
         };
         self.nose_on = false;
@@ -1463,7 +1450,7 @@ impl Autopilot {
     /// GoHomeCL Init `5cd390`: Fly2WayPt to the route's last waypoint (no route: here), then LandingCL.
     fn go_home(&self, v: &ApView, now: f64) -> Loop {
         let (t, cap) = match self.route.last() {
-            Some(w) => ([w.x, w.y, w.z], if v.type_code == C130 { 128.68 } else { 180.15 }),
+            Some(w) => (Vec3::new(w.x, w.y, w.z), if v.type_code == C130 { 128.68 } else { 180.15 }),
             None => (v.pos, 180.15),
         };
         let mut f = Fly2Wp::new(t, now + 60.0);
@@ -1481,7 +1468,7 @@ impl Autopilot {
         self.lp = match (mode, self.route.get(wp)) {
             (1, _) => Loop::Level { keep: None },
             (2, Some(w)) if w.action == 7 => self.go_home(&v, v.t),
-            (2, Some(w)) => Loop::Fly { f: Some(Fly2Wp::new([w.x, w.y, w.z], w.t)) },
+            (2, Some(w)) => Loop::Fly { f: Some(Fly2Wp::new(Vec3::new(w.x, w.y, w.z), w.t)) },
             // 5c7bc0 without a route starts the loop uninitialised (UNCERTAIN): nothing flies.
             _ => Loop::None,
         };
@@ -1532,7 +1519,7 @@ impl Autopilot {
                     // WayPtSet next (5d7450): the next waypoint, or the stick centred past the last.
                     match self.route.get(*idx).copied() {
                         Some(w) => {
-                            *f = Some(Fly2Wp::new([w.x, w.y, w.z], w.t));
+                            *f = Some(Fly2Wp::new(Vec3::new(w.x, w.y, w.z), w.t));
                             self.wp_index = *idx;
                             *idx += 1;
                         }
@@ -1768,11 +1755,11 @@ impl Autopilot {
         };
         let (f, _, u) = e.basis();
         let an = f[0].hypot(f[1]).max(1e-9);
-        let a = [f[0] / an, f[1] / an, 0.0];
-        let u = if u[2] < 0.0 { [-u[0], -u[1], -u[2]] } else { u };
+        let a = Vec3::new(f[0] / an, f[1] / an, 0.0);
+        let u = if u[2] < 0.0 { -u } else { u };
         // C = horizontal(U × A), normalised: the leader's left.
-        let cx = u[1] * a[2] - u[2] * a[1];
-        let cy = u[2] * a[0] - u[0] * a[2];
+        let c = u.cross(a);
+        let (cx, cy) = (c[0], c[1]);
         let cn = cx.hypot(cy).max(1e-9);
         let cvec = [cx / cn, cy / cn];
         let dz = ld.pos[2] - v.pos[2];
@@ -1782,34 +1769,18 @@ impl Autopilot {
         }
         let d = *lateral as f64;
         // Single player: the side flag stays 0, so every wingman takes the right slot (−C). UNCERTAIN.
-        let mut q = [
-            ld.pos[0] + k * a[0] - d * cvec[0],
-            ld.pos[1] + k * a[1] - d * cvec[1],
-            ld.pos[2],
-        ];
+        let mut q = Vec3::new(ld.pos[0] + k * a[0] - d * cvec[0], ld.pos[1] + k * a[1] - d * cvec[1], ld.pos[2]);
         q[2] = (q[2] + dz).max((l.ground)(q[0], q[1]) as f64 + 91.44);
         let lo = longitudinal as f64;
-        let s = [
-            ld.pos[0] + lo * a[0] - d * cvec[0],
-            ld.pos[1] + lo * a[1] - d * cvec[1],
-            ld.pos[2],
-        ];
+        let s = Vec3::new(ld.pos[0] + lo * a[0] - d * cvec[0], ld.pos[1] + lo * a[1] - d * cvec[1], ld.pos[2]);
         let (mut y, mut x) = l.look_at(q, ld.att[1], 1).unwrap_or((0.0, 0.0));
         // Speed law 5d0870.
-        let dd = [v.pos[0] - s[0], v.pos[1] - s[1], v.pos[2] - s[2]];
-        let dl = (dd[0] * dd[0] + dd[1] * dd[1] + dd[2] * dd[2]).sqrt();
-        let dn = if dl > 0.0 {
-            [dd[0] / dl, dd[1] / dl, dd[2] / dl]
-        } else {
-            [1.0, 0.0, 0.0]
-        };
+        let dd = v.pos - s;
+        let dl = dd.length();
+        let dn = if dl > 0.0 { dd / dl } else { Vec3::new(1.0, 0.0, 0.0) };
         let vl = (ld.vel[0].powi(2) + ld.vel[1].powi(2) + ld.vel[2].powi(2)).sqrt();
-        let lvn = if vl > 0.0 {
-            [ld.vel[0] / vl, ld.vel[1] / vl, ld.vel[2] / vl]
-        } else {
-            [0.0, 1.0, 0.0]
-        };
-        let cosang = (dn[0] * lvn[0] + dn[1] * lvn[1] + dn[2] * lvn[2]).clamp(-1.0, 1.0);
+        let lvn = if vl > 0.0 { ld.vel / vl } else { Vec3::NORTH };
+        let cosang = dn.dot(lvn).clamp(-1.0, 1.0);
         let xx = ((cosang.acos() - std::f64::consts::FRAC_PI_2) * dl.min(5562.0) / 4500.0) as f32;
         let vl = vl as f32;
         let spd = (vl + 2.0 * vl * (xx - xx * xx / 2.0 + xx.powi(3) / 6.0 - xx.powi(4) / 24.0)
@@ -1884,7 +1855,7 @@ impl Taxi {
                     }
                 if path.first().is_some_and(|p| {
                     dist2(
-                        [p.x as f64, p.y as f64, 0.0],
+                        Vec3::new(p.x as f64, p.y as f64, 0.0),
                         lineup[0] as f64,
                         lineup[1] as f64,
                     ) < 100.0
@@ -2008,7 +1979,7 @@ impl Taxi {
 
 impl Landing {
     /// LandingCL Init `5d2b30`: the left-hand pattern from G to the nearest base's lineup.
-    fn new(bases: &[Airbase], origin: [f64; 2], g: V3, type_code: u32, player: bool) -> Option<Self> {
+    fn new(bases: &[Airbase], origin: [f64; 2], g: Vec3, type_code: u32, player: bool) -> Option<Self> {
         let base = Airbase::nearest(bases, [g[0] as f32, g[1] as f32, g[2] as f32])?;
         let c130 = type_code == C130;
         let rn = base.runway_deg.to_radians();
@@ -2034,11 +2005,11 @@ impl Landing {
         Some(Landing {
             step: 0,
             pts: [
-                [p1[0], p1[1], ht + 700.0],
-                [p2[0], p2[1], ht + if c130 { 600.0 } else { 500.0 }],
-                [p3[0], p3[1], ht + if c130 { 350.0 } else { 300.0 }],
-                [p4[0], p4[1], ht + 250.0],
-                [l[0], l[1], ht],
+                Vec3::new(p1[0], p1[1], ht + 700.0),
+                Vec3::new(p2[0], p2[1], ht + if c130 { 600.0 } else { 500.0 }),
+                Vec3::new(p3[0], p3[1], ht + if c130 { 350.0 } else { 300.0 }),
+                Vec3::new(p4[0], p4[1], ht + 250.0),
+                Vec3::new(l[0], l[1], ht),
             ],
             rn,
             k: if c130 { 2.0 } else { 1.0 },
@@ -2189,13 +2160,13 @@ impl Landing {
     fn final_approach(&mut self, l: &mut Laws, vmin1: f32) {
         let v = l.v;
         let p5 = self.pts[4];
-        let d = [v.pos[0] - p5[0], v.pos[1] - p5[1], v.pos[2] - p5[2]];
+        let d = v.pos - p5;
         let (s, c) = ((self.rn as f64).sin(), (self.rn as f64).cos());
         let (sg, cg) = (6f64.to_radians().sin(), 6f64.to_radians().cos());
-        let fwd = [s * cg, c * cg, -sg];
-        let up = [s * sg, c * sg, cg];
-        let right = [c, -s, 0.0];
-        let dot = |a: [f64; 3]| (a[0] * d[0] + a[1] * d[1] + a[2] * d[2]) as f32;
+        let fwd = Vec3::new(s * cg, c * cg, -sg);
+        let up = Vec3::new(s * sg, c * sg, cg);
+        let right = Vec3::new(c, -s, 0.0);
+        let dot = |a: Vec3| a.dot(d) as f32;
         let (cross, along, above) = (dot(right), dot(fwd), dot(up));
         let vt = (vmin1 + 10.2944).max(72.0611);
         let thr = l.thr(vt).min(0.5);
@@ -2299,7 +2270,7 @@ mod tests {
             runway_deg: 270.0,
             ..Default::default()
         };
-        let l = Landing::new(&[b], [0.0; 2], [351083.0, 602383.0, 1500.0], 0, true).unwrap();
+        let l = Landing::new(&[b], [0.0; 2], Vec3::new(351083.0, 602383.0, 1500.0), 0, true).unwrap();
         let p = l.pts;
         assert_eq!((p[0][1], p[1][1]), (596821.0, 596821.0), "downwind P1 → P2");
         assert_eq!((p[1][0], p[2][0]), (363899.0, 363899.0), "base P2 → P3");
@@ -2321,7 +2292,7 @@ mod tests {
             runway_deg: 270.0,
             ..Default::default()
         };
-        let l = Landing::new(&[b], o, [351083.0 - o[0], 602383.0 - o[1], 1500.0], 0, true).unwrap();
+        let l = Landing::new(&[b], o, Vec3::new(351083.0 - o[0], 602383.0 - o[1], 1500.0), 0, true).unwrap();
         let p = l.pts;
         assert_eq!(p[0][1], p[1][1]);
         assert_eq!(p[1][0], p[2][0]);

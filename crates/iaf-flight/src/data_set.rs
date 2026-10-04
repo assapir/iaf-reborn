@@ -7,7 +7,8 @@
 //! Several AI types share one original section (`[TU22]` flies the Su-22, Su-24, Tu-22 and A-4; the
 //! transports keep the F-16's data): each type still gets its own real row.
 
-use crate::params::NoseWheel;
+use crate::aircraft::G;
+use crate::params::{NoseWheel, FT};
 use crate::{Envelope, Params};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -19,8 +20,6 @@ pub enum DataSet {
 
 const LB: f32 = 0.45359;
 const KT: f32 = 0.514722;
-const FT: f32 = 0.3048;
-const G: f32 = 9.806;
 
 /// How the real set changes the thrust table (lbf, 2 Mach × 2 altitude corners, `Params::thrust`).
 #[derive(Debug, Clone, Copy)]

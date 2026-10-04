@@ -8,6 +8,7 @@
 use std::path::Path;
 
 use anyhow::{Context, Result, bail};
+use iaf_formats::bytes;
 
 /// An `iafjets.exe` release.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -46,12 +47,8 @@ impl PeImage {
     }
 
     pub fn parse(data: Vec<u8>) -> Result<Self> {
-        let u16_at = |o: usize| -> Result<usize> {
-            Ok(u16::from_le_bytes(data.get(o..o + 2).context("truncated PE")?.try_into().unwrap()) as usize)
-        };
-        let u32_at = |o: usize| -> Result<u32> {
-            Ok(u32::from_le_bytes(data.get(o..o + 4).context("truncated PE")?.try_into().unwrap()))
-        };
+        let u16_at = |o: usize| bytes::u16_at(&data, o).map(usize::from).context("truncated PE");
+        let u32_at = |o: usize| bytes::u32_at(&data, o).context("truncated PE");
         let pe = u32_at(0x3c)? as usize;
         if data.get(pe..pe + 4) != Some(b"PE\0\0") {
             bail!("not a PE file");
@@ -88,7 +85,7 @@ impl PeImage {
 
     pub fn i32_at(&self, va: u32) -> Result<i32> {
         let o = self.offset(va).with_context(|| format!("address {va:#x} not in the file"))?;
-        Ok(i32::from_le_bytes(self.data[o..o + 4].try_into().unwrap()))
+        Ok(bytes::i32_at(&self.data, o)?)
     }
 
     /// The NUL-terminated bytes at `va` (without the NUL).
@@ -105,8 +102,8 @@ impl PeImage {
     pub fn icons(&self) -> Result<Vec<image::RgbaImage>> {
         let d = &self.data;
         let root = self.offset(self.base + self.resource_rva).context("no resources")?;
-        let u16a = |o: usize| u16::from_le_bytes([d[o], d[o + 1]]) as usize;
-        let u32a = |o: usize| u32::from_le_bytes(d[o..o + 4].try_into().unwrap());
+        let u16a = |o: usize| bytes::u16_at(d, o).unwrap() as usize;
+        let u32a = |o: usize| bytes::u32_at(d, o).unwrap();
         // Directory entries: (id, offset relative to the resource root, is_dir).
         let entries = |dir: usize| -> Vec<(u32, usize, bool)> {
             let n = u16a(dir + 12) + u16a(dir + 14);
@@ -143,8 +140,8 @@ impl PeImage {
 }
 
 fn dib_icon(b: &[u8]) -> Option<image::RgbaImage> {
-    let u16a = |o: usize| u16::from_le_bytes([b[o], b[o + 1]]) as u32;
-    let u32a = |o: usize| u32::from_le_bytes(b[o..o + 4].try_into().unwrap());
+    let u16a = |o: usize| bytes::u16_at(b, o).unwrap() as u32;
+    let u32a = |o: usize| bytes::u32_at(b, o).unwrap();
     let hdr = u32a(0) as usize;
     let (w, h, bpp) = (u32a(4), u32a(8) / 2, u16a(14));
     let colours = match u32a(32) { 0 if bpp <= 8 => 1usize << bpp, n => n as usize };
