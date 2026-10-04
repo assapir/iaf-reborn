@@ -1,6 +1,7 @@
 # Side-by-side comparison (not a test): the original HUD (left) and the Real HUD (right, Extras > HUD) on the same
-# frames — top NAV cruise, bottom the MRM mode with a MiG locked 8 km ahead (mission 231, F-16 3000 m up with
-# AMRAAMs). Writes hud_compare.png (each cell the HUD area, ×2). Usage:
+# frames — NAV cruise; the MRM mode with a MiG locked 8 km ahead; the AA gun (LCOS pipper, range arc) with the MiG
+# 800 m ahead; the AG gun (strafe pipper) — mission 231, the F-16 3000 m up with AMRAAMs. Writes hud_compare.png
+# (each cell the HUD area, ×2). Usage:
 #   SHOT_DIR=/tmp/shots IAF_DEFAULT_SETTINGS=1 godot --audio-driver Dummy --path game -s ../tests/godot/_hud_compare_shot.gd
 extends "res://../tests/godot/base.gd"
 
@@ -32,6 +33,24 @@ func run() -> void:
 	w.nav_key(0)
 	w.stores.cur = 0
 	w.select_aa()
+	for i in 4:
+		t += 0.05
+		w.update(t)
+	rows.append(await _pair(tv))
+	# The AA gun on the MiG 800 m ahead (still locked), then the AG gun.
+	mig.world = o.pos + (o.sight.fwd if o.has("sight") else o.fwd) * 800.0
+	tv.mission_entity_moved(mig)
+	w.nav_key(0)
+	w.stores.cur = 9
+	w._master_from_type(true)  # the gun reached by ']': HUD mode 3 (the cycle itself would skip back to the AMRAAM)
+	for i in 10:
+		t += 0.05
+		w.update(t)
+	print("AA gun HUD mode ", w.hud_mode)
+	rows.append(await _pair(tv))
+	w.nav_key(0)
+	w.stores.cur = 9
+	w.select_ag()
 	for i in 4:
 		t += 0.05
 		w.update(t)
