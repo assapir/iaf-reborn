@@ -415,7 +415,8 @@ func real_hud() -> Dictionary:
 	var lk: Dictionary = rd.get("lock", {})
 	var target := {}
 	if not lk.is_empty():
-		target = {"range_m": float(lk.dist), "closure": float(rd.get("closure", 0.0)), "at": _hud_point(lk.pos, true)}
+		target = {"range_m": float(lk.dist), "closure": float(rd.get("closure", 0.0)), "at": _hud_point(lk.pos, true),
+			"aspect": lk.get("aspect")}
 	var pip = null
 	if mode == 4 and wp.get("pipper") != null:
 		pip = _hud_point(wp.pipper, false)

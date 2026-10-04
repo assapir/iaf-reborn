@@ -86,7 +86,7 @@ mod tests {
     fn the_phantom_range_bar_unwinds_from_6_oclock() {
         let mut i = input(Jet::Phantom);
         i.weapons.hud_mode = 3;
-        i.target = Some(Target { range_m: 4000.0 * FT, closure: 0.0, at: None });
+        i.target = Some(Target { range_m: 4000.0 * FT, closure: 0.0, at: None, aspect: None });
         let fr = lcoss(&i);
         assert!(fr.sight && fr.colour == Some(RED) && fr.outer.is_empty());
         let arc = fr.field.iter().rev().find_map(|p| if let Prim::Arc { from, sweep, .. } = p { Some((*from, *sweep)) } else { None });

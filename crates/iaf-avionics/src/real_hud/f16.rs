@@ -122,13 +122,20 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
         1 => {
             let c = add(i.gun_cross, (0.0, i.deg(3.0)));
             p.push(Prim::Circle { c, r: i.mr(32.5) });
+            if let Some(a) = i.target.and_then(|t| t.aspect) {
+                aspect_triangle(p, c, i.mr(32.5), a, i.mr(5.0));
+            }
             if let Some(s) = w.seeker {
                 diamond(p, s, i.mr(5.0));
             }
         }
         2 => {
             let c = add(i.gun_cross, (0.0, i.deg(6.0)));
-            p.push(Prim::Circle { c, r: i.mr(56.0) * (w.circle / 5.0).clamp(0.3, 1.0) });
+            let r = i.mr(56.0) * (w.circle / 5.0).clamp(0.3, 1.0);
+            p.push(Prim::Circle { c, r });
+            if let Some(a) = i.target.and_then(|t| t.aspect) {
+                aspect_triangle(p, c, r, a, i.mr(5.0));
+            }
             if let Some(s) = w.steering {
                 let (q, limited) = f.clamp_from(c, s);
                 p.push(Prim::Circle { c: q, r: i.mr(4.0) });
@@ -366,7 +373,7 @@ mod tests {
     fn weapon_modes() {
         let mut i = input(Jet::F16);
         i.weapons = Weapons { hud_mode: 2, mrm: 3, circle: 4.0, ..Weapons::default() };
-        i.target = Some(Target { range_m: 15.0 * NM, closure: 200.0, at: Some((5.0, -5.0)) });
+        i.target = Some(Target { range_m: 15.0 * NM, closure: 200.0, at: Some((5.0, -5.0)), aspect: None });
         i.dlz = Some(Dlz { max: 18.0 * NM, min: 2.0 * NM });
         let t = frame(FIELD, &i, 2.3);
         let tx = texts(&t.outer);
@@ -374,7 +381,7 @@ mod tests {
             assert!(tx.contains(&want), "{want} in {tx:?}");
         }
         i.weapons.hud_mode = 3;
-        i.target = Some(Target { range_m: 600.0, closure: 100.0, at: Some((5.0, -5.0)) });
+        i.target = Some(Target { range_m: 600.0, closure: 100.0, at: Some((5.0, -5.0)), aspect: None });
         let g = frame(FIELD, &i, 2.3);
         let gt = texts(&g.outer);
         assert!(gt.contains(&"EEGS") && gt.contains(&"F 020") && gt.contains(&"194"), "{gt:?}");
@@ -388,7 +395,7 @@ mod tests {
         let low = |fr: &Frame| fr.field.iter().filter(|p| matches!(p, Prim::Line { a, .. } if (a.1 - (FIELD.bottom - 30.0)).abs() < 1e-9)).count();
         let l2 = frame(FIELD, &i, 2.3);
         assert_eq!(low(&l2), 5, "level 2: the five MRGS lines");
-        i.target = Some(Target { range_m: 1500.0 * FT, closure: 50.0, at: Some((0.0, 20.0)) });
+        i.target = Some(Target { range_m: 1500.0 * FT, closure: 50.0, at: Some((0.0, 20.0)), aspect: None });
         i.weapons.lcos = Some((1.0, 18.0));
         let l5 = frame(FIELD, &i, 2.3);
         assert_eq!(low(&l5), 0, "with a track the MRGS lines go");

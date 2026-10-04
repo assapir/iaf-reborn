@@ -68,10 +68,25 @@ pub(super) fn frame(f: Field, i: &Input) -> Frame {
         if t.range_m <= z.max && t.range_m >= z.min {
             o.push(text((f.right - RANGE_IN, tape_y + RANGE_HALF + 10.0), "IN RNG", Align::Centre));
         }
+        // The breakaway X across the HUD inside minimum range.
+        if matches!(mode, 1 | 2) && t.range_m < z.min {
+            o.push(line((f.left + 10.0, f.top + 20.0), (f.right - 10.0, f.bottom - 10.0)));
+            o.push(line((f.left + 10.0, f.bottom - 10.0), (f.right - 10.0, f.top + 20.0)));
+        }
+    }
+    if i.gear_down {
+        aoa_scale(o, f.left + 12.0, tape_y, i.aoa_deg);
     }
 
     // The field.
     let p = &mut fr.field;
+    // NAV: the bank steering bar, a vertical line displaced toward the steerpoint (ours: 2 px per degree of bearing
+    // error, held at ±20°).
+    if mode == 0 && let Some(s) = i.steerpoint {
+        let err = ((s.bearing_deg - i.heading_deg + 180.0).rem_euclid(360.0) - 180.0).clamp(-20.0, 20.0);
+        let x = i.boresight.0 + 2.0 * err;
+        p.push(line((x, i.boresight.1 - 12.0), (x, i.boresight.1 + 12.0)));
+    }
     if mode != 3 {
         waterline(p, i.boresight, i.mr(14.0));
     }
@@ -140,6 +155,24 @@ pub(super) fn frame(f: Field, i: &Input) -> Frame {
     fr
 }
 
+/// The AoA scale (gear down): left, inboard of the airspeed scale, 0-45 units with ticks every 5 and labels every 10,
+/// the caret on its right at the current AoA (ours: degrees for units).
+fn aoa_scale(p: &mut Vec<Prim>, x: f64, y0: f64, aoa: f64) {
+    let k = 2.0 * TAPE_HALF / 45.0;
+    let y = |u: f64| y0 + TAPE_HALF - u * k;
+    p.push(line((x, y(0.0)), (x, y(45.0))));
+    for u in (0..=45).step_by(5) {
+        let u = u as f64;
+        p.push(line((x, y(u)), (x - 2.0, y(u))));
+        if (u as i64) % 10 == 0 {
+            p.push(text((x - 3.0, y(u) + 3.0), format!("{}", u as i64), Align::Right));
+        }
+    }
+    let c = y(aoa.clamp(0.0, 45.0));
+    p.push(line((x + 1.0, c), (x + 4.0, c - 2.0)));
+    p.push(line((x + 1.0, c), (x + 4.0, c + 2.0)));
+}
+
 /// The heading scale on the field's top: a 30° window, 2° ticks, two-digit labels every 10°, the caret below the line
 /// pointing up at the centre.
 fn heading(p: &mut Vec<Prim>, f: Field, hdg: f64) {
@@ -187,6 +220,7 @@ fn lcos(p: &mut Vec<Prim>, i: &Input, c: P) {
 mod tests {
     use super::super::tests::{FIELD, input, texts};
     use super::*;
+    use crate::missile::Dlz;
 
     #[test]
     fn nav_as_the_flight_manual() {
@@ -203,5 +237,19 @@ mod tests {
             })
         };
         assert!(y_of("400").unwrap() > y_of("300").unwrap());
+    }
+
+    #[test]
+    fn gear_down_aoa_and_breakaway() {
+        let mut i = Input { gear_down: true, aoa_deg: 21.0, ..input(Jet::F15) };
+        let t = texts(&frame(FIELD, &i).outer).into_iter().map(String::from).collect::<Vec<_>>();
+        assert!(t.contains(&"20".to_string()) && t.contains(&"40".to_string()), "the AoA scale: {t:?}");
+        i.gear_down = false;
+        i.weapons.hud_mode = 2;
+        i.target = Some(Target { range_m: 500.0, closure: 0.0, at: None, aspect: None });
+        i.dlz = Some(Dlz { max: 20_000.0, min: 1_000.0 });
+        let fr = frame(FIELD, &i);
+        let long = fr.outer.iter().filter(|p| matches!(p, Prim::Line { a, b } if (b.0 - a.0).abs() > 100.0 && (b.1 - a.1).abs() > 100.0)).count();
+        assert_eq!(long, 2, "the breakaway X inside Rmin");
     }
 }

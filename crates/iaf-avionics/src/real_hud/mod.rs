@@ -141,6 +141,8 @@ pub struct Target {
     pub range_m: f64,
     pub closure: f64,
     pub at: Option<P>,
+    /// Target aspect (rad): 0 its tail toward us, ±π nose-on, positive its left side toward us.
+    pub aspect: Option<f64>,
 }
 
 /// The current steerpoint: its number, bearing (°), distance (m), the time to it (s; None when not closing) and its HUD
@@ -427,6 +429,20 @@ fn gravity_drop(t: f64, r: f64) -> f64 {
     9.80665 * t * t / 2.0 / r
 }
 
+/// The target-aspect triangle on a reticle circle: 6 o'clock = tail (0°), 12 o'clock = nose-on, 3 o'clock = its left
+/// side, 9 o'clock = its right side; the tip on the circle pointing in.
+fn aspect_triangle(p: &mut Vec<Prim>, c: P, r: f64, aspect: f64, size: f64) {
+    let a = std::f64::consts::PI - aspect;
+    let (s, co) = a.sin_cos();
+    let tip = (c.0 + r * s, c.1 - r * co);
+    let base = (c.0 + (r + size) * s, c.1 - (r + size) * co);
+    let (px, py) = (co * size * 0.6, s * size * 0.6);
+    let (l, rr) = ((base.0 + px, base.1 + py), (base.0 - px, base.1 - py));
+    p.push(line(tip, l));
+    p.push(line(l, rr));
+    p.push(line(rr, tip));
+}
+
 /// The pipper of a lead-computing / CCIP sight: a dot of `dot` px inside a circle of `ring` px.
 fn pipper(p: &mut Vec<Prim>, c: P, dot: f64, ring: f64) {
     p.push(Prim::Dot { c, r: dot });
@@ -508,6 +524,22 @@ mod tests {
         let (near, far) = (lines[0].0, lines[lines.len() / 2 - 1].1);
         assert!(far.1 > near.1, "pulling 4 g: the far end of the funnel lower");
         assert!(far.0 > near.0, "the left line narrows toward the centre");
+    }
+
+    #[test]
+    fn aspect_triangle_clock() {
+        let tip = |aspect: f64| {
+            let mut p = Vec::new();
+            aspect_triangle(&mut p, (0.0, 0.0), 10.0, aspect, 3.0);
+            match p[0] {
+                Prim::Line { a, .. } => a,
+                _ => unreachable!(),
+            }
+        };
+        let (x, y) = tip(0.0);
+        assert!(x.abs() < 1e-9 && (y - 10.0).abs() < 1e-9, "tail: 6 o'clock");
+        let (x, y) = tip(std::f64::consts::FRAC_PI_2);
+        assert!((x - 10.0).abs() < 1e-9 && y.abs() < 1e-9, "left side: 3 o'clock");
     }
 
     #[test]

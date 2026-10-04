@@ -57,7 +57,7 @@ impl IafRealHud {
     /// One frame. `field` the symbology field (Rect2, HUD px from the HUD centre); `i` {cockpit (the cockpit dir), time, off_boresight, head_heading,
     /// kcas, ground_kt, tas_ms, alt_ft, agl_ft (null), vs_fpm, heading, roll, mach, g, aoa, gear_down, fuel_lbs, fpm
     /// (null), boresight, gun_cross, horizon, px_per_deg, steerpoint ({number, bearing, dist_m, eta_s, at} or {}),
-    /// target ({range_m, closure, at} or {}), dlz ([max, min] or []), weapons {hud_mode, selected, srm, mrm, seeker,
+    /// target ({range_m, closure, at, aspect} or {}), dlz ([max, min] or []), weapons {hud_mode, selected, srm, mrm, seeker,
     /// lcos, pipper, steering, circle, shoot}}. Returns {field, outer, colour (Color or null), sight (no HUD)}.
     #[func]
     fn frame(&mut self, field: Rect2, i: VarDictionary) -> VarDictionary {
@@ -99,6 +99,7 @@ impl IafRealHud {
                 range_m: num(&t, "range_m").unwrap_or_default(),
                 closure: num(&t, "closure").unwrap_or_default(),
                 at: pt(&t, "at"),
+                aspect: num(&t, "aspect"),
             }),
             dlz: get::<VarArray>(&i, "dlz").and_then(|a| {
                 let at = |k| a.get(k).and_then(|v| v.try_to::<f64>().ok());
