@@ -339,21 +339,20 @@ func combat(ent: Dictionary, what: String, target: Dictionary) -> Variant:
 		"420":
 			# FUN_004ac9e0: the primary target (brain+0x74, the formation slot's target) unless it is me; else none.
 			var pt: Dictionary = u.brain.primary
-			u.brain.target = pt if not pt.is_empty() and not is_same(pt, ent) else {}
+			_pick(u, pt if not pt.is_empty() and not is_same(pt, ent) else {})
 		"400", "440", "410":
 			# FUN_004ac820 / FUN_004ac900: the best of the air / ground mode scan (a dead pick rescans).
 			var classes: Array = AIR if what in ["400", "440"] else GROUND
-			u.brain.target = {}
+			var pick: Dictionary = {}
 			for c in u.contacts:
 				if c.ent.klass in classes and int(c.ent.state) < 4:
-					u.brain.target = c.ent
+					pick = c.ent
 					break
+			_pick(u, pick)
 		"start":
-			# FUN_004aa900(0) → FUN_004ac120(1): first shot after _reactionTime, then every _fireReleaseInterval;
-			# the target's RWR gets the lock.
+			# FUN_004aa900(0) → FUN_004ac120(1): first shot after _reactionTime, then every _fireReleaseInterval (the RWR
+			# lock comes with the selector's pick, _pick).
 			u.fire_next = ai.runtime.now + u.reaction
-			if target.get("player", false) and host.weapons != null:
-				host.weapons.rwr.lock(ent.key)
 		"stop", "safe":
 			u.fire_next = INF
 	return null
@@ -385,13 +384,20 @@ func _air_action(u: Unit, code: int, t: Dictionary) -> bool:
 		300:
 			return _launch(u, t, now)
 		310, 320:
-			# One flare (station 11) / chaff (station 10) when not busy (FUN_00444640 / 4446d0). Not built: the decoy
-			# released (its look and its effect on missiles, docs/weapons.md §10).
+			# One flare (station 11) / chaff (station 10) when not busy (FUN_00444640 / 4446d0): busy for 4 s first, then
+			# the player's release path (its pool, flight, look and decoy rule, player_weapons.release_decoy); the count
+			# drops only when a decoy left. UNCERTAIN: the AI's station point (the jet's position here).
 			var i := 11 if code == 310 else 10
-			if now < u.decoy_until or i >= u.stations.size() or int(u.stations[i].count) <= 0:
+			if now < u.decoy_until:
 				return false
 			u.decoy_until = now + DECOY_BUSY
-			u.stations[i].count = int(u.stations[i].count) - 1
+			if i >= u.stations.size() or int(u.stations[i].count) <= 0 or host.weapons == null:
+				return true
+			var o := _pose(u)
+			var st: Dictionary = u.pilot.state()
+			if host.weapons.release_decoy(550 if code == 310 else 540, o.pos, o, u.ent.key, int(st.get("afterburner", 0)) > 0,
+					float(st.get("g", 1.0))):
+				u.stations[i].count = int(u.stations[i].count) - 1
 			return true
 		330, 340:
 			# One cycle step to the next AA (330) / AG (340) station with rounds (FUN_00452690 → FUN_0053b8b0).
@@ -574,6 +580,18 @@ func measure(ent: Dictionary, code: int, t: Dictionary) -> Variant:
 			var lt: Dictionary = ld.pilot.brain.target
 			return null if lt.is_empty() else int(is_same(lt, t))
 	return null
+
+
+## A selector's pick: the old target's RWR loses the lock (vfunc +0x44 → FUN_0044e030), the new one's gets it (vfunc
+## +0x40 → FUN_004b0510 → FUN_0044deb0); only the player's RWR is modelled (AI jets' have no reader).
+func _pick(u: Unit, t: Dictionary) -> void:
+	var old: Dictionary = u.brain.target
+	if not is_same(old, t) and host.weapons != null:
+		if old.get("player", false):
+			host.weapons.rwr.unlock(u.ent.key)
+		if t.get("player", false):
+			host.weapons.rwr.lock(u.ent.key)
+	u.brain.target = t
 
 
 ## Trigger ops 21 / 22.

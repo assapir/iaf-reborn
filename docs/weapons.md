@@ -451,8 +451,14 @@ Through `FUN_00440440` (gate `FUN_004d4100`) from `FUN_005cd0d0` (impact within 
 `FUN_00454270(T, 1)`, quantity `W+0xe8`, period `W+0xf0`, aim §9.3.
 
 ## 10. Chaff and flares
-**Built** (player): keys, release, counters, the decoy flight and look. **Not yet**: the decoy effect on missiles (no enemy
-missiles exist yet), ECM.
+**Built**: keys, release, counters, the decoy flight and look, the AI jets' releases (actions 310 / 320, the same path,
+one pool per jet: `player_weapons.release_decoy`) and the **decoy rule** (`FUN_00454b70`, chaff @455775, flares
+@455968): over the missiles launched at the releasing jet (its RWR missile list, by launch distance; every aircraft has
+a controller and so an RWR), not already chasing a decoy and of the decoy's kind (chaff: 600 / 610 / 630; flares: 570 /
+580 / 620), a roll rand/32767 against p — chaff 0.1, above 4 g 0.3; flares 0.33, above 4 g 0.5, never with the
+afterburner lit; a success retargets the missile at the decoy (`FUN_004d83c0` → `FUN_005622e0`, q 1.0), the first
+failure ends the scan (quirk). The bearing gates (doubles 6302.5 / 4010.7 / 5156.6 = 110° / 70° / 90° × 57.3) compare a
+bearing in radians: never taken, so range, aspect, generation, AI level and Real data play no part. **Not yet**: ECM.
 - **Keys** (`FUN_0044a240`): Insert = event 0x44 chaff, Delete = 0x45 flare. Refused with the gear handle down (no
   Safety override) or weapon systems damage (flag 20); then `FUN_004545e0(0x21c / 0x226, 0, 0)`. One press = one
   decoy: no repeat, no program, no busy timer (the AI uses the same call with p4 = 1 and its brain busy flag).

@@ -96,6 +96,7 @@ func run() -> void:
 	ent.alt = back.z
 	var tt := 1.0
 	w.update(tt)
+	w.rwr.clear()  # the units that picked the player at the start (their selectors lock it, docs/ai.md §13)
 	w.rwr.lock(ent.key)
 	tt += 0.05
 	w.update(tt)

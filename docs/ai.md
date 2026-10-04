@@ -459,7 +459,8 @@ its Tower point, the engine test its Lineup point.
   target (`FUN_004ac9e0`: brain+0x74, the formation slot's target, unless it is the jet itself; else none).
 - The stations (the mission's or the object's load); 330 / 340 one cycle step to the next AA / AG station with
   rounds, 350 / 360 / 380 the wanted type, 370 the gun (gate 5.0 s), each setting the fire gate's interval (its
-  action +0x8c); 310 / 320 a decoy's count and 4 s busy (not released: no look, no effect).
+  action +0x8c); 310 / 320 a flare / chaff through the player's release (busy 4 s first; the count drops only when a
+  decoy left; the decoy rule acts on the missiles at the jet, docs/weapons.md §10).
 - **300 Launch** as below: a missile through `launch_homing` (q 1.0: UNCERTAIN, the AI's q not traced), the gun a
   1 s burst of rounds every 0.2 s (UNCERTAIN: what ends an AI burst). A Launch that does not fire leaves its type
   gate free (brain.gd).
@@ -469,7 +470,7 @@ its Tower point, the engine test its Lineup point.
 All the combat manoeuvres are built (autopilot.rs): Dogchase, Shandel / SplitS / Horizontal, Himmelman, TailClear,
 RunAway, Break90, LevelBomb, DiveBomb, PopupRelease, with the leaves Fly2TargetXyzSt, Fly2ImpactPt, PullGFullThrottle,
 Fly2PtXYZ. Bombs from AI jets: one store per release (`player_weapons.drop_bomb`). Not built: the AI's bomb ripple,
-AI radar locks (RWR "AI" entries), decoys from AI jets. Tests: crates/iaf-flight/tests/autopilot.rs (Dogchase), tests/godot/test_ai_air_combat.gd.
+AI radar locks in STT (the selector locks are built). Tests: crates/iaf-flight/tests/autopilot.rs (Dogchase), tests/godot/test_ai_air_combat.gd.
 
 Partial decode for the AI combat job (scratch work; argument orders of `4440d0` checked in the disassembly).
 Corrections to §4 / §5: action **430 is "target = my nearest RWR emitter"** (`CTL.451f70()`, within 370 800 m;
@@ -571,7 +572,9 @@ Port (`game/ai/combat.gd`): every armed unit other than the aircraft (its first 
 handler, which script op 2 fires (below). A unit of a sensor class with a brain, brain or mission controlled (a
 mission-controlled unit's brain runs, §2), also gets its brain (no manoeuvres),
 the sensor (both modes' classes scanned every 6 s, the selector filters: 400 / 440 air, 410 ground, 420 either, the
-best score; UNCERTAIN while the selectors are untraced), start / stop combat (RWR lock when the target is the player;
+best score; UNCERTAIN while the selectors are untraced), start / stop combat (the RWR lock comes with the selector's pick:
+400 / 440 / 420 lock the player's RWR when they pick the player and unlock it when they leave it, FUN_004aca60 /
+FUN_004aca80; 550 only starts the fire timer;
 no weapon = "Entity with no weapon handler", no engagement) and the fire tick:
 - **Class 0x17**: 565 AAA (above) and 560 rockets (the player's rocket motion: no hit sphere, they burst at the lead
   point or the ground; range the full `_limitDist`).

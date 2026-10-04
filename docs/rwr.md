@@ -4,8 +4,9 @@ The RWR of a controller (`ctl+0x5b0`, ctor `FUN_004515d0`, v1.1 addresses) and h
 (`crates/iaf-avionics/src/rwr.rs`, unit tests there; run through `IafRwr` by `game/weapons/rwr.gd`, owned by `player_weapons.gd`; drawn by `cockpit/cockpit.gd` `draw_rwr_symbols` on the MFD
 page 7 (`cockpit/mfd.gd`) and the panel dial). World frame X east, Y north, Z up, metres, sim seconds.
 
-Only a **controller** has an RWR: in single player that is the player's jet. AI aircraft and ground units have none
-(their brain gets the lock instead, §2).
+Only a **controller** has an RWR. Every aircraft has one (`FUN_0059c740` sets entity+0x34 = `FUN_00447890`), AI jets
+included; ground units have none (their brain gets the lock instead, §2). The port models the player's RWR; an AI jet's
+list matters only to the decoy rule, which reads the missiles launched at it (docs/weapons.md §10).
 
 ## 1. The list
 10 slots × 0x24 from `+0xc`: +0 the emitter unit, +4 its bdb type code, +8 its position, +0x14 the launch flag,

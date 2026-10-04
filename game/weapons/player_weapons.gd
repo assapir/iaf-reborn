@@ -930,6 +930,9 @@ func launch_homing(w: Dictionary, pos: Vector3, from: Dictionary, target: String
 	_missile_id += 1
 	mis.set_meta("id", _missile_id)
 	mis.set_meta("owner", owner)
+	# The launch distance: the RWR's missile list is sorted by it (FUN_004598a0), the decoy rule's scan order.
+	var tu: Dictionary = _rwr_unit(target)
+	mis.set_meta("dist", pos.distance_to(own().pos if target == String(_me().get("key", "")) else tu.get("pos", pos)))
 	missiles.append(mis)
 	_missile_visual(mis)
 	if is_same(owner, _me()):
@@ -1502,50 +1505,76 @@ func dispense(type: int) -> bool:
 	var i := 10 if type == Stores.CHAFF else 11
 	if not stores.stations.has(i) or stores.displayed(i) == 0:
 		return false  # no message, no sound
-	var st: Dictionary = stores.station(i)
-	var w: Dictionary = st.w
+	var st: Dictionary = host.flight.state() if host.flight != null else {}
+	if not release_decoy(type, body_to_world(stores.station(i).attach), own(), String(_me().get("key", "")),
+			int(st.get("afterburner", 0)) > 0, float(st.get("g", 1.0))):
+		return false
+	stores.consume(i)
+	return true
+
+
+## One decoy (FUN_004545e0 → FUN_00454b70, the player's or an AI jet's: one ring pool per jet, `_maxNumInAir` 15) from
+## `p0` with the jet's pose `o` {pos, vel, fwd, up, right}; `key` the releasing jet, `ab` its afterburner lit, `g`
+## its load factor (the decoy rule). False when the pool object is still alive.
+func release_decoy(type: int, p0: Vector3, o: Dictionary, key: String, ab: bool, g_load: float) -> bool:
+	var pool_key := "%s:%d" % [key, type]
 	if not _decoy_motion.has(type):
+		var w: Dictionary = stores.station(10 if type == Stores.CHAFF else 11).get("w", {})
 		var m: Dictionary = db.motion_for(type, 0).duplicate()
 		m.merge(w.get("motion", {}), true)
-		var g := GunRounds.new()
-		g.configure(m)
-		_decoy_motion[type] = g
-		_decoy_pool[type] = []
-		for k in maxi(int(m.get("_maxNumInAir", 15)), 1):
-			_decoy_pool[type].append(-INF)
-		_decoy_next[type] = 0
+		var gr := GunRounds.new()
+		gr.configure(m)
+		_decoy_motion[type] = gr
+	if not _decoy_pool.has(pool_key):
+		_decoy_pool[pool_key] = []
+		for k in maxi(int(db.motion_for(type, 0).get("_maxNumInAir", 15)), 1):
+			_decoy_pool[pool_key].append(-INF)
+		_decoy_next[pool_key] = 0
 	var g: RefCounted = _decoy_motion[type]
-	var k: int = _decoy_next[type]
-	if now < float(_decoy_pool[type][k]):
+	var k: int = _decoy_next[pool_key]
+	if now < float(_decoy_pool[pool_key][k]):
 		return false  # that pool object is still alive (w+0x48)
-	_decoy_next[type] = (k + 1) % _decoy_pool[type].size()
-	# Release point: the station (StationCha / StationFla) through the attitude; aim point: the
-	# _fireEndVec in body axes (0, -200, -10: 200 m aft, 10 m below; composition UNCERTAIN).
-	var o := own()
-	var p0 := body_to_world(st.attach)
+	_decoy_next[pool_key] = (k + 1) % _decoy_pool[pool_key].size()
+	# Aim point: the _fireEndVec in body axes (0, -200, -10: 200 m aft, 10 m below; composition UNCERTAIN).
 	var m2: Dictionary = db.motion_for(type, 0)
 	var fe := Vector3(m2.get("_fireEndVecX", 0.0), m2.get("_fireEndVecY", -200.0), m2.get("_fireEndVecZ", -10.0))
 	var a: Vector3 = p0 + o.right * fe.x + o.fwd * fe.y + o.up * fe.z
 	# The fixed-weapon flight (FUN_005605c0 -> FUN_0047a1e2, as a gun round): |V| + velocityJump along
 	# the line to A, decelerating at 50 m/s², then at A. No hit sphere (_spiralAccel 0): no damage.
-	var r: Dictionary = g.flight(now, p0, o.vel.length() + g.velocity_jump, a)
+	var r: Dictionary = g.flight(now, p0, (o.vel as Vector3).length() + g.velocity_jump, a)
 	var end: float = minf(r.t_end, now + DECOY_LIFE)
-	_decoy_pool[type][k] = end
+	_decoy_pool[pool_key][k] = end
 	_decoy_id += 1
 	var dc := {"type": type, "r": r, "end": end, "id": _decoy_id}
 	decoys.append(dc)
 	_decoy_by_id[_decoy_id] = dc
-	stores.consume(i)
 	var ost := "OST_CHAFF" if type == Stores.CHAFF else "OST_FLARE"
 	_place_sound(host.sounds.play("SFX_AIRCRAFT_FIRED_WEAPON", ost), p0)
-	_decoy_effect(type)
+	_decoy_effect(type, _decoy_id, key, ab, g_load)
 	return true
 
 
-## The decoy rule (FUN_00454b70, cases 0x21c / 0x226) acts on the missiles launched at the jet (its
-## RWR missile list): none exist until the enemies fire (docs/weapons.md §10).
-func _decoy_effect(_type: int) -> void:
-	pass
+## The decoy rule (FUN_00454b70, chaff @455775 / flare @455968): over the missiles launched at the releasing jet (its
+## RWR missile list, by launch distance; every aircraft has one), not already chasing a decoy and of the decoy's kind
+## (chaff: 600 / 610 / 630; flares: 570 / 580 / 620), roll rand against p (chaff 0.1, above 4 g 0.3; flares 0.33,
+## above 4 g 0.5, none with the afterburner lit); a success retargets the missile at the decoy (FUN_004d83c0 →
+## FUN_005622e0), the first failure ends the scan (quirk). The bearing gates compare radians with degrees × 57.3: never
+## taken. The player's list empties with RWR damage (flag 14).
+const DECOY_KINDS := {540: [600, 610, 630], 550: [570, 580, 620]}
+
+
+func _decoy_effect(type: int, dc_id: int, key: String, ab: bool, g_load: float) -> void:
+	if key == String(_me().get("key", "")) and _flag(14):
+		return
+	var list := missiles.filter(func(m): return String(m.target_key) == key)
+	list.sort_custom(func(a, b): return float(a.get_meta("dist", 0.0)) < float(b.get_meta("dist", 0.0)))
+	for mis in list:
+		if not int(mis.weapon.get("type", 0)) in DECOY_KINDS[type]:
+			continue
+		var p := (0.3 if g_load > 4.0 else 0.1) if type == Stores.CHAFF else (0.0 if ab else (0.5 if g_load > 4.0 else 0.33))
+		if (type == Stores.FLARE and ab) or randf() > p:
+			break
+		mis.retarget("decoy:%d" % dc_id)
 
 
 func _update_decoys() -> void:
