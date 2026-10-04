@@ -232,15 +232,7 @@ func callsign(ent: Dictionary) -> String:
 # --- the tower (§2) -----------------------------------------------------------------------------
 
 func _load_bases(path: String) -> void:
-	var sections := {}
-	var cur := ""
-	for line in FileAccess.get_file_as_string(path).split("\n"):
-		var l := line.strip_edges()
-		if l.begins_with("["):
-			cur = l.substr(1, l.find("]") - 1)
-			sections[cur] = {}
-		elif "=" in l and cur != "" and not l.begins_with(";"):
-			sections[cur][l.get_slice("=", 0).strip_edges()] = l.get_slice("=", 1).get_slice(";", 0).strip_edges()
+	var sections := Settings.load_ibx(path)
 	for name in BASES:
 		var s: Dictionary = sections.get(name, {})
 		var f := func(k: String) -> float: return float(s.get(k, "0"))

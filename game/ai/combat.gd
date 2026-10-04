@@ -12,6 +12,7 @@ const Missile := preload("res://weapons/missile.gd")
 const WeaponDb := preload("res://weapons/weapon_db.gd")
 const Stores := preload("res://weapons/stores.gd")
 const Gltf := preload("res://util/gltf.gd")
+const Terrain := preload("res://terrain/terrain.gd")
 
 const NM := 1854.0
 ## Sensor classes (FUN_004ac5f0): units of other classes (6, 11 ground radar, 15 boat) never target or fire.
@@ -129,7 +130,6 @@ func setup(h: Node, flights: Node, bdb: Dictionary) -> void:
 	var rt: Node = ai.runtime
 	var db = WeaponDb.create(bdb, Settings.real_weapons())
 	var objects: Dictionary = rt.bdb_objects(bdb)
-	var models := {}
 	for ent in rt.entities.values():
 		# Every armed unit other than the aircraft has a weapon handler (FUN_004b7ad6): script op 2 fires it; only the
 		# sensor classes target and fire by their brain (FUN_0043eef0; helicopters, class 2, have no sensor).
@@ -137,7 +137,7 @@ func setup(h: Node, flights: Node, bdb: Dictionary) -> void:
 			continue
 		if ent.klass == 0x1c:
 			if ent.has("pilot"):
-				_setup_aircraft(ent, objects.get(ent.type, {}), db, models, rt.now)
+				_setup_aircraft(ent, objects.get(ent.type, {}), db, rt.now)
 			continue
 		var w := _weapon(ent, objects.get(ent.type, {}), db)
 		if w.is_empty():
@@ -160,7 +160,7 @@ func setup(h: Node, flights: Node, bdb: Dictionary) -> void:
 			u.rounds.detonate = _detonate.bind(u)
 			u.limit_vel = float(m.get("_limitVel", 1200.0))
 			u.range_m = float(m.get("_limitDist", 4500.0)) * (0.5 if int(w.type) == 565 else 1.0)  # 565: half _limitDist (2250 m)
-			_round_nodes(u, w, models)
+			_round_nodes(u, w)
 		var rules: Array = ai.brain_rules(int(ent.brain)) if ent.brain >= 0 else []
 		if ent.control in [1, 2] and ent.klass in SENSOR_CLASSES and not rules.is_empty():
 			var p := GroundPilot.new()
@@ -176,7 +176,7 @@ func setup(h: Node, flights: Node, bdb: Dictionary) -> void:
 
 ## An AI jet's handler: the pilot's brain, the sensor (kind 4), its stations (the mission's or the object's load) and
 ## the gun's rounds. The first station selected: the first loaded pylon, else the gun (UNCERTAIN).
-func _setup_aircraft(ent: Dictionary, obj: Dictionary, db, models: Dictionary, now: float) -> void:
+func _setup_aircraft(ent: Dictionary, obj: Dictionary, db, now: float) -> void:
 	var u := Unit.new()
 	u.ent = ent
 	u.air = true
@@ -203,18 +203,17 @@ func _setup_aircraft(ent: Dictionary, obj: Dictionary, db, models: Dictionary, n
 		u.rounds.detonate = _detonate.bind(u)
 		u.limit_vel = float(m.get("_limitVel", 1200.0))
 		u.range_m = float(m.get("_limitDist", 4500.0))
-		_round_nodes(u, gw, models)
+		_round_nodes(u, gw)
 	units[ent.key] = u
 
 
-func _round_nodes(u: Unit, w: Dictionary, models: Dictionary) -> void:
+func _round_nodes(u: Unit, w: Dictionary) -> void:
 	u.round_scale = float(w.get("scale", 1.0))
 	var path := String(w.model_path)
-	if path != "" and not models.has(path):
-		models[path] = Gltf.open(Settings.assets_dir().path_join("converted/objects").path_join(path))
-	if models.get(path) != null:
+	var model = Gltf.object(path) if path != "" else null
+	if model != null:
 		for i in u.rounds.pool.size():
-			var n: Node3D = Gltf.instance(models[path])
+			var n: Node3D = Gltf.instance(model)
 			n.visible = false
 			add_child(n)
 			u.nodes.append(n)
@@ -285,7 +284,7 @@ func update(now: float) -> void:
 				n.visible = r.flying
 				if r.flying:
 					n.position = host.world_to_scene(u.rounds.position(r, now))
-					var d := Vector3(r.u.x, r.u.z, -r.u.y)
+					var d := Terrain.dir_to_scene(r.u)
 					n.basis = Basis.looking_at(d, Vector3.UP if absf(d.y) < 0.99 else Vector3.RIGHT).scaled(Vector3.ONE * u.round_scale)
 
 
@@ -365,9 +364,8 @@ func combat(ent: Dictionary, what: String, target: Dictionary) -> Variant:
 ## The jet's pose now (world): {pos, vel, fwd, up, right}.
 func _pose(u: Unit) -> Dictionary:
 	var st: Dictionary = u.pilot.state()
-	var w := func(v: Vector3) -> Vector3: return Vector3(v.x, -v.z, v.y)
-	return {"pos": ai.runtime._world_of(u.ent), "vel": u.ent.vel, "fwd": w.call(st.get("forward", Vector3.FORWARD)),
-		"up": w.call(st.get("up", Vector3.UP)), "right": w.call(st.get("right", Vector3.RIGHT))}
+	return {"pos": ai.runtime._world_of(u.ent), "vel": u.ent.vel, "fwd": Terrain.dir_to_world(st.get("forward", Vector3.FORWARD)),
+		"up": Terrain.dir_to_world(st.get("up", Vector3.UP)), "right": Terrain.dir_to_world(st.get("right", Vector3.RIGHT))}
 
 
 ## The fire gate B+0x98 (FUN_004d4100): passes when now < last or now > next, then next = now + interval.
@@ -686,8 +684,7 @@ func _fixed(u: Unit) -> bool:
 
 func _velocity_of(ent: Dictionary) -> Vector3:
 	if ent.player and host.flight != null:
-		var v: Vector3 = host.flight.state().velocity
-		return Vector3(v.x, -v.z, v.y)
+		return Terrain.dir_to_world(host.flight.state().velocity)
 	return ent.vel
 
 

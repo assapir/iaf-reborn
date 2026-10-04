@@ -7,11 +7,6 @@ extends RefCounted
 
 const IBX := "install/resource/weaponsmotion/weapons.ibx"
 
-## Sub types (bdb Weapons 0x780, weapons.ibx header).
-const GUN := 565
-const HEAT := 570
-const LIMITED_HEAT := 580
-
 ## bdb id -> weapon record (see _record).
 var weapons := {}
 ## weapons.ibx: type code (e.g. 3570) -> {field: float}; "DEBUGDATA" -> {_debugParamNNN: float}.
@@ -57,32 +52,18 @@ static func _record(w: Dictionary, paths: Dictionary) -> Dictionary:
 	}
 
 
+## weapons.ibx: every section's values as floats (a trailing "f" dropped), keyed by its `type`.
 func _load_ibx(path: String) -> void:
-	if not FileAccess.file_exists(path):
-		return
-	var section := ""
-	var cur := {}
-	for raw in FileAccess.get_file_as_string(path).split("\n"):
-		var l := raw.strip_edges()
-		var c := l.find(";")
-		if c >= 0:
-			l = l.substr(0, c).strip_edges()
-		if l == "":
-			continue
-		if l.begins_with("[") and l.ends_with("]"):
-			section = l.substr(1, l.length() - 2)
-			cur = {}
-			if section == "DEBUGDATA":
-				debug = cur
-			continue
-		var eq := l.find("=")
-		if eq < 0:
-			continue
-		var key := l.substr(0, eq).strip_edges()
-		var val := l.substr(eq + 1).strip_edges().trim_suffix("f")
-		if key == "type":
-			motion[int(val)] = cur
-		cur[key] = float(val)
+	var ibx := Settings.load_ibx(path)
+	for section in ibx:
+		var cur := {}
+		for key in ibx[section]:
+			var val: String = ibx[section][key].trim_suffix("f")
+			if key == "type":
+				motion[int(val)] = cur
+			cur[key] = float(val)
+		if section == "DEBUGDATA":
+			debug = cur
 
 
 ## The weapons.ibx section of sub type `type` and generation `gen` (type code gen·1000 + type), else

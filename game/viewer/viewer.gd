@@ -111,12 +111,8 @@ func _apply_helpers() -> void:
 
 
 func _frame_camera() -> void:
-	var aabb := AABB()
-	var first := true
-	for mi in model_root.find_children("*", "MeshInstance3D", true, false):
-		var box: AABB = mi.global_transform * mi.get_aabb()
-		aabb = box if first else aabb.merge(box)
-		first = false
+	const Gltf := preload("res://util/gltf.gd")
+	var aabb := Gltf.model_aabb(model_root, Gltf.GLOBAL_SPACE)
 	pivot.position = aabb.get_center()
 	distance = max(aabb.get_longest_axis_size() * 1.15, 2.0)
 

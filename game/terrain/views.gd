@@ -4,6 +4,7 @@
 # targets are Node3Ds (the player's rig, AI jets, mission units, missiles).
 extends RefCounted
 
+const Terrain := preload("res://terrain/terrain.gd")
 ## View types (camera +8).
 const COCKPIT := 1
 const HUD_ONLY := 5
@@ -296,11 +297,11 @@ func external_pose(dt: float) -> Array:
 			if not is_instance_valid(target) or not is_instance_valid(eye_obj):
 				return []
 			# Case 8 @583547 in world axes (z up): W = unit(A − B), N = (−W.y, W.x, 0), U = W × N.
-			var a := _world(eye_obj.global_position)
-			var w := (a - _world(target.global_position)).normalized()
+			var a := Terrain.dir_to_world(eye_obj.global_position)
+			var w := (a - Terrain.dir_to_world(target.global_position)).normalized()
 			var n := Vector3(-w.y, w.x, 0.0)
 			var u := w.cross(n)
-			var eye := _scene(a + TWO_BACK * w + TWO_SIDE * n + TWO_UP * u)
+			var eye := Terrain.dir_to_scene(a + TWO_BACK * w + TWO_SIDE * n + TWO_UP * u)
 			eye.y = maxf(eye.y, _ground(eye) + 2.0)
 			return [eye, target.global_position]
 		Pos.CIRCLE:
@@ -310,7 +311,7 @@ func external_pose(dt: float) -> Array:
 				_circle_centre = c
 			var t := (Time.get_ticks_msec() * 0.001) if _circle_wall else (now - _circle_t0)
 			var a := CIRCLE_RATE * t
-			var eye := _scene(_world(c) + Vector3(CIRCLE_R * cos(a), CIRCLE_R * sin(a), _circle_h))
+			var eye := Terrain.dir_to_scene(Terrain.dir_to_world(c) + Vector3(CIRCLE_R * cos(a), CIRCLE_R * sin(a), _circle_h))
 			eye.y = maxf(eye.y, _ground(eye) + 15.0)
 			return [eye, c]
 	return []
@@ -347,16 +348,8 @@ func _orbit_rotate(d: Vector3) -> Vector3:
 
 ## Largest model dimension (TgenAPI getObjectDimensions; UNCERTAIN full or half size): the scaled AABB.
 static func size_of(n: Node3D) -> float:
-	var box := AABB()
-	var first := true
-	for m in n.find_children("*", "MeshInstance3D", true, false):
-		var mi := m as MeshInstance3D
-		if mi.mesh == null:
-			continue
-		var b: AABB = (n.global_transform.affine_inverse() * mi.global_transform) * mi.get_aabb()
-		box = b if first else box.merge(b)
-		first = false
-	if first:
+	var box := preload("res://util/gltf.gd").model_aabb(n)
+	if box == AABB():
 		return 10.0
 	var s := n.global_basis.get_scale()
 	var sz := box.size * s
@@ -366,11 +359,3 @@ static func size_of(n: Node3D) -> float:
 func _ground(p: Vector3) -> float:
 	var g = ground_at.call(p) if ground_at.is_valid() else null
 	return float(g) if g != null else -1.0e9
-
-
-static func _world(p: Vector3) -> Vector3:
-	return Vector3(p.x, -p.z, p.y)
-
-
-static func _scene(w: Vector3) -> Vector3:
-	return Vector3(w.x, w.z, -w.y)

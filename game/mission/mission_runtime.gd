@@ -282,8 +282,7 @@ func _trigger(ent: Dictionary, sc: Dictionary) -> void:
 	match int(sc.get("0x83e", -1)):
 		2:
 			# Launch at target (FUN_005c42f0): the unit's weapon at entity 0x8ac (docs/ai.md §14).
-			if host.has_method("mission_launch"):
-				host.mission_launch(ent, entities.get("%d:%d" % [ent.file, int(sc.get("0x8ac", -1))], {}))
+			host.mission_launch(ent, entities.get("%d:%d" % [ent.file, int(sc.get("0x8ac", -1))], {}))
 		5:
 			if not ent.player:
 				_destroy(ent)
@@ -367,8 +366,7 @@ func _aim_tick(ent: Dictionary, target: Dictionary, field: String, raise: bool, 
 			ent.heading = bearing
 		else:
 			ent.parts[field] = wrapf(float(ent.heading) - bearing, -180.0, 180.0)  # +θ about the hinge turns left
-	if host.has_method("mission_entity_parts"):
-		host.mission_entity_parts(ent)
+	host.mission_entity_parts(ent)
 	_after(1.0, _aim_tick.bind(ent, target, field, raise, seq))
 
 

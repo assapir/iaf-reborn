@@ -7,6 +7,9 @@ extends Node
 const Brain := preload("res://ai/brain.gd")
 const Combat := preload("res://ai/combat.gd")
 const AircraftModel := preload("res://aircraft/aircraft_model.gd")
+const Gltf := preload("res://util/gltf.gd")
+const Terrain := preload("res://terrain/terrain.gd")
+const MissionRuntime := preload("res://mission/mission_runtime.gd")
 const CLASS_AIRCRAFT := 0x1c
 ## FUN_004a9100: the FM start velocity (200, 200, 0) → 282.84 m/s along the heading.
 const START_SPEED := 282.842712
@@ -85,7 +88,7 @@ func setup(h: Node, rt: Node, bdb: Dictionary, files: Array) -> void:
 		_brains[int(b["0x1e"])] = Brain.rules_of(b)
 	for a in bdb.get("actions", {}).get("items", []):
 		_actions[int(a["0x1e"])] = a
-	var objects: Dictionary = MissionRuntime().bdb_objects(bdb)
+	var objects: Dictionary = MissionRuntime.bdb_objects(bdb)
 	var present := {}
 	for p in bdb.get("present", {}).get("items", []):
 		present[int(p["0x1e"])] = p
@@ -133,10 +136,6 @@ func setup(h: Node, rt: Node, bdb: Dictionary, files: Array) -> void:
 	combat.setup(host, self, bdb)
 
 
-static func MissionRuntime():
-	return preload("res://mission/mission_runtime.gd")
-
-
 ## The converted plane folder of a Present model path (…\MIG29\MIG29_H.XFR → "mig29").
 static func _plane_of(planes: Dictionary, path: String) -> String:
 	var file := path.get_file().get_basename().to_lower()
@@ -149,12 +148,7 @@ static func _plane_of(planes: Dictionary, path: String) -> String:
 static func _extent_sum(model: Node3D) -> float:
 	if model == null:
 		return 0.0
-	var box := AABB()
-	var first := true
-	for m in model.find_children("*", "MeshInstance3D", true, false):
-		var b: AABB = (m as MeshInstance3D).get_aabb()
-		box = b if first else box.merge(b)
-		first = false
+	var box := Gltf.model_aabb(model, Gltf.MESH_SPACE)
 	return (box.size.x + box.size.y + box.size.z) * model.scale.x
 
 
@@ -239,7 +233,7 @@ func _process(delta: float) -> void:
 		ent.world = p._state.position_world
 		ent.alt = ent.world.z
 		ent.heading = float(p._state.heading)
-		ent.vel = Vector3(p._state.velocity.x, -p._state.velocity.z, p._state.velocity.y)
+		ent.vel = Terrain.dir_to_world(p._state.velocity)
 		if p._state.crashed:
 			runtime.set_damage_level(ent, 5)
 			continue
@@ -299,7 +293,7 @@ func _feed_target(p: Pilot) -> void:
 		st = t.pilot.state()
 	else:
 		var w: Vector3 = world_of(t)
-		st = {"position": host.world_to_scene(w), "velocity": Vector3(t.vel.x, t.vel.z, -t.vel.y), "pitch": 0.0, "roll": 0.0,
+		st = {"position": host.world_to_scene(w), "velocity": Terrain.dir_to_scene(t.vel), "pitch": 0.0, "roll": 0.0,
 			"heading": float(t.heading)}
 	p.flight.ap_set_target(true, st.position, st.velocity, st.pitch, st.roll, st.heading)
 

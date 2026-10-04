@@ -15,13 +15,9 @@ var last_aa := LRS
 var aa := true
 var off := true
 var damaged := false
-var bore_held := false
 ## The contact list (15, nearest first): {key, unit, pos, heading, locked, selected, hostile, prio, aspect, az,
 ## el, dist, speed, type, alt}.
 var contacts: Array = []
-var sel_key := ""
-var sel_locked := false
-var stt: Dictionary = {}
 var antenna := Vector2.ZERO
 var designated := false
 var desig := Vector3.ZERO
@@ -71,16 +67,12 @@ func _sync() -> void:
 	aa = _st.aa
 	off = _st.off
 	damaged = _st.damaged
-	bore_held = _st.bore_held
-	sel_key = _st.sel_key
-	sel_locked = _st.sel_locked
 	antenna = _st.antenna
 	designated = _st.designated
 	desig = _st.desig
 	exp = _st.exp
 	heading_shift = _st.heading_shift
 	contacts = (_st.contacts as Array).map(_attach)
-	stt = _attach(_st.stt)
 	_st.locked = _attach(_st.locked)
 	for e in _r.events():
 		if e[0] == "lock":

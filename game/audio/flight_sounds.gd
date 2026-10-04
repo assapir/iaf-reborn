@@ -45,8 +45,7 @@ const GEAR_DOWN_EPS := 1e-5
 var host: Node
 var type_code := 100
 var betty := true
-## Runway under the wheels (terrain flag f & 0x30); our terrain has no type data, so a belly landing
-## never screeches (docs/sound.md §4).
+## Runway under the wheels (terrain flag f & 0x30, set by the host from terrain.gd surface_at).
 var on_runway := false
 var table: RefCounted
 
@@ -80,7 +79,7 @@ static func create(host_node: Node, type: int) -> Node:
 
 
 func _ready() -> void:
-	SoundBuses.ensure()
+	SoundBuses.apply()
 	betty = type_code in BETTY_TYPES
 	table = SoundTable.load_table()
 	_engine = AudioStreamPlayer3D.new()

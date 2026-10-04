@@ -278,9 +278,6 @@ func _ready() -> void:
 		_enter_screen()
 		return
 	var args := OS.get_cmdline_user_args()
-	var at := args.find("--menu")
-	if at >= 0:
-		screen = args[at + 1]
 	# Back from a flight with a debrief (docs/mission-runtime.md §5.3): the Debrief records the attempt
 	# (FUN_004fe860 -> FUN_004f68b0) for the logged-in pilot.
 	if not Settings.debrief.is_empty():
@@ -290,7 +287,7 @@ func _ready() -> void:
 			for k in Settings.PREFS.gameplay:
 				p[k] = Settings.get(k)
 			Pilots.record(Settings.pilot_id, Settings.mission_id, Settings.debrief, score_multiplier(p))
-	at = args.find("--mission")
+	var at := args.find("--mission")
 	if at >= 0:
 		Settings.mission_id = int(args[at + 1])
 		_reset_tsd_checks()
@@ -630,18 +627,19 @@ func _art_size(t: Texture2D) -> Vector2:
 	return Vector2(t.get_width(), t.get_height()) / art_scale
 
 
-## Draw a whole image at its original size.
-func _blit(path: String, pos: Vector2) -> void:
+## Draw a whole image at its original size, on `on` (default the front end; the Arming and Pilot
+## Records screens pass themselves).
+func _blit(path: String, pos: Vector2, on: CanvasItem = null) -> void:
 	var t := _tex(path)
 	if t != null:
-		draw_texture_rect(t, _rect(Rect2(pos, _art_size(t))), false)
+		(on if on else self).draw_texture_rect(t, _rect(Rect2(pos, _art_size(t))), false)
 
 
 ## Draw part of an image (source in original pixels) at `dest` (original coordinates).
-func _blit_region(path: String, src: Rect2, dest: Vector2) -> void:
+func _blit_region(path: String, src: Rect2, dest: Vector2, on: CanvasItem = null) -> void:
 	var t := _tex(path)
 	if t != null:
-		draw_texture_rect_region(t, _rect(Rect2(dest, src.size)), Rect2(src.position * art_scale, src.size * art_scale))
+		(on if on else self).draw_texture_rect_region(t, _rect(Rect2(dest, src.size)), Rect2(src.position * art_scale, src.size * art_scale))
 
 
 func _process(_delta: float) -> void:
@@ -928,33 +926,35 @@ func _draw_bar(at: Vector2, page_bar: Rect2, top: int, max_top: int) -> void:
 	_blit("pref/sldcntrl.png", Vector2(bar.position.x, at.y + _bar_thumb_y(page_bar, top, max_top)))
 
 
-## Thumb top (page y) of a scrollbar: between the arrows, proportional to the first row shown.
-func _bar_thumb_y(bar: Rect2, top: int, max_top: int) -> float:
+## Thumb top (page y) of a scrollbar: between the arrows, proportional to the first row shown. Also the
+## Arming and Pilot Records lists (their thumb is 15×35); ctrl_arrow / ctrl_drag hold whichever bar
+## the mouse holds.
+func _bar_thumb_y(bar: Rect2, top: int, max_top: int, thumb := CTRL_THUMB) -> float:
 	var lo := bar.position.y + CTRL_ARROW.y
-	var hi := bar.end.y - CTRL_ARROW.y - CTRL_THUMB.y
+	var hi := bar.end.y - CTRL_ARROW.y - thumb.y
 	return lo if max_top == 0 else lerpf(lo, hi, float(top) / max_top)
 
 
 ## Mouse down on a scrollbar (page coordinates): the new first row. The arrows scroll one row, the
 ## track a page of `rows` (UNCERTAIN: the page step), the thumb starts a drag.
-func _bar_press(q: Vector2, bar: Rect2, top: int, max_top: int, rows: int) -> int:
+func _bar_press(q: Vector2, bar: Rect2, top: int, max_top: int, rows: int, thumb := CTRL_THUMB) -> int:
 	if q.y < bar.position.y + CTRL_ARROW.y:
 		ctrl_arrow = "up"
 		return top - 1
 	if q.y >= bar.end.y - CTRL_ARROW.y:
 		ctrl_arrow = "down"
 		return top + 1
-	var t := _bar_thumb_y(bar, top, max_top)
-	if q.y >= t and q.y < t + CTRL_THUMB.y:
+	var t := _bar_thumb_y(bar, top, max_top, thumb)
+	if q.y >= t and q.y < t + thumb.y:
 		ctrl_drag = q.y - t
 		return top
 	return top + rows * (1 if q.y > t else -1)
 
 
 ## The first row for a thumb dragged to page y `y`.
-func _bar_drag_top(y: float, bar: Rect2, max_top: int) -> int:
+func _bar_drag_top(y: float, bar: Rect2, max_top: int, thumb := CTRL_THUMB) -> int:
 	var lo := bar.position.y + CTRL_ARROW.y
-	var hi := bar.end.y - CTRL_ARROW.y - CTRL_THUMB.y
+	var hi := bar.end.y - CTRL_ARROW.y - thumb.y
 	return roundi(clampf(inverse_lerp(lo, hi, y - ctrl_drag), 0.0, 1.0) * max_top)
 
 

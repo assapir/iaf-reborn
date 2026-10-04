@@ -299,3 +299,21 @@ func load_json(path: String) -> Dictionary:
 		return {}
 	var d = JSON.parse_string(FileAccess.get_file_as_string(path))
 	return d if d is Dictionary else {}
+
+
+## An original .ibx (INI) file: {section: {key: value}}, the values unquoted strings, ';' starting a
+## comment, keys before any section under "". ConfigFile can't read the unquoted values. {} when missing.
+func load_ibx(path: String) -> Dictionary:
+	if not FileAccess.file_exists(path):
+		return {}
+	var cur := {}
+	var sections := {"": cur}
+	for raw in FileAccess.get_file_as_string(path).split("\n"):
+		var l := raw.get_slice(";", 0).strip_edges()
+		if l.begins_with("["):
+			cur = {}
+			sections[l.substr(1, l.find("]") - 1)] = cur
+		elif "=" in l:
+			var eq := l.find("=")
+			cur[l.substr(0, eq).strip_edges()] = l.substr(eq + 1).strip_edges()
+	return sections

@@ -32,8 +32,6 @@ const DIK_TO_KEY := {
 	0xc9: KEY_PAGEUP, 0xcb: KEY_LEFT, 0xcd: KEY_RIGHT, 0xcf: KEY_END, 0xd0: KEY_DOWN,
 	0xd1: KEY_PAGEDOWN, 0xd2: KEY_INSERT, 0xd3: KEY_DELETE, 0xdd: KEY_MENU,
 }
-## Modifier keys are never bound on their own (the capture skips them, 511dc0).
-const MODIFIER_KEYS := [KEY_CTRL, KEY_SHIFT, KEY_ALT, KEY_META]
 
 var records: Array = []
 var key_names := {}

@@ -143,7 +143,7 @@ volume slider (default 0.8).
 | SFX_G_EFFECT 0x13 | `Cock_G_02.wav` | G > 6, 17 s repeat (@449574) | no | 1 | effects | yes (g_effects.gd) |
 | VOC_BBETTY / BTY_FUEL 0x2c003000 | `Cock_Bty_Fuel.wav` | engine object `FUN_0045aa80` (every fuel update, fuel in lb = kg·2.2046): once when 500 < fuel < 1000 (flag +0x40), once when fuel < 500 (flag +0x44); not gated by ctl+0x964 | no | 1 | speech | yes |
 | SFX_TOUCHDOWN 0x28 | `TD.wav` 0.5 s | `FUN_005bb9f0` @5bbd1e: touchdown, landing check passed, gear ramp fully down (\|gear\| < 1e-5), player | no | (non-resident) | speech (quirk §2) | yes |
-| SFX_SCREECH 0x29 | `screech.wav` 8.9 s | same, gear **not** fully down (belly), on a runway (terrain flag & 0x30) | no | (non-resident) | speech | never plays: the host does not set `FlightSounds.on_runway` (the terrain's runway flag exists, `terrain.gd surface_at`) |
+| SFX_SCREECH 0x29 | `screech.wav` 8.9 s | same, gear **not** fully down (belly), on a runway (terrain flag & 0x30) | no | (non-resident) | speech | yes (`FlightSounds.on_runway` from `terrain.gd surface_at`) |
 | SFX_AIRCRAFT_EXPLODED 0x11 | `AerialExp.wav` 2.7 s | destroyed (unit state 5, `FUN_004a8420` → `FUN_004a86b0`): explosion effect `FUN_0059df20` of an aircraft (classes 1/2/3/0x1c → code 0x11), 3-D, min 500 / max 1000 m; then `FUN_004c4310` stops the object's sounds (engine) | no | 1 | effects | yes |
 | VOC_WINGMAN / WINGMAN_EJECT_EJECT 0x37007000 | `eject.wav` "Eject! Eject!" | unit state 1 → 3 (ejected), player (`FUN_004a8ae0` → `FUN_004a8100`) | no | (non-resident, ch 101) | speech, phrase channel | `FlightSounds.play_eject()` for the ejection code |
 | SFX_BUTTON 0x23 | `FX_BTT.wav` | HUD / master-mode changes (`FUN_00449810` callers @44ad9b, @44b9fb) and other controller events (@44d269) | no | 1 | effects | yes (`player_weapons.gd`, master / HUD mode changes) |
@@ -172,7 +172,7 @@ Mission instructor voices (`FUN_004bb10b` → `FUN_004c5470(wav, 0, 1)`): phrase
 | Betty "Pull up" | BTY_PULL_UP | §4 | not built |
 | button click | SFX_BUTTON 0x23 | §4 | ported |
 | extinguisher | SFX_FIRE_EXTINGUISHER 0x27 | §4 | ported |
-| belly screech | SFX_SCREECH 0x29 | §4 | not wired (`on_runway` never set) |
+| belly screech | SFX_SCREECH 0x29 | §4 | ported |
 | other aircraft / vehicles | SFX_OBJECT_SPECIFIC (`StartEngine`, `VprRcket` helicopters, …) | object creation `FUN_004d5d10` / `FUN_004c3f90` | not built (AI jets fly silently) |
 
 Defined in the table but never played (no caller found): SFX_TAKE_OFF, SFX_WHEELS, SFX_LANDING_HOOK,

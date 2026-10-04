@@ -22,6 +22,7 @@ const DamageEffects := preload("res://mission/damage_effects.gd")
 const Bombs := preload("res://weapons/bombs.gd")
 const Views := preload("res://terrain/views.gd")
 const Hud := preload("res://cockpit/hud.gd")
+const Terrain := preload("res://terrain/terrain.gd")
 
 ## The gun's shot timer period (DAT_0082f4e8 = 0.2 s, sim time).
 const GUN_PERIOD := 0.2
@@ -119,7 +120,6 @@ const ROCKET_BOX := "weapons/lau61/lau61_m.gltf"
 const ROCKET_BOX_SCALE := 4.0
 ## The Present scale of the store models (bdb weapons: 2.0), the scale the stores on the jet get.
 const STORE_PRESENT_SCALE := 2.0
-var _models := {}  # model path -> util/gltf.gd open() result or null
 ## The AA gun LCOS pipper (FUN_0045f3b0 -> FUN_0045f410; iaf_avionics::gun::Lcos).
 var lcos = ClassDB.instantiate("IafLcos")
 
@@ -143,13 +143,13 @@ func setup(host_node: Node, entity: Dictionary, object: Dictionary, bdb: Diction
 	gm.merge(gw.get("motion", {}), true)
 	gun.configure(gm)
 	gun.units = _units
-	gun.ground = _ground
+	gun.ground = host.mission_ground
 	gun.detonate = _gun_detonate
 	seeker = IrSeeker.new()
 	seeker.tone = _tone
 	radar = Radar.new()
 	radar.units = _units
-	radar.ground = _ground
+	radar.ground = host.mission_ground
 	radar.own = own
 	radar.on_lock = _radar_lock
 	radar.illumination_lost = _illumination_lost
@@ -202,22 +202,12 @@ func _push_stores() -> void:
 
 # --- world <-> scene --------------------------------------------------------------------------------
 
-func _origin() -> Vector2:
-	return host.terrain.world_origin
-
-
 func to_scene(w: Vector3) -> Vector3:
-	var o := _origin()
-	return Vector3(w.x - o.x, w.z, -(w.y - o.y))
+	return host.world_to_scene(w)
 
 
 func to_world(p: Vector3) -> Vector3:
-	var o := _origin()
-	return Vector3(o.x + p.x, o.y - p.z, p.y)
-
-
-static func dir_world(d: Vector3) -> Vector3:
-	return Vector3(d.x, -d.z, d.y)
+	return host.scene_to_world(p)
 
 
 ## The own jet in the world frame: {pos, vel, fwd, up, right, yaw}.
@@ -225,10 +215,10 @@ func own() -> Dictionary:
 	var b: Basis = host.rig.global_basis
 	var vel := Vector3.ZERO
 	if host.flight != null:
-		vel = dir_world(host.flight.state().velocity)
-	var fwd := dir_world(-b.z)
-	var o := {"pos": to_world(host.rig.global_position), "vel": vel, "fwd": fwd, "up": dir_world(b.y),
-		"right": dir_world(b.x), "yaw": atan2(fwd.x, fwd.y)}
+		vel = Terrain.dir_to_world(host.flight.state().velocity)
+	var fwd := Terrain.dir_to_world(-b.z)
+	var o := {"pos": to_world(host.rig.global_position), "vel": vel, "fwd": fwd, "up": Terrain.dir_to_world(b.y),
+		"right": Terrain.dir_to_world(b.x), "yaw": atan2(fwd.x, fwd.y)}
 	o.merge(seeker_view())
 	return o
 
@@ -242,10 +232,10 @@ func seeker_view() -> Dictionary:
 	if cam == null or c == null or not cam.current or host.get("views") == null or not host.views.cockpit_like():
 		return {}
 	var cb := cam.global_basis.orthonormalized()
-	var f := dir_world(Hud.ray_normal(cam, c.hud_centre_screen())).normalized()
-	var r := dir_world(cb.x)
+	var f := Terrain.dir_to_world(Hud.ray_normal(cam, c.hud_centre_screen())).normalized()
+	var r := Terrain.dir_to_world(cb.x)
 	r = (r - f * r.dot(f)).normalized()
-	return {"sight": {"fwd": f, "right": r, "up": r.cross(f)}, "view_fwd": dir_world(-cb.z),
+	return {"sight": {"fwd": f, "right": r, "up": r.cross(f)}, "view_fwd": Terrain.dir_to_world(-cb.z),
 		"helmet": host.views.snap == null and host.views.type in [Views.FREE_LOOK, Views.PADLOCK]}
 
 
@@ -268,10 +258,6 @@ func _units() -> Array:
 		out.append({"key": ent.key, "pos": rt._world_of(ent), "vel": ent.vel, "afterburner": false, "ent": ent,
 			"hostile": rt._enemy_of_player(ent)})
 	return out
-
-
-func _ground(w: Vector3) -> Variant:
-	return host.mission_ground(w)
 
 
 func _me() -> Dictionary:
@@ -440,12 +426,12 @@ func ground_hit(from: Vector3, dir: Vector3) -> Variant:
 	while a < 100000.0:
 		var b := a + s
 		var p := from + dir * b
-		var g = _ground(p)
+		var g = host.mission_ground(p)
 		if g != null and p.z <= float(g):
 			for i in 8:
 				var m := (a + b) * 0.5
 				var q := from + dir * m
-				var gm = _ground(q)
+				var gm = host.mission_ground(q)
 				if gm != null and q.z <= float(gm):
 					b = m
 				else:
@@ -664,7 +650,7 @@ func _jettison_aim(type: int) -> Vector3:
 	var fe := Vector3(m.get("_fireEndVecX", 0.0), m.get("_fireEndVecY", 500.0), m.get("_fireEndVecZ", 0.0))
 	var o := own()
 	var a: Vector3 = o.pos + o.right * fe.x + o.fwd * fe.y + o.up * fe.z
-	a.z = Bombs._h(_ground, a)
+	a.z = Bombs._h(host.mission_ground, a)
 	return a
 
 
@@ -741,9 +727,7 @@ func _gun_detonate(_r: Dictionary, pos: Vector3, cands, hit: Dictionary) -> void
 ## small fireball and SFX_WEAPON_EXPLODED/OST_GUNBULLET.
 func gun_hit_effect(at: Vector3) -> void:
 	var sp := to_scene(at)
-	var water := false
-	if host.terrain.has_method("surface_at"):
-		water = (host.terrain.surface_at(sp) & host.terrain.SURFACE_WATER) != 0
+	var water: bool = (host.terrain.surface_at(sp) & host.terrain.SURFACE_WATER) != 0
 	var g = host.terrain.height_at(sp)
 	if water and (g == null or sp.y < g + 10.5):
 		host.effects.smoke_puff(sp, true)  # splash (look UNCERTAIN)
@@ -854,7 +838,7 @@ func _update_guided() -> void:
 	for g in guided.duplicate():
 		var gone := false
 		while not gone and g.next_update <= now:
-			gone = g.update(g.next_update, _ground)
+			gone = g.update(g.next_update, host.mission_ground)
 		var p: Vector3 = g.last_pos if gone else g.position(now)
 		var node: Node3D = g.get_meta("node")
 		if node != null:
@@ -940,7 +924,7 @@ func selected_dlz(o: Dictionary, target: Dictionary) -> Array:
 	var w: Dictionary = stores.station(stores.cur).get("w", {})
 	var t := int(w.get("type", 0))
 	if t in [640, 650]:
-		var g = _ground(o.pos)
+		var g = host.mission_ground(o.pos)
 		return Guided.dlz(_motion(w), o.pos.z - (float(g) if g != null else 0.1), o.vel, db.debug_param)
 	if not t in [570, 580, 590, 600, 610, 635]:
 		return []
@@ -1018,13 +1002,13 @@ func _update_missiles() -> void:
 			var tp: Vector3 = t.get("pos", mis.last_pos)
 			if mis.has_target and t.is_empty():
 				tp = Vector3.ZERO  # target gone: FUN_0045a180's static default (UNCERTAIN: origin)
-			gone = mis.update(mis.next_update, tp, t.get("vel", Vector3.ZERO), _ground)
+			gone = mis.update(mis.next_update, tp, t.get("vel", Vector3.ZERO), host.mission_ground)
 		var node: Node3D = mis.get_meta("node")
 		var p: Vector3 = mis.last_pos if gone else mis.position(now)
 		var v: Vector3 = mis.velocity(now)
 		if node != null:
 			node.position = to_scene(p)
-			var dv := Vector3(v.x, v.z, -v.y)
+			var dv := Terrain.dir_to_scene(v)
 			if dv.length() > 1.0:
 				node.basis = Basis.looking_at(dv.normalized(), Vector3.UP if absf(dv.normalized().y) < 0.99 else Vector3.RIGHT)
 		_place_sound(mis.get_meta("sound"), p)
@@ -1169,7 +1153,7 @@ func _ripple_tick() -> void:
 	# FUN_00454b70: the aim = the HUD target (off the HUD) or the impact, spread on the ripple line.
 	var p: Vector3 = ag.target if ag.off else ag.impact
 	if ripple_left == ripple_qty or _ripple_line.size() != ripple_qty:
-		_ripple_line = Bombs.ripple_line(p, ripple_qty, float(ripple_int), own().yaw, _ground)
+		_ripple_line = Bombs.ripple_line(p, ripple_qty, float(ripple_int), own().yaw, host.mission_ground)
 	var aim: Vector3 = _ripple_line[clampi(ripple_qty - ripple_left, 0, ripple_qty - 1)]
 	if t == 650:
 		aim = _laser_aim(p, aim)
@@ -1202,7 +1186,7 @@ func _laser_aim(p: Vector3, ripple: Vector3) -> Vector3:
 	var o := own()
 	if (d - o.pos).normalized().dot((p - o.pos).normalized()) < cos(deg_to_rad(60.0)):
 		return ripple
-	var g = _ground(d)
+	var g = host.mission_ground(d)
 	if d.z > (float(g) if g != null else 0.1) + 2.0:
 		return ripple
 	return d
@@ -1269,7 +1253,7 @@ func _rockets() -> RefCounted:
 		m.merge(db.motion_for(560, 0), true)
 		rockets.configure(m)
 		rockets.units = _units
-		rockets.ground = _ground
+		rockets.ground = host.mission_ground
 		rockets.detonate = _rocket_detonate
 	return rockets
 
@@ -1287,7 +1271,7 @@ func _update_ag() -> void:
 		extra = float(db.motion_for(560, 0).get("_limitVel", 1000.0))
 	var gs := Vector2(o.vel.x, o.vel.y).length()
 	if not ag.frozen:
-		ag.impact = Bombs.predict_impact(o.pos, o.vel, o.fwd, float(w.get("drag", 0.0)), extra, _ground).point
+		ag.impact = Bombs.predict_impact(o.pos, o.vel, o.fwd, float(w.get("drag", 0.0)), extra, host.mission_ground).point
 		var c: Dictionary = hud_clip.call(ag.impact) if hud_clip.is_valid() else {}
 		ag.off = bool(c.get("off", false))
 		ag.pipper = ag.impact
@@ -1297,7 +1281,7 @@ func _update_ag() -> void:
 				ag.target = t
 			ag.ttg = _hdist(ag.impact, ag.target) / maxf(gs, 1.0)
 	elif ag.off:
-		ag.impact = Bombs.predict_impact(o.pos, o.vel, o.fwd, float(w.get("drag", 0.0)), extra, _ground).point
+		ag.impact = Bombs.predict_impact(o.pos, o.vel, o.fwd, float(w.get("drag", 0.0)), extra, host.mission_ground).point
 		ag.ttg = _hdist(ag.impact, ag.target) / maxf(gs, 1.0)
 		ag.pipper = ag.target
 	else:
@@ -1312,19 +1296,19 @@ static func _hdist(a: Vector3, b: Vector3) -> float:
 ## The terrain point on a scene ray (the renderer's screen-point query FUN_00401fc0), world frame.
 func _ray_ground(origin: Vector3, dir: Vector3) -> Variant:
 	var o := to_world(origin)
-	var d := dir_world(dir).normalized()
+	var d := Terrain.dir_to_world(dir).normalized()
 	if d.z >= -1e-4:
 		return null
 	var step := 50.0
 	var prev := o
 	for k in 1200:
 		var q := o + d * step * float(k + 1)
-		if q.z <= Bombs._h(_ground, q):
+		if q.z <= Bombs._h(host.mission_ground, q):
 			var lo := prev
 			var hi := q
 			for j in 12:
 				var m := (lo + hi) * 0.5
-				if m.z <= Bombs._h(_ground, m):
+				if m.z <= Bombs._h(host.mission_ground, m):
 					hi = m
 				else:
 					lo = m
@@ -1335,7 +1319,7 @@ func _ray_ground(origin: Vector3, dir: Vector3) -> Variant:
 
 func _update_bombs() -> void:
 	for bm in bombs.duplicate():
-		var hit: Dictionary = Bombs.check(bm.b, now, _ground, bomb_burst_fix)
+		var hit: Dictionary = Bombs.check(bm.b, now, host.mission_ground, bomb_burst_fix)
 		_place_bomb(bm)
 		if not hit.is_empty():
 			bombs.erase(bm)
@@ -1366,13 +1350,7 @@ func _trail(key, node: Node3D) -> void:
 	if host.trails == null or node == null:
 		return
 	if not node.has_meta("half_length"):
-		var box := AABB()
-		var first := true
-		for m in node.find_children("*", "MeshInstance3D", true, false):
-			var b: AABB = (node.global_transform.affine_inverse() * m.global_transform) * m.get_aabb()
-			box = b if first else box.merge(b)
-			first = false
-		node.set_meta("half_length", 0.5 * box.size.z * node.scale.z if not first else 0.0)
+		node.set_meta("half_length", 0.5 * preload("res://util/gltf.gd").model_aabb(node).size.z * node.scale.z)
 	var back := node.global_basis.z.normalized()  # looking_at: the nose is −Z
 	host.trails.emit(key, node.global_position + back * (MISSILE_FLARE_DISTANCE + float(node.get_meta("half_length"))), host.trails.MISSILE)
 
@@ -1383,7 +1361,7 @@ const MISSILE_FLARE_DISTANCE := 1.0
 
 ## A store's attitude from its velocity (world vector).
 static func _orient(node: Node3D, v: Vector3) -> void:
-	var dv := Vector3(v.x, v.z, -v.y)
+	var dv := Terrain.dir_to_scene(v)
 	if dv.length() > 1.0:
 		var s := node.scale
 		node.basis = Basis.looking_at(dv.normalized(), Vector3.UP if absf(dv.normalized().y) < 0.99 else Vector3.RIGHT).scaled(s)
@@ -1419,9 +1397,7 @@ func _explosion_effect(p: Vector3, type: int) -> void:
 	var low := sp.y < gy + 10.5
 	if low and sp.y < gy:
 		sp.y = gy
-	var water := false
-	if host.terrain.has_method("surface_at"):
-		water = (host.terrain.surface_at(sp) & host.terrain.SURFACE_WATER) != 0
+	var water: bool = (host.terrain.surface_at(sp) & host.terrain.SURFACE_WATER) != 0
 	if water and low:
 		host.effects.smoke_puff(sp, true)  # splash 0x60000 (look UNCERTAIN, as the gun's)
 		return
@@ -1477,7 +1453,7 @@ func radar_event(ev: int, arg = null) -> void:
 		0x31: radar.deselect(now)
 		0x2a: radar.lock_key(String(arg))
 		0x2f:
-			var g = _ground(Vector3(arg.x, arg.y, 0.0))
+			var g = host.mission_ground(Vector3(arg.x, arg.y, 0.0))
 			radar.designate(arg.x, arg.y, float(g) if g != null else 0.0, now)
 		0x30: radar.toggle_exp()
 
@@ -1492,7 +1468,7 @@ func _radar_lock(key: String, on: bool) -> void:
 	if p == null or p.get("brain") == null:
 		return
 	var who: Dictionary = ent
-	if lock_threat_fix and host.runtime.has_method("player_entity"):
+	if lock_threat_fix:
 		who = host.runtime.player_entity()
 	if on:
 		if p.brain.attacker.is_empty():
@@ -1691,7 +1667,7 @@ func _update_cockpit_dlz() -> void:
 		target = u if not u.is_empty() else {"pos": lk.pos, "vel": Vector3.ZERO}
 	s348 = selected_dlz(o, target)
 	s380 = 0.0
-	if last_launched != null and last_launched.has_method("time_left"):
+	if last_launched != null:
 		var v: float = last_launched.time_left(now)
 		s380 = 0.0 if v < 0.0 else (60.0 if v > 300.0 else v)
 
@@ -1782,11 +1758,10 @@ func _publish() -> void:
 func _instance(path: String) -> Node3D:
 	if path == "":
 		return null
-	if not _models.has(path):
-		_models[path] = preload("res://util/gltf.gd").open(Settings.assets_dir().path_join("converted/objects").path_join(path))
-	if _models[path] == null:
+	var model = preload("res://util/gltf.gd").object(path)
+	if model == null:
 		return null
-	return preload("res://util/gltf.gd").instance(_models[path])
+	return preload("res://util/gltf.gd").instance(model)
 
 
 ## The store model's `pilon` helper (glTF, the sum of its and its parents' translations), or null.
@@ -1867,7 +1842,7 @@ func _bay_wait(i: int) -> bool:
 	if not _internal(i):
 		return false
 	_bay_until = maxf(_bay_until, now + BAY_HOLD)
-	return host.aircraft != null and host.aircraft.has_method("bay_fraction") and host.aircraft.bay_fraction() < 1.0
+	return host.aircraft != null and host.aircraft.bay_fraction() < 1.0
 
 
 ## Station i is in a weapon bay (descriptor `internal_stations`, letters A..I; ours).
@@ -1880,7 +1855,7 @@ func _internal(i: int) -> bool:
 func _update_store_nodes() -> void:
 	var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
 	var near := cam == null or host.rig == null or cam.global_position.distance_to(host.rig.global_position) < STORES_DRAW_DIST
-	var bay_shown: bool = host.aircraft != null and host.aircraft.has_method("bay_fraction") and host.aircraft.bay_fraction() > 0.5
+	var bay_shown: bool = host.aircraft != null and host.aircraft.bay_fraction() > 0.5
 	for i in _store_nodes:
 		var n := int(stores.station(i).get("count", 0))
 		for k in _store_nodes[i].size():
@@ -1925,7 +1900,7 @@ func _update_visuals() -> void:
 		if r.flying:
 			n.position = to_scene(gun.position(r, now))
 			var u: Vector3 = r.u
-			var du := Vector3(u.x, u.z, -u.y)
+			var du := Terrain.dir_to_scene(u)
 			n.basis = Basis.looking_at(du, Vector3.UP if absf(du.y) < 0.99 else Vector3.RIGHT).scaled(Vector3.ONE * _round_scale)
 	if _flash != null:
 		_flash.visible = firing

@@ -43,7 +43,37 @@ static func open(path: String) -> Variant:
 	return [doc, state]
 
 
+## open() of a converted object model (path under converted/objects), cached per OBJECT DETAIL level.
+static var _objects := {}
+
+
+static func object(path: String) -> Variant:
+	var key := "%d:%s" % [object_level, path]
+	if not _objects.has(key):
+		_objects[key] = open(Settings.assets_dir().path_join("converted/objects").path_join(path))
+	return _objects[key]
+
+
 ## A new scene of a model opened with open().
 static func instance(model: Array) -> Node3D:
 	return model[0].generate_scene(model[1]) as Node3D
 
+
+
+## Where model_aabb() measures each mesh: its own frame (no transform), the model node's frame, the world.
+enum { MESH_SPACE, NODE_SPACE, GLOBAL_SPACE }
+
+
+## The merged bounds of every mesh under `node`, each in `space` (the mesh's own frame when the node is
+## outside the tree); AABB() when it has none.
+static func model_aabb(node: Node3D, space := NODE_SPACE) -> AABB:
+	var inv := node.global_transform.affine_inverse() if space == NODE_SPACE and node.is_inside_tree() else Transform3D.IDENTITY
+	var box := AABB()
+	var first := true
+	for mi: MeshInstance3D in node.find_children("*", "MeshInstance3D", true, false):
+		if mi.mesh == null:
+			continue
+		var b := mi.get_aabb() if space == MESH_SPACE or not node.is_inside_tree() else (inv * mi.global_transform) * mi.get_aabb()
+		box = b if first else box.merge(b)
+		first = false
+	return box

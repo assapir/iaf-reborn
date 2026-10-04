@@ -57,8 +57,6 @@ var top := 0
 ## A drag in progress: {w, count, from ("station" / "list"), off (cursor − image origin), pos}.
 var drag := {}
 var default_held := false
-var arrow := ""
-var thumb_drag := -1.0
 ## Cursor state (+0xf4 / list +0x1080): 0 arrow, 1 move.cur, 2 grab.cur.
 var cursor := -1
 var _cursors := {}
@@ -193,7 +191,7 @@ func _draw() -> void:
 	var at := CLIENT.position
 	if jet.is_empty():
 		return
-	_blit(_art(), at)
+	fe._blit(_art(), at, self)
 	# Ours: an extra plane's name (the originals have it in their art), top right like theirs.
 	if jet.get("title", "") != "":
 		var tfs := int(round(TITLE_PX * fe._scale()))
@@ -219,7 +217,7 @@ func _draw() -> void:
 		for i in st:
 			if int(w.max[i]) > 0:
 				var s: Vector2 = st[i]
-				_blit("arm/hibox.png", at + s - Vector2.ONE)
+				fe._blit("arm/hibox.png", at + s - Vector2.ONE, self)
 				_region(_art(), Rect2(s + Vector2.ONE, hs - Vector2(4, 4)), at + s + Vector2.ONE)
 	# Loaded stations: icon, "%dx%s", "%g" (count × weight), green.
 	var ld := current_load()
@@ -236,28 +234,28 @@ func _draw() -> void:
 	if fe.panel_shown >= 1.0:
 		_draw_list()
 	if default_held:
-		_blit("arm/defbut_2.png", at + DEFAULT_RECT.position)
+		fe._blit("arm/defbut_2.png", at + DEFAULT_RECT.position, self)
 	else:
-		_blit("arm/defbut_0.png", at + DEFAULT_RECT.position)
+		fe._blit("arm/defbut_0.png", at + DEFAULT_RECT.position, self)
 	_draw_drag()
 
 
 func _draw_list() -> void:
-	_blit("arm/weaponslb.png", LIST_POS)
+	fe._blit("arm/weaponslb.png", LIST_POS, self)
 	for r in ROWS:
 		var idx := top + r
 		if idx >= rows.size():
 			break
 		var w: Dictionary = rows[idx]
 		var box := _row_box(r)
-		_blit("arm/hiitem.png" if idx == sel else "arm/item.png", box)
+		fe._blit("arm/hiitem.png" if idx == sel else "arm/item.png", box, self)
 		_region(_icon(w), Rect2(Vector2.ZERO, ICON), box + Vector2.ONE)
 		_key_text(Rect2(box + Vector2.ONE + ROW_TEXT.position, ROW_TEXT.size), w.name, GREEN if idx == sel else DIM_GREEN)
 	# Scrollbar (FUN_004f3700 layout): SlDownB at the top, SlUpB at the bottom, the thumb between.
-	var bar := Rect2(LIST_POS + BAR.position, BAR.size)
-	_blit("arm/sldownb_%d.png" % (2 if arrow == "up" else 0), bar.position)
-	_blit("arm/slupb_%d.png" % (2 if arrow == "down" else 0), Vector2(bar.position.x, bar.end.y - ARROW.y))
-	_blit("arm/slider.png", Vector2(bar.position.x, _thumb_y()))
+	var bar := _bar()
+	fe._blit("arm/sldownb_%d.png" % (2 if fe.ctrl_arrow == "up" else 0), bar.position, self)
+	fe._blit("arm/slupb_%d.png" % (2 if fe.ctrl_arrow == "down" else 0), Vector2(bar.position.x, bar.end.y - ARROW.y), self)
+	fe._blit("arm/slider.png", Vector2(bar.position.x, fe._bar_thumb_y(bar, top, _max_top(), THUMB)), self)
 
 
 ## Row r's item box: item.bmp 51×32 centred in its 72×42 cell.
@@ -280,21 +278,14 @@ func _draw_drag() -> void:
 		_key_text(Rect2(o + ROW_TEXT.position, ROW_TEXT.size), w.name, GREEN)
 
 
-func _blit(path: String, pos: Vector2) -> void:
-	var t: Texture2D = fe._tex(path)
-	if t != null:
-		draw_texture_rect(t, fe._rect(Rect2(pos, fe._art_size(t))), false)
-
-
+## front_end.gd _blit_region with the source clipped to the image.
 func _region(path: String, src: Rect2, dest: Vector2) -> void:
 	var t: Texture2D = fe._tex(path)
 	if t == null:
 		return
-	var sz: Vector2 = fe._art_size(t)
-	src = src.intersection(Rect2(Vector2.ZERO, sz))
-	if src.size.x <= 0 or src.size.y <= 0:
-		return
-	draw_texture_rect_region(t, fe._rect(Rect2(dest, src.size)), Rect2(src.position * fe.art_scale, src.size * fe.art_scale))
+	src = src.intersection(Rect2(Vector2.ZERO, fe._art_size(t)))
+	if src.size.x > 0 and src.size.y > 0:
+		fe._blit_region(path, src, dest, self)
 
 
 ## key.fnt (6×8 fixed pitch) with DT_CENTER | DT_VCENTER | DT_SINGLELINE, clipped to the box.
@@ -331,12 +322,9 @@ func _max_top() -> int:
 	return maxi(0, rows.size() - ROWS)
 
 
-func _thumb_y() -> float:
-	var bar := Rect2(LIST_POS + BAR.position, BAR.size)
-	var lo := bar.position.y + ARROW.y
-	var hi := bar.end.y - ARROW.y - THUMB.y
-	var m := _max_top()
-	return lo if m == 0 else lerpf(lo, hi, float(top) / m)
+## The scrollbar in menu coordinates; front_end.gd's _bar_* helpers drive it.
+func _bar() -> Rect2:
+	return Rect2(LIST_POS + BAR.position, BAR.size)
 
 
 ## Selects row idx and scrolls it into view (FUN_004f4700 / FUN_004f4810).
@@ -380,7 +368,7 @@ func _gui_input(event: InputEvent) -> void:
 	var p: Vector2 = fe._to_menu(event.position)
 	if event is InputEventMouseMotion:
 		_motion(p)
-		if not drag.is_empty() or default_held or thumb_drag >= 0.0:
+		if not drag.is_empty() or default_held or fe.ctrl_drag >= 0.0:
 			accept_event()
 		return
 	if not (event is InputEventMouseButton):
@@ -408,7 +396,9 @@ func _press(p: Vector2) -> bool:
 		return true
 	var lp := p - LIST_POS
 	if Rect2(BAR.position, BAR.size).has_point(lp):
-		_bar_press(lp)
+		# The arrows one row, the track one page (UNCERTAIN: the page step, as the Controls page), the
+		# thumb drags.
+		top = clampi(fe._bar_press(p, _bar(), top, _max_top(), ROWS, THUMB), 0, _max_top())
 		return true
 	if Rect2(LIST_INNER.position, LIST_INNER.size).has_point(lp):
 		var r := int((lp.y - LIST_INNER.position.y) / ROW_H)
@@ -451,9 +441,9 @@ func _release(p: Vector2) -> bool:
 			fe._play("buttonout")
 			use_defaults()
 		return true
-	if arrow != "" or thumb_drag >= 0.0:
-		arrow = ""
-		thumb_drag = -1.0
+	if fe.ctrl_arrow != "" or fe.ctrl_drag >= 0.0:
+		fe.ctrl_arrow = ""
+		fe.ctrl_drag = -1.0
 		return true
 	if drag.is_empty():
 		return false
@@ -472,11 +462,8 @@ func _motion(p: Vector2) -> void:
 	if not drag.is_empty():
 		drag.pos = p
 		return
-	if thumb_drag >= 0.0:
-		var bar := Rect2(LIST_POS + BAR.position, BAR.size)
-		var lo := bar.position.y + ARROW.y
-		var hi := bar.end.y - ARROW.y - THUMB.y
-		top = int(round(clampf(inverse_lerp(lo, hi, p.y - thumb_drag), 0.0, 1.0) * _max_top())) if hi > lo else 0
+	if fe.ctrl_drag >= 0.0:
+		top = fe._bar_drag_top(p.y, _bar(), _max_top(), THUMB)
 		return
 	# Hover: move.cur over a loaded station (506be0) or a list icon (5197f0), else the arrow.
 	var over := _station_at(p, true) >= 0
@@ -485,23 +472,3 @@ func _motion(p: Vector2) -> void:
 			over = true
 	_set_cursor(1 if over else 0)
 
-
-## Scrollbar press (list-local): the arrows one row, the track one page (UNCERTAIN: the page step,
-## as the Controls page), the thumb drags.
-func _bar_press(lp: Vector2) -> void:
-	var y := lp.y + LIST_POS.y
-	var bar := Rect2(LIST_POS + BAR.position, BAR.size)
-	if y < bar.position.y + ARROW.y:
-		arrow = "up"
-		top = clampi(top - 1, 0, _max_top())
-	elif y >= bar.end.y - ARROW.y:
-		arrow = "down"
-		top = clampi(top + 1, 0, _max_top())
-	else:
-		var t := _thumb_y()
-		if y < t:
-			top = clampi(top - ROWS, 0, _max_top())
-		elif y >= t + THUMB.y:
-			top = clampi(top + ROWS, 0, _max_top())
-		else:
-			thumb_drag = y - t

@@ -400,9 +400,7 @@ func _dash_steady() -> bool:
 ## (bearing to the waypoint S+0x58 − heading, wrapped ±180°, 2 px/deg, clamped ±57).
 static func heading_tape(heading_deg: float, bearing_deg: float) -> Dictionary:
 	var h := fmod(heading_deg, 360.0)
-	var box := int(heading_deg) % 360
-	if box < 0:
-		box += 360
+	var box := posmod(int(heading_deg), 360)
 	var ticks := []
 	var off := int(-h * 2.0) % 10
 	for i in range(-1, 11):
@@ -419,10 +417,7 @@ static func heading_tape(heading_deg: float, bearing_deg: float) -> Dictionary:
 			v += 360
 		if (x < -11 and x > -57) or (x > 11 and x < 57):
 			labels.append([x, "%02d" % ((v % 360) / 10)])
-	var a := fmod(bearing_deg, 360.0)
-	if a < 0.0:
-		a += 360.0
-	var d := a - h
+	var d := fposmod(bearing_deg, 360.0) - h
 	if d > 180.0:
 		d -= 360.0
 	if d < -180.0:

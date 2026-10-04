@@ -105,9 +105,9 @@ static func plane_for(type: int) -> String:
 ## cockpits.ibx `Cockpit00k = <dir>` for the type's index, lower-cased as converted.
 static func cockpit_folder(type: int) -> String:
 	var k: int = COCKPIT.get(type, 1)
-	var text := FileAccess.get_file_as_string(Settings.assets_dir().path_join("install/resource/cockpits/cockpits.ibx"))
-	for line in text.split("\n"):
-		var kv := line.split("=")
-		if kv.size() == 2 and kv[0].strip_edges().to_lower() == "cockpit%03d" % k:
-			return kv[1].strip_edges().to_lower()
+	var ibx := Settings.load_ibx(Settings.assets_dir().path_join("install/resource/cockpits/cockpits.ibx"))
+	for section in ibx.values():
+		for key in section:
+			if key.to_lower() == "cockpit%03d" % k:
+				return section[key].to_lower()
 	return "f16"

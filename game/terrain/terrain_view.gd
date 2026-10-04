@@ -74,8 +74,6 @@ var g_effects: Control
 var _log: FileAccess
 var _log_next := 0.0
 var _log_t := 0.0
-## Lowest the external camera may go above the terrain (metres).
-const CAMERA_MIN_AGL := 0.5
 ## Highest true airspeed at which the gear may be lowered (player controller case 0xe, docs/flight-model.md §12).
 const GEAR_DOWN_MAX_KT := 300.0
 ## Gear leg travel and flaps step times (s).
@@ -140,6 +138,7 @@ var _landings := 0
 var crashed := false
 const MissionRuntime := preload("res://mission/mission_runtime.gd")
 const Gltf := preload("res://util/gltf.gd")
+const Terrain := preload("res://terrain/terrain.gd")
 ## Models flatter than this (m) are ground underlays (not drawn, _spawn_mission_objects).
 const UNDERLAY_MAX_HEIGHT := 0.05
 const DamageModel := preload("res://mission/damage_model.gd")
@@ -215,25 +214,12 @@ func _ready() -> void:
 	preload("res://terrain/terrain_preload.gd").hand_over(terrain)
 	if args.has("--external"):
 		_start_external = true
-	var st_arg := args.find("--stick")
-	if st_arg >= 0:
-		scripted_stick = Vector2(float(args[st_arg + 1]), float(args[st_arg + 2]))
-	# Test poses: --orbit yaw pitch dist (degrees, metres), --rudder r, --gear, --flaps, --brakes.
+	# Test poses: --orbit yaw pitch dist (degrees, metres), --gear.
 	_orbit_arg = args.find("--orbit")
-	var rud := args.find("--rudder")
-	if rud >= 0:
-		scripted_rudder = float(args[rud + 1])
 	# Test flags only override the start state (a mission starts with gear, flaps and brakes).
 	if args.has("--gear"):
 		gear_down = true
-	if args.has("--flaps"):
-		flaps = 1.0
-	if args.has("--brakes"):
-		brakes = true
 	frozen = args.has("--freeze")
-	var thr := args.find("--throttle")
-	if thr >= 0:
-		throttle = float(args[thr + 1])
 	gear_legs = [2, 2, 2] if gear_down else [0, 0, 0]
 	flaps_state = 2 if flaps > 0.0 else 0
 	cockpit.hud.camera = camera
@@ -339,10 +325,10 @@ func _setup_weapons() -> void:
 		obj = _player_object(bdb)
 	var ent := mission_entity if int(mission_object.get("0x5b4", -1)) == player.type else {}
 	weapons = preload("res://weapons/player_weapons.gd").new()
-	weapons.lock_threat_fix = OS.get_cmdline_user_args().has("--better") or Settings.better.get("fix_lock_threat", false)
+	weapons.lock_threat_fix = _all_better or Settings.better.get("fix_lock_threat", false)
 	add_child(weapons)
 	weapons.setup(self, ent, obj, bdb, preload("res://aircraft/aircraft_model.gd").load_descriptor(player.plane))
-	cockpit.hud.host_world_to_scene = weapons.to_scene
+	cockpit.hud.host_world_to_scene = world_to_scene
 	cockpit.hud.host_ground = func(x: float, y: float):
 		var g = terrain.height_at(world_to_scene(Vector3(x, y, 0.0)))
 		return g
@@ -383,9 +369,9 @@ func _update_eo_view() -> void:
 	eo_camera.near = camera.near
 	eo_camera.far = camera.far
 	eo_camera.fov = weapons.eo.FOV_DEG / weapons.eo.zoom
-	var eye: Vector3 = rig.global_position if weapons.eo_eye == null else weapons.to_scene(weapons.eo_eye)
-	var w: Vector3 = weapons.to_world(eye)
-	var ahead: Vector3 = weapons.to_scene(w + weapons.eo_dir * 1000.0)
+	var eye: Vector3 = rig.global_position if weapons.eo_eye == null else world_to_scene(weapons.eo_eye)
+	var w: Vector3 = scene_to_world(eye)
+	var ahead: Vector3 = world_to_scene(w + weapons.eo_dir * 1000.0)
 	eo_camera.current = true
 	eo_camera.look_at_from_position(eye, ahead, Vector3.UP)
 
@@ -568,7 +554,6 @@ func _spawn_mission_objects() -> void:
 	_voice = AudioStreamPlayer.new()
 	_voice.bus = "IafSpeech"  # speech volume (docs/sound.md §2)
 	add_child(_voice)
-	var scenes := {}
 	for ent in runtime.entities.values():
 		if ent.player or ent.has("pilot"):
 			continue
@@ -577,15 +562,10 @@ func _spawn_mission_objects() -> void:
 		# Classes 0x11, 0x12 (fire sensors), 0x1b are never drawn (FUN_004b7c4d).
 		if path == "" or ent.klass in [0x11, 0x12, 0x1b]:
 			continue
-		if not scenes.has(path):
-			scenes[path] = Gltf.open(base.path_join("objects").path_join(path))
-			if path.ends_with("_h.gltf"):
-				for lod in ["_m", "_l"]:
-					var lp: String = path.trim_suffix("_h.gltf") + lod + ".gltf"
-					scenes[lp] = Gltf.open(base.path_join("objects").path_join(lp))
-		if scenes[path] == null:
+		var model = Gltf.object(path)
+		if model == null:
 			continue
-		var node: Node3D = Gltf.instance(scenes[path])
+		var node: Node3D = Gltf.instance(model)
 		ent.node = node
 		ent["airborne_class"] = int(obj.get("0x5aa", -1)) in [2, 3, 0x1c]
 		add_child(node)
@@ -593,7 +573,7 @@ func _spawn_mission_objects() -> void:
 		node.scale = Vector3.ONE * float(scales.get(int(obj.get("0x53c", -1)), 1.0))
 		# Collision radius (FUN_0043b1c0): 0.25 · (dx + dy + dz) of the scaled model's full extents
 		# (object +0x268..0x270, FUN_0041bb00).
-		var box := _model_aabb(node)
+		var box := Gltf.model_aabb(node)
 		box = AABB(box.position * node.scale.x, box.size * node.scale.x)  # the local box is unscaled
 		# Flat ground models (the airbases' runway / taxiway / apron underlays, ul_rw*.x) are not
 		# drawn: the terrain's inset imagery already shows the airbase (user decision, docs/deviations.md).
@@ -604,7 +584,7 @@ func _spawn_mission_objects() -> void:
 		ent["coll_radius"] = 0.25 * (box.size.x + box.size.y + box.size.z)
 		ent["max_extent"] = maxf(box.size.x, maxf(box.size.y, box.size.z))
 		if path.ends_with("_h.gltf"):
-			_add_lods(node, scenes.get(path.trim_suffix("_h.gltf") + "_m.gltf"), scenes.get(path.trim_suffix("_h.gltf") + "_l.gltf"),
+			_add_lods(node, Gltf.object(path.trim_suffix("_h.gltf") + "_m.gltf"), Gltf.object(path.trim_suffix("_h.gltf") + "_l.gltf"),
 					ent.max_extent)
 		mission_entity_moved(ent)
 	runtime.start()
@@ -661,20 +641,6 @@ static func _drop_lods(node: Node3D) -> void:
 		g.visibility_range_end = 0.0
 
 
-## The model's bounds in its own frame (all meshes).
-static func _model_aabb(node: Node3D) -> AABB:
-	var box := AABB()
-	var first := true
-	for m in node.find_children("*", "MeshInstance3D", true, false):
-		var mi := m as MeshInstance3D
-		if mi.mesh == null:
-			continue
-		var b: AABB = (node.global_transform.affine_inverse() * mi.global_transform) * mi.get_aabb() if node.is_inside_tree() else mi.get_aabb()
-		box = b if first else box.merge(b)
-		first = false
-	return box
-
-
 static func _entity_heading(files: Array, ent: Dictionary) -> float:
 	for e in files[ent.file].entities.items:
 		if e is Dictionary and int(e.get("0x1e", -1)) == ent.id:
@@ -692,7 +658,7 @@ var player_world_override = null
 func player_world() -> Vector3:
 	if player_world_override != null:
 		return player_world_override
-	return Vector3(terrain.world_origin.x + rig.position.x, terrain.world_origin.y - rig.position.z, rig.position.y)
+	return scene_to_world(rig.position)
 
 
 func mission_entity_moved(ent: Dictionary) -> void:
@@ -700,7 +666,7 @@ func mission_entity_moved(ent: Dictionary) -> void:
 	if node == null:
 		return
 	var w: Vector3 = ent.world
-	var pos := Vector3(w.x - terrain.world_origin.x, w.z, -(w.y - terrain.world_origin.y))
+	var pos := world_to_scene(w)
 	var ground = terrain.height_at(pos)
 	if ground != null and not (ent.get("airborne_class", false) and pos.y > ground + 10.0):
 		pos.y = ground
@@ -743,8 +709,7 @@ func _entity_scene_pos(ent: Dictionary) -> Vector3:
 		return rig.position
 	if ent.node != null:
 		return ent.node.position
-	var w: Vector3 = ent.world
-	return Vector3(w.x - terrain.world_origin.x, w.z, -(w.y - terrain.world_origin.y))
+	return world_to_scene(ent.world)
 
 
 ## World (X east, Y north, alt) ↔ scene position.
@@ -775,7 +740,7 @@ func mission_combat(ent: Dictionary, on: bool) -> void:
 
 ## Terrain height (m) under a world position (X, Y, alt); null where not loaded.
 func mission_ground(w: Vector3) -> Variant:
-	return terrain.height_at(Vector3(w.x - terrain.world_origin.x, 0, -(w.y - terrain.world_origin.y)))
+	return terrain.height_at(world_to_scene(Vector3(w.x, w.y, 0)))
 
 
 ## A unit's attitude (pitch, roll, heading, degrees) and world velocity (X east, Y north, up m/s)
@@ -784,7 +749,7 @@ func mission_unit_motion(ent: Dictionary) -> Array:
 	if ent.player and flight != null:
 		var st: Dictionary = flight.state()
 		var v: Vector3 = st.velocity
-		return [Vector3(st.pitch, st.roll, st.heading), Vector3(v.x, -v.z, v.y)]
+		return [Vector3(st.pitch, st.roll, st.heading), Terrain.dir_to_world(v)]
 	if ent.has("pilot"):
 		var ps: Dictionary = ent.pilot.state()
 		return [Vector3(ps.pitch, ps.roll, ps.heading), ent.vel]
@@ -793,7 +758,7 @@ func mission_unit_motion(ent: Dictionary) -> Array:
 
 ## The player's jet on its destruction motion: world position and attitude (degrees).
 func mission_player_fall(p: Vector3, a: Vector3) -> void:
-	rig.position = Vector3(p.x - terrain.world_origin.x, p.z, -(p.y - terrain.world_origin.y))
+	rig.position = world_to_scene(p)
 	rig.basis = Basis.from_euler(Vector3(deg_to_rad(a.x), deg_to_rad(-a.z), deg_to_rad(-a.y)), EULER_ORDER_YXZ)
 
 
@@ -952,7 +917,6 @@ func _check_collisions() -> void:
 		var r: float = ent.coll_radius
 		if rig.position.distance_squared_to(ent.node.position) >= r * r:
 			continue
-		print("collision with ", ent.name)
 		hit = true
 		if not ent.shield:
 			runtime.set_damage_level(ent, 5)
@@ -1133,15 +1097,14 @@ func _start_flight() -> void:
 		flight = null
 		return
 	# "Better physics" options (Preferences > Physics); --better turns them all on.
-	if OS.get_cmdline_user_args().has("--better"):
+	if _all_better:
 		flight.set_better_physics(true)
 	else:
 		# The fixes outside the flight model are unknown to it (set_better_option ignores them).
 		for id in Settings.BETTER:
 			flight.set_better_option(id, Settings.better[id])
-	var all_better: bool = OS.get_cmdline_user_args().has("--better")
-	DamageModel.fall_keep_heading = all_better or Settings.better.fix_fall_heading
-	DamageModel.no_skill_scale = all_better or Settings.better.fix_skill_damage
+	DamageModel.fall_keep_heading = _all_better or Settings.better.fix_fall_heading
+	DamageModel.no_skill_scale = _all_better or Settings.better.fix_skill_damage
 	# Gameplay preferences (docs/flight-model.md §15.7); Easy landing is on by default.
 	flight.set_no_stalls(Settings.no_stalls)
 	flight.set_no_spins(Settings.no_spins)
@@ -1991,6 +1954,7 @@ func _process(delta: float) -> void:
 		var surface: int = terrain.surface_at(rig.position)
 		flight.set_ground_surface(_ground_normal_z(rig.position), (surface & terrain.SURFACE_WATER) != 0,
 				(surface & terrain.SURFACE_ROUGH) != 0)
+		sounds.on_runway = (surface & terrain.SURFACE_ANY_RUNWAY) != 0  # the belly screech (f & 0x30)
 		# The systems damage the flight model reads (docs/damage.md §5.3): thrust, stick, spin.
 		flight.set_damage(player_damage.flags, player_damage.twin)
 		flight.set_controls(stick.x, stick.y, rudder, throttle, flaps, gear_down, brakes)
@@ -2089,9 +2053,11 @@ func _process(delta: float) -> void:
 		"  GEAR" if gear_down else "", "  FLAPS" if flaps > 0 else "", "  BRAKE" if brakes else "", Engine.get_frames_per_second()]
 
 
-## Scripted stick for test captures: `--stick x y` (held for the whole run).
+## Scripted stick / rudder for tests (held until changed).
 var scripted_stick = null
 var scripted_rudder = null
+## --better: every "better physics" option on.
+var _all_better := OS.get_cmdline_user_args().has("--better")
 ## --freeze: don't advance the flight model (for posed test captures).
 var frozen := false
 
@@ -2285,7 +2251,7 @@ func _eject_update(delta: float) -> void:
 	for pc in _parachuters:
 		var ct: float = _sim_time - pc.t0
 		var w: Vector3 = pc.p0 + CHUTE_V0 * ct + 0.5 * CHUTE_ACCEL * ct * ct
-		var pos := Vector3(w.x - terrain.world_origin.x, w.z, -(w.y - terrain.world_origin.y))
+		var pos := world_to_scene(w)
 		var g = terrain.height_at(pos)
 		if g == null or pos.y - g > CHUTE_STOP_AGL:
 			pc.node.position = pos
@@ -2303,7 +2269,7 @@ func _spawn_parachuter(at: Vector3) -> void:
 	if node == null:
 		return
 	node.position = at
-	_parachuters.append({"node": node, "t0": _sim_time, "p0": Vector3(terrain.world_origin.x + at.x, terrain.world_origin.y - at.z, at.y)})
+	_parachuters.append({"node": node, "t0": _sim_time, "p0": scene_to_world(at)})
 	if _chute == null:
 		_chute = node
 

@@ -42,7 +42,6 @@ anti-radiation, laser guidance with the FLIR), night.
 sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, modern aircraft / weapons, Pi 5 profile.
 
 ## Small bugs (fix between jobs)
-- Belly screech (the jet sliding on its belly) never plays: `FlightSounds.on_runway` is never set (docs/sound.md).
 - Stores look detached (user report: "not in place" from behind): the pylons are quads in each jet's model, edge-on
   and nearly invisible from ahead / behind / below, as in the original (docs/weapons.md §2.2), and the TER shoulder slots (2–3 bombs) hang at the pylon height ±Pilon sideways (original `FUN_0053c990`), so
   they touch the wing. Checked: the stations sit on the model (F-16 tip rails at x ±4.78, airframe ±4.73; each single
@@ -97,8 +96,8 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
   ECM light has no system; night lighting; what the TV / laser weapons do with the radar's designated point.
 - **Controls**: joystick untested on real hardware (one device; no force feedback); not built: FlyTSD Fly into another
   aircraft / Visit (docs/views.md).
-- **Sounds**: AI / moving-unit sounds (AI jets fly silently), Betty "Pull up", the belly screech (the host never sets
-  `FlightSounds.on_runway`); the RWR's wait for something to lock the player (docs/sound.md §5).
+- **Sounds**: AI / moving-unit sounds (AI jets fly silently), Betty "Pull up"; the RWR's wait for something to
+  lock the player (docs/sound.md §5).
 - **Front end**: Reference screen content (docs/front-end.md §14), TSD 3D-model / target
   windows; Graphics prefs: SHADOWS not limited to the day (no time of day yet), no terrain resolution drop
   (docs/deviations.md §1); No wind / No malfunctions have no reader in the original either.

@@ -154,6 +154,15 @@ func terrain_to_godot(tx: float, ty: float) -> Vector3:
 			ty * m_per_unit - float(meta.get("y_shift", 0)) + world_origin.y)
 
 
+## A direction / velocity: scene (X east, Y up, Z south) -> world (X east, Y north, up), and back.
+static func dir_to_world(v: Vector3) -> Vector3:
+	return Vector3(v.x, -v.z, v.y)
+
+
+static func dir_to_scene(w: Vector3) -> Vector3:
+	return Vector3(w.x, w.z, -w.y)
+
+
 ## Godot position -> terrain units.
 func godot_to_terrain(p: Vector3) -> Vector2:
 	return Vector2((p.x + world_origin.x - float(meta.get("x_shift", 0))) / m_per_unit,

@@ -57,7 +57,7 @@ var selected := 0
 
 ## Reads the list; a missing file gives one default pilot "Gal" / "default", id 14, photo 0 (FUN_0051c750).
 func load_list() -> void:
-	var d = _read(dir().path_join("pilots.json"))
+	var d = Settings.load_json(dir().path_join("pilots.json"))
 	pilots = []
 	for p in d.get("pilots", []):
 		pilots.append({"name": String(p.name).left(10), "callsign": String(p.callsign).left(12),
@@ -122,7 +122,7 @@ static func photo_path(id: int) -> String:
 # --- mission history (Pilots\<id>.mis) ------------------------------------------------------------
 
 static func history(id: int) -> Array:
-	return _read(dir().path_join("%d.json" % id)).get("missions", [])
+	return Settings.load_json(dir().path_join("%d.json" % id)).get("missions", [])
 
 
 static func save_history(id: int, missions: Array) -> void:
@@ -242,23 +242,11 @@ static func cheat(name: String, callsign: String) -> bool:
 ## MissBonus from the score file (iaf.ibx [Scenario] ScoreFile = Resource\Missions\Scores.ibx,
 ## FUN_0059add0): the mission's bonus, 0 when not listed.
 static func mission_bonus(id: int) -> int:
-	var path := ProjectSettings.globalize_path("res://").path_join("../assets/install/resource/missions/scores.ibx").simplify_path()
-	var cfg := FileAccess.get_file_as_string(path)
-	var in_section := false
-	for line in cfg.split("\n"):
-		line = line.strip_edges()
-		if line.begins_with("["):
-			in_section = line.to_lower() == "[missbonus]"
-		elif in_section and line.begins_with("%d=" % id):
-			return line.get_slice("=", 1).to_int()
+	var ibx := Settings.load_ibx(Settings.assets_dir().path_join("install/resource/missions/scores.ibx"))
+	for section in ibx:
+		if section.to_lower() == "missbonus" and ibx[section].has(str(id)):
+			return ibx[section][str(id)].to_int()
 	return 0
-
-
-static func _read(path: String) -> Dictionary:
-	if not FileAccess.file_exists(path):
-		return {}
-	var d = JSON.parse_string(FileAccess.get_file_as_string(path))
-	return d if d is Dictionary else {}
 
 
 static func _write(path: String, d: Dictionary) -> void:

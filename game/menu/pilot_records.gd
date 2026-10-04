@@ -53,8 +53,6 @@ var missions: Array = []
 var totals := {}
 var tab := 0
 var top := 0
-var arrow := ""
-var thumb_drag := -1.0
 ## Edit boxes: texts, caret positions, the box with the keyboard (-1 none) and the last focused box
 ## (page +0x68, -1 none); the caret blinks every 200 ms.
 var edit := ["", ""]
@@ -202,11 +200,13 @@ func _scroll_to_selection() -> void:
 	top = clampi(top, 0, _max_top())
 
 
+## The scrollbar in menu coordinates; front_end.gd's _bar_* helpers drive it.
+func _bar() -> Rect2:
+	return Rect2(LIST + BAR.position, BAR.size)
+
+
 func _thumb_y() -> float:
-	var lo := LIST.y + BAR.position.y + ARROW.y
-	var hi := LIST.y + BAR.end.y - ARROW.y - THUMB.y
-	var m := _max_top()
-	return lo if m == 0 else lerpf(lo, hi, float(top) / m)
+	return fe._bar_thumb_y(_bar(), top, _max_top(), THUMB)
 
 
 # --- input --------------------------------------------------------------------------------------
@@ -216,10 +216,8 @@ func _gui_input(event: InputEvent) -> void:
 		return
 	var p: Vector2 = fe._to_menu(event.position)
 	if event is InputEventMouseMotion:
-		if thumb_drag >= 0.0:
-			var lo := LIST.y + BAR.position.y + ARROW.y
-			var hi := LIST.y + BAR.end.y - ARROW.y - THUMB.y
-			top = int(round(clampf(inverse_lerp(lo, hi, p.y - thumb_drag), 0.0, 1.0) * _max_top())) if hi > lo else 0
+		if fe.ctrl_drag >= 0.0:
+			top = fe._bar_drag_top(p.y, _bar(), _max_top(), THUMB)
 			accept_event()
 		return
 	if not (event is InputEventMouseButton):
@@ -232,9 +230,9 @@ func _gui_input(event: InputEvent) -> void:
 	if event.button_index != MOUSE_BUTTON_LEFT:
 		return
 	if not event.pressed:
-		if arrow != "" or thumb_drag >= 0.0:
-			arrow = ""
-			thumb_drag = -1.0
+		if fe.ctrl_arrow != "" or fe.ctrl_drag >= 0.0:
+			fe.ctrl_arrow = ""
+			fe.ctrl_drag = -1.0
 			accept_event()
 		return
 	if _press(p, event.double_click):
@@ -244,7 +242,9 @@ func _gui_input(event: InputEvent) -> void:
 func _press(p: Vector2, double: bool) -> bool:
 	var lp := p - LIST
 	if BAR.has_point(lp):
-		_bar_press(p.y)
+		# As the Arming list: arrows one row, the track one page (UNCERTAIN: the page step), the thumb
+		# drags.
+		top = clampi(fe._bar_press(p, _bar(), top, _max_top(), ROWS, THUMB), 0, _max_top())
 		return true
 	if ITEMS.has_point(lp):
 		var i := top + int((lp.y - ITEMS.position.y) / ROW_H)
@@ -285,25 +285,6 @@ func _press(p: Vector2, double: bool) -> bool:
 		_next_photo()
 		return true
 	return false
-
-
-## The scrollbar (as the Arming list): arrows one row, the track one page (UNCERTAIN: the page step),
-## the thumb drags.
-func _bar_press(y: float) -> void:
-	if y < LIST.y + BAR.position.y + ARROW.y:
-		arrow = "up"
-		top = clampi(top - 1, 0, _max_top())
-	elif y >= LIST.y + BAR.end.y - ARROW.y:
-		arrow = "down"
-		top = clampi(top + 1, 0, _max_top())
-	else:
-		var t := _thumb_y()
-		if y < t:
-			top = clampi(top - ROWS, 0, _max_top())
-		elif y >= t + THUMB.y:
-			top = clampi(top + ROWS, 0, _max_top())
-		else:
-			thumb_drag = y - t
 
 
 ## A box gains the keyboard (notification 0xb, FUN_0051c3f0): the box that had it is checked first.
@@ -378,8 +359,8 @@ func _draw() -> void:
 	if fe == null or not _shown():
 		return
 	var c := CONTENT
-	_blit("log/%sb.png" % TAB_ART[tab], c + STRIP)
-	_blit("log/%s.png" % TAB_ART[tab], c + PAGE)
+	fe._blit("log/%sb.png" % TAB_ART[tab], c + STRIP, self)
+	fe._blit("log/%s.png" % TAB_ART[tab], c + PAGE, self)
 	if not data.current().is_empty():
 		match tab:
 			0:
@@ -394,7 +375,7 @@ func _draw() -> void:
 
 
 func _draw_list() -> void:
-	_blit("log/pilotslb.png", LIST)
+	fe._blit("log/pilotslb.png", LIST, self)
 	for r in ROWS:
 		var i := top + r
 		if i >= data.pilots.size():
@@ -404,10 +385,10 @@ func _draw_list() -> void:
 		var w := _text_width(s)
 		_text(Vector2(box.position.x + (box.size.x - w) / 2.0, box.end.y - (ROW_H - _line_h()) / 2.0), s, GREEN if i == data.selected else DIM_GREEN)
 	# Scrollbar (FUN_004f3700 layout, as Arming): sldownb at the top, slupb at the bottom, the thumb between.
-	var bar := Rect2(LIST + BAR.position, BAR.size)
-	_blit("log/sldownb_%d.png" % (2 if arrow == "up" else 0), bar.position)
-	_blit("log/slupb_%d.png" % (2 if arrow == "down" else 0), Vector2(bar.position.x, bar.end.y - ARROW.y))
-	_blit("log/slider.png", Vector2(bar.position.x, _thumb_y()))
+	var bar := _bar()
+	fe._blit("log/sldownb_%d.png" % (2 if fe.ctrl_arrow == "up" else 0), bar.position, self)
+	fe._blit("log/slupb_%d.png" % (2 if fe.ctrl_arrow == "down" else 0), Vector2(bar.position.x, bar.end.y - ARROW.y), self)
+	fe._blit("log/slider.png", Vector2(bar.position.x, _thumb_y()), self)
 
 
 func _draw_dossier(at: Vector2) -> void:
@@ -415,7 +396,7 @@ func _draw_dossier(at: Vector2) -> void:
 		var box: Rect2 = [NAME_BOX, CALL_BOX][b]
 		_text(at + Vector2(box.position.x, box.end.y), edit[b], GREEN)
 		if focus == b and caret_on:
-			_blit("misc/logincaret.png", at + Vector2(box.position.x + _text_width(edit[b].left(caret[b])), box.end.y - 16))
+			fe._blit("misc/logincaret.png", at + Vector2(box.position.x + _text_width(edit[b].left(caret[b])), box.end.y - 16), self)
 	var path := ""
 	if photo < 14:
 		path = "log/pilots/%d.png" % photo
@@ -450,7 +431,7 @@ func _draw_records(at: Vector2) -> void:
 		elif Pilots.failures(missions, id) > 0:
 			stamp = "log/failed.png"
 		if stamp != "":
-			_blit(stamp, at + Vector2(118 + (id % 10 - 1) * 36, STAMP_Y[id / 10]))
+			fe._blit(stamp, at + Vector2(118 + (id % 10 - 1) * 36, STAMP_Y[id / 10]), self)
 
 
 ## FUN_0051b050: per display group with a count, its icon cell in the next slot of its row and the name
@@ -467,7 +448,7 @@ func _draw_kills(at: Vector2, kills: bool) -> void:
 			continue
 		var slot: Vector2 = SLOTS[row][used[row]]
 		used[row] += 1
-		_region(icons, Rect2(Vector2(ICON_CELL[row] * CELL.x, 0), CELL), at + slot)
+		fe._blit_region(icons, Rect2(Vector2(ICON_CELL[row] * CELL.x, 0), CELL), at + slot, self)
 		var label: String = Pilots.GROUPS[g][0] if n < 2 else "%sX%d" % [Pilots.GROUPS[g][0], n]
 		_raster(key_font, at + slot + Vector2(13 - 3 * label.length(), 17), label, GREEN)
 	for r in 3:
@@ -476,18 +457,6 @@ func _draw_kills(at: Vector2, kills: bool) -> void:
 			continue
 		var s := "%d" % v
 		_raster(hud_font, at + TOTALS[r] - Vector2(6 * s.length(), 4), s, GREEN if kills else RED)
-
-
-func _blit(path: String, pos: Vector2) -> void:
-	var t: Texture2D = fe._tex(path)
-	if t != null:
-		draw_texture_rect(t, fe._rect(Rect2(pos, fe._art_size(t))), false)
-
-
-func _region(path: String, src: Rect2, dest: Vector2) -> void:
-	var t: Texture2D = fe._tex(path)
-	if t != null:
-		draw_texture_rect_region(t, fe._rect(Rect2(dest, src.size)), Rect2(src.position * fe.art_scale, src.size * fe.art_scale))
 
 
 func _line_h() -> float:

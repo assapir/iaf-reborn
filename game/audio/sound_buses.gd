@@ -5,6 +5,7 @@
 # the preferences are applied), and multiplies each sound's table volume by it (FUN_004c4ea0).
 # Mute (pref d30) silences everything (FUN_004c5930 -> 0x545040 / 0x545090); the in-flight
 # "Mute sound toggle" (command 135, Ctrl+M) flips it (0x4e3442).
+# The three buses (children of Master) are declared in game/default_bus_layout.tres.
 extends RefCounted
 
 const ENGINE := "IafEngine"
@@ -13,17 +14,6 @@ const SPEECH := "IafSpeech"
 const ALL := [ENGINE, SFX, SPEECH]
 ## soundprop category letter -> bus.
 const BY_CATEGORY := {"E": ENGINE, "F": SFX, "V": SPEECH, "S": SPEECH}
-
-
-## Creates the three buses (children of Master) if they are missing and applies the Settings.
-static func ensure() -> void:
-	for name in ALL:
-		if AudioServer.get_bus_index(name) < 0:
-			var i := AudioServer.bus_count
-			AudioServer.add_bus(i)
-			AudioServer.set_bus_name(i, name)
-			AudioServer.set_bus_send(i, "Master")
-	apply()
 
 
 ## Engine / effects / speech volumes and Mute from the Preferences (Settings autoload).
