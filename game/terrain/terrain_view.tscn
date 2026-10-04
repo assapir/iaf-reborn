@@ -13,6 +13,7 @@ sun_angle_max = 15.0
 
 [sub_resource type="Sky" id="sky"]
 sky_material = SubResource("sky_mat")
+process_mode = 2
 
 [sub_resource type="Environment" id="env"]
 background_mode = 2

@@ -349,8 +349,11 @@ func _update_time_of_day(cam: Camera3D) -> void:
 	var f: Vector3 = -cam.global_basis.z
 	var fog := TimeOfDay.fog(_tod_colors, rad_to_deg(atan2(f.x, -f.z)), float(_tod_sun.sun_az))
 	env.fog_light_color = fog
+	# Writing the sky material re-renders the sky's radiance (the ambient light) that frame: ≈ 1–4 ms on an Iris Xe,
+	# so only when the colour changed by more than an 8-bit step (turning), not every frame.
 	var mat2 = env.sky.sky_material if env.sky != null else null
-	if mat2 is ProceduralSkyMaterial:
+	var was: Color = mat2.sky_horizon_color if mat2 is ProceduralSkyMaterial else Color()
+	if mat2 is ProceduralSkyMaterial and maxf(maxf(absf(was.r - fog.r), absf(was.g - fog.g)), absf(was.b - fog.b)) > 1.0 / 255.0:
 		mat2.sky_horizon_color = fog
 		mat2.ground_horizon_color = fog
 		mat2.ground_bottom_color = fog

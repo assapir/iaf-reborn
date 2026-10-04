@@ -106,6 +106,19 @@ Terrain close up ≈ +0.5–1.5 ms near the ground (16× anisotropic filtering i
 only when the altitude step changes). Screenshots of each pose are written by the bench
 (`BENCH_SEED=3` for the broken-cloud texture Cloud256_0 instead of the overcast Cloud256_5).
 
+### 3.1 Flying, best settings (`tests/godot/_flight_bench.gd BENCH_BEST=1`)
+
+Every Graphics option up, MSAA 4× + FXAA, close up, atmospheric sky, the mapi2015 / sentinel2 imagery, 1920×1080:
+
+- **M4 Pro (Metal):** CPU-bound. The cockpit HUD's sprite font cost ≈ 6 ms and ≈ 880 draw calls (one draw call per
+  segment / pixel); one `draw_multiline` per sprite took the bench from 106 to 260–300 fps.
+- **Iris Xe:** GPU-bound, 35–50 fps (GPU 19–27 ms; terrain hidden: 8 ms; half resolution about halves it). Costs,
+  static legs: shadows ≈ 4 ms (the 8192 atlas ≈ 1.8 ms of it, so the atlas is 4096 now), MSAA 4× ≈ 4 ms over TAA,
+  close up / FXAA / cloud layer ≈ 0.3–0.5 ms each, the 2 m imagery none measurable. The original sky cost 1–4 ms more
+  than the atmospheric one: its horizon colours were rewritten every frame (each write re-renders the sky radiance);
+  they are written only on change now and the sky radiance is incremental. These last two changes were not yet
+  re-measured in a clean A/B on the Iris.
+
 ## 4. Time of day (built: game/terrain/time_of_day.gd)
 
 The original's day / night rendering (only mission 214 starts at night by these rules; 112, 237, 515 start at 05:xx,
