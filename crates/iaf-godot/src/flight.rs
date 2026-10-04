@@ -362,6 +362,9 @@ impl IafFlight {
             }
         };
         let o = ap.step(ac, &g);
+        if o.release {
+            d.set("release", true);
+        }
         if let Some((y, x)) = o.stick {
             d.set("stick_x", x);
             d.set("stick_y", -y);

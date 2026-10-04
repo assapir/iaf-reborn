@@ -451,7 +451,24 @@ its Tower point, the engine test its Lineup point.
   AI on MISSION-controlled units (their brain runs without manoeuvres: not started), network paths.
 - Tests: `test_ai_flight.gd` (mission 221: 13 AI jets navigate, wingmen in formation, a take-off from Ramon).
 
-## 13. Combat (traced, not built yet)
+## 13. Combat (partly built)
+
+**Port** (`game/ai/combat.gd` for the AI jets, `crates/iaf-flight/src/autopilot.rs` for the manoeuvres). Built:
+- The sensor (kind 4: 10 slots, a scan every 2 s; the range by type, else 40 nm) and the selectors: **400 / 440** the
+  best of the air-mode scan, **410** of the ground-mode scan (`FUN_004ac820` / `FUN_004ac900`), **420** the primary
+  target (`FUN_004ac9e0`: brain+0x74, the formation slot's target, unless it is the jet itself; else none).
+- The stations (the mission's or the object's load); 330 / 340 one cycle step to the next AA / AG station with
+  rounds, 350 / 360 / 380 the wanted type, 370 the gun (gate 5.0 s), each setting the fire gate's interval (its
+  action +0x8c); 310 / 320 a decoy's count and 4 s busy (not released: no look, no effect).
+- **300 Launch** as below: a missile through `launch_homing` (q 1.0: UNCERTAIN, the AI's q not traced), the gun a
+  1 s burst of rounds every 0.2 s (UNCERTAIN: what ends an AI burst). A Launch that does not fire leaves its type
+  gate free (brain.gd).
+- Conditions 8, 10, 12, 14, 17, 20, 21, 26 (the target's brain+0x7c; locks of AI jets not built), 37; 27 invalid.
+- **Dogchase** (mode 0x11, below) with the target fed every frame (`ap_set_target`) and the nose-on flag.
+
+Not built: the other manoeuvres (Shandel, Himmelman, SplitS, Horizontal, RunAway, Break90, TailClear, LevelBomb,
+DiveBomb, PopupRelease: an unknown mode leaves the autopilot idle), bombs from AI jets, AI radar locks (RWR "AI"
+entries), decoys from AI jets. Tests: crates/iaf-flight/tests/autopilot.rs (Dogchase), tests/godot/test_ai_air_combat.gd.
 
 Partial decode for the AI combat job (scratch work; argument orders of `4440d0` checked in the disassembly).
 Corrections to §4 / §5: action **430 is "target = my nearest RWR emitter"** (`CTL.451f70()`, within 370 800 m;
@@ -540,9 +557,9 @@ B+0x7c); 39 any RWR entry's launch flag.
   fire per weapon (`454270(T, 1)`: gun burst / aim, missile q, bomb ripple), the target selectors, the decoy logic,
   B+0x7c writers, the RWR internals, the hit reactions `44d590` / `43ff50`.
 
-## 14. Ground defences, RWR, script ops 1 / 2 (traced; built: the player's RWR and the decoys, docs/rwr.md, docs/weapons.md §10, and the ground units' fire, game/ai/ground_fire.gd; not built: script ops 1 / 2, the decoys' effect on missiles)
+## 14. Ground defences, RWR, script ops 1 / 2 (traced; built: the player's RWR and the decoys, docs/rwr.md, docs/weapons.md §10, and the ground units' fire, game/ai/combat.gd; not built: script ops 1 / 2, the decoys' effect on missiles)
 
-Port (`game/ai/ground_fire.gd`): every armed unit other than the aircraft (its first valid station) has a weapon
+Port (`game/ai/combat.gd`): every armed unit other than the aircraft (its first valid station) has a weapon
 handler, which script op 2 fires (below). A unit of a sensor class with a brain, brain or mission controlled (a
 mission-controlled unit's brain runs, §2), also gets its brain (no manoeuvres),
 the sensor (both modes' classes scanned every 6 s, the selector filters: 400 / 440 air, 410 ground, 420 either, the

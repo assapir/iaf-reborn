@@ -295,7 +295,7 @@ execute that entry and schedule its end timer.
 | op | editor name | Execute | effect |
 |---|---|---|---|
 | 1 | Launch at location | `0x5c4160` | fire weapon at point (floats 0x852/0x85c…) — UNCERTAIN args |
-| 2 | **Launch at target** | `0x5c42f0` | `FUN_004aae40(target key from 0x8ac entity id, …)`: the unit's weapon at the target's position (no lead, no range check) through the release `FUN_004ab810` (docs/ai.md §14). Port: `ground_fire.gd` `script_fire` |
+| 2 | **Launch at target** | `0x5c42f0` | `FUN_004aae40(target key from 0x8ac entity id, …)`: the unit's weapon at the target's position (no lead, no range check) through the release `FUN_004ab810` (docs/ai.md §14). Port: `combat.gd` `script_fire` |
 | 3, 4, 15, 18, 19, 23, 26 | (15 = **Wait**, 19 = "Destroy entity") | `0x58a330` | **no-op** (only the duration). Op 19 is a no-op in this build |
 | 5 | **Explode** | `0x5c4310` | `FUN_004a8ae0(0,5,…)`: set damage level 5, entity destroyed (docs/damage.md §3). Skipped for the player when `FUN_0058a350()` is true (UNCERTAIN) |
 | 6 | — | `0x5c4340` | fire scenario event (arg) |

@@ -565,3 +565,93 @@ fn dogchase_gets_on_the_targets_tail() {
     assert!(min_d < 1500.0, "the chaser closes on the target ({min_d:.0} m)");
     assert!(nose_on > 10.0, "the nose on the target for a while ({nose_on:.0} s)");
 }
+
+/// A ground target (a point that does not move).
+fn ground_target(pos: [f64; 3]) -> Leader {
+    Leader { pos, vel: [0.0; 3], att: [0.0; 3], active: true }
+}
+
+/// Flies a bombing manoeuvre at a fixed ground target until the release; returns (release time, the vacuum impact's
+/// miss at the release, the lowest height above the ground).
+fn bomb_run(mode: u8, start: [f64; 3], seconds: f64) -> Option<(f64, f64, f64)> {
+    let inst = install()?;
+    let mut ac = jet(&inst, "F-16", start, 0.0, true);
+    let mut ap = Autopilot::new(Config::load(&inst));
+    let tgt = [0.0, 20000.0, 0.0];
+    ap.target = Some(ground_target(tgt));
+    ap.set_mode(&mut ac, mode);
+    let g = |_: f64, _: f64| 0.0;
+    let mut low = f64::MAX;
+    for i in 0..(seconds / DT) as usize {
+        ac.ground_height = 0.0;
+        let o = ap.step(&mut ac, &g);
+        ac.step(DT);
+        let s = ac.state();
+        low = low.min(s.position[2]);
+        assert!(s.position[2] > 30.0, "{mode:#x}: the jet stays clear of the ground ({:.0} m)", s.position[2]);
+        if o.release {
+            let (p, v) = (s.position, s.velocity);
+            let t = (v[2] as f64 + ((v[2] as f64).powi(2) + 2.0 * 9.80665 * p[2]).sqrt()) / 9.80665;
+            let miss = (p[0] + v[0] as f64 * t - tgt[0]).hypot(p[1] + v[1] as f64 * t - tgt[1]);
+            println!("{mode:#x}: release at {:.1} s, {}, miss {miss:.0} m, alt {:.0}", i as f64 * DT, ap.stage(), p[2]);
+            return Some((i as f64 * DT, miss, low));
+        }
+    }
+    println!("{mode:#x}: no release, {}", ap.stage());
+    None
+}
+
+#[test]
+fn level_bomb_releases_over_the_target() {
+    let Some(_) = install() else { return };
+    let (_, miss, _) = bomb_run(0x16, [0.0, 0.0, 1500.0], 200.0).expect("a release");
+    // The original releases once the vacuum impact is within 2·(z − T.z) of the target (generous by design).
+    assert!(miss < 2.0 * 1510.0, "the release within 2·height of the target ({miss:.0} m)");
+}
+
+#[test]
+fn dive_bomb_dives_and_releases() {
+    let Some(_) = install() else { return };
+    let (_, miss, _) = bomb_run(0x17, [0.0, 0.0, 3000.0], 300.0).expect("a release");
+    assert!(miss < 600.0, "the release with the vacuum impact near the target ({miss:.0} m)");
+}
+
+/// An air manoeuvre against a target holding position (HoldPositionCL, 180 m/s: the manoeuvres fly at 231.75 m/s and
+/// would not catch a cruising jet): the jet stays airborne and gets within `close` m.
+fn air_fight(mode: u8, close: f64) {
+    let Some(inst) = install() else { return };
+    let mut tgt = jet(&inst, "F-16", [0.0, 0.0, 3000.0], 90.0, true);
+    let mut ch = jet(&inst, "F-16", [-6000.0, -9000.0, 2500.0], 0.0, true);
+    let cfg = Config::load(&inst);
+    let mut tap = Autopilot::new(cfg);
+    tap.set_mode(&mut tgt, 10);
+    let mut cap = Autopilot::new(cfg);
+    cap.set_mode(&mut ch, mode);
+    let g = |_: f64, _: f64| 0.0;
+    let mut min_d = f64::MAX;
+    for i in 0..(240.0 / DT) as usize {
+        cap.target = Some(leader_of(&tgt));
+        tap.step(&mut tgt, &g);
+        cap.step(&mut ch, &g);
+        tgt.step(DT);
+        ch.step(DT);
+        let (t, c) = (tgt.state(), ch.state());
+        let d = ((t.position[0] - c.position[0]).powi(2) + (t.position[1] - c.position[1]).powi(2) + (t.position[2] - c.position[2]).powi(2)).sqrt();
+        min_d = min_d.min(d);
+        if i % 1800 == 0 {
+            println!("{mode:#x} t {:.0}: dist {d:.0} alt {:.0} v {:.0} {}", i as f64 * DT, c.position[2], c.speed, cap.stage());
+        }
+        assert!(c.position[2] > 50.0 && c.position[2].is_finite(), "{mode:#x}: airborne ({:.0} m)", c.position[2]);
+    }
+    println!("{mode:#x}: closest {min_d:.0} m");
+    assert!(min_d < close, "{mode:#x} closes on the target ({min_d:.0} m)");
+}
+
+#[test]
+fn shandel_split_s_horizontal_himmelman_tail_clear_fly() {
+    air_fight(0xd, 3000.0);
+    air_fight(0xf, 3000.0);
+    air_fight(0x10, 3000.0);
+    air_fight(0xe, 3000.0);
+    air_fight(0x14, 3000.0);
+}

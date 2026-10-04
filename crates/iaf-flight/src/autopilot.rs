@@ -152,6 +152,9 @@ pub struct Out {
     /// The player's landing stopped (StopPlaneCL in FM mode 0, @5d4b40): it presses the autopilot key
     /// (GEV 0x10, forced), which turns the autopilot off from NAV.
     pub ap_key: bool,
+    /// A bombing manoeuvre's release (LevelBomb / DiveBomb / PopupRelease, `440440`): the host fires the selected
+    /// weapon through the fire gate, as action 300.
+    pub release: bool,
 }
 
 fn wrap(a: f32) -> f32 {
@@ -429,6 +432,7 @@ impl<'a> Laws<'a> {
                     }
                 }
                 3 => -roll,
+                4 => e,
                 _ => 0.0,
             };
         }
@@ -801,6 +805,25 @@ enum Loop {
     },
     /// Dogchase (mode 0x11, manager +0x1de8, Run `5cea30`): chase the target (`Autopilot::target`).
     Dogchase,
+    /// Shandel (0xd, kind 0x17) / SplitS (0xf, kind 0x16) / Horizontal (0x10, kind 0x18): Run `5d1100`.
+    Pursuit { kind: u8, speed: f32 },
+    /// Himmelman (0xe, Run `5ce8c0`): ChangeAlt, Fly2ImpactPt, Dogchase.
+    Himmelman { child: u8, pt_z: f64 },
+    /// TailClear (0x14, Run `5dac30`).
+    TailClear { state: u8, a: f64 },
+    /// DiveBomb (0x17, Run `5d8590`).
+    DiveBomb(Box<DiveBomb>),
+    /// LevelBomb (0x16, Run `5d9290`): to above the target, release, then LevelWingsPitch0Accel.
+    LevelBomb { released: bool, z: f64, lw_pitch: f32 },
+}
+
+/// DiveBomb's state (`5d8590`): the state code, the two Fly2TargetXyzSt points with their speed / throttle / case.
+#[derive(Debug, Clone)]
+struct DiveBomb {
+    state: u8,
+    a: Option<(V3, f32)>,
+    b: (V3, f32, f32, u8),
+    lw_pitch: f32,
 }
 
 /// Dogchase Run `5cea30` (docs/ai.md §13.3), every 0.5 s: the aim point is the target within 1000 m, else
@@ -842,6 +865,320 @@ fn dogchase(l: &mut Laws, t: &Leader) -> bool {
     l.stick(y, x);
     l.throttle(thr);
     nose_on
+}
+
+// --- combat manoeuvres (docs/ai.md §13.3) ----------------------------------------------------------------
+
+fn v_sub(a: V3, b: V3) -> V3 {
+    [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
+}
+fn v_add(a: V3, b: V3) -> V3 {
+    [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
+}
+fn v_mul(a: V3, k: f64) -> V3 {
+    [a[0] * k, a[1] * k, a[2] * k]
+}
+fn v_dot(a: V3, b: V3) -> f64 {
+    a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+}
+fn v_len(a: V3) -> f64 {
+    v_dot(a, a).sqrt()
+}
+fn v_cross(a: V3, b: V3) -> V3 {
+    [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
+}
+fn v_unit(a: V3) -> Option<V3> {
+    let l = v_len(a);
+    (l > 1e-9).then(|| v_mul(a, 1.0 / l))
+}
+
+/// Fly2TargetXyzSt `5d9740` (vtable 0x612d10): LookAt (`case`) on the point with the target roll 0 (`5d9970`);
+/// throttle: the speed law to `speed` when > 0, else `thr` when > 0, else 0.75; watch-ground unless case 4.
+fn fly_to_point(l: &mut Laws, t: V3, case: u8, speed: f32, thr: f32) {
+    let (mut y, mut x) = l.look_at(t, 0.0, case).unwrap_or((0.0, 0.0));
+    let mut th = if speed > 0.0 {
+        l.thr(speed)
+    } else if thr > 0.0 {
+        thr
+    } else {
+        0.75
+    };
+    if case != 4 {
+        l.watch_ground(&mut x, &mut y, &mut th);
+    }
+    l.stick(y, x);
+    l.throttle(th);
+}
+
+/// `5d18b0`: the point L ahead on the turn that joins the target's track (w the target's direction, m the part of
+/// P − A across it): φ = θ + sqrt(θ² + 2(a − b)/a), θ = atan2(d·w, d·m), a = |V|, b = max(|V_T|, 1).
+fn turn_point(p: V3, v: V3, a: V3, vt: V3, l: f64) -> V3 {
+    let Some(w) = v_unit(vt) else { return a };
+    let d = v_sub(p, a);
+    let Some(u) = v_unit(d) else { return a };
+    let Some(n) = v_unit(v_cross(u, w)) else { return a };
+    let Some(m) = v_unit(v_cross(w, n)) else { return a };
+    let (dx, dy) = (v_dot(d, m), v_dot(d, w));
+    let th = dy.atan2(dx);
+    let (sa, sb) = (v_len(v), v_len(vt).max(1.0));
+    let mut phi = th + (th * th + 2.0 * (sa - sb) / sa.max(1e-9)).max(0.0).sqrt();
+    if dx < 0.0 {
+        phi = -phi;
+    }
+    v_add(p, v_mul(v_sub(v_mul(w, phi.cos()), v_mul(m, phi.sin())), l))
+}
+
+/// Shandel / SplitS / Horizontal (Run `5d1100`): within R (SplitS 5562, others 7416 m) Dogchase; else
+/// Fly2TargetXyzSt (case 1) to the turn point toward A: SplitS above the target (T.z + 3048, at least 3657.6);
+/// Shandel / Horizontal 5191.2 m to the near side of the target's track, Shandel 1828.8 above (below when I am lower
+/// and it is high above its terrain), Horizontal at its height. The speed 231.75 is set after the run (quirk: the
+/// first tick flies at 0.75).
+fn pursuit(l: &mut Laws, t: &Leader, kind: u8, speed: &mut f32) -> bool {
+    let v = l.v;
+    let d = v_sub(t.pos, v.pos);
+    let r = if kind == 0x16 { 5562.0 } else { 7416.0 };
+    if v_len(d) < r {
+        return dogchase(l, t);
+    }
+    let a = match kind {
+        0x16 => [t.pos[0], t.pos[1], (t.pos[2] + 3048.0).max(3657.6)],
+        _ => {
+            let ht = (l.ground)(t.pos[0], t.pos[1]) as f64;
+            let z = match kind {
+                0x17 if v.pos[2] < t.pos[2] && t.pos[2] > ht + 1828.8 + 609.6 => (t.pos[2] - 1828.8).max(ht + 304.8),
+                0x17 => (t.pos[2] + 1828.8).max(ht + 3048.0),
+                _ => t.pos[2],
+            };
+            let f = v_unit([t.vel[0], t.vel[1], 0.0]).unwrap_or([1.0, 0.0, 0.0]);
+            let rt = [f[1], -f[0], 0.0];
+            let (a1, a2) = (v_add(t.pos, v_mul(rt, 5191.2)), v_sub(t.pos, v_mul(rt, 5191.2)));
+            let near = if v_len(v_sub(a1, v.pos)) <= v_len(v_sub(a2, v.pos)) { a1 } else { a2 };
+            [near[0], near[1], z]
+        }
+    };
+    let q = turn_point(v.pos, v.vel, a, t.vel, 10000.0);
+    fly_to_point(l, q, 1, *speed, 0.0);
+    *speed = 231.75;
+    false
+}
+
+/// `5cb850`: the heading to intercept the target (lead collision when possible, else pursuit of a lead point; quirk:
+/// the lead scales V_T by |V| / d, 1/s not s) and the speed to fly: (horizontal distance, speed, heading).
+fn intercept(p: V3, s: f64, t: V3, vt: V3) -> (f64, f32, f32) {
+    let d = v_sub(t, p);
+    let dh = [d[0], d[1], 0.0];
+    let dist = v_len(dh);
+    if dist <= 0.0 {
+        return (0.0, s as f32, 0.0);
+    }
+    let u = v_mul(dh, -1.0 / dist);
+    let c = v_dot(u, vt);
+    let w2 = v_dot(vt, vt) - c * c;
+    let k = s * s - w2;
+    let (dir, speed) = if k > 0.0 && (c > 0.0 || c.abs() <= k.sqrt()) {
+        let b0 = d[1].atan2(d[0]);
+        let mut g = (k.sqrt() / s.max(1e-9)).clamp(-1.0, 1.0).acos();
+        if v_cross(vt, u)[2] < 0.0 {
+            g = -g;
+        }
+        ([(b0 + g).cos(), (b0 + g).sin()], s)
+    } else {
+        let lp = v_add(t, v_mul(vt, s / dist));
+        ([lp[0] - p[0], lp[1] - p[1]], 2.0 * s)
+    };
+    (dist, speed as f32, wrap((dir[0] as f32).atan2(dir[1] as f32)))
+}
+
+/// Himmelman (Run `5ce8c0`, children of `5c6be0`): ChangeAlt to the averaged terrain + 166.5 m (re-aimed when it
+/// moves by more than 200 m) until within 250 m; Fly2ImpactPt, terrain following on the intercept heading, until the
+/// target is within 3708 m or more than 35° above; then Dogchase.
+fn himmelman(l: &mut Laws, t: &Leader, child: &mut u8, pt_z: &mut f64, origin: [f64; 2]) -> bool {
+    let v = l.v;
+    let c = l.c;
+    if pt_z.is_nan() {
+        // Init 5ce5a0: the terrain at the world origin + 333 within 0..3000 (quirk: the origin, not the jet).
+        *pt_z = ((l.ground)(-origin[0], -origin[1]) as f64 + 333.0).clamp(0.0, 3000.0);
+    }
+    if *child == 0 {
+        let dt = c.watch_ground_dt as f64;
+        let p1 = v_add(v.pos, v_mul(v.vel, dt));
+        let z = (((l.ground)(v.pos[0], v.pos[1]) as f64 + 333.0 + (l.ground)(p1[0], p1[1]) as f64) * 0.5).clamp(-100.0, 3200.0);
+        if (*pt_z - z).abs() > 200.0 {
+            *pt_z = z;
+        }
+        if (v.pos[2] - *pt_z).abs() < 250.0 {
+            *child = 1;
+        } else {
+            change_alt(l, *pt_z);
+            return false;
+        }
+    }
+    if *child == 1 {
+        let d = v_sub(t.pos, v.pos);
+        let hd = d[0].hypot(d[1]);
+        if v_len(d) <= 3708.0 || (d[2].atan2(hd) as f32) > 35f32.to_radians() {
+            *child = 2;
+        } else {
+            fly_to_impact(l, t);
+            return false;
+        }
+    }
+    dogchase(l, t)
+}
+
+/// Fly2ImpactPt `5d7ad0`: the intercept heading by the change-heading bank (±80°), full throttle within 22248 m else
+/// the speed law; pitch to clear the terrain 333 m above the point WatchGroundDeltaTime ahead (quirk: + V.z/15 on every
+/// axis), else wings level and 15° up; no descent while banked beyond 20°.
+fn fly_to_impact(l: &mut Laws, t: &Leader) {
+    let v = l.v;
+    let c = l.c;
+    let (d, vt, hdg) = intercept(v.pos, v.speed as f64, t.pos, t.vel);
+    let thr = if d < 22248.0 { 1.0 } else { l.thr(vt) };
+    let lim = 80f32.to_radians();
+    let e = wrap(hdg - v.att.heading);
+    let bank = (e / (PI / 6.0) * c.change_head_k * lim - v.rates[2] * c.change_head_beta).clamp(-lim, lim);
+    let mut xs = l.roll(bank);
+    let k = v.vel[2] / 15.0;
+    let a = v_add(v_add(v.pos, v_mul(v.vel, c.watch_ground_dt as f64)), [k, k, k]);
+    let ha = (l.ground)(a[0], a[1]) as f64 + 333.0;
+    let mut pitch_t = if l.los(v.pos, [a[0], a[1], ha]) {
+        ((ha - v.pos[2]) as f32).atan2((a[0] - v.pos[0]).hypot(a[1] - v.pos[1]) as f32)
+    } else {
+        xs = l.roll(0.0);
+        15f32.to_radians()
+    };
+    if bank.abs() > 20f32.to_radians() && pitch_t < 0.0 {
+        pitch_t = 0.0;
+    }
+    let y = l.pitch(pitch_t);
+    l.stick(y, xs);
+    l.throttle(thr);
+}
+
+/// TailClear (Run `5dac30`): while the target is ahead (and every other tick: quirk, the state flips) Dogchase; else
+/// Fly2TargetXyzSt to 200 m ahead and 600 m along D × F (float noise picks the sign: +600 as coded, the target brain
+/// fields of the −600 case UNCERTAIN), at least terrain + A (A already holds terrain: quirk), 103 m/s when at or above
+/// it + 182.88, else 309 m/s.
+fn tail_clear(l: &mut Laws, t: &Leader, state: &mut u8, a: f64) -> bool {
+    let v = l.v;
+    let Some(f) = v_unit(v.vel) else {
+        l.stick(0.0, 0.0);
+        return false;
+    };
+    let d = v_sub(t.pos, v.pos);
+    *state = if v_dot(d, f) > 0.0 && *state != 0x19 { 0x19 } else { 0x1f };
+    if *state == 0x19 {
+        return dogchase(l, t);
+    }
+    let r = v_unit(v_cross(d, f)).unwrap_or([0.0, 0.0, 1.0]);
+    let h = v.ground_height as f64;
+    let speed = if h + a <= v.pos[2] + 182.88 { 103.0 } else { 309.0 };
+    let mut q = v_add(v_add(v.pos, v_mul(f, 200.0)), v_mul(r, 600.0));
+    q[2] = q[2].max(h + a);
+    fly_to_point(l, q, 1, speed, 0.0);
+    false
+}
+
+/// The vacuum impact of a store released now (`45ed10`, UNCERTAIN: its integration; here the drop to the target's
+/// height under gravity alone).
+fn vacuum_impact(p: V3, v: V3, z: f64) -> V3 {
+    let h = p[2] - z;
+    let vz = v[2];
+    let t = (vz + (vz * vz + 2.0 * 9.80665 * h.max(0.0)).sqrt()) / 9.80665;
+    [p[0] + v[0] * t, p[1] + v[1] * t, z]
+}
+
+/// LevelBomb (Run `5d9290`): Fly2TargetXyzSt at 257.5 m/s to (T.x, T.y, max(z, T.z + 609.6)); the release when the
+/// vacuum impact is within 2·(z − T.z) of the target; then LevelWingsPitch0Accel 180 m/s.
+fn level_bomb(l: &mut Laws, t: &Leader, released: &mut bool, z: f64, lw: &mut f32, vmin12: f32) {
+    let v = l.v;
+    if *released {
+        let _ = level_wings_accel(l, lw, 180.0, vmin12);
+        return;
+    }
+    let zz = z.max(t.pos[2] + 609.6);
+    fly_to_point(l, [t.pos[0], t.pos[1], zz], 1, 257.5, 0.0);
+    let i = vacuum_impact(v.pos, v.vel, t.pos[2]);
+    if (i[0] - t.pos[0]).hypot(i[1] - t.pos[1]) <= 2.0 * (v.pos[2] - t.pos[2]).max(0.0) {
+        l.out.release = true;
+        *released = true;
+    }
+}
+
+impl DiveBomb {
+    /// Run `5d8590`: approach high (5), dive at the point 800 m short of the target (7), on the target once the
+    /// vacuum impact misses by less than 1000 m (9), release with the miss under 400 m (600 for types 210 / 220) and
+    /// the wings within 15° (0xb), zoom climb 13716 m on (0xd), re-attack. Returns the root period when it changes.
+    fn step(&mut self, l: &mut Laws, t: &Leader, vmin12: f32) -> Option<f64> {
+        let v = l.v;
+        let d = v_sub(t.pos, v.pos);
+        let d3 = v_len(d).max(1e-9);
+        let dir = [d[0] / d3, d[1] / d3]; // quirk: divided by the 3-D distance
+        let dh = d[0].hypot(d[1]);
+        let ht = v.pos[2] - t.pos[2];
+        let s = self.state;
+        let mut period = None;
+        let in_win = s != 0xb && dh > 300.0 && dh < 3657.6 && ht < 3048.0;
+        if in_win {
+            let i = vacuum_impact(v.pos, v.vel, t.pos[2]);
+            let miss = (i[0] - t.pos[0]).hypot(i[1] - t.pos[1]);
+            let rr = if v.type_code == 210 || v.type_code == 220 { 600.0 } else { 400.0 };
+            if miss < rr && v.att.roll.abs() < 15f32.to_radians() && s == 9 {
+                l.out.release = true;
+                self.state = 0xb;
+            } else if miss < 1000.0 && ![9, 0xd, 5].contains(&s) {
+                self.state = 8;
+            }
+        } else if dh > 4572.0 && ![0xb, 0xd, 5].contains(&s) {
+            self.state = 4;
+        } else if s != 0xb && dh > 300.0 && dh < 3657.6 && ![0xd, 9, 7].contains(&s) {
+            self.state = 6;
+        } else if (s == 0xb || ht < 3048.0 || dh < 1524.0) && ![0xd, 5, 7].contains(&s) {
+            self.state = 0xc;
+        } else if ![5, 9, 7].contains(&s) {
+            self.state = if dh > 2.0 * 5486.4 || s == 0xb { 0xe } else { 0 };
+        }
+        match self.state {
+            4 => {
+                let a = [t.pos[0] - 1524.0 * dir[0], t.pos[1] - 1524.0 * dir[1], t.pos[2] + 4572.0];
+                self.a = Some((a, 360.5));
+                self.state = 5;
+                fly_to_point(l, a, 1, 360.5, 0.0);
+            }
+            5 => {
+                if let Some((a, sp)) = self.a {
+                    fly_to_point(l, a, 1, sp, 0.0);
+                }
+            }
+            6 => {
+                self.b = ([t.pos[0] - 800.0 * dir[0], t.pos[1] - 800.0 * dir[1], t.pos[2]], 206.0, 0.0, 4);
+                period = Some(0.125);
+                self.state = 7;
+                fly_to_point(l, self.b.0, self.b.3, self.b.1, self.b.2);
+            }
+            8 => {
+                self.b = (t.pos, 206.0, 0.0, 4);
+                period = Some(0.125);
+                self.state = 9;
+                fly_to_point(l, self.b.0, self.b.3, self.b.1, self.b.2);
+            }
+            7 | 9 | 0xd => fly_to_point(l, self.b.0, self.b.3, self.b.1, self.b.2),
+            0xc => {
+                let hd = v_unit([d[0], d[1], 0.0]).unwrap_or([0.0, 1.0, 0.0]);
+                let z = v.pos[2].max(t.pos[2] + 9144.0);
+                self.b = ([v.pos[0] + 13716.0 * hd[0], v.pos[1] + 13716.0 * hd[1], z], 0.0, 1.0, 4);
+                period = Some(0.5);
+                self.state = 0xd;
+                fly_to_point(l, self.b.0, self.b.3, self.b.1, self.b.2);
+            }
+            0xe => {
+                let _ = level_wings_accel(l, &mut self.lw_pitch, 180.0, vmin12);
+                l.throttle(0.75);
+            }
+            _ => {} // 0, 0xb: nothing this tick
+        }
+        period
+    }
 }
 
 /// LandingCL (docs/ai.md §8.3): the pattern points and the step list.
@@ -1067,6 +1404,11 @@ impl Autopilot {
             Loop::Level { .. } => "level: keep orientation".into(),
             Loop::Fly { f } => format!("nav{}", if f.is_none() { " (passed)" } else { "" }),
             Loop::Dogchase => format!("dogchase{}", if self.nose_on { " (nose on)" } else { "" }),
+            Loop::Pursuit { kind, .. } => format!("pursuit kind {kind:#x}"),
+            Loop::Himmelman { child, .. } => format!("himmelman child {child}"),
+            Loop::TailClear { state, .. } => format!("tail clear {state:#x}"),
+            Loop::LevelBomb { released, .. } => format!("level bomb{}", if *released { " (released)" } else { "" }),
+            Loop::DiveBomb(d) => format!("dive bomb state {:#x}", d.state),
             Loop::None => "none".into(),
         }
     }
@@ -1128,6 +1470,14 @@ impl Autopilot {
             }
             0xb => Loop::Straight { pitch: 0.0 },
             0x11 => Loop::Dogchase,
+            0xd => Loop::Pursuit { kind: 0x17, speed: 0.0 },
+            0xf => Loop::Pursuit { kind: 0x16, speed: 0.0 },
+            0x10 => Loop::Pursuit { kind: 0x18, speed: 0.0 },
+            // Init 5ce5a0 (on the first tick, with the terrain): see `himmelman`.
+            0xe => Loop::Himmelman { child: 0, pt_z: f64::NAN },
+            0x14 => Loop::TailClear { state: 0, a: v.pos[2].max(v.ground_height as f64 + 1219.2) },
+            0x16 => Loop::LevelBomb { released: false, z: v.pos[2], lw_pitch: 0.0 },
+            0x17 => Loop::DiveBomb(Box::new(DiveBomb { state: 0, a: None, b: ([0.0; 3], 0.0, 0.0, 4), lw_pitch: 0.0 })),
             _ => Loop::None,
         };
         self.nose_on = false;
@@ -1300,6 +1650,28 @@ impl Autopilot {
             }
             Loop::Dogchase => match self.target {
                 Some(t) => self.nose_on = dogchase(&mut l, &t),
+                None => l.stick(0.0, 0.0),
+            },
+            Loop::Pursuit { kind, speed } => match self.target {
+                Some(t) => self.nose_on = pursuit(&mut l, &t, *kind, speed),
+                None => l.stick(0.0, 0.0),
+            },
+            Loop::Himmelman { child, pt_z } => match self.target {
+                Some(t) => self.nose_on = himmelman(&mut l, &t, child, pt_z, self.origin),
+                None => l.stick(0.0, 0.0),
+            },
+            Loop::TailClear { state, a } => match self.target {
+                Some(t) => self.nose_on = tail_clear(&mut l, &t, state, *a),
+                None => l.stick(0.0, 0.0),
+            },
+            Loop::LevelBomb { released, z, lw_pitch } => match self.target {
+                Some(t) => level_bomb(&mut l, &t, released, *z, lw_pitch, vmin12),
+                None => l.stick(0.0, 0.0),
+            },
+            Loop::DiveBomb(d) => match self.target {
+                Some(t) => {
+                    period = d.step(&mut l, &t, vmin12).unwrap_or(period);
+                }
                 None => l.stick(0.0, 0.0),
             },
             Loop::None => {}

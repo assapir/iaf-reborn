@@ -5,7 +5,7 @@
 extends Node
 
 const Brain := preload("res://ai/brain.gd")
-const GroundFire := preload("res://ai/ground_fire.gd")
+const Combat := preload("res://ai/combat.gd")
 const AircraftModel := preload("res://aircraft/aircraft_model.gd")
 const CLASS_AIRCRAFT := 0x1c
 ## FUN_004a9100: the FM start velocity (200, 200, 0) → 282.84 m/s along the heading.
@@ -14,7 +14,7 @@ const START_SPEED := 282.842712
 var host: Node  # terrain_view.gd
 var runtime: Node  # mission_runtime.gd
 var pilots: Array = []  # Pilot
-var ground: Node  # ground_fire.gd: the armed ground units' brains and weapons
+var combat: Node  # combat.gd: the armed units' weapon handlers, sensors and fire
 var _brains := {}  # bdb brain id -> rules
 var _actions := {}  # bdb action id -> item
 var _formations: Array = []  # [{id, kind, members: [entity], targets: [entity], route: [[x, y, alt, T, action]]}]
@@ -28,6 +28,7 @@ class Pilot:
 	var formation: Dictionary = {}
 	var landed := false
 	var mode := 0
+	var plane := ""  # the converted plane folder (its flight model start)
 	var _state := {}
 	var _host
 
@@ -103,6 +104,7 @@ func setup(h: Node, rt: Node, bdb: Dictionary, files: Array) -> void:
 		p._host = self
 		p.ent = ent
 		p.formation = _formation_of(ent)
+		p.plane = plane
 		if not _start(p, install, plane):
 			continue
 		var model := AircraftModel.create(plane, ent.type_code, bool(p._state.on_ground_start))
@@ -126,9 +128,9 @@ func setup(h: Node, rt: Node, bdb: Dictionary, files: Array) -> void:
 		pilots.append(p)
 		_place(p)
 	print("AI aircraft: %d flying" % pilots.size())
-	ground = GroundFire.new()
-	add_child(ground)
-	ground.setup(host, self, bdb)
+	combat = Combat.new()
+	add_child(combat)
+	combat.setup(host, self, bdb)
 
 
 static func MissionRuntime():
@@ -223,8 +225,11 @@ func _process(delta: float) -> void:
 		p.flight.set_ground_height(g if g != null else -1.0e9)
 		p.flight.set_ai_damage(float(ent.damage) <= 0.1)
 		_feed_leader(p)
+		_feed_target(p)
 		var wp: int = p.flight.ap_waypoint_index()
-		p.flight.ap_step(now)
+		var out: Dictionary = p.flight.ap_step(now)
+		if out.get("release", false):
+			combat.release(ent)  # a bombing manoeuvre's release (440440)
 		# WayPtSet moving on (5d7450: index ≠ brain+0x88) posts the radio's WayptReport (docs/radio.md §4).
 		if p.flight.ap_waypoint_index() != wp and host.get("radio") != null:
 			host.radio.waypoint_passed(ent, p.flight.ap_waypoint_index())
@@ -279,6 +284,24 @@ func _feed_leader(p: Pilot) -> void:
 		var w: Vector3 = world_of(ref)
 		st = {"position": host.world_to_scene(w), "velocity": Vector3.ZERO, "pitch": 0.0, "roll": 0.0, "heading": float(ref.heading)}
 	p.flight.ap_set_leader(true, active, st.position, st.velocity, st.pitch, st.roll, st.heading)
+
+
+## The combat manoeuvres' target (brain +0x70), every frame (the original's loops read the entity live).
+func _feed_target(p: Pilot) -> void:
+	var t: Dictionary = p.brain.target if p.brain != null else {}
+	if t.is_empty() or int(t.state) >= 4:
+		p.flight.ap_set_target(false, Vector3.ZERO, Vector3.ZERO, 0.0, 0.0, 0.0)
+		return
+	var st: Dictionary
+	if t.player:
+		st = host.flight.state()
+	elif t.has("pilot"):
+		st = t.pilot.state()
+	else:
+		var w: Vector3 = world_of(t)
+		st = {"position": host.world_to_scene(w), "velocity": Vector3(t.vel.x, t.vel.z, -t.vel.y), "pitch": 0.0, "roll": 0.0,
+			"heading": float(t.heading)}
+	p.flight.ap_set_target(true, st.position, st.velocity, st.pitch, st.roll, st.heading)
 
 
 func follow(_p: Pilot, _leader) -> void:
@@ -357,16 +380,21 @@ func landed_handler(ent: Dictionary) -> void:
 
 
 ## Weapons, targets, radar, flares / chaff, combat on / off: the combat job (docs/ai.md §5).
-## Armed ground units: ground_fire.gd; AI aircraft: not built.
-func combat_hook(ent: Dictionary, what: String, target: Dictionary) -> void:
-	ground.combat(ent, what, target)
+## The armed units: combat.gd.
+func combat_hook(ent: Dictionary, what: String, target: Dictionary) -> Variant:
+	return combat.combat(ent, what, target)
+
+
+## The combat conditions (docs/ai.md §13.2): combat.gd.
+func combat_measure(ent: Dictionary, code: int, target: Dictionary) -> Variant:
+	return combat.measure(ent, code, target)
 
 
 ## Trigger ops 21 / 22 (FUN_00440830 / FUN_004407e0).
 func set_combat(ent: Dictionary, on: bool) -> void:
 	var p = ent.get("pilot")
 	if p == null:
-		ground.set_combat(ent, on)
+		combat.set_combat(ent, on)
 		return
 	if on:
 		p.brain.enable_combat(runtime.now)

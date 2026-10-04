@@ -214,13 +214,15 @@ func measure(code: int) -> Variant:
 			return pilot.fuel_ratio()
 		36:
 			return float(ent.damage) * 100.0
+		8, 10, 12, 14, 17, 20, 21, 26, 27, 37:
+			return host.combat_measure(ent, code, target)
 		38:
 			# T == my threat (FUN_005c1410): without a controller the threat is brain+0x7c.
 			return int(not target.is_empty() and not attacker.is_empty() and is_same(target, attacker))
 		39:
 			# An RWR launch flag (FUN_005c1490): AI aircraft have no controller, so 0.
 			return 0
-	return null  # 3, 8, 10, 12, 14, 17, 19–21, 26–28, 37: combat job (UNCERTAIN sensors); 19 needs a controller
+	return null  # 3, 19 (needs a controller), 28: not built
 
 
 ## One action: type gate (5, 6 never marked; sub-brains never gated), its effect, its audio.
@@ -234,9 +236,10 @@ func _run(a: Array, now: float) -> void:
 	var type := _type_of(code)
 	var gated := type >= 0 and type != 5 and type != 6 and code != 390
 	if not (gated and done.has(type)):
-		if gated:
+		# The type is marked only when the action really runs: a Launch that does not fire leaves type 1 free
+		# (docs/ai.md §13).
+		if _exec(code) != false and gated:
 			done[type] = true
-		_exec(code)
 	if a[1] != 0 and a[1] != -1:
 		host.play_audio(ent, a[1], a[2])
 
@@ -257,18 +260,19 @@ static func _type_of(code: int) -> int:
 	return -1
 
 
-func _exec(code: int) -> void:
+## Runs one action; false = it did not happen (a Launch that did not fire).
+func _exec(code: int) -> Variant:
 	if MANOEUVRES.has(code):
 		if code in NEEDS_TARGET and target.is_empty():
-			return  # a combat manoeuvre without a target: combat job
+			return null  # a combat manoeuvre without a target
 		if (code == 250 or code == 280) and pilot.landed:
-			return  # 443c90 / 443f60 refuse after a landing (ctl+0xe0)
+			return null  # 443c90 / 443f60 refuse after a landing (ctl+0xe0)
 		var mode: int = MANOEUVRES[code]
 		var arg = leader if code in [190, 200] else (target if code in NEEDS_TARGET else ent)
 		pilot.set_mode(mode, arg)
 		if code == 270 and not leader.is_empty():
 			host.landed_handler(ent)
-		return
+		return null
 	match code:
 		260:
 			pilot.set_waypoint_index(1)
@@ -281,7 +285,8 @@ func _exec(code: int) -> void:
 				engaged = false
 				host.combat_hook(ent, "stop", target)
 		_:
-			host.combat_hook(ent, str(code), target)  # launch, flares, chaff, weapons, targets, radar
+			return host.combat_hook(ent, str(code), target)  # launch, flares, chaff, weapons, targets, radar
+	return null
 
 
 ## Sub-brain (FUN_00444cc0 → setRules FUN_00440790(list, 1)): the list of brain `id` (the wingman command is

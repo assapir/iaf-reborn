@@ -1277,16 +1277,22 @@ func _drop_store(i: int, aim: Vector3) -> void:
 		_rocket_nodes[k] = {"node": node, "w": w}
 		return
 	# v1.1 logic with any data: v1.0's weapons.ibx has 1.0 here (v1.1 changed it to 15, docs/v1.1.md), so a v1.0
-	# install gets the v1.1 value.
+	# install gets the v1.1 value (drop_bomb).
+	drop_bomb(w, p0, o.vel, aim, _me())
+
+
+## One ballistic store from `p0` at `vel` toward `aim` (Bombs.launch), its model and fall loop; `owner` = the
+## releasing unit (the blast's attacker). Not player-specific: AI jets drop through it too.
+func drop_bomb(w: Dictionary, p0: Vector3, vel: Vector3, aim: Vector3, owner: Dictionary) -> void:
 	var clamp_acc: float = db.debug_param(BOMB_CLAMP_PARAM, 15.0)
 	if is_equal_approx(clamp_acc, 1.0):
 		clamp_acc = 15.0
-	var b := Bombs.launch(now, p0, o.vel, aim, clamp_acc)
+	var b := Bombs.launch(now, p0, vel, aim, clamp_acc)
 	var node := _instance(String(w.model_path))
 	if node != null:
 		host.add_child(node)
-	var snd = host.sounds.play("SFX_OBJECT_SPECIFIC", ost)
-	bombs.append({"b": b, "w": w, "node": node, "sound": snd, "t0": now})
+	var snd = host.sounds.play("SFX_OBJECT_SPECIFIC", OST.get(int(w.type), "OST_BOMB"))
+	bombs.append({"b": b, "w": w, "node": node, "sound": snd, "t0": now, "owner": owner})
 	_place_bomb(bombs[-1])
 
 
@@ -1424,7 +1430,7 @@ static func _orient(node: Node3D, v: Vector3) -> void:
 ## SFX_WEAPON_EXPLODED of the store's OST.
 func _bomb_detonate(bm: Dictionary, p: Vector3) -> void:
 	var w: Dictionary = bm.w
-	var me := _me()
+	var me: Dictionary = bm.get("owner", _me())
 	var hit := []
 	if host.runtime != null and not me.is_empty() and float(w.power) > 0.0:
 		hit = host.runtime.area_damage(p, float(w.power), float(w.radius), me, "bomb")

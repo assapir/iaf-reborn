@@ -13,7 +13,7 @@ func run() -> void:
 	var tv = await start_mission(313)
 	await frames(3)
 	tv.frozen = true
-	var g = tv.ai.ground
+	var g = tv.ai.combat
 	# Six SA-3 launchers (630; their Disable combat runs only when their radar dies) and three ZSUs (565).
 	var aaa: Array = g.units.values().filter(func(x): return int(x.w.type) == 565)
 	check(g.units.size() == 9 and aaa.size() == 3, "313: nine armed ground units, three ZSUs (%d / %d)" % [aaa.size(), g.units.size()])
@@ -53,7 +53,7 @@ func run() -> void:
 	tv = await start_mission(313)
 	await frames(3)
 	tv.frozen = true
-	await _sam(tv, tv.ai.ground)
+	await _sam(tv, tv.ai.combat)
 	await _rockets()
 
 
@@ -117,7 +117,7 @@ func _rockets() -> void:
 	var tv = await start_mission(322)
 	await frames(3)
 	tv.frozen = true
-	var g = tv.ai.ground
+	var g = tv.ai.combat
 	var rt = tv.runtime
 	var u = null
 	var sams := 0

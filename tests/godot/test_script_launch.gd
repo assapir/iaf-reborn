@@ -12,7 +12,7 @@ func run() -> void:
 	var rt = tv.runtime
 	var heli: Dictionary = _named(rt, "MI24 1")
 	var boat: Dictionary = _named(rt, "satil 1")
-	var u = tv.ai.ground.units.get(heli.key)
+	var u = tv.ai.combat.units.get(heli.key)
 	check(u != null and u.brain == null and int(u.w.type) == 580, "233 MI24 1: armed (580), no brain-driven fire (class 2)")
 	if u == null:
 		return
@@ -36,7 +36,7 @@ func run() -> void:
 	rt = tv.runtime
 	var t55: Dictionary = _named(rt, "T55 South 1")
 	var mk: Dictionary = _named(rt, "mercava South 1")
-	u = tv.ai.ground.units.get(t55.key)
+	u = tv.ai.combat.units.get(t55.key)
 	check(u != null and int(u.w.type) == 560, "112 T55 South 1: rockets (560)")
 	if u == null:
 		return
@@ -46,7 +46,7 @@ func run() -> void:
 	var now: float = rt.now
 	for i in 400:
 		now += 0.05
-		tv.ai.ground.update(now)
+		tv.ai.combat.update(now)
 		if u.rounds.flying_count() == 0:
 			break
 	check(u.rounds.flying_count() == 0 and (mk.damage > 0.0 or int(mk.state) >= 3), "the rocket bursts at the Merkava (damage %.2f)" % mk.damage)

@@ -45,5 +45,6 @@ func run() -> void:
 	# Bravo starts on Ramon's runway (ground start at the lineup) and takes off.
 	for p in tv.ai.pilots:
 		if p.ent.name == "bravo_1":
-			check(not p.state().on_ground and p.ent.world.z > 700.0, "bravo_1 took off from Ramon (alt %.0f)" % p.ent.world.z)
+			# Above 250 kt its brain's combat rules take over: it may engage a passing Su-24 low (watch-ground guards it).
+			check(not p.state().on_ground and p.ent.world.z > 634.0, "bravo_1 took off from Ramon (alt %.0f, 584 at the runway)" % p.ent.world.z)
 	check(tv.ai.contacts().size() == tv.ai.pilots.size(), "contacts for radar / RWR")
