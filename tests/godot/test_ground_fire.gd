@@ -43,8 +43,9 @@ func run() -> void:
 		flew = maxi(flew, u.rounds.flying_count())
 	check(flew > 0, "rounds in the air inside 2250 m (%d)" % flew)
 	check(me.damage > 0.0, "the rounds hit the player (damage %.3f)" % me.damage)
-	# 7000 m: beyond 6000 the brain stops combat; the fire timer is off.
-	tv.player_world_override = zsu + Vector3(7000, 0, 300)
+	# 6200 m: beyond 6000 the brain stops combat; the fire timer is off (still inside the sensor's 0.7 R = 6489 m, so the
+	# target stays selected).
+	tv.player_world_override = zsu + Vector3(6200, 0, 300)
 	t = _run(g, t, 15.0)
 	check(not u.brain.engaged and u.fire_next == INF, "beyond 6000 m combat stops")
 

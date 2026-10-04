@@ -26,6 +26,7 @@ const GROUND := [10, 8, 9, 0xb, 0xd, 0x1d, 0x1e, 5, 6, 0xf, 0x10]
 const QUIET_FACTOR := 0.7
 ## Terrain line of sight: both ends 1.5 m up (FUN_004020d0).
 const LOS_RAISE := 1.5
+const LOS_SAMPLES := 32
 ## The global truce after every ground shot: 0.1 + rand·0.9 s (DAT_008321d0..d8).
 const TRUCE_MIN := 0.1
 const TRUCE_RAND := 0.9
@@ -168,7 +169,7 @@ func setup(h: Node, flights: Node, bdb: Dictionary) -> void:
 			u.brain = Brain.new()
 			u.brain.setup(ai, ent, p, rules, false)
 			u.brain.reset(rt.now)
-		u.next_scan = rt.now
+		u.next_scan = rt.now + randf() * SCAN_PERIOD  # staggered: not every unit's scan in one frame
 		units[ent.key] = u
 	print("Ground units armed: %d" % units.size())
 
@@ -183,7 +184,7 @@ func _setup_aircraft(ent: Dictionary, obj: Dictionary, db, models: Dictionary, n
 	u.brain = ent.pilot.brain
 	u.db = db
 	u.sensor_r = sensor_nm(int(ent.type_code)) * NM
-	u.next_scan = now
+	u.next_scan = now + randf() * SCAN_PERIOD_AIR  # staggered
 	for s in Stores.loadout(ent, obj):
 		var w: Dictionary = db.by_id(int(s[0])) if int(s[1]) != 0 else {}
 		u.stations.append({"w": w, "count": int(s[1]) if not w.is_empty() else 0})
@@ -312,11 +313,13 @@ func _scan(u: Unit) -> void:
 	u.contacts = list.slice(0, SLOTS_AIR if u.air else SLOTS)
 
 
+## Terrain line of sight (FUN_004020d0, its sampling UNCERTAIN): every 100 m, at most LOS_SAMPLES samples (an AI jet's
+## sensor reaches 74 km: 740 terrain queries a pair made the scans cost ~250 ms a round in mission 221).
 func line_of_sight(a: Vector3, b: Vector3) -> bool:
 	a.z += LOS_RAISE
 	b.z += LOS_RAISE
 	var d := b - a
-	var n := int(d.length() / 100.0)
+	var n := mini(int(d.length() / 100.0), LOS_SAMPLES)
 	for i in range(1, n):
 		var p := a + d * (float(i) / n)
 		var g = host.mission_ground(p)
