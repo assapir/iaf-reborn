@@ -233,18 +233,25 @@ func _glyph(x: int) -> PackedVector2Array:
 
 ## Sprite text with its top-left at `p` (FUN_00525a30), or ending at p.x when `right` (FUN_00525920). Ours
 ## draws each glyph's pixels as antialiased strokes between neighbouring lit pixels (same shapes, crisp at a
-## non-integer scale; the 1998 pixels drawn as squares came out uneven, docs/deviations.md).
+## non-integer scale; the 1998 pixels drawn as squares came out uneven, docs/deviations.md). The whole string is one
+## draw_multiline (a call per segment and per pixel cost ≈ 6 ms a frame for the HUD's text); every lit pixel is also a
+## short stroke of its own, the joint.
 func _sprite(ci: CanvasItem, p: Vector2, text: String, right := false) -> void:
 	var x0 := p.x - (5 * text.length() if right else 0)
-	var col: Color = cockpit.hud_colour()
 	var wd := maxf(_s * 0.95, 1.0)
+	var j := Vector2(0.5 * wd / _s * 0.5, 0.0)
+	var pts := PackedVector2Array()
 	for i in text.length():
 		var o := Vector2(x0 + 5 * i + 0.5, p.y + 0.5)
 		var g: Array = _glyph_strokes(Mfd._glyph_x(text[i]))
 		for seg in g[0]:
-			ci.draw_line(_pt(o + seg[0]), _pt(o + seg[1]), col, wd, true)
+			pts.append(_pt(o + seg[0]))
+			pts.append(_pt(o + seg[1]))
 		for q in g[1]:
-			ci.draw_circle(_pt(o + q), wd * 0.5, col, true, -1.0, true)
+			pts.append(_pt(o + q - j))
+			pts.append(_pt(o + q + j))
+	if not pts.is_empty():
+		ci.draw_multiline(pts, cockpit.hud_colour(), wd, true)
 
 
 ## A glyph as strokes: [segments between 8-neighbouring lit pixels (a diagonal only where no orthogonal step
