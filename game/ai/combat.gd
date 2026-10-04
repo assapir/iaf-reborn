@@ -656,12 +656,21 @@ func script_fire(ent: Dictionary, target: Dictionary) -> void:
 	_release(u, target, ai.runtime._world_of(target), ai.runtime.now, u.fire_next != INF)
 
 
+## Script trigger op 1 Launch at location (FUN_005c4160 → FUN_004aad10): the unit's weapon at the point `at` (no target,
+## the pose's angles 0), through the release, the truce skipped out of combat as op 2.
+func script_fire_at(ent: Dictionary, at: Vector3) -> void:
+	var u: Unit = units.get(ent.key)
+	if u == null or int(u.ent.state) >= 3:
+		return
+	_release(u, {}, at, ai.runtime.now, u.fire_next != INF)
+
+
 ## The release (FUN_004ab810): the global truce (taken even when the shot is skipped next; skipped in SAFE mode), a
 ## busy pool object, the terrain line of sight, then the round at `aim` or the missile at `t`.
 func _release(u: Unit, t: Dictionary, aim: Vector3, now: float, truce: bool) -> void:
 	var rt: Node = ai.runtime
 	var p: Vector3 = rt._world_of(u.ent)
-	var tp: Vector3 = rt._world_of(t)
+	var tp: Vector3 = rt._world_of(t) if not t.is_empty() else aim  # {} = at a point (script op 1)
 	var dist := tp.distance_to(p)
 	var h := deg_to_rad(float(u.ent.heading))
 	var nose := Vector3(sin(h), cos(h), 0)
@@ -676,7 +685,7 @@ func _release(u: Unit, t: Dictionary, aim: Vector3, now: float, truce: bool) -> 
 		return
 	if _fixed(u):
 		var muzzle := p + Vector3(0, 0, LOS_RAISE)
-		u.rounds.fire(now, muzzle, muzzle, Vector3.ZERO, aim, "", u.ent.key, Settings.easy_aiming, [t.key])
+		u.rounds.fire(now, muzzle, muzzle, Vector3.ZERO, aim, "", u.ent.key, Settings.easy_aiming, [t.key] if not t.is_empty() else [])
 		if host.get("sounds") != null:
 			var s = host.sounds.play("SFX_ENTITY_FIRED_WEAPON", "OST_GUNBULLET")
 			if s is Node3D and is_instance_valid(s):
@@ -692,7 +701,8 @@ func _release(u: Unit, t: Dictionary, aim: Vector3, now: float, truce: bool) -> 
 	right = right.normalized() if right.length() > 1e-4 else Vector3(1, 0, 0)
 	var up := right.cross(nose)
 	var at := p + right * LAUNCH_OFFSET.x + nose * LAUNCH_OFFSET.y + up * LAUNCH_OFFSET.z
-	u.missile = host.weapons.launch_homing(u.w, at, {"vel": Vector3.ZERO, "fwd": nose, "up": up, "right": right}, String(t.key), 1.0, u.ent)
+	u.missile = host.weapons.launch_homing(u.w, at, {"vel": Vector3.ZERO, "fwd": nose, "up": up, "right": right},
+		String(t.get("key", "")), 1.0, u.ent, null if not t.is_empty() else aim)
 
 
 ## The selected weapon flies the fixed motion (class 0x17: 560 rockets, 565 gun): rounds, not a missile.

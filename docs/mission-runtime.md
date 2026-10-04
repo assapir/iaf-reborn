@@ -294,7 +294,7 @@ execute that entry and schedule its end timer.
 
 | op | editor name | Execute | effect |
 |---|---|---|---|
-| 1 | Launch at location | `0x5c4160` | fire weapon at point (floats 0x852/0x85c…) — UNCERTAIN args |
+| 1 | **Launch at location** | `0x5c4160` | `FUN_004aad10`: the unit's weapon at the point (x, y, z) = script +0x28..+0x30, which the editor stores as x in the text field 0x848 and y / z in 0x852 / 0x85c (215's Scud: "447090", 620870, 10000); no target, the pose's angles 0, then the release `FUN_004ab810` (docs/ai.md §14). Port: `combat.gd` `script_fire_at` |
 | 2 | **Launch at target** | `0x5c42f0` | `FUN_004aae40(target key from 0x8ac entity id, …)`: the unit's weapon at the target's position (no lead, no range check) through the release `FUN_004ab810` (docs/ai.md §14). Port: `combat.gd` `script_fire` |
 | 3, 4, 15, 18, 19, 23, 26 | (15 = **Wait**, 19 = "Destroy entity") | `0x58a330` | **no-op** (only the duration). Op 19 is a no-op in this build |
 | 5 | **Explode** | `0x5c4310` | `FUN_004a8ae0(0,5,…)`: set damage level 5, entity destroyed (docs/damage.md §3). Skipped for the player when `FUN_0058a350()` is true (UNCERTAIN) |
@@ -315,7 +315,7 @@ execute that entry and schedule its end timer.
 | op | name | Execute | effect |
 |---|---|---|---|
 | 1 | **Hover** | `0x5c38b0` | motion mode 1: hold position |
-| 5 | Turn | `0x5c3940` | motion mode 5 with arg (heading?) — UNCERTAIN |
+| 5 | Turn | `0x5c3940` | mover mode 5 with the arg +0x28 (vfunc +0x8c). The FM mover's setMode `FUN_005a8410` has no case 5, and the data's only use is 224's brain-controlled MiG: nothing happens. Other movers' mode 5: not traced |
 | 11 | **Yaw to target** | `0x5c39e0` | target = entity `0x8ac`. Types 250 and 291–339: the "Subpart yaw to target motion" (vtable `0x612898`, tick `FUN_005c3ee0` now and every 1.0 s, no end): the turret (250, part record +0xc) or the launcher (+0x14) at the target's bearing. Type 270: the same timer lowers +0x10 (carrier, missile) 1.5° a tick to −90°: the launcher rises. Others: mover mode 9 at the target. Port: `_yaw_to_target`, parts posed by `game/mission/vehicle_parts.gd`; UNCERTAIN: the angle as the bearing relative to the hull (the −10° term not reproduced), mode 9 as facing the target each tick, a new motion entry ending the timer |
 | 16 | **Path** | `0x5c3d00` | mode 0xe, `FUN_0047b9a9(path, …)`: follow CDMEPathsItem `0x8ac` (details below) |
 

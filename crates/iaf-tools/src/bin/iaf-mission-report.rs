@@ -24,9 +24,9 @@ use std::path::Path;
 
 /// Trigger-list (scripts1) opcodes the mission runtime implements (docs/mission-runtime.md §4);
 /// 3, 4, 15, 18, 19, 23, 26 are no-ops in the original too; 21 / 22 enable / disable combat (docs/ai.md §6).
-const SUPPORTED_TRIGGER: &[i64] = &[2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 26];
+const SUPPORTED_TRIGGER: &[i64] = &[1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 26];
 /// Motion-list (scripts0) opcodes implemented: 1 Hover, 16 Path.
-const SUPPORTED_MOTION: &[i64] = &[1, 11, 16];
+const SUPPORTED_MOTION: &[i64] = &[1, 5, 11, 16];
 /// Player aircraft type codes (bdb Objects 0x5b4) that can be flown by the engine: the Jet list's seven.
 const FLYABLE_NOW: &[i64] = &[100, 110, 120, 130, 140, 190, 200];
 /// Type codes the original lets the player fly (`FUN_00507d00`).

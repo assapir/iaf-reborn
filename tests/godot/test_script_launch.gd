@@ -1,5 +1,5 @@
 # Script trigger op 2 Launch at target (docs/ai.md §14): an armed unit fires its weapon at the script's target, without
-# a brain or a range check. 233's MI-24 (a helicopter, class 2: no sensor, fires only by script) launches its missile
+# a brain or a range check; op 1 at a point. 233's MI-24 (a helicopter, class 2: no sensor, fires only by script) launches its missile
 # (580) at its boat target and hits it; 112's T-55 fires a rocket (560) at its Merkava. The jump to the list entry is
 # direct; the ground units and the weapons run on a scripted sim time, the flight is frozen.
 extends "res://../tests/godot/base.gd"
@@ -50,6 +50,7 @@ func run() -> void:
 		if u.rounds.flying_count() == 0:
 			break
 	check(u.rounds.flying_count() == 0 and (mk.damage > 0.0 or int(mk.state) >= 3), "the rocket bursts at the Merkava (damage %.2f)" % mk.damage)
+	await _launch_at()
 
 
 ## The target 1500 m ahead of the shooter at its height, in clear line of sight (the scripts' own timing and the
@@ -66,3 +67,20 @@ func _place_ahead(tv, shooter: Dictionary, target: Dictionary) -> void:
 	target["airborne_class"] = true  # keep it at that height (mission_entity_moved snaps ground units)
 	tv.mission_entity_moved(target)
 	target.alt = target.world.z
+
+
+## Op 1 Launch at location: 215's Scud fires its rocket (560) at (447090, 620870, 10000), 10 km up.
+func _launch_at() -> void:
+	var tv = await start_mission(215)
+	await frames(3)
+	tv.frozen = true
+	var rt = tv.runtime
+	var scud: Dictionary = _named(rt, "scud0")
+	var u = tv.ai.combat.units.get(scud.key)
+	check(u != null and int(u.w.type) == 560, "215 scud0: armed (its 'scud', 560)")
+	if u == null:
+		return
+	rt._jump(scud, 1, 4)
+	check(u.rounds.flying_count() == 1, "op 1: the Scud fired at its point")
+	var r: Dictionary = u.rounds.pool.filter(func(x): return x.flying)[0]
+	check(absf(r.A.z - 10000.0) < 1.0 and absf(r.A.x - 447090.0) < 1.0, "aimed at (447090, 620870, 10000)")

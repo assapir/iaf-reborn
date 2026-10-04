@@ -280,6 +280,12 @@ func _entry_done(ent: Dictionary, li: int, index: int) -> void:
 ## Trigger list opcodes (scripts1).
 func _trigger(ent: Dictionary, sc: Dictionary) -> void:
 	match int(sc.get("0x83e", -1)):
+		1:
+			# Launch at location (FUN_005c4160): the point (x, y, z) at the script's +0x28..+0x30 — the editor stores x in
+			# the text field 0x848, y / z in 0x852 / 0x85c (215's Scud: "447090", 620870, 10000).
+			if host.has_method("mission_launch_at"):
+				host.mission_launch_at(ent, Vector3(float(String(sc.get("0x848", "0"))), float(sc.get("0x852", 0.0)),
+					float(sc.get("0x85c", 0.0))))
 		2:
 			# Launch at target (FUN_005c42f0): the unit's weapon at entity 0x8ac (docs/ai.md §14).
 			host.mission_launch(ent, entities.get("%d:%d" % [ent.file, int(sc.get("0x8ac", -1))], {}))
@@ -325,6 +331,10 @@ func _trigger(ent: Dictionary, sc: Dictionary) -> void:
 func _motion(ent: Dictionary, sc: Dictionary, duration: float) -> void:
 	ent["aim_seq"] = int(ent.get("aim_seq", 0)) + 1  # a new motion ends a running yaw to target (UNCERTAIN)
 	match int(sc.get("0x83e", -1)):
+		5:
+			# Turn (FUN_005c3940): mover mode 5 with the arg +0x28. The FM mover's setMode (FUN_005a8410) has no case 5, and
+			# the data uses it only on 224's brain-controlled MiG: nothing happens. Other movers' mode 5: not traced.
+			pass
 		11:
 			ent.path = null
 			_yaw_to_target(ent, entities.get("%d:%d" % [ent.file, int(sc.get("0x8ac", -1))], {}))
