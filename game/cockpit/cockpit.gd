@@ -461,14 +461,14 @@ func _draw() -> void:
 		var col := Color8(int(fuel.ColorR), int(fuel.ColorG), int(fuel.ColorB))
 		var font := digits_font()
 		draw_string(font, panel_to_screen(fuel.OffsetX, fuel.OffsetY + 9), "%05d" % int(state.fuel_lbs),
-				HORIZONTAL_ALIGNMENT_LEFT, -1, int(11 * s), col)
+				HORIZONTAL_ALIGNMENT_LEFT, -1, maxi(int(11 * s), 1), col)
 	# Ours: a digital throttle (an extra cockpit without a throttle clock, e.g. the F-35I's display): percent of the
 	# lever, AB in afterburner.
 	var thr: Dictionary = layout.get("THROTTLEDIGITAL", {})
 	if thr.get("Active", 0) == 1:
 		var col := Color8(int(thr.ColorR), int(thr.ColorG), int(thr.ColorB))
 		var t := "%3d%s" % [int(round(state.throttle * 100.0)), " AB" if float(state.get("afterburner", 0)) > 0 else ""]
-		draw_string(digits_font(), panel_to_screen(thr.OffsetX, thr.OffsetY + 9), t, HORIZONTAL_ALIGNMENT_LEFT, -1, int(11 * s), col)
+		draw_string(digits_font(), panel_to_screen(thr.OffsetX, thr.OffsetY + 9), t, HORIZONTAL_ALIGNMENT_LEFT, -1, maxi(int(11 * s), 1), col)
 
 	_draw_decoy_counters(s)
 	_draw_console()
