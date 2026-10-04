@@ -93,11 +93,12 @@ func setup(h: Node, flights: Node, bdb: Dictionary) -> void:
 	var objects: Dictionary = rt.bdb_objects(bdb)
 	var models := {}
 	for ent in rt.entities.values():
-		if ent.player or not ent.control in [1, 2] or not ent.klass in SENSOR_CLASSES or ent.brain < 0:
+		# Every armed unit other than the aircraft has a weapon handler (FUN_004b7ad6): script op 2 fires it; only the
+		# sensor classes target and fire by their brain (FUN_0043eef0; helicopters, class 2, have no sensor).
+		if ent.player or ent.klass == 0x1c:
 			continue
-		var rules: Array = ai.brain_rules(int(ent.brain))
 		var w := _weapon(ent, objects.get(ent.type, {}), db)
-		if rules.is_empty() or w.is_empty():
+		if w.is_empty():
 			continue  # "Entity with no weapon handler" (FUN_00444b20)
 		var u := Unit.new()
 		u.ent = ent
@@ -126,12 +127,14 @@ func setup(h: Node, flights: Node, bdb: Dictionary) -> void:
 					n.visible = false
 					add_child(n)
 					u.nodes.append(n)
-		var p := GroundPilot.new()
-		p.ent = ent
-		p.rt = rt
-		u.brain = Brain.new()
-		u.brain.setup(ai, ent, p, rules, false)
-		u.brain.reset(rt.now)
+		var rules: Array = ai.brain_rules(int(ent.brain)) if ent.brain >= 0 else []
+		if ent.control in [1, 2] and ent.klass in SENSOR_CLASSES and not rules.is_empty():
+			var p := GroundPilot.new()
+			p.ent = ent
+			p.rt = rt
+			u.brain = Brain.new()
+			u.brain.setup(ai, ent, p, rules, false)
+			u.brain.reset(rt.now)
 		u.next_scan = rt.now
 		units[ent.key] = u
 	print("Ground units armed: %d" % units.size())
@@ -177,7 +180,7 @@ func update(now: float) -> void:
 	for u in units.values():
 		if int(u.ent.state) >= 3:
 			u.fire_next = INF
-		else:
+		elif u.brain != null:
 			if now >= u.next_scan:
 				u.next_scan = now + SCAN_PERIOD
 				_scan(u)
@@ -261,7 +264,7 @@ func combat(ent: Dictionary, what: String, target: Dictionary) -> void:
 ## Trigger ops 21 / 22.
 func set_combat(ent: Dictionary, on: bool) -> void:
 	var u: Unit = units.get(ent.key)
-	if u == null:
+	if u == null or u.brain == null:
 		return
 	if on:
 		u.brain.enable_combat(ai.runtime.now)
@@ -305,9 +308,36 @@ func _fire_tick(u: Unit, now: float) -> void:
 			return
 	else:
 		return
-	if now < _truce_until:
-		return  # "Entities in truce"
-	_truce_until = now + TRUCE_MIN + randf() * TRUCE_RAND
+	_release(u, t, aim, now, true)
+
+
+## Script trigger op 2 Launch at target (FUN_005c42f0 → FUN_004aae40, target = entity 0x8ac): the unit's weapon at
+## the target's position now (no lead, no range, no DLZ), q 1.0, through the release. A unit not in combat (the
+## handler's SAFE flag +0x28 set: "Fired a weapon by the Scenario") skips the truce. UNCERTAIN: the SAFE flag's
+## initial value (taken as set until start combat); the script's mode flag (0x852 → FUN_004ab810(…, 2 / 0)) has no
+## traced effect.
+func script_fire(ent: Dictionary, target: Dictionary) -> void:
+	var u: Unit = units.get(ent.key)
+	if u == null or target.is_empty() or int(u.ent.state) >= 3:
+		return
+	_release(u, target, ai.runtime._world_of(target), ai.runtime.now, u.fire_next != INF)
+
+
+## The release (FUN_004ab810): the global truce (taken even when the shot is skipped next; skipped in SAFE mode), a
+## busy pool object, the terrain line of sight, then the round at `aim` or the missile at `t`.
+func _release(u: Unit, t: Dictionary, aim: Vector3, now: float, truce: bool) -> void:
+	var rt: Node = ai.runtime
+	var p: Vector3 = rt._world_of(u.ent)
+	var tp: Vector3 = rt._world_of(t)
+	var dist := tp.distance_to(p)
+	var h := deg_to_rad(float(u.ent.heading))
+	var nose := Vector3(sin(h), cos(h), 0)
+	if truce:
+		if now < _truce_until:
+			return  # "Entities in truce"
+		_truce_until = now + TRUCE_MIN + randf() * TRUCE_RAND
+	if u.rounds == null and (not int(u.w.type) in HOMING or host.weapons == null):
+		return
 	var busy: bool = u.missile != null and u.missile in host.weapons.missiles if u.rounds == null else not u.rounds.next_free()
 	if busy or not line_of_sight(p, tp):
 		return

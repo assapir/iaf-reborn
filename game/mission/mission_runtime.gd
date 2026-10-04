@@ -280,6 +280,10 @@ func _entry_done(ent: Dictionary, li: int, index: int) -> void:
 ## Trigger list opcodes (scripts1).
 func _trigger(ent: Dictionary, sc: Dictionary) -> void:
 	match int(sc.get("0x83e", -1)):
+		2:
+			# Launch at target (FUN_005c42f0): the unit's weapon at entity 0x8ac (docs/ai.md §14).
+			if host.has_method("mission_launch"):
+				host.mission_launch(ent, entities.get("%d:%d" % [ent.file, int(sc.get("0x8ac", -1))], {}))
 		5:
 			if not ent.player:
 				_destroy(ent)

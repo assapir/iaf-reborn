@@ -24,7 +24,7 @@ use std::path::Path;
 
 /// Trigger-list (scripts1) opcodes the mission runtime implements (docs/mission-runtime.md §4);
 /// 3, 4, 15, 18, 19, 23, 26 are no-ops in the original too; 21 / 22 enable / disable combat (docs/ai.md §6).
-const SUPPORTED_TRIGGER: &[i64] = &[3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 26];
+const SUPPORTED_TRIGGER: &[i64] = &[2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 26];
 /// Motion-list (scripts0) opcodes implemented: 1 Hover, 16 Path.
 const SUPPORTED_MOTION: &[i64] = &[1, 11, 16];
 /// Player aircraft type codes (bdb Objects 0x5b4) that can be flown by the engine: the Jet list's seven.
@@ -86,10 +86,11 @@ const W_ARM: &str = "weapon: anti-radiation (AGM-88, Shrike)";
 
 /// Features built today (docs/status.md): the player flight choice, the damage model, the gun, the IR
 /// missiles, the radar missiles, the bombs (incl. cluster and laser), the rockets, HARM / Shrike and the TV
-/// weapons (docs/weapons.md); the ground units' AAA, SAMs and rockets (docs/ai.md §14).
+/// weapons (docs/weapons.md); the ground units' AAA, SAMs and rockets, and the armed helicopters (they fire only by
+/// script op 2: no sensor; docs/ai.md §14).
 const SUPPORTED_FEATURES: &[&str] = &[
     F_PLAYER_FLIGHT, F_DAMAGE, W_GUN, W_IR, W_RADAR, F_AI_FLIGHT, W_BOMB, W_ROCKET, W_LGB, W_TV, W_ARM, F_AAA, F_SAM_RADAR,
-    F_SAM_IR, F_GROUND_FIRE,
+    F_SAM_IR, F_GROUND_FIRE, F_AI_HELI,
 ];
 
 /// Rough implementation size (S ≈ days, M ≈ a week, L ≈ weeks) — an estimate for planning only.

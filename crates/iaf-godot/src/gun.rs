@@ -100,8 +100,11 @@ impl IafRounds {
         targets: Variant,
     ) -> i64 {
         let (locked, shooter) = (locked.to_string(), shooter.to_string());
-        let targets: Option<Vec<String>> =
-            targets.try_to::<PackedStringArray>().ok().map(|t| t.as_slice().iter().map(GString::to_string).collect());
+        // A null Variant converts to an empty array: only a given array is a fixed list.
+        let targets: Option<Vec<String>> = (!targets.is_nil())
+            .then(|| targets.try_to::<PackedStringArray>().ok())
+            .flatten()
+            .map(|t| t.as_slice().iter().map(GString::to_string).collect());
         let shot = Shot {
             origin: vec3(origin),
             muzzle: vec3(muzzle),

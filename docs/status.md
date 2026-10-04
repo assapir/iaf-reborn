@@ -1,9 +1,10 @@
 # Status — 2026-10-02
 
 ## Where we are
-- **Playable missions: 6 of 68** — Training "Engines ON" (311), "Landing" (312), 315 (bombing, tested end to end),
+- **Playable missions: 7 of 68** — Training "Engines ON" (311), "Landing" (312), 315 (bombing, tested end to end),
   313 "Pathfinder" (AAA + SA-3s) and 322 "Uncle SAM" (SAMs + rockets) with their ground fire tested (not flown end
-  to end), and 323 (per the coverage report, untested); docs/mission-coverage.md.
+  to end), 323 and 403 (per the coverage report, untested); docs/mission-coverage.md. AI air combat is the gate for
+  48 more.
 - **Flyable jets: all seven of the Jet list** — F-15, F-16, F-4E, F-4 Kurnass 2000, Lavi, Kfir, Mirage (Jet list or a
   mission's jet; docs/aircraft.md §5). The MiGs are AI-only, as in the original; a mission whose player jet is another
   type flies it as the F-16.
@@ -84,7 +85,7 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 | Radio | docs/radio.md: the phrase engine (word wavs + subtitle); the tower by itself on the ground (taxi / line up / hold / take-off) and Ctrl+T in the air (proceed to runway, cleared to land, gear not down, go around, taxi to hangar; a click elsewhere); wingman commands Alt+P/B/E/W/T/C on the AI wingman's brain (its bdb "Roger" replies, "negative" when it cannot); waypoint and eject reports. Not yet: AWACS contact calls, airborne / landed / crashed / kill reports |
 | Terrain | all of `map.ptt` (levels 11..6 + all 51 insets, 2342 nodes) as a streamed quadtree with distance LOD to 200 km, level-6 heights with the original's inset interpolation, skirts; runway digits surveyed on every airbase (2 mirrored fixed); `terraintype.dat` surface types (water / rough / runway) feed the flight model; loaded behind the wait screen (docs/formats/ptt.md) |
 | Pilot records | screen 0 at startup (docs/front-end.md §13): pilot list, Dossier (edit boxes, photo, rank, score, missions), Records / Kills / Losses, New / Remove / Login; each debriefed flight recorded (result, MissBonus, destroyed units as kills / losses, score multiplier), best-attempt score and rank, the briefing's "<rank> <name>"; Future Missions 2–7 locked until the previous pass; JSON in the user dir. Not filled yet: kills / losses only from what the damage code destroys (no AI weapons / SAMs), the debrief page's own statistics |
-| Tests | `tools/test.sh`: Rust + 54 headless Godot tests (`tests/godot/test_*.gd`), isolated from the player's settings; fails on any script error or a 300 s timeout |
+| Tests | `tools/test.sh`: Rust + 55 headless Godot tests (`tests/godot/test_*.gd`), isolated from the player's settings; fails on any script error or a 300 s timeout |
 
 ## Open gaps (by area)
 - **Terrain**: map-edge push-back / EndWorld and craters (terraintype bits known, systems missing); no elevation

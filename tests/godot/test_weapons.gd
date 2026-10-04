@@ -145,7 +145,8 @@ func run() -> void:
 	var drawn0 := _drawn(w)
 	w.fire_selected()
 	w.release_selected()
-	check(w.missiles.size() == 1, "Space: missile launched")
+	# The player's own (231's MI-24 launches at a Merkava by script op 2 meanwhile).
+	check(w.missiles.filter(func(m): return is_same(m.get_meta("owner"), w._me())).size() == 1, "Space: missile launched")
 	check(w.stores.total(w.stores.current_type(), w.stores.current_name()) == n0 - 1, "missile count -1")
 	check(_drawn(w) == drawn0 - 1, "the store left its pylon")
 	# The fired station is empty: in IR mode on it (FUN_0053bcd0 checks the selected station, not the weapon's
@@ -162,16 +163,16 @@ func run() -> void:
 		w._set_hud_mode(0)
 		w.select_aa()
 	check(tv.flight.state().mass_kg < before_mass, "flight model mass dropped (%.0f -> %.0f kg)" % [before_mass, tv.flight.state().mass_kg])
-	var m0 = w.missiles[0]
+	var m0 = w.missiles.filter(func(m): return is_same(m.get_meta("owner"), w._me()))[0]
 	for i in 300:
 		t += 0.05
 		w.update(t)
-		if i % 10 == 0 and not w.missiles.is_empty():
+		if i % 10 == 0 and m0 in w.missiles:
 			print("t %.2f pos %s v %.0f dist %.0f" % [t - 1.0, m0.position(t), m0.velocity(t).length(), m0.position(t).distance_to(tv.runtime._world_of(mig2))])
-		if w.missiles.is_empty():
+		if not m0 in w.missiles:
 			print("end at ", m0.last_pos, " target ", tv.runtime._world_of(mig2), " hitground ", m0.hit_ground)
 			break
-	check(w.missiles.is_empty(), "the missile ended")
+	check(not m0 in w.missiles, "the missile ended")
 	check(mig2.damage > 0.0 or mig2.state != 1, "the missile hit (damage %.2f, state %d)" % [mig2.damage, mig2.state])
 	# External fuel tank (docs/weapons.md "Fuel tanks"): the original adds the tank's bdb weight
 	# (2700 "LB", as kg) to the fuel; the Stores weight fix adds it in kg. The external part burns

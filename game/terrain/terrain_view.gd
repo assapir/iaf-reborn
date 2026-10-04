@@ -761,6 +761,12 @@ func enemy_of_player(ent: Dictionary) -> bool:
 	return runtime != null and runtime._enemy_of_player(ent)
 
 
+## Trigger op 2 Launch at target (docs/ai.md §14).
+func mission_launch(ent: Dictionary, target: Dictionary) -> void:
+	if ai != null:
+		ai.ground.script_fire(ent, target)
+
+
 ## Trigger ops 21 / 22 for AI units (docs/ai.md §6).
 func mission_combat(ent: Dictionary, on: bool) -> void:
 	if ai != null:

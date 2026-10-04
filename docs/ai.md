@@ -542,8 +542,9 @@ B+0x7c); 39 any RWR entry's launch flag.
 
 ## 14. Ground defences, RWR, script ops 1 / 2 (traced; built: the player's RWR and the decoys, docs/rwr.md, docs/weapons.md §10, and the ground units' fire, game/ai/ground_fire.gd; not built: script ops 1 / 2, the decoys' effect on missiles)
 
-Port (`game/ai/ground_fire.gd`): every ground unit of a sensor class with a brain and a weapon (its first valid
-station), brain or mission controlled (a mission-controlled unit's brain runs, §2), gets its brain (no manoeuvres),
+Port (`game/ai/ground_fire.gd`): every armed unit other than the aircraft (its first valid station) has a weapon
+handler, which script op 2 fires (below). A unit of a sensor class with a brain, brain or mission controlled (a
+mission-controlled unit's brain runs, §2), also gets its brain (no manoeuvres),
 the sensor (both modes' classes scanned every 6 s, the selector filters: 400 / 440 air, 410 ground, 420 either, the
 best score; UNCERTAIN while the selectors are untraced), start / stop combat (RWR lock when the target is the player;
 no weapon = "Entity with no weapon handler", no engagement) and the fire tick:
@@ -558,6 +559,10 @@ no weapon = "Entity with no weapon handler", no engagement) and the fire tick:
   homing weapons' (`player_weapons.gd` `launch_homing`).
 - Release order (`FUN_004ab810`): the truce first (taken even when the shot is then skipped), then a busy pool
   object, then the terrain line of sight.
+- **Script op 2** (`script_fire`): the weapon at the target's position now (no lead, no range, no DLZ), q 1.0, then the
+  release; a unit not in combat skips the truce (the handler's SAFE flag +0x28, "Fired a weapon by the Scenario";
+  UNCERTAIN: its initial value). **Helicopters** (class 2) have no sensor (`FUN_0043eef0`: classes 5 / 9, 8, 10 / 0x10,
+  0x1c only), so they fire only this way (MI-24s: 580, aimed first by motion op 11).
 - **Brain −1**: the unit takes its object's default brain by name (bdb Objects `0x532`). UNCERTAIN: not traced, but
   322 "Uncle SAM" has brain −1 on every SAM launcher (object brain 'mission'). Applied to every mission entity
   (`mission_runtime.gd` `_brain_of`).
