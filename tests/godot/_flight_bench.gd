@@ -62,6 +62,15 @@ func run() -> void:
 					n.process_mode = Node.PROCESS_MODE_DISABLED
 					if n is CanvasItem or n is Node3D:
 						n.visible = false
+	# BENCH_SHADOW=atlas,splits,filter: the sun's shadow atlas size, its cascades (1 / 2 / 4) and the soft filter quality
+	# (0..5).
+	var sh := OS.get_environment("BENCH_SHADOW").split(",", false)
+	if sh.size() == 3:
+		RenderingServer.directional_shadow_atlas_set_size(int(sh[0]), true)
+		var sun: DirectionalLight3D = tv.get_node("Sun")
+		sun.directional_shadow_mode = {1: DirectionalLight3D.SHADOW_ORTHOGONAL, 2: DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS,
+			4: DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS}[int(sh[1])]
+		RenderingServer.directional_soft_shadow_filter_set_quality(int(sh[2]))
 	var vp := root.get_viewport().get_viewport_rid()
 	RenderingServer.viewport_set_measure_render_time(vp, true)
 	for leg in legs:
