@@ -442,6 +442,25 @@ impl IafFlight {
         }
     }
 
+    /// The combat manoeuvres' target (brain +0x70), as `ap_set_leader`; `has` false = none.
+    #[func]
+    fn ap_set_target(&mut self, has: bool, pos: Vector3, vel: Vector3, pitch: f64, roll: f64, heading: f64) {
+        if let Some(ap) = &mut self.ap {
+            ap.target = has.then(|| Leader {
+                pos: to_enu(pos),
+                vel: to_enu(vel),
+                att: [(pitch as f32).to_radians(), (roll as f32).to_radians(), (heading as f32).to_radians()],
+                active: true,
+            });
+        }
+    }
+
+    /// Dogchase has its nose on the aim point (condition 20 for the gun).
+    #[func]
+    fn ap_nose_on(&self) -> bool {
+        self.ap.as_ref().is_some_and(|ap| ap.nose_on)
+    }
+
     /// The landing's StopPlane has run (the landed handler, controller +0xe0).
     #[func]
     fn ap_landed(&self) -> bool {

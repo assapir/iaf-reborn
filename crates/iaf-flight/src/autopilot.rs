@@ -1,7 +1,7 @@
 //! The AI's autopilot: the original's control loops (`atp.ControlLoop.h`, docs/ai.md §7–§8) flying an
 //! [`Aircraft`] through its normal inputs (stick, throttle, rudder, gear, flaps, brakes). Modes as the FM's
 //! `setMode` (`5a8410`): 7 navigate the route, 8 go home and land, 9 take-off sequence, 1 / 3 close /
-//! tactical formation on the formation leader, 10 hold, 0xb straight. The combat modes are the combat job.
+//! tactical formation on the formation leader, 10 hold, 0xb straight; combat: 0x11 Dogchase on `target`.
 //!
 //! Frame: ENU metres (x east, y north, z up) of the aircraft; headings clockwise from north.
 
@@ -32,6 +32,8 @@ pub struct Config {
     pub no_change_roll_cone: f32,
     pub slow_cone_roll_k: f32,
     pub nose_on_target: f32,
+    /// Dogchase's aim point behind the target (exe 500, v1.1 bdgen.dat 300).
+    pub distance_behind_target: f32,
     pub h_above_ground: f32,
     /// AllowedErrPt2..6 (index 0 = Pt2).
     pub allowed_err: [f32; 5],
@@ -85,6 +87,7 @@ impl Config {
             no_change_roll_cone: deg("NoChangeRollCone", 0.7),
             slow_cone_roll_k: deg("SlowConeRollK", 90.0),
             nose_on_target: deg("NoseOnTargetAng", 7.0),
+            distance_behind_target: f("DistanceBehindTarget", 500.0),
             h_above_ground: f("hAboveGround", 200.0),
             allowed_err: [
                 f("AllowedErrPt2", 1500.0),
@@ -796,6 +799,49 @@ enum Loop {
     Fly {
         f: Option<Fly2Wp>,
     },
+    /// Dogchase (mode 0x11, manager +0x1de8, Run `5cea30`): chase the target (`Autopilot::target`).
+    Dogchase,
+}
+
+/// Dogchase Run `5cea30` (docs/ai.md §13.3), every 0.5 s: the aim point is the target within 1000 m, else
+/// DistanceBehindTarget behind it along its nose; LookAt case 1 on it (the target's roll); speed: beyond 1000 m
+/// |V_T| + 0.027762795·dist, a target closing on me (V_T·(T − P) ≤ 0) 0, else (|V_T| + a·dist + b)·cos(V_T, V) with
+/// a = −51.472221 / (D − 1854), b = −D·a; watch-ground. Returns the nose-on flag.
+fn dogchase(l: &mut Laws, t: &Leader) -> bool {
+    let v = l.v;
+    let d = [t.pos[0] - v.pos[0], t.pos[1] - v.pos[1], t.pos[2] - v.pos[2]];
+    let dist = (d[0] * d[0] + d[1] * d[1] + d[2] * d[2]).sqrt() as f32;
+    let behind = l.c.distance_behind_target as f64;
+    let aim = if dist < 1000.0 {
+        t.pos
+    } else {
+        let (sp, cp) = t.att[0].sin_cos();
+        let (sh, ch) = t.att[2].sin_cos();
+        let f = [(sh * cp) as f64, (ch * cp) as f64, sp as f64];
+        [t.pos[0] - behind * f[0], t.pos[1] - behind * f[1], t.pos[2] - behind * f[2]]
+    };
+    let (mut y, mut x) = l.look_at(aim, t.att[1], 1).unwrap_or((0.0, 0.0));
+    let (f, _, _) = v.att.basis();
+    let a = [aim[0] - v.pos[0], aim[1] - v.pos[1], aim[2] - v.pos[2]];
+    let an = (a[0] * a[0] + a[1] * a[1] + a[2] * a[2]).sqrt();
+    let nose_on = an > 0.0 && (((f[0] * a[0] + f[1] * a[1] + f[2] * a[2]) / an).clamp(-1.0, 1.0).acos() as f32) < l.c.nose_on_target;
+    let dot = |p: V3, q: V3| (p[0] * q[0] + p[1] * q[1] + p[2] * q[2]) as f32;
+    let tv = dot(t.vel, t.vel).sqrt();
+    let vt = if dist > 1000.0 {
+        tv + 0.027_762_795 * dist
+    } else if dot(t.vel, d) <= 0.0 {
+        0.0
+    } else {
+        let k = -51.472_22 / (behind as f32 - 1854.0);
+        let b = -(behind as f32) * k;
+        let my = dot(v.vel, v.vel).sqrt();
+        if my > 0.0 && tv > 0.0 { (tv + k * dist + b) * dot(t.vel, v.vel) / (my * tv) } else { 0.0 }
+    };
+    let mut thr = l.thr(vt.max(0.0));
+    l.watch_ground(&mut x, &mut y, &mut thr);
+    l.stick(y, x);
+    l.throttle(thr);
+    nose_on
 }
 
 /// LandingCL (docs/ai.md §8.3): the pattern points and the step list.
@@ -968,6 +1014,10 @@ pub struct Autopilot {
     pub origin: [f64; 2],
     /// Formation leader (None: I am the leader, or no formation).
     pub leader: Option<Leader>,
+    /// The combat manoeuvres' target (brain +0x70 as Init2 hands it over), fed by the host every frame.
+    pub target: Option<Leader>,
+    /// Dogchase has the nose on its aim point (LookAt's flag, NoseOnTargetAng; condition 20 for the gun).
+    pub nose_on: bool,
     /// Current waypoint index (brain +0x88).
     pub wp_index: usize,
     /// Landed once (brain / controller +0xe0).
@@ -987,6 +1037,8 @@ impl Autopilot {
             bases: Vec::new(),
             origin: [0.0; 2],
             leader: None,
+            target: None,
+            nose_on: false,
             wp_index: 0,
             landed: false,
             mode: 0,
@@ -1014,6 +1066,7 @@ impl Autopilot {
             Loop::Level { keep: None } => "level: wings level".into(),
             Loop::Level { .. } => "level: keep orientation".into(),
             Loop::Fly { f } => format!("nav{}", if f.is_none() { " (passed)" } else { "" }),
+            Loop::Dogchase => format!("dogchase{}", if self.nose_on { " (nose on)" } else { "" }),
             Loop::None => "none".into(),
         }
     }
@@ -1074,8 +1127,10 @@ impl Autopilot {
                 }
             }
             0xb => Loop::Straight { pitch: 0.0 },
+            0x11 => Loop::Dogchase,
             _ => Loop::None,
         };
+        self.nose_on = false;
     }
 
     /// GoHomeCL Init `5cd390`: Fly2WayPt to the route's last waypoint (no route: here), then LandingCL.
@@ -1243,6 +1298,10 @@ impl Autopilot {
                         *f = None;
                     }
             }
+            Loop::Dogchase => match self.target {
+                Some(t) => self.nose_on = dogchase(&mut l, &t),
+                None => l.stick(0.0, 0.0),
+            },
             Loop::None => {}
         }
         if let Some(p) = l.period {

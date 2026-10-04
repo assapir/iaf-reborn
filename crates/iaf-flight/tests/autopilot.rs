@@ -1,5 +1,6 @@
 //! The AI autopilot (docs/ai.md §7–§8) flying the original data: route following (mode 7), close
-//! formation (mode 1) and the take-off sequence (mode 9) at Ramat David. Needs `assets/install`.
+//! formation (mode 1), the take-off sequence (mode 9) at Ramat David and the Dogchase (mode 0x11). Needs
+//! `assets/install`.
 
 use std::path::{Path, PathBuf};
 
@@ -512,4 +513,55 @@ fn player_circuit_312_from_engage_points() {
         let t = touch.unwrap_or_else(|| panic!("{name}: no touchdown / stop"));
         assert!((t[1] - ly).abs() < 30.0 && t[0] > RD_RUNWAY_X[0] && t[0] < RD_RUNWAY_X[1], "{name}: touchdown on the centreline ({t:?})");
     }
+}
+
+fn leader_of(ac: &Aircraft) -> Leader {
+    let s = ac.state();
+    Leader {
+        pos: s.position,
+        vel: [s.velocity[0] as f64, s.velocity[1] as f64, s.velocity[2] as f64],
+        att: [s.pitch, s.roll, s.heading],
+        active: true,
+    }
+}
+
+#[test]
+fn dogchase_gets_on_the_targets_tail() {
+    let Some(inst) = install() else { return };
+    // The target flies a route east, then turns north; the chaser starts 6 km south-west, heading north.
+    let mut tgt = jet(&inst, "F-16", [0.0, 0.0, 3000.0], 90.0, true);
+    let mut ch = jet(&inst, "F-16", [-4000.0, -4500.0, 2500.0], 0.0, true);
+    let cfg = Config::load(&inst);
+    let mut tap = Autopilot::new(cfg);
+    tap.route = vec![
+        Waypoint { x: 20000.0, y: 0.0, z: 3000.0, t: 0.0, action: 3 },
+        Waypoint { x: 20000.0, y: 60000.0, z: 3000.0, t: 0.0, action: 3 },
+    ];
+    tap.set_mode(&mut tgt, 7);
+    let mut cap = Autopilot::new(cfg);
+    cap.set_mode(&mut ch, 0x11);
+    let g = |_: f64, _: f64| 0.0;
+    let (mut min_d, mut nose_on) = (f64::MAX, 0.0);
+    for i in 0..(180.0 / DT) as usize {
+        cap.target = Some(leader_of(&tgt));
+        tap.step(&mut tgt, &g);
+        cap.step(&mut ch, &g);
+        tgt.step(DT);
+        ch.step(DT);
+        let (t, c) = (tgt.state(), ch.state());
+        let d = ((t.position[0] - c.position[0]).powi(2) + (t.position[1] - c.position[1]).powi(2) + (t.position[2] - c.position[2]).powi(2)).sqrt();
+        if i as f64 * DT > 60.0 {
+            min_d = min_d.min(d);
+            if cap.nose_on {
+                nose_on += DT;
+            }
+        }
+        if i % 1200 == 0 {
+            println!("t {:.0}: dist {d:.0} chaser {} v {:.0}", i as f64 * DT, cap.stage(), c.speed);
+        }
+        assert!(c.position[2] > 100.0, "the chaser stays airborne");
+    }
+    println!("closest {min_d:.0} m after 60 s, nose on {nose_on:.0} s");
+    assert!(min_d < 1500.0, "the chaser closes on the target ({min_d:.0} m)");
+    assert!(nose_on > 10.0, "the nose on the target for a while ({nose_on:.0} s)");
 }
