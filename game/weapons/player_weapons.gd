@@ -1754,7 +1754,12 @@ func _instance(path: String) -> Node3D:
 	var model = preload("res://util/gltf.gd").object(path)
 	if model == null:
 		return null
-	return preload("res://util/gltf.gd").instance(model)
+	var n: Node3D = preload("res://util/gltf.gd").instance(model)
+	# The store's `pilon` attach helper (id 0x35) is a flat marker mesh: helpers are never drawn (FUN_0041c270).
+	for h in n.find_children("*", "Node3D", true, false):
+		if String(h.name).to_lower() == "pilon":
+			h.visible = false
+	return n
 
 
 ## The store model's `pilon` helper (glTF, the sum of its and its parents' translations), or null.

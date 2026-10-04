@@ -50,7 +50,9 @@ static var _objects := {}
 static func object(path: String) -> Variant:
 	var key := "%d:%s" % [object_level, path]
 	if not _objects.has(key):
-		_objects[key] = open(Settings.assets_dir().path_join("converted/objects").path_join(path))
+		# The autoload by node: this script also loads before the autoloads exist (tests preload it).
+		var settings: Node = Engine.get_main_loop().root.get_node("Settings")
+		_objects[key] = open(settings.assets_dir().path_join("converted/objects").path_join(path))
 	return _objects[key]
 
 
