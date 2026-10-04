@@ -162,3 +162,33 @@ US Navy flight-test helmet video (https://www.twz.com/12297/); Collins datasheet
 - Gun (A-A funnel and pipper, A-G strafe) and A-G cues: exist, graphics not public [R].
 - Off-boresight: the virtual HUD stays with the airframe; a reduced head-stabilised set (bare airspeed / altitude,
   heading, steerpoint, targets) [V].
+
+## References
+
+Real-world documents (primary):
+- F-16: [T.O. GR1F-16CJ-34-1-1, Hellenic AF F-16C/D Block 50 avionics and weapons delivery (dash-34), 1997](https://falcon.blu3wolf.com/Docs/HAF-F16-34.pdf) — HUD chapter pp. 1-158..1-183 (fig. 1-115 "HUD Window and Scale Positions"), A-A gun pp. 403-411, A-A missiles pp. 413-423, A-G pp. 441-458.
+- F-16: [T.O. GR1F-16CJ-1, Hellenic AF F-16C/D flight manual (dash-1)](https://falcon.blu3wolf.com/Docs/HAF-F16.pdf) — AoA bracket, ILS.
+- F-16: Lockheed Martin F-16 MLU tape pilot's guides [M1](https://falcon.blu3wolf.com/Docs/MLU_M1.pdf), [M2](https://falcon.blu3wolf.com/Docs/MLU_M2.pdf), [M3 (16PR16226, 2004)](https://falcon.blu3wolf.com/Docs/MLU_M3.pdf).
+- F-16: [RoKAF AFTTP 3-3 Vol 5, F-16C Basic Employment Manual (2005)](https://falcon.blu3wolf.com/Docs/Basic-Employment-Manual-F-16C-RoKAF.pdf) — EEGS, CCIP employment.
+- F-16: [MCH 11-F16 Vol 5, Combat Aircraft Fundamentals (1996)](https://falcon.blu3wolf.com/Docs/F-16%20COMBAT%20AIRCRAFT%20FUNDAMENTALS%20-%20Multi-Command%20Handbook%2011-F16%20Vol5.pdf).
+- F-15: [TO 1F-15A-1, F-15A/B/C/D flight manual (15 Jan 1984)](https://archive.org/details/f-15-manual) — "Navigation Head-Up Displays" pp. 1-65ff, figs. 1-14 (NAV HUD) and 1-15 (ILS HUD).
+- F-15 and others: [NADC-75267-40 "Head-Up Display Symbology" (1976), DTIC ADA022655](https://archive.org/details/DTIC_ADA022655) — per-aircraft HUD symbology tables and figures.
+- Mirage III: [RAAF AAP 7213.003-1 Mirage IIIO / IIID Flight Manual (1978)](https://aviationarchives.blogspot.com/2023/03/australia-dassault-mirage-iiio-and-iiid.html) ([Avialogs listing](https://www.avialogs.com/aircraft-d/dassault/item/2766-aap-7213003-1-flight-manual-mirage-iiio-and-iiid)) — CSF 97K sight pp. 1-109..1-121, figs. 1-60..1-73.
+- Kfir: [Flight International, 27 Aug 1983, p. 542 "Smart nav/attack system for Kfir"](https://cdnc.heyzine.com/files/uploaded/v3/3c1262af2443f80fe2c7293f1cedb885c62cfe96.pdf) — Elbit System 82 WDNS.
+- F-35: Lockheed Martin "The F-35 Cockpit" slides ([SlideShare](http://www.slideshare.net/robbinlaird/the-f35-cockpit/download); images [mirrored on f-16.net](https://www.f-16.net/forum/viewtopic.php?t=16223&start=180)) — "Virtual HUD Looking Forward", "HMD Looking Behind the Aircraft".
+- F-35: US Navy flight-test helmet-display videos, [The War Zone](https://www.twz.com/12297/navy-presents-new-f-35-helmet-display-videos-and-flight-test-dangers) and [HMS Queen Elizabeth landing](https://www.twz.com/29569/check-out-this-f-35-helmet-display-video-of-a-rolling-landing-on-the-hms-queen-elizabeth).
+- F-35: [Collins Aerospace F-35 Gen III HMDS datasheet](https://prd-sc102-cdn.rtx.com/-/media/ca/f/f35/jsf-f35-datasheet.pdf).
+
+Secondary (articles, books, pilot accounts):
+- F-35: Aviation Today, [“Such a Capable Helmet” (2010)](https://www.aviationtoday.com/2010/07/01/such-a-capable-helmet/) and [“F-35 Gen III Helmet” (2015)](https://www.aviationtoday.com/2015/09/04/f-35-gen-iii-helmet-a-generational-leap-in-technology/); [Code One “Lightning Sight”](http://www.codeonemagazine.com/article.html?item_id=12); [SLDinfo F-35 cockpit overview](https://sldinfo.com/whitepapers/an-overview-of-the-f-35-cockpit-what-5th-generation-aircraft-are-all-about/); gun symbology (DOT&E via [The War Zone](https://www.twz.com/air/f-35as-beleaguered-25mm-cannon-is-finally-effective)); [F-35I helmet (National Interest)](https://nationalinterest.org/blog/buzz/israels-unique-f-35-variant-comes-with-unique-combat-helmet-ps-031326).
+- F-15: [F-15C pilot account, The War Zone](https://www.twz.com/35765/confessions-of-an-f-15-eagle-driver-with-three-mig-kills) (ASE circle, steering dot, TD box).
+- F-16: [f-16.net pilot / test-pilot discussions](https://www.f-16.net/forum/viewtopic.php?t=5116) (bending ladder bars, ghost horizon).
+- F-4E: [Joe Baugher, F-4E](https://www.joebaugher.com/usaf_fighters/f4_11.html); Kurnass 2000: [Joe Baugher](https://www.aircraftinformation.info/JB_AIF/usaf_fighters/f4_35.html), [airvectors](http://www.airvectors.net/avf4_4.html), [warmachinesdrawn](https://warmachinesdrawn.blogspot.com/2017/06/mcdonnell-douglas-f-4e-kurnass-2000.html).
+- Mirage IIICJ: Shlomo Aloni, *Mirage III vs MiG-21* (Osprey 2010) and *Israeli Mirage III and Nesher Aces* (Osprey 2004), via [Hebrew Wikipedia “מיראז' 3”](https://he.wikipedia.org/wiki/%D7%9E%D7%99%D7%A8%D7%90%D7%96%27_3); Tim Callaway, *Dassault Mirage III/5* (Aviation Classics 17, 2012).
+- Kfir: [militaryfactory](https://www.militaryfactory.com/aircraft/detail.php?aircraft_id=152), [milavia](https://www.milavia.net/aircraft/kfir/kfir.htm), [Forecast International archive](https://www.forecastinternational.com/archive/disp_old_pdf.cfm?ARC_ID=1014).
+- Lavi: [Ruud Deurenberg, *IAI Lavi*](https://www.dror-aero.com/pro/lavi5.pdf).
+
+Simulator documentation (used only for detail, each fact tagged [SIM] above):
+- F-4E: [Heatblur DCS F-4E manual, LCOSS](https://f4.manuals.heatblur.se/systems/weapon_systems/lcoss.html) and [optical sight BIT](https://f4.manuals.heatblur.se/procedures/bit_tests/optical_sight.html) (paraphrasing T.O. 1F-4E-1 / -34).
+- F-15: [Falcon BMS TO 1F-15C-34-1-1](https://cdn.falcon-bms.com/docs/4.37/TO%201F-15C-34-1-1%20BMS.pdf).
+- F-16: [Falconpedia HUD](http://falcon4.wikidot.com/avionics:hud), [NikolaiVChr FlightGear F-16 HUD wiki](https://github.com/NikolaiVChr/f16/wiki/HUD).

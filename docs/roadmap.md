@@ -63,7 +63,8 @@ build for ARM64 Linux.
 
 ## "Real HUD" option
 The original HUD is a simplified 1998 F-16 HUD. Offer a realistic HUD per aircraft behind its own Extras switch
-(original by default): real symbology and layout, from public references. Phase 1 is built (Extras > HUD,
+(original by default): real symbology and layout, from public references (collected per aircraft in
+docs/real-hud.md). Phase 1 is built (Extras > HUD,
 docs/cockpit.md "Real HUD"): the F-16 navigation symbology (tapes, heading scale, conformal ladder, marker, AoA
 bracket, Mach / g / max-g and steerpoint windows) and phase 2's weapon cues (DLZ scale with closure, target range,
 CCIP fall line, bingo). Next: EEGS funnel, SRM / MRM target designator box and ASE circle, DTOS, a settable bingo,

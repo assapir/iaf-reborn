@@ -112,7 +112,7 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
   blackbox, language, "All keys on the Keyboard page" (the original lists 92 of the 117 key records; the option lists
   all 115 labelled ones so the stick, rudder, RPM ± 5 and pans can be rebound — controls.md §3). Later: extra sounds,
   canopy open (docs/roadmap.md).
-- **Preferences → Extras → HUD (Original (1998) / Real F-16)**: an F-16 Block 30/40 style HUD from public references
+- **Preferences → Extras → HUD (Original (1998) / Real F-16)** (references: [real-hud.md](real-hud.md)): an F-16 Block 30/40 style HUD from public references
   instead of the original symbology (phase 1, navigation): KCAS / altitude scales and boxes, heading scale with the
   steering caret, conformal ladder centred on the marker, AoA bracket with the gear down, Mach / g / max g and the
   steerpoint windows; phase 2 adds the DLZ scale, the target range, the CCIP fall line and a bingo cue (1500 lb, ours);

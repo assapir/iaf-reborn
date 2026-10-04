@@ -150,7 +150,8 @@ kt / ft / NM for every jet.
   (~0.8°); ours subtracts 10 when one of the five cockpits above still has its v1.0 value.
 
 ### Real HUD (ours, Extras > HUD)
-Not in the original: an F-16 Block 30/40 style HUD from public references, laid out in Rust
+Not in the original: each jet's real HUD / sight / helmet symbology. The per-aircraft reference with every source
+and its confidence is [docs/real-hud.md](real-hud.md). Laid out in Rust
 (`crates/iaf-avionics/src/real_hud.rs`, `IafRealHud`) as lines / circles / texts in the same HUD pixels and drawn by
 `hud.gd` (`real_hud()`, `_draw_prims`). Phase 1 replaces the navigation symbology; the weapon symbols, the ILS, the gun
 cross, the waypoint marker / target box and the helmet display (DASH) are the original's.
