@@ -333,7 +333,9 @@ func _on_link(name: String, entry: Dictionary) -> void:
 	var kind := int(link.get("type", 0))
 	var file := String(link.file)
 	var stem := file.get_file().get_basename().to_lower()
-	var w: Control = link_windows.get(kind)
+	# A closed window is freed: its slot reads as none (a typed Control would refuse the freed instance).
+	var held = link_windows.get(kind)
+	var w: Control = held if is_instance_valid(held) else null
 	var W := CLIENT.size.x
 	var H := CLIENT.size.y
 	match kind:

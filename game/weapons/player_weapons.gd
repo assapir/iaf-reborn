@@ -1519,7 +1519,8 @@ func radar_snapshot() -> Dictionary:
 	var closure := 0.0
 	if not lk.is_empty():
 		var d: Vector3 = (lk.pos - o.pos).normalized()
-		closure = (o.vel - (lk.unit.vel as Vector3)).dot(d)
+		# The record keeps no unit once its unit left the list (destroyed / hidden this frame): no closure then.
+		closure = (o.vel - (lk.unit.vel as Vector3)).dot(d) if lk.has("unit") else 0.0
 	return {"mode": radar.mode, "idx": radar.range_index(), "width": radar.scope_width(),
 		"shift": radar.heading_shift, "antenna": radar.antenna, "contacts": radar.contacts,
 		"lock": lk, "closure": closure, "has_lock": not lk.is_empty(),
