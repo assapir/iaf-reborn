@@ -110,7 +110,13 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 - **Preferences → Extras**: Flight data (Original / Real aircraft), HUD pitch ladder (conformal: each rung projected
   through the camera; the original's linear 12 px/deg ladder is a few px off away from the marker), flight info line,
   blackbox, language, "All keys on the Keyboard page" (the original lists 92 of the 117 key records; the option lists
-  all 115 labelled ones so the stick, rudder, RPM ± 5 and pans can be rebound — controls.md §3). Later: Real HUD, extra sounds, canopy open (docs/roadmap.md).
+  all 115 labelled ones so the stick, rudder, RPM ± 5 and pans can be rebound — controls.md §3). Later: extra sounds,
+  canopy open (docs/roadmap.md).
+- **Preferences → Extras → HUD (Original (1998) / Real F-16)**: an F-16 Block 30/40 style HUD from public references
+  instead of the original symbology (phase 1, navigation): KCAS / altitude scales and boxes, heading scale with the
+  steering caret, conformal ladder centred on the marker, AoA bracket with the gear down, Mach / g / max g and the
+  steerpoint windows; the weapon symbols, ILS, gun cross and helmet display stay the original's — cockpit.md "Real
+  HUD", `iaf-avionics` `real_hud.rs`.
 
 - **Preferences → Devices → Detent = MIL** (ours, under THROTTLE, off by default): "Set at lever" stores the lever position in its
   detent; the lever then maps piecewise so the detent is MIL (74) and the travel past it afterburner (the original maps it

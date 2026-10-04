@@ -7,6 +7,7 @@ mod flight;
 mod gun;
 mod missile;
 mod radar;
+mod real_hud;
 mod release;
 mod rwr;
 mod sensors;

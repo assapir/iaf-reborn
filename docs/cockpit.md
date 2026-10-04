@@ -149,6 +149,26 @@ kt / ft / NM for every jet.
 * **Gun cross with v1.0 cockpit data**: the file's `GunRetPositionY` is 10 px higher than the v1.1 bullet line
   (~0.8°); ours subtracts 10 when one of the five cockpits above still has its v1.0 value.
 
+### Real HUD (ours, Extras > HUD)
+Not in the original: an F-16 Block 30/40 style HUD from public references, laid out in Rust
+(`crates/iaf-avionics/src/real_hud.rs`, `IafRealHud`) as lines / circles / texts in the same HUD pixels and drawn by
+`hud.gd` (`real_hud()`, `_draw_prims`). Phase 1 replaces the navigation symbology; the weapon symbols, the ILS, the gun
+cross, the waypoint marker / target box and the helmet display (DASH) are the original's.
+* **Airspeed** (KCAS, `ias_kt`) on the field's left edge: 0.6 px/kt, 10 kt ticks, labels every 50 kt as kt / 10, the
+  digital box outside pointing at the scale. **Altitude** (barometric) on the right edge: 0.06 px/ft, 100 ft ticks,
+  labels every 500 ft in thousands ("10,5"), the box "10,450". Labels within 8 px of the box are hidden.
+* **Heading scale** along the field's bottom: 2 px/deg, 5° ticks, labels every 10° in tens, the fixed caret and the
+  steering tick at the steerpoint's bearing (held at the scale's ends).
+* **Pitch ladder**, conformal: rung e sits e degrees up from the level point ahead (the view's level direction
+  projected; the view's px/deg measured 5° above it), rolled with the jet and slid along the rungs to the flight path
+  marker; climb rungs solid with their tips down, dive rungs dashed with their tips up, the horizon line long; labels
+  at both ends; none in the heading scale's band.
+* **Flight path marker** (circle, wings, fin) and, with the gear handle down, the **AoA bracket** left of it: the
+  marker inside from 11° to 15° AoA.
+* **Data windows** under the scales: left the HUD mode's name (NAV, SRM, MRM, EEGS, STRF, CCIP, LGB, EO, HARM), Mach,
+  g and max g (latched); right the steerpoint's distance in NM and number ("012>03") and the time to it (mm:ss).
+Test: `tests/godot/test_real_hud.gd`; unit tests in `real_hud.rs`.
+
 ### 3D view: the cockpit camera's projection (v1.1)
 The world is drawn by TgenAPI (`DAT_0069942c`, 16-bit renderer vtable `0x5fd900`) into viewport 0, every frame from
 `FUN_004d9790` (`CFlightWnd::prepareTerrainData`).

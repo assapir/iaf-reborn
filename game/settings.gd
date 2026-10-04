@@ -35,7 +35,7 @@ const PREFS := {
 	"devices": ["flight_controls", "rudder", "throttle", "joy_axes", "throttle_detent"],
 	"gameplay": ["no_wind", "no_blackouts", "no_spins", "no_stalls", "easy_landing", "easy_aiming",
 		"no_malfunctions", "ai_level", "invulnerable", "no_crashes", "unlimited_ammo", "unlimited_fuel",
-		"flight_data", "weapon_data", "language", "show_info", "blackbox", "hud_ladder", "show_all_keys", "fullscreen",
+		"flight_data", "weapon_data", "language", "show_info", "blackbox", "hud_ladder", "hud_style", "show_all_keys", "fullscreen",
 		"imagery_israel", "imagery_outside", "antialiasing", "terrain_closeup", "sky", "f35i_slot"],
 }
 
@@ -94,6 +94,9 @@ var blackbox := true
 ## HUD pitch ladder: "original" (v1.1: 12 px/deg hung on the flight path marker, docs/cockpit.md) or
 ## "conformal" (ours: rungs projected through the camera, on the world's horizon).
 var hud_ladder := "original"
+## HUD symbology: "original" (the 1998 HUD) or "real" (ours: an F-16 Block 30/40 style HUD from public references,
+## iaf_avionics::real_hud; docs/cockpit.md "Real HUD").
+var hud_style := "original"
 ## Keyboard page: false = the original list (92 records); true (ours) also lists the hidden records
 ## (stick, rudder, RPM ± 5, pans, cheats, screen capture) so they can be rebound, e.g. on keyboards without a numpad.
 var show_all_keys := false

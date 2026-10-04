@@ -4,7 +4,8 @@
 # waypoint marker and target box (FUN_0052f690) and the weapon symbols; the heading tape (FUN_00537cd0), the
 # speed (FUN_005386c0) and altitude (FUN_005381c0) scales and the text block (FUN_0052ef20) sit on and
 # beyond the field's edges and are drawn unclipped by a sibling layer (`outer`).
-# The conformal ladder (projected through the camera) is our option (Extras > HUD pitch ladder).
+# The conformal ladder (projected through the camera) is our option (Extras > HUD pitch ladder); so is the Real
+# HUD (Extras > HUD: an F-16 style symbology laid out by iaf_avionics::real_hud, drawn here).
 extends Control
 
 const Img := preload("res://util/img.gd")
@@ -49,6 +50,10 @@ var _ladder_labels := []
 ## The gun pipper of this frame ({p (HUD px), arc (range arc angle, 0 none)} or {}): the sprite is only clipped to
 ## the screen (FUN_0052da80), so it is drawn by `outer`.
 var _pipper_at := {}
+## The Real HUD (IafRealHud) and its primitives of this frame ({field, outer}, {} with the original HUD).
+var _real_hud = null
+var _real := {}
+var _real_frame := -1
 
 
 func _ready() -> void:
@@ -119,8 +124,12 @@ func _draw() -> void:
 	# The helmet display (R+0x2788): no ladder / marker, ILS, gun cross, mode 3–6 aiming symbols.
 	var dash: bool = cockpit.dash()
 
+	# The Real HUD: its ladder, marker and AoA bracket instead of the original's.
+	var real := real_hud()
+	if not real.is_empty():
+		_draw_prims(self, real.field, w)
 	# Ladder (ShowHorizon, R+0x2234) and flight path marker (FUN_00538c90).
-	if camera != null and not dash:
+	elif camera != null and not dash:
 		var fpm = _fpm_position()
 		if _key("ShowHorizon", 1) != 0:
 			if Settings.hud_ladder == "conformal":
@@ -281,6 +290,10 @@ func _draw_outer() -> void:
 		_sprite(outer, l[0], l[1], true)
 	if not _pipper_at.is_empty():
 		_draw_pipper(_pipper_at.p, float(_pipper_at.arc), w)
+	var real := real_hud()
+	if not real.is_empty():
+		_draw_prims(outer, real.outer, w)
+		return
 
 	# Altitude (FUN_005381c0) on the right edge.
 	var at := alt_value(st, mode, gear)
@@ -339,6 +352,64 @@ func _draw_outer() -> void:
 	for i in 3:
 		_sprite(outer, Vector2(-tx0, ty0 + 7 * i), rows[i])
 		_sprite(outer, Vector2(tx0, ty0 + 7 * i), rows[3 + i], true)
+
+
+# --- the Real HUD (ours, Extras > HUD) ---------------------------------------------------------------------
+
+## The HUD mode's label in the Real HUD's data window.
+const REAL_MODE_LABELS := ["NAV", "SRM", "MRM", "EEGS", "STRF", "CCIP", "LGB", "EO", "HARM"]
+
+
+## The Real HUD's primitives of this frame ({field, outer}; {} with the original HUD, on the helmet display or
+## without a camera), computed once per frame for both layers.
+func real_hud() -> Dictionary:
+	if Settings.hud_style != "real" or camera == null or cockpit.dash():
+		return {}
+	var f := Engine.get_process_frames()
+	if f == _real_frame:
+		return _real
+	_real_frame = f
+	if _real_hud == null:
+		_real_hud = ClassDB.instantiate("IafRealHud")
+	var st: Dictionary = cockpit.state
+	# The level direction ahead along the view's heading and the view's scale (5° up from it).
+	var fwd := -camera.global_basis.z
+	var level := Vector3(fwd.x, 0.0, fwd.z).normalized()
+	var horizon := _project(level)
+	var up5 := _project(level.rotated(level.cross(Vector3.UP).normalized(), deg_to_rad(5.0)))
+	var fpm = _fpm_position()
+	var nav := nav_cues(st, cockpit.waypoints, cockpit.current_waypoint)
+	var steer := {}
+	if not cockpit.waypoints.is_empty():
+		var minutes := float(nav.minutes)
+		steer = {"number": int(nav.index) + 1, "bearing": nav.bearing_deg, "dist_m": float(nav.dist_nm) / M_TO_NM,
+			"eta_s": minutes * 60.0 if minutes < 1000.0 / 60.0 else null}
+	var mode := _mode()
+	_real = _real_hud.frame(_field(), {
+		"kcas": st.get("ias_kt", 0.0), "alt_ft": st.get("alt_ft", 0.0), "heading": st.get("heading", 0.0),
+		"roll": st.get("roll", 0.0), "mach": st.get("mach", 0.0), "g": st.get("g", 1.0),
+		"aoa": st.get("aoa", 0.0), "gear_down": cockpit.gear_handle_down,
+		"fpm": (fpm - _c) / _s if fpm != null else null, "horizon": (horizon - _c) / _s,
+		"px_per_deg": (up5 - horizon).length() / 5.0 / _s,
+		"master": REAL_MODE_LABELS[mode] if mode >= 0 and mode < REAL_MODE_LABELS.size() else "",
+		"steerpoint": steer})
+	return _real
+
+
+## Draws Real HUD primitives (HUD pixels from the HUD centre) on `ci`.
+func _draw_prims(ci: CanvasItem, prims: Array, w: float) -> void:
+	var col: Color = cockpit.hud_colour()
+	for p in prims:
+		match p.k:
+			"line":
+				_ln(ci, p.a, p.b, w)
+			"circle":
+				ci.draw_arc(_pt(p.c), float(p.r) * _s, 0, TAU, 20, col, w)
+			"text":
+				var at: Vector2 = p.at
+				if int(p.align) == 1:
+					at.x += 2.5 * String(p.text).length()
+				_gdi(ci, at, p.text, int(p.align) != 0)
 
 
 # --- traced values (original pixels; tests/godot/test_hud.gd) -----------------------------------------

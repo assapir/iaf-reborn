@@ -63,9 +63,10 @@ build for ARM64 Linux.
 
 ## "Real HUD" option
 The original HUD is a simplified 1998 F-16 HUD. Offer a realistic HUD per aircraft behind its own Extras switch
-(original by default): real symbology and layout (e.g. F-16 Block 30/40 HUD: airspeed / altitude tapes, heading
-tape, real pitch ladder with dashed negative rungs, flight path marker, AoA bracket, g / Mach / max-g window,
-master arm / weapon modes, bingo / waypoint data), from public references.
+(original by default): real symbology and layout, from public references. Phase 1 is built (Extras > HUD,
+docs/cockpit.md "Real HUD"): the F-16 navigation symbology (tapes, heading scale, conformal ladder, marker, AoA
+bracket, Mach / g / max-g and steerpoint windows). Next: the weapon modes' symbology (EEGS, SRM / MRM dynamic launch
+zone, CCIP / DTOS), bingo fuel, and the other jets' HUDs.
 
 ## Updated maps (later, just for fun)
 The static maps (TSD / briefing EMF maps, map texts, borders, city names) show the 1998 situation. Optional Extras
