@@ -36,8 +36,9 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
     // The heading scale: the lower position (below the scales) in NAV, A-A and strafe; the upper one in the A-G modes
     // and gear down.
     let hdg_y = if i.gear_down || matches!(mode, 5..=7) { f.top + 10.0 } else { tape_y + TAPE_HALF + 6.0 };
-    heading(o, hdg_y, i.heading_deg, i.steerpoint.map(|s| s.bearing_deg));
+    // EEGS has neither the heading scale nor the roll indicator (fig. 1-257).
     if mode != 3 {
+        heading(o, hdg_y, i.heading_deg, i.steerpoint.map(|s| s.bearing_deg));
         roll_indicator(o, i);
     }
     // The left column: ARM, Mach, max g, the mode / weapon.
@@ -136,7 +137,7 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
                 }
             }
         }
-        3 => funnel(p, i),
+        3 => eegs(p, i, f),
         4..=6 => {
             if let Some(c) = w.pipper {
                 pipper(p, c, i.mr(0.5).max(0.8), i.mr(6.0));
@@ -145,6 +146,50 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
         _ => {}
     }
     fr
+}
+
+/// EEGS (dash-34 pp. 1-387..1-390, fig. 1-257). Without a lock, level 2: the funnel (600-3,000 ft) and the MRGS lines
+/// at the bottom of the HUD sweeping toward the centre. With a radar track (range, velocity, acceleration: level 5):
+/// the lengthened funnel, the T-symbol at the target's range — a long horizontal bar across the funnel (at most
+/// 100 mr), the 1 g pipper "+" between its halves and the 9 g pipper tic in the funnel's centre — and the 4 mr
+/// pipper on the lead-computed solution; the TD circle with its range arc and the maximum-effective-range dot is drawn
+/// by `target_box`.
+fn eegs(p: &mut Vec<Prim>, i: &Input, f: Field) {
+    let Some(t) = i.target else {
+        funnel(p, i, 3000.0);
+        mrgs(p, i, f);
+        return;
+    };
+    funnel(p, i, 6000.0);
+    let r_ft = (t.range_m / FT).clamp(600.0, 6000.0);
+    let (c, half) = funnel_at(i, r_ft, i.g);
+    let bar = i.mr(50.0);
+    p.push(line((c.0 - bar, c.1), (c.0 - half - 1.0, c.1)));
+    p.push(line((c.0 + half + 1.0, c.1), (c.0 + bar, c.1)));
+    let a = i.mr(2.0);
+    p.push(line((c.0 - a, c.1), (c.0 + a, c.1)));
+    p.push(line((c.0, c.1 - a), (c.0, c.1 + a)));
+    let (c9, _) = funnel_at(i, r_ft, 9.0);
+    p.push(line((c9.0 - a, c9.1), (c9.0 + a, c9.1)));
+    if let Some(l) = i.weapons.lcos {
+        p.push(Prim::Circle { c: l, r: i.mr(2.0) });
+    }
+}
+
+/// The multiple reference gunsight lines: short lines near the HUD's bottom drawn for a target 1.5 wingspans long,
+/// sweeping repeatedly from the outer edge toward the centre (one sweep a second; ours: five lines).
+fn mrgs(p: &mut Vec<Prim>, i: &Input, f: Field) {
+    let (y0, y1) = (f.bottom - 30.0, f.bottom - 18.0);
+    let span = i.mr(36.0);
+    let phase = i.time_s.rem_euclid(1.0);
+    p.push(line((i.gun_cross.0, y0), (i.gun_cross.0, y1)));
+    for k in 0..2 {
+        let x = span * (1.0 - (phase + k as f64 * 0.5).rem_euclid(1.0));
+        for side in [-1.0, 1.0] {
+            let cx = i.gun_cross.0 + side * x;
+            p.push(line((cx - side * 1.5, y0), (cx, y1)));
+        }
+    }
 }
 
 /// The operating mode / weapon window (8): NAV, "6 SRM", "3 MRM", EEGS, STRF, CCIP, PRE (Maverick / TV), HARM.
@@ -290,10 +335,11 @@ fn target_box(p: &mut Vec<Prim>, i: &Input, f: Field, at: P, gun: bool, t: Targe
     }
     let h = i.mr(12.5);
     if gun {
-        p.push(Prim::Circle { c: at, r: h });
         let ft = t.range_m / FT;
         let sweep = if t.range_m > 2.0 * NM { std::f64::consts::TAU } else { (ft / 12_000.0).min(1.0) * std::f64::consts::TAU };
-        p.push(Prim::Arc { c: at, r: h + 1.5, from: 0.0, sweep });
+        p.push(Prim::Arc { c: at, r: h, from: 0.0, sweep });
+        // The maximum effective range (3,000 ft: 3 o'clock) as a dot outside the circle.
+        p.push(Prim::Dot { c: (at.0 + h + 3.0, at.1), r: 1.0 });
     } else {
         p.extend(box_poly(at.0 - h, at.1 - h, at.0 + h, at.1 + h));
     }
@@ -333,6 +379,22 @@ mod tests {
         let gt = texts(&g.outer);
         assert!(gt.contains(&"EEGS") && gt.contains(&"F 020") && gt.contains(&"194"), "{gt:?}");
         assert!(g.field.iter().any(|p| matches!(p, Prim::Arc { .. })), "the TD circle's range arc");
+    }
+
+    #[test]
+    fn eegs_levels() {
+        let mut i = input(Jet::F16);
+        i.weapons.hud_mode = 3;
+        let low = |fr: &Frame| fr.field.iter().filter(|p| matches!(p, Prim::Line { a, .. } if (a.1 - (FIELD.bottom - 30.0)).abs() < 1e-9)).count();
+        let l2 = frame(FIELD, &i, 2.3);
+        assert_eq!(low(&l2), 5, "level 2: the five MRGS lines");
+        i.target = Some(Target { range_m: 1500.0 * FT, closure: 50.0, at: Some((0.0, 20.0)) });
+        i.weapons.lcos = Some((1.0, 18.0));
+        let l5 = frame(FIELD, &i, 2.3);
+        assert_eq!(low(&l5), 0, "with a track the MRGS lines go");
+        let long_bar = l5.field.iter().any(|p| matches!(p, Prim::Line { a, b } if (a.1 - b.1).abs() < 1e-9 && (b.0 - a.0) > i.mr(30.0)));
+        assert!(long_bar, "the T-symbol's bars");
+        assert!(l5.field.iter().any(|p| matches!(p, Prim::Dot { .. })), "the maximum-effective-range dot");
     }
 
     #[test]

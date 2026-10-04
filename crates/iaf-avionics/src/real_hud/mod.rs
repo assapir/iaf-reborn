@@ -178,6 +178,11 @@ pub struct Weapons {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Input {
     pub jet: Jet,
+    /// Sim seconds (the animated symbols).
+    pub time_s: f64,
+    /// The F-35's helmet looking off the nose (the head-stabilised set) and the head's heading (°).
+    pub off_boresight: bool,
+    pub head_heading_deg: f64,
     pub kcas: f64,
     pub ground_kt: f64,
     pub tas_ms: f64,
@@ -376,29 +381,39 @@ fn waterline(p: &mut Vec<Prim>, (x, y): P, w: f64) {
     p.push(line((x + 2.0 * q, y), (x + w, y)));
 }
 
-/// The A-A gun's funnel (EEGS, F-16): for ranges 600..3,000 ft, the point where the rounds fired one time of flight
-/// ago are now (the gun line moved by the jet's pitch rate, and gravity), the two lines a wingspan apart at that range.
-/// The jet's pitch rate is (n − cos φ)·g / V; ours: wingspan 35 ft (set by the pilot in the real jet), muzzle speed
-/// 1,036 m/s (M61A1).
-fn funnel(p: &mut Vec<Prim>, i: &Input) {
-    const WINGSPAN_FT: f64 = 35.0;
-    const MUZZLE: f64 = 1036.0;
+/// The EEGS funnel's wingspan (ours: set by the pilot in the real jet) and the M61A1's muzzle speed.
+const WINGSPAN_FT: f64 = 35.0;
+const MUZZLE: f64 = 1036.0;
+
+/// The EEGS funnel's centre at range `r_ft` for a load factor `g` (HUD px): where the rounds fired one time of flight
+/// ago are now — the gun line moved by the jet's pitch rate (n − cos φ)·g / V, and gravity — and the funnel's half
+/// width there (the wingspan at that range).
+fn funnel_at(i: &Input, r_ft: f64, g: f64) -> (P, f64) {
     const G: f64 = 9.80665;
     let v = i.tas_ms.max(50.0);
     let roll = i.roll_deg.to_radians();
-    let omega = (i.g - roll.cos()) * G / v;
+    let omega = (g - roll.cos()) * G / v;
+    let r = r_ft * FT;
+    let t = r / (MUZZLE + v);
+    let drop = gravity_drop(t, r);
+    let down = (omega * t + drop * roll.cos()).to_degrees();
+    let side = (drop * roll.sin()).to_degrees();
+    let half = ((WINGSPAN_FT * FT / 2.0) / r).atan().to_degrees();
+    (add(i.gun_cross, (i.deg(side), i.deg(down))), i.deg(half))
+}
+
+/// The A-A gun's funnel (EEGS, F-16, dash-34 fig. 1-257): two lines whose midpoint at each range from 600 ft (top) to
+/// `max_ft` (3,000 ft without a lock; longer, toward the HUD's bottom, once the radar tracks the target) is the aim
+/// point at that range and whose width is the wingspan there.
+fn funnel(p: &mut Vec<Prim>, i: &Input, max_ft: f64) {
     let mut left = Vec::new();
     let mut right = Vec::new();
-    for r_ft in (600..=3000).step_by(200) {
-        let r = r_ft as f64 * FT;
-        let t = r / (MUZZLE + v);
-        let drop = gravity_drop(t, r);
-        let down = (omega * t + drop * roll.cos()).to_degrees();
-        let side = (drop * roll.sin()).to_degrees();
-        let half = ((WINGSPAN_FT * FT / 2.0) / r).atan().to_degrees();
-        let c = add(i.gun_cross, (i.deg(side), i.deg(down)));
-        left.push((c.0 - i.deg(half), c.1));
-        right.push((c.0 + i.deg(half), c.1));
+    let mut r = 600.0;
+    while r <= max_ft {
+        let (c, half) = funnel_at(i, r, i.g);
+        left.push((c.0 - half, c.1));
+        right.push((c.0 + half, c.1));
+        r += 200.0;
     }
     for l in [left, right] {
         for w in l.windows(2) {
@@ -488,7 +503,7 @@ mod tests {
     fn the_funnel_narrows_and_sags_with_range() {
         let mut p = Vec::new();
         let i = Input { g: 4.0, ..input(Jet::F16) };
-        funnel(&mut p, &i);
+        funnel(&mut p, &i, 3000.0);
         let lines: Vec<(P, P)> = p.iter().filter_map(|x| if let Prim::Line { a, b } = x { Some((*a, *b)) } else { None }).collect();
         let (near, far) = (lines[0].0, lines[lines.len() / 2 - 1].1);
         assert!(far.1 > near.1, "pulling 4 g: the far end of the funnel lower");

@@ -426,7 +426,8 @@ func real_hud() -> Dictionary:
 		lcos = gun + Vector2(wp.pipper.x, wp.pipper.y)
 	var agl = st.get("agl_ft")
 	_real = _real_hud.frame(_field(), {
-		"cockpit": cockpit.cockpit_dir, "kcas": st.get("ias_kt", 0.0), "ground_kt": st.get("ground_kt", 0.0),
+		"cockpit": cockpit.cockpit_dir, "time": st.get("time", 0.0), "off_boresight": f35 and cockpit.dash(),
+		"head_heading": fposmod(rad_to_deg(atan2(fwd.x, -fwd.z)), 360.0), "kcas": st.get("ias_kt", 0.0), "ground_kt": st.get("ground_kt", 0.0),
 		"tas_ms": float(st.get("tas_kt", 0.0)) / MS_TO_KT, "alt_ft": st.get("alt_ft", 0.0), "agl_ft": agl,
 		"vs_fpm": st.get("vs_fpm", 0.0), "heading": st.get("heading", 0.0), "roll": st.get("roll", 0.0),
 		"mach": st.get("mach", 0.0), "g": st.get("g", 1.0), "aoa": st.get("aoa", 0.0),

@@ -2,7 +2,7 @@
 # switched on, the F-16 draws its dash-34 symbology (boxed airspeed with "C", the altitude box, the heading box, the
 # data windows, the ladder and the marker). Through the bridge, every jet's own display: the F-15's tapes and NAV
 # window, the F-35's helmet blocks, the F-4E's and the Mirage's gunsight reticles (sight only, in their colours), and
-# the weapon cues (DLZ with closure, target range, EEGS funnel, CCIP fall line, bingo).
+# the weapon cues (DLZ with closure, target range, EEGS funnel, CCIP fall line, bingo), the F-35's off-boresight set.
 extends "res://../tests/godot/base.gd"
 
 
@@ -53,6 +53,10 @@ func run() -> void:
 	var t35 := _texts(f35.outer)
 	check(t35.has("GS 420") and t35.has("AA1") and t35.has("4 AIM-A") and t35.has("-1125") and f35.colour != null,
 		"F-35 helmet: GS, AA1, 4 AIM-A, the vertical velocity, green (%s)" % str(t35))
+	var off: Dictionary = rh.frame(field, base.merged({"cockpit": "res://extra/planes/f35i/cockpit", "off_boresight": true,
+		"head_heading": 90.0}, true))
+	var to := _texts(off.outer)
+	check(to.has("400") and to.has("090") and not to.has("GS 420"), "F-35 looking off the nose: the head set only (%s)" % str(to))
 	for c in [["phantom", "F-4E ASG-26"], ["mirage", "Mirage CSF"]]:
 		var s: Dictionary = rh.frame(field, base.merged({"cockpit": "converted/cockpits/" + c[0]}))
 		check(s.sight and s.outer.is_empty() and _texts(s.field).is_empty() and s.colour != null,

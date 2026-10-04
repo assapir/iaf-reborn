@@ -17,6 +17,9 @@ const FIELD_W_DEG: f64 = 32.0;
 const FIELD_H_DEG: f64 = 22.0;
 
 pub(super) fn frame(_hud: Field, i: &Input, max_g: f64) -> Frame {
+    if i.off_boresight {
+        return off_boresight(i);
+    }
     let (bx, by) = i.boresight;
     let f = Field {
         left: bx - i.deg(FIELD_W_DEG / 2.0),
@@ -125,7 +128,7 @@ pub(super) fn frame(_hud: Field, i: &Input, max_g: f64) -> Frame {
                 p.push(Prim::Dot { c: q, r: i.mr(3.0) });
             }
         }
-        3 => funnel(p, i),
+        3 => funnel(p, i, 3000.0),
         4..=6 => {
             if let Some(c) = w.pipper {
                 pipper(p, c, i.mr(0.5).max(0.8), i.mr(6.0));
@@ -136,6 +139,43 @@ pub(super) fn frame(_hud: Field, i: &Input, max_g: f64) -> Frame {
     // Not clipped to the cockpit's HUD glass: the helmet draws over the whole view.
     let mut field = std::mem::take(&mut fr.field);
     fr.outer.append(&mut field);
+    fr
+}
+
+/// Looking off the nose (flight-test video; docs/real-hud.md "F-35I"): the aircraft-stabilised virtual HUD is left
+/// behind and a reduced head-stabilised set shows around the helmet's centre — the head line-of-sight "+", a heading
+/// tape for where the head points, the airspeed and altitude as bare numbers, the steerpoint block and the target
+/// designator; no ladder, marker, boxes or data stack.
+fn off_boresight(i: &Input) -> Frame {
+    let mut fr = Frame { colour: Some(GREEN), ..Frame::default() };
+    let o = &mut fr.outer;
+    let (w, h) = (i.deg(13.0), i.deg(8.0));
+    let a = i.mr(10.0);
+    o.push(line((-a, 0.0), (a, 0.0)));
+    o.push(line((0.0, -a), (0.0, a)));
+    heading(o, -h, i.head_heading_deg);
+    o.push(text((-w, h * 0.6), format!("{}", i.kcas.max(0.0).round() as i64), Align::Left));
+    o.push(text((w, h * 0.6), format!("{}", i.alt_ft.round() as i64), Align::Right));
+    if let Some(s) = i.steerpoint {
+        o.push(text(
+            (w, h * 0.6 + 2.0 * ROW),
+            format!("{:03} {:03}/{:.1}", s.number, (s.bearing_deg.round() as i64).rem_euclid(360), s.dist_m / NM),
+            Align::Right,
+        ));
+        if let Some(t) = s.eta_s {
+            let t = t.max(0.0).round() as i64;
+            o.push(text((w, h * 0.6 + 3.0 * ROW), format!("{:02}:{:02}:{:02}", t / 3600, (t / 60) % 60, t % 60), Align::Right));
+        }
+    }
+    let field = Field { left: -w, right: w, top: -h, bottom: h };
+    if let Some(t) = i.target
+        && let Some(at) = t.at
+    {
+        let (q, _) = field.clamp_from((0.0, 0.0), at);
+        let s = i.mr(12.0);
+        o.push(Prim::Circle { c: q, r: s * 0.6 });
+        x_over(o, q, s);
+    }
     fr
 }
 
@@ -205,5 +245,15 @@ mod tests {
             assert!(t.contains(&want), "{want} in {t:?}");
         }
         assert_eq!(fr.colour, Some(GREEN));
+    }
+
+    #[test]
+    fn off_boresight_reduces_to_the_head_set() {
+        let i = Input { off_boresight: true, head_heading_deg: 60.0, fpm: Some((0.0, 0.0)), ..input(Jet::F35) };
+        let fr = frame(FIELD, &i, 1.9);
+        let t = texts(&fr.outer);
+        assert!(t.contains(&"352") && t.contains(&"10450") && t.contains(&"060"), "{t:?}");
+        assert!(!t.iter().any(|x| x.starts_with("GS") || x.starts_with("M ")), "no data stack: {t:?}");
+        assert!(!fr.outer.iter().any(|p| matches!(p, Prim::Circle { r, .. } if (*r - i.mr(5.0)).abs() < 1e-9)), "no marker");
     }
 }

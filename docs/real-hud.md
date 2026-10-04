@@ -163,6 +163,21 @@ US Navy flight-test helmet video (https://www.twz.com/12297/); Collins datasheet
 - Off-boresight: the virtual HUD stays with the airframe; a reduced head-stabilised set (bare airspeed / altitude,
   heading, steerpoint, targets) [V].
 
+## What ours draws (status)
+
+- F-16: the NAV / A-A / A-G layout of figs. 1-110 / 1-111 / 1-115 (scales, boxes, the "C", windows 3 / 4 / 5 / 7 / 8 /
+  10 / 13 / 14 / 25 / 26 without ALOW, heading box low / high, roll indicator, bending ladder, FPM, AoA bracket,
+  steerpoint diamond, TD box / locator line, AIM-9 reticle + seeker diamond, AIM-120 ASEC + ASC, DLZ with closure,
+  CCIP / strafe pipper with the fall line, FUEL); EEGS levels 2 and 5 per fig. 1-257 (funnel, MRGS lines, T-symbol,
+  1 g / 9 g pippers, 4 mr pipper, TD circle with the range arc and the maximum-range dot). Not drawn: the VVI scale
+  (ours: the VAH switch position), DTOS / CCRP (the game has no such modes), BATR / FEDS, the target-aspect triangle,
+  ALOW.
+- F-15: tapes, heading, ladder, velocity vector, -W-, gun cross when armed, G, Mach in A-A, NAV window, TD box, ASE
+  circle + dot, range scale + IN RNG, LCOS reticle with the range arc, bomb fall line to the target square. Not drawn:
+  AoA scale gear down, the steering bar, breakaway X.
+- F-4E / Mirage: the reticles as specified (ours: the reticle rides the LCOS / CCIP pipper).
+- F-35: the forward virtual HUD and the off-boresight head set; the gun / A-G graphics are the F-16's (reconstruction).
+
 ## References
 
 Real-world documents (primary):

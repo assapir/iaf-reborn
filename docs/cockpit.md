@@ -161,8 +161,11 @@ view's scale. In Real mode the original's ladder, marker, scales, text block, gu
 and weapon symbols are not drawn (the ILS, the BORE cross and the TV / HARM diamonds stay); the sight-only jets draw
 nothing else. Weapon cues per jet: F-16 SRM reticle + seeker diamond, MRM ASEC + steering dot, DLZ (closure, target
 range), EEGS funnel (ours: 35 ft wingspan, M61A1 muzzle speed) with the TD circle, strafe / CCIP pipper and fall line,
-steerpoint diamond; F-15 TD box, ASE circle and dot, range scale with IN RNG, LCOS reticle, bomb fall line to the
-target square; F-35 target X, steering circle, DLZ bracket with the range; the sights' reticles ride the LCOS / CCIP
+steerpoint diamond (EEGS without a lock: level 2, the 600-3,000 ft funnel and the sweeping MRGS lines; with a
+track: level 5, the lengthened funnel, the T-symbol with the 1 g "+" and 9 g tic, the 4 mr pipper, the TD circle with
+its maximum-range dot; no heading scale or roll indicator in EEGS); F-15 TD box, ASE circle and dot, range scale with IN RNG, LCOS reticle, bomb fall line to the
+target square; F-35 target X, steering circle, DLZ bracket with the range, and looking off the nose (the helmet view) the
+head-stabilised set: "+", the head's heading tape, bare airspeed / altitude, steerpoint block, target; the sights' reticles ride the LCOS / CCIP
 pipper (ours: the bombing depression set automatically). Tests: `tests/godot/test_real_hud.gd`, unit tests in each
 module; screenshots: `tests/godot/_real_hud_jets_shot.gd` (every jet), `_hud_compare_shot.gd` (original vs real).
 

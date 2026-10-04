@@ -54,7 +54,7 @@ impl IafRealHud {
         self.hud.reset_max_g();
     }
 
-    /// One frame. `field` the symbology field (Rect2, HUD px from the HUD centre); `i` {cockpit (the cockpit dir),
+    /// One frame. `field` the symbology field (Rect2, HUD px from the HUD centre); `i` {cockpit (the cockpit dir), time, off_boresight, head_heading,
     /// kcas, ground_kt, tas_ms, alt_ft, agl_ft (null), vs_fpm, heading, roll, mach, g, aoa, gear_down, fuel_lbs, fpm
     /// (null), boresight, gun_cross, horizon, px_per_deg, steerpoint ({number, bearing, dist_m, eta_s, at} or {}),
     /// target ({range_m, closure, at} or {}), dlz ([max, min] or []), weapons {hud_mode, selected, srm, mrm, seeker,
@@ -67,6 +67,9 @@ impl IafRealHud {
         let wn = |k: &str| num(&w, k).unwrap_or_default();
         let input = Input {
             jet: Jet::of_cockpit(&get::<GString>(&i, "cockpit").unwrap_or_default().to_string()),
+            time_s: f("time"),
+            off_boresight: get(&i, "off_boresight").unwrap_or(false),
+            head_heading_deg: f("head_heading"),
             kcas: f("kcas"),
             ground_kt: f("ground_kt"),
             tas_ms: f("tas_ms"),
