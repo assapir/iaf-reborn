@@ -79,6 +79,19 @@ func _case(tv, name: String, shots: bool) -> void:
 		tv.views.set_cockpit(tv.views.COCKPIT)
 		await frames(3)
 		await _save("tv_ready.png")
+		# The full-screen weapon MFD (Z, docs/mfd.md §3): opens with a TV status, replaces the cockpit; a view key
+		# closes it; Z opens it again, and the launch keeps it.
+		tv._full_screen_key()
+		await frames(3)
+		check(w.full_screen and tv.fs_mfd != null and not tv.cockpit.visible and tv.fs_mfd.page() == 5,
+				"%s: Z: the full-screen weapon MFD on the TV page" % name)
+		await _save("tv_full_screen.png")
+		tv._view_command(1)
+		await frames(2)
+		check(not w.full_screen and tv.fs_mfd == null and tv.cockpit.visible, "%s: F1 closes the full-screen MFD" % name)
+		tv._full_screen_key()
+		await frames(2)
+		check(w.full_screen and tv.fs_mfd != null, "%s: Z opens it again" % name)
 	w.fire_selected()
 	w.release_selected()
 	t += 0.05
@@ -94,6 +107,10 @@ func _case(tv, name: String, shots: bool) -> void:
 		if w.guided.is_empty():
 			break
 	check(w.guided.is_empty() and int(site.state) != 1, "%s: the TV missile hit the site (state %d)" % [name, int(site.state)])
+	if shots:
+		await frames(2)
+		check(not w.full_screen and tv.views.type == tv.views.FOLLOW and tv.views.pos_mode == tv.views.Pos.ORBIT, "%s: the hit ends the full-screen MFD with a fly-by" % name)
+		tv.views.set_cockpit(tv.views.COCKPIT)
 	check(w.tv_status() == 0 and w.eo_eye == null, "%s: after the burst the camera is back on the jet; no rounds left: NO SOURCE" % name)
 	# The Maverick (635): the camera not started on a unit, so it flies the homing motion at the camera's point.
 	var site2 := _ground_unit(tv)

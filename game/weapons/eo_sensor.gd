@@ -112,6 +112,11 @@ func wide_spot() -> void:
 
 
 ## Event 0x6a (L, FLIR OSB 3): only with the pod fitted.
+## The full-screen weapon MFD may open / stay open (eo.rs full_screen_ok): an EO mode with a picture.
+func full_screen_ok(tv_status: int) -> bool:
+	return _e.full_screen_ok(tv_status)
+
+
 func laser_key(pod_fitted: bool) -> void:
 	_e.laser_key(pod_fitted)
 	_st = _e.state()

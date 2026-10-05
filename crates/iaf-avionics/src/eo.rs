@@ -272,11 +272,27 @@ impl Eo {
     }
 }
 
+/// The full-screen weapon MFD (key Z, docs/mfd.md §3) opens and stays open while an EO mode is on with a picture: the
+/// TV with a status (RDY / TRA / TER, `FUN_00460940`), the FLIR always (`FUN_0044a240` case 0x1f, `FUN_00448b20`).
+pub fn full_screen_ok(mode: Mode, tv_status: i64) -> bool {
+    match mode {
+        Mode::None => false,
+        Mode::Tv => tv_status != 0,
+        Mode::Flir => true,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     const NONE: &dyn Fn(&str) -> Option<Vec3> = &|_| None;
+
+    #[test]
+    fn full_screen() {
+        assert!(!full_screen_ok(Mode::None, 1) && !full_screen_ok(Mode::Tv, 0));
+        assert!(full_screen_ok(Mode::Tv, 3) && full_screen_ok(Mode::Flir, 0));
+    }
 
     #[test]
     fn tracks_a_point_within_the_limits() {

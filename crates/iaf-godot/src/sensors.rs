@@ -96,6 +96,12 @@ impl IafEo {
         self.eo.laser_key(pod_fitted);
     }
 
+    /// The full-screen weapon MFD may open / stay open (`iaf_avionics::eo::full_screen_ok`).
+    #[func]
+    fn full_screen_ok(&self, tv_status: i64) -> bool {
+        iaf_avionics::eo::full_screen_ok(self.eo.mode, tv_status)
+    }
+
     /// {zoom, u, v, laser, spot, range}.
     #[func]
     fn flir_page(&self, ae: Vector2, range_m: f64) -> VarDictionary {

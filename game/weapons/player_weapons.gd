@@ -71,6 +71,9 @@ var tv_weapon: RefCounted
 var eo_on_unit := false
 ## The EO camera's eye (world) while it rides a launched weapon, else null (the jet).
 var eo_eye = null
+## The full-screen weapon MFD (key Z, ctl+0x938, docs/mfd.md §3 "Full-screen weapon MFD").
+var full_screen := false
+var _tv_was_flying := false
 var now := 0.0
 
 ## ctl+0x78 master mode, +0x80 the previous one, +0x7c the M key cycle, +0x5c the HUD mode (iaf_avionics::master
@@ -384,6 +387,24 @@ func eo_pan(x: int, y: int) -> void:
 
 
 ## The launched TV weapon still flies (mcp+0xc's +0x48 == 1).
+## Z (event 0x1f, FUN_0044a240 case 0x1f): on → off; off → on only with an EO picture (a TV status, or the FLIR).
+func full_screen_key() -> void:
+	full_screen = not full_screen and eo.full_screen_ok(tv_status())
+
+
+## Per frame (FUN_00448b20 @449334): the EO mode or the TV status gone ends it; the flying TV weapon destroyed (event
+## 0x4d with the camera's carrier) ends it with a fly-by of the impact (host full_screen_impact).
+func _update_full_screen() -> void:
+	var flying := tv_flying()
+	if full_screen and _tv_was_flying and not flying:
+		full_screen = false
+		if host.has_method("full_screen_impact"):
+			host.full_screen_impact(tv_weapon.position(now) if tv_weapon != null else own().pos)
+	_tv_was_flying = flying
+	if full_screen and not eo.full_screen_ok(tv_status()):
+		full_screen = false
+
+
 func tv_flying() -> bool:
 	return tv_weapon != null and not tv_weapon.ended
 
@@ -421,7 +442,7 @@ func _eo_update() -> void:
 	eo_ae = eo.angles(now, b, eye)
 	eo_dir = eo.los(eo_ae, b)
 	var views = host.get("views")
-	if views != null and not views.cockpit_drawn():
+	if views != null and not views.cockpit_drawn() and not full_screen:
 		eo_centre = eye + eo_dir * 1.0e7
 		return
 	var hit = ground_hit(eye, eo_dir)
@@ -1662,6 +1683,7 @@ func update(t: float) -> void:
 	if harm.active and (refreshed or harm.list.is_empty()):
 		_harm_capture()
 	_eo_update()
+	_update_full_screen()
 	# FUN_00461680: an A-A radar lock slaves the IR seeker (any lock clears the seeker's own target).
 	seeker.radar_key = String(radar.locked().get("key", ""))
 	seeker.radar_aa = radar.aa

@@ -325,7 +325,7 @@ no round of that store is left (`FUN_00456cd0` → `FUN_0053bcd0`) unless a laun
   56v, x 63..69; u = az·6/π, v = el·6/π (`0x601524`): ±30° = ±56 px.
 - OSBs (case 5): 0xb zoom in, 0xc zoom out. No pass 2.
 - Key Z (event 0x1f): full-screen weapon MFD (`ctl+0x938`) only with an EO mode whose mcp vfunc +0x1c ≠ 0 —
-  not built (below, "Full-screen weapon MFD").
+  built (below, "Full-screen weapon MFD").
 
 ### Full-screen weapon MFD (key Z, v1.1) — `FullScreenRender.cpp`, object at cockpit+0x18
 
@@ -490,6 +490,14 @@ flag:
 **v1.0.** The same renderer exists (`C:\BlueStar\Source\CockpitRender\FullScreenRender.cpp`, loader `FUN_00522250`,
 `FsMfd` strings), and the controller's `mov [ctl+0x938], 1` exists. v1.0's dispatcher `FUN_004cce00` did not forward
 event 0x1f, so the mode was unreachable. v1.1 only wired Z (docs/v1.1.md).
+
+**iaf-reborn:** built — `eo.rs` `full_screen_ok`, `player_weapons.gd` `full_screen_key` / `_update_full_screen`
+(Z, the per-frame exits, the impact fly-by via `terrain_view.gd` `full_screen_impact`), `terrain_view.gd`
+`_update_full_screen` (the overlay, the cockpit hidden, the main viewport's 3D off, the EO viewport at 385×382 ×
+the window height / 480, the waypoint projected through the EO camera) and `game/cockpit/fs_mfd.gd` (the layers,
+fsmfd.bmp and data.ibx read from the install, the OSB strips). Deviations: the cursor is not hidden over the
+picture; ANSI_VAR_FONT is Arial 13 px; the frame is redrawn every frame. tests/godot/test_tv_weapons.gd (Z, F1, Z,
+the hit's fly-by).
 
 **Port needs:**
 - The flag with the toggle / exit rules above, and the Z view reset to 1 / 5.

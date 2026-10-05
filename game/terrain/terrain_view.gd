@@ -419,11 +419,66 @@ func _setup_weapons() -> void:
 ## el, roll 0, 50° / zoom across its width; rendered only while an MFD shows page 5 or 6 with the cockpit drawn.
 var eo_viewport: SubViewport
 var eo_camera: Camera3D
+## The full-screen weapon MFD (Z, docs/mfd.md §3): the overlay (game/cockpit/fs_mfd.gd) while weapons.full_screen.
+var fs_mfd: Control
+
+
+## Z (event 0x1f, FUN_004cd630 case 0x1f): the full-screen weapon MFD on / off (player_weapons.full_screen_key), then
+## always the cockpit or the HUD-only view, the last F1 choice (DAT_0083370c); the head back to straight ahead.
+func _full_screen_key() -> void:
+	if weapons == null or fatal_hit or ejected:
+		return
+	weapons.full_screen_key()
+	views.set_cockpit(Views.HUD_ONLY if views.hud_pref else Views.COCKPIT)
+
+
+## The flying TV weapon destroyed in the full-screen MFD (event 0x4d): a fly-by of the impact (FUN_005808c0: {300,
+## 700, 300} m, two random angles in ±π, 6.0, type 0x13; the angle slots UNCERTAIN).
+func full_screen_impact(world: Vector3) -> void:
+	var at := Node3D.new()
+	add_child(at)
+	at.position = world_to_scene(world)
+	get_tree().create_timer(30.0, false).timeout.connect(at.queue_free)
+	views.set_orbit(at, [300.0, 700.0, 300.0, randf_range(-PI, PI), 0.0, randf_range(-PI, PI)], 6.0, Views.FLYBY, true)
+
+
+## Per frame: the overlay replaces the world view, panel, HUD, MFDs and console (view mode 0xb, FUN_00520980 skips
+## viewport 0); it opens on the last MFD showing page 5 / 6, else the first (FUN_0051f610).
+func _update_full_screen() -> void:
+	var on: bool = weapons != null and weapons.full_screen
+	if on and fs_mfd == null:
+		var layer := CanvasLayer.new()
+		layer.layer = 15
+		add_child(layer)
+		fs_mfd = preload("res://cockpit/fs_mfd.gd").new()
+		fs_mfd.cockpit = cockpit
+		layer.add_child(fs_mfd)
+		fs_mfd.mfd_index = 0
+		for i in cockpit.mfds.size():
+			if cockpit.mfds[i].page in [5, 6]:
+				fs_mfd.mfd_index = i
+	elif not on and fs_mfd != null:
+		fs_mfd.get_parent().queue_free()
+		fs_mfd = null
+	cockpit.visible = not on
+	get_viewport().disable_3d = on
+	if on:
+		fs_mfd.picture = eo_viewport.get_texture() if eo_viewport != null else null
+		fs_mfd.waypoint_at = null
+		if eo_camera != null and cockpit.current_waypoint < route.size():
+			var w: Vector2 = route[cockpit.current_waypoint].world
+			var g = terrain.height_at(world_to_scene(Vector3(w.x, w.y, 0.0)))
+			var sp := world_to_scene(Vector3(w.x, w.y, g if g != null else 0.0))
+			if not eo_camera.is_position_behind(sp):
+				var px: Vector2 = eo_camera.unproject_position(sp) / fs_mfd._s()
+				fs_mfd.waypoint_at = fs_mfd.render_rect.position + px
+				fs_mfd.waypoint_label = "T" if int(route[cockpit.current_waypoint].get("action", 0)) == 5 else str(cockpit.current_waypoint + 1)
 
 
 func _update_eo_view() -> void:
-	var show: bool = weapons != null and weapons.eo.camera and views.cockpit_drawn() \
-			and cockpit.mfds.any(func(m): return m.page in [5, 6])
+	var full: bool = weapons != null and weapons.full_screen
+	var show: bool = weapons != null and weapons.eo.camera and (full or views.cockpit_drawn() \
+			and cockpit.mfds.any(func(m): return m.page in [5, 6]))
 	if eo_viewport == null:
 		if not show:
 			return
@@ -437,8 +492,10 @@ func _update_eo_view() -> void:
 	eo_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS if show else SubViewport.UPDATE_DISABLED
 	if not show:
 		return
+	# The MFD's 112 px video rect, or the full-screen RENDER_RECT 385×382 (the window height over 480).
 	var px := maxi(int(round(112.0 * cockpit.ui_scale())), 16)
-	eo_viewport.size = Vector2i(px, px)
+	var s := get_viewport().get_visible_rect().size.y / 480.0
+	eo_viewport.size = Vector2i(int(385 * s), int(382 * s)) if full else Vector2i(px, px)
 	eo_camera.near = camera.near
 	eo_camera.far = camera.far
 	eo_camera.fov = weapons.eo.FOV_DEG / weapons.eo.zoom
@@ -1292,7 +1349,7 @@ func _apply_view() -> void:
 		pose = views.external_pose(dt)
 	cockpit.view_mode = 0 if views.cockpit_drawn() else (1 if views.hud_only() else 2)
 	cockpit.head = views.head_angles() if views.cockpit_drawn() else Vector2.ZERO
-	cockpit.visible = true
+	cockpit.visible = fs_mfd == null
 	if aircraft != null:
 		aircraft.visible = not inside and not jet_gone
 	camera.current = inside
@@ -1577,6 +1634,8 @@ func _command(cmd: Array) -> bool:
 				brakes = not brakes
 		73:
 			player_damage.extinguish()  # GEV 0x49, fire extinguisher (X)
+		31:
+			_full_screen_key()
 		70:
 			if weapons != null:
 				weapons.ecm_key()  # GEV 0x46, ECM Jammer on/off (J)
@@ -1683,6 +1742,8 @@ func _quit_key() -> void:
 func _view_command(id: int) -> void:
 	if fatal_hit or ejected or views.snap != null:
 		return
+	if weapons != null:
+		weapons.full_screen = false  # any view key ends the full-screen weapon MFD (FUN_00450440)
 	var is_new: bool = views.last_id != id
 	match id:
 		1:
@@ -2140,6 +2201,7 @@ func _process(delta: float) -> void:
 			if weapons != null:
 				weapons.update(_sim_time)
 		_update_eo_view()
+		_update_full_screen()
 		g_effects.g = st.g
 		g_effects.over_g = st.over_g
 		cockpit.state["ap_mode"] = autopilot.mode if autopilot != null and cockpit.indicators[8] else 0
