@@ -1,6 +1,8 @@
 # Script trigger op 2 Launch at target (docs/ai.md §14): an armed unit fires its weapon at the script's target, without
-# a brain or a range check; op 1 at a point. 233's MI-24 (a helicopter, class 2: no sensor, fires only by script) launches its missile
-# (580) at its boat target and hits it; 112's T-55 fires a rocket (560) at its Merkava. The jump to the list entry is
+# a brain or a range check; op 1 at a point. An entry with 0x852 ≠ 0 is a kill shot (the target explodes), 0 the
+# editor's "Miss …" for show (the blast hurts nothing). 233's MI-24 (a helicopter, class 2: no sensor, fires only by
+# script) launches its missile (580) at a boat ("hit satil 2") and destroys it; 112's T-55 fires a rocket (560) at its
+# Merkava: "Miss Merkava 1" leaves it whole, "Kill Merkava 1" destroys it. The jump to the list entry is
 # direct; the ground units and the weapons run on a scripted sim time, the flight is frozen.
 extends "res://../tests/godot/base.gd"
 
@@ -11,7 +13,7 @@ func run() -> void:
 	tv.frozen = true
 	var rt = tv.runtime
 	var heli: Dictionary = _named(rt, "MI24 1")
-	var boat: Dictionary = _named(rt, "satil 1")
+	var boat: Dictionary = _named(rt, "satil 2")
 	var u = tv.ai.combat.units.get(heli.key)
 	check(u != null and u.brain == null and int(u.w.type) == 580, "233 MI24 1: armed (580), no brain-driven fire (class 2)")
 	if u == null:
@@ -19,16 +21,15 @@ func run() -> void:
 	_place_ahead(tv, heli, boat)
 	var w = tv.weapons
 	var n0: int = w.missiles.size()
-	rt._jump(heli, 1, 2)
-	check(w.missiles.size() == n0 + 1 and u.missile != null and u.missile.target_key == boat.key, "op 2: a missile at the boat")
+	rt._jump(heli, 1, 8)
+	check(w.missiles.size() == n0 + 1 and u.missile != null and u.missile.target_key == boat.key, "op 2 \"hit satil 2\": a missile at the boat")
 	var t: float = w.now
 	for i in 600:
 		t += 0.05
 		w.update(t)
 		if not u.missile in w.missiles:
 			break
-	check(not u.missile in w.missiles and (boat.damage > 0.0 or int(boat.state) >= 3),
-		"the missile reaches the boat (damage %.2f, state %d)" % [boat.damage, int(boat.state)])
+	check(not u.missile in w.missiles and int(boat.state) >= 4, "the kill shot destroys the boat (state %d)" % int(boat.state))
 
 	tv = await start_mission(112)
 	await frames(3)
@@ -41,15 +42,19 @@ func run() -> void:
 	if u == null:
 		return
 	_place_ahead(tv, t55, mk)
-	rt._jump(t55, 1, 3)
-	check(u.rounds.flying_count() == 1, "op 2: a rocket at the Merkava")
-	var now: float = rt.now
-	for i in 400:
-		now += 0.05
-		tv.ai.combat.update(now)
-		if u.rounds.flying_count() == 0:
-			break
-	check(u.rounds.flying_count() == 0 and (mk.damage > 0.0 or int(mk.state) >= 3), "the rocket bursts at the Merkava (damage %.2f)" % mk.damage)
+	for entry in [3, 4]:
+		rt._jump(t55, 1, entry)
+		check(u.rounds.flying_count() == 1, "op 2 entry %d: a rocket at the Merkava" % entry)
+		var now: float = rt.now
+		for i in 400:
+			now += 0.05
+			tv.ai.combat.update(now)
+			if u.rounds.flying_count() == 0:
+				break
+		if entry == 3:
+			check(u.rounds.flying_count() == 0 and mk.damage == 0.0 and int(mk.state) == 1, "\"Miss Merkava 1\": the rocket bursts, the Merkava unhurt")
+		else:
+			check(int(mk.state) >= 4, "\"Kill Merkava 1\": the Merkava destroyed (state %d)" % int(mk.state))
 	await _launch_at()
 
 

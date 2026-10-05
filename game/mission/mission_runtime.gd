@@ -279,8 +279,10 @@ func _trigger(ent: Dictionary, sc: Dictionary) -> void:
 				host.mission_launch_at(ent, Vector3(float(String(sc.get("0x848", "0"))), float(sc.get("0x852", 0.0)),
 					float(sc.get("0x85c", 0.0))))
 		2:
-			# Launch at target (FUN_005c42f0): the unit's weapon at entity 0x8ac (docs/ai.md §14).
-			host.mission_launch(ent, entities.get("%d:%d" % [ent.file, int(sc.get("0x8ac", -1))], {}))
+			# Launch at target (FUN_005c42f0): the unit's weapon at entity 0x8ac (docs/ai.md §14). 0x852 (script +0x3c)
+			# ≠ 0 is a kill shot (release flag 2), 0 a miss for show (flag 0: its blast hurts nothing).
+			host.mission_launch(ent, entities.get("%d:%d" % [ent.file, int(sc.get("0x8ac", -1))], {}),
+				float(sc.get("0x852", 0.0)) != 0.0)
 		5:
 			if not ent.player:
 				_destroy(ent)
@@ -333,7 +335,7 @@ func _motion(ent: Dictionary, sc: Dictionary, duration: float) -> void:
 		16:
 			var pts: Array = paths.get("%d:%d" % [ent.file, int(sc.get("0x8ac", -1))], [])
 			if not pts.is_empty():
-				ent.path = {"points": pts, "start": now, "duration": maxf(duration, 0.001) if duration > 0.0 else 1e7}
+				ent.path = _path_from(ent, pts, float(sc.get("0x852", 1.0)) < 0.0, maxf(duration, 0.001) if duration > 0.0 else 1e7)
 		_:
 			ent.path = null  # 1 Hover and the rest: hold position
 
@@ -377,12 +379,47 @@ func _move_on_path(ent: Dictionary) -> void:
 	var p: Dictionary = ent.path
 	var pts: Array = p.points
 	var f := clampf((now - p.start) / p.duration, 0.0, 1.0)
-	var seg := f * (pts.size() - 1)
-	var i := mini(int(seg), pts.size() - 2)
-	ent.world = pts[0] if pts.size() == 1 else pts[i].lerp(pts[i + 1], seg - i)
+	var d := f * float(p.length)
+	ent.world = pts[-1]
+	for i in pts.size() - 1:
+		var seg: float = Vector2(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y).length()
+		if d <= seg:
+			ent.world = pts[i].lerp(pts[i + 1], d / seg if seg > 0.0 else 1.0)
+			break
+		d -= seg
 	if f >= 1.0:
 		ent.path = null
 	host.mission_entity_moved(ent)
+
+
+## Motion op 16 Path (FUN_0047beef → FUN_0047c4cf): the unit joins the path at its closest point (FUN_0047eb90), goes
+## toward the last point (0x852 ≥ 0) or the first (< 0) at a constant speed, the remaining length over the entry's
+## duration (the duration variant, 0x884 = −1 on 604 of the 713 Path entries; the current-speed variant, 0x884 ≠ −1,
+## is taken the same, UNCERTAIN). Points by arc length (before: equal time per segment, so 115's tanks crossed the
+## first long legs at ~100 km/h).
+func _path_from(ent: Dictionary, pts: Array, backward: bool, duration: float) -> Dictionary:
+	var line: Array = pts.duplicate()
+	if backward:
+		line.reverse()
+	var here: Vector3 = ent.world
+	var h := Vector2(here.x, here.y)
+	var best := INF
+	var at := 0
+	var start: Vector3 = line[0]
+	for i in line.size() - 1:
+		var a := Vector2(line[i].x, line[i].y)
+		var b := Vector2(line[i + 1].x, line[i + 1].y)
+		var t := clampf((h - a).dot(b - a) / maxf((b - a).length_squared(), 1e-9), 0.0, 1.0)
+		var dist := h.distance_to(a.lerp(b, t))
+		if dist < best:
+			best = dist
+			at = i
+			start = line[i].lerp(line[i + 1], t)
+	var rest: Array = [start] + line.slice(at + 1) if line.size() > 1 else line
+	var length := 0.0
+	for i in rest.size() - 1:
+		length += Vector2(rest[i + 1].x - rest[i].x, rest[i + 1].y - rest[i].y).length()
+	return {"points": rest, "start": now, "duration": duration, "length": length}
 
 
 func _set_visible(ent: Dictionary, on: bool) -> void:
@@ -553,6 +590,16 @@ func apply_damage(target: Dictionary, amount: float, kind: String, source: Dicti
 	if target.is_empty() or not target.damageable or target.state == DamageModel.EXPLODED:
 		return false
 	return _hit(target, amount, source, kind)
+
+
+## The end of a release-flag-2 weapon (a script op 2 kill shot, FUN_004d6130 @4d673a): after its blast the target,
+## alive or going down, explodes (level 5); the player not when shielded (FUN_0058a350) or Invulnerable.
+func scripted_kill(target: Dictionary, source: Dictionary) -> void:
+	if target.is_empty() or not int(target.state) in [1, 3]:
+		return
+	if target.player and (target.shield or host.mission_pref("invulnerable")):
+		return
+	set_damage_level(target, DamageModel.EXPLODED, source, "script")
 
 
 ## The hit handler (FUN_004a97b0 -> FUN_004642f0 -> FUN_004a9970). Returns true when it counted.

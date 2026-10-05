@@ -295,9 +295,9 @@ execute that entry and schedule its end timer.
 | op | editor name | Execute | effect |
 |---|---|---|---|
 | 1 | **Launch at location** | `0x5c4160` | `FUN_004aad10`: the unit's weapon at the point (x, y, z) = script +0x28..+0x30, which the editor stores as x in the text field 0x848 and y / z in 0x852 / 0x85c (215's Scud: "447090", 620870, 10000); no target, the pose's angles 0, then the release `FUN_004ab810` (docs/ai.md §14). Port: `combat.gd` `script_fire_at` |
-| 2 | **Launch at target** | `0x5c42f0` | `FUN_004aae40(target key from 0x8ac entity id, …)`: the unit's weapon at the target's position (no lead, no range check) through the release `FUN_004ab810` (docs/ai.md §14). Port: `combat.gd` `script_fire` |
+| 2 | **Launch at target** | `0x5c42f0` | `FUN_004aae40(target key from 0x8ac entity id, …)`: the unit's weapon at the target's position (no lead, no range check) through the release `FUN_004ab810` (docs/ai.md §14); 0x852 ≠ 0 a kill shot (the target explodes), 0 a "Miss …" for show (no blast damage). Port: `combat.gd` `script_fire` |
 | 3, 4, 15, 18, 19, 23, 26 | (15 = **Wait**, 19 = "Destroy entity") | `0x58a330` | **no-op** (only the duration). Op 19 is a no-op in this build |
-| 5 | **Explode** | `0x5c4310` | `FUN_004a8ae0(0,5,…)`: set damage level 5, entity destroyed (docs/damage.md §3). Skipped for the player when `FUN_0058a350()` is true (UNCERTAIN) |
+| 5 | **Explode** | `0x5c4310` | `FUN_004a8ae0(0,5,…)`: set damage level 5, entity destroyed (docs/damage.md §3). Skipped for the player when shielded (`FUN_0058a350`: the damage object's shield flag) |
 | 6 | — | `0x5c4340` | fire scenario event (arg) |
 | 7 | **Play message** | `0x5c4360` | `PlayMessage(0x8ac)` (§3.3); 0 = none |
 | 8 | — | `0x5c4380` | subtitle console `FUN_0044a060(string 0x848)` |
@@ -322,7 +322,11 @@ execute that entry and schedule its end timer.
 Path details:
 - The traverse time is the entry's duration. Duration -1 gives the default 1e7.
 - Offset flag from floats 0x85c/0x866/0x870. `0x884 == -1` selects variant 2.
-- Exact kinematics UNCERTAIN. With a 1 s duration the entity effectively jumps to the path's last point.
+- Kinematics (`FUN_0047beef` → `FUN_0047c4cf`): the unit joins the path at its **closest point** (`FUN_0047eb90`),
+  runs toward the last point (0x852 ≥ 0) or the first (< 0), and the distance is the **arc length** left
+  (`FUN_0047f280`); variant 2 (0x884 = −1, 604 of 713 entries) moves at that length / duration, constant. Variant 1
+  (current speed) and 3 (acceleration) are taken as variant 2 (UNCERTAIN). With a 1 s duration the entity
+  effectively jumps to the path's last point.
 
 Opcodes absent from the data (motion 2–4, 6–10, 12–15; trigger 6, 8–10, 16–18, 20, 23–28) exist in the
 factories. They are listed only where the Execute was read.
@@ -591,8 +595,7 @@ Corrections:
 UNCERTAIN / open:
 - Slot 3 reader.
 - Args of trigger ops 1, 2, 9, 20, 24–28.
-- Exact Path kinematics.
-- The player-exempt test in Explode (`FUN_0058a350`).
+- Path variants 1 / 3 (current speed, acceleration).
 - Subtitle lifetime: resolved in §3.3 (14 pushes; a 3 s empty-line ticker gives 39–42 s). Which exit path
   runs `FUN_004e3070` (console reset) is still open.
 - Whether the 0x81 box can appear after 0x82 has ended the flight.

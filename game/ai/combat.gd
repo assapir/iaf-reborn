@@ -27,6 +27,7 @@ const GROUND := [10, 8, 9, 0xb, 0xd, 0x1d, 0x1e, 5, 6, 0xf, 0x10]
 const QUIET_FACTOR := 0.7
 ## Terrain line of sight: both ends 1.5 m up (FUN_004020d0).
 const LOS_RAISE := 1.5
+const RELEASE_LOS_RAISE := 3.0
 const LOS_SAMPLES := 32
 ## The global truce after every ground shot: 0.1 + rand·0.9 s (DAT_008321d0..d8).
 const TRUCE_MIN := 0.1
@@ -314,9 +315,9 @@ func _scan(u: Unit) -> void:
 
 ## Terrain line of sight (FUN_004020d0, its sampling UNCERTAIN): every 100 m, at most LOS_SAMPLES samples (an AI jet's
 ## sensor reaches 74 km: 740 terrain queries a pair made the scans cost ~250 ms a round in mission 221).
-func line_of_sight(a: Vector3, b: Vector3) -> bool:
-	a.z += LOS_RAISE
-	b.z += LOS_RAISE
+func line_of_sight(a: Vector3, b: Vector3, raise := LOS_RAISE) -> bool:
+	a.z += raise
+	b.z += raise
 	var d := b - a
 	var n := mini(int(d.length() / 100.0), LOS_SAMPLES)
 	for i in range(1, n):
@@ -647,13 +648,14 @@ func _fire_tick(u: Unit, now: float) -> void:
 ## Script trigger op 2 Launch at target (FUN_005c42f0 → FUN_004aae40, target = entity 0x8ac): the unit's weapon at
 ## the target's position now (no lead, no range, no DLZ), q 1.0, through the release. A unit not in combat (the
 ## handler's SAFE flag +0x28 set: "Fired a weapon by the Scenario") skips the truce. UNCERTAIN: the SAFE flag's
-## initial value (taken as set until start combat); the script's mode flag (0x852 → FUN_004ab810(…, 2 / 0)) has no
-## traced effect.
-func script_fire(ent: Dictionary, target: Dictionary) -> void:
+## initial value (taken as set until start combat). `kill`: the entry's 0x852 (script +0x3c) ≠ 0, release flag 2
+## (the blast, then the target explodes); 0 is the editor's "Miss …" shot, flag 0: it flies and bursts, hurting nothing
+## (FUN_004d6130 @4d6597 / @4d673a).
+func script_fire(ent: Dictionary, target: Dictionary, kill := false) -> void:
 	var u: Unit = units.get(ent.key)
 	if u == null or target.is_empty() or int(u.ent.state) >= 3:
 		return
-	_release(u, target, ai.runtime._world_of(target), ai.runtime.now, u.fire_next != INF)
+	_release(u, target, ai.runtime._world_of(target), ai.runtime.now, u.fire_next != INF, 2 if kill else 0)
 
 
 ## Script trigger op 1 Launch at location (FUN_005c4160 → FUN_004aad10): the unit's weapon at the point `at` (no target,
@@ -667,7 +669,10 @@ func script_fire_at(ent: Dictionary, at: Vector3) -> void:
 
 ## The release (FUN_004ab810): the global truce (taken even when the shot is skipped next; skipped in SAFE mode), a
 ## busy pool object, the terrain line of sight, then the round at `aim` or the missile at `t`.
-func _release(u: Unit, t: Dictionary, aim: Vector3, now: float, truce: bool) -> void:
+## `flag` (the weapon's +0x100, FUN_004d5d10): 1 a normal shot (the fire tick, op 1); op 2 passes 2 for a kill shot
+## (0x852 ≠ 0) or 0 for a miss for show; FUN_004d6130 applies the blast only with a flag, and with 2 then explodes the
+## target.
+func _release(u: Unit, t: Dictionary, aim: Vector3, now: float, truce: bool, flag := 1) -> void:
 	var rt: Node = ai.runtime
 	var p: Vector3 = rt._world_of(u.ent)
 	var tp: Vector3 = rt._world_of(t) if not t.is_empty() else aim  # {} = at a point (script op 1)
@@ -681,28 +686,37 @@ func _release(u: Unit, t: Dictionary, aim: Vector3, now: float, truce: bool) -> 
 	if not _fixed(u) and (not int(u.w.type) in HOMING or host.weapons == null):
 		return
 	var busy: bool = u.missile != null and u.missile in host.weapons.missiles if not _fixed(u) else not u.rounds.next_free()
-	if busy or not line_of_sight(p, tp):
-		return
-	if _fixed(u):
-		var muzzle := p + Vector3(0, 0, LOS_RAISE)
-		u.rounds.fire(now, muzzle, muzzle, Vector3.ZERO, aim, "", u.ent.key, Settings.easy_aiming, [t.key] if not t.is_empty() else [])
-		if host.get("sounds") != null:
-			var s = host.sounds.play("SFX_ENTITY_FIRED_WEAPON", "OST_GUNBULLET")
-			if s is Node3D and is_instance_valid(s):
-				s.top_level = true
-				s.global_position = host.world_to_scene(muzzle)
+	# The release's line of sight raises both ends by 3 m (−1.5 subtracted twice, 0x6031e0 @4abd14), not the
+	# sensor's 1.5 m.
+	if busy or not line_of_sight(p, tp, RELEASE_LOS_RAISE):
 		return
 	# The launch attitude: SAM launchers (types 290–340) turn to the target (heading and pitch), others keep their
-	# heading level.
+	# heading level, tanks (type 250) the turret's heading, which turns to the target (level); the round or missile
+	# starts at (0, 4, 1) in it (FUN_004ab7b0).
 	var tc := int(u.ent.type_code)
 	if tc >= 290 and tc <= 340 and dist > 0.0:
 		nose = (tp - p) / dist
+	elif tc == 250 and Vector2(tp.x - p.x, tp.y - p.y).length() > 0.0:
+		nose = Vector3(tp.x - p.x, tp.y - p.y, 0).normalized()
 	var right := nose.cross(Vector3(0, 0, 1))
 	right = right.normalized() if right.length() > 1e-4 else Vector3(1, 0, 0)
 	var up := right.cross(nose)
 	var at := p + right * LAUNCH_OFFSET.x + nose * LAUNCH_OFFSET.y + up * LAUNCH_OFFSET.z
+	if _fixed(u):
+		# Its speed adds the launcher's (FUN_004d5d10 takes the mover's velocity, vt+0x38).
+		var slot: int = u.rounds.fire(now, at, at, u.ent.get("vel", Vector3.ZERO), aim, "", u.ent.key, Settings.easy_aiming, [t.key] if not t.is_empty() else [])
+		if slot >= 0:
+			u.rounds.pool[slot].flag = flag
+			u.rounds.pool[slot].target = t
+		if host.get("sounds") != null:
+			var s = host.sounds.play("SFX_ENTITY_FIRED_WEAPON", "OST_GUNBULLET")
+			if s is Node3D and is_instance_valid(s):
+				s.top_level = true
+				s.global_position = host.world_to_scene(at)
+		return
 	u.missile = host.weapons.launch_homing(u.w, at, {"vel": Vector3.ZERO, "fwd": nose, "up": up, "right": right},
 		String(t.get("key", "")), 1.0, u.ent, null if not t.is_empty() else aim)
+	u.missile.set_meta("flag", flag)
 
 
 ## The selected weapon flies the fixed motion (class 0x17: 560 rockets, 565 gun): rounds, not a missile.
@@ -719,9 +733,13 @@ func _velocity_of(ent: Dictionary) -> Vector3:
 ## FUN_004d6130 for a ground round: a sphere hit blasts the target, the end of flight (an air burst) or a
 ## ground hit every unit around. The look as the player's: a gun round's impact on a hit or the ground, a rocket's
 ## burst always.
-func _detonate(_r: Dictionary, pos: Vector3, cands, hit: Dictionary, u: Unit) -> void:
+func _detonate(r: Dictionary, pos: Vector3, cands, hit: Dictionary, u: Unit) -> void:
 	var rocket := int(u.w.type) == 560
-	ai.runtime.area_damage(pos, float(u.w.power), float(u.w.radius), u.ent, "rocket" if rocket else "gun", cands)
+	var flag: int = r.get("flag", 1)
+	if flag != 0:
+		ai.runtime.area_damage(pos, float(u.w.power), float(u.w.radius), u.ent, "rocket" if rocket else "gun", cands)
+	if flag == 2:
+		ai.runtime.scripted_kill(r.get("target", {}), u.ent)
 	if host.weapons == null:
 		return
 	if rocket:

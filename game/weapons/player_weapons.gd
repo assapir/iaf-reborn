@@ -1042,8 +1042,13 @@ func _missile_detonate(mis: RefCounted) -> void:
 	var p: Vector3 = mis.last_pos
 	var owner: Dictionary = mis.get_meta("owner", {})
 	var hit := []
-	if host.runtime != null and not owner.is_empty():
+	# The release flag (combat.gd _release): 0, a script's miss for show, hurts nothing; 2, its kill shot, then
+	# explodes the target (FUN_004d6130).
+	var flag: int = mis.get_meta("flag", 1)
+	if host.runtime != null and not owner.is_empty() and flag != 0:
 		hit = host.runtime.area_damage(p, float(mis.weapon.power), float(mis.weapon.radius), owner, "missile")
+	if flag == 2 and host.runtime != null:
+		host.runtime.scripted_kill(host.runtime.entities.get(String(mis.target_key), {}), owner)
 	var sp := to_scene(p)
 	var g = host.terrain.height_at(sp)
 	host.effects.explosion(sp, DamageEffects.F_FIREBALL | DamageEffects.F_PUFF, 1.0, 5.0, g if g != null else sp.y)

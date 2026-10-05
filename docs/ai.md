@@ -590,10 +590,18 @@ no weapon = "Entity with no weapon handler", no engagement) and the fire tick:
   (_debugParam000, the launcher being slower than 5 m/s). The flight, RWR launch flag, blast and look are the player's
   homing weapons' (`player_weapons.gd` `launch_homing`).
 - Release order (`FUN_004ab810`): the truce first (taken even when the shot is then skipped), then a busy pool
-  object, then the terrain line of sight.
+  object, then the terrain line of sight (both ends +3 m: −1.5 subtracted twice). Every round and missile starts
+  at (0, 4, 1) in the launch attitude (`FUN_004ab7b0`; tanks, type 250: the turret's heading, which turns to the
+  target), with the launcher's velocity (`FUN_004d5d10`).
 - **Script op 2** (`script_fire`): the weapon at the target's position now (no lead, no range, no DLZ), q 1.0, then the
   release; a unit not in combat skips the truce (the handler's SAFE flag +0x28, "Fired a weapon by the Scenario";
-  UNCERTAIN: its initial value). **Helicopters** (class 2) have no sensor (`FUN_0043eef0`: classes 5 / 9, 8, 10 / 0x10,
+  UNCERTAIN: its initial value). The entry's **0x852** (script +0x3c) picks the release flag (the weapon's +0x100,
+  `FUN_004d5d10`): ≠ 0 → 2, a **kill shot**: the blast, then the target (alive or going down) explodes, level 5, the
+  player not when shielded (`FUN_004d6130` @4d673a, `FUN_0058a350`); 0 → flag 0, the editor's **"Miss …"** shot: it
+  flies and bursts but `FUN_004d6130` applies no blast (@4d6597). The brain's fire and op 1 use flag 1 (the blast).
+  The missions name them so: "Miss Merkava 1" / "Kill Merkava 1" (112), "Miss Hermon Post" (231), "miss satil1" /
+  "hit satil 2" (233). Before, every op 2 shot hit for real: 112's and 231's opening barrages killed the units the
+  player must protect within seconds. **Helicopters** (class 2) have no sensor (`FUN_0043eef0`: classes 5 / 9, 8, 10 / 0x10,
   0x1c only), so they fire only this way (MI-24s: 580, aimed first by motion op 11).
 - **Brain −1**: no brain (§3), so an armed unit fires only by script (op 1 / 2). Traced: the loader keeps 0x2da as
   is and `FUN_004b815f` attaches only a brain found by that id; the bdb Objects default brain `0x532` is used only

@@ -862,10 +862,10 @@ func mission_launch_at(ent: Dictionary, at: Vector3) -> void:
 		ai.combat.script_fire_at(ent, at)
 
 
-## Trigger op 2 Launch at target (docs/ai.md §14).
-func mission_launch(ent: Dictionary, target: Dictionary) -> void:
+## Trigger op 2 Launch at target (docs/ai.md §14); `kill`: a kill shot, else a miss for show.
+func mission_launch(ent: Dictionary, target: Dictionary, kill := false) -> void:
 	if ai != null:
-		ai.combat.script_fire(ent, target)
+		ai.combat.script_fire(ent, target, kill)
 
 
 ## Trigger ops 21 / 22 for AI units (docs/ai.md §6).
