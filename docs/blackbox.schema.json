@@ -17,7 +17,8 @@
         "date": { "type": "string", "description": "Local start time, YYYY-MM-DDTHH:MM:SS." },
         "mission": { "type": "integer", "description": "Mission id (-1: free flight)." },
         "flight": { "type": "integer", "description": "The player's flight in the mission (Settings.player_flight)." },
-        "jet": { "type": "string", "description": "Flight-model section, e.g. \"F-16\"." },
+        "type": { "type": "integer", "description": "The jet's type code: 100 F-16, 110 F-15, 120 F-4E, 130 Kfir, 140 Lavi, 190 Mirage, 200 Kurnass 2000, 1000 F-35I." },
+        "jet": { "type": "string", "description": "Flight-model section, e.g. \"F-16\" (the F-4E and the Kurnass 2000 share \"F-4\", as in the original)." },
         "pilot": { "type": "string", "description": "Pilot callsign." },
         "loadouts": { "type": "object", "description": "Settings.arm_loadouts: the arming screen's choices." },
         "route": {

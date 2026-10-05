@@ -1433,7 +1433,7 @@ func _record(st: Dictionary, delta: float) -> void:
 			for k in cfg.get_section_keys(section):
 				settings[section][k] = cfg.get_value(section, k)
 		_log.store_line(JSON.stringify({"blackbox": 1, "date": Time.get_datetime_string_from_system(), "mission": mission_id,
-			"flight": Settings.player_flight, "jet": player.get("fm_section", ""), "pilot": Settings.pilot_callsign,
+			"flight": Settings.player_flight, "type": int(player.get("type", -1)), "jet": player.get("fm_section", ""), "pilot": Settings.pilot_callsign,
 			"loadouts": Settings.arm_loadouts, "route": route.map(func(w): return {"name": w.name, "x": w.world.x, "y": w.world.y}), "settings": settings, "columns": BLACKBOX_COLUMNS}))
 	_log_st = st
 	var air := not bool(st.on_ground)
