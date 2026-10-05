@@ -50,6 +50,8 @@ var eo: RefCounted
 var harm: RefCounted
 ## ctl+0x93c: a store named "...FLIR..." on stations 0..8 (FUN_004586b0 at the flight start).
 var flir_pod := false
+## An ECM fitted (FUN_004581d0: a station named "ECM", or the F-16 / Lavi, types 100 / 140, built in).
+var ecm_fitted := false
 ## The EO camera this frame: (az, el), line of sight (world), the EO centre point (FUN_00450480).
 var eo_ae := Vector2.ZERO
 var eo_dir := Vector3(0, 1, 0)
@@ -177,6 +179,9 @@ func setup(host_node: Node, entity: Dictionary, object: Dictionary, bdb: Diction
 	for i in 9:
 		if "FLIR" in stores.name_of(i):
 			flir_pod = true
+		if "ECM" in stores.name_of(i):
+			ecm_fitted = true
+	ecm_fitted = ecm_fitted or jet_type in [100, 140]
 	_push_stores()
 	# The tanks' fuel (FUN_005a8980 before the start fills the fuel to FuelWeight + tanks).
 	if host.flight != null:
@@ -1587,6 +1592,25 @@ func _decoy_effect(type: int, dc_id: int, key: String, ab: bool, g_load: float) 
 		if (type == Stores.FLARE and ab) or randf() > p:
 			break
 		mis.retarget("decoy:%d" % dc_id)
+
+
+## ECM Jammer on/off (J, GEV 0x46 in FUN_0044a240, light 6; docs/weapons.md §10): refused with ECM damage (flag 1). Off →
+## on (FUN_004582f0, with an ECM fitted): once, each radar missile (600 / 610) flying at the player and not chasing a
+## decoy loses its guidance with rand < 0.6 (0x600f68); later launches are not jammed. On → off: the light only.
+func ecm_key() -> void:
+	if _flag(1):
+		return
+	var c = host.cockpit
+	if c.indicators[6]:
+		c.indicators[6] = false
+		return
+	if not ecm_fitted:
+		return
+	var me := String(_me().get("key", ""))
+	for mis in missiles:
+		if String(mis.target_key) == me and int(mis.weapon.get("type", 0)) in [600, 610] and not mis.ended and randf() < 0.6:
+			mis.guidance_off = true
+	c.indicators[6] = true
 
 
 func _update_decoys() -> void:

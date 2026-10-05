@@ -13,7 +13,7 @@ HUD text and symbols, the stores MFD page, the FLIR pod / TV-weapon camera and t
 (docs/mfd.md), the radar missiles (600 AMRAAM-like, 610 Sparrow-like) with the DLZ, the MRM HUD sight and the
 semi-active rule, the HARM / Shrike (§11), the TV weapons (635 Maverick, 640 TV missile) with the guided motion, the
 camera riding the weapon and the TV page's TRA / TER and time (§12). The radar and its lock (the seeker slaved to it):
-docs/radar.md; the laser bombs with the FLIR designation (§9.8). Not built yet: the decoys' effect on missiles, ECM, the AI's weapons other than the ground AAA (built: docs/ai.md §14).
+docs/radar.md; the laser bombs with the FLIR designation (§9.8). Not built yet: the AI jets' ECM (the player's is built, §10), the AI's weapons other than the ground AAA (built: docs/ai.md §14).
 
 ## 1. Data
 
@@ -517,6 +517,9 @@ bearing in radians: never taken, so range, aspect, generation, AI level and Real
 - **ECM** (event 0x46, LIGHT006, ctl+0x1b8; refused with ECM damage flag 1): switching on (`FUN_004582f0`, needs an
   ECM fitted: W+0xcc or a station named "ECM") jams, once, each missile of type 600 / 610 in the RWR list, not decoyed,
   still flying, with rand < 0.6 (0x600f68): its motion +0x148 = 1 (guidance off, UNCERTAIN). No effect on SAMs.
+  Switching off (light on): the light only (and a network message). F-16 / Lavi (types 100 / 140) have it built in.
+  Ours: `player_weapons.gd` `ecm_key` (J); the gate on +0x98 in `FUN_004582f0` is not known (UNCERTAIN), not ported;
+  the AI sensors' ECM rules (docs/ai.md §14) don't see the player's ECM yet.
 
 ## 11. Homing weapons and the radar missiles (600, 610)
 

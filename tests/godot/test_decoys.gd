@@ -1,6 +1,6 @@
 # The decoy rule (FUN_00454b70, docs/weapons.md §10): the player's flares lure an IR missile launched at the jet, chaff
 # does not; an AI jet's flares (action 310 through the same release) lure the player's IR missile. Mission 221; the
-# flight model stopped, the weapons on a scripted sim time, a fixed random seed.
+# flight model stopped, the weapons on a scripted sim time, a fixed random seed. The ECM's jamming of radar missiles.
 extends "res://../tests/godot/base.gd"
 
 
@@ -54,6 +54,23 @@ func run() -> void:
 			ai_lured = true
 			break
 	check(ai_lured, "the MiG's flares lure the player's IR missile")
+	# ECM (J, GEV 0x46): switching on jams each radar missile (600) at the jet with p 0.6, not the IR ones; J again: off;
+	# without an ECM fitted it stays off.
+	var aim7: Dictionary = w.db.by_id(_weapon_id(w, 600))
+	var radar_m := []
+	for i in 10:
+		radar_m.append(w.launch_homing(aim7, o.pos + o.fwd * 15000.0, from, String(me.key), 1.0, mig))
+	var ir = w.launch_homing(aa11, o.pos + o.fwd * 15000.0, from, String(me.key), 1.0, mig)
+	w.ecm_fitted = true
+	w.ecm_key()
+	var jammed := radar_m.filter(func(m): return m.guidance_off).size()
+	check(tv.cockpit.indicators[6] and jammed > 0 and jammed < 10 and not ir.guidance_off,
+			"ECM on: light 6, %d of 10 radar missiles jammed, the IR missile not" % jammed)
+	w.ecm_key()
+	check(not tv.cockpit.indicators[6], "J again: ECM off")
+	w.ecm_fitted = false
+	w.ecm_key()
+	check(not tv.cockpit.indicators[6], "no ECM fitted: stays off")
 
 
 func _weapon_id(w, type: int) -> int:

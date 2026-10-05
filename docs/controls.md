@@ -151,7 +151,7 @@ original's `WM 0x532` wParam; p1 / p2 as stored.
 | 40 | Previous waypoint | Shift + W |  | (102, 0, 0) |  | yes | previous waypoint (NAV re-targets it) |
 | 41 | FLIR on/off | I |  | (90, 6, 0) |  | yes | MFD: FLIR page + FLIR on, with a FLIR pod (not a toggle; mfd.md) |
 | 42 | Damage report | D |  | (90, 4, 0) |  | yes | MFD: damage |
-| 43 | ECM Jammer on/off | J |  | (70, 0, 0) |  | yes | — |
+| 43 | ECM Jammer on/off | J |  | (70, 0, 0) |  | yes | ECM on / off, light 6 (weapons.md §10) |
 | 44 | Laser on/off | L |  | (106, 0, 0) |  | yes | laser flag (FLIR pod only; the designation is not built: laser bombs fall free, weapons.md §9.8) |
 | 45 | NAV mode on | N |  | (98, 0, 0) |  | yes | master mode NAV (weapons.md §4) |
 | 46 | Change HUD color | H |  | (123, 0, 0) |  | yes | HUD colour |

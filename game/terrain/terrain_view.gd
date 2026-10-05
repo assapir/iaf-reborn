@@ -1523,6 +1523,9 @@ func _command(cmd: Array) -> bool:
 				brakes = not brakes
 		73:
 			player_damage.extinguish()  # GEV 0x49, fire extinguisher (X)
+		70:
+			if weapons != null:
+				weapons.ecm_key()  # GEV 0x46, ECM Jammer on/off (J)
 		18:
 			_eject_key()
 		19:
