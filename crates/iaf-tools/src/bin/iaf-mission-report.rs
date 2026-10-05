@@ -126,7 +126,6 @@ struct Bdb {
     weapon_name: BTreeMap<i64, String>,
     /// brain id → (AA, AG, start combat)
     brains: BTreeMap<i64, (bool, bool, bool)>,
-    brain_by_name: BTreeMap<String, i64>,
 }
 
 fn load(dir: &Path, name: &str) -> Result<Value> {
@@ -145,7 +144,6 @@ fn load_bdb(dir: &Path, name: &str) -> Result<Bdb> {
     let b = load(dir, name)?;
     let actions: BTreeMap<i64, String> = items(&b, "actions").map(|a| (i(a, "0x1e"), a["0x64"].as_str().unwrap_or("").trim().to_lowercase())).collect();
     let mut brains = BTreeMap::new();
-    let mut brain_by_name = BTreeMap::new();
     for br in items(&b, "brains") {
         let (mut aa, mut ag, mut sc) = (false, false, false);
         for part in ["rules0", "rules1"] {
@@ -159,14 +157,12 @@ fn load_bdb(dir: &Path, name: &str) -> Result<Bdb> {
             }
         }
         brains.insert(i(br, "0x1e"), (aa, ag, sc));
-        brain_by_name.insert(br["0x1f4"].as_str().unwrap_or("").to_lowercase(), i(br, "0x1e"));
     }
     Ok(Bdb {
         objects: items(&b, "objects").map(|o| (i(o, "0x1e"), o.clone())).collect(),
         weapon_type: items(&b, "weapons").map(|w| (i(w, "0x1e"), i(w, "0x780"))).collect(),
         weapon_name: items(&b, "weapons").map(|w| (i(w, "0x1e"), w["0x708"].as_str().unwrap_or("").trim().to_string())).collect(),
         brains,
-        brain_by_name,
     })
 }
 
@@ -433,10 +429,8 @@ fn analyse(dir: &Path, id: i64, names: &[String], bdbs: &mut BTreeMap<String, Bd
                 ground_side.insert(side);
             }
             // Behaviour of units.
-            let brain = match i(e, "0x2da") {
-                b if b >= 0 => b,
-                _ => bdb.brain_by_name.get(&o["0x532"].as_str().unwrap_or("").to_lowercase()).copied().unwrap_or(-1),
-            };
+            // Brain −1 is none (FUN_004b815f attaches only a brain found by the id).
+            let brain = i(e, "0x2da");
             let (b_aa, b_ag, b_sc) = bdb.brains.get(&brain).copied().unwrap_or_default();
             let weapons: Vec<i64> = loadout(e, &o).iter().filter_map(|(w, _)| bdb.weapon_type.get(w).copied()).filter(|t| !matches!(t, 0 | 540 | 550 | 660)).collect();
             // Disabled at activation and never enabled (a Disable combat reached by an event, e.g. 313's SA-3 launchers
@@ -779,8 +773,8 @@ const NOTES: &str = r#"
   (its `CDMEWeaponLoadItem`s, docs/front-end.md §15) as further choices. If none of them fits, friendly AI
   flights carrying the right weapons are the only way (the or-choice in the table).
 * **AI aircraft** (classes 28 controlled aircraft, 3 aircraft, 2 helicopters). `0x320` bit 0 = 0 is
-  brain-controlled: it needs the AI brain flight. A unit *fights* when it carries a weapon, its brain (`0x2da`,
-  else the type's default brain `0x532` by name) has an attack action (bdb Actions: launch weapon, dog chase,
+  brain-controlled: it needs the AI brain flight. A unit *fights* when it carries a weapon, its brain (`0x2da`;
+  −1 is none) has an attack action (bdb Actions: launch weapon, dog chase,
   missile selection, Shandel / Immelman / split S → air-to-air; pop-up, iron / laser, next ground target,
   level / dive bomb → air-to-ground) or a "start combat" action, or its scripts enable combat (op 21), and it is
   not disabled for good (op 22 without an op 21). Mission-controlled aircraft that do not fight only move by

@@ -70,8 +70,8 @@ last hitter (cleared 5 s later); **+0x88 current waypoint index**; +0xd8 in a su
 
 ## 3. Creation, scheduling, tick
 
-- Spawn (`FUN_004b815f`): brain id 0x2da in the map → rules attached (`FUN_00440790`: +4 = +8). Brain −1: never
-  scheduled (but see §14: the object's default brain then applies, UNCERTAIN).
+- Spawn (`FUN_004b815f`): brain id 0x2da in the map → rules attached (`FUN_00440790`: +4 = +8). Brain −1: no brain,
+  never scheduled (the loader copies 0x2da to the spawn descriptor as is, `FUN_0058f110` @58f1e6; §14).
 - Activation (`FUN_004a9100`): BRAIN (0x320 bit 0 = 0): the FM mover is installed, the FM type loaded
   (`FUN_005a8980`), the start pose set (`FUN_005a5820`, §7), then **reset**. MISSION (bit 0 = 1): the scenario starts
   and the brain is reset too, but every non-FM mover's `setMode` is empty (`FUN_0046a430`): **a mission-controlled
@@ -595,9 +595,11 @@ no weapon = "Entity with no weapon handler", no engagement) and the fire tick:
   release; a unit not in combat skips the truce (the handler's SAFE flag +0x28, "Fired a weapon by the Scenario";
   UNCERTAIN: its initial value). **Helicopters** (class 2) have no sensor (`FUN_0043eef0`: classes 5 / 9, 8, 10 / 0x10,
   0x1c only), so they fire only this way (MI-24s: 580, aimed first by motion op 11).
-- **Brain −1**: the unit takes its object's default brain by name (bdb Objects `0x532`). UNCERTAIN: not traced, but
-  322 "Uncle SAM" has brain −1 on every SAM launcher (object brain 'mission'). Applied to every mission entity
-  (`mission_runtime.gd` `_brain_of`).
+- **Brain −1**: no brain (§3), so an armed unit fires only by script (op 1 / 2). Traced: the loader keeps 0x2da as
+  is and `FUN_004b815f` attaches only a brain found by that id; the bdb Objects default brain `0x532` is used only
+  by the Mission Creator (`FUN_0058e530`). Before, ours gave such units the object's default brain (untraced), so
+  112's T-55s (brain −1) killed a Merkava 11 s in and the mission failed, which the original does not; 322's SA-2
+  launchers (brain −1) stay silent (its "Shade hawk" launchers have brain 11).
 
 Not reproduced: the ring pool's 3–4 steps per gun shot, the turret parts' drawn turning, ECM in the sensor, the
 second weapon station. Test: tests/godot/test_ground_fire.gd (313 AAA and SA-3, 322 rockets).

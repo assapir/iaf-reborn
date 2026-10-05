@@ -126,9 +126,6 @@ func setup(host_node: Node, mission_files: Array, bdb: Dictionary, player_id := 
 	var objects := {}
 	for o in bdb.get("objects", {}).get("items", []):
 		objects[int(o.get("0x1e", -1))] = o
-	var brain_ids := {}  # brain name (lower case) -> id
-	for b in bdb.get("brains", {}).get("items", []):
-		brain_ids[String(b.get("0x1f4", "")).strip_edges().to_lower()] = int(b["0x1e"])
 	for fi in mission_files.size():
 		var m: Dictionary = mission_files[fi]
 		if fi == 0:
@@ -172,7 +169,7 @@ func setup(host_node: Node, mission_files: Array, bdb: Dictionary, player_id := 
 				"current": [-1, -1], "path": null, "type": int(e.get("0x2c6", -1)),
 				"control": 3 if is_player else (2 if int(e.get("0x320", 0)) & 1 == 1 else 1),
 				"side": int(e.get("0x2d0", 0)), "heading": float(e.get("0x302", 0)),
-				"vel": Vector3.ZERO, "fall": null, "combat": true, "brain": _brain_of(e, objects, brain_ids),
+				"vel": Vector3.ZERO, "fall": null, "combat": true, "brain": _brain_of(e),
 				"armament": e.get("armament"),
 			}
 			_init_damage(ent, objects.get(ent.type, {}))
@@ -181,18 +178,13 @@ func setup(host_node: Node, mission_files: Array, bdb: Dictionary, player_id := 
 				targets_left += 1
 
 
-## The entity's brain id (0x2da), else its object's default brain by name (0x532). UNCERTAIN: the fallback is not
-## traced; 322 "Uncle SAM" needs it (every SAM launcher there has brain −1, its object the 'mission' brain).
-static func _brain_of(e: Dictionary, objects: Dictionary, brain_ids: Dictionary) -> int:
-	var id := int(e.get("0x2da", -1))
-	if id >= 0:
-		return id
-	var obj: Dictionary = objects.get(int(e.get("0x2c6", -1)), {})
-	return int(brain_ids.get(String(obj.get("0x532", "")).strip_edges().to_lower(), -1))
+## The entity's brain id (0x2da): the loader copies it to the spawn descriptor as is (FUN_0058f110 @58f1e6) and the
+## spawner attaches only a brain found by that id (FUN_004b815f), so −1 is no brain (the unit fires only by script;
+## 112's T-55s, which the original never lets fire on their own).
+static func _brain_of(e: Dictionary) -> int:
+	return int(e.get("0x2da", -1))
 
 
-## The unit's damage object and status from its bdb object (docs/damage.md §2): class, type code,
-## strength, size; damage 0, alive, no shield.
 static func _init_damage(ent: Dictionary, obj: Dictionary) -> void:
 	ent.klass = int(obj.get("0x5aa", -1))
 	ent.type_code = int(obj.get("0x5b4", -1))

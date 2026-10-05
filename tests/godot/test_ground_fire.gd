@@ -3,8 +3,8 @@
 # every 0.5 s); no shot beyond 2250 m; inside it the rounds fly at the lead point and hit (the player's damage
 # grows). SAM: an SA-3 launcher engages within 17 km, launches one SA-3 (630) inside its DLZ after _reactionTime 20 s
 # (the RWR's launch flag), none at a target behind it, and the missile reaches the jet. The flight is frozen; the
-# ground units and the weapons run on a scripted sim time. Rockets: mission 322's units have brain −1 and take their
-# object's default brain ('mission'); its rocket vehicle fires at the player within 4 km and the burst damages it.
+# ground units and the weapons run on a scripted sim time. Brain −1: mission 322's rocket vehicle and SAM launchers
+# have none (FUN_004b815f attaches a brain only by its id), so they are armed but never fire on their own.
 extends "res://../tests/godot/base.gd"
 
 
@@ -127,7 +127,7 @@ func _rockets() -> void:
 			u = x
 		elif int(x.w.type) == 630:
 			sams += 1
-	check(u != null and sams == 9, "322: the rocket vehicle and nine SAM launchers (SA-2, Hawk) armed (object brain 'mission') (%d)" % sams)
+	check(u != null and sams == 9 and u.brain == null, "322: the rocket vehicle and nine SAM launchers (SA-2, Hawk) armed, the vehicle without a brain (%d)" % sams)
 	if u == null:
 		return
 	for x in g.units.values():
@@ -142,5 +142,4 @@ func _rockets() -> void:
 		t += 0.05
 		g.update(t)
 		fired = fired or u.rounds.flying_count() > 0
-	check(fired, "the rocket vehicle fires at the player within 4 km")
-	check(me.damage > 0.0 or int(me.state) >= 3, "the rockets burst at the player (damage %.2f, state %d)" % [me.damage, int(me.state)])
+	check(not fired and me.damage == 0.0, "brain −1: the rocket vehicle does not fire at the player within 4 km")

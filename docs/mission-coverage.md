@@ -167,8 +167,8 @@ player = default flight's leader type (training: the Jet list); start = air abov
   (its `CDMEWeaponLoadItem`s, docs/front-end.md §15) as further choices. If none of them fits, friendly AI
   flights carrying the right weapons are the only way (the or-choice in the table).
 * **AI aircraft** (classes 28 controlled aircraft, 3 aircraft, 2 helicopters). `0x320` bit 0 = 0 is
-  brain-controlled: it needs the AI brain flight. A unit *fights* when it carries a weapon, its brain (`0x2da`,
-  else the type's default brain `0x532` by name) has an attack action (bdb Actions: launch weapon, dog chase,
+  brain-controlled: it needs the AI brain flight. A unit *fights* when it carries a weapon, its brain (`0x2da`;
+  −1 is none) has an attack action (bdb Actions: launch weapon, dog chase,
   missile selection, Shandel / Immelman / split S → air-to-air; pop-up, iron / laser, next ground target,
   level / dive bomb → air-to-ground) or a "start combat" action, or its scripts enable combat (op 21), and it is
   not disabled for good (op 22 without an op 21). Mission-controlled aircraft that do not fight only move by
