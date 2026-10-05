@@ -80,6 +80,8 @@ const PREF_THUMB := Vector2(19, 15)
 const PREF_DEFAULT := Rect2(357, 330, 85, 23)
 ## Ours on the Graphics page: the VSync check in the empty strip left of DEFAULT (page coordinates).
 const PREF_VSYNC := Rect2(8, 330, 110, 23)
+## Ours on the debrief screen: EXPORT FLIGHT DATA at the content's bottom right (page coordinates).
+const DEB_EXPORT := Rect2(250, 330, 180, 20)
 ## Ours on the Devices page, under THROTTLE on the page's 35 px row grid: the throttle detent (joystick.gd
 ## `detent_map`): OFF = the original's linear lever, SET AT LEVER stores the lever's position in its detent as MIL.
 const PREF_DETENT := {"title": Rect2(317, 143, 115, 20), "off": Rect2(317, 178, 110, 20), "set": Rect2(317, 213, 115, 20), "note": Rect2(317, 245, 125, 60)}
@@ -1416,6 +1418,8 @@ func _gui_input(event: InputEvent) -> void:
 		if event.pressed:
 			if screen == "pref" and msgbox == null and _pref_press(p - CONTENT.position):
 				return
+			if screen == "deb" and msgbox == null and _deb_press(p - CONTENT.position):
+				return
 			held = _hit(p)
 			if held != "":
 				_animate_press(held)
@@ -1563,18 +1567,24 @@ func _pref_changed() -> bool:
 ## Extras SETTINGS FILE (ours): Export writes the working copy as a settings.cfg wherever the player picks; Import
 ## reads one, stores and saves it at once (any unsaved changes are replaced).
 func _settings_file(saving: bool) -> void:
-	var dlg := FileDialog.new()
-	dlg.use_native_dialog = true
-	dlg.access = FileDialog.ACCESS_FILESYSTEM
-	dlg.file_mode = FileDialog.FILE_MODE_SAVE_FILE if saving else FileDialog.FILE_MODE_OPEN_FILE
-	dlg.filters = PackedStringArray(["*.cfg ; IAF settings"])
-	dlg.current_file = "iaf-settings.cfg"
-	dlg.file_selected.connect(func(path: String) -> void:
-		dlg.queue_free()
+	_file_dialog(saving, "*.cfg ; IAF settings", "iaf-settings.cfg", func(path: String) -> void:
 		if saving:
 			Settings.write_config(pref_work).save(path)
 		else:
 			_import_settings(path))
+
+
+## A native file dialog (ours): save or open one file of `filter`, `done(path)` on a pick.
+func _file_dialog(saving: bool, filter: String, file: String, done: Callable) -> void:
+	var dlg := FileDialog.new()
+	dlg.use_native_dialog = true
+	dlg.access = FileDialog.ACCESS_FILESYSTEM
+	dlg.file_mode = FileDialog.FILE_MODE_SAVE_FILE if saving else FileDialog.FILE_MODE_OPEN_FILE
+	dlg.filters = PackedStringArray([filter])
+	dlg.current_file = file
+	dlg.file_selected.connect(func(path: String) -> void:
+		dlg.queue_free()
+		done.call(path))
 	dlg.canceled.connect(dlg.queue_free)
 	add_child(dlg)
 	dlg.popup_centered()
@@ -1878,7 +1888,18 @@ func _draw_debrief() -> void:
 	var d: Dictionary = Settings.debrief
 	var box := Rect2(CONTENT.position + Vector2(20, 20), CONTENT.size - Vector2(40, 40))
 	_text_line(Rect2(box.position, Vector2(box.size.x, 16)), String(d.get("headline", "")), LIST_TITLE_PX, LIST_TITLE, font_bold)
-	_text_block(Rect2(box.position + Vector2(0, 30), box.size - Vector2(0, 30)), String(d.get("notes", "")), LIST_DESC_PX + 1, LIST_DESC_LIT)
+	_text_block(Rect2(box.position + Vector2(0, 30), box.size - Vector2(0, 60)), String(d.get("notes", "")), LIST_DESC_PX + 1, LIST_DESC_LIT)
+	if FileAccess.file_exists(Settings.blackbox_file):
+		_text_fit(Rect2(CONTENT.position + DEB_EXPORT.position, DEB_EXPORT.size), _art("Export flight data"), LIST_TITLE_PX, LIST_TITLE, font_art)
+
+
+## Ours on the debrief screen (page rect): the blackbox (Settings.blackbox_file, this flight's) saved where the player picks.
+func _deb_press(q: Vector2) -> bool:
+	if not DEB_EXPORT.has_point(q) or not FileAccess.file_exists(Settings.blackbox_file):
+		return false
+	_file_dialog(true, "*.jsonl ; Flight data", "iaf-" + Settings.blackbox_file.get_file(), func(path: String) -> void:
+		DirAccess.copy_absolute(ProjectSettings.globalize_path(Settings.blackbox_file), path))
+	return true
 
 
 func _fly() -> void:

@@ -77,7 +77,8 @@
   "Atmospheric": "אטמוספרי",
   "Settings file": "קובץ הגדרות",
   "Export": "ייצוא",
-  "Import": "ייבוא"
+  "Import": "ייבוא",
+  "Export flight data": "ייצוא נתוני טיסה"
  },
  "msgs": {
   "YES": "כן",

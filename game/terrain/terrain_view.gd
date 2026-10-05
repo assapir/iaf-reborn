@@ -70,11 +70,20 @@ var mission_name := ""
 ## The player's waypoints: [{name, world}] (mission world coordinates).
 var route: Array = []
 var g_effects: Control
-## Blackbox (Preferences, on by default): the last flight's state twice a second (user://last_flight.csv) for diagnosing
-## glitches reported from play.
+## Blackbox (Extras, on by default): each flight in Settings.BLACKBOX_DIR (JSON lines, docs/blackbox.schema.json) for debriefs and
+## diagnosing glitches reported from play: a header object (mission, flight, jet, pilot, loadouts, route, every
+## setting, the column names), then a row array ten times a second, and an event object the moment one happens
+## (touchdown with its sink rate, lift-off, crash with its reason, autopilot changes). The debrief screen exports it.
+const BLACKBOX_COLUMNS := ["t", "x", "z", "alt_m", "agl_m", "vs_ms", "speed_kt", "mach", "aoa", "g", "heading", "pitch", "roll",
+	"on_ground", "engine", "throttle", "air_brakes", "gear", "flaps", "stick_x", "stick_y", "rudder", "fuel_kg", "ap_mode",
+	"ap_stage", "fps"]
 var _log: FileAccess
 var _log_next := 0.0
 var _log_t := 0.0
+var _log_air := false
+var _log_vs := 0.0
+var _log_ap := 0
+var _log_st := {}
 ## Highest true airspeed at which the gear may be lowered (player controller case 0xe, docs/flight-model.md §12).
 const GEAR_DOWN_MAX_KT := 300.0
 ## Gear leg travel and flaps step times (s).
@@ -1205,6 +1214,8 @@ func _setup_autopilot(install: String) -> void:
 ## docs/mission-runtime.md §5.2); without a mission the flight just ends after 5 s.
 func _on_crashed(reason: String) -> void:
 	crashed = true
+	if not _log_st.is_empty():
+		_log_event(_log_st, {"event": "crash", "reason": reason})
 	print("player crashed: ", reason)
 	# The crash is a level-5 destruction of the player's unit (FUN_005bb9f0 -> FUN_004a8ae0(0, 5)):
 	# destroy event, explosion, role rules (after an ejection they were already settled).
@@ -1348,19 +1359,62 @@ func _record(st: Dictionary, delta: float) -> void:
 	if Settings.isolated() or not Settings.blackbox:
 		return  # tests never write into the player's data
 	if _log == null:
-		_log = FileAccess.open("user://last_flight.csv", FileAccess.WRITE)
+		DirAccess.make_dir_recursive_absolute(Settings.BLACKBOX_DIR)
+		var old := Array(DirAccess.get_files_at(Settings.BLACKBOX_DIR)).filter(func(f): return f.begins_with("flight-") and f.ends_with(".jsonl"))
+		old.sort()  # the names sort by time
+		for f in old.slice(0, maxi(0, old.size() - Settings.BLACKBOX_KEEP + 1)):
+			DirAccess.remove_absolute(Settings.BLACKBOX_DIR.path_join(f))
+		var path := Settings.BLACKBOX_DIR.path_join("flight-%s-m%d.jsonl" % [Time.get_datetime_string_from_system().replace("T", "_").replace(":", "-"), mission_id])
+		_log = FileAccess.open(path, FileAccess.WRITE)
 		if _log == null:
 			return
-		_log.store_line("t,x,y,alt_m,ground_m,speed_kt,on_ground,engine,throttle,brakes,gear,stick_x,stick_y,heading,pitch,fps,ap_mode,ap_stage,roll")
+		Settings.blackbox_file = path
+		var cfg: ConfigFile = Settings.write_config()
+		var settings := {}
+		for section in cfg.get_sections():
+			settings[section] = {}
+			for k in cfg.get_section_keys(section):
+				settings[section][k] = cfg.get_value(section, k)
+		_log.store_line(JSON.stringify({"blackbox": 1, "date": Time.get_datetime_string_from_system(), "mission": mission_id,
+			"flight": Settings.player_flight, "jet": player.get("fm_section", ""), "pilot": Settings.pilot_callsign,
+			"loadouts": Settings.arm_loadouts, "route": route.map(func(w): return {"name": w.name, "x": w.world.x, "y": w.world.y}), "settings": settings, "columns": BLACKBOX_COLUMNS}))
+	_log_st = st
+	var air := not bool(st.on_ground)
+	if air != _log_air:
+		_log_air = air
+		_log_event(st, {"event": "lift-off"} if air else {"event": "touchdown", "sink_ms": snappedf(-_log_vs, 0.01)})
+	if air:
+		_log_vs = float(st.get("vs_fpm", 0.0)) * 0.3048 / 60.0
+	var ap: int = autopilot.mode if autopilot != null else 0
+	if ap != _log_ap:
+		_log_ap = ap
+		_log_event(st, {"event": "autopilot", "mode": ["off", "level", "nav"][clampi(ap, 0, 2)]})
 	if _log_t < _log_next:
 		return
-	_log_next = _log_t + 0.5
+	_log_next = _log_t + 0.1
 	var ground = terrain.height_at(rig.position)
-	_log.store_line("%.1f,%.1f,%.1f,%.1f,%s,%.1f,%s,%s,%.2f,%s,%s,%.2f,%.2f,%.1f,%.1f,%d,%d,%s,%.1f" % [
-		_log_t, rig.position.x, rig.position.z, rig.position.y, "%.1f" % ground if ground != null else "none",
-		st.speed_kt, st.on_ground, st.get("engine_on", true), throttle, brakes, gear_down, stick.x, stick.y,
-		st.heading, st.pitch, Engine.get_frames_per_second(),
-		autopilot.mode if autopilot != null else 0, String(flight.ap_stage()).replace(",", ";"), st.roll])
+	_log.store_line(JSON.stringify([_r(_log_t, 0.01), _r(rig.position.x, 0.1), _r(rig.position.z, 0.1),
+		_r(rig.position.y, 0.1), _r(rig.position.y - ground, 0.1) if ground != null else null,
+		_r(float(st.get("vs_fpm", 0.0)) * 0.3048 / 60.0, 0.01), _r(st.speed_kt, 0.1), _r(st.get("mach", 0.0), 0.01),
+		_r(st.get("aoa", 0.0), 0.1), _r(st.get("g", 1.0), 0.01), _r(st.heading, 0.1), _r(st.pitch, 0.1),
+		_r(st.roll, 0.1), st.on_ground, st.get("engine_on", true), _r(throttle, 0.01), brakes, gear_down, _r(flaps, 0.01),
+		_r(stick.x, 0.01), _r(stick.y, 0.01), _r(rudder, 0.01), _r(st.get("internal_fuel_kg", 0.0), 1.0), _log_ap,
+		String(flight.ap_stage()), Engine.get_frames_per_second()]))
+	_log.flush()
+
+
+static func _r(v, step: float) -> float:
+	return snappedf(float(v), step)
+
+
+## A blackbox event line: {"t", "event", ...} with the height and speed of that moment.
+func _log_event(st: Dictionary, e: Dictionary) -> void:
+	if _log == null:
+		return
+	var ground = terrain.height_at(rig.position)
+	e.merge({"t": snappedf(_log_t, 0.01), "agl_m": snappedf(rig.position.y - ground, 0.1) if ground != null else null,
+		"speed_kt": snappedf(float(st.speed_kt), 0.1), "pitch": snappedf(float(st.pitch), 0.1)})
+	_log.store_line(JSON.stringify(e))
 	_log.flush()
 
 

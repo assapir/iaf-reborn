@@ -2,6 +2,11 @@
 extends Node
 
 const PATH := "user://settings.cfg"
+## The blackbox (terrain_view.gd _record): one file per flight, flight-<date>_<time>-m<mission>.jsonl, the newest
+## BLACKBOX_KEEP kept; the debrief screen exports the last one (blackbox_file, this session's).
+const BLACKBOX_DIR := "user://flights"
+const BLACKBOX_KEEP := 10
+var blackbox_file := ""
 ## "Better physics" (Preferences > Physics), id -> label, in page order: the flight-model options
 ## (ids of iaf_flight::BetterPhysics::OPTIONS, docs/flight-model.md §10), then fixes of original
 ## gameplay bugs outside the flight model (docs/damage.md). All off = the original. Stored in the
@@ -89,7 +94,7 @@ var pref_page := "Sound"
 var better := {}
 ## Our flight-info line at the bottom left (not in the original); Ctrl+F12 toggles it.
 var show_info := true
-## Blackbox: the flight recorder user://last_flight.csv (for diagnosing flights; on for now).
+## Blackbox: the flight recorder user://last_flight.jsonl (for diagnosing flights; on for now).
 var blackbox := true
 ## HUD pitch ladder: "original" (v1.1: 12 px/deg hung on the flight path marker, docs/cockpit.md) or
 ## "conformal" (ours: rungs projected through the camera, on the world's horizon).

@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "iaf-reborn/blackbox.schema.json",
+  "title": "iaf-reborn blackbox line",
+  "description": "The flight recorder (game/terrain/terrain_view.gd _record, one file per flight: user://flights/flight-<YYYY-MM-DD_HH-MM-SS>-m<mission>.jsonl, the newest 10 kept; the debrief screen exports the last one). JSON Lines: line 1 is the header, then rows (arrays, 10 per second) and events (objects) in time order. Frame: x east, z south (Godot), metres; angles in degrees.",
+  "oneOf": [
+    { "$ref": "#/$defs/header" },
+    { "$ref": "#/$defs/row" },
+    { "$ref": "#/$defs/event" }
+  ],
+  "$defs": {
+    "header": {
+      "type": "object",
+      "required": ["blackbox", "date", "mission", "jet", "settings", "columns"],
+      "properties": {
+        "blackbox": { "const": 1, "description": "Format version." },
+        "date": { "type": "string", "description": "Local start time, YYYY-MM-DDTHH:MM:SS." },
+        "mission": { "type": "integer", "description": "Mission id (-1: free flight)." },
+        "flight": { "type": "integer", "description": "The player's flight in the mission (Settings.player_flight)." },
+        "jet": { "type": "string", "description": "Flight-model section, e.g. \"F-16\"." },
+        "pilot": { "type": "string", "description": "Pilot callsign." },
+        "loadouts": { "type": "object", "description": "Settings.arm_loadouts: the arming screen's choices." },
+        "route": {
+          "type": "array",
+          "description": "The player's waypoints (mission world coordinates, X east, Y north).",
+          "items": {
+            "type": "object",
+            "properties": { "name": { "type": "string" }, "x": { "type": "number" }, "y": { "type": "number" } }
+          }
+        },
+        "settings": {
+          "type": "object",
+          "description": "Every stored preference as settings.cfg holds it: sections sound / graphics / devices / gameplay / physics (bp_<id>) / keys.",
+          "additionalProperties": { "type": "object" }
+        },
+        "columns": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "The row's column names, in order (see row)."
+        }
+      }
+    },
+    "row": {
+      "type": "array",
+      "description": "One sample every 0.1 s of flight time.",
+      "prefixItems": [
+        { "type": "number", "description": "t: flight time, s." },
+        { "type": "number", "description": "x: east, m (scene)." },
+        { "type": "number", "description": "z: south, m (scene)." },
+        { "type": "number", "description": "alt_m: altitude above sea level, m." },
+        { "type": ["number", "null"], "description": "agl_m: height of the aircraft origin above the terrain, m (null: no terrain yet). On the ground it is the gear clearance." },
+        { "type": "number", "description": "vs_ms: vertical speed, m/s (negative = sinking)." },
+        { "type": "number", "description": "speed_kt: true airspeed, kt." },
+        { "type": "number", "description": "mach." },
+        { "type": "number", "description": "aoa: angle of attack, degrees." },
+        { "type": "number", "description": "g: load factor." },
+        { "type": "number", "description": "heading, degrees clockwise from north." },
+        { "type": "number", "description": "pitch, degrees (nose up +)." },
+        { "type": "number", "description": "roll, degrees." },
+        { "type": "boolean", "description": "on_ground." },
+        { "type": "boolean", "description": "engine running." },
+        { "type": "number", "description": "throttle lever, 0..1 (afterburner above the MIL detent)." },
+        { "type": "boolean", "description": "air_brakes out." },
+        { "type": "boolean", "description": "gear handle down." },
+        { "type": "number", "description": "flaps lever." },
+        { "type": "number", "description": "stick_x: roll input, -1..1 (right +)." },
+        { "type": "number", "description": "stick_y: pitch input, -1..1 (pull +)." },
+        { "type": "number", "description": "rudder, -1..1." },
+        { "type": "number", "description": "fuel_kg: internal fuel." },
+        { "type": "integer", "description": "ap_mode: the player's autopilot, 0 off, 1 level, 2 NAV." },
+        { "type": "string", "description": "ap_stage: the autopilot's control loop (\"none\" when off)." },
+        { "type": "number", "description": "fps: frames per second." }
+      ],
+      "items": false
+    },
+    "event": {
+      "type": "object",
+      "required": ["t", "event"],
+      "properties": {
+        "t": { "type": "number", "description": "Flight time, s." },
+        "event": { "enum": ["lift-off", "touchdown", "crash", "autopilot"] },
+        "sink_ms": { "type": "number", "description": "touchdown: the last airborne sink rate, m/s (the landing check's limit: 40 original, 4 with Physics > Real landing limits, x2 with Easy landing)." },
+        "reason": { "type": "string", "description": "crash: the flight model's reason (e.g. \"sink rate\", \"tail strike\")." },
+        "mode": { "enum": ["off", "level", "nav"], "description": "autopilot: the new mode." },
+        "agl_m": { "type": ["number", "null"], "description": "Height above the terrain at the event, m." },
+        "speed_kt": { "type": "number", "description": "True airspeed at the event, kt." },
+        "pitch": { "type": "number", "description": "Pitch at the event, degrees." }
+      }
+    }
+  }
+}
