@@ -84,6 +84,8 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 | HUD-only view (F1 twice) | viewport grows to 480 rows (projection centre moves); the HUD drawn at scale 2 around (320, 240) (`FUN_00530b70` case 5) | the cockpit projection kept, no panel / MFDs drawn, the HUD at the cockpit scale and place | keeps the HUD registered | views.md §4.4 |
 | Cockpit zoom keys | 20 / 21 enter free look with no motion (the zoom only sets culling) | our cockpit art zoom, one step per press | ours (kept) | views.md §4.4 |
 | Wreck circle | circles the attacker when it is within 1000 m | always the wreck | no attacker field yet | views.md §4.4 |
+| Briefing links of type 0 naming a model / bitmap | two .brl records (`/3dobjects/groundforces/sa6lcr/sa6lcr_h.x`, `/brief/bmp/interc.bmp`) are type 0: streamed as RTF (no useful window) | opened as the 3D-model / picture window | the link works | front-end.md §6, tsd.gd |
+| TSD 3D-model window | the engine renders the model (lighting: engine defaults, UNCERTAIN) | a Godot SubViewport: one sun, grey ambient, MSAA 4×, Camera3D fov 50° across | engine | front-end.md §11, model_view.gd |
 | Pause / menu sim freeze | the sim clock stops | the scene tree pauses (sim nodes stop); sounds paused by `stream_paused` | engine mechanism | views.md §1 |
 
 ## 2. Opt-in switches (original by default)

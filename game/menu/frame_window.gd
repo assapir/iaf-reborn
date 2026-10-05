@@ -31,6 +31,8 @@ var restore_rect := Rect2()
 var bounds := Rect2(0, 0, 453, 357)  # where maximise goes (TSD client)
 
 var rich: RichTextLabel
+## The 3D-model window's view (model_view.gd, §11): the left two-thirds, the text in the right third.
+var view: Control
 var body_clip: Control
 var image: Texture2D
 var scroll := 0.0  # text scroll in 640-space pixels
@@ -69,6 +71,15 @@ func set_text(bbcode: String, links: Array) -> void:
 	rich.text = "[right]%s[/right]" % text if hebrew else text
 	image = null
 	scroll = 0.0
+
+
+## The 3D-model window (brl type 2, §11): `v` (a model_view.gd set up) and its description; replaces a shown model.
+func set_model(v: Control, bbcode: String) -> void:
+	if view != null:
+		view.queue_free()
+	view = v
+	add_child(v)
+	set_text(bbcode, [])
 
 
 func set_image(tex: Texture2D) -> void:
@@ -117,12 +128,32 @@ func _process(_delta: float) -> void:
 		rich.size = Vector2(body.size.x - SCROLL_W - 4, 0) * s
 		rich.position = Vector2(2, 2 - scroll) * s
 		scroll = clampf(scroll, 0.0, _max_scroll())
+	if view != null:
+		var vr := _view_rect()
+		view.position = vr.position * _s()
+		view.size = vr.size * _s()
 	queue_redraw()
 
 
-## Client area below the title bar (window-local, 640 space).
+## Client area below the title bar (window-local, 640 space); with a model view, the description's rect: the client's
+## right third (from trunc(2w/3)) inset 20 at the top and 14 at the bottom (FUN_0050dde0, UNCERTAIN which margins).
 func _body() -> Rect2:
+	if view != null:
+		var c := _client()
+		var vw := floorf(c.size.x * 2.0 / 3.0)
+		return Rect2(c.position.x + vw, c.position.y + 20, c.size.x - vw, c.size.y - 34)
 	return Rect2(BORDER, TITLE_Y + TITLE_H + 1, rect.size.x - 2 * BORDER, rect.size.y - TITLE_Y - TITLE_H - 1 - 4)
+
+
+## The inner client of a 3D window (§10, §11): the frame minus the 5 px sides, the 4 px borders and the 11 px title bar.
+func _client() -> Rect2:
+	return Rect2(BORDER, TITLE_Y + TITLE_H, rect.size.x - 2 * BORDER, rect.size.y - TITLE_Y - TITLE_H - 4)
+
+
+## The 3D-model view (§11): (10, 20) – (trunc(2w/3) − 4, h − 14) in the client.
+func _view_rect() -> Rect2:
+	var c := _client()
+	return Rect2(c.position + Vector2(10, 20), Vector2(floorf(c.size.x * 2.0 / 3.0) - 4 - 10, c.size.y - 34))
 
 
 func _max_scroll() -> float:
@@ -150,7 +181,10 @@ func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, rect.size * s), Color.BLACK)
 	# Content.
 	var body := _body()
-	if rich != null:
+	if view != null:
+		var c := _client()
+		draw_rect(Rect2(c.position * s, c.size * s), RICH_BG)
+	elif rich != null:
 		draw_rect(Rect2(body.position * s, body.size * s), RICH_BG)
 	elif image != null:
 		var isz: Vector2 = fe._art_size(image)
@@ -184,6 +218,9 @@ func _draw() -> void:
 			art = "normbut"
 		var frame := 2 if pressed_btn == b[0] else 0
 		_blit("framewnd/%s_%d.png" % [art, frame], Rect2(Vector2.ZERO, BTN), b[1])
+	# The 3D-model window's "Jane's" logo over the top-left corner (§11, FUN_0051e2e0(frame, 3, 4)).
+	if view != null:
+		_blit("framewnd/logo.png", Rect2(Vector2.ZERO, _art_size("framewnd/logo.png")), Vector2(3, 4))
 	# Custom vertical scrollbar at the right edge of the text (§6).
 	if rich != null:
 		var x := body.end.x - SCROLL_W

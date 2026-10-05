@@ -277,6 +277,20 @@ fn convert_objects(install: &Path, missions: &Path, out: &Path, opts: &Options) 
         }
         index.insert(format!("{bdb}.bdb"), serde_json::Value::Object(map));
     }
+    // The briefings' 3D-model windows (brl type 2, docs/front-end.md §11) show any `_h` model with a description
+    // (`<name>_h.rtf`), also the ones no mission places (f4e_h).
+    for rtf in iaf_tools::walk_files(&root)? {
+        let name = rtf.file_name().unwrap().to_string_lossy().to_lowercase();
+        let Some(stem) = name.strip_suffix(".rtf").filter(|s| s.ends_with("_h")) else { continue };
+        let rel = rtf.strip_prefix(&root)?.with_file_name(format!("{stem}.x"));
+        if done.contains_key(&rel) || !root.join(&rel).exists() {
+            continue;
+        }
+        let ok = convert(&root.join(&rel), &out.join(rel.parent().unwrap()), std::slice::from_ref(&root), opts)
+            .inspect_err(|e| println!("  skipped {}: {e:#}", rel.display()))
+            .is_ok();
+        done.insert(rel, ok);
+    }
     std::fs::write(out.join("objects.json"), serde_json::to_string_pretty(&index)?)?;
     // The decoy sprites (docs/weapons.md §10): the burning flare (missFLR.tga, sprite 0xcd) and
     // the chaff pieces' texture (chaff.bmp, sprite 0xce).
@@ -612,6 +626,20 @@ fn convert_briefings(install: &Path, packs: &Path, out: &Path, opts: &Options) -
         }
         doc.insert(key.into(), serde_json::Value::Object(map));
     }
+    // The 3D-model windows' descriptions (`<model>_h.rtf`, English only) and `.cp` view limits ("dist height", §11),
+    // keyed by the model path as the .brl writes it, without the extension: "3dobjects/…/mig21/mig21_h".
+    let objects = install.join("resource/3dobjects");
+    let mut models = serde_json::Map::new();
+    for rtf in iaf_tools::walk_files(&objects)? {
+        let rel = rtf.strip_prefix(install.join("resource"))?.to_string_lossy().replace('\\', "/").to_lowercase();
+        let Some(key) = rel.strip_suffix(".rtf").filter(|k| k.ends_with("_h")) else { continue };
+        let cp = std::fs::read_to_string(rtf.with_extension("cp")).ok().and_then(|t| {
+            let v: Vec<f64> = t.split_whitespace().filter_map(|w| w.parse().ok()).collect();
+            (v.len() >= 2).then(|| json!([v[0], v[1]]))
+        });
+        models.insert(key.to_string(), json!({"text": {"en": std::fs::read(&rtf).ok().map(|d| to_bbcode(&d))}, "cp": cp}));
+    }
+    doc.insert("models".into(), serde_json::Value::Object(models));
     std::fs::write(out.join("briefings.json"), serde_json::to_string_pretty(&doc)?)?;
 
     // Diagrams: original, and the Hebrew pack's relabelled versions.

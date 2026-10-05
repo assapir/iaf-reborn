@@ -824,6 +824,9 @@ current mission time.
 
 ## 11. TSD 3D-model window (brl type 2, `obj_t`, `FUN_00518470`)
 
+**iaf-reborn:** built (`tsd.gd` `_on_link` case 2, `frame_window.gd` `set_model`, `model_view.gd`; the `_h.rtf`
+descriptions and `.cp` limits in briefings.json `models`; tests/godot/test_briefing_links.gd).
+
 **Summary.** The left two-thirds is an orbit view of the brl's `_h.x` model. The right third is a
 rich edit showing `<same dir>\<same name>.rtf`. `<name>.cp` sets the zoom limits. The window is
 keyboard-only.

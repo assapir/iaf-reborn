@@ -333,6 +333,11 @@ func _on_link(name: String, entry: Dictionary) -> void:
 	var kind := int(link.get("type", 0))
 	var file := String(link.file)
 	var stem := file.get_file().get_basename().to_lower()
+	# Ours: two type-0 records name a model / a bitmap (the original streams them as RTF): opened by their kind.
+	if kind == 0 and file.ends_with(".x"):
+		kind = 2
+	elif kind == 0 and file.ends_with(".bmp"):
+		kind = 3
 	# A closed window is freed: its slot reads as none (a typed Control would refuse the freed instance).
 	var held = link_windows.get(kind)
 	var w: Control = held if is_instance_valid(held) else null
@@ -340,13 +345,16 @@ func _on_link(name: String, entry: Dictionary) -> void:
 	var H := CLIENT.size.y
 	match kind:
 		0:
-			var lesson: Dictionary = fe.briefings.get("lessons", {}).get(stem, {})
+			# An RTF: a lesson (brief/text) or another briefing text (brief/txt, e.g. the war history 67.rtf).
+			var lesson: Dictionary = fe.briefings.get("missions" if "/txt/" in file else "lessons", {}).get(stem, {})
 			if lesson.is_empty():
 				return
 			if not is_instance_valid(w):
 				w = _new_window(Rect2(floor(W / 3), floor(H / 2), floor(2 * W / 3), floor(H / 2)), "framewnd/brief_t.png")
 				link_windows[kind] = w
-				w.link_clicked.connect(func(n): _on_link(n, lesson))
+				var lw := w
+				w.link_clicked.connect(func(n): _on_link(n, lw.get_meta("entry")))
+			w.set_meta("entry", lesson)
 			w.set_text(_text_of(lesson), _link_names(lesson))
 		3:
 			var tex: Texture2D = fe.briefing_image(stem)
@@ -357,8 +365,26 @@ func _on_link(name: String, entry: Dictionary) -> void:
 				w.has_max = false
 				link_windows[kind] = w
 			w.set_image(tex)
+		2:
+			# The 3D-model window (§11): the brl's `_h.x` (relative to the install's resource dir; the one path without
+			# "\\3dObjects\\" fails to load, as in the original) and its `_h.rtf`; it closes the target window.
+			var key := file.trim_prefix("/").trim_suffix(".x")
+			if not key.begins_with("3dobjects/"):
+				return
+			var info: Dictionary = fe.briefings.get("models", {}).get(key, {})
+			var v := preload("res://menu/model_view.gd").new()
+			if not v.setup(fe, key.trim_prefix("3dobjects/") + ".gltf", info.get("cp")):
+				v.free()
+				return
+			if is_instance_valid(link_windows.get(5)):
+				link_windows[5].queue_free()
+			if not is_instance_valid(w):
+				w = _new_window(Rect2(12, 16, 415, 260), "framewnd/obj_t.png")
+				link_windows[kind] = w
+			var texts: Dictionary = info.get("text", {})
+			w.set_model(v, String(texts.get("en")) if texts.get("en") != null else "")
 		_:
-			# 2 = 3D model window (obj_t), 5 = target window (targ_t): not built yet.
+			# 5 = target window (targ_t): not built yet.
 			return
 	windows.move_child(w, -1)
 
