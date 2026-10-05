@@ -317,6 +317,8 @@ func _draw_outer() -> void:
 	if not real.is_empty():
 		_draw_prims(outer, real.outer, w, real.colour)
 		return
+	if mode in [1, 2, 7] and not cockpit.radar.get("lock", {}).is_empty():
+		_draw_range_scale(f, w)
 
 	# Altitude (FUN_005381c0) on the right edge.
 	var at := alt_value(st, mode, gear)
@@ -375,6 +377,22 @@ func _draw_outer() -> void:
 	for i in 3:
 		_sprite(outer, Vector2(-tx0, ty0 + 7 * i), rows[i])
 		_sprite(outer, Vector2(tx0, ty0 + 7 * i), rows[3 + i], true)
+
+
+## The range scale (FUN_005397a0, docs/weapons.md §12.4) at the field's right edge − 4, 50 px above the centre, 66 px
+## high over the radar range: the DLZ bracket, the lock's range caret with the closure "%3dK" (×2 as the radar page's)
+## and the range "%3d" above.
+func _draw_range_scale(f: Rect2, w: float) -> void:
+	var rd: Dictionary = cockpit.radar
+	var nm: float = Mfd.RADAR_RANGES[clampi(int(rd.get("idx", 1)), 1, 6) - 1]
+	var r: Vector3i = ClassDB.class_call_static("IafRelease", "range_scale", 66, nm, rd.get("dlz", []), float(rd.lock.dist))
+	var x := f.end.x - 4.0
+	var y := -50.0
+	_poly(outer, [Vector2(x - 2, y), Vector2(x, y), Vector2(x, y + 66), Vector2(x - 3, y + 66)], w)
+	_poly(outer, [Vector2(x + 1, y + r.x), Vector2(x - 2, y + r.x), Vector2(x - 2, y + r.y), Vector2(x + 2, y + r.y)], w)
+	_poly(outer, [Vector2(x - 6, y + r.z - 2), Vector2(x - 4, y + r.z), Vector2(x - 7, y + r.z + 3)], w)
+	_sprite(outer, Vector2(x - 7, y + r.z - 2), "%3dK" % int(float(rd.get("closure", 0.0)) * 1.9427955), true)
+	_sprite(outer, Vector2(x, y - 8), "%3d" % int(nm), true)
 
 
 # --- the Real HUD (ours, Extras > HUD) ---------------------------------------------------------------------

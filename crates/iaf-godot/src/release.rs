@@ -78,6 +78,13 @@ impl IafRelease {
     fn ttg_shown(ttg: f64) -> f64 {
         hud::ttg_shown(ttg)
     }
+
+    /// The HUD range scale's rows (min, max, caret).
+    #[func]
+    fn range_scale(h: i32, range_nm: f64, z: VarArray, dist: f64) -> Vector3i {
+        let r = hud::range_scale(h, range_nm, dlz(&z), dist);
+        Vector3i::new(r.min, r.max, r.caret)
+    }
 }
 
 #[derive(GodotClass)]

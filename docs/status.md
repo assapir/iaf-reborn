@@ -93,7 +93,7 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 - **Combat**: player gun, IR missiles, radar missiles (AMRAAM / Sparrow with the DLZ and the MRM sight), radar lock,
   chaff / flares, bombs (CCIP / delayed, ripple, cluster), rockets, HARM / Shrike at the HARM page's emitter, TV weapons (Maverick, TV missile), laser bombs with the FLIR designation (the ground units' sensors feed the RWR); AI combat built (docs/ai.md §13: sensors, Launch, weapon changes, every manoeuvre; not yet: the AI's bomb ripple, AI
   radar locks on the RWR, decoys from AI jets), ground fire built (docs/ai.md §14: AAA, SAMs, rockets; 313 and 322 playable); decoys don't lure missiles yet.
-- **Cockpit / MFDs**: ECM, the full-screen weapon MFD (Z), the HUD range scale (weapons.md §12.4); the RWR's feeds (AI sensors, SAMs, enemy missiles);
+- **Cockpit / MFDs**: ECM, the full-screen weapon MFD (Z); the RWR's feeds (AI sensors, SAMs, enemy missiles);
   ECM light has no system; night lighting; what the TV / laser weapons do with the radar's designated point.
 - **Controls**: joystick untested on real hardware (one device; no force feedback); not built: FlyTSD Fly into another
   aircraft / Visit (docs/views.md).

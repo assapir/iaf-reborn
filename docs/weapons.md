@@ -13,8 +13,7 @@ HUD text and symbols, the stores MFD page, the FLIR pod / TV-weapon camera and t
 (docs/mfd.md), the radar missiles (600 AMRAAM-like, 610 Sparrow-like) with the DLZ, the MRM HUD sight and the
 semi-active rule, the HARM / Shrike (§11), the TV weapons (635 Maverick, 640 TV missile) with the guided motion, the
 camera riding the weapon and the TV page's TRA / TER and time (§12). The radar and its lock (the seeker slaved to it):
-docs/radar.md; the laser bombs with the FLIR designation (§9.8). Not built yet: the decoys' effect on missiles, ECM, the HUD
-range scale (`FUN_005397a0`, §12.4), the AI's weapons other than the ground AAA (built: docs/ai.md §14).
+docs/radar.md; the laser bombs with the FLIR designation (§9.8). Not built yet: the decoys' effect on missiles, ECM, the AI's weapons other than the ground AAA (built: docs/ai.md §14).
 
 ## 1. Data
 
@@ -661,14 +660,17 @@ Explosion class 0x19: the falling store's (flash + streamers, no trail). `crates
 - **HUD mode 7** (`FUN_0052fa10` case 7): the seeker diamond (`FUN_00536ff0`) on the EO centre point's projection while
   the status ≠ 0, held inside the field along the line from the HUD centre. No "SEC" row in mode 7.
 
-### 12.4 HUD range scale (not built)
+### 12.4 HUD range scale
 `FUN_005397a0`, drawn in HUD modes 1, 2 (via `FUN_0052ffb0` / `FUN_0052ff30`) and 7 while the radar has a lock
 (S+0xa20); s = the HUD scale: X = HUD x + (RightBorder R+0x2228 − 4)·s, Y = param_5 − 50·s (param_5 taken as the HUD
 centre y, UNCERTAIN), H = 66·s, k = H / (the radar range R+0x2748 NM × 1853). Pen polyline (X−2, Y) → (X, Y) → (X, Y+H)
 → (X−3, Y+H). DLZ bracket: ym = clamp(H − ⌊S+0x350·k⌋, 0, H), yM likewise from S+0x348; lines (X+s, Y+ym) → (X−2s,
 Y+ym) → (X−2s, Y+yM) → (X+1+s, Y+yM). Range caret at c = H − ⌊H·S+0x388 (lock range NM) / R+0x2748⌋: (X−3s−3, Y+c−2)
 → (X−3s−1, Y+c) → (X−3s−4, Y+c+3). Text (sprite font, right-aligned, `FUN_00525920`): "%3dK" (0x65d6b4) of ⌊2·S+0x3a0⌋
-(the closure ×2) ending at (X−3s−4, Y+c−2); "%3d" (0x65d754) of the range scale ending at (X, Y−8).
+(the closure ×2) ending at (X−3s−4, Y+c−2); "%3d" (0x65d754) of the range scale ending at (X, Y−8). Ours: X is the
+HUD centre + (RightBorder − 4)·s (the exe adds 0x140, the 640-wide screen's centre); the rows in `hud.rs`
+`range_scale` (the bracket held on the scale, the caret not), drawn by `hud.gd` `_draw_range_scale` (original HUD
+only; the Real HUD has its own DLZ).
 
 ### 12.5 Validation
 `tests/godot/test_tv_weapons.gd`: the guided DLZ formula, the start in TRA, the terminal TER, the burst snapped to the
