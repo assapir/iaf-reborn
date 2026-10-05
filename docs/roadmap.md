@@ -32,6 +32,14 @@ Generalize the blackbox replay used to debug "Engines ON" (feed a recorded `last
 runtime at 8× speed and print every subtitle / pass / box with its time) into a tool for any mission: record →
 replay → timeline, and replay recorded flights as regression tests.
 
+## AI debrief (later)
+An opt-in debrief after a flight: the flight recorder (inputs and the state per frame), the mission (briefing goals,
+events, kills / losses, the crash or landing reason) and the pilot's settings go to an LLM, which writes a personal
+debrief — what went wrong and why (e.g. "the approach was flown at idle with the air brakes out: dive, pull, balloon,
+dive; touchdown at 7 m/s against the 4 m/s limit"), with advice. Maybe also going over the flight: the debrief
+points at moments and the replay jumps there (the sink rate, the speed and the stick shown). Needs an API key setting
+and the user's consent to send the data.
+
 ## "Real weapons" option (like the Real flight data set)
 When the weapons are ported, compare the original's weapon data (ranges, speeds, seeker limits, warhead / Pk,
 drag and weight on the stations) with public data. Where the 1998 numbers are off, offer a corrected set behind its own

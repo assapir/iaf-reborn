@@ -39,9 +39,8 @@ Colours are Windows COLORREF `0x00BBGGRR` unless written RGB(). MFD index: **0 =
   20,40,60,80,100. Ids: top 1–5, bottom 6–10, left 11–15 (0xb–0xf), right 16–20 (0x10–0x14). Actions `FUN_005219e0`.
   Clicking inside the display area (+10..+122) makes that MFD own the mouse cursor (`FUN_00521700`).
 - **Button 6 (bottom-left, under "MENU") on every page** posts event 0x5b(value 8, mfd) → MENU page.
-- Full-screen weapon MFD (view mode +0x1088 == 0xb; key "Full screen weapon MFD"): `FUN_00523d70` loads
-  `fsmfd/FsMfd.bmp` 640x480 with `data.ibx` corner rects, render rect (128,49)-(513,431), pen width 2 0xff00; used for the
-  MFD showing page 5/6 (TV/FLIR).
+- Full-screen weapon MFD (key Z, v1.1; S+0x1088 = 0xb): replaces the whole cockpit with `fsmfd/FsMfd.bmp` and the TV /
+  FLIR picture in (128,49)-(513,431) — §3 "Full-screen weapon MFD".
 
 ### mfds.bmp (264x924, 24-bit) — source rectangles (table at `0x65d068`, RECT l,t,r,b)
 
@@ -325,8 +324,182 @@ no round of that store is left (`FUN_00456cd0` → `FUN_0053bcd0`) unless a laun
 - Pass 4, status ≠ 0: the seeker ticks — a vertical one at x = 66 − 56u, y 64..69, and a horizontal one at y = 66 +
   56v, x 63..69; u = az·6/π, v = el·6/π (`0x601524`): ±30° = ±56 px.
 - OSBs (case 5): 0xb zoom in, 0xc zoom out. No pass 2.
-- Key Z (event 0x1f): full-screen weapon MFD (`ctl+0x24e`) only with an EO mode whose mcp vfunc +0x1c ≠ 0 or FLIR —
-  not built (below).
+- Key Z (event 0x1f): full-screen weapon MFD (`ctl+0x938`) only with an EO mode whose mcp vfunc +0x1c ≠ 0 —
+  not built (below, "Full-screen weapon MFD").
+
+### Full-screen weapon MFD (key Z, v1.1) — `FullScreenRender.cpp`, object at cockpit+0x18
+
+**Flag.** `ctl+0x938` (player controller, dword 0x24e). Cleared at the flight start (`FUN_00447890`).
+
+**Toggle** (event 0x1f; `FUN_004cd630` case 0x1f, only with a player controller `DAT_00699308`):
+1. Controller `FUN_0044a240` case 0x1f: flag set → clear it. Flag clear → set it only when the EO mode
+   `ctl+0x7f4` ≠ 0 **and** that mode's mcp vfunc +0x1c ≠ 0. TV: `FUN_00460940`, the TV status (0 none, 1 RDY,
+   2 TRA, 3 TER). FLIR: `0x450df0` always returns 1. The extra "or EO mode 2" test is therefore redundant.
+   Otherwise nothing happens.
+2. Then, **always** (entering, leaving or refused): the main view is set to the cockpit (`FUN_0057f2a0` type 1), or to
+   HUD-only (type 5) when `DAT_0083370c` (the last F1 choice) is set. No toggle between them, unlike F1. The head
+   returns to straight ahead. So Z from an external view without an EO weapon acts like an F1 that keeps the
+   cockpit / HUD choice.
+
+**View mode 0xb.** The main view stays 1 / 5. Every frame `FUN_00448b20` (@449330) writes S+0x1088
+(`FUN_004465b0`) = the type of **view-manager camera slot 1** (`DAT_00699304[0x23a]` +8 = 0xb, the weapon camera of §3
+FLIR/TV) while the flag is set, else the main view's type. The cockpit keys every draw rule on S+0x1088:
+- `FUN_0051f8e0` case 0xb → `FUN_0051fae0`.
+- `FUN_00520980`: viewport 0 (the world view) is **not rendered**.
+- `FUN_005209d0` → `FUN_00525370`: viewport 1 = RENDER_RECT.
+- `FUN_00521440` case 0xb: mouse.
+
+**Exits.**
+- Z again.
+- Any view key (event 0x1c): `FUN_00450440` clears the flag after that case's gates (player flying, no snap view).
+- Per frame (`FUN_00448b20` @449334): EO mode 0, or the TV status 0. EO mode 0 comes from any master mode change
+  leaving 5 / 6 (`FUN_0044e6e0`). TV status 0: no round of the store left and no launched TV weapon flying, or the
+  store is not 635 / 640 / 650. FLIR never drops out this way.
+- **Weapon impact.** Event 0x4d (object destroyed; controller case 0x4d) with the mcp's store (`+0xc`, the camera
+  carrier) as the object: when the flag was set, it is cleared and the main view becomes a **fly-by (type 0x13)** of
+  the wreck, `FUN_005808c0(t, obj, {300, 700, 300} m with two random angles in ±π, 6.0, 0x13, 1)`. UNCERTAIN: the
+  exact angle slots and the meaning of 6.0; compare the F11 fly-by in docs/views.md. Without the flag there is no
+  view change. In both cases, with 640 selected the camera then restarts on the next store (`FUN_00450280(store, 0)`).
+- Nothing else exits: the zoom, slew, WIDE / SPOT and laser keys keep working.
+
+**Load** (`FUN_0051f610`, every frame from `0x4d96e3`).
+- When S+0x1088 becomes 0xb (previous frame's copy cockpit+0x1698 ≠ 0xb): the MFD index = the **last** of the 3 MFDs
+  whose page (S+0x504+i·4) is 5 or 6, else 0. Stored at fs[0xb7] = cockpit+0x2f4. Then
+  `FUN_00523d70(<cockpit dir>FsMfd\\)`:
+  - `FUN_00523b60` reads `Data.ibx`: CORNER000..003 → fs[0xb..0x1a], RENDERCORNER000..003 → fs[0x1b..0x2a],
+    RENDER_RECT → fs+0xac..0xb8.
+  - `FsMfd.bmp` (640x480) is loaded and cut into 4 CORNER surfaces fs[6..9] (key 0xffff00, unused) and 4
+    RENDERCORNER surfaces fs[2..5] (key **0xffffff**).
+  - fs[0xb2] = `GetStockObject(DEFAULT_GUI_FONT)` is never selected. fs[0xb3] = `CreatePen(PS_SOLID, 2, 0x00ff00)`.
+    fs[10] = 0.
+- Freed by `FUN_00523d00` when 0xb ends.
+- Reloaded by `FUN_00524070` whenever the cockpit is dirty: +0x2fc, which includes the first 0xb frame, or
+  +0x300 / +0x285c.
+- The shipped `data.ibx`:
+
+  | piece | rect |
+  |---|---|
+  | CORNER000 | 0,0–128,480 |
+  | CORNER001 | 512,0–640,480 |
+  | CORNER002 | 128,0–512,49 |
+  | CORNER003 | 128,431–512,480 |
+  | RENDERCORNER000 | 128,49–169,192 (with the two green zoom arrows) |
+  | RENDERCORNER001 | 467,49–517,94 |
+  | RENDERCORNER002 | 128,383–177,431 |
+  | RENDERCORNER003 | 469,392–517,431 |
+  | RENDER_RECT | 128,49–513,431 |
+
+- The art: the bezel, 20 OSBs, DAY / BRT knob, NGT / CTR rockers (dead art), white = key in the rounded screen
+  corners, black screen.
+
+**Frame order.**
+1. `FUN_004d9080`: viewport 1 (slot 1 camera, §3 Camera) rendered straight into **RENDER_RECT, 385×382 px at native
+   resolution** (no scaling). Horizontal FoV = 50°/zoom across the 385 px. The EO-centre depth pick is at the rect
+   centre (+193, +191); with `ctl+0x938` the EO centre point is that pick (§3 FLIR/TV), so the laser point and the
+   TV lock use the full-screen picture.
+2. `FUN_0051fae0`, on the back-buffer DC:
+   - Font cockpit+0x578 (ANSI_VAR_FONT), NULL_BRUSH, transparent background.
+   - `FUN_00524430`: clip region RENDER_RECT; pen fs[0xb3]; text colour **0x00ff00**, always (the HUD colour table
+     is not used); TA_LEFT|TA_TOP.
+   - Then the TV (`FUN_00524570`) or FLIR (`FUN_00524a60`) layer, picked by page 5 / 6 of the MFD fs[0xb7]. Any
+     other page: no symbology, only the picture and the frame.
+   - Then `FUN_00520490`: the debug FPS text and MP lines only.
+   - **Not drawn:** panel, HUD, the three MFDs, the message console (`FUN_005201b0`).
+3. `FUN_00524090`:
+   - The 4 CORNERs, opaque (`BltFast` flag 0x10 = WAIT), only on the first 3 frames after a (re)load (fs[10]
+     0→1→2→3, one per flip-chain buffer), then released. The frame outside RENDER_RECT is never redrawn afterwards
+     (viewport 0 does not clear it).
+   - The 4 RENDERCORNERs **every frame**, white-keyed (flag 0x11 = WAIT|SRCCOLORKEY), so the rounded corners and
+     the zoom arrows cover the picture **and the symbology**.
+
+**Layer geometry.** x0, y0 = RENDER_RECT left / top + 2 = (130, 51); w, h = size − 4 = 381 × 378; cx, cy = x0 + w/2,
+y0 + h/2 = **(320, 240)**. The MFD's 56 px half-scale becomes w/2 = 190 (x) and h/2 = 189 (y). Lines below end
+exclusively (GDI LineTo).
+
+TV (`FUN_00524570`, state as the TV page: +0x5e8 status, +0x5e0 / +0x5e4 = u / v = az / el·6/π, +0x5f4 zoom,
++0x5ec time left):
+- Cross-hair: gap g = 10, **20 at TER**. Vertical x 320 from y 51 to cy − g, and from cy + g to 429. Horizontal
+  y 240 from x 130 to cx − g, and from cx + g to 511.
+- Ticks, each only when outside the gap:
+  - Azimuth: X = 320 − 190u, when |190u| > g; vertical (X, 236) → (X, 245).
+  - Elevation: Y = 240 + 189v, when |189v| > g; horizontal (315, Y) → (325, Y).
+- Text at its top-left corner:
+
+  | text | at |
+  |---|---|
+  | "TV" | (187, 59) |
+  | "%1d %s " (S+0x36c count, S+0x354 name of the selected store, as the HUD weapon line) | (254, 59) |
+  | "RDY" / "TRA" / "TER" / "NO SOURCE" | (403, 59) |
+  | "X%1d" ftol(zoom) | (140, 145) (between the arrows) |
+  | "%3d SEC" ftol(time), or "XXX SEC" when time ≥ 250 | (378, 399) |
+
+- Waypoint marker (below) only when time > 15 or status = RDY.
+- Attitude bar (below).
+
+FLIR (`FUN_00524a60`, FLIR page state: +0x5e0 / +0x5e4 = u / v = az·4/π, (el + 5°)·4/π, +0x5f4 zoom, +0x5f8 laser,
++0x5fc range m, +0x600 SPOT):
+- Short cross-hair, gap 10: x 320 from y 191 to 230 and 250 to 289; y 240 from x 270 to 310 and 330 to 371.
+- Four corner brackets: (cx ∓ 80, cy ∓ 50) → (cx ∓ 80, cy ∓ 80) → (cx ∓ 50, cy ∓ 80), mirrored for each corner.
+- Gimbal marker: the page's 5×5 blob at **X = 320 − 190u, Y = 240 + 189v**.
+- Text:
+
+  | text | at |
+  |---|---|
+  | "FLIR" | (187, 59) |
+  | "LASER OFF" / "LASER ON" | (284, 59) |
+  | "WIDE" / "SPOT" | (403, 59) |
+  | "X%1d" | (140, 145) |
+  | "%3.1f" range·0.00053967 NM, or "XXX.X" from 20 NM | (378, 399) |
+
+- Waypoint marker always; attitude bar.
+
+Waypoint marker (`FUN_005256f0`): the current waypoint's projection S+0x328 / +0x32c. Producer: `FUN_00446320`; in
+0xb it uses `FUN_00402000` with flag 0, otherwise the HUD's `FUN_0045a790`.
+- Clamp: when the point is outside the rect (148,69)–(493,411) (RENDER_RECT inset 20), it is moved along the line
+  from (cx, cy) onto that edge (bisection `FUN_0052db30`, per edge).
+- Hollow `Ellipse(x ± 15, y ± 15)`, skipped when coordinates would overflow 16 bits.
+- Label "%d" (index + 1, index = min(S+0x320, S+0x310)), or "T" for action 5, TA_CENTER|TA_TOP at (x, y − 7):
+  inside the circle.
+- UNCERTAIN: the projection uses the engine's current camera. `FUN_004d9080` puts viewport 0's camera back only when
+  viewport 0 was drawn, so in 0xb it is the weapon camera of the previous frame. The marker therefore lies on the
+  picture.
+
+Attitude bar (`FUN_00525030`): the DASH symbol's bar (docs/cockpit.md), scaled up.
+- Two polylines (∓162, 10) → (∓162, 0) → (∓10, 0) about (320, 240) at **4 px/°**.
+- Same fold, rotation and ±40° clamp. It blinks by flipping `DAT_0065cd10` after > 300 ms of the frame clock
+  (fs+0xbc = cockpit+0x574, accumulator `DAT_0083de7c` / `DAT_0083de78`).
+
+**Mouse** (`FUN_00521440` case 0xb → `FUN_005253a0`; table `0x65cd18`).
+- Strips: top (193,12)–(447,39), bottom (192,441)–(449,470), left (88,108)–(116,367), right (522,109)–(550,366).
+- Buttons every 57 px, live only on the first 27 px. Ids = the small MFD's: top 1–5, bottom 6–10, left 11–15,
+  right 16–20.
+- Over a button: cursor 2. A click (`FUN_00521800` case 5 → `FUN_005219e0`) runs that page's OSB action for MFD
+  fs[0xb7], exactly as on the panel:
+  - TV: 11 / 12 zoom in / out (the green arrows).
+  - FLIR: 11 / 12 zoom, 5 WIDE / SPOT, 3 laser.
+  - 6 MENU posts 0x5b(8), which the controller drops while `ctl+0x938` is set, so the page cannot change in full
+    screen. Event 0x5b is ignored entirely.
+- Inside RENDER_RECT: cursor hidden, clicks do nothing (no designation by mouse). Elsewhere: arrow cursor.
+
+**Keys in full screen.** The usual EO keys keep working, because they test slot 1's type or the EO mode, not the
+flag:
+- Ctrl+arrows slew / lock (0x8a).
+- The zoom keys' release records (0x14 / 0x15, p1 0).
+- WIDE / SPOT (0x20), laser L (0x6a), I (0x5a(6), a no-op with page 6 shown).
+
+**v1.0.** The same renderer exists (`C:\BlueStar\Source\CockpitRender\FullScreenRender.cpp`, loader `FUN_00522250`,
+`FsMfd` strings), and the controller's `mov [ctl+0x938], 1` exists. v1.0's dispatcher `FUN_004cce00` did not forward
+event 0x1f, so the mode was unreachable. v1.1 only wired Z (docs/v1.1.md).
+
+**Port needs:**
+- The flag with the toggle / exit rules above, and the Z view reset to 1 / 5.
+- A 385×382 render of the weapon camera (FoV 50°/zoom) placed at (128,49).
+- `fsmfd.bmp` as the frame, with white keyed out of the corners and drawn over the symbology.
+- The two GDI layers in 2 px 0x00ff00 lines plus ANSI_VAR_FONT text.
+- The waypoint circle in the camera projection.
+- The 4 px/° attitude bar.
+- The OSB hit table routed to the existing TV / FLIR OSB actions.
+- Panel, HUD and messages hidden.
 
 ### HARM (10) — `FUN_005358b0`, data `FUN_0045bb00` → `FUN_00446050`
 - Source: the **HARM sensor** (vtable 0x601190, a subclass of the AI target sensor of docs/ai.md §14: ctor `0x45b880`,
@@ -392,7 +565,7 @@ DLZ (docs/weapons.md §11.5); Ctrl+Return not built.
 | Activate TSD on MFD | T | 0x5a SET_MFD_SCREEN(3) |
 | FLIR on/off | I | 0x5a(6) (needs FLIR, not TV) |
 | Damage report | D | 0x5a(4) |
-| Full screen weapon MFD | Z | 0x1f (only with EO/FLIR weapon) |
+| Full screen weapon MFD | Z | 0x1f toggle `ctl+0x938` (only with a TV status ≠ 0 or FLIR; §3) and view 1 / 5 |
 | Radar modes | Q | 0x24 cycle A-A 4→5→6→4 (LRS/TWS/ACM), A-G 7↔8 (GMT/MAP) |
 | Radar on/AA/AG | R | 0x2b toggle A-A/A-G (restores last mode) |
 | Radar standby | S | 0x2c → STBY |

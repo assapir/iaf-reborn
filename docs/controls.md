@@ -58,7 +58,9 @@ the Preferences Controls page (docs/front-end.md §12.7) and looks every in-flig
   zoom. Everything else is one-shot.
 * v1.1: the key table (all 117 records byte-identical, `0x64c3c8`; v1.0 `0x647ff8`), this dispatch and the mute key
   are unchanged. One handler changed: **Z "Full screen weapon MFD"** (event 0x1f in `FUN_004cd630`) now forwards to
-  the cockpit and sets view 1 / 5 (v1.0 did nothing). Not ported (no full-screen MFD yet).
+  the controller (`FUN_0044a240` case 0x1f toggles `ctl+0x938`, set only with a TV status ≠ 0 or FLIR) and always
+  sets the main view to cockpit / HUD-only (1 / 5, the last F1 choice). v1.0 did nothing, although its renderer and
+  controller case exist. Full spec (exits, render, OSBs): docs/mfd.md §3 "Full-screen weapon MFD". Not ported.
 
 ### iaf-reborn
 
