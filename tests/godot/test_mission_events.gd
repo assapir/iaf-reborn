@@ -19,7 +19,7 @@ func run() -> void:
 			{"0x1e": 1, "0x398": 1, "0x38e": -1, "0x3ac": -1, "conds": [cond(1, 3, 3), unset, cond(1, 10, 0)],
 				"list": [[99, 1, -1], [7, -1, -1]]},
 			# No counters: fires twice.
-			{"0x1e": 2, "0x398": 2, "0x38e": -1, "0x3ac": -1, "conds": [unset, unset, unset], "list": []},
+			{"0x1e": 2, "0x384": "Go around", "0x398": 2, "0x38e": -1, "0x3ac": -1, "conds": [unset, unset, unset], "list": []},
 		]},
 	}
 	rt.setup(root, [mission], {})
@@ -33,9 +33,12 @@ func run() -> void:
 	rt.fire_event(0, 1)
 	check(rt.counters[1] == 4 and ev.left == 0, "after the last execution the counter still counts (v1.1 order)")
 	var ev2: Dictionary = rt.events["0:2"]
+	var fired := []
+	rt.event_fired.connect(func(id, name): fired.append([id, name]))
 	for i in 3:
 		rt.fire_event(0, 2)
 	check(ev2.left == 0, "an event without conditions fires its 2 executions")
+	check(fired == [[2, "Go around"], [2, "Go around"]], "each execution signals the blackbox with the event's name (%s)" % str(fired))
 
 	var launcher: Dictionary = rt.entities["0:7"]
 	check(launcher.combat, "combat enabled at load")

@@ -79,7 +79,10 @@
       "required": ["t", "event"],
       "properties": {
         "t": { "type": "number", "description": "Flight time, s." },
-        "event": { "enum": ["lift-off", "touchdown", "crash", "autopilot"] },
+        "event": { "enum": ["lift-off", "touchdown", "crash", "autopilot", "mission", "message"] },
+        "id": { "type": "integer", "description": "mission: the mission event's id (bdb 0x1e)." },
+        "name": { "type": "string", "description": "mission: the event's name in the mission file (bdb 0x384, e.g. \"Go around\")." },
+        "text": { "type": "string", "description": "message: a subtitle line as the mission or the radio printed it." },
         "sink_ms": { "type": "number", "description": "touchdown: the last airborne sink rate, m/s (the landing check's limit: 40 original, 4 with Physics > Real landing limits, x2 with Easy landing)." },
         "reason": { "type": "string", "description": "crash: the flight model's reason (e.g. \"sink rate\", \"tail strike\")." },
         "mode": { "enum": ["off", "level", "nav"], "description": "autopilot: the new mode." },

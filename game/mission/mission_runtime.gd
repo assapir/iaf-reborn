@@ -8,6 +8,7 @@ extends Node
 signal subtitle(text: String)
 signal message_box(msg: int, buttons: Array)  # msgs.trx line, ["deb", "fly", "exit"]
 signal end_flight(debrief: bool)
+signal event_fired(id: int, name: String)  # the blackbox's mission events
 
 const RADIUS_PERIOD := 4.0
 const END_BOX_DELAY := 10.0
@@ -147,6 +148,7 @@ func setup(host_node: Node, mission_files: Array, bdb: Dictionary, player_id := 
 				"debrief": int(ev.get("0x38e", -1)), "audio": int(ev.get("0x3ac", -1)),
 				"left": int(ev.get("0x398", 0)), "actions": ev.get("list", []),
 				"conds": conds.slice(0, 2), "counter": conds[2] if conds.size() > 2 else {},
+				"name": String(ev.get("0x384", "")),
 			}
 		for e in m.entities.items:
 			if not (e is Dictionary):
@@ -489,6 +491,7 @@ func fire_event(file: int, id: int) -> void:
 	if ev.left <= 0 or not _condition(ev.conds):
 		return
 	ev.left -= 1
+	event_fired.emit(id, ev.name)
 	if ev.audio != 0 and ev.audio != -1:
 		play_message(ev.audio)
 	if ev.debrief != 0 and ev.debrief != -1:

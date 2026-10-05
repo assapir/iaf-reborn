@@ -1235,7 +1235,7 @@ So the Hebrew pages use the same rects as §12.3–§12.6.
     DEFAULT resets every Extras option except the language (and the settings file).
   * **Blackbox** (ours): each flight recorded to `user://flights/flight-<date>_<time>-m<mission>.jsonl` (the newest 10
     kept; format docs/blackbox.schema.json: a header with the mission, jet, loadout, route and every setting, rows 10
-    per second, events: lift-off, touchdown with its sink rate, crash with its reason, autopilot). The debrief screen's
+    per second, events: lift-off, touchdown with its sink rate, crash with its reason, autopilot, each mission event fired with its name, each subtitle line). The debrief screen's
     EXPORT FLIGHT DATA (bottom right of the content) saves this flight's file where the player picks.
   * **Physics** (`Settings.BETTER`): one check per option, 18 (12 flight-model improvements, docs/flight-model.md §10,
     + 6 original-bug fixes, docs/deviations.md §2), rows of 20 px, 15 shown with the scrollbar, All on / All off in

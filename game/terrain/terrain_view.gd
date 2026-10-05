@@ -679,6 +679,7 @@ func _spawn_mission_objects() -> void:
 		add_child(ai)
 		ai.setup(self, runtime, bdb, files)
 	runtime.subtitle.connect(_on_subtitle)
+	runtime.event_fired.connect(func(id, name): _log_event(_log_st, {"event": "mission", "id": id, "name": name}))
 	runtime.message_box.connect(_on_mission_box)
 	runtime.end_flight.connect(_end_flight)
 	_voice = AudioStreamPlayer.new()
@@ -1117,6 +1118,7 @@ func _on_subtitle(text: String) -> void:
 	var t := text
 	if t == "":
 		return
+	_log_event(_log_st, {"event": "message", "text": t})
 	t = t[0].to_upper() + t.substr(1)
 	while t.length() >= 40:
 		var cut := t.substr(0, 40).rfind(" ")
@@ -1466,7 +1468,7 @@ static func _r(v, step: float) -> float:
 
 ## A blackbox event line: {"t", "event", ...} with the height and speed of that moment.
 func _log_event(st: Dictionary, e: Dictionary) -> void:
-	if _log == null:
+	if _log == null or st.is_empty():
 		return
 	var ground = terrain.height_at(rig.position)
 	e.merge({"t": snappedf(_log_t, 0.01), "agl_m": snappedf(rig.position.y - ground, 0.1) if ground != null else null,
