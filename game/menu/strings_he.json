@@ -74,7 +74,10 @@
   "Terrain close up": "קרקע מקרוב",
   "Detailed": "מפורט",
   "Sky": "שמיים",
-  "Atmospheric": "אטמוספרי"
+  "Atmospheric": "אטמוספרי",
+  "Settings file": "קובץ הגדרות",
+  "Export": "ייצוא",
+  "Import": "ייבוא"
  },
  "msgs": {
   "YES": "כן",

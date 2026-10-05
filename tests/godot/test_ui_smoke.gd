@@ -123,6 +123,18 @@ func _extras_imagery(fe, lang: String) -> void:
 			check(fe.pref_work[key] == "original", "%s: %s: %s is not converted -> greyed, not picked" % [lang, key, missing[0].value])
 		click.call(row[0].rect.get_center())
 		check(fe.pref_work[key] == "original", "%s: %s set to Original" % [lang, key])
+	# Settings file (ours): Export writes the working copy, Import stores it and reloads the working copy.
+	check(items.any(func(i): return i.key == "settings_file" and i.value == "export"), "%s: Extras Settings file row" % lang)
+	var path := OS.get_temp_dir().path_join("iaf_settings_test.cfg")
+	var sky0: String = Settings().sky
+	fe.pref_work["sky"] = "atmospheric"
+	Settings().write_config(fe.pref_work).save(path)
+	fe.pref_work["sky"] = "original"
+	fe._import_settings(path)
+	check(Settings().sky == "atmospheric" and fe.pref_work["sky"] == "atmospheric", "%s: settings exported and imported" % lang)
+	Settings().sky = sky0
+	fe._pref_load_work()
+	DirAccess.remove_absolute(path)
 	await frames(2)
 
 

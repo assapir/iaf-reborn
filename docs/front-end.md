@@ -1222,8 +1222,9 @@ So the Hebrew pages use the same rects as §12.3–§12.6.
     Hebrew only when the pack is installed), Flight info (Ctrl+F12) show / hide, Blackbox, HUD pitch ladder
     (Original / Conformal), All keys on the Keyboard page, Window (framed / full screen), Anti-aliasing (MSAA 4x /
     + FXAA / TAA), Terrain close up, Sky (docs/rendering.md), Imagery Israel, Imagery outside Israel
-    (docs/imagery.md; layers not converted are greyed out). 8 rows shown, with the Keyboard page's scrollbar beyond;
-    DEFAULT resets every Extras option except the language.
+    (docs/imagery.md; layers not converted are greyed out), Settings file (Export / Import: a native file dialog;
+    Export writes the working copy as a settings.cfg, Import stores and saves the file's settings at once). 8 rows shown, with the Keyboard page's scrollbar beyond;
+    DEFAULT resets every Extras option except the language (and the settings file).
   * **Physics** (`Settings.BETTER`): one check per option, 18 (12 flight-model improvements, docs/flight-model.md §10,
     + 6 original-bug fixes, docs/deviations.md §2), rows of 20 px, 15 shown with the scrollbar, All on / All off in
     the header; mirrored in Hebrew.

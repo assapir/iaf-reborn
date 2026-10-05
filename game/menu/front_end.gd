@@ -153,6 +153,8 @@ func _extras_rows() -> Array:
 	var rows: Array = EXTRAS.duplicate()
 	for key in ImageryLayers.REGIONS:
 		rows.append([key, ImageryLayers.REGION_LABELS[key], ImageryLayers.REGIONS[key].map(func(o): return [o[1], o[0]])])
+	# Ours: the preferences to / from a .cfg file (not a setting: a press opens the file dialog, _settings_file).
+	rows.append(["settings_file", "Settings file", [["Export", "export"], ["Import", "import"]]])
 	return rows
 
 ## Button-release dispatcher FUN_004ec770: screen -> {button label -> next screen}.
@@ -438,17 +440,22 @@ func _key_for_label(label: String) -> String:
 	return ""
 
 
+## The Preferences working copy from the stored settings.
+func _pref_load_work() -> void:
+	pref_work.clear()
+	for section in Settings.PREFS:
+		for k in Settings.PREFS[section]:
+			pref_work[k] = Settings.get(k)
+	pref_work["key_bindings"] = Settings.key_bindings.duplicate(true)
+	pref_work["better"] = Settings.better.duplicate()
+
+
 func _enter_screen() -> void:
 	frames.clear()
 	checked.clear()
 	if screen == "pref":
 		checked[_key_for_label(Settings.pref_page)] = true
-		pref_work.clear()
-		for section in Settings.PREFS:
-			for k in Settings.PREFS[section]:
-				pref_work[k] = Settings.get(k)
-		pref_work["key_bindings"] = Settings.key_bindings.duplicate(true)
-		pref_work["better"] = Settings.better.duplicate()
+		_pref_load_work()
 		ctrl_sel = 0  # FUN_00511580 selects the first row
 		ctrl_top = 0
 		ctrl_focus = false
@@ -1439,7 +1446,10 @@ func _pref_press(q: Vector2) -> bool:
 			return true
 		for it in _extras_items():
 			if it.available and it.rect.has_point(q):
-				pref_work[it.key] = it.value
+				if it.key == "settings_file":
+					_settings_file(it.value == "export")
+				else:
+					pref_work[it.key] = it.value
 				return true
 		return false
 	if page == "Physics":
@@ -1538,7 +1548,7 @@ func _pref_defaults() -> void:
 		pref_work["vsync"] = Settings.default_value("vsync")
 	if Settings.pref_page == "Extras":  # ours: every Extras option except the language
 		for opt in _extras_rows():
-			if opt[0] != "language":
+			if opt[0] != "language" and opt[0] != "settings_file":
 				pref_work[opt[0]] = Settings.default_value(opt[0])
 	_apply_music_volume()
 
@@ -1548,6 +1558,41 @@ func _pref_changed() -> bool:
 		if pref_work[k] != Settings.get(k):
 			return true
 	return false
+
+
+## Extras SETTINGS FILE (ours): Export writes the working copy as a settings.cfg wherever the player picks; Import
+## reads one, stores and saves it at once (any unsaved changes are replaced).
+func _settings_file(saving: bool) -> void:
+	var dlg := FileDialog.new()
+	dlg.use_native_dialog = true
+	dlg.access = FileDialog.ACCESS_FILESYSTEM
+	dlg.file_mode = FileDialog.FILE_MODE_SAVE_FILE if saving else FileDialog.FILE_MODE_OPEN_FILE
+	dlg.filters = PackedStringArray(["*.cfg ; IAF settings"])
+	dlg.current_file = "iaf-settings.cfg"
+	dlg.file_selected.connect(func(path: String) -> void:
+		dlg.queue_free()
+		if saving:
+			Settings.write_config(pref_work).save(path)
+		else:
+			_import_settings(path))
+	dlg.canceled.connect(dlg.queue_free)
+	add_child(dlg)
+	dlg.popup_centered()
+
+
+func _import_settings(path: String) -> void:
+	var cfg := ConfigFile.new()
+	if cfg.load(path) != OK:
+		return
+	var language := Settings.language
+	Settings.read_config(cfg)
+	if Settings.language == "he" and not Settings.hebrew_available():
+		Settings.language = "en"
+	Settings.save()
+	_pref_load_work()
+	_apply_music_volume()
+	if Settings.language != language:
+		_load_menu_data()
 
 
 ## Leaving a screen by BACK / MAIN / Esc. Preferences first asks msg 38 "Save changes?"

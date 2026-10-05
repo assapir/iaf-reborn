@@ -225,16 +225,18 @@ func save() -> void:
 	write_config().save(PATH)
 
 
-## The stored preferences as settings.cfg holds them.
-func write_config() -> ConfigFile:
+## The stored preferences as settings.cfg holds them; `values` (the Preferences working copy, for Export) overrides them.
+func write_config(values := {}) -> ConfigFile:
 	var cfg := ConfigFile.new()
 	for section in PREFS:
 		for key in PREFS[section]:
-			cfg.set_value(section, key, get(key))
+			cfg.set_value(section, key, values.get(key, get(key)))
+	var bp: Dictionary = values.get("better", better)
 	for id in BETTER:
-		cfg.set_value("physics", "bp_" + id, better[id])
-	for i in key_bindings:
-		cfg.set_value("keys", "r%d" % i, key_bindings[i])
+		cfg.set_value("physics", "bp_" + id, bp[id])
+	var keys: Dictionary = values.get("key_bindings", key_bindings)
+	for i in keys:
+		cfg.set_value("keys", "r%d" % i, keys[i])
 	return cfg
 
 
