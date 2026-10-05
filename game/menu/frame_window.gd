@@ -73,6 +73,14 @@ func set_text(bbcode: String, links: Array) -> void:
 	scroll = 0.0
 
 
+## The target window (brl type 5, §10): `v` (a model_view.gd set up as a target view) fills the client.
+func set_target(v: Control) -> void:
+	if view != null:
+		view.queue_free()
+	view = v
+	add_child(v)
+
+
 ## The 3D-model window (brl type 2, §11): `v` (a model_view.gd set up) and its description; replaces a shown model.
 func set_model(v: Control, bbcode: String) -> void:
 	if view != null:
@@ -153,6 +161,8 @@ func _client() -> Rect2:
 ## The 3D-model view (§11): (10, 20) – (trunc(2w/3) − 4, h − 14) in the client.
 func _view_rect() -> Rect2:
 	var c := _client()
+	if view != null and view.tab >= 0:
+		return c
 	return Rect2(c.position + Vector2(10, 20), Vector2(floorf(c.size.x * 2.0 / 3.0) - 4 - 10, c.size.y - 34))
 
 
@@ -219,7 +229,7 @@ func _draw() -> void:
 		var frame := 2 if pressed_btn == b[0] else 0
 		_blit("framewnd/%s_%d.png" % [art, frame], Rect2(Vector2.ZERO, BTN), b[1])
 	# The 3D-model window's "Jane's" logo over the top-left corner (§11, FUN_0051e2e0(frame, 3, 4)).
-	if view != null:
+	if view != null and view.tab < 0:
 		_blit("framewnd/logo.png", Rect2(Vector2.ZERO, _art_size("framewnd/logo.png")), Vector2(3, 4))
 	# Custom vertical scrollbar at the right edge of the text (§6).
 	if rich != null:

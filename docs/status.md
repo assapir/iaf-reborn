@@ -99,8 +99,7 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
   aircraft / Visit (docs/views.md).
 - **Sounds**: AI / moving-unit sounds (AI jets fly silently), Betty "Pull up"; the RWR's wait for something to
   lock the player (docs/sound.md §5).
-- **Front end**: Reference screen content (docs/front-end.md §14), the TSD target window (briefing links of type
-  5; the 3D-model window is built: `model_view.gd`); Graphics prefs: no terrain resolution drop
+- **Front end**: Reference screen content (docs/front-end.md §14; its 3DView can reuse `model_view.gd`); Graphics prefs: no terrain resolution drop
   (docs/deviations.md §1); No wind / No malfunctions have no reader in the original either.
 - **Eject details**: parachute landing.
 

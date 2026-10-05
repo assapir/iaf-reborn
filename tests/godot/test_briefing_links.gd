@@ -1,6 +1,9 @@
 # Briefing links (docs/front-end.md §6, §11): every type-2 link (3D model) of every briefing opens the obj_t window at
 # (12,16) 415×260 with the model in the left two-thirds and its description on the right; a second one reuses the
-# window; the text (type 0: a lesson or a briefing text such as 67.rtf) and picture (type 3) windows open at their rects. SHOT_DIR=dir writes briefing_model.png.
+# window; the text (type 0: a lesson or a briefing text such as 67.rtf) and picture (type 3) windows open at their
+# rects; a target link (type 5) opens the targ_t window at (22,16) 406×322 on the named object and closes the model
+# window, its view strip switches the camera; every target file names an object of its mission (but the known misses).
+# SHOT_DIR=dir writes briefing_model.png and briefing_target_<tab>.png.
 extends "res://../tests/godot/base.gd"
 
 
@@ -27,7 +30,7 @@ func run() -> void:
 				if int(e.type) != 2 or not String(e.file).begins_with("/3dobjects/"):
 					continue
 				n += 1
-				var v = preload("res://menu/model_view.gd").new()
+				var v = load("res://menu/model_view.gd").new()
 				var key := String(e.file).trim_prefix("/").trim_suffix(".x")
 				if not v.setup(fe, key.trim_prefix("3dobjects/") + ".gltf", fe.briefings.models.get(key, {}).get("cp")):
 					failed.append(e.file)
@@ -65,3 +68,40 @@ func run() -> void:
 			await frames(2)
 			var lw = tsd.link_windows.get(t[0])
 			check(is_instance_valid(lw) and lw.rect == t[1], "type %d window at %s (%s)" % [t[0], str(t[1]), str(lw.rect) if is_instance_valid(lw) else "none"])
+	# Target links (type 5): 113's "SA-2 battery" (brief/tar/113_1.txt: RADARsa2r1).
+	var targets: Array = by_type.get(5, [])
+	check(not targets.is_empty(), "113 has target links (%s)" % str(targets))
+	tsd._on_link(targets[0], b)
+	await frames(3)
+	var tw = tsd.link_windows.get(5)
+	check(is_instance_valid(tw) and tw.rect == Rect2(22, 16, 406, 322) and tw.tab_art == "framewnd/targ_t.png"
+			and tw.view != null and tw.view.tab == 0, "target window at (22,16) 406×322 with targ_t, satellite view")
+	check(not is_instance_valid(tsd.link_windows.get(2)) or tsd.link_windows.get(2).is_queued_for_deletion(), "the target window closes the model window")
+	check(tw._view_rect() == Rect2(5, 15, 396, 303), "the view fills the client 396×303 (%s)" % str(tw._view_rect()))
+	check(tw.view._cam.global_position.y - tw.view.height > 6900.0, "satellite camera 7000 m above the object")
+	for t in 3:
+		tw.view.set_tab(t)
+		for i in 600:
+			await process_frame
+			if tw.view._ground_known and tw.view._snap.is_empty() and tw.view._terrain.ground_ready() and i > 60:
+				break
+		if OS.get_environment("SHOT_DIR") != "":
+			root.get_viewport().get_texture().get_image().save_png(OS.get_environment("SHOT_DIR").path_join("briefing_target_%d.png" % t))
+	check(tw.view._ground_known and tw.view._snap.is_empty(), "the terrain under the target loaded, the units stand on it")
+	check(tw.view._vp.get_children().filter(func(c): return c is Node3D and c.scene_file_path == "" and c.get_child_count() > 0).size() > 3,
+			"the mission's units around the target are drawn")
+	# Every target file of every mission names an object of that mission.
+	var missing := []
+	var count := 0
+	for id in fe.briefings.missions:
+		var bm: Dictionary = fe.briefings.missions[id]
+		tsd.mission_id = int(id) if String(id).is_valid_int() else -1
+		for e in bm.get("entries", []):
+			if int(e.type) != 5:
+				continue
+			count += 1
+			var nm := FileAccess.get_file_as_string(Settings().assets_dir().path_join("install/resource").path_join(String(e.file))).split("\n")[0]
+			if tsd._target_unit(nm).is_empty():
+				missing.append("%s:%s" % [id, nm])
+	print("target links: %d, no object: %s" % [count, missing])
+	check(count > 100, "the briefings' target links (%d) checked" % count)

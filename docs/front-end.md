@@ -752,6 +752,11 @@ message `0x55c` to the frame with wParam = the target screen and lParam = the bu
 
 ## 10. TSD target window (brl type 5, `targ_t`, `FUN_00517fe0`)
 
+**iaf-reborn:** built (`tsd.gd` `_on_link` case 5 / `_target_unit`, `model_view.gd` `setup_target`): a SubViewport
+with its own terrain streaming around the camera (origin at the object) and the mission's placed units within 6 km
+(the flight's models, Present scales and headings; underlays hidden; ground units snapped to the terrain); rendered
+live, not only on repaint. tests/godot/test_briefing_links.gd: all 107 target files name an object of their mission.
+
 **Summary.** This window shows no text and no separate model. It is a **live 3D camera on the named
 mission object**, rendered by the flight engine, with a 15 px tab strip underneath: SATELLITE VIEW,
 ZOOM VIEW and UAV VIEW.

@@ -383,10 +383,63 @@ func _on_link(name: String, entry: Dictionary) -> void:
 				link_windows[kind] = w
 			var texts: Dictionary = info.get("text", {})
 			w.set_model(v, String(texts.get("en")) if texts.get("en") != null else "")
+		5:
+			# The target window (§10): the first line of brief/tar/<id>_N.txt names a mission object (exact match,
+			# FUN_00439c40); none → nothing opens. It closes the 3D-model window; an open one is retargeted.
+			var obj := _target_unit(FileAccess.get_file_as_string(Settings.assets_dir().path_join("install/resource").path_join(file)).split("\n")[0])
+			if obj.is_empty():
+				return
+			if is_instance_valid(link_windows.get(2)):
+				link_windows[2].queue_free()
+			if not is_instance_valid(w):
+				w = _new_window(Rect2(22, 16, 406, 322), "framewnd/targ_t.png")
+				link_windows[kind] = w
+			var v := preload("res://menu/model_view.gd").new()
+			v.setup_target(fe, obj.world, obj.units)
+			w.set_target(v)
 		_:
-			# 5 = target window (targ_t): not built yet.
 			return
 	windows.move_child(w, -1)
+
+
+## The mission object named `name` (entity 0x2bc, case-sensitive) in this mission's files: {world: Vector3 (X, Y,
+## altitude), units: the placed units within TARGET_RADIUS of it for the target view}; {} when none has that name.
+const TARGET_RADIUS := 6000.0
+func _target_unit(name: String) -> Dictionary:
+	var found := {}
+	var placed := []  # [world, entity, bdb objects, present scales, bdb name]
+	var models: Dictionary = Settings.load_json(Settings.assets_dir().path_join("converted/objects/objects.json"))
+	for f in MissionRuntime.mission_files(mission_id):
+		var m: Dictionary = f.data
+		if m.is_empty():
+			continue
+		var bdb := MissionRuntime.load_bdb(m)
+		var scales := {}
+		for pr in bdb.get("present", {}).get("items", []):
+			scales[int(pr.get("0x1e", -1))] = float(pr.get("0x65e", 10.0))
+		var objs := MissionRuntime.bdb_objects(bdb)
+		for e in m.get("entities", {}).get("items", []):
+			if not (e is Dictionary) or (float(e.get("0x2e4", -1)) < 0 and float(e.get("0x2ee", -1)) < 0):
+				continue
+			var at := Vector3(float(e["0x2e4"]), float(e["0x2ee"]), float(e.get("0x2f8", 0.0)))
+			if found.is_empty() and String(e.get("0x2bc", "")) == name:
+				found = {"world": at}
+			placed.append([at, e, objs, scales, String(m.get("bdb", "")).to_lower()])
+	if found.is_empty():
+		return {}
+	var units := []
+	for p in placed:
+		if Vector2(p[0].x, p[0].y).distance_to(Vector2(found.world.x, found.world.y)) > TARGET_RADIUS:
+			continue
+		var obj: Dictionary = p[2].get(int(p[1].get("0x2c6", -1)), {})
+		var present := int(obj.get("0x53c", -1))
+		var path: String = models.get(p[4], {}).get(str(present), "")
+		if path == "" or int(obj.get("0x5aa", -1)) in [0x11, 0x12, 0x1b]:
+			continue
+		units.append({"path": path, "scale": p[3].get(present, 1.0), "heading": float(p[1].get("0x302", 0.0)),
+			"world": p[0], "ground": not int(obj.get("0x5aa", -1)) in [2, 3, 0x1c]})
+	found["units"] = units
+	return found
 
 
 # --- drawing ------------------------------------------------------------------------------
