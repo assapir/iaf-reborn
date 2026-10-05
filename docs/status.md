@@ -31,7 +31,7 @@
 - ~~Other jets flyable~~ — done: the Jet list's seven (tests/godot/test_jet_list.gd), the Kfir / Mirage shared data
   with Flight data = Original.
 
-**2. Enemies:** ~~AAA, radar / IR SAMs, ground rockets~~ (done: docs/ai.md §14), the decoys' effect on missiles, AI air-to-air / air-to-ground (bomb ballistics), enemy
+**2. Enemies:** ~~AAA, radar / IR SAMs, ground rockets~~ (done: docs/ai.md §14), ~~the decoys' effect on missiles~~ (done: docs/weapons.md §10), AI air-to-air / air-to-ground (bomb ballistics), enemy
 flares / chaff and decoy rules, script op 2, armed vehicles / boats; then the demo video (H.264).
 
 **3. Missions and general fixes:** remaining small bugs below,
@@ -92,7 +92,7 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 - **Flight**: the seven Jet list jets fly (the two MiGs are AI-only, as in the original); systems damage acts on the flight model (AI jets take none); no hook, map-edge push-back.
 - **Combat**: player gun, IR missiles, radar missiles (AMRAAM / Sparrow with the DLZ and the MRM sight), radar lock,
   chaff / flares, bombs (CCIP / delayed, ripple, cluster), rockets, HARM / Shrike at the HARM page's emitter, TV weapons (Maverick, TV missile), laser bombs with the FLIR designation (the ground units' sensors feed the RWR); AI combat built (docs/ai.md §13: sensors, Launch, weapon changes, every manoeuvre; not yet: the AI's bomb ripple, AI
-  radar locks on the RWR, decoys from AI jets), ground fire built (docs/ai.md §14: AAA, SAMs, rockets; 313 and 322 playable); decoys don't lure missiles yet.
+  radar locks on the RWR, decoys from AI jets), ground fire built (docs/ai.md §14: AAA, SAMs, rockets; 313 and 322 playable); chaff / flares lure missiles by the original's decoy rule (docs/weapons.md §10).
 - **Cockpit / MFDs**: the RWR's feeds (AI sensors, SAMs, enemy missiles);
   the AI sensors don't see the player's ECM; night lighting; what the TV / laser weapons do with the radar's designated point.
 - **Controls**: joystick untested on real hardware (one device; no force feedback); not built: FlyTSD Fly into another

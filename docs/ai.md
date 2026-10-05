@@ -570,7 +570,7 @@ B+0x7c); 39 any RWR entry's launch flag.
   fire per weapon (`454270(T, 1)`: gun burst / aim, missile q, bomb ripple), the target selectors, the decoy logic,
   B+0x7c writers, the RWR internals, the hit reactions `44d590` / `43ff50`.
 
-## 14. Ground defences, RWR, script ops 1 / 2 (traced; built: the player's RWR and the decoys, docs/rwr.md, docs/weapons.md §10, and the ground units' fire, game/ai/combat.gd; not built: script ops 1 / 2, the decoys' effect on missiles)
+## 14. Ground defences, RWR, script ops 1 / 2 (traced; built: the player's RWR and the decoys, docs/rwr.md, docs/weapons.md §10, and the ground units' fire, game/ai/combat.gd; the decoys' effect on missiles, docs/weapons.md §10)
 
 Port (`game/ai/combat.gd`): every armed unit other than the aircraft (its first valid station) has a weapon
 handler, which script op 2 fires (below). A unit of a sensor class with a brain, brain or mission controlled (a
