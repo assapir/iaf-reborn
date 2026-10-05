@@ -48,11 +48,6 @@ static func object_for(type: int, bdb: Dictionary, fallback := true) -> Dictiona
 	return {}
 
 
-## Types the Arming screen arms in place of the mission's jet when the Jet list picks them (ours; the original's
-## seven arm as the mission's jet, docs/front-end.md §15).
-const ARM_AS_PICKED := [F35I]
-
-
 ## The F-35I's object (weapons, stores; no bdb has one): the F-16's with the F-35I's type and loads. Stations
 ## (descriptor): A / I wing tips, B / H the inner-wing heavy stations (3 / 9), C / G and D / F the weapon bays
 ## (outboard / inboard; hidden behind their doors, descriptor internal_stations), E the keel.

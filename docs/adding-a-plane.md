@@ -235,9 +235,10 @@ Options:
   - `iaf-convert arm-extra <converted menu>/img <arm dir> <out png>` (run by `tools/setup.sh`) composes the screen
     on the user's machine: the background from the original jets' images (a low percentile per pixel outvotes
     each jet and its lines), the base jet's boxes and bottom band, our front view and leader lines;
-  - the game draws the title (`arming.gd`), reads `arm.json` (`mission_weapons.gd` `_extra_jet`), and a type in
-    `PlayerAircraft.ARM_AS_PICKED` arms as itself when picked on the Jet list (the originals arm as the mission's
-    jet) with its chosen load used in flight (`player_weapons.gd` `_arm`).
+  - the game draws the title (`arming.gd`), reads `arm.json` (`mission_weapons.gd` `_extra_jet`); a jet picked on
+    the Jet list arms as itself (art, stations, default load; the allowed counts stay the mission jet's, as the
+    original's `FUN_0058f110` / `FUN_004ef8a0`; the F-35I keeps its own) with its chosen load used in flight
+    (`player_weapons.gd` `_arm`).
 - **Real data:** `game/weapons/real_weapons.gd` `RADAR_KM` (km) and `GUN_ROUNDS`. Weapons the game lacks map to the
   nearest original (docs/real-weapons.md).
 

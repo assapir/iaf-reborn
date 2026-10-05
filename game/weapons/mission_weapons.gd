@@ -96,14 +96,18 @@ func _load_flights(mission: Dictionary, bdb: Dictionary) -> void:
 				var obj: Dictionary = objects.get(int(e.get("0x2c6", -1)), {})
 				flights[n] = {"entity": e, "object": obj, "type": int(obj.get("0x5b4", -1))}
 				break
-	# Ours: a plane of ARM_AS_PICKED picked on the Jet list arms as itself on the player's flight (its object's
-	# default load and stations, its art); without an entity, Stores.loadout takes the object's default.
+	# A jet picked on the Jet list (training missions: FUN_004c2e30 loads the mission with the aircraft id, and
+	# FUN_0058f110 gives Player1 that jet's bdb object): the player's flight shows the picked jet's art, stations and
+	# default load (Stores.loadout takes the object's default without an entity), but the allowed counts stay the
+	# mission jet's (FUN_004ef8a0 walks the file's entities unsubstituted). The F-35I (ours) keeps its own counts.
+	# Not ported: the load of a same-type PlayerN entity copied instead of the default, Player2+ not spawned.
 	var picked := PlayerAircraft.jet_type(Settings.jet_id) if Settings.jet_id >= 0 else -1
-	if picked in PlayerAircraft.ARM_AS_PICKED:
-		var pn := int(MissionRuntime.player_flight(mission, Settings.player_flight).get("flight", -1))
+	var pn := int(MissionRuntime.player_flight(mission, Settings.player_flight).get("flight", -1))
+	if picked >= 0 and flights.has(pn) and picked != int(flights[pn].type):
 		var pobj := PlayerAircraft.object_for(picked, bdb)
-		if flights.has(pn) and not pobj.is_empty():
-			flights[pn] = {"entity": {}, "object": pobj, "type": picked}
+		if not pobj.is_empty():
+			flights[pn] = {"entity": {}, "object": pobj, "type": picked,
+				"limits": pobj if picked == PlayerAircraft.F35I else flights[pn].object}
 
 
 ## FUN_004efd50: station i of the table = the leader's store at mission start (weapon name and
@@ -130,15 +134,16 @@ func weapon(id: int) -> Dictionary:
 	return weapons[_by_id[id]] if _by_id.has(id) else {}
 
 
-## FUN_004ef8a0(n): every weapon's allowed counts from the leader's CDMEWeaponLoadItems: for each
-## item, station i allows max(previous, item count) when its flag i is set.
+## FUN_004ef8a0(n): every weapon's allowed counts from the leader's CDMEWeaponLoadItems (the mission file's jet,
+## also when another one was picked: "limits"): for each item, station i allows max(previous, item count) when its
+## flag i is set.
 func reset(n: int) -> void:
 	flight = n
 	for w in weapons:
 		w.max = [0, 0, 0, 0, 0, 0, 0, 0, 0]
 	if not flights.has(n):
 		return
-	for item in flights[n].object.get("loads", {}).get("items", []):
+	for item in flights[n].get("limits", flights[n].object).get("loads", {}).get("items", []):
 		var w := weapon(int(item.get("0x910", -1)))
 		if w.is_empty():
 			continue

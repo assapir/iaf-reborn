@@ -14,6 +14,16 @@ const F35I_CASE := [4, [1000, "cockpit", false]]
 
 
 func run() -> void:
+	# The Arming screen of a training mission (311, the file's F-16) after the Jet list's F-15: the F-15's art,
+	# stations and default load, the F-16's allowed counts (FUN_0058f110 / FUN_004ef8a0).
+	var MW: GDScript = load("res://weapons/mission_weapons.gd")
+	Settings().jet_id = 0
+	var picked: Array = MW.create(311).flights.values().filter(func(x): return x.has("limits"))
+	check(picked.size() == 1 and int(picked[0].type) == 110 and int(picked[0].object.get("0x5b4", -1)) == 110
+			and int(picked[0].limits.get("0x5b4", -1)) == 100 and MW.jet(110).get("art", "") != MW.jet(100).get("art", ""),
+			"311 with the F-15 picked: arms the F-15 (its art and load), the F-16's allowed counts")
+	Settings().jet_id = 1
+	check(MW.create(311).flights.values().all(func(x): return not x.has("limits")), "311 with the F-16 picked: the mission's own flight")
 	var cases := []
 	for id in JETS:
 		cases.append([id, -1, JETS[id]])

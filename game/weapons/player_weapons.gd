@@ -193,13 +193,11 @@ func setup(host_node: Node, entity: Dictionary, object: Dictionary, bdb: Diction
 
 
 ## The Arming screen's pylon loads of the player's flight replace pylons 0..8 (FUN_004f00f0 ->
-## FUN_004f0140 writes them to the flight's aircraft; docs/front-end.md §15). Only for the mission's
-## own jet (`entity` set), or a plane the Arming screen arms as picked (ours, PlayerAircraft.ARM_AS_PICKED): a jet
-## flown in place of another keeps its type's load.
+## FUN_004f0140 writes them to the flight's aircraft; docs/front-end.md §15): the mission's own jet (`entity` set) or
+## the jet picked on the Jet list (which the Arming screen shows, mission_weapons.gd); free flight keeps the default.
 func _arm(load: Array, entity: Dictionary) -> Array:
 	var n = host.get("player_flight_number") if host != null else null
-	var as_picked: bool = host != null and int(host.player.get("type", -1)) in PlayerAircraft.ARM_AS_PICKED
-	if (entity.is_empty() and not as_picked) or n == null or not Settings.arm_loadouts.has(int(n)):
+	if (entity.is_empty() and Settings.jet_id < 0) or n == null or not Settings.arm_loadouts.has(int(n)):
 		return load
 	var arm: Array = Settings.arm_loadouts[int(n)]
 	for i in mini(9, arm.size()):
