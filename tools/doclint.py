@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Lints the Markdown docs (README, CLAUDE.md, docs/**): broken relative links and anchors, repo paths in backticks
 that don't exist, `<doc>.md §N` references to a missing section, tables with a ragged column count, unclosed code
-fences, trailing whitespace, and FUN_xxxxxxxx names absent from the decompile (when assets/ghidra_v11/iafjets.c is
-there). Prints `file:line: message`; exit 1 when anything is found. Usage: tools/doclint.py [files…]"""
+fences and trailing whitespace. With --fun also FUN_xxxxxxxx names that are no function start in the decompile
+(assets/ghidra_v11/iafjets.c); informational, as Ghidra did not split out every function (checked 2026-10-14: of 131
+hits, 122 start after a ret / padding in the exe, 5 are labelled v1.0 addresses, 1 is reached through a handler table).
+Prints `file:line: message`; exit 1 when anything is found. Usage: tools/doclint.py [--fun] [files…]"""
 import re
 import sys
 from pathlib import Path

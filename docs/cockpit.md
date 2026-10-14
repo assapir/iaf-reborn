@@ -44,7 +44,7 @@ docs/damage.md §4.4); nothing else in `cockpit.ibx` changed.
 
 ### HUD symbology (v1.1, `FUN_00530b70`)
 Traced from v1.1 (objdump for the FPU operands and push order). R = the renderer, S = the cockpit state
-(`0x82f544`); the `[HUD]` keys sit at R+0x2208.. (`FUN_0051ff70`): CenterY +0x2208, GunRetPositionY +0x220c,
+(`0x82f544`); the `[HUD]` keys sit at R+0x2208.. (`FUN_0051fd70` @51ff70): CenterY +0x2208, GunRetPositionY +0x220c,
 BorePositionY +0x2210, −VertSclOffY +0x2214, TxtOffX / Y +0x2218 / +0x221c, −LeftBorder, −TopBorder, RightBorder,
 BottomBorder +0x2220..+0x222c, Dash +0x2230, ShowHorizon +0x2234, ShowLRScales +0x2238. **Every cockpit uses the
 same code; only these keys differ** (table above); nothing in the HUD path tests the aircraft type, and all units are

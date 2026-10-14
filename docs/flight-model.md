@@ -730,7 +730,7 @@ colour `ARGB(a, r, g, b)` (colour built @419faa).
   It is not gated by "No blackouts".
 * `FUN_0044fb10` plays these only for the player's own aircraft (ctl+4 ∈ {2, 4, 5} and the same player
   object test as in §13.2).
-* The G value is also written to the HUD (`FUN_00445920` → HUD `0x82f544`+0x33c).
+* The G value is also written to the HUD (`FUN_004459a0` → HUD `0x82f544`+0x33c).
 * **No over-G damage** was found. Getter 27 (`OverGThresh`) is used only at @44951e. The only uses
   of MaxG found are the FM's own lift limits (§4). (UNCERTAIN: other damage paths were not searched
   exhaustively.) The `BACKSEAT_HEAVY_BREATH` and

@@ -33,7 +33,7 @@ value, docs/controls.md §5); the port does the same (`Joystick.throttle_axis()`
 controller gates this on a vehicle getter (vtbl+0x6c) == 0x1e that was not traced. The port re-syncs on every exit
 from NAV.
 
-**HUD** (`FUN_0052efd3`): the G readout line shows `AP LVL` (mode 1) or `AP NAV` (mode 2) in its place
+**HUD** (`FUN_0052ef20` @52efd3): the G readout line shows `AP LVL` (mode 1) or `AP NAV` (mode 2) in its place
 (strings 0x65d50c / 0x65d514). There is no sound: the hook `FUN_0058a330` is empty. The damage MFD page has the
 A/P row (system 6).
 

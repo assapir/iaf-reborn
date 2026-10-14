@@ -44,6 +44,7 @@ and g limits, warhead power / radius (game damage units), drag index.
 |---|---|---|---|---|
 | "20 MM" (M61A1) | 6000 rpm | 1030 m/s (M56 HEI) | F-16 511, F-15 940, F-4E / Kurnass 2000 639 | [5], [6], [7], [8] |
 | "DEFA" (552 / 553, 2 guns) | 2 × 1300 rpm | 815 m/s | Kfir C7 2 × 140, Mirage IIICJ 2 × 125 | [9], [10] |
+| "20 MM" standing in for the GAU-22/A 25 mm | the 20 MM record | the 20 MM record | F-35I 180 (ours) | docs/f35i.md |
 The Lavi's real gun was a 30 mm DEFA [11] (the game gives it the "20 MM"); its rounds are not published, so it keeps
 the original gun and count.
 
@@ -57,6 +58,7 @@ the original gun and count.
 | Lavi | EL/M-2035 (from the EL/M-2021B) | 46 km (tracks several targets at 46 km in five air-to-air modes) | aviationsmilitaires.net (EL/M-2035), Jewish Virtual Library (IAI Lavi) |
 | Kfir C7 | EL/M-2001B ranging radar (no search mode) | 14.8 km (U: one database) | Wikipedia "IAI Kfir" (radar type), cmano-db.com (range) |
 | Mirage IIICJ | Cyrano I bis | 27 km (U: nominal air-to-air lock, one game wiki; the later Cyrano II ~30 km) | War Thunder wiki (Mirage IIIC), migflug.com (Cyrano II) |
+| F-35I (Adir, ours) | AN/APG-81 | 148 km (U: multiple-target track beyond 80 NM) | docs/f35i.md |
 The table is per type (`RADAR_KM`, like `GUN_ROUNDS`): a new jet needs only its row.
 
 ## 2. Mapping onto the original's model
