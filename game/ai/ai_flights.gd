@@ -82,6 +82,17 @@ class Pilot:
 		return ratio * 10.0
 
 
+## Freed with the flight: a pilot holds its brain and its entity, both of which hold it back (reference counts that
+## would outlive the flight, reported as leaked at exit); dropping them breaks the cycles.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE:
+		for p in pilots:
+			p.brain = null
+			p.ent.erase("pilot")
+			p.ent = {}
+		pilots.clear()
+
+
 func setup(h: Node, rt: Node, bdb: Dictionary, files: Array) -> void:
 	host = h
 	runtime = rt

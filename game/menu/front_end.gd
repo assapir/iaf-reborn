@@ -2011,7 +2011,7 @@ func _unhandled_input(event: InputEvent) -> void:
 ## The credits roll while quitting (game/menu/credits_roll.gd), or null.
 var credits: Control
 ## What ends the game after the credits (tests replace it).
-var exit_game := func() -> void: get_tree().quit()
+var exit_game := func() -> void: Settings.quit()
 
 
 ## QUIT (FUN_004ecff0 -> WM_CLOSE -> 4e28b0), Esc on its screens and the window's close button: msg 7

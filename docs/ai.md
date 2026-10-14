@@ -634,7 +634,8 @@ second weapon station. Test: tests/godot/test_ground_fire.gd (313 AAA and SA-3, 
   (missiles / SAMs): fire within the chase envelope (§13.1). Release `FUN_004ab810`: turret parts of types 250 and
   290–340 turn to the target; a **global truce** for all handlers (DAT_008321d0..d8): after each shot no other ground
   shot for 0.1 + rand·0.9 s ("Entities in truce"); busy pool object → skipped; terrain LOS +1.5 m; fire
-  `FUN_004d7630` → `FUN_005604a0(T)` (single candidate); 565 / 660 play SFX_ENTITY_FIRED_WEAPON. Pool quirk: the ring
+  `FUN_004d7630` → `FUN_005604a0(T)` (single candidate); 565 / 660 play SFX_ENTITY_FIRED_WEAPON (a cyclic row: ours keeps one loop per unit while it fires again within
+  two fire intervals, `combat.gd` `fire_sound`; UNCERTAIN: the original's stop). Pool quirk: the ring
   advances 3–4 times per shot.
 - **AAA round**: bdb 50 "AAA" (565, power 15, radius 30), the player's gun round model aimed at the lead point; hit
   sphere 25 m against T only (50 m with Easy aiming, original quirk: the option also helps the enemy); at the end time

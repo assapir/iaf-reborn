@@ -479,6 +479,15 @@ func _world_of(ent: Dictionary) -> Vector3:
 	return Vector3(w.x, w.y, ent.get("alt", w.z))
 
 
+## Freed with the flight: entity records point at each other (killer, formation members) and so outlive the flight;
+## emptying them breaks those cycles.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE:
+		for e in entities.values():
+			e.clear()
+		entities.clear()
+
+
 # --- events (§3) -------------------------------------------------------------------------------
 
 ## Fire (FUN_004c3425): the counter action runs on every trigger, before the executions and the

@@ -141,6 +141,7 @@ func run() -> void:
 	n = r.said.size()
 	r.contact_tower()
 	check(r.said.size() == n + 1 and r.said[-1].template == "KCH2" and r.said[-1].text == "", "Ctrl+T far away: the radio click, no text")
+	r.free()
 	h.free()
 
 	# --- in flight: the tower at a hangar (313, Ramat David), Hebrew mode keeps the data's text ------

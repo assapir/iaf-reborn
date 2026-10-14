@@ -123,6 +123,8 @@ class Unit:
 	var gun_next := INF
 	var decoy_until := -INF
 	var round_scale := 1.0  # the round model's Present scale
+	var fire_sound: Node = null  # the looping SFX_ENTITY_FIRED_WEAPON while the unit keeps firing
+	var fire_sound_until := -INF
 
 
 func setup(h: Node, flights: Node, bdb: Dictionary) -> void:
@@ -158,7 +160,7 @@ func setup(h: Node, flights: Node, bdb: Dictionary) -> void:
 			u.rounds.configure(m)
 			u.rounds.units = _units_of
 			u.rounds.ground = host.mission_ground
-			u.rounds.detonate = _detonate.bind(u)
+			u.rounds.detonate = _detonate.bind(String(ent.key))  # the key, not u: u holds the rounds (a cycle never freed)
 			u.limit_vel = float(m.get("_limitVel", 1200.0))
 			u.range_m = float(m.get("_limitDist", 4500.0)) * (0.5 if int(w.type) == 565 else 1.0)  # 565: half _limitDist (2250 m)
 			_round_nodes(u, w)
@@ -201,7 +203,7 @@ func _setup_aircraft(ent: Dictionary, obj: Dictionary, db, now: float) -> void:
 		u.rounds.configure(m)
 		u.rounds.units = _units_of
 		u.rounds.ground = host.mission_ground
-		u.rounds.detonate = _detonate.bind(u)
+		u.rounds.detonate = _detonate.bind(String(ent.key))  # the key, not u: u holds the rounds (a cycle never freed)
 		u.limit_vel = float(m.get("_limitVel", 1200.0))
 		u.range_m = float(m.get("_limitDist", 4500.0))
 		_round_nodes(u, gw)
@@ -277,6 +279,9 @@ func update(now: float) -> void:
 			while now >= u.fire_next:
 				u.fire_next += u.interval
 				_fire_tick(u, now)
+		if u.fire_sound != null and (now > u.fire_sound_until or int(u.ent.state) >= 3):
+			host.sounds.stop(u.fire_sound)
+			u.fire_sound = null
 		if u.rounds != null:
 			u.rounds.update(now)
 			for k in u.nodes.size():
@@ -708,11 +713,14 @@ func _release(u: Unit, t: Dictionary, aim: Vector3, now: float, truce: bool, fla
 		if slot >= 0:
 			u.rounds.pool[slot].flag = flag
 			u.rounds.pool[slot].target = t
-		if host.get("sounds") != null:
-			var s = host.sounds.play("SFX_ENTITY_FIRED_WEAPON", "OST_GUNBULLET")
-			if s is Node3D and is_instance_valid(s):
-				s.top_level = true
-				s.global_position = host.world_to_scene(at)
+		# The row is a loop (cyclic): one per unit, kept while it fires again within two intervals (UNCERTAIN: the
+		# original's stop), else every shot left a loop playing for good.
+		u.fire_sound_until = now + 2.0 * u.interval
+		if host.get("sounds") != null and not is_instance_valid(u.fire_sound):
+			u.fire_sound = host.sounds.play("SFX_ENTITY_FIRED_WEAPON", "OST_GUNBULLET")
+			if u.fire_sound is Node3D:
+				u.fire_sound.top_level = true
+				u.fire_sound.global_position = host.world_to_scene(at)
 		return
 	u.missile = host.weapons.launch_homing(u.w, at, {"vel": Vector3.ZERO, "fwd": nose, "up": up, "right": right},
 		String(t.get("key", "")), 1.0, u.ent, null if not t.is_empty() else aim)
@@ -733,7 +741,10 @@ func _velocity_of(ent: Dictionary) -> Vector3:
 ## FUN_004d6130 for a ground round: a sphere hit blasts the target, the end of flight (an air burst) or a
 ## ground hit every unit around. The look as the player's: a gun round's impact on a hit or the ground, a rocket's
 ## burst always.
-func _detonate(r: Dictionary, pos: Vector3, cands, hit: Dictionary, u: Unit) -> void:
+func _detonate(r: Dictionary, pos: Vector3, cands, hit: Dictionary, key: String) -> void:
+	var u: Unit = units.get(key)
+	if u == null:
+		return
 	var rocket := int(u.w.type) == 560
 	var flag: int = r.get("flag", 1)
 	if flag != 0:

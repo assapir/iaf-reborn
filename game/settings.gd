@@ -327,3 +327,30 @@ func load_ibx(path: String) -> Dictionary:
 			var eq := l.find("=")
 			cur[l.substr(0, eq).strip_edges()] = l.substr(eq + 1).strip_edges()
 	return sections
+
+
+## Quits the game (also the window's close button). Every audio player is freed first and the audio thread gets
+## QUIT_AUDIO_S to drop their playbacks on its next mix (~0.1 s measured): a player that ever played still holds its
+## playback when the audio server shuts down before the scene, reported as leaked at exit.
+const QUIT_AUDIO_S := 0.15
+
+
+func quit() -> void:
+	_free_sounds()
+	get_tree().paused = true
+	await get_tree().create_timer(QUIT_AUDIO_S, true, false, true).timeout
+	get_tree().quit()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_READY:
+		get_tree().auto_accept_quit = false
+	elif what == NOTIFICATION_WM_CLOSE_REQUEST:
+		quit()
+
+
+func _free_sounds() -> void:
+	for p in get_tree().root.find_children("*", "", true, false):
+		if p is AudioStreamPlayer or p is AudioStreamPlayer2D or p is AudioStreamPlayer3D:
+			p.stop()
+			p.queue_free()

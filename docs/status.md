@@ -43,6 +43,13 @@ the Reference screen, night lighting.
 sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, modern aircraft / weapons, Pi 5 profile.
 
 ## Small bugs (fix between jobs)
+- Mission sweep 2026-10-14 (`tools/mission_sweep.sh`, all 60 playable missions headless, the player parked 300 s, then
+  the targets destroyed): no script errors; every mission passes once its targets die. Lost early with the player idle
+  (escort / defend: check by flying whether the enemy is too quick): 114 (169 s), 115 (264 s), 116 (245 s), 117
+  (194 s), 122 (145 s), 215 (210 s), 223 (155 s), 234 (299 s), 236 (263 s), 237 (169 s), 402 (244 s). To check: 132's
+  "LEADER KILLED" / 132–133's "FRIENDLY HIT" fire without a mission result.
+- `test_yaw_to_target.gd` fails (a script error, before the 2026-10-14 changes too): 231's `t62_0` loads the T-72 model
+  (`t72_h`, no `turret` node), its parts are never rigged.
 - Stores look detached (user report: "not in place" from behind): the pylons are quads in each jet's model, edge-on
   and nearly invisible from ahead / behind / below, as in the original (docs/weapons.md §2.2), and the TER shoulder slots (2–3 bombs) hang at the pylon height ±Pilon sideways (original `FUN_0053c990`), so
   they touch the wing. Checked: the stations sit on the model (F-16 tip rails at x ±4.78, airframe ±4.73; each single

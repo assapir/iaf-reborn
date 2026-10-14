@@ -11,6 +11,9 @@ func _initialize() -> void:
 	await process_frame
 	await run()
 	print("RESULT %s" % ("FAIL" if failures > 0 else "PASS"))
+	Settings()._free_sounds()  # as the game's quit (Settings.quit): no playback reported leaked at exit
+	paused = true
+	await create_timer(Settings().QUIT_AUDIO_S, true, false, true).timeout
 	quit(1 if failures > 0 else 0)
 
 

@@ -2050,7 +2050,7 @@ func menu_choice(action: String) -> void:
 		"prefs":
 			_open_front_end("pref")
 		"quit":
-			_on_mission_box(7, ["yes", "no"], func(): get_tree().quit())
+			_on_mission_box(7, ["yes", "no"], func(): Settings.quit())
 
 
 ## The front end over the frozen flight: the FlyTSD (Esc) or the in-flight Preferences (menu item).
