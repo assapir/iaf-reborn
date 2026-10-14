@@ -16,3 +16,4 @@ for id in "${ids[@]}"; do
 	grep -h '^SWEEP' "$f" || echo "SWEEP $id: no result ($(tail -1 "$f"))"
 	grep -h -E 'SCRIPT ERROR|^ERROR|^WARNING' "$f" | grep -v -E 'resources still in use|ObjectDB instances were leaked' | sort | uniq -c | sed 's/^/    /'
 done
+true  # no error lines is success
