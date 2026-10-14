@@ -10,7 +10,7 @@
   `[devices] joy_axes` by hand.
 - **High-detail F-16 model** to replace the 1998 mesh (~800 triangles): candidate is FlightGear's F-16 (check the licence) or a CC-licensed model. Keep the original dimensions, hinge points (`<part>1/2` helpers), weapon stations, camera eye point and IAF markings; fit it and repaint onto the new UVs.
 - **Modern DEM** (SRTM / Copernicus 30 m) for finer relief. (The modern imagery itself: Sentinel-2 outside Israel is
-  done, docs/imagery.md; Survey of Israel 2 m / SPOT 5 are imagery phase 2, below.)
+  done, docs/imagery.md; Survey of Israel 2 m over Israel is done too; SPOT 5 is left, below.)
 - **3D virtual cockpit** (after the original 2D cockpit works), together with the high-detail F-16 model.
 - **Validate the F-16 flight data** against public sources: USAF fact sheet / RTF reference card, NASA TP-1538
   (F-16 wind-tunnel aero data, used by JSBSim), JSBSim/FlightGear F-16, engine thrust data (F100-PW-220/229,
@@ -128,7 +128,7 @@ local colour match to the original, imagery.md §4), modern colours as its own c
 - Generic, pluggable imagery layers: each source is converted into its own node set; the game picks per region from
   what was converted (a drop-down per region, e.g. Israel: Original / Survey of Israel 2 m / SPOT 5; outside Israel:
   Original / SPOT 5 / Sentinel-2). Options are disabled when their data isn't downloaded / converted.
-- Israel: Survey of Israel 2015 2 m (data.gov.il, open licence, no account; large download, the user fetches the
+- Israel: Survey of Israel 2015 2 m — done (imagery phase 2, docs/imagery.md; data.gov.il, open licence, no account; large download, the user fetches the
   sheets in a browser). Outside Israel: SPOT 5 (CNES SWH, 5 m; maybe also over Israel if it is smaller).
 - Cyprus orthophotos: not used. (No inquiry to the Survey of Israel for now.)
 
