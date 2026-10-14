@@ -28,7 +28,7 @@ Improvements over the 1998 model that the player can opt into, decided case by c
 - Braking pitch (later): the wheel brakes pitch the nose down (weight transfer / nose-gear compression).
 
 ## Mission replayer (after the missions work)
-Generalize the blackbox replay used to debug "Engines ON" (feed a recorded `last_flight.csv` path into the mission
+Generalize the blackbox replay used to debug "Engines ON" (feed a recorded blackbox flight, `user://flights/*.jsonl` with its mission events and subtitles, docs/blackbox.schema.json, into the mission
 runtime at 8× speed and print every subtitle / pass / box with its time) into a tool for any mission: record →
 replay → timeline, and replay recorded flights as regression tests.
 
@@ -72,11 +72,9 @@ build for ARM64 Linux.
 ## "Real HUD" option
 The original HUD is a simplified 1998 F-16 HUD. Offer a realistic HUD per aircraft behind its own Extras switch
 (original by default): real symbology and layout, from public references (collected per aircraft in
-docs/real-hud.md). Phase 1 is built (Extras > HUD,
-docs/cockpit.md "Real HUD"): the F-16 navigation symbology (tapes, heading scale, conformal ladder, marker, AoA
-bracket, Mach / g / max-g and steerpoint windows) and phase 2's weapon cues (DLZ scale with closure, target range,
-CCIP fall line, bingo). Next: EEGS funnel, SRM / MRM target designator box and ASE circle, DTOS, a settable bingo,
-and the other jets' HUDs.
+docs/real-hud.md). **Built** (Extras > HUD, docs/cockpit.md "Real HUD"): every flyable jet's HUD / sight per
+docs/real-hud.md "What ours draws" (F-16 incl. EEGS, ASE / ASC, DLZ; F-15; F-4E / Mirage reticles; F-35I). Left: a
+settable bingo; what that list marks "not drawn".
 
 ## Updated maps (later, just for fun)
 The static maps (TSD / briefing EMF maps, map texts, borders, city names) show the 1998 situation. Optional Extras

@@ -4,7 +4,7 @@ Follow-up to docs/imagery-research.md (which picked ESA WorldCover / Sentinel-2 
 what is the **sharpest imagery we may legally use** over the theatre (Israel, Sinai / Egypt incl. the Nile delta and
 Suez, Jordan, Lebanon, Syria, western Iraq, Cyprus) in an open-source GPL game that **downloads / converts it on the
 user's machine at setup (or streams it), never redistributes it**, and without a "bring your own API key" step.
-Research only, no code. Checked 2026-10-01; clauses quoted from the providers' own pages (links inline). Not legal
+Research only, no code (built since: the Survey of Israel 2 m layers, docs/imagery.md §8; SPOT 5 not started). Checked 2026-10-01; clauses quoted from the providers' own pages (links inline). Not legal
 advice — where a clause is ambiguous it says so.
 
 Our levels for reference (docs/imagery-research.md §3): L0 1.24 m, L1 2.5 m, L2 5.0 m, L3 9.9 m, L4 19.9 m,

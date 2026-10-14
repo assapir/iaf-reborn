@@ -154,7 +154,7 @@ original's `WM 0x532` wParam; p1 / p2 as stored.
 | 41 | FLIR on/off | I |  | (90, 6, 0) |  | yes | MFD: FLIR page + FLIR on, with a FLIR pod (not a toggle; mfd.md) |
 | 42 | Damage report | D |  | (90, 4, 0) |  | yes | MFD: damage |
 | 43 | ECM Jammer on/off | J |  | (70, 0, 0) |  | yes | ECM on / off, light 6 (weapons.md §10) |
-| 44 | Laser on/off | L |  | (106, 0, 0) |  | yes | laser flag (FLIR pod only; the designation is not built: laser bombs fall free, weapons.md §9.8) |
+| 44 | Laser on/off | L |  | (106, 0, 0) |  | yes | laser flag (FLIR pod only); with it on the laser bombs fly to the FLIR camera's centre point (weapons.md §9.8) |
 | 45 | NAV mode on | N |  | (98, 0, 0) |  | yes | master mode NAV (weapons.md §4) |
 | 46 | Change HUD color | H |  | (123, 0, 0) |  | yes | HUD colour |
 | 47 | Contact tower | Ctrl + T |  | (107, 0, 0) |  | yes | the tower: in the air near an Israeli base "proceed to runway" and the landing calls; near no tower / an Arab base a radio click; on the ground nothing (the tower talks by itself; docs/radio.md §2) |
@@ -162,7 +162,7 @@ original's `WM 0x532` wParam; p1 / p2 as stored.
 | 49 | Pan EO weapon/FLIR left | Ctrl + Left |  | (139, -100, 0) | (139, 0, 0) | no | EO camera slew / lock on release (mfd.md) |
 | 50 | Pan EO weapon/FLIR right | Ctrl + Right |  | (139, 100, 0) | (139, 0, 0) | no | EO camera slew / lock on release (mfd.md) |
 | 51 | Pan EO weapon/FLIR down | Ctrl + Down |  | (140, 0, -100) | (140, 0, 0) | no | EO camera slew / lock on release (mfd.md) |
-| 52 | Full screen weapon MFD | Z |  | (31, 0, 0) |  | yes | — |
+| 52 | Full screen weapon MFD | Z |  | (31, 0, 0) |  | yes | full-screen weapon MFD on / off (mfd.md §3) |
 | 53 | Activate TSD on MFD | T |  | (90, 3, 0) |  | yes | MFD: TSD |
 | 54 | Master modes | M |  | (99, 0, 0) |  | yes | master mode cycle NAV / AA / AG + button click |
 | 55 | Deselect target | Backspace |  | (49, 0, 0) |  | yes | radar: drop the lock (radar.md) |
@@ -179,7 +179,7 @@ original's `WM 0x532` wParam; p1 / p2 as stored.
 | 66 | Select next AA weapon | ] |  | (62, 0, 0) |  | yes | next AA store |
 | 67 | Back toggle AG weapons | Shift + [ |  | (60, 0, 0) |  | yes | next AG store (the same event: forward, as the original) |
 | 68 | Back toggle AA weapons | Shift + ] |  | (62, 0, 0) |  | yes | next AA store (the same event) |
-| 69 | Fire selected weapon | Space | Button 2 | (64, 0, 0) | (65, 0, 0) | yes | release the selected store (gun, IR missiles, bombs, rockets; HUD mode 1..8; weapons.md) |
+| 69 | Fire selected weapon | Space | Button 2 | (64, 0, 0) | (65, 0, 0) | yes | release the selected store (gun, IR / radar missiles, HARM, TV weapons, bombs, rockets; HUD mode 1..8; weapons.md) |
 | 70 | Chaff | Insert |  | (68, 0, 0) |  | yes | chaff (weapons.md §10) |
 | 71 | Flare | Delete | Button 4 | (69, 0, 0) |  | yes | flare (weapons.md §10) |
 | 72 | Jettison fuel tanks/bombs | Shift + C |  | (72, 0, 0) |  | yes | jettison the tanks (1st press), then the bombs (2nd) |
@@ -194,7 +194,7 @@ original's `WM 0x532` wParam; p1 / p2 as stored.
 | 81 | Target-player view | F8 |  | (28, 26, 0) |  | yes | target-player view |
 | 82 | Fly-by view | F9 |  | (28, 19, 0) |  | yes | fly-by view |
 | 83 | Chase view | F10 |  | (28, 6, 0) |  | yes | chase view |
-| 84 | Weapon view | F11 |  | (28, 27, 0) |  | yes | weapon view (IR missiles, falling bombs) |
+| 84 | Weapon view | F11 |  | (28, 27, 0) |  | yes | weapon view (homing missiles, falling bombs; views.md §4.4) |
 | 85 | I-mode | F12 |  | (124, 0, 0) |  | yes | — |
 | 86 | Pan up | Shift + Numpad 8 |  | (26, 1, 0) | (26, 0, 0) | yes | cockpit free look / orbit turn |
 | 87 | Pan down | Shift + Numpad 2 |  | (27, -1, 0) | (27, 0, 0) | yes | cockpit free look / orbit turn |

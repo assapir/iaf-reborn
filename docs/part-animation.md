@@ -267,4 +267,4 @@ frame(t):   for part id: (θ, vis) = table §2 (sample ramps at t); if !vis: hid
               else part.local = T(P[id]) · R(axis=d[id], angle=−θ)   // X-file (LH) space
 ```
 Discrepancy with flight-model.md §7/§8: the visuals prove that event 8 / `S+0x340` = speed brakes,
-event 9 / `S+0x360` = hook, and `S+0x2cc` = drag-chute state (not gear). Recheck the drag-code labels there.
+event 9 / `S+0x360` = hook, and `S+0x2cc` = drag-chute state (not gear). flight-model.md §7 / §15.1 now use these labels.

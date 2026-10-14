@@ -463,7 +463,7 @@ What still differs:
     nose·V); no yaw rotation (s1 = 0) is recoverable; the yaw-rate sign uses the channel's own τ. v1.1 changed only the
     recovery slope (π/(2.2·MaxBeta), was 1.8) and added the β update in the spin; both are the original behaviour now
     and apply in both modes. Everything this option fixes is unchanged in v1.1, so it stays as it is.
-  * **Fly-by-wire departure** [`fbw_departure`] (F-16 type 100, Lavi 140; §10.1): the original never lets them depart (early return in
+  * **Fly-by-wire departure** [`fbw_departure`] (F-16 type 100, Lavi 140, ours: F-35I 1000; §10.1): the original never lets them depart (early return in
     the spin entry). BP gives them the FLCS deep stall instead of the spin; the other jets keep the (BP) spin.
   * **Lift-ramp rate factor** [`lift_rate_floor`] (§15.10 item 14): the original's factor `0.01 + 0.99·(V − 20)/200` has no floor, so below
     18 m/s it turns negative and its magnitude grows again (the lift changes as fast at 0 m/s as at 20 m/s). BP floors
@@ -571,7 +571,7 @@ its pitch/roll/yaw channels and the stall latch):
 ## 11. Data sets (`crates/iaf-flight/src/data_set.rs`) — chosen before the flight
 * **Original**: the 1998 numbers as shipped — the v1.1 files (`bdgen.dat`, `<n>gen.skp`, XOR-encoded) when the
   patch output is present, else v1.0's (`iaf_flight::read_md`; v1.1 changes: docs/real-aircraft.md §1).
-* **Real**: one table row per flyable jet (F-16, F-15, F-4 / Kurnass 2000, Kfir, Lavi, Mirage) with public
+* **Real**: one table row per flyable jet (F-16, F-15, F-4 / Kurnass 2000, Kfir, Lavi, Mirage, F-35I) with public
   real-world values; fields left out keep the original. Per jet: weights, fuel, thrust (SL static full AB, military
   ratio via `Params::dry_thrust`), fuel flow at AB and military (`Params::dry_fuel_frac`), roll, g limits, wing
   area, 1 g stall floor (Vmin ≥ floor·√g·√(ρ0/ρ)), pedal nose-wheel steering (angle, wheelbase), and a fit of
@@ -1722,7 +1722,7 @@ default, §10). Rust unit tests in `aircraft.rs` / `envelope.rs`; headless Godot
 |---|---|---|
 | 1 | Envelope | done: `envelope.rs` is §15.9 exactly (parser, pads, ceilings, lines, per-level lists, bracket, plane fits, codes 0/2/3/4). Tests: Python reference `tools/envelope_ref.py` run at test time (ceilings, Vmin, GLimit grid on a synthetic text and on every install `md/*.dat`) and the F-16 values of §15.9. `stall_floor` stays Real-only |
 | 2 | Landing / crash check | done: `landing_check` at touchdown (saved Euler, Easy landing ×2 default on, gear-not-down ×0.2/0.2/0.25, slope > 10°, immunity = Invulnerable / No crashes); water and rough ground (> 25.7 m/s) destroy while rolling; the sim freezes (`crashed` + reason). Host: slope from `height_at`, water / rough ground from `terrain.gd surface_at`, crash → mission runtime player death → flight ends after 5 s. BP: sink 4 m/s, tail strike 15°, current attitude |
-| 3 | Spin mode | done: mode, three channels with their limits, two-stage entry (with the "No spins" quirk), update in both updates (5 Hz skips the forces), spin attitude, exit (velocity := rotated nose·V, `p_cmd = s1·0.1`), types 100/140 (F-16, Lavi) never spin — so the F-16 we fly cannot depart in the original. v1.1: recovery slope π/(2.2·MaxBeta), β updated at 5 Hz in the spin, axes re-based in the stay branch (test `spin_recovery_slope_v11`). BP: (a)–(f); types 100/140 get the FLCS deep stall instead (§10.1, tests `fbw_deep_stall_*`). damage 0x18 forces entry (test `hydraulics_and_flight_control_damage`) |
+| 3 | Spin mode | done: mode, three channels with their limits, two-stage entry (with the "No spins" quirk), update in both updates (5 Hz skips the forces), spin attitude, exit (velocity := rotated nose·V, `p_cmd = s1·0.1`), types 100/140 (F-16, Lavi; ours: also the F-35I, 1000) never spin — so the F-16 we fly cannot depart in the original. v1.1: recovery slope π/(2.2·MaxBeta), β updated at 5 Hz in the spin, axes re-based in the stay branch (test `spin_recovery_slope_v11`). BP: (a)–(f); types 100/140 get the FLCS deep stall instead (§10.1, tests `fbw_deep_stall_*`). damage 0x18 forces entry (test `hydraulics_and_flight_control_damage`) |
 | 4 | Nose-wheel yaw ramp | done: `S+0x2a8` at \|BetaRate\|, ±MaxBeta; 5 Hz uses the ramp, 1 Hz the raw target |
 | 5 | Force angles | done: 5 Hz αT and β(t) (the β channel; ground: nose-wheel ramp), 1 Hz α(t) and β_cmd. BP: α(t)/β(t) in both |
 | 6 | α 1 Hz update | done: `5aa3a0` at every aero update with αT from the new Lnoflap, gains only there, ×0.5 damping above π |

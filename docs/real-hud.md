@@ -121,7 +121,7 @@ and the BIT procedure; Joe Baugher; flyandwire.com. Drawn **red**.
 
 Sources: Joe Baugher, airvectors, warmachinesdrawn. Kaiser (El-Op) wide-angle HUD, said to show speed, altitude,
 direction of flight and wind [S]; Elbit ACE-3 mission computer, HOTAS, HUD camera. **No symbology layout is public**:
-ours is an F-16-style reconstruction [R], with a wind readout.
+ours is an F-16-style reconstruction [R] (the F-16's HUD as is; no wind readout).
 
 ## Kfir C2/C7
 

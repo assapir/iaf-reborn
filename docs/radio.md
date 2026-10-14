@@ -209,8 +209,7 @@ instruction) and ACFT_FCTRL_SHORT; the description / instruction pairs are frien
 - Wingman commands: §3 on the AI wingman's brain (`brain.gd` `wingman_command` / `target`); NEGATIVE after 3 s.
 - Waypoint reports: the player's (`controls/autopilot.gd` sequencing) and the AI's (`ai_flights.gd`, the autopilot's
   waypoint index moving on) at +3 s; the ejection's "<callsign> ejected" uses EJECTED_PHRASE.
-- Not built: the AWACS contact calls, the airborne / landed / crashed / kill reports (they need the take-off /
-  landing loop hooks and the combat job).
+- Not built: the AWACS contact calls, the airborne / landed / crashed / kill reports.
 
 ## UNCERTAIN
 - The phrase channel queues (the parts of one phrase must follow each other); whether a new phrase waits for or cuts

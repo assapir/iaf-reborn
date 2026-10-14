@@ -13,7 +13,7 @@ HUD text and symbols, the stores MFD page, the FLIR pod / TV-weapon camera and t
 (docs/mfd.md), the radar missiles (600 AMRAAM-like, 610 Sparrow-like) with the DLZ, the MRM HUD sight and the
 semi-active rule, the HARM / Shrike (§11), the TV weapons (635 Maverick, 640 TV missile) with the guided motion, the
 camera riding the weapon and the TV page's TRA / TER and time (§12). The radar and its lock (the seeker slaved to it):
-docs/radar.md; the laser bombs with the FLIR designation (§9.8). Not built yet: the AI jets' ECM (the player's is built, §10), the AI's weapons other than the ground AAA (built: docs/ai.md §14).
+docs/radar.md; the laser bombs with the FLIR designation (§9.8). Not built yet: the AI jets' ECM (the player's is built, §10), the AI's ripple (§9.9). The AI's weapons: `game/ai/combat.gd` (docs/ai.md §13–14).
 
 ## 1. Data
 
@@ -444,7 +444,7 @@ the bomb's point P (cos 60°, 0x82f4e0) and at most 2 m above the terrain (0x600
 `FUN_00457c20`); jettisoned, the jettison point. Recomputed per store. `tests/godot/test_laser_bombs.gd` (all jets incl.
 the F-35I: designated hit, laser off, a designation behind refused).
 
-### 9.9 AI bomb runs (not built)
+### 9.9 AI bomb runs (built: `game/ai/combat.gd` `release`, one store per release; the AI's ripple not built)
 Through `FUN_00440440` (gate `FUN_004d4100`) from `FUN_005cd0d0` (impact within the tolerance or 1000 m, 0x612fc0),
 `FUN_005d8590` (miss < 400 m, 600 m for kinds 0xd2 / 0xdc, angle < 15°, state 9 → 0xb), `FUN_005d9290`; release
 `FUN_00454270(T, 1)`, quantity `W+0xe8`, period `W+0xf0`, aim §9.3.
@@ -457,7 +457,7 @@ a controller and so an RWR), not already chasing a decoy and of the decoy's kind
 580 / 620), a roll rand/32767 against p — chaff 0.1, above 4 g 0.3; flares 0.33, above 4 g 0.5, never with the
 afterburner lit; a success retargets the missile at the decoy (`FUN_004d83c0` → `FUN_005622e0`, q 1.0), the first
 failure ends the scan (quirk). The bearing gates (doubles 6302.5 / 4010.7 / 5156.6 = 110° / 70° / 90° × 57.3) compare a
-bearing in radians: never taken, so range, aspect, generation, AI level and Real data play no part. **Not yet**: ECM.
+bearing in radians: never taken, so range, aspect, generation, AI level and Real data play no part. **Not yet**: the AI jets' ECM.
 - **Keys** (`FUN_0044a240`): Insert = event 0x44 chaff, Delete = 0x45 flare. Refused with the gear handle down (no
   Safety override) or weapon systems damage (flag 20); then `FUN_004545e0(0x21c / 0x226, 0, 0)`. One press = one
   decoy: no repeat, no program, no busy timer (the AI uses the same call with p4 = 1 and its brain busy flag).
@@ -590,7 +590,7 @@ selected emitter when its screen point is within 240 px of the HUD centre (Easy 
 0.8; without one the missile flies at its `_fireEndVec` point. After the launch nothing ties the HARM to the emitter
 staying on (no type test in the flight code): it chases the unit like any homing weapon and its blast (AGM88 power
 5000, radius 20; SHRIKE 5000 / 50) hits what is around. The emitters come from the RWR (docs/deviations.md "HARM page
-source"); until the AI / SAM sensors lock the jet (not built), nothing in a mission fills the HARM page.
+source"); in a mission the AI / SAM sensors' locks fill it (`game/ai/combat.gd` `_pick`, docs/rwr.md §6).
 
 ### 11.6 Validation
 `tests/godot/test_radar_missiles.gd`: the DLZ (AMRAAM example, receding target, target behind, no target), the circle,

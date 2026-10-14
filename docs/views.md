@@ -138,10 +138,11 @@ orbit instead (8 / 2 pitch, 6 / 4 heading; F2 and 1 / 3 / 7 / 9 do nothing there
   {1000, 600, 200, 230°, ·, 160°} ×2 (docs/mission-runtime.md §5.4).
 
 ### 4.4 iaf-reborn
-* All of the above, with these gaps: **F5 threat** follows the RWR (`terrain_view.threat()`), but nothing locks the
-  player yet (AI combat / enemy weapons), so in flight it finds none and does nothing, as the original with no threat;
+* All of the above, with these gaps: **F5 threat** follows the RWR (`terrain_view.threat()`; the AI's locks
+  `ai/combat.gd` `_pick` and launches fill it), and does nothing without a threat, as the original;
   **F4 / F7 / F8 / F3** use the radar's A-A lock / TWS selection (`radar.locked()`); **F6** the AI
-  formation (`ai_flights.gd` `_formation_of`); **F11** our IR missiles and falling bombs / jettisoned tanks (rockets, like chaff / flares / gun
+  formation (`ai_flights.gd` `_formation_of`); **F11** (`terrain_view.gd` `last_weapon`) the homing missiles (IR and
+  radar, any launcher's) and falling bombs / jettisoned tanks (the TV weapons and rockets, like chaff / flares / gun
   rounds, are never it); the wreck circle never knows an attacker (no attacker field), so it is always the wreck.
 * UNCERTAIN, chosen here: the fly-by offset axes (x right, y forward, z up), the orbit signs (+heading swings the camera
   right, +pitch raises it), object size = the largest dimension of the scaled model box, the visual-lock screen point = the
@@ -152,5 +153,6 @@ orbit instead (8 / 2 pitch, 6 / 4 heading; F2 and 1 / 3 / 7 / 9 do nothing there
   test poses.
 * HUD only (type 5): the HUD symbology and the message lines, no panel / MFDs; the projection stays the cockpit's (the
   original's viewport grows to 480 rows, which moves the projection centre: not ported, so the HUD stays registered).
-* EO camera (slot 1, type 0xb): built for the FLIR pod and the TV weapons before launch (docs/mfd.md "FLIR (6), TV (5)";
-  a SubViewport camera, terrain_view.gd `_update_eo_view`); the full-screen weapon MFD (Z) is not built.
+* EO camera (slot 1, type 0xb): built for the FLIR pod and the TV weapons, riding a launched one (docs/mfd.md "FLIR (6), TV (5)";
+  a SubViewport camera, terrain_view.gd `_update_eo_view`); the full-screen weapon MFD (Z) is built (`_update_full_screen`,
+  `cockpit/fs_mfd.gd`).

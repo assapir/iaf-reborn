@@ -17,7 +17,7 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 | Parachuter | freezes at "land − 10 s" (factor 4) | descends to 20 m AGL | original bug; flight has ended by then in single player | part-animation.md |
 | Frame-rate-dependent effects | canopy spin 10°/frame, smoke puffs once per frame, flame flicker per frame | time-based (smoke 30 Hz) except the flame flicker | same look at any frame rate | damage.md, aircraft.md |
 | Explosions, smoke, afterburner flame | 1998 sprites / blend modes (partly not decoded) | our soft billboards / additive glow, original sizes and timings | rendering | damage.md §6, aircraft.md |
-| Shadows | the original's shadow method | Godot sun shadows (8192 atlas, 4 cascades to 400 m, soft filter); Graphics SHADOWS turns them off | rendering | terrain_view.tscn |
+| Shadows | the original's shadow method | Godot sun shadows (4096 atlas, 4 cascades to 400 m, soft filter); Graphics SHADOWS turns them off | rendering | terrain_view.tscn |
 | Shatter pieces (flag 0x2) | one per model polygon; > 6 vertices = large | one per triangle of our model (max 600, else neighbours together); largest 10 % = large; a flared piece stays drawn | our models are triangulated / subdivided | damage_effects.gd `_shatter_model` |
 | Resting debris (explosion flag 0x1000) | pieces stop at the explosion altitude − 0.5 m | on the terrain under each piece | a low explosion (up to 10.5 m above ground) or a slope left pieces hanging in the air | damage_effects.gd `_update_pieces` |
 | Hit shake | flight-model side not traced | 2° camera shake for 0.5 s | stand-in | damage.md |
@@ -41,7 +41,7 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 | Joystick input | DirectInput: the first joystick found at startup, named axes lX / lY / lZ / lRz (slider 0 or lRz decides "has a rudder"), DirectInput's ranges and 25 % dead zone, buffered buttons | Godot's joypad API (SDL): the first connected joypad, hot-plug; axes by number (`[devices] joy_axes`, default 0 / 1 / 2 / 3); the 25 % dead zone computed by us; a device counts as having all four axes; the hat from Godot's D-pad buttons 11–14; `.joy` files matched against SDL's device name | DirectInput is Windows-only; Godot does not name the axes | controls.md §5.2, controls/joystick.gd |
 | Joystick force feedback | `iaforce.ifr` effects on FF sticks | none | not ported | controls.md §5.1 |
 | Autopilot level mode, ground watch | KeepOrientation posts an uninitialised throttle slot when the ground watch takes over | that slot starts at 0 (the watch's 250 m/s law applies) | undefined value in the original | autopilot.md §2.1 |
-| Waypoint sequencing | each pass schedules the "waypoint report" radio at +3 s; next waypoint also calls `440e90(index)` | neither (radio not built; target of `440e90` not traced) | not built | autopilot.md §2.2 |
+| Waypoint sequencing | each pass schedules the "waypoint report" radio at +3 s; next waypoint also calls `440e90(index)` | the report is posted (radio.gd `waypoint_passed`), the `440e90` call is not | target of `440e90` not traced | autopilot.md §2.2 |
 | Weapon HUD geometry | the HUD projector (not traced) | seeker / circle angles at 12 px/deg from the camera ray through the HUD centre | projector untraced | weapons.md §5.1 |
 | Helmet sight in snap views | the seeker's helmet branch tests the view type (free look 0x12 / padlock 0x16); the snap views' slot-2 type is not traced | snap views (numpad / F2) stay on the nose case | type UNCERTAIN | weapons.md §5.4 |
 | AA gun LCOS start | rate filters from untraced first values | start from the attitude at mode entry | avoids a 1 s pipper jump | weapons.md §3.7 |
@@ -58,7 +58,7 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 | HUD text rows of the weapon timers | mode 4's "%2d" of S+0x380 and "AUD" (S+0x3a4) (modes 1, 2, 8 "%2d SEC" and mode 5's "%2d SEC" / "XX SEC" are built) | left empty | mode 4's timer and AUD are not traced | cockpit.md "HUD symbology", weapons.md §11.3 |
 | HUD waypoint marker behind the eye | the projection's result (`FUN_00402000`, untraced for points behind) | held on the field's edge toward the point's direction | untraced | hud.gd `_draw_waypoint_marker` |
 | HUD NAV cues rate | S+0x58 / 0x5c / 0x60 / 0x324 refreshed when the waypoint object runs (`FUN_00452e60`, state 5; rate UNCERTAIN) | every frame | UNCERTAIN rate | hud.gd `nav_cues` |
-| Arming loads on the aircraft | both members of the flight (and every flight on Yes / DEFAULT) | the player's jet only (the tables are kept for every flight) | AI aircraft carry no stores yet | front-end.md §15 |
+| Arming loads on the aircraft | both members of the flight (and every flight on Yes / DEFAULT) | the player's jet only (the tables are kept for every flight); AI jets carry the mission's / object's load (combat.gd `_setup_aircraft`) | not wired to the AI jets yet | front-end.md §15 |
 | Esc on the Arming screen | not traced | acts as BACK (checks, "Use weapon load?", TSD) | the generic Esc went to Main without the question | front_end.gd |
 | AI watch-ground line of sight | terrain ray `0x4020d0` | 8 terrain samples along the segment | ray not decoded | ai.md §8.4 |
 | AI landing pattern height | terrain height at the lineup point | the lineup point's iaf.ibx altitude | the loop runs without terrain access (they agree to a few m) | ai.md §8.3 |
@@ -71,7 +71,7 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 | Radar MAP picture | isr.bmp sampled per pixel, nearest, the centre truncated to whole isr pixels (`FUN_0053b0a0`) | the 4× isr art as a textured polygon (smooth scrolling and turning), same window, scale, centre and green channel | rendering | mfd.gd `map_picture`, mfd.md §4 |
 | EO (FLIR / TV) picture | the 3D engine's viewport 1 at the MFD's 112 × 112 screen px, colour | a SubViewport camera of the same world at the display's on-screen size (same 50° / zoom, eye, attitude, roll 0), only while page 5 / 6 shows with the cockpit drawn | rendering | mfd.md "FLIR (6), TV (5)", terrain_view.gd `_update_eo_view` |
 | EO camera eye / centre point | the store's pylon position; the depth pick of the picture's centre pixel (terrain, buildings, units) | the jet's position; the terrain under the line of sight (ray-marched, 2 % steps, 8 halvings, 100 km) | pylon offsets are metres; the pick is a renderer read-back | player_weapons.gd `_eo_update` / `ground_hit` |
-| HARM page source | the HARM sensor (an AI target-sensor scan, ±15° cone, best 5 by 100 / distance, its own selection) | the RWR's active emitters inside the ±15° cone, nearest 5, nearest preselected; recaptured with the RWR's 2 s refresh and on a click | the AI target sensor is not built (user: use the RWR list) | harm.rs, mfd.md "HARM (10)" |
+| HARM page source | the HARM sensor (an AI target-sensor scan, ±15° cone, best 5 by 100 / distance, its own selection) | the RWR's active emitters inside the ±15° cone, nearest 5, nearest preselected; recaptured with the RWR's 2 s refresh and on a click | user: use the RWR list (the AI target sensor scan, combat.gd `_scan`, is not used for the HARM sensor) | harm.rs, mfd.md "HARM (10)" |
 | NAV page distance | 3-D to the waypoint | horizontal (our route has no waypoint heights) | data | mfd.gd `_draw_nav` |
 | MAP / GMT cross-hair | drawn while the MFD owns the cursor (a click inside it first) | while the mouse is over the display | no cursor ownership in ours | mfd.gd `_cross_hair` |
 | Radar line of sight | `FUN_004020d0` (sampling not traced) | terrain sampled every 100 m along the segment | UNCERTAIN original sampling | radar.rs, radar.md §8 |
@@ -112,7 +112,9 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 - **Preferences → Extras**: Flight data (Original / Real aircraft), HUD pitch ladder (conformal: each rung projected
   through the camera; the original's linear 12 px/deg ladder is a few px off away from the marker), flight info line,
   blackbox, language, "All keys on the Keyboard page" (the original lists 92 of the 117 key records; the option lists
-  all 115 labelled ones so the stick, rudder, RPM ± 5 and pans can be rebound — controls.md §3). Later: extra sounds,
+  all 115 labelled ones so the stick, rudder, RPM ± 5 and pans can be rebound — controls.md §3), Window (framed /
+  full screen), "F-35I replaces" (the F-35I flies from a Jet list button, docs/f35i.md), Settings file (export /
+  import the preferences, front_end.gd `_settings_file`). Later: extra sounds,
   canopy open (docs/roadmap.md).
 - **Preferences → Extras → HUD (Original (1998) / Real)** (references: [real-hud.md](real-hud.md)): each jet's real
   display instead of the original HUD — the F-16C/D dash-34 HUD (also the Lavi, and as reconstructions the Kurnass
@@ -133,8 +135,8 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
   (tuned single scattering: deep blue zenith, pale horizon, darker with altitude, crisp sun disc with a narrow
   glare), the haze over the ground in the horizon's colour (aerial perspective, same fog density), and the cloud
   layer's alpha stretched (0.3–0.9 → 0–1) so its clouds stand apart with clear sky between them instead of a grey
-  veil; the original's cloud texture choice (one of six per mission, Cloud256_5 nearly overcast) is kept. No time
-  of day yet: the sun is our fixed light, the sky follows it.
+  veil; the original's cloud texture choice (one of six per mission, Cloud256_5 nearly overcast) is kept. The sky
+  follows the time of day's sun (rendering.md §4); at night the gradient sky is drawn instead.
 - **Preferences → Extras → terrain imagery** (ours, docs/imagery.md): one row per region (Israel / outside
   Israel), default "Original". A converted modern layer (Sentinel-2 10 m outside Israel, Survey of Israel 2015 2 m
   in Israel at 2.5 m per pixel, each in 1998 or modern colours; later SPOT 5) replaces the original's ground texture

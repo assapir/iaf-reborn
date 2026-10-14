@@ -1,12 +1,12 @@
 # iaf-reborn
 
-A native (Linux, and later macOS) re-implementation of the engine for **Jane's IAF: Israeli Air Force** (1998).
+A native (Linux and macOS) re-implementation of the engine for **Jane's IAF: Israeli Air Force** (1998).
 
 The engine loads the game data from **your own copy** of the original game (ISO + v1.1 patch) and renders it with
 modern graphics. **You need your own copy of the original game (the CD / ISO).** No original game assets or data are
 included in this repository; everything the engine uses is extracted and converted locally from your ISO.
 
-Platforms: **Linux** (primary), **macOS** (planned).
+Platforms: **Linux** (primary), **macOS** (runs; less tested).
 
 ## Status
 
@@ -46,7 +46,7 @@ rustup default stable
 
 Handy for development (not required): `ffmpeg` (image/video inspection), `python` (quick format probes).
 
-### macOS (planned, untested)
+### macOS
 
 See [docs/macos.md](docs/macos.md).
 
@@ -185,7 +185,7 @@ locally rather than on a hosted CI. Run scripted tests and captures with `IAF_DE
   decompiled functions), `tools/joyprobe` (what Godot reports for a joystick: `godot --path tools/joyprobe -s
   probe.gd`), `cargo run --release -p iaf-flight --example idle_roll` (idle taxi speeds per jet),
   `tools/worktree.sh` (a git worktree for a parallel job).
-- Credits: the credits roll on Quit (the original's, then ours and the imagery credits). To add a credit, see
+- Credits: the credits roll on Quit (ours and the imagery credits, then the original's). To add a credit, see
   [docs/credits.md](docs/credits.md).
 
 ## License and trademarks

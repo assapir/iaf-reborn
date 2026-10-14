@@ -1,6 +1,6 @@
-# Running on macOS (untested)
+# Running on macOS
 
-Nothing in the code is Linux-only, but macOS has not been tried yet. Reports welcome.
+Nothing in the code is Linux-only. It builds and runs on macOS (Apple silicon), less tested than Linux. Reports welcome.
 
 ## Install
 ```sh

@@ -1,6 +1,6 @@
 //! The HARM page's emitter list (docs/mfd.md "HARM (10)"): the original's HARM sensor (vtable 0x601190, a target sensor
 //! with a ±15° cone) captured by `FUN_0045bb00` → `FUN_00446050` into state+0xa28..0xe00. Ours lists the RWR's active
-//! emitters inside that cone — the HARM sensor itself waits for the AI target sensor (deviations.md).
+//! emitters inside that cone (user decision: the RWR list, not a HARM target scan; deviations.md).
 //!
 //! World frame X east, Y north, Z up, radians. A base is the jet's (heading, pitch).
 

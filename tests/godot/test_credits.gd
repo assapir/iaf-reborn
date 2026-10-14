@@ -36,7 +36,7 @@ func run() -> void:
 	var all: Array = roll.runs.map(func(r): return r.text)
 	check(all.has("PIXEL TEAM") and all.has("Ramy Weitz") and all.has("ROHR PRODUCTIONS LTD. & C.N.E.S"), "the original's credits")
 	var mine: Array = all.slice(0, roll.ours_end)
-	check(mine.has("IAF-REBORN") and mine.has("Assaf Sapir") and mine.has("assaf@sapir.io") and mine.has("github.com/assapir/iaf-reborn"), "our lines after the original's")
+	check(mine.has("IAF-REBORN") and mine.has("Assaf Sapir") and mine.has("assaf@sapir.io") and mine.has("github.com/assapir/iaf-reborn"), "our lines before the original's")
 	var credits: Array = Layers.attributions()
 	var joined := " ".join(mine)
 	check(credits.all(func(c): return joined.contains(c)), "the converted imagery layers' credits roll (%d)" % credits.size())

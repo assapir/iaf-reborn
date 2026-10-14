@@ -20,6 +20,8 @@ cargo build --release -p iaf-godot                            # needed before Go
 IAF_DEFAULT_SETTINGS=1 godot --headless --audio-driver Dummy --path game -s ../tests/godot/test_radar.gd   # one Godot test
 tools/ghidra/fn.sh 5643a0 | --grep PATTERN                    # decompiled original exe function (assets/ghidra_v11/iafjets.c)
 tools/worktree.sh <name>                                      # parallel worktree sharing assets/ via symlink
+tools/doclint.py                                              # lint the docs (links, paths, § refs, tables)
+tools/mission_sweep.sh OUT [ids…]                             # headless run of every playable mission, one log each
 ```
 
 - Always run scripted Godot tests / captures with `IAF_DEFAULT_SETTINGS=1` so the user's `settings.cfg` is never read
@@ -42,12 +44,13 @@ tools/worktree.sh <name>                                      # parallel worktre
 - `crates/iaf-avionics` — the player's avionics, pure Rust: the radar (`radar.rs`), the gun / rounds / LCOS
   (`gun.rs`), the homing / guided missiles (`missile.rs`, `guided.rs`), the IR seeker and MRM sight (`sight.rs`),
   the stores (`stores.rs`), bombs / CCIP (`bombs.rs`), the master / HUD modes (`master.rs`), the RWR (`rwr.rs`),
-  the EO (`eo.rs`) and HARM (`harm.rs`) sensors. Their GDScript fronts in `game/weapons/` (`radar.gd`,
+  the EO (`eo.rs`) and HARM (`harm.rs`) sensors, the release rules (`release.rs`), the HUD's weapon values and range
+  scale (`hud.rs`) and the per-jet Real HUD symbology (`real_hud/`). Their GDScript fronts in `game/weapons/` (`radar.gd`,
   `gun_rounds.gd`, `missile.gd`, `guided.gd`, `ir_seeker.gd`, `mrm_sight.gd`, `stores.gd`, `bombs.gd`, `rwr.gd`,
   `eo_sensor.gd`, `harm_sensor.gd`; the modes in `player_weapons.gd`) keep the old interface and mirror the state.
 - `crates/iaf-godot` — gdext bridge: `IafFlight` (`flight.rs`), `IafRadar` (`radar.rs`), `IafRounds` / `IafLcos`
   (`gun.rs`), `IafMissile` / `IafGuided` (`missile.rs`), `IafSeeker` / `IafMrmSight` (`sight.rs`), `IafStores`
-  (`stores.rs`), `IafBomb` / `IafModes` (`bombs.rs`), `IafRwr` (`rwr.rs`), `IafEo` / `IafHarm` (`sensors.rs`);
+  (`stores.rs`), `IafBomb` / `IafModes` (`bombs.rs`), `IafRwr` (`rwr.rs`), `IafEo` / `IafHarm` (`sensors.rs`), `IafRelease` / `IafRipple` (`release.rs`), `IafRealHud` (`real_hud.rs`);
   `world.rs` converts the weapons' world frame. Handles the frame conversion: FM is ENU (east, north, up); Godot is
   X east, Y up, Z south. Loaded via `game/iaf.gdextension`.
 - `game/` — Godot project. Main scene `menu/front_end.tscn`; autoloads `Settings` (`settings.gd`) and `Joystick`.

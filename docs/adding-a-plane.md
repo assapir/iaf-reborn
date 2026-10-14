@@ -44,7 +44,7 @@ Then add it to the tables. `iaf-convert plane-checklist <code>` prints this list
 | `crates/iaf-tools/src/aircraft.rs` | `fm_section()` | type → section in converted descriptors | no (hand-written descriptor) |
 | `crates/iaf-flight/src/aircraft.rs` | `type_code == 100` (flaps) | F-16 flaps at one third | review |
 | | `fbw_departure && matches!(…, 100 \| 140)` | fly-by-wire deep stall | if fly-by-wire |
-| | `p.type_code == 100 \|\| … == 140` | fly-by-wire: no spin | if fly-by-wire |
+| | `matches!(p.type_code, 100 \| 140 …)` | fly-by-wire: no spin | if fly-by-wire |
 | `game/aircraft/aircraft_model.gd` | `delta_wing`, pitch mixer, `part_pose()` | per-type part signs (§2.3) | review |
 | `game/audio/flight_sounds.gd` | `BETTY_TYPES` | voice warnings (also the RWR's and the damage voice) | if it has them |
 | `game/weapons/real_weapons.gd` | `RADAR_KM`, `GUN_ROUNDS` | Real weapon data | yes (§5) |
@@ -168,9 +168,9 @@ A new type needs no install file:
 4. **Fly-by-wire:** add the code to the no-spin and deep-stall cases of `crates/iaf-flight/src/aircraft.rs` (§1).
 5. **Test:** a reference row in `crates/iaf-flight/tests/validation.rs` (top speeds, ceiling, g).
 
-A non-original jet has no Original numbers of its own. Either accept that it flies its base section with Flight data
-= Original, or force its Real row in `data_set::section()` / `load_in()` (a small rule for types without an
-original section).
+A non-original jet has no Original numbers of its own: list it in `data_set.rs` `NO_ORIGINAL` and it flies its Real
+row with either Flight data (`data_set::effective()`), as the F-35I does. Left out, it flies its base section with
+Flight data = Original.
 
 The player's type reaches the flight model as the descriptor's `fm_section`:
 - `player_aircraft.gd` `profile()` → `terrain_view.gd` `flight.start(install, fm_section, …)` → `IafFlight`

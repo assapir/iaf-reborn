@@ -4,7 +4,7 @@ The flight model has two data sets (docs/flight-model.md §11, `crates/iaf-fligh
 
 * **Original**: the numbers Jane's IAF shipped. The reference version is **v1.1**: its flight data files are used
   when present (§1), else v1.0's.
-* **Real**: one table row per aircraft type (the seven flyable jets in six rows, the F-4E and the Kurnass 2000 sharing one, and every AI type, §9) with public real-world
+* **Real**: one table row per aircraft type (the seven flyable jets in six rows, the F-4E and the Kurnass 2000 sharing one, the F-35I (docs/f35i.md), and every AI type, §9) with public real-world
   values. Anything a row leaves out keeps the original value.
 
 Validation, per type and data set (rows without a public figure print `-`; `IAF_JET=F-15` or `IAF_JET=SU22` runs one type):
@@ -75,7 +75,7 @@ The original thrust and fuel model limits what a row can match:
   It is set for the AI types. A heavy transport or bomber on a lighter section's value cannot make 1 g of lift.
 * No afterburner (row field `afterburner`): full throttle then gives the table's k = 1 (the rated dry thrust), and the
   fuel flow at full throttle is the row's `ff_ab`.
-* Roll acceleration is only changed for the F-16 (FLCS); the other jets keep the original start / stop values, so
+* Roll acceleration is only changed for the F-16 (FLCS) and the F-35I (the F-16's); the other jets keep the original start / stop values, so
   their 0 → 90° roll takes ~1 s.
 
 ### 2.1 Service ceilings

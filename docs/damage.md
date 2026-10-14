@@ -171,7 +171,7 @@ centre (UNCERTAIN).
 unit), `apply_damage(target, amount, kind, source)` (a blast at distance 0), `set_damage_level(target, level,
 source)`; `kind` "gun" selects the gun-rounds thump for the player.
 
-### 4.4 v1.1 weapon and AI rules (gun and missile rules ported: docs/weapons.md; AI rules not yet)
+### 4.4 v1.1 weapon and AI rules (gun and missile rules ported: docs/weapons.md; AI rules: `game/ai/combat.gd`)
 The v1.1 patch changed these; the v1.0 behaviour is given only for comparison (docs/v1.1.md).
 - **Gun** (fire `FUN_00456ff0`): the player's shot direction is rotated **+1° about the lateral axis** before the lead
   is applied (bullets 1° higher, onto the gun cross, docs/cockpit.md); with no lock the aim distance is **2781 m**
@@ -342,7 +342,7 @@ original's "large" polygons of > 6 vertices are our largest 10 % by area; a flar
 drawn), box chunks only when there is no model, a
 0.1 s light for the flash. Our choices: puffs at a fixed 30 Hz instead of per frame (the original's density follows
 the frame rate), the column at the VISUAL EFFECTS level, no wind (the exe has none) (the mission weather is not decoded), no water
-splash (the host passes water = false to `explosion_for`; the terrain types are not used there yet).
+splash (`explosion_for` picks the water flags from terraintype.dat, but `explosion` draws nothing for 0x20000 / 0x40000).
 
 ### 6.4 Smoke trails (Graphics SMOKE TRAILS, pref +0x48 read only by `FUN_004da090`)
 Owners (`4da090`, per rendered frame while the owner is drawn): **missiles and rockets** (entity types 0x230 and

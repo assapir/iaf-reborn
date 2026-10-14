@@ -82,10 +82,9 @@ A refresh, then the nearest listed emitter (active or not) within 370800 m (3-D)
 
 ## 6. Ours
 - `rwr.rs` ports §1–§3 and §5 (`rwr.gd` plays the sounds); `cockpit.gd` §4 (the 4× glyph art; blink from the wall clock).
-- Feeds today: the player's radar lock hook (`player_weapons._radar_lock`: the AI's brain+0x7c, §2). Nothing locks
-  the player yet: the AI target sensors (actions 400 / 410 / 420, docs/ai.md §13–14) and the ground units' brains are
-  the AI combat job, and enemy missiles are not built. `rwr.lock(key)` / `unlock(key)` / `launch(key, missile)` /
-  `missile_end(key, missile)` are the entry points for them; `tests/godot/test_rwr.gd` drives them with synthetic
-  emitters.
+- Feeds: the player's radar lock hook (`player_weapons._radar_lock`: the AI's brain+0x7c, §2); the AI target sensors'
+  pick (actions 400 / 410 / 420 / 440 of AI jets and ground units, `game/ai/combat.gd` `_pick`: `rwr.lock(key)` /
+  `unlock(key)`); every missile launched at the player (`player_weapons.launch_homing`: `rwr.launch(key, missile)`,
+  its end `rwr.missile_end(key, missile)`). `tests/godot/test_rwr.gd` drives them with synthetic emitters.
 - Not ported: the network messages; the restart path of the launch loop in `FUN_00448120` (@4482ee, a flight
   restored with launch flags).

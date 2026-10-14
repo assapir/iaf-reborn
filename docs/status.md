@@ -1,4 +1,4 @@
-# Status — 2026-10-02
+# Status — 2026-10-14
 
 ## Where we are
 - **Playable missions: 60 of 68 by the coverage report** (every feature they need is built; docs/mission-coverage.md).
@@ -6,7 +6,7 @@
   destroys both P-40 radars) and 406 (the AI wingman destroys its target) — the player's own targets there were not
   flown. Left: multiplayer (8).
 - **Flyable jets: all seven of the Jet list** — F-15, F-16, F-4E, F-4 Kurnass 2000, Lavi, Kfir, Mirage (Jet list or a
-  mission's jet; docs/aircraft.md §5). The MiGs are AI-only, as in the original; a mission whose player jet is another
+  mission's jet; docs/aircraft.md §5) — plus our F-35I in one jet's slot (Extras, docs/f35i.md). The MiGs are AI-only, as in the original; a mission whose player jet is another
   type flies it as the F-16.
 - **Game version: v1.1 logic**, v1.1 data when setup is given the patch (`--patch`); v1.0 data still plays. Doc
   addresses are v1.1 (docs/v1.1.md maps them to v1.0). The flight model's v1.1 changes are all ported (docs/flight-model.md §16).
@@ -31,12 +31,13 @@
 - ~~Other jets flyable~~ — done: the Jet list's seven (tests/godot/test_jet_list.gd), the Kfir / Mirage shared data
   with Flight data = Original.
 
-**2. Enemies:** ~~AAA, radar / IR SAMs, ground rockets~~ (done: docs/ai.md §14), ~~the decoys' effect on missiles~~ (done: docs/weapons.md §10), AI air-to-air / air-to-ground (bomb ballistics), enemy
-flares / chaff and decoy rules, script op 2, armed vehicles / boats; then the demo video (H.264).
+**2. Enemies:** ~~AAA, radar / IR SAMs, ground rockets~~ (done: docs/ai.md §14), ~~the decoys' effect on missiles~~ (done:
+docs/weapons.md §10), ~~AI air-to-air / air-to-ground, enemy flares / chaff, script ops 1 / 2~~ (done: docs/ai.md §13,
+`game/ai/combat.gd`); left: the AI's bomb ripple, AI ECM, action 430, armed vehicles' turrets turning; then the demo
+video (H.264).
 
-**3. Missions and general fixes:** remaining small bugs below,
-Jump In, remaining front-end screens, more weapons (radar missiles, TV / IR,
-anti-radiation, laser guidance with the FLIR), night.
+**3. Missions and general fixes:** the mission sweep (`tools/mission_sweep.sh`), remaining small bugs below, Jump In,
+the Reference screen, night lighting.
 
 **PARKED (docs/roadmap.md):** imagery: SPOT 5 outside Israel, 1:1 world scale, better AI, cheats,
 sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, modern aircraft / weapons, Pi 5 profile.
@@ -62,12 +63,12 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 | v1.1 | `docs/v1.1.md` (v1.0→v1.1 diff and address map); the flight model's changes (docs/flight-model.md §16); outside it: HUD (FPM, 12 px/deg ladder on the marker, gun cross at GunRetPositionY), ejection throw straight up, training debrief → Jet list, event counter order / missing-entity skip / combat ops 21–22, landed handler on every landing; v1.1 rules of unported systems recorded (damage.md §4.4, front-end.md §17); docs and code comments on v1.1 addresses |
 | Front end | original screens, animations, sounds, music; training + campaign; Jet list; Hebrew packs; QUIT box and credits roll |
 | Terrain imagery | georeference (thin-plate spline, 610 control points, docs/georef.md); Sentinel-2 10 m layers outside Israel (1998 / modern colours, docs/imagery.md), picked per region on the Extras page; Survey of Israel 2015 2 m over Israel (1998 / modern colours, `iaf-imagery mapi2015`); `setup.sh --imagery` (sentinel2; Survey of Israel sheets download only) |
-| Preferences | original 5 pages (Graphics, Sound, Keyboard, Devices, Gameplay) + our **Extras** (flight data, weapon data, language, info line, blackbox, HUD pitch ladder, Real HUD (every jet's real HUD / sight / helmet display: docs/real-hud.md), all keys, window, anti-aliasing, terrain close up, sky — docs/rendering.md; imagery per region — docs/imagery.md; scrolls 8 rows at a time) and **Physics** (18 improvement switches, the Keyboard page's scrollbar, 15 rows shown) tabs, EN + HE; VSYNC (ours) on the Graphics page (docs/front-end.md §12) |
+| Preferences | original 5 pages (Graphics, Sound, Keyboard, Devices, Gameplay) + our **Extras** (flight data, weapon data, language, info line, blackbox, HUD pitch ladder, Real HUD (every jet's real HUD / sight / helmet display: docs/real-hud.md), all keys, window, anti-aliasing, terrain close up, sky — docs/rendering.md; imagery per region — docs/imagery.md; scrolls 8 rows at a time) and **Physics** (19 improvement switches, the Keyboard page's scrollbar, 15 rows shown) tabs, EN + HE; VSYNC (ours) on the Graphics page (docs/front-end.md §12) |
 | Controls | original key table, rebinding on the Keyboard page, in-flight keys through the table; joystick (one device: stick / throttle / rudder axes per the Devices page, hat = snap views, buttons through the table and bound on the Keyboard page, menu/joy/*.joy), untested on hardware |
 | TSD / briefing | vector map, units, flights, waypoints, fly any flight, briefing texts and links |
 | Mission runtime | scripts, triggers, events, voices + subtitles, win / lose rules, mission boxes, debrief; player = the default (or chosen) flight's leader |
 | Flight model | original ground + airborne logic ported line by line (docs/flight-model.md §14–§15): envelope, stall, spin, landing / crash check, afterburner delay, gear / flaps / brakes, start rules, Gameplay prefs |
-| Physics switches | 12 "Better physics" options (incl. F-16 deep stall, ground effect; docs/flight-model.md §10) + 6 original-bug fixes (falling-jet heading, enemies tougher on easy AI, lock threat, stores weight / tank fuel, bomb burst depth, collisions with hidden units / wrecks; docs/deviations.md §2) |
+| Physics switches | 13 "Better physics" options (incl. F-16 deep stall, ground effect; docs/flight-model.md §10) + 6 original-bug fixes (falling-jet heading, enemies tougher on easy AI, lock threat, stores weight / tank fuel, bomb burst depth, collisions with hidden units / wrecks; docs/deviations.md §2) |
 | AI flight | docs/ai.md: the bdb brains (rule engine, conditions, sub-brains, combat ops 21 / 22) and the original's autopilot control loops fly every brain-controlled jet through the same flight model: routes with timed waypoints, formations, take-off from the hangar, go home and land, hold; the player's wingman follows the player; `ai.contacts()` for radar / RWR |
 | Autopilot | docs/autopilot.md: A key off → level → NAV → off, lamp 8, HUD `AP LVL` / `AP NAV`, stick / rudder break-out, NAV = Fly2WayPt with waypoint sequencing, a land waypoint = the AI's go-home circuit and landing (312's demonstration lands on the centreline) |
 | Player weapons | docs/weapons.md: gun (LCOS / strafe pippers), IR seeker + missiles, radar missiles (600 / 610: DLZ, MRM HUD sight, shoot cue, "SEC" row, STT DLZ ticks, semi-active rule), HARM / Shrike (590), TV weapons (635 Maverick, 640 TV missile: guided motion, the camera riding the weapon, TRA / TER, HUD mode-7 diamond), bombs (MK-82/83/84, M117, CBU-87/97 cluster, laser bombs: guided, FLIR designation) and rockets (ZUNNI, LAU-61) with ripple, CCIP / delayed release, jettison (tanks, then bombs); stores on the pylons, master / HUD modes, weight / drag, external fuel tanks, stores MFD page; Extras "Weapon data: Real" (docs/real-weapons.md) |
@@ -83,25 +84,40 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
 | Sounds | original sound table: engine, gear, flaps, air brake, AoA tone, Betty warnings, touchdown, crash; volume sliders |
 | Radio | docs/radio.md: the phrase engine (word wavs + subtitle); the tower by itself on the ground (taxi / line up / hold / take-off) and Ctrl+T in the air (proceed to runway, cleared to land, gear not down, go around, taxi to hangar; a click elsewhere); wingman commands Alt+P/B/E/W/T/C on the AI wingman's brain (its bdb "Roger" replies, "negative" when it cannot); waypoint and eject reports. Not yet: AWACS contact calls, airborne / landed / crashed / kill reports |
 | Terrain | all of `map.ptt` (levels 11..6 + all 51 insets, 2342 nodes) as a streamed quadtree with distance LOD to 200 km, level-6 heights with the original's inset interpolation, skirts; runway digits surveyed on every airbase (2 mirrored fixed); `terraintype.dat` surface types (water / rough / runway) feed the flight model; loaded behind the wait screen (docs/formats/ptt.md) |
-| Pilot records | screen 0 at startup (docs/front-end.md §13): pilot list, Dossier (edit boxes, photo, rank, score, missions), Records / Kills / Losses, New / Remove / Login; each debriefed flight recorded (result, MissBonus, destroyed units as kills / losses, score multiplier), best-attempt score and rank, the briefing's "<rank> <name>"; Future Missions 2–7 locked until the previous pass; JSON in the user dir. Not filled yet: kills / losses only from what the damage code destroys (no AI weapons / SAMs), the debrief page's own statistics |
-| Tests | `tools/test.sh`: Rust + 57 headless Godot tests (`tests/godot/test_*.gd`), isolated from the player's settings; fails on any script error or a 300 s timeout |
+| Pilot records | screen 0 at startup (docs/front-end.md §13): pilot list, Dossier (edit boxes, photo, rank, score, missions), Records / Kills / Losses, New / Remove / Login; each debriefed flight recorded (result, MissBonus, destroyed units as kills / losses, score multiplier), best-attempt score and rank, the briefing's "<rank> <name>"; Future Missions 2–7 locked until the previous pass; JSON in the user dir. Not filled yet: the debrief page's own statistics |
+| Tests | `tools/test.sh`: Rust + 61 headless Godot tests (`tests/godot/test_*.gd`), isolated from the player's settings; fails on any script error or a 300 s timeout |
 
 ## Open gaps (by area)
-- **Terrain**: map-edge push-back / EndWorld and craters (terraintype bits known, systems missing); no elevation
-  west of Suez in the original data (flat −557 m, kept).
-- **Flight**: the seven Jet list jets fly (the two MiGs are AI-only, as in the original); systems damage acts on the flight model (AI jets take none); no hook, map-edge push-back.
-- **Combat**: player gun, IR missiles, radar missiles (AMRAAM / Sparrow with the DLZ and the MRM sight), radar lock,
-  chaff / flares, bombs (CCIP / delayed, ripple, cluster), rockets, HARM / Shrike at the HARM page's emitter, TV weapons (Maverick, TV missile), laser bombs with the FLIR designation (the ground units' sensors feed the RWR); AI combat built (docs/ai.md §13: sensors, Launch, weapon changes, every manoeuvre; not yet: the AI's bomb ripple, AI
-  radar locks on the RWR, decoys from AI jets), ground fire built (docs/ai.md §14: AAA, SAMs, rockets; 313 and 322 playable); chaff / flares lure missiles by the original's decoy rule (docs/weapons.md §10).
-- **Cockpit / MFDs**: the RWR's feeds (AI sensors, SAMs, enemy missiles);
-  the AI sensors don't see the player's ECM; night lighting; what the TV / laser weapons do with the radar's designated point.
-- **Controls**: joystick untested on real hardware (one device; no force feedback); not built: FlyTSD Fly into another
-  aircraft / Visit (docs/views.md).
-- **Sounds**: AI / moving-unit sounds (AI jets fly silently), Betty "Pull up"; the RWR's wait for something to
-  lock the player (docs/sound.md §5).
-- **Front end**: Reference screen content (docs/front-end.md §14; its 3DView can reuse `model_view.gd`); Graphics prefs: no terrain resolution drop
-  (docs/deviations.md §1); No wind / No malfunctions have no reader in the original either.
-- **Eject details**: parachute landing.
+Checked against the code on 2026-10-14 (each doc's own "not built" notes have the details).
+- **Terrain**: map-edge push-back / EndWorld ("Tornado") and craters (terraintype bits known, systems missing); no
+  elevation west of Suez in the original data (flat −557 m, kept); modern DEM not built.
+- **Flight**: no hook (FM `cfg[8]` unwired, no key); the next-waypoint `440e90(index)` call in NAV sequencing; the FM's
+  surface states (`S+0x2c8`), OutRunway, effects flag `S+0x420`; spin altitude limits; AI jets take no systems damage.
+- **AI combat** (docs/ai.md §13–§14): action 430 (nearest RWR emitter); AI STT locks (condition 26); the AI's bomb ripple
+  (one store per release); no AI ECM and the AI sensors ignore the player's; Arming loads not applied to AI jets, no store
+  models drawn on them; helicopters not flown; mission-controlled AI aircraft not started; ground units' second
+  station unused, turrets / launchers don't turn to fire; vehicle parts: radar dish, rotors, wheels.
+- **Weapons**: HUD IR shoot cue; the IR seeker never sees an AI jet's afterburner (targets past R/2 untrackable); the
+  bomb pipper's terrain ray (`FUN_0045ed40`); decoy aim point not cut at the terrain; nothing uses the radar's GMT / MAP
+  designated point (no CCRP); the HARM page lists the RWR's emitters, not a HARM target scan; the EO centre point hits
+  terrain only.
+- **Damage**: splash / ring explosions on water (flags 0x20000 / 0x40000) draw nothing; per-hit score and feedback, the
+  brain's reaction to a hit (`FUN_0043ff50`), effect 0x18, the second explosion of a falling unit; RWR network messages.
+- **Cockpit / MFDs**: night lighting; U (RWR page, MFD screen 7) and Ctrl+Return (HARM next target) keys.
+- **Controls**: joystick untested on real hardware (first joypad only: no separate throttle / pedals; no force
+  feedback); unhandled commands: cheat keys (Shift+S / D / R / F, Ctrl+W), SysRQ screenshot, I-mode, chat; FlyTSD Fly
+  into another jet / Visit / live unit positions (docs/views.md).
+- **Sounds**: AI jets' and moving units' engines (silent); Betty "Pull up" and the HUD pull-up cue.
+- **Radio**: AWACS contact calls; airborne / landed / crashed / kill ("… is down") reports.
+- **Front end**: Jump In / Scramble (button not wired); Reference screen content (docs/front-end.md §14; its 3DView can
+  reuse `model_view.gd`); the debrief page's statistics; Graphics defaults from hardware detection, TERRAIN DETAIL's
+  resolution drop / view distance (docs/deviations.md §1); No wind / No malfunctions have no reader in the original either.
+- **Eject**: parachute swing and landing.
+- **Imagery**: SPOT 5 outside Israel not started.
+- **Multiplayer**: not started (missions 511–516, 666, 777).
+- **Tools**: `iaf-convert plane-checklist` misses the "fly-by-wire: no spin" row (its anchor in `crates/iaf-tools/src/plane.rs`
+  predates `matches!(p.type_code, 100 | 140 | 1000)`); `tests/godot/_credits_shot.gd` reads `roll.ours`, renamed `ours_end`.
+- **To check**: v1.1's ground rudder part (ours follows the stick roll, the v1.1 note says the pedals too, docs/v1.1.md).
 
 ## Decisions (agreed with the user)
 - Airbase runway/apron underlay models stay hidden (the imagery shows the airbase) unless it stops looking good.

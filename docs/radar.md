@@ -72,7 +72,7 @@ Radar events first put the radar page on an MFD if none shows it (docs/mfd.md).
    with a strictly higher priority.
 7. The old selection is kept when its unit is still a candidate, re-tested without the detection range.
 8. The cursor: the old selection if still listed, else the nearest; a new selection tells the target its RWR hears a
-   lock (on-lock / on-unlock `4b0510` / `4b04d0`; the AI's reaction waits for AI combat).
+   lock (on-lock / on-unlock `4b0510` / `4b04d0`; an AI target gets brain+0x7c, docs/rwr.md §2).
 9. BORE and ACM lock the selection at once (`FUN_004b19c0` → `FUN_004b06b0`).
 
 ## 5. STT (`FUN_004b1300`, every frame)
@@ -100,7 +100,9 @@ Cases 0xf / 0x13 / 0x15 (`FUN_004adb20`): the radar goes OFF and every call is a
 when the player's damage flag 15 is set; generator failures 19 / 21 set it too, docs/damage.md §5.2).
 
 ## 8. Not built / ours
-- ECM and jammers (both sides): no jammer exists yet.
+- ECM: the player's jammer is built (J, `player_weapons.gd` `ecm_key`, docs/weapons.md §10); no AI unit carries ECM
+  (nothing sets a target's `ecm`, so the launch q − rand of `_launch_target` never applies) and the AI sensors ignore
+  the player's.
 - What uses the designated point: not the bombs / rockets (docs/weapons.md §9.3); the TV / laser weapons' use is not
   traced yet.
 - The STT range scale's envelope ticks are drawn (the selected store's DLZ, docs/weapons.md §11.2, docs/mfd.md).

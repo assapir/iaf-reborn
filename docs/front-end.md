@@ -193,7 +193,7 @@ A window over the whole screen (ctor `FUN_004e7280`, loop `FUN_004e7880`, draw `
 * **Ours** (game/menu/credits_roll.gd, docs/credits.md): the same reader, layout, timings and assets
   (`strings.json` "credits" = credits.trx, `img/screens/cr*.png`, `wav/credits.wav`, cr1 / cr4.ttf), drawn
   smooth in the scaled 640 × 480 screen; scroll and fades follow the clock (1 px / 16 ms, 400 ms fades).
-  After the original's lines: our own (game/menu/credits_ours.json, Hebrew in Hebrew, Arial as the Hebrew
+  Before the original's lines: our own (game/menu/credits_ours.json, Hebrew in Hebrew, Arial as the Hebrew
   fallback) and the converted imagery layers' credits (deviation, docs/deviations.md). Empty runs count
   cy = 0 (UNCERTAIN: GetTextExtentPoint of an empty string); only the end time depends on it.
 
@@ -755,7 +755,8 @@ message `0x55c` to the frame with wParam = the target screen and lParam = the bu
 **iaf-reborn:** built (`tsd.gd` `_on_link` case 5 / `_target_unit`, `model_view.gd` `setup_target`): a SubViewport
 with its own terrain streaming around the camera (origin at the object) and the mission's placed units within 6 km
 (the flight's models, Present scales and headings; underlays hidden; ground units snapped to the terrain); rendered
-live, not only on repaint. tests/godot/test_briefing_links.gd: all 107 target files name an object of their mission.
+live, not only on repaint. tests/godot/test_briefing_links.gd: every target file (over 100) is looked up in its
+mission; the known misses are printed, not failed.
 
 **Summary.** This window shows no text and no separate model. It is a **live 3D camera on the named
 mission object**, rendered by the flight engine, with a 15 px tab strip underneath: SATELLITE VIEW,
@@ -1142,7 +1143,8 @@ Three two-way choices. The top option has value 1.
 
 **iaf-reborn**: the page as the original (Settings `flight_controls`, `rudder`, `throttle`, `[devices]` in
 settings.cfg); the choices act through the `Joystick` autoload only while a joypad is connected
-(docs/controls.md §5.2). The Godot axis numbers (`joy_axes`) have no page: settings.cfg only.
+(docs/controls.md §5.2). The Godot axis numbers (`joy_axes`) have no page: settings.cfg only. Ours on the page:
+"Detent = MIL" (Off / Set at lever, `throttle_detent` in `[devices]`).
 
 ### 12.7 Controls page (`cntrl_2.bmp`; `FUN_00511580`)
 The key table itself (records, modifiers, key names, dispatch, the full list) is in
@@ -1228,8 +1230,9 @@ So the Hebrew pages use the same rects as §12.3–§12.6.
   * **Extras options** (`front_end.gd` `EXTRAS`, then one imagery row per region from `imagery_layers.gd`): Flight
     data (Original (1998) / Real aircraft), Weapon data (Original (1998) / Real weapons), Language (English / Hebrew;
     Hebrew only when the pack is installed), Flight info (Ctrl+F12) show / hide, Blackbox, HUD pitch ladder
-    (Original / Conformal), All keys on the Keyboard page, Window (framed / full screen), Anti-aliasing (MSAA 4x /
-    + FXAA / TAA), Terrain close up, Sky (docs/rendering.md), Imagery Israel, Imagery outside Israel
+    (Original / Conformal), HUD (Original (1998) / Real), All keys on the Keyboard page, Window (framed / full screen),
+    Anti-aliasing (MSAA 4x / + FXAA / TAA), Terrain close up, Sky (docs/rendering.md), F-35I replaces (Off / one of the
+    seven jets, docs/f35i.md), Imagery Israel, Imagery outside Israel
     (docs/imagery.md; layers not converted are greyed out), Settings file (Export / Import: a native file dialog;
     Export writes the working copy as a settings.cfg, Import stores and saves the file's settings at once). 8 rows shown, with the Keyboard page's scrollbar beyond;
     DEFAULT resets every Extras option except the language (and the settings file).
@@ -1237,7 +1240,7 @@ So the Hebrew pages use the same rects as §12.3–§12.6.
     kept; format docs/blackbox.schema.json: a header with the mission, jet, loadout, route and every setting, rows 10
     per second, events: lift-off, touchdown with its sink rate, crash with its reason, autopilot, each mission event fired with its name, each subtitle line). The debrief screen's
     EXPORT FLIGHT DATA (bottom right of the content) saves this flight's file where the player picks.
-  * **Physics** (`Settings.BETTER`): one check per option, 18 (12 flight-model improvements, docs/flight-model.md §10,
+  * **Physics** (`Settings.BETTER`): one check per option, 19 (13 flight-model improvements, docs/flight-model.md §10,
     + 6 original-bug fixes, docs/deviations.md §2), rows of 20 px, 15 shown with the scrollbar, All on / All off in
     the header; mirrored in Hebrew.
   * **Behaviour:** the options go through the same working copy and "Save changes?" box. A language
@@ -1589,8 +1592,8 @@ Next Mission is disabled when this is 0. **Replay / Next** (`FUN_004ff540`, v1.1
 Jet list (screen 9)**, **321–329 → Jet list (screen 10)**, so a plane is picked before every training flight; other ids
 in 300–399 do nothing; any other mission is reloaded (`FUN_004edec0` → TSD 0x1e; 400–499 straight into the flight).
 v1.0 reloaded the training missions with the same plane. Port: `front_end.gd` `_debrief_button`, `next_mission`,
-`new_mission_screen` (the cheat's row unlock and Next Mission are ported; its Jump_In "40N mission?" prompt and the
-401–407 pick are not).
+`new_mission_screen` (the cheat's row unlock and Next Mission are ported; Jump_In is not wired, so neither its
+"40N mission?" prompt nor the 401–407 pick is).
 
 **Jump_In without the cheat** (`FUN_004f1650`):
 * While 407 has no attempts: the mission after the highest attempted id in 401–406, or 401 if none
@@ -1924,8 +1927,9 @@ dragging, the arrow otherwise (`SETCURSOR 506720`).
   models, counts and weight / drag follow (gun, chaff, flares unchanged). Cleared when a mission loads.
 * Not ported: the multiplayer paths (AG / Misc disabled in 0x29a / 0x213, the session wait, the `FUN_004f0000`
   messages). Ours: Esc on Arming acts as BACK (the original's Esc here is not traced); the scrollbar's track
-  click pages by 6 rows (UNCERTAIN, as the Controls page); AI aircraft carry no stores yet, so only the player's
-  jet gets the load (the table is kept for every flight); a jet flown in place of a non-flyable type keeps its
+  click pages by 6 rows (UNCERTAIN, as the Controls page); AI aircraft fly their mission's default stores
+  (`combat.gd` `_setup_aircraft`, `Stores.loadout`; no store models drawn), so only the player's jet gets the load
+  (the table is kept for every flight); a jet flown in place of a non-flyable type keeps its
   type's load. Text is clipped to its box by whole characters.
 
 ## 16. In-flight pause and On-The-Fly menu (flight window `CFlightWnd::OnGameEvent` 0x4dc280)

@@ -533,12 +533,12 @@ the hit's fly-by).
   nothing.
 - Ctrl+Return (cmd 0x33, HUD mode 8, more than one entry) / cmd 0x34: next / previous target (vfunc +0x2c(1) / (0)).
 
-**iaf-reborn** (`crates/iaf-avionics/src/eo.rs` via `weapons/eo_sensor.gd`, `cockpit/mfd.gd`, `terrain/terrain_view.gd`): all of the above except: the
-TV weapons do not fly yet (no launch, so the status is RDY / NO SOURCE and the TV lock never happens; "%3d" not
-drawn: its source is the weapon's motion object); the EO centre point is the terrain under the line of sight
-(ray-marched; buildings / units not hit); the eye is the jet's position (not the pylon); the picture is a SubViewport
-camera of the same world at the display's on-screen resolution (deviations.md); the full-screen weapon MFD (Z) is not
-built. HARM: the emitters are the **RWR's** active entries inside the ±15° cone (the HARM sensor itself waits for the
+**iaf-reborn** (`crates/iaf-avionics/src/eo.rs` via `weapons/eo_sensor.gd`, `cockpit/mfd.gd`, `terrain/terrain_view.gd`): all of the above
+(the TV weapons fly: `player_weapons.gd` `tv_weapon` / `tv_status`, the eye rides the launched weapon, "%3d" its time
+left) except: the EO centre point is the terrain under the line of sight
+(ray-marched; buildings / units not hit); before launch the eye is the jet's position (not the pylon); the picture is a SubViewport
+camera of the same world at the display's on-screen resolution (deviations.md); the full-screen weapon MFD (Z) as
+above. HARM: the emitters are the **RWR's** active entries inside the ±15° cone (the HARM sensor itself waits for the
 AI target sensor), the nearest 5, the nearest preselected, refreshed with the RWR (2 s) and on a click; "In Range" from the HARM's
 DLZ (docs/weapons.md §11.5); Ctrl+Return not built.
 

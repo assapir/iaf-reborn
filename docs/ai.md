@@ -179,7 +179,7 @@ does nothing when mode / arg / pose are unchanged (`5c8a70`): **a running manoeu
 | 280 | Takeoff | 9 | self, only if +0xe0 == 0 | TakeOffSequenceCL (+0x3e70), §8 |
 | 290 | Dive bomb | 0x17 | T | DiveBombCL |
 
-Other types (combat job; hooks only in the port): 1 Launch (300, `4440d0`: needs T, weapon ready, range in
+Other types (combat job; built in `game/ai/combat.gd`, §13, except 430): 1 Launch (300, `4440d0`: needs T, weapon ready, range in
 [min, max], nose-to-LOS ≤ 30° (0x6008f8; 5° for weapon 0x235), single-player enemy cone ×0.5 Rookie / ×1.5 Expert,
 weapon 0x244 also `|44e770| ≤ 60°`; fires `FUN_00452680(T)`); 2 / 3 flares / chaff (310 / 320: busy 2.25 s,
 `FUN_004545e0(0x226 / 0x21c, 0, 1)`); 4 change weapon (330–390); 5 target (400 next, 410, 420 best → +0x70); 6 radar
@@ -427,7 +427,7 @@ One-shot scheduler events, radio / subtitle only, friendly units with a callsign
 moves on; "X passing waypoint N"), AirborneReport (+3 s, TakeoffCL at 100 m AGL), LandedReport (+3 s, StopPlane),
 CrashedReport (+2.5 s), kill reports (+5 s), EjectReport; a 12 s AWACS contact timer (first call ≈ 60 s, 30 nm
 around the player). Traced in docs/radio.md §4; the waypoint report is built (`ai_flights.gd` posts it when the
-autopilot's waypoint index moves on), the others are not yet.
+autopilot's waypoint index moves on), and the player's EjectReport (`radio.gd` `ejected`); the others are not yet.
 
 ## 11. Flight model: AI cases
 `ai = FUN_005c89f0() != 0` (the mode of §8.1). Ported in `crates/iaf-flight/src/aircraft.rs` (fields `ai_mode`,
@@ -448,10 +448,10 @@ its Tower point, the engine test its Lineup point.
 - `crates/iaf-godot/src/flight.rs`: `set_ai`, `ap_setup` / `ap_set_route` / `ap_set_mode` / `ap_step` / `ap_set_leader`
   / `ap_waypoint_index`, `start_rule` (§7.1, also used for the player's start).
 - `game/ai/brain.gd`: the rule engine (§2–§6); combat measures and actions are hooks (`combat_hook`).
-- `game/ai/ai_flights.gd`: every brain-controlled aircraft (class 0x1c) with an FM type flies (one IafFlight, the
+- `game/ai/ai_flights.gd`: every brain-controlled aircraft (class 0x1c, transports class 3) with an FM type flies (one IafFlight, the
   aircraft model at the Present scale); `contacts()` for radar / RWR; ops 21 / 22 via `mission_runtime.gd`.
 - Wingman commands (docs/radio.md §3): `radio.gd` sets the wingman brain's command / target; its bdb rules answer.
-- Not yet: combat (targets, weapons, the combat manoeuvres), the radio reports other than the waypoint (§10), helicopters,
+- Not yet: the combat parts listed open in §13, the radio reports other than the waypoint / eject (§10), helicopters,
   AI on MISSION-controlled units (their brain runs without manoeuvres: not started), network paths.
 - Tests: `test_ai_flight.gd` (mission 221: 13 AI jets navigate, wingmen in formation, a take-off from Ramon).
 

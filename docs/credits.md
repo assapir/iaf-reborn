@@ -45,7 +45,7 @@ credit is given (docs/imagery.md §6).
 ## Testing
 
 * `tests/godot/test_credits.gd` (run by `tools/test.sh`) checks the RTF reader, QUIT → msg 7 → Yes → the roll
-  → exit, that our lines and the imagery credits follow the original's, that a key or click ends the roll, the
+  → exit, that our lines and the imagery credits come before the original's, that a key or click ends the roll, the
   music fade and the end, and the Hebrew lines. Add a check there when you add a line that must always be
   present.
 * To look at it, take a real-render screenshot with our first line `CREDITS_Y` px below the top (default 40):
