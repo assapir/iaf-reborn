@@ -106,8 +106,8 @@ Initial state (`FUN_005a5820`): airborne start → gear 1.569 (up), flaps 0, spe
 
 ### Callback `FUN_005a09c0`: angle θ = angles[1] and visibility per part id
 
-| id | part | θ | visible | per-type notes |
-|---|---|---|---|---|
+| id / part | θ | visible | per-type notes |
+|---|---|---|---|
 | 1 AilerL | S+0x3e0 | 1 | F-16: θ = ail − flaps(S+0x300) (flaperon) |
 | 2 AilerR | S+0x400 | 1 | F-16: θ = ail + flaps |
 | 3,4 CanarL/R | 0 | **0** | no model has canards |

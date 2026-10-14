@@ -1,6 +1,8 @@
 # Sweep probe (not a test): each mission in MISSIONS (env, space-separated) runs SWEEP_SECONDS (default 240) of
 # mission time at ×8 with the player invulnerable and parked; then the remaining role-1 targets are destroyed and
-# the mission must pass. Prints one SWEEP line per mission.
+# the mission must pass. Prints one SWEEP line per mission: how it ended, the targets, the surviving-role losses, the
+# events fired of those defined, the subtitles, the units that moved of those placed, the message boxes.
+# Run one process per mission (tools/mission_sweep.sh) so an error is tied to its mission.
 extends "res://../tests/godot/base.gd"
 
 
@@ -11,12 +13,22 @@ func run() -> void:
 	for id in OS.get_environment("MISSIONS").split(" ", false):
 		var tv = await start_mission(int(id))
 		var rt = tv.runtime
+		var fired := {}
+		var subs := [0]
+		var boxes := []
+		rt.event_fired.connect(func(eid, name): fired[eid] = name)
+		rt.subtitle.connect(func(_t): subs[0] += 1)
+		rt.message_box.connect(func(msg, _b): boxes.append(msg))
+		var start := {}
+		for k in rt.entities:
+			start[k] = rt._world_of(rt.entities[k])
 		Engine.time_scale = 8.0
 		var t0: float = rt.now
 		var notes: Array = []
 		while rt.now - t0 < secs and not rt.failed:
 			await process_frame
 		Engine.time_scale = 1.0
+		var moved := start.keys().filter(func(k): return rt.entities.has(k) and rt._world_of(rt.entities[k]).distance_to(start[k]) > 50.0).size()
 		var targets: Array = rt.entities.values().filter(func(e): return int(e.role) == rt.ROLE_TARGET)
 		var by_others := targets.filter(func(e): return int(e.state) >= 4).size()
 		var me: Vector3 = rt._world_of(rt.player_entity())
@@ -31,6 +43,7 @@ func run() -> void:
 		var t1: float = rt.now
 		while rt.now - t1 < 2.0:
 			await process_frame
-		print("SWEEP %s: after %ds %s %s; targets %d (%d by others), left %d; lost %s; then %s" % [id, int(secs), early, notes,
-			targets.size(), by_others, rt.targets_left, lost, "PASS" if rt.passed else ("FAILED" if rt.failed else "open")])
+		print("SWEEP %s: after %ds %s %s; targets %d (%d by others), left %d; lost %s; events %d/%d %s; subtitles %d; moved %d/%d; boxes %s; then %s" % [
+			id, int(secs), early, notes, targets.size(), by_others, rt.targets_left, lost, fired.size(), rt.events.size(),
+			fired.values(), subs[0], moved, start.size(), boxes, "PASS" if rt.passed else ("FAILED" if rt.failed else "open")])
 		check(rt.passed or rt.failed, "mission %s ends" % id)

@@ -443,7 +443,7 @@ its Tower point, the engine test its Lineup point.
 ## 12. Port
 - `crates/iaf-flight/src/autopilot.rs`: the control loops of §7–§8 (modes 1, 3, 7, 8, 9, 10, 0xb) on an `Aircraft`,
   one tick per ring period; outputs through `set_controls` (stick y = −pull), `set_pivot` (motion 0x16),
-  `replace_on_ground` (`5a4d40`), `engine_off` (motion 0x19). `airbase.rs`: iaf.ibx. Tests: `tests/autopilot.rs`.
+  `replace_on_ground` (`5a4d40`), `engine_off` (motion 0x19). `airbase.rs`: iaf.ibx. Tests: `crates/iaf-flight/tests/autopilot.rs`.
 - `crates/iaf-flight/src/aircraft.rs`: the AI cases (§11), `ap_view` (the loops' inputs), the pivot turn.
 - `crates/iaf-godot/src/flight.rs`: `set_ai`, `ap_setup` / `ap_set_route` / `ap_set_mode` / `ap_step` / `ap_set_leader`
   / `ap_waypoint_index`, `start_rule` (§7.1, also used for the player's start).

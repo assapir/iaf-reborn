@@ -1,7 +1,7 @@
 # Real HUD: per-aircraft reference (Extras > HUD)
 
 The Real HUD replaces the original 1998 HUD with each jet's real sight / HUD / helmet symbology. This file is the
-reference the code (`crates/iaf-avionics/src/real_hud.rs`) is built from: per aircraft, what is shown, where, in what
+reference the code (`crates/iaf-avionics/src/real_hud/`) is built from: per aircraft, what is shown, where, in what
 format, and how sure we are. Researched October 2026 from public sources; no source images are kept in the repo.
 
 Confidence tags: **[V]** verified from a real-world document or footage; **[S]** secondary (book / encyclopedia /
