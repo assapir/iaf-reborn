@@ -15,6 +15,13 @@ HUD, the Physics switches). The game shows them in the Reference screen (its **P
 - [F-35I](f35i.md): our F-35I Adir (Extras → F-35I replaces): the helmet's virtual HUD, the APG-81, the panoramic
   display, the weapon bays, and a key card. It has no Reference record, so the game shows it only as the PDF
   (`assets/converted/guides/f35i.pdf`; the Lavi guide points to it).
+- [F-4E](f4.md): the F-4E Kurnass: the AN/ASG-26 sight (no HUD), the APQ-120, AIM-9D / Shafrir 2 / AIM-7B /
+  Shrike, the drag chute.
+- [Kurnass 2000](f42000.md): the F-4E Phantom 2000 upgrade: the F-16-style HUD reconstruction, the APG-76, two MFDs,
+  laser / TV / HARM weapons.
+- [Kfir](cfir.md): the Kfir C7: the Elbit HUD reconstruction, the ranging radar, DEFA guns, IR missiles and bombs.
+
+The file names follow the Reference screen's record folders (`f4`, `f42000`, `cfir`), not the cockpit folders.
 
 Screenshots (`shots/<jet>/*.png`) are rendered locally from the game by setup (`tools/guide_shots.sh [jet]
 [--only name,…]`, needs a display) into `assets/converted/guides/shots/`, from each guide's `<jet>.shots.json` (its
