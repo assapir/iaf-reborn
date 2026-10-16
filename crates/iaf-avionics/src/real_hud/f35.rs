@@ -99,6 +99,7 @@ pub(super) fn frame(_hud: Field, i: &Input, max_g: f64) -> Frame {
             signed: true,
             bottom_band: 14.0,
             top_band: 22.0,
+            zenith: false,
         };
         ladder(p, i, fpm, f, style);
         marker(p, fpm, i.mr(5.0), i.mr(9.0), i.mr(5.0));

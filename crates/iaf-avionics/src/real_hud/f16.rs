@@ -96,6 +96,7 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
             signed: false,
             bottom_band: f.bottom - hdg_y + 12.0,
             top_band: 0.0,
+            zenith: true,
         };
         ladder(p, i, fpm, f, style);
         marker(p, fpm, i.mr(5.0), i.mr(10.0), i.mr(5.0));
@@ -362,6 +363,22 @@ fn target_box(p: &mut Vec<Prim>, i: &Input, f: Field, at: P, gun: bool, t: Targe
 mod tests {
     use super::super::tests::{FIELD, input, texts};
     use super::*;
+
+    #[test]
+    fn zenith_star_and_nadir_earth() {
+        let spokes = |pitch: f64| {
+            let mut i = input(Jet::F16);
+            i.fpm = Some((0.0, 0.0));
+            i.horizon = (0.0, pitch * i.px_per_deg);
+            let fr = frame(FIELD, &i, 1.0);
+            let ring = fr.field.iter().any(|p| matches!(p, Prim::Circle { c, r } if c.1.abs() < 1.0 && (*r - i.mr(6.0)).abs() < 1e-9));
+            let on = |q: &P| (0.99 * i.mr(6.0)..=1.81 * i.mr(6.0)).contains(&q.0.hypot(q.1));
+            let n = fr.field.iter().filter(|p| matches!(p, Prim::Line { a, b } if on(a) && on(b))).count();
+            (ring, n)
+        };
+        assert_eq!(spokes(90.0), (true, 8), "straight up: the star");
+        assert_eq!(spokes(-90.0), (true, 2), "straight down: the earth's cross");
+    }
 
     #[test]
     fn the_roll_indicator_stays_above_the_field_bottom() {

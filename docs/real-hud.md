@@ -45,6 +45,8 @@ The D is the two-seater with the same HUD (rear cockpit repeater). Barak-specifi
 - Pitch ladder ("attitude bars") every 5° (±60°, compressed beyond); climb bars solid, dive bars dashed, tips toward
   the horizon, centre gap for the FPM, numbers at both ends; **bars bend toward the horizon increasingly with pitch**
   (test-pilot account + figure; the exact "half the angle" rule is MIL-STD-1787 convention [SIM]).
+- Zenith / nadir: straight up a star (a circle with eight spokes), straight down the earth (a circle with a cross),
+  in place of the ±90° bars [R] (the MIL-STD-1787 convention; no public F-16 figure shows them).
 - FPM: 10 mr circle, 10 mr wings, 5 mr tail; X over it when limited.
 - Gun / boresight cross: an incomplete plus at the fuselage reference line.
 - AoA bracket gear down: FPM at its top = 11°, centre 13°, bottom 15° (dash-1).
@@ -166,7 +168,7 @@ US Navy flight-test helmet video (https://www.twz.com/12297/); Collins datasheet
 ## What ours draws (status)
 
 - F-16: the NAV / A-A / A-G layout of figs. 1-110 / 1-111 / 1-115 (scales, boxes, the "C", windows 3 / 4 / 5 / 7 / 8 /
-  10 / 13 / 14 / 25 / 26 without ALOW, heading box low / high, roll indicator, bending ladder, FPM, AoA bracket,
+  10 / 13 / 14 / 25 / 26 without ALOW, heading box low / high, roll indicator, bending ladder with the zenith star / nadir earth, FPM, AoA bracket,
   steerpoint diamond, TD box / locator line, AIM-9 reticle + seeker diamond, AIM-120 ASEC + ASC, DLZ with closure,
   CCIP / strafe pipper with the fall line, FUEL, SHOOT in its window (MLU; the AIM-9 / AIM-120 shoot cue)); EEGS levels 2 and 5 per fig. 1-257 (funnel, MRGS lines, T-symbol,
   1 g / 9 g pippers, 4 mr pipper, TD circle with the range arc and the maximum-range dot). Not drawn: the VVI scale

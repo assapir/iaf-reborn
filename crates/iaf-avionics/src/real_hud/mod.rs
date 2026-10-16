@@ -295,6 +295,8 @@ struct LadderStyle {
     /// Rungs whose centre falls within these bands of the field's bottom / top are left out (the heading scale's).
     bottom_band: f64,
     top_band: f64,
+    /// The ±90° rungs are a zenith star / nadir earth symbol instead (F-16, [R]: the MIL-STD-1787 convention).
+    zenith: bool,
 }
 
 /// The conformal pitch ladder: rung e sits e degrees up from the level point ahead, rolled with the jet, slid along
@@ -317,6 +319,11 @@ fn ladder(p: &mut Vec<Prim>, i: &Input, fpm: P, f: Field, s: LadderStyle) {
         let deg = n * 5;
         let v = deg as f64 * k;
         let y = at(0.0, v).1;
+        // The zenith / nadir symbol is not left out under the heading scale.
+        if s.zenith && deg.abs() == 90 {
+            zenith_nadir(p, at(0.0, v), i.mr(6.0), deg > 0);
+            continue;
+        }
         if y > f.bottom - s.bottom_band || y < f.top + s.top_band {
             continue;
         }
@@ -348,6 +355,20 @@ fn ladder(p: &mut Vec<Prim>, i: &Input, fpm: P, f: Field, s: LadderStyle) {
                 p.push(text((lx, ly + 3.0), label, if side < 0.0 { Align::Right } else { Align::Left }));
             }
         }
+    }
+}
+
+/// Straight up a star (a circle with eight spokes), straight down the earth (a circle with a cross), radius `r`.
+fn zenith_nadir(p: &mut Vec<Prim>, (x, y): P, r: f64, zenith: bool) {
+    p.push(Prim::Circle { c: (x, y), r });
+    if zenith {
+        for k in 0..8 {
+            let (sn, cs) = (f64::from(k) * std::f64::consts::FRAC_PI_4).sin_cos();
+            p.push(line((x + r * cs, y + r * sn), (x + 1.8 * r * cs, y + 1.8 * r * sn)));
+        }
+    } else {
+        p.push(line((x - r, y), (x + r, y)));
+        p.push(line((x, y - r), (x, y + r)));
     }
 }
 

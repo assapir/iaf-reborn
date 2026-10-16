@@ -431,15 +431,19 @@ func real_hud() -> Dictionary:
 	var wp: Dictionary = cockpit.weapons
 	var rd: Dictionary = cockpit.radar
 	var mode := _mode()
-	# The view's scale at its centre (5° up from the view direction) and the horizon straight ahead placed from the
-	# view's pitch along the ladder's up (roll): linear in degrees, so it holds near and past the vertical, where the
-	# projected level point (89° off the nose, or behind the eye) would blow up.
+	# As a real HUD: the horizon straight ahead placed from the nose's point on the HUD by the jet's own pitch along the
+	# ladder's up (its roll), at the view centre's scale (5° up from the view direction): linear in degrees, so it holds
+	# near and past the vertical (the projected level point, 89° off the nose or behind the eye, would blow up; the
+	# camera, 5.5° below the nose, is past the vertical before the jet is).
 	var fwd := -camera.global_basis.z
 	var centre := _project(fwd)
 	var px_deg := (_project(fwd.rotated(camera.global_basis.x, deg_to_rad(5.0))) - centre).length() / 5.0
 	var roll_r := deg_to_rad(float(st.get("roll", 0.0)))
-	var pitch := rad_to_deg(asin(clampf(fwd.y, -1.0, 1.0)))
-	var horizon := centre - Vector2(-sin(roll_r), -cos(roll_r)) * pitch * px_deg
+	var pitch := float(st.get("pitch", 0.0))
+	var hdg := deg_to_rad(float(st.get("heading", 0.0)))
+	var p_r := deg_to_rad(pitch)
+	var nose := _project(Vector3(sin(hdg) * cos(p_r), sin(p_r), -cos(hdg) * cos(p_r)))
+	var horizon := nose - Vector2(-sin(roll_r), -cos(roll_r)) * pitch * px_deg
 	var fpm = _fpm_position()
 	var gun: Vector2 = (gun_cross() - position - _c) / _s
 	var nav := nav_cues(st, cockpit.waypoints, cockpit.current_waypoint)
