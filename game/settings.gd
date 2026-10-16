@@ -41,7 +41,7 @@ const PREFS := {
 	"gameplay": ["no_wind", "no_blackouts", "no_spins", "no_stalls", "easy_landing", "easy_aiming",
 		"no_malfunctions", "ai_level", "invulnerable", "no_crashes", "unlimited_ammo", "unlimited_fuel",
 		"flight_data", "weapon_data", "language", "show_info", "blackbox", "hud_ladder", "hud_style", "show_all_keys", "fullscreen",
-		"imagery_israel", "imagery_outside", "antialiasing", "terrain_closeup", "sky", "f35i_slot"],
+		"imagery_israel", "imagery_outside", "antialiasing", "terrain_closeup", "sky", "f35i_slot", "harm_targets"],
 }
 
 ## Flight data: "original" (Jane's IAF 1998 numbers) or "real" (corrected real-world data for every flyable jet, docs/real-aircraft.md).
@@ -49,6 +49,9 @@ var flight_data := "original"
 ## Weapon data: "original" (the 1998 numbers of the bdb Weapons table and weapons.ibx) or "real"
 ## (public real-world data per weapon, docs/real-weapons.md). Separate from the flight data.
 var weapon_data := "original"
+## HARM targets: "original" (the HARM sensor's own scan, docs/mfd.md "HARM (10)") or "rwr" (ours: the RWR's active
+## emitters inside its cone, docs/deviations.md).
+var harm_targets := "original"
 ## Briefing language: "en" or "he" (Hebrew only when the Hebrew pack is installed).
 var language := "en"
 

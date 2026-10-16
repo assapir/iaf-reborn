@@ -1641,6 +1641,9 @@ func _command(cmd: Array) -> bool:
 		70:
 			if weapons != null:
 				weapons.ecm_key()  # GEV 0x46, ECM Jammer on/off (J)
+		51:
+			if weapons != null:
+				weapons.harm_next()  # controller case 0x33, the next HARM target (Ctrl+Return)
 		18:
 			_eject_key()
 		19:

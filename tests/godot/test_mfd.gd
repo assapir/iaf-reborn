@@ -1,8 +1,8 @@
 # The EO / HARM MFD pages (docs/mfd.md "FLIR (6), TV (5)", "HARM (10)"): the pure EO camera rules (start, slew
 # rate 0.09·x / zoom °/s, the gimbal limits per store class, zoom 1..8, WIDE / SPOT, the lock on release), the
-# HARM list from RWR emitters, then mission 231 (F-16) with a FLIR pod, a POPEYE and a HARM on the pylons: I opens
+# HARM sensor's scan, then mission 231 (F-16) with a FLIR pod, a POPEYE and a HARM on the pylons: I opens
 # the FLIR page, Ctrl+Right slews it, the release locks; the POPEYE selects the TV page (weapon limits, RDY); the
-# HARM page lists a synthetic emitter ahead; and every page draws on the F-16 and the Lavi cockpits.
+# HARM page lists a radar-class unit ahead; and every page draws on the F-16 and the Lavi cockpits.
 extends "res://../tests/godot/base.gd"
 
 
@@ -62,14 +62,14 @@ func run() -> void:
 	# --- pure: the HARM list ---------------------------------------------------------------------------
 	var h = Harm.new()
 	h.active = true
-	var slots := [
-		{"unit": "sam", "type": 300, "pos": Vector3(1000, 20000, 0), "active": true},
-		{"unit": "off", "type": 290, "pos": Vector3(20000, 20000, 0), "active": true},
-		{"unit": "", "type": 0, "pos": Vector3.ZERO, "active": false},
+	var units := [
+		{"key": "sam", "type": 300, "klass": 10, "name": "SA6", "pos": Vector3(1000, 20000, 0)},
+		{"key": "off", "type": 290, "klass": 10, "name": "SA2", "pos": Vector3(20000, 20000, 0)},
+		{"key": "tank", "type": 250, "klass": 6, "name": "T72", "pos": Vector3(0, 15000, 0)},
 	]
-	h.capture(slots, Vector3(0, 0, 3000), Vector2.ZERO)
+	h.capture(units, [], Vector3(0, 0, 3000), Vector2.ZERO, false, func(_p): return 0.0)
 	var pg: Dictionary = h.page(Vector2.ZERO, 2)
-	check(pg.list.size() == 1 and pg.list[0].key == "sam" and pg.list[0].selected, "HARM: the emitter inside ±15° is listed and preselected, the one at 45° not")
+	check(pg.list.size() == 1 and pg.list[0].key == "sam" and pg.list[0].selected, "HARM: the radar unit inside ±15° is listed and preselected, the one at 45° and the tank not")
 	var sy: Array = Mfd.harm_symbols(pg)
 	var want := Vector2(66 + int(atan2(1000.0, 20000.0) * 112.0 / deg_to_rad(30.0)), 66 + int(-atan2(-3000.0, Vector2(1000, 20000).length()) * 112.0 / deg_to_rad(30.0)))
 	check(sy.size() == 1 and sy[0].pos == want, "HARM symbol at %s (%s)" % [want, sy[0].pos if not sy.is_empty() else null])
@@ -131,17 +131,16 @@ func run() -> void:
 	check(cp.mfds.any(func(m): return m.page == 5) and cp.eo.tv.status == 1, "the TV page, RDY")
 	check(not cp.mfds.any(func(m): return m.page == 6), "page 5 took the FLIR page's place")
 	await frames(2)
-	# The HARM page with a synthetic emitter 20 km ahead.
+	# The HARM page with a radar-class unit 20 km ahead.
+	var sites := _radar_units(tv, 1)
+	if not sites.is_empty():
+		_place(tv, w, sites[0], w.own(), 20000.0)
 	w.select_station(3)
-	var o: Dictionary = w.own()
-	w.rwr.slots[0] = {"unit": "synthetic", "type": 300, "pos": o.pos + Vector3(o.fwd.x, o.fwd.y, 0).normalized() * 20000.0 - Vector3(0, 0, 1000),
-		"launch": false, "missiles": 0, "drop": false, "active": true}
-	w._harm_capture()
 	t += 0.1
 	w.update(t)
 	var harm_mfd = cp.mfds.filter(func(m): return m.page == 10)
 	check(w.master == 4 and harm_mfd.size() == 1 and w.eo.mode == Eo.NONE, "HARM: master 4, page 10, the EO mode off")
-	check(cp.harm.list.size() == 1 and not cp.harm.no_source, "HARM page lists the synthetic emitter (%d)" % cp.harm.get("list", []).size())
+	check(cp.harm.list.size() == 1 and not cp.harm.no_source, "HARM page lists the unit ahead (%d)" % cp.harm.get("list", []).size())
 	var hs: Array = Mfd.harm_symbols(cp.harm)
 	check(hs.size() == 1 and absf(hs[0].pos.x - 66) <= 2, "ahead: near the centre column (%s)" % [hs[0].pos if not hs.is_empty() else null])
 	# MENU "FLIR" (with the pod) and the stores page quantity / interval OSBs.

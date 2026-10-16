@@ -16,6 +16,12 @@ const HIT_AIM: f64 = 2.0;
 const GROUND_BAND: f64 = 1.0;
 /// The terrain height where none is loaded (0x60ce14).
 const NO_GROUND: f64 = 0.1;
+/// The TgenAPI terrain unit, horizontal and height (PlaneScalePR, docs/formats/ptt.md), metres.
+const UNIT: f64 = 1.2411389;
+/// `FUN_0045ed40` lifts both ends of the ray (0x601420 −1.5, subtracted from z).
+const RAY_LIFT: f64 = 1.5;
+/// The ray's ceiling (0x5fda90 4500 m): above it no terrain can be hit.
+const RAY_CEILING: f64 = 4500.0;
 
 fn height(terrain: &dyn Fn(Vec3) -> Option<f64>, p: Vec3) -> f64 {
     terrain(p).unwrap_or(NO_GROUND)
@@ -31,10 +37,67 @@ pub fn fall_time(vz: f64, h: f64) -> f64 {
     ((vz + r) / (2.0 * HALF_G)).max((vz - r) / (2.0 * HALF_G))
 }
 
+/// TgenAPI slot 0x28 (`0x404ae0`): the terrain between two points, marched from the lower end toward the higher
+/// one in steps of clearance / 8 + clamp(length / 300, 80, 300) terrain units; the hit is the first sample more
+/// than 5 height units under the terrain (the sample itself, not the crossing). None once the ray is above 4500 m,
+/// at the end, or without terrain.
+pub fn terrain_ray(a: Vec3, b: Vec3, terrain: &dyn Fn(Vec3) -> Option<f64>) -> Option<Vec3> {
+    let (s, e) = if a.z > b.z { (b, a) } else { (a, b) };
+    let n = s.distance(e) / UNIT;
+    if n < 1.0 {
+        return None;
+    }
+    let min_step = (n / 300.0).trunc().clamp(80.0, 300.0);
+    let mut k = 0.0;
+    while k < n {
+        let p = s + (e - s) * (k / n);
+        if p.z >= RAY_CEILING {
+            return None;
+        }
+        let clear = (p.z / UNIT).floor() - (terrain(p)? / UNIT).floor();
+        if clear < -5.0 {
+            return Some(p);
+        }
+        k += (clear / 8.0).floor() + min_step;
+    }
+    None
+}
+
+/// TgenAPI slot 0x2c (`0x404e90`): the cockpit views' pick of the picture at a point's screen position, i.e. the
+/// first terrain along the line of sight from `eye` toward `p`, or None (ours: marched in 1 % steps of the distance,
+/// then bisected; the original reads the rendered picture, and a point off the screen finds nothing: UNCERTAIN, not
+/// modelled).
+pub fn sight_ray(eye: Vec3, p: Vec3, terrain: &dyn Fn(Vec3) -> Option<f64>) -> Option<Vec3> {
+    let under = |q: Vec3| terrain(q).is_some_and(|g| q.z <= g);
+    let at = |f: f64| eye + (p - eye) * f;
+    let mut a = 0.0;
+    for k in 1..=101 {
+        let b = k as f64 * 0.01;
+        if under(at(b)) {
+            let mut b = b;
+            for _ in 0..20 {
+                let m = 0.5 * (a + b);
+                if under(at(m)) {
+                    b = m;
+                } else {
+                    a = m;
+                }
+            }
+            return Some(at(b));
+        }
+        a = b;
+    }
+    None
+}
+
 /// `FUN_0045e7f0` (the HUD's predicted impact) and its fall time: V = the jet's velocity, minus the store's bdb drag
 /// (0x73a) as m/s along the nose, plus `extra` m/s along the nose (rockets: _limitVel); t to the terrain under the
-/// jet, I = P + V·t − (0, 0, 4.903·t²); then once more for the terrain under I, whose height I takes.
-pub fn predict_impact(p: Vec3, vel: Vec3, nose: Vec3, drag: f64, extra: f64, terrain: &dyn Fn(Vec3) -> Option<f64>) -> (Vec3, f64) {
+/// jet, I = P + V·t − (0, 0, 4.903·t²); then once more for the terrain under I, whose height I takes. Then the
+/// terrain ray P → I (`FUN_0045ed40`: in the cockpit views 1 / 5 / 0x12 / 0x16 `sight_ray`, else `terrain_ray`
+/// with both ends 1.5 m up): a hit H is the impact (fall time to the terrain under H); a second ray P → the impact
+/// solved for that height, if it hits too, moves it to that hit, on the terrain. A hill in front of the impact
+/// takes the pipper.
+pub fn predict_impact(p: Vec3, vel: Vec3, nose: Vec3, drag: f64, extra: f64, cockpit: bool, terrain: &dyn Fn(Vec3) -> Option<f64>) -> (Vec3, f64) {
     let mut v = vel;
     if extra.abs() > 0.0 {
         v += nose * extra;
@@ -50,6 +113,15 @@ pub fn predict_impact(p: Vec3, vel: Vec3, nose: Vec3, drag: f64, extra: f64, ter
         t = fall_time(v.z, p.z - gi);
         i = at(t);
         i.z = i.z.min(height(terrain, i));
+    }
+    let lift = Vec3::UP * RAY_LIFT;
+    let ray = |q: Vec3| if cockpit { sight_ray(p, q, terrain) } else { terrain_ray(p + lift, q + lift, terrain) };
+    if let Some(h) = ray(i) {
+        t = fall_time(v.z, p.z - height(terrain, h));
+        if let Some(h2) = ray(at(t)) {
+            return (Vec3::new(h2.x, h2.y, height(terrain, h2)), t);
+        }
+        return (h, t);
     }
     (i, t)
 }
@@ -180,9 +252,22 @@ mod tests {
     #[test]
     fn level_release_impact() {
         // 1000 m, 200 m/s north: t = √(1000 / 4.903).
-        let (i, t) = predict_impact(Vec3::new(0.0, 0.0, 1000.0), Vec3::new(0.0, 200.0, 0.0), Vec3::NORTH, 0.0, 0.0, FLAT);
-        assert!((t - (1000.0f64 / HALF_G).sqrt()).abs() < 1e-9);
-        assert!((i.y - 200.0 * t).abs() < 1e-6 && i.z.abs() < 1e-6);
+        for cockpit in [false, true] {
+            let (i, t) = predict_impact(Vec3::new(0.0, 0.0, 1000.0), Vec3::new(0.0, 200.0, 0.0), Vec3::NORTH, 0.0, 0.0, cockpit, FLAT);
+            assert!((t - (1000.0f64 / HALF_G).sqrt()).abs() < 1e-9);
+            assert!((i.y - 200.0 * t).abs() < 1e-3 && i.z.abs() < 1e-3, "{cockpit} {i:?}");
+        }
+    }
+
+    #[test]
+    fn a_hill_in_front_takes_the_impact() {
+        // A 600 m ridge 1500..1700 m north; the drag-free impact from 1000 m at 200 m/s is 2856 m north.
+        let hill: &dyn Fn(Vec3) -> Option<f64> = &|q| Some(if (1500.0..1700.0).contains(&q.y) { 600.0 } else { 0.0 });
+        for cockpit in [false, true] {
+            let (i, _) = predict_impact(Vec3::new(0.0, 0.0, 1000.0), Vec3::new(0.0, 200.0, 0.0), Vec3::NORTH, 0.0, 0.0, cockpit, hill);
+            assert!((1500.0..1700.0).contains(&i.y), "{cockpit} {i:?}");
+        }
+        assert_eq!(terrain_ray(Vec3::new(0.0, 0.0, 1000.0), Vec3::new(0.0, 2856.0, 1.5), FLAT), None);
     }
 
     #[test]

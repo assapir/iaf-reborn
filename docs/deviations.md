@@ -48,7 +48,7 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 | Gun candidate list order | the spatial query's order | nearest first | order untraced | weapons.md §3.3 |
 | Weapon targets | every object in the spatial database | units with a model (sensors / logic nodes left out) | UNCERTAIN whether they are in it | player_weapons.gd |
 | Weapon effects look | muzzle flash scale / blend, splash, missile explosion (partly not decoded) | muzzle flash 1 m additive, white puff splash, fireball + puff | rendering | weapons.md §3.5–3.6 |
-| Bomb HUD prediction | after the terrain re-solve, a terrain ray from the jet to the impact (`FUN_0045ed40`) | no ray (a hill in front of the impact is not seen) | ray not decoded | weapons.md §9.4 |
+| Bomb HUD terrain ray (cockpit views) | the pick of the rendered picture at the impact's screen point (`FUN_0045ed40` → TgenAPI slot 0x2c) | the first terrain on the line of sight from the jet to the impact, from the terrain heights (1 % steps, bisection); a point off the screen is not special-cased | the pick is a renderer read-back | weapons.md §9.4 |
 | Mode-5 HUD rectangle | PtInRect on the HUD clip R+0x2770 in cockpit views | our HUD symbology field (the HUD Control) when the HUD is shown; the target ray through the clipped point from our camera | same geometry, our projector | weapons.md §9.4 |
 | Bomb time-to-go speed | the speed of the entity's selector 6 (not decoded) | the ground speed | UNCERTAIN which speed | weapons.md §9.4 |
 | Rocket flight (560) | `FUN_0047a491` with a positive acceleration (branch not traced) | the gun rounds' formula with +100 m/s² up to _limitVel; aim = the ripple point | UNCERTAIN | weapons.md §9.7 |
@@ -70,11 +70,12 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 | Missile chasing a decoy that ended | it keeps chasing the decoy's pool object (which a later decoy of the ring reuses: UNCERTAIN) | the decoy's end point | pool reuse not traced | player_weapons.gd `target_state` |
 | Radar MAP picture | isr.bmp sampled per pixel, nearest, the centre truncated to whole isr pixels (`FUN_0053b0a0`) | the 4× isr art as a textured polygon (smooth scrolling and turning), same window, scale, centre and green channel | rendering | mfd.gd `map_picture`, mfd.md §4 |
 | EO (FLIR / TV) picture | the 3D engine's viewport 1 at the MFD's 112 × 112 screen px, colour | a SubViewport camera of the same world at the display's on-screen size (same 50° / zoom, eye, attitude, roll 0), only while page 5 / 6 shows with the cockpit drawn | rendering | mfd.md "FLIR (6), TV (5)", terrain_view.gd `_update_eo_view` |
-| EO camera eye / centre point | the store's pylon position; the depth pick of the picture's centre pixel (terrain, buildings, units) | the jet's position; the terrain under the line of sight (ray-marched, 2 % steps, 8 halvings, 100 km) | pylon offsets are metres; the pick is a renderer read-back | player_weapons.gd `_eo_update` / `ground_hit` |
-| HARM page source | the HARM sensor (an AI target-sensor scan, ±15° cone, best 5 by 100 / distance, its own selection) | the RWR's active emitters inside the ±15° cone, nearest 5, nearest preselected; recaptured with the RWR's 2 s refresh and on a click | user: use the RWR list (the AI target sensor scan, combat.gd `_scan`, is not used for the HARM sensor) | harm.rs, mfd.md "HARM (10)" |
+| EO camera eye | the store's pylon position | the jet's position | pylon offsets are metres | player_weapons.gd `_eo_from` |
+| EO centre point | the depth pick of the picture's centre pixel (terrain, buildings, units: what is drawn there) | the nearer of the terrain under the line of sight (ray-marched, 2 % steps, 8 halvings, 100 km) and the visible units' damage boxes (`DamageModel.size_of` cubes, ray-tested) | the pick is a renderer read-back | player_weapons.gd `_eo_update`, eo.rs `unit_pick` |
 | NAV page distance | 3-D to the waypoint | horizontal (our route has no waypoint heights) | data | mfd.gd `_draw_nav` |
 | MAP / GMT cross-hair | drawn while the MFD owns the cursor (a click inside it first) | while the mouse is over the display | no cursor ownership in ours | mfd.gd `_cross_hair` |
 | Radar line of sight | `FUN_004020d0` (sampling not traced) | terrain sampled every 100 m along the segment | UNCERTAIN original sampling | radar.rs, radar.md §8 |
+| Decoy / rocket aim cut at the terrain | `FUN_004020d0` (sampling not traced) | steps of 2 % of the distance (at least 25 m), then 8 halvings | UNCERTAIN original sampling | gun.rs `terrain_cut`, weapons.md §10 |
 | Pilot records storage | `Pilots.dat` + `Pilots\<id>.mis` / `.bmp` next to the exe | our own JSON with the same data in the user data dir (`user://pilots`: `pilots.json`, `<id>.json`, custom photo `<id>.png`); original files are not imported | user decision | front-end.md §13.13 |
 | Pilot list box during panel slides | a frame child created after the slide-in (destroy order on leaving not traced) | drawn only while the left panel is fully in | order untraced | pilot_records.gd |
 | Pilot list / Dossier details | the scrollbar's track click page step not traced; an empty pilot list never occurs | track click pages 11 rows (as Arming / Controls); the last pilot is kept when the list is written even if blank | untraced / edge case | pilot_records.gd, pilots.gd |
@@ -109,6 +110,10 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 - **Preferences → Extras → Weapon data (Original / Real)**: public missile weights, top speed, range, rear-aspect
   seekers (ours: a target-moving-away test), seeker cones, the AIM-9D's 12 g, the radar ranges of the seven jets and gun rounds /
   rate / muzzle velocity — real-weapons.md.
+- **Preferences → Extras → HARM targets (Original / RWR)**: the original HARM page lists its sensor's own scan (the
+  radar classes within 20 NM in the ±15° cone, emitting or not, friendlies too, best 15); RWR lists the RWR's active
+  emitters inside that cone instead, the nearest 5, the nearest preselected, recaptured with the RWR's 2 s refresh
+  and on a click (harm.rs `Source::Rwr`, mfd.md "HARM (10)"). Ctrl+Return steps either list.
 - **Preferences → Extras**: Flight data (Original / Real aircraft), HUD pitch ladder (conformal: each rung projected
   through the camera; the original's linear 12 px/deg ladder is a few px off away from the marker), flight info line,
   blackbox, language, "All keys on the Keyboard page" (the original lists 92 of the 117 key records; the option lists

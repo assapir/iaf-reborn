@@ -220,7 +220,8 @@ Search (`FUN_00461680`) at most every 0.5 s: the unit whose screen point (viewpo
 TgenAPI slot 0x38) is nearest the **HUD centre** (cx, cy) = R+0x2768 / +0x276c (`FUN_004dc790` → `FUN_00520be0`; not the
 boresight symbol) within **6000 px²** (≈ 77 px) that passes can-track — **no side test** (friendlies too). Can-track
 (`FUN_00461d10`): 580 only within ±60° of the own heading (a bearing test, not the "tail" of the comment); range
-≤ R; beyond **R/2 only a target with its afterburner on** (AI jets have no afterburner state yet, so for now R/2).
+≤ R; beyond **R/2 only a target with its afterburner on** (a unit with a flight model, +0x34, whose stage
+`FUN_00594c00` (+0x28) is > 0; ours: an AI jet's FM `afterburner` stage, `player_weapons.gd` `_units`).
 Visible (`FUN_00461f10`): **with an A-A radar lock** (`FUN_004625f0`) the target within the generation cone of the
 nose; **else in the free-look (0x12) or padlock (0x16) view** the helmet test of §5.4; **else** within 6° of the nose.
 Every 0.05 s: tone seek /
@@ -228,7 +229,10 @@ lock (SFX_IR_SEEK Wpn_IRCHIRP / SFX_IR_LOCK WPN_IRCHIRPON; none without rounds o
 entering IR on an empty station chirps the seek tone once, `FUN_00461b00`, stopped by the next update); lock = a visible trackable target (no
 lock timer; lost at once). The seeker diamond (±7 px, `FUN_00536ff0`, S+0xe6c) eases 0.3 / 0.7 toward the target's
 screen point (snaps within 5 px), back to the HUD centre without one, and is held inside the symbology field along the
-line from the HUD centre (`FUN_0052db30`). Missile circle (`FUN_00537120`) r = 5·12 px (min 10) on the **HUD centre**.
+line from the HUD centre (`FUN_0052db30`). Missile circle (`FUN_00537120`) r = 5·12 px (min 10) on the **HUD centre**;
+with a radar lock and a seeker target it shrinks inside the DLZ like the MRM's (vfunc +0x3c `FUN_00462c10`, §11.3:
+the IR object's +0x28 is the seeker's target, +0x2c `FUN_00463330` the radar's lock). The diamond is drawn only with
+rounds on the selected station (+0xe7c, `FUN_0052ffb0`). Shoot cue: §11.3.
 Ours: screen offsets are angles at 12 px/deg from the camera ray through the HUD centre (the camera's 686.2 px focal
 length = 11.98 px/deg; tan vs angle differs < 1 % inside the 6° field).
 
@@ -344,7 +348,8 @@ Player: P = the mode-5 object's target +0x18 when its pipper is off the HUD (+0x
 aims at aim[qty − remaining]. AI: P = T + V·t + ½A·t² (t = |T − own| / own speed) with a target, else `FUN_0045ed10`
 (`FUN_0045e400`, the impact without the drag term). 650: `ctl+0x960` (the FLIR designation, `FUN_00450430`) set →
 the guided path toward the designated point; else the same as a bomb. **The radar's GMT / MAP designation
-(radar.gd `designate`) is not an input**: neither the mode-5 update nor the aim reads it (no true CCRP).
+(radar.gd `designate`) is not an input**: neither the mode-5 update nor the aim reads it; nothing in the exe reads
+the designated point but the MAP cross (docs/radar.md §8), so the game has no CCRP.
 
 ### 9.4 The mode-5 HUD object (`FUN_0045d0a0`, update vtable +0x10 `FUN_0045d470` → `FUN_0045d1d0`)
 Fields: +0xc impact I, +0x18 target T, +0x24 / +0x28 the pipper's screen point, +0x2c off the HUD, +0x30 time-to-go
@@ -356,7 +361,14 @@ Fields: +0xc impact I, +0x18 target T, +0x24 / +0x28 the pipper's screen point, 
   MK-82 23) as m/s along the nose (+ 1000 m/s along the nose for rockets); h = P.z − terrain(P); t = (vz + √(vz² +
   19.612·h)) / 9.806 (`FUN_0045e330`); I = P + V·t − (0, 0, 4.903·t²) (`FUN_0045e3b0`); when the terrain at I is
   below I: once more with h = P.z − terrain(I), and I.z = min(I.z, terrain(I)); then a terrain ray P → I
-  (`FUN_0045ed40`; ours: not done). The drag term puts the pipper short of the drag-free fall; the bomb's solver
+  (`FUN_0045ed40`): in the cockpit views 1 / 5 / 0x12 / 0x16 the pick of the picture at I's screen point (TgenAPI
+  slot 0x2c `0x404e90`: projection, then the screen pick slot 0x20; ours: the first terrain on the line of sight from
+  P toward I, 1 % steps then bisection), in the other views a march between P and I both lifted 1.5 m (0x601420;
+  slot 0x28 `0x404ae0`) from the lower end toward the higher one, steps of clearance / 8 + clamp(length / 300, 80,
+  300) terrain units (1.2411389 m), the hit = the first sample more than 5 height units under the terrain, none above
+  4500 m (0x5fda90). A hit H: t = the fall time to terrain(H), the impact H; a second ray P → I(t), if it hits too,
+  moves the impact to that hit, on the terrain. So a hill between the jet and the impact takes the pipper
+  (`crates/iaf-avionics/src/bombs.rs` `terrain_ray` / `sight_ray`). The drag term puts the pipper short of the drag-free fall; the bomb's solver
   (§9.5) then pulls it onto that point. Level release from 1000 m at 200 m/s: drag-free 2856 m ahead, the MK-82
   prediction 2528 m.
 - **Not frozen**: I → its screen point (`FUN_0045a790`, the 3-D view's projection: docs/cockpit.md "3D view");
@@ -473,8 +485,13 @@ bearing in radians: never taken, so range, aspect, generation, AI level and Real
   `FUN_00467760`: +0x78 (the time at A) − now) capped at **4.0 s** (`_DAT_00605120`, types 0x21c / 0x226 only):
   a decoy ends **when it reaches A**, at most 4 s after the release (≈ 0.85 s at 250 m/s; the full 4 s only below
   |V| ≈ 130 m/s, where the 5 m/s crawl never reaches A). There is no motion after A (`FUN_00466fc0` past +0x78 moves
-  nothing). Not built: before that, for a weapon with no target (+0xb8 = 0, decoys included) `FUN_004d7690` cuts A
-  at the terrain (`FUN_004020d0`, the segment from the weapon to A).
+  nothing). Before that, `FUN_004d7690` (vfunc +0xc of the fixed-weapon class, vtable 0x605128, at the launch)
+  cuts A at the terrain for every fixed weapon but the gun (type 565) whose candidate count +0x130 is 0 (`FUN_004d75c0`
+  stores the list's count there, the single-target launch `FUN_004d7630` stores target ≠ 0): the decoys always,
+  rockets with an empty list (§9.7) or an AI rocket without a target. The first terrain point on the segment from the
+  weapon (+0x58) to A (`FUN_004020d0`; return 0 = hit) becomes A and the flight restarts to it (`FUN_005604a0`), so a
+  decoy released low ends on the ground. Ours: `gun.rs` `launch_aim` / `terrain_cut` (steps of 2 % of the distance,
+  at least 25 m, then 8 halvings; the original's sampling is not traced).
 - **Sounds**: SFX_AIRCRAFT_FIRED_WEAPON / OST_CHAFF, OST_FLARE (WPN_RDRMIS_RLS); the end sound SFX_WEAPON_EXPLODED
   (WpnMiss) is in the table but its call site is UNCERTAIN (not played).
 - **Look** (the bdb model is 0; the renderer's own sprites). At load (`FUN_0058a420`, [Animations] in IAF.ibx via
@@ -549,7 +566,7 @@ at the radar's target in S+0x348 (max) / S+0x350 (min) every frame while the rad
 HARM sensor a target (`FUN_00456520`), else the last values.
 
 ### 11.3 MRM HUD sight (mode 2, `FUN_00460ea0`; HARM mode 8 `FUN_00460a90`; base `FUN_00462ab0`, `crates/iaf-avionics/src/sight.rs`)
-- **Target** (vfunc +0x28): the radar's A-A lock or TWS selection (mode 8: the HARM page's selected emitter);
+- **Target** (vfunc +0x28): the radar's A-A lock or TWS selection (mode 8: the HARM sensor's selected target);
   locked = vfunc +0x2c.
 - **Circle** (vfunc +0x3c `FUN_00462c10`): size 5 without a lock (×12 px, at least 10 px, at most the field's
   extent from the HUD centre); with one, 5·(1 − (dist − min)/(max − min)) inside the DLZ, at least 5/3, and 5/3 at or
@@ -563,8 +580,13 @@ HARM sensor a target (`FUN_00456520`), else the last values.
   target, q = 1. A target with its ECM on, against a radar seeker: q − rand. q ≥ 0.1. In the HUD-only view the
   in-circle test uses 2·R² (the original's compare).
 - **Shoot cue** (state+0x1010, modes 1 / 2): the predicted point inside the circle, rounds left, the radar in A-A,
-  min ≤ dist ≤ max: a triangle under the target box (apex 2h − 6 px below its centre, base 2h, ±3 px). Mode 1's cue
-  from the IR seeker is not ported yet.
+  min ≤ dist ≤ max: a triangle under the target box (apex 2h − 6 px below its centre, base 2h, ±3 px). **Mode 1**
+  (`FUN_00461290` → `FUN_00446610`): the seeker's lock (0x82f6ec, set by the tone `FUN_00461bf0`, off without rounds),
+  rounds on the selected station (`FUN_00456cd0`) and min ≤ dist ≤ max of the statics the mode-1 circle writes
+  (0x82f6a8 max, 0x82f6b0 min, 0x82f6f0 dist): only with a radar lock and a seeker target, kept otherwise (0 at start:
+  the cue then follows the lock alone). No in-circle and no radar A-A test. The cue is drawn under the target box
+  (`FUN_00537330`, only with a radar lock or designated point), so it shows with a radar lock. Ours keeps the statics
+  per flight (`player_weapons.gd` `_srm_dlz`; the original's last a whole session). `hud.rs` `srm_shoot_cue`.
 - **"%2d SEC"** (HUD row 5 in modes 1, 2, 8; S+0x380): the last launched weapon's time left (`FUN_0053bec0` → its
   motion's vfunc +0x80, clamped by `FUN_004d6ac0`: below 0 → 0, above 300 → 60).
 - **STT envelope ticks** (MFD, `FUN_00534160`): three black ticks at y 39 / 65 / 91 and the DLZ max / min as ticks
@@ -589,18 +611,22 @@ the selected store's DLZ max, the seeker diamond at its screen point) and +0x28 
 selected emitter when its screen point is within 240 px of the HUD centre (Easy aiming: anywhere), q = vfunc +0x38 ×
 0.8; without one the missile flies at its `_fireEndVec` point. After the launch nothing ties the HARM to the emitter
 staying on (no type test in the flight code): it chases the unit like any homing weapon and its blast (AGM88 power
-5000, radius 20; SHRIKE 5000 / 50) hits what is around. The emitters come from the RWR (docs/deviations.md "HARM page
-source"); in a mission the AI / SAM sensors' locks fill it (`game/ai/combat.gd` `_pick`, docs/rwr.md §6).
+5000, radius 20; SHRIKE 5000 / 50) hits what is around. The targets come from the HARM sensor's own scan, not the RWR:
+the radar classes (9, 10, 11 and class 8 units named "RADAR…") within 20 NM in a ±15° cone, whether they emit or not,
+friendlies too (docs/mfd.md "HARM (10)"); Ctrl+Return steps to the next one. Extras "HARM targets: RWR" (ours) lists
+the RWR's active emitters instead.
 
 ### 11.6 Validation
 `tests/godot/test_radar_missiles.gd`: the DLZ (AMRAAM example, receding target, target behind, no target), the circle,
 lead and in-circle q; per jet in mission 231 (F-16, Lavi, F-35I AMRAAM; F-15, F-4E, Kurnass 2000 Sparrows) radar lock
 of a MiG 8 km ahead, the MRM HUD (circle inside the DLZ, lead point, shoot cue, DLZ ticks), the launch, the hit, and
 Backspace dropping the Sparrow's guidance but not the AMRAAM's; Real AMRAAM 157 kg, Mach 4, 70 km.
-`tests/godot/test_harm.gd`: per jet (the seven Jet list jets and the F-35I) in mission 231, a ground unit 15 km ahead
-locking the jet (an RWR emitter): '[' selects the AGM88 (master 4, HUD mode 8, the HARM page), the page lists and
-preselects it, the HUD diamond and In Range, the launch at it and the kill; a SHRIKE with no emitter flies at its
-end point.
+`tests/godot/test_harm.gd`: per jet (the seven Jet list jets and the F-35I) in mission 231, two radar-class units 15
+and 25 km ahead: '[' selects the AGM88 (master 4, HUD mode 8, the HARM page), the scan lists both and preselects the
+nearer, Ctrl+Return steps to the other and wraps back, the HUD diamond and In Range, the launch at it and the kill; a
+SHRIKE with nothing listed flies at its end point; with Extras "HARM targets: RWR" only the locking unit is listed,
+both after the other locks too (selection kept), and Ctrl+Return steps that list. Rust: `harm.rs` (the class filter, range, cone, line of sight, own
+jammer, kept selection, the step).
 
 ## 12. TV weapons (635, 640) and the guided motion (640, 650)
 

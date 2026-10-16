@@ -28,9 +28,10 @@ impl IafRounds {
 #[godot_api]
 impl IafRounds {
     /// The motion of a weapons.ibx section (_absAcceleration, _limitVel, _limitDist, _velocityJump,
-    /// _timeConstOrientation = the check period, _spiralAccel = the hit distance, _maxNumInAir); an empty pool.
+    /// _timeConstOrientation = the check period, _spiralAccel = the hit distance, _maxNumInAir) for weapon `type`
+    /// (565 = the gun); an empty pool.
     #[func]
-    fn configure(&mut self, m: VarDictionary) {
+    fn configure(&mut self, m: VarDictionary, r#type: i64) {
         let d = Motion::default();
         let f = |k: &str, v: f64| get::<f64>(&m, k).unwrap_or(v);
         let motion = Motion {
@@ -41,6 +42,7 @@ impl IafRounds {
             check_period: f("_timeConstOrientation", d.check_period),
             hit_distance: f("_spiralAccel", d.hit_distance),
             pool_size: get::<i64>(&m, "_maxNumInAir").and_then(|n| usize::try_from(n).ok()).unwrap_or(d.pool_size),
+            cut_aim: r#type != 565,
         };
         self.rounds = Some(Rounds::new(motion));
     }
@@ -61,10 +63,13 @@ impl IafRounds {
         vector3(self.motion().aim_point(vec3(p), vec3(vel), vec3(d), ag_mode))
     }
 
-    /// The flight from `p0` at speed `s` to `a` from `t0` ({p0, u, s, t0, t_end, A}; the decoys).
+    /// The flight from `p0` at speed `s` to `a` from `t0` ({p0, u, s, t0, t_end, A}; the decoys: no candidates, so
+    /// A is cut at the terrain, `FUN_004d7690`).
     #[func]
-    fn flight(&self, t0: f64, p0: Vector3, s: f64, a: Vector3) -> VarDictionary {
-        flight(&self.motion().flight(t0, vec3(p0), s, vec3(a)))
+    fn flight(&self, t0: f64, p0: Vector3, s: f64, a: Vector3, terrain_at: Callable) -> VarDictionary {
+        let m = self.motion();
+        let a = gun::launch_aim(&m, vec3(p0), vec3(a), true, &terrain(Some(terrain_at)));
+        flight(&m.flight(t0, vec3(p0), s, a))
     }
 
     /// A flight's position at `t` ({p0, u, s, t0, t_end, A}, as `slots()` gives them).
@@ -98,6 +103,7 @@ impl IafRounds {
         keys: PackedStringArray,
         positions: PackedVector3Array,
         targets: Variant,
+        terrain_at: Callable,
     ) -> i64 {
         let (locked, shooter) = (locked.to_string(), shooter.to_string());
         // A null Variant converts to an empty array: only a given array is a fixed list.
@@ -116,7 +122,8 @@ impl IafRounds {
             targets: targets.as_deref(),
         };
         let b = bodies(&keys, &positions);
-        self.rounds.as_mut().and_then(|r| r.fire(now, &shot, &b)).map_or(-1, |slot| slot as i64)
+        let t = terrain(Some(terrain_at));
+        self.rounds.as_mut().and_then(|r| r.fire(now, &shot, &b, &t)).map_or(-1, |slot| slot as i64)
     }
 
     /// Advances to `now` up to the first detonation: {slot, pos, hit ("unit" / "ground" / "end"), key, candidates}

@@ -157,7 +157,7 @@ func setup(h: Node, flights: Node, bdb: Dictionary) -> void:
 			if int(w.type) == 560:
 				m = {"_spiralAccel": 0.0}  # as the player's rockets: no hit sphere, they burst on the ground
 				m.merge(db.motion_for(560, int(w.generation)), true)
-			u.rounds.configure(m)
+			u.rounds.configure(m, int(w.type))
 			u.rounds.units = _units_of
 			u.rounds.ground = host.mission_ground
 			u.rounds.detonate = _detonate.bind(String(ent.key))  # the key, not u: u holds the rounds (a cycle never freed)
@@ -200,7 +200,7 @@ func _setup_aircraft(ent: Dictionary, obj: Dictionary, db, now: float) -> void:
 	if not gw.is_empty():
 		var m: Dictionary = db.motion_for(565, int(gw.generation))
 		u.rounds = GunRounds.new()
-		u.rounds.configure(m)
+		u.rounds.configure(m, 565)
 		u.rounds.units = _units_of
 		u.rounds.ground = host.mission_ground
 		u.rounds.detonate = _detonate.bind(String(ent.key))  # the key, not u: u holds the rounds (a cycle never freed)

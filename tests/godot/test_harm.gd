@@ -1,8 +1,10 @@
 # The HARM (590; docs/weapons.md §11.6): the anti-radiation missile flies the homing motion at the HARM page's
-# selected emitter. Mission 231 for every jet (the seven Jet list jets and the F-35I) with an AGM-88 on station 0
-# and a Shrike on station 8: a ground unit 15 km ahead becomes an emitter (its radar's lock notification to the
-# RWR), the HARM page lists and preselects it, HUD mode 8 shows the diamond and "In Range", the launch goes at it and
-# the hit destroys it. The flight model is frozen; the weapons run on a scripted sim time.
+# selected target. Mission 231 for every jet (the seven Jet list jets and the F-35I) with an AGM-88 on station 0
+# and a Shrike on station 8: the HARM sensor's scan (docs/mfd.md "HARM (10)") lists two radar-class units 15 and
+# 25 km ahead, nearest preselected, Ctrl+Return steps to the other and back; HUD mode 8 shows the diamond and
+# "In Range", the launch goes at the selected one and the hit destroys it. The flight model is frozen; the weapons
+# run on a scripted sim time. Extras "HARM targets: RWR": only the RWR's active emitters are listed, the selection
+# is kept over a refresh and Ctrl+Return steps that list.
 extends "res://../tests/godot/base.gd"
 
 ## [Jet list id, F-35I slot, type].
@@ -21,6 +23,7 @@ func run() -> void:
 		var name := "type %d" % c[2]
 		check(tv.player.type == c[2], "%s flies mission 231" % name)
 		await _case(tv, name, c[2] == 100)
+		await _rwr_case(tv, name)
 	Settings().jet_id = -1
 	Settings().f35i_slot = -1
 
@@ -29,13 +32,14 @@ func _case(tv, name: String, shots: bool) -> void:
 	var w = airborne_case(tv, [HARM, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, SHRIKE, 1, 25, 235, 33, 90, 34, 60])
 	var t := 1.0
 	# A ground unit (a radar's class) 15 km ahead on the terrain; every other unit hidden.
-	var site := _ground_unit(tv)
-	check(not site.is_empty(), "%s: a ground unit to be the emitter" % name)
-	if site.is_empty():
+	var sites := _radar_units(tv, 2)
+	check(sites.size() == 2, "%s: two radar-class units" % name)
+	if sites.size() < 2:
 		return
+	var site: Dictionary = sites[0]
 	var p := _place(tv, w, site, w.own(), 15000.0)
+	_place(tv, w, sites[1], w.own(), 25000.0)
 	w.update(t)
-	w.rwr.lock(site.key)  # the site's radar locks the jet: an active emitter
 	w.nav_key(0)
 	w.stores.cur = 0
 	w.select_ag()  # '['
@@ -44,8 +48,14 @@ func _case(tv, name: String, shots: bool) -> void:
 	check(w.master == 4 and w.hud_mode == 8 and tv.cockpit.mfds.any(func(m): return m.page == 10),
 		"%s: AGM88 selected: master 4, HUD mode 8, the HARM page" % name)
 	var cp = tv.cockpit
-	check(cp.harm.list.size() == 1 and cp.harm.list[0].selected and w.harm.selected == site.key,
-		"%s: the HARM page lists the emitter, preselected" % name)
+	check(cp.harm.list.size() == 2 and cp.harm.list[0].selected and w.harm.selected == site.key,
+		"%s: the HARM page lists both, the nearest preselected" % name)
+	w.harm_next()
+	check(w.harm.selected == sites[1].key, "%s: Ctrl+Return: the next target" % name)
+	w.harm_next()
+	check(w.harm.selected == site.key, "%s: Ctrl+Return wraps to the first" % name)
+	t += 0.05
+	w.update(t)
 	var wp: Dictionary = cp.weapons
 	check(wp.get("harm_point") != null and cp.harm.in_range, "%s: the HUD diamond on the emitter, In Range" % name)
 	if shots:
@@ -82,7 +92,9 @@ func _case(tv, name: String, shots: bool) -> void:
 		await _save("harm_hit.png")
 		tv.views.set_cockpit(tv.views.COCKPIT)
 		mark.queue_free()
-	# The Shrike (590 too): no emitter left in the list, it flies at the point 7 km ahead (_fireEndVec).
+	# The Shrike (590 too): nothing left in the list (the far unit hidden), it flies at the point 7 km ahead
+	# (_fireEndVec).
+	sites[1].visible = false
 	w.select_ag()  # '[': the next AG store
 	t += 2.1
 	w.update(t)
@@ -90,3 +102,32 @@ func _case(tv, name: String, shots: bool) -> void:
 	w.fire_selected()
 	w.release_selected()
 	check(w.missiles.size() == 1 and not w.missiles[0].has_target, "%s: no emitter: the SHRIKE flies at its end point" % name)
+
+
+## Extras "HARM targets: RWR": the far unit locks the jet (an RWR emitter), the near one is silent.
+func _rwr_case(tv, name: String) -> void:
+	Settings().harm_targets = "rwr"
+	var w = airborne_case(tv, [HARM, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, SHRIKE, 1, 25, 235, 33, 90, 34, 60])
+	var t := 1.0
+	var sites := _radar_units(tv, 2)
+	if sites.size() < 2:
+		Settings().harm_targets = "original"
+		return
+	# The second airborne case starts 3000 m higher: farther out to stay inside the ±15° cone.
+	_place(tv, w, sites[0], w.own(), 25000.0)
+	_place(tv, w, sites[1], w.own(), 35000.0)
+	w.update(t)
+	w.rwr.lock(sites[1].key)
+	w.nav_key(0)
+	w.stores.cur = 0
+	w.select_ag()
+	t += 0.05
+	w.update(t)
+	check(w.harm.list.size() == 1 and w.harm.selected == sites[1].key, "%s: RWR source: only the emitter is listed" % name)
+	w.rwr.lock(sites[0].key)
+	t += 2.1  # the RWR's refresh recaptures
+	w.update(t)
+	check(w.harm.list.size() == 2 and w.harm.selected == sites[1].key, "%s: RWR source: both emitters, the selection kept" % name)
+	w.harm_next()
+	check(w.harm.selected == sites[0].key, "%s: RWR source: Ctrl+Return steps (wraps to the nearest)" % name)
+	Settings().harm_targets = "original"

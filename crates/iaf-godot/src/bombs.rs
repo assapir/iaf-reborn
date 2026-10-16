@@ -39,8 +39,8 @@ pub struct IafBomb {}
 impl IafBomb {
     /// `FUN_0045e7f0`: {point, t}.
     #[func]
-    fn predict_impact(p: Vector3, vel: Vector3, nose: Vector3, drag: f64, extra: f64, ground: Callable) -> VarDictionary {
-        let (i, t) = bombs::predict_impact(vec3(p), vec3(vel), vec3(nose), drag, extra, &terrain(Some(ground)));
+    fn predict_impact(p: Vector3, vel: Vector3, nose: Vector3, drag: f64, extra: f64, cockpit: bool, ground: Callable) -> VarDictionary {
+        let (i, t) = bombs::predict_impact(vec3(p), vec3(vel), vec3(nose), drag, extra, cockpit, &terrain(Some(ground)));
         vdict! { "point" => vector3(i), "t" => t }
     }
 

@@ -18,9 +18,10 @@ var _r = ClassDB.instantiate("IafRounds")
 var _by_key := {}
 
 
-## The motion of a weapons.ibx section; an empty pool.
-func configure(m: Dictionary) -> void:
-	_r.configure(m)
+## The motion of a weapons.ibx section for weapon `type` (565 = the gun: its aim is never cut at the terrain); an
+## empty pool.
+func configure(m: Dictionary, type: int) -> void:
+	_r.configure(m, type)
 	velocity_jump = _r.velocity_jump()
 	pool.clear()
 	_sync()
@@ -36,9 +37,9 @@ func aim_point(p: Vector3, vel: Vector3, d: Vector3, ag_mode: bool) -> Vector3:
 	return _r.aim_point(p, vel, d, ag_mode)
 
 
-## The flight from `p0` at speed `s` to `a` from `t0` (the decoys): {p0, u, s, t0, t_end, A}.
+## The flight from `p0` at speed `s` to `a` from `t0` (the decoys: A cut at the `ground`): {p0, u, s, t0, t_end, A}.
 func flight(t0: float, p0: Vector3, s: float, a: Vector3) -> Dictionary:
-	return _r.flight(t0, p0, s, a)
+	return _r.flight(t0, p0, s, a, ground)
 
 
 ## A record's position at `now`.
@@ -53,11 +54,12 @@ func next_free() -> bool:
 
 ## One shot (FUN_00456d40 after the ammo checks): `p` jet origin, `muzzle` launch point, `vel` jet velocity, `a`
 ## aim point, `locked` the radar-locked unit key ("" none), `me` the shooter, `easy` Easy aiming, `only` a ground
-## unit's round's only candidates (its target, docs/ai.md §14) in place of the query. Returns the round's pool slot,
+## unit's round's only candidates (its target, docs/ai.md §14) in place of the query. Without candidates a weapon
+## other than the gun flies only to the `ground` on its line to `a` (FUN_004d7690). Returns the round's pool slot,
 ## −1 when the pooled round is busy.
 func fire(now: float, p: Vector3, muzzle: Vector3, vel: Vector3, a: Vector3, locked: String, me: String, easy: bool, only = null) -> int:
 	var b := _bodies()
-	var slot: int = _r.fire(now, p, muzzle, vel, a, locked, me, easy, b[0], b[1], PackedStringArray(only) if only != null else null)
+	var slot: int = _r.fire(now, p, muzzle, vel, a, locked, me, easy, b[0], b[1], PackedStringArray(only) if only != null else null, ground)
 	_sync()
 	return slot
 

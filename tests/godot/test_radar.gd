@@ -1,6 +1,7 @@
 # The player's radar (docs/radar.md) in mission 221 (F-16, alpha_1): R turns it on in LRS, an AI jet
 # ahead shows at its range and bearing, a lock goes to STT (auto-range), the IR seeker follows the
-# radar target, the HUD gets the target box, Backspace drops the lock. Plus the pure rules: the
+# radar target (beyond R/2 only with the AI jet's afterburner; the SRM shoot cue and circle), the HUD gets the
+# target box, Backspace drops the lock. Plus the pure rules: the
 # detection range, the 60° cone, the Real F-16 range. The weapons run on a scripted sim time.
 extends "res://../tests/godot/base.gd"
 
@@ -79,6 +80,28 @@ func run() -> void:
 	var box: Dictionary = tv.cockpit.hud.target_box(tv.cockpit.ui_scale())
 	check(not box.is_empty() and box.p.x > tv.cockpit.hud.size.x / 2 and box.edge, "HUD target box held at the right edge (20° off the nose)")
 	check(not box.get("hostile", true), "a friendly (alpha_2): the box gets the X")
+	# The IR seeker beyond R/2 (FUN_00461d10): only with the AI jet's afterburner lit (its FM stage); then 5 km ahead
+	# the SRM shoot cue (FUN_00461290 → state+0x1010): the seeker's lock, rounds, inside the DLZ; the circle shrinks.
+	var far_d: float = w.seeker.lock_range * 0.75
+	# [distance, the AI jet's afterburner stage]; GDScript lambdas copy `t`, so a plain loop.
+	var seen := []
+	for step in [[far_d, 0], [far_d, 1], [5000.0, 0]]:
+		pilot._state["afterburner"] = step[1]
+		o = w.own()
+		ent.world = o.pos + (o.fwd * Vector3(1, 1, 0)).normalized() * float(step[0])
+		ent.alt = ent.world.z
+		for i in 4:
+			t += 0.05
+			w.update(t)
+		seen.append([w.seeker.lock, bool(tv.cockpit.weapons.get("shoot", false)), float(tv.cockpit.weapons.circle)])
+	check(not seen[0][0], "beyond R/2 (%.0f m), no afterburner: no IR lock" % far_d)
+	check(seen[1][0], "beyond R/2 with the AI jet's afterburner lit: IR lock")
+	check(seen[2][0] and seen[2][1], "5 km ahead: IR lock and the SRM shoot cue")
+	check(seen[2][2] < 5.0, "mode 1 circle inside the DLZ (%.2f)" % seen[2][2])
+	ent.world = tp
+	ent.alt = tp.z
+	t += 0.05
+	w.update(t)
 	# The lock follows the unit every frame (FUN_0044e370: the target's live position for the HUD box, LCOS, range).
 	var moved := func(d: Vector3) -> Vector3:
 		ent.world += d

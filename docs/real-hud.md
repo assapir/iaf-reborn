@@ -168,7 +168,7 @@ US Navy flight-test helmet video (https://www.twz.com/12297/); Collins datasheet
 - F-16: the NAV / A-A / A-G layout of figs. 1-110 / 1-111 / 1-115 (scales, boxes, the "C", windows 3 / 4 / 5 / 7 / 8 /
   10 / 13 / 14 / 25 / 26 without ALOW, heading box low / high, roll indicator, bending ladder, FPM, AoA bracket,
   steerpoint diamond, TD box / locator line, AIM-9 reticle + seeker diamond, AIM-120 ASEC + ASC, DLZ with closure,
-  CCIP / strafe pipper with the fall line, FUEL); EEGS levels 2 and 5 per fig. 1-257 (funnel, MRGS lines, T-symbol,
+  CCIP / strafe pipper with the fall line, FUEL, SHOOT in its window (MLU; the AIM-9 / AIM-120 shoot cue)); EEGS levels 2 and 5 per fig. 1-257 (funnel, MRGS lines, T-symbol,
   1 g / 9 g pippers, 4 mr pipper, TD circle with the range arc and the maximum-range dot). Not drawn: the VVI scale
   (ours: the VAH switch position), DTOS / CCRP (the game has no such modes), BATR / FEDS, ALOW. The target-aspect
   triangle rides the AIM-9 reticle / ASEC.

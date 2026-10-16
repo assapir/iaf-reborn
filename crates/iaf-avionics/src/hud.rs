@@ -36,6 +36,15 @@ pub fn shoot_cue(inside: bool, rounds_left: bool, radar_aa: bool, dlz: Option<Dl
     inside && rounds_left && radar_aa && dlz.is_some_and(|z| dist >= z.min && dist <= z.max)
 }
 
+/// The SRM shoot cue (`FUN_00461290` → state+0x1010, HUD mode 1): the seeker's lock (0x82f6ec, already off without
+/// rounds on the station), rounds on the selected station (`FUN_00456cd0`) and min ≤ dist ≤ max of the DLZ and
+/// distance the mode-1 circle (`FUN_00462c10`) last wrote into its statics (0x82f6a8 max / 0x82f6b0 min, 0x82f6f0):
+/// written only with a radar lock and a seeker target, kept otherwise, 0 at start (the cue then follows the lock).
+/// No in-circle and no radar A-A test, unlike the MRM's.
+pub fn srm_shoot_cue(lock: bool, rounds_left: bool, max: f64, min: f64, dist: f64) -> bool {
+    lock && rounds_left && dist >= min && dist <= max
+}
+
 /// The HARM's "In Range" (+0xdf0): rounds left and the selected emitter nearer than the DLZ max.
 pub fn harm_in_range(rounds_left: bool, dlz: Option<Dlz>, dist: f64) -> bool {
     rounds_left && dlz.is_some_and(|z| dist < z.max)
@@ -70,6 +79,9 @@ mod tests {
         let z = Some(Dlz { max: 10000.0, min: 2000.0 });
         assert!(shoot_cue(true, true, true, z, 5000.0));
         assert!(!shoot_cue(true, true, true, z, 1000.0) && !shoot_cue(true, true, false, z, 5000.0));
+        assert!(srm_shoot_cue(true, true, 0.0, 0.0, 0.0), "the statics at start: the cue follows the lock");
+        assert!(srm_shoot_cue(true, true, 10000.0, 2000.0, 5000.0) && !srm_shoot_cue(true, true, 10000.0, 2000.0, 1000.0));
+        assert!(!srm_shoot_cue(false, true, 10000.0, 2000.0, 5000.0) && !srm_shoot_cue(true, false, 0.0, 0.0, 0.0));
         assert!(harm_in_range(true, z, 9000.0) && !harm_in_range(true, None, 9000.0));
         assert!((lock_bearing(Vec3::ZERO, 0.1, Vec3::new(0.0, -1.0, 0.0)) - (PI - 0.1)).abs() < 1e-12);
     }

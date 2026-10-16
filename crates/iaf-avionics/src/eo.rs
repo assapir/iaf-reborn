@@ -282,11 +282,53 @@ pub fn full_screen_ok(mode: Mode, tv_status: i64) -> bool {
     }
 }
 
+/// The units / buildings part of the EO centre point (ours for the centre-pixel depth pick, `FUN_00401fc0` in
+/// `FUN_004d9080`): the distance along the ray (`dir` a unit vector) at which it first enters a unit's box (centre,
+/// half extent: the damage cube, `DamageModel.size_of`), within `max`; None when it hits none. The caller takes it
+/// when it is nearer than the terrain point.
+pub fn unit_pick(from: Vec3, dir: Vec3, boxes: &[(Vec3, f64)], max: f64) -> Option<f64> {
+    boxes
+        .iter()
+        .filter_map(|&(c, h)| {
+            let (mut near, mut far) = (0.0_f64, max);
+            for i in 0..3 {
+                if dir[i].abs() < 1e-12 {
+                    if (from[i] - c[i]).abs() > h {
+                        return None;
+                    }
+                    continue;
+                }
+                let (a, b) = ((c[i] - h - from[i]) / dir[i], (c[i] + h - from[i]) / dir[i]);
+                near = near.max(a.min(b));
+                far = far.min(a.max(b));
+                if near > far {
+                    return None;
+                }
+            }
+            Some(near)
+        })
+        .min_by(f64::total_cmp)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     const NONE: &dyn Fn(&str) -> Option<Vec3> = &|_| None;
+
+    #[test]
+    fn unit_pick_takes_the_nearest_box_on_the_ray() {
+        let (eye, down_north) = (Vec3::new(0.0, 0.0, 1000.0), Vec3::new(0.0, 1.0, -1.0) * (0.5f64.sqrt()));
+        let tank = (Vec3::new(0.0, 1000.0, 2.0), 3.0);
+        let behind = (Vec3::new(0.0, 990.0, 12.0), 3.0);
+        let beside = (Vec3::new(50.0, 990.0, 12.0), 3.0);
+        let d = unit_pick(eye, down_north, &[tank, beside], 1e5).unwrap();
+        assert!((d - 997.0 * 2f64.sqrt()).abs() < 1e-6, "enters the tank's near face: {d}");
+        let d2 = unit_pick(eye, down_north, &[tank, behind, beside], 1e5).unwrap();
+        assert!(d2 < d, "the nearer box wins");
+        assert_eq!(unit_pick(eye, down_north, &[beside], 1e5), None);
+        assert_eq!(unit_pick(eye, down_north, &[tank], 100.0), None, "beyond max");
+    }
 
     #[test]
     fn full_screen() {

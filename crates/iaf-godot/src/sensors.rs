@@ -1,10 +1,10 @@
-//! `IafEo` (the EO sensor, `iaf_avionics::eo`) and `IafHarm` (the HARM page's emitter list, `iaf_avionics::harm`) for
+//! `IafEo` (the EO sensor, `iaf_avionics::eo`) and `IafHarm` (the HARM sensor's list, `iaf_avionics::harm`) for
 //! `game/weapons/eo_sensor.gd` and `harm_sensor.gd`. A base is Vector2(heading, pitch).
 
-use crate::world::{get, num, vec3, vector3};
+use crate::world::{get, num, terrain, vec3, vector3};
 use godot::prelude::*;
 use iaf_avionics::eo::{Aim, Eo, Mode};
-use iaf_avionics::harm::{self, Emitter, Harm};
+use iaf_avionics::harm::{self, Emitter, Harm, Source, Unit};
 use iaf_avionics::Vec3;
 
 fn base(v: Vector2) -> (f64, f64) {
@@ -102,6 +102,14 @@ impl IafEo {
         iaf_avionics::eo::full_screen_ok(self.eo.mode, tv_status)
     }
 
+    /// The distance along the ray to the nearest unit box (`iaf_avionics::eo::unit_pick`; `centres` / `halves` per
+    /// unit), or -1 for none within `max`.
+    #[func]
+    fn unit_pick(from: Vector3, dir: Vector3, centres: PackedVector3Array, halves: PackedFloat64Array, max: f64) -> f64 {
+        let boxes: Vec<(Vec3, f64)> = centres.as_slice().iter().zip(halves.as_slice()).map(|(&c, &h)| (vec3(c), h)).collect();
+        iaf_avionics::eo::unit_pick(vec3(from), vec3(dir), &boxes, max).unwrap_or(-1.0)
+    }
+
     /// {zoom, u, v, laser, spot, range}.
     #[func]
     fn flir_page(&self, ae: Vector2, range_m: f64) -> VarDictionary {
@@ -154,9 +162,28 @@ impl IafHarm {
         self.harm.active = on;
     }
 
-    /// A capture from the RWR's slots [{unit, type, pos, active}].
+    /// The list source: "original" (the sensor's scan) or "rwr" (Extras, the RWR's emitters).
     #[func]
-    fn capture(&mut self, slots: VarArray, eye: Vector3, b: Vector2) {
+    fn set_source(&mut self, source: GString) {
+        self.harm.source = if source.to_string() == "rwr" { Source::Rwr } else { Source::Original };
+    }
+
+    /// A capture from the units [{key, type, klass, name, pos, ecm}] (the scan) or the RWR's slots [{unit, type,
+    /// pos, active}], per the source; the own jammer and the terrain (Callable(Vector3) -> float or null).
+    #[func]
+    fn capture(&mut self, units: VarArray, slots: VarArray, eye: Vector3, b: Vector2, own_ecm: bool, ground: Callable) {
+        let units: Vec<Unit> = units
+            .iter_shared()
+            .filter_map(|s| s.try_to::<VarDictionary>().ok())
+            .map(|s| Unit {
+                key: get::<GString>(&s, "key").unwrap_or_default().to_string(),
+                type_code: num(&s, "type").map_or(-1, |t| t as i64),
+                klass: num(&s, "klass").map_or(-1, |k| k as i64),
+                name: get::<GString>(&s, "name").unwrap_or_default().to_string(),
+                pos: vec3(get(&s, "pos").unwrap_or_default()),
+                ecm: get(&s, "ecm").unwrap_or(false),
+            })
+            .collect();
         let emitters: Vec<Emitter> = slots
             .iter_shared()
             .filter_map(|s| s.try_to::<VarDictionary>().ok())
@@ -170,7 +197,13 @@ impl IafHarm {
                 })
             })
             .collect();
-        self.harm.capture(&emitters, vec3(eye), base(b));
+        self.harm.capture(&units, &emitters, vec3(eye), base(b), own_ecm, &terrain(Some(ground)));
+    }
+
+    /// Ctrl+Return / command 0x34: the next / previous entry.
+    #[func]
+    fn step(&mut self, next: bool) {
+        self.harm.step(next);
     }
 
     #[func]

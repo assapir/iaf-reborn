@@ -510,10 +510,22 @@ the hit's fly-by).
 - Panel, HUD and messages hidden.
 
 ### HARM (10) — `FUN_005358b0`, data `FUN_0045bb00` → `FUN_00446050`
-- Source: the **HARM sensor** (vtable 0x601190, a subclass of the AI target sensor of docs/ai.md §14: ctor `0x45b880`,
-  scan `FUN_004af300`, list vfunc +0x20 `FUN_004af260`) with a cone of **±15°** (cos 15° at sensor +0x60 / +0x64, from
-  `0x601168` = 15.0 in the static init `0x45b68e`). Only in HUD mode 8 (master 4 with 590 selected: `FUN_00449810`
+- Source: the **HARM sensor** (ctl+0x44c, vtable 0x601190, a subclass of the AI target sensor of docs/ai.md §14: ctor
+  `FUN_0045b850(0, 3, 20)`: its own 15-slot list (`FUN_004b0790(0xf)`), query kind 3, range 20 NM; scan
+  `FUN_004af300`, list vfunc +0x20 `FUN_004af260`) with a cone of **±15°** (cos 15° at sensor +0x60 / +0x64, from
+  `0x601168` = 15.0 in the static init `0x45b68e`). On only in HUD mode 8 (master 4 with 590 selected: `FUN_00449810`
   → `FUN_0045c2b0` on, `FUN_0045c2f0` off).
+- **Scan** (vfunc +0x60 `FUN_0045b960`: clears +0x50, then `FUN_004af300`, state 5): when the sensor comes on and on
+  the RWR's 2 s refresh (`FUN_0044a1a0` → the RWR, the radar, this). Units from the spatial query (sphere of kind 3,
+  37037 m, `FUN_004b0020`, centred R/2 ahead) through the class filter (vfunc +0x3c `FUN_0045b980`): classes **9, 10,
+  11**, and class **8 only when its name holds "RADAR"** (`0x631f3c`, CString::Find, case sensitive: the missions name
+  their sites "RADARSA6", "sa13 0RADAR"…; "hawk 2 radar" is not seen). Skipped: the owner, units in state 4 / 5. Range
+  R = 20·1854 m; with the own jammer on R·0.8 against a jamming unit, else R·0.5; without it a jamming unit is seen at
+  any range (the player-quiet 0.7 R rule never applies: the owner is the player). Accept (vfunc +0x48
+  `FUN_004aeb90`; +0x50 = 0, so no "30 m above the terrain" test): inside the cone about the nose and a terrain line of
+  sight (both ends +1.5 m). **No side test** (friendlies are listed) and **no emitter test** (the RWR is not used).
+  Score 100 / dist, best 15. The selected target is kept while alive and still accepted (forced into the list, range
+  not re-tested); otherwise the first (nearest).
 - State: list count state+0xde8 (≤ 15 entries of 0x40 from state+0xa28), +0xdf8 = the field width = **2·acos(+0x64)
   = 30°**, +0xe00 = **"no source" flag** = no round of the selected store left (`FUN_00456cd0` = 0), or the sensor
   off; +0xdf4 / +0xdfc = the heading / pitch change since the list was captured (`DAT_0082f574` / `0x82f568`, latched
@@ -531,16 +543,20 @@ the hit's fly-by).
   refreshes; `DAT_0083e344` blocks a repeat until that id is the selected one. Status right-aligned at (114,3):
   **"no source"** when +0xe00, else **"In Range"** when +0xdf0, else **"No Range"** when the list is not empty, else
   nothing.
-- Ctrl+Return (cmd 0x33, HUD mode 8, more than one entry) / cmd 0x34: next / previous target (vfunc +0x2c(1) / (0)).
+- Ctrl+Return (cmd 0x33, HUD mode 8, more than one entry) / cmd 0x34 (no key): next / previous target (vfunc +0x2c
+  `FUN_0045b930` → `FUN_004aefd0(1 / 0)`: the list iterator to the next / previous entry, wrapping; none selected →
+  the first; then state 5).
 
 **iaf-reborn** (`crates/iaf-avionics/src/eo.rs` via `weapons/eo_sensor.gd`, `cockpit/mfd.gd`, `terrain/terrain_view.gd`): all of the above
 (the TV weapons fly: `player_weapons.gd` `tv_weapon` / `tv_status`, the eye rides the launched weapon, "%3d" its time
-left) except: the EO centre point is the terrain under the line of sight
-(ray-marched; buildings / units not hit); before launch the eye is the jet's position (not the pylon); the picture is a SubViewport
+left) except: the EO centre point is the nearest of the terrain under the line of sight (ray-marched) and the
+units' / buildings' damage boxes on it (ray-tested, `eo.rs` `unit_pick`), not a depth read-back; before launch the eye is the jet's position (not the pylon); the picture is a SubViewport
 camera of the same world at the display's on-screen resolution (deviations.md); the full-screen weapon MFD (Z) as
-above. HARM: the emitters are the **RWR's** active entries inside the ±15° cone (the HARM sensor itself waits for the
-AI target sensor), the nearest 5, the nearest preselected, refreshed with the RWR (2 s) and on a click; "In Range" from the HARM's
-DLZ (docs/weapons.md §11.5); Ctrl+Return not built.
+above. HARM: the sensor's scan as above (`crates/iaf-avionics/src/harm.rs`; the distance is tested from the jet, not
+inside the query sphere, UNCERTAIN radius; the line of sight sampled every 100 m as the radar's), rescanned with the RWR
+(2 s), when it comes on and on a click (the original only re-captures the page on a click); "In Range" from the HARM's
+DLZ (docs/weapons.md §11.5); Ctrl+Return steps the list. Extras "HARM targets: RWR" (ours, docs/deviations.md §2):
+the RWR's active emitters inside the cone instead, the nearest 5, the nearest preselected.
 
 ## 4. isr.bmp / MAPFRAME georeference
 

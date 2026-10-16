@@ -68,7 +68,7 @@ func run() -> void:
 	# --- gun rounds (pure) ----------------------------------------------------------------------
 	var G = load("res://weapons/gun_rounds.gd")
 	var g = G.new()
-	g.configure(db.motion_for(565, 0))
+	g.configure(db.motion_for(565, 0), 565)
 	var unit := {"key": "u", "pos": Vector3(0, 1000, 100)}
 	g.units = func(): return [unit]
 	g.ground = func(_p): return 0.0

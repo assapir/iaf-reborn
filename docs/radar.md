@@ -103,8 +103,12 @@ when the player's damage flag 15 is set; generator failures 19 / 21 set it too, 
 - ECM: the player's jammer is built (J, `player_weapons.gd` `ecm_key`, docs/weapons.md §10); no AI unit carries ECM
   (nothing sets a target's `ecm`, so the launch q − rand of `_launch_target` never applies) and the AI sensors ignore
   the player's.
-- What uses the designated point: not the bombs / rockets (docs/weapons.md §9.3); the TV / laser weapons' use is not
-  traced yet.
+- What uses the designated point: **nothing but the MAP page's cross** — as in the original. Its X / Y / height (+0x58 /
+  +0x5c / +0x60) are read only by their writer `FUN_004ade90`; the flag +0x50 goes to state+0xa1c (`FUN_00445f10`),
+  read by the MFD cross (`FUN_00535ea0`) and the HUD (`FUN_0052f690` calls the TD box `FUN_00537330` with a lock or a
+  designation, but the box sits at S+0xff4, the target point of `FUN_0045a810` → `FUN_0044e370`, which is the lock or,
+  without one, the vector at ctl+0xdc (UNCERTAIN what it holds; not the designated point); ours draws the box with a
+  lock only). No bomb / rocket aim (docs/weapons.md §9.3), EO / FLIR / TV slew or laser reads it: the game has no CCRP.
 - The STT range scale's envelope ticks are drawn (the selected store's DLZ, docs/weapons.md §11.2, docs/mfd.md).
 - Semi-active missiles (610): a launch locks STT; every track drop / change turns their guidance off (`FUN_00458130`,
   docs/weapons.md §11.4); radar damage does not (original quirk kept).
@@ -115,5 +119,6 @@ when the player's damage flag 15 is set; generator failures 19 / 21 set it too, 
 ## 9. Validation
 `tests/godot/test_radar.gd`: the F-16 table, the detection range and the kept selection, the 60° cone; in mission 221
 an AI jet 20 km out at 20° right shows at that range and bearing, a click-lock goes to STT with auto-range to the 20 NM
-scale, the IR seeker is slaved to it, the HUD box is held at the right edge with the friendly X, the lock follows the
+scale, the IR seeker is slaved to it, the HUD box is held at the right edge with the friendly X; beyond R/2 the seeker
+locks only with the AI jet's afterburner lit, and 5 km ahead the SRM shoot cue shows and the circle shrinks; the lock follows the
 moving unit every frame (STT and TWS; the TWS blip waits for the scan), Backspace returns to LRS, S to STBY.

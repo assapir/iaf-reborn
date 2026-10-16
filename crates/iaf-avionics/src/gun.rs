@@ -28,6 +28,41 @@ const MAX_RANGE: f64 = 30000.0;
 /// Without terrain a round detonates at 0.1 m.
 const NO_TERRAIN_Z: f64 = 0.1;
 
+/// The first terrain point on the segment `p0` → `a` (`FUN_004020d0`; ours: steps of 2 % of the distance, at least
+/// 25 m, then 8 halvings), None when it is clear.
+pub fn terrain_cut(p0: Vec3, a: Vec3, terrain: &dyn Fn(Vec3) -> Option<f64>) -> Option<Vec3> {
+    let len = p0.distance(a);
+    let u = (a - p0).try_normalize()?;
+    let below = |d: f64| {
+        let p = p0 + u * d;
+        terrain(p).is_some_and(|g| p.z <= g)
+    };
+    let (mut lo, mut step) = (0.0, 25.0_f64);
+    while lo < len {
+        let mut hi = (lo + step).min(len);
+        if below(hi) {
+            for _ in 0..8 {
+                let mid = 0.5 * (lo + hi);
+                if below(mid) {
+                    hi = mid;
+                } else {
+                    lo = mid;
+                }
+            }
+            return Some(p0 + u * hi);
+        }
+        lo = hi;
+        step = step.max(hi * 0.02);
+    }
+    None
+}
+
+/// The aim at launch (`FUN_004d7690`): a fixed weapon other than the gun with no candidate (decoys, rockets with an
+/// empty list) flies only to the first terrain point on its line to A.
+pub fn launch_aim(m: &Motion, p0: Vec3, a: Vec3, no_candidates: bool, terrain: &dyn Fn(Vec3) -> Option<f64>) -> Vec3 {
+    if m.cut_aim && no_candidates { terrain_cut(p0, a, terrain).unwrap_or(a) } else { a }
+}
+
 /// The shot line (`FUN_00456ff0`): the nose rotated 1° up about the right wing (K = N × U), for the player only.
 pub fn shot_dir(nose: Vec3, up: Vec3, elevate: bool) -> Vec3 {
     match nose.cross(up).try_normalize() {
@@ -50,6 +85,8 @@ pub struct Motion {
     pub hit_distance: f64,
     /// _maxNumInAir.
     pub pool_size: usize,
+    /// Not the gun (type 565): a round without candidates has its aim cut at the terrain (`FUN_004d7690`).
+    pub cut_aim: bool,
 }
 
 impl Default for Motion {
@@ -62,6 +99,7 @@ impl Default for Motion {
             check_period: 0.1,
             hit_distance: 50.0,
             pool_size: 20,
+            cut_aim: false,
         }
     }
 }
@@ -212,7 +250,7 @@ impl Rounds {
     }
 
     /// Fires the next pooled round: its slot, or None when it is still in the air.
-    pub fn fire(&mut self, now: f64, shot: &Shot, bodies: &[Body]) -> Option<usize> {
+    pub fn fire(&mut self, now: f64, shot: &Shot, bodies: &[Body], terrain: &dyn Fn(Vec3) -> Option<f64>) -> Option<usize> {
         if !self.next_free() {
             return None;
         }
@@ -229,6 +267,7 @@ impl Rounds {
             Some(u) if to_aim.length() > MAX_RANGE => shot.muzzle + u * MAX_RANGE,
             _ => shot.aim,
         };
+        let aim = launch_aim(&self.motion, shot.muzzle, aim, candidates.is_empty(), terrain);
         let flight = self.motion.flight(now, shot.muzzle, shot.velocity.length() + self.motion.velocity_jump, aim);
         self.pool[slot] = Some(Round {
             flight,
@@ -397,7 +436,7 @@ mod tests {
         let mut g = Rounds::new(gun());
         let bodies = [body("u", 0.0, 1000.0, 100.0)];
         let aim = g.motion.aim_point(Vec3::new(0.0, 0.0, 100.0), Vec3::ZERO, Vec3::NORTH, false);
-        assert_eq!(g.fire(0.0, &shot(aim, false), &bodies), Some(0));
+        assert_eq!(g.fire(0.0, &shot(aim, false), &bodies, &|_| None), Some(0));
         let r = g.slots()[0].as_ref().expect("in the air");
         assert_eq!(r.hit_radius, 25.0, "Easy aiming off: half the hit sphere");
         let want = (1400.0 - (1400.0f64 * 1400.0 - 20.0 * 2781.0).sqrt()) / 10.0;
@@ -415,7 +454,7 @@ mod tests {
         let aim = Vec3::new(0.0, 2781.0, 100.0);
         let target = ["t".to_string()];
         for now in [0.0, 0.3] {
-            g.fire(now, &Shot { targets: Some(&target), ..shot(aim, false) }, &bodies);
+            g.fire(now, &Shot { targets: Some(&target), ..shot(aim, false) }, &bodies, &|_| None);
         }
         let cands = |i: usize| g.slots()[i].as_ref().map(|r| r.candidates.clone());
         assert_eq!(cands(0), Some(vec!["t".to_string()]));
@@ -427,16 +466,37 @@ mod tests {
         let mut g = Rounds::new(gun());
         let bodies = [body("u", 0.0, 500.0, 100.0), body("me", 0.0, 0.0, 0.0)];
         let aim = Vec3::new(0.0, 2781.0, 100.0);
-        g.fire(0.0, &shot(aim, true), &bodies);
-        g.fire(0.3, &shot(aim, true), &bodies);
+        g.fire(0.0, &shot(aim, true), &bodies, &|_| None);
+        g.fire(0.3, &shot(aim, true), &bodies, &|_| None);
         let cands = |i: usize| g.slots()[i].as_ref().map(|r| r.candidates.clone());
         assert_eq!(cands(0), Some(vec!["u".to_string()]));
         assert_eq!(cands(1), Some(vec![]), "no list within 0.5 s of the last");
         let mut g = Rounds::new(gun());
-        g.fire(0.0, &shot(Vec3::new(0.0, 1000.0, -100.0), true), &[]);
+        g.fire(0.0, &shot(Vec3::new(0.0, 1000.0, -100.0), true), &[], &|_| Some(0.0));
         let det = g.step(5.0, &[], &|_| Some(0.0)).expect("the ground");
         assert_eq!(det.hit, Hit::Ground);
         assert!(det.pos.z <= 0.0);
+    }
+
+    #[test]
+    fn a_rocket_or_decoy_without_candidates_is_cut_at_the_terrain() {
+        // A hill 30 m high from y = 400 m on; the line from (0, 0, 100) to (0, 1000, -100) meets it at y = 400 (z = 20).
+        let hill = |p: Vec3| Some(if p.y >= 400.0 { 30.0 } else { 0.0 });
+        let p0 = Vec3::new(0.0, 0.0, 100.0);
+        let a = Vec3::new(0.0, 1000.0, -100.0);
+        let cut = terrain_cut(p0, a, &hill).expect("a hit");
+        assert!((cut.y - 400.0).abs() < 1.0 && cut.z <= 30.0 && cut.z > 19.0, "{cut:?}");
+        assert_eq!(terrain_cut(p0, Vec3::new(0.0, 300.0, 50.0), &hill), None, "clear");
+        let rocket = Motion { cut_aim: true, hit_distance: 0.0, ..gun() };
+        assert_eq!(launch_aim(&rocket, p0, a, true, &hill), cut);
+        assert_eq!(launch_aim(&rocket, p0, a, false, &hill), a, "with candidates: the aim stays");
+        assert_eq!(launch_aim(&gun(), p0, a, true, &hill), a, "the gun is never cut");
+        let mut g = Rounds::new(rocket);
+        g.fire(0.0, &shot(a, true), &[], &hill);
+        let r = g.slots()[0].as_ref().expect("in the air");
+        assert_eq!(r.flight.a, cut);
+        let det = g.step(10.0, &[], &hill).expect("the end");
+        assert!(det.pos.distance(cut) < 1e-6, "ends at the cut point, not underground");
     }
 
     #[test]

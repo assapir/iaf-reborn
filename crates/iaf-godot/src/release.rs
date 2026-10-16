@@ -65,6 +65,11 @@ impl IafRelease {
     }
 
     #[func]
+    fn srm_shoot_cue(lock: bool, rounds_left: bool, max: f64, min: f64, dist: f64) -> bool {
+        hud::srm_shoot_cue(lock, rounds_left, max, min, dist)
+    }
+
+    #[func]
     fn harm_in_range(rounds_left: bool, z: VarArray, dist: f64) -> bool {
         hud::harm_in_range(rounds_left, dlz(&z), dist)
     }

@@ -183,3 +183,18 @@ func fly_step(tv, w, vel: Vector3, t: float, dt: float) -> float:
 	tv.rig.position += vel * dt
 	w.update(t + dt)
 	return t + dt
+
+
+## `n` live units the HARM sensor scans (classes 9 / 10 / 11, class 8 named "RADAR…"); every other unit hidden.
+func _radar_units(tv, n: int) -> Array:
+	var out := []
+	for e in tv.runtime.entities.values():
+		var k := int(e.get("klass", -1))
+		if out.size() < n and not e.player and e.node != null and int(e.get("state", 1)) == 1 \
+				and (k in [9, 10, 11] or (k == 8 and String(e.name).contains("RADAR"))):
+			out.append(e)
+		elif not e.player:
+			e.visible = false
+	for e in out:
+		e.visible = true
+	return out

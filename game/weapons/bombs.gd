@@ -9,9 +9,10 @@ extends RefCounted
 const NO_GROUND := 0.1
 
 
-## FUN_0045e7f0 (the HUD's predicted impact): {point, t}.
-static func predict_impact(p: Vector3, vel: Vector3, nose: Vector3, drag: float, extra: float, ground: Callable) -> Dictionary:
-	return ClassDB.class_call_static("IafBomb", "predict_impact", p, vel, nose, drag, extra, ground)
+## FUN_0045e7f0 (the HUD's predicted impact, with the terrain ray FUN_0045ed40; `cockpit`: the
+## cockpit-like views 1 / 5 / 0x12 / 0x16): {point, t}.
+static func predict_impact(p: Vector3, vel: Vector3, nose: Vector3, drag: float, extra: float, ground: Callable, cockpit := true) -> Dictionary:
+	return ClassDB.class_call_static("IafBomb", "predict_impact", p, vel, nose, drag, extra, cockpit, ground)
 
 
 ## FUN_0045e330: the later root of h + vz·t − 4.903·t² = 0 (0 when there is none).

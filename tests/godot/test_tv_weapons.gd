@@ -73,6 +73,13 @@ func _case(tv, name: String, shots: bool) -> void:
 	w.update(t)
 	check(w.eo_centre.distance_to(p) < 30.0 and w.tv_status() == 1 and tv.cockpit.weapons.get("tv_point") != null,
 		"%s: the camera on the site, RDY, the HUD diamond" % name)
+	# The centre point is the unit itself (its damage box), in front of the terrain behind it (FUN_00450480's depth pick).
+	var eye: Vector3 = w.own().pos
+	var tg = w.ground_hit(eye, w.eo_dir)
+	var off: Vector3 = (w.eo_centre - p).abs()
+	var on_box: bool = maxf(off.x, maxf(off.y, off.z)) <= float(site.size) + 0.01
+	check(on_box and (tg == null or eye.distance_to(w.eo_centre) < eye.distance_to(tg) - 0.5),
+		"%s: the centre point hits the unit (%.1f m before the terrain)" % [name, eye.distance_to(tg) - eye.distance_to(w.eo_centre) if tg != null else INF])
 	var dlz: Array = w.selected_dlz(w.own(), {})
 	check(dlz.size() == 2 and float(dlz[0]) > 8000.0, "%s: the TV missile's DLZ %.0f m" % [name, float(dlz[0]) if dlz.size() == 2 else 0.0])
 	if shots:

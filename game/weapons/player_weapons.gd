@@ -151,7 +151,7 @@ func setup(host_node: Node, entity: Dictionary, object: Dictionary, bdb: Diction
 	var gm: Dictionary = db.motion_for(Stores.GUN, 0).duplicate()
 	var gw: Dictionary = stores.station(9).get("w", {})
 	gm.merge(gw.get("motion", {}), true)
-	gun.configure(gm)
+	gun.configure(gm, Stores.GUN)
 	gun.units = _units
 	gun.ground = host.mission_ground
 	gun.detonate = _gun_detonate
@@ -257,7 +257,8 @@ func body_to_world(p: Vector3) -> Vector3:
 
 ## The mission's units the weapons see: every placed unit with a model other than the player, not
 ## exploded (UNCERTAIN: the original's spatial query also holds objects without a model, e.g.
-## sensors). {key, pos (world), vel, afterburner, ent}. AI jets have no afterburner state yet.
+## sensors). {key, pos (world), vel, afterburner, ent}; `afterburner` = an AI jet's FM afterburner stage > 0 (the
+## seeker's `FUN_00594c00` on the unit's FM, +0x28), false for units without a flight model.
 func _units() -> Array:
 	var out := []
 	var rt = host.runtime
@@ -266,7 +267,8 @@ func _units() -> Array:
 	for ent in rt.entities.values():
 		if ent.player or ent.node == null or not ent.visible or ent.state == 5:
 			continue
-		out.append({"key": ent.key, "pos": rt._world_of(ent), "vel": ent.vel, "afterburner": false, "ent": ent,
+		var ab: bool = ent.has("pilot") and int(ent.pilot.state().get("afterburner", 0)) > 0
+		out.append({"key": ent.key, "pos": rt._world_of(ent), "vel": ent.vel, "afterburner": ab, "ent": ent,
 			"hostile": rt._enemy_of_player(ent)})
 	return out
 
@@ -305,7 +307,11 @@ func _set_hud_mode(h: int) -> void:
 ## (FUN_0044e6e0: the pages they replaced come back).
 func _mfd_page() -> void:
 	var page: int = _modes.mfd_page(stores.current_type(), flir_pod)
-	harm.active = master == 4 and stores.current_type() == 590
+	var harm_on: bool = master == 4 and stores.current_type() == 590
+	if harm_on != harm.active:
+		harm.active = harm_on
+		if harm_on:
+			_harm_capture()  # FUN_0045c2b0: the sensor comes on with a scan
 	if master < 5:
 		_eo_leave()
 	# Placed like event 0x5a (FUN_00449f90 / FUN_00449f20; UNCERTAIN: same rule).
@@ -428,7 +434,8 @@ static func _base(o: Dictionary) -> Vector2:
 
 
 ## The EO camera this frame and its centre point (FUN_00450480): with the cockpit drawn (views 1, 0x12, 0x16,
-## the snaps) the terrain under the line of sight (ours: ray-marched; nothing → 1e8 m along it), else 1e7 m
+## the snaps) the first terrain point, unit or building under the line of sight (the original's centre-pixel depth
+## pick; ours: the terrain ray-marched, the units' damage boxes ray-tested; nothing → 1e8 m along it), else 1e7 m
 ## along it.
 func _eo_update() -> void:
 	if not eo.camera:
@@ -444,6 +451,15 @@ func _eo_update() -> void:
 		eo_centre = eye + eo_dir * 1.0e7
 		return
 	var hit = ground_hit(eye, eo_dir)
+	var far: float = (hit - eye).length() if hit != null else 100000.0
+	var centres := PackedVector3Array()
+	var halves := PackedFloat64Array()
+	for u in _units():
+		centres.append(u.pos)
+		halves.append(float(u.ent.size))
+	var d: float = ClassDB.class_call_static("IafEo", "unit_pick", eye, eo_dir, centres, halves, far)
+	if d >= 0.0:
+		hit = eye + eo_dir * d
 	eo_centre = hit if hit != null else eye + eo_dir * 1.0e8
 
 
@@ -471,10 +487,26 @@ func ground_hit(from: Vector3, dir: Vector3) -> Variant:
 	return null
 
 
-## The HARM list capture from the RWR's slots (the mcp's refresh, with the RWR's 2 s refresh and a selection).
+## The HARM sensor's scan (FUN_0045b960: with the RWR's 2 s refresh, FUN_0044a1a0, and when it comes on) and the
+## page's capture after a selection.
 func _harm_capture() -> void:
 	var o := own()
-	harm.capture(rwr.slots, o.pos, _base(o))
+	var list := []
+	for u in _units():
+		var e: Dictionary = u.ent
+		if int(e.state) >= 4:
+			continue  # the scan skips units in state 4 / 5
+		list.append({"key": u.key, "type": int(e.get("type_code", -1)), "klass": int(e.get("klass", -1)),
+			"name": String(e.get("name", "")), "pos": u.pos, "ecm": bool(e.get("ecm", false))})
+	var c = host.get("cockpit")
+	harm.source = Settings.harm_targets
+	harm.capture(list, rwr.slots, o.pos, _base(o), c != null and bool(c.indicators[6]), host.mission_ground)
+
+
+## Ctrl+Return (controller case 0x33): in HUD mode 8 with more than one entry, the next HARM target.
+func harm_next() -> void:
+	if hud_mode == 8 and harm.list.size() > 1:
+		harm.step(true)
 
 
 ## The TV status (FUN_00460940): 0 NO SOURCE unless the TV weapon (the flying one, else the selected store) is a
@@ -901,6 +933,10 @@ func _sight(o: Dictionary, units: Array) -> Dictionary:
 	if hud_mode == 8:
 		locked = harm.selected != ""
 		target = _unit(units, harm.selected)
+	elif hud_mode == 1:
+		# The IR object (vtable 0x601700): vfunc +0x28 the seeker's target, +0x2c (FUN_00463330) the radar's lock.
+		locked = radar.has_lock()
+		target = seeker.current(units)
 	else:
 		locked = radar.has_lock()
 		var lk: Dictionary = radar.locked()
@@ -1261,7 +1297,7 @@ func _rockets() -> RefCounted:
 		rockets = GunRounds.new()
 		var m: Dictionary = {"_spiralAccel": 0.0}
 		m.merge(db.motion_for(560, 0), true)
-		rockets.configure(m)
+		rockets.configure(m, 560)
 		rockets.units = _units
 		rockets.ground = host.mission_ground
 		rockets.detonate = _rocket_detonate
@@ -1280,8 +1316,10 @@ func _update_ag() -> void:
 	if int(w.get("type", 0)) == 560:
 		extra = float(db.motion_for(560, 0).get("_limitVel", 1000.0))
 	var gs := Vector2(o.vel.x, o.vel.y).length()
+	var views = host.get("views")
+	var cockpit: bool = views == null or views.cockpit_like()
 	if not ag.frozen:
-		ag.impact = Bombs.predict_impact(o.pos, o.vel, o.fwd, float(w.get("drag", 0.0)), extra, host.mission_ground).point
+		ag.impact = Bombs.predict_impact(o.pos, o.vel, o.fwd, float(w.get("drag", 0.0)), extra, host.mission_ground, cockpit).point
 		var c: Dictionary = hud_clip.call(ag.impact) if hud_clip.is_valid() else {}
 		ag.off = bool(c.get("off", false))
 		ag.pipper = ag.impact
@@ -1291,7 +1329,7 @@ func _update_ag() -> void:
 				ag.target = t
 			ag.ttg = _hdist(ag.impact, ag.target) / maxf(gs, 1.0)
 	elif ag.off:
-		ag.impact = Bombs.predict_impact(o.pos, o.vel, o.fwd, float(w.get("drag", 0.0)), extra, host.mission_ground).point
+		ag.impact = Bombs.predict_impact(o.pos, o.vel, o.fwd, float(w.get("drag", 0.0)), extra, host.mission_ground, cockpit).point
 		ag.ttg = _hdist(ag.impact, ag.target) / maxf(gs, 1.0)
 		ag.pipper = ag.target
 	else:
@@ -1564,7 +1602,8 @@ func release_decoy(type: int, p0: Vector3, o: Dictionary, key: String, ab: bool,
 		var m: Dictionary = db.motion_for(type, 0).duplicate()
 		m.merge(w.get("motion", {}), true)
 		var gr := GunRounds.new()
-		gr.configure(m)
+		gr.configure(m, type)
+		gr.ground = host.mission_ground
 		_decoy_motion[type] = gr
 	if not _decoy_pool.has(pool_key):
 		_decoy_pool[pool_key] = []
@@ -1581,7 +1620,8 @@ func release_decoy(type: int, p0: Vector3, o: Dictionary, key: String, ab: bool,
 	var fe := Vector3(m2.get("_fireEndVecX", 0.0), m2.get("_fireEndVecY", -200.0), m2.get("_fireEndVecZ", -10.0))
 	var a: Vector3 = p0 + o.right * fe.x + o.fwd * fe.y + o.up * fe.z
 	# The fixed-weapon flight (FUN_005605c0 -> FUN_0047a1e2, as a gun round): |V| + velocityJump along
-	# the line to A, decelerating at 50 m/s², then at A. No hit sphere (_spiralAccel 0): no damage.
+	# the line to A, decelerating at 50 m/s², then at A; A is cut at the terrain (FUN_004d7690: no candidates). No hit
+	# sphere (_spiralAccel 0): no damage.
 	var r: Dictionary = g.flight(now, p0, (o.vel as Vector3).length() + g.velocity_jump, a)
 	var end: float = minf(r.t_end, now + DECOY_LIFE)
 	_decoy_pool[pool_key][k] = end
@@ -1683,7 +1723,7 @@ func update(t: float) -> void:
 	rwr.damaged = _flag(14)
 	var refreshed: bool = now >= rwr._next_refresh
 	rwr.update(now)
-	if harm.active and (refreshed or harm.list.is_empty()):
+	if harm.active and refreshed:
 		_harm_capture()
 	_eo_update()
 	_update_full_screen()
@@ -1712,6 +1752,8 @@ func update(t: float) -> void:
 var s348: Array = []
 var s380 := 0.0
 var harm_in_range := false
+## The SRM circle's statics (0x82f6a8 max, 0x82f6b0 min, 0x82f6f0 dist): the mode-1 shoot cue's DLZ.
+var _srm_dlz := [0.0, 0.0, 0.0]
 ## The last launched weapon (a homing missile; FUN_0053bec0 → station +0x24).
 var last_launched: RefCounted
 
@@ -1761,10 +1803,18 @@ func _publish() -> void:
 	var mrm_pt = null
 	var shoot := false
 	var harm_pt = null
-	if hud_mode in [2, 8]:
+	if hud_mode in [1, 2, 8]:
 		var sg := _sight(o, _units())
 		var have: bool = stores.total(t, stores.current_name()) > 0
-		if hud_mode == 2:
+		if hud_mode == 1:
+			# FUN_00461290: the circle FUN_00462c10 (the DLZ at the seeker's target with a radar lock) and the cue from
+			# its statics (kept without a lock and a target).
+			circle = float(sg.r)
+			if not sg.dlz.is_empty():
+				_srm_dlz = [float(sg.dlz[0]), float(sg.dlz[1]), float(sg.dist)]
+			shoot = ClassDB.class_call_static("IafRelease", "srm_shoot_cue", seeker.lock, _station_has_rounds(),
+				_srm_dlz[0], _srm_dlz[1], _srm_dlz[2])
+		elif hud_mode == 2:
 			circle = float(sg.r)
 			if sg.pred != null and radar.has_lock():
 				mrm_pt = sg.pred

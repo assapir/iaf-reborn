@@ -74,8 +74,10 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
     for (n, r) in rows.into_iter().enumerate() {
         o.push(text((rx, ry + n as f64 * ROW), r, Align::Left));
     }
-    if i.fuel_lbs < BINGO_LBS {
-        o.push(text((0.0, i.gun_cross.1 + i.mr(70.0)), "FUEL", Align::Centre));
+    // The centre window: SHOOT (MLU) before FUEL.
+    if w.shoot || i.fuel_lbs < BINGO_LBS {
+        let cue = if w.shoot { "SHOOT" } else { "FUEL" };
+        o.push(text((0.0, i.gun_cross.1 + i.mr(70.0)), cue, Align::Centre));
     }
 
     // The field: boresight cross, ladder, marker, AoA bracket, steerpoint, target, weapon symbols.
@@ -356,6 +358,18 @@ fn target_box(p: &mut Vec<Prim>, i: &Input, f: Field, at: P, gun: bool, t: Targe
 mod tests {
     use super::super::tests::{FIELD, input, texts};
     use super::*;
+
+    #[test]
+    fn shoot_takes_the_centre_window() {
+        let mut i = input(Jet::F16);
+        i.weapons.hud_mode = 2;
+        i.weapons.shoot = true;
+        let fr = frame(FIELD, &i, 1.0);
+        assert!(texts(&fr.outer).contains(&"SHOOT"));
+        i.weapons.shoot = false;
+        let fr = frame(FIELD, &i, 1.0);
+        assert!(!texts(&fr.outer).contains(&"SHOOT"));
+    }
 
     #[test]
     fn nav_windows_as_the_dash_34() {

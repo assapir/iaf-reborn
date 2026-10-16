@@ -21,6 +21,10 @@ func run() -> void:
 	check(absf(i0.y - 200.0 * t_fall) < 0.01 and absf(i0.z) < 0.01, "level release from 1000 m at 200 m/s: impact %.1f m ahead" % i0.y)
 	var i1: Vector3 = B.predict_impact(p, v, Vector3(0, 1, 0), 23.0, 0.0, flat).point
 	check(absf(i1.y - 177.0 * t_fall) < 0.01, "the HUD prediction takes the MK-82's drag 23 as m/s off the nose: %.1f m" % i1.y)
+	var ridge := func(q): return 600.0 if q.y >= 1500.0 and q.y < 1700.0 else 0.0
+	for cockpit in [true, false]:
+		var ih: Vector3 = B.predict_impact(p, v, Vector3(0, 1, 0), 0.0, 0.0, ridge, cockpit).point
+		check(ih.y >= 1500.0 and ih.y < 1700.0, "the terrain ray (cockpit %s): a 600 m ridge in front takes the impact, %.0f m ahead" % [cockpit, ih.y])
 	var b: Dictionary = B.launch(0.0, p, v, i1, 15.0)
 	check(absf(b.acc.y - 2.0 * (i1.y - 200.0 * t_fall) / (t_fall * t_fall)) < 1e-3 and absf(b.end - t_fall) < 1e-3,
 		"solver: along-track %.2f m/s² lands it on the aim at t = %.2f s" % [b.acc.y, b.end])
