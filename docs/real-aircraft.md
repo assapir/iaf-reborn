@@ -248,9 +248,12 @@ longer, heavier IIIE; the IIIC is ~2,000-3,000 lb lighter with less fuel.
 Fit: CD0 0.015, wave drag 0.010, 20 km thrust × 2.0. The original Mirage is the Kfir's data (a 20,000 lb jet), so
 its weight is the largest single error in the game's data.
 
-## 8. F-16 (unchanged)
+## 8. F-16D
 
-The F-16C Block 30/40 row (F110-GE-100) is the previous F-16 set moved into the table, value for value
+The game's F-16 is the two-seat F-16D (its model; the Reference text: "F-16D Brakeet"). The row (Block 30/40,
+F110-GE-100) is the previous F-16C set moved into the table, value for value, plus the D's internal fuel: 870.4 US gal
+(the C 1,053.1, the smaller aft cell; [f-16.net](https://www.f-16.net/forum/viewtopic.php?p=10079)) ≈ 5,800 lb of JP-8
+(the original 7,000 lb). The D's empty weight is not public in a reliable source: kept at the C's
 (validation output identical; since then also the service ceiling, §2.1): empty 19,000 lb, thrust × 1.5, wave drag 0.02, roll 280 deg/s at 900 deg/s²,
 fuel flow 16.5 lb/s, stall floor 118 kt, NWS ±32° / 13.2 ft.
 

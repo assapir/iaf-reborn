@@ -216,10 +216,13 @@ const NONE: Real = Real {
 
 
 const REAL: &[Real] = &[
-    // F-16C Block 30/40 with F110-GE-100 (public figures, approximate).
+    // F-16D Block 30/40 with F110-GE-100 (public figures, approximate): the game's F-16 is the two-seater (its model,
+    // and the Reference text: F-16D Brakeet). The D differs from the C in its smaller aft fuel cell.
     Real {
         aircraft: "F-16",
         empty_lb: 19_000.0,
+        // F-16D internal fuel 870.4 US gal (the C 1,053.1; f-16.net) ≈ 5,800 lb of JP-8 (the C ~7,000 lb).
+        fuel_lb: Some(5_800.0),
         // 19,330 lbf full AB in the original → ~29,000 lbf (F110-GE-100 SL static): scale the whole table.
         thrust: Thrust::Scale(1.5),
         // No transonic drag rise in the original: tuned to Mach 1.2 at SL / ~1.9 at 40k ft.

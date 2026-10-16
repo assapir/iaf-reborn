@@ -246,8 +246,9 @@ func _draw() -> void:
 		var x := body.end.x - SCROLL_W
 		var track_h := body.size.y
 		_blit("framewnd/scroll.png", Rect2(0, 0, SCROLL_W, track_h), Vector2(x, body.position.y))
-		_blit("framewnd/slupb_%d.png" % (2 if pressed_btn == "up" else 0), Rect2(Vector2.ZERO, Vector2(10, 8)), Vector2(x, body.position.y))
-		_blit("framewnd/sldownb_%d.png" % (2 if pressed_btn == "down" else 0), Rect2(Vector2.ZERO, Vector2(10, 8)), Vector2(x, body.end.y - 8))
+		# FUN_004f3700's layout: sldownb (its art points up) at the top, slupb (pointing down) at the bottom.
+		_blit("framewnd/sldownb_%d.png" % (2 if pressed_btn == "up" else 0), Rect2(Vector2.ZERO, Vector2(10, 8)), Vector2(x, body.position.y))
+		_blit("framewnd/slupb_%d.png" % (2 if pressed_btn == "down" else 0), Rect2(Vector2.ZERO, Vector2(10, 8)), Vector2(x, body.end.y - 8))
 		_blit("framewnd/slider.png", Rect2(0, 0, 10, 23), Vector2(x, _thumb_y()))
 
 

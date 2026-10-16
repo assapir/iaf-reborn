@@ -313,7 +313,8 @@ Jets disabled per mission (`FUN_00509b80`; rows 0x11c bytes apart in the list ob
 * Scrolling: a custom vertical bar at the right edge of the rich edit (x = clientW−10, full height):
   * track `framewnd/scroll.bmp` 10×480
   * thumb `slider.bmp` 10×23
-  * arrows `slupb_0..2` and `sldownb_0..2` 10×8
+  * arrows 10×8: `sldownb_0..2` (its art points up) at the top, `slupb_0..2` (pointing down) at the bottom, as
+    the Preferences scrollbar (§12)
   * range = `EM_GETLINECOUNT`
   * keyboard (KEYDOWN) and VSCROLL are handled
   * step sizes: see §8.1
