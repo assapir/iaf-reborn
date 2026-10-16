@@ -13,6 +13,9 @@ const WeaponDb := preload("res://weapons/weapon_db.gd")
 const Stores := preload("res://weapons/stores.gd")
 const Gltf := preload("res://util/gltf.gd")
 const Terrain := preload("res://terrain/terrain.gd")
+const Bombs := preload("res://weapons/bombs.gd")
+const PlayerWeapons := preload("res://weapons/player_weapons.gd")
+const AircraftModel := preload("res://aircraft/aircraft_model.gd")
 
 const NM := 1854.0
 ## Sensor classes (FUN_004ac5f0): units of other classes (6, 11 ground radar, 15 boat) never target or fire.
@@ -122,6 +125,15 @@ class Unit:
 	var gun_next := INF
 	var decoy_until := -INF
 	var round_scale := 1.0  # the round model's Present scale
+	var stores  # stores.gd of an AI jet: the weight / drag on its flight model and the pylon models
+	var store_nodes := {}  # station -> [Node3D per slot] (player_weapons.gd attach_stores)
+	## The AI ripple (W+0xe4 left, W+0xe8 quantity, W+0xec interval, W+0xf0 period; iaf_avionics Ripple): set by the
+	## actions 350 / 360 / 380; before one, 1 bomb (UNCERTAIN: W+0xe8 is not set by the handler's constructor).
+	var ripple = ClassDB.instantiate("IafRipple")
+	var ripple_left := 0
+	var ripple_next := INF
+	var ripple_target: Dictionary = {}
+	var ripple_line: Array = []
 	var fire_sound: Node = null  # the looping SFX_ENTITY_FIRED_WEAPON while the unit keeps firing
 	var fire_sound_until := -INF
 
@@ -187,9 +199,19 @@ func _setup_aircraft(ent: Dictionary, obj: Dictionary, db, now: float) -> void:
 	u.db = db
 	u.sensor_r = sensor_nm(int(ent.type_code)) * NM
 	u.next_scan = now + randf() * SCAN_PERIOD_AIR  # staggered
-	for s in Stores.loadout(ent, obj):
+	var load := _armed(ent, Stores.loadout(ent, obj))
+	for s in load:
 		var w: Dictionary = db.by_id(int(s[0])) if int(s[1]) != 0 else {}
 		u.stations.append({"w": w, "count": int(s[1]) if not w.is_empty() else 0})
+	u.ripple.set_values(1, 10)
+	# The stores on the jet (FUN_0053b580; the Arming loads: FUN_004541d0 + FUN_00459410 redo the weight / drag).
+	u.stores = Stores.new()
+	u.stores.player = false
+	u.stores.setup(load, db, AircraftModel.load_descriptor(String(ent.pilot.plane)), PlayerWeapons._pilon_of,
+		int(ent.type_code))
+	_push_stores(u)
+	if ent.get("node") is Node3D:
+		u.store_nodes = PlayerWeapons.attach_stores(u.stores, ent.node).nodes
 	for i in 10:
 		if i < u.stations.size() and int(u.stations[i].count) > 0 and (i < 9 or u.cur < 0):
 			u.cur = i
@@ -219,6 +241,53 @@ func _round_nodes(u: Unit, w: Dictionary) -> void:
 			n.visible = false
 			add_child(n)
 			u.nodes.append(n)
+
+
+## The Arming screen's loads go on both members of the flight (FUN_004f0140 on FUN_004f0330 the leader and
+## FUN_004f0380 the second member; docs/front-end.md §15): pylons 0..8 of the formation's two member slots.
+func _armed(ent: Dictionary, load: Array) -> Array:
+	var f: Dictionary = ent.pilot.formation if ent.get("pilot") != null else {}
+	var n := int(f.get("kind", 0))
+	if f.is_empty() or not Settings.arm_loadouts.has(n) or not f.members.slice(0, 2).has(ent):
+		return load
+	var arm: Array = Settings.arm_loadouts[n]
+	for i in mini(9, arm.size()):
+		load[i] = [int(arm[i][0]), int(arm[i][1])]
+	return load
+
+
+## The stores' weight and drag on the AI jet's flight model (S+0x424 / 0x42c / 0x428, as the player's).
+func _push_stores(u: Unit) -> void:
+	if u.stores != null and u.pilot != null and u.pilot.get("flight") != null:
+		u.pilot.flight.set_stores(u.stores.fm_mass, u.stores.fm_di_left, u.stores.fm_di_right)
+
+
+## A store (or a gun round) left station i: the count, the weight / drag (FUN_0053bf10 -> FUN_0053c8b0).
+func _spent(u: Unit, i: int) -> void:
+	u.stations[i].count = int(u.stations[i].count) - 1
+	if u.stores == null or u.stores.station(i).is_empty():
+		return
+	if i == 9:
+		u.stores.consume(i)
+	else:
+		u.stores.fired(i)
+		_push_stores(u)
+
+
+## The pylon models (FUN_0053e430): `count` stores per station with EXTERNAL STORES on, within 9000 m of the camera.
+func _show_stores(u: Unit) -> void:
+	if u.store_nodes.is_empty():
+		return
+	var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
+	var node = u.ent.get("node")
+	var near: bool = cam == null or (node is Node3D and is_instance_valid(node)
+		and cam.global_position.distance_to(node.global_position) < PlayerWeapons.STORES_DRAW_DIST)
+	for i in u.store_nodes:
+		var n := int(u.stores.station(i).get("count", 0))
+		for k in u.store_nodes[i].size():
+			var sn = u.store_nodes[i][k]
+			if is_instance_valid(sn):
+				sn.visible = Settings.external_stores and near and k < n
 
 
 func _select(u: Unit, i: int) -> void:
@@ -272,12 +341,17 @@ func update(now: float) -> void:
 				_scan(u)
 			if not u.air:
 				u.brain.update(now)  # an aircraft's brain runs with its pilot (ai_flights.gd)
+			while u.ripple_left > 0 and now >= u.ripple_next:
+				u.ripple_next += float(u.ripple.period())
+				_ripple_tick(u)
 			while now >= u.gun_next and now < u.gun_until:
 				u.gun_next += GUN_PERIOD
 				_gun_round(u, u.gun_next - GUN_PERIOD)
 			while now >= u.fire_next:
 				u.fire_next += u.interval
 				_fire_tick(u, now)
+		if u.air:
+			_show_stores(u)
 		if u.fire_sound != null and (now > u.fire_sound_until or int(u.ent.state) >= 3):
 			host.sounds.stop(u.fire_sound)
 			u.fire_sound = null
@@ -400,7 +474,7 @@ func _air_action(u: Unit, code: int, t: Dictionary) -> bool:
 			var st: Dictionary = u.pilot.state()
 			if host.weapons.release_decoy(550 if code == 310 else 540, o.pos, o, u.ent.key, int(st.get("afterburner", 0)) > 0,
 					float(st.get("g", 1.0))):
-				u.stations[i].count = int(u.stations[i].count) - 1
+				_spent(u, i)
 			return true
 		330, 340:
 			# One cycle step to the next AA (330) / AG (340) station with rounds (FUN_00452690 → FUN_0053b8b0).
@@ -413,7 +487,12 @@ func _air_action(u: Unit, code: int, t: Dictionary) -> bool:
 					return true
 			return false
 		350, 360, 380:
-			# FUN_00452710: up to 10 steps to the wanted type with rounds.
+			# FUN_00452710: refused while releasing (W+0xac); the action's quantity / interval (bdb 0x82 / 0x96,
+			# FUN_004562f0) become the AI ripple's; then up to 10 steps to the wanted type with rounds.
+			if u.ripple_left > 0:
+				return false
+			var a := _action(code)
+			u.ripple.set_values(int(a.get("0x82", 1)), int(a.get("0x96", 10)))
 			for i in 9:
 				if int(u.stations[i].count) > 0 and int(u.stations[i].w.get("type", 0)) in WANTS[code]:
 					_select(u, i)
@@ -434,11 +513,18 @@ func _gate_interval(u: Unit, code: int) -> void:
 	if code == 370:
 		u.gate_interval = 5.0
 		return
+	var a := _action(code)
+	if a.has("0x8c"):
+		u.gate_interval = float(a["0x8c"])
+
+
+## The bdb action record of a code ({} when the bdb has none).
+func _action(code: int) -> Dictionary:
 	for id in ai._actions:
 		var a: Dictionary = ai._actions[id]
-		if int(a.get("0xbe", -1)) == code and a.has("0x8c"):
-			u.gate_interval = float(a["0x8c"])
-			return
+		if int(a.get("0xbe", -1)) == code:
+			return a
+	return {}
 
 
 ## The envelope [max, min] of the selected weapon against `t` (motion vt+0x74): the chase class's DLZ; the gun's
@@ -483,20 +569,20 @@ func _launch(u: Unit, t: Dictionary, now: float) -> bool:
 		return true
 	if host.weapons == null:
 		return false
-	u.stations[u.cur].count = int(u.stations[u.cur].count) - 1
+	_spent(u, u.cur)
 	# FUN_00454b70 (an AI shooter, 570..610): q 1.0, less against a jamming target (the player with its ECM on).
 	var roll = float(randi() & 0x7fff) / 32767.0 if t.get("player", false) and _jamming() else null
 	host.weapons.launch_homing(u.w, o.pos, o, String(t.key), IafRelease.ai_launch_q(roll), u.ent)
 	return true
 
 
-## A bombing manoeuvre's release (440440: the fire gate, then the selected weapon as 300's FUN_00454270): a bomb
-## (500 / 510) dropped from the jet toward the target (UNCERTAIN: the AI's ripple, W+0xe8..0xf0, not built: one
-## store per release), a missile or a gun burst as Launch does.
+## A bombing manoeuvre's release (440440: the fire gate, then the selected weapon as 300's FUN_00454270): bombs
+## (500 / 510) start the AI ripple (W+0xe4 = W+0xe8, a timer every W+0xf0 s; none while one runs, W+0xac), a missile
+## or a gun burst as Launch does. Not built: the AI's rockets (560) and laser bombs (650) from a release.
 func release(ent: Dictionary) -> void:
 	var u: Unit = units.get(ent.key)
 	var now: float = ai.runtime.now
-	if u == null or not u.air or u.cur < 0 or int(u.stations[u.cur].count) <= 0 or not _gate(u, now):
+	if u == null or not u.air or u.cur < 0 or int(u.stations[u.cur].count) <= 0 or u.ripple_left > 0 or not _gate(u, now):
 		return
 	var t: Dictionary = u.brain.target
 	if t.is_empty() or host.weapons == null:
@@ -504,14 +590,45 @@ func release(ent: Dictionary) -> void:
 	var o := _pose(u)
 	var type := int(u.w.type)
 	if type in [500, 510]:
-		u.stations[u.cur].count = int(u.stations[u.cur].count) - 1
-		host.weapons.drop_bomb(u.w, o.pos, o.vel, ai.runtime._world_of(t), u.ent)
+		u.ripple_left = u.ripple.qty()
+		u.ripple_next = now  # the first store on the next tick
+		u.ripple_target = t
 	elif type == 565:
 		u.gun_until = now + GUN_BURST
 		u.gun_next = now
 	elif type in AA_TYPES or type in HOMING:
-		u.stations[u.cur].count = int(u.stations[u.cur].count) - 1
+		_spent(u, u.cur)
 		host.weapons.launch_homing(u.w, o.pos, o, String(t.key), 1.0, u.ent)
+
+
+## One store of the AI ripple (the timer callback FUN_004545e0 with p4 = 1: no release permission, no delayed
+## release): the selected station, else another with the same weapon; the aim (FUN_00454b70, AI): the target led by
+## its velocity over t = |T − own| / own speed, spread on the ripple line frozen at the first store (FUN_00457c20,
+## W+0xec m along the heading); W+0xe4 − 1, at 0 the ripple ends. No rounds → it ends.
+func _ripple_tick(u: Unit) -> void:
+	if int(u.stations[u.cur].count) <= 0:
+		var id = u.w.get("id")
+		for i in 9:
+			if int(u.stations[i].count) > 0 and u.stations[i].w.get("id") == id:
+				_select(u, i)
+				break
+	if int(u.stations[u.cur].count) <= 0 or host.weapons == null:
+		u.ripple_left = 0
+		return
+	var o := _pose(u)
+	var t := u.ripple_target
+	var qty: int = u.ripple.qty()
+	if u.ripple_left == qty or u.ripple_line.size() != qty:
+		var p: Vector3 = ai.runtime._world_of(t) if not t.is_empty() else o.pos
+		var spd: float = o.vel.length()
+		if not t.is_empty() and spd > 1.0:
+			p += _velocity_of(t) * (p.distance_to(o.pos) / spd)
+		u.ripple_line = Bombs.ripple_line(p, qty, float(u.ripple.interval()), deg_to_rad(float(u.ent.heading)),
+			host.mission_ground)
+	var aim: Vector3 = u.ripple_line[u.ripple.index(u.ripple_left)]
+	_spent(u, u.cur)
+	host.weapons.drop_bomb(u.w, o.pos, o.vel, aim, u.ent)
+	u.ripple_left -= 1
 
 
 ## One AI gun round (FUN_00456d40 for the AI: the shot line is the nose, no 1° elevation), at the target as the
@@ -523,7 +640,7 @@ func _gun_round(u: Unit, now: float) -> void:
 	var a: Vector3 = u.rounds.aim_point(o.pos, o.vel, o.fwd, false)
 	u.rounds.fire(now, o.pos, o.pos + o.fwd * 10.0, o.vel, a, String(u.brain.target.get("key", "")), u.ent.key,
 		Settings.easy_aiming)
-	u.stations[9].count = int(u.stations[9].count) - 1
+	_spent(u, 9)
 
 
 ## Condition 10: the target's bearing relative to my heading (degrees, FUN_0044e770).

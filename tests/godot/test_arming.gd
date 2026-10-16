@@ -87,9 +87,24 @@ func run() -> void:
 
 	# --- the flight: the Arming load of the player's flight on the pylons --------------------------
 	var arm := [[11, 1], [0, 0], [0, 0], [28, 1], [0, 0], [28, 1], [0, 0], [0, 0], [11, 1]]
-	Settings().arm_loadouts = {1: arm}
+	var arm2 := [[0, 0], [0, 0], [19, 1], [0, 0], [0, 0], [0, 0], [19, 1], [0, 0], [0, 0]]
+	Settings().arm_loadouts = {1: arm, 2: arm2}
 	Settings().player_flight = 1
 	var tv = await start_mission(231)
+	# Bravo's AI jets (both member slots, FUN_004f0140 on the leader and the second member) carry its Arming load.
+	var bravo := []
+	for u in tv.ai.combat.units.values():
+		if u.air and int(u.ent.pilot.formation.get("kind", 0)) == 2 and u.ent.pilot.formation.members.slice(0, 2).has(u.ent):
+			bravo.append(u)
+	var armed := not bravo.is_empty()
+	for u in bravo:
+		armed = armed and u.stations[2].w.get("name", "") == "MK-84" and int(u.stations[2].count) == 1
+		armed = armed and int(u.stations[0].count) == 0 and is_equal_approx(u.stores.fm_mass, 2.0 * 2020.0)
+	check(armed, "Bravo's AI jets (%d) carry its Arming load (2 MK-84), weight on their FM" % bravo.size())
+	var models := not bravo.is_empty()
+	for u in bravo:
+		models = models and u.store_nodes.has(2) and u.store_nodes[2].size() >= 1 and u.store_nodes[2][0].get_parent() == u.ent.node
+	check(models, "the MK-84 models hang on Bravo's pylons (station 3)")
 	var st = tv.weapons.stores
 	check(st.station(0).get("w", {}).get("name", "") == "AIM-9L" and not st.stations.has(2) and st.station(3).get("w", {}).get("name", "") == "2700LB",
 		"flight: the Arming load is on the pylons")

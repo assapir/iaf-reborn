@@ -49,10 +49,17 @@ impl Ripple {
     pub fn step(&mut self, quantity: bool, up: bool) {
         let d = if up { 1 } else { -1 };
         if quantity {
-            self.qty = (self.qty + d).clamp(1, 14);
+            self.set(self.qty + d, self.interval);
         } else {
-            self.interval = (self.interval + 10 * d).clamp(10, 200);
+            self.set(self.qty, self.interval + 10 * d);
         }
+    }
+
+    /// `FUN_004562f0`: quantity 1..14, interval 10..200, the period from the interval. The AI's weapon-change actions
+    /// 350 / 360 / 380 set W+0xe8 / 0xec / 0xf0 this way from their bdb 0x82 / 0x96 (`FUN_00452710`).
+    pub fn set(&mut self, qty: i64, interval: i64) {
+        self.qty = qty.clamp(1, 14);
+        self.interval = interval.clamp(10, 200);
         self.period = (self.interval as f64 * 0.001).max(0.1);
     }
 
@@ -141,6 +148,18 @@ pub fn shown_time(v: f64) -> f64 {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn ai_ripple_from_the_action() {
+        let mut r = Ripple::default();
+        r.set(2, 20); // default6_1.bdb action 380: 2 bombs, 20 m
+        assert_eq!((r.qty, r.interval, r.period), (2, 20, 0.1));
+        r.set(0, 0); // 350 / 360: quantity 1, interval 0
+        assert_eq!((r.qty, r.interval), (1, 10));
+        r.set(40, 500);
+        assert_eq!((r.qty, r.interval, r.period), (14, 200, 0.2));
+    }
+
     use super::*;
 
     #[test]

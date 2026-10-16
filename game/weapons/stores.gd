@@ -95,7 +95,7 @@ func setup(load: Array, db: RefCounted, descriptor: Dictionary, pilon_of: Callab
 			if real_n > 0:
 				n = real_n
 		var st := {"index": i, "w": w, "count": float(n), "initial": float(n), "unlimited": false, "attach": attach,
-			"slots": [], "drawn": w.type in DRAWN and i < 9}
+			"slots": [], "drawn": w.type in DRAWN and i < 9 and p is Array}  # no Station helper: nowhere to hang it
 		if st.drawn:
 			var pilon = pilon_of.call(w.model_path) if pilon_of.is_valid() else null
 			st.slots = ClassDB.class_call_static("IafStores", "slots", i, attach, n, w.type in BOMBS, pilon)

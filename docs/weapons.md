@@ -13,7 +13,7 @@ HUD text and symbols, the stores MFD page, the FLIR pod / TV-weapon camera and t
 (docs/mfd.md), the radar missiles (600 AMRAAM-like, 610 Sparrow-like) with the DLZ, the MRM HUD sight and the
 semi-active rule, the HARM / Shrike (§11), the TV weapons (635 Maverick, 640 TV missile) with the guided motion, the
 camera riding the weapon and the TV page's TRA / TER and time (§12). The radar and its lock (the seeker slaved to it):
-docs/radar.md; the laser bombs with the FLIR designation (§9.8). Not built yet: the AI's ripple (§9.9). AI units have no ECM (only a unit with a controller jams: docs/ai.md §13). The AI's weapons: `game/ai/combat.gd` (docs/ai.md §13–14).
+docs/radar.md; the laser bombs with the FLIR designation (§9.8). AI units have no ECM (only a unit with a controller jams: docs/ai.md §13). The AI's weapons: `game/ai/combat.gd` (docs/ai.md §13–14).
 
 ## 1. Data
 
@@ -68,8 +68,11 @@ x = −glTF x, y = glTF z (aft), z = up) from the attach point P and the store m
 - TER (non-bombs, bombs ≤ 3): A = P+(pz,0,0), B = P+(−pz,0,0), C = P+(px,py,−pz); stations with index > 5 swap A / B
   (station 5 is not mirrored: the original's `> 5.0`); a count of 1 at the start → slot 0 = C.
 - MER (500 / 510, count ≥ 4): (±pz, ±L, 0), (0, ±L, −pz), L = `[Misc] BombStationLength` 2.0.
-Drawn (`FUN_0053e430`, any aircraft with a controller): `count` stores at slot[0..count−1] — a released store
+Drawn (`FUN_0053e430`, any aircraft whose entity +0x34 object is set: every flown jet, the AI jets too, docs/damage.md §5.3): `count` stores at slot[0..count−1] — a released store
 disappears (the highest slot) — only with Preferences > Graphics EXTERNAL STORES on and within 9000 m of the camera.
+The AI jets alike (`combat.gd` `_show_stores`, `player_weapons.gd` `attach_stores`). A station whose model has no
+`Station*` helper (Su-24, Su-22, MiG-21, MiG-25, …) has no attach point: ours draws nothing there (UNCERTAIN: the
+original's attach point without the helper); its weight / drag count.
 
 **Pylons.** The original has no pylon object: `FUN_0053e430` draws only the store models, `FUN_0053c1f0` attaches only
 the store (weapon record +0x1c) and the 560 rocket box, and neither the bdb Weapons nor the Objects records have a
@@ -456,10 +459,19 @@ the bomb's point P (cos 60°, 0x82f4e0) and at most 2 m above the terrain (0x600
 `FUN_00457c20`); jettisoned, the jettison point. Recomputed per store. `tests/godot/test_laser_bombs.gd` (all jets incl.
 the F-35I: designated hit, laser off, a designation behind refused).
 
-### 9.9 AI bomb runs (built: `game/ai/combat.gd` `release`, one store per release; the AI's ripple not built)
+### 9.9 AI bomb runs (built: `game/ai/combat.gd` `release` / `_ripple_tick`)
 Through `FUN_00440440` (gate `FUN_004d4100`) from `FUN_005cd0d0` (impact within the tolerance or 1000 m, 0x612fc0),
 `FUN_005d8590` (miss < 400 m, 600 m for kinds 0xd2 / 0xdc, angle < 15°, state 9 → 0xb), `FUN_005d9290`; release
-`FUN_00454270(T, 1)`, quantity `W+0xe8`, period `W+0xf0`, aim §9.3.
+`FUN_00454270(T, 1)`: bombs (500 / 510 / 560 / 650) start the ripple unless one runs (`W+0xac`, `W+0x288`):
+`W+0xe4` = the quantity `W+0xe8`, a timer every `W+0xf0` s (cb 0x601020 → `FUN_004545e0` with p4 = 1: no release
+permission `FUN_0045ee10`, no delayed release; `W+0xe4` − 1 per store, at 0 the timer ends and `W+0xac` clears; no
+rounds → it ends). The quantity / interval / period come from the weapon-change actions 350 / 360 / 380
+(`FUN_00452710` → `FUN_004562f0` on the action's bdb 0x82 / 0x96, the player's clamps: quantity 1..14, interval 10..200,
+period max(0.1, interval·0.001)); default6_1.bdb: 380 = 2 bombs, 20 m (period 0.1 s), 350 / 360 = 1. The handler's
+constructor (`FUN_00453ab0`) sets only the player's `W+0xd4..0xdc`: before a 350 / 360 / 380 ours ripples 1 store
+(UNCERTAIN). The aim (§9.3, AI): the target led by its velocity over |T − own| / own speed (ours: no ½A·t² term),
+spread on the ripple line `FUN_00457c20` (`W+0xec` m) frozen at the first store. An emptied station hands over to
+another with the same weapon. Not built: the AI's rockets (560) and laser bombs (650) from a release.
 
 ## 10. Chaff and flares
 **Built**: keys, release, counters, the decoy flight and look, the AI jets' releases (actions 310 / 320, the same path,

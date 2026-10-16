@@ -465,7 +465,9 @@ its Tower point, the engine test its Lineup point.
 - The sensor (kind 4: 10 slots, a scan every 2 s; the range by type, else 40 nm) and the selectors: **400 / 440** the
   best of the air-mode scan, **410** of the ground-mode scan (`FUN_004ac820` / `FUN_004ac900`), **420** the primary
   target (`FUN_004ac9e0`: brain+0x74, the formation slot's target, unless it is the jet itself; else none).
-- The stations (the mission's or the object's load); 330 / 340 one cycle step to the next AA / AG station with
+- The stations (the mission's or the object's load; the Arming screen's load on both member slots of its flight,
+  `FUN_004f0140`), their weight / drag on the jet's flight model and their models on its pylons (`stores.gd`, as the
+  player's); 330 / 340 one cycle step to the next AA / AG station with
   rounds, 350 / 360 / 380 the wanted type, 370 the gun (gate 5.0 s), each setting the fire gate's interval (its
   action +0x8c); 310 / 320 a flare / chaff through the player's release (busy 4 s first; the count drops only when a
   decoy left; the decoy rule acts on the missiles at the jet, docs/weapons.md §10).
@@ -490,7 +492,7 @@ its Tower point, the engine test its Lineup point.
 
 All the combat manoeuvres are built (autopilot.rs): Dogchase, Shandel / SplitS / Horizontal, Himmelman, TailClear,
 RunAway, Break90, LevelBomb, DiveBomb, PopupRelease, with the leaves Fly2TargetXyzSt, Fly2ImpactPt, PullGFullThrottle,
-Fly2PtXYZ. Bombs from AI jets: one store per release (`player_weapons.drop_bomb`). Not built: the AI's bomb ripple.
+Fly2PtXYZ. Bombs from AI jets: the AI ripple (docs/weapons.md §9.9; `player_weapons.drop_bomb` per store).
 Tests: tests/godot/test_ai_sensors.gd (ECM in the scan, condition 26, the locks, 430), crates/iaf-flight/tests/autopilot.rs (Dogchase), tests/godot/test_ai_air_combat.gd.
 
 Partial decode for the AI combat job (scratch work; argument orders of `4440d0` checked in the disassembly).
@@ -507,7 +509,7 @@ gate is marked only when an action really fires (a Launch that does not fire lea
 | 300 | 4440d0 | below |
 | 310 / 320 | 444640 / 4446d0 | free gate and B+0x4c (B+0x50) == 0: busy 1, expiry now + 4.0; `4545e0(0x226 / 0x21c, 0, 1)` = one flare (station 11) / chaff (station 10), released like a store (`454b70`), count −1 |
 | 330 / 340 | 444760 / 4447c0 | `W.452690(1 / 2, act+0xc, act+0x10)` (one `53b8b0` cycle step, rounds > 0); success: fire gate interval := act+0x14, mark |
-| 350 / 360 / 380 | 444820 / 444880 / 444950 | `W.452710(code)`: wants 600 / 570 (580 also, v1.1) / 500; up to 10 `53b8b0` steps until that type with rounds; refused while W+0xac; `4562f0` stores W+0xe8 / 0xec / 0xf0 |
+| 350 / 360 / 380 | 444820 / 444880 / 444950 | `W.452710(code, act+0xc, act+0x10)`: refused while W+0xac; `4562f0` clamps the action's quantity (bdb 0x82) / interval (0x96) into W+0xe8 / 0xec and the period W+0xf0 (the AI ripple, docs/weapons.md §9.9); then wants 600 / 570 (580 also, v1.1) / 500, up to 10 `53b8b0` steps until that type with rounds |
 | 370 | 4448e0 | gun: station 9 (`53bfb0(9)`), fire gate interval 5.0 s |
 | 390 | 4449b0 | not a weapon change: with a controller and tanks attached, the tank jettison `458760` (once); never gated |
 | 400 / 410 / 420 | 444ac0 / 4449e0 / 444a20 | B+0x70 = selector `4ac820` / `4ac900` / `4ac9e0` (selectors not traced) |

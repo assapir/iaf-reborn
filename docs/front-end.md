@@ -1951,9 +1951,9 @@ dragging, the arrow otherwise (`SETCURSOR 506720`).
   models, counts and weight / drag follow (gun, chaff, flares unchanged). Cleared when a mission loads.
 * Not ported: the multiplayer paths (AG / Misc disabled in 0x29a / 0x213, the session wait, the `FUN_004f0000`
   messages). Ours: Esc on Arming acts as BACK (the original's Esc here is not traced); the scrollbar's track
-  click pages by 6 rows (UNCERTAIN, as the Controls page); AI aircraft fly their mission's default stores
-  (`combat.gd` `_setup_aircraft`, `Stores.loadout`; no store models drawn), so only the player's jet gets the load
-  (the table is kept for every flight); a jet flown in place of a non-flyable type keeps its
+  click pages by 6 rows (UNCERTAIN, as the Controls page); the AI jets of a flight with a table entry (both member
+  slots, as `FUN_004f0140`) carry it too (`combat.gd` `_armed`: their stations, weight / drag and pylon models), the
+  others their mission's default stores; a jet flown in place of a non-flyable type keeps its
   type's load. Text is clipped to its box by whole characters.
 
 ## 16. In-flight pause and On-The-Fly menu (flight window `CFlightWnd::OnGameEvent` 0x4dc280)

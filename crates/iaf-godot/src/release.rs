@@ -127,6 +127,12 @@ impl IafRipple {
         self.ripple.period
     }
 
+    /// `FUN_004562f0` (the AI's weapon-change actions): quantity and interval, clamped, and the period.
+    #[func]
+    fn set_values(&mut self, qty: i64, interval: i64) {
+        self.ripple.set(qty, interval);
+    }
+
     #[func]
     fn set_qty(&mut self, q: i64) {
         self.ripple.qty = q;

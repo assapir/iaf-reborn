@@ -1852,7 +1852,7 @@ func _publish() -> void:
 
 # --- visuals ----------------------------------------------------------------------------------------
 
-func _instance(path: String) -> Node3D:
+static func _instance(path: String) -> Node3D:
 	if path == "":
 		return null
 	var model = preload("res://util/gltf.gd").object(path)
@@ -1864,6 +1864,35 @@ func _instance(path: String) -> Node3D:
 		if String(h.name).to_lower() == "pilon":
 			h.visible = false
 	return n
+
+
+## The pylon store models of `stores` on the jet `model` ({station: [Node3D per slot]}) and the rocket boxes (560:
+## one "Rocket box" per pylon, FUN_0053c1f0: object 0x753d, weapons\\Lau61\\Lau61_m, [Weapons] RocketBoxScale 4.0
+## instead of the stores' Present scale 2, at the attach point; it stays when empty, UNCERTAIN). The player's jet and
+## the AI jets (combat.gd) alike.
+static func attach_stores(stores: RefCounted, model: Node3D) -> Dictionary:
+	var nodes := {}
+	var pods := []
+	for i in stores.stations:
+		var st: Dictionary = stores.stations[i]
+		if st.drawn:
+			var list := []
+			for s in st.slots:
+				var n := _instance(String(st.w.model_path))
+				if n == null:
+					break
+				model.add_child(n)
+				n.position = s
+				list.append(n)
+			nodes[i] = list
+		if i < 9 and stores.type_of(i) == 560:
+			var b := _instance(ROCKET_BOX)
+			if b != null:
+				model.add_child(b)
+				b.position = st.attach
+				b.scale = Vector3.ONE * ROCKET_BOX_SCALE / STORE_PRESENT_SCALE  # the stores ride on the jet's scale
+				pods.append(b)
+	return {"nodes": nodes, "pods": pods}
 
 
 ## The store model's `pilon` helper (glTF, the sum of its and its parents' translations), or null.
@@ -1906,31 +1935,10 @@ func _build_visuals() -> void:
 		host.aircraft.add_child(_flash)
 		_flash.position = _gun_offset() / host.aircraft.scale.x  # local to the (scaled) model
 		_flash.visible = false
-	for i in stores.stations:
-		var st: Dictionary = stores.stations[i]
-		if not st.drawn or host.aircraft == null:
-			continue
-		var nodes := []
-		for s in st.slots:
-			var n := _instance(String(st.w.model_path))
-			if n == null:
-				break
-			host.aircraft.add_child(n)
-			n.position = s
-			nodes.append(n)
-		_store_nodes[i] = nodes
-	# Rockets (560): one "Rocket box" per pylon (FUN_0053c1f0: object 0x753d, weapons\\Lau61\\Lau61_m,
-	# [Weapons] RocketBoxScale 4.0 instead of the stores' Present scale 2) at the attach point; it stays
-	# when empty (UNCERTAIN).
-	for i in stores.stations:
-		var st: Dictionary = stores.stations[i]
-		if i < 9 and stores.type_of(i) == 560 and host.aircraft != null:
-			var n := _instance(ROCKET_BOX)
-			if n != null:
-				host.aircraft.add_child(n)
-				n.position = st.attach
-				n.scale = Vector3.ONE * ROCKET_BOX_SCALE / STORE_PRESENT_SCALE  # the stores ride on the jet's scale
-				_pod_nodes.append(n)
+	if host.aircraft != null:
+		var att := attach_stores(stores, host.aircraft)
+		_store_nodes = att.nodes
+		_pod_nodes = att.pods
 	_update_store_nodes()
 
 
