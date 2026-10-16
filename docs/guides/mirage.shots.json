@@ -1,0 +1,528 @@
+[
+ {
+  "name": "cockpit_runway",
+  "caption": "The Mirage cockpit on the runway",
+  "mission": 311,
+  "crop": "full",
+  "jet": 6,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   }
+  }
+ },
+ {
+  "name": "takeoff_roll",
+  "caption": "Take-off roll",
+  "mission": 311,
+  "actions": [
+   "key:1",
+   "key:B",
+   "key:8",
+   "wait:14"
+  ],
+  "crop": "hud",
+  "jet": 6,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   }
+  }
+ },
+ {
+  "name": "landing_final",
+  "caption": "Final approach, gear down",
+  "mission": 311,
+  "start": "final",
+  "final_m": 4000,
+  "final_alt": 210,
+  "crop": "hud",
+  "jet": 6,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   }
+  }
+ },
+ {
+  "name": "sight_nav",
+  "caption": "The CSF 95 gunsight",
+  "mission": 231,
+  "start": "airborne",
+  "crop": "hud",
+  "jet": 6,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   }
+  }
+ },
+ {
+  "name": "mfd_radar_stt",
+  "caption": "The radar display with a locked contact",
+  "mission": 231,
+  "start": "airborne",
+  "loadout": [
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    24,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    24,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "place": {
+   "unit_prefix": "mig23",
+   "ahead_m": 8000
+  },
+  "actions": [
+   "lock",
+   "wait:1"
+  ],
+  "panel": 1.0,
+  "crop": "mfd_left",
+  "jet": 6,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   }
+  }
+ },
+ {
+  "name": "sight_srm",
+  "caption": "Shafrir 2 with the seeker locked",
+  "mission": 231,
+  "start": "airborne",
+  "loadout": [
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    24,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    24,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "place": {
+   "unit_prefix": "mig23",
+   "ahead_m": 2000
+  },
+  "actions": [
+   "lock",
+   "station:2",
+   "wait:1.5"
+  ],
+  "crop": "hud",
+  "jet": 6,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   }
+  }
+ },
+ {
+  "name": "sight_gun",
+  "caption": "The gun: the reticle on the lead",
+  "mission": 231,
+  "start": "airborne",
+  "loadout": [
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    24,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    24,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "place": {
+   "unit_prefix": "mig23",
+   "ahead_m": 600
+  },
+  "actions": [
+   "lock",
+   "station:9",
+   "wait:1"
+  ],
+  "crop": "hud",
+  "jet": 6,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   }
+  }
+ },
+ {
+  "name": "sight_bomb",
+  "caption": "Bombing: the reticle on the impact",
+  "mission": 231,
+  "start": "dive",
+  "loadout": [
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    15,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    15,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "place": {
+   "ground_unit": true,
+   "ahead_m": 2000
+  },
+  "actions": [
+   "ag:3",
+   "wait:0.5",
+   "on_impact",
+   "wait:0.5"
+  ],
+  "crop": "hud",
+  "dive_deg": 40,
+  "dive_agl": 800,
+  "speed": 220,
+  "jet": 6,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   }
+  }
+ }
+]
