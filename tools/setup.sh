@@ -17,6 +17,7 @@
 # token, else through your browser (tools/imagery/fetch-mapi2015-curl.sh), then converted into the
 # Israel layers (needs GDAL; re-run after adding sheets: only the 20 km units they touch are redone). Without the ISO argument only the imagery steps run
 # (on an install set up before).
+# IAF_IMAGERY_MIRROR=user@host:/path/to/repo restores a missing assets/converted/imagery (and the sheets) with rsync.
 # Safe to re-run: each step overwrites its own output under assets/.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -47,6 +48,20 @@ for src in ${imagery//,/ }; do
 done
 
 step() { printf '\n==> %s\n' "$*"; }
+
+# Guard: assets/ must be a real folder (or a worktree's link to one). A link to itself (a committed worktree symlink
+# merged into the main checkout wiped assets/ on 2026-10-16) would make every step write nowhere.
+if [[ -L assets && ! -d assets/ ]]; then
+	echo "assets is a broken symlink ($(readlink assets)): remove it (rm assets) and run setup again"; exit 1
+fi
+# Imagery mirror (optional): IAF_IMAGERY_MIRROR=user@host:/path/to/repo copies a converted imagery set back (rsync)
+# instead of re-downloading it, e.g. after assets/ was lost; then the --imagery steps only redo what is missing.
+if [[ -n ${IAF_IMAGERY_MIRROR:-} && ! -d assets/converted/imagery ]]; then
+	step "imagery: restore from $IAF_IMAGERY_MIRROR (rsync)"
+	mkdir -p assets/converted assets/source
+	rsync -a "$IAF_IMAGERY_MIRROR/assets/converted/imagery" assets/converted/ &&
+		rsync -a "$IAF_IMAGERY_MIRROR/assets/source/imagery" assets/source/ 2>/dev/null || true
+fi
 
 # Modern terrain imagery (--imagery): after the base setup, or alone on an install set up before.
 imagery_steps() {
