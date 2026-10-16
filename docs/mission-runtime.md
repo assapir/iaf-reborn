@@ -327,6 +327,15 @@ Path details:
   (`FUN_0047f280`); variant 2 (0x884 = −1, 604 of 713 entries) moves at that length / duration, constant. Variant 1
   (current speed) and 3 (acceleration) are taken as variant 2 (UNCERTAIN). With a 1 s duration the entity
   effectively jumps to the path's last point.
+- Height: the points' z is **above the ground** for a flyer (classes 2, 3, 0x1c: helicopters, transports, jets): the
+  data's paths are 0 on runways and 100–1000 m in the air over 700–2,800 m terrain (215's C-130 lands on 300 → 300 →
+  0, 231's MI-24s fly at 200), so they are heights (UNCERTAIN: the mover's own terrain handling not traced). Ground
+  units keep to the terrain (z 0). The position and velocity the motion gives are 3-D (`FUN_0047cd40`,
+  `FUN_0047d2c1` → the leg vector `FUN_0047f180`).
+- Heading: the unit faces along its leg; the start computes an `initialDeltaYaw` toward the path (`FUN_0047c4cf`),
+  ours turns at once (the turn rate UNCERTAIN). Hover (motion op 1) holds the position and the altitude.
+- Port: `mission_runtime.gd` `_move_on_path`, the model posed by `terrain_view.gd` `mission_entity_moved`. Test:
+  `test_mission_flyers.gd` (231's MI-24s at 200 m along their leg, 115's Merkavas on the terrain, 215's hovering MI-24).
 
 Opcodes absent from the data (motion 2–4, 6–10, 12–15; trigger 6, 8–10, 16–18, 20, 23–28) exist in the
 factories. They are listed only where the Execute was read.

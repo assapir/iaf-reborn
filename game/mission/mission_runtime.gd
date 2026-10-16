@@ -376,7 +376,12 @@ func _aim_tick(ent: Dictionary, target: Dictionary, field: String, raise: bool, 
 	_after(1.0, _aim_tick.bind(ent, target, field, raise, seq))
 
 
-## Path traversal: along the path's points over the entry's duration (kinematics UNCERTAIN).
+## Path traversal: along the path's points over the entry's duration (kinematics UNCERTAIN). The unit faces along
+## the leg it is on (FUN_0047c4cf's initialDeltaYaw turns it onto the path; ours at once, the turn rate UNCERTAIN). A
+## flyer (classes 2, 3, 0x1c: helicopters, transports, jets) holds the points' z **above the ground**: the data's paths
+## are 0 on the runway, 100–1000 m in the air over 700–2,800 m terrain (215's C-130 lands on 300 → 300 → 0, 231's
+## MI-24s fly at 200), so they are heights, not altitudes (UNCERTAIN: the mover's own clamp not traced). Ground units
+## keep to the terrain (z 0).
 func _move_on_path(ent: Dictionary) -> void:
 	var p: Dictionary = ent.path
 	var pts: Array = p.points
@@ -385,10 +390,16 @@ func _move_on_path(ent: Dictionary) -> void:
 	ent.world = pts[-1]
 	for i in pts.size() - 1:
 		var seg: float = Vector2(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y).length()
+		if seg > 0.0:
+			ent.heading = rad_to_deg(atan2(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y))
 		if d <= seg:
 			ent.world = pts[i].lerp(pts[i + 1], d / seg if seg > 0.0 else 1.0)
 			break
 		d -= seg
+	if ent.get("airborne_class", false):
+		var g = host.mission_ground(ent.world)
+		if g != null:
+			ent.world.z += float(g)
 	if f >= 1.0:
 		ent.path = null
 	host.mission_entity_moved(ent)

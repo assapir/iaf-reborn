@@ -89,6 +89,7 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 | TSD target window | a still image of the live mission world, rendered on paint; the UAV orbit UNCERTAIN | rendered every frame; the mission at its start (units at their placed positions); UAV 300 m up and 300 m south, 45° down | engine / untraced | front-end.md §10, model_view.gd |
 | TSD 3D-model window | the engine renders the model (lighting: engine defaults, UNCERTAIN) | a Godot SubViewport: one sun, grey ambient, MSAA 4×, Camera3D fov 50° across | engine | front-end.md §11, model_view.gd |
 | Pause / menu sim freeze | the sim clock stops | the scene tree pauses (sim nodes stop); sounds paused by `stream_paused` | engine mechanism | views.md §1 |
+| Script Path movers | `initialDeltaYaw` turns the unit onto its path (`FUN_0047c4cf`, rate not traced); the mover's terrain handling not traced | the unit faces along its leg at once; a flyer (classes 2, 3, 0x1c) holds the points' z above the ground | untraced turn rate; the data's z are heights (0 on runways, 100–1000 m over 700–2,800 m terrain) | mission-runtime.md §4, mission_runtime.gd `_move_on_path` |
 
 ## 2. Opt-in switches (original by default)
 - **Preferences → Physics**: the "Better physics" options and the original-bug fixes (falling-jet heading, tougher

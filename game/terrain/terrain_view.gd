@@ -803,6 +803,8 @@ func mission_entity_moved(ent: Dictionary) -> void:
 		pos.y = ground
 	node.position = pos
 	ent["alt"] = pos.y  # the altitude the unit stands at (blast distances, reached checks)
+	if ent.get("path") != null:
+		node.rotation.y = -deg_to_rad(float(ent.heading))  # along its path (mission_runtime.gd _move_on_path)
 	if ent.has("angles"):
 		var a: Vector3 = ent.angles  # destruction motion attitude (pitch, roll, heading)
 		node.basis = Basis.from_euler(Vector3(deg_to_rad(a.x), deg_to_rad(-a.z), deg_to_rad(-a.y)), EULER_ORDER_YXZ)

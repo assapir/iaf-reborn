@@ -451,8 +451,12 @@ its Tower point, the engine test its Lineup point.
 - `game/ai/ai_flights.gd`: every brain-controlled aircraft (class 0x1c, transports class 3) with an FM type flies (one IafFlight, the
   aircraft model at the Present scale); `contacts()` for radar / RWR; ops 21 / 22 via `mission_runtime.gd`.
 - Wingman commands (docs/radio.md §3): `radio.gd` sets the wingman brain's command / target; its bdb rules answer.
-- Not yet: the combat parts listed open in §13, the radio reports other than the waypoint / eject (§10), helicopters,
-  AI on MISSION-controlled units (their brain runs without manoeuvres: not started), network paths.
+- MISSION-controlled flyers (every helicopter, the transports and jets of 113, 215, 216, 321): their scripts fly them
+  (Path at the points' height above the ground, facing along the leg, Hover at their altitude; docs/mission-runtime.md
+  §4). Every fixed-wing one has brain −1 (no brain, §14); the helicopters' brains 2 / 24 open with "select air target"
+  (400), but class 2 gets no target sensor (`FUN_0043eef0`), so their "start combat" never has a target: they fire only
+  by script (op 2, §14). Ours attaches no brain to them, the same outcome.
+- Not yet: the combat parts listed open in §13, the radio reports other than the waypoint / eject (§10), network paths.
 - Tests: `test_ai_flight.gd` (mission 221: 13 AI jets navigate, wingmen in formation, a take-off from Ramon).
 
 ## 13. Combat (partly built)
