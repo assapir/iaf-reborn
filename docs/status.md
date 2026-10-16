@@ -98,7 +98,6 @@ Checked against the code on 2026-10-14 (each doc's own "not built" notes have th
   elevation west of Suez in the original data (flat −557 m, kept); modern DEM not built.
 - **Flight**: no hook (FM `cfg[8]` unwired, no key); the next-waypoint `440e90(index)` call in NAV sequencing; the FM's
   surface states (`S+0x2c8`), OutRunway, effects flag `S+0x420`; spin altitude limits.
-- **AI combat** (docs/ai.md §13–§14): AI rockets (560) and laser bombs (650) from a release (not built).
 - **Damage**: splash / ring explosions on water (flags 0x20000 / 0x40000) draw nothing; per-hit score and feedback, the
   brain's reaction to a hit (`FUN_0043ff50`), effect 0x18, the second explosion of a falling unit; RWR network messages.
 - **Cockpit / MFDs**: night lighting; the U key (RWR page, MFD screen 7).

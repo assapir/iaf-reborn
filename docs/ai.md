@@ -492,7 +492,7 @@ its Tower point, the engine test its Lineup point.
 
 All the combat manoeuvres are built (autopilot.rs): Dogchase, Shandel / SplitS / Horizontal, Himmelman, TailClear,
 RunAway, Break90, LevelBomb, DiveBomb, PopupRelease, with the leaves Fly2TargetXyzSt, Fly2ImpactPt, PullGFullThrottle,
-Fly2PtXYZ. Bombs from AI jets: the AI ripple (docs/weapons.md §9.9; `player_weapons.drop_bomb` per store).
+Fly2PtXYZ. Bombs, rockets and laser bombs from AI jets: the AI ripple (docs/weapons.md §9.9; `player_weapons.release_store` per store).
 Tests: tests/godot/test_ai_sensors.gd (ECM in the scan, condition 26, the locks, 430), crates/iaf-flight/tests/autopilot.rs (Dogchase), tests/godot/test_ai_air_combat.gd.
 
 Partial decode for the AI combat job (scratch work; argument orders of `4440d0` checked in the disassembly).

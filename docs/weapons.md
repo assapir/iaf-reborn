@@ -471,7 +471,13 @@ period max(0.1, interval·0.001)); default6_1.bdb: 380 = 2 bombs, 20 m (period 0
 constructor (`FUN_00453ab0`) sets only the player's `W+0xd4..0xdc`: before a 350 / 360 / 380 ours ripples 1 store
 (UNCERTAIN). The aim (§9.3, AI): the target led by its velocity over |T − own| / own speed (ours: no ½A·t² term),
 spread on the ripple line `FUN_00457c20` (`W+0xec` m) frozen at the first store. An emptied station hands over to
-another with the same weapon. Not built: the AI's rockets (560) and laser bombs (650) from a release.
+another with the same weapon. **Rockets (560) and laser bombs (650)** ripple the same way (their `FUN_00454270` case),
+each store through the player's release (`player_weapons.release_store`): `FUN_00454b70` aims a rocket as a bomb (case
+0x230 shares the bombs' branch: the led ripple point) and it flies the fixed-weapon motion; a laser bomb (case 0x28a,
+AI path) aims at the **target's position now, no lead**, on the ripple line, and flies the guided motion to that point
+(an AI jet has no designator: the laser test `FUN_00450430` is the player's). Rocket hits are credited to the releasing
+jet. The AI's rockets share the player's rocket pool (ours). Test: `test_ai_ground_attack.gd` (ZUNNI rockets and an
+AS-14 from the Su-24's ripple reach the target).
 
 ## 10. Chaff and flares
 **Built**: keys, release, counters, the decoy flight and look, the AI jets' releases (actions 310 / 320, the same path,

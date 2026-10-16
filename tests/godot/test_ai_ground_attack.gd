@@ -61,3 +61,50 @@ func run() -> void:
 	check(u.ripple.qty() == 2 and is_equal_approx(u.ripple.period(), 0.1) and drops.size() == 2,
 		"the ripple: 380's quantity 2 every 0.1 s, two bombs (%d)" % drops.size())
 	check(loaded.call() == loaded0 - 2 and u.stores.fm_mass < mass0, "the two bombs left the pylons (%d -> %d), lighter (%.0f lb)" % [loaded0, loaded.call(), u.stores.fm_mass])
+	await _rockets_and_lgb(tv, su, tgt, u)
+
+
+## The ripple's other stores (FUN_00454270's case 500 / 510 / 560 / 650; FUN_00454b70): rockets fly the fixed-weapon
+## motion at the led ripple point and burst near the target; a laser bomb (the AI has no designator) glides the guided
+## motion to the target's position now (no lead). The Su-24 restarted 3 km out, 800 m up, at the target.
+func _rockets_and_lgb(tv, su: Dictionary, tgt: Dictionary, u) -> void:
+	var rt = tv.runtime
+	var w = tv.weapons
+	var tp: Vector3 = rt._world_of(tgt)
+	var of := func(type: int) -> Dictionary:
+		for x in w.db.weapons.values():
+			if int(x.get("type", 0)) == type:
+				return x
+		return {}
+	for type in [560, 650]:
+		var wt: Dictionary = of.call(type)
+		check(not wt.is_empty(), "a %d weapon in the data (%s)" % [type, wt.get("name", "")])
+		if wt.is_empty():
+			continue
+		su.world = tp + Vector3(3000, 0, 800)
+		su.heading = 270.0
+		tv.ai._start(su.pilot, Settings().assets_dir().path_join("install"), su.pilot.plane)
+		u.stations[0] = {"w": wt, "count": 4}
+		tv.ai.combat._select(u, 0)
+		u.ripple_left = u.ripple.qty()
+		u.ripple_next = rt.now
+		u.ripple_target = tgt
+		var near := INF
+		var fired := 0
+		var t0: float = rt.now
+		while rt.now - t0 < 25.0:
+			await process_frame
+			if type == 560:
+				for k in w._rocket_nodes:
+					if is_same(w._rocket_nodes[k].get("owner"), su):
+						fired = maxi(fired, w._rocket_nodes.size())
+						var rp: Vector3 = w.rockets.position(w.rockets.pool[k], w.now)
+						near = minf(near, Vector2(rp.x - tp.x, rp.y - tp.y).length())
+			else:
+				for g in w.guided:
+					if is_same(g.get_meta("owner", {}), su):
+						fired = maxi(fired, 1)
+						var gp: Vector3 = g.position(w.now)
+						near = minf(near, Vector2(gp.x - tp.x, gp.y - tp.y).length())
+		check(fired > 0 and int(u.stations[0].count) < 4, "%d: the Su-24's ripple releases them (%d left)" % [type, int(u.stations[0].count)])
+		check(near < 150.0, "%d: they reach the target (%.0f m)" % [type, near])

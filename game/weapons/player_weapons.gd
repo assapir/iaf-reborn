@@ -1260,21 +1260,29 @@ func _drop_store(i: int, aim: Vector3) -> void:
 	var p0 := body_to_world(at)
 	var ost: String = OST.get(type, "OST_BOMB")
 	_place_sound(host.sounds.play("SFX_AIRCRAFT_FIRED_WEAPON", ost), p0)
+	release_store(w, p0, o.vel, aim, _me())
+
+
+## One store of a bomb-type station (500 / 510 / 560 / 650) leaves `p0` at `vel` toward `aim`; `owner` = the releasing
+## unit (the player or an AI jet): laser bombs fly the guided motion (§12), rockets the fixed-weapon one, the rest the
+## ballistic one.
+func release_store(w: Dictionary, p0: Vector3, vel: Vector3, aim: Vector3, owner: Dictionary) -> void:
+	var type := int(w.type)
 	if type == 650:
-		launch_guided(w, p0, o.vel, aim, _me())  # the laser bomb always flies the guided motion (§12)
+		launch_guided(w, p0, vel, aim, owner)  # the laser bomb always flies the guided motion (§12)
 		return
 	if type == 560:
-		var g: RefCounted = _rockets()
-		var k: int = g.fire(now, o.pos, p0, o.vel, aim, "", String(_me().get("key", "")), false)
+		# ponytail: the AI jets' rockets share the player's pool (enough rounds in the air for the missions' few).
+		var k: int = _rockets().fire(now, p0, p0, vel, aim, "", String(owner.get("key", "")), false)
 		var node := _instance(String(w.model_path))
 		if node != null:
 			host.add_child(node)
 			node.scale = Vector3.ONE * float(w.get("scale", 1.0))
-		_rocket_nodes[k] = {"node": node, "w": w}
+		_rocket_nodes[k] = {"node": node, "w": w, "owner": owner}
 		return
 	# v1.1 logic with any data: v1.0's weapons.ibx has 1.0 here (v1.1 changed it to 15, docs/v1.1.md), so a v1.0
 	# install gets the v1.1 value (drop_bomb).
-	drop_bomb(w, p0, o.vel, aim, _me())
+	drop_bomb(w, p0, vel, aim, owner)
 
 
 ## One ballistic store from `p0` at `vel` toward `aim` (Bombs.launch), its model and fall loop; `owner` = the
@@ -1469,7 +1477,7 @@ func _rocket_detonate(r: Dictionary, pos: Vector3, _cands, _hit: Dictionary) -> 
 	var e: Dictionary = _rocket_nodes.get(k, {})
 	_rocket_nodes.erase(k)
 	var w: Dictionary = e.get("w", {"power": 0.0, "radius": 0.0, "type": 560})
-	var me := _me()
+	var me: Dictionary = e.get("owner", _me())  # the releasing unit (the player or an AI jet)
 	if host.runtime != null and not me.is_empty() and float(w.power) > 0.0:
 		host.runtime.area_damage(pos, float(w.power), float(w.radius), me, "rocket")
 	rocket_effect(pos)

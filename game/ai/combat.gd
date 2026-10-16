@@ -578,7 +578,7 @@ func _launch(u: Unit, t: Dictionary, now: float) -> bool:
 
 ## A bombing manoeuvre's release (440440: the fire gate, then the selected weapon as 300's FUN_00454270): bombs
 ## (500 / 510) start the AI ripple (W+0xe4 = W+0xe8, a timer every W+0xf0 s; none while one runs, W+0xac), a missile
-## or a gun burst as Launch does. Not built: the AI's rockets (560) and laser bombs (650) from a release.
+## or a gun burst as Launch does. Rockets (560) and laser bombs (650) ripple too (their FUN_00454270 case).
 func release(ent: Dictionary) -> void:
 	var u: Unit = units.get(ent.key)
 	var now: float = ai.runtime.now
@@ -589,7 +589,7 @@ func release(ent: Dictionary) -> void:
 		return
 	var o := _pose(u)
 	var type := int(u.w.type)
-	if type in [500, 510]:
+	if type in [500, 510, 560, 650]:
 		u.ripple_left = u.ripple.qty()
 		u.ripple_next = now  # the first store on the next tick
 		u.ripple_target = t
@@ -621,13 +621,14 @@ func _ripple_tick(u: Unit) -> void:
 	if u.ripple_left == qty or u.ripple_line.size() != qty:
 		var p: Vector3 = ai.runtime._world_of(t) if not t.is_empty() else o.pos
 		var spd: float = o.vel.length()
-		if not t.is_empty() and spd > 1.0:
+		# 650 (FUN_00454b70 case 0x28a, AI): the target where it is now, no lead.
+		if not t.is_empty() and spd > 1.0 and int(u.w.type) != 650:
 			p += _velocity_of(t) * (p.distance_to(o.pos) / spd)
 		u.ripple_line = Bombs.ripple_line(p, qty, float(u.ripple.interval()), deg_to_rad(float(u.ent.heading)),
 			host.mission_ground)
 	var aim: Vector3 = u.ripple_line[u.ripple.index(u.ripple_left)]
 	_spent(u, u.cur)
-	host.weapons.drop_bomb(u.w, o.pos, o.vel, aim, u.ent)
+	host.weapons.release_store(u.w, o.pos, o.vel, aim, u.ent)
 	u.ripple_left -= 1
 
 
