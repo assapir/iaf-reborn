@@ -18,6 +18,10 @@
   instantaneous turn at corner speed, roll rate, climb, stall/approach speeds, fuel burn. Report deviations; let the
   user choose "faithful 1998" vs "realistic" per item (or a setting).
 
+## Mouse wheel in the settings (nice to have)
+The mouse wheel scrolls the settings / preferences pages and their lists. Extras option for the direction:
+regular (wheel down scrolls down) or natural (reversed, as on macOS trackpads).
+
 ## "Better physics" option (separate from original / real data)
 Improvements over the 1998 model that the player can opt into, decided case by case with the user:
 - Ground effect — **done** for the induced drag (McCormick φ(h/b), docs/flight-model.md §10); lift / α / stall speed
