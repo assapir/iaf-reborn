@@ -83,6 +83,12 @@ Godot Compatibility renderer (GLES3) with the terrain / detail / afterburner sha
 BC1 texture compression (the Pi's GPU has no S3TC), lower terrain detail and resolution. Rust / godot-rust already
 build for ARM64 Linux.
 
+## "Real MFDs" option (wishlist)
+Like the Real HUD: realistic MFD pages per jet behind their own Extras switch (the original's MFD pages by default,
+docs/mfd.md): the real page formats and symbology from public references (e.g. F-16 FCR, SMS, HSD, WPN / TGP, RWR;
+F-15 / F-4E / Mirage / Kfir / Lavi / F-35I equivalents), the OSB labels and their functions, driven by the same
+avionics state (radar, stores, RWR, EO / HARM sensors). Pairs with the realistic 3D cockpit (MFDs drawn live on it).
+
 ## "Real HUD" option
 The original HUD is a simplified 1998 F-16 HUD. Offer a realistic HUD per aircraft behind its own Extras switch
 (original by default): real symbology and layout, from public references (collected per aircraft in
