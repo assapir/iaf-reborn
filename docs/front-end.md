@@ -1625,6 +1625,13 @@ v1.0 reloaded the training missions with the same plane. Port: `front_end.gd` `_
 
 ## 14. Reference screen (screen 5, `ref.trx`, content class ctor `FUN_004fc490`, vtable `0x607b18`)
 
+**iaf-reborn:** built (`game/menu/reference.gd`, wired by `front_end.gd`; the records, descriptions, model paths,
+`.cp` limits and pictures converted by `iaf-convert reference` into `assets/converted/reference/`, parser
+`crates/iaf-formats/src/refs.rs`; tests/godot/test_reference.gd, real render `tests/godot/_reference_shot.gd`). Ours:
+the **Pilot guide** view (below). Not reproduced: the "Not exists" message box (every file is present). The list rows'
+names (hard-coded English in the exe) show in Hebrew in Hebrew mode (strings_he.json). The descriptions use Arial at
+the RTF body size (`\fs16`, 8 pt); the RTF's own fonts are not mapped.
+
 **Data file.** `<ReferencePath>\refers.ref`.
 * `ReferencePath` = `GetPrivateProfileString("MENU","ReferencePath",…, ini DAT_00836840)`. In
   `tgen.ini` it is `c:\iaf\Resource\Ref`, i.e. `install/resource/ref/`.
@@ -1668,7 +1675,8 @@ F-4 E uses the F42000 model.
 
 **Sub-category list.** A list widget (`FUN_0050d390`, base `FUN_004f4390`, create `4f4470`), child
 of the frame.
-* Position **(21,184)**, size 97×114 (`ref/list.bmp`; `.rdata 0x607a98/4`).
+* Position **(21,184)**, size 97×114 (`ref/list.bmp`; `.rdata 0x607a98/4`). Ours: list.bmp under every row, item.bmp
+  under the selected one (which bitmap backs which row state is UNCERTAIN).
 * **6 rows of 19 px**, each backed by `ref/item.bmp` 97×19.
 * Text: Arial p11 weight 400, `DT_CENTER|DT_VCENTER|DT_SINGLELINE`, left edge +3 (`50d3d0`). Colour
   RGB(0,128,0), or RGB(0,255,0) when selected.
@@ -1721,6 +1729,21 @@ of the frame.
   (`FUN_005e8f0d`; caption role UNCERTAIN).
 * LBUTTONDOWN on the content goes to the empty `4ecf80`.
 * BACK → Main.
+
+**Ours: Pilot guide** (docs/deviations.md §2). A record with a guide (`docs/guides/<dir>.md`, the record's directory
+lower-cased: `f16.md`) gets a **PILOT GUIDE** button under Pictures at (15,366) 108×18, cut from the Pictures button's
+art with its label blended out. It is a fourth view in the view group (the three original view buttons go unchecked
+while it shows); a record without a guide falls back to Description. The view is the same borderless rich edit as
+Description (`frame_window.gd` `bare`, its scrollbar and the mouse wheel), showing the guide's Markdown subset
+(`guide_md.gd`: headings, paragraphs, bold / italic / code, lists, pipe tables, rules, pictures with captions) at 12 px.
+Pictures (`![caption](shots/<jet>/<name>.png)`) come from `assets/converted/guides/`; a missing one leaves its
+caption. When `assets/converted/guides/<dir>.pdf` exists an **Open PDF** link at the top opens it in the system viewer.
+The pictures and the PDF are made by setup's last step (with a display): `tools/guide_shots.sh` renders each entry of
+`docs/guides/<jet>.shots.json` at 3840×2160 (`tests/godot/_guide_shots.gd`: settings, start (mission / airborne /
+dive / final approach), a placed target, actions such as a radar lock, a store or a camera on the target; crops: the
+whole frame, the HUD, an MFD) and `python3 -I tools/guide_pdf.py` prints the guide as an A4 PDF (title page with the
+record's picture, contents, the pictures) with headless Chrome / Chromium. Both hold the original art and stay under
+`assets/`.
 
 ## 15. Arming screen (0x1f, `arm.trx`, content ctor `FUN_00505e80`, vtable `0x6084b8`)
 

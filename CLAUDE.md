@@ -22,6 +22,7 @@ tools/ghidra/fn.sh 5643a0 | --grep PATTERN                    # decompiled origi
 tools/worktree.sh <name>                                      # parallel worktree sharing assets/ via symlink
 tools/doclint.py                                              # lint the docs (links, paths, § refs, tables)
 tools/mission_sweep.sh OUT [ids…]                             # headless run of every playable mission, one log each
+tools/guide_shots.sh [jet] && python3 -I tools/guide_pdf.py   # pilot guides' pictures (needs a display) and PDFs
 ```
 
 - Always run scripted Godot tests / captures with `IAF_DEFAULT_SETTINGS=1` so the user's `settings.cfg` is never read

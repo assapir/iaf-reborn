@@ -80,7 +80,16 @@
   "Settings file": "קובץ הגדרות",
   "Export": "ייצוא",
   "Import": "ייבוא",
-  "Export flight data": "ייצוא נתוני טיסה"
+  "Export flight data": "ייצוא נתוני טיסה",
+  "Fighters": "מטוסי קרב",
+  "Helicopters": "מסוקים",
+  "Support": "תובלה ותמיכה",
+  "Tanks": "טנקים",
+  "Other": "אחר",
+  "AA": "אוויר-אוויר",
+  "AG": "אוויר-קרקע",
+  "Pilot guide": "מדריך טייס",
+  "Open PDF": "פתח PDF"
  },
  "msgs": {
   "YES": "כן",

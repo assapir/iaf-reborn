@@ -112,8 +112,7 @@ Checked against the code on 2026-10-14 (each doc's own "not built" notes have th
   into another jet / Visit / live unit positions (docs/views.md).
 - **Sounds**: AI jets' and moving units' engines (silent); Betty "Pull up" and the HUD pull-up cue.
 - **Radio**: AWACS contact calls; airborne / landed / crashed / kill ("… is down") reports.
-- **Front end**: Jump In / Scramble (button not wired); Reference screen content (docs/front-end.md §14; its 3DView can
-  reuse `model_view.gd`); the debrief page's statistics; Graphics defaults from hardware detection, TERRAIN DETAIL's
+- **Front end**: Jump In / Scramble (button not wired); the debrief page's statistics; Graphics defaults from hardware detection, TERRAIN DETAIL's
   resolution drop / view distance (docs/deviations.md §1); No wind / No malfunctions have no reader in the original either.
 - **Eject**: parachute swing and landing.
 - **Imagery**: SPOT 5 outside Israel not started.

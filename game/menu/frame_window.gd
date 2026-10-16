@@ -29,6 +29,15 @@ var active := true
 var maximised := false
 var restore_rect := Rect2()
 var bounds := Rect2(0, 0, 453, 357)  # where maximise goes (TSD client)
+## The Reference screen's rich edit (§14): no frame or title bar, the text and its scrollbar fill `rect`.
+var bare := false
+var text_px := TEXT_PX
+## Ours: a pilot guide (guide_md.gd) shown instead of RTF text, rebuilt when the scale changes (its images and
+## heading sizes are in pixels).
+var guide_md := ""
+var guide_base := ""
+var guide_head := ""
+var _guide_scale := 0.0
 
 var rich: RichTextLabel
 ## The 3D-model window's view (model_view.gd, §11): the left two-thirds, the text in the right third.
@@ -71,6 +80,31 @@ func set_text(bbcode: String, links: Array) -> void:
 	rich.text = "[right]%s[/right]" % text if hebrew else text
 	image = null
 	scroll = 0.0
+
+
+## Ours: shows a pilot guide (Markdown, docs/guides; its pictures under `base`), after the BBCode `head`.
+func set_guide(md: String, base: String, head := "") -> void:
+	set_text("", [])
+	rich.add_theme_font_override("mono_font", SystemFont.new())
+	guide_md = md
+	guide_base = base
+	guide_head = head
+	_guide_scale = 0.0
+
+
+func _build_guide(s: float) -> void:
+	_guide_scale = s
+	rich.clear()
+	rich.append_text(guide_head)
+	var width := (_body().size.x - SCROLL_W - 8) * s
+	for part in preload("res://menu/guide_md.gd").parse(guide_md, guide_base, int(round(text_px * s))):
+		if part is String:
+			rich.append_text(part)
+			continue
+		var tex := preload("res://util/img.gd").load_texture(part.image, true)
+		rich.append_text("[center]")
+		rich.add_image(tex, int(minf(width, tex.get_width())))
+		rich.append_text("\n[i][color=#aaaab4]%s[/color][/i][/center]\n\n" % part.caption)
 
 
 ## The target window (brl type 5, §10): `v` (a model_view.gd set up as a target view) fills the client.
@@ -126,11 +160,14 @@ func _process(_delta: float) -> void:
 	if rich != null:
 		var s := _s()
 		var body := _body()
-		var fs := int(round(TEXT_PX * s))
+		if guide_md != "" and s != _guide_scale:
+			_build_guide(s)
+		var fs := int(round(text_px * s))
 		rich.add_theme_font_size_override("normal_font_size", fs)
 		rich.add_theme_font_size_override("bold_font_size", fs)
 		rich.add_theme_font_size_override("italics_font_size", fs)
 		rich.add_theme_font_size_override("bold_italics_font_size", fs)
+		rich.add_theme_font_size_override("mono_font_size", fs)
 		body_clip.position = body.position * s
 		body_clip.size = Vector2(body.size.x - SCROLL_W, body.size.y) * s
 		rich.size = Vector2(body.size.x - SCROLL_W - 4, 0) * s
@@ -146,6 +183,8 @@ func _process(_delta: float) -> void:
 ## Client area below the title bar (window-local, 640 space); with a model view, the description's rect: the client's
 ## right third (from trunc(2w/3)) inset 20 at the top and 14 at the bottom (FUN_0050dde0, UNCERTAIN which margins).
 func _body() -> Rect2:
+	if bare:
+		return Rect2(Vector2.ZERO, rect.size)
 	if view != null:
 		var c := _client()
 		var vw := floorf(c.size.x * 2.0 / 3.0)
@@ -200,6 +239,20 @@ func _draw() -> void:
 		var isz: Vector2 = fe._art_size(image)
 		var shown := isz.min(body.size)
 		draw_texture_rect_region(image, Rect2(body.position * s, shown * s), Rect2(Vector2.ZERO, shown * fe.art_scale))
+	if not bare:
+		_draw_frame(w, h)
+	# Custom vertical scrollbar at the right edge of the text (§6).
+	if rich != null:
+		var x := body.end.x - SCROLL_W
+		var track_h := body.size.y
+		_blit("framewnd/scroll.png", Rect2(0, 0, SCROLL_W, track_h), Vector2(x, body.position.y))
+		_blit("framewnd/slupb_%d.png" % (2 if pressed_btn == "up" else 0), Rect2(Vector2.ZERO, Vector2(10, 8)), Vector2(x, body.position.y))
+		_blit("framewnd/sldownb_%d.png" % (2 if pressed_btn == "down" else 0), Rect2(Vector2.ZERO, Vector2(10, 8)), Vector2(x, body.end.y - 8))
+		_blit("framewnd/slider.png", Rect2(0, 0, 10, 23), Vector2(x, _thumb_y()))
+
+
+## Borders, title bar with its tab art and buttons, the 3D window's logo.
+func _draw_frame(w: float, h: float) -> void:
 	# Borders: centre-cropped strips, corners last.
 	_blit("framewnd/horzborder.png", Rect2(320 - w / 2, 0, w, 4), Vector2.ZERO)
 	_blit("framewnd/horzborder.png", Rect2(320 - w / 2, 0, w, 4), Vector2(0, h - 4))
@@ -231,19 +284,13 @@ func _draw() -> void:
 	# The 3D-model window's "Jane's" logo over the top-left corner (§11, FUN_0051e2e0(frame, 3, 4)).
 	if view != null and view.tab < 0:
 		_blit("framewnd/logo.png", Rect2(Vector2.ZERO, _art_size("framewnd/logo.png")), Vector2(3, 4))
-	# Custom vertical scrollbar at the right edge of the text (§6).
-	if rich != null:
-		var x := body.end.x - SCROLL_W
-		var track_h := body.size.y
-		_blit("framewnd/scroll.png", Rect2(0, 0, SCROLL_W, track_h), Vector2(x, body.position.y))
-		_blit("framewnd/slupb_%d.png" % (2 if pressed_btn == "up" else 0), Rect2(Vector2.ZERO, Vector2(10, 8)), Vector2(x, body.position.y))
-		_blit("framewnd/sldownb_%d.png" % (2 if pressed_btn == "down" else 0), Rect2(Vector2.ZERO, Vector2(10, 8)), Vector2(x, body.end.y - 8))
-		_blit("framewnd/slider.png", Rect2(0, 0, 10, 23), Vector2(x, _thumb_y()))
 
 
 ## Title-bar buttons, right to left: [art, position] (window-local, 640 space).
 func _buttons() -> Array:
 	var out := []
+	if bare:
+		return out
 	var x := rect.size.x - BORDER - 1 - BTN.x
 	var y := TITLE_Y + (TITLE_H - BTN.y) / 2
 	out.append(["closebut", Vector2(x, y)])
@@ -278,7 +325,8 @@ func _gui_input(event: InputEvent) -> void:
 		if event.button_index != MOUSE_BUTTON_LEFT:
 			return
 		if event.pressed:
-			get_parent().move_child(self, -1)  # a click raises the window
+			if not bare:
+				get_parent().move_child(self, -1)  # a click raises the window
 			for b in _buttons():
 				if Rect2(b[1], BTN).has_point(p):
 					pressed_btn = b[0]
@@ -297,7 +345,7 @@ func _gui_input(event: InputEvent) -> void:
 					drag_thumb = p.y - _thumb_y()
 				elif Rect2(x, body.position.y, SCROLL_W, body.size.y).has_point(p):
 					_scroll_by(body.size.y * (1 if p.y > _thumb_y() else -1))
-			if p.y < TITLE_Y + TITLE_H and pressed_btn == "":
+			if p.y < TITLE_Y + TITLE_H and pressed_btn == "" and not bare:
 				drag_from = p
 			accept_event()
 		else:

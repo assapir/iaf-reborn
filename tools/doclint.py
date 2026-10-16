@@ -90,7 +90,8 @@ def main() -> int:
                 table_cols = None
             plain = strip_code(line)
             for target in re.findall(r"\]\(([^)\s]+)\)", plain):
-                if re.match(r"[a-z]+:", target):
+                # Guide screenshots are rendered locally by setup (original art, never committed).
+                if re.match(r"[a-z]+:", target) or (target.startswith("shots/") and f.parent.name == "guides"):
                     continue
                 path_part, _, anchor = target.partition("#")
                 dest = (f.parent / path_part).resolve() if path_part else f

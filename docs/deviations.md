@@ -149,6 +149,9 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
   Israel layer does replace the original's level-3 (9.9 m) cover of Israel. Heights, terrain types and missions stay
   the original's. The converted layers' credits (CC BY) roll with the credits on Quit (docs/credits.md). Data only via
   `tools/setup.sh --imagery …` (off by default).
+- **Pilot guides** (shown only for a record that has a guide, `docs/guides/<dir>.md`; no Extras row): the Reference
+  screen gets a **PILOT GUIDE** button and view, with an Open PDF link when the guide's PDF was made — front-end.md
+  §14, reference.gd.
 
 ## 3. Original quirks we keep on purpose (decided)
 - The sea west of Suez (and the Nile delta / Western desert) is one flat plane at −557 m in map.ptt; ships there sit

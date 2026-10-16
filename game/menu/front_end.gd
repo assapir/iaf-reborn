@@ -251,6 +251,8 @@ var msgbox: Control
 ## Pilot Records (screen 0): its content node (game/menu/pilot_records.gd), and the logged-in pilot's
 ## mission history for the list locks (§13.11), read on each screen change.
 var records: Control
+## The Reference screen's content (reference.gd, §14), while on it.
+var ref_view: Control
 var history: Array = []
 ## In flight (docs/front-end.md §16): the flight scene that opened this front end over itself for the
 ## FlyTSD (Esc, screen 0x20) or the in-flight Preferences (screen 0x21); null in the menus. Set with
@@ -495,6 +497,16 @@ func _enter_screen() -> void:
 	elif screen != "log" and records != null:
 		records.queue_free()
 		records = null
+	if screen == "ref" and ref_view == null:
+		# Initial state (FUN_004fc910): IDF, Aircraft and Description checked.
+		for label in ["IDF", "Aircraft", "Description"]:
+			checked[_key_for_label(label)] = true
+		ref_view = preload("res://menu/reference.gd").new()
+		add_child(ref_view)
+		ref_view.setup(self)
+	elif screen != "ref" and ref_view != null:
+		ref_view.queue_free()
+		ref_view = null
 	history = Pilots.history(Settings.pilot_id) if Settings.pilot_id >= 0 else []
 
 
@@ -548,6 +560,13 @@ func _restore_tsd_checks() -> void:
 				checked["%d/%d" % [p, b]] = true
 
 
+## The Reference screen's view group (Description / 3DView / Pictures): only `label` checked ("": none, our
+## Pilot guide view is shown).
+func check_label(label: String) -> void:
+	for l in ["Description", "3DView", "Pictures"]:
+		checked[_key_for_label(l)] = l == label
+
+
 func _button_enabled(label: String) -> bool:
 	if screen == "deb" and _norm(label) == "nextmission":
 		return next_mission(Settings.mission_id, Settings.debrief.get("passed", false) or _cheat()) != 0
@@ -557,6 +576,8 @@ func _button_enabled(label: String) -> bool:
 	for i in rows.size():
 		if _norm(rows[i].name) == _norm(label) and int(rows[i].get("flags", [0])[0]) != 0 and not _cheat():
 			return i > 0 and Pilots.passes(history, int(rows[i - 1].id)) > 0
+	if screen == "ref" and ref_view != null and _norm(label) in ["next", "prev"]:
+		return ref_view.can_step(1 if _norm(label) == "next" else -1)  # FUN_004fd800
 	if screen == "jet":
 		var id: int = JET_IDS.get(_norm(label), -1)
 		if id in JETS_DISABLED.get(Settings.mission_id, []):
@@ -1128,37 +1149,53 @@ func _draw_f35i_slot(p: int, panel: Dictionary, delta: Vector2) -> void:
 			continue
 		var f := _frame("%d/%d" % [p, b], btn.label)
 		var r: Array = btn.rect
-		var t := _jet_button_tex(String(panel.name).to_lower(), Rect2(r[0] - panel.pos[0], r[1] - panel.pos[1], r[2], r[3]), f)
+		var t := _button_tex(String(panel.name).to_lower(), Rect2(r[0] - panel.pos[0], r[1] - panel.pos[1], r[2], r[3]), f)
 		if t == null:
 			return
 		var box := _rect(Rect2(Vector2(r[0], r[1]) + delta, Vector2(r[2], r[3])))
 		draw_texture_rect(t, box, false)
-		# As the baked labels: English heavy and condensed; Hebrew regular weight, letter-spaced, a softer grey (the
-		# Hebrew pack's buttons).
-		var he := _he()
-		var lf: Font = font if he else font_bold
-		var fs := int(round(15 * _scale()))
-		var text := "אדיר" if he else "F-35I"
-		var sq := 1.0 if he else TAB_SQUEEZE
-		var gap := 1.0 * _scale() if he else 0.0
-		var w := lf.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x * sq + gap * (text.length() - 1)
-		var base := box.position.y + (box.size.y + lf.get_ascent(fs) - lf.get_descent(fs)) / 2.0 - (_scale() if he else 0.0)
-		# The baked labels' grey (sampled from the Jet list art), dimmer pressed / disabled.
-		var col := Color8(188, 190, 194) if f < 2 else (Color8(160, 162, 166) if f == 2 else Color8(110, 112, 115))
-		draw_set_transform(Vector2(box.position.x + (box.size.x - w) / 2.0, base), 0.0, Vector2(sq, 1.0))
-		if gap == 0.0:
-			draw_string(lf, Vector2(_scale(), _scale()), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color8(25, 25, 25))
-			draw_string(lf, Vector2.ZERO, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
-		else:
-			# Letter by letter (right to left for Hebrew), each a fixed gap apart.
-			var x := w
-			for ch in text:
-				var cw := lf.get_string_size(ch, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-				x -= cw
-				draw_string(lf, Vector2(x + _scale(), _scale()), ch, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color8(25, 25, 25))
-				draw_string(lf, Vector2(x, 0), ch, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
-				x -= gap
-		draw_set_transform(Vector2.ZERO)
+		_draw_baked_label(self, box, "אדיר" if _he() else "F-35I", f, 15)
+
+
+## Our label on a button whose baked label was blended out (`box` in window pixels), as the baked labels: English
+## heavy and condensed; Hebrew regular weight, letter-spaced, a softer grey (the Hebrew pack's buttons).
+func _draw_baked_label(on: CanvasItem, box: Rect2, text: String, f: int, px: float) -> void:
+	var he := _he()
+	var lf: Font = font if he else font_bold
+	var fs := int(round(px * _scale()))
+	var sq := 1.0 if he else TAB_SQUEEZE
+	var gap := 1.0 * _scale() if he else 0.0
+	var w := _label_width(lf, text, fs, sq, gap)
+	while w > box.size.x and fs > 6:  # smaller until it fits the box
+		fs -= 1
+		w = _label_width(lf, text, fs, sq, gap)
+	var base := box.position.y + (box.size.y + lf.get_ascent(fs) - lf.get_descent(fs)) / 2.0 - (_scale() if he else 0.0)
+	# The baked labels' grey (sampled from the Jet list art), dimmer pressed / disabled.
+	var col := Color8(188, 190, 194) if f < 2 else (Color8(160, 162, 166) if f == 2 else Color8(110, 112, 115))
+	on.draw_set_transform(Vector2(box.position.x + (box.size.x - w) / 2.0, base), 0.0, Vector2(sq, 1.0))
+	if gap == 0.0:
+		on.draw_string(lf, Vector2(_scale(), _scale()), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color8(25, 25, 25))
+		on.draw_string(lf, Vector2.ZERO, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
+	else:
+		# Letter by letter (right to left for Hebrew), each a fixed gap apart.
+		var x := w
+		for ch in text:
+			var cw := lf.get_string_size(ch, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+			x -= cw
+			on.draw_string(lf, Vector2(x + _scale(), _scale()), ch, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color8(25, 25, 25))
+			on.draw_string(lf, Vector2(x, 0), ch, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
+			x -= gap
+	on.draw_set_transform(Vector2.ZERO)
+
+
+## A baked-style label's width: the whole string, or letter by letter with `gap` between (as it is drawn).
+func _label_width(lf: Font, text: String, fs: int, sq: float, gap: float) -> float:
+	if gap == 0.0:
+		return lf.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x * sq
+	var w := gap * (text.length() - 1)
+	for ch in text:
+		w += lf.get_string_size(ch, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+	return w
 
 
 ## The F-35I's Jet list description (Hebrew in strings_he.json).
@@ -1169,9 +1206,10 @@ const F35I_DESC := "The IAF's fifth-generation stealth fighter: internal weapon 
 const JET_LABEL := Rect2(14, 9, 81, 21)
 
 
-## A Jet list button (panel-relative rect `src`) from palettes/<panel>_<f>, its baked label blended out.
-func _jet_button_tex(panel: String, src: Rect2, f: int) -> Texture2D:
-	var key := "jet_slot_%s_%d_%d" % [panel, int(src.position.y), f]
+## A button (panel-relative rect `src`) from palettes/<panel>_<f>, its baked label (`label`, button-relative)
+## blended out.
+func _button_tex(panel: String, src: Rect2, f: int, label := JET_LABEL) -> Texture2D:
+	var key := "button_%s_%d_%d_%s" % [panel, int(src.position.y), f, label]
 	if not textures.has(key):
 		var path := dir.path_join("img/palettes/%s_%d.png" % [panel, f])
 		var img := Image.load_from_file(path) if FileAccess.file_exists(path) else null
@@ -1180,7 +1218,7 @@ func _jet_button_tex(panel: String, src: Rect2, f: int) -> Texture2D:
 			return null
 		img.convert(Image.FORMAT_RGBA8)
 		var band: Image = img.get_region(Rect2i(src.position * art_scale, src.size * art_scale))
-		var a := Rect2i(JET_LABEL.position * art_scale, JET_LABEL.size * art_scale)
+		var a := Rect2i(label.position * art_scale, label.size * art_scale)
 		for y in range(a.position.y, a.end.y):
 			var c0 := band.get_pixel(a.position.x - 1, y)
 			var c1 := band.get_pixel(a.end.x, y)
@@ -1421,6 +1459,8 @@ func _gui_input(event: InputEvent) -> void:
 			if screen == "pref" and msgbox == null and _pref_press(p - CONTENT.position):
 				return
 			if screen == "deb" and msgbox == null and _deb_press(p - CONTENT.position):
+				return
+			if screen == "ref" and ref_view != null and ref_view.press(p):
 				return
 			held = _hit(p)
 			if held != "":
@@ -1691,9 +1731,10 @@ func _on_button(key: String) -> void:
 		"Check":
 			checked[key] = not checked.get(key, false)
 		"CheckGroup":
-			# Only the buttons of the same panel (Arming has two groups: AA / AG / Misc, the flights).
+			# Only the buttons of the same panel and group (Arming has two panels: AA / AG / Misc, the flights; the
+			# Reference panel three groups: side, kind, view).
 			for k in checked.keys():
-				if k.get_slice("/", 0) == key.get_slice("/", 0):
+				if k.get_slice("/", 0) == key.get_slice("/", 0) and _button(k).get("arg") == btn.arg:
 					checked[k] = false
 			checked[key] = true
 	var label: String = btn.label
@@ -1706,6 +1747,10 @@ func _on_button(key: String) -> void:
 		return
 	if screen == "deb":
 		_debrief_button(_norm(label))
+		return
+	if screen == "ref":
+		if ref_view != null:
+			ref_view.button(_norm(label))
 		return
 	if screen == "log":
 		match _norm(label):

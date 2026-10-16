@@ -7,6 +7,9 @@
 //! `iaf-convert cockpit <install-dir> <cockpit> <out-dir>` — cockpit art (PNG) + layout (`cockpit.json`).
 //! `iaf-convert briefings <install-dir> <packs-dir> <out-dir>` — briefing/lesson texts (RTF → BBCode,
 //! English + Hebrew pack), `.brl` entry lists and diagrams (`briefings.json`, `img/`, `img_he/`).
+//! `iaf-convert reference <install-dir> <out-dir>` — the Reference screen's records (`resource/ref/refers.ref`,
+//! sorted) with their `<dir>_0.rtf` description (BBCode), model path (glTF under converted/objects) and `.cp`
+//! view limits (`reference.json`), and the `<dir>_0.bmp` pictures (`img/<dir>.png`), docs/front-end.md §14.
 //! `iaf-convert missions <install-dir> <out-dir>` — every `.mis` and the `.bdb` → JSON, plus the
 //! mission list (menu id → mission + base-mission files).
 //! `iaf-convert fonts <install-dir> <out-dir>` — HUD/MFD/key raster fonts → BMFont (`.fnt` + `.png`).
@@ -77,6 +80,7 @@ fn main() -> Result<()> {
         [_, "objects", install, missions, out] => convert_objects(Path::new(install), Path::new(missions), Path::new(out), &opts),
         [_, "fonts", install, out] => convert_fonts(Path::new(install), Path::new(out)),
         [_, "briefings", install, packs, out] => convert_briefings(Path::new(install), Path::new(packs), Path::new(out), &opts),
+        [_, "reference", install, out] => convert_reference(Path::new(install), Path::new(out), &opts),
         [_, "menu", install, out] => convert_menu(Path::new(install), None, Path::new(out), &opts),
         [_, "menu", install, out, "--pack", pack] => convert_menu(Path::new(install), Some(Path::new(pack)), Path::new(out), &opts),
         [_, "keys", install, packs, out] => convert_keys(Path::new(install), Path::new(packs), Path::new(out)),
@@ -659,6 +663,34 @@ fn convert_briefings(install: &Path, packs: &Path, out: &Path, opts: &Options) -
     }
     println!("briefings: {} missions, {} lessons, {n} diagrams -> {}",
         doc["missions"].as_object().map_or(0, |m| m.len()), doc["lessons"].as_object().map_or(0, |m| m.len()), out.display());
+    Ok(())
+}
+
+fn convert_reference(install: &Path, out: &Path, opts: &Options) -> Result<()> {
+    use serde_json::json;
+    let res = install.join("resource");
+    let refs = iaf_formats::refs::parse(&std::fs::read(res.join("ref/refers.ref"))?)?;
+    std::fs::create_dir_all(out.join("img"))?;
+    let mut records = Vec::new();
+    for r in &refs {
+        let dir = r.dir.to_lowercase();
+        let base = res.join("ref").join(&dir);
+        let text = std::fs::read(base.join(format!("{dir}_0.rtf"))).ok().map(|d| iaf_formats::rtf::to_bbcode(&d));
+        if let Ok(img) = image::open(base.join(format!("{dir}_0.bmp"))) {
+            opts.scaled(img.to_rgba8()).save(out.join(format!("img/{dir}.png")))?;
+        }
+        // "\ControllablePlanes\F16\F16_h.x" -> "controllableplanes/f16/f16_h" (the converted glTF and the .cp beside the .x).
+        let model = r.model.replace('\\', "/").trim_start_matches('/').to_lowercase();
+        let model = model.strip_suffix(".x").unwrap_or(&model).to_string();
+        let cp = std::fs::read_to_string(res.join("3dobjects").join(format!("{model}.cp"))).ok().and_then(|t| {
+            let v: Vec<f64> = t.split_whitespace().filter_map(|w| w.parse().ok()).collect();
+            (v.len() >= 2).then(|| json!([v[0], v[1]]))
+        });
+        records.push(json!({"name": r.name, "dir": dir, "model": format!("{model}.gltf"), "idf": r.idf,
+            "enemy": r.enemy, "category": r.category, "text": text, "cp": cp}));
+    }
+    std::fs::write(out.join("reference.json"), serde_json::to_string_pretty(&json!({"records": records}))?)?;
+    println!("reference: {} records -> {}", records.len(), out.display());
     Ok(())
 }
 

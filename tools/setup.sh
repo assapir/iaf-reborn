@@ -157,6 +157,9 @@ fi
 step "briefings (English + Hebrew pack when imported)"
 ./target/release/iaf-convert --upscale briefings assets/install assets/packs assets/converted/briefings
 
+step "Reference screen (refers.ref records, descriptions, pictures)"
+./target/release/iaf-convert --upscale reference assets/install assets/converted/reference
+
 step "front-end menus (screens, strings, art, fonts)"
 ./target/release/iaf-convert --upscale menu assets/install assets/converted/menu
 if [[ -d assets/packs/he/resource/menu ]]; then
@@ -195,5 +198,16 @@ step "icon and desktop launcher (the original icon from iafjets.exe)"
 tools/install-launcher.sh
 
 [[ -n $imagery ]] && imagery_steps
+
+# The pilot guides' pictures and PDFs (docs/guides; the Reference screen's Pilot guide view): real renders, so only
+# with a display; they hold the original art and stay under assets/. After the imagery so the pictures show it.
+step "pilot guides: pictures (tools/guide_shots.sh) and PDFs (tools/guide_pdf.py)"
+if [[ $(uname) == Darwin && -z ${SSH_CONNECTION:-} ]] || [[ -n ${DISPLAY:-}${WAYLAND_DISPLAY:-} ]]; then
+	[[ -d game/.godot ]] || godot --headless --path game --import >/dev/null 2>&1 || true
+	tools/guide_shots.sh
+	python3 -I tools/guide_pdf.py
+else
+	echo "no display: skipped (run tools/guide_shots.sh and python3 -I tools/guide_pdf.py from a desktop session)"
+fi
 
 step "done — run: ./iafjets (or the \"Jane's IAF (reborn)\" launcher)"

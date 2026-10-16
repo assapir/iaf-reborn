@@ -9,6 +9,7 @@ pub mod lzo;
 pub mod menu;
 pub mod model;
 pub mod ptt;
+pub mod refs;
 pub mod rtf;
 pub mod winfnt;
 pub mod ssf;
