@@ -94,7 +94,10 @@ The original HUD is a simplified 1998 F-16 HUD. Offer a realistic HUD per aircra
 (original by default): real symbology and layout, from public references (collected per aircraft in
 docs/real-hud.md). **Built** (Extras > HUD, docs/cockpit.md "Real HUD"): every flyable jet's HUD / sight per
 docs/real-hud.md "What ours draws" (F-16 incl. EEGS, ASE / ASC, DLZ; F-15; F-4E / Mirage reticles; F-35I). Left: a
-settable bingo; what that list marks "not drawn".
+settable bingo; what that list marks "not drawn"; **the real field of view**: the cockpit art's HUD glass is
+shorter than the real HUD's (the F-16's ≈ 25° total), so the F-16 bank scale is raised into the glass instead of 50 mr
+below the FOV centre (`real_hud/f16.rs` `roll_indicator`). Fix the view so the whole real field fits the glass (eye
+position / zoom, or a taller glass in the art), then put the bank scale back at its real place.
 
 ## Updated maps (later, just for fun)
 The static maps (TSD / briefing EMF maps, map texts, borders, city names) show the 1998 situation. Optional Extras

@@ -300,6 +300,8 @@ fn heading(p: &mut Vec<Prim>, y: f64, hdg: f64, bearing: Option<f64>) {
 /// is shorter than the real HUD's field of view, and the glareshield hides what falls below it).
 fn roll_indicator(p: &mut Vec<Prim>, i: &Input, bottom: f64) {
     let r = i.mr(70.0);
+    // TODO(real FOV): back to (0, mr(50)) once the view fits the real field of view in the glass (docs/roadmap.md
+    // "Real HUD" option).
     let c = (0.0, i.mr(50.0).min(bottom - r - 4.0));
     let at = |deg: f64, rr: f64| {
         let a = deg.to_radians();
