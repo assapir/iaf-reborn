@@ -287,7 +287,8 @@ fn convert_objects(install: &Path, missions: &Path, out: &Path, opts: &Options) 
         let name = rtf.file_name().unwrap().to_string_lossy().to_lowercase();
         let Some(stem) = name.strip_suffix(".rtf").filter(|s| s.ends_with("_h")) else { continue };
         let rel = rtf.strip_prefix(&root)?.with_file_name(format!("{stem}.x"));
-        if done.contains_key(&rel) || !root.join(&rel).exists() {
+        // The same glTF as a converted `.xfr` (its frames: turret, launcher, radar…): keep that one.
+        if done.contains_key(&rel) || done.contains_key(&rel.with_extension("xfr")) || !root.join(&rel).exists() {
             continue;
         }
         let ok = convert(&root.join(&rel), &out.join(rel.parent().unwrap()), std::slice::from_ref(&root), opts)

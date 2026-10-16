@@ -589,14 +589,17 @@ no weapon = "Entity with no weapon handler", no engagement) and the fire tick:
 - **Class 0x18** (SAMs 620 / 630, and 570 / 580 / 610 on some vehicles): fire only inside the missile's DLZ
   (`FUN_005624f0`) taken from the unit's pose with zero speed. The nose is the unit's heading, so **a site never fires
   at a target 90° or more off its heading** (original quirk). One in the air (`_maxNumInAir` 1), q 1.0. The launch
-  attitude (`FUN_004ab810`): types 290–340 turn the launcher to the target (heading and pitch), others keep their level
-  heading. The launch point is (0, 4, 1) in that attitude (`FUN_004ab7b0`: 4 m ahead, 1 m up), at 100.1 m/s
+  attitude (`FUN_004ab810`) reads the part angles, it does not turn them (their only writer is script motion op 11,
+  `FUN_005c3ee0`): types 290–340 the launcher's heading (hull + part +0x14) pitched toward the target, tanks (250) the
+  turret's heading (part +0xc; UNCERTAIN: hull + turret, Ghidra's stack aliasing hides the hull term), others the
+  hull's level heading. The launch point is (0, 4, 1) in that attitude (`FUN_004ab7b0`: 4 m ahead, 1 m up), at 100.1 m/s
   (_debugParam000, the launcher being slower than 5 m/s). The flight, RWR launch flag, blast and look are the player's
   homing weapons' (`player_weapons.gd` `launch_homing`).
 - Release order (`FUN_004ab810`): the truce first (taken even when the shot is then skipped), then a busy pool
   object, then the terrain line of sight (both ends +3 m: −1.5 subtracted twice). Every round and missile starts
-  at (0, 4, 1) in the launch attitude (`FUN_004ab7b0`; tanks, type 250: the turret's heading, which turns to the
-  target), with the launcher's velocity (`FUN_004d5d10`).
+  at (0, 4, 1) in the launch attitude (`FUN_004ab7b0`), with the launcher's velocity (`FUN_004d5d10`). Every release
+  of a non-aircraft unit first clears its part record's +8 (@4aba06): the Missile part (the Scud's) is no longer
+  drawn.
 - **Script op 2** (`script_fire`): the weapon at the target's position now (no lead, no range, no DLZ), q 1.0, then the
   release; a unit not in combat skips the truce (the handler's SAFE flag +0x28, "Fired a weapon by the Scenario";
   UNCERTAIN: its initial value). The entry's **0x852** (script +0x3c) picks the release flag (the weapon's +0x100,
@@ -613,8 +616,14 @@ no weapon = "Entity with no weapon handler", no engagement) and the fire tick:
   112's T-55s (brain −1) killed a Merkava 11 s in and the mission failed, which the original does not; 322's SA-2
   launchers (brain −1) stay silent (its "Shade hawk" launchers have brain 11).
 
-Not reproduced: the ring pool's 3–4 steps per gun shot, the turret parts' drawn turning, ECM in the sensor, the
-second weapon station. Test: tests/godot/test_ground_fire.gd (313 AAA and SA-3, 322 rockets).
+**Second station**: the handler loads up to two (`FUN_004b7ea3` / `FUN_004aa830`) but fires the one at its index +0x34,
+which start combat sets to 0 (`FUN_004ac120`, the previous kept in +0x38 and put back by stop combat); nothing else
+writes it (the ctor's 0), so in the original too the second station never fires. Turrets / launchers turn only by
+script motion op 11 (mission_runtime.gd `_yaw_to_target`, now drawn: the vehicle models keep their `.xfr` frames,
+docs/part-animation.md §2.1).
+
+Not reproduced: the ring pool's 3–4 steps per gun shot, ECM in the sensor. Test: tests/godot/test_ground_fire.gd (313
+AAA and SA-3 incl. the launch along the launcher's heading, 322 rockets), test_yaw_to_target.gd (parts).
 
 
 - **Spawn** (`FUN_004b7634` → `FUN_004b7ad6`): an entity with record +0x3c ≠ 0 → vehicle `FUN_0059bb00` with a
@@ -635,8 +644,8 @@ second weapon station. Test: tests/godot/test_ground_fire.gd (313 AAA and SA-3, 
   now + `_reactionTime`, then every `_fireReleaseInterval`, slot 0; the target locked on its RWR. 560: timer off.
 - **Fire tick** (`FUN_004ab110`): T = brain+0x70 dead → timer stops. Class 0x17 (gun / rockets): range =
   `_limitDist` (×0.5 for 565 → 2250 m), t = |T − P| / `_limitVel`, aim = T + V_T·t + ½A_T·t² (lead). Class 0x18
-  (missiles / SAMs): fire within the chase envelope (§13.1). Release `FUN_004ab810`: turret parts of types 250 and
-  290–340 turn to the target; a **global truce** for all handlers (DAT_008321d0..d8): after each shot no other ground
+  (missiles / SAMs): fire within the chase envelope (§13.1). Release `FUN_004ab810`: the launch attitude from the
+  turret / launcher part angles (above); a **global truce** for all handlers (DAT_008321d0..d8): after each shot no other ground
   shot for 0.1 + rand·0.9 s ("Entities in truce"); busy pool object → skipped; terrain LOS +1.5 m; fire
   `FUN_004d7630` → `FUN_005604a0(T)` (single candidate); 565 / 660 play SFX_ENTITY_FIRED_WEAPON (a cyclic row: ours keeps one loop per unit while it fires again within
   two fire intervals, `combat.gd` `fire_sound`; UNCERTAIN: the original's stop). Pool quirk: the ring

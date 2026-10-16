@@ -31,6 +31,7 @@ var keys: RefCounted = KeyTable.load_table()
 var _held_records: Array = []
 ## Joystick buttons down (the poller's held list, FUN_004e0a60 releases them): button → true.
 var _held_buttons := {}
+var _dishes: Array = []  # the units with a Radar part or rotors (vehicle_parts.gd step_radar / step_rotors)
 var flight = null  # IafFlight
 var real_data := false
 var stick := Vector2.ZERO  # x roll right+, y pull+
@@ -717,6 +718,9 @@ func _spawn_mission_objects() -> void:
 		if path.ends_with("_h.gltf"):
 			_add_lods(node, Gltf.object(path.trim_suffix("_h.gltf") + "_m.gltf"), Gltf.object(path.trim_suffix("_h.gltf") + "_l.gltf"),
 					ent.max_extent)
+		ent["rig"] = VehicleParts.rig(node)
+		if VehicleParts.has_radar(ent.rig) or VehicleParts.rotor_count(ent.rig) > 0:
+			_dishes.append(ent)
 		mission_entity_moved(ent)
 	runtime.start()
 
@@ -2140,6 +2144,17 @@ func _own_key(event: InputEventKey) -> void:
 
 func _process(delta: float) -> void:
 	views.update(delta)
+	# The units' Radar dishes and rotors (FUN_005c5460 cases 0x19, 0x1d–0x20: stepped while drawn).
+	for ent in _dishes:
+		if ent.has("angles"):
+			continue  # falling in its destruction motion (mission_entity_moved poses it)
+		if not ent.has("parts"):
+			ent["parts"] = {}
+		var rotors := VehicleParts.rotor_count(ent.rig)
+		if rotors > 0 and ent.node != null and ent.node.visible:
+			VehicleParts.step_rotors(ent.parts, rotors)
+		if VehicleParts.step_radar(ent.parts, runtime.now) or rotors > 0:
+			mission_entity_parts(ent)
 	_read_controls(delta)
 	_update_indicators(delta)
 	if flight != null:

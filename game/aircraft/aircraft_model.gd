@@ -58,6 +58,7 @@ var ejected := false
 var canopy_offset := Vector3.ZERO
 var canopy_gone := false
 var _chute_angle := 0.0
+var _rotor := 0.0  # the rotors' angle, degrees (crew object +0x10)
 var _chute_t := 0.0
 var _time := 0.0
 
@@ -353,9 +354,12 @@ func part_pose(id: int) -> Array:
 		0x90, 0x91, 0x92, 0x93:  # BayLi, BayLo, BayRi, BayRo (ours)
 			return [ramps.bay, true]
 		0x1d, 0x1e, 0x1f, 0x20:  # RotorA..D
-			# Helicopters (type −1) are not flown by the flight model; their mover's callback is not
-			# decoded (UNCERTAIN): the rotors are shown static.
-			return [0.0, t < 0]
+			# The crew object answers them before the FM (0x53eb50): +10° per part call (0x60c6d0), one angle,
+			# back to 0 once above 360° (0x60c6e4); frame-rate dependent, as the original.
+			_rotor += 10.0
+			if _rotor > 360.0:
+				_rotor = 0.0
+			return [deg_to_rad(_rotor), t < 0]
 	# Canards, turret, radar, wheels, engines…: not drawn on a flown aircraft.
 	return [0.0, false]
 

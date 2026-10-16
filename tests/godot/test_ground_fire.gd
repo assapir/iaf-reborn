@@ -88,7 +88,9 @@ func _sam(tv, g) -> void:
 	check(u.brain.engaged and u.missile == null, "a target behind the site: engaged, no launch")
 	# In front: one launch after the reaction time, the RWR's launch flag, the missile reaches the jet.
 	tv.rig.position = tv.world_to_scene(site + fwd * 10000.0 + Vector3(0, 0, 3000))
+	u.ent["parts"] = {"launcher": 30.0}
 	var launched := -1.0
+	var start := Vector3.ZERO
 	var flagged := false
 	var ended := false
 	for i in 1200:
@@ -98,11 +100,20 @@ func _sam(tv, g) -> void:
 		w.update(wt)
 		if u.missile != null and launched < 0.0:
 			launched = t
+			start = u.missile.p0
 		flagged = flagged or w.rwr.any_launch()
 		if u.missile != null and not u.missile in w.missiles:
 			ended = true
 			break
 	check(launched > 0.0 and u.missile.weapon.type == 630, "an SA-3 launched")
+	if launched > 0.0:
+		# The launch attitude is the launcher part's heading (FUN_004ab810; 30° left of the hull here, set before the
+		# launch), pitched toward the target: the missile starts 4 m ahead in it.
+		var off: Vector3 = start - site
+		var want := rad_to_deg(h) - 30.0
+		var got := rad_to_deg(atan2(off.x, off.y))
+		check(int(u.ent.type_code) < 290 or int(u.ent.type_code) > 340 or absf(wrapf(got - want, -180.0, 180.0)) < 3.0,
+			"launched along the launcher's heading (%.1f°, want %.1f°; type %d)" % [got, want, int(u.ent.type_code)])
 	check(flagged, "the RWR's launch flag")
 	check(ended and me.damage > 0.0, "the SA-3 reaches the jet (damage %.2f)" % me.damage)
 

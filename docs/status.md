@@ -48,8 +48,6 @@ sea level west of Suez, extra sounds, multiplayer, setup wizard + launcher, mode
   (escort / defend: check by flying whether the enemy is too quick): 114 (169 s), 115 (264 s), 116 (245 s), 117
   (194 s), 122 (145 s), 215 (210 s), 223 (155 s), 234 (299 s), 236 (263 s), 237 (169 s), 402 (244 s). To check: 132's
   "LEADER KILLED" / 132–133's "FRIENDLY HIT" fire without a mission result.
-- `test_yaw_to_target.gd` fails (a script error, before the 2026-10-14 changes too): 231's `t62_0` loads the T-72 model
-  (`t72_h`, no `turret` node), its parts are never rigged.
 - Stores look detached (user report: "not in place" from behind): the pylons are quads in each jet's model, edge-on
   and nearly invisible from ahead / behind / below, as in the original (docs/weapons.md §2.2), and the TER shoulder slots (2–3 bombs) hang at the pylon height ±Pilon sideways (original `FUN_0053c990`), so
   they touch the wing. Checked: the stations sit on the model (F-16 tip rails at x ±4.78, airframe ±4.73; each single
@@ -102,8 +100,7 @@ Checked against the code on 2026-10-14 (each doc's own "not built" notes have th
   surface states (`S+0x2c8`), OutRunway, effects flag `S+0x420`; spin altitude limits.
 - **AI combat** (docs/ai.md §13–§14): action 430 (nearest RWR emitter); AI STT locks (condition 26); the AI's bomb ripple
   (one store per release); no AI ECM and the AI sensors ignore the player's; Arming loads not applied to AI jets, no store
-  models drawn on them; ground units' second
-  station unused, turrets / launchers don't turn to fire; vehicle parts: radar dish, rotors, wheels.
+  models drawn on them.
 - **Damage**: splash / ring explosions on water (flags 0x20000 / 0x40000) draw nothing; per-hit score and feedback, the
   brain's reaction to a hit (`FUN_0043ff50`), effect 0x18, the second explosion of a falling unit; RWR network messages.
 - **Cockpit / MFDs**: night lighting; the U key (RWR page, MFD screen 7).

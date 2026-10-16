@@ -674,6 +674,14 @@ func _release(u: Unit, t: Dictionary, aim: Vector3, now: float, truce: bool, fla
 	var dist := tp.distance_to(p)
 	var h := deg_to_rad(float(u.ent.heading))
 	var nose := Vector3(sin(h), cos(h), 0)
+	if not u.air:
+		# A release hides the unit's Missile part (part record +8 = 0, FUN_004ab810 @4aba06), before the truce:
+		# also when the shot is then skipped.
+		if not u.ent.has("parts"):
+			u.ent["parts"] = {}
+		if not u.ent.parts.get("missile_gone", false):
+			u.ent.parts["missile_gone"] = true
+			host.mission_entity_parts(u.ent)
 	if truce:
 		if now < _truce_until:
 			return  # "Entities in truce"
@@ -685,14 +693,20 @@ func _release(u: Unit, t: Dictionary, aim: Vector3, now: float, truce: bool, fla
 	# sensor's 1.5 m.
 	if busy or not line_of_sight(p, tp, RELEASE_LOS_RAISE):
 		return
-	# The launch attitude: SAM launchers (types 290–340) turn to the target (heading and pitch), others keep their
-	# heading level, tanks (type 250) the turret's heading, which turns to the target (level); the round or missile
-	# starts at (0, 4, 1) in it (FUN_004ab7b0).
+	# The launch attitude (FUN_004ab810): the part angles, which only script motion op 11 turns to a target (the
+	# release reads them, it does not turn them): tanks (type 250) the turret's heading, level; SAM launchers
+	# (types 290–340) the launcher's heading, pitched toward the target; others the hull's heading, level. The round or
+	# missile starts at (0, 4, 1) in it (FUN_004ab7b0). Part angles are +θ to the left of the hull (vehicle_parts.gd).
+	# UNCERTAIN: the tank's heading taken as hull + turret (Ghidra's stack aliasing hides the hull term).
 	var tc := int(u.ent.type_code)
-	if tc >= 290 and tc <= 340 and dist > 0.0:
-		nose = (tp - p) / dist
-	elif tc == 250 and Vector2(tp.x - p.x, tp.y - p.y).length() > 0.0:
-		nose = Vector3(tp.x - p.x, tp.y - p.y, 0).normalized()
+	var parts: Dictionary = u.ent.get("parts", {})
+	if tc == 250:
+		var b := h - deg_to_rad(float(parts.get("turret", 0.0)))
+		nose = Vector3(sin(b), cos(b), 0)
+	elif tc >= 290 and tc <= 340:
+		var b := h - deg_to_rad(float(parts.get("launcher", 0.0)))
+		var pitch := asin(clampf((tp.z - p.z) / dist, -1.0, 1.0)) if dist > 0.0 else 0.0
+		nose = Vector3(sin(b) * cos(pitch), cos(b) * cos(pitch), sin(pitch))
 	var right := nose.cross(Vector3(0, 0, 1))
 	right = right.normalized() if right.length() > 1e-4 else Vector3(1, 0, 0)
 	var up := right.cross(nose)

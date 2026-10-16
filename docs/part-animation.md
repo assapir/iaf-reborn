@@ -227,11 +227,18 @@ starts at 0 on every jet (`crew_visible`), as in v1.1. Not ported: the parachute
 | 0x1a | Carrier | +0x10 |
 | 0x1b | Launcher | +0x14 |
 | 0x1c | Missile | +0x10, visible = +8 |
-| 0x1d–0x20 | Rotors | +0x20 += 10 per call, wrapped at 360 |
-| 0x21–0x26 | Wheels | +0x20 += 1 per call |
+| 0x1d–0x20 | Rotors | +0x20 += 10 per call (0x612a64), reset to 0 above 360 (0x612a6c) |
+| 0x21–0x26 | Wheels | +0x20 += 1 per call (0x612a68), no reset; the same field as the rotors |
 
 Each turns about its X1 / X2 hinge as the aircraft parts. Writer: script motion op 11 (docs/mission-runtime.md §4).
-Port: `game/mission/vehicle_parts.gd` (Turret, Carrier, Launcher, Missile; not the Radar step, rotors, wheels).
+The Radar step (`FUN_005c5460` case 0x19): once `now − +0x1c ≥ 2.0`, +0x1c = now and +0x18 += 0.4 (+0x1c starts at 0,
+so the first call steps). A release clears +8 (`FUN_004ab810`), hiding the Missile part. Calls are per part per frame, so
+the rotors' and wheels' speed depends on the frame rate (kept: per our frame).
+Port: `game/mission/vehicle_parts.gd` (Turret, Carrier, Launcher, Missile incl. its hiding, the Radar step, the rotors
+`step_rotors`), driven per frame by `terrain_view.gd` `_dishes`; a flown aircraft's rotors in `aircraft_model.gd`
+(the crew object's +0x10, the same rule). Wheels: no shipped vehicle model has Wheels frames (nothing to turn).
+The vehicles' frames come from their `_h.xfr` (the object database names it); `iaf-convert objects` used to overwrite
+it with the flattened `_h.x` in its briefing-models pass, so no unit had parts until then.
 
 ## 3. Other helpers
 * **Stations** (A..I = index 0..8, Gun 9, Cha 10, Fla 11): the store object (`FUN_0053c1f0`) takes its
