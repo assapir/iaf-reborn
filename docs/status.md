@@ -110,6 +110,8 @@ Checked against the code on 2026-10-14 (each doc's own "not built" notes have th
 - **Front end**: Jump In / Scramble (button not wired); the debrief page's statistics; Graphics defaults from hardware detection, TERRAIN DETAIL's
   resolution drop / view distance (docs/deviations.md §1); No wind / No malfunctions have no reader in the original either.
 - **Eject**: parachute swing and landing.
+- **Pilot guide PDFs** (not urgent): some pictures land at the top of the next page above the following heading; one
+  nearly empty page (F-16 "Not drawn"); the MFD pictures are the ~128 px original art scaled (blocky).
 - **Imagery**: SPOT 5 outside Israel not started.
 - **Multiplayer**: not started (missions 511–516, 666, 777).
 - **Tools**: `iaf-convert plane-checklist` misses the "fly-by-wire: no spin" row (its anchor in `crates/iaf-tools/src/plane.rs`

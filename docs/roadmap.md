@@ -131,6 +131,11 @@ The original already lets you change it: left click on the Dossier photo cycles 
 file dialog for a custom .bmp (ported, docs/front-end.md §13.4). Later: any image (PNG / JPEG / camera), with a crop to
 the photo frame, and an easier way to find it than a right click (e.g. a small "Change" hint).
 
+## Turning panel compass / HSI (Extras, future)
+No jet's panel compass or HSI turns in the original (static art; heading only on the HUD tape and the MFD pages,
+docs/cockpit.md). Option: the compass card / HSI rotates with the heading (and the course / bearing pointers on an HSI),
+first on the Kfir's panel compass, then each jet that has one in its panel art; original by default.
+
 ## Glance-down key (Extras, later)
 Hold a key to slide the panel fully into view, release to look ahead again (as modern sims do; a real pilot glances
 down with the eyes). The original only has the stepped panel slide (PgUp / PgDn, V).
