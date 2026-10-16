@@ -156,7 +156,7 @@ and its confidence is [docs/real-hud.md](real-hud.md). Laid out in Rust (`crates
 `_draw_prims`). The display follows the cockpit: `f16`, `lavi`, `f4-2000`, `cfir` the F-16C/D HUD (dash-34; Lavi,
 Kurnass 2000 and Kfir as reconstructions), `f15` the F-15A/C HUD (TO 1F-15A-1), `phantom` the F-4E's ASG-26 optical
 sight (red reticle only), `mirage` the CSF gyro gunsight (orange reticle only), the F-35I its helmet's forward virtual
-HUD (green, its own 32° × 22° field, not clipped to the glass). The HUDs (not the F-35I's helmet) are drawn behind the panel art (`show_behind_parent`), so the glareshield hides what falls below the glass (e.g. the F-16's bank scale), as on the real jet; the original HUD stays over the panel. Symbol sizes are the real ones in milliradians at the
+HUD (green, its own 32° × 22° field, not clipped to the glass). The HUDs (not the F-35I's helmet) are cut at the panel's top edge (`panel_top()`, follows the panel slide), so the glareshield hides what falls below the glass, as on the real jet; the original HUD draws over the panel. Symbol sizes are the real ones in milliradians at the
 view's scale. In Real mode the original's ladder, marker, scales, text block, gun cross, waypoint marker, target box
 and weapon symbols are not drawn (the ILS, the BORE cross and the TV / HARM diamonds stay); the sight-only jets draw
 nothing else. Weapon cues per jet: F-16 SRM reticle + seeker diamond, MRM ASEC + steering dot, DLZ (closure, target

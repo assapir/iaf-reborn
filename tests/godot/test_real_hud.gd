@@ -25,12 +25,13 @@ func run() -> void:
 	check(t.has(str(int(round(float(st.ias_kt))))) and t.has("C"), "the KCAS box and its C (%s)" % str(t))
 	check(t.has("NAV") and t.has("%.2f" % float(st.mach)), "the mode and Mach windows")
 	check(r.field.any(func(p): return p.k == "circle"), "the flight path marker")
-	check(hud.show_behind_parent and hud.outer.show_behind_parent, "the Real HUD is drawn behind the panel art")
+	await frames(30)
+	check(hud.cut.clip_contents and absf(hud.cut.size.y - tv.cockpit.panel_top()) < 1.0, "the Real HUD is cut at the panel's top edge (%.1f / %.1f)" % [hud.cut.size.y, tv.cockpit.panel_top()])
 	await _save("real_hud.png")
 	Settings().hud_style = "original"
 	await frames(2)
 	check(hud.real_hud().is_empty(), "back to the original HUD")
-	check(not hud.show_behind_parent and not hud.outer.show_behind_parent, "the original HUD stays over the panel")
+	check(not hud.cut.clip_contents, "the original HUD draws over the panel")
 
 	# Every jet's display through the bridge.
 	var base := {"kcas": 400.0, "ground_kt": 420.0, "tas_ms": 220.0, "alt_ft": 5000.0, "agl_ft": 4800.0, "vs_fpm": -1125.0,

@@ -40,7 +40,7 @@ The D is the two-seater with the same HUD (rear cockpit repeater). Barak-specifi
 - Heading: **bottom of the HUD in NAV**, top in A-G modes (but strafe); 50 mr above the FPM gear down. Ticks 5°,
   labels every 10° in tens (`06 [070] 08`, boxed current heading).
 - Vertical velocity (VV/VAH switch): fixed scale inboard of the altitude scale, moving triangle, ticks 500 fpm.
-- Roll indicator: tics on a 70 mr arc centred 50 mr below the FOV centre, every 10° to ±45°. (Ours: raised so its lowest tic stays inside the cockpit art's glass, which is shorter than the real field of view; the HUD is drawn behind the panel art.)
+- Roll indicator: tics on a 70 mr arc centred 50 mr below the FOV centre, every 10° to ±45°. (Ours: raised so its lowest tic stays inside the cockpit art's glass, which is shorter than the real field of view; the HUD is cut at the panel's top edge.)
 **Ladder / markers** [V]
 - Pitch ladder ("attitude bars") every 5° (±60°, compressed beyond); climb bars solid, dive bars dashed, tips toward
   the horizon, centre gap for the FPM, numbers at both ends; **bars bend toward the horizon increasingly with pitch**

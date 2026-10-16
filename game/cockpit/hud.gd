@@ -35,6 +35,7 @@ var host_ground: Callable
 var hud_font: FontFile
 ## The unclipped layer: tapes, boxes and the text block.
 var outer: Control
+var cut: Control  # outer's clipping parent (ours, the Real HUD)
 ## Arial h10 w5 (renderer +0x57c, the GDI texts) and its horizontal squeeze to the 5 px average width.
 var _arial: SystemFont
 var _arial_squeeze := 1.0
@@ -64,18 +65,24 @@ func _ready() -> void:
 	outer.name = "HudOuter"
 	outer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	outer.draw.connect(_draw_outer)
-	get_parent().add_child.call_deferred(outer)
+	# Ours: outer's parent, the cockpit's size; with the Real HUD it ends at the panel's top edge and clips.
+	cut = Control.new()
+	cut.name = "HudCut"
+	cut.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cut.add_child(outer)
+	get_parent().add_child.call_deferred(cut)
 
 
 func _process(_delta: float) -> void:
 	if outer != null:
 		outer.visible = visible
 		outer.queue_redraw()
-		# Ours: the Real HUD (not the F-35I's helmet) is drawn behind the panel art, so the glareshield hides what
-		# falls below the glass, as on the real jet. The original HUD stays over it.
-		var behind: bool = cockpit != null and Settings.hud_style == "real" and not String(cockpit.cockpit_dir).contains("f35")
-		show_behind_parent = behind
-		outer.show_behind_parent = behind
+		# Ours: the Real HUD (not the F-35I's helmet) is cut at the panel's top edge, so the glareshield hides what
+		# falls below the glass, as on the real jet. The original HUD draws over the panel.
+		var real: bool = cockpit != null and Settings.hud_style == "real" and not String(cockpit.cockpit_dir).contains("f35")
+		cut.clip_contents = real
+		if cockpit != null:
+			cut.size = Vector2(cockpit.size.x, cockpit.panel_top() if real else cockpit.size.y)
 
 
 ## Loads an original raster font converted by `iaf-convert fonts` (BMFont), scalable.
