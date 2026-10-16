@@ -39,7 +39,7 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
     // EEGS has neither the heading scale nor the roll indicator (fig. 1-257).
     if mode != 3 {
         heading(o, hdg_y, i.heading_deg, i.steerpoint.map(|s| s.bearing_deg));
-        roll_indicator(o, i);
+        roll_indicator(o, i, f.bottom);
     }
     // The left column: ARM, Mach, max g, the mode / weapon.
     let (lx, ly) = (f.left + 4.0, tape_y + TAPE_HALF + 12.0);
@@ -296,9 +296,11 @@ fn heading(p: &mut Vec<Prim>, y: f64, hdg: f64, bearing: Option<f64>) {
 
 /// The roll indicator: tics on a 70 mr arc centred 50 mr below the HUD centre, every 10° to ±30° and at ±45°, and the
 /// pointer at the bank angle (limited to ±45°).
-fn roll_indicator(p: &mut Vec<Prim>, i: &Input) {
-    let c = (0.0, i.mr(50.0));
+/// Its centre 50 mr below the FOV centre, raised so its lowest tic stays above `bottom` (ours: the cockpit art's glass
+/// is shorter than the real HUD's field of view, and the glareshield hides what falls below it).
+fn roll_indicator(p: &mut Vec<Prim>, i: &Input, bottom: f64) {
     let r = i.mr(70.0);
+    let c = (0.0, i.mr(50.0).min(bottom - r - 4.0));
     let at = |deg: f64, rr: f64| {
         let a = deg.to_radians();
         (c.0 - rr * a.sin(), c.1 + rr * a.cos())
@@ -358,6 +360,18 @@ fn target_box(p: &mut Vec<Prim>, i: &Input, f: Field, at: P, gun: bool, t: Targe
 mod tests {
     use super::super::tests::{FIELD, input, texts};
     use super::*;
+
+    #[test]
+    fn the_roll_indicator_stays_above_the_field_bottom() {
+        let mut i = input(Jet::F16);
+        i.weapons.hud_mode = 0;
+        let fr = frame(FIELD, &i, 1.0);
+        let low = fr.outer.iter().filter_map(|p| match p {
+            Prim::Line { a, b } => Some(a.1.max(b.1)),
+            _ => None,
+        });
+        assert!(low.fold(f64::MIN, f64::max) <= FIELD.bottom, "a line below the glass");
+    }
 
     #[test]
     fn shoot_takes_the_centre_window() {
