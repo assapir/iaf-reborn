@@ -26,7 +26,8 @@ tools/guide_shots.sh [jet] && python3 -I tools/guide_pdf.py   # pilot guides' pi
 ```
 
 - Always run scripted Godot tests / captures with `IAF_DEFAULT_SETTINGS=1` so the user's `settings.cfg` is never read
-  or written. A Godot test passes only if it prints `RESULT PASS` and no `SCRIPT ERROR`.
+  or written, and pass `--log-file <a temp path>` so the run does not rotate away the user's own game logs
+  (`tools/test.sh`, `guide_shots.sh`, `mission_sweep.sh` do; the project keeps 30 logs as a safety net). A Godot test passes only if it prints `RESULT PASS` and no `SCRIPT ERROR`.
 - Godot tests need the converted assets, so there is no hosted CI; they run locally.
 - On a fresh clone `game/.godot` is missing; `godot --headless --path game --import` once, or the extension won't load
   (`./iafjets` does this).

@@ -4,13 +4,15 @@
 # (IAF_DEFAULT_SETTINGS=1) and open no window.
 set -uo pipefail
 cd "$(dirname "$0")/.."
+# Godot logs go here, not into the player's user folder (whose rotation keeps only the newest logs).
+logs=$(mktemp -d "${TMPDIR:-/tmp}/iaf-logs.XXXXXX")
 fail=0
 echo "== cargo test"
 cargo test -q --workspace 2>&1 | grep -E "test result|FAILED|panicked" || fail=1
 cargo build -q --release -p iaf-godot || fail=1
 for t in tests/godot/test_*.gd; do
 	echo "== $t"
-	out=$(IAF_DEFAULT_SETTINGS=1 timeout 300 godot --headless --audio-driver Dummy --path game -s "../$t" 2>&1)
+	out=$(IAF_DEFAULT_SETTINGS=1 timeout 300 godot --log-file "$logs/$(basename "$t" .gd).log" --headless --audio-driver Dummy --path game -s "../$t" 2>&1)
 	rc=$?
 	echo "$out" | grep -E "^(PASS|FAIL|RESULT)|SCRIPT ERROR"
 	# A hang: say so and show where it stopped.

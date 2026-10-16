@@ -10,7 +10,7 @@ mkdir -p "$out"
 ids=("$@")
 [[ ${#ids[@]} -gt 0 ]] || read -ra ids <<<"$(grep -o '^\*\*Playable today: [0-9]* of [0-9]*\*\* ([0-9, ]*)' docs/mission-coverage.md | sed 's/.*(//; s/[,)]//g')"
 printf '%s\n' "${ids[@]}" | xargs -P "${JOBS:-2}" -I{} sh -c \
-	'MISSIONS={} IAF_DEFAULT_SETTINGS=1 timeout 900 godot --headless --audio-driver Dummy --path game -s ../tests/godot/_mission_sweep.gd >"$0/{}.log" 2>&1; echo "exit $?" >>"$0/{}.log"' "$out"
+	'MISSIONS={} IAF_DEFAULT_SETTINGS=1 timeout 900 godot --log-file "$0/{}.godot.log" --headless --audio-driver Dummy --path game -s ../tests/godot/_mission_sweep.gd >"$0/{}.log" 2>&1; echo "exit $?" >>"$0/{}.log"' "$out"
 for id in "${ids[@]}"; do
 	f="$out/$id.log"
 	grep -h '^SWEEP' "$f" || echo "SWEEP $id: no result ($(tail -1 "$f"))"
