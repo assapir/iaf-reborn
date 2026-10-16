@@ -31,8 +31,15 @@ func run() -> void:
 	tv.cockpit.head = Vector2(1.0, 0.0)  # the view sets it every frame: checked within this one
 	hud._process(0.0)
 	check(tv.cockpit.dash() and not hud.cut.clip_contents, "looking aside: the DASH layer is not cut (dash %s, pan %s, clip %s)" % [tv.cockpit.dash(), tv.cockpit.head_pan(), hud.cut.clip_contents])
+	# … and the Real DASH (docs/real-hud.md "DASH helmet"): the helmet set in the DASH's green, not the original symbol.
+	hud._real_frame = -1
+	var d: Dictionary = hud.real_hud()
+	check(not d.is_empty() and d.colour != null and _texts(d.outer).has(str(int(round(float(st.ias_kt))))),
+		"looking aside: the F-16's Real DASH (%s)" % str(_texts(d.get("outer", []))))
+	check(hud.real_dash("converted/cockpits/f15") and not hud.real_dash("converted/cockpits/lavi"), "the DASH: F-16 and F-15 only")
 	tv.cockpit.head = Vector2.ZERO
 	hud._process(0.0)
+	hud._real_frame = -1
 	await _save("real_hud.png")
 	Settings().hud_style = "original"
 	await frames(2)

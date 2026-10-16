@@ -9,6 +9,7 @@
 //! - `f35`: the F-35's helmet display (the forward "virtual HUD"; LM slides and flight-test video).
 //! - `sights`: the F-4E's AN/ASG-26 LCOSS and the Mirage IIICJ's CSF gyro gunsight (no HUD: a reticle only).
 
+mod dash;
 mod f15;
 mod f16;
 mod f35;
@@ -182,9 +183,13 @@ pub struct Input {
     pub jet: Jet,
     /// Sim seconds (the animated symbols).
     pub time_s: f64,
-    /// The F-35's helmet looking off the nose (the head-stabilised set) and the head's heading (°).
+    /// The helmet looking off the nose (the F-35's head-stabilised set; the F-16's / F-15's DASH) and the head's
+    /// heading (°); the helmet's line of sight on the view (HUD px) and its direction from the nose (azimuth right +,
+    /// elevation up +, °).
     pub off_boresight: bool,
     pub head_heading_deg: f64,
+    pub head_view: P,
+    pub head_rel_deg: (f64, f64),
     pub kcas: f64,
     pub ground_kt: f64,
     pub tas_ms: f64,
@@ -255,6 +260,7 @@ impl RealHud {
     pub fn frame(&mut self, f: Field, i: &Input) -> Frame {
         self.max_g = self.max_g.max(i.g);
         match i.jet {
+            Jet::F16 | Jet::F15 if i.off_boresight => dash::frame(i),
             Jet::F16 => f16::frame(f, i, self.max_g),
             Jet::F15 => f15::frame(f, i),
             Jet::F35 => f35::frame(f, i, self.max_g),

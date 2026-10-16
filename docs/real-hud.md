@@ -21,6 +21,7 @@ Units: 1 mr (milliradian) = 0.0573°; HUD positions as angles from the boresight
 | Kfir C2/C7 | `cfir` | El-Op HUD with Elbit WDNS; symbology not public | [R] |
 | Mirage IIICJ (Shahak) | `mirage` | CSF 95 gyro gunsight (reflector, no HUD) | CSF 97K manual drawings [V] + IAF books [S] |
 | F-35I (Adir) | `extra/planes/f35i` | Gen III helmet display (no HUD) | LM slides + flight-test video [V] |
+| F-16C/D, F-15C/D helmet (looking aside) | `f16`, `f15` | Elbit DASH III | fielding / optics [S]; symbology from the DASH-derived JHMCS [SIM]; layout [R] |
 
 ## F-16C/D (Block 30/40/50)
 
@@ -165,6 +166,33 @@ US Navy flight-test helmet video (https://www.twz.com/12297/); Collins datasheet
 - Off-boresight: the virtual HUD stays with the airframe; a reduced head-stabilised set (bare airspeed / altitude,
   heading, steerpoint, targets) [V].
 
+## DASH helmet (F-16D, F-15C)
+
+The Elbit **DASH** (Display And Sight Helmet), an IAF requirement for the F-15 and F-16 from the mid-1980s; GEN I in
+production c. 1986, **GEN III** (early–mid 1990s) on the IAF F-15C/D, F-16C/D and F-15I [S, ausairpower]; fielded in
+1993–94 for off-axis targeting of the Rafael **Python 4** [S, Avionics Handbook ch. 5]. Elbit's fixed-wing HMD is the
+basis of the US **JHMCS** (Vision Systems International, Elbit's joint venture with Kaiser, later Rockwell Collins) [S,
+Elbit / VSI releases]. No DASH symbology figure is public: the content below follows the published outline and the
+JHMCS (its descendant), whose F-16 set is documented in simulator manuals [SIM].
+- **Display**: monocular, **20° circular** field of view, 15 mm exit pupil, collimated on the visor; calligraphic
+  (stroke) symbology, **green** phosphor [S]. Head tracking: electromagnetic, the line of sight sent to the mission
+  computer (MIL-STD-1553B) [S].
+- **Use**: aim by looking — the measured line of sight slaves the radar and the missile seeker to the target [S, Elbit];
+  a boxed target cues the Python 4's seeker, a **diamond** shows the seeker tracking it [S, ausairpower]; the seeker
+  follows the pilot's line of sight off boresight [S, TWZ / GlobalSecurity] (limits: the missile's, unpublished; ours
+  keeps the game's cones, docs/weapons.md §5.4).
+- **Content** [S]: flight and weapon data on the visor (airspeed, altitude, weapons status, aiming), so the pilot need
+  not look at the HUD; for the JHMCS also compass heading, an artificial horizon, "look-to" and shoot cues [S, Avionics
+  Handbook].
+- **Layout** (JHMCS F-16 basic / A-A set [SIM, the DCS F-16C guide], kept for the DASH [R]): the **aiming cross** fixed
+  at the field's centre (the helmet line of sight); a **line-of-sight indicator**, a circle whose gap points where the
+  head looks relative to the nose (a gap at 11 o'clock = looking left and up); G above the **airspeed** on the left, the
+  **master arm / mode** under it; **barometric altitude** on the right, the range / steerpoint under it; the helmet's
+  **magnetic heading** at the bottom; the radar target's **TD box** where it is in the field; the IR seeker's diamond.
+  HUD and cockpit **blanking** (the symbols blank while the head looks through the HUD or down into the cockpit) [SIM].
+- Not public: the DASH's own fonts / positions, its horizon symbol, Python-specific cues and shoot cue, declutter
+  levels; ours does not draw them [R].
+
 ## What ours draws (status)
 
 - F-16: the NAV / A-A / A-G layout of figs. 1-110 / 1-111 / 1-115 (scales, boxes, the "C", windows 3 / 4 / 5 / 7 / 8 /
@@ -180,6 +208,12 @@ US Navy flight-test helmet video (https://www.twz.com/12297/); Collins datasheet
   error). Not drawn: the ILS flight-director cross, Mach outside A-A.
 - F-4E / Mirage: the reticles as specified (ours: the reticle rides the LCOS / CCIP pipper).
 - F-35: the forward virtual HUD and the off-boresight head set; the gun / A-G graphics are the F-16's (reconstruction).
+- DASH (F-16 / F-15 cockpits; not the Lavi, Kurnass 2000 or Kfir, whose helmet display stays the original's): looking
+  aside with the Real HUD on (the original's dash condition: the panel panned ≥ 250 px aside or ≥ 200 px down), green, around
+  the helmet's line of sight: the aiming cross, the line-of-sight circle with its gap, G / airspeed / ARM or NAV / the
+  weapon, altitude / steerpoint, the head's heading (above the cross: the cockpit view's centre is low on the screen, so
+  the JHMCS's bottom position would fall off it), the TD box and the seeker diamond inside the 20° field. Not drawn:
+  a horizon, shoot cue, RWR symbols, declutter; blanking is implied (the helmet set shows only while looking aside).
 
 ## References
 
@@ -195,6 +229,11 @@ Real-world documents (primary):
 - Kfir: [Flight International, 27 Aug 1983, p. 542 "Smart nav/attack system for Kfir"](https://cdnc.heyzine.com/files/uploaded/v3/3c1262af2443f80fe2c7293f1cedb885c62cfe96.pdf) — Elbit System 82 WDNS.
 - F-35: Lockheed Martin "The F-35 Cockpit" slides ([SlideShare](http://www.slideshare.net/robbinlaird/the-f35-cockpit/download); images [mirrored on f-16.net](https://www.f-16.net/forum/viewtopic.php?t=16223&start=180)) — "Virtual HUD Looking Forward", "HMD Looking Behind the Aircraft".
 - F-35: US Navy flight-test helmet-display videos, [The War Zone](https://www.twz.com/12297/navy-presents-new-f-35-helmet-display-videos-and-flight-test-dangers) and [HMS Queen Elizabeth landing](https://www.twz.com/29569/check-out-this-f-35-helmet-display-video-of-a-rolling-landing-on-the-hms-queen-elizabeth).
+- DASH: [Helmet Mounted Sights and Displays (Air Power Australia)](https://www.ausairpower.net/hmd-technology.html) — DASH GEN I–III fielding, 20° FoV, green calligraphic symbology, boxed target / seeker diamond; [Rafael Python 4 (Air Power Australia)](https://www.ausairpower.net/TE-Gen-4-AAM-97.html).
+- DASH: [The Avionics Handbook, ch. 5 "Head-Mounted Displays" (CRC 2001)](https://helitavia.com/avionics/TheAvionicsHandbook_Cap_5.pdf) — DASH for the Python 4 (1993–94); JHMCS look-to / shoot cues, altitude, airspeed, heading, horizon; 20° FoV.
+- DASH: Elbit / VSI: [Elbit–Kaiser tie-up (Flight)](https://flightglobal.com/elbit/kaiser-tie-up/10418.article), [VSI JHMCS contracts (2004)](https://www.securityinfowatch.com/home/article/10553909/elbit-systems-joint-venture-with-rockwell-collins-vsi-awarded-jhmcs-contracts-valued-at-more-than-60-million), [Israeli helmets for US pilots (Israel21c)](https://archive.israel21c.org/israeli-company-to-supply-u-s-fighter-pilots-with-seeing-eye-helmets/).
+- DASH: [IAF F-15 Baz cockpit / DASH (The War Zone)](https://www.twz.com/f-15a-baz-upgraded-cockpit-seen-in-rare-israeli-air-force-photo), [Python training rounds and the DASH (The War Zone)](https://www.twz.com/israeli-python-training-missiles-are-cleverly-disguised-as-u-s-sidewinders).
+- DASH layout (JHMCS F-16, simulator): [DCS F-16C Viper guide, §4.3 HMD symbology / setup (Chuck's Guides)](https://assets.chucksguides.com/pdf/DCS%20F-16C%20Viper%20Guide.pdf) [SIM].
 - F-35: [Collins Aerospace F-35 Gen III HMDS datasheet](https://prd-sc102-cdn.rtx.com/-/media/ca/f/f35/jsf-f35-datasheet.pdf).
 
 Secondary (articles, books, pilot accounts):

@@ -11,8 +11,8 @@
 # scripted sim time, the others real time: "lock" radar lock on the placed unit, "on_impact" the placed unit onto the
 # bomb's predicted impact, "station:N" the A-A store / gun on
 # station N, "ag:N" the A-G store on station N, "flir" / "tv" the camera on the placed unit (FLIR with the laser),
-# "emitter" the placed unit's radar locks the jet, "key:X" a game key, "wait:S"), panel (0 the forward view … 1 the
-# whole panel), "dive" (an airborne start in a `dive_deg` dive `dive_agl` m above the ground), view ("cockpit" / "external"), crop ("full", "hud", "mfd_left", "mfd_right").
+# "emitter" the placed unit's radar locks the jet, "look:Y,P" the head turned Y° right / P° up (free look), "key:X" a game key, "wait:S"), panel (0 the forward view … 1 the
+# whole panel), "dive" (an airborne start in a `dive_deg` dive `dive_agl` m above the ground), view ("cockpit" / "external"), crop ("full", "hud", "dash", "mfd_left", "mfd_right").
 extends "res://../tests/godot/base.gd"
 
 const EoSensor := preload("res://weapons/eo_sensor.gd")
@@ -68,6 +68,9 @@ func run() -> void:
 	tv.cockpit.panel_shift = tv.cockpit.panel_target
 	if e.get("view", "cockpit") == "cockpit":
 		tv.views.set_cockpit(tv.views.COCKPIT)
+		for a in e.get("actions", []):
+			if String(a).begins_with("look:"):  # set_cockpit brought the head back ahead
+				await _action(String(a))
 	if String(e.get("crop", "")).begins_with("mfd"):
 		for m in tv.cockpit.mfds:
 			m.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # the MFD's pixel art scaled crisp, not smoothed
@@ -158,6 +161,12 @@ func _put(p: Dictionary) -> void:
 func _action(a: String) -> void:
 	var arg := a.get_slice(":", 1)
 	match a.get_slice(":", 0):
+		"look":  # free look: the head turned yaw° right, pitch° up ("look:-60,10")
+			var v: Vector2 = Vector2(float(arg.get_slice(",", 0)), float(arg.get_slice(",", 1))) * PI / 180.0
+			tv.views.type = tv.views.FREE_LOOK
+			tv.views.head = v
+			tv.views._pan_from = v
+			tv.views._pan_rate = Vector2.ZERO
 		"lock":
 			w.radar_event(0x2b)
 			w.update(t)
@@ -200,7 +209,8 @@ func _action(a: String) -> void:
 	w.update(t)
 
 
-## The picture's crop: the whole frame, the HUD (a 16:10 box around the HUD centre, 38 % of the frame wide) or one
+## The picture's crop: the whole frame, the HUD (a 16:10 box around the HUD centre, 38 % of the frame wide), the helmet
+## display ("dash", around the head's line of sight) or one
 ## MFD with a margin.
 func _crop(c: String, size: Vector2i) -> Rect2i:
 	var full := Rect2i(Vector2i.ZERO, size)
@@ -211,6 +221,12 @@ func _crop(c: String, size: Vector2i) -> Rect2i:
 			var ht := int(wd * 10 / 16)
 			centre.y += size.y * 0.04  # the data rows under the scales
 			return Rect2i(Vector2i(centre) - Vector2i(wd / 2, ht / 2), Vector2i(wd, ht)).intersection(full)
+		"dash":  # the helmet display: a 16:10 box around the helmet's line of sight (the camera's centre), 45 % wide
+			var hud = tv.cockpit.hud
+			var los: Vector2 = hud.camera.unproject_position(hud.camera.global_position - hud.camera.global_basis.z * 1000.0)
+			var wd := int(size.x * 0.45)
+			var ht := int(wd * 10 / 16)
+			return Rect2i(Vector2i(los) - Vector2i(wd / 2, ht / 2), Vector2i(wd, ht)).intersection(full)
 		"mfd_left", "mfd_right":
 			for m in tv.cockpit.mfds:
 				if m.index == (0 if c == "mfd_left" else 1):

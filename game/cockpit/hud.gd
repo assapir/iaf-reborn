@@ -145,7 +145,7 @@ func _draw() -> void:
 		_draw_prims(self, real.field, w, real.colour)
 		if real.sight:
 			return
-		if _mode() == 0 and cockpit.gear_handle_down:
+		if _mode() == 0 and cockpit.gear_handle_down and not dash:
 			_draw_ils(st, w)
 		if _mode() in [7, 8]:
 			_draw_weapons(s, w, font, fs, gun, dash)
@@ -419,7 +419,10 @@ func real_hud() -> Dictionary:
 	if Settings.hud_style != "real" or camera == null:
 		return {}
 	var f35 := String(cockpit.cockpit_dir).contains("f35")
-	if cockpit.dash() and not f35:
+	# Looking aside: the F-35's helmet and the DASH of the F-16 / F-15 (docs/real-hud.md "DASH helmet"); the other
+	# jets' helmet display stays the original's.
+	var helmet := f35 or real_dash(String(cockpit.cockpit_dir))
+	if cockpit.dash() and not helmet:
 		return {}
 	var fr := Engine.get_process_frames()
 	if fr == _real_frame:
@@ -474,7 +477,9 @@ func real_hud() -> Dictionary:
 		lcos = gun + Vector2(wp.pipper.x, wp.pipper.y)
 	var agl = st.get("agl_ft")
 	_real = _real_hud.frame(_field(), {
-		"cockpit": cockpit.cockpit_dir, "time": st.get("time", 0.0), "off_boresight": f35 and cockpit.dash(),
+		"cockpit": cockpit.cockpit_dir, "time": st.get("time", 0.0), "off_boresight": helmet and cockpit.dash(),
+		"head_view": (centre - _c) / _s, "head_rel": Vector2(wrapf(rad_to_deg(atan2(fwd.x, -fwd.z)) - float(st.get("heading", 0.0)), -180.0, 180.0),
+			rad_to_deg(asin(clampf(fwd.y, -1.0, 1.0))) - pitch),
 		"head_heading": fposmod(rad_to_deg(atan2(fwd.x, -fwd.z)), 360.0), "kcas": st.get("ias_kt", 0.0), "ground_kt": st.get("ground_kt", 0.0),
 		"tas_ms": float(st.get("tas_kt", 0.0)) / MS_TO_KT, "alt_ft": st.get("alt_ft", 0.0), "agl_ft": agl,
 		"vs_fpm": st.get("vs_fpm", 0.0), "heading": st.get("heading", 0.0), "roll": st.get("roll", 0.0),
@@ -490,6 +495,11 @@ func real_hud() -> Dictionary:
 	return _real
 
 
+## The cockpits with the Real DASH (the IAF F-16C/D's and F-15C/D's Elbit helmet).
+static func real_dash(dir: String) -> bool:
+	return dir.get_file() in ["f16", "f15"]
+
+
 ## A world point (X east, Y north, Z up) in HUD pixels from the HUD centre; behind the eye: null, or with `far` a
 ## point far out in its direction (for symbols held on the field's edge).
 func _hud_point(world: Vector3, far: bool) -> Variant:
@@ -501,7 +511,7 @@ func _hud_point(world: Vector3, far: bool) -> Variant:
 			return null
 		var d := camera.global_basis.inverse() * (sp - camera.global_position)
 		return Vector2(d.x, -d.y).normalized() * 10000.0
-	return (camera.unproject_position(sp) - position - _c) / _s
+	return (camera.unproject_position(sp) - global_position - _c) / _s
 
 
 ## Draws Real HUD primitives (HUD pixels from the HUD centre) on `ci`, in `colour` (null: the HUD's).
@@ -796,7 +806,7 @@ static func ils_lines(dev: Vector2, f: Rect2) -> Vector2:
 
 
 func _project(dir: Vector3) -> Vector2:
-	return camera.unproject_position(camera.global_position + dir * 1000.0) - position
+	return camera.unproject_position(camera.global_position + dir * 1000.0) - global_position
 
 
 ## The gun cross in screen pixels: GunRetPositionY above the panel top, on the centre line. v1.0
@@ -957,7 +967,7 @@ func _draw_weapons(s: float, w: float, font: Font, fs: int, gun: Vector2, dash :
 			if hp != null and camera != null and host_world_to_scene.is_valid():
 				var sp: Vector3 = host_world_to_scene.call(hp)
 				if not camera.is_position_behind(sp):
-					var d := clip_toward(_c, camera.unproject_position(sp) - position)
+					var d := clip_toward(_c, camera.unproject_position(sp) - global_position)
 					var k := 7.0 * s
 					draw_polyline(PackedVector2Array([d + Vector2(0, -k), d + Vector2(k, 0), d + Vector2(0, k), d + Vector2(-k, 0), d + Vector2(0, -k)]), col, w)
 		3, 4:
@@ -968,7 +978,7 @@ func _draw_weapons(s: float, w: float, font: Font, fs: int, gun: Vector2, dash :
 			elif pip != null and camera != null and host_world_to_scene.is_valid():
 				var sp: Vector3 = host_world_to_scene.call(pip)
 				if not camera.is_position_behind(sp):
-					p = camera.unproject_position(sp) - position
+					p = camera.unproject_position(sp) - global_position
 			if p != null:
 				var lk: Dictionary = cockpit.radar.get("lock", {})
 				_pipper_at = {"p": pipper_clamp(p, Rect2(Vector2.ZERO, size), s),
@@ -1014,7 +1024,7 @@ func _draw_mrm_point(p_world: Vector3, s: float, w: float, col: Color) -> void:
 	var sp: Vector3 = host_world_to_scene.call(p_world)
 	if camera.is_position_behind(sp):
 		return
-	var p := camera.unproject_position(sp) - position
+	var p := camera.unproject_position(sp) - global_position
 	var r := Rect2(Vector2.ZERO, size)
 	var q := Vector2(clampf(p.x, r.position.x, r.end.x), clampf(p.y, r.position.y, r.end.y))
 	if q != p and (Time.get_ticks_msec() / 300) % 2 == 1:
@@ -1040,7 +1050,7 @@ func _draw_ag(ag: Dictionary, s: float, w: float, col: Color) -> void:
 	if camera.is_position_behind(sp):
 		return
 	var a := _ag_anchor()
-	var p := clip_toward(a, camera.unproject_position(sp) - position)
+	var p := clip_toward(a, camera.unproject_position(sp) - global_position)
 	var d := p - a
 	var len := d.length()
 	var u := d / len if len > 0.0 else Vector2(0, 1)
@@ -1103,10 +1113,10 @@ func ccip_clip(world: Vector3) -> Dictionary:
 	if camera.is_position_behind(sp):
 		p = size / 2 + Vector2(0, size.y)
 	else:
-		p = camera.unproject_position(sp) - position
+		p = camera.unproject_position(sp) - global_position
 	if Rect2(Vector2.ZERO, size).has_point(p):
 		return {"off": false}
-	var c := clip_toward(_ag_anchor(), p) + position
+	var c := clip_toward(_ag_anchor(), p) + global_position
 	return {"off": true, "origin": camera.project_ray_origin(c), "dir": ray_normal(camera, c)}
 
 
@@ -1158,7 +1168,7 @@ func target_box(s: float) -> Dictionary:
 		var d := camera.global_basis.inverse() * (sp - camera.global_position)
 		p = centre + Vector2(d.x, -d.y).normalized() * size.length()
 	else:
-		p = camera.unproject_position(sp) - position
+		p = camera.unproject_position(sp) - global_position
 	var h := (5.0 if int(r.get("mode", 0)) >= 7 else 7.5) * s
 	var inner := Rect2(Vector2(h, h), size - Vector2(2 * h, 2 * h))
 	var edge := not inner.has_point(p)
@@ -1193,7 +1203,7 @@ func _draw_waypoint_marker(w: float) -> void:
 		var d := camera.global_basis.inverse() * (sp - camera.global_position)
 		p = Vector2(d.x, -d.y).normalized() * 10000.0
 	else:
-		p = (camera.unproject_position(sp) - position - _c) / _s
+		p = (camera.unproject_position(sp) - global_position - _c) / _s
 	p = waypoint_marker_point(p, _field())
 	var c := _pt(p)
 	draw_arc(c, 4.5 * _s, 0, TAU, 24, cockpit.hud_colour(), w)
