@@ -1,6 +1,9 @@
 # Roadmap notes
 
 ## Later
+Graphics options (models, cockpit, DEM, water, effects, vegetation, lighting, upscaling) with measured costs and a
+ranked order: [docs/graphics-research.md](graphics-research.md).
+
 - **Separate joystick / throttle / pedal devices** (e.g. a stick, a throttle quadrant and pedals as three USB
   devices): the original and the port use one device (the first connected joypad, docs/controls.md §5). Later: an
   Extras option to take each role (stick, throttle, rudder, buttons) from its own device.
