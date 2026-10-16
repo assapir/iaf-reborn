@@ -396,4 +396,6 @@ handler `FUN_004e1df0`; there is no joystick code anywhere else. Addresses v1.1 
 
 
 * **Ours: Devices page "Detent = MIL"** (under THROTTLE) (off = the original's linear lever): with the lever in its detent, "Set at lever"
-  stores that raw value d; then lever t ≤ d → 74·t/d, t > d → 74 + 26·(t − d)/(100 − d) (`Joystick.detent_map`).
+  stores that raw value d; then lever t ≤ d → 74·t/d, d < t ≤ d + 3 → 74 (a lever resting in its detent reads a point or two
+  over, and 75 already lights AB 1), t > d + 3 → 78 + 22·(t − d − 3)/(100 − d − 3), AB 1 (the "7" key) to 100
+  (`Joystick.detent_map`).

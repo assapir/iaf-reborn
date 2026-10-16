@@ -255,6 +255,11 @@ The world is drawn by TgenAPI (`DAT_0069942c`, 16-bit renderer vtable `0x5fd900`
   | `RPMCLOCK` / `…SECONDARY` | S+0x1044 / +0x1064 | **clamp(rpm, 0.6, 0.97)** (`FUN_0045aa10`) |
   | `TEMPCLOCK` / `…SECONDARY` | S+0x1048 / +0x1068 | **clamp(rpm, 0.5, 0.8)** (`FUN_0045aa40`) |
   All the round needles are drawn, `THROTTLECLOCKSECONDARY` included (it is active only on the twin-engine cockpits).
+  MIL (throttle 0.74) is rpm 1.0, so THROTTLECLOCK reads a full turn (100 %) and the AB stages read the same (the ramp
+  stops at 100). No cockpit section or code turns a panel compass / HSI: the heading is on the HUD tape and the MFD pages
+  only, so the panels' compass dials (e.g. the Kfir's) are static art in the original too. Per-jet check:
+  tests/godot/test_gauges_all_jets.gd (every active needle turns from idle to military / climbing on the seven Jet list
+  jets and the F-35I, military reads 100 % without AB, AB 1 lights it; the Real HUD on and off).
 * **Engine values** (@45ac00, the player controller: damage flags at +0x3d8): `rpm` = FM query 0x11 · 0.01 (`FUN_0045a9d0` → FM
   vtable `0x611dc8` slot 26 `0x5a9280`, case 0x11 @5a997a: the RPM ramp `S+0x1b0` of the FM read copy `veh+0xc30`,
   docs/flight-model.md "RPM ramp" — 100·rpm at 15 %/s). The setter `FUN_00446490` (left engine → S+0x103c..+0x1058) and
@@ -467,7 +472,9 @@ lamp and every frame-1/2 image is lit (checked by sampling the bitmaps).
 * Keys and defaults: `OffsetX1` 1072, `OffsetY1` 21, `OffsetX2` 1072, `OffsetY2` 36, `LengthChar` 20 (R+0x26f4..0x2704);
   `[CHAFF]`/`[FLARE]` `OffX`/`OffY` default 36/36 (R+0x2708..0x2714).
 * Text = the NUL-terminated string at S+0x10a4. Every frame `FUN_00448b20` copies it with `FUN_00446590` =
-  `strncpy(S+0x10a4, *(char**)(ctl+0x64), 20)`, so at most 20 chars. What ctl+0x64 points to was not traced (UNCERTAIN).
+  `strncpy(S+0x10a4, *(char**)(ctl+0x64), 20)`, so at most 20 chars. ctl+0x64 is an MFC CString built empty in the
+  controller's ctor (`FUN_00447890` @4478e8 → `0x5e00de`) and emptied at its resets (@448007 / @448224, `0x5e01b4`
+  CString::Empty); nothing in the exe assigns it, so in single player the console is always blank. Ours draws nothing.
 * Pass 2 erases two boxes of `LengthChar*5` x 9 px at (X1,Y1) and (X2,Y2) by re-blitting the panel slice.
 * Pass 4 uses GDI `TextOutA`, font R+0x57c (Arial h10 w5 weight 100), TA_LEFT|TA_TOP, transparent background, at screen
   (X - pan - 640, Y + MainOffsetY + vpan). The colour is not set by the routine; the caller last set 0x00ff00 green before the MFD
@@ -501,4 +508,4 @@ describing an horizon of the panel" at panel x = 0,120,…,1800, and the values 
 edges, 4 at the centre). **No reader of R+0x20f4.. was found in the exe** (UNCERTAIN: probably unused or read via an unfound alias).
 
 ### Open
-* ctl+0x64 text source; exact GEV key names for 0x46/0x49/0x69; emitter class ids behind AI vs SAM; R+0xc double-blit flag.
+* exact GEV key names for 0x46/0x49/0x69; emitter class ids behind AI vs SAM; R+0xc double-blit flag.

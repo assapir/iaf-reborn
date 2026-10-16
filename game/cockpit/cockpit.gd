@@ -747,15 +747,42 @@ func _draw_tape(key: String, shift: int, s: float) -> void:
 			Rect2(0, src_y * k, t.Width * k, window * k))
 
 
-## `full` > 0 replaces the gauge's FullClock; `shorter` px off its Radius.
-func _draw_needle(key: String, value: float, s: float, full := 0.0, shorter := 0.0) -> void:
+## A needle's angle (rad) for `value` (FUN_00527e50: max(value · 2π / FullClock, 0) + AngleOffset — no needle turns
+## below its zero, the vario rests at 0 in a descent); NAN when the gauge is inactive. `full` > 0 replaces FullClock.
+func needle_angle(key: String, value: float, full := 0.0) -> float:
 	var g: Dictionary = layout.get(key, {})
 	if g.get("Active", 0) != 1:
+		return NAN
+	return g.AngleOffset + maxf(value / (full if full > 0.0 else float(g.FullClock)) * TAU, 0.0)
+
+
+## The drawn needles' angles this frame (the values `_draw` passes): {section: angle}.
+func needle_angles() -> Dictionary:
+	var out := {}
+	var en: PackedFloat32Array = state.engines
+	var values := {"SPEEDCLOCK": state.tas_kt, "FUELCLOCK": state.fuel_fill, "VARIOCLOCK": state.vs_fpm}
+	for e in 2:
+		var sfx := "SECONDARY" if e == 1 else ""
+		values["THROTTLECLOCK" + sfx] = en[3 * e]
+		values["RPMCLOCK" + sfx] = en[3 * e + 1]
+		values["TEMPCLOCK" + sfx] = en[3 * e + 2]
+	for k in values:
+		var a := needle_angle(k, values[k])
+		if not is_nan(a):
+			out[k] = a
+	var alt := needle_angle("ALTITUDELOCK", state.alt_ft, 1000.0)
+	if not is_nan(alt):
+		out["ALTITUDELOCK"] = alt
+	return out
+
+
+## `full` > 0 replaces the gauge's FullClock; `shorter` px off its Radius.
+func _draw_needle(key: String, value: float, s: float, full := 0.0, shorter := 0.0) -> void:
+	var angle := needle_angle(key, value, full)
+	if is_nan(angle):
 		return
+	var g: Dictionary = layout[key]
 	var c := panel_to_screen(g.OffsetX, g.OffsetY)
-	# FUN_00527e50: angle = max(value · 2π / FullClock, 0) + AngleOffset — no needle turns below its zero (the vario
-	# rests at 0 in a descent).
-	var angle: float = g.AngleOffset + maxf(value / (full if full > 0.0 else float(g.FullClock)) * TAU, 0.0)
 	var tip: Vector2 = c + Vector2(cos(angle), sin(angle)) * (float(g.Radius) - shorter) * s * 0.9
 	var col := _colorref(int(g.NeedleColor))
 	draw_line(c, tip, col, max(1.0, g.NeedleWidth * s * 0.6), true)

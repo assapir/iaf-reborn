@@ -132,8 +132,8 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
   sights' bombing depression set automatically, the F-35's gun / A-G graphics (the F-16's).
 
 - **Preferences → Devices → Detent = MIL** (ours, under THROTTLE, off by default): "Set at lever" stores the lever position in its
-  detent; the lever then maps piecewise so the detent is MIL (74) and the travel past it afterburner (the original maps it
-  linearly) — joystick.gd `detent_map`, docs/controls.md §5.
+  detent; the lever then maps piecewise so the detent is MIL (74), the next 3 points stay MIL, and the travel past them
+  afterburner from AB 1 (78) (the original maps it linearly) — joystick.gd `detent_map`, docs/controls.md §5.
 
 - **Preferences → Graphics**: a VSYNC check (ours) in the empty strip left of DEFAULT, default on.
 - **Preferences → Extras → Anti-aliasing / Terrain close up / Sky** (ours, docs/rendering.md): rendering only, first

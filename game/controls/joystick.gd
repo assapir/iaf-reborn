@@ -131,13 +131,20 @@ func raw_throttle() -> int:
 
 
 ## Ours (Extras "Throttle detent = MIL", off = −1): the lever's detent `d` maps to MIL (74, the "6" key) — the
-## travel below it to 0..74, above it to 74..100 (afterburner from 78). The original maps the lever linearly.
+## travel below it to 0..74; the first DETENT_HOLD points past it stay MIL (a lever resting in its detent reads a
+## point or two over, and 75 already lights AB 1), then 78 (AB 1, the "7" key) .. 100. The original maps the lever
+## linearly.
+const DETENT_HOLD := 3
+
+
 static func detent_map(t: int, d: int) -> int:
 	if d <= 0 or d >= 100:
 		return t
 	if t <= d:
 		return int(round(t * 74.0 / d))
-	return int(round(74.0 + (t - d) * 26.0 / (100 - d)))
+	if t <= d + DETENT_HOLD or d + DETENT_HOLD >= 100:
+		return 74
+	return int(round(78.0 + (t - d - DETENT_HOLD) * 22.0 / (100 - d - DETENT_HOLD)))
 
 
 func poll() -> Array:
