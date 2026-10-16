@@ -33,8 +33,9 @@
 
 **2. Enemies:** ~~AAA, radar / IR SAMs, ground rockets~~ (done: docs/ai.md §14), ~~the decoys' effect on missiles~~ (done:
 docs/weapons.md §10), ~~AI air-to-air / air-to-ground, enemy flares / chaff, script ops 1 / 2~~ (done: docs/ai.md §13,
-`game/ai/combat.gd`); left: the AI's bomb ripple, AI ECM, action 430, armed vehicles' turrets turning; then the demo
-video (H.264).
+`game/ai/combat.gd`), ~~the AI's ripple / rockets / laser bombs, Arming loads and stores on AI jets, action 430, STT locks,
+the player's ECM in the AI sensors (the original has no AI ECM), helicopters and scripted aircraft, turrets / dishes /
+rotors, AI systems damage and engine sound~~ (done: docs/ai.md §13–§14); left: the demo video (H.264).
 
 **3. Missions and general fixes:** the mission sweep (`tools/mission_sweep.sh`), remaining small bugs below, Jump In,
 the Reference screen, night lighting.
