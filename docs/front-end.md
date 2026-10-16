@@ -1737,8 +1737,10 @@ of the frame.
 * BACK → Main.
 
 **Ours: Pilot guide** (docs/deviations.md §2). A record with a guide (`docs/guides/<dir>.md`, the record's directory
-lower-cased: `f16.md`) gets a **PILOT GUIDE** button under Pictures at (15,366) 108×18, cut from the Pictures button's
-art with its label blended out. It is a fourth view in the view group (the three original view buttons go unchecked
+lower-cased: `f16.md`) gets a **PILOT GUIDE** button, the view column's next row under Pictures at (15,362) 108×18 (the
+column's 18 px pitch), cut from the Pictures button's art with its label blended out; our label in the column's
+labels' place (button x 26–78, the Hebrew 30–100 clear of the light), bold Arial drawn with a faux-bold second pass
+(`_draw_baked_label` `bold`) to match the baked labels' weight. It is a fourth view in the view group (the three original view buttons go unchecked
 while it shows); a record without a guide falls back to Description. The view is the same borderless rich edit as
 Description (`frame_window.gd` `bare`, its scrollbar and the mouse wheel), showing the guide's Markdown subset
 (`guide_md.gd`: headings, paragraphs, bold / italic / code, lists, pipe tables, rules, pictures with captions) at 12 px.

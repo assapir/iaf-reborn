@@ -24,11 +24,15 @@ const TITLE_H := 34.0
 const TITLE_PX := 20.0
 ## Content-local view rect (0,34)–(453,357).
 const VIEW := Rect2(0, 34, 453, 323)
-## Ours: the Pilot guide button, under Pictures (15,344) in the panel's free band, art cut from Pictures.
-const GUIDE_BUTTON := Rect2(15, 366, 108, 18)
+## Ours: the Pilot guide button, the next row of the view column (its 18 px pitch) under Pictures, art cut from Pictures.
+const GUIDE_BUTTON := Rect2(15, 362, 108, 18)
 const PICTURES_BUTTON := Rect2(15, 344, 108, 18)
 ## The baked label's area inside a view button (button-relative), blended out for our label.
 const BUTTON_LABEL := Rect2(29, 3, 74, 13)
+## Our label's area (button-relative): where the column's own labels sit ("DESCRIPTION" spans x 26–78); the longer
+## Hebrew label a wider area, still clear of the light.
+const GUIDE_LABEL := Rect2(26, 3, 52, 13)
+const GUIDE_LABEL_HE := Rect2(30, 3, 70, 13)
 const GUIDE_PX := 12.0
 ## The descriptions' body text: \fs16 = 8 pt at 96 dpi.
 const DESC_PX := 10.7
@@ -270,5 +274,8 @@ func _draw_guide_button() -> void:
 		return
 	var box: Rect2 = fe._rect(Rect2(GUIDE_BUTTON.position + Vector2(dx, 0), GUIDE_BUTTON.size))
 	draw_texture_rect(t, box, false)
-	var label := Rect2(GUIDE_BUTTON.position + BUTTON_LABEL.position + Vector2(dx, 0), BUTTON_LABEL.size)
-	fe._draw_baked_label(self, fe._rect(label), fe._t("Pilot guide") if fe._he() else "PILOT GUIDE", f, 11)
+	# The label clear of the light (GUIDE_LABEL), heavier as the column's baked labels.
+	var area: Rect2 = GUIDE_LABEL_HE if fe._he() else GUIDE_LABEL
+	var label := Rect2(GUIDE_BUTTON.position + area.position + Vector2(dx, 0), area.size)
+	fe._draw_baked_label(self, fe._rect(label), fe._t("Pilot guide") if fe._he() else "PILOT GUIDE", f, 12 if fe._he() else 11,
+			0.8 if fe._he() else 0.4)

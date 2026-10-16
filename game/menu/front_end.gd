@@ -1159,7 +1159,8 @@ func _draw_f35i_slot(p: int, panel: Dictionary, delta: Vector2) -> void:
 
 ## Our label on a button whose baked label was blended out (`box` in window pixels), as the baked labels: English
 ## heavy and condensed; Hebrew regular weight, letter-spaced, a softer grey (the Hebrew pack's buttons).
-func _draw_baked_label(on: CanvasItem, box: Rect2, text: String, f: int, px: float) -> void:
+## `bold` (640-space px): each glyph drawn a second time that far right (the heavier baked labels, e.g. ref.trx's).
+func _draw_baked_label(on: CanvasItem, box: Rect2, text: String, f: int, px: float, bold := 0.0) -> void:
 	var he := _he()
 	var lf: Font = font if he else font_bold
 	var fs := int(round(px * _scale()))
@@ -1173,17 +1174,22 @@ func _draw_baked_label(on: CanvasItem, box: Rect2, text: String, f: int, px: flo
 	# The baked labels' grey (sampled from the Jet list art), dimmer pressed / disabled.
 	var col := Color8(188, 190, 194) if f < 2 else (Color8(160, 162, 166) if f == 2 else Color8(110, 112, 115))
 	on.draw_set_transform(Vector2(box.position.x + (box.size.x - w) / 2.0, base), 0.0, Vector2(sq, 1.0))
+	var b := bold * _scale() / sq
 	if gap == 0.0:
-		on.draw_string(lf, Vector2(_scale(), _scale()), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color8(25, 25, 25))
-		on.draw_string(lf, Vector2.ZERO, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
+		for dx in [0.0, b]:
+			on.draw_string(lf, Vector2(_scale() + dx, _scale()), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color8(25, 25, 25))
+		for dx in [0.0, b]:
+			on.draw_string(lf, Vector2(dx, 0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
 	else:
 		# Letter by letter (right to left for Hebrew), each a fixed gap apart.
 		var x := w
 		for ch in text:
 			var cw := lf.get_string_size(ch, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 			x -= cw
-			on.draw_string(lf, Vector2(x + _scale(), _scale()), ch, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color8(25, 25, 25))
-			on.draw_string(lf, Vector2(x, 0), ch, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
+			for dx in [0.0, b]:
+				on.draw_string(lf, Vector2(x + _scale() + dx, _scale()), ch, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color8(25, 25, 25))
+			for dx in [0.0, b]:
+				on.draw_string(lf, Vector2(x + dx, 0), ch, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
 			x -= gap
 	on.draw_set_transform(Vector2.ZERO)
 
