@@ -1007,6 +1007,9 @@ func launch_homing(w: Dictionary, pos: Vector3, from: Dictionary, target: String
 		last_launched = mis
 	if target != "" and target == String(_me().get("key", "")):
 		rwr.launch(String(owner.get("key", "")), _rwr_missile(mis))
+		if host.has_method("blackbox_event"):
+			host.blackbox_event({"event": "launch", "key": String(owner.get("key", "")), "weapon": String(w.get("name", "")),
+				"type": int(w.get("type", 0))})
 	return mis
 
 

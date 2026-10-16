@@ -43,7 +43,8 @@ func _rand() -> int:
 ## +0x840, period 2.0 set @4479e5; FUN_004d4100); else a camera shake (motion 0xd) of 2·(damage increase) (or a random
 ## 0..1 when the damage did not grow), random sign, clamped to ±1, and the missile-hit thump.
 ## Then a system may break (single player, 0 < damage < 1).
-func hit(damage: float, kind: String, now: float) -> void:
+## Returns the system broken (1..24), 0 for none.
+func hit(damage: float, kind: String, now: float) -> int:
 	if kind == "gun":
 		if now >= _gun_thump_next:
 			_gun_thump_next = now + GUN_THUMP_PERIOD
@@ -60,6 +61,8 @@ func hit(damage: float, kind: String, now: float) -> void:
 		cut_out = r[1]
 		if r[0] != 0:
 			system_damage(r[0])
+		return r[0]
+	return 0
 
 
 var _gun_thump_next := -1.0

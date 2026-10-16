@@ -7,6 +7,8 @@ cd "$(dirname "$0")/.."
 # Godot logs go here, not into the player's user folder (whose rotation keeps only the newest logs).
 logs=$(mktemp -d "${TMPDIR:-/tmp}/iaf-logs.XXXXXX")
 fail=0
+echo "== tests/test_flight_timeline.py"
+python3 -I tests/test_flight_timeline.py || fail=1
 echo "== cargo test"
 cargo test -q --workspace 2>&1 | grep -E "test result|FAILED|panicked" || fail=1
 cargo build -q --release -p iaf-godot || fail=1

@@ -23,6 +23,7 @@ tools/worktree.sh <name>                                      # parallel worktre
 tools/doclint.py                                              # lint the docs (links, paths, § refs, tables)
 tools/mission_sweep.sh OUT [ids…]                             # headless run of every playable mission, one log each
 tools/guide_shots.sh [jet] && python3 -I tools/guide_pdf.py   # pilot guides' pictures (needs a display) and PDFs
+python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded flight (blackbox) as a timeline + summary
 ```
 
 - Always run scripted Godot tests / captures with `IAF_DEFAULT_SETTINGS=1` so the user's `settings.cfg` is never read

@@ -1238,9 +1238,14 @@ So the Hebrew pages use the same rects as §12.3–§12.6.
     Export writes the working copy as a settings.cfg, Import stores and saves the file's settings at once). 8 rows shown, with the Keyboard page's scrollbar beyond;
     DEFAULT resets every Extras option except the language (and the settings file).
   * **Blackbox** (ours): each flight recorded to `user://flights/flight-<date>_<time>-m<mission>.jsonl` (the newest 10
-    kept; format docs/blackbox.schema.json: a header with the mission, jet, loadout, route and every setting, rows 10
-    per second, events: lift-off, touchdown with its sink rate, crash with its reason, autopilot, each mission event fired with its name, each subtitle line). The debrief screen's
-    EXPORT FLIGHT DATA (bottom right of the content) saves this flight's file where the player picks.
+    kept; format docs/blackbox.schema.json: a header with the mission, jet, loadout, route, the armed units, the terrain
+    origin and every setting, rows 10 per second, events: lift-off, touchdown with its sink rate, crash with its reason,
+    autopilot, each mission event fired with its name, each subtitle line, master mode / store changes, and the
+    engagement: a unit's lock / unlock, a launch at the jet, each hit with the damage and the system broken, the player's
+    kills, being shot down, and an armed enemy's terrain line of sight gained / lost within its range). The debrief
+    screen's EXPORT FLIGHT DATA (bottom right of the content) saves this flight's file where the player picks.
+    `python3 -I tools/flight_timeline.py <file> [--html out.html]` prints the timeline and, per leg of the route, how far
+    off the leg and how low the jet flew, and the threats that engaged it.
   * **Physics** (`Settings.BETTER`): one check per option, 19 (13 flight-model improvements, docs/flight-model.md §10,
     + 6 original-bug fixes, docs/deviations.md §2), rows of 20 px, 15 shown with the scrollbar, All on / All off in
     the header; mirrored in Hebrew.

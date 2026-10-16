@@ -647,6 +647,9 @@ func _hit(ent: Dictionary, dmg: float, source: Dictionary, kind: String) -> bool
 	if not kill and new - old < DamageModel.MIN_STEP:
 		return false
 	ent.killer = source
+	if ent.player and host.has_method("blackbox_event"):
+		host.blackbox_event({"event": "hit", "key": String(source.get("key", "")), "kind": kind, "damage": snappedf(new, 0.01),
+			"kill": kill or new >= DamageModel.HIT_AT})
 	if kill:
 		set_damage_level(ent, DamageModel.EXPLODED, source, kind)
 	elif new > 0.0:

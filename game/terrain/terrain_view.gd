@@ -74,7 +74,10 @@ var g_effects: Control
 ## Blackbox (Extras, on by default): each flight in Settings.BLACKBOX_DIR (JSON lines, docs/blackbox.schema.json) for debriefs and
 ## diagnosing glitches reported from play: a header object (mission, flight, jet, pilot, loadouts, route, every
 ## setting, the column names), then a row array ten times a second, and an event object the moment one happens
-## (touchdown with its sink rate, lift-off, crash with its reason, autopilot changes). The debrief screen exports it.
+## (touchdown with its sink rate, lift-off, crash with its reason, autopilot changes, mission events and messages,
+## and the engagement: a sensor locking / unlocking the jet, launches at it, hits with the system broken, the player's
+## kills, a site's terrain line of sight gained / lost, master mode / weapon changes). The debrief screen exports it;
+## tools/flight_timeline.py reads it.
 const BLACKBOX_COLUMNS := ["t", "x", "z", "alt_m", "agl_m", "vs_ms", "speed_kt", "mach", "aoa", "g", "heading", "pitch", "roll",
 	"on_ground", "engine", "throttle", "air_brakes", "gear", "flaps", "stick_x", "stick_y", "rudder", "fuel_kg", "ap_mode",
 	"ap_stage", "fps"]
@@ -85,6 +88,12 @@ var _log_air := false
 var _log_vs := 0.0
 var _log_ap := 0
 var _log_st := {}
+var _log_weapon := ""
+var _log_los := {}  # unit key -> terrain line of sight to the jet, last seen
+var _log_los_next := 0.0
+var _log_dead := {}  # unit keys already logged down
+## Tests: record to this path even in isolated runs (the player's flights folder is never touched).
+var blackbox_path := ""
 ## Highest true airspeed at which the gear may be lowered (player controller case 0xe, docs/flight-model.md §12).
 const GEAR_DOWN_MAX_KT := 300.0
 ## Gear leg travel and flaps step times (s).
@@ -906,8 +915,11 @@ func mission_player_fall(p: Vector3, a: Vector3) -> void:
 
 
 ## The player's jet was hit and is still alive (FUN_0044d590 via the runtime).
-func mission_player_hit(ent: Dictionary, _source: Dictionary, kind: String) -> void:
-	player_damage.hit(ent.damage, kind, _sim_time)
+func mission_player_hit(ent: Dictionary, source: Dictionary, kind: String) -> void:
+	var sys: int = player_damage.hit(ent.damage, kind, _sim_time)
+	if sys != 0:
+		blackbox_event({"event": "system", "key": String(source.get("key", "")), "system": sys,
+			"text": String(DamageModel.SYSTEMS.get(sys, {}).get("text", ""))})
 
 
 ## Damage smoke on / off (FUN_004d1f90 / FUN_004d1ff0).
@@ -917,6 +929,13 @@ func mission_entity_smoke(ent: Dictionary, on: bool) -> void:
 
 ## A unit changed state (FUN_004a8100 at 3, FUN_004a86b0 at 4 / 5).
 func mission_entity_state(ent: Dictionary) -> void:
+	if int(ent.state) >= 3 and not _log_dead.has(ent.key):
+		_log_dead[ent.key] = true
+		var killer: Dictionary = ent.get("killer", {})
+		if ent.player:
+			blackbox_event({"event": "shot_down", "key": String(killer.get("key", ""))})
+		elif not killer.is_empty() and killer.get("player", false):
+			blackbox_event({"event": "kill", "key": String(ent.key)})
 	match ent.state:
 		3:
 			if ent.player:
@@ -1421,19 +1440,22 @@ func _update_indicators(delta: float) -> void:
 
 func _record(st: Dictionary, delta: float) -> void:
 	_log_t += delta
-	if Settings.isolated() or not Settings.blackbox:
+	if (Settings.isolated() and blackbox_path == "") or not Settings.blackbox:
 		return  # tests never write into the player's data
 	if _log == null:
-		DirAccess.make_dir_recursive_absolute(Settings.BLACKBOX_DIR)
-		var old := Array(DirAccess.get_files_at(Settings.BLACKBOX_DIR)).filter(func(f): return f.begins_with("flight-") and f.ends_with(".jsonl"))
-		old.sort()  # the names sort by time
-		for f in old.slice(0, maxi(0, old.size() - Settings.BLACKBOX_KEEP + 1)):
-			DirAccess.remove_absolute(Settings.BLACKBOX_DIR.path_join(f))
-		var path := Settings.BLACKBOX_DIR.path_join("flight-%s-m%d.jsonl" % [Time.get_datetime_string_from_system().replace("T", "_").replace(":", "-"), mission_id])
+		var path := blackbox_path
+		if path == "":
+			DirAccess.make_dir_recursive_absolute(Settings.BLACKBOX_DIR)
+			var old := Array(DirAccess.get_files_at(Settings.BLACKBOX_DIR)).filter(func(f): return f.begins_with("flight-") and f.ends_with(".jsonl"))
+			old.sort()  # the names sort by time
+			for f in old.slice(0, maxi(0, old.size() - Settings.BLACKBOX_KEEP + 1)):
+				DirAccess.remove_absolute(Settings.BLACKBOX_DIR.path_join(f))
+			path = Settings.BLACKBOX_DIR.path_join("flight-%s-m%d.jsonl" % [Time.get_datetime_string_from_system().replace("T", "_").replace(":", "-"), mission_id])
 		_log = FileAccess.open(path, FileAccess.WRITE)
 		if _log == null:
 			return
-		Settings.blackbox_file = path
+		if blackbox_path == "":
+			Settings.blackbox_file = path
 		var cfg: ConfigFile = Settings.write_config()
 		var settings := {}
 		for section in cfg.get_sections():
@@ -1442,7 +1464,9 @@ func _record(st: Dictionary, delta: float) -> void:
 				settings[section][k] = cfg.get_value(section, k)
 		_log.store_line(JSON.stringify({"blackbox": 1, "date": Time.get_datetime_string_from_system(), "mission": mission_id,
 			"flight": Settings.player_flight, "type": int(player.get("type", -1)), "jet": player.get("fm_section", ""), "pilot": Settings.pilot_callsign,
-			"loadouts": Settings.arm_loadouts, "route": route.map(func(w): return {"name": w.name, "x": w.world.x, "y": w.world.y}), "settings": settings, "columns": BLACKBOX_COLUMNS}))
+			"loadouts": Settings.arm_loadouts, "route": route.map(func(w): return {"name": w.name, "x": w.world.x, "y": w.world.y}),
+			"threats": _log_threats(), "origin": [terrain.world_origin.x, terrain.world_origin.y], "settings": settings,
+			"columns": BLACKBOX_COLUMNS}))
 	_log_st = st
 	var air := not bool(st.on_ground)
 	if air != _log_air:
@@ -1454,6 +1478,14 @@ func _record(st: Dictionary, delta: float) -> void:
 	if ap != _log_ap:
 		_log_ap = ap
 		_log_event(st, {"event": "autopilot", "mode": ["off", "level", "nav"][clampi(ap, 0, 2)]})
+	if weapons != null and weapons.stores != null:
+		var wpn := "%d %s" % [weapons.master, weapons.stores.current_name()]
+		if wpn != _log_weapon:
+			_log_weapon = wpn
+			_log_event(st, {"event": "weapon", "master": weapons.master, "store": weapons.stores.current_name()})
+	if _log_t >= _log_los_next:
+		_log_los_next = _log_t + 1.0
+		_log_masking(st)
 	if _log_t < _log_next:
 		return
 	_log_next = _log_t + 0.1
@@ -1481,6 +1513,55 @@ func _log_event(st: Dictionary, e: Dictionary) -> void:
 		"speed_kt": snappedf(float(st.speed_kt), 0.1), "pitch": snappedf(float(st.pitch), 0.1)})
 	_log.store_line(JSON.stringify(e))
 	_log.flush()
+
+
+## The armed ground / AI units for the header: [{key, name, type, x, y}] (mission world).
+func _log_threats() -> Array:
+	if ai == null or ai.get("combat") == null:
+		return []
+	var out := []
+	for u in ai.combat.units.values():
+		var w: Vector3 = runtime._world_of(u.ent)
+		out.append({"key": String(u.ent.key), "name": String(u.ent.name), "type": int(u.w.get("type", 0)),
+			"weapon": String(u.w.get("name", "")), "x": snappedf(w.x, 1.0), "y": snappedf(w.y, 1.0)})
+	return out
+
+
+## Each armed enemy within its engage / sensor range: its terrain line of sight to the jet gained or lost (once a second;
+## the sites' own check, IafRadar.line_of_sight through combat.gd).
+func _log_masking(st: Dictionary) -> void:
+	if ai == null or ai.get("combat") == null or runtime == null:
+		return
+	var me := player_world()
+	for u in ai.combat.units.values():
+		if u.air or int(u.ent.state) >= 3 or not enemy_of_player(u.ent):
+			continue
+		var at: Vector3 = runtime._world_of(u.ent)
+		var reach := maxf(u.sensor_r, u.range_m)
+		var key := String(u.ent.key)
+		if reach <= 0.0 or at.distance_to(me) > reach:
+			if _log_los.has(key):
+				_log_los.erase(key)
+			continue
+		var seen: bool = ai.combat.line_of_sight(at, me)
+		if _log_los.get(key, not seen) != seen:
+			blackbox_event({"event": "in_sight" if seen else "masked", "key": key})
+		_log_los[key] = seen
+
+
+## An event from another system (weapons, combat, runtime): a unit `key` gets its name, weapon and range to the jet.
+func blackbox_event(e: Dictionary) -> void:
+	if _log == null:
+		return
+	var key := String(e.get("key", ""))
+	var ent: Dictionary = runtime.entities.get(key, {}) if runtime != null and key != "" else {}
+	if not ent.is_empty():
+		e["unit"] = String(ent.name)
+		e["dist_m"] = snappedf(runtime._world_of(ent).distance_to(player_world()), 1.0)
+		var u = ai.combat.units.get(key) if ai != null and ai.get("combat") != null else null
+		if u != null and not e.has("weapon"):
+			e["weapon"] = String(u.w.get("name", ""))
+	_log_event(_log_st, e)
 
 
 ## Any throttle command starts the engine (FUN_0059f7d0 sets S+0x1d0), even at idle.

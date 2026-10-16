@@ -1,0 +1,10 @@
+{"blackbox":1,"date":"2026-10-16T14:15:37","mission":313,"jet":"F-16","pilot":"test","route":[{"name":"A","x":1000.0,"y":0.0},{"name":"B","x":11000.0,"y":0.0}],"threats":[{"key":"0:3","name":"site 1","type":630,"weapon":"SA3","x":6000.0,"y":5000.0}],"origin":[0.0,0.0],"settings":{},"columns":["t","x","z","alt_m","agl_m","vs_ms","speed_kt","mach","aoa","g","heading","pitch","roll","on_ground","engine","throttle","air_brakes","gear","flaps","stick_x","stick_y","rudder","fuel_kg","ap_mode","ap_stage","fps"]}
+[0.0,1000.0,0.0,330.0,30.0,0.0,500.0,0.8,2.0,1.0,90.0,0.0,0.0,false,true,0.74,false,false,0.0,0.0,0.0,0.0,3000.0,0,"none",60.0]
+{"t":2.0,"event":"in_sight","key":"0:3","unit":"site 1","weapon":"SA3","dist_m":9700.0,"agl_m":35.0,"speed_kt":650.0,"pitch":0.0}
+[5.0,6000.0,-1500.0,330.0,25.0,0.0,500.0,0.8,2.0,1.0,90.0,0.0,0.0,false,true,0.74,false,false,0.0,0.0,0.0,0.0,2990.0,0,"none",60.0]
+{"t":5.0,"event":"lock","key":"0:3","unit":"site 1","weapon":"SA3","dist_m":7000.0,"agl_m":25.0,"speed_kt":650.0,"pitch":0.0}
+{"t":6.0,"event":"launch","key":"0:3","unit":"site 1","weapon":"SA3","type":630,"dist_m":6100.0,"agl_m":25.0,"speed_kt":650.0,"pitch":0.0}
+{"t":9.0,"event":"hit","key":"0:3","unit":"site 1","weapon":"SA3","kind":"missile","damage":0.3,"kill":false,"dist_m":5600.0,"agl_m":35.0,"speed_kt":654.0,"pitch":0.0}
+{"t":9.0,"event":"system","key":"0:3","unit":"site 1","system":8,"text":"After burner damage","agl_m":35.0,"speed_kt":654.0,"pitch":0.0}
+[10.0,11000.0,0.0,315.0,15.0,0.0,500.0,0.8,2.0,1.0,90.0,0.0,0.0,false,true,0.74,false,false,0.0,0.0,0.0,0.0,2980.0,0,"none",60.0]
+{"t":12.0,"event":"crash","reason":"sink rate","agl_m":3.6,"speed_kt":656.6,"pitch":-4.6}

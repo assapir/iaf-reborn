@@ -29,6 +29,15 @@
             "properties": { "name": { "type": "string" }, "x": { "type": "number" }, "y": { "type": "number" } }
           }
         },
+        "threats": {
+          "type": "array",
+          "description": "The armed units (ground sites and AI jets) at the start: key, name, weapon type / name, mission world position.",
+          "items": {
+            "type": "object",
+            "properties": { "key": { "type": "string" }, "name": { "type": "string" }, "type": { "type": "integer" }, "weapon": { "type": "string" }, "x": { "type": "number" }, "y": { "type": "number" } }
+          }
+        },
+        "origin": { "type": "array", "items": { "type": "number" }, "description": "The terrain's world origin [x, y]: mission world = (origin.x + row x, origin.y − row z)." },
         "settings": {
           "type": "object",
           "description": "Every stored preference as settings.cfg holds it: sections sound / graphics / devices / gameplay / physics (bp_<id>) / keys.",
@@ -79,10 +88,22 @@
       "required": ["t", "event"],
       "properties": {
         "t": { "type": "number", "description": "Flight time, s." },
-        "event": { "enum": ["lift-off", "touchdown", "crash", "autopilot", "mission", "message"] },
+        "event": { "enum": ["lift-off", "touchdown", "crash", "autopilot", "mission", "message", "weapon", "lock", "unlock", "launch", "hit", "system", "kill", "shot_down", "in_sight", "masked"],
+          "description": "weapon: master mode / selected store changed; lock / unlock: a unit's sensor or radar locks / drops the jet (its RWR lock); launch: a missile at the jet; hit: a counted hit on the jet; system: the system that hit broke; kill: the player destroyed a unit; shot_down: the jet is fatally hit; in_sight / masked: an armed enemy within its engage / sensor range gains / loses terrain line of sight to the jet (checked once a second)." },
+        "key": { "type": "string", "description": "The unit (mission entity key) the event is about: lock / unlock / launch / hit / system (the shooter), kill (the destroyed unit), shot_down (the killer), in_sight / masked (the site)." },
+        "unit": { "type": "string", "description": "That unit's name in the mission." },
+        "dist_m": { "type": "number", "description": "That unit's distance to the jet, m." },
+        "weapon": { "type": "string", "description": "That unit's weapon name (launch: the missile)." },
+        "type": { "type": "integer", "description": "launch: the missile's weapon type (e.g. 630 SAM)." },
+        "kind": { "type": "string", "description": "hit: \"gun\", \"missile\", \"blast\", \"script\"." },
+        "damage": { "type": "number", "description": "hit: the jet's damage after it, 0..1." },
+        "kill": { "type": "boolean", "description": "hit: the hit was fatal (damage ≥ 0.8)." },
+        "system": { "type": "integer", "description": "system: the system number (docs/damage.md §5)." },
+        "master": { "type": "integer", "description": "weapon: the master mode." },
+        "store": { "type": "string", "description": "weapon: the selected store's name." },
         "id": { "type": "integer", "description": "mission: the mission event's id (bdb 0x1e)." },
         "name": { "type": "string", "description": "mission: the event's name in the mission file (bdb 0x384, e.g. \"Go around\")." },
-        "text": { "type": "string", "description": "message: a subtitle line as the mission or the radio printed it." },
+        "text": { "type": "string", "description": "message: a subtitle line as the mission or the radio printed it; system: the system's console text (e.g. \"After burner damage\")." },
         "sink_ms": { "type": "number", "description": "touchdown: the last airborne sink rate, m/s (the landing check's limit: 40 original, 4 with Physics > Real landing limits, x2 with Easy landing)." },
         "reason": { "type": "string", "description": "crash: the flight model's reason (e.g. \"sink rate\", \"tail strike\")." },
         "mode": { "enum": ["off", "level", "nav"], "description": "autopilot: the new mode." },

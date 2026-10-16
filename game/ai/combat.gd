@@ -732,6 +732,8 @@ func on_lock(owner: Dictionary, t: Dictionary, on: bool) -> void:
 			host.weapons.rwr.lock(owner.key)
 		else:
 			host.weapons.rwr.unlock(owner.key)
+		if host.has_method("blackbox_event"):
+			host.blackbox_event({"event": "lock" if on else "unlock", "key": String(owner.key)})
 		return
 	var b = brain_of(t)
 	if b == null:
