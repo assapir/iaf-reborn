@@ -8,10 +8,15 @@
   original reads four (x, y, throttle, rudder). Later: an Extras option to give a spare axis a role (e.g. zoom, panel
   slide, head pan, rudder on the rocker instead of the twist) and an axis-mapping row instead of editing
   `[devices] joy_axes` by hand.
-- **High-detail F-16 model** to replace the 1998 mesh (~800 triangles): candidate is FlightGear's F-16 (check the licence) or a CC-licensed model. Keep the original dimensions, hinge points (`<part>1/2` helpers), weapon stations, camera eye point and IAF markings; fit it and repaint onto the new UVs.
+- **Better aircraft graphics** (wishlist; Extras switch, the 1998 meshes by default): high-detail PBR models to
+  replace the 1998 meshes (~800 triangles), the F-16 first (candidate: FlightGear's F-16, check the licence, or a
+  CC-licensed model), then the other flyable jets and the AI types. Keep the original dimensions, hinge points
+  (`<part>1/2` helpers), weapon stations, camera eye point and IAF markings; fit each and repaint onto the new UVs.
 - **Modern DEM** (SRTM / Copernicus 30 m) for finer relief. (The modern imagery itself: Sentinel-2 outside Israel is
   done, docs/imagery.md; Survey of Israel 2 m over Israel is done too; SPOT 5 is left, below.)
-- **3D virtual cockpit** (after the original 2D cockpit works), together with the high-detail F-16 model.
+- **Realistic 3D cockpit** (wishlist; Extras switch, the original 2D cockpit by default): a modelled cockpit per jet
+  (DCS-style: free head look, the real panel layout, clickable switches, the MFDs / HUD / gauges drawn live on it),
+  together with the high-detail model of that jet, the F-16 first.
 - **Validate the F-16 flight data** against public sources: USAF fact sheet / RTF reference card, NASA TP-1538
   (F-16 wind-tunnel aero data, used by JSBSim), JSBSim/FlightGear F-16, engine thrust data (F100-PW-220/229,
   F110-GE-100/129), E-M diagrams. Automated checks in `iaf-flight`: max level speed (SL, 40k ft), sustained /
