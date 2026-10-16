@@ -112,7 +112,9 @@ when the player's damage flag 15 is set; generator failures 19 / 21 set it too, 
 - The STT range scale's envelope ticks are drawn (the selected store's DLZ, docs/weapons.md §11.2, docs/mfd.md).
 - Semi-active missiles (610): a launch locks STT; every track drop / change turns their guidance off (`FUN_00458130`,
   docs/weapons.md §11.4); radar damage does not (original quirk kept).
-- Terrain line of sight: ours samples every 100 m (the original's sampling is UNCERTAIN).
+- Terrain line of sight (`line_of_sight`, also the HARM sensor's and the ground units' sensors / fire, `IafRadar.line_of_sight`):
+  ours steps by the clearance, at least every 20 m, so a narrow ridge is never stepped over (the original's sampling is
+  UNCERTAIN).
 - Weapon data Real: the LRS / STT detection range of each Jet list jet is its real radar's (F-16 APG-68 80 km, F-15
   APG-63 135 km, …; docs/real-weapons.md §1.3); the MiGs keep the table.
 

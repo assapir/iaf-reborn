@@ -875,15 +875,32 @@ fn hit(u: &Unit, own: &Own, air: bool, cone: f64, terrain: &dyn Fn(Vec3) -> Opti
     })
 }
 
-/// Terrain line of sight (`FUN_004020d0`; ours samples the segment every 100 m: the original's sampling is
-/// UNCERTAIN).
+/// Line-of-sight sampling: the smallest step (m) and the steepest terrain assumed (rise per metre).
+const LOS_MIN_STEP: f64 = 20.0;
+const LOS_MAX_SLOPE: f64 = 1.5;
+
+/// Terrain line of sight (`FUN_004020d0`; the original's sampling is UNCERTAIN). Ours steps by clearance: where the
+/// segment is h above the ground, the terrain (at most `LOS_MAX_SLOPE` steep) cannot reach it sooner than
+/// h / (slope − the segment's own rise), so the step is that, at least `LOS_MIN_STEP`: a narrow ridge is never
+/// stepped over, and a segment high above the terrain costs few samples. The end points are not tested.
 pub fn line_of_sight(a: Vec3, b: Vec3, terrain: &dyn Fn(Vec3) -> Option<f64>) -> bool {
     let d = b - a;
-    let n = (d.length() / 100.0) as u32;
-    (1..n).all(|i| {
-        let p = a + d * (f64::from(i) / f64::from(n));
-        terrain(p).is_none_or(|g| p.z >= g)
-    })
+    let len = d.length();
+    if len <= LOS_MIN_STEP {
+        return true;
+    }
+    let dir = d / len;
+    let closing = (LOS_MAX_SLOPE - dir.z / dir.x.hypot(dir.y).max(1e-6)).max(0.1);
+    let mut s = LOS_MIN_STEP;
+    while s < len - LOS_MIN_STEP / 2.0 {
+        let p = a + dir * s;
+        let h = terrain(p).map_or(f64::INFINITY, |g| p.z - g);
+        if h < 0.0 {
+            return false;
+        }
+        s += (h / closing).clamp(LOS_MIN_STEP, len);
+    }
+    true
 }
 
 /// Sorted insert, 15 at most (`FUN_004b08e0`): when full, a record replaces the last only with a strictly higher
@@ -1033,6 +1050,19 @@ mod tests {
         let (a, b) = (Vec3::new(0.0, 0.0, 5000.0), Vec3::new(0.0, 20000.0, 5000.0));
         assert!(!line_of_sight(a, b, &ridge));
         assert!(line_of_sight(a, b, &flat));
+        // A 30 m wide crest across a 17 km low line (a SAM site and a jet 30 m up): never stepped over.
+        let crest = |p: Vec3| Some(if (8000.0..8030.0).contains(&p.y) { 60.0 } else { 0.0 });
+        let (site, low_jet) = (Vec3::new(0.0, 0.0, 1.5), Vec3::new(0.0, 17000.0, 30.0));
+        assert!(!line_of_sight(site, low_jet, &crest), "the crest hides the jet");
+        assert!(line_of_sight(site, low_jet, &flat));
+        // High above the terrain the steps grow: few samples.
+        let n = std::cell::Cell::new(0);
+        let count = |_: Vec3| {
+            n.set(n.get() + 1);
+            Some(0.0)
+        };
+        assert!(line_of_sight(Vec3::new(0.0, 0.0, 5000.0), Vec3::new(0.0, 70000.0, 5000.0), &count));
+        assert!(n.get() < 40, "{} samples", n.get());
         let low = |_: Vec3| Some(4990.0);
         assert!(hit(&jet("t", 0.0, 20000.0), &OWN, true, CONE_COS, &low).is_none(), "10 m AGL");
         assert!(hit(&jet("t", 0.0, 20000.0), &OWN, false, CONE_COS, &low).is_some(), "ground modes see it");

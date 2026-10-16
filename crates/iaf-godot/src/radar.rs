@@ -84,6 +84,13 @@ impl IafRadar {
         self.terrain = Some(terrain);
     }
 
+    /// The terrain line of sight from `a` to `b` (world points; terrain: Callable(Vector3) -> float or null), the
+    /// radar's (`iaf_avionics::radar::line_of_sight`): the ground units' sensors and fire use it too.
+    #[func]
+    fn line_of_sight(a: Vector3, b: Vector3, terrain: Callable) -> bool {
+        iaf_avionics::radar::line_of_sight(vec3(a), vec3(b), &crate::world::terrain(Some(terrain)))
+    }
+
     #[func]
     fn update(&mut self, now: f64) {
         self.with(|r, i| r.update(now, i));

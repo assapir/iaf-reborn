@@ -28,7 +28,6 @@ const QUIET_FACTOR := 0.7
 ## Terrain line of sight: both ends 1.5 m up (FUN_004020d0).
 const LOS_RAISE := 1.5
 const RELEASE_LOS_RAISE := 3.0
-const LOS_SAMPLES := 32
 ## The global truce after every ground shot: 0.1 + rand·0.9 s (DAT_008321d0..d8).
 const TRUCE_MIN := 0.1
 const TRUCE_RAND := 0.9
@@ -318,19 +317,10 @@ func _scan(u: Unit) -> void:
 	u.contacts = list.slice(0, SLOTS_AIR if u.air else SLOTS)
 
 
-## Terrain line of sight (FUN_004020d0, its sampling UNCERTAIN): every 100 m, at most LOS_SAMPLES samples (an AI jet's
-## sensor reaches 74 km: 740 terrain queries a pair made the scans cost ~250 ms a round in mission 221).
+## Terrain line of sight (FUN_004020d0, its sampling UNCERTAIN), both ends raised: the radar's (IafRadar, stepped by
+## the clearance, at least every 20 m near the ground; radar.rs `line_of_sight`).
 func line_of_sight(a: Vector3, b: Vector3, raise := LOS_RAISE) -> bool:
-	a.z += raise
-	b.z += raise
-	var d := b - a
-	var n := mini(int(d.length() / 100.0), LOS_SAMPLES)
-	for i in range(1, n):
-		var p := a + d * (float(i) / n)
-		var g = host.mission_ground(p)
-		if g != null and p.z < float(g):
-			return false
-	return true
+	return IafRadar.line_of_sight(a + Vector3(0, 0, raise), b + Vector3(0, 0, raise), host.mission_ground)
 
 
 ## Brain combat actions (ai_flights.gd combat_hook). Targets: 400 / 440 the best of the air mode scan, 410 of the

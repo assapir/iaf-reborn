@@ -553,7 +553,7 @@ left) except: the EO centre point is the nearest of the terrain under the line o
 units' / buildings' damage boxes on it (ray-tested, `eo.rs` `unit_pick`), not a depth read-back; before launch the eye is the jet's position (not the pylon); the picture is a SubViewport
 camera of the same world at the display's on-screen resolution (deviations.md); the full-screen weapon MFD (Z) as
 above. HARM: the sensor's scan as above (`crates/iaf-avionics/src/harm.rs`; the distance is tested from the jet, not
-inside the query sphere, UNCERTAIN radius; the line of sight sampled every 100 m as the radar's), rescanned with the RWR
+inside the query sphere, UNCERTAIN radius; the radar's line of sight), rescanned with the RWR
 (2 s), when it comes on and on a click (the original only re-captures the page on a click); "In Range" from the HARM's
 DLZ (docs/weapons.md §11.5); Ctrl+Return steps the list. Extras "HARM targets: RWR" (ours, docs/deviations.md §2):
 the RWR's active emitters inside the cone instead, the nearest 5, the nearest preselected.
