@@ -99,7 +99,9 @@ run time (no copy of the data in our code).
 
 ## 3. Engine (object sound slot 0, `FUN_004c3e00` via `FUN_004c3c10`)
 
-For every object of class 0x1e (all controlled aircraft — **the same engine sounds for every jet**;
+Started for every unit with a sound object at its reset (`FUN_004a8060` → `FUN_004c3f90` with code 0, the
+spawners `FUN_0059b060` / `FUN_0059bb00` / `FUN_0059c740` create it); the code is computed only for an entity with a
+flight model (`+0x34`) and render kind 0x1e, so vehicles stay silent (code 0 has no row). For every object of class 0x1e (all controlled aircraft, the player's and the AI's — **the same engine sounds for every jet**;
 the per-type engine rows SFX_OBJECT_SPECIFIC / OBJ_* are for other objects). Updated on the throttle
 events (GEV 4–6, `FUN_0044a240`) and in the per-frame object sound update (`FUN_004c42d0`).
 `stage` = the flight model's afterburner stage (engine object +0x28, set by `FUN_0045abf0` from the
@@ -173,7 +175,8 @@ Mission instructor voices (`FUN_004bb10b` → `FUN_004c5470(wav, 0, 1)`): phrase
 | button click | SFX_BUTTON 0x23 | §4 | ported |
 | extinguisher | SFX_FIRE_EXTINGUISHER 0x27 | §4 | ported |
 | belly screech | SFX_SCREECH 0x29 | §4 | ported |
-| other aircraft / vehicles | SFX_OBJECT_SPECIFIC (`StartEngine`, `VprRcket` helicopters, …) | object creation `FUN_004d5d10` / `FUN_004c3f90` | not built (AI jets fly silently) |
+| AI jets' engines | slot 0 (§3), the player's rows | unit reset `FUN_004a8060` → `FUN_004c3f90(code 0)`; the engine rule for an entity with a flight model (`+0x34`) | ported (`flight_sounds.gd` `create_engine`, one per AI jet in `ai_flights.gd`) |
+| vehicles, helicopters (OBJ_* rows) | SFX_OBJECT_SPECIFIC OBJ_VEHICLE / OBJ_ARMEDVEHICLE / OBJ_HELICOPTER … | none: the rows are parsed (`FUN_004cc540`) but no code builds them; a vehicle's slot 0 keeps code 0 (no row) | silent, as in the original |
 
 Defined in the table but never played (no caller found): SFX_TAKE_OFF, SFX_WHEELS, SFX_LANDING_HOOK,
 SFX_DOOR_OPEN / CLOSE (canopy: no canopy sound), SFX_RADAR_LOCK, SFX_MISSILE_SEEKER_TONE, SFX_WIND,

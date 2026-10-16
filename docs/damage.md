@@ -274,10 +274,15 @@ weather / wind code or strings): nothing to port.
 
 **Port:** `iaf_flight::damage_bits` / `Aircraft::set_damage` (thrust, stick, spin; the host passes the flags every
 frame), `player_damage.gd` (`extinguish`, `gear_overspeed`), `terrain_view.gd` (brakes key, X, parts input: the
-FM's stick and the AB flags), `player_weapons.gd` (radar). AI jets: the pick forbids 2, 3, 5, 7 for them, but our AI
-jets take no systems damage (their reaction is not traced). Tests: `aircraft.rs` (`damage_bits_follow_5bc350`,
+FM's stick and the AB flags), `player_weapons.gd` (radar). **AI jets**: `FUN_004a9c60` calls `FUN_0044d590` on
+entity `+0x34` for every class-0x1c unit (a direct call: `mov ecx, [edx+0x34]` @4a9ca5), so an AI jet hit alive at
+0 < damage < 1 picks a system the same way (`FUN_0045d020` refuses 2, 3, 5, 7; ECM damage 1 needs an ECM, which no AI
+jet carries) and `FUN_0044d760` sets the flag and the flags it implies; the console text, lights and calls are the
+player's only (`bVar2`). The flight model reads them as the player's. Port: `ai_flights.gd` `hit` (from
+`mission_runtime.gd` `_damaged_alive`), the pilot's `systems` flags → `IafFlight.set_damage`; twin from the player's
+type table. Tests: `aircraft.rs` (`damage_bits_follow_5bc350`,
 `engine_damage_cuts_thrust`, `afterburner_damage_and_fuel_leak`, `hydraulics_and_flight_control_damage`),
-`tests/godot/test_systems_damage.gd`.
+`tests/godot/test_systems_damage.gd`, `tests/godot/test_ai_damage_sound.gd` (AI jets).
 
 ## 6. Explosions, smoke, debris
 
@@ -433,7 +438,7 @@ obstacles. The weapons' own colliders are not ported (weapons use their fuse rul
 - Effect 0x18 at a fatal hit; the double explosion at a crash-motion impact; state 4.
 - Radio kill / "is down" calls, score and hit feedback, the brain's reaction to hits, FlyTSD 6.5 s after the
   player's death (campaign), network play.
-- The flight model's reaction to the hit shake; the AI's systems damage.
+- The flight model's reaction to the hit shake.
 - Collision: full vs half extents (the renderer call behind vtable +0xb0 is not traced).
 - Original-vs-better decision for the user: puffs per frame (§6.3). (The heading-0 fall and the Rookie / Normal factor
   are Physics opt-ins, deviations.md §2.)

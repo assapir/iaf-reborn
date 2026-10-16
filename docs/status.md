@@ -99,7 +99,7 @@ Checked against the code on 2026-10-14 (each doc's own "not built" notes have th
 - **Terrain**: map-edge push-back / EndWorld ("Tornado") and craters (terraintype bits known, systems missing); no
   elevation west of Suez in the original data (flat −557 m, kept); modern DEM not built.
 - **Flight**: no hook (FM `cfg[8]` unwired, no key); the next-waypoint `440e90(index)` call in NAV sequencing; the FM's
-  surface states (`S+0x2c8`), OutRunway, effects flag `S+0x420`; spin altitude limits; AI jets take no systems damage.
+  surface states (`S+0x2c8`), OutRunway, effects flag `S+0x420`; spin altitude limits.
 - **AI combat** (docs/ai.md §13–§14): action 430 (nearest RWR emitter); AI STT locks (condition 26); the AI's bomb ripple
   (one store per release); no AI ECM and the AI sensors ignore the player's; Arming loads not applied to AI jets, no store
   models drawn on them; helicopters not flown; mission-controlled AI aircraft not started; ground units' second
@@ -110,7 +110,7 @@ Checked against the code on 2026-10-14 (each doc's own "not built" notes have th
 - **Controls**: joystick untested on real hardware (first joypad only: no separate throttle / pedals; no force
   feedback); unhandled commands: cheat keys (Shift+S / D / R / F, Ctrl+W), SysRQ screenshot, I-mode, chat; FlyTSD Fly
   into another jet / Visit / live unit positions (docs/views.md).
-- **Sounds**: AI jets' and moving units' engines (silent); Betty "Pull up" and the HUD pull-up cue.
+- **Sounds**: Betty "Pull up" and the HUD pull-up cue.
 - **Radio**: AWACS contact calls; airborne / landed / crashed / kill ("… is down") reports.
 - **Front end**: Jump In / Scramble (button not wired); the debrief page's statistics; Graphics defaults from hardware detection, TERRAIN DETAIL's
   resolution drop / view distance (docs/deviations.md §1); No wind / No malfunctions have no reader in the original either.

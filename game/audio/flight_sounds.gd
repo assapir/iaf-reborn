@@ -43,6 +43,10 @@ const FUEL_VERY_LOW_LB := 500.0
 const GEAR_DOWN_EPS := 1e-5
 
 var host: Node
+## Engine only (an AI jet, docs/sound.md §3): its IafFlight and entity; `host` then only gives the view
+## (`in_cockpit`). Set by create_engine().
+var engine_flight = null
+var engine_ent: Dictionary = {}
 var type_code := 100
 var betty := true
 ## Runway under the wheels (terrain flag f & 0x30, set by the host from terrain.gd surface_at).
@@ -78,6 +82,17 @@ static func create(host_node: Node, type: int) -> Node:
 	return n
 
 
+## An AI jet's engine (slot 0 of its object sound, the same rows as the player's, FUN_004c3e00): a child of
+## its model, so it goes with it.
+static func create_engine(view_host: Node, flight, ent: Dictionary) -> Node:
+	var n = load("res://audio/flight_sounds.gd").new()
+	n.name = "EngineSound"
+	n.host = view_host
+	n.engine_flight = flight
+	n.engine_ent = ent
+	return n
+
+
 func _ready() -> void:
 	SoundBuses.apply()
 	betty = type_code in BETTY_TYPES
@@ -89,6 +104,9 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
+	if engine_flight != null:
+		_engine_only()
+		return
 	if host != null:
 		var f = host.get("flight")
 		if f != null:
@@ -146,6 +164,21 @@ var _inside := true
 
 
 # --- engine (FUN_004c3e00 via FUN_004c3c10, every frame and on throttle events) -----------------
+
+## An AI jet: the engine rule from its flight model; the unit destroyed (state 5, FUN_004a86b0 → FUN_004c4310)
+## or crashed stops it.
+func _engine_only() -> void:
+	var st: Dictionary = engine_flight.state()
+	if st.is_empty() or st.get("crashed", false) or int(engine_ent.get("state", 0)) >= 5:
+		if engine_code != "":
+			_engine.stop()
+			engine_code = ""
+			_engine_row = {}
+		return
+	var inside: bool = host != null and bool(host.get("in_cockpit"))
+	_update_engine(int(st.afterburner), float(st.rpm), inside)
+	_update_3d()
+
 
 func _update_engine(stage: int, rpm: float, inside: bool) -> void:
 	var code := engine_code

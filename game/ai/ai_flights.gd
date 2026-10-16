@@ -10,6 +10,9 @@ const AircraftModel := preload("res://aircraft/aircraft_model.gd")
 const Gltf := preload("res://util/gltf.gd")
 const Terrain := preload("res://terrain/terrain.gd")
 const MissionRuntime := preload("res://mission/mission_runtime.gd")
+const DamageModel := preload("res://mission/damage_model.gd")
+const PlayerAircraft := preload("res://aircraft/player_aircraft.gd")
+const FlightSounds := preload("res://audio/flight_sounds.gd")
 const CLASS_AIRCRAFT := 0x1c
 const CLASS_TRANSPORT := 3
 ## FUN_004a9100: the FM start velocity (200, 200, 0) → 282.84 m/s along the heading.
@@ -33,6 +36,11 @@ class Pilot:
 	var landed := false
 	var mode := 0
 	var plane := ""  # the converted plane folder (its flight model start)
+	## Systems damage flags 0..24 (controller +0x3d8 + 0xc + 4n, docs/damage.md §5), the cut-out pick (+0x70)
+	## and the twin-engine test (controller +8 → +0x24: the player's table, PlayerAircraft.TWIN).
+	var systems: Array = []
+	var cut_out := false
+	var twin := false
 	var _state := {}
 	var _host
 
@@ -122,6 +130,9 @@ func setup(h: Node, rt: Node, bdb: Dictionary, files: Array) -> void:
 		p.ent = ent
 		p.formation = _formation_of(ent)
 		p.plane = plane
+		p.systems.resize(25)
+		p.systems.fill(false)
+		p.twin = int(ent.type_code) in PlayerAircraft.TWIN
 		if not _start(p, install, plane):
 			continue
 		var model := AircraftModel.create(plane, ent.type_code, bool(p._state.on_ground_start))
@@ -133,6 +144,8 @@ func setup(h: Node, rt: Node, bdb: Dictionary, files: Array) -> void:
 			var hp := model.find_child("height", true, false) as Node3D
 			p.flight.set_gear_clearance(-hp.position.y * model.scale.y if hp != null else 0.0)
 		p.node = model
+		if model != null:
+			model.add_child(FlightSounds.create_engine(host, p.flight, ent))  # docs/sound.md §3
 		ent.node = model
 		ent["pilot"] = p
 		ent["airborne_class"] = true
@@ -417,3 +430,29 @@ func contacts() -> Array:
 		if int(p.ent.state) < 4:
 			out.append({"entity": p.ent, "position": p.ent.world, "velocity": p.ent.vel, "side": p.ent.side})
 	return out
+
+
+## FUN_004a9c60 → FUN_0044d590 on an AI jet's controller (entity +0x34, the same direct call as the player's): a hit
+## that left it alive at 0 < damage < 1 may break a system (FUN_0045cd80; FUN_0045d020 refuses 2, 3, 5, 7 for an
+## AI jet, and ECM damage 1 needs an ECM, which no AI jet carries yet). FUN_0044d760 sets the flag (and the flags
+## it implies); the flight model reads them as the player's (engines, afterburner, fuel leak, hydraulics, total
+## flight control: iaf_flight set_damage). The console text, lights and calls are the player's only.
+func hit(ent: Dictionary) -> void:
+	var p = ent.get("pilot")
+	var d := float(ent.damage)
+	if p == null or p.flight == null or d <= 0.0 or d >= 1.0:
+		return
+	var r: Array = DamageModel.pick_system(d, p.systems, p.twin, false, false, p.cut_out, _rand)
+	p.cut_out = r[1]
+	var n: int = r[0]
+	if n == 0:
+		return
+	for f in DamageModel.SYSTEMS.get(n, {}).get("also", []):
+		p.systems[f] = true
+	p.systems[n] = true
+	p.flight.set_damage(p.systems, p.twin)
+
+
+## CRT rand(): 0..32767.
+func _rand() -> int:
+	return randi() & 0x7fff

@@ -688,6 +688,8 @@ func _damaged_alive(ent: Dictionary, source: Dictionary, kind: String) -> void:
 		return
 	if ent.player:
 		host.mission_player_hit(ent, source, kind)
+	elif ent.get("pilot") != null and host.get("ai") != null:
+		host.ai.hit(ent)  # an AI jet's systems damage (ai_flights.gd)
 	if ent.damage >= DamageModel.SMOKE_AT and not ent.smoke_timer and ent.state != DamageModel.EXPLODED \
 			and ent.state != DamageModel.DESTROYED:
 		ent.smoke_timer = true
