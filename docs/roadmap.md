@@ -107,6 +107,12 @@ shorter than the real HUD's (the F-16's ≈ 25° total), so the F-16 bank scale 
 below the FOV centre (`real_hud/f16.rs` `roll_indicator`). Fix the view so the whole real field fits the glass (eye
 position / zoom, or a taller glass in the art), then put the bank scale back at its real place.
 
+## "Real DASH" (with the Real HUD, wishlist)
+Looking aside with the Real HUD on, the helmet sight is still the original's DASH symbol (docs/cockpit.md "HUD dash
+repeater"; weapons.md §5.4). Later: the real helmet symbology per jet (the Elbit DASH of the IAF F-15 / F-16: the
+head-stabilised aiming cross, target box / locator, the AIM-9 seeker cue, airspeed / altitude, from public references
+collected in docs/real-hud.md), behind the same Real HUD switch; the F-35I's helmet is already its own.
+
 ## Updated maps (later, just for fun)
 The static maps (TSD / briefing EMF maps, map texts, borders, city names) show the 1998 situation. Optional Extras
 switch: an updated overlay with today's borders, names and places (drawn by us; original maps by default).
