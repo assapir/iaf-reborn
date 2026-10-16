@@ -220,7 +220,9 @@ const REAL: &[Real] = &[
     // and the Reference text: F-16D Brakeet). The D differs from the C in its smaller aft fuel cell.
     Real {
         aircraft: "F-16",
-        empty_lb: 19_000.0,
+        // F-16D empty 19,100 lb (aero-web.org F-16D; secondary: 18,900 airfighters.com; the two-seat B was +675 lb over
+        // the A, Aerospaceweb). No primary (Dash-1) figure is public.
+        empty_lb: 19_100.0,
         // F-16D internal fuel 870.4 US gal (the C 1,053.1; f-16.net) ≈ 5,800 lb of JP-8 (the C ~7,000 lb).
         fuel_lb: Some(5_800.0),
         // 19,330 lbf full AB in the original → ~29,000 lbf (F110-GE-100 SL static): scale the whole table.

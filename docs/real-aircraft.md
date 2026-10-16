@@ -254,7 +254,8 @@ its weight is the largest single error in the game's data.
 The game's F-16 is the two-seat F-16D (its model; the Reference text: "F-16D Brakeet"). The row (Block 30/40,
 F110-GE-100) is the previous F-16C set moved into the table, value for value, plus the D's internal fuel: 870.4 US gal
 (the C 1,053.1, the smaller aft cell; [f-16.net](https://www.f-16.net/forum/viewtopic.php?p=10079)) ≈ 5,800 lb of JP-8
-(the original 7,000 lb). The D's empty weight is not public in a reliable source: kept at the C's
+(the original 7,000 lb). Empty weight 19,100 lb: the one figure published for the D (aero-web.org; airfighters.com 18,900; the two-seat
+B was +675 lb over the A, Aerospaceweb), secondary sources only (no Dash-1 figure is public); before: the C's
 (validation output identical; since then also the service ceiling, §2.1): empty 19,000 lb, thrust × 1.5, wave drag 0.02, roll 280 deg/s at 900 deg/s²,
 fuel flow 16.5 lb/s, stall floor 118 kt, NWS ±32° / 13.2 ft.
 
