@@ -17,6 +17,11 @@
 - **Realistic 3D cockpit** (wishlist; Extras switch, the original 2D cockpit by default): a modelled cockpit per jet
   (DCS-style: free head look, the real panel layout, clickable switches, the MFDs / HUD / gauges drawn live on it),
   together with the high-detail model of that jet, the F-16 first.
+  Open references (the repo is GPL-3.0-or-later: a model can ship only under GPL-2.0-**or-later** / a compatible
+  licence; check each file's copyright first): F-16 — FlightGear `github.com/NikolaiVChr/f16` (GPL-2.0, check
+  "or later" in its copyright.txt); F-15C/D — `github.com/Zaretto/fg-aircraft` (model Enrique Laso, cockpit photo
+  textures GeneB; licence not stated on the repo page); F-4 — `github.com/Zaretto/F-4X` (GPLv2+, early alpha, an F-4S);
+  Mirage 2000 — FlightGear Mirage 2000 / 2000-5 (GPLv2+). Kfir, Lavi, F-35I: no open model found (only paid ones).
 - **Validate the F-16 flight data** against public sources: USAF fact sheet / RTF reference card, NASA TP-1538
   (F-16 wind-tunnel aero data, used by JSBSim), JSBSim/FlightGear F-16, engine thrust data (F100-PW-220/229,
   F110-GE-100/129), E-M diagrams. Automated checks in `iaf-flight`: max level speed (SL, 40k ft), sustained /
