@@ -71,6 +71,11 @@ func _process(_delta: float) -> void:
 	if outer != null:
 		outer.visible = visible
 		outer.queue_redraw()
+		# Ours: the Real HUD (not the F-35I's helmet) is drawn behind the panel art, so the glareshield hides what
+		# falls below the glass, as on the real jet. The original HUD stays over it.
+		var behind: bool = cockpit != null and Settings.hud_style == "real" and not String(cockpit.cockpit_dir).contains("f35")
+		show_behind_parent = behind
+		outer.show_behind_parent = behind
 
 
 ## Loads an original raster font converted by `iaf-convert fonts` (BMFont), scalable.
