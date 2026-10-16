@@ -27,6 +27,12 @@ func run() -> void:
 	check(r.field.any(func(p): return p.k == "circle"), "the flight path marker")
 	await frames(30)
 	check(hud.cut.clip_contents and absf(hud.cut.size.y - tv.cockpit.panel_top()) < 1.0, "the Real HUD is cut at the panel's top edge (%.1f / %.1f)" % [hud.cut.size.y, tv.cockpit.panel_top()])
+	# Looking aside (the DASH): the layer is not cut.
+	tv.cockpit.head = Vector2(1.0, 0.0)  # the view sets it every frame: checked within this one
+	hud._process(0.0)
+	check(tv.cockpit.dash() and not hud.cut.clip_contents, "looking aside: the DASH layer is not cut (dash %s, pan %s, clip %s)" % [tv.cockpit.dash(), tv.cockpit.head_pan(), hud.cut.clip_contents])
+	tv.cockpit.head = Vector2.ZERO
+	hud._process(0.0)
 	await _save("real_hud.png")
 	Settings().hud_style = "original"
 	await frames(2)

@@ -79,7 +79,9 @@ func _process(_delta: float) -> void:
 		outer.queue_redraw()
 		# Ours: the Real HUD (not the F-35I's helmet) is cut at the panel's top edge, so the glareshield hides what
 		# falls below the glass, as on the real jet. The original HUD draws over the panel.
-		var real: bool = cockpit != null and Settings.hud_style == "real" and not String(cockpit.cockpit_dir).contains("f35")
+		# Not while looking aside: the DASH helmet sight draws in this layer and is not on the glass.
+		var real: bool = cockpit != null and Settings.hud_style == "real" and not String(cockpit.cockpit_dir).contains("f35") \
+			and not cockpit.dash()
 		cut.clip_contents = real
 		if cockpit != null:
 			cut.size = Vector2(cockpit.size.x, cockpit.panel_top() if real else cockpit.size.y)
@@ -429,11 +431,15 @@ func real_hud() -> Dictionary:
 	var wp: Dictionary = cockpit.weapons
 	var rd: Dictionary = cockpit.radar
 	var mode := _mode()
-	# The level direction ahead along the view's heading and the view's scale (5° up from it).
+	# The view's scale at its centre (5° up from the view direction) and the horizon straight ahead placed from the
+	# view's pitch along the ladder's up (roll): linear in degrees, so it holds near and past the vertical, where the
+	# projected level point (89° off the nose, or behind the eye) would blow up.
 	var fwd := -camera.global_basis.z
-	var level := Vector3(fwd.x, 0.0, fwd.z).normalized()
-	var horizon := _project(level)
-	var up5 := _project(level.rotated(level.cross(Vector3.UP).normalized(), deg_to_rad(5.0)))
+	var centre := _project(fwd)
+	var px_deg := (_project(fwd.rotated(camera.global_basis.x, deg_to_rad(5.0))) - centre).length() / 5.0
+	var roll_r := deg_to_rad(float(st.get("roll", 0.0)))
+	var pitch := rad_to_deg(asin(clampf(fwd.y, -1.0, 1.0)))
+	var horizon := centre - Vector2(-sin(roll_r), -cos(roll_r)) * pitch * px_deg
 	var fpm = _fpm_position()
 	var gun: Vector2 = (gun_cross() - position - _c) / _s
 	var nav := nav_cues(st, cockpit.waypoints, cockpit.current_waypoint)
@@ -471,7 +477,7 @@ func real_hud() -> Dictionary:
 		"mach": st.get("mach", 0.0), "g": st.get("g", 1.0), "aoa": st.get("aoa", 0.0),
 		"gear_down": cockpit.gear_handle_down, "fuel_lbs": st.get("fuel_lbs", 0.0),
 		"fpm": (fpm - _c) / _s if fpm != null else null, "boresight": (cockpit.boresight() - position - _c) / _s,
-		"gun_cross": gun, "horizon": (horizon - _c) / _s, "px_per_deg": (up5 - horizon).length() / 5.0 / _s,
+		"gun_cross": gun, "horizon": (horizon - _c) / _s, "px_per_deg": px_deg / _s,
 		"steerpoint": steer, "target": target, "dlz": rd.get("dlz", []) if not target.is_empty() else [],
 		"weapons": {"hud_mode": mode, "selected": wp.get("total", 0), "srm": wp.get("srm", 0), "mrm": wp.get("mrm", 0),
 			"seeker": wp.get("seeker") if mode == 1 and wp.get("have_missiles", false) else null, "lcos": lcos,
