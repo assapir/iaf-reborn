@@ -13,7 +13,7 @@ HUD text and symbols, the stores MFD page, the FLIR pod / TV-weapon camera and t
 (docs/mfd.md), the radar missiles (600 AMRAAM-like, 610 Sparrow-like) with the DLZ, the MRM HUD sight and the
 semi-active rule, the HARM / Shrike (§11), the TV weapons (635 Maverick, 640 TV missile) with the guided motion, the
 camera riding the weapon and the TV page's TRA / TER and time (§12). The radar and its lock (the seeker slaved to it):
-docs/radar.md; the laser bombs with the FLIR designation (§9.8). Not built yet: the AI jets' ECM (the player's is built, §10), the AI's ripple (§9.9). The AI's weapons: `game/ai/combat.gd` (docs/ai.md §13–14).
+docs/radar.md; the laser bombs with the FLIR designation (§9.8). Not built yet: the AI's ripple (§9.9). AI units have no ECM (only a unit with a controller jams: docs/ai.md §13). The AI's weapons: `game/ai/combat.gd` (docs/ai.md §13–14).
 
 ## 1. Data
 
@@ -469,7 +469,7 @@ a controller and so an RWR), not already chasing a decoy and of the decoy's kind
 580 / 620), a roll rand/32767 against p — chaff 0.1, above 4 g 0.3; flares 0.33, above 4 g 0.5, never with the
 afterburner lit; a success retargets the missile at the decoy (`FUN_004d83c0` → `FUN_005622e0`, q 1.0), the first
 failure ends the scan (quirk). The bearing gates (doubles 6302.5 / 4010.7 / 5156.6 = 110° / 70° / 90° × 57.3) compare a
-bearing in radians: never taken, so range, aspect, generation, AI level and Real data play no part. **Not yet**: the AI jets' ECM.
+bearing in radians: never taken, so range, aspect, generation, AI level and Real data play no part.
 - **Keys** (`FUN_0044a240`): Insert = event 0x44 chaff, Delete = 0x45 flare. Refused with the gear handle down (no
   Safety override) or weapon systems damage (flag 20); then `FUN_004545e0(0x21c / 0x226, 0, 0)`. One press = one
   decoy: no repeat, no program, no busy timer (the AI uses the same call with p4 = 1 and its brain busy flag).
@@ -536,7 +536,7 @@ bearing in radians: never taken, so range, aspect, generation, AI level and Real
   still flying, with rand < 0.6 (0x600f68): its motion +0x148 = 1 (guidance off, UNCERTAIN). No effect on SAMs.
   Switching off (light on): the light only (and a network message). F-16 / Lavi (types 100 / 140) have it built in.
   Ours: `player_weapons.gd` `ecm_key` (J); the gate on +0x98 in `FUN_004582f0` is not known (UNCERTAIN), not ported;
-  the AI sensors' ECM rules (docs/ai.md §14) don't see the player's ECM yet.
+  the AI sensors see a jamming player at any range, and an AI jet's homing launch at it loses q (docs/ai.md §13).
 
 ## 11. Homing weapons and the radar missiles (600, 610)
 

@@ -90,6 +90,15 @@ pub fn launch_q(sight: Sight, easy: bool, ecm: Option<f64>) -> f64 {
     (q - ecm.unwrap_or(0.0)).max(Q_MIN)
 }
 
+/// An AI jet's homing launch (`FUN_00454b70` with a shooter, types 570 / 580 / 590 / 600 / 610): q 1.0; against a
+/// target with its ECM on (only the player has one) a roll `ecm_rand` (0..1) above 0.5 makes q 1 − roll, at least 0.1.
+pub fn ai_launch_q(ecm_rand: Option<f64>) -> f64 {
+    match ecm_rand {
+        Some(r) if r > 0.5 => (1.0 - r).max(Q_MIN),
+        _ => 1.0,
+    }
+}
+
 /// `FUN_00454b70` case 0x28a: with the laser on, the designation replaces the ripple aim when it lies within 60° of the
 /// line to the bomb's point `p` and at most 2 m above the terrain `ground`; else the ripple aim.
 pub fn laser_aim(own: Vec3, p: Vec3, ripple: Vec3, designation: Option<Vec3>, ground: f64) -> Vec3 {
@@ -133,6 +142,14 @@ pub fn shown_time(v: f64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn ai_launch_q_against_a_jammer() {
+        assert_eq!(ai_launch_q(None), 1.0);
+        assert_eq!(ai_launch_q(Some(0.4)), 1.0, "a roll up to 0.5 does not count");
+        assert!((ai_launch_q(Some(0.7)) - 0.3).abs() < 1e-12);
+        assert_eq!(ai_launch_q(Some(0.99)), Q_MIN);
+    }
 
     #[test]
     fn ripple_limits() {

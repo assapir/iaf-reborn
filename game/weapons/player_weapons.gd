@@ -1510,23 +1510,16 @@ func radar_event(ev: int, arg = null) -> void:
 		0x30: radar.toggle_exp()
 
 
-## On-lock / on-unlock (FUN_004b0510 / FUN_004b04d0): a target with a controller hears it on its RWR;
-## an AI aircraft (no controller) gets brain+0x7c = the target itself when free (original bug: not the
-## radar's owner, so its "my target is my threat" condition 38 never holds) and loses it on the unlock
-## (docs/rwr.md §2). Physics "fix_lock_threat" (ours): brain+0x7c = the player, the radar's owner.
+## The radar's on-lock / on-unlock (FUN_004b0510 / FUN_004b04d0, combat.gd `on_lock`; docs/rwr.md §2).
 func _radar_lock(key: String, on: bool) -> void:
 	var ent: Dictionary = host.runtime.entities.get(key, {}) if host.runtime != null else {}
-	var p = ent.get("pilot")
-	if p == null or p.get("brain") == null:
-		return
-	var who: Dictionary = ent
-	if lock_threat_fix:
-		who = host.runtime.player_entity()
-	if on:
-		if p.brain.attacker.is_empty():
-			p.brain.attacker = who
-	elif is_same(p.brain.attacker, who):
-		p.brain.attacker = {}
+	if not ent.is_empty() and host.get("ai") != null and host.ai.combat != null:
+		host.ai.combat.on_lock(host.runtime.player_entity(), ent, on)
+
+
+## The jammer is on (ctl+0x1b8, the ECM light 6).
+func ecm_on() -> bool:
+	return host.cockpit != null and bool(host.cockpit.indicators[6])
 
 
 ## An emitter for the RWR: {pos, klass, type, state} of a mission unit, {} when gone.

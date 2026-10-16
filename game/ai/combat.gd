@@ -294,8 +294,9 @@ func update(now: float) -> void:
 
 
 ## The sensor scan (FUN_004af300): hostile units in range with terrain line of sight, score 100 / dist, the
-## best 5. The player only within 0.7 R with its radar OFF / STBY. Both modes' classes are kept; the selector
-## filters (UNCERTAIN: the original scans one mode). ECM is not built.
+## best 5. The player only within 0.7 R with its radar OFF / STBY; a target jamming (ctl+0x1b8: only the player has
+## a controller, so only it jams) is seen at any range. The owner's own jamming (0.8 R / 0.5 R) needs a controller:
+## never an AI unit. Both modes' classes are kept; the selector filters (UNCERTAIN: the original scans one mode).
 func _scan(u: Unit) -> void:
 	var rt: Node = ai.runtime
 	var me: Vector3 = rt._world_of(u.ent)
@@ -308,9 +309,11 @@ func _scan(u: Unit) -> void:
 		var p: Vector3 = rt._world_of(e)
 		var d := p.distance_to(me)
 		var r := u.sensor_r
-		if e.player and host.weapons != null and host.weapons.radar.mode <= 1:
-			r *= QUIET_FACTOR
-		if d > r or not line_of_sight(me, p):
+		if e.player and host.weapons != null and host.weapons.radar.mode <= 1 and d > r * QUIET_FACTOR:
+			continue
+		if not (e.player and _jamming()) and d > r:
+			continue
+		if not line_of_sight(me, p):
 			continue
 		list.append({"ent": e, "score": 100.0 / maxf(d, 1.0)})
 	list.sort_custom(func(a, b): return a.score > b.score)
@@ -345,6 +348,10 @@ func combat(ent: Dictionary, what: String, target: Dictionary) -> Variant:
 					pick = c.ent
 					break
 			_pick(u, pick)
+		"430":
+			# FUN_00444a60: target = my nearest RWR emitter with a controller (FUN_00451f70), else brain+0x7c: an AI
+			# unit has no controller. B+0x70 is written directly (no on-lock).
+			u.brain.target = u.brain.attacker
 		"start":
 			# FUN_004aa900(0) → FUN_004ac120(1): first shot after _reactionTime, then every _fireReleaseInterval (the RWR
 			# lock comes with the selector's pick, _pick).
@@ -477,7 +484,9 @@ func _launch(u: Unit, t: Dictionary, now: float) -> bool:
 	if host.weapons == null:
 		return false
 	u.stations[u.cur].count = int(u.stations[u.cur].count) - 1
-	host.weapons.launch_homing(u.w, o.pos, o, String(t.key), 1.0, u.ent)
+	# FUN_00454b70 (an AI shooter, 570..610): q 1.0, less against a jamming target (the player with its ECM on).
+	var roll = float(randi() & 0x7fff) / 32767.0 if t.get("player", false) and _jamming() else null
+	host.weapons.launch_homing(u.w, o.pos, o, String(t.key), IafRelease.ai_launch_q(roll), u.ent)
 	return true
 
 
@@ -562,10 +571,13 @@ func measure(ent: Dictionary, code: int, t: Dictionary) -> Variant:
 		21:
 			return int(u.stations[u.cur].count) if u.cur >= 0 else 0
 		26:
-			# The target attacks (its brain+0x7c) or has a lock: AI jets' locks are not built (UNCERTAIN).
+			# FUN_005c1530: the target's brain+0x7c is set (a sensor locked it, on_lock), or it has a controller (the
+			# player) whose RWR lists something (FUN_00452110: RWR+0x174).
 			if t.is_empty():
 				return null
-			var tb = t.pilot.brain if t.has("pilot") else null
+			if t.get("player", false):
+				return int(host.weapons != null and host.weapons.rwr.count != 0)
+			var tb = brain_of(t)
 			return int(tb != null and not tb.attacker.is_empty())
 		27:
 			return null  # the leader locked: needs the leader's controller (UNCERTAIN)
@@ -578,16 +590,54 @@ func measure(ent: Dictionary, code: int, t: Dictionary) -> Variant:
 	return null
 
 
-## A selector's pick: the old target's RWR loses the lock (vfunc +0x44 → FUN_0044e030), the new one's gets it (vfunc
-## +0x40 → FUN_004b0510 → FUN_0044deb0); only the player's RWR is modelled (AI jets' have no reader).
+## A selector's pick: the old target is unlocked, the new one locked: the AI sensor's override (FUN_004aca80 /
+## FUN_004aca60) passes only aircraft (class 0x1c) to the on-unlock / on-lock.
 func _pick(u: Unit, t: Dictionary) -> void:
 	var old: Dictionary = u.brain.target
-	if not is_same(old, t) and host.weapons != null:
-		if old.get("player", false):
-			host.weapons.rwr.unlock(u.ent.key)
-		if t.get("player", false):
-			host.weapons.rwr.lock(u.ent.key)
+	if not is_same(old, t):
+		if int(old.get("klass", 0)) == 0x1c:
+			on_lock(u.ent, old, false)
+		if int(t.get("klass", 0)) == 0x1c:
+			on_lock(u.ent, t, true)
 	u.brain.target = t
+
+
+## On-lock / on-unlock of `owner`'s sensor or radar (FUN_004b0510 / FUN_004b04d0): a target with a controller (the
+## player) hears it on its RWR (FUN_0044deb0 / FUN_0044e030); another target's brain+0x7c = the target itself when
+## free (original bug: not the owner, so condition 38 never holds; Physics "fix_lock_threat": the owner), cleared on
+## the unlock while it still holds that.
+func on_lock(owner: Dictionary, t: Dictionary, on: bool) -> void:
+	if t.is_empty() or host.weapons == null:
+		return
+	if t.get("player", false):
+		if on:
+			host.weapons.rwr.lock(owner.key)
+		else:
+			host.weapons.rwr.unlock(owner.key)
+		return
+	var b = brain_of(t)
+	if b == null:
+		return
+	var who: Dictionary = owner if host.weapons.lock_threat_fix else t
+	if on:
+		if b.attacker.is_empty():
+			b.attacker = who
+	elif is_same(b.attacker, who):
+		b.attacker = {}
+
+
+## A unit's brain: an AI aircraft's (its pilot's) or an armed ground unit's; null without one.
+func brain_of(ent: Dictionary):
+	var p = ent.get("pilot")
+	if p != null and p.get("brain") != null:
+		return p.brain
+	var u: Unit = units.get(ent.get("key", ""))
+	return u.brain if u != null else null
+
+
+## The player's jammer on (ctl+0x1b8, the ECM light).
+func _jamming() -> bool:
+	return host.weapons != null and host.weapons.ecm_on()
 
 
 ## Trigger ops 21 / 22.

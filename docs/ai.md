@@ -136,7 +136,7 @@ Operators (`FUN_004b5e6a`): 0 `==` (bool measures compare as bools, float exactl
 | 23 | 5c1aa0 | **leader on the ground** (z − terrain − model height < 3) |
 | 24 | 5c10c0 | range to the primary target (m) |
 | 25 | 5c1210 | primary target destroyed |
-| 26 | 5c1530 | T is attacking / locked (UNCERTAIN) |
+| 26 | 5c1530 | T's brain+0x7c set (a sensor locked it), or T has a controller whose RWR lists something |
 | 27 | 5c15a0 | leader locked (UNCERTAIN) |
 | 28 | 5c15f0 | T's target == my leader |
 | 29 | 5c1250 | **wingman command** +0x48 (1 ProtectMe, 2 BugOut, 3 EngageDesignated, 4 EngageAny, 5 Tactical, 6 Close) |
@@ -179,7 +179,7 @@ does nothing when mode / arg / pose are unchanged (`5c8a70`): **a running manoeu
 | 280 | Takeoff | 9 | self, only if +0xe0 == 0 | TakeOffSequenceCL (+0x3e70), §8 |
 | 290 | Dive bomb | 0x17 | T | DiveBombCL |
 
-Other types (combat job; built in `game/ai/combat.gd`, §13, except 430): 1 Launch (300, `4440d0`: needs T, weapon ready, range in
+Other types (combat job; built in `game/ai/combat.gd`, §13): 1 Launch (300, `4440d0`: needs T, weapon ready, range in
 [min, max], nose-to-LOS ≤ 30° (0x6008f8; 5° for weapon 0x235), single-player enemy cone ×0.5 Rookie / ×1.5 Expert,
 weapon 0x244 also `|44e770| ≤ 60°`; fires `FUN_00452680(T)`); 2 / 3 flares / chaff (310 / 320: busy 2.25 s,
 `FUN_004545e0(0x226 / 0x21c, 0, 1)`); 4 change weapon (330–390); 5 target (400 next, 410, 420 best → +0x70); 6 radar
@@ -472,13 +472,26 @@ its Tower point, the engine test its Lineup point.
 - **300 Launch** as below: a missile through `launch_homing` (q 1.0: UNCERTAIN, the AI's q not traced), the gun a
   1 s burst of rounds every 0.2 s (UNCERTAIN: what ends an AI burst). A Launch that does not fire leaves its type
   gate free (brain.gd).
-- Conditions 8, 10, 12, 14, 17, 20, 21, 26 (the target's brain+0x7c; locks of AI jets not built), 37; 27 invalid.
+- Conditions 8, 10, 12, 14, 17, 20, 21, 26, 37; 27 invalid. **26** (`FUN_005c1530`): no T → invalid; T's brain+0x7c
+  set → 1; else T with a controller (the player) → its RWR list non-empty (`FUN_00452110`, RWR+0x174), else 0.
+- **Locks** (`combat.gd` `on_lock`, shared with the player's radar): a selector's pick unlocks the old target and locks
+  the new one, but the AI sensor's override (`FUN_004aca60` / `FUN_004aca80`) passes only aircraft (class 0x1c) on to
+  `FUN_004b0510` / `FUN_004b04d0`: the player's RWR hears it; an AI jet's brain+0x7c = the jet itself when free
+  (original bug; Physics "fix_lock_threat": the owner), cleared on the unlock. The player's radar has no class filter
+  (its locks set a ground unit's brain+0x7c too).
+- **430** (`FUN_00444a60`): with a sensor, B+0x70 = the nearest RWR emitter (`FUN_00451f70`) when the unit has a
+  controller, else brain+0x7c: an AI unit has none, so its "threat". Written directly (no on-lock).
+- **ECM**: only a unit with a controller can jam (ctl+0x1b8): the player. AI units never jam. The sensor scan
+  (`FUN_004af300`) sees a jamming target at any range (after the quiet-radar 0.7 R rule); the owner's own jamming
+  (0.8 R vs a jammer, else 0.5 R) applies only to the player's sensors (the HARM scan, harm.rs). An AI jet's homing
+  launch (`FUN_00454b70` with a shooter, 570 / 580 / 590 / 600 / 610) has q 1.0; against a jamming target a roll r =
+  rand/32767 above 0.5 (0x600f04) makes q = max(1 − r, 0.1) (release.rs `ai_launch_q`).
 - **Dogchase** (mode 0x11, below) with the target fed every frame (`ap_set_target`) and the nose-on flag.
 
 All the combat manoeuvres are built (autopilot.rs): Dogchase, Shandel / SplitS / Horizontal, Himmelman, TailClear,
 RunAway, Break90, LevelBomb, DiveBomb, PopupRelease, with the leaves Fly2TargetXyzSt, Fly2ImpactPt, PullGFullThrottle,
-Fly2PtXYZ. Bombs from AI jets: one store per release (`player_weapons.drop_bomb`). Not built: the AI's bomb ripple,
-AI radar locks in STT (the selector locks are built). Tests: crates/iaf-flight/tests/autopilot.rs (Dogchase), tests/godot/test_ai_air_combat.gd.
+Fly2PtXYZ. Bombs from AI jets: one store per release (`player_weapons.drop_bomb`). Not built: the AI's bomb ripple.
+Tests: tests/godot/test_ai_sensors.gd (ECM in the scan, condition 26, the locks, 430), crates/iaf-flight/tests/autopilot.rs (Dogchase), tests/godot/test_ai_air_combat.gd.
 
 Partial decode for the AI combat job (scratch work; argument orders of `4440d0` checked in the disassembly).
 Corrections to §4 / §5: action **430 is "target = my nearest RWR emitter"** (`CTL.451f70()`, within 370 800 m;
@@ -622,8 +635,8 @@ writes it (the ctor's 0), so in the original too the second station never fires.
 script motion op 11 (mission_runtime.gd `_yaw_to_target`, now drawn: the vehicle models keep their `.xfr` frames,
 docs/part-animation.md §2.1).
 
-Not reproduced: the ring pool's 3–4 steps per gun shot, ECM in the sensor. Test: tests/godot/test_ground_fire.gd (313
-AAA and SA-3 incl. the launch along the launcher's heading, 322 rockets), test_yaw_to_target.gd (parts).
+Not reproduced: the ring pool's 3–4 steps per gun shot. Test: tests/godot/test_ground_fire.gd (313
+AAA and SA-3 incl. the launch along the launcher's heading, 322 rockets), test_yaw_to_target.gd (parts), test_ai_sensors.gd (ECM, locks, 430, condition 26).
 
 
 - **Spawn** (`FUN_004b7634` → `FUN_004b7ad6`): an entity with record +0x3c ≠ 0 → vehicle `FUN_0059bb00` with a
@@ -636,8 +649,9 @@ AAA and SA-3 incl. the launch along the launcher's heading, 322 rockets), test_y
   they never target or fire. Scan `FUN_004af300`: R = nm(type) × 1854 (0x603390; `FUN_004acae0`: 250–280 → 3, 290 /
   310 / 330 / 340 → 20, 300 / 320 / 370–390 → 10, 350 / 360 AAA → 5, else 40). Air mode (400, `FUN_004ac820`)
   classes {0x1c, 3, 2, 1}; ground mode (410, `FUN_004ac900`) {10, 8, 9, 0xb, 0xd, 0x1d, 0x1e, 5, 6, 0xf, 0x10}. The
-  player is seen only within 0.7·R while its radar is OFF / STBY (ctl+0xb4 ∈ {0, 1}); an emitter with ECM on is seen
-  at any range; a sensing unit with ECM on: 0.8R vs a jamming target, else 0.5R. Accept (`FUN_004ac740`): hostile
+  player is seen only within 0.7·R while its radar is OFF / STBY (ctl+0xb4 ∈ {0, 1}); a target jamming (its controller's
+  ctl+0x1b8: only the player) is seen at any range; a sensing unit jamming (only the player's own sensors): 0.8R vs a
+  jamming target, else 0.5R. Accept (`FUN_004ac740`): hostile
   (`FUN_004a4cf0`) and terrain line of sight (`FUN_004020d0`, both ends +1.5 m). Score 100 / dist, best 5 kept
   (`FUN_004b08e0`), full rescan at most every 5.0 s.
 - **Start combat** 550 (`FUN_00444b20`): engaged, `FUN_004aa900(0)` → `FUN_004ac120(1)`: fire timer, first shot at

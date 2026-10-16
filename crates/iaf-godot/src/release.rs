@@ -41,6 +41,12 @@ impl IafRelease {
         release::launch_q(sight, easy, ecm.try_to::<f64>().ok())
     }
 
+    /// An AI jet's launch q; `ecm` the roll (0..1) against a jamming target, null none.
+    #[func]
+    fn ai_launch_q(ecm: Variant) -> f64 {
+        release::ai_launch_q(ecm.try_to::<f64>().ok())
+    }
+
     /// `designation` a world point or null.
     #[func]
     fn laser_aim(own: Vector3, p: Vector3, ripple: Vector3, designation: Variant, ground: f64) -> Vector3 {

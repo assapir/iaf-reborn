@@ -98,8 +98,8 @@ Checked against the code on 2026-10-14 (each doc's own "not built" notes have th
   elevation west of Suez in the original data (flat −557 m, kept); modern DEM not built.
 - **Flight**: no hook (FM `cfg[8]` unwired, no key); the next-waypoint `440e90(index)` call in NAV sequencing; the FM's
   surface states (`S+0x2c8`), OutRunway, effects flag `S+0x420`; spin altitude limits.
-- **AI combat** (docs/ai.md §13–§14): action 430 (nearest RWR emitter); AI STT locks (condition 26); the AI's bomb ripple
-  (one store per release); no AI ECM and the AI sensors ignore the player's; Arming loads not applied to AI jets, no store
+- **AI combat** (docs/ai.md §13–§14): the AI's bomb ripple
+  (one store per release); Arming loads not applied to AI jets, no store
   models drawn on them.
 - **Damage**: splash / ring explosions on water (flags 0x20000 / 0x40000) draw nothing; per-hit score and feedback, the
   brain's reaction to a hit (`FUN_0043ff50`), effect 0x18, the second explosion of a falling unit; RWR network messages.
