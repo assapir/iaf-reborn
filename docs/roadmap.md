@@ -32,11 +32,13 @@
 The mouse wheel scrolls the settings / preferences pages and their lists. Extras option for the direction:
 regular (wheel down scrolls down) or natural (reversed, as on macOS trackpads).
 
-## Terrain-masking cue (Extras, wishlist)
-An Extras switch (off by default) that tells the player when a SAM / AAA site has terrain line of sight to the jet
-inside its engage range (the original has no altitude rule: low flying works only behind the terrain, docs/ai.md §14):
-e.g. a HUD / RWR hint "SEEN" with the site's bearing, using the same check as the sites (`IafRadar.line_of_sight`).
-Helps the "fly low" training (313) teach masking.
+## "Real RWR" option: search radars (Extras, wishlist)
+The original's RWR shows a ground site only once it locks or launches (docs/rwr.md). A real RWR also shows a SAM /
+AAA search or acquisition radar that is painting the jet (threat symbol + search tone) before it engages, and loses it
+when the jet is masked: that is how real pilots learn terrain masking (there is no "you are seen" cue in a real jet).
+Option (off by default): a radiating site radar with terrain line of sight to the jet (`IafRadar.line_of_sight`, the
+sites' own check) inside its detection range shows as a search contact; masked → gone. Helps the "fly low" training
+(313).
 
 ## "Better physics" option (separate from original / real data)
 Improvements over the 1998 model that the player can opt into, decided case by case with the user:
