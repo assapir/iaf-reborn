@@ -96,7 +96,7 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
             signed: false,
             bottom_band: f.bottom - hdg_y + 12.0,
             top_band: 0.0,
-            zenith: true,
+            zenith: Zenith::StarEarth,
         };
         ladder(p, i, fpm, f, style);
         marker(p, fpm, i.mr(5.0), i.mr(10.0), i.mr(5.0));

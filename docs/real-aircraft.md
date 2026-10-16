@@ -137,7 +137,8 @@ With Flight data = Real, for every type (`Params::ias_low_speed_fix`, set by `da
 
 ## 3. F-15C Baz (2 × F100-PW-220)
 
-Variant: the IAF flew F-15A/B from 1976 and F-15C/D from 1981 (F100-PW-100, later -220). The row uses the F-15C
+Variant: the IAF flew F-15A/B from 1976 and F-15C/D from 1981 (F100-PW-100, later -220). The game's F-15 is a
+single-seat C: its model has one seat, and its Reference text is "F-15C/D Eagle", IDF name Baz. The row uses the F-15C
 with -220 engines from the USAF Standard Aircraft Characteristics chart (SAC, "F-15C Eagle, two F100-PW-220,
 Feb 92"), the only primary document found for these jets.
 

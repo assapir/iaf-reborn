@@ -276,6 +276,15 @@ fn ticks(v: f64, step: f64, k: f64, half: f64, up: bool) -> impl Iterator<Item =
     })
 }
 
+/// The ±90° symbols: none (the rungs), the F-16's star / earth ([R], the MIL-STD-1787 convention) or the F-15's
+/// ⊖ "90" / ⊗ (TO 1F-15A-1).
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum Zenith {
+    None,
+    StarEarth,
+    F15,
+}
+
 /// How the ladder's rungs look.
 #[derive(Clone, Copy, Debug)]
 struct LadderStyle {
@@ -295,8 +304,8 @@ struct LadderStyle {
     /// Rungs whose centre falls within these bands of the field's bottom / top are left out (the heading scale's).
     bottom_band: f64,
     top_band: f64,
-    /// The ±90° rungs are a zenith star / nadir earth symbol instead (F-16, [R]: the MIL-STD-1787 convention).
-    zenith: bool,
+    /// What replaces the ±90° rungs.
+    zenith: Zenith,
 }
 
 /// The conformal pitch ladder: rung e sits e degrees up from the level point ahead, rolled with the jet, slid along
@@ -320,8 +329,8 @@ fn ladder(p: &mut Vec<Prim>, i: &Input, fpm: P, f: Field, s: LadderStyle) {
         let v = deg as f64 * k;
         let y = at(0.0, v).1;
         // The zenith / nadir symbol is not left out under the heading scale.
-        if s.zenith && deg.abs() == 90 {
-            zenith_nadir(p, at(0.0, v), i.mr(6.0), deg > 0);
+        if s.zenith != Zenith::None && deg.abs() == 90 {
+            zenith_nadir(p, at(0.0, v), i.mr(6.0), deg > 0, s.zenith);
             continue;
         }
         if y > f.bottom - s.bottom_band || y < f.top + s.top_band {
@@ -358,17 +367,30 @@ fn ladder(p: &mut Vec<Prim>, i: &Input, fpm: P, f: Field, s: LadderStyle) {
     }
 }
 
-/// Straight up a star (a circle with eight spokes), straight down the earth (a circle with a cross), radius `r`.
-fn zenith_nadir(p: &mut Vec<Prim>, (x, y): P, r: f64, zenith: bool) {
+/// The zenith / nadir symbol, radius `r`. F-16: a star (a circle with eight spokes) / the earth (a circle with a
+/// cross). F-15: ⊖ with "90" / ⊗.
+fn zenith_nadir(p: &mut Vec<Prim>, (x, y): P, r: f64, zenith: bool, style: Zenith) {
     p.push(Prim::Circle { c: (x, y), r });
-    if zenith {
-        for k in 0..8 {
-            let (sn, cs) = (f64::from(k) * std::f64::consts::FRAC_PI_4).sin_cos();
-            p.push(line((x + r * cs, y + r * sn), (x + 1.8 * r * cs, y + 1.8 * r * sn)));
+    match (style, zenith) {
+        (Zenith::StarEarth, true) => {
+            for k in 0..8 {
+                let (sn, cs) = (f64::from(k) * std::f64::consts::FRAC_PI_4).sin_cos();
+                p.push(line((x + r * cs, y + r * sn), (x + 1.8 * r * cs, y + 1.8 * r * sn)));
+            }
         }
-    } else {
-        p.push(line((x - r, y), (x + r, y)));
-        p.push(line((x, y - r), (x, y + r)));
+        (Zenith::StarEarth, false) => {
+            p.push(line((x - r, y), (x + r, y)));
+            p.push(line((x, y - r), (x, y + r)));
+        }
+        (_, true) => {
+            p.push(line((x - r, y), (x + r, y)));
+            p.push(text((x + r + 4.0, y + 3.0), "90", Align::Left));
+        }
+        (_, false) => {
+            let d = r * std::f64::consts::FRAC_1_SQRT_2;
+            p.push(line((x - d, y - d), (x + d, y + d)));
+            p.push(line((x - d, y + d), (x + d, y - d)));
+        }
     }
 }
 

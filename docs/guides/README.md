@@ -6,6 +6,8 @@ HUD, the Physics switches). The game shows them in the Reference screen (its **P
 
 - [F-16](f16.md): settings, numbers, take-off and landing, the Real HUD, radar, MFDs, self-protection, every
   weapon, and a key card.
+- [F-15](f15.md): the F-15C Baz: settings, numbers, take-off and landing, the Real HUD (TO 1F-15A-1), radar,
+  MFDs, self-protection, every store it carries, and a key card.
 
 Screenshots (`shots/<jet>/*.png`) are rendered locally from the game by setup (`tools/guide_shots.sh [jet]
 [--only name,…]`, needs a display) into `assets/converted/guides/shots/`, from each guide's `<jet>.shots.json` (its

@@ -109,7 +109,7 @@ pub(super) fn frame(f: Field, i: &Input) -> Frame {
             signed: false,
             bottom_band: 0.0,
             top_band: 0.0,
-            zenith: false,
+            zenith: Zenith::F15,
         };
         ladder(p, i, fpm, f, style);
         marker(p, fpm, i.mr(6.0), i.mr(8.0), i.mr(5.0));
@@ -222,6 +222,23 @@ mod tests {
     use super::super::tests::{FIELD, input, texts};
     use super::*;
     use crate::missile::Dlz;
+
+    #[test]
+    fn zenith_and_nadir_as_the_flight_manual() {
+        let at = |pitch: f64| {
+            let mut i = input(Jet::F15);
+            i.fpm = Some((0.0, 0.0));
+            i.horizon = (0.0, pitch * i.px_per_deg);
+            frame(FIELD, &i)
+        };
+        let up = at(90.0);
+        assert!(texts(&up.field).contains(&"90"), "the zenith ⊖ is labelled 90");
+        assert!(up.field.iter().any(|p| matches!(p, Prim::Circle { c, .. } if c.0.abs() < 1.0 && c.1.abs() < 1.0)));
+        let down = at(-90.0);
+        let diag = |p: &&Prim| matches!(p, Prim::Line { a, b } if (a.0 + b.0).abs() < 1e-6 && (a.1 + b.1).abs() < 1e-6 && (a.0 - b.0).abs() > 1.0 && (a.1 - b.1).abs() > 1.0);
+        assert_eq!(down.field.iter().filter(diag).count(), 2, "the nadir ⊗");
+        assert!(!texts(&down.field).contains(&"90"));
+    }
 
     #[test]
     fn nav_as_the_flight_manual() {
