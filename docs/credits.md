@@ -37,9 +37,16 @@ margins: 70 px on both sides of the 640 px screen.
 
 ## Model credits
 
-The detailed F-16D (docs/aircraft-models.md) is based on the FlightGear F-16 (github.com/NikolaiVChr/f16, GPL 2.0 or
-later) by Erik Hofman, Nikolai V. Chr., J Maverick 16, Pensacola and the other authors in its `authors.txt`. Its
-credit line is in `credits_ours.json`; the full list and the changes are in `game/extra/models/f16/SOURCES.md`.
+Each third-party model carries its full credit next to it; the in-game roll (`credits_ours.json`) shows a line for
+each.
+
+| Model | Based on | Licence | Full credit |
+|---|---|---|---|
+| Detailed F-16D (docs/aircraft-models.md) | the FlightGear F-16, https://github.com/NikolaiVChr/f16, by Erik Hofman, Nikolai V. Chr., J Maverick 16, Pensacola and the other authors in its `authors.txt`; its centreline pylon and IAF livery come from the same project | GPL 2.0 or later | `game/extra/models/f16/SOURCES.md` (commit, authors, changes, the photo references) |
+| F-35I Adir (docs/f35i.md) | "Lockheed Martin F35 Lightning II" by andertan, https://sketchfab.com/3d-models/lockheed-martin-f35-lightning-ii-db911de503c74285a8d506951df786d6 | CC BY 4.0, https://creativecommons.org/licenses/by/4.0/ | `game/extra/planes/f35i/CREDITS.md` |
+| F-35I 116 Squadron badge | "IAF Squadron 116 Adir.png" by the IDF Spokesperson's Unit, https://commons.wikimedia.org/wiki/File:IAF_Squadron_116_Adir.png | CC BY-SA 3.0, https://creativecommons.org/licenses/by-sa/3.0/ | `game/extra/planes/f35i/CREDITS.md` |
+
+The F-35I's skin, roundels, numbers, cockpit panel and displays are our own, as is the F-16D's dorsal spine.
 
 ## Imagery credits (automatic)
 
