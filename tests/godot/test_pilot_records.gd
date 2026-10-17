@@ -114,6 +114,9 @@ func run() -> void:
 	await frames(2)
 	check(fe.screen == "deb" and Pilots.attempts(Pilots.history(15), 311).size() == 3, "the debrief records the attempt")
 	check(Pilots.totals(Pilots.history(15)).score == 200 + 500 + 1000 + 1000, "best 311 attempt (building 200 + bonus) counts (%d)" % Pilots.totals(Pilots.history(15)).score)
+	# The Debrief's PILOT SCORE line (FUN_00517130 @0x60aae0) is the pilot's score after this attempt.
+	var pilot_line: Array = fe.debrief_view.items(0).filter(func(it): return it.get("at") == Vector2(378, 269))
+	check(pilot_line.size() == 1 and pilot_line[0].text == str(Pilots.totals(Pilots.history(15)).score), "debrief PILOT SCORE = the pilot's total (%s)" % [pilot_line])
 	Settings().debrief = {}
 
 	# The list survives a reload with the selection; the new pilot's records are there.

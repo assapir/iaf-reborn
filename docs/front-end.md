@@ -1119,8 +1119,9 @@ timer.
 
   * `m` is clamped to ≥ 0. Easy Landing costs nothing.
   * Frame = `24 − trunc(20·m + 0.5)`. The defaults give m = 1.0, frame 4 ("100%").
-  * The same formula is in `FUN_004f1120`. The result is stored at `0x83b998` and read at `4f7b07`
-    (UNCERTAIN: the debrief score).
+  * The same formula is in `FUN_004f1120`. The result is stored at `0x83b998`. `FUN_004f7a40` (@`4f7b07`) copies it
+    into each new attempt as its multiplier (§13.6), which scales the score that attempt earns (§13.8) and the
+    Debrief shows (§13.14).
 
 ### 12.4 Graphics page (paint `514ee0`, click `515540`, drag `515b60`, DEFAULT `515480`)
 
@@ -1313,7 +1314,7 @@ So the Hebrew pages use the same rects as §12.3–§12.6.
     autopilot, each mission event fired with its name, each subtitle line, master mode / store changes, and the
     engagement: a unit's lock / unlock, a launch at the jet, each hit with the damage and the system broken, the player's
     kills, being shot down, an armed enemy's terrain line of sight gained / lost within its range, and the IR missile seeker's tone (seek / lock / off) and target with its distance, angle off the nose and afterburner when either changes). The debrief
-    screen's EXPORT FLIGHT DATA (bottom right of the content) saves this flight's file where the player picks.
+    screen's EXPORT FLIGHT DATA (top right of the content, above the tab strip) saves this flight's file where the player picks.
     `python3 -I tools/flight_timeline.py <file> [--html out.html]` prints the timeline and, per leg of the route, how far
     off the leg and how low the jet flew, and the threats that engaged it.
   * **Physics** (`Settings.BETTER`): one check per option, 19 (13 flight-model improvements, docs/flight-model.md §10,
@@ -1722,9 +1723,98 @@ node's +4); "passed" is any attempt with a result > 0 (`FUN_004f6d40`). "Current
   the system's file dialog for a .bmp), New_Pilot / Remove_Pilot / Login, double-click. The list is written when
   the screen is left (the node is freed), as `FUN_0051ce30`.
 * `front_end.gd`: starts on screen 0; the debrief records the attempt for the logged-in pilot
-  (`mission_runtime.gd debrief_text()` = the `FUN_0059a0f0` results); the list rows' f1 lock and the cheat.
+  (`mission_runtime.gd debrief_text()` = the `FUN_0059a0f0` results; without a logged-in pilot nothing is saved, but
+  the Debrief still shows the numbers); the list rows' f1 lock and the cheat. `debrief.gd`: the Debrief screen's
+  tabs and pages (§13.14).
 * The ranks, group names and pages' numbers are the exe's English strings in both languages (the Hebrew packs
   translate only the art and msgs.trx).
+
+### 13.14 Debrief screen (screen 0x22, content `FUN_004fe860`)
+The Debrief screen shows the flight that just ended. Its content window has a tab strip with three tabs:
+DEBRIEFING, KILL TALLY and LOSSES. Each tab shows a page. All numbers are for this flight's attempt, which the
+screen records first (§13.7).
+
+**Art** (`FUN_004fe860`; `menu/bmp/deb/`, the Hebrew pack's own in Hebrew):
+
+| tab | strip (at content (45,38)) | page (at content (45,63), 387×283) | icons |
+|---|---|---|---|
+| DEBRIEFING | `DebriefB.bmp` | `Debrief.bmp` | — |
+| KILL TALLY | `KillsB.bmp` | `Kills.bmp` | `EnemyIc.bmp` (red) |
+| LOSSES | `LossesB.bmp` | `Losses.bmp` | `IafIc.bmp` (blue) |
+
+* The multiplayer missions 0x213 and 0x21d have only a DEBRIEFING tab (`MPDebrief.bmp`, `MPaowB.bmp`), and a
+  multiplayer game uses the `MP*` art. Neither is ported (no multiplayer).
+* The content window paints its background, then the strip of the current tab (`FUN_004fee50` → `FUN_004fedb0`).
+* Each page is a child window (`FUN_00516ee0`, vtable `0x60ab28`). It is shown at message 0x549, which the frame
+  sends once the panel is in (`FUN_004fef80`). The DEBRIEFING page comes first. The debriefs that press Replay or
+  New Mission themselves (screens 0x23 / 0x25, §16.3) do not show a page.
+
+**Tabs** (`FUN_004ff1f0`, mouse down). The hit rects are content-local (`0x607d88..0x607db4`):
+
+| tab | rect (l, t, r, b) |
+|---|---|
+| DEBRIEFING | (45,38)–(121,63) |
+| KILL TALLY | (121,38)–(192,63) |
+| LOSSES | (193,38)–(269,63) |
+
+The current tab is not hit-tested. A click on another tab plays ButtonIn, hides the page, draws the new strip and
+shows the new page.
+
+**Page drawing** (`FUN_00517130`, once when the page is created). Coordinates are page-local; content = page +
+(45,63).
+* The text font is `fnt/key.fnt` (a 6×8 raster font, green RGB(0,255,0), transparent). The numbers' font is Arial p11
+  weight 500 (`FUN_004eee10(0xb, …, 500, …)`).
+* DEBRIEFING: `"%s\n %s"` = the headline (R+0x3e88, misc 0x47e / 0x492), a new line, a space and the notes
+  (R+0x4288). `DrawTextA` into (10,10)–(310,175) with `DT_WORDBREAK | DT_NOCLIP`: the lines wrap at 300 px and may
+  run past the rect. There is no scrolling.
+* KILL TALLY / LOSSES: for each of the 37 categories (§13.7) with a count in this attempt, in category order:
+  * the icon (27×17, a sixth of the strip) in the next free slot of its row (row by `FUN_004f7480`: categories 0–15
+    air, 16–30 ground, 31–36 structure);
+  * its name (`FUN_004f7670`, the TSD label strings of §8.1: "F-15", "MiG21", "SA-2", "Building", …), or
+    `"%sX%d"` when the count is 2 or more ("MiG21X2"). It is drawn at slot + (13,17), TA_CENTER | TA_TOP, in key.fnt,
+    green on both pages.
+* Slots (`0x60aa10..0x60aaa7`):
+
+| row | slots | icon cell |
+|---|---|---|
+| air | (75,7) (165,7) (255,7) / (75,37) (165,37) (255,37) / (75,67) (165,67) (255,67) | 0 |
+| ground | (75,105) (165,105) (255,105) / (75,135) (165,135) (255,135) | 16–19: 1, 20–25: 3 (SAM), 26–28: 4, 29–30: 2 (boat) |
+| structure | (75,190) (165,190) (75,220) (165,220) | 5 |
+
+* A row that is full skips the rest of its categories. The structure row's check is the exe's own quirk: it compares
+  the **ground** row's slot pointer with `0x60aa78` (@`517415`), so structure icons appear only while fewer than 4
+  ground icons are placed. The structure row has no bound of its own, so a 5th and 6th structure icon would take the
+  next words of the table, (378,58) and (378,128). The port does the same.
+
+**Score column** (all three pages). Each number is `"%d"`, TA_RIGHT at x = 378, its top at y − tmHeight / 2:
+
+| y | DEBRIEFING | KILL TALLY | LOSSES | art label |
+|---|---|---|---|---|
+| 58 | air kill points − loss points | air kill points | − air loss points | AIRCRAFT |
+| 128 | the same for ground | ground | − ground | GROUND |
+| 184 | the same for structures | structures | − structures | STRUCTURES |
+| 204 | bonus R[1] | ← | ← | MISSION BONUS |
+| 219 | the kill points' sum | ← | ← | KILL TALLY |
+| 234 | − the loss points' sum | ← | ← | LOSSES |
+| 250 | the attempt's score | ← | ← | MISSION CREDITS |
+| 269 | the pilot's score (`DAT_0083d278`) | ← | ← | PILOT SCORE |
+
+* The points come from the attempt's score record (`FUN_004f7b30`, §13.8), which `FUN_004f68b0` copies to
+  `0x83cfe8..0x83d008`; the per-category counts go to `0x83d00c` (kills) and `0x83d134` (losses) as {row, count}.
+  The pilot's score is the total after this attempt (`FUN_004f66d0`).
+* Colours: DEBRIEFING's three rows are red RGB(255,0,0) when negative, else green. KILL TALLY's are green, and LOSSES'
+  red; on these two pages a row is drawn only when it is not 0. The bonus is red when negative. The kill sum is green,
+  the loss sum always red (also when it is 0). The score and the pilot's score are
+  always green.
+* On the multiplayer missions (0x21d, 0x29a, 0x213, or a multiplayer game) every number but the pilot's score is
+  "N/A". Not ported.
+* The Hebrew art labels the 219 line "losses" (אבדות) and the 234 line "kills" (פגיעות), the other way round from the
+  English art. The exe draws the same numbers in both languages, so in Hebrew the kill sum stands next to "losses".
+  The port keeps it.
+
+Port: `game/menu/debrief.gd` (`items()` lists what a page draws; the front end creates it on the screen and routes
+the content clicks to it), the data from `pilots.gd record()` (the attempt and the pilot's score). Test:
+test_debrief_flow (pages, names, counts, colours, tabs, the structure quirk), test_pilot_records (PILOT SCORE).
 
 ## 14. Reference screen (screen 5, `ref.trx`, content class ctor `FUN_004fc490`, vtable `0x607b18`)
 

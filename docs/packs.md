@@ -80,4 +80,4 @@ in Hebrew mode.
 
 The debrief headline and notes come from each mission file (`resource/missions/*.mis`: misc `0x47e` passed /
 `0x492` failed, and the debrief records). The Hebrew packs cover `resource/menu` and `resource/brief`, so the
-debrief text is English in both languages. The debrief screen aligns each text by its own script, so the English text reads left to right in the Hebrew menus too.
+debrief text is English in both languages. The Debrief draws it in the exe's raster font `fnt/key.fnt`, left to right, in both languages (docs/front-end.md §13.14).

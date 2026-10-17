@@ -18,6 +18,11 @@ const TYPE_CATEGORY := {110: 0, 100: 1, 120: 2, 130: 3, 140: 4, 150: 5, 160: 6, 
 	200: 10, 210: 11, 220: 12, 225: 14, 230: 14, 240: 14, 250: 16, 260: 17, 270: 18, 280: 19, 290: 20,
 	300: 21, 310: 22, 320: 23, 330: 24, 340: 26, 350: 27, 360: 28, 370: 29, 380: 30, 390: 30, 400: 31,
 	410: 32, 420: 33, 430: 34, 440: 36, 450: 35}
+## Category names (FUN_004f7670, .rdata 0x6513bc..0x6514e0; English in both languages).
+const CATEGORY_NAMES := ["F-15", "F-16", "F-4E", "Kfir", "Lavi", "MiG21", "MiG23", "MiG25", "MiG29", "Mirage",
+	"F-42000", "MiG17", "Bomber", "Cargo", "Transport", "Helo", "Tank", "Truck", "Armored", "Soft", "SA-2", "SA-3",
+	"SA-5", "SA-6", "SA8", "IR-SAM", "Hawk", "AAA", "Gundish", "Boat", "Ship", "Building", "Strategic", "Bridge",
+	"Road", "Runway", "Airport"]
 ## Fallback by unit class.
 const CLASS_CATEGORY := {2: 15, 6: 17, 9: 25, 0xb: 31, 0xc: 31, 0xd: 31, 0x1d: 31, 0x1e: 31}
 ## Display groups (FUN_004f7120) with their names (FUN_004f78d0) and rows (FUN_004f74f0: 0 air, 1 ground,
@@ -154,9 +159,10 @@ static func category(type_code: int, klass: int) -> int:
 ## FUN_004f68b0, called by the debrief: a new attempt of mission `id` for pilot `pilot_id` from the flight's
 ## results {result, bonus, kills: [[type, class]], losses: [...]} and the score multiplier. The result is -1
 ## ("prerequisite not met", not counted) for a Future mission other than the first of its war whose previous
-## mission has no pass. Multiplayer missions are not saved.
-static func record(pilot_id: int, id: int, results: Dictionary, mult: float) -> void:
-	var missions := history(pilot_id)
+## mission has no pass. Multiplayer missions, and any flight without a logged-in pilot (pilot_id < 0), are not
+## saved. Returns what the Debrief shows: the attempt and the pilot's score after it (FUN_004f66d0).
+static func record(pilot_id: int, id: int, results: Dictionary, mult: float) -> Dictionary:
+	var missions := history(pilot_id) if pilot_id >= 0 else []
 	var list := attempts(missions, id)
 	if list.is_empty() and not missions.any(func(m): return int(m.id) == id):
 		missions.push_front({"id": id, "attempts": list})
@@ -174,8 +180,9 @@ static func record(pilot_id: int, id: int, results: Dictionary, mult: float) -> 
 				counts[c] += 1
 		a[side] = counts
 	list.append(a)
-	if not (id in MP_IDS or (id >= 0x1ff and id <= 0x207)):
+	if pilot_id >= 0 and not (id in MP_IDS or (id >= 0x1ff and id <= 0x207)):
 		save_history(pilot_id, missions)
+	return {"attempt": a, "pilot_score": totals(missions).score}
 
 
 ## FUN_004f7b30 for one attempt: kill and loss points per row (air / ground / structure) and the score.

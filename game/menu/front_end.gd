@@ -86,8 +86,9 @@ const PREF_MORE := Rect2(230, 330, 110, 23)
 const GFX_MORE := "Graphics+"
 const GRAPHICS_KEYS := ["fullscreen", "antialiasing", "terrain_closeup", "sky", "upscaling", "night_lights", "water", "models",
 	"particle_effects", "airbases"]
-## Ours on the debrief screen: EXPORT FLIGHT DATA at the content's bottom right (page coordinates).
-const DEB_EXPORT := Rect2(250, 330, 180, 20)
+## Ours on the debrief screen: EXPORT FLIGHT DATA at the content's top right, above the tab strip (content
+## coordinates; the original's pages fill the rest).
+const DEB_EXPORT := Rect2(253, 12, 180, 20)
 ## Ours on the Devices page, under THROTTLE on the page's 35 px row grid: the throttle detent (joystick.gd
 ## `detent_map`): OFF = the original's linear lever, SET AT LEVER stores the lever's position in its detent as MIL.
 const PREF_DETENT := {"title": Rect2(317, 143, 115, 20), "off": Rect2(317, 178, 110, 20), "set": Rect2(317, 213, 115, 20), "note": Rect2(317, 245, 125, 60)}
@@ -274,6 +275,8 @@ var msgbox: Control
 ## Pilot Records (screen 0): its content node (game/menu/pilot_records.gd), and the logged-in pilot's
 ## mission history for the list locks (§13.11), read on each screen change.
 var records: Control
+## The Debrief screen's tabs and pages (debrief.gd, §13.14), while on it.
+var debrief_view: Control
 ## The Reference screen's content (reference.gd, §14), while on it.
 var ref_view: Control
 var history: Array = []
@@ -314,11 +317,11 @@ func _ready() -> void:
 	# (FUN_004fe860 -> FUN_004f68b0) for the logged-in pilot.
 	if not Settings.debrief.is_empty():
 		screen = "deb"
-		if Settings.pilot_id >= 0:
-			var p := {}
-			for k in Settings.PREFS.gameplay:
-				p[k] = Settings.get(k)
-			Pilots.record(Settings.pilot_id, Settings.mission_id, Settings.debrief, score_multiplier(p))
+		var p := {}
+		for k in Settings.PREFS.gameplay:
+			p[k] = Settings.get(k)
+		# Without a logged-in pilot nothing is saved; the Debrief still shows the flight's numbers.
+		Settings.debrief["stats"] = Pilots.record(Settings.pilot_id, Settings.mission_id, Settings.debrief, score_multiplier(p))
 	var at := args.find("--mission")
 	if at >= 0:
 		Settings.mission_id = int(args[at + 1])
@@ -520,6 +523,13 @@ func _enter_screen() -> void:
 	elif screen != "log" and records != null:
 		records.queue_free()
 		records = null
+	if screen == "deb" and debrief_view == null:
+		debrief_view = preload("res://menu/debrief.gd").new()
+		add_child(debrief_view)
+		debrief_view.setup(self)
+	elif screen != "deb" and debrief_view != null:
+		debrief_view.queue_free()
+		debrief_view = null
 	if screen == "ref" and ref_view == null:
 		# Initial state (FUN_004fc910): IDF, Aircraft and Description checked.
 		for label in ["IDF", "Aircraft", "Description"]:
@@ -2047,22 +2057,18 @@ func tsd_fly_flight(n: int) -> void:
 	_fly()
 
 
-## Debrief: the mission's headline (misc 0x47e / 0x492) and the notes of the events that fired.
-## (Where the original draws them on the Deb screen is UNCERTAIN; shown in the content window.)
+## Debrief: the content background; debrief.gd draws the tabs and pages (§13.14) over it.
 func _draw_debrief() -> void:
 	_blit("screens/sgeneral.png", CONTENT.position)
-	var d: Dictionary = Settings.debrief
-	var box := Rect2(CONTENT.position + Vector2(20, 20), CONTENT.size - Vector2(40, 40))
-	# The headline wraps (the long ones, e.g. 313's success text, are wider than the box); the notes follow it.
-	# The texts come from the mission files, English in both languages (docs/packs.md): aligned by their own script.
-	var h := _text_block(box, String(d.get("headline", "")), LIST_TITLE_PX, LIST_TITLE, font_bold, true)
-	_text_block(Rect2(box.position + Vector2(0, h + 14), box.size - Vector2(0, h + 44)), String(d.get("notes", "")), LIST_DESC_PX + 1, LIST_DESC_LIT, null, true)
 	if FileAccess.file_exists(Settings.blackbox_file):
 		_text_fit(Rect2(CONTENT.position + DEB_EXPORT.position, DEB_EXPORT.size), _art("Export flight data"), LIST_TITLE_PX, LIST_TITLE, font_art)
 
 
-## Ours on the debrief screen (page rect): the blackbox (Settings.blackbox_file, this flight's) saved where the player picks.
+## A click in the debrief's content (content-local): a tab (debrief.gd), or ours: the blackbox
+## (Settings.blackbox_file, this flight's) saved where the player picks.
 func _deb_press(q: Vector2) -> bool:
+	if debrief_view != null and debrief_view.press(q):
+		return true
 	if not DEB_EXPORT.has_point(q) or not FileAccess.file_exists(Settings.blackbox_file):
 		return false
 	_file_dialog(true, "*.jsonl ; Flight data", "iaf-" + Settings.blackbox_file.get_file(), func(path: String) -> void:
