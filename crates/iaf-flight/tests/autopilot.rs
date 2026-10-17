@@ -155,7 +155,7 @@ fn keeps_close_formation() {
             );
         }
         if i as f64 * DT > 180.0 {
-            // The slot: 20 m behind, 100 m right of the leader (UNCERTAIN side, docs/ai.md §8.4).
+            // The slot: 20 m behind, 100 m right of the leader (UNCERTAIN side, docs/ai.md §8.5).
             let (l, w) = (lead.state(), wing.state());
             let d = [w.position[0] - l.position[0], w.position[1] - l.position[1]];
             err = f64::max(err, (d[0] + 20.0).hypot(d[1] + 100.0));
