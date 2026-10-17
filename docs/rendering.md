@@ -103,6 +103,11 @@ rest: the sun's GGX highlight becomes the glint, and the sky's radiance gives th
    least 0.02–0.07 above red, sRGB luminance below 0.55–0.7). This covers lakes and the coastal shallows; beaches are
    red-dominant, so they stay land. The raster fades out over its outer 10 % (2.4 km).
 
+With either Water choice, the vertex shader (`is_open_sea`) gives the generated open sea a flat normal, so the sea-bed
+relief under the data surface does not shade the water. It takes the colour from mip level 3 and compares it in sRGB
+within 0.08 of `sea_colour`, the outer edge of the fragment test above. Until October 2026 it compared the linear
+colour, so no vertex matched and the sea bed left faint streaks (up to 5 / 255) on the water off Haifa and Nahariya.
+
 **The surface (per water pixel):**
 
 | Part | Values |

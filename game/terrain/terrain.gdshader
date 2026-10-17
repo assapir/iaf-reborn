@@ -64,9 +64,10 @@ float height_at(vec2 t) {
 	return (raw - sea_level_raw) / height_scale * units_to_metres;
 }
 
+// sea_colour is in sRGB, the sampled colour linear: compared in sRGB (as in fragment()).
 bool is_open_sea(vec2 uv) {
-	vec3 c = textureLod(colour_tex, uv, 3.0).rgb;
-	return distance(c, sea_colour) < 0.06;
+	vec3 c = pow(textureLod(colour_tex, uv, 3.0).rgb, vec3(1.0 / 2.2));
+	return distance(c, sea_colour) < 0.08;
 }
 
 void vertex() {
