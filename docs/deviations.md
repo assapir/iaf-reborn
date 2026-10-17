@@ -190,6 +190,12 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     stars and a moon.
   - Detailed moonlight: colour (0.20, 0.23, 0.33) from azimuth 140°, elevation 38°, ambient 0.3. The original's
     night light is (20, 20, 60) / 255 straight down with ambient 0.2.
+- **Models** (ours, [aircraft-models.md](aircraft-models.md)). Visual only; the default is Original.
+  - Original: the 1998 aircraft models.
+  - Detailed: our F-16D (built from the FlightGear F-16, GPL) for every F-16: the player's, the AI's, parked ones and
+    the Reference viewer.
+  - Stores, gun, wingtips, eye and wheel height come from the original's helpers. The detailed model brings its own
+    hinge lines, its afterburner position at its nozzle's exit, and closed gear doors shown while the gear is up.
 - **Terrain imagery** (ours, docs/imagery.md): one row per region (Israel / outside Israel), default "Original".
   - Original: the 1998 ground texture everywhere.
   - Ours, with a converted modern layer (Sentinel-2 10 m outside Israel, Survey of Israel 2015 2 m in Israel at

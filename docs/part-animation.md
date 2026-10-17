@@ -135,6 +135,7 @@ Initial state (`FUN_005a5820`): airborne start → gear 1.569 (up), flaps 0, spe
 | 0x10 LdgR | −g | \|g−max\|≥1e-5 | 110: +g. 180: +g, vis g<0.8889·max. 190: −g, vis g<0.7778·max |
 | 0x11 LdgF | −g | \|g−max\|≥1e-5 | 110,130,140,160: +g. 180: min(g, 0.87264 = 50°) |
 | 0x12 LdgDr | 0 (never rotates) | \|g−max\|≥1e-5 | the doors are a static mesh, hidden only when the gear is fully up |
+| 0x94 LdgDrUp (ours) | 0 | \|g−max\|<1e-5 | detailed models only (docs/aircraft-models.md): the doors shut, shown only when the gear is fully up |
 | 0x13 Hook | +hook (S+0x360) | \|θ\|≥1e-5 | |
 | 0x27 Parach | jitter (below) | S+0x2cc==2 | |
 | 0x14-0x26 (pilot, pilotB, canopy, canopyB, turret…, wheels) | 0 | **0** | the FM callback hides them, but for aircraft entities the renderer's owner is the crew object `entity+0x3c` (callback `0x53eb50`), which answers ids 0x14–0x17 and 0x1d–0x20 **before** the FM: pilot/canopy **are drawn** outside the cockpit view (see "Ejection" below). The F-16 canopy glass exists only in the `Canopy` frame (port: `crew_visible`, always true, docs/aircraft.md §2.3) |

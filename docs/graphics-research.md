@@ -182,7 +182,7 @@ the F-16D has the cleanest licence.
 
 | Jet (variant needed) | Candidate | Licence (checked) | Notes |
 |---|---|---|---|
-| F-16D (two-seat) | FlightGear F-16 `github.com/NikolaiVChr/f16` | **GPL-2.0-or-later** (`copyright.txt`: "version 2 of the License, or (at your option) any later version", all files) — compatible | `Models/F-16D.ac` exists (two-seater); ≈ 26 000 triangles; liveries (no IAF one listed — paint ours); full 3D cockpit; moving parts as separate objects |
+| F-16D (two-seat) | FlightGear F-16 `github.com/NikolaiVChr/f16` | **GPL-2.0-or-later** (`copyright.txt`: "version 2 of the License, or (at your option) any later version", all files) — compatible | **Built** from `Models/f16.ac` (the textured single-seat F-16C with separate moving parts, 2048² UVs, three IAF desert liveries) made two-seat by `tools/f16d/rig.py` ([aircraft-models.md](aircraft-models.md)). `Models/F-16D.ac` is a shared untextured AI model: one mesh with its stores baked in |
 | F-15C (single) | Zaretto F-15 `github.com/Zaretto/fg-aircraft` (`aircraft/F-15`, also FGAddon `F-15`) | **unverified**: no COPYING / licence in the repo; FGAddon's copy is under the FGAddon policy (GPLv2+ since Aug 2015, older files possibly GPLv2-only) — ask the author (Richard Harrison) or take the FGAddon copy's files after checking each | external model by Enrique Laso; C and D variants; cockpit with photo textures |
 | F-4E / Kurnass 2000 | FGAddon `McDonnell-F-4-Phantom`; `github.com/Zaretto/F-4X` (GPLv2+, early alpha, an F-4S) | GPLv2+ (F-4X README); FGAddon per file | F-4E differs (gun nose); Kurnass 2000 adds its own avionics bumps |
 | Mirage IIICJ | FGAddon `MirageIII`, `MirageIIIE` | FGAddon policy (check files) | the IIICJ is close to the IIIC |
@@ -207,7 +207,11 @@ GPL-2.0-only files cannot ship in it.
 **Wheels:** the original's wheels never roll. Part ids 0x21–0x26 are hidden for aircraft (docs/part-animation.md),
 and no aircraft model has Wheels frames. A detailed model could add rolling wheels as an extra.
 
-**Switch:** Extras "Aircraft models: Original / Detailed".
+**Switch:** Preferences → Graphics → MORE → Models: Original / Detailed.
+
+**F-16D: stage 1 done** (2026-10-17, [aircraft-models.md](aircraft-models.md)): 46.7 k triangles, KTX2 textures in a
+3.7 MB glb, runtime LODs. Next for DCS level: our own UV layout (the FlightGear UVs stretch the fuselage sides), a
+hand-painted 4K livery with stencils, glass reflections, the cockpit-view model (`own_bc`).
 
 **Effort per jet:** L. The F-16D first (≈ 2–3 weeks), then the F-15C.
 
@@ -375,10 +379,15 @@ setup.
 - **Repo size**: 2048² PBR sets as PNG are ≈ 10–15 MB per store (≈ 0.5 GB for all) — too much for git history.
   **Decided (user, 2026-10-17):** textures GPU-compressed inside the glb (KTX2 / Basis, `KHR_texture_basisu`:
   ≈ 1–2 MB per store, ≈ 60–80 MB for all), if Godot's runtime glTF loader reads them; Git LFS only as the fallback.
+  **Measured with the F-16D (2026-10-17):** Godot 4.7.2's runtime glTF loader reads `KHR_texture_basisu` (UASTC and
+  ETC1S) and decodes it to RGBA8, with the mipmaps stored in the file (`basisu -mipmap`). So KTX2 keeps the repo
+  small, and in video memory each 2048² map takes ≈ 22 MB (RGBA8 + mips), 4× the BC7 figure below. Fallback when
+  memory matters: `Image.compress(COMPRESS_ASTC)` at load, ≈ 0.25 s per 2048² map on the M4 Pro (BC7 at runtime:
+  ≈ 2 s per map). The tool: `tools/plane/glb_ktx2.py`.
 
 **Cost:** 6–20 k triangles per store × 20 stores × a few dozen jets is a few million triangles at worst, inside the
 M4 Pro's budget with the LODs (most stores are far). Textures: ≈ 40 × 3 × 2048² compressed (BC7) ≈ 0.5 GB of video
-memory at worst, less in a mission (only its loads). To be measured on 231 before shipping.
+memory at worst (≈ 2 GB as the RGBA8 the runtime loader decodes KTX2 to, above), less in a mission (only its loads). To be measured on 231 before shipping.
 
 **Scope:** stores and rounds only. Plumes and motor glow (`mission/trails.gd`), moving fins in flight, and aircraft
 (§3.7) are out of scope.
@@ -435,7 +444,7 @@ The options of §3, ranked by payoff for effort.
 | 1 | Terrain heights in Rust for the sensors (CPU spike fix) — **done** | perf | M | 0 | AI combat worst 4.3 → 0.5 ms (221, live) |
 | 2 | Water shader — **done** | 3 | M | 0.23 ms at 1080p (measured) | cheap, visible on every coastal mission |
 | 3 | MetalFX upscaling row — **done** | perf | S | −0.6 / −4.6 ms (Quality, 4K, light / heavy) | headroom for 4–8 |
-| 4 | F-16D detailed model (FlightGear, GPLv2+) | 5 | L | small | the biggest visible jump; licence clean |
+| 4 | F-16D detailed model (FlightGear, GPLv2+) — **done** (stage 1, [aircraft-models.md](aircraft-models.md)) | 5 | L | +32 k primitives in 231 | the biggest visible jump; licence clean |
 | 5 | F-16D 3D cockpit with live MFDs / Real HUD on the glass, then clickables | 5 | L → XL | small | the "DCS feel"; fixes the real HUD FOV |
 | 6 | GPU particle effects + heat haze | 3 | M | ~0.5 ms | combat looks modern |
 | 7 | Modern DEM (Copernicus 30 m) | 4 | L | small | real relief; mission impact → opt-in |

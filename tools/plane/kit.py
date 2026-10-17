@@ -50,6 +50,123 @@ def normalise(src, length, nose_minus_y=True):
     return {o.name.removeprefix("Object_"): o for o in meshes}
 
 
+def import_ac(path, matrix=None, prefix=""):
+    """An AC3D file (FlightGear's model format) as one Blender mesh object per AC `poly` object (named `prefix` +
+    its AC name), in Blender's frame: AC x aft, y up, z left -> Blender x right, y forward (nose +Y), z up, then
+    `matrix`. Materials per (AC material, texture): the texture as base colour (looked up next to the file),
+    two-sided surfaces (flag 0x20) without backface culling, smooth surfaces (0x10) smooth with the object's crease
+    angle. Lines are skipped. Returns {AC name: object} (a later object of the same name replaces the earlier)."""
+    to_b = Matrix(((0, 0, -1, 0), (-1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 0, 1)))
+    if matrix is not None:
+        to_b = Matrix(matrix) @ to_b
+    lines = open(path, encoding="latin-1").read().split("\n")
+    mats = [ln for ln in lines if ln.startswith("MATERIAL")]
+    folder = os.path.dirname(path)
+    cache, out = {}, {}
+
+    def material_for(mi, tex, two_sided):
+        key = (mi, tex, two_sided)
+        if key not in cache:
+            tok = mats[mi].split() if mi < len(mats) else []
+            rgb = tuple(float(x) for x in tok[tok.index("rgb") + 1:tok.index("rgb") + 4]) if "rgb" in tok else (1, 1, 1)
+            trans = float(tok[tok.index("trans") + 1]) if "trans" in tok else 0.0
+            img = None
+            if tex:
+                f = os.path.join(folder, tex)
+                img = bpy.data.images.load(f, check_existing=True) if os.path.exists(f) else None
+            m = material(f"ac_{os.path.basename(tex or 'plain')}_{mi}{'_2s' if two_sided else ''}", rgb,
+                         image=img, alpha=(1 - trans) if trans > 0 else None)
+            m.use_backface_culling = not two_sided
+            cache[key] = m
+        return cache[key]
+
+    i = 0
+
+    def read_object(parent_mw):
+        nonlocal i
+        i += 1
+        name, tex, loc, rot, crease = "", None, Vector(), Matrix.Identity(3), 30.0
+        verts, faces = [], []
+        while i < len(lines):
+            tok = lines[i].split()
+            i += 1
+            if not tok:
+                continue
+            k = tok[0]
+            if k == "name":
+                name = lines[i - 1].split('"')[1]
+            elif k == "data":
+                i += 1  # one line of data (as written by the exporters)
+            elif k == "texture":
+                tex = lines[i - 1].split('"')[1]
+            elif k == "loc":
+                loc = Vector(map(float, tok[1:4]))
+            elif k == "rot":
+                rot = Matrix([list(map(float, tok[1 + r * 3:4 + r * 3])) for r in range(3)]).transposed()
+            elif k == "crease":
+                crease = float(tok[1])
+            elif k == "numvert":
+                n = int(tok[1])
+                verts = [Vector(map(float, lines[i + j].split()[:3])) for j in range(n)]
+                i += n
+            elif k == "numsurf":
+                for _ in range(int(tok[1])):
+                    flags = int(lines[i].split()[1], 16)
+                    i += 1
+                    mi = 0
+                    while not lines[i].startswith("refs"):
+                        if lines[i].startswith("mat"):
+                            mi = int(lines[i].split()[1])
+                        i += 1
+                    n = int(lines[i].split()[1])
+                    refs = [lines[i + 1 + j].split() for j in range(n)]
+                    i += 1 + n
+                    if flags & 0xF == 0 and n >= 3:
+                        faces.append(([int(r[0]) for r in refs], [(float(r[1]), float(r[2])) for r in refs],
+                                      material_for(mi, tex, bool(flags & 0x20)), bool(flags & 0x10)))
+            elif k == "kids":
+                mw = parent_mw @ Matrix.Translation(loc) @ rot.to_4x4()
+                if faces:
+                    out[name] = _ac_mesh(prefix + name, verts, faces, to_b @ mw, crease)
+                for _ in range(int(tok[1])):
+                    read_object(mw)
+                return
+
+    while i < len(lines) and not lines[i].startswith("OBJECT"):
+        i += 1
+    read_object(Matrix.Identity(4))
+    return out
+
+
+def _ac_mesh(name, verts, faces, mw, crease):
+    bm = bmesh.new()
+    bv = [bm.verts.new(mw @ v) for v in verts]
+    uv = bm.loops.layers.uv.new("UVMap")
+    slots = []
+    for idx, uvs, mat, smooth in faces:
+        if len(set(idx)) < 3:
+            continue
+        try:
+            f = bm.faces.new([bv[j] for j in idx])
+        except ValueError:  # a duplicate face
+            continue
+        for loop, t in zip(f.loops, uvs):
+            loop[uv].uv = t
+        if mat not in slots:
+            slots.append(mat)
+        f.material_index = slots.index(mat)
+        f.smooth = smooth
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    bm.free()
+    for m in slots:
+        me.materials.append(m)
+    o = bpy.data.objects.new(name, me)
+    scene().collection.objects.link(o)
+    me.set_sharp_from_angle(angle=math.radians(crease))
+    return o
+
+
 def bisect(objs, region, co, no):
     """Cut the faces of `objs` whose centre passes `region` with the plane (co, no)."""
     for o in objs:

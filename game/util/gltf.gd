@@ -43,22 +43,61 @@ static func open(path: String) -> Variant:
 	return [doc, state]
 
 
-## open() of a converted object model (path under converted/objects), cached per OBJECT DETAIL level.
+## open() of a converted object model (path under converted/objects), cached per OBJECT DETAIL level; with
+## Models: Detailed its detailed model when there is one (detailed()).
 static var _objects := {}
 
 
 static func object(path: String) -> Variant:
+	var hd := detailed(path)
+	if hd != "":
+		return open_detailed(hd)
 	var key := "%d:%s" % [object_level, path]
 	if not _objects.has(key):
-		# The autoload by node: this script also loads before the autoloads exist (tests preload it).
-		var settings: Node = Engine.get_main_loop().root.get_node("Settings")
-		_objects[key] = open(settings.assets_dir().path_join("converted/objects").path_join(path))
+		_objects[key] = open(_settings().assets_dir().path_join("converted/objects").path_join(path))
 	return _objects[key]
 
 
-## A new scene of a model opened with open().
+## The autoload by node: this script also loads before the autoloads exist (tests preload it).
+static func _settings() -> Node:
+	return Engine.get_main_loop().root.get_node("Settings")
+
+
+## Detailed models (ours, Preferences → Extras → Models: Detailed; docs/aircraft-models.md): the original model's
+## file -> our model in the repo (GPL, tools/f16d/rig.py). Each model falls back on the original on its own.
+const DETAILED := {"f16_h.gltf": "res://extra/models/f16/f16d.glb"}
+static var _detailed := {}
+
+
+## The detailed model standing in for the original at `path` with the switch on, else "".
+static func detailed(path: String) -> String:
+	if String(_settings().get("models")) != "detailed":
+		return ""
+	var hd: String = DETAILED.get(path.get_file(), "")
+	return hd if hd != "" and FileAccess.file_exists(hd) else ""
+
+
+## open() of a detailed model, parsed once per OBJECT DETAIL level and shared by every jet (its textures are
+## large); its meshes get LODs so far jets draw a fraction of the triangles.
+static func open_detailed(path: String) -> Variant:
+	var key := "%d:%s" % [object_level, path]
+	if not _detailed.has(key):
+		var model = open(path)
+		if model != null:
+			for gm: GLTFMesh in (model[1] as GLTFState).get_meshes():
+				gm.mesh.generate_lods(25.0, 60.0, [])
+		_detailed[key] = model
+	return _detailed[key]
+
+
+## A new scene of a model opened with open(). A detailed model's closed gear doors (LdgDrUp) start hidden: a
+## static model stands on its gear (AircraftModel shows them once the gear is up).
 static func instance(model: Array) -> Node3D:
-	return model[0].generate_scene(model[1]) as Node3D
+	var n := model[0].generate_scene(model[1]) as Node3D
+	var up := n.find_child("LdgDrUp", true, false)
+	if up != null:
+		up.visible = false
+	return n
 
 
 

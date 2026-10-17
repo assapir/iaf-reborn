@@ -16,6 +16,9 @@
 		{"style": "small", "text": "Based on \"Lockheed Martin F35 Lightning II\" by andertan (sketchfab.com/andertan), CC BY 4.0", "he": "מבוסס על \"Lockheed Martin F35 Lightning II\" מאת andertan (sketchfab.com/andertan), CC BY 4.0"},
 		{"style": "small", "text": "116 Squadron badge: IDF Spokesperson's Unit, CC BY-SA 3.0", "he": "סמל טייסת 116: דובר צה\"ל, CC BY-SA 3.0"},
 		{"style": "gap"},
+		{"style": "role", "text": "Detailed F-16D Model", "he": "דגם F-16D מפורט"},
+		{"style": "small", "text": "Based on the FlightGear F-16 (github.com/NikolaiVChr/f16) by Erik Hofman, Nikolai V. Chr., J Maverick 16, Pensacola and the FlightGear F-16 team, GPL 2.0 or later", "he": "מבוסס על ה-F-16 של FlightGear (github.com/NikolaiVChr/f16) מאת Erik Hofman, Nikolai V. Chr., J Maverick 16, Pensacola וצוות ה-F-16 של FlightGear, GPL 2.0 ואילך"},
+		{"style": "gap"},
 		{"style": "imagery", "text": "Terrain Imagery", "he": "צילומי השטח"},
 		{"style": "blank"}
 	]

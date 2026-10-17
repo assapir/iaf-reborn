@@ -27,6 +27,7 @@ TAA = temporal anti-aliasing.
 | Upscaling | Native / Quality / Balanced | the 3D scene's render scale: Native 1.0; Quality 0.77; Balanced 0.67 of the window. A spatial upscaler scales it up: MetalFX spatial on Metal, FSR 1 on other drivers (`render_options.gd upscale_mode()`). The Anti-aliasing row still applies. The 2D cockpit, HUD and MFDs are canvas items, drawn after the upscale at the window's resolution. Godot lowers the texture mip bias by log2(scale). Saves 0.6 ms (Quality) / 1.4 ms (Balanced) at 4K today, 4.6 / 6.3 ms with SSAO + SSIL; Balanced breaks one-pixel 3D lines into dots (docs/graphics-research.md §3.10) |
 | Night lights | Original / Detailed | Original: the original's light points (§4). Detailed: glowing lights, the home airbases lit at night, the jets' navigation lights and strobe, stars, a moon and moonlight (§5) |
 | Water | Original / Detailed | in `terrain.gdshader`: waves, sun glint and the sky's reflection on the sea and on lakes (§1.3) |
+| Models | Original / Detailed | Detailed: our detailed aircraft models where one exists (today the F-16D), parsed once and shared, with runtime LODs ([aircraft-models.md](aircraft-models.md)) |
 
 ### 1.1 Terrain close up
 

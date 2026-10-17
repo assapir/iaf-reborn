@@ -84,7 +84,7 @@ const PREF_VSYNC := Rect2(8, 330, 110, 23)
 ## GRAPHICS_KEYS and the terrain imagery); on that view the same spot is BACK.
 const PREF_MORE := Rect2(230, 330, 110, 23)
 const GFX_MORE := "Graphics+"
-const GRAPHICS_KEYS := ["fullscreen", "antialiasing", "terrain_closeup", "sky", "upscaling", "night_lights", "water"]
+const GRAPHICS_KEYS := ["fullscreen", "antialiasing", "terrain_closeup", "sky", "upscaling", "night_lights", "water", "models"]
 ## Ours on the debrief screen: EXPORT FLIGHT DATA at the content's bottom right (page coordinates).
 const DEB_EXPORT := Rect2(250, 330, 180, 20)
 ## Ours on the Devices page, under THROTTLE on the page's 35 px row grid: the throttle detent (joystick.gd
@@ -151,6 +151,7 @@ const EXTRAS := [
 	["upscaling", "Upscaling", [["Native", "off"], ["Quality", "quality"], ["Balanced", "balanced"]]],
 	["night_lights", "Night lights", [["Original", "original"], ["Detailed", "detailed"]]],
 	["water", "Water", [["Original", false], ["Detailed", true]]],
+	["models", "Models", [["Original", "original"], ["Detailed", "detailed"]]],
 	# Ours: the F-35I (docs/f35i.md) flies from the Jet list button it replaces; more than three choices cycle.
 	["f35i_slot", "F-35I replaces", [["Off", -1], ["F-15", 0], ["F-16", 1], ["F-4E", 2], ["Kurnass 2000", 3],
 		["Lavi", 4], ["Kfir", 5], ["Mirage", 6]]],

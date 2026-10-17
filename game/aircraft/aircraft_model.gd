@@ -72,13 +72,51 @@ static func create(plane: String, type := -1, on_ground := false) -> Node3D:
 	var d: Dictionary = load_descriptor(plane)
 	if d.is_empty():
 		return null
-	var model = preload("res://util/gltf.gd").open(dir.path_join(d.model))
+	var Gltf := preload("res://util/gltf.gd")
+	var hd: String = Gltf.detailed(String(d.model))
+	var model = Gltf.open_detailed(hd) if hd != "" else Gltf.open(dir.path_join(d.model))
 	if model == null:
 		return null
+	var node: Node3D = Gltf.instance(model)
+	if hd != "":
+		d = detailed_descriptor(d, node)
 	var m: Node3D = load("res://aircraft/aircraft_model.gd").new()
 	m.name = plane
-	m.setup(preload("res://util/gltf.gd").instance(model), d, type, on_ground)
+	m.setup(node, d, type, on_ground)
 	return m
+
+
+## The descriptor for a detailed model (Models: Detailed, util/gltf.gd DETAILED): the original's, so everything the
+## game reads (stations, gun, wingtips, eye, height) stays the original's. From the detailed model's own helpers come
+## what only shows: the parts' hinge axes (`<part>1/2`, nearer -> farther from the origin, as the original's loader
+## takes them), the afterburner at its nozzle's exit (EngineL, the radius up to EngineL1) and its closed gear doors
+## (LdgDrUp, ours: shown only with the gear up).
+static func detailed_descriptor(d: Dictionary, scene: Node3D) -> Dictionary:
+	var out := d.duplicate(true)
+	var root := scene.find_child(str(d.get("root", "")), true, false) as Node3D
+	if root == null:
+		return out
+	for name in out.get("parts", {}):
+		var a := root.get_node_or_null(NodePath(name + "1")) as Node3D
+		var b := root.get_node_or_null(NodePath(name + "2")) as Node3D
+		if a == null or b == null or out.parts[name].axis == null:
+			continue
+		var near := a.position if a.position.length() <= b.position.length() else b.position
+		var far := b.position if near == a.position else a.position
+		var ax := (far - near).normalized()
+		out.parts[name].axis = [ax.x, ax.y, ax.z]
+	if root.get_node_or_null("LdgDrUp") != null:
+		out.parts["LdgDrUp"] = {"id": LDG_DOORS_UP, "axis": null}
+	var e0 := root.get_node_or_null("EngineL") as Node3D
+	var e1 := root.get_node_or_null("EngineL1") as Node3D
+	if e0 != null and e1 != null and out.get("engines") is Dictionary:
+		out.engines.left = [e0.position.x, e0.position.y, e0.position.z]
+		out.engines.radius = e1.position.y - e0.position.y
+	return out
+
+
+## Part id of a detailed model's closed gear doors (ours).
+const LDG_DOORS_UP := 0x94
 
 
 static func load_descriptor(plane: String) -> Dictionary:
@@ -353,6 +391,8 @@ func part_pose(id: int) -> Array:
 			return [g if t in [110, 130, 140, 160] else -g, gear_out]
 		18:  # LdgDr: never rotates, hidden once the gear is fully up
 			return [0.0, gear_out]
+		LDG_DOORS_UP:  # LdgDrUp (ours, detailed models): the doors shut, shown once the gear is fully up
+			return [0.0, not gear_out]
 		19:  # Hook
 			return [ramps.hook, absf(ramps.hook) >= EPS]
 		0x14, 0x15:  # pilot, pilotB

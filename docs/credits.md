@@ -35,6 +35,12 @@ Our lines are in **game/menu/credits_ours.json**. Keep them out of the script. E
 The original's own pattern is `gap`, a `role`, then one or more `name`s. A long line wraps inside the original's
 margins: 70 px on both sides of the 640 px screen.
 
+## Model credits
+
+The detailed F-16D (docs/aircraft-models.md) is based on the FlightGear F-16 (github.com/NikolaiVChr/f16, GPL 2.0 or
+later) by Erik Hofman, Nikolai V. Chr., J Maverick 16, Pensacola and the other authors in its `authors.txt`. Its
+credit line is in `credits_ours.json`; the full list and the changes are in `game/extra/models/f16/SOURCES.md`.
+
 ## Imagery credits (automatic)
 
 The `imagery` entry expands to "Terrain Imagery", followed by the `attribution` of every converted imagery layer
