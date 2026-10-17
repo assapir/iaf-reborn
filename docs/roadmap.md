@@ -16,7 +16,7 @@ ranked order: [docs/graphics-research.md](graphics-research.md).
   CC-licensed model), then the other flyable jets and the AI types. Keep the original dimensions, hinge points
   (`<part>1/2` helpers), weapon stations, camera eye point and IAF markings; fit each and repaint onto the new UVs.
 - **Better weapon / store models** (Extras switch "Models: Original / Detailed", the 1998 meshes by default): bombs,
-  missiles, tanks and pods generated from public profiles at setup, fitted to the originals' pylon helpers;
+  missiles, tanks and pods from the FlightGear F-16 (GPLv2+) and our own for the gaps, committed, fitted at load time;
   design in [docs/graphics-research.md](graphics-research.md) §3.13.
 - **Modern DEM** (SRTM / Copernicus 30 m) for finer relief. (The modern imagery itself: Sentinel-2 outside Israel is
   done, docs/imagery.md; Survey of Israel 2 m over Israel is done too; SPOT 5 is left, below.)
