@@ -127,8 +127,9 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
   import the preferences, front_end.gd `_settings_file`). Later: extra sounds,
   canopy open (docs/roadmap.md).
 - **Preferences → Extras → HUD (Original (1998) / Real)** (references: [real-hud.md](real-hud.md)): each jet's real
-  display instead of the original HUD — the F-16C/D dash-34 HUD (also the Lavi, and as reconstructions the Kurnass
-  2000 and the Kfir, whose symbology is not public), the F-15A/C HUD, the F-4E's and the Mirage's optical gunsights,
+  display instead of the original HUD — the F-16C/D dash-34 HUD (also, as reconstructions, the Kurnass
+  2000 and the Kfir, whose symbology is not public), the Lavi's own wide-angle HUD (a reconstruction: its symbology is
+  not public), the F-15A/C HUD, the F-4E's and the Mirage's optical gunsights,
   the F-35I's helmet display. Ours where the sources stop: the EEGS wingspan (35 ft), the bingo (1500 lb), the
   sights' bombing depression set automatically, the F-35's gun / A-G graphics (the F-16's).
 

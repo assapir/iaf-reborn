@@ -14,7 +14,7 @@ Units: 1 mr (milliradian) = 0.0573°; HUD positions as angles from the boresight
 | Jet | Cockpit dir | Real display | Basis |
 |---|---|---|---|
 | F-16C/D (Barak) | `f16` | F-16 Block 30/40/50 HUD | dash-34 manual [V] |
-| Lavi | `lavi` | the F-16's (Lavi symbology not public; Hughes wide-angle HUD, Elbit displays) | [R] = F-16 |
+| Lavi | `lavi` | Hughes wide-angle diffractive HUD, Elbit integrated display system; symbology not public | hardware [S]; layout [R] (1980s US / Israeli wide-angle HUD, not the F-16's) |
 | F-15A/C (Baz) | `f15` | F-15A/C HUD (no digital boxes) | TO 1F-15A-1 + NADC 1976 [V] |
 | F-4E (Kurnass) | `phantom` | AN/ASG-26 lead-computing optical sight (no HUD) | T.O.-derived [V/SIM] |
 | F-4E 2000 (Kurnass 2000) | `f4-2000` | Kaiser / El-Op wide-angle holographic HUD, Elbit ACE-3; symbology not public | [R] its own (MIL-STD-1787 style) |
@@ -80,6 +80,29 @@ The D is the two-seater with the same HUD (rear cockpit repeater). Barak-specifi
 - DTOS: 10 mr TD box with a pipper; then steering line and solution cue; pull-up "U".
 - CCRP: TD box, azimuth steering line, solution cue; `B004.9`, time to release.
 - Strafe: CCIP-style pipper; in-range line 12 mr above it inside 4,000 ft; `STRF`.
+
+## Lavi
+
+Sources: Deurenberg, *IAI Lavi* (dror-aero.com, citing Flight International / Jane's) [S]; Wikipedia "IAI Lavi" [S];
+general diffractive-HUD optics: Rochester Avionic Archives "Wide Angle Raster HUD" [S].
+- **Hardware** [S]: "a Hughes Aircraft wide-angle diffractive optics head-up display (HUD) surmounting a single El-Op
+  up-front control panel"; Elbit Computers was prime contractor for the integrated display system (the HUD, three
+  head-down displays — two colour, one monochrome — display computers, communications controller); the Elbit ACE-4
+  mission computer; HOTAS; central stick (not a side-stick). Some sources give Kaiser for the HUD (dokumen.pub *Lavi*).
+- **Field of view** [S, general]: a diffractive HUD of that generation gives ~30° × 18° against ~13° × 9° for a
+  refractive one; green P43 phosphor (the diffractive combiner's narrow band).
+- **Symbology: not public.** No photo or video through the Lavi's HUD, nor a description of its symbology, was found
+  (the B-1 / B-2 flew 1986–87, the TD B-3 from 1989). Ours is a reconstruction [R] of a late-1980s US / Israeli
+  wide-angle HUD (MIL-STD-1787 conventions, the F/A-18's digital boxes), deliberately not the F-16's dash-34 layout:
+  - boxed airspeed (KCAS) left and barometric altitude right; under them Mach, G, AoA (gear down), the mode / weapon
+    and SHOOT; the radar altitude `R` below 5,000 ft and the steerpoint block (`WP n`, distance in NM, time to go);
+  - the heading scale on top (30°, labels every 10°) with the boxed heading under it and the **steering bug** at the
+    steerpoint's bearing; outside the window the bug is held at the scale's end as an arrow pointing the way to turn,
+    with the bearing beside it;
+  - straight climb / dive bars every 5° (dive bars dashed, signed labels, no bending, no zenith symbol), the flight
+    path marker, the steerpoint diamond on the ground (X when held at the field's edge);
+  - A-A: SRM circle + seeker diamond; MRM circle + steering dot + the launch-zone scale; the gun's LCOS reticle (no
+    EEGS); the TD box on the target. A-G: the strafe pipper with the gun cross, CCIP pipper and fall line.
 
 ## F-15A/C
 
@@ -246,6 +269,8 @@ JHMCS (its descendant), whose F-16 set is documented in simulator manuals [SIM].
   error). Not drawn: the ILS flight-director cross, Mach outside A-A.
 - Kfir: its own layout (§ Kfir C2/C7): numbers for speed / altitude, the heading scale with the steering bug, the
   waypoint marker, straight ladder, LCOS / hotline, spinning seeker diamond, CCIP pipper and fall line.
+- Lavi: everything in its section above (a reconstruction). Not drawn: the bank scale, an ILS flight director, a
+  VVI.
 - F-4E / Mirage: the reticles as specified (ours: the reticle rides the LCOS / CCIP pipper).
 - Kurnass 2000: its own reconstruction (`k2000.rs`, the section above): boxes, heading scale with the steering caret,
   ladder and marker, SRM / MRM / LCOS gun / CCIP / strafe symbols, the launch-range scale, SHOOT / FUEL.

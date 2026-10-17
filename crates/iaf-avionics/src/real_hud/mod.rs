@@ -3,9 +3,10 @@
 //! from the HUD centre); the cockpit draws them. The per-aircraft reference, its sources and how sure each element is:
 //! docs/real-hud.md.
 //!
-//! - `f16`: the F-16C/D Block 30/40/50 HUD (dash-34); also the Lavi's (its symbology is not public).
+//! - `f16`: the F-16C/D Block 30/40/50 HUD (dash-34).
 //! - `k2000`: the Kurnass 2000's wide-angle HUD (layout a reconstruction).
 //! - `kfir`: the Kfir C7's (Elbit System 82; layout a reconstruction).
+//! - `lavi`: the Lavi's wide-angle HUD (its symbology is not public: a reconstruction).
 //! - `f15`: the F-15A/C HUD (TO 1F-15A-1, NADC 1976): moving tapes, no digital boxes.
 //! - `f35`: the F-35's helmet display (the forward "virtual HUD"; LM slides and flight-test video).
 //! - `sights`: the F-4E's AN/ASG-26 LCOSS and the Mirage IIICJ's CSF gyro gunsight (no HUD: a reticle only).
@@ -16,6 +17,7 @@ mod f16;
 mod f35;
 mod k2000;
 mod kfir;
+mod lavi;
 mod sights;
 
 use crate::missile::Dlz;
@@ -47,10 +49,12 @@ pub enum Jet {
     Kurnass2000,
     /// The Kfir C7's HUD.
     Kfir,
+    /// The Lavi's wide-angle HUD (a reconstruction).
+    Lavi,
 }
 
 impl Jet {
-    /// The display of a cockpit directory: f4-2000 the Kurnass 2000's, cfir the Kfir's; f16 / lavi (and anything else) the F-16's.
+    /// The display of a cockpit directory: f4-2000, cfir and lavi their own; f16 (and anything else) the F-16's.
     pub fn of_cockpit(dir: &str) -> Self {
         let d = dir.to_ascii_lowercase();
         if d.contains("f35") {
@@ -65,6 +69,8 @@ impl Jet {
             Jet::Kurnass2000
         } else if d.ends_with("cfir") {
             Jet::Kfir
+        } else if d.ends_with("lavi") {
+            Jet::Lavi
         } else {
             Jet::F16
         }
@@ -279,6 +285,7 @@ impl RealHud {
             Jet::Mirage => sights::csf(i),
             Jet::Kurnass2000 => k2000::frame(f, i),
             Jet::Kfir => kfir::frame(f, i),
+            Jet::Lavi => lavi::frame(f, i),
         }
     }
 }
@@ -598,7 +605,7 @@ mod tests {
     #[test]
     fn cockpits_pick_their_display() {
         assert_eq!(Jet::of_cockpit("converted/cockpits/f15"), Jet::F15);
-        assert_eq!(Jet::of_cockpit("converted/cockpits/lavi"), Jet::F16);
+        assert_eq!(Jet::of_cockpit("converted/cockpits/lavi"), Jet::Lavi);
         assert_eq!(Jet::of_cockpit("res://extra/planes/f35i/cockpit"), Jet::F35);
         assert_eq!(Jet::of_cockpit("converted/cockpits/phantom"), Jet::Phantom);
         assert_eq!(Jet::of_cockpit("converted/cockpits/mirage"), Jet::Mirage);

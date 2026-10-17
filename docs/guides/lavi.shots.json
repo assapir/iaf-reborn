@@ -41,7 +41,7 @@
  },
  {
   "name": "takeoff_roll",
-  "caption": "Take-off roll, HUD gear down",
+  "caption": "Take-off roll, HUD gear down (AOA, radar altitude)",
   "mission": 311,
   "actions": [
    "key:1",
@@ -130,7 +130,7 @@
  },
  {
   "name": "hud_nav",
-  "caption": "The Real HUD in NAV (the F-16 layout)",
+  "caption": "The Real HUD in NAV: the steering bug over the steerpoint's bearing, the steerpoint block",
   "mission": 231,
   "start": "airborne",
   "crop": "hud",
@@ -259,7 +259,7 @@
  },
  {
   "name": "hud_mrm",
-  "caption": "AMRAAM: ASEC and the DLZ",
+  "caption": "Radar missile: the launch circle, the steering dot and the launch-zone scale",
   "mission": 231,
   "start": "airborne",
   "loadout": [
@@ -347,7 +347,7 @@
  },
  {
   "name": "hud_srm",
-  "caption": "AIM-9L with the seeker locked",
+  "caption": "IR missile with the seeker locked (the diamond)",
   "mission": 231,
   "start": "airborne",
   "loadout": [
@@ -434,8 +434,8 @@
   }
  },
  {
-  "name": "hud_eegs",
-  "caption": "The gun: EEGS with a locked target",
+  "name": "hud_gun",
+  "caption": "The gun: the LCOS reticle with a locked target",
   "mission": 231,
   "start": "airborne",
   "loadout": [
@@ -523,7 +523,7 @@
  },
  {
   "name": "hud_ccip",
-  "caption": "CCIP with the pipper on a target",
+  "caption": "CCIP: the fall line and the pipper on a target",
   "mission": 231,
   "start": "dive",
   "loadout": [

@@ -21,7 +21,7 @@ these has to be switched on.
 | ---------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------- |
 | Flight data            | Real aircraft                     | The Lavi design numbers (PW1120, Jane's 1987-88): weight, fuel, thrust, stall speed, fuel flow, ceiling |
 | Weapon data            | Real weapons                      | Real missile weights, speeds and ranges, the EL/M-2035 radar range (46 km) |
-| HUD                    | Real                              | The F-16's HUD on the Lavi (the Lavi's own symbology is not public: a reconstruction)                         |
+| HUD                    | Real                              | The Lavi's own wide-angle HUD (its real symbology is not public: a reconstruction)                           |
 | HUD pitch ladder       | Conformal                         | The ladder lies on the real horizon (only matters with the original HUD)                            |
 | Sky                    | Atmospheric                       | A physical sky with the sun, and haze that takes its colour                                         |
 | Terrain close up       | Detailed                          | Ground detail below about 500 m                                                                     |
@@ -125,7 +125,7 @@ This is the procedure from the game's take-off lesson:
 5. At **145 kt**, pull gently back until the flight path marker is above the horizon.
 6. Gear up (**G**) and flaps up (**F**). Keep the gear speed below 300 kt.
 
-![Take-off roll, HUD gear down](shots/lavi/takeoff_roll.png)
+![Take-off roll, HUD gear down (AOA, radar altitude)](shots/lavi/takeoff_roll.png)
 
 ### Landing
 
@@ -168,13 +168,21 @@ With Real landing limits and Easy landing off, a touchdown faster than **4 m/s (
 
 ## 5. The Real HUD
 
-The Lavi's real symbology is not public (it had a Hughes wide-angle HUD and Elbit displays), so the Real HUD draws
-**the F-16's HUD** on the Lavi: a reconstruction. Everything in the F-16 guide's HUD section applies: the airspeed
-and altitude tapes with boxed readouts, the **R** radar-altitude box, the left and right data columns, the heading
-scale (bottom in NAV, top in A-G and gear down), the bank scale, the bending pitch ladder with the zenith star and
-nadir earth, the `FUEL` / `SHOOT` window and the gear-down AoA bracket. **H** changes the HUD colour.
+The real Lavi had a Hughes wide-angle HUD driven by Elbit's display system, but its symbology was never published.
+The Real HUD draws its own reconstruction of a late-1980s wide-angle HUD (not the F-16's):
 
-![The Real HUD in NAV (the F-16 layout)](shots/lavi/hud_nav.png)
+- **Airspeed** (KCAS) in a box on the left, **altitude** in a box on the right. Under the airspeed: Mach, G, the AoA
+  with the gear down, the mode or weapon (`NAV`, `SRM 2`, `MRM 2`, `GUN`, `STRF`, `CCIP`) and **SHOOT**. Under the
+  altitude: the radar altitude **R** below 5,000 ft, then the steerpoint: `WP` number, distance in NM, time to go.
+- **Heading scale** on top, the heading boxed under it. The **steering bug** (a V above the scale) marks the
+  steerpoint's bearing: turn to put it over the centre. When the steerpoint is outside the scale, the bug becomes an
+  **arrow at the scale's end** pointing the way to turn, with the bearing written beside it.
+- Straight **climb / dive bars** every 5° (dive bars dashed), the flight path marker, and the steerpoint as a diamond on
+  the ground (an X over it when it is held at the HUD's edge).
+
+**H** changes the HUD colour.
+
+![The Real HUD in NAV: the steering bug over the steerpoint's bearing, the steerpoint block](shots/lavi/hud_nav.png)
 
 Looking aside (**Shift+arrows**, **F3**), the Lavi's helmet sight shows the original game's helmet symbol.
 
@@ -259,11 +267,11 @@ jet's allowed counts, as the original does.
 The real Lavi had a 30 mm DEFA; the game gives it the 20 mm gun. Its real round count is not published, so with Real
 weapon data it keeps the game's gun and count.
 
-- **A-A gun** (**]** to the gun): the Real HUD's **EEGS** funnel, with a radar lock the T-symbol, the pipper and the
-  range circle.
-- **A-G gun** (**[** to the gun): **STRF**, a strafe pipper on the predicted impact.
+- **A-A gun** (**]** to the gun): `GUN`, the **LCOS** reticle on the lead-computed aim point; with a radar lock its
+  range arc runs round the ring (1,000 ft per tick).
+- **A-G gun** (**[** to the gun): **STRF**, a strafe pipper on the predicted impact, with the gun cross.
 
-![The gun: EEGS with a locked target](shots/lavi/hud_eegs.png)
+![The gun: the LCOS reticle with a locked target](shots/lavi/hud_gun.png)
 
 ### IR missiles: AIM-9L, Python 4
 
@@ -277,19 +285,21 @@ weapon data it keeps the game's gun and count.
 3. **Off-boresight**: in the free-look view (**Shift+arrows**) or padlock (**F3**), the Lavi's helmet sight lets the
    seeker take the target you look at, within the missile's cone.
 4. Beyond **half** its range the seeker sees only a jet **with its afterburner lit**.
-5. Fire with **Space** when locked. Locked and in range, the Real HUD shows **SHOOT** in the centre window.
+5. Fire with **Space** when locked. Locked and in range, the Real HUD shows **SHOOT** under the mode. The seeker is
+   the **diamond** inside the missile circle.
 
-![AIM-9L with the seeker locked](shots/lavi/hud_srm.png)
+![IR missile with the seeker locked (the diamond)](shots/lavi/hud_srm.png)
 
 ### Radar missiles: AMRAAM
 
 Real data: 157 kg, Mach 4, 70 km, active: it needs nothing after the launch.
 
 1. Radar on (**R**), lock a target.
-2. **]** until `MRM`. The Real HUD shows the **ASEC** circle with its steering dot and the **DLZ** on the right.
-3. Inside the DLZ, steer the dot into the circle: **SHOOT** comes up. Fire (**Space**).
+2. **]** until `MRM`. The Real HUD shows the launch circle with its steering dot, the target box, and the
+   launch-zone scale on the right (max / min ticks, the target's range caret with the closure).
+3. Inside the zone, steer the dot into the circle: **SHOOT** comes up under the mode. Fire (**Space**).
 
-![AMRAAM: ASEC and the DLZ](shots/lavi/hud_mrm.png)
+![Radar missile: the launch circle, the steering dot and the launch-zone scale](shots/lavi/hud_mrm.png)
 
 ### Bombs and rockets: CCIP
 
@@ -302,7 +312,7 @@ MK-82 / MK-83 / MK-84 / M117 and ZUNNI rockets.
    the bombs go when the time-to-go reaches 0.9 s.
 4. The ripple quantity and spacing are set on the stores page.
 
-![CCIP with the pipper on a target](shots/lavi/hud_ccip.png)
+![CCIP: the fall line and the pipper on a target](shots/lavi/hud_ccip.png)
 
 ### Laser bombs: MK-82L, MK-83L, MK-84L
 
