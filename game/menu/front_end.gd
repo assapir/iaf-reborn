@@ -1819,6 +1819,9 @@ func _on_button(key: String) -> void:
 			"removepilot":
 				records.remove_pilot()
 		return
+	if screen == "main" and _norm(label) == "jumpin":
+		_jump_in()
+		return
 	var target: String = FORWARD.get(screen, {}).get(_norm(label), "")
 	if target != "":
 		_go(target)
@@ -1851,7 +1854,7 @@ func _debrief_button(label: String) -> void:
 		_go(new_mission_screen(id))
 		return
 	if label == "nextmission":
-		id = next_mission(id, passed or _cheat())
+		id = next_mission(id, passed or _cheat(), history, randi())
 		Settings.mission_id = id
 	elif label != "replaymission":
 		return
@@ -1878,9 +1881,12 @@ static func new_mission_screen(id: int) -> String:
 
 ## The mission Next Mission flies (FUN_004ff7e0; 0 = none, the button is disabled): the next one of the
 ## war or course, a Future front's next only when this one was passed (FUN_004f6d40; or the "make sim" /
-## "not war" cheat, passed in by the callers as `passed`). Not ported: the Jump_In pick for 401–407 (FUN_004f1650) and the
-## multiplayer-only 511–516 rules (single player gets 1 / 0 there).
-static func next_mission(id: int, passed: bool) -> int:
+## "not war" cheat, passed in by the callers as `passed`); after a scramble mission 401–407, the Jump_In pick
+## (scramble_mission(): the pilot's `history`, `r` a rand() value). Not ported: the multiplayer-only 511–516 rules
+## (single player gets 1 / 0 there).
+static func next_mission(id: int, passed: bool, history: Array = [], r := 0) -> int:
+	if id >= 401 and id <= 407:
+		return scramble_mission(history, id, r)
 	match id:
 		117:
 			return 121
@@ -1898,6 +1904,46 @@ static func next_mission(id: int, passed: bool) -> int:
 	if (id >= 211 and id <= 216) or (id >= 221 and id <= 226) or (id >= 231 and id <= 236):
 		return id + 1 if passed else 0
 	return 0
+
+
+## The scramble mission Jump_In flies (FUN_004f1650), from the pilot's `history`, the mission flown last
+## (`current`, DAT_0083b810, any id) and `r`, a rand() value (the exe seeds srand(time(0)) first):
+## * while 407 has no attempts (FUN_004f6d70, the attempt count): the mission after the highest attempted one of
+##   401–406 (gaps do not matter), or 401 if none has an attempt;
+## * then a random one of 401–407 that has no pass (FUN_004f6d40) and is not `current`;
+## * when all of them have a pass: index r % 6 among the ids that are not `current`. When `current` is not a
+##   scramble mission there are 7 of them and 407 is never picked (as in the exe).
+static func scramble_mission(history: Array, current: int, r: int) -> int:
+	if Pilots.attempts(history, 407).is_empty():
+		for id in range(406, 400, -1):
+			if not Pilots.attempts(history, id).is_empty():
+				return id + 1
+		return 401
+	var open := range(401, 408).filter(func(id): return id != current and Pilots.passes(history, id) == 0)
+	if not open.is_empty():
+		return open[r % open.size()]
+	return range(401, 408).filter(func(id): return id != current)[r % 6]
+
+
+## Jump_In on Main (FUN_004ec770): the scramble mission of scramble_mission() goes straight into the flight.
+## With the "make sim" / "not war" cheat the exe asks instead, in a Windows message box titled "Scramble
+## Mission", "Do you want a 401 mission ?", then 402 … 407: Yes flies that one, No asks for the next, No to
+## 407 stays on Main.
+func _jump_in(n := 401) -> void:
+	if not _cheat():
+		_fly_scramble(scramble_mission(history, Settings.mission_id, randi()))
+		return
+	if n > 407:
+		return
+	var text := "%s\n\n%s" % [_t("Scramble Mission"), _t("Do you want a %d mission ?") % n]
+	_message(-1, [["yes", _fly_scramble.bind(n)], ["no", _jump_in.bind(n + 1)]], text)
+
+
+func _fly_scramble(id: int) -> void:
+	Settings.mission_id = id
+	Settings.jet_id = -1  # the mission's own jet
+	Settings.debrief = {}
+	_load_mission()
 
 
 ## TSD / Arming buttons (§8; Fly FUN_005045b0, Arming FUN_005070c0).
@@ -2014,6 +2060,8 @@ func _fly() -> void:
 	if tsd != null:
 		Settings.route_override = tsd.selected_route()
 		Settings.player_flight = tsd.default_flight()
+	else:
+		Settings.route_override = []
 	busy = true
 	get_tree().change_scene_to_file("res://terrain/terrain_view.tscn")
 
@@ -2076,7 +2124,8 @@ func _slide(to: float, wav: String) -> void:
 
 
 ## Mission load (FUN_004edec0): wait.bmp in the content window, music fades out over 6 s,
-## then the TSD.
+## then the TSD; a scramble mission 400–499 goes straight into the flight (FUN_004ec770 / FUN_004ff540
+## close the menu after the load).
 func _load_mission() -> void:
 	busy = true
 	loading = true
@@ -2087,6 +2136,9 @@ func _load_mission() -> void:
 	fade.tween_callback(music.stop)
 	for i in 3:
 		await get_tree().process_frame
+	if Settings.mission_id >= 400 and Settings.mission_id <= 499:
+		_fly()
+		return
 	busy = false
 	await _go("tsd")
 	loading = false
@@ -2161,12 +2213,14 @@ func _exit_tree() -> void:
 # --- message box (§3.3) ---------------------------------------------------------------------
 
 ## Shows txt/msgs.trx line `msg` with buttons [[art, action]] ("yes", "no", "can", "ok"); a button
-## closes the box, then runs its action.
-func _message(msg: int, buttons: Array) -> void:
+## closes the box, then runs its action. A `text` replaces the msgs.trx line.
+func _message(msg: int, buttons: Array, text := "") -> void:
 	var arts: Array = buttons.map(func(b): return b[0])
 	msgbox = preload("res://mission/mission_box.gd").new()
 	add_child(msgbox)
 	msgbox.setup(msg, arts)
+	if text != "":
+		msgbox.text = text
 	msgbox.on_click = _play
 	msgbox.chosen.connect(func(art: String):
 		var action: Callable = buttons[arts.find(art)][1]

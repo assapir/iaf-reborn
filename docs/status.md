@@ -56,7 +56,7 @@ STBY / STT / BORE / LRS / TWS / ACM / GMT / MAP are the radar modes (docs/radar.
 - Left: the demo video (H.264).
 
 **3. Missions and general fixes:** the mission sweep (`tools/mission_sweep.sh`), the remaining small bugs below,
-Jump In, the Reference screen, ~~night lighting~~ (done: the
+~~Jump In~~ (done: docs/front-end.md §13.11), the Reference screen, ~~night lighting~~ (done: the
 original's light points and cockpit darkening, Graphics → MORE Night lights; docs/rendering.md §4–§5), detailed
 airbases (Graphics → MORE Airbases: procedural runway / taxiway / apron surface with markings at all ten iaf.ibx bases;
 docs/rendering.md §7) and the airbase footprints of the Survey imagery (the 2 m photo up to the base edge,
@@ -142,7 +142,7 @@ Checked against the code on 2026-10-14 (each doc's own "not built" notes have th
   into another jet / Visit / live unit positions (docs/views.md).
 - **Sounds**: Betty "Pull up" and the HUD pull-up cue.
 - **Radio**: AWACS contact calls; airborne / landed / crashed / kill ("… is down") reports.
-- **Front end**: Jump In / Scramble (button not wired); the debrief page's statistics; Graphics defaults from hardware
+- **Front end**: the debrief page's statistics; Graphics defaults from hardware
   detection, TERRAIN DETAIL's resolution drop / view distance (docs/deviations.md §1). No wind / No malfunctions have
   no reader in the original either.
 - **Eject**: parachute swing and landing.
@@ -167,7 +167,7 @@ Checked against the code on 2026-10-14 (each doc's own "not built" notes have th
   no import of original files (maybe a converter later if easy).
 - Screenshots (SysRQ): PNG, timestamped, in the user data folder (original: IafJets000.bmp in the game folder).
 - Multiplayer (incl. the original's TCP/IP lobby mode): after the single-player game is finished.
-- Jump In after the combat core (also useful for testing). Mission Creator much later.
+- Mission Creator much later.
 - Setup ends with one launcher you can click / call (a run script + a .desktop entry, on macOS an .app, with the
   game's icon from the CD). CI and release packages: not urgent.
 - Every change from the original is listed in `docs/deviations.md`.

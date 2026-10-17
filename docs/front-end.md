@@ -299,7 +299,7 @@ Button-release dispatcher `FUN_004ec770`. Labels are compared ignoring case, spa
 
 | screen | button → screen |
 |---|---|
-| Main (1) | Training→6, Campaigns→0xb, Preferences→3, MissionCreator→0x14, PilotRecords→0 (Log), Reference→5, MultiPlayer→0x15, Jump_In→random scramble mission 0x191–0x197 (message box "Scramble Mission") |
+| Main (1) | Training→6, Campaigns→0xb, Preferences→3, MissionCreator→0x14, PilotRecords→0 (Log), Reference→5, MultiPlayer→0x15, Jump_In→a scramble mission 401–407 (§13.11), loaded and flown straight away (no TSD); with the cheat, message boxes "Scramble Mission" ask for each one |
 | Training (6) | Basic_Course→7, Combat_Course→8 |
 | Basic (7) / Combat (8) | any mission button → Jet 9 / 10 |
 | Jet (9, 10), His1–3Mis, Fut1–3Mis (0xe–0x13) | load the mission → TSD 0x1e (single player). **Campaign missions skip the Jet list.** |
@@ -1669,14 +1669,32 @@ Next Mission is disabled when this is 0.
 * other ids in 300–399 do nothing;
 * any other mission is reloaded (`FUN_004edec0` → TSD 0x1e; 400–499 go straight into the flight).
 
-Port: `front_end.gd` `_debrief_button`, `next_mission`, `new_mission_screen`. The cheat's row unlock and Next
-Mission are ported. Jump_In is not wired, so its "40N mission?" prompt and the 401–407 pick are not ported either.
+Port: `front_end.gd` `_debrief_button`, `next_mission`, `new_mission_screen`, `scramble_mission`, `_jump_in`. All of
+this section is ported. Test: test_scramble.
 
-**Jump_In without the cheat** (`FUN_004f1650`):
-* While 407 has no attempts: the mission after the highest attempted id in 401–406, or 401 if none
-  has been attempted.
-* After that: a random scramble mission not yet passed, excluding the current one.
-* If all are passed: a random one of the other six.
+**Jump_In** (Main, `FUN_004ec770`):
+* Without the cheat, Jump_In picks a scramble mission (`FUN_004f1650`, below), loads it (`FUN_004edec0`, wait.bmp)
+  and closes the menu (`+0x5c = 1`, `FUN_004e9460`). The flight starts at once, with the mission's own jet. No
+  message box appears and the TSD is skipped.
+* With the cheat, Jump_In shows up to seven Windows message boxes (`MessageBoxA` type 4, Yes / No). Each has the
+  title "Scramble Mission" and the text "Do you want a 401 mission ?" (then 402 … 407; the exe's English strings,
+  with a space before the "?"). Yes flies that mission as above. No shows the next box. No to 407 stays on Main.
+  The port draws these in the game's own message box (docs/deviations.md).
+
+**The scramble pick** (`FUN_004f1650`). "Attempted" is the mission's attempt count (`FUN_004f6d70`, the history
+node's +4); "passed" is any attempt with a result > 0 (`FUN_004f6d40`). "Current" is the mission flown last
+(`DAT_0083b810`, any id).
+* While 407 has no attempts: the mission after the highest attempted id in 401–406 (lower gaps do not matter), or
+  401 if none has been attempted.
+* After that: a random mission of 401–407 that has no pass and is not the current one.
+* If all are passed: `rand() % 6` counts through the ids of 401–407 that are not the current one. After a mission
+  outside 401–407 that leaves 7 ids, so 407 is never picked.
+* The random number is `rand()` after `srand(time(0))` (`FUN_00566f20` / `FUN_00566f30`); the port uses Godot's
+  `randi()`.
+* Debrief Next Mission after 401–407 makes the same pick (`FUN_004ff7e0`). Replay and Next fly it straight away
+  (`FUN_004ff540`), and New Mission goes to Main.
+* Not ported: `FUN_004edec0` sets the player's control mode (status +0x14) to 3 on loading a 400–499 mission
+  (docs/controls.md); the port's player always flies.
 
 ### 13.12 Notes / UNCERTAIN
 * `R[0]` / `R[1]` are traced (§13.7: the passed flag and the MissBonus).

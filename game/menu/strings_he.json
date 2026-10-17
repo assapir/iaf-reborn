@@ -101,7 +101,9 @@
   "AA": "אוויר-אוויר",
   "AG": "אוויר-קרקע",
   "Pilot guide": "מדריך טייס",
-  "Open PDF": "פתח PDF"
+  "Open PDF": "פתח PDF",
+  "Scramble Mission": "משימת הזנקה",
+  "Do you want a %d mission ?": "האם ברצונך לטוס משימה %d ?"
  },
  "msgs": {
   "YES": "כן",
