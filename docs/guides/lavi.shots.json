@@ -1,14 +1,13 @@
 [
  {
-  "name": "cockpit_runway",
-  "caption": "The Lavi cockpit on the runway",
-  "mission": 311,
-  "crop": "full",
+  "name": "hud_original",
+  "caption": "The 1998 HUD at the start of mission 231",
+  "mission": 231,
   "jet": 4,
   "settings": {
    "flight_data": "real",
    "weapon_data": "real",
-   "hud_style": "real",
+   "hud_style": "original",
    "hud_ladder": "conformal",
    "sky": "atmospheric",
    "terrain_closeup": true,
@@ -37,18 +36,16 @@
     "fix_bomb_burst": true,
     "fix_ghost_collision": true
    }
-  }
+  },
+  "start": "airborne",
+  "crop": "hud",
+  "crop_w": 0.28
  },
  {
-  "name": "takeoff_roll",
-  "caption": "Take-off roll, HUD gear down (AOA, radar altitude)",
-  "mission": 311,
-  "actions": [
-   "key:1",
-   "key:B",
-   "key:8",
-   "wait:14"
-  ],
+  "name": "hud_nav",
+  "caption": "NAV at 10,000 ft and 427 kt, steerpoint 1 ahead",
+  "mission": 231,
+  "start": "airborne",
   "crop": "hud",
   "jet": 4,
   "settings": {
@@ -83,11 +80,140 @@
     "fix_bomb_burst": true,
     "fix_ghost_collision": true
    }
-  }
+  },
+  "crop_w": 0.28,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "text:^427$",
+    "label_at": [
+     0.102,
+     0.298
+    ]
+   },
+   {
+    "n": 2,
+    "sym": "text:^M ",
+    "label_at": [
+     0.093,
+     0.395
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "text:^G ",
+    "label_at": [
+     0.093,
+     0.462
+    ]
+   },
+   {
+    "n": 4,
+    "sym": "text:^NAV$",
+    "label_at": [
+     0.093,
+     0.529
+    ]
+   },
+   {
+    "n": 5,
+    "sym": "text:^100\\d\\d$",
+    "label_at": [
+     0.921,
+     0.298
+    ]
+   },
+   {
+    "n": 6,
+    "sym": "text:^WP ",
+    "label_at": [
+     0.921,
+     0.395
+    ]
+   },
+   {
+    "n": 7,
+    "sym": "text:NM$",
+    "label_at": [
+     0.921,
+     0.462
+    ]
+   },
+   {
+    "n": 8,
+    "sym": "text:^\\d\\d:\\d\\d$",
+    "label_at": [
+     0.921,
+     0.529
+    ]
+   },
+   {
+    "n": 9,
+    "sym": "text:^270$",
+    "label_at": [
+     0.595,
+     0.246
+    ]
+   },
+   {
+    "n": 10,
+    "px": [
+     0.5,
+     0.107
+    ],
+    "label_at": [
+     0.577,
+     0.06
+    ]
+   },
+   {
+    "n": 11,
+    "sym": "fpm",
+    "label_at": [
+     0.4,
+     0.224
+    ],
+    "d": [
+     -5,
+     0
+    ]
+   },
+   {
+    "n": 12,
+    "sym": "horizon",
+    "label_at": [
+     0.651,
+     0.358
+    ],
+    "d": [
+     45,
+     0
+    ]
+   },
+   {
+    "n": 13,
+    "sym": "text:^-5$",
+    "label_at": [
+     0.307,
+     0.626
+    ]
+   },
+   {
+    "n": 14,
+    "px": [
+     0.5,
+     0.571
+    ],
+    "label_at": [
+     0.577,
+     0.641
+    ]
+   }
+  ]
  },
  {
   "name": "landing_final",
-  "caption": "Final approach, gear down",
+  "caption": "Final approach, gear down, 5° AoA",
   "mission": 311,
   "start": "final",
   "final_m": 4000,
@@ -126,233 +252,105 @@
     "fix_bomb_burst": true,
     "fix_ghost_collision": true
    }
-  }
- },
- {
-  "name": "hud_nav",
-  "caption": "The Real HUD in NAV: the steering bug over the steerpoint's bearing, the steerpoint block",
-  "mission": 231,
-  "start": "airborne",
-  "crop": "hud",
-  "jet": 4,
-  "settings": {
-   "flight_data": "real",
-   "weapon_data": "real",
-   "hud_style": "real",
-   "hud_ladder": "conformal",
-   "sky": "atmospheric",
-   "terrain_closeup": true,
-   "imagery_israel": "mapi2015",
-   "imagery_outside": "sentinel2",
-   "easy_landing": false,
-   "easy_aiming": false,
-   "better": {
-    "flight_path_hold": true,
-    "force_angles": true,
-    "start_lift": true,
-    "start_rpm": true,
-    "start_alpha": true,
-    "landing_limits": true,
-    "spin_fixes": true,
-    "fbw_departure": true,
-    "lift_rate_floor": true,
-    "low_speed_roll": true,
-    "no_nose_wheel_lift": true,
-    "ground_effect": true,
-    "ground_idle": true,
-    "fix_fall_heading": true,
-    "fix_skill_damage": true,
-    "fix_lock_threat": true,
-    "fix_stores_weight": true,
-    "fix_bomb_burst": true,
-    "fix_ghost_collision": true
-   }
-  }
- },
- {
-  "name": "mfd_radar_stt",
-  "caption": "The radar page with a locked contact",
-  "mission": 231,
-  "start": "airborne",
-  "loadout": [
-   [
-    0,
-    0
-   ],
-   [
-    8,
-    1
-   ],
-   [
-    0,
-    0
-   ],
-   [
-    0,
-    0
-   ],
-   [
-    0,
-    0
-   ],
-   [
-    0,
-    0
-   ],
-   [
-    0,
-    0
-   ],
-   [
-    8,
-    1
-   ],
-   [
-    0,
-    0
-   ]
-  ],
-  "place": {
-   "unit_prefix": "mig23",
-   "ahead_m": 8000
   },
-  "actions": [
-   "lock",
-   "wait:1"
-  ],
-  "panel": 1.0,
-  "crop": "mfd_left",
-  "jet": 4,
-  "settings": {
-   "flight_data": "real",
-   "weapon_data": "real",
-   "hud_style": "real",
-   "hud_ladder": "conformal",
-   "sky": "atmospheric",
-   "terrain_closeup": true,
-   "imagery_israel": "mapi2015",
-   "imagery_outside": "sentinel2",
-   "easy_landing": false,
-   "easy_aiming": false,
-   "better": {
-    "flight_path_hold": true,
-    "force_angles": true,
-    "start_lift": true,
-    "start_rpm": true,
-    "start_alpha": true,
-    "landing_limits": true,
-    "spin_fixes": true,
-    "fbw_departure": true,
-    "lift_rate_floor": true,
-    "low_speed_roll": true,
-    "no_nose_wheel_lift": true,
-    "ground_effect": true,
-    "ground_idle": true,
-    "fix_fall_heading": true,
-    "fix_skill_damage": true,
-    "fix_lock_threat": true,
-    "fix_stores_weight": true,
-    "fix_bomb_burst": true,
-    "fix_ghost_collision": true
+  "crop_w": 0.28,
+  "final_aoa": 5,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "fpm",
+    "label_at": [
+     0.391,
+     0.626
+    ],
+    "d": [
+     -5,
+     0
+    ]
+   },
+   {
+    "n": 2,
+    "px": [
+     0.53,
+     0.335
+    ],
+    "label_at": [
+     0.605,
+     0.283
+    ]
+   },
+   {
+    "n": 3,
+    "px": [
+     0.268,
+     0.32
+    ],
+    "label_at": [
+     0.316,
+     0.246
+    ]
+   },
+   {
+    "n": 4,
+    "sym": "text:^254$",
+    "label_at": [
+     0.837,
+     0.224
+    ]
+   },
+   {
+    "n": 5,
+    "sym": "text:^AOA ",
+    "label_at": [
+     0.084,
+     0.492
+    ]
+   },
+   {
+    "n": 6,
+    "sym": "text:^R ",
+    "label_at": [
+     0.921,
+     0.417
+    ]
+   },
+   {
+    "n": 7,
+    "px": [
+     0.733,
+     0.298
+    ],
+    "label_at": [
+     0.651,
+     0.261
+    ]
+   },
+   {
+    "n": 8,
+    "sym": "text:^141$",
+    "label_at": [
+     0.084,
+     0.335
+    ]
+   },
+   {
+    "n": 9,
+    "sym": "text:^150$",
+    "label_at": [
+     0.4,
+     0.261
+    ]
    }
-  }
- },
- {
-  "name": "hud_mrm",
-  "caption": "Radar missile: the launch circle, the steering dot and the launch-zone scale",
-  "mission": 231,
-  "start": "airborne",
-  "loadout": [
-   [
-    0,
-    0
-   ],
-   [
-    8,
-    1
-   ],
-   [
-    0,
-    0
-   ],
-   [
-    0,
-    0
-   ],
-   [
-    0,
-    0
-   ],
-   [
-    0,
-    0
-   ],
-   [
-    0,
-    0
-   ],
-   [
-    8,
-    1
-   ],
-   [
-    0,
-    0
-   ]
-  ],
-  "place": {
-   "unit_prefix": "mig23",
-   "ahead_m": 3500
-  },
-  "actions": [
-   "lock",
-   "station:1",
-   "wait:1"
-  ],
-  "crop": "hud",
-  "jet": 4,
-  "settings": {
-   "flight_data": "real",
-   "weapon_data": "real",
-   "hud_style": "real",
-   "hud_ladder": "conformal",
-   "sky": "atmospheric",
-   "terrain_closeup": true,
-   "imagery_israel": "mapi2015",
-   "imagery_outside": "sentinel2",
-   "easy_landing": false,
-   "easy_aiming": false,
-   "better": {
-    "flight_path_hold": true,
-    "force_angles": true,
-    "start_lift": true,
-    "start_rpm": true,
-    "start_alpha": true,
-    "landing_limits": true,
-    "spin_fixes": true,
-    "fbw_departure": true,
-    "lift_rate_floor": true,
-    "low_speed_roll": true,
-    "no_nose_wheel_lift": true,
-    "ground_effect": true,
-    "ground_idle": true,
-    "fix_fall_heading": true,
-    "fix_skill_damage": true,
-    "fix_lock_threat": true,
-    "fix_stores_weight": true,
-    "fix_bomb_burst": true,
-    "fix_ghost_collision": true
-   }
-  }
+  ]
  },
  {
   "name": "hud_srm",
-  "caption": "IR missile with the seeker locked (the diamond)",
+  "caption": "A Python 4 locked on a MiG-23 1,500 m ahead",
   "mission": 231,
   "start": "airborne",
   "loadout": [
    [
-    11,
+    22,
     1
    ],
    [
@@ -384,13 +382,13 @@
     0
    ],
    [
-    11,
+    22,
     1
    ]
   ],
   "place": {
    "unit_prefix": "mig23",
-   "ahead_m": 3000
+   "ahead_m": 1500
   },
   "actions": [
    "lock",
@@ -431,11 +429,259 @@
     "fix_bomb_burst": true,
     "fix_ghost_collision": true
    }
-  }
+  },
+  "crop_w": 0.28,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "circle:1",
+    "label_at": [
+     0.372,
+     0.626
+    ],
+    "edge": 225
+   },
+   {
+    "n": 2,
+    "sym": "target",
+    "label_at": [
+     0.4,
+     0.209
+    ],
+    "d": [
+     -8.3,
+     -8.3
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "seeker",
+    "label_at": [
+     0.605,
+     0.246
+    ],
+    "d": [
+     3.4,
+     0
+    ]
+   },
+   {
+    "n": 4,
+    "sym": "text:^SHOOT$",
+    "label_at": [
+     0.093,
+     0.581
+    ]
+   },
+   {
+    "n": 5,
+    "sym": "text:^SRM",
+    "label_at": [
+     0.093,
+     0.477
+    ]
+   },
+   {
+    "n": 6,
+    "sym": "text:>$",
+    "label_at": [
+     0.605,
+     0.566
+    ]
+   },
+   {
+    "n": 7,
+    "sym": "text:^10$",
+    "label_at": [
+     0.791,
+     0.224
+    ]
+   }
+  ]
+ },
+ {
+  "name": "hud_mrm",
+  "caption": "An AMRAAM locked on a MiG-23 8 NM ahead",
+  "mission": 231,
+  "start": "airborne",
+  "loadout": [
+   [
+    0,
+    0
+   ],
+   [
+    8,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    8,
+    1
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "place": {
+   "unit_prefix": "mig23",
+   "ahead_m": 14800
+  },
+  "actions": [
+   "lock",
+   "station:1",
+   "wait:1"
+  ],
+  "crop": "hud",
+  "jet": 4,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   }
+  },
+  "crop_w": 0.28,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "target",
+    "label_at": [
+     0.4,
+     0.209
+    ],
+    "d": [
+     -8.3,
+     -8.3
+    ]
+   },
+   {
+    "n": 2,
+    "sym": "steering",
+    "label_at": [
+     0.605,
+     0.238
+    ],
+    "d": [
+     2,
+     -2
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "circle:1",
+    "label_at": [
+     0.372,
+     0.626
+    ],
+    "edge": 225
+   },
+   {
+    "n": 4,
+    "sym": "text:^SHOOT$",
+    "label_at": [
+     0.093,
+     0.581
+    ]
+   },
+   {
+    "n": 5,
+    "sym": "text:^MRM",
+    "label_at": [
+     0.093,
+     0.477
+    ]
+   },
+   {
+    "n": 6,
+    "sym": "text:^80$",
+    "label_at": [
+     0.791,
+     0.209
+    ]
+   },
+   {
+    "n": 7,
+    "sym": "text:^80$",
+    "label_at": [
+     0.633,
+     0.335
+    ],
+    "d": [
+     3,
+     27.5
+    ]
+   },
+   {
+    "n": 8,
+    "sym": "text:^80$",
+    "label_at": [
+     0.651,
+     0.551
+    ],
+    "d": [
+     3,
+     56.2
+    ]
+   },
+   {
+    "n": 9,
+    "sym": "text:>$",
+    "label_at": [
+     0.595,
+     0.477
+    ]
+   }
+  ]
  },
  {
   "name": "hud_gun",
-  "caption": "The gun: the LCOS reticle with a locked target",
+  "caption": "The gun's LCOS reticle on a MiG-23 at 2,600 ft",
   "mission": 231,
   "start": "airborne",
   "loadout": [
@@ -519,11 +765,202 @@
     "fix_bomb_burst": true,
     "fix_ghost_collision": true
    }
-  }
+  },
+  "crop_w": 0.22,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "circle:1",
+    "label_at": [
+     0.355,
+     0.474
+    ],
+    "edge": 225
+   },
+   {
+    "n": 2,
+    "sym": "circle:2",
+    "label_at": [
+     0.664,
+     0.133
+    ],
+    "edge": 45
+   },
+   {
+    "n": 3,
+    "sym": "circle:3",
+    "label_at": [
+     0.344,
+     0.228
+    ],
+    "edge": 315
+   },
+   {
+    "n": 4,
+    "sym": "lcos",
+    "label_at": [
+     0.687,
+     0.38
+    ]
+   },
+   {
+    "n": 5,
+    "sym": "target",
+    "label_at": [
+     0.355,
+     0.095
+    ],
+    "d": [
+     -8.3,
+     -8.3
+    ]
+   },
+   {
+    "n": 6,
+    "sym": "text:^GUN$",
+    "label_at": [
+     0.047,
+     0.49
+    ]
+   }
+  ]
+ },
+ {
+  "name": "hud_strf",
+  "caption": "STRF in a 20° dive",
+  "mission": 231,
+  "jet": 4,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   }
+  },
+  "start": "dive",
+  "dive_deg": 20,
+  "dive_agl": 600,
+  "speed": 220,
+  "loadout": [
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "place": {
+   "ground_unit": true,
+   "ahead_m": 1620
+  },
+  "actions": [
+   "ag:9",
+   "wait:0.5"
+  ],
+  "crop": "hud",
+  "crop_w": 0.28,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "pipper",
+    "label_at": [
+     0.633,
+     0.373
+    ],
+    "d": [
+     4.2,
+     0
+    ]
+   },
+   {
+    "n": 2,
+    "sym": "gun_cross",
+    "label_at": [
+     0.372,
+     0.253
+    ],
+    "d": [
+     -4,
+     0
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "text:^STRF$",
+    "label_at": [
+     0.093,
+     0.507
+    ]
+   },
+   {
+    "n": 4,
+    "sym": "text:^R ",
+    "label_at": [
+     0.921,
+     0.417
+    ]
+   }
+  ]
  },
  {
   "name": "hud_ccip",
-  "caption": "CCIP: the fall line and the pipper on a target",
+  "caption": "CCIP in a 45° dive at 2,300 ft above the ground",
   "mission": 231,
   "start": "dive",
   "loadout": [
@@ -611,7 +1048,62 @@
     "fix_bomb_burst": true,
     "fix_ghost_collision": true
    }
-  }
+  },
+  "crop_w": 0.28,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "pipper",
+    "label_at": [
+     0.633,
+     0.551
+    ],
+    "d": [
+     5.5,
+     0
+    ]
+   },
+   {
+    "n": 2,
+    "sym": "fpm",
+    "label_at": [
+     0.595,
+     0.402
+    ],
+    "d": [
+     0,
+     25
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "fpm",
+    "label_at": [
+     0.4,
+     0.387
+    ],
+    "d": [
+     -5,
+     0
+    ]
+   },
+   {
+    "n": 4,
+    "sym": "text:^CCIP$",
+    "label_at": [
+     0.093,
+     0.507
+    ]
+   },
+   {
+    "n": 5,
+    "sym": "text:^R ",
+    "label_at": [
+     0.921,
+     0.417
+    ]
+   }
+  ]
  },
  {
   "name": "mfd_flir",
@@ -700,6 +1192,63 @@
     "fix_bomb_burst": true,
     "fix_ghost_collision": true
    }
-  }
+  },
+  "annotations": [
+   {
+    "n": 1,
+    "px": [
+     0.475,
+     0.149
+    ],
+    "label_at": [
+     0.404,
+     0.057
+    ]
+   },
+   {
+    "n": 2,
+    "px": [
+     0.707,
+     0.149
+    ],
+    "label_at": [
+     0.848,
+     0.057
+    ]
+   },
+   {
+    "n": 3,
+    "px": [
+     0.162,
+     0.333
+    ],
+    "label_at": [
+     0.101,
+     0.505
+    ]
+   },
+   {
+    "n": 4,
+    "px": [
+     0.495,
+     0.501
+    ],
+    "label_at": [
+     0.768,
+     0.404
+    ]
+   },
+   {
+    "n": 5,
+    "px": [
+     0.677,
+     0.848
+    ],
+    "label_at": [
+     0.869,
+     0.939
+    ]
+   }
+  ]
  }
 ]

@@ -1,316 +1,275 @@
 # Mirage pilot guide (realistic settings)
 
-This guide tells you how to fly the Mirage IIICJ Shahak in this game with every realistic option switched on. The game's
-model is the **single-seat Mirage III** (the Reference text: "Dassault Mirage III, single-seat fighter-bomber"), in IAF
-(Israeli Air Force) camouflage. The Real flight data are the **IIICJ as the IAF flew it, with the SEPR rocket removed**.
-Most "Mirage III" tables give the longer, heavier IIIE. The numbers come from the game's own data and tests. Where the
-game differs from the real jet, the guide says so. Section 10 explains the abbreviations.
+This guide covers what changes in the Mirage IIICJ Shahak when you switch on the realistic options: the real CSF 95
+gyro gunsight in place of a HUD (head-up display), the real jet's numbers, the DEFA guns and the rear-aspect
+missiles. The game's model is the single-seat Mirage III in IAF (Israeli Air Force) camouflage; the Real flight data
+are the IIICJ as the IAF flew it, with the SEPR rocket removed. Each sight mode has its own section: when to use it,
+the keys, a picture with numbered callouts, what each mark means, and a worked example. Section 11 explains the
+abbreviations.
 
-![The Mirage cockpit on the runway](shots/mirage/cockpit_runway.png)
+How to read the pictures: each yellow number points at one mark. The list under the picture explains it.
 
 ---
 
-## 1. Settings
+## 1. What's different in this jet
 
-Set these on the Preferences screen before the flight. Every row starts at the original 1998 game's setting, so switch
-each one on.
+| Area | The 1998 game | With the realistic options |
+| --- | --- | --- |
+| Sight | The game's common HUD: speed and altitude boxes, a heading tape, text rows | The CSF 95 reflector gunsight in its lamp's orange: a fixed cross, an inverted V, and a moving pipper in a ring of 14 diamonds; flight data stays on the panel |
+| Flight data | The Kfir's data: a 20,000 lb jet | Mirage IIICJ (Atar 09C): 13,000 lb empty, 4,800 lb fuel, 375 ft² delta wing, 140 kt stall |
+| Approach | The common training speeds (final 165 kt) | The flapless delta's fast approach: final about 185 kt |
+| Guns | The game's own gun | 2 × DEFA: 2 × 125 rounds at 2 × 1,300 rounds/min, 815 m/s |
+| Missiles | The game's own values | Shafrir 2 (5 km) and AIM-9D (18 km), both rear-aspect: a tone from behind the target |
+| Radar | The game's own range | Cyrano I bis, 27 km |
+| Physics | The original's quirks | Real touchdown limits, ground effect, realistic spins with mechanical controls |
 
-### Extras tab
+![The 1998 HUD at the start of mission 231](shots/mirage/hud_original.png)
 
-| Row                    | Set to                            | What it does                                                                                          |
-| ---------------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Flight data            | Real aircraft                     | The Mirage IIICJ numbers (Atar 09C): weight, fuel, thrust, wing area, stall speed, fuel flow, ceiling |
-| Weapon data            | Real weapons                      | Real missile weights, speeds and ranges, the Cyrano radar range (27 km), 2 × 125 DEFA rounds          |
-| HUD                    | Real                              | The Mirage's CSF 95 gyro gunsight                                                                     |
-| HUD pitch ladder       | Conformal                         | The ladder lies on the real horizon (for the original HUD)                                            |
+The same moment with the Real sight is the first picture of section 3.
 
-### Graphics tab → MORE
+---
 
-Press **MORE** on the Graphics page for these rows.
+## 2. Settings
 
-| Row                    | Set to                            | What it does                                                                                          |
-| ---------------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Sky                    | Atmospheric                       | A physical sky with the sun, and haze that takes its colour                                           |
-| Terrain close up       | Detailed                          | Ground detail below about 500 m                                                                       |
-| Imagery Israel         | Survey 2 m (or Survey 2 m modern) | 2 m photos of Israel, if setup converted them                                                         |
-| Imagery outside Israel | Sentinel-2 (or Sentinel-2 modern) | 10 m satellite imagery outside Israel, if setup converted it                                          |
+Set these on the Preferences screen before the flight. Every row starts at the 1998 game's setting.
+
+| Tab | Row | Set to | What it changes |
+| --- | --- | --- | --- |
+| Extras | Flight data | Real aircraft | The Mirage IIICJ numbers (section 9) |
+| Extras | Weapon data | Real weapons | Radar range, gun rounds, missile weights, speeds and ranges |
+| Extras | HUD | Real | The CSF 95 gunsight |
+| Graphics → MORE | Sky, Terrain close up, Imagery | Atmospheric, Detailed, Survey 2 m / Sentinel-2 | A physical sky, ground detail and photo imagery, if setup converted it |
+| Physics | every row | on | Section 9 lists the ones that change how the Mirage flies |
+| Gameplay | Easy landing, Easy aiming, No blackouts / spins / stalls | off | Real landing limits, real launch rules, g-effects and stalls |
 
 A greyed-out imagery choice needs its data: convert it with `tools/setup.sh --imagery`.
 
-### Physics tab
+---
 
-Switch on every row:
+## 3. The gunsight in flight
 
-| Row                                         | Effect                                                                                                           |
-| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Flight-path hold (neutral stick)            | With the stick centred the jet holds its flight path at every speed                                              |
-| Forces at current AoA / sideslip            | Lift and drag from the jet's actual angle of attack and sideslip                                                 |
-| Air start without jolt                      | The jet starts an air start level and smoothly                                                                   |
-| Air start with engine spooled up            | The engine starts an air start at the throttle's RPM                                                             |
-| Air start trimmed                           | The nose holds steady through the first second of an air start                                                   |
-| Real landing limits (sink, tail strike)     | Touchdown faster than 4 m/s (about 790 ft/min) or a tail strike above 15° nose-up is a crash                     |
-| Realistic spins                             | More realistic spins                                                                                             |
-| F-16 / Lavi deep stall                      | Acts on the fly-by-wire jets; the Mirage has mechanical controls                                                 |
-| Low-speed lift rate fix                     | Fixes the lift response below about 18 m/s                                                                       |
-| No reversed roll at low speed               | Fixes the roll reversal at walking speed                                                                         |
-| No nose-wheel lift quirk                    | Steering on the take-off run keeps the jet on the ground                                                         |
-| Ground effect                               | Less induced drag near the ground: a longer float in the flare                                                   |
-| Real idle thrust on the ground (taxi speed) | At idle the jet settles near 30 kt, a taxi speed                                                                 |
-| Falling jets keep their heading             | A shot-down jet falls along its own heading (the original turns every falling jet to north)                      |
-| No tougher enemies on easy AI levels        | Rookie and Normal enemies take full damage (the original makes them tougher)                                     |
-| Locked enemies know who locked them         | An enemy you lock with the radar knows it was you                                                                |
-| Stores weight fix                           | Every store counts, in the right units                                                                           |
-| Bombs burst at the ground                   | A bomb bursts where it meets the terrain, with its full blast (the original can burst it up to 70 m underground) |
-| No collisions with hidden units / wrecks    | Hidden units and wrecks whose model has vanished stop being obstacles                                            |
+**When**: always; the sight is the Mirage's only aiming display. **Keys**: **N** returns to NAV.
 
-### Gameplay tab
+The CSF 95 is a reflector sight: its marks are projected on the glass, focused far ahead. The game draws them from the
+Mirage IIIO flight manual's CSF 97 drawings, with the 95's aiming reticle.
 
-| Row                                                      | Set to                                  | Why                                                    |
-| -------------------------------------------------------- | --------------------------------------- | ------------------------------------------------------ |
-| Easy landing                                             | off                                     | On (the default) doubles every landing limit           |
-| Easy aiming                                              | off                                     | On makes any seeker target launchable at full quality  |
-| No blackouts, No spins, No stalls                        | off                                     | Off keeps g-effects, spins and stalls                  |
-| Invulnerable, No crashes, Unlimited ammo, Unlimited fuel | off                                     | Off keeps damage, crashes and the ammo and fuel limits |
-| AI level                                                 | Expert, if you want the hardest enemies | The level sets the enemies' skill                      |
+![The CSF 95 gunsight in level flight](shots/mirage/sight_nav.png)
 
-No wind and No malfunctions are placeholder switches, as in the original.
+1. **Pipper**: a 2.5 mr (milliradian) dot. In NAV and with missiles it sits on the gun line; with the gun it rides
+   the lead-computed aim point, with bombs the impact point.
+2. **Ring of 14 diamonds**, 50 mr across, around the pipper. A fighter's wingspan (about 10 m) fills it at 200 m.
+3. **Inverted V**, fixed, 40 mr above the cross.
+4. **Fixed cross**, 40 mr wide.
+
+**Example**: in level flight at 10,000 ft the moving reticle sits above the fixed cross: the pipper on the gun line.
+Pull and the reticle stays on the gun line; select the gun and it swings to the lead.
+
+### Flying by the panel
+
+Speed, altitude and heading are on the panel: fly with its instruments.
+
+![The instruments you fly by](shots/mirage/panel.png)
+
+1. **Altimeter**.
+2. **Airspeed**.
+3. **Attitude indicator**: the horizon disc.
+4. **Fuel**.
+5. **Chaff and flare counters**: `CHF 060`, `FLR 030`.
+6. **The display**: radar, RWR and the other pages (MENU).
+7. **AI / ML lamps**: an air threat, a missile launch at you.
+8. **The gunsight** on the glass.
 
 ---
 
-## 2. The jet in numbers
+## 4. Guns: 2 × DEFA
 
-With Flight data = Real the Mirage row (docs/real-aircraft.md §7) is checked by the game's validation test. The
-original game flew the Mirage with the Kfir's data, a 20,000 lb jet: its weight was the largest single error in the
-1998 data.
+**When**: a target inside about 600 m. **Keys**: **]** to the gun, **Tab** fires. With Real data: 2 × 125 rounds at
+2 × 1,300 rounds/min, 815 m/s: about 6 s of firing.
 
-| Item                                         | In the game          | Real Mirage IIICJ                          |
-| -------------------------------------------- | -------------------- | ------------------------------------------ |
-| Empty weight                                 | 13,000 lb            | 12,350–13,450 lb                           |
-| Internal fuel                                | 4,800 lb             | about 4,500–5,100 lb (uncertain)           |
-| Thrust, military / full afterburner          | 9,436 / 13,228 lbf   | 9,430–9,440 / 13,240–13,670 lbf (Atar 09C) |
-| Wing area                                    | 375 ft²              | 375 ft²                                    |
-| 1 g stall speed, sea level                   | 140 kt               | approach 170–200 kt ÷ 1.3                  |
-| g limits                                     | +7 / −1              | +7 / about −3 (uncertain)                  |
-| Max roll rate                                | 150°/s               | unpublished; about 150–200°/s              |
-| Max speed, sea level                         | 758 kt (Mach 1.15)   | about Mach 1.1–1.14                        |
-| Max speed, 40,000 ft                         | 1,134 kt (Mach 1.98) | Mach 2.1–2.2 at 39,000 ft                  |
-| Climb at 350 kt, sea level, full afterburner | about 24,900 ft/min  | 16,400 ft/min (average; understated)       |
-| Instantaneous turn, 420 kt at 10,000 ft      | 18.4°/s at 7.0 g     | unpublished                                |
-| Fuel flow, military / full afterburner       | 9,500 / 26,900 lb/h  | about 9,500 / 26,900–27,700 lb/h           |
-| Service ceiling                              | 55,770 ft            | 17,000 m (55,770 ft)                       |
+![The gun: a MiG-23 600 m ahead](shots/mirage/sight_gun.png)
 
-What that means in the cockpit:
+1. **Pipper**: the lead-computed aim point. Put it on the target and fire.
+2. **The target**: a MiG-23.
+3. **Ring of diamonds** around the pipper.
+4. **Fixed cross**.
 
-- **Fuel.** Internal fuel lasts about 11 minutes at full afterburner, or about 30 minutes at military power at sea
-  level. The 2,300 lb tank on stations 4, 5 or 6 helps.
-- **Fast approach.** The delta wing lands flapless: the real jet approaches at **170–200 knots (kt)** (Dassault 170,
-  pilots about 185). The game's training speeds (rotate **145 kt**, final **165 kt**, the same for every jet) are too
-  slow for the Mirage: rotate at about **180 kt** and fly the final at about **185 kt**.
-- **Drag chute** (Shift+B): the Mirage has one. In the game it is visual only, with zero drag.
-- **Nose-wheel steering** comes from the rudder pedals, ±30° (uncertain), wheelbase 15.96 ft.
+**Example**: the MiG is 600 m ahead and closing at 486 kt. It sits above the pipper: the rounds would pass under it.
+Pull the nose up until the pipper covers the MiG, then fire a 1 s burst (43 rounds). The IAF fed the real sight a
+fixed range (600 / 400 / 250 m) because the radar ranging was unreliable; the game's sight computes the lead.
+
+---
+
+## 5. IR missiles: Shafrir 2, AIM-9D
+
+**When**: behind a target, inside the missile's range. **Keys**: **]** to the missile, **Space** fires. With a radar
+lock (**R**, then **Return**) the seeker is slaved to the locked target within its 15° cone; otherwise it looks
+within 6° of the nose.
+
+| Missile | Real data |
+| --- | --- |
+| Shafrir 2 | 93 kg, Mach 2.1, 5 km, rear-aspect |
+| AIM-9D | 88.5 kg, Mach 2.5, 18 km, rear-aspect, 12 g |
+
+![A Shafrir 2 on a MiG-23 flying away 2,000 m ahead](shots/mirage/sight_srm.png)
+
+1. **The target**, in the ring.
+2. **Ring of diamonds**: with a missile the reticle sits on the gun line, where the seeker looks.
+3. **Fixed cross**.
+
+**Example**: the MiG flies away from you 2,000 m ahead, 50 m/s (97 kt) slower than you. Put it in the ring: a growl, then a higher tone
+when the seeker locks. Fire. The sight shows the lock by the tone alone (the real jet had lock lights beside the
+glass). Both missiles are rear-aspect: the seeker tracks a target flying away from you, and a head-on or a still
+target stays silent. They are "limited heat" missiles too: the target has to be within 60° of your heading. Beyond
+half its range the seeker sees a jet with its afterburner lit.
+
+---
+
+## 6. Bombs and rockets
+
+**When**: MK-82 / MK-83 / MK-84 and ZUNNI rockets. **Keys**: **[** to the store, hold **Space** to release (the
+ripple releases one store per interval; the stores page sets it).
+
+![A 40° dive at 800 m above the ground, two MK-82s](shots/mirage/sight_bomb.png)
+
+1. **Pipper** on the predicted impact: the tank sits under it here.
+2. **Ring of diamonds**.
+3. **Fixed cross**.
+4. **Inverted V**.
+
+**Example**: two MK-82s, a 40° dive at 428 kt (220 m/s), 800 m (2,600 ft) above the ground. Let the target slide up
+the glass into the ring, and release when it reaches the pipper. The real sight was set by hand from bombing tables;
+the game sets the reticle on the impact point by itself [R: a reconstruction].
+
+---
+
+## 7. Radar: Cyrano I bis
+
+With Weapon data = Real the radar detects at **27 km** (uncertain: a nominal air-to-air lock range). Its modes are LRS
+(long-range search), ACM (air combat mode) and boresight in A-A (air-to-air), MAP and GMT (ground moving target) in
+A-G (air-to-ground). The single display shows it.
+
+| Key | Action |
+| --- | --- |
+| **R** / **Q** / **S** | Radar on, A-A ↔ A-G / mode (LRS → ACM; GMT ↔ MAP) / standby |
+| **.** / **,** | Range scale up / down |
+| **Return** / **Shift+Return** | Next / previous contact (in LRS this locks it: STT) |
+| **Backspace** | Drop the lock |
+| **\\** (hold) | Boresight |
+
+---
+
+## 8. Self-protection
+
+- **RWR** (radar warning receiver): on the display's RWR page (MENU) and the AI / ML lamps; a new threat sounds a
+  tone, a missile launch at you the launch warning.
+- **Chaff (Insert)** and **flares (Delete)**: 60 chaff and 30 flares. Chaff fools a radar missile with 10 % (30 %
+  above 4 g), a flare an IR (infrared) missile with 33 % (50 % above 4 g) while the afterburner is off.
+- Chaff and flares are the Mirage's whole self-protection; the **J** jammer key belongs to jets with a jammer.
+
+---
+
+## 9. Flying the Mirage with Real flight data
+
+With Flight data = Real the Mirage row (docs/real-aircraft.md §7) is checked by the game's validation test.
+
+| Item | In the game | Real Mirage IIICJ |
+| --- | --- | --- |
+| Empty weight | 13,000 lb | 12,350–13,450 lb |
+| Internal fuel | 4,800 lb | about 4,500–5,100 lb (uncertain) |
+| Thrust, military / full afterburner | 9,436 / 13,228 lbf | 9,430–9,440 / 13,240–13,670 lbf (Atar 09C) |
+| Wing area | 375 ft² | 375 ft² |
+| 1 g stall speed, sea level | 140 kt | approach 170–200 kt ÷ 1.3 |
+| g limits | +7 / −1 | +7 / about −3 (uncertain) |
+| Maximum roll rate | 150°/s | unpublished; about 150–200°/s |
+| Maximum speed, sea level / 40,000 ft | 758 kt (Mach 1.15) / 1,134 kt (Mach 1.98) | about Mach 1.1–1.14 / Mach 2.1–2.2 |
+| Climb at 350 kt, sea level, full afterburner | about 24,900 ft/min | 16,400 ft/min (average; understated) |
+| Instantaneous turn, 420 kt at 10,000 ft | 18.4°/s at 7.0 g | unpublished |
+| Fuel flow, military / full afterburner | 9,500 / 26,900 lb/h | about 9,500 / 26,900–27,700 lb/h |
+| Service ceiling | 55,770 ft | 17,000 m (55,770 ft) |
+
+What changes in the cockpit:
+
+- **Fuel**: about 11 minutes at full afterburner, about 30 minutes at military power at sea level. The 2,300 lb tank
+  on stations 4, 5 or 6 helps.
+- **Mechanical flight controls**: the stick moves the surfaces directly, so you own the limits. At low speed a hard
+  pull stalls the wing, and with Realistic spins on the jet can spin: recover with the stick forward and rudder
+  against the spin. The F-16 / Lavi deep-stall switch acts on the fly-by-wire jets.
+- **g limit +7 / −1**: the original's (the real negative limit, about −3, is uncertain, so the game keeps it).
+- **Ground effect** (Physics): a longer float in the flare. **Real idle thrust on the ground**: the jet settles near
+  30 kt at idle.
 - **The engine gauges stay still**: on the Mirage's panel the speed and fuel needles move, and the original's own
   cockpit data switches the engine clocks off.
 
----
+### Take-off and landing numbers
 
-## 3. Start-up, take-off and landing
+The delta lands flapless and fast: the real jet approaches at 170–200 kt (Dassault 170, pilots about 185).
 
-### On the runway
+| Item | Mirage with Real flight data |
+| --- | --- |
+| Rotate | about 180 kt |
+| Gear up below | 300 kt |
+| Downwind / base / final | 220 kt at 2,000 ft above the ground / 190 kt / about 185 kt |
+| 1 g stall, sea level | 140 kt |
+| Touchdown | nose-high; limits (Real landing limits, Easy landing off): sink below 4 m/s (790 ft/min), pitch below 15° |
+| Drag chute (**Shift+B**) | drawn, with zero drag |
+| Nose-wheel steering | rudder pedals, ±30° (uncertain) |
 
-A mission that starts at an airbase puts you on the runway with the gear down, the brakes on and the throttle at idle.
-The engine is already running at the lineup point. If you start elsewhere on the base, the first throttle key starts it,
-and the RPM (engine speed, in %) then climbs 15 % per second.
-
-### Take-off
-
-1. Release the brakes (**B**).
-2. Throttle to full afterburner: **8**. The afterburner lights only after the engine reaches 100 %, about 2 s from
-   military power.
-3. Keep the runway centreline with the rudder (**Numpad 0** / **Decimal**, or the pedals).
-4. At about **180 kt**, pull gently back until the velocity marker is above the horizon.
-5. Gear up (**G**). Keep the gear speed below 300 kt.
-
-![Take-off roll](shots/mirage/takeoff_roll.png)
-
-### Landing
-
-1. **Downwind**: 2,000 ft above the ground, **220 kt**, the runway off your wing. Gear down (**G**).
-2. **Base**: throttle back, about 20° of bank, slow to about **190 kt**, aim for a 4° approach.
-3. **Final**: about **185 kt**. Line up with the runway through the gunsight and watch the airspeed needle on the
-   panel.
-4. Over the threshold: throttle to idle (**1**) and raise the nose gently. The delta lands nose-high: watch the 15°
-   tail-strike limit.
-5. After touchdown: brakes (**B**), drag chute (**Shift+B**) if you like the look.
-
-With Real landing limits and Easy landing off, a touchdown faster than **4 m/s (about 790 ft/min)** or more than
-**15° nose-up** is a crash.
-
-![Final approach, gear down](shots/mirage/landing_final.png)
-
-### Tower and autopilot
-
-- **Ctrl+T** calls the tower near an Israeli base.
-- **A** cycles the autopilot: off → level → NAV (follows the waypoints) → off. **W** / **Shift+W** pick the next /
-  previous waypoint.
+The sight is the reticle alone, with the ILS (instrument landing system) lines left to the HUD jets: line up with the runway through the glass and fly the
+airspeed needle.
 
 ---
 
-## 4. Handling
+## 10. Key card
 
-- **Mechanical flight controls.** The stick moves the surfaces directly, so you own the limits: at low speed a hard pull
-  stalls the wing, and with Realistic spins on you can spin. Recover with the stick forward and the rudder against the
-  spin.
-- **g limit +7 / −1** (the original's; the real negative limit is about −3, uncertain, so it is kept).
-- **The stick on the keyboard** is all or nothing; a joystick is much smoother.
-- **Flight-path hold.** With the stick centred the jet holds its flight path.
-- **g-effects.** With No blackouts off, a hard pull greys and blacks out the screen.
-
----
-
-## 5. The gunsight (the Real "HUD")
-
-The Shahak's sight is the **CSF 95 gyro gunsight**, a reflector sight. With Real HUD (head-up display) on, the game
-draws that sight in its lamp's **orange-red**, from the Mirage IIIO flight manual's CSF 97 drawings, with the 95's
-aiming reticle (flight data is on the panel's instruments):
-
-- a **fixed cross** 40 mr (milliradians) wide with an inverted V above it;
-- a **moving reticle**: a 2.5 mr pipper dot inside a 50 mr ring of 14 small diamonds, riding the lead-computing (gun)
-  or impact (bombs) point.
-
-Airspeed, altitude and heading are on the panel instruments: fly with those. In the real jet, missile lock and in-zone
-were lights beside the glass.
-
-![The CSF 95 gunsight](shots/mirage/sight_nav.png)
-
----
-
-## 6. Radar (Cyrano I bis)
-
-With Weapon data = Real the radar detects at **27 km** (uncertain: a nominal air-to-air lock range). Its modes are **LRS
-(long-range search), ACM (air combat mode) and boresight** in A-A (air-to-air), MAP and GMT (ground moving target) in
-A-G (air-to-ground). The single display (left) shows it.
-
-| Key                           | Action                                              |
-| ----------------------------- | --------------------------------------------------- |
-| **R**                         | Radar on: A-A, then toggles A-A ↔ A-G               |
-| **Q**                         | Mode: A-A LRS → ACM; A-G GMT ↔ MAP                  |
-| **S**                         | Standby                                             |
-| **.** / **,**                 | Range scale up / down                               |
-| **Return** / **Shift+Return** | Next / previous contact (in LRS this locks it: STT) |
-| **Backspace**                 | Drop the lock                                       |
-| **\\** (hold)                 | Boresight                                           |
-
-![The radar display with a locked contact](shots/mirage/mfd_radar_stt.png)
+| Key | Action |
+| --- | --- |
+| 1 … 8 | Throttle: idle, 65, 70, 80, 90 %, military, AB 1, AB 2 |
+| 9 / 0 | Throttle − / + 5 % |
+| Arrows | Stick |
+| Numpad 0 / Decimal | Rudder left / right |
+| G / B | Gear / wheel brakes |
+| Shift+B | Drag chute |
+| A | Autopilot: level → NAV → off |
+| W / Shift+W | Next / previous waypoint |
+| Ctrl+T | Call the tower |
+| M / N | Master mode cycle / NAV |
+| ] / [ | Next A-A / A-G weapon |
+| Space / Tab | Fire the weapon / the guns |
+| Shift+C | Jettison tanks, then bombs |
+| R / Q / S | Radar on, A-A ↔ A-G / mode / standby |
+| . / , | Radar range up / down |
+| Return / Shift+Return | Next / previous target (locks in LRS) |
+| Backspace | Drop the lock |
+| \\ (hold) | Boresight |
+| T / D | TSD / damage page |
+| Insert / Delete | Chaff / flare |
+| Shift+arrows, Numpad 1–9, F3 | Look around, snap views, padlock |
+| F1 / Ctrl+F2 | Cockpit ↔ sight only / cockpit ↔ external |
+| E | Eject |
+| C / Ctrl+C | Time ×2 ×4 ×1 / normal time |
+| Ctrl+P / Ctrl+O / Esc | Pause / in-flight menu / TSD map |
+| Alt+E / W / P / T / C / B | Wingman: engage my target / other target, protect me, tactical / close formation, go home |
 
 ---
 
-## 7. Display and self-protection
+## 11. Abbreviations
 
-The Mirage has **one display**: it starts on the radar; the RWR (radar warning receiver) and the other pages are reached
-through its MENU button. The attitude indicator is the panel's horizon disc. **T** brings up the TSD (tactical situation
-display), **D** the damage report.
-
-- **RWR**: on the display's RWR page (MENU); a new threat sounds a tone, a missile launch at you the launch warning.
-- **Chaff (Insert)** and **flares (Delete)**: the Mirage carries **60 chaff and 30 flares**. The decoy rules are every
-  jet's: chaff 10 % (30 % above 4 g) against a radar missile, a flare 33 % (50 % above 4 g) against an IR (infrared)
-  missile, only with the afterburner off.
-- **Chaff and flares are the Mirage's self-protection.** Jamming (ECM, the **J** key) belongs to jets with a jammer.
-
----
-
-## 8. Weapons
-
-**M** cycles the master mode NAV → A-A → A-G, and **N** returns to NAV. **]** selects the next air-to-air weapon and
-**[** the next air-to-ground one. **Space** fires the selected weapon and **Tab** fires the gun.
-
-What the Mirage can load on the Arming screen:
-
-| Store               | Stations      |
-| ------------------- | ------------- |
-| Shafrir 2, AIM-9D   | 3, 4, 6, 7    |
-| MK-82, MK-83        | 3, 4, 5, 6, 7 |
-| MK-84               | 4, 6          |
-| ZUNNI rockets (×25) | 3, 4, 6, 7    |
-| Fuel tank, 2,300 lb | 4, 5, 6       |
-
-### Guns (2 × DEFA)
-
-With Real data: **2 × 125 rounds**, 2 × 1,300 rounds/min, 815 m/s: about 6 s of firing. The IAF fed the sight a fixed
-range (600 / 400 / 250 m) because the radar ranging was unreliable; the game's sight is lead-computing.
-
-![The gun: the reticle on the lead](shots/mirage/sight_gun.png)
-
-### IR missiles: Shafrir 2, AIM-9D
-
-| Missile   | Real data                                   |
-| --------- | ------------------------------------------- |
-| Shafrir 2 | 93 kg, Mach 2.1, 5 km, rear-aspect          |
-| AIM-9D    | 88.5 kg, Mach 2.5, 18 km, rear-aspect, 12 g |
-
-1. **]** to the missile: a growl, then a higher tone when the seeker **locks**.
-2. These are "limited heat" missiles: the seeker only takes a target within **60° of your heading**. Get behind it.
-3. **With a radar lock** the seeker is slaved to the locked target within its 15° cone; without one it looks within 6°
-   of the nose. The seeker is cued from the gunsight, straight ahead.
-4. Beyond **half** its range the seeker sees only a jet **with its afterburner lit**.
-5. Fire with **Space** when locked.
-
-![Shafrir 2 with the seeker locked](shots/mirage/sight_srm.png)
-
-### Bombs and rockets
-
-MK-82 / MK-83 / MK-84 and ZUNNI rockets. With the Real sight the moving reticle sits on the predicted impact: dive,
-put it on the target and hold **Space** (the ripple releases one store per interval). The ripple is set on the stores
-page.
-
-![Bombing: the reticle on the impact](shots/mirage/sight_bomb.png)
-
-### Jettison
-
-**Shift+C**: the first press drops the fuel tanks, the second the bombs.
-
----
-
-## 9. Views and key card
-
-The views and keys are every jet's (see the F-16 guide's key card): **F1** cockpit ↔ sight only, **Shift+arrows** free
-look, **F2** back view, **F3** padlock, **F4**–**F11** the outside views, **Ctrl+F2** cockpit ↔ external.
-
-| Key                        | Action                                                   |
-| -------------------------- | -------------------------------------------------------- |
-| **1** … **8**              | Throttle: idle … **6** military … **8** full afterburner |
-| **G** / **B**              | Gear / brakes                                            |
-| **Shift+B**                | Drag chute (visual)                                      |
-| **M** / **N**              | Master mode / NAV                                        |
-| **]** / **[**              | Next A-A / A-G weapon                                    |
-| **Space** / **Tab**        | Fire the weapon / the guns                               |
-| **R** / **Q** / **S**      | Radar on, A-A ↔ A-G / mode / standby                     |
-| **Return** / **Backspace** | Next contact (lock) / drop the lock                      |
-| **Insert** / **Delete**    | Chaff / flare                                            |
-| **Shift+C**                | Jettison                                                 |
-| **A** / **W**              | Autopilot / next waypoint                                |
-| **E**                      | Eject                                                    |
-
----
-
-## 10. Abbreviations
-
-| Term | Meaning                                            |
-| ---- | -------------------------------------------------- |
-| A-A  | air-to-air                                         |
-| A-G  | air-to-ground                                      |
-| ACM  | air combat mode: the radar's close-range lock mode |
-| AoA  | angle of attack (also AOA)                         |
-| ECM  | electronic countermeasures: jamming                |
-| GMT  | ground moving target                               |
-| HUD  | head-up display                                    |
-| IAF  | Israeli Air Force                                  |
-| IR   | infrared (heat-seeking)                            |
-| kt   | knots                                              |
-| lbf  | pound-force (thrust)                               |
-| LRS  | long-range search                                  |
-| mr   | milliradian (1 mr spans 1 m at 1 km)               |
-| NAV  | navigation mode                                    |
-| RPM  | engine speed, as % of maximum                      |
-| RWR  | radar warning receiver                             |
-| STT  | single-target track: a radar lock                  |
-| TSD  | tactical situation display: the map                |
+| Term | Meaning |
+| --- | --- |
+| A-A / A-G | air-to-air / air-to-ground |
+| AB | afterburner |
+| ACM | air combat mode: the radar's close-range lock mode |
+| GMT | ground moving target |
+| HUD | head-up display |
+| IAF | Israeli Air Force |
+| ILS | instrument landing system |
+| IR | infrared (heat-seeking) |
+| kt | knots |
+| lbf | pound-force (thrust) |
+| LRS | long-range search |
+| mr | milliradian (1 mr spans 1 m at 1 km) |
+| NAV | navigation mode |
+| \[R\] | a reconstruction: the real setting is public in outline |
+| RWR | radar warning receiver |
+| STT | single-target track: a radar lock |
+| TSD | tactical situation display: the map |

@@ -1,10 +1,53 @@
 [
  {
-  "name": "cockpit_runway",
-  "caption": "The Kfir cockpit on the runway",
-  "mission": 311,
+  "name": "hud_original",
+  "caption": "The 1998 HUD at the start of mission 231",
+  "mission": 231,
   "jet": 5,
-  "crop": "full",
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "original",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   }
+  },
+  "start": "airborne",
+  "crop": "hud",
+  "crop_w": 0.28
+ },
+ {
+  "name": "hud_nav",
+  "caption": "NAV at 10,000 ft, waypoint 1 ahead",
+  "mission": 231,
+  "jet": 5,
+  "start": "airborne",
+  "crop": "hud",
   "settings": {
    "flight_data": "real",
    "weapon_data": "real",
@@ -37,7 +80,120 @@
     "fix_bomb_burst": true,
     "fix_ghost_collision": true
    }
-  }
+  },
+  "crop_w": 0.28,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "text:^427$",
+    "label_at": [
+     0.14,
+     0.317
+    ]
+   },
+   {
+    "n": 2,
+    "sym": "text:^M0",
+    "label_at": [
+     0.14,
+     0.39
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "text:^100\\d\\d$",
+    "label_at": [
+     0.874,
+     0.317
+    ]
+   },
+   {
+    "n": 4,
+    "sym": "text:^28$",
+    "label_at": [
+     0.67,
+     0.06
+    ]
+   },
+   {
+    "n": 5,
+    "px": [
+     0.5,
+     0.131
+    ],
+    "label_at": [
+     0.595,
+     0.186
+    ]
+   },
+   {
+    "n": 6,
+    "sym": "fpm",
+    "label_at": [
+     0.4,
+     0.253
+    ],
+    "d": [
+     -8,
+     0
+    ]
+   },
+   {
+    "n": 7,
+    "sym": "horizon",
+    "label_at": [
+     0.67,
+     0.417
+    ],
+    "d": [
+     50,
+     0
+    ]
+   },
+   {
+    "n": 8,
+    "sym": "text:G$",
+    "label_at": [
+     0.14,
+     0.461
+    ]
+   },
+   {
+    "n": 9,
+    "sym": "text:^NAV$",
+    "label_at": [
+     0.14,
+     0.551
+    ]
+   },
+   {
+    "n": 10,
+    "sym": "text:^D\\d",
+    "label_at": [
+     0.865,
+     0.447
+    ]
+   },
+   {
+    "n": 11,
+    "sym": "text:^WP",
+    "label_at": [
+     0.865,
+     0.566
+    ]
+   },
+   {
+    "n": 12,
+    "px": [
+     0.5,
+     0.574
+    ],
+    "label_at": [
+     0.595,
+     0.656
+    ]
+   }
+  ]
  },
  {
   "name": "landing_final",
@@ -80,15 +236,97 @@
     "fix_bomb_burst": true,
     "fix_ghost_collision": true
    }
-  }
+  },
+  "crop_w": 0.28,
+  "final_aoa": 3,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "fpm",
+    "label_at": [
+     0.391,
+     0.641
+    ],
+    "d": [
+     -8,
+     0
+    ]
+   },
+   {
+    "n": 2,
+    "sym": "text:^AOA",
+    "label_at": [
+     0.14,
+     0.499
+    ]
+   },
+   {
+    "n": 3,
+    "px": [
+     0.521,
+     0.335
+    ],
+    "label_at": [
+     0.595,
+     0.246
+    ]
+   },
+   {
+    "n": 4,
+    "px": [
+     0.333,
+     0.32
+    ],
+    "label_at": [
+     0.205,
+     0.194
+    ]
+   },
+   {
+    "n": 5,
+    "px": [
+     0.644,
+     0.13
+    ],
+    "label_at": [
+     0.735,
+     0.209
+    ]
+   },
+   {
+    "n": 6,
+    "px": [
+     0.662,
+     0.382
+    ],
+    "label_at": [
+     0.763,
+     0.447
+    ]
+   },
+   {
+    "n": 7,
+    "sym": "text:^141$",
+    "label_at": [
+     0.14,
+     0.317
+    ]
+   },
+   {
+    "n": 8,
+    "sym": "text:^896$",
+    "label_at": [
+     0.874,
+     0.317
+    ]
+   }
+  ]
  },
  {
-  "name": "hud_nav",
-  "caption": "The Real HUD in NAV: the steering bug on the heading scale points to the waypoint",
+  "name": "hud_srm_search",
+  "caption": "MSL: a Python 3 searching, the diamond spinning",
   "mission": 231,
   "jet": 5,
-  "start": "airborne",
-  "crop": "hud",
   "settings": {
    "flight_data": "real",
    "weapon_data": "real",
@@ -121,13 +359,7 @@
     "fix_bomb_burst": true,
     "fix_ghost_collision": true
    }
-  }
- },
- {
-  "name": "mfd_radar_stt",
-  "caption": "The ranging radar with a locked contact",
-  "mission": 231,
-  "jet": 5,
+  },
   "start": "airborne",
   "loadout": [
    [
@@ -167,53 +399,53 @@
     0
    ]
   ],
-  "place": {
-   "unit_prefix": "mig23",
-   "ahead_m": 8000
-  },
   "actions": [
-   "lock",
-   "wait:1"
+   "station:1",
+   "wait:1.2"
   ],
-  "crop": "mfd_left",
-  "panel": 1.0,
-  "settings": {
-   "flight_data": "real",
-   "weapon_data": "real",
-   "hud_style": "real",
-   "hud_ladder": "conformal",
-   "sky": "atmospheric",
-   "terrain_closeup": true,
-   "imagery_israel": "mapi2015",
-   "imagery_outside": "sentinel2",
-   "easy_landing": false,
-   "easy_aiming": false,
-   "better": {
-    "flight_path_hold": true,
-    "force_angles": true,
-    "start_lift": true,
-    "start_rpm": true,
-    "start_alpha": true,
-    "landing_limits": true,
-    "spin_fixes": true,
-    "fbw_departure": true,
-    "lift_rate_floor": true,
-    "low_speed_roll": true,
-    "no_nose_wheel_lift": true,
-    "ground_effect": true,
-    "ground_idle": true,
-    "fix_fall_heading": true,
-    "fix_skill_damage": true,
-    "fix_lock_threat": true,
-    "fix_stores_weight": true,
-    "fix_bomb_burst": true,
-    "fix_ghost_collision": true
+  "crop": "hud",
+  "crop_w": 0.28,
+  "annotations": [
+   {
+    "n": 1,
+    "px": [
+     0.485,
+     0.373
+    ],
+    "label_at": [
+     0.391,
+     0.492
+    ]
+   },
+   {
+    "n": 2,
+    "sym": "gun_cross",
+    "label_at": [
+     0.595,
+     0.209
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "text:^2$",
+    "label_at": [
+     0.177,
+     0.496
+    ]
+   },
+   {
+    "n": 4,
+    "sym": "text:^MSL$",
+    "label_at": [
+     0.14,
+     0.551
+    ]
    }
-  }
+  ]
  },
  {
   "name": "hud_srm",
-  "caption": "Python 3 with the seeker locked",
+  "caption": "MSL: a Python 3 locked on a MiG-23 1.6 NM ahead",
   "mission": 231,
   "jet": 5,
   "start": "airborne",
@@ -297,11 +529,54 @@
     "fix_bomb_burst": true,
     "fix_ghost_collision": true
    }
-  }
+  },
+  "crop_w": 0.28,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "seeker",
+    "label_at": [
+     0.605,
+     0.253
+    ],
+    "d": [
+     5,
+     -5
+    ]
+   },
+   {
+    "n": 2,
+    "sym": "target",
+    "label_at": [
+     0.391,
+     0.253
+    ],
+    "d": [
+     -8.3,
+     -8.3
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "text:^2$",
+    "label_at": [
+     0.177,
+     0.496
+    ]
+   },
+   {
+    "n": 4,
+    "sym": "text:^MSL$",
+    "label_at": [
+     0.14,
+     0.551
+    ]
+   }
+  ]
  },
  {
   "name": "hud_gun",
-  "caption": "The gun with a locked target",
+  "caption": "LCOS: the gun with a radar range on a MiG-23 at 2,600 ft",
   "mission": 231,
   "jet": 5,
   "start": "airborne",
@@ -385,11 +660,86 @@
     "fix_bomb_burst": true,
     "fix_ghost_collision": true
    }
-  }
+  },
+  "crop_w": 0.24,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "circle:1",
+    "label_at": [
+     0.358,
+     0.139
+    ],
+    "edge": 315
+   },
+   {
+    "n": 2,
+    "px": [
+     0.54,
+     0.223
+    ],
+    "label_at": [
+     0.662,
+     0.139
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "lcos",
+    "label_at": [
+     0.369,
+     0.417
+    ],
+    "d": [
+     -1,
+     1
+    ]
+   },
+   {
+    "n": 4,
+    "sym": "target",
+    "label_at": [
+     0.641,
+     0.435
+    ],
+    "d": [
+     8.3,
+     8.3
+    ]
+   },
+   {
+    "n": 5,
+    "sym": "gun_cross",
+    "label_at": [
+     0.641,
+     0.07
+    ],
+    "d": [
+     4,
+     0
+    ]
+   },
+   {
+    "n": 6,
+    "sym": "text:^280$",
+    "label_at": [
+     0.109,
+     0.456
+    ]
+   },
+   {
+    "n": 7,
+    "sym": "text:^LCOS$",
+    "label_at": [
+     0.109,
+     0.553
+    ]
+   }
+  ]
  },
  {
   "name": "hud_hotline",
-  "caption": "The gun without a radar range: the hotline",
+  "caption": "HOTL: the gun without a radar range",
   "mission": 231,
   "jet": 5,
   "start": "airborne",
@@ -472,11 +822,200 @@
     "fix_bomb_burst": true,
     "fix_ghost_collision": true
    }
-  }
+  },
+  "crop_w": 0.24,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "gun_cross",
+    "label_at": [
+     0.63,
+     0.07
+    ],
+    "d": [
+     4,
+     0
+    ]
+   },
+   {
+    "n": 2,
+    "px": [
+     0.506,
+     0.15
+    ],
+    "label_at": [
+     0.63,
+     0.165
+    ]
+   },
+   {
+    "n": 3,
+    "px": [
+     0.506,
+     0.184
+    ],
+    "label_at": [
+     0.63,
+     0.243
+    ]
+   },
+   {
+    "n": 4,
+    "px": [
+     0.506,
+     0.219
+    ],
+    "label_at": [
+     0.63,
+     0.322
+    ]
+   },
+   {
+    "n": 5,
+    "sym": "text:^HOTL$",
+    "label_at": [
+     0.109,
+     0.553
+    ]
+   }
+  ]
+ },
+ {
+  "name": "hud_strf",
+  "caption": "STRF: the strafe pipper in a 20° dive",
+  "mission": 231,
+  "jet": 5,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   }
+  },
+  "start": "dive",
+  "dive_deg": 20,
+  "dive_agl": 600,
+  "speed": 220,
+  "loadout": [
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "place": {
+   "ground_unit": true,
+   "ahead_m": 1620
+  },
+  "actions": [
+   "ag:9",
+   "wait:0.5"
+  ],
+  "crop": "hud",
+  "crop_w": 0.28,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "pipper",
+    "label_at": [
+     0.633,
+     0.492
+    ],
+    "d": [
+     7,
+     0
+    ]
+   },
+   {
+    "n": 2,
+    "sym": "fpm",
+    "label_at": [
+     0.391,
+     0.253
+    ],
+    "d": [
+     -8,
+     0
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "text:^STRF$",
+    "label_at": [
+     0.14,
+     0.596
+    ]
+   },
+   {
+    "n": 4,
+    "sym": "text:^2177$",
+    "label_at": [
+     0.874,
+     0.317
+    ]
+   }
+  ]
  },
  {
   "name": "hud_ccip",
-  "caption": "CCIP with the pipper on a target",
+  "caption": "CCIP in a 45° dive at 2,300 ft above the ground",
   "mission": 231,
   "jet": 5,
   "start": "dive",
@@ -564,6 +1103,69 @@
     "fix_bomb_burst": true,
     "fix_ghost_collision": true
    }
-  }
+  },
+  "crop_w": 0.28,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "pipper",
+    "label_at": [
+     0.633,
+     0.626
+    ],
+    "d": [
+     7,
+     0
+    ]
+   },
+   {
+    "n": 2,
+    "sym": "fpm",
+    "label_at": [
+     0.605,
+     0.447
+    ],
+    "d": [
+     0,
+     30
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "fpm",
+    "label_at": [
+     0.391,
+     0.253
+    ],
+    "d": [
+     -8,
+     0
+    ]
+   },
+   {
+    "n": 4,
+    "sym": "text:^12$",
+    "label_at": [
+     0.177,
+     0.496
+    ]
+   },
+   {
+    "n": 5,
+    "sym": "text:^CCIP$",
+    "label_at": [
+     0.14,
+     0.596
+    ]
+   },
+   {
+    "n": 6,
+    "sym": "text:^2506$",
+    "label_at": [
+     0.874,
+     0.317
+    ]
+   }
+  ]
  }
 ]

@@ -7,7 +7,7 @@
 # the Physics switches), start ("mission": the mission's own start; "airborne": frozen 3000 m up at 250 m/s with
 # `loadout` (9 [weapon id, count] pairs) on the pylons; "final": frozen on final approach, `final_m` before the start
 # point at `final_alt` m on a 3° glide path, the nose `final_aoa`° above it, gear down), place ({"unit_prefix": "mig23" | "ground_unit": true, "ahead_m": N} puts that
-# unit N m ahead (`bearing_deg` right of the nose), in the air at the jet's height / on the ground), actions (in order; the frozen starts advance a
+# unit N m ahead (`bearing_deg` right of the nose; an air unit flying away at `vel_ms`), in the air at the jet's height / on the ground), actions (in order; the frozen starts advance a
 # scripted sim time, the others real time: "lock" radar lock on the placed unit, "on_impact" the placed unit onto the
 # bomb's predicted impact, "station:N" the A-A store / gun on
 # station N, "ag:N" the A-G store on station N, "flir" / "tv" the camera on the placed unit (FLIR with the laser),
@@ -186,7 +186,7 @@ func _put(p: Dictionary) -> void:
 		if target.is_empty():
 			return
 		target.path = null
-		target.vel = Vector3.ZERO
+		target.vel = fwd * float(p.get("vel_ms", 0.0))  # flying away from the jet (a rear-aspect seeker's tone)
 		target.world = o.pos + fwd * d
 		tv.mission_entity_moved(target)
 		for ent in tv.runtime.entities.values():
@@ -301,6 +301,8 @@ func _info(name: String) -> void:
 	for i in 9:
 		names.append(w.stores.name_of(i))
 	var inp: Dictionary = hud._real_in
+	var sk = w.get("seeker")
+	print("GUIDE_INFO %s seeker_lock=%s shoot=%s" % [name, sk.lock if sk != null else "-", tv.cockpit.weapons.get("shoot", "-")])
 	print("GUIDE_INFO %s texts=%s lock_m=%s closure=%s dlz=%s stores=%s points=%s" % [name, texts, lk.get("dist", "-"),
 		rd.get("closure", "-"), rd.get("dlz", []), names, [inp.get("fpm"), inp.get("aoa"), inp.get("horizon"),
 		inp.get("gun_cross"), inp.get("px_per_deg")]])

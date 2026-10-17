@@ -1,14 +1,13 @@
 [
  {
-  "name": "cockpit_runway",
-  "caption": "The F-35I cockpit on the runway",
-  "mission": 311,
-  "crop": "full",
+  "name": "hud_original",
+  "caption": "The same moment with HUD = Original",
+  "mission": 231,
   "jet": 4,
   "settings": {
    "flight_data": "real",
    "weapon_data": "real",
-   "hud_style": "real",
+   "hud_style": "original",
    "hud_ladder": "conformal",
    "sky": "atmospheric",
    "terrain_closeup": true,
@@ -38,105 +37,15 @@
     "fix_ghost_collision": true
    },
    "f35i_slot": 4
-  }
- },
- {
-  "name": "takeoff_roll",
-  "caption": "Take-off roll",
-  "mission": 311,
-  "actions": [
-   "key:1",
-   "key:B",
-   "key:8",
-   "wait:14"
-  ],
+  },
+  "start": "airborne",
   "crop": "hud",
-  "jet": 4,
-  "settings": {
-   "flight_data": "real",
-   "weapon_data": "real",
-   "hud_style": "real",
-   "hud_ladder": "conformal",
-   "sky": "atmospheric",
-   "terrain_closeup": true,
-   "imagery_israel": "mapi2015",
-   "imagery_outside": "sentinel2",
-   "easy_landing": false,
-   "easy_aiming": false,
-   "better": {
-    "flight_path_hold": true,
-    "force_angles": true,
-    "start_lift": true,
-    "start_rpm": true,
-    "start_alpha": true,
-    "landing_limits": true,
-    "spin_fixes": true,
-    "fbw_departure": true,
-    "lift_rate_floor": true,
-    "low_speed_roll": true,
-    "no_nose_wheel_lift": true,
-    "ground_effect": true,
-    "ground_idle": true,
-    "fix_fall_heading": true,
-    "fix_skill_damage": true,
-    "fix_lock_threat": true,
-    "fix_stores_weight": true,
-    "fix_bomb_burst": true,
-    "fix_ghost_collision": true
-   },
-   "f35i_slot": 4
-  }
- },
- {
-  "name": "landing_final",
-  "caption": "Final approach, gear down",
-  "mission": 311,
-  "start": "final",
-  "final_m": 4000,
-  "final_alt": 210,
-  "crop": "hud",
-  "jet": 4,
-  "settings": {
-   "flight_data": "real",
-   "weapon_data": "real",
-   "hud_style": "real",
-   "hud_ladder": "conformal",
-   "sky": "atmospheric",
-   "terrain_closeup": true,
-   "imagery_israel": "mapi2015",
-   "imagery_outside": "sentinel2",
-   "easy_landing": false,
-   "easy_aiming": false,
-   "better": {
-    "flight_path_hold": true,
-    "force_angles": true,
-    "start_lift": true,
-    "start_rpm": true,
-    "start_alpha": true,
-    "landing_limits": true,
-    "spin_fixes": true,
-    "fbw_departure": true,
-    "lift_rate_floor": true,
-    "low_speed_roll": true,
-    "no_nose_wheel_lift": true,
-    "ground_effect": true,
-    "ground_idle": true,
-    "fix_fall_heading": true,
-    "fix_skill_damage": true,
-    "fix_lock_threat": true,
-    "fix_stores_weight": true,
-    "fix_bomb_burst": true,
-    "fix_ghost_collision": true
-   },
-   "f35i_slot": 4
-  }
+  "crop_w": 0.34
  },
  {
   "name": "hud_nav",
-  "caption": "The helmet's virtual HUD in NAV",
+  "caption": "The virtual HUD in NAV",
   "mission": 231,
-  "start": "airborne",
-  "crop": "hud",
   "jet": 4,
   "settings": {
    "flight_data": "real",
@@ -171,36 +80,204 @@
     "fix_ghost_collision": true
    },
    "f35i_slot": 4
-  }
+  },
+  "start": "airborne",
+  "crop": "hud",
+  "crop_w": 0.34,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "text:^270$",
+    "label_at": [
+     0.383,
+     0.074
+    ]
+   },
+   {
+    "n": 2,
+    "sym": "text:^5$",
+    "label_at": [
+     0.322,
+     0.184
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "horizon",
+    "label_at": [
+     0.69,
+     0.344
+    ],
+    "d": [
+     80,
+     0
+    ]
+   },
+   {
+    "n": 4,
+    "sym": "fpm",
+    "label_at": [
+     0.414,
+     0.331
+    ],
+    "d": [
+     -5,
+     -3
+    ]
+   },
+   {
+    "n": 5,
+    "sym": "boresight",
+    "label_at": [
+     0.598,
+     0.515
+    ],
+    "d": [
+     6,
+     2
+    ]
+   },
+   {
+    "n": 6,
+    "sym": "text:^427$",
+    "label_at": [
+     0.169,
+     0.491
+    ]
+   },
+   {
+    "n": 7,
+    "sym": "text:^GS ",
+    "label_at": [
+     0.199,
+     0.564
+    ]
+   },
+   {
+    "n": 8,
+    "sym": "text:^M ",
+    "label_at": [
+     0.199,
+     0.626
+    ]
+   },
+   {
+    "n": 9,
+    "sym": "text:^G ",
+    "label_at": [
+     0.199,
+     0.687
+    ]
+   },
+   {
+    "n": 10,
+    "sym": "text:^α ",
+    "label_at": [
+     0.199,
+     0.748
+    ]
+   },
+   {
+    "n": 11,
+    "sym": "text:^1\\.4$",
+    "label_at": [
+     0.199,
+     0.81
+    ]
+   },
+   {
+    "n": 12,
+    "sym": "text:^100\\d\\d$",
+    "label_at": [
+     0.843,
+     0.503
+    ]
+   },
+   {
+    "n": 13,
+    "sym": "text:^0$",
+    "label_at": [
+     0.843,
+     0.601
+    ]
+   },
+   {
+    "n": 14,
+    "sym": "text:^R9",
+    "label_at": [
+     0.843,
+     0.699
+    ]
+   },
+   {
+    "n": 15,
+    "sym": "text:^NAV$",
+    "label_at": [
+     0.138,
+     0.859
+    ]
+   },
+   {
+    "n": 16,
+    "sym": "text:^001 ",
+    "label_at": [
+     0.828,
+     0.847
+    ]
+   },
+   {
+    "n": 17,
+    "sym": "text:^00:00",
+    "label_at": [
+     0.828,
+     0.957
+    ]
+   }
+  ]
  },
  {
-  "name": "mfd_radar_stt",
-  "caption": "The radar portal with a locked contact",
+  "name": "head_set",
+  "caption": "Looking 40° left at a locked MiG-23: the head-stabilised set",
   "mission": 231,
+  "jet": 4,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   },
+   "f35i_slot": 4
+  },
   "start": "airborne",
   "loadout": [
    [
-    0,
-    0
-   ],
-   [
-    0,
-    0
-   ],
-   [
-    0,
-    0
-   ],
-   [
-    8,
-    1
-   ],
-   [
-    0,
-    0
-   ],
-   [
-    8,
+    11,
     1
    ],
    [
@@ -214,107 +291,110 @@
    [
     0,
     0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    11,
+    1
    ]
   ],
   "place": {
    "unit_prefix": "mig23",
-   "ahead_m": 8000
+   "ahead_m": 3000,
+   "bearing_deg": -40
   },
   "actions": [
    "lock",
-   "wait:1"
+   "station:0",
+   "look:-40,2",
+   "wait:1.5"
   ],
-  "panel": 1.0,
-  "crop": "mfd_left",
-  "jet": 4,
-  "settings": {
-   "flight_data": "real",
-   "weapon_data": "real",
-   "hud_style": "real",
-   "hud_ladder": "conformal",
-   "sky": "atmospheric",
-   "terrain_closeup": true,
-   "imagery_israel": "mapi2015",
-   "imagery_outside": "sentinel2",
-   "easy_landing": false,
-   "easy_aiming": false,
-   "better": {
-    "flight_path_hold": true,
-    "force_angles": true,
-    "start_lift": true,
-    "start_rpm": true,
-    "start_alpha": true,
-    "landing_limits": true,
-    "spin_fixes": true,
-    "fbw_departure": true,
-    "lift_rate_floor": true,
-    "low_speed_roll": true,
-    "no_nose_wheel_lift": true,
-    "ground_effect": true,
-    "ground_idle": true,
-    "fix_fall_heading": true,
-    "fix_skill_damage": true,
-    "fix_lock_threat": true,
-    "fix_stores_weight": true,
-    "fix_bomb_burst": true,
-    "fix_ghost_collision": true
+  "crop": "dash",
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "target",
+    "label_at": [
+     0.579,
+     0.391
+    ],
+    "d": [
+     8,
+     -8
+    ]
    },
-   "f35i_slot": 4
-  }
+   {
+    "n": 2,
+    "px": [
+     0.5,
+     0.578
+    ],
+    "label_at": [
+     0.567,
+     0.641
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "text:^230$",
+    "label_at": [
+     0.417,
+     0.225
+    ]
+   },
+   {
+    "n": 4,
+    "sym": "text:^427$",
+    "label_at": [
+     0.255,
+     0.641
+    ]
+   },
+   {
+    "n": 5,
+    "sym": "text:^100\\d\\d$",
+    "label_at": [
+     0.822,
+     0.664
+    ]
+   },
+   {
+    "n": 6,
+    "sym": "text:^001 ",
+    "label_at": [
+     0.822,
+     0.759
+    ]
+   },
+   {
+    "n": 7,
+    "sym": "text:^00:00",
+    "label_at": [
+     0.822,
+     0.878
+    ]
+   }
+  ]
  },
  {
-  "name": "hud_mrm",
-  "caption": "AMRAAM: the steering circle and the DLZ",
-  "mission": 231,
-  "start": "airborne",
-  "loadout": [
-   [
-    0,
-    0
-   ],
-   [
-    0,
-    0
-   ],
-   [
-    0,
-    0
-   ],
-   [
-    8,
-    1
-   ],
-   [
-    0,
-    0
-   ],
-   [
-    8,
-    1
-   ],
-   [
-    0,
-    0
-   ],
-   [
-    0,
-    0
-   ],
-   [
-    0,
-    0
-   ]
-  ],
-  "place": {
-   "unit_prefix": "mig23",
-   "ahead_m": 5000
-  },
-  "actions": [
-   "lock",
-   "station:3",
-   "wait:1"
-  ],
-  "crop": "hud",
+  "name": "landing_final",
+  "caption": "Final approach at 6° AoA, 3.6 NM out",
+  "mission": 311,
   "jet": 4,
   "settings": {
    "flight_data": "real",
@@ -349,12 +429,133 @@
     "fix_ghost_collision": true
    },
    "f35i_slot": 4
-  }
+  },
+  "start": "final",
+  "final_m": 4000,
+  "final_alt": 210,
+  "final_aoa": 6,
+  "crop": "hud",
+  "crop_w": 0.34,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "fpm",
+    "label_at": [
+     0.398,
+     0.577
+    ],
+    "d": [
+     -6,
+     0
+    ]
+   },
+   {
+    "n": 2,
+    "sym": "boresight",
+    "label_at": [
+     0.582,
+     0.466
+    ],
+    "d": [
+     6,
+     2
+    ]
+   },
+   {
+    "n": 3,
+    "px": [
+     0.359,
+     0.393
+    ],
+    "label_at": [
+     0.291,
+     0.307
+    ]
+   },
+   {
+    "n": 4,
+    "px": [
+     0.533,
+     0.364
+    ],
+    "label_at": [
+     0.613,
+     0.307
+    ]
+   },
+   {
+    "n": 5,
+    "sym": "text:^α ",
+    "label_at": [
+     0.192,
+     0.748
+    ]
+   },
+   {
+    "n": 6,
+    "sym": "text:^-775$",
+    "label_at": [
+     0.843,
+     0.515
+    ]
+   },
+   {
+    "n": 7,
+    "sym": "text:^R6",
+    "label_at": [
+     0.843,
+     0.699
+    ]
+   },
+   {
+    "n": 8,
+    "sym": "text:^141$",
+    "label_at": [
+     0.169,
+     0.491
+    ]
+   }
+  ]
  },
  {
   "name": "hud_srm",
-  "caption": "AIM-9L with the seeker locked",
+  "caption": "An AIM-9L locked on a MiG-23 1.6 NM ahead",
   "mission": 231,
+  "jet": 4,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   },
+   "f35i_slot": 4
+  },
   "start": "airborne",
   "loadout": [
    [
@@ -396,7 +597,8 @@
   ],
   "place": {
    "unit_prefix": "mig23",
-   "ahead_m": 3000
+   "ahead_m": 3000,
+   "bearing_deg": 5
   },
   "actions": [
    "lock",
@@ -404,6 +606,82 @@
    "wait:1.5"
   ],
   "crop": "hud",
+  "crop_w": 0.34,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "target",
+    "label_at": [
+     0.736,
+     0.319
+    ],
+    "d": [
+     8,
+     -8
+    ]
+   },
+   {
+    "n": 2,
+    "sym": "seeker",
+    "label_at": [
+     0.559,
+     0.307
+    ],
+    "d": [
+     -3,
+     -3
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "fpm",
+    "label_at": [
+     0.414,
+     0.331
+    ],
+    "d": [
+     -5,
+     -3
+    ]
+   },
+   {
+    "n": 4,
+    "sym": "text:^40$",
+    "label_at": [
+     0.789,
+     0.491
+    ]
+   },
+   {
+    "n": 5,
+    "sym": "text:>$",
+    "label_at": [
+     0.582,
+     0.54
+    ]
+   },
+   {
+    "n": 6,
+    "sym": "text:^1\\.6$",
+    "label_at": [
+     0.766,
+     0.736
+    ]
+   },
+   {
+    "n": 7,
+    "sym": "text:AIM-9",
+    "label_at": [
+     0.184,
+     0.859
+    ]
+   }
+  ]
+ },
+ {
+  "name": "hud_mrm",
+  "caption": "An AMRAAM locked on a MiG-23 8 NM ahead",
+  "mission": 231,
   "jet": 4,
   "settings": {
    "flight_data": "real",
@@ -438,12 +716,189 @@
     "fix_ghost_collision": true
    },
    "f35i_slot": 4
-  }
+  },
+  "start": "airborne",
+  "loadout": [
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    8,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    8,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "place": {
+   "unit_prefix": "mig23",
+   "ahead_m": 14800,
+   "bearing_deg": 5
+  },
+  "actions": [
+   "lock",
+   "station:3",
+   "wait:1"
+  ],
+  "crop": "hud",
+  "crop_w": 0.34,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "target",
+    "label_at": [
+     0.736,
+     0.319
+    ],
+    "d": [
+     8,
+     -8
+    ]
+   },
+   {
+    "n": 2,
+    "sym": "steering",
+    "label_at": [
+     0.559,
+     0.307
+    ],
+    "d": [
+     -2,
+     -2
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "circle:1",
+    "label_at": [
+     0.36,
+     0.515
+    ],
+    "edge": 270
+   },
+   {
+    "n": 4,
+    "sym": "text:^80$",
+    "label_at": [
+     0.789,
+     0.491
+    ]
+   },
+   {
+    "n": 5,
+    "sym": "text:^80$",
+    "label_at": [
+     0.774,
+     0.564
+    ],
+    "d": [
+     2,
+     20.6
+    ]
+   },
+   {
+    "n": 6,
+    "sym": "text:^80$",
+    "label_at": [
+     0.774,
+     0.663
+    ],
+    "d": [
+     2,
+     40.4
+    ]
+   },
+   {
+    "n": 7,
+    "sym": "text:>$",
+    "label_at": [
+     0.582,
+     0.54
+    ]
+   },
+   {
+    "n": 8,
+    "sym": "text:^8\\.0$",
+    "label_at": [
+     0.766,
+     0.736
+    ]
+   },
+   {
+    "n": 9,
+    "sym": "text:AIM-A",
+    "label_at": [
+     0.184,
+     0.859
+    ]
+   }
+  ]
  },
  {
   "name": "hud_gun",
-  "caption": "The gun with a locked target",
+  "caption": "The A-A gun locked on a MiG-23 at 2,600 ft",
   "mission": 231,
+  "jet": 4,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   },
+   "f35i_slot": 4
+  },
   "start": "airborne",
   "loadout": [
    [
@@ -493,45 +948,52 @@
    "wait:1"
   ],
   "crop": "hud",
-  "jet": 4,
-  "settings": {
-   "flight_data": "real",
-   "weapon_data": "real",
-   "hud_style": "real",
-   "hud_ladder": "conformal",
-   "sky": "atmospheric",
-   "terrain_closeup": true,
-   "imagery_israel": "mapi2015",
-   "imagery_outside": "sentinel2",
-   "easy_landing": false,
-   "easy_aiming": false,
-   "better": {
-    "flight_path_hold": true,
-    "force_angles": true,
-    "start_lift": true,
-    "start_rpm": true,
-    "start_alpha": true,
-    "landing_limits": true,
-    "spin_fixes": true,
-    "fbw_departure": true,
-    "lift_rate_floor": true,
-    "low_speed_roll": true,
-    "no_nose_wheel_lift": true,
-    "ground_effect": true,
-    "ground_idle": true,
-    "fix_fall_heading": true,
-    "fix_skill_damage": true,
-    "fix_lock_threat": true,
-    "fix_stores_weight": true,
-    "fix_bomb_burst": true,
-    "fix_ghost_collision": true
+  "crop_w": 0.34,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "target",
+    "label_at": [
+     0.598,
+     0.319
+    ],
+    "d": [
+     8,
+     -8
+    ]
    },
-   "f35i_slot": 4
-  }
+   {
+    "n": 2,
+    "px": [
+     0.467,
+     0.46
+    ],
+    "label_at": [
+     0.383,
+     0.54
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "text:^GUN$",
+    "label_at": [
+     0.199,
+     0.883
+    ]
+   },
+   {
+    "n": 4,
+    "sym": "text:^AA1$",
+    "label_at": [
+     0.184,
+     0.785
+    ]
+   }
+  ]
  },
  {
   "name": "hud_bomb",
-  "caption": "Bombing: the pipper on a target",
+  "caption": "CCIP with an MK-84 in a 45° dive",
   "mission": 231,
   "start": "dive",
   "loadout": [
@@ -620,6 +1082,223 @@
     "fix_ghost_collision": true
    },
    "f35i_slot": 4
-  }
+  },
+  "crop_w": 0.34,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "pipper",
+    "label_at": [
+     0.613,
+     0.687
+    ],
+    "d": [
+     4.5,
+     0
+    ]
+   },
+   {
+    "n": 2,
+    "sym": "fpm",
+    "label_at": [
+     0.613,
+     0.515
+    ],
+    "d": [
+     0,
+     30
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "fpm",
+    "label_at": [
+     0.398,
+     0.368
+    ],
+    "d": [
+     -5,
+     0
+    ]
+   },
+   {
+    "n": 4,
+    "sym": "text:^-45$",
+    "label_at": [
+     0.307,
+     0.368
+    ]
+   },
+   {
+    "n": 5,
+    "sym": "text:^-30620$",
+    "label_at": [
+     0.843,
+     0.515
+    ]
+   },
+   {
+    "n": 6,
+    "sym": "text:^AG1$",
+    "label_at": [
+     0.176,
+     0.785
+    ]
+   },
+   {
+    "n": 7,
+    "sym": "text:^2 AG$",
+    "label_at": [
+     0.207,
+     0.89
+    ]
+   }
+  ]
+ },
+ {
+  "name": "panel",
+  "caption": "The panoramic display: radar, TSD, stores and RWR portals",
+  "mission": 231,
+  "jet": 4,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   },
+   "f35i_slot": 4
+  },
+  "start": "airborne",
+  "loadout": [
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    8,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    8,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "place": {
+   "unit_prefix": "mig23",
+   "ahead_m": 14800
+  },
+  "actions": [
+   "lock",
+   "wait:1"
+  ],
+  "panel": 1.0,
+  "crop": "full",
+  "annotations": [
+   {
+    "n": 1,
+    "px": [
+     0.366,
+     0.63
+    ],
+    "label_at": [
+     0.339,
+     0.532
+    ]
+   },
+   {
+    "n": 2,
+    "px": [
+     0.454,
+     0.63
+    ],
+    "label_at": [
+     0.454,
+     0.532
+    ]
+   },
+   {
+    "n": 3,
+    "px": [
+     0.544,
+     0.63
+    ],
+    "label_at": [
+     0.552,
+     0.532
+    ]
+   },
+   {
+    "n": 4,
+    "px": [
+     0.633,
+     0.63
+    ],
+    "label_at": [
+     0.667,
+     0.532
+    ]
+   },
+   {
+    "n": 5,
+    "px": [
+     0.26,
+     0.847
+    ],
+    "label_at": [
+     0.214,
+     0.741
+    ]
+   }
+  ]
  }
 ]

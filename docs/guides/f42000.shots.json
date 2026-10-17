@@ -1,10 +1,53 @@
 [
  {
-  "name": "cockpit_runway",
-  "caption": "The Kurnass 2000 cockpit on the runway",
-  "mission": 311,
+  "name": "hud_original",
+  "caption": "The 1998 HUD at the start of mission 231",
+  "mission": 231,
   "jet": 3,
-  "crop": "full",
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "original",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   }
+  },
+  "start": "airborne",
+  "crop": "hud",
+  "crop_w": 0.3
+ },
+ {
+  "name": "hud_nav",
+  "caption": "NAV at 10,000 ft and 427 kt, waypoint 1 ahead",
+  "mission": 231,
+  "jet": 3,
+  "start": "airborne",
+  "crop": "hud",
   "settings": {
    "flight_data": "real",
    "weapon_data": "real",
@@ -37,7 +80,128 @@
     "fix_bomb_burst": true,
     "fix_ghost_collision": true
    }
-  }
+  },
+  "crop_w": 0.3,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "text:^427$",
+    "label_at": [
+     0.13,
+     0.347
+    ]
+   },
+   {
+    "n": 2,
+    "sym": "text:^1\\d{4}$",
+    "label_at": [
+     0.877,
+     0.347
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "text:G$",
+    "label_at": [
+     0.148,
+     0.403
+    ]
+   },
+   {
+    "n": 4,
+    "sym": "text:^M0",
+    "label_at": [
+     0.148,
+     0.472
+    ]
+   },
+   {
+    "n": 5,
+    "sym": "text:^NAV$",
+    "label_at": [
+     0.148,
+     0.542
+    ]
+   },
+   {
+    "n": 6,
+    "sym": "text:^WP",
+    "label_at": [
+     0.877,
+     0.444
+    ]
+   },
+   {
+    "n": 7,
+    "sym": "text:^\\d\\d:\\d\\d$",
+    "label_at": [
+     0.877,
+     0.521
+    ]
+   },
+   {
+    "n": 8,
+    "sym": "text:^270$",
+    "label_at": [
+     0.408,
+     0.278
+    ]
+   },
+   {
+    "n": 9,
+    "px": [
+     0.5,
+     0.139
+    ],
+    "label_at": [
+     0.59,
+     0.083
+    ]
+   },
+   {
+    "n": 10,
+    "sym": "fpm",
+    "label_at": [
+     0.417,
+     0.458
+    ],
+    "d": [
+     -7,
+     0
+    ]
+   },
+   {
+    "n": 11,
+    "sym": "horizon",
+    "label_at": [
+     0.608,
+     0.458
+    ],
+    "d": [
+     60,
+     0
+    ]
+   },
+   {
+    "n": 12,
+    "px": [
+     0.5,
+     0.569
+    ],
+    "label_at": [
+     0.59,
+     0.625
+    ]
+   },
+   {
+    "n": 13,
+    "sym": "text:^-5$",
+    "label_at": [
+     0.33,
+     0.639
+    ]
+   }
+  ]
  },
  {
   "name": "landing_final",
@@ -80,140 +244,100 @@
     "fix_bomb_burst": true,
     "fix_ghost_collision": true
    }
-  }
- },
- {
-  "name": "hud_nav",
-  "caption": "The Real HUD in NAV: the boxes, the heading scale and the steering caret",
-  "mission": 231,
-  "jet": 3,
-  "start": "airborne",
-  "crop": "hud",
-  "settings": {
-   "flight_data": "real",
-   "weapon_data": "real",
-   "hud_style": "real",
-   "hud_ladder": "conformal",
-   "sky": "atmospheric",
-   "terrain_closeup": true,
-   "imagery_israel": "mapi2015",
-   "imagery_outside": "sentinel2",
-   "easy_landing": false,
-   "easy_aiming": false,
-   "better": {
-    "flight_path_hold": true,
-    "force_angles": true,
-    "start_lift": true,
-    "start_rpm": true,
-    "start_alpha": true,
-    "landing_limits": true,
-    "spin_fixes": true,
-    "fbw_departure": true,
-    "lift_rate_floor": true,
-    "low_speed_roll": true,
-    "no_nose_wheel_lift": true,
-    "ground_effect": true,
-    "ground_idle": true,
-    "fix_fall_heading": true,
-    "fix_skill_damage": true,
-    "fix_lock_threat": true,
-    "fix_stores_weight": true,
-    "fix_bomb_burst": true,
-    "fix_ghost_collision": true
-   }
-  }
- },
- {
-  "name": "mfd_radar_stt",
-  "caption": "The radar page with a locked contact",
-  "mission": 231,
-  "jet": 3,
-  "start": "airborne",
-  "loadout": [
-   [
-    0,
-    0
-   ],
-   [
-    0,
-    0
-   ],
-   [
-    9,
-    1
-   ],
-   [
-    0,
-    0
-   ],
-   [
-    0,
-    0
-   ],
-   [
-    0,
-    0
-   ],
-   [
-    9,
-    1
-   ],
-   [
-    0,
-    0
-   ],
-   [
-    0,
-    0
-   ]
-  ],
-  "place": {
-   "unit_prefix": "mig23",
-   "ahead_m": 8000
   },
-  "actions": [
-   "lock",
-   "wait:1"
-  ],
-  "crop": "mfd_left",
-  "panel": 1.0,
-  "settings": {
-   "flight_data": "real",
-   "weapon_data": "real",
-   "hud_style": "real",
-   "hud_ladder": "conformal",
-   "sky": "atmospheric",
-   "terrain_closeup": true,
-   "imagery_israel": "mapi2015",
-   "imagery_outside": "sentinel2",
-   "easy_landing": false,
-   "easy_aiming": false,
-   "better": {
-    "flight_path_hold": true,
-    "force_angles": true,
-    "start_lift": true,
-    "start_rpm": true,
-    "start_alpha": true,
-    "landing_limits": true,
-    "spin_fixes": true,
-    "fbw_departure": true,
-    "lift_rate_floor": true,
-    "low_speed_roll": true,
-    "no_nose_wheel_lift": true,
-    "ground_effect": true,
-    "ground_idle": true,
-    "fix_fall_heading": true,
-    "fix_skill_damage": true,
-    "fix_lock_threat": true,
-    "fix_stores_weight": true,
-    "fix_bomb_burst": true,
-    "fix_ghost_collision": true
+  "crop_w": 0.3,
+  "final_aoa": 5,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "fpm",
+    "label_at": [
+     0.399,
+     0.653
+    ],
+    "d": [
+     -7,
+     0
+    ]
+   },
+   {
+    "n": 2,
+    "px": [
+     0.538,
+     0.346
+    ],
+    "label_at": [
+     0.608,
+     0.285
+    ]
+   },
+   {
+    "n": 3,
+    "px": [
+     0.304,
+     0.326
+    ],
+    "label_at": [
+     0.26,
+     0.264
+    ]
+   },
+   {
+    "n": 4,
+    "sym": "text:^AOA",
+    "label_at": [
+     0.148,
+     0.583
+    ]
+   },
+   {
+    "n": 5,
+    "sym": "text:^R\\d",
+    "label_at": [
+     0.877,
+     0.403
+    ]
+   },
+   {
+    "n": 6,
+    "sym": "text:^104$",
+    "label_at": [
+     0.877,
+     0.139
+    ]
+   },
+   {
+    "n": 7,
+    "px": [
+     0.687,
+     0.392
+    ],
+    "label_at": [
+     0.66,
+     0.278
+    ]
+   },
+   {
+    "n": 8,
+    "sym": "text:^5$",
+    "label_at": [
+     0.286,
+     0.181
+    ]
+   },
+   {
+    "n": 9,
+    "sym": "text:^141$",
+    "label_at": [
+     0.13,
+     0.382
+    ]
    }
-  }
+  ]
  },
  {
   "name": "hud_srm",
-  "caption": "Python 3: the seeker diamond on the target",
+  "caption": "A Python 3 locked on a MiG-23 0.9 NM ahead",
   "mission": 231,
   "jet": 3,
   "start": "airborne",
@@ -257,7 +381,7 @@
   ],
   "place": {
    "unit_prefix": "mig23",
-   "ahead_m": 3000
+   "ahead_m": 1700
   },
   "actions": [
    "lock",
@@ -297,11 +421,99 @@
     "fix_bomb_burst": true,
     "fix_ghost_collision": true
    }
-  }
+  },
+  "crop_w": 0.3,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "circle:1",
+    "label_at": [
+     0.33,
+     0.583
+    ],
+    "edge": 225
+   },
+   {
+    "n": 2,
+    "sym": "target",
+    "label_at": [
+     0.373,
+     0.236
+    ],
+    "d": [
+     -8.25,
+     -8.25
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "seeker",
+    "label_at": [
+     0.564,
+     0.243
+    ],
+    "d": [
+     0,
+     -3.4
+    ]
+   },
+   {
+    "n": 4,
+    "sym": "text:SHOOT",
+    "label_at": [
+     0.608,
+     0.597
+    ]
+   },
+   {
+    "n": 5,
+    "sym": "text:^10$",
+    "label_at": [
+     0.747,
+     0.208
+    ]
+   },
+   {
+    "n": 6,
+    "sym": "text:^10$",
+    "label_at": [
+     0.807,
+     0.278
+    ],
+    "d": [
+     2,
+     52
+    ]
+   },
+   {
+    "n": 7,
+    "sym": "text:>$",
+    "label_at": [
+     0.564,
+     0.458
+    ]
+   },
+   {
+    "n": 8,
+    "sym": "text:NM$",
+    "label_at": [
+     0.877,
+     0.489
+    ]
+   },
+   {
+    "n": 9,
+    "sym": "text:^SRM$",
+    "label_at": [
+     0.148,
+     0.458
+    ]
+   }
+  ]
  },
  {
   "name": "hud_mrm",
-  "caption": "AIM-7M: the missile circle and the launch-range scale",
+  "caption": "An AIM-7M locked on a MiG-23 8 NM ahead",
   "mission": 231,
   "jet": 3,
   "start": "airborne",
@@ -345,7 +557,7 @@
   ],
   "place": {
    "unit_prefix": "mig23",
-   "ahead_m": 3500
+   "ahead_m": 14800
   },
   "actions": [
    "lock",
@@ -385,7 +597,107 @@
     "fix_bomb_burst": true,
     "fix_ghost_collision": true
    }
-  }
+  },
+  "crop_w": 0.3,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "target",
+    "label_at": [
+     0.373,
+     0.236
+    ],
+    "d": [
+     -8.25,
+     -8.25
+    ]
+   },
+   {
+    "n": 2,
+    "sym": "steering",
+    "label_at": [
+     0.564,
+     0.264
+    ],
+    "d": [
+     2.5,
+     -2.5
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "circle:1",
+    "label_at": [
+     0.33,
+     0.583
+    ],
+    "edge": 225
+   },
+   {
+    "n": 4,
+    "sym": "text:SHOOT",
+    "label_at": [
+     0.608,
+     0.597
+    ]
+   },
+   {
+    "n": 5,
+    "sym": "text:^40$",
+    "label_at": [
+     0.747,
+     0.208
+    ]
+   },
+   {
+    "n": 6,
+    "sym": "text:^40$",
+    "label_at": [
+     0.807,
+     0.278
+    ],
+    "d": [
+     2,
+     8.9
+    ]
+   },
+   {
+    "n": 7,
+    "sym": "text:^40$",
+    "label_at": [
+     0.66,
+     0.569
+    ],
+    "d": [
+     2,
+     56
+    ]
+   },
+   {
+    "n": 8,
+    "sym": "text:>$",
+    "label_at": [
+     0.556,
+     0.458
+    ]
+   },
+   {
+    "n": 9,
+    "sym": "text:NM$",
+    "label_at": [
+     0.877,
+     0.489
+    ]
+   },
+   {
+    "n": 10,
+    "sym": "text:^MRM$",
+    "label_at": [
+     0.148,
+     0.458
+    ]
+   }
+  ]
  },
  {
   "name": "hud_gun",
@@ -473,7 +785,212 @@
    "station:9",
    "wait:1"
   ],
-  "crop": "hud"
+  "crop": "hud",
+  "crop_w": 0.3,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "circle:1",
+    "label_at": [
+     0.391,
+     0.208
+    ],
+    "edge": 315
+   },
+   {
+    "n": 2,
+    "sym": "lcos",
+    "label_at": [
+     0.365,
+     0.299
+    ],
+    "d": [
+     -1,
+     0
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "lcos",
+    "label_at": [
+     0.625,
+     0.264
+    ],
+    "d": [
+     9.8,
+     -11.6
+    ]
+   },
+   {
+    "n": 4,
+    "sym": "target",
+    "label_at": [
+     0.608,
+     0.417
+    ],
+    "d": [
+     8.25,
+     8.25
+    ]
+   },
+   {
+    "n": 5,
+    "sym": "text:NM$",
+    "label_at": [
+     0.877,
+     0.489
+    ]
+   },
+   {
+    "n": 6,
+    "sym": "text:^GUN$",
+    "label_at": [
+     0.148,
+     0.458
+    ]
+   },
+   {
+    "n": 7,
+    "sym": "gun_cross",
+    "label_at": [
+     0.373,
+     0.111
+    ],
+    "d": [
+     -3,
+     -3
+    ]
+   }
+  ]
+ },
+ {
+  "name": "hud_strf",
+  "caption": "STRF in a 20° dive",
+  "mission": 231,
+  "jet": 3,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   }
+  },
+  "start": "dive",
+  "dive_deg": 20,
+  "dive_agl": 600,
+  "speed": 220,
+  "loadout": [
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "place": {
+   "ground_unit": true,
+   "ahead_m": 1620
+  },
+  "actions": [
+   "ag:9",
+   "wait:0.5"
+  ],
+  "crop": "hud",
+  "crop_w": 0.3,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "pipper",
+    "label_at": [
+     0.625,
+     0.417
+    ],
+    "d": [
+     4.5,
+     0
+    ]
+   },
+   {
+    "n": 2,
+    "sym": "text:^R\\d",
+    "label_at": [
+     0.877,
+     0.375
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "text:^STRF$",
+    "label_at": [
+     0.148,
+     0.458
+    ]
+   },
+   {
+    "n": 4,
+    "sym": "text:^-20$",
+    "label_at": [
+     0.286,
+     0.278
+    ]
+   }
+  ]
  },
  {
   "name": "hud_ccip",
@@ -565,7 +1082,70 @@
     "fix_bomb_burst": true,
     "fix_ghost_collision": true
    }
-  }
+  },
+  "crop_w": 0.3,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "pipper",
+    "label_at": [
+     0.625,
+     0.583
+    ],
+    "d": [
+     4.5,
+     0
+    ]
+   },
+   {
+    "n": 2,
+    "sym": "fpm",
+    "label_at": [
+     0.608,
+     0.444
+    ],
+    "d": [
+     0,
+     22
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "fpm",
+    "label_at": [
+     0.408,
+     0.278
+    ],
+    "d": [
+     -7,
+     0
+    ]
+   },
+   {
+    "n": 4,
+    "sym": "text:^CCIP$",
+    "label_at": [
+     0.148,
+     0.458
+    ]
+   },
+   {
+    "n": 5,
+    "sym": "text:^R\\d",
+    "label_at": [
+     0.877,
+     0.375
+    ]
+   },
+   {
+    "n": 6,
+    "sym": "text:^-45$",
+    "label_at": [
+     0.286,
+     0.278
+    ]
+   }
+  ]
  },
  {
   "name": "mfd_flir",
@@ -654,7 +1234,64 @@
     "fix_bomb_burst": true,
     "fix_ghost_collision": true
    }
-  }
+  },
+  "annotations": [
+   {
+    "n": 1,
+    "px": [
+     0.475,
+     0.149
+    ],
+    "label_at": [
+     0.404,
+     0.057
+    ]
+   },
+   {
+    "n": 2,
+    "px": [
+     0.707,
+     0.149
+    ],
+    "label_at": [
+     0.848,
+     0.057
+    ]
+   },
+   {
+    "n": 3,
+    "px": [
+     0.162,
+     0.333
+    ],
+    "label_at": [
+     0.101,
+     0.505
+    ]
+   },
+   {
+    "n": 4,
+    "px": [
+     0.495,
+     0.501
+    ],
+    "label_at": [
+     0.768,
+     0.404
+    ]
+   },
+   {
+    "n": 5,
+    "px": [
+     0.677,
+     0.848
+    ],
+    "label_at": [
+     0.869,
+     0.939
+    ]
+   }
+  ]
  },
  {
   "name": "mfd_tv",
@@ -743,7 +1380,53 @@
     "fix_bomb_burst": true,
     "fix_ghost_collision": true
    }
-  }
+  },
+  "annotations": [
+   {
+    "n": 1,
+    "px": [
+     0.283,
+     0.149
+    ],
+    "label_at": [
+     0.202,
+     0.057
+    ]
+   },
+   {
+    "n": 2,
+    "px": [
+     0.717,
+     0.149
+    ],
+    "label_at": [
+     0.848,
+     0.057
+    ]
+   },
+   {
+    "n": 3,
+    "px": [
+     0.162,
+     0.333
+    ],
+    "label_at": [
+     0.101,
+     0.505
+    ]
+   },
+   {
+    "n": 4,
+    "px": [
+     0.499,
+     0.501
+    ],
+    "label_at": [
+     0.768,
+     0.384
+    ]
+   }
+  ]
  },
  {
   "name": "mfd_harm",
@@ -832,6 +1515,41 @@
     "fix_bomb_burst": true,
     "fix_ghost_collision": true
    }
-  }
+  },
+  "annotations": [
+   {
+    "n": 1,
+    "px": [
+     0.283,
+     0.149
+    ],
+    "label_at": [
+     0.202,
+     0.057
+    ]
+   },
+   {
+    "n": 2,
+    "px": [
+     0.646,
+     0.149
+    ],
+    "label_at": [
+     0.848,
+     0.057
+    ]
+   },
+   {
+    "n": 3,
+    "px": [
+     0.529,
+     0.697
+    ],
+    "label_at": [
+     0.747,
+     0.606
+    ]
+   }
+  ]
  }
 ]
