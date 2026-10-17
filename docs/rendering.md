@@ -298,7 +298,8 @@ Preferences → Graphics → MORE → **Night lights = Detailed** (ours, docs/de
 a small cost. The parts:
 
 1. **Glowing light points.** The `LT_` sets draw with a glow shader: a bright core and a soft halo. The glow is 4 m
-   wide in the world, kept between 2.5 and 28 pixels at 1080 rows. It fades with the fog, and it stands 1.5 m above
+   wide in the world, kept between 2.5 and 28 pixels at 1080 rows. The rows are the 3D render's (window rows ×
+   the Upscaling scale), so Quality and Balanced draw the glows at the same size on screen. It fades with the fog, and it stands 1.5 m above
    its spot, so the ground between the spots leaves it whole. By day the glow is at 35 %.
 2. **Home airbases lit at night.** At a night start, a runway model on its home spot (`ul_rwramon`, `ul_rwtelnof`,
    `ul_rwdavid`, `night_lights.gd BASE_LIGHTS`) gets its base's light set (`lt_rmn_h`, `lt_tnf_h`, `lt_dvd_h`). The
@@ -306,7 +307,10 @@ a small cost. The parts:
    original's art and match the runway edges in the imagery.
 3. **Navigation lights and strobe on every jet** (`aircraft_model.gd`): red on the left wingtip, green on the right,
    white at the tail, and a white strobe on top of the fin. It flashes for 0.08 s every 1.2 s, each jet at its own
-   phase. The spots are the model's EndWing helpers and its outermost vertices (cached per model).
+   phase. The spots are the model's outermost vertices, or its EndWing helpers when they sit at the wingtips (the
+   F-16's sit a third of the way out); cached per model. The cockpit-view model (`<plane>_bc`) carries its own set
+   at its own wingtips, tail and fin top, so you see your wingtip lights when you look aside from the cockpit. The
+   lights go out when the jet is hit, falls or is destroyed (damage state 3 and above), and when the player crashes.
 4. **Night sky.** 2600 stars (a fixed random sky, brighter ones rarer) and a moon disc drawn at the far plane. The
    cloud layer draws over them.
 5. **Moonlight.** At night the sun light comes from the moon (azimuth 140°, elevation 38°), colour (0.20, 0.23,

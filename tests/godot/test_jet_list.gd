@@ -59,6 +59,19 @@ func run() -> void:
 			check(inside and w.size() == 8 and w[0].position.y >= tv.cockpit.mfds[0].position.y + tv.cockpit.mfds[0].size.y - 1.0
 					and P.visible and tv.cockpit.tex.has("PANEL_NIGHT") and tv.cockpit.tex.has("LIGHTS_NIGHT") and tv.own_bc != null,
 					"%s: the PCD's glass holds the 4 portals over 8 windows; night art and cockpit-view model (%s)" % [name, g])
+			# The ESIS horizon grazing a corner (pitch 33°, roll −5° in a 141 × 118 box) leaves an untriangulable sliver
+			# ("Invalid polygon data"): ground_polys leaves it out, and a level horizon keeps the box's lower half.
+			var bx := PackedVector2Array([Vector2(812.3, 640.7), Vector2(953.8, 640.7), Vector2(953.8, 758.9), Vector2(812.3, 758.9)])
+			var rl := deg_to_rad(-5.0)
+			var hz := Vector2(883.05, 699.8) + Vector2(sin(rl), cos(rl)) * 33.0 * 118.2 / 60.0
+			var bg := (bx[2] - bx[0]).length() * 2.0
+			var raw := Geometry2D.intersect_polygons(bx, PackedVector2Array([hz - Vector2(cos(rl), -sin(rl)) * bg, hz + Vector2(cos(rl), -sin(rl)) * bg,
+					hz + Vector2(cos(rl), -sin(rl)) * bg + Vector2(sin(rl), cos(rl)) * bg, hz - Vector2(cos(rl), -sin(rl)) * bg + Vector2(sin(rl), cos(rl)) * bg]))
+			var lvl: Array = P.ground_polys(bx, Vector2(883.05, 699.8), Vector2.RIGHT, Vector2.DOWN)
+			check(raw.any(func(q): return Geometry2D.triangulate_polygon(q).is_empty())
+					and P.ground_polys(bx, hz, Vector2(cos(rl), -sin(rl)), Vector2(sin(rl), cos(rl))).is_empty()
+					and lvl.size() == 1 and absf(absf(_area(lvl[0])) - 141.5 * 59.1) < 1.0,
+					"%s: the ESIS leaves out a horizon's untriangulable corner sliver" % name)
 		key(tv, KEY_1)
 		key(tv, KEY_B)
 		key(tv, KEY_6)
@@ -104,3 +117,10 @@ func run() -> void:
 		check(crew >= 1 and n == crew, "%s: ejection, %d parachuters for %d seats" % [name, n, crew])
 	Settings().jet_id = -1
 	Settings().f35i_slot = -1
+
+
+static func _area(p: PackedVector2Array) -> float:
+	var a := 0.0
+	for i in p.size():
+		a += p[i].cross(p[(i + 1) % p.size()])
+	return a / 2.0

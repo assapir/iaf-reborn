@@ -252,9 +252,7 @@ func _draw_esis(r: Rect2) -> void:
 	var h := c + down * float(st.pitch) * k  # the horizon's centre
 	var box := PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)])
 	draw_rect(r, SKY)
-	var big := r.size.length() * 2.0
-	var ground := PackedVector2Array([h - right * big, h + right * big, h + right * big + down * big, h - right * big + down * big])
-	for poly in Geometry2D.intersect_polygons(box, ground):
+	for poly in ground_polys(box, h, right, down):
 		draw_colored_polygon(poly, GROUND)
 	for p in range(-30, 31, 10):
 		var w := (0.30 if p == 0 else 0.12) * r.size.x
@@ -279,6 +277,15 @@ func _draw_esis(r: Rect2) -> void:
 	_text(Vector2(hb.position.x, hb.end.y - bh * 0.22), "%03d" % (int(round(float(st.heading))) % 360), fs, WHITE,
 			HORIZONTAL_ALIGNMENT_CENTER, bw)
 	draw_rect(r, Color(0, 0, 0), false, maxf(1.0, s))
+
+
+## The ground's part of the ESIS box `box` below the horizon through `h` (along `right`, ground towards `down`). A
+## horizon that grazes a corner leaves a sliver a fraction of a pixel thick that the renderer cannot triangulate
+## ("Invalid polygon data"): such slivers are left out.
+static func ground_polys(box: PackedVector2Array, h: Vector2, right: Vector2, down: Vector2) -> Array:
+	var big := (box[2] - box[0]).length() * 2.0
+	var ground := PackedVector2Array([h - right * big, h + right * big, h + right * big + down * big, h - right * big + down * big])
+	return Geometry2D.intersect_polygons(box, ground).filter(func(p): return not Geometry2D.triangulate_polygon(p).is_empty())
 
 
 # --- layer 1: the glass ------------------------------------------------------------------------------------------

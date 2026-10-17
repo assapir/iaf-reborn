@@ -204,7 +204,8 @@ Symbology:
 
 ## F-4E Kurnass: AN/ASG-26 LCOSS (no HUD)
 
-The Kurnass aims through the AN/ASG-26 LCOSS (lead-computing optical sight system), drawn **red**.
+The Kurnass aims through the AN/ASG-26 LCOSS (lead-computing optical sight system), drawn **red**. Its reticle, like
+the Mirage's, is not cut to the original HUD's symbology field: only the panel's top edge cuts it.
 
 Sources: Heatblur DCS F-4E manual (paraphrasing T.O. 1F-4E-1/-34) https://f4.manuals.heatblur.se/systems/weapon_systems/lcoss.html
 and the BIT procedure; Joe Baugher; flyandwire.com.
@@ -309,7 +310,8 @@ Shahak's CSF 95 lacks the 97's gyro horizon / heading [S].
 
 ## F-35I Adir: Gen III helmet display (no HUD)
 
-The F-35I shows its flight data in the Gen III helmet display: green, 40° × 30°. Looking forward, it shows an
+The F-35I shows its flight data in the Gen III helmet display: green, 40° × 30°. The symbols the game adds over it
+(the ILS lines, the weapon symbols, the radar's BORE cross) are green too; so are they over the DASH (`hud.gd _hc`). Looking forward, it shows an
 aircraft-stabilised "virtual HUD" [V].
 
 Sources: Lockheed Martin "The F-35 Cockpit" slides (c. 2012; https://www.f-16.net/forum/viewtopic.php?t=16223&start=180);

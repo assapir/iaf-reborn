@@ -25,7 +25,10 @@ The file names follow the Reference screen's record folders (`f4`, `f42000`, `cf
 
 Screenshots (`shots/<jet>/*.png`) are rendered locally from the game by setup (`tools/guide_shots.sh [jet]
 [--only name,…]`, needs a display) into `assets/converted/guides/shots/`, from each guide's `<jet>.shots.json` (its
-schema in the header of `tests/godot/_guide_shots.gd`). A shot's `annotations` draw numbered yellow callouts with
+schema in the header of `tests/godot/_guide_shots.gd`). A "hud" crop takes `crop_w` (the box's width as a fraction of
+the frame; smaller zooms in) and `crop_dy` (the box moved down by that fraction of the frame's height; negative moves
+it up): the F-4E and Mirage gunsight shots use them to centre and enlarge a reticle that sits high on the glass. A
+`text:` callout's arrow ends on the box the HUD draws the text in (`hud.gd prim_text_box`). A shot's `annotations` draw numbered yellow callouts with
 arrows onto the picture; the guide gives their legend as a numbered list right under the picture (same count:
 `tools/guide_pdf.py` warns otherwise). They show the original game's art, so they stay
 local (git-ignored). The guides use the Markdown subset in `game/menu/guide_md.gd` (the PDF tool reads the same).

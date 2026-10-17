@@ -13,12 +13,13 @@
 # station N, "ag:N" the A-G store on station N, "flir" / "tv" the camera on the placed unit (FLIR with the laser),
 # "emitter" the placed unit's radar locks the jet, "look:Y,P" the head turned Y° right / P° up (free look), "key:X" a game key, "wait:S"), panel (0 the forward view … 1 the
 # whole panel), "dive" (an airborne start in a `dive_deg` dive `dive_agl` m above the ground), view ("cockpit" / "hud", the HUD-only view / "external"), crop ("full", "hud", "dash", "mfd_left", "mfd_right"; "hud" takes
-# `crop_w`, the box's width as a fraction of the frame, default 0.38).
+# `crop_w`, the box's width as a fraction of the frame, default 0.38: smaller zooms in; and `crop_dy`, the box moved down
+# by that fraction of the frame's height, negative moves it up, default 0: a gunsight's reticle that sits high).
 # Callouts ("annotations": [{n, anchor, label_at | off}]) are drawn on the picture: a numbered yellow marker at
 # `label_at` (a fraction of the crop) or at the anchor + `off` (× the crop's shorter side; [0, 0] puts the marker on
 # the anchor, no arrow) with an arrow to the anchor. The anchor is
 # the Real HUD's own output (hud.gd real_hud(), resolved every frame): "sym": "text:REGEX" (the first HUD text it
-# matches, at the text's middle; "nth": 2 the second match), "circle:N" (the N-th largest circle, at its edge `edge`° clockwise from 12 o'clock,
+# matches: the box the HUD draws it in, hud.gd prim_text_box; "nth": 2 the second match), "circle:N" (the N-th largest circle, at its edge `edge`° clockwise from 12 o'clock,
 # default 270) or a named point of the HUD's input ("fpm", "gun_cross", "boresight", "horizon",
 # "target", "steerpoint", "seeker", "pipper", "lcos", "steering"), moved by "d": [x, y] HUD pixels; or "px": [x, y],
 # a fraction of the crop (the MFD pages, the original HUD). The guide lists the legend as a numbered list right under
@@ -95,7 +96,8 @@ func run() -> void:
 		await _tick()
 	for i in 40:
 		await _tick()
-	var rect := _crop(String(e.get("crop", "full")), root.get_viewport().get_texture().get_size(), float(e.get("crop_w", 0.38)))
+	var rect := _crop(String(e.get("crop", "full")), root.get_viewport().get_texture().get_size(), float(e.get("crop_w", 0.38)),
+			float(e.get("crop_dy", 0.0)))
 	_info(name)
 	var anns: Array = e.get("annotations", [])
 	if not anns.is_empty():
@@ -258,14 +260,14 @@ func _action(a: String) -> void:
 ## The picture's crop: the whole frame, the HUD (a 16:10 box around the HUD centre, 38 % of the frame wide), the helmet
 ## display ("dash", around the head's line of sight) or one
 ## MFD with a margin.
-func _crop(c: String, size: Vector2i, hud_w := 0.38) -> Rect2i:
+func _crop(c: String, size: Vector2i, hud_w := 0.38, hud_dy := 0.0) -> Rect2i:
 	var full := Rect2i(Vector2i.ZERO, size)
 	match c:
 		"hud":
 			var centre: Vector2 = tv.cockpit.hud_centre_screen() + tv.cockpit.global_position
 			var wd := int(size.x * hud_w)
 			var ht := int(wd * 10 / 16)
-			centre.y += size.y * 0.04  # the data rows under the scales
+			centre.y += size.y * (0.04 + hud_dy)  # the data rows under the scales; crop_dy moves the box
 			return Rect2i(Vector2i(centre) - Vector2i(wd / 2, ht / 2), Vector2i(wd, ht)).intersection(full)
 		"dash":  # the helmet display: a 16:10 box around the helmet's line of sight (the camera's centre), 45 % wide
 			var hud = tv.cockpit.hud
@@ -322,20 +324,21 @@ func _anchor(a: Dictionary, rect: Rect2i) -> Variant:
 	var ci: CanvasItem = hud
 	var p = null
 	var half := Vector2.ZERO
+	var box := Rect2()
+	var found := false
 	if sym.begins_with("text:"):
 		var re := RegEx.create_from_string(sym.substr(5))
 		var nth := int(a.get("nth", 1))
 		for layer in ["field", "outer"]:
 			for q in real.get(layer, []):
-				if p == null and q.k == "text" and re.search(String(q.text)) != null:
+				if not found and q.k == "text" and re.search(String(q.text)) != null:
 					nth -= 1
 					if nth > 0:
 						continue
-					# The text's middle: its anchor is the baseline's left / centre / right end, 5 px a glyph, 6 px high.
-					var hw := 2.5 * String(q.text).length()
-					p = Vector2(q.at) + Vector2([hw, 0.0, -hw][int(q.align)], -3.0)
-					half = Vector2(hw, 3.5)
+					# The box the HUD draws the text in (hud.gd prim_text_box: the font's own width and cap height).
 					ci = hud if layer == "field" else hud.outer
+					box = hud.prim_text_box(q)
+					found = true
 	elif sym.begins_with("circle:"):
 		# The N-th largest HUD circle (1 the largest), at its edge `edge`° clockwise from 12 o'clock.
 		var cs: Array = []
@@ -358,6 +361,11 @@ func _anchor(a: Dictionary, rect: Rect2i) -> Variant:
 				p = inp.get(sym, {}).get("at")
 			"seeker", "pipper", "lcos", "steering":
 				p = inp.get("weapons", {}).get(sym)
+	if box.has_area():
+		var xf: Transform2D = ci.get_global_transform_with_canvas()
+		if not a.has("d"):
+			return Rect2(xf * box.position, xf.basis_xform(box.size))
+		p = (box.get_center() - hud._c) / hud._s
 	if p == null:
 		return null
 	if a.has("d"):  # a spot beside the symbol: a point

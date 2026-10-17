@@ -230,12 +230,37 @@ func setup(gltf_scene: Node3D, descriptor: Dictionary, type := -1, on_ground := 
 	_apply()
 	# Ours (Extras > Night lights = Detailed): navigation lights and a strobe (after _apply: the chute is hidden).
 	if NightLights.detailed():
-		_strobe = NightLights.add_nav_lights(self)
+		var strobe := NightLights.add_nav_lights(self)
+		if strobe != null:
+			_strobes = [strobe]
+			_lights = [root_frame.get_node("NavLights"), strobe]
 		_strobe_phase = randf() * NightLights.STROBE_PERIOD
 
 
-var _strobe: Node3D
+## The navigation lights and strobes (the model's own, and the copies attach_nav_lights makes); `_lit` false once the
+## jet is hit or destroyed (lights_off).
+var _lights: Array = []
+var _strobes: Array = []
 var _strobe_phase := 0.0
+var _lit := true
+
+
+## Puts navigation lights and a strobe on `to`, this jet's cockpit-view model (`<plane>_bc`, its own wingtips, tail and
+## fin top, which can lie farther out than this model's); they blink and go out with this model's.
+func attach_nav_lights(to: Node3D) -> void:
+	if _strobes.is_empty():
+		return
+	var strobe := NightLights.add_lights_on(to, str(desc.get("model", name)) + "_bc", null)
+	if strobe != null:
+		_strobes.append(strobe)
+		_lights.append_array([to.get_node("NavLights"), strobe])
+
+
+## Switches the navigation lights and strobe off (a hit, falling or destroyed jet).
+func lights_off() -> void:
+	_lit = false
+	for n: Node3D in _lights:
+		n.visible = false
 
 
 ## Drives the parts. `input` (all optional, like the flight state dictionary):
@@ -296,8 +321,8 @@ func update(input: Dictionary, delta: float) -> void:
 		_chute_angle = randf_range(-CHUTE_JITTER, CHUTE_JITTER)
 		_chute_t = _time
 	_chute_state = chute
-	if _strobe != null:
-		_strobe.visible = NightLights.strobe_on(_time, _strobe_phase)
+	for sn: Node3D in _strobes:
+		sn.visible = _lit and NightLights.strobe_on(_time, _strobe_phase)
 	# Afterburner level (FUN_005abc90 left / FUN_005abdc0 right): 75 + 12.5·stage when lit and that side's
 	# afterburner damage flag (8 / 9) is clear, else RPM·100·0.74 (never drawn).
 	var stage: int = input.get("afterburner", 0)

@@ -42,6 +42,9 @@ func run() -> void:
 	var d: Dictionary = hud.real_hud()
 	check(not d.is_empty() and d.colour != null and _texts(d.outer).has(str(int(round(float(st.ias_kt))))),
 		"looking aside: the F-16's Real DASH (%s)" % str(_texts(d.get("outer", []))))
+	# The symbols drawn over the Real HUD (ILS, weapons, BORE cross) take the frame's colour, not the HUD's (H).
+	check(d.colour != null and hud._hc() == d.colour and hud._hc() != tv.cockpit.hud_colour(),
+		"the helmet's own symbols in its green (%s, HUD %s)" % [hud._hc(), tv.cockpit.hud_colour()])
 	check(hud.real_dash("converted/cockpits/f15") and not hud.real_dash("converted/cockpits/lavi"), "the DASH: F-16 and F-15 only")
 	tv.cockpit.head = Vector2.ZERO
 	hud._process(0.0)

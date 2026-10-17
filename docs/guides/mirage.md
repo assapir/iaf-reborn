@@ -72,7 +72,8 @@ Speed, altitude and heading are on the panel: fly with its instruments.
 ![The instruments you fly by](shots/mirage/panel.png)
 
 1. **Altimeter**.
-2. **Airspeed**.
+2. **Airspeed** (true airspeed): the needle makes one turn per 1,000 kt, so each figure on the dial is 100 kt
+   (5 = 500 kt). The Mirage has no vertical-speed dial.
 3. **Attitude indicator**: the horizon disc.
 4. **Fuel**.
 5. **Chaff and flare counters**: `CHF 060`, `FLR 030`.

@@ -391,7 +391,8 @@ func _update_time_of_day(cam: Camera3D) -> void:
 ## Detailed night lights at night: the moon lights the ground from its spot in the sky, the stars and the moon show,
 ## the light points glow at full strength.
 func _night_detailed(sun: DirectionalLight3D, env: Environment, night: bool) -> void:
-	var rows := get_viewport().get_visible_rect().size.y
+	# The 3D scene renders at the upscaling's scale (Quality / Balanced): the glows' pixel sizes are its rows.
+	var rows := get_viewport().get_visible_rect().size.y * get_viewport().scaling_3d_scale
 	NightLights.set_gain(night, env.fog_density, rows)
 	if _night_sky == null:
 		_night_sky = NightLights.sky()
@@ -990,6 +991,11 @@ func mission_entity_smoke(ent: Dictionary, on: bool) -> void:
 
 ## A unit changed state (FUN_004a8100 at 3, FUN_004a86b0 at 4 / 5).
 func mission_entity_state(ent: Dictionary) -> void:
+	# Ours (Night lights = Detailed): a hit (falling), destroyed or exploded jet's lights go out.
+	if int(ent.state) >= 3:
+		var n = aircraft if ent.player else ent.get("node")
+		if n != null and n.has_method("lights_off"):
+			n.lights_off()
 	if int(ent.state) >= 3 and not _log_dead.has(ent.key):
 		_log_dead[ent.key] = true
 		var killer: Dictionary = ent.get("killer", {})
@@ -1359,6 +1365,8 @@ func _setup_autopilot(install: String) -> void:
 ## docs/mission-runtime.md §5.2); without a mission the flight just ends after 5 s.
 func _on_crashed(reason: String) -> void:
 	crashed = true
+	if aircraft != null:
+		aircraft.lights_off()
 	if not _log_st.is_empty():
 		_log_event(_log_st, {"event": "crash", "reason": reason})
 	print("player crashed: ", reason)
@@ -1413,6 +1421,8 @@ func _spawn_player() -> void:
 			own_bc.position = -Vector3(e[0], e[1], e[2]) * aircraft.scale
 		own_bc.visible = false
 		rig.add_child(own_bc)
+		# Ours (Night lights = Detailed): the wingtip / tail lights and the strobe on it too, at its own tips and fin top.
+		aircraft.attach_nav_lights(own_bc)
 
 
 ## Present scale (0x65e) of the player's type's bdb object in the mission's database (default6_1 otherwise).

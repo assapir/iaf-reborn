@@ -187,7 +187,8 @@ Each entry names the switch and where it lives, then the difference: "Original: 
 - **Night lights** (ours, docs/rendering.md §5). Rendering only; the default is Original.
   - Original: the original's light points, the `LT_` light sets drawn as one-pixel points (rendering.md §4).
   - Detailed: the light points glow. The home airbases (Ramat David, Ramon, Tel Nof) get their original light set at
-    a night start. Every jet carries red / green / white navigation lights and a white strobe. The night sky has
+    a night start. Every jet carries red / green / white navigation lights and a white strobe (off once it is hit;
+    on the cockpit-view model too). The night sky has
     stars and a moon.
   - Detailed moonlight: colour (0.20, 0.23, 0.33) from azimuth 140°, elevation 38°, ambient 0.3. The original's
     night light is (20, 20, 60) / 255 straight down with ambient 0.2.

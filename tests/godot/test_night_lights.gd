@@ -58,6 +58,30 @@ func run() -> void:
 		"detailed: the player's jet has navigation lights and a strobe")
 	check(tv.ai.pilots.any(func(p): return p.ent.node != null and p.ent.node.find_child("NavLights", true, false) != null),
 		"detailed: the AI jets too")
+	# The cockpit-view model carries its own set at its wingtips (they can lie farther out than the jet model's).
+	var bcl: MeshInstance3D = tv.own_bc.find_child("NavLights", false, false) if tv.own_bc != null else null
+	var tips: Array = NightLights._light_spots(tv.own_bc) if tv.own_bc != null else []
+	var lx: float = bcl.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX][0].x if bcl != null else 0.0
+	check(bcl != null and tv.own_bc.find_child("Strobe", false, false) != null and not tips.is_empty() \
+		and absf(lx - tips[0].x) < 0.05 * (tips[1].x - tips[0].x),
+		"detailed: the cockpit-view model has lights at its wingtips (%.2f, tip %.2f)" % [lx, tips[0].x if not tips.is_empty() else 0.0])
+	# Upscaling: the glows are sized in the 3D render's rows, not the window's.
+	tv.get_viewport().scaling_3d_scale = 0.5
+	tv._tod_t = -INF
+	await frames(3)
+	var vp_h: float = NightLights.glow().get_shader_parameter("vp_h")
+	check(absf(vp_h - tv.get_viewport().get_visible_rect().size.y * 0.5) < 0.5, "detailed: glow size in the render's rows (%.1f)" % vp_h)
+	tv.get_viewport().scaling_3d_scale = 1.0
+	# A shot-down jet's lights go out and its strobe stays dark.
+	var p = tv.ai.pilots.filter(func(p): return p.ent.node != null and p.ent.node.find_child("NavLights", true, false) != null)[0]
+	tv.runtime.set_damage_level(p.ent, 3)
+	await frames(30)
+	var lit: Array = p.ent.node.find_children("*", "MeshInstance3D", true, false).filter(func(m): return m.name in ["NavLights", "Strobe"] and m.visible)
+	check(lit.is_empty(), "detailed: a hit jet's lights are off (%d lit)" % lit.size())
+	tv.aircraft.lights_off()
+	await frames(80)
+	lit = tv.own_bc.find_children("*", "MeshInstance3D", false, false).filter(func(m): return m.name in ["NavLights", "Strobe"] and m.visible)
+	check(lit.is_empty(), "detailed: the cockpit-view model's lights go out with the jet's (%d lit)" % lit.size())
 
 	# Detailed by day, 311 at 11:00 (Ramat David): no base lights, no night sky, the sun.
 	tv = await start_mission(311)

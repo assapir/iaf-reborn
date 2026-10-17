@@ -145,9 +145,10 @@ func _draw() -> void:
 	# and the Mirage's gunsights) shows its reticle only. The ILS, the BORE cross and the TV / HARM diamonds stay.
 	var real := real_hud()
 	if not real.is_empty():
-		_draw_prims(self, real.field, w, real.colour)
+		# A gunsight's reticle (the F-4E's, the Mirage's) is not cut to the original HUD's field: the outer layer draws it.
 		if real.sight:
 			return
+		_draw_prims(self, real.field, w, real.colour)
 		if _mode() == 0 and cockpit.gear_handle_down and not dash:
 			_draw_ils(st, w)
 		if _mode() in [7, 8]:
@@ -207,19 +208,27 @@ func _field() -> Rect2:
 
 # --- drawing primitives: original pixels from the HUD centre -----------------------------------------
 
+## The colour every symbol draws in: the Real HUD frame's own colour (the F-35 helmet's and the DASH's green) when it
+## sets one, so the ILS, weapon and BORE symbols drawn over it match; else the HUD's colour (H cycles it).
+func _hc() -> Color:
+	var real := real_hud()
+	var c = real.get("colour")
+	return c if c != null else cockpit.hud_colour()
+
+
 func _pt(p: Vector2) -> Vector2:
 	return _c + p * _s
 
 
 func _ln(ci: CanvasItem, a: Vector2, b: Vector2, w: float) -> void:
-	ci.draw_line(_pt(a), _pt(b), cockpit.hud_colour(), w)
+	ci.draw_line(_pt(a), _pt(b), _hc(), w)
 
 
 func _poly(ci: CanvasItem, pts: Array, w: float) -> void:
 	var out := PackedVector2Array()
 	for p in pts:
 		out.append(_pt(p))
-	ci.draw_polyline(out, cockpit.hud_colour(), w)
+	ci.draw_polyline(out, _hc(), w)
 
 
 ## The 5x5 sprite font's lit pixels per glyph x (letters at (132,850), digits and symbols at (132,840) of
@@ -268,7 +277,7 @@ func _sprite(ci: CanvasItem, p: Vector2, text: String, right := false) -> void:
 			pts.append(_pt(o + q - j))
 			pts.append(_pt(o + q + j))
 	if not pts.is_empty():
-		ci.draw_multiline(pts, cockpit.hud_colour(), wd, true)
+		ci.draw_multiline(pts, _hc(), wd, true)
 
 
 ## A glyph as strokes: [segments between 8-neighbouring lit pixels (a diagonal only where no orthogonal step
@@ -295,20 +304,43 @@ func _glyph_strokes(x: int) -> Array:
 
 ## GDI text in Arial h10 w5 at baseline `p` (TA_BASELINE; TA_RIGHT when `right`).
 func _gdi(ci: CanvasItem, p: Vector2, text: String, right := false, colour = null) -> void:
+	var box := gdi_box(p, text, right)
+	if box.size.y <= 0.0:
+		return
+	ci.draw_set_transform(Vector2(box.position.x, _pt(p).y), 0.0, Vector2(_arial_squeeze, 1.0))
+	ci.draw_string(_arial, Vector2.ZERO, text, HORIZONTAL_ALIGNMENT_LEFT, -1, _gdi_size(), colour if colour != null else _hc())
+	ci.draw_set_transform(Vector2.ZERO)
+
+
+func _gdi_size() -> int:
 	var em := 10.0 / 1.15
 	if _arial == null:
 		_arial = Img.arial()
 		var avg := _arial.get_string_size("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", HORIZONTAL_ALIGNMENT_LEFT, -1, 100).x / 52.0 / 100.0 * em
 		_arial_squeeze = 5.0 / avg
-	var fs := int(round(em * _s))
+	return int(round(em * _s))
+
+
+## The box `_gdi` fills with `text` (the layer's pixels): its drawn width, from the baseline up a capital's height
+## (Arial's 0.716 em); empty when too small to draw. The guide pictures aim their arrows at it.
+func gdi_box(p: Vector2, text: String, right := false) -> Rect2:
+	var fs := _gdi_size()
 	if fs < 1:
-		return
+		return Rect2()
 	var at := _pt(p)
+	var wd: float = _arial.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x * _arial_squeeze
 	if right:
-		at.x -= _arial.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x * _arial_squeeze
-	ci.draw_set_transform(at, 0.0, Vector2(_arial_squeeze, 1.0))
-	ci.draw_string(_arial, Vector2.ZERO, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, colour if colour != null else cockpit.hud_colour())
-	ci.draw_set_transform(Vector2.ZERO)
+		at.x -= wd
+	var cap := 0.716 * fs
+	return Rect2(at - Vector2(0, cap), Vector2(wd, cap))
+
+
+## The box a Real HUD text primitive is drawn in (as _draw_prims places it).
+func prim_text_box(q: Dictionary) -> Rect2:
+	var at: Vector2 = q.at
+	if int(q.align) == 1:
+		at.x += 2.5 * String(q.text).length()
+	return gdi_box(at, q.text, int(q.align) != 0)
 
 
 # --- the unclipped layer -----------------------------------------------------------------------------
@@ -332,7 +364,7 @@ func _draw_outer() -> void:
 		_draw_pipper(_pipper_at.p, float(_pipper_at.arc), w)
 	var real := real_hud()
 	if not real.is_empty():
-		_draw_prims(outer, real.outer, w, real.colour)
+		_draw_prims(outer, real.field if real.sight else real.outer, w, real.colour)
 		return
 	if mode in [1, 2, 7] and not cockpit.radar.get("lock", {}).is_empty():
 		_draw_range_scale(f, w)
@@ -372,7 +404,7 @@ func _draw_outer() -> void:
 	if dash:
 		for line in dash_symbol(st.pitch, st.roll, _dash_steady()):
 			_poly(outer, line, w)
-		outer.draw_arc(_pt(Vector2.ZERO), 2.0 * _s, 0, TAU, 16, cockpit.hud_colour(), w)
+		outer.draw_arc(_pt(Vector2.ZERO), 2.0 * _s, 0, TAU, 16, _hc(), w)
 	else:
 		var y0 := f.position.y
 		var ht := heading_tape(st.heading, nav.bearing_deg)
@@ -520,7 +552,7 @@ func _hud_point(world: Vector3, far: bool) -> Variant:
 
 ## Draws Real HUD primitives (HUD pixels from the HUD centre) on `ci`, in `colour` (null: the HUD's).
 func _draw_prims(ci: CanvasItem, prims: Array, w: float, colour = null) -> void:
-	var col: Color = colour if colour != null else cockpit.hud_colour()
+	var col: Color = colour if colour != null else _hc()
 	for p in prims:
 		match p.k:
 			"line":
@@ -892,7 +924,7 @@ func conformal_rungs(heading_deg: float) -> Array:
 ## in the sprite font ending at P(±39, 0) + (5, −2), shown when that point is inside the field.
 func _draw_rung(c: Vector2, along: Vector2, e: int, s: float, w: float, _font: Font, _fs: int) -> void:
 	var down := Vector2(-along.y, along.x)
-	var col: Color = cockpit.hud_colour()
+	var col: Color = _hc()
 	var at := func(u: float, r: float) -> Vector2: return c + (along * u + down * r) * s
 	for side in [1.0, -1.0]:
 		if e == 0:
@@ -912,10 +944,10 @@ func _draw_rung(c: Vector2, along: Vector2, e: int, s: float, w: float, _font: F
 ## The marker (FUN_00538c90): Ellipse(x−2, y−2, x+3, y+3) (outline pixels 2 px from the centre), wings from
 ## 4 to 1 px either side and a tail from 4 to 1 px up (LineTo leaves the last pixel: 4..2 px drawn).
 func _draw_fpm(p: Vector2, s: float, w: float) -> void:
-	draw_arc(p, 2.0 * s, 0, TAU, 16, cockpit.hud_colour(), w)
-	draw_line(p + Vector2(2, 0) * s, p + Vector2(4, 0) * s, cockpit.hud_colour(), w)
-	draw_line(p - Vector2(2, 0) * s, p - Vector2(4, 0) * s, cockpit.hud_colour(), w)
-	draw_line(p - Vector2(0, 2) * s, p - Vector2(0, 4) * s, cockpit.hud_colour(), w)
+	draw_arc(p, 2.0 * s, 0, TAU, 16, _hc(), w)
+	draw_line(p + Vector2(2, 0) * s, p + Vector2(4, 0) * s, _hc(), w)
+	draw_line(p - Vector2(2, 0) * s, p - Vector2(4, 0) * s, _hc(), w)
+	draw_line(p - Vector2(0, 2) * s, p - Vector2(0, 4) * s, _hc(), w)
 
 
 # --- weapon symbology (docs/weapons.md §6; FUN_0052ef20, FUN_0052fa10, FUN_0052ffb0) ----------------
@@ -946,7 +978,7 @@ func _draw_weapons(s: float, w: float, font: Font, fs: int, gun: Vector2, dash :
 	var wp: Dictionary = cockpit.weapons
 	if wp.is_empty():
 		return
-	var col: Color = cockpit.hud_colour()
+	var col: Color = _hc()
 	var mode := int(wp.hud_mode)
 	if dash and mode >= 3 and mode <= 6:
 		return  # FUN_00530040 / FUN_005302d0 test R+0x2788
@@ -1001,7 +1033,7 @@ func _draw_weapons(s: float, w: float, font: Font, fs: int, gun: Vector2, dash :
 ## The gun pipper (FUN_00530040, HUD modes 3 / 4) on `outer`: the 32×32 sprite and, with a radar lock, the range arc
 ## (pen 2 px, r 11 px about the pipper centre) from 12 o'clock clockwise by `arc`.
 func _draw_pipper(p: Vector2, arc: float, w: float) -> void:
-	var col: Color = cockpit.hud_colour()
+	var col: Color = _hc()
 	var t := _pipper_tex()
 	if t != null:
 		outer.draw_texture_rect(t, Rect2(p - Vector2(16, 16) * _s, Vector2(32, 32) * _s), false)
@@ -1149,7 +1181,7 @@ func _draw_target_box(s: float, w: float) -> void:
 	var b := target_box(s)
 	if b.is_empty():
 		return
-	var col: Color = cockpit.hud_colour()
+	var col: Color = _hc()
 	var p: Vector2 = b.p
 	var h: float = b.h
 	if b.edge:
@@ -1217,7 +1249,7 @@ func _draw_waypoint_marker(w: float) -> void:
 		p = (camera.unproject_position(sp) - global_position - _c) / _s
 	p = waypoint_marker_point(p, _field())
 	var c := _pt(p)
-	draw_arc(c, 4.5 * _s, 0, TAU, 24, cockpit.hud_colour(), w)
+	draw_arc(c, 4.5 * _s, 0, TAU, 24, _hc(), w)
 	_gdi(self, p + Vector2(6, 6), "T" if int(wpt.get("action", 0)) == 5 else str(i + 1))
 
 
