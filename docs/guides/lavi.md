@@ -1,10 +1,11 @@
 # Lavi pilot guide (realistic settings)
 
-This guide is for flying the IAI Lavi in this game with every realistic option switched on. The game's model is the
-**two-seat Lavi** (two crew under one canopy): the B-3 Technology Demonstrator of the game's Reference text, "of two-seat
-configuration". Its Real flight data are the single-seat production design figures (Jane's 1987-88), because the
-Lavi never entered service: the prototypes flew only to Mach 1.45 before the programme was cancelled in August 1987.
-The numbers come from the game's own data and tests. Where the game differs from the real jet, the guide says so.
+This guide tells you how to fly the IAI Lavi in this game with every realistic option switched on. The game's model is
+the **two-seat Lavi** (two crew under one canopy): the B-3 Technology Demonstrator of the game's Reference text, "of
+two-seat configuration". The Lavi stayed a prototype: the prototypes flew only to Mach 1.45 before the programme was
+cancelled in August 1987. So its Real flight data are the single-seat production design figures (Jane's 1987-88). The
+numbers come from the game's own data and tests. Where the game differs from the real jet, the guide says so. Section 11
+explains the abbreviations.
 
 ![The Lavi cockpit on the runway](shots/lavi/cockpit_runway.png)
 
@@ -12,23 +13,23 @@ The numbers come from the game's own data and tests. Where the game differs from
 
 ## 1. Settings
 
-Set these on the Preferences screen before the flight. The original 1998 game is the default everywhere, so each of
-these has to be switched on.
+Set these on the Preferences screen before the flight. Every row starts at the original 1998 game's setting, so switch
+each one on.
 
 ### Extras tab
 
-| Row                    | Set to                            | What it does                                                                                        |
-| ---------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Row                    | Set to                            | What it does                                                                                            |
+| ---------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------- |
 | Flight data            | Real aircraft                     | The Lavi design numbers (PW1120, Jane's 1987-88): weight, fuel, thrust, stall speed, fuel flow, ceiling |
-| Weapon data            | Real weapons                      | Real missile weights, speeds and ranges, the EL/M-2035 radar range (46 km) |
-| HUD                    | Real                              | The Lavi's own wide-angle HUD (a reconstruction)                                                              |
-| HUD pitch ladder       | Conformal                         | The ladder lies on the real horizon (only matters with the original HUD)                            |
-| Sky                    | Atmospheric                       | A physical sky with the sun, and haze that takes its colour                                         |
-| Terrain close up       | Detailed                          | Ground detail below about 500 m                                                                     |
-| Imagery Israel         | Survey 2 m (or Survey 2 m modern) | 2 m photos of Israel, if setup converted them                                                       |
-| Imagery outside Israel | Sentinel-2 (or Sentinel-2 modern) | 10 m satellite imagery outside Israel, if setup converted it                                        |
+| Weapon data            | Real weapons                      | Real missile weights, speeds and ranges, the EL/M-2035 radar range (46 km)                              |
+| HUD                    | Real                              | The Lavi's own wide-angle HUD (a reconstruction)                                                        |
+| HUD pitch ladder       | Conformal                         | The ladder lies on the real horizon (for the original HUD)                                              |
+| Sky                    | Atmospheric                       | A physical sky with the sun, and haze that takes its colour                                             |
+| Terrain close up       | Detailed                          | Ground detail below about 500 m                                                                         |
+| Imagery Israel         | Survey 2 m (or Survey 2 m modern) | 2 m photos of Israel, if setup converted them                                                           |
+| Imagery outside Israel | Sentinel-2 (or Sentinel-2 modern) | 10 m satellite imagery outside Israel, if setup converted it                                            |
 
-A greyed-out imagery choice means its data was not converted (`tools/setup.sh --imagery`).
+A greyed-out imagery choice needs its data: convert it with `tools/setup.sh --imagery`.
 
 ### Physics tab
 
@@ -38,7 +39,7 @@ Switch on every row:
 | ------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | Flight-path hold (neutral stick)            | With the stick centred the jet holds its flight path at every speed                          |
 | Forces at current AoA / sideslip            | Lift and drag from the jet's actual angle of attack and sideslip                             |
-| Air start without jolt                      | The jet starts an air start level, without a jump                                            |
+| Air start without jolt                      | The jet starts an air start level and smoothly                                               |
 | Air start with engine spooled up            | The engine starts an air start at the throttle's RPM                                         |
 | Air start trimmed                           | The nose holds steady through the first second of an air start                               |
 | Real landing limits (sink, tail strike)     | Touchdown faster than 4 m/s (about 790 ft/min) or a tail strike above 15° nose-up is a crash |
@@ -66,7 +67,7 @@ Switch on every row:
 | Invulnerable, No crashes, Unlimited ammo, Unlimited fuel | off                                     |                                                       |
 | AI level                                                 | Expert, if you want the hardest enemies |                                                       |
 
-No wind and No malfunctions have no effect: nothing in the original reads them either.
+No wind and No malfunctions are placeholder switches, as in the original.
 
 ---
 
@@ -75,31 +76,30 @@ No wind and No malfunctions have no effect: nothing in the original reads them e
 With Flight data = Real the Lavi row comes from the design figures (Jane's 1987-88, docs/real-aircraft.md §6),
 checked by the game's validation test.
 
-| Item                                         | In the game                     | Real Lavi (design)                         |
-| -------------------------------------------- | ------------------------------- | ------------------------------------------ |
-| Empty weight                                 | 15,500 lb                       | 15,500 lb                                  |
-| Internal fuel                                | 6,000 lb                        | 3,330 l ≈ 6,000 lb                         |
-| Thrust, military / full afterburner          | 13,550 / 20,600 lbf             | 13,530–13,550 / 20,585–20,700 lbf (PW1120) |
-| 1 g stall speed, sea level                   | 110 kt                          | 110 kt, the lowest speed flown in the tests |
-| g limits                                     | +9 / −3                         | +9 (design)                                |
-| Max roll rate                                | 220°/s (0 to 90° in 0.82 s)     | unpublished                               |
-| Max speed, sea level                         | 769 kt (Mach 1.16)              | unpublished; about Mach 1.1–1.2             |
-| Max speed, 40,000 ft                         | 1,059 kt (Mach 1.85)            | Mach 1.85 (1,061 kt at 36,000 ft)          |
-| Climb at 350 kt, sea level, full afterburner | about 37,400 ft/min             | over 50,000 ft/min                         |
-| Instantaneous turn, 420 kt at 10,000 ft      | 21.7°/s at 8.1 g                | 23–24.3°/s at Mach 0.8, 15,000 ft          |
-| Fuel flow, military / full afterburner       | 10,800 / 38,200 lb/h            | about 10,800 / 38,200 lb/h                 |
-| Service ceiling                              | 50,000 ft                       | 50,000 ft (design)                         |
+| Item                                         | In the game                 | Real Lavi (design)                          |
+| -------------------------------------------- | --------------------------- | ------------------------------------------- |
+| Empty weight                                 | 15,500 lb                   | 15,500 lb                                   |
+| Internal fuel                                | 6,000 lb                    | 3,330 l ≈ 6,000 lb                          |
+| Thrust, military / full afterburner          | 13,550 / 20,600 lbf         | 13,530–13,550 / 20,585–20,700 lbf (PW1120)  |
+| 1 g stall speed, sea level                   | 110 kt                      | 110 kt, the lowest speed flown in the tests |
+| g limits                                     | +9 / −3                     | +9 (design)                                 |
+| Max roll rate                                | 220°/s (0 to 90° in 0.82 s) | unpublished                                 |
+| Max speed, sea level                         | 769 kt (Mach 1.16)          | unpublished; about Mach 1.1–1.2             |
+| Max speed, 40,000 ft                         | 1,059 kt (Mach 1.85)        | Mach 1.85 (1,061 kt at 36,000 ft)           |
+| Climb at 350 kt, sea level, full afterburner | about 37,400 ft/min         | over 50,000 ft/min                          |
+| Instantaneous turn, 420 kt at 10,000 ft      | 21.7°/s at 8.1 g            | 23–24.3°/s at Mach 0.8, 15,000 ft           |
+| Fuel flow, military / full afterburner       | 10,800 / 38,200 lb/h        | about 10,800 / 38,200 lb/h                  |
+| Service ceiling                              | 50,000 ft                   | 50,000 ft (design)                          |
 
 What that means in the cockpit:
 
 - **Fuel.** Internal fuel lasts about 9 minutes at full afterburner, or about 33 minutes at military power at sea
   level.
-- **Climb.** The game's Lavi climbs slower than the published figure (37,400 against over 50,000 ft/min): the thrust
-  and drag are fitted to the published top speeds, which the climb figure does not match.
+- **Climb.** The game's Lavi climbs slower than the published figure (37,400 against over 50,000 ft/min): the thrust and
+  drag are fitted to the published top speeds, at the cost of the climb figure.
 - **Speeds the game's own training uses** (the training lessons are the same for every jet): rotate at **145 kt**,
   downwind at **200 kt** and 2,000 ft above the ground, base and final at **165 kt**, gear down below **300 kt**. The
   Lavi's flight controls hold it down to about **110 kt**.
-- **No drag chute**: the game's Lavi has none.
 - **Nose-wheel steering** comes from the rudder pedals. The steering angle is ±32° (the F-16's
   figure, as a stand-in), on the Lavi's 12.66 ft wheelbase.
 
@@ -155,12 +155,13 @@ With Real landing limits and Easy landing off, a touchdown faster than **4 m/s (
 
 - **The stick on the keyboard** is all or nothing: a tap gives full deflection at once, as in the original. A joystick
   is much smoother.
-- **Fly-by-wire.** Like the F-16, the Lavi is a fly-by-wire jet: a normal pull does not stall or spin it.
+- **Fly-by-wire.** Like the F-16, the Lavi is a fly-by-wire jet: the flight controls keep a normal pull from stalling or
+  spinning it.
 - **Deep stall.** With the "F-16 / Lavi deep stall" switch on, the Lavi gets the F-16's departure: zoom nose-high (30°
   or more) until the speed is gone and it hangs at about 60° angle of attack, nose rocking near the horizon, sinking
-  fast. Holding the stick forward does **not** recover it. **Recovery**: rock the stick in phase with the nose (pull
-  while it rises, push while it falls) until the nose falls through, then pull out of the dive. Its departure
-  behaviour is the F-16's, a stand-in from the closest public data.
+  fast. Holding the stick forward **keeps it in the stall**. **Recovery**: rock the stick in phase with the nose (pull
+  while it rises, push while it falls) until the nose falls through, then pull out of the dive. Its departure behaviour
+  is the F-16's, a stand-in from the closest public data.
 - **Flight-path hold.** With the stick centred the jet holds its flight path.
 - **g-effects.** With No blackouts off, a hard pull greys and blacks out the screen.
 
@@ -191,7 +192,8 @@ Looking aside (**Shift+arrows**, **F3**), the Lavi's helmet sight shows the orig
 ## 6. Radar (EL/M-2035)
 
 With Weapon data = Real the radar detects at **46 km** in LRS and STT (the EL/M-2035 tracks several targets at that
-range). Without it the Lavi's radar has the game's longest search table: 90 NM in LRS. The left MFD shows it.
+range). With the original weapon data the Lavi's radar has the game's longest search table: 90 NM in LRS. The left MFD
+shows it.
 
 | Key                           | Action                                              |
 | ----------------------------- | --------------------------------------------------- |
@@ -204,8 +206,8 @@ range). Without it the Lavi's radar has the game's longest search table: 90 NM i
 | **Backspace**                 | Drop the lock                                       |
 | **\\** (hold)                 | Boresight: a ±12° lock cone straight ahead          |
 
-The radar does not see targets lower than 30 m above the ground or behind terrain. Locking a target tells it you
-locked it (and its RWR sounds).
+The radar sees targets from 30 m above the ground, in line of sight. Locking a target tells it you locked it (and its
+RWR sounds).
 
 ![The radar page with a locked contact](shots/lavi/mfd_radar_stt.png)
 
@@ -228,19 +230,19 @@ right display.
 
 - **RWR**: the right display shows emitters and missiles around you; a new threat sounds a tone, a missile launch at
   you the launch warning.
-- **Chaff (Insert)** and **flares (Delete)**: the Lavi carries **120 chaff and 60 flares**. Each press releases one.
-  At release, every missile of the decoy's kind launched at you rolls once: chaff fools a radar missile with 10 %
-  (30 % above 4 g), a flare an IR missile with 33 % (50 % above 4 g), and **never with the afterburner lit**.
-- **ECM (J)**: the Lavi has it built in, like the F-16. Switching it on jams each radar-guided missile already flying
-  at you with a 60 % chance. It has no effect on SAMs.
+- **Chaff (Insert)** and **flares (Delete)**: the Lavi carries **120 chaff and 60 flares**. Each press releases one. At
+  release, every missile of the decoy's kind launched at you rolls once. Chaff fools a radar missile with 10 % (30 %
+  above 4 g). A flare fools an IR missile with 33 % (50 % above 4 g), **only with the afterburner off**.
+- **ECM (J)**: the Lavi has it built in, like the F-16. Switching it on jams each radar-guided missile already flying at
+  you with a 60 % chance. SAMs keep guiding.
 
 ---
 
 ## 9. Weapons
 
 **M** cycles the master mode NAV → A-A → A-G, and **N** returns to NAV. **]** selects the next air-to-air weapon and
-**[** the next air-to-ground one. **Space** fires the selected weapon and **Tab** fires the gun. Nothing fires with the
-gear handle down.
+**[** the next air-to-ground one. **Space** fires the selected weapon and **Tab** fires the gun. The weapons are live
+with the gear handle up.
 
 What the Lavi can load on the Arming screen (its own load list; stations 1 and 9 are the wingtips, 5 the centreline):
 
@@ -264,7 +266,7 @@ jet's allowed counts, as the original does.
 
 ### Gun
 
-The real Lavi had a 30 mm DEFA; the game gives it the 20 mm gun. Its real round count is not published, so with Real
+The real Lavi had a 30 mm DEFA; the game gives it the 20 mm gun. Its real round count is unpublished, so with Real
 weapon data it keeps the game's gun and count.
 
 - **A-A gun** (**]** to the gun): `GUN`, the **LCOS** reticle on the lead-computed aim point; with a radar lock its
@@ -292,7 +294,7 @@ weapon data it keeps the game's gun and count.
 
 ### Radar missiles: AMRAAM
 
-Real data: 157 kg, Mach 4, 70 km, active: it needs nothing after the launch.
+Real data: 157 kg, Mach 4, 70 km, active: it guides itself after the launch.
 
 1. Radar on (**R**), lock a target.
 2. **]** until `MRM`. The Real HUD shows the launch circle with its steering dot, the target box, and the
@@ -370,3 +372,41 @@ zoom.
 
 The **F-35I** (ours) can take the Lavi's place on the Jet list (Extras → F-35I replaces → Lavi): its own guide is
 `assets/converted/guides/f35i.pdf`.
+
+---
+
+## 11. Abbreviations
+
+| Term   | Meaning                                                         |
+| ------ | --------------------------------------------------------------- |
+| A-A    | air-to-air                                                      |
+| A-G    | air-to-ground                                                   |
+| AB     | afterburner                                                     |
+| ACM    | air combat mode: the radar's close-range lock mode              |
+| AMRAAM | advanced medium-range air-to-air missile (AIM-120)              |
+| AoA    | angle of attack (also AOA)                                      |
+| CCIP   | continuously computed impact point: the bomb's predicted impact |
+| ECM    | electronic countermeasures: jamming                             |
+| FLIR   | forward-looking infrared: an infrared camera                    |
+| GMT    | ground moving target                                            |
+| HARM   | high-speed anti-radiation missile: it homes on radar emitters   |
+| HUD    | head-up display                                                 |
+| ILS    | instrument landing system                                       |
+| IR     | infrared (heat-seeking)                                         |
+| KCAS   | knots calibrated airspeed                                       |
+| kt     | knots                                                           |
+| lbf    | pound-force (thrust)                                            |
+| LCOS   | lead-computing optical sight                                    |
+| LRS    | long-range search                                               |
+| MFD    | multi-function display                                          |
+| MRM    | medium-range missile: the radar missiles                        |
+| NAV    | navigation mode                                                 |
+| NM     | nautical mile (1,852 m)                                         |
+| RPM    | engine speed, as % of maximum                                   |
+| RWR    | radar warning receiver                                          |
+| SAM    | surface-to-air missile                                          |
+| SRM    | short-range missile: the IR missiles                            |
+| STRF   | strafe: the air-to-ground gun                                   |
+| STT    | single-target track: a radar lock                               |
+| TSD    | tactical situation display: the map                             |
+| TWS    | track while scan                                                |

@@ -1,9 +1,9 @@
 # Kfir pilot guide (realistic settings)
 
-This guide is for flying the Kfir C7 (the single-seat delta: the game's model, and its Reference text "IAI Kfir …
-single-seat strike, ground attack and fighter aircraft", most C2s "subsequently being upgraded to C7") in this game
-with every realistic option switched on. The numbers come from the game's own data and tests. Where the game differs
-from the real jet, the guide says so.
+This guide tells you how to fly the Kfir C7 in this game with every realistic option switched on. The Kfir C7 is the
+single-seat delta of the game's model. Its Reference text reads "IAI Kfir … single-seat strike, ground attack and
+fighter aircraft", with most C2s "subsequently being upgraded to C7". The numbers come from the game's own data and
+tests. Where the game differs from the real jet, the guide says so. Section 11 explains the abbreviations.
 
 ![The Kfir cockpit on the runway](shots/cfir/cockpit_runway.png)
 
@@ -11,49 +11,49 @@ from the real jet, the guide says so.
 
 ## 1. Settings
 
-Set these on the Preferences screen before the flight. The original 1998 game is the default everywhere, so each of
-these has to be switched on.
+Set these on the Preferences screen before the flight. Every row starts at the original 1998 game's setting, so switch
+each one on.
 
 ### Extras tab
 
-| Row                    | Set to                            | What it does                                                                                        |
-| ---------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Flight data            | Real aircraft                     | The Kfir C7 (J79-J1E) numbers: weight, fuel, thrust, wing area, stall, g limits, fuel flow, ceiling |
+| Row                    | Set to                            | What it does                                                                                                     |
+| ---------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Flight data            | Real aircraft                     | The Kfir C7 (J79-J1E) numbers: weight, fuel, thrust, wing area, stall, g limits, fuel flow, ceiling              |
 | Weapon data            | Real weapons                      | Real missile weights, speeds and ranges, the EL/M-2001B radar range, 2 × 140 DEFA rounds at 2 × 1,300 rounds/min |
-| HUD                    | Real                              | The Kfir C7's Elbit HUD: its modes from the Elbit System 82, its layout a reconstruction |
-| HUD pitch ladder       | Conformal                         | The ladder lies on the real horizon (only matters with the original HUD)                            |
-| Sky                    | Atmospheric                       | A physical sky with the sun, and haze that takes its colour                                         |
-| Terrain close up       | Detailed                          | Ground detail below about 500 m                                                                     |
-| Imagery Israel         | Survey 2 m (or Survey 2 m modern) | 2 m photos of Israel, if setup converted them                                                       |
-| Imagery outside Israel | Sentinel-2 (or Sentinel-2 modern) | 10 m satellite imagery outside Israel, if setup converted it                                        |
+| HUD                    | Real                              | The Kfir C7's Elbit HUD: its modes from the Elbit System 82, its layout a reconstruction                         |
+| HUD pitch ladder       | Conformal                         | The ladder lies on the real horizon (for the original HUD)                                                       |
+| Sky                    | Atmospheric                       | A physical sky with the sun, and haze that takes its colour                                                      |
+| Terrain close up       | Detailed                          | Ground detail below about 500 m                                                                                  |
+| Imagery Israel         | Survey 2 m (or Survey 2 m modern) | 2 m photos of Israel, if setup converted them                                                                    |
+| Imagery outside Israel | Sentinel-2 (or Sentinel-2 modern) | 10 m satellite imagery outside Israel, if setup converted it                                                     |
 
-A greyed-out imagery choice means its data was not converted (`tools/setup.sh --imagery`).
+A greyed-out imagery choice needs its data: convert it with `tools/setup.sh --imagery`.
 
 ### Physics tab
 
 Switch on every row:
 
-| Row                                         | Effect                                                                                         |
-| ------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Flight-path hold (neutral stick)            | With the stick centred the jet holds its flight path at every speed                           |
-| Forces at current AoA / sideslip            | Lift and drag from the jet's actual angle of attack and sideslip                               |
-| Air start without jolt                      | The jet starts an air start level, without a jump                                              |
-| Air start with engine spooled up            | The engine starts an air start at the throttle's RPM                                           |
-| Air start trimmed                           | The nose holds steady through the first second of an air start                                 |
-| Real landing limits (sink, tail strike)     | Touchdown faster than 4 m/s (about 790 ft/min) or a tail strike above 15° nose-up is a crash   |
-| Realistic spins                             | More realistic spins                                                                           |
-| F-16 / Lavi deep stall                      | No effect on the Kfir (it has no fly-by-wire limiter) |
-| Low-speed lift rate fix                     | Fixes the lift response below about 18 m/s                                                     |
-| No reversed roll at low speed               | Fixes the roll reversal at walking speed                                                       |
-| No nose-wheel lift quirk                    | Steering on the take-off run keeps the jet on the ground                                       |
-| Ground effect                               | Less induced drag near the ground: a longer float in the flare                                 |
-| Real idle thrust on the ground (taxi speed) | At idle the jet settles near 30 kt, a taxi speed                                               |
-| Falling jets keep their heading             |                                                                                                |
-| No tougher enemies on easy AI levels        |                                                                                                |
-| Locked enemies know who locked them         | An enemy you lock with the radar knows it was you                                              |
-| Stores weight fix                           | Every store counts, in the right units                                                         |
-| Bombs burst at the ground                   |                                                                                                |
-| No collisions with hidden units / wrecks    |                                                                                                |
+| Row                                         | Effect                                                                                       |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Flight-path hold (neutral stick)            | With the stick centred the jet holds its flight path at every speed                          |
+| Forces at current AoA / sideslip            | Lift and drag from the jet's actual angle of attack and sideslip                             |
+| Air start without jolt                      | The jet starts an air start level and smoothly                                               |
+| Air start with engine spooled up            | The engine starts an air start at the throttle's RPM                                         |
+| Air start trimmed                           | The nose holds steady through the first second of an air start                               |
+| Real landing limits (sink, tail strike)     | Touchdown faster than 4 m/s (about 790 ft/min) or a tail strike above 15° nose-up is a crash |
+| Realistic spins                             | More realistic spins                                                                         |
+| F-16 / Lavi deep stall                      | Acts on the fly-by-wire jets; the Kfir has mechanical controls                               |
+| Low-speed lift rate fix                     | Fixes the lift response below about 18 m/s                                                   |
+| No reversed roll at low speed               | Fixes the roll reversal at walking speed                                                     |
+| No nose-wheel lift quirk                    | Steering on the take-off run keeps the jet on the ground                                     |
+| Ground effect                               | Less induced drag near the ground: a longer float in the flare                               |
+| Real idle thrust on the ground (taxi speed) | At idle the jet settles near 30 kt, a taxi speed                                             |
+| Falling jets keep their heading             |                                                                                              |
+| No tougher enemies on easy AI levels        |                                                                                              |
+| Locked enemies know who locked them         | An enemy you lock with the radar knows it was you                                            |
+| Stores weight fix                           | Every store counts, in the right units                                                       |
+| Bombs burst at the ground                   |                                                                                              |
+| No collisions with hidden units / wrecks    |                                                                                              |
 
 ### Gameplay tab
 
@@ -65,7 +65,7 @@ Switch on every row:
 | Invulnerable, No crashes, Unlimited ammo, Unlimited fuel | off                                     |                                                       |
 | AI level                                                 | Expert, if you want the hardest enemies |                                                       |
 
-No wind and No malfunctions have no effect: nothing in the original reads them either.
+No wind and No malfunctions are placeholder switches, as in the original.
 
 ---
 
@@ -76,26 +76,26 @@ No wind and No malfunctions have no effect: nothing in the original reads them e
 With Flight data = Real the Kfir C7 row comes from Jane's and other public figures, checked by the game's validation
 test. The original 1998 Kfir weighed 25 % too much and was badly underpowered.
 
-| Item                                   | In the game                  | Real Kfir C7                                           |
-| -------------------------------------- | ---------------------------- | ------------------------------------------------------ |
-| Empty weight                           | 16,060 lb                    | 16,060 lb (Jane's)                                     |
-| Internal fuel                          | 5,670 lb                     | 2,572 kg = 5,670 lb (Jane's); 3,243 l in the game's Reference text |
-| Thrust, military / full afterburner    | 11,870 / 17,900 lbf          | 11,870 / 17,900 lbf (J79-J1E; 18,750 "combat plus" not modelled) |
-| Wing area                              | 375 ft²                      | 375 ft²                                                |
-| 1 g stall speed                        | 127 kt (uncertain)           | approach about 160–175 kt (uncertain)                  |
-| g limits                               | +7.5 / −3.5                  | +7.5 / −3.5                                            |
-| Max roll rate                          | 150°/s (the original's)      | unpublished                                           |
-| Max speed, sea level                   | 771 kt                       | about 750 kt (Mach 1.13)                               |
-| Max speed, 40,000 ft                   | 1,139 kt (Mach 1.99)         | Mach 2.0 sustained, Mach 2.3 dash                      |
-| Climb at 350 kt, sea level             | about 27,900 ft/min          | 45,930 ft/min (peak, light)                            |
-| Fuel flow, military / full afterburner | 9,970 / 35,200 lb/h          | about 9,970 / about 35,200 lb/h                        |
-| Service ceiling                        | 58,000 ft                    | above 58,000 ft (17,680 m)                             |
+| Item                                   | In the game             | Real Kfir C7                                                       |
+| -------------------------------------- | ----------------------- | ------------------------------------------------------------------ |
+| Empty weight                           | 16,060 lb               | 16,060 lb (Jane's)                                                 |
+| Internal fuel                          | 5,670 lb                | 2,572 kg = 5,670 lb (Jane's); 3,243 l in the game's Reference text |
+| Thrust, military / full afterburner    | 11,870 / 17,900 lbf     | 11,870 / 17,900 lbf (J79-J1E; 18,750 "combat plus" left out)       |
+| Wing area                              | 375 ft²                 | 375 ft²                                                            |
+| 1 g stall speed                        | 127 kt (uncertain)      | approach about 160–175 kt (uncertain)                              |
+| g limits                               | +7.5 / −3.5             | +7.5 / −3.5                                                        |
+| Max roll rate                          | 150°/s (the original's) | unpublished                                                        |
+| Max speed, sea level                   | 771 kt                  | about 750 kt (Mach 1.13)                                           |
+| Max speed, 40,000 ft                   | 1,139 kt (Mach 1.99)    | Mach 2.0 sustained, Mach 2.3 dash                                  |
+| Climb at 350 kt, sea level             | about 27,900 ft/min     | 45,930 ft/min (peak, light)                                        |
+| Fuel flow, military / full afterburner | 9,970 / 35,200 lb/h     | about 9,970 / about 35,200 lb/h                                    |
+| Service ceiling                        | 58,000 ft               | above 58,000 ft (17,680 m)                                         |
 
 What that means in the cockpit:
 
 - **Fuel.** At full afterburner the internal fuel lasts about 10 minutes, at military power about 34 minutes. The
   2,550 lb tanks ("2550LB") go on stations 3, 5 and 7. Watch the fuel: the Kfir has the least of all the jets.
-- **Drag chute (Shift+B)**: visual only (no Kfir chute size was found, so it adds no drag).
+- **Drag chute (Shift+B)**: visual only. The Kfir's chute size is unpublished, so the game gives it zero drag.
 - **Nose-wheel steering** comes from the rudder pedals, ±30° (uncertain), wheelbase 16 ft (uncertain).
 
 ---
@@ -122,7 +122,7 @@ throttle key starts it, and the RPM then climbs 15 % per second.
 
 1. **Downwind**: 2,000 ft above the ground, **200 kt**. Gear down (**G**), flaps out (**F**).
 2. **Base**: throttle 60–80 % (keys **2** to **4**), about 20° of bank, slow to **165 kt**, aim for a 4° approach.
-3. **Final**: line up with the runway on a 4° glide slope: put the flight path marker on the cross of the ILS lines on the HUD (the localizer and a 4° glide slope).
+3. **Final**: put the flight path marker on the cross of the ILS lines on the HUD (the localizer and a 4° glide slope).
 4. Over the threshold: throttle to idle (**1**) and flare gently.
 5. After touchdown: brakes (**B**).
 
@@ -143,9 +143,9 @@ With Real landing limits and Easy landing off, a touchdown faster than **4 m/s (
 
 - **The stick on the keyboard** is all or nothing: a tap gives full deflection at once, as in the original. A joystick
   is much smoother.
-- **No fly-by-wire limiter.** Nothing stops you from pulling into a stall: at low speed a hard pull stalls the wings,
-  and with Realistic spins on you can spin. Recover with the stick forward and the rudder against the spin, then pull
-  out of the dive.
+- **Mechanical flight controls.** The stick moves the surfaces directly, so you own the limits: at low speed a hard pull
+  stalls the wings, and with Realistic spins on you can spin. Recover with the stick forward and the rudder against the
+  spin, then pull out of the dive.
 - **Flight-path hold.** With the stick centred the jet holds its flight path.
 - **g-effects.** With No blackouts off, a hard pull greys and blacks out the screen.
 
@@ -173,9 +173,9 @@ Real switch draws **the Kfir's HUD as a reconstruction** in that style, from tho
 
 ## 6. Radar (EL/M-2001B)
 
-The real Kfir C7 has an **EL/M-2001B ranging radar with no search mode**. The game still gives it the same radar modes
-as every jet; with Weapon data = Real only its detection range changes, to **14.8 km** (uncertain, one database). So
-expect to find targets late, and use the radar mainly to lock and range.
+The real Kfir C7 has an **EL/M-2001B ranging-only radar**. The game still gives it the same radar modes as every jet.
+With Weapon data = Real only its detection range changes, to **14.8 km** (uncertain, one database). So expect to find
+targets late, and use the radar mainly to lock and range.
 
 | Key                           | Action                                              |
 | ----------------------------- | --------------------------------------------------- |
@@ -188,8 +188,8 @@ expect to find targets late, and use the radar mainly to lock and range.
 | **Backspace**                 | Drop the lock                                       |
 | **\\** (hold)                 | Boresight: a ±12° lock cone straight ahead          |
 
-The radar does not see targets lower than 30 m above the ground or behind terrain. Locking a target tells it you
-locked it (and its RWR sounds).
+The radar sees targets from 30 m above the ground, in line of sight. Locking a target tells it you locked it (and its
+RWR sounds).
 
 ![The ranging radar with a locked contact](shots/cfir/mfd_radar_stt.png)
 
@@ -207,18 +207,18 @@ attitude ball is on the panel too. **T** brings up the TSD (tactical map), **D**
 
 - **RWR**: the panel dial shows emitters and missiles around you; a new threat sounds a tone, a missile launch at you
   the launch warning.
-- **Chaff (Insert)** and **flares (Delete)**: the Kfir carries **90 chaff and 60 flares**. Each press releases one.
-  At release, every missile of the decoy's kind launched at you rolls once: chaff fools a radar missile with 10 %
-  (30 % above 4 g), a flare an IR missile with 33 % (50 % above 4 g), and **never with the afterburner lit**.
-- **No ECM pod**: the Kfir's store list has none, so **J** does nothing.
+- **Chaff (Insert)** and **flares (Delete)**: the Kfir carries **90 chaff and 60 flares**. Each press releases one. At
+  release, every missile of the decoy's kind launched at you rolls once. Chaff fools a radar missile with 10 % (30 %
+  above 4 g). A flare fools an IR missile with 33 % (50 % above 4 g), **only with the afterburner off**.
+- Self-protection is chaff and flares: **J** is the ECM pod's key on jets that carry one.
 
 ---
 
 ## 9. Weapons
 
 **M** cycles the master mode NAV → A-A → A-G, and **N** returns to NAV. **]** selects the next air-to-air weapon and
-**[** the next air-to-ground one. **Space** fires the selected weapon and **Tab** fires the gun. Nothing fires with the
-gear handle down.
+**[** the next air-to-ground one. **Space** fires the selected weapon and **Tab** fires the gun. The weapons are live
+with the gear handle up.
 
 What the Kfir can load on the Arming screen (seven stations: 2 and 8 under the outer wings, 3 and 7 under the inner
 wings, 4, 5, 6 under the fuselage):
@@ -234,8 +234,8 @@ wings, 4, 5, 6 under the fuselage):
 | CBU-87 / CBU-97 (×6)     | 3, 5, 7                       |
 | Fuel tank ("2550LB")     | 3, 5, 7                       |
 
-The Kfir has no radar missiles, no FLIR pod and no TV or HARM weapons. Its **laser bombs have no designator**: with
-nothing to lase they fall like normal bombs (CCIP).
+The Kfir's air-to-air missiles are all IR missiles, and its ground weapons are bombs and rockets. Its **laser bombs fall
+like normal, unguided bombs (CCIP)**.
 
 ### Gun (2 × DEFA 553)
 
@@ -244,8 +244,8 @@ gun modes:
 
 - **LCOS** (the radar ranges the target): the lead-computing reticle with its range arc. Put the pipper on the target
   and fire.
-- **HOTL**, the hotline (no radar range): the bullet stream's path hanging from the gun cross, with ticks at 1,000,
-  2,000 and 3,000 ft. Fly the target onto the line at its range.
+- **HOTL**, the hotline (before the radar ranges the target): the bullet stream's path hanging from the gun cross, with
+  ticks at 1,000, 2,000 and 3,000 ft. Fly the target onto the line at its range.
 
 ![The gun with a locked target: LCOS](shots/cfir/hud_gun.png)
 
@@ -262,10 +262,10 @@ gun modes:
 1. **]** until `SRM`: a growl, then a higher tone when the seeker **locks**.
 2. **With a radar lock** the seeker is slaved to the locked target within its cone off the nose.
 3. Beyond **half** its range the seeker sees only a jet **with its afterburner lit**.
-4. On the Real HUD the seeker **diamond spins** while it searches and **holds on the target** once it locks. Fire
-   with **Space** when locked (the Kfir's HUD has no separate shoot cue).
+4. On the Real HUD the seeker **diamond spins** while it searches and **holds on the target** once it locks. Fire with
+   **Space** when locked: the locked diamond is the Kfir's shoot cue.
 
-The AIM-9D's **rear-aspect** seeker (Real data) gives no tone on a target coming at you or standing still: get behind it.
+The AIM-9D's **rear-aspect** seeker (Real data) locks only on a target moving away from you: get behind it.
 
 ![Python 3 with the seeker locked](shots/cfir/hud_srm.png)
 
@@ -280,8 +280,8 @@ MK-82 / MK-83 / MK-84, the CBU-87 / CBU-97 clusters and ZUNNI rockets.
    at the edge; the bombs go when the time-to-go reaches 0.9 s (positive g, less than 90° of bank).
 4. The ripple quantity and spacing are set on the stores page (default: 2 bombs, 10 m apart).
 
-The game's training warns against GP bombs below 2,000 ft above the ground. There is no fuse or arming time: a bomb
-dropped from any height bursts at the ground.
+The game's training warns against GP bombs below 2,000 ft above the ground. A bomb arms at release: dropped from any
+height, it bursts at the ground.
 
 ![CCIP with the pipper on a target](shots/cfir/hud_ccip.png)
 
@@ -296,16 +296,48 @@ dropped from any height bursts at the ground.
 The views and every key are the same as in the F-16 guide: **F1** cockpit ↔ HUD only, **Shift+arrows** free look,
 **F2** back view, **F3** padlock, **F4**–**F11** the outside views, **Ctrl+F2** cockpit ↔ external, **= / −** zoom.
 
-| Key                       | Action                                    |
-| ------------------------- | ----------------------------------------- |
-| **1** … **8**             | Throttle: idle … **6** military … **8** full afterburner |
-| **G** / **F** / **B**     | Gear / flaps / brakes (speed brake in the air) |
-| **M** / **N**             | Master mode / NAV                         |
-| **]** / **[**             | Next A-A / A-G weapon                     |
-| **Space** / **Tab**       | Fire the weapon / the gun                 |
-| **R** / **Q** / **S**     | Radar on, A-A ↔ A-G / mode / standby      |
-| **Return** / **Backspace**| Next contact (lock) / drop the lock       |
-| **Insert** / **Delete**   | Chaff / flare                             |
-| **Shift+C**               | Jettison                                  |
-| **A** / **W**             | Autopilot / next waypoint                 |
-| **E**                     | Eject                                     |
+| Key                        | Action                                                   |
+| -------------------------- | -------------------------------------------------------- |
+| **1** … **8**              | Throttle: idle … **6** military … **8** full afterburner |
+| **G** / **F** / **B**      | Gear / flaps / brakes (speed brake in the air)           |
+| **M** / **N**              | Master mode / NAV                                        |
+| **]** / **[**              | Next A-A / A-G weapon                                    |
+| **Space** / **Tab**        | Fire the weapon / the gun                                |
+| **R** / **Q** / **S**      | Radar on, A-A ↔ A-G / mode / standby                     |
+| **Return** / **Backspace** | Next contact (lock) / drop the lock                      |
+| **Insert** / **Delete**    | Chaff / flare                                            |
+| **Shift+C**                | Jettison                                                 |
+| **A** / **W**              | Autopilot / next waypoint                                |
+| **E**                      | Eject                                                    |
+
+---
+
+## 11. Abbreviations
+
+| Term | Meaning                                                         |
+| ---- | --------------------------------------------------------------- |
+| A-A  | air-to-air                                                      |
+| A-G  | air-to-ground                                                   |
+| ACM  | air combat mode: the radar's close-range lock mode              |
+| AoA  | angle of attack (also AOA)                                      |
+| CCIP | continuously computed impact point: the bomb's predicted impact |
+| ECM  | electronic countermeasures: jamming                             |
+| GMT  | ground moving target                                            |
+| GP   | general-purpose (bomb)                                          |
+| HOTL | hotline                                                         |
+| HUD  | head-up display                                                 |
+| ILS  | instrument landing system                                       |
+| IR   | infrared (heat-seeking)                                         |
+| kt   | knots                                                           |
+| lbf  | pound-force (thrust)                                            |
+| LCOS | lead-computing optical sight                                    |
+| LRS  | long-range search                                               |
+| NAV  | navigation mode                                                 |
+| NM   | nautical mile (1,852 m)                                         |
+| RPM  | engine speed, as % of maximum                                   |
+| RWR  | radar warning receiver                                          |
+| SRM  | short-range missile: the IR missiles                            |
+| STRF | strafe: the air-to-ground gun                                   |
+| STT  | single-target track: a radar lock                               |
+| TSD  | tactical situation display: the map                             |
+| TWS  | track while scan                                                |

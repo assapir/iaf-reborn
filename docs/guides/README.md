@@ -11,9 +11,9 @@ HUD, the Physics switches). The game shows them in the Reference screen (its **P
 - [Lavi](lavi.md): the two-seat Lavi of the game's model, on the design figures: the F-16-style Real HUD
   (a reconstruction), the EL/M-2035 radar, three MFDs, built-in ECM, every store it carries, and a key card.
 - [Mirage](mirage.md): the Mirage IIICJ Shahak: the CSF 95 gunsight, the Cyrano radar, one display,
-  Shafrir 2 / AIM-9D, bombs and rockets, and the fast no-flap approach.
+  Shafrir 2 / AIM-9D, bombs and rockets, and the fast flapless approach.
 - [F-35I](f35i.md): our F-35I Adir (Extras → F-35I replaces): the helmet's virtual HUD, the APG-81, the panoramic
-  display, the weapon bays, and a key card. It has no Reference record, so the game shows it only as the PDF
+  display, the weapon bays, and a key card. It sits outside the Reference records, so the game shows it only as the PDF
   (`assets/converted/guides/f35i.pdf`; the Lavi guide points to it).
 - [F-4E](f4.md): the F-4E Kurnass: the AN/ASG-26 sight, the APQ-120, AIM-9D / Shafrir 2 / AIM-7B /
   Shrike, the drag chute.
@@ -25,5 +25,5 @@ The file names follow the Reference screen's record folders (`f4`, `f42000`, `cf
 
 Screenshots (`shots/<jet>/*.png`) are rendered locally from the game by setup (`tools/guide_shots.sh [jet]
 [--only name,…]`, needs a display) into `assets/converted/guides/shots/`, from each guide's `<jet>.shots.json` (its
-schema in the header of `tests/godot/_guide_shots.gd`). They show the original game's art, so they are never
-committed. The guides use the Markdown subset in `game/menu/guide_md.gd` (the PDF tool reads the same).
+schema in the header of `tests/godot/_guide_shots.gd`). They show the original game's art, so they stay
+local (git-ignored). The guides use the Markdown subset in `game/menu/guide_md.gd` (the PDF tool reads the same).
