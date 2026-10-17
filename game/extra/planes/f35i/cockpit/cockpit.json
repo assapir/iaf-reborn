@@ -1,16 +1,17 @@
 {
- "_doc": "F-35I cockpit (ours, docs/f35i.md \u00a74): the panel is tools/f35i/make_panel.py's; the MFD atlas, RWR symbols, TSD map and ADI ball are the converted F-16 cockpit's (Shared). No HUD glass: the HUD symbology is the helmet's (Dash 1). The panoramic display is four portals, [x, y, scale, page] (page: 1 stores, 2 radar, 3 TSD, 7 RWR).",
+ "_doc": "F-35I cockpit (ours, docs/f35i.md \u00a74): the panel and lamps are tools/f35i/cockpit3d.py's renders (day / night); the MFD atlas, RWR symbols and TSD map are the converted F-16 cockpit's (Shared). No HUD glass: the HUD symbology is the helmet's (Dash 1). [MFD] Portals are [x, y, scale, page] (page: 1 stores, 2 radar, 3 TSD, 7 RWR); [PCD] places the display around them (game/cockpit/pcd.gd).",
  "Shared": "f16",
  "image_scale": 4,
  "PANEL": {
-  "FileName": "f35panel.bmp",
+  "FileName": "f35panel.webp",
   "MainOffsetY": 190.0,
   "PanelHeight": 352.0,
   "MaskOffsetY1": 288.0,
   "MaskOffsetY2": 93.0,
-  "NightRScale": 2.0,
-  "NightGScale": 1.0,
-  "NightBScale": 2.0
+  "NightRScale": 0.0,
+  "NightGScale": 0.0,
+  "NightBScale": 0.0,
+  "NightFileName": "f35panel_night.webp"
  },
  "PANELST": {
   "OFFSET00": 230.0,
@@ -51,61 +52,33 @@
  "MFD": {
   "Portals": [
    [
-    706.22,
-    17.64,
-    0.9613,
+    710.74,
+    32.55,
+    0.9442,
     2
    ],
    [
-    833.12,
-    17.64,
-    0.9613,
+    835.37,
+    32.55,
+    0.9442,
     3
    ],
    [
     960.01,
-    17.64,
-    0.9613,
+    32.55,
+    0.9442,
     1
    ],
    [
-    1086.9,
-    17.64,
-    0.9613,
+    1084.64,
+    32.55,
+    0.9442,
     7
    ]
   ]
  },
  "LENHORIZON": {
-  "Active": 1.0,
-  "FileName": "F16adi.bmp",
-  "CenterX": 960.0,
-  "CenterY": 311.4,
-  "Factor": 15.0,
-  "Radius": 27.6
- },
- "FUELDIGITAL": {
-  "Active": 1.0,
-  "ColorR": 64.0,
-  "ColorG": 200.0,
-  "ColorB": 40.0,
-  "OffsetX": 722.9,
-  "OffsetY": 187.1
- },
- "CHAFF": {
-  "OffX": 1173.1,
-  "OffY": 183.1
- },
- "FLARE": {
-  "OffX": 1173.1,
-  "OffY": 195.1
- },
- "TEXTMESSAGE": {
-  "LengthChar": 30.0,
-  "OffsetX1": 839.1,
-  "OffsetY1": 183.1,
-  "OffsetX2": 839.1,
-  "OffsetY2": 195.1
+  "Active": 0.0
  },
  "HORIZON": {
   "ClockCenterX": 1100.0,
@@ -176,141 +149,90 @@
   "OffsetY": 150.0,
   "Radius": 10.0
  },
- "THROTTLEDIGITAL": {
-  "Active": 1.0,
-  "ColorR": 64.0,
-  "ColorG": 200.0,
-  "ColorB": 40.0,
-  "OffsetX": 786.4,
-  "OffsetY": 187.1
+ "PCD": {
+  "Rect": [
+   710.7,
+   18.6,
+   498.5,
+   223.5
+  ],
+  "Bar": 14.0,
+  "WindowTop": 157.2,
+  "Esis": [
+   995.8,
+   271.2,
+   94.3,
+   83.1
+  ]
  },
  "LIGHTSON": {
-  "FileName": "Lights4.bmp",
-  "Height": 278.0,
-  "Width": 74.0,
-  "NightRScale": 1.0,
-  "NightGScale": 1.0,
-  "NightBScale": 2.0
+  "FileName": "f35lights.png",
+  "NightFileName": "f35lights_night.png",
+  "NightRScale": 0.0,
+  "NightGScale": 0.0,
+  "NightBScale": 0.0
  },
  "LIGHT000": {
   "Active": 1.0,
-  "Left": 21.0,
+  "Left": 0.0,
   "Top": 0.0,
-  "Right": 74.0,
-  "Bottom": 53.0,
-  "OffsetX": 1252.0,
-  "OffsetY": 27.5
+  "Right": 66.0,
+  "Bottom": 52.0,
+  "OffsetX": 1207.0,
+  "OffsetY": 258.0
  },
  "LIGHT001": {
   "Active": 1.0,
-  "Left": 21.0,
-  "Top": 106.0,
-  "Right": 62.0,
-  "Bottom": 148.0,
-  "OffsetX": 1265.5,
-  "OffsetY": 107.6,
+  "Left": 66.0,
+  "Top": 0.0,
+  "Right": 134.0,
+  "Bottom": 52.0,
+  "OffsetX": 1270.0,
+  "OffsetY": 258.0,
   "Blink": 1.0
  },
  "LIGHT002": {
   "Active": 0.0
  },
  "LIGHT003": {
-  "Active": 1.0,
-  "Left": 0.0,
-  "Top": 258.0,
-  "Right": 18.0,
-  "Bottom": 263.0,
-  "OffsetX": 1286.1,
-  "OffsetY": 217.2
+  "Active": 0.0
  },
  "LIGHT004": {
-  "Active": 1.0,
-  "Left": 0.0,
-  "Top": 268.0,
-  "Right": 21.0,
-  "Bottom": 273.0,
-  "OffsetX": 1286.0,
-  "OffsetY": 231.5
+  "Active": 0.0
  },
  "LIGHT005": {
-  "Active": 1.0,
-  "Left": 21.0,
-  "Top": 255.0,
-  "Right": 43.0,
-  "Bottom": 260.0,
-  "OffsetX": 1281.2,
-  "OffsetY": 189.0
+  "Active": 0.0
  },
  "LIGHT006": {
-  "Active": 1.0,
-  "Left": 43.0,
-  "Top": 230.0,
-  "Right": 60.0,
-  "Bottom": 235.0,
-  "OffsetX": 1285.1,
-  "OffsetY": 203.1
+  "Active": 0.0
  },
  "LIGHT007": {
   "Active": 0.0
  },
  "LIGHT008": {
-  "Active": 1.0,
-  "Left": 21.0,
-  "Top": 220.0,
-  "Right": 33.0,
-  "Bottom": 225.0,
-  "OffsetX": 1284.9,
-  "OffsetY": 175.1
+  "Active": 0.0
  },
  "LIGHT009": {
   "Active": 1.0,
-  "Left": 0.0,
+  "Left": 134.0,
   "Top": 0.0,
-  "Right": 21.0,
-  "Bottom": 86.0,
-  "OffsetX": 620.4,
-  "OffsetY": 65.5,
+  "Right": 237.0,
+  "Bottom": 110.0,
+  "OffsetX": 569.0,
+  "OffsetY": 242.0,
   "AnimFrames": 3.0,
-  "AnimTime": 100.0
+  "AnimTime": 600.0
  },
  "SLIGHT000": {
-  "Active": 1.0,
-  "Left": 43.0,
-  "Top": 190.0,
-  "Right": 55.0,
-  "Bottom": 201.0,
-  "OffsetX": 615.8,
-  "OffsetY": 180.5,
-  "Scale": 2.0
+  "Active": 0.0
  },
  "SLIGHT001": {
-  "Active": 1.0,
-  "Left": 21.0,
-  "Top": 190.0,
-  "Right": 32.0,
-  "Bottom": 200.0,
-  "OffsetX": 600.4,
-  "OffsetY": 207.4,
-  "Scale": 2.0
+  "Active": 0.0
  },
  "SLIGHT002": {
-  "Active": 1.0,
-  "Left": 32.0,
-  "Top": 190.0,
-  "Right": 42.0,
-  "Bottom": 200.0,
-  "OffsetX": 629.0,
-  "OffsetY": 207.4,
-  "Scale": 2.0
+  "Active": 0.0
  },
  "SLIGHT003": {
-  "Active": 1.0,
-  "Left": 21.0,
-  "Top": 230.0,
-  "Right": 43.0,
-  "Bottom": 235.0,
-  "OffsetX": 600.4,
-  "OffsetY": 239.8,
-  "Scale": 2.0
+  "Active": 0.0
  }
 }

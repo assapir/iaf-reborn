@@ -131,9 +131,12 @@ func _ready() -> void:
 ## replaces the first (the flight scene loads the player's jet's cockpit once it knows the type).
 func load_cockpit(rel: String) -> void:
 	cockpit_dir = rel
-	for m in mfds:
-		m.free()
+	for m in mfds + [pcd, _pcd_sheen]:
+		if m != null:
+			m.free()
 	mfds.clear()
+	pcd = null
+	_pcd_sheen = null
 	tex.clear()
 	tsd_map.clear()
 	# An extra plane's cockpit lives in the repo (res://extra/..., docs/adding-a-plane.md §4).
@@ -149,6 +152,11 @@ func load_cockpit(rel: String) -> void:
 	var lights_file: String = layout.get("LIGHTSON", {}).get("FileName", "")
 	if lights_file != "":
 		_add_tex("LIGHTS", lights_file)
+	# Ours (the F-35I): a panel and lamps rendered for the night, shown instead of the darkened day art.
+	for pair in [["PANEL", "PANEL_NIGHT"], ["LIGHTSON", "LIGHTS_NIGHT"]]:
+		var night_file: String = layout.get(pair[0], {}).get("NightFileName", "")
+		if night_file != "":
+			_add_tex(pair[1], night_file, pair[0] == "PANEL")
 	_add_tex("MFDS", "mfds.bmp")
 	_add_tex("RWRSYMB", "rwrsymb.bmp")
 	_load_panel_mask()
@@ -157,9 +165,10 @@ func load_cockpit(rel: String) -> void:
 	hud.cockpit = self
 
 
-## The converted art of an original cockpit image file (lower-case .png), when present.
+## The converted art of an original cockpit image file (lower-case .png; ours may be .webp), when present.
 func _add_tex(key: String, file: String, mipmaps := false) -> void:
-	var t := Img.load_texture(_file(file.get_basename().to_lower() + ".png"), mipmaps)
+	var ext := ".webp" if file.get_extension().to_lower() == "webp" else ".png"
+	var t := Img.load_texture(_file(file.get_basename().to_lower() + ext), mipmaps)
 	if t != null:
 		tex[key] = t
 
@@ -191,19 +200,39 @@ func _load_tsd_map() -> void:
 		tsd_map.append({"points": pts, "color": Color8(op.brush[0], op.brush[1], op.brush[2])})
 
 
+## Ours: the panoramic display's layers (pcd.gd), null without a [PCD] section.
+var pcd: Control
+var _pcd_sheen: Control
+
+
+func _pcd_layer(l: int) -> Control:
+	var n := preload("res://cockpit/pcd.gd").new()
+	n.setup(self, l)
+	add_child(n)
+	return n
+
+
 ## One MFD node per active [MFD] side, with the default pages of FUN_00448120: Left radar;
 ## 3 MFDs: Right RWR, Middle TSD; 2 MFDs: Right RWR without a panel RWR, else TSD.
 func _create_mfds() -> void:
 	var m: Dictionary = layout.get("MFD", {})
 	# Ours: a panoramic display (F-35I) as `Portals`, [x, y, scale, page] each (the page's top-left in panel px).
 	if m.has("Portals"):
+		# Its display around the portals ([PCD], pcd.gd): the glass, bar and windows under them, the sheen over them.
+		if layout.has("PCD"):
+			pcd = _pcd_layer(0)
 		for i in m.Portals.size():
 			var pt: Array = m.Portals[i]
 			var node := preload("res://cockpit/mfd.gd").new()
 			node.setup(self, i, int(pt[3]))
 			node.portal_scale = float(pt[2])
+			if pcd != null:
+				node.material = ShaderMaterial.new()
+				node.material.shader = preload("res://cockpit/portal.gdshader")
 			add_child(node)
 			mfds.append(node)
+		if layout.has("PCD"):
+			_pcd_sheen = _pcd_layer(1)
 		return
 	var active := []
 	for i in 3:
@@ -392,8 +421,9 @@ func _process(delta: float) -> void:
 	panel_shift = move_toward(panel_shift, panel_target, PANEL_SLIDE_SPEED * delta)
 	position = head_pan() * ui_scale() if view_mode == 0 else Vector2.ZERO
 	hud.visible = view_mode != 2
-	for m in mfds:
-		m.visible = view_mode == 0
+	for m in mfds + [pcd, _pcd_sheen]:
+		if m != null:
+			m.visible = view_mode == 0
 	queue_redraw()
 	hud.queue_redraw()
 
@@ -437,7 +467,10 @@ func _draw() -> void:
 		var tl := panel_to_screen(0, 0)
 		var art_scale: float = layout.get("image_scale", 1)
 		var width: float = tex.PANEL.get_width() / art_scale
-		draw_texture_rect(tex.PANEL, Rect2(tl, Vector2(width, p.PanelHeight) * s), false, _night_mod("PANEL"))
+		if night and tex.has("PANEL_NIGHT"):
+			draw_texture_rect(tex.PANEL_NIGHT, Rect2(tl, Vector2(width, p.PanelHeight) * s), false)
+		else:
+			draw_texture_rect(tex.PANEL, Rect2(tl, Vector2(width, p.PanelHeight) * s), false, _night_mod("PANEL"))
 
 	_draw_lights(s)
 	_draw_panel_rwr(s)
@@ -482,7 +515,7 @@ func _draw() -> void:
 ## Chaff / flare counters (FUN_0052eab0): "%03d" of stores stations 10 / 11 at [CHAFF] / [FLARE]
 ## OffX / OffY (default 36 / 36), Arial h10 w5, pale yellow 0xb3ffff = RGB(255, 255, 179), top-left.
 func _draw_decoy_counters(s: float) -> void:
-	if weapons.is_empty():
+	if weapons.is_empty() or layout.has("PCD"):  # ours: the F-35I's display shows them (pcd.gd)
 		return
 	if _counter_font == null:
 		_counter_font = Img.arial()
@@ -587,7 +620,8 @@ func _draw_light(l: Dictionary, frame: int, s: float) -> void:
 	var w := float(l.Right) - float(l.Left)
 	var h := float(l.Bottom) - float(l.Top)
 	var src := Rect2(float(l.Left), float(l.Top) + frame * h, w, h)
-	draw_texture_rect_region(tex.LIGHTS, Rect2(panel_to_screen(l.OffsetX, l.OffsetY), Vector2(w, h) * s * float(l.get("Scale", 1.0))),
+	var t: Texture2D = tex.LIGHTS_NIGHT if night and tex.has("LIGHTS_NIGHT") else tex.LIGHTS
+	draw_texture_rect_region(t, Rect2(panel_to_screen(l.OffsetX, l.OffsetY), Vector2(w, h) * s * float(l.get("Scale", 1.0))),
 			Rect2(src.position * a, src.size * a))
 
 

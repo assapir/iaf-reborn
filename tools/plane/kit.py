@@ -259,9 +259,11 @@ def decimate(o, ratio):
 
 # --- materials and images ------------------------------------------------------------------------------------
 
-def material(name, colour, metallic=0.0, roughness=0.5, image=None, clip=False, grain=0.0, holdout=False, alpha=None):
+def material(name, colour, metallic=0.0, roughness=0.5, image=None, clip=False, grain=0.0, holdout=False, alpha=None,
+             wear=0.0, coat=0.0, emission=None):
     """A Principled material; `image` drives the colour (and with `clip` the alpha cutout); `grain` a fine paint
-    bump; `holdout` a transparent hole in renders; `alpha` blended glass."""
+    bump; `holdout` a transparent hole in renders; `alpha` blended glass; `wear` mottled roughness / colour and
+    rubbed-light edges (Cycles pointiness); `coat` a clear coat (display glass); `emission` (rgb, strength)."""
     m = bpy.data.materials.new(name)
     m.use_nodes = True
     nt = m.node_tree
@@ -284,6 +286,33 @@ def material(name, colour, metallic=0.0, roughness=0.5, image=None, clip=False, 
             nt.links.new(tex.outputs["Alpha"], b.inputs["Alpha"])
             m.blend_method = 'CLIP'
         nt.nodes.active = tex
+    if coat:
+        b.inputs["Coat Weight"].default_value = coat
+        b.inputs["Coat Roughness"].default_value = 0.03
+    if emission is not None:
+        b.inputs["Emission Color"].default_value = (*emission[0], 1.0)
+        b.inputs["Emission Strength"].default_value = emission[1]
+    if wear and image is None:
+        # Mottled roughness and colour (a large noise), and edges rubbed lighter (convex pointiness).
+        mot = nt.nodes.new("ShaderNodeTexNoise")
+        mot.inputs["Scale"].default_value = 18.0
+        mot.inputs["Detail"].default_value = 6.0
+        rr = nt.nodes.new("ShaderNodeMapRange")
+        rr.inputs["To Min"].default_value = roughness - 0.12 * wear
+        rr.inputs["To Max"].default_value = min(1.0, roughness + 0.12 * wear)
+        nt.links.new(mot.outputs["Fac"], rr.inputs["Value"])
+        nt.links.new(rr.outputs["Result"], b.inputs["Roughness"])
+        geo = nt.nodes.new("ShaderNodeNewGeometry")
+        edge = nt.nodes.new("ShaderNodeMapRange")
+        edge.inputs["From Min"].default_value = 0.52
+        edge.inputs["From Max"].default_value = 0.62
+        mix = nt.nodes.new("ShaderNodeMix")
+        mix.data_type = 'RGBA'
+        mix.inputs["A"].default_value = (*[c * (0.92 + 0.0 * wear) for c in colour], 1.0)
+        mix.inputs["B"].default_value = (*[min(1.0, c * (1.0 + 2.2 * wear) + 0.03 * wear) for c in colour], 1.0)
+        nt.links.new(geo.outputs["Pointiness"], edge.inputs["Value"])
+        nt.links.new(edge.outputs["Result"], mix.inputs["Factor"])
+        nt.links.new(mix.outputs["Result"], b.inputs["Base Color"])
     if grain:
         noise = nt.nodes.new("ShaderNodeTexNoise")
         noise.inputs["Scale"].default_value = 900.0
@@ -442,8 +471,8 @@ def decal(name, mat, origin, direction, w, h, right, grid=8):
     return o
 
 
-def text_decal(name, body, mat, origin, direction, height, right):
-    """Text (Blender's built-in font) as a flat mesh on the surface hit from `origin`."""
+def text_decal(name, body, mat, origin, direction, height, right, off=0.014):
+    """Text (Blender's built-in font) as a flat mesh on the surface hit from `origin`, `off` above it."""
     loc, n = _hit(origin, direction)
     r = (Vector(right) - n * n.dot(Vector(right))).normalized()
     up = n.cross(r)
@@ -456,7 +485,7 @@ def text_decal(name, body, mat, origin, direction, height, right):
     bpy.ops.object.convert(target='MESH')
     o = bpy.context.active_object
     o.name = name
-    o.data.transform(Matrix.Translation(loc + n * 0.014) @ Matrix((r, up, n)).transposed().to_4x4())
+    o.data.transform(Matrix.Translation(loc + n * off) @ Matrix((r, up, n)).transposed().to_4x4())
     o.matrix_world = Matrix.Identity(4)
     o.data.materials.clear()
     o.data.materials.append(mat)
@@ -543,6 +572,8 @@ def box(name, centre, size, m, rot=(0, 0, 0), bevel=0.004):
         b.width = bevel
         b.segments = 3
         b.limit_method = 'ANGLE'
+        b.harden_normals = True
+        bpy.ops.object.shade_smooth()
     o.data.materials.append(m)
     return o
 
@@ -587,6 +618,52 @@ def arch(name, m, width, rise, y0, y1, z, thickness, steps=32):
     return o
 
 
+def sweep(name, m, profile, path, bevel=0.0, smooth=True):
+    """A closed `profile` [(u, v)] (metres; u across, v up) swept along `path` [(x, y, z)], capped: u stays level
+    (square to the path in plan), v leans with the path's climb. Rails, sills, hoods."""
+    bm = bmesh.new()
+    rings = []
+    for i, p in enumerate(path):
+        a, b = Vector(path[max(i - 1, 0)]), Vector(path[min(i + 1, len(path) - 1)])
+        t = (b - a).normalized()
+        side = t.cross(Vector((0, 0, 1))).normalized()
+        up = side.cross(t).normalized()
+        rings.append([bm.verts.new(Vector(p) + side * u + up * v) for u, v in profile])
+    n = len(profile)
+    for r0, r1 in zip(rings, rings[1:]):
+        for k in range(n):
+            bm.faces.new((r0[k], r0[(k + 1) % n], r1[(k + 1) % n], r1[k]))
+    bm.faces.new(rings[0])
+    bm.faces.new(list(reversed(rings[-1])))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    bm.free()
+    o = bpy.data.objects.new(name, me)
+    scene().collection.objects.link(o)
+    o.data.materials.append(m)
+    for poly in o.data.polygons:
+        poly.use_smooth = smooth
+    if bevel:
+        bv = o.modifiers.new("bevel", 'BEVEL')
+        bv.width = bevel
+        bv.segments = 3
+        bv.limit_method = 'ANGLE'
+        bv.harden_normals = True
+    return o
+
+
+def rounded_rect(w, h, r, steps=4):
+    """A rounded rectangle's outline [(u, v)] centred on (0, 0), counter-clockwise (a sweep profile)."""
+    pts = []
+    for cx, cy, a0 in ((w / 2 - r, -h / 2 + r, -90), (w / 2 - r, h / 2 - r, 0), (-w / 2 + r, h / 2 - r, 90),
+                       (-w / 2 + r, -h / 2 + r, 180)):
+        for k in range(steps + 1):
+            a = math.radians(a0 + 90 * k / steps)
+            pts.append((cx + r * math.cos(a), cy + r * math.sin(a)))
+    return pts
+
+
 # The game's cockpit camera (cockpit.gd focal_length / projection_centre; docs/cockpit.md "3D view").
 FOCAL = 686.242  # px: 320 / tan 25 deg
 LOOK_DOWN = 5.5  # deg below the nose
@@ -619,27 +696,67 @@ def panel_px(cam, p):
     return Vector((v.x * PANEL_W, (1 - v.y) * PANEL_H))
 
 
-def render_panel(path, samples=128, sky=(0.55, 0.62, 0.75), sun_energy=3.0):
-    """Render the panel strip: transparent where the world shows (holdouts too), Cycles, denoised."""
+def panel_world(night=False, sky=(0.55, 0.62, 0.75), sun_energy=3.0):
+    """The panel render's light: by day a bright sky and a sun from above, behind; at night a dark sky (lamps and
+    backlit labels are the cockpit's own emitters). Call again to switch."""
     sc = scene()
+    w = sc.world or bpy.data.worlds.new("sky")
+    sc.world = w
+    w.use_nodes = True
+    bg = w.node_tree.nodes["Background"]
+    bg.inputs[0].default_value = (*((0.004, 0.005, 0.009) if night else sky), 1)
+    bg.inputs[1].default_value = 0.9
+    sun = bpy.data.objects.get("sun")
+    if sun is None:
+        sun = bpy.data.objects.new("sun", bpy.data.lights.new("sun", 'SUN'))
+        sun.data.angle = math.radians(4)
+        sun.rotation_euler = Euler((math.radians(-35), math.radians(15), 0), 'XYZ')  # from above, behind
+        sc.collection.objects.link(sun)
+    sun.data.energy = 0.0 if night else sun_energy
+
+
+def _cycles_gpu(sc):
+    """Cycles on the GPU when one is there (Metal / OptiX / CUDA / HIP), else the CPU."""
+    prefs = bpy.context.preferences.addons["cycles"].preferences
+    for kind in ("METAL", "OPTIX", "CUDA", "HIP"):
+        try:
+            prefs.compute_device_type = kind
+        except TypeError:
+            continue
+        prefs.get_devices()
+        gpus = [d for d in prefs.devices if d.type != 'CPU']
+        if gpus:
+            for d in prefs.devices:
+                d.use = d.type != 'CPU'
+            sc.cycles.device = 'GPU'
+            return
+    sc.cycles.device = 'CPU'
+
+
+def render_panel(path, samples=128, crop=None, file_format='PNG', quality=92):
+    """Render the panel strip: transparent where the world shows (holdouts too), Cycles, denoised. `crop` (x0, y0,
+    x1, y1 panel px) renders only that part (a lamp's frames); `file_format` 'WEBP' (lossy, `quality`) keeps the
+    big strip small."""
+    sc = scene()
+    if sc.world is None:
+        panel_world()
     sc.render.engine = 'CYCLES'
+    _cycles_gpu(sc)
     sc.cycles.samples = samples
     sc.cycles.use_denoising = True
     sc.render.film_transparent = True
     sc.view_settings.view_transform = 'Standard'
-    w = bpy.data.worlds.new("sky")
-    sc.world = w
-    w.use_nodes = True
-    w.node_tree.nodes["Background"].inputs[0].default_value = (*sky, 1)
-    w.node_tree.nodes["Background"].inputs[1].default_value = 0.9
-    sun = bpy.data.objects.new("sun", bpy.data.lights.new("sun", 'SUN'))
-    sun.data.energy = sun_energy
-    sun.data.angle = math.radians(4)
-    sun.rotation_euler = Euler((math.radians(-35), math.radians(15), 0), 'XYZ')  # from above, behind
-    sc.collection.objects.link(sun)
-    sc.render.filepath = path
-    sc.render.image_settings.file_format = 'PNG'
-    sc.render.image_settings.color_mode = 'RGBA'
+    r = sc.render
+    r.use_border = r.use_crop_to_border = crop is not None
+    if crop is not None:
+        x0, y0, x1, y1 = crop
+        r.border_min_x, r.border_max_x = x0 / PANEL_W, x1 / PANEL_W
+        r.border_min_y, r.border_max_y = 1 - y1 / PANEL_H, 1 - y0 / PANEL_H
+    r.filepath = path
+    r.image_settings.file_format = file_format
+    r.image_settings.color_mode = 'RGBA'
+    if file_format == 'WEBP':
+        r.image_settings.quality = quality
     bpy.ops.render.render(write_still=True)
 
 

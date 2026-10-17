@@ -1396,6 +1396,11 @@ func _spawn_player() -> void:
 	# Seen from the cockpit (FUN_004d9d70 → FUN_004da060: display slot 4 = model [8], the *_BC.X, with the crew's
 	# cockpit flag set so pilot and canopy stay hidden): same frame and Present scale as the jet model.
 	var bc = Gltf.object("controllableplanes/%s/%s_bc.gltf" % [player.plane, player.plane])
+	var extra: String = preload("res://aircraft/aircraft_model.gd").EXTRA_DIR.path_join(player.plane).path_join(player.plane + "_bc.gltf")
+	if bc == null and FileAccess.file_exists(extra):
+		bc = Gltf.open(extra)  # ours: an extra plane's (the F-35I's, tools/f35i/bc.py)
+		# Its seat head box and canopy frame sit closer to the eye than the originals' parts: a nearer near plane.
+		camera.near = 0.1
 	if bc != null:
 		own_bc = Gltf.instance(bc)
 		own_bc.scale = aircraft.scale

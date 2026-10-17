@@ -47,6 +47,18 @@ func run() -> void:
 			check(M.touch_osb(Vector2(24, 5)) == 1 and M.touch_osb(Vector2(104, 128)) == 10 and M.touch_osb(Vector2(5, 44)) == 12
 					and M.touch_osb(Vector2(127, 104)) == 20 and M.touch_osb(Vector2(66, 66)) == -1,
 					"%s: the portals are pressed on their labels (top OSB 1, bottom 10, left 12, right 20, none mid-page)" % name)
+			# The panoramic display (pcd.gd): its glass holds the 4 portal pages side by side over the 8 lower
+			# windows, the pages restyled (portal.gdshader); the night art and the cockpit-view model load.
+			await process_frame
+			var P = tv.cockpit.pcd
+			var g: Rect2 = P.glass() if P != null else Rect2()
+			var inside: bool = P != null
+			for m in tv.cockpit.mfds:
+				inside = inside and g.grow(1.0).encloses(Rect2(m.position, m.size)) and m.material != null and m.visible
+			var w: Array = P.windows() if P != null else []
+			check(inside and w.size() == 8 and w[0].position.y >= tv.cockpit.mfds[0].position.y + tv.cockpit.mfds[0].size.y - 1.0
+					and P.visible and tv.cockpit.tex.has("PANEL_NIGHT") and tv.cockpit.tex.has("LIGHTS_NIGHT") and tv.own_bc != null,
+					"%s: the PCD's glass holds the 4 portals over 8 windows; night art and cockpit-view model (%s)" % [name, g])
 		key(tv, KEY_1)
 		key(tv, KEY_B)
 		key(tv, KEY_6)

@@ -10,3 +10,5 @@
   (https://creativecommons.org/licenses/by-sa/3.0/); the low-visibility version (`textures/sqn116_lowvis.png`)
   is under the same licence.
 - Skin, roundels and numbers: our own (`tools/f35i/rig.py`).
+- The cockpit-view model (`f35i_bc.gltf`, `tools/f35i/bc.py`) is cut from the model above (same credit); its canopy
+  frame and rails are our own. The cockpit panel, display and lamps are our own (`tools/f35i/cockpit3d.py`).

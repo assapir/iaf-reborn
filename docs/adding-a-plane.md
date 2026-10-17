@@ -117,8 +117,10 @@ as a solid blob or bare frame bars.
 `normalise` (size, frame), `bisect` / `extract` (cut a surface out by region along a hinge line), `Rig` (root, parts
 on their hinges, `<part>1/2` helpers, points, glTF export), `bake_skin` (our own textures with baked ambient
 occlusion), `decal` / `text_decal` (markings that follow the surface), `pilot`; and for a cockpit panel `box` /
-`cyl` / `arch`, `cockpit_camera` / `panel_px` (the game's projection), `render_panel`, `portals`, `lamp_sections`
-(the F-16's lamps borrowed with `"Shared"`; an optional per-lamp `Scale` draws them larger), `update_cockpit_json`. The plane's own script holds only its data:
+`cyl` / `arch` / `sweep` / `rounded_rect`, `material` (`wear`, `coat`, `emission`), `cockpit_camera` / `panel_px`
+(the game's projection), `panel_world` (day / night light), `render_panel` (Cycles on the GPU; `crop` for lamp frames,
+WebP for the strip), `portals`, `lamp_sections` (the F-16's lamps borrowed with `"Shared"`; an optional per-lamp
+`Scale` draws them larger), `update_cockpit_json`. The plane's own script holds only its data:
 which meshes make which part, the hinge lines, the marking and cockpit positions (`tools/f35i/rig.py`,
 `tools/f35i/cockpit3d.py`).
 
@@ -200,7 +202,9 @@ The player's type reaches the flight model as the descriptor's `fm_section`:
 
 `game/cockpit/cockpit.gd` `load_cockpit(dir)` reads `<assets>/<dir>/cockpit.json`. That file is the original
 `cockpit.ibx` as JSON (`iaf-convert cockpit`, docs/cockpit.md), with `image_scale` 4. It loads:
-- the textures named by `PANEL`, `HUD`, `LENHORIZON`, `PANELVARIO`, `PANELAOA`, `LIGHTSON` `FileName`;
+- the textures named by `PANEL`, `HUD`, `LENHORIZON`, `PANELVARIO`, `PANELAOA`, `LIGHTSON` `FileName` (ours: a
+  `.webp` name loads that file; `PANEL` / `LIGHTSON` `NightFileName` is the art shown at night instead of the
+  darkened day art);
 - always `mfds.png`, `rwrsymb.png` and `map.json`.
 
 Coordinates are in the original 1920-px-wide panel space. The art is 4× that: the panel strip is 7680×1408 and
@@ -224,11 +228,15 @@ Options:
   - In free look and padlock, the IR seeker locks off-boresight (docs/weapons.md §5.4).
 - **More than three displays** (e.g. one panoramic screen): `[MFD] Portals` = [[x, y, scale, page], …] (the page's
   top-left in panel px), one MFD node per portal drawn at `scale` (`cockpit.gd` `_create_mfds()`, `mfd.gd` `portal_scale`).
+  With a `[PCD]` section (`Rect`, `Bar`, `WindowTop`, `Esis`) `game/cockpit/pcd.gd` draws the display around them:
+  the glass, status bar, lower windows and standby display (docs/f35i.md §4.3).
 - **A cockpit in the repo:** a `res://` cockpit dir (`player_aircraft.gd` `EXTRA_COCKPIT`), and `"Shared": "<converted
   cockpit>"` for the original art it borrows (MFD atlas, RWR symbols, TSD map, ADI ball, the lamps and gear lever;
   `cockpit.gd` `_file()`), since that art cannot be committed. Reuse the original's pieces first; model and render
   only what it lacks. Example: `game/extra/planes/f35i/cockpit/`, the panel modelled and rendered by
-  `tools/f35i/cockpit3d.py` with the game's cockpit camera, the F-16's lamps placed on its bays.
+  `tools/f35i/cockpit3d.py` with the game's cockpit camera, with its own lamps rendered from the same scene.
+- **Looking aside / back:** `<plane>_bc.gltf` next to the extra plane's glTF is its cockpit-view model
+  (`terrain_view.gd` `_spawn_player`; example `tools/f35i/bc.py`).
 
 ## 5. Weapons
 

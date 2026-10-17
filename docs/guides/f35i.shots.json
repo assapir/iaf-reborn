@@ -1157,7 +1157,7 @@
  },
  {
   "name": "panel",
-  "caption": "The panoramic display: radar, TSD, stores and RWR portals",
+  "caption": "The panoramic display: status bar, radar, TSD, stores and RWR portals, the lower windows; the standby display, gear handle and warning lights",
   "mission": 231,
   "jet": 4,
   "settings": {
@@ -1247,58 +1247,218 @@
    {
     "n": 1,
     "px": [
-     0.366,
-     0.63
+     0.346,
+     0.592
     ],
     "label_at": [
-     0.339,
-     0.532
+     0.29,
+     0.5
     ]
    },
    {
     "n": 2,
     "px": [
-     0.454,
-     0.63
+     0.369,
+     0.663
     ],
     "label_at": [
-     0.454,
-     0.532
+     0.37,
+     0.5
     ]
    },
    {
     "n": 3,
     "px": [
-     0.544,
-     0.63
+     0.456,
+     0.663
     ],
     "label_at": [
-     0.552,
-     0.532
+     0.45,
+     0.5
     ]
    },
    {
     "n": 4,
     "px": [
-     0.633,
-     0.63
+     0.544,
+     0.663
     ],
     "label_at": [
-     0.667,
-     0.532
+     0.55,
+     0.5
     ]
    },
    {
     "n": 5,
     "px": [
-     0.26,
-     0.847
+     0.631,
+     0.663
     ],
     "label_at": [
-     0.214,
-     0.741
+     0.64,
+     0.5
+    ]
+   },
+   {
+    "n": 6,
+    "px": [
+     0.347,
+     0.835
+    ],
+    "label_at": [
+     0.21,
+     0.63
+    ]
+   },
+   {
+    "n": 7,
+    "px": [
+     0.434,
+     0.835
+    ],
+    "label_at": [
+     0.21,
+     0.74
+    ]
+   },
+   {
+    "n": 8,
+    "px": [
+     0.5,
+     0.835
+    ],
+    "label_at": [
+     0.79,
+     0.63
+    ]
+   },
+   {
+    "n": 9,
+    "px": [
+     0.609,
+     0.835
+    ],
+    "label_at": [
+     0.79,
+     0.74
+    ]
+   },
+   {
+    "n": 10,
+    "px": [
+     0.558,
+     0.949
+    ],
+    "label_at": [
+     0.64,
+     0.965
+    ]
+   },
+   {
+    "n": 11,
+    "px": [
+     0.26,
+     0.931
+    ],
+    "label_at": [
+     0.17,
+     0.9
+    ]
+   },
+   {
+    "n": 12,
+    "px": [
+     0.72,
+     0.915
+    ],
+    "label_at": [
+     0.81,
+     0.86
     ]
    }
   ]
+ },
+ {
+  "name": "panel_night",
+  "caption": "The cockpit at night: backlit labels and floodlights (mission 214)",
+  "mission": 214,
+  "jet": 4,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   },
+   "f35i_slot": 4
+  },
+  "start": "airborne",
+  "loadout": [
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    8,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    8,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "actions": [],
+  "panel": 1.0,
+  "crop": "full",
+  "annotations": []
  }
 ]
