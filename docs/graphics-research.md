@@ -231,8 +231,8 @@ not regenerated at setup; nothing about them depends on the install, since the f
   public drawings and photos to the same bar, through the same upgrade pass. A lathe-and-fins script is only the
   blockout, never the shipped model.
 - **Repo size**: 2048² PBR sets as PNG are ≈ 10–15 MB per store (≈ 0.5 GB for all) — too much for git history.
-  Ship the textures GPU-compressed inside the glb (KTX2 / Basis, `KHR_texture_basisu`: ≈ 1–2 MB per store), or
-  keep `models/` in Git LFS — the user's call before the first commit of models.
+  **Decided (user, 2026-10-17):** textures GPU-compressed inside the glb (KTX2 / Basis, `KHR_texture_basisu`:
+  ≈ 1–2 MB per store, ≈ 60–80 MB for all), if Godot's runtime glTF loader reads them; Git LFS only as the fallback.
 
 Cost: 6–20 k triangles per store × 20 stores × a few dozen jets is a few million triangles at worst, inside the M4 Pro's
 budget with the LODs (most stores are far); textures ≈ 40 × 3 × 2048² compressed (BC7) ≈ 0.5 GB of video memory at
