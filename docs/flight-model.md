@@ -1126,7 +1126,7 @@ This list audits an earlier `aircraft.rs`. The line numbers (l.) are historical;
     ramp unchanged on the ground; v1.1 steps the β channel with its stored gains (§15.2.6).
 13. **Thrust on the ground ignores HasAfterBurner** (l. 358). Original: the ground call passes `noAB = ai`,
     so every player jet gets the AB curve on the ground, also one with HasAfterBurner = 0. For noAB the stage
-    follows thr (the port gave 0). Only the ground T is clamped to ≥ 0; the airborne T can be negative (l. 379
+    follows thr (the port gave 0). Only the ground T is clamped to ≥ 0; the airborne T has no clamp (l. 379
     clamps both).
 14. **Lift-gate conditions** (l. 457): the port lacked the multiplayer, AI, pref+0x3c and "easy" bypasses of the
     gear test, and the "easy" bypass of the belly μ = 20 (l. 477).
@@ -1268,7 +1268,7 @@ stall flag stays **clear**. So during the latch:
 #### 15.2.1 Drag, thrust
 As §14.4 with the corrected `cfg` (15.1 step 3): `CD = PlaneDI + cfg[6]·SpeedBrakesDI + cfg[8]·HookDI +
 cfg[7]·GearDI·(ai ? 0 : 1) + FlapsDI·flaps·3.4158838 + DI_s + K·CL²`, `CL = cos(α_D)·L/qS` (L includes the flap
-increment). Thrust as §4.1; the airborne T can be negative (it has no clamp).
+increment). Thrust as §4.1; the airborne T has no clamp.
 
 #### 15.2.2 Acceleration `5b3ef0` → `5b4930` (airborne; `5b3ef0 ret 0x30`, `5b4930 ret 0x2c`)
 `5b3ef0(L, T, D, m, alt, V, β, α, &att, ground, &acc_out, &acc_body_out)`: `M = 5ba740(ground ? 0 : pitch, ground ? 0 :

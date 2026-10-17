@@ -71,8 +71,8 @@ The loop's first tick comes 0.5 s later (`5c9a90`).
    - roll target = clamp(wrap(stored heading − heading), ±30°) (`0x84562c` = `0x845634` = π/6);
    - pitch law to the stored pitch;
    - throttle: the speed law to the stored speed runs only in an AI mode (`5c89f0` ≠ 0). For the player the
-     **throttle stays manual**: the loop posts a throttle only when the ground watch takes over (UNCERTAIN: the
-     watch's speed slot is left uninitialised for the player; the port starts it at 0, so the watch's 250 m/s law
+     **throttle stays manual**: the loop posts a throttle only when the ground watch takes over (UNCERTAIN: that
+     slot is left uninitialised for the player; the port starts it at 0, so the watch's 250 m/s law
      applies).
    - It never ends.
 
@@ -107,7 +107,7 @@ Next / previous waypoint (`4532a0` / `453370`, also the W / Shift+W keys) wraps 
 - LandingCL Init (`5d36d2`): the stop condition is **1.0295 m/s** in FM mode 0 (25.736 m/s in mode 8). The children
   end with StopPlane: TaxiCL and ParkInHangar are added only in mode 8 (`5d43e0`).
 - StopPlane done (`5d4b22`): in mode 0 it posts **GEV 0x10 forced** (the A key), which turns the autopilot off from
-  NAV. (Mode 0 has an empty landed handler.)
+  NAV. (Mode 0 lacks a landed handler.)
 
 ## 3. Landing training 312 "Eagle Baby"
 The player starts at 2000 m, heading 270°, east of Ramat David. The start is airborne, so the autopilot is on in level

@@ -203,7 +203,7 @@ view. (Corrected: an earlier note said "hidden on the flying aircraft", which de
        *flag = 0; unschedule                          // canopy: crew+0x14 = 0 hides BOTH canopies
    ```
    The thrown parts stay attached to the aircraft frame: they rise "up" relative to the jet, whatever its attitude.
-   They move in the jet's frame only, with zero gravity, drag and rotation. The v1.1 release note says the
+   They have no ballistic motion in world space: zero gravity, drag and rotation. The v1.1 release note says the
    canopy and pilot no longer "spin with the plane"; this code does not fully explain that (UNCERTAIN).
    From a pilot at z ≈ 1 m the seat needs ⌈99/3⌉ = 33 ticks (1.65 s). So the parachuter appears ≈ Interval + 1.65 s = 3.65 s after t0.
 4. **Parachuter** `FUN_00548c10`: it takes the next entity from a pool of `SpecialEject/ParachuterCount` (default

@@ -80,8 +80,8 @@ The original thrust and fuel model limits what a row can match:
   speed. The row sets full AB and military from the engine's TSFC, so cruise at altitude burns too much.
 * **Thrust vs Mach / altitude** is a 2 × 2 table: Mach 0 and 1.2 (clamped above), SL and 20 km, linear in both.
   Thrust stays flat above Mach 1.2 (the model has no ram rise). The published max speeds are **fitted** with the
-  drag coefficient, the wave drag and the 20 km factor, so those three fields hold fitted values, which differ from
-  real aerodynamic data.
+  drag coefficient, the wave drag and the 20 km factor, so those three fields hold fitted values, not real
+  aerodynamic data.
 * **Top speed at 40k ft** is reached only after minutes at full AB. Several jets run out of internal fuel first
   (the report shows the time); their row is then "close".
 * **Mass** is empty + fuel; stores add drag only. Real weights and wing areas therefore change turn and stall.
@@ -105,8 +105,8 @@ the highest altitude where 1 g can be pulled; above it the g limit falls along t
 sinks.
 
 `Envelope::with_ceiling` scales **every altitude** of the envelope file by one factor, so every g's ceiling and the
-minimum speeds against altitude stretch with it (sea level is unchanged). The public figures give only the 1 g
-ceiling, so the file's shape is kept. Thrust can still stop the climb lower (the original thrust table, §2).
+minimum speeds against altitude stretch with it (sea level is unchanged). The public figures give one ceiling (no per-g
+ceilings), so the file's shape is kept. Thrust can still stop the climb lower (the original thrust table, §2).
 
 All values are from online sources. The game's own Jane's extracts served only as a cross-check: their F-4 10,975 m
 and Su-24 17,500 m are wrong.
@@ -335,7 +335,7 @@ Notes on the table:
 * No public roll rate was found for any AI type, so the original's value stays. This matters for the Su-22 and A-4,
   which roll at the Tu-22's 30 deg/s.
 * A negative g limit is only changed where one is published.
-* The speed fits (CD0, wave drag, 20 km thrust factor) are **fitted values**, which differ from aerodynamic data
+* The speed fits (CD0, wave drag, 20 km thrust factor) are **fitted values**, not aerodynamic data
   (§2). The MiG-25's 20 km
   factor of 12.4 is an extreme case: the 2 × 2 thrust table stops at Mach 1.2, so the R-15's ram thrust at Mach 2.8
   can only be fitted this way.
