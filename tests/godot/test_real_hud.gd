@@ -61,6 +61,9 @@ func run() -> void:
 		"F-16 MRM: 4 MRM, ARM, F15.0, the DLZ closure, FUEL (%s)" % str(ft))
 	var lavi: Dictionary = rh.frame(field, base.merged({"cockpit": "converted/cockpits/lavi"}))
 	check(_texts(lavi.outer).has("4 MRM"), "the Lavi draws the F-16's HUD")
+	var k2: Dictionary = rh.frame(field, base.merged({"cockpit": "converted/cockpits/f4-2000"}))
+	var tk := _texts(k2.outer)
+	check(tk.has("MRM") and not tk.has("4 MRM") and tk.has("FUEL"), "the Kurnass 2000 draws its own HUD (%s)" % str(tk))
 	var f15: Dictionary = rh.frame(field, base.merged({"cockpit": "converted/cockpits/f15"}))
 	var t15 := _texts(f15.outer)
 	check(t15.has("1   NAV") and t15.has("N 5.0") and t15.has("1.8G") and t15.has("IN RNG") and t15.has("400"),

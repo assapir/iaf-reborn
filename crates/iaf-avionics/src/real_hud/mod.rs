@@ -4,7 +4,8 @@
 //! docs/real-hud.md.
 //!
 //! - `f16`: the F-16C/D Block 30/40/50 HUD (dash-34); also the Lavi's (its symbology is not public) and, as marked
-//!   reconstructions, the Kurnass 2000's and the Kfir's.
+//!   reconstruction, the Kfir's.
+//! - `k2000`: the Kurnass 2000's wide-angle HUD (layout a reconstruction).
 //! - `f15`: the F-15A/C HUD (TO 1F-15A-1, NADC 1976): moving tapes, no digital boxes.
 //! - `f35`: the F-35's helmet display (the forward "virtual HUD"; LM slides and flight-test video).
 //! - `sights`: the F-4E's AN/ASG-26 LCOSS and the Mirage IIICJ's CSF gyro gunsight (no HUD: a reticle only).
@@ -13,6 +14,7 @@ mod dash;
 mod f15;
 mod f16;
 mod f35;
+mod k2000;
 mod sights;
 
 use crate::missile::Dlz;
@@ -40,10 +42,12 @@ pub enum Jet {
     Phantom,
     /// The Mirage IIICJ's gyro gunsight.
     Mirage,
+    /// The Kurnass 2000's wide-angle HUD.
+    Kurnass2000,
 }
 
 impl Jet {
-    /// The display of a cockpit directory: f16 / lavi / f4-2000 / cfir (and anything else) the F-16's.
+    /// The display of a cockpit directory: f4-2000 its own; f16 / lavi / cfir (and anything else) the F-16's.
     pub fn of_cockpit(dir: &str) -> Self {
         let d = dir.to_ascii_lowercase();
         if d.contains("f35") {
@@ -54,6 +58,8 @@ impl Jet {
             Jet::Phantom
         } else if d.ends_with("mirage") {
             Jet::Mirage
+        } else if d.ends_with("f4-2000") {
+            Jet::Kurnass2000
         } else {
             Jet::F16
         }
@@ -266,6 +272,7 @@ impl RealHud {
             Jet::F35 => f35::frame(f, i, self.max_g),
             Jet::Phantom => sights::lcoss(i),
             Jet::Mirage => sights::csf(i),
+            Jet::Kurnass2000 => k2000::frame(f, i),
         }
     }
 }
@@ -555,6 +562,33 @@ mod tests {
         }
     }
 
+    /// The F-16's frames for fixed inputs in every mode, hashed: other jets' displays must leave them unchanged.
+    fn f16_fingerprint() -> u64 {
+        use std::hash::{Hash, Hasher};
+        let mut h = std::collections::hash_map::DefaultHasher::new();
+        for mode in 0..=8 {
+            for gear in [false, true] {
+                let mut i = input(Jet::F16);
+                i.gear_down = gear;
+                i.weapons.hud_mode = mode;
+                i.weapons.lcos = Some((5.0, 15.0));
+                i.weapons.pipper = Some((-5.0, 30.0));
+                i.weapons.seeker = Some((8.0, -4.0));
+                i.weapons.steering = Some((3.0, 3.0));
+                i.weapons.circle = 4.0;
+                i.target = Some(Target { range_m: 5000.0, closure: 150.0, at: Some((10.0, -5.0)), aspect: Some(1.0) });
+                i.dlz = Some(Dlz { max: 9000.0, min: 1500.0 });
+                format!("{:?}", RealHud::default().frame(FIELD, &i)).hash(&mut h);
+            }
+        }
+        h.finish()
+    }
+
+    #[test]
+    fn the_f16_display_is_unchanged() {
+        assert_eq!(f16_fingerprint(), 17_235_357_932_935_823_329, "the F-16 Real HUD changed");
+    }
+
     #[test]
     fn cockpits_pick_their_display() {
         assert_eq!(Jet::of_cockpit("converted/cockpits/f15"), Jet::F15);
@@ -562,6 +596,7 @@ mod tests {
         assert_eq!(Jet::of_cockpit("res://extra/planes/f35i/cockpit"), Jet::F35);
         assert_eq!(Jet::of_cockpit("converted/cockpits/phantom"), Jet::Phantom);
         assert_eq!(Jet::of_cockpit("converted/cockpits/mirage"), Jet::Mirage);
+        assert_eq!(Jet::of_cockpit("converted/cockpits/f4-2000"), Jet::Kurnass2000);
     }
 
     #[test]

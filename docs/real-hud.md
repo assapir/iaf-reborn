@@ -17,7 +17,7 @@ Units: 1 mr (milliradian) = 0.0573°; HUD positions as angles from the boresight
 | Lavi | `lavi` | the F-16's (Lavi symbology not public; Hughes wide-angle HUD, Elbit displays) | [R] = F-16 |
 | F-15A/C (Baz) | `f15` | F-15A/C HUD (no digital boxes) | TO 1F-15A-1 + NADC 1976 [V] |
 | F-4E (Kurnass) | `phantom` | AN/ASG-26 lead-computing optical sight (no HUD) | T.O.-derived [V/SIM] |
-| F-4E 2000 (Kurnass 2000) | `f4-2000` | Kaiser wide-angle HUD; symbology not public | [R] F-16-style |
+| F-4E 2000 (Kurnass 2000) | `f4-2000` | Kaiser / El-Op wide-angle holographic HUD, Elbit ACE-3; symbology not public | [R] its own (MIL-STD-1787 style) |
 | Kfir C2/C7 | `cfir` | El-Op HUD with Elbit WDNS; symbology not public | [R] |
 | Mirage IIICJ (Shahak) | `mirage` | CSF 95 gyro gunsight (reflector, no HUD) | CSF 97K manual drawings [V] + IAF books [S] |
 | F-35I (Adir) | `extra/planes/f35i` | Gen III helmet display (no HUD) | LM slides + flight-test video [V] |
@@ -122,9 +122,29 @@ and the BIT procedure; Joe Baugher; flyandwire.com. Drawn **red**.
 
 ## F-4E 2000 (Kurnass 2000)
 
-Sources: Joe Baugher, airvectors, warmachinesdrawn. Kaiser (El-Op) wide-angle HUD, said to show speed, altitude,
-direction of flight and wind [S]; Elbit ACE-3 mission computer, HOTAS, HUD camera. **No symbology layout is public**:
-ours is an F-16-style reconstruction [R] (the F-16's HUD as is; no wind readout).
+Sources: Joe Baugher, airvectors, warmachinesdrawn; GlobalSecurity "Kurnass 2000". The IAI upgrade (first flight
+of the PW1120 test aircraft 1986-87, in service from 1989): a Kaiser / El-Op wide-angle (holographic) HUD, an Elbit
+ACE-3 mission computer, a display computer for the new MFDs, a HUD video camera, HOTAS [S]. The HUD is said to show
+speed, altitude, the direction of flight and the wind [S]; GlobalSecurity claims a field of view of "60 % of the pilot's
+forward view, twice other systems" [S, unconfirmed]. The same El-Op wide-angle HUD family went into the Turkish
+F-4E-2020 (El-Op 976) [S]. **No symbology figure, photo through the HUD or manual is public** (searched: Flight
+International, IAF / IAI / Elbit material, CombatACE, War Thunder / DCS communities).
+
+Ours (`real_hud/k2000.rs`) is therefore a reconstruction [R] in the MIL-STD-1787 manner of an Elbit-generated HUD of
+the late 1980s, deliberately not the F-16's dash-34 layout:
+- Airspeed and altitude as **boxed digital readouts** on the field's edges (no tapes) [R]; the radar altitude
+  `R…` under the altitude below 5,000 ft [R].
+- Left column: g, Mach, the master mode (`NAV`, `SRM`, `MRM`, `GUN`, `STRF`, `CCIP`, `LGB`, `TV`, `HARM`); gear down
+  `AOA…` [R]. Right column: `WP<n> <NM>`, the time to the waypoint, the target's range in A-A [R].
+- Heading scale on top (30° window, the heading boxed under its centre) with a **filled steering caret** above it at
+  the waypoint's bearing, held at the scale's end with the angle still to turn [R].
+- Flight path marker; a straight-rung pitch ladder (climb solid, dive dashed, signed labels at both ends, no bending,
+  no zenith / nadir symbols) [R]; the waypoint's diamond on the ground (X when limited) outside the A-A modes [R].
+- A-A: the target box; SRM the missile circle with the seeker diamond; MRM the circle (sized by the launch zone) with
+  the steering dot and the launch-range scale (Rmax / Rmin, range caret, closure) inboard of the altitude box; gun an
+  **LCOS** ring with the pipper dot and a range arc (12,000 ft a turn) [R].
+- A-G: CCIP pipper (dot in a ring) with the fall line from the marker; strafe the pipper [R].
+- `SHOOT` (or `FUEL` below the bingo) at the bottom centre [R]. No wind readout (the game has no wind on the HUD).
 
 ## Kfir C2/C7
 
@@ -207,6 +227,8 @@ JHMCS (its descendant), whose F-16 set is documented in simulator manuals [SIM].
   target square, AoA scale gear down (ours: degrees as units), NAV bank steering bar (ours: 2 px per degree of bearing
   error). Not drawn: the ILS flight-director cross, Mach outside A-A.
 - F-4E / Mirage: the reticles as specified (ours: the reticle rides the LCOS / CCIP pipper).
+- Kurnass 2000: its own reconstruction (`k2000.rs`, the section above): boxes, heading scale with the steering caret,
+  ladder and marker, SRM / MRM / LCOS gun / CCIP / strafe symbols, the launch-range scale, SHOOT / FUEL.
 - F-35: the forward virtual HUD and the off-boresight head set; the gun / A-G graphics are the F-16's (reconstruction).
 - DASH (F-16 / F-15 cockpits; not the Lavi, Kurnass 2000 or Kfir, whose helmet display stays the original's): looking
   aside with the Real HUD on (the original's dash condition: the panel panned ≥ 250 px aside or ≥ 200 px down), green, around
@@ -240,7 +262,7 @@ Secondary (articles, books, pilot accounts):
 - F-35: Aviation Today, [“Such a Capable Helmet” (2010)](https://www.aviationtoday.com/2010/07/01/such-a-capable-helmet/) and [“F-35 Gen III Helmet” (2015)](https://www.aviationtoday.com/2015/09/04/f-35-gen-iii-helmet-a-generational-leap-in-technology/); [Code One “Lightning Sight”](http://www.codeonemagazine.com/article.html?item_id=12); [SLDinfo F-35 cockpit overview](https://sldinfo.com/whitepapers/an-overview-of-the-f-35-cockpit-what-5th-generation-aircraft-are-all-about/); gun symbology (DOT&E via [The War Zone](https://www.twz.com/air/f-35as-beleaguered-25mm-cannon-is-finally-effective)); [F-35I helmet (National Interest)](https://nationalinterest.org/blog/buzz/israels-unique-f-35-variant-comes-with-unique-combat-helmet-ps-031326).
 - F-15: [F-15C pilot account, The War Zone](https://www.twz.com/35765/confessions-of-an-f-15-eagle-driver-with-three-mig-kills) (ASE circle, steering dot, TD box).
 - F-16: [f-16.net pilot / test-pilot discussions](https://www.f-16.net/forum/viewtopic.php?t=5116) (bending ladder bars, ghost horizon).
-- F-4E: [Joe Baugher, F-4E](https://www.joebaugher.com/usaf_fighters/f4_11.html); Kurnass 2000: [Joe Baugher](https://www.aircraftinformation.info/JB_AIF/usaf_fighters/f4_35.html), [airvectors](http://www.airvectors.net/avf4_4.html), [warmachinesdrawn](https://warmachinesdrawn.blogspot.com/2017/06/mcdonnell-douglas-f-4e-kurnass-2000.html).
+- F-4E: [Joe Baugher, F-4E](https://www.joebaugher.com/usaf_fighters/f4_11.html); Kurnass 2000: [Joe Baugher](https://www.aircraftinformation.info/JB_AIF/usaf_fighters/f4_35.html), [airvectors](http://www.airvectors.net/avf4_4.html), [warmachinesdrawn](https://warmachinesdrawn.blogspot.com/2017/06/mcdonnell-douglas-f-4e-kurnass-2000.html), [GlobalSecurity](https://www.globalsecurity.org/military/world/israel/kurnass-2000.htm); the F-4E-2020's El-Op 976: [Elbit F-16 I-HUD (same wide-angle family)](https://elbitsystems.com/media/f-16_I-HUD2_2022.pdf).
 - Mirage IIICJ: Shlomo Aloni, *Mirage III vs MiG-21* (Osprey 2010) and *Israeli Mirage III and Nesher Aces* (Osprey 2004), via [Hebrew Wikipedia “מיראז' 3”](https://he.wikipedia.org/wiki/%D7%9E%D7%99%D7%A8%D7%90%D7%96%27_3); Tim Callaway, *Dassault Mirage III/5* (Aviation Classics 17, 2012).
 - Kfir: [militaryfactory](https://www.militaryfactory.com/aircraft/detail.php?aircraft_id=152), [milavia](https://www.milavia.net/aircraft/kfir/kfir.htm), [Forecast International archive](https://www.forecastinternational.com/archive/disp_old_pdf.cfm?ARC_ID=1014).
 - Lavi: [Ruud Deurenberg, *IAI Lavi*](https://www.dror-aero.com/pro/lavi5.pdf).
