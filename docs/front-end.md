@@ -1,26 +1,50 @@
 # Jane's IAF front end (pre-flight menus), reverse-engineered spec
 
-Addresses are `IAFJets.exe` **v1.1** (the reference version); [v1.1.md](v1.1.md) maps them to v1.0 and lists what the patch changed.
+This document describes how the original game's menus look and behave, so that the port can match them. It covers
+the window and its frame, the buttons and message boxes, fonts, every menu screen (main menu, mission lists,
+briefing, TSD map, Preferences, Pilot Records, Reference, Arming), the in-flight pause and On-The-Fly menu, and the
+v1.1 multiplayer rules. Paragraphs marked **Ours** or **iaf-reborn** say what the port does.
 
-Source: `assets/ghidra_v11/iafjets.c`, plus `objdump` of `v1.1/iafjets.exe` for routines Ghidra skipped
-(the message box `4e4480`, the button paint `4f3120`, the main-menu hover `4fc350`, the TSD paint
-`501030`, the link opener `502cd0`, and MFC message maps read from `.rdata`). Paths are relative to
-`install/resource/menu/` unless they start with `brief/`. Every colour is a Win32 COLORREF
-`0x00BBGGRR`, written here as RGB. `UNCERTAIN` marks a guess.
+**Conventions**
+* Addresses are from `IAFJets.exe` **v1.1**, the reference version. [v1.1.md](v1.1.md) maps them to v1.0 and lists
+  what the patch changed.
+* Source: `assets/ghidra_v11/iafjets.c`. For routines that Ghidra skipped we used `objdump` of `v1.1/iafjets.exe`:
+  the message box `4e4480`, the button paint `4f3120`, the main-menu hover `4fc350`, the TSD paint `501030`, the
+  link opener `502cd0`, and the MFC message maps read from `.rdata`.
+* Paths are relative to `install/resource/menu/`, except paths that start with `brief/`.
+* Colours: the exe stores each colour as a Win32 COLORREF (`0x00BBGGRR`). This document writes them as RGB.
+* `UNCERTAIN` marks a guess.
+
+**Terms used in this document**
+
+| term | meaning |
+|---|---|
+| GDI | Windows Graphics Device Interface, the 2D drawing API the menus use |
+| MFC | Microsoft Foundation Classes, the C++ window framework of the exe |
+| DC | GDI device context (a drawing target) |
+| `.trx` | the menu's text files: screen layouts (`dat/*.trx`) and strings (`txt/*.trx`) |
+| TSD | Tactical Situation Display, the pre-flight mission map (§8) |
+| RTF | Rich Text Format, used by briefings and descriptions |
+| EMF | Windows Enhanced Metafile, a vector drawing format (the TSD map) |
+| `.brl` | a briefing's link table (§6) |
+| bdb | the object database (`default6_1.bdb`) |
+| SP / MP | single player / multiplayer |
+| msg N | line N (0-based) of `txt/msgs.trx`, shown in a message box (§3.3) |
+| vtable `+0xNN` | a virtual function slot of an MFC class |
 
 ## 1. Window and coordinate model
 
-* The menu is a GDI/MFC window, **640×480**, centred on the desktop (`FUN_004e8d70`). `bmp/back.bmp`
-  is the full-screen frame. `bmp/back0.bmp` is the startup splash, drawn once in `FUN_004e2960`.
-  Ours: it is Godot's boot splash (`project.godot`); in Hebrew `settings.gd` writes `game/override.cfg` pointing at
-  the Hebrew CD's splash (setup `--hebrew-iso`, docs/packs.md).
+* The menu is a GDI/MFC window, **640×480**, centred on the desktop (`FUN_004e8d70`).
+* `bmp/back.bmp` is the full-screen frame. `bmp/back0.bmp` is the startup splash, drawn once in `FUN_004e2960`.
+  Ours: the splash is Godot's boot splash (`project.godot`). In Hebrew, `settings.gd` writes `game/override.cfg`,
+  which points at the Hebrew CD's splash (setup `--hebrew-iso`, docs/packs.md).
 * The **content area** is a child window at **(155,42), size 453×357** (`FUN_004e8d70`:
   `0x9b,0x2a,0x1c5,0x165`). Each screen's header in `dat/<screen>.trx` repeats this as
   `155 42 608 399`.
-* **All button coordinates in `.trx` files are screen coordinates (640×480)**, not panel-local.
-  A button rectangle is `[x, y, x+w, y+h)` (`FUN_004ea750` adds `w` and `h`).
-* `.trx` screen header: `sName tTitle x0 y0 x1 y1 N`. `N` is the **number of panels** that follow,
-  not a flag. `sName` selects `bmp/screens/<sName>.bmp` as the content background (`FUN_004f8b70`).
+* **All button coordinates in `.trx` files are screen coordinates (640×480)**, measured from the window's top-left
+  corner. A button rectangle is `[x, y, x+w, y+h)` (`FUN_004ea750` adds `w` and `h`).
+* `.trx` screen header: `sName tTitle x0 y0 x1 y1 N`. `N` is the **number of panels** that follow.
+  `sName` selects `bmp/screens/<sName>.bmp` as the content background (`FUN_004f8b70`).
   If that file is missing, the background is black. `sName` also selects `dat/<sName>.trx` as the
   list data. `tTitle` selects `bmp/titles/<tTitle>_0..2.bmp`.
 * Panel line: `side pName x y count`, where `side` is `left`, `bottom1` or `bottom2`. Button line:
@@ -60,8 +84,6 @@ rectangle from the image for its state (`FUN_004ec430`):
 * `_2` = **pressed / checked** (lit green LEDs on the TSD)
 * `_3` = **disabled** (clamps drawn over the button)
 
-The prompt's reading "state 0 highlighted" is wrong.
-
 * Push, mouse down (`FUN_004e9760`/`4ec590`): frames `_1`, then `_2`. `ButtonIn.wav` plays, and each
   frame is held for a time derived from the wav length.
 * Push, mouse up: frames `_2,_1,_0` with `ButtonOut.wav`. The action runs on release, and only if the
@@ -80,9 +102,9 @@ The prompt's reading "state 0 highlighted" is wrong.
 Positions come from `.rdata` `0x6062f4` (BACK) and `0x6062f8` (MAIN); the objects are created in
 `FUN_004e8d70` and their art is chosen in `FUN_004ea2a0`.
 
-Paint (`4f3120`): `_0`, or `_3` when disabled. Press animation (`FUN_004f3440`): `_0→_1→_2` with
-ButtonIn; release `_2→_1→_0` with ButtonOut. There is no hover state. `logbut_*` 114×22 belongs to
-the Log screen (not traced).
+* Paint (`4f3120`): `_0`, or `_3` when disabled. The art stays the same under the mouse.
+* Press animation (`FUN_004f3440`): `_0→_1→_2` with ButtonIn. Release: `_2→_1→_0` with ButtonOut.
+* `logbut_*` 114×22 belongs to the Log screen (not traced).
 
 * **BACK** (`FUN_004ed1b0`) goes to the parent screen:
   * Pref/Ref/Training/CType → Main
@@ -100,13 +122,21 @@ the Log screen (not traced).
     (`DAT_0083afcc`) or the game window (`DAT_006992e0`) exists, `4e28b0` shows **msg 7 "Are you sure
     you want to quit the game?"** as a **Yes/No** box (type 4, reply message `0x556`). Otherwise
     WM_CLOSE is swallowed: there is no default close.
-  * `0x556` → **`4e2e00`** acts only on IDYES (lParam 6): engine command 0x74 (unload),
-    `FUN_004d8d90(0)`, `FUN_004e9460` (the menu frame goes), `FUN_00544f00` (every sound stops), then the
-    **credits roll (§4.1)** if `_DAT_0064d9f4` ≠ 0, `FUN_00544300` (sound off), DestroyWindow (vtable `+0x60`).
-    NO does nothing. `_DAT_0064d9f4` is set once at startup (InitInstance `FUN_004e1960`; read `@4e2e79`) to
-    `*(char*)(app+0x70) == 0`: the app's `m_lpCmdLine` (next to `m_nCmdShow` at `+0x74`, passed to ShowWindow)
-    is empty, i.e. **the credits roll only when the game was started without a command line**. Ours: no user
-    arguments after `--` (`./iafjets` alone); `./iafjets --mission 311` quits without them.
+  * The reply `0x556` goes to **`4e2e00`**. It acts only on IDYES (lParam 6), in this order:
+    1. engine command 0x74 (unload);
+    2. `FUN_004d8d90(0)`;
+    3. `FUN_004e9460` (the menu frame goes);
+    4. `FUN_00544f00` (every sound stops);
+    5. the **credits roll (§4.1)**, if `_DAT_0064d9f4` ≠ 0;
+    6. `FUN_00544300` (sound off);
+    7. DestroyWindow (vtable `+0x60`).
+
+    NO does nothing.
+  * `_DAT_0064d9f4` is set once at startup (InitInstance `FUN_004e1960`; read `@4e2e79`) to
+    `*(char*)(app+0x70) == 0`. That is true when the app's `m_lpCmdLine` is empty (it sits next to `m_nCmdShow` at
+    `+0x74`, which is passed to ShowWindow). So **the credits roll only when the game was started without a command
+    line**. Ours: the roll needs no user arguments after `--` (`./iafjets` alone); `./iafjets --mission 311` quits
+    without it.
   * Ours: QUIT, Esc on its screens and the window's close button (Godot's close request, while the menus are
     up) all show msg 7 (`front_end.gd _quit`).
   * Alt+F4 / system close reach the same OnClose. msg 7 is also used by the in-flight pause menu,
@@ -115,10 +145,12 @@ the Log screen (not traced).
 ### 3.3 Message box (`CIAFMenuMsgBoxDlg`, `FUN_004e4300`/`4e4480`, called via `FUN_004e3f30(msg,…,type)`)
 * Background: `misc/mbgback.bmp` 320×140.
 * Text: `txt/msgs.trx` line `msg` (0-based). Arial size-param 11, weight 700, white, `DT_CENTER|DT_WORDBREAK`,
-  in rect `(10,20,W-10,H-50)`. v1.1 raised the message bound 0x38 → 0x39: its `msgs.trx` has 57 lines (line 56: "A
-  session exists with different version number…", shown by the multiplayer version check `FUN_00559380`). With v1.0
-  data (56 lines) that line does not exist; ours shows an empty text for any line past the file. A Hebrew pack
-  `msgs.trx` shorter than the install's gets the install's extra lines (`iaf-convert menu --pack`).
+  in rect `(10,20,W-10,H-50)`.
+* Line count: v1.1 raised the message bound 0x38 → 0x39. Its `msgs.trx` has 57 lines. Line 56 is "A session exists
+  with different version number…", shown by the multiplayer version check `FUN_00559380`. v1.0 data has 56 lines,
+  so that line is missing there.
+  * Ours shows an empty text for any line past the end of the file.
+  * A Hebrew pack `msgs.trx` shorter than the install's gets the install's extra lines (`iaf-convert menu --pack`).
 * Buttons: `misc/mbg<X>_0/_2` 60×30. The labels (YES NO OK CANCEL DEBRIEF CONTINUE EXIT) are baked
   into the art; **"CONTINUE" is `mbgfly`**. Top edge `y = H - bh*5/3 = 90`.
   * 1 button: `x = W/2 - bw/2 = 130`.
@@ -136,14 +168,14 @@ the Log screen (not traced).
 * Pre-flight uses msg 8 (Yes/No) and msg 25 "Choose a jet before flying." (OK).
 
 ## 4. Fonts and text colours
-* All menu text is **Arial**, from `FUN_004eee10(p, …)`. That function measures
-  `"ABC…XYZabc…xyz"` at `lfHeight=-100` to get `cy`, then creates
+* All menu text is **Arial**, created by `FUN_004eee10(p, …)`. That function measures
+  `"ABC…XYZabc…xyz"` at `lfHeight=-100` to get `cy`. It then creates the font with
   `lfHeight = -round(cy*p/100 + 0.5)` (constants `0x606528` = 0.01, `0x60652c` = -0.5). With
   Arial, `cy≈112`, so p=10 → about 11 px em and p=11 → about 12 px (UNCERTAIN: exact `cy`).
-* **`fnt/cr0..cr4.ttf` (Gill Sans variants) are only `AddFontResource`d for the credits roll**
-  (`4e2e00`, added at `4e2ea6`, removed at `4e2f4f`; §4.1). No menu screen uses them. The Pilot Records
+* **`fnt/cr0..cr4.ttf` (Gill Sans variants) are used by the credits roll only.** `4e2e00` adds them with
+  `AddFontResource` at `4e2ea6` and removes them at `4e2f4f` (§4.1). The Pilot Records
   Kills/Losses pages load two other font files, `fnt/key.fnt` and `fnt/hud.fnt` (§13.10).
-* Button labels are bitmaps (palette, misc, mbg art). They are not text.
+* Button labels are part of the bitmaps (palette, misc, mbg art).
 * Mission/course list (`FUN_00509e80`), transparent background:
   * title: Arial p11 weight 500, RGB(0,255,0), `DT_SINGLELINE|DT_BOTTOM`
   * description: Arial p10 weight 400, `DT_WORDBREAK`. RGB(0,128,0) when not highlighted,
@@ -155,47 +187,67 @@ the Log screen (not traced).
 * `II PAUSE` in-flight text: RGB(0,255,0) at (30,450) (`FUN_004e92b0`), for reference.
 
 ### 4.1 Credits roll (Quit Yes, `FUN_004e2e00` @4e2e86..4e2f69)
-A window over the whole screen (ctor `FUN_004e7280`, loop `FUN_004e7880`, draw `FUN_004e7de0`, message map
-`0x6060d8`), built as `FUN_004e7280(main, "%s\Txt\credits.trx", 9, "%s\Bmp\Screens\cr")` and run as
-`FUN_004e7880(1, 50, 8, 5000, 0)` (objdump push order: steps 50, step 8 ms, static 5000 ms, fade colour 0).
-* **Fonts**: `%s\Fnt\cr%d.ttf`, d = 0..4, AddFontResource'd around the roll. The faces come from the RTF
-  font table of `credits.trx`: f0 "Gill Sans" = cr4.ttf (family "Gill Sans", style "Bold CondensedA"), f1
-  "Gill Sans Condensed" = cr1.ttf, f2 "Times New Roman" (system; only one empty line). cr0 / cr2 / cr3 (Ultra
-  Bold Condensed, Extra Bold, Ultra Bold) are added but unused. One font per distinct (face, bold, size)
-  (`FUN_004e8930`), `CreateFontA(-MulDiv(fs/2, LOGPIXELSY, 72), weight bold ? 700 : 0, face)`: \fs40 → 27 px,
-  \fs32 → 21 px, \fs24 → 16 px.
-* **credits.trx** (an RTF file, the Hebrew packs' copy is the same English file) is read line by line
-  (`FUN_004e8200` → `8270` font table from the first line, `8330` per line): `\'hh` becomes the byte,
-  `\ldblquote` / `\rdblquote` / `\lquote` / `\rquote` quotes (each eats one more character); then `\line`,
-  `\fs<n>`, `\f<n>`, `\b` close the pending text as a run (on the same line) and set size / face / bold; text
-  *replaces* the pending text; other control words are skipped (to the next space or backslash, one space
-  eaten); the file line's end ends the screen line. A line starting with `}` drops itself and the next line.
-  Quirk kept: `\pard\'a9 ROHR…` makes one control word "pard©", so the © never shows. Styles in the file:
-  team headings and names `\f0\fs40`, roles `\f1\fs40`, spacers empty `\fs24` lines, the satellite
-  copyright `\fs32`.
-* **Layout** (`4e7de0`): every line starts at x = 0x46 (70), runs follow on the line (x += extent); text
-  `TextOut` at the line's top, colour `SetTextColor(0x00adff)` = RGB(255,173,0), transparent. Line advance
-  = tmHeight + 5. A run is drawn only if its rect `(x, y − cy, x + cx, y)` — the box *above* its text — meets
-  the screen, so a line vanishes when its top reaches the top edge; the pass stops at the first run below the
-  screen. `m_nYLastText` = cy + 5 below the line after the last run passed (starts at 100000).
-* **Scroll** (`4e7880`): the first line starts at y = 50 + 480 = 530 (local_188 = −50 − bitmap height);
-  each pass the text moves up `__ftol(0.5 − dt·(−0.0625))` = round(dt / 16) px, dt = ms since the last move
-  (constants `0x6061ec` / `0x6061f0`): 1 px per 16 ms, 62.5 px/s nominal (the rounding made it follow the loop
-  rate). The credits.trx roll lasts about 2 minutes.
-* **Background**: `cr0..cr8.bmp` (640 × 480, 8-bit) in turn, from the start: palette fade in from black in
-  50 steps of ≥ 8 ms (`FadeIn`), 5000 ms `Static`, fade out to black (`FadeOut`), next screen (index mod 9).
+The credits roll is a window over the whole screen: ctor `FUN_004e7280`, loop `FUN_004e7880`, draw `FUN_004e7de0`,
+message map `0x6060d8`. It is built as `FUN_004e7280(main, "%s\Txt\credits.trx", 9, "%s\Bmp\Screens\cr")` and run
+as `FUN_004e7880(1, 50, 8, 5000, 0)` (objdump push order: steps 50, step 8 ms, static 5000 ms, fade colour 0).
+* **Fonts**: `%s\Fnt\cr%d.ttf`, d = 0..4, added with AddFontResource for the length of the roll.
+  * The faces come from the RTF font table of `credits.trx`:
+    * f0 "Gill Sans" = cr4.ttf (family "Gill Sans", style "Bold CondensedA");
+    * f1 "Gill Sans Condensed" = cr1.ttf;
+    * f2 "Times New Roman" (a system font; used by one empty line only).
+  * cr0 / cr2 / cr3 (Ultra Bold Condensed, Extra Bold, Ultra Bold) are added but unused.
+  * One font is created per distinct (face, bold, size) (`FUN_004e8930`):
+    `CreateFontA(-MulDiv(fs/2, LOGPIXELSY, 72), weight bold ? 700 : 0, face)`. So \fs40 → 27 px, \fs32 → 21 px,
+    \fs24 → 16 px.
+* **credits.trx** is an RTF file. The Hebrew packs' copy is the same English file. The reader works line by line
+  (`FUN_004e8200` → `8270` reads the font table from the first line, `8330` reads each line):
+  * `\'hh` becomes the byte.
+  * `\ldblquote` / `\rdblquote` / `\lquote` / `\rquote` become quotes; each eats one more character.
+  * `\line`, `\fs<n>`, `\f<n>` and `\b` close the pending text as a run (on the same line) and set the size / face /
+    bold.
+  * Text *replaces* the pending text.
+  * Other control words are skipped, up to the next space or backslash; one space is eaten.
+  * The end of a file line ends the screen line.
+  * A line that starts with `}` drops itself and the next line.
+  * Quirk kept: `\pard\'a9 ROHR…` makes one control word "pard©", so the © never shows.
+  * Styles in the file: team headings and names `\f0\fs40`, roles `\f1\fs40`, spacers empty `\fs24` lines, the
+    satellite copyright `\fs32`.
+* **Layout** (`4e7de0`):
+  * Every line starts at x = 0x46 (70). Runs follow each other on the line (x += extent).
+  * Text is drawn with `TextOut` at the line's top, colour `SetTextColor(0x00adff)` = RGB(255,173,0), transparent.
+  * Line advance = tmHeight + 5.
+  * A run is drawn only if its rect `(x, y − cy, x + cx, y)` meets the screen. This rect is the box *above* its text,
+    so a line vanishes when its top reaches the top edge.
+  * The pass stops at the first run below the screen.
+  * `m_nYLastText` = cy + 5 below the line after the last run passed (starts at 100000).
+* **Scroll** (`4e7880`):
+  * The first line starts at y = 50 + 480 = 530 (local_188 = −50 − bitmap height).
+  * Each pass moves the text up `__ftol(0.5 − dt·(−0.0625))` = round(dt / 16) px, where dt = ms since the last move
+    (constants `0x6061ec` / `0x6061f0`).
+  * That is 1 px per 16 ms, 62.5 px/s nominal. The rounding made the speed follow the loop rate.
+  * The credits.trx roll lasts about 2 minutes.
+* **Background**: `cr0..cr8.bmp` (640 × 480, 8-bit) in turn, from the start. For each screen:
+  1. palette fade in from black in 50 steps of ≥ 8 ms (`FadeIn`);
+  2. 5000 ms `Static`;
+  3. fade out to black (`FadeOut`);
+  4. next screen (index mod 9).
+
   The text is drawn over the bitmap in a memory DC, then blitted to the DirectDraw surface and flipped.
 * **Music**: `%s\Wav\credits.wav`, started with the same parameters as Menu_M.WAV (the music volume
-  `DAT_0083b8c8`). When `m_nYLastText << 4 < 0x1e00` (the last line is on screen, y < 480) it fades out once over
-  `m_nYLastText · 16` ms (`FUN_00544c20` → `5469d0`: to −10000 mB in 20 ms steps), i.e. just as the text leaves.
-* **End**: when `m_nYLastText` < the client top (the last line has gone), or on WM_KEYDOWN, WM_SYSKEYDOWN,
-  WM_LBUTTONDOWN or WM_RBUTTONDOWN (`FUN_004e8160`); the music stops. WM_SETCURSOR hides the cursor.
-* **Ours** (game/menu/credits_roll.gd, docs/credits.md): the same reader, layout, timings and assets
-  (`strings.json` "credits" = credits.trx, `img/screens/cr*.png`, `wav/credits.wav`, cr1 / cr4.ttf), drawn
-  smooth in the scaled 640 × 480 screen; scroll and fades follow the clock (1 px / 16 ms, 400 ms fades).
-  Before the original's lines: our own (game/menu/credits_ours.json, Hebrew in Hebrew, Arial as the Hebrew
-  fallback) and the converted imagery layers' credits (deviation, docs/deviations.md). Empty runs count
-  cy = 0 (UNCERTAIN: GetTextExtentPoint of an empty string); only the end time depends on it.
+  `DAT_0083b8c8`).
+  * When `m_nYLastText << 4 < 0x1e00` (the last line is on screen, y < 480), the music fades out once over
+    `m_nYLastText · 16` ms (`FUN_00544c20` → `5469d0`: to −10000 mB in 20 ms steps). The fade ends just as the text
+    leaves.
+* **End**: the roll ends when `m_nYLastText` < the client top (the last line has gone), or on WM_KEYDOWN,
+  WM_SYSKEYDOWN, WM_LBUTTONDOWN or WM_RBUTTONDOWN (`FUN_004e8160`). The music stops. WM_SETCURSOR hides the cursor.
+* **Ours** (game/menu/credits_roll.gd, docs/credits.md):
+  * The same reader, layout, timings and assets: `strings.json` "credits" = credits.trx, `img/screens/cr*.png`,
+    `wav/credits.wav`, cr1 / cr4.ttf.
+  * Text is drawn smoothly in the scaled 640 × 480 screen. Scroll and fades follow the clock (1 px / 16 ms, 400 ms
+    fades).
+  * Before the original's lines come our own (game/menu/credits_ours.json; Hebrew in Hebrew, with Arial as the
+    Hebrew fallback) and the converted imagery layers' credits (deviation, docs/deviations.md).
+  * Empty runs count cy = 0 (UNCERTAIN: GetTextExtentPoint of an empty string). Only the end time depends on it.
 
 ## 5. Content windows
 
@@ -217,8 +269,8 @@ Moving off a button restores smain. Hover is driven by the frame's MOUSEMOVE (`4
 * **Highlight = the row rectangle copied from `mis_2`** (`50a8d0`). It happens **only while the
   mouse hovers the same-named left-panel button**; the row is found by matching the row name to the
   button label.
-* Clicking a row does nothing: LBUTTONDOWN maps to the empty `FUN_004ecf80`. **Selection is made by
-  pressing the panel button.**
+* **The player selects a row by pressing its panel button.** A click on the row itself does nothing:
+  LBUTTONDOWN maps to the empty `FUN_004ecf80`.
 * `s<screen>.trx` rows: `id f1 f2 f3 f4 Name  rx ry rw rh  tl tt tr tb tKey  dl dt dr db dKey`.
   * Coordinates are content-local.
   * The row rect is x,y,w,h. The title and description rects are left,top,right,bottom.
@@ -239,7 +291,7 @@ Moving off a button restores smain. Hover is driven by the frame's MOUSEMOVE (`4
   * `Arm` → **Arming** (0x1f). Arming's `Fly`/`TacticalDisplay` handlers are in `FUN_005070c0`.
   * **`Fly`** (`FUN_005045b0`): if a flight (formation) is selected, the menu closes with exit code 2
     and flight starts. Otherwise msg 25 is shown.
-* **There is no CONTINUE button in pre-flight.**
+* Pre-flight has no CONTINUE button.
 * The briefing window opens automatically when the TSD opens (§6).
 
 ### 5.4 Navigation tables (decoded)
@@ -289,7 +341,7 @@ Jets disabled per mission (`FUN_00509b80`; rows 0x11c bytes apart in the list ob
 * Tab title art: **`framewnd/brief_t.bmp`**.
 * Contents: a RichEdit (`RICHED32`) loaded with `EM_STREAMIN SF_RTF`. The first `<header>`
   (case-insensitive) is replaced by `"<rank> <pilot name>"` (`DAT_0083b820`, `DAT_0083b834`; ranks are
-  "Second Lieutenant"…"General"). `DAT_0083b834` is the pilot **name**, not the callsign (§13).
+  "Second Lieutenant"…"General"). `DAT_0083b834` is the pilot **name**; the callsign is `DAT_0083b848` (§13).
 * **Links** (`FUN_0050e170`): text that is underlined and yellow RGB(255,255,0) is clickable. Hovering
   it shows `Cur/Point.cur`. Clicking takes the underlined run and matches it by name against
   **`<same path>.brl`** (records of 516 bytes: `name[256], int type, path[256]`; paths are relative to
@@ -305,8 +357,8 @@ Jets disabled per mission (`FUN_00509b80`; rows 0x11c bytes apart in the list ob
 
 * A slot that is already open is reused and reloaded. The 3D-model window and the target window are
   mutually exclusive.
-* **There are no Brief/Objective/Target tabs.** `brief_t`, `obj_t` and `targ_t` are the tab-title art
-  of three separate floating windows. `chat_t` is the multiplayer chat window (`FUN_004f83b0`).
+* `brief_t`, `obj_t` and `targ_t` are the tab-title art of **three separate floating windows**. The briefing
+  has no Brief/Objective/Target tabs. `chat_t` is the multiplayer chat window (`FUN_004f83b0`).
 * The instructor name in training (e.g. "Jonathan" in `txt/311.rtf`) is a type-3 link to `card.bmp`.
   `brief/text/3xx_N.rtf` lessons are reached through type-0 links, and have their own `.brl`.
   Nothing in the exe references `3xx_0.rtf` directly (UNCERTAIN whether it is shown anywhere).
@@ -338,14 +390,13 @@ Jets disabled per mission (`FUN_00509b80`; rows 0x11c bytes apart in the list ob
 * Activation: a click anywhere raises the window (SetWindowPos top) and sends msg 0x54a to switch
   to `title_a`. Others switch to `title_na` (`FUN_0050b7e0`, `50d340`). Dragging the title bar moves
   the window.
-* `mvcrnr*` / `mvbrdr*` (3 px) are the bevel around a 3D viewport (`FUN_0050f50b`/`510328`, §11),
-  not a resize outline.
+* `mvcrnr*` / `mvbrdr*` (3 px) are the bevel around a 3D viewport (`FUN_0050f50b`/`510328`, §11).
 * `logo.bmp` belongs to the 3D-model window (§11) and `tvw_on/off.bmp` to the target window (§10).
   `framewnd/back.bmp` and `buttonfordialogue.bmp` belong to other windows (chat?); not traced.
 
 ## 8. TSD map (`FUN_004ffba0` ctor, paint `501030` = map `5010e0` + overlay `501300`)
-* **The map is an EMF vector metafile**, not isr.bmp or terrain: `menu/emf/82.emf`. Missions
-  110–119 use `67.emf` and 120–129 use `73.emf` (1967 and 1973 maps).
+* **The map is an EMF vector metafile**: `menu/emf/82.emf`. The TSD uses neither isr.bmp nor the terrain.
+  Missions 110–119 use `67.emf` and 120–129 use `73.emf` (the 1967 and 1973 maps).
   * Overlays: `emf/grid.emf` when **Grid** is on; `emf/text.emf` when **Text** is on.
     * Text records (EMR_EXTTEXTOUTW) are re-issued as `TextOutA` at their EMF position (`501060`), so
       the labels do not scale.
@@ -386,7 +437,7 @@ Jets disabled per mission (`FUN_00509b80`; rows 0x11c bytes apart in the list ob
 
 ### 8.1 TSD data mapping (decoded)
 
-**Data source.** The TSD does not read the .mis. After the mission loads, `FUN_004d2900` (object
+**Data source.** The TSD reads the spawned engine objects; it never opens the .mis. After the mission loads, `FUN_004d2900` (object
 `0x686238`, called from `FUN_00517cd0` on every paint) walks the spawned engine objects and fills:
 * a unit table at `0x686240`: 0x70-byte records, count `DAT_0068e580`, maximum 300;
 * a flight table at `0x68e588 + n·0x370`.
@@ -467,8 +518,8 @@ Units that are never shown:
 * icon class 1..6 × (side==1 → the `…1` filter, else → the `…2` filter);
 * icon class 3 is split: category 0x23 (type 450 runway) → `Airports1/2`, else `Structures1/2`.
 
-Bitmap choice (in `FUN_00504ea0`; note `FUN_004f6da0` is the type → category-index function of
-"Selected-unit label" below, not the bitmap chooser):
+Bitmap choice (in `FUN_00504ea0`). Note: `FUN_004f6da0` is a different function, the type → category-index function
+of "Selected-unit label" below.
 
 | icon class | bitmap |
 |---|---|
@@ -665,7 +716,7 @@ purpose of `move.cur` and `grab.cur` (UNCERTAIN).
   * bottom1 `pFormation`: Alpha–Delta, CheckGroup 1;
   * bottom2 `pTools`: **Zoom_In (543,429,55×23) and Zoom_Out (543,453,55×23)**, both Push.
 
-  There is no Ruler button.
+  `tsd.trx` has no Ruler button.
 * Initial check state: the ctor copies `DAT_0083b860..d18` into each Check (`+0x3c`). Defaults are
   all on (`FUN_004f15a0`, confirmed): Waypoint, Text, Grid, 14 filters, Briefing.
   * Briefing is then forced to "file exists" (`FUN_005047a0`).
@@ -693,7 +744,7 @@ purpose of `move.cur` and `grab.cur` (UNCERTAIN).
   * `EM_SETBKGNDCOLOR` RGB(94,94,104);
   * `EM_SETTARGETDEVICE(0,0)` (wrap to window);
   * `EM_HIDESELECTION`.
-* **No `EM_SETCHARFORMAT`**: fonts and colours come only from the RTF.
+* **Fonts and colours come only from the RTF**: the window sends no `EM_SETCHARFORMAT`.
 * Format rect (`EM_SETRECT`): 10 px inset from the left, and 10 px from the scrollbar on the right.
 * Scrollbar range = line count − visible lines + 1.
 * Scroll steps (`50e330`/`50e390`):
@@ -721,7 +772,7 @@ purpose of `move.cur` and `grab.cur` (UNCERTAIN).
 
 * A new pilot has score 0, so the header becomes **"Second Lieutenant <pilot name>"**. The pilot name
   `DAT_0083b834` (20-byte buffer, record max 10 chars) comes from the selected pilot record
-  (`FUN_0051d940`). The callsign is `DAT_0083b848` and is not used here (§13).
+  (`FUN_0051d940`). The header leaves out the callsign (`DAT_0083b848`, §13).
 
 #### BACK / MAIN from the TSD
 
@@ -736,12 +787,12 @@ message `0x55c` to the frame with wParam = the target screen and lParam = the bu
   * in MP it also leaves the session;
   * then it switches screen (`FUN_004ea2a0`).
 * NO does nothing.
-* In MP, MAIN instead shows msg 11 ("quit the session?"), whose handler `0x557` → `4ed120` calls
+* In MP, MAIN shows msg 11 ("quit the session?"), whose handler `0x557` → `4ed120` calls
   `FUN_004ee5b0` and then goes to Main. BACK still shows msg 8.
 
 ## 9. Sounds (`menu/wav`)
-* `Menu_M.WAV` is the menu music. It starts on entering any screen except TSD, Arm, FlyTSD and
-  in-flight Pref, if not already playing (`FUN_004ea2a0`). It fades out over 6000 ms when a mission
+* `Menu_M.WAV` is the menu music. It starts when the player enters any screen other than TSD, Arm, FlyTSD and
+  in-flight Pref, unless it is already playing (`FUN_004ea2a0`). It fades out over 6000 ms when a mission
   loads (`FUN_004edec0`).
 * `ButtonIn.wav` plays on button press, `ButtonOut.wav` on release (`FUN_004e2960`, globals
   `0083afd4/50`).
@@ -753,15 +804,16 @@ message `0x55c` to the frame with wParam = the target screen and lParam = the bu
 
 ## 10. TSD target window (brl type 5, `targ_t`, `FUN_00517fe0`)
 
-**iaf-reborn:** built (`tsd.gd` `_on_link` case 5 / `_target_unit`, `model_view.gd` `setup_target`): a SubViewport
-with its own terrain streaming around the camera (origin at the object) and the mission's placed units within 6 km
-(the flight's models, Present scales and headings; underlays hidden; ground units snapped to the terrain); rendered
-live, not only on repaint. tests/godot/test_briefing_links.gd: every target file (over 100) is looked up in its
-mission; the known misses are printed, not failed.
+**iaf-reborn:** built (`tsd.gd` `_on_link` case 5 / `_target_unit`, `model_view.gd` `setup_target`).
+* It is a SubViewport with its own terrain streaming around the camera (origin at the object).
+* It shows the mission's placed units within 6 km: the flight's models, Present scales and headings; underlays
+  hidden; ground units snapped to the terrain.
+* It renders live, every frame.
+* tests/godot/test_briefing_links.gd looks up every target file (over 100) in its mission. It prints the known
+  misses and still passes.
 
-**Summary.** This window shows no text and no separate model. It is a **live 3D camera on the named
-mission object**, rendered by the flight engine, with a 15 px tab strip underneath: SATELLITE VIEW,
-ZOOM VIEW and UAV VIEW.
+**Summary.** This window is a **live 3D camera on the named mission object**, rendered by the flight engine, with a
+15 px tab strip underneath: SATELLITE VIEW, ZOOM VIEW and UAV VIEW. It shows no text and no separate model.
 
 **Opening** (`FUN_00502cd0` case 5, `502fc7`–`5030f3`):
 * Path = `sprintf("%s%s", <root 0x836a50>, brlPath)`, e.g. `\Brief\Tar\113_1.txt`.
@@ -821,8 +873,8 @@ borders and the 11 px title bar: x=5, y=15, w=cx−10, h=cy−19. For 406×322 t
 current mission time.
 * Render path: `FUN_00510328`, mode ≠ 0 branch (`FUN_004bba30`/`00510fb0`/`00588c70`), with the camera
   taken from the engine's camera object, then `FUN_00402190`.
-* There is **no text** in the window. The object name is used only for the lookup.
-* The render runs only on `WM_PAINT`. There is no timer, so the window shows a still image that is
+* The window shows **only the image**. The object name is used only for the lookup.
+* The render runs only on `WM_PAINT`, with no timer, so the window shows a still image that is
   refreshed on repaint or when the tab changes (UNCERTAIN whether the engine keeps animating it).
 * Arrow and +/− keys are ignored in modes 1 and 2 (`5109ab`). In mode 3 they change the view's own
   angles, but the engine camera does not read them (UNCERTAIN: probably no visible effect).
@@ -876,7 +928,7 @@ keyboard-only.
   4. `mvBrdrB` at y=h−3
   5. the corners `mvCrnrLT/RT/LB/RB` 3×3
 
-  This corrects §7: the `mv*` art is this bevel, not a resize/move outline.
+  The `mv*` art in §7 is this bevel.
 
 **Model load** (`FUN_0050f9e6`):
 * The extension must be `.x` (`FUN_0056a9f0` vs `".x"`). Otherwise the load fails and the view stays
@@ -911,7 +963,8 @@ eye.z = (1410 + height) + sin(-p)*d        (negative pitch = eye above)
 engine camera = (eye, p, y, 0)             (FUN_004021d0, vtable +0x60)
 ```
 
-**Interaction: keyboard only**, via `WM_KEYDOWN` (`5109ab`).
+**Interaction: keyboard only**, via `WM_KEYDOWN` (`5109ab`). The window has no mouse drag, no auto-rotation and no
+timer.
 * The view needs focus, which a left or right click gives it (`51096d`/`51098c`).
 * Each key press (or Windows auto-repeat) changes one value, recomputes the eye and re-renders.
 * Steps: `0x609b7c` = 2°, `0x609b78` = 2 units.
@@ -926,8 +979,7 @@ engine camera = (eye, p, y, 0)             (FUN_004021d0, vtable +0x60)
 | VK_SUBTRACT (numpad −) | d += 2 (zoom out) | only while d < 4·dist |
 | VK_F4 | ignored | |
 
-* **There is no mouse drag, no auto-rotation and no timer.** The message map (`.rdata 0x609ba8`)
-  handles:
+* The message map (`.rdata 0x609ba8`) handles:
   * PAINT and DESTROY;
   * SETFOCUS/KILLFOCUS (title bar active/inactive via 0x54a);
   * 0x54b;
@@ -936,8 +988,11 @@ engine camera = (eye, p, y, 0)             (FUN_004021d0, vtable +0x60)
   * ERASEBKGND (returns 0).
 * Lighting: the render passes one object and no extra lights (`FUN_00402300(1, &inst, +0xb0c=0, 0)`),
   so the engine defaults apply (UNCERTAIN).
-* The engine draws into an off-screen surface (`FUN_00511420`/`4f0470`). The surface is cleared, the
-  scene rendered, the bevel drawn, and the result `BitBlt` to the window.
+* The engine draws into an off-screen surface (`FUN_00511420`/`4f0470`):
+  1. clear the surface;
+  2. render the scene;
+  3. draw the bevel;
+  4. `BitBlt` the result to the window.
 
 ## 12. Preferences screen (screen 3 `sGeneral`, in flight 0x21; ctor `FUN_004fda60`, vtable `0x607c98`)
 
@@ -950,8 +1005,7 @@ engine camera = (eye, p, y, 0)             (FUN_004021d0, vtable +0x60)
   to `prefs.dat`.
 
 ### 12.1 Frame and tabs
-* `dat/pref.trx`: `sGeneral tPref 155 42 608 399 1`. Left panel `pPref` at (0,35). There is no bottom
-  panel.
+* `dat/pref.trx`: `sGeneral tPref 155 42 608 399 1`. The screen has one panel: the left panel `pPref` at (0,35).
 * The panel has 5 `CheckGroup 1` buttons, so exactly one is lit.
 
 | button | screen rect (x,y,w,h) | page id | class (ctor) | art |
@@ -968,7 +1022,7 @@ engine camera = (eye, p, y, 0)             (FUN_004021d0, vtable +0x60)
 * The current page is `DAT_0083b8b4`. It is zero-initialised and never reset, so the **first visit
   opens Sound**, and later visits reopen the last page used.
 * Switching tabs (`FUN_004fe0d0`) destroys the old page (`FUN_004fe6d0`) and creates the new one
-  (`FUN_004fe750`). There is no prompt, and edits survive the switch.
+  (`FUN_004fe750`). The switch asks nothing, and edits survive it.
 * In flight (0x21) the ctor disables the **Gameplay** tab (`FUN_004ed8e0("Gameplay",1)` sets button
   `+0x40`). If Gameplay was the remembered page, Sound is shown instead.
 * **Drawing, all pages:**
@@ -1136,16 +1190,17 @@ Three two-way choices. The top option has value 1.
 | RUDDER | PEDALS 193,73,267,92 | KEYBOARD 193,108,276,127 | d98 | 0 |
 | THROTTLE | JOYSTICK 317,73,394,92 | KEYBOARD 317,108,399,127 | d94 | 0 |
 
-* Applied with `FUN_004df4e0(flight, throttle, rudder)` on commit and at startup (`4e2ca4`): it only stores
-  the three choices (`this+0x24 / 0x28 / 0x2c` of the DirectInput object). They act only together with a
-  joystick that has the axis (`+0x18..0x20`); **without a joystick the page shows and stores the choices and
-  nothing changes** (docs/controls.md §5).
-* `menu/joy/*.joy` is not read by this page: the joystick setup reads it (`FUN_004e1590`, docs/controls.md §5.1).
+* `FUN_004df4e0(flight, throttle, rudder)` applies the choices on commit and at startup (`4e2ca4`). It only stores
+  the three choices (`this+0x24 / 0x28 / 0x2c` of the DirectInput object).
+* The choices act only together with a joystick that has the axis (`+0x18..0x20`). **Without a joystick the page
+  shows and stores the choices and nothing changes** (docs/controls.md §5).
+* The joystick setup reads `menu/joy/*.joy` (`FUN_004e1590`, docs/controls.md §5.1); this page leaves it alone.
 
-**iaf-reborn**: the page as the original (Settings `flight_controls`, `rudder`, `throttle`, `[devices]` in
-settings.cfg); the choices act through the `Joystick` autoload only while a joypad is connected
-(docs/controls.md §5.2). The Godot axis numbers (`joy_axes`) have no page: settings.cfg only. Ours on the page:
-"Detent = MIL" (Off / Set at lever, `throttle_detent` in `[devices]`).
+**iaf-reborn**:
+* The page matches the original (Settings `flight_controls`, `rudder`, `throttle`, `[devices]` in settings.cfg).
+* The choices act through the `Joystick` autoload, only while a joypad is connected (docs/controls.md §5.2).
+* The Godot axis numbers (`joy_axes`) are set in settings.cfg only; no page shows them.
+* Ours on the page: "Detent = MIL" (Off / Set at lever, `throttle_detent` in `[devices]`).
 
 ### 12.7 Controls page (`cntrl_2.bmp`; `FUN_00511580`)
 The key table itself (records, modifiers, key names, dispatch, the full list) is in
@@ -1154,10 +1209,11 @@ The key table itself (records, modifiers, key names, dispatch, the full list) is
   * Created (`FUN_004f4470`) at page (0,53) with 9 rows over a copy of the page art (0,53)-(400,323):
     row height = 270 / 9 = **30 px**, row width 400.
   * Rows = the records whose listed flag (+0x20) ≠ 0, in table order (92 of 117).
-  * Row paint `FUN_00512080` is **text only** (`log/item.bmp` / `hiitem.bmp` are loaded into the
-    list but only the base painter `FUN_004f4ed0` would draw them, and this class overrides it):
-    transparent, font Arial p11 weight 400 (`this+0x1070`), colour RGB(0,255,0) for the selected row,
-    RGB(0,180,0) (`0xb400`) otherwise. Cells (row coordinates, `0x609e70..d4`):
+  * Row paint `FUN_00512080` draws **text only**. `log/item.bmp` / `hiitem.bmp` are loaded into the list, but only
+    the base painter `FUN_004f4ed0` would draw them, and this class overrides it.
+  * Text: transparent, font Arial p11 weight 400 (`this+0x1070`), colour RGB(0,255,0) for the selected row,
+    RGB(0,180,0) (`0xb400`) otherwise.
+  * Cells (row coordinates, `0x609e70..d4`):
     * function label (keys.trx line i) (11,1)-(181,28), `DT_VCENTER|DT_SINGLELINE` (left);
     * key name (`FUN_005121e0`) (187,1)-(328,28), centred;
     * joystick button (`FUN_00512a90`, "Button n") (331,1)-(409,28), centred (clipped at x 400).
@@ -1169,24 +1225,29 @@ The key table itself (records, modifiers, key names, dispatch, the full list) is
   serves other scrollbars: check the TSD's `vslupb` / `vsldownb` placement against this.)
 * **Key capture** (`FUN_00511dc0`, the list's key-down handler):
   * VK_LEFT/UP/RIGHT/DOWN go to the list (move the selection); arrows therefore cannot be bound.
-  * Otherwise the DirectInput keyboard state is scanned for the first pressed key that is not a
-    modifier (skips 0x1d/0x9d, 0x2a/0x36, 0x38/0xb8, 0xdb/0xdc); the modifier is Ctrl (0x11), else
-    Shift (0x22), else Alt (0x44), else Win (0x88); key = modifier << 16 | scancode.
-  * If no other record has that key it is stored in the selected record (+0x18). Otherwise msg 36
-    "This key is already assigned to another function. Change anyway?" (Yes/No, `FUN_004e66c0` type 4);
-    Yes clears the other record's key (0) and assigns it.
-  * Joystick buttons (`FUN_00511fb0`, reached through the poller's msg 0x555, docs/controls.md §5.1) the
-    same on +0x1c with msg 37 and −1 for the cleared record; only a press binds.
+  * For any other key, the handler scans the DirectInput keyboard state for the first pressed key that is not a
+    modifier (it skips 0x1d/0x9d, 0x2a/0x36, 0x38/0xb8, 0xdb/0xdc).
+  * The modifier is Ctrl (0x11), else Shift (0x22), else Alt (0x44), else Win (0x88). The stored key =
+    modifier << 16 | scancode.
+  * If no other record has that key, it is stored in the selected record (+0x18). Otherwise msg 36 asks "This key
+    is already assigned to another function. Change anyway?" (Yes/No, `FUN_004e66c0` type 4). Yes clears the other
+    record's key (0) and assigns it.
+  * Joystick buttons (`FUN_00511fb0`, reached through the poller's msg 0x555, docs/controls.md §5.1) work the same
+    way on +0x1c, with msg 37 and −1 for the cleared record. Only a press binds.
 * **Data**: the working table `0x83b99c` (see docs/controls.md; it is what `prefs.dat` stores).
-* DEFAULT restores the whole table from `0x64c3c8` (@511ca5) — the default table's start; there is no
-  offset puzzle (`0x64c3e8` is record 0's +0x20 field).
+* DEFAULT restores the whole table from `0x64c3c8` (@511ca5), the start of the default table. (`0x64c3e8` is
+  record 0's +0x20 field.)
 
-**iaf-reborn**: the list, scrollbar (arrows, thumb drag, track click = one page, UNCERTAIN), a click on
-a row selects it **and gives the list the keyboard** (UNCERTAIN: the original list takes the focus the
-same way; until then keys go to the screen, so Esc still leaves), the key capture with msg 36, DEFAULT,
-all in the Preferences working copy (Save changes? Yes stores `[keys]` in settings.cfg). Up/Down move
-the selection. A joystick button pressed while the list has the keyboard binds the selected row (msg 37 when
-taken), like the keys. The Hebrew pack has no keys.trx: labels stay English on the pack's art.
+**iaf-reborn**:
+* Built: the list, the scrollbar (arrows, thumb drag, track click = one page, UNCERTAIN), the key capture with
+  msg 36 and DEFAULT. All edits go into the Preferences working copy; "Save changes?" Yes stores `[keys]` in
+  settings.cfg.
+* A click on a row selects it **and gives the list the keyboard** (UNCERTAIN: the original list takes the focus
+  the same way). Until then keys go to the screen, so Esc still leaves.
+* Up/Down move the selection.
+* A joystick button pressed while the list has the keyboard binds the selected row, like the keys (msg 37 when
+  the button is taken).
+* The Hebrew pack has no keys.trx, so the labels stay English on the pack's art.
 
 ### 12.8 Hebrew pack art
 The Hebrew menu pack (docs/packs.md) replaces the page art (`pref/*_0/_1`, `cntrl_2`, `score`,
@@ -1204,7 +1265,7 @@ So the Hebrew pages use the same rects as §12.3–§12.6.
 
 ### 12.9 Implementation (game/menu/front_end.gd, game/settings.gd)
 * Everything above is ported: the tabs, "first visit Sound, then the last page" (`Settings.pref_page`,
-  kept for the session, not saved), the `_0` art plus lit rects from `_1`, sliders with the
+  kept for the session only), the `_0` art plus lit rects from `_1`, sliders with the
   `slider.bmp` thumb (image through its mask), the scoring strip, DEFAULT on every page but Devices,
   the working copy, and msg 38 Yes/No/Cancel when leaving by BACK, MAIN or Esc.
 * The live previews are ported: music volume and Mute on the front-end music, and the wav/pref loops
@@ -1219,7 +1280,7 @@ So the Hebrew pages use the same rects as §12.3–§12.6.
 * Graphics sliders snap to `round(v/step)·step` (UNCERTAIN, see §12.4).
 * **Controls page:** built (§12.7): the original key list, scrollbar, key capture with msg 36 and
   DEFAULT; rebinds are stored in `[keys]` and used in flight (docs/controls.md).
-* **Extras and Physics tabs (ours, not in the original).** Two tabs below Gameplay, 44 px apart at the panel's
+* **Extras and Physics tabs (ours; added by iaf-reborn).** Two tabs below Gameplay, 44 px apart at the panel's
   button spacing (Extras rect 16,287,109,39; Physics 44 px lower).
   * **Button art:** the `pPref` band around the Gameplay button (panel rect 12,203,116,54 from `_0`,
     the button rect from the current frame), moved down 44 px. Its label (panel 42,219,62,16) is
@@ -1251,13 +1312,13 @@ So the Hebrew pages use the same rects as §12.3–§12.6.
     the header; mirrored in Hebrew.
   * **Behaviour:** the options go through the same working copy and "Save changes?" box. A language
     change reloads the menus on Yes.
-  * The original has no language setting: the Hebrew pack simply replaces the resource files.
+  * In the original, the Hebrew pack replaces the resource files; the game has no language setting.
 
 ## 13. Login / Pilot Records screen (screen 0, `log.trx`)
 
 **Summary.**
 * Pilots live in `<exe dir>\Pilots.dat` (36-byte records). Each pilot's history is in
-  `<exe dir>\Pilots\<id>.mis`. **No registry** is used.
+  `<exe dir>\Pilots\<id>.mis`. **These files are the only storage**; the registry is not used.
 * `DAT_0083b834` is the **pilot name** and `DAT_0083b848` is the callsign.
 * Only the Future campaign's missions 2–7 are ever locked.
 
@@ -1297,11 +1358,11 @@ So the Hebrew pages use the same rects as §12.3–§12.6.
   3. Call `FUN_0050b230(tab)`.
 * Message `0x549` is sent right after the screen is created (`4ea2a0`, @`155173`). Its handler
   `FUN_0050b150` creates the pilot list (§13.3) and shows tab 0.
-* There is no Notes tab. `log/notes*.bmp` and the file `Pilots\<id>.not` (deleted when a pilot is
-  removed) are otherwise unreferenced (UNCERTAIN: probably a dropped feature).
+* The screen has the four tabs above. `log/notes*.bmp` and the file `Pilots\<id>.not` (deleted when a pilot is
+  removed) are otherwise unreferenced (UNCERTAIN: probably a dropped Notes feature).
 
 ### 13.3 Pilot list box (`FUN_0051c750` ctor, `FUN_0051c9d0` create; item list `FUN_0051d9f0`, base `FUN_004f4390`)
-* **Its parent is the frame, not the content window.** It sits at **screen (19,123)**
+* **Its parent is the frame window**, so it lies outside the content area. It sits at **screen (19,123)**
   (`0x608d38/74`), size 104×200 = `log/pilotslb.bmp`. That fills the gap in the left panel between
   Login (ends at y=104) and New_Pilot (starts at y=333).
 * Inside `pilotslb` (`0x60bc50..a4`):
@@ -1453,17 +1514,21 @@ mission `DAT_0083b810`.
      category's counter is incremented (the loop runs `0x1f48..0x3e88` and reads `R + i − 8000` and `R + i`).
 3. Save the file, except for the MP ids 0x21d, 0x29a, 0x213 and 0x1ff–0x207.
 
-**Where R comes from** (the debrief compile `FUN_0059a0f0` at flight shutdown, called with the engine's
-mission id `+0x118`; objdump `59a2f0..59a3e4`):
+**Where R comes from.** The debrief compile `FUN_0059a0f0` fills R at flight shutdown. It is called with the
+engine's mission id `+0x118` (objdump `59a2f0..59a3e4`).
 * **result** `R[0]` (unit+0x1f84) = the mission's passed flag (+0x6615, docs/mission-runtime.md §5.1).
-* **bonus** `R[1]` (+0x1f88) = `GetPrivateProfileInt("MissBonus", "<mission id>", 0, ScoreFile)` (`FUN_0059add0`;
-  ScoreFile = iaf.ibx `[Scenario]` → `Resource\Missions\Scores.ibx`: 1500 historical, 1000–5000 Future,
-  500 basic, 1000 combat training, 1000 scramble) when passed; when not passed `__ftol(bonus · −0.5)` (`.rdata
-  0x611820` = −0.5), i.e. **half the bonus as a penalty**.
+* **bonus** `R[1]` (+0x1f88):
+  * When passed: `GetPrivateProfileInt("MissBonus", "<mission id>", 0, ScoreFile)` (`FUN_0059add0`).
+    ScoreFile = iaf.ibx `[Scenario]` → `Resource\Missions\Scores.ibx`: 1500 historical, 1000–5000 Future,
+    500 basic, 1000 combat training, 1000 scramble.
+  * When not passed: `__ftol(bonus · −0.5)` (`.rdata 0x611820` = −0.5), i.e. **half the bonus as a penalty**.
 * Every entity of the entity table with state 4 or 5 is listed as {unitinfo+0x24 type code, unitinfo+8 class}:
-  on the player's side (`FUN_004a4cd0`: same side as the player; without a player, side 1) → **losses**
-  (+0x3ecc), otherwise → **kills** (+0x1f8c, count +0x38). So "kills" are all enemy units destroyed in the
-  flight, by anyone; "losses" include the player's own jet. (Multiplayer swaps this for the host's side test.)
+  * on the player's side (`FUN_004a4cd0`: same side as the player; without a player, side 1) → **losses**
+    (+0x3ecc);
+  * otherwise → **kills** (+0x1f8c, count +0x38).
+
+  So "kills" are all enemy units destroyed in the flight, by anyone, and "losses" include the player's own jet.
+  (Multiplayer swaps this for the host's side test.)
 
 Categories are the same indices as the TSD label table in §8.1 ("Selected-unit label"):
 * 0–36 by type code;
@@ -1594,12 +1659,16 @@ disabled (button art `_3`) when all of these hold:
 | 401–407 | `FUN_004f1650` |
 | 511–515 / 516 | multiplayer: +1 / 1; single player: 1 / 0 |
 
-Next Mission is disabled when this is 0. **Replay / Next** (`FUN_004ff540`, v1.1), single player: missions **311–319 →
-Jet list (screen 9)**, **321–329 → Jet list (screen 10)**, so a plane is picked before every training flight; other ids
-in 300–399 do nothing; any other mission is reloaded (`FUN_004edec0` → TSD 0x1e; 400–499 straight into the flight).
-v1.0 reloaded the training missions with the same plane. Port: `front_end.gd` `_debrief_button`, `next_mission`,
-`new_mission_screen` (the cheat's row unlock and Next Mission are ported; Jump_In is not wired, so neither its
-"40N mission?" prompt nor the 401–407 pick is).
+Next Mission is disabled when this is 0.
+
+**Replay / Next** (`FUN_004ff540`, v1.1), single player:
+* missions **311–319 → Jet list (screen 9)** and **321–329 → Jet list (screen 10)**, so the player picks a plane
+  before every training flight (v1.0 reloaded the training missions with the same plane);
+* other ids in 300–399 do nothing;
+* any other mission is reloaded (`FUN_004edec0` → TSD 0x1e; 400–499 go straight into the flight).
+
+Port: `front_end.gd` `_debrief_button`, `next_mission`, `new_mission_screen`. The cheat's row unlock and Next
+Mission are ported. Jump_In is not wired, so its "40N mission?" prompt and the 401–407 pick are not ported either.
 
 **Jump_In without the cheat** (`FUN_004f1650`):
 * While 407 has no attempts: the mission after the highest attempted id in 401–406, or 401 if none
@@ -1631,12 +1700,15 @@ v1.0 reloaded the training missions with the same plane. Port: `front_end.gd` `_
 
 ## 14. Reference screen (screen 5, `ref.trx`, content class ctor `FUN_004fc490`, vtable `0x607b18`)
 
-**iaf-reborn:** built (`game/menu/reference.gd`, wired by `front_end.gd`; the records, descriptions, model paths,
-`.cp` limits and pictures converted by `iaf-convert reference` into `assets/converted/reference/`, parser
-`crates/iaf-formats/src/refs.rs`; tests/godot/test_reference.gd, real render `tests/godot/_reference_shot.gd`). Ours:
-the **Pilot guide** view (below). Not reproduced: the "Not exists" message box (every file is present). The list rows'
-names (hard-coded English in the exe) show in Hebrew in Hebrew mode (strings_he.json). The descriptions use Arial at
-the RTF body size (`\fs16`, 8 pt); the RTF's own fonts are not mapped.
+**iaf-reborn:** built.
+* Code: `game/menu/reference.gd`, wired by `front_end.gd`. `iaf-convert reference` converts the records,
+  descriptions, model paths, `.cp` limits and pictures into `assets/converted/reference/` (parser
+  `crates/iaf-formats/src/refs.rs`). Tests: tests/godot/test_reference.gd; real render
+  `tests/godot/_reference_shot.gd`.
+* Ours: the **Pilot guide** view (below).
+* Not reproduced: the "Not exists" message box (every file is present).
+* The list rows' names (hard-coded English in the exe) show in Hebrew in Hebrew mode (strings_he.json).
+* The descriptions use Arial at the RTF body size (`\fs16`, 8 pt); the RTF's own fonts are not mapped.
 
 **Data file.** `<ReferencePath>\refers.ref`.
 * `ReferencePath` = `GetPrivateProfileString("MENU","ReferencePath",…, ini DAT_00836840)`. In
@@ -1736,22 +1808,31 @@ of the frame.
 * LBUTTONDOWN on the content goes to the empty `4ecf80`.
 * BACK → Main.
 
-**Ours: Pilot guide** (docs/deviations.md §2). A record with a guide (`docs/guides/<dir>.md`, the record's directory
-lower-cased: `f16.md`) gets a **PILOT GUIDE** button, the view column's next row under Pictures at (15,362) 108×18 (the
-column's 18 px pitch), cut from the Pictures button's art with its label blended out; our label in the column's
-labels' place (button x 26–78, the Hebrew 30–100 clear of the light), bold Arial drawn with a faux-bold second pass
-(`_draw_baked_label` `bold`) to match the baked labels' weight. It is a fourth view in the view group (the three original view buttons go unchecked
-while it shows); a record without a guide falls back to Description. The view is the same borderless rich edit as
-Description (`frame_window.gd` `bare`, its scrollbar and the mouse wheel), showing the guide's Markdown subset
-(`guide_md.gd`: headings, paragraphs, bold / italic / code, lists, pipe tables, rules, pictures with captions) at 12 px.
-Pictures (`![caption](shots/<jet>/<name>.png)`) come from `assets/converted/guides/`; a missing one leaves its
-caption. When `assets/converted/guides/<dir>.pdf` exists an **Open PDF** link at the top opens it in the system viewer.
-The pictures and the PDF are made by setup's last step (with a display): `tools/guide_shots.sh` renders each entry of
-`docs/guides/<jet>.shots.json` at 3840×2160 (`tests/godot/_guide_shots.gd`: settings, start (mission / airborne /
-dive / final approach), a placed target, actions such as a radar lock, a store or a camera on the target; crops: the
-whole frame, the HUD, an MFD) and `python3 -I tools/guide_pdf.py` prints the guide as an A4 PDF (title page with the
-record's picture, contents, the pictures) with headless Chrome / Chromium. Both hold the original art and stay under
-`assets/`.
+**Ours: Pilot guide** (docs/deviations.md §2).
+* **Button.** A record with a guide (`docs/guides/<dir>.md`, the record's directory lower-cased: `f16.md`) gets a
+  **PILOT GUIDE** button.
+  * Place: the view column's next row under Pictures, at (15,362) 108×18 (the column's 18 px pitch).
+  * Art: cut from the Pictures button's art, with its label blended out.
+  * Label: in the place of the column's labels (button x 26–78; the Hebrew label at 30–100, clear of the light).
+    Bold Arial, drawn with a faux-bold second pass (`_draw_baked_label` `bold`) to match the weight of the baked
+    labels.
+* **View.** It is a fourth view in the view group; the three original view buttons go unchecked while it shows. A
+  record without a guide falls back to Description.
+  * The view is the same borderless rich edit as Description (`frame_window.gd` `bare`, its scrollbar and the mouse
+    wheel).
+  * It shows the guide's Markdown subset (`guide_md.gd`: headings, paragraphs, bold / italic / code, lists, pipe
+    tables, rules, pictures with captions) at 12 px.
+  * Pictures (`![caption](shots/<jet>/<name>.png)`) come from `assets/converted/guides/`. A missing picture leaves
+    its caption.
+  * When `assets/converted/guides/<dir>.pdf` exists, an **Open PDF** link at the top opens it in the system viewer.
+* **Making the pictures and the PDF.** Setup's last step makes them (it needs a display):
+  1. `tools/guide_shots.sh` renders each entry of `docs/guides/<jet>.shots.json` at 3840×2160
+     (`tests/godot/_guide_shots.gd`: settings, start (mission / airborne / dive / final approach), a placed target,
+     actions such as a radar lock, a store or a camera on the target; crops: the whole frame, the HUD, an MFD).
+  2. `python3 -I tools/guide_pdf.py` prints the guide as an A4 PDF (title page with the record's picture, contents,
+     the pictures) with headless Chrome / Chromium.
+
+  Both hold the original art, so they stay under `assets/`.
 
 ## 15. Arming screen (0x1f, `arm.trx`, content ctor `FUN_00505e80`, vtable `0x6084b8`)
 
@@ -1925,7 +2006,7 @@ dragging, the arrow otherwise (`SETCURSOR 506720`).
   "enforce max take-off weight" option to add. The wing balance check (5 % of the current load, stations 1–4
   against 6–9, the centreline not counted) blocks the same way.
 * Station compatibility = the allowed counts: a weapon drops only on a station with `max[i] ≠ 0`, always with
-  `max[i]` stores. There is no symmetry rule other than the balance check.
+  `max[i]` stores. The balance check is the only symmetry rule.
 * The loads go on the aircraft (`FUN_004f0140`) of **both** members of the flight (`FUN_004f0330` leader,
   `FUN_004f0380` = `FUN_005bcb90`, the second member): `FUN_004541d0` sets the station, `FUN_00459410` redoes the
   weight / drag. Yes applies the saved tables to every existing flight (`FUN_004eff50`), DEFAULT the defaults to
@@ -1957,59 +2038,91 @@ dragging, the arrow otherwise (`SETCURSOR 506720`).
   `player_weapons.gd` replaces pylons 0..8 of the player's loadout with its flight's entry, so the stores, their
   models, counts and weight / drag follow (gun, chaff, flares unchanged). Cleared when a mission loads.
 * Not ported: the multiplayer paths (AG / Misc disabled in 0x29a / 0x213, the session wait, the `FUN_004f0000`
-  messages). Ours: Esc on Arming acts as BACK (the original's Esc here is not traced); the scrollbar's track
-  click pages by 6 rows (UNCERTAIN, as the Controls page); the AI jets of a flight with a table entry (both member
-  slots, as `FUN_004f0140`) carry it too (`combat.gd` `_armed`: their stations, weight / drag and pylon models), the
-  others their mission's default stores; a jet flown in place of a non-flyable type keeps its
-  type's load. Text is clipped to its box by whole characters.
+  messages).
+* Ours:
+  * Esc on Arming acts as BACK (the original's Esc here is not traced).
+  * The scrollbar's track click pages by 6 rows (UNCERTAIN, as the Controls page).
+  * The AI jets of a flight with a table entry carry it too (both member slots, as `FUN_004f0140`; `combat.gd`
+    `_armed`: their stations, weight / drag and pylon models). Other AI jets carry their mission's default stores.
+  * A jet flown in place of a non-flyable type keeps its type's load.
+  * Text is clipped to its box by whole characters.
 
 ## 16. In-flight pause and On-The-Fly menu (flight window `CFlightWnd::OnGameEvent` 0x4dc280)
 
 Traced from the disassembly (unless marked UNCERTAIN). Built: docs/views.md §1 (`game/terrain/flight_overlay.gd`,
 `terrain_view.gd`).
 
-Key commands reach several windows (`FUN_004e0b80` → WM 0x532 to CIAFWindow and, via `FUN_005e24c3`,
-its children); the real handler is the flight window's map entry 0x605308 → **0x4dc280** (byte table
-0x4dc4e8, jump table 0x4dc4d0): 0x7a Esc → 0x4dc315, 0x84 Ctrl+P → 0x4dc41f, 0x85 Ctrl+O → 0x4dc479,
-0x88 → screenshot `IafJets%03d.bmp` (0x4dc8d0). The CIAFWindow default path (0x4e36e5 → `FUN_004cd3b0`)
-drops them. Globals: `DAT_0083afdc` paused (`FUN_004e1910`), 0x833808 menu object (+0 open,
-`FUN_00587450`), 0x83afe8 message box (`FUN_004e68c0`), `DAT_006992ec+8` sim clock (0 stopped,
-1 running, 2 paused). **Single player only** (both keys ignored when `[0x699350+4]` ≠ 0).
+**Single player only**: both keys are ignored when `[0x699350+4]` ≠ 0.
 
-**Game events** (`FUN_004cd630`, dispatched at once): **0x75 pause**: param 0 → pause every sound
-channel (`FUN_004c58e0` → 0x544f50, buffers stopped, state 2), stop force feedback (`FUN_004deff0`),
-freeze the clock (`FUN_004d1710`); **0x76 resume**: clock runs (`FUN_004d16a0`), channels resume where
-they stopped (`FUN_004c58f0` → 0x544f90). While the clock is not running `FUN_004cd3b0` drops every
-event except 0x6d, 0x73, 0x74, 0x76, 0x83: no flight commands while paused or in the menu.
+**Key routing.** Key commands reach several windows: `FUN_004e0b80` sends WM 0x532 to CIAFWindow and, via
+`FUN_005e24c3`, to its children. The flight window handles them, through its map entry 0x605308 → **0x4dc280**
+(byte table 0x4dc4e8, jump table 0x4dc4d0):
+
+| command | key | handler |
+|---|---|---|
+| 0x7a | Esc | 0x4dc315 |
+| 0x84 | Ctrl+P | 0x4dc41f |
+| 0x85 | Ctrl+O | 0x4dc479 |
+| 0x88 | screenshot `IafJets%03d.bmp` | 0x4dc8d0 |
+
+The CIAFWindow default path (0x4e36e5 → `FUN_004cd3b0`) drops them.
+
+**Globals**
+* `DAT_0083afdc`: paused (`FUN_004e1910`).
+* 0x833808: the menu object (+0 open, `FUN_00587450`).
+* 0x83afe8: the message box (`FUN_004e68c0`).
+* `DAT_006992ec+8`: the sim clock (0 stopped, 1 running, 2 paused).
+
+**Game events** (`FUN_004cd630`, dispatched at once):
+* **0x75 pause**, param 0:
+  1. pause every sound channel (`FUN_004c58e0` → 0x544f50, buffers stopped, state 2);
+  2. stop force feedback (`FUN_004deff0`);
+  3. freeze the clock (`FUN_004d1710`).
+* **0x76 resume**: the clock runs (`FUN_004d16a0`), and the channels resume where they stopped
+  (`FUN_004c58f0` → 0x544f90).
+* While the clock is stopped, `FUN_004cd3b0` drops every event except 0x6d, 0x73, 0x74, 0x76 and 0x83. So flight
+  commands are dropped while the game is paused or in the menu.
 
 ### 16.1 Ctrl+P "Pause mission" (0x4dc41f)
-Only with no message box and the menu closed; toggles `FUN_004dbf00` / `FUN_004dbf90`.
-* Pause: the key manager's enable counter −1 (`FUN_004df500(-1)`): from the next poll **every key
-  except Ctrl+P is ignored** (`FUN_004e0b80` @4e0cd7; joystick buttons are not filtered); held keys get
-  their release commands (`FUN_004e0a60(1)`, plus 0x532 id 0x16 lParam 0xfffbffff, UNCERTAIN: view-pan
-  reset); if the clock runs, `this+0x40 = 1` and event 0x75(0): sim frozen, sounds paused (not muted);
-  `DAT_0083afdc = 1`. The mouse is not passed to the cockpit (0x4dc7d0 / 0x4dc810).
-* Unpause: counter +1; event 0x76 if `this+0x40`; `DAT_0083afdc = 0`.
-* Drawn in the flight render `FUN_004d9080` (@4d9351..4d94da) over the frozen scene: **"II  PAUSE"**
-  (0x649a98, two spaces), blinking 500 ms on / 500 ms off (timeGetTime, `DAT_008338d0/7c`), GDI on the
-  back surface, Arial size 50 weight 900 (`FUN_004eee10`, created @4d8a96), transparent, RGB(0,255,0),
-  TA_BOTTOM|TA_LEFT at (30, 450); then a full-screen white wash alpha 0x63 (`FUN_004022d0` → D3D
-  `FUN_00419d90`; the software renderer draws none). UNCERTAIN: the wash is drawn after the text, so
-  it also covers it.
-* On the FlyTSD screen (0x20) the menu frame handles Ctrl+P itself (`FUN_004edbc0` / `FUN_004ede30`):
-  screen snapshot dithered with `misc/pat1.bmp` (SRCAND) + `pat2.bmp` (SRCPAINT), window disabled,
-  same "II  PAUSE" at (30, 450) (`FUN_004e92b0`).
+Ctrl+P works only with no message box up and the menu closed. It toggles between `FUN_004dbf00` (pause) and
+`FUN_004dbf90` (unpause).
+* **Pause**:
+  1. The key manager's enable counter goes −1 (`FUN_004df500(-1)`). From the next poll, **every key except Ctrl+P
+     is ignored** (`FUN_004e0b80` @4e0cd7). Joystick buttons still pass.
+  2. Held keys get their release commands (`FUN_004e0a60(1)`, plus 0x532 id 0x16 lParam 0xfffbffff, UNCERTAIN:
+     view-pan reset).
+  3. If the clock runs: `this+0x40 = 1` and event 0x75(0). The sim freezes and the sounds pause (they are not
+     muted).
+  4. `DAT_0083afdc = 1`.
+
+  The cockpit gets no mouse input while paused (0x4dc7d0 / 0x4dc810).
+* **Unpause**: counter +1; event 0x76 if `this+0x40`; `DAT_0083afdc = 0`.
+* **Drawing.** The flight render `FUN_004d9080` (@4d9351..4d94da) draws over the frozen scene:
+  * **"II  PAUSE"** (0x649a98, two spaces), blinking 500 ms on / 500 ms off (timeGetTime, `DAT_008338d0/7c`);
+  * drawn with GDI on the back surface: Arial size 50 weight 900 (`FUN_004eee10`, created @4d8a96), transparent,
+    RGB(0,255,0), TA_BOTTOM|TA_LEFT at (30, 450);
+  * then a full-screen white wash, alpha 0x63 (`FUN_004022d0` → D3D `FUN_00419d90`; the software renderer draws
+    none). UNCERTAIN: the wash is drawn after the text, so it also covers it.
+* **FlyTSD screen (0x20)**: the menu frame handles Ctrl+P itself (`FUN_004edbc0` / `FUN_004ede30`). It dithers a
+  screen snapshot with `misc/pat1.bmp` (SRCAND) + `pat2.bmp` (SRCPAINT), disables the window, and draws the same
+  "II  PAUSE" at (30, 450) (`FUN_004e92b0`).
 
 ### 16.2 Ctrl+O "On-The-Fly menu" (0x4dc479)
-Only when not paused; toggles open (`FUN_004dbff0`) / close (`FUN_004dc070`). **Esc does not open it**:
-Esc (0x4dc315) unpauses if paused, else closes the menu if open, else leaves the flight for the FlyTSD
-screen 0x20 (flight window +0x150 = 1, `FUN_004d8d90(1)`; the "TSD and cockpit toggle"); in network
-mission 0x21d Esc shows msg 8 (host) / msg 11 (client).
-* Open: builds the layout (`FUN_004ee7b0(hdc, 5, 10)`), releases held keys, event 0x75(0) (sim and
-  sounds paused). The key counter and `DAT_0083afdc` are not touched. Close: frees the GDI objects,
-  event 0x76, `[+0x154]+0x300 = 1` (UNCERTAIN: cockpit redraw).
-* Not a dialog or bitmap: GDI drawn every frame into the 640×480 back surface (`FUN_004ee9f0`, from
-  `FUN_004d9080` @4d946f); while a message box is up the box is drawn instead of the menu.
+Ctrl+O works only when the game is not paused. It toggles between open (`FUN_004dbff0`) and close
+(`FUN_004dc070`).
+
+**Esc** (0x4dc315) never opens the menu. It does the first of these that applies:
+1. if paused, unpause;
+2. if the menu is open, close it;
+3. otherwise leave the flight for the FlyTSD screen 0x20 (flight window +0x150 = 1, `FUN_004d8d90(1)`; the "TSD
+   and cockpit toggle").
+
+In network mission 0x21d, Esc shows msg 8 (host) / msg 11 (client).
+* **Open**: builds the layout (`FUN_004ee7b0(hdc, 5, 10)`), releases held keys, sends event 0x75(0) (sim and
+  sounds paused). The key counter and `DAT_0083afdc` stay as they are.
+* **Close**: frees the GDI objects, sends event 0x76, sets `[+0x154]+0x300 = 1` (UNCERTAIN: cockpit redraw).
+* The menu is drawn with GDI every frame into the 640×480 back surface (`FUN_004ee9f0`, from `FUN_004d9080`
+  @4d946f). It uses no dialog and no bitmap. While a message box is up, only the box is drawn.
 * **Six items** (ctor `FUN_004ee760`, msgs lines upper-cased with `_strupr`): RESUME MISSION (18),
   END MISSION (19), RESTART MISSION (20), NEW MISSION (21), PREFERENCES (22), QUIT GAME (24).
   "Calibrate joystick" (23) is not in the menu (no other user found, UNCERTAIN).
@@ -2018,7 +2131,7 @@ mission 0x21d Esc shows msg 8 (host) / msg 11 (client).
   height UNCERTAIN).
 * Placement: GDI on the flight window's own DC (client coordinates), so the menu sits in the window's
   **top-left corner** at (5, 10) whatever the resolution (`FUN_004ee7b0(hdc, 5, 10)` from 0x4dc479). Ours: 640×480
-  units scaled to the window height, anchored at the top-left (not a centred 4:3 box), as the "II  PAUSE" text.
+  units scaled to the window height and anchored at the top-left, as the "II  PAUSE" text.
 * Layout: W = widest label, H = tallest label (GetTextExtentPoint32); item i: left 15, right
   15 + W + 16, top 20 + i·(H + 23), bottom top + H + 16 (7 px gaps). Outer frame (5, 10) to (item right
   + 10, last bottom + 10).
@@ -2026,7 +2139,7 @@ mission 0x21d Esc shows msg 8 (host) / msg 11 (client).
   cursor is inside, else the normal brush; label black, transparent, TA_CENTER|TA_TOP at
   ((l + r)/2, top + 8). Then the frame with NULL_BRUSH (scene visible between items): RoundRect 20×20
   with the 2 px light pen, then with the 1 px dark pen.
-* Mouse only (no keyboard navigation): left click → hit test `FUN_004eec60` → `FUN_004dc0d0(item)`
+* Input is the mouse only: left click → hit test `FUN_004eec60` → `FUN_004dc0d0(item)`
   (jump table 0x4dc268).
 
 ### 16.3 Item actions (`FUN_004dc0d0`)
@@ -2048,8 +2161,8 @@ disables the keys). **NO closes the box; the menu stays open, paused.**
   Preferences, §12; Gameplay tab disabled). BACK or Esc (frame +0x5c = 5) → `CMainWindow::OnMenuDestroyed` 0x4e37d0, exit 5 (@4e3870): the
   flight window is recreated (`FUN_004d8a40`), event 0x76, and the menu **reopens** (paused again).
 * **Quit game**: msg 7 Yes/No → reply 0x556 (`FUN_004e2e00`): unload, credits, exit (§3.2).
-* Compare Ctrl+Q (0x86 → `FUN_004e2fa0`): msg 8 with the DEBRIEF / CONTINUE / EXIT buttons (not
-  Yes/No); msg 11 for a multiplayer client.
+* Compare Ctrl+Q (0x86 → `FUN_004e2fa0`): msg 8 with the DEBRIEF / CONTINUE / EXIT buttons; msg 11 for a
+  multiplayer client.
 
 Sounds: pause and menu pause all channels and resume them on 0x76 (docs/sound.md); the FlyTSD entry
 posts 0x75 with param 1, which does not pause sounds.
