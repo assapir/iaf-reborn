@@ -13,6 +13,7 @@ pub mod refs;
 pub mod rtf;
 pub mod winfnt;
 pub mod ssf;
+pub mod terrain_types;
 pub mod xfile;
 
 #[derive(Debug)]

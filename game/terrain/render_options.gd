@@ -1,5 +1,5 @@
 # Our render options for high resolutions (Preferences > Extras; docs/rendering.md): anti-aliasing, the
-# terrain close up (detail texture, normal detail, 16× anisotropic filtering) and the atmospheric sky. The
+# terrain close up (detail texture, normal detail, 16× anisotropic filtering), the atmospheric sky and the water. The
 # defaults are the look we had (the original's look, rendered by Godot); each improvement is opt-in. Rendering
 # only: nothing here touches the simulation.
 extends RefCounted
@@ -21,21 +21,21 @@ const UPSCALE := {"off": 1.0, "quality": 0.77, "balanced": 0.67}
 
 ## Terrain close up: the detail texture's strength (0 = off; global shader parameter, terrain.gdshader).
 const DETAIL := 1.0
-const Terrain := preload("res://terrain/terrain.gd")
 ## The value last given to the global shader parameter (the RenderingServer does not read it back at run time).
 static var terrain_detail := 0.0
+## Water: 1 = waves, sun glint and sky reflection on the water (global `terrain_water`, terrain.gdshader), 0 = the
+## original flat-shaded water.
+static var terrain_water := 0.0
 
-## terraintype.dat around the camera for the close up (global `terrain_surface`: R = water, G = airbase):
-## SURF_N² texels of SURF_CELL m, rebuilt SURF_ROWS rows per frame once the camera is SURF_MOVE m from its centre.
-const SURF_N := 32
+## terraintype.dat around the camera for the close up and the water (global `terrain_surface`: R = water, G = airbase):
+## SURF_N² texels of SURF_CELL m (24.6 km across), rasterised in Rust (IafSurface) once the camera is SURF_MOVE m from
+## its centre.
+const SURF_N := 256
 const SURF_CELL := 96.0
-const SURF_MOVE := 600.0
-const SURF_ROWS := 4
+const SURF_MOVE := 4000.0
 static var _surf_img: Image
 static var _surf_tex: ImageTexture
 static var _surf_origin := Vector2(INF, INF)  # x0, z0 of the texture shown
-static var _surf_next := Vector2(INF, INF)  # of the one being built
-static var _surf_row := -1
 
 ## Atmospheric sky: the camera altitude given to the sky shader, in steps of SKY_ALT_STEP m.
 const SKY_ALT_STEP := 250.0
@@ -55,9 +55,10 @@ static func apply(vp: Viewport, env: Environment) -> void:
 			else ProjectSettings.get_setting("rendering/textures/default_filters/anisotropic_filtering_level", 2)
 	terrain_detail = DETAIL if close else 0.0
 	RenderingServer.global_shader_parameter_set("terrain_detail", terrain_detail)
+	terrain_water = 1.0 if Settings.water else 0.0
+	RenderingServer.global_shader_parameter_set("terrain_water", terrain_water)
 	_surf_origin = Vector2(INF, INF)  # rebuilt around the camera (a new flight has its own world origin)
-	_surf_row = -1
-	if not close and _surf_tex != null:
+	if not close and not Settings.water and _surf_tex != null:
 		RenderingServer.global_shader_parameter_set("terrain_surface", null)
 		_surf_tex = null
 		_surf_img = null
@@ -97,37 +98,27 @@ static func _apply_sky(env: Environment, on: bool) -> void:
 	env.fog_sun_scatter = 0.1
 
 
-## Per frame with the camera's position: the atmospheric sky's altitude and the close up's surface types.
+## Per frame with the camera's position: the atmospheric sky's altitude and the surface types for the close up
+## and the water.
 static func update_view(env: Environment, cam: Vector3, terrain: Node) -> void:
 	if env.sky != null and env.sky.sky_material is ShaderMaterial:
 		var mat: ShaderMaterial = env.sky.sky_material
 		var alt := snappedf(maxf(cam.y, 0.0), SKY_ALT_STEP)
 		if mat.get_shader_parameter("altitude") != alt:
 			mat.set_shader_parameter("altitude", alt)
-	if terrain_detail > 0.0 and terrain != null:
+	if (terrain_detail > 0.0 or terrain_water > 0.0) and terrain != null:
 		_update_surface(Vector2(cam.x, cam.z), terrain)
 
 
 static func _update_surface(c: Vector2, terrain: Node) -> void:
 	var side := SURF_N * SURF_CELL
-	if _surf_row < 0:
-		if c.distance_to(_surf_origin + Vector2(0.5, 0.5) * side) < SURF_MOVE:
-			return
-		_surf_next = (c / SURF_CELL).round() * SURF_CELL - Vector2(0.5, 0.5) * side
-		_surf_img = Image.create(SURF_N, SURF_N, false, Image.FORMAT_RG8)
-		_surf_row = 0
-	for j in range(_surf_row, mini(_surf_row + SURF_ROWS, SURF_N)):
-		for i in SURF_N:
-			var p := _surf_next + (Vector2(i, j) + Vector2(0.5, 0.5)) * SURF_CELL
-			var f: int = terrain.surface_at(Vector3(p.x, 0.0, p.y))
-			# Water (island leaves carry the water bit too: not water), airbase.
-			var water := (f & Terrain.SURFACE_WATER) != 0 and (f & Terrain.SURFACE_ISLAND) == 0
-			_surf_img.set_pixel(i, j, Color(1.0 if water else 0.0, 1.0 if (f & Terrain.SURFACE_RUNWAY) != 0 else 0.0, 0.0))
-	_surf_row += SURF_ROWS
-	if _surf_row < SURF_N:
+	if c.distance_to(_surf_origin + Vector2(0.5, 0.5) * side) < SURF_MOVE:
 		return
-	_surf_row = -1
-	_surf_origin = _surf_next
+	_surf_origin = (c / SURF_CELL).round() * SURF_CELL - Vector2(0.5, 0.5) * side
+	# Godot (x, z) -> engine metres (X east, Y north): X = origin.x + x, Y = origin.y - z.
+	var o: Vector2 = terrain.world_origin
+	var rg: PackedByteArray = IafSurface.raster_rg8(o.x + _surf_origin.x, o.y - _surf_origin.y, SURF_CELL, SURF_N)
+	_surf_img = Image.create_from_data(SURF_N, SURF_N, false, Image.FORMAT_RG8, rg)
 	if _surf_tex == null:
 		_surf_tex = ImageTexture.create_from_image(_surf_img)
 		RenderingServer.global_shader_parameter_set("terrain_surface", _surf_tex)

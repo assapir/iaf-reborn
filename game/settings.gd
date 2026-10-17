@@ -41,7 +41,7 @@ const PREFS := {
 	"gameplay": ["no_wind", "no_blackouts", "no_spins", "no_stalls", "easy_landing", "easy_aiming",
 		"no_malfunctions", "ai_level", "invulnerable", "no_crashes", "unlimited_ammo", "unlimited_fuel",
 		"flight_data", "weapon_data", "language", "show_info", "blackbox", "hud_ladder", "hud_style", "show_all_keys", "fullscreen",
-		"imagery_israel", "imagery_outside", "antialiasing", "terrain_closeup", "sky", "upscaling", "night_lights", "f35i_slot", "harm_targets"],
+		"imagery_israel", "imagery_outside", "antialiasing", "terrain_closeup", "sky", "upscaling", "night_lights", "water", "f35i_slot", "harm_targets"],
 }
 
 ## Flight data: "original" (Jane's IAF 1998 numbers) or "real" (corrected real-world data for every flyable jet, docs/real-aircraft.md).
@@ -129,6 +129,8 @@ var upscaling := "off"
 ## Night lights (ours, Extras page; docs/rendering.md §5): "original" (the LT_ light sets as 1-px points) or
 ## "detailed" (glowing lights, the home airbases lit, the jets' navigation lights and strobes, stars, a moon, moonlight).
 var night_lights := "original"
+## Water (ours, Graphics → MORE; docs/rendering.md §1.3): false = the original flat-shaded water, true = waves, sun glint and sky reflection.
+var water := false
 ## Key bindings changed on the Controls page (docs/controls.md): {record index: [key, joystick
 ## button]}, key = DIK | modifier << 16; records not listed keep the original default. Stored in the
 ## [keys] section as r<index> = [key, button].

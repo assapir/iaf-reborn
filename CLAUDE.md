@@ -40,7 +40,7 @@ python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded 
 
 ## Architecture
 
-- `crates/iaf-formats` — parsers for the original file formats (ISO9660, PTT terrain, X models, ESA, EMF, menu, RTF,
+- `crates/iaf-formats` — parsers for the original file formats (ISO9660, PTT terrain, terraintype.dat, X models, ESA, EMF, menu, RTF,
   LZO…). Format notes in `docs/formats/`.
 - `crates/iaf-tools` — CLIs used by `tools/setup.sh`: `iaf-extract` (ISO → `assets/install`), `iaf-patch` (v1.1 RTPatch
   without Windows), `iaf-convert` (cockpits, menus, keys, missions, aircraft → `assets/converted`, plus
@@ -57,7 +57,7 @@ python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded 
   `eo_sensor.gd`, `harm_sensor.gd`; the modes in `player_weapons.gd`) keep the old interface and mirror the state.
 - `crates/iaf-godot` — gdext bridge: `IafFlight` (`flight.rs`), `IafRadar` (`radar.rs`), `IafRounds` / `IafLcos`
   (`gun.rs`), `IafMissile` / `IafGuided` (`missile.rs`), `IafSeeker` / `IafMrmSight` (`sight.rs`), `IafStores`
-  (`stores.rs`), `IafBomb` / `IafModes` (`bombs.rs`), `IafRwr` (`rwr.rs`), `IafEo` / `IafHarm` (`sensors.rs`), `IafRelease` / `IafRipple` (`release.rs`), `IafRealHud` (`real_hud.rs`);
+  (`stores.rs`), `IafBomb` / `IafModes` (`bombs.rs`), `IafRwr` (`rwr.rs`), `IafEo` / `IafHarm` (`sensors.rs`), `IafRelease` / `IafRipple` (`release.rs`), `IafRealHud` (`real_hud.rs`), `IafSurface` (`surface.rs`, terraintype.dat rasterised for the terrain shader);
   `world.rs` converts the weapons' world frame. Handles the frame conversion: FM is ENU (east, north, up); Godot is
   X east, Y up, Z south. Loaded via `game/iaf.gdextension`.
 - `game/` — Godot project. Main scene `menu/front_end.tscn`; autoloads `Settings` (`settings.gd`) and `Joystick`.

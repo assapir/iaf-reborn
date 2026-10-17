@@ -130,6 +130,7 @@ func _ready() -> void:
 	for l in _root_level + 1:
 		_meshes.append(_grid_mesh(_span_m(l), _quads(l)))
 	_load_terrain_types(Settings.assets_dir().path_join("install/terraintype.dat"))
+	IafSurface.load(Settings.assets_dir().path_join("install/terraintype.dat"))
 
 
 func _add_colour_node(n: Vector3i) -> void:

@@ -14,6 +14,7 @@ mod rwr;
 mod sensors;
 mod sight;
 mod stores;
+mod surface;
 mod world;
 
 struct IafExtension;

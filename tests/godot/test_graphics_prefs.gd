@@ -98,7 +98,7 @@ func run() -> void:
 	var vp: Viewport = tv.get_viewport()
 	var env: Environment = (tv.get_node("WorldEnvironment") as WorldEnvironment).environment
 	var sky0: Sky = env.sky
-	check(Settings().antialiasing == "msaa4" and not Settings().terrain_closeup and Settings().sky == "original", "render options default to the look before")
+	check(Settings().antialiasing == "msaa4" and not Settings().terrain_closeup and Settings().sky == "original" and not Settings().water, "render options default to the look before")
 	check(vp.msaa_3d == Viewport.MSAA_4X and vp.screen_space_aa == Viewport.SCREEN_SPACE_AA_DISABLED and not vp.use_taa
 			and vp.anisotropic_filtering_level == Viewport.ANISOTROPY_4X and RO.terrain_detail == 0.0
 			and env.sky.sky_material is ProceduralSkyMaterial, "defaults: MSAA 4x, 4x anisotropic, no terrain detail, gradient sky")
@@ -128,7 +128,7 @@ func run() -> void:
 	check(env.sky.sky_material is ShaderMaterial and env.fog_aerial_perspective == 1.0 and env.fog_density == fog_density,
 			"atmospheric sky: scattering sky shader, haze from the sky, the same fog distances")
 	check(tv.clouds._mat.get_shader_parameter("alpha_range") == Vector2(0.3, 0.9), "atmospheric sky: the clouds separated")
-	await frames(RO.SURF_N / RO.SURF_ROWS + 3)
+	await frames(3)
 	var cam: Vector3 = vp.get_camera_3d().global_position
 	check(env.sky.sky_material.get_shader_parameter("altitude") == snappedf(maxf(cam.y, 0.0), RO.SKY_ALT_STEP),
 			"atmospheric sky: the camera's altitude")

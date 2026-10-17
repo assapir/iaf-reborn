@@ -164,7 +164,7 @@ func _extras_imagery(fe, lang: String) -> void:
 	await frames(2)
 
 
-## Extras render rows (docs/rendering.md): Anti-aliasing (3 choices), Terrain close up, Sky draw inside the page with
+## Extras render rows (docs/rendering.md): Anti-aliasing (3 choices), Terrain close up, Sky, Water draw inside the page with
 ## their labels (Hebrew in Hebrew), the first choice is the default, and a click picks a choice.
 func _extras_render(fe, lang: String) -> void:
 	var click := func(q: Vector2):
@@ -173,7 +173,7 @@ func _extras_render(fe, lang: String) -> void:
 	Settings().pref_page = fe.GFX_MORE  # our render rows are on the Graphics page's MORE view
 	await frames(2)
 	var rows: Array = fe._extras_rows()
-	var keys := ["antialiasing", "terrain_closeup", "sky"]
+	var keys := ["antialiasing", "terrain_closeup", "sky", "water"]
 	var first := rows.map(func(r): return r[0]).find("antialiasing")
 	fe._extras_scroll(mini(first, fe._extras_max_top()))
 	await frames(2)

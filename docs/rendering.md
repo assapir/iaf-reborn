@@ -12,7 +12,7 @@ This doc lists the rendering options of the flight scene, what each one sets, an
 Code: `game/terrain/render_options.gd` (applied by `terrain_view.gd apply_render_options()` at the start of a flight
 and when the in-flight Preferences close), `terrain/terrain.gdshader`, `terrain/atmosphere.gdshader`,
 `terrain/cloud_layer.gd`, `terrain/night_lights.gd`. Tests: `tests/godot/test_graphics_prefs.gd` (switches → render
-settings, save / load), `test_ui_smoke.gd` (Graphics → MORE and Extras rows in EN / HE), `test_night_lights.gd` (§4 light points, §5).
+settings, save / load), `test_ui_smoke.gd` (Graphics → MORE and Extras rows in EN / HE), `test_night_lights.gd` (§4 light points, §5), `test_water.gd` (§1.3).
 
 ## 1. Options
 
@@ -26,6 +26,7 @@ TAA = temporal anti-aliasing.
 | Sky | Original / Atmospheric | Original: our gradient sky (ProceduralSkyMaterial) with the fixed fog colour. Atmospheric: `atmosphere.gdshader`, a clear-day sky computed from the sun's direction and the camera's altitude. The fog takes its colour from the sky (`fog_aerial_perspective` 1, `fog_sun_scatter` 0.1) and keeps its density (the original's fog distances). The cloud layer shows separate clouds (§1.2). Glow / bloom is off (it cost 3 ms) |
 | Upscaling | Native / Quality / Balanced | the 3D scene's render scale: Native 1.0; Quality 0.77; Balanced 0.67 of the window. A spatial upscaler scales it up: MetalFX spatial on Metal, FSR 1 on other drivers (`render_options.gd upscale_mode()`). The Anti-aliasing row still applies. The 2D cockpit, HUD and MFDs are canvas items, drawn after the upscale at the window's resolution. Godot lowers the texture mip bias by log2(scale). Saves 0.6 ms (Quality) / 1.4 ms (Balanced) at 4K today, 4.6 / 6.3 ms with SSAO + SSIL; Balanced breaks one-pixel 3D lines into dots (docs/graphics-research.md §3.10) |
 | Night lights | Original / Detailed | Original: the original's light points (§4). Detailed: glowing lights, the home airbases lit at night, the jets' navigation lights and strobe, stars, a moon and moonlight (§5) |
+| Water | Original / Detailed | in `terrain.gdshader`: waves, sun glint and the sky's reflection on the sea and on lakes (§1.3) |
 
 ### 1.1 Terrain close up
 
@@ -42,10 +43,10 @@ treats three kinds of ground:
   stay free of grass noise. Inside an airbase (terraintype.dat 0x10) the chroma limit is higher, because the imagery
   tints the aprons blue / purple.
 - **Water** keeps the plain imagery. Water means the generated open sea (as before) and the inland water of
-  terraintype.dat (0x6, island leaves excluded). To find it, `render_options.gd` rasterises the BSP (binary space
-  partition tree of terraintype.dat) around the camera into a 32 × 32 texture of 96 m texels (global
-  `terrain_surface`, R = water, G = airbase). It rebuilds 4 rows per frame when the camera is 600 m from the texture's
-  centre.
+  terraintype.dat (0x6, island leaves excluded). To find it, `render_options.gd` asks Rust (`IafSurface`,
+  `iaf_formats::terrain_types`) for terraintype.dat around the camera as a 256 × 256 texture of 96 m texels, 24.6 km
+  across (global `terrain_surface`, R = water, G = airbase). It rebuilds the texture in one call when the camera is
+  4 km from its centre. The Water option (§1.3) uses the same texture.
 
 Design points:
 
@@ -87,6 +88,48 @@ sky follows `LIGHT0_DIRECTION`.
 
 The art pipeline stays 4× Lanczos everywhere; nothing uses AI upscaling. The canopy frame and the HUD (head-up
 display) are the 2D cockpit art, so the 3D anti-aliasing does not touch them.
+
+### 1.3 Water
+
+The Water option shades the water in `terrain.gdshader` (global `terrain_water` = 1). Godot's lighting does the
+rest: the sun's GGX highlight becomes the glint, and the sky's radiance gives the reflection with Fresnel.
+
+**Which pixels are water:**
+
+1. The generated open sea: the photo's colour within 0.04–0.08 of `sea_colour`, compared in sRGB.
+2. The photo's water inside terraintype.dat's water (the surface raster, §1.1): blue-green pixels (green or blue at
+   least 0.02–0.07 above red, sRGB luminance below 0.55–0.7). This covers lakes and the coastal shallows; beaches are
+   red-dominant, so they stay land. The raster fades out over its outer 10 % (2.4 km).
+
+**The surface (per water pixel):**
+
+| Part | Values |
+|---|---|
+| Waves | 6 cosine waves: swells of 97, 53, 31 m and wind waves of 17, 11.3, 6.1 m, steepness (amplitude · k) 0.03–0.04, within ± 0.9 rad of the wind (toward the east-north-east), deep-water speed √(g / k) |
+| Crest warp | the wave positions shifted by up to ± 9 m (noise tiles of 260 m and 330 m), so the crests bend |
+| Ripples | 2 scrolling layers of the detail normal map, tiles of 41.3 m and 8.9 m, slope × 0.18 |
+| Wind patches | noise of 1.7 km tiles scales all slopes by 0.25–1.8 (calm and rough areas) |
+| Anti-aliasing | each wave fades out between 16 and 5 pixels per wavelength; the slope variance it loses goes into the roughness (GGX α = √(0.0016 + 2 · lost variance)), so far away the glint spreads into a glitter path |
+| Material | specular 0.28 (F0 ≈ 0.0125; Godot also scales the grazing reflection by 50 · F0, so the sea stays blue until near the horizon), albedo 0.75 × the photo's colour |
+
+Every derivative is taken at the top of `fragment()`, outside the per-pixel water branch. The noise samples use
+`textureGrad` with those derivatives and a trilinear sampler (global `terrain_water_noise`, the detail normal map).
+
+**Cost** (`tests/godot/_water_shot.gd SHOT_BENCH=1`, M4 Pro, 3840 × 2160 at render scale 1.6 = 21 Mpx, mission 311's
+sun, `terrain_water` switched 0 / 1 every 120 frames in one window, median of 12 pairs):
+
+| Pose | on − off |
+|---|---|
+| 150 m over the sea, water over most of the view (frame 16.1 → 18.4 ms) | +2.27 ms (quartiles +2.17 / +2.37) |
+| the same while other Godot processes shared the GPU (frame 28.4 → 32.5 ms) | +4.18 ms (the same +14 % of the frame) |
+| 1500 m over the Tel Aviv coast, sea over half the view (shared GPU) | +2.35 ms |
+
+That is ≈ 0.11 ms per million water pixels: ≈ 0.23 ms at 1920 × 1080 and ≈ 0.9 ms at 3840 × 2160 with water over
+the whole view. The surface raster costs 0.7 ms of CPU (Rust, 65 536 lookups) once every 4 km of flight.
+
+**Shots** (local, `assets/converted/research/water/`, Original then Detailed): `ta150_*` and `ta1500_*` (the Tel Aviv
+coast at 150 m and 1500 m), `glint150_*` and `glint1500_*` (towards the sun over the sea), `kin150_*` (the Kinneret at
+150 m), `cmp_*.png` (the pairs stacked).
 
 ## 2. Cloud layer (Graphics TEXTURED SKY, docs/front-end.md §12.4)
 

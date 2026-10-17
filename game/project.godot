@@ -39,6 +39,18 @@ terrain_detail={
 "type": "float",
 "value": 0.0
 }
+terrain_water={
+"type": "float",
+"value": 0.0
+}
+terrain_water_noise={
+"type": "sampler2D",
+"value": "res://terrain/detail_normal.tres"
+}
+terrain_water_warp={
+"type": "sampler2D",
+"value": "res://terrain/detail_noise.tres"
+}
 terrain_detail_tex={
 "type": "sampler2D",
 "value": "res://terrain/detail_noise.tres"

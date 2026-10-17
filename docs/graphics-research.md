@@ -155,13 +155,14 @@ A 30 m DEM gives real relief; the work is a converter plus keeping physics, AI a
 - **GPU:** modest (particles are cheap; the distortion is one extra pass). **Metal:** works well.
 - **Recommendation:** good payoff per effort; do it after the CPU spike fix.
 
-### 3.5 Water shader — payoff 3, effort M
-- **Today:** the open sea is shaded flat. Inland water from terraintype.dat is known per 96 m (render_options.gd).
-- **Option:** a sea shader with sun glint (GGX on a scrolling normal map), Fresnel reflection of the sky colour, foam
-  at the shoreline (distance to land from the same terraintype mask) and wave normals by wind.
-- **GPU:** one material, cheap.
-- **Risk:** the imagery's sea colour must blend at the coasts.
-- **Recommendation:** cheap and visible on every coastal mission; do it early.
+### 3.5 Water shader — payoff 3, effort M — **done** (docs/rendering.md §1.3)
+- **Built:** Preferences → Graphics → MORE → Water (Original / Detailed). Six cosine waves with a crest warp, two
+  ripple layers and wind patches; the sun's GGX glint, which spreads into a glitter path with distance; the sky's
+  reflection with Fresnel. Water is the generated sea plus the photo's blue-green pixels inside terraintype.dat's
+  water, from a 24.6 km raster built in Rust (`IafSurface`).
+- **Measured:** ≈ 0.11 ms per million water pixels on the M4 Pro (+2.27 ms at 21 Mpx): ≈ 0.23 ms at 1920 × 1080
+  with water over the whole view. The raster costs 0.7 ms of CPU every 4 km.
+- **Shoreline foam:** the photo's own surf; a procedural foam on the 96 m mask would draw blocks.
 
 ### 3.6 Vegetation / ground clutter — payoff 4 (low level), effort L
 - **Option:** trees, orchards and scrub as MultiMesh instances near the ground. Placement comes from the ESA
@@ -432,7 +433,7 @@ The options of §3, ranked by payoff for effort.
 | # | Option | Payoff | Effort | GPU cost (M4 Pro) | Why here |
 |---|---|---|---|---|---|
 | 1 | Terrain heights in Rust for the sensors (CPU spike fix) — **done** | perf | M | 0 | AI combat worst 4.3 → 0.5 ms (221, live) |
-| 2 | Water shader | 3 | M | ~0.2 ms | cheap, visible on every coastal mission |
+| 2 | Water shader — **done** | 3 | M | 0.23 ms at 1080p (measured) | cheap, visible on every coastal mission |
 | 3 | MetalFX upscaling row — **done** | perf | S | −0.6 / −4.6 ms (Quality, 4K, light / heavy) | headroom for 4–8 |
 | 4 | F-16D detailed model (FlightGear, GPLv2+) | 5 | L | small | the biggest visible jump; licence clean |
 | 5 | F-16D 3D cockpit with live MFDs / Real HUD on the glass, then clickables | 5 | L → XL | small | the "DCS feel"; fixes the real HUD FOV |

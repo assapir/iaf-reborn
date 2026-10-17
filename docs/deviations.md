@@ -200,6 +200,12 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     credits on Quit (docs/credits.md).
   - Data only via `tools/setup.sh --imagery …` (off by default).
 
+- **Water** (ours, docs/rendering.md §1.3). Rendering only; the default is Original (the photo's water, shaded flat).
+  - Detailed: the sea and lakes get moving waves, ripples and wind patches, the sun's glint (a sparkling glitter path)
+    and the sky's reflection with Fresnel.
+  - Water is the generated open sea plus the photo's blue-green pixels inside terraintype.dat's water within ≈ 12 km
+    of the camera.
+
 **Preferences → Devices**
 - **Detent = MIL** (ours, under THROTTLE, off by default). Original: the throttle lever maps linearly. Ours, with the
   switch: "Set at lever" stores the lever position in its detent; the lever then maps piecewise so the detent is MIL

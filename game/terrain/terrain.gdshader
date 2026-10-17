@@ -34,6 +34,14 @@ global uniform sampler2D terrain_detail_normal : hint_normal, filter_linear_mipm
 // terraintype.dat around the camera (render_options.gd): R = water, G = airbase; rect = (x0, z0, 1 / side).
 global uniform sampler2D terrain_surface : filter_linear, repeat_disable;
 global uniform vec4 terrain_surface_rect;
+// Preferences "Water" (render_options.gd, docs/rendering.md §1.3): 0 = the original flat-shaded water. 1 = waves (six
+// waves plus two ripple layers), sun glint and the sky's reflection with Fresnel on the generated sea and on the
+// photo's water inside terraintype.dat's water within ≈ 12 km of the camera.
+global uniform float terrain_water;
+// The water's noise, trilinear (anisotropic taps at grazing angles doubled the water's cost): the ripples from the
+// detail normal map, the wind patches and the crests' warp from the detail noise.
+global uniform sampler2D terrain_water_noise : filter_linear_mipmap, repeat_enable;
+global uniform sampler2D terrain_water_warp : filter_linear_mipmap, repeat_enable;
 varying vec2 world_xz;
 varying float sea;
 
@@ -85,8 +93,80 @@ void vertex() {
 	sea = open_sea ? 1.0 : 0.0;
 }
 
+// The direction the waves travel (Godot X east, Z south): toward the east-north-east, from the Mediterranean's
+// prevailing westerly.
+const vec2 WIND = vec2(0.96, -0.28);
+
+vec2 rot(vec2 v, float a) {
+	return vec2(v.x * cos(a) - v.y * sin(a), v.x * sin(a) + v.y * cos(a));
+}
+
+// One wave of wavelength len (m), wave vector kd (k · its direction), angular speed w = sqrt(g · k), steepness s
+// (amplitude · k): its slope, faded between 16 and 5 pixels per wavelength; the faded part's variance adds to lost.
+vec2 wave(vec2 p, float t, float px, vec2 kd, float w, float phase, float s, float len, inout float lost) {
+	float aa = 1.0 - smoothstep(0.06, 0.2, px / len);
+	lost += 0.5 * s * s * (1.0 - aa);
+	return kd * (len / 6.2832) * (s * aa * cos(dot(kd, p) - w * t + phase));
+}
+
+// The water's slope (d height / dx, dz) at world p (m), time t (s), with p's screen derivatives dx, dy: six waves,
+// three swells and three wind waves (deep-water speed sqrt(g / k)), each fading out between 16 and 5 pixels per wavelength,
+// then two scrolling ripple layers from the noise normal map, all scaled by wind patches (noise of ≈ 1.7 km tiles).
+// `lost` returns the slope variance the faded waves no longer draw: it goes into the roughness, so the sun's glint
+// spreads into a glitter path far away.
+vec2 water_slope(vec2 p, vec2 dx, vec2 dy, float t, out float lost) {
+	float px = max(length(dx), length(dy));
+	float patch = 0.5 + 1.6 * textureGrad(terrain_water_warp, p / 1700.0 + WIND * t * 0.0015, dx / 1700.0, dy / 1700.0).r;
+	patch = clamp(patch * patch - 0.2, 0.25, 1.8);
+	vec2 slope = vec2(0.0);
+	lost = 0.0;
+	if (px < 0.2 * 97.0) {
+		// The crests bent by a domain warp of up to ± 9 m (noise of 260 / 330 m tiles), so they do not line up into a lattice.
+		vec2 wp = p + 18.0 * vec2(textureGrad(terrain_water_warp, p / 260.0, dx / 260.0, dy / 260.0).r,
+				textureGrad(terrain_water_warp, rot(p, 1.3) / 330.0, rot(dx, 1.3) / 330.0, rot(dy, 1.3) / 330.0).r) - 9.0;
+		// Wavelengths 97, 53, 31 m (swell) and 17, 11.3, 6.1 m (wind waves), within ± 0.9 rad of the wind; the wave
+		// vectors written out.
+		slope += wave(wp, t, px, vec2(0.06218, -0.01814), 0.7971, 0.0, 0.03, 97.0, lost);
+		slope += wave(wp, t, px, vec2(0.11579, 0.02543), 1.0784, 1.7, 0.035, 53.0, lost);
+		slope += wave(wp, t, px, vec2(0.15712, -0.12804), 1.4101, 4.1, 0.035, 31.0, lost);
+		slope += wave(wp, t, px, vec2(0.13949, -0.34227), 1.9041, 2.9, 0.04, 17.0, lost);
+		slope += wave(wp, t, px, vec2(0.50857, 0.22480), 2.3355, 5.3, 0.035, 11.3, lost);
+		slope += wave(wp, t, px, vec2(1.02642, -0.08621), 3.1788, 0.8, 0.03, 6.1, lost);
+		// Ripple tiles of 41.3 and 8.9 m (no simple ratio to each other or to the waves), faded like the waves.
+		const float R1 = 41.3;
+		const float R2 = 8.9;
+		vec2 r1 = textureGrad(terrain_water_noise, rot(p, 0.5) / R1 + WIND * t * 0.04, rot(dx, 0.5) / R1, rot(dy, 0.5) / R1).xy * 2.0 - 1.0;
+		vec2 r2 = textureGrad(terrain_water_noise, rot(p, -1.1) / R2 + rot(WIND, 0.8) * t * 0.11, rot(dx, -1.1) / R2, rot(dy, -1.1) / R2).xy * 2.0 - 1.0;
+		float ra1 = 1.0 - smoothstep(0.05, 0.3, px / R1);
+		float ra2 = 1.0 - smoothstep(0.1, 0.5, px / R2);
+		slope += 0.18 * (r1 * ra1 + r2 * ra2);
+		lost += 0.004 * (2.0 - ra1 - ra2);
+	} else {
+		// Far away every wave and ripple has faded: only their slope variance is left.
+		lost = 0.5 * (0.03 * 0.03 * 2.0 + 0.035 * 0.035 * 3.0 + 0.04 * 0.04) + 0.008;
+	}
+	lost *= patch * patch;
+	return slope * patch;
+}
+
 void fragment() {
 	ALBEDO = texture(colour_tex, UV).rgb;
+	// Screen derivatives taken here, outside any branch that varies per pixel (they are undefined inside one).
+	vec2 wdx = dFdx(world_xz);
+	vec2 wdy = dFdy(world_xz);
+	// Water (Preferences "Water"): the generated sea by its colour, and near the camera the photo's blue-green pixels inside
+	// terraintype.dat's water (the beaches stay land).
+	float wm = 0.0;
+	if (terrain_water > 0.0) {
+		// sea_colour is in sRGB, the sampled colour linear: compared in sRGB.
+		vec3 c = pow(ALBEDO, vec3(1.0 / 2.2));
+		float open = 1.0 - smoothstep(0.04, 0.08, distance(c, sea_colour));
+		vec2 suv = (world_xz - terrain_surface_rect.xy) * terrain_surface_rect.z;
+		float inside = smoothstep(0.0, 0.1, min(min(suv.x, suv.y), min(1.0 - suv.x, 1.0 - suv.y)));
+		float tw = texture(terrain_surface, suv).r * inside;
+		float bluish = smoothstep(0.02, 0.07, max(c.g, c.b) - c.r) * (1.0 - smoothstep(0.55, 0.7, dot(c, vec3(0.2126, 0.7152, 0.0722))));
+		wm = max(open, tw * bluish);
+	}
 	if (terrain_detail > 0.0) {
 		float k = terrain_detail * (1.0 - smoothstep(300.0, 1500.0, length(VERTEX))) * (1.0 - sea);
 		if (k > 0.0) {
@@ -127,4 +207,17 @@ void fragment() {
 	}
 	ROUGHNESS = 0.95;
 	SPECULAR = 0.1;
+	if (wm > 0.0) {
+		float lost;
+		vec2 sl = water_slope(world_xz, wdx, wdy, TIME, lost);
+		vec3 n = normalize((VIEW_MATRIX * vec4(normalize(vec3(-sl.x, 1.0, -sl.y)), 0.0)).xyz);
+		NORMAL = normalize(mix(NORMAL, n, wm));
+		// GGX alpha from the ripples below a pixel plus the faded waves' slope variance; Godot's roughness = sqrt(alpha).
+		float alpha = sqrt(0.0016 + 2.0 * lost);
+		ROUGHNESS = mix(ROUGHNESS, sqrt(alpha), wm);
+		// F0 ≈ 0.0125 (Godot: 0.16 · specular², which also scales the grazing reflection by 50 · F0): the sea keeps its
+		// blue up to a few degrees below the horizon. The body colour a little darker, as the sky's reflection adds to it.
+		SPECULAR = mix(SPECULAR, 0.28, wm);
+		ALBEDO *= mix(1.0, 0.75, wm);
+	}
 }

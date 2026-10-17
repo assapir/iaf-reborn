@@ -12,7 +12,7 @@ pub mod plane;
 pub mod rtpatch;
 pub mod runway_fix;
 pub mod smooth;
-pub mod terrain_types;
+pub use iaf_formats::terrain_types;
 pub mod upscale;
 
 /// Every file under `dir`, recursively (unordered).
