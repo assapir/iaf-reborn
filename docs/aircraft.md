@@ -1,6 +1,18 @@
 # How an aircraft is defined
 
-Addresses are `IAFJets.exe` **v1.1** (the reference version); [v1.1.md](v1.1.md) maps them to v1.0 and lists what the patch changed.
+This doc is the practical summary of how iaf-reborn builds an aircraft: what data it reads, how the moving parts and
+the afterburner flame follow the original, and how to add or fly a type. It is for developers who add or maintain
+aircraft. The reverse-engineering details of the part system are in docs/part-animation.md.
+
+Addresses are `IAFJets.exe` **v1.1** (the reference version); [v1.1.md](v1.1.md) maps them to v1.0 and lists what the
+patch changed.
+
+**Terms**
+- **FM**: flight model ([flight-model.md](flight-model.md)). **AB**: afterburner. **AI**: the computer-flown aircraft.
+- **Type code**: the number the original uses for an aircraft type (for example 100 = F-16), keyed in many tables.
+- **Descriptor**: the per-model `aircraft.json` the converter writes (§1).
+- **Ramp**: a value that moves toward its target at a fixed rate (flight-model.md §0).
+- **RPM**: engine speed, in % of maximum.
 
 An aircraft in iaf-reborn is **data from the original install + one generic piece of code**:
 
@@ -15,7 +27,6 @@ An aircraft in iaf-reborn is **data from the original install + one generic piec
 | flight model data | `resource/md/bd.ibx` `[<SECTION>]` + `<n>.dat` envelope | `crates/iaf-flight` (docs/flight-model.md) |
 | cockpit | `resource/cockpits/<c>` | `iaf-convert cockpit` (docs/cockpit.md) |
 
-Reverse-engineering details of the part system are in docs/part-animation.md; this page is the practical summary.
 Coordinates in the descriptor are **glTF** (the X file with Z mirrored: +X right, +Y up, −Z nose), in metres (the
 unscaled X-file units; the original scales every clump by 5, `error.c` "Scale= 5.000").
 
@@ -28,14 +39,14 @@ The converter replays what the original loader does with the frame file (`FUN_00
 * `parts`: every direct child of the root whose name is in the original name table (case-insensitive: the AI planes'
   `LdGr` **is** `LdgR`) with a Subpart id (1..0x27, EngineL 0x3a, EngineR 0x3b): `{id, pivot, axis}`.
   `pivot` = the frame origin; `axis` = unit vector from the hinge helper (`<name>1` / `<name>2`) nearer the model
-  origin toward the farther one, or `null` (no `<name>1` helper → the part is never rotated). The part turns about
+  origin toward the farther one. `axis` is `null` when the `<name>1` helper is missing; such a part stays at rest. The part turns about
   its pivot by **+θ** about `axis` (glTF space).
 * `dropped`: children that match no table name. The original never draws them (e.g. the MiG-23 `WingL1/L2/R1/R2`
-  sweep meshes, the `EngineX1` helpers). Registered non-part frames (stations, `Camera`, `Pilon`, `EndWingL/R`,
-  `height`) are not drawn either; the game hides every root child that is not in `parts`.
+  sweep meshes, the `EngineX1` helpers). It also hides the registered helper frames (stations, `Camera`, `Pilon`,
+  `EndWingL/R`, `height`). The game draws the root and the frames in `parts`, and hides every other root child.
 * `engines`: `left` / `right` nozzle centres (the plain `EngineL` / `EngineR` frame), `radius` = |ΔY| of the
-  `EngineX` / `EngineX1` pair, `pairs` = complete pairs (clump+0x27c). No pair → no flame. A single-engine jet has
-  only `left` (the original draws the unset right flame at 99999, i.e. nowhere).
+  `EngineX` / `EngineX1` pair, `pairs` = complete pairs (clump+0x27c). A flame needs a complete pair. A single-engine jet has
+  only `left` (the original draws the unset right flame at 99999, i.e. out of sight).
 * `gun` (StationGun, the muzzle-flash point), `stations` (StationA..I, Gun, Cha, Fla: store attach points),
   `end_wing` (EndWingL/R, consumer unknown), `height` (the `height` helper's Y: wheels below the origin; the flight
   model's gear clearance), `eye` (Pilon, else Camera).
@@ -43,8 +54,8 @@ The converter replays what the original loader does with the frame file (`FUN_00
   Present record `0x53c` → model path); `type` = the most common. `fm_section`: the `bd.ibx` section that type loads
   (`FUN_005a8980`); `null` = the type keeps the F-16 data (230/240 transports) or is a helicopter (−1).
 * `label`, `objects`: the database objects that use the model (name, class, label, type).
-* optional `part_rules` (not written by the converter): per-part overrides `{ "<part>": {"sign": -1, "visible": false} }`
-  for a future model whose helper order does not fit the type's rules.
+* optional `part_rules` (written by hand; the converter leaves it out): per-part overrides `{ "<part>": {"sign": -1, "visible": false} }`
+  for a future model whose helper order conflicts with the type's rules.
 
 ## 2. The generic component (`game/aircraft/aircraft_model.gd`)
 
@@ -54,13 +65,17 @@ rig.add_child(m)
 m.update({"stick_x": sx, "stick_y": sy, "rudder": ru, "flaps": lever, "gear_down": g, "brakes": b,
           "hook": h, "chute": c, "on_ground": og, "gear": fm_gear_ramp, "afterburner": stage, "rpm": rpm}, delta)
 ```
-It keeps the original's ramps (flaps / gear / speed brake / hook 0.5 rad/s, rudder / elevators / ailerons 0.7 rad/s;
-limits 16.8°, 89.9°, 49°, 45°, 22.5°, 30°, 45°), retargets a configuration ramp only when its lever changes (the
-original's events), starts from the original start state (airborne: gear up, flaps 0, speed brake 0; ground: gear
-down, **full** flaps 0.29275 also on the F-16, speed brake open) and evaluates `part_pose(id)` = the callback. When
-the flight model's gear ramp (`state().gear`) is passed it is used as is (exact timing). In the flight scene
-(`terrain_view.gd`) the stick, rudder, levers come from the player and `gear`, `on_ground`, `afterburner`, `rpm`
-from `IafFlight.state()`.
+The component:
+- keeps the original's ramps (flaps / gear / speed brake / hook 0.5 rad/s, rudder / elevators / ailerons 0.7 rad/s;
+  limits 16.8°, 89.9°, 49°, 45°, 22.5°, 30°, 45°);
+- retargets a configuration ramp only when its lever changes (the original's events);
+- starts from the original start state (airborne: gear up, flaps 0, speed brake 0; ground: gear down, **full** flaps
+  0.29275 also on the F-16, speed brake open);
+- evaluates `part_pose(id)` = the callback;
+- uses the flight model's gear ramp (`state().gear`) as is when it is passed (exact timing).
+
+In the flight scene (`terrain_view.gd`) the stick, rudder and levers come from the player, and `gear`, `on_ground`,
+`afterburner`, `rpm` from `IafFlight.state()`.
 
 ### 2.1 Callback rules per part (θ in rad; `g` gear ramp, `max` = 1.569)
 
@@ -84,7 +99,7 @@ from `IafFlight.state()`.
 | others (turret, radar, wheels, engines) | 0 | no | |
 
 Control ramps: rudder = pedal·22.5° in the air, −stick roll·22.5° on the ground. Ailerons = −45°·stick roll, both
-sides, in the air only and not on the deltas (130, 190). Pitch mixer (`FUN_005a0650`): `A` = 45° (130, 190) else
+sides, in the air only, on every jet except the deltas (130, 190). Pitch mixer (`FUN_005a0650`): `A` = 45° (130, 190) else
 30°; `f` = 0.5 (110, 130, 190), 0.65 (100), else 1; `m = (1−f)·sr·A` for 100, 110, 130, 190 else 0;
 `L = sp·f·A − m`, `R = −sp·f·A − m`, ×0.6 for the F-4 (120, 200); deltas write L/R to the elevons (aileron ramps),
 the others to the elevators. Flaps target = lever·16.8° (·0.33 on the F-16).
@@ -93,15 +108,15 @@ the others to the elevators. Flaps target = lever·16.8° (·0.33 on the F-16).
 * Level per nozzle (`FUN_005abc90` left / `FUN_005abdc0` right, render bytes +0x3d / +0x3c):
   `stage > 0` (the flight model's AB stage, `vehicle+0x568`+0x28, set in the 1 Hz aero update) and that side's
   "After burner damage" flag (8 left / 9 right) clear → `75 + 12.5·stage` (87 / 100); otherwise RPM ramp·0.74 ≤ 74.
-  **Nothing is drawn at level ≤ 74**, so the flame appears exactly at the AB stages (throttle ≥ 0.75 once the
+  **The flame is drawn only at level > 74**, so it appears exactly at the AB stages (throttle ≥ 0.75 once the
   light-up delay has passed, flight-model.md §15.8) and both nozzles always show the same level.
 * `k = (level − 75)·0.04` (0.5 at stage 1, 1.0 at stage 2); `j = (rand % 21 − 10)·0.01` per nozzle per frame.
 * Cones of 12 segments from the nozzle ring (radius `r`) toward the tail to a ring of radius `r·(j + 0.25)` at
   `length = (3.5 + j)·k + 1.5·i / 5` metres. The 3D-card path (`DAT_007d1960`) draws two: i = 2 with radius 0.7·r
   and i = 3 with radius r; the software path only i = 3. We draw the 3D-card path.
 * Texture `afterburn.tga`: u = random offset − s/12 per segment (a fresh offset per cone per frame), v = 1 at the
-  nozzle (opaque end) and 0 at the tip. Double-sided, no depth write. Blend: additive glow in our port (the
-  original's texture blend state is not decoded, UNCERTAIN).
+  nozzle (opaque end) and 0 at the tip. Double-sided, without depth write. Blend: additive glow in our port (the
+  original's texture blend state is still undecoded, UNCERTAIN).
 * F-16 at full AB: ≈ 4.4 m flame (3.5 + 0.9), base radius 0.44 m.
 
 ### 2.3 Deviations / open points
@@ -109,12 +124,12 @@ the others to the elevators. Flaps target = lever·16.8° (·0.33 on the F-16).
   and the cockpit flag `crew+8` is clear (v1.1: 0 from the ctor, set only while the own jet is drawn from the cockpit),
   on every jet, the player's included (found while tracing the
   ejection, docs/part-animation.md "Ejection"). Our port: `crew_visible = true` on every aircraft; the ejection takes
-  pilot / seat / canopy off the jet. (An earlier reading "hidden on flown aircraft", which showed the F-16 with a flat
-  grey cockpit cover, was wrong; the Extras option built on it was removed.)
-* The hook has no key in our game (the component supports it; the FM's `cfg[8]` is not wired, flight-model.md §15.11
-  item 7). The drag chute is Shift+B (`terrain_view.gd` `_chute_key`, controls.md).
+  pilot / seat / canopy off the jet. (An earlier reading "hidden on flown aircraft" was wrong: it showed the F-16 with a
+  flat grey cockpit cover. The Extras option built on it was removed.)
+* The hook is keyless in our game: the component supports it, but the FM's `cfg[8]` is still unwired (flight-model.md
+  §15.11 item 7). The drag chute is Shift+B (`terrain_view.gd` `_chute_key`, controls.md).
 * AB damage: the player's flags 8 / 9 (`player_damage.gd`, damage.md §5) reach the model as `ab_damage` and put that
-  flame out; AI jets take no systems damage.
+  flame out; systems damage applies to the player's jet only.
 * Flicker: the flame's random numbers change every rendered frame, as in the original (so faster at high fps).
 * The flaps / speed-brake ramps are recomputed in GDScript with the original rule; the flight model's own ramps
   (`S+0x300`, `S+0x340`) are private in `iaf-flight` (the gear ramp is exported).
@@ -152,8 +167,8 @@ The controllable jets are the eight in `controllableplanes`; `bd.ibx` also has `
 
 This section is for a model in the original format (an `.xfr` in the install). A plane the original never had (a
 hand-made glTF, its own flight data, cockpit and Jet list slot) is docs/adding-a-plane.md, with the F-35I as the
-worked example (docs/f35i.md). Note for step 5: a v1.1 install's `bdgen.dat` is read instead of `bd.ibx`, so a
-`TYPES` + `Real` row in `data_set.rs` (adding-a-plane.md §3) is the way to add flight data.
+worked example (docs/f35i.md). Note for step 5: a v1.1 install reads its flight data from `bdgen.dat` (in place of `bd.ibx`), so add flight data
+as a `TYPES` + `Real` row in `data_set.rs` (adding-a-plane.md §3).
 
 1. **Model.** Provide `<name>_h.xfr` (DirectX frame file, `x3ds_` frame names) in
    `resource/3dobjects/controllableplanes/<name>/` (or `noncontrollableplanes`) with its textures. Put each moving
@@ -164,8 +179,8 @@ worked example (docs/f35i.md). Note for step 5: a v1.1 install's `bdgen.dat` is 
    `Camera`, `StationA..I` / `StationGun` as needed. Anything else is dropped.
 2. **Convert.** `iaf-convert --upscale --smooth aircraft <install> assets/converted/missions assets/converted/planes`
    writes the glTF and `aircraft.json`. Check the part list, `axis` values and nozzles in the JSON.
-3. **Type code.** A new aircraft needs an object in the object database with a type code (`0x5b4`); without one
-   the descriptor says `type: -1`. Pass the type to `create(plane, type)`. A new code gets the default rules of
+3. **Type code.** A new aircraft needs an object in the object database with a type code (`0x5b4`); if it lacks
+   one, the descriptor says `type: -1`. Pass the type to `create(plane, type)`. A new code gets the default rules of
    §2.1; if a part moves the wrong way, add a `part_rules` override (sign / visible) to the descriptor — or, for a
    genuinely new behaviour, a case in `part_pose()` (and a line in the table above).
 4. **Look at it.** `godot --path game -s tools/aircraft_sheet.gd -- /tmp/sheet <name>`; fix hinge helpers or
@@ -183,15 +198,21 @@ The flight scene flies any type through `game/aircraft/player_aircraft.gd`: `pro
 (the descriptor whose `types` list holds the type: `f42000` serves F-4E 120 and F-4 2000 200), the flight-model
 section (descriptor `fm_section`), the cockpit (`COCKPIT`, the exe's type → `cockpits.ibx` index table
 `FUN_00447e70`, then `Cockpit00k = <dir>`) and the twin-engine flag (`TWIN`, logic+0x24). The Jet list's aircraft id
-picks the type (`JET_TYPES`); otherwise the mission's jet flies. A type not in `FLYABLE` flies as the F-16.
+picks the type (`JET_TYPES`); with no Jet list choice the mission's jet flies. Every type outside `FLYABLE` flies as
+the F-16.
 
-To add one: put its type in `FLYABLE`, check that its cockpit draws (each cockpit uses its own gauge sections:
-`cockpit.gd` draws SPEED / ALTITUDE / RPM / THROTTLE / TEMP clocks and their SECONDARY twins, FUELDIGITAL or
-FUELCLOCK, PANELVARIO or VARIOCLOCK, PANELAOA), and extend `tests/godot/test_player_aircraft.gd` (profile, cockpit,
-model, weapons, Real data, gear / flaps / speed brake / afterburner / chute / ejection). Its Real rows are per type
-too: `crates/iaf-flight/src/data_set.rs` (flight data, incl. `ceiling_ft` and `chute`) and
+To add one:
+1. Put its type in `FLYABLE`.
+2. Check that its cockpit draws. Each cockpit uses its own gauge sections: `cockpit.gd` draws SPEED / ALTITUDE / RPM /
+   THROTTLE / TEMP clocks and their SECONDARY twins, FUELDIGITAL or FUELCLOCK, PANELVARIO or VARIOCLOCK, PANELAOA.
+3. Extend `tests/godot/test_player_aircraft.gd` (profile, cockpit, model, weapons, Real data, gear / flaps / speed
+   brake / afterburner / chute / ejection).
+
+Its Real rows are per type too: `crates/iaf-flight/src/data_set.rs` (flight data, incl. `ceiling_ft` and `chute`) and
 `game/weapons/real_weapons.gd` (`RADAR_KM`, `GUN_ROUNDS`). Ejection throws one seat per crew part of the model
 (`pilot`, `pilotB`). Flyable: the Jet list's seven — F-15 (110), F-16 (100), F-4E (120), F-4 2000 (200), Lavi (140),
 Kfir (130), Mirage (190), plus the F-35I (1000) from Extras (docs/f35i.md); tests/godot/test_jet_list.gd flies each
-(roll-out, gear, flaps, speed brake, afterburner, ejection; the F-16 and the Kurnass 2000 have their own tests). With Flight data = Original the Kfir and the Mirage share one parameter block per game session, as in the
+(roll-out, gear, flaps, speed brake, afterburner, ejection; the F-16 and the Kurnass 2000 have their own tests).
+
+With Flight data = Original the Kfir and the Mirage share one parameter block per game session, as in the
 original (`iaf_flight::data_set::Blocks`, docs/flight-model.md §1).
