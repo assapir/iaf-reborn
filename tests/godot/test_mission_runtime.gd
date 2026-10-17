@@ -5,6 +5,7 @@ extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
+	continue_boxes = false  # this test answers the mission boxes itself
 	var tv = await start_mission(311)
 	var rt = tv.runtime
 	check(rt != null, "runtime started")

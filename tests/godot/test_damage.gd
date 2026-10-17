@@ -42,6 +42,7 @@ func run() -> void:
 
 	# 231: two role-1 tanks, a role-0 post.
 	Settings().invulnerable = false
+	continue_boxes = false  # this test answers the mission boxes itself
 	var tv = await start_mission(231)
 	var rt = tv.runtime
 	var p0: Dictionary = rt.player_entity()
@@ -63,6 +64,10 @@ func run() -> void:
 	check(t1.state == 5 and rt.passed, "second tank destroyed: mission passed")
 	await seconds(10.5)
 	check(tv._msgbox != null and tv._msgbox.buttons == ["deb", "fly"], "Mission Accomplished box after 10 s")
+	check(paused, "the box freezes the flight (FUN_004e3fd0)")
+	tv._on_box_choice("fly", Callable())
+	check(tv._msgbox == null and not paused, "CONTINUE closes it and the flight runs again")
+	continue_boxes = true
 
 	# A low aircraft explosion (0x58ba, pieces rest) 8 m above the ground: every resting piece lies on
 	# the terrain under it, none in the air.

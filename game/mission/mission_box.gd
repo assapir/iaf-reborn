@@ -1,4 +1,4 @@
-# The original message box (CIAFMenuMsgBoxDlg, docs/front-end.md §3.3), in the menus and in flight:
+# The original message box (CIAFMenuMsgBoxDlg, docs/front-end.md §3.3) of the menus, also over the flight (FlyTSD, in-flight Preferences); the flight's own boxes are render_box.gd (§16.4):
 # mbgback.bmp 320x140 centred on the 640x480 screen (scaled to fit), msgs.trx text (Arial bold,
 # white, centred), buttons from the menu art: "yes" / "no" / "can" (Cancel), "ok", "deb" DEBRIEF,
 # "fly" CONTINUE, "exit" EXIT. It covers its parent and takes every click until a button is chosen.

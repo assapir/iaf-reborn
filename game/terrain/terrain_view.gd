@@ -693,6 +693,8 @@ var _console: Array[String] = []
 var _console_tick := -1.0
 var _sim_time := 0.0
 var _msgbox: Control
+## The open box froze the sim (single player, the clock running: FUN_004e3fd0 event 0x75(0); its close sends 0x76).
+var _box_froze := false
 
 
 func _spawn_mission_objects() -> void:
@@ -1245,11 +1247,19 @@ func _console_update(sim_time: float) -> void:
 func _on_mission_box(msg: int, buttons: Array, on_choice := Callable()) -> void:
 	if _msgbox != null:
 		_msgbox.queue_free()
-	_msgbox = preload("res://mission/mission_box.gd").new()
+	# In flight the box is CIAFRenderMsgBoxDlg, drawn into the flight's surface (docs/front-end.md §16.4).
+	_msgbox = preload("res://mission/render_box.gd").new()
 	_msgbox.process_mode = Node.PROCESS_MODE_ALWAYS  # also over the paused On-The-Fly menu
-	$CockpitLayer.add_child(_msgbox)
+	overlay.add_child(_msgbox)
 	_msgbox.setup(msg, buttons)
+	_msgbox.mouse = overlay.mouse
 	_msgbox.chosen.connect(_on_box_choice.bind(on_choice))
+	# Single player: a box opened while the sim runs releases the held keys and freezes the sim and its sounds
+	# (FUN_004e3fd0: FUN_004e0a60(1), event 0x75(0)); closing it resumes them unless paused (FUN_004e4150: 0x76).
+	if not get_tree().paused:
+		_release_held_keys()
+		_freeze(true, true)
+		_box_froze = true
 
 
 ## DEBRIEF: end the flight and show the debrief; CONTINUE: keep flying; EXIT: back to the menus.
@@ -1257,6 +1267,10 @@ func _on_mission_box(msg: int, buttons: Array, on_choice := Callable()) -> void:
 func _on_box_choice(choice: String, on_choice: Callable) -> void:
 	_msgbox.queue_free()
 	_msgbox = null
+	if _box_froze:
+		_box_froze = false
+		if not paused:
+			_freeze(false, true)
 	if on_choice.is_valid():
 		if choice == "yes":
 			on_choice.call()
@@ -1911,10 +1925,10 @@ func _command(cmd: Array) -> bool:
 	return true
 
 
-## "Are you sure you want to quit the mission?" (YES = debrief); outside a mission: the menus.
+## Ctrl+Q: "Are you sure you want to quit the mission?" with DEBRIEF / CONTINUE / EXIT; outside a mission: the menus.
 func _quit_key() -> void:
 	if runtime != null:
-		_on_mission_box(8, ["yes", "no"])
+		_on_mission_box(8, ["deb", "fly", "exit"])  # FUN_004e2fa0: msg 8, type 0x20000
 	else:
 		get_tree().change_scene_to_file("res://menu/front_end.tscn")
 
@@ -2102,6 +2116,9 @@ func _visual_lock() -> void:
 ## paused the key manager passes only Ctrl+P (FUN_004df500(-1), @4e0cd7); while the menu is open the sim
 ## clock is stopped, so the other commands are dropped (FUN_004cd3b0).
 func window_key(id: int) -> bool:
+	# A message box disables the key manager (FUN_004e3fd0: FUN_004df500(-1)); Ctrl+P is ignored with a box up.
+	if _msgbox != null:
+		return true
 	if paused and id != 132:
 		return true
 	match id:

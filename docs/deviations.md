@@ -42,6 +42,7 @@ Each row: Original = the 1998 game; Ours = this port, for everyone.
 | Engine-off sound | landing.wav (86 samples of near-silence) looped | not played (silence) | the short loop beeps as a tone | flight_sounds.gd |
 | Sounds | DirectSound 3-D | Godot 3-D audio with the DirectSound distance rule; a busy voice channel queues | queue vs replace not traced | sound.md |
 | Text and art | GDI text, 8-bit art | smooth text, 4× Lanczos art (never AI upscaling) | rendering (user decision) | — |
+| In-flight GDI menu and boxes (On-The-Fly menu, render message box, "II  PAUSE"; front-end.md §16) | GDI pixels on the 640×480 surface: Arial without smoothing at 11 / 12 / 58 px em, glyphs hinted by Windows | the same geometry, colours, pens and positions (Arial's own `hdmx` widths and `VDMX` cells) in 640×480 units scaled to the window height; at scale s, Arial at round(px·s) em with that size's widths and FreeType's bilevel glyphs (shapes can differ by one pixel); on a window wider than 4:3 the box centres on the window and the wash covers it all | windows larger than 640×480; Godot draws glyphs with FreeType, not GDI | flight_overlay.gd, render_box.gd, util/gdi.gd |
 | HUD sprite font | the 5×5 pixel font drawn as pixels (FUN_00525890) | each glyph's lit pixels joined by antialiased strokes at screen resolution (same shapes) | at a non-integer scale the pixels came out uneven | hud.gd `_sprite` |
 | Airbase underlay models (ul_rw*: runways, taxiways, aprons) | drawn over the terrain as pre-lit decals: file name `UL_`, depth write off, vertex colour 0xFFDCDCDC by day and 0xFF1E1E41 at night (`FUN_0041ee60`, `FUN_0041ac40`, `FUN_0041d0c0`; rendering.md §4) | not drawn (the units stay for the mission logic) | the terrain's inset imagery already shows the airbase; drawn, they z-fought with it and did not register with it before the Present scale (0x65e, ×2) was ported; at that scale they do — user decision, **to revisit** | terrain_view.gd `_spawn_mission_objects` |
 | Model textures | 8-bit textures as the 1998 renderer sampled them | mipmaps + anisotropic filtering on every runtime-loaded model texture | without mipmaps distant models shimmer | util/gltf.gd `open` |
@@ -252,6 +253,10 @@ Original and ours behave the same in each of these.
 - **Cyprus:** marked as water in terraintype.dat, so landing there destroys the jet (kept: it lies outside the area
   you fly in).
 - **Runway numbers:** upright but wrong numbers (template 09/27, copies of 15/33).
+- **In-flight menu and boxes** (front-end.md §16):
+  - while a message box hides the On-The-Fly menu, a press where a menu item lies still acts on that item;
+  - the Yes / No / Cancel render box labels its third button NO;
+  - the in-flight boxes freeze the flight in single player, the mission-end boxes too.
 - **F-16 / Lavi spin:** they never spin in the original (the deep stall is a Physics option).
 - **Flight model:** everything listed as "not changed by better physics" in flight-model.md §10.
 - **Weapons** (weapons.md):

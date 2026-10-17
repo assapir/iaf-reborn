@@ -168,10 +168,17 @@ Positions come from `.rdata` `0x6062f4` (BACK) and `0x6062f8` (MAIN); the object
 * Pre-flight uses msg 8 (Yes/No) and msg 25 "Choose a jet before flying." (OK).
 
 ## 4. Fonts and text colours
-* All menu text is **Arial**, created by `FUN_004eee10(p, …)`. That function measures
-  `"ABC…XYZabc…xyz"` at `lfHeight=-100` to get `cy`. It then creates the font with
-  `lfHeight = -round(cy*p/100 + 0.5)` (constants `0x606528` = 0.01, `0x60652c` = -0.5). With
-  Arial, `cy≈112`, so p=10 → about 11 px em and p=11 → about 12 px (UNCERTAIN: exact `cy`).
+* All menu text is **Arial**, created by `FUN_004eee10(p, …, weight, …)`. That function measures
+  `"ABC…XYZabc…xyz"` with the same weight at `lfHeight=-100` and takes the extent's height `cy` (`fild [esp+0x34]`).
+  It then creates the font with `lfHeight = -trunc(cy·0.01·p + 0.5)`, that is `-round(cy·p/100)` (float constants
+  `0x606528` = 0.01 and `0x60652c` = −0.5, subtracted; `__ftol` truncates).
+  * `cy` is the font's cell height at 100 pixels per em: GDI takes it from the font's `VDMX` table (ascent 90 +
+    descent 22 = **112** for Arial, 93 + 22 = **115** for Arial Bold).
+  * So size 10 → 11 px em, 11 → 12 px, and bold 50 → 58 px.
+  * At 11 px em, Arial's text cell is 14 px high (`VDMX`: ascent 11, descent 3). At 12 px em it is 15 px (12 + 3).
+  * GDI's character widths are the hinted widths that the font stores for each pixel size (its `hdmx` table). They
+    are narrower than the outline widths at small sizes: RESTART MISSION is 91 px wide at 11 px em, while the
+    outlines give 97.
 * **`fnt/cr0..cr4.ttf` (Gill Sans variants) are used by the credits roll only.** `4e2e00` adds them with
   `AddFontResource` at `4e2ea6` and removes them at `4e2f4f` (§4.1). The Pilot Records
   Kills/Losses pages load two other font files, `fnt/key.fnt` and `fnt/hud.fnt` (§13.10).
@@ -2123,9 +2130,10 @@ Ctrl+P works only with no message box up and the menu closed. It toggles between
 * **Unpause**: counter +1; event 0x76 if `this+0x40`; `DAT_0083afdc = 0`.
 * **Drawing.** The flight render `FUN_004d9080` (@4d9351..4d94da) draws over the frozen scene:
   * **"II  PAUSE"** (0x649a98, two spaces), blinking 500 ms on / 500 ms off (timeGetTime, `DAT_008338d0/7c`);
-  * drawn with GDI on the back surface: Arial size 50 weight 900 (`FUN_004eee10`, created @4d8a96), transparent,
-    RGB(0,255,0), TA_BOTTOM|TA_LEFT at (30, 450);
-  * then a full-screen white wash, alpha 0x63 (`FUN_004022d0` → D3D `FUN_00419d90`; the software renderer draws
+  * drawn with GDI on the back surface: Arial size 50 weight 900 (`FUN_004eee10`, created @4d8a96; GDI picks
+    Arial Bold, 58 px em, §4), transparent, RGB(0,255,0), TA_BOTTOM|TA_LEFT at (30, 450) (the cell's bottom on
+    row 450);
+  * then a white wash over the whole surface (rect (0, 0, 640, 480)), alpha 0x63 (`FUN_004022d0` → D3D `FUN_00419d90`; the software renderer draws
     none). UNCERTAIN: the wash is drawn after the text, so it also covers it.
 * **FlyTSD screen (0x20)**: the menu frame handles Ctrl+P itself (`FUN_004edbc0` / `FUN_004ede30`). It dithers a
   screen snapshot with `misc/pat1.bmp` (SRCAND) + `pat2.bmp` (SRCPAINT), disables the window, and draws the same
@@ -2150,25 +2158,51 @@ In network mission 0x21d, Esc shows msg 8 (host) / msg 11 (client).
 * **Six items** (ctor `FUN_004ee760`, msgs lines upper-cased with `_strupr`): RESUME MISSION (18),
   END MISSION (19), RESTART MISSION (20), NEW MISSION (21), PREFERENCES (22), QUIT GAME (24).
   "Calibrate joystick" (23) is not in the menu (no other user found, UNCERTAIN).
-* GDI: normal brush RGB(191,191,175), hover brush RGB(159,159,128), frame pens 2 px RGB(186,186,173)
-  (PS_INSIDEFRAME) and 1 px RGB(21,21,19); font Arial size 10 weight 400 (`FUN_004eee10`; exact cell
-  height UNCERTAIN).
+* GDI objects (`FUN_004ee7b0`): normal brush RGB(191,191,175), hover brush RGB(159,159,128), frame pens 2 px
+  RGB(186,186,173) and 1 px RGB(21,21,19), both `PS_INSIDEFRAME` (style 6). Font: Arial size 10, weight 400
+  (`FUN_004eee10`, §4): 11 px em, text cell 14 px.
 * Placement: GDI on the flight window's own DC (client coordinates), so the menu sits in the window's
   **top-left corner** at (5, 10) whatever the resolution (`FUN_004ee7b0(hdc, 5, 10)` from 0x4dc479). Ours: 640×480
   units scaled to the window height and anchored at the top-left, as the "II  PAUSE" text.
 * Layout: W = widest label, H = tallest label (GetTextExtentPoint32); item i: left 15, right
   15 + W + 16, top 20 + i·(H + 23), bottom top + H + 16 (7 px gaps). Outer frame (5, 10) to (item right
   + 10, last bottom + 10).
-* Draw: each item a RoundRect 16×16 with the 1 px dark pen, filled with the hover brush when the
-  cursor is inside, else the normal brush; label black, transparent, TA_CENTER|TA_TOP at
-  ((l + r)/2, top + 8). Then the frame with NULL_BRUSH (scene visible between items): RoundRect 20×20
-  with the 2 px light pen, then with the 1 px dark pen.
-* Input is the mouse only: left click → hit test `FUN_004eec60` → `FUN_004dc0d0(item)`
-  (jump table 0x4dc268).
+  * The constants: item padding `DAT_00606508` / `0060650c` = 8, frame margin `DAT_00606518` / `0060651c` = 10.
+  * With the English labels: W = 91 (RESTART MISSION), H = 14. So the items are (15, 20 + 37i) to
+    (122, 50 + 37i), and the frame is (5, 10) to (132, 245).
+* Draw (`FUN_004ee9f0`, every frame):
+  1. Each item: a RoundRect with 16×16 corner ellipses and the 1 px dark pen. The brush is the hover brush when
+     the cursor is inside the item and the game is not paused (`FUN_004e1910`); otherwise the normal brush. The
+     cursor is read every frame (GetCursorPos), so the hover shows without moving the mouse.
+  2. The label: copied, upper-cased (`FUN_0056a510` = `_strupr`), black, transparent, `TA_CENTER|TA_TOP` (align 6)
+     at ((l + r)/2, top + 8).
+  3. The frame with `NULL_BRUSH`, so the scene shows between the items: RoundRect with 20×20 corner ellipses and
+     the 2 px light pen, then the same with the 1 px dark pen. The dark line is the outer pixel, the light line
+     the pixel inside it.
+* GDI rules that decide the pixels:
+  * RoundRect(l, t, r, b) paints columns l … r − 1 and rows t … b − 1; the ellipse sizes are diameters.
+  * `PS_INSIDEFRAME` keeps the pen inside the shape.
+  * GDI drew 1998 text without smoothing: Arial's own table (`gasp`) asks for no grey levels up to 16 px.
+* Input is the mouse only.
+  * The flight window's message map (`.rdata 0x605274`) sends `WM_MOUSEMOVE` to 0x4dc7d0 (the cockpit) and
+    `WM_LBUTTONDOWN` to **0x4dc810**.
+  * On the button press, when the game is not paused and the menu is open, the hit test `FUN_004eec60` →
+    `FUN_004dc0d0(item)` runs (jump table 0x4dc268).
+  * The hit test `FUN_004f0680` includes the right and bottom edges (l ≤ x ≤ r, t ≤ y ≤ b), one pixel more than
+    RoundRect paints.
+  * The hit test does not check for a message box. So while a box hides the menu, a press where an item is still
+    acts on that item. Presses on the box itself go to the box, a child window.
+* Ours (`game/terrain/flight_overlay.gd`, `game/util/gdi.gd`):
+  * The geometry, colours, pens, corners, alignment and hit test are the original's. At a 640×480 window, every
+    shape pixel matches a reference drawn from these rules.
+  * The text is Arial with no smoothing. The positions and the cell come from the font file's own `hdmx` and
+    `VDMX` tables. The glyph shapes come from Godot's FreeType, which can differ by one pixel from GDI's.
+  * On a larger window, the 640×480 units are scaled to the window height. Shapes are drawn at the window's
+    resolution, and text at round(11 × scale) px em with that size's widths (docs/deviations.md).
 
 ### 16.3 Item actions (`FUN_004dc0d0`)
-Boxes: `FUN_004e3f30(msg, reply, group, 4 = Yes/No)`, the in-surface box (`FUN_004e3fd0`, which also
-disables the keys). **NO closes the box; the menu stays open, paused.**
+Boxes: `FUN_004e3f30(msg, reply, group, 4 = Yes/No)`. In flight this is the render box (§16.4). Its base
+constructor `FUN_004e3fd0` disables the keys. **NO closes the box; the menu stays open, paused.**
 * **Resume mission**: as closing the menu.
 * **End mission**: msg 8 Yes/No → reply 0x559 wParam 3 (`FUN_004e31b0`): event 0x76 + 0x7e (unload
   0x74, IAFWnd 0x7d → `FUN_004d8d90(1)`), exit code 3 → **Debrief (screen 0x22)**.
@@ -2185,11 +2219,74 @@ disables the keys). **NO closes the box; the menu stays open, paused.**
   Preferences, §12; Gameplay tab disabled). BACK or Esc (frame +0x5c = 5) → `CMainWindow::OnMenuDestroyed` 0x4e37d0, exit 5 (@4e3870): the
   flight window is recreated (`FUN_004d8a40`), event 0x76, and the menu **reopens** (paused again).
 * **Quit game**: msg 7 Yes/No → reply 0x556 (`FUN_004e2e00`): unload, credits, exit (§3.2).
-* Compare Ctrl+Q (0x86 → `FUN_004e2fa0`): msg 8 with the DEBRIEF / CONTINUE / EXIT buttons; msg 11 for a
-  multiplayer client.
+* Compare Ctrl+Q (0x86 → `FUN_004e2fa0`): msg 8 with the DEBRIEF / CONTINUE / EXIT buttons (type 0x20000);
+  msg 11 (Yes/No) for a multiplayer client.
 
 Sounds: pause and menu pause all channels and resume them on 0x76 (docs/sound.md); the FlyTSD entry
 posts 0x75 with param 1, which does not pause sounds.
+
+### 16.4 The in-flight message box (`CIAFRenderMsgBoxDlg`)
+`FUN_004e3f30` → `FUN_004e66c0` picks the box class with `FUN_004e3df0`. That function reads the flight window's
+"created" flag (`[DAT_006992e0]+0x3c`): `FUN_004d8a40` sets it, and `CFlightWnd::destroy` `FUN_004d8d90` clears it
+(when the FlyTSD or the in-flight Preferences replace the flight).
+* While the flight window exists, the box is **`CIAFRenderMsgBoxDlg`** (`FUN_004e5130`, vtable 0x605d70), not the
+  menus' mbgback.bmp box (§3.3).
+* It is a child window of the main window. The flight render draws it into its surface every frame
+  (`FUN_004d9080` → `FUN_004e69a0` → vtable +0xd8 → `FUN_004e5c40`). While it is up, the On-The-Fly menu is not
+  drawn.
+* It uses the menu's GDI style: the same brushes and pens (created again in `FUN_004e52a0`).
+  * Font: Arial size 11, weight 400 (12 px em, text cell 15 px; name at 0x605ab0).
+  * The message is upper-cased (`_strupr`) and drawn on one line with TextOut. It is not wrapped.
+* **Button labels** are text: msgs.trx lines, upper-cased.
+
+  | type | buttons (left to right) | reply codes |
+  |---|---|---|
+  | 0 | OK (line 2), centred | 1 |
+  | 3 | YES (0), NO (1), and a third labelled NO (line 1 again, @4e52d2) | 6, 7, 2 |
+  | 4 | YES (0), NO (1) | 6, 7 |
+  | 0x10000 | DEBRIEF (4), CONTINUE (5) | 100, 101 |
+  | 0x20000 | DEBRIEF (4), CONTINUE (5), EXIT (6) | 100, 101, 102 |
+* **Layout** (`FUN_004e52a0`, the dialog's OnInitDialog). The constants are button padding `DAT_00605ab8` / `abc`
+  = 8, text padding `ac0` / `ac4` = 8 and frame margin `ac8` / `acc` = 10.
+  * tw × th is the upper-cased message's extent; bh is the tallest label.
+  * Button width bw = the widest label + 48 (types 0 and 4) or + 24 (the others).
+  * Box width W = max(tw + 16, row) + 20. The row is bw + 16 for one button, 2·(bw + 26) for two, and
+    3·(bw + 16) + 40 for three.
+  * Box height H = th + bh + 59.
+  * Text panel: (10, 10) to (W − 10, th + 26).
+  * Buttons: top = the panel's bottom + 7, height bh + 16.
+    * The first button starts at x = 10.
+    * The last button ends at W − 10.
+    * A single button, or the middle one of three, runs from W/2 − 8 − bw/2 to W/2 + 8 + bw/2.
+  * The box is sized with SetWindowPos and centred on the main window with CenterWindow (`FUN_005e3008`).
+  * Example: msg 8 with YES / NO is 326 × 89 at (157, 196). The panel is (10, 10, 316, 41), YES is
+    (10, 48, 97, 79) and NO is (229, 48, 316, 79).
+* **Drawing** (`FUN_004e5c40`), in this order:
+  1. The panel: normal brush, 1 px dark pen, 16×16 corners. The text is drawn `TA_CENTER|TA_TOP` at
+     ((l + r)/2, top + 8).
+  2. The buttons: the hover brush under the cursor (`FUN_004f0680`, edges included), else the normal brush. Each
+     label is drawn at ((l + r)/2, top + 8).
+  3. The frame (0, 0, W, H): `NULL_BRUSH`, 20×20 corners, the 2 px light pen and then the 1 px dark pen.
+
+  There is no pressed state. UNCERTAIN: whether the child window's own background shows between the elements.
+  Ours shows the scene there, as the menu does.
+* **Freeze** (the base class, single player): the constructor `FUN_004e3fd0` releases the held keys
+  (`FUN_004e0a60(1)`), disables the key manager (`FUN_004df500(-1)`) and, when the sim clock runs, sends event
+  0x75(0): the sim and every sound channel pause. The destructor `FUN_004e4150` enables the keys and sends 0x76
+  unless the game is paused. So the Ctrl+Q box and the mission-end boxes (msgs 13 / 14) stop the flight while
+  they are up. The flag is the box's `+0xb0`, the "single player" argument of `FUN_004e3f30`.
+* **Input**: the box's message map (`.rdata 0x605b48`) has `WM_PAINT` (0x4e7720), `WM_MOUSEMOVE` (0x4e6660) and
+  `WM_LBUTTONDOWN` (**0x4e6350**).
+  * A press on a button plays ButtonIn.wav (`FUN_00544560(DAT_0083afd4)`) and ends the box with the reply code
+    (`FUN_004e6c20`).
+  * OnOK / OnCancel (`4e6270` / `4e62e0`) give the first / second code. UNCERTAIN whether Enter / Esc ever reach
+    them: the box disables the key manager (`FUN_004df500(-1)`), and nothing gives it the focus.
+  * Ours is mouse only.
+  * Presses outside the box go to the flight window (§16.2: the menu's items, the cockpit).
+* Ours: `game/mission/render_box.gd`, created by `terrain_view.gd _on_mission_box` (the On-The-Fly boxes,
+  Ctrl+Q, the mission-end boxes). It freezes the flight as above (`_box_froze`). While a box is up, `window_key`
+  ignores Esc / Ctrl+O / Ctrl+P. The FlyTSD and the in-flight Preferences are the front end and keep the mbgback
+  box.
 
 ## 17. Multiplayer: v1.1 rules (not ported yet)
 Multiplayer is not ported. When it is, port the v1.1 behaviour (docs/v1.1.md):

@@ -44,10 +44,41 @@ func run() -> void:
 			"six items (msgs 18-22, 24) %s" % [tv.overlay.labels])
 	press(tv, KEY_P, true)
 	check(not tv.paused, "Ctrl+P ignored while the menu is open")
+	# The layout of FUN_004ee7b0 in 640×480 units: Arial 11 ppem, W = 91 (RESTART MISSION, GDI widths), H = 14.
+	var ov = tv.overlay
+	var want: Array[Rect2i] = []
+	for i in 6:
+		want.append(Rect2i(15, 20 + i * 37, 107, 30))
+	check(ov.item_rects() == want, "item rects (15, 20 + 37i, 122, 50 + 37i) %s" % [ov.item_rects()])
+	var gdi := preload("res://util/gdi.gd")
+	check(gdi.ppem(10) == 11 and gdi.ppem(11) == 12 and gdi.ppem(50, 900) == 58, "FUN_004eee10 sizes: 10 → 11, 11 → 12, bold 50 → 58 ppem")
+	check(ov.frame_rect() == Rect2i(5, 10, 127, 235), "frame (5, 10)-(132, 245) %s" % [ov.frame_rect()])
+	var sc: float = ov._scale()
+	var r2: Rect2i = want[2]
+	ov.mouse = Vector2(r2.end) * sc + Vector2(0.5, 0.5) * sc  # the right / bottom edge counts (FUN_004f0680)
+	await frames(2)
+	check(ov.hover == 2, "hover on item 2's bottom-right edge (%d)" % ov.hover)
+	ov.mouse = (Vector2(r2.end) + Vector2(1.5, 0.5)) * sc
+	await frames(2)
+	check(ov.hover == -1, "one unit past the edge: no hover (%d)" % ov.hover)
+	check(ov.HOVER == Color8(159, 159, 128) and ov.NORMAL == Color8(191, 191, 175), "hover / normal brushes")
 	tv.menu_choice("end")
-	check(tv._msgbox != null and tv._msgbox.text.begins_with("Are you sure you want to quit the mission"), "End mission asks msg 8")
-	tv._on_box_choice("no", func(): pass)
-	check(tv._msgbox == null and tv.menu_open, "NO closes the box, the menu stays")
+	var box = tv._msgbox
+	check(box != null and box.text.begins_with("Are you sure you want to quit the mission"), "End mission asks msg 8")
+	check(box != null and box.get_script().resource_path.ends_with("render_box.gd"), "in flight the box is the render box")
+	if box != null:
+		check(box.box_size == Vector2i(326, 89) and box.panel == Rect2i(10, 10, 306, 31)
+				and box.button_rects == [Rect2i(10, 48, 87, 31), Rect2i(229, 48, 87, 31)] and box.labels == ["YES", "NO"],
+				"render box layout (FUN_004e52a0) %s %s %s" % [box.box_size, box.panel, box.button_rects])
+		press(tv, KEY_ESCAPE)
+		check(tv._msgbox == box and tv.menu_open, "Esc does nothing while the box is up")
+		var click := InputEventMouseButton.new()
+		click.button_index = MOUSE_BUTTON_LEFT
+		click.pressed = true
+		click.position = Vector2(box.origin() + box.button_rects[1].get_center()) * box._scale()
+		box._gui_input(click)
+		await frames(1)
+	check(tv._msgbox == null and tv.menu_open, "NO (mouse press) closes the box, the menu stays")
 	tv.menu_choice("prefs")
 	await frames(3)
 	check(tv.fe_overlay != null and tv.fe_overlay.screen == "pref" and not tv.fe_overlay._button_enabled("Gameplay"),
@@ -57,6 +88,14 @@ func run() -> void:
 	check(tv.fe_overlay == null and tv.menu_open and paused, "BACK returns to the menu, still paused")
 	press(tv, KEY_ESCAPE)
 	check(not tv.menu_open and not paused, "Esc closes the menu")
+	var tq: float = tv._sim_time
+	tv._quit_key()
+	await frames(5)
+	check(paused and tv._sim_time == tq, "the Ctrl+Q box freezes the sim (single player, FUN_004e3fd0)")
+	check(tv._msgbox != null and tv._msgbox.buttons == ["deb", "fly", "exit"]
+			and tv._msgbox.labels == ["DEBRIEF", "CONTINUE", "EXIT"], "Ctrl+Q: msg 8 with DEBRIEF / CONTINUE / EXIT")
+	tv._on_box_choice("fly", Callable())
+	check(tv._msgbox == null and not paused, "CONTINUE closes it")
 	# --- FlyTSD (Esc) ---
 	press(tv, KEY_ESCAPE)
 	await frames(3)

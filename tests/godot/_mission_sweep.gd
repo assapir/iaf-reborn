@@ -18,7 +18,7 @@ func run() -> void:
 		var boxes := []
 		rt.event_fired.connect(func(eid, name): fired[eid] = name)
 		rt.subtitle.connect(func(_t): subs[0] += 1)
-		rt.message_box.connect(func(msg, _b): boxes.append(msg))
+		rt.message_box.connect(func(msg, _b): boxes.append(msg))  # base.gd answers CONTINUE (the box freezes the flight)
 		var start := {}
 		for k in rt.entities:
 			start[k] = rt._world_of(rt.entities[k])

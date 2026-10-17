@@ -1,5 +1,6 @@
 # Dev helper (not run by tools/test.sh): a real-render capture of the On-The-Fly menu (Ctrl+O, item 2 hovered) in
-# mission 311, in MENU_LANG (en / he), saved to MENU_SHOT; with MENU_BOX=1 the "End mission" Yes/No box instead.
+# mission 311, in MENU_LANG (en / he), saved to MENU_SHOT; with MENU_BOX=1 the "End mission" Yes/No box instead
+# (YES hovered); with MENU_PAUSE=1 the Ctrl+P pause screen (text on) instead of the menu.
 #   MENU_LANG=he MENU_SHOT=/tmp/m.png IAF_DEFAULT_SETTINGS=1 godot --path game --resolution 1920x1080 -s ../tests/godot/_flymenu_shot.gd
 extends "res://../tests/godot/base.gd"
 
@@ -12,11 +13,18 @@ func run() -> void:
 	e.keycode = KEY_O
 	e.pressed = true
 	e.ctrl_pressed = true
+	if OS.get_environment("MENU_PAUSE") != "":
+		e.keycode = KEY_P
+		while Time.get_ticks_msec() / 500 % 2 == 1:
+			await frames(1)
 	tv._unhandled_input(e)
-	tv.overlay.hover = 1
+	var s: float = tv.overlay._scale()
+	tv.overlay.mouse = Vector2(tv.overlay.item_rects()[1].get_center()) * s
 	await frames(5)
 	if OS.get_environment("MENU_BOX") != "":
 		tv.menu_choice("end")
+		var box = tv._msgbox
+		box.mouse = Vector2(box.origin() + box.button_rects[0].get_center()) * s
 	await RenderingServer.frame_post_draw
 	await RenderingServer.frame_post_draw
 	root.get_viewport().get_texture().get_image().save_png(OS.get_environment("MENU_SHOT"))

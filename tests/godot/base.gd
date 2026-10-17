@@ -54,6 +54,11 @@ func mouse_button(pos: Vector2, down: bool, double := false) -> InputEventMouseB
 
 
 ## Loads the flight scene for a mission and waits until the aircraft stands on the terrain.
+## The mission's own boxes (Mission Accomplished / failed) freeze the flight while up (front-end.md §16.4); unless a
+## test sets this false before start_mission, each one is answered CONTINUE at once so the flight runs on.
+var continue_boxes := true
+
+
 func start_mission(id: int) -> Node:
 	Settings().mission_id = id
 	change_scene_to_file("res://terrain/terrain_view.tscn")
@@ -61,6 +66,8 @@ func start_mission(id: int) -> Node:
 	while tv == null or tv.get("flight") == null or tv.waiting_for_ground:
 		await process_frame
 		tv = current_scene
+	if continue_boxes and tv.runtime != null:
+		tv.runtime.message_box.connect(func(_m, _b): tv._on_box_choice.call_deferred("fly", Callable()))
 	return tv
 
 

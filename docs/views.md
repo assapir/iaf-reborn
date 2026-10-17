@@ -51,8 +51,9 @@ directly (`CFlightWnd::OnGameEvent` 0x4dc280). They bypass the game-event queue.
   In each message box, NO closes the box and the menu stays.
 
 ### iaf-reborn
-* **Code**: `game/terrain/flight_overlay.gd` draws the pause text / wash and the menu. In `terrain_view.gd`:
-  `window_key`, `_pause_key`, `_menu_key`, `_esc_key`, `menu_choice`.
+* **Code**: `game/terrain/flight_overlay.gd` draws the pause text / wash and the menu with the GDI rules of
+  `game/util/gdi.gd` (front-end.md §16.2); `game/mission/render_box.gd` is the in-flight message box (§16.4). In
+  `terrain_view.gd`: `window_key`, `_pause_key`, `_menu_key`, `_esc_key`, `menu_choice`.
 * **Sim clock stop** = the **scene tree's pause**: every sim node stops. The overlay, message boxes and the front
   end over the flight keep running while paused.
 * **Sound pause**: the port sets `stream_paused` on every playing player of the flight and clears it on resume.
