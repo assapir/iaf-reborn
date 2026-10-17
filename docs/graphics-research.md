@@ -223,6 +223,16 @@ Not in scope: plumes and motor glow (`mission/trails.gd`), moving fins in flight
 pilon helper and AABB the game code reads equal the original's, and the detailed mesh's lug sits on the helper; with
 the switch off, `Gltf.object` returns exactly the original.
 
+**Visual check** (the test proves fit, not looks). A comparison sheet per batch, the same shot twice (Models
+Original / Detailed) from the pilot guides' shot runner (`tests/godot/_guide_shots.gd`: an airborne start with a
+`loadout` on the pylons, the external view, `settings` per shot), in the game's own lighting, not a model viewer's:
+each store close up on the pylon (front quarter, side, below), a launch / drop in flight, a chase at 50 m, and a pass
+at 300–1500 m to catch the switch to the far LOD popping. Assembled into one HTML page (original | detailed side by
+side, as `tools/flight_timeline.py --html`). I look at every picture first for defects a script cannot judge (wrong
+colours, missing / stretched textures, black or inside-out faces, floating or sunk lugs, shading seams); you pass or
+fail each store on the sheet, and a failed one is just left out of the mapping (it falls back to the original) until
+fixed. Cheap numbers alongside: triangles, texture size, frame time on 231 (the busiest mission) Original vs Detailed.
+
 **Order.** (1) the switch, the hook, the load-time fit and the test; (2) the FlightGear stores (bombs, AIM-9 /
 120 / 7, Maverick, HARM, tanks, pods), compared side by side in the Reference viewer; (3) the FGAddon check; (4) the
 built ones for the rest.
