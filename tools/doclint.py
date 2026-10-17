@@ -6,6 +6,7 @@ fences and trailing whitespace. With --fun also FUN_xxxxxxxx names that are no f
 hits, 122 start after a ret / padding in the exe, 5 are labelled v1.0 addresses, 1 is reached through a handler table).
 Prints `file:line: message`; exit 1 when anything is found. Usage: tools/doclint.py [--fun] [files…]"""
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -13,6 +14,11 @@ ROOT = Path(__file__).resolve().parent.parent
 DECOMPILE = ROOT / "assets/ghidra_v11/iafjets.c"
 # Paths named in backticks are checked only under these roots; placeholders (<id>, *, …) are skipped.
 PATH_ROOTS = ("game/", "crates/", "tests/", "tools/", "docs/")
+
+
+def ignored(rel):
+    """Git-ignored paths (generated / local, e.g. game/.godot) are missing in a fresh worktree."""
+    return subprocess.run(["git", "-C", str(ROOT), "check-ignore", "-q", rel]).returncode == 0
 
 
 def slug(heading: str) -> str:
@@ -103,7 +109,8 @@ def main() -> int:
                 p = p.rstrip(".,:;")
                 if not p.startswith(PATH_ROOTS) or re.search(r"[<>*{}…$]|\.\.\.", p):
                     continue
-                if not (ROOT / p.split(":")[0].split("#")[0]).exists():
+                rel = p.split(":")[0].split("#")[0]
+                if not (ROOT / rel).exists() and not ignored(rel):
                     report(f, n, f"no such path `{p}`")
             for doc, sec in re.findall(r"([\w./-]+\.md) §\s?(\d+(?:\.\d+)*)", plain):
                 dest = (f.parent / doc) if (f.parent / doc).exists() else ROOT / doc if (ROOT / doc).exists() else ROOT / "docs" / Path(doc).name
