@@ -33,37 +33,37 @@ A greyed-out imagery choice needs its data: convert it with `tools/setup.sh --im
 
 Switch on every row:
 
-| Row                                         | Effect                                                                                       |
-| ------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Flight-path hold (neutral stick)            | With the stick centred the jet holds its flight path at every speed                          |
-| Forces at current AoA / sideslip            | Lift and drag from the jet's actual angle of attack and sideslip                             |
-| Air start without jolt                      | The jet starts an air start level and smoothly                                               |
-| Air start with engine spooled up            | The engine starts an air start at the throttle's RPM                                         |
-| Air start trimmed                           | The nose holds steady through the first second of an air start                               |
-| Real landing limits (sink, tail strike)     | Touchdown faster than 4 m/s (about 790 ft/min) or a tail strike above 15° nose-up is a crash |
-| Realistic spins                             | More realistic spins                                                                         |
-| F-16 / Lavi deep stall                      | Acts on the fly-by-wire jets; the Kfir has mechanical controls                               |
-| Low-speed lift rate fix                     | Fixes the lift response below about 18 m/s                                                   |
-| No reversed roll at low speed               | Fixes the roll reversal at walking speed                                                     |
-| No nose-wheel lift quirk                    | Steering on the take-off run keeps the jet on the ground                                     |
-| Ground effect                               | Less induced drag near the ground: a longer float in the flare                               |
-| Real idle thrust on the ground (taxi speed) | At idle the jet settles near 30 kt, a taxi speed                                             |
-| Falling jets keep their heading             |                                                                                              |
-| No tougher enemies on easy AI levels        |                                                                                              |
-| Locked enemies know who locked them         | An enemy you lock with the radar knows it was you                                            |
-| Stores weight fix                           | Every store counts, in the right units                                                       |
-| Bombs burst at the ground                   |                                                                                              |
-| No collisions with hidden units / wrecks    |                                                                                              |
+| Row                                         | Effect                                                                                                           |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Flight-path hold (neutral stick)            | With the stick centred the jet holds its flight path at every speed                                              |
+| Forces at current AoA / sideslip            | Lift and drag from the jet's actual angle of attack and sideslip                                                 |
+| Air start without jolt                      | The jet starts an air start level and smoothly                                                                   |
+| Air start with engine spooled up            | The engine starts an air start at the throttle's RPM                                                             |
+| Air start trimmed                           | The nose holds steady through the first second of an air start                                                   |
+| Real landing limits (sink, tail strike)     | Touchdown faster than 4 m/s (about 790 ft/min) or a tail strike above 15° nose-up is a crash                     |
+| Realistic spins                             | More realistic spins                                                                                             |
+| F-16 / Lavi deep stall                      | Acts on the fly-by-wire jets; the Kfir has mechanical controls                                                   |
+| Low-speed lift rate fix                     | Fixes the lift response below about 18 m/s                                                                       |
+| No reversed roll at low speed               | Fixes the roll reversal at walking speed                                                                         |
+| No nose-wheel lift quirk                    | Steering on the take-off run keeps the jet on the ground                                                         |
+| Ground effect                               | Less induced drag near the ground: a longer float in the flare                                                   |
+| Real idle thrust on the ground (taxi speed) | At idle the jet settles near 30 kt, a taxi speed                                                                 |
+| Falling jets keep their heading             | A shot-down jet falls along its own heading (the original turns every falling jet to north)                      |
+| No tougher enemies on easy AI levels        | Rookie and Normal enemies take full damage (the original makes them tougher)                                     |
+| Locked enemies know who locked them         | An enemy you lock with the radar knows it was you                                                                |
+| Stores weight fix                           | Every store counts, in the right units                                                                           |
+| Bombs burst at the ground                   | A bomb bursts where it meets the terrain, with its full blast (the original can burst it up to 70 m underground) |
+| No collisions with hidden units / wrecks    | Hidden units and wrecks whose model has vanished stop being obstacles                                            |
 
 ### Gameplay tab
 
-| Row                                                      | Set to                                  | Why                                                   |
-| -------------------------------------------------------- | --------------------------------------- | ----------------------------------------------------- |
-| Easy landing                                             | off                                     | On (the default) doubles every landing limit          |
-| Easy aiming                                              | off                                     | On makes any seeker target launchable at full quality |
-| No blackouts, No spins, No stalls                        | off                                     |                                                       |
-| Invulnerable, No crashes, Unlimited ammo, Unlimited fuel | off                                     |                                                       |
-| AI level                                                 | Expert, if you want the hardest enemies |                                                       |
+| Row                                                      | Set to                                  | Why                                                    |
+| -------------------------------------------------------- | --------------------------------------- | ------------------------------------------------------ |
+| Easy landing                                             | off                                     | On (the default) doubles every landing limit           |
+| Easy aiming                                              | off                                     | On makes any seeker target launchable at full quality  |
+| No blackouts, No spins, No stalls                        | off                                     | Off keeps g-effects, spins and stalls                  |
+| Invulnerable, No crashes, Unlimited ammo, Unlimited fuel | off                                     | Off keeps damage, crashes and the ammo and fuel limits |
+| AI level                                                 | Expert, if you want the hardest enemies | The level sets the enemies' skill                      |
 
 No wind and No malfunctions are placeholder switches, as in the original.
 
@@ -106,7 +106,7 @@ What that means in the cockpit:
 
 A mission that starts at an airbase puts you on the runway with the gear down, full flaps, the brakes on and the
 throttle at idle. The engine is already running at the lineup point. If you start elsewhere on the base, the first
-throttle key starts it, and the RPM then climbs 15 % per second.
+throttle key starts it, and the RPM (engine speed, in %) then climbs 15 % per second.
 
 ### Take-off
 
@@ -115,14 +115,15 @@ throttle key starts it, and the RPM then climbs 15 % per second.
 3. Throttle to full afterburner: **8**. The afterburner lights only after the engine reaches 100 %, about 2 s from
    military power.
 4. Keep the runway centreline with the rudder (**Numpad 0** / **Decimal**, or the pedals).
-5. At **145 kt**, pull gently back until the flight path is above the horizon.
+5. At **145 kt** (knots), pull gently back until the flight path is above the horizon.
 6. Gear up (**G**) and flaps up (**F**). Keep the gear speed below 300 kt.
 
 ### Landing
 
 1. **Downwind**: 2,000 ft above the ground, **200 kt**. Gear down (**G**), flaps out (**F**).
 2. **Base**: throttle 60–80 % (keys **2** to **4**), about 20° of bank, slow to **165 kt**, aim for a 4° approach.
-3. **Final**: put the flight path marker on the cross of the ILS lines on the HUD (the localizer and a 4° glide slope).
+3. **Final**: put the flight path marker on the cross of the ILS (instrument landing system) lines on the HUD (the
+   localizer and a 4° glide slope).
 4. Over the threshold: throttle to idle (**1**) and flare gently.
 5. After touchdown: brakes (**B**).
 
@@ -154,8 +155,9 @@ With Real landing limits and Easy landing off, a touchdown faster than **4 m/s (
 ## 5. The Real HUD
 
 The real Kfir C7 has an El-Op HUD driven by the Elbit System 82 weapon delivery system: airspeed, altitude, Mach, AoA
-and armament status, with LCOS and hotline gun modes, CCIP, direct and toss bombing (Flight International 1983). The
-Real switch draws **the Kfir's HUD as a reconstruction** in that style, from those sources:
+(angle of attack) and armament status, with LCOS (lead-computing optical sight) and hotline gun modes, CCIP
+(continuously computed impact point), direct and toss bombing (Flight International 1983). The Real switch draws **the
+Kfir's HUD as a reconstruction** in that style, from those sources:
 
 - **Speed and altitude** as numbers: airspeed with Mach under it on the left, altitude on the right.
 - **Heading** on a scale along the top, read at the centre caret.
@@ -164,7 +166,7 @@ Real switch draws **the Kfir's HUD as a reconstruction** in that style, from tho
   scale with an **arrow** pointing the way to turn. Over the ground, the **waypoint marker** (a circle on a post) sits
   on the waypoint itself; when it is outside the HUD it waits at the edge with an X.
 - Lower left: **g**, the rounds of the selected store (or AoA with the gear down) and the **mode** (NAV, MSL, LCOS,
-  HOTL, STRF, CCIP). Lower right: the waypoint's **distance** in NM (`D`) and its number (`WP`).
+  HOTL, STRF, CCIP). Lower right: the waypoint's **distance** in NM (nautical miles, `D`) and its number (`WP`).
 - A straight pitch ladder and the flight path marker.
 
 ![The Real HUD in NAV: the steering bug on the heading scale points to the waypoint](shots/cfir/hud_nav.png)
@@ -189,7 +191,7 @@ targets late, and use the radar mainly to lock and range.
 | **\\** (hold)                 | Boresight: a ±12° lock cone straight ahead          |
 
 The radar sees targets from 30 m above the ground, in line of sight. Locking a target tells it you locked it (and its
-RWR sounds).
+RWR (radar warning receiver) sounds).
 
 ![The ranging radar with a locked contact](shots/cfir/mfd_radar_stt.png)
 
@@ -209,16 +211,16 @@ attitude ball is on the panel too. **T** brings up the TSD (tactical map), **D**
   the launch warning.
 - **Chaff (Insert)** and **flares (Delete)**: the Kfir carries **90 chaff and 60 flares**. Each press releases one. At
   release, every missile of the decoy's kind launched at you rolls once. Chaff fools a radar missile with 10 % (30 %
-  above 4 g). A flare fools an IR missile with 33 % (50 % above 4 g), **only with the afterburner off**.
-- Self-protection is chaff and flares: **J** is the ECM pod's key on jets that carry one.
+  above 4 g). A flare fools an IR (infrared) missile with 33 % (50 % above 4 g), **only with the afterburner off**.
+- Self-protection is chaff and flares: **J** is the ECM (electronic countermeasures) pod's key on jets that carry one.
 
 ---
 
 ## 9. Weapons
 
-**M** cycles the master mode NAV → A-A → A-G, and **N** returns to NAV. **]** selects the next air-to-air weapon and
-**[** the next air-to-ground one. **Space** fires the selected weapon and **Tab** fires the gun. The weapons are live
-with the gear handle up.
+**M** cycles the master mode NAV → A-A (air-to-air) → A-G (air-to-ground), and **N** returns to NAV. **]** selects the
+next air-to-air weapon and **[** the next air-to-ground one. **Space** fires the selected weapon and **Tab** fires the
+gun. The weapons are live with the gear handle up.
 
 What the Kfir can load on the Arming screen (seven stations: 2 and 8 under the outer wings, 3 and 7 under the inner
 wings, 4, 5, 6 under the fuselage):
@@ -239,8 +241,8 @@ like normal, unguided bombs (CCIP)**.
 
 ### Gun (2 × DEFA 553)
 
-With Real data: **280 rounds** (2 × 140), 2 × 1,300 rounds/min, 815 m/s: about 6.5 s of firing. The Real HUD has the Kfir's two
-gun modes:
+With Real data: **280 rounds** (2 × 140), 2 × 1,300 rounds/min, 815 m/s: about 6.5 s of firing. The Real HUD has the
+Kfir's two gun modes:
 
 - **LCOS** (the radar ranges the target): the lead-computing reticle with its range arc. Put the pipper on the target
   and fire.
@@ -280,8 +282,8 @@ MK-82 / MK-83 / MK-84, the CBU-87 / CBU-97 clusters and ZUNNI rockets.
    at the edge; the bombs go when the time-to-go reaches 0.9 s (positive g, less than 90° of bank).
 4. The ripple quantity and spacing are set on the stores page (default: 2 bombs, 10 m apart).
 
-The game's training warns against GP bombs below 2,000 ft above the ground. A bomb arms at release: dropped from any
-height, it bursts at the ground.
+The game's training warns against GP (general-purpose) bombs below 2,000 ft above the ground. A bomb arms at release:
+dropped from any height, it bursts at the ground.
 
 ![CCIP with the pipper on a target](shots/cfir/hud_ccip.png)
 

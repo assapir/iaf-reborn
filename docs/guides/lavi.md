@@ -35,37 +35,37 @@ A greyed-out imagery choice needs its data: convert it with `tools/setup.sh --im
 
 Switch on every row:
 
-| Row                                         | Effect                                                                                       |
-| ------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Flight-path hold (neutral stick)            | With the stick centred the jet holds its flight path at every speed                          |
-| Forces at current AoA / sideslip            | Lift and drag from the jet's actual angle of attack and sideslip                             |
-| Air start without jolt                      | The jet starts an air start level and smoothly                                               |
-| Air start with engine spooled up            | The engine starts an air start at the throttle's RPM                                         |
-| Air start trimmed                           | The nose holds steady through the first second of an air start                               |
-| Real landing limits (sink, tail strike)     | Touchdown faster than 4 m/s (about 790 ft/min) or a tail strike above 15° nose-up is a crash |
-| Realistic spins                             | More realistic spins                                                                         |
-| F-16 / Lavi deep stall                      | The Lavi can enter the F-16's deep stall (section 4)                                         |
-| Low-speed lift rate fix                     | Fixes the lift response below about 18 m/s                                                   |
-| No reversed roll at low speed               | Fixes the roll reversal at walking speed                                                     |
-| No nose-wheel lift quirk                    | Steering on the take-off run keeps the jet on the ground                                     |
-| Ground effect                               | Less induced drag near the ground: a longer float in the flare                               |
-| Real idle thrust on the ground (taxi speed) | At idle the jet settles near 30 kt, a taxi speed                                             |
-| Falling jets keep their heading             |                                                                                              |
-| No tougher enemies on easy AI levels        |                                                                                              |
-| Locked enemies know who locked them         | An enemy you lock with the radar knows it was you                                            |
-| Stores weight fix                           | Every store counts, in the right units                                                       |
-| Bombs burst at the ground                   |                                                                                              |
-| No collisions with hidden units / wrecks    |                                                                                              |
+| Row                                         | Effect                                                                                                           |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Flight-path hold (neutral stick)            | With the stick centred the jet holds its flight path at every speed                                              |
+| Forces at current AoA / sideslip            | Lift and drag from the jet's actual angle of attack and sideslip                                                 |
+| Air start without jolt                      | The jet starts an air start level and smoothly                                                                   |
+| Air start with engine spooled up            | The engine starts an air start at the throttle's RPM                                                             |
+| Air start trimmed                           | The nose holds steady through the first second of an air start                                                   |
+| Real landing limits (sink, tail strike)     | Touchdown faster than 4 m/s (about 790 ft/min) or a tail strike above 15° nose-up is a crash                     |
+| Realistic spins                             | More realistic spins                                                                                             |
+| F-16 / Lavi deep stall                      | The Lavi can enter the F-16's deep stall (section 4)                                                             |
+| Low-speed lift rate fix                     | Fixes the lift response below about 18 m/s                                                                       |
+| No reversed roll at low speed               | Fixes the roll reversal at walking speed                                                                         |
+| No nose-wheel lift quirk                    | Steering on the take-off run keeps the jet on the ground                                                         |
+| Ground effect                               | Less induced drag near the ground: a longer float in the flare                                                   |
+| Real idle thrust on the ground (taxi speed) | At idle the jet settles near 30 kt, a taxi speed                                                                 |
+| Falling jets keep their heading             | A shot-down jet falls along its own heading (the original turns every falling jet to north)                      |
+| No tougher enemies on easy AI levels        | Rookie and Normal enemies take full damage (the original makes them tougher)                                     |
+| Locked enemies know who locked them         | An enemy you lock with the radar knows it was you                                                                |
+| Stores weight fix                           | Every store counts, in the right units                                                                           |
+| Bombs burst at the ground                   | A bomb bursts where it meets the terrain, with its full blast (the original can burst it up to 70 m underground) |
+| No collisions with hidden units / wrecks    | Hidden units and wrecks whose model has vanished stop being obstacles                                            |
 
 ### Gameplay tab
 
-| Row                                                      | Set to                                  | Why                                                   |
-| -------------------------------------------------------- | --------------------------------------- | ----------------------------------------------------- |
-| Easy landing                                             | off                                     | On (the default) doubles every landing limit          |
-| Easy aiming                                              | off                                     | On makes any seeker target launchable at full quality |
-| No blackouts, No spins, No stalls                        | off                                     |                                                       |
-| Invulnerable, No crashes, Unlimited ammo, Unlimited fuel | off                                     |                                                       |
-| AI level                                                 | Expert, if you want the hardest enemies |                                                       |
+| Row                                                      | Set to                                  | Why                                                    |
+| -------------------------------------------------------- | --------------------------------------- | ------------------------------------------------------ |
+| Easy landing                                             | off                                     | On (the default) doubles every landing limit           |
+| Easy aiming                                              | off                                     | On makes any seeker target launchable at full quality  |
+| No blackouts, No spins, No stalls                        | off                                     | Off keeps g-effects, spins and stalls                  |
+| Invulnerable, No crashes, Unlimited ammo, Unlimited fuel | off                                     | Off keeps damage, crashes and the ammo and fuel limits |
+| AI level                                                 | Expert, if you want the hardest enemies | The level sets the enemies' skill                      |
 
 No wind and No malfunctions are placeholder switches, as in the original.
 
@@ -97,9 +97,9 @@ What that means in the cockpit:
   level.
 - **Climb.** The game's Lavi climbs slower than the published figure (37,400 against over 50,000 ft/min): the thrust and
   drag are fitted to the published top speeds, at the cost of the climb figure.
-- **Speeds the game's own training uses** (the training lessons are the same for every jet): rotate at **145 kt**,
-  downwind at **200 kt** and 2,000 ft above the ground, base and final at **165 kt**, gear down below **300 kt**. The
-  Lavi's flight controls hold it down to about **110 kt**.
+- **Speeds the game's own training uses** (the training lessons are the same for every jet): rotate at **145 kt**
+  (knots), downwind at **200 kt** and 2,000 ft above the ground, base and final at **165 kt**, gear down below
+  **300 kt**. The Lavi's flight controls hold it down to about **110 kt**.
 - **Nose-wheel steering** comes from the rudder pedals. The steering angle is ±32° (the F-16's
   figure, as a stand-in), on the Lavi's 12.66 ft wheelbase.
 
@@ -111,7 +111,7 @@ What that means in the cockpit:
 
 A mission that starts at an airbase puts you on the runway with the gear down, full flaps, the brakes on and the
 throttle at idle. The engine is already running at the lineup point. If you start elsewhere on the base, the first
-throttle key starts it, and the RPM then climbs 15 % per second.
+throttle key starts it, and the RPM (engine speed, in %) then climbs 15 % per second.
 
 ### Take-off
 
@@ -119,8 +119,8 @@ This is the procedure from the game's take-off lesson:
 
 1. Check the gear is down and the flaps are out (**F**).
 2. Release the brakes (**B**).
-3. Throttle to full afterburner: **8** (AB 2). The afterburner lights only after the engine reaches 100 %, about
-   2 s from military power.
+3. Throttle to full afterburner: **8** (AB 2: afterburner stage 2). The afterburner lights only after the engine reaches
+   100 %, about 2 s from military power.
 4. Keep the runway centreline with the rudder (**Numpad 0** / **Decimal**, or the pedals).
 5. At **145 kt**, pull gently back until the flight path marker is above the horizon.
 6. Gear up (**G**) and flaps up (**F**). Keep the gear speed below 300 kt.
@@ -133,8 +133,8 @@ This is the circuit from the game's landing lesson:
 
 1. **Downwind**: 2,000 ft above the ground, **200 kt**, the runway off your wing. Gear down (**G**), flaps out (**F**).
 2. **Base**: throttle 60–80 % (keys **2** to **4**), about 20° of bank, slow to **165 kt**, aim for a 4° approach.
-3. **Final**: **165 kt**. Put the flight path marker on the cross of the ILS lines on the HUD (the localizer and a 4°
-   glide slope).
+3. **Final**: **165 kt**. Put the flight path marker on the cross of the ILS (instrument landing system) lines on the
+   HUD (the localizer and a 4° glide slope).
 4. Over the threshold: throttle to idle (**1**) and bring the flight path marker slowly up to the horizon.
 5. After touchdown: brakes (**B**).
 
@@ -172,9 +172,10 @@ With Real landing limits and Easy landing off, a touchdown faster than **4 m/s (
 The real Lavi had a Hughes wide-angle HUD driven by Elbit's display system. The Real HUD draws **the Lavi's HUD** as
 a reconstruction of a late-1980s wide-angle HUD:
 
-- **Airspeed** (KCAS) in a box on the left, **altitude** in a box on the right. Under the airspeed: Mach, G, the AoA
-  with the gear down, the mode or weapon (`NAV`, `SRM 2`, `MRM 2`, `GUN`, `STRF`, `CCIP`) and **SHOOT**. Under the
-  altitude: the radar altitude **R** below 5,000 ft, then the steerpoint: `WP` number, distance in NM, time to go.
+- **Airspeed** (KCAS, knots calibrated airspeed) in a box on the left, **altitude** in a box on the right. Under the
+  airspeed: Mach, G, the AoA (angle of attack) with the gear down, the mode or weapon (`NAV`, `SRM 2`, `MRM 2`, `GUN`,
+  `STRF`, `CCIP`) and **SHOOT**. Under the altitude: the radar altitude **R** below 5,000 ft, then the steerpoint: `WP`
+  number, distance in NM (nautical miles), time to go.
 - **Heading scale** on top, the heading boxed under it. The **steering bug** (a V above the scale) marks the
   steerpoint's bearing: turn to put it over the centre. When the steerpoint is outside the scale, the bug becomes an
   **arrow at the scale's end** pointing the way to turn, with the bearing written beside it.
@@ -191,9 +192,9 @@ Looking aside (**Shift+arrows**, **F3**), the Lavi's helmet sight shows the orig
 
 ## 6. Radar (EL/M-2035)
 
-With Weapon data = Real the radar detects at **46 km** in LRS and STT (the EL/M-2035 tracks several targets at that
-range). With the original weapon data the Lavi's radar has the game's longest search table: 90 NM in LRS. The left MFD
-shows it.
+With Weapon data = Real the radar detects at **46 km** in LRS (long-range search) and STT (the EL/M-2035 tracks several
+targets at that range). With the original weapon data the Lavi's radar has the game's longest search table: 90 NM in
+LRS. The left MFD (multi-function display) shows it.
 
 | Key                           | Action                                              |
 | ----------------------------- | --------------------------------------------------- |
@@ -207,7 +208,7 @@ shows it.
 | **\\** (hold)                 | Boresight: a ±12° lock cone straight ahead          |
 
 The radar sees targets from 30 m above the ground, in line of sight. Locking a target tells it you locked it (and its
-RWR sounds).
+RWR (radar warning receiver) sounds).
 
 ![The radar page with a locked contact](shots/lavi/mfd_radar_stt.png)
 
@@ -217,12 +218,12 @@ RWR sounds).
 
 The Lavi has three displays: the left one starts on the **radar**, the right one on the **RWR**, the middle one on the
 **TSD** (tactical map). The attitude indicator is an MFD page too (the MENU page's "adi"). **T** brings up the TSD,
-**D** the damage report, **I** the FLIR page (with the pod), **Z** the full-screen weapon MFD, **V** / **PgUp** /
-**PgDn** slide the panel.
+**D** the damage report, **I** the FLIR (forward-looking infrared) page (with the pod), **Z** the full-screen weapon
+MFD, **V** / **PgUp** / **PgDn** slide the panel.
 
-Picking a weapon brings up its page: the stores page for bombs and rockets, the radar for the radar missiles, the
-HARM page for the HARM, the TV page for TV weapons and the FLIR page for laser bombs with the pod. They replace the
-right display.
+Picking a weapon brings up its page: the stores page for bombs and rockets, the radar for the radar missiles, the HARM
+(high-speed anti-radiation missile) page for the HARM, the TV page for TV weapons and the FLIR page for laser bombs with
+the pod. They replace the right display.
 
 ---
 
@@ -232,17 +233,17 @@ right display.
   you the launch warning.
 - **Chaff (Insert)** and **flares (Delete)**: the Lavi carries **120 chaff and 60 flares**. Each press releases one. At
   release, every missile of the decoy's kind launched at you rolls once. Chaff fools a radar missile with 10 % (30 %
-  above 4 g). A flare fools an IR missile with 33 % (50 % above 4 g), **only with the afterburner off**.
-- **ECM (J)**: the Lavi has it built in, like the F-16. Switching it on jams each radar-guided missile already flying at
-  you with a 60 % chance. SAMs keep guiding.
+  above 4 g). A flare fools an IR (infrared) missile with 33 % (50 % above 4 g), **only with the afterburner off**.
+- **ECM (J)** (electronic countermeasures): the Lavi has it built in, like the F-16. Switching it on jams each
+  radar-guided missile already flying at you with a 60 % chance. SAMs (surface-to-air missiles) keep guiding.
 
 ---
 
 ## 9. Weapons
 
-**M** cycles the master mode NAV → A-A → A-G, and **N** returns to NAV. **]** selects the next air-to-air weapon and
-**[** the next air-to-ground one. **Space** fires the selected weapon and **Tab** fires the gun. The weapons are live
-with the gear handle up.
+**M** cycles the master mode NAV → A-A (air-to-air) → A-G (air-to-ground), and **N** returns to NAV. **]** selects the
+next air-to-air weapon and **[** the next air-to-ground one. **Space** fires the selected weapon and **Tab** fires the
+gun. The weapons are live with the gear handle up.
 
 What the Lavi can load on the Arming screen (its own load list; stations 1 and 9 are the wingtips, 5 the centreline):
 
@@ -269,9 +270,9 @@ jet's allowed counts, as the original does.
 The real Lavi had a 30 mm DEFA; the game gives it the 20 mm gun. Its real round count is unpublished, so with Real
 weapon data it keeps the game's gun and count.
 
-- **A-A gun** (**]** to the gun): `GUN`, the **LCOS** reticle on the lead-computed aim point; with a radar lock its
-  range arc runs round the ring (1,000 ft per tick).
-- **A-G gun** (**[** to the gun): **STRF**, a strafe pipper on the predicted impact, with the gun cross.
+- **A-A gun** (**]** to the gun): `GUN`, the **LCOS** (lead-computing optical sight) reticle on the lead-computed aim
+  point; with a radar lock its range arc runs round the ring (1,000 ft per tick).
+- **A-G gun** (**[** to the gun): **STRF** (strafe), a strafe pipper on the predicted impact, with the gun cross.
 
 ![The gun: the LCOS reticle with a locked target](shots/lavi/hud_gun.png)
 
@@ -324,7 +325,8 @@ These need the **FLIR pod** on station 3.
 2. Slew the FLIR camera with **Ctrl+arrows**; release the keys to lock it on the point in the middle. **Numpad +/−**
    zoom.
 3. **L** turns the laser on. The bomb then flies to the FLIR camera's centre point, if that point is within 60° of the
-   bomb's line and on the ground. With the laser off it falls like a normal bomb (CCIP).
+   bomb's line and on the ground. With the laser off it falls like a normal bomb (CCIP, continuously computed impact
+   point).
 4. Release with **Space** as for CCIP.
 
 ![The FLIR page, laser on](shots/lavi/mfd_flir.png)
