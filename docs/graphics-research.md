@@ -166,7 +166,19 @@ Runway markings and lights as decals / meshes at the three bases (real layouts: 
 OSM buildings: ODbL (share-alike on the *database*; a derived 3D-building dataset generated at setup and kept local in
 `assets/` is the safe pattern, like the imagery). The original's object placement must stay (missions place targets).
 
-### 3.13 Detailed weapon and store models — payoff 3, effort M
+### 3.13 Detailed weapon and store models — payoff 3, effort L
+**Goal: DCS-level, as close as we can** (the user's bar). That sets the target per store, not "better than 1998":
+- **geometry**: missiles 8–20 k triangles, bombs / tanks 6–15 k; bevelled edges (no hard CG corners), real
+  details — lugs, fuze, arming wire, umbilical, seeker dome with its glass, fin hinges, nozzle;
+- **materials**: a PBR set per store at 2048² (albedo, normal, occlusion / roughness / metallic), stencils and
+  markings legible at 2 m, light weathering (grime, chipped edges, panel lines) — not a flat painted body;
+- **LODs**: full / ≈ 30 % / ≈ 10 %, then the original as the last;
+- **rendering** (shared with §3.7): the sky's reflections on the bodies, sun shadows in the external views, SSAO
+  where a store meets its pylon (§3.2: worth it once the models are detailed), specular anti-aliasing so thin fins
+  do not shimmer.
+Honest limit: DCS-level stores on the 1998 jets will look pasted on; the full effect comes with the detailed jet
+(§3.7) — the F-16D and its stores are best done together.
+
 Today: the 1998 stores are 117–432 triangles on one shared 256-px atlas (`weapons.png`), 38 folders under
 `objects/weapons/` (bombs, missiles, tanks, pods, the ZUNI box) plus the SAM / Scud rounds under `groundforces/`
 (`sa2lcr` … `sa6lcr`, `scdlcr`) and the MiG-29 tank (`controllableplanes/mig29/mig29ftk_m`). They are seen close in
@@ -194,29 +206,37 @@ already close to real size in the same units (Mk-84 3.93 vs 3.84 m, AIM-9 2.85 v
 F-16 jet 15.01 vs 15.03 m), so the detailed models stay at real size; one more than 10 % off the original's length
 is scaled to it (moving rack slots would be a behaviour change, a separate question).
 
-**Sources: download first, build only the gaps; both committed.** The models are ours or GPL-compatible, not
-original game data, so they are tracked in the repo (`models/stores/<name>.glb` + `models/stores/SOURCES.md`, a few
-MB), not regenerated at setup; nothing about them depends on the install, since the fit happens at load time.
+**Sources: start from FlightGear's shapes, bring them up to the bar ourselves; committed.** The models are ours or
+GPL-compatible, not original game data, so they are tracked in the repo (`models/stores/`, with a `SOURCES.md`),
+not regenerated at setup; nothing about them depends on the install, since the fit happens at load time.
 - **FlightGear F-16** (`github.com/NikolaiVChr/f16`, `Models/Armament/`; `copyright.txt`: "extends to all files in
   this Flightgear F-16 package", GPL-2.0-or-later — compatible with our GPL-3.0-or-later; authors in its
   `authors.txt` → docs/credits.md): MK-82, MK-83, MK-84, AIM-9L / M, AIM-120B, AIM-7F, AGM-65B / D, AGM-88,
   CBU-87, GBU-12 / GBU-24 (stand-ins for the game's laser Mk-82L / Mk-84L), the 300 / 370 / 600 gal tanks,
-  ALQ-131 / ALQ-184 ECM pods, LANTIRN (FLIR pod), LAU-68 (a stand-in for the ZUNI box). AC3D → glTF once with
-  Blender, materials to PBR, textures kept; covers ≈ 18 of our 38 folders, the most-seen ones.
+  ALQ-131 / ALQ-184 ECM pods, LANTIRN (FLIR pod), LAU-68 (a stand-in for the ZUNI box) — ≈ 18 of our 38 folders,
+  the most-seen ones. **Measured**: good shapes (the MK-84 ≈ 4 400 faces) but one 512² colour texture with baked
+  shading and small stencils, no normal / roughness maps (AIM-120B, MK-84: 512²; AIM-9M: 512 × 256) — mid-2000s
+  sim level, not DCS. So they are the starting mesh, not the result.
+- **The upgrade pass** (Blender, a script under `tools/` like `tools/f35i/`, so it can be re-run): AC3D → Blender,
+  fix and bevel the mesh, add the missing details, UV-unwrap at even texel density, bake normal / occlusion from a
+  subdivided high-poly copy, paint the PBR set at 2048² (base colours by real paint schemes, roughness / metal per
+  part, procedural grime and edge wear), redraw the stencils as vector text (the real public markings) so they stay
+  sharp, export glTF with the LODs. The result stays GPL (derived from FlightGear's).
 - **Checked, not usable**: hobby / print packs (CGTrader, Cults3D, 3dcadbrowser: personal use or paid);
   Sketchfab game rips (War Thunder / DCS: rights doubtful); no Smithsonian CC0 scan of these weapons found.
 - **To check next**: FGAddon `MiG-21bis` / `Mig-29` / `MirageIII` stores (AA-2 / AA-8 / AA-10 / AA-11, Shafrir,
-  the Mirage tank) — FGAddon licence per file; the Zaretto F-15 stores (AIM-7 / 9 / 120, tanks) once its licence is
-  cleared (§3.7).
-- **Built by us for the rest** (Israeli, Soviet and old US stores no open model covers: Python 3 / 4, Shafrir 2,
-  Popeye, AGM-62 Walleye, GBU-15, M117, CBU-97, RBK-500, AS-14 / AS-16, AA-6, SA-2 / 3 / 5 / 6, Scud, the F-15 /
-  F-4 / Kfir / MiG-29 tanks): a small Blender script (to be added under `tools/`, like `tools/f35i/`) that makes a
-  lathe body (ogive nose, cylinder, boattail, seeker dome, lugs) plus fin sets (planform, count, roll angle,
-  station) from a table of public dimensions with sources (as docs/real-weapons.md), and paints PBR bands (olive
-  drab, yellow HE band, brown live motor band, white / grey missiles). Its output is committed with the rest; the
-  script stays to rebuild or tune one.
+  the Mirage tank) — FGAddon licence per file; the Zaretto F-15 stores once its licence is cleared (§3.7).
+- **Built by us for the rest** (Python 3 / 4, Shafrir 2, Popeye, AGM-62 Walleye, GBU-15, M117, CBU-97, RBK-500,
+  AS-14 / AS-16, AA-6, SA-2 / 3 / 5 / 6, Scud, the F-15 / F-4 / Kfir / MiG-29 tanks): modelled in Blender from
+  public drawings and photos to the same bar, through the same upgrade pass. A lathe-and-fins script is only the
+  blockout, never the shipped model.
+- **Repo size**: 2048² PBR sets as PNG are ≈ 10–15 MB per store (≈ 0.5 GB for all) — too much for git history.
+  Ship the textures GPU-compressed inside the glb (KTX2 / Basis, `KHR_texture_basisu`: ≈ 1–2 MB per store), or
+  keep `models/` in Git LFS — the user's call before the first commit of models.
 
-2–5 k triangles per store; 20 stores × a few dozen jets is well inside the M4 Pro's budget, and the far LOD caps it.
+Cost: 6–20 k triangles per store × 20 stores × a few dozen jets is a few million triangles at worst, inside the M4 Pro's
+budget with the LODs (most stores are far); textures ≈ 40 × 3 × 2048² compressed (BC7) ≈ 0.5 GB of video memory at
+worst, fewer in a mission (only its loads) — measured on 231 before shipping.
 Not in scope: plumes and motor glow (`mission/trails.gd`), moving fins in flight, aircraft (§3.7).
 
 **Check** (a new Godot test, `test_detailed_models`): with the switch on, every mapped model loads; the store's
@@ -225,7 +245,8 @@ the switch off, `Gltf.object` returns exactly the original.
 
 **Visual check** (the test proves fit, not looks). A comparison sheet per batch, the same shot twice (Models
 Original / Detailed) from the pilot guides' shot runner (`tests/godot/_guide_shots.gd`: an airborne start with a
-`loadout` on the pylons, the external view, `settings` per shot), in the game's own lighting, not a model viewer's:
+`loadout` on the pylons, the external view, `settings` per shot), in the game's own lighting, not a model viewer's, with a third column of a **real photo** at a similar
+angle (US DoD photos are public domain; DCS screenshots only as a private reference, never committed):
 each store close up on the pylon (front quarter, side, below), a launch / drop in flight, a chase at 50 m, and a pass
 at 300–1500 m to catch the switch to the far LOD popping. Assembled into one HTML page (original | detailed side by
 side, as `tools/flight_timeline.py --html`). I look at every picture first for defects a script cannot judge (wrong
@@ -267,7 +288,7 @@ built ones for the rest.
 | 8 | Vegetation near the ground | 4 | L | 1–2 ms | low-level speed sense; after DEM |
 | 9 | Night lighting | 3 | M | small | closes a status gap |
 | 10 | F-15C model + cockpit (after its licence is cleared) | 5 | L | small | second jet |
-| 11 | Detailed weapon / store models (FlightGear GPLv2+ + our own for the gaps; §3.13) | 3 | M | small | close views of every store |
+| 11 | DCS-level weapon / store models (FlightGear GPLv2+ shapes + our PBR pass; §3.13) | 3 | L | small–medium | best done with #4 |
 | — | SSAO / SSIL / SDFGI | 1 now | S | +5 / +12 / +18 ms | nothing to shade over draped terrain; revisit with detailed models |
 | — | Volumetric clouds | 4 | L | 3–6 ms | only with MetalFX |
 
