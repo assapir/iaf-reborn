@@ -59,6 +59,10 @@ func run() -> void:
 	var ft := _texts(f16.outer)
 	check(ft.has("4 MRM") and ft.has("ARM") and ft.has("F15.0") and ft.has("390>") and ft.has("FUEL"),
 		"F-16 MRM: 4 MRM, ARM, F15.0, the DLZ closure, FUEL (%s)" % str(ft))
+	var kfir: Dictionary = rh.frame(field, base.merged({"cockpit": "converted/cockpits/cfir"}))
+	var kt := _texts(kfir.outer)
+	check(kt.has("MSL") and kt.has("D5.0") and kt.has("WP1") and not kt.has("FUEL") and not kt.has("ARM"),
+		"the Kfir draws its own HUD (MSL, D5.0, WP1; no F-16 windows): %s" % str(kt))
 	var lavi: Dictionary = rh.frame(field, base.merged({"cockpit": "converted/cockpits/lavi"}))
 	check(_texts(lavi.outer).has("4 MRM"), "the Lavi draws the F-16's HUD")
 	var k2: Dictionary = rh.frame(field, base.merged({"cockpit": "converted/cockpits/f4-2000"}))

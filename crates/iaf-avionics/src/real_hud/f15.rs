@@ -198,7 +198,7 @@ fn heading(p: &mut Vec<Prim>, f: Field, hdg: f64) {
 
 /// The LCOS reticle: a 50 mr outer ring with 12 ticks, a dashed 25 mr inner circle, the pipper; with a lock the range
 /// arc on the outer ring, 1,000 ft per tick from 12 o'clock.
-fn lcos(p: &mut Vec<Prim>, i: &Input, c: P) {
+pub(super) fn lcos(p: &mut Vec<Prim>, i: &Input, c: P) {
     let (ro, ri) = (i.mr(25.0), i.mr(12.5));
     p.push(Prim::Circle { c, r: ro });
     for k in 0..12 {

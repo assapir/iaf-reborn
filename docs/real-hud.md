@@ -18,7 +18,7 @@ Units: 1 mr (milliradian) = 0.0573°; HUD positions as angles from the boresight
 | F-15A/C (Baz) | `f15` | F-15A/C HUD (no digital boxes) | TO 1F-15A-1 + NADC 1976 [V] |
 | F-4E (Kurnass) | `phantom` | AN/ASG-26 lead-computing optical sight (no HUD) | T.O.-derived [V/SIM] |
 | F-4E 2000 (Kurnass 2000) | `f4-2000` | Kaiser / El-Op wide-angle holographic HUD, Elbit ACE-3; symbology not public | [R] its own (MIL-STD-1787 style) |
-| Kfir C2/C7 | `cfir` | El-Op HUD with Elbit WDNS; symbology not public | [R] |
+| Kfir C2/C7 | `cfir` | El-Op HUD with the Elbit System 82 / WDNS-341; layout not public | modes [S], layout [R] |
 | Mirage IIICJ (Shahak) | `mirage` | CSF 95 gyro gunsight (reflector, no HUD) | CSF 97K manual drawings [V] + IAF books [S] |
 | F-35I (Adir) | `extra/planes/f35i` | Gen III helmet display (no HUD) | LM slides + flight-test video [V] |
 | F-16C/D, F-15C/D helmet (looking aside) | `f16`, `f15` | Elbit DASH III | fielding / optics [S]; symbology from the DASH-derived JHMCS [SIM]; layout [R] |
@@ -148,10 +148,28 @@ the late 1980s, deliberately not the F-16's dash-34 layout:
 
 ## Kfir C2/C7
 
-Sources: Flight International 27 Aug 1983 p. 542 (Elbit System 82 WDNS) [V]; militaryfactory / milavia [S]. El-Op
-HUD driven by the Elbit symbol generator; modes include LCOS and hotline (A-A gun), CCIP and direct / manual
-(A-G), toss; airspeed, altitude, Mach, AoA and armament status shown [S]. **Layout not public**: ours is an
-Elbit / F-16-era reconstruction [R].
+Sources: Flight International 27 Aug 1983 p. 542 (Elbit System 82 WDNS) [V]; Jane's (C7 from mid-1983: HOTAS cockpit,
+WDNS-341 with the Elbit System 82 stores management / release computer) [S]; the System 82 document as quoted in War
+Thunder research threads (modes) and Colombian Air Force Kfir C7 HUD footage (CACOM-1 / Python 3 launch) as described
+there [S]; militaryfactory / milavia [S].
+- **Modes** [S]: A-A gun **LCOS** and **HOTLINE** (also listed: SNAP / SHOOT, unconfirmed); A-G **DIR** (direct / manual),
+  **CCIP**, **TOSS** / DTOSS; waypoint navigation and toss with the Doppler fitted. TV weapons are run from the head-down
+  CRT, not the HUD [S].
+- **Data shown** [S]: airspeed, altitude, Mach, AoA, armament status; a pitch ladder (horizon) is seen in the footage.
+- **Missile cue** [S]: the Python 3 launch footage shows a diamond spinning until it locks, then held on the target.
+- **Gun** [S]: the footage shows the gun's lead indicator (a pipper moving with the lead) and, with the EL/M-2001B
+  ranging radar, the radar gun lead on the target.
+- **Layout not public** [R]. Ours (`real_hud/kfir.rs`, an Elbit early-80s reconstruction): airspeed and Mach as numbers
+  on the left, altitude on the right (no tapes); a 30° heading scale on top with the centre caret and, under it, the
+  **steering bug** at the waypoint's bearing (a triangle, held at the scale's end with an arrow pointing the way when
+  outside it); the waypoint marker on the ground (a circle on a post, X when held at the field's edge); a straight,
+  conformal ladder (no bent bars, no zenith symbol); the flight path marker; g, AoA (gear down), the rounds of the
+  selected store and the mode (NAV / MSL / LCOS / HOTL / STRF / CCIP / TV / ARM) lower left; `D` distance (NM) and
+  `WP` number lower right; the gun cross when armed; the radar ranging box on the target. Gun: LCOS reticle with the
+  range arc (the F-15's) once the radar ranges, else the **hotline** (the bullet stream's path from the gun cross,
+  ticks at 1,000 / 2,000 / 3,000 ft). Missiles: the spinning seeker diamond, held on what it tracks. A-G: the strafe
+  / CCIP pipper, the CCIP fall line from the marker. Not drawn (not public): a shoot cue, toss / DIR cues, the
+  Doppler drift readout.
 
 ## Mirage IIICJ Shahak: CSF 95 gyro sight (no HUD)
 
@@ -226,6 +244,8 @@ JHMCS (its descendant), whose F-16 set is documented in simulator manuals [SIM].
   circle + dot, range scale + IN RNG, breakaway X inside Rmin, LCOS reticle with the range arc, bomb fall line to the
   target square, AoA scale gear down (ours: degrees as units), NAV bank steering bar (ours: 2 px per degree of bearing
   error). Not drawn: the ILS flight-director cross, Mach outside A-A.
+- Kfir: its own layout (§ Kfir C2/C7): numbers for speed / altitude, the heading scale with the steering bug, the
+  waypoint marker, straight ladder, LCOS / hotline, spinning seeker diamond, CCIP pipper and fall line.
 - F-4E / Mirage: the reticles as specified (ours: the reticle rides the LCOS / CCIP pipper).
 - Kurnass 2000: its own reconstruction (`k2000.rs`, the section above): boxes, heading scale with the steering caret,
   ladder and marker, SRM / MRM / LCOS gun / CCIP / strafe symbols, the launch-range scale, SHOOT / FUEL.
@@ -249,6 +269,7 @@ Real-world documents (primary):
 - F-15 and others: [NADC-75267-40 "Head-Up Display Symbology" (1976), DTIC ADA022655](https://archive.org/details/DTIC_ADA022655) — per-aircraft HUD symbology tables and figures.
 - Mirage III: [RAAF AAP 7213.003-1 Mirage IIIO / IIID Flight Manual (1978)](https://aviationarchives.blogspot.com/2023/03/australia-dassault-mirage-iiio-and-iiid.html) ([Avialogs listing](https://www.avialogs.com/aircraft-d/dassault/item/2766-aap-7213003-1-flight-manual-mirage-iiio-and-iiid)) — CSF 97K sight pp. 1-109..1-121, figs. 1-60..1-73.
 - Kfir: [Flight International, 27 Aug 1983, p. 542 "Smart nav/attack system for Kfir"](https://cdnc.heyzine.com/files/uploaded/v3/3c1262af2443f80fe2c7293f1cedb885c62cfe96.pdf) — Elbit System 82 WDNS.
+- Kfir: [Jane's All the World's Aircraft, IAI Kfir](https://janes.migavia.com/?view=article&id=155:kfir) (C7, WDNS-341, System 82); [War Thunder research thread (System 82 modes, Colombian C7 HUD footage)](https://forum.warthunder.com/t/kfir-aircraft-c-1-c-10-blk-60-from-cub-to-lion-discussion-analysis-and-research/285880).
 - F-35: Lockheed Martin "The F-35 Cockpit" slides ([SlideShare](http://www.slideshare.net/robbinlaird/the-f35-cockpit/download); images [mirrored on f-16.net](https://www.f-16.net/forum/viewtopic.php?t=16223&start=180)) — "Virtual HUD Looking Forward", "HMD Looking Behind the Aircraft".
 - F-35: US Navy flight-test helmet-display videos, [The War Zone](https://www.twz.com/12297/navy-presents-new-f-35-helmet-display-videos-and-flight-test-dangers) and [HMS Queen Elizabeth landing](https://www.twz.com/29569/check-out-this-f-35-helmet-display-video-of-a-rolling-landing-on-the-hms-queen-elizabeth).
 - DASH: [Helmet Mounted Sights and Displays (Air Power Australia)](https://www.ausairpower.net/hmd-technology.html) — DASH GEN I–III fielding, 20° FoV, green calligraphic symbology, boxed target / seeker diamond; [Rafael Python 4 (Air Power Australia)](https://www.ausairpower.net/TE-Gen-4-AAM-97.html).

@@ -20,7 +20,7 @@ these has to be switched on.
 | ---------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------- |
 | Flight data            | Real aircraft                     | The Kfir C7 (J79-J1E) numbers: weight, fuel, thrust, wing area, stall, g limits, fuel flow, ceiling |
 | Weapon data            | Real weapons                      | Real missile weights, speeds and ranges, the EL/M-2001B radar range, 2 × 140 DEFA rounds at 2 × 1,300 rounds/min |
-| HUD                    | Real                              | An Elbit HUD; its layout is not public, so ours is an F-16-era reconstruction |
+| HUD                    | Real                              | The Kfir C7's Elbit HUD: its modes from the Elbit System 82, its layout a reconstruction |
 | HUD pitch ladder       | Conformal                         | The ladder lies on the real horizon (only matters with the original HUD)                            |
 | Sky                    | Atmospheric                       | A physical sky with the sun, and haze that takes its colour                                         |
 | Terrain close up       | Detailed                          | Ground detail below about 500 m                                                                     |
@@ -154,12 +154,20 @@ With Real landing limits and Easy landing off, a touchdown faster than **4 m/s (
 ## 5. The Real HUD
 
 The real Kfir C7 has an El-Op HUD driven by the Elbit System 82 weapon delivery system: airspeed, altitude, Mach, AoA
-and armament status, with LCOS and hotline gun modes, CCIP and toss (Flight International 1983). **Its layout is not
-public**: the Real switch draws an Elbit / F-16-era reconstruction, the **F-16's HUD**, so everything in the F-16
-guide's Real HUD section applies (radar altitude box `R`, bank scale, zenith star and nadir earth, SHOOT in the centre
-window, EEGS for the gun, CCIP).
+and armament status, with LCOS and hotline gun modes, CCIP, direct and toss bombing (Flight International 1983). **Its
+layout is not public**, so the Real switch draws a reconstruction in that style, not the F-16's HUD:
 
-![The Real HUD in NAV (an Elbit / F-16-era reconstruction)](shots/cfir/hud_nav.png)
+- **Speed and altitude** as numbers: airspeed with Mach under it on the left, altitude on the right.
+- **Heading** on a scale along the top, read at the centre caret.
+- **Where the next waypoint is**: the **steering bug**, a small triangle under the heading scale at the waypoint's
+  bearing. Turn until it sits under the caret. When the waypoint is more than 15° off, the bug waits at that end of the
+  scale with an **arrow** pointing the way to turn. Over the ground, the **waypoint marker** (a circle on a post) sits
+  on the waypoint itself; when it is outside the HUD it waits at the edge with an X.
+- Lower left: **g**, the rounds of the selected store (or AoA with the gear down) and the **mode** (NAV, MSL, LCOS,
+  HOTL, STRF, CCIP). Lower right: the waypoint's **distance** in NM (`D`) and its number (`WP`).
+- A straight pitch ladder and the flight path marker.
+
+![The Real HUD in NAV: the steering bug on the heading scale points to the waypoint](shots/cfir/hud_nav.png)
 
 ---
 
@@ -231,10 +239,17 @@ nothing to lase they fall like normal bombs (CCIP).
 
 ### Gun (2 × DEFA 553)
 
-With Real data: **280 rounds** (2 × 140), 2 × 1,300 rounds/min, 815 m/s: about 6.5 s of firing. The Real HUD draws the
-F-16's **EEGS** for it (the reconstruction; the real Kfir had LCOS and hotline modes).
+With Real data: **280 rounds** (2 × 140), 2 × 1,300 rounds/min, 815 m/s: about 6.5 s of firing. The Real HUD has the Kfir's two
+gun modes:
 
-![The gun with a locked target](shots/cfir/hud_gun.png)
+- **LCOS** (the radar ranges the target): the lead-computing reticle with its range arc. Put the pipper on the target
+  and fire.
+- **HOTL**, the hotline (no radar range): the bullet stream's path hanging from the gun cross, with ticks at 1,000,
+  2,000 and 3,000 ft. Fly the target onto the line at its range.
+
+![The gun with a locked target: LCOS](shots/cfir/hud_gun.png)
+
+![The gun without a radar range: the hotline](shots/cfir/hud_hotline.png)
 
 ### IR missiles: AIM-9D, AIM-9L, Python 3
 
@@ -247,7 +262,8 @@ F-16's **EEGS** for it (the reconstruction; the real Kfir had LCOS and hotline m
 1. **]** until `SRM`: a growl, then a higher tone when the seeker **locks**.
 2. **With a radar lock** the seeker is slaved to the locked target within its cone off the nose.
 3. Beyond **half** its range the seeker sees only a jet **with its afterburner lit**.
-4. Fire with **Space** when locked; locked and in range the Real HUD shows **SHOOT**.
+4. On the Real HUD the seeker **diamond spins** while it searches and **holds on the target** once it locks. Fire
+   with **Space** when locked (the Kfir's HUD has no separate shoot cue).
 
 The AIM-9D's **rear-aspect** seeker (Real data) gives no tone on a target coming at you or standing still: get behind it.
 
