@@ -7,7 +7,7 @@ sources and the choices per section. To add an *original-format* model (an `.xfr
 
 **Terms**
 - **Type code**: the number that identifies an aircraft type in every per-type table (§1).
-- **bdb**: an object database file (`*.bdb`, converted to `*.bdb.json`); it holds every unit of a mission.
+- **bdb**: an object database file (`*.bdb`, converted to `*.bdb.json`); it defines the object classes (§1).
 - **Descriptor**: a plane's `aircraft.json`, which lists its moving parts, engines, stations and eye point.
 - **FM**: flight model. **AI**: computer-flown aircraft. **SAM**: surface-to-air missile.
 - **RWR**: radar warning receiver. **TSD**: tactical situation display. **HUD**: head-up display.
