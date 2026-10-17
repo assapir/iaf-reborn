@@ -21,7 +21,7 @@ these has to be switched on.
 | ---------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------- |
 | Flight data            | Real aircraft                     | The Mirage IIICJ numbers (Atar 09C): weight, fuel, thrust, wing area, stall speed, fuel flow, ceiling |
 | Weapon data            | Real weapons                      | Real missile weights, speeds and ranges, the Cyrano radar range (27 km), 2 × 125 DEFA rounds |
-| HUD                    | Real                              | The CSF 95 gyro gunsight (the Mirage had no HUD) instead of the 1998 HUD                         |
+| HUD                    | Real                              | The Mirage's CSF 95 gyro gunsight                                                                 |
 | HUD pitch ladder       | Conformal                         | The ladder lies on the real horizon (only matters with the original HUD)                            |
 | Sky                    | Atmospheric                       | A physical sky with the sun, and haze that takes its colour                                         |
 | Terrain close up       | Detailed                          | Ground detail below about 500 m                                                                     |
@@ -36,19 +36,19 @@ Switch on every row:
 
 | Row                                         | Effect                                                                                         |
 | ------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Flight-path hold (neutral stick)            | With the stick centred the jet holds its flight path, instead of slowly climbing at high speed |
-| Forces at current AoA / sideslip            | Lift and drag from the real angle of attack, not the commanded one                             |
-| Air start without jolt                      | No upward jump at an air start                                                                 |
+| Flight-path hold (neutral stick)            | With the stick centred the jet holds its flight path at every speed                           |
+| Forces at current AoA / sideslip            | Lift and drag from the jet's actual angle of attack and sideslip                               |
+| Air start without jolt                      | The jet starts an air start level, without a jump                                              |
 | Air start with engine spooled up            | The engine starts an air start at the throttle's RPM                                           |
-| Air start trimmed                           | The nose does not rise during the first second of an air start                                 |
+| Air start trimmed                           | The nose holds steady through the first second of an air start                                 |
 | Real landing limits (sink, tail strike)     | Touchdown faster than 4 m/s (about 790 ft/min) or a tail strike above 15° nose-up is a crash   |
 | Realistic spins                             | More realistic spins                                                                           |
 | F-16 / Lavi deep stall                      | No effect on the Mirage (no fly-by-wire)                                          |
 | Low-speed lift rate fix                     | Fixes the lift response below about 18 m/s                                                     |
 | No reversed roll at low speed               | Fixes the roll reversal at walking speed                                                       |
-| No nose-wheel lift quirk                    | Steering on the take-off run no longer throws the jet into the air                             |
+| No nose-wheel lift quirk                    | Steering on the take-off run keeps the jet on the ground                                       |
 | Ground effect                               | Less induced drag near the ground: a longer float in the flare                                 |
-| Real idle thrust on the ground (taxi speed) | At idle the jet settles near 30 kt instead of accelerating                                     |
+| Real idle thrust on the ground (taxi speed) | At idle the jet settles near 30 kt, a taxi speed                                               |
 | Falling jets keep their heading             |                                                                                                |
 | No tougher enemies on easy AI levels        |                                                                                                |
 | Locked enemies know who locked them         | An enemy you lock with the radar knows it was you                                              |
@@ -84,11 +84,11 @@ original game flew the Mirage with the Kfir's data, a 20,000 lb jet: its weight 
 | Wing area                                    | 375 ft²                      | 375 ft²                                    |
 | 1 g stall speed, sea level                   | 140 kt                       | approach 170–200 kt ÷ 1.3                  |
 | g limits                                     | +7 / −1                      | +7 / about −3 (uncertain)                  |
-| Max roll rate                                | 150°/s                       | not public; about 150–200°/s               |
+| Max roll rate                                | 150°/s                       | unpublished; about 150–200°/s               |
 | Max speed, sea level                         | 758 kt (Mach 1.15)           | about Mach 1.1–1.14                        |
 | Max speed, 40,000 ft                         | 1,134 kt (Mach 1.98)         | Mach 2.1–2.2 at 39,000 ft                  |
 | Climb at 350 kt, sea level, full afterburner | about 24,900 ft/min          | 16,400 ft/min (average; understated)       |
-| Instantaneous turn, 420 kt at 10,000 ft      | 18.4°/s at 7.0 g             | not public                                 |
+| Instantaneous turn, 420 kt at 10,000 ft      | 18.4°/s at 7.0 g             | unpublished                               |
 | Fuel flow, military / full afterburner       | 9,500 / 26,900 lb/h          | about 9,500 / 26,900–27,700 lb/h           |
 | Service ceiling                              | 55,770 ft                    | 17,000 m (55,770 ft)                       |
 
@@ -129,8 +129,8 @@ it, and the RPM then climbs 15 % per second.
 
 1. **Downwind**: 2,000 ft above the ground, **220 kt**, the runway off your wing. Gear down (**G**).
 2. **Base**: throttle back, about 20° of bank, slow to about **190 kt**, aim for a 4° approach.
-3. **Final**: about **185 kt**. The Mirage has no HUD: line up with the runway through the gunsight and watch the
-   airspeed needle.
+3. **Final**: about **185 kt**. Line up with the runway through the gunsight and watch the airspeed needle on the
+   panel.
 4. Over the threshold: throttle to idle (**1**) and raise the nose gently. The delta lands nose-high: watch the 15°
    tail-strike limit.
 5. After touchdown: brakes (**B**), drag chute (**Shift+B**) if you like the look.
@@ -161,9 +161,9 @@ With Real landing limits and Easy landing off, a touchdown faster than **4 m/s (
 
 ## 5. The gunsight (the Real "HUD")
 
-The Shahak had **no HUD**: a **CSF 95 gyro gunsight**, a reflector sight. With Real HUD on, the game draws only that
-sight, in its lamp's **orange-red**, from the Mirage IIIO flight manual's CSF 97 drawings (the 95 lacks the 97's gyro
-horizon and heading):
+The Shahak's sight is the **CSF 95 gyro gunsight**, a reflector sight. With Real HUD on, the game draws that sight in
+its lamp's **orange-red**, from the Mirage IIIO flight manual's CSF 97 drawings, with the 95's aiming reticle (flight
+data is on the panel's instruments):
 
 - a **fixed cross** 40 mr wide with an inverted V above it;
 - a **moving reticle**: a 2.5 mr pipper dot inside a 50 mr ring of 14 small diamonds, riding the lead-computing (gun)
@@ -215,13 +215,13 @@ button. The attitude indicator is the panel's horizon disc. **T** brings up the 
 
 What the Mirage can load on the Arming screen:
 
-| Store                      | Stations         |
-| -------------------------- | ---------------- |
-| Shafrir 2, AIM-9D          | 3, 4, 6, 7       |
-| MK-82, MK-83               | 3, 4, 5, 6, 7    |
-| MK-84                      | 4, 6             |
-| ZUNNI rockets (×25)        | 3, 4, 6, 7       |
-| Fuel tank, 2,300 lb        | 4, 5, 6          |
+| Store               | Stations      |
+| ------------------- | ------------- |
+| Shafrir 2, AIM-9D   | 3, 4, 6, 7    |
+| MK-82, MK-83        | 3, 4, 5, 6, 7 |
+| MK-84               | 4, 6          |
+| ZUNNI rockets (×25) | 3, 4, 6, 7    |
+| Fuel tank, 2,300 lb | 4, 5, 6       |
 
 ### Guns (2 × DEFA)
 

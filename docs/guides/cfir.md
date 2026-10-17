@@ -35,19 +35,19 @@ Switch on every row:
 
 | Row                                         | Effect                                                                                         |
 | ------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Flight-path hold (neutral stick)            | With the stick centred the jet holds its flight path, instead of slowly climbing at high speed |
-| Forces at current AoA / sideslip            | Lift and drag from the real angle of attack, not the commanded one                             |
-| Air start without jolt                      | No upward jump at an air start                                                                 |
+| Flight-path hold (neutral stick)            | With the stick centred the jet holds its flight path at every speed                           |
+| Forces at current AoA / sideslip            | Lift and drag from the jet's actual angle of attack and sideslip                               |
+| Air start without jolt                      | The jet starts an air start level, without a jump                                              |
 | Air start with engine spooled up            | The engine starts an air start at the throttle's RPM                                           |
-| Air start trimmed                           | The nose does not rise during the first second of an air start                                 |
+| Air start trimmed                           | The nose holds steady through the first second of an air start                                 |
 | Real landing limits (sink, tail strike)     | Touchdown faster than 4 m/s (about 790 ft/min) or a tail strike above 15° nose-up is a crash   |
 | Realistic spins                             | More realistic spins                                                                           |
 | F-16 / Lavi deep stall                      | No effect on the Kfir (it has no fly-by-wire limiter) |
 | Low-speed lift rate fix                     | Fixes the lift response below about 18 m/s                                                     |
 | No reversed roll at low speed               | Fixes the roll reversal at walking speed                                                       |
-| No nose-wheel lift quirk                    | Steering on the take-off run no longer throws the jet into the air                             |
+| No nose-wheel lift quirk                    | Steering on the take-off run keeps the jet on the ground                                       |
 | Ground effect                               | Less induced drag near the ground: a longer float in the flare                                 |
-| Real idle thrust on the ground (taxi speed) | At idle the jet settles near 30 kt instead of accelerating                                     |
+| Real idle thrust on the ground (taxi speed) | At idle the jet settles near 30 kt, a taxi speed                                               |
 | Falling jets keep their heading             |                                                                                                |
 | No tougher enemies on easy AI levels        |                                                                                                |
 | Locked enemies know who locked them         | An enemy you lock with the radar knows it was you                                              |
@@ -84,7 +84,7 @@ test. The original 1998 Kfir weighed 25 % too much and was badly underpowered.
 | Wing area                              | 375 ft²                      | 375 ft²                                                |
 | 1 g stall speed                        | 127 kt (uncertain)           | approach about 160–175 kt (uncertain)                  |
 | g limits                               | +7.5 / −3.5                  | +7.5 / −3.5                                            |
-| Max roll rate                          | 150°/s (the original's)      | not public                                             |
+| Max roll rate                          | 150°/s (the original's)      | unpublished                                           |
 | Max speed, sea level                   | 771 kt                       | about 750 kt (Mach 1.13)                               |
 | Max speed, 40,000 ft                   | 1,139 kt (Mach 1.99)         | Mach 2.0 sustained, Mach 2.3 dash                      |
 | Climb at 350 kt, sea level             | about 27,900 ft/min          | 45,930 ft/min (peak, light)                            |
@@ -154,8 +154,8 @@ With Real landing limits and Easy landing off, a touchdown faster than **4 m/s (
 ## 5. The Real HUD
 
 The real Kfir C7 has an El-Op HUD driven by the Elbit System 82 weapon delivery system: airspeed, altitude, Mach, AoA
-and armament status, with LCOS and hotline gun modes, CCIP, direct and toss bombing (Flight International 1983). **Its
-layout is not public**, so the Real switch draws a reconstruction in that style, not the F-16's HUD:
+and armament status, with LCOS and hotline gun modes, CCIP, direct and toss bombing (Flight International 1983). The
+Real switch draws **the Kfir's HUD as a reconstruction** in that style, from those sources:
 
 - **Speed and altitude** as numbers: airspeed with Mach under it on the left, altitude on the right.
 - **Heading** on a scale along the top, read at the centre caret.
@@ -186,7 +186,7 @@ expect to find targets late, and use the radar mainly to lock and range.
 | **Return** / **Shift+Return** | Next / previous contact (in LRS this locks it: STT) |
 | Click a blip                  | Lock that contact                                   |
 | **Backspace**                 | Drop the lock                                       |
-| **\\** (hold)                | Boresight: a ±12° lock cone straight ahead          |
+| **\\** (hold)                 | Boresight: a ±12° lock cone straight ahead          |
 
 The radar does not see targets lower than 30 m above the ground or behind terrain. Locking a target tells it you
 locked it (and its RWR sounds).
@@ -223,16 +223,16 @@ gear handle down.
 What the Kfir can load on the Arming screen (seven stations: 2 and 8 under the outer wings, 3 and 7 under the inner
 wings, 4, 5, 6 under the fuselage):
 
-| Store                                | Stations                                   |
-| ------------------------------------ | ------------------------------------------ |
-| AIM-9D, AIM-9L, Python 3             | 2, 3, 7, 8                                 |
-| ZUNNI rockets (×25)                  | 3, 4, 6, 7                                 |
-| MK-82                                | 2, 4, 6, 8, and ×6 on 3, 5, 7              |
-| MK-82L laser bomb                    | 3, 4, 5, 6, 7                              |
-| MK-83                                | 5, and ×3 on 3, 7                          |
-| MK-83L, MK-84                        | 3, 5, 7                                    |
-| CBU-87 / CBU-97 (×6)                 | 3, 5, 7                                    |
-| Fuel tank ("2550LB")                 | 3, 5, 7                                    |
+| Store                    | Stations                      |
+| ------------------------ | ----------------------------- |
+| AIM-9D, AIM-9L, Python 3 | 2, 3, 7, 8                    |
+| ZUNNI rockets (×25)      | 3, 4, 6, 7                    |
+| MK-82                    | 2, 4, 6, 8, and ×6 on 3, 5, 7 |
+| MK-82L laser bomb        | 3, 4, 5, 6, 7                 |
+| MK-83                    | 5, and ×3 on 3, 7             |
+| MK-83L, MK-84            | 3, 5, 7                       |
+| CBU-87 / CBU-97 (×6)     | 3, 5, 7                       |
+| Fuel tank ("2550LB")     | 3, 5, 7                       |
 
 The Kfir has no radar missiles, no FLIR pod and no TV or HARM weapons. Its **laser bombs have no designator**: with
 nothing to lase they fall like normal bombs (CCIP).
@@ -253,11 +253,11 @@ gun modes:
 
 ### IR missiles: AIM-9D, AIM-9L, Python 3
 
-| Missile  | Real data                                      |
-| -------- | ---------------------------------------------- |
-| AIM-9D   | 88.5 kg, Mach 2.5, 18 km, rear-aspect, 12 g    |
-| AIM-9L   | 86 kg, Mach 2.5, 35.4 km                       |
-| Python 3 | 120 kg, Mach 3.5, 15 km, 30° off-boresight     |
+| Missile  | Real data                                   |
+| -------- | ------------------------------------------- |
+| AIM-9D   | 88.5 kg, Mach 2.5, 18 km, rear-aspect, 12 g |
+| AIM-9L   | 86 kg, Mach 2.5, 35.4 km                    |
+| Python 3 | 120 kg, Mach 3.5, 15 km, 30° off-boresight  |
 
 1. **]** until `SRM`: a growl, then a higher tone when the seeker **locks**.
 2. **With a radar lock** the seeker is slaved to the locked target within its cone off the nose.

@@ -21,7 +21,7 @@ these has to be switched on.
 | ---------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------- |
 | Flight data            | Real aircraft                     | The Lavi design numbers (PW1120, Jane's 1987-88): weight, fuel, thrust, stall speed, fuel flow, ceiling |
 | Weapon data            | Real weapons                      | Real missile weights, speeds and ranges, the EL/M-2035 radar range (46 km) |
-| HUD                    | Real                              | The Lavi's own wide-angle HUD (its real symbology is not public: a reconstruction)                           |
+| HUD                    | Real                              | The Lavi's own wide-angle HUD (a reconstruction)                                                              |
 | HUD pitch ladder       | Conformal                         | The ladder lies on the real horizon (only matters with the original HUD)                            |
 | Sky                    | Atmospheric                       | A physical sky with the sun, and haze that takes its colour                                         |
 | Terrain close up       | Detailed                          | Ground detail below about 500 m                                                                     |
@@ -34,27 +34,27 @@ A greyed-out imagery choice means its data was not converted (`tools/setup.sh --
 
 Switch on every row:
 
-| Row                                         | Effect                                                                                         |
-| ------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Flight-path hold (neutral stick)            | With the stick centred the jet holds its flight path, instead of slowly climbing at high speed |
-| Forces at current AoA / sideslip            | Lift and drag from the real angle of attack, not the commanded one                             |
-| Air start without jolt                      | No upward jump at an air start                                                                 |
-| Air start with engine spooled up            | The engine starts an air start at the throttle's RPM                                           |
-| Air start trimmed                           | The nose does not rise during the first second of an air start                                 |
-| Real landing limits (sink, tail strike)     | Touchdown faster than 4 m/s (about 790 ft/min) or a tail strike above 15° nose-up is a crash   |
-| Realistic spins                             | More realistic spins                                                                           |
-| F-16 / Lavi deep stall                      | The Lavi can enter the F-16's deep stall (section 4)                                          |
-| Low-speed lift rate fix                     | Fixes the lift response below about 18 m/s                                                     |
-| No reversed roll at low speed               | Fixes the roll reversal at walking speed                                                       |
-| No nose-wheel lift quirk                    | Steering on the take-off run no longer throws the jet into the air                             |
-| Ground effect                               | Less induced drag near the ground: a longer float in the flare                                 |
-| Real idle thrust on the ground (taxi speed) | At idle the jet settles near 30 kt instead of accelerating                                     |
-| Falling jets keep their heading             |                                                                                                |
-| No tougher enemies on easy AI levels        |                                                                                                |
-| Locked enemies know who locked them         | An enemy you lock with the radar knows it was you                                              |
-| Stores weight fix                           | Every store counts, in the right units                                                         |
-| Bombs burst at the ground                   |                                                                                                |
-| No collisions with hidden units / wrecks    |                                                                                                |
+| Row                                         | Effect                                                                                       |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Flight-path hold (neutral stick)            | With the stick centred the jet holds its flight path at every speed                          |
+| Forces at current AoA / sideslip            | Lift and drag from the jet's actual angle of attack and sideslip                             |
+| Air start without jolt                      | The jet starts an air start level, without a jump                                            |
+| Air start with engine spooled up            | The engine starts an air start at the throttle's RPM                                         |
+| Air start trimmed                           | The nose holds steady through the first second of an air start                               |
+| Real landing limits (sink, tail strike)     | Touchdown faster than 4 m/s (about 790 ft/min) or a tail strike above 15° nose-up is a crash |
+| Realistic spins                             | More realistic spins                                                                         |
+| F-16 / Lavi deep stall                      | The Lavi can enter the F-16's deep stall (section 4)                                         |
+| Low-speed lift rate fix                     | Fixes the lift response below about 18 m/s                                                   |
+| No reversed roll at low speed               | Fixes the roll reversal at walking speed                                                     |
+| No nose-wheel lift quirk                    | Steering on the take-off run keeps the jet on the ground                                     |
+| Ground effect                               | Less induced drag near the ground: a longer float in the flare                               |
+| Real idle thrust on the ground (taxi speed) | At idle the jet settles near 30 kt, a taxi speed                                             |
+| Falling jets keep their heading             |                                                                                              |
+| No tougher enemies on easy AI levels        |                                                                                              |
+| Locked enemies know who locked them         | An enemy you lock with the radar knows it was you                                            |
+| Stores weight fix                           | Every store counts, in the right units                                                       |
+| Bombs burst at the ground                   |                                                                                              |
+| No collisions with hidden units / wrecks    |                                                                                              |
 
 ### Gameplay tab
 
@@ -82,8 +82,8 @@ checked by the game's validation test.
 | Thrust, military / full afterburner          | 13,550 / 20,600 lbf             | 13,530–13,550 / 20,585–20,700 lbf (PW1120) |
 | 1 g stall speed, sea level                   | 110 kt                          | 110 kt, the lowest speed flown in the tests |
 | g limits                                     | +9 / −3                         | +9 (design)                                |
-| Max roll rate                                | 220°/s (0 to 90° in 0.82 s)     | not public                                 |
-| Max speed, sea level                         | 769 kt (Mach 1.16)              | not public; about Mach 1.1–1.2             |
+| Max roll rate                                | 220°/s (0 to 90° in 0.82 s)     | unpublished                               |
+| Max speed, sea level                         | 769 kt (Mach 1.16)              | unpublished; about Mach 1.1–1.2             |
 | Max speed, 40,000 ft                         | 1,059 kt (Mach 1.85)            | Mach 1.85 (1,061 kt at 36,000 ft)          |
 | Climb at 350 kt, sea level, full afterburner | about 37,400 ft/min             | over 50,000 ft/min                         |
 | Instantaneous turn, 420 kt at 10,000 ft      | 21.7°/s at 8.1 g                | 23–24.3°/s at Mach 0.8, 15,000 ft          |
@@ -100,8 +100,8 @@ What that means in the cockpit:
   downwind at **200 kt** and 2,000 ft above the ground, base and final at **165 kt**, gear down below **300 kt**. The
   Lavi's flight controls hold it down to about **110 kt**.
 - **No drag chute**: the game's Lavi has none.
-- **Nose-wheel steering** comes from the rudder pedals. The Lavi's steering angle is not public, so the game uses the
-  F-16's ±32°, on the Lavi's 12.66 ft wheelbase.
+- **Nose-wheel steering** comes from the rudder pedals. The steering angle is ±32° (the F-16's
+  figure, as a stand-in), on the Lavi's 12.66 ft wheelbase.
 
 ---
 
@@ -159,8 +159,8 @@ With Real landing limits and Easy landing off, a touchdown faster than **4 m/s (
 - **Deep stall.** With the "F-16 / Lavi deep stall" switch on, the Lavi gets the F-16's departure: zoom nose-high (30°
   or more) until the speed is gone and it hangs at about 60° angle of attack, nose rocking near the horizon, sinking
   fast. Holding the stick forward does **not** recover it. **Recovery**: rock the stick in phase with the nose (pull
-  while it rises, push while it falls) until the nose falls through, then pull out of the dive. The real Lavi's
-  departure behaviour is not public: the game borrows the F-16's.
+  while it rises, push while it falls) until the nose falls through, then pull out of the dive. Its departure
+  behaviour is the F-16's, a stand-in from the closest public data.
 - **Flight-path hold.** With the stick centred the jet holds its flight path.
 - **g-effects.** With No blackouts off, a hard pull greys and blacks out the screen.
 
@@ -168,8 +168,8 @@ With Real landing limits and Easy landing off, a touchdown faster than **4 m/s (
 
 ## 5. The Real HUD
 
-The real Lavi had a Hughes wide-angle HUD driven by Elbit's display system, but its symbology was never published.
-The Real HUD draws its own reconstruction of a late-1980s wide-angle HUD (not the F-16's):
+The real Lavi had a Hughes wide-angle HUD driven by Elbit's display system. The Real HUD draws **the Lavi's HUD** as
+a reconstruction of a late-1980s wide-angle HUD:
 
 - **Airspeed** (KCAS) in a box on the left, **altitude** in a box on the right. Under the airspeed: Mach, G, the AoA
   with the gear down, the mode or weapon (`NAV`, `SRM 2`, `MRM 2`, `GUN`, `STRF`, `CCIP`) and **SHOOT**. Under the
@@ -244,20 +244,20 @@ gear handle down.
 
 What the Lavi can load on the Arming screen (its own load list; stations 1 and 9 are the wingtips, 5 the centreline):
 
-| Store                                    | Stations                       |
-| ---------------------------------------- | ------------------------------ |
-| AIM-9L, Python 4                         | 1, 2, 8, 9                     |
-| AMRAAM                                   | 2, 3, 7, 8                     |
-| MK-82 / MK-83 / M117 (×3), MK-84         | 3, 4, 6, 7 (MK-84 also on 5)   |
-| MK-82L laser bomb                        | 2, 3, 4, 6, 7, 8               |
-| MK-83L / MK-84L laser bombs              | 3, 4, 6, 7                     |
-| ZUNNI rockets (×25)                      | 2, 3, 4, 6, 7, 8               |
-| AGM-65 Maverick (×3)                     | 3, 4, 6, 7                     |
-| AGM-62, GBU-15 (TV)                      | 3, 4, 6, 7                     |
-| Popeye (TV)                              | 4, 6                           |
-| AGM-88 HARM                              | 3, 4, 6, 7                     |
-| FLIR pod                                 | 3                              |
-| Fuel tanks: 2,700 lb / 2,100 lb          | 4, 6 / 5                       |
+| Store                            | Stations                     |
+| -------------------------------- | ---------------------------- |
+| AIM-9L, Python 4                 | 1, 2, 8, 9                   |
+| AMRAAM                           | 2, 3, 7, 8                   |
+| MK-82 / MK-83 / M117 (×3), MK-84 | 3, 4, 6, 7 (MK-84 also on 5) |
+| MK-82L laser bomb                | 2, 3, 4, 6, 7, 8             |
+| MK-83L / MK-84L laser bombs      | 3, 4, 6, 7                   |
+| ZUNNI rockets (×25)              | 2, 3, 4, 6, 7, 8             |
+| AGM-65 Maverick (×3)             | 3, 4, 6, 7                   |
+| AGM-62, GBU-15 (TV)              | 3, 4, 6, 7                   |
+| Popeye (TV)                      | 4, 6                         |
+| AGM-88 HARM                      | 3, 4, 6, 7                   |
+| FLIR pod                         | 3                            |
+| Fuel tanks: 2,700 lb / 2,100 lb  | 4, 6 / 5                     |
 
 On the training missions flown from the Jet list the Arming screen shows the Lavi's stations but keeps the mission
 jet's allowed counts, as the original does.
