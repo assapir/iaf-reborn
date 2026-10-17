@@ -19,6 +19,12 @@ func run() -> void:
 	await frames(3)
 	var st: Dictionary = tv.cockpit.state
 	var r: Dictionary = hud.real_hud()
+	# Directions in / behind the camera plane (head turned 90°+): far off-screen on their side, no engine error.
+	var cam: Camera3D = hud.camera
+	var side: Vector2 = hud._project(cam.global_basis.x)
+	var back: Vector2 = hud._project(cam.global_basis.z)
+	check(side.x > hud.size.x * 2.0 and back.is_finite() and not Rect2(Vector2.ZERO, hud.size).has_point(back),
+			"the camera plane / behind project off-screen (%s, %s)" % [side, back])
 	check(not r.is_empty() and not r.sight and r.outer.size() > 20 and r.field.size() >= 8,
 		"F-16 Real HUD: %d outer, %d field primitives" % [r.get("outer", []).size(), r.get("field", []).size()])
 	var t := _texts(r.get("outer", []))

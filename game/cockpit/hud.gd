@@ -806,6 +806,13 @@ static func ils_lines(dev: Vector2, f: Rect2) -> Vector2:
 
 
 func _project(dir: Vector3) -> Vector2:
+	# A direction in or behind the camera plane (the head turned 90° or more off it) has no projection
+	# (unproject_position errors at the plane, mirrors behind it): far off-screen toward that side.
+	var d := camera.global_basis.orthonormalized().inverse() * dir
+	if d.z > -1e-3:
+		var centre := camera.unproject_position(camera.global_position - camera.global_basis.z * 1000.0) - global_position
+		var side := Vector2(d.x, -d.y)
+		return centre + (side.normalized() if side.length() > 1e-6 else Vector2.DOWN) * size.length() * 4.0
 	return camera.unproject_position(camera.global_position + dir * 1000.0) - global_position
 
 
