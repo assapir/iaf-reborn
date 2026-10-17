@@ -1123,6 +1123,30 @@ func _tone(kind: String) -> void:
 		elif cur != null:
 			host.sounds.stop(cur)
 			set(pair[1], null)
+	_log_seeker()
+
+
+## The flight recorder's "seeker" event (ours, docs/blackbox.schema.json): the tone and the seeker's target when either
+## changes, with the target's distance, angle off the nose and afterburner, so a recording shows why there was
+## no lock tone.
+var _seeker_logged := ""
+
+
+func _log_seeker() -> void:
+	var tone: String = seeker._tone if hud_mode == 1 else ""
+	var key: String = seeker.target_key if tone != "" else ""
+	if "%s|%s" % [tone, key] == _seeker_logged or not host.has_method("blackbox_event"):
+		return
+	_seeker_logged = "%s|%s" % [tone, key]
+	var e := {"event": "seeker", "tone": tone if tone != "" else "off", "weapon": stores.current_name()}
+	var u: Dictionary = seeker.current(_units()) if key != "" else {}
+	if not u.is_empty():
+		var o := own()
+		e["key"] = key
+		e["off_nose_deg"] = snappedf(rad_to_deg(o.fwd.angle_to(u.pos - o.pos)), 0.1)
+		e["afterburner"] = u.afterburner
+		e["slaved"] = seeker.slaved()
+	host.blackbox_event(e)
 
 
 # --- bombs and rockets (docs/weapons.md §9) ----------------------------------------------------------
@@ -1735,8 +1759,14 @@ func update(t: float) -> void:
 	seeker.radar_key = String(radar.locked().get("key", ""))
 	seeker.radar_aa = radar.aa
 	if hud_mode == 1:
+		# FUN_00462460 (vfunc +0x48, the first call of FUN_00461290): every update reads the generation of the store
+		# that fires next (FUN_0053b680), so ']' between IR missiles (Python 4 -> Python 3) changes the cone and R.
+		var fs: int = stores.fire_station()
+		if fs >= 0:
+			seeker.set_weapon(stores.station(fs).get("w", {}))
 		var st: Dictionary = stores.station(stores.cur)
 		seeker.update(now, own(), _units(), int(st.get("w", {}).get("type", 0)), _station_has_rounds())
+		_log_seeker()
 	# The AA gun LCOS (mode 3): the lock's range, else 450 m; out of mode 3 its rate filters restart.
 	if hud_mode == 3 and host.flight != null:
 		var lk: Dictionary = radar.locked()

@@ -379,6 +379,9 @@ Cone and range R per generation of the selected store (`FUN_00462460`), NM = 185
 | 4          | 70°  | 15 NM   |
 
 The cone is the gimbal limit of the radar-slaved and the helmet-slaved seeker (§5.4).
+Every update reads the cone and R again, from the generation of the store that fires next (`FUN_00462460` is
+vfunc +0x48 of the IR mode, the first call of `FUN_00461290`; `FUN_0053b680`). Generation 0 keeps the last values. So
+']' from a Python 4 to a Python 3 shortens R from 15 NM to 10 NM at once.
 
 **Search** (`FUN_00461680`, at most every 0.5 s): the seeker takes the unit whose screen point is nearest the **HUD
 centre** within **6000 px²** (≈ 77 px) and that passes can-track.

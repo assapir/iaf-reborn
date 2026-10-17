@@ -1305,7 +1305,7 @@ So the Hebrew pages use the same rects as §12.3–§12.6.
     origin and every setting, rows 10 per second, events: lift-off, touchdown with its sink rate, crash with its reason,
     autopilot, each mission event fired with its name, each subtitle line, master mode / store changes, and the
     engagement: a unit's lock / unlock, a launch at the jet, each hit with the damage and the system broken, the player's
-    kills, being shot down, and an armed enemy's terrain line of sight gained / lost within its range). The debrief
+    kills, being shot down, an armed enemy's terrain line of sight gained / lost within its range, and the IR missile seeker's tone (seek / lock / off) and target with its distance, angle off the nose and afterburner when either changes). The debrief
     screen's EXPORT FLIGHT DATA (bottom right of the content) saves this flight's file where the player picks.
     `python3 -I tools/flight_timeline.py <file> [--html out.html]` prints the timeline and, per leg of the route, how far
     off the leg and how low the jet flew, and the threats that engaged it.

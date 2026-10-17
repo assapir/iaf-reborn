@@ -74,6 +74,13 @@ def describe(e):
             return f"{who}{weapon} has line of sight to you{dist}"
         case "masked":
             return f"masked from {who}{dist}"
+        case "seeker":
+            if not e.get("key"):
+                return f"IR seeker {e.get('tone')} ({e.get('weapon', '?')}), no target"
+            ab = ", afterburner" if e.get("afterburner") else ""
+            slaved = ", radar-slaved" if e.get("slaved") else ""
+            return (f"IR seeker {e.get('tone')} ({e.get('weapon', '?')}): {who}{dist}, "
+                    f"{e.get('off_nose_deg', 0):.1f}° off the nose{ab}{slaved}")
     return k
 
 
