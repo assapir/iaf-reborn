@@ -1679,7 +1679,8 @@ this section is ported. Test: test_scramble.
 * With the cheat, Jump_In shows up to seven Windows message boxes (`MessageBoxA` type 4, Yes / No). Each has the
   title "Scramble Mission" and the text "Do you want a 401 mission ?" (then 402 … 407; the exe's English strings,
   with a space before the "?"). Yes flies that mission as above. No shows the next box. No to 407 stays on Main.
-  The port draws these in the game's own message box (docs/deviations.md).
+  The port shows the same Yes / No dialogs as the system's native message box (`DisplayServer.dialog_show`),
+  with the exe's English text in both languages (`front_end.gd` `_jump_in`).
 
 **The scramble pick** (`FUN_004f1650`). "Attempted" is the mission's attempt count (`FUN_004f6d70`, the history
 node's +4); "passed" is any attempt with a result > 0 (`FUN_004f6d40`). "Current" is the mission flown last

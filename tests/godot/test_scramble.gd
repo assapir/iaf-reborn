@@ -1,6 +1,6 @@
 # Jump_In on Main (docs/front-end.md §5.4 / §13.11, FUN_004ec770 / FUN_004f1650): the scramble pick from the
 # pilot's history; without the cheat the pick flies straight away (no TSD); with the "make sim" / "not war"
-# cheat the "Scramble Mission" boxes ask for 401 … 407 (No to all stays on Main, Yes flies that one).
+# cheat the native "Scramble Mission" dialogs ask for 401 … 407 (No to all stays on Main, Yes flies that one).
 extends "res://../tests/godot/base.gd"
 
 
@@ -49,22 +49,21 @@ func run() -> void:
 	fe._enter_screen()
 	fe._on_button(fe._key_for_label("Jump_In"))
 	await frames(2)
-	check(fe.msgbox != null and fe.msgbox.text == "Scramble Mission\n\nDo you want a 401 mission ?" \
-		and fe.msgbox.buttons == ["yes", "no"], "cheat: box 'Scramble Mission' / 'Do you want a 401 mission ?', Yes / No")
+	check(fe.scramble_prompt == 401 and fe.msgbox == null, "cheat: the native dialog asks for 401 ('Do you want a 401 mission ?', Yes / No)")
 	for n in range(401, 408):
-		check(fe.msgbox != null and ("%d mission" % n) in fe.msgbox.text, "box asks for %d" % n)
-		fe.msgbox.chosen.emit("no")
+		check(fe.scramble_prompt == n, "the dialog asks for %d" % n)
+		fe._scramble_answer(n, 1)
 		await frames(2)
 	await frames(30)
-	check(fe.msgbox == null and fe.screen == "main" and (current_scene == null or current_scene.name != "TerrainView") and Settings().mission_id == 311,
-		"No to every box stays on Main")
+	check(fe.scramble_prompt == 0 and fe.screen == "main" and (current_scene == null or current_scene.name != "TerrainView") and Settings().mission_id == 311,
+		"No to every dialog stays on Main")
 	fe._on_button(fe._key_for_label("Jump_In"))
 	await frames(2)
-	fe.msgbox.chosen.emit("no")
+	fe._scramble_answer(401, 1)
 	await frames(2)
-	fe.msgbox.chosen.emit("no")
+	fe._scramble_answer(402, 1)
 	await frames(2)
-	fe.msgbox.chosen.emit("yes")
+	fe._scramble_answer(403, 0)
 	await frames(2)
 	check(fe.loading and Settings().mission_id == 403 and Settings().jet_id == -1, "Yes on box 3 loads 403 with the mission's jet (wait.bmp)")
 	await wait_flight()

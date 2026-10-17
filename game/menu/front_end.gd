@@ -1926,17 +1926,33 @@ static func scramble_mission(history: Array, current: int, r: int) -> int:
 
 
 ## Jump_In on Main (FUN_004ec770): the scramble mission of scramble_mission() goes straight into the flight.
-## With the "make sim" / "not war" cheat the exe asks instead, in a Windows message box titled "Scramble
-## Mission", "Do you want a 401 mission ?", then 402 … 407: Yes flies that one, No asks for the next, No to
-## 407 stays on Main.
+## With the "make sim" / "not war" cheat the exe asks instead, in a Windows message box (MessageBoxA, the exe's
+## own English in both languages) titled "Scramble Mission", "Do you want a 401 mission ?", then 402 … 407: Yes
+## flies that one, No asks for the next, No to 407 stays on Main. Ours: the system's native dialog.
+var scramble_prompt := 0  # the mission the open cheat dialog asks for; 0 = none
+
+
 func _jump_in(n := 401) -> void:
 	if not _cheat():
 		_fly_scramble(scramble_mission(history, Settings.mission_id, randi()))
 		return
+	scramble_prompt = 0
 	if n > 407:
 		return
-	var text := "%s\n\n%s" % [_t("Scramble Mission"), _t("Do you want a %d mission ?") % n]
-	_message(-1, [["yes", _fly_scramble.bind(n)], ["no", _jump_in.bind(n + 1)]], text)
+	scramble_prompt = n
+	# Headless (tests) has no dialogs: the test answers through _scramble_answer.
+	if DisplayServer.get_name() != "headless":
+		DisplayServer.dialog_show("Scramble Mission", "Do you want a %d mission ?" % n, PackedStringArray(["Yes", "No"]),
+				func(button: int) -> void: _scramble_answer.call_deferred(n, button))
+
+
+## The cheat dialog's answer: button 0 Yes flies `n`, 1 No asks for the next.
+func _scramble_answer(n: int, button: int) -> void:
+	scramble_prompt = 0
+	if button == 0:
+		_fly_scramble(n)
+	else:
+		_jump_in(n + 1)
 
 
 func _fly_scramble(id: int) -> void:
