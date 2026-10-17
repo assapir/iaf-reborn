@@ -161,6 +161,7 @@ var _landings := 0
 var crashed := false
 const MissionRuntime := preload("res://mission/mission_runtime.gd")
 const Gltf := preload("res://util/gltf.gd")
+const NightLights := preload("res://terrain/night_lights.gd")
 const Terrain := preload("res://terrain/terrain.gd")
 ## Models flatter than this (m) are ground underlays (not drawn, _spawn_mission_objects).
 const UNDERLAY_MAX_HEIGHT := 0.05
@@ -357,6 +358,8 @@ func _update_time_of_day(cam: Camera3D) -> void:
 		sun.sky_mode = DirectionalLight3D.SKY_MODE_LIGHT_ONLY if _tod_sun.night else DirectionalLight3D.SKY_MODE_LIGHT_AND_SKY
 		sun.shadow_enabled = Settings.shadows and _tod_sun.shadows
 		env.ambient_light_energy = float(_tod_sun.ambient) / 0.6
+		if NightLights.detailed():
+			_night_detailed(sun, env, _tod_sun.night)
 		if clouds != null:
 			clouds.set_tint(TimeOfDay.NIGHT_LIGHT if _tod_sun.night else Color.WHITE)
 		var atmo: bool = Settings.sky == "atmospheric" and not _tod_sun.night
@@ -379,6 +382,26 @@ func _update_time_of_day(cam: Camera3D) -> void:
 		mat2.sky_horizon_color = fog
 		mat2.ground_horizon_color = fog
 		mat2.ground_bottom_color = fog
+
+
+## Detailed night lights at night: the moon lights the ground from its spot in the sky, the stars and the moon show,
+## the light points glow at full strength.
+func _night_detailed(sun: DirectionalLight3D, env: Environment, night: bool) -> void:
+	var rows := get_viewport().get_visible_rect().size.y
+	NightLights.set_gain(night, env.fog_density, rows)
+	if _night_sky == null:
+		_night_sky = NightLights.sky()
+		add_child(_night_sky)
+	_night_sky.visible = night
+	for m: MeshInstance3D in _night_sky.get_children():
+		m.material_override.set_shader_parameter("vp_h", rows)
+	if night:
+		sun.basis = Basis.looking_at(-NightLights.moon_dir(), Vector3.UP)
+		sun.light_color = NightLights.MOON_LIGHT
+		env.ambient_light_energy = NightLights.MOON_AMBIENT / 0.6
+
+
+var _night_sky: Node3D
 
 
 ## The cameras start in the cockpit (`--external`: chase; `--orbit yaw pitch dist`: the chase camera's orbit
@@ -685,6 +708,10 @@ func _spawn_mission_objects() -> void:
 	runtime = preload("res://mission/mission_runtime.gd").new()
 	add_child(runtime)
 	runtime.setup(self, files, bdb, player_entity_id)
+	# Test pose: --hour H starts the mission at H o'clock (the start time misc 0x460).
+	var hour := OS.get_cmdline_user_args().find("--hour")
+	if hour >= 0:
+		runtime.misc["0x460"] = float(OS.get_cmdline_user_args()[hour + 1]) * 3600.0
 	# AI aircraft (docs/ai.md): brain-controlled jets fly the flight model under their autopilot.
 	if ClassDB.class_exists("IafFlight"):
 		ClassDB.class_call_static("IafFlight", "ap_reset_hangars")
@@ -698,6 +725,7 @@ func _spawn_mission_objects() -> void:
 	_voice = AudioStreamPlayer.new()
 	_voice.bus = "IafSpeech"  # speech volume (docs/sound.md §2)
 	add_child(_voice)
+	var underlays := []
 	for ent in runtime.entities.values():
 		if ent.player or ent.has("pilot"):
 			continue
@@ -722,7 +750,11 @@ func _spawn_mission_objects() -> void:
 		# Flat ground models (the airbases' runway / taxiway / apron underlays, ul_rw*.x) are not
 		# drawn: the terrain's inset imagery already shows the airbase (user decision, docs/deviations.md).
 		# At the Present scale they register with it. The unit stays for the mission logic.
-		if box.size.y < UNDERLAY_MAX_HEIGHT:
+		# LT_ models are light sets (FUN_0041ee60 flag 0x4): points at every hour (FUN_0041ac40), flat ones included.
+		if NightLights.is_light_set(path):
+			NightLights.dress(node, get_viewport().get_visible_rect().size.y)
+			ent["light_set"] = true
+		elif box.size.y < UNDERLAY_MAX_HEIGHT:
 			ent["drawn"] = false
 			node.visible = false
 		ent["coll_radius"] = 0.25 * (box.size.x + box.size.y + box.size.z)
@@ -734,7 +766,29 @@ func _spawn_mission_objects() -> void:
 		if VehicleParts.has_radar(ent.rig) or VehicleParts.rotor_count(ent.rig) > 0:
 			_dishes.append(ent)
 		mission_entity_moved(ent)
+		if not ent.get("drawn", true):
+			underlays.append([node, path, ent])
+	for u in underlays:
+		_add_base_lights(u[0], u[1], u[2])
 	runtime.start()
+
+
+## Detailed night lights: a home airbase's runway model gets its light set at night (NightLights.BASE_LIGHTS), on
+## the same spot, heading and scale, when the mission places none there (214 places lt_dvd_h itself).
+func _add_base_lights(underlay: Node3D, path: String, ent: Dictionary) -> void:
+	var b = NightLights.BASE_LIGHTS.get(path.get_file())
+	var spot := Vector2(ent.world.x, ent.world.y)
+	if b == null or not NightLights.detailed() or not TimeOfDay.sun(time_of_day()).night or spot.distance_to(b[1]) > 200.0 \
+			or runtime.entities.values().any(func(e): return e.get("light_set", false) and Vector2(e.world.x, e.world.y).distance_to(spot) < 200.0):
+		return
+	var model = Gltf.object(b[0])
+	if model == null:
+		return
+	var lights: Node3D = Gltf.instance(model)
+	lights.name = "BaseLights"
+	NightLights.dress(lights, get_viewport().get_visible_rect().size.y)
+	underlay.add_sibling(lights)
+	lights.transform = underlay.transform
 
 
 ## OBJECT DETAIL's LOD switch (FUN_0040bd20 thresholds, FUN_00412c60 @412de1): the model's size on screen
@@ -1042,7 +1096,7 @@ func _burned_copy(node: Node3D, p: float, max_extent: float) -> void:
 					cols[i] = Color.WHITE
 			arr[Mesh.ARRAY_VERTEX] = verts
 			arr[Mesh.ARRAY_COLOR] = cols
-			out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+			out.add_surface_from_arrays(mi.mesh.surface_get_primitive_type(si), arr)
 			var mat = mi.get_active_material(si)
 			if mat is BaseMaterial3D:
 				mat = mat.duplicate()

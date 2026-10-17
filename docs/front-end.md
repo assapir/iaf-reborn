@@ -807,7 +807,7 @@ message `0x55c` to the frame with wParam = the target screen and lParam = the bu
 **iaf-reborn:** built (`tsd.gd` `_on_link` case 5 / `_target_unit`, `model_view.gd` `setup_target`).
 * It is a SubViewport with its own terrain streaming around the camera (origin at the object).
 * It shows the mission's placed units within 6 km: the flight's models, Present scales and headings; underlays
-  hidden; ground units snapped to the terrain.
+  hidden; `LT_` light sets as points; ground units snapped to the terrain.
 * It renders live, every frame.
 * tests/godot/test_briefing_links.gd looks up every target file (over 100) in its mission. It prints the known
   misses and still passes.
@@ -1293,7 +1293,7 @@ So the Hebrew pages use the same rects as §12.3–§12.6.
     data (Original (1998) / Real aircraft), Weapon data (Original (1998) / Real weapons), Language (English / Hebrew;
     Hebrew only when the pack is installed), Flight info (Ctrl+F12) show / hide, Blackbox, HUD pitch ladder
     (Original / Conformal), HUD (Original (1998) / Real), All keys on the Keyboard page, Window (framed / full screen),
-    Anti-aliasing (MSAA 4x / + FXAA / TAA), Terrain close up, Sky, Upscaling (Native / Quality / Balanced) (docs/rendering.md), F-35I replaces (Off / one of the
+    Anti-aliasing (MSAA 4x / + FXAA / TAA), Terrain close up, Sky, Upscaling (Native / Quality / Balanced), Night lights (Original / Detailed) (docs/rendering.md), F-35I replaces (Off / one of the
     seven jets, docs/f35i.md), HARM targets (Original / RWR, docs/deviations.md §2), Imagery Israel, Imagery outside Israel
     (docs/imagery.md; layers not converted are greyed out), Settings file (Export / Import: a native file dialog;
     Export writes the working copy as a settings.cfg, Import stores and saves the file's settings at once). 8 rows shown, with the Keyboard page's scrollbar beyond;

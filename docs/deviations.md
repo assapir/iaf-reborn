@@ -43,7 +43,7 @@ Each row: Original = the 1998 game; Ours = this port, for everyone.
 | Sounds | DirectSound 3-D | Godot 3-D audio with the DirectSound distance rule; a busy voice channel queues | queue vs replace not traced | sound.md |
 | Text and art | GDI text, 8-bit art | smooth text, 4× Lanczos art (never AI upscaling) | rendering (user decision) | — |
 | HUD sprite font | the 5×5 pixel font drawn as pixels (FUN_00525890) | each glyph's lit pixels joined by antialiased strokes at screen resolution (same shapes) | at a non-integer scale the pixels came out uneven | hud.gd `_sprite` |
-| Airbase underlay models (ul_rw*: runways, taxiways, aprons) | drawn over the terrain (how is not traced) | not drawn (the units stay for the mission logic) | the terrain's inset imagery already shows the airbase; drawn, they z-fought with it and did not register with it before the Present scale (0x65e, ×2) was ported; at that scale they do — user decision, **to revisit** | terrain_view.gd `_spawn_mission_objects` |
+| Airbase underlay models (ul_rw*: runways, taxiways, aprons) | drawn over the terrain as pre-lit decals: file name `UL_`, depth write off, vertex colour 0xFFDCDCDC by day and 0xFF1E1E41 at night (`FUN_0041ee60`, `FUN_0041ac40`, `FUN_0041d0c0`; rendering.md §4) | not drawn (the units stay for the mission logic) | the terrain's inset imagery already shows the airbase; drawn, they z-fought with it and did not register with it before the Present scale (0x65e, ×2) was ported; at that scale they do — user decision, **to revisit** | terrain_view.gd `_spawn_mission_objects` |
 | Model textures | 8-bit textures as the 1998 renderer sampled them | mipmaps + anisotropic filtering on every runtime-loaded model texture | without mipmaps distant models shimmer | util/gltf.gd `open` |
 | Ground preload | the mission loads behind the progress bar after Fly | the ground around the chosen flight leader's start also loads in the background while the TSD / briefing / Arming screens are open | Fly starts almost at once | terrain_preload.gd, front_end.gd |
 | OBJECT DETAIL LOD | `_h` / `_m` / `_l` by the projected size on the view depth (F = 640 px / tan(fov/2)), every root object | the same switch distances on the camera distance (visibility ranges), for the mission units; jets keep `_h` | Godot LOD by distance; jets' switching not traced | terrain_view.gd `_add_lods` |
@@ -183,6 +183,13 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     other drivers).
   - The cockpit, HUD and MFDs stay at the window's resolution.
   - It frees GPU time for heavier effects. Balanced turns one-pixel 3D lines into dots.
+- **Night lights** (ours, docs/rendering.md §5). Rendering only; the default is Original.
+  - Original: the original's light points, the `LT_` light sets drawn as one-pixel points (rendering.md §4).
+  - Detailed: the light points glow. The home airbases (Ramat David, Ramon, Tel Nof) get their original light set at
+    a night start. Every jet carries red / green / white navigation lights and a white strobe. The night sky has
+    stars and a moon.
+  - Detailed moonlight: colour (0.20, 0.23, 0.33) from azimuth 140°, elevation 38°, ambient 0.3. The original's
+    night light is (20, 20, 60) / 255 straight down with ambient 0.2.
 - **Terrain imagery** (ours, docs/imagery.md): one row per region (Israel / outside Israel), default "Original".
   - Original: the 1998 ground texture everywhere.
   - Ours, with a converted modern layer (Sentinel-2 10 m outside Israel, Survey of Israel 2015 2 m in Israel at

@@ -8,6 +8,7 @@
 extends Control
 
 const Gltf := preload("res://util/gltf.gd")
+const NightLights := preload("res://terrain/night_lights.gd")
 ## Clear colour bytes c9 e4 e4 (FUN_00407ee0; RGB(201,228,228) taken, UNCERTAIN vs its BGR swap).
 const CLEAR := Color8(201, 228, 228)
 const SCALE := 10.0
@@ -120,8 +121,11 @@ func setup_target(front_end: Control, world: Vector3, units: Array) -> void:
 		if model == null:
 			continue
 		var node := Gltf.instance(model)
-		# The airbases' flat underlays are not drawn (the imagery shows the base, terrain_view.gd UNDERLAY_MAX_HEIGHT).
-		if Gltf.model_aabb(node, Gltf.MESH_SPACE).size.y * float(u.scale) < 0.05:
+		# LT_ light sets draw as points (night_lights.gd); the airbases' flat underlays are hidden (the imagery shows the
+		# base, terrain_view.gd UNDERLAY_MAX_HEIGHT).
+		if NightLights.is_light_set(u.path):
+			NightLights.dress(node, float(_vp.size.y))
+		elif Gltf.model_aabb(node, Gltf.MESH_SPACE).size.y * float(u.scale) < 0.05:
 			node.free()
 			continue
 		var p := Vector3(u.world.x - world.x, u.world.z, -(u.world.y - world.y))

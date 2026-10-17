@@ -274,12 +274,15 @@ process cycles every mode 12 times, so load from other processes hits every mode
 - Balanced breaks a one-pixel 3D line (a seam on the fin) into dots, and fin edges step a little more. Quality
   keeps the line whole, so Quality is the choice for looks.
 
-### 3.11 Night lighting — payoff 3, effort M
-- **Open gap:** docs/status.md "Cockpit / MFDs: night lighting". The panel night shifts are known (`[PANEL]` Night
-  R/G/B, docs/cockpit.md).
-- **Beyond the original:** runway and airbase lights (sparse OmniLight3D, or emissive point sprites — cheap), city
-  lights from the imagery's built-up classes (WorldCover), and the moon.
-- Godot 4.7's `AreaLight3D` exists (not needed).
+### 3.11 Night lighting — payoff 3, effort M — **done**
+Built (docs/rendering.md §4–§5, `game/terrain/night_lights.gd`, `tests/godot/test_night_lights.gd`):
+- **Fidelity fix (default):** the original's `LT_` light sets (airbase, Damascus, chimney and boat lights;
+  `FUN_0041ee60` flag 0x4, drawn as a point list by `FUN_0041ac40`) draw as one-pixel points at every hour. The
+  cockpit's night darkening was already in (docs/cockpit.md).
+- **Extras → Night lights = Detailed:** glowing light points (point sprites), the home airbases' original light sets
+  at night, navigation lights and a strobe on every jet, stars, a moon and moonlight.
+- Cost: +3 to +6 draw calls (about 2 per jet in view), ≈ 5 000 points; the frame time change is below the noise.
+- Next: city lights from the imagery's built-up classes (WorldCover); the panel's floodlight in the 3D cockpit (#5).
 
 ### 3.12 Runway / airbase detail, buildings (OSM) — payoff 3, effort L
 - **Runways:** markings and lights as decals / meshes at the three bases (real layouts: docs/roadmap.md "More
@@ -436,7 +439,7 @@ The options of §3, ranked by payoff for effort.
 | 6 | GPU particle effects + heat haze | 3 | M | ~0.5 ms | combat looks modern |
 | 7 | Modern DEM (Copernicus 30 m) | 4 | L | small | real relief; mission impact → opt-in |
 | 8 | Vegetation near the ground | 4 | L | 1–2 ms | low-level speed sense; after DEM |
-| 9 | Night lighting | 3 | M | small | closes a status gap |
+| 9 | Night lighting — **done** | 3 | M | +3–6 draw calls (≈ 2 per jet) | original light points; Extras glows, base / jet lights, stars, moon |
 | 10 | F-15C model + cockpit (after its licence is cleared) | 5 | L | small | second jet |
 | 11 | DCS-level weapon / store models (FlightGear GPLv2+ shapes + our PBR pass; §3.13) | 3 | L | small–medium | best done with #4 |
 | — | SSAO / SSIL / SDFGI | 1 now | S | +5 / +12 / +18 ms | nothing to shade over draped terrain; revisit with detailed models |

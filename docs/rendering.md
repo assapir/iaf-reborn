@@ -11,8 +11,8 @@ This doc lists the rendering options of the flight scene, what each one sets, an
 
 Code: `game/terrain/render_options.gd` (applied by `terrain_view.gd apply_render_options()` at the start of a flight
 and when the in-flight Preferences close), `terrain/terrain.gdshader`, `terrain/atmosphere.gdshader`,
-`terrain/cloud_layer.gd`. Tests: `tests/godot/test_graphics_prefs.gd` (switches → render settings, save / load),
-`test_ui_smoke.gd` (Extras rows in EN / HE).
+`terrain/cloud_layer.gd`, `terrain/night_lights.gd`. Tests: `tests/godot/test_graphics_prefs.gd` (switches → render
+settings, save / load), `test_ui_smoke.gd` (Extras rows in EN / HE), `test_night_lights.gd` (§4 light points, §5).
 
 ## 1. Options
 
@@ -25,6 +25,7 @@ TAA = temporal anti-aliasing.
 | Terrain close up | Original / Detailed | 16× anisotropic filtering (default 4×) for the grazing view of the ground, and in `terrain.gdshader` detail that follows the imagery, with a weight k fading from 1 at 300 m to 0 at 1.5 km (§1.1) |
 | Sky | Original / Atmospheric | Original: our gradient sky (ProceduralSkyMaterial) with the fixed fog colour. Atmospheric: `atmosphere.gdshader`, a clear-day sky computed from the sun's direction and the camera's altitude. The fog takes its colour from the sky (`fog_aerial_perspective` 1, `fog_sun_scatter` 0.1) and keeps its density (the original's fog distances). The cloud layer shows separate clouds (§1.2). Glow / bloom is off (it cost 3 ms) |
 | Upscaling | Native / Quality / Balanced | the 3D scene's render scale: Native 1.0; Quality 0.77; Balanced 0.67 of the window. A spatial upscaler scales it up: MetalFX spatial on Metal, FSR 1 on other drivers (`render_options.gd upscale_mode()`). The Anti-aliasing row still applies. The 2D cockpit, HUD and MFDs are canvas items, drawn after the upscale at the window's resolution. Godot lowers the texture mip bias by log2(scale). Saves 0.6 ms (Quality) / 1.4 ms (Balanced) at 4K today, 4.6 / 6.3 ms with SSAO + SSIL; Balanced breaks one-pixel 3D lines into dots (docs/graphics-research.md §3.10) |
+| Night lights | Original / Detailed | Original: the original's light points (§4). Detailed: glowing lights, the home airbases lit at night, the jets' navigation lights and strobe, stars, a moon and moonlight (§5) |
 
 ### 1.1 Terrain close up
 
@@ -212,10 +213,60 @@ starts at night; missions 112, 237 and 515 start at 05:xx, which is dawn.
 - **Fog** colour is set per frame (render state FOGCOLOR, `FUN_0040bd90`). Its density (6.0) stays the same at night.
 - **Terrain** is pre-lit with the light colour (at night × (20, 20, 60)). The **sky** is a gradient quad: zenith the
   tcs sky colour, horizon the fog colour (`FUN_00419a20` / `FUN_004195f0`). Medium certainty.
-- **Objects**: `FUN_0041d0c0` ("updateUnlitedObjectsColors") recolours the pre-lit models of flag 0x11 (UNCERTAIN
-  which) to 0xFF1E1E41 at night and 0xFFDCDCDC by day. The light and ambient light the others. No stars, moon, runway
-  / navigation lights or night glow exist.
+- **Objects**: the model loader `FUN_0041ee60` flags a model by the first three letters of its file name: `UL_`
+  sets object flag 0x1, `LT_` sets 0x4. The draw call `FUN_0041ac40` sets the render states per model:
+  - `UL_` models (flat decals: the runway underlays `ul_rw*`, `ul_dipuns`, `ul_cloud3d`, `ul_crater`) draw as
+    pre-lit vertices with depth write off. `FUN_0041d0c0` ("updateUnlitedObjectsColors") sets their vertex colour
+    (flag mask 0x11) to 0xFF1E1E41 at night and 0xFFDCDCDC by day. The port hides these flat models
+    (docs/deviations.md §1); the colour applies only to them.
+  - Every other model is lit by the light and the ambient.
+- **Light points** (`LT_` models, flag 0x4): `FUN_0041ac40` draws them as a point list (D3D FILLMODE POINT,
+  DrawPrimitive POINTLIST of pre-lit vertices). Each vertex is one pixel in its material's colour, with depth test
+  on, depth write off and fog. They draw at every hour. The sets:
+
+  | model | what | placed by |
+  |---|---|---|
+  | `lt_dvd_h`, `lt_rmn_h`, `lt_tnf_h` | runway, taxiway and threshold lights of Ramat David, Ramon, Tel Nof (on their `ul_rw*` spot) | `lt_dvd_h` in 214 (base mission `bmisrdvdn`) |
+  | `lt_dsk_h`, `lt_dsk01`–`04` | Damascus's streets and districts | 214 |
+  | `lt_chmny` | the power plant's two chimneys | 214 |
+  | `lt_ossa` | a missile boat's navigation lights | 125 |
+
+  In 214 ("Damascus Blackout") each Damascus set and chimney has a script Wait, then Vanish (Visible off): the city
+  goes dark. These lights are the original's only night lights; its night sky is the gradient.
+  Port: `terrain_view.gd _spawn_mission_objects` turns every `LT_` model into points (`night_lights.gd to_points`):
+  one point per vertex in its surface's colour, unshaded, depth write off, fogged, `round(rows / 480)` pixels wide
+  (one pixel of the 640 × 480 screen). The TSD target window (`model_view.gd setup_target`, docs/front-end.md §10) draws them the same way.
 - **Update rate**: on the Stream path the light, night flag and sky change only when the time moved > 60 s.
 - **Gameplay**: none (no sensor reads the night flag). The tower greets by hour (`FUN_00551c20`: < 12 morning, 12–16
   afternoon, 17–21 evening, ≥ 22 morning, a quirk). The time option labels Noon / Dawn / Sunset / Night = 12:00 /
   06:00 / 19:00 / 22:00.
+
+## 5. Night lights, Detailed (built: game/terrain/night_lights.gd)
+
+Preferences → Extras → **Night lights = Detailed** (ours, docs/deviations.md §2). It aims at a modern night look at
+a small cost. The parts:
+
+1. **Glowing light points.** The `LT_` sets draw with a glow shader: a bright core and a soft halo. The glow is 4 m
+   wide in the world, kept between 2.5 and 28 pixels at 1080 rows. It fades with the fog, and it stands 1.5 m above
+   its spot, so the ground between the spots leaves it whole. By day the glow is at 35 %.
+2. **Home airbases lit at night.** At a night start, a runway model on its home spot (`ul_rwramon`, `ul_rwtelnof`,
+   `ul_rwdavid`, `night_lights.gd BASE_LIGHTS`) gets its base's light set (`lt_rmn_h`, `lt_tnf_h`, `lt_dvd_h`). The
+   set takes the runway model's spot, heading and scale, as in base mission `bmisrdvdn`. The sets are the
+   original's art and match the runway edges in the imagery.
+3. **Navigation lights and strobe on every jet** (`aircraft_model.gd`): red on the left wingtip, green on the right,
+   white at the tail, and a white strobe on top of the fin. It flashes for 0.08 s every 1.2 s, each jet at its own
+   phase. The spots are the model's EndWing helpers and its outermost vertices (cached per model).
+4. **Night sky.** 2600 stars (a fixed random sky, brighter ones rarer) and a moon disc drawn at the far plane. The
+   cloud layer draws over them.
+5. **Moonlight.** At night the sun light comes from the moon (azimuth 140°, elevation 38°), colour (0.20, 0.23,
+   0.33), ambient factor 0.3. The original's night light is (20, 20, 60) / 255 straight down, ambient 0.2.
+
+Cost: +3 to +6 draw calls, about 2 per jet in view plus the sky, and ≈ 5 000 points (`tests/godot/_flight_bench.gd`
+with `BENCH_SET=night_lights=detailed`: mission 311 at 22:00 +3, mission 214 +6). The frame time change is below the
+run-to-run noise on the M4 Pro. Screenshots: `tests/godot/_night_shot.gd` (cockpit and
+external, Original and Detailed, with the frame rate).
+
+Metal notes (Godot 4.7.2): in a spatial shader's `vertex()`, `VIEWPORT_SIZE` reads 0 and the projection is
+Y-flipped. The shaders get the viewport rows as a uniform and take the focal length as
+`abs(PROJECTION_MATRIX[1][1])`. `POINT_SIZE` and `POINT_COORD` work.
+

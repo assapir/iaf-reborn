@@ -56,7 +56,8 @@ STBY / STT / BORE / LRS / TWS / ACM / GMT / MAP are the radar modes (docs/radar.
 - Left: the demo video (H.264).
 
 **3. Missions and general fixes:** the mission sweep (`tools/mission_sweep.sh`), the remaining small bugs below,
-Jump In, the Reference screen, night lighting.
+Jump In, the Reference screen, ~~night lighting~~ (done: the
+original's light points and cockpit darkening, Extras Night lights; docs/rendering.md §4–§5).
 
 **PARKED (docs/roadmap.md):** imagery: SPOT 5 outside Israel, 1:1 world scale, better AI, cheats, sea level west of
 Suez, extra sounds, multiplayer, setup wizard + launcher, modern aircraft / weapons, Pi 5 profile.
@@ -129,7 +130,7 @@ Checked against the code on 2026-10-14 (each doc's own "not built" notes have th
 - **Damage**: splash / ring explosions on water (flags 0x20000 / 0x40000) draw nothing; per-hit score and feedback, the
   brain's reaction to a hit (`FUN_0043ff50`), effect 0x18, the second explosion of a falling unit; RWR network
   messages.
-- **Cockpit / MFDs**: night lighting; the U key (RWR page, MFD screen 7).
+- **Cockpit / MFDs**: the U key (RWR page, MFD screen 7).
 - **Controls**: joystick untested on real hardware (first joypad only: no separate throttle / pedals; no force
   feedback); unhandled commands: cheat keys (Shift+S / D / R / F, Ctrl+W), SysRQ screenshot, I-mode, chat; FlyTSD Fly
   into another jet / Visit / live unit positions (docs/views.md).

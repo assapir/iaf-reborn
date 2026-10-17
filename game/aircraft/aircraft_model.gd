@@ -11,6 +11,8 @@
 # nearer the model origin toward the farther one, by +θ in our Z-mirrored glTF space.
 extends Node3D
 
+const NightLights := preload("res://terrain/night_lights.gd")
+
 ## Ramp limits (rad) and rates (rad/s), constructor FUN_005ba430 / FUN_005a5820.
 const FLAPS_MAX := 0.29275  # 16.8°
 const F16_FLAPS_FACTOR := 0.33  # event 6 on the F-16 (type 100)
@@ -188,6 +190,14 @@ func setup(gltf_scene: Node3D, descriptor: Dictionary, type := -1, on_ground := 
 	for k in ramps:
 		_targets[k] = ramps[k]
 	_apply()
+	# Ours (Extras > Night lights = Detailed): navigation lights and a strobe (after _apply: the chute is hidden).
+	if NightLights.detailed():
+		_strobe = NightLights.add_nav_lights(self)
+		_strobe_phase = randf() * NightLights.STROBE_PERIOD
+
+
+var _strobe: Node3D
+var _strobe_phase := 0.0
 
 
 ## Drives the parts. `input` (all optional, like the flight state dictionary):
@@ -248,6 +258,8 @@ func update(input: Dictionary, delta: float) -> void:
 		_chute_angle = randf_range(-CHUTE_JITTER, CHUTE_JITTER)
 		_chute_t = _time
 	_chute_state = chute
+	if _strobe != null:
+		_strobe.visible = NightLights.strobe_on(_time, _strobe_phase)
 	# Afterburner level (FUN_005abc90 left / FUN_005abdc0 right): 75 + 12.5·stage when lit and that side's
 	# afterburner damage flag (8 / 9) is clear, else RPM·100·0.74 (never drawn).
 	var stage: int = input.get("afterburner", 0)

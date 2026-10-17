@@ -3,7 +3,7 @@
 # model stopped. Per leg: frames per second, frame time average / 95th percentile / worst, the main-thread process
 # time, the GPU time, draw calls, primitives and the terrain nodes drawn.
 #   IAF_DEFAULT_SETTINGS=1 godot --path game --resolution 1920x1080 -s ../tests/godot/_flight_bench.gd
-# BENCH_LEGS=alt:speed:secs,... (default 150:250:20,1500:250:20,6000:300:20). BENCH_BEST=1: the best graphics (every
+# BENCH_MISSION=id flies another mission's start. BENCH_LEGS=alt:speed:secs,... (default 150:250:20,1500:250:20,6000:300:20). BENCH_BEST=1: the best graphics (every
 # Graphics slider / switch up, MSAA 4× + FXAA, terrain close up, atmospheric sky, the modern imagery layers where
 # converted: mapi2015 in Israel, sentinel2 outside). BENCH_OFF=a,b: switch parts off to
 # see their cost: terrain (streaming), terrain_draw (the nodes hidden), cockpit, runtime, ai, weapons, effects, trails,
@@ -30,7 +30,7 @@ func run() -> void:
 		var p := kv.split("=")
 		var cur = Settings().get(p[0])
 		Settings().set(p[0], (p[1] == "true") if cur is bool else (float(p[1]) if cur is float else p[1]))
-	var tv = await start_mission(311)
+	var tv = await start_mission(int(OS.get_environment("BENCH_MISSION")) if OS.get_environment("BENCH_MISSION") != "" else 311)
 	tv.apply_render_options()
 	print("layers: ", tv.terrain.layers)
 	tv.frozen = true
