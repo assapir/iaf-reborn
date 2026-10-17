@@ -839,13 +839,15 @@ func _text_fit(box: Rect2, text: String, px: float, color: Color, f: Font = null
 	_text_line(box, text, p, color, f)
 
 
-## Word-wrapped block from the top (DT_WORDBREAK).
-func _text_block(box: Rect2, text: String, px: float, color: Color) -> void:
+## Word-wrapped block from the top (DT_WORDBREAK); returns the wrapped text's height in page pixels.
+func _text_block(box: Rect2, text: String, px: float, color: Color, f: Font = null) -> float:
+	f = f if f != null else font
 	var r := _rect(box)
 	var fs := int(round(px * _scale()))
 	var align := HORIZONTAL_ALIGNMENT_RIGHT if _he() else HORIZONTAL_ALIGNMENT_LEFT
-	var lines := maxi(1, int(r.size.y / font.get_height(fs)) + 1)
-	draw_multiline_string(font, r.position + Vector2(0, font.get_ascent(fs)), text, align, r.size.x, fs, lines, color)
+	var lines := maxi(1, int(r.size.y / f.get_height(fs)) + 1)
+	draw_multiline_string(f, r.position + Vector2(0, f.get_ascent(fs)), text, align, r.size.x, fs, lines, color)
+	return f.get_multiline_string_size(text, align, r.size.x, fs, lines).y / _scale()
 
 
 ## Preferences page (§12.1): the page's _0 art, every control that is on copied from _1, sliders
@@ -1940,8 +1942,9 @@ func _draw_debrief() -> void:
 	_blit("screens/sgeneral.png", CONTENT.position)
 	var d: Dictionary = Settings.debrief
 	var box := Rect2(CONTENT.position + Vector2(20, 20), CONTENT.size - Vector2(40, 40))
-	_text_line(Rect2(box.position, Vector2(box.size.x, 16)), String(d.get("headline", "")), LIST_TITLE_PX, LIST_TITLE, font_bold)
-	_text_block(Rect2(box.position + Vector2(0, 30), box.size - Vector2(0, 60)), String(d.get("notes", "")), LIST_DESC_PX + 1, LIST_DESC_LIT)
+	# The headline wraps (the long ones, e.g. 313's success text, are wider than the box); the notes follow it.
+	var h := _text_block(box, String(d.get("headline", "")), LIST_TITLE_PX, LIST_TITLE, font_bold)
+	_text_block(Rect2(box.position + Vector2(0, h + 14), box.size - Vector2(0, h + 44)), String(d.get("notes", "")), LIST_DESC_PX + 1, LIST_DESC_LIT)
 	if FileAccess.file_exists(Settings.blackbox_file):
 		_text_fit(Rect2(CONTENT.position + DEB_EXPORT.position, DEB_EXPORT.size), _art("Export flight data"), LIST_TITLE_PX, LIST_TITLE, font_art)
 

@@ -75,3 +75,9 @@ The menus, HUD, radio messages and speech stay English.
 The instructor and radio subtitles come from the object database (`default6_1.bdb` Audio records). They exist only
 in English; the Hebrew packs translate menus and briefings only. Decided (user): keep the original English subtitles
 in Hebrew mode.
+
+## Debrief texts
+
+The debrief headline and notes come from each mission file (`resource/missions/*.mis`: misc `0x47e` passed /
+`0x492` failed, and the debrief records). The Hebrew packs cover `resource/menu` and `resource/brief`, so the
+debrief text is English in both languages. In Hebrew mode the debrief screen right-aligns that English text.
