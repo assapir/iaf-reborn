@@ -210,7 +210,7 @@ MB), not regenerated at setup; nothing about them depends on the install, since 
   cleared (§3.7).
 - **Built by us for the rest** (Israeli, Soviet and old US stores no open model covers: Python 3 / 4, Shafrir 2,
   Popeye, AGM-62 Walleye, GBU-15, M117, CBU-97, RBK-500, AS-14 / AS-16, AA-6, SA-2 / 3 / 5 / 6, Scud, the F-15 /
-  F-4 / Kfir / MiG-29 tanks): a small Blender script (`tools/stores/build.py`, like `tools/f35i/`) that makes a
+  F-4 / Kfir / MiG-29 tanks): a small Blender script (to be added under `tools/`, like `tools/f35i/`) that makes a
   lathe body (ogive nose, cylinder, boattail, seeker dome, lugs) plus fin sets (planform, count, roll angle,
   station) from a table of public dimensions with sources (as docs/real-weapons.md), and paints PBR bands (olive
   drab, yellow HE band, brown live motor band, white / grey missiles). Its output is committed with the rest; the
