@@ -145,10 +145,9 @@ or padlock (**F3**) the seeker takes the target you look at, inside the missile'
 | Python 4 | 120 kg, Mach 3.5, 15 km, 60° off the nose |
 
 **Example**: the MiG is 1,500 m ahead and holds still, so the closure is your own 486 kt (`490>`). Against it the
-Python 4's zone runs from 1.08 km to 1.93 km: the caret sits between the two ticks at the bottom of the 10 NM scale,
-and **SHOOT** shows under the mode. At 3,000 m the same MiG lies beyond the 1.93 km maximum and SHOOT stays off: close
-in, or take the AIM-9L, whose zone against it reaches 38 km. Beyond half its range the seeker sees a jet with its
-afterburner lit.
+Python 4's zone runs from 1.08 km to 12.9 km: the caret sits just above the lower tick at the bottom of the 10 NM
+scale, the upper tick at 7 NM, and **SHOOT** shows under the mode. Closer than 1.08 km SHOOT goes off. Beyond half
+its range the seeker sees a jet with its afterburner lit.
 
 ---
 
@@ -164,7 +163,7 @@ search), or click its blip), **]** until `MRM`, **Space** to fire.
 3. **Launch circle**: it grows as you close from the maximum toward the minimum range.
 4. **SHOOT**: the dot is inside the circle and the range is inside the zone.
 5. **Mode**: two MRMs left.
-6. **Scale top**: 80 NM here.
+6. **Scale top**: 40 NM here.
 7. **Maximum range** tick against this target.
 8. **Minimum range** tick.
 9. **Range caret** with the closure (`490>`).
@@ -173,7 +172,7 @@ Real data: the AMRAAM (AIM-120A/B) weighs 157 kg, flies at Mach 4 out to 70 km, 
 after the launch.
 
 **Example**: lock the MiG-23 at 8 NM (14.8 km). Against this still target the zone runs from 2.2 km (1.2 NM, the
-lower tick) to 84 km (45 NM, the upper tick, halfway up the 80 NM scale). The caret at 8 NM sits low, a little above
+lower tick) to 67.3 km (36 NM, the upper tick, near the top of the 40 NM scale). The caret at 8 NM sits low, a little above
 the minimum: well inside, so the circle is near its largest. The dot is in the circle and **SHOOT** shows: fire.
 
 ---

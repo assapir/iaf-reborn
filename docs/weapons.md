@@ -859,6 +859,8 @@ the nose (acos ≥ π/2, 0x84162c) or min > max. Example, AMRAAM generation 3 (a
 head-on at 250 m/s against a 250 m/s target: **max 55.7 km, min 2.15 km**. The cockpit keeps the selected store's DLZ
 at the radar's target in S+0x348 (max) / S+0x350 (min) every frame while the radar has a lock / TWS selection or the
 HARM sensor a target (`FUN_00456520`), else the last values.
+With Weapon data Real the maximum comes from the distance the missile really flies instead (ours,
+docs/real-weapons.md §2); the Original data keeps this rule.
 
 ### 11.3 MRM HUD sight (mode 2, `FUN_00460ea0`; HARM mode 8 `FUN_00460a90`; base `FUN_00462ab0`, `crates/iaf-avionics/src/sight.rs`)
 - **Target** (vfunc +0x28): the radar's A-A lock or TWS selection (mode 8: the HARM sensor's selected target);

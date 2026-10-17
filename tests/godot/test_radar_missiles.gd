@@ -47,8 +47,21 @@ func run() -> void:
 	var real = load("res://weapons/weapon_db.gd").create(bdb, true)
 	var am: Dictionary = real.by_id(8)
 	var mot: Dictionary = am.motion
-	check(absf(am.weight_lb * 0.45359 - 157.0) < 0.01 and absf(120.0 / mot._spiralAccelBeta - 4.0 * 340.3) < 0.1
-		and absf((mot.burn + 6.0) * 4.0 * 340.3 - 70000.0) < 1.0, "Real AMRAAM: 157 kg, Mach 4, 70 km")
+	# The distance flown from a 250 m/s launch in the flight's burn + 6 s (ChaseMotion::travelled).
+	var v := 120.0 / float(mot._spiralAccelBeta)
+	var t := float(mot.burn) + 6.0
+	var flown := v * t + (250.0 - v) * (1.0 - exp(-float(mot._spiralAccelBeta) * t)) / float(mot._spiralAccelBeta)
+	check(absf(am.weight_lb * 0.45359 - 157.0) < 0.01 and absf(v - 4.0 * 340.3) < 0.1 and absf(flown - 70000.0) < 1.0,
+		"Real AMRAAM: 157 kg, Mach 4, flies 70 km from 250 m/s")
+	# Real AIM-7B (7 km): its zone against a still target is not empty (was: burn 2.2 s, max below min).
+	for id in real.weapons:
+		var w: Dictionary = real.weapons[id]
+		if w.name == "AIM-7B":
+			var m7: Dictionary = real.motion_for(int(w.type), int(w.generation)).merged(w.motion, true)
+			var z: Array = load("res://weapons/missile.gd").dlz(m7, {"pos": Vector3.ZERO, "fwd": Vector3(0, 1, 0),
+				"vel": Vector3(0, 250, 0)}, {"pos": Vector3(0, 5000, 0), "vel": Vector3.ZERO})
+			check(z.size() == 2 and z[0] > z[1] and absf(z[0] - 5660.0) < 300.0,
+				"Real AIM-7B DLZ against a still target: %s m (about 5.7 km)" % str(z))
 
 
 ## One jet: the loadout gets the radar missile on stations 0 / 8, a MiG is put 8 km ahead and locked.

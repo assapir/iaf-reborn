@@ -39,8 +39,11 @@ func run() -> void:
 	var real = Db.create(bdb, true)
 	check(absf(real.by_id(11).weight_lb * 0.45359 - 86.0) < 0.01, "Weapon data Real: AIM-9L 86 kg")
 	var m9: Dictionary = real.by_id(11).motion
-	check(absf(100.0 / m9._spiralAccelBeta - 2.5 * 340.3) < 0.1 and absf((m9.burn + 6.0) * 2.5 * 340.3 - 35400.0) < 1.0,
-		"Real AIM-9L chase: top speed Mach 2.5, range 35.4 km")
+	check(absf(100.0 / m9._spiralAccelBeta - 2.5 * 340.3) < 0.1 and absf(travelled(100.0, m9._spiralAccelBeta, m9.burn + 6.0) - 35400.0) < 1.0,
+		"Real AIM-9L chase: top speed Mach 2.5, flies 35.4 km from 250 m/s")
+	var dlz: Array = load("res://weapons/missile.gd").dlz(real.motion_for(570, 3).merged(m9, true),
+		{"pos": Vector3.ZERO, "fwd": Vector3(0, 1, 0), "vel": Vector3(0, 250, 0)}, {"pos": Vector3(0, 5000, 0), "vel": Vector3.ZERO})
+	check(dlz[0] > 30000.0 and dlz[0] < 35400.0, "Real AIM-9L DLZ against a still target: %.0f m (the flight less 2 s)" % dlz[0])
 	var by_name := {}
 	for id in real.weapons:
 		by_name[real.weapons[id].name] = real.weapons[id]
@@ -250,3 +253,9 @@ func _drawn(w) -> int:
 			if node.visible:
 				n += 1
 	return n
+
+
+## The distance the Real chase motion flies in t s from a 250 m/s launch (ChaseMotion::travelled).
+static func travelled(a: float, beta: float, t: float) -> float:
+	var v := a / beta
+	return v * t + (250.0 - v) * (1.0 - exp(-beta * t)) / beta

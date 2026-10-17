@@ -83,8 +83,20 @@ Each real value lands in one field or rule of the original model:
   Real keeps a, because there is no public g limit, and sets β = a / (Mach · 340.3 m/s, sea level). AIM-9L:
   100 / 851 = 0.1175 (orig. 0.08 → 1250 m/s). A record without a public speed (AGM-65) keeps its a / β; only the
   range sets its burn.
-- **Range:** the flight ends burn + 6 s after launch, for every homing weapon (docs/weapons.md §11). Real sets
-  burn = range / top speed − 6 (≥ 1 s): AIM-9L 35.6 s (orig. 16), Python 3 / 4 6.6 s, Shafrir 2 1 s (flight 7 s).
+- **Range:** the flight ends burn + 6 s after launch, for every homing weapon (docs/weapons.md §11). The motor pushes
+  a − β·v for the whole flight, so the missile starts at the launch speed and only approaches its top speed V = a / β.
+  The distance it flies in t seconds from speed s is V·t + (s − V)·(1 − e^(−βt)) / β (`ChaseMotion::travelled`).
+  Real sets the burn so that this distance, from a 250 m/s launch, equals the published range (`real_burn`, at
+  least 1 s): AIM-9L 41.6 s (orig. 16), Python 3 14.3 s, Python 4 12.6 s, Shafrir 2 3.7 s, AIM-7B 7.7 s,
+  AMRAAM 54.6 s.
+- **Launch zone (DLZ):** the original's maximum, flown(|V| − away, burn − 2) (docs/weapons.md §11.2), is a quadratic
+  tuned for the 1998 records. With the Real top speeds and burns it is wrong both ways: it gave the Python 3 / 4 about
+  1.8 km against a still target and the AIM-7B and Shafrir 2 no zone at all, and it gave the AIM-9L and AMRAAM more
+  range than the missile flies. With Real the maximum is the distance the missile really flies over its flight less
+  the original's 2 s margin, minus the target's travel away from you in that time: travelled(|V|, burn + 4) −
+  away·(burn + 4). The minimum keeps the original rule. Against a still target from 250 m/s: AIM-9D 16.3 km, AIM-9L
+  33.7 km, Python 3 13.0 km, Python 4 12.9 km, Shafrir 2 3.7 km, AIM-7B 5.7 km, AIM-7M / AMRAAM 67.3 km. The AI's
+  launch range uses the same zone.
 - **Rear-aspect** (ours; the original tracks from any aspect): the seeker can track only when the target's velocity
   points away from the launcher (v · line of sight > 0). A head-on or a stationary target gives no tone.
 - **Seeker cone:** replaces the per-generation cone. This is the half-angle used when the seeker is slaved to a radar
@@ -97,9 +109,10 @@ Each real value lands in one field or rule of the original model:
 ## 3. Validation
 | test | checks |
 |---|---|
-| `tests/godot/test_weapons.gd` | AIM-9L 86 kg; F-16 511 rounds shown; one M61A1 tick = 20 rounds; the derived chase values (stored in the record's `motion`): AIM-9L top speed a/β = 851 m/s = Mach 2.5, flight time (burn + 6 s) × top speed = 35.4 km; the AIM-9D / Python 4 flags; the AIM-9D seeker refuses a head-on target (the AIM-9L accepts it); the AIM-9D 12 g clamp |
+| `tests/godot/test_weapons.gd` | AIM-9L 86 kg; F-16 511 rounds shown; one M61A1 tick = 20 rounds; the derived chase values (stored in the record's `motion`): AIM-9L top speed a/β = 851 m/s = Mach 2.5, the distance flown in burn + 6 s from 250 m/s = 35.4 km; its DLZ against a still target between 30 and 35.4 km; the AIM-9D / Python 4 flags; the AIM-9D seeker refuses a head-on target (the AIM-9L accepts it); the AIM-9D 12 g clamp |
 | `tests/godot/test_radar.gd` | the F-16's 80 km |
-| `tests/godot/test_radar_missiles.gd` | the AMRAAM's 157 kg, a/β = Mach 4 and (burn + 6 s) × top speed = 70 km |
+| `tests/godot/test_radar_missiles.gd` | the AMRAAM's 157 kg, a/β = Mach 4 and the distance flown in burn + 6 s from 250 m/s = 70 km; the AIM-7B's DLZ against a still target about 5.7 km (not empty) |
+| `crates/iaf-avionics/src/missile.rs` `dlz_per_missile_original_and_real` | the original DLZ of each air-to-air missile; with Real: the burn flies the published range, the zone is not empty, a launch at its maximum reaches a still target and none flies past 1.05 × its range |
 
 ## Sources
 1. designation-systems.net, "Raytheon AIM-9 Sidewinder", https://www.designation-systems.net/dusrm/m-9.html (AIM-9D

@@ -6,8 +6,8 @@
 # - weight: bdb 0x758 (pounds) = kg / 0.45359.
 # - IR missile top speed: the chase motion's steady speed is absAcceleration / spiralAccelBeta
 #   (docs/weapons.md §5.3), so beta = a / (Mach · 340.3 m/s); a is kept (no public g limit).
-# - IR missile range: the flight ends burn + 6 s after launch, so burn = range / top speed − 6
-#   (at least 1 s).
+# - missile range: the flight ends burn + 6 s after launch; the burn is the one with which the
+#   motion flies the range from a 250 m/s launch (IafMissile.real_burn, at least 1 s).
 # - gun: rounds per jet (station count, shown 1:1), rate of fire (rounds used per 0.2 s shot tick)
 #   and muzzle velocity (the round's velocityJump).
 extends RefCounted
@@ -15,9 +15,6 @@ extends RefCounted
 const LB_PER_KG := 1.0 / 0.45359
 ## Speed of sound at sea level (ISA), m/s.
 const MACH_M_S := 340.3
-## The chase motion flies burn + 6 s (0x60ce98).
-const END_AFTER_BURN := 6.0
-
 ## bdb weapon name -> {kg, mach, range_km} and, where sourced, rear (rear-aspect seeker only), max_g
 ## (turn limit) and cone_deg (seeker off-boresight half-angle). Sources in docs/real-weapons.md.
 const MISSILES := {
@@ -78,7 +75,10 @@ static func apply(db: RefCounted) -> void:
 			var m: Dictionary = db.motion_for(int(w.type), int(w.generation))
 			var a := float(m.get("_absAcceleration", 100.0))
 			var v := float(r.mach) * MACH_M_S if r.has("mach") else a / float(m.get("_spiralAccelBeta", 0.08))
-			w["motion"] = {"_spiralAccelBeta": a / v, "burn": maxf(float(r.range_km) * 1000.0 / v - END_AFTER_BURN, 1.0)}
+			var mo: Dictionary = m.duplicate()
+			mo["_spiralAccelBeta"] = a / v
+			w["motion"] = {"_spiralAccelBeta": a / v,
+				"burn": ClassDB.class_call_static("IafMissile", "real_burn", mo, float(r.range_km) * 1000.0)}
 			for k in ["rear", "max_g", "cone_deg"]:
 				if r.has(k):
 					w["real_" + k] = r[k]

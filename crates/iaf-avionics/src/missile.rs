@@ -31,6 +31,8 @@ const MIN_LAUNCH_SPEED: f64 = 5.0;
 /// in tCO + 2 s (0x60ce80 = −2), 1 s without a target.
 const DLZ_BURN_CUT: f64 = 2.0;
 const DLZ_MIN_EXTRA: f64 = 2.0;
+/// Weapon data Real: the launch speed at which the motion flies the published range (m/s, ≈ Mach 0.75).
+pub const REAL_LAUNCH_SPEED: f64 = 250.0;
 /// Without terrain the ground is at 0.1 m.
 const NO_TERRAIN_Z: f64 = 0.1;
 const G: f64 = 9.80665;
@@ -70,6 +72,9 @@ pub struct ChaseMotion {
     /// row of the attitude matrix: the drop off the rail).
     pub release_time: f64,
     pub release_accel: f64,
+    /// Weapon data Real (ours, docs/real-weapons.md §2): the DLZ max is the distance the motion really flies
+    /// (`travelled`) instead of the original's `flown`, which is tuned for the 1998 records.
+    pub real: bool,
 }
 
 impl ChaseMotion {
@@ -78,13 +83,37 @@ impl ChaseMotion {
         (s - (self.accel - self.beta * self.accel * 4.0) * t * -0.5) * t
     }
 
+    /// The distance the motion really flies straight ahead in `t` seconds from speed `s` (ours): the motor pushes
+    /// a − β·v until the flight ends, so the speed tends to the top speed V = a / β and the distance is
+    /// V·t + (s − V)·(1 − e^(−βt)) / β (with β = 0: s·t + ½·a·t²).
+    pub fn travelled(&self, s: f64, t: f64) -> f64 {
+        let t = t.max(0.0);
+        if self.beta <= 0.0 {
+            return s * t + 0.5 * self.accel * t * t;
+        }
+        let v = self.accel / self.beta;
+        v * t + (s - v) * (1.0 - (-self.beta * t).exp()) / self.beta
+    }
+
+    /// Weapon data Real: the burn with which the motion flies `range` metres from `REAL_LAUNCH_SPEED` before its
+    /// flight ends (burn + 6 s), at least 1 s.
+    pub fn real_burn(&self, range: f64) -> f64 {
+        let (mut lo, mut hi) = (0.0, 600.0);
+        for _ in 0..60 {
+            let t = 0.5 * (lo + hi);
+            if self.travelled(REAL_LAUNCH_SPEED, t) < range { lo = t } else { hi = t }
+        }
+        (hi - END_AFTER_BURN).max(1.0)
+    }
+
     /// The DLZ (vfunc +0x74, `FUN_005624f0`) from `launcher` at `target`. Without a target: [flown(burn),
     /// flown(1 s)]. With one: max = flown(|V| − the target's speed away, burn − 2), min = flown(|V|, tCO + 2); none
     /// when the target is 90° or more off the nose (acos ≥ π/2, 0x84162c), min > max, or it sits on the launcher.
     pub fn dlz(&self, launcher: &Launcher, target: Option<&Kinematics>) -> Dlz {
         let s = launcher.vel.length();
         let Some(target) = target else {
-            return Dlz { max: self.flown(s, self.burn), min: self.flown(s, 1.0) };
+            let max = if self.real { self.travelled(s, self.real_dlz_time()) } else { self.flown(s, self.burn) };
+            return Dlz { max, min: self.flown(s, 1.0) };
         };
         let d = target.pos - launcher.pos;
         let r = d.length();
@@ -92,9 +121,19 @@ impl ChaseMotion {
             return Dlz::NONE;
         }
         let away = d.dot(target.vel) / r;
-        let max = self.flown(s - away, self.burn - DLZ_BURN_CUT);
+        let max = if self.real {
+            let t = self.real_dlz_time();
+            self.travelled(s, t) - away * t
+        } else {
+            self.flown(s - away, self.burn - DLZ_BURN_CUT)
+        };
         let min = self.flown(s, self.t_co + DLZ_MIN_EXTRA);
         if min > max { Dlz::NONE } else { Dlz { max, min } }
+    }
+
+    /// Weapon data Real: the DLZ max looks at the whole flight (burn + 6 s) less the original's 2 s margin.
+    fn real_dlz_time(&self) -> f64 {
+        self.burn + END_AFTER_BURN - DLZ_BURN_CUT
     }
 }
 
@@ -387,6 +426,7 @@ mod tests {
             high_angle_turn: false,
             release_time: 0.0,
             release_accel: 0.0,
+            real: false,
         }
     }
 
@@ -444,5 +484,68 @@ mod tests {
         let (a, b) = (Vec3::ZERO, Vec3::new(0.0, 100.0, 0.0));
         assert_eq!(closest_on_segment(Vec3::new(5.0, 50.0, 0.0), a, b), Vec3::new(0.0, 50.0, 0.0));
         assert_eq!(closest_on_segment(Vec3::new(5.0, -50.0, 0.0), a, b), Vec3::new(5.0, -50.0, 0.0), "behind a: p");
+    }
+
+    /// The air-to-air chase records (weapons.ibx: a, β, tAcc + tConstVel + tDecel, tCO, release time) and the Real
+    /// data (Mach, km; game/weapons/real_weapons.gd) with the original DLZ against a still target from 250 m/s
+    /// straight ahead (max, min km).
+    const AA: &[(&str, f64, f64, f64, f64, f64, Option<(f64, f64)>, (f64, f64))] = &[
+        ("AIM-9D", 150.0, 0.08, 10.0, 2.0, 0.0, Some((2.5, 18.0)), (5.264, 1.816)),
+        ("AIM-9L", 100.0, 0.08, 16.0, 2.0, 0.0, Some((2.5, 35.4)), (10.164, 1.544)),
+        ("PYTH-3", 100.0, 0.08, 16.0, 2.0, 0.0, Some((3.5, 15.0)), (10.164, 1.544)),
+        ("PYTH-4", 140.0, 0.08, 22.0, 1.0, 0.0, Some((3.5, 15.0)), (24.04, 1.178)),
+        ("SHFR 2", 150.0, 0.08, 10.0, 2.0, 0.0, Some((2.1, 5.0)), (5.264, 1.816)),
+        ("AA-8", 150.0, 0.08, 13.0, 2.0, 0.0, None, (8.921, 1.816)),
+        ("AMRAAM", 120.0, 0.1, 35.0, 3.0, 0.3, Some((4.0, 70.0)), (47.454, 2.15)),
+        ("AIM-7M", 80.0, 0.06, 39.0, 2.0, 0.3, Some((4.0, 70.0)), (50.868, 1.486)),
+        ("AIM-7B", 80.0, 0.06, 25.0, 2.0, 0.3, Some((2.5, 7.0)), (21.832, 1.486)),
+    ];
+
+    fn motion(a: f64, beta: f64, burn: f64, t_co: f64, release: f64) -> ChaseMotion {
+        let release_accel = 30.0;
+        ChaseMotion { accel: a, beta, burn, t_co, release_time: release, release_accel, ..amraam() }
+    }
+
+    fn from_up() -> Launcher {
+        Launcher { pos: Vec3::new(0.0, 0.0, 1000.0), ..JET }
+    }
+
+    fn still_at(r: f64) -> Kinematics {
+        Kinematics { pos: Vec3::new(0.0, r, 1000.0), vel: Vec3::ZERO }
+    }
+
+    /// Flies `m` from JET (1000 m up, as the target) at a still target `r` m ahead: true when it bursts within 20 m of it.
+    fn reaches(m: ChaseMotion, r: f64) -> bool {
+        let from = from_up();
+        let mut mi = Missile::launch(m, Tuning::default(), 0.0, from.pos, &from, Aim::Unit("t".into()), 1.0);
+        let mut t = 0.0;
+        while !mi.update(t, still_at(r), &|_| None) {
+            t = mi.next_update();
+        }
+        mi.last_pos().distance(still_at(r).pos) < 20.0
+    }
+
+    #[test]
+    fn dlz_per_missile_original_and_real() {
+        for &(name, a, beta, burn, t_co, rel, real, (max_km, min_km)) in AA {
+            let z = motion(a, beta, burn, t_co, rel).dlz(&from_up(), Some(&still_at(5000.0)));
+            assert!((z.max / 1e3 - max_km).abs() < 0.01 && (z.min / 1e3 - min_km).abs() < 0.01, "{name} original {z:?}");
+            let Some((mach, km)) = real else { continue };
+            let beta = a / (mach * 340.3);
+            let burn = motion(a, beta, 0.0, t_co, rel).real_burn(km * 1e3);
+            let m = ChaseMotion { real: true, ..motion(a, beta, burn, t_co, rel) };
+            // The burn flies the published range from 250 m/s.
+            assert!((m.travelled(REAL_LAUNCH_SPEED, burn + END_AFTER_BURN) - km * 1e3).abs() < 1.0 || burn == 1.0, "{name}");
+            let z = m.dlz(&from_up(), Some(&still_at(5000.0)));
+            println!("{name}: real burn {burn:.1} s, DLZ {:.2}-{:.2} km", z.max / 1e3, z.min / 1e3);
+            // A zone that the missile really reaches, most of the published range.
+            assert!(z.max > z.min && z.max > 0.7 * km * 1e3 && z.max < km * 1e3, "{name} real {z:?}");
+            assert!(reaches(m, z.max), "{name} misses at its DLZ max {:.0} m", z.max);
+            assert!(!reaches(m, 1.05 * km * 1e3), "{name} flies beyond its published range");
+            // Head-on adds, tail chase takes off the target's travel.
+            let head = m.dlz(&from_up(), Some(&Kinematics { vel: Vec3::new(0.0, -250.0, 0.0), ..still_at(5000.0) }));
+            let tail = m.dlz(&from_up(), Some(&Kinematics { vel: Vec3::new(0.0, 250.0, 0.0), ..still_at(5000.0) }));
+            assert!(head.max > z.max && (tail.max < z.max || tail == Dlz::NONE), "{name} aspects");
+        }
     }
 }

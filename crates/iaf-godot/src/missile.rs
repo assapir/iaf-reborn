@@ -31,6 +31,8 @@ fn chase_motion(m: &VarDictionary, launch: bool) -> ChaseMotion {
         high_angle_turn: part("_highAngleTurn") != 0.0,
         release_time: part("_timeRelease"),
         release_accel: part("_absReleaseAcceleration"),
+        // Only the Real overlay sets "burn" (real_weapons.gd).
+        real: num(m, "burn").is_some(),
     }
 }
 
@@ -141,6 +143,12 @@ impl IafMissile {
     #[func]
     fn flown(m: VarDictionary, s: f64, t: f64) -> f64 {
         chase_motion(&m, false).flown(s, t)
+    }
+
+    /// Weapon data Real: the burn with which record `m` flies `range` metres (`ChaseMotion::real_burn`).
+    #[func]
+    fn real_burn(m: VarDictionary, range: f64) -> f64 {
+        chase_motion(&m, false).real_burn(range)
     }
 
     /// The DLZ (`FUN_005624f0`) of record `m` from {pos, fwd, vel} at {pos, vel} ({} none): [max, min] metres.
