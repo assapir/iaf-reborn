@@ -1,9 +1,14 @@
 # setup.esa — EA installer archive
 
-Found on the CD root (161 MB). Holds every installed file except the terrain (`Resource/Terrain/Map.ptt`),
-movies (`resource/avi`) and help files, which the installer copies straight from the CD.
+`setup.esa` is the Electronic Arts (EA) installer archive on the CD root (161 MB). It holds every installed file except
+three sets that the installer copies straight from the CD:
 
-All integers little-endian.
+- the terrain (`Resource/Terrain/Map.ptt`);
+- the movies (`resource/avi`);
+- the help files.
+
+The archive is a header string followed by a directory of entries, then the file data. All integers are
+little-endian.
 
 ```
 "ELECTRONIC_ARTS_ARCHIVE_FILE\0"
@@ -19,11 +24,15 @@ repeat:
 <file data>
 ```
 
-PKWA streams start with `00 06` (binary literals, 4 KiB dictionary) and decode with zlib's `blast.c`
-algorithm (Rust: `explode` crate).
+Each entry's `method` says how its data is stored:
+
+- `"NULL"`: stored as is.
+- `"PKWA"`: compressed with PKWARE DCL implode. A PKWA stream starts with `00 06` (binary literals, 4 KiB
+  dictionary). It decodes with the algorithm of zlib's `blast.c` (in Rust: the `explode` crate).
 
 ## Group → folder
-Defined by `INSTALL_FILES "*", "<GROUP>", "[INSTALL_PATH]\<dir>"` lines in `FINSTALL.SSF`.
-Groups not listed there (`SETUP_SPECIAL_FILES`, `SYS_EXECUTABLE_GROUP`, `REMOVER_GROUP`) are installer internals.
+Each entry's install group decides its folder on disk. `FINSTALL.SSF` maps the groups with lines of the form
+`INSTALL_FILES "*", "<GROUP>", "[INSTALL_PATH]\<dir>"`. Three groups have no such line: `SETUP_SPECIAL_FILES`,
+`SYS_EXECUTABLE_GROUP` and `REMOVER_GROUP`. They are installer internals.
 
-3404 entries, 258 MB uncompressed (v1.0, 11.8.98).
+The v1.0 archive (11.8.98) has 3404 entries, 258 MB uncompressed.

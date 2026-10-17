@@ -1,47 +1,57 @@
 # .RTPatch 5.00 patch files (the v1.1 update)
 
-The official IAF v1.1 update is a WinZip self-extractor holding `iafp1_1.exe` (768 120 bytes): an
-EZPatch self-applying patch ("IAF Patch update to v1.1", window class `EZPatchWClass`) built with
-Pocket Soft **.RTPatch Professional 5.00** (1994–1998). Its engine, `PATCHW32.DLL` 5.00, is stored as a
-resource inside the exe; the patch file itself is appended after the PE image.
+This page describes the patch file format of the official IAF v1.1 update and how `iaf-patch` applies it.
 
-`iaf-patch` (crates/iaf-tools/src/rtpatch.rs) applies it without Windows:
+- **Packaging.** The update is a WinZip self-extractor. It holds `iafp1_1.exe` (768 120 bytes), an EZPatch
+  self-applying patch ("IAF Patch update to v1.1", window class `EZPatchWClass`).
+- **Tool.** The patch was built with Pocket Soft **.RTPatch Professional 5.00** (1994–1998).
+- **Layout.** The patch engine, `PATCHW32.DLL` 5.00, is stored as a resource inside the exe. The patch file itself
+  is appended after the PE (Portable Executable) image.
+
+`iaf-patch` (crates/iaf-tools/src/rtpatch.rs) applies the patch on any OS:
 
 ```sh
 cargo run --release -p iaf-tools --bin iaf-patch -- list  <patch>
 cargo run --release -p iaf-tools --bin iaf-patch -- apply <patch> assets/install <out-dir>
 ```
 
-`<patch>` may be the downloaded self-extractor, `iafp1_1.exe` or a bare patch file. `apply` only reads the
-install and writes each updated file under `<out-dir>` (lower-cased path). Every source file is checked against the
-size and checksums the patch expects, and every result against the destination's.
+- `<patch>` may be the downloaded self-extractor, `iafp1_1.exe` or a bare patch file.
+- `apply` leaves the install untouched: it reads it and writes each updated file under `<out-dir>` (lower-cased
+  path).
+- `apply` checks every source file against the size and checksums the patch expects, and every result against the
+  destination's.
 
 ## Sources
 
-- Container header: decoded from the `PATCHW32.DLL` 5.00 embedded in `iafp1_1.exe` (Ghidra; the header
-  reader is the function that checks `0x2a4b` and `version <= 500`).
-- Records, diff codec and opcodes: **rtptool** by Sandy Carter, MIT —
-  <https://github.com/bwrsandman/rtptool> (`SPEC.md`, `src/codec.rs`, `src/apply.rs`, commit 258d175). It targets
-  a newer container revision (up to 0x209); the records, entry descriptors, codec and opcode set match 5.00.
-  The codec and opcode interpreter in `rtpatch.rs` are adapted from it (MIT notice kept in the source).
-- Not used, for reference: <https://github.com/JordanRO2/tools-ragnarok-online-2-rtpatch> (MIT, C#) implements the
-  later **ExaPatch** format (`KX` magic, "DFC" codec) — a different container and codec.
+- **Container header:** decoded with Ghidra from the `PATCHW32.DLL` 5.00 embedded in `iafp1_1.exe`. The header
+  reader is the function that checks `0x2a4b` and `version <= 500`.
+- **Records, diff codec and opcodes:** **rtptool** by Sandy Carter, MIT —
+  <https://github.com/bwrsandman/rtptool> (`SPEC.md`, `src/codec.rs`, `src/apply.rs`, commit 258d175).
+  - rtptool targets a newer container revision (up to 0x209). Its records, entry descriptors, codec and opcode set
+    match 5.00.
+  - The codec and opcode interpreter in `rtpatch.rs` are adapted from it; the MIT notice is kept in the source.
+- **For reference only (unused):** <https://github.com/JordanRO2/tools-ragnarok-online-2-rtpatch> (MIT, C#)
+  implements the later **ExaPatch** format (`KX` magic, "DFC" codec), which has its own container and codec.
 
-Everything below was confirmed against the real patch: all 41 records parse to the EOF record, and every result
+Everything below is confirmed against the real patch: all 41 records parse up to the EOF record, and every result
 matches its destination size and both checksums.
 
 ## Locating the patch in a patch exe
 
-The last 8 bytes of the exe are `<u32 offset> "DKNJ"`; the patch file starts at `offset` (0x31800 in
-`iafp1_1.exe`) and runs to the trailer. `PATCHW32.DLL` reads them the same way (seek -8 from the end, compare
-`DKNJ`).
+The last 8 bytes of the exe are `<u32 offset> "DKNJ"`. The patch file starts at `offset` (0x31800 in
+`iafp1_1.exe`) and runs up to this trailer. `PATCHW32.DLL` finds it the same way: it seeks -8 from the end and
+compares `DKNJ`.
 
 ## Container
 
-Little-endian. `string` = u8 length (0xFF: a u16 length follows) including a trailing NUL, then the bytes.
-`vli` = variable-length integer: lead byte bit 7 is the sign; the run of 1-bits from bit 6 down counts the
-continuation bytes; the lead byte's remaining low bits are the high part and the continuation bytes follow as a
-little-endian integer (`60 E1 64` = 0x64E1).
+The container is little-endian. It uses two compound types:
+
+- `string`: a u8 length (0xFF: a u16 length follows) that includes a trailing NUL, then the bytes.
+- `vli` (variable-length integer):
+  - bit 7 of the lead byte is the sign;
+  - the run of 1-bits from bit 6 down counts the continuation bytes;
+  - the lead byte's remaining low bits are the high part;
+  - the continuation bytes follow as a little-endian integer (`60 E1 64` = 0x64E1).
 
 ```
 "K*"
@@ -66,9 +76,9 @@ u32  ?
 records ...             until an EOF record
 ```
 
-The IAF patch has no key, one registry action (59 bytes) whose strings are `Software\Jane's Combat
-Simulations\I A F\`, `Version`, `1.1` — the patcher sets the game's `Version` registry value to 1.1. The
-directory table lists the 17 folders the records touch (short and long spellings).
+The IAF patch's registry block has no key (`has_key` 0) and one registry action (59 bytes). Its strings are
+`Software\Jane's Combat Simulations\I A F\`, `Version`, `1.1`: the patcher sets the game's `Version` registry
+value to 1.1. The directory table lists the 17 folders the records touch (short and long spellings).
 
 ### Records
 
@@ -96,19 +106,29 @@ Entry (one version of a file):
 extra mode: 8 bytes (timestamps), string long name
 ```
 
-`w1` / `w2` are rolling checksums of the whole file: per byte `w = rotl8(w ^ c)` within 31 / 30 bits.
+`w1` / `w2` are rolling checksums of the whole file. Per byte, `w = rotl8(w ^ c)` within 31 / 30 bits.
 
 ## Diff codec
 
-An MSB-first bit stream: `u16 0xB59C`, `u8` raw-literals flag, `u8` ?, `u12` initial rebuild period, `u12`
-update period, `u4` window flag (8: 7 low distance bits, else 6). Then LZSS tokens: bit 0 = literal (adaptive
-Huffman over 256 symbols, or 8 raw bits), bit 1 = match: low distance bits raw, high bits from a 64-symbol adaptive
-Huffman model, length (`& 0x7F`) from another; distance 0 ends the stream. Matches reaching before the start read
-zero. New symbols enter a model through an escape symbol followed by the raw value. The model is a level/group
-structure rebuilt periodically; `rtpatch.rs` keeps rtptool's field-for-field port of the DLL's code.
+The diff is an MSB-first bit stream with LZSS compression and adaptive Huffman models.
 
-- **ADD** records: the decompressed stream is the new file.
-- **MODIFY** records: it is an opcode program run over a zeroed output of the destination size:
+**Stream header,** in order: `u16 0xB59C`, `u8` raw-literals flag, `u8` ?, `u12` initial rebuild period, `u12`
+update period, `u4` window flag (8: 7 low distance bits, else 6).
+
+**LZSS tokens** follow:
+
+- bit 0 = literal: adaptive Huffman over 256 symbols, or 8 raw bits.
+- bit 1 = match. The low distance bits are raw; the high bits come from a 64-symbol adaptive Huffman model; the
+  length (`& 0x7F`) comes from another model. Distance 0 ends the stream.
+- A match that reaches before the start reads zero.
+
+New symbols enter a model through an escape symbol followed by the raw value. The model is a level/group structure
+that is rebuilt periodically; `rtpatch.rs` keeps rtptool's field-for-field port of the DLL's code.
+
+The decompressed stream means one of two things:
+
+- **ADD** records: the stream is the new file.
+- **MODIFY** records: the stream is an opcode program. It runs over a zeroed output of the destination size:
 
 | op | operands | effect |
 |----|----------|--------|
@@ -125,11 +145,12 @@ structure rebuilt periodically; `rtpatch.rs` keeps rtptool's field-for-field por
 | 0B / 0C | [gap] n | `n` zero bytes |
 | 11-13 / 14-16 | [gap] 1/2/4-byte pattern, n | pattern fill |
 
-(Multi-source records add a source index before copy / store offsets; the IAF patch has none.)
+Multi-source records add a source index before copy / store offsets. The IAF patch has only single-source
+records.
 
 ## What v1.1 changes
 
-41 records: 23 MODIFY, 18 ADD.
+The patch has 41 records: 23 MODIFY, 18 ADD.
 
 - `IAFJets.exe` 2 620 416 → 2 635 776 bytes (PE timestamp 1998-11-09; v1.0 md5 48073a0a891243ffd9a03c556f98a45b →
   v1.1 f16475359115e76def64b1b040b05a14).
@@ -139,5 +160,5 @@ structure rebuilt periodically; `rtpatch.rs` keeps rtptool's field-for-field por
   `PHRASEPARTICALSDATA.TRX`, `Credits.trx`, `Msgs.trx`, briefing `112.rtf`, `DEFAULTOBJECT.PFR`, `Back0.bmp`,
   `Graph_0.bmp`, `Graph_1.bmp`.
 
-The sources are the English v1.0 files: pack files (e.g. the Hebrew `112.rtf` / `Msgs.trx`) fail the source
-checksum.
+The patch expects the English v1.0 files as sources. Files from a pack (e.g. the Hebrew `112.rtf` / `Msgs.trx`)
+fail the source checksum.
