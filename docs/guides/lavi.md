@@ -192,8 +192,8 @@ Looking aside (**Shift+arrows**, **F3**), the Lavi's helmet sight shows the orig
 
 ## 6. Radar (EL/M-2035)
 
-With Weapon data = Real the radar detects at **46 km** in LRS (long-range search) and STT (the EL/M-2035 tracks several
-targets at that range). With the original weapon data the Lavi's radar has the game's longest search table: 90 NM in
+With Weapon data = Real the radar detects at **46 km** in LRS (long-range search) and STT (single-target track, a radar
+lock); the EL/M-2035 tracks several targets at that range. With the original weapon data the Lavi's radar has the game's longest search table: 90 NM in
 LRS. The left MFD (multi-function display) shows it.
 
 | Key                           | Action                                              |
