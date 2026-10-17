@@ -49,7 +49,7 @@ are not reproduced on this machine warm; they were on a heavier earlier build / 
 
 | Hotspot (measured) | Today | Recommendation | Payoff | Effort |
 |---|---|---|---|---|
-| Terrain line of sight in sensor scans: 5–13 ms spikes | Rust walk, GDScript height per sample | **Rust**: the terrain heights in Rust (the PTT level-6 grid as a Rust height field, `iaf-formats` already parses PTT), no Callable per sample; scans then < 0.5 ms | removes the worst spikes | M |
+| Terrain line of sight in sensor scans: 5–13 ms spikes | Rust walk, GDScript height per sample | **Rust**: the terrain heights in Rust (the PTT level-6 grid as a Rust height field, `iaf-formats` already parses PTT), no Callable per sample; scans then < 0.5 ms | removes the worst spikes | M — **done**: `IafHeights` (iaf_avionics::heights) holds the streamed full-detail nodes terrain.gd loads; `world::terrain` answers `mission_ground` from it (same nodes and interpolation, ≤ 1 cm from the float32 GDScript path; line of sight identical on 400 pairs, test_heights.gd); 400 checks 93 → 2.4 ms; mission 221 live: AI combat worst 4.3 → 0.5 ms |
 | Terrain mesh / heights | already GPU: heights sampled in the vertex shader; JPEG decode, mipmaps, BC1 on 6 worker threads | keep; the main-thread part (2–3 ms worst on splits) → batch the node swaps | small | S |
 | Explosions, smoke, trails, decoys | MultiMesh billboards (GPU-instanced), positions filled by GDScript each frame | **GPUParticles3D** for smoke / fire / contrails (simulation on the GPU, collision with the heightfield): needed anyway for better effects (§3.4) | better look, ≈ 0.1–0.3 ms CPU back | M |
 | HUD / MFD drawing (`_draw` every frame) | `_process` < 0.02 ms; the `_draw` canvas calls are on the main thread (not separately measured, small) | redraw only on change, or a SubViewport per MFD updated at the original's rate; not a hotspot today | low | S |
@@ -170,7 +170,7 @@ OSM buildings: ODbL (share-alike on the *database*; a derived 3D-building datase
 
 | # | Option | Payoff | Effort | GPU cost (M4 Pro) | Why here |
 |---|---|---|---|---|---|
-| 1 | Terrain heights in Rust for the sensors (CPU spike fix) | perf | M | 0 | removes the 5–13 ms hitches; prerequisite as AI grows |
+| 1 | Terrain heights in Rust for the sensors (CPU spike fix) — **done** | perf | M | 0 | AI combat worst 4.3 → 0.5 ms (221, live) |
 | 2 | Water shader | 3 | M | ~0.2 ms | cheap, visible on every coastal mission |
 | 3 | MetalFX upscaling row | perf | S | − (saves) | headroom for 4–8 |
 | 4 | F-16D detailed model (FlightGear, GPLv2+) | 5 | L | small | the biggest visible jump; licence clean |

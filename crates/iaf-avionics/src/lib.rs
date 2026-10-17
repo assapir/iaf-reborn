@@ -6,6 +6,7 @@ pub mod eo;
 pub mod guided;
 pub mod gun;
 pub mod harm;
+pub mod heights;
 pub mod hud;
 pub mod master;
 pub mod missile;

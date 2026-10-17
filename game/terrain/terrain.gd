@@ -108,6 +108,9 @@ func _ready() -> void:
 	_span0 = float(meta.node_pixels)
 	_theatre = PackedFloat64Array(meta.theatre)
 	_height_level = int(meta.height_level)
+	IafHeights.set_meta({"node_pixels": meta.node_pixels, "span": _span(_height_level), "sea_level_raw": meta.sea_level_raw,
+		"height_scale": meta.height_scale, "m_per_unit": m_per_unit, "x_shift": meta.get("x_shift", 0),
+		"y_shift": meta.get("y_shift", 0)})
 	_root_level = int(meta.root_level)
 	for l in meta.nodes:
 		for ij in meta.nodes[l]:
@@ -498,6 +501,8 @@ func _finish_jobs(block := false) -> bool:
 		if img == null:
 			push_error("terrain: cannot load %s" % _path(key))
 			img = Image.create(1, 1, false, Image.FORMAT_RG8 if key.x == 1 else Image.FORMAT_RGB8)
+		if not _res.has(key):
+			_feed_heights(key, img)
 		_res[key] = {"tex": ImageTexture.create_from_image(img), "img": img if key.x == 1 else null,
 				"used": Time.get_ticks_msec()}
 		any = true
@@ -512,6 +517,7 @@ func _evict() -> void:
 		in_use[_key(1, _height_source(n))] = true
 	for key in _res.keys():
 		if now - int(_res[key].used) > EVICT_MS and not in_use.has(key):
+			_drop_heights(key)
 			_res.erase(key)
 
 
@@ -556,6 +562,7 @@ func adopt(other: Node) -> void:
 	var now := Time.get_ticks_msec()
 	for k in other._res:
 		if not _res.has(k):
+			_feed_heights(k, other._res[k].img)
 			_res[k] = other._res[k]
 			_res[k].used = now
 	_last_select = 0
@@ -661,3 +668,17 @@ func surface_at(pos: Vector3) -> int:
 ## Let running decode jobs finish before the node (and its mutex) goes away.
 func _exit_tree() -> void:
 	_stop_jobs()
+	for key in _res:
+		_drop_heights(key)
+
+
+## The full-detail height nodes go to the Rust height field too (IafHeights: the weapons' and sensors' line of sight
+## and impacts read it without a call into height_at per sample).
+func _feed_heights(key: Vector4i, img: Image) -> void:
+	if key.x == 1 and key.w == _height_level and img != null:
+		IafHeights.add(key.y, key.z, img.get_width(), img.get_data())
+
+
+func _drop_heights(key: Vector4i) -> void:
+	if key.x == 1 and key.w == _height_level:
+		IafHeights.remove(key.y, key.z)

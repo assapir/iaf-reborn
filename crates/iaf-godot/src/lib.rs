@@ -5,6 +5,7 @@ use godot::prelude::*;
 mod bombs;
 mod flight;
 mod gun;
+mod heights;
 mod missile;
 mod radar;
 mod real_hud;
