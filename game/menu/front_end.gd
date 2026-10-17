@@ -862,14 +862,24 @@ func _text_fit(box: Rect2, text: String, px: float, color: Color, f: Font = null
 
 
 ## Word-wrapped block from the top (DT_WORDBREAK); returns the wrapped text's height in page pixels.
-func _text_block(box: Rect2, text: String, px: float, color: Color, f: Font = null) -> float:
+## `by_script`: right-aligned only when the text itself is Hebrew (English texts in the Hebrew menus read left to right).
+func _text_block(box: Rect2, text: String, px: float, color: Color, f: Font = null, by_script := false) -> float:
 	f = f if f != null else font
 	var r := _rect(box)
 	var fs := int(round(px * _scale()))
-	var align := HORIZONTAL_ALIGNMENT_RIGHT if _he() else HORIZONTAL_ALIGNMENT_LEFT
+	var rtl := _has_hebrew(text) if by_script else _he()
+	var align := HORIZONTAL_ALIGNMENT_RIGHT if rtl else HORIZONTAL_ALIGNMENT_LEFT
 	var lines := maxi(1, int(r.size.y / f.get_height(fs)) + 1)
 	draw_multiline_string(f, r.position + Vector2(0, f.get_ascent(fs)), text, align, r.size.x, fs, lines, color)
 	return f.get_multiline_string_size(text, align, r.size.x, fs, lines).y / _scale()
+
+
+static func _has_hebrew(text: String) -> bool:
+	for i in text.length():
+		var c := text.unicode_at(i)
+		if c >= 0x0590 and c <= 0x05FF:
+			return true
+	return false
 
 
 ## Preferences page (§12.1): the page's _0 art, every control that is on copied from _1, sliders
@@ -1981,8 +1991,9 @@ func _draw_debrief() -> void:
 	var d: Dictionary = Settings.debrief
 	var box := Rect2(CONTENT.position + Vector2(20, 20), CONTENT.size - Vector2(40, 40))
 	# The headline wraps (the long ones, e.g. 313's success text, are wider than the box); the notes follow it.
-	var h := _text_block(box, String(d.get("headline", "")), LIST_TITLE_PX, LIST_TITLE, font_bold)
-	_text_block(Rect2(box.position + Vector2(0, h + 14), box.size - Vector2(0, h + 44)), String(d.get("notes", "")), LIST_DESC_PX + 1, LIST_DESC_LIT)
+	# The texts come from the mission files, English in both languages (docs/packs.md): aligned by their own script.
+	var h := _text_block(box, String(d.get("headline", "")), LIST_TITLE_PX, LIST_TITLE, font_bold, true)
+	_text_block(Rect2(box.position + Vector2(0, h + 14), box.size - Vector2(0, h + 44)), String(d.get("notes", "")), LIST_DESC_PX + 1, LIST_DESC_LIT, null, true)
 	if FileAccess.file_exists(Settings.blackbox_file):
 		_text_fit(Rect2(CONTENT.position + DEB_EXPORT.position, DEB_EXPORT.size), _art("Export flight data"), LIST_TITLE_PX, LIST_TITLE, font_art)
 
