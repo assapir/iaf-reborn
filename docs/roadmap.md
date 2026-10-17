@@ -201,6 +201,21 @@ an HSI), first on the Kfir's panel compass, then on each jet that has one in its
 Hold a key to slide the panel fully into view, release to look ahead again (as modern sims do; a real pilot glances
 down with the eyes). The original has only the stepped panel slide (PgUp / PgDn, V).
 
+## Modern F-16 (Extras switch, wishlist; decided 2026-10-17, research first)
+- **Switch:** "F-16: 1990s (Barak) / Today". The default is the game's early-1990s F-16D Barak.
+- **Today:** the current IAF two-seat F-16 standard with its upgrades, for the same cockpit and model slot. The
+  closest is the F-16I Sufa (Block 52+ two-seater), or the upgraded Barak; the research picks one and says why.
+- **What it changes** (each with public sources, as docs/real-aircraft.md and docs/real-hud.md):
+  - flight data (engine, weights, conformal fuel tanks on the Sufa);
+  - radar (APG-68(V)9 class) and its modes;
+  - AIFF (APX-113 class interrogator; docs/real-hud.md "IFF");
+  - helmet (the Elbit helmet of the period) and the HUD symbology of that software;
+  - weapons (AIM-120C, Python 5, Derby, JDAM / SPICE as in "Modern aircraft and weapons");
+  - RWR / self-protection suite.
+- **Steps:**
+  1. Research the standard and its public data; write it into docs/real-aircraft.md.
+  2. Build it behind the switch, the 1990s Barak unchanged.
+
 ## Modern aircraft and weapons (post everything)
 - Newer aircraft (e.g. F-16I Sufa, F-15I Ra'am, F-35I Adir, and modern threats) together with their weapons (e.g.
   AIM-120 AMRAAM, AIM-9X, Python 5, Derby, JDAM / SPICE / GBU families, Delilah, modern SAMs).

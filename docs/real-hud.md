@@ -480,6 +480,18 @@ What a Real-mode IFF would implement, only from the findings above:
 - All of it under the Real HUD switch only; the original HUD's friendly X and the original radar page stay as they
   are.
 
+### Decisions (user, 2026-10-17; not built yet)
+
+- **F-15C**: build as proposed above.
+- **F-4E (Kurnass)**: the game has no back seat, so the WSO's interrogation is automatic. The virtual WSO
+  interrogates each new radar contact once and the locked contact every few seconds; the replies show on the radar
+  page as the lines above / below, for the display time above. The interrogate key also works (the pilot asking the
+  WSO). The automatic timing is ours and goes in docs/deviations.md.
+- **F-16**: the game's F-16D is the early-1990s Barak, which had no interrogator. Today's IAF F-16s have one, so the
+  modern F-16 becomes its own switch (docs/roadmap.md "Modern F-16 (Extras switch)"), with AIFF (the APX-113 class
+  interrogator: TMS left, green circle / yellow square on the FCR, as in the MLU guides above) among its upgrades.
+- **F-35I, Kurnass 2000, Kfir, Lavi, Mirage IIICJ**: as proposed above.
+
 ## What ours draws (status)
 
 This section lists, per jet, what the code draws and what it leaves out.
