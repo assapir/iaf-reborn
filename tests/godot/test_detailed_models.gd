@@ -3,8 +3,9 @@
 # the original at the original's position (stations, gun, eye, engine, wingtips, height: 1 cm), every moving part
 # hinged on its own surface (FlightGear's hinge lines; the offsets from the original's are printed) with an axis
 # within AXIS_DEG of the original's (the stabilators' 10° anhedral is the largest), keeps
-# the original's descriptor for everything the game reads, animates (gear, closed doors, speed brakes, flaperons),
-# and flies as the player's and the AI's jets.
+# the original's descriptor for everything the game reads, has the IAF dorsal spine of the original (its top profile
+# from the canopy to the fin, SPINE_*), animates (gear, closed doors, speed brakes, flaperons), and flies as the
+# player's and the AI's jets.
 extends "res://../tests/godot/base.gd"
 
 const Gltf := preload("res://util/gltf.gd")
@@ -15,6 +16,22 @@ const AXIS_DEG := 12.0
 ## How far a detailed mesh may reach outside the original's bounds (the FlightGear F-16 is 0.6 m shorter, 0.2 m
 ## taller on its gear).
 const LOOSE_M := 1.0
+## The IAF dorsal spine: stations (m aft of the eye, along the jet) between the canopy's rear end and the fin's leading
+## edge where the detailed body's top must follow the original's within SPINE_M at 0.1 m off the centre line and
+## within SPINE_SIDE_M at 0.3 m (its shoulders are rounder than the original's box). The original's whole spine sits
+## SPINE_OFFSET_M higher (its canopy is 0.16 m taller than FlightGear's; the detailed spine meets FlightGear's
+## canopy and the foot of its fin and rudder), measured at the fin's root and taken out first. FlightGear's slim
+## US spine is 0.3 to 0.4 m below.
+## How far from a store's Station helper its pylon's surface may be; TIP_M for the wingtip rails (StationA / I: the
+## original has no rail there, its missiles bring their own launcher, which meets FlightGear's tip rail 0.10 m off).
+const ATTACH_M := 0.05
+const TIP_M := 0.12
+const SPINE_STATIONS := [4.5, 5.0, 6.0, 7.0, 8.0]
+const SPINE_SIDE_STATIONS := [5.0, 6.0, 7.0]
+const SPINE_FIN := 8.25
+const SPINE_M := 0.05
+const SPINE_SIDE_M := 0.08
+const SPINE_OFFSET_M := 0.15
 
 var AircraftModel: GDScript
 
@@ -120,6 +137,22 @@ func run() -> void:
 			if pb.size != Vector3.ZERO and not pb.intersects(body.grow(0.05)):
 				loose.append(name)
 	check(loose.is_empty(), "on: every part touches the body (loose: %s)" % [loose])
+	# The IAF dorsal spine: the body's top profile against the original's (the same frame: the helpers match).
+	var eye: Vector3 = (fr.get_node("Camera") as Node3D).position
+	var det_tris: PackedVector3Array = (fr as MeshInstance3D).mesh.get_faces()
+	var orig_tris: PackedVector3Array = (orig_root as MeshInstance3D).mesh.get_faces()
+	var off_m := _top(orig_tris, eye, 0.1, SPINE_FIN) - _top(det_tris, eye, 0.1, SPINE_FIN)
+	var spine := []
+	var spine_bad := false
+	for st in SPINE_STATIONS + SPINE_SIDE_STATIONS.map(func(v): return -v):  # negative: the 0.3 m line
+		var x := 0.1 if st > 0 else 0.3
+		var o := _top(orig_tris, eye, x, absf(st)) - off_m
+		var d := _top(det_tris, eye, x, absf(st))
+		spine.append("%.1f m aft x %.1f: %.3f / %.3f" % [absf(st), x, d, o])
+		spine_bad = spine_bad or absf(d - o) > (SPINE_M if st > 0 else SPINE_SIDE_M)
+	print("dorsal spine top (detailed / original - %.3f m), m above the eye: " % off_m, ", ".join(spine))
+	check(not spine_bad and absf(off_m) < SPINE_OFFSET_M,
+			"on: the IAF dorsal spine follows the original's top from the canopy to the fin (offset %.2f m)" % off_m)
 	# The afterburner's ring (the engine point, its radius) lies on the body's nozzle: body vertices within 10 cm of
 	# the exit plane at about that radius all round.
 	var eng: Array = on.desc.engines.left
@@ -144,6 +177,21 @@ func run() -> void:
 		var v: Array = orig_desc.stations[s]
 		st_ok = st_ok and h != null and h.position.distance_to(Vector3(v[0], v[1], v[2])) < HELPER_M
 	check(st_ok, "on: the model's Station helpers sit on the descriptor's stations")
+	# Every store station (StationA..I) has its pylon or rail: body geometry within ATTACH_M of the store's attach
+	# point along an axis (above it on a pylon, beside or under it on a wingtip rail); a store on a station without
+	# one would float.
+	var att := []
+	var floating := []
+	for s in orig_desc.stations:
+		if String(s).length() != "StationA".length():
+			continue  # the gun and the flare dispenser
+		var h := fr.get_node_or_null(NodePath(String(s))) as Node3D
+		var gap := _near(det_tris, h.position) if h != null else INF
+		att.append("%s %.3f (original %.3f)" % [s, gap, _near(orig_tris, h.position)])
+		if gap > (TIP_M if String(s) in ["StationA", "StationI"] else ATTACH_M):
+			floating.append(String(s))
+	print("stations (name, gap to the body m): ", ", ".join(att))
+	check(floating.is_empty(), "on: every station has its pylon or rail (within %.2f m, tips %.2f m; none: %s)" % [ATTACH_M, TIP_M, floating])
 	check(on.flames.size() == 1, "on: one afterburner nozzle")
 
 	# Animation: airborne gear up (legs and open doors hidden, closed doors shown), ground start gear down.
@@ -187,6 +235,28 @@ func run() -> void:
 			ai += 1
 	check(ai > 0, "mission 231: the AI's F-16s are detailed (%d)" % ai)
 	Settings().models = "original"
+
+
+## The highest point of `tris` (frame of the root) straight under (x, `aft` m behind the eye), above the eye's height.
+func _top(tris: PackedVector3Array, eye: Vector3, x: float, aft: float) -> float:
+	var from := Vector3(x, eye.y + 10.0, eye.z + aft)
+	var best := -INF
+	for i in range(0, tris.size(), 3):
+		var hit = Geometry3D.ray_intersects_triangle(from, Vector3.DOWN, tris[i], tris[i + 1], tris[i + 2])
+		if hit != null:
+			best = maxf(best, (hit as Vector3).y - eye.y)
+	return best
+
+
+## The distance from `p` to the nearest triangle of `tris` along the six axes (INF: none).
+func _near(tris: PackedVector3Array, p: Vector3) -> float:
+	var best := INF
+	for dir: Vector3 in [Vector3.UP, Vector3.DOWN, Vector3.LEFT, Vector3.RIGHT, Vector3.FORWARD, Vector3.BACK]:
+		for i in range(0, tris.size(), 3):
+			var hit = Geometry3D.ray_intersects_triangle(p, dir, tris[i], tris[i + 1], tris[i + 2])
+			if hit != null:
+				best = minf(best, p.distance_to(hit))
+	return best
 
 
 func _names(n: Node) -> Array:

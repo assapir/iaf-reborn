@@ -20,19 +20,22 @@ the AI's F-16s, parked F-16s and the Reference viewer. Plans for more jets and f
 | item | value |
 |---|---|
 | source | FlightGear F-16 (`github.com/NikolaiVChr/f16`), GPL-2.0-or-later; credits and changes in `game/extra/models/f16/SOURCES.md` |
-| triangles | 46 700 (original: 7 200); runtime LODs cut far jets to a fraction |
+| triangles | 51 400 (original: 7 200); runtime LODs cut far jets to a fraction |
 | textures | livery, occlusion / roughness / metallic and normal maps at 2048²; the nozzle, cockpit, seat and pilot textures at 512 px or less; KTX2 inside the glb (about 110 MB in video memory as RGBA8) |
-| file size | 3.7 MB |
+| file size | 3.8 MB |
 | livery | IAF desert camouflage, 101 Squadron, tail 547 (FlightGear's own livery) |
 | crew | two pilots on two ACES II seats under a two-seat canopy |
+| IAF features | the dorsal spine of Israel's F-16D Block 30 / 40 ("Brakeet"): the avionics hump from the back of the canopy to a box under the fin that ends just aft of the nozzle |
 
 ### 1.1 How it fits the game
 
 The game reads positions from the aircraft model. The detailed model keeps them all:
 
 - **Helpers at the original's positions** (within 1 cm): the `Station*` pylon points, `StationGun`, `StationFla`,
-  `Camera` (the eye), `EndWingL/R` and `height` (where the wheels touch). The pylon meshes were moved so stores hang
-  where they hang on the original.
+  `Camera` (the eye), `EndWingL/R` and `height` (where the wheels touch). The pylon meshes were moved so each touches
+  its station: stores hang where they hang on the original. Station E has FlightGear's centreline pylon (grey, as
+  the original's). The wingtip missiles (stations A and I) bring their own launcher, which meets FlightGear's tip
+  rail 0.10 m off.
 - **The descriptor stays the original's** (`aircraft.json` from your install). `AircraftModel.detailed_descriptor()`
   takes three things from the detailed model:
   1. each moving part's hinge axis, from its own `<part>1/2` helpers;
@@ -74,27 +77,40 @@ The script:
 1. imports `f16.ac` (FlightGear's single-seat F-16C) and the GE nozzle, and drops the parts the game draws itself
    (flames, lights, USAF markings);
 2. makes it two-seat: everything above the canopy sill between the front seat and the fin root is stretched so the
-   canopy ends 0.95 m further aft; a second tub, seat and pilot go 0.98 m behind the first;
+   canopy ends 0.95 m further aft; a second tub, seat and pilot go 0.98 m behind the first; adds the centreline
+   pylon;
 3. moves it 1.05 m aft so its wing lies on the original's wing;
 4. moves each pylon onto the original's station and compresses the oleos so the wheels touch at `height`;
 5. opens the main gear doors for LdgDr and closes the nose door for LdgDrUp;
-6. joins the parts, puts each origin on its hinge, adds the helpers;
-7. makes the maps: occlusion baked in Cycles, a normal map from the livery's thin dark lines (panel lines, rivets),
+6. builds the IAF dorsal spine (`dorsal_spine`, constants `SP_*`): rounded-box sections every 0.1 m, lofted over
+   the fuselage and flared into it. Its top runs straight from the back of the canopy (0.93 m) to the foot of the
+   fin and rudder (1.148 m) and stays there under the fin; it is 0.68 m wide to the wing's trailing edge, 0.40 m
+   under the fin, and ends square 0.08 m aft of the nozzle's exit with a dark floor over the nozzle. Its UVs are the
+   fuselage's under it, spread over the section, so the camouflage runs on at its foot. The fuselage faces it
+   covers are removed (they would bake black into the occlusion map they share with it); FlightGear's tail root
+   fairing and aft light inside it are dropped; the blade antenna and the formation light are raised onto it;
+7. joins the parts, puts each origin on its hinge, adds the helpers;
+8. makes the maps: occlusion baked in Cycles, a normal map from the livery's thin dark lines (panel lines, rivets),
    roughness from the lines and the occlusion;
-8. exports the glb and re-encodes its textures as KTX2.
+9. exports the glb and re-encodes its textures as KTX2.
 
 ## 3. Checks
 
 - `tests/godot/test_detailed_models.gd` (run by `tools/test.sh`): with the switch off the F-16 is the original
   model; with it on the detailed model loads once, has LODs and its textures, has every node of the original,
-  keeps the helpers within 1 cm, has every mesh inside the original's bounds + 1 m, has every part touching the body,
+  keeps the helpers within 1 cm, has pylon or rail geometry at every store station (5 cm; tip rails 12 cm), has the
+  IAF dorsal spine (its top within 5 cm of the original's from the canopy to the fin, after the original's 0.12 m
+  higher placement is taken out), has every mesh inside the original's bounds + 1 m, has every part touching the body,
   has the afterburner ring on the nozzle's exit, animates (gear, doors, speed brakes, flaperons), and flies as the
   player's and the AI's jets in mission 231.
 - `tests/godot/_model_shot.gd` (needs a window): real renders from outside, Original and Detailed, airborne with
-  stores or on the ground. Pictures go to `assets/converted/research/f16d/`.
+  stores or on the ground. Pictures go to `assets/converted/research/f16d/` (`spine_close`, `spine_side` and `centre_pylon` for the dorsal
+  spine and the centreline pylon). Run it through `tools/godot_window.sh`.
 
 ## 4. Open
 
 - The cockpit view's own-jet model (`own_bc`, the original's `f16_bc`) stays the original's with the switch on.
-- The livery's fuselage sides are stretched (FlightGear's UVs project from above and below).
+- The livery's fuselage sides are stretched (FlightGear's UVs project from above and below); on the dorsal spine's
+  sides the panel lines of the fuselage top are stretched too. The spine's three small vents and its aft sensor
+  are not modelled.
 - The canopy glass is plain tinted glass; the stores are the 1998 models (graphics-research.md §3.13).

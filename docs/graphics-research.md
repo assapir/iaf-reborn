@@ -213,8 +213,9 @@ and no aircraft model has Wheels frames. A detailed model could add rolling whee
 
 **Switch:** Preferences → Graphics → MORE → Models: Original / Detailed.
 
-**F-16D: stage 1 done** (2026-10-17, [aircraft-models.md](aircraft-models.md)): 46.7 k triangles, KTX2 textures in a
-3.7 MB glb, runtime LODs. Next for DCS level: our own UV layout (the FlightGear UVs stretch the fuselage sides), a
+**F-16D: stage 1 done** (2026-10-17, [aircraft-models.md](aircraft-models.md)): 51.4 k triangles, KTX2 textures in a
+3.8 MB glb, runtime LODs; the IAF dorsal spine (the Brakeet's avionics hump, as on the original model) and the
+centreline pylon added. Next for DCS level: our own UV layout (the FlightGear UVs stretch the fuselage sides), a
 hand-painted 4K livery with stencils, glass reflections, the cockpit-view model (`own_bc`).
 
 **Effort per jet:** L. The F-16D first (≈ 2–3 weeks), then the F-15C.

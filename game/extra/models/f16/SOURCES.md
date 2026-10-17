@@ -23,21 +23,36 @@ option) any later version**, as its source is. This repository distributes it un
 | `Models/Cockpit/chair/chair.ac` and its textures | the two ejection seats |
 | `Models/pilot_externalview.ac`, `Models/Pilots/*` | the two pilots |
 | `Models/Liveries/Block40/90-0874.png` | the IAF desert livery (101 Squadron, tail 547) |
-| `Models/F-16.xml` | hinge lines, the nozzle's placement, gear and door angles |
+| `Models/central-pylon.ac` | the centreline pylon (station E) |
+| `Models/F-16.xml`, `Models/Armament/loads_models.xml` | hinge lines, the nozzle's and the centreline pylon's placement, gear and door angles |
 
 ## Changes
 
 Made by `tools/f16d/rig.py` (re-runnable; docs/aircraft-models.md):
 
 1. Made two-seat: the canopy and the spine behind it stretched 0.95 m aft, a second tub, seat and pilot.
-2. Placed on the original game model's frame: the wing on the original's wing, the pylons moved onto the
-   original's stations, the oleos compressed so the wheels touch where the original's do.
-3. The moving parts joined, named and hinged as the game expects; closed gear-door copies added.
-4. The cockpit tub, seat and pilot meshes decimated.
-5. New maps made from the livery: a panel-line normal map, an occlusion map baked from the model, roughness and
+2. Given the IAF dorsal spine: the large avionics hump of Israel's F-16D Block 30 / 40 ("Brakeet"). It is a new
+   mesh made by the script (a loft of rounded-box sections), not taken from FlightGear. It runs straight from the
+   back of the canopy to the foot of the fin, goes on as a box under the fin and ends square just aft of the nozzle.
+   FlightGear's blade antenna and formation light are raised onto it. Its paint is the livery of the fuselage under
+   it, spread over its sides. Shape from:
+   - photographs on Wikimedia Commons: IAF F-16D 022, 046, 050 and 063 by Aldo Bidini (GFDL 1.2,
+     https://commons.wikimedia.org/wiki/File:Lockheed_Martin_F-16D_Barak,_Israel_-_Air_Force_JP7236319.jpg and
+     its neighbours JP7236316 / JP7236325 / JP7236336); F-16D 601 by Itayba (CC BY-SA 3.0,
+     https://commons.wikimedia.org/wiki/File:IAF_F-16D.jpg). Used only as references; no image is in the model;
+   - the model review at https://modelingmadness.com/review/mod/kolbrakeet.htm (the spine runs from the back of
+     the canopy past the exhaust, where it becomes the tail extension);
+   - the original game model's spine (`f16_h`), whose top profile it follows (0.12 m lower, to meet FlightGear's
+     lower canopy and fin root).
+3. Given FlightGear's centreline pylon, so a store on station E hangs from it.
+4. Placed on the original game model's frame: the wing on the original's wing, the pylons moved onto the
+   original's stations (each touching its station), the oleos compressed so the wheels touch where the original's do.
+5. The moving parts joined, named and hinged as the game expects; closed gear-door copies added.
+6. The cockpit tub, seat and pilot meshes decimated.
+7. New maps made from the livery: a panel-line normal map, an occlusion map baked from the model, roughness and
    metallic.
-6. All textures re-encoded as KTX2 (Basis Universal).
+8. All textures re-encoded as KTX2 (Basis Universal).
 
 The model contains about 60 helper positions measured from the original game model (where the game hangs stores,
-draws the afterburner and puts the wheels). They are coordinates only; every mesh and texture comes from the
-FlightGear F-16.
+draws the afterburner and puts the wheels). They are coordinates only. Every mesh and texture comes from the
+FlightGear F-16, except the dorsal spine's mesh, which the script makes (its paint is FlightGear's livery).

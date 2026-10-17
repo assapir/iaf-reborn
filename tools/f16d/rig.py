@@ -6,6 +6,8 @@
 #     Station helpers, the oleos compressed so the wheels touch at the original's `height` helper;
 #   - the moving parts named and hinged as the original's (`<part>1/2` helpers on FlightGear's own hinge lines,
 #     taken from its F-16.xml animations), the helpers the game reads copied from the original model;
+#   - the IAF dorsal spine (the avionics hump of the Block 30 / 40 "Brakeet") lofted over the slim US spine, from
+#     the canopy's rear end to a box under the fin that ends over the nozzle;
 #   - closed gear doors (LdgDrUp, shown only with the gear up), the GE nozzle, an IAF desert livery (FlightGear's)
 #     with our PBR maps (baked occlusion, panel-line normal map, roughness / metallic);
 #   - written as one glb with KTX2 textures (tools/plane/glb_ktx2.py, needs `basisu`).
@@ -45,7 +47,7 @@ DROP = {"ExternalFlame", "InternalFlame", "Chute", "RNLAF_Tailroot", "Link16Ante
         "FuselageLogoLeft", "FuselageLogoRight", "LogoPilotRight", "Rect", "VstabBandLeftAft", "VstabBandLeftFront",
         "VstabBandRightAft", "VstabBandRightFront", "VstabLogoLeftBottom", "VstabLogoLeftTop", "VstabLogoRightBottom",
         "VstabLogoRightTop", "WinglogoLeftTop", "WinglogoRightBottom", "WinglogoRightTop", "GreenPosLight2",
-        "RedPosLight2"}
+        "RedPosLight2", "USAF_Tailroot", "AftPosLight1"}  # the last two: inside the IAF dorsal spine
 # The game's parts (docs/part-animation.md) from FlightGear's objects, with FlightGear's hinge (F-16.xml: centre and
 # axis, FlightGear frame x aft, y right, z up). Axis None: a part that never turns (its own centre is the origin).
 PARTS = {
@@ -76,7 +78,8 @@ MAIN_COMPRESSION = {"L": ((0.0, -0.41, -0.57), (0.943612, -0.262974, 0.201098)),
                     "R": ((0.0, 0.41, -0.57), (0.943612, 0.262974, 0.201098))}
 # FlightGear's pylons -> the original's stations.
 PYLONS = {"LWStation1": "StationD", "LWStation2": "StationC", "LWStation3": "StationB",
-          "RWStation1": "StationF", "RWStation2": "StationG", "RWStation3": "StationH"}
+          "RWStation1": "StationF", "RWStation2": "StationG", "RWStation3": "StationH",
+          "CLStation": "StationE"}  # FlightGear's centreline pylon (Models/central-pylon.ac), always fitted
 
 
 def fg(p):
@@ -206,13 +209,169 @@ def gear_doors(body):
 
 
 def fit_pylons(body, helpers, root):
+    """Each pylon onto its station: the middle of its bottom edge on the station, then raised or lowered so its
+    surface straight above the station touches it (where the store's attach point hangs)."""
+    from mathutils.bvhtree import BVHTree
     for pylon, station in PYLONS.items():
         o = body[pylon]
         lo, hi = bounds([o])
         at = Vector(((lo.x + hi.x) / 2, (lo.y + hi.y) / 2, lo.z))  # the middle of its bottom edge
-        d = helpers[station] + root - at
+        st = helpers[station] + root
+        d = st - at
         o.data.transform(Matrix.Translation(d))
+        tree = BVHTree.FromPolygons([v.co for v in o.data.vertices], [p.vertices for p in o.data.polygons])
+        hit = tree.ray_cast(st - Vector((0, 0, 0.5)), Vector((0, 0, 1)))[0]
+        if hit is not None:
+            o.data.transform(Matrix.Translation((0, 0, st.z - hit.z)))
+            d.z += st.z - hit.z
         print("pylon", pylon, "->", station, "moved", tuple(round(x, 3) for x in d))
+
+
+# The IAF dorsal spine (our frame, after SHIFT; y forward, z up). Its top runs straight from the canopy's rear end
+# (SP_Y0, SP_Z0) to the fin's root (SP_Y_FIN, SP_Z_FIN: the bottom of FlightGear's fin and rudder) and stays there
+# along a box under the fin to SP_Y_END, over the nozzle's exit. Half-widths (y, w) between which it is
+# interpolated: the canopy's rear width, as wide as the original's spine (0.34 m) to the wing's trailing edge, the
+# fin root's width under the fin. Aft of SP_Y_FLOOR the fuselage falls away to the nozzle and the box gets a flat
+# floor at SP_FLOOR. Photographs: IAF F-16D 046 / 022 / 050 / 063 (Wikimedia Commons, Aldo Bidini) and 601
+# (Itayba): the top line is straight from the canopy to the tail, the fin stands on it, the box ends square just
+# aft of the nozzle; the original game model has the same shape (tests/godot/test_detailed_models.gd).
+SP_Y0, SP_Z0 = 0.47, 0.93
+SP_Y_FIN, SP_Z_FIN = -3.86, 1.148
+SP_Y_END, SP_Y_FLOOR, SP_FLOOR = -6.42, -5.3, 0.62
+SP_WIDTH = [(0.47, 0.21), (0.0, 0.32), (-0.3, 0.34), (-2.4, 0.34), (-3.86, 0.2), (-6.3, 0.2), (SP_Y_END, 0.17)]
+SP_BLEND = 0.22  # the front SP_BLEND m grow out of FlightGear's fairing behind the canopy
+SP_FILLET = 0.05  # the concave flare where the sides meet the fuselage
+
+
+def interp(table, y):
+    for (y0, v0), (y1, v1) in zip(table, table[1:]):
+        if y1 <= y <= y0:
+            return v0 + (v1 - v0) * smooth01((y0 - y) / (y0 - y1))
+    return table[0][1] if y > table[0][0] else table[-1][1]
+
+
+def spine_top(y):
+    if y <= SP_Y_FIN:
+        return SP_Z_FIN
+    return SP_Z0 + (SP_Z_FIN - SP_Z0) * (SP_Y0 - y) / (SP_Y0 - SP_Y_FIN)
+
+
+def dorsal_spine(body):
+    """The IAF F-16D's dorsal spine: a loft of rounded-box sections over FlightGear's fuselage (`RadarDomeTop`),
+    flared into it at the sides; its livery UVs are those of the fuselage under it, spread over the section (the
+    camouflage runs on unbroken at its foot). The fuselage faces it covers are removed (they would bake black in the
+    occlusion map, which they share with the spine), the blade antenna and the formation light are raised onto it."""
+    from mathutils.bvhtree import BVHTree
+    from mathutils.geometry import barycentric_transform
+    skin = body["RadarDomeTop"]
+    bm = bmesh.new()
+    bm.from_mesh(skin.data)
+    bm.transform(skin.matrix_world)
+    bmesh.ops.triangulate(bm, faces=bm.faces[:])
+    bm.faces.ensure_lookup_table()
+    uvl = bm.loops.layers.uv.active
+    tree = BVHTree.FromBMesh(bm)
+
+    def surface(x, y):
+        """(z, uv, material index) of the fuselage's top at (x, y), or None."""
+        hit, _, i, _ = tree.ray_cast(Vector((x, y, 5.0)), Vector((0, 0, -1)))
+        if hit is None:
+            return None
+        f = bm.faces[i]
+        a, b, c = (lp.vert.co for lp in f.loops)
+        ua, ub, uc = (lp[uvl].uv.to_3d() for lp in f.loops)
+        return hit.z, barycentric_transform(hit, a, b, c, ua, ub, uc).to_2d(), f.material_index
+
+    n_top, n_bot = 9, 4  # points on each upper quarter / across the floor
+    rings, uvs, mat_idx = [], [], None
+    ys = [SP_Y0 - i * 0.1 for i in range(int((SP_Y0 - SP_Y_END) / 0.1) + 1)] + [SP_Y_END + 0.03, SP_Y_END]
+    for y in ys:
+        w, top = interp(SP_WIDTH, y), spine_top(y)
+        if y < SP_Y_END + 0.06:  # a slightly rounded square end
+            top -= 0.03 * smooth01((SP_Y_END + 0.06 - y) / 0.06)
+        side = []  # the right half from the top centre round to the foot (x >= 0)
+        foot_s = surface(w + SP_FILLET, y)
+        foot = max(foot_s[0] if foot_s else SP_FLOOR, SP_FLOOR if y < SP_Y_FLOOR else -9.0)
+        flare = SP_FILLET * smooth01((foot - SP_FLOOR) / 0.05) if y < SP_Y_FLOOR else SP_FILLET
+        rv = min(0.16, max(0.02, (top - foot) * 0.6))
+        for k in range(n_top + 1):  # super-ellipse quarter: flat top, rounded shoulder
+            t = math.pi / 2 * (1 - k / n_top)
+            side.append((w * math.cos(t) ** (2 / 3.5), top - rv + rv * math.sin(t) ** (2 / 3.5)))
+        side.append((w, foot + flare))
+        for k in range(1, 5):  # concave flare onto the fuselage, its lip 2 cm under the skin
+            t = math.pi / 2 * k / 4
+            side.append((w + flare * (1 - math.cos(t)), foot + flare * (1 - math.sin(t)) - 0.02 * k / 4))
+        pts = [(-x, z) for x, z in reversed(side[1:])] + side
+        # The front grows out of FlightGear's fairing: each point starts on the fuselage under it.
+        g = smooth01((SP_Y0 - y) / SP_BLEND)
+        if g < 1:
+            def on_skin(x, z):
+                su = surface(x, y)
+                return su[0] + 0.002 if su else z
+            pts = [(x, on_skin(x, z) + (z - on_skin(x, z)) * g) for x, z in pts]
+        # Livery: the fuselage's UVs under the foot-to-foot span, spread over the section by its arc length.
+        arc = [0.0]
+        for (x0, z0), (x1, z1) in zip(pts, pts[1:]):
+            arc.append(arc[-1] + math.hypot(x1 - x0, z1 - z0))
+        xf = pts[-1][0]
+        row = []
+        for (x, z), s in zip(pts, arc):
+            u = -xf + 2 * xf * s / arc[-1]
+            # The fuselage ends at -5.78 and narrows before: the box's tail takes its last full row.
+            su = next(filter(None, (surface(u * k, yy) for yy in (y, min(y + 0.1, SP_Y0), -5.2) for k in (1, 0.8, 0.6, 0.4))), None)
+            row.append(su[1])
+            if mat_idx is None and su:
+                mat_idx = su[2]
+        bottom_z = min(pts[0][1], pts[-1][1])
+        floor = [(xf - 2 * xf * k / (n_bot + 1), bottom_z) for k in range(1, n_bot + 1)]
+        rings.append([Vector((x, y, z)) for x, z in pts + floor])
+        uvs.append(row + [row[0]] * n_bot)
+    n_up = len(rings[0]) - n_bot
+    out = bmesh.new()
+    vs = [[out.verts.new(p) for p in r] for r in rings]
+    uv_out = out.loops.layers.uv.new("UVMap")
+    n = len(rings[0])
+    for i in range(len(rings) - 1):
+        for j in range(n):
+            j1 = (j + 1) % n
+            f = out.faces.new((vs[i][j], vs[i][j1], vs[i + 1][j1], vs[i + 1][j]))  # outward (y falls with i)
+            livery = j < n_up - 1
+            f.material_index = 0 if livery else 1
+            for lp, (ii, jj) in zip(f.loops, ((i, j), (i, j1), (i + 1, j1), (i + 1, j))):
+                lp[uv_out].uv = uvs[ii][jj] if livery else uvs[ii][0]
+            f.smooth = True
+    for r, rev in ((vs[-1], False), (vs[0], True)):  # end caps (the front one is flat on the fairing)
+        f = out.faces.new(list(reversed(r)) if rev else r)
+        f.material_index = 1
+    bmesh.ops.recalc_face_normals(out, faces=out.faces[:])
+    me = bpy.data.meshes.new("DorsalSpine")
+    out.to_mesh(me)
+    out.free()
+    me.materials.append(skin.data.materials[mat_idx])
+    me.materials.append(kit.material("spine_floor", (0.09, 0.09, 0.085), metallic=0.3, roughness=0.6))
+    spine = bpy.data.objects.new("DorsalSpine", me)
+    kit.scene().collection.objects.link(spine)
+    body["DorsalSpine"] = spine
+
+    def inside(p):
+        if not (SP_Y_END + 0.02 < p.y < SP_Y0 - 0.03 and p.z > 0.25):
+            return False
+        return abs(p.x) < interp(SP_WIDTH, p.y) - 0.01 and p.z < spine_top(p.y) - 0.01
+    hidden = bmesh.new()
+    hidden.from_mesh(skin.data)
+    mw = skin.matrix_world
+    gone = [f for f in hidden.faces if all(inside(mw @ v.co) for v in f.verts)]
+    bmesh.ops.delete(hidden, geom=gone, context='FACES')
+    hidden.to_mesh(skin.data)
+    hidden.free()
+    bm.free()
+    print("spine", len(me.vertices), "vertices; fuselage faces under it removed:", len(gone))
+    for name, sink in (("Tail-antenna", 0.01), ("FwdFormationLight", 0.03)):
+        o = body[name]
+        lo, hi = bounds([o])
+        dz = spine_top((lo.y + hi.y) / 2) - lo.z - sink
+        o.data.transform(Matrix.Translation((0, 0, dz)))
+        print("raised", name, round(dz, 3), "m")
 
 
 def cockpit(prefix, shift):
@@ -244,6 +403,11 @@ def main():
         Matrix.Translation(fg((-7.74, -1.4827, 1.25336)))
     noz = kit.import_ac(os.path.join(M, "nozzle-GE.ac"), matrix=noz_m, prefix="noz_")
     bpy.data.objects.remove(noz.pop("InNozzleROpen"))
+    # The centreline pylon (loads_models.xml's Centerpylon: 0.02 m to the right), grey as the original's.
+    body["CLStation"] = kit.join(list(kit.import_ac(os.path.join(M, "central-pylon.ac"), matrix=Matrix.Translation(
+        fg((0, 0.02, 0))), prefix="cl_").values()), "CLStation")
+    body["CLStation"].data.materials.clear()
+    body["CLStation"].data.materials.append(kit.material("pylon_grey", (0.42, 0.44, 0.45), roughness=0.55))
     tub_f, crew_f = cockpit("front_", 0.0)
     two_seat(list(body.values()) + [tub_f])
     tub_r, crew_r = cockpit("rear_", -SEAT_GAP)
@@ -260,6 +424,7 @@ def main():
     target = helpers["height"].z + root_at.z
     compress_gear(body, target)
     doors_down, doors_up = gear_doors(body)
+    dorsal_spine(body)
     if os.environ.get("F16D_DEBUG") == "1":
         for o in kit.scene().objects:
             if o.type == 'MESH':
