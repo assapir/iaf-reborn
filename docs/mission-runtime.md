@@ -1,15 +1,17 @@
 # Mission runtime — what the engine does with a loaded .mis
 
-Addresses are `IAFJets.exe` **v1.1** (the reference version); [v1.1.md](v1.1.md) maps them to v1.0 and lists what the patch changed.
+This document describes what the original engine does with a loaded mission: entity event slots, radius checks,
+events, scripts, and how a mission ends. It applies to every mission. Read it to re-implement or debug mission logic.
 
-File format: [formats/mis.md](formats/mis.md). This document covers the runtime side: entity event slots,
-radius checks, events, scripts, and mission end. It applies to every mission. `takeoff.mis` is the worked
-example (§7). Addresses are in `iafjets.exe`. Most of the code referenced here is **not** in
-`assets/ghidra_v11/iafjets.c`, because Ghidra did not find those functions: they are reached only through vtables
-or indirect calls. Re-decompile them with a headless script, `DecompAt`-style: create the function at the
-address, then decompile it.
+- **Addresses** are `IAFJets.exe` **v1.1** (the reference version); [v1.1.md](v1.1.md) maps them to v1.0 and lists
+  what the patch changed.
+- **File format:** [formats/mis.md](formats/mis.md).
+- **Worked example:** `takeoff.mis` (§7).
+- **Decompile:** most functions cited here are missing from `assets/ghidra_v11/iafjets.c`. Ghidra did not find them,
+  because only vtables or indirect calls reach them. Re-decompile them with a headless script, `DecompAt`-style:
+  create the function at the address, then decompile it.
 
-**Main finding: nothing runs per frame.** Everything is driven by:
+**Main finding: nothing runs per frame.** Four things drive everything:
 
 - entity state changes (hit, destroyed);
 - periodic 4-second radius-check timers;
@@ -17,6 +19,19 @@ address, then decompile it.
 - events fired by the above.
 
 A re-implementation needs only a timer queue and hooks for the entity state changes.
+
+**Terms used here:**
+
+| term | meaning |
+|---|---|
+| bdb | the mission database file (`*.bdb`): objects, audio records, brains |
+| brain | the AI rule list that drives a unit (docs/ai.md) |
+| FM | flight model |
+| FlyTSD | screen 0x20: the tactical display shown during a flight, where the player picks a flight to fly |
+| GEV | a game event code sent through the key / event chain |
+| NAV | the navigate mode: fly the route's waypoints |
+| sim time | the simulation clock, the double at `DAT_006992d0+0x38` |
+| TSD | tactical situation display: the briefing map |
 
 ## 1. Runtime objects
 
@@ -32,34 +47,38 @@ Registry `[Scenario] LoadScripts` (default 1; `FUN_0058b340` → `DAT_0066f2cc`)
 `FUN_0058f110` zeroes every slot, the radius and both script counts, so the mission runs with no scenario logic.
 
 ### 1.1 The player object (`FUN_004bb439`, at mission load)
-- `DAT_00699320` (the player entity) = the leader of the formation with **id** (`0x1e`) **1**, else 2, 3, 4
-  (`FUN_005bcb40(n)`: the formation map `DAT_00699340` is keyed by the formation id — insert `FUN_005bc980(id,
-  kind)` from `FUN_004b3604` @4b367b pushes rec[1] = kind, then rec[0] = id), whatever its flight letter (`0x3f2`).
-  Of the 131 mission files only 117 "engaged" differs from "flight 1": id 1 is Bravo (a Mirage). Its leader is member 0
-  if spawned, else member 1 (docs/front-end.md §8 flight table). The name does not matter: campaign and
-  scramble missions have no `Player1` (e.g. 324 "Player", 221 "alpha_1").
-- The TSD's default flight is the formation holding that object (`FUN_005bcd70`). Picking another flight
-  (Alpha–Delta button + Fly, or double-clicking its leader) makes that flight's leader the player object
+- **Which entity:** `DAT_00699320` (the player entity) = the leader of the formation with **id** (`0x1e`) **1**, else
+  2, 3, 4, whatever its flight letter (`0x3f2`).
+  - `FUN_005bcb40(n)`: the formation map `DAT_00699340` is keyed by the formation id. The insert
+    `FUN_005bc980(id, kind)` from `FUN_004b3604` @4b367b pushes rec[1] = kind, then rec[0] = id.
+  - Of the 131 mission files, only in 117 "engaged" does this differ from "flight 1": id 1 is Bravo (a Mirage).
+  - Its leader is member 0 if spawned, else member 1 (docs/front-end.md §8 flight table).
+  - The entity name plays no part: campaign and scramble missions have no `Player1` (e.g. 324 "Player", 221
+    "alpha_1").
+- **The TSD choice:** the TSD's default flight is the formation holding that object (`FUN_005bcd70`). Picking another
+  flight (Alpha–Delta button + Fly, or double-clicking its leader) makes that flight's leader the player object
   (`FUN_005045b0` → `FUN_004d31f0`).
-- The player's position, altitude and heading are the leader entity's; the ground / airborne start rules are
-  docs/flight-model.md §15.6.4. The aircraft type is the leader's bdb type (`0x5b4`), except in the training
-  missions entered through the Jet list.
+- **Start state:** the player's position, altitude and heading are the leader entity's; the ground / airborne start
+  rules are in docs/flight-model.md §15.6.4. The aircraft type is the leader's bdb type (`0x5b4`), except in the
+  training missions entered through the Jet list.
 - **Port:** `mission_runtime.gd` `player_flight(mission, wanted)`; `Settings.player_flight` carries the TSD
   choice; `terrain_view.gd` starts at that entity and hands its id to the runtime (the entity flagged
-  `player`). The seven Jet list types fly (docs/aircraft.md §5); another type is logged and flown as the F-16. Test:
-  test_player_flight.
+  `player`). The seven Jet list types fly (docs/aircraft.md §5); any other type is logged and flown as the F-16.
+  Test: test_player_flight.
 
 ### Control mode (entity 0x320 bit 0) — `FUN_004b7634` @`0x4b79ce`, activation `FUN_004a9100`
-- `0x320 & 1 = 1`: status+0x14 = 2, **MISSION_CONTROLLED**. At activation `FUN_004a61e0` runs. It jumps both
-  script lists to **entry index 1** (scenario +0xe0/+0xe4, set to 1 in `FUN_004a64c0`). It then arms the radius
-  check (§2.2).
-- `0x320 & 1 = 0`: 1 = **BRAIN_CONTROLLED**. The AI brain drives the entity. Scripts do **not** auto-start and
-  radius checks are **not** armed. Event actions (§3.4) can still jump its scripts.
-- Players are switched to 3 = PLAYER_CONTROLLED. Leaving MISSION_CONTROLLED kills the scenario (`FUN_004a6130`,
-  "killScenario(): … is dead"). This sets scenario+0x88 = 1, which blocks further script jumps.
+
+| 0x320 & 1 | status+0x14 | behaviour |
+|---|---|---|
+| 1 | 2 = **MISSION_CONTROLLED** | at activation `FUN_004a61e0` runs: it jumps both script lists to **entry index 1** (scenario +0xe0/+0xe4, set to 1 in `FUN_004a64c0`), then arms the radius check (§2.2) |
+| 0 | 1 = **BRAIN_CONTROLLED** | the AI brain drives the entity. Scripts stay idle until an event jumps them (§3.4), and no radius check is armed |
+
+- Players are switched to 3 = PLAYER_CONTROLLED.
+- Leaving MISSION_CONTROLLED kills the scenario (`FUN_004a6130`, "killScenario(): … is dead"). This sets
+  scenario+0x88 = 1, which blocks further script jumps.
 
 ### Role (entity 0x32a) → status+0x18 (`FUN_004bf5b0` @`0x4b7a43`)
-This field decides win and loss (§6). Distribution over all missions: 2 = 3.8k entities, 1 = 445, 0 = 223.
+The role decides win and loss (§5.1). Distribution over all missions: 2 = 3.8k entities, 1 = 445, 0 = 223.
 
 | 0x32a | meaning |
 |---|---|
@@ -67,35 +86,37 @@ This field decides win and loss (§6). Distribution over all missions: 2 = 3.8k 
 | 1 | **target**: the mission succeeds when *all* role-1 entities are destroyed |
 | 2 | neutral |
 
-- Only in network play is the role of `PlayerN` forced to 2 (when `DAT_00832ad4` != 0 and option +0x59c == 0,
-  `FUN_0058f110`). In single player the file value is used.
+- Single player uses the file value. Network play forces the role of `PlayerN` to 2 (when `DAT_00832ad4` != 0 and
+  option +0x59c == 0, `FUN_0058f110`).
 - Named sensors confirm the rule: "Win sensor" and "sucsess sensor" are 1, "Loose sensor" and "Red win sensor" are 0.
 
 ## 2. Entity event slots (0x334 name / 0x33e id / 0x348 / 0x352)
 
+Each entity has six event slots. Each slot names an event to fire when something happens to the entity.
+
 Copy path:
 
-- entity item +0x34+16i = {0x33e, 0x334, 0x348, 0x352};
-- `FUN_00592210`: local +0x28+16i;
-- `FUN_0058f110`: spawn descriptor (`@0x58fe6b`);
-- `FUN_004a64c0`: scenario.
+1. entity item +0x34+16i = {0x33e, 0x334, 0x348, 0x352};
+2. `FUN_00592210`: local +0x28+16i;
+3. `FUN_0058f110`: spawn descriptor (`@0x58fe6b`);
+4. `FUN_004a64c0`: scenario.
 
-`0x334` is only the editor's display copy of the event name. `0x352` is never read.
+`0x334` is only the editor's display copy of the event name. Nothing reads `0x352`.
 
 | slot | descriptor | scenario | runtime meaning |
 |---|---|---|---|
 | 0 | +0xd0 | +0x8c | **evHit**: fires event `0x33e` when the entity goes alive→damaged (state 1→3, `FUN_004a8ae0` → `FUN_004a8100` → `FUN_004a6240`) |
 | 1 | +0xd4 | +0x90 | **evDestroy**: fires event `0x33e` when the entity reaches state 4 or 5 (`FUN_004a8280` / `FUN_004a8420` → `FUN_004a6310`), then killScenario |
-| 2 | +0xe4 | +0x94 | **evNotDestroy**: at end of flight, for every entity that is not destroyed and still has a live scenario, `FUN_0059a0f0` → `FUN_004a63c0` shows **debrief item id `0x33e`**. The id is looked up in the debrief map, not the event map. The editor stores event names here (244 of 246 uses), so the data and code disagree. Implement what the code does. |
+| 2 | +0xe4 | +0x94 | **evNotDestroy**: at end of flight, for every entity that is still alive and still has a live scenario, `FUN_0059a0f0` → `FUN_004a63c0` shows **debrief item id `0x33e`**. The id is looked up in the debrief map (the event map plays no part). The editor stores event names here (244 of 246 uses), so the data and code disagree. Implement what the code does. |
 | 3 | +0xe0 | +0x98 | stored; **no reader found** (3 uses in the data, all named "…Combat") — UNCERTAIN |
 | 4 | +0xe8, `0x348`→(float)+0xf0 | +0x9c, radius +0xa4 | **evLeft** event id = `0x33e`. **`0x348` = the radius used by the reached and left checks** (world units ≈ m) |
 | 5 | +0xec | +0xa0 | **evReached**: event id `0x33e` |
 | 6 | — | — | unused |
 
-- Hit and destroy events fire only if the **sensor flag** (scenario+0xdc, initialised to 1) is on. Otherwise the
-  engine only logs "will not send scenario event due to sensor off!".
+- Hit and destroy events fire only while the **sensor flag** (scenario+0xdc, initialised to 1) is on. With the flag
+  off, the engine only logs "will not send scenario event due to sensor off!".
 - Trigger ops 16 and 17 set the flag to 1 and 0.
-- Every fire goes through `FUN_004ba7a1(&id,0)`. Id 0 (and any id not in the event map) does nothing.
+- Every fire goes through `FUN_004ba7a1(&id,0)`. Id 0 (and any id missing from the event map) does nothing.
 
 ### 2.1 Watched entity (entity item `+0xac`)
 Descriptor +0xf4..+0x104 = the 5-dword runtime key of the entity whose id equals `+0xac` (`@0x58fed7`). The
@@ -115,8 +136,8 @@ leaves +0xc0 = 0).
 3. On the first hit:
    - log "evReached(): Entity A within reach of entity B";
    - **cancel the timer**;
-   - if the sensor flag is on, fire the reached id.
-   - Then, if the left id != 0, schedule `MScenarioEntityLeftTimer` (vtbl `0x603060`, period 4.0 s).
+   - if the sensor flag is on, fire the reached id;
+   - then, if the left id != 0, schedule `MScenarioEntityLeftTimer` (vtbl `0x603060`, period 4.0 s).
 4. Left tick: when distance² ≥ radius², fire the left id once and cancel. Both reached and left fire at most
    once per activation.
 
@@ -125,17 +146,19 @@ is `+0xac` = 1 = Player1.
 
 ### 2.3 "Sensor" entities
 - bdb Objects id 130 `sensor` spawns runtime class **0x12 `FireSensor`** (class name table `FUN_004a4d40`).
-- It senses nothing special. It is an invisible entity that uses the same generic slots, radius checks and
-  scripts as any other entity. Its collision radius is 5.0 (`FUN_004b7634`: desc+0x108 = 0 → 5.0).
+- A sensor is an invisible entity with the same generic slots, radius checks and scripts as any other entity; it
+  has no special sensing. Its collision radius is 5.0 (`FUN_004b7634`: desc+0x108 = 0 → 5.0).
 - Designers use sensors as logic nodes:
   - a radius sensor (slot 4/5 around the player, or around another watched unit);
   - a script holder;
   - a **win/lose token**.
 - **"Explode" on a sensor** is trigger op 5, which destroys the sensor (state 5). This runs evDestroy and then
-  the role rule (§6). A role-1 sensor exploding counts as a destroyed target (success once all role-1 entities
+  the role rule (§5.1). A role-1 sensor exploding counts as a destroyed target (success once all role-1 entities
   are gone). A role-0 sensor exploding fails the mission.
 
 ## 3. Events (`CDMEEventItem`)
+
+An event plays a message, adds debrief text and jumps scripts. Slots (§2) and script ops fire it.
 
 ### 3.1 Build (`FUN_004b9da5` → `FUN_004b9f73`; record from doc vtbl+0xc0 `FUN_00590b50`)
 
@@ -162,16 +185,16 @@ editor-only. The record copies cond1's operator from an uninitialised slot (+0x2
 condition or a counter action, and "COUNT", "NUMOFLAUNCHERS", `==`/`++`/`>=` never take effect. They are
 listed above for completeness only. `DAT_00843c5c` (#counters) is the largest counter id any event names, + 1.
 Port: `mission_runtime.gd` builds the counters, conditions and counter actions anyway (`counters`, `_condition`,
-`_counter_action`); an operator code outside 0..5 in a condition (cond1's copied junk) is taken as false (UNCERTAIN).
+`_counter_action`); a condition with an operator code outside 0..5 (cond1's copied junk) is taken as false (UNCERTAIN).
 
 ### 3.2 Fire (`FUN_004ba7a1` → `FUN_004c3425`)
 1. Run the counter action (if any), on **every** trigger (v1.1; v1.0 ran it in step 2, only when the event fired).
 2. If E+0x18 == 0, or the condition is present and false, stop.
 3. **E+0x18 -= 1**. With 0x398 = 1 the event fires once. N means the first N triggers that pass the condition. 0 means
    it never fires (6 events).
-4. If the audio id is not 0 or -1: `manager->PlayMessage(audio)` (`FUN_004bb10b`, §3.3).
-5. If the debrief id is not 0 or -1: `debrief->Add(id)` (`FUN_00599cf0`).
-   - Look up the debrief item. If not yet shown, append `"\n\n" + 0x26c`.
+4. If the audio id is neither 0 nor -1: `manager->PlayMessage(audio)` (`FUN_004bb10b`, §3.3).
+5. If the debrief id is neither 0 nor -1: `debrief->Add(id)` (`FUN_00599cf0`).
+   - Look up the debrief item. If it was not shown yet, append `"\n\n" + 0x26c`.
    - Flag `0x262` == 0 → append to unit+0x3c. Flag 1 → append to unit+0x40.
    - The final debrief text is +0x3c followed by +0x40.
 6. If single player (`DAT_00699350[1]==0`) or host: for each action run `FUN_004c35d6` (§3.4).
@@ -179,8 +202,8 @@ Port: `mission_runtime.gd` builds the counters, conditions and counter actions a
 ### 3.3 PlayMessage (`FUN_004bb10b`) — audio and subtitle
 - Look up the bdb Audio record (manager+0x58, filled from bdb Audio `0x12c/0x136/0x140`).
 - **Sound:** `DAT_0069931c->FUN_004c5470(wav,0,1)`.
-  - Path = registry `[Sound] SoundFilesPath` (default `.\SoundFiles\`) + `0x136`, with `.wav` appended if there is
-    no dot. In the install this is `resource/soundfiles/`, lower-case, so match case-insensitively.
+  - Path = registry `[Sound] SoundFilesPath` (default `.\SoundFiles\`) + `0x136`, with `.wav` appended if the name
+    has no dot. In the install this is `resource/soundfiles/`, lower-case, so match case-insensitively.
   - The last argument 1 routes it to the speech channel (handle kept at +0x38).
 - **Subtitle:** `FUN_0044a060(0x140)` pushes lines into a 40-line console (`DAT_00836b58/04/88`, 128-byte slots).
   - Word-wrapped at the last space before 40 chars, recursively (`FUN_004514b0`). The first char is
@@ -191,15 +214,17 @@ Port: `mission_runtime.gd` builds the counters, conditions and counter actions a
     coordinates). The same console holds the chat input line at y=220.
   - Font = cockpit +0x580 = `CreateFontA(12,4,…,"ARIAL")`.
   - Colour = current HUD colour, table +0x285c[+0x2888] (see mfd.md; default green).
-  - No per-line expiry. Lines leave the window only by being scrolled out, and a 3 s ticker keeps
-    scrolling (see "Subtitle lifetime" below).
+  - Lines have no expiry time. A line leaves the window only when later pushes scroll it out, and a 3 s ticker
+    keeps pushing (see "Subtitle lifetime" below).
 
 #### Subtitle lifetime
+In short: a subtitle stays on screen for 14 console pushes; with no other traffic that is **39–42 s of sim time**.
+
 **Console layout** (`DAT_00836b58`):
 - `+0` = slot count, always 40. `+4` = the slot buffer, 40×128 bytes. `+8` = the 128-byte chat input line.
 - `+0x88` = the ring, an array of 40 slot offsets. Its last entry is the newest line. `+0x8c` = chat-input
   flag.
-- It is built by `FUN_004e2960` @`4e2c22`: `malloc(0x1400)` and `malloc(0xa0)`, every slot set to "".
+- `FUN_004e2960` @`4e2c22` builds it: `malloc(0x1400)` and `malloc(0xa0)`, every slot set to "".
 
 **Push** (`FUN_0044a060` inline, `FUN_004514b0`, `FUN_004d9710`):
 - Copy the text into the slot at ring[0], which is the oldest.
@@ -209,13 +234,13 @@ Port: `mission_runtime.gd` builds the counters, conditions and counter actions a
 **Draw** (`FUN_005201b0`):
 - Scans ring indices 39 down to 26. That is the **14 newest slots** (loop `esi > count-15`, collect array
   `0x83ddd8..0x83de10` = 14 entries).
-- Keeps only non-empty strings. Draws them compacted (no gaps for empty slots), oldest at y=10, then +15 each.
+- Keeps only non-empty strings. Draws them packed together (empty slots leave no gap), oldest at y=10, then +15 each.
 - The chat line is drawn separately at y=220. Its `_` cursor toggles every 400 ms (`0x83de6c`/`0x65c6c0`).
 
 **The 3 s ticker** (`FUN_004d95e0`, called first thing from the per-frame sim render `FUN_004d9080` @`4d908c`):
 - Function-static timer `0x8338a8` (guard bit `0x8338c8`), created once by `FUN_004d3fe0(3.0f)`.
   - `+0` last and `+8` next are both initialised to 1.0e7 (`.rdata 0x604f58`). `+0x10` = 0, `+0x14` = 3.0,
-    `+0x18` = 0 (not random).
+    `+0x18` = 0 (no random part).
 - Each frame, `FUN_004d4100(&simtime)` runs with `simtime` = double at `DAT_006992d0+0x38`.
   - It fires when `now > next` **or** `now < last`. The second case covers the first poll and a sim clock
     that restarted.
@@ -232,7 +257,7 @@ Port: `mission_runtime.gd` builds the counters, conditions and counter actions a
     `4e720b`), and a `char buf[N] = ""` initialiser (`4ea810`, `502fdc`).
   - `CharUpperBuffA` on its NUL byte is a no-op.
   - So the ticker **pushes one empty line every 3.0 s of sim time**. It does this even with text messages
-    off (it does not test `DAT_0062f064`).
+    off (it skips the `DAT_0062f064` test).
   - UNCERTAIN: a few sites hand the pointer out in a register (`541227` returns it, `5b30c6`, `5b4b54`,
     `5c8875`, `5c49b7`). No write through them was found. This looks like a leftover of a debug-message
     feed.
@@ -245,7 +270,7 @@ Port: `mission_runtime.gd` builds the counters, conditions and counter actions a
   tick. **Lifetime = 39–42 s of sim time** (≈40.5 s on average, quantised to frames).
 - More traffic shortens it. For example, a 3-line wrapped message leaves only 11 pushes of lifetime for
   the older lines.
-- Empty slots are not drawn, and the visible lines stay packed from y=10 downward. A tick therefore changes
+- Empty slots are skipped, so the visible lines stay packed from y=10 downward. A tick therefore changes
   nothing on screen until it pushes the oldest visible line out. Then the remaining lines move up one row
   (15 px). A new line always appears below the others.
 - The clock is sim time, so time compression shortens the lifetime in wall-clock terms. If the sim clock
@@ -256,11 +281,11 @@ Port: `mission_runtime.gd` builds the counters, conditions and counter actions a
 - The only writers of `0x836b58/04/88` are:
   - `FUN_004e2960` (main-window creation, once per run).
   - `FUN_004e3070` @`4e30db` (same re-allocation, all 40 slots emptied; `FUN_004e71e0` also empties the chat
-    line). `FUN_004e3070` is reached from the message-box callbacks for message 0x55a (`CIAFWindow` map
-    `0x605888` → `FUN_004e3050` when result == 6; flight-window map `0x605338` → `FUN_004dc650`) and from
+    line). Callers of `FUN_004e3070`: the message-box callbacks for message 0x55a (`CIAFWindow` map
+    `0x605888` → `FUN_004e3050` when result == 6; flight-window map `0x605338` → `FUN_004dc650`) and
     `FUN_004dc500` (message 0x55b, result 7, single player).
-  - UNCERTAIN: which user-facing flight exit takes this path. The debrief exit `FUN_004e3230` does not touch
-    the console.
+  - UNCERTAIN: which user-facing flight exit takes this path. The debrief exit `FUN_004e3230` leaves the
+    console alone.
 - Lines left over from a previous flight therefore scroll out within ≤42 s of the next flight's sim time.
   The ticker fires on the first frame, because the new sim time < `last`.
 
@@ -268,14 +293,18 @@ Port: `mission_runtime.gd` builds the counters, conditions and counter actions a
 - Each record `{entity id, s0, s1}` is resolved to the entity key (doc vtbl+0xc4 `FUN_00590ee0`). A record whose
   lookup returns 0 is skipped (v1.1; v1.0 went on with the null entity).
 - `s0` ≠ 0/-1 → `scenario->JumpMotion(s0)` (`FUN_004c3a10`). `s1` → `JumpTrigger(s1)` (`FUN_004c3a40`).
-- The index is the script's **list index** (the `+0x10` / "raw10" value in the JSON), not its 0x1e id.
+- The index is the script's **list index** (the `+0x10` / "raw10" value in the JSON); the script's 0x1e id plays no
+  part.
 - A jump is ignored if scenario+0x88 is set (killScenario). It works in any control mode.
 
 ## 4. Scripts
 
+Each entity has two script lists: motion (`scripts0`) and trigger (`scripts1`). A list runs one entry at a time; each
+entry holds the list for its duration.
+
 `ScriptList::Jump(i)` (`FUN_004a5250`): current := i, start := now.
-- **Execute** entry i on the owner entity.
-- If the entry's duration ≠ -1.0 (`DAT_00832170`), schedule its end timer at now+duration (`FUN_004a5b70`).
+1. **Execute** entry i on the owner entity.
+2. If the entry's duration ≠ -1.0 (`DAT_00832170`), schedule its end timer at now+duration (`FUN_004a5b70`).
 
 On the end timer (`FUN_004a58a0`): current := entry.next (0x898). If that is 0 or -1, the list stops. Otherwise
 execute that entry and schedule its end timer.
@@ -284,7 +313,7 @@ execute that entry and schedule its end timer.
 - Factories: `FUN_004b8f09` (trigger, switch on the opcode) and `FUN_004b8326` (motion).
 - Both set **duration = (double)`0x87a` seconds** (sim clock, `DAT_006992d0+0x38`).
   - Motion adds TimeVar `0x884` seconds when `0x884` ≥ 1 (`FUN_00590410`).
-- `Wait N` is a no-op entry whose duration is N. Every entry, not only Wait, holds the list for `0x87a` seconds
+- `Wait N` is a no-op entry whose duration is N. Every entry, Wait or other, holds the list for `0x87a` seconds
   before the next one runs. For example, "Visible off" with `0x87a`=7 waits 7 s.
 - Duration 0 means the next entry runs on the next timer dispatch.
 
@@ -320,35 +349,44 @@ execute that entry and schedule its end timer.
 | 16 | **Path** | `0x5c3d00` | mode 0xe, `FUN_0047b9a9(path, …)`: follow CDMEPathsItem `0x8ac` (details below) |
 
 Path details:
-- The traverse time is the entry's duration. Duration -1 gives the default 1e7.
-- Offset flag from floats 0x85c/0x866/0x870. `0x884 == -1` selects variant 2.
-- Kinematics (`FUN_0047beef` → `FUN_0047c4cf`): the unit joins the path at its **closest point** (`FUN_0047eb90`),
-  runs toward the last point (0x852 ≥ 0) or the first (< 0), and the distance is the **arc length** left
-  (`FUN_0047f280`); variant 2 (0x884 = −1, 604 of 713 entries) moves at that length / duration, constant. Variant 1
-  (current speed) and 3 (acceleration) are taken as variant 2 (UNCERTAIN). With a 1 s duration the entity
-  effectively jumps to the path's last point.
-- Height: the points' z is **above the ground** for a flyer (classes 2, 3, 0x1c: helicopters, transports, jets): the
-  data's paths are 0 on runways and 100–1000 m in the air over 700–2,800 m terrain (215's C-130 lands on 300 → 300 →
-  0, 231's MI-24s fly at 200), so they are heights (UNCERTAIN: the mover's own terrain handling not traced). Ground
-  units keep to the terrain (z 0). The position and velocity the motion gives are 3-D (`FUN_0047cd40`,
-  `FUN_0047d2c1` → the leg vector `FUN_0047f180`).
-- Heading: the unit faces along its leg; the start computes an `initialDeltaYaw` toward the path (`FUN_0047c4cf`),
-  ours turns at once (the turn rate UNCERTAIN). Hover (motion op 1) holds the position and the altitude.
-- Port: `mission_runtime.gd` `_move_on_path`, the model posed by `terrain_view.gd` `mission_entity_moved`. Test:
+- **Time:** the traverse time is the entry's duration. Duration -1 gives the default 1e7.
+- **Variant:** offset flag from floats 0x85c/0x866/0x870. `0x884 == -1` selects variant 2.
+- **Kinematics** (`FUN_0047beef` → `FUN_0047c4cf`):
+  - The unit joins the path at its **closest point** (`FUN_0047eb90`) and runs toward the last point (0x852 ≥ 0) or
+    the first (< 0). The distance is the **arc length** left (`FUN_0047f280`).
+  - Variant 2 (0x884 = −1, 604 of 713 entries) moves at that length / duration, constant. Variant 1 (current speed)
+    and 3 (acceleration) are taken as variant 2 (UNCERTAIN).
+  - With a 1 s duration the entity effectively jumps to the path's last point.
+- **Height:** for a flyer (classes 2, 3, 0x1c: helicopters, transports, jets) the points' z is the height **above the
+  ground**.
+  - Evidence: the data's paths are 0 on runways and 100–1000 m in the air over 700–2,800 m terrain (215's C-130
+    lands on 300 → 300 → 0, 231's MI-24s fly at 200), so they are heights (UNCERTAIN: the mover's own terrain
+    handling not traced).
+  - Ground units keep to the terrain (z 0).
+  - The position and velocity the motion gives are 3-D (`FUN_0047cd40`, `FUN_0047d2c1` → the leg vector
+    `FUN_0047f180`).
+- **Heading:** the unit faces along its leg. The original's start computes an `initialDeltaYaw` toward the path
+  (`FUN_0047c4cf`); ours turns at once (the turn rate UNCERTAIN). Hover (motion op 1) holds the position and the
+  altitude.
+- **Port:** `mission_runtime.gd` `_move_on_path`, the model posed by `terrain_view.gd` `mission_entity_moved`. Test:
   `test_mission_flyers.gd` (231's MI-24s at 200 m along their leg, 115's Merkavas on the terrain, 215's hovering MI-24).
 
-Opcodes absent from the data (motion 2–4, 6–10, 12–15; trigger 6, 8–10, 16–18, 20, 23–28) exist in the
-factories. They are listed only where the Execute was read.
+The factories also hold opcodes that no mission uses (motion 2–4, 6–10, 12–15; trigger 6, 8–10, 16–18, 20, 23–28).
+The tables list them only where the Execute was read.
 
 ## 5. Mission end
 
+A mission ends only through the role rules (§5.1): all players dead, a role-0 entity destroyed, or every role-1
+entity destroyed. The engine then shows a message box (§5.2) and compiles the debrief (§5.3).
+
 ### 5.1 Role accounting — `FUN_00599da0(entity)`
 Called from the entity final-status path `FUN_004a86b0` (after destroy) and from `FUN_005485a0` (**ejection**, §5.4).
-`FUN_0059aca0(slot)` counts a player slot as alive only if its entity has state ≠ 4/5 **and** control mode
-(status+0x14) ≠ 0. In a campaign (`DAT_00832adc`), a second aircraft of the slot also counts if it is a flyable jet
-(type 100…200). UNCERTAIN: which aircraft that is (`FUN_005bcb90`).
-Mission start (`FUN_00599980`) sets `unit+0x6618 = #entities with role 1` (`FUN_0059ac00`), and clears passed
-(+0x34), failed (+0x35) and result (+0x6615).
+
+- `FUN_0059aca0(slot)` counts a player slot as alive only if its entity has state ≠ 4/5 **and** control mode
+  (status+0x14) ≠ 0. In a campaign (`DAT_00832adc`), a second aircraft of the slot also counts if it is a flyable jet
+  (type 100…200). UNCERTAIN: which aircraft that is (`FUN_005bcb90`).
+- Mission start (`FUN_00599980`) sets `unit+0x6618 = #entities with role 1` (`FUN_0059ac00`), and clears passed
+  (+0x34), failed (+0x35) and result (+0x6615).
 
 **Rule 1 — all players dead.** For player slots 1..4 (1..2 in campaign), `FUN_0059aca0` checks whether a player
 entity exists with state ≠ 4/5. If none does:
@@ -367,8 +405,8 @@ entity exists with state ≠ 4/5. If none does:
   - post **0x80** at now + 10.0 s.
 - **role 2**: nothing.
 
-There is **no** landing, time or waypoint end condition. The landed/crashed/drowned classification in
-`FUN_0047263d` is flight-model only. A mission with no role-1 entity can never succeed automatically.
+The engine has **no** landing, time or waypoint end condition. The landed/crashed/drowned classification in
+`FUN_0047263d` belongs to the flight model only. A mission with no role-1 entity can never succeed automatically.
 
 ### 5.2 Message box — `CIAFWindow::OnGameEvent` `FUN_004e33c0`
 
@@ -380,7 +418,7 @@ Single player:
 | 0x81 | `FUN_004e3f30(14, reply, 0, 0x20000)` | 14 "Mission failed." | DEBRIEF, CONTINUE, EXIT |
 | 0x82 | no box: `FUN_004e3230` ends the flight at once (game events 0x76, 0x7e), then the debrief | — | — |
 
-- The box text is **fixed** from msgs.trx. The misc texts are *not* shown in it.
+- The box text is **fixed** from msgs.trx. The misc texts never appear in it.
 - In network play the text ids are 0x35/0x36 when `DAT_0083b810 == 0x213` or `FUN_004f1770()`.
 - Button results (`FUN_004e4ff0`): DEBRIEF = 100, CONTINUE = 101, EXIT = 102. They are sent as
   `SendMessage(IAFWnd, 0x559, 3, result)`.
@@ -413,7 +451,7 @@ Misc fields as the engine uses them (via doc vtbl+0x90 `FUN_0058d720` → unit f
 | 0x4ba audio | +0x20 | **no reader found** |
 | 0x492 text | +0x24 | debrief headline when not passed (default "Mission failed") |
 | 0x4c4 audio | +0x28 | played at the role-0 failure |
-| 0x4a6 text | +0x2c | not used in single player (default "Passed") |
+| 0x4a6 text | +0x2c | unused in single player (default "Passed") |
 | 0x4ce audio | +0x30 | **played at success** (for example 43 "The terrorist attack on Haifa has failed.") |
 
 mis.md's "second failure" labels for 0x4a6 and 0x4ce are wrong.
@@ -421,24 +459,30 @@ mis.md's "second failure" labels for 0x4a6 and 0x4ce are wrong.
 The start time (0x460) is overridden by option +0x584 (0..3 → 43200 / 21600 / 68400 / 79200 s).
 
 ### 5.4 Ejection / player lost (`FUN_005485a0`)
-Generic for every mission and aircraft. The graphics side (seat, canopy, parachuter kinematics) is in
-docs/part-animation.md "Ejection". All times are **sim time** `[0x6992d0]+0x38`.
+This section covers the eject key, what the engine does at ejection, and what the player sees. It is generic for every
+mission and aircraft. The graphics side (seat, canopy, parachuter kinematics) is in docs/part-animation.md
+"Ejection". All times are **sim time** `[0x6992d0]+0x38`.
 
-**Key → 3-press rule.** Key record 17 "Eject (x3)" sends GEV 0x12 (DIK_E, params ignored). It goes through the usual chain
-(0x532 → CIAFWindow default → `FUN_004cd3b0` → `FUN_004cd630`). Case 0x12 (@137847) requires the player controller
-`DAT_00699308` ≠ 0. It calls `FUN_0044a240(0x12, p, forced = 1)`. Because of `forced`, the controller's "control mode ≠ 3 → ignore" guard
-(@44a26b) is bypassed, so the key also works after the controls were taken away (state 3, see below). Case 0x12 (@44b5b5):
-`FUN_00548330(player entity)` on the eject singleton `DAT_0083fab0` (`FUN_00548400`, 0x20 bytes: +0 pool begin, +4 pool end, +8 cap,
-+0x10 "player's ejection" flag (**not initialised**), +0x14 press count, +0x18 last press time, double):
+**Key → 3-press rule.**
+1. Key record 17 "Eject (x3)" sends GEV 0x12 (DIK_E, params ignored). It goes through the usual chain (0x532 →
+   CIAFWindow default → `FUN_004cd3b0` → `FUN_004cd630`).
+2. Case 0x12 (@137847) requires the player controller `DAT_00699308` ≠ 0. It calls `FUN_0044a240(0x12, p, forced = 1)`.
+   Because of `forced`, the controller's "control mode ≠ 3 → ignore" guard (@44a26b) is bypassed, so the key also
+   works after the controls were taken away (state 3, see below).
+3. Case 0x12 (@44b5b5): `FUN_00548330(player entity)` on the eject singleton `DAT_0083fab0` (`FUN_00548400`, 0x20
+   bytes: +0 pool begin, +4 pool end, +8 cap, +0x10 "player's ejection" flag (**not initialised**), +0x14 press
+   count, +0x18 last press time, double):
 ```
 if now − last >= EjectKeyTimeDistance:  count = 1; last = now          // gap too long (or first press): restart
 else: count += 1
       if count >= 3: count = 0; last = 0; Eject(entity)                  // FUN_005485a0
       else: last = now
 ```
-`Eject/EjectKeyTimeDistance` defaults to **1.0 s** (`0x66135c`). The window is **between consecutive presses**, not the total.
-Nothing is displayed or played on any press. In a network game each press is also sent to the other players (@44b5cc,
-`FUN_00450d60(0x10,9)`, UNCERTAIN). The `[Eject]` defaults are read once, by `FUN_00548400`:
+- `Eject/EjectKeyTimeDistance` defaults to **1.0 s** (`0x66135c`). The window applies **between consecutive presses**;
+  the total time is free.
+- No press shows or plays anything.
+- In a network game each press is also sent to the other players (@44b5cc, `FUN_00450d60(0x10,9)`, UNCERTAIN).
+- `FUN_00548400` reads the `[Eject]` defaults once:
 
 | key | default | global |
 |---|---|---|
@@ -449,48 +493,58 @@ Nothing is displayed or played on any press. In a network game each press is als
 | `Speed` (crew ctor) | 3.0 m per 0.05 s tick | `0x65ffdc` |
 
 **`FUN_005485a0(entity)`** (disassembly @5485a0; the Ghidra output is stack-garbled):
-1. Abort if the crew is already out (`FUN_00540350`: crew obj +0xc == 0). Abort unless control mode (status+0x14) == 3
-   (player-controlled) **or** state (status+0xc) == 3 (fatally hit, "going down").
-2. Schedule the "FlightControllerEjectReport" event (vtable `0x60c908` → `FUN_0054e560`) at **t0 + 4.5 s** (`0x60c8c0` = −4.5).
-   The radio says `EJECTED_PHRASE` = "%S1 EJECTED" (phrasetemplates.trx; `GEjected.wav` "ejected" after the callsign).
-   This happens only if `DAT_00832ad8` == 0, the ejector is on the player's side (`FUN_004a4cf0`) and its callsign (`FUN_0054ccb0`) is not empty.
-3. The aircraft is left to itself. Three FM motions go to `(entity+0x38)->vtbl[0]`:
-   * **0x0f** arg 0: `FUN_005a1e40` → `FUN_005c8800`, `DAT_00843dec = 0` (UNCERTAIN: autopilot / steering mode off; args 1/2 = fly to point / follow target);
+1. **Checks.** Abort if the crew is already out (`FUN_00540350`: crew obj +0xc == 0). Abort unless control mode
+   (status+0x14) == 3 (player-controlled) **or** state (status+0xc) == 3 (fatally hit, "going down").
+2. **Radio report.** Schedule the "FlightControllerEjectReport" event (vtable `0x60c908` → `FUN_0054e560`) at
+   **t0 + 4.5 s** (`0x60c8c0` = −4.5). The radio says `EJECTED_PHRASE` = "%S1 EJECTED" (phrasetemplates.trx;
+   `GEjected.wav` "ejected" after the callsign). This happens only if `DAT_00832ad8` == 0, the ejector is on the
+   player's side (`FUN_004a4cf0`) and its callsign (`FUN_0054ccb0`) is not empty.
+3. **The jet flies on unmanned.** Three FM motions go to `(entity+0x38)->vtbl[0]`:
+   * **0x0f** arg 0: `FUN_005a1e40` → `FUN_005c8800`, `DAT_00843dec = 0` (UNCERTAIN: autopilot / steering mode off;
+     args 1/2 = fly to point / follow target);
    * **0x19** arg 0: **engine off**, `S+0x1d0 = 0` (`FUN_005a2890`), so there is no thrust;
    * **1** stick: in+0x10 = 0.2, in+0x14 = 0.1 → `sY = S+0x2e4 = −0.2` (a slight push), `sX = S+0x2e8 = +0.1`
      (`FUN_0059f3d0`; ×0.25 if controller flag 0x12 is set, 0 if flag 0x18 is set, UNCERTAIN: damage flags).
-   Throttle, gear, flaps and brakes are not touched. Then `FUN_004a8e70(0)`: **control mode 0**. The player's inputs are now
-   ignored, and the FM keeps flying the unmanned jet until it hits the ground (normal crash path `FUN_004a86b0`). UNCERTAIN: the
-   FM integrates normally in mode 0. The crashing-aircraft path `FUN_004a8100` uses the same mode.
-4. `FUN_00599da0(unit, entity)` (§5.1) runs **at the moment of ejection**. The player now has mode 0, so rule 1 fires in single
-   player: result 0, unit+0x661c = 1, **game event 0x82 at t0 + 5 s**. Rule 2 applies with the player's role (normally 0):
-   `PlayMessage(misc 0x4c4)`, failed = 1, **0x81 at t0 + 10 s**. So an ejection counts exactly like losing the aircraft.
-5. Altitude test: `agl = z − ground(x, y)` of the aircraft (vehicle +0x70 at t0).
-   * **agl < 50 m** (`0x60c8b8`), or **50 ≤ agl < 200 m** (`0x60c8bc`) with |state angle[1]| > 90° (`0x60c8d8`, a double;
-     UNCERTAIN: roll, i.e. inverted): **short ejection**. The canopy is thrown, the seat record is pushed (`FUN_0053fb00`,
-     `FUN_0053ee90(t0+Interval)`), and game event **0x7f** is posted at once with the entity's packed id. No camera change.
-   * otherwise, **full ejection**:
-     * singleton+0x10 = (entity == player `DAT_00699320`);
-     * `entity+4 → +8 = 1` (external viewer mode) and crew obj +8 = 0 (`FUN_005400c0(0)`), so the jet shows canopy and pilot from outside;
-     * **camera**: if it is the player's ejection, **or** the current view is Radar-target (9), Chase (6) or Fly-by (0x13) and
-       it looks at this entity: `FUN_005808c0(now, entity, {1500, 900, −200, −10°, 0°, 120°}, 2.0, **0x13 Fly-by
-       view**, RandomFlyby)` looks at the **aircraft**. With RandomFlyby, the x and z offsets get a random sign, and each offset is multiplied by
-       `0.5 + rand/32767` ∈ [0.5, 1.5]. The eye is kept ≥ ground + 15 m (`0x610e18`). (The offset frame is UNCERTAIN.)
-       The cockpit is left at once;
-     * canopy throw at t0, seats at t0 + Interval (as above);
-     * if the player's ejection or the view condition holds: schedule "Eject camera change view event" (vtable `0x60c8f8`,
-       `0x548a20`) at **t0 + ParachuterFlyBy = t0 + 5 s**. It sets the fly-by view (0x13) on the **parachuter** entity (the pool slot
-       captured at t0) with `{1000, 600, 200, 230° (4.014257 rad), ·, 160° (2.792527 rad)}` (`0x60c8a4..ec`), 2.0, RandomFlyby.
-       UNCERTAIN: the slot layout; the call is the same as above.
-6. **Game event 0x7f "jump to tactical display"** (short ejection: at once; full ejection: at the parachuter's `land − 10 s`,
-   only if singleton+0x10). In `FUN_004cd630` case 0x7f, single player: if the id is the player's and the player is dead
-   (state 4/5) or has mode 0 → `SendMessage(IAFWnd, 0x532, 0x7f)`. That message is also sent to the descendants (`FUN_005e24c3`).
-   `CFlightWnd::OnGameEvent` (`0x4dc280`, 0x7f → `0x4dc2b3`): flight window +0x150 = **1**, then `FUN_004d8d90(1)` closes the
-   flight view. The parent (`0x681` handler `0x4e38d0`) posts game event 0x75(1) and opens screen **0x20 FlyTSD**
-   (`dat/flytsd.trx`: Fly / Visit, formation Alpha–Delta). In network mission 0x21d it opens a box instead:
-   msgs 12 "Do you want to rejoin?" (reply 0x55b). CIAFWindow ignores 0x7f.
 
-**What the player sees (single player, not campaign):**
+   Throttle, gear, flaps and brakes keep their settings. Then `FUN_004a8e70(0)`: **control mode 0**. The engine now
+   ignores the player's inputs, and the FM keeps flying the unmanned jet until it hits the ground (normal crash path
+   `FUN_004a86b0`). UNCERTAIN: the FM integrates normally in mode 0. The crashing-aircraft path `FUN_004a8100` uses
+   the same mode.
+4. **Mission rules.** `FUN_00599da0(unit, entity)` (§5.1) runs **at the moment of ejection**. The player now has mode
+   0, so rule 1 fires in single player: result 0, unit+0x661c = 1, **game event 0x82 at t0 + 5 s**. Rule 2 applies
+   with the player's role (normally 0): `PlayMessage(misc 0x4c4)`, failed = 1, **0x81 at t0 + 10 s**. So an ejection
+   counts exactly like losing the aircraft.
+5. **Altitude test:** `agl = z − ground(x, y)` of the aircraft (vehicle +0x70 at t0).
+   * **Short ejection:** **agl < 50 m** (`0x60c8b8`), or **50 ≤ agl < 200 m** (`0x60c8bc`) with |state angle[1]| >
+     90° (`0x60c8d8`, a double; UNCERTAIN: roll, i.e. inverted). The canopy is thrown, the seat record is pushed
+     (`FUN_0053fb00`, `FUN_0053ee90(t0+Interval)`), and game event **0x7f** is posted at once with the entity's
+     packed id. The camera stays.
+   * **Full ejection** (all other cases):
+     * singleton+0x10 = (entity == player `DAT_00699320`);
+     * `entity+4 → +8 = 1` (external viewer mode) and crew obj +8 = 0 (`FUN_005400c0(0)`), so the jet shows canopy
+       and pilot from outside;
+     * **camera**: if it is the player's ejection, **or** the current view is Radar-target (9), Chase (6) or Fly-by
+       (0x13) and it looks at this entity: `FUN_005808c0(now, entity, {1500, 900, −200, −10°, 0°, 120°}, 2.0,
+       **0x13 Fly-by view**, RandomFlyby)` looks at the **aircraft**. With RandomFlyby, the x and z offsets get a
+       random sign, and each offset is multiplied by `0.5 + rand/32767` ∈ [0.5, 1.5]. The eye is kept ≥ ground +
+       15 m (`0x610e18`). (The offset frame is UNCERTAIN.) The cockpit is left at once;
+     * canopy throw at t0, seats at t0 + Interval (as above);
+     * if the player's ejection or the view condition holds: schedule "Eject camera change view event" (vtable
+       `0x60c8f8`, `0x548a20`) at **t0 + ParachuterFlyBy = t0 + 5 s**. It sets the fly-by view (0x13) on the
+       **parachuter** entity (the pool slot captured at t0) with
+       `{1000, 600, 200, 230° (4.014257 rad), ·, 160° (2.792527 rad)}` (`0x60c8a4..ec`), 2.0, RandomFlyby. UNCERTAIN: the slot layout; the call is the same as
+       above.
+6. **Game event 0x7f "jump to tactical display"** (short ejection: at once; full ejection: at the parachuter's
+   `land − 10 s`, only if singleton+0x10).
+   - In `FUN_004cd630` case 0x7f, single player: if the id is the player's and the player is dead (state 4/5) or has
+     mode 0 → `SendMessage(IAFWnd, 0x532, 0x7f)`. That message is also sent to the descendants (`FUN_005e24c3`).
+   - `CFlightWnd::OnGameEvent` (`0x4dc280`, 0x7f → `0x4dc2b3`): flight window +0x150 = **1**, then
+     `FUN_004d8d90(1)` closes the flight view.
+   - The parent (`0x681` handler `0x4e38d0`) posts game event 0x75(1) and opens screen **0x20 FlyTSD**
+     (`dat/flytsd.trx`: Fly / Visit, formation Alpha–Delta). In network mission 0x21d it opens a box instead: msgs 12
+     "Do you want to rejoin?" (reply 0x55b). CIAFWindow ignores 0x7f.
+
+**What the player sees (single player, outside a campaign):**
 
 | t | event |
 |---|---|
@@ -501,44 +555,51 @@ Nothing is displayed or played on any press. In a network game each press is als
 | t0 + 5.0 | game event 0x82: the flight ends and the **debrief** opens (`FUN_004e3230`, flight window +0x150 = 3). The camera event at t0 + 5 also fires (order UNCERTAIN) |
 | t0 + 10 | 0x81 ("Mission failed." box) — normally never seen, because the flight has ended (§5.2) |
 
-A **short ejection** (low, or inverted at 50–200 m) posts 0x7f at t0. So the flight view closes at once into FlyTSD, and 0x82
-still follows at t0 + 5 s (UNCERTAIN: how the two interact).
-In a **campaign**, if the slot still has a live flyable aircraft, rule 1 does not end the flight. The full ejection then plays the
-parachute and "jumps" to FlyTSD at `land − 10 s`, where the player can pick another aircraft (Fly). UNCERTAIN: the Fly
-button logic was not traced.
+- A **short ejection** (low, or inverted at 50–200 m) posts 0x7f at t0. So the flight view closes at once into
+  FlyTSD, and 0x82 still follows at t0 + 5 s (UNCERTAIN: how the two interact).
+- In a **campaign**, if the slot still has a live flyable aircraft, rule 1 does not end the flight. The full
+  ejection then plays the parachute and "jumps" to FlyTSD at `land − 10 s`, where the player can pick another
+  aircraft (Fly). UNCERTAIN: the Fly button logic was not traced.
 
-**Debrief / score.** There is no special ejection text, pilot status or score. The ejection only goes through §5.1:
+**Debrief / score.** Ejection adds no text, pilot status or score of its own. It only goes through §5.1:
 - result 0: headline misc 0x492 (default "Mission failed");
 - "Mission failed." is msgs line 14; "Mission Accomplished! " is msgs line 13.
 
-No "ejected"/"rescued"/"MIA" strings exist in the exe or the menu texts. The player's slot-1 "destroyed" event does **not**
-fire on ejection, because the jet is not destroyed. UNCERTAIN: whether the still-flying jet gets the slot-2 "not destroyed" debrief line at flight end (§5.3 step 1).
+No "ejected"/"rescued"/"MIA" strings exist in the exe or the menu texts. The player's slot-1 "destroyed" event does
+**not** fire on ejection, because the jet is still intact. UNCERTAIN: whether the still-flying jet gets the slot-2
+"not destroyed" debrief line at flight end (§5.3 step 1).
 
 **Voices.** Nothing is played on the key presses or at t0.
-- `WINGMAN_EJECT_EJECT` (code `0x37007000`, `eject.wav`) is played only when the player's jet goes from state 1 to 3, i.e. is fatally hit
-  (`FUN_004a8100` @108832). That path also sets control mode 0 and the crash motion, and switches the view to mode 0x10. This is the cue to press E three times.
-- `BACKSEAT_EJECT` (0x36/7) is defined but not referenced.
-- `parachute open.wav` is not referenced.
+- `WINGMAN_EJECT_EJECT` (code `0x37007000`, `eject.wav`) is played only when the player's jet goes from state 1 to 3,
+  i.e. is fatally hit (`FUN_004a8100` @108832). That path also sets control mode 0 and the crash motion, and switches
+  the view to mode 0x10. This is the cue to press E three times.
+- `BACKSEAT_EJECT` (0x36/7) is defined but never referenced.
+- No code references `parachute open.wav`.
 
-**Port:** `mission_runtime.gd` `player_ejected()` runs the role rules for the player at once and ends the flight
-into the debrief 5 s later (event 0x82); the jet's later crash does not count again. A short ejection (AGL < 50 m,
-or < 200 m with |roll| > 90°) opens the FlyTSD at once (event 0x7f); the debrief follows 5 s of sim time after the player leaves it (UNCERTAIN in the original). Without a
-mission the flight ends after 5 s. The radio says "<callsign> ejected" (EJECTED_PHRASE, docs/radio.md §4) at +4.5 s.
+**Port:** `mission_runtime.gd` `player_ejected()`:
+- runs the role rules for the player at once and ends the flight into the debrief 5 s later (event 0x82); the jet's
+  later crash does not count again;
+- a short ejection (AGL < 50 m, or < 200 m with |roll| > 90°) opens the FlyTSD at once (event 0x7f); the debrief
+  follows 5 s of sim time after the player leaves it (UNCERTAIN in the original);
+- without a mission the flight ends after 5 s;
+- the radio says "<callsign> ejected" (EJECTED_PHRASE, docs/radio.md §4) at +4.5 s.
 
 ### 5.5 Landed handler (`FUN_00440f90`)
-The flight model calls it at a gear-down touchdown of the player that passes the landing check, while the
-controller's landed flag (`ctl+0xe0`) is 0, then sets the flag (docs/flight-model.md §15.6.2). v1.1 clears the flag at
-lift-off, so it runs on **every** landing (v1.0: only the first landing of a flight). It looks up the route of the
-player's formation (`FUN_005bcb90` / `FUN_005bcd70`) and, if the route's +0x2c is set, makes its last waypoint the
-current NAV waypoint (`FUN_00440e90(count − 1)` → `FUN_00453450`: +0x44 = index, the waypoint copied, NAV state 5). It
-fires no mission event: there is no scripted "landed" trigger (§5, §8). UNCERTAIN: route+0x2c, taken as "the route
-has waypoints".
-**Correction (docs/ai.md §7.2):** `FUN_005bcb90` is getWingman: the handler moves the **wingman's** waypoint index
-(brain +0x88, and the wingman's NAV) to the route's last waypoint; "route+0x2c" is the wingman's brain. The player's own
-NAV is not touched. It is called for the player (FM @5bbf4f), for an AI leader at the end of its roll-out
-(StopPlaneCL) and by the brain's "Land" action, once per unit (brain +0xe0).
-**Port:** `terrain_view.gd` `_on_landed()` runs whenever the flight state's `landings` counter grows and hands the
-player's landing to `ai_flights.gd` `landed_handler` (test `test_landed.gd`).
+- **When it runs:** the flight model calls it at a gear-down touchdown of the player that passes the landing check,
+  while the controller's landed flag (`ctl+0xe0`) is 0, then sets the flag (docs/flight-model.md §15.6.2). v1.1
+  clears the flag at lift-off, so it runs on **every** landing (v1.0: only the first landing of a flight).
+- **What it does (first reading):** it looks up the route of the player's formation (`FUN_005bcb90` / `FUN_005bcd70`)
+  and, if the route's +0x2c is set, makes its last waypoint the current NAV waypoint (`FUN_00440e90(count − 1)` →
+  `FUN_00453450`: +0x44 = index, the waypoint copied, NAV state 5). UNCERTAIN: route+0x2c, taken as "the route has
+  waypoints".
+- **Correction (docs/ai.md §7.2):** `FUN_005bcb90` is getWingman. So the handler moves the **wingman's** waypoint
+  index (brain +0x88, and the wingman's NAV) to the route's last waypoint, and "route+0x2c" is the wingman's brain.
+  The player's own NAV stays as it was.
+- **Callers:** the player (FM @5bbf4f), an AI leader at the end of its roll-out (StopPlaneCL) and the brain's "Land"
+  action, once per unit (brain +0xe0).
+- It fires no mission event: no script can trigger on "landed" (§5, §8).
+- **Port:** `terrain_view.gd` `_on_landed()` runs whenever the flight state's `landings` counter grows and hands the
+  player's landing to `ai_flights.gd` `landed_handler` (test `test_landed.gd`).
 
 ## 6. Implementation checklist
 1. Spawn entities. For `0x320&1` entities, start both script lists at list index 1 and arm the radius check
@@ -554,8 +615,10 @@ player's landing to `ai_flights.gd` `landed_handler` (test `test_landed.gd`).
 
 ## 7. Worked example — takeoff.mis ("Engines ON")
 
+This training mission shows every mechanism above in a short chain.
+
 Entities: Player1 is role 0. "Win sensor" (6) is class 18, role 1, 0x320 = 0, so it is brain controlled and its
-scripts do not auto-start. It is the only role-1 entity, so the success counter = 1.
+scripts wait for a jump. It is the only role-1 entity, so the success counter = 1.
 
 | entity | pos | slot 4 / 5 | watched | scripts at start (index 1) |
 |---|---|---|---|---|
@@ -578,8 +641,8 @@ Sequence (the player spawns at 356226, 600689, heading 150):
 | 8 | +1 s | "Sensor explode": the Win sensor is destroyed. It is role 1, so the counter reaches 0 and the mission passes (misc 0x4ce = -1, so no extra audio) |
 | 9 | +10 s | box: "Mission Accomplished! " with DEBRIEF and CONTINUE. The debrief headline is 0x47e "Mission - successful. Congratulations, you took off successfully." |
 
-The player needs only to reach marker 2 and marker 4, then get 1.3 km away from marker 4. Being airborne is not
-checked.
+To pass, the player only has to reach marker 2 and marker 4, then get 1.3 km away from marker 4. The mission never
+checks that the jet is airborne.
 
 Unused data in this mission:
 - Event 4 "Finish audio" (text "Good work, you first mission is successful.") is referenced by no slot, so it
@@ -593,8 +656,8 @@ try again."
 ## 8. Corrections to formats/mis.md and open items
 
 Corrections:
-- Slot meanings are in §2. Slot 2 is a debrief id, not a "landed" event. Slot 4 is left + radius, slot 5 is
-  reached.
+- Slot meanings are in §2. Slot 2 is a debrief id (formats/mis.md called it a "landed" event). Slot 4 is left +
+  radius, slot 5 is reached.
 - 0x32a = role. 0x320 bit 0 = mission vs brain control.
 - 0x398 = the maximum fire count.
 - 0x3d4 = the operator code, 0x3de = the counter id.
