@@ -233,6 +233,22 @@ colours, missing / stretched textures, black or inside-out faces, floating or su
 fail each store on the sheet, and a failed one is just left out of the mapping (it falls back to the original) until
 fixed. Cheap numbers alongside: triangles, texture size, frame time on 231 (the busiest mission) Original vs Detailed.
 
+**In motion** (flying, falling, hitting). Stills miss what goes wrong only while a weapon moves:
+- **Frame strips and clips** from the same runner: every store launched / dropped onto a placed target
+  (`place` + `on_impact`), followed by the F11 weapon view (docs/views.md §4.2: fly-by at 300–700 m) and a chase
+  close behind, captured every few frames from release to impact and the explosion, Original | Detailed side by
+  side on the sheet (a short video per store too). Bombs level and in a dive, missiles at a crossing and a head-on
+  target, the guided ones (Maverick / GBU-15 / Popeye) through their turn.
+- **Per-frame checks in the test** (scripted, no eyes needed): the mesh's nose stays on the velocity (≤ 2°, as
+  `Basis.looking_at` sets it today); the motor trail starts at the detailed mesh's tail, not in front of or behind
+  it (the trail head sits half the model's length back, `player_weapons.gd` — taken from the detailed mesh while it
+  is shown, visual only); the mesh stays visible until the detonation frame and is gone on it; its lowest point never
+  goes under the ground before the impact; the far LOD swap stays beyond the F11 view's 700 m while that view follows
+  the weapon (else it swaps on screen).
+- **Known risk to look for**: the weapon's roll is not tracked — `looking_at` uses up = Y, and RIGHT once the
+  weapon points straight up or down, so a near-vertical bomb snaps 90° in roll. The 1998 blobs hide it; crisp fins
+  will show it. If it shows, keep the roll continuous (visual only, same switch).
+
 **Order.** (1) the switch, the hook, the load-time fit and the test; (2) the FlightGear stores (bombs, AIM-9 /
 120 / 7, Maverick, HARM, tanks, pods), compared side by side in the Reference viewer; (3) the FGAddon check; (4) the
 built ones for the rest.
