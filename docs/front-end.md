@@ -1273,8 +1273,12 @@ So the Hebrew pages use the same rects as §12.3–§12.6.
   original's mixer write.
 * Stored in `user://settings.cfg` (sections sound / graphics / devices / gameplay) with the original
   defaults. The hardware detection that overrides the graphics defaults is not ported. The Graphics page acts as
-  §12.4 says (all seven controls wired). Ours: a VSYNC check in the empty strip left of DEFAULT (page rect
-  8,330,110,23), default on, reset by DEFAULT, stored in `[graphics]`.
+  §12.4 says (all seven controls wired). Ours, in the empty strip left of DEFAULT:
+  * a VSYNC check (page rect 8,330,110,23), default on, reset by DEFAULT, stored in `[graphics]`;
+  * **MORE** (page rect 230,330,110,23): opens our graphics options on the same tab (`GFX_MORE`, drawn like the
+    Extras page with the title GRAPHICS): Window, Anti-aliasing, Terrain close up, Sky, Upscaling, Night lights and
+    the terrain imagery rows (`front_end.gd` `GRAPHICS_KEYS`, docs/rendering.md, docs/imagery.md). The same spot
+    reads BACK there and returns to the original page. DEFAULT on that view resets those rows.
 * Gameplay flags act where the table above says; NO WIND and NO MALFUNCTIONS are read by nothing in the original
   either (they are stored only).
 * Graphics sliders snap to `round(v/step)·step` (UNCERTAIN, see §12.4).
@@ -1289,13 +1293,11 @@ So the Hebrew pages use the same rects as §12.3–§12.6.
   * **Page:** `screens/sgeneral` background, rows 35 px apart on the Gameplay page's grid, and LEDs
     copied from `gamep_0/_1`. Mirrored in Hebrew. Row rules are opaque and one page pixel thick, so the ones that
     fall on the background's grid lines look like the rest.
-  * **Extras options** (`front_end.gd` `EXTRAS`, then one imagery row per region from `imagery_layers.gd`): Flight
+  * **Extras options** (`front_end.gd` `EXTRAS`, less the graphics rows, which are on Graphics → MORE): Flight
     data (Original (1998) / Real aircraft), Weapon data (Original (1998) / Real weapons), Language (English / Hebrew;
     Hebrew only when the pack is installed), Flight info (Ctrl+F12) show / hide, Blackbox, HUD pitch ladder
-    (Original / Conformal), HUD (Original (1998) / Real), All keys on the Keyboard page, Window (framed / full screen),
-    Anti-aliasing (MSAA 4x / + FXAA / TAA), Terrain close up, Sky, Upscaling (Native / Quality / Balanced), Night lights (Original / Detailed) (docs/rendering.md), F-35I replaces (Off / one of the
-    seven jets, docs/f35i.md), HARM targets (Original / RWR, docs/deviations.md §2), Imagery Israel, Imagery outside Israel
-    (docs/imagery.md; layers not converted are greyed out), Settings file (Export / Import: a native file dialog;
+    (Original / Conformal), HUD (Original (1998) / Real), All keys on the Keyboard page, F-35I replaces (Off / one of the
+    seven jets, docs/f35i.md), HARM targets (Original / RWR, docs/deviations.md §2), Settings file (Export / Import: a native file dialog;
     Export writes the working copy as a settings.cfg, Import stores and saves the file's settings at once). 8 rows shown, with the Keyboard page's scrollbar beyond;
     DEFAULT resets every Extras option except the language (and the settings file).
   * **Blackbox** (ours): each flight recorded to `user://flights/flight-<date>_<time>-m<mission>.jsonl` (the newest 10

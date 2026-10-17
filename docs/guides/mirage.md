@@ -23,6 +23,13 @@ each one on.
 | Weapon data            | Real weapons                      | Real missile weights, speeds and ranges, the Cyrano radar range (27 km), 2 × 125 DEFA rounds          |
 | HUD                    | Real                              | The Mirage's CSF 95 gyro gunsight                                                                     |
 | HUD pitch ladder       | Conformal                         | The ladder lies on the real horizon (for the original HUD)                                            |
+
+### Graphics tab → MORE
+
+Press **MORE** on the Graphics page for these rows.
+
+| Row                    | Set to                            | What it does                                                                                          |
+| ---------------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | Sky                    | Atmospheric                       | A physical sky with the sun, and haze that takes its colour                                           |
 | Terrain close up       | Detailed                          | Ground detail below about 500 m                                                                       |
 | Imagery Israel         | Survey 2 m (or Survey 2 m modern) | 2 m photos of Israel, if setup converted them                                                         |

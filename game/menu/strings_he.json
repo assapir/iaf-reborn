@@ -2,6 +2,9 @@
  "_note": "Hebrew texts for our own additions only (Preferences: the Extras / Physics tabs, the imagery and render choices). Everything else in Hebrew comes from the Hebrew menu and briefing packs (docs/packs.md). msgs: Hebrew for txt/msgs.trx lines the Hebrew pack leaves in English (Settings.msgs()).",
  "labels": {
   "Extras": "תוספות",
+  "Graphics": "גרפיקה",
+  "More": "עוד",
+  "Back": "חזרה",
   "Flight data": "נתוני טיסה",
   "Original (1998)": "מקורי (1998)",
   "Real aircraft": "אמיתי",

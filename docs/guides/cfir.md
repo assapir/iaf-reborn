@@ -22,6 +22,13 @@ each one on.
 | Weapon data            | Real weapons                      | Real missile weights, speeds and ranges, the EL/M-2001B radar range, 2 × 140 DEFA rounds at 2 × 1,300 rounds/min |
 | HUD                    | Real                              | The Kfir C7's Elbit HUD: its modes from the Elbit System 82, its layout a reconstruction                         |
 | HUD pitch ladder       | Conformal                         | The ladder lies on the real horizon (for the original HUD)                                                       |
+
+### Graphics tab → MORE
+
+Press **MORE** on the Graphics page for these rows.
+
+| Row                    | Set to                            | What it does                                                                                                     |
+| ---------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | Sky                    | Atmospheric                       | A physical sky with the sun, and haze that takes its colour                                                      |
 | Terrain close up       | Detailed                          | Ground detail below about 500 m                                                                                  |
 | Imagery Israel         | Survey 2 m (or Survey 2 m modern) | 2 m photos of Israel, if setup converted them                                                                    |

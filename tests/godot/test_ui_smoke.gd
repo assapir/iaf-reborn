@@ -118,6 +118,15 @@ func _extras_imagery(fe, lang: String) -> void:
 		fe._gui_input(mouse_button(fe._to_screen(fe.CONTENT.position + q), false))
 	check(fe._extras_max_top() > 0 and fe._extras_items().all(func(i): return i.rect.end.y <= fe.PREF_DEFAULT.position.y),
 			"%s: Extras scrolls; the shown rows end above DEFAULT" % lang)
+	check(fe._extras_rows().all(func(r): return not fe._graphics_row(r[0])), "%s: Extras holds no graphics row" % lang)
+	# Graphics → MORE: our graphics options (the imagery rows last); MORE again (BACK) returns.
+	fe._on_button(fe._key_for_label("Graphics"))
+	await frames(2)
+	click.call(fe.PREF_MORE.get_center())
+	await frames(2)
+	check(Settings().pref_page == fe.GFX_MORE,
+			"%s: Graphics MORE opens our graphics options" % lang)
+	check(fe._extras_rows().map(func(r): return r[0]).has("upscaling"), "%s: MORE lists Upscaling" % lang)
 	fe._extras_scroll(fe._extras_max_top())  # the imagery rows are the last ones
 	await frames(2)
 	var items: Array = fe._extras_items()
@@ -132,6 +141,14 @@ func _extras_imagery(fe, lang: String) -> void:
 			check(fe.pref_work[key] == "original", "%s: %s: %s is not converted -> greyed, not picked" % [lang, key, missing[0].value])
 		click.call(row[0].rect.get_center())
 		check(fe.pref_work[key] == "original", "%s: %s set to Original" % [lang, key])
+	click.call(fe.PREF_MORE.get_center())
+	await frames(2)
+	check(Settings().pref_page == "Graphics", "%s: BACK returns to the Graphics page" % lang)
+	fe._on_button("extras")
+	await frames(2)
+	fe._extras_scroll(fe._extras_max_top())
+	await frames(2)
+	items = fe._extras_items()
 	# Settings file (ours): Export writes the working copy, Import stores it and reloads the working copy.
 	check(items.any(func(i): return i.key == "settings_file" and i.value == "export"), "%s: Extras Settings file row" % lang)
 	var path := OS.get_temp_dir().path_join("iaf_settings_test.cfg")
@@ -153,6 +170,8 @@ func _extras_render(fe, lang: String) -> void:
 	var click := func(q: Vector2):
 		fe._gui_input(mouse_button(fe._to_screen(fe.CONTENT.position + q), true))
 		fe._gui_input(mouse_button(fe._to_screen(fe.CONTENT.position + q), false))
+	Settings().pref_page = fe.GFX_MORE  # our render rows are on the Graphics page's MORE view
+	await frames(2)
 	var rows: Array = fe._extras_rows()
 	var keys := ["antialiasing", "terrain_closeup", "sky"]
 	var first := rows.map(func(r): return r[0]).find("antialiasing")

@@ -114,17 +114,17 @@ Each source has two looks: one in the 1998 palette and one in modern colours.
 
 ## 5. In the game
 
-The player picks a layer per region in Preferences → Extras; the terrain then reads those nodes from the layer.
+The player picks a layer per region in Preferences → Graphics → MORE; the terrain then reads those nodes from the layer.
 
 - `game/terrain/imagery_layers.gd`: the options per region (`REGIONS`), `available(id)` (= its manifest exists;
   "original" always), `selected()` (the picked, converted layers, Israel first), `attributions()`.
-- **Preferences → Extras** (ours): one row per region, after the other Extras rows (the page scrolls like Physics,
+- **Preferences → Graphics → MORE** (ours): one row per region, after the other graphics rows (the page scrolls like Physics,
   8 rows shown):
   - "Imagery Israel": Original / Survey 2 m / Survey 2 m modern;
   - "Imagery outside Israel": Original / Sentinel-2 / Sentinel-2 modern;
   - three choices in narrower columns.
   - Options whose layer is not converted are shown in grey and cannot be picked (user decision: greyed, not hidden).
-  - Default "Original"; Extras DEFAULT resets them. Hebrew labels in game/menu/strings_he.json.
+  - Default "Original"; DEFAULT on that view resets them. Hebrew labels in game/menu/strings_he.json.
   - Settings `imagery_israel` / `imagery_outside` ([gameplay] section, with the other Extras).
   - The rows were first on the Graphics page; they moved so that page stays the original.
 - `terrain.gd`:

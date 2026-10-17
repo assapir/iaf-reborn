@@ -5,21 +5,21 @@ This doc lists the rendering options of the flight scene, what each one sets, an
 
 - The game logic is the original's. The rendering may look better than the original's, but the original look is the
   default and every improvement is opt-in.
-- Preferences → Graphics holds the original's own switches and our VSYNC (vertical sync) check. Preferences → Extras
-  holds the rest of ours.
+- Preferences → Graphics holds the original's own switches and our VSYNC (vertical sync) check. Its **MORE** button
+  opens our graphics options (the rows below and the terrain imagery). Preferences → Extras holds the rest of ours.
 - The time of day (§4) follows the original's rules: the sun, light and fog colours come from the mission start time.
 
 Code: `game/terrain/render_options.gd` (applied by `terrain_view.gd apply_render_options()` at the start of a flight
 and when the in-flight Preferences close), `terrain/terrain.gdshader`, `terrain/atmosphere.gdshader`,
 `terrain/cloud_layer.gd`, `terrain/night_lights.gd`. Tests: `tests/godot/test_graphics_prefs.gd` (switches → render
-settings, save / load), `test_ui_smoke.gd` (Extras rows in EN / HE), `test_night_lights.gd` (§4 light points, §5).
+settings, save / load), `test_ui_smoke.gd` (Graphics → MORE and Extras rows in EN / HE), `test_night_lights.gd` (§4 light points, §5).
 
 ## 1. Options
 
-The Extras page has three rendering rows. MSAA = multisample anti-aliasing, FXAA = fast approximate anti-aliasing,
+Preferences → Graphics → MORE has our rendering rows. MSAA = multisample anti-aliasing, FXAA = fast approximate anti-aliasing,
 TAA = temporal anti-aliasing.
 
-| Extras row | choices (first = default) | what it sets |
+| Graphics → MORE row | choices (first = default) | what it sets |
 |---|---|---|
 | Anti-aliasing | MSAA 4x / + FXAA / TAA | MSAA 4x: viewport `msaa_3d` 4× (the project's setting since the start). + FXAA: also `screen_space_aa` FXAA, which softens the shader / texture edges that MSAA misses. TAA: `use_taa` in place of MSAA; it resolves sub-pixel shimmer over time (thin runway lines, distant wires), is a little softer and may ghost in fast rolls |
 | Terrain close up | Original / Detailed | 16× anisotropic filtering (default 4×) for the grazing view of the ground, and in `terrain.gdshader` detail that follows the imagery, with a weight k fading from 1 at 300 m to 0 at 1.5 km (§1.1) |
@@ -185,7 +185,7 @@ starts at night; missions 112, 237 and 515 start at 05:xx, which is dawn.
   - the gradient sky's top colour;
   - SHADOWS, only 08:00–17:00;
   - the cloud layer's tint: (20, 20, 60) at night, white by day (its day value is not traced);
-  - no sun disc at night; at night the atmospheric sky (Extras) falls back to the gradient one.
+  - no sun disc at night; at night the atmospheric sky (Graphics → MORE) falls back to the gradient one.
 - Every frame it sets the fog / horizon colour by the view's heading (B → C → D).
 - The sun node lights the terrain; the original pre-lights it with the light colour (UNCERTAIN match).
 - The cockpit darkening is game/cockpit/cockpit.gd `night` (docs/cockpit.md).
@@ -243,7 +243,7 @@ starts at night; missions 112, 237 and 515 start at 05:xx, which is dawn.
 
 ## 5. Night lights, Detailed (built: game/terrain/night_lights.gd)
 
-Preferences → Extras → **Night lights = Detailed** (ours, docs/deviations.md §2). It aims at a modern night look at
+Preferences → Graphics → MORE → **Night lights = Detailed** (ours, docs/deviations.md §2). It aims at a modern night look at
 a small cost. The parts:
 
 1. **Glowing light points.** The `LT_` sets draw with a glow shader: a bright core and a soft halo. The glow is 4 m

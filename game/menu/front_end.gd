@@ -80,6 +80,11 @@ const PREF_THUMB := Vector2(19, 15)
 const PREF_DEFAULT := Rect2(357, 330, 85, 23)
 ## Ours on the Graphics page: the VSync check in the empty strip left of DEFAULT (page coordinates).
 const PREF_VSYNC := Rect2(8, 330, 110, 23)
+## Ours on the Graphics page: MORE, in the same strip, opens our graphics options (GFX_MORE, the Extras rows of
+## GRAPHICS_KEYS and the terrain imagery); on that view the same spot is BACK.
+const PREF_MORE := Rect2(230, 330, 110, 23)
+const GFX_MORE := "Graphics+"
+const GRAPHICS_KEYS := ["fullscreen", "antialiasing", "terrain_closeup", "sky", "upscaling", "night_lights"]
 ## Ours on the debrief screen: EXPORT FLIGHT DATA at the content's bottom right (page coordinates).
 const DEB_EXPORT := Rect2(250, 330, 180, 20)
 ## Ours on the Devices page, under THROTTLE on the page's 35 px row grid: the throttle detent (joystick.gd
@@ -161,7 +166,18 @@ func _extras_rows() -> Array:
 		rows.append([key, ImageryLayers.REGION_LABELS[key], ImageryLayers.REGIONS[key].map(func(o): return [o[1], o[0]])])
 	# Ours: the preferences to / from a .cfg file (not a setting: a press opens the file dialog, _settings_file).
 	rows.append(["settings_file", "Settings file", [["Export", "export"], ["Import", "import"]]])
-	return rows
+	# Our graphics options show on the Graphics page's MORE view, the rest on Extras.
+	var gfx: bool = Settings.pref_page == GFX_MORE
+	return rows.filter(func(o): return _graphics_row(String(o[0])) == gfx)
+
+
+static func _graphics_row(key: String) -> bool:
+	return key in GRAPHICS_KEYS or ImageryLayers.REGIONS.has(key)
+
+
+## The pages drawn with the Extras rows: Extras and the Graphics page's MORE view.
+static func _rows_page(page: String) -> bool:
+	return page == "Extras" or page == GFX_MORE
 
 ## Button-release dispatcher FUN_004ec770: screen -> {button label -> next screen}.
 ## Basic/Combat mission buttons go to the Jet list; Jet and campaign mission buttons load the
@@ -462,7 +478,7 @@ func _enter_screen() -> void:
 	frames.clear()
 	checked.clear()
 	if screen == "pref":
-		checked[_key_for_label(Settings.pref_page)] = true
+		checked[_key_for_label("Graphics" if Settings.pref_page == GFX_MORE else Settings.pref_page)] = true
 		_pref_load_work()
 		ctrl_sel = 0  # FUN_00511580 selects the first row
 		ctrl_top = 0
@@ -856,7 +872,7 @@ func _text_block(box: Rect2, text: String, px: float, color: Color, f: Font = nu
 ## with their thumb, the Gameplay scoring strip and the DEFAULT button.
 func _draw_prefs() -> void:
 	var page: String = Settings.pref_page
-	if page == "Extras":
+	if _rows_page(page):
 		_draw_extras()
 		return
 	if page == "Physics":
@@ -909,6 +925,14 @@ func _draw_prefs() -> void:
 		var r := _rect(Rect2(at + PREF_VSYNC.position + Vector2(22, 0), Vector2(PREF_VSYNC.size.x - 22, 20)))
 		var fs := int(round(LIST_TITLE_PX * _scale()))
 		draw_string(font_art, Vector2(r.position.x, r.end.y - font_art.get_descent(fs)), "VSYNC", HORIZONTAL_ALIGNMENT_LEFT, r.size.x, fs, LIST_DESC_LIT if vs_on else LIST_DESC)
+		_draw_more_button(at, "More")
+
+
+## MORE on the Graphics page / BACK on its MORE view, in the strip left of DEFAULT (page rect PREF_MORE).
+func _draw_more_button(at: Vector2, label: String) -> void:
+	var r := _rect(Rect2(at + PREF_MORE.position, Vector2(PREF_MORE.size.x, 20)))
+	var fs := int(round(LIST_TITLE_PX * _scale()))
+	draw_string(font_art, Vector2(r.position.x, r.end.y - font_art.get_descent(fs)), _art(label), HORIZONTAL_ALIGNMENT_CENTER, r.size.x, fs, LIST_TITLE)
 
 
 func _keys() -> RefCounted:
@@ -1336,8 +1360,11 @@ func _draw_option(r: Rect2, label: String, on: bool, led_y: float, text_y: float
 
 
 func _draw_extras() -> void:
-	_draw_our_page("Extras")
+	var more: bool = Settings.pref_page == GFX_MORE
+	_draw_our_page("Graphics" if more else "Extras")
 	_blit("pref/defbut_%d.png" % (2 if pref_default_held else 0), CONTENT.position + PREF_DEFAULT.position)
+	if more:
+		_draw_more_button(CONTENT.position, "Back")
 	var rows := _extras_rows()
 	var shown := mini(rows.size() - extras_top, EXTRAS_ROWS)
 	for i in shown + 1:
@@ -1450,7 +1477,7 @@ func _gui_input(event: InputEvent) -> void:
 			var y := _to_menu(event.position).y - CONTENT.position.y
 			if Settings.pref_page == "Physics":
 				_phys_scroll(_bar_drag_top(y, _phys_bar(), _phys_max_top()))
-			elif Settings.pref_page == "Extras":
+			elif _rows_page(Settings.pref_page):
 				_extras_scroll(_bar_drag_top(y, _extras_bar(), _extras_max_top()))
 			else:
 				_ctrl_scroll(_bar_drag_top(y, CTRL_BAR, _ctrl_max_top()))
@@ -1492,11 +1519,16 @@ func _pref_press(q: Vector2) -> bool:
 	var page: String = Settings.pref_page
 	if not Rect2(Vector2.ZERO, CONTENT.size).has_point(q):
 		return false
-	if page == "Extras" and PREF_DEFAULT.has_point(q):
+	if _rows_page(page) and PREF_DEFAULT.has_point(q):
 		pref_default_held = true
 		_play("buttonin")
 		return true
-	if page == "Extras":
+	if (page == "Graphics" or page == GFX_MORE) and PREF_MORE.has_point(q):
+		Settings.pref_page = GFX_MORE if page == "Graphics" else "Graphics"
+		extras_top = 0
+		_play("buttonin")
+		return true
+	if _rows_page(page):
 		if _extras_max_top() > 0 and _extras_bar().has_point(q):
 			_extras_scroll(_bar_press(q, _extras_bar(), extras_top, _extras_max_top(), EXTRAS_ROWS))
 			return true
@@ -1602,7 +1634,7 @@ func _pref_defaults() -> void:
 		pref_work.key_bindings = {}  # the whole table from 0x64c3c8 (@511ca5)
 	if Settings.pref_page == "Graphics":
 		pref_work["vsync"] = Settings.default_value("vsync")
-	if Settings.pref_page == "Extras":  # ours: every Extras option except the language
+	if _rows_page(Settings.pref_page):  # ours: every option of the page except the language
 		for opt in _extras_rows():
 			if opt[0] != "language" and opt[0] != "settings_file":
 				pref_work[opt[0]] = Settings.default_value(opt[0])

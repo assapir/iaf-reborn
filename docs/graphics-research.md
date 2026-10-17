@@ -239,7 +239,7 @@ clickables, then the F-15C.
   cost of ≥ 3–6 ms at 1080p on tile GPUs (bandwidth), so only with upscaling (§3.10).
 
 ### 3.10 Upscaling for headroom: MetalFX — done
-**Built:** Preferences → Extras → Upscaling: Native / Quality / Balanced (docs/rendering.md §1). Quality renders the 3D
+**Built:** Preferences → Graphics → MORE → Upscaling: Native / Quality / Balanced (docs/rendering.md §1). Quality renders the 3D
 scene at 0.77 of the window, Balanced at 0.67. MetalFX spatial scales it up on Metal; FSR 1 does it on other drivers.
 The Anti-aliasing row keeps working at the lower resolution. The 2D cockpit, HUD and MFDs stay at the window's
 resolution.
@@ -279,7 +279,7 @@ Built (docs/rendering.md §4–§5, `game/terrain/night_lights.gd`, `tests/godot
 - **Fidelity fix (default):** the original's `LT_` light sets (airbase, Damascus, chimney and boat lights;
   `FUN_0041ee60` flag 0x4, drawn as a point list by `FUN_0041ac40`) draw as one-pixel points at every hour. The
   cockpit's night darkening was already in (docs/cockpit.md).
-- **Extras → Night lights = Detailed:** glowing light points (point sprites), the home airbases' original light sets
+- **Graphics → MORE → Night lights = Detailed:** glowing light points (point sprites), the home airbases' original light sets
   at night, navigation lights and a strobe on every jet, stars, a moon and moonlight.
 - Cost: +3 to +6 draw calls (about 2 per jet in view), ≈ 5 000 points; the frame time change is below the noise.
 - Next: city lights from the imagery's built-up classes (WorldCover); the panel's floodlight in the 3D cockpit (#5).

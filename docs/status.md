@@ -57,7 +57,7 @@ STBY / STT / BORE / LRS / TWS / ACM / GMT / MAP are the radar modes (docs/radar.
 
 **3. Missions and general fixes:** the mission sweep (`tools/mission_sweep.sh`), the remaining small bugs below,
 Jump In, the Reference screen, ~~night lighting~~ (done: the
-original's light points and cockpit darkening, Extras Night lights; docs/rendering.md §4–§5).
+original's light points and cockpit darkening, Graphics → MORE Night lights; docs/rendering.md §4–§5).
 
 **PARKED (docs/roadmap.md):** imagery: SPOT 5 outside Israel, 1:1 world scale, better AI, cheats, sea level west of
 Suez, extra sounds, multiplayer, setup wizard + launcher, modern aircraft / weapons, Pi 5 profile.
@@ -95,7 +95,7 @@ Suez, extra sounds, multiplayer, setup wizard + launcher, modern aircraft / weap
 | Setup | `tools/setup.sh [--patch <v1.1>] <ISO> [Hebrew packs]` builds everything; ISO + `setup.esa` extraction; `iaf-patch` applies the official v1.1 patch (RTPatch) without Windows, before the Hebrew packs and every conversion |
 | v1.1 | `docs/v1.1.md` (v1.0→v1.1 diff and address map); the flight model's changes (docs/flight-model.md §16); outside it: HUD (FPM, 12 px/deg ladder on the marker, gun cross at GunRetPositionY), ejection throw straight up, training debrief → Jet list, event counter order / missing-entity skip / combat ops 21–22, landed handler on every landing; v1.1 rules of unported systems recorded (damage.md §4.4, front-end.md §17); docs and code comments on v1.1 addresses |
 | Front end | original screens, animations, sounds, music; training + campaign; Jet list; Hebrew packs; QUIT box and credits roll |
-| Terrain imagery | georeference (thin-plate spline, 610 control points, docs/georef.md); Sentinel-2 10 m layers outside Israel (1998 / modern colours, docs/imagery.md), picked per region on the Extras page; Survey of Israel 2015 2 m over Israel (1998 / modern colours, `iaf-imagery mapi2015`); `setup.sh --imagery` (sentinel2; Survey of Israel sheets download only) |
+| Terrain imagery | georeference (thin-plate spline, 610 control points, docs/georef.md); Sentinel-2 10 m layers outside Israel (1998 / modern colours, docs/imagery.md), picked per region on Graphics → MORE page; Survey of Israel 2015 2 m over Israel (1998 / modern colours, `iaf-imagery mapi2015`); `setup.sh --imagery` (sentinel2; Survey of Israel sheets download only) |
 | Preferences | original 5 pages (Graphics, Sound, Keyboard, Devices, Gameplay) + our **Extras** (flight data, weapon data, language, info line, blackbox, HUD pitch ladder, Real HUD (every jet's real HUD / sight / helmet display: docs/real-hud.md), all keys, window, anti-aliasing, terrain close up, sky, upscaling — docs/rendering.md; imagery per region — docs/imagery.md; scrolls 8 rows at a time) and **Physics** (19 improvement switches, the Keyboard page's scrollbar, 15 rows shown) tabs, EN + HE; VSYNC (ours) on the Graphics page (docs/front-end.md §12) |
 | Controls | original key table, rebinding on the Keyboard page, in-flight keys through the table; joystick (one device: stick / throttle / rudder axes per the Devices page, hat = snap views, buttons through the table and bound on the Keyboard page, menu/joy/*.joy), untested on hardware |
 | TSD / briefing | vector map, units, flights, waypoints, fly any flight, briefing texts and links |
@@ -111,7 +111,7 @@ Suez, extra sounds, multiplayer, setup wizard + launcher, modern aircraft / weap
 | Damage | docs/damage.md: hits, blast formula, destruction, falling jets, explosions / smoke, the player's systems damage, collisions |
 | Eject | E ×3: seat, canopy, parachute, mission lost |
 | Views | docs/views.md: pause, On-The-Fly menu, FlyTSD (Esc), time compression, the original cameras (snap views, free look, padlock, external / fly-by, radar target, threat, wingman, weapon) |
-| Graphics / rendering | the Graphics page wired (terrain / object detail, effects, smoke trails, textured sky with the cloud layer, shadows, external stores; docs/front-end.md §12.4); Extras render options, upscaling among them (docs/rendering.md) |
+| Graphics / rendering | the Graphics page wired (terrain / object detail, effects, smoke trails, textured sky with the cloud layer, shadows, external stores; docs/front-end.md §12.4); our render options on Graphics → MORE, upscaling among them (docs/rendering.md) |
 | Cockpit | all 9 original 2D cockpits (docs/cockpit.md): round gauges, attitude indicators, vario / AoA tapes, HUD (11 colours, traced symbology incl. ILS and the waypoint marker), panel lights; MFDs (docs/mfd.md: radar incl. the MAP picture, TSD, RWR page, NAV, stores, damage, FLIR / TV with the EO camera, HARM); RWR (docs/rwr.md); helmet sight DASH (docs/weapons.md §5.4) |
 | Aircraft models | all 22 models: moving parts per the original rules, gear, afterburner flame, canopy / pilot, damage visuals |
 | Sounds | original sound table: engine, gear, flaps, air brake, AoA tone, Betty warnings, touchdown, crash; volume sliders |
