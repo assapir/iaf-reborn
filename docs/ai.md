@@ -13,6 +13,7 @@ exe, and where our port of each part lives. Read it to re-implement or change AI
 
 | term | meaning |
 |---|---|
+| AA / AG | air-to-air / air-to-ground |
 | AAA | anti-aircraft artillery (guns) |
 | AB | afterburner |
 | AGL | height above ground level |
@@ -26,10 +27,12 @@ exe, and where our port of each part lives. Read it to re-implement or change AI
 | ECM | electronic countermeasures (radar jamming) |
 | ETA | the planned arrival time at a waypoint |
 | FM | flight model |
+| IR | infrared |
 | GEV | the event code a control loop posts to the controller (`44a240`) |
 | LOS | line of sight |
 | NAV | the navigate mode: fly the route's waypoints |
 | P | the unit's own position |
+| RPM | engine revolutions (%) |
 | RWR | radar warning receiver |
 | SAM | surface-to-air missile |
 | STT | single-target track (a radar lock) |
@@ -266,10 +269,10 @@ returns at once when mode / arg / pose are unchanged (`5c8a70`), so **a running 
 | 220 | Level bomb | 0x16 | T | LevelBombCL |
 | 230 | Hold | 10 | self | HoldPositionCL |
 | 240 | Navigate | 7 | self | WayPtSet (+0xac0), §7.2 |
-| 250 | Go home | 8 | self, only if +0xe0 == 0 | GoHomeCL (+0x1ed0), §9 |
+| 250 | Go home | 8 | self, only if +0xe0 == 0 | GoHomeCL (+0x1ed0), §8.3 |
 | 260 | Use waypoint | — | — | +0x88 = 1 (and the NAV's current waypoint); the mode stays |
 | 270 | Land | 8 | self | GoHomeCL, then if a leader exists `440f90` |
-| 280 | Takeoff | 9 | self, only if +0xe0 == 0 | TakeOffSequenceCL (+0x3e70), §8 |
+| 280 | Takeoff | 9 | self, only if +0xe0 == 0 | TakeOffSequenceCL (+0x3e70), §8.2 |
 | 290 | Dive bomb | 0x17 | T | DiveBombCL |
 
 The other action types belong to the combat job (built in `game/ai/combat.gd`, §13):
@@ -464,7 +467,8 @@ Mode 9 flies without afterburner. Wingmen start 10 s after the leader, hold 3 s 
 | P4 | L + (0, −3708 (C-130 −1854)) | hT + 250 | RN |
 | P5 | L | hT | RN |
 
-  Children (ctor `5c6370`), in order:
+  Children (ctor `5c6370`), in order (CH = ChangeHeading2PtAcu, CA = ChangeAlt, LW = level-wings loop, KA =
+  keep-attitude loop):
   1. CH1(P1), CA1 (|Δz| < 50; C-130: within k·Pt2 or |Δz| < 250), LW1 128.681 m/s (C-130 113.239), KA1(P1, same
      speed, < k·AllowedErrPt2);
   2. CH2(P2), CA2 (50 m), LW2 102.944, KA2(P2, < k·AllowedErrPt3);

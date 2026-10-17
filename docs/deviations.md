@@ -10,10 +10,14 @@ reviewed in one spot. The rule is to follow the original exactly; each entry her
 
 Keep this page updated whenever a change is made or removed.
 
-**Terms:** AI = computer-controlled units; EO = electro-optical (FLIR / TV) sensor; FLIR = forward-looking infrared;
-FM = flight model; HUD = head-up display; LCOS = lead-computing optical sight (gun sight); MFD = multi-function
-display; NAV = navigate mode; RWR = radar warning receiver; TSD = tactical situation display (map); UNCERTAIN = the
-original's code did not settle this.
+**Terms:** AA = air-to-air; AB = afterburner; AGL = height above ground level; AI = computer-controlled units; AWACS =
+airborne early warning aircraft; EEGS = enhanced envelope gun sight (F-16 HUD gun cue); EO = electro-optical (FLIR /
+TV) sensor; FLIR = forward-looking infrared; FF = force feedback; FM = flight model; HARM = anti-radiation missile;
+HUD = head-up display; IR = infrared; LCOS = lead-computing optical sight (gun sight); LOD = level of detail; MFD =
+multi-function display; MIL = military power (full throttle without afterburner); MSAA / FXAA / TAA = anti-aliasing
+methods; NAV = navigate mode; NM = nautical miles; RPM = engine revolutions (%); RWR = radar warning receiver; SDL =
+the input library under Godot's joypad API; TSD = tactical situation display (map); UAV = unmanned aerial vehicle (the
+camera drone of the TSD target window); UNCERTAIN = the original's code did not settle this.
 
 ## 1. Always-on changes (no switch)
 Each row: Original = the 1998 game; Ours = this port, for everyone.
@@ -170,7 +174,7 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   - Sky: Atmospheric = a clear-day sky (tuned single scattering: deep blue zenith, pale horizon, darker with
     altitude, crisp sun disc with a narrow glare), the haze over the ground in the horizon's colour (aerial
     perspective, same fog density), and the cloud layer's alpha stretched (0.3–0.9 → 0–1) so its clouds stand apart
-    with clear sky between them (the original shows a grey veil). The original's cloud texture choice (one of six per
+    with clear sky between them (without the stretch: a grey veil). The original's cloud texture choice (one of six per
     mission, Cloud256_5 nearly overcast) is kept. The sky follows the time of day's sun (rendering.md §4); at night
     the gradient sky is drawn.
 - **Terrain imagery** (ours, docs/imagery.md): one row per region (Israel / outside Israel), default "Original".

@@ -10,11 +10,14 @@ the current priorities are in docs/status.md.
   "analysed", "decided".
 - **Order:** the "Later" list first, then one section per feature.
 
-**Terms:** AAA = anti-aircraft artillery; BFM = basic fighter manoeuvres; DEM = digital elevation model (terrain
-heights); FOV = field of view; HSI = horizontal situation indicator; HUD = head-up display; LLM = large language
-model; MFD = multi-function display; OSB = option select button (the MFD's edge buttons); PBR = physically based
-rendering (modern material maps); RWR = radar warning receiver; SAM = surface-to-air missile; TSD = tactical
-situation display (map).
+**Terms:** AAA = anti-aircraft artillery; ASE / ASC = the F-16 HUD's allowable steering error circle / attack steering
+cue; BFM = basic fighter manoeuvres; DEM = digital elevation model (terrain heights); DLZ = dynamic launch zone
+(missile range band); EEGS = enhanced envelope gun sight; EO = electro-optical sensor; FCR / SMS / HSD / WPN / TGP =
+F-16 MFD pages (fire-control radar, stores management, horizontal situation display, weapon, targeting pod); FOV =
+field of view; HSI = horizontal situation indicator; HARM = anti-radiation missile; HUD = head-up display; IR =
+infrared; JHMCS = joint helmet-mounted cueing system; LLM = large language model; MFD = multi-function display; OSB =
+option select button (the MFD's edge buttons); PBR = physically based rendering (modern material maps); RWR = radar
+warning receiver; SAM = surface-to-air missile; TSD = tactical situation display (map).
 
 ## Later
 Graphics options (models, cockpit, DEM, water, effects, vegetation, lighting, upscaling), with measured costs and a

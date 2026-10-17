@@ -2,11 +2,15 @@
 
 This page says what works today, what we build next, and what is still open. Details live in the linked docs.
 
-**Terms:** AI = computer-controlled units; CCIP = continuously computed impact point (bomb sight); DASH = the helmet
-sight; DLZ = dynamic launch zone (missile range band); FM = flight model; FPM = flight path marker; HUD = head-up
-display; LCOS = lead-computing optical sight (gun sight); MFD = multi-function display; NAV = navigate (fly the
-waypoints); RWR = radar warning receiver; SAM / AAA = surface-to-air missile / anti-aircraft guns; STT = single-target
-track (radar lock); TSD = tactical situation display (map).
+**Terms:** AA / AG = air-to-air / air-to-ground; AI = computer-controlled units; AoA = angle of attack; AWACS =
+airborne early warning aircraft; CCIP = continuously computed impact point (bomb sight); DASH = the helmet sight; DLZ
+= dynamic launch zone (missile range band); ECM = electronic countermeasures (jamming); EO = electro-optical (FLIR /
+TV) sensor; FLIR = forward-looking infrared; FM = flight model; FPM = flight path marker; HARM = anti-radiation
+missile; HUD = head-up display; ILS = instrument landing system; IR = infrared; LCOS = lead-computing optical sight
+(gun sight); LOD = level of detail; MFD = multi-function display; MRM = medium-range missile; NAV = navigate (fly the
+waypoints); PPI = plan position indicator (radar picture); RWR = radar warning receiver; SAM / AAA = surface-to-air
+missile / anti-aircraft guns; STT = single-target track (radar lock); TSD = tactical situation display (map). OFF /
+STBY / STT / BORE / LRS / TWS / ACM / GMT / MAP are the radar modes (docs/radar.md).
 
 ## Where we are
 - **Playable missions: 60 of 68 by the coverage report** (every feature they need is built; docs/mission-coverage.md).

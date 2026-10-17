@@ -26,9 +26,12 @@ A re-implementation needs only a timer queue and hooks for the entity state chan
 |---|---|
 | bdb | the mission database file (`*.bdb`): objects, audio records, brains |
 | brain | the AI rule list that drives a unit (docs/ai.md) |
+| AGL | height above ground level |
+| DIK_E | the DirectInput key code of the E key |
 | FM | flight model |
 | FlyTSD | screen 0x20: the tactical display shown during a flight, where the player picks a flight to fly |
 | GEV | a game event code sent through the key / event chain |
+| HUD | head-up display |
 | NAV | the navigate mode: fly the route's waypoints |
 | sim time | the simulation clock, the double at `DAT_006992d0+0x38` |
 | TSD | tactical situation display: the briefing map |
@@ -107,7 +110,7 @@ Copy path:
 |---|---|---|---|
 | 0 | +0xd0 | +0x8c | **evHit**: fires event `0x33e` when the entity goes alive→damaged (state 1→3, `FUN_004a8ae0` → `FUN_004a8100` → `FUN_004a6240`) |
 | 1 | +0xd4 | +0x90 | **evDestroy**: fires event `0x33e` when the entity reaches state 4 or 5 (`FUN_004a8280` / `FUN_004a8420` → `FUN_004a6310`), then killScenario |
-| 2 | +0xe4 | +0x94 | **evNotDestroy**: at end of flight, for every entity that is still alive and still has a live scenario, `FUN_0059a0f0` → `FUN_004a63c0` shows **debrief item id `0x33e`**. The id is looked up in the debrief map (the event map plays no part). The editor stores event names here (244 of 246 uses), so the data and code disagree. Implement what the code does. |
+| 2 | +0xe4 | +0x94 | **evNotDestroy**: at end of flight, for every entity that is not destroyed (state ≠ 4/5) and still has a live scenario, `FUN_0059a0f0` → `FUN_004a63c0` shows **debrief item id `0x33e`**. The id is looked up in the debrief map (the event map plays no part). The editor stores event names here (244 of 246 uses), so the data and code disagree. Implement what the code does. |
 | 3 | +0xe0 | +0x98 | stored; **no reader found** (3 uses in the data, all named "…Combat") — UNCERTAIN |
 | 4 | +0xe8, `0x348`→(float)+0xf0 | +0x9c, radius +0xa4 | **evLeft** event id = `0x33e`. **`0x348` = the radius used by the reached and left checks** (world units ≈ m) |
 | 5 | +0xec | +0xa0 | **evReached**: event id `0x33e` |
@@ -566,7 +569,7 @@ else: count += 1
 - "Mission failed." is msgs line 14; "Mission Accomplished! " is msgs line 13.
 
 No "ejected"/"rescued"/"MIA" strings exist in the exe or the menu texts. The player's slot-1 "destroyed" event does
-**not** fire on ejection, because the jet is still intact. UNCERTAIN: whether the still-flying jet gets the slot-2
+**not** fire on ejection, because the jet is not destroyed (state 4/5) at that moment. UNCERTAIN: whether the still-flying jet gets the slot-2
 "not destroyed" debrief line at flight end (§5.3 step 1).
 
 **Voices.** Nothing is played on the key presses or at t0.
