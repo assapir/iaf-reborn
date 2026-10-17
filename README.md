@@ -3,8 +3,10 @@
 A native (Linux and macOS) re-implementation of the engine for **Jane's IAF: Israeli Air Force** (1998).
 
 The engine loads the game data from **your own copy** of the original game (ISO + v1.1 patch) and renders it with
-modern graphics. **You need your own copy of the original game (the CD / ISO).** No original game assets or data are
-included in this repository; everything the engine uses is extracted and converted locally from your ISO.
+modern graphics.
+
+**You need your own copy of the original game (the CD / ISO).** No original game assets or data are
+included in this repository. Setup extracts and converts everything the engine uses on your machine, from your ISO.
 
 Platforms: **Linux** (primary), **macOS** (runs; less tested).
 
@@ -58,14 +60,30 @@ tools/setup.sh [--patch /path/to/v1.1-patch.exe] [--hebrew-iso /path/to/IAF.Iso]
 # setup also installs a desktop launcher, "Jane's IAF (reborn)", with the original icon
 ```
 
-`tools/setup.sh` runs the whole pipeline (extract → v1.1 patch → Hebrew packs → cockpits, briefings, menus, keys,
-missions, aircraft, objects → terrain (all of map.ptt, ~730 MB) → Godot extension); the individual commands are listed in it. `--patch` (or the
-`IAF_PATCH` environment variable) takes the downloaded v1.1 update, `iafp1_1.exe` or a bare patch file; the patched
-files replace the v1.0 ones in `assets/install` (the originals are kept in `assets/v1.0`, the patch output in
-`assets/v1.1`) before anything is converted. Without it setup builds everything from the v1.0 files. The Hebrew packs
-(optional, docs/packs.md) go on top of the patched English files; `--hebrew-iso` adds the Hebrew CD's startup splash and Graphics page. Conversion is a one-time step; re-run after updating the
-converters. Other entry points: `godot --path game res://terrain/terrain_view.tscn` (straight into the air),
-`godot --path game res://viewer/viewer.tscn` (model viewer with hot reload).
+`tools/setup.sh` runs the whole pipeline in this order (the script lists each command):
+
+1. extract the ISO;
+2. apply the v1.1 patch;
+3. add the Hebrew packs;
+4. convert cockpits, briefings, menus, keys, missions, aircraft and objects;
+5. convert the terrain (all of map.ptt, ~730 MB);
+6. build the Godot extension.
+
+Options:
+
+- `--patch` (or the `IAF_PATCH` environment variable) takes the downloaded v1.1 update: `iafp1_1.exe` or a bare
+  patch file. Before any conversion, the patched files replace the v1.0 ones in `assets/install`. The originals are
+  kept in `assets/v1.0` and the patch output in `assets/v1.1`. Without `--patch`, setup builds everything from the
+  v1.0 files.
+- The Hebrew packs (optional, docs/packs.md) go on top of the patched English files.
+- `--hebrew-iso` adds the Hebrew CD's startup splash and Graphics page.
+
+Conversion is a one-time step. Re-run it after you update the converters.
+
+Other entry points:
+
+- `godot --path game res://terrain/terrain_view.tscn`: straight into the air.
+- `godot --path game res://viewer/viewer.tscn`: the model viewer, with hot reload.
 
 ## Getting the game data
 
@@ -75,9 +93,9 @@ cargo run --release -p iaf-tools --bin iaf-extract -- "/path/to/Jane's IAF.iso" 
 
 This reproduces the original "Full Install" (lower-cased paths) without Windows.
 
-The v1.1 update is applied the same way (`tools/setup.sh --patch` does this, then copies the 41 files over the
-install; `apply` itself only reads the install and writes the updated files to the output directory; format notes in
-[docs/formats/rtpatch.md](docs/formats/rtpatch.md)):
+The v1.1 update is applied the same way. `apply` reads the install and writes the 41 updated files to the output
+directory. `tools/setup.sh --patch` runs it and then copies those files over the install. Format notes:
+[docs/formats/rtpatch.md](docs/formats/rtpatch.md).
 
 ```sh
 cargo run --release -p iaf-tools --bin iaf-patch -- apply /path/to/v1.1-patch.exe assets/install assets/v1.1
@@ -138,7 +156,7 @@ original commands, and which ones work yet, is in [docs/controls.md](docs/contro
 | C / Ctrl+C     | time compression x2 / x4 / x1, normal time                                |
 | Ctrl+M         | mute                                                                      |
 
-Our own keys (not in the original — see docs/controls.md): **Ctrl+F1** quit mission?, **Ctrl+F2** cockpit ↔
+Our own keys, added to the original set (see docs/controls.md): **Ctrl+F1** quit mission?, **Ctrl+F2** cockpit ↔
 external, **Ctrl+F12** flight-info line, **V** / **PgUp** / **PgDn** panel, mouse wheel zoom, RMB drag orbits the
 external view.
 
@@ -165,15 +183,16 @@ With no joystick connected these choices change nothing. What to try first when 
    `[devices]` → `joy_axes=[x, y, throttle, rudder]` (Godot axis numbers 0–9; SDL names no axes).
 4. Press the hat (snap views) and buttons 1–4; rebind on the Keyboard page.
 
-Details: [docs/controls.md](docs/controls.md) §5. A separate throttle / pedals device is not supported yet.
+Details: [docs/controls.md](docs/controls.md) §5. The engine reads one device; a separate throttle / pedals device
+is still open.
 
 ### Tests / captures
 
 `cargo test -q --workspace` runs the Rust tests; tests that need game data or `python3` (the envelope
 reference, `tools/envelope_ref.py`) are skipped with a message when those are missing.
 `tools/test.sh` runs everything: the Rust tests and the headless Godot tests `tests/godot/test_*.gd`
-(flight, AI, weapons, radar / RWR, radio, cockpit / HUD / MFDs, views, menus, missions; any script error fails). It needs the converted assets, so it runs
-locally rather than on a hosted CI. Run scripted tests and captures with `IAF_DEFAULT_SETTINGS=1` so they use default settings and never read or write your saved preferences (`user://settings.cfg`).
+(flight, AI, weapons, radar / RWR, radio, cockpit / HUD / MFDs, views, menus, missions; any script error fails).
+It needs the converted assets, so it runs locally. Run scripted tests and captures with `IAF_DEFAULT_SETTINGS=1` so they use default settings and never read or write your saved preferences (`user://settings.cfg`).
 
 ## Contributing
 

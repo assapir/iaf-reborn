@@ -10,6 +10,8 @@ generated into the git-ignored `assets/`; the repo must never contain original g
 
 ## Commands
 
+Run from the repo root.
+
 ```sh
 tools/setup.sh [--patch v1.1.exe] "/path/to/Jane's IAF.iso"   # one-time: extract + convert everything into assets/
 ./iafjets [-- --mission 311]                                  # builds the iaf-godot extension (release) and starts the game
@@ -26,13 +28,15 @@ tools/guide_shots.sh [jet] && python3 -I tools/guide_pdf.py   # pilot guides' pi
 python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded flight (blackbox) as a timeline + summary
 ```
 
-- Always run scripted Godot tests / captures with `IAF_DEFAULT_SETTINGS=1` so the user's `settings.cfg` is never read
-  or written, and pass `--log-file <a temp path>` so the run does not rotate away the user's own game logs
-  (`tools/test.sh`, `guide_shots.sh`, `mission_sweep.sh` do; the project keeps 30 logs as a safety net). A Godot test passes only if it prints `RESULT PASS` and no `SCRIPT ERROR`.
-- Godot tests need the converted assets, so there is no hosted CI; they run locally.
-- On a fresh clone `game/.godot` is missing; `godot --headless --path game --import` once, or the extension won't load
-  (`./iafjets` does this).
-- `tests/godot/_*_shot.gd` are real-render screenshot helpers (usage in each header), not tests.
+- Run every scripted Godot test or capture with `IAF_DEFAULT_SETTINGS=1`. This keeps the user's `settings.cfg`
+  untouched (never read, never written).
+- Pass `--log-file <a temp path>` to the same runs. This keeps the user's own game logs from being rotated away.
+  `tools/test.sh`, `guide_shots.sh` and `mission_sweep.sh` already do both; the project keeps 30 logs as a safety net.
+- A Godot test passes only if it prints `RESULT PASS` and prints zero `SCRIPT ERROR` lines.
+- Godot tests need the converted assets, so they run locally only (no hosted CI).
+- On a fresh clone `game/.godot` is missing. Run `godot --headless --path game --import` once, or the extension won't
+  load (`./iafjets` does this for you).
+- `tests/godot/_*_shot.gd` are real-render screenshot helpers (usage in each header). `tools/test.sh` skips them.
 
 ## Architecture
 
@@ -62,16 +66,19 @@ python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded 
   `res://../assets/converted/...` and `assets/install`.
 - `tests/godot/` — headless tests extending `tests/godot/base.gd` (`check()`, `frames()`, `start_mission(id)`).
 
-Rule of placement: game logic belongs in the Rust crates; Godot renders and wires.
+Rule of placement: game logic belongs in the Rust crates. Godot renders and wires.
 
 ## Conventions
 
-- **Original by default.** Logic, layout, timing and colours match the original v1.1 exe; any improvement or new
+- **Original by default.** Logic, layout, timing and colours match the original v1.1 exe. Any improvement or new
   content is an opt-in switch (Preferences → Extras) and is recorded in `docs/deviations.md`.
-- Behaviour is derived from the decompiled exe; docs and code comments cite functions as `FUN_xxxxxxxx` (v1.1
-  addresses; `docs/v1.1.md` maps them to v1.0). Keep the relevant `docs/*.md` in sync when behaviour changes, and
-  update `docs/status.md` for what works / is open.
+- Derive behaviour from the decompiled exe. Docs and code comments cite functions as `FUN_xxxxxxxx` (v1.1
+  addresses; `docs/v1.1.md` maps them to v1.0).
+- When behaviour changes, update the relevant `docs/*.md` in the same change, and update `docs/status.md` for what
+  works / is open.
 - Reuse the install's original art at run time before drawing new art. Anything new that must ship (e.g. the F-35I
   in `tools/f35i/`) has to be tracked in the repo and be our own or redistributable.
 - Per-aircraft behaviour is keyed by type code scattered across many tables; adding a plane means following
   `docs/adding-a-plane.md` (`iaf-convert plane-checklist <code>` lists every table).
+- Docs follow ISO 24495-1 plain language: relevant, findable, understandable, usable. Describe what a thing is or
+  does, never what it isn't.
