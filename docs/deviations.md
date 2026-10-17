@@ -1,9 +1,23 @@
 # Changes from the original
 
-The rule is to follow the original (v1.1 logic) exactly. This is the list of every place where we knowingly don't,
-so it can be reviewed in one spot. Keep it updated whenever a change is made or removed.
+This page lists every place where we knowingly differ from the original game (v1.1 logic), so all differences can be
+reviewed in one spot. The rule is to follow the original exactly; each entry here is a decided exception.
+
+- **§1 Always-on changes:** active for every player, with no switch. Each row gives the original's behaviour, ours,
+  and why.
+- **§2 Opt-in switches:** off by default, so the game plays as the original until the player turns them on.
+- **§3 Original quirks we keep on purpose.**
+
+Keep this page updated whenever a change is made or removed.
+
+**Terms:** AI = computer-controlled units; EO = electro-optical (FLIR / TV) sensor; FLIR = forward-looking infrared;
+FM = flight model; HUD = head-up display; LCOS = lead-computing optical sight (gun sight); MFD = multi-function
+display; NAV = navigate mode; RWR = radar warning receiver; TSD = tactical situation display (map); UNCERTAIN = the
+original's code did not settle this.
 
 ## 1. Always-on changes (no switch)
+Each row: Original = the 1998 game; Ours = this port, for everyone.
+
 | area | original | ours | why | where |
 |---|---|---|---|---|
 | Ground height (physics) | 5-tap smoothed sample of the finest decoded tile, 1.24 m height steps (`FUN_004047a0`) | the triangle-interpolated surface that is drawn (level 6 heights) | wheels sit on what you see; < 1 m on runways, can differ more over hills | formats/ptt.md, terrain.gd `height_at` |
@@ -30,7 +44,7 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 | Ground preload | the mission loads behind the progress bar after Fly | the ground around the chosen flight leader's start also loads in the background while the TSD / briefing / Arming screens are open | Fly starts almost at once | terrain_preload.gd, front_end.gd |
 | OBJECT DETAIL LOD | `_h` / `_m` / `_l` by the projected size on the view depth (F = 640 px / tan(fov/2)), every root object | the same switch distances on the camera distance (visibility ranges), for the mission units; jets keep `_h` | Godot LOD by distance; jets' switching not traced | terrain_view.gd `_add_lods` |
 | Terrain detail render resolution | levels 1–3 draw the terrain at 0.7 / 0.8 / 0.9 of the viewport | full resolution | a 1998 performance measure | front-end.md §12.4 |
-| Cloud layer | drawn against the current far plane (0x6284cc), cut at +0x1098 (`407c70`), over a plain clear colour / time-of-day table | far = 30000 (the static value); drawn at the far plane behind all terrain instead of the cut, over our gradient sky (with the layer off too) | same result as the cut at the terrain's horizon (our terrain reaches 200 km); the per-frame far is not traced; our sky is ours | cloud_layer.gd |
+| Cloud layer | drawn against the current far plane (0x6284cc), cut at +0x1098 (`407c70`), over a plain clear colour / time-of-day table | far = 30000 (the static value); drawn at the far plane behind all terrain (no cut), over our gradient sky (with the layer off too) | same result as the cut at the terrain's horizon (our terrain reaches 200 km); the per-frame far is not traced; our sky is ours | cloud_layer.gd |
 | Credits roll (§4.1 front-end.md) | credits.trx only; scroll step `__ftol(0.5 + dt/16)` px and palette steps of ≥ 8 ms per loop pass (so the speed followed the loop / flip rate) | our lines (project, author, source, licence) and the converted imagery layers' credits roll before the original's (game/menu/credits_ours.json, docs/credits.md); scroll a steady 1 px per 16 ms, fades a steady 400 ms | crediting the port and the CC BY imagery; smooth rendering | credits_roll.gd |
 | Trail blending | global blend state (UNCERTAIN) | alpha blend, crossed quads as the original | rendering | trails.gd |
 | Damaged stick (hydraulics 18 / flight control 24) | scaled in the stick motion, so it applies at the next stick event (a keyboard: the next key change) | the host sends the stick every frame, so it applies at the next frame | per-frame input (same as the keyboard-edge row) | aircraft.rs `set_controls` |
@@ -96,81 +110,113 @@ so it can be reviewed in one spot. Keep it updated whenever a change is made or 
 | Script Path movers | `initialDeltaYaw` turns the unit onto its path (`FUN_0047c4cf`, rate not traced); the mover's terrain handling not traced | the unit faces along its leg at once; a flyer (classes 2, 3, 0x1c) holds the points' z above the ground | untraced turn rate; the data's z are heights (0 on runways, 100–1000 m over 700–2,800 m terrain) | mission-runtime.md §4, mission_runtime.gd `_move_on_path` |
 
 ## 2. Opt-in switches (original by default)
-- **Preferences → Physics**: the "Better physics" options and the original-bug fixes (falling-jet heading, tougher
-  enemies on easy AI levels) — flight-model.md §10, damage.md.
-- **Preferences → Physics → "Locked enemies know who locked them"** (`fix_lock_threat`): the player's radar lock
-  makes the player the AI target's threat (brain+0x7c; the original writes the target itself) — rwr.md §2.
-- **Flight data = Real**: the RWR display lists every used slot (the original copies the first `count` slots without
-  compacting, so an entry can vanish after a removal) — rwr.md.
-- **Preferences → Physics → "Bombs burst at the ground"** (`fix_bomb_burst`): the original checks a falling bomb only
-  every 0.5 s and bursts it at the first check point at or below terrain + 1 m, up to ~0.5·|vz| (70 m) under the
-  ground, where the blast's height term weakens or cancels the damage; the fix moves the burst up to where the bomb
-  met the terrain — weapons.md §9.5.
-- **Preferences → Physics → "No collisions with hidden units / wrecks"** (`fix_ghost_collision`): the original keeps
-  the collider of a hidden unit (e.g. the invisible houses used as audio markers) and of a destroyed building or
-  vehicle whose model vanished, so the jet can die on an invisible obstacle; the fix skips them — damage.md §7.
-- **Preferences → Physics → "Stores weight fix"**: every store counted in the stores weight, in kg, and the fuel
-  tanks' fuel in kg (the original: one store per station, pounds in the kg field, tank fuel = the pounds number as
-  kg) — weapons.md §2.5–2.6.
-- **Preferences → Extras → Weapon data (Original / Real)**: public missile weights, top speed, range, rear-aspect
-  seekers (ours: a target-moving-away test), seeker cones, the AIM-9D's 12 g, the radar ranges of the seven jets and gun rounds /
-  rate / muzzle velocity — real-weapons.md.
-- **Preferences → Extras → HARM targets (Original / RWR)**: the original HARM page lists its sensor's own scan (the
-  radar classes within 20 NM in the ±15° cone, emitting or not, friendlies too, best 15); RWR lists the RWR's active
-  emitters inside that cone instead, the nearest 5, the nearest preselected, recaptured with the RWR's 2 s refresh
-  and on a click (harm.rs `Source::Rwr`, mfd.md "HARM (10)"). Ctrl+Return steps either list.
-- **Preferences → Extras**: Flight data (Original / Real aircraft), HUD pitch ladder (conformal: each rung projected
-  through the camera; the original's linear 12 px/deg ladder is a few px off away from the marker), flight info line,
-  blackbox, language, "All keys on the Keyboard page" (the original lists 92 of the 117 key records; the option lists
-  all 115 labelled ones so the stick, rudder, RPM ± 5 and pans can be rebound — controls.md §3), Window (framed /
-  full screen), "F-35I replaces" (the F-35I flies from a Jet list button, docs/f35i.md), Settings file (export /
-  import the preferences, front_end.gd `_settings_file`). Later: extra sounds,
-  canopy open (docs/roadmap.md).
-- **Preferences → Extras → HUD (Original (1998) / Real)** (references: [real-hud.md](real-hud.md)): each jet's real
-  display instead of the original HUD — the F-16C/D dash-34 HUD (also, as reconstructions, the Kurnass
-  2000 and the Kfir, whose symbology is not public), the Lavi's own wide-angle HUD (a reconstruction: its symbology is
-  not public), the F-15A/C HUD, the F-4E's and the Mirage's optical gunsights,
-  the F-35I's helmet display. Ours where the sources stop: the EEGS wingspan (35 ft), the bingo (1500 lb), the
-  sights' bombing depression set automatically, the F-35's gun / A-G graphics (the F-16's).
+Each entry names the switch and where it lives, then the difference: "Original: X. Ours, with the switch: Y."
 
-- **Preferences → Devices → Detent = MIL** (ours, under THROTTLE, off by default): "Set at lever" stores the lever position in its
-  detent; the lever then maps piecewise so the detent is MIL (74), the next 3 points stay MIL, and the travel past them
-  afterburner from AB 1 (78) (the original maps it linearly) — joystick.gd `detent_map`, docs/controls.md §5.
+**Preferences → Physics**
+- **"Better physics" options and original-bug fixes** (falling-jet heading, tougher enemies on easy AI levels):
+  see flight-model.md §10, damage.md.
+- **"Locked enemies know who locked them"** (`fix_lock_threat`). Original: the player's radar lock writes the target
+  itself into the AI target's threat (brain+0x7c). Ours, with the switch: the lock makes the player the target's
+  threat — rwr.md §2.
+- **"Bombs burst at the ground"** (`fix_bomb_burst`). Original: a falling bomb is checked only every 0.5 s and bursts
+  at the first check point at or below terrain + 1 m, up to ~0.5·|vz| (70 m) under the ground, where the blast's
+  height term weakens or cancels the damage. Ours, with the switch: the burst moves up to where the bomb met the
+  terrain — weapons.md §9.5.
+- **"No collisions with hidden units / wrecks"** (`fix_ghost_collision`). Original: the collider stays for a hidden
+  unit (e.g. the invisible houses used as audio markers) and for a destroyed building or vehicle whose model
+  vanished, so the jet can die on an invisible obstacle. Ours, with the switch: those colliders are skipped —
+  damage.md §7.
+- **"Stores weight fix"**. Original: one store per station, pounds in the kg field, tank fuel = the pounds number as
+  kg. Ours, with the switch: every store counts in the stores weight, in kg, and the fuel tanks' fuel in kg —
+  weapons.md §2.5–2.6.
 
-- **Preferences → Graphics**: a VSYNC check (ours) in the empty strip left of DEFAULT, default on.
-- **Preferences → Extras → Anti-aliasing / Terrain close up / Sky** (ours, docs/rendering.md): rendering only, first
-  choice = the look before. Anti-aliasing MSAA 4× (as before) / + FXAA / TAA (instead of MSAA); Terrain close up:
-  detail that follows the imagery within 1.5 km (coloured ground: patches toward a deeper / drier version of the
-  photo's colour, grain and normal detail; grey pavement: a faint grain; water from terraintype.dat: none; centred
-  noise, so colours from afar are the imagery's) and 16× anisotropic filtering; Sky: Atmospheric = a clear-day sky
-  (tuned single scattering: deep blue zenith, pale horizon, darker with altitude, crisp sun disc with a narrow
-  glare), the haze over the ground in the horizon's colour (aerial perspective, same fog density), and the cloud
-  layer's alpha stretched (0.3–0.9 → 0–1) so its clouds stand apart with clear sky between them instead of a grey
-  veil; the original's cloud texture choice (one of six per mission, Cloud256_5 nearly overcast) is kept. The sky
-  follows the time of day's sun (rendering.md §4); at night the gradient sky is drawn instead.
-- **Preferences → Extras → terrain imagery** (ours, docs/imagery.md): one row per region (Israel / outside
-  Israel), default "Original". A converted modern layer (Sentinel-2 10 m outside Israel, Survey of Israel 2015 2 m
-  in Israel at 2.5 m per pixel, each in 1998 or modern colours; later SPOT 5) replaces the original's ground texture
-  only on land in its region, never on water, the game's airbases or the original's site insets (level 0–2); the
-  Israel layer does replace the original's level-3 (9.9 m) cover of Israel. Heights, terrain types and missions stay
-  the original's. The converted layers' credits (CC BY) roll with the credits on Quit (docs/credits.md). Data only via
-  `tools/setup.sh --imagery …` (off by default).
-- **Pilot guides** (shown only for a record that has a guide, `docs/guides/<dir>.md`; no Extras row): the Reference
-  screen gets a **PILOT GUIDE** button and view, with an Open PDF link when the guide's PDF was made — front-end.md
-  §14, reference.gd.
+**Flight data = Real**
+- **RWR display.** Original: the display copies the first `count` slots without compacting, so an entry can vanish
+  after a removal. Ours, with the switch: it lists every used slot — rwr.md.
+
+**Preferences → Extras**
+- **Weapon data (Original / Real).** Original: the 1998 weapon data. Ours, with Real: public missile weights, top
+  speed, range, rear-aspect seekers (ours: a target-moving-away test), seeker cones, the AIM-9D's 12 g, the radar
+  ranges of the seven jets and gun rounds / rate / muzzle velocity — real-weapons.md.
+- **HARM targets (Original / RWR).** Original: the HARM page lists its sensor's own scan (the radar classes within
+  20 NM in the ±15° cone, emitting or not, friendlies too, best 15). Ours, with RWR: the page lists the RWR's active
+  emitters inside that cone, the nearest 5, the nearest preselected, recaptured with the RWR's 2 s refresh and on a
+  click (harm.rs `Source::Rwr`, mfd.md "HARM (10)"). Ctrl+Return steps either list.
+- **Flight data (Original / Real aircraft).**
+- **HUD pitch ladder.** Original: a linear 12 px/deg ladder, a few px off away from the marker. Ours, with the
+  switch: conformal, each rung projected through the camera.
+- **"All keys on the Keyboard page".** Original: the page lists 92 of the 117 key records. Ours, with the switch: it
+  lists all 115 labelled ones, so the stick, rudder, RPM ± 5 and pans can be rebound — controls.md §3.
+- **Additions the original does not have:** flight info line, blackbox, language, Window (framed / full screen),
+  "F-35I replaces" (the F-35I flies from a Jet list button, docs/f35i.md), Settings file (export / import the
+  preferences, front_end.gd `_settings_file`). Later: extra sounds, canopy open (docs/roadmap.md).
+- **HUD (Original (1998) / Real)** (references: [real-hud.md](real-hud.md)). Original: the 1998 HUD on every jet.
+  Ours, with Real: each jet's real display:
+  - the F-16C/D dash-34 HUD (also, as reconstructions, on the Kurnass 2000 and the Kfir, whose symbology is not
+    public);
+  - the Lavi's own wide-angle HUD (a reconstruction: its symbology is not public);
+  - the F-15A/C HUD;
+  - the F-4E's and the Mirage's optical gunsights;
+  - the F-35I's helmet display.
+
+  Ours where the sources stop: the EEGS wingspan (35 ft), the bingo (1500 lb), the sights' bombing depression set
+  automatically, the F-35's gun / A-G graphics (the F-16's).
+- **Anti-aliasing / Terrain close up / Sky** (ours, docs/rendering.md). Rendering only; the first choice of each is
+  the look before.
+  - Anti-aliasing: MSAA 4× (as before) / + FXAA / TAA (replaces MSAA).
+  - Terrain close up: detail that follows the imagery within 1.5 km (coloured ground: patches toward a deeper /
+    drier version of the photo's colour, grain and normal detail; grey pavement: a faint grain; water from
+    terraintype.dat: none; centred noise, so colours from afar are the imagery's) and 16× anisotropic filtering.
+  - Sky: Atmospheric = a clear-day sky (tuned single scattering: deep blue zenith, pale horizon, darker with
+    altitude, crisp sun disc with a narrow glare), the haze over the ground in the horizon's colour (aerial
+    perspective, same fog density), and the cloud layer's alpha stretched (0.3–0.9 → 0–1) so its clouds stand apart
+    with clear sky between them (the original shows a grey veil). The original's cloud texture choice (one of six per
+    mission, Cloud256_5 nearly overcast) is kept. The sky follows the time of day's sun (rendering.md §4); at night
+    the gradient sky is drawn.
+- **Terrain imagery** (ours, docs/imagery.md): one row per region (Israel / outside Israel), default "Original".
+  - Original: the 1998 ground texture everywhere.
+  - Ours, with a converted modern layer (Sentinel-2 10 m outside Israel, Survey of Israel 2015 2 m in Israel at
+    2.5 m per pixel, each in 1998 or modern colours; later SPOT 5): the layer replaces the original's ground texture
+    only on land in its region. It never covers water, the game's airbases or the original's site insets (level
+    0–2). The Israel layer does replace the original's level-3 (9.9 m) cover of Israel.
+  - Heights, terrain types and missions stay the original's. The converted layers' credits (CC BY) roll with the
+    credits on Quit (docs/credits.md).
+  - Data only via `tools/setup.sh --imagery …` (off by default).
+
+**Preferences → Devices**
+- **Detent = MIL** (ours, under THROTTLE, off by default). Original: the throttle lever maps linearly. Ours, with the
+  switch: "Set at lever" stores the lever position in its detent; the lever then maps piecewise so the detent is MIL
+  (74), the next 3 points stay MIL, and the travel past them is afterburner from AB 1 (78) — joystick.gd
+  `detent_map`, docs/controls.md §5.
+
+**Preferences → Graphics**
+- **VSYNC** (ours): a check in the empty strip left of DEFAULT, default on.
+
+**Pilot guides** (shown only for a record that has a guide, `docs/guides/<dir>.md`; no Extras row): the Reference
+screen gets a **PILOT GUIDE** button and view, with an Open PDF link when the guide's PDF was made — front-end.md
+§14, reference.gd.
 
 ## 3. Original quirks we keep on purpose (decided)
-- The sea west of Suez (and the Nile delta / Western desert) is one flat plane at −557 m in map.ptt; ships there sit
-  at −557 m. Kept as the original for now — **to revisit** (docs/status.md).
-- Cyprus is marked as water in terraintype.dat, so landing there destroys the jet (outside the area you fly in).
-- Upright but wrong runway numbers (template 09/27, copies of 15/33).
-- The F-16 / Lavi never spin in the original (the deep stall is a Physics option).
-- Everything listed as "not changed by better physics" in flight-model.md §10.
-- Weapons (weapons.md): Shift+[ / Shift+] cycle forward like [ / ]; the IR seeker and the gun rounds take friendly
-  units too; the gun rounds can step over the 25 m hit sphere; the limited-heat (580) gate is a ±60° bearing test,
-  not tail aspect; the LCOS integrates with dt 0.15 at a 0.05 s gate; with the gear handle down Tab needs Safety off;
-  no "out of ammo" message or sound; radar damage does not drop the semi-active (610) missiles' guidance
-  (`FUN_004adb20` never calls `FUN_00458130`), while every track change does (weapons.md §11.4).
-- EO camera (mfd.md): zooming during a slew jumps the picture (the rates change, the slew start is kept); the FLIR
-  gimbal marker is mirrored left / right (x = 66 − 56u as the code); I is not a toggle; a TV weapon before launch
-  never locks on the key release.
+Original and ours behave the same in each of these.
+- **Sea west of Suez:** the sea west of Suez (and the Nile delta / Western desert) is one flat plane at −557 m in
+  map.ptt; ships there sit at −557 m. Kept as the original for now — **to revisit** (docs/status.md).
+- **Cyprus:** marked as water in terraintype.dat, so landing there destroys the jet (kept: it lies outside the area
+  you fly in).
+- **Runway numbers:** upright but wrong numbers (template 09/27, copies of 15/33).
+- **F-16 / Lavi spin:** they never spin in the original (the deep stall is a Physics option).
+- **Flight model:** everything listed as "not changed by better physics" in flight-model.md §10.
+- **Weapons** (weapons.md):
+  - Shift+[ / Shift+] cycle forward like [ / ];
+  - the IR seeker and the gun rounds take friendly units too;
+  - the gun rounds can step over the 25 m hit sphere;
+  - the limited-heat (580) gate is a ±60° bearing test (tail aspect plays no part);
+  - the LCOS integrates with dt 0.15 at a 0.05 s gate;
+  - with the gear handle down, Tab needs Safety off;
+  - running out of ammo gives no message or sound;
+  - radar damage leaves the semi-active (610) missiles' guidance on (`FUN_004adb20` never calls `FUN_00458130`),
+    while every track change drops it (weapons.md §11.4).
+- **EO camera** (mfd.md):
+  - zooming during a slew jumps the picture (the rates change, the slew start is kept);
+  - the FLIR gimbal marker is mirrored left / right (x = 66 − 56u as the code);
+  - I does not toggle;
+  - a TV weapon before launch never locks on the key release.
