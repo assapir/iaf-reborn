@@ -1,68 +1,104 @@
 # Radio: tower, wingman commands, flight-controller reports
 
+This doc specifies the in-flight radio: how phrases are built from word files, what the tower says, how the wingman
+answers your commands, and the flight controller's reports.
+
 Addresses are `IAFJets.exe` **v1.1** (`assets/ghidra_v11/iafjets.c`; argument orders checked in the disassembly).
 Related: [controls.md](controls.md) (records 47, 98–103), [ai.md](ai.md) (brain, condition 29, §10),
 [autopilot.md](autopilot.md) §2.2 (waypoint sequencing), [sound.md](sound.md) (speech volume, phrase channel),
 [mission-runtime.md](mission-runtime.md) §3.3 (subtitle console). Port: `game/audio/radio.gd`.
 
 ## How it sounds in the game (plain language)
-- **The tower talks on its own.** Within 18.54 km of one of the four Israeli towers (Ramon, Ramat David, Tel Nof,
-  Refidim) and on the ground, the tower says "taxi to runway NN" while you stand at a hangar, "clear to line up" /
-  "hold position" on the way to the runway, "clear to take-off" when you are lined up on the runway; your pilot
-  answers "Roger". Standing still for 30 s makes it repeat.
+- **The tower talks on its own.** It talks when you are on the ground within 18.54 km of one of the four Israeli
+  towers (Ramon, Ramat David, Tel Nof, Refidim):
+  - at a hangar: "taxi to runway NN";
+  - on the way to the runway: "clear to line up" / "hold position";
+  - lined up on the runway: "clear to take-off".
+
+  Your pilot answers "Roger". If you stand still for 30 s, the tower repeats.
 - **Ctrl+T (Contact tower) is for landing.** In the air near an Israeli tower it answers "proceed to runway NN".
-  From then on, flying down the runway's approach corridor, it says "cleared to land" (gear down), "your gear is
-  not down", or "go around, runway is not clear" (a stopped aircraft on the runway), and after the roll-out "nice to
-  have you back, taxi to hangar". On the ground at an Israeli base Ctrl+T does nothing (the tower already talks);
-  near no tower or near an Arab base you only hear a radio click (`kch2.wav`).
-- **Wingman commands (Alt+P/B/E/W/T/C).** Your pilot says the command ("Close formation." …) and the wingman's
-  brain (bdb rules) reacts: its "Roger, …" reply and manoeuvre come from the mission database. If the wingman
-  cannot comply (still on the ground, no threat / no locked enemy / nothing to engage) it answers "I'm afraid
-  that's a negative, sir!" 3 s later.
-- **Waypoint reports.** 3 s after a friendly flight (or you) moves on to the next waypoint the radio says
+  From then on, as you fly down the runway's approach corridor, it says one of:
+  - "cleared to land" (gear down);
+  - "your gear is not down";
+  - "go around, runway is not clear" (a stopped aircraft on the runway).
+
+  After the roll-out it says "nice to have you back, taxi to hangar". On the ground at an Israeli base Ctrl+T does
+  nothing, because the tower already talks. Near no tower, or near an Arab base, you hear only a radio click
+  (`kch2.wav`).
+- **Wingman commands (Alt+P/B/E/W/T/C).** Your pilot says the command ("Close formation." …). The wingman's brain
+  (bdb rules: the AI rule database) reacts: its "Roger, …" reply and manoeuvre come from the mission database. If
+  the wingman cannot comply, it answers "I'm afraid that's a negative, sir!" 3 s later. It cannot comply while it is
+  still on the ground, or when there is no threat / no locked enemy / nothing to engage.
+- **Waypoint reports.** 3 s after a friendly flight (or you) moves on to the next waypoint, the radio says
   "Alpha leader is passing waypoint 2".
-- Every radio phrase is spoken from word files and printed in the subtitle console (the English text of the data:
-  there is no Hebrew radio text, docs/packs.md).
+- **Subtitles.** Every radio phrase is spoken from word files and printed in the subtitle console. The text is the
+  data's English text; the radio text exists only in English (docs/packs.md).
 
 ## 1. Phrases (`phrasetemplates.trx`, `phraseparticalsdata.trx`)
-Both in `resource/soundfiles`. A template line is `NAME  token token …`; a particle line is `KEY  WAV  text…`.
-- Expand (`FUN_004c66a0(name, args)`, phrase object: CString text +0, 20 entries (wav, text) +4, count +0xa4):
-  the text and the entries are cleared (`4c63f0`); tokens are split on blanks (`4d56a0`). A token `%Sn` takes the
-  n-th string argument, `%Dn` the n-th int argument printed with `%d` (`4c64b0`); any other token is a key. The key is
-  upper-cased (`5e06d1`) and looked up (`4c6580`; a miss logs "Error: key … was not found in map").
-- Text (`4c6410`): unless the phrase is empty or the token is `,`, a blank is appended; otherwise the part's first
-  letter is upper-cased. Then the part's text is appended. "%S1 , %S2 , TAXI_TO_RUNWAY %D1" with ALPHA_T, MORNING, 27
-  → "Alpha, good morning, taxi to runway 27".
-- Play (`FUN_004c5750`): every entry's `<SoundFilesPath><wav>.wav` (`.wav` at 0x6430cc) goes to the phrase channel
-  (`FUN_005448b0`) at the speech volume (manager +0x4c); the parts play one after another. Missing files are silent:
-  the install lacks `Pause.wav` (the `,` / `.` particle), `Null`, `Bear000`, `Head000`, the three `…Twr` files and
-  most `NumNNN` (it ships 3, 5, 9, 15, 18, 21, 23, 27, 33: the runway numbers of the four Israeli bases are there).
-- Subtitle: the callers push the text with `FUN_0044a060` (the console, mission-runtime.md §3.3).
+A phrase is a template of tokens; each token names a particle (one wav file plus its text). Both files are in
+`resource/soundfiles`:
+- template line: `NAME  token token …`;
+- particle line: `KEY  WAV  text…`.
+
+**Expand** (`FUN_004c66a0(name, args)`; phrase object: CString text +0, 20 entries (wav, text) +4, count +0xa4):
+1. Clear the text and the entries (`4c63f0`).
+2. Split the tokens on blanks (`4d56a0`).
+3. Resolve each token (`4c64b0`): `%Sn` takes the n-th string argument; `%Dn` takes the n-th int argument, printed
+   with `%d`; any other token is a key.
+4. Upper-case the key (`5e06d1`) and look it up (`4c6580`). A miss logs "Error: key … was not found in map".
+
+**Text** (`4c6410`): when the phrase is non-empty and the token is other than `,`, append a blank; otherwise
+upper-case the part's first letter. Then append the part's text. Example: "%S1 , %S2 , TAXI_TO_RUNWAY %D1" with
+ALPHA_T, MORNING, 27 → "Alpha, good morning, taxi to runway 27".
+
+**Play** (`FUN_004c5750`): every entry's `<SoundFilesPath><wav>.wav` (`.wav` at 0x6430cc) goes to the phrase channel
+(`FUN_005448b0`) at the speech volume (manager +0x4c). The parts play one after another. Missing files are silent.
+The install lacks:
+- `Pause.wav` (the `,` / `.` particle), `Null`, `Bear000`, `Head000` and the three `…Twr` files;
+- most `NumNNN`. It ships 3, 5, 9, 15, 18, 21, 23, 27, 33, which include the runway numbers of the four Israeli bases.
+**Subtitle**: the callers push the text with `FUN_0044a060` (the console, mission-runtime.md §3.3).
 
 ## 2. Tower (TowersManager `DAT_00699344`, ctor `54eb30`)
-Bases (iaf.ibx sections, this order): 0 Ramon, 1 David, 2 TelNof, 3 Refidim, 4 Inshas, 5 Damescuss, 6 Kuzeir,
-7 Bley, 8 Ryak, 9 Aman (0x51c bytes each): +0 TowerLoc, +0xc LineupLoc, +0x18 TwrCubeLoc, +0x24 to-taxi, +0x114
-from-taxi, +0x204 hangars (x, y, hdg, turn x, y, hdg; 0x18 each), +0x4d8 greeting, +0x4dc wind (kt), +0x4e0
-RunwayNumber (int degrees), +0x4f0 hangar count, +0x4f4 hangar taken flags.
+The TowersManager runs the tower's state machine for the base nearest the player.
 
-Zones (`5bea90(r, nx, ny, nz, pose)`: nx·ny·nz spheres of radius r, centres 2r apart about the pose, local y along the
-heading). Both at the LineupLoc, heading = RunwayNumber wrapped to (−180, 180]:
+**Bases** (iaf.ibx sections, in this order): 0 Ramon, 1 David, 2 TelNof, 3 Refidim, 4 Inshas, 5 Damescuss,
+6 Kuzeir, 7 Bley, 8 Ryak, 9 Aman. Bases 0–3 are the Israeli ones. Each base record is 0x51c bytes:
+
+| offset | field                                                     |
+|--------|-----------------------------------------------------------|
+| +0     | TowerLoc                                                  |
+| +0xc   | LineupLoc                                                 |
+| +0x18  | TwrCubeLoc                                                |
+| +0x24  | to-taxi                                                   |
+| +0x114 | from-taxi                                                 |
+| +0x204 | hangars (x, y, hdg, turn x, y, hdg; 0x18 each)            |
+| +0x4d8 | greeting                                                  |
+| +0x4dc | wind (kt)                                                 |
+| +0x4e0 | RunwayNumber (int degrees)                                |
+| +0x4f0 | hangar count                                              |
+| +0x4f4 | hangar taken flags                                        |
+
+**Zones** (`5bea90(r, nx, ny, nz, pose)`): nx·ny·nz spheres of radius r, centres 2r apart about the pose, local y
+along the heading. Both zones sit at the LineupLoc, heading = RunwayNumber wrapped to (−180, 180]:
 - runway zone +0x331c: r 1500, 1 × 30 × 1 → centres ±43.5 km along the runway (`550850`);
 - lineup zone +0x3344: r 100, 1 × 4 × 1 → centres ±300 m along the runway (`550b20`).
 
-The query (`4d2580` → `43d020`) lists the registered objects (aircraft leave the list at state 5, `4a86b0`) whose
-bounding sphere (radius ro = the collision radius, 0.25 · the model's extents) meets a cell with
-**|p − c|² < (r + ro)² · 3** (0x6006b8 = 3.0): each cell reaches (r + ro)·√3, i.e. ≈ 205 m around the lineup cells for
-an F-16 (ro ≈ 18.8 m) and ≈ 2.6 km around the runway corridor's.
+The zone query (`4d2580` → `43d020`) lists the registered objects whose bounding sphere meets a cell. Aircraft leave
+the list at state 5 (`4a86b0`). The sphere's radius ro is the collision radius, 0.25 · the model's extents. The test
+is **|p − c|² < (r + ro)² · 3** (0x6006b8 = 3.0), so each cell reaches (r + ro)·√3. For an F-16 (ro ≈ 18.8 m)
+that is ≈ 205 m around the lineup cells and ≈ 2.6 km around the runway corridor's.
 
 Manager fields: +0x3318 current base (−1 none), +0x336c state, +0x3370 timer, +0x3374 timer period, +0x337c runway
 clear, +0x3388 last message (0xb = none).
 
-**Wind** (`551320`, at mission load from misc **0x46a**): 0, 10, 15 or 20 kt as is, anything else a random one of
-{0, 10, 15, 20} (`rand() % 4`), the same for all bases. The tower says "wind is NN knots" / "no wind".
+**Wind** (`551320`, set at mission load from misc **0x46a**): a value of 0, 10, 15 or 20 kt is used as is. Any
+other value becomes a random one of {0, 10, 15, 20} (`rand() % 4`). All bases share it. The tower says "wind is NN
+knots" / "no wind".
 
-**Timer** (`550e40(period)`): a repeating event "TowersManagerTimer" every `period` s (restarted at each call).
-Flight start (`54f8f0`, from the flight start next to the FlightController's `54af40`): timer 1 s, state 0, last 0xb.
+**Timer** (`550e40(period)`): a repeating event "TowersManagerTimer" every `period` s. Each call restarts it.
+
+**Flight start** (`54f8f0`, called from the flight start next to the FlightController's `54af40`): timer 1 s,
+state 0, last 0xb.
 
 **Tick** (`550ed0`; s = player, t = now, `onground` = FM getter 0x1a, `speed` = FM vtbl +0x3c):
 ```
@@ -75,10 +111,11 @@ else:     idle_t = t;  state = onground ? 1 : 2                                 
 ```
 (`idle_t` is a function static at 0x83ff88, 0 at start.)
 
-**ground()** (`54fef0`): not on the ground → state 2 (period field 4, the timer is not restarted). Else h = the
-nearest hangar of the base within 1000 m (`5521c0`, −1 none: the original then reads the entry before the table,
-uninitialised memory — taken as "no hangar"). If the player's landed flag (brain +0xe0, set at a landing, v1.1
-cleared at lift-off) is 0:
+**ground()** (`54fef0`):
+1. Off the ground → state 2 (period field 4; the timer keeps running unrestarted).
+2. On the ground: h = the nearest hangar of the base within 1000 m (`5521c0`; −1 = none). With −1 the original reads
+   the entry before the table, which is uninitialised memory; we take it as "no hangar".
+3. If the player's landed flag (brain +0xe0, set at a landing; v1.1 clears it at lift-off) is 0:
 ```
 if dist2(s, hangar[h]) < 100:  timer(1) unless already 1;  if last ∉ {0, 9}: say 0;  state = 1;  return
 busy = last ∈ {10, 6, 8}
@@ -89,10 +126,14 @@ if not lineup(base) or busy:                       // 5504e0
       if last ∉ {3, 4}: say 3
 elif last != 4: say 4
 ```
-**lineup(b)** (`5504e0`): runway_clear = 1; for every object in the lineup zone: the player → in = 1; an aircraft
-(class 0x1c) slower than 1 m/s that is not the player's formation leader / wingman → runway_clear = 0. Returns `in`
-only if |ftol(runway heading − player heading)| ≤ 45 (both in degrees, (−180, 180], the difference not wrapped).
-**runway(b)** (`550240`): the same with the runway zone, but runway_clear is computed only when aligned.
+**lineup(b)** (`5504e0`):
+1. Set runway_clear = 1.
+2. For every object in the lineup zone: the player sets in = 1; an aircraft (class 0x1c) slower than 1 m/s, other
+   than the player's formation leader / wingman, sets runway_clear = 0.
+3. Return `in` only if |ftol(runway heading − player heading)| ≤ 45 (both in degrees, (−180, 180]; the difference
+   is left unwrapped).
+
+**runway(b)** (`550240`): the same with the runway zone, but it computes runway_clear only when aligned.
 
 **approach()** (`54fd00`): r = runway(base).
 ```
@@ -109,8 +150,10 @@ if 0 ≤ base ≤ 3 and state == 2:  timer(1);  say 5;  state = 3;  last = 5
 elif base == −1 or base > 3:     say 0xb (click);  timer(4);  state = 2;  last = 0xb
 (an Israeli base on the ground, or state 3: nothing)
 ```
-**say(code)** (`551c20`, on the base): callsign = the player's formation name (`5513c0`: kinds 2–6, 9, 10 by name,
-else "Alpha") + `_t`; rwy = RunwayNumber / 10; wind = `WI_KNOTS%02d` or none.
+**say(code)** (`551c20`, on the base) fills three arguments:
+- callsign = the player's formation name (`5513c0`: kinds 2–6, 9, 10 by name, else "Alpha") + `_t`;
+- rwy = RunwayNumber / 10;
+- wind = `WI_KNOTS%02d` or none.
 
 | code | template | args |
 |---|---|---|
@@ -126,8 +169,8 @@ else "Alpha") + `_t`; rwy = RunwayNumber / 10; wind = `WI_KNOTS%02d` or none.
 | 0xb | `KCH2.WAV` on the phrase channel, no text, no reply | — |
 | 2, 7, other | nothing | — |
 
-Codes 0–10: the phrase is printed (`FUN_0044a060`) and played, then **ACFT_ROGER** ("Roger", the pilot) is played
-after it (not printed). The tower names (TI_RAMON_TWR …) and ACFT_PROCEED_TO_RUNWAY's "this is … tower" variant are
+Codes 0–10: the phrase is printed (`FUN_0044a060`) and played. Then **ACFT_ROGER** ("Roger", the pilot) plays after
+it, unprinted. The tower names (TI_RAMON_TWR …) and ACFT_PROCEED_TO_RUNWAY's "this is … tower" variant are
 commented out / unused.
 
 No mission trigger or condition reads the tower or the radio state (mission-runtime.md §4).
@@ -158,31 +201,56 @@ apply(t) (43fee0 on W's brain): cmd ∈ {1, 3, 4} and t: W.brain+0x70 = t (targe
 NEGATIVE (only if spoke): an event at now + 3 s → WINGMAN_REPLY_NEGATIVE %S1 = NEGATIVE
    ("I'm afraid that's a negative, sir!"), printed and played                            // 441310
 ```
-(If the wingman is on the ground but the 1.5 s timer did not fire, the command is applied: kept.)
+Kept quirk: if the wingman is on the ground but the 1.5 s timer did not fire, the command is applied.
 The network branch (a remote wingman: message 0x21) is not ported.
 
-**engage_any** (`440860`): if the radar holds a target T: an aircraft T → its formation partner (`5bcb90`, else the
-formation leader), if alive; else search around T for its class. Without a target: search around the player, any
-class. Search: within 9270 m, not the player nor W, alive, class ∈ {0x1c, 2, 3, 1, 10, 9, 8, 0xb, 0xd, 0x1d, 0x1e,
-5, 6, 0xf, 0x10}, (around T: the same class as T, not T), hostile; the nearest. Only a hostile result is returned.
+**engage_any** (`440860`):
+1. If the radar holds a target T and T is an aircraft: return its formation partner (`5bcb90`, else the formation
+   leader), if alive.
+2. Else, with a target T: search around T for T's class.
+3. Without a target: search around the player, any class.
 
-**Original quirks kept:** "engage other target" takes the nearest unit of *another side* (`4a4cf0`), so near your
-own base it can pick a side-0 object (mission 221: the Ramon tower); a sub-brain that answers a new command by going
-back to the base list (`setRules(0, 1)`, `440790`) keeps +0x48, so the base list then answers it (e.g. bug out while in
-close formation).
+The search returns the nearest unit that is:
+- within 9270 m;
+- other than the player and W;
+- alive;
+- of class ∈ {0x1c, 2, 3, 1, 10, 9, 8, 0xb, 0xd, 0x1d, 0x1e, 5, 6, 0xf, 0x10} (around T: the same class as T,
+  other than T itself);
+- hostile.
 
-**What the wingman does** is in its bdb brain: condition 29 (own brain +0x48) rules switch to a sub-brain (action
-1000, which clears +0x48) and fire a type-7 response with the reply audio, e.g. "AA wing command" brains 49–52 / 60:
-6 → sub-brain 40 + "Roger, closing formation." (audio 250), 5 → 44 + "Roger, going tactical." (251), 2 → 41 +
-"Roger, bugging out." (252), 1 → 39 + "Roger, I'm on my way." (255), 3 → 46 / 39 + "Roger, engaging target." (253),
-4 → 46 / 39 + "Roger, engaging." (254). The manoeuvres are the brain actions (190 close formation, 200 tactical, 250
-go home …, ai.md §5).
+Only a hostile result is returned.
+
+**Original quirks kept:**
+- "Engage other target" takes the nearest unit of *another side* (`4a4cf0`). Near your own base it can pick a side-0
+  object (mission 221: the Ramon tower).
+- A sub-brain that answers a new command by going back to the base list (`setRules(0, 1)`, `440790`) keeps +0x48.
+  The base list then answers the command (e.g. bug out while in close formation).
+
+**What the wingman does** is in its bdb brain. Condition 29 (own brain +0x48) rules switch to a sub-brain (action
+1000, which clears +0x48) and fire a type-7 response with the reply audio. Example, the "AA wing command" brains
+49–52 / 60:
+
+| command | sub-brain | reply (audio)                       |
+|---------|-----------|-------------------------------------|
+| 6       | 40        | "Roger, closing formation." (250)   |
+| 5       | 44        | "Roger, going tactical." (251)      |
+| 2       | 41        | "Roger, bugging out." (252)         |
+| 1       | 39        | "Roger, I'm on my way." (255)       |
+| 3       | 46 / 39   | "Roger, engaging target." (253)     |
+| 4       | 46 / 39   | "Roger, engaging." (254)            |
+
+The manoeuvres are the brain actions (190 close formation, 200 tactical, 250 go home …, ai.md §5).
 
 ## 4. FlightController reports (`DAT_00699348`, ctor `54acc0`)
-One-shot events; each says `%S1 …` with S1 = the unit's callsign (`54ccb0`: formation name + "Leader" (member 0) or
-"Wingman", upper-cased; empty — no report — for "Other"; a unit without a formation gets "<name> - No formation", not
-a key). Reported only outside network games and for units on the **player's side** (`4a4cf0`; without a player
-sides 2 / 3 are skipped), and only with a callsign. Printed and played.
+The FlightController posts one-shot radio reports. Each says `%S1 …`, with S1 = the unit's callsign (`54ccb0`):
+- formation name + "Leader" (member 0) or "Wingman", upper-cased;
+- empty for "Other", so that unit gets no report;
+- "<name> - No formation" for a unit without a formation (literal text, not a particle key).
+
+A report is printed and played only when all hold:
+- the game is outside a network game;
+- the unit is on the **player's side** (`4a4cf0`; without a player, sides 2 / 3 are skipped);
+- the unit has a callsign.
 
 | event | posted by | delay | template |
 |---|---|---|---|
@@ -193,14 +261,23 @@ sides 2 / 3 are skipped), and only with a callsign. Printed and played.
 | EjectReport (`54e560`) | ejection `5485a0` | 4.5 s | EJECTED_PHRASE |
 | kill reports | weapons | 5 s | SHOT_ENEMY / SHOT_BY_ENEMY / SHOT_GROUND_TARGET (`54d8d0` ground names) / SHOT_FRIENDLY_PHRASE |
 
-**AWACS contact calls** (FlightControllerTimer, `54af40` / `54b130`; traced in outline): every 12 s (single player),
-the first after 4 more periods (`50 / 12`); a 55 620 m (30 nm) sphere around the player; every alive, controlled
-aircraft in it other than the player and the wingman, flying higher than terrain + 175 m, gets bearing / range /
-heading from the player; a 24-slot contact table (60-tick lifetime, `54b790`, `54ac20` change test) decides between
-ACFT_FCTRL_LONG (`%S1` = callsign `_r`, BEARING%03d, MILES%02d (≤ 35, > 10 rounded down to 5), description, HEADING%03d,
-instruction) and ACFT_FCTRL_SHORT; the description / instruction pairs are friendlies (0), target + free to engage
-(1), target + already engaged (2, `rand() % 9 == 6`), unidentified + please identify (3). The hostility / range gate
-(0x60caa0) and the change test are not fully read (UNCERTAIN).
+**AWACS contact calls** (AWACS: the airborne early-warning controller; FlightControllerTimer, `54af40` / `54b130`;
+traced in outline):
+1. The timer fires every 12 s (single player); the first call comes after 4 more periods (`50 / 12`).
+2. It scans a 55 620 m (30 nm) sphere around the player.
+3. Every alive, controlled aircraft in it, other than the player and the wingman, flying higher than terrain + 175 m,
+   gets bearing / range / heading from the player.
+4. A 24-slot contact table (60-tick lifetime, `54b790`, `54ac20` change test) picks ACFT_FCTRL_LONG or
+   ACFT_FCTRL_SHORT. ACFT_FCTRL_LONG takes `%S1` = callsign `_r`, BEARING%03d, MILES%02d (≤ 35, > 10 rounded down
+   to 5), description, HEADING%03d, instruction.
+
+The description / instruction pairs:
+- 0: friendlies;
+- 1: target + free to engage;
+- 2: target + already engaged (`rand() % 9 == 6`);
+- 3: unidentified + please identify.
+
+The hostility / range gate (0x60caa0) and the change test are not fully read (UNCERTAIN).
 
 ## 5. Port (`game/audio/radio.gd`)
 - `Radio.expand()` / `say()`: the phrase engine from the two .trx files; the parts queue on the phrase channel
@@ -212,8 +289,8 @@ instruction) and ACFT_FCTRL_SHORT; the description / instruction pairs are frien
 - Not built: the AWACS contact calls, the airborne / landed / crashed / kill reports.
 
 ## UNCERTAIN
-- The phrase channel queues (the parts of one phrase must follow each other); whether a new phrase waits for or cuts
-  a running one is not traced (queued here). Mission voices (`_voice`) still replace each other.
+- The phrase channel queues, because the parts of one phrase must follow each other. Whether a new phrase waits for
+  or cuts a running one is not traced; here it queues. Mission voices (`_voice`) still replace each other.
 - The hangar entry −1 (uninitialised memory) read as "no hangar".
 - The tower's object lists: the port tests the player and the mission's class-0x1c units (AI jets at their flight
   model positions and speeds, others standing) against the zones; static wrecks (state 4) still count.
