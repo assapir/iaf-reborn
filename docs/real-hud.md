@@ -10,6 +10,7 @@ Key facts:
 - The Lavi, Kurnass 2000 and Kfir layouts and the DASH helmet's layout are public only in outline; ours are
   reconstructions [R].
 - [What ours draws (status)](#what-ours-draws-status) lists, per jet, what the code draws and what it leaves out.
+- [IFF](#iff-identification-friend-or-foe) says how each real jet shows a friend, with a proposed build.
 
 Confidence tags:
 - **[V]** verified: from a real-world document or footage.
@@ -367,6 +368,118 @@ Helmet-Mounted Cueing System, its descendant), whose F-16 set is documented in s
 - Not public: the DASH's own fonts / positions, its horizon symbol, Python-specific cues and shoot cue, declutter
   levels. Ours leaves them out [R].
 
+## IFF (identification friend or foe)
+
+This section says how each real jet tells the pilot that an aircraft is a friend. It was researched in October 2026
+from public sources. It is the reference for a future Real-mode IFF. Today the Real HUD draws no friend mark: the
+original's friendly X on the target box is part of the original HUD, which Real mode hides (docs/radar.md §6).
+
+Terms:
+- **Transponder**: the set that answers interrogations (every jet here has one).
+- **Interrogator** (AAI, air-to-air interrogator): the set that sends the challenge. Only some jets carry one.
+- **Reply symbol**: the mark the interrogator's answers make on a display.
+- FCR = fire-control radar display; VSD = vertical situation display (the F-15's radar display); HSD = horizontal
+  situation display; PCD = panoramic cockpit display (the F-35's head-down screen); WSO = weapon systems officer
+  (the F-4E's back seat).
+
+Key facts:
+- In every real document found, the interrogator's reply is a **symbol on the radar display**, drawn at the reply's
+  own range and bearing. It is not tied to the radar track. The pilot matches the two by eye [V, F-16 MLU M3].
+- No real or simulator document shows an IFF reply **on a HUD** or **on a helmet**.
+- Each interrogation is **started by the aircrew** with a momentary switch. No source gives a continuous, automatic
+  interrogation for the 1980s–90s jets.
+- How long a reply stays on the display is in no real document. One simulator guide gives 3 s [SIM].
+- The F-35 is different: its mission systems fuse every sensor into tracks, and each track carries an identity
+  colour and shape on the head-down display [S].
+
+### Per jet
+
+| Jet (game period) | Interrogator | Control | Where the answer shows | Symbol | Time shown | Confidence |
+|---|---|---|---|---|---|---|
+| F-16C/D Block 30/40 (Barak, 1987–91) | none: the AN/APX-101 is a transponder only | — | — | — | — | [S] |
+| F-16 with AIFF (MLU 1998, USAF CCIP 2000s; later than the game) | AN/APX-113 | TMS (target management switch) left: under 0.5 s a SCAN interrogation, 0.5 s or more a line-of-sight (LOS) one | FCR A-A page; HSD on selection | green circle = friend, yellow square = unknown, nothing = no reply | not stated ([SIM]: 3 s) | [V] |
+| DASH helmet (F-16, F-15) | — | — | nothing public | nothing public | — | — |
+| F-15A/C (Baz) | AN/APX-76 | IFF interrogate button on the throttle; with MSIP grips, the coolie switch left; held for contact | VSD, at the reply's range and azimuth | circle = high confidence, diamond = low confidence, nothing = no reply | not stated | control [V]; display [SIM] |
+| F-4E (Kurnass) | AN/APX-81, AN/APX-80 after TO 1F-4E-587 | the WSO's interrogator push button | the WSO's radar scope | lines at the contact: one above = matching mode, one below = matching code | not stated | sets [V]; display [SIM] |
+| ASG-26 sight (F-4E) | — | — | nothing: the sight has no IFF symbol | — | — | [V] (sight description) |
+| Kurnass 2000 | nothing public | — | — | — | — | — |
+| Kfir C2/C7 | nothing public | — | — | — | — | — |
+| Lavi | nothing public | — | — | — | — | — |
+| Mirage IIICJ (Shahak) | nothing public | — | — | — | — | — |
+| CSF 95 sight (Mirage) | — | — | nothing: the reticle has no IFF symbol | — | — | [V] (CSF 97K drawings) |
+| F-35I (Adir) | part of the communication, navigation and identification (CNI) system; fused into tracks | not public | PCD tactical display; helmet: not public | green = friend, yellow = unknown / suspect, red = hostile; green circle, yellow square, red diamond | continuous (a track property) | [S] |
+
+### Details and sources
+
+**F-16C/D.**
+- Era [S]: the USAF chose the AN/APX-113 combined interrogator / transponder in 1999 to replace the transponder-only
+  AN/APX-101 on its F-16C/D. It was fielded with the CCIP (Common Configuration Implementation Program) on Block
+  50/52 in the early 2000s (Lockheed Martin releases, f-16.net). So the Block 30/40 jets of the game's period most
+  likely had no air-to-air interrogator. Nothing public covers the IAF's Barak.
+- The MLU M1 guide (15 Nov 1998) lists the APX-113 as **new**: it "expands the traditional IFF transponder
+  capabilities to include Mode S and adds an on-board interrogation feature" [V, MLU M1 p. 1].
+- Control [V, MLU M1 pp. 52–54]: "The pilot commands SCAN interrogations by depressing TMS left for less than 1/2
+  second"; "Depressing TMS left for 1/2 second or more commands LOS interrogations". SCAN covers ±60° azimuth and
+  elevation; LOS covers ±15° azimuth about the FCR cursor. The M3 tape moved the split to 0.6 s [V, MLU M3 p. 10].
+- Display [V, MLU M1 p. 53]: "The green circles denote 'friendly' replies and yellow squares indicate responses that
+  are of an 'unknown' nature." "Interrogation replies are always displayed on the FCR A-A MFD format and may be
+  selected to appear on the … HSD." During a SCAN interrogation the FCR blanks its own targets and track files.
+- Correlation [V, MLU M3 p. 167]: "The AIFF can interrogate a target; however, the response (or lack of response) is
+  not correlated to a target track. The pilot must make his own assessment".
+- HUD: the dash-34 HUD chapter (§ F-16C/D above) has no IFF symbol.
+- Timing [SIM, Chuck's DCS F-16C guide pp. 643–644]: "If the contact is friendly, a green circle is drawn around the
+  contact for three seconds"; "If no reply is received, no indication is displayed". DCS draws the circle on the
+  track; the real guide draws it at the reply's own position.
+
+**F-15A/C.**
+- Control [V, TO 1F-15A-1 fig. 1-2 sheet 1, p. 1-5]: "IFF INTERROGATE & AIM-9L MANUAL BORESIGHT BUTTON — INITIATES
+  SELECTED IFF MODE". With MSIP grips (sheet 2, p. 1-6), the multi-function (coolie) switch: "(LEFT) IFF
+  INTERROGATE", momentary, "MUST BE HELD FOR CONTACT".
+- The interrogator panel on the left console provides "air-to-air (AAI) target identification" [V, -1 pp. 1-80/81].
+  Its display is described in TO 1F-15A/C-34-1-1, which is not public.
+- Display [SIM, Falcon BMS TO 1F-15C-34-1-1 §16, p. 83]: the AAI "generates display symbols on the VSD at the correct
+  target range and azimuth position". "A high confidence (HC) return is indicated by a O symbol, a low confidence
+  (LC) return is indicated by a ◊." At long range a reply is hard to match to its track.
+- HUD: the public HUD descriptions (the -1, NADC 1976) have no IFF symbol.
+
+**F-4E.**
+- Sets [V, TO 1F-4E-1 (1979)]: "AN/APX-81 interrogator set before TO 1F-4E-587 or … the APX-80 interrogator set
+  after"; change 1F-4E-587 "Adds AN/APX-80 A/A IFF". The display is in TO 1F-4C-34-1-1-2, which is not public. The
+  foldout panel legend lists an "INTERROGATOR PUSH BUTTON (SOME AIRCRAFT)" among the rear cockpit's radar controls.
+- Display [SIM, Heatblur DCS F-4E manual, identification systems]: the WSO challenges with a button on the antenna
+  hand control. "The radar screen presents the results of the interrogation with lines around the contacts
+  position": a line above = a matching transponder mode, a line below = a matching code.
+- The ASG-26 sight shows no IFF (§ F-4E Kurnass above).
+
+**F-35.**
+- [S, Code One, J. Kent, "The New Front Office", 2006]: "Symbols on the tactical display appear green if the
+  aircraft's sensors or off-board assets determine these objects are friendly. If unknown to the sensors, objects
+  appear yellow. If identified as potential adversaries, objects appear red."
+- [S, M. Skaff (Lockheed Martin), "The Impact of Advanced Fusion in 5th Generation Fighters", 2013, as quoted on
+  f-16.net]: "red diamonds, green circles, and yellow squares correspond to foe, friend, and suspect."
+- Not public: whether the pilot starts an interrogation, and the track shapes on the green helmet display.
+
+**Kurnass 2000, Kfir, Lavi, Mirage IIICJ.** No public document describes an interrogator or an IFF display for these
+jets. Searched: flight-manual text, Jane's, Flight International, IAI / Elbit material, simulator communities.
+
+### Proposed build
+
+What a Real-mode IFF would implement, only from the findings above:
+- **Every HUD, sight and helmet**: no friend mark (as today). No public source puts IFF on any of these displays.
+- **F-16C/D (Block 30/40)**: no interrogator, no IFF display. The F-16 HUD and radar page stay as they are.
+- **F-15C**: an interrogate key (the throttle button; a new, unused key). While the key is held, reply symbols on
+  the radar page at each friendly reply's range and azimuth: a circle (high confidence). No symbol for a unit that
+  does not reply. The time a reply stays after release is ours (3 s, the only figure found [SIM]) and goes in
+  docs/deviations.md.
+- **F-4E (Kurnass)**: the same key stands for the WSO's button. Replies on the radar page as a line above and a line
+  below the friendly contact (matching mode and code). Display time as for the F-15.
+- **F-35I**: no key. On the radar page, a friend's contact gets a circle and a hostile's a diamond, for as long as
+  the contact is shown (fused tracks). Colours (green / red) only if the radar page can draw them without changing
+  the original page.
+- **Kurnass 2000, Kfir, Lavi, Mirage IIICJ**: nothing, and the pilot guides say the jet has no IFF display.
+- All of it under the Real HUD switch only; the original HUD's friendly X and the original radar page stay as they
+  are.
+
 ## What ours draws (status)
 
 This section lists, per jet, what the code draws and what it leaves out.
@@ -409,6 +522,9 @@ This section lists, per jet, what the code draws and what it leaves out.
 
 Real-world documents (primary):
 - F-16: [T.O. GR1F-16CJ-34-1-1, Hellenic AF F-16C/D Block 50 avionics and weapons delivery (dash-34), 1997](https://falcon.blu3wolf.com/Docs/HAF-F16-34.pdf) — HUD chapter pp. 1-158..1-183 (fig. 1-115 "HUD Window and Scale Positions"), A-A gun pp. 403-411, A-A missiles pp. 413-423, A-G pp. 441-458.
+- F-16 IFF: [Lockheed Martin F-16 A/B MLU Production Tape M1 pilot's guide (16PR14341, 15 Nov 1998)](https://falcon.blu3wolf.com/Docs/MLU_M1.pdf) — AN/APX-113 AIFF pp. 49–55, fig. 1-54 "AIFF Controls and Symbology".
+- F-15 IFF: TO 1F-15A-1 above, fig. 1-2 sheets 1–2 pp. 1-5 / 1-6 (interrogate button / coolie), pp. 1-80/81 (interrogator set).
+- F-4E IFF: [TO 1F-4E-1 flight manual (1979)](https://archive.org/details/f-4e-1-flight-manual) — AN/APX-80 / 81 interrogator sets, TO 1F-4E-587, p. 4-19, foldout FO-10.
 - F-16: [T.O. GR1F-16CJ-1, Hellenic AF F-16C/D flight manual (dash-1)](https://falcon.blu3wolf.com/Docs/HAF-F16.pdf) — AoA bracket, ILS.
 - F-16: Lockheed Martin F-16 MLU tape pilot's guides [M1](https://falcon.blu3wolf.com/Docs/MLU_M1.pdf), [M2](https://falcon.blu3wolf.com/Docs/MLU_M2.pdf), [M3 (16PR16226, 2004)](https://falcon.blu3wolf.com/Docs/MLU_M3.pdf).
 - F-16: [RoKAF AFTTP 3-3 Vol 5, F-16C Basic Employment Manual (2005)](https://falcon.blu3wolf.com/Docs/Basic-Employment-Manual-F-16C-RoKAF.pdf) — EEGS, CCIP employment.
@@ -429,6 +545,7 @@ Real-world documents (primary):
 
 Secondary (articles, books, pilot accounts):
 - F-35: Aviation Today, [“Such a Capable Helmet” (2010)](https://www.aviationtoday.com/2010/07/01/such-a-capable-helmet/) and [“F-35 Gen III Helmet” (2015)](https://www.aviationtoday.com/2015/09/04/f-35-gen-iii-helmet-a-generational-leap-in-technology/); [Code One “Lightning Sight”](http://www.codeonemagazine.com/article.html?item_id=12); [SLDinfo F-35 cockpit overview](https://sldinfo.com/whitepapers/an-overview-of-the-f-35-cockpit-what-5th-generation-aircraft-are-all-about/); gun symbology (DOT&E via [The War Zone](https://www.twz.com/air/f-35as-beleaguered-25mm-cannon-is-finally-effective)); [F-35I helmet (National Interest)](https://nationalinterest.org/blog/buzz/israels-unique-f-35-variant-comes-with-unique-combat-helmet-ps-031326).
+- F-35 IFF: [Code One, J. Kent, "The New Front Office" (2006)](https://www.codeonemagazine.com/u2_article.html?item_id=35) (track colours); M. Skaff, "The Impact of Advanced Fusion in 5th Generation Fighters" (2013), quoted [on f-16.net](https://www.f-16.net/forum/viewtopic.php?f=22&t=29126) (track shapes).
 - F-15: [F-15C pilot account, The War Zone](https://www.twz.com/35765/confessions-of-an-f-15-eagle-driver-with-three-mig-kills) (ASE circle, steering dot, TD box).
 - F-16: [f-16.net pilot / test-pilot discussions](https://www.f-16.net/forum/viewtopic.php?t=5116) (bending ladder bars, ghost horizon).
 - F-4E: [Joe Baugher, F-4E](https://www.joebaugher.com/usaf_fighters/f4_11.html); Kurnass 2000: [Joe Baugher](https://www.aircraftinformation.info/JB_AIF/usaf_fighters/f4_35.html), [airvectors](http://www.airvectors.net/avf4_4.html), [warmachinesdrawn](https://warmachinesdrawn.blogspot.com/2017/06/mcdonnell-douglas-f-4e-kurnass-2000.html), [GlobalSecurity](https://www.globalsecurity.org/military/world/israel/kurnass-2000.htm); the F-4E-2020's El-Op 976: [Elbit F-16 I-HUD (same wide-angle family)](https://elbitsystems.com/media/f-16_I-HUD2_2022.pdf).
@@ -437,6 +554,8 @@ Secondary (articles, books, pilot accounts):
 - Lavi: [Ruud Deurenberg, *IAI Lavi*](https://www.dror-aero.com/pro/lavi5.pdf).
 
 Simulator documentation (used only for detail, each fact tagged [SIM] above):
+- F-4E IFF: [Heatblur DCS F-4E manual, identification systems](https://f4.manuals.heatblur.se/systems/identification_systems.html) (APX-76 / Combat Tree reply lines).
+- F-15 IFF: the Falcon BMS TO 1F-15C-34-1-1 below, §16 p. 83 (VSD reply symbols). F-16 IFF timing: the DCS F-16C guide (Chuck's Guides) above, pp. 643–644.
 - F-4E: [Heatblur DCS F-4E manual, LCOSS](https://f4.manuals.heatblur.se/systems/weapon_systems/lcoss.html) and [optical sight BIT](https://f4.manuals.heatblur.se/procedures/bit_tests/optical_sight.html) (paraphrasing T.O. 1F-4E-1 / -34).
 - F-15: [Falcon BMS TO 1F-15C-34-1-1](https://cdn.falcon-bms.com/docs/4.37/TO%201F-15C-34-1-1%20BMS.pdf).
 - F-16: [Falconpedia HUD](http://falcon4.wikidot.com/avionics:hud), [NikolaiVChr FlightGear F-16 HUD wiki](https://github.com/NikolaiVChr/f16/wiki/HUD).
