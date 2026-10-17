@@ -23,8 +23,8 @@ for jet in "${jets[@]}"; do
 	out="assets/converted/guides/shots/$jet"
 	for name in $(python3 -I -c 'import json, sys; print(" ".join(s["name"] for s in json.load(open(sys.argv[1]))))' "$json"); do
 		[[ -n $only && ",$only," != *",$name,"* ]] && continue
-		GUIDE_JSON="$PWD/$json" GUIDE_SHOT="$name" GUIDE_OUT="$PWD/$out" IAF_DEFAULT_SETTINGS=1 \
-			godot --log-file "$logs/$name.log" --path game --resolution 3840x2160 --audio-driver Dummy -s ../tests/godot/_guide_shots.gd 2>&1 \
+		tools/godot_window.sh GUIDE_JSON="$PWD/$json" GUIDE_SHOT="$name" GUIDE_OUT="$PWD/$out" IAF_DEFAULT_SETTINGS=1 -- \
+			--log-file "$logs/$name.log" --path game --resolution 3840x2160 --audio-driver Dummy -s ../tests/godot/_guide_shots.gd 2>&1 \
 			| grep -E "^(PASS|FAIL) shot|SCRIPT ERROR" || true
 	done
 done

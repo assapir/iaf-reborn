@@ -24,7 +24,7 @@ tools/ghidra/fn.sh 5643a0 | --grep PATTERN                    # decompiled origi
 tools/worktree.sh <name>                                      # parallel worktree sharing assets/ via symlink
 tools/doclint.py                                              # lint the docs (links, paths, § refs, tables)
 tools/mission_sweep.sh OUT [ids…]                             # headless run of every playable mission, one log each
-tools/guide_shots.sh [jet] && python3 -I tools/guide_pdf.py   # pilot guides' pictures (needs a display) and PDFs
+tools/guide_shots.sh [jet] && python3 -I tools/guide_pdf.py   # pilot guides' pictures (hidden window) and PDFs
 python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded flight (blackbox) as a timeline + summary
 ```
 
@@ -37,6 +37,9 @@ python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded 
 - On a fresh clone `game/.godot` is missing. Run `godot --headless --path game --import` once, or the extension won't
   load (`./iafjets` does this for you).
 - `tests/godot/_*_shot.gd` are real-render screenshot helpers (usage in each header). `tools/test.sh` skips them.
+- Run every real-render Godot process (screenshots, benches) through `tools/godot_window.sh VAR=value … -- <godot args>`:
+  on macOS it renders as a hidden app that never takes the user's focus. Plain `godot` without `--headless` opens a
+  window over the user's work.
 
 ## Architecture
 
