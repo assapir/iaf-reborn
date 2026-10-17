@@ -6,7 +6,7 @@ docs that the manual answers. Rows are ranked by player impact, highest first.
 
 **Sources**
 - **EN**: the English electronic manual, `assets/manual_en/iaf_manual_en.pdf` (124 pages). Cited by the manual's
-  own page numbers, e.g. "EN 4.12". It has no keyboard chart: it refers to a separate card.
+  own page numbers, e.g. "EN 4.12". It refers to a separate keyboard card.
 - **HE**: the Hebrew printed manual, 72 page scans in `assets/manual_he/`. Cited by scan number, e.g. "HE p40". Its
   pages 8–11 hold the only keyboard chart. Pages 12 and 70 are blank. The scans skip chapter 5 (aircraft); EN has it.
 - **The exe** (v1.1) is the authority when the manual and the exe disagree. "Exe" below says which side it takes.
@@ -18,6 +18,9 @@ warning receiver; DASH = the helmet sight; NM = nautical miles; MP = multiplayer
 Both assets folders are git-ignored; the scans and the PDF come from the user's own copy.
 
 ## 1. Missing: the manual describes it, we lack it
+
+Actionable rows come first. Features parked by user decision (docs/status.md "Decisions") follow, whatever
+their size.
 
 | # | Manual | What the manual says | What we do | Exe | Suggested action |
 |---|---|---|---|---|---|
@@ -39,7 +42,7 @@ Both assets folders are git-ignored; the scans and the PDF come from the user's 
 |---|---|---|---|---|---|
 | 1 | EN 4.12–4.13, HE p40 | **M** sets up the whole cockpit per mode and per MFD count. NAV: radar / TSD / NAV pages (3 MFDs), radar / TSD (2), TSD (1). AA: radar / TSD / RWR (3), radar / TSD (2), radar (1). AG: AG radar / TSD / stores (3), AG radar / stores (2), stores (1). It also sets the radar. | M changes the master mode and shows one page for the selected store (`player_weapons.gd` `master_key` → `_mfd_page`). The other MFDs keep their pages. | **Agrees with the manual.** Case 0x63 of `FUN_0044a240` writes all three MFD pages `ctl+0x68 / 0x6c / 0x70` (the Left / Right / Middle pages that `FUN_00448120` initialises) by the MFD count and the panel-RWR flag, and calls `FUN_004ad8f0` on the radar. | Port case 0x63 in full, in `crates/iaf-avionics/src/master.rs`: the per-MFD pages, the HARM page swap and the radar call. |
 | 2 | EN 3.6, HE p27 | Arming works per formation; both jets of a formation carry the same load. | Only the player's jet gets the Arming load; AI jets carry the mission's load (docs/deviations.md row "Arming loads on the aircraft"). | **Agrees with the manual**: both members, and every flight on Yes / DEFAULT. | Apply the Arming tables to the AI jets (`combat.gd` `_setup_aircraft`). |
-| 3 | EN 4.20 | In MAP mode, a ground target designated on the MFD (click or Enter) gets the AG TD box on the HUD. | The HUD draws the TD box with a lock only (docs/radar.md "The designated point"). | Draws the box for a lock or a designation (`FUN_0052f690` → `FUN_00537330`). | Trace `ctl+0xdc`, the point used without a lock, then draw the box for designations. |
+| 3 | EN 4.20 | In MAP mode, a ground target designated on the MFD (click or Enter) gets the AG TD box on the HUD. | The HUD draws the TD box with a lock only (docs/radar.md "The designated point"); Enter and a click on a blip lock it, so the box shows then. | Calls the box with a designation too, but places it at `ctl+0xdc`, which docs/radar.md calls a different value from the designated point. Agreement with the manual is open. | Trace `ctl+0xdc`; change ours only if it is the designated point. |
 | 4 | EN 3.1, EN 3.3, HE p23, HE p25 | In flight the TSD shows the live battle: current positions, downed formations removed, their buttons closed. | The FlyTSD draws the mission's start positions (docs/views.md §1 "Not ported"). | Not traced; the manual says live. | Draw live unit positions and drop dead formations on the FlyTSD. |
 | 5 | EN 3.3 | Waypoints can be dragged before take-off only. | Not checked: the drag code (`tsd.gd` `_map_input`) has no flight-state test, so the FlyTSD may allow it. | Not traced. | Test a drag on the FlyTSD; block it in flight if it works. |
 | 6 | EN 2.8 | The TERRAIN slider sets the ground resolution. | It sets terrain detail without the resolution drop or view-distance change (docs/deviations.md §1). | Lowers the resolution of levels 1–3 and the view distance. | Intended deviation; keep. |
@@ -75,7 +78,8 @@ Facts our docs lack that would help when building, testing or writing the pilot 
 | 10 | EN 5.3–5.22 | Jane's data per jet (weights, thrust, fuel, speeds, ceilings, gun rounds: F-15 940, F-16 511, Kfir 140 per gun). | Cross-check docs/real-aircraft.md. |
 | 11 | EN 5.3 | Panel clicks: gear handle, flaps, brakes, autopilot, ECM, the fire light (extinguisher) and master caution (resets it; no key). | Pilot guides; check that each click is wired (docs/cockpit.md "Panel lights"). |
 | 12 | EN 2.4 | Historic campaigns and special MP missions are open from the start; Future campaigns unlock in order. | Matches docs/front-end.md §13.11. |
-| 13 | EN 4.1, EN 4.26 | Padlock and DASH show a "steer to target" arrow that shortens as the target nears the nose. | Not checked against the exe. Our HUD draws the target location line from the HUD centre (`hud.gd` `_draw_target_box`); confirm it is this arrow on the helmet display. |
+| 13 | EN 4.18, EN 4.26 | Double-clicking a TWS target gives STT. With DASH active, BORE locks the target you look at. | Not checked against our radar page and helmet code. |
+| 14 | EN 4.1, EN 4.26 | Padlock and DASH show a "steer to target" arrow that shortens as the target nears the nose. | Not checked against the exe. Our HUD draws the target location line from the HUD centre (`hud.gd` `_draw_target_box`); confirm it is this arrow on the helmet display. |
 
 ## 4. UNCERTAIN items the manual resolves
 
@@ -83,7 +87,7 @@ Facts our docs lack that would help when building, testing or writing the pilot 
 |---|---|---|---|
 | 1 | docs/mfd.md "TWS": hover text `"%02d" (altitude kft and +0x67c·10, UNCERTAIN which side)` | EN 4.17 | The cursor shows the target's altitude and Mach, so `+0x67c·10` is Mach × 10. |
 | 2 | docs/mfd.md "RWR (7)": `0x168/0x17c/0x186→60 (ship? UNCERTAIN)` | EN 4.24, HE p49 | Row 60 of `rwrsymb.bmp` is the AAA icon (two chevrons). The manual shows ZSU-23 and AAA with that icon; the HARM page names type 360 "G" (Gun Dish). Rows 80–160 read 21, 23, 29, 25, 4, 15, 16, C, L in the bitmap. Kfir and Mirage share "C", as the exe's shared row 150 does. The manual lists Su-24 "24"; the game's row 110 is "25" (type 170, MiG-25). |
-| 3 | docs/mfd.md "Open questions": `Names of master modes 1–6; RWR aircraft glyph identities` | EN 4.2, EN 4.23, HE p48 | Glyphs: row 2. HUD mode names: 0 NAV (Landing with the gear down), 1 SRM, 2 MRM, 3 AA GUN, 4 STRF, 5 CCIP, 6 CCIP with the FLIR page, 7 TV, 8 HARM. Master modes by content: 1 bombs, 2 AG gun, 3 AA gun, 4 missiles, 5 laser bombs, 6 TV weapons. |
+| 3 | docs/mfd.md "Open questions": `Names of master modes 1–6; RWR aircraft glyph identities` | EN 4.2, EN 4.3, EN 4.23, HE p48 | Glyphs: row 2. The manual names the HUD modes, not master modes 1–6, so that question stays open. HUD mode names: 0 NAV, 1 SRM, 2 MRM, 3 AA GUN, 4 STRF, 5 CCIP, 6 CCIP with the FLIR page, 7 TV, 8 HARM; Landing comes on with the gear down in NAV (which mode number it is stays open). |
 | 4 | docs/mfd.md "TSD (3)": `type 5 (target? UNCERTAIN)` | EN 4.4, EN 4.15, EN 4.30 | Yes: the target waypoint. The NAV page names it "Target" and the HUD waypoint circle shows "T". |
 | 5 | docs/mfd.md "HARM (10)": class 9 "I", class 0xb "R", 360 "G" (no names given) | EN 4.32, HE p55 | I = SA-13, R = ground radar, G = Gun Dish site (ZSU-23). |
 | 6 | docs/views.md §1: `Visit … (FUN_004d3450, UNCERTAIN: a view on it)` | EN 3.1, HE p23 | A view on it: the camera follows the unit, no control, only after the mission starts, Esc returns. |
