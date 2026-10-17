@@ -166,6 +166,63 @@ Runway markings and lights as decals / meshes at the three bases (real layouts: 
 OSM buildings: ODbL (share-alike on the *database*; a derived 3D-building dataset generated at setup and kept local in
 `assets/` is the safe pattern, like the imagery). The original's object placement must stay (missions place targets).
 
+### 3.13 Detailed weapon and store models — payoff 3, effort M (generator) + S per shape
+Today: the 1998 stores are 117–432 triangles on one shared 256-px atlas (`weapons.png`), 38 folders under
+`objects/weapons/` (bombs, missiles, tanks, pods, the ZUNI box) plus the SAM / Scud rounds under `groundforces/`
+(`sa2lcr` … `sa6lcr`, `scdlcr`) and the MiG-29 tank (`controllableplanes/mig29/mig29ftk_m`). They are seen close in
+the external views, on the pylons and in flight.
+
+**Switch.** Preferences → Extras → **Models: Original / Detailed** (default Original; docs/deviations.md entry:
+visual only, no behaviour change). One switch that the detailed aircraft (§3.7) join later rather than a second
+toggle — the user's call.
+
+**One hook: `Gltf.object(path)`** (`game/util/gltf.gd`). Every weapon model goes through it: the pylon stores and the
+launched / dropped weapons (`player_weapons.gd` `_instance`), the AI jets' stores and rounds (`combat.gd`), the
+Reference viewer (`model_view.gd`) and the mission objects (`terrain_view.gd`). With the switch on, it opens
+`converted/detailed/<same relative path>` when that file exists, else the original — each model falls back on its
+own, so they ship a few at a time, and later ground units / ships take the same path. The static cache key becomes
+`"level:detailed:path"` (today `"level:path"` survives across scenes: toggling between flights would keep the old
+models). Far away a detailed store is not worth its triangles: the original model as its far LOD
+(`visibility_range`, as the mission objects' LODs in `terrain_view.gd`).
+
+**Fit to the original, so only the look changes.** Game code reads geometry from these models:
+`stores.gd` takes the store's `pilon` / `Pilon` helper (both spellings occur) for `IafStores.slots` (rack spacing),
+`player_weapons.gd` the half length from the model's AABB, and every node gets the Present scale (2.0) on top.
+A detailed model therefore keeps the original's origin, axis and pilon helper transform, and its length / diameter
+within 10 % of the original's. The originals are already close to real size in the same units (Mk-84 3.93 vs
+3.84 m, AIM-9 2.85 vs 2.87 m, AIM-120 3.52 vs 3.65 m, F-16 jet 15.01 vs 15.03 m), so real dimensions fit inside
+the tolerance; a store that does not fit keeps the original's length (moving rack slots would be a behaviour
+change, a separate question).
+
+**Source: ours, generated.** Bombs, missiles, tanks and pods are bodies of revolution plus fins, so a generator in
+`iaf-convert` (`detailed-stores`, reusing its glTF writer `crates/iaf-tools/src/gltf.rs`) builds them at setup
+from a tracked table of public profiles, with sources as in docs/real-weapons.md:
+- **lathe body**: (station, radius) points — ogive / conical nose, cylinder, boattail; seeker dome (glass
+  material), fuze, lugs, umbilical fairing;
+- **fin sets**: planform (root / tip chord, span, sweep, thickness), count and roll angle, at a station — tail
+  fins, mid wings, canards (Python 4), strakes (AIM-7 / AGM-88), Snakeye-style retard fins for the `lb` bombs
+  shut;
+- **markings**: material bands (olive drab body, yellow HE band, brown live motor band, white / grey missile
+  bodies) — PBR colour / roughness / metallic only, no texture atlas;
+- **fit**: reads each original's pilon helper and AABB, writes the helper unchanged, places the lug line on it.
+
+≈ 48 segments round: 2–5 k triangles per store; 20 stores × a few dozen jets is well inside the M4 Pro's budget,
+and the far LOD caps it. Complex shapes the table cannot describe (the Popeye's wing / tail box, the LAU-61 tube
+face, the TV / FLIR / ECM pods' windows and fairings) get extra primitives (box, cap) in the same table, or stay
+original. Generated, never committed: like the guides' shots, it lands in the git-ignored `assets/converted/`;
+the table and generator are ours, so no licence check per file (FlightGear's GPL stores were the alternative:
+per-file licence checks and a conversion pipeline per model, for similar shapes). Not in scope: plumes and motor
+glow (`mission/trails.gd`), moving fins in flight, aircraft (§3.7).
+
+**Check** (a new Godot test, `test_detailed_models`): with the switch on, every detailed model loads; its pilon
+helper transform equals the original's and its AABB length is within 10 % of the original's; with the switch off,
+`Gltf.object` returns exactly the original. A Rust test of the generator: closed meshes, outward normals, the
+table's length / diameter reproduced.
+
+**Order.** (1) the switch, the hook and the test; (2) the generator with Mk-82, Mk-84, AIM-9, AIM-120 and the
+F-16 tank, compared side by side in the Reference viewer; (3) the rest of the bombs, missiles and tanks; (4) the
+pods, ZUNI box, Popeye, SAM / Scud rounds.
+
 ## 4. Ranked shortlist
 
 | # | Option | Payoff | Effort | GPU cost (M4 Pro) | Why here |
@@ -180,6 +237,7 @@ OSM buildings: ODbL (share-alike on the *database*; a derived 3D-building datase
 | 8 | Vegetation near the ground | 4 | L | 1–2 ms | low-level speed sense; after DEM |
 | 9 | Night lighting | 3 | M | small | closes a status gap |
 | 10 | F-15C model + cockpit (after its licence is cleared) | 5 | L | small | second jet |
+| 11 | Detailed weapon / store models (generated, ours; §3.13) | 3 | M | small | close views of every store; no licence work |
 | — | SSAO / SSIL / SDFGI | 1 now | S | +5 / +12 / +18 ms | nothing to shade over draped terrain; revisit with detailed models |
 | — | Volumetric clouds | 4 | L | 3–6 ms | only with MetalFX |
 

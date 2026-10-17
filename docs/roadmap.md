@@ -15,6 +15,9 @@ ranked order: [docs/graphics-research.md](graphics-research.md).
   replace the 1998 meshes (~800 triangles), the F-16 first (candidate: FlightGear's F-16, check the licence, or a
   CC-licensed model), then the other flyable jets and the AI types. Keep the original dimensions, hinge points
   (`<part>1/2` helpers), weapon stations, camera eye point and IAF markings; fit each and repaint onto the new UVs.
+- **Better weapon / store models** (Extras switch "Models: Original / Detailed", the 1998 meshes by default): bombs,
+  missiles, tanks and pods generated from public profiles at setup, fitted to the originals' pylon helpers;
+  design in [docs/graphics-research.md](graphics-research.md) §3.13.
 - **Modern DEM** (SRTM / Copernicus 30 m) for finer relief. (The modern imagery itself: Sentinel-2 outside Israel is
   done, docs/imagery.md; Survey of Israel 2 m over Israel is done too; SPOT 5 is left, below.)
 - **Realistic 3D cockpit** (wishlist; Extras switch, the original 2D cockpit by default): a modelled cockpit per jet
