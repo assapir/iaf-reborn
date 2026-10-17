@@ -19,6 +19,37 @@ const CONES := [[2, 0.7], [3, 1.0]]
 
 var _mesh := ImmediateMesh.new()
 var _material: StandardMaterial3D
+## Heat haze (Detailed effects, Preferences > Graphics > MORE): a refracting cone behind the nozzle, a sibling so it shows
+## while the flame is off. null = the original look.
+var haze: MeshInstance3D
+
+const HAZE_SHADER := """
+shader_type spatial;
+render_mode unshaded, blend_mix, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
+uniform sampler2D screen : hint_screen_texture, filter_linear_mipmap;
+uniform sampler2D noise : repeat_enable, filter_linear_mipmap;
+uniform float strength = 0.0;
+varying float along;
+varying vec3 axis;
+void vertex() {
+	// The cylinder's local Y (-0.5 at the nozzle, +0.5 at the far end): `along` runs 0 -> 1 from the nozzle.
+	along = VERTEX.y + 0.5;
+	axis = normalize((MODELVIEW_MATRIX * vec4(0.0, 1.0, 0.0, 0.0)).xyz);
+}
+void fragment() {
+	// Strongest across the middle of the cone as seen, fading along it.
+	// Seen from the side, the middle of the cone (facing the eye) shimmers and its silhouette fades; seen along
+	// the axis (from behind) the whole cone shimmers.
+	float side_on = 1.0 - abs(dot(axis, normalize(VIEW)));
+	float facing = mix(1.0, abs(dot(normalize(NORMAL), normalize(VIEW))), side_on);
+	vec2 n = vec2(texture(noise, vec2(UV.x * 2.0, along * 1.5 - TIME * 2.2)).r,
+		texture(noise, vec2(UV.x * 2.0 + 0.5, along * 1.5 - TIME * 1.7)).g) - 0.5;
+	float k = strength * smoothstep(0.0, 0.08, along) * (1.0 - along) * facing * facing;
+	ALBEDO = textureLod(screen, SCREEN_UV + n * 0.006 * k, 0.0).rgb;
+	// The screen copy holds the opaque scene only: blend it in no further than the shimmer needs.
+	ALPHA = clamp(k * 0.8, 0.0, 0.8);
+}
+"""
 
 
 func _init() -> void:
@@ -38,6 +69,34 @@ func _init() -> void:
 	else:
 		_material.albedo_color = Color(1.0, 0.75, 0.45, 0.6)
 
+	if Settings.particle_effects:
+		haze = MeshInstance3D.new()
+		var cyl := CylinderMesh.new()
+		cyl.top_radius = 2.2
+		cyl.bottom_radius = 1.0
+		cyl.height = 1.0
+		cyl.cap_top = false
+		cyl.cap_bottom = false
+		cyl.radial_segments = 16
+		var sm := ShaderMaterial.new()
+		var sh := Shader.new()
+		sh.code = HAZE_SHADER
+		sm.shader = sh
+		sm.render_priority = -1  # before the flame: the haze bends what is behind it, the flame glows on top
+		sm.set_shader_parameter("noise", preload("res://mission/gpu_fx.gd").noise_texture())
+		cyl.material = sm
+		haze.mesh = cyl
+		haze.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+
+func _ready() -> void:
+	if haze != null:
+		# Along +Z from the nozzle: radius r at the nozzle widening to 2.2 r, 8 r long.
+		var length := radius * 8.0
+		haze.transform = Transform3D(Basis(Vector3.RIGHT, PI / 2.0) * Basis.from_scale(Vector3(radius, length, radius)),
+				nozzle + Vector3(0, 0, length * 0.5))
+		get_parent().add_child.call_deferred(haze)
+
 
 ## True while a flame is drawn (level > 74, 'J' in FUN_004121e0).
 func lit() -> bool:
@@ -50,6 +109,11 @@ func _process(_delta: float) -> void:
 
 ## One frame of the flame (fresh random numbers, as the original draws it every frame).
 func rebuild() -> void:
+	if haze != null:
+		# Idle engines shimmer faintly, military power more, the afterburner most.
+		var lv := clampi(level, 0, 100)
+		haze.visible = lv > 30
+		haze.get_active_material(0).set_shader_parameter("strength", lv / 100.0 * (1.6 if lv > 74 else 1.0))
 	_mesh.clear_surfaces()
 	visible = lit()
 	if not visible:

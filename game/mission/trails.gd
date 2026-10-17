@@ -27,6 +27,8 @@ var _mesh: ImmediateMesh
 var _glows: MultiMeshInstance3D
 var _glow_list: Array = []
 var _rng := RandomNumberGenerator.new()
+## Detailed effects (gpu_fx.gd, set by the host): missile trails as GPU smoke; null = the original ribbons.
+var gpu: Node3D
 
 
 func _ready() -> void:
@@ -83,6 +85,8 @@ func emit(key, pos: Vector3, kind: Dictionary) -> void:
 			return  # "overflow": the owner retries next frame
 		tr = {"kind": kind, "pts": [], "added": false, "idle": 0.0}
 		_trails.append(tr)
+	if gpu != null and kind.glow:  # _gpu_drawn
+		gpu.trail(pos, tr.pts[-1][0] if not tr.pts.is_empty() else null, kind.life, kind.size)
 	tr.pts.append([pos, 0.0])
 	tr.added = true
 	tr.idle = 0.0
@@ -123,7 +127,7 @@ func _draw() -> void:
 	_mesh.clear_surfaces()
 	var any := false
 	for tr in _trails:
-		if tr.pts.size() >= 2:
+		if tr.pts.size() >= 2 and not _gpu_drawn(tr):
 			any = true
 			break
 	if any:
@@ -137,6 +141,11 @@ func _draw() -> void:
 		var s: float = (0.85 + (_rng.randi() % 31) * 0.01) * 1.35 * MISSILE.size
 		var w: float = 0.2 * s * GLOW_TEX_W
 		mm.set_instance_transform(i, Transform3D(Basis.from_scale(Vector3(w, w, w)), _glow_list[i]))
+
+
+## A missile trail with Detailed effects: drawn as GPU smoke when its points are added.
+func _gpu_drawn(tr: Dictionary) -> bool:
+	return gpu != null and tr.kind.glow
 
 
 ## Half-widths from the head (newest) to the tail (FUN_00415b30): w = size at the head, the newest ~15 %
@@ -162,7 +171,7 @@ static func widths(n_points: int, kind: Dictionary) -> PackedFloat32Array:
 func _draw_trail(tr: Dictionary) -> void:
 	var pts: Array = tr.pts
 	var n := pts.size()
-	if n < 2:
+	if n < 2 or _gpu_drawn(tr):
 		return
 	var w := widths(n, tr.kind)
 	var life: float = tr.kind.life

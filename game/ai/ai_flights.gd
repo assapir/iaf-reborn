@@ -287,6 +287,9 @@ func _place(p: Pilot) -> void:
 		var tips: Array = p.node.wingtips()
 		for i in tips.size():
 			host.trails.emit([p, i], tips[i], host.trails.WINGTIP)
+	# Contrails (ours, Detailed effects).
+	if host != null and host.get("effects") != null and host.effects.gpu != null:
+		host.effects.gpu.contrail(p.node)
 
 
 ## The formation leader (route member 0, FUN_00587450) for the formation / taxi / take-off loops.

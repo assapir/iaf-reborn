@@ -94,7 +94,7 @@ This section lists each measured hotspot and where its work should run: on the G
 |---|---|---|---|---|
 | Terrain line of sight in sensor scans: 5–13 ms spikes | Rust walk, GDScript height per sample | **Rust**: the terrain heights in Rust (the PTT level-6 grid as a Rust height field, `iaf-formats` already parses PTT), no Callable per sample; scans then < 0.5 ms | removes the worst spikes | M — **done**: `IafHeights` (iaf_avionics::heights) holds the streamed full-detail nodes terrain.gd loads; `world::terrain` answers `mission_ground` from it (same nodes and interpolation, ≤ 1 cm from the float32 GDScript path; line of sight identical on 400 pairs, test_heights.gd); 400 checks 93 → 2.4 ms; mission 221 live: AI combat worst 4.3 → 0.5 ms |
 | Terrain mesh / heights | already on the GPU: heights sampled in the vertex shader; JPEG decode, mipmaps, BC1 on 6 worker threads | keep; batch the node swaps to cut the main-thread part (2–3 ms worst on splits) | small | S |
-| Explosions, smoke, trails, decoys | MultiMesh billboards (GPU-instanced), positions filled by GDScript each frame | **GPUParticles3D** for smoke / fire / contrails (simulation on the GPU, collision with the heightfield); better effects need it anyway (§3.4) | better look, ≈ 0.1–0.3 ms CPU back | M |
+| Explosions, smoke, trails, decoys | MultiMesh billboards (GPU-instanced), positions filled by GDScript each frame | **GPUParticles3D** for smoke / fire / contrails (simulation on the GPU, collision with the heightfield); better effects need it anyway (§3.4) | better look, ≈ 0.1–0.3 ms CPU back | M — **done** (Particle effects = Detailed, docs/rendering.md §6): the puffs per frame 0.67 → 0.08 ms CPU |
 | HUD / MFD drawing (`_draw` every frame) | `_process` < 0.02 ms; the `_draw` canvas calls run on the main thread (small; not separately measured) | redraw only on change, or a SubViewport per MFD updated at the original's rate; low priority, since it is a minor cost today | low | S |
 | Vegetation / clutter (new) | — | **MultiMesh**, placement from the WorldCover classes on worker threads or a compute shader | needed for §3.6 | — |
 | Flight model, AI brains, mission runtime, weapons | Rust (FM = flight model, avionics) + GDScript (brains, runtime) | keep on the CPU: the code is branchy and serial, a poor fit for the GPU. Rust per our rule; brains / sensors on the WorkerThreadPool (the M4 Pro has 12+ cores) | keeps headroom as missions grow | M–L |
@@ -146,7 +146,7 @@ A 30 m DEM gives real relief; the work is a converter plus keeping physics, AI a
 - **Risk:** missions tuned to the original terrain (masking routes like 313) change, so it must stay an opt-in.
 - **Recommendation:** worth it, after the cheaper items; pairs with the modern imagery already built.
 
-### 3.4 Effects: GPU particles (explosions, smoke, contrails, heat haze) — payoff 3, effort M
+### 3.4 Effects: GPU particles (explosions, smoke, contrails, heat haze) — payoff 3, effort M — **done** (docs/rendering.md §6)
 - **Today:** soft procedural billboards in MultiMeshes (damage_effects.gd, trails.gd), with the original's sizes and
   timings.
 - **Option:** GPUParticles3D with flipbook textures (our own or CC0, e.g. from Kenney / ambientCG), collision with the
@@ -154,6 +154,10 @@ A 30 m DEM gives real relief; the work is a converter plus keeping physics, AI a
   afterburner), and contrails above a height / temperature.
 - **GPU:** modest (particles are cheap; the distortion is one extra pass). **Metal:** works well.
 - **Recommendation:** good payoff per effort; do it after the CPU spike fix.
+- **Built:** three GPUParticles3D pools (smoke, fire, sparks) with noise textures made at run time, a closed-form motion
+  in the draw shader, a refraction cone behind each nozzle, contrails above 9000 m. The original spawns, timings and
+  lifetimes stay; the puffs rise and fall by the original's rules, and the debris keeps its own ground test.
+  Measured ≈ 0.3 ms at 1080p in a heavy burst (docs/rendering.md §6).
 
 ### 3.5 Water shader — payoff 3, effort M — **done** (docs/rendering.md §1.3)
 - **Built:** Preferences → Graphics → MORE → Water (Original / Detailed). Six cosine waves with a crest warp, two
@@ -446,7 +450,7 @@ The options of §3, ranked by payoff for effort.
 | 3 | MetalFX upscaling row — **done** | perf | S | −0.6 / −4.6 ms (Quality, 4K, light / heavy) | headroom for 4–8 |
 | 4 | F-16D detailed model (FlightGear, GPLv2+) — **done** (stage 1, [aircraft-models.md](aircraft-models.md)) | 5 | L | +32 k primitives in 231 | the biggest visible jump; licence clean |
 | 5 | F-16D 3D cockpit with live MFDs / Real HUD on the glass, then clickables | 5 | L → XL | small | the "DCS feel"; fixes the real HUD FOV |
-| 6 | GPU particle effects + heat haze | 3 | M | ~0.5 ms | combat looks modern |
+| 6 | GPU particle effects + heat haze — **done** | 3 | M | ≈ 0.3 ms at 1080p in a heavy burst (measured) | combat looks modern; Graphics → MORE Particle effects |
 | 7 | Modern DEM (Copernicus 30 m) | 4 | L | small | real relief; mission impact → opt-in |
 | 8 | Vegetation near the ground | 4 | L | 1–2 ms | low-level speed sense; after DEM |
 | 9 | Night lighting — **done** | 3 | M | +3–6 draw calls (≈ 2 per jet) | original light points; Extras glows, base / jet lights, stars, moon |

@@ -274,6 +274,8 @@ func _ready() -> void:
 	effects = preload("res://mission/damage_effects.gd").new()
 	effects.ground_at = func(p: Vector3): return terrain.height_at(p)
 	add_child(effects)
+	if trails != null:
+		trails.gpu = effects.gpu
 	player_damage = preload("res://mission/player_damage.gd").new()
 	player_damage.host = self
 	player_damage.betty = player.type in sounds.BETTY_TYPES
@@ -2403,6 +2405,8 @@ func _process(delta: float) -> void:
 			var tips: Array = aircraft.wingtips()
 			for i in tips.size():
 				trails.emit(["wingtip", i], tips[i], trails.WINGTIP)
+		if effects.gpu != null and not fm_stopped:
+			effects.gpu.contrail(aircraft)
 	_apply_view()
 	if clouds != null and get_viewport().get_camera_3d() != null:
 		clouds.update_view(get_viewport().get_camera_3d().global_position, delta)

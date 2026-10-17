@@ -395,6 +395,9 @@ weather / wind code or strings), so there is nothing to port.
 
 ## 6. Explosions, smoke, debris
 
+This section gives the original's rules. Graphics → MORE → Particle effects = Detailed draws the same spawns as GPU particles
+(docs/rendering.md §6).
+
 ### 6.1 The explosion object (Tgen `FUN_00416880`, per-frame `FUN_004167b0` / `FUN_00416a70`)
 An explosion is one object whose flags pick the effects (table below).
 - **Parameters:** flags, position, radius [4], model [5], **duration** [6] (lifetime of the event; < 0.001 → 3.5 s),

@@ -42,7 +42,7 @@ const PREFS := {
 		"no_malfunctions", "ai_level", "invulnerable", "no_crashes", "unlimited_ammo", "unlimited_fuel",
 		"flight_data", "weapon_data", "language", "show_info", "blackbox", "hud_ladder", "hud_style", "show_all_keys", "fullscreen",
 		"imagery_israel", "imagery_outside", "antialiasing", "terrain_closeup", "sky", "upscaling", "night_lights", "water", "f35i_slot", "harm_targets",
-		"models"],
+		"models", "particle_effects"],
 }
 
 ## Flight data: "original" (Jane's IAF 1998 numbers) or "real" (corrected real-world data for every flyable jet, docs/real-aircraft.md).
@@ -135,6 +135,9 @@ var water := false
 ## Models (ours, Extras page; docs/aircraft-models.md): "original" (the 1998 models) or "detailed" (our detailed
 ## models where there is one, util/gltf.gd DETAILED: the F-16D; visual only).
 var models := "original"
+## Effects (ours, Graphics → MORE; docs/rendering.md §6, mission/gpu_fx.gd): false = the original
+## billboards and ribbons; true = GPU particle explosions, smoke, missile trails, contrails and engine heat haze.
+var particle_effects := false
 ## Key bindings changed on the Controls page (docs/controls.md): {record index: [key, joystick
 ## button]}, key = DIK | modifier << 16; records not listed keep the original default. Stored in the
 ## [keys] section as r<index> = [key, button].

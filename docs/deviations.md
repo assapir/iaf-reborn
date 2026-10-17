@@ -211,6 +211,12 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     and the sky's reflection with Fresnel.
   - Water is the generated open sea plus the photo's blue-green pixels inside terraintype.dat's water within ≈ 12 km
     of the camera.
+- **Particle effects** (ours, docs/rendering.md §6). Rendering only; the default is Original (the soft billboards and the
+  trail ribbons).
+  - Detailed: explosions, smoke and missile trails are GPU particles. Each original spawn keeps its time, place,
+    speed, width and life; a fireball becomes rolling fire, sparks and dark smoke within the same spot and life, and a
+    missile trail becomes a continuous white smoke trail.
+  - New content with Detailed: contrails above 9000 m and a heat haze behind each engine.
 
 **Preferences → Devices**
 - **Detent = MIL** (ours, under THROTTLE, off by default). Original: the throttle lever maps linearly. Ours, with the

@@ -12,7 +12,7 @@ This doc lists the rendering options of the flight scene, what each one sets, an
 Code: `game/terrain/render_options.gd` (applied by `terrain_view.gd apply_render_options()` at the start of a flight
 and when the in-flight Preferences close), `terrain/terrain.gdshader`, `terrain/atmosphere.gdshader`,
 `terrain/cloud_layer.gd`, `terrain/night_lights.gd`. Tests: `tests/godot/test_graphics_prefs.gd` (switches → render
-settings, save / load), `test_ui_smoke.gd` (Graphics → MORE and Extras rows in EN / HE), `test_night_lights.gd` (§4 light points, §5), `test_water.gd` (§1.3).
+settings, save / load), `test_ui_smoke.gd` (Graphics → MORE and Extras rows in EN / HE), `test_night_lights.gd` (§4 light points, §5), `test_water.gd` (§1.3), `test_particle_effects.gd` (§6).
 
 ## 1. Options
 
@@ -28,6 +28,7 @@ TAA = temporal anti-aliasing.
 | Night lights | Original / Detailed | Original: the original's light points (§4). Detailed: glowing lights, the home airbases lit at night, the jets' navigation lights and strobe, stars, a moon and moonlight (§5) |
 | Water | Original / Detailed | in `terrain.gdshader`: waves, sun glint and the sky's reflection on the sea and on lakes (§1.3) |
 | Models | Original / Detailed | Detailed: our detailed aircraft models where one exists (today the F-16D), parsed once and shared, with runtime LODs ([aircraft-models.md](aircraft-models.md)) |
+| Particle effects | Original / Detailed | Detailed: explosions, smoke and missile trails as GPU particles, contrails above 9000 m and a heat haze behind each engine (§6). Takes effect at the next flight |
 
 ### 1.1 Terrain close up
 
@@ -313,4 +314,61 @@ external, Original and Detailed, with the frame rate).
 Metal notes (Godot 4.7.2): in a spatial shader's `vertex()`, `VIEWPORT_SIZE` reads 0 and the projection is
 Y-flipped. The shaders get the viewport rows as a uniform and take the focal length as
 `abs(PROJECTION_MATRIX[1][1])`. `POINT_SIZE` and `POINT_COORD` work.
+
+## 6. Effects, Detailed (built: game/mission/gpu_fx.gd)
+
+Preferences → Graphics → MORE → **Particle effects = Detailed** (ours, docs/deviations.md §2) draws the original's effects
+with GPU particles. It takes effect at the next flight. What spawns, when, where, how fast, how wide and for how long stays the original's
+(docs/damage.md §6): `damage_effects.gd` and `trails.gd` make every decision as before and hand each spawn to
+`gpu_fx.gd`, which only draws it.
+
+**How it works.** Three particle pools (`GPUParticles3D`, fed one particle at a time with `emit_particle`):
+
+| Pool | Size | Look |
+|---|---|---|
+| Smoke | 16 384 | alpha-blended, sorted by depth; the shape and edges come from two noise octaves; lit by the sun with a sphere-like normal (bright sunlit side, darker core); soft where it meets the ground (depth fade) |
+| Fire | 4 096 | additive; a temperature ramp (white-yellow core, orange, dark red) that cools with age and with the noise; drawn after the smoke, so it glows through it |
+| Sparks | 4 096 | additive streaks stretched along their velocity (0.08 s of travel), falling, white-hot to orange |
+
+Each particle carries its spawn data (position, velocity, life, width at birth and death, grey, delay, drag). The
+pools only free a particle at the end of its life; the draw shader computes the position, width and fade straight from
+the age with a formula (a closed form: no step-by-step simulation), on a clock that advances with the frame time (so it stops in the pause and follows time
+compression). The noise texture is generated at run time with FastNoiseLite.
+
+**Per effect:**
+
+| Original effect (docs/damage.md §6) | Detailed |
+|---|---|
+| Smoke puff (0x100, damage smoke, columns, streamers, smoking pieces, the flare's smoke) | one smoke particle with the puff's position, velocity, life, widths, grey and delay |
+| Fireball (0x10, 1.2 s, 256 m sprite) and small fire (0x10000000, burning pieces, cluster bomblets) | a burst inside the same spot and life, every particle ending by the fire's end: 22 rolling fire balls that expand fast and slow down (drag), 28 sparks, 10 dark smoke balls that rise from 0.4 of the fire's life. Small fires get half the particles. The lingering smoke comes from the original's own puffs and columns |
+| Missile / rocket trail (trails.gd, 3.5 s) | white smoke every 1.5 m along the path (at most 16 per frame), 2.4 m wide at the head growing to 12–18 m, with the trail's life, and a 0.08 s motor flame at the head. The motor glow sprite (missFLR) stays. The trail bookkeeping (owners, 99 trails, 256 points) stays the original's |
+| Wingtip vortices | the original ribbons |
+| Afterburner flame | the original cones, plus the heat haze below |
+| Debris, shatter pieces, the flash light, chaff | the original's |
+
+**Contrails** (new content): an aircraft above 9000 m (the Schmidt–Appleman limit of an atmosphere 10 °C warmer than
+the standard one) leaves white condensation from each engine nozzle: a particle every 3 m, 1.2 m growing to 9 m,
+lasting 6 s (`gpu_fx.gd contrail`, called for the player in `terrain_view.gd` and for AI jets in `ai_flights.gd`).
+
+**Heat haze**: each afterburner nozzle gets a refracting cone (`afterburner.gd haze`): radius r at the nozzle growing to
+2.2 r, 8 r long behind it, in the model's own frame, so it starts at the nozzle and moves with the jet. The shader
+shifts the screen copy by scrolling noise, strongest across the middle of the cone and fading along it. Strength:
+the engine level / 100, × 1.6 in afterburner; hidden below level 31. It draws before the flame, so the flame glows on
+top. The screen copy holds the opaque scene, so the haze blends in only as far as the shimmer needs.
+
+**Cost** (M4 Pro). Mpx = million pixels; overdraw = the same pixel shaded again by each overlapping particle.
+
+| Measure | Original | Detailed |
+|---|---|---|
+| CPU, the puffs per frame (`test_particle_effects.gd`, every explosion kind at once, ≈ 1 900 live puffs) | 0.67 ms | 0.08 ms |
+| GPU, mission 231: the effects' drawing on − off (`tests/godot/_fx_bench.gd`: every 2 s a vehicle and an aircraft explode and a missile hits, two missile trails, three smoking units; switched every 120 frames in one window, median of 9 pairs; 3840 × 2160 at render scale 1.6 = 22 Mpx) | +0.30 ms | +3.38 ms (quartiles +3.07 / +3.65) |
+| The same in mission 221 | −0.04 ms | +2.84 ms (quartiles +2.42 / +3.12) |
+
+That is ≈ 0.13–0.15 ms per Mpx under this heavy burst: ≈ 0.3 ms at 1920 × 1080 and ≈ 1.2 ms at 3840 × 2160. The
+smoke's overdraw sets the cost; the trail spacing (1.5 m) and widths are the knobs.
+
+**Shots** (local, `assets/converted/research/fx/`, `tests/godot/_fx_shot.gd`, Original then Detailed side by side in
+`cmp_*.png`): `bomb_*` (a bomb's hit), `vehicle_*` (a ground vehicle destroyed), `hit_*` (a missile's hit), `air_*`
+(an aircraft destroyed in the air), `trail_2.5` (a missile trail), `haze` (the engines in afterburner, close up, seen
+from behind through the haze).
 

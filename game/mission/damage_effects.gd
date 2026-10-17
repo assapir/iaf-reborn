@@ -92,6 +92,10 @@ var _clusters: Array = []  # {age, end, subs: [{pos, delay, column, done}]}
 var _smokers := {}  # Node3D -> accumulated time (damage smoke, FUN_004d20a0)
 var _mm_smoke: MultiMeshInstance3D
 var _mm_fire: MultiMeshInstance3D
+## Detailed effects (Preferences > Graphics > MORE, gpu_fx.gd): the puffs drawn as GPU particles; null = the original look.
+var gpu: Node3D
+## Puffs spawned so far (both looks; tests compare the two).
+var spawned := 0
 ## Terrain height at a scene position (null when unknown), supplied by the host.
 var ground_at: Callable
 
@@ -100,6 +104,9 @@ func _ready() -> void:
 	column_detail = effects_level(float(Settings.visual_effects))
 	_mm_smoke = _make_layer(false)
 	_mm_fire = _make_layer(true)
+	if Settings.particle_effects:
+		gpu = preload("res://mission/gpu_fx.gd").new()
+		add_child(gpu)
 
 
 ## The renderer's VISUAL EFFECTS level 1..3 from the slider 0 / 0.5 / 1 (FUN_004d8ce0).
@@ -248,6 +255,10 @@ func smoke_puff(pos: Vector3, white := false, life := PUFF_TIME, width := SMOKE_
 
 
 func _add_puff(pos: Vector3, vel: Vector3, life: float, w0: float, w1: float, grey: int, fire: bool, delay: float) -> void:
+	spawned += 1
+	if gpu != null:
+		gpu.puff(pos, vel, life, w0, w1, grey, fire, delay)
+		return
 	_puffs.append({"pos": pos, "vel": vel, "age": 0.0, "life": life, "w0": w0, "w1": w1, "grey": grey,
 			"fire": fire, "delay": delay})
 
