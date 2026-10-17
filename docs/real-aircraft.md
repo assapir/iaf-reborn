@@ -1,13 +1,29 @@
 # Real aircraft data set
 
+This doc compares the flight data Jane's IAF shipped with public real-world figures, type by type, and lists the
+values the **Real** data set uses. It is for anyone who checks or changes those numbers.
+
 The flight model has two data sets (docs/flight-model.md §11, `crates/iaf-flight/src/data_set.rs`):
 
 * **Original**: the numbers Jane's IAF shipped. The reference version is **v1.1**: its flight data files are used
   when present (§1), else v1.0's.
-* **Real**: one table row per aircraft type (the seven flyable jets in six rows, the F-4E and the Kurnass 2000 sharing one, the F-35I (docs/f35i.md), and every AI type, §9) with public real-world
-  values. Anything a row leaves out keeps the original value.
+* **Real**: one table row per aircraft type, with public real-world values. The rows cover the seven flyable jets in
+  six rows (the F-4E and the Kurnass 2000 share one), the F-35I (docs/f35i.md) and every AI type (§9). Anything a
+  row leaves out keeps the original value.
 
-Validation, per type and data set (rows without a public figure print `-`; `IAF_JET=F-15` or `IAF_JET=SU22` runs one type):
+**Terms**
+- **AI**: computer-flown aircraft. **AB**: afterburner. **mil**: military (full dry) power. **SL**: sea level.
+- **TSFC**: thrust-specific fuel consumption (lb of fuel per lbf of thrust per hour). **Ps**: specific excess power,
+  here the climb rate it gives. **CD**, **CD0**: drag coefficient, zero-lift drag coefficient.
+- **KIAS** / **KCAS**: knots indicated / calibrated airspeed. **MLW**: maximum landing weight. **OEW**: operating
+  empty weight. **VMO** / **MMO**: maximum operating speed / Mach number.
+- **FBW**: fly-by-wire. **FLCS**: the F-16's flight control system. **NWS**: nose-wheel steering. **OWS**: the F-15's
+  overload warning system.
+- **SAC**: USAF Standard Aircraft Characteristics chart. **T.O.**: USAF technical order (flight manual; Dash-1).
+- **[NAME]**: a section of the flight data file (`bd.ibx`), such as `[TU22]`.
+
+Validation, per type and data set (rows without a public figure print `-`; `IAF_JET=F-15` or `IAF_JET=SU22` runs one
+type):
 
 ```sh
 cargo test --release -p iaf-flight --test validation -- --nocapture
@@ -48,21 +64,24 @@ change is large at altitude: v1.0 reached Mach 2.11 at 40k ft, v1.1 Mach 1.80.
 
 Per row (`data_set.rs`, `Real`): empty weight, internal fuel, thrust (whole table scaled so the SL static full-AB
 value is the real one), military / full-AB ratio, a factor on the table's 20 km corners, clean drag coefficient,
-transonic wave drag (ΔCD from Mach 0.9 to 1.2, not in the original), wing area, roll rate and roll accelerations,
+transonic wave drag (ΔCD from Mach 0.9 to 1.2, an addition to the original), wing area, roll rate and roll
+accelerations,
 fuel flow at full AB and at military, 1 g stall speed (`Envelope::stall_floor`), g limits, the service ceiling
-(`Envelope::with_ceiling`, §2.1), and rudder-pedal nose-wheel steering (max wheel angle, wheelbase, tyre grip). Two fields are new in `Params` for this and are
-neutral in the original set: `dry_thrust` (1.0) and `dry_fuel_frac` (0.25).
+(`Envelope::with_ceiling`, §2.1), and rudder-pedal nose-wheel steering (max wheel angle, wheelbase, tyre grip).
+Two fields are new in `Params` for this; their original-set values are neutral: `dry_thrust` (1.0) and
+`dry_fuel_frac` (0.25).
 
 The original thrust and fuel model limits what a row can match:
 
 * **Military thrust.** Below the AB the original runs `k = 0.05 + 0.743·thr`, so military (0.74) is always 60 % of the
   full-AB curve. Real engines: F110 0.59, F100-220 0.61, J79 0.66, PW1120 0.66, Atar 9C 0.71. `dry_thrust` scales
   the dry range to the real ratio (idle moves by the same factor, still ~5 %).
-* **Fuel flow** is `thr · FuelFlowAtMaxThrust`, × 0.25 below the AB, and does not change with altitude or speed.
-  The row sets full AB and military from the engine's TSFC; cruise at altitude therefore burns too much.
+* **Fuel flow** is `thr · FuelFlowAtMaxThrust`, × 0.25 below the AB, and stays the same at every altitude and
+  speed. The row sets full AB and military from the engine's TSFC, so cruise at altitude burns too much.
 * **Thrust vs Mach / altitude** is a 2 × 2 table: Mach 0 and 1.2 (clamped above), SL and 20 km, linear in both.
-  There is no ram rise above Mach 1.2. The published max speeds are **fitted** with the drag coefficient, the wave
-  drag and the 20 km factor: the values in those three fields are not real aerodynamic data.
+  Thrust stays flat above Mach 1.2 (the model has no ram rise). The published max speeds are **fitted** with the
+  drag coefficient, the wave drag and the 20 km factor, so those three fields hold fitted values, which differ from
+  real aerodynamic data.
 * **Top speed at 40k ft** is reached only after minutes at full AB. Several jets run out of internal fuel first
   (the report shows the time); their row is then "close".
 * **Mass** is empty + fuel; stores add drag only. Real weights and wing areas therefore change turn and stall.
@@ -71,21 +90,26 @@ The original thrust and fuel model limits what a row can match:
 * **Sections.** The F-4E and the Kurnass 2000 (types 120 / 200) share `[F-4]`; the Kurnass 2000 kept the J79s and
   the airframe (avionics, wiring, structure), so one row serves both. The original Kfir and Mirage data are nearly
   the same (identical envelopes `kf.dat` = `mr.dat`, same weights, drag, roll, fuel); the Real set separates them.
-* **MaxWeight** (max take-off weight, row field `max_lb`) only sets the lift-ramp limits `MaxWeight·(MinG−1 .. MaxG−1)·g`.
-  It is set for the AI types. A heavy transport or bomber on a lighter section's value cannot make 1 g of lift.
-* No afterburner (row field `afterburner`): full throttle then gives the table's k = 1 (the rated dry thrust), and the
-  fuel flow at full throttle is the row's `ff_ab`.
-* Roll acceleration is only changed for the F-16 (FLCS) and the F-35I (the F-16's); the other jets keep the original start / stop values, so
-  their 0 → 90° roll takes ~1 s.
+* **MaxWeight** (max take-off weight, row field `max_lb`) only sets the lift-ramp limits
+  `MaxWeight·(MinG−1 .. MaxG−1)·g`.
+  It is set for the AI types. A heavy transport or bomber on a lighter section's value makes less than 1 g of lift.
+* **Jets without afterburner** (row field `afterburner`): full throttle gives the table's k = 1 (the rated dry
+  thrust), and the fuel flow at full throttle is the row's `ff_ab`.
+* **Roll acceleration** changes only for the F-16 (FLCS) and the F-35I (which uses the F-16's values). The other
+  jets keep the original start / stop values, so their 0 → 90° roll takes ~1 s.
 
 ### 2.1 Service ceilings
 
-The envelope's 1 g ceiling (the highest altitude where 1 g can be pulled, `Ceiling(1)`; above it the g limit falls
-along the high-altitude line and the jet sinks) is set to the public service ceiling: `Envelope::with_ceiling`
-scales **every altitude** of the envelope file by one factor, so every g's ceiling and the minimum speeds against
-altitude stretch with it (sea level is unchanged). The public figures give no per-g ceilings, so the file's shape is
-kept. Thrust can still stop the climb lower (the original thrust table, §2). All values are from online sources (the
-game's own Jane's extracts were only a cross-check: their F-4 10,975 m and Su-24 17,500 m are wrong).
+The Real set moves the envelope's 1 g ceiling to the public service ceiling. The 1 g ceiling (`Ceiling(1)`) is
+the highest altitude where 1 g can be pulled; above it the g limit falls along the high-altitude line and the jet
+sinks.
+
+`Envelope::with_ceiling` scales **every altitude** of the envelope file by one factor, so every g's ceiling and the
+minimum speeds against altitude stretch with it (sea level is unchanged). The public figures give only the 1 g
+ceiling, so the file's shape is kept. Thrust can still stop the climb lower (the original thrust table, §2).
+
+All values are from online sources. The game's own Jane's extracts served only as a cross-check: their F-4 10,975 m
+and Su-24 17,500 m are wrong.
 
 | type (variant) | original 1 g ceiling | real | source | factor |
 |---|---|---|---|---|
@@ -113,8 +137,9 @@ figure: the game's aircraft fly at empty + fuel (§2 "Mass"). Validation prints 
 
 ### 2.2 Drag chute
 
-The original's drag chute (Shift+B, docs/controls.md) is visual only: `ParachuteDragIndex` is read but no code uses
-it (docs/flight-model.md §1). With Flight data = Real, a deployed chute adds `Params::chute_cd` = CD · area / wing
+The original's drag chute (Shift+B, docs/controls.md) is visual only: the loader reads `ParachuteDragIndex`, and no
+code uses the value (docs/flight-model.md §1). With Flight data = Real, a deployed chute adds `Params::chute_cd` =
+CD · area / wing
 area to the drag coefficient (`Aircraft::drag_chute`, set by the flight scene while the chute is out). Rows set
 `chute: (area m², CD)`; rows without one keep the visual-only chute.
 
@@ -122,18 +147,19 @@ area to the drag coefficient (`Aircraft::drag_chute`, set by the flight scene wh
 |---|---|---|---|---|---|
 | F-4E / Kurnass 2000 | 16 ft ring-slot deceleration chute (4 slot rings) | 18.68 m² | 0.63 | 0.24 | Mills Manufacturing (deceleration parachutes), PPRuNe; ring-slot brake chutes CD 0.56–0.65 (Springer, J. Inst. Eng. India 2022) |
 
-Not filled (no aircraft-specific CD; AI-only types): MiG-29 17 m², MiG-23 21 m² cross chute (ru.wikipedia,
-sovetarmy forum). Kfir / Mirage III sizes not found. The F-4E chute's limit is 200 KIAS (T.O.,
-Heatblur F-4E manual); there is no shear or failure model. Measured (tests/godot/test_player_aircraft.gd): from
+Left empty (aircraft-specific CD unpublished; AI-only types): MiG-29 17 m², MiG-23 21 m² cross chute
+(ru.wikipedia, sovetarmy forum). Kfir / Mirage III sizes not found. The F-4E chute's limit is 200 KIAS (T.O.,
+Heatblur F-4E manual); the port models no chute shear or failure. Measured (tests/godot/test_player_aircraft.gd): from
 ~90 kt at idle the Kurnass 2000 loses 0.74 m/s in 2 s with the chute, 0.07 m/s without.
 
 ### 2.3 Instrument fixes
 
 With Flight data = Real, for every type (`Params::ias_low_speed_fix`, set by `data_set::apply`):
 * **Indicated airspeed below 50 kt.** The original's indicated airspeed (FM query 0x10, docs/cockpit.md "Speeds")
-  returns the airspeed in kt where m/s is due whenever its formula gives under 50 kt, so taxiing the HUD (air-to-air
-  modes) and the MFD ADI page read 1.94 × the speed. Real returns the airspeed in m/s
-  (`iaf_flight::instruments::ias`); from 50 kt up both sets are the same.
+  returns the airspeed in kt where m/s is due whenever its formula gives under 50 kt. So while taxiing, the HUD
+  (air-to-air modes) and the MFD ADI page read 1.94 × the speed. Real returns the airspeed in m/s
+  (`iaf_flight::instruments::ias`). From 50 kt up both sets are the same. (FM: flight model; HUD: head-up display;
+  MFD: multi-function display; ADI: attitude director indicator.)
 
 ## 3. F-15C Baz (2 × F100-PW-220)
 
@@ -252,20 +278,23 @@ its weight is the largest single error in the game's data.
 ## 8. F-16D
 
 The game's F-16 is the two-seat F-16D (its model; the Reference text: "F-16D Brakeet"). The row (Block 30/40,
-F110-GE-100) is the previous F-16C set moved into the table, value for value, plus the D's internal fuel: 870.4 US gal
-(the C 1,053.1, the smaller aft cell; [f-16.net](https://www.f-16.net/forum/viewtopic.php?p=10079)) ≈ 5,800 lb of JP-8
-(the original 7,000 lb). Empty weight 19,100 lb: the one figure published for the D (aero-web.org; airfighters.com 18,900; the two-seat
-B was +675 lb over the A, Aerospaceweb), secondary sources only (no Dash-1 figure is public); before: the C's
-(validation output identical; since then also the service ceiling, §2.1): empty 19,000 lb, thrust × 1.5, wave drag 0.02, roll 280 deg/s at 900 deg/s²,
-fuel flow 16.5 lb/s, stall floor 118 kt, NWS ±32° / 13.2 ft.
+F110-GE-100) is the previous F-16C set moved into the table, value for value, with these D values:
+* **Internal fuel**: 870.4 US gal (the C 1,053.1, the smaller aft cell;
+  [f-16.net](https://www.f-16.net/forum/viewtopic.php?p=10079)) ≈ 5,800 lb of JP-8 (the original 7,000 lb).
+* **Empty weight** 19,100 lb: the one figure published for the D (aero-web.org; airfighters.com 18,900; the two-seat
+  B was +675 lb over the A, Aerospaceweb), from secondary sources only (no Dash-1 figure is public).
+
+Before, the row was the C's (validation output identical; since then also the service ceiling, §2.1): empty
+19,000 lb, thrust × 1.5, wave drag 0.02, roll 280 deg/s at 900 deg/s², fuel flow 16.5 lb/s, stall floor 118 kt,
+NWS ±32° / 13.2 ft.
 
 ## 9. AI types
 
-Every AI aircraft has its own Real row, keyed by **type** (`data_set::TYPES`), not by the original's section: the
-original gives several types one section, and a transport flies the F-16's data. The in-game switch covers every
-aircraft in the mission; the AI jets fly on them (docs/ai.md, `ai_flights.gd` passes the Flight data choice). Validation:
-`IAF_JET=SU22 cargo test --release -p iaf-flight --test validation -- --nocapture`. The reference rows are only filled
-where public data exists.
+Every AI aircraft has its own Real row, keyed by **type** (`data_set::TYPES`). The original keys by section: it
+gives several types one section, and a transport flies the F-16's data. The in-game switch covers every aircraft in
+the mission, so the AI jets fly on the Real rows too (docs/ai.md; `ai_flights.gd` passes the Flight data choice).
+Validation: `IAF_JET=SU22 cargo test --release -p iaf-flight --test validation -- --nocapture`. The reference rows
+are filled only where public data exists.
 
 **Which section each type flies.** `FUN_005a5bb0` (v1.1 `5a8980`) maps the type code (`default6_1.bdb` object `0x5b4`)
 to a section:
@@ -287,12 +316,13 @@ to a section:
 
 Notes on the table:
 * Types 230 / 240 load no section and keep the F-16's parameter block. Type 225 would load `[C130]`, but no object
-  has that type, and nothing loads `[SU24]`.
+  has that type. No type loads `[SU24]`.
 * The Real set starts the Su-24 from `[SU24]` and the transports from `[C130]`: the designers' own data for these
   aircraft, which the original never loads. Its envelopes are `s.dat` and `130.dat`, and `[C130]` has no afterburner.
   Everything a row leaves out comes from that section (row field `base`).
-* `load_with` also gives the type its own code, so a transport is type 230, as in the original, and not the F-16's 100.
-* Helicopters (type −1) have no section. As far as is known they are not flown by this model (docs/aircraft.md §2.1, UNCERTAIN), and they have no row.
+* `load_with` also gives the type its own code, so a transport is type 230, as in the original (the F-16 is 100).
+* Helicopters (type −1) have no section. As far as is known this flight model leaves them out (docs/aircraft.md
+  §2.1, UNCERTAIN), so they have no row.
 * **Tu-22.** The original's `[TU22]` numbers (40 t empty, 162 m² wing, 70,500 lbf) are the **Tu-22 Blinder** that
   Libya and Iraq flew. Its span of 112.5 ft is the Backfire's, and the game's 3D model and its Jane's reference card
   (`resource/ref/tu22`) are the **Tu-22M3 Backfire**. The row follows the model the player sees (Tu-22M3). The Blinder
@@ -305,7 +335,8 @@ Notes on the table:
 * No public roll rate was found for any AI type, so the original's value stays. This matters for the Su-22 and A-4,
   which roll at the Tu-22's 30 deg/s.
 * A negative g limit is only changed where one is published.
-* The speed fits (CD0, wave drag, 20 km thrust factor) are **fits, not aerodynamic data** (§2). The MiG-25's 20 km
+* The speed fits (CD0, wave drag, 20 km thrust factor) are **fitted values**, which differ from aerodynamic data
+  (§2). The MiG-25's 20 km
   factor of 12.4 is an extreme case: the 2 × 2 thrust table stops at Mach 1.2, so the R-15's ram thrust at Mach 2.8
   can only be fitted this way.
 
@@ -428,8 +459,8 @@ Fit: CD0 0.0374, wave 0.015, 20 km × 0.66. Syria's and Libya's earlier Su-22 / 
 | climb SL | 2,500 | 29,530 ft/min | off | 21,600 |
 | fuel flow mil / AB | 20,000 / 108,000 | ~29,600 / ~91,800 | off | 29,600 / 91,800 |
 
-Fit: CD0 0.030, wave 0.045, 20 km unchanged. The `[SU24]` section is close to the real aircraft; the original loads
-`[TU22]` instead.
+Fit: CD0 0.030, wave 0.045, 20 km unchanged. The `[SU24]` section is close to the real aircraft, but the original
+loads `[TU22]`.
 
 ### 9.8 Tu-22M3 Backfire-C (2 × NK-25) — Tu-22 Blinder for comparison
 | item | original [TU22] | Tu-22M3 (real) | verdict | Real set | Tu-22 Blinder (RD-7M-2) |
@@ -518,7 +549,7 @@ Fit: CD0 0.0834, no wave drag.
 * The four types on `[TU22]`: the Su-22 and A-4 fly a 90,000 lb bomber with 1,744 ft² of wing and 30 deg/s of roll.
 * The transports: supersonic on F-16 data.
 * The MiG-17: 20,000 lb empty, "Kf 80 %".
-* The MiG-25: Mach 1.4 instead of 2.8.
+* The MiG-25: Mach 1.4 (real: Mach 2.8).
 * The MiG-21 and MiG-23: subsonic at sea level, and too much fuel.
 
 ## 10. Sources

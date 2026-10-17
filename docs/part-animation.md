@@ -1,13 +1,26 @@
 # Jane's IAF: how aircraft model parts move (reverse-engineered spec)
 
+This spec says how the original exe finds an aircraft model's moving parts at load time and poses them every frame:
+control surfaces, gear, hook, drag chute, ejection, vehicle parts and the afterburner flame. It is for developers who
+port or maintain `game/aircraft/aircraft_model.gd` and the ejection code.
+
 Addresses are `IAFJets.exe` **v1.1** (the reference version); [v1.1.md](v1.1.md) maps them to v1.0 and lists what the patch changed.
 
 Sources: `assets/ghidra_v11/iafjets.c`, plus `objdump` of `iafjets.exe` for routines Ghidra did not
 decompile. The key one is the per-part callback `0x5a09c0`. Constants come from `.rdata`.
-Items marked **UNCERTAIN** are guesses. Offsets written `S+x` are in the flight state (`veh+0xc30`, see
-flight-model.md), and **type** is the aircraft type `veh+0xc54`, set by `FUN_005a8980`:
-100 F-16, 110 F-15, 120/200 F-4, 130 Kfir, 140 Lavi, 150 MiG-21, 160 MiG-23, 170 MiG-25, 180 MiG-29,
-190 Mirage, 210 MiG-17, 220 Tu-22, 225 C-130.
+
+**Terms**
+- **UNCERTAIN** marks guesses.
+- **FM**: the flight model ([flight-model.md](flight-model.md)).
+- **`S+x`**: an offset in the flight state (`veh+0xc30`, see flight-model.md).
+- **type**: the aircraft type `veh+0xc54`, set by `FUN_005a8980`:
+  100 F-16, 110 F-15, 120/200 F-4, 130 Kfir, 140 Lavi, 150 MiG-21, 160 MiG-23, 170 MiG-25, 180 MiG-29,
+  190 Mirage, 210 MiG-17, 220 Tu-22, 225 C-130.
+- **Ramp**: a flight-state value that moves at a fixed rate toward a target (§2, "Ramp sampling").
+- **Clump**: a renderable mesh object. **Helper**: an invisible frame that marks a point or a hinge (X1 / X2).
+- **E frame**: the aircraft body frame of the part positions (§1, "Frame loading").
+- **LOD**: level of detail. **AB**: afterburner. **RPM**: engine speed. **AGL**: above ground level.
+  **TSD**: tactical situation display.
 
 ## 1. Load time
 
@@ -22,13 +35,13 @@ StationFla 0x34, Pilon 0x35, Camera 0x36, EndWingL 0x37, EndWingR 0x38, Height 0
 EngineL 0x3a, EngineR 0x3b.
 
 **Frame loading.** Only `*.xfr` files use the table. `FUN_00588ea0` clears all `clump` pointers
-(**not** the positions, so an entry that no longer exists keeps the position from the previous model) and calls
+and **keeps** the positions, so an entry missing from the new model keeps the position from the previous model, and calls
 `FUN_0041cbb0` → `FUN_0041c880`. That loads the root frame and, for **every direct child of the root**,
 calls `FUN_0041c270`:
 * The frame name is looked up in the table with `_stricmp` (`FUN_0056a9f0`, case-insensitive: `x3ds_Canopy`
   and `x3ds_height` both match; the AI planes' `LdGr` is `LdgR`). The first match wins. Children that match no name are dropped.
 * `pos = (-tx, -tz, ty) * scale`, where `(tx,ty,tz)` is row 3 of the child's `FrameTransformMatrix`
-  (the frame origin, **not** the centroid of the helper triangle), and `scale` is the clump scale (F-16: 5.0).
+  (the frame origin; the helper triangle's centroid is ignored), and `scale` is the clump scale (F-16: 5.0).
   Call this frame "E". Only the frame translation is used. In all shipped models every frame rotation is identity.
 * The child's mesh becomes its own clump (`entry.clump`).
 * `FUN_0041c680`: `EngineR`/`EngineR1` → `clump+0x280`, `EngineL`/`EngineL1` → `clump+0x28c`.
@@ -56,15 +69,15 @@ Which helper is named `1` or `2` does not matter. For left/right pairs the axes 
 directions. If both helpers are the same distance from the origin, the direction is effectively arbitrary
 (the F-16 `Hook1/2` differ by 0.0004). If there is no X1, `axis = 0`, and the part is drawn **unrotated**.
 
-**Pivot = the part frame's own origin** (`part.pos`), not the helper line. On most parts the helpers sit
-on the hinge (for example, the F-16 AilerL2 helper triangle centroid equals the AilerL origin). On the F-16 main gear they
-do not, and the rotation is still about the part origin.
+**Pivot = the part frame's own origin** (`part.pos`); the helper line gives only the axis. On most parts the helpers
+sit on the hinge (for example, the F-16 AilerL2 helper triangle centroid equals the AilerL origin). On the F-16 main
+gear they sit off the hinge, and the rotation is still about the part origin.
 
 ## 2. Per-frame pose (render: `FUN_004da090`, hardware path `FUN_004db180`)
 Only the nearest LOD, the `_h.xfr` model, has parts (`_m.x` and `_l.x` are merged meshes). For each part,
 the renderer calls the owner's `vtable[1](time*, id, &visible, &pos, &angles[3])`. For flown aircraft this is
 the flight model `FUN_005a09c0` (vtable `0x611e28`). It sets `visible=1` first, and only `angles[1]` is used.
-If `visible==0`, the part is not drawn.
+`visible==0` hides the part.
 If `axis[id]` is non-zero, `FUN_004dacd0`/`FUN_004db760` rotate the part by `angles[1]` about
 `k=(-a.x,-a.y,a.z)` with Rodrigues in the swapped frame and convert the result to Euler angles.
 Swapping y/z is a reflection, so **in X-file coordinates it works out to**:
@@ -127,7 +140,7 @@ Initial state (`FUN_005a5820`): airborne start → gear 1.569 (up), flaps 0, spe
 | 0x14-0x26 (pilot, pilotB, canopy, canopyB, turret…, wheels) | 0 | **0** | the FM callback hides them, but for aircraft entities the renderer's owner is the crew object `entity+0x3c` (callback `0x53eb50`), which answers ids 0x14–0x17 and 0x1d–0x20 **before** the FM: pilot/canopy **are drawn** outside the cockpit view (see "Ejection" below). The F-16 canopy glass exists only in the `Canopy` frame (port: `crew_visible`, always true, docs/aircraft.md §2.3) |
 | 0x3a/0x3b EngineL/R, other ids | 0 | 0 | |
 
-Gear sequencing: legs and doors share one ramp, so there is no separate door ramp and no door motion. A full cycle
+Gear sequencing: legs and doors share one ramp, and the doors never move. A full cycle
 takes 1.569/0.5 = 3.14 s. Legs rotate while visible and vanish at full retraction (on MiG-29 and Mirage, before full retraction).
 The doors are shown in their modelled (open) pose whenever the gear is not fully up.
 Sign flips such as "110: −g" compensate for each model's helper order. With the §2 formula, every type gives the physically right motion.
@@ -165,7 +178,7 @@ Callback `0x53eb50` (jump table `0x53ee54`/`0x53ee6c`):
 | 0x18–0x1c | forwarded to the vehicle |
 
 So in the original, **the pilot and the canopy are drawn on every aircraft seen from outside** and hidden only in the cockpit
-view. The old "hidden on the flying aircraft" note was wrong: it described only the FM callback.
+view. (Corrected: an earlier note said "hidden on the flying aircraft", which describes only the FM callback.)
 
 **Ejection graphics** (called by `FUN_005485a0`, docs/mission-runtime.md §5.4):
 1. `FUN_0053fb00`, at t0: two "Throwing subpart motion" objects (vtable `0x60c728`, 0x34 bytes: +4 dir, +0x10
@@ -190,7 +203,7 @@ view. The old "hidden on the flying aircraft" note was wrong: it described only 
        *flag = 0; unschedule                          // canopy: crew+0x14 = 0 hides BOTH canopies
    ```
    The thrown parts stay attached to the aircraft frame: they rise "up" relative to the jet, whatever its attitude.
-   They are not ballistic in world space, and there is no gravity, drag or rotation. The v1.1 release note says the
+   They move in the jet's frame only, with zero gravity, drag and rotation. The v1.1 release note says the
    canopy and pilot no longer "spin with the plane"; this code does not fully explain that (UNCERTAIN).
    From a pilot at z ≈ 1 m the seat needs ⌈99/3⌉ = 33 ticks (1.65 s). So the parachuter appears ≈ Interval + 1.65 s = 3.65 s after t0.
 4. **Parachuter** `FUN_00548c10`: it takes the next entity from a pool of `SpecialEject/ParachuterCount` (default
@@ -208,15 +221,19 @@ view. The old "hidden on the flying aircraft" note was wrong: it described only 
      **Stop** when `now > land − 10 s` (`0x60c988`) **or** AGL ≤ 20 m (`0x60c948`). Stop sets +0xc8 = 1 and `0x549b10` zeroes
      velocity and acceleration, so the parachuter **freezes in place** (from 1000 m it freezes at ≈ 351 m AGL). This is an original bug.
    * For the player's ejection (above 50 m, see mission-runtime.md §5.4), "Jump to tactical display event" (`0x60c918`) is scheduled at `land − 10 s`.
-There is no parachute-open animation or sound (`parachute open.wav` is not referenced).
+The parachute opens without an animation or a sound (no code references `parachute open.wav`).
 
 **Port (iaf-reborn, `game/terrain/terrain_view.gd` `_eject*`, `aircraft_model.gd` `ejected` / `canopy_offset`):**
-the pilots are hidden, the canopies ride the 0.05 s ticks (+3 m straight up in the jet frame, v1.1) until 100 m, the seat
-(`objects/pilot/ejecta`, unscaled: `Cull/PilotOnChairSize` is a cull size) starts after 2 s and turns into the
-parachuter (`ejectb`) at 100 m, which follows p0 + v0·t + a·t²/2 with v0 = (25, 30, −5), a = (0, 0, −3) in world
-X east / Y north / Z up and stops at 20 m AGL (the original's `land − 10 s` factor-4 freeze is not copied; in single
-player the flight has ended by then; v1.1 did not change the parachuter, so this deviation stays). The crew flag
-starts at 0 on every jet (`crew_visible`), as in v1.1. Not ported: the parachuter swing. The fly-by cameras on the jet and the parachuter: docs/views.md §4.3.
+- The pilots are hidden.
+- The canopies ride the 0.05 s ticks (+3 m straight up in the jet frame, v1.1) until 100 m.
+- The seat (`objects/pilot/ejecta`, unscaled: `Cull/PilotOnChairSize` is a cull size) starts after 2 s and turns
+  into the parachuter (`ejectb`) at 100 m.
+- The parachuter follows p0 + v0·t + a·t²/2 with v0 = (25, 30, −5), a = (0, 0, −3) in world X east / Y north / Z up
+  and stops at 20 m AGL. The port leaves out the original's `land − 10 s` factor-4 freeze: in single player the
+  flight has ended by then. v1.1 did not change the parachuter, so this deviation stays.
+- The crew flag starts at 0 on every jet (`crew_visible`), as in v1.1.
+- Open: the parachuter swing.
+- The fly-by cameras on the jet and the parachuter: docs/views.md §4.3.
 
 ## 2.1 Vehicles (part callback `FUN_005c5460`, part record entity+0x3c `FUN_005c5400`, vtable `0x612a78`)
 
@@ -236,7 +253,7 @@ so the first call steps). A release clears +8 (`FUN_004ab810`), hiding the Missi
 the rotors' and wheels' speed depends on the frame rate (kept: per our frame).
 Port: `game/mission/vehicle_parts.gd` (Turret, Carrier, Launcher, Missile incl. its hiding, the Radar step, the rotors
 `step_rotors`), driven per frame by `terrain_view.gd` `_dishes`; a flown aircraft's rotors in `aircraft_model.gd`
-(the crew object's +0x10, the same rule). Wheels: no shipped vehicle model has Wheels frames (nothing to turn).
+(the crew object's +0x10, the same rule). Wheels: the shipped vehicle models carry no Wheels frames, so nothing turns.
 The vehicles' frames come from their `_h.xfr` (the object database names it); `iaf-convert objects` used to overwrite
 it with the flattened `_h.x` in its briefing-models pass, so no unit had parts until then.
 
@@ -248,7 +265,7 @@ it with the flattened `_h.x` in its briefing-models pass, so no unit had parts u
 * **EngineL/R (+L1/R1)** → afterburner `FUN_004121e0(level, x,y,z, r, scale)`, called from `FUN_0041e220` with level = render bytes +0x3c (right) / +0x3d (left), 0..100.
   The level comes from `FUN_005abdc0` / `FUN_005abc90`: `75 + 12.5·stage` while the flight model's AB stage
   (`vehicle+0x568`+0x28, written in the 1 Hz aero update) is > 0 and that side's AB-damage flag (8 / 9) is clear,
-  else RPM ramp·0.74 (≤ 74). Nothing is drawn if level ≤ 74, so the flame shows exactly at AB stages 1 / 2 (k = 0.5 / 1).
+  else RPM ramp·0.74 (≤ 74). The flame draws only when level > 74, so it shows exactly at AB stages 1 / 2 (k = 0.5 / 1).
   `k = (level−75)·0.04`, `j = (rand%21−10)·0.01`. 12-segment cones start at the raw nozzle position with base radius
   `r = |ΔY(EngineX, EngineX1)|`; the tip is at `z − ((3.5+j)·k·scale + 1.5·i)` (toward −Z, aft) with radius
   `base·(j+0.25)`. 3D-card path (`DAT_007d1960`): i = 2 (base 0.7·r) then i = 3 (base r); software path: only i = 3.
@@ -274,4 +291,4 @@ frame(t):   for part id: (θ, vis) = table §2 (sample ramps at t); if !vis: hid
               else part.local = T(P[id]) · R(axis=d[id], angle=−θ)   // X-file (LH) space
 ```
 Discrepancy with flight-model.md §7/§8: the visuals prove that event 8 / `S+0x340` = speed brakes,
-event 9 / `S+0x360` = hook, and `S+0x2cc` = drag-chute state (not gear). flight-model.md §7 / §15.1 now use these labels.
+event 9 / `S+0x360` = hook, and `S+0x2cc` = drag-chute state (earlier mislabelled as gear). flight-model.md §7 / §15.1 now use these labels.

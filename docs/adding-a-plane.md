@@ -1,13 +1,33 @@
 # Adding a new plane
 
-How to add a flyable aircraft that the original game does not have (model, flight data, cockpit, weapons, Jet list).
-The worked example is the F-35I Adir: [f35i.md](f35i.md) has its real data, sources and the choices per section.
-Adding an *original-format* model (an `.xfr` in the install) is [aircraft.md §4](aircraft.md#4-adding-a-new-aircraft).
+This guide is for developers who add a flyable aircraft beyond the original game's set: its model, flight data,
+cockpit, weapons and Jet list entry. The worked example is the F-35I Adir: [f35i.md](f35i.md) has its real data,
+sources and the choices per section. To add an *original-format* model (an `.xfr` in the install), see
+[aircraft.md §4](aircraft.md#4-adding-a-new-aircraft).
 
-Everything under `assets/` is generated from the user's ISO and git-ignored, so a new plane's content (model,
-descriptor, cockpit art) has to be **tracked in the repo** and copied or merged in at run time. It must be our own
-work or licensed for redistribution (CC BY / CC BY-SA / public domain; CC BY-NC only for local use). A new plane is
-a deviation from the original: make it an opt-in on the Extras page (§8).
+**Terms**
+- **Type code**: the number that identifies an aircraft type in every per-type table (§1).
+- **bdb**: an object database file (`*.bdb`, converted to `*.bdb.json`); it holds every unit of a mission.
+- **Descriptor**: a plane's `aircraft.json`, which lists its moving parts, engines, stations and eye point.
+- **FM**: flight model. **AI**: computer-flown aircraft. **SAM**: surface-to-air missile.
+- **RWR**: radar warning receiver. **TSD**: tactical situation display. **HUD**: head-up display.
+  **MFD**: multi-function display. **IR**: infrared. **A-A / A-G**: air-to-air / air-to-ground.
+- **Original** / **Real**: the two Flight data (and Weapon data) settings: the 1998 game's numbers, or published
+  real-world numbers.
+
+Everything under `assets/` is generated from the user's ISO and git-ignored. A new plane's content (model,
+descriptor, cockpit art) therefore has to be **tracked in the repo** and copied or merged in at run time. It must be
+our own work or licensed for redistribution (CC BY / CC BY-SA / public domain; CC BY-NC only for local use). A new
+plane is a deviation from the original: make it an opt-in on the Extras page (§8).
+
+**Steps in order**
+1. Pick a type code and add it to the code tables (§1).
+2. Build the 3D model, write its descriptor and place it in the repo (§2).
+3. Add the flight data (§3).
+4. Map or build a cockpit (§4).
+5. Give the jet stores, stations and an Arming screen (§5).
+6. Add it to the Jet list (§6), and check sounds, radar and RWR (§7).
+7. Put it behind an Extras switch (§8) and add the tests (§9).
 
 **Automated:**
 - `iaf-convert plane-describe <model.gltf> <out-dir> [--type N] [--section NAME] [--label L]` writes the descriptor
@@ -19,18 +39,18 @@ Both are in `crates/iaf-tools/src/plane.rs`.
 
 ## 1. The type code
 
-Every per-type behaviour is keyed by the aircraft type code (bdb object field `0x5b4`). Every object class
-shares this code space:
+Every per-type behaviour is keyed by the aircraft type code (bdb object field `0x5b4`). All object classes
+share this code space:
 - the shipped bdbs use 100–220 for aircraft, 230/240 for the transports, and up to 450 for other units (radars,
   SAMs);
 - `cockpit.gd` `RWR_GLYPH` keys 290–390 (radars) and 100–200 (aircraft);
 - weapon types run 500–660 (`crates/iaf-avionics/src/stores.rs`);
 - `crates/iaf-avionics/src/rwr.rs` `IGNORED_TYPES` (220, 250, 270) is skipped by the RWR; `plane-describe` refuses these.
 
-Take a code **≥ 1000** (e.g. 1000) and check it is in no table:
-`iaf-convert plane-checklist 1000` marks every list `--` (the `..` rows are conditions to read).
-
-Then add it to the tables. `iaf-convert plane-checklist <code>` prints this list from the live sources:
+1. Take a code **≥ 1000** (e.g. 1000).
+2. Check that it is in no table: `iaf-convert plane-checklist 1000` marks every list `--` (the `..` rows are
+   conditions to read).
+3. Add it to the tables below. `iaf-convert plane-checklist <code>` prints this list from the live sources:
 
 | where | table | what it decides | needed? |
 |---|---|---|---|
@@ -123,12 +143,11 @@ Hand-set after the run:
 Edit afterwards if needed:
 - `scale` (5.0, the clump scale);
 - `part_rules` `{part: {sign, visible}}` when a surface moves the wrong way. A new type gets the default rules of
-  aircraft.md §2.1: not a delta, pitch
-  mixer f = 1, default gear signs.
+  aircraft.md §2.1: tailed (delta = false), pitch mixer f = 1, default gear signs.
 
 ### 2.4 Where it lives
-`iaf-convert aircraft` rewrites `assets/converted/planes/aircraft.json` from the install on every run, so an extra
-plane is never added to it. Extra planes live in the repo:
+`iaf-convert aircraft` rewrites `assets/converted/planes/aircraft.json` from the install on every run, so that file
+holds only the install's planes. Extra planes live in the repo:
 - `game/extra/planes/<plane>/` holds the glTF, `.bin`, textures, `aircraft.json` and a `CREDITS.md` for third-party
   sources.
 - `aircraft_model.gd` `index()` merges every folder there into the converted index, and `load_descriptor()` /
@@ -146,11 +165,11 @@ Example: `game/extra/planes/f35i/`, built by `tools/f35i/rig.py` (Blender, headl
 
 - Parameters come from the install's `resource/md` (docs/flight-model.md §1): a section per aircraft plus its
   envelope `<n>.dat`.
-- **Pitfall:** v1.1 installs carry the XOR-encoded `bdgen.dat`, and `iaf_flight` `read_md()` reads it **instead
-  of** `bd.ibx`. A section appended to `bd.ibx` is silently ignored.
+- **Pitfall:** v1.1 installs carry the XOR-encoded `bdgen.dat`, and `iaf_flight` `read_md()` reads it and skips
+  `bd.ibx`. A section appended to `bd.ibx` is silently ignored.
 - Envelopes are tried as `<n>gen.skp`, then `<n>.dat`.
 
-A new type needs no install file:
+A new type is defined in code; it needs no install file:
 1. **`TYPES` row** (`data_set.rs`): `ty("NAME", "<plane folder>", "<existing section>", CODE)`. The section is the
    original block the type flies with **Flight data = Original** (e.g. `"F-16"`).
 2. **`REAL` row**: `Real { aircraft: "NAME", base: Some("<section>"), … }`. It overrides the base section with
@@ -164,13 +183,13 @@ A new type needs no install file:
    - limits and systems: `g`, `ceiling_ft`, `chute`, `nose_wheel`, `afterburner`.
 3. **Fit** CD0, wave drag and `alt_thrust` to the published top speeds (sea level and at altitude), the method of
    [real-aircraft.md](real-aircraft.md). The model has a 2×2 Mach/altitude thrust table. Military power is 60% of
-   max unless `mil_ratio` is set. Fuel flow does not vary with altitude.
+   max unless `mil_ratio` is set. Fuel flow is the same at every altitude.
 4. **Fly-by-wire:** add the code to the no-spin and deep-stall cases of `crates/iaf-flight/src/aircraft.rs` (§1).
 5. **Test:** a reference row in `crates/iaf-flight/tests/validation.rs` (top speeds, ceiling, g).
 
-A non-original jet has no Original numbers of its own: list it in `data_set.rs` `NO_ORIGINAL` and it flies its Real
-row with either Flight data (`data_set::effective()`), as the F-35I does. Left out, it flies its base section with
-Flight data = Original.
+A jet new to the game has only Real numbers of its own. List it in `data_set.rs` `NO_ORIGINAL` and it flies its Real
+row with either Flight data (`data_set::effective()`), as the F-35I does. If it is left out of that list, it flies its
+base section with Flight data = Original.
 
 The player's type reaches the flight model as the descriptor's `fm_section`:
 - `player_aircraft.gd` `profile()` → `terrain_view.gd` `flight.start(install, fm_section, …)` → `IafFlight`
@@ -195,11 +214,11 @@ Options:
 - **Custom:** a tracked folder with a hand-written `cockpit.json` and our own art at the sizes above, plus copies of
   `mfds.png`, `rwrsymb.png` and `map.json`. `profile()` must then return that dir instead of the `cockpits.ibx`
   lookup (`cockpit_folder()`).
-- **No HUD glass (helmet only):** keep a `HUD` section (`hud.gd` `_layout()` reads its borders, `CenterY`,
-  `BorePositionY`) but give it no `FileName`, and set **`Dash` 1**.
+- **Helmet display only (glassless HUD):** keep a `HUD` section (`hud.gd` `_layout()` reads its borders, `CenterY`,
+  `BorePositionY`), leave out its `FileName`, and set **`Dash` 1**.
   - The loader skips sections without a file, and the glass draw is guarded (`cockpit.gd` `tex.has("HUD")`), so
     this needs no code.
-  - Looking forward, the HUD symbology then floats with no glass: a helmet "virtual HUD".
+  - Looking forward, the HUD symbology then floats in free space: a helmet "virtual HUD".
   - Head turned ≥ 250 px aside or ≥ 200 px down, it becomes the DASH helmet display at (320, 220) (`cockpit.gd`
     `dash()`, docs/cockpit.md "HUD dash repeater").
   - In free look and padlock, the IR seeker locks off-boresight (docs/weapons.md §5.4).
@@ -216,8 +235,8 @@ Options:
 - **Jet object:** all missions share one object database, `default6_1.bdb.json`. The player's stores come from the
   class 0x1c object whose `0x5b4` equals the player's type (`terrain_view.gd` `_player_object()`, mission bdb
   first, then default6_1).
-- A new type has no object, so the jet flies with no stores and drawn at scale 1.0. Fix: at load time, clone a
-  similar jet's object with the new `0x5b4` (the bdb is git-ignored, so the clone lives in code or in a tracked
+- A new type starts without an object: the jet then flies clean (no stores) and is drawn at scale 1.0. Fix: at load
+  time, clone a similar jet's object with the new `0x5b4` (the bdb is git-ignored, so the clone lives in code or in a tracked
   patch file).
   - `armament.hardpoints`: 12 `[weapon id, count]` pairs (9 pylons, gun, chaff, flares).
   - `loads.items`: `CDMEWeaponLoadItem` with `0x910` weapon id, `0x906` max, `raw` = 9 per-station allow flags.
@@ -250,7 +269,7 @@ Options:
   `Settings.jet_id`, and `terrain_view.gd` `_choose_player()` swaps the mission's jet for `JET_TYPES[jet_id]`.
   `JETS_DISABLED` greys jets per mission.
 
-There is no free button. Two ways in:
+All 7 buttons are taken. Two ways in:
 - **Replace a slot (simplest):** an Extras row "<plane> replaces: Off / Mirage / … / Lavi". The chosen button's
   band is relabelled by cutting it out of the art and drawing the new label in the baked-label style, as
   `_extras_tab_tex()` / `_draw_extras_tab()` do for our Extras and Physics tabs. `JET_TYPES` resolves that id to
@@ -265,11 +284,14 @@ Hebrew labels go in `game/menu/strings_he.json` (our strings only).
   warnings; also `rwr.betty` and `player_damage.betty`).
 - **Radar:** `TABLES` in `crates/iaf-avionics/src/radar.rs` has one A-A / A-G mode row per cockpit index (`COCKPIT`). A new type gets the
   F-16 row unless mapped. `RADAR_KM` overrides the long-range-search range with Weapon data = Real.
-- **RWR:** nothing per own type. `RWR_GLYPH` only matters when other aircraft of this type appear.
+- **RWR:** the own type needs no entry. `RWR_GLYPH` matters only when other aircraft of this type appear.
 
 ## 8. Opt-in
-The original stays the default (docs/deviations.md): a new plane is an Extras row, off by default, plus one line
-in deviations §2. With it off, the Jet list and every table behave as before.
+The original stays the default (docs/deviations.md):
+1. Add an Extras row for the plane, off by default.
+2. Add one line to deviations §2.
+
+With the row off, the Jet list and every table behave as in the original.
 
 ## 9. Tests
 - `cargo test -p iaf-flight`: the `validation.rs` row.
