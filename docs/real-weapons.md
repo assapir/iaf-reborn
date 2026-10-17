@@ -1,13 +1,19 @@
 # Weapon data "Real"
 
-Preferences > Extras > **Weapon data**: *Original (1998)* (default) or *Real weapons*. Separate from Flight data. Real
-overlays public real-world numbers on the original weapon records (`game/weapons/real_weapons.gd`); everything a
-public source does not give keeps its 1998 value. The rules (seeker, chase law, gun timer, hit spheres) stay the
-original's (docs/weapons.md).
+This doc lists the real-world weapon numbers that the *Real weapons* option puts on the original weapon records, and
+how each number maps onto the original model.
+
+- **Switch:** Preferences > Extras > **Weapon data**: *Original (1998)* (default) or *Real weapons*. It is a separate
+  switch from Flight data.
+- **What it changes:** Real overlays public real-world numbers on the original weapon records
+  (`game/weapons/real_weapons.gd`). A value that no public source gives keeps its 1998 value.
+- **What stays the same:** the rules (seeker, chase law, gun timer, hit spheres) stay the original's (docs/weapons.md).
 
 ## 1. Values
 
 ### 1.1 IR missiles
+IR (infrared) missiles home on heat.
+
 | bdb name | weight kg (orig. lb → kg) | top speed | range | sources |
 |---|---|---|---|---|
 | AIM-9D | 88.5 (192 → 87.1) | Mach 2.5 | 18 km | [1], [2] |
@@ -17,7 +23,8 @@ original's (docs/weapons.md).
 | PYTH-4 | 120 (340 → 154.2) | Mach 3.5 | 15 km | [3] |
 | SHFR 2 | 93 (209 → 94.8) | Mach 2.1 | 5 km | [3], [4] |
 
-Seeker and turn (where sourced):
+Seeker and turn limit, for the missiles that have a public figure:
+
 | bdb name | seeker | turn limit | sources |
 |---|---|---|---|
 | AIM-9D | rear-aspect | 12 g | [1] |
@@ -25,8 +32,11 @@ Seeker and turn (where sourced):
 | PYTH-3 | off-boresight 30° | – | [12] |
 | PYTH-4 | off-boresight 60° | – | [13] |
 
-Not changed (no public figure found): lock range (the generation table of `FUN_00462460`), the other missiles' cones
-and g limits, warhead power / radius (game damage units), drag index.
+These values keep the original, because no public figure was found:
+- lock range (the generation table of `FUN_00462460`);
+- the other missiles' cones and g limits;
+- warhead power / radius (game damage units);
+- drag index.
 
 ### 1.1b Radar, anti-radiation and TV missiles (600, 610, 590, 635)
 | bdb name | weight kg | top speed | range | sources |
@@ -45,8 +55,9 @@ and g limits, warhead power / radius (game damage units), drag index.
 | "20 MM" (M61A1) | 6000 rpm | 1030 m/s (M56 HEI) | F-16 511, F-15 940, F-4E / Kurnass 2000 639 | [5], [6], [7], [8] |
 | "DEFA" (552 / 553, 2 guns) | 2 × 1300 rpm | 815 m/s | Kfir C7 2 × 140, Mirage IIICJ 2 × 125 | [9], [10] |
 | "20 MM" standing in for the GAU-22/A 25 mm | the 20 MM record | the 20 MM record | F-35I 180 (ours) | docs/f35i.md |
-The Lavi's real gun was a 30 mm DEFA [11] (the game gives it the "20 MM"); its rounds are not published, so it keeps
-the original gun and count.
+
+The Lavi's real gun was a 30 mm DEFA [11]; the game gives it the "20 MM". Its round count is unpublished, so the Lavi
+keeps the original gun and count.
 
 ### 1.3 Radar
 | jet | radar | detection range | sources |
@@ -59,31 +70,36 @@ the original gun and count.
 | Kfir C7 | EL/M-2001B ranging radar (no search mode) | 14.8 km (U: one database) | Wikipedia "IAI Kfir" (radar type), cmano-db.com (range) |
 | Mirage IIICJ | Cyrano I bis | 27 km (U: nominal air-to-air lock, one game wiki; the later Cyrano II ~30 km) | War Thunder wiki (Mirage IIIC), migflug.com (Cyrano II) |
 | F-35I (Adir, ours) | AN/APG-81 | 148 km (U: multiple-target track beyond 80 NM) | docs/f35i.md |
-The table is per type (`RADAR_KM`, like `GUN_ROUNDS`): a new jet needs only its row.
+
+U marks an uncertain figure. LRS is long-range search; STT is single-target track. The table is keyed by aircraft type
+(`RADAR_KM`, like `GUN_ROUNDS`), so a new jet needs only its own row.
 
 ## 2. Mapping onto the original's model
-- **Weight**: bdb `0x758` (lb) = kg / 0.45359. It feeds the stores weight (docs/weapons.md §2.5), so with the original
-  stores-weight rules it still goes into the kg field; the Physics option "Stores weight fix" makes it right.
-- **Top speed**: the chase motion's steady speed is `_absAcceleration / _spiralAccelBeta` (docs/weapons.md §5.3); Real
-  keeps a (no public g limit) and sets β = a / (Mach · 340.3 m/s, sea level). AIM-9L: 100 / 851 = 0.1175 (orig.
-  0.08 → 1250 m/s). A record without a public speed (AGM-65) keeps its a / β and only the range sets the burn.
-- **Range**: the flight ends burn + 6 s after launch (the same for every homing weapon, docs/weapons.md §11); Real sets burn = range / top speed − 6 (≥ 1 s): AIM-9L 35.6 s
-  (orig. 16), Python 3 / 4 6.6 s, Shafrir 2 1 s (flight 7 s).
-- **Rear-aspect** (ours: the original has no aspect test): the seeker's can-track also needs the target's velocity
-  to point away from the launcher (v · line of sight > 0), so a head-on or a stationary target gives no tone.
-- **Seeker cone**: replaces the per-generation cone, the half-angle used when the seeker is slaved to a radar lock
-  (docs/radar.md §6) or to the helmet (docs/weapons.md §5.4). The 6° view is not changed.
-- **Turn limit**: each 0.1 s chase update clamps the acceleration across the velocity to g · 9.80665 m/s².
-- **Radar**: the LRS (and so STT) detection NM = km · 1000 / 1854.
-- **Guns**: the station holds the real rounds and shows them 1:1 (orig. ×4 / ×2); the 0.2 s shot tick uses
-  rate · 0.2 s rounds (M61A1 20, two DEFA 8.67); the round's `_velocityJump` / `_limitVel` = the muzzle velocity.
+Each real value lands in one field or rule of the original model:
+
+- **Weight:** bdb `0x758` (lb) = kg / 0.45359. It feeds the stores weight (docs/weapons.md §2.5). Under the original
+  stores-weight rules the value still goes into the kg field; the Physics option "Stores weight fix" makes it right.
+- **Top speed:** the chase motion's steady speed is `_absAcceleration / _spiralAccelBeta` (docs/weapons.md §5.3).
+  Real keeps a, because there is no public g limit, and sets β = a / (Mach · 340.3 m/s, sea level). AIM-9L:
+  100 / 851 = 0.1175 (orig. 0.08 → 1250 m/s). A record without a public speed (AGM-65) keeps its a / β; only the
+  range sets its burn.
+- **Range:** the flight ends burn + 6 s after launch, for every homing weapon (docs/weapons.md §11). Real sets
+  burn = range / top speed − 6 (≥ 1 s): AIM-9L 35.6 s (orig. 16), Python 3 / 4 6.6 s, Shafrir 2 1 s (flight 7 s).
+- **Rear-aspect** (ours; the original tracks from any aspect): the seeker can track only when the target's velocity
+  points away from the launcher (v · line of sight > 0). A head-on or a stationary target gives no tone.
+- **Seeker cone:** replaces the per-generation cone. This is the half-angle used when the seeker is slaved to a radar
+  lock (docs/radar.md §6) or to the helmet (docs/weapons.md §5.4). The 6° view keeps its original value.
+- **Turn limit:** each 0.1 s chase update clamps the acceleration across the velocity to g · 9.80665 m/s².
+- **Radar:** the LRS (and so STT) detection NM = km · 1000 / 1854.
+- **Guns:** the station holds the real rounds and shows them 1:1 (orig. ×4 / ×2). The 0.2 s shot tick fires
+  rate · 0.2 s rounds (M61A1 20, two DEFA 8.67). The round's `_velocityJump` / `_limitVel` = the muzzle velocity.
 
 ## 3. Validation
-`tests/godot/test_weapons.gd`: AIM-9L 86 kg, F-16 511 rounds shown, one M61A1 tick = 20 rounds, and the derived
-chase values (stored in the record's `motion`): AIM-9L top speed a/β = 851 m/s = Mach 2.5, flight time (burn + 6 s) ×
-top speed = 35.4 km; the AIM-9D / Python 4 flags, the AIM-9D seeker refusing a head-on target (the AIM-9L
-accepting it) and its 12 g clamp. `tests/godot/test_radar.gd`: the F-16's 80 km. `tests/godot/test_radar_missiles.gd`:
-the AMRAAM's 157 kg, a/β = Mach 4 and (burn + 6 s) × top speed = 70 km.
+| test | checks |
+|---|---|
+| `tests/godot/test_weapons.gd` | AIM-9L 86 kg; F-16 511 rounds shown; one M61A1 tick = 20 rounds; the derived chase values (stored in the record's `motion`): AIM-9L top speed a/β = 851 m/s = Mach 2.5, flight time (burn + 6 s) × top speed = 35.4 km; the AIM-9D / Python 4 flags; the AIM-9D seeker refuses a head-on target (the AIM-9L accepts it); the AIM-9D 12 g clamp |
+| `tests/godot/test_radar.gd` | the F-16's 80 km |
+| `tests/godot/test_radar_missiles.gd` | the AMRAAM's 157 kg, a/β = Mach 4 and (burn + 6 s) × top speed = 70 km |
 
 ## Sources
 1. designation-systems.net, "Raytheon AIM-9 Sidewinder", https://www.designation-systems.net/dusrm/m-9.html (AIM-9D
