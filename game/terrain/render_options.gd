@@ -11,6 +11,14 @@ const AA := {
 	"taa": [Viewport.MSAA_DISABLED, Viewport.SCREEN_SPACE_AA_DISABLED, true],
 }
 
+## Upscaling: Settings.upscaling -> the 3D render scale; "off" = native (bilinear at 1.0). The 3D scene renders at
+## that fraction of the window, and a spatial upscaler (MetalFX on Metal, FSR 1 on other drivers) scales it up to
+## the window. The anti-aliasing row still applies, at the lower resolution. The 2D cockpit, HUD and MFDs are
+## canvas items: Godot draws them after the upscale, at the window's resolution. Godot lowers the texture mip bias by
+## log2(scale) itself. Spatial, because the temporal upscalers need motion vectors, which cost about 4 ms at 4K
+## (docs/graphics-research.md §3.10).
+const UPSCALE := {"off": 1.0, "quality": 0.77, "balanced": 0.67}
+
 ## Terrain close up: the detail texture's strength (0 = off; global shader parameter, terrain.gdshader).
 const DETAIL := 1.0
 const Terrain := preload("res://terrain/terrain.gd")
@@ -39,6 +47,9 @@ static func apply(vp: Viewport, env: Environment) -> void:
 	vp.msaa_3d = aa[0]
 	vp.screen_space_aa = aa[1]
 	vp.use_taa = aa[2]
+	var scale: float = UPSCALE.get(Settings.upscaling, 1.0)
+	vp.scaling_3d_scale = scale
+	vp.scaling_3d_mode = upscale_mode() if scale < 1.0 else Viewport.SCALING_3D_MODE_BILINEAR
 	var close: bool = Settings.terrain_closeup
 	vp.anisotropic_filtering_level = Viewport.ANISOTROPY_16X if close \
 			else ProjectSettings.get_setting("rendering/textures/default_filters/anisotropic_filtering_level", 2)
@@ -51,6 +62,13 @@ static func apply(vp: Viewport, env: Environment) -> void:
 		_surf_tex = null
 		_surf_img = null
 	_apply_sky(env, Settings.sky == "atmospheric")
+
+
+## The spatial upscaler of the running driver: MetalFX on Metal, FSR 1 on the others.
+static func upscale_mode() -> Viewport.Scaling3DMode:
+	if RenderingServer.get_current_rendering_driver_name() == "metal":
+		return Viewport.SCALING_3D_MODE_METALFX_SPATIAL
+	return Viewport.SCALING_3D_MODE_FSR
 
 
 ## "Atmospheric": a physically based sky (terrain/atmosphere.gdshader: Rayleigh / Mie scattering with the sun's

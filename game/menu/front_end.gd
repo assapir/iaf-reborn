@@ -143,6 +143,7 @@ const EXTRAS := [
 	["antialiasing", "Anti-aliasing", [["MSAA 4x", "msaa4"], ["+ FXAA", "msaa4_fxaa"], ["TAA", "taa"]]],
 	["terrain_closeup", "Terrain close up", [["Original", false], ["Detailed", true]]],
 	["sky", "Sky", [["Original", "original"], ["Atmospheric", "atmospheric"]]],
+	["upscaling", "Upscaling", [["Native", "off"], ["Quality", "quality"], ["Balanced", "balanced"]]],
 	# Ours: the F-35I (docs/f35i.md) flies from the Jet list button it replaces; more than three choices cycle.
 	["f35i_slot", "F-35I replaces", [["Off", -1], ["F-15", 0], ["F-16", 1], ["F-4E", 2], ["Kurnass 2000", 3],
 		["Lavi", 4], ["Kfir", 5], ["Mirage", 6]]],

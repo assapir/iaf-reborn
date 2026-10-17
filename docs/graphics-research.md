@@ -238,11 +238,41 @@ clickables, then the F-15C.
 - **Real gain: volumetric clouds** (a raymarched cloud layer as a sky shader or Compositor effect). Payoff 4, but a
   cost of ≥ 3–6 ms at 1080p on tile GPUs (bandwidth), so only with upscaling (§3.10).
 
-### 3.10 Upscaling for headroom: MetalFX — payoff (perf), effort S
-Godot 4.7.2 on Metal has **MetalFX spatial and temporal** scaling (`Viewport.SCALING_3D_MODE_METALFX_SPATIAL /
-_TEMPORAL`, checked in our binary), besides FSR 1 / 2. MetalFX temporal at 0.67 scale would buy back most of a 4K
-frame's GPU time for the expensive options (SSAO, clouds). Option: an Extras "Upscaling: Off / MetalFX / FSR 2" row,
-S.
+### 3.10 Upscaling for headroom: MetalFX — done
+**Built:** Preferences → Extras → Upscaling: Native / Quality / Balanced (docs/rendering.md §1). Quality renders the 3D
+scene at 0.77 of the window, Balanced at 0.67. MetalFX spatial scales it up on Metal; FSR 1 does it on other drivers.
+The Anti-aliasing row keeps working at the lower resolution. The 2D cockpit, HUD and MFDs stay at the window's
+resolution.
+
+**Measured** with `tests/godot/_upscale_probe.gd`: mission 231, M4 Pro, 3600×2160 window on the 120 Hz screen. One
+process cycles every mode 12 times, so load from other processes hits every mode alike. Median frame time:
+
+| Mode | Frozen | Frozen + SSAO + SSIL | Live simulation | Live + SSAO + SSIL |
+|---|---|---|---|---|
+| Native, MSAA 4× (default) | 6.42 ms | 15.61 ms | 6.38 ms | 12.91 ms |
+| Native, AA off | 4.38 | 11.81 | | |
+| Native, TAA | 8.30 | 16.04 | | |
+| **Quality**: MetalFX spatial 0.77 + MSAA 4× | 5.79 | 10.97 | 6.09 | 9.05 |
+| **Balanced**: MetalFX spatial 0.67 + MSAA 4× | 4.98 | 9.29 | 5.74 | 8.11 |
+| FSR 1 0.77 + MSAA 4× | 5.87 | 11.25 | | |
+| MetalFX temporal 0.77 / 0.67 / 0.5 | 9.43 / 7.95 / 6.77 | 15.68 / 13.62 / 9.97 | | |
+| FSR 2 0.77 | 11.26 | 16.11 | | |
+
+- **Spatial wins.** Quality saves 0.6 ms on today's scene and 4.6 ms with a heavy per-pixel load (SSAO + SSIL);
+  Balanced saves 1.4 ms and 6.3 ms. The saving grows with the per-pixel cost, so it is headroom for §3.9 clouds and
+  the detailed models.
+- **Temporal costs more than it saves.** MetalFX temporal and FSR 2 need motion vectors, like TAA. That pass costs
+  about 4 ms at 4K here (native TAA 8.30 ms against 4.38 ms with AA off).
+- **At 1920×1080** every mode measures 3.3–3.9 ms frozen: the GPU has room to spare at that size. Separate live runs
+  (one process each) vary by ±2 ms, more than the gaps between the modes.
+- The 60 Hz main screen holds every frame at 16.67 ms; measure on the 120 Hz screen (`--screen 1`).
+
+**Look** (`upscale_cockpit_*.png`, `upscale_external_*.png`, crops `crop_hud_*`, `crop_jet_*`, `crop_ext_*`):
+
+- HUD symbols, the cockpit art and the MFDs look the same in all three crops: they are 2D canvas items.
+- Aircraft textures and terrain keep their detail. MetalFX spatial sharpens edges a little.
+- Balanced breaks a one-pixel 3D line (a seam on the fin) into dots, and fin edges step a little more. Quality
+  keeps the line whole, so Quality is the choice for looks.
 
 ### 3.11 Night lighting — payoff 3, effort M
 - **Open gap:** docs/status.md "Cockpit / MFDs: night lighting". The panel night shifts are known (`[PANEL]` Night
@@ -400,7 +430,7 @@ The options of §3, ranked by payoff for effort.
 |---|---|---|---|---|---|
 | 1 | Terrain heights in Rust for the sensors (CPU spike fix) — **done** | perf | M | 0 | AI combat worst 4.3 → 0.5 ms (221, live) |
 | 2 | Water shader | 3 | M | ~0.2 ms | cheap, visible on every coastal mission |
-| 3 | MetalFX upscaling row | perf | S | − (saves) | headroom for 4–8 |
+| 3 | MetalFX upscaling row — **done** | perf | S | −0.6 / −4.6 ms (Quality, 4K, light / heavy) | headroom for 4–8 |
 | 4 | F-16D detailed model (FlightGear, GPLv2+) | 5 | L | small | the biggest visible jump; licence clean |
 | 5 | F-16D 3D cockpit with live MFDs / Real HUD on the glass, then clickables | 5 | L → XL | small | the "DCS feel"; fixes the real HUD FOV |
 | 6 | GPU particle effects + heat haze | 3 | M | ~0.5 ms | combat looks modern |
@@ -418,6 +448,8 @@ performance pass: the 2–3 ms streaming spikes, and the AI scans on the WorkerT
 ## Shots (local, `assets/converted/research/`)
 `gfx_none.png`, `gfx_shadows_off.png`, `gfx_shadows_hq.png`, `gfx_ssao.png`, `gfx_ssil.png`, `gfx_glow.png`,
 `gfx_vol_fog.png`, `gfx_sdfgi.png`, `gfx_fsr_0.67.png`: mission 311 over Ramat David at 60 m, 3840×2160, one feature each.
+`upscale_{cockpit,external}_{off,quality,balanced}.png`: mission 231 on the runway, 3600×2160, one per Upscaling choice
+(§3.10), with native-pixel crops `crop_hud_*`, `crop_jet_*` and `crop_ext_*`.
 
 ## References
 - FlightGear F-16 (GPL-2.0-or-later, `copyright.txt`): https://github.com/NikolaiVChr/f16

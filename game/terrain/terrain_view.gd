@@ -57,6 +57,9 @@ var in_cockpit: bool:
 			views.snap = null
 			views.set_orbit(rig, CHASE_OFFS, 1.0, Views.CHASE, true)
 var aircraft: Node3D
+## The jet's exterior as seen from its own cockpit (`<plane>_bc`, bdb Objects 0x546: wings, tail, seat back), drawn
+## in the cockpit views instead of the jet model; null for a jet without one (docs/views.md §4.3).
+var own_bc: Node3D
 ## FUN_0057f2a0 case 6 / 0x13 (F10 chase, F9 fly-by): {300, 700, 300, pitch 10°, ·, heading 2°}, scale 1.
 const CHASE_OFFS := [300.0, 700.0, 300.0, 0.1745329, 0.0, 0.0349066]
 ## The padlock target kept for F3 (ctl+0x804).
@@ -1334,6 +1337,19 @@ func _spawn_player() -> void:
 	aircraft.scale = Vector3.ONE * _player_model_scale()
 	# Your own jet rides on the rig; converted models face -Z like Godot, so no rotation needed.
 	rig.add_child(aircraft)
+	# Seen from the cockpit (FUN_004d9d70 → FUN_004da060: display slot 4 = model [8], the *_BC.X, with the crew's
+	# cockpit flag set so pilot and canopy stay hidden): same frame and Present scale as the jet model.
+	var bc = Gltf.object("controllableplanes/%s/%s_bc.gltf" % [player.plane, player.plane])
+	if bc != null:
+		own_bc = Gltf.instance(bc)
+		own_bc.scale = aircraft.scale
+		# Moved by the eye offset (FUN_00444da0 before the draw), so the eye is at the camera (the jet's origin);
+		# the model is cut just behind the eye, so the nose stays out of the view.
+		var e = preload("res://aircraft/aircraft_model.gd").load_descriptor(player.plane).get("eye")
+		if e is Array:
+			own_bc.position = -Vector3(e[0], e[1], e[2]) * aircraft.scale
+		own_bc.visible = false
+		rig.add_child(own_bc)
 
 
 ## Present scale (0x65e) of the player's type's bdb object in the mission's database (default6_1 otherwise).
@@ -1379,6 +1395,10 @@ func _apply_view() -> void:
 	cockpit.visible = fs_mfd == null
 	if aircraft != null:
 		aircraft.visible = not inside and not jet_gone
+	if own_bc != null:
+		# FUN_0045e290: the cockpit, free look and padlock views (1, 0x12, 0x16), not HUD only (5). Snap views
+		# taken as the cockpit's (UNCERTAIN: the slot-2 camera's type).
+		own_bc.visible = views.cockpit_drawn() and not jet_gone
 	camera.current = inside
 	chase.current = not inside
 	# The original cockpit projection (docs/cockpit.md "3D view"): its focal length and projection

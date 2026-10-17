@@ -167,6 +167,12 @@ Numpad snap keys turn the orbit: 8 / 2 pitch, 6 / 4 heading. F2 and 1 / 3 / 7 / 
   * F1 from a turned head returns it to (0, 0) linearly at 45°/s on the larger axis (`FUN_0057fa10`).
   * The panel art pans with the head (docs/cockpit.md "Pans"): 1920 / AzimutAngleDeg px per rad of yaw,
     (PanelHeight + HUD CenterY) / ElevationAngleDeg per rad of pitch.
+* **Own jet in the cockpit views** (1, 0x12, 0x16; `FUN_004d9d70` with the view test `FUN_0045e290`): the player's
+  jet is drawn with its cockpit-view model, model slot [8] = `<plane>_bc.x` (wings, fuselage aft of the eye, tail,
+  seat back and canopy frame; docs/damage.md §2), through `FUN_004da060` (display slot 4, the crew's cockpit flag
+  set so the pilot and canopy stay hidden) and back to slot 1 after the draw (`FUN_004c3210`). The model is moved
+  by the eye offset (`FUN_00444da0`) so the eye sits at the camera. The HUD-only view (5) draws no own jet. Jets
+  without a `_bc` model (F-4E, F-35I) draw none.
 * **Free look** (0x12, `FUN_00582370`):
   * Press: angle = start + rate · 2·t·(1 − 0.9^t). The rate is 45°/s, so the pan speeds up toward 90°/s.
   * Limits: pitch −12°…+85°, yaw unlimited.
@@ -206,6 +212,9 @@ Numpad snap keys turn the orbit: 8 / 2 pitch, 6 / 4 heading. F2 and 1 / 3 / 7 / 
   * **F11** (`terrain_view.gd` `last_weapon`) follows the homing missiles (IR and radar, any launcher's) and falling
     bombs / jettisoned tanks. The TV weapons and rockets, like chaff / flares / gun rounds, are never it.
   * The wreck circle has no attacker field, so it always circles the wreck.
+  * The own jet's `_bc` model (`terrain_view.gd` `own_bc`) is a sibling of the jet model on the rig, at the jet's
+    Present scale, shifted by −eye; it shows in the views where the cockpit art is drawn. Snap views count as the
+    cockpit's (UNCERTAIN: the type of the slot-2 camera).
 * **UNCERTAIN, chosen here**:
   * the fly-by offset axes (x right, y forward, z up);
   * the orbit signs (+heading swings the camera right, +pitch raises it);

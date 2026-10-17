@@ -177,6 +177,12 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     with clear sky between them (without the stretch: a grey veil). The original's cloud texture choice (one of six per
     mission, Cloud256_5 nearly overcast) is kept. The sky follows the time of day's sun (rendering.md §4); at night
     the gradient sky is drawn.
+- **Upscaling** (ours, docs/rendering.md). Rendering only; the default is Native (the 3D scene at the window's
+  resolution).
+  - Quality renders the 3D scene at 0.77 of the window, Balanced at 0.67. MetalFX spatial scales it up (FSR 1 on
+    other drivers).
+  - The cockpit, HUD and MFDs stay at the window's resolution.
+  - It frees GPU time for heavier effects. Balanced turns one-pixel 3D lines into dots.
 - **Terrain imagery** (ours, docs/imagery.md): one row per region (Israel / outside Israel), default "Original".
   - Original: the 1998 ground texture everywhere.
   - Ours, with a converted modern layer (Sentinel-2 10 m outside Israel, Survey of Israel 2015 2 m in Israel at

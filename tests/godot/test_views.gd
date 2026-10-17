@@ -1,5 +1,5 @@
 # Pause, On-The-Fly menu, FlyTSD, time compression and the views (docs/views.md, docs/front-end.md §16):
-# Views: F1 cockpit / HUD only, F10 chase behind the jet, F9 fly-by gliding in, snaps and F2 back view while
+# Views: F1 cockpit / HUD only (the own jet's _bc model in the cockpit views), F10 chase behind the jet, F9 fly-by gliding in, snaps and F2 back view while
 # held, cockpit pans (free look), orbit pans / zoom in the external views, padlock, targets missing = no change,
 # a followed object destroyed = wreck circle.
 # Ctrl+P freezes the sim (sim time stops) and passes only Ctrl+P; Ctrl+O opens the menu (sim frozen),
@@ -106,9 +106,13 @@ func run() -> void:
 	# --- views ---
 	var V = tv.Views
 	check(tv.views.type == V.COCKPIT and tv.cockpit.view_mode == 0, "starts in the cockpit")
+	# Own jet from the cockpit (FUN_004d9d70): the *_BC model in 1 / 0x12 / 0x16, the jet model outside.
+	check(tv.own_bc != null and tv.own_bc.visible and not tv.aircraft.visible, "cockpit: the own jet's _bc model drawn")
+	check(tv.own_bc.scale == tv.aircraft.scale, "the _bc model at the jet's Present scale")
 	press(tv, KEY_F1)
 	await frames(1)
 	check(tv.views.type == V.HUD_ONLY and tv.cockpit.view_mode == 1 and tv.in_cockpit, "F1: HUD only")
+	check(not tv.own_bc.visible and not tv.aircraft.visible, "HUD only: no own jet")
 	press(tv, KEY_F1)
 	check(tv.views.type == V.COCKPIT, "F1 again: cockpit")
 	# Snap 90 left while Numpad 4 is held, back on release; F2 back view.
@@ -129,6 +133,8 @@ func run() -> void:
 	# Cockpit pan right: free look, accelerating; release stops.
 	press(tv, KEY_KP_6, false, true)
 	check(tv.views.type == V.FREE_LOOK, "Shift+Numpad 6: free look")
+	await frames(1)
+	check(tv.own_bc.visible, "free look: the _bc model drawn")
 	await create_timer(1.0).timeout  # 2·t·(1 − 0.9^t)·45°/s: about 9° after 1 s
 	var y1: float = tv.views.head_angles().x
 	check(y1 > 0.0, "the head turns right (%.3f)" % y1)
@@ -147,6 +153,7 @@ func run() -> void:
 	press(tv, KEY_F10)
 	await frames(3)
 	check(tv.views.type == V.CHASE and tv.chase.current and not tv.in_cockpit and tv.cockpit.view_mode == 2, "F10: chase, messages only")
+	check(tv.aircraft.visible and not tv.own_bc.visible, "chase: the jet model, not the _bc")
 	var rel: Vector3 = tv.chase.global_position - tv.rig.global_position
 	var back: float = rel.dot(tv.rig.global_basis.z)
 	check(back > 0.0 and absf(rel.length() - tv.views.dist) < 1.0 + 0.2 * tv.views.dist, "the camera is behind the jet at the rope length (%.0f m, dist %.0f)" % [rel.length(), tv.views.dist])

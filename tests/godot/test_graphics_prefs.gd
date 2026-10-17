@@ -102,6 +102,18 @@ func run() -> void:
 	check(vp.msaa_3d == Viewport.MSAA_4X and vp.screen_space_aa == Viewport.SCREEN_SPACE_AA_DISABLED and not vp.use_taa
 			and vp.anisotropic_filtering_level == Viewport.ANISOTROPY_4X and RO.terrain_detail == 0.0
 			and env.sky.sky_material is ProceduralSkyMaterial, "defaults: MSAA 4x, 4x anisotropic, no terrain detail, gradient sky")
+	check(vp.scaling_3d_mode == Viewport.SCALING_3D_MODE_BILINEAR and vp.scaling_3d_scale == 1.0, "upscaling off: 3D at native resolution")
+	for u in [["quality", 0.77], ["balanced", 0.67]]:
+		Settings().upscaling = u[0]
+		tv.apply_render_options()
+		check(vp.scaling_3d_mode == RO.upscale_mode() and is_equal_approx(vp.scaling_3d_scale, u[1])
+				and vp.msaa_3d == Viewport.MSAA_4X, "upscaling %s: spatial upscaler at %.2f, MSAA kept" % u)
+	check(RO.upscale_mode() == (Viewport.SCALING_3D_MODE_METALFX_SPATIAL if RenderingServer.get_current_rendering_driver_name() == "metal"
+			else Viewport.SCALING_3D_MODE_FSR), "upscaler: MetalFX spatial on Metal, FSR 1 elsewhere")
+	Settings().upscaling = "off"
+	tv.apply_render_options()
+	check(vp.scaling_3d_mode == Viewport.SCALING_3D_MODE_BILINEAR and vp.scaling_3d_scale == 1.0 and vp.msaa_3d == Viewport.MSAA_4X,
+			"upscaling off again: native")
 	Settings().antialiasing = "msaa4_fxaa"
 	tv.apply_render_options()
 	check(vp.msaa_3d == Viewport.MSAA_4X and vp.screen_space_aa == Viewport.SCREEN_SPACE_AA_FXAA and not vp.use_taa, "anti-aliasing + FXAA")
@@ -136,12 +148,16 @@ func run() -> void:
 	check(re.search(code) == null and not drawn.is_empty()
 			and drawn.all(func(m): return m.mesh.surface_get_format(0) & Mesh.ARRAY_FORMAT_TANGENT == 0),
 			"terrain shader needs no tangents (the grid has none: no Godot warning)")
+	Settings().upscaling = "balanced"
 	var cfg: ConfigFile = Settings().write_config()
 	Settings().antialiasing = "msaa4"
 	Settings().terrain_closeup = false
 	Settings().sky = "original"
+	Settings().upscaling = "off"
 	Settings().read_config(cfg)
-	check(Settings().antialiasing == "taa" and Settings().terrain_closeup and Settings().sky == "atmospheric", "render options saved and loaded")
+	check(Settings().antialiasing == "taa" and Settings().terrain_closeup and Settings().sky == "atmospheric"
+			and Settings().upscaling == "balanced", "render options saved and loaded")
+	Settings().upscaling = "off"
 	Settings().antialiasing = "msaa4"
 	Settings().terrain_closeup = false
 	Settings().sky = "original"

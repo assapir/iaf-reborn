@@ -42,15 +42,9 @@ ranked order, are in [docs/graphics-research.md](graphics-research.md).
   §3.13.
 - **Modern DEM** (SRTM / Copernicus 30 m) for finer relief. (The modern imagery itself: Sentinel-2 outside Israel is
   done, docs/imagery.md; Survey of Israel 2 m over Israel is done too; SPOT 5 is left, below.)
-- **Own jet seen from the cockpit** (wishlist): looking to the sides or back (snap views, free look, padlock) shows
-  your own wings, tail and stores. Today every cockpit view hides the player's model (`terrain_view.gd`
-  `_apply_view`: `aircraft.visible = not inside`). Steps:
-  1. First check the original: find in the exe whether the cockpit views draw the player's model (cite the
-     FUN_), and look at the snap-view art.
-  2. If the original draws it, this is a fidelity fix and becomes the default. Otherwise it goes behind an Extras
-     switch, with the original as the default.
-  3. Draw the model from the eye point with the near plane close enough for the canopy rails, and hide the parts
-     inside the cockpit. It looks best with the detailed models (graphics-research.md §3.7, §3.13).
+- **Own jet seen from the cockpit** — done (a fidelity fix, docs/views.md §4.3): the original draws the jet's
+  cockpit-view model (`<plane>_bc`) in the cockpit, free-look and padlock views; the port does too. With the
+  detailed models (graphics-research.md §3.7, §3.13) a detailed cockpit-view model can follow.
 - **Realistic 3D cockpit** (wishlist; Extras switch, the original 2D cockpit by default): a modelled cockpit per jet
   (DCS-style: free head look, the real panel layout, clickable switches, the MFDs / HUD / gauges drawn live on it),
   together with the high-detail model of that jet, the F-16 first.

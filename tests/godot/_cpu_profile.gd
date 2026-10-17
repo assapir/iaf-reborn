@@ -2,7 +2,8 @@
 # here between Time.get_ticks_usec(), the rig flown straight ahead as in _flight_bench.gd; plus the render thread's
 # CPU time (viewport_get_measured_render_time_cpu) and the frame setup time. PROFILE_MISSION (default 221: many AI jets,
 # SAMs), PROFILE_ALT (m above the ground, default 150), PROFILE_SECS (default 15), PROFILE_LIVE=1 (the simulation runs: the
-# jet flies its flight model, the AI and weapons work; else frozen and the rig is moved). docs/graphics-research.md.
+# jet flies its flight model, the AI and weapons work; else frozen and the rig is moved), PROFILE_UPSCALING (Settings.upscaling,
+# default off). docs/graphics-research.md.
 #   IAF_DEFAULT_SETTINGS=1 godot --path game --resolution 1920x1080 -s ../tests/godot/_cpu_profile.gd
 extends "res://../tests/godot/base.gd"
 
@@ -10,6 +11,8 @@ extends "res://../tests/godot/base.gd"
 func run() -> void:
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	var env := func(k: String, d: float) -> float: return float(OS.get_environment(k)) if OS.get_environment(k) != "" else d
+	if OS.get_environment("PROFILE_UPSCALING") != "":
+		Settings().upscaling = OS.get_environment("PROFILE_UPSCALING")
 	var tv = await start_mission(int(env.call("PROFILE_MISSION", 221.0)))
 	var live := OS.get_environment("PROFILE_LIVE") == "1"
 	tv.frozen = not live
@@ -66,7 +69,7 @@ func run() -> void:
 		setup += RenderingServer.get_frame_setup_time_cpu()
 		frame += dt * 1000.0
 		n += 1
-	print("PROFILE frames %d  frame %.2f ms  render-thread cpu %.2f ms  frame setup %.2f ms" % [n, frame / n, render_cpu / n, setup / n])
+	print("PROFILE %s 3D mode %d scale %.2f frames %d  frame %.2f ms  render-thread cpu %.2f ms  frame setup %.2f ms" % [str(root.size), tv.get_viewport().scaling_3d_mode, tv.get_viewport().scaling_3d_scale, n, frame / n, render_cpu / n, setup / n])
 	for k in sum:
 		print("  %-20s avg %6.3f ms  worst %7.2f ms" % [k, sum[k] / n, worst[k]])
 	print("RESULT PASS")
