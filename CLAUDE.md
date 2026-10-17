@@ -75,9 +75,11 @@ Rule of placement: game logic belongs in the Rust crates. Godot renders and wire
 
 - **Original by default.** Logic, layout, timing and colours match the original v1.1 exe. Any improvement or new
   content is an opt-in switch (Preferences → Extras) and is recorded in `docs/deviations.md`.
-- The original printed manual (Hebrew, 72 pages) is in `assets/manual_he/<page>.jpg` when downloaded from
-  `https://www.old-games.org/guides/pages/iaf/<1..72>.jpg`. Use it as a reference for what the game intends; the exe wins
-  where they differ. The CDs hold no manual file.
+- The original manual is a reference for what the game intends; the exe wins where they differ. The CDs hold no
+  manual file. English (typeset PDF, 124 pages, text searchable): `assets/manual_en/iaf_manual_en.pdf`, merged from the
+  chapter PDFs in the Internet Archive's replacementdocs mirror (`p31-replacementdocs`, `ReplacementDocs.zip/Microsoft -
+  Windows/Janes - Israeli Air Force (Complete Documentation) [585]/`). Hebrew (72 low-res scans):
+  `assets/manual_he/<page>.jpg` from `https://www.old-games.org/guides/pages/iaf/<1..72>.jpg`.
 - Derive behaviour from the decompiled exe. Docs and code comments cite functions as `FUN_xxxxxxxx` (v1.1
   addresses; `docs/v1.1.md` maps them to v1.0).
 - When behaviour changes, update the relevant `docs/*.md` in the same change, and update `docs/status.md` for what
