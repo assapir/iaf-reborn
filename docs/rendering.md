@@ -405,9 +405,20 @@ runway cells:
    nine tenths of the points across the runway bright, over ≥ 12 m) within 900 m of the end, else the end itself.
 5. **Designation numbers**: the runway's own heading over ten, 01–36 (docs/deviations.md: the art's template numbers
    are covered).
-6. **The paved surface** (a mask, 2.5 m pixels): pixels of the runway's colour, of the taxiways' colour (sampled along
-   iaf.ibx's taxi paths) and the aprons' blue / purple tint, roads dropped, reached from the runways within 1.5 km.
-   Concrete (the aprons' tint) is a second channel.
+6. **The paved surface** (a mask, 2.5 m pixels). A pixel counts as paved when its colour is one of these:
+   - pavement grey (little colour, not brown, not dark), anywhere;
+   - the aprons' blue / purple tint, anywhere;
+   - the runway's own colour, within 100 m of the runway leaves;
+   - a taxiway's own colour. Taxiways are often lighter or warmer than the runway, and differ from each other and from
+     the aprons, so each segment of iaf.ibx's taxi paths samples its own colour (the median of its grey samples off
+     the runways). That colour counts within 30 m of the segment, and within 600 m of the runway leaves for pixels that
+     are not dark: taxiways no taxi path follows, such as Ramon's parallel taxiways, have the same paving.
+
+   Roads (narrower than 12 m) are dropped, and only pixels reached from the runways within 1.5 km stay. The edge is
+   then closed over 5 m (gaps and notches filled). Within 40 m of the runways' sides it is also opened over 7.5 m: the
+   shoulders' worn grey made a wavy fringe there, and the opening drops it but keeps the wider taxiway junctions.
+   Concrete (the aprons' tint) is a second channel. The file stores both as coverage blurred over ≈ 5 m, so the edge
+   lies where the value is 0.5.
 7. **Taxi lines**: iaf.ibx's taxi paths (runway → hangars, hangars → runway, each hangar's turn point → hangar), the
    paths the AI taxis, as a distance field in the mask's third channel (0–10 m, 4 cm steps).
 8. **No runway in the art** (bases only in the coarse imagery): the AI's runway, 3000 × 45 m from 150 m behind the
@@ -437,6 +448,9 @@ shader its mask and a small float texture: per runway its centre, direction, hal
 thresholds. In the terrain's fragment, inside the mask's rectangle and within 6 km
 (faded from 2.5 km):
 
+- **Edge**: the mask is read with bilinear filtering, and the pavement starts where the paved coverage crosses 0.5,
+  over one screen pixel (from `fwidth`). So the edge is smooth instead of following the mask's 2.5 m pixels; far
+  away the mipmaps soften it.
 - **Surface**: the imagery blurred to ≈ 16 m gives the tone (so it fades into the imagery far away), pulled 60 %
   toward real asphalt's brightness (albedo 0.1) so the paint stands out on light and dark art alike. Variation:
   patches (≈ 40 m), grain (≈ 2 m), 7.5 m paving lanes with dark seams, repaired patches (1 in 8 of 40 × 7.5 m cells).

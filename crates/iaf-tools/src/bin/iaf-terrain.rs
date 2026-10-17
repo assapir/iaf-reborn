@@ -51,7 +51,7 @@ fn main() -> Result<()> {
 
 /// `iaf-terrain airbases`: the airbases' runways, taxi paths and paved surface from the 1998 art and iaf.ibx
 /// (docs/rendering.md §7): `<out>/airbases.json` and one paved-surface mask per base (`<out>/airbases/<name>.png`:
-/// red = paved, green = concrete, blue = the distance to the nearest taxi path, 0–10 m). `--debug` also writes each base's art with the runways, taxi paths and the mask drawn on it.
+/// red = paved, green = concrete (both as coverage blurred over ≈ 5 m; the edge is at 0.5), blue = the distance to the nearest taxi path, 0–10 m). `--debug` also writes each base's art with the runways, taxi paths and the mask drawn on it.
 fn airbases(install: &Path, theatre: &Path, out: &Path, debug: Option<&Path>) -> Result<()> {
     use iaf_tools::airbases;
     let t = iaf_tools::imagery::Theatre::load(theatre)?;
@@ -63,10 +63,17 @@ fn airbases(install: &Path, theatre: &Path, out: &Path, debug: Option<&Path>) ->
     for b in &bases {
         let g = &b.paved;
         let taxi = b.taxi_distance();
+        // Paved and concrete as coverage blurred over ≈ 5 m: the shader's bilinear lookup then finds a smooth edge at 0.5.
+        let soft = |v: &[bool]| {
+            let mut f: Vec<f32> = v.iter().map(|&b| b as u8 as f32 * 255.0).collect();
+            iaf_tools::imagery::blur(&mut f, g.w, g.h, 1);
+            f
+        };
+        let (paved, concrete) = (soft(&g.v), soft(&b.concrete));
         let mask = image::RgbImage::from_fn(g.w as u32, g.h as u32, |x, y| {
             let k = y as usize * g.w + x as usize;
             let t = (taxi[k] / airbases::TAXI_FIELD_M as f32 * 255.0).round().clamp(0.0, 255.0) as u8;
-            image::Rgb([if g.v[k] { 255 } else { 0 }, if b.concrete[k] { 255 } else { 0 }, t])
+            image::Rgb([paved[k].round() as u8, concrete[k].round() as u8, t])
         });
         let file = format!("airbases/{}.png", b.name.to_lowercase());
         mask.save(out.join(&file))?;

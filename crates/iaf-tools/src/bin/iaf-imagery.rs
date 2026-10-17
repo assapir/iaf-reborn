@@ -43,6 +43,8 @@ struct Spec {
 }
 
 const SENTINEL2: Spec = Spec { id: "sentinel2", layers: ["sentinel2", "sentinel2_modern"], unit_level: 5, layer_level: 3, outside_israel: true };
+/// Work units are compared by their rect plus this margin (m): the node margins (≈ 640 m at level 1) and feathers.
+const UNIT_PAD_M: f64 = 1000.0;
 const MAPI2015: Spec = Spec { id: "mapi2015", layers: ["mapi2015", "mapi2015_modern"], unit_level: 4, layer_level: 1, outside_israel: false };
 
 /// One Survey of Israel sheet: a GeoTIFF inside a downloaded ZIP.
@@ -69,6 +71,9 @@ struct Unit {
     geo: [f64; 4],
     itm: [f64; 4],
     sheets: Vec<String>,
+    /// The rules tag of the unit and its margin (Rules::tag), and whether an airbase site reaches into it.
+    rules: String,
+    on_base: bool,
 }
 
 fn main() -> Result<()> {
@@ -128,7 +133,7 @@ fn main() -> Result<()> {
         }
         return Ok(());
     }
-    let usage = "usage: iaf-imagery sentinel2|mapi2015 <install-dir> <theatre-dir> <out-root> [--sheets DIR] [--area lon0,lat0,lon1,lat1] [--dry-run] [--threads N]\n       iaf-imagery compare <theatre-dir> <layers-root> <level> <i> <j> <out.png>\n       iaf-imagery footprints <install-dir> <theatre-dir> <out-dir>";
+    let usage = "usage: iaf-imagery sentinel2|mapi2015 <install-dir> <theatre-dir> <out-root> [--sheets DIR] [--area lon0,lat0,lon1,lat1] [--dry-run] [--stale] [--threads N]\n       iaf-imagery compare <theatre-dir> <layers-root> <level> <i> <j> <out.png>\n       iaf-imagery footprints <install-dir> <theatre-dir> <out-dir>";
     let [source, install, theatre, out, rest @ ..] = &args[..] else { bail!(usage) };
     let spec = match source.as_str() {
         "sentinel2" => SENTINEL2,
@@ -137,6 +142,7 @@ fn main() -> Result<()> {
     };
     let mut area: Option<[f64; 4]> = None;
     let mut dry = false;
+    let mut stale = false;
     let mut threads = 4;
     let mut sheets = Path::new(install).join("../source/imagery/mapi2015");
     let mut it = rest.iter();
@@ -147,12 +153,13 @@ fn main() -> Result<()> {
                 area = Some(v.try_into().map_err(|_| anyhow::anyhow!("--area wants lon0,lat0,lon1,lat1"))?);
             }
             "--dry-run" => dry = true,
+            "--stale" => stale = true,
             "--threads" => threads = it.next().context(usage)?.parse()?,
             "--sheets" => sheets = PathBuf::from(it.next().context(usage)?),
             _ => bail!(usage),
         }
     }
-    run(&spec, Path::new(install), Path::new(theatre), Path::new(out), &sheets, area, dry, threads)
+    run(&spec, Path::new(install), Path::new(theatre), Path::new(out), &sheets, area, dry, stale, threads)
 }
 
 /// Points along a node's outline (17 per side).
@@ -321,7 +328,7 @@ fn file_date(p: &Path) -> Result<String> {
 }
 
 #[allow(clippy::too_many_arguments)]
-fn run(spec: &Spec, install: &Path, theatre_dir: &Path, out: &Path, sheets_dir: &Path, area: Option<[f64; 4]>, dry: bool, threads: usize) -> Result<()> {
+fn run(spec: &Spec, install: &Path, theatre_dir: &Path, out: &Path, sheets_dir: &Path, area: Option<[f64; 4]>, dry: bool, stale: bool, threads: usize) -> Result<()> {
     let t0 = std::time::Instant::now();
     let theatre = Theatre::load(theatre_dir)?;
     let rules = Rules::load(install, spec.outside_israel, &theatre)?;
@@ -347,7 +354,10 @@ fn run(spec: &Spec, install: &Path, theatre_dir: &Path, out: &Path, sheets_dir: 
             if area.is_some_and(|a| overlap(&a, &geo) <= 0.0) || !rules.node_wanted(k) {
                 continue;
             }
-            let mut u = Unit { k, geo, itm: [0.0; 4], sheets: Vec::new() };
+            // The unit's rect with UNIT_PAD_M around it: node margins and feathers reach that far.
+            let pad = UNIT_PAD_M / iaf_tools::georef::UNITS_TO_METRES;
+            let r = [(i * su) as f64 - pad, (j * su) as f64 - pad, ((i + 1) * su) as f64 + pad, ((j + 1) * su) as f64 + pad];
+            let mut u = Unit { k, geo, itm: [0.0; 4], sheets: Vec::new(), rules: rules.tag(r), on_base: rules.touches_base(r) };
             if let Prep::Mapi { sheets, .. } = &prep {
                 let b = bbox(pts.iter().map(|p| itm::from_wgs84(p[0], p[1])));
                 if !sheets.iter().any(|s| overlap(&b, &s.bbox) > 0.0) {
@@ -360,6 +370,11 @@ fn run(spec: &Spec, install: &Path, theatre_dir: &Path, out: &Path, sheets_dir: 
             }
             units.push(u);
         }
+    }
+    // --stale (after a restore from a mirror): only the units whose mark is out of date, and the unmarked ones on an
+    // airbase (written by an older tool, they may hold the old rules); units not converted yet stay so.
+    if stale {
+        units.retain(|u| !matches!(unit_done(&work, u), Err("no mark")) || u.on_base);
     }
     let per_unit = 1usize << (2 * (spec.unit_level - spec.layer_level));
     match &mut prep {
@@ -388,7 +403,7 @@ fn run(spec: &Spec, install: &Path, theatre_dir: &Path, out: &Path, sheets_dir: 
             // Output: the sheets' area in level-1 nodes (2.54 km), ≈ 0.45 MB per node and look, + ⅓ coarser.
             let km2: f64 = sheets.iter().map(|s| (s.bbox[2] - s.bbox[0]) * (s.bbox[3] - s.bbox[1]) / 1e6).sum();
             let node_km = imagery::node_span(spec.layer_level) as f64 * iaf_tools::georef::UNITS_TO_METRES / 1000.0;
-            let todo = units.iter().filter(|u| unit_done(&work, u).is_none()).count();
+            let todo = units.iter().filter(|u| unit_done(&work, u).is_err()).count();
             println!(
                 "{} sheets in {} ZIPs ({:.0} km²); {} work units (20 km), {} to (re)convert, up to {} level-1 nodes; reads ≈ {:.1} GB from the ZIPs, output ≈ {:.1} GB for both looks",
                 sheets.len(),
@@ -402,6 +417,16 @@ fn run(spec: &Spec, install: &Path, theatre_dir: &Path, out: &Path, sheets_dir: 
             );
         }
     }
+    // Units to (re)convert and why (a missing mark, changed sheets, changed rules).
+    let mut unmarked = 0;
+    for u in &units {
+        match unit_done(&work, u) {
+            Err("no mark") => unmarked += 1,
+            Err(why) => println!("  unit {} {} to convert again: {why}", u.k.1, u.k.2),
+            Ok(_) => {}
+        }
+    }
+    println!("  {unmarked} units not converted yet");
     if dry {
         return Ok(());
     }
@@ -422,11 +447,14 @@ fn run(spec: &Spec, install: &Path, theatre_dir: &Path, out: &Path, sheets_dir: 
                         let n = next.fetch_add(1, Ordering::Relaxed);
                         let Some(u) = units.get(n) else { return Ok(()) };
                         let keys = match unit_done(&work, u) {
-                            Some(keys) => keys,
-                            None => {
+                            Ok(keys) => keys,
+                            Err(_) => {
                                 let keys = convert_unit(spec, u, &prep, &theatre, &rules, &warp, &work, out, &mut cache)
                                     .with_context(|| format!("unit {:?}", u.k))?;
-                                let mut text = if u.sheets.is_empty() { String::new() } else { format!("# {}\n", u.sheets.join(" ")) };
+                                let mut text = format!("rules {}\n", u.rules);
+                                if !u.sheets.is_empty() {
+                                    text += &format!("# {}\n", u.sheets.join(" "));
+                                }
                                 text.extend(keys.iter().map(|k| format!("{} {} {}\n", k.0, k.1, k.2)));
                                 std::fs::write(mark(&work, u), text)?;
                                 keys
@@ -489,22 +517,33 @@ fn mark(work: &Path, u: &Unit) -> PathBuf {
     work.join(format!("done_{}_{}", u.k.1, u.k.2))
 }
 
-/// The keys a finished unit wrote, None when it must be (re)converted: no mark, or (local sheets) the sheets
-/// in its window changed since.
-fn unit_done(work: &Path, u: &Unit) -> Option<Vec<Key>> {
-    let text = std::fs::read_to_string(mark(work, u)).ok()?;
-    let sheets = text.lines().find_map(|l| l.strip_prefix("# ")).unwrap_or("");
-    if sheets != u.sheets.join(" ") {
-        return None;
-    }
-    Some(
+/// The keys a finished unit wrote, or why it must be (re)converted.
+fn unit_done(work: &Path, u: &Unit) -> std::result::Result<Vec<Key>, &'static str> {
+    let text = std::fs::read_to_string(mark(work, u)).map_err(|_| "no mark")?;
+    mark_valid(&text, u)?;
+    Ok(
         text.lines()
+            .filter(|l| !l.starts_with("rules ") && !l.starts_with("# "))
             .filter_map(|l| {
                 let v: Vec<u32> = l.split(' ').filter_map(|x| x.parse().ok()).collect();
                 (v.len() == 3).then(|| (v[0], v[1], v[2]))
             })
             .collect(),
     )
+}
+
+/// A mark (`rules <tag>`, `# <sheets>`, then one written key per line) still holds when its sheets and rules tag are the
+/// unit's. A mark from before the rules tags holds only off the airbases (the one rule changed since: RULES_VERSION 2).
+fn mark_valid(text: &str, u: &Unit) -> std::result::Result<(), &'static str> {
+    let sheets = text.lines().find_map(|l| l.strip_prefix("# ")).unwrap_or("");
+    if sheets != u.sheets.join(" ") {
+        return Err("sheets changed");
+    }
+    match text.lines().find_map(|l| l.strip_prefix("rules ")) {
+        Some(tag) if tag != u.rules => Err("rules changed"),
+        None if u.on_base => Err("rules changed (a mark from before the rules tags, on an airbase)"),
+        _ => Ok(()),
+    }
 }
 
 fn save(img: &image::RgbImage, path: &Path) -> Result<()> {
@@ -654,4 +693,28 @@ fn write_manifest(prep: &Prep, dir: &Path, layer: &str) -> Result<()> {
     o.insert("nodes".into(), nodes.into());
     std::fs::write(dir.join("manifest.json"), serde_json::to_string_pretty(&m)?)?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn unit(rules: &str, on_base: bool) -> Unit {
+        Unit { k: (4, 1, 2), geo: [0.0; 4], itm: [0.0; 4], sheets: vec!["a.zip/a.tif".into()], rules: rules.into(), on_base }
+    }
+
+    #[test]
+    fn marks_hold_only_for_the_same_rules_and_sheets() {
+        let mark = "rules v2 00ff\n# a.zip/a.tif\n1 3 4\n";
+        assert_eq!(mark_valid(mark, &unit("v2 00ff", true)), Ok(()));
+        assert_eq!(mark_valid(mark, &unit("v2 0100", true)), Err("rules changed"), "the footprint changed");
+        assert_eq!(mark_valid(mark, &unit("v3 00ff", false)), Err("rules changed"), "RULES_VERSION bumped");
+        let mut u = unit("v2 00ff", false);
+        u.sheets.push("b.zip/b.tif".into());
+        assert_eq!(mark_valid(mark, &u), Err("sheets changed"));
+        // Marks from before the rules tags: kept off the airbases, converted again on them.
+        let old = "# a.zip/a.tif\n1 3 4\n";
+        assert_eq!(mark_valid(old, &unit("v2 00ff", false)), Ok(()));
+        assert!(mark_valid(old, &unit("v2 00ff", true)).is_err());
+    }
 }

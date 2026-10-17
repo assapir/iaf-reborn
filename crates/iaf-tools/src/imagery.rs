@@ -24,6 +24,10 @@ pub const KEEP_INSET_LEVEL: u32 = 2;
 /// The radii below are in pixels at this level (9.9 m per pixel); a finer layer level scales them so
 /// they keep their ground size.
 const REF_LEVEL: u32 = 3;
+/// The composition rules' version, part of every work unit's rules tag (Rules::tag): bump it whenever a change to the
+/// rules or to compose_node changes what a node looks like, so `iaf-imagery` converts the units again.
+/// 1: the airbase / target insets kept as rectangles; 2: only each airbase's footprint kept (crate::airbases).
+pub const RULES_VERSION: u32 = 2;
 /// Extra pixels composed around a node so blurs and feathers match across node borders.
 const MARGIN: i32 = 64;
 /// Feather (box radius; two passes): region / inset / coverage borders ≈ 240 m, airbase footprints ≈ 120 m, the
@@ -211,6 +215,18 @@ impl Rules {
         Allowed { region: in_region && !self.keep.iter().any(|r| Self::in_rect(r, tx, ty)), base, land: TerrainTypes::is_land(mask) }
     }
 
+    /// The rules tag of the terrain rect `r` (units: x0, y0, x1, y1): "v<RULES_VERSION> <hash>" over everything the rules
+    /// decide there (the region, the kept insets and the airbase footprints that reach into it). A work unit whose
+    /// mark holds another tag is converted again. terraintype.dat is left out: it comes with the install.
+    pub fn tag(&self, r: [f64; 4]) -> String {
+        rules_tag(self.israel, self.outside_israel, &self.keep, &self.bases, r)
+    }
+
+    /// True when an airbase site reaches into the terrain rect `r` (units).
+    pub fn touches_base(&self, r: [f64; 4]) -> bool {
+        self.bases.iter().any(|b| overlaps(&b.rect, &r))
+    }
+
     /// True when any pixel of the node may take the layer (sampled on a 32² grid).
     pub fn node_wanted(&self, k: Key) -> bool {
         let s = node_span(k.0) as f64;
@@ -221,6 +237,36 @@ impl Rules {
             })
         })
     }
+}
+
+fn overlaps(a: &[u32; 4], r: &[f64; 4]) -> bool {
+    (a[0] as f64) < r[2] && (a[2] as f64) > r[0] && (a[1] as f64) < r[3] && (a[3] as f64) > r[1]
+}
+
+fn rules_tag(israel: [u32; 4], outside_israel: bool, keep: &[[u32; 4]], bases: &[crate::airbases::Site], r: [f64; 4]) -> String {
+    // FNV-1a: stable across Rust releases (std's hasher is not), so the marks stay valid.
+    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+    let mut put = |v: u64| {
+        for b in v.to_le_bytes() {
+            h = (h ^ b as u64).wrapping_mul(0x100_0000_01b3);
+        }
+    };
+    israel.iter().for_each(|&v| put(v as u64));
+    put(outside_israel as u64);
+    for k in keep.iter().filter(|k| overlaps(k, &r)) {
+        k.iter().for_each(|&v| put(v as u64));
+    }
+    for b in bases.iter().filter(|b| overlaps(&b.rect, &r)) {
+        let g = &b.footprint;
+        for (i, _) in g.v.iter().enumerate().filter(|(_, v)| **v) {
+            let (x, y) = (g.x0 + (i % g.w) as f64 * g.cell, g.y0 + (i / g.w) as f64 * g.cell);
+            if x + g.cell > r[0] && x < r[2] && y + g.cell > r[1] && y < r[3] {
+                put(x.to_bits());
+                put(y.to_bits());
+            }
+        }
+    }
+    format!("v{RULES_VERSION} {h:016x}")
 }
 
 /// One source sample: display colour (0..255, the source's own "modern" look), open water, no data.
@@ -452,7 +498,7 @@ pub fn tone(refl: [f32; 3]) -> [f32; 3] {
 
 /// Separable box blur (radius r, clamped edges), twice ≈ a tent / Gaussian. The vertical pass runs
 /// over whole rows (cache-friendly).
-fn blur(img: &mut [f32], w: usize, h: usize, r: i32) {
+pub fn blur(img: &mut [f32], w: usize, h: usize, r: i32) {
     let mut tmp = vec![0f32; img.len()];
     let mut acc = vec![0f32; w];
     let norm = 1.0 / (2 * r + 1) as f32;
@@ -625,6 +671,25 @@ pub fn compose_parent(k: Key, theatre: &Theatre, child_path: impl Fn(Key) -> Opt
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The rules tag changes with a footprint inside the rect (and its margin) and not with one elsewhere.
+    #[test]
+    fn rules_tag_follows_the_footprints() {
+        use crate::airbases::{Grid, Site};
+        let site = |x0: f64, cell_on: usize| {
+            let mut v = vec![false; 100];
+            v[cell_on] = true;
+            Site { rect: [x0 as u32, 0, x0 as u32 + 40, 40], footprint: Grid { x0, y0: 0.0, cell: 4.0, w: 10, h: 10, v } }
+        };
+        let tag = |bases: &[Site]| rules_tag([0, 0, 9000, 9000], false, &[], bases, [0.0, 0.0, 1000.0, 1000.0]);
+        let (none, here, here2, far) = (tag(&[]), tag(&[site(100.0, 5)]), tag(&[site(100.0, 6)]), tag(&[site(5000.0, 5)]));
+        assert!(here.starts_with(&format!("v{RULES_VERSION} ")));
+        assert_ne!(here, none, "a footprint in the rect");
+        assert_ne!(here, here2, "the footprint changed");
+        assert_eq!(far, none, "a footprint outside the rect");
+        assert_eq!(tag(&[site(100.0, 5)]), here, "stable");
+        assert_ne!(rules_tag([0, 0, 9000, 9000], true, &[], &[], [0.0, 0.0, 1000.0, 1000.0]), none, "the region");
+    }
 
     #[test]
     fn feather_is_inside_only() {

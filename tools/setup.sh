@@ -17,7 +17,8 @@
 # token, else through your browser (tools/imagery/fetch-mapi2015-curl.sh), then converted into the
 # Israel layers (needs GDAL; re-run after adding sheets: only the 20 km units they touch are redone). Without the ISO argument only the imagery steps run
 # (on an install set up before).
-# IAF_IMAGERY_MIRROR=user@host:/path/to/repo restores a missing assets/converted/imagery (and the sheets) with rsync.
+# IAF_IMAGERY_MIRROR=user@host:/path/to/repo restores a missing assets/converted/imagery (and the sheets) with rsync;
+# the parts of it that older rules wrote (e.g. the airbases' old rectangles) are then converted again.
 # Safe to re-run: each step overwrites its own output under assets/.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -61,7 +62,29 @@ if [[ -n ${IAF_IMAGERY_MIRROR:-} && ! -d assets/converted/imagery ]]; then
 	mkdir -p assets/converted assets/source
 	rsync -a "$IAF_IMAGERY_MIRROR/assets/converted/imagery" assets/converted/ &&
 		rsync -a "$IAF_IMAGERY_MIRROR/assets/source/imagery" assets/source/ 2>/dev/null || true
+	restored=1
 fi
+
+# After a restore: the work units whose resume mark holds older rules (or no rules tag, on an airbase) are converted
+# again (iaf-imagery --stale; docs/imagery.md §2, step 7). Needs the theatre, so after the base setup.
+imagery_refresh() {
+	[[ ${restored:-} == 1 && -f assets/converted/terrain/theatre/meta.json ]] || return 0
+	command -v gdal_translate >/dev/null || { echo "GDAL is needed to bring the restored imagery up to date (README: prerequisites)"; return 0; }
+	step "imagery: convert again what the restored copy holds from older rules"
+	cargo build -q --release -p iaf-tools
+	if [[ -d assets/converted/imagery/mapi2015 && -d assets/source/imagery/mapi2015 ]]; then
+		./target/release/iaf-imagery mapi2015 assets/install assets/converted/terrain/theatre assets/converted/imagery --stale \
+			--threads "$(( $(nproc) > 2 ? $(nproc) - 2 : 1 ))"
+	elif [[ -d assets/converted/imagery/mapi2015 ]]; then
+		echo "WARNING: the Survey sheets were not restored, so these mapi2015 units keep older rules (e.g. an airbase's old rectangle):"
+		./target/release/iaf-imagery mapi2015 assets/install assets/converted/terrain/theatre assets/converted/imagery --dry-run | grep "convert again" || true
+	fi
+	if [[ -d assets/converted/imagery/sentinel2 ]]; then
+		./target/release/iaf-imagery sentinel2 assets/install assets/converted/terrain/theatre assets/converted/imagery --stale ||
+			echo "WARNING: sentinel2 units with older rules could not be converted again (it reads WorldCover over the network); re-run tools/setup.sh --imagery sentinel2"
+	fi
+	restored=
+}
 
 # Modern terrain imagery (--imagery): after the base setup, or alone on an install set up before.
 imagery_steps() {
@@ -105,6 +128,7 @@ imagery_steps() {
 }
 
 if [[ -z $iso ]]; then
+	imagery_refresh
 	imagery_steps
 	step "done"
 	exit 0
@@ -215,6 +239,7 @@ step "icon and desktop launcher (the original icon from iafjets.exe)"
 ./target/release/iaf-convert icon assets/install assets/converted/icon.png
 tools/install-launcher.sh
 
+imagery_refresh
 [[ -n $imagery ]] && imagery_steps
 
 # The pilot guides' pictures and PDFs (docs/guides; the Reference screen's Pilot guide view): real renders, so only

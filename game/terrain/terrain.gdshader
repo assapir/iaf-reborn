@@ -333,16 +333,19 @@ void fragment() {
 	float kab = terrain_airbases * (1.0 - smoothstep(2500.0, 6000.0, length(VERTEX))) * (1.0 - sea);
 	vec2 muv = (world_xz - airbase_mask_rect.xy) * airbase_mask_rect.zw;
 	if (kab > 0.0 && muv.x > 0.0 && muv.y > 0.0 && muv.x < 1.0 && muv.y < 1.0) {
-		vec2 pm = texture(airbase_mask, muv).rg;  // mipmapped: the edges soften far away
+		// R / G: paved / concrete coverage blurred over ≈ 5 m, so the bilinear lookup has a smooth edge at 0.5, drawn
+		// one pixel wide (fwidth); mipmapped, the edges soften far away.
+		vec2 pm = texture(airbase_mask, muv).rg;
 		vec2 p = world_xz;
-		float paved = smoothstep(0.3, 0.7, pm.r);
+		vec2 pw = clamp(fwidth(pm) * 0.75, vec2(0.02), vec2(0.5));
+		float paved = smoothstep(0.5 - pw.x, 0.5 + pw.x, pm.r);
 		float runway = 0.0;
 		float paint = 0.0;
 		float rubber = 0.0;
 		float yellow = 0.0;
 		float seam = 0.0;
 		float patchy = 0.0;
-		float concrete_mask = smoothstep(0.3, 0.7, pm.g);
+		float concrete_mask = smoothstep(0.5 - pw.y, 0.5 + pw.y, pm.g);
 		for (int i = 0; i < int(airbase_info.x); i++) {
 			vec4 a0 = texelFetch(airbase_data, ivec2(3 * i, 0), 0);
 			vec4 a1 = texelFetch(airbase_data, ivec2(3 * i + 1, 0), 0);

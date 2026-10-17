@@ -59,8 +59,27 @@ The tool converts a source in seven steps:
    else the original's rendition), so a layer node exists at every level above a written node. It rebuilds them all on
    every run (minutes), so they take in units converted later.
 7. **manifest.json** per layer: name, title, region, source, licence, attribution, levels, node list. The tool records
-   finished units in `assets/converted/imagery/.work/` (`.work/mapi2015/` for the sheets, with the sheets each unit
-   used), so a run resumes where it stopped.
+   finished units in `assets/converted/imagery/.work/` (`.work/mapi2015/` for the sheets), so a run resumes where it
+   stopped. Each unit's mark (`done_<i>_<j>`) is a small text file:
+   - `rules v<N> <hash>`: the rules tag. `N` is `RULES_VERSION` (crates/iaf-tools/src/imagery.rs); the hash covers
+     what the rules decide in the unit and 1 km around it: the region, the kept target insets and the airbase
+     footprint cells (§3).
+   - `# <sheets>`: the sheets in the unit's window (`mapi2015` only).
+   - one line per node the unit wrote.
+
+   A run converts a unit again when its mark is missing, its sheets changed or its rules tag differs. So a change to
+   a footprint redoes only the units near that base. A change to the rules or to the composition elsewhere must bump
+   `RULES_VERSION`; that redoes every unit.
+   - Marks from before the rules tags (no `rules` line) still count off the airbases. On an airbase the tool converts
+     the unit again, because it may hold the base's old inset rectangle (`RULES_VERSION` 1).
+   - `--dry-run` lists each unit it would convert again and the reason (`rules changed`, `sheets changed`), and
+     counts the units not converted yet.
+   - `--stale` converts only units whose mark is out of date, plus unmarked units on an airbase; units never
+     converted stay so. `tools/setup.sh` runs it for each layer after restoring imagery from a mirror
+     (`IAF_IMAGERY_MIRROR`), once the theatre exists. The restore copies imagery only when
+     `assets/converted/imagery` is missing, so it never overwrites newer local units. When the sheets were not
+     restored, `mapi2015` cannot be converted again: setup.sh then prints a warning that lists the out-of-date units.
+     When `sentinel2` cannot reach WorldCover, it prints a warning and goes on.
 
 ## 3. Where a layer replaces the original
 
@@ -239,8 +258,8 @@ Details:
   - A unit takes ≈ 2 min on one thread (≈ 1.5 s per level-1 node: warp, rules, blurs over 1536² px with the
     margins).
 - **Level 1** (2.5 m/px, the source's 2 m): the runtime draws level-1 layer nodes as they are (§5).
-- **Incremental**: each unit's mark lists the sheets in its window. A re-run redoes the units whose sheet set changed
-  (sheets added) and rebuilds the coarser levels.
+- **Incremental**: each unit's mark lists the sheets in its window and the rules tag (§2, item 7). A re-run redoes
+  the units whose sheet set changed (sheets added) or whose rules tag differs, and rebuilds the coarser levels.
   - After downloading more sheets, re-run `tools/setup.sh --imagery mapi2015` (or the command above).
   - The tool skips incomplete downloads (`*.part`, `*.crdownload`, a ZIP that does not open).
 - **Rules** (§3): the region is map.ptt's Israel rectangle. Airbase footprints and target site insets (level ≤ 2)

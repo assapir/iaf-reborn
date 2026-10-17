@@ -234,6 +234,26 @@ pub fn is_asphalt(c: [f32; 3]) -> bool {
     mx - mn < 25.0 && (15.0..150.0).contains(&lum)
 }
 
+/// Pavement grey in the 1998 base art, from mid-grey asphalt to light concrete: little colour (less than the beige
+/// shoulders and the brown fields) and not yellow or brown: blue at most 6 below red and green, at most 2 when darkish.
+/// Not dark (PAVEMENT_MIN_LUM): dark fields and orchards are as grey; the runway's own tone covers dark asphalt.
+pub fn is_grey(c: [f32; 3]) -> bool {
+    let (mx, mn) = (c[0].max(c[1]).max(c[2]), c[0].min(c[1]).min(c[2]));
+    let lum = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+    let warm = if lum < 90.0 { 2.0 } else { 6.0 };
+    mx - mn < 14.0 && c[2] >= c[0].min(c[1]) - warm && (PAVEMENT_MIN_LUM..215.0).contains(&lum)
+}
+
+/// Where the taxiways' tones count: little enough colour for worn, warm pavement (brown and red fields have more) and
+/// at least `min_lum` bright. Away from the taxi paths that is PAVEMENT_MIN_LUM: dark ploughed fields and orchards are
+/// as grey as the darkest taxiways.
+fn is_pavement_like(c: [f32; 3], min_lum: f32) -> bool {
+    let lum = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+    c[0].max(c[1]).max(c[2]) - c[0].min(c[1]).min(c[2]) < PAVEMENT_CHROMA && lum >= min_lum
+}
+const PAVEMENT_CHROMA: f32 = 30.0;
+const PAVEMENT_MIN_LUM: f32 = 62.0;
+
 /// One airbase site: the union of its inset records (kept as a rectangle before) and its footprint.
 pub struct Site {
     pub rect: [u32; 4],
@@ -848,13 +868,24 @@ impl Base {
 /// The art's level the bases are read at (2 units, ≈ 2.5 m).
 const BASE_LEVEL: u32 = 1;
 /// The picture: the base's runway leaves (those within BASE_NEAR_M of the lineup point) and BASE_PAD_M around them,
-/// at most BASE_HALF_M from the lineup point. Runways are looked for within RUNWAY_PAD_M of the leaves, the paved
-/// surface within PAVED_PAD_M.
+/// at most BASE_HALF_M from the lineup point. Runways are looked for within RUNWAY_PAD_M of the leaves.
 const BASE_NEAR_M: f64 = 3000.0;
 const BASE_PAD_M: f64 = 800.0;
 const BASE_HALF_M: f64 = 4500.0;
 const RUNWAY_PAD_M: f64 = 250.0;
-const PAVED_PAD_M: f64 = 100.0;
+/// The runway's and taxiways' own tones count this close to the runway leaves (m).
+const TONE_PAD_M: f64 = 100.0;
+/// The taxiways' own tone counts this close to iaf.ibx's taxi paths (m): a taxiway's half width plus the path's offset.
+const TAXI_NEAR_M: f64 = 30.0;
+/// A taxi path segment needs this many pavement-like samples off the runways (one per 2.5 m pixel) for its own tone.
+const TAXI_MIN_SAMPLES: usize = 8;
+/// The taxi paths' tones count anywhere this close to the runway leaves (m).
+const TAXIWAYS_PAD_M: f64 = 600.0;
+/// The paved mask's edge is closed over this radius (m).
+const CLOSE_EDGE_M: f64 = 5.0;
+/// Beside the runways (this far beyond their edges, m) the paved mask is opened over SHOULDER_OPEN_M (m).
+const SHOULDER_M: f64 = 40.0;
+const SHOULDER_OPEN_M: f64 = 7.5;
 /// Paved pixels belong to the base when reached from a runway within this distance (m).
 const PAVED_REACH_M: f64 = 1500.0;
 
@@ -958,18 +989,73 @@ pub fn bases(install: &Path, theatre: &Theatre) -> Result<Vec<Base>> {
             };
             seeds.polygon(&[q(r.ends[0], 0.0, -hw), q(r.ends[1], 0.0, -hw), q(r.ends[1], 0.0, hw), q(r.ends[0], 0.0, hw)]);
         }
-        let near_leaves = leaf.dilate((PAVED_PAD_M / px_m) as usize);
-        // The taxiways' own colour: along the AI's taxi paths.
-        let tsamples: Vec<[f32; 3]> = taxi
-            .iter()
-            .flat_map(|p| p.windows(2).flat_map(|w| (0..20).map(move |k| [w[0][0] + (w[1][0] - w[0][0]) * k as f64 / 20.0, w[0][1] + (w[1][1] - w[0][1]) * k as f64 / 20.0])))
-            .filter_map(at_px)
-            .collect();
-        let taxiway = if tsamples.is_empty() { reference } else { Tone::median(&tsamples) };
-        let paved = Grid { v: rgb.iter().zip(&near_leaves.v).map(|(&c, &r)| r && (reference.matches(c) || taxiway.matches(c) || (is_apron(c) && is_paved(c)))).collect(), ..seeds.clone() };
+        // Paved colours: pavement grey (is_grey: light grey taxiways and aprons too) and the aprons' tint anywhere; the
+        // runway's own tone (which may match dark fields) within TONE_PAD_M of the runway leaves.
+        let near_leaves = leaf.dilate((TONE_PAD_M / px_m) as usize);
+        let mut paved = Grid {
+            v: (0..w * h).map(|k| is_grey(rgb[k]) || (is_apron(rgb[k]) && is_paved(rgb[k])) || (near_leaves.v[k] && reference.matches(rgb[k]))).collect(),
+            ..seeds.clone()
+        };
+        // Each taxiway's own paving (often lighter or warmer than the runway's, and taxiways differ from aprons): per
+        // taxi path segment, the median tone of its pavement-like samples off the runways. It counts within
+        // TAXI_NEAR_M of that segment, and within TAXIWAYS_PAD_M of the runway leaves: the taxiways no taxi path
+        // follows (Ramon's parallel taxiways) have the same paving.
+        let mut tones: Vec<Tone> = Vec::new();
+        let on_runway = |p: [f64; 2]| {
+            let (i, j) = (((p[0] - corner[0]) / px_m) as usize, ((corner[1] - p[1]) / px_m) as usize);
+            i < w && j < h && seeds.v[j * w + i]
+        };
+        let r = TAXI_NEAR_M / px_m;
+        for s in taxi.iter().flat_map(|p| p.windows(2)) {
+            let n = (((s[1][0] - s[0][0]).hypot(s[1][1] - s[0][1]) / px_m).ceil() as usize).max(1);
+            let samples: Vec<[f32; 3]> = (0..=n)
+                .map(|k| [s[0][0] + (s[1][0] - s[0][0]) * k as f64 / n as f64, s[0][1] + (s[1][1] - s[0][1]) * k as f64 / n as f64])
+                .filter(|&p| !on_runway(p))
+                .filter_map(at_px)
+                .filter(|&c| is_paved(c))
+                .collect();
+            if samples.len() < TAXI_MIN_SAMPLES {
+                continue;
+            }
+            let tone = Tone::median(&samples);
+            tones.push(tone);
+            let (a, b) = (to_px(&s[0]), to_px(&s[1]));
+            let ab = [b[0] - a[0], b[1] - a[1]];
+            let len2 = (ab[0] * ab[0] + ab[1] * ab[1]).max(1e-9);
+            let (i0, i1) = ((a[0].min(b[0]) - r).max(0.0) as usize, ((a[0].max(b[0]) + r).max(0.0) as usize).min(w));
+            let (j0, j1) = ((a[1].min(b[1]) - r).max(0.0) as usize, ((a[1].max(b[1]) + r).max(0.0) as usize).min(h));
+            for j in j0..j1 {
+                for i in i0..i1 {
+                    let q = [i as f64 + 0.5 - a[0], j as f64 + 0.5 - a[1]];
+                    let t = ((q[0] * ab[0] + q[1] * ab[1]) / len2).clamp(0.0, 1.0);
+                    let k = j * w + i;
+                    if (q[0] - ab[0] * t).hypot(q[1] - ab[1] * t) < r && is_pavement_like(rgb[k], 0.0) && tone.matches(rgb[k]) {
+                        paved.v[k] = true;
+                    }
+                }
+            }
+        }
+        let near_taxiways = leaf.dilate((TAXIWAYS_PAD_M / px_m) as usize);
+        for (k, p) in paved.v.iter_mut().enumerate() {
+            *p = *p || (near_taxiways.v[k] && is_pavement_like(rgb[k], PAVEMENT_MIN_LUM) && tones.iter().any(|t| t.matches(rgb[k])));
+        }
         let k = (ROAD_M / px_m / 2.0).round() as usize;
         let mut surface = Grid::grow(&seeds, &paved.erode(k).dilate(k), (PAVED_REACH_M / px_m) as usize);
         surface.or(&seeds);
+        // A smooth edge: gaps and notches up to 2 · CLOSE_EDGE_M closed (no opening everywhere: it would cut the narrow
+        // taxiways; the grow from the runways already leaves loose specks out). Along the runways' sides (SHOULDER_M
+        // beyond the edges) the shoulders' worn grey makes a wavy fringe: there the surface is also opened over
+        // SHOULDER_OPEN_M, which keeps the taxiway junctions (wider) and drops the fringe, so the runway edge is straight.
+        let c = (CLOSE_EDGE_M / px_m).round() as usize;
+        let mut surface = surface.dilate(c).erode(c);
+        let band = seeds.dilate((SHOULDER_M / px_m).round() as usize);
+        let o = (SHOULDER_OPEN_M / px_m).round() as usize;
+        let opened = surface.erode(o).dilate(o);
+        for k in 0..w * h {
+            if band.v[k] && !seeds.v[k] {
+                surface.v[k] = opened.v[k];
+            }
+        }
         let concrete = surface.v.iter().zip(&rgb).map(|(&p, &c)| p && is_apron(c) && !is_asphalt(c)).collect();
         out.push(Base { name: sec.name.clone(), lineup, runway_deg: ibx_f(sec, "RunwayNumber").unwrap_or(0.0), runways, taxi, paved: surface, concrete, origin: corner, px_m });
     }
