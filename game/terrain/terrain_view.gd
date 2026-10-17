@@ -44,6 +44,7 @@ var brakes := false
 ## only, free look, padlock, snaps); setting it picks the cockpit (F1's choice) or the chase view (F10).
 const Views := preload("res://terrain/views.gd")
 const RenderOptions := preload("res://terrain/render_options.gd")
+const Airbases := preload("res://terrain/airbases.gd")
 const TimeOfDay := preload("res://terrain/time_of_day.gd")
 const VehicleParts := preload("res://mission/vehicle_parts.gd")
 var views: RefCounted = Views.new()
@@ -323,6 +324,7 @@ func apply_render_options() -> void:
 		clouds.free()
 		clouds = null
 	RenderOptions.apply(get_viewport(), ($WorldEnvironment as WorldEnvironment).environment)
+	Airbases.apply()
 	if clouds != null:
 		clouds.set_atmospheric(Settings.sky == "atmospheric")
 	_tod_t = -INF
@@ -2419,6 +2421,7 @@ func _process(delta: float) -> void:
 	if get_viewport().get_camera_3d() != null:
 		RenderOptions.update_view(($WorldEnvironment as WorldEnvironment).environment,
 				get_viewport().get_camera_3d().global_position, terrain)
+		Airbases.update_view(get_viewport().get_camera_3d().global_position, terrain)
 	var p := rig.position
 	var ground_h = terrain.height_at(p)
 	var agl := "" if ground_h == null else "  (%.0f m above ground)" % (p.y - ground_h)

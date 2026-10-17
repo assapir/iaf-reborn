@@ -200,8 +200,8 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   - Original: the 1998 ground texture everywhere.
   - Ours, with a converted modern layer (Sentinel-2 10 m outside Israel, Survey of Israel 2015 2 m in Israel at
     2.5 m per pixel, each in 1998 or modern colours; later SPOT 5): the layer replaces the original's ground texture
-    only on land in its region. It never covers water, the game's airbases or the original's site insets (level
-    0–2). The Israel layer does replace the original's level-3 (9.9 m) cover of Israel.
+    only on land in its region. It never covers water, the game's airbases (their footprint: runways, taxiways,
+    aprons, shelters and building clusters plus 150 m; imagery.md §3) or the original's target insets (level 0–2). The Israel layer does replace the original's level-3 (9.9 m) cover of Israel.
   - Heights, terrain types and missions stay the original's. The converted layers' credits (CC BY) roll with the
     credits on Quit (docs/credits.md).
   - Data only via `tools/setup.sh --imagery …` (off by default).
@@ -217,6 +217,18 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     speed, width and life; a fireball becomes rolling fire, sparks and dark smoke within the same spot and life, and a
     missile trail becomes a continuous white smoke trail.
   - New content with Detailed: contrails above 9000 m and a heat haze behind each engine.
+- **Airbases** (ours, docs/rendering.md §7). Rendering only; the default is Original (the 1998 imagery's painted
+  runways).
+  - Detailed: within 6 km of the camera, the nearest base's runways, taxiways and aprons get a procedural asphalt /
+    concrete surface with ICAO markings sized to each runway: threshold stripes, designation numbers, centreline,
+    touchdown zone and aiming point marks, edge lines, yellow chevrons before a displaced threshold, yellow taxi
+    lines on the AI's taxi paths, tyre rubber, paving lanes and repairs, apron slabs.
+  - The runway geometry comes from the 1998 art and iaf.ibx (`iaf-terrain airbases`); the flight model's runway
+    surface stays terraintype.dat's.
+  - Designation numbers: the runway's own heading over ten (Ramat David 03/21, 09/27, 15/33; Ramon 05/23). The 1998
+    art paints a template (09/27, 15/33) whatever the heading (formats/ptt.md "Runway number fix"); Detailed covers it.
+  - Bases the art shows only in the coarse imagery (Inshas, Ryak, Aman) get the AI's runway: 3000 × 45 m from 150 m
+    behind the lineup point on RunwayNumber.
 
 **Preferences → Devices**
 - **Detent = MIL** (ours, under THROTTLE, off by default). Original: the throttle lever maps linearly. Ours, with the

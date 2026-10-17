@@ -295,8 +295,10 @@ Built (docs/rendering.md §4–§5, `game/terrain/night_lights.gd`, `tests/godot
 - Next: city lights from the imagery's built-up classes (WorldCover); the panel's floodlight in the 3D cockpit (#5).
 
 ### 3.12 Runway / airbase detail, buildings (OSM) — payoff 3, effort L
-- **Runways:** markings and lights as decals / meshes at the three bases (real layouts: docs/roadmap.md "More
-  airbases").
+- **Runways (built, docs/rendering.md §7):** Graphics → MORE → Airbases = Detailed draws a procedural surface with ICAO
+  markings in the terrain shader at all ten iaf.ibx bases, on the runways, taxiways and aprons derived from the 1998
+  art. The original's light sets (`lt_*_h`) stand ≈ 2 m outside the derived runway edges. Next: runway-holding
+  markings and taxiway edge lines, signs, approach lights; the real layouts stay out (docs/imagery.md §9).
 - **OSM buildings:** the ODbL is share-alike on the *database*. The safe pattern is a derived 3D-building dataset
   generated at setup and kept local in `assets/`, like the imagery.
 - The original's object placement must stay, because missions place targets.

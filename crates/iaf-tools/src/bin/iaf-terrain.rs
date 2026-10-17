@@ -18,6 +18,8 @@ fn main() -> Result<()> {
     match args.iter().map(String::as_str).collect::<Vec<_>>()[..] {
         [_, "theatre", path, out] => theatre(path, Path::new(out), default_threads()),
         [_, "theatre", path, out, threads] => theatre(path, Path::new(out), threads.parse()?),
+        [_, "airbases", install, theatre, out] => airbases(Path::new(install), Path::new(theatre), Path::new(out), None),
+        [_, "airbases", install, theatre, out, "--debug", dbg] => airbases(Path::new(install), Path::new(theatre), Path::new(out), Some(Path::new(dbg))),
         [_, "georef-points", theatre, z9, z10, out, lambda] => {
             georef_points(Path::new(theatre), Path::new(z9), Path::new(z10), Path::new(out), lambda.parse()?)
         }
@@ -39,11 +41,86 @@ fn main() -> Result<()> {
         }
         _ => bail!(
             "usage: iaf-terrain theatre <map.ptt> <out-dir> [threads]\n       \
+             iaf-terrain airbases <install-dir> <theatre-dir> <out-dir> [--debug <dir>]\n       \
              iaf-terrain georef-points <theatre-dir> <eox-z9-dir> <eox-z10-dir> <out.json> <lambda>\n       \
              iaf-terrain geo <points.json> <X> <Y>      (engine metres -> lat lon)\n       \
              iaf-terrain game <points.json> <lat> <lon>  (lat lon -> engine metres X Y)"
         ),
     }
+}
+
+/// `iaf-terrain airbases`: the airbases' runways, taxi paths and paved surface from the 1998 art and iaf.ibx
+/// (docs/rendering.md §7): `<out>/airbases.json` and one paved-surface mask per base (`<out>/airbases/<name>.png`:
+/// red = paved, green = concrete, blue = the distance to the nearest taxi path, 0–10 m). `--debug` also writes each base's art with the runways, taxi paths and the mask drawn on it.
+fn airbases(install: &Path, theatre: &Path, out: &Path, debug: Option<&Path>) -> Result<()> {
+    use iaf_tools::airbases;
+    let t = iaf_tools::imagery::Theatre::load(theatre)?;
+    let bases = airbases::bases(install, &t)?;
+    std::fs::create_dir_all(out.join("airbases"))?;
+    let r1 = |v: f64| (v * 10.0).round() / 10.0;
+    let pt = |p: &[f64; 2]| serde_json::json!([r1(p[0]), r1(p[1])]);
+    let mut list = Vec::new();
+    for b in &bases {
+        let g = &b.paved;
+        let taxi = b.taxi_distance();
+        let mask = image::RgbImage::from_fn(g.w as u32, g.h as u32, |x, y| {
+            let k = y as usize * g.w + x as usize;
+            let t = (taxi[k] / airbases::TAXI_FIELD_M as f32 * 255.0).round().clamp(0.0, 255.0) as u8;
+            image::Rgb([if g.v[k] { 255 } else { 0 }, if b.concrete[k] { 255 } else { 0 }, t])
+        });
+        let file = format!("airbases/{}.png", b.name.to_lowercase());
+        mask.save(out.join(&file))?;
+        let runways: Vec<_> = b.runways.iter().map(|r| serde_json::json!({
+            "ends": [pt(&r.ends[0]), pt(&r.ends[1])], "width": r1(r.width), "heading": (r.heading() * 100.0).round() / 100.0,
+            "length": r1(r.length()), "numbers": r.numbers(), "thresholds": [r1(r.thresholds[0]), r1(r.thresholds[1])],
+        })).collect();
+        println!("{:10} lineup {:?} {:5.1}°: {}", b.name, b.lineup, b.runway_deg,
+            b.runways.iter().map(|r| format!("{:05.1}° {:4.0} × {:2.0} m (thr {:.0}/{:.0})", r.heading(), r.length(), r.width, r.thresholds[0], r.thresholds[1])).collect::<Vec<_>>().join(", "));
+        list.push(serde_json::json!({
+            "name": b.name, "lineup": pt(&b.lineup), "runway_deg": b.runway_deg, "runways": runways,
+            "taxi": b.taxi.iter().map(|p| p.iter().map(pt).collect::<Vec<_>>()).collect::<Vec<_>>(),
+            "mask": {"file": file, "origin": pt(&b.origin), "px_m": b.px_m, "w": g.w, "h": g.h},
+        }));
+        if let Some(dbg) = debug {
+            std::fs::create_dir_all(dbg)?;
+            let s = 2.0f64; // level-1 pixels are 2 units
+            let t0 = airbases::units(b.origin[0], b.origin[1]);
+            let art = t.original_rect(1, (t0[0] / s).round() as i64, (t0[1] / s).round() as i64, g.w, g.h, &mut iaf_tools::imagery::Cache::default())?;
+            let mut img = image::RgbImage::from_fn(g.w as u32, g.h as u32, |x, y| {
+                let k = y as usize * g.w + x as usize;
+                let c = art[k];
+                image::Rgb(if g.v[k] { [c[0] * 0.6 + 100.0, c[1] * 0.6, c[2] * 0.6] } else { c }.map(|v| v.min(255.0) as u8))
+            });
+            let px = |p: &[f64; 2]| ((p[0] - b.origin[0]) / b.px_m, (b.origin[1] - p[1]) / b.px_m);
+            let mut line = |a: &[f64; 2], c: &[f64; 2], col: [u8; 3]| {
+                let (p, q) = (px(a), px(c));
+                let n = ((q.0 - p.0).hypot(q.1 - p.1)).ceil().max(1.0) as usize;
+                for i in 0..=n {
+                    let f = i as f64 / n as f64;
+                    let (x, y) = (p.0 + (q.0 - p.0) * f, p.1 + (q.1 - p.1) * f);
+                    if x >= 0.0 && y >= 0.0 && (x as u32) < img.width() && (y as u32) < img.height() {
+                        img.put_pixel(x as u32, y as u32, image::Rgb(col));
+                    }
+                }
+            };
+            for r in &b.runways {
+                let h = r.heading().to_radians();
+                let o = [h.cos() * r.width / 2.0, -h.sin() * r.width / 2.0];
+                for sgn in [-1.0, 1.0] {
+                    line(&[r.ends[0][0] + sgn * o[0], r.ends[0][1] + sgn * o[1]], &[r.ends[1][0] + sgn * o[0], r.ends[1][1] + sgn * o[1]], [0, 255, 255]);
+                }
+                line(&r.ends[0], &r.ends[1], [0, 255, 0]);
+            }
+            for p in &b.taxi {
+                for w in p.windows(2) {
+                    line(&w[0], &w[1], [255, 255, 0]);
+                }
+            }
+            img.save(dbg.join(format!("{}.png", b.name.to_lowercase())))?;
+        }
+    }
+    std::fs::write(out.join("airbases.json"), serde_json::to_string_pretty(&serde_json::json!({ "bases": list }))?)?;
+    Ok(())
 }
 
 /// `iaf-terrain georef-points`: measures the automatic georeference control points (docs/georef.md

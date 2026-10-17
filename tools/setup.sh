@@ -205,6 +205,9 @@ step "terrain: every level and inset of map.ptt as a node quadtree (docs/formats
 rm -rf assets/converted/terrain/israel_l4  # the old Israel-only layout
 ./target/release/iaf-terrain theatre assets/install/resource/terrain/map.ptt assets/converted/terrain/theatre
 
+step "airbases: runways, taxi paths and paved surface from the 1998 art and iaf.ibx (docs/rendering.md §7, ~3 min)"
+./target/release/iaf-terrain airbases assets/install assets/converted/terrain/theatre assets/converted/terrain
+
 step "Godot extension (flight model)"
 cargo build --release -p iaf-godot
 

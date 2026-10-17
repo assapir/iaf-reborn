@@ -94,7 +94,41 @@ fn main() -> Result<()> {
         row.save(png)?;
         return Ok(());
     }
-    let usage = "usage: iaf-imagery sentinel2|mapi2015 <install-dir> <theatre-dir> <out-root> [--sheets DIR] [--area lon0,lat0,lon1,lat1] [--dry-run] [--threads N]\n       iaf-imagery compare <theatre-dir> <layers-root> <level> <i> <j> <out.png>";
+    if let [cmd, install, theatre, out] = &args[..]
+        && cmd == "footprints"
+    {
+        // The airbase footprints the layers leave to the 1998 inset (docs/imagery.md §3): areas, and the inset art
+        // with the footprint (outside it darkened) per site.
+        let t = Theatre::load(Path::new(theatre))?;
+        let missions = Path::new(theatre).join("../../missions");
+        std::fs::create_dir_all(out)?;
+        for s in iaf_tools::airbases::sites(Path::new(install), &t, &missions)? {
+            let g = &s.footprint;
+            let r = s.rect;
+            let rect_km2 = (r[2] - r[0]) as f64 * (r[3] - r[1]) as f64 * iaf_tools::georef::UNITS_TO_METRES.powi(2) / 1e6;
+            let art = t.original_rect(2, (g.x0 / g.cell) as i64, (g.y0 / g.cell) as i64, g.w, g.h, &mut Cache::default())?;
+            let img = image::RgbImage::from_fn(g.w as u32, g.h as u32, |x, y| {
+                let k = y as usize * g.w + x as usize;
+                let edge = g.v[k] && [(1i64, 0i64), (-1, 0), (0, 1), (0, -1)].iter().any(|(dx, dy)| {
+                    let (a, b) = (x as i64 + dx, y as i64 + dy);
+                    a < 0 || b < 0 || a >= g.w as i64 || b >= g.h as i64 || !g.v[b as usize * g.w + a as usize]
+                });
+                let c = art[k].map(|v| if g.v[k] { v } else { v * 0.45 });
+                image::Rgb(if edge { [255, 40, 40] } else { c.map(|v| v as u8) })
+            });
+            let name = format!("footprint_{}_{}.png", r[0], r[1]);
+            img.save(Path::new(out).join(&name))?;
+            println!("site {:?}: rect {:.1} km², footprint {:.1} km²  {name}", r, rect_km2, g.area_km2());
+            // The missions' units in the site that stand on the layer's ground (outside the footprint).
+            let lineups = iaf_tools::airbases::ibx_lineups(&std::fs::read(Path::new(install).join("iaf.ibx"))?);
+            let units: Vec<_> = iaf_tools::airbases::mission_units(&missions).into_iter().filter(|u| iaf_tools::airbases::on_ground(&lineups, u)).collect();
+            let inside: Vec<_> = units.iter().map(|u| (u, iaf_tools::airbases::units(u[0], u[1]))).filter(|(_, t)| t[0] >= r[0] as f64 && t[0] < r[2] as f64 && t[1] >= r[1] as f64 && t[1] < r[3] as f64).collect();
+            let out: Vec<_> = inside.iter().filter(|(_, t)| !g.at(t[0], t[1])).collect();
+            println!("  units in the site {}, outside the footprint {}: {:?}", inside.len(), out.len(), out.iter().take(if std::env::var("ALL").is_ok() { 9999 } else { 12 }).map(|(u, _)| [u[0].round(), u[1].round()]).collect::<Vec<_>>());
+        }
+        return Ok(());
+    }
+    let usage = "usage: iaf-imagery sentinel2|mapi2015 <install-dir> <theatre-dir> <out-root> [--sheets DIR] [--area lon0,lat0,lon1,lat1] [--dry-run] [--threads N]\n       iaf-imagery compare <theatre-dir> <layers-root> <level> <i> <j> <out.png>\n       iaf-imagery footprints <install-dir> <theatre-dir> <out-dir>";
     let [source, install, theatre, out, rest @ ..] = &args[..] else { bail!(usage) };
     let spec = match source.as_str() {
         "sentinel2" => SENTINEL2,
@@ -290,7 +324,7 @@ fn file_date(p: &Path) -> Result<String> {
 fn run(spec: &Spec, install: &Path, theatre_dir: &Path, out: &Path, sheets_dir: &Path, area: Option<[f64; 4]>, dry: bool, threads: usize) -> Result<()> {
     let t0 = std::time::Instant::now();
     let theatre = Theatre::load(theatre_dir)?;
-    let rules = Rules::load(install, spec.outside_israel)?;
+    let rules = Rules::load(install, spec.outside_israel, &theatre)?;
     let warp = Georef::load()?;
     let work = if spec.id == "sentinel2" { out.join(".work") } else { out.join(".work").join(spec.id) };
     std::fs::create_dir_all(&work)?;

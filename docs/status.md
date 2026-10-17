@@ -57,7 +57,10 @@ STBY / STT / BORE / LRS / TWS / ACM / GMT / MAP are the radar modes (docs/radar.
 
 **3. Missions and general fixes:** the mission sweep (`tools/mission_sweep.sh`), the remaining small bugs below,
 Jump In, the Reference screen, ~~night lighting~~ (done: the
-original's light points and cockpit darkening, Graphics → MORE Night lights; docs/rendering.md §4–§5).
+original's light points and cockpit darkening, Graphics → MORE Night lights; docs/rendering.md §4–§5), detailed
+airbases (Graphics → MORE Airbases: procedural runway / taxiway / apron surface with markings at all ten iaf.ibx bases;
+docs/rendering.md §7) and the airbase footprints of the Survey imagery (the 2 m photo up to the base edge,
+docs/imagery.md §3).
 
 **PARKED (docs/roadmap.md):** imagery: SPOT 5 outside Israel, 1:1 world scale, better AI, cheats, sea level west of
 Suez, extra sounds, multiplayer, setup wizard + launcher, modern aircraft / weapons, Pi 5 profile.

@@ -39,6 +39,7 @@ Set these on the Preferences screen before the flight. Every row starts at the 1
 | Extras | Weapon data | Real weapons | Radar range, gun rounds, missile weights, speeds and ranges |
 | Extras | HUD | Real | The CSF 95 gunsight |
 | Graphics → MORE | Sky, Terrain close up, Imagery | Atmospheric, Detailed, Survey 2 m / Sentinel-2 | A physical sky, ground detail and photo imagery, if setup converted it |
+| Graphics → MORE | Airbases | Detailed | Runways, taxiways and aprons with real markings near the ground |
 | Physics | every row | on | Section 9 lists the ones that change how the Mirage flies |
 | Gameplay | Easy landing, Easy aiming, No blackouts / spins / stalls | off | Real landing limits, real launch rules, g-effects and stalls |
 

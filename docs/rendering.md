@@ -11,8 +11,8 @@ This doc lists the rendering options of the flight scene, what each one sets, an
 
 Code: `game/terrain/render_options.gd` (applied by `terrain_view.gd apply_render_options()` at the start of a flight
 and when the in-flight Preferences close), `terrain/terrain.gdshader`, `terrain/atmosphere.gdshader`,
-`terrain/cloud_layer.gd`, `terrain/night_lights.gd`. Tests: `tests/godot/test_graphics_prefs.gd` (switches → render
-settings, save / load), `test_ui_smoke.gd` (Graphics → MORE and Extras rows in EN / HE), `test_night_lights.gd` (§4 light points, §5), `test_water.gd` (§1.3), `test_particle_effects.gd` (§6).
+`terrain/cloud_layer.gd`, `terrain/night_lights.gd`, `terrain/airbases.gd`. Tests: `tests/godot/test_graphics_prefs.gd` (switches → render
+settings, save / load), `test_ui_smoke.gd` (Graphics → MORE and Extras rows in EN / HE), `test_night_lights.gd` (§4 light points, §5), `test_water.gd` (§1.3), `test_particle_effects.gd` (§6), `test_airbases.gd` (§7).
 
 ## 1. Options
 
@@ -29,6 +29,7 @@ TAA = temporal anti-aliasing.
 | Water | Original / Detailed | in `terrain.gdshader`: waves, sun glint and the sky's reflection on the sea and on lakes (§1.3) |
 | Models | Original / Detailed | Detailed: our detailed aircraft models where one exists (today the F-16D), parsed once and shared, with runtime LODs ([aircraft-models.md](aircraft-models.md)) |
 | Particle effects | Original / Detailed | Detailed: explosions, smoke and missile trails as GPU particles, contrails above 9000 m and a heat haze behind each engine (§6). Takes effect at the next flight |
+| Airbases | Original / Detailed | in `terrain.gdshader`: near the ground, a procedural runway, taxiway and apron surface with ICAO markings over the nearest base's paved surface (§7) |
 
 ### 1.1 Terrain close up
 
@@ -376,4 +377,90 @@ smoke's overdraw sets the cost; the trail spacing (1.5 m) and widths are the kno
 `cmp_*.png`): `bomb_*` (a bomb's hit), `vehicle_*` (a ground vehicle destroyed), `hit_*` (a missile's hit), `air_*`
 (an aircraft destroyed in the air), `trail_2.5` (a missile trail), `haze` (the engines in afterburner, close up, seen
 from behind through the haze).
+
+## 7. Airbases, Detailed (built: game/terrain/airbases.gd, terrain.gdshader)
+
+Preferences → Graphics → MORE → **Airbases = Detailed** (ours, docs/deviations.md §2) draws the nearest base's runways,
+taxiways and aprons as a procedural surface with ICAO markings when the camera is near the ground. Original shows the
+1998 imagery's painted runways. Rendering only: the flight model's runway surface stays terraintype.dat's.
+
+**The data** (`iaf-terrain airbases <install> <theatre> <out>`, run by `tools/setup.sh`; `crates/iaf-tools/src/airbases.rs`).
+For each of iaf.ibx's ten bases, from the 1998 art at level 1 (2.5 m per pixel) around the base's terraintype.dat
+runway cells:
+
+1. **The runway through the lineup point.** iaf.ibx's lineup point and RunwayNumber give a line. The runway's colour
+   is sampled along it (150–1200 m), and the asphalt pixels are the grey ones and those of that colour.
+2. **The other runways.** The search drops asphalt strips narrower than ≈ 28 m (taxiways), then takes the longest
+   straight run of asphalt per heading (0.5° steps; gaps up to 140 m bridged, so a crossing runway does not cut it).
+   It repeats until no run reaches 1800 m.
+3. **Measuring a runway.** The centreline runs through the middles between the edges at 20 % and 80 % of the run
+   (twice). The edges lie where the art gets more than 25 levels brighter than the runway's middle (the shoulders and
+   infield) or stops being asphalt. The ends lie where asphalt stops along the centreline, plus at most 120 m of grey
+   concrete (the ends where the art paints the numbers). A runway is 35–120 m wide and at least 1800 m long.
+4. **Thresholds.** The lineup point is its runway's threshold. Other ends: the art's threshold stripes (a third to
+   nine tenths of the points across the runway bright, over ≥ 12 m) within 900 m of the end, else the end itself.
+5. **Designation numbers**: the runway's own heading over ten, 01–36 (docs/deviations.md: the art's template numbers
+   are covered).
+6. **The paved surface** (a mask, 2.5 m pixels): pixels of the runway's colour, of the taxiways' colour (sampled along
+   iaf.ibx's taxi paths) and the aprons' blue / purple tint, roads dropped, reached from the runways within 1.5 km.
+   Concrete (the aprons' tint) is a second channel.
+7. **Taxi lines**: iaf.ibx's taxi paths (runway → hangars, hangars → runway, each hangar's turn point → hangar), the
+   paths the AI taxis, as a distance field in the mask's third channel (0–10 m, 4 cm steps).
+8. **No runway in the art** (bases only in the coarse imagery): the AI's runway, 3000 × 45 m from 150 m behind the
+   lineup point.
+
+Result (`assets/converted/terrain/airbases.json` and `airbases/<base>.png`):
+
+| base | runways (heading, length × width) | threshold from the ends |
+|---|---|---|
+| Ramon | 229.7° 3516 × 78 m, 050.0° 3374 × 78 m | 124 / 0, 0 / 0 m |
+| Tel Nof | 090.2° 4446 × 92 m, 150.0° 3918 × 92 m | 370 / 98, 86 / 66 m |
+| Ramat David | 270.4° 4264 × 97 m, 150.0° 4122 × 97 m, 029.9° 3264 × 96 m | 672 / 0, 150 / 284, 394 / 396 m |
+| Refidim | 270.0° 3950 × 77 m | 772 / 0 m |
+| Damascus | 059.7° 3946 × 75 m | 0 / 125 m |
+| Kuzeir | 279.8° 3702 × 84 m, 100.0° 3538 × 75 m | 154 / 10, 0 / 0 m |
+| Bley | 234.8° 4058 × 95 m, 055.0° 3860 × 96 m | 370 / 0, 352 / 356 m |
+| Inshas, Ryak, Aman | the AI's runway (no runway found in the coarse art) | 150 m |
+
+At Ramat David and Ramon the headings match the original's painted runway digits within 0.5°, and each runway reaches
+past its digits (test `runways_of_the_real_bases`). At Ramat David the original light set `lt_dvd_h` (§5) stands at the
+runway edges: the edge lights lie a median 2.3 m outside the derived edges (quartiles +0.2 / +6.3 m;
+`test_airbases.gd`).
+
+**The drawing** (`terrain.gdshader`, the globals `terrain_airbases`, `airbase_mask`, `airbase_mask_rect`, `airbase_data`,
+`airbase_info`). `airbases.gd` picks the base whose runways' middle is nearest the camera (within 15 km) and hands the
+shader its mask and a small float texture: per runway its centre, direction, half length and width, numbers and
+thresholds. In the terrain's fragment, inside the mask's rectangle and within 6 km
+(faded from 2.5 km):
+
+- **Surface**: the imagery blurred to ≈ 16 m gives the tone (so it fades into the imagery far away), pulled 60 %
+  toward real asphalt's brightness (albedo 0.1) so the paint stands out on light and dark art alike. Variation:
+  patches (≈ 40 m), grain (≈ 2 m), 7.5 m paving lanes with dark seams, repaired patches (1 in 8 of 40 × 7.5 m cells).
+  Aprons: 5 m concrete slabs along the base's first runway, each its own shade, dark joints. Roughness 0.88 (paint
+  0.7), a faint aggregate relief within 300 m. The terrain close up's relief is the ground's, so the pavement drops it.
+- **Markings** (ICAO Annex 14 sizes for a 60 m runway, scaled by the width, at most × 1.6): threshold stripes (8 each
+  side, 1.8 m, 30 m long, 6 m past the threshold), the designation (two digits 9 m tall, 12 m past the stripes),
+  centreline (30 m dashes, 20 m gaps), touchdown zone marks every 150 m (3, 3, 2, 2, 1, 1 bars), the aiming point
+  (45 × 8 m at 400 m, on runways over 2400 m), edge lines. Before a threshold: yellow chevrons 30 m apart. Taxi lines:
+  yellow, 0.3 m, within 2 km.
+- **Tyre rubber**: dark streaks in the main gears' tracks (1–6 m off the centreline) from ≈ 150 to 1100 m past each
+  threshold.
+- Every mark is box-filtered over the pixel's footprint along and across the runway, so it fades to its average far
+  away instead of shimmering.
+
+**Cost** (M4 Pro, `tests/godot/_airbase_shot.gd` with SHOT_BENCH: `terrain_airbases` switched every 120 frames in one
+window, median of 12 pairs; 1920 × 1080 at render scale 2.0 = 8.3 Mpx, Terrain close up on):
+
+| View at Ramat David | on − off |
+|---|---|
+| Cockpit on the runway, take-off | +0.38 ms |
+| External low pass at 40 m | +1.49 ms |
+| 30 m over the threshold, looking down the runway (the most marking on screen) | +1.87 ms |
+
+That is at most ≈ 0.22 ms per Mpx: ≈ 0.45 ms at 1920 × 1080. From 1500 m and above the base the cost is below the
+noise (the surface fades out by 6 km and only the mask's rectangle runs the code).
+
+**Shots** (local, `assets/converted/research/airbases/b_detailed/`, Original | Detailed side by side in `cmp_*.png`):
+Ramat David, Tel Nof, Ramon and Damascus; take-off, roll (800 m), 300 m on final, 1500 m overhead, an external low pass;
+noon and 22:00 (with Night lights = Detailed: the base's light set lines up with the runway edges).
 

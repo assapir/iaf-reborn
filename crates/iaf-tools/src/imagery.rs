@@ -26,9 +26,10 @@ pub const KEEP_INSET_LEVEL: u32 = 2;
 const REF_LEVEL: u32 = 3;
 /// Extra pixels composed around a node so blurs and feathers match across node borders.
 const MARGIN: i32 = 64;
-/// Feather (box radius; two passes): region / airbase / inset / coverage borders ≈ 240 m, the coast
-/// ≈ 20 m.
+/// Feather (box radius; two passes): region / inset / coverage borders ≈ 240 m, airbase footprints ≈ 120 m, the
+/// coast ≈ 20 m.
 const FEATHER_SOFT: i32 = 24;
+const FEATHER_BASE: i32 = 12;
 const FEATHER_COAST: i32 = 2;
 /// Colour matching: local means over this box radius (two passes ≈ 500 m).
 const MATCH_RADIUS: i32 = 48;
@@ -167,32 +168,47 @@ pub struct Rules {
     /// inside, "outside Israel" the rest of the theatre.
     pub israel: [u32; 4],
     pub outside_israel: bool,
-    /// Original inset records of level ≤ KEEP_INSET_LEVEL (airbases / targets): kept.
+    /// Original inset records of level ≤ KEEP_INSET_LEVEL outside the airbase sites (targets): kept whole.
     pub keep: Vec<[u32; 4]>,
+    /// Airbase sites: only their footprint is kept (crate::airbases).
+    pub bases: Vec<crate::airbases::Site>,
     pub types: TerrainTypes,
 }
 
+/// What the layer may do at a point (Rules::at).
+#[derive(Clone, Copy)]
+struct Allowed {
+    /// Inside the layer's region, off the kept target sites.
+    region: bool,
+    /// Off the airbases (their footprints and terraintype.dat's runway leaves).
+    base: bool,
+    land: bool,
+}
+
 impl Rules {
-    /// From the install (map.ptt records, terraintype.dat).
-    pub fn load(install: &Path, outside_israel: bool) -> Result<Self> {
+    /// From the install (map.ptt records, terraintype.dat, iaf.ibx), the theatre's 1998 art and the converted
+    /// missions next to it (the airbase footprints).
+    pub fn load(install: &Path, outside_israel: bool, theatre: &Theatre) -> Result<Self> {
         let ptt = iaf_formats::ptt::Ptt::open(install.join("resource/terrain/map.ptt"))?;
         let area = |r: &[u32; 4]| (r[2] - r[0]) as u64 * (r[3] - r[1]) as u64;
         let israel = ptt.levels.iter().filter(|l| l.flag == 0).max_by_key(|l| area(&l.rect)).context("no inset records")?.rect;
-        let keep = ptt.levels.iter().filter(|l| l.flag == 0 && l.level <= KEEP_INSET_LEVEL).map(|l| l.rect).collect();
+        let bases = crate::airbases::sites(install, theatre, &theatre.dir.join("../../missions"))?;
+        let inside = |r: &[u32; 4], b: &[u32; 4]| r[0] >= b[0] && r[1] >= b[1] && r[2] <= b[2] && r[3] <= b[3];
+        let keep = ptt.levels.iter().filter(|l| l.flag == 0 && l.level <= KEEP_INSET_LEVEL).map(|l| l.rect).filter(|r| !bases.iter().any(|b| inside(r, &b.rect))).collect();
         let types = TerrainTypes::parse(&std::fs::read(install.join("terraintype.dat")).context("terraintype.dat")?)?;
-        Ok(Self { israel, outside_israel, keep, types })
+        Ok(Self { israel, outside_israel, keep, bases, types })
     }
 
     fn in_rect(r: &[u32; 4], tx: f64, ty: f64) -> bool {
         tx >= r[0] as f64 && tx < r[2] as f64 && ty >= r[1] as f64 && ty < r[3] as f64
     }
 
-    /// (allowed apart from the coast, land) at terrain units (tx, ty).
-    fn at(&self, tx: f64, ty: f64) -> (bool, bool) {
+    /// What the layer may do at terrain units (tx, ty).
+    fn at(&self, tx: f64, ty: f64) -> Allowed {
         let mask = self.types.at(tx * UNITS_TO_METRES - 166850.0, 1043780.0 - ty * UNITS_TO_METRES);
         let in_region = Self::in_rect(&self.israel, tx, ty) != self.outside_israel;
-        let allowed = in_region && mask & RUNWAY == 0 && !self.keep.iter().any(|r| Self::in_rect(r, tx, ty));
-        (allowed, TerrainTypes::is_land(mask))
+        let base = mask & RUNWAY == 0 && !self.bases.iter().any(|b| Self::in_rect(&b.rect, tx, ty) && b.footprint.at(tx, ty));
+        Allowed { region: in_region && !self.keep.iter().any(|r| Self::in_rect(r, tx, ty)), base, land: TerrainTypes::is_land(mask) }
     }
 
     /// True when any pixel of the node may take the layer (sampled on a 32² grid).
@@ -200,8 +216,8 @@ impl Rules {
         let s = node_span(k.0) as f64;
         (0..32).any(|y| {
             (0..32).any(|x| {
-                let (a, l) = self.at((k.1 as f64 + (x as f64 + 0.5) / 32.0) * s, (k.2 as f64 + (y as f64 + 0.5) / 32.0) * s);
-                a && l
+                let a = self.at((k.1 as f64 + (x as f64 + 0.5) / 32.0) * s, (k.2 as f64 + (y as f64 + 0.5) / 32.0) * s);
+                a.region && a.base && a.land
             })
         })
     }
@@ -485,7 +501,8 @@ fn majority(mask: &[bool], w: usize, h: usize, r: i32) -> Vec<bool> {
 /// layer shows nowhere in it.
 pub fn compose_node(k: Key, theatre: &Theatre, rules: &Rules, warp: &Georef, src: &dyn Imagery, cache: &mut Cache) -> Result<Option<(RgbImage, RgbImage)>> {
     let sc = 1i32 << (REF_LEVEL - k.0.min(REF_LEVEL));
-    let (margin, feather_soft, feather_coast, match_radius, speck) = (MARGIN * sc, FEATHER_SOFT * sc, FEATHER_COAST * sc, MATCH_RADIUS * sc, SPECK * sc);
+    let (margin, feather_soft, feather_base, feather_coast) = (MARGIN * sc, FEATHER_SOFT * sc, FEATHER_BASE * sc, FEATHER_COAST * sc);
+    let (match_radius, speck) = (MATCH_RADIUS * sc, SPECK * sc);
     let n = NODE_PIXELS as i32;
     let size = (n + 2 * margin) as usize;
     let upp = (1u32 << k.0) as f64;
@@ -503,6 +520,7 @@ pub fn compose_node(k: Key, theatre: &Theatre, rules: &Rules, warp: &Georef, src
         .collect();
     let mut modern = vec![[0f32; 3]; size * size];
     let mut allowed = vec![false; size * size];
+    let mut off_base = vec![false; size * size];
     let mut land = vec![false; size * size];
     let mut nodata = vec![false; size * size];
     let mut water = vec![false; size * size];
@@ -510,9 +528,10 @@ pub fn compose_node(k: Key, theatre: &Theatre, rules: &Rules, warp: &Georef, src
         for x in 0..size {
             let i = y * size + x;
             let (px, py) = (x as f64 + 0.5, y as f64 + 0.5);
-            let (a, l) = rules.at((x0 as f64 + px) * upp, (y0 as f64 + py) * upp);
-            allowed[i] = a;
-            land[i] = l;
+            let a = rules.at((x0 as f64 + px) * upp, (y0 as f64 + py) * upp);
+            allowed[i] = a.region;
+            off_base[i] = a.base;
+            land[i] = a.land;
             let (gx, gy) = (px / WARP_STEP as f64, py / WARP_STEP as f64);
             let (cx, cy) = (gx as usize, gy as usize);
             let (fx, fy) = (gx - cx as f64, gy - cy as f64);
@@ -541,7 +560,8 @@ pub fn compose_node(k: Key, theatre: &Theatre, rules: &Rules, warp: &Georef, src
     let dry: Vec<bool> = (0..size * size).map(|i| land[i] && !wet[i]).collect();
     let w_soft = feather(&ok, size, size, feather_soft);
     let w_land = feather(&dry, size, size, feather_coast);
-    let weight: Vec<f32> = w_soft.iter().zip(&w_land).map(|(a, b)| a * b).collect();
+    let w_base = feather(&off_base, size, size, feather_base);
+    let weight: Vec<f32> = (0..size * size).map(|i| w_soft[i] * w_land[i] * w_base[i]).collect();
     let crop = |i: usize| {
         let (x, y) = (i % size, i / size);
         x >= margin as usize && y >= margin as usize && x < (margin + n) as usize && y < (margin + n) as usize
@@ -549,9 +569,9 @@ pub fn compose_node(k: Key, theatre: &Theatre, rules: &Rules, warp: &Georef, src
     if !(0..size * size).any(|i| crop(i) && weight[i] > 0.0) {
         return Ok(None);
     }
-    // 1998 colours: the modern pixel times the ratio of the local (dry land with data) means of the
-    // original and the modern image, per channel.
-    let m: Vec<bool> = (0..size * size).map(|i| dry[i] && !water[i] && !nodata[i] && has[i]).collect();
+    // 1998 colours: the modern pixel times the ratio of the local (dry land with data, off the airbases) means of
+    // the original and the modern image, per channel.
+    let m: Vec<bool> = (0..size * size).map(|i| dry[i] && !water[i] && !nodata[i] && has[i] && off_base[i]).collect();
     let mut mw: Vec<f32> = m.iter().map(|&b| b as u8 as f32).collect();
     blur(&mut mw, size, size, match_radius);
     let mut ratio = vec![[1f32; 3]; size * size];
@@ -572,9 +592,11 @@ pub fn compose_node(k: Key, theatre: &Theatre, rules: &Rules, warp: &Georef, src
         for x in 0..n as usize {
             let i = (y + margin as usize) * size + x + margin as usize;
             let w = weight[i];
-            let mix = |s: [f32; 3]| image::Rgb([0, 1, 2].map(|c| (w * s[c] + (1.0 - w) * orig[i][c]).round().clamp(0.0, 255.0) as u8));
-            a.put_pixel(x as u32, y as u32, mix([0, 1, 2].map(|c| modern[i][c] * ratio[i][c])));
-            b.put_pixel(x as u32, y as u32, mix(modern[i]));
+            // `shift` = 1 keeps the original as it is; the modern look also takes the original's colours toward the
+            // modern image's local means across the feather (by w, so nothing changes where the layer ends).
+            let mix = |s: [f32; 3], shift: [f32; 3]| image::Rgb([0, 1, 2].map(|c| (w * s[c] + (1.0 - w) * orig[i][c] * shift[c]).round().clamp(0.0, 255.0) as u8));
+            a.put_pixel(x as u32, y as u32, mix([0, 1, 2].map(|c| modern[i][c] * ratio[i][c]), [1.0; 3]));
+            b.put_pixel(x as u32, y as u32, mix(modern[i], [0, 1, 2].map(|c| 1.0 + (1.0 / ratio[i][c] - 1.0) * w)));
         }
     }
     Ok(Some((a, b)))

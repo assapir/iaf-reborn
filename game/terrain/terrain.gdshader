@@ -42,6 +42,16 @@ global uniform float terrain_water;
 // detail normal map, the wind patches and the crests' warp from the detail noise.
 global uniform sampler2D terrain_water_noise : filter_linear_mipmap, repeat_enable;
 global uniform sampler2D terrain_water_warp : filter_linear_mipmap, repeat_enable;
+// Preferences "Airbases" (terrain/airbases.gd, docs/rendering.md §7): 0 = the original imagery; 1 = near the ground, a
+// procedural runway, taxiway and apron surface with markings over the nearest base's paved surface. The mask: R = paved,
+// G = apron (tinted concrete), B = the distance to the nearest taxi line / 10 m; rect = (x0, z0 of its north-west corner, 1 / width m, 1 / height m). The data: per runway
+// three texels (centre x, z, unit direction x, z from end 0 to end 1), (half length, half width, number at end 0, at
+// end 1), (threshold at end 0, at end 1: metres in from the end, 0, 0); info = (runways, 0, 0, 0).
+global uniform float terrain_airbases;
+global uniform sampler2D airbase_mask : filter_linear_mipmap, repeat_disable;
+global uniform vec4 airbase_mask_rect;
+global uniform sampler2D airbase_data : filter_nearest, repeat_disable;
+global uniform vec4 airbase_info;
 varying vec2 world_xz;
 varying float sea;
 
@@ -150,8 +160,119 @@ vec2 water_slope(vec2 p, vec2 dx, vec2 dy, float t, out float lost) {
 	return slope * patch;
 }
 
+
+// --- Airbases (Detailed) ---------------------------------------------------------------------------------------------
+// The markings' sizes follow ICAO Annex 14 for a 60 m runway, scaled by the runway's width (the 1998 art's runways are
+// 55–95 m wide): threshold stripes, designation numbers, centreline, touchdown zone and aiming point marks, edge lines.
+// Every mark is box-filtered over the pixel's footprint (fw), so it fades to its average instead of shimmering far away.
+
+// Coverage of the band |x| < hw by a pixel of footprint fw centred at x.
+float ab_band(float x, float hw, float fw) {
+	fw = max(fw, 1e-3);
+	return (clamp(x + 0.5 * fw, -hw, hw) - clamp(x - 0.5 * fw, -hw, hw)) / fw;
+}
+
+// Coverage of the rectangle lo..hi.
+float ab_box(vec2 p, vec2 lo, vec2 hi, vec2 fw) {
+	vec2 c = 0.5 * (lo + hi);
+	vec2 h = 0.5 * (hi - lo);
+	return ab_band(p.x - c.x, h.x, fw.x) * ab_band(p.y - c.y, h.y, fw.y);
+}
+
+// The integral from 0 to x of a pulse train (on for `on` m of every `period` m from 0).
+float ab_train_int(float x, float on, float period) {
+	return floor(x / period) * on + min(mod(x, period), on);
+}
+
+// Coverage of the pulse train.
+float ab_train(float x, float on, float period, float fw) {
+	fw = max(fw, 1e-3);
+	return (ab_train_int(x + 0.5 * fw, on, period) - ab_train_int(x - 0.5 * fw, on, period)) / fw;
+}
+
+float ab_hash(vec2 p) {
+	vec3 q = fract(vec3(p.xyx) * 0.1031);
+	q += dot(q, q.yzx + 33.33);
+	return fract((q.x + q.y) * q.z);
+}
+
+// A runway digit (0–9) as block strokes in a cell of w × h m: p = (across to the pilot's right, along away from the
+// threshold) from the cell's lower left corner; t = stroke width. Segments a–g as a seven-segment digit; 1 is one
+// centred bar.
+float ab_digit(int d, vec2 p, float w, float h, float t, vec2 fw) {
+	if (d == 1) {
+		return ab_box(p, vec2(0.5 * (w - t), 0.0), vec2(0.5 * (w + t), h), fw);
+	}
+	// Bits: a b c d e f g (top, top right, bottom right, bottom, bottom left, top left, middle).
+	int m = d == 0 ? 0x7E : d == 2 ? 0x6D : d == 3 ? 0x79 : d == 4 ? 0x33 : d == 5 ? 0x5B : d == 6 ? 0x5F
+			: d == 7 ? 0x70 : d == 8 ? 0x7F : 0x7B;
+	float c = 0.0;
+	float hm = 0.5 * h;
+	if ((m & 0x40) != 0) c = max(c, ab_box(p, vec2(0.0, h - t), vec2(w, h), fw));
+	if ((m & 0x20) != 0) c = max(c, ab_box(p, vec2(w - t, hm), vec2(w, h), fw));
+	if ((m & 0x10) != 0) c = max(c, ab_box(p, vec2(w - t, 0.0), vec2(w, hm), fw));
+	if ((m & 0x08) != 0) c = max(c, ab_box(p, vec2(0.0, 0.0), vec2(w, t), fw));
+	if ((m & 0x04) != 0) c = max(c, ab_box(p, vec2(0.0, 0.0), vec2(t, hm), fw));
+	if ((m & 0x02) != 0) c = max(c, ab_box(p, vec2(0.0, hm), vec2(t, h), fw));
+	if ((m & 0x01) != 0) c = max(c, ab_box(p, vec2(0.0, hm - 0.5 * t), vec2(w, hm + 0.5 * t), fw));
+	return c;
+}
+
+// The paint at one runway end: s = metres past the threshold into the runway, x = metres to the right of the
+// centreline for a pilot landing from this end, (fs, fx) their pixel footprints; sc = width / 60 m; len = the
+// runway's length; num = its designation number at this end. Returns (paint, rubber).
+vec2 ab_end_marks(float s, float x, float fs, float fx, float sc, float hw, float len, int num) {
+	vec2 f = vec2(fx, fs);
+	vec2 p = vec2(x, s);
+	float ax = abs(x);
+	float paint = 0.0;
+	// Threshold: 8 stripes each side of a 3.6 m gap, 1.8 m wide and apart, 30 m long, 6 m from the end.
+	float t0 = 6.0;
+	if (s < -1.0 || s > 1200.0) {
+		return vec2(0.0);
+	}
+	if (s > t0 - 2.0 && s < t0 + 32.0) {
+		float xa = ax - 1.8 * sc;
+		paint = ab_train(xa, 1.8 * sc, 3.6 * sc, fx) * step(0.0, xa) * step(xa, 28.8 * sc) * ab_band(s - t0 - 15.0, 15.0, fs);
+	}
+	// Designation: two digits 9 m tall, 12 m past the stripes, upright to the landing pilot.
+	float dh = 9.0 * sc;
+	float dw = 3.6 * sc;
+	float gap = 1.8 * sc;
+	float n0 = t0 + 30.0 + 12.0;
+	if (s > n0 - 1.0 && s < n0 + dh + 1.0) {
+		paint = max(paint, ab_digit(num / 10, p - vec2(-dw - 0.5 * gap, n0), dw, dh, 0.9 * sc, f));
+		paint = max(paint, ab_digit(num % 10, p - vec2(0.5 * gap, n0), dw, dh, 0.9 * sc, f));
+	}
+	// Aiming point: two bars 45 m long, 8 m wide, inner edges 18 m apart, 400 m past the threshold.
+	float aim = t0 + 400.0;
+	if (len > 2400.0) {
+		paint = max(paint, ab_box(vec2(ax, s), vec2(9.0 * sc, aim), vec2(17.0 * sc, aim + 45.0), f));
+	}
+	// Touchdown zone: bars 22.5 m long, 1.8 m wide, 1.5 m apart, in pairs of 3, 3, 2, 2, 1, 1 every 150 m (the aiming
+	// point takes the 450 m pair's place).
+	int k0 = clamp(int(floor((s - t0 + 1.0) / 150.0)), 1, 7);
+	for (int k = k0; k <= min(k0, 6); k++) {
+		float z = t0 + 150.0 * float(k);
+		if (k == 3 && len > 2400.0) {
+			continue;
+		}
+		int bars = k <= 2 ? 3 : k <= 4 ? 2 : 1;
+		if (s > z - 1.0 && s < z + 24.0 && ax > 8.0 * sc && ax < 9.0 * sc + 3.3 * sc * float(bars)) {
+			float xa = ax - 9.0 * sc;
+			paint = max(paint, ab_train(xa, 1.8 * sc, 3.3 * sc, fx) * step(0.0, xa) * step(xa, 3.3 * sc * float(bars) - 1.5 * sc)
+					* ab_band(s - z - 11.25, 11.25, fs));
+		}
+	}
+	// Rubber: the main gears' tracks, 1–6 m off the centreline, from ≈ 150 m to ≈ 1100 m past the threshold.
+	float rub = smoothstep(t0 + 80.0, t0 + 300.0, s) * (1.0 - smoothstep(t0 + 650.0, t0 + 1150.0, s))
+			* smoothstep(0.5, 1.5, ax) * (1.0 - smoothstep(4.0, 7.0, ax));
+	return vec2(paint, rub);
+}
+
 void fragment() {
 	ALBEDO = texture(colour_tex, UV).rgb;
+	vec3 n_geo = NORMAL;
 	// Screen derivatives taken here, outside any branch that varies per pixel (they are undefined inside one).
 	vec2 wdx = dFdx(world_xz);
 	vec2 wdy = dFdy(world_xz);
@@ -208,6 +329,131 @@ void fragment() {
 	}
 	ROUGHNESS = 0.95;
 	SPECULAR = 0.1;
+	// Airbases (Preferences "Airbases"): within 6 km, on the nearest base's paved surface.
+	float kab = terrain_airbases * (1.0 - smoothstep(2500.0, 6000.0, length(VERTEX))) * (1.0 - sea);
+	vec2 muv = (world_xz - airbase_mask_rect.xy) * airbase_mask_rect.zw;
+	if (kab > 0.0 && muv.x > 0.0 && muv.y > 0.0 && muv.x < 1.0 && muv.y < 1.0) {
+		vec2 pm = texture(airbase_mask, muv).rg;  // mipmapped: the edges soften far away
+		vec2 p = world_xz;
+		float paved = smoothstep(0.3, 0.7, pm.r);
+		float runway = 0.0;
+		float paint = 0.0;
+		float rubber = 0.0;
+		float yellow = 0.0;
+		float seam = 0.0;
+		float patchy = 0.0;
+		float concrete_mask = smoothstep(0.3, 0.7, pm.g);
+		for (int i = 0; i < int(airbase_info.x); i++) {
+			vec4 a0 = texelFetch(airbase_data, ivec2(3 * i, 0), 0);
+			vec4 a1 = texelFetch(airbase_data, ivec2(3 * i + 1, 0), 0);
+			vec4 a2 = texelFetch(airbase_data, ivec2(3 * i + 2, 0), 0);
+			vec2 d = a0.zw;
+			vec2 r = vec2(-d.y, d.x);
+			vec2 q = p - a0.xy;
+			float al = dot(q, d);
+			float ac = dot(q, r);
+			float hl = a1.x;
+			float hw = a1.y;
+			if (abs(al) > hl + 2.0 || abs(ac) > hw + 2.0) {
+				continue;
+			}
+			float fa = abs(dot(wdx, d)) + abs(dot(wdy, d));
+			float fc = abs(dot(wdx, r)) + abs(dot(wdy, r));
+			float inside = ab_band(al, hl, fa) * ab_band(ac, hw, fc);
+			runway = max(runway, inside);
+			float sc = clamp(2.0 * hw / 60.0, 0.75, 1.6);
+			// Metres past each threshold (the thresholds stand a2.x / a2.y in from the ends).
+			float s0 = al + hl - a2.x;
+			float s1 = hl - al - a2.y;
+			float len = 2.0 * hl - a2.x - a2.y;
+			vec2 e0 = ab_end_marks(s0, ac, fa, fc, sc, hw, len, int(a1.z));
+			vec2 e1 = ab_end_marks(s1, -ac, fa, fc, sc, hw, len, int(a1.w));
+			float pt = max(e0.x, e1.x);
+			float landing = step(0.0, s0) * step(0.0, s1);
+			// Centreline: 30 m dashes, 20 m gaps, 0.9 m wide, between the designations.
+			float cl0 = 30.0 + 12.0 + 9.0 * sc + 12.0;
+			if (s0 > cl0 && s1 > cl0) {
+				pt = max(pt, ab_train(s0 - cl0, 30.0, 50.0, fa) * ab_band(ac, 0.45 * sc, fc));
+			}
+			// Edge lines: 0.9 m wide, 1.5 m inside the edge, past both thresholds.
+			pt = max(pt, ab_band(abs(ac) - (hw - 1.5), 0.45 * sc, fc) * landing);
+			// Before a threshold (blast pad, overrun): yellow chevrons pointing at it, 30 m apart.
+			float chev = 0.0;
+			float sb = min(s0, s1);
+			if (sb < 0.0 && max(a2.x, a2.y) > 30.0) {
+				float v = -sb - abs(ac) * 0.7;
+				chev = ab_train(v, 1.2, 30.0, fa + 0.7 * fc) * step(abs(ac), hw - 3.0) * step(0.0, v);
+			}
+			paint = max(paint, pt * inside);
+			yellow = max(yellow, chev * inside);
+			// The paving: lanes 7.5 m wide with dark seams, and repaired patches (≈ 1 in 8 of 40 × 7.5 m cells).
+			float ds = abs(fract((ac + hw) / 7.5 + 0.5) - 0.5) * 7.5;
+			seam = max(seam, ab_band(ds, 0.06, fc) * inside);
+			vec2 cell = floor(vec2(al / 40.0, (ac + hw) / 7.5));
+			patchy = max(patchy, step(0.875, ab_hash(cell + float(i) * 17.0)) * inside);
+			// The rubber in streaks along the runway (noise stretched 60×), sampled with the pixel's own gradients.
+			float rub = max(e0.y, e1.y) * inside;
+			if (rub > 0.0) {
+				vec2 sq = vec2(ac / 0.6, al / 36.0);
+				float streak = textureGrad(terrain_detail_tex, sq, vec2(dot(wdx, r) / 0.6, dot(wdx, d) / 36.0),
+						vec2(dot(wdy, r) / 0.6, dot(wdy, d) / 36.0)).r;
+				rubber = max(rubber, rub * smoothstep(0.45, 0.8, streak));
+			}
+		}
+		// Taxi lines (iaf.ibx's taxi paths): yellow, 0.3 m wide, on the paved surface off the runways, within 2 km; the
+		// mask's B channel holds the distance to the nearest path (0–10 m).
+		float fpx = max(length(wdx), length(wdy));
+		float taxi = ab_band(textureLod(airbase_mask, muv, 0.0).b * 10.0, 0.15, fpx) * paved * (1.0 - runway)
+				* (1.0 - smoothstep(1500.0, 2000.0, length(VERTEX)));
+		float surf = max(paved, runway) * kab;
+		// Concrete slabs on the aprons only.
+		float concrete = concrete_mask * (1.0 - runway);
+		if (surf > 0.0) {
+			// The base colour: the imagery blurred to ≈ 16 m (its markings and painted lines gone), so the surface keeps
+			// the art's tone and fades into it far away.
+			float texel_m = node_m / (float(textureSize(colour_tex, 0).x) * max(uv_scale, 1e-6));
+			vec3 base = textureLod(colour_tex, UV, log2(max(16.0 / texel_m, 1.0))).rgb;
+			float lum = dot(base, vec3(0.2126, 0.7152, 0.0722));
+			// Asphalt: near-neutral grey of the art's brightness; concrete (aprons, the runways' first 300 m): lighter, warmer.
+			// Toward real asphalt's brightness (the art's runways run from near black to light grey), so the paint stands
+			// out on every base.
+			vec3 asph = vec3(mix(lum, 0.1, 0.6)) * vec3(1.02, 1.0, 0.96);
+			// Variation: patches (≈ 40 m), aggregate grain (≈ 1.5 m), repairs and slabs.
+			mat2 rot1 = mat2(vec2(0.8, 0.6), vec2(-0.6, 0.8));
+			float n1 = texture(terrain_detail_tex, rot1 * p / 260.0).r - 0.5;
+			float n2 = texture(terrain_detail_tex, p / 37.0).r - 0.5;
+			float n3 = texture(terrain_detail_tex, rot1 * p / 2.3).r - 0.5;
+			vec3 c = asph * (1.0 + 0.45 * n1 + 0.25 * n2 + 0.12 * n3) * (1.0 - 0.18 * seam) * (1.0 - 0.1 * patchy);
+			// Concrete slabs on the aprons: 5 m squares, each its own shade, dark joints.
+			if (concrete > 0.0) {
+				// The grid along the base's first runway.
+				vec2 rd = airbase_info.x > 0.0 ? texelFetch(airbase_data, ivec2(0, 0), 0).zw : vec2(1.0, 0.0);
+				vec2 g = vec2(dot(p, rd), dot(p, vec2(-rd.y, rd.x)));
+				vec2 cell = floor(g / 5.0);
+				vec2 fq = abs(fract(g / 5.0) - 0.5) * 5.0;
+				float joint = max(ab_band(2.5 - fq.x, 0.06, fpx), ab_band(2.5 - fq.y, 0.06, fpx));
+				vec3 slab = mix(vec3(lum), base, 0.4) * (1.08 + 0.12 * (ab_hash(cell) - 0.5) + 0.3 * n3);
+				c = mix(c, slab * (1.0 - 0.45 * joint), concrete);
+			}
+			c *= 1.0 - 0.5 * rubber;
+			// Paint: worn white; taxi lines yellow.
+			float wear = clamp(0.75 + 0.5 * (texture(terrain_detail_tex, p / 6.0).r - 0.5) - 0.5 * rubber, 0.0, 1.0);
+			c = mix(c, vec3(0.62), paint * wear);
+			c = mix(c, vec3(0.55, 0.36, 0.03), max(taxi, yellow) * 0.9 * wear);
+			ALBEDO = mix(ALBEDO, c, surf);
+			ROUGHNESS = mix(ROUGHNESS, mix(0.88, 0.7, paint), surf);
+			SPECULAR = mix(SPECULAR, 0.3, surf);
+			// Micro relief: the aggregate (≈ 1.6 m tiles of the detail normal map), faded with the surface.
+			vec3 nd = texture(terrain_detail_normal, p / 1.6).rgb * 2.0 - 1.0;
+			vec3 tt = normalize((VIEW_MATRIX * vec4(1.0, 0.0, 0.0, 0.0)).xyz);
+			tt = normalize(tt - NORMAL * dot(NORMAL, tt));
+			vec3 bb = cross(NORMAL, tt);
+			// The terrain close up's relief is the ground's, not the pavement's.
+			vec3 nb = normalize(mix(NORMAL, n_geo, surf));
+			NORMAL = normalize(mix(nb, normalize(tt * nd.x + bb * nd.y + nb * max(nd.z, 0.1)),
+					0.12 * surf * (1.0 - paint) * (1.0 - smoothstep(30.0, 300.0, length(VERTEX)))));
+		}
+	}
 	if (wm > 0.0) {
 		float lost;
 		vec2 sl = water_slope(world_xz, wdx, wdy, TIME, lost);

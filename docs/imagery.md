@@ -80,16 +80,40 @@ In detail:
 - **No data stays the original's**: areas outside the source (no tile, no sheet; a sheet's white fill beyond the
   photographed area, e.g. the sea and across the border) keep the original, feathered like the region border. The
   tool ignores no-data patches narrower than ≈ 100 m (a saturated white roof).
-- **Airbases and fine insets stay the original's**: terraintype.dat runway cells and every original site inset
-  (airbases, targets: map.ptt inset records of level ≤ 2; every site has level 0–2 records).
+- **Airbases keep their footprint, target sites their inset**: a site is a group of overlapping original insets of
+  level ≤ 2 (map.ptt records; every site has level 0–2 records). terraintype.dat's runway cells always stay the
+  original's.
   - Reason: the game's airbases are off their real positions (docs/georef.md §4), so a modern layer there would put
     the mission's base in empty desert.
   - The real bases cannot be moved onto the game's bases either (§9).
+  - **Airbase sites** (a site with a terraintype.dat runway cell) keep only the base's **footprint**
+    (`iaf_tools::airbases::footprint`, rasterised once per site at level 2, ≈ 5 m cells):
+    1. Seeds: the runway cells, discs of 40 m around iaf.ibx's base points (tower, lineup, taxi and hangar points).
+    2. The base art: paved pixels of the 1998 inset (grey, or the aprons' blue / purple tint), strips narrower than
+       ≈ 12 m (roads) dropped, reached from the seeds within 400 m.
+    3. The missions' units on the ground (the playable missions, those missionlist.json names; a unit higher than its
+       nearest base's lineup + 150 m is in the air): discs of 80 m for units within 700 m of the base, in two rounds, so the base's building
+       clusters (hangars, shelters, revetments, factories) stay on 1998 ground.
+    4. Gaps closed over 150 m, holes filled, then a margin of 150 m.
+  - Footprints (`iaf-imagery footprints <install> <theatre> <out-dir>` prints them and draws each site):
+
+    | site | inset rectangle | footprint |
+    |---|---|---|
+    | Ramon | 48.9 km² | 8.1 km² |
+    | Tel Nof | 169.6 km² | 11.0 km² |
+    | Ramat David | 142.1 km² | 13.5 km² |
+
+    The other airbase sites (Refidim, Damascus, Kuzeir, Bley) lie outside the Survey sheets, so their footprint
+    changes nothing today.
+  - **Target sites** keep their whole inset rectangle.
   - map.ptt's four large level-3 inset records are the original's regional 9.9 m cover of Israel (the whole country),
     not sites. An Israel layer replaces them (with "level ≤ 3" it could replace nothing).
-- **Feathering**: region / airbase / inset / coverage borders are feathered over ≈ 240 m (two box passes). The tool
-  computes them with a margin (64 px at level 3), so neighbouring nodes match at their seams. Radii are ground sizes:
-  at level 1 every pixel radius is ×4.
+- **Feathering**: region / target-site / coverage borders are feathered over ≈ 240 m, airbase footprints over ≈ 120 m
+  (two box passes). The tool computes them with a margin (64 px at level 3), so neighbouring nodes match at their
+  seams. Radii are ground sizes: at level 1 every pixel radius is ×4.
+- **Colour at the seams**: the colour match (§4) leaves out the airbase footprints, so the base's pavement does not
+  tint the ring around it. In the modern look the original's colours move toward the modern image's local means
+  across the feather (by the layer's weight), so the 1998 base meets the 2015 fields without a colour step.
 
 ## 4. Looks
 
@@ -219,7 +243,8 @@ Details:
   (sheets added) and rebuilds the coarser levels.
   - After downloading more sheets, re-run `tools/setup.sh --imagery mapi2015` (or the command above).
   - The tool skips incomplete downloads (`*.part`, `*.crdownload`, a ZIP that does not open).
-- **Rules** (§3): the region is map.ptt's Israel rectangle. Airbases / site insets (level ≤ 2) stay the original's;
+- **Rules** (§3): the region is map.ptt's Israel rectangle. Airbase footprints and target site insets (level ≤ 2)
+  stay the original's;
   the original's level-3 regional cover is replaced. The photo's sea and the sheets' white fill stay the original's.
 - **Credit / licence** (manifest): attribution "© Survey of Israel 2015, via data.gov.il"; licence the data.gov.il
   open licence (docs/imagery-sources.md §2.1); `downloaded` = the ZIPs' file dates (the licence in force at download
@@ -231,8 +256,9 @@ Details:
   - In the game, the frame rate low over Rishon LeZion and Tel Nof is the same with the layer as without. The layer
     only swaps textures: ≈ 64 level-1 nodes of 0.7 MB BC1 (a GPU block-compressed texture format) near the jet.
 - **Seams**: the 1998-colour look blends into the kept original; the modern look differs from it in colour by
-  design. The kept site insets are rectangles, so their border is a 240 m feather between 2015 and 1998 content
-  (74 of the original's level-0 inset nodes get a layer version for it, §2 step 4).
+  design and grades the original's colours toward it across the feather (§3). The kept target insets are
+  rectangles (a 240 m feather); the airbases keep their footprint (a 120 m feather). Of the original's level-0
+  inset nodes, those around the footprints get a layer version (§2 step 4).
 - **Known limit**: when the player picks both an Israel and an outside-Israel layer, a coarse node (level ≳ 6) that
   straddles the Israel rectangle comes from the Israel layer (Israel first, §5). Its outside part then shows the
   original. This is visible only from high up, at the region border.
@@ -267,14 +293,17 @@ fitted by least squares on the runway ends.
   apron models. For Ramat David the affine transform still leaves 130–450 m.
 - So the game's runways and its airbase models (hangars, shelters, tower) cannot sit on a moved real base.
 
-**What could improve the take-off view instead** (proposals, not built):
-- Keep only the base itself: replace the kept rectangle (§3) with the base's own area (the runway cells and the
-  base's painted area, plus a margin). Then the 2 m photo comes up to the base fence. The kept rectangles cover
-  49 km² (Ramon), 169 km² (Tel Nof) and 143 km² (Ramat David); each base is about 4 × 4 km. The 1998 / 2015 border
-  then runs at the base edge, in view on final approach, and mission objects outside the base (if any) stand on 2015
-  instead of 1998 ground.
-- A sharper runway surface: a procedural asphalt texture and markings drawn over the terraintype.dat runway cells at
-  close range, so the take-off roll shows detail finer than the 1998 inset.
+**What improves the take-off view instead** (both built):
+- **The base's footprint** (§3): the layers keep the 1998 imagery only on the base itself (runways, taxiways, aprons,
+  shelters, the painted area and the base's building clusters, plus 150 m), no longer on the whole inset rectangle.
+  The 2 m photo comes up to the base: Ramon 48.9 → 8.1 km², Tel Nof 169.6 → 11.0 km², Ramat David 142.1 → 13.5 km².
+  - The 1998 / 2015 border runs 150–270 m outside the base edge, feathered over ≈ 120 m and colour-graded (§3).
+  - Of the playable missions' ground units in the three sites, 9 stand on 2015 ground (`iaf-imagery footprints` lists
+    them): route and audio markers and sensors (not drawn) and one jeep (401, 4 km east of Ramat David).
+  - Before / after captures (take-off, roll, final, 1500 m overhead, low pass; noon and night; both looks):
+    `assets/converted/research/airbases/a_footprint/`.
+- **Detailed airbases** (Graphics → MORE → Airbases, docs/rendering.md §6): a procedural runway, taxiway and apron
+  surface with markings drawn over the original's paved surface near the ground.
 
 Airbases in the Israel rectangle outside Israel (Damascus / Mezzeh, Bley, the Jordanian bases) lie outside the
 Survey sheets' photographed area, so they keep the original in any case.
