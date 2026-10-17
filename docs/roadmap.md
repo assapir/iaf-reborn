@@ -147,6 +147,8 @@ docs/mfd.md).
 - The real page formats and symbology from public references (e.g. F-16 FCR, SMS, HSD, WPN / TGP, RWR; F-15 / F-4E /
   Mirage / Kfir / Lavi / F-35I equivalents), the OSB labels and their functions.
 - Driven by the same avionics state (radar, stores, RWR, EO / HARM sensors).
+- IFF on the radar formats, as the real jets show it (docs/real-hud.md "IFF"): the F-15C's and F-4E's interrogation
+  replies, and the F-35I's track colours and shapes (green circle friend, yellow square unknown, red diamond hostile).
 - Pairs with the realistic 3D cockpit (MFDs drawn live on it).
 
 ## "Real HUD" option
