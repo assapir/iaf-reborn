@@ -84,6 +84,7 @@ In detail:
   (airbases, targets: map.ptt inset records of level ≤ 2; every site has level 0–2 records).
   - Reason: the game's airbases are off their real positions (docs/georef.md §4), so a modern layer there would put
     the mission's base in empty desert.
+  - The real bases cannot be moved onto the game's bases either (§9).
   - map.ptt's four large level-3 inset records are the original's regional 9.9 m cover of Israel (the whole country),
     not sites. An Israel layer replaces them (with "level ≤ 3" it could replace nothing).
 - **Feathering**: region / airbase / inset / coverage borders are feathered over ≈ 240 m (two box passes). The tool
@@ -235,3 +236,45 @@ Details:
 - **Known limit**: when the player picks both an Israel and an outside-Israel layer, a coarse node (level ≳ 6) that
   straddles the Israel rectangle comes from the Israel layer (Israel first, §5). Its outside part then shows the
   original. This is visible only from high up, at the region border.
+
+## 9. Real airbases on the game's bases: checked, kept original
+
+A Survey layer shows the 1998 imagery at the game's three airbases in Israel: Ramon, Tel Nof and Ramat David
+(iaf.ibx `David`). This section checks whether the real base, taken from the 2 m photo and moved onto the game's
+runways, could replace it. It cannot, for two reasons. So the bases keep the original (§3).
+
+**1. The 2015 photo hides the real bases.** At all three real bases the Survey of Israel photo shows filler terrain:
+Tel Nof and Ramat David show fields, Ramon shows desert, with no runway, taxiway or building. The filler areas have
+straight edges around each base. So the source has no airbase imagery to move. Crops of the game base (1998) and of the real place
+(the `mapi2015_modern` layer), 6 km wide with a 100 m / 500 m grid, are in `assets/converted/research/airbases/`.
+
+**2. The game's runway layouts are not the real ones.** The test is a similarity transform (move, rotate, one scale)
+fitted by least squares on the runway ends.
+- Game runway ends: the runway digit centres (docs/formats/ptt.md, "Runway number fix"), or the 1998 image for Tel
+  Nof, whose digits cannot be read. Real runway ends: OpenStreetMap runway ways (© OpenStreetMap contributors, ODbL;
+  Overpass query 2026-10-17), put into engine metres with the georeference.
+- Digits sit tens of metres inside the paved ends, so the ends agree only to about ± 50 m. The residuals below are
+  far larger than that.
+
+| base | game runways (heading, length) | real runways (heading, length) | best similarity | residuals |
+|---|---|---|---|---|
+| Ramon | two parallel at 050°: 3355 m and 3209 m, 645 m apart, the south one 930 m further south-west | two parallel at 067°: 2682 m and 2990 m, 351 m apart, the south one 155 m longer at each end | scale 1.16, rotation 15° | 380–635 m (rms 526 m) |
+| Tel Nof | 090° 4041 m and 150° 3908 m, crossing (60° apart) | 151° 3047 m, 151° 3198 m and 183° 3020 m (0° and 32° apart) | no pairing keeps the angle; best scale 1.17, rotation 53° | 551–1269 m (rms 885 m) |
+| Ramat David | 090° 3845 m, 150° 3386 m, 030° 2554 m | 087° 2934 m, 145° 2944 m, 108° 3154 m | on the two matching runways: scale 1.25, rotation −7° | 153–467 m (rms 344 m) |
+
+- An affine transform (6 parameters) brings Ramon to 120–130 m, but only by stretching the base 3.5 times along one
+  axis and shrinking it to 0.6 along the other. Shelters and aprons would land nowhere near the game's shelter and
+  apron models. For Ramat David the affine transform still leaves 130–450 m.
+- So the game's runways and its airbase models (hangars, shelters, tower) cannot sit on a moved real base.
+
+**What could improve the take-off view instead** (proposals, not built):
+- Keep only the base itself: replace the kept rectangle (§3) with the base's own area (the runway cells and the
+  base's painted area, plus a margin). Then the 2 m photo comes up to the base fence. The kept rectangles cover
+  49 km² (Ramon), 169 km² (Tel Nof) and 143 km² (Ramat David); each base is about 4 × 4 km. The 1998 / 2015 border
+  then runs at the base edge, in view on final approach, and mission objects outside the base (if any) stand on 2015
+  instead of 1998 ground.
+- A sharper runway surface: a procedural asphalt texture and markings drawn over the terraintype.dat runway cells at
+  close range, so the take-off roll shows detail finer than the 1998 inset.
+
+Airbases in the Israel rectangle outside Israel (Damascus / Mezzeh, Bley, the Jordanian bases) lie outside the
+Survey sheets' photographed area, so they keep the original in any case.
