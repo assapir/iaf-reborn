@@ -168,8 +168,10 @@ Numpad snap keys turn the orbit: 8 / 2 pitch, 6 / 4 heading. F2 and 1 / 3 / 7 / 
   * The panel art pans with the head (docs/cockpit.md "Pans"): 1920 / AzimutAngleDeg px per rad of yaw,
     (PanelHeight + HUD CenterY) / ElevationAngleDeg per rad of pitch.
 * **Own jet in the cockpit views** (1, 0x12, 0x16; `FUN_004d9d70` with the view test `FUN_0045e290`): the player's
-  jet is drawn with its cockpit-view model, model slot [8] = `<plane>_bc.x` (wings, fuselage aft of the eye, tail,
-  seat back and canopy frame; docs/damage.md §2), through `FUN_004da060` (display slot 4, the crew's cockpit flag
+  jet is drawn with its cockpit-view model, model slot [8] = `<plane>_bc.x` (wings, fuselage aft of the eye, tail and
+  seat back; docs/damage.md §2). The canopy structure follows each jet: a hoop behind the seat on the F-16 and Lavi,
+  a heavy rear frame on the Kurnass 2000, a rear hood on the Kfir, a rear fairing on the Mirage, sill rails only on
+  the frameless-canopy F-15, through `FUN_004da060` (display slot 4, the crew's cockpit flag
   set so the pilot and canopy stay hidden) and back to slot 1 after the draw (`FUN_004c3210`). The model is moved
   by the eye offset (`FUN_00444da0`) so the eye sits at the camera. The HUD-only view (5) draws no own jet. Jets
   without a `_bc` model (F-4E, F-35I) draw none.
