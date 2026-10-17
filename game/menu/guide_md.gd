@@ -2,7 +2,8 @@
 # RichTextLabel parts. # / ## / ### headings, paragraphs, **bold**, *italic*, `code`, one-level bullet and
 # numbered lists, pipe tables, `---` rules, [text](link) as its text, and images on a line of their own:
 # `![caption](shots/<jet>/<name>.png)` resolved under `base` (assets/converted/guides); a missing image leaves
-# its caption only. tools/guide_pdf.py reads the same subset.
+# its caption only; a numbered list right under a picture is its legend (the callouts drawn on it). tools/guide_pdf.py
+# reads the same subset.
 extends RefCounted
 
 const CAPTION := Color8(170, 170, 180)

@@ -55,6 +55,9 @@ var _pipper_at := {}
 var _real_hud = null
 var _real := {}
 var _real_frame := -1
+## The input of this frame's Real HUD (its named points: fpm, gun_cross, target.at, weapons.pipper …; the guide shots'
+## annotations, tests/godot/_guide_shots.gd).
+var _real_in := {}
 
 
 func _ready() -> void:
@@ -476,7 +479,7 @@ func real_hud() -> Dictionary:
 	if mode == 3 and wp.get("pipper") != null:
 		lcos = gun + Vector2(wp.pipper.x, wp.pipper.y)
 	var agl = st.get("agl_ft")
-	_real = _real_hud.frame(_field(), {
+	_real_in = {
 		"cockpit": cockpit.cockpit_dir, "time": st.get("time", 0.0), "off_boresight": helmet and cockpit.dash(),
 		"head_view": (centre - _c) / _s, "head_rel": Vector2(wrapf(rad_to_deg(atan2(fwd.x, -fwd.z)) - float(st.get("heading", 0.0)), -180.0, 180.0),
 			rad_to_deg(asin(clampf(fwd.y, -1.0, 1.0))) - pitch),
@@ -491,7 +494,8 @@ func real_hud() -> Dictionary:
 		"weapons": {"hud_mode": mode, "selected": wp.get("total", 0), "srm": wp.get("srm", 0), "mrm": wp.get("mrm", 0),
 			"seeker": wp.get("seeker") if mode == 1 and wp.get("have_missiles", false) else null, "lcos": lcos,
 			"pipper": pip, "steering": _hud_point(wp.mrm_point, false) if mode == 2 and wp.get("mrm_point") != null else null,
-			"circle": wp.get("circle", 5.0), "shoot": wp.get("shoot", false)}})
+			"circle": wp.get("circle", 5.0), "shoot": wp.get("shoot", false)}}
+	_real = _real_hud.frame(_field(), _real_in)
 	return _real
 
 

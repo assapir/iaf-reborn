@@ -3,7 +3,9 @@
 
 The Markdown subset is the in-game viewer's (game/menu/guide_md.gd): # / ## / ### headings, paragraphs, **bold**,
 *italic*, `code`, one-level bullet / numbered lists, pipe tables, `---`, [text](link) and pictures on a line of their
-own, `![caption](shots/<jet>/<name>.png)` under assets/converted/guides (tools/guide_shots.sh). The HTML is
+own, `![caption](shots/<jet>/<name>.png)` under assets/converted/guides (tools/guide_shots.sh); a numbered list right
+under a picture is its legend (the picture's numbered callouts, `annotations` in <jet>.shots.json: the counts must
+match, else a warning), kept on the picture's page with badges like the callouts. The HTML is
 self-contained (pictures inlined), A4, a title page with the Reference screen's picture of the jet
 (assets/converted/reference/img/<dir>.png) and a table of contents; headless Chrome / Chromium prints it. The PDF
 holds the original art, so it stays under assets/ (never committed).
@@ -13,6 +15,7 @@ holds the original art, so it stays under assets/ (never committed).
 
 import base64
 import html
+import json
 import re
 import shutil
 import subprocess
@@ -44,8 +47,9 @@ nav.toc li { padding: 1.6mm 0; border-bottom: 1px solid #e3e4e8; }
 nav.toc li.l3 { padding-left: 7mm; font-size: 9.4pt; color: #4b4f5a; border-bottom: 0; padding-top: .6mm; padding-bottom: .6mm; }
 nav.toc a { color: inherit; text-decoration: none; }
 h1 { font-size: 22pt; margin: 0 0 4mm; }
-h2 { font-size: 16pt; margin: 0 0 3mm; padding-bottom: 2mm; border-bottom: 2.5px solid #2f6f4f; page-break-before: always;
+h2 { font-size: 16pt; margin: 9mm 0 3mm; padding-bottom: 2mm; border-bottom: 2.5px solid #2f6f4f;
   page-break-after: avoid; }
+main > h2:first-child { margin-top: 0; }
 h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #2f6f4f; page-break-after: avoid; }
 p { margin: 0 0 3mm; }
 ul, ol { margin: 0 0 3mm; padding-left: 6mm; }
@@ -58,9 +62,17 @@ tr { page-break-inside: avoid; }
 th { background: #2f3440; color: #fff; text-align: left; font-weight: 600; padding: 1.6mm 2.2mm; }
 td { padding: 1.4mm 2.2mm; border-bottom: 1px solid #dfe1e6; vertical-align: top; }
 tbody tr:nth-child(even) td { background: #f5f6f8; }
-figure { margin: 3mm 0 6mm; page-break-inside: avoid; }
+figure { margin: 3mm 0 6mm; }
+figure .pic { break-inside: avoid; }
+ol.legend li { break-inside: avoid; }
 figure img { display: block; width: 100%; border-radius: 1.5mm; border: 1px solid #c8cbd2; }
 figure.small img { width: 46%; margin: 0 auto; image-rendering: pixelated; }
+ol.legend { list-style: none; counter-reset: n; padding: 0; margin: 2.5mm 0 0; font-size: 9pt; text-align: left; }
+ol.legend li { counter-increment: n; position: relative; padding-left: 7.5mm; margin: 1mm 0; }
+ol.legend li::before { content: counter(n); position: absolute; left: 0; top: .2mm; width: 5mm; height: 5mm;
+  border-radius: 50%; background: #ffcc1a; border: 1.2px solid #0d0d0d; font-weight: 700; font-size: 7.6pt;
+  line-height: 5mm; text-align: center; }
+figure.small ol.legend { width: 100%; }
 figcaption { margin-top: 1.8mm; font-size: 8.8pt; color: #5b606c; font-style: italic; text-align: center; }
 hr { border: 0; border-top: 1px solid #d4d6dc; margin: 5mm 0; }
 """
@@ -99,8 +111,9 @@ def slug(s: str, seen: set) -> str:
     return out
 
 
-def body(md: str, base: Path) -> tuple[str, str, list]:
-    """The guide's HTML, its title (the # heading) and the [(level, text, id)] of its ## / ### headings."""
+def body(md: str, base: Path, callouts: dict | None = None) -> tuple[str, str, list]:
+    """The guide's HTML, its title (the # heading) and the [(level, text, id)] of its ## / ### headings. `callouts`:
+    a picture's name -> its number of callouts (a legend of another length is warned about)."""
     out, para, toc, seen = [], [], [], set()
     title = ""
     lst = None
@@ -140,7 +153,7 @@ def body(md: str, base: Path) -> tuple[str, str, list]:
         elif t in ("---", "***"):
             flush()
             nxt = next((l.strip() for l in lines[i + 1:] if l.strip()), "")
-            if not nxt.startswith("## "):  # a ## section starts a new page anyway
+            if not nxt.startswith("## "):  # a ## heading has its own rule
                 out.append("<hr>")
         elif t.startswith("!["):
             flush()
@@ -148,12 +161,25 @@ def body(md: str, base: Path) -> tuple[str, str, list]:
             if m:
                 p = base / m.group(2)
                 cap = inline(m.group(1))
+                # The legend: a numbered list right under the picture (blank lines between allowed).
+                j, legend = i + 1, []
+                while j < len(lines) and not lines[j].strip():
+                    j += 1
+                while j < len(lines) and re.match(r"^\d+\.\s", lines[j].strip()):
+                    legend.append(re.sub(r"^\d+\.\s+", "", lines[j].strip()))
+                    j += 1
+                if legend:
+                    i = j - 1
+                want = (callouts or {}).get(Path(m.group(2)).stem)
+                if want is not None and want != len(legend):
+                    print(f"guide PDF: warning: {m.group(2)} has {want} callouts, its legend {len(legend)} items")
+                leg = "<ol class=\"legend\">%s</ol>" % "".join(f"<li>{inline(x)}</li>" for x in legend) if legend else ""
                 if p.is_file():
                     w, h = png_size(p)
                     cls = ' class="small"' if h >= w * 0.9 else ""  # the square MFD crops not page-wide
-                    out.append(f'<figure{cls}><img src="{data_uri(p)}" alt=""><figcaption>{cap}</figcaption></figure>')
+                    out.append(f'<figure{cls}><div class="pic"><img src="{data_uri(p)}" alt=""><figcaption>{cap}</figcaption></div>{leg}</figure>')
                 else:
-                    out.append(f"<p><em>{cap}</em></p>")
+                    out.append(f"<p><em>{cap}</em></p>{leg}")
         elif t.startswith("|"):
             flush()
             rows = []
@@ -184,7 +210,9 @@ def body(md: str, base: Path) -> tuple[str, str, list]:
 
 def page(jet: str) -> str:
     md = (GUIDES / f"{jet}.md").read_text(encoding="utf-8")
-    html_body, title, toc = body(md, OUT)
+    shots = GUIDES / f"{jet}.shots.json"
+    callouts = {s["name"]: len(s.get("annotations", [])) for s in json.loads(shots.read_text())} if shots.is_file() else {}
+    html_body, title, toc = body(md, OUT, callouts)
     cover_img = ROOT / f"assets/converted/reference/img/{jet}.png"
     img = f'<img src="{data_uri(cover_img)}" alt="">' if cover_img.is_file() else ""
     toc_html = "".join(f'<li class="l{lv}"><a href="#{hid}">{inline(t)}</a></li>' for lv, t, hid in toc)
@@ -192,8 +220,8 @@ def page(jet: str) -> str:
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><title>{html.escape(name)}</title>
 <style>{CSS}</style></head><body>
 <section class="cover"><div class="kicker">Jane's IAF · reborn</div><h1>{inline(name)}</h1>
-<div class="sub">Flying the jet with every realistic option on: settings, procedures, the Real HUD, sensors and
-weapons.</div>{img}<div class="foot">Pictures rendered from your own install of the game.</div></section>
+<div class="sub">What the realistic options change in this jet: its real HUD modes, symbol by symbol, with worked
+examples, and the numbers that change how it flies.</div>{img}<div class="foot">Pictures rendered from your own install of the game.</div></section>
 <nav class="toc"><h2>Contents</h2><ol>{toc_html}</ol></nav>
 <main>{html_body}</main></body></html>"""
 

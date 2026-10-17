@@ -25,6 +25,6 @@ for jet in "${jets[@]}"; do
 		[[ -n $only && ",$only," != *",$name,"* ]] && continue
 		tools/godot_window.sh GUIDE_JSON="$PWD/$json" GUIDE_SHOT="$name" GUIDE_OUT="$PWD/$out" IAF_DEFAULT_SETTINGS=1 -- \
 			--log-file "$logs/$name.log" --path game --resolution 3840x2160 --audio-driver Dummy -s ../tests/godot/_guide_shots.gd 2>&1 \
-			| grep -E "^(PASS|FAIL) shot|SCRIPT ERROR" || true
+			| grep -E "^(PASS|FAIL) shot|^GUIDE_INFO|SCRIPT ERROR" || true
 	done
 done

@@ -1830,9 +1830,12 @@ of the frame.
 * **Making the pictures and the PDF.** Setup's last step makes them (it needs a display):
   1. `tools/guide_shots.sh` renders each entry of `docs/guides/<jet>.shots.json` at 3840×2160
      (`tests/godot/_guide_shots.gd`: settings, start (mission / airborne / dive / final approach), a placed target,
-     actions such as a radar lock, a store or a camera on the target; crops: the whole frame, the HUD, an MFD).
+     actions such as a radar lock, a store or a camera on the target; crops: the whole frame, the HUD, an MFD) and
+     draws its numbered callouts (`annotations`: arrows to symbols found in the Real HUD's own output, or to points of
+     the crop) on the picture. The guide lists their legend as a numbered list right under the picture.
   2. `python3 -I tools/guide_pdf.py` prints the guide as an A4 PDF (title page with the record's picture, contents,
-     the pictures) with headless Chrome / Chromium.
+     the pictures with their legends, warning when a legend's length differs from the callouts) with headless
+     Chrome / Chromium.
 
   Both hold the original art, so they stay under `assets/`.
 
