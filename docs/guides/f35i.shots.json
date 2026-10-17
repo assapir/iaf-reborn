@@ -236,6 +236,168 @@
   ]
  },
  {
+  "name": "hud_nav_steer",
+  "caption": "NAV: the steerpoint 10° right of the nose",
+  "mission": 231,
+  "jet": 4,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   },
+   "f35i_slot": 4
+  },
+  "start": "airborne",
+  "crop": "hud",
+  "crop_w": 0.34,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "text:^036$",
+    "d": [
+     20,
+     9
+    ],
+    "label_at": [
+     0.66,
+     0.2
+    ]
+   },
+   {
+    "n": 2,
+    "sym": "steerpoint",
+    "label_at": [
+     0.82,
+     0.3
+    ]
+   }
+  ],
+  "turn_deg": 126,
+  "actions": [
+   "key:W"
+  ]
+ },
+ {
+  "name": "hud_nav_aside",
+  "caption": "NAV: the steerpoint 40° left, outside the field",
+  "mission": 231,
+  "jet": 4,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   },
+   "f35i_slot": 4
+  },
+  "start": "airborne",
+  "crop": "hud",
+  "crop_w": 0.34,
+  "annotations": [],
+  "turn_deg": 176,
+  "actions": [
+   "key:W"
+  ]
+ },
+ {
+  "name": "hud_nav_behind",
+  "caption": "NAV: the steerpoint behind",
+  "mission": 231,
+  "jet": 4,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   },
+   "f35i_slot": 4
+  },
+  "start": "airborne",
+  "crop": "hud",
+  "crop_w": 0.34,
+  "annotations": [],
+  "turn_deg": 180
+ },
+ {
   "name": "head_set",
   "caption": "Looking 40° left at a locked MiG-23: the head-stabilised set",
   "mission": 231,
@@ -387,6 +549,18 @@
     "label_at": [
      0.822,
      0.878
+    ]
+   },
+   {
+    "n": 8,
+    "sym": "text:^24$",
+    "d": [
+     14,
+     9
+    ],
+    "label_at": [
+     0.62,
+     0.2
     ]
    }
   ]

@@ -1,8 +1,10 @@
 //! The F-35's helmet display, its forward aircraft-stabilised "virtual HUD" (LM "The F-35 Cockpit" slides, US Navy
 //! flight-test video; docs/real-hud.md "F-35I"): boxed airspeed and altitude (no tapes), the GS / M / G / α / max-g
 //! stack, vertical velocity and radar altitude, the heading tape on top, the "-W-" waterline, the ladder with inner
-//! tips and signed labels, the bank scale at the bottom, the mode / weapon / ARM block and the steerpoint block. The gun
-//! and A-G graphics are not public: the F-16's funnel and pipper stand in (reconstruction). Green.
+//! tips and signed labels, the bank scale at the bottom, the mode / weapon / ARM block and the steerpoint block, the
+//! steerpoint's caret under the heading tape and its small square on the ground (both seen in the LM "Virtual HUD
+//! Looking Forward" frame). The gun and A-G graphics are not public: the F-16's funnel and pipper stand in
+//! (reconstruction). Green.
 
 use super::*;
 
@@ -31,7 +33,7 @@ pub(super) fn frame(_hud: Field, i: &Input, max_g: f64) -> Frame {
     let w = &i.weapons;
     let mode = w.hud_mode;
     let o = &mut fr.outer;
-    heading(o, f.top + 10.0, i.heading_deg);
+    heading(o, f.top + 10.0, i.heading_deg, i.steerpoint.map(|s| s.bearing_deg));
     // Airspeed box (left) and its stack; altitude box (right), vertical velocity, radar altitude.
     let y0 = f.centre_y() + 8.0;
     let lx = f.left - 4.0;
@@ -107,6 +109,13 @@ pub(super) fn frame(_hud: Field, i: &Input, max_g: f64) -> Frame {
             p.push(line(fpm, c));
         }
     }
+    // The steerpoint on the ground: a small square, in every master mode (the LM frame shows it in AA1); held at the
+    // field's edge when outside it, as the target designator is (ours: the real edge behaviour is not public).
+    if let Some(at) = i.steerpoint.and_then(|s| s.at) {
+        let (q, _) = f.clamp_from(i.boresight, at);
+        let h = i.mr(3.0);
+        p.extend(box_poly(q.0 - h, q.1 - h, q.0 + h, q.1 + h));
+    }
     if let Some(t) = i.target
         && let Some(at) = t.at
     {
@@ -145,7 +154,7 @@ pub(super) fn frame(_hud: Field, i: &Input, max_g: f64) -> Frame {
 
 /// Looking off the nose (flight-test video; docs/real-hud.md "F-35I"): the aircraft-stabilised virtual HUD is left
 /// behind and a reduced head-stabilised set shows around the helmet's centre — the head line-of-sight "+", a heading
-/// tape for where the head points, the airspeed and altitude as bare numbers, the steerpoint block and the target
+/// tape for where the head points with the steering caret (the LM "HMD Looking Behind" frame), the airspeed and altitude as bare numbers, the steerpoint block and the target
 /// designator; no ladder, marker, boxes or data stack.
 fn off_boresight(i: &Input) -> Frame {
     let mut fr = Frame { colour: Some(GREEN), ..Frame::default() };
@@ -154,7 +163,7 @@ fn off_boresight(i: &Input) -> Frame {
     let a = i.mr(10.0);
     o.push(line((-a, 0.0), (a, 0.0)));
     o.push(line((0.0, -a), (0.0, a)));
-    heading(o, -h, i.head_heading_deg);
+    heading(o, -h, i.head_heading_deg, i.steerpoint.map(|s| s.bearing_deg));
     o.push(text((-w, h * 0.6), format!("{}", i.kcas.max(0.0).round() as i64), Align::Left));
     o.push(text((w, h * 0.6), format!("{}", i.alt_ft.round() as i64), Align::Right));
     if let Some(s) = i.steerpoint {
@@ -192,8 +201,10 @@ fn mode_block(w: &Weapons) -> (String, Option<String>) {
     }
 }
 
-/// The heading tape on top: labels every 10° in tens, the boxed heading with its pointer.
-fn heading(p: &mut Vec<Prim>, y: f64, hdg: f64) {
+/// The heading tape on top: labels every 10° in tens, the boxed heading with its pointer and, under the tics, the
+/// steering caret "^" at the steerpoint's bearing, held at the tape's end when the bearing is off the tape (ours: the
+/// LM frame shows the caret just past the tape's last tic, the real limit is not public).
+fn heading(p: &mut Vec<Prim>, y: f64, hdg: f64, bearing: Option<f64>) {
     let first = ((hdg - HDG_HALF / HDG_PX) / 5.0).ceil() as i64;
     let last = ((hdg + HDG_HALF / HDG_PX) / 5.0).floor() as i64;
     for n in first..=last {
@@ -211,6 +222,11 @@ fn heading(p: &mut Vec<Prim>, y: f64, hdg: f64) {
     p.extend(box_poly(-11.0, y - 8.0, 11.0, y + 2.0));
     p.push(text((0.0, y), format!("{:03}", (hdg.round() as i64).rem_euclid(360)), Align::Centre));
     p.push(line((0.0, y + 2.0), (0.0, y + 6.0)));
+    if let Some(b) = bearing {
+        let x = (((b - hdg + 180.0).rem_euclid(360.0) - 180.0) * HDG_PX).clamp(-HDG_HALF, HDG_HALF);
+        p.push(line((x - 2.5, y + 10.0), (x, y + 7.0)));
+        p.push(line((x, y + 7.0), (x + 2.5, y + 10.0)));
+    }
 }
 
 /// The bank scale at the bottom: tics every 10° to ±30° and at ±45° / ±60° on an arc, the pointer at the bank.
@@ -246,6 +262,40 @@ mod tests {
             assert!(t.contains(&want), "{want} in {t:?}");
         }
         assert_eq!(fr.colour, Some(GREEN));
+    }
+
+    #[test]
+    fn the_steering_caret_sits_at_the_bearing_and_holds_at_the_tape_end() {
+        let caret_tip = |bearing: Option<f64>| {
+            let mut p = Vec::new();
+            heading(&mut p, 0.0, 333.0, bearing);
+            match p.last() {
+                Some(Prim::Line { a, .. }) if a.1 == 7.0 => Some(a.0),
+                _ => None,
+            }
+        };
+        for (bearing, want) in [(340.0, 14.0), (333.0, 0.0), (320.0, -26.0), (10.0, HDG_HALF), (150.0, HDG_HALF), (200.0, -HDG_HALF)] {
+            assert_eq!(caret_tip(Some(bearing)), Some(want), "bearing {bearing}");
+        }
+        assert_eq!(caret_tip(None), None);
+    }
+
+    #[test]
+    fn the_steerpoint_square_sits_on_its_ground_point_or_held_at_the_edge() {
+        let mut i = input(Jet::F35);
+        let h = i.mr(3.0);
+        let top_side = |c: P| line((c.0 - h, c.1 - h), (c.0 + h, c.1 - h));
+        // In the field: on the projection (the default input's (30, 20)), also in A-A as the LM frame shows.
+        i.weapons.hud_mode = 2;
+        assert!(frame(FIELD, &i, 1.9).outer.contains(&top_side((30.0, 20.0))));
+        // Far right: held on the field's right edge, on the line from the boresight.
+        i.steerpoint.as_mut().unwrap().at = Some((384.0, 0.0)); // twice the right edge (16° × 12 px)
+        assert!(frame(FIELD, &i, 1.9).outer.contains(&top_side((i.deg(FIELD_W_DEG / 2.0), 0.0))));
+        // Behind the view: no square (the caret alone shows the way).
+        i.steerpoint.as_mut().unwrap().at = None;
+        let n = frame(FIELD, &i, 1.9).outer.len();
+        i.steerpoint.as_mut().unwrap().at = Some((30.0, 20.0));
+        assert_eq!(frame(FIELD, &i, 1.9).outer.len(), n + 4);
     }
 
     #[test]

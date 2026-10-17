@@ -5,7 +5,7 @@
 #       godot --path game --resolution 3840x2160 -s ../tests/godot/_guide_shots.gd
 # An entry: name, caption, mission, jet (Jet list id, -1 the mission's), settings ({Settings property: value}, "better"
 # the Physics switches), start ("mission": the mission's own start; "airborne": frozen 3000 m up at 250 m/s with
-# `loadout` (9 [weapon id, count] pairs) on the pylons; "final": frozen on final approach, `final_m` before the start
+# `loadout` (9 [weapon id, count] pairs) on the pylons, the heading turned `turn_deg`° right; "final": frozen on final approach, `final_m` before the start
 # point at `final_alt` m on a 3° glide path, the nose `final_aoa`° above it, gear down), place ({"unit_prefix": "mig23" | "ground_unit": true, "ahead_m": N} puts that
 # unit N m ahead (`bearing_deg` right of the nose; an air unit flying away at `vel_ms`), in the air at the jet's height / on the ground), actions (in order; the frozen starts advance a
 # scripted sim time, the others real time: "lock" radar lock on the placed unit, "on_impact" the placed unit onto the
@@ -59,9 +59,12 @@ func run() -> void:
 		w = airborne_case(tv, hp if not hp.is_empty() else [0, 0])
 		# The flight model at the raised rig (airborne_case restarts it where the jet stood: the HUD read the
 		# runway's altitude and R 0), 250 m/s level.
+		# "turn_deg": the heading turned that many degrees right (negative: left) of the mission's.
 		var st: Dictionary = tv.flight.state()
-		tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, tv.rig.position, st.heading,
-				0.0, 0.0, st.forward * 250.0, true, true, Settings().real_data())
+		var turn := float(e.get("turn_deg", 0.0))
+		tv.rig.rotate(Vector3.UP, deg_to_rad(-turn))
+		tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, tv.rig.position, st.heading + turn,
+				0.0, 0.0, Vector3(st.forward).rotated(Vector3.UP, deg_to_rad(-turn)) * 250.0, true, true, Settings().real_data())
 	elif start == "dive":
 		frozen_start = true
 		w = airborne_case(tv, hp if not hp.is_empty() else [0, 0])

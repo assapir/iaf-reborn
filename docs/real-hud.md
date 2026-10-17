@@ -316,7 +316,7 @@ Sources: Lockheed Martin "The F-35 Cockpit" slides (c. 2012; https://www.f-16.ne
 US Navy flight-test helmet video (https://www.twz.com/12297/); Collins datasheet; Aviation Today 2010 / 2015.
 
 The forward virtual HUD:
-- Heading tape at the top, the boxed heading `[092]`, a caret.
+- Heading tape at the top, the boxed heading `[092]`, a caret (see Navigation below).
 - Airspeed: a **boxed number only**, left (`[382]`), no tape. Under it `GS 515`, `M 0.84`, `G 1.0`, `α 1.6` and a
   bare number (max G, inferred).
 - Altitude: a boxed number, right (`[19 067]`, the last three digits small). Under it the vertical velocity `-1125`
@@ -333,6 +333,25 @@ The forward virtual HUD:
 
 Off-boresight: the virtual HUD stays with the airframe. The helmet shows a reduced head-stabilised set: bare airspeed
 / altitude, heading, steerpoint, targets [V].
+
+Navigation (researched October 2026). No public source names the helmet's navigation symbols or says how they behave.
+The F-35 flight manual and the Collins symbology are not public; Collins, Elbit, Code One and the Aviation Today
+articles describe the helmet only in general terms. The two LM frames are the only primary evidence. Ours reads them as
+follows:
+- **Steering caret** `^` on the heading tape [V, our reading]. The forward frame (heading 092°, steerpoint `001
+  110/22.0`) shows a `^` just past the tape's last tic on the right, the side of the steerpoint. The "Looking Behind"
+  frame shows a `^` under the head's heading tape too. Ours: the caret sits under the tics at the steerpoint's bearing
+  and is held at the tape's end (±17°) when the bearing is off the tape [R, the limit].
+- **Steerpoint square** on the ground [V, our reading]. The forward frame shows a small square far right, about 16°
+  right and 6° below the horizon (scaled from the ladder: 5° = 210 px). The steerpoint 22 NM away at 110° from
+  19,067 ft lies 18° right and 8° below, so the square is most likely the steerpoint. Ours draws it in every master
+  mode, ground-stabilised at the steerpoint's projection.
+- Off the field: the square is held at the field's edge on the line from the boresight, as the slide says for the
+  target designator [R]. Behind the view, only the caret shows [R].
+- Looking aside: the head set keeps the caret on its own heading tape [V, the "Looking Behind" frame]; it draws no
+  square [R: no frame shows one].
+- No steering line, no distance or time beside the square [R: none is visible in either frame]. The readouts stay in
+  the steerpoint block (`001 110/22.0` and the time).
 
 ## DASH helmet (F-16D, F-15C)
 
