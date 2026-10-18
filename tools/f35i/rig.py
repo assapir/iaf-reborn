@@ -148,11 +148,39 @@ def pylons():
         le, te = ys[0], ys[-1]
         length = min(0.6 * (le - te), 2.0)
         yc = (le + te) / 2
-        z = max(wing_under(x, yc + d * length / 2) or 0.0 for d in (-1, 0, 1))  # the foot clears the whole skin
-        objs[letter] = kit.box(f"Pylon{letter}", (x, yc, z - depth / 2 + 0.04), (0.11, length, depth + 0.08), mat,
-                               bevel=0.02)
-        points[letter] = (x, yc, z - depth)
+        objs[letter], foot = pylon_mesh(f"Pylon{letter}", x, yc, length, depth, mat)
+        points[letter] = (x, yc, foot)
     return objs, points
+
+
+def pylon_mesh(name, x, yc, length, depth, mat, n=16, w_top=0.055, w_foot=0.04):
+    """A pylon under the wing at span x: slices along its chord, each slice's top 4 mm under the wing's lower
+    surface there (so nothing reaches into or through the wing), a flat foot `depth` below the lowest top, the
+    first and last slices short (sloped ends). Returns the object and the foot's height."""
+    ys = [yc + length / 2 - length * i / n for i in range(n + 1)]
+    tops = [wing_under(x, y) for y in ys]
+    known = [t for t in tops if t is not None]
+    tops = [(t if t is not None else min(known)) - 0.004 for t in tops]
+    foot = min(tops) - depth
+    vs, faces = [], []
+    for i, (y, top) in enumerate(zip(ys, tops)):
+        bot = top - 0.06 if i in (0, n) else foot
+        vs += [(x - w_top, y, top), (x + w_top, y, top), (x + w_foot, y, bot), (x - w_foot, y, bot)]
+    for i in range(n):
+        a, b = 4 * i, 4 * (i + 1)
+        faces += [(a, a + 1, b + 1, b), (a + 1, a + 2, b + 2, b + 1), (a + 2, a + 3, b + 3, b + 2), (a + 3, a, b, b + 3)]
+    faces += [(0, 3, 2, 1), (4 * n, 4 * n + 1, 4 * n + 2, 4 * n + 3)]
+    me = kit.bpy.data.meshes.new(name)
+    me.from_pydata(vs, [], faces)
+    bm = kit.bmesh.new()
+    bm.from_mesh(me)
+    kit.bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(me)
+    bm.free()
+    me.materials.append(mat)
+    o = kit.bpy.data.objects.new(name, me)
+    kit.scene().collection.objects.link(o)
+    return o, foot
 
 
 def belly_under(x, y):
