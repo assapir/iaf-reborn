@@ -203,6 +203,15 @@ an HSI), first on the Kfir's panel compass, then on each jet that has one in its
 Hold a key to slide the panel fully into view, release to look ahead again (as modern sims do; a real pilot glances
 down with the eyes). The original has only the stepped panel slide (PgUp / PgDn, V).
 
+## Video record key (Extras, future idea; 2026-10-18)
+A key in flight starts and stops a video recording, next to the screenshot key. Godot's movie writer
+(`--write-movie`) is switched on at launch only, and it steps game time by one frame per rendered frame, which slows
+live play while recording at 4K. Two ways:
+1. Live capture: each frame copied from the screen to ffmpeg (optional, found at run time) into an mp4. It holds the
+   frame rate at 1080p; at 4K the GPU readback is likely to drop it.
+2. Record a replay, then render it with the movie writer at any quality (4K, 60 fps). This needs a full replay of
+   every unit (the flight recorder holds only the player's jet).
+
 ## Modern F-16 (Extras switch, wishlist; decided 2026-10-17, research first)
 - **Switch:** "F-16: 1990s (Barak) / Today". The default is the game's early-1990s F-16D Barak.
 - **Today:** the current IAF two-seat F-16 standard with its upgrades, for the same cockpit and model slot. The
