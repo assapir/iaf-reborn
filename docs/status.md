@@ -20,7 +20,8 @@ STBY / STT / BORE / LRS / TWS / ACM / GMT / MAP are the radar modes (docs/radar.
   - Left: multiplayer (8).
 - **Flyable jets: all seven of the Jet list** — F-15, F-16, F-4E, F-4 Kurnass 2000, Lavi, Kfir, Mirage (Jet list or a
   mission's jet; docs/aircraft.md §5) — plus our F-35I in one jet's slot (Extras, docs/f35i.md). The MiGs are
-  AI-only, as in the original. A mission whose player jet is any other type flies it as the F-16.
+  AI-only in the campaigns, as in the original (the manual lets the player fly them in Mission Creator, multiplayer and
+  All-Out War missions, which we have not built). A mission whose player jet is any other type flies it as the F-16.
 - **Game version: v1.1 logic**, with v1.1 data when setup is given the patch (`--patch`); v1.0 data still plays. Doc
   addresses are v1.1 (docs/v1.1.md maps them to v1.0). All the flight model's v1.1 changes are ported
   (docs/flight-model.md §16).

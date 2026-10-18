@@ -36,7 +36,8 @@ directly (`CFlightWnd::OnGameEvent` 0x4dc280). They bypass the game-event queue.
     `FUN_004bb8f9` holds (the player has a unit, UNCERTAIN).
   * MAIN (`FUN_004ecff0`) on screens 0x20 / 0x21 opens the Ctrl+Q quit-mission box (`FUN_004e2fa0(3)`).
   * Fly (`FUN_005045b0`) takes the selected formation (`FUN_004d31f0`: fly another flight's aircraft) and returns.
-  * Visit (`FUN_005046b0`) returns with the selected unit (`FUN_004d3450`, UNCERTAIN: a view on it).
+  * Visit (`FUN_005046b0`) returns with the selected unit (`FUN_004d3450`): the camera follows that unit without control,
+    only after the mission has started; Esc returns (EN 3.1).
   * Ctrl+P on the FlyTSD pauses with a dithered snapshot (`FUN_004edbc0`).
   * While the time rate is > 1, the TSD overlay shows `"%dx"` (0x654b74) at (Wc − 4, 4), TA_RIGHT (@5013f0).
 * **Menu items** (`FUN_004dc0d0`):
@@ -66,8 +67,8 @@ directly (`CFlightWnd::OnGameEvent` 0x4dc280). They bypass the game-event queue.
   * FlyTSD Fly into another formation's aircraft: Fly returns to your own jet.
   * Visit: it does nothing.
   * Ctrl+P on the FlyTSD.
-  * Live unit positions on the FlyTSD: it draws the mission's start positions, as before the flight (UNCERTAIN
-    what the original draws there).
+  * Live unit positions on the FlyTSD: it draws the mission's start positions, as before the flight. The
+    original shows the live battle: current positions, and downed formations leave the map and their buttons (EN 3.3).
   * The multiplayer boxes (msgs 11 / 12).
 
 ## 2. Time compression (C 0x77, Ctrl+C 0x78)

@@ -83,6 +83,9 @@ Facts our docs lack that would help when building, testing or writing the pilot 
 
 ## 4. UNCERTAIN items the manual resolves
 
+These answers are now in the docs named in each row (2026-10-18), except row 3's HUD mode names, which
+docs/cockpit.md already gives.
+
 | # | Doc line | Manual | Answer |
 |---|---|---|---|
 | 1 | docs/mfd.md "TWS": hover text `"%02d" (altitude kft and +0x67c·10, UNCERTAIN which side)` | EN 4.17 | The cursor shows the target's altitude and Mach, so `+0x67c·10` is Mach × 10. |

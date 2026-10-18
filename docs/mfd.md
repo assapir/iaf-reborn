@@ -239,7 +239,7 @@ A/P 88, ELCT 97, GNRT 106. Redrawn when state+0x558.. flags change.
 - LRS (`FUN_00534840`): 5x5 box + inner 3x3; cursor = two vertical bars at mouse x±4, y±5; click on blip → event 0x2a
   (lock, id).
 - TWS (`FUN_00534b20`): untracked 5x5 box, tracked ~7 px filled disc; 4-px aspect stub quantised to 45°; hover text
-  "%02d" (altitude kft and +0x67c·10, UNCERTAIN which side).
+  "%02d" altitude in kft and "%02d" Mach × 10 (+0x67c·10); the manual (EN 4.17) names both.
 - STT (`FUN_00533db0`/`FUN_00534160`): disc + aspect stub; carets follow the target; range scale line x=121 y10..122
   with three black ticks at y 39 / 65 / 91 (x 117..121), the selected store's DLZ max / min (S+0x348 / +0x350,
   docs/weapons.md §11.2) as ticks x 121..117 at y = 122 − ⌊v·112/(R·1853)⌋ while 0 < 112 − ⌊v·k⌋ < 112, and "<"
@@ -274,7 +274,7 @@ The TSD is a heading-up tactical map with waypoints and SAM sites around the own
 - Right OSBs toggle (default all on): 0x10 SAM (+0x278c), 0x11 WPT (+0x2790), 0x12 MAP (+0x2794), 0x13 SCL
   (+0x2798); highlight box (111,20+20i)-(128,29+20i) when on.
 - Waypoints (state+0x7c/+0x80, stride 0x2c, count +0x310, current +0x320, type +0xa4): polyline in 0x58c; current
-  filled 5x5 green (0x27a4), type 5 (target? UNCERTAIN) red triangle (0x27ac)/purple 5x5 (0x27a8), others hollow
+  filled 5x5 green (0x27a4), type 5 (the target waypoint, EN 4.15) red triangle (0x27ac)/purple 5x5 (0x27a8), others hollow
   5x5 dark green (0x27a0).
 - SAM sites (state+0x1148.., stride 0x14, count +0x1288): 3x3 box+diagonal and ring of radius r/k px.
 
@@ -283,8 +283,9 @@ The TSD is a heading-up tactical map with waypoints and SAM sites around the own
 - Symbols centred (66,66), radius 56 (`FUN_00531470`). When state+0x590 (damage flag 14) ≠ 0, it draws "Mal" at
   (101,3) in place of the symbols.
 - rwrsymb.bmp glyphs 10x10 at src (0,Y,10,Y+10), drawn at pos−5. Threat type → Y: 0x122→0 "2", 300→10 "3",
-  0x136→20 "5", 0x140→30 "6", 0x14a→40 "8", 0x154→50 "H", 0x168/0x17c/0x186→60 (ship? UNCERTAIN), 0x15e→70 "A",
-  150→80, 160→90, 180→100, 170→110, 120/200→120, 110→130, 100→140, 130/190→150, 140→160 (aircraft glyphs).
+  0x136→20 "5", 0x140→30 "6", 0x14a→40 "8", 0x154→50 "H", 0x168/0x17c/0x186→60 (AAA, two chevrons;
+  EN 4.24), 0x15e→70 "A", then the aircraft glyphs: 150→80 "21", 160→90 "23", 180→100 "29", 170→110 "25", 120/200→120
+  "4", 110→130 "15", 100→140 "16", 130/190→150 "C" (Kfir and Mirage), 140→160 "L" (Lavi).
 - Distance clamped to 37060 m → rim; heading-up; entries with +0xe90 blink at 300 ms.
 - Panel RWR (`FUN_00531330`): same drawer at [PANELRWR] Center (805,84) in panel coords, radius 28; background from
   the panel bitmap.
@@ -603,7 +604,8 @@ The HARM page lists the candidate targets (unit classes 9–11 and sites named "
   entry an **8×8 box** (x−4..x+4, y−4..y+4); positions **x = 66 + (az + dpsi)·112/30°, y = 66 − (el + dtheta)·112/30°**
   (`0x60c478` = 112), only when 8 < x, y < 124 (MFD px).
 - Pass 3: per entry inside that window one sprite-font character at (x−2, y−2): type 290 "2", 300 "3", 310 "5", 320
-  "6", 330 "8", 340 "H", 350 "A", 360 "G", class 9 "I", class 0xb "R", anything else "0". A click (cursor in the ±4 px
+  "6", 330 "8", 340 "H", 350 "A", 360 "G", class 9 "I" (SA-13), class 0xb "R" (ground radar), anything else "0";
+  360 "G" is the Gun Dish site (ZSU-23) (EN 4.32). A click (cursor in the ±4 px
   box, `+0x27d8`) on an entry sends **event 0x37(id)** → `FUN_0045c280`: the sensor selects it (vfunc +0x38) and
   refreshes; `DAT_0083e344` blocks a repeat until that id is the selected one. Status right-aligned at (114,3):
   **"no source"** when +0xe00, else **"In Range"** when +0xdf0, else **"No Range"** when the list is not empty, else
@@ -743,8 +745,9 @@ F-4-2000 292/85/200; F-15 264/69/206 (+ ElevationAngleDeg 50, AzimutAngleDeg 100
 MiG-23 298/126/190; MiG-29 297/44/190. HUD `[HUD]` values are in docs/cockpit.md.
 
 Reachability: the menu offers only the seven jets above. `mig23` and `mig29` (enemy types 160/180) cannot be selected from the
-menu; `Cockpit009..012 = F16` in cockpits.ibx are never returned by `FUN_00447e70` (indices only 0..8). Whether a mission file
-can put the player in a MiG (`Player1` type) is not verified - UNCERTAIN. `fsmfd/` (full-screen MFD art + `data.ibx`) and
+menu; `Cockpit009..012 = F16` in cockpits.ibx are never returned by `FUN_00447e70` (indices only 0..8). The manual (EN 2.4,
+2.6) lets the player fly the MiG-23 and MiG-29 in Mission Creator, multiplayer and All-Out War missions; which cockpit
+they get there is not traced. `fsmfd/` (full-screen MFD art + `data.ibx`) and
 `mfds.bmp/rwrsymb.bmp/isr.bmp` are shared by all cockpits; `emf/map.emf` is the TSD map for all.
 
 ## Open questions
@@ -752,5 +755,5 @@ can put the player in a MiG (`Player1` type) is not verified - UNCERTAIN. `fsmfd
 - Straight-ahead vertical pan (+0x568) → exact on-screen MFD y.
 - Meaning of the TSD ×1.0071394 factor and the ~20 m offsets between TSD, MAP and DataShift constants.
 - state+0x70 (steerpoint vs ownship copy); contact +0x67c; state+0x348/+0x3a0 (STT envelope/closure).
-- Names of master modes 1–6; RWR aircraft glyph identities; the TV page's "%3d" (weapon motion vfunc +0x80); that the NAV ETA's
+- Names of master modes 1–6 (the manual names the HUD modes only); the TV page's "%3d" (weapon motion vfunc +0x80); that the NAV ETA's
   clock offset (clock+0x18) is the mission start time 0x460.

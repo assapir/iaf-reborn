@@ -416,7 +416,7 @@ Jets disabled per mission (`FUN_00509b80`; rows 0x11c bytes apart in the list ob
 * Scrollbars (screen coordinates):
   * V: `tsd/vscroll.bmp` 10×356 at (608,42); thumb `vslider` 10×75; `vslupb`/`vsldownb`
   * H: `hscroll.bmp` 462×10 at (146,399); thumb `hslider` 74×10
-  * Dragging the map with `Cur/move.cur` and `grab.cur` pans it (UNCERTAIN).
+  * `Cur/move.cur` and `grab.cur` are the waypoint drag's cursors (below); the manual (EN 3.3) describes no map drag.
 * **Waypoints** (Waypoint check), one route per flight 1..4, with the selected flight drawn last:
   * a filled circle of radius 10 (pen PS_INSIDEFRAME 2 px and a brush in the flight colour)
   * the 1-based number, centred at (x, y+4) (TA_BASELINE|TA_CENTER), white
@@ -700,8 +700,8 @@ Multiplayer adds slot checks.
 
 **Waypoints** are drawn for flights 1..4 only, then the selected flight. In SP, pressing the left
 button within 10 px of a waypoint of the selected flight (`FUN_00504dd0`) starts a drag. The drag
-moves the waypoint through the inverse transform (`FUN_00500f70`, `FUN_004d3130`). This is the
-purpose of `move.cur` and `grab.cur` (UNCERTAIN).
+moves the waypoint through the inverse transform (`FUN_00500f70`, `FUN_004d3130`). It uses
+`move.cur` and `grab.cur`. The manual (EN 3.3) allows the drag before take-off only.
 
 #### Top-left text (overlay `501300`)
 
