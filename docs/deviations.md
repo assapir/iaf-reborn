@@ -113,6 +113,7 @@ Each row: Original = the 1998 game; Ours = this port, for everyone.
 | TSD 3D-model window | the engine renders the model (lighting: engine defaults, UNCERTAIN) | a Godot SubViewport: one sun, grey ambient, MSAA 4×, Camera3D fov 50° across | engine | front-end.md §11, model_view.gd |
 | Pause / menu sim freeze | the sim clock stops | the scene tree pauses (sim nodes stop); sounds paused by `stream_paused` | engine mechanism | views.md §1 |
 | Script Path movers | `initialDeltaYaw` turns the unit onto its path (`FUN_0047c4cf`, rate not traced); the mover's terrain handling not traced | the unit faces along its leg at once; a flyer (classes 2, 3, 0x1c) holds the points' z above the ground | untraced turn rate; the data's z are heights (0 on runways, 100–1000 m over 700–2,800 m terrain) | mission-runtime.md §4, mission_runtime.gd `_move_on_path` |
+| Intro videos | `janes.avi` then `intro.avi` (Indeo 5) play at every start, before the main menu (`FUN_004e2130` / `FUN_004e2960`) | the start-up goes straight to the main menu; the files stay in `assets/install/resource/avi/` to watch with VLC or `ffplay` (README "Intro videos") | Godot plays only Ogg Theora video, and the project keeps no Indeo 5 decoder | front-end.md §18.2, menu/startup.gd |
 
 ## 2. Opt-in switches (original by default)
 Each entry names the switch and where it lives, then the difference: "Original: X. Ours, with the switch: Y."
@@ -153,14 +154,10 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   switch: conformal, each rung projected through the camera.
 - **"All keys on the Keyboard page".** Original: the page lists 92 of the 117 key records. Ours, with the switch: it
   lists all 115 labelled ones, so the stick, rudder, RPM ± 5 and pans can be rebound — controls.md §3.
-- **Intro videos (Original / Skippable / Off)** (front-end.md §18.2). Original: janes.avi then intro.avi play to
-  their end at every start; keys, clicks and the window's close button do nothing meanwhile. Ours, in every mode: Esc
-  ends the current video. With Skippable: any key or a mouse click ends it; with Off: the start-up goes straight to
-  the main menu.
 - **CD launcher (Off / On)** (front-end.md §18.1, formats/autorun.md). Original: the CD's `Jauto.exe` poster is a
   separate program that runs when the CD is inserted; the game starts without it. Ours, with On: the poster shows
-  at start-up, before the intro videos, centred in the 640×480 frame on black (the exe centres it on the desktop).
-  PLAY goes on into the start-up, QUIT and Esc quit. The buttons that start Windows programs or files show their
+  at start-up, before the main menu, centred in the 640×480 frame on black (the exe centres it on the desktop).
+  PLAY opens the main menu, QUIT and Esc quit. The buttons that start Windows programs or files show their
   disabled art: HELP and PREVIEWS (WinHelp `.hlp` files), INSTALL (`SETUP.EXE`), REGISTER ONLINE (`ERegIP.EXE`),
   UNINSTALL (the uninstaller) and JANE'S ONLINE (a web page that no longer exists). In the exe only PLAY and
   UNINSTALL are disabled, and only while the game is not installed. The art is the English set always (the exe picks

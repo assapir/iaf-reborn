@@ -2389,9 +2389,9 @@ Multiplayer is not ported. When it is, port the v1.1 behaviour (docs/v1.1.md):
 
 ## 18. Start-up: CD launcher, intro videos, main menu
 
-The exe opens its 640×480 window (`FUN_004e2130`), then plays two videos and opens the main menu. The CD launcher is
-a separate program on the CD; the port can show it first (Extras → CD launcher, off by default). Code:
-`game/menu/startup.gd` (the main scene), `game/menu/autorun.gd`, `crates/iaf-godot/src/video.rs`.
+The exe opens its 640×480 window (`FUN_004e2130`), then plays two videos and opens the main menu. Ours goes straight
+to the main menu (§18.2). The CD launcher is a separate program on the CD; the port can show it first (Extras → CD
+launcher, off by default). Code: `game/menu/startup.gd` (the main scene), `game/menu/autorun.gd`.
 
 ### 18.1 CD launcher (ours: Extras → CD launcher)
 The CD's `Jauto.exe` (formats/autorun.md) is a captionless 468×451 poster window centred on the desktop with eight
@@ -2400,9 +2400,9 @@ A button shows its focused ("active") art when it has the keyboard focus, its pr
 art when disabled. Tab and the arrow keys move the focus, Enter presses the focused button, Esc quits. The pointer
 passing over a button changes nothing.
 
-Ours, with the switch on: the poster shows centred in the 640×480 frame on black, before the intro videos, drawn
-from `assets/install/autorun` at run time (the startup sound is read out of `jauto.exe`). PLAY goes on into the
-start-up; QUIT and Esc quit the game. The other six buttons show their disabled art (docs/deviations.md §2). The
+Ours, with the switch on: the poster shows centred in the 640×480 frame on black, before the main menu, drawn
+from `assets/install/autorun` at run time (the startup sound is read out of `jauto.exe`). PLAY opens the
+main menu; QUIT and Esc quit the game. The other six buttons show their disabled art (docs/deviations.md §2). The
 focus starts on PLAY, the first enabled button. Without the CD files (`iaf-extract --autorun <iso> assets/install`
 copies them) the start-up goes on without the launcher.
 
@@ -2424,13 +2424,10 @@ copies them) the start-up goes on without the launcher.
 - janes.avi is the Jane's logo (28.8 s), intro.avi the opening movie (93.5 s). Both: Indeo 5 (`IV50`) video
   320×240 at 15 fps and PCM 8-bit stereo sound at 22 050 Hz (formats/avi.md).
 
-Ours: the same order, size and sound; the videos come from `assets/install/resource/avi`. `IafVideo` reads the AVI
-(`iaf_formats::avi`) and decodes each frame when it is due (`iaf_indeo`, a port of NihAV's Indeo 5 decoder); frames
-follow the wall clock from the video's start. Esc ends the current video in every mode (ours; the exe has no skip). Extras →
-Intro videos: Original (as the exe, plus Esc), Skippable (ours: any key or a mouse click ends the current video) or
-Off (ours: straight to the menu). Our command-line runs (`--mission`,
-`--screenshot`, `--hover`) go straight to the menu; the exe plays the videos before its `JumpToMission` screen too.
+Ours: the start-up goes straight to the main menu and plays no video (docs/deviations.md §1). Godot plays only Ogg
+Theora video, and the project keeps no Indeo 5 decoder. `iaf-extract` copies both files to
+`assets/install/resource/avi/`; the README's [Intro videos](../README.md#intro-videos) section tells how to watch them.
 
 ### 18.3 Main menu
-After the videos the exe draws `Bmp\Back0.bmp` and opens the menu window (§1). Ours: the start-up changes to
-`menu/front_end.tscn`; a return from a flight goes straight there.
+After the videos the exe draws `Bmp\Back0.bmp` and opens the menu window (§1). Ours: the start-up (after the CD
+launcher, when on) changes to `menu/front_end.tscn`; a return from a flight goes straight there.

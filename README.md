@@ -105,6 +105,19 @@ What v1.1 changes against v1.0, and the v1.0 → v1.1 address map: [docs/v1.1.md
 
 Use google to find the original game ISO if you do not have them. I trust you. Same for the optional Hebrew packs.
 
+## Intro videos
+
+At start-up the original game plays `janes.avi` (the Jane's logo) and then `intro.avi` (the opening movie). Our port
+goes straight to the main menu and does not play them. After setup, both files are in `assets/install/resource/avi/`.
+
+They use the Indeo 5 video format. VLC and ffmpeg's `ffplay` play them, for example:
+
+```sh
+ffplay -autoexit assets/install/resource/avi/intro.avi
+```
+
+QuickTime does not play them.
+
 ## Optional packs
 
 Community mods (e.g. Hebrew briefings) can be imported as overlay packs — see [docs/packs.md](docs/packs.md).
@@ -210,10 +223,6 @@ It needs the converted assets, so it runs locally. Run scripted tests and captur
 ## License and trademarks
 
 The code in this repository is licensed under the GNU General Public License v3.0 or later — see [LICENSE](LICENSE).
-One crate has its own licence: `crates/iaf-indeo`, the Indeo 5 video decoder that plays the intro videos, is a port of
-[NihAV](https://nihav.org)'s decoder by Kostya Shishkov and keeps NihAV's GNU Affero General Public License v3.0 or
-later ([crates/iaf-indeo/COPYING](crates/iaf-indeo/COPYING)). GPLv3 §13 allows the two to be combined; NihAV's author
-offers parts of the project under other free licences on request.
 It contains no data from the original game; you must supply your own copy.
 
 "Jane's" and "Jane's IAF" are trademarks of their respective owners. This project is an independent, non-commercial

@@ -227,14 +227,6 @@ dependencies = [
  "iaf-avionics",
  "iaf-flight",
  "iaf-formats",
- "iaf-indeo",
-]
-
-[[package]]
-name = "iaf-indeo"
-version = "0.1.0"
-dependencies = [
- "iaf-formats",
 ]
 
 [[package]]
