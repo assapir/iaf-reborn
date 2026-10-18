@@ -292,11 +292,11 @@ func _sea() -> void:
 	await _fly_ready(start, hdg, 230.0, false)
 	_ap_level()
 	await frames(5)
-	var sea_eye := _w2s(start + _dir(hdg) * 950.0 + _dir(hdg + 90.0) * 120.0 + Vector3(0, 0, -25.0))
+	var sea_eye := _w2s(start + _dir(hdg) * 600.0 + _dir(hdg + 90.0) * 120.0 + Vector3(0, 0, -25.0))
 	shot = func(): return [sea_eye, tv.rig.global_position]
 	fov = 38.0
 	f0 = _begin()
-	await _secs(5.0)
+	await _secs(3.5)
 	shot = func(): return _behind(26.0, 4.0, -6.0)
 	fov = 50.0
 	w.nav_key(0)
@@ -349,9 +349,7 @@ func _sea() -> void:
 	tv.scripted_stick = Vector2(-0.6, 0.0)
 	await _until(func(): return tv.flight.state().roll < -60.0, 2.0)
 	tv.scripted_stick = Vector2(0.0, 0.9)
-	await _secs(6.0)
-	lag = 0.05
-	await _secs(3.0)
+	await _secs(8.0)
 	lag = 0.0
 	_seg("breakaway", f0)
 	tv.scripted_stick = null
@@ -407,7 +405,9 @@ func _takeoff(lineup: Vector3, rwy: float, title: bool) -> void:
 	await _secs(1.0)  # (not recorded: the jet settles on its gear)
 	print("GROUND on_ground %s gear %s clearance %.2f" % [tv.flight.state().on_ground, tv.flight.state().gear,
 			tv.rig.global_position.y - float(tv.terrain.height_at(tv.rig.global_position))])
-	shot = func(): return _body(Vector3(13.0, 0.4, -20.0), Vector3(0, 0.4, 1.0))
+	# By night wider and higher: the wingtip lights and the runway's lights behind the jet.
+	var est := Vector3(13.0, 0.4, -20.0) if title else Vector3(19.0, 1.6, -27.0)
+	shot = func(): return _body(est, Vector3(0, 0.4, 1.0))
 	fov = 40.0
 	var f0 := _begin()
 	if title:
@@ -420,6 +420,8 @@ func _takeoff(lineup: Vector3, rwy: float, title: bool) -> void:
 	shot = func():
 		var k := clampf(float(tv.flight.state().speed_kt) / 160.0, 0.0, 1.0)
 		return _body(Vector3(lerpf(13.0, 22.0, k), 1.0, lerpf(-20.0, 14.0, k)), Vector3(0, 0.4, lerpf(1.0, -6.0, k)))
+	if not title:
+		shot = func(): return _behind(30.0, 5.0, 5.0)  # by night the roll from behind: the flame, the lit runway ahead
 	await _until(func(): return tv.flight.state().speed_kt > 150.0, 30.0)
 	tv.scripted_stick = Vector2(0, 0.55)
 	await _until(func(): return not tv.flight.state().on_ground, 4.0)
