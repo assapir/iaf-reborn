@@ -4,7 +4,8 @@ This doc lists what could make the game look better, what each option costs on o
 4.7.2 Forward+ on Metal 4.0), and a suggested order. It is research: nothing here is built yet, unless a row says
 **done** or **built**. Key facts:
 
-- Every option is an **opt-in Extras switch**; the original look stays the default (docs/deviations.md).
+- Every option is an **opt-in switch**: the graphics ones on Preferences → Graphics → MORE, the rest on Extras. The
+  original look stays the default (docs/deviations.md).
 - The game is **GPU-bound** where it drops below the display refresh; the CPU shows as short **spikes** (§1).
 - The ranked shortlist and the suggested order are in §4.
 - Screenshots referenced below are rendered locally into `assets/converted/research/`. They show the original art, so
@@ -216,7 +217,11 @@ and no aircraft model has Wheels frames. A detailed model could add rolling whee
 **F-16D: stage 1 done** (2026-10-17, [aircraft-models.md](aircraft-models.md)): 51.4 k triangles, KTX2 textures in a
 3.8 MB glb, runtime LODs; the IAF dorsal spine (the Brakeet's avionics hump, as on the original model) and the
 centreline pylon added. Next for DCS level: our own UV layout (the FlightGear UVs stretch the fuselage sides), a
-hand-painted 4K livery with stencils, glass reflections, the cockpit-view model (`own_bc`).
+hand-painted 4K livery with stencils, glass reflections, a detailed cockpit-view model.
+
+**Own jet in the cockpit views: built** (2026-10-17, docs/views.md §4.3). Looking aside or back from the cockpit shows
+the jet's wings, fuselage and canopy frame, as the original draws them: each jet's `<plane>_bc` model. The F-35I has its
+own (`tools/f35i/bc.py`).
 
 **Effort per jet:** L. The F-16D first (≈ 2–3 weeks), then the F-15C.
 
@@ -238,6 +243,8 @@ clickables, then the F-15C.
   Head movement: free look already exists (views.gd); TrackIR-style 6-DoF (six degrees of freedom) later; VR
   possible with Godot's OpenXR (not on macOS). Switch: Extras "Cockpit: Original 2D / 3D". GPU: a few SubViewports at
   MFD resolution, cheap. F-15C: the Zaretto cockpit (licence to clear, above).
+- **F-35I panel: built** (2026-10-17, docs/f35i.md §4.2–4.3): a modelled panel around the panoramic display
+  (`tools/f35i/cockpit3d.py`), with the helmet display's NAV steerpoint cues.
 - **(c) Clickable** (M after b): mouse-look and click, with a highlight. Switches map to our commands
   (docs/controls.md): master arm, gear, flaps, hook, chaff / flare, ECM (electronic countermeasures), MFD OSBs
   (option select buttons; already clickable in 2D: docs/mfd.md), radar mode, autopilot. The keyboard keeps working.
@@ -299,6 +306,9 @@ Built (docs/rendering.md §4–§5, `game/terrain/night_lights.gd`, `tests/godot
   markings in the terrain shader at all ten iaf.ibx bases, on the runways, taxiways and aprons derived from the 1998
   art. The original's light sets (`lt_*_h`) stand ≈ 2 m outside the derived runway edges. Next: runway-holding
   markings and taxiway edge lines, signs, approach lights; the real layouts stay out (docs/imagery.md §9).
+- **Paved mask: built** (2026-10-17, docs/imagery.md §2 step 7, docs/rendering.md §7): with the airbase imagery, the
+  Detailed surface follows the real pavement (runways, taxiways, aprons) with a smooth edge, so it no longer lies as a
+  second layer over the photo.
 - **OSM buildings:** the ODbL is share-alike on the *database*. The safe pattern is a derived 3D-building dataset
   generated at setup and kept local in `assets/`, like the imagery.
 - The original's object placement must stay, because missions place targets.
@@ -459,6 +469,8 @@ The options of §3, ranked by payoff for effort.
 | 9 | Night lighting — **done** | 3 | M | +3–6 draw calls (≈ 2 per jet) | original light points; Extras glows, base / jet lights, stars, moon |
 | 10 | F-15C model + cockpit (after its licence is cleared) | 5 | L | small | second jet |
 | 11 | DCS-level weapon / store models (FlightGear GPLv2+ shapes + our PBR pass; §3.13) | 3 | L | small–medium | best done with #4 |
+| 12 | Detailed airbases with the paved mask — **done** (§3.12) | 3 | M | small | take-off and landing look |
+| 13 | Own jet in the cockpit views — **done** (§3.7) | 3 | S | small | wings and canopy frame when looking aside |
 | — | SSAO / SSIL / SDFGI | 1 now | S | +5 / +12 / +18 ms | nothing to shade over draped terrain; revisit with detailed models |
 | — | Volumetric clouds | 4 | L | 3–6 ms | only with MetalFX |
 
