@@ -8,8 +8,8 @@
 #     taken from its F-16.xml animations), the helpers the game reads copied from the original model;
 #   - the IAF dorsal spine (the avionics hump of the Block 30 / 40 "Brakeet") lofted over the slim US spine, from
 #     the canopy's rear end to a box under the fin that ends over the nozzle;
-#   - closed gear doors (LdgDrUp, shown only with the gear up), the GE nozzle, an IAF desert livery (FlightGear's)
-#     with our PBR maps (baked occlusion, panel-line normal map, roughness / metallic);
+#   - closed gear doors (LdgDrUp, shown only with the gear up), the GE nozzle, an IAF desert livery (FlightGear's,
+#     its wing roundels moved to the IAF positions) with our PBR maps (baked occlusion, panel-line normal map, roughness / metallic);
 #   - written as one glb with KTX2 textures (tools/plane/glb_ktx2.py, needs `basisu`).
 #
 #   blender -b --python tools/f16d/rig.py -- <FlightGear f16 checkout> <assets/converted/planes/f16/f16_h.gltf> <out.glb>
@@ -33,6 +33,13 @@ FG, ORIG, OUT = sys.argv[sys.argv.index("--") + 1:][:3]
 M = os.path.join(FG, "Models")
 FAST = os.environ.get("F16D_FAST") == "1"  # skip the occlusion bake (quick geometry iterations)
 LIVERY = "Liveries/Block40/90-0874.png"  # IAF desert camouflage, 101 Sqn (FlightGear's own art, GPL)
+# The livery's roundel above the left wing, near the tip: centre (x, y pixels from the top-left), white disc radius.
+# Its art is copied to the IAF positions below and the original is painted over.
+ROUNDEL_ART = (539.4, 115.2, 25.0)
+# IAF wing roundels (photos in SOURCES.md): (span, fore-aft, diameter in m, FlightGear's frame; upper surface).
+# Above each wing: on the fixed panel forward of the flaperon, 43 % of the way from the fuselage side to the tip rail,
+# mid-chord, 0.2 x the local chord across. Under the left wing: the mirror of the livery's own one under the right.
+ROUNDELS = [(-2.65, -0.70, 0.53, True), (2.65, -0.70, 0.53, True), (-3.673, -1.184, 0.46, False)]
 
 # FlightGear's model -> the original's frame: the wing (flaperon hinge and trailing edge) on the original's wing.
 SHIFT = Vector((0.0, -1.05, 0.0))
@@ -555,12 +562,82 @@ def bake_ao(objs, size):
     return pixels(img)[..., 0]
 
 
+def wing_roundels(albedo, skin):
+    """The livery's roundel moved to the IAF positions (ROUNDELS): drawn as a circle on the wing, its texels found by
+    casting onto the skin; the livery's own roundel above the left wing painted over with the colours round it."""
+    from mathutils.bvhtree import BVHTree
+    from mathutils.geometry import barycentric_transform
+    h, w = albedo.shape[:2]
+    tris, uvs = [], []
+    for o in skin:
+        me, mw = o.data, o.matrix_world
+        uvl = me.uv_layers.active.data
+        for p in me.polygons:
+            m = me.materials[p.material_index]
+            if not (m and m.name.startswith("ac_f16.png")):
+                continue
+            li = list(p.loop_indices)
+            for k in range(1, len(li) - 1):
+                t = (li[0], li[k], li[k + 1])
+                tris.append([mw @ me.vertices[me.loops[j].vertex_index].co for j in t])
+                uvs.append([Vector((uvl[j].uv.x, uvl[j].uv.y, 0)) for j in t])
+    verts = [v for t in tris for v in t]
+    bvh = BVHTree.FromPolygons(verts, [(3 * i, 3 * i + 1, 3 * i + 2) for i in range(len(tris))])
+
+    def uv_at(x, y, top):
+        # Down from above: the first hit is the wing's upper skin, the next its lower skin (above any pylon).
+        loc, _, i, _ = bvh.ray_cast(Vector((x, y, 5.0)), Vector((0, 0, -1)))
+        if not top:
+            loc, _, i, _ = bvh.ray_cast(loc - Vector((0, 0, 1e-4)), Vector((0, 0, -1)))
+        assert loc is not None and abs(loc.z) < 0.3, (x, y, top, loc)
+        return np.array(barycentric_transform(loc, *tris[i], *uvs[i])[:2])
+
+    src = albedo.copy()
+    sx, sy, sr = ROUNDEL_ART
+    sy = h - 1 - sy  # rows bottom to top
+    # Paint over the livery's roundel: the texels in its disc relaxed to the average of their neighbours.
+    r0 = int(sr + 6)
+    win = albedo[int(sy) - r0:int(sy) + r0 + 1, int(sx) - r0:int(sx) + r0 + 1]
+    yy, xx = np.mgrid[-r0:r0 + 1, -r0:r0 + 1]
+    hole = np.hypot(xx + int(sx) - sx, yy + int(sy) - sy) <= sr + 2.5
+    win[hole] = win[~hole].mean(axis=0)
+    for _ in range(600):
+        p = np.pad(win, ((1, 1), (1, 1), (0, 0)), mode="edge")
+        win[hole] = ((p[:-2, 1:-1] + p[2:, 1:-1] + p[1:-1, :-2] + p[1:-1, 2:]) / 4)[hole]
+    for x, y, d, top in ROUNDELS:
+        y += SHIFT.y
+        c = uv_at(x, y, top)
+        e = 0.02
+        jac = np.column_stack([(uv_at(x + e, y, top) - uv_at(x - e, y, top)) / (2 * e),
+                               (uv_at(x, y + e, top) - uv_at(x, y - e, top)) / (2 * e)])  # d(u, v) / d(x, y)
+        inv = np.linalg.inv(jac)
+        cc, cr = c[0] * w - 0.5, c[1] * h - 0.5
+        half = int(d / 2 * np.abs(jac).max() * max(w, h)) + 3
+        rows, cols = np.mgrid[int(cr) - half:int(cr) + half + 1, int(cc) - half:int(cc) + half + 1]
+        duv = np.stack([(cols - cc) / w, (rows - cr) / h])
+        mx, my = np.einsum("ij,jrc->irc", inv, duv)  # metres on the wing
+        if x > 0:
+            mx = -mx
+        # The art lies on the left wing with u forward and v outboard (-x): the same axes, scaled to the diameter.
+        k = sr / (d / 2)
+        ox, oy = k * my, -k * mx
+        a = np.clip(sr + 0.5 - np.hypot(ox, oy), 0, 1)[..., None]
+        fx, fy = sx + ox, sy + oy
+        x0, y0 = np.floor(fx).astype(int), np.floor(fy).astype(int)
+        tx, ty = (fx - x0)[..., None], (fy - y0)[..., None]
+        art = (src[y0, x0] * (1 - tx) * (1 - ty) + src[y0, x0 + 1] * tx * (1 - ty) +
+               src[y0 + 1, x0] * (1 - tx) * ty + src[y0 + 1, x0 + 1] * tx * ty)
+        albedo[rows, cols] = albedo[rows, cols] * (1 - a) + art * a
+        print("roundel", (round(x, 2), round(y, 2)), "top" if top else "under", "texel", (round(cc), h - 1 - round(cr)))
+    return albedo
+
+
 def materials(rig):
     objs = [o for o in kit.scene().objects if o.type == 'MESH']
     livery = bpy.data.images.load(os.path.join(M, LIVERY))
-    albedo = pixels(livery)
-    size = albedo.shape[0]
     skin = [o for o in objs if any(m and m.name.startswith("ac_f16.png") for m in o.data.materials)]
+    albedo = wing_roundels(pixels(livery), skin)
+    size = albedo.shape[0]
     ao = np.ones(albedo.shape[:2], dtype=np.float32) if FAST else bake_ao(skin, size)
     normal, groove = panel_maps(albedo)
     rough = np.clip(0.42 + 0.25 * groove + 0.08 * (1 - ao), 0, 1)

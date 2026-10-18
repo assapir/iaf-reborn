@@ -23,7 +23,7 @@ the AI's F-16s, parked F-16s and the Reference viewer. Plans for more jets and f
 | triangles | 51 400 (original: 7 200); runtime LODs cut far jets to a fraction |
 | textures | livery, occlusion / roughness / metallic and normal maps at 2048²; the nozzle, cockpit, seat and pilot textures at 512 px or less; KTX2 inside the glb (about 110 MB in video memory as RGBA8) |
 | file size | 3.8 MB |
-| livery | IAF desert camouflage, 101 Squadron, tail 547 (FlightGear's own livery) |
+| livery | IAF desert camouflage, 101 Squadron, tail 547 (FlightGear's own livery); IAF wing roundels: one above each wing, one under each wing |
 | crew | two pilots on two ACES II seats under a two-seat canopy |
 | IAF features | the dorsal spine of Israel's F-16D Block 30 / 40 ("Brakeet"): the avionics hump from the back of the canopy to a box under the fin that ends just aft of the nozzle |
 
@@ -91,9 +91,14 @@ The script:
    covers are removed (they would bake black into the occlusion map they share with it); FlightGear's tail root
    fairing and aft light inside it are dropped; the blade antenna and the formation light are raised onto it;
 7. joins the parts, puts each origin on its hinge, adds the helpers;
-8. makes the maps: occlusion baked in Cycles, a normal map from the livery's thin dark lines (panel lines, rivets),
+8. sets the wing roundels (`wing_roundels`, constants `ROUNDEL_ART` and `ROUNDELS`): the livery's roundel above the
+   left wing near the tip is painted over with the colours round it, and its art is drawn as a circle at each IAF
+   position. Above each wing it sits on the fixed panel forward of the flaperon, mid-chord, 43 % of the way from the
+   fuselage side to the tip rail, 0.53 m across. Under the left wing it mirrors the livery's own roundel under the
+   right wing. A ray cast onto the skin finds each position's texels. Photographs: SOURCES.md, change 8;
+9. makes the maps: occlusion baked in Cycles, a normal map from the livery's thin dark lines (panel lines, rivets),
    roughness from the lines and the occlusion;
-9. exports the glb and re-encodes its textures as KTX2.
+10. exports the glb and re-encodes its textures as KTX2.
 
 ## 3. Checks
 
@@ -114,4 +119,6 @@ The script:
 - The livery's fuselage sides are stretched (FlightGear's UVs project from above and below); on the dorsal spine's
   sides the panel lines of the fuselage top are stretched too. The spine's three small vents and its aft sensor
   are not modelled.
+- Where the livery's old roundel was, near the left wing tip, the paint is a smooth blend of the colours round it:
+  its panel lines and rivets are gone over 0.5 m.
 - The canopy glass is plain tinted glass; the stores are the 1998 models (graphics-research.md §3.13).

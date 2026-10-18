@@ -51,7 +51,23 @@ Made by `tools/f16d/rig.py` (re-runnable; docs/aircraft-models.md):
 6. The cockpit tub, seat and pilot meshes decimated.
 7. New maps made from the livery: a panel-line normal map, an occlusion map baked from the model, roughness and
    metallic.
-8. All textures re-encoded as KTX2 (Basis Universal).
+8. The livery's wing roundels set as on IAF F-16s. The livery has one roundel above the left wing near the tip and
+   one under the right wing. The script paints over the upper one and copies its art to three places:
+   - above each wing, on the fixed panel forward of the flaperon, mid-chord, 43 % of the way from the fuselage side
+     to the tip rail, 0.53 m across (0.2 of the local chord);
+   - under the left wing, at the mirror image of the livery's roundel under the right wing, which stays.
+
+   Placement from these photographs, used only as references (no image is in the model):
+   - above the wings: IAF F-16I 407 and F-16D 998, supplied by the user
+     (https://global.discourse-cdn.com/infiniteflight/original/4X/c/f/f/cfff3df65beecdafa031d6c22b4576455e80fc89.jpeg,
+     https://global.discourse-cdn.com/infiniteflight/original/4X/c/1/c/c1c0b748011b6162dd14dbc0e467781b2b57685b.jpeg),
+     and an IAF F-16I from above by the Israel Defense Forces (CC BY 4.0,
+     https://commons.wikimedia.org/wiki/File:Flickr_-_Israel_Defense_Forces_-_IAF_Flight_for_Israel%27s_63rd_Independence_Day_(1)a.jpg);
+   - under the wings: IAF F-16D 039 from below, Independence Day 2015, by מינוזיג (CC BY-SA 4.0,
+     https://commons.wikimedia.org/wiki/File:F-16_IAF_Israel_Independence_Day_flyover.jpg). It shows a roundel
+     under the left wing, just inboard of the outer pylon. The same place under the right wing is hidden by a
+     fuel tank.
+9. All textures re-encoded as KTX2 (Basis Universal).
 
 The model contains about 60 helper positions measured from the original game model (where the game hangs stores,
 draws the afterburner and puts the wheels). They are coordinates only. Every mesh and texture comes from the
