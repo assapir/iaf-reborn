@@ -2,6 +2,7 @@
 
 use godot::prelude::*;
 
+mod autorun;
 mod bombs;
 mod flight;
 mod gun;
@@ -15,6 +16,7 @@ mod sensors;
 mod sight;
 mod stores;
 mod surface;
+mod video;
 mod world;
 
 struct IafExtension;

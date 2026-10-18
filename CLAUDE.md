@@ -44,7 +44,9 @@ python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded 
 ## Architecture
 
 - `crates/iaf-formats` — parsers for the original file formats (ISO9660, PTT terrain, terraintype.dat, X models, ESA, EMF, menu, RTF,
-  LZO…). Format notes in `docs/formats/`.
+  LZO, AVI, PE resources, the CD launcher's .rgn…). Format notes in `docs/formats/`.
+- `crates/iaf-indeo` — the Indeo 5 video decoder for the intro videos, ported from NihAV; licensed AGPL-3.0-or-later
+  (its own `COPYING`), the only crate not under the workspace's GPL. Notes in `docs/formats/avi.md`.
 - `crates/iaf-tools` — CLIs used by `tools/setup.sh`: `iaf-extract` (ISO → `assets/install`), `iaf-patch` (v1.1 RTPatch
   without Windows), `iaf-convert` (cockpits, menus, keys, missions, aircraft → `assets/converted`, plus
   `plane-describe` / `plane-checklist`), `iaf-terrain`, `iaf-imagery`, `iaf-import-pack`, `iaf-mission-report`.

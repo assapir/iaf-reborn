@@ -1,5 +1,7 @@
 //! Reproduce the original "Full Install" of Jane's IAF from the CD image,
 //! without Windows: `iaf-extract <Jane's IAF.iso> <out-dir>`.
+//! `iaf-extract --autorun <iso> <out-dir>` copies only the CD launcher's files (into `<out-dir>/autorun`),
+//! for an install extracted before they were part of it.
 //!
 //! All output paths are lower-cased so lookups behave the same on every OS.
 
@@ -15,6 +17,18 @@ use iaf_formats::ssf::InstallScript;
 
 /// Files the game reads straight off the CD at runtime; we copy them too.
 const CD_RUNTIME_DIRS: &[&str] = &["resource/avi"];
+
+/// The CD's autorun launcher (`autorun.inf` runs `Jauto.exe`; docs/front-end.md §18.1): the program (its startup
+/// sound is a resource in it), the poster and the button art with their named-rect files. Copied to `autorun/`.
+const AUTORUN_FILES: &[&str] = &["JAUTO.EXE", "POSTER.BMP", "POSTER.RGN", "BUTTONS.BMP", "BUTTONS.RGN"];
+
+fn copy_autorun(iso: &mut Iso, out: &Path) -> Result<()> {
+    for f in AUTORUN_FILES {
+        copy_from_iso(iso, f, &dest_path(out, "autorun", f))?;
+    }
+    println!("cd: autorun files");
+    Ok(())
+}
 
 fn dest_path(out: &Path, dir: &str, name: &str) -> PathBuf {
     let mut p = out.to_path_buf();
@@ -40,11 +54,16 @@ fn copy_from_iso(iso: &mut Iso, src: &str, dest: &Path) -> Result<()> {
 
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
-    let [_, iso_path, out] = &args[..] else {
-        bail!("usage: iaf-extract <Jane's IAF.iso> <out-dir>");
+    let (autorun_only, iso_path, out) = match &args[..] {
+        [_, flag, iso, out] if flag == "--autorun" => (true, iso, out),
+        [_, iso, out] => (false, iso, out),
+        _ => bail!("usage: iaf-extract [--autorun] <Jane's IAF.iso> <out-dir>"),
     };
     let out = Path::new(out);
     let mut iso = Iso::open(iso_path).with_context(|| format!("opening {iso_path}"))?;
+    if autorun_only {
+        return copy_autorun(&mut iso, out);
+    }
 
     let script_entry = iso.find("FINSTALL.SSF").context("FINSTALL.SSF not on CD")?.clone();
     let script = InstallScript::parse(&String::from_utf8_lossy(&iso.read(&script_entry)?));
@@ -106,5 +125,5 @@ fn main() -> Result<()> {
         }
         println!("cd: {dir}/");
     }
-    Ok(())
+    copy_autorun(&mut iso, out)
 }

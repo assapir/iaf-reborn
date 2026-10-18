@@ -161,6 +161,9 @@ const EXTRAS := [
 		["Lavi", 4], ["Kfir", 5], ["Mirage", 6]]],
 	# Ours: the HARM page's list from the RWR instead of the HARM sensor's scan (docs/deviations.md §2).
 	["harm_targets", "HARM targets", [["Original", "original"], ["RWR", "rwr"]]],
+	# Ours: the start-up (menu/startup.gd, docs/front-end.md §18): skip the intro videos; the CD's autorun launcher first.
+	["intro_videos", "Intro videos", [["Original", "original"], ["Skippable", "skippable"], ["Off", "off"]]],
+	["cd_launcher", "CD launcher", [["Off", false], ["On", true]]],
 ]
 
 

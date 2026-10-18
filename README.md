@@ -210,6 +210,10 @@ It needs the converted assets, so it runs locally. Run scripted tests and captur
 ## License and trademarks
 
 The code in this repository is licensed under the GNU General Public License v3.0 or later — see [LICENSE](LICENSE).
+One crate has its own licence: `crates/iaf-indeo`, the Indeo 5 video decoder that plays the intro videos, is a port of
+[NihAV](https://nihav.org)'s decoder by Kostya Shishkov and keeps NihAV's GNU Affero General Public License v3.0 or
+later ([crates/iaf-indeo/COPYING](crates/iaf-indeo/COPYING)). GPLv3 §13 allows the two to be combined; NihAV's author
+offers parts of the project under other free licences on request.
 It contains no data from the original game; you must supply your own copy.
 
 "Jane's" and "Jane's IAF" are trademarks of their respective owners. This project is an independent, non-commercial

@@ -13,3 +13,4 @@ godot = { version = "0.5.5", features = ["api-4-7"] }
 iaf-formats = { path = "../iaf-formats" }
 iaf-flight = { path = "../iaf-flight" }
 iaf-avionics = { path = "../iaf-avionics" }
+iaf-indeo = { path = "../iaf-indeo" }

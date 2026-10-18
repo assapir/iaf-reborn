@@ -153,6 +153,17 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   switch: conformal, each rung projected through the camera.
 - **"All keys on the Keyboard page".** Original: the page lists 92 of the 117 key records. Ours, with the switch: it
   lists all 115 labelled ones, so the stick, rudder, RPM ± 5 and pans can be rebound — controls.md §3.
+- **Intro videos (Original / Skippable / Off)** (front-end.md §18.2). Original: janes.avi then intro.avi play to
+  their end at every start; keys, clicks and the window's close button do nothing meanwhile. Ours, with Skippable: a
+  key or a mouse click ends the current video; with Off: the start-up goes straight to the main menu.
+- **CD launcher (Off / On)** (front-end.md §18.1, formats/autorun.md). Original: the CD's `Jauto.exe` poster is a
+  separate program that runs when the CD is inserted; the game starts without it. Ours, with On: the poster shows
+  at start-up, before the intro videos, centred in the 640×480 frame on black (the exe centres it on the desktop).
+  PLAY goes on into the start-up, QUIT and Esc quit. The buttons that start Windows programs or files show their
+  disabled art: HELP and PREVIEWS (WinHelp `.hlp` files), INSTALL (`SETUP.EXE`), REGISTER ONLINE (`ERegIP.EXE`),
+  UNINSTALL (the uninstaller) and JANE'S ONLINE (a web page that no longer exists). In the exe only PLAY and
+  UNINSTALL are disabled, and only while the game is not installed. The art is the English set always (the exe picks
+  English, French or German from the Windows locale).
 - **Additions the original does not have:** flight info line, blackbox, language, Window (framed / full screen),
   "F-35I replaces" (the F-35I flies from a Jet list button, docs/f35i.md), Settings file (export / import the
   preferences, front_end.gd `_settings_file`). Later: extra sounds, canopy open (docs/roadmap.md).

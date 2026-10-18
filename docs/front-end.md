@@ -2386,3 +2386,50 @@ Multiplayer is not ported. When it is, port the v1.1 behaviour (docs/v1.1.md):
 - **Callsign above each plane**: the label is now always drawn (v1.0 only with CockpitDebug; `FUN_00537330`) and is
   filled only in multiplayer, from the session names (`FUN_00448b20`), so single player shows nothing.
 - **Kill credit** when the pilot ejects: docs/damage.md §4.4.
+
+## 18. Start-up: CD launcher, intro videos, main menu
+
+The exe opens its 640×480 window (`FUN_004e2130`), then plays two videos and opens the main menu. The CD launcher is
+a separate program on the CD; the port can show it first (Extras → CD launcher, off by default). Code:
+`game/menu/startup.gd` (the main scene), `game/menu/autorun.gd`, `crates/iaf-godot/src/video.rs`.
+
+### 18.1 CD launcher (ours: Extras → CD launcher)
+The CD's `Jauto.exe` (formats/autorun.md) is a captionless 468×451 poster window centred on the desktop with eight
+owner-drawn buttons in the poster's bricks. On start it plays its own sound (the `WAVE` resource 131, about 5 s).
+A button shows its focused ("active") art when it has the keyboard focus, its pressed art while held, its disabled
+art when disabled. Tab and the arrow keys move the focus, Enter presses the focused button, Esc quits. The pointer
+passing over a button changes nothing.
+
+Ours, with the switch on: the poster shows centred in the 640×480 frame on black, before the intro videos, drawn
+from `assets/install/autorun` at run time (the startup sound is read out of `jauto.exe`). PLAY goes on into the
+start-up; QUIT and Esc quit the game. The other six buttons show their disabled art (docs/deviations.md §2). The
+focus starts on PLAY, the first enabled button. Without the CD files (`iaf-extract --autorun <iso> assets/install`
+copies them) the start-up goes on without the launcher.
+
+### 18.2 Intro videos
+- `FUN_004e2130` creates the video player (`FUN_004e7230` → `FUN_005c4960`: opens the MCI `avivideo` device and a
+  child window over the whole client area with a black brush) and plays `<cd>:\Resource\Avi\janes.avi` (id 1)
+  through `FUN_005c4b50` / `FUN_005c4c00`: MCI open, `MCI_WINDOW` into the player window, `MCI_PUT` destination
+  (0, 0, 640, 480), time format frames, `MCI_PLAY` with notify. The 320×240 picture fills the 640×480 screen (2×),
+  with the sound.
+- The player window's `MM_MCINOTIFY` handler (0x5c4ff0) posts message 0x554 to the main window on a successful end.
+  0x554 is `FUN_004e2960` (message map 0x605828): id 1 plays `intro.avi` (id 2); id 2 frees the player, draws
+  `Bmp\Back0.bmp` and opens the main menu (or the `JumpToMission` screen).
+- When a video does not open (a missing file, no CD, no `avivideo` driver) `FUN_005c4b50` returns 0 and
+  `FUN_004e2960` goes on at once: the next video, or the menu.
+- Nothing skips a video. The main window passes `WM_KEYDOWN` / `WM_KEYUP` to the default handler, `WM_CLOSE`
+  (0x4e28b0) does nothing while no menu exists, and the player window handles only paint, cursor and the MCI notify.
+  Over the video the cursor is hidden (`WM_SETCURSOR` 0x4e81d0: `SetCursor(NULL)` in the client area).
+- `DAT_0064d9f0` gates both videos; it is 1 in the exe's data and nothing writes it.
+- janes.avi is the Jane's logo (28.8 s), intro.avi the opening movie (93.5 s). Both: Indeo 5 (`IV50`) video
+  320×240 at 15 fps and PCM 8-bit stereo sound at 22 050 Hz (formats/avi.md).
+
+Ours: the same order, size and sound; the videos come from `assets/install/resource/avi`. `IafVideo` reads the AVI
+(`iaf_formats::avi`) and decodes each frame when it is due (`iaf_indeo`, a port of NihAV's Indeo 5 decoder); frames
+follow the wall clock from the video's start. Extras → Intro videos: Original (as the exe), Skippable (ours: a key or
+a mouse click ends the current video) or Off (ours: straight to the menu). Our command-line runs (`--mission`,
+`--screenshot`, `--hover`) go straight to the menu; the exe plays the videos before its `JumpToMission` screen too.
+
+### 18.3 Main menu
+After the videos the exe draws `Bmp\Back0.bmp` and opens the menu window (§1). Ours: the start-up changes to
+`menu/front_end.tscn`; a return from a flight goes straight there.

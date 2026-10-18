@@ -42,7 +42,7 @@ const PREFS := {
 		"no_malfunctions", "ai_level", "invulnerable", "no_crashes", "unlimited_ammo", "unlimited_fuel",
 		"flight_data", "weapon_data", "language", "show_info", "blackbox", "hud_ladder", "hud_style", "show_all_keys", "fullscreen",
 		"imagery_israel", "imagery_outside", "antialiasing", "terrain_closeup", "sky", "upscaling", "night_lights", "water", "f35i_slot", "harm_targets",
-		"models", "particle_effects", "airbases"],
+		"models", "particle_effects", "airbases", "intro_videos", "cd_launcher"],
 }
 
 ## Flight data: "original" (Jane's IAF 1998 numbers) or "real" (corrected real-world data for every flyable jet, docs/real-aircraft.md).
@@ -141,6 +141,11 @@ var particle_effects := false
 ## Airbases (ours, Graphics → MORE; docs/rendering.md §7, terrain/airbases.gd): "original" (the 1998 imagery) or
 ## "detailed" (near the ground, a procedural runway, taxiway and apron surface with markings; visual only).
 var airbases := "original"
+## Intro videos at start-up (docs/front-end.md §18.2): "original" (janes.avi then intro.avi, no skip, as the exe's
+## FUN_004e2130 / FUN_004e2960), "skippable" (ours: a key or click ends the current video) or "off" (ours: none).
+var intro_videos := "original"
+## CD launcher (ours, Extras page; docs/front-end.md §18.1): the CD's autorun poster (Jauto.exe) before the intro videos.
+var cd_launcher := false
 ## Key bindings changed on the Controls page (docs/controls.md): {record index: [key, joystick
 ## button]}, key = DIK | modifier << 16; records not listed keep the original default. Stored in the
 ## [keys] section as r<index> = [key, button].
