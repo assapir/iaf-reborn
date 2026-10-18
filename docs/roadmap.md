@@ -66,6 +66,8 @@ ranked order, are in [docs/graphics-research.md](graphics-research.md).
   - Automated checks in `iaf-flight`: max level speed (SL, 40k ft), sustained / instantaneous turn at corner speed,
     roll rate, climb, stall/approach speeds, fuel burn.
   - Report deviations; let the user choose "faithful 1998" vs "realistic" per item (or a setting).
+- **F-35I built-in EOTS** (not built yet): the real jet's targeting sensor under the nose, so the F-35I has the FLIR
+  page and the laser with no FLIR pod store (today it needs the pod like every jet; docs/f35i.md §3.1).
 
 ## Mouse wheel in the settings (nice to have)
 The mouse wheel scrolls the settings / preferences pages and their lists. An Extras option sets the direction:

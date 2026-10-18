@@ -136,6 +136,12 @@ Checked against the code on 2026-10-14 (each doc's own "not built" notes have th
   messages.
 - **Cockpit / MFDs**: the U key (RWR page, MFD screen 7); HUD damage (flag 12) does not blank the HUD and the I-mode
   marks (docs/damage.md §5.3).
+- **Mission 223 (open question)**: the T-72 column that event 18 sends (t720–t724) never moves in our port; mission
+  design or port bug, to check.
+- **Autopilot landing (to check)**: in mission 214 the player's NAV landing at the Home waypoint (GoHomeCL) touched
+  down with the gear up; docs/autopilot.md §2.3 says the gear goes down at landing step 7.
+- **FLIR off a unit (to check)**: with the camera on a ground point, the EO centre point came out at the jet's own
+  eye (the unit pick seems to take the own jet), so the laser designation falls back to the ripple aim.
 - **F-35I cockpit**: the panel pans as one flat picture, like the originals'; its side-stick and throttle are fixed
   in the render; the portals show the original MFD pages (pixel font) in the F-35 colours; looking 15–90° aside shows
   the panel strip's edge.
