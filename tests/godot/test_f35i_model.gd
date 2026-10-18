@@ -32,6 +32,11 @@ func run() -> void:
 	check(ground.part_node("LdgDr").visible and shut != null and not ground.part_node("LdgDrUp").visible,
 			"gear down: the open doors shown, the shut ones hidden")
 	check(ground.wheels.size() == 3, "three wheels ride on the legs (%d)" % ground.wheels.size())
+	# Parked, each wheel's bottom sits at the descriptor's wheel height (the ground; the flight model's gear height).
+	var h := float(ground.desc.height)
+	for wh in ground.wheels:
+		var foot := _lowest(wh.node, ground.root_frame)
+		check(absf(foot - h) < 0.03, "%s's bottom on the ground: %.3f m (height %.2f)" % [wh.node.name, foot, h])
 	var main: Dictionary = {}
 	for w in ground.wheels:
 		if str(w.node.name) == "WheelsB":
@@ -56,6 +61,17 @@ func run() -> void:
 	Settings().rolling_wheels = false
 	air.free()
 	ground.free()
+
+
+## The lowest point (m, in `frame`'s frame) of the meshes under `node`.
+func _lowest(node: Node3D, frame: Node3D) -> float:
+	var low := INF
+	for mi: MeshInstance3D in node.find_children("*", "MeshInstance3D", true, false) + ([node] if node is MeshInstance3D else []):
+		var xf := frame.global_transform.affine_inverse() * mi.global_transform
+		for s in mi.mesh.get_surface_count():
+			for v: Vector3 in mi.mesh.surface_get_arrays(s)[Mesh.ARRAY_VERTEX]:
+				low = minf(low, (xf * v).y)
+	return low
 
 
 ## The lowest visible point (m, model frame) of the body's own meshes over the nose bay (|x| < 0.4, z −6.5..−4.5).

@@ -11,7 +11,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "plane"))
 import kit  # noqa: E402
-from mathutils import Vector  # noqa: E402
+from mathutils import Matrix, Vector  # noqa: E402
 
 SRC, OUT = sys.argv[sys.argv.index("--") + 1:][:2]
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
@@ -258,6 +258,10 @@ def main():
     nose_doors = kit.extract_loose([m[k] for k in ("37", "40", "43", "45")], bay, "nose_doors")
     parts["LdgDr"] = kit.join([m["64"], m["8"], nose_doors], "LdgDr")
     parts["LdgF"] = kit.join([m["44"], strut], "LdgF")
+    # The download's nose tyres stand 6 cm above the main tyres' ground: the nose leg and its wheels go down onto it.
+    drop = min(v.co.z for v in parts["WheelsA"].data.vertices)
+    for k in ("LdgF", "WheelsA"):
+        parts[k].data.transform(Matrix.Translation((0, 0, -drop)))
     parts["LdgDrUp"] = nose_doors_shut([parts[k] for k in ("LdgDr", "LdgF", "WheelsA")])
     pylon_objs, pylon_points = pylons()
     parts.update({o.name: o for o in pylon_objs.values()})
