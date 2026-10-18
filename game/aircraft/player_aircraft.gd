@@ -49,8 +49,10 @@ static func object_for(type: int, bdb: Dictionary, fallback := true) -> Dictiona
 
 
 ## The F-35I's object (weapons, stores; no bdb has one): the F-16's with the F-35I's type and loads. Stations
-## (descriptor): A / I wing tips, B / H the inner-wing heavy stations (3 / 9), C / G and D / F the weapon bays
-## (outboard / inboard; hidden behind their doors, descriptor internal_stations), E the keel.
+## (descriptor; the real F-35A's numbers, docs/f35i.md §3): A / I the outboard wing pylons (1 / 11: the AIM-9X's,
+## here the newest AIM-9 the game has, the AIM-9M, and the Python 4), B / H the inboard heavy pylons (3 / 9), C / G
+## the bays' air-to-ground (4 / 8) and D / F their air-to-air stations (5 / 7; hidden behind their doors,
+## descriptor internal_stations), E the centreline (6: no store on the F-35A).
 ## Default: internal only, an AMRAAM inboard and an MK-84L (the GBU-31 stand-in) outboard in each bay; 180
 ## rounds of the gun record (GAU-22/A: 180 rounds).
 static func f35i_object(f16: Dictionary) -> Dictionary:
@@ -60,7 +62,7 @@ static func f35i_object(f16: Dictionary) -> Dictionary:
 	o["0x528"] = "F35I"
 	o["armament"]["hardpoints"] = [0, 0, 0, 0, 54, 1, 8, 1, 0, 0, 8, 1, 54, 1, 0, 0, 0, 0, 25, 180, 33, 60, 34, 60]
 	# [weapon id, max count, stations A..I allowed].
-	var loads := [[8, 1, "BCDFGH"], [11, 1, "AI"], [22, 1, "AI"], [54, 1, "BCGH"], [19, 1, "BCGH"], [18, 1, "BCGH"],
+	var loads := [[8, 1, "BCDFGH"], [12, 1, "AI"], [22, 1, "AI"], [54, 1, "BCGH"], [19, 1, "BCGH"], [18, 1, "BCGH"],
 		[17, 1, "BCGH"], [53, 1, "BH"]]
 	var items := []
 	for l in loads:

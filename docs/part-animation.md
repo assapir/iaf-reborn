@@ -135,7 +135,7 @@ Initial state (`FUN_005a5820`): airborne start → gear 1.569 (up), flaps 0, spe
 | 0x10 LdgR | −g | \|g−max\|≥1e-5 | 110: +g. 180: +g, vis g<0.8889·max. 190: −g, vis g<0.7778·max |
 | 0x11 LdgF | −g | \|g−max\|≥1e-5 | 110,130,140,160: +g. 180: min(g, 0.87264 = 50°) |
 | 0x12 LdgDr | 0 (never rotates) | \|g−max\|≥1e-5 | the doors are a static mesh, hidden only when the gear is fully up |
-| 0x94 LdgDrUp (ours) | 0 | \|g−max\|<1e-5 | detailed models only (docs/aircraft-models.md): the doors shut, shown only when the gear is fully up |
+| 0x94 LdgDrUp (ours) | 0 | \|g−max\|<1e-5 | detailed models and the F-35I (docs/aircraft-models.md, docs/f35i.md): the doors shut, shown only when the gear is fully up |
 | 0x13 Hook | +hook (S+0x360) | \|θ\|≥1e-5 | |
 | 0x27 Parach | jitter (below) | S+0x2cc==2 | |
 | 0x14-0x26 (pilot, pilotB, canopy, canopyB, turret…, wheels) | 0 | **0** | the FM callback hides them, but for aircraft entities the renderer's owner is the crew object `entity+0x3c` (callback `0x53eb50`), which answers ids 0x14–0x17 and 0x1d–0x20 **before** the FM: pilot/canopy **are drawn** outside the cockpit view (see "Ejection" below). The F-16 canopy glass exists only in the `Canopy` frame (port: `crew_visible`, always true, docs/aircraft.md §2.3) |
@@ -257,6 +257,26 @@ Port: `game/mission/vehicle_parts.gd` (Turret, Carrier, Launcher, Missile incl. 
 (the crew object's +0x10, the same rule). Wheels: the shipped vehicle models carry no Wheels frames, so nothing turns.
 The vehicles' frames come from their `_h.xfr` (the object database names it); `iaf-convert objects` used to overwrite
 it with the flattened `_h.x` in its briefing-models pass, so no unit had parts until then.
+
+## 2.2 Wheels on flown aircraft
+The original never turns a flown aircraft's wheels:
+- The flight model's callback `FUN_005a09c0` answers ids 0x21–0x26 (WheelsA–F) with θ = 0 and visible = 0 (§2, the
+  "0x14-0x26" row). The crew object's callback forwards them to it.
+- No shipped aircraft model has a Wheels frame. Each wheel is part of its gear leg's mesh (LdgL, LdgR, LdgF or the
+  AI planes' LdGr), so it moves with the leg and never turns.
+- Only the vehicle callback turns wheels (§2.1), and no vehicle model has them either.
+
+**Rolling wheels** (ours, Graphics → MORE, default Original; docs/deviations.md §2). A model may carry wheel frames
+named `Wheels<letter>` as children of a gear leg, each with its origin on its axle. With the switch on,
+`aircraft_model.gd`:
+- adds the ground speed times the frame time to a rolled distance while the flight model reports the jet on the
+  ground (`ground_speed`: the horizontal speed, from `terrain_view.gd`); in the air the distance holds;
+- turns each wheel about its leg's X axis by −distance / radius, so the wheel's bottom moves aft as the jet rolls
+  forward. The radius is half the wheel mesh's height.
+
+Models with wheel frames: the F-35I (WheelsA nose, WheelsB left, WheelsC right; `tools/f35i/rig.py`). The original
+models and the detailed F-16D keep their wheels in the leg meshes, so their wheels stand still with the switch on.
+`tests/godot/test_f35i_model.gd` checks the roll.
 
 ## 3. Other helpers
 * **Stations** (A..I = index 0..8, Gun 9, Cha 10, Fla 11): the store object (`FUN_0053c1f0`) takes its

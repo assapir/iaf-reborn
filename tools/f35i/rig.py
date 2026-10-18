@@ -19,6 +19,7 @@ LENGTH = 15.67  # m (Lockheed Martin)
 ORIGIN = Vector((0.0, -1.0, 1.85))  # the aircraft origin (≈ centre of gravity): the game's rig position
 EYE = Vector((0.0, 4.1, 3.0))  # in the seat, at seated head height under the canopy (the helmet clears the rim)
 SKIN_GREY = (0.37, 0.39, 0.41)  # F-35 low-observable grey, matte (sRGB, before the baked shading)
+DOOR_GREY = (0.27, 0.285, 0.30)  # the shut nose doors: the belly's grey after its baked shading
 TAIL_NUMBER = "937"  # 116 Sqn "Lions of the South" (F-35I tails run 901-9xx)
 # Low-visibility markings as on the IAF's F-35Is (photos, docs/f35i.md §5).
 STAR_GREY, DISC_GREY, NUMBER_GREY = (0.17, 0.18, 0.19), (0.46, 0.48, 0.50), (0.16, 0.17, 0.18)
@@ -118,6 +119,82 @@ def cut_bays(m):
     return parts, hinges
 
 
+# The external stations (docs/f35i.md §3): letter -> (real F-35A station, span |x| (U: measured off photos and the
+# 3-view), pylon depth). A / I are stations 1 / 11 (outboard, AIM-9X), B / H stations 3 / 9 (inboard, heavy).
+# Stations 2 / 10 (|x| 3.55) have no game letter. The pylons are our own boxes under the wing, shown in the game
+# only while their station carries a store.
+PYLONS = {"A": (1, -4.25, 0.22), "B": (3, -2.85, 0.35), "H": (9, 2.85, 0.35), "I": (11, 4.25, 0.22)}
+
+
+def wing_under(x, y):
+    """The wing's lower surface above (x, y) (z), or None."""
+    dg = kit.bpy.context.evaluated_depsgraph_get()
+    ok, loc, *_ = kit.scene().ray_cast(dg, Vector((x, y, 0.5)), Vector((0, 0, 1)))
+    return loc.z if ok and 1.6 < loc.z < 2.6 else None
+
+
+def pylons():
+    """{letter: pylon object} and {letter: station point}: each pylon centred on the wing's local chord, its station
+    point (where the store's Pilon helper hangs) at the pylon's foot."""
+    mat = kit.material("pylon", SKIN_GREY, metallic=0.15, roughness=0.75)
+    objs, points = {}, {}
+    for letter, (_, x, depth) in PYLONS.items():
+        ys = []  # the chord: the first run of hits from the nose aft (the stabilator lies behind a gap)
+        for y in (k / 50 for k in range(150, -300, -1)):
+            if wing_under(x, y) is not None:
+                ys.append(y)
+            elif ys:
+                break
+        le, te = ys[0], ys[-1]
+        length = min(0.6 * (le - te), 2.0)
+        yc = (le + te) / 2
+        z = max(wing_under(x, yc + d * length / 2) or 0.0 for d in (-1, 0, 1))  # the foot clears the whole skin
+        objs[letter] = kit.box(f"Pylon{letter}", (x, yc, z - depth / 2 + 0.04), (0.11, length, depth + 0.08), mat,
+                               bevel=0.02)
+        points[letter] = (x, yc, z - depth)
+    return objs, points
+
+
+def belly_under(x, y):
+    dg = kit.bpy.context.evaluated_depsgraph_get()
+    ok, loc, *_ = kit.scene().ray_cast(dg, Vector((x, y, 0.0)), Vector((0, 0, 1)))
+    return loc.z if ok else 9.0
+
+
+def nose_doors_shut(hide):
+    """The nose bay's doors shut (LdgDrUp, shown only with the gear up): a panel over the opening the open doors
+    leave in the belly (rays from below reach the bay's roof, 8 cm or more above the belly at |x| 0.5), its height
+    across taken from the belly beside the opening. `hide`: the parts in the way (the open doors, the leg) while the rays look."""
+    for o in hide:
+        o.hide_viewport = True
+    xs = [k / 40 for k in range(-18, 19)]
+    ys = [k / 40 for k in range(120, 230)]
+    side = {y: max(belly_under(-0.5, y), belly_under(0.5, y)) for y in ys}
+    hole = [(x, y) for y in ys for x in xs if belly_under(x, y) > side[y] + 0.08]
+    x0, x1 = min(h[0] for h in hole) - 0.02, max(h[0] for h in hole) + 0.02
+    y0, y1 = min(h[1] for h in hole) - 0.02, max(h[1] for h in hole) + 0.02
+    vs, faces, n = [], [], 8
+    rows = [y0 + (y1 - y0) * j / 24 for j in range(25)]
+    for y in rows:
+        zl, zr = belly_under(x0 - 0.03, y), belly_under(x1 + 0.03, y)
+        for i in range(n + 1):
+            t = i / n
+            vs.append((x0 + (x1 - x0) * t, y, (1 - t) * zl + t * zr - 0.004))
+    for j in range(len(rows) - 1):
+        for i in range(n):
+            a = j * (n + 1) + i
+            faces.append((a, a + n + 1, a + n + 2, a + 1))  # facing down
+    for o in hide:
+        o.hide_viewport = False
+    me = kit.bpy.data.meshes.new("LdgDrUp")
+    me.from_pydata(vs, [], faces)
+    me.materials.append(kit.material("nose_door", DOOR_GREY, metallic=0.15, roughness=0.75))
+    o = kit.bpy.data.objects.new("LdgDrUp", me)
+    kit.scene().collection.objects.link(o)
+    print("NOSE DOORS", round(x0, 3), round(x1, 3), round(y0, 3), round(y1, 3))
+    return o
+
+
 def main():
     m = kit.normalise(SRC, LENGTH)
     skin(m)
@@ -125,13 +202,33 @@ def main():
     parts, rudders = cut_surfaces(m)
     bays, bay_hinges = cut_bays(m)
     parts.update(bays)
-    # Gear: main legs (wheel, strut, brace, hub), the doors (static, hidden once up), the nose leg.
-    parts["LdgL"] = kit.join([m[k] for k in ("18", "19", "20")], "LdgL")
-    parts["LdgR"] = kit.join([m[k] for k in ("66", "67", "68", "70", "72", "74", "75", "77", "79", "81", "83", "85",
-                                               "87", "89", "91")], "LdgR")
-    parts["LdgDr"] = kit.join([m["64"], m["8"]], "LdgDr")
-    strut = kit.extract([m["45"]], lambda c: 4.0 < c.y < 5.2 and c.z < 1.05 and abs(c.x) < 0.3, "nose_strut")
-    parts["LdgF"] = kit.join([m["44"], m["46"], m["47"], strut], "LdgF")
+    # Gear: the legs (strut, brace, hub) and their wheels, which ride on them (WheelsA nose, WheelsB left, WheelsC
+    # right: the original's wheel frame names) so the game can roll them; the doors (static, hidden once up).
+    # Each wheel: its tyre and the loose pieces (hub, bolts) of its leg's meshes inside the tyre's box.
+    def wheel(name, tyres, legs):
+        vs = [t.matrix_world @ v.co for t in tyres for v in t.data.vertices]
+        lo, hi = Vector(map(min, *vs)) - Vector((0.02,) * 3), Vector(map(max, *vs)) + Vector((0.02,) * 3)
+        inside = lambda a, b: all(lo[i] <= a[i] and b[i] <= hi[i] for i in range(3))
+        return kit.join([*tyres, kit.extract_loose(legs, inside, name + "_hub")], name)
+    parts["WheelsA"] = wheel("WheelsA", [m["46"], m["47"]], [m["45"]])
+    parts["WheelsB"] = wheel("WheelsB", [m["20"]], [m["19"]])
+    parts["WheelsC"] = wheel("WheelsC", [m["67"]], [m[k] for k in ("66", "74", "75", "77", "79", "81", "83", "85",
+                                                                     "87", "89", "91")])
+    parts["LdgL"] = kit.join([m["18"], m["19"]], "LdgL")
+    parts["LdgR"] = kit.join([m[k] for k in ("66", "68", "70", "72", "74", "75", "77", "79", "81", "83", "85", "87",
+                                               "89", "91") if m[k].data.vertices], "LdgR")
+    # The nose bay: the leg's pieces below the hinge, then what else hangs below the belly there. The download has
+    # the nose doors open and the drag brace down; they are doors, so they join the main doors in LdgDr.
+    # (The belly there lies at z 1.3-1.5: a piece reaching below 1.3 and no higher than 1.7 hangs out of the bay.)
+    bay = lambda lo, hi: max(abs(lo.x), abs(hi.x)) < 0.4 and lo.y > 3.2 and hi.y < 5.8 and hi.z < 1.7 and lo.z < 1.3
+    strut = kit.extract_loose([m["45"]], lambda lo, hi: bay(lo, hi) and lo.y > 4.4 and hi.y < 4.8 and lo.z < 1.05,
+                              "nose_strut")
+    nose_doors = kit.extract_loose([m[k] for k in ("37", "40", "43", "45")], bay, "nose_doors")
+    parts["LdgDr"] = kit.join([m["64"], m["8"], nose_doors], "LdgDr")
+    parts["LdgF"] = kit.join([m["44"], strut], "LdgF")
+    parts["LdgDrUp"] = nose_doors_shut([parts[k] for k in ("LdgDr", "LdgF", "WheelsA")])
+    pylon_objs, pylon_points = pylons()
+    parts.update({o.name: o for o in pylon_objs.values()})
     # The download's cockpit has a HUD-like frame arch and glass ahead of the pilot and a glowing panel strip; the
     # F-35 has no HUD (its canopy bow is behind the pilot): drop them.
     for k in ("34", "54", "39", "27"):
@@ -160,17 +257,20 @@ def main():
     rig.part("LdgL", (-2.05, -2.16, 1.95), (1, 0, 0))
     rig.part("LdgR", (2.05, -2.16, 1.95), (-1, 0, 0))
     rig.part("LdgF", (0.0, 4.55, 1.15), (-1, 0, 0))
-    for n in ("LdgDr", "canopy", "pilot"):
+    for n in ("LdgDr", "LdgDrUp", "canopy", "pilot", *(o.name for o in pylon_objs.values())):
         rig.place_centre(n)
-    # Points: nozzle (radius 0.55 as the Y difference), gun (left shoulder), stations A..I (A / I wing tips, B / H
-    # the inner-wing heavy stations 3 / 9 outboard of the main gear, C / G the bays' outboard and D / F inboard
-    # stations, E the keel: player_aircraft.gd f35i_object), wheel height, eye.
+    for wheel, leg in (("WheelsA", "LdgF"), ("WheelsB", "LdgL"), ("WheelsC", "LdgR")):
+        rig.nest(wheel, leg)
+    # Points: nozzle (radius 0.55 as the Y difference), gun (left shoulder), stations A..I (A / I the outboard
+    # pylons (real stations 1 / 11), B / H the inboard heavy pylons (3 / 9), C / G the bays' air-to-ground (4 / 8)
+    # and D / F their air-to-air stations (5 / 7), E the centreline (6): docs/f35i.md §3), wheel height, eye.
     rig.empty("EngineL", (0.0, -6.24, 1.94))
     rig.empty("EngineL1", (0.0, -6.24, 2.49))
     rig.empty("StationGun", (-0.75, 1.5, 2.45))
     bay_y = (BAY_Y[0] + BAY_Y[1]) / 2
-    stations = [(-5.2, -2.9, 2.05), (-2.9, -1.9, 2.0), (-1.0, bay_y, 1.5), (-0.55, bay_y, 1.55), (0.0, bay_y, 1.0),
-                (0.55, bay_y, 1.55), (1.0, bay_y, 1.5), (2.9, -1.9, 2.0), (5.2, -2.9, 2.05)]
+    stations = [pylon_points["A"], pylon_points["B"], (-1.0, bay_y, 1.5), (-0.55, bay_y, 1.55), (0.0, bay_y, 1.0),
+                (0.55, bay_y, 1.55), (1.0, bay_y, 1.5), pylon_points["H"], pylon_points["I"]]
+    print("STATIONS", {k: tuple(round(c, 3) for c in p) for k, p in pylon_points.items()})
     for letter, p in zip("ABCDEFGHI", stations):
         rig.empty("Station" + letter, p)
     rig.empty("height", (0.0, ORIGIN.y, 0.0))  # lower case: the game finds it with find_child("height")

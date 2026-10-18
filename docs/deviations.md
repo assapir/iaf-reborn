@@ -165,6 +165,8 @@ Each entry names the switch and where it lives, then the difference: "Original: 
 - **Additions the original does not have:** flight info line, blackbox, language, Window (framed / full screen),
   "F-35I replaces" (the F-35I flies from a Jet list button, docs/f35i.md), Settings file (export / import the
   preferences, front_end.gd `_settings_file`). Later: extra sounds, canopy open (docs/roadmap.md).
+  - The F-35I's stations are the real F-35A's (docs/f35i.md §3.1). Its outboard wing pylons (stations 1 / 11, the
+    AIM-9X's) take the newest AIM-9 the game has, the AIM-9M, and the Python 4.
 - **HUD (Original (1998) / Real)** (references: [real-hud.md](real-hud.md)). Original: the 1998 HUD on every jet.
   Ours, with Real: each jet's real display:
   - the F-16C/D dash-34 HUD (also, as reconstructions, on the Kurnass 2000 and the Kfir, whose symbology is not
@@ -208,6 +210,13 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     the Reference viewer.
   - Stores, gun, wingtips, eye and wheel height come from the original's helpers. The detailed model brings its own
     hinge lines, its afterburner position at its nozzle's exit, and closed gear doors shown while the gear is up.
+- **Rolling wheels** (ours, Graphics → MORE; [part-animation.md](part-animation.md) §2.2). Visual only; the default
+  is Original.
+  - Original: the wheels of a flown aircraft never turn. The flight model's part callback hides the wheel frames
+    (ids 0x21–0x26), and the shipped aircraft models have none: each wheel is part of its gear leg's mesh.
+  - Rolling: on the ground, the wheels of a model with separate wheel frames turn at the ground speed over their
+    radius; in the air they hold their angle. Only the F-35I has such frames (WheelsA–C); the original models and the
+    detailed F-16D carry their wheels in the leg meshes, so their wheels stand still.
 - **Terrain imagery** (ours, docs/imagery.md): one row per region (Israel / outside Israel), default "Original".
   - Original: the 1998 ground texture everywhere.
   - Ours, with a converted modern layer (Sentinel-2 10 m outside Israel, Survey of Israel 2015 2 m in Israel at

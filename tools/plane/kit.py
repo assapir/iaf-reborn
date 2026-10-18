@@ -204,6 +204,48 @@ def extract(objs, test, name):
     return join(parts, name)
 
 
+def extract_loose(objs, test, name):
+    """A new object of the loose parts (connected pieces) of `objs` whose bounds (min, max) pass `test` (removed from
+    `objs`); None when none does."""
+    parts = []
+    for o in objs:
+        bm = bmesh.new()
+        bm.from_mesh(o.data)
+        bm.verts.ensure_lookup_table()
+        keep, seen = set(), set()
+        for v in bm.verts:
+            if v.index in seen:
+                continue
+            island, stack = [], [v]
+            seen.add(v.index)
+            while stack:
+                a = stack.pop()
+                island.append(a)
+                for e in a.link_edges:
+                    b = e.other_vert(a)
+                    if b.index not in seen:
+                        seen.add(b.index)
+                        stack.append(b)
+            cos = [a.co for a in island]
+            if test(Vector(map(min, *cos)), Vector(map(max, *cos))):
+                keep.update(a.index for a in island)
+        sel = [f for f in bm.faces if all(v.index in keep for v in f.verts)]
+        for f in bm.faces:
+            f.select = f in sel
+        bm.to_mesh(o.data)
+        bm.free()
+        if not sel:
+            continue
+        bpy.context.view_layer.objects.active = o
+        deselect()
+        o.select_set(True)
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.separate(type='SELECTED')
+        bpy.ops.object.mode_set(mode='OBJECT')
+        parts += [x for x in bpy.context.selected_objects if x is not o]
+    return join(parts, name) if parts else None
+
+
 def cavity(name, doors, depth, m):
     """The bay behind `doors` (cut skin): their faces raised `depth` as its roof, walls down to the hole's edge."""
     bm = bmesh.new()
@@ -516,6 +558,15 @@ class Rig:
         vs = [v.co for v in self.parts[name].data.vertices]  # (bound_box is stale after data.transform)
         self.place(name, (Vector(map(min, *vs)) + Vector(map(max, *vs))) / 2 + self.origin)
 
+    def nest(self, name, parent):
+        """A part that rides on another (a wheel on its leg): a child of `parent`, its origin on its own centre."""
+        o, par = self.parts[name], self.parts[parent]
+        vs = [v.co for v in o.data.vertices]
+        c = (Vector(map(min, *vs)) + Vector(map(max, *vs))) / 2
+        o.data.transform(Matrix.Translation(-c))
+        o.location = c - par.location
+        o.parent = par
+
     def empty(self, name, p):
         e = bpy.data.objects.new(name, None)
         scene().collection.objects.link(e)
@@ -537,8 +588,9 @@ class Rig:
         self.hinge(name, pivot, axis)
 
     def export(self, path):
+        tree = {self.root, *self.root.children_recursive}
         for o in scene().objects:
-            o.select_set(o is self.root or o.parent is self.root)
+            o.select_set(o in tree)
         bpy.ops.export_scene.gltf(filepath=path, export_format='GLTF_SEPARATE', export_yup=True, use_selection=True,
                                   export_apply=True, export_texture_dir="textures")
         return sum(sum(len(p.vertices) - 2 for p in o.data.polygons) for o in scene().objects if o.type == 'MESH')

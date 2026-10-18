@@ -1958,6 +1958,10 @@ static func attach_stores(stores: RefCounted, model: Node3D) -> Dictionary:
 				n.position = s
 				list.append(n)
 			nodes[i] = list
+			# Ours: a model's own pylon for the station (Pylon<letter>, the F-35I's) shows while the station is loaded.
+			var pylon := model.find_child("Pylon" + "ABCDEFGHI"[i], true, false) as Node3D if i < 9 else null
+			if pylon != null:
+				pylon.visible = true
 		if i < 9 and stores.type_of(i) == 560:
 			var b := _instance(ROCKET_BOX)
 			if b != null:

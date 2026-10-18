@@ -46,7 +46,8 @@ The game reads positions from the aircraft model. The detailed model keeps them 
   LdgDr, Canopy, pilot, pilotB. Each turns about FlightGear's own hinge line, so the surface moves where it is. The
   hinge lines differ from the original's by up to 0.8 m (the hook) and 11° (the stabilators' anhedral);
   `tests/godot/test_detailed_models.gd` prints the offsets.
-- **Wheels** stay fixed, as on the original (docs/part-animation.md).
+- **Wheels** are part of the gear legs' meshes, so they stay fixed, as on the original, also with Rolling wheels on
+  (docs/part-animation.md §2.2).
 
 ### 1.2 Loading
 

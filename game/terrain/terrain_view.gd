@@ -2597,6 +2597,7 @@ func _process(delta: float) -> void:
 			# The stick as the flight model took it (hydraulics / flight control damage scale it, 59f3d0).
 			for k in ["gear", "on_ground", "afterburner", "rpm", "stick_x", "stick_y"]:
 				parts_in[k] = fs[k]
+			parts_in["ground_speed"] = Vector2(fs.velocity.x, fs.velocity.z).length()  # the rolling wheels (ours)
 		aircraft.update(parts_in, delta)
 		# Wingtip vortices (FUN_004da090): while the flight model's S+0x420 is set, one trail per EndWing helper.
 		if trails != null and flight != null and bool(flight.state().get("vortex", false)) and not fm_stopped:

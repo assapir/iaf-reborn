@@ -85,7 +85,7 @@ const PREF_VSYNC := Rect2(8, 330, 110, 23)
 const PREF_MORE := Rect2(230, 330, 110, 23)
 const GFX_MORE := "Graphics+"
 const GRAPHICS_KEYS := ["fullscreen", "antialiasing", "terrain_closeup", "sky", "upscaling", "night_lights", "water", "models",
-	"particle_effects", "airbases"]
+	"rolling_wheels", "particle_effects", "airbases"]
 ## Ours on the debrief screen: EXPORT FLIGHT DATA at the content's top right, above the tab strip (content
 ## coordinates; the original's pages fill the rest).
 const DEB_EXPORT := Rect2(253, 12, 180, 20)
@@ -154,6 +154,7 @@ const EXTRAS := [
 	["night_lights", "Night lights", [["Original", "original"], ["Detailed", "detailed"]]],
 	["water", "Water", [["Original", false], ["Detailed", true]]],
 	["models", "Models", [["Original", "original"], ["Detailed", "detailed"]]],
+	["rolling_wheels", "Rolling wheels", [["Original", false], ["Rolling", true]]],
 	["particle_effects", "Particle effects", [["Original", false], ["Detailed", true]]],
 	["airbases", "Airbases", [["Original", "original"], ["Detailed", "detailed"]]],
 	# Ours: the F-35I (docs/f35i.md) flies from the Jet list button it replaces; more than three choices cycle.

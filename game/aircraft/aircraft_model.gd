@@ -61,6 +61,11 @@ var canopy_offset := Vector3.ZERO
 var canopy_gone := false
 var _chute_angle := 0.0
 var _rotor := 0.0  # the rotors' angle, degrees (crew object +0x10)
+## Rolling wheels (ours, Graphics → MORE; docs/part-animation.md §2.2): the wheel frames WheelsA..F that ride on a
+## gear leg (a child of it), each {node, basis, radius (m, from its mesh)}; `wheel_roll` the distance rolled (m,
+## negative = forward), so each wheel's angle is wheel_roll / its radius.
+var wheels: Array = []
+var wheel_roll := 0.0
 var _chute_t := 0.0
 var _time := 0.0
 
@@ -206,6 +211,12 @@ func setup(gltf_scene: Node3D, descriptor: Dictionary, type := -1, on_ground := 
 		if p.axis != null:
 			axis = Vector3(p.axis[0], p.axis[1], p.axis[2]).normalized()
 		parts[str(n.name)] = {"node": n, "id": int(p.id), "basis": n.transform.basis, "origin": n.transform.origin, "axis": axis}
+	for p in parts.values():
+		for w in p.node.get_children():
+			if w is Node3D and str(w.name).begins_with("Wheels"):
+				var r := _wheel_radius(w)
+				if r > 0.0:
+					wheels.append({"node": w, "basis": w.transform.basis, "radius": r})
 	# Afterburner: only a model with a complete Engine / Engine1 pair draws flames (clump+0x27c).
 	var eng: Dictionary = desc.get("engines", {})
 	if int(eng.get("pairs", 0)) > 0:
@@ -315,6 +326,9 @@ func update(input: Dictionary, delta: float) -> void:
 		ramps[k] = move_toward(ramps[k], _targets[k], rate * delta)
 	if input.has("gear"):
 		ramps.gear = float(input.gear)  # the flight model's own gear ramp (exact timing)
+	# Rolling wheels (ours): on the ground each wheel turns at ground speed / its radius; in the air it holds.
+	if on_ground and Settings.rolling_wheels:
+		wheel_roll -= float(input.get("ground_speed", 0.0)) * delta
 	# Drag chute (FUN_005a2b80): jitter while deployed.
 	var chute: int = input.get("chute", 0)
 	if chute == 2 and _time - _chute_t > CHUTE_PERIOD:
@@ -367,6 +381,15 @@ func _lever(key: String, value) -> bool:
 		return false
 	_levers[key] = value
 	return true
+
+
+## A wheel's radius (m): half its mesh's height (a wheel frame's mesh is the wheel, centred on its axle).
+static func _wheel_radius(w: Node3D) -> float:
+	var r := 0.0
+	for mi: MeshInstance3D in w.find_children("*", "MeshInstance3D", true, false) + ([w] if w is MeshInstance3D else []):
+		if mi.mesh != null:
+			r = maxf(r, mi.mesh.get_aabb().size.y / 2.0)
+	return r
 
 
 ## Angle θ and visibility of part `id` (FUN_005a09c0), from the current ramps.
@@ -458,6 +481,9 @@ func _apply() -> void:
 		p.node.transform = Transform3D(b, p.origin)
 		if ejected and p.id in [0x16, 0x17] and is_inside_tree():
 			p.node.global_position += global_basis.orthonormalized() * canopy_offset
+	# The wheels roll about their axle (the leg's X): one ground distance, each wheel's own radius.
+	for w in wheels:
+		w.node.transform.basis = Basis(Vector3.RIGHT, fmod(wheel_roll / w.radius, TAU)) * w.basis
 
 
 ## True while any afterburner flame is drawn.
