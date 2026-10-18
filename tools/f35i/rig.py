@@ -41,7 +41,11 @@ def markings():
     badge = kit.material("sqn116", (1, 1, 1), metallic=0.15, roughness=0.75,
                          image=kit.image("sqn116_lowvis", kit.low_vis(os.path.join(ASSETS, "sqn116.png"))), clip=True)
     number = kit.material("tail_number", NUMBER_GREY, metallic=0.15, roughness=0.75)
-    kit.decal("roundel_wing_upper_left", rnd, (-3.6, -2.7, 10), (0, 0, -1), 0.8, 0.8, (0, 1, 0))
+    # One roundel on each upper wing, outboard near the tip and ahead of the flaperon (the USAF tanker-boom photo
+    # of an F-35I from above, 2 Aug 2020); one under the right wing.
+    for s in (1, -1):
+        kit.decal(f"roundel_wing_upper_{'right' if s > 0 else 'left'}", rnd, (4.0 * s, -2.8, 10), (0, 0, -1), 0.8,
+                  0.8, (0, 1, 0))
     kit.decal("roundel_wing_lower_right", rnd, (3.6, -2.7, -10), (0, 0, 1), 0.8, 0.8, (0, -1, 0))
     for s in (1, -1):
         # The big roundel on the intake flank behind the lip, the full number on the nose, the last two digits at
