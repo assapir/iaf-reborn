@@ -241,6 +241,8 @@ pub enum Event {
     Lock { key: String, on: bool },
     /// `FUN_00458130`: the semi-active missiles lose their guidance.
     IlluminationLost,
+    /// The scan recorded this unit (@4afae6): it becomes known to the player (state +0x44, the TSD shows it).
+    Detected { key: String },
 }
 
 /// The antenna sweep (`FUN_004b0340`, cosmetic; one static state shared by the modes): the azimuth caret 0 → 1 → 0
@@ -464,6 +466,12 @@ impl Radar {
         self.events.push(Event::IlluminationLost);
     }
 
+    fn detected(&mut self, record: &Option<Contact>) {
+        if let Some(c) = record {
+            self.events.push(Event::Detected { key: c.key.clone() });
+        }
+    }
+
     // --- per frame (FUN_004ad300 + the 2 s timer) -----------------------------------------------------
 
     pub fn update(&mut self, now: f64, input: &Input) {
@@ -569,12 +577,16 @@ impl Radar {
             }
             // (ECM rules: no jammer on either side yet, docs/radar.md)
             if u.pos.distance(own.pos) <= detection {
-                insert(&mut list, hit(u, own, air, cone, input.terrain));
+                let record = hit(u, own, air, cone, input.terrain);
+                self.detected(&record);
+                insert(&mut list, record);
             }
         }
         // The old selection is kept while its unit is in the query, re-tested without the range.
         if let Some(u) = old_unit.filter(|u| !list.iter().any(|c: &Contact| c.key == u.key)) {
-            insert(&mut list, hit(u, own, air, cone, input.terrain));
+            let record = hit(u, own, air, cone, input.terrain);
+            self.detected(&record);
+            insert(&mut list, record);
         }
         self.contacts = list;
         // The cursor: the old selection if still listed, else the nearest (its RWR hears a lock).
@@ -955,6 +967,9 @@ mod tests {
         r.toggle_aa_ag(0.0, &scene(&[jet("t", 0.0, 30000.0), jet("u", 0.0, 50.0 * NM)]));
         assert_eq!(r.mode(), Mode::Lrs);
         assert_eq!(keys(&r), ["t"]);
+        let ev = r.take_events();
+        assert!(ev.contains(&Event::Detected { key: "t".into() }), "the recorded unit becomes known");
+        assert!(!ev.contains(&Event::Detected { key: "u".into() }), "beyond 45 NM: not detected");
         assert!(r.contacts()[0].aspect.abs() < 0.01, "flying away: aspect 0 (tail)");
         r.step_range(2, 1.0, &scene(&[jet("t", 0.0, 45.0 * NM + 500.0)]));
         assert_eq!(keys(&r), ["t"], "the selection beyond 45 NM is kept (re-tested without the range)");

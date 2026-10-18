@@ -200,8 +200,8 @@ impl IafRadar {
         }
     }
 
-    /// The events since the last call, in order: ["lock", key, on] (the target's RWR) or ["illum"] (`FUN_00458130`,
-    /// the semi-active missiles lose their guidance).
+    /// The events since the last call, in order: ["lock", key, on] (the target's RWR), ["illum"] (`FUN_00458130`,
+    /// the semi-active missiles lose their guidance) or ["detected", key] (the scan recorded the unit).
     #[func]
     fn events(&mut self) -> VarArray {
         let Some(r) = &mut self.radar else { return VarArray::new() };
@@ -210,6 +210,7 @@ impl IafRadar {
             .map(|e| match e {
                 Event::Lock { key, on } => varray!["lock", key, on],
                 Event::IlluminationLost => varray!["illum"],
+                Event::Detected { key } => varray!["detected", key],
             })
             .map(|a| a.to_variant())
             .collect()

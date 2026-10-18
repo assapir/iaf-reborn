@@ -26,12 +26,14 @@ var heading_shift := 0.0
 
 ## Owner callbacks: units() -> [{key, pos, vel, ent, hostile}], ground(world) -> height or null,
 ## own() -> {pos, vel, fwd, up, right, yaw}, on_lock(key, on) (the target's RWR), illumination_lost()
-## (FUN_00458130: the semi-active missiles lose their guidance).
+## (FUN_00458130: the semi-active missiles lose their guidance), detected(key) (a scan recorded the unit: known to
+## the player, @4afae6).
 var units: Callable
 var ground: Callable
 var own: Callable
 var on_lock: Callable
 var illumination_lost: Callable
+var detected: Callable
 
 var _r = ClassDB.instantiate("IafRadar")
 var _st := {}
@@ -78,6 +80,9 @@ func _sync() -> void:
 		if e[0] == "lock":
 			if on_lock.is_valid():
 				on_lock.call(e[1], e[2])
+		elif e[0] == "detected":
+			if detected.is_valid():
+				detected.call(e[1])
 		elif illumination_lost.is_valid():
 			illumination_lost.call()
 

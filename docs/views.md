@@ -35,10 +35,40 @@ directly (`CFlightWnd::OnGameEvent` 0x4dc280). They bypass the game-event queue.
   * Esc and BACK (frame handler `FUN_004ea090` 0x7a, BACK `FUN_004ed1b0`) return to the flight (exit 4) when
     `FUN_004bb8f9` holds (the player has a unit, UNCERTAIN).
   * MAIN (`FUN_004ecff0`) on screens 0x20 / 0x21 opens the Ctrl+Q quit-mission box (`FUN_004e2fa0(3)`).
-  * Fly (`FUN_005045b0`) takes the selected formation (`FUN_004d31f0`: fly another flight's aircraft) and returns.
-  * Visit (`FUN_005046b0`) returns with the selected unit (`FUN_004d3450`): the camera follows that unit without control,
-    only after the mission has started; Esc returns (EN 3.1).
-  * Ctrl+P on the FlyTSD pauses with a dithered snapshot (`FUN_004edbc0`).
+  * The map is the live battle: the unit table is rebuilt from the spawned objects on every paint (`FUN_00517cd0` →
+    `FUN_004d2900`), with the sim clock stopped. Docs/front-end.md §8.1 lists which units get a record. A downed
+    formation leaves the map and its button is disabled (`FUN_00505820`). The clock is the time of day now.
+  * **Fly** (`FUN_005045b0`) with a selected flight that exists calls `FUN_004d31f0`: its current leader (member 0
+    while alive, else member 1, `FUN_004d35c0`) goes to `FUN_004d3250` (the TSD object's vfunc +0x14). Then the flight
+    resumes (exit 4). Without such a flight: msg 25.
+  * **`FUN_004d3250`**, in single player:
+    1. The player's jet is kept as the old jet when it is alive, is not the target, and its control status
+       (state +0x14) is neither 0 nor 1.
+    2. If the target is brain controlled (status 1), it becomes player controlled (`FUN_004a8e70(3)`: the player
+       object, its controller attached, the input devices' current stick and throttle passed to its flight model). The
+       old jet becomes brain controlled (`FUN_004a8e70(1)`).
+    3. The camera goes to the cockpit view on the player's jet (`FUN_0057f2a0(…, 1, player)`).
+
+    Fly on the player's own flight therefore only returns the cockpit view.
+  * **Visit** (`FUN_005046b0`, in flight with a selected unit) calls `FUN_004d3450` with that unit, then the flight
+    resumes. `FUN_004d3450` sets the main camera to the radar-target view on the unit (`FUN_00580f50`, type 9:
+    aircraft {300, 700, 300, 10°, ·, 2°} ×1, others {500, 900, 500, 30°, ·, 120°} ×3, no randomness). It also sets
+    `+8 = 1` in the visual record (`obj+4`) of the unit and of the living player's jet, and clears `+8` of the record's
+    cockpit part when there is one (UNCERTAIN: "drawn from outside"). The player keeps flying the own jet. Esc gives the
+    FlyTSD again (EN 3.1).
+  * **Double-click** on the map (`FUN_00501ef0`): a flight leader of class 0x1c with a flyable type, on the side rule,
+    flies (`FUN_004d3250`). Any other unit is visited in flight; before the flight nothing happens.
+  * **Ctrl+P** (frame handler `FUN_004ea090`, event 0x84; screen 0x20, single player, no message box) pauses the FlyTSD
+    (`FUN_004edbc0`) or resumes it (`FUN_004ede30`). The pause:
+    * snapshots the window and dithers it: AND with `menu/bmp/misc/pat1.bmp`, then OR with `pat2.bmp`. Both are
+      640×480 checkerboards, so every other pixel turns grey 215;
+    * releases the held keys (`FUN_004e0a60(1)`) and drops the key manager's counter (`FUN_004df500(-1)`), so every
+      key but Ctrl+P is ignored, Esc too;
+    * disables the frame window (no mouse);
+    * stops the sim clock only if it runs (it is already stopped on the FlyTSD, so the sounds play on).
+
+    The paint (`FUN_004e92b0`) blits the snapshot and, 500 ms on / 500 ms off, "II  PAUSE" in Arial 50 weight 900,
+    RGB(0,255,0), TA_BOTTOM at (30, 450).
   * While the time rate is > 1, the TSD overlay shows `"%dx"` (0x654b74) at (Wc − 4, 4), TA_RIGHT (@5013f0).
 * **Menu items** (`FUN_004dc0d0`):
   * Resume.
@@ -63,12 +93,23 @@ directly (`CFlightWnd::OnGameEvent` 0x4dc280). They bypass the game-event queue.
   the textured sky and the Extras render options, blackouts).
 * **Restart / New mission** end the flight with the debrief. `Settings.debrief.auto` = the button the debrief
   presses after 50 ms (`replaymission` / `newmission`).
-* **Not ported**:
-  * FlyTSD Fly into another formation's aircraft: Fly returns to your own jet.
-  * Visit: it does nothing.
-  * Ctrl+P on the FlyTSD.
-  * Live unit positions on the FlyTSD: it draws the mission's start positions, as before the flight. The
-    original shows the live battle: current positions, and downed formations leave the map and their buttons (EN 3.3).
+* **FlyTSD live map**: `game/menu/tsd.gd` `_load_units` builds the tables from the flight's runtime entities when the
+  TSD opens. The sim is frozen while it is up, so one build equals the original's rebuild on every paint.
+* **Fly** (`terrain_view.gd` `fly_unit` / `_take_over`): the target's IafFlight becomes the player's flight model. The
+  player's jet is then rebuilt for the target's type: cockpit, sounds, systems damage, model and `_bc` model,
+  weapons with the stores the AI jet had left (`player_weapons.gd` `rearm`), route and autopilot. The brain's
+  autopilot mode ends (flight model mode 0, so its AI rules stop) and the player's autopilot starts as the jet's
+  controller did at spawn (on in level mode after an airborne start, @4483d7). The levers (gear,
+  flaps, brakes) follow the new jet; the stick and throttle stay the player's. The old jet keeps its IafFlight
+  under a new AI pilot with its brain, its systems damage and the stores it had left (`ai_flights.gd` `adopt`,
+  `combat.gd` `adopt`). Weapons already in the air fly on.
+* **Visit** (`terrain_view.gd` `visit_unit`): the radar-target view (`_follow_radar_target`) on the unit's node, the
+  own jet's rig for the player's own unit. The visual-record flags have no equivalent here: every model is drawn.
+* **Ctrl+P on the FlyTSD**: `front_end.gd` `tsd_pause_key`, drawn by `game/menu/tsd_pause.gd` (the dither as a
+  shader on the viewport's snapshot).
+* **Open**:
+  * Fly while the own jet is down (destroyed, falling or ejected): ours changes nothing. The exe hands over the new
+    jet; rule 1 still ends the flight 5 s after the death (docs/mission-runtime.md §5.1).
   * The multiplayer boxes (msgs 11 / 12).
 
 ## 2. Time compression (C 0x77, Ctrl+C 0x78)

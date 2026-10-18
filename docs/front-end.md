@@ -416,7 +416,9 @@ Jets disabled per mission (`FUN_00509b80`; rows 0x11c bytes apart in the list ob
 * Scrollbars (screen coordinates):
   * V: `tsd/vscroll.bmp` 10×356 at (608,42); thumb `vslider` 10×75; `vslupb`/`vsldownb`
   * H: `hscroll.bmp` 462×10 at (146,399); thumb `hslider` 74×10
-  * `Cur/move.cur` and `grab.cur` are the waypoint drag's cursors (below); the manual (EN 3.3) describes no map drag.
+  * `Cur/move.cur` and `grab.cur` are loaded (`501bd0`) but never set on the map: WM_SETCURSOR (`501c60`) shows the
+    arrow, and no cursor while the ruler is dragged. The Arming screen uses them (§15). The manual (EN 3.3) describes
+    no map drag.
 * **Waypoints** (Waypoint check), one route per flight 1..4, with the selected flight drawn last:
   * a filled circle of radius 10 (pen PS_INSIDEFRAME 2 px and a brush in the flight colour)
   * the 1-based number, centred at (x, y+4) (TA_BASELINE|TA_CENTER), white
@@ -435,7 +437,48 @@ Jets disabled per mission (`FUN_00509b80`; rows 0x11c bytes apart in the list ob
   * The 14 filter checks (Aircrafts/Vehicles/Ships/SAM/AAA/Structures/Airports × side 1/2) gate the
     drawing (`FUN_00504a10`).
 * Top-left text: mission title at (4,4); mission clock `HH:MM:SS` at (14, lineH+6) (decoded in §8.1).
-* A ruler drag draws a line and arrow in red with `"%.2f NM"` and bearing `"%03d T"` (m × 0.00053996).
+* The overlay paint (`501300`) draws in this order: title and clock, the time rate, the routes, the units (the
+  selected one last, with its label), the ruler.
+* **Ruler** (right button; message map `0x607ff0`: WM_RBUTTONDOWN `5022d0`, WM_MOUSEMOVE `501cb0`, WM_RBUTTONUP
+  `502380`), before and in flight:
+  * The press captures the mouse, starts the ruler (`+0xb4` = 1, `+0xb8` = 0) and sets both ends to the point in world
+    coordinates (`FUN_00500f70` of point / z). The cursor is hidden while it is dragged (WM_SETCURSOR `501c60`).
+  * A move with the right button held moves the end. The release ends the drag and keeps the ruler (`+0xb8` = 1) until
+    the next right press. The ends are world points, so the ruler stays on the ground when the map scrolls or zooms.
+  * Drawing (`501300`), with WHITE_PEN and WHITE_BRUSH (stock objects 6 and 0):
+    * a dot at the start, `Ellipse(x−2, y−2, x+3, y+3)`;
+    * the line from start to end;
+    * unless the ends share a pixel, an arrowhead at the end: two strokes of 10 px (`0x607fb4`) at ±0.628 rad
+      (`0x607fb8`) back from the line's direction.
+  * Text, red (`SetTextColor(0xff)`), TA_CENTER|TA_TOP in the overlay font:
+    * at (end.x, end.y + 2 + L): the distance `"%.2f NM"`, metres × 0.00053996 (`0x6081f4`);
+    * one line lower (+ 2 + L): the true bearing, 90° − deg(atan2(dy, dx)), wrapped into [0, 360), truncated and
+      zero-padded through `"00%d T"` / `"0%d T"` / `"%d T"`, i.e. `"%03d T"`.
+* **Map keys** (WM_KEYDOWN `5023e0`), before and in flight:
+
+  | key | effect |
+  |---|---|
+  | ← / → / ↑ / ↓ | scroll 5 map units (`0x6081c0` / `0x608214`) |
+  | Page Up / Page Down | one page up / down (`502a90` codes 2 / 3) |
+  | Numpad + (VK_ADD) | zoom in ×1.5 while z < 32, pivot as Zoom_In |
+  | Numpad − (VK_SUBTRACT), Insert | zoom out ×2/3 while z > 1 |
+
+  The table also lists the character codes '+', '=', '−' and '_', but WM_KEYDOWN carries virtual keys: of those
+  only 0x2D comes from a key, Insert. Each zoom key updates the Zoom buttons' enable state.
+* **Left button**:
+  * The press (`FUN_00501e50`) captures the mouse and hit-tests the icons (`FUN_00504c00`). A hit selects that unit
+    (`DAT_006548a4`). A miss clears the selection; then, in single player, a waypoint of the selected flight within
+    10 px starts a drag (`FUN_00504dd0`).
+  * The hit test tries the selected unit first, then the others from the last record down. The rects are the drawn
+    cells (27×21 aircraft, 27×17 others), inclusive on all sides. A quirk of its walk: after a visible selected unit it
+    restarts at count − 1 and steps once before testing, so the last record is never hit then. A hidden selected unit
+    makes the walk go on below it.
+  * A move with the left button held (`501cb0`) moves the dragged waypoint, clamped to the client, **before the flight
+    only** (`+0x54 == 0`). On the FlyTSD the waypoint stays put, as the manual says (EN 3.3).
+  * The release (`501ed0`) ends the drag and releases the capture.
+* The selected unit (`DAT_006548a4`: label, selection icon, Visit, zoom pivot) and the selected flight
+  (`DAT_0083b8a4`: Fly, Arm, the route drawn last, the waypoint drag) are separate. A formation button sets both
+  (`FUN_00503cb0`); a click on an icon sets only the unit.
 * Defaults (`FUN_004f15a0`): all 14 unit filters on, and Text, Waypoint, Grid and Briefing on.
   Stored in `DAT_0083b85c..d18`; flight `d1c`=0, zoom `d20`=1.0, scroll `d24/d28`=0.
 * Formation panel `pformation` (bottom1): Alpha–Delta CheckGroup selects the player's flight
@@ -509,9 +552,17 @@ px = z · (mx − sx)                    py = z · (my − sy)
 
 The state fields:
 * `+0x44` is initialised from spawn slot `[0x43]` = **entity `0x35c`**, the "known to player" flag.
-  It is set to 1 later when the player's radar detects the unit (`FUN_004af300` @4afa01).
-* `+0x14` is 1 for aircraft and 2 for surface units (from entity `0x320`).
+  It is set to 1 when the player's radar scan records the unit (`FUN_004af300` @4afae6, owner = the player).
+* `+0x14` is the control status of `FUN_004a8e70` ("switchControlStatus"): 0 uncontrolled, 1 brain, 2 mission,
+  3 player, 4 master. At spawn it is 2 for entity `0x320` bit 0, else 1; the player's jet is 3; an ejected player is 0.
 * `+0xc` values 4 and 5 are dead/removed states (UNCERTAIN).
+
+In flight the table is rebuilt on every paint (`FUN_00517cd0`), so the FlyTSD shows the live battle: current positions
+and headings, dead units gone, a flight gone once both members are, and its leader member 1 once member 0 is down.
+
+**Ours** (`game/menu/tsd.gd` `_load_units`): before the flight the records come from the mission files; on the
+FlyTSD from the runtime entities (`state`, `control`, the live position and heading), with `known` set by the player's
+radar (`IafRadar` event "detected").
 
 Units that are never shown:
 * markers (civilhouse audio markers have `0x35c`=0);
@@ -551,9 +602,12 @@ Row choice:
 * Aircraft in flights 1..4 get a 2 px rectangle in the flight colour, inflated by 2 px.
 * The selected unit is drawn last, with a selection icon and a two-line label (see
   "Selected-unit label" below).
-* Double-clicking an own-side **flight-leader** aircraft whose type is flyable
-  (`FUN_00505730`: 100,110,120,130,140,160,180,190,200) selects that flight and **flies** it
-  immediately (exit code 2, `FUN_00501ef0`).
+* **Double-click** (`FUN_00501ef0`): the unit under the cursor becomes the selection (hit test as the press). If it is
+  a class 0x1c aircraft with a flyable type (`FUN_00505730`: 100,110,120,130,140,160,180,190,200), its flight's current
+  leader ([0x18]) and on the side rule (`FUN_005055a0`), its flight becomes the selected one and it **flies**
+  (`FUN_004d3250`; exit code 2 before the flight, 4 in flight). Otherwise, in flight only, the unit is **visited**
+  (`FUN_004d3450`, docs/views.md §1).
+* **Ours**: the label is drawn as below (`tsd.gd` `_draw_units`, `unit_label`).
 
 #### Selected-unit label (`FUN_004f7670`)
 
@@ -695,13 +749,17 @@ Alpha–Delta.
 Multiplayer adds slot checks.
 
 **Fly** (`FUN_005045b0`):
-* SP with a valid flight: make the flight leader the player object (`FUN_004d31f0`), then exit code 2.
+* SP with a valid flight: make the flight's current leader the player object (`FUN_004d31f0` → `FUN_004d3250`), then
+  exit code 2 (before the flight, after `FUN_004d8bc0`) or 4 (in flight: back to the flight, docs/views.md §1).
 * Otherwise: msg 25 "Choose a jet before flying."
 
+**Visit** (`FUN_005046b0`, FlyTSD only): with a selected unit, the camera follows it (`FUN_004d3450`) and the
+flight resumes (exit 4); with none, nothing happens.
+
 **Waypoints** are drawn for flights 1..4 only, then the selected flight. In SP, pressing the left
-button within 10 px of a waypoint of the selected flight (`FUN_00504dd0`) starts a drag. The drag
-moves the waypoint through the inverse transform (`FUN_00500f70`, `FUN_004d3130`). It uses
-`move.cur` and `grab.cur`. The manual (EN 3.3) allows the drag before take-off only.
+button within 10 px of a waypoint of the selected flight (`FUN_00504dd0`, the last waypoint tried first; Waypoint
+on) starts a drag. The drag moves the waypoint through the inverse transform (`FUN_00500f70`, `FUN_004d3130`) before
+the flight only (`501cb0`); the cursor stays the arrow. The manual (EN 3.3) also allows the drag before take-off only.
 
 #### Top-left text (overlay `501300`)
 
@@ -2227,7 +2285,8 @@ Ctrl+P works only with no message box up and the menu closed. It toggles between
     none). UNCERTAIN: the wash is drawn after the text, so it also covers it.
 * **FlyTSD screen (0x20)**: the menu frame handles Ctrl+P itself (`FUN_004edbc0` / `FUN_004ede30`). It dithers a
   screen snapshot with `misc/pat1.bmp` (SRCAND) + `pat2.bmp` (SRCPAINT), disables the window, and draws the same
-  "II  PAUSE" at (30, 450) (`FUN_004e92b0`).
+  "II  PAUSE" at (30, 450) (`FUN_004e92b0`). Only Ctrl+P resumes it (the key manager is down, so Esc is ignored).
+  Ours: `front_end.gd` `tsd_pause_key`, `game/menu/tsd_pause.gd` (docs/views.md §1).
 
 ### 16.2 Ctrl+O "On-The-Fly menu" (0x4dc479)
 Ctrl+O works only when the game is not paused. It toggles between open (`FUN_004dbff0`) and close

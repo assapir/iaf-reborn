@@ -1304,8 +1304,10 @@ func _exit_tree() -> void:
 		get_tree().paused = false
 
 
-## The route of the formation holding the player (its waypoints and their names) for the MFDs.
-func _load_route(mission: Dictionary, player_id: int) -> void:
+## The route of the formation holding the player (its waypoints and their names) for the MFDs; `override` = the
+## waypoints moved on the TSD.
+func _load_route(mission: Dictionary, player_id: int, override: Array = Settings.route_override) -> void:
+	route = []
 	for f in mission.formations.items:
 		var members: Array = f.get("members", []).map(func(m): return int(m.get("0x41a", -1)))
 		if not player_id in members:
@@ -1318,8 +1320,8 @@ func _load_route(mission: Dictionary, player_id: int) -> void:
 			var p: Array = pts[i]
 			var w := Vector2(p[1], p[2])
 			# Waypoints moved on the TSD replace the mission's positions.
-			if i < Settings.route_override.size():
-				w = Settings.route_override[i]
+			if i < override.size():
+				w = override[i]
 			route.append({"name": names.get(int(p[0]), ""), "world": w, "alt": float(p[3]), "t": float(p[4]),
 				"action": int(p[5])})
 		return
@@ -1344,6 +1346,12 @@ func _start_flight() -> void:
 		push_error("flight model: " + err)
 		flight = null
 		return
+	_apply_player_prefs()
+	_setup_autopilot(install)
+
+
+## The player's options on the player's flight model: the "Better physics" set and the Gameplay preferences.
+func _apply_player_prefs() -> void:
 	# "Better physics" options (Preferences > Physics); --better turns them all on.
 	if _all_better:
 		flight.set_better_physics(true)
@@ -1360,7 +1368,6 @@ func _start_flight() -> void:
 	flight.set_invulnerable(Settings.invulnerable)
 	flight.set_no_crashes(Settings.no_crashes)
 	flight.set_unlimited_fuel(Settings.unlimited_fuel)
-	_setup_autopilot(install)
 
 
 ## The player's autopilot runs the AI's control loops on this jet: [Autopilot] of bd.ibx, the airbases, the
@@ -1370,12 +1377,18 @@ func _setup_autopilot(install: String) -> void:
 	flight.ap_set_ground(func(pos: Vector3):
 		var g = terrain.height_at(pos)
 		return float(g) if g != null else -1.0e9)
+	_start_autopilot(start_airborne)
+
+
+## The player's route on the flight model's autopilot, and the controller's autopilot (on in level mode after an
+## airborne start, @4483d7).
+func _start_autopilot(airborne: bool) -> void:
 	var pts := PackedFloat64Array()
 	for w in route:
 		pts.append_array([w.world.x, w.world.y, w.get("alt", 0.0), w.get("t", 0.0), w.get("action", 0)])
 	flight.ap_set_route(pts)
 	autopilot = preload("res://controls/autopilot.gd").new(self)
-	autopilot.start(start_airborne)
+	autopilot.start(airborne)
 
 
 ## The player's jet was destroyed (landing check, water): like the original's player death, the
@@ -2005,10 +2018,126 @@ func _view_command(id: int) -> void:
 ## {500, 900, 500, 30°, ·, 120°} scale 3; the swoop without randomness; type 9.
 func _follow_radar_target(t: Node3D) -> void:
 	var ent := _entity_of_node(t)
-	if ent.get("airborne_class", false) or ent.has("pilot"):
+	if t == rig or ent.get("airborne_class", false) or ent.has("pilot"):
 		views.set_orbit(t, CHASE_OFFS, 1.0, Views.FLYBY, false)
 	else:
 		views.set_orbit(t, [500.0, 900.0, 500.0, 0.5235988, 0.0, 2.0943951], 3.0, Views.FLYBY, false)
+
+
+## The FlyTSD's Visit (FUN_005046b0 → FUN_004d3450): the camera follows unit `key` (enemy too) in the radar-target
+## view (FUN_00580f50, type 9). The player keeps flying the own jet; the view keys and Esc (the FlyTSD) end it.
+func visit_unit(key: String) -> void:
+	var ent: Dictionary = runtime.entities.get(key, {}) if runtime != null else {}
+	if ent.is_empty():
+		return
+	var n = rig if ent.player else ent.get("node")
+	if n is Node3D and is_instance_valid(n):
+		_follow_radar_target(n)
+
+
+## The FlyTSD's Fly (FUN_005045b0 → FUN_004d31f0 → FUN_004d3250) with the selected flight's current leader, unit
+## `key`: a brain-controlled jet (control 1) becomes the player's (FUN_004a8e70(3)) and the player's old jet, while
+## alive and not the same, goes to its brain (FUN_004a8e70(1)); then the cockpit view on the player's jet
+## (FUN_0057f2a0(…, 1, player)). Ours: with the own jet down (destroyed, falling or ejected) nothing changes.
+func fly_unit(key: String) -> void:
+	var target: Dictionary = runtime.entities.get(key, {}) if runtime != null else {}
+	if target.is_empty() or int(target.state) in [4, 5] or int(target.control) == 0 or fatal_hit or ejected or crashed or jet_gone:
+		return
+	var old: Dictionary = runtime.player_entity()
+	if int(target.control) == 1 and target.get("pilot") != null and ai != null:
+		var keep_old: bool = not old.is_empty() and old != target and not int(old.state) in [4, 5] \
+				and not int(old.control) in [0, 1]
+		_take_over(target, old if keep_old else {})
+	views.set_cockpit(Views.COCKPIT)
+
+
+## The swap: the target's flight model, stores and systems become the player's jet (the cockpit, sounds, model,
+## weapons, route and autopilot of its type); the old jet keeps flying under its brain with the stores it had left.
+func _take_over(target: Dictionary, old: Dictionary) -> void:
+	var p = target.pilot
+	var new_flight = p.flight
+	var systems: Array = p.systems.duplicate()
+	var airborne_start: bool = p.airborne_start
+	var new_load: Array = ai.release(target)
+	var old_flight = flight
+	var old_plane: String = player.plane
+	var old_scale := aircraft.scale.x if aircraft != null else 1.0
+	var old_systems: Array = player_damage.flags.duplicate()
+	var old_load: Array = weapons.loadout() if weapons != null else []
+	# The new player (FUN_004a8e70(3)).
+	target.player = true
+	target.control = 3
+	var files := MissionRuntime.mission_files(mission_id)
+	var mission: Dictionary = files[0].data
+	for e in files[int(target.file)].data.entities.items:
+		if e is Dictionary and int(e.get("0x1e", -1)) == int(target.id):
+			mission_entity = e
+	mission_object = MissionRuntime.bdb_objects(mission_bdb).get(int(target.type), {})
+	player_entity_id = int(target.id)
+	var f: Dictionary = ai._formation_of(target)
+	player_flight_number = int(f.get("kind", 0))
+	_load_route(mission, player_entity_id, Settings.route_override if player_flight_number == Settings.player_flight else [])
+	cockpit.waypoints = route
+	cockpit.current_waypoint = clampi(new_flight.ap_waypoint_index(), 0, maxi(route.size() - 1, 0))
+	# The old jet goes to its brain (FUN_004a8e70(1)); "not on the player's side" is now about the new jet.
+	if not old.is_empty():
+		old.player = false
+		old.control = 1
+		old_flight.set_better_physics(false)
+		old_flight.set_no_stalls(false)
+		old_flight.set_no_spins(false)
+		old_flight.set_easy_landing(true)
+		old_flight.set_invulnerable(false)
+		old_flight.set_no_crashes(false)
+		old_flight.set_unlimited_fuel(false)
+		old_flight.ap_player_mode(0, 0)  # the player's autopilot loop ends; the brain sets the modes now
+		ai.adopt(old, old_flight, old_plane, old_scale, old_systems, old_load, start_airborne)
+	# The new jet's type: cockpit, sounds, systems, model and weapons. Its brain's autopilot mode ends (FM mode 0:
+	# the flight model's AI rules no longer apply), its AI settings back to a player's.
+	flight = new_flight
+	flight.ap_set_mode(0, runtime.now)
+	flight.set_ai(false, 2)
+	flight.set_ai_damage(true)
+	var st: Dictionary = flight.state()
+	_apply_player_prefs()
+	start_airborne = airborne_start
+	player = PlayerAircraft.profile(int(target.type_code))
+	if cockpit.cockpit_dir != player.cockpit_dir:
+		cockpit.load_cockpit(player.cockpit_dir)
+	cockpit.twin_engines = player.twin
+	sounds.queue_free()
+	sounds = preload("res://audio/flight_sounds.gd").create(self, player.type)
+	add_child(sounds)
+	player_damage = preload("res://mission/player_damage.gd").new()
+	player_damage.host = self
+	player_damage.betty = player.type in sounds.BETTY_TYPES
+	player_damage.twin = player.twin
+	for i in mini(systems.size(), player_damage.flags.size()):
+		player_damage.flags[i] = systems[i]
+	cockpit.damage_flags = player_damage.flags
+	for n in [aircraft, own_bc]:
+		if n != null:
+			n.queue_free()
+	aircraft = null
+	own_bc = null
+	_spawn_player()
+	if aircraft != null:
+		var h := aircraft.find_child("height", true, false) as Node3D
+		flight.set_gear_clearance(-h.position.y * aircraft.scale.y if h != null else 0.0)
+	# The levers follow the new jet; the stick and throttle stay the player's (FUN_005a28c0: the input devices'
+	# current values go to the new jet).
+	gear_down = bool(st.gear_down)
+	flaps = float(st.flaps)
+	brakes = bool(st.brakes)
+	gear_legs = [2, 2, 2] if gear_down else [0, 0, 0]
+	flaps_state = 2 if flaps > 0.0 else 0
+	drag_chute = 0
+	rig.position = st.position
+	rig.basis = Basis(st.right, st.up, -st.forward)
+	weapons.rearm(target, mission_object, mission_bdb, preload("res://aircraft/aircraft_model.gd").load_descriptor(player.plane), new_load)
+	_start_autopilot(airborne_start)
+	padlock_target = null
+	print("player: now %s (flight %d, type %d)" % [target.name, player_flight_number, player.type])
 
 
 ## Event 22: in the external views the Numpad snap keys turn the orbit (p2 8 / 2 pitch, 6 / 4 heading;

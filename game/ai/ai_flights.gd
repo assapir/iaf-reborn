@@ -36,6 +36,7 @@ class Pilot:
 	var landed := false
 	var mode := 0
 	var plane := ""  # the converted plane folder (its flight model start)
+	var airborne_start := true  # the jet's start was airborne (its controller's autopilot starts on, @4483d7)
 	## Systems damage flags 0..24 (controller +0x3d8 + 0xc + 4n, docs/damage.md §5), the cut-out pick (+0x70)
 	## and the twin-engine test (controller +8 → +0x24: the player's table, PlayerAircraft.TWIN).
 	var systems: Array = []
@@ -135,32 +136,79 @@ func setup(h: Node, rt: Node, bdb: Dictionary, files: Array) -> void:
 		p.twin = int(ent.type_code) in PlayerAircraft.TWIN
 		if not _start(p, install, plane):
 			continue
-		var model := AircraftModel.create(plane, ent.type_code, bool(p._state.on_ground_start))
-		if model != null:
-			model.scale = Vector3.ONE * float(pr.get("0x65e", 10.0))
-			host.add_child(model)
-			# As the player's jet: the model's `height` helper (how far the wheels reach below the
-			# origin) at the Present scale.
-			var hp := model.find_child("height", true, false) as Node3D
-			p.flight.set_gear_clearance(-hp.position.y * model.scale.y if hp != null else 0.0)
-		p.node = model
-		if model != null:
-			model.add_child(FlightSounds.create_engine(host, p.flight, ent))  # docs/sound.md §3
-		ent.node = model
-		ent["pilot"] = p
-		ent["airborne_class"] = true
-		ent["coll_radius"] = 0.25 * _extent_sum(model)
-		ent["max_extent"] = 10.0
-		var rules: Array = _brains.get(int(ent.get("brain", -1)), [])
-		p.brain = Brain.new()
-		p.brain.setup(self, ent, p, rules, true)
-		p.brain.reset(runtime.now)
-		pilots.append(p)
-		_place(p)
+		_attach(p, float(pr.get("0x65e", 10.0)), bool(p._state.on_ground_start))
 	print("AI aircraft: %d flying" % pilots.size())
 	combat = Combat.new()
 	add_child(combat)
 	combat.setup(host, self, bdb)
+
+
+## A pilot's jet in the world: its model at the Present scale `scale` (with its engine sound), its entity's links
+## and its brain; then it flies.
+func _attach(p: Pilot, scale: float, on_ground: bool) -> void:
+	var ent := p.ent
+	var model := AircraftModel.create(p.plane, ent.type_code, on_ground)
+	if model != null:
+		model.scale = Vector3.ONE * scale
+		host.add_child(model)
+		# As the player's jet: the model's `height` helper (how far the wheels reach below the
+		# origin) at the Present scale.
+		var hp := model.find_child("height", true, false) as Node3D
+		p.flight.set_gear_clearance(-hp.position.y * model.scale.y if hp != null else 0.0)
+		model.add_child(FlightSounds.create_engine(host, p.flight, ent))  # docs/sound.md §3
+	p.node = model
+	ent.node = model
+	ent["pilot"] = p
+	ent["airborne_class"] = true
+	ent["coll_radius"] = 0.25 * _extent_sum(model)
+	ent["max_extent"] = 10.0
+	var rules: Array = _brains.get(int(ent.get("brain", -1)), [])
+	p.brain = Brain.new()
+	p.brain.setup(self, ent, p, rules, true)
+	p.brain.reset(runtime.now)
+	pilots.append(p)
+	_place(p)
+
+
+## FUN_004a8e70(1) on the player's old jet (the FlyTSD's Fly, docs/views.md §1): brain controlled, it flies on from
+## its state with the player's flight model `flight`, its systems damage and the stores it had left (`load`,
+## [[weapon id, count] × 12]); `airborne_start`: its start was airborne.
+func adopt(ent: Dictionary, flight, plane: String, scale: float, systems: Array, load: Array, airborne_start: bool) -> void:
+	var p := Pilot.new()
+	p._host = self
+	p.ent = ent
+	p.formation = _formation_of(ent)
+	p.plane = plane
+	p.systems = systems
+	p.twin = int(ent.type_code) in PlayerAircraft.TWIN
+	p.flight = flight
+	p.airborne_start = airborne_start
+	flight.set_ai(host.enemy_of_player(ent), int(host.mission_pref("ai_level")))
+	var pts := PackedFloat64Array()
+	for q in p.route():
+		pts.append_array(q)
+	flight.ap_set_route(pts)
+	p._state = flight.state()
+	p._state["position_world"] = host.scene_to_world(p._state.position)
+	ent.world = p._state.position_world
+	ent.heading = float(p._state.heading)
+	_attach(p, scale, bool(p._state.on_ground))
+	combat.adopt(ent, load)
+
+
+## FUN_004a8e70(3) on a jet the player takes over: it leaves the AI (pilot, brain, model, engine sound and weapon
+## handler). Returns the stores it had left, [[weapon id, count] × 12].
+func release(ent: Dictionary) -> Array:
+	var p: Pilot = ent.pilot
+	pilots.erase(p)
+	var load: Array = combat.hand_over(ent)
+	if p.node != null:
+		p.node.queue_free()
+	p.brain = null
+	p.ent = {}
+	ent.erase("pilot")
+	ent.node = null
+	return load
 
 
 ## The converted plane folder of a Present model path (…\MIG29\MIG29_H.XFR → "mig29").
@@ -227,6 +275,7 @@ func _start(p: Pilot, install: String, plane: String) -> bool:
 		pts.append_array(q)
 	flight.ap_set_route(pts)
 	p.flight = flight
+	p.airborne_start = airborne
 	p._state = flight.state()
 	p._state["on_ground_start"] = not airborne
 	p._state["position_world"] = w

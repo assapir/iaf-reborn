@@ -144,6 +144,8 @@ func setup(h: Node, flights: Node, bdb: Dictionary) -> void:
 	var rt: Node = ai.runtime
 	var db = WeaponDb.create(bdb, Settings.real_weapons())
 	var objects: Dictionary = rt.bdb_objects(bdb)
+	_db = db
+	_objects = objects
 	for ent in rt.entities.values():
 		# Every armed unit other than the aircraft has a weapon handler (FUN_004b7ad6): script op 2 fires it; only the
 		# sensor classes target and fire by their brain (FUN_0043eef0; helicopters, class 2, have no sensor).
@@ -188,9 +190,34 @@ func setup(h: Node, flights: Node, bdb: Dictionary) -> void:
 	print("Ground units armed: %d" % units.size())
 
 
-## An AI jet's handler: the pilot's brain, the sensor (kind 4), its stations (the mission's or the object's load) and
-## the gun's rounds. The first station selected: the first loaded pylon, else the gun (UNCERTAIN).
-func _setup_aircraft(ent: Dictionary, obj: Dictionary, db, now: float) -> void:
+## The weapon database and the bdb objects by id (for the jets handed over in flight).
+var _db
+var _objects := {}
+
+
+## The player's old jet joins the AI (the FlyTSD's Fly): its handler with the stores it had left (`load`).
+func adopt(ent: Dictionary, load: Array) -> void:
+	_setup_aircraft(ent, _objects.get(ent.type, {}), _db, ai.runtime.now, load)
+
+
+## A jet the player takes over leaves the AI: its handler goes; returns its stations' stores left,
+## [[weapon id, count] × 12].
+func hand_over(ent: Dictionary) -> Array:
+	var u: Unit = units.get(ent.key)
+	if u == null:
+		return []
+	units.erase(ent.key)
+	for n in u.nodes:
+		n.queue_free()
+	if u.fire_sound != null and is_instance_valid(u.fire_sound):
+		u.fire_sound.queue_free()
+	return u.stations.map(func(s): return [int(s.w.get("id", 0)) if not s.w.is_empty() else 0, int(s.count)])
+
+
+## An AI jet's handler: the pilot's brain, the sensor (kind 4), its stations (the mission's or the object's load, or
+## `given`: a jet handed over in flight) and the gun's rounds. The first station selected: the first loaded pylon,
+## else the gun (UNCERTAIN).
+func _setup_aircraft(ent: Dictionary, obj: Dictionary, db, now: float, given: Array = []) -> void:
 	var u := Unit.new()
 	u.ent = ent
 	u.air = true
@@ -199,7 +226,7 @@ func _setup_aircraft(ent: Dictionary, obj: Dictionary, db, now: float) -> void:
 	u.db = db
 	u.sensor_r = sensor_nm(int(ent.type_code)) * NM
 	u.next_scan = now + randf() * SCAN_PERIOD_AIR  # staggered
-	var load := _armed(ent, Stores.loadout(ent, obj))
+	var load := given if not given.is_empty() else _armed(ent, Stores.loadout(ent, obj))
 	for s in load:
 		var w: Dictionary = db.by_id(int(s[0])) if int(s[1]) != 0 else {}
 		u.stations.append({"w": w, "count": int(s[1]) if not w.is_empty() else 0})

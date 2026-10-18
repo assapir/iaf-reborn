@@ -102,7 +102,7 @@ Suez, extra sounds, multiplayer, setup wizard + launcher, modern aircraft / weap
 | Terrain imagery | georeference (thin-plate spline, 610 control points, docs/georef.md); Sentinel-2 10 m layers outside Israel (1998 / modern colours, docs/imagery.md), picked per region on Graphics → MORE page; Survey of Israel 2015 2 m over Israel (1998 / modern colours, `iaf-imagery mapi2015`); `setup.sh --imagery` (sentinel2; Survey of Israel sheets download only) |
 | Preferences | original 5 pages (Graphics, Sound, Keyboard, Devices, Gameplay) + our **Extras** (flight data, weapon data, language, info line, blackbox, HUD pitch ladder, Real HUD (every jet's real HUD / sight / helmet display: docs/real-hud.md), all keys, window, anti-aliasing, terrain close up, sky, upscaling, water — docs/rendering.md; imagery per region — docs/imagery.md; scrolls 8 rows at a time) and **Physics** (19 improvement switches, the Keyboard page's scrollbar, 15 rows shown) tabs, EN + HE; VSYNC (ours) on the Graphics page (docs/front-end.md §12) |
 | Controls | original key table, rebinding on the Keyboard page, in-flight keys through the table; joystick (one device: stick / throttle / rudder axes per the Devices page, hat = snap views, buttons through the table and bound on the Keyboard page, menu/joy/*.joy), untested on hardware |
-| TSD / briefing | vector map, units, flights, waypoints, fly any flight, briefing texts and links |
+| TSD / briefing | vector map, units, flights, waypoints, fly any flight, briefing texts and links; the selected-unit label, the ruler (right-drag), the map keys; in flight (FlyTSD, docs/views.md §1) the live battle, Fly into another formation's jet (any flyable type, the wingman's seat when the leader is down), Visit, Ctrl+P, waypoints fixed |
 | Mission runtime | scripts, triggers, events, voices + subtitles, win / lose rules, mission boxes, debrief; player = the default (or chosen) flight's leader |
 | Flight model | original ground + airborne logic ported line by line (docs/flight-model.md §14–§15): envelope, stall, spin, landing / crash check, afterburner delay, gear / flaps / brakes, start rules, Gameplay prefs |
 | Physics switches | 13 "Better physics" options (incl. F-16 deep stall, ground effect; docs/flight-model.md §10) + 6 original-bug fixes (falling-jet heading, enemies tougher on easy AI, lock threat, stores weight / tank fuel, bomb burst depth, collisions with hidden units / wrecks; docs/deviations.md §2) |
@@ -140,8 +140,9 @@ Checked against the code on 2026-10-14 (each doc's own "not built" notes have th
   in the render; the portals show the original MFD pages (pixel font) in the F-35 colours; looking 15–90° aside shows
   the panel strip's edge.
 - **Controls**: joystick untested on real hardware (first joypad only: no separate throttle / pedals; no force
-  feedback); unhandled commands: cheat keys (Shift+S / D / R / F, Ctrl+W), SysRQ screenshot, chat; FlyTSD Fly
-  into another jet / Visit / live unit positions (docs/views.md).
+  feedback); unhandled commands: cheat keys (Shift+S / D / R / F, Ctrl+W), SysRQ screenshot, chat.
+- **FlyTSD**: Fly after the own jet is down changes nothing; the exe hands over the new jet until rule 1 ends the
+  flight (docs/views.md §1 "Open").
 - **Sounds**: Betty "Pull up" and the HUD pull-up cue.
 - **Radio**: AWACS contact calls; airborne / landed / crashed / kill ("… is down") reports.
 - **Front end**: Graphics defaults from hardware

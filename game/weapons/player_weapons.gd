@@ -137,7 +137,8 @@ func setup(host_node: Node, entity: Dictionary, object: Dictionary, bdb: Diction
 	stores.player = true
 	stores.weight_fix = bool(Settings.better.get("fix_stores_weight", false))
 	stores.unlimited = Settings.unlimited_ammo
-	stores.setup(_arm(Stores.loadout(entity, object), entity), db, desc, _pilon_of, jet_type)
+	var load: Array = _given_load if not _given_load.is_empty() else _arm(Stores.loadout(entity, object), entity)
+	stores.setup(load, db, desc, _pilon_of, jet_type)
 	# The selection starts on a loaded station: the first loaded pylon, else the gun. On an empty station '[' never
 	# cycles (an empty type counts as "not AA" in NAV, master.rs ag_key_cycles), so 315's bombs were unreachable.
 	# UNCERTAIN: the original's initial selection (its store setup FUN_0053b580 is not fully read).
@@ -163,6 +164,10 @@ func setup(host_node: Node, entity: Dictionary, object: Dictionary, bdb: Diction
 	radar.own = own
 	radar.on_lock = _radar_lock
 	radar.illumination_lost = _illumination_lost
+	radar.detected = func(key: String):
+		var ent = host.runtime.entities.get(key) if host.get("runtime") != null else null
+		if ent != null:
+			ent["known"] = true  # state +0x44: the TSD shows the unit (docs/front-end.md §8.1)
 	radar.setup(jet_type, preload("res://weapons/real_weapons.gd").radar_nm(jet_type) if Settings.real_weapons() else 0.0)
 	rwr = Rwr.new()
 	rwr.unit = _rwr_unit
@@ -187,9 +192,36 @@ func setup(host_node: Node, entity: Dictionary, object: Dictionary, bdb: Diction
 	ecm_fitted = ecm_fitted or jet_type in [100, 140]
 	_push_stores()
 	# The tanks' fuel (FUN_005a8980 before the start fills the fuel to FuelWeight + tanks).
-	if host.flight != null:
+	if host.flight != null and _given_load.is_empty():  # a jet taken over in flight keeps its fuel
 		host.flight.set_fuel_capacity(stores.tank_fuel)
 	_build_visuals()
+
+
+## The stores left on the jet, [[weapon id, count] × 12] (the jet handed to the AI by the FlyTSD's Fly).
+func loadout() -> Array:
+	var out := []
+	for i in 12:
+		var st: Dictionary = stores.station(i)
+		out.append([int(st.w.id), int(ceil(float(st.count)))] if not st.is_empty() else [0, 0])
+	return out
+
+
+## The player takes over another jet in flight (the FlyTSD's Fly): its stores left (`load`, [[weapon id, count] ×
+## 12]), its radar, RWR and sensors, the models on the new jet. Weapons already in the air fly on.
+func rearm(entity: Dictionary, object: Dictionary, bdb: Dictionary, desc: Dictionary, load: Array) -> void:
+	for n in _round_nodes:
+		if is_instance_valid(n):
+			n.queue_free()
+	_round_nodes.clear()
+	_store_nodes = {}
+	_pod_nodes = []
+	_given_load = load
+	setup(host, entity, object, bdb, desc)
+	_given_load = []
+
+
+## A load that replaces the spawn load in setup() (rearm()).
+var _given_load: Array = []
 
 
 ## The Arming screen's pylon loads of the player's flight replace pylons 0..8 (FUN_004f00f0 ->

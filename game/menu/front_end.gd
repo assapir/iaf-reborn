@@ -1988,9 +1988,17 @@ func _tsd_button(key: String, label: String, btn: Dictionary) -> void:
 		tsd.select_flight(_flight_number(label))
 	match label:
 		"fly" when flight != null:
-			# FlyTSD Fly (FUN_005045b0, exit 4): back to the flight. Not ported: flying another
-			# formation's aircraft (FUN_004d31f0); Visit (FUN_005046b0) is not ported either.
-			_go("")
+			# FlyTSD Fly (FUN_005045b0): the selected flight's current leader (FUN_004d31f0 → FUN_004d3250) becomes the
+			# player's jet, then back to the flight (exit 4); no such flight: msg 25.
+			var n: int = tsd.default_flight()
+			if n != 0 and tsd.flights.has(n):
+				tsd_fly_flight(n)
+			else:
+				_message(25, [["ok", Callable()]])
+		"visit" when flight != null:
+			# Visit (FUN_005046b0): the camera follows the selected unit (FUN_004d3450), then back to the flight.
+			if tsd.selected >= 0:
+				tsd_visit(String(tsd.units[tsd.selected].key))
 		"fly":
 			if _selected_flight() == "":
 				_message(25, [["ok", Callable()]])
@@ -2050,13 +2058,50 @@ func briefing_image(stem: String) -> Texture2D:
 	return null
 
 
-## Double-click on a flight leader in the TSD: select that flight and fly.
+## Fly flight `n` (the TSD's double-click on a flight leader, or Fly): select it and fly. In flight its current leader
+## becomes the player's jet (FUN_004d3250) and the flight resumes (exit 4).
 func tsd_fly_flight(n: int) -> void:
 	for f in Tsd.FLIGHT_NAMES:
 		tsd_checks[f] = false
-	tsd_checks[Tsd.FLIGHT_NAMES[n - 1]] = true
+	if n >= 1 and n <= 4:
+		tsd_checks[Tsd.FLIGHT_NAMES[n - 1]] = true
 	tsd.select_flight(n)
+	if flight != null:
+		flight.fly_unit(String(tsd.units[tsd.flights[n].leader].key))
+		_go("")
+		return
 	_fly()
+
+
+## The FlyTSD's Ctrl+P pause (game/menu/tsd_pause.gd) while up, else null.
+var tsd_pause: Control
+
+
+## The flight key table's command for a key event (0 for none), as the flight's key manager reads it.
+func _flight_command(event: InputEventKey) -> int:
+	var rec: int = flight.keys.find_key(flight.keys.key_of_event(event), Settings.key_bindings)
+	return int(flight.keys.records[rec].press[0]) if rec >= 0 else 0
+
+
+## Ctrl+P on the FlyTSD (frame handler FUN_004ea090, event 0x84; screen 0x20, single player, no message box):
+## pause (FUN_004edbc0: a dithered snapshot of the window, the window disabled, the keys but Ctrl+P ignored) or
+## unpause (FUN_004ede30). The sim clock is already stopped on the FlyTSD, so the sounds play on.
+func tsd_pause_key() -> void:
+	if tsd_pause != null:
+		tsd_pause.queue_free()
+		tsd_pause = null
+		return
+	flight._release_held_keys()
+	tsd_pause = preload("res://menu/tsd_pause.gd").new()
+	tsd_pause.setup(self, get_viewport().get_texture().get_image() if DisplayServer.get_name() != "headless" else null)
+	add_child(tsd_pause)
+
+
+## Visit (FUN_004d3450, in flight only): the camera follows the unit with key `key`, then the flight resumes (exit 4).
+func tsd_visit(key: String) -> void:
+	if flight != null:
+		flight.visit_unit(key)
+		_go("")
 
 
 ## Debrief: the content background; debrief.gd draws the tabs and pages (§13.14) over it.
@@ -2177,6 +2222,15 @@ func _unhandled_input(event: InputEvent) -> void:
 			and event is InputEventJoypadButton and event.pressed and Joystick.ours(event):
 		if Joystick.physical_button(event.button_index) >= 0:
 			_ctrl_button(Joystick.physical_button(event.button_index))
+		return
+	if screen == "flytsd" and flight != null and not busy and msgbox == null and event is InputEventKey and event.pressed \
+			and not event.echo and _flight_command(event) == 132:
+		tsd_pause_key()
+		return
+	if tsd_pause != null:
+		return  # paused: the key manager passes only Ctrl+P (FUN_004df500(-1)) and the window is disabled
+	if _is_tsd() and tsd != null and not busy and msgbox == null and event is InputEventKey and event.pressed \
+			and tsd.key(event.keycode):
 		return
 	if busy or msgbox != null or not (event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE):
 		return
