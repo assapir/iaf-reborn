@@ -2426,8 +2426,9 @@ copies them) the start-up goes on without the launcher.
 
 Ours: the same order, size and sound; the videos come from `assets/install/resource/avi`. `IafVideo` reads the AVI
 (`iaf_formats::avi`) and decodes each frame when it is due (`iaf_indeo`, a port of NihAV's Indeo 5 decoder); frames
-follow the wall clock from the video's start. Extras → Intro videos: Original (as the exe), Skippable (ours: a key or
-a mouse click ends the current video) or Off (ours: straight to the menu). Our command-line runs (`--mission`,
+follow the wall clock from the video's start. Esc ends the current video in every mode (ours; the exe has no skip). Extras →
+Intro videos: Original (as the exe, plus Esc), Skippable (ours: any key or a mouse click ends the current video) or
+Off (ours: straight to the menu). Our command-line runs (`--mission`,
 `--screenshot`, `--hover`) go straight to the menu; the exe plays the videos before its `JumpToMission` screen too.
 
 ### 18.3 Main menu

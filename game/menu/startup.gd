@@ -4,7 +4,8 @@
 #      intro.avi, each 320x240 stretched to the 640x480 screen (MCI_PUT destination 0,0,640,480) on black, with
 #      its sound, the cursor hidden over it (WM_SETCURSOR → SetCursor(NULL)). Only the end of a video moves on (the
 #      MM_MCINOTIFY "successful" notification posts 0x554); keys and clicks do nothing. A file that does not open is
-#      passed over at once. Ours (Extras → Intro videos): "skippable" (a key or click ends the current video) or "off";
+#      passed over at once. Ours: Esc ends the current video in every mode; Extras → Intro videos: "skippable" (any key
+#      or click ends it) or "off";
 #   3. the main menu (menu/front_end.tscn; the exe's state 2 draws Bmp\Back0.bmp and opens it).
 # Our command-line runs (--mission, --screenshot, --hover) go straight to the menu.
 extends Control
@@ -115,9 +116,11 @@ func _process(_delta: float) -> void:
 
 
 func _input(e: InputEvent) -> void:
-	if video == null or Settings.intro_videos != "skippable":
+	if video == null or not e.is_pressed() or e.is_echo():
 		return
-	if (e is InputEventKey or e is InputEventMouseButton) and e.pressed:
+	# Ours: Esc ends the current video in every mode; "skippable" also takes any key or click.
+	var esc: bool = e is InputEventKey and e.keycode == KEY_ESCAPE
+	if esc or (Settings.intro_videos == "skippable" and (e is InputEventKey or e is InputEventMouseButton)):
 		skipped = true
 		get_viewport().set_input_as_handled()
 

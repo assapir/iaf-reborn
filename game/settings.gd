@@ -141,8 +141,9 @@ var particle_effects := false
 ## Airbases (ours, Graphics → MORE; docs/rendering.md §7, terrain/airbases.gd): "original" (the 1998 imagery) or
 ## "detailed" (near the ground, a procedural runway, taxiway and apron surface with markings; visual only).
 var airbases := "original"
-## Intro videos at start-up (docs/front-end.md §18.2): "original" (janes.avi then intro.avi, no skip, as the exe's
-## FUN_004e2130 / FUN_004e2960), "skippable" (ours: a key or click ends the current video) or "off" (ours: none).
+## Intro videos at start-up (docs/front-end.md §18.2): "original" (janes.avi then intro.avi, as the exe's
+## FUN_004e2130 / FUN_004e2960; ours: Esc ends the current video), "skippable" (ours: any key or click ends it) or
+## "off" (ours: none).
 var intro_videos := "original"
 ## CD launcher (ours, Extras page; docs/front-end.md §18.1): the CD's autorun poster (Jauto.exe) before the intro videos.
 var cd_launcher := false

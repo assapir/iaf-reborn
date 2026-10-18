@@ -154,8 +154,9 @@ Each entry names the switch and where it lives, then the difference: "Original: 
 - **"All keys on the Keyboard page".** Original: the page lists 92 of the 117 key records. Ours, with the switch: it
   lists all 115 labelled ones, so the stick, rudder, RPM ± 5 and pans can be rebound — controls.md §3.
 - **Intro videos (Original / Skippable / Off)** (front-end.md §18.2). Original: janes.avi then intro.avi play to
-  their end at every start; keys, clicks and the window's close button do nothing meanwhile. Ours, with Skippable: a
-  key or a mouse click ends the current video; with Off: the start-up goes straight to the main menu.
+  their end at every start; keys, clicks and the window's close button do nothing meanwhile. Ours, in every mode: Esc
+  ends the current video. With Skippable: any key or a mouse click ends it; with Off: the start-up goes straight to
+  the main menu.
 - **CD launcher (Off / On)** (front-end.md §18.1, formats/autorun.md). Original: the CD's `Jauto.exe` poster is a
   separate program that runs when the CD is inserted; the game starts without it. Ours, with On: the poster shows
   at start-up, before the intro videos, centred in the 640×480 frame on black (the exe centres it on the desktop).

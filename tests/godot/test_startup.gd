@@ -1,13 +1,13 @@
 # The start-up (game/menu/startup.gd, docs/front-end.md §18): the main scene plays janes.avi then intro.avi (Indeo 5
 # decoded by IafVideo, 320x240 at 15 fps, the sound as 16-bit PCM), the cursor hidden, then opens the main menu.
-# Original: keys do nothing; Extras → Intro videos "skippable": a key or click ends the current video; "off": straight
+# Original: only Esc (ours) ends a video; Extras → Intro videos "skippable": any key or click ends it; "off": straight
 # to the menu; a file that does not open is passed over. Extras → CD launcher: the poster first, PLAY goes on.
 extends "res://../tests/godot/base.gd"
 
 
-func key_down() -> InputEventKey:
+func key_down(code := KEY_ESCAPE) -> InputEventKey:
 	var e := InputEventKey.new()
-	e.keycode = KEY_ESCAPE
+	e.keycode = code
 	e.pressed = true
 	return e
 
@@ -38,7 +38,7 @@ func run() -> void:
 	check(Time.get_ticks_msec() - t0 < 100 and probe.video == null, "missing video: passed over at once")
 	probe.free()
 
-	# Original: a key does not skip.
+	# Original: other keys do not skip.
 	st.intro_videos = "original"
 	change_scene_to_file("res://menu/startup.tscn")
 	await frames(2)
@@ -51,9 +51,9 @@ func run() -> void:
 	# The headless display server keeps the mouse mode visible; a real window hides it.
 	if DisplayServer.get_name() != "headless":
 		check(Input.mouse_mode == Input.MOUSE_MODE_HIDDEN, "cursor hidden over the video")
-	s._input(key_down())
+	s._input(key_down(KEY_SPACE))
 	await frames(3)
-	check(s.video != null and String(s.playing).ends_with("janes.avi"), "original: a key does not skip")
+	check(s.video != null and String(s.playing).ends_with("janes.avi"), "original: Space does not skip")
 	# Frame 30 shows a picture (not all black).
 	var img := Image.create_from_data(320, 240, false, Image.FORMAT_RGB8, s.video.frame_rgb(30))
 	var lit := 0
@@ -62,10 +62,11 @@ func run() -> void:
 			lit += 1 if img.get_pixel(x, y).get_luminance() > 0.1 else 0
 	check(lit > 50, "frame 30 has a picture (%d lit samples)" % lit)
 
-	# Skippable: a key ends janes.avi, intro.avi follows, a click ends it, the menu opens.
-	st.intro_videos = "skippable"
+	# Original: Esc ends janes.avi (ours); intro.avi follows.
 	s._input(key_down())
-	check(await wait_video(s, "intro.avi"), "skippable: a key ends janes.avi, intro.avi follows")
+	check(await wait_video(s, "intro.avi"), "original: Esc ends janes.avi, intro.avi follows")
+	# Skippable: a click ends intro.avi, the menu opens.
+	st.intro_videos = "skippable"
 	s._input(mouse_button(Vector2(10, 10), true))
 	check(await wait_menu(), "a click ends intro.avi; the main menu follows")
 	check(Input.mouse_mode == Input.MOUSE_MODE_VISIBLE, "cursor back")
