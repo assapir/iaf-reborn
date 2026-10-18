@@ -116,7 +116,7 @@ Suez, extra sounds, multiplayer, setup wizard + launcher, modern aircraft / weap
 | Eject | E ×3: seat, canopy, parachute, mission lost |
 | Views | docs/views.md: pause, On-The-Fly menu (GDI layout, Arial metrics and hit test as the exe; front-end.md §16.2), the in-flight render message box (§16.4), FlyTSD (Esc), time compression, the original cameras (snap views, free look, padlock, external / fly-by, radar target, threat, wingman, weapon) |
 | Graphics / rendering | the Graphics page wired (terrain / object detail, effects, smoke trails, textured sky with the cloud layer, shadows, external stores; docs/front-end.md §12.4); our render options on Graphics → MORE, upscaling, the water shader (waves, sun glint, sky reflection; rendering.md §1.3), the detailed F-16D model with the IAF dorsal spine and every pylon (docs/aircraft-models.md) and the detailed effects (GPU particle explosions, smoke, missile trails, contrails, heat haze; rendering.md §6) among them (docs/rendering.md) |
-| Cockpit | all 9 original 2D cockpits (docs/cockpit.md): round gauges, attitude indicators, vario / AoA tapes, HUD (11 colours, traced symbology incl. ILS and the waypoint marker), panel lights; MFDs (docs/mfd.md: radar incl. the MAP picture, TSD, RWR page, NAV, stores, damage, FLIR / TV with the EO camera, HARM); RWR (docs/rwr.md); helmet sight DASH (docs/weapons.md §5.4). Ours: the F-35I's modelled cockpit (day / night panel art, the panoramic display with status bar, portals, lower windows and standby display, its cockpit-view model; docs/f35i.md §4) |
+| Cockpit | all 9 original 2D cockpits (docs/cockpit.md): round gauges, attitude indicators, vario / AoA tapes, HUD (11 colours, traced symbology incl. ILS and the waypoint marker), I-mode (F12: marks toward the aircraft out of view), panel lights; MFDs (docs/mfd.md: radar incl. the MAP picture, TSD, RWR page, NAV, stores, damage, FLIR / TV with the EO camera, HARM); RWR (docs/rwr.md); helmet sight DASH (docs/weapons.md §5.4). Ours: the F-35I's modelled cockpit (day / night panel art, the panoramic display with status bar, portals, lower windows and standby display, its cockpit-view model; docs/f35i.md §4) |
 | Aircraft models | all 22 models: moving parts per the original rules, gear, afterburner flame, canopy / pilot, damage visuals |
 | Sounds | original sound table: engine, gear, flaps, air brake, AoA tone, Betty warnings, touchdown, crash; volume sliders |
 | Radio | docs/radio.md: the phrase engine (word wavs + subtitle); the tower by itself on the ground (taxi / line up / hold / take-off) and Ctrl+T in the air (proceed to runway, cleared to land, gear not down, go around, taxi to hangar; a click elsewhere); wingman commands Alt+P/B/E/W/T/C on the AI wingman's brain (its bdb "Roger" replies, "negative" when it cannot); waypoint and eject reports. Open: AWACS contact calls, airborne / landed / crashed / kill reports |
@@ -134,12 +134,13 @@ Checked against the code on 2026-10-14 (each doc's own "not built" notes have th
 - **Damage**: splash / ring explosions on water (flags 0x20000 / 0x40000) draw nothing; per-hit score and feedback, the
   brain's reaction to a hit (`FUN_0043ff50`), effect 0x18, the second explosion of a falling unit; RWR network
   messages.
-- **Cockpit / MFDs**: the U key (RWR page, MFD screen 7).
+- **Cockpit / MFDs**: the U key (RWR page, MFD screen 7); HUD damage (flag 12) does not blank the HUD and the I-mode
+  marks (docs/damage.md §5.3).
 - **F-35I cockpit**: the panel pans as one flat picture, like the originals'; its side-stick and throttle are fixed
   in the render; the portals show the original MFD pages (pixel font) in the F-35 colours; looking 15–90° aside shows
   the panel strip's edge.
 - **Controls**: joystick untested on real hardware (first joypad only: no separate throttle / pedals; no force
-  feedback); unhandled commands: cheat keys (Shift+S / D / R / F, Ctrl+W), SysRQ screenshot, I-mode, chat; FlyTSD Fly
+  feedback); unhandled commands: cheat keys (Shift+S / D / R / F, Ctrl+W), SysRQ screenshot, chat; FlyTSD Fly
   into another jet / Visit / live unit positions (docs/views.md).
 - **Sounds**: Betty "Pull up" and the HUD pull-up cue.
 - **Radio**: AWACS contact calls; airborne / landed / crashed / kill ("… is down") reports.

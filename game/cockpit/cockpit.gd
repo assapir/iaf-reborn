@@ -88,6 +88,9 @@ var view_mode := 0
 var head := Vector2.ZERO
 ## Time compression rate (sim clock +0x48 via HUD +0x10f4): "%1dX" top right while > 1 (docs/views.md §2).
 var time_factor := 1
+## I-mode (S+0xe68, F12) and the gather's last list (S+0xe04, `IafImode.scan`); hud.gd draws them.
+var imode := false
+var imode_entries: Array = []
 var _console_font: SystemFont
 var _counter_font: SystemFont
 var _console_squeeze := 1.0

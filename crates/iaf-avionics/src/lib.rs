@@ -8,6 +8,7 @@ pub mod gun;
 pub mod harm;
 pub mod heights;
 pub mod hud;
+pub mod imode;
 pub mod master;
 pub mod missile;
 pub mod radar;

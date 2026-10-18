@@ -7,6 +7,7 @@ mod bombs;
 mod flight;
 mod gun;
 mod heights;
+mod imode;
 mod missile;
 mod radar;
 mod real_hud;

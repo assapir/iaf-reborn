@@ -366,7 +366,8 @@ ENG at +0x560 / +0x598 / +0x5b0 = flags 2 / 16 / 22, so the copy starts at +0x55
 | 1, 20 | GEV 0x46 ECM, 0x40 / 0x42 / 0x44 / 0x45 weapons | refused (docs/weapons.md) |
 | 13, 15, 20 | `44d760` once: `456200` (gun +0x9c), `4adb20` (radar off for good), `456cc0` (weapons +0xa0) | gun / weapons: docs/weapons.md; radar: `radar.rs set_damaged` |
 | 14 | RWR (`44deb0` …, cockpit `S+0x590`) | docs/rwr.md |
-| 11 (instruments), 12 (HUD), 19, 21 | — | **only the damage page** (and 19 / 21 through the flags they set): no gauge or HUD reads them |
+| 11 (instruments), 19, 21 | — | **only the damage page** (and 19 / 21 through the flags they set): no gauge reads them |
+| 12 (HUD) | `45cd30` → `446830`: S+0x5c0 | the HUD pass `FUN_00530b70` returns at once while it is set: no HUD symbols and no I-mode marks (docs/cockpit.md "I-mode"). Not ported: our HUD still draws |
 
 **"No malfunctions"** (Gameplay, pref `+0x24`) and **"No wind"** (`+0x28`) have no effect. The exe touches them only
 in the copy from the menu (`4fe5f8`, `4fe676`) and in save / load; none of the 37 pref-getter (`43b5d0`) calls reads

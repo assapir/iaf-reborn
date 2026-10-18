@@ -362,6 +362,8 @@ func _draw_outer() -> void:
 		_sprite(outer, l[0], l[1], true)
 	if not _pipper_at.is_empty():
 		_draw_pipper(_pipper_at.p, float(_pipper_at.arc), w)
+	if cockpit.imode:
+		_draw_imode(w)
 	var real := real_hud()
 	if not real.is_empty():
 		_draw_prims(outer, real.field if real.sight else real.outer, w, real.colour)
@@ -431,6 +433,18 @@ func _draw_outer() -> void:
 ## The range scale (FUN_005397a0, docs/weapons.md §12.4) at the field's right edge − 4, 50 px above the centre, 66 px
 ## high over the radar range: the DLZ bracket, the lock's range caret with the closure "%3dK" (×2 as the radar page's)
 ## and the range "%3d" above.
+## I-mode (FUN_0052fcc0 from FUN_0052f690, S+0xe68): per gathered aircraft a line in the HUD colour from the circle of
+## radius h (the 3D view's half height) round the view's centre in toward it, and a filled 7 × 6 square on the circle,
+## blue for a friend and red for an enemy (`IafImode.marks`). Clipped only to the screen, over the panel.
+func _draw_imode(w: float) -> void:
+	var h := int(cockpit.view_bottom())
+	var o: Vector2 = cockpit.projection_centre() - cockpit.position - outer.position - Vector2(320, floori(h / 2.0)) * _s
+	for m in IafImode.marks(cockpit.imode_entries, h):
+		var at := Vector2(m.at)
+		outer.draw_line(o + at * _s, o + Vector2(m.to) * _s, _hc(), w)
+		outer.draw_rect(Rect2(o + (at - Vector2(3, 3)) * _s, Vector2(7, 6) * _s), Color.BLUE if m.friend else Color.RED)
+
+
 func _draw_range_scale(f: Rect2, w: float) -> void:
 	var rd: Dictionary = cockpit.radar
 	var nm: float = Mfd.RADAR_RANGES[clampi(int(rd.get("idx", 1)), 1, 6) - 1]

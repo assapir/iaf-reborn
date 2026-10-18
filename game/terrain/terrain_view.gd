@@ -65,6 +65,10 @@ var own_bc: Node3D
 const CHASE_OFFS := [300.0, 700.0, 300.0, 0.1745329, 0.0, 0.0349066]
 ## The padlock target kept for F3 (ctl+0x804).
 var padlock_target: Node3D
+## I-mode (F12, ctl+0x60; docs/cockpit.md "I-mode"): off at every flight start (FUN_00448120). The cockpit draws
+## `cockpit.imode_entries`, which the gather refills on the 0.25 s timer while it is on.
+var imode := false
+var _imode_tick := -1
 ## Hold the simulation until the terrain under the aircraft has loaded (terrain.ground_ready()),
 ## showing the loading screen.
 var waiting_for_ground := true
@@ -1857,6 +1861,10 @@ func _command(cmd: Array) -> bool:
 			_view_command(p1)
 		103:
 			_visual_lock()
+		124:
+			# I-mode (controller case 0x7c): toggles ctl+0x60 and the cockpit's copy S+0xe68 (FUN_004467b0).
+			imode = not imode
+			cockpit.imode = imode
 		33, 34, 36, 38, 39, 44, 45, 49:
 			# Radar events (docs/radar.md): the radar page goes on an MFD first if none shows it.
 			cockpit.radar_mfd()
@@ -2108,6 +2116,33 @@ func _visual_lock() -> void:
 			best = n
 	if best != null:
 		views.set_padlock(best)
+
+
+## I-mode's gather (FUN_0045c530): armed by the controller's 0.25 s timer (`0x82f3f8`, FUN_0044a180) while I-mode is on,
+## run in the next frame through the camera that draws the world. The aircraft: classes 1, 2, 3, 0x1c not destroyed
+## (FUN_00462810), drawn (entity+4 → +0xc, UNCERTAIN: taken as the node's visibility), not the player's own.
+func _imode_update() -> void:
+	var tick := int(_sim_time / 0.25)
+	if tick == _imode_tick:
+		return
+	_imode_tick = tick
+	var cam := get_viewport().get_camera_3d()
+	if not imode or runtime == null or cam == null:
+		return
+	var me: Dictionary = runtime.player_entity()
+	var list := []
+	for ent in runtime.entities.values():
+		var n = ent.get("node")
+		if ent.player or not int(ent.get("klass", -1)) in [1, 2, 3, 0x1c] or int(ent.state) == 5:
+			continue
+		if not (n is Node3D) or not is_instance_valid(n) or not n.is_visible_in_tree():
+			continue
+		list.append({"pos": n.global_position, "radius": float(ent.get("size", 0.0)),
+				"friend": not me.is_empty() and int(ent.side) == int(me.side)})
+	var b := cam.global_basis
+	var view := {"eye": cam.global_position, "right": b.x, "up": b.y, "forward": -b.z,
+			"focal": cockpit.focal_length() / cockpit.ui_scale()}
+	cockpit.imode_entries = IafImode.scan(rig.global_position, list, view, int(cockpit.view_bottom()))
 
 
 # --- pause, On-The-Fly menu, FlyTSD, time compression (docs/front-end.md §16, docs/views.md) --------
@@ -2442,6 +2477,7 @@ func _process(delta: float) -> void:
 		if effects.gpu != null and not fm_stopped:
 			effects.gpu.contrail(aircraft)
 	_apply_view()
+	_imode_update()
 	if clouds != null and get_viewport().get_camera_3d() != null:
 		clouds.update_view(get_viewport().get_camera_3d().global_position, delta)
 	_update_time_of_day(get_viewport().get_camera_3d())

@@ -108,7 +108,7 @@ Terms used on this page:
   |---|---|---|
   | Ctrl+F1 | quit-mission box (msg 8) | — (was on Esc, now the TSD toggle 122) |
   | Ctrl+F2 | cockpit ↔ external | — (was on C, now time compression 119, and F2, now the back view) |
-  | Ctrl+F12 | flight-info line on / off | — (was on F12, I-mode 124, which is not built) |
+  | Ctrl+F12 | flight-info line on / off | — (was on F12, now I-mode 124) |
   | F1 | cockpit | Cockpit / HUD view (28,1) — the same, runs through the table |
   | V | panel up / down | — |
   | PgUp / PgDn | slide the panel | — |
@@ -223,7 +223,7 @@ How to read the table:
 | 82 | Fly-by view | F9 |  | (28, 19, 0) |  | yes | fly-by view |
 | 83 | Chase view | F10 |  | (28, 6, 0) |  | yes | chase view |
 | 84 | Weapon view | F11 |  | (28, 27, 0) |  | yes | weapon view (homing missiles, falling bombs; views.md §4.4) |
-| 85 | I-mode | F12 |  | (124, 0, 0) |  | yes | — |
+| 85 | I-mode | F12 |  | (124, 0, 0) |  | yes | I-mode on / off (docs/cockpit.md "I-mode") |
 | 86 | Pan up | Shift + Numpad 8 |  | (26, 1, 0) | (26, 0, 0) | yes | cockpit free look / orbit turn |
 | 87 | Pan down | Shift + Numpad 2 |  | (27, -1, 0) | (27, 0, 0) | yes | cockpit free look / orbit turn |
 | 88 | Pan left | Shift + Numpad 4 |  | (24, -1, 0) | (24, 0, 0) | yes | cockpit free look / orbit turn |

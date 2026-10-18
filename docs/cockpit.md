@@ -192,8 +192,9 @@ renderer, S = the cockpit state (`0x82f544`). The reader stores the `[HUD]` keys
     (S+0x70 at the terrain height, `FUN_00402080`) projected (S+0x328), held on the field's edge along the line from
     the HUD centre (`FUN_0052db30`). It is a 10 px circle with `"%d"` (its number) or `"T"` (action 5) in Arial at
     (+6, +6);
-  * the weapon cues of the bombs / radar (S+0x1460 text, S+0xe68 marks, S+0x100c designator, S+0xa04 = 3 cross,
-    S+0x1024 break X: docs/weapons.md).
+  * the I-mode marks with S+0xe68 set (`FUN_0052fcc0`, "I-mode" below);
+  * the weapon cues of the bombs / radar (S+0x1460 text, S+0x100c designator, S+0xa04 = 3 cross, S+0x1024 break X:
+    docs/weapons.md).
 * **Text block** (`FUN_0052ef20`, k = 1: sprite font). The left column is left-aligned at cx − TxtOffX, the right
   column ends at cx + TxtOffX, and the rows sit at cy + TxtOffY + 0 / 7 / 14.
   * Left 0: `"AB %1d"` while the afterburner is lit (S+0x1054; with two engines (S+0x1038 > 1) the larger of both),
@@ -223,6 +224,60 @@ renderer, S = the cockpit state (`0x82f544`). The reader stores the `[HUD]` keys
   * Deviations: docs/deviations.md (HUD rows).
 * **Gun cross with v1.0 cockpit data**: the v1.0 file's `GunRetPositionY` is 10 px higher than the v1.1 bullet line
   (~0.8°). Ours subtracts 10 when one of the five cockpits above still has its v1.0 value.
+
+### I-mode (F12, v1.1)
+I-mode puts a mark on the edge of the 3D view for each aircraft you cannot see on screen. Each mark is a small square,
+blue for a friend and red for an enemy, with a short line in the HUD colour from the square toward the view's centre.
+F12 turns it on and off (EN 4.1, EN 6.1).
+
+* **The key**: F12 is record 85, command 124 (0x7c). Controller case 0x7c (`FUN_0044a240`) flips ctl+0x60 and copies
+  it to S+0xe68 (`FUN_004467b0`). The flag starts off in every flight (`FUN_00448120`, and the controller's
+  constructor `FUN_00447890` @4478ee). View changes leave it as it is. F12 works in every view.
+* **The gather** (`FUN_0045c530`, the object at ctl+0x754, vtable 0x601230):
+  * It runs on the controller's 0.25 s timer (`0x82f3f8`, `FUN_0044a180` arms it while ctl+0x60 is set), in the next
+    frame (`FUN_00448b20` @449678). The screen points stay as gathered until the next run.
+  * Candidates: the object map (`DAT_006992d8`, `FUN_004d2620`) round the player's jet, with 5 NM = 9270 m
+    (`0x601210` 5.0 × `0x601214` 1854.0). The map keeps a unit when distance² < 3.0 (`0x604e6c`) · (9270 + R)²,
+    R = the unit's size (docs/damage.md §1). So the reach is **√3 · (9270 + R) ≈ 16.1 km**, not 5 NM.
+  * Kept: classes 1, 2, 3, 0x1c (helicopters, transports, jets; the visitor `FUN_00462810`), not in state 5
+    (destroyed), not the player's own jet, and with a drawn model (entity+4 → +0xc). There is **no line-of-sight
+    test**: an aircraft behind a hill gets a mark.
+  * Each one is projected through the camera that draws the world (`FUN_0045a7d0` → `FUN_004142b0`). An aircraft whose
+    point lies inside the 3D view (0 < x < 640, 0 < y < R+0x5b0, both strict, read as 16-bit: `FUN_00520b90`) is
+    skipped. So only aircraft out of view get a mark.
+  * The projection divides by the signed depth. **An aircraft behind you lands mirrored through the centre**: one just
+    behind your right wing gets its mark on the left, and one dead astern projects near the centre, counts as in view
+    and gets no mark.
+  * Friend = on the player's side (`FUN_004a4cd0`). In mission 777 (All-Out War, `DAT_00832ad8`) every aircraft is an
+    enemy.
+  * At most 6 are kept. When the list is full, a farther aircraft replaces the **nearest** kept one (@45c989,
+    `FUN_0045cb40`), so the 6 farthest stay.
+  * Each record also holds f = 1 − cos(angle between the camera axis and the line to the aircraft). The cockpit
+    copies the list to S+0xe04 (16-byte rows) and the count to S+0xe64 (`FUN_00446190`).
+* **The drawing** (`FUN_0052fcc0`, from `FUN_0052f690` when S+0xe68 is set), in screen pixels. Let h = R+0x5b0 / 2,
+  so the view's centre is (320, h).
+  * Direction: a = atan2(x − 320, min(y, R+0x5b0 − 8) − h) from the gathered point (x, y).
+  * The square: filled, x − 3 .. x + 3 and y − 3 .. y + 2 (7 × 6 px), on the circle of radius h at
+    (320 + h·sin a, h + h·cos a). Its pen is R+0x594 (`CreatePen(0, 1, 0xff0000)`, blue) for a friend and R+0x590
+    (`0xff`, red) for an enemy.
+  * The line: pen R+0x584, the HUD colour, 1 px. It runs from the square in to the radius
+    min(h, ⌊0.8·h + 100·(1 − f)⌋), with f held in [0, 1] (`0x60c330` −0.8, `0x60c338` 1.0, `0x60c340` 100.0).
+    So it is 0.2·h long for an aircraft 90° or more off the camera axis and shrinks to nothing nearer the axis.
+  * No text or other symbol.
+* **Where it shows**: the HUD pass of `FUN_00530b70`: the cockpit, free-look and padlock views (types 1, 0x12, 0x16)
+  and HUD only (5), with the helmet display too. The snap views, such as the F2 back view, are taken as the cockpit's
+  (UNCERTAIN, as in docs/views.md §4.4: the slot-2 camera's type). Not in the external views.
+  The pass draws nothing while damage flag 12 (HUD, S+0x5c0) is set. The clip region is the whole screen (R+0x5a8 =
+  `CreateRectRgn(0, 0, 640, 480)`), so the marks draw over the panel.
+* **iaf-reborn**: `crates/iaf-avionics/src/imode.rs` (`scan`, `marks`), `IafImode` in `crates/iaf-godot/src/imode.rs`;
+  `terrain_view.gd` (command 124, `_imode_update` on the 0.25 s sim-time tick) and `hud.gd` `_draw_imode` (on
+  `HudOuter`, before the Real HUD's layer). h is `cockpit.view_bottom() / 2`, and the centre is
+  `cockpit.projection_centre()`, both scaled like the 2D art. In HUD only this is the cockpit view's centre and height,
+  because the port keeps the cockpit projection there (docs/views.md §4.4). With the Real HUD on, the layer is cut at
+  the panel's top edge. The in-view test uses the original 640 px frame, so on a window wider than that frame an
+  aircraft you can see near the window's sides still gets a mark, and the circle keeps the HUD's size. Test: `tests/godot/test_imode.gd`; screenshot helper: `tests/godot/_imode_shot.gd`.
+* UNCERTAIN: entity+4 → +0xc is taken as "the unit's model is drawn" (the node's visibility). Mission 777 is not
+  built, so its all-enemy rule is not ported.
 
 ### Real HUD (ours, Extras > HUD)
 Our addition (an opt-in Extra): each jet's real HUD / sight / helmet symbology. The per-aircraft reference, with
