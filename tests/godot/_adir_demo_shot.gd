@@ -1,25 +1,30 @@
 # Dev helper (not run by tools/test.sh): the F-35I Adir demo clip, scripted shots recorded by Godot's movie writer
-# (fixed 30 fps steps, game audio included). Every Detailed graphics switch is on. DEMO_PART picks the run:
-#   day  - take-off from Ramon (Detailed airbase, rolling wheels, the tower), a two-ship with the F-16D wingman
-#          along Makhtesh Ramon, an aileron roll, a break turn from the cockpit and a vertical climb (the flight
-#          model on a scripted stick), the cockpit (panoramic display, helmet display), an AMRAAM from the bay at a
-#          MiG-23, a laser-guided MK-84 from the bay on a tank at the Dead Sea (Detailed water), the breakaway;
-#   wing - the F-16D wingman's cockpit (HUD: Real) with the Adir ahead over the crater (the player flies the F-16);
-#   dusk - a low pass over Ramat David at night, run with "-- --hour 20.3" (Detailed night lights: the runway
-#          lights, the jet's lights and strobe).
+# (fixed 30 fps steps, game audio included). Every Detailed graphics switch is on. Mission 231 as the game flies it:
+# the player's jet on the real flight model through its stick, throttle, levers and autopilot key; the mission's AI
+# wingman (Alpha2, F-16D) and MiG-23 on their own flight models and brains; the radar lock, the bay, the missile and
+# the bomb as the game fires them; the game's cockpit and F6 wingman views. Staged: the start points (the jets, a MiG
+# and a tank moved near Ramon and the Dead Sea between shots, the F-15s off Ramat David's runway), the outside
+# cameras, the cloud layer hidden at night, and the Adir ahead in the "wing" part (its own flight model on the AI
+# autopilot). DEMO_PART picks the run:
+#   day  - take-off from Ramon on the gear, the two-ship over Makhtesh Ramon, an aileron roll, a break from the
+#          cockpit, a vertical climb, the cockpit and the AMRAAM kill, the laser-guided MK-84 at the Dead Sea, the
+#          breakaway;
+#   wing - the F-16D's cockpit (HUD: Real) with an Adir ahead over the crater (the player flies the F-16);
+#   dusk - the night take-off from Ramat David, run with "-- --hour 20.1" (the base's lights, the jet's lights).
+# DEMO_FROM=kill / sea starts the day part at the cockpit / the Dead Sea; DEMO_STOP=vertical / amraam ends it there
+# (the day part in pieces: a piece re-run alone when the AI flies it differently).
 # Each shot prints "SEG <name> <first frame> <last frame>" (drawn frames from the start): the frames between the
 # shots (teleports, terrain loading) are cut when the clip is assembled. Run hidden, e.g.:
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 DEMO_PART=day -- --log-file /tmp/d.log --path game \
-#       --write-movie /tmp/day.avi --fixed-fps 30 -s ../tests/godot/_adir_demo_shot.gd [-- --hour 19]
+#       --write-movie /tmp/day.avi --fixed-fps 30 -s ../tests/godot/_adir_demo_shot.gd [-- --hour 20.1]
 # (the movie's size is the project's viewport size: a temporary game/override.cfg sets 3840 x 2160).
 extends "res://../tests/godot/base.gd"
 
 ## Ramon's line-up point and runway (iaf.ibx [Ramon]), world metres (X east, Y north, Z up).
 const RAMON_LINEUP := Vector3(317547.0, 411215.0, 580.0)
 const RAMON_RWY := 230.0
-## Ramat David's (iaf.ibx [David]): its night lights are in mission 231.
+## Ramat David's (iaf.ibx [David]).
 const DAVID_LINEUP := Vector3(356483.0, 602383.0, 63.0)
-const DAVID_RWY := 270.0
 ## Makhtesh Ramon's centre (30.60 N 34.80 E) and the Dead Sea (31.55 N 35.50 E) through the georeference
 ## (iaf_tools::georef geo_to_engine).
 const CRATER := Vector2(315482.0, 379382.0)
@@ -29,23 +34,23 @@ const SHORE := Vector2(371450.0, 478740.0)
 ## The loadout, internal only (the clean stealth fit): AMRAAM on D / F, MK-84L (the GBU-31 stand-in) on C / G (weapon
 ## bdb ids), the gun, chaff, flares.
 const HARDPOINTS := [0, 0, 0, 0, 54, 1, 8, 1, 0, 0, 8, 1, 54, 1, 0, 0, 0, 0, 25, 180, 33, 60, 34, 60]
+## The close-formation slot (autopilot.rs formation_step, mode 1): 20 m behind, 100 m to the right.
+const SLOT_BACK := 20.0
+const SLOT_RIGHT := 100.0
 
 var tv: Node
 var w: Node
-## The jet on rails (the flight model stopped): world position, heading, speed, bank / climb / turn (rad, rad/s);
-## null = the flight model flies it.
-var rail = null
-## The external camera for the shot: a Callable returning [eye, look-at] (scene), or null for the game's view.
+## Where the jet is held while the terrain loads (world; the flight model stopped); null = the flight model flies it.
+var hold_at = null
+## The outside camera for the shot: a Callable returning [eye, look-at] (scene), or null for the game's view.
 var shot = null
 var fov := 50.0
-## The external camera's lag (0 = locked to the shot; k = the share of the way it moves each frame).
+## The outside camera's lag (0 = locked to the shot; k = the share of the way it moves each frame).
 var lag := 0.0
 var _eye = null
-## The formation partner model (the F-16D wingman, or the Adir ahead in the "wing" part) and its slot in the
-## jet's frame (m: x right, y up, z aft); a null slot = it flies straight on by itself.
-var wing: Node3D
-var wing_off = null
-var _wing_vel := Vector3.ZERO
+## The Adir ahead in the "wing" part: its own flight model, flown by the AI autopilot (straight).
+var adir: Node3D
+var adir_fm
 var _roll_turned := 0.0
 var _last_roll := 0.0
 
@@ -62,7 +67,8 @@ func run() -> void:
 	for k in detailed:
 		s.set(k, detailed[k])
 	var part := OS.get_environment("DEMO_PART")
-	s.no_crashes = true  # a scripted manoeuvre that ends low must not end the flight
+	seed(231)  # the AI's and the weapons' dice start the same on every run
+	s.no_crashes = true  # a manoeuvre that ends low must not end the flight
 	s.invulnerable = true
 	s.jet_id = -1 if part == "wing" else 4
 	s.f35i_slot = -1 if part == "wing" else 4
@@ -108,64 +114,46 @@ func _arm() -> void:
 # --- shots ------------------------------------------------------------------------------------------
 
 func _day() -> void:
-	if OS.get_environment("DEMO_FROM") == "sea":
-		await _sea()
-		return
-	# 1. Take-off from Ramon: the tower clears, full afterburner, the wheels roll, rotate, gear up.
-	_ground_start(RAMON_LINEUP, RAMON_RWY)
-	await _ready_terrain()
-	shot = func(): return _body(Vector3(7.0, 0.6, -10.0), Vector3(0, -1.0, 0.3))
+	match OS.get_environment("DEMO_FROM"):
+		"sea":
+			await _sea()
+			return
+		"kill":
+			await _kill()
+			return
+	# 1. Take-off from Ramon on the gear, the title over the jet.
+	await _takeoff(RAMON_LINEUP, RAMON_RWY, true)
+
+	# 2. The two-ship along Makhtesh Ramon: the AI wingman in close formation (the radio command), its own flight.
+	var floor_z: float = await _ground_at(CRATER)
+	var p := Vector3(CRATER.x, CRATER.y, floor_z + 220.0) - _dir(65.0) * 1500.0
+	await _fly_ready(p, 65.0, 230.0, true)
+	_ap_level()
+	tv.radio.wingman_command(6)
+	await _secs(1.0)  # (not recorded: the wingman's loop settles)
+	# Behind and outside the wingman, looking past it at the lead: both jets in the frame wherever the wingman holds.
+	var wm: Dictionary = _ai("Alpha2_F16")
+	shot = func():
+		var lp: Vector3 = tv.rig.global_position
+		var wp: Vector3 = wm.node.global_position if not wm.is_empty() else lp
+		var b: Basis = tv.rig.global_basis.orthonormalized()
+		var side := signf(b.x.dot(wp - lp)) if wp != lp else 1.0
+		return [wp + b.z * 35.0 + b.x * side * 12.0 + Vector3(0, 5.0, 0), wp.lerp(lp, 0.6)]
 	fov = 45.0
 	var f0 := _begin()
-	_title("F-35I ADIR", "IAF Reborn")
-	tv.radio.say("ACFT_CLEAR_TO_TAKEOFF", ["ALPHA_T"])
-	await _secs(1.5)
-	tv.brakes = false
-	tv.throttle = 1.0
-	await _until(func(): return tv.flight.state().speed_kt > 70.0, 12.0)
-	var side := _w2s(RAMON_LINEUP + _dir(RAMON_RWY) * 700.0 + _dir(RAMON_RWY + 90.0) * 35.0 + Vector3(0, 0, 2.5))
-	shot = func(): return [side, tv.rig.global_position + Vector3(0, 1.0, 0)]
-	fov = 32.0
-	await _until(func(): return tv.flight.state().speed_kt > 150.0, 30.0)
-	tv.scripted_stick = Vector2(0, 0.55)
-	await _secs(1.2)
-	tv.scripted_stick = Vector2(0, 0.15)
-	shot = func(): return _behind(30.0, 5.0, 5.0)
-	fov = 45.0
-	await _secs(1.5)
-	tv.gear_down = false
-	tv.radio.say("AIRBORNE_PHRASE", ["ALPHALEADER"])
-	await _secs(3.0)
-	_seg("takeoff", f0)
-	tv.scripted_stick = null
-
-	# 2. A two-ship along Makhtesh Ramon, the F-16D wingman in close formation: the rim camera, then the chase.
-	var floor_z: float = await _ground_at(CRATER)
-	_on_rail(Vector3(CRATER.x, CRATER.y, floor_z + 160.0) - _dir(65.0) * 900.0, 65.0, 230.0, 0.0)
-	_wingman(Vector3(18.0, 1.5, 16.0))
-	await _ready_terrain()
-	var rim := Vector3(CRATER.x, CRATER.y, 0) + _dir(65.0 - 90.0) * 260.0
-	rim.z = maxf(_ground(rim) + 25.0, floor_z + 175.0)
-	var eye := _w2s(rim)
-	shot = func(): return [eye, tv.rig.global_position + tv.rig.global_basis.x * 9.0]
-	fov = 26.0
-	f0 = _begin()
-	tv.radio.say("WINGMAN_COMMAND", ["WINGMAN_CLOSEFORMATION"])
-	await _secs(2.5)
 	tv.radio.say("ACFT_ROGER")
-	await _secs(4.5)
-	shot = func(): return _behind(42.0, 7.0, 9.0)
-	fov = 50.0
-	lag = 0.12
-	await _secs(4.0)
+	await _secs(6.0)
+	shot = null
 	lag = 0.0
+	tv._view_command(0x18)  # F6: the wingman view (the two-object camera)
+	await _secs(5.0)
 	_seg("twoship", f0)
 
-	# 3. Top Gun over the crater, the real flight model on a scripted stick and throttle: an aileron roll, a break
-	# turn (the cockpit, the horizon rolling), a vertical climb on afterburner. The wingman breaks away.
-	_fly(Vector3(CRATER.x, CRATER.y, floor_z + 1100.0) - _dir(65.0) * 3000.0, 65.0, 260.0)
-	wing_off = Vector3(18.0, 1.5, 16.0)
-	await _ready_terrain()
+	# 3. Over the crater on a scripted stick and throttle: an aileron roll, a break turn from the cockpit, a vertical
+	# climb on afterburner. The wingman flies its own formation loop.
+	p = Vector3(CRATER.x, CRATER.y, floor_z + 1100.0) - _dir(65.0) * 3000.0
+	await _fly_ready(p, 65.0, 260.0, true)
+	_ap_off()
 	tv.throttle = 1.0
 	shot = func(): return _behind(34.0, 4.0, -7.0)
 	fov = 50.0
@@ -173,7 +161,6 @@ func _day() -> void:
 	f0 = _begin()
 	await _secs(1.0)
 	_roll_turned = 0.0
-	wing_off = null  # the wingman holds its wings level and flies on while the lead rolls
 	tv.scripted_stick = Vector2(1.0, 0.05)  # the aileron roll
 	await _until(func(): return _roll_turned >= 340.0, 4.0)
 	tv.scripted_stick = Vector2(0, 0.05)
@@ -202,118 +189,158 @@ func _day() -> void:
 	lag = 0.0
 	_seg("vertical", f0)
 	tv.scripted_stick = null
+	if OS.get_environment("DEMO_STOP") == "vertical":
+		return
+	await _kill()
 
-	# 4. The cockpit: the panoramic display, the helmet display, a MiG-23 ahead on the radar, the wingman beside.
-	_on_rail(Vector3(CRATER.x + 6000.0, CRATER.y + 3000.0, floor_z + 1500.0), 70.0, 240.0, 0.0)
-	_wingman(Vector3(-28.0, 3.0, -70.0))
-	var mig := _mig(9000.0, 150.0)
-	await _ready_terrain()
+
+## The cockpit and the AMRAAM kill: a MiG-23 of the mission (its own flight and brain) head-on, the radar lock, the
+## bay, the AMRAAM (outside), the MiG until the hit; a miss, the second AMRAAM.
+func _kill() -> void:
+	var floor_z: float = await _ground_at(CRATER)
+	var p := Vector3(CRATER.x + 6000.0, CRATER.y + 3000.0, floor_z + 1500.0)
+	await _fly_ready(p, 70.0, 240.0, true)
+	var mig: Dictionary = _ai("mig23_0")
+	for e in tv.runtime.entities.values():
+		if e.get("pilot") != null and String(e.name).begins_with("mig23") and e != mig.ent:
+			_move_ai(e.pilot, Vector3(p.x, p.y + 60000.0, p.z), 0.0, 200.0)  # the other MiG stays out of it
+	_move_ai(mig, p + _dir(70.0) * 11000.0 + _dir(160.0) * 300.0, 250.0, 230.0)  # head-on
+	await frames(5)
+	_ap_level()
+	tv.radio.wingman_command(6)
 	shot = null
 	tv.views.set_cockpit(tv.views.COCKPIT)
-	f0 = _begin()
-	await _secs(2.0)
+	var f0 := _begin()
+	await _secs(1.5)
 	w.radar_event(0x2b)  # R: the radar on, A-A
 	await _secs(1.5)
-	w.radar_event(0x2a, mig.key)
+	w.radar_event(0x2a, mig.ent.key)  # the lock
 	w.nav_key(0)
 	w.stores.cur = 3
 	w.select_aa()
-	await _secs(3.0)
+	await _secs(2.5)
 	_seg("cockpit", f0)
 
-	# 5. The bay opens, the AMRAAM drops and lights, the camera rides beside it to the MiG.
-	tv.views.set_orbit(tv.rig, tv.CHASE_OFFS, 1.0, tv.views.CHASE, true)
-	shot = func(): return _body(Vector3(9.0, -3.0, 13.0), Vector3(0, -1.0, -2.0))
+	# The bay opens, the AMRAAM drops and lights (a close outside camera), then the MiG: the missile coming in, the hit,
+	# the MiG going down. A miss: the second AMRAAM.
+	var bay := func(): return _body(Vector3(9.0, -3.0, 13.0), Vector3(0, -1.0, -2.0))
+	var mig_at := [Vector3.ZERO]
+	var held := [null]
+	var on_mig := func():
+		var n = mig.node
+		if is_instance_valid(n):
+			mig_at[0] = n.global_position
+			if int(mig.ent.state) == 1:
+				return [mig_at[0] + n.global_basis.orthonormalized() * Vector3(30.0, 8.0, 75.0), mig_at[0]]
+		# The hit: the camera backs off to 150 m and holds, clear of the smoke.
+		if held[0] == null:
+			held[0] = mig_at[0] + ((_eye if _eye != null else mig_at[0] + Vector3(60, 20, 60)) - mig_at[0]).normalized() * 150.0
+		return [held[0], mig_at[0]]
+	shot = bay
 	fov = 45.0
 	f0 = _begin()
-	await _secs(1.0)
-	w.fire_selected()
-	w.release_selected()
-	await _until(func(): return not _mine(w.missiles).is_empty(), 3.0)
-	await _secs(1.5)
-	var mis = _mine(w.missiles)[0] if not _mine(w.missiles).is_empty() else null
-	if mis != null:
-		var last := [Vector3.ZERO]
-		shot = func():
-			if mis in w.missiles:
-				var p: Vector3 = w.to_scene(mis.position(w.now))
-				var v: Vector3 = _wv2s(mis.velocity(w.now)).normalized()
-				var r: Vector3 = v.cross(Vector3.UP).normalized()
-				last[0] = p
-				return [p + v * 6.0 + Vector3(0, 6.0, 0) + r * 28.0, p]  # beside it, clear of its smoke
-			return [last[0] + Vector3(-110, 40, 110), last[0]]
-		await _until(func(): return not mis in w.missiles, 25.0)
-		tv.radio.say("SHOT_ENEMY", ["ALPHALEADER", "MIG23"])
-		await _secs(3.0)
+	var aa_type: int = w.stores.current_type()
+	for i in 2:
+		await _secs(1.0)
+		w.fire_selected()
+		w.release_selected()
+		await _until(func(): return not _mine(w.missiles).is_empty(), 3.0)
+		var mis = _mine(w.missiles).back() if not _mine(w.missiles).is_empty() else null
+		await _secs(1.5)
+		shot = on_mig
+		if mis != null:
+			# Until it is gone or has flown past the MiG.
+			var closest := [INF]
+			await _until(func():
+				if not mis in w.missiles:
+					return true
+				var dm: float = mis.position(w.now).distance_to(mig.ent.world)
+				closest[0] = minf(closest[0], dm)
+				return dm > closest[0] + 400.0, 20.0)
+			print("KILL missile %d closest %.0f" % [i, closest[0]])
+		print("KILL mig state %s damage %s" % [mig.ent.state, mig.ent.damage])
+		if int(mig.ent.state) != 1:
+			break
+		for st in w.stores.stations:  # the other AMRAAM
+			if w.stores.type_of(st) == aa_type and w.stores.displayed(st) > 0:
+				w.stores.select_station(st)
+				break
+		shot = bay
+	await _secs(2.5)
 	_seg("amraam", f0)
-	wing_off = null
+	if OS.get_environment("DEMO_STOP") == "amraam":
+		return
 	await _sea()
 
 
-## The Dead Sea strike and the breakaway (DEMO_FROM=sea starts the day part here).
+## The Dead Sea strike and the breakaway.
 func _sea() -> void:
-	# 6. The Dead Sea: a laser-guided MK-84 from the bay on a tank on the west shore, low over the water.
+	# A tank of the mission on the cliffs above the west shore; the run low over the water, the laser-guided MK-84
+	# from the bay (the bay and the release close, the bomb's chase, the hit).
 	var f0 := 0
 	var sea_z: float = await _ground_at(DEAD_SEA)
 	await _ground_at(SHORE)
 	var tgt_w := Vector3(SHORE.x, SHORE.y, 0.0)
-	tgt_w.z = _ground(tgt_w)
+	var mg = tv.mission_ground(tgt_w)  # the laser designation counts on the mission's ground
+	tgt_w.z = float(mg) if mg != null else _ground(tgt_w)
+	print("BOMB ground drawn %.1f mission %.1f" % [_ground(tgt_w), tgt_w.z])
 	var tank := _tank(tgt_w)
 	var to_tgt := Vector2(tgt_w.x - DEAD_SEA.x, tgt_w.y - DEAD_SEA.y)
 	var hdg := rad_to_deg(atan2(to_tgt.x, to_tgt.y))
-	var start := tgt_w - _dir(hdg) * 5200.0
-	start.z = sea_z + 120.0
-	_on_rail(start, hdg, 240.0, 0.0)
-	await _ready_terrain()
-	var sea_eye := _w2s(start + _dir(hdg) * 1500.0 + _dir(hdg + 90.0) * 160.0 + Vector3(0, 0, sea_z + 15.0 - start.z))
+	var start := tgt_w - _dir(hdg) * 5000.0
+	start.z = tgt_w.z + 600.0
+	await _fly_ready(start, hdg, 230.0, false)
+	_ap_level()
+	await frames(5)
+	var sea_eye := _w2s(start + _dir(hdg) * 950.0 + _dir(hdg + 90.0) * 120.0 + Vector3(0, 0, -25.0))
 	shot = func(): return [sea_eye, tv.rig.global_position]
 	fov = 38.0
 	f0 = _begin()
-	await _secs(6.0)
-	rail.climb = 0.25  # the pop-up
+	await _secs(5.0)
 	shot = func(): return _behind(26.0, 4.0, -6.0)
 	fov = 50.0
-	await _secs(4.0)
-	rail.climb = 0.0
 	w.nav_key(0)
 	w.stores.cur = 2
 	w.select_ag()
 	w.ripple_qty = 1
-	var aim_w: Vector3 = w.to_world(tank.node.global_position) if tank.get("node") != null else tgt_w
-	w.eo.start(load("res://weapons/eo_sensor.gd").FLIR, true, aim_w, w.now)
+	# The FLIR pod on the tank (as on a radar-locked unit, _eo_start), the laser on.
+	w.eo.start(load("res://weapons/eo_sensor.gd").FLIR, true, String(tank.key), w.now)
+	w.eo_on_unit = true
 	w.eo.laser = true
+	await _until(func(): return _w_dist(tgt_w) < 2600.0, 12.0)
 	shot = func(): return _body(Vector3(-9.0, -3.0, 13.0), Vector3(0, -1.0, -2.0))
 	fov = 45.0
 	await _secs(0.5)
 	w.fire_selected()  # Space held: the doors open, the bomb goes on the next ripple tick
 	await _until(func(): return not _mine(w.guided).is_empty(), 4.0)
 	w.release_selected()
-	await _secs(1.8)
+	await _secs(1.5)
 	var bomb = _mine(w.guided)[0] if not _mine(w.guided).is_empty() else null
-	if bomb != null and not tank.is_empty():
-		# The tank waits where the bomb guides to (its aim), so the clip shows the hit.
-		var aim: Vector3 = bomb.aim
-		aim.z = _ground(aim)
-		tank.world = aim
-		tank.alt = aim.z
-		tv.mission_entity_moved(tank)
+	# The bomb's chase (above and behind it, the target ahead), then the target for the last seconds and the hit.
 	var tgt_s: Vector3 = tank.node.global_position if tank.get("node") != null else _w2s(tgt_w)
-	shot = func(): return [tgt_s + _s_dir(hdg + 150.0) * 450.0 + Vector3(0, 120, 0), tgt_s + Vector3(0, 30, 0)]
-	fov = 30.0
+	var near := [false]
 	if bomb != null:
 		var bl := [Vector3.ZERO]
+		shot = func():
+			if bomb in w.guided and not near[0]:
+				var bp: Vector3 = w.to_scene(bomb.position(w.now))
+				var bv: Vector3 = _wv2s(bomb.velocity(w.now))
+				near[0] = bp.distance_to(tgt_s) < bv.length() * 2.5
+				var f := bv.normalized()
+				return [bp - f * 10.0 + Vector3(0, 3.0, 0) + f.cross(Vector3.UP).normalized() * 2.5, bp + f * 30.0]
+			return [tgt_s - _s_dir(hdg) * 160.0 + _s_dir(hdg + 90.0) * 70.0 + Vector3(0, 35.0, 0), tgt_s + Vector3(0, 8.0, 0)]
+		fov = 50.0
 		await _until(func():
 			if bomb in w.guided:
 				bl[0] = bomb.position(w.now)
 			return not bomb in w.guided, 40.0)
 		print("BOMB end %s target %s miss %.0f m" % [bl[0], tgt_w, Vector2(bl[0].x - tgt_w.x, bl[0].y - tgt_w.y).length()])
-	tv.radio.say("SHOT_GROUND_TARGET", ["ALPHALEADER", "TANK"])
+	print("BOMB tank state %s damage %s" % [tank.get("state"), tank.get("damage")])
 	await _secs(3.5)
 	_seg("strike", f0)
 
-	# 7. The breakaway: afterburner, a climbing turn over the sea, the chase camera falls behind.
-	_fly(Vector3(DEAD_SEA.x, DEAD_SEA.y, sea_z + 200.0), hdg + 180.0, 270.0)
-	await _ready_terrain()
+	# The breakaway: afterburner, a climbing turn over the sea, the chase camera falls behind.
+	await _fly_ready(Vector3(DEAD_SEA.x, DEAD_SEA.y, sea_z + 200.0), hdg + 180.0, 270.0, false)
 	tv.throttle = 1.0
 	shot = func(): return _behind(36.0, 5.0, 8.0)
 	fov = 50.0
@@ -330,40 +357,85 @@ func _sea() -> void:
 	tv.scripted_stick = null
 
 
-## The F-16D wingman's cockpit (HUD: Real): the Adir ahead in the HUD over the crater. The player flies the F-16.
+## The F-16D's cockpit (HUD: Real), the player on the level autopilot: an Adir ahead on its own flight model.
 func _wing() -> void:
 	var floor_z: float = await _ground_at(CRATER)
-	_on_rail(Vector3(CRATER.x, CRATER.y, floor_z + 250.0) - _dir(65.0) * 2500.0, 65.0, 230.0, 0.0)
-	wing = load("res://aircraft/aircraft_model.gd").create("f35i", 1000, false)
-	tv.add_child(wing)
-	wing_off = Vector3(6.0, 0.6, -60.0)
-	await _ready_terrain()
+	var p := Vector3(CRATER.x, CRATER.y, floor_z + 300.0) - _dir(65.0) * 2500.0
+	await _fly_ready(p, 65.0, 230.0, false)
+	_ap_level()
+	var install: String = Settings().assets_dir().path_join("install")
+	adir = load("res://aircraft/aircraft_model.gd").create("f35i", 1000, false)
+	tv.add_child(adir)
+	adir_fm = ClassDB.instantiate("IafFlight")
+	var ap: Vector3 = tv.scene_to_world(tv.rig.global_position) + _dir(65.0) * 75.0 + _dir(155.0) * 8.0 + Vector3(0, 0, 4.0)
+	adir_fm.start(install, load("res://aircraft/player_aircraft.gd").profile(1000).fm_section, _w2s(ap), 65.0, 0.0, 0.0,
+			_s_dir(65.0) * 226.0, true, true, false)
+	_clearance(adir_fm, adir)
+	adir_fm.ap_setup(install, tv.terrain.world_origin.x, tv.terrain.world_origin.y)
+	adir_fm.ap_set_ground(func(pos: Vector3):
+		var g = tv.terrain.height_at(pos)
+		return float(g) if g != null else -1.0e9)
+	adir_fm.ap_set_mode(0xb, 0.0)  # straight
+	await frames(3)
 	shot = null
 	tv.views.set_cockpit(tv.views.COCKPIT)
 	var f0 := _begin()
 	tv.radio.say("WINGMAN_COMMAND", ["WINGMAN_TACTICALFORMATION"])
 	await _secs(2.0)
 	tv.radio.say("ACFT_ROGER")
-	rail.bank = 0.35
-	rail.turn = 0.06
 	await _secs(5.0)
 	_seg("wingcockpit", f0)
 
 
+## The night take-off from Ramat David: the base's lights (mission 231), the jet's navigation lights and strobe.
 func _dusk() -> void:
-	# A low pass over Ramat David at night: its runway lights (the base's original light set, which mission 231
-	# places; Night lights: Detailed), the jet's navigation lights and strobe, the gear down.
-	var lineup := DAVID_LINEUP
-	var p0 := lineup + _dir(DAVID_RWY) * 300.0 - _dir(DAVID_RWY) * 950.0 + Vector3(0, 0, 45.0)
-	_on_rail(p0, DAVID_RWY, 110.0, 0.0)
-	tv.gear_down = true
+	if tv.get("clouds") != null:
+		tv.clouds.visible = false  # the cloud layer draws unlit white at night
+	for n in ["Bravo1_F15", "Bravo2_F15"]:  # the F-15s lined up ahead on the runway leave first
+		_move_ai(_ai(n), DAVID_LINEUP + Vector3(0, 40000.0, 3000.0), 0.0, 250.0)
+	var st: Dictionary = tv.flight.state()
+	var here: Vector3 = tv.scene_to_world(st.position)
+	await _takeoff(here, float(st.heading), false)
+
+
+## A take-off on the gear: an establishing shot under the brakes, the roll with the camera abreast, rotate, lift-off,
+## gear up, flaps up, the climb on afterburner.
+func _takeoff(lineup: Vector3, rwy: float, title: bool) -> void:
+	_ground_start(lineup, rwy)
 	await _ready_terrain()
-	var eye := _w2s(lineup + _dir(DAVID_RWY) * 300.0 + _dir(DAVID_RWY + 90.0) * 80.0 + Vector3(0, 0, 12.0))
-	shot = func(): return [eye, tv.rig.global_position]
+	await _until(func(): return tv.flight.state().on_ground, 5.0)
+	await _secs(1.0)  # (not recorded: the jet settles on its gear)
+	print("GROUND on_ground %s gear %s clearance %.2f" % [tv.flight.state().on_ground, tv.flight.state().gear,
+			tv.rig.global_position.y - float(tv.terrain.height_at(tv.rig.global_position))])
+	shot = func(): return _body(Vector3(13.0, 0.4, -20.0), Vector3(0, 0.4, 1.0))
 	fov = 40.0
 	var f0 := _begin()
-	await _secs(12.0)
-	_seg("night", f0)
+	if title:
+		_title("F-35I ADIR", "IAF Reborn")
+	tv.radio.say("ACFT_CLEAR_TO_TAKEOFF", ["ALPHA_T"])
+	await _secs(4.0)
+	tv.brakes = false
+	tv.throttle = 1.0
+	lag = 0.25
+	shot = func():
+		var k := clampf(float(tv.flight.state().speed_kt) / 160.0, 0.0, 1.0)
+		return _body(Vector3(lerpf(13.0, 22.0, k), 1.0, lerpf(-20.0, 14.0, k)), Vector3(0, 0.4, lerpf(1.0, -6.0, k)))
+	await _until(func(): return tv.flight.state().speed_kt > 150.0, 30.0)
+	tv.scripted_stick = Vector2(0, 0.55)
+	await _until(func(): return not tv.flight.state().on_ground, 4.0)
+	await _secs(0.6)
+	tv.scripted_stick = Vector2(0, 0.15)
+	shot = func(): return _behind(30.0, 5.0, 5.0)
+	lag = 0.0
+	fov = 45.0
+	await _secs(1.2)
+	tv._toggle_gear()  # G: gear up
+	tv.radio.say("AIRBORNE_PHRASE", ["ALPHALEADER"])
+	await _secs(2.5)
+	tv._flaps_lever()  # F: flaps up
+	await _secs(2.5 if title else 5.0)
+	_seg("takeoff", f0)
+	tv.scripted_stick = null
 
 
 ## The clip's title over the first shot: in for 1 s, held, out by 5 s.
@@ -393,131 +465,165 @@ func _title(text: String, sub: String) -> void:
 	tw.tween_callback(layer.queue_free)
 
 
-# --- the jet ------------------------------------------------------------------------------------------
+# --- the jets -----------------------------------------------------------------------------------------
 
-## A ground start on a runway: gear down, brakes on, idle, the flight model running.
+## The player's flight model restarted as the flight scene starts it: the wheels' height under the origin and the
+## player's preferences go to the new one.
+func _start_fm(sp: Vector3, heading: float, vel: Vector3, airborne: bool) -> void:
+	tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, sp, heading, 0.0, 0.0, vel,
+			airborne, true, false)
+	_clearance(tv.flight, tv.aircraft)
+	tv._apply_player_prefs()
+
+
+## The model's `height` helper (how far the wheels reach below the origin) to its flight model (terrain_view.gd).
+func _clearance(fm, model: Node3D) -> void:
+	var h := model.find_child("height", true, false) as Node3D if model != null else null
+	fm.set_gear_clearance(-h.position.y * model.scale.y if h != null else 0.0)
+
+
+## The levers and their lamps: on the ground gear down, take-off flaps, brakes on; in the air all up.
+func _levers(ground: bool) -> void:
+	tv.gear_down = ground
+	tv.gear_legs = [2, 2, 2] if ground else [0, 0, 0]
+	tv.flaps = 1.0 if ground else 0.0
+	tv.flaps_state = 2 if ground else 0
+	tv.brakes = ground
+
+
+## A ground start on a runway: gear down, brakes on, military power, the flight model running.
 func _ground_start(p: Vector3, heading: float) -> void:
-	rail = null
+	hold_at = null
 	tv.fm_stopped = false
-	tv.gear_down = true
-	tv.brakes = true
+	tv.scripted_stick = null
+	_levers(true)
 	tv.throttle = 0.74
 	var sp := _w2s(p)
 	tv.rig.position = sp
-	tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, sp, heading, 0.0, 0.0,
-			Vector3.ZERO, false, true, false)
+	tv.rig.basis = Basis.looking_at(_s_dir(heading), Vector3.UP)
+	_start_fm(sp, heading, Vector3.ZERO, false)
 
 
-## The jet flown by the flight model from `p` (world) along `heading` at `speed` m/s (the scripted stick drives it).
+## The jet flown by the flight model from `p` (world) along `heading` at `speed` m/s, clean.
 func _fly(p: Vector3, heading: float, speed: float) -> void:
-	rail = null
+	hold_at = null
 	tv.fm_stopped = false
-	tv.gear_down = false
+	tv.scripted_stick = null
+	_levers(false)
+	tv.throttle = 0.74
 	tv.rig.position = _w2s(p)
 	var fwd := _s_dir(heading)
 	tv.rig.basis = Basis.looking_at(fwd, Vector3.UP)
-	tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, tv.rig.position, heading,
-			0.0, 0.0, fwd * speed, true, true, false)
+	_start_fm(tv.rig.position, heading, fwd * speed, true)
 
 
-## The jet on rails from `p` (world) along `heading` at `speed` m/s; the flight model carries the velocity only.
-func _on_rail(p: Vector3, heading: float, speed: float, bank: float) -> void:
+## _fly once the terrain round `p` is drawn (the jet flies out there while it loads, then starts at `p` again);
+## `wingman`: the wingman in its slot.
+func _fly_ready(p: Vector3, heading: float, speed: float, wingman: bool) -> void:
+	_fly(p, heading, speed)
+	await _ready_terrain()
+	_fly(p, heading, speed)
+	if wingman:
+		_join_wingman(p, heading, speed)
+	await frames(2)
+
+
+## The jet held still at `p` (world), the flight model stopped (only while the terrain loads).
+func _hold(p: Vector3) -> void:
 	tv.fm_stopped = true
-	tv.gear_down = false
+	_levers(false)
 	tv.scripted_stick = null
-	rail = {"p": p, "heading": heading, "speed": speed, "bank": bank, "climb": 0.0, "turn": 0.0}
-	_place_rail()
-	tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, tv.rig.position, heading,
-			0.0, 0.0, -tv.rig.basis.z * speed, true, true, false)
+	hold_at = p
+	tv.rig.position = _w2s(p)
+	tv.rig.basis = Basis.looking_at(_s_dir(0.0), Vector3.UP)
+	_start_fm(tv.rig.position, 0.0, Vector3.ZERO, true)
 
 
-## The F-16D wingman (Models: Detailed) in the slot `off` of the jet's frame.
-func _wingman(off: Vector3) -> void:
-	if wing == null:
-		wing = load("res://aircraft/aircraft_model.gd").create("f16", 100, false)
-		tv.add_child(wing)
-	wing_off = off
+## The autopilot key (A) until it reads level (AP LVL); off again.
+func _ap_level() -> void:
+	for i in 3:
+		if tv.autopilot.mode == 1:
+			return
+		tv.autopilot.key()
 
 
-func _step_rail(dt: float) -> void:
+func _ap_off() -> void:
+	for i in 3:
+		if tv.autopilot.mode == 0:
+			return
+		tv.autopilot.key()
+
+
+## The mission's AI pilot of the entity named `name`: {ent, pilot, node}.
+func _ai(name: String) -> Dictionary:
+	for e in tv.runtime.entities.values():
+		if String(e.name) == name and e.get("pilot") != null:
+			return {"ent": e, "pilot": e.pilot, "node": e.pilot.node}
+	return {}
+
+
+## An AI jet restarted airborne at `p` (world) along `heading` at `speed` m/s: its flight model starts there and its
+## brain's mode loop starts over.
+func _move_ai(a, p: Vector3, heading: float, speed: float) -> void:
+	var pl = a.pilot if a is Dictionary else a
+	if pl == null:
+		return
+	var fm = pl.flight
+	fm.start(Settings().assets_dir().path_join("install"), pl.plane, _w2s(p), heading, 0.0, 0.0, _s_dir(heading) * speed,
+			true, true, tv.real_data)
+	_clearance(fm, pl.node)
+	fm.ap_set_mode(pl.mode, tv.runtime.now)
+	pl._state = fm.state()
+	pl._state["position_world"] = p
+	pl.ent.world = p
+	pl.ent.alt = p.z
+	pl.ent.heading = heading
+	tv.ai._place(pl)
+
+
+## The wingman (Alpha2) in its close-formation slot of the lead at `p` along `heading`.
+func _join_wingman(p: Vector3, heading: float, speed: float) -> void:
+	var wm := _ai("Alpha2_F16")
+	if wm.is_empty():
+		return
+	_move_ai(wm, p - _dir(heading) * SLOT_BACK + _dir(heading + 90.0) * SLOT_RIGHT, heading, speed)
+
+
+func _step(dt: float) -> void:
 	if tv == null or tv.flight == null:
 		return
 	var r: float = tv.flight.state().roll
 	_roll_turned += absf(wrapf(r - _last_roll, -180.0, 180.0))
 	_last_roll = r
-	if rail == null:
+	_step_adir(dt)
+	if hold_at != null:
+		tv.rig.position = _w2s(hold_at)
+
+
+## The Adir's flight model step and its model placed from it (as ai_flights.gd places an AI jet).
+func _step_adir(dt: float) -> void:
+	if adir_fm == null:
 		return
-	rail.heading += rad_to_deg(rail.turn) * dt
-	var d := _dir(rail.heading)
-	rail.p += (d * cos(rail.climb) + Vector3(0, 0, sin(rail.climb))) * rail.speed * dt
-	_place_rail()
+	var g = tv.terrain.height_at(adir.global_position)
+	adir_fm.set_ground_height(g if g != null else -1.0e9)
+	adir_fm.ap_step(0.0)
+	adir_fm.step(dt)
+	var st: Dictionary = adir_fm.state()
+	adir.position = st.position
+	adir.basis = Basis(st.right, st.up, -st.forward).scaled(adir.scale)
+	var parts := {}
+	for k in ["stick_x", "stick_y", "rudder", "flaps", "gear_down", "brakes", "gear", "on_ground", "afterburner", "rpm"]:
+		if st.has(k):
+			parts[k] = st[k]
+	adir.update(parts, dt)
 
 
-func _place_rail() -> void:
-	var d := _dir(rail.heading)
-	var fwd := _wv2s(d * cos(rail.climb) + Vector3(0, 0, sin(rail.climb))).normalized()
-	tv.rig.position = _w2s(rail.p)
-	var b := Basis.looking_at(fwd, Vector3.UP)
-	tv.rig.basis = b.rotated(fwd, -rail.bank) if rail.bank != 0.0 else b
-
-
-## The partner flies its own path: it follows its slot a beat late (the lead's motion carried over, then a share of
-## the gap closed each frame; its attitude eases toward the lead's about its own centre), or with a null slot it
-## flies straight on, wings level, at its last velocity. Its parts posed (gear up).
-var _lead_last = null
-
-
-func _place_wing(dt: float) -> void:
-	if wing == null:
-		return
-	var lp: Vector3 = tv.rig.global_position
-	var lead_v: Vector3 = Vector3.ZERO if _lead_last == null else (lp - _lead_last) / maxf(dt, 1e-3)
-	var jumped := lead_v.length() > 1500.0  # a teleport
-	_lead_last = lp
-	if wing_off != null:
-		var b: Basis = tv.rig.global_basis.orthonormalized()
-		var target: Vector3 = lp + b * wing_off
-		if jumped or wing.global_position.distance_to(target) > 600.0:
-			wing.global_transform = Transform3D(b, target)
-			_wing_vel = Vector3.ZERO if jumped else lead_v
-		else:
-			var p: Vector3 = (wing.global_position + lead_v * dt).lerp(target, 0.06)
-			_wing_vel = (p - wing.global_position) / maxf(dt, 1e-3)
-			var q := Quaternion(wing.global_basis.orthonormalized()).slerp(Quaternion(b), 0.07)
-			wing.global_transform = Transform3D(Basis(q), p)
-	else:
-		wing.global_position += _wing_vel * dt
-		var fwd: Vector3 = _wing_vel.normalized() if _wing_vel.length() > 1.0 else -wing.global_basis.z
-		var level := Quaternion(Basis.looking_at(fwd, Vector3.UP))
-		wing.global_basis = Basis(Quaternion(wing.global_basis.orthonormalized()).slerp(level, 0.05))
-	wing.update({"gear_down": false}, dt)
-
-
-## A MiG-23 `dist` m ahead, `side` m to the right, at the jet's height, holding still.
-func _mig(dist: float, side: float) -> Dictionary:
-	var o: Dictionary = w.own()
-	var migs: Array = tv.runtime.entities.values().filter(func(e): return String(e.name).begins_with("mig23"))
-	for e in tv.runtime.entities.values():
-		if not e.player and not e in migs:
-			e.visible = false
-	var m: Dictionary = migs[0]
-	for mg in migs:
-		mg.path = null
-		mg.vel = Vector3.ZERO
-	m.world = o.pos + o.fwd * dist + o.right * side
-	tv.mission_entity_moved(m)
-	m.visible = true
-	return m
-
-
-## A ground unit (a tank) placed at `p` (world).
+## A ground unit of the mission (a tank) placed at `p` (world).
 func _tank(p: Vector3) -> Dictionary:
 	for e in tv.runtime.entities.values():
-		if not e.player and e.node != null and int(e.get("klass", -1)) in [8, 9, 10] and int(e.get("state", 1)) == 1:
+		if not e.player and e.node != null and int(e.get("klass", -1)) in [5, 8, 9, 10] and int(e.get("state", 1)) == 1:
 			e.world = p
 			e.alt = p.z
-			e.path = null
-			e.vel = Vector3.ZERO
 			e.visible = true
 			tv.mission_entity_moved(e)
 			return e
@@ -526,6 +632,12 @@ func _tank(p: Vector3) -> Dictionary:
 
 func _mine(list: Array) -> Array:
 	return list.filter(func(m): return is_same(m.get_meta("owner", null), w._me()))
+
+
+## The player's horizontal distance to `p` (world).
+func _w_dist(p: Vector3) -> float:
+	var me: Vector3 = tv.scene_to_world(tv.rig.global_position)
+	return Vector2(me.x - p.x, me.y - p.y).length()
 
 
 # --- cameras ------------------------------------------------------------------------------------------
@@ -565,9 +677,9 @@ func _s_dir(heading: float) -> Vector3:
 	return _wv2s(_dir(heading))
 
 
-## The ground height at `p` (world X, Y) once its heights are loaded: the jet waits on rails 2 km above it.
+## The ground height at `p` (world X, Y) once its heights are loaded: the jet waits 2.5 km above it.
 func _ground_at(p: Vector2) -> float:
-	_on_rail(Vector3(p.x, p.y, 2500.0), 0.0, 0.0, 0.0)
+	_hold(Vector3(p.x, p.y, 2500.0))
 	await _ready_terrain()
 	return _ground(Vector3(p.x, p.y, 0.0))
 
@@ -620,16 +732,15 @@ class Mover extends Node:
 	var demo
 
 	func _process(delta: float) -> void:
-		demo._step_rail(delta)
+		demo._step(delta)
 
 
 class Pin extends Node:
 	var demo
 
-	func _process(delta: float) -> void:
+	func _process(_delta: float) -> void:
 		if demo.tv == null:
 			return
-		demo._place_wing(delta)
 		if demo.shot == null:
 			demo._eye = null
 			return
@@ -639,6 +750,12 @@ class Pin extends Node:
 			e[0] = demo._eye
 		else:
 			demo._eye = e[0]
+		# Never under the ground.
+		var g = demo.tv.terrain.height_at(e[0])
+		if g != null:
+			e[0].y = maxf(e[0].y, float(g) + 1.5)
+		if demo.tv.views.cockpit_like():
+			demo.tv.views.set_orbit(demo.tv.rig, demo.tv.CHASE_OFFS, 1.0, demo.tv.views.CHASE, true)
 		var cam: Camera3D = demo.tv.chase
 		if (e[1] - e[0]).length() > 0.01:
 			cam.global_transform = Transform3D(Basis.looking_at(e[1] - e[0], Vector3.UP), e[0])
