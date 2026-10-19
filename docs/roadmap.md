@@ -214,19 +214,21 @@ live play while recording at 4K. Two ways:
 2. Record a replay, then render it with the movie writer at any quality (4K, 60 fps). This needs a full replay of
    every unit (the flight recorder holds only the player's jet).
 
-## Modern F-16 (Extras switch, wishlist; decided 2026-10-17, research first)
-- **Switch:** "F-16: 1990s (Barak) / Today". The default is the game's early-1990s F-16D Barak.
-- **Today:** the current IAF two-seat F-16 standard with its upgrades, for the same cockpit and model slot. The
-  closest is the F-16I Sufa (Block 52+ two-seater), or the upgraded Barak; the research picks one and says why.
+## F-16I Sufa option (Extras switch, wishlist; decided 2026-10-17, F-16I chosen 2026-10-19, research first)
+- **Switch:** "F-16: Barak (1990s) / Sufa (F-16I)". The default is the game's early-1990s F-16D Barak.
+- **Sufa:** the IAF's F-16I (Block 52+ two-seater), in the same cockpit and model slot as the F-16D.
 - **What it changes** (each with public sources, as docs/real-aircraft.md and docs/real-hud.md):
-  - flight data (engine, weights, conformal fuel tanks on the Sufa);
-  - radar (APG-68(V)9 class) and its modes;
+  - flight data (F100-PW-229 engine, weights, the conformal fuel tanks);
+  - radar (APG-68(V)9) and its modes;
   - AIFF (APX-113 class interrogator; docs/real-hud.md "IFF");
-  - helmet (the Elbit helmet of the period) and the HUD symbology of that software;
+  - helmet (Elbit DASH) and the HUD symbology of its software;
   - weapons (AIM-120C, Python 5, Derby, JDAM / SPICE as in "Modern aircraft and weapons");
-  - RWR / self-protection suite.
+  - RWR / self-protection suite;
+  - how it looks: the Sufa model on the Detailed F-16D (tools/f16d/rig.py: conformal fuel tanks, the large dorsal
+    spine, the IAF Sufa livery and markings), and its cockpit (colour MFDs);
+  - its voice warnings (see the "Real Betty" research).
 - **Steps:**
-  1. Research the standard and its public data; write it into docs/real-aircraft.md.
+  1. Research the F-16I and its public data; write it into docs/real-aircraft.md.
   2. Build it behind the switch, the 1990s Barak unchanged.
 
 ## Modern aircraft and weapons (post everything)
