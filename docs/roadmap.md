@@ -277,6 +277,7 @@ live play while recording at 4K. Two ways:
   has no inset (our own airbase imagery / models, real coordinates), selectable in the briefing / Jump In.
 
 ## Real world scale — 1:1 mode (next: after the current parity and wishlist work, user decision 2026-10-20)
+- **Switch:** an Extras option (World scale: Original / Real 1:1), the original's scale by default.
 - **Today:** the terrain itself is real size (measured with the georeference: ×0.99–1.01, docs/georef.md). Two
   things are enlarged: the models (bdb Present scale ×2 aircraft / buildings, ×3–4 vehicles) and the airbases
   (runways, base distances 0.75–1.13 of real, away from their real positions — not uniform).
