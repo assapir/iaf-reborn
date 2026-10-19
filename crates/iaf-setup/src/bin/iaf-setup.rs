@@ -32,35 +32,19 @@ impl Events for Print {
 }
 
 fn main() -> Result<()> {
-    let repo = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../..")
-        .canonicalize()?;
+    let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..").canonicalize()?;
     let args: Vec<String> = std::env::args().skip(1).collect();
     if let [cmd, file] = &args[..]
         && cmd == "check"
     {
         let p = Path::new(file);
         println!("cd: {:?}", iaf_setup::check_cd(p));
-        println!(
-            "patch: {:?}",
-            iaf_setup::check_patch(p).map_err(|e| format!("{e:#}"))
-        );
-        println!(
-            "pack: {:?}",
-            iaf_setup::check_pack(p).map_err(|e| format!("{e:#}"))
-        );
+        println!("patch: {:?}", iaf_setup::check_patch(p).map_err(|e| format!("{e:#}")));
+        println!("pack: {:?}", iaf_setup::check_pack(p).map_err(|e| format!("{e:#}")));
         println!("tools: {:?}", iaf_setup::tools());
         return Ok(());
     }
-    let (mut assets, mut patch, mut hebrew_iso, mut imagery, mut guides, mut redo_all, mut xdg) = (
-        repo.join("assets"),
-        None,
-        None,
-        Vec::new(),
-        false,
-        false,
-        None,
-    );
+    let (mut assets, mut patch, mut hebrew_iso, mut imagery, mut guides, mut redo_all, mut xdg) = (repo.join("assets"), None, None, Vec::new(), false, false, None);
     let mut refresh = false;
     let mut pos = Vec::new();
     let mut it = args.into_iter();
@@ -76,9 +60,7 @@ fn main() -> Result<()> {
                         "sentinel2" => Imagery::Sentinel2,
                         "mapi2015" => Imagery::Mapi2015 { bases: false },
                         "mapi2015-bases" => Imagery::Mapi2015 { bases: true },
-                        _ => bail!(
-                            "unknown imagery source '{s}' (sentinel2, mapi2015, mapi2015-bases)"
-                        ),
+                        _ => bail!("unknown imagery source '{s}' (sentinel2, mapi2015, mapi2015-bases)"),
                     });
                 }
             }
@@ -98,14 +80,7 @@ fn main() -> Result<()> {
         (None, brief, menu) => Some(Hebrew::Packs { brief, menu }),
     };
     let inputs = match cd {
-        Some(cd) => Inputs {
-            cd,
-            patch,
-            hebrew: given.unwrap_or(Hebrew::None),
-            imagery,
-            refresh,
-            guides,
-        },
+        Some(cd) => Inputs { cd, patch, hebrew: given.unwrap_or(Hebrew::None), imagery, refresh, guides },
         // Setup again: the last inputs, plus what is given now.
         None => {
             let mut i = iaf_setup::load_inputs(&assets)?.context(USAGE)?;
@@ -122,18 +97,13 @@ fn main() -> Result<()> {
         }
     };
     iaf_setup::save_inputs(&assets, &inputs)?;
-    let render =
-        |pr: &dyn Progress, cancel: &AtomicBool| iaf_setup::script_guides(&repo, pr, cancel);
+    let render = |pr: &dyn Progress, cancel: &AtomicBool| iaf_setup::script_guides(&repo, pr, cancel);
     let ctx = Ctx {
         assets,
         repo: repo.clone(),
         inputs: inputs.clone(),
         xdg_data_home: xdg,
-        guides: if iaf_setup::tools().display {
-            Some(&render)
-        } else {
-            None
-        },
+        guides: if iaf_setup::tools().display { Some(&render) } else { None },
     };
     let steps = iaf_setup::plan(&inputs);
     let t0 = std::time::Instant::now();

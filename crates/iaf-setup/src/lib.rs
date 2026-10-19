@@ -3,9 +3,9 @@
 //! dependency graph (independent steps at once), skips the steps whose stamp is unchanged, and reports per step.
 
 use std::collections::HashMap;
+use std::path::PathBuf;
 #[cfg(test)]
 use std::path::Path;
-use std::path::PathBuf;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc;
@@ -28,10 +28,7 @@ pub enum Hebrew {
     #[default]
     None,
     Cd(PathBuf),
-    Packs {
-        brief: Option<PathBuf>,
-        menu: Option<PathBuf>,
-    },
+    Packs { brief: Option<PathBuf>, menu: Option<PathBuf> },
 }
 
 /// Modern terrain imagery (docs/imagery.md).
@@ -73,171 +70,57 @@ pub struct Step {
 /// The steps for `inputs`, in tools/setup-cli.sh's order and conditions.
 pub fn plan(inputs: &Inputs) -> Vec<Step> {
     let mut v = Vec::new();
-    let mut add = |id, title, required, after: &[&'static str]| {
-        v.push(Step {
-            id,
-            title,
-            required,
-            after: after.to_vec(),
-        })
-    };
-    add(
-        "extract",
-        "extracting the original install from the CD image",
-        true,
-        &[],
-    );
+    let mut add = |id, title, required, after: &[&'static str]| v.push(Step { id, title, required, after: after.to_vec() });
+    add("extract", "extracting the original install from the CD image", true, &[]);
     let base: &'static str = if inputs.patch.is_some() {
-        add(
-            "patch",
-            "v1.1 patch (the v1.0 originals are kept in assets/v1.0)",
-            true,
-            &["extract"],
-        );
+        add("patch", "v1.1 patch (the v1.0 originals are kept in assets/v1.0)", true, &["extract"]);
         "patch"
     } else {
         "extract"
     };
     let he = inputs.hebrew != Hebrew::None;
-    let he_menu = matches!(
-        &inputs.hebrew,
-        Hebrew::Cd(_) | Hebrew::Packs { menu: Some(_), .. }
-    );
+    let he_menu = matches!(&inputs.hebrew, Hebrew::Cd(_) | Hebrew::Packs { menu: Some(_), .. });
     add("fonts", "original HUD / MFD fonts", true, &[base]);
-    add(
-        "cockpits",
-        "cockpits (art and layout, every aircraft)",
-        true,
-        &[base],
-    );
+    add("cockpits", "cockpits (art and layout, every aircraft)", true, &[base]);
     if he {
         add("hebrew", "Hebrew briefings and menus", true, &[base]);
     }
     let with_he: &[&'static str] = if he { &[base, "hebrew"] } else { &[base] };
-    add(
-        "briefings",
-        "briefings (English + Hebrew when given)",
-        true,
-        with_he,
-    );
-    add(
-        "reference",
-        "Reference screen (records, descriptions, pictures)",
-        true,
-        &[base],
-    );
-    add(
-        "menu",
-        "front-end menus (screens, strings, art, fonts)",
-        true,
-        &[base],
-    );
+    add("briefings", "briefings (English + Hebrew when given)", true, with_he);
+    add("reference", "Reference screen (records, descriptions, pictures)", true, &[base]);
+    add("menu", "front-end menus (screens, strings, art, fonts)", true, &[base]);
     if he_menu {
-        add(
-            "menu_he",
-            "front-end menus in Hebrew",
-            true,
-            &[base, "hebrew"],
-        );
+        add("menu_he", "front-end menus in Hebrew", true, &[base, "hebrew"]);
     }
-    add(
-        "arm",
-        "extra planes' arming art",
-        true,
-        if he_menu {
-            &["menu", "menu_he"]
-        } else {
-            &["menu"]
-        },
-    );
-    add(
-        "keys",
-        "key table (default keys from the exe + keys.trx labels)",
-        true,
-        with_he,
-    );
-    add(
-        "missions",
-        "missions (all .mis + object database -> JSON, mission list)",
-        true,
-        &[base],
-    );
-    add(
-        "aircraft",
-        "aircraft: every plane's model and descriptor",
-        true,
-        &["missions"],
-    );
+    add("arm", "extra planes' arming art", true, if he_menu { &["menu", "menu_he"] } else { &["menu"] });
+    add("keys", "key table (default keys from the exe + keys.trx labels)", true, with_he);
+    add("missions", "missions (all .mis + object database -> JSON, mission list)", true, &[base]);
+    add("aircraft", "aircraft: every plane's model and descriptor", true, &["missions"]);
     add("objects", "mission object models", true, &["missions"]);
-    add(
-        "theatre",
-        "terrain: every level and inset of map.ptt as a node quadtree",
-        true,
-        &[base],
-    );
-    add(
-        "airbases",
-        "airbases: runways, taxi paths and paved surface",
-        true,
-        &["theatre"],
-    );
-    add(
-        "icon",
-        "icon (the original icon from iafjets.exe)",
-        true,
-        &[base],
-    );
+    add("theatre", "terrain: every level and inset of map.ptt as a node quadtree", true, &[base]);
+    add("airbases", "airbases: runways, taxi paths and paved surface", true, &["theatre"]);
+    add("icon", "icon (the original icon from iafjets.exe)", true, &[base]);
     add("launcher", "desktop launcher", false, &["icon"]);
     let mut last: Vec<&'static str> = Vec::new();
     for im in &inputs.imagery {
         match im {
             Imagery::Sentinel2 => {
-                add(
-                    "sentinel2",
-                    "imagery: Sentinel-2 outside Israel (ESA WorldCover 2021)",
-                    false,
-                    &["airbases"],
-                );
+                add("sentinel2", "imagery: Sentinel-2 outside Israel (ESA WorldCover 2021)", false, &["airbases"]);
                 last.push("sentinel2");
             }
             Imagery::Mapi2015 { .. } => {
-                add(
-                    "mapi2015-fetch",
-                    "imagery: Survey of Israel 2015 2 m sheets (data.gov.il)",
-                    false,
-                    &[],
-                );
-                add(
-                    "mapi2015",
-                    "imagery: Survey of Israel 2015 2 m layer",
-                    false,
-                    &["airbases", "mapi2015-fetch"],
-                );
+                add("mapi2015-fetch", "imagery: Survey of Israel 2015 2 m sheets (data.gov.il)", false, &[]);
+                add("mapi2015", "imagery: Survey of Israel 2015 2 m layer", false, &["airbases", "mapi2015-fetch"]);
                 last.push("mapi2015");
             }
         }
     }
     if inputs.refresh {
-        add(
-            "imagery-refresh",
-            "imagery: convert again what older rules made",
-            false,
-            &["airbases"],
-        );
+        add("imagery-refresh", "imagery: convert again what older rules made", false, &["airbases"]);
         last.push("imagery-refresh");
     }
     if inputs.guides {
-        let mut after = vec![
-            "briefings",
-            "reference",
-            "menu",
-            "arm",
-            "keys",
-            "aircraft",
-            "objects",
-            "airbases",
-            "icon",
-        ];
+        let mut after = vec!["briefings", "reference", "menu", "arm", "keys", "aircraft", "objects", "airbases", "icon"];
         after.extend(last);
         add("guides", "pilot guides: pictures and PDFs", false, &after);
     }
@@ -258,11 +141,7 @@ pub fn only(steps: &[Step], ids: &[&str]) -> Vec<Step> {
         }
         k += 1;
     }
-    steps
-        .iter()
-        .filter(|s| want.contains(&s.id))
-        .cloned()
-        .collect()
+    steps.iter().filter(|s| want.contains(&s.id)).cloned().collect()
 }
 
 /// A step's state as `run` reports it.
@@ -338,21 +217,8 @@ pub(crate) enum Outcome {
 /// independent steps run at once. A step whose stamp matches is up to date unless `redo(id)` (redo all: `&|_| true`). A required step's failure
 /// sets `cancel` (the other running steps stop at their next item); setting `cancel` stops the run the same way.
 /// Returns every step's final state, in `steps`' order.
-pub fn run(
-    steps: &[Step],
-    ctx: &Ctx,
-    redo: &Redo,
-    events: &dyn Events,
-    cancel: &AtomicBool,
-) -> Vec<(&'static str, State)> {
-    run_graph(
-        steps,
-        redo,
-        events,
-        cancel,
-        &|step| stamp::of(step, ctx),
-        &|step, pr| steps::run(step, ctx, pr, cancel),
-    )
+pub fn run(steps: &[Step], ctx: &Ctx, redo: &Redo, events: &dyn Events, cancel: &AtomicBool) -> Vec<(&'static str, State)> {
+    run_graph(steps, redo, events, cancel, &|step| stamp::of(step, ctx), &|step, pr| steps::run(step, ctx, pr, cancel))
 }
 
 /// Which steps run although they are up to date, by id.
@@ -383,14 +249,7 @@ type StampFn<'a> = dyn Fn(&Step) -> Result<Option<stamp::Stamp>> + Sync + 'a;
 type ExecFn<'a> = dyn Fn(&Step, &dyn Progress) -> Result<Outcome> + Sync + 'a;
 
 /// `run`'s engine: `stamp` gives a step's stamp (`None`: it keeps none), `exec` runs it.
-pub(crate) fn run_graph(
-    steps: &[Step],
-    redo: &Redo,
-    events: &dyn Events,
-    cancel: &AtomicBool,
-    stamp: &StampFn,
-    exec: &ExecFn,
-) -> Vec<(&'static str, State)> {
+pub(crate) fn run_graph(steps: &[Step], redo: &Redo, events: &dyn Events, cancel: &AtomicBool, stamp: &StampFn, exec: &ExecFn) -> Vec<(&'static str, State)> {
     let states: Mutex<Vec<State>> = Mutex::new(vec![State::Waiting; steps.len()]);
     // The stamps of the finished steps: a step's stamp holds those of the steps it waits for.
     let stamps: Mutex<HashMap<&'static str, String>> = Mutex::new(HashMap::new());
@@ -412,11 +271,7 @@ pub(crate) fn run_graph(
                 if snapshot[k] != State::Waiting {
                     continue;
                 }
-                let deps: Vec<&State> = step
-                    .after
-                    .iter()
-                    .filter_map(|a| index.get(a).map(|&i| &snapshot[i]))
-                    .collect();
+                let deps: Vec<&State> = step.after.iter().filter_map(|a| index.get(a).map(|&i| &snapshot[i])).collect();
                 if cancel.load(Ordering::Relaxed) {
                     set(k, State::Cancelled);
                 } else if deps.iter().any(|d| d.finished() && !d.ok()) {
@@ -427,9 +282,7 @@ pub(crate) fn run_graph(
                     let (tx, stamps, set) = (tx.clone(), &stamps, &set);
                     scope.spawn(move || {
                         let pr = StepProgress { step, events };
-                        let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                            run_one(step, redo(step.id), &pr, stamps, stamp, exec)
-                        }));
+                        let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| run_one(step, redo(step.id), &pr, stamps, stamp, exec)));
                         let state = match r {
                             Ok(Ok(s)) => s,
                             Ok(Err(_)) if cancel.load(Ordering::Relaxed) => State::Cancelled,
@@ -455,31 +308,11 @@ pub(crate) fn run_graph(
         }
     });
     let states = states.into_inner().unwrap();
-    steps
-        .iter()
-        .zip(states)
-        .map(|(s, st)| {
-            (
-                s.id,
-                if st == State::Waiting {
-                    State::Blocked
-                } else {
-                    st
-                },
-            )
-        })
-        .collect()
+    steps.iter().zip(states).map(|(s, st)| (s.id, if st == State::Waiting { State::Blocked } else { st })).collect()
 }
 
 /// One step: up to date when its stamp file holds the same text (and its output is there), else run and stamped.
-fn run_one(
-    step: &Step,
-    redo: bool,
-    pr: &dyn Progress,
-    stamps: &Mutex<HashMap<&'static str, String>>,
-    stamp: &StampFn,
-    exec: &ExecFn,
-) -> Result<State> {
+fn run_one(step: &Step, redo: bool, pr: &dyn Progress, stamps: &Mutex<HashMap<&'static str, String>>, stamp: &StampFn, exec: &ExecFn) -> Result<State> {
     let s = stamp(step)?.map(|mut s| {
         let done = stamps.lock().unwrap();
         for a in &step.after {
@@ -522,14 +355,7 @@ mod tests {
     use std::sync::atomic::AtomicUsize;
 
     fn inputs() -> Inputs {
-        Inputs {
-            cd: "cd.iso".into(),
-            patch: None,
-            hebrew: Hebrew::None,
-            imagery: vec![],
-            refresh: false,
-            guides: false,
-        }
+        Inputs { cd: "cd.iso".into(), patch: None, hebrew: Hebrew::None, imagery: vec![], refresh: false, guides: false }
     }
 
     fn ids(steps: &[Step]) -> Vec<&'static str> {
@@ -539,32 +365,8 @@ mod tests {
     #[test]
     fn plan_follows_the_inputs() {
         let base = plan(&inputs());
-        assert_eq!(
-            ids(&base),
-            [
-                "extract",
-                "fonts",
-                "cockpits",
-                "briefings",
-                "reference",
-                "menu",
-                "arm",
-                "keys",
-                "missions",
-                "aircraft",
-                "objects",
-                "theatre",
-                "airbases",
-                "icon",
-                "launcher"
-            ]
-        );
-        assert!(
-            base.iter()
-                .filter(|s| s.id != "extract" && s.after.contains(&"extract"))
-                .count()
-                >= 8
-        );
+        assert_eq!(ids(&base), ["extract", "fonts", "cockpits", "briefings", "reference", "menu", "arm", "keys", "missions", "aircraft", "objects", "theatre", "airbases", "icon", "launcher"]);
+        assert!(base.iter().filter(|s| s.id != "extract" && s.after.contains(&"extract")).count() >= 8);
 
         let full = plan(&Inputs {
             patch: Some("p.exe".into()),
@@ -573,43 +375,24 @@ mod tests {
             guides: true,
             ..inputs()
         });
-        let get = |id: &str| {
-            full.iter()
-                .find(|s| s.id == id)
-                .unwrap_or_else(|| panic!("{id}"))
-        };
+        let get = |id: &str| full.iter().find(|s| s.id == id).unwrap_or_else(|| panic!("{id}"));
         assert_eq!(get("fonts").after, ["patch"]);
         assert_eq!(get("briefings").after, ["patch", "hebrew"]);
         assert_eq!(get("menu_he").after, ["patch", "hebrew"]);
         assert_eq!(get("arm").after, ["menu", "menu_he"]);
         assert_eq!(get("aircraft").after, ["missions"]);
         assert_eq!(get("airbases").after, ["theatre"]);
-        assert!(
-            get("guides").after.contains(&"sentinel2") && get("guides").after.contains(&"mapi2015")
-        );
+        assert!(get("guides").after.contains(&"sentinel2") && get("guides").after.contains(&"mapi2015"));
         // Every step waits only for steps planned before it.
         for (k, s) in full.iter().enumerate() {
             for a in &s.after {
-                assert!(
-                    full[..k].iter().any(|p| p.id == *a),
-                    "{} waits for {a}",
-                    s.id
-                );
+                assert!(full[..k].iter().any(|p| p.id == *a), "{} waits for {a}", s.id);
             }
         }
         // The briefings pack alone: no Hebrew menus.
-        let brief = plan(&Inputs {
-            hebrew: Hebrew::Packs {
-                brief: Some("b.zip".into()),
-                menu: None,
-            },
-            ..inputs()
-        });
+        let brief = plan(&Inputs { hebrew: Hebrew::Packs { brief: Some("b.zip".into()), menu: None }, ..inputs() });
         assert!(ids(&brief).contains(&"hebrew") && !ids(&brief).contains(&"menu_he"));
-        assert_eq!(
-            ids(&only(&full, &["aircraft", "fonts"])),
-            ["extract", "patch", "fonts", "missions", "aircraft"]
-        );
+        assert_eq!(ids(&only(&full, &["aircraft", "fonts"])), ["extract", "patch", "fonts", "missions", "aircraft"]);
     }
 
     /// tools/setup-cli.sh's `step "…"` lines and the plan's steps: every line is a step here (or a CLI-only one),
@@ -620,10 +403,7 @@ mod tests {
             ("imagery: restore from", &["cli"]),
             ("imagery: convert again", &["imagery-refresh"]),
             ("imagery: Sentinel-2", &["sentinel2"]),
-            (
-                "imagery: Survey of Israel 2015 2 m sheets",
-                &["mapi2015-fetch"],
-            ),
+            ("imagery: Survey of Israel 2015 2 m sheets", &["mapi2015-fetch"]),
             ("imagery: Survey of Israel 2015 2 m layer", &["mapi2015"]),
             ("building tools", &["cli"]),
             ("extracting the original install", &["extract"]),
@@ -648,21 +428,12 @@ mod tests {
             ("pilot guides", &["guides"]),
             ("done", &["cli"]),
         ];
-        let script = std::fs::read_to_string(
-            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/setup-cli.sh"),
-        )
-        .unwrap();
+        let script = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/setup-cli.sh")).unwrap();
         let mut seen = std::collections::HashSet::new();
         for line in script.lines() {
-            let Some((_, title)) = line.split_once("step \"") else {
-                continue;
-            };
+            let Some((_, title)) = line.split_once("step \"") else { continue };
             let hits: Vec<_> = LINES.iter().filter(|(p, _)| title.starts_with(p)).collect();
-            assert_eq!(
-                hits.len(),
-                1,
-                "setup-cli.sh step \"{title}\" needs one entry here"
-            );
+            assert_eq!(hits.len(), 1, "setup-cli.sh step \"{title}\" needs one entry here");
             seen.extend(hits[0].1.iter().copied());
         }
         let all = plan(&Inputs {
@@ -674,17 +445,10 @@ mod tests {
             ..inputs()
         });
         for s in &all {
-            assert!(
-                seen.contains(s.id),
-                "step {} has no line in setup-cli.sh",
-                s.id
-            );
+            assert!(seen.contains(s.id), "step {} has no line in setup-cli.sh", s.id);
         }
         for (p, ids) in LINES {
-            assert!(
-                script.contains(&format!("step \"{p}")),
-                "no setup-cli.sh line \"{p}…\""
-            );
+            assert!(script.contains(&format!("step \"{p}")), "no setup-cli.sh line \"{p}…\"");
             for id in *ids {
                 assert!(*id == "cli" || all.iter().any(|s| s.id == *id), "{id}");
             }
@@ -703,18 +467,8 @@ mod tests {
     fn stamps_and_order() {
         let dir = std::env::temp_dir().join(format!("iaf-setup-test-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
-        let step = |id, after: &[&'static str]| Step {
-            id,
-            title: id,
-            required: true,
-            after: after.to_vec(),
-        };
-        let steps = [
-            step("a", &[]),
-            step("b", &["a"]),
-            step("c", &["a"]),
-            step("d", &["b", "c"]),
-        ];
+        let step = |id, after: &[&'static str]| Step { id, title: id, required: true, after: after.to_vec() };
+        let steps = [step("a", &[]), step("b", &["a"]), step("c", &["a"]), step("d", &["b", "c"])];
         for s in &steps {
             std::fs::write(dir.join(format!("{}.in", s.id)), "1").unwrap();
         }
@@ -723,20 +477,12 @@ mod tests {
         let go = |redo: &Redo| {
             ran.lock().unwrap().clear();
             let st = |s: &Step| -> Result<Option<stamp::Stamp>> {
-                Ok(Some(stamp::Stamp {
-                    path: dir.join(format!("{}.stamp", s.id)),
-                    text: stamp::describe(&dir.join(format!("{}.in", s.id)))?,
-                    output: None,
-                }))
+                Ok(Some(stamp::Stamp { path: dir.join(format!("{}.stamp", s.id)), text: stamp::describe(&dir.join(format!("{}.in", s.id)))?, output: None }))
             };
             let ex = |s: &Step, _: &dyn Progress| -> Result<Outcome> {
                 // Order: a step runs after the steps it waits for.
                 let done = ran.lock().unwrap().clone();
-                assert!(
-                    s.after
-                        .iter()
-                        .all(|a| done.contains(a) || dir.join(format!("{a}.stamp")).exists())
-                );
+                assert!(s.after.iter().all(|a| done.contains(a) || dir.join(format!("{a}.stamp")).exists()));
                 if steps.iter().position(|x| x.id == s.id) == Some(fail.load(Ordering::Relaxed)) {
                     anyhow::bail!("boom");
                 }
@@ -750,37 +496,20 @@ mod tests {
         };
         assert_eq!(go(&|_| false).0, ["a", "b", "c", "d"]);
         let (r, states) = go(&|_| false);
-        assert!(
-            r.is_empty() && states.iter().all(|s| s.1 == State::UpToDate),
-            "{states:?}"
-        );
+        assert!(r.is_empty() && states.iter().all(|s| s.1 == State::UpToDate), "{states:?}");
         std::fs::write(dir.join("c.in"), "2").unwrap();
-        assert_eq!(
-            go(&|_| false).0,
-            ["c", "d"],
-            "c changed: c and what waits for it"
-        );
+        assert_eq!(go(&|_| false).0, ["c", "d"], "c changed: c and what waits for it");
         assert_eq!(go(&|_| true).0, ["a", "b", "c", "d"], "redo all");
         assert!(go(&|_| false).0.is_empty(), "redone: the same stamps");
-        assert_eq!(
-            go(&|id| id == "b").0,
-            ["b"],
-            "redo one step: only it (its stamp stays the same)"
-        );
+        assert_eq!(go(&|id| id == "b").0, ["b"], "redo one step: only it (its stamp stays the same)");
         std::fs::write(dir.join("a.in"), "2").unwrap();
         fail.store(1, Ordering::Relaxed);
         let (r, states) = go(&|_| false);
         assert!(r.contains(&"a") && !r.contains(&"d"));
-        assert!(
-            matches!(states[1].1, State::Failed(_)) && states[3].1 != State::Done,
-            "{states:?}"
-        );
+        assert!(matches!(states[1].1, State::Failed(_)) && states[3].1 != State::Done, "{states:?}");
         assert!(!dir.join("b.stamp").exists(), "a failed step has no stamp");
         fail.store(usize::MAX, Ordering::Relaxed);
-        assert!(
-            go(&|_| false).0.contains(&"b"),
-            "b runs again after its failure"
-        );
+        assert!(go(&|_| false).0.contains(&"b"), "b runs again after its failure");
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
@@ -792,24 +521,13 @@ mod tests {
         let go = |i: &Inputs| {
             ran.lock().unwrap().clear();
             let st = |s: &Step| -> Result<Option<stamp::Stamp>> {
-                Ok(Some(stamp::Stamp {
-                    path: dir.join(format!("{}.stamp", s.id)),
-                    text: format!("step {}\n", s.id),
-                    output: None,
-                }))
+                Ok(Some(stamp::Stamp { path: dir.join(format!("{}.stamp", s.id)), text: format!("step {}\n", s.id), output: None }))
             };
             let ex = |s: &Step, _: &dyn Progress| -> Result<Outcome> {
                 ran.lock().unwrap().push(s.id);
                 Ok(Outcome::Done)
             };
-            let states = run_graph(
-                &plan(i),
-                &|_| false,
-                &Quiet,
-                &AtomicBool::new(false),
-                &st,
-                &ex,
-            );
+            let states = run_graph(&plan(i), &|_| false, &Quiet, &AtomicBool::new(false), &st, &ex);
             assert!(states.iter().all(|s| s.1.ok()), "{states:?}");
             let mut r = ran.lock().unwrap().clone();
             r.sort();
@@ -818,18 +536,9 @@ mod tests {
         let first = inputs();
         assert_eq!(go(&first).len(), plan(&first).len());
         assert!(go(&first).is_empty());
-        let more = Inputs {
-            imagery: vec![Imagery::Sentinel2],
-            ..first.clone()
-        };
+        let more = Inputs { imagery: vec![Imagery::Sentinel2], ..first.clone() };
         assert_eq!(go(&more), ["sentinel2"]);
-        let he = Inputs {
-            hebrew: Hebrew::Packs {
-                brief: Some("b.zip".into()),
-                menu: Some("m.zip".into()),
-            },
-            ..more.clone()
-        };
+        let he = Inputs { hebrew: Hebrew::Packs { brief: Some("b.zip".into()), menu: Some("m.zip".into()) }, ..more.clone() };
         assert_eq!(go(&he), ["arm", "briefings", "hebrew", "keys", "menu_he"]);
         assert!(go(&he).is_empty());
         std::fs::remove_dir_all(&dir).unwrap();
@@ -844,13 +553,6 @@ mod tests {
             return;
         }
         assert_eq!(check_cd(&iso), CdKind::English);
-        assert!(matches!(
-            check_cd(
-                Path::new(env!("CARGO_MANIFEST_DIR"))
-                    .join("Cargo.toml")
-                    .as_path()
-            ),
-            CdKind::NotIaf(_)
-        ));
+        assert!(matches!(check_cd(Path::new(env!("CARGO_MANIFEST_DIR")).join("Cargo.toml").as_path()), CdKind::NotIaf(_)));
     }
 }

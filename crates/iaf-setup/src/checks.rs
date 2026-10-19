@@ -22,11 +22,7 @@ pub enum CdKind {
 fn hebrew_share(data: &[u8]) -> f64 {
     let letters = data.iter().filter(|&&b| (0xe0..=0xfa).contains(&b)).count();
     let text = data.iter().filter(|&&b| b >= 0x20).count();
-    if text == 0 {
-        0.0
-    } else {
-        letters as f64 / text as f64
-    }
+    if text == 0 { 0.0 } else { letters as f64 / text as f64 }
 }
 
 /// Probes a CD image: the install script and archive make it a Jane's IAF CD; Hebrew menu strings (`.trx`, Windows-1255)
@@ -41,9 +37,7 @@ pub fn check_cd(path: &Path) -> CdKind {
 fn probe(path: &Path) -> Result<CdKind> {
     let mut iso = Iso::open(path).context("not a CD image (ISO 9660)")?;
     if iso.find("FINSTALL.SSF").is_none() {
-        return Ok(CdKind::NotIaf(
-            "no Jane's IAF install script (FINSTALL.SSF)".into(),
-        ));
+        return Ok(CdKind::NotIaf("no Jane's IAF install script (FINSTALL.SSF)".into()));
     }
     let Some(esa) = iso.find("setup.esa").cloned() else {
         return Ok(CdKind::NotIaf("no Jane's IAF archive (setup.esa)".into()));
@@ -51,11 +45,7 @@ fn probe(path: &Path) -> Result<CdKind> {
     let data = iso.read(&esa)?;
     let esa = Esa::parse(&data)?;
     let mut trx = 0;
-    for e in esa
-        .entries
-        .iter()
-        .filter(|e| e.name.to_lowercase().ends_with(".trx"))
-    {
+    for e in esa.entries.iter().filter(|e| e.name.to_lowercase().ends_with(".trx")) {
         if hebrew_share(&esa.extract(e)?) > 0.3 {
             trx += 1;
         }
@@ -63,16 +53,10 @@ fn probe(path: &Path) -> Result<CdKind> {
     if trx >= 5 {
         return Ok(CdKind::Hebrew);
     }
-    let exe = esa
-        .entries
-        .iter()
-        .find(|e| e.name.eq_ignore_ascii_case("iafjets.exe"))
-        .context("no iafjets.exe in the archive")?;
+    let exe = esa.entries.iter().find(|e| e.name.eq_ignore_ascii_case("iafjets.exe")).context("no iafjets.exe in the archive")?;
     match PeImage::parse(esa.extract(exe)?).and_then(|p| p.release()) {
         Ok(_) => Ok(CdKind::English),
-        Err(e) => Ok(CdKind::NotIaf(format!(
-            "iafjets.exe is no known release: {e:#}"
-        ))),
+        Err(e) => Ok(CdKind::NotIaf(format!("iafjets.exe is no known release: {e:#}"))),
     }
 }
 
@@ -80,11 +64,7 @@ fn probe(path: &Path) -> Result<CdKind> {
 pub fn check_patch(path: &Path) -> Result<usize> {
     let raw = iaf_tools::patch::read_patch(path)?;
     let patch = iaf_tools::patch::parse(&raw)?;
-    if !patch
-        .records
-        .iter()
-        .any(|r| r.path.to_lowercase().ends_with("iafjets.exe"))
-    {
+    if !patch.records.iter().any(|r| r.path.to_lowercase().ends_with("iafjets.exe")) {
         bail!("{}: a patch, but not for iafjets.exe", path.display());
     }
     Ok(patch.records.len())
@@ -100,23 +80,10 @@ pub struct PackInfo {
 /// Counts a pack's briefing and menu files (`Brief/…`, `Menu/…` at its root, any case).
 pub fn check_pack(path: &Path) -> Result<PackInfo> {
     let names: Vec<String> = if path.is_dir() {
-        iaf_tools::walk_files(path)?
-            .iter()
-            .filter_map(|f| {
-                f.strip_prefix(path)
-                    .ok()
-                    .map(|r| r.to_string_lossy().replace('\\', "/"))
-            })
-            .collect()
+        iaf_tools::walk_files(path)?.iter().filter_map(|f| f.strip_prefix(path).ok().map(|r| r.to_string_lossy().replace('\\', "/"))).collect()
     } else {
-        let zip = zip::ZipArchive::new(
-            std::fs::File::open(path).with_context(|| format!("{}", path.display()))?,
-        )
-        .context("not a zip")?;
-        zip.file_names()
-            .filter_map(|n| n.ok())
-            .map(|n| n.replace('\\', "/"))
-            .collect()
+        let zip = zip::ZipArchive::new(std::fs::File::open(path).with_context(|| format!("{}", path.display()))?).context("not a zip")?;
+        zip.file_names().filter_map(|n| n.ok()).map(|n| n.replace('\\', "/")).collect()
     };
     let mut info = PackInfo::default();
     for n in names.iter().map(|n| n.to_lowercase()) {
@@ -148,8 +115,7 @@ pub struct Tools {
 }
 
 fn on_path(name: &str) -> bool {
-    std::env::var_os("PATH")
-        .is_some_and(|p| std::env::split_paths(&p).any(|d| d.join(name).is_file()))
+    std::env::var_os("PATH").is_some_and(|p| std::env::split_paths(&p).any(|d| d.join(name).is_file()))
 }
 
 pub fn tools() -> Tools {
@@ -159,11 +125,8 @@ pub fn tools() -> Tools {
         curl: on_path("curl"),
         python3: on_path("python3"),
         // macOS: the app bundle, which puts nothing on PATH (the same place tools/guide_pdf.py looks).
-        firefox: on_path("firefox")
-            || Path::new("/Applications/Firefox.app/Contents/MacOS/firefox").is_file(),
-        display: env("DISPLAY")
-            || env("WAYLAND_DISPLAY")
-            || (cfg!(target_os = "macos") && !env("SSH_CONNECTION")),
+        firefox: on_path("firefox") || Path::new("/Applications/Firefox.app/Contents/MacOS/firefox").is_file(),
+        display: env("DISPLAY") || env("WAYLAND_DISPLAY") || (cfg!(target_os = "macos") && !env("SSH_CONNECTION")),
     }
 }
 
@@ -174,27 +137,18 @@ pub fn scan(dir: &Path) -> Vec<(&'static str, std::path::PathBuf)> {
     let has = |f: &Vec<(&str, _)>, k| f.iter().any(|(x, _)| *x == k);
     let mut todo = vec![(dir.to_path_buf(), 0)];
     while let Some((at, depth)) = todo.pop() {
-        let Ok(rd) = std::fs::read_dir(&at) else {
-            continue;
-        };
+        let Ok(rd) = std::fs::read_dir(&at) else { continue };
         let mut entries: Vec<_> = rd.filter_map(|e| e.ok().map(|e| e.path())).collect();
         entries.sort();
         for p in entries {
-            let name = p
-                .file_name()
-                .map(|n| n.to_string_lossy().to_string())
-                .unwrap_or_default();
+            let name = p.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
             if p.is_dir() {
                 if depth < 3 && !name.starts_with('.') {
                     todo.push((p, depth + 1));
                 }
                 continue;
             }
-            match p
-                .extension()
-                .map(|e| e.to_string_lossy().to_lowercase())
-                .as_deref()
-            {
+            match p.extension().map(|e| e.to_string_lossy().to_lowercase()).as_deref() {
                 Some("iso") => {
                     let kind = match check_cd(&p) {
                         CdKind::English => "english",
@@ -205,9 +159,7 @@ pub fn scan(dir: &Path) -> Vec<(&'static str, std::path::PathBuf)> {
                         found.push((kind, p));
                     }
                 }
-                Some("exe" | "rtp") if !has(&found, "patch") && check_patch(&p).is_ok() => {
-                    found.push(("patch", p))
-                }
+                Some("exe" | "rtp") if !has(&found, "patch") && check_patch(&p).is_ok() => found.push(("patch", p)),
                 Some("zip") => match check_pack(&p) {
                     Ok(i) if i.brief > 0 && !has(&found, "brief") => found.push(("brief", p)),
                     Ok(i) if i.menu > 0 && !has(&found, "menu") => found.push(("menu", p)),
@@ -231,8 +183,7 @@ mod tests {
         let zip_at = |p: &Path, entry: &str| {
             std::fs::create_dir_all(p.parent().unwrap()).unwrap();
             let mut z = zip::ZipWriter::new(std::fs::File::create(p).unwrap());
-            z.start_file(entry, zip::write::SimpleFileOptions::default())
-                .unwrap();
+            z.start_file(entry, zip::write::SimpleFileOptions::default()).unwrap();
             z.finish().unwrap();
         };
         zip_at(&dir.join("a/b/Brief.zip"), "Brief/txt/1.rtf");
