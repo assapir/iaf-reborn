@@ -358,12 +358,17 @@ Jets disabled per mission (`FUN_00509b80`; rows 0x11c bytes apart in the list ob
 |---|---|---|---|---|
 | 0 | another RTF (e.g. the **lesson** `\Brief\Text\311_1.rtf`, war history `67.rtf`) | brief_t frame | (W/3, H/2), 2W/3 × H/2 | +0x140 |
 | 1 | UNCERTAIN (`FUN_0050e890`), no records | frame | (W/2,H/2), W/2×H/2 | +0x148 |
-| 3 | bitmap (e.g. **instructor card `\Brief\Bmp\card.BMP`**, diagrams) | `FUN_0050ec60`, style close+min | (W/2, 0), W/2 × H/2 | +0x144 |
+| 3 | bitmap (e.g. **instructor card `\Brief\Bmp\card.BMP`**, diagrams) | `FUN_0050ec60`, style close+min; then fitted to the bitmap (see below) | (W/2, 0), W/2 × H/2 | +0x144 |
 | 2 | 3D model `.x` (aircraft/SAM) | **`obj_t`** frame, 3D view (`FUN_00518470`, §11) | (12,16) 415×260 | +0x150 |
 | 5 | target: `\Brief\Tar\<id>_N.txt`, whose first line is an object name looked up in the mission (`FUN_00439c40`) | **`targ_t`** frame, live 3D camera on the object (`FUN_00517fe0`, §10) | (22,16) 406×322 | +0x14c |
 
 * A slot that is already open is reused and reloaded. The 3D-model window and the target window are
   mutually exclusive.
+* The picture window (type 3) fits its bitmap whole, on opening and on every reload (`FUN_0050ec60`, `FUN_0050edc0`):
+  * Size: bitmap + 10 × 19 (the 5 px side borders, the 4 px top and bottom borders, the 11 px title bar).
+    The client at (5, 15) is the bitmap's size.
+  * Place: the top-left stays, but the window moves left / up so that it ends inside the TSD client, never past its
+    left / top edge (`FUN_0050bb00`). For example `pop-up.bmp` (416×258, mission 322's lesson) opens at (27, 0) 426×277.
 * `brief_t`, `obj_t` and `targ_t` are the tab-title art of **three separate floating windows**. The briefing
   has no Brief/Objective/Target tabs. `chat_t` is the multiplayer chat window (`FUN_004f83b0`).
 * The instructor name in training (e.g. "Jonathan" in `txt/311.rtf`) is a type-3 link to `card.bmp`.

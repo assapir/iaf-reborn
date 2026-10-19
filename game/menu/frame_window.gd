@@ -124,12 +124,18 @@ func set_model(v: Control, bbcode: String) -> void:
 	set_text(bbcode, [])
 
 
+## The picture window (brl type 3, §6): shows `tex` and fits the window to it (FUN_0050ec60 / FUN_0050edc0): the
+## client becomes the bitmap's size, the window keeps its top-left but moves left / up to stay within `bounds`
+## (FUN_0050bb00).
 func set_image(tex: Texture2D) -> void:
 	image = tex
 	if rich != null:
 		body_clip.queue_free()
 		rich = null
 		body_clip = null
+	var sz: Vector2 = fe._art_size(tex) + rect.size - _client().size
+	rect.position = rect.position.min(bounds.end - sz).max(bounds.position)
+	rect.size = sz
 
 
 ## The original makes every underlined run that matches a .brl entry name clickable.
@@ -236,9 +242,9 @@ func _draw() -> void:
 	elif rich != null:
 		draw_rect(Rect2(body.position * s, body.size * s), RICH_BG)
 	elif image != null:
-		var isz: Vector2 = fe._art_size(image)
-		var shown := isz.min(body.size)
-		draw_texture_rect_region(image, Rect2(body.position * s, shown * s), Rect2(Vector2.ZERO, shown * fe.art_scale))
+		var c := _client()
+		var shown: Vector2 = fe._art_size(image).min(c.size)
+		draw_texture_rect_region(image, Rect2(c.position * s, shown * s), Rect2(Vector2.ZERO, shown * fe.art_scale))
 	if not bare:
 		_draw_frame(w, h)
 	# Custom vertical scrollbar at the right edge of the text (§6).

@@ -1,8 +1,8 @@
 # Briefing links (docs/front-end.md §6, §11): every type-2 link (3D model) of every briefing opens the obj_t window at
 # (12,16) 415×260 with the model in the left two-thirds and its description on the right; a second one reuses the
-# window; the text (type 0: a lesson or a briefing text such as 67.rtf) and picture (type 3) windows open at their
-# rects; a target link (type 5) opens the targ_t window at (22,16) 406×322 on the named object and closes the model
-# window, its view strip switches the camera; every target file names an object of its mission (but the known misses).
+# window; the text window (type 0: a lesson or a briefing text such as 67.rtf) opens at its rect, every picture window
+# (type 3) fits its bitmap; a target link (type 5) opens the targ_t window at (22,16) 406×322 on the named object and
+# closes the model window, its view strip switches the camera; every target file names an object of its mission (but the known misses).
 # SHOT_DIR=dir writes briefing_model.png and briefing_target_<tab>.png.
 extends "res://../tests/godot/base.gd"
 
@@ -62,12 +62,31 @@ func run() -> void:
 	tsd._on_link(model_links[1], b)
 	await frames(2)
 	check(tsd.link_windows.get(2) == w and is_instance_valid(w), "a second model link reuses the window")
-	for t in [[0, Rect2(floor(453 / 3.0), floor(357 / 2.0), floor(2 * 453 / 3.0), floor(357 / 2.0))], [3, Rect2(floor(453 / 2.0), 0, floor(453 / 2.0), floor(357 / 2.0))]]:
+	for t in [[0, Rect2(floor(453 / 3.0), floor(357 / 2.0), floor(2 * 453 / 3.0), floor(357 / 2.0))], [3, Rect2(93, 0, 360, 181)]]:
 		if by_type.has(t[0]):
 			tsd._on_link(by_type[t[0]][0], b)
 			await frames(2)
 			var lw = tsd.link_windows.get(t[0])
 			check(is_instance_valid(lw) and lw.rect == t[1], "type %d window at %s (%s)" % [t[0], str(t[1]), str(lw.rect) if is_instance_valid(lw) else "none"])
+	# Every picture link (type 3) of every briefing and lesson: the window fits the bitmap whole (client = its size,
+	# FUN_0050edc0) and stays inside the TSD client (FUN_0050bb00).
+	var cropped := []
+	var pics := 0
+	for grp in ["missions", "lessons"]:
+		for id in fe.briefings[grp]:
+			var be: Dictionary = fe.briefings[grp][id]
+			var bn: Array = tsd._link_names(be)
+			for i in be.get("entries", []).size():
+				if not String(be.entries[i].file).to_lower().ends_with(".bmp"):
+					continue
+				tsd._on_link(bn[i], be)
+				var pw = tsd.link_windows.get(3)
+				if not is_instance_valid(pw) or pw.image == null:
+					continue
+				pics += 1
+				if pw._client().size != fe._art_size(pw.image) or not pw.bounds.encloses(pw.rect):
+					cropped.append("%s:%s %s" % [id, bn[i], str(pw.rect)])
+	check(pics > 40 and cropped.is_empty(), "every picture link shows its whole bitmap (%d; cropped %s)" % [pics, cropped])
 	# Target links (type 5): 113's "SA-2 battery" (brief/tar/113_1.txt: RADARsa2r1).
 	var targets: Array = by_type.get(5, [])
 	check(not targets.is_empty(), "113 has target links (%s)" % str(targets))
