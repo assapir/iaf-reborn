@@ -222,10 +222,13 @@ damage += dmg / strength; ≥ 1.0  -> destroyed
 2. If the weapon belongs to the target (owner key = self), stop: a unit's own weapon never hits it.
 3. Apply the blast (§4.1). The hit counts only if it destroys the unit or adds **≥ 0.01** (0x603108).
 4. If the shooter (from the weapon key) no longer exists, stop. Otherwise store the weapon key at MStatus+0x2c.
-   Not ported: the score (`FUN_004a9b00`) and, when the player hit something, the hit feedback (`FUN_004aa0f0`,
-   `FUN_00551560`).
-5. Set the level: destroyed → level 5; otherwise the new fraction without a level (§3.1). A brain reacts to the
-   shooter (`FUN_0043ff50`, not ported).
+   Then `FUN_004a9b00` plays the force-feedback effects when the player's jet is hit (missiles 0x230..0x262, the
+   gun 0x235, the crash effect `4dec00`; no force feedback in ours). When the player hit a unit on the player's side,
+   `FUN_00551560` → `FUN_005515d0` plays the friendly-hit voice (sound VOC 0x33 or 0x35, `FUN_004c4ea0`) for most unit
+   classes, when `FUN_004d4020(now)` returns 0 (UNCERTAIN: a "voice busy" test). Not ported: the friendly-hit voice.
+5. Set the level: destroyed → level 5; otherwise the new fraction without a level (§3.1). A brain stores the
+   shooter as its last hitter (brain +0x80, `FUN_0043ff50`, with a timed event that clears it, docs/ai.md); its
+   readers are not traced, and it is not ported.
 
 ### 4.3 Weapons (for the weapons port)
 The weapon detonation `FUN_004d6130` (@4d664d) is the only caller of the hit handler. It loops over the units that
@@ -367,7 +370,7 @@ ENG at +0x560 / +0x598 / +0x5b0 = flags 2 / 16 / 22, so the copy starts at +0x55
 | 13, 15, 20 | `44d760` once: `456200` (gun +0x9c), `4adb20` (radar off for good), `456cc0` (weapons +0xa0) | gun / weapons: docs/weapons.md; radar: `radar.rs set_damaged` |
 | 14 | RWR (`44deb0` …, cockpit `S+0x590`) | docs/rwr.md |
 | 11 (instruments), 19, 21 | — | **only the damage page** (and 19 / 21 through the flags they set): no gauge reads them |
-| 12 (HUD) | `45cd30` → `446830`: S+0x5c0 | the HUD pass `FUN_00530b70` returns at once while it is set: no HUD symbols and no I-mode marks (docs/cockpit.md "I-mode"). Not ported: our HUD still draws |
+| 12 (HUD) | `45cd30` → `446830`: S+0x5c0 | the HUD pass `FUN_00530b70` returns at once while it is set: no HUD symbols and no I-mode marks (docs/cockpit.md "I-mode"). Ported: `hud.gd` `hud_failed` |
 
 **"No malfunctions"** (Gameplay, pref `+0x24`) and **"No wind"** (`+0x28`) have no effect. The exe touches them only
 in the copy from the menu (`4fe5f8`, `4fe676`) and in save / load; none of the 37 pref-getter (`43b5d0`) calls reads
@@ -599,7 +602,7 @@ that frame.
 ## 8. Uncertain / not ported
 - The lens-flash texture.
 - Effect 0x18 at a fatal hit; the double explosion at a crash-motion impact; state 4.
-- Radio kill / "is down" calls, score and hit feedback, the brain's reaction to hits, FlyTSD 6.5 s after the
+- Radio kill / "is down" calls, the friendly-hit voice (§4.2), the brain's reaction to hits (+0x80), FlyTSD 6.5 s after the
   player's death (campaign), network play.
 - The flight model's reaction to the hit shake.
 - Collision: full vs half extents (the renderer call behind vtable +0xb0 is not traced).

@@ -97,11 +97,18 @@ if +0x44 + 1 < count:  next waypoint (4532a0); +0x40 = distance to it; event "Fl
 ```
 Next / previous waypoint (`4532a0` / `453370`, also the W / Shift+W keys) wraps the index, clears +0x48, sets +0x40 =
 1112400, and in NAV posts motion 0xf (2, new index). The waypoint-report radio (`54dc00`, 3 s later) is built
-(docs/radio.md §4). Open: the `440e90(index)` call of `4532a0` is left out, as its target object was not traced.
+(docs/radio.md §4). `4532a0` then calls `440e90(index)` on the jet's brain (`S+0x2c`): it sets the brain's waypoint
+index +0x88 (docs/ai.md §7.2) and re-selects the same index on this NAV object (`453450` on controller +0x380).
+The port sets the flight's brain index (`IafFlight.ap_set_waypoint_index`) in `set_waypoint`, so after Fly
+(docs/views.md §1) the old jet's brain flies on from the player's waypoint. The brain index also feeds the
+leader-death hand-over (`440eb0` → `440ed0`: the wingman takes the dead leader's index), which is not ported.
 
 ### 2.3 Landing (GoHomeCL in FM mode 0)
 - Gear and flaps go down at landing step 7, as for the AI. The commands reach the levers through the controller.
   The port mirrors them on the cockpit levers, so the gear's 300 kt rule and the flaps damage still apply.
+  Step 7 comes when LW2 ends, and LW2 ends at any speed above its 102.944 m/s target. So a jet still faster than
+  300 kt there keeps its gear up and lands on its belly: the F-35I does (mission 214, Home waypoint: 369 kt at step 7,
+  touchdown gear up), the mission's own jet slows to 220 kt first and lands on its gear.
 - The pitch law's "gear / flaps / brakes in above 150 m/s" clean-up is skipped in modes 0 and 8.
 - The ChangeHeading2PtAcu legs run without the ground watch (modes 0 and 8).
 - LandingCL Init (`5d36d2`): the stop condition is **1.0295 m/s** in FM mode 0 (25.736 m/s in mode 8). The children

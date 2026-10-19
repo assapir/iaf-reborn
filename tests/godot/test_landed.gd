@@ -1,6 +1,7 @@
 # The mission's landed handler (FUN_00440f90, docs/mission-runtime.md §5.5, docs/ai.md §7.2): each new landing
 # the flight model counts (`landings`, v1.1: every landing) sends the player's **wingman** to the route's last
-# waypoint; the player's own NAV steering is not touched. Mission 221: alpha_1 (player) and alpha_2 (AI).
+# waypoint; the player's own NAV steering is not touched. The player's next-waypoint select also sets its brain
+# index (FUN_00440e90 in FUN_004532a0). Mission 221: alpha_1 (player) and alpha_2 (AI).
 extends "res://../tests/godot/base.gd"
 
 
@@ -19,3 +20,5 @@ func run() -> void:
 	await frames(3)
 	check(wing.waypoint_index() == tv.route.size() - 1, "landed: the wingman on the last waypoint (%d)" % wing.waypoint_index())
 	check(tv.cockpit.current_waypoint == 0, "the player's NAV is not touched")
+	tv.autopilot.set_waypoint(1)
+	check(tv.flight.ap_waypoint_index() == 1, "next waypoint: the brain index follows (%d)" % tv.flight.ap_waypoint_index())

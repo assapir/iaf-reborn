@@ -2,7 +2,7 @@
 # (fuel leak → fuel flow, engine fire → no RPM on a single engine, hydraulics → a quarter of the stick,
 # total flight control → no stick), the extinguisher (X, GEV 0x49) puts the fire out once, the air
 # brakes key is refused with brakes damage, the gear overspeed damage (> 450 kt, gear down and locked),
-# and the afterburner flame of a damaged side stays out.
+# the afterburner flame of a damaged side stays out, and HUD damage blanks the HUD.
 extends "res://../tests/godot/base.gd"
 
 
@@ -94,3 +94,8 @@ func run() -> void:
 		pd.system_damage(15)
 		await frames(3)
 		check(tv.weapons.radar.damaged and tv.weapons.radar.off, "radar damage: radar off")
+	# HUD damage (12): the HUD pass draws nothing (FUN_00530b70 returns at once on S+0x5c0).
+	check(not tv.cockpit.hud.hud_failed(), "HUD drawn before the damage")
+	pd.system_damage(12)
+	await frames(2)
+	check(tv.cockpit.hud.hud_failed(), "HUD damage: the HUD pass draws nothing")

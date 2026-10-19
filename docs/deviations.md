@@ -60,7 +60,6 @@ Each row: Original = the 1998 game; Ours = this port, for everyone.
 | Joystick input | DirectInput: the first joystick found at startup, named axes lX / lY / lZ / lRz (slider 0 or lRz decides "has a rudder"), DirectInput's ranges and 25 % dead zone, buffered buttons | Godot's joypad API (SDL): the first connected joypad, hot-plug; axes by number (`[devices] joy_axes`, default 0 / 1 / 2 / 3); the 25 % dead zone computed by us; a device counts as having all four axes; the hat from Godot's D-pad buttons 11–14; `.joy` files matched against SDL's device name | DirectInput is Windows-only; Godot does not name the axes | controls.md §5.2, controls/joystick.gd |
 | Joystick force feedback | `iaforce.ifr` effects on FF sticks | none | not ported | controls.md §5.1 |
 | Autopilot level mode, ground watch | KeepOrientation posts an uninitialised throttle slot when the ground watch takes over | that slot starts at 0 (the watch's 250 m/s law applies) | undefined value in the original | autopilot.md §2.1 |
-| Waypoint sequencing | each pass schedules the "waypoint report" radio at +3 s; next waypoint also calls `440e90(index)` | the report is posted (radio.gd `waypoint_passed`), the `440e90` call is not | target of `440e90` not traced | autopilot.md §2.2 |
 | Weapon HUD geometry | the HUD projector (not traced) | seeker / circle angles at 12 px/deg from the camera ray through the HUD centre | projector untraced | weapons.md §5.1 |
 | Helmet sight in snap views | the seeker's helmet branch tests the view type (free look 0x12 / padlock 0x16); the snap views' slot-2 type is not traced | snap views (numpad / F2) stay on the nose case | type UNCERTAIN | weapons.md §5.4 |
 | AA gun LCOS start | rate filters from untraced first values | start from the attitude at mode entry | avoids a 1 s pipper jump | weapons.md §3.7 |
@@ -282,6 +281,10 @@ Original and ours behave the same in each of these.
   - while a message box hides the On-The-Fly menu, a press where a menu item lies still acts on that item;
   - the Yes / No / Cancel render box labels its third button NO;
   - the in-flight boxes freeze the flight in single player, the mission-end boxes too.
+- **Mission 223 "Tumble Down", the T-72 column (t720–t724):** event 18 (the player within 30 km of t722) jumps each
+  tank to its motion entry 2, a 10 s Hover whose next entry is itself, so the column never takes its paths (entry 3,
+  "second1".."second5") and stands still while it fires. The exe keys and follows the entries the same way
+  (`FUN_004c3a10` → `FUN_004a5250`, the end timer `FUN_004a58a0`; docs/mission-runtime.md §3.4).
 - **F-16 / Lavi spin:** they never spin in the original (the deep stall is a Physics option).
 - **Flight model:** everything listed as "not changed by better physics" in flight-model.md §10.
 - **Weapons** (weapons.md):

@@ -109,10 +109,12 @@ func update(world: Vector2) -> void:
 
 
 ## Selects waypoint i (FUN_004532a0 / FUN_00453370 and the next / previous keys): the box state restarts and
-## NAV re-targets the new waypoint.
+## NAV re-targets the new waypoint. The jet's brain index (+0x88) follows in every mode (FUN_00440e90 on S+0x2c;
+## its FUN_00453450 re-selects the same index on this NAV): the brain flies on from there after Fly hands the jet over.
 func set_waypoint(i: int) -> void:
 	var n: int = maxi(host.route.size(), 1)
 	host.cockpit.current_waypoint = posmod(i, n)
+	host.flight.ap_set_waypoint_index(host.cockpit.current_waypoint)
 	nav_inside = false
 	nav_min = NAV_MIN_INIT
 	if mode == 2:

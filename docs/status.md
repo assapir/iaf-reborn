@@ -125,33 +125,35 @@ Suez, extra sounds, multiplayer, setup wizard + launcher, modern aircraft / weap
 | Tests | `tools/test.sh`: Rust + 61 headless Godot tests (`tests/godot/test_*.gd`), isolated from the player's settings; fails on any script error or a 300 s timeout |
 
 ## Open gaps (by area)
-Checked against the code on 2026-10-14 (each doc's own "not built" notes have the details).
-- **Terrain**: map-edge push-back / EndWorld ("Tornado") and craters (terraintype bits known, systems missing). The
-  original data has no elevation west of Suez (flat −557 m, kept). A modern DEM (digital elevation model) is not
-  built.
-- **Flight**: the hook is missing (FM `cfg[8]` unwired, no key); the next-waypoint `440e90(index)` call in NAV
-  sequencing; the FM's surface states (`S+0x2c8`), OutRunway, effects flag `S+0x420`; spin altitude limits.
-- **Damage**: splash / ring explosions on water (flags 0x20000 / 0x40000) draw nothing; per-hit score and feedback, the
-  brain's reaction to a hit (`FUN_0043ff50`), effect 0x18, the second explosion of a falling unit; RWR network
-  messages.
-- **Cockpit / MFDs**: HUD damage (flag 12) does not blank the HUD and the I-mode
-  marks (docs/damage.md §5.3).
-- **Mission 223 (open question)**: the T-72 column that event 18 sends (t720–t724) never moves in our port; mission
-  design or port bug, to check.
-- **Autopilot landing (to check)**: in mission 214 the player's NAV landing at the Home waypoint (GoHomeCL) touched
-  down with the gear up; docs/autopilot.md §2.3 says the gear goes down at landing step 7.
+Checked against the code on 2026-10-19 (each doc's own "not built" notes have the details).
+- **Terrain**: the map-edge push-back / EndWorld ("Tornado", docs/flight-model.md §15.5a). The original data has no
+  elevation west of Suez (flat −557 m, kept). A modern DEM (digital elevation model) is not built.
+- **Flight**: on the ground, v1.1 turns a pedal / rudder-key change into a stick event (X = pedal, Y = 0;
+  `FUN_0059f5a0` → `FUN_0059f3d0`), so the pedals steer the nose wheel and move the rudder part; ours steers with the
+  stick X only (docs/flight-model.md "The rudder handler"). The ground attitude's random pitch / roll jitter off the
+  runway and on the belly (`S+0x2c8` states 1 / 2 in `FUN_005bb300`; ours rolls level); the OutRunway force feedback.
+- **AI**: a dead leader's waypoint index does not pass to its wingman (`FUN_004a86b0` → `FUN_00440eb0` →
+  `FUN_00440ed0`, docs/ai.md §7.2).
+- **Autopilot landing, F-35I**: GoHomeCL's step 7 (gear down) comes at any speed above 102.9 m/s, and the F-35I is
+  still at ~370 kt there, so the 300 kt rule keeps its gear up and it lands on its belly (mission 214; the
+  mission's own jet is at 220 kt and lands on its gear; docs/autopilot.md §2.3).
+- **Damage**: splash / ring explosions on water (flags 0x20000 / 0x40000) draw nothing; the friendly-hit voice when
+  the player hits a unit on the player's side (`FUN_00551560` → `FUN_005515d0`, VOC 0x33 / 0x35); the brain's last
+  hitter (`FUN_0043ff50`, brain +0x80; readers not traced); effect 0x18 at a fatal hit (`FUN_0046b2b0`); the second
+  explosion of a falling unit (docs/damage.md §8).
 - **F-35I cockpit**: the panel pans as one flat picture, like the originals'; its side-stick and throttle are fixed
   in the render; the portals show the original MFD pages (pixel font) in the F-35 colours; looking 15–90° aside shows
   the panel strip's edge.
-- **Controls**: joystick untested on real hardware (first joypad only: no separate throttle / pedals; no force
-  feedback); unhandled commands: cheat keys (Shift+S / D / R / F, Ctrl+W), SysRQ screenshot, chat.
+- **Controls**: one joypad (the first connected), as the original's one DirectInput device; real-hardware use so
+  far: a T.Flight Hotas X on macOS (`SDL_JOYSTICK_MFI=0`). No force feedback. Unhandled commands: the cheats
+  (Shift+S / D / R / F, Ctrl+W), the SysRQ screenshot, chat (docs/controls.md §4).
 - **FlyTSD**: Fly after the own jet is down changes nothing; the exe hands over the new jet until rule 1 ends the
   flight (docs/views.md §1 "Open").
 - **Radio**: AWACS contact calls; airborne / landed / crashed / kill ("… is down") reports.
-- **Front end**: Graphics defaults from hardware
-  detection, TERRAIN DETAIL's resolution drop / view distance (docs/deviations.md §1). No wind / No malfunctions have
-  no reader in the original either.
-- **Eject**: parachute swing and landing.
+- **Front end**: the hardware detection that overwrites the graphics defaults (`FUN_00402510`, `FUN_00402330`,
+  docs/front-end.md §12).
+- **Eject**: the parachuter's swing (`0x54a250`, docs/part-animation.md); it is seen for about 1.4 s before the
+  flight ends.
 - **Pilot guide PDFs** (not urgent): some pictures land at the top of the next page above the following heading; one
   nearly empty page (F-16 "Not drawn"); the MFD pictures are the ~128 px original art scaled (blocky).
 - **Pilot guide pictures**: the F-16's `landing_final` fails 2 callout checks (7 "R6…", 8 "896"): that picture's HUD
@@ -160,9 +162,7 @@ Checked against the code on 2026-10-14 (each doc's own "not built" notes have th
   2026-10-19's changes: the F-16 / F-15 / Lavi Real HUD scales moved in (docs/real-hud.md "What ours draws") and the
   Real AIM-9L's 10 NM range scale (docs/real-weapons.md; the guides' text already says 16.1 km).
 - **Imagery**: SPOT 5 outside Israel not started.
-- **Multiplayer**: not started (missions 511–516, 666, 777).
-- **To check**: v1.1's ground rudder part (ours follows the stick roll; the v1.1 note says the pedals too,
-  docs/v1.1.md).
+- **Multiplayer**: not started (missions 511–516, 666, 777), with its RWR network messages.
 
 ## Decisions (agreed with the user)
 - Airbase runway/apron underlay models stay hidden (the imagery shows the airbase) unless it stops looking good.

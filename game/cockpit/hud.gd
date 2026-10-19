@@ -126,8 +126,15 @@ func _mode() -> int:
 	return int(cockpit.weapons.get("hud_mode", 0))
 
 
+## HUD damage (system flag 12, S+0x5c0): the HUD pass FUN_00530b70 returns at once, so nothing of the HUD is drawn
+## (symbols, helmet repeater, I-mode marks; docs/damage.md §5.3).
+func hud_failed() -> bool:
+	var f: Array = cockpit.damage_flags
+	return f.size() > 12 and bool(f[12])
+
+
 func _draw() -> void:
-	if cockpit == null or cockpit.layout.is_empty():
+	if cockpit == null or cockpit.layout.is_empty() or hud_failed():
 		return
 	_layout()
 	var s: float = cockpit.ui_scale()
@@ -350,7 +357,7 @@ func prim_text_box(q: Dictionary) -> Rect2:
 # --- the unclipped layer -----------------------------------------------------------------------------
 
 func _draw_outer() -> void:
-	if cockpit == null or cockpit.layout.is_empty() or not visible:
+	if cockpit == null or cockpit.layout.is_empty() or not visible or hud_failed():
 		return
 	var st: Dictionary = cockpit.state
 	var w := maxf(1.0, 0.6 * _s)

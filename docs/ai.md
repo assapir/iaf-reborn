@@ -331,7 +331,7 @@ reset only schedules the brain, while transferControl unschedules it ("reset uns
 - Waypoint actions: **2 take off** (always wp0), **3 navigate**, **7 land** (the last waypoint), **8 alert / hold**;
   0 none. No AI code reads 1, 4, 5 or 6 (5 is the player's NAV 10 nm hold).
 - Every aircraft keeps its **own** index (brain +0x88, 0 at the start, never reset).
-  - Leader death (`FUN_00440eb0` → `FUN_00440ed0`): the wingman's index := the leader's.
+  - Leader death (`FUN_00440eb0` → `FUN_00440ed0`): the wingman's index := the leader's (not ported).
   - Leader landing (`FUN_00440f90`, once, brain+0xe0): the wingman's index := count − 1.
   - The wingman is never promoted.
 - **WayPtSet (mode 7)**: `init 5d7650`: index := brain+0x88; child Fly2WayPt. `next 5d7450`: while index < count:

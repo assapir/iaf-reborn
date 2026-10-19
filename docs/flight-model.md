@@ -383,7 +383,7 @@ T = max(T,0);  nose-wheel yaw rate = clamp(sx*V*K/74.53, ±K), K = DAT_008454d4 
 * The single "Brakes in/out" key drives ramp `S+0x340` (motion 8, `FUN_0059ffc0`, range 0..0.855, 0.5/s). It is the
   speed brake in the air and the wheel brake on the ground. (An earlier version said "S+0x360 = brakes"; that was
   wrong, §15.1.)
-* Motion 7 = gear `S+0x320`; motion 9 = `S+0x360` (→ HookDI, UNCERTAIN: hook).
+* Motion 7 = gear `S+0x320`; motion 9 = `S+0x360` (→ HookDI; "Motion Input - Landing hook" in `FUN_0046c705`).
 * The nose-wheel yaw moves through ramp `S+0x2a8` at rate |BetaRate|, clamped to ±MaxBeta (§15.2.6).
 
 ### Nose-wheel steering input
@@ -406,6 +406,10 @@ Evidence (all checked in objdump):
 * **The rudder handler drops the command on the ground.**
   * Motion 5 `FUN_0059f5a0` @59f5c6 stores `S+0x2e0`/`S+0x2ec = clamp(in+0x10, ±1)` and starts the ×0.3926 ramp only
     if `S+0x2a0 == 0`. On the ground `S+0x2ec` keeps its last airborne value.
+  * v1.1 adds a ground branch: on the ground, a pedal value that differs from the last stick X (`S+0x2d8`) is
+    rewritten into a stick event (motion 1 with X = the pedal, Y = 0) and passed to `FUN_0059f3d0`. So in v1.1 the
+    pedals / rudder keys steer the nose wheel, move the rudder part and centre the stick's pitch on the ground.
+    Not ported: our ground steering takes the stick X only.
   * The only other writer is the init @5ba252, which sets it to 0.
   * In the air, `S+0x2ec` feeds `FUN_005b4910` (@5a4b86 in `5a4230`), which returns `(ru − x·k)·P+0xb8`, the β command
     for the β channel (§5).
@@ -1962,7 +1966,7 @@ Tests: Rust unit tests in `aircraft.rs` / `envelope.rs`; headless Godot test `te
 | 4 | Nose-wheel yaw ramp | done: `S+0x2a8` at \|BetaRate\|, ±MaxBeta; 5 Hz uses the ramp, 1 Hz the raw target |
 | 5 | Force angles | done: 5 Hz αT and β(t) (the β channel; ground: nose-wheel ramp), 1 Hz α(t) and β_cmd. BP: α(t)/β(t) in both |
 | 6 | α 1 Hz update | done: `5aa3a0` at every aero update with αT from the new Lnoflap, gains only there, ×0.5 damping above π |
-| 7 | Gear / brake / flap ramps, `cfg` | done: gear 0..1.569, flaps 0..0.29275 (F-16 lever ×0.33), brakes 0..0.855, all 0.5/s; gear flag exactly at 0, brake flag (air: finished at max; ground: ≥ 1e-5). The model's gear animation already used 0.5/s (3.1 s); the cockpit lamps keep the controller's 2 s (§12). Hook (`cfg[8]`) not wired (no hook control) |
+| 7 | Gear / brake / flap ramps, `cfg` | done: gear 0..1.569, flaps 0..0.29275 (F-16 lever ×0.33), brakes 0..0.855, all 0.5/s; gear flag exactly at 0, brake flag (air: finished at max; ground: ≥ 1e-5). The model's gear animation already used 0.5/s (3.1 s); the cockpit lamps keep the controller's 2 s (§12). Hook (`cfg[8]`, motion 9 "Landing hook" in the debug names of `FUN_0046c705`) stays 0: the player controller `FUN_0044a240` has no case for GEV 0xd (GEV_LANDING_HOOK), so no key lowers the hook in the original either |
 | 8 | Throttle / AB | done: AB request after `(100 − RPM)/15` s (v1.1: any change cancels a pending request, a new AB request re-times it; test `new_throttle_request_cancels_the_pending_afterburner`), 0.015 dead band, first event starts the engine, RPM ramp 0..100 at 15 %/s; host keys step the FM throttle by 0.0925 only while ≤ 1.0 and reach the FM at once |
 | 9 | Start rules | done: `Aircraft::start` / `start_is_airborne` (z > 800 m, not near a base); air: throttle 0.74, RPM 70, gear up, lift ramps MaxWeight·g; ground: gear down, full flaps, brakes, throttle 0, RPM 0, engine only near the runway start point. Host: near-base / runway start point from the iaf.ibx airbases (`IafFlight.start_rule`), airborne start 282.84 m/s along the heading (§10). BP: lift ramps m·g, RPM at the start throttle's value (no AB light-up delay), α at its trim value |
 | 10 | Stall latch | done: `≤ 3.0`, set only when unset, cleared only by an update with `now − t > 3`, set on the ground too. FF "StallShake" skipped (no force feedback) |
@@ -1971,7 +1975,7 @@ Tests: Rust unit tests in `aircraft.rs` / `envelope.rs`; headless Godot test `te
 | 13 | Roll / attitude | done: (0) v1.1 roll about the saved body nose (test `roll_about_the_body_nose`); (a) no `kroll` clamp; (b) roll re-based on the attitude roll and `5aa330` at 1 Hz and 5 Hz; (c) no re-orthogonalisation, roll from the raw left wing in the heading/pitch frame, force matrix from the Euler angles. (d) skipped: channels use their own base time (§10). BP: `kroll ≥ 0` (no reversed roll below Veff ≈ 9.5 m/s) |
 | 14 | Lift-ramp rate factor | done: no `.max(0.01)` floor; BP: floor 1 %. The per-type slope globals: not reproduced in either mode (our slopes are per aircraft, i.e. the better behaviour; it differs from the original when several types fly, §10) |
 | 15 | Terrain types, map edge | partly: water / rough-ground rules are in the FM; the host passes the terraintype.dat flags (`terrain.gd surface_at`, formats/ptt.md "Terrain types"). `S+0x2c8` states, OutRunway FF and the "Tornado" push-back skipped |
-| 16 | Minor | done: the 1 Hz V is not capped (5 Hz caps at 1200 m/s); airborne thrust unclamped; v1.1 rolling drag ×0.8 (test `ground_roll_drag_factor`; the AI wheel brake ×4, `AI_BRAKE`). Skipped: `S+0x420` effects flag, FF effects, SFX 0x28/0x29, EndWorld/Kramer wavs |
+| 16 | Minor | done: the 1 Hz V is not capped (5 Hz caps at 1200 m/s); airborne thrust unclamped; v1.1 rolling drag ×0.8 (test `ground_roll_drag_factor`; the AI wheel brake ×4, `AI_BRAKE`). `S+0x420` is `Aircraft::vortex` (the wingtip vortex trails). Skipped: FF effects, SFX 0x28/0x29, EndWorld/Kramer wavs |
 | 17 | Landed flag | done (v1.1): `State::landings` / Godot `landings` +1 at each gear-down touchdown that passes the check, re-armed at lift-off (test `landed_flag_rearmed_at_lift_off`); the mission runtime's landed trigger is the host's |
 | — | Also BP (§10): the nose-wheel ×4 lift quirk off (§14.5), ground effect on the induced drag (not in the original) | done, test `better_physics_minor_fixes` |
 
