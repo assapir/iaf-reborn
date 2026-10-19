@@ -214,7 +214,7 @@ func _browse(row: Dictionary, label: String, filters: PackedStringArray) -> void
 	d.popup_centered(Vector2i(900, 600))
 
 
-## The wizard's window: 1200×820, centred (asked once it shows; ./setup also starts it at that size).
+## The wizard's window: 1200×820 times the UI scale, centred (asked once it shows; ./setup starts it at 1200×820).
 func _resize_window() -> void:
 	await get_tree().process_frame
 	var win := get_window()
@@ -225,7 +225,12 @@ func _resize_window() -> void:
 		win.mode = Window.MODE_WINDOWED
 		await get_tree().process_frame
 	var screen := DisplayServer.screen_get_usable_rect(win.current_screen)
-	var want := Vector2i(mini(1200, screen.size.x), mini(820, screen.size.y))
+	# HiDPI and large screens: the UI grows with the screen (the OS scale, or the height against 1080), in steps of
+	# 0.25, as long as the window still fits the work area.
+	var grow := maxf(DisplayServer.screen_get_scale(win.current_screen), screen.size.y / 1080.0)
+	var fit := minf(screen.size.x / 1200.0, screen.size.y / 820.0) * 0.95
+	win.content_scale_factor = maxf(1.0, floorf(minf(grow, fit) * 4.0) / 4.0)
+	var want := Vector2i(mini(int(1200 * win.content_scale_factor), screen.size.x), mini(int(820 * win.content_scale_factor), screen.size.y))
 	DisplayServer.window_set_size(want, win.get_window_id())
 	DisplayServer.window_set_position(screen.position + (screen.size - want) / 2, win.get_window_id())
 
