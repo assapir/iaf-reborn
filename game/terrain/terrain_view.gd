@@ -2186,7 +2186,7 @@ func wingman() -> Node3D:
 	var members: Array = f.members
 	var i := members.find(me)
 	for o in ([members[i + 1]] if i >= 0 and i + 1 < members.size() else []) + [members[0]]:
-		if o != me and not int(o.state) in [4, 5] and o.get("node") is Node3D and is_instance_valid(o.node):
+		if o != me and not int(o.get("state", 4)) in [4, 5] and o.get("node") is Node3D and is_instance_valid(o.node):
 			return o.node
 	return null
 
