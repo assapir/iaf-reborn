@@ -111,7 +111,8 @@ The wizard uses the original menus' colours.
    - Sentinel-2: about 28 GB read over the network, about 2.5 GB on disk. Units already converted are not read
      again.
 6. **Summary**: the inputs and the number of steps.
-7. **Install**: one row per step with its state and progress, the log, Cancel, "Redo everything", and a "redo" tick
+7. **Install**: one row per step with its state and progress (a long step adds the time left at its pace so
+   far, once it has run 30 s), the log, Cancel, "Redo everything", and a "redo" tick
    per step: a ticked step runs again although it is up to date. The steps after it stay up to date; tick them too
    to redo them.
 8. **Done**: "Start the game".

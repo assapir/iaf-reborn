@@ -882,7 +882,7 @@ func _fill_rows(steps: Array, keep: bool) -> void:
 			bar.modulate.a = 0.0
 			h.add_child(bar)
 			var state := Label.new()
-			state.custom_minimum_size.x = 130
+			state.custom_minimum_size.x = 200
 			h.add_child(state)
 			var redo := CheckBox.new()
 			redo.text = "redo"
@@ -897,6 +897,13 @@ func _fill_rows(steps: Array, keep: bool) -> void:
 			rows[s.id] = r
 		var st: String = s.get("state", "waiting")
 		r.state.text = STATE_TEXT.get(st, st)
+		# Long steps: the time left at the pace so far, once there is a pace (30 s in and 2 % done).
+		var f: float = s.get("fraction", 0.0)
+		if st == "running":
+			r.started = r.get("started", Time.get_ticks_msec())
+			var t: float = (Time.get_ticks_msec() - int(r.started)) / 1000.0
+			if t > 30.0 and f > 0.02:
+				r.state.text = "%s, %s left" % [r.state.text, duration(t * (1.0 - f) / f)]
 		r.state.tooltip_text = s.get("detail", "")
 		r.state.add_theme_color_override("font_color", {"done": GREEN, "up_to_date": DIM_GREEN, "failed": RED,
 			"running": YELLOW, "skipped": DIM}.get(st, TEXT))
@@ -950,6 +957,16 @@ func _process(_delta: float) -> void:
 			log_view.visible = true
 			log_button.text = "Hide the log"
 	_update()
+
+
+## A duration as the setup logs write it (iaf_tools::progress::duration), rounded up to the minute past one.
+static func duration(sec: float) -> String:
+	var s := int(round(sec))
+	if s < 60:
+		return "%d s" % s
+	if s < 3600:
+		return "%d min" % ceili(s / 60.0)
+	return "%d h %02d min" % [s / 3600, s % 3600 / 60]
 
 
 ## Shows the log's last lines.
