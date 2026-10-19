@@ -382,14 +382,17 @@ func _fill_requirements() -> void:
 	for c in req_box.get_children():
 		c.queue_free()
 	var gpu := RenderingServer.get_video_adapter_name()
+	# The renderer Godot runs on here: Vulkan on Linux, Metal on macOS.
+	var api: String = {"vulkan": "Vulkan", "metal": "Metal", "d3d12": "Direct3D 12", "opengl3": "OpenGL"}.get(
+		RenderingServer.get_current_rendering_driver_name(), RenderingServer.get_current_rendering_driver_name())
 	var headless := DisplayServer.get_name() == "headless"
 	var free_gb := _free_gb()
 	var free_text := ("%.1f GB free" % free_gb) if free_gb >= 0 else "free space unknown"
 	var imagery_gb: float = SURVEY_GB[0] + SURVEY_GB[1] + SENTINEL_GB
 	# [required, here, component, why it is needed, status when here, how to get it when missing]
 	var items := [
-		[true, gpu != "" or headless, "Graphics (Vulkan)", "draws the game",
-			(gpu + " — " + RenderingServer.get_video_adapter_vendor()) if gpu != "" else "", "install your GPU's Vulkan driver"],
+		[true, gpu != "" or headless, "Graphics (%s)" % api, "draws the game",
+			(gpu + " — " + RenderingServer.get_video_adapter_vendor()) if gpu != "" else "", _hint("install your GPU's Vulkan driver", "update macOS")],
 		[true, free_gb < 0 or free_gb >= BASE_GB, "Disk space: the game", "the install and the converted data, about %.0f GB" % BASE_GB,
 			free_text, "%s; free some space on this disk" % free_text],
 		[false, free_gb < 0 or free_gb >= BASE_GB + imagery_gb, "Disk space: imagery",
