@@ -214,6 +214,26 @@ live play while recording at 4K. Two ways:
 2. Record a replay, then render it with the movie writer at any quality (4K, 60 fps). This needs a full replay of
    every unit (the flight recorder holds only the player's jet).
 
+## "Real Betty" option (Extras switch, wishlist; researched 2026-10-19)
+- **Switch:** voice warnings per real aircraft. The default is the game's Betty (docs/sound.md §4).
+- **Per jet** (research 2026-10-19; sources below):
+  - F-16: the VMS (voice message system), in priority order PULL UP, ALTITUDE (below the low-altitude setting,
+    default 300 ft, gear up), WARNING, BINGO, CAUTION, LOCK, CHAFF FLARE / LOW / OUT. A fire or engine failure is
+    "WARNING" with its light; there is no Over-G voice.
+  - F-15C: a smaller set ("Warning", "Engine fire", "Overheat" in 1978; more later); to check against the flight
+    manual.
+  - F-35I: voice warnings with PULL UP likely; no public list yet.
+  - F-4E, Kfir C7, Mirage IIICJ: tones and lights, no voice (to confirm).
+  - Kurnass 2000, Lavi: unknown; they keep the game's Betty until a source says otherwise.
+- **Voice:** the original game's `Cock_Bty_*.wav` where the word matches; the other phrases recorded by us or made
+  with a text-to-speech voice whose licence allows redistribution. FlightGear's F-16 set (github.com/NikolaiVChr/f16,
+  `Sounds/betty/`, GPL-2.0, origin of the recordings unknown) only as an optional download during setup, after asking
+  its author where the recordings came from. Not usable: Falcon BMS, DCS, video rips.
+- **Open:** do IAF jets speak English or Hebrew; which F-16 VMS software version fits the 1990s F-16D.
+- **Sources:** en.wikipedia.org/wiki/Voice_warning_system; f-16.net/forum/viewtopic.php?p=22026;
+  falcon4.wikidot.com/avionics:vms; hushkit.net/2018/02/05/f-15-pilot-shares-the-history-of-bitchin-betty/;
+  sldinfo.com/2019/07/f-35-enterprise-fields-auto-gcas/.
+
 ## F-16I Sufa option (Extras switch, wishlist; decided 2026-10-17, F-16I chosen 2026-10-19, research first)
 - **Switch:** "F-16: Barak (1990s) / Sufa (F-16I)". The default is the game's early-1990s F-16D Barak.
 - **Sufa:** the IAF's F-16I (Block 52+ two-seater), in the same cockpit and model slot as the F-16D.
@@ -226,7 +246,7 @@ live play while recording at 4K. Two ways:
   - RWR / self-protection suite;
   - how it looks: the Sufa model on the Detailed F-16D (tools/f16d/rig.py: conformal fuel tanks, the large dorsal
     spine, the IAF Sufa livery and markings), and its cockpit (colour MFDs);
-  - its voice warnings (see the "Real Betty" research).
+  - its voice warnings ("Real Betty" option above).
 - **Steps:**
   1. Research the F-16I and its public data; write it into docs/real-aircraft.md.
   2. Build it behind the switch, the 1990s Barak unchanged.
