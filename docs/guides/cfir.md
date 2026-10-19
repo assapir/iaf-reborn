@@ -44,6 +44,7 @@ Set these on the Preferences screen before the flight. Every row starts at the 1
 | Extras | Flight data | Real aircraft | The Kfir C7 numbers (section 10) |
 | Extras | Weapon data | Real weapons | Radar range, gun rounds, missile weights, speeds and ranges |
 | Extras | HUD | Real | The Kfir's HUD (looking aside shows the original's helmet display) |
+| Extras | Better cockpit | Better | The panel compass turns with the heading (section 3) |
 | Graphics → MORE | Sky, Terrain close up, Imagery | Atmospheric, Detailed, Survey 2 m / Sentinel-2 | A physical sky, ground detail and photo imagery, if setup converted it |
 | Graphics → MORE | Airbases | Detailed | Runways, taxiways and aprons with real markings near the ground |
 | Physics | every row | on | Section 10 lists the ones that change how the Kfir flies |
@@ -78,6 +79,21 @@ A greyed-out imagery choice needs its data: convert it with `tools/setup-cli.sh 
 **Example**: at the start of mission 231 the bug sits under the caret: waypoint 1 is straight ahead, 4.7 NM away. Its
 marker waits at the bottom edge with an X: the waypoint is below the HUD's view. Lower the nose until the marker
 leaves the edge, then put the flight path marker on it.
+
+### The panel compass
+
+With Extras → Better cockpit on, the compass at the bottom of the panel turns with the heading (in the 1998 game it is
+a still picture). **V** brings the panel up into view, **PgUp** / **PgDn** slide it.
+
+![The panel compass with Better cockpit on](shots/cfir/compass.png)
+
+1. **Lubber mark**: the heading reads on the card under it, here about 320°.
+2. **Compass card**: it turns as the jet turns. The letters are the cardinal points (N, E, S, W), the numbers tens of
+   degrees (`33` = 330°).
+3. **Aircraft symbol**: fixed; it stands for your jet, its nose toward the lubber mark.
+
+**Example**: the HUD's heading scale is a 30° window; the compass shows the whole circle. To fly 090° from 320°, find
+9 on the card: it sits on the card's right half, so turn right and roll out when 9 reaches the lubber mark.
 
 ---
 
@@ -250,6 +266,15 @@ close range. It sees targets from 30 m above the ground, in line of sight; the o
 - **Chaff (Insert)** and **flares (Delete)**: 90 chaff and 60 flares. A flare fools an IR (infrared) missile with 33 %
   (50 % above 4 g) while the afterburner is off: pull hard, come out of afterburner, then flare. Self-protection is
   chaff and flares; **J** is the ECM pod's key on the jets that carry one.
+- **AWACS calls** (AWACS: the airborne early-warning controller): from 60 s into the flight the controller calls the
+  enemy aircraft within 35 NM, one scan every 12 s. "Alpha, bearing 090, 15 miles, target, heading 270, free to
+  engage" gives the contact's bearing and distance from you, then the heading it flies; sometimes "targets are already
+  engaged" takes the place of "free to engage". "Unidentified contacts, please identify" is a contact your radar has
+  not seen yet: find it on the radar before you engage. A contact is called again after 60 s, or at once when it moved
+  more than 5 NM; the repeat is short ("bearing 090, 15 miles, target"). The controller is silent while you fly less
+  than 50 m (165 ft) above the ground.
+- **Flight reports**: the radio also says when a jet of your side is airborne, has landed, crashed or ejected, and
+  calls each kill 5 s after it ("Alpha leader shot down MiG 29").
 
 ---
 
@@ -285,6 +310,8 @@ What changes in the cockpit:
 - **Ground effect** (Physics): a longer float in the flare. **Real idle thrust on the ground**: the jet settles near
   30 kt at idle.
 - **The stick on the keyboard** gives full deflection at once, as in the original; a joystick is smoother.
+- **The map edge**: about 12 km (6.5 NM) before the map's edge the EndWorld warning sounds: turn back. Past it the
+  game pushes the jet back for about 8 s: the nose rises and the jet turns back toward the map.
 
 ---
 
@@ -314,6 +341,7 @@ What changes in the cockpit:
 | H | HUD colour |
 | Shift+arrows, Numpad 1–9, F3 | Look around, snap views, padlock |
 | F1 / Ctrl+F2 | Cockpit ↔ HUD only / cockpit ↔ external |
+| SysRQ | Screen capture: a PNG in the `screenshots` folder of the game's user folder |
 | E | Eject |
 | C / Ctrl+C | Time ×2 ×4 ×1 / normal time |
 | Ctrl+P / Ctrl+O / Esc | Pause / in-flight menu / TSD map |

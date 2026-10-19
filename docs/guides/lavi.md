@@ -294,6 +294,8 @@ What changes in the cockpit:
   nose rocking near the horizon. Holding the stick forward keeps it there. **Recovery**: rock the stick in phase
   with the nose (pull while it rises, push while it falls) until the nose falls through, then pull out of the dive.
 - **Ground effect** (Physics): a longer float in the flare.
+- **The map edge**: about 12 km (6.5 NM) before the map's edge the EndWorld warning sounds: turn back. Past it the
+  game pushes the jet back for about 8 s: the nose rises and the jet turns back toward the map.
 
 ---
 
@@ -316,6 +318,15 @@ weapon's page replaces the right display.
   above 4 g) while the afterburner is off.
 - **ECM (J)** (electronic countermeasures), built in: each radar-guided missile already flying at you is jammed with a
   60 % chance. SAMs (surface-to-air missiles) keep guiding.
+- **AWACS calls** (AWACS: the airborne early-warning controller): from 60 s into the flight the controller calls the
+  enemy aircraft within 35 NM, one scan every 12 s. "Alpha, bearing 090, 15 miles, target, heading 270, free to
+  engage" gives the contact's bearing and distance from you, then the heading it flies; sometimes "targets are already
+  engaged" takes the place of "free to engage". "Unidentified contacts, please identify" is a contact your radar has
+  not seen yet: find it on the radar before you engage. A contact is called again after 60 s, or at once when it moved
+  more than 5 NM; the repeat is short ("bearing 090, 15 miles, target"). The controller is silent while you fly less
+  than 50 m (165 ft) above the ground.
+- **Flight reports**: the radio also says when a jet of your side is airborne, has landed, crashed or ejected, and
+  calls each kill 5 s after it ("Alpha leader shot down MiG 29").
 
 ---
 
@@ -339,6 +350,7 @@ weapon's page replaces the right display.
 | Insert / Delete / J | Chaff / flare / ECM |
 | H | HUD colour |
 | Shift+arrows, F3 | Free look, padlock |
+| SysRQ | Screen capture: a PNG in the `screenshots` folder of the game's user folder |
 | E | Eject |
 
 The **F-35I** (ours) can take the Lavi's place on the Jet list (Extras → F-35I replaces → Lavi): its own guide is

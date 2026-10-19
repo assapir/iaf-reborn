@@ -27,7 +27,9 @@ Screenshots (`shots/<jet>/*.png`) are rendered locally from the game by setup (`
 [--only name,…] [--force]`, needs a display; up-to-date pictures are kept) into `assets/converted/guides/shots/`, from each guide's `<jet>.shots.json` (its
 schema in the header of `tests/godot/_guide_shots.gd`). A "hud" crop takes `crop_w` (the box's width as a fraction of
 the frame; smaller zooms in) and `crop_dy` (the box moved down by that fraction of the frame's height; negative moves
-it up): the F-4E and Mirage gunsight shots use them to centre and enlarge a reticle that sits high on the glass. A
+it up): the F-4E and Mirage gunsight shots use them to centre and enlarge a reticle that sits high on the glass.
+A "compass" crop frames the panel's compass dial (`game/cockpit/compass.gd`) with the same `crop_w` / `crop_dy`: the
+Kfir, F-4E and Mirage guides show it with Better cockpit on. A
 `text:` callout's arrow ends on the box the HUD draws the text in (`hud.gd prim_text_box`). Readings that move by a few feet from one render to the next (the start height settles differently) take a pattern, such as `text:^[89]\d\d$` for an altitude near 900 ft, and the guide gives them as "about". A shot's `annotations` draw numbered yellow callouts with
 arrows onto the picture; the guide gives their legend as a numbered list right under the picture (same count:
 `tools/guide_pdf.py` warns otherwise). They show the original game's art, so they stay

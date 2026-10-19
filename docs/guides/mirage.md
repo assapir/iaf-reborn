@@ -43,6 +43,7 @@ Set these on the Preferences screen before the flight. Every row starts at the 1
 | Extras | Flight data | Real aircraft | The Mirage IIICJ numbers (section 9) |
 | Extras | Weapon data | Real weapons | Radar range, gun rounds, missile weights, speeds and ranges |
 | Extras | HUD | Real | The CSF 95 gunsight |
+| Extras | Better cockpit | Better | The bearing-distance-heading dial turns with the heading; its pointers show the waypoint (section 3) |
 | Graphics → MORE | Sky, Terrain close up, Imagery | Atmospheric, Detailed, Survey 2 m / Sentinel-2 | A physical sky, ground detail and photo imagery, if setup converted it |
 | Graphics → MORE | Airbases | Detailed | Runways, taxiways and aprons with real markings near the ground |
 | Physics | every row | on | Section 9 lists the ones that change how the Mirage flies |
@@ -85,6 +86,23 @@ Speed, altitude and heading are on the panel: fly with its instruments.
 6. **The display**: radar, RWR and the other pages (MENU).
 7. **AI / ML lamps**: an air threat, a missile launch at you.
 8. **The gunsight** on the glass.
+
+### The bearing-distance-heading dial
+
+With Extras → Better cockpit on, the dial right of the gunsight turns with the heading and its two pointers show the
+route (in the 1998 game it is a still picture). **W** / **Shift+W** pick the next / previous waypoint.
+
+![The bearing-distance-heading dial with Better cockpit on](shots/mirage/compass.png)
+
+1. **Heading**: read on the card at the top of the dial. The numbers are tens of degrees (`33` = 330°).
+2. **Bearing arrow** (the double bar): it points at the current waypoint. Turn until it points straight up, and you
+   fly to the waypoint.
+3. **Course needle** (the single line): the course of the route's leg, from the previous waypoint to the current one.
+   On the first leg it lies on the arrow.
+
+**Example**: here the arrow points about 90° right of the nose and the needle about 60° right: the waypoint is off
+your right wing. Turn right until the arrow points up. When the arrow and the needle lie on each other you are on the
+leg's line.
 
 ---
 
@@ -172,6 +190,15 @@ A-G (air-to-ground). The single display shows it.
 - **Chaff (Insert)** and **flares (Delete)**: 60 chaff and 30 flares. Chaff fools a radar missile with 10 % (30 %
   above 4 g), a flare an IR (infrared) missile with 33 % (50 % above 4 g) while the afterburner is off.
 - Chaff and flares are the Mirage's whole self-protection; the **J** jammer key belongs to jets with a jammer.
+- **AWACS calls** (AWACS: the airborne early-warning controller): from 60 s into the flight the controller calls the
+  enemy aircraft within 35 NM, one scan every 12 s. "Alpha, bearing 090, 15 miles, target, heading 270, free to
+  engage" gives the contact's bearing and distance from you, then the heading it flies; sometimes "targets are already
+  engaged" takes the place of "free to engage". "Unidentified contacts, please identify" is a contact your radar has
+  not seen yet: find it on the radar before you engage. A contact is called again after 60 s, or at once when it moved
+  more than 5 NM; the repeat is short ("bearing 090, 15 miles, target"). The controller is silent while you fly less
+  than 50 m (165 ft) above the ground.
+- **Flight reports**: the radio also says when a jet of your side is airborne, has landed, crashed or ejected, and
+  calls each kill 5 s after it ("Alpha leader shot down MiG 29").
 
 ---
 
@@ -206,6 +233,8 @@ What changes in the cockpit:
   30 kt at idle.
 - **The engine gauges stay still**: on the Mirage's panel the speed and fuel needles move, and the original's own
   cockpit data switches the engine clocks off.
+- **The map edge**: about 12 km (6.5 NM) before the map's edge the EndWorld warning sounds: turn back. Past it the
+  game pushes the jet back for about 8 s: the nose rises and the jet turns back toward the map.
 
 ### Take-off and landing numbers
 
@@ -252,6 +281,7 @@ airspeed needle.
 | Insert / Delete | Chaff / flare |
 | Shift+arrows, Numpad 1–9, F3 | Look around, snap views, padlock |
 | F1 / Ctrl+F2 | Cockpit ↔ sight only / cockpit ↔ external |
+| SysRQ | Screen capture: a PNG in the `screenshots` folder of the game's user folder |
 | E | Eject |
 | C / Ctrl+C | Time ×2 ×4 ×1 / normal time |
 | Ctrl+P / Ctrl+O / Esc | Pause / in-flight menu / TSD map |
@@ -276,6 +306,7 @@ airspeed needle.
 | LRS | long-range search |
 | mr | milliradian (1 mr spans 1 m at 1 km) |
 | NAV | navigation mode |
+| NM | nautical mile (1.852 km) |
 | \[R\] | a reconstruction: the real setting is public in outline |
 | RWR | radar warning receiver |
 | STT | single-target track: a radar lock |

@@ -16,7 +16,8 @@
 # "emitter" the placed unit's radar locks the jet, "fire" Space held, "look:Y,P" the head turned Y° right / P° up (free look), "key:X" a game key, "wait:S"), panel (0 the forward view … 1 the
 # whole panel), "dive" (an airborne start in a `dive_deg` dive `dive_agl` m above the ground), view ("cockpit" / "hud", the HUD-only view / "external"), crop ("full", "hud", "dash", "mfd_left", "mfd_right"; "hud" takes
 # `crop_w`, the box's width as a fraction of the frame, default 0.38: smaller zooms in; and `crop_dy`, the box moved down
-# by that fraction of the frame's height, negative moves it up, default 0: a gunsight's reticle that sits high).
+# by that fraction of the frame's height, negative moves it up, default 0: a gunsight's reticle that sits high;
+# "compass": a 16:10 box around the panel's compass / HSI dial, game/cockpit/compass.gd, with the same crop_w / crop_dy).
 # Callouts ("annotations": [{n, anchor, label_at | off}]) are drawn on the picture: a numbered yellow marker at
 # `label_at` (a fraction of the crop) or at the anchor + `off` (× the crop's shorter side; [0, 0] puts the marker on
 # the anchor, no arrow) with an arrow to the anchor. The anchor is
@@ -311,6 +312,14 @@ func _crop(c: String, size: Vector2i, hud_w := 0.38, hud_dy := 0.0) -> Rect2i:
 			var wd := int(size.x * 0.45)
 			var ht := int(wd * 10 / 16)
 			return Rect2i(Vector2i(los) - Vector2i(wd / 2, ht / 2), Vector2i(wd, ht)).intersection(full)
+		"compass":  # the panel's compass / HSI dial (compass.gd): a 16:10 box around it, crop_w of the frame wide
+			var ck = tv.cockpit
+			var spec: Dictionary = load("res://cockpit/compass.gd").instruments(String(ck.cockpit_dir).get_file())[0]
+			var ctr: Vector2 = ck.panel_to_screen(spec.centre.x, spec.centre.y) + ck.global_position
+			var wd := int(size.x * hud_w)
+			var ht := int(wd * 10 / 16)
+			ctr.y += size.y * hud_dy
+			return Rect2i(Vector2i(ctr) - Vector2i(wd / 2, ht / 2), Vector2i(wd, ht)).intersection(full)
 		"mfd_left", "mfd_right":
 			for m in tv.cockpit.mfds:
 				if m.index == (0 if c == "mfd_left" else 1):

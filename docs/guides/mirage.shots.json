@@ -260,6 +260,92 @@
   ]
  },
  {
+  "name": "compass",
+  "caption": "The bearing-distance-heading dial with Better cockpit on",
+  "mission": 231,
+  "jet": 6,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   },
+   "better_cockpit": true
+  },
+  "start": "airborne",
+  "turn_deg": 40,
+  "crop": "compass",
+  "crop_w": 0.2,
+  "panel": 1.0,
+  "actions": [
+   "key:W",
+   "key:W",
+   "key:W",
+   "wait:0.5"
+  ],
+  "annotations": [
+   {
+    "n": 1,
+    "px": [
+     0.5,
+     0.33
+    ],
+    "label_at": [
+     0.62,
+     0.14
+    ]
+   },
+   {
+    "n": 2,
+    "px": [
+     0.575,
+     0.485
+    ],
+    "label_at": [
+     0.62,
+     0.76
+    ]
+   },
+   {
+    "n": 3,
+    "px": [
+     0.58,
+     0.43
+    ],
+    "label_at": [
+     0.72,
+     0.28
+    ]
+   }
+  ]
+ },
+ {
   "name": "sight_gun",
   "caption": "The gun: the reticle on the lead",
   "mission": 231,
