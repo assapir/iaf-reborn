@@ -75,10 +75,10 @@ The tool converts a source in seven steps:
    - `--dry-run` lists each unit it would convert again and the reason (`rules changed`, `sheets changed`), and
      counts the units not converted yet.
    - `--stale` converts only units whose mark is out of date, plus unmarked units on an airbase; units never
-     converted stay so. `tools/setup.sh` runs it for each layer after restoring imagery from a mirror
+     converted stay so. `tools/setup-cli.sh` runs it for each layer after restoring imagery from a mirror
      (`IAF_IMAGERY_MIRROR`), once the theatre exists. The restore copies imagery only when
      `assets/converted/imagery` is missing, so it never overwrites newer local units. When the sheets were not
-     restored, `mapi2015` cannot be converted again: setup.sh then prints a warning that lists the out-of-date units.
+     restored, `mapi2015` cannot be converted again: setup-cli.sh then prints a warning that lists the out-of-date units.
      When `sentinel2` cannot reach WorldCover, it prints a warning and goes on.
 
 ## 3. Where a layer replaces the original
@@ -203,12 +203,12 @@ The player picks a layer per region in Preferences → Graphics → MORE; the te
 
 ## 7. How to run
 
-`tools/setup.sh --imagery` fetches and converts a layer; the `iaf-imagery` binary does the same by hand for an area.
+`tools/setup-cli.sh --imagery` fetches and converts a layer; the `iaf-imagery` binary does the same by hand for an area.
 
 ```sh
-tools/setup.sh --imagery sentinel2          # estimate, ask, fetch + convert (needs gdal); alone = imagery steps only
-tools/setup.sh --imagery mapi2015-bases     # Survey of Israel sheets around the airbases, through the browser, + convert
-tools/setup.sh --imagery mapi2015           # all 79 sheets (download what is missing) + convert (incremental)
+tools/setup-cli.sh --imagery sentinel2          # estimate, ask, fetch + convert (needs gdal); alone = imagery steps only
+tools/setup-cli.sh --imagery mapi2015-bases     # Survey of Israel sheets around the airbases, through the browser, + convert
+tools/setup-cli.sh --imagery mapi2015           # all 79 sheets (download what is missing) + convert (incremental)
 
 # by hand: a small sample (lon0,lat0,lon1,lat1), e.g. the head of the Gulf of Suez (a few 40 km units)
 cargo build --release -p iaf-tools
@@ -225,7 +225,7 @@ cargo build --release -p iaf-tools
 The Israel layers come from the Survey of Israel 2015 aerial photo: 79 ZIPs, one per 1:50 000 sheet, listed in
 tools/imagery/mapi2015_sheets.tsv.
 
-**Getting the sheets** (what `tools/setup.sh --imagery mapi2015` runs):
+**Getting the sheets** (what `tools/setup-cli.sh --imagery mapi2015` runs):
 
 1. `tools/imagery/fetch-mapi2015-curl.sh [--bases]` downloads the sheets into `assets/source/imagery/mapi2015/` with
    curl and the data.gov.il WAF (web application firewall) token that Firefox earned.
@@ -260,7 +260,7 @@ Details:
 - **Level 1** (2.5 m/px, the source's 2 m): the runtime draws level-1 layer nodes as they are (§5).
 - **Incremental**: each unit's mark lists the sheets in its window and the rules tag (§2, item 7). A re-run redoes
   the units whose sheet set changed (sheets added) or whose rules tag differs, and rebuilds the coarser levels.
-  - After downloading more sheets, re-run `tools/setup.sh --imagery mapi2015` (or the command above).
+  - After downloading more sheets, re-run `tools/setup-cli.sh --imagery mapi2015` (or the command above).
   - The tool skips incomplete downloads (`*.part`, `*.crdownload`, a ZIP that does not open).
 - **Rules** (§3): the region is map.ptt's Israel rectangle. Airbase footprints and target site insets (level ≤ 2)
   stay the original's;

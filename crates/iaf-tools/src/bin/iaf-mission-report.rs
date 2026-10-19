@@ -650,7 +650,7 @@ fn main() -> Result<()> {
          rest. Use it to pick the next feature to build.\n\n\
          - **How it works:** the report breaks every mission into the *features* it needs. A mission is **playable** when \
          we support all of them. §4 lists the rules (taken from the original); §5 lists what this analysis cannot know.\n\
-         - **Source:** `iaf-mission-report` reads the converted missions (the output of `tools/setup.sh`). Do not edit this \
+         - **Source:** `iaf-mission-report` reads the converted missions (the output of `tools/setup-cli.sh`). Do not edit this \
          file by hand.\n\
          - **Regenerate:** `./target/release/iaf-mission-report assets/converted/missions docs/mission-coverage.md`.\n\
          - **Terms:** AAA = anti-aircraft artillery (guns); AAM = air-to-air missile; bdb = the mission database file; \

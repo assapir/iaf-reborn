@@ -64,7 +64,7 @@ pub fn load(install: &Path, section: &str) -> Result<(Params, Envelope), String>
 
 /// A `resource/md` file. The v1.1 patch ships its flight data as new, encoded files that its exe reads
 /// instead of v1.0's (`bd.ibx` → `bdgen.dat`, `<n>.dat` → `<n>gen.skp`; each byte XOR (0x67 + offset),
-/// docs/real-aircraft.md §1). `tools/setup.sh --patch` puts them into the install itself; without them
+/// docs/real-aircraft.md §1). `tools/setup-cli.sh --patch` puts them into the install itself; without them
 /// the v1.0 file is read.
 pub fn read_md(install: &Path, name: &str) -> Result<Vec<u8>, String> {
     let name = name.to_lowercase();

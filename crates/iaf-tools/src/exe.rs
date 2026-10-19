@@ -180,7 +180,7 @@ fn dib_icon(b: &[u8]) -> Option<image::RgbaImage> {
 mod tests {
     use super::*;
 
-    /// The real exes, when present: v1.0 in `assets/v1.0` (kept by tools/setup.sh when it patches)
+    /// The real exes, when present: v1.0 in `assets/v1.0` (kept by tools/setup-cli.sh when it patches)
     /// or an unpatched `assets/install`, v1.1 in `assets/v1.1` (the `iaf-patch` output).
     #[test]
     fn releases_of_the_real_exes() {

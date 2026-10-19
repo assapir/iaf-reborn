@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Builds what changed (the Rust extension the game loads) and starts the game — named after the original
-# iafjets.exe. Run tools/setup.sh once first. Extra arguments go to the game (after --), e.g. ./iafjets --mission 311
+# iafjets.exe. Run tools/setup-cli.sh once first. Extra arguments go to the game (after --), e.g. ./iafjets --mission 311
 set -euo pipefail
 cd "$(dirname "$0")"
-[[ -d assets/converted ]] || { echo "No game data yet: run tools/setup.sh \"/path/to/Jane's IAF.iso\" first." >&2; exit 1; }
+[[ -d assets/converted ]] || { echo "No game data yet: run tools/setup-cli.sh \"/path/to/Jane's IAF.iso\" first." >&2; exit 1; }
 cargo build --release -q -p iaf-godot
 godot=${GODOT:-godot}
 if ! command -v "$godot" >/dev/null && [[ -x /Applications/Godot.app/Contents/MacOS/Godot ]]; then

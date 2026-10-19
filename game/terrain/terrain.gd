@@ -102,7 +102,7 @@ func _ready() -> void:
 	dir = Settings.assets_dir().path_join(data_dir)
 	meta = Settings.load_json(dir.path_join("meta.json"))
 	if meta.is_empty():
-		push_error("terrain: %s/meta.json not found — run tools/setup.sh (iaf-terrain theatre)" % dir)
+		push_error("terrain: %s/meta.json not found — run tools/setup-cli.sh (iaf-terrain theatre)" % dir)
 		return
 	m_per_unit = float(meta.get("units_to_metres", 1.0))
 	_span0 = float(meta.node_pixels)

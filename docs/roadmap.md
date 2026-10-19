@@ -179,7 +179,7 @@ The static maps (TSD / briefing EMF maps, map texts, borders, city names) show t
 switch adds an updated overlay with today's borders, names and places (drawn by us; original maps by default).
 
 ## Setup wizard (in progress, 2026-10-19)
-A first-run wizard in the game itself (Linux + macOS), a second way to set up next to `tools/setup.sh` (which stays
+A first-run wizard in the game itself (Linux + macOS), a second way to set up next to `tools/setup-cli.sh` (which stays
 for scripting):
 1. the English CD (required), optionally the v1.1 patch, the Hebrew CD (or, without it, the Hebrew packs), imagery
    and the pilot guides, each checked when picked and each optional extra with its warning (download size, time,

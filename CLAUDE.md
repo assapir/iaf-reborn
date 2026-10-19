@@ -13,7 +13,7 @@ generated into the git-ignored `assets/`; the repo must never contain original g
 Run from the repo root.
 
 ```sh
-tools/setup.sh [--patch v1.1.exe] "/path/to/Jane's IAF.iso"   # one-time: extract + convert everything into assets/
+tools/setup-cli.sh [--patch v1.1.exe] "/path/to/Jane's IAF.iso"   # one-time: extract + convert everything into assets/
 ./iafjets [-- --mission 311]                                  # builds the iaf-godot extension (release) and starts the game
 cargo test -q --workspace                                     # Rust tests (data/python3-dependent ones skip with a message)
 cargo test -q -p iaf-flight --test validation <name>          # one Rust test
@@ -45,7 +45,7 @@ python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded 
 
 - `crates/iaf-formats` — parsers for the original file formats (ISO9660, PTT terrain, terraintype.dat, X models, ESA, EMF, menu, RTF,
   LZO, PE resources, the CD launcher's .rgn…). Format notes in `docs/formats/`.
-- `crates/iaf-tools` — CLIs used by `tools/setup.sh`: `iaf-extract` (ISO → `assets/install`), `iaf-patch` (v1.1 RTPatch
+- `crates/iaf-tools` — CLIs used by `tools/setup-cli.sh`: `iaf-extract` (ISO → `assets/install`), `iaf-patch` (v1.1 RTPatch
   without Windows), `iaf-convert` (cockpits, menus, keys, missions, aircraft → `assets/converted`, plus
   `plane-describe` / `plane-checklist`), `iaf-terrain`, `iaf-imagery`, `iaf-import-pack`, `iaf-mission-report`.
   `iaf-convert` and `iaf-imagery` are argument parsers over library modules (`convert`, `imagery_run`): each entry

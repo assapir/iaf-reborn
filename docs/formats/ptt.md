@@ -135,7 +135,7 @@ heights (it is not flattened).
   - Height + normal (`4045e0`): offsets 5 px, `normal = normalize(W−E, N−S, 10·2^L)`.
 
 ## Converted layout (`iaf-terrain theatre`)
-`iaf-terrain theatre <map.ptt> <out> [threads]` converts **every level and every inset**. `tools/setup.sh` runs it,
+`iaf-terrain theatre <map.ptt> <out> [threads]` converts **every level and every inset**. `tools/setup-cli.sh` runs it,
 with output in `assets/converted/terrain/theatre`. The output is a quadtree of nodes on a grid aligned to the theatre
 origin:
 

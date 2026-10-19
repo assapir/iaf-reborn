@@ -577,7 +577,7 @@ The cockpit state S:
   applies. `GetPrivateProfileInt` returns the default when the value reads as an empty string (Wine's
   `GetPrivateProfileIntW`; 0 only for text that is not a number). So the Mirage's empty `ClockCenterX` is 960, under
   the opaque panel, and its standby disc is hidden. (Read as 0, it showed at the panel's left edge.)
-* `tools/setup.sh` converts every cockpit (step "cockpits": f16, f15, f4-2000, phantom, cfir, lavi, mirage, mig23,
+* `tools/setup-cli.sh` converts every cockpit (step "cockpits": f16, f15, f4-2000, phantom, cfir, lavi, mirage, mig23,
   mig29).
 * `game/cockpit/cockpit.gd`:
   * `cockpit_dir` defaults to `.../cockpits/f16`; the player's cockpit replaces it.

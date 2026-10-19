@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # One-shot setup: build everything the game needs from your own copy of Jane's IAF.
 #
-#   tools/setup.sh [--patch /path/to/v1.1-patch.exe] [--hebrew-iso IAF.Iso] "/path/to/Jane's IAF.iso" [Brief.zip] [Menu.zip]
+#   tools/setup-cli.sh [--patch /path/to/v1.1-patch.exe] [--hebrew-iso IAF.Iso] "/path/to/Jane's IAF.iso" [Brief.zip] [Menu.zip]
 #
 # --patch (or the IAF_PATCH environment variable) is the official v1.1 update: the downloaded
 # WinZip self-extractor, iafp1_1.exe or a bare patch file (docs/formats/rtpatch.md). It is applied to
@@ -23,7 +23,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-usage='usage: tools/setup.sh [--patch <v1.1 patch>] [--hebrew-iso <Hebrew CD>] [--imagery sentinel2,mapi2015,mapi2015-bases] ["/path/to/Jane'"'"'s IAF.iso" [Brief.zip] [Menu.zip]]'
+usage='usage: tools/setup-cli.sh [--patch <v1.1 patch>] [--hebrew-iso <Hebrew CD>] [--imagery sentinel2,mapi2015,mapi2015-bases] ["/path/to/Jane'"'"'s IAF.iso" [Brief.zip] [Menu.zip]]'
 patch=${IAF_PATCH:-}
 imagery=
 hebrew_iso=${IAF_HEBREW_ISO:-}
@@ -81,7 +81,7 @@ imagery_refresh() {
 	fi
 	if [[ -d assets/converted/imagery/sentinel2 ]]; then
 		./target/release/iaf-imagery sentinel2 assets/install assets/converted/terrain/theatre assets/converted/imagery --stale ||
-			echo "WARNING: sentinel2 units with older rules could not be converted again (it reads WorldCover over the network); re-run tools/setup.sh --imagery sentinel2"
+			echo "WARNING: sentinel2 units with older rules could not be converted again (it reads WorldCover over the network); re-run tools/setup-cli.sh --imagery sentinel2"
 	fi
 	restored=
 }

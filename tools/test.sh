@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Runs every test: Rust unit/validation tests, then the headless Godot tests in tests/godot.
-# Needs the converted assets (tools/setup.sh). Tests never touch the player's settings
+# Needs the converted assets (tools/setup-cli.sh). Tests never touch the player's settings
 # (IAF_DEFAULT_SETTINGS=1) and open no window.
 set -uo pipefail
 cd "$(dirname "$0")/.."

@@ -56,7 +56,7 @@ func _ready() -> void:
 	grab_focus()
 
 
-## False when the CD files are missing (setup.sh / iaf-extract --autorun not run): the start-up then goes on.
+## False when the CD files are missing (setup-cli.sh / iaf-extract --autorun not run): the start-up then goes on.
 func available() -> bool:
 	return poster != null and buttons != null and slots.size() == 8
 

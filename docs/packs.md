@@ -23,7 +23,7 @@ New planes follow docs/adding-a-plane.md.
 2. The importer copies only the files that differ from the base install, and new files whose extension is already
    used in that folder.
 
-`tools/setup.sh` imports the packs after the v1.1 patch, so a pack overlays the patched English files. Both Hebrew
+`tools/setup-cli.sh` imports the packs after the v1.1 patch, so a pack overlays the patched English files. Both Hebrew
 packs replace two v1.1-patched files: `brief/txt/112.rtf` and `menu/txt/msgs.trx`. The pack's `msgs.trx` already
 has the v1.1 line 56. A shorter `msgs.trx` would get the install's missing lines (docs/front-end.md §3.3).
 
@@ -60,7 +60,7 @@ The menus, HUD, radio messages and speech stay English.
 
 ### `he` — Hebrew retail CD (Hed Arzi, v1.0, copy-protected)
 
-* Setup: `tools/setup.sh --hebrew-iso IAF.Iso` (archive.org item `iaf_20230527`, `IAF.Iso`).
+* Setup: `tools/setup-cli.sh --hebrew-iso IAF.Iso` (archive.org item `iaf_20230527`, `IAF.Iso`).
 * The CD's 591 translated files are byte-identical to `Brief.zip` + `Menu.zip`. Only the CD has
   `menu/bmp/back0.bmp` (the startup splash, "איתחול...") and the Graphics page `menu/bmp/pref/graph_0/1.bmp`.
 * The official Hebrew v1.1 patch (`IAFheb1_1.EXE`) replaces those three files with the English v1.1 ones, so setup

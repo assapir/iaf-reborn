@@ -3,7 +3,7 @@
 # Linux: ~/.local/share/applications/iaf-reborn.desktop; the file name matches the game window's app id
 # (iaf-reborn), which is how GNOME / KDE pick the window icon.
 # macOS: ~/Applications/Jane's IAF (reborn).app, a bundle whose executable runs ./iafjets.
-# Run by tools/setup.sh; safe to re-run.
+# Run by tools/setup-cli.sh; safe to re-run.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 root=$(pwd)

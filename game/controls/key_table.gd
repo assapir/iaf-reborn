@@ -50,7 +50,7 @@ func _load(path: String) -> void:
 	for dik in DIK_TO_KEY:
 		_key_to_dik[DIK_TO_KEY[dik]] = dik
 	if not FileAccess.file_exists(path):
-		push_error("key table missing (%s): run tools/setup.sh" % path)
+		push_error("key table missing (%s): run tools/setup-cli.sh" % path)
 		return
 	var d := Settings.load_json(path)
 	if d.is_empty():

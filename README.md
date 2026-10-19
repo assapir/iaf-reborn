@@ -38,7 +38,7 @@ See [docs/status.md](docs/status.md) for what works, known gaps and the plan.
 | `godot` (4.7+)                                                     | extra  | running the viewer / game (`game/`)                                       |
 | `vulkan-intel` / `vulkan-radeon` / `nvidia-utils` (match your GPU) | extra  | Vulkan rendering                                                          |
 | `ttf-liberation` (or `ttf-ms-fonts` from AUR for real Arial)         | extra  | menu text (the original uses Arial; Liberation Sans is metric-compatible) |
-| `gdal` _(optional)_                                                | extra  | modern terrain imagery (`tools/setup.sh --imagery …`): fetch, warp, mosaic |
+| `gdal` _(optional)_                                                | extra  | modern terrain imagery (`tools/setup-cli.sh --imagery …`): fetch, warp, mosaic |
 
 ```sh
 sudo pacman -S --needed rustup godot vulkan-intel
@@ -55,12 +55,12 @@ See [docs/macos.md](docs/macos.md).
 ## Quick start
 
 ```sh
-tools/setup.sh [--patch /path/to/v1.1-patch.exe] [--hebrew-iso /path/to/IAF.Iso] "/path/to/Jane's IAF.iso" [/path/to/Brief.zip /path/to/Menu.zip]
+tools/setup-cli.sh [--patch /path/to/v1.1-patch.exe] [--hebrew-iso /path/to/IAF.Iso] "/path/to/Jane's IAF.iso" [/path/to/Brief.zip /path/to/Menu.zip]
 ./iafjets                                                          # builds what changed and starts the game (front end → Training → mission)
 # setup also installs a desktop launcher, "Jane's IAF (reborn)", with the original icon
 ```
 
-`tools/setup.sh` runs the whole pipeline in this order (the script lists each command):
+`tools/setup-cli.sh` runs the whole pipeline in this order (the script lists each command):
 
 1. extract the ISO;
 2. apply the v1.1 patch;
@@ -94,7 +94,7 @@ cargo run --release -p iaf-tools --bin iaf-extract -- "/path/to/Jane's IAF.iso" 
 This reproduces the original "Full Install" (lower-cased paths) without Windows.
 
 The v1.1 update is applied the same way. `apply` reads the install and writes the 41 updated files to the output
-directory. `tools/setup.sh --patch` runs it and then copies those files over the install. Format notes:
+directory. `tools/setup-cli.sh --patch` runs it and then copies those files over the install. Format notes:
 [docs/formats/rtpatch.md](docs/formats/rtpatch.md).
 
 ```sh
@@ -128,8 +128,8 @@ The 1998 imagery stays the default. Modern imagery is an opt-in layer per region
 Preferences → Graphics → MORE ("Imagery Israel", "Imagery outside Israel"); a choice whose data is not converted is greyed out. Nothing is downloaded unless you ask:
 
 ```sh
-tools/setup.sh --imagery sentinel2                  # alone: only the imagery steps, on an install set up before
-tools/setup.sh --imagery mapi2015-bases             # or several: --imagery sentinel2,mapi2015
+tools/setup-cli.sh --imagery sentinel2                  # alone: only the imagery steps, on an install set up before
+tools/setup-cli.sh --imagery mapi2015-bases             # or several: --imagery sentinel2,mapi2015
 ```
 
 | source | region | where from | licence / credit | size | how | folder |

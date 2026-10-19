@@ -8,7 +8,7 @@ The code builds and runs on macOS (Apple silicon). It is less tested there than 
    ```sh
    brew install rustup coreutils      # coreutils: `timeout` for tools/test.sh
    brew install --cask godot          # needs Godot 4.7 or newer (game/iaf.gdextension requires it)
-   brew install gdal                  # optional: modern terrain imagery (tools/setup.sh --imagery)
+   brew install gdal                  # optional: modern terrain imagery (tools/setup-cli.sh --imagery)
    rustup default stable
    ```
 2. Put `godot` on the PATH. The cask installs Godot to /Applications/Godot.app only. `./iafjets` finds the app
@@ -21,11 +21,11 @@ The code builds and runs on macOS (Apple silicon). It is less tested there than 
 
 ```sh
 git clone https://github.com/assapir/iaf-reborn && cd iaf-reborn
-tools/setup.sh "/path/to/Jane's IAF.iso"     # options (v1.1 patch, Hebrew packs) as in the README
+tools/setup-cli.sh "/path/to/Jane's IAF.iso"     # options (v1.1 patch, Hebrew packs) as in the README
 ./iafjets                                # builds the extension (target/release/libiaf_godot.dylib) and starts the game
 ```
 
-`setup.sh` runs the same Rust tools on macOS and Linux. Extraction, the v1.1 patch, the Hebrew packs and
+`setup-cli.sh` runs the same Rust tools on macOS and Linux. Extraction, the v1.1 patch, the Hebrew packs and
 conversion therefore behave identically (see README).
 
 ## Tests

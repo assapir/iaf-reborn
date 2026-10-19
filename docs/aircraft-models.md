@@ -62,7 +62,7 @@ model's set).
 ## 2. Rebuilding the F-16D
 
 You need Blender 4 or 5, `basisu` (`brew install basis_universal`), a FlightGear F-16 checkout and your converted
-install (`tools/setup.sh`):
+install (`tools/setup-cli.sh`):
 
 ```sh
 git clone --depth 1 https://github.com/NikolaiVChr/f16.git /tmp/f16

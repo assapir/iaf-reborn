@@ -259,7 +259,7 @@ Options:
   - `game/extra/planes/<plane>/arm/front.png`: its front view in the arming greens (`tools/plane/kit.py`
     `arm_front_view`, mirrored like the originals: station A on the image's left) and `arm.json` (base / max lb,
     `boxes` = a base jet's station boxes, `points` = the stations on the front view, `title`, `base_art`);
-  - `iaf-convert arm-extra <converted menu>/img <arm dir> <out png>` (run by `tools/setup.sh`) composes the screen
+  - `iaf-convert arm-extra <converted menu>/img <arm dir> <out png>` (run by `tools/setup-cli.sh`) composes the screen
     on the user's machine: the background from the original jets' images (a low percentile per pixel outvotes
     each jet and its lines), the base jet's boxes and bottom band, our front view and leader lines;
   - the game draws the title (`arming.gd`), reads `arm.json` (`mission_weapons.gd` `_extra_jet`); a jet picked on

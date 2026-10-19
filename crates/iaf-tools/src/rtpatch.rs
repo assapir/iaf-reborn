@@ -1010,7 +1010,7 @@ mod tests {
     }
 
     /// The real v1.1 patch against the extracted v1.0 exe. Skipped unless both exist: the
-    /// patch is read from `$IAF_PATCH` or `assets/patch/iafp1_1.exe` (tools/setup.sh puts it
+    /// patch is read from `$IAF_PATCH` or `assets/patch/iafp1_1.exe` (tools/setup-cli.sh puts it
     /// there), the v1.0 exe from `assets/v1.0` (the originals setup keeps when it patches the
     /// install) or else the unpatched `assets/install`.
     #[test]

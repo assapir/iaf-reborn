@@ -628,7 +628,7 @@ func _choose_start(args: PackedStringArray) -> void:
 func _mission_player() -> Dictionary:
 	var files := MissionRuntime.mission_files(mission_id)
 	if files.is_empty():
-		push_error("mission %d not found — run tools/setup.sh" % mission_id)
+		push_error("mission %d not found — run tools/setup-cli.sh" % mission_id)
 		return {}
 	mission_name = files[0].name
 	var mission: Dictionary = files[0].data

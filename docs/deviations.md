@@ -230,7 +230,7 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     aprons, shelters and building clusters plus 150 m; imagery.md §3) or the original's target insets (level 0–2). The Israel layer does replace the original's level-3 (9.9 m) cover of Israel.
   - Heights, terrain types and missions stay the original's. The converted layers' credits (CC BY) roll with the
     credits on Quit (docs/credits.md).
-  - Data only via `tools/setup.sh --imagery …` (off by default).
+  - Data only via `tools/setup-cli.sh --imagery …` (off by default).
 
 - **Water** (ours, docs/rendering.md §1.3). Rendering only; the default is Original (the photo's water, shaded flat).
   - Detailed: the sea and lakes get moving waves, ripples and wind patches, the sun's glint (a sparkling glitter path)

@@ -6,7 +6,7 @@ switch, with the original as the default. Key facts:
 
 - Checked 2026-09-30; licences quoted from the providers' own pages / capabilities. **Kept as written then.**
 - Built from it: the georeference (docs/georef.md), the Sentinel-2 layers outside Israel and the Survey of Israel 2 m
-  layers in Israel (docs/imagery.md, `tools/setup.sh --imagery sentinel2,mapi2015`).
+  layers in Israel (docs/imagery.md, `tools/setup-cli.sh --imagery sentinel2,mapi2015`).
 - The elevation part is not built (docs/roadmap.md "Modern DEM").
 - Recommendation of the time: ESA WorldCover Sentinel-2 2021 as the imagery base, Copernicus DEM GLO-30 for
   elevation, the original always on top (§4).
@@ -231,7 +231,7 @@ Two looks, picked at conversion time (default "1998 palette"):
 
 ### 4.6 Setup step, disk, runtime switch
 
-**Setup step**: `tools/setup.sh --modern-imagery [medium|high]` → `iaf-terrain imagery` (new, in iaf-tools):
+**Setup step**: `tools/setup-cli.sh --modern-imagery [medium|high]` → `iaf-terrain imagery` (new, in iaf-tools):
 
 1. Read the georeference.
 2. Fetch the needed COG windows by HTTP range (resumable cache, the godotiles pattern). Simpler option: GDAL's
@@ -264,7 +264,7 @@ About 1.5–2 weeks for the imagery; the optional relief phases add 2–3 days (
 | Georeference (GCP picking tool, OSM runways, auto phase-correlation points, TPS fit, georef.json, docs) | 2–3 days |
 | `iaf-terrain imagery` downloader + converter (COG range reads or GDAL, node composition, sea mask, feathering) | 3–5 days |
 | Colour transfer (1998 palette / modern), tuning against the insets | 2–3 days |
-| Runtime switch, second data dir, attribution, setup.sh / README | ~1 day |
+| Runtime switch, second data dir, attribution, setup-cli.sh / README | ~1 day |
 | **Imagery total** | **~1.5–2 weeks** |
 | DEM normal maps (phase 1) | 2–3 days |
 | Modern relief geometry (phase 2, object snapping, runway flattening) | 3–5 days |

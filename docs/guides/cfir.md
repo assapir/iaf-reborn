@@ -49,7 +49,7 @@ Set these on the Preferences screen before the flight. Every row starts at the 1
 | Physics | every row | on | Section 10 lists the ones that change how the Kfir flies |
 | Gameplay | Easy landing, Easy aiming, No blackouts / spins / stalls | off | Real landing limits, real launch rules, g-effects and stalls |
 
-A greyed-out imagery choice needs its data: convert it with `tools/setup.sh --imagery`.
+A greyed-out imagery choice needs its data: convert it with `tools/setup-cli.sh --imagery`.
 
 ---
 

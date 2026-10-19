@@ -388,7 +388,7 @@ Preferences → Graphics → MORE → **Airbases = Detailed** (ours, docs/deviat
 taxiways and aprons as a procedural surface with ICAO markings when the camera is near the ground. Original shows the
 1998 imagery's painted runways. Rendering only: the flight model's runway surface stays terraintype.dat's.
 
-**The data** (`iaf-terrain airbases <install> <theatre> <out>`, run by `tools/setup.sh`; `crates/iaf-tools/src/airbases.rs`).
+**The data** (`iaf-terrain airbases <install> <theatre> <out>`, run by `tools/setup-cli.sh`; `crates/iaf-tools/src/airbases.rs`).
 For each of iaf.ibx's ten bases, from the 1998 art at level 1 (2.5 m per pixel) around the base's terraintype.dat
 runway cells:
 

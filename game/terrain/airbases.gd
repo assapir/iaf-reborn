@@ -22,7 +22,7 @@ static func bases() -> Array:
 		var j: Dictionary = Settings.load_json(Settings.assets_dir().path_join("converted/terrain/airbases.json"))
 		_bases = j.get("bases", [])
 		if _bases.is_empty():
-			push_warning("airbases.json missing: run tools/setup.sh (Airbases = Detailed draws nothing)")
+			push_warning("airbases.json missing: run tools/setup-cli.sh (Airbases = Detailed draws nothing)")
 	return _bases
 
 
