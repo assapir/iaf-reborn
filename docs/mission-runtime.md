@@ -110,7 +110,7 @@ Copy path:
 |---|---|---|---|
 | 0 | +0xd0 | +0x8c | **evHit**: fires event `0x33e` when the entity goes alive→damaged (state 1→3, `FUN_004a8ae0` → `FUN_004a8100` → `FUN_004a6240`) |
 | 1 | +0xd4 | +0x90 | **evDestroy**: fires event `0x33e` when the entity reaches state 4 or 5 (`FUN_004a8280` / `FUN_004a8420` → `FUN_004a6310`), then killScenario |
-| 2 | +0xe4 | +0x94 | **evNotDestroy**: at end of flight, for every entity that is not destroyed (state ≠ 4/5) and still has a live scenario, `FUN_0059a0f0` → `FUN_004a63c0` shows **debrief item id `0x33e`**. The id is looked up in the debrief map (the event map plays no part). The editor stores event names here (244 of 246 uses), so the data and code disagree. Implement what the code does. |
+| 2 | +0xe4 | +0x94 | **evNotDestroy**: at end of flight, for every entity that is not destroyed (state ≠ 4/5) and still has a live scenario, `FUN_0059a0f0` → `FUN_004a63c0` shows **debrief item id `0x33e`**. The id is looked up in the debrief map (the event map plays no part). The editor stores event names here (244 of 246 uses), so the data and code disagree. The port does what the code does (`mission_runtime.gd` `debrief_text`). |
 | 3 | +0xe0 | +0x98 | stored; **no reader found** (3 uses in the data, all named "…Combat") — UNCERTAIN |
 | 4 | +0xe8, `0x348`→(float)+0xf0 | +0x9c, radius +0xa4 | **evLeft** event id = `0x33e`. **`0x348` = the radius used by the reached and left checks** (world units ≈ m) |
 | 5 | +0xec | +0xa0 | **evReached**: event id `0x33e` |
@@ -602,7 +602,8 @@ No "ejected"/"rescued"/"MIA" strings exist in the exe or the menu texts. The pla
   action, once per unit (brain +0xe0).
 - It fires no mission event: no script can trigger on "landed" (§5, §8).
 - **Port:** `terrain_view.gd` `_on_landed()` runs whenever the flight state's `landings` counter grows and hands the
-  player's landing to `ai_flights.gd` `landed_handler` (test `test_landed.gd`).
+  player's landing to `ai_flights.gd` `landed_handler` (test `test_landed.gd`). With the player in the wingman's seat
+  of a landing AI leader, the player's NAV selects the last waypoint (inferred, docs/ai.md §7.2).
 
 ## 6. Implementation checklist
 1. Spawn entities. For `0x320&1` entities, start both script lists at list index 1 and arm the radius check

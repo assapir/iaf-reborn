@@ -107,10 +107,18 @@ directly (`CFlightWnd::OnGameEvent` 0x4dc280). They bypass the game-event queue.
   own jet's rig for the player's own unit. The visual-record flags have no equivalent here: every model is drawn.
 * **Ctrl+P on the FlyTSD**: `front_end.gd` `tsd_pause_key`, drawn by `game/menu/tsd_pause.gd` (the dither as a
   shader on the viewport's snapshot).
-* **Open**:
-  * Fly while the own jet is down (destroyed, falling or ejected): ours changes nothing. The exe hands over the new
-    jet; rule 1 still ends the flight 5 s after the death (docs/mission-runtime.md §5.1).
-  * The multiplayer boxes (msgs 11 / 12).
+* **Fly with the own jet down** (falling, destroyed or ejected; `terrain_view.gd` `_leave_downed`): `FUN_004d3250`
+  keeps no old jet in state 3 / 4 / 5 or with control 0, so the old jet gets no brain and stays as it is. The new jet
+  is handed over as above, and the player's state starts over in its cockpit.
+  * A falling jet keeps its model and smoke and falls on in its destruction motion. Rule 1 has not run yet, and at
+    the jet's final status it is no longer the player's, so the flight goes on (inferred from `FUN_00599da0`, which
+    counts the current player entity).
+  * An ejected jet flies on empty with its own flight model until it crashes (`FUN_005485a0`: engine off, stick
+    fixed). The parachuters fall on. Rule 1 ran at the ejection, so the flight still ends 5 s later
+    (docs/mission-runtime.md §5.1).
+  * A destroyed jet is gone. Rule 1 ran at its death, so the flight still ends 5 s after it.
+  * Test `test_fly_down.gd`.
+* **Open**: the multiplayer boxes (msgs 11 / 12).
 
 ## 2. Time compression (C 0x77, Ctrl+C 0x78)
 

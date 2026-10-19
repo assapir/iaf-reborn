@@ -331,7 +331,13 @@ reset only schedules the brain, while transferControl unschedules it ("reset uns
 - Waypoint actions: **2 take off** (always wp0), **3 navigate**, **7 land** (the last waypoint), **8 alert / hold**;
   0 none. No AI code reads 1, 4, 5 or 6 (5 is the player's NAV 10 nm hold).
 - Every aircraft keeps its **own** index (brain +0x88, 0 at the start, never reset).
-  - Leader death (`FUN_00440eb0` → `FUN_00440ed0`): the wingman's index := the leader's (not ported).
+  - Leader death (`FUN_004a86b0` → `FUN_00440eb0` → `FUN_00440ed0`, every unit with a brain at its final status):
+    the wingman's index := the leader's, through `FUN_00440e90` (brain +0x88, then `FUN_00453450` selects it on the
+    wingman's NAV). `FUN_005bcb90` gives a wingman only for a formation's leader, so a dead wingman passes nothing.
+    The player's index is its NAV selection. With the player in the wingman's seat, the player's NAV moves (inferred:
+    the player's jet has the same brain object). `FUN_00440840` first tells the dead unit's target selector
+    (brain +0x40) its current target; ours has nothing to do there.
+    Port: `mission_runtime.gd` `_destroyed` → `ai_flights.gd` `leader_died` (test `test_landed.gd`).
   - Leader landing (`FUN_00440f90`, once, brain+0xe0): the wingman's index := count − 1.
   - The wingman is never promoted.
 - **WayPtSet (mode 7)**: `init 5d7650`: index := brain+0x88; child Fly2WayPt. `next 5d7450`: while index < count:
@@ -645,10 +651,16 @@ in `game/ai/combat.gd` (AI jets) and `crates/iaf-flight/src/autopilot.rs` (manoe
     player's).
   - 330 / 340 make one cycle step to the next AA / AG station with rounds; 350 / 360 / 380 pick the wanted type; 370
     the gun (gate 5.0 s). Each sets the fire gate's interval (its action +0x8c).
+  - Each one also sets the release quantity / interval from its action's 0x82 / 0x96 (W+0xe8 / ec / f0, clamped by
+    `FUN_004562f0`; 330 / 340 `FUN_00452690`, the others `FUN_00452710`). Each is refused while a ripple or gun burst
+    runs (W+0xac, set by `FUN_00454270`).
   - 310 / 320 release a flare / chaff through the player's release (busy 4 s first; the count drops only when a
     decoy left; the decoy rule acts on the missiles at the jet, docs/weapons.md §10).
 - **300 Launch** as below: a missile through `launch_homing` (q 1.0: UNCERTAIN, the AI's q not traced); the gun fires
-  a 1 s burst of rounds every 0.2 s (UNCERTAIN: what ends an AI burst). A Launch that does not fire leaves its type
+  a burst (`FUN_004579f0`) of W+0xe8 ticks: one round at once, then one every 0.2 s (`FUN_0045a540` →
+  `FUN_00456d40`). Each tick uses one count, also when no round is free. The burst ends at 0 or when the gun is
+  empty (`FUN_00457b40`). The bdb's 370 has 0x82 = 80, clamped to 14: about 2.6 s. No new burst starts while one
+  runs (W+0xb0). A Launch that does not fire leaves its type
   gate free (brain.gd).
 - **Conditions** 8, 10, 12, 14, 17, 20, 21, 26, 37; 27 invalid. **26** (`FUN_005c1530`): no T → invalid; T's
   brain+0x7c set → 1; else T with a controller (the player) → its RWR list non-empty (`FUN_00452110`, RWR+0x174),

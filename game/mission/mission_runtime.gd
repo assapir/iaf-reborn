@@ -829,7 +829,8 @@ func _fall_tick(ent: Dictionary) -> void:
 
 ## State 4 or 5 (FUN_004a8280 / FUN_004a8420 -> FUN_004a86b0): the destroy event (slot 1, sensor on)
 ## and killScenario, control mode 0, then the final status: the explosion at the unit, its smoke and
-## sounds stop, and the role accounting (FUN_00599da0).
+## sounds stop, a dead leader's waypoint index goes to its wingman (FUN_00440eb0, ai_flights.gd), and the
+## role accounting (FUN_00599da0).
 func _destroyed(ent: Dictionary) -> void:
 	if ent.sensor and ent.alive_scenario:
 		fire_event(ent.file, int(_slot(ent, 1).get("0x33e", 0)))
@@ -839,6 +840,8 @@ func _destroyed(ent: Dictionary) -> void:
 	ent.control = 0
 	ent.smoke = false
 	host.mission_entity_state(ent)
+	if host.get("ai") != null:
+		host.ai.leader_died(ent)
 	_role_rules(ent)
 
 
@@ -909,6 +912,12 @@ func _role_rules(ent: Dictionary) -> void:
 ## (halved and negative when not passed: trunc(-0.5 · bonus)), and every destroyed unit (state 4 / 5) as
 ## [type code, class]: on the player's side (side 1 without a player) a loss, otherwise a kill.
 func debrief_text(mission_id := -1) -> Dictionary:
+	# evNotDestroy (FUN_004a63c0 for every unit not in state 4 / 5): a live scenario's slot-2 id adds its debrief item.
+	for ent in entities.values():
+		if ent.state != DamageModel.DESTROYED and ent.state != DamageModel.EXPLODED and ent.get("alive_scenario", false):
+			var id := int(_slot(ent, 2).get("0x33e", 0))
+			if id > 0:
+				_add_debrief(ent.file, id)
 	var headline := String(misc.get("0x47e" if passed else "0x492", ""))
 	var bonus: int = preload("res://menu/pilots.gd").mission_bonus(mission_id)
 	var kills: Array = []

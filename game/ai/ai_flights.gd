@@ -451,12 +451,31 @@ func play_audio(_ent: Dictionary, id: int, delay: float) -> void:
 
 ## FUN_00440f90 (landed once): the wingman's waypoint := the route's last.
 func landed_handler(ent: Dictionary) -> void:
+	_wingman_to(ent, _formation_of(ent).get("route", []).size() - 1)
+
+
+## FUN_004a86b0 → FUN_00440eb0 → FUN_00440ed0 (a unit with a brain at its final status): a dead leader's waypoint
+## index (brain +0x88; the player's: its NAV selection, autopilot.gd set_waypoint) goes to its wingman.
+func leader_died(ent: Dictionary) -> void:
+	if ent.get("player", false):
+		_wingman_to(ent, host.flight.ap_waypoint_index() if host.get("flight") != null else -1)
+	elif ent.get("pilot") != null:
+		_wingman_to(ent, ent.pilot.waypoint_index())
+
+
+## FUN_00440e90 on the wingman of `ent` (getWingman FUN_005bcb90: only a formation's leader has one): its brain
+## index +0x88 := i, and its controller's NAV selects waypoint i (FUN_00453450). With the player in the wingman's
+## seat that is the player's NAV (inferred: the player's jet has the same brain object, S+0x2c).
+func _wingman_to(ent: Dictionary, i: int) -> void:
 	var f := _formation_of(ent)
-	if f.is_empty() or f.members[0] != ent or f.members.size() < 2:
+	if i < 0 or f.is_empty() or f.members[0] != ent or f.members.size() < 2:
 		return
-	var w = f.members[1].get("pilot")
-	if w != null and not f.route.is_empty():
-		w.set_waypoint_index(f.route.size() - 1)
+	var w: Dictionary = f.members[1]
+	if w.get("player", false):
+		if host.get("autopilot") != null and i < host.route.size():
+			host.autopilot.set_waypoint(i)
+	elif w.get("pilot") != null:
+		w.pilot.set_waypoint_index(i)
 
 
 ## Weapons, targets, radar, flares / chaff, combat on / off: the combat job (docs/ai.md §5).

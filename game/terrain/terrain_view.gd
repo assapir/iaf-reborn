@@ -165,6 +165,8 @@ var _seats: Array = []
 var _seats_thrown := false
 var _parachuters: Array = []
 var _chute: Node3D
+## The ejected old jet after a Fly (_leave_downed): {ent, flight}; empty = none.
+var _derelict := {}
 ## Landings the flight model has reported (its `landings` counter; the landed handler runs on each new one).
 var _landings := 0
 ## The crash was handled (flight ends like the original's player death).
@@ -893,7 +895,8 @@ func mission_entity_moved(ent: Dictionary) -> void:
 		node.rotation.y = -deg_to_rad(float(ent.heading))  # along its path (mission_runtime.gd _move_on_path)
 	if ent.has("angles"):
 		var a: Vector3 = ent.angles  # destruction motion attitude (pitch, roll, heading)
-		node.basis = Basis.from_euler(Vector3(deg_to_rad(a.x), deg_to_rad(-a.z), deg_to_rad(-a.y)), EULER_ORDER_YXZ)
+		node.basis = Basis.from_euler(Vector3(deg_to_rad(a.x), deg_to_rad(-a.z), deg_to_rad(-a.y)), EULER_ORDER_YXZ) \
+				.scaled(node.scale)  # keeps the Present scale
 
 
 ## A unit's moving parts and heading changed (script motion op 11, game/mission/vehicle_parts.gd).
@@ -2102,17 +2105,79 @@ func visit_unit(key: String) -> void:
 ## The FlyTSD's Fly (FUN_005045b0 → FUN_004d31f0 → FUN_004d3250) with the selected flight's current leader, unit
 ## `key`: a brain-controlled jet (control 1) becomes the player's (FUN_004a8e70(3)) and the player's old jet, while
 ## alive and not the same, goes to its brain (FUN_004a8e70(1)); then the cockpit view on the player's jet
-## (FUN_0057f2a0(…, 1, player)). Ours: with the own jet down (destroyed, falling or ejected) nothing changes.
+## (FUN_0057f2a0(…, 1, player)). With the own jet down (falling, destroyed or ejected: state 3 / 4 / 5 or control 0)
+## the old jet is not kept: it stays as it is (_leave_downed).
 func fly_unit(key: String) -> void:
 	var target: Dictionary = runtime.entities.get(key, {}) if runtime != null else {}
-	if target.is_empty() or int(target.state) in [4, 5] or int(target.control) == 0 or fatal_hit or ejected or crashed or jet_gone:
+	if target.is_empty() or int(target.state) in [4, 5] or int(target.control) == 0:
 		return
 	var old: Dictionary = runtime.player_entity()
 	if int(target.control) == 1 and target.get("pilot") != null and ai != null:
 		var keep_old: bool = not old.is_empty() and old != target and not int(old.state) in [4, 5] \
 				and not int(old.control) in [0, 1]
+		if not keep_old and not old.is_empty() and old != target:
+			_leave_downed(old)
 		_take_over(target, old if keep_old else {})
 	views.set_cockpit(Views.COCKPIT)
+
+
+## Fly with the own jet down (FUN_004d3250 gives no brain to an old jet in state 3 / 4 / 5 or control 0): the old jet
+## stays as it is. A falling one keeps its destruction motion, with its model and smoke; an ejected one flies on empty
+## with its own flight model until it crashes (_derelict); a destroyed one is gone. The player's state starts over
+## with the new jet. Rule 1 already ran at the death or the ejection, so the flight still ends 5 s after it
+## (docs/mission-runtime.md §5.1); a jet still falling has not run it yet, and at its final status it is no longer
+## the player's.
+func _leave_downed(old: Dictionary) -> void:
+	old.player = false
+	effects.set_smoke(rig, false)
+	if aircraft != null and int(old.state) < 4 and not jet_gone:
+		var t := aircraft.global_transform
+		rig.remove_child(aircraft)
+		add_child(aircraft)
+		aircraft.global_transform = t
+		old.node = aircraft
+		old["airborne_class"] = true
+		if old.get("smoke", false):
+			effects.set_smoke(aircraft, true)
+		if int(old.state) < 3:
+			_derelict = {"ent": old, "flight": flight}
+		aircraft = null
+	for seat in _seats:
+		seat.node.queue_free()
+	_seats.clear()
+	if ejected and not eject_short and not _eject_radio_done:
+		_eject_radio_done = true
+		get_tree().create_timer(maxf(EJECT_RADIO - (_sim_time - _eject_t0), 0.0), false).timeout.connect(
+				func(): radio.ejected(old))  # EjectReport for the old jet (docs/radio.md §4)
+	fatal_hit = false
+	ejected = false
+	eject_short = false
+	crashed = false
+	jet_gone = false
+	fm_stopped = false
+
+
+## The ejected old jet after Fly (FUN_005485a0: engine off, stick fixed): its flight model flies it on until it crashes
+## (level 5) or a hit takes it over.
+func _derelict_update(delta: float) -> void:
+	var ent: Dictionary = _derelict.ent
+	var f = _derelict.flight
+	if int(ent.state) >= 3 or ent.node == null:
+		_derelict = {}
+		return
+	var g = terrain.height_at(ent.node.position)
+	f.set_ground_height(g if g != null else -1.0e9)
+	f.step(delta)
+	var st: Dictionary = f.state()
+	ent.node.position = st.position
+	ent.node.basis = Basis(st.right, st.up, -st.forward).scaled(ent.node.scale)
+	ent.world = scene_to_world(st.position)
+	ent.alt = ent.world.z
+	ent.heading = float(st.heading)
+	ent.vel = Terrain.dir_to_world(st.velocity)
+	if st.crashed:
+		_derelict = {}
+		runtime.set_damage_level(ent, DamageModel.EXPLODED)
 
 
 ## The swap: the target's flight model, stores and systems become the player's jet (the cockpit, sounds, model,
@@ -2163,6 +2228,7 @@ func _take_over(target: Dictionary, old: Dictionary) -> void:
 	flight.set_ai(false, 2)
 	flight.set_ai_damage(true)
 	var st: Dictionary = flight.state()
+	_landings = int(st.get("landings", 0))  # the new jet's own landings are not new ones
 	_apply_player_prefs()
 	start_airborne = airborne_start
 	player = PlayerAircraft.profile(int(target.type_code))
@@ -2612,6 +2678,9 @@ func _process(delta: float) -> void:
 		var st: Dictionary = flight.state()
 		if ejected:
 			_eject_update(delta)
+		_chutes_update()
+		if not _derelict.is_empty() and not frozen and not waiting_for_ground:
+			_derelict_update(delta)
 		if st.crashed and not crashed:
 			_on_crashed(st.crash_reason)
 		if int(st.get("landings", 0)) > _landings:
@@ -2884,6 +2953,17 @@ func _eject_update(delta: float) -> void:
 		var pilot: Node3D = aircraft.part_node(seat.part) if aircraft != null else null
 		var base: Vector3 = pilot.global_position if pilot != null else rig.global_position
 		seat.node.global_transform = Transform3D(rig.global_basis.orthonormalized(), base + rig.global_basis.orthonormalized() * seat.offset)
+	if t >= EJECT_CHUTE_VIEW and not _chute_view_done and _chute != null:
+		_chute_view_done = true
+		views.set_orbit(_chute, [1000.0, 600.0, 200.0, 4.014257, 0.0, 2.792527], 2.0, Views.FLYBY, true)
+	if t >= EJECT_RADIO and not _eject_radio_done:
+		_eject_radio_done = true
+		if runtime != null:
+			radio.ejected(runtime.player_entity())  # EjectReport: "<callsign> ejected" (docs/radio.md §4)
+
+
+## The parachuters fall on, also after a Fly into another jet.
+func _chutes_update() -> void:
 	for pc in _parachuters:
 		var ct: float = _sim_time - pc.t0
 		var w: Vector3 = pc.p0 + CHUTE_V0 * ct + 0.5 * CHUTE_ACCEL * ct * ct
@@ -2896,13 +2976,6 @@ func _eject_update(delta: float) -> void:
 				pc.next += CHUTE_TICK
 			var a: Vector3 = pc.ang + pc.omega * (_sim_time - pc.tb)
 			pc.node.basis = Basis.from_euler(Vector3(deg_to_rad(a.x), deg_to_rad(-a.z), deg_to_rad(-a.y)), EULER_ORDER_YXZ)
-	if t >= EJECT_CHUTE_VIEW and not _chute_view_done and _chute != null:
-		_chute_view_done = true
-		views.set_orbit(_chute, [1000.0, 600.0, 200.0, 4.014257, 0.0, 2.792527], 2.0, Views.FLYBY, true)
-	if t >= EJECT_RADIO and not _eject_radio_done:
-		_eject_radio_done = true
-		if runtime != null:
-			radio.ejected(runtime.player_entity())  # EjectReport: "<callsign> ejected" (docs/radio.md §4)
 
 
 func _spawn_parachuter(at: Vector3) -> void:

@@ -101,7 +101,7 @@ Next / previous waypoint (`4532a0` / `453370`, also the W / Shift+W keys) wraps 
 index +0x88 (docs/ai.md §7.2) and re-selects the same index on this NAV object (`453450` on controller +0x380).
 The port sets the flight's brain index (`IafFlight.ap_set_waypoint_index`) in `set_waypoint`, so after Fly
 (docs/views.md §1) the old jet's brain flies on from the player's waypoint. The brain index also feeds the
-leader-death hand-over (`440eb0` → `440ed0`: the wingman takes the dead leader's index), which is not ported.
+leader-death hand-over (`440eb0` → `440ed0`: the wingman takes the dead leader's index, docs/ai.md §7.2).
 
 ### 2.3 Landing (GoHomeCL in FM mode 0)
 - Gear and flaps go down at landing step 7, as for the AI. The commands reach the levers through the controller.

@@ -69,10 +69,20 @@ Suez, extra sounds, multiplayer, setup wizard + launcher, modern aircraft / weap
 - **Mission sweep 2026-10-14** (`tools/mission_sweep.sh`: all 60 playable missions headless, the player parked
   300 s, then the targets destroyed):
   - No script errors; every mission passes once its targets die.
-  - Lost early with the player idle (escort / defend; fly them to check whether the enemy is too quick): 114
-    (169 s), 115 (264 s), 116 (245 s), 117 (194 s), 122 (145 s), 215 (210 s), 223 (155 s), 234 (299 s), 236 (263 s),
-    237 (169 s), 402 (244 s).
-  - To check: 132's "LEADER KILLED" / 132–133's "FRIENDLY HIT" fire without a mission result.
+  - Lost early with the player idle: 114, 115, 116, 117, 122, 215, 223, 234, 236, 237, 402. Checked against the exe
+    (2026-10-20), no deviation makes the enemy quicker:
+    - 115, 215, 223, 234, 236, 237, 402 (and 117's helicopter path) are scripted kill shots. An event jumps a
+      shooter's trigger list to miss shots, a wait and a kill shot (op 2 with 0x852 ≠ 0, `FUN_004aae40` →
+      `FUN_004d6130`). The player is meant to kill the shooter in that window.
+    - 114, 116, 117, 122 have interceptors (brain 13) whose primary target is the escorted jet. They shoot it down
+      with AA-2s and guns; the escorted jets never fight back, as in the exe. The AI's missile q, blast damage,
+      skill periods, Launch cone and gate match the exe (docs/ai.md §13).
+    - The AI gun burst was too short (1 s; the exe: 14 ticks, about 2.6 s). Fixed; this makes the AI stronger.
+    - Open: only a run of the original would compare the interceptors' arrival times.
+  - 132's "LEADER KILLED" and 132 / 133's "FRIENDLY HIT" end nothing in the exe either. Event ops only play, count,
+    add debrief items and jump (`FUN_004ba7a1` → `FUN_004c3425`); only the role rules end a mission (`FUN_00599da0`).
+    132 has two role-1 targets (the leader's jeep and the PHOTO SENSOR). The evNotDestroy debrief item of a unit
+    still alive at the end (`FUN_004a63c0`, e.g. 132's "The terrorist leader escaped.") is now built.
 - **Stores look detached** (user report: "not in place" from behind):
   - The pylons are quads in each jet's model, edge-on and nearly invisible from ahead / behind / below, as in the
     original (docs/weapons.md §2.2).
@@ -131,8 +141,6 @@ Checked against the code on 2026-10-19 (each doc's own "not built" notes have th
   `FUN_0059f5a0` → `FUN_0059f3d0`), so the pedals steer the nose wheel and move the rudder part; ours steers with the
   stick X only (docs/flight-model.md "The rudder handler"). The ground attitude's random pitch / roll jitter off the
   runway and on the belly (`S+0x2c8` states 1 / 2 in `FUN_005bb300`; ours rolls level); the OutRunway force feedback.
-- **AI**: a dead leader's waypoint index does not pass to its wingman (`FUN_004a86b0` → `FUN_00440eb0` →
-  `FUN_00440ed0`, docs/ai.md §7.2).
 - **Autopilot landing, F-35I**: GoHomeCL's step 7 (gear down) comes at any speed above 102.9 m/s, and the F-35I is
   still at ~370 kt there, so the 300 kt rule keeps its gear up and it lands on its belly (mission 214; the
   mission's own jet is at 220 kt and lands on its gear; docs/autopilot.md §2.3).
@@ -142,8 +150,6 @@ Checked against the code on 2026-10-19 (each doc's own "not built" notes have th
 - **Controls**: one joypad (the first connected), as the original's one DirectInput device; real-hardware use so
   far: a joystick on Linux (2026-10-20), a T.Flight Hotas X on macOS (`SDL_JOYSTICK_MFI=0`). No force feedback. Unhandled commands: the cheats
   (Shift+S / D / R / F, Ctrl+W), chat (docs/controls.md §4).
-- **FlyTSD**: Fly after the own jet is down changes nothing; the exe hands over the new jet until rule 1 ends the
-  flight (docs/views.md §1 "Open").
 - **Front end**: the hardware detection that overwrites the graphics defaults (`FUN_00402510`, `FUN_00402330`,
   docs/front-end.md §12).
 - **Pilot guide PDFs** (not urgent): some pictures land at the top of the next page above the following heading; one

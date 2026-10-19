@@ -1,6 +1,7 @@
 # "Engines ON" through the mission runtime (docs/mission-runtime.md §7): Eagle1 at 7 s, Eagle2 at
 # marker 2 (70 m), Eagle3 at marker 4 (85 m), Eagle4 1.3 km past it, then GOOD WORK, the win
-# sensor explodes, and "Mission Accomplished!" appears; DEBRIEF shows the success headline.
+# sensor explodes, and "Mission Accomplished!" appears; DEBRIEF shows the success headline. Mission 132: a live
+# unit's evNotDestroy debrief item.
 extends "res://../tests/godot/base.gd"
 
 
@@ -32,6 +33,11 @@ func run() -> void:
 	check(tv._msgbox != null and tv._msgbox.size.x > 0, "the box covers the screen (size %s)" % (tv._msgbox.size if tv._msgbox else Vector2.ZERO))
 	var d: Dictionary = rt.debrief_text()
 	check(String(d.headline).begins_with("Mission - successful"), "debrief headline: %s" % d.headline)
+
+	# evNotDestroy (FUN_004a63c0): mission 132's terrorist leader (jeep_2) still alive adds "…escaped." to the debrief.
+	tv = await start_mission(132)
+	d = tv.runtime.debrief_text()
+	check("escaped" in String(d.notes), "a live unit's slot-2 debrief item (%s)" % String(d.notes).right(60))
 
 
 func _said(tv, text: String) -> bool:

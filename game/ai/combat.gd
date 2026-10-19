@@ -50,10 +50,10 @@ const LIMITED_BEARING := 60.0
 ## The gun envelope (FUN_00561700): max = _limitDist × 3.281 (a feet factor on metres: original bug), min 328.1 m.
 const GUN_MAX_K := 3.281
 const GUN_MIN := 328.1
-## The gun's shot timer (DAT_0082f4e8, as the player's) and the AI's burst. UNCERTAIN: what ends an AI burst (the
-## release flag W+0xac is not traced for the AI): 1 s.
+## The gun's shot timer (DAT_0082f4e8, as the player's). An AI burst (FUN_004579f0) is the weapon-change action's
+## quantity W+0xe8 (clamped by FUN_004562f0) of ticks: one round at once, then one per tick (FUN_0045a540 →
+## FUN_00456d40, W+0xe4 − 1 on every tick, also when no round is free); at 0 it ends (FUN_00457b40, W+0xac = 0).
 const GUN_PERIOD := 0.2
-const GUN_BURST := 1.0
 ## The decoy actions' busy time (310 / 320: 4.0 s, 0x600920).
 const DECOY_BUSY := 4.0
 ## Weapon-change wants (FUN_00452710): 350 radar AAM, 360 IR AAM (580 too, v1.1), 380 bombs.
@@ -121,7 +121,7 @@ class Unit:
 	var gate_next := 0.0  # the fire gate B+0x98 (FUN_004d4100)
 	var gate_last := -INF
 	var gate_interval := 1.0
-	var gun_until := -INF
+	var gun_left := 0  # the burst's ticks left (W+0xe4)
 	var gun_next := INF
 	var decoy_until := -INF
 	var round_scale := 1.0  # the round model's Present scale
@@ -371,8 +371,9 @@ func update(now: float) -> void:
 			while u.ripple_left > 0 and now >= u.ripple_next:
 				u.ripple_next += float(u.ripple.period())
 				_ripple_tick(u)
-			while now >= u.gun_next and now < u.gun_until:
+			while u.gun_left > 0 and now >= u.gun_next:
 				u.gun_next += GUN_PERIOD
+				u.gun_left -= 1
 				_gun_round(u, u.gun_next - GUN_PERIOD)
 			while now >= u.fire_next:
 				u.fire_next += u.interval
@@ -504,7 +505,12 @@ func _air_action(u: Unit, code: int, t: Dictionary) -> bool:
 				_spent(u, i)
 			return true
 		330, 340:
-			# One cycle step to the next AA (330) / AG (340) station with rounds (FUN_00452690 → FUN_0053b8b0).
+			# FUN_00452690: refused while releasing (W+0xac); the action's quantity / interval become the AI ripple's
+			# (and the gun burst's); one cycle step to the next AA (330) / AG (340) station with rounds (FUN_0053b8b0).
+			if _releasing(u):
+				return false
+			var a0 := _action(code)
+			u.ripple.set_values(int(a0.get("0x82", 1)), int(a0.get("0x96", 10)))
 			var kinds: Array = AA_TYPES if code == 330 else AG_TYPES
 			for k in range(1, 10):
 				var i := (u.cur + k) % 9 if u.cur >= 0 and u.cur < 9 else k - 1
@@ -516,7 +522,7 @@ func _air_action(u: Unit, code: int, t: Dictionary) -> bool:
 		350, 360, 380:
 			# FUN_00452710: refused while releasing (W+0xac); the action's quantity / interval (bdb 0x82 / 0x96,
 			# FUN_004562f0) become the AI ripple's; then up to 10 steps to the wanted type with rounds.
-			if u.ripple_left > 0:
+			if _releasing(u):
 				return false
 			var a := _action(code)
 			u.ripple.set_values(int(a.get("0x82", 1)), int(a.get("0x96", 10)))
@@ -527,12 +533,22 @@ func _air_action(u: Unit, code: int, t: Dictionary) -> bool:
 					return true
 			return false
 		370:
+			# FUN_004448e0 → FUN_00452710(0x172, …): as 350, to the gun (station 9).
+			if _releasing(u):
+				return false
+			var a1 := _action(code)
+			u.ripple.set_values(int(a1.get("0x82", 1)), int(a1.get("0x96", 10)))
 			if u.stations.size() > 9 and int(u.stations[9].count) > 0:
 				_select(u, 9)
 				_gate_interval(u, code)
 				return true
 			return false
 	return false
+
+
+## W+0xac: an AI ripple or gun burst runs (FUN_00454270 sets it; the weapon-change actions are refused).
+func _releasing(u: Unit) -> bool:
+	return u.ripple_left > 0 or u.gun_left > 0
 
 
 ## The weapon-change action's fire gate interval: its bdb action +0x8c; 370 (FUN_004448e0) a fixed 5.0 s.
@@ -571,7 +587,7 @@ func _envelope(u: Unit, t: Dictionary) -> Array:
 ## ×0.5 Rookie / ×1.5 Expert when hostile to the player), a 580 within 60° of relative bearing, the fire gate open;
 ## then FUN_00454270(T, 1): a missile through the homing release, q 1.0 (UNCERTAIN: the AI's q), or a gun burst.
 func _launch(u: Unit, t: Dictionary, now: float) -> bool:
-	if t.is_empty() or u.cur < 0 or int(u.stations[u.cur].count) <= 0 or now < u.gun_until:
+	if t.is_empty() or u.cur < 0 or int(u.stations[u.cur].count) <= 0 or u.gun_left > 0:
 		return false
 	var o := _pose(u)
 	var tp: Vector3 = ai.runtime._world_of(t)
@@ -591,7 +607,7 @@ func _launch(u: Unit, t: Dictionary, now: float) -> bool:
 	if not _gate(u, now):
 		return false
 	if type == 565:
-		u.gun_until = now + GUN_BURST
+		u.gun_left = u.ripple.qty()
 		u.gun_next = now
 		return true
 	if host.weapons == null:
@@ -609,7 +625,7 @@ func _launch(u: Unit, t: Dictionary, now: float) -> bool:
 func release(ent: Dictionary) -> void:
 	var u: Unit = units.get(ent.key)
 	var now: float = ai.runtime.now
-	if u == null or not u.air or u.cur < 0 or int(u.stations[u.cur].count) <= 0 or u.ripple_left > 0 or not _gate(u, now):
+	if u == null or not u.air or u.cur < 0 or int(u.stations[u.cur].count) <= 0 or _releasing(u) or not _gate(u, now):
 		return
 	var t: Dictionary = u.brain.target
 	if t.is_empty() or host.weapons == null:
@@ -621,7 +637,7 @@ func release(ent: Dictionary) -> void:
 		u.ripple_next = now  # the first store on the next tick
 		u.ripple_target = t
 	elif type == 565:
-		u.gun_until = now + GUN_BURST
+		u.gun_left = u.ripple.qty()
 		u.gun_next = now
 	elif type in AA_TYPES or type in HOMING:
 		_spent(u, u.cur)
@@ -662,7 +678,10 @@ func _ripple_tick(u: Unit) -> void:
 ## One AI gun round (FUN_00456d40 for the AI: the shot line is the nose, no 1° elevation), at the target as the
 ## locked unit; a round per 0.2 s tick (UNCERTAIN: the AI's count per tick).
 func _gun_round(u: Unit, now: float) -> void:
-	if u.stations.size() <= 9 or int(u.stations[9].count) <= 0 or u.rounds == null or not u.rounds.next_free():
+	if u.stations.size() <= 9 or int(u.stations[9].count) <= 0:
+		u.gun_left = 0  # no rounds left: the burst ends (FUN_00456d40 → FUN_00457b40)
+		return
+	if u.rounds == null or not u.rounds.next_free():
 		return
 	var o := _pose(u)
 	var a: Vector3 = u.rounds.aim_point(o.pos, o.vel, o.fwd, false)
