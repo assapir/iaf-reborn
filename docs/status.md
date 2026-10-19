@@ -156,6 +156,9 @@ Checked against the code on 2026-10-14 (each doc's own "not built" notes have th
 - **Eject**: parachute swing and landing.
 - **Pilot guide PDFs** (not urgent): some pictures land at the top of the next page above the following heading; one
   nearly empty page (F-16 "Not drawn"); the MFD pictures are the ~128 px original art scaled (blocky).
+- **Pilot guide pictures**: the F-16's `landing_final` fails 2 callout checks (7 "R6…", 8 "896"): that picture's HUD
+  no longer shows those values; find why and fix the shot or the callouts. The pictures in assets/ have no stamps
+  yet, so the next `tools/guide_shots.sh` renders all of them once.
 - **Imagery**: SPOT 5 outside Israel not started.
 - **Multiplayer**: not started (missions 511–516, 666, 777).
 - **To check**: v1.1's ground rudder part (ours follows the stick roll; the v1.1 note says the pedals too,
