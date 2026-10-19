@@ -143,6 +143,17 @@ fn keeps_close_formation() {
     assert!(err < 450.0, "the wingman holds its slot ({err:.0} m)");
 }
 
+/// Ramon / Ryak / Aman write their counts and RunwayNumber as floats ("230.0"); the exe truncates them (`54eda0`).
+#[test]
+fn float_valued_bases_load() {
+    let Some(inst) = install() else { return };
+    let bases = Airbase::load_all(&std::fs::read(inst.join("iaf.ibx")).unwrap());
+    let get = |n: &str| bases.iter().find(|b| b.name == n).unwrap();
+    assert_eq!(get("Ramon").runway_deg, 230.0);
+    assert!(!get("Ramon").hangars.is_empty() && !get("Ramon").from_taxi.is_empty());
+    assert_eq!((get("Ryak").runway_deg, get("Aman").runway_deg), (90.0, 260.0));
+}
+
 #[test]
 fn takes_off_from_ramat_david() {
     let Some(inst) = install() else { return };

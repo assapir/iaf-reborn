@@ -19,8 +19,11 @@ impl Section {
         self.get(key)?.trim().parse().ok()
     }
 
+    /// An integer value. A written float ("230.0", Ramon's RunwayNumber) truncates toward zero, as the exe's readers
+    /// do (`atoi` / `__ftol`, e.g. `FUN_0054eda0`).
     pub fn i32(&self, key: &str) -> Option<i32> {
-        self.get(key)?.trim().parse().ok()
+        let v = self.get(key)?.trim();
+        v.parse().ok().or_else(|| v.parse::<f64>().ok().map(|x| x.trunc() as i32))
     }
 }
 
@@ -67,5 +70,8 @@ mod tests {
         assert_eq!(panel.get("filename"), Some("demopanel.bmp"));
         assert_eq!(panel.i32("MaskOffsetY1"), Some(250));
         assert_eq!(ini.section("Jet-1").unwrap().f32("MaxG"), Some(7.5));
+        let r = Ini::parse(b"[Ramon]\r\nRunwayNumber=230.0\r\nHangarsNum=5.0\r\nNeg=-1.5\r\n");
+        let r = r.section("Ramon").unwrap();
+        assert_eq!((r.i32("RunwayNumber"), r.i32("HangarsNum"), r.i32("Neg")), (Some(230), Some(5), Some(-1)));
     }
 }

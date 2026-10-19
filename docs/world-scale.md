@@ -271,10 +271,9 @@ flag) until step 9, so players never see true-size jets on ×2 bases (inferred; 
   but today's ×2 clearance is 3.38 m: that line is to be checked.
 - **The shatter pieces** use the unscaled local offset for their speed, so their spread already ignores the scale
   (half the exe's at ×2, inferred); unrelated to this switch but visible after it.
-- **iaf.ibx parse bug (found here, unrelated to the switch).** `crates/iaf-flight/src/airbase.rs` reads
-  `RunwayNumber` and the counts with `i32`; Ramon has `RunwayNumber=230.0` and counts `5.0`, Ryak `90.0`, Aman
-  `260.0`. So in Rust those bases get heading 5° and Ramon no taxi points or hangars. The exe reads floats and
-  truncates (`FUN_0054eda0`). To fix before step 6.
+- **iaf.ibx parse bug (found here, unrelated to the switch) — fixed 2026-10-20.** Ramon writes `RunwayNumber=230.0`
+  and counts `5.0`, Ryak `90.0`, Aman `260.0`; the ini reader's integers now take a written float and truncate it, as
+  the exe does (`FUN_0054eda0`), so those bases get their headings and Ramon its taxi points and hangars.
 
 ## 5. Open questions
 
