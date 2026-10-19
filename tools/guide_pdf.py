@@ -7,20 +7,26 @@ own, `![caption](shots/<jet>/<name>.png)` under assets/converted/guides (tools/g
 under a picture is its legend (the picture's numbered callouts, `annotations` in <jet>.shots.json: the counts must
 match, else a warning), kept on the picture's page with badges like the callouts. The HTML is
 self-contained (pictures inlined), A4, a title page with the Reference screen's picture of the jet
-(assets/converted/reference/img/<dir>.png) and a table of contents; headless Chrome / Chromium prints it. The PDF
+(assets/converted/reference/img/<dir>.png) and a table of contents; headless Firefox prints it (Chrome / Chromium when
+Firefox is missing). The PDF
 holds the original art, so it stays under assets/ (never committed).
 
-    python3 -I tools/guide_pdf.py [jet …]        (default: every docs/guides/*.md with a shots list)
+    python3 -I tools/guide_pdf.py [jet …] [--force]   (default: every docs/guides/*.md with a shots list; a PDF
+        newer than its Markdown, shots list, pictures and this script is kept unless --force or GUIDE_FORCE=1)
 """
 
 import base64
 import html
 import json
+import os
 import re
 import shutil
+import socket
 import subprocess
 import sys
 import tempfile
+import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -226,6 +232,13 @@ examples, and the numbers that change how it flies.</div>{img}<div class="foot">
 <main>{html_body}</main></body></html>"""
 
 
+def firefox() -> str | None:
+    for c in ("/Applications/Firefox.app/Contents/MacOS/firefox", "firefox"):
+        if Path(c).is_file() or shutil.which(c):
+            return c
+    return None
+
+
 def chrome() -> str | None:
     for c in ("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
               "/Applications/Chromium.app/Contents/MacOS/Chromium", "google-chrome", "google-chrome-stable",
@@ -235,21 +248,93 @@ def chrome() -> str | None:
     return None
 
 
+def firefox_pdf(exe: str, src: Path, pdf: Path, tmp: str) -> None:
+    """Prints `src` to `pdf` with a headless Firefox through Marionette (WebDriver:Print: A4, the page's backgrounds,
+    the CSS @page margins). Its own profile, on a free port (written to the profile's MarionetteActivePort)."""
+    prof = Path(tmp) / "profile"
+    prof.mkdir()
+    (prof / "user.js").write_text('user_pref("marionette.port", 0);\n')
+    ff = subprocess.Popen([exe, "--headless", "--marionette", "--no-remote", "--profile", str(prof)],
+                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    try:
+        port_file = prof / "MarionetteActivePort"
+        for _ in range(600):
+            if port_file.is_file() and port_file.read_text().strip():
+                break
+            time.sleep(0.1)
+        sock = socket.create_connection(("127.0.0.1", int(port_file.read_text())), timeout=180)
+        buf = b""
+
+        def recv():
+            nonlocal buf
+            while b":" not in buf or len(buf) < buf.index(b":") + 1 + int(buf[:buf.index(b":")]):
+                chunk = sock.recv(1 << 20)
+                if not chunk:
+                    raise RuntimeError("Firefox closed the Marionette connection")
+                buf += chunk
+            n = buf.index(b":")
+            size = int(buf[:n])
+            msg, buf = buf[n + 1:n + 1 + size], buf[n + 1 + size:]
+            return json.loads(msg)
+
+        def call(i: int, cmd: str, params: dict):
+            body = json.dumps([0, i, cmd, params]).encode()
+            sock.sendall(str(len(body)).encode() + b":" + body)
+            _, _, err, result = recv()
+            if err:
+                raise RuntimeError(f"Firefox {cmd}: {err}")
+            return result
+
+        recv()  # the server's hello
+        call(1, "WebDriver:NewSession", {})
+        call(2, "WebDriver:Navigate", {"url": src.as_uri()})
+        data = call(3, "WebDriver:Print", {"background": True, "shrinkToFit": False, "page": {"width": 21.0, "height": 29.7},
+                                           "margin": {"top": 0, "bottom": 0, "left": 0, "right": 0}})["value"]
+        pdf.write_bytes(base64.b64decode(data))
+        call(4, "WebDriver:DeleteSession", {})
+        sock.close()
+    finally:
+        ff.terminate()
+        ff.wait(timeout=30)
+
+
+def inputs(jet: str) -> list[Path]:
+    """What a guide's PDF is made from: its Markdown, shots list, pictures, the cover picture and this script."""
+    return [p for p in [GUIDES / f"{jet}.md", GUIDES / f"{jet}.shots.json", ROOT / f"assets/converted/reference/img/{jet}.png",
+                        Path(__file__).resolve(), *(OUT / "shots" / jet).glob("*")] if p.is_file()]
+
+
 def main() -> int:
-    jets = sys.argv[1:] or sorted(p.name.removesuffix(".shots.json") for p in GUIDES.glob("*.shots.json"))
-    exe = chrome()
-    if exe is None:
-        print("guide PDF: no Chrome / Chromium found, skipped")
+    args = sys.argv[1:]
+    force = "--force" in args or os.environ.get("GUIDE_FORCE") == "1"
+    jets = [a for a in args if a != "--force"] or sorted(p.name.removesuffix(".shots.json") for p in GUIDES.glob("*.shots.json"))
+    # A PDF newer than every input is up to date.
+    stale = [j for j in jets if force or not (OUT / f"{j}.pdf").is_file()
+             or (OUT / f"{j}.pdf").stat().st_mtime < max(p.stat().st_mtime for p in inputs(j))]
+    for j in sorted(set(jets) - set(stale)):
+        print(f"guide PDF: {j} up to date")
+    jets = stale
+    ff, exe = firefox(), chrome()
+    if ff is None and exe is None:
+        print("guide PDF: no Firefox, Chrome or Chromium found, skipped")
         return 0
     OUT.mkdir(parents=True, exist_ok=True)
-    for jet in jets:
+
+    def one(jet: str) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             src = Path(tmp) / f"{jet}.html"
             src.write_text(page(jet), encoding="utf-8")
             pdf = OUT / f"{jet}.pdf"
-            subprocess.run([exe, "--headless", "--disable-gpu", "--no-pdf-header-footer", f"--user-data-dir={tmp}/profile",
-                            f"--print-to-pdf={pdf}", src.as_uri()], check=True, capture_output=True, timeout=180)
-        print(f"guide PDF: {pdf}")
+            if ff is not None:
+                firefox_pdf(ff, src, pdf, tmp)
+            else:
+                subprocess.run([exe, "--headless", "--disable-gpu", "--no-pdf-header-footer", f"--user-data-dir={tmp}/profile",
+                                f"--print-to-pdf={pdf}", src.as_uri()], check=True, capture_output=True, timeout=180)
+        print(f"guide PDF: {pdf}", flush=True)
+
+    # One browser per guide, a few at once (each guide is its own page, profile and PDF).
+    with ThreadPoolExecutor(max(1, (os.cpu_count() or 2) // 2)) as pool:
+        list(pool.map(one, jets))
     return 0
 
 

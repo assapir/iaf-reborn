@@ -332,7 +332,7 @@ imagery_refresh
 step "pilot guides: pictures (tools/guide_shots.sh) and PDFs (tools/guide_pdf.py)"
 if [[ $(uname) == Darwin && -z ${SSH_CONNECTION:-} ]] || [[ -n ${DISPLAY:-}${WAYLAND_DISPLAY:-} ]]; then
 	[[ -d game/.godot ]] || godot --headless --path game --import >/dev/null 2>&1 || true
-	tools/guide_shots.sh
+	tools/guide_shots.sh || echo "pilot guides: some pictures failed their checks (listed above); the PDFs use what was made"
 	python3 -I tools/guide_pdf.py
 else
 	echo "no display: skipped (run tools/guide_shots.sh and python3 -I tools/guide_pdf.py from a desktop session)"

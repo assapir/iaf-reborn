@@ -1,8 +1,10 @@
-# Dev helper (not run by tools/test.sh): one real-render picture for a pilot guide (docs/guides, docs/front-end.md
-# §14 "Pilot guide"): entry GUIDE_SHOT of GUIDE_JSON (docs/guides/<jet>.shots.json), saved as GUIDE_OUT/<name>.png.
-# tools/guide_shots.sh runs it once per entry (a fresh process each, at 3840×2160 so the crops stay sharp):
-#   GUIDE_JSON=../docs/guides/f16.shots.json GUIDE_SHOT=hud_nav GUIDE_OUT=/tmp/shots IAF_DEFAULT_SETTINGS=1 \
-#       godot --path game --resolution 3840x2160 -s ../tests/godot/_guide_shots.gd
+# Dev helper (not run by tools/test.sh): real-render pictures for a pilot guide (docs/guides, docs/front-end.md
+# §14 "Pilot guide"): entry GUIDE_SHOT of GUIDE_JSON (docs/guides/<jet>.shots.json), or each of the list GUIDE_SHOTS
+# (name,name,…) in turn, saved as GUIDE_OUT/<name>.png. Each shot starts from the default settings and a fresh flight
+# scene (its mission reloaded). The frame is GUIDE_SIZE (WxH, default 3840×2160, so the crops stay sharp) whatever
+# the window's size. tools/guide_shots.sh runs a few shots per process:
+#   GUIDE_JSON=$PWD/docs/guides/f16.shots.json GUIDE_SHOTS=hud_nav,hud_original GUIDE_OUT=/tmp/shots IAF_DEFAULT_SETTINGS=1 \
+#       tools/godot_window.sh -- --log-file /tmp/g.log --path game --resolution 3840x2160 -s ../tests/godot/_guide_shots.gd
 # An entry: name, caption, mission, jet (Jet list id, -1 the mission's), settings ({Settings property: value}, "better"
 # the Physics switches), start ("mission": the mission's own start; "airborne": frozen 3000 m up at 250 m/s with
 # `loadout` (9 [weapon id, count] pairs) on the pylons, the heading turned `turn_deg`° right; "final": frozen on final approach, `final_m` before the start
@@ -36,15 +38,43 @@ var target := {}
 var frozen_start := false
 
 
+var _extra: Array[Node] = []  # the shot's own nodes under the root (the AoA hold, the callouts), freed after it
+
+
 func run() -> void:
-	var name := OS.get_environment("GUIDE_SHOT")
-	var e := {}
+	var names := OS.get_environment("GUIDE_SHOTS").split(",", false)
+	if names.is_empty():
+		names.append(OS.get_environment("GUIDE_SHOT"))
+	# The frame GUIDE_SIZE (default 3840×2160) whatever window the desktop gives: the window shows it scaled.
+	var size := OS.get_environment("GUIDE_SIZE").split("x")
+	root.content_scale_mode = Window.CONTENT_SCALE_MODE_VIEWPORT
+	root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_IGNORE
+	root.content_scale_size = Vector2i(int(size[0]), int(size[1])) if size.size() == 2 else Vector2i(3840, 2160)
+	var entries := {}
 	for s in JSON.parse_string(FileAccess.get_file_as_string(OS.get_environment("GUIDE_JSON"))):
-		if s.name == name:
-			e = s
-	if e.is_empty() or DisplayServer.get_name() == "headless":
-		check(false, "shot %s: needs a window and an entry" % name)
-		return
+		entries[s.name] = s
+	for name in names:
+		var e: Dictionary = entries.get(name, {})
+		if e.is_empty() or DisplayServer.get_name() == "headless":
+			check(false, "shot %s: needs a window and an entry" % name)
+			continue
+		# Each shot from the defaults: its settings set, then put back; the flight scene reloads with the mission.
+		var keep := {"jet_id": Settings().jet_id, "show_info": Settings().show_info}
+		for k in e.get("settings", {}):
+			var v = Settings().get(k)
+			keep[k] = v.duplicate(true) if v is Dictionary or v is Array else v
+		await _shot(name, e)
+		for n in _extra:
+			n.free()
+		_extra.clear()
+		for k in keep:
+			Settings().set(k, keep[k])
+		t = 1.0
+		target = {}
+		frozen_start = false
+
+
+func _shot(name: String, e: Dictionary) -> void:
 	for k in e.get("settings", {}):
 		Settings().set(k, e.settings[k])
 	Settings().jet_id = int(e.get("jet", -1))
@@ -108,6 +138,7 @@ func run() -> void:
 		ov.draw.connect(_draw_annotations.bind(ov, anns, rect))
 		layer.add_child(ov)
 		root.add_child(layer)
+		_extra.append(layer)
 		for i in 3:
 			ov.queue_redraw()
 			await _tick()
@@ -157,6 +188,7 @@ func _final(dist: float, alt: float, aoa: float) -> Node:
 		n.set("cb", func(): tv.cockpit.state["aoa"] = aoa)
 		n.process_priority = 1000
 		root.add_child(n)
+		_extra.append(n)
 	var glide := (flat * cos(deg_to_rad(3.0)) + Vector3.DOWN * sin(deg_to_rad(3.0))) * 75.0
 	tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, tv.rig.position, st0.heading,
 			aoa - 3.0, 0.0, glide, true, true, Settings().real_data())

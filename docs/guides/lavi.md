@@ -98,7 +98,7 @@ nose until the diamond leaves the edge and fly the marker onto it.
 With the gear down the left column adds the AoA (angle of attack), and the radar altitude `R` shows below 5,000 ft.
 The ILS (instrument landing system) lines are the original game's, for every jet.
 
-![Final approach, 3.6 NM out at 687 ft, 141 kt, 5° AoA](shots/lavi/landing_final.png)
+![Final approach, 3.6 NM out at about 700 ft, 141 kt, 5° AoA](shots/lavi/landing_final.png)
 
 1. **Flight path marker**: on the runway threshold here.
 2. **ILS glide-slope line**: it crosses the localizer line at the HUD's centre when you are on the runway's centre
@@ -107,7 +107,7 @@ The ILS (instrument landing system) lines are the original game's, for every jet
    left.
 4. **Steering arrow**: steerpoint 1 lies at 254°, outside the scale: turn right.
 5. **AoA** in degrees: `AOA 5.0`.
-6. **Radar altitude**: 687 ft above the ground.
+6. **Radar altitude**: about 700 ft above the ground.
 7. **Steerpoint diamond** held at the edge, with its X.
 8. **Airspeed**: 141 kt.
 9. **Heading**: 150°.

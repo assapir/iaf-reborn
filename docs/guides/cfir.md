@@ -89,7 +89,7 @@ leaves the edge, then put the flight path marker on it.
 With the gear down the AoA (angle of attack) takes the row under the g. The ILS (instrument landing system) lines
 guide you to the nearest airbase's runway.
 
-![Final approach, 3.6 NM out at 896 ft, 141 kt](shots/cfir/landing_final.png)
+![Final approach, 3.6 NM out at about 900 ft, 141 kt](shots/cfir/landing_final.png)
 
 1. **Flight path marker**: on the runway here.
 2. **AoA**: 3° here.
@@ -99,7 +99,7 @@ guide you to the nearest airbase's runway.
 5. **Steering bug** held at the scale's right end, its arrow pointing right: the waypoint is more than 15° right.
 6. **Waypoint marker** with its X, held at the edge.
 7. **Airspeed**: 141 kt.
-8. **Altitude**: 896 ft.
+8. **Altitude**: about 900 ft.
 
 **Example**: here the jet flies a 3° path at 3° AoA, the glide-slope line above the HUD's centre: you are under the
 5° path. Fly the approach on the speed: 165 kt on final (the game's landing lesson). Above about 4° AoA the marker
