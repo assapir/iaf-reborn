@@ -427,6 +427,8 @@ the same code).
   Godot 4.5; SDL: Simple DirectMedia Layer).
   * Device: the **first connected joypad** (lowest id); one device only.
   * Hot-plug works: Godot reports it, the next poll uses the new device, and the last values are kept.
+  * On macOS `./iafjets` sets `SDL_JOYSTICK_MFI=0`: SDL's GameController backend lists no stick that is not a
+    gamepad (seen on the T.Flight Hotas X), while IOKit HID sees it. Run Godot by hand with the same variable.
   * When a device connects, the log prints its name, GUID (the device's unique id) and the axis numbers.
 * **Axis mapping**: the Godot axis numbers are in `Settings.joy_axes` (settings.cfg `[devices] joy_axes`, default
   `[0, 1, 2, 3]`): 0 → lX (stick x), 1 → lY (stick y), 2 → lZ (throttle), 3 → lRz (rudder).
