@@ -155,6 +155,15 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
         }
         _ => {}
     }
+    // The break X (p. 1-173, fig. 1-212): flashing at the GAAF advisory (every master mode); steady in the A-A missile
+    // modes inside Rmin. Ours: half its size = 0.3 of the field, on the field's centre, flashing at 2 Hz.
+    let gaaf = i.agl_ft.is_some_and(|h| {
+        crate::gaaf::advisory(h, i.kcas, i.tas_ms, i.vs_fpm, i.roll_deg, i.gear_down, matches!(mode, 4..=7))
+    });
+    let rmin = dlz.is_some_and(|(t, z)| t.range_m < z.min);
+    if rmin || (gaaf && (i.time_s * 4.0).floor() as i64 % 2 == 0) {
+        x_over(p, (0.5 * (f.left + f.right), f.centre_y()), 0.3 * (f.right - f.left).min(f.bottom - f.top));
+    }
     fr
 }
 
@@ -433,6 +442,30 @@ mod tests {
         let gt = texts(&g.outer);
         assert!(gt.contains(&"EEGS") && gt.contains(&"F 020") && gt.contains(&"194"), "{gt:?}");
         assert!(g.field.iter().any(|p| matches!(p, Prim::Arc { .. })), "the TD circle's range arc");
+    }
+
+    #[test]
+    fn break_x() {
+        let f = Field { left: -100.0, top: -80.0, right: 100.0, bottom: 80.0 };
+        let long = |fr: &Frame| fr.field.iter().filter(|p| matches!(p, Prim::Line { a, b } if (a.0 - b.0).abs() > 90.0 && (a.1 - b.1).abs() > 90.0)).count();
+        // A 45° dive at 413 kt, 2,000 ft above the ground: the GAAF X, flashing.
+        let v = 413.0 * 0.514444;
+        let mut i = Input { agl_ft: Some(2000.0), tas_ms: v, kcas: 413.0, vs_fpm: -v * 0.7071 * 196.85, ..input(Jet::F16) };
+        i.weapons.hud_mode = 5;
+        assert_eq!(long(&frame(f, &i, 1.0)), 2, "the break X");
+        i.time_s = 0.3;
+        assert_eq!(long(&frame(f, &i, 1.0)), 0, "flashing");
+        i.agl_ft = Some(3000.0);
+        i.time_s = 0.0;
+        assert_eq!(long(&frame(f, &i, 1.0)), 0, "above the advisory height");
+        // A-A: the target inside Rmin.
+        let mut i = input(Jet::F16);
+        i.weapons.hud_mode = 2;
+        i.target = Some(Target { range_m: 1000.0, ..Default::default() });
+        i.dlz = Some(Dlz { max: 20_000.0, min: 1500.0 });
+        assert_eq!(long(&frame(f, &i, 1.0)), 2, "inside Rmin");
+        i.target = Some(Target { range_m: 5000.0, ..Default::default() });
+        assert_eq!(long(&frame(f, &i, 1.0)), 0, "inside the DLZ");
     }
 
     #[test]

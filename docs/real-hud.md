@@ -516,6 +516,39 @@ What a Real-mode IFF would implement, only from the findings above:
   they come with the Real MFDs (docs/roadmap.md "Real MFDs"), drawn in the real formats, not added to today's pages.
 - **Kurnass 2000, Kfir, Lavi, Mirage IIICJ**: as proposed above.
 
+## Pull-up and break marks, and the dive / height voice (per jet)
+
+With the Real HUD each jet shows the pull-up / break mark of the real aircraft, and speaks the dive and height calls
+of the real aircraft's voice system (the voice research: [real-betty.md](real-betty.md)). The original HUD keeps the
+game's rule (docs/cockpit.md "break X", docs/sound.md §4).
+
+| Jet | HUD mark | Dive / height voice |
+| --- | --- | --- |
+| F-16 | the break X: flashing at the GAAF advisory in every master mode; steady in the A-A missile modes inside Rmin[^dash34brk] | "PULL UP – PULL UP" at the GAAF advisory[^dash34gaaf]; "ALTITUDE – ALTITUDE" below the ALOW height[^dash34alow], 300 ft by default[^betty] |
+| F-15 | the breakaway X inside Rmin (section F-15A/C above) | none: the sources list no pull-up or height call[^betty] |
+| F-35I | open (none drawn) | "PULL UP" at the F-16's GAAF rule (inferred: Auto-GCAS lineage[^betty]); no height call |
+| Lavi, Kurnass 2000 | open (none drawn) | the game's Betty rule (the jets' voice systems are open[^betty]) |
+| Kfir | open (none drawn) | none (no voice[^betty]) |
+| F-4E, Mirage | none: the optical sights have no such mark (inferred from the sight manuals above) | none (no voice[^betty]) |
+
+F-16 ground avoidance advisory (GAAF, `crates/iaf-avionics/src/gaaf.rs`)[^dash34gaaf]:
+- Active with the gear up, above 50 ft AGL and descending at 960 fpm or more.
+- The advisory comes when the height above the ground is at or below the height lost in the recovery plus a buffer.
+  - The recovery: the pilot's reaction (1 s; 0.45 s in the A-G modes at a low dive angle, low bank and high speed),
+    the roll to wings level, then a 4.0 g wings-level pull-up.
+  - The buffer: above 375 KCAS 12.5 % of that height + 50 ft; below 325 KCAS 25 % + 150 ft; linear between.
+  - Inferred (the manual gives no numbers): "low dive, low bank, high speed" = under 30°, under 30°, over 400 KCAS;
+    the roll rate 180°/s (the manual uses the jet's maximum for its stores); the pull-up radius V² / (g·(4 − 1)).
+  - Example: a 45° dive at 413 KCAS gives the advisory at about 2,270 ft; a 20° strafing dive at 414 KCAS at about
+    510 ft.
+- The voice message plays to its end once per advisory; the cues reset when the dive is corrected[^dash34gaaf].
+- The break X: ours is 0.6 of the field across, on the field's centre, flashing at 2 Hz (inferred from fig. 1-212).
+- Not built: the pull-up anticipation cue (the U that rises to the flight path marker in the A-G modes) and the LOW
+  mnemonic[^dash34brk]; the MFD break X.
+
+CARA ALOW (`gaaf::alow`)[^dash34alow]: below the ALOW height; it stops above it, climbing faster than 1,200 fpm, with the
+gear handle down, or below 15 ft. Ours repeats the call every 4 s (the game's Betty period; inferred).
+
 ## What ours draws (status)
 
 This section lists, per jet, what the code draws and what it leaves out.
@@ -528,8 +561,9 @@ This section lists, per jet, what the code draws and what it leaves out.
   - EEGS levels 2 and 5 per fig. 1-257: funnel, MRGS lines, T-symbol, 1 g / 9 g pippers, 4 mr pipper, TD circle with
     the range arc and the maximum-range dot.
   - The target-aspect triangle rides the AIM-9 reticle / ASEC.
+  - The break X (GAAF and A-A inside Rmin; "Pull-up and break marks" above).
   - Not drawn: the VVI (vertical velocity indicator) scale (ours: the VAH switch position), DTOS / CCRP (the game has
-    no such modes), BATR / FEDS, ALOW.
+    no such modes), BATR / FEDS, ALOW, the pull-up anticipation cue.
 - F-15: tapes, heading, ladder with the zenith ⊖ "90" / nadir ⊗, velocity vector, -W-, gun cross when armed, G, Mach
   in A-A, NAV window, TD box, ASE circle + dot, range scale + IN RNG, breakaway X inside Rmin, LCOS reticle with the
   range arc, bomb fall line to the target square, AoA scale gear down (ours: degrees as units), NAV bank steering bar
@@ -595,3 +629,11 @@ Simulator documentation (used only for detail, each fact tagged [SIM] above):
 - F-4E: [Heatblur DCS F-4E manual, LCOSS](https://f4.manuals.heatblur.se/systems/weapon_systems/lcoss.html) and [optical sight BIT](https://f4.manuals.heatblur.se/procedures/bit_tests/optical_sight.html) (paraphrasing T.O. 1F-4E-1 / -34).
 - F-15: [Falcon BMS TO 1F-15C-34-1-1](https://cdn.falcon-bms.com/docs/4.37/TO%201F-15C-34-1-1%20BMS.pdf).
 - F-16: [Falconpedia HUD](http://falcon4.wikidot.com/avionics:hud), [NikolaiVChr FlightGear F-16 HUD wiki](https://github.com/NikolaiVChr/f16/wiki/HUD).
+
+[^dash34brk]: T.O. GR1F-16CJ-34-1-1 (Hellenic AF, 16 Jun 1997), p. 1-173 "Pullup Anticipation and Breakaway Cue (Break
+    X)", https://falcon.blu3wolf.com/Docs/HAF-F16-34.pdf (PDF page 189).
+[^dash34gaaf]: T.O. GR1F-16CJ-34-1-1, pp. 1-313..1-315 "Ground Avoidance Advisory Function (GAAF)" and fig. 1-212,
+    https://falcon.blu3wolf.com/Docs/HAF-F16-34.pdf (PDF pages 329-331).
+[^dash34alow]: T.O. GR1F-16CJ-34-1-1, p. 1-316 "CARA Altitude Low (CARA ALOW)", https://falcon.blu3wolf.com/Docs/HAF-F16-34.pdf
+    (PDF page 332).
+[^betty]: [real-betty.md](real-betty.md) §1 and its sources.

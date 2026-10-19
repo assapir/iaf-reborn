@@ -22,6 +22,11 @@ const SoundTable := preload("res://audio/sound_table.gd")
 ## MiG-29 180, F-4 200 = 1; F-4 120, Kfir 130, MiG-21 150, MiG-23 160, MiG-25 170, Mirage 190,
 ## 210 / 220 / 225 = 0.
 const BETTY_TYPES := [100, 110, 140, 180, 200, 1000]
+## With the Real HUD (Extras > HUD; docs/real-betty.md, docs/deviations.md) the dive and height calls follow the real
+## jet: "f16" its VMS (GAAF "Pull up" and CARA ALOW "Altitude", iaf_avionics::gaaf), "gaaf" the pull-up call only
+## (the F-35I, Auto-GCAS lineage [R]), "original" the game's Betty (Kurnass 2000, Lavi: no source either way); any
+## other type has none (F-15C: no pull-up call in the sources; F-4E, Kfir, Mirage: no voice).
+const REAL_VOICE := {100: "f16", 1000: "gaaf", 140: "original", 200: "original"}
 ## [Sound] registry values read by FUN_004c3ac0 (defaults; the install sets none):
 ## PitchIntrPercent, PitchIntrShift, Ab1PitchPerc, Ab2PitchPerc. (InsideReduceVolume 0.75 is read
 ## too but never used.)
@@ -66,6 +71,7 @@ var _speed_brake_loop: Node = null  # ctl+0x8cc
 var _aoa_loop: Node = null  # ctl+0x8c4
 var _alt_timer := -1.0  # ctl+0x904: next Betty "altitude" time, < 0 = off
 var _pull_timer := -1.0  # ctl+0x908: next Betty "pull up" time, < 0 = off
+var _gaaf_on := false  # Real: the GAAF advisory holds (one "Pull up" per advisory)
 var _fuel_flags := [true, true]  # engine object +0x40 / +0x44
 var _was := {}
 var _crashed := false
@@ -118,17 +124,19 @@ func _process(_delta: float) -> void:
 				global_position = host.rig.global_position
 				var ground = host.terrain.height_at(host.rig.position)
 				var wp = host.get("weapons")
+				var ck = host.get("cockpit")
 				update(st, {
 					"gear_down": host.gear_down, "flaps": host.flaps, "flaps_state": host.flaps_state,
 					"brakes": host.brakes, "in_cockpit": host.in_cockpit,
 					"agl_m": st.position.y - ground if ground != null else 1.0e6,
 					"pitch": float(st.get("pitch", 0.0)), "hud_mode": int(wp.hud_mode) if wp != null else 0,
+					"kcas": float(ck.state.get("ias_kt", st.speed_kt)) if ck != null else float(st.speed_kt),
 				})
 	_update_3d()
 
 
 ## One frame: `st` = IafFlight.state(), `inp` = the host's levers and view (gear_down, flaps,
-## flaps_state, brakes, in_cockpit, agl_m, pitch (degrees), hud_mode).
+## flaps_state, brakes, in_cockpit, agl_m, pitch (degrees), hud_mode, kcas).
 func update(st: Dictionary, inp: Dictionary) -> void:
 	var now: float = st.get("time", 0.0)
 	var airborne: bool = not st.on_ground
@@ -158,8 +166,12 @@ func update(st: Dictionary, inp: Dictionary) -> void:
 		elif _speed_brake_loop != null:
 			_stop(_speed_brake_loop)
 			_speed_brake_loop = null
-	_altitude_warning(float(inp.get("agl_m", 1.0e6)) * FT_PER_M, inp.gear_down, now, float(inp.get("pitch", 0.0)),
-		int(inp.get("hud_mode", 0)))
+	var h_ft := float(inp.get("agl_m", 1.0e6)) * FT_PER_M
+	var voice: String = REAL_VOICE.get(type_code, "") if Settings.hud_style == "real" else "original"
+	if voice == "original":
+		_altitude_warning(h_ft, inp.gear_down, now, float(inp.get("pitch", 0.0)), int(inp.get("hud_mode", 0)))
+	else:
+		_real_warning(voice, h_ft, st, inp, now)
 	_fuel_warning(float(st.get("fuel_lbs", 1.0e6)))
 	_was = {"gear_down": inp.gear_down, "flaps": inp.flaps, "flaps_state": inp.get("flaps_state", 0),
 		"brakes": inp.brakes, "airborne": airborne}
@@ -267,6 +279,25 @@ func _altitude_warning(h_ft: float, gear_down: bool, now: float, pitch_deg := 0.
 	if betty and not gear_down and _pull_timer < 0.0:
 		_pull_timer = now
 	_pull_timer = _betty_tick(_pull_timer, "BTY_PULL_UP", now)
+
+
+## The Real HUD's dive and height calls (REAL_VOICE): "Altitude" (F-16) every 4 s while CARA ALOW holds, "Pull up"
+## once when the GAAF advisory starts (the aural message plays to its end and comes again on the next advisory).
+func _real_warning(voice: String, h_ft: float, st: Dictionary, inp: Dictionary, now: float) -> void:
+	_pull_timer = -1.0
+	var vs := float(st.get("vs_fpm", 0.0))
+	if voice == "f16" and ClassDB.class_call_static("IafRealHud", "alow", h_ft, vs, inp.gear_down):
+		if _alt_timer < 0.0:
+			_alt_timer = now
+		_alt_timer = _betty_tick(_alt_timer, "BTY_ALT", now)
+	else:
+		_alt_timer = -1.0
+	var g: bool = voice != "" and ClassDB.class_call_static("IafRealHud", "gaaf", h_ft,
+		float(inp.get("kcas", st.get("speed_kt", 0.0))), float(st.get("speed", 0.0)), vs, float(st.get("roll", 0.0)),
+		inp.gear_down, int(inp.get("hud_mode", 0)) in [4, 5, 6, 7])
+	if g and not _gaaf_on:
+		play("VOC_BBETTY", "BTY_PULL_UP")
+	_gaaf_on = g
 
 
 ## MCockpitSoundEvent (vtbl 0x600ce8): plays the Betty call when its time `t` has come; returns the next time.

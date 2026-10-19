@@ -205,8 +205,9 @@ renderer, S = the cockpit state (`0x82f544`). The reader stores the `[HUD]` keys
       keeps the last value otherwise.
 
     While it is set `FUN_00537120` draws neither the missile circle nor the lock caret (modes 1 / 2). Ours:
-    `player_weapons.gd` `_break_x_cue` → `weapons.break_x`, drawn in `hud.gd`. The Real HUD draws no X and keeps its
-    own circles (user decision); Betty plays with either HUD.
+    `player_weapons.gd` `_break_x_cue` → `weapons.break_x`, drawn in `hud.gd`. The Real HUD draws the real jet's own
+    mark instead and keeps its own circles; the dive and height voice then follows the real jet too (docs/real-hud.md
+    "Pull-up and break marks").
 * **Text block** (`FUN_0052ef20`, k = 1: sprite font). The left column is left-aligned at cx − TxtOffX, the right
   column ends at cx + TxtOffX, and the rows sit at cy + TxtOffY + 0 / 7 / 14.
   * Left 0: `"AB %1d"` while the afterburner is lit (S+0x1054; with two engines (S+0x1038 > 1) the larger of both),

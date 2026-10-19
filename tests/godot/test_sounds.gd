@@ -104,6 +104,37 @@ func run() -> void:
 	check(_count(fs, "SFX_AIRCRAFT_EXPLODED/None") == 1 and fs.engine_code == "", "crash: explosion, engine stops")
 	fs.queue_free()
 
+	# The Real HUD: the real jet's calls (REAL_VOICE, docs/real-betty.md). F-16: GAAF "Pull up" once per advisory (a
+	# 45° dive at 413 kt is inside it at 2,000 ft, outside at 3,000), CARA ALOW "Altitude" below 300 ft with the gear up.
+	Settings().hud_style = "real"
+	var kt := 413.0 * 0.514444
+	var real := {"time": 0.0, "speed": kt, "speed_kt": 413.0, "vs_fpm": -kt * 0.7071 * 196.85, "roll": 0.0}
+	fs = FlightSounds.create(null, 100)
+	root.add_child(fs)
+	for i in 3:
+		real.time = float(i)
+		fs.update(_state(real), _inp({"agl_m": 3000.0 / 3.281, "hud_mode": 5, "pitch": -45.0}))
+	check(_count(fs, "VOC_BBETTY/BTY_PULL_UP") == 0, "Real F-16: no call at 3,000 ft (the original's rule would call)")
+	for i in 6:
+		real.time = 3.0 + i
+		fs.update(_state(real), _inp({"agl_m": 2000.0 / 3.281, "hud_mode": 5, "pitch": -45.0}))
+	check(_count(fs, "VOC_BBETTY/BTY_PULL_UP") == 1, "Real F-16: one Pull up per GAAF advisory")
+	real.vs_fpm = -300.0
+	for i in 5:
+		real.time = 10.0 + i
+		fs.update(_state(real), _inp({"agl_m": 250.0 / 3.281}))
+	check(_count(fs, "VOC_BBETTY/BTY_ALT") == 2, "Real F-16: Altitude below 300 ft at once and every 4 s (%d)" % _count(fs, "VOC_BBETTY/BTY_ALT"))
+	fs.queue_free()
+	fs = FlightSounds.create(null, 110)
+	root.add_child(fs)
+	real.vs_fpm = -kt * 0.7071 * 196.85
+	for i in 5:
+		real.time = float(i)
+		fs.update(_state(real), _inp({"agl_m": 20.0, "hud_mode": 5, "pitch": -45.0}))
+	check(_count(fs, "VOC_BBETTY/BTY_PULL_UP") + _count(fs, "VOC_BBETTY/BTY_ALT") == 0, "Real F-15C: no dive or height call")
+	fs.queue_free()
+	Settings().hud_style = "original"
+
 	# Betty only on the types that carry it (FUN_00447e70): the Mirage (190) has none.
 	fs = FlightSounds.create(null, 190)
 	root.add_child(fs)
