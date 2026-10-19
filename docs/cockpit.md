@@ -217,9 +217,13 @@ renderer, S = the cockpit state (`0x82f544`). The reader stores the `[HUD]` keys
   * Left 2: `"NAV"` in NAV, else `"%1d %s %s"` (store total, name, RDY / MAL = ready / malfunction).
   * Right 0: `"R %2.1f"` (lock range, NM) with a lock (S+0xa20).
   * Right 1: NAV and modes 2, 4–8 `"W%02d  %02.1f"` (waypoint number, NM); modes 1 / 3 the lock's aspect `"%2dL"` /
-    `"%2dR"` (or `"AUD"` in 1 without a lock, S+0x3a4).
-  * Right 2: NAV `"%3.1f MIN"` below 60 min; modes 1 / 2 / 8 `"%2d SEC"` and 4 `"%2d"` of S+0x380; mode 5 `"%2d SEC"` /
-    `"XX SEC"` (≥ 90) of S+0x638 when S+0x620 = 1.
+    `"%2dR"`. Mode 1 without a lock shows `"AUD"` while S+0x3a4 is set, else nothing (@52f437).
+    S+0x3a4 is the cockpit's "has a target" flag. `FUN_00456520` → `FUN_00445da0` sets it every frame: the radar's TWS
+    selection (`FUN_004adab0`) or lock (`FUN_004ada80`), the HARM sensor's target (ctl+0x44c vfunc +0x1c
+    `FUN_0045c1f0`), or in HUD mode 1 the IR seeker's target (the mode's sight vfunc +0x28). Without a radar lock in
+    mode 1 that is the seeker's target. Ours: `iaf_avionics::hud::has_target` → `weapons.target`.
+  * Right 2: NAV `"%3.1f MIN"` below 60 min; modes 1 / 2 / 8 `"%2d SEC"` and 4 `"%2d"` of S+0x380 (@52f2a6, the same
+    weapon time); mode 5 `"%2d SEC"` / `"XX SEC"` (≥ 90) of S+0x638 when S+0x620 = 1.
   * The original HUD shows **no Mach, AoA (angle of attack) or G-limit readout**.
 * **Per jet** (the keys above):
   * The F-4E (phantom) and MiG-23 have **ShowHorizon 0** (the marker without a ladder) and **ShowLRScales 0** (the speed

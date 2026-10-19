@@ -148,12 +148,14 @@ Damage cases 0xf / 0x13 / 0x15 (`FUN_004adb20`) turn the radar OFF, and every la
 - **ECM (electronic countermeasures):** the player's jammer is built (J, `player_weapons.gd` `ecm_key`,
   docs/weapons.md §10). AI units carry no ECM: nothing sets a target's `ecm`, so the launch q − rand of
   `_launch_target` never applies. The AI sensors ignore the player's jammer.
-- **The designated point is used only by the MAP page's cross**, as in the original.
-  - Its X / Y / height (+0x58 / +0x5c / +0x60) are read only by their writer `FUN_004ade90`.
+- **The designated point is used by the MAP page's cross and the HUD's TD box**, as in the original.
+  - Its X / Y / height (+0x58 / +0x5c / +0x60) are written by `FUN_004ade90` and read through the controller's
+    ctl+0xdc by `FUN_0044e370` (the HUD below).
   - The flag +0x50 goes to state+0xa1c (`FUN_00445f10`). The MFD cross (`FUN_00535ea0`) and the HUD read it.
   - The HUD: `FUN_0052f690` calls the TD box `FUN_00537330` with a lock or a designation. The box sits at S+0xff4, the
-    target point of `FUN_0045a810` → `FUN_0044e370`. That point is the lock or, without one, the vector at ctl+0xdc
-    (UNCERTAIN what it holds; it is a different value from the designated point). Ours draws the box with a lock only.
+    target point of `FUN_0045a810` → `FUN_0044e370`. That point is the lock or, without one, the vector at ctl+0xdc.
+    The radar sits at ctl+0x84, so ctl+0xdc..0xe4 is radar+0x58..0x60: the designated point. Ours draws the box at
+    the lock, else at the designated point (`hud.gd` `target_box`).
   - No bomb / rocket aim (docs/weapons.md §9.3), EO / FLIR / TV slew or laser reads it. The game has no CCRP
     (continuously computed release point).
 - **STT envelope ticks:** the STT range scale's envelope ticks are drawn (the selected store's DLZ, dynamic launch

@@ -120,6 +120,9 @@ func run() -> void:
 	t += 0.05
 	w.update(t)
 	check(w.radar.mode == w.radar.LRS and w.radar.locked().is_empty(), "Backspace: unlocked, LRS")
+	# S+0x3a4 (FUN_00456520): without a lock in HUD mode 1 the cockpit's target flag is the seeker's target ("AUD").
+	check(w.hud_mode == 1 and bool(tv.cockpit.weapons.get("target", null)) == (w.seeker.target_key != ""),
+			"no lock, SRM: the target flag follows the seeker (%s)" % w.seeker.target_key)
 	# TWS: the selection is the lock; between scans the blip stays, the lock (HUD box) follows the unit.
 	w.radar_event(0x24)  # Q: LRS -> TWS (a scan)
 	check(w.radar.mode == w.radar.TWS and w.radar.locked().get("key", "") == ent.key, "Q: TWS, %s selected" % ent.name)
@@ -189,5 +192,9 @@ func run() -> void:
 	t += 0.05
 	w.update(t)
 	check(w.radar.exp and tv.cockpit.radar.get("exp", false), "OSB 3: EXP")
+	# The TD box without a lock (FUN_0052f690 → FUN_00537330 at FUN_0044e370's ctl+0xdc = radar+0x58: the designated
+	# point): drawn at the designated point, no friendly X.
+	var tdb: Dictionary = tv.cockpit.hud.target_box(tv.cockpit.ui_scale())
+	check(w.radar.locked().is_empty() and not tdb.is_empty() and tdb.hostile, "MAP designation: the HUD TD box (%s)" % str(tdb))
 	await frames(2)
 	check(m._map_centre == m._map_point, "EXP centres on the designated point")

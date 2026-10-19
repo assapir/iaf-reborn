@@ -1664,7 +1664,7 @@ func radar_snapshot() -> Dictionary:
 	return {"mode": radar.mode, "idx": radar.range_index(), "width": radar.scope_width(),
 		"shift": radar.heading_shift, "antenna": radar.antenna, "contacts": radar.contacts,
 		"lock": lk, "closure": closure, "has_lock": not lk.is_empty(),
-		"exp": radar.exp, "designated": radar.designated, "dlz": s348}
+		"exp": radar.exp, "designated": radar.designated, "desig": radar.desig, "dlz": s348}
 
 
 # --- chaff and flares (events 0x44 / 0x45, docs/weapons.md §10) ------------------------------------
@@ -2000,6 +2000,9 @@ func _publish() -> void:
 		"quantity": ripple_qty, "interval": ripple_int, "seeker": seeker.symbol, "lock": seeker.lock,
 		"have_missiles": stores.total(t, stores.current_name()) > 0, "circle": circle, "mrm_point": mrm_pt,
 		"shoot": shoot, "harm_point": harm_pt, "tv_point": eo_centre if hud_mode == 7 and tv_status() != 0 else null, "sec": s380, "bearing": _lock_bearing(o),
+		# S+0x3a4 (FUN_00456520): the radar's lock / TWS selection, the HARM sensor's target, the mode-1 seeker's.
+		"target": ClassDB.class_call_static("IafRelease", "has_target", not radar.locked().is_empty(),
+			harm.active and harm.selected != "", hud_mode, seeker.target_key != ""),
 		"pipper": pip, "pipper_world": hud_mode == 4, "firing": firing, "break_x": _break_x_cue(o),
 		# The mode-5 object's cockpit state (FUN_00445db0: +0x620 off, +0x624 point, +0x638 time-to-go
 		# capped at 1000, +0x62c frozen, +0x630 blinking; ours also the target +0x18 for the Real HUD).

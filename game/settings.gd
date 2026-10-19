@@ -5,6 +5,7 @@ const PATH := "user://settings.cfg"
 ## The blackbox (terrain_view.gd _record): one file per flight, flight-<date>_<time>-m<mission>.jsonl, the newest
 ## BLACKBOX_KEEP kept; the debrief screen exports the last one (blackbox_file, this session's).
 const BLACKBOX_DIR := "user://flights"
+const SCREENSHOT_DIR := "user://screenshots"
 const BLACKBOX_KEEP := 10
 var blackbox_file := ""
 ## "Better physics" (Preferences > Physics), id -> label, in page order: the flight-model options

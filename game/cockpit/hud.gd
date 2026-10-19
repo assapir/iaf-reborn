@@ -813,8 +813,8 @@ static func nav_cues(st: Dictionary, route: Array, index: int) -> Dictionary:
 ## (selected store total, name, RDY / MAL); 3: "R %2.1f" (radar lock range, NM) with a lock; 4: in NAV and HUD
 ## modes 2 and 4..8 "W%02d  %02.1f" (waypoint number and NM), in modes 1 / 3 the lock's aspect "%2dL" / "%2dR";
 ## 5: in NAV "%3.1f MIN" below 60 minutes, in mode 5 the bomb time-to-go "%2d SEC" / "XX SEC" (≥ 90), in modes
-## 1, 2, 8 "%2d SEC" of the last launched weapon's time left (S+0x380). (Mode 4's "%2d" and "AUD", S+0x3a4, are
-## not built.)
+## 1, 2, 8 "%2d SEC" and in mode 4 "%2d" of the last launched weapon's time left (S+0x380). Mode 1 without a lock
+## shows "AUD" in row 4 while the cockpit has a target (S+0x3a4, `wp.target`: the seeker's; FUN_0052ef20 @52f437).
 static func text_block(st: Dictionary, mode: int, nav: Dictionary, wp: Dictionary, radar: Dictionary,
 		twin: bool, flags: Array) -> Array:
 	var rows := ["", "", "", "", "", ""]
@@ -848,6 +848,8 @@ static func text_block(st: Dictionary, mode: int, nav: Dictionary, wp: Dictionar
 		1, 3:
 			if not lk.is_empty():
 				rows[4] = Mfd.aspect_text(float(lk.get("aspect", 0.0)))
+			elif mode == 1 and wp.get("target", false):
+				rows[4] = "AUD"
 		2, 4, 6, 7, 8:
 			rows[4] = w_row
 		5:
@@ -857,9 +859,11 @@ static func text_block(st: Dictionary, mode: int, nav: Dictionary, wp: Dictionar
 			if ag.get("off", false):
 				var sec := int(float(ag.get("ttg", 0.0)))
 				rows[5] = "XX SEC" if sec >= 90 else "%2d SEC" % sec
-	# Modes 1, 2, 8: "%2d SEC" of S+0x380, the last launched weapon's time left (FUN_00456520).
+	# Modes 1, 2, 8: "%2d SEC", mode 4: "%2d" of S+0x380, the last launched weapon's time left (FUN_00456520).
 	if mode in [1, 2, 8]:
 		rows[5] = "%2d SEC" % int(float(wp.get("sec", 0.0)))
+	elif mode == 4:
+		rows[5] = "%2d" % int(float(wp.get("sec", 0.0)))
 	return rows
 
 
@@ -1209,9 +1213,10 @@ static func ray_normal(cam: Camera3D, p: Vector2) -> Vector3:
 	return (cam.global_basis.orthonormalized() * local).normalized()
 
 
-## The target designator box (FUN_00537330): drawn with a radar lock, 15 px (10 px in GMT / MAP) at the
-## locked unit's projection, held at the HUD edge with a line from the HUD centre when outside; an X
-## inside for a friendly unit.
+## The target designator box (FUN_00537330): drawn with a radar lock or a designated point (S+0xa20 / S+0xa1c,
+## FUN_0052f690), 15 px (10 px in GMT / MAP) at the projection of the target point S+0xff4 (FUN_0045a810 →
+## FUN_0044e370: the locked unit, else the designated point radar+0x58..0x60 = ctl+0xdc), held at the HUD edge
+## with a line from the HUD centre when outside; an X inside for a friendly unit.
 func _draw_target_box(s: float, w: float) -> void:
 	var b := target_box(s)
 	if b.is_empty():
@@ -1233,13 +1238,13 @@ func _draw_target_box(s: float, w: float) -> void:
 		draw_polyline(PackedVector2Array([a, p + Vector2(3, 0) * _s + Vector2(0, l), p + Vector2(-3, 0) * _s + Vector2(0, l), a]), col, w)
 
 
-## The box: {p (HUD px), h (half size), edge (held at the HUD edge), hostile}; {} without a lock.
+## The box: {p (HUD px), h (half size), edge (held at the HUD edge), hostile}; {} without a lock or a designation.
 func target_box(s: float) -> Dictionary:
 	var r: Dictionary = cockpit.radar
 	var lk: Dictionary = r.get("lock", {})
-	if lk.is_empty() or camera == null or not host_world_to_scene.is_valid():
+	if (lk.is_empty() and not r.get("designated", false)) or camera == null or not host_world_to_scene.is_valid():
 		return {}
-	var sp: Vector3 = host_world_to_scene.call(lk.pos)
+	var sp: Vector3 = host_world_to_scene.call(lk.pos if not lk.is_empty() else r.desig)
 	var centre := size / 2
 	var p: Vector2
 	if camera.is_position_behind(sp):

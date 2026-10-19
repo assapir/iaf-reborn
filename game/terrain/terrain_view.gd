@@ -1562,6 +1562,31 @@ func _update_indicators(delta: float) -> void:
 	cockpit.indicators[5] = brakes  # air brake light follows the brakes toggle
 
 
+## The screen capture (SysRQ, command 0x88 → FUN_004dc8d0: the frame as IafJets%03d.bmp in the game folder, the
+## counter from 0 each run, no message). Ours: the frame as PNG in Settings.SCREENSHOT_DIR (or `screenshot_dir`),
+## named by the date and time (docs/deviations.md). Returns the file's path, "" when nothing was written.
+var screenshot_dir := ""
+
+
+func screenshot() -> String:
+	var dir := screenshot_dir
+	if dir == "":
+		if Settings.isolated():
+			return ""  # tests never write into the player's data
+		dir = Settings.SCREENSHOT_DIR
+	var img := get_viewport().get_texture().get_image()
+	if img == null or img.is_empty():
+		return ""
+	DirAccess.make_dir_recursive_absolute(dir)
+	var stem := "IafJets-%s" % Time.get_datetime_string_from_system().replace("T", "_").replace(":", "-")
+	var path := dir.path_join(stem + ".png")
+	var n := 1
+	while FileAccess.file_exists(path):
+		n += 1
+		path = dir.path_join("%s-%d.png" % [stem, n])
+	return path if img.save_png(path) == OK else ""
+
+
 func _record(st: Dictionary, delta: float) -> void:
 	_log_t += delta
 	if (Settings.isolated() and blackbox_path == "") or not Settings.blackbox:
@@ -1931,6 +1956,8 @@ func _command(cmd: Array) -> bool:
 				autopilot.set_waypoint(i)
 			else:
 				cockpit.current_waypoint = posmod(i, maxi(cockpit.waypoints.size(), 1))
+		136:
+			screenshot()  # SysRQ (command 0x88, FUN_004dc8d0)
 		119:
 			_time_compress()
 		120:

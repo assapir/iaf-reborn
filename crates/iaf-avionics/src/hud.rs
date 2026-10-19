@@ -65,6 +65,14 @@ pub fn missile_counts(stores: &Stores) -> (i64, i64) {
     })
 }
 
+/// The cockpit's "has a target" flag S+0x3a4 (`FUN_00456520` → `FUN_00445da0`, every frame): the radar's TWS
+/// selection (radar mode 5, `FUN_004adab0`) or lock (`FUN_004ada80`), the HARM sensor's target (ctl+0x44c vfunc +0x1c
+/// `FUN_0045c1f0`), or in HUD mode 1 the IR seeker's target (the mode's sight vfunc +0x28). The text block writes
+/// "AUD" from it in HUD mode 1 without a radar lock (`FUN_0052ef20` @52f437).
+pub fn has_target(radar_target: bool, harm_target: bool, hud_mode: i64, seeker_target: bool) -> bool {
+    radar_target || harm_target || (hud_mode == 1 && seeker_target)
+}
+
 /// The CCIP time-to-go as the cockpit gets it.
 pub fn ttg_shown(ttg: f64) -> f64 {
     ttg.min(TTG_MAX)
@@ -73,6 +81,14 @@ pub fn ttg_shown(ttg: f64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn has_target_flag() {
+        assert!(has_target(false, false, 1, true));
+        assert!(!has_target(false, false, 2, true), "the seeker counts only in HUD mode 1");
+        assert!(has_target(true, false, 2, false) && has_target(false, true, 8, false));
+        assert!(!has_target(false, false, 1, false));
+    }
 
     #[test]
     fn cues() {

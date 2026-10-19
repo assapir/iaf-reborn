@@ -145,7 +145,7 @@ Checked against the code on 2026-10-19 (each doc's own "not built" notes have th
   the panel strip's edge.
 - **Controls**: one joypad (the first connected), as the original's one DirectInput device; real-hardware use so
   far: a joystick on Linux (2026-10-20), a T.Flight Hotas X on macOS (`SDL_JOYSTICK_MFI=0`). No force feedback. Unhandled commands: the cheats
-  (Shift+S / D / R / F, Ctrl+W), the SysRQ screenshot, chat (docs/controls.md §4).
+  (Shift+S / D / R / F, Ctrl+W), chat (docs/controls.md §4).
 - **FlyTSD**: Fly after the own jet is down changes nothing; the exe hands over the new jet until rule 1 ends the
   flight (docs/views.md §1 "Open").
 - **Radio**: AWACS contact calls; airborne / landed / crashed / kill ("… is down") reports.

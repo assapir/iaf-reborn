@@ -76,6 +76,11 @@ impl IafRelease {
     }
 
     #[func]
+    fn has_target(radar_target: bool, harm_target: bool, hud_mode: i64, seeker_target: bool) -> bool {
+        hud::has_target(radar_target, harm_target, hud_mode, seeker_target)
+    }
+
+    #[func]
     fn harm_in_range(rounds_left: bool, z: VarArray, dist: f64) -> bool {
         hud::harm_in_range(rounds_left, dlz(&z), dist)
     }

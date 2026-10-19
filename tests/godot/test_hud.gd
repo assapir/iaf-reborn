@@ -130,6 +130,15 @@ func _traced(tv) -> void:
 			"MRM: AB 2, AP NAV, the store row, the waypoint, the weapon time (%s)" % str(rows))
 	ts.ap_mode = 0
 	check(Hud.text_block(ts, 2, nav, {}, {}, false, [])[1] == "-1.2G", "negative G: '%4.1fG'")
+	# Mode 1 without a lock: "AUD" while the seeker has a target (S+0x3a4, @52f437), else empty; with one the aspect.
+	rows = Hud.text_block(ts, 1, nav, {"target": true, "sec": 7.0}, {}, false, [])
+	check(rows[4] == "AUD" and rows[5] == " 7 SEC", "SRM, seeker target, no lock: AUD (%s)" % str(rows))
+	check(Hud.text_block(ts, 1, nav, {"target": false}, {}, false, [])[4] == "", "SRM, no target: row 4 empty")
+	check(Hud.text_block(ts, 1, nav, {"target": true}, {"lock": {"dist": 1000.0, "aspect": 30.0}}, false, [])[4] != "AUD",
+			"SRM with a radar lock: the aspect, not AUD")
+	check(Hud.text_block(ts, 3, nav, {"target": true}, {}, false, [])[4] == "", "AUD only in mode 1")
+	# Mode 4: "%2d" of S+0x380 (@52f2a6).
+	check(Hud.text_block(ts, 4, nav, {"sec": 12.0}, {}, false, [])[5] == "12", "AG gun: the weapon time '%2d'")
 	check(Hud.text_block(ts, 0, nav, {}, {}, false, [false, false, false, false, false, false, false, false, true])[0] == "T 060",
 			"afterburner damage (flag 8): the rpm row")
 	# NAV cues (FUN_00452e60): bearing / NM / minutes / required speed.

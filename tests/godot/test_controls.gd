@@ -109,3 +109,17 @@ func run() -> void:
 	Input.parse_input_event(e)
 	Settings().key_bindings = {}
 	Settings().show_all_keys = false
+	# SysRQ (record 116, command 0x88): the screen capture (FUN_004dc8d0). Isolated runs write nothing unless a
+	# folder is given; the headless renderer may give no image, then nothing is written either.
+	check(kt.key_name(kt.default_key(116)) == "SysRQ" and kt.records[116].press[0] == 136, "record 116 = SysRQ, command 136")
+	check(tv._command([136, 0, 0]) and tv.screenshot() == "", "SysRQ handled; no folder in a test run: nothing written")
+	var dir := OS.get_environment("HOME").path_join(".cache/iaf-test-shots-%d" % OS.get_process_id())
+	tv.screenshot_dir = dir
+	var shot: String = tv.screenshot()
+	var shot2: String = tv.screenshot()
+	check(shot == "" or (FileAccess.file_exists(shot) and shot.get_file().begins_with("IafJets-") and shot.ends_with(".png")
+			and shot2 != shot and FileAccess.file_exists(shot2)), "a PNG per press, never overwritten (%s, %s)" % [shot, shot2])
+	if DirAccess.dir_exists_absolute(dir):
+		for f in DirAccess.get_files_at(dir):
+			DirAccess.remove_absolute(dir.path_join(f))
+		DirAccess.remove_absolute(dir)
