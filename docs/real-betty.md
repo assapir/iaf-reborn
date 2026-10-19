@@ -7,46 +7,47 @@ the research for the wishlist item "Real Betty" in [roadmap.md](roadmap.md). The
 **Terms**
 - **Betty:** the cockpit's recorded voice warnings (pilot slang "Bitching Betty").
 - **VMS:** the F-16's Voice Message System.
-- **[S]:** stated by a source; **[R]:** our reasoning from sources; **open:** no source found.
+- **Sources:** a footnote names the source of each fact. "Inferred" marks our own reasoning from the sources;
+  "open" means no source was found.
 
 ## 1. Per jet
 
 | Jet | Voice system | Phrases | Language in IAF service |
 |---|---|---|---|
-| F-16 (A/B/C/D, the game's F-16D Barak) | yes [S] (VMS) | in priority order: PULL UP, ALTITUDE, WARNING, BINGO, CAUTION, LOCK, CHAFF FLARE / LOW / OUT [S]; later software adds COUNTER, JAMMER, DATA, IFF [S] | English in the USAF [S]; IAF open |
-| F-16I Sufa | yes [R] (VMS lineage) | the VMS set; Israeli additions open | open (no source in English or Hebrew) |
-| F-15C | yes [S] | 1978: "Warning", "Engine fire", "Overheat" [S]; simulator sources add CAUTION, BINGO FUEL, OVER-G, "Left / Right engine fire", "Fuel low" (not checked against a flight manual) | English in the USAF [S]; IAF Baz open |
-| F-4E | no voice, tones and lights [R] | — | — |
+| F-16 (A/B/C/D, the game's F-16D Barak) | yes (VMS)[^wiki] | in priority order: PULL UP, ALTITUDE, WARNING, BINGO, CAUTION, LOCK, CHAFF FLARE / LOW / OUT[^vms]; later software adds COUNTER, JAMMER, DATA, IFF[^vms][^cms] | English in the USAF[^wiki]; IAF open |
+| F-16I Sufa | yes, inferred (VMS lineage) | the VMS set; Israeli additions open | open (no source in English or Hebrew) |
+| F-15C | yes[^hushkit] | 1978: "Warning", "Engine fire", "Overheat"[^hushkit]; simulator sources add CAUTION, BINGO FUEL, OVER-G, "Left / Right engine fire", "Fuel low" (not checked against a flight manual) | English in the USAF[^hushkit]; IAF Baz open |
+| F-4E | no voice, tones and lights (inferred) | — | — |
 | Kurnass 2000 | open (the upgrade's write-ups list a mission computer and displays, no voice) | — | — |
-| Kfir C7 | no voice, tones [R] | — | — |
+| Kfir C7 | no voice, tones (inferred) | — | — |
 | Lavi | open (the Elbit ACE-4 mission computer is documented, a voice system is not) | — | — |
-| Mirage IIICJ | no voice, tones and lights [R] | — | — |
-| F-35I Adir | yes [R] (voice warnings with the helmet display; Auto-GCAS fielded since 2019 [S]) | PULL UP likely [R]; no public list | open |
+| Mirage IIICJ | no voice, tones and lights (inferred) | — | — |
+| F-35I Adir | yes, inferred (voice warnings with the helmet display; Auto-GCAS fielded since 2019[^gcas]) | PULL UP likely (inferred); no public list | open |
 
 F-16 details:
-- ALTITUDE plays below the low-altitude setting (default 300 ft) with the gear up [S].
-- A fire or engine failure is "WARNING" with its warning light; there is no voice for Over-G or Fire [R, from the
-  phrase list].
-- One technician reports that early Block 15 jets had a soft female "Caution" and a louder male "Warning" (forum
-  report, not checked).
+- ALTITUDE plays below the low-altitude setting (default 300 ft) with the gear up[^vms].
+- A fire or engine failure is "WARNING" with its warning light; there is no voice for Over-G or Fire (inferred from
+  the phrase list[^vms]).
+- One technician reports that early Block 15 jets had a soft female "Caution" and a louder male "Warning"[^f16net]
+  (forum report, not checked).
 
 ## 2. Voice actors
-- F-16: Erica Lane [S] (Wikipedia "Voice warning system"; f-16.net thread citing eleinc.com).
-- F-15: Kim Crow, described as the first digitised Betty [S] (hushkit interview; pwoodford.net).
-- F/A-18E/F (for comparison): Leslie Shook of Boeing, retired 2016 [S] (NPR, Marine Corps Times).
+- F-16: Erica Lane[^wiki][^f16net].
+- F-15: Kim Crow, described as the first digitised Betty[^hushkit][^woodford].
+- F/A-18E/F (for comparison): Leslie Shook of Boeing, retired 2016[^npr][^mct].
 - F-35 and the IAF jets: open.
 
 ## 3. Recordings and their licences
 
 | Source | What it has | Licence | Usable |
 |---|---|---|---|
-| FlightGear F-16 (github.com/NikolaiVChr/f16, `Sounds/betty/`) | isolated clean wavs, 44.1 kHz mono: pullup, altitude, warning, caution, bingo, lock, data, jammer, IFF, missile, chaff-flare, chaff-flare-out (added 2018) | the repository is GPL-2.0; the recordings have no credits and no metadata, so their origin is unknown | only as an optional download during setup, after asking the author (Nikolai V Chr) where they came from |
-| DVIDS and other US government video | cockpit audio under engine noise and radio | public domain "unless other copyright status is indicated" (dvidshub.net/about/copyright); the voice itself is a contractor's recording, so its status inside the video is unclear [R] | no (quality and licence doubt) |
+| FlightGear F-16, `Sounds/betty/`[^fg] | isolated clean wavs, 44.1 kHz mono: pullup, altitude, warning, caution, bingo, lock, data, jammer, IFF, missile, chaff-flare, chaff-flare-out (added 2018) | the repository is GPL-2.0; the recordings have no credits and no metadata, so their origin is unknown | only as an optional download during setup, after asking the author (Nikolai V Chr) where they came from |
+| DVIDS and other US government video (e.g. the 2016 F-16 Auto-GCAS save[^aviationist]) | cockpit audio under engine noise and radio | public domain "unless other copyright status is indicated"[^dvids]; the voice itself is a contractor's recording, so its status inside the video is unclear (inferred) | no (quality and licence doubt) |
 | Wikimedia Commons, archive.org | nothing relevant found | — | — |
 | freesound.org | not checked (the search needs an API key) | — | open |
 | Falcon BMS, DCS | full sets | proprietary | no |
 | YouTube, soundboard sites | clips | none | no |
-| Falconpedia VMS page (falcon4.wikidot.com/avionics:vms) | the phrase list and priorities as text | CC BY-SA 3.0 | as a reference only |
+| Falconpedia VMS page[^vms] | the phrase list and priorities as text | CC BY-SA 3.0 | as a reference only |
 
 No clean real recording with a clear licence was found.
 
@@ -80,16 +81,17 @@ setup, like the imagery):
 - Did the Kurnass 2000 or the Lavi have a voice system?
 - Where did FlightGear's F-16 recordings come from?
 
-## 7. Sources
-- https://en.wikipedia.org/wiki/Voice_warning_system
-- https://www.f-16.net/forum/viewtopic.php?p=22026
-- http://falcon4.wikidot.com/avionics:vms
-- https://tms-dms-cms-usage-guide.readthedocs.io/en/latest/c5-cms/
-- https://hushkit.net/2018/02/05/f-15-pilot-shares-the-history-of-bitchin-betty/
-- https://pwoodford.net/blog/?p=18410
-- https://www.npr.org/transcripts/471077856
-- https://www.marinecorpstimes.com/news/your-marine-corps/2016/03/14/woman-behind-the-f-a-18-s-bitchin-betty-voice-retires/
-- https://github.com/NikolaiVChr/f16
-- https://www.dvidshub.net/about/copyright
-- https://theaviationist.com/?p=39778
-- https://sldinfo.com/2019/07/f-35-enterprise-fields-auto-gcas/
+[^wiki]: Wikipedia, "Voice warning system": https://en.wikipedia.org/wiki/Voice_warning_system
+[^vms]: Falconpedia, "VMS" (Falcon 4 avionics reference, CC BY-SA 3.0): http://falcon4.wikidot.com/avionics:vms
+[^cms]: "TMS / DMS / CMS usage guide", CMS chapter: https://tms-dms-cms-usage-guide.readthedocs.io/en/latest/c5-cms/
+[^f16net]: f-16.net forum thread on the VMS voice: https://www.f-16.net/forum/viewtopic.php?p=22026
+[^hushkit]: Hushkit, "F-15 pilot shares the history of Bitchin' Betty" (2018):
+    https://hushkit.net/2018/02/05/f-15-pilot-shares-the-history-of-bitchin-betty/
+[^woodford]: P. Woodford, blog post on the F-15's voice: https://pwoodford.net/blog/?p=18410
+[^npr]: NPR transcript on the F/A-18's voice: https://www.npr.org/transcripts/471077856
+[^mct]: Marine Corps Times, "Woman behind the F/A-18's Bitchin' Betty voice retires" (2016):
+    https://www.marinecorpstimes.com/news/your-marine-corps/2016/03/14/woman-behind-the-f-a-18-s-bitchin-betty-voice-retires/
+[^fg]: FlightGear F-16 (Nikolai V Chr), GPL-2.0: https://github.com/NikolaiVChr/f16
+[^dvids]: DVIDS copyright statement: https://www.dvidshub.net/about/copyright
+[^aviationist]: The Aviationist, the F-16 Auto-GCAS save video: https://theaviationist.com/?p=39778
+[^gcas]: SLDinfo, "F-35 enterprise fields Auto-GCAS" (2019): https://sldinfo.com/2019/07/f-35-enterprise-fields-auto-gcas/
