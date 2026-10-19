@@ -165,79 +165,164 @@ if [[ -n $patch ]]; then
 	mv "$manifest.new" "$manifest"
 fi
 
-step "original HUD / MFD fonts"
-./target/release/iaf-convert fonts assets/install assets/converted/fonts
-
-step "cockpits (art and layout, every aircraft)"
-for c in f16 f15 f4-2000 phantom cfir lavi mirage mig23 mig29; do
-	./target/release/iaf-convert --upscale cockpit assets/install "$c" "assets/converted/cockpits/$c"
-done
-
-for pack in "$hebrew_zip" "$hebrew_menu_zip"; do
-	[[ -n "$pack" ]] || continue
-	step "Hebrew pack $(basename "$pack")"
-	./target/release/iaf-import-pack "$pack" he assets/install assets/packs
-done
-
-if [[ -n $hebrew_iso ]]; then
-	# Every other Hebrew file on the CD is already in Brief.zip / Menu.zip; these three the Hebrew v1.1 patch
-	# turned back into the English ones. The Graphics page lacks v1.1's 32MB / 48MB slider labels.
-	step "Hebrew CD: startup splash and Graphics page"
-	rm -rf assets/hebrew-cd assets/hebrew-cd-pick
-	./target/release/iaf-extract "$hebrew_iso" assets/hebrew-cd >/dev/null
-	for f in bmp/back0.bmp bmp/pref/graph_0.bmp bmp/pref/graph_1.bmp; do
-		mkdir -p "assets/hebrew-cd-pick/menu/$(dirname "$f")"
-		cp "assets/hebrew-cd/resource/menu/$f" "assets/hebrew-cd-pick/menu/$f"
+# The conversions below run as parallel jobs: each one only waits for the steps whose output it reads (`needs`).
+# Each job writes its own log; the logs are printed in this order as the jobs end, and the first failure stops the
+# setup with its log.
+jobs_dir=$(mktemp -d "${TMPDIR:-/tmp}/iaf-setup.XXXXXX")
+job_names=() job_pids=()
+job() {  # job NAME FUNCTION: runs FUNCTION in the background (set -e), its output into its log
+	local n=$1
+	( trap 'echo $? >"$jobs_dir/$n.rc"' EXIT; set -e; "$2" ) >"$jobs_dir/$n.log" 2>&1 &
+	job_names+=("$n") job_pids+=($!)
+}
+needs() {  # inside a job: waits for the other job NAME; fails if it failed
+	while [[ ! -f $jobs_dir/$1.rc ]]; do sleep 0.5; done
+	[[ $(<"$jobs_dir/$1.rc") == 0 ]] || { echo "needs '$1', which failed"; return 1; }
+}
+wait_jobs() {
+	local i
+	for i in "${!job_names[@]}"; do
+		if wait "${job_pids[$i]}"; then
+			cat "$jobs_dir/${job_names[$i]}.log"
+		else
+			cat "$jobs_dir/${job_names[$i]}.log"
+			echo "SETUP FAILED in '${job_names[$i]}' (its log is above)"
+			for p in "${job_pids[@]}"; do pkill -P "$p" 2>/dev/null || true; kill "$p" 2>/dev/null || true; done
+			exit 1
+		fi
 	done
-	./target/release/iaf-import-pack assets/hebrew-cd-pick he assets/install assets/packs
-	rm -rf assets/hebrew-cd assets/hebrew-cd-pick
-fi
+	rm -rf "$jobs_dir"
+}
 
-step "briefings (English + Hebrew pack when imported)"
-./target/release/iaf-convert --upscale briefings assets/install assets/packs assets/converted/briefings
+j_fonts() {
+	step "original HUD / MFD fonts"
+	./target/release/iaf-convert fonts assets/install assets/converted/fonts
+}
 
-step "Reference screen (refers.ref records, descriptions, pictures)"
-./target/release/iaf-convert --upscale reference assets/install assets/converted/reference
-
-step "front-end menus (screens, strings, art, fonts)"
-./target/release/iaf-convert --upscale menu assets/install assets/converted/menu
-if [[ -d assets/packs/he/resource/menu ]]; then
-	./target/release/iaf-convert --upscale menu assets/install assets/converted/menu_he --pack assets/packs/he
-fi
-# Extra planes' arming art (docs/adding-a-plane.md §5): composed from the original arming art above and the plane's
-# front view (game/extra/planes/<p>/arm).
-for arm in game/extra/planes/*/arm; do
-	p=$(basename "$(dirname "$arm")")
-	for m in assets/converted/menu assets/converted/menu_he; do
-		[[ -d $m/img/arm/jets ]] && ./target/release/iaf-convert arm-extra "$m/img" "$arm" "$m/img/arm/jets/x_$p.png"
+j_cockpits() {
+	step "cockpits (art and layout, every aircraft)"
+	local c pids=()
+	for c in f16 f15 f4-2000 phantom cfir lavi mirage mig23 mig29; do
+		./target/release/iaf-convert --upscale cockpit assets/install "$c" "assets/converted/cockpits/$c" &
+		pids+=($!)
 	done
+	for c in "${pids[@]}"; do wait "$c"; done
+}
+
+j_hebrew() {
+	local pack f
+	for pack in "$hebrew_zip" "$hebrew_menu_zip"; do
+		[[ -n "$pack" ]] || continue
+		step "Hebrew pack $(basename "$pack")"
+		./target/release/iaf-import-pack "$pack" he assets/install assets/packs
+	done
+	if [[ -n $hebrew_iso ]]; then
+		# Every other Hebrew file on the CD is already in Brief.zip / Menu.zip; these three the Hebrew v1.1 patch
+		# turned back into the English ones. The Graphics page lacks v1.1's 32MB / 48MB slider labels.
+		step "Hebrew CD: startup splash and Graphics page"
+		rm -rf assets/hebrew-cd assets/hebrew-cd-pick
+		./target/release/iaf-extract "$hebrew_iso" assets/hebrew-cd >/dev/null
+		for f in bmp/back0.bmp bmp/pref/graph_0.bmp bmp/pref/graph_1.bmp; do
+			mkdir -p "assets/hebrew-cd-pick/menu/$(dirname "$f")"
+			cp "assets/hebrew-cd/resource/menu/$f" "assets/hebrew-cd-pick/menu/$f"
+		done
+		./target/release/iaf-import-pack assets/hebrew-cd-pick he assets/install assets/packs
+		rm -rf assets/hebrew-cd assets/hebrew-cd-pick
+	fi
+}
+
+j_briefings() {
+	needs hebrew
+	step "briefings (English + Hebrew pack when imported)"
+	./target/release/iaf-convert --upscale briefings assets/install assets/packs assets/converted/briefings
+}
+
+j_reference() {
+	step "Reference screen (refers.ref records, descriptions, pictures)"
+	./target/release/iaf-convert --upscale reference assets/install assets/converted/reference
+}
+
+j_menu() {
+	step "front-end menus (screens, strings, art, fonts)"
+	./target/release/iaf-convert --upscale menu assets/install assets/converted/menu
+}
+
+j_menu_he() {
+	needs hebrew
+	if [[ -d assets/packs/he/resource/menu ]]; then
+		step "front-end menus in Hebrew (the Hebrew pack over the English menus)"
+		./target/release/iaf-convert --upscale menu assets/install assets/converted/menu_he --pack assets/packs/he
+	fi
+}
+
+# Extra planes' arming art (docs/adding-a-plane.md §5): composed from the original arming art of the menus and the
+# plane's front view (game/extra/planes/<p>/arm).
+j_arm() {
+	needs menu
+	needs menu_he
+	step "extra planes' arming art"
+	local arm p m
+	for arm in game/extra/planes/*/arm; do
+		p=$(basename "$(dirname "$arm")")
+		for m in assets/converted/menu assets/converted/menu_he; do
+			if [[ -d $m/img/arm/jets ]]; then
+				./target/release/iaf-convert arm-extra "$m/img" "$arm" "$m/img/arm/jets/x_$p.png"
+			fi
+		done
+	done
+}
+
+j_keys() {
+	needs hebrew
+	step "key table (default keys from the exe + keys.trx labels, docs/controls.md)"
+	./target/release/iaf-convert keys assets/install assets/packs assets/converted/keys.json
+}
+
+j_missions() {
+	step "missions (all .mis + object database -> JSON, mission list)"
+	./target/release/iaf-convert missions assets/install assets/converted/missions
+}
+
+j_aircraft() {
+	needs missions
+	step "aircraft: every plane's model (glTF, Lanczos textures, smoothed) + descriptor (docs/aircraft.md)"
+	./target/release/iaf-convert --upscale --smooth aircraft assets/install assets/converted/missions assets/converted/planes
+}
+
+j_objects() {
+	needs missions
+	step "mission object models (every model the object database references)"
+	./target/release/iaf-convert --upscale --smooth objects assets/install assets/converted/missions assets/converted/objects
+}
+
+j_theatre() {
+	step "terrain: every level and inset of map.ptt as a node quadtree (docs/formats/ptt.md, ~30 s, ~730 MB)"
+	rm -rf assets/converted/terrain/israel_l4  # the old Israel-only layout
+	./target/release/iaf-terrain theatre assets/install/resource/terrain/map.ptt assets/converted/terrain/theatre
+}
+
+j_airbases() {
+	needs theatre
+	step "airbases: runways, taxi paths and paved surface from the 1998 art and iaf.ibx (docs/rendering.md §7, ~30 s)"
+	./target/release/iaf-terrain airbases assets/install assets/converted/terrain/theatre assets/converted/terrain
+}
+
+j_godot() {
+	step "Godot extension (flight model)"
+	cargo build --release -p iaf-godot
+}
+
+j_icon() {
+	step "icon and desktop launcher (the original icon from iafjets.exe)"
+	./target/release/iaf-convert icon assets/install assets/converted/icon.png
+	tools/install-launcher.sh
+}
+
+for j in fonts cockpits hebrew briefings reference menu menu_he arm keys missions aircraft objects theatre airbases \
+	godot icon; do
+	job "$j" "j_$j"
 done
-
-step "key table (default keys from the exe + keys.trx labels, docs/controls.md)"
-./target/release/iaf-convert keys assets/install assets/packs assets/converted/keys.json
-
-step "missions (all .mis + object database -> JSON, mission list)"
-./target/release/iaf-convert missions assets/install assets/converted/missions
-
-step "aircraft: every plane's model (glTF, Lanczos textures, smoothed) + descriptor (docs/aircraft.md)"
-./target/release/iaf-convert --upscale --smooth aircraft assets/install assets/converted/missions assets/converted/planes
-
-step "mission object models (every model the object database references)"
-./target/release/iaf-convert --upscale --smooth objects assets/install assets/converted/missions assets/converted/objects
-
-step "terrain: every level and inset of map.ptt as a node quadtree (docs/formats/ptt.md, ~30 s, ~730 MB)"
-rm -rf assets/converted/terrain/israel_l4  # the old Israel-only layout
-./target/release/iaf-terrain theatre assets/install/resource/terrain/map.ptt assets/converted/terrain/theatre
-
-step "airbases: runways, taxi paths and paved surface from the 1998 art and iaf.ibx (docs/rendering.md §7, ~30 s)"
-./target/release/iaf-terrain airbases assets/install assets/converted/terrain/theatre assets/converted/terrain
-
-step "Godot extension (flight model)"
-cargo build --release -p iaf-godot
-
-step "icon and desktop launcher (the original icon from iafjets.exe)"
-./target/release/iaf-convert icon assets/install assets/converted/icon.png
-tools/install-launcher.sh
+wait_jobs
 
 imagery_refresh
 [[ -n $imagery ]] && imagery_steps
