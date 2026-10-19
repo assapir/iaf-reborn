@@ -884,6 +884,9 @@ func _fill_rows(steps: Array, keep: bool) -> void:
 			redo.tooltip_text = "Run this step again although it is up to date."
 			redo.button_pressed = redo_check.button_pressed
 			h.add_child(redo)
+			var gap := Control.new()  # clear of the scroll bar
+			gap.custom_minimum_size.x = 8
+			h.add_child(gap)
 			rows_box.add_child(h)
 			r = {"bar": bar, "state": state, "redo": redo}
 			rows[s.id] = r
