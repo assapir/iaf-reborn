@@ -306,6 +306,9 @@ live play while recording at 4K. Two ways:
 - **Cost:** scaling to real size would touch mission coordinates, terrain, route timing, weapon/sensor ranges.
 - **Fit:** it fits naturally with the modern imagery (which is real-scale and gets warped to the game frame). Both
   exist now (docs/georef.md, docs/imagery.md); evaluate the option when it is unparked.
+- **Research and plan (2026-10-20):** [world-scale.md](world-scale.md): the models at true size (scale 1), each
+  airbase shrunk in place to its real runway length by a runtime base warp; moving bases to their real places left
+  open. Nine steps.
 
 ## Better imagery outside Israel (Extras switch) — done (imagery phase 1, docs/imagery.md)
 - Sentinel-2 10 m (the ESA WorldCover 2021 composite, CC BY 4.0) where the original has only ~79 m/px (Sinai, Egypt,
