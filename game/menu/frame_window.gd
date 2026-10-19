@@ -323,12 +323,13 @@ func _thumb_y() -> float:
 
 func _gui_input(event: InputEvent) -> void:
 	var p: Vector2 = event.position / _s() if "position" in event else Vector2.ZERO
+	# Ours (the original has no wheel): the wheel / a trackpad pan steps as the scroll arrows do, one line each.
+	if event is InputEventPanGesture or (event is InputEventMouseButton and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]):
+		if rich != null:
+			_scroll_by(TEXT_PX * Settings.wheel_steps(event))
+		accept_event()
+		return
 	if event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			if event.pressed:
-				_scroll_by(-TEXT_PX * 3 if event.button_index == MOUSE_BUTTON_WHEEL_UP else TEXT_PX * 3)
-			accept_event()
-			return
 		if event.button_index != MOUSE_BUTTON_LEFT:
 			return
 		if event.pressed:

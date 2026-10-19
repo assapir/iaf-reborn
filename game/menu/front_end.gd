@@ -165,6 +165,8 @@ const EXTRAS := [
 	["harm_targets", "HARM targets", [["Original", "original"], ["Real", "rwr"]]],
 	# Ours: the CD's autorun launcher before the main menu (menu/startup.gd, docs/front-end.md §18).
 	["cd_launcher", "CD launcher", [["Off", false], ["On", true]]],
+	# Ours: the wheel / trackpad scroll direction (Settings.wheel_steps; the original has no wheel).
+	["wheel_scroll", "Mouse wheel", [["Regular", "regular"], ["Natural", "natural"]]],
 ]
 
 
@@ -1499,6 +1501,9 @@ func _hit(p: Vector2) -> String:
 func _gui_input(event: InputEvent) -> void:
 	if busy:
 		return
+	if screen == "pref" and msgbox == null and (event is InputEventPanGesture or event is InputEventMouseButton and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]):
+		_pref_wheel(Settings.wheel_steps(event))
+		return
 	if event is InputEventMouseMotion:
 		if not pref_drag.is_empty():
 			_pref_slide(_to_menu(event.position).x - CONTENT.position.x)
@@ -1540,6 +1545,16 @@ func _gui_input(event: InputEvent) -> void:
 			var key := held
 			held = ""
 			_animate_release(key, _hit(p) == key)
+
+
+## Ours (the original has no wheel): the wheel scrolls the page's list by `steps` rows, as its scroll arrows do.
+func _pref_wheel(steps: int) -> void:
+	if Settings.pref_page == "Physics":
+		_phys_scroll(phys_top + steps)
+	elif _rows_page(Settings.pref_page):
+		_extras_scroll(extras_top + steps)
+	elif Settings.pref_page == "Controls":
+		_ctrl_scroll(ctrl_top + steps)
 
 
 ## Mouse down on a Preferences page (page coordinates): checks toggle, radios select, sliders

@@ -43,7 +43,7 @@ const PREFS := {
 		"no_malfunctions", "ai_level", "invulnerable", "no_crashes", "unlimited_ammo", "unlimited_fuel",
 		"flight_data", "weapon_data", "language", "show_info", "blackbox", "hud_ladder", "hud_style", "show_all_keys", "fullscreen",
 		"imagery_israel", "imagery_outside", "antialiasing", "terrain_closeup", "sky", "upscaling", "night_lights", "water", "f35i_slot", "harm_targets",
-		"models", "rolling_wheels", "particle_effects", "airbases", "cd_launcher"],
+		"models", "rolling_wheels", "particle_effects", "airbases", "cd_launcher", "wheel_scroll"],
 }
 
 ## Flight data: "original" (Jane's IAF 1998 numbers) or "real" (corrected real-world data for every flyable jet, docs/real-aircraft.md).
@@ -147,6 +147,10 @@ var particle_effects := false
 var airbases := "original"
 ## CD launcher (ours, Extras page; docs/front-end.md §18.1): the CD's autorun poster (Jauto.exe) before the main menu.
 var cd_launcher := false
+## Mouse wheel (ours, Extras page; docs/front-end.md §12.9): "regular" (wheel down scrolls down) or "natural"
+## (reversed, as on macOS trackpads). The wheel scrolls a list or text by its scroll arrows' step.
+var wheel_scroll := "regular"
+var _pan_rest := 0.0  # the trackpad pan not yet turned into a step
 ## Key bindings changed on the Controls page (docs/controls.md): {record index: [key, joystick
 ## button]}, key = DIK | modifier << 16; records not listed keep the original default. Stored in the
 ## [keys] section as r<index> = [key, button].
@@ -304,6 +308,20 @@ func real_data() -> bool:
 
 func real_weapons() -> bool:
 	return weapon_data == "real"
+
+
+## Scroll steps for a wheel or trackpad pan event (ours, the original has no wheel): +1 = one step down, -1 = up,
+## 0 = none; "natural" reverses them. A pan adds up its delta.y (+ = down, as Godot's ScrollContainer reads it) and
+## steps once per whole unit.
+func wheel_steps(event: InputEvent) -> int:
+	var n := 0
+	if event is InputEventMouseButton and event.pressed:
+		n = {MOUSE_BUTTON_WHEEL_DOWN: 1, MOUSE_BUTTON_WHEEL_UP: -1}.get(event.button_index, 0)
+	elif event is InputEventPanGesture:
+		_pan_rest += event.delta.y
+		n = int(_pan_rest)  # ponytail: one step per pan unit; scale it if trackpads feel slow / fast
+		_pan_rest -= n
+	return -n if wheel_scroll == "natural" else n
 
 
 ## True when the Hebrew packs are installed and converted (menus: assets/converted/menu_he;

@@ -75,9 +75,10 @@ ranked order, are in [docs/graphics-research.md](graphics-research.md).
   (EN 4.12–4.24, docs/manual-audit.md); the guides give only the values the realistic options change (e.g. the radar
   ranges, docs/guides/f16.md §13).
 
-## Mouse wheel in the settings (nice to have)
+## Mouse wheel in the settings (nice to have) — done
 The mouse wheel scrolls the settings / preferences pages and their lists. An Extras option sets the direction:
-regular (wheel down scrolls down) or natural (reversed, as on macOS trackpads).
+regular (wheel down scrolls down) or natural (reversed, as on macOS trackpads). **Done**, also for the briefing
+and Reference texts and trackpad pans (docs/front-end.md §12.9).
 
 ## "Real RWR" option: search radars (Extras, wishlist)
 - **Original:** the RWR shows a ground site only once it locks or launches (docs/rwr.md).

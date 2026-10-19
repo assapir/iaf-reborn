@@ -155,6 +155,10 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   switch: conformal, each rung projected through the camera.
 - **"All keys on the Keyboard page".** Original: the page lists 92 of the 117 key records. Ours, with the switch: it
   lists all 115 labelled ones, so the stick, rudder, RPM ± 5 and pans can be rebound — controls.md §3.
+- **Mouse wheel (Regular / Natural)** (front-end.md §12.9). Original: the game reads no mouse wheel (1998). Ours: the
+  wheel and a trackpad pan scroll the Preferences lists (Keyboard, Extras, Graphics → MORE, Physics) by one row and
+  the briefing and Reference texts by one line, the step of their scroll arrows. Regular: wheel down scrolls down.
+  Natural: the direction is reversed, as on macOS trackpads.
 - **CD launcher (Off / On)** (front-end.md §18.1, formats/autorun.md). Original: the CD's `Jauto.exe` poster is a
   separate program that runs when the CD is inserted; the game starts without it. Ours, with On: the poster shows
   at start-up, before the main menu, centred in the 640×480 frame on black (the exe centres it on the desktop).

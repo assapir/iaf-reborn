@@ -1371,7 +1371,7 @@ So the Hebrew pages use the same rects as §12.3–§12.6.
     data (Original (1998) / Real aircraft), Weapon data (Original (1998) / Real weapons), Language (English / Hebrew;
     Hebrew only when the pack is installed), Flight info (Ctrl+F12) show / hide, Blackbox, HUD pitch ladder
     (Original / Conformal), HUD (Original (1998) / Real), All keys on the Keyboard page, F-35I replaces (Off / one of the
-    seven jets, docs/f35i.md), HARM targets (Original / Real, docs/deviations.md §2), Settings file (Export / Import: a native file dialog;
+    seven jets, docs/f35i.md), HARM targets (Original / Real, docs/deviations.md §2), CD launcher (§18.1), Mouse wheel (Regular / Natural, below), Settings file (Export / Import: a native file dialog;
     Export writes the working copy as a settings.cfg, Import stores and saves the file's settings at once). 8 rows shown, with the Keyboard page's scrollbar beyond;
     DEFAULT resets every Extras option except the language (and the settings file).
   * **Blackbox** (ours): each flight recorded to `user://flights/flight-<date>_<time>-m<mission>.jsonl` (the newest 10
@@ -1389,6 +1389,15 @@ So the Hebrew pages use the same rects as §12.3–§12.6.
   * **Behaviour:** the options go through the same working copy and "Save changes?" box. A language
     change reloads the menus on Yes.
   * In the original, the Hebrew pack replaces the resource files; the game has no language setting.
+* **Mouse wheel (ours).** The original reads no mouse wheel. Ours: one wheel notch scrolls by the step of the scroll
+  arrows, through the same scroll function, so the limits stay the original's:
+  * Preferences: the page's list moves one row (Keyboard, Extras, Graphics → MORE, Physics), wherever the pointer is
+    on the screen;
+  * the briefing window, its lesson / text link windows and the Reference screen's description (`frame_window.gd`):
+    the text moves one line (16 px), when the pointer is over the window.
+  * A trackpad pan (`InputEventPanGesture`) steps once per whole unit of its vertical delta (`Settings.wheel_steps`).
+  * Extras → **Mouse wheel**: Regular (wheel down scrolls down, the default) or Natural (reversed, as on macOS
+    trackpads). Stored as `wheel_scroll` in `[gameplay]`.
 
 ## 13. Login / Pilot Records screen (screen 0, `log.trx`)
 
