@@ -58,14 +58,14 @@ python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded 
   reference `tools/envelope_ref.py`).
 - `crates/iaf-avionics` — the player's avionics, pure Rust: the radar (`radar.rs`), the gun / rounds / LCOS
   (`gun.rs`), the homing / guided missiles (`missile.rs`, `guided.rs`), the IR seeker and MRM sight (`sight.rs`),
-  the stores (`stores.rs`), bombs / CCIP (`bombs.rs`), the master / HUD modes (`master.rs`), the RWR (`rwr.rs`),
+  the radio controller (`fctrl.rs`: AWACS contact calls, kill / airborne / landed reports), the stores (`stores.rs`), bombs / CCIP (`bombs.rs`), the master / HUD modes (`master.rs`), the RWR (`rwr.rs`),
   the EO (`eo.rs`) and HARM (`harm.rs`) sensors, the release rules (`release.rs`), the HUD's weapon values and range
   scale (`hud.rs`) and the per-jet Real HUD symbology (`real_hud/`). Their GDScript fronts in `game/weapons/` (`radar.gd`,
   `gun_rounds.gd`, `missile.gd`, `guided.gd`, `ir_seeker.gd`, `mrm_sight.gd`, `stores.gd`, `bombs.gd`, `rwr.gd`,
   `eo_sensor.gd`, `harm_sensor.gd`; the modes in `player_weapons.gd`) keep the old interface and mirror the state.
 - `crates/iaf-godot` — gdext bridge: `IafFlight` (`flight.rs`), `IafRadar` (`radar.rs`), `IafRounds` / `IafLcos`
   (`gun.rs`), `IafMissile` / `IafGuided` (`missile.rs`), `IafSeeker` / `IafMrmSight` (`sight.rs`), `IafStores`
-  (`stores.rs`), `IafBomb` / `IafModes` (`bombs.rs`), `IafRwr` (`rwr.rs`), `IafEo` / `IafHarm` (`sensors.rs`), `IafRelease` / `IafRipple` (`release.rs`), `IafRealHud` (`real_hud.rs`), `IafSetup` (`setup.rs`, the setup wizard's pipeline), `IafSurface` (`surface.rs`, terraintype.dat rasterised for the terrain shader);
+  (`stores.rs`), `IafBomb` / `IafModes` (`bombs.rs`), `IafRwr` (`rwr.rs`), `IafEo` / `IafHarm` (`sensors.rs`), `IafRelease` / `IafRipple` (`release.rs`), `IafRealHud` (`real_hud.rs`), `IafFlightController` (`fctrl.rs`, the AWACS and radio reports), `IafSetup` (`setup.rs`, the setup wizard's pipeline), `IafSurface` (`surface.rs`, terraintype.dat rasterised for the terrain shader);
   `world.rs` converts the weapons' world frame. Handles the frame conversion: FM is ENU (east, north, up); Godot is
   X east, Y up, Z south. Loaded via `game/iaf.gdextension`.
 - `game/` — Godot project. Main scene `menu/front_end.tscn`; autoloads `Settings` (`settings.gd`) and `Joystick`.
