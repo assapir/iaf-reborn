@@ -169,8 +169,9 @@ impl IafHarm {
         self.harm.source = if source.to_string() == "rwr" { Source::Rwr } else { Source::Original };
     }
 
-    /// A capture from the units [{key, type, klass, name, pos, ecm}] (the scan) or the RWR's slots [{unit, type,
-    /// pos, active}], per the source; the own jammer and the terrain (Callable(Vector3) -> float or null).
+    /// A capture from the units [{key, type, klass, name, pos, ecm, search}] (the scan; `search`: harm.rs
+    /// `Unit::search`) or the RWR's slots [{unit, type, pos, active}], per the source; the own jammer and the terrain
+    /// (Callable(Vector3) -> float or null).
     #[func]
     fn capture(&mut self, units: VarArray, slots: VarArray, eye: Vector3, b: Vector2, own_ecm: bool, ground: Callable) {
         let units: Vec<Unit> = units
@@ -183,6 +184,7 @@ impl IafHarm {
                 name: get::<GString>(&s, "name").unwrap_or_default().to_string(),
                 pos: vec3(get(&s, "pos").unwrap_or_default()),
                 ecm: get(&s, "ecm").unwrap_or(false),
+                search: get(&s, "search").unwrap_or(false),
             })
             .collect();
         let emitters: Vec<Emitter> = slots

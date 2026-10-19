@@ -147,8 +147,10 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   comes from the distance the missile really flies, not the original's formula (real-weapons.md §2).
 - **HARM targets (Original / RWR).** Original: the HARM page lists its sensor's own scan (the radar classes within
   20 NM in the ±15° cone, emitting or not, friendlies too, best 15). Ours, with RWR: the page lists the RWR's active
-  emitters inside that cone, the nearest 5, the nearest preselected, recaptured with the RWR's 2 s refresh and on a
-  click (harm.rs `Source::Rwr`, mfd.md "HARM (10)"). Ctrl+Return steps either list.
+  emitters inside that cone and the hostile scanned sites without a brain (never on the RWR: they never lock; counted
+  as searching, inferred, so mission 322's dummy SA-2 stays a HARM target), the nearest 5, the nearest preselected,
+  recaptured with the RWR's 2 s refresh and on a click (harm.rs `Source::Rwr`, mfd.md "HARM (10)"). Ctrl+Return
+  steps either list.
 - **Flight data (Original / Real aircraft).**
 - **HUD pitch ladder.** Original: a linear 12 px/deg ladder, a few px off away from the marker. Ours, with the
   switch: conformal, each rung projected through the camera.

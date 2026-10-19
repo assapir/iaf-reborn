@@ -557,12 +557,15 @@ func ground_hit(from: Vector3, dir: Vector3) -> Variant:
 func _harm_capture() -> void:
 	var o := own()
 	var list := []
+	var cb = host.ai.combat if host.get("ai") != null else null
 	for u in _units():
 		var e: Dictionary = u.ent
 		if int(e.state) >= 4:
 			continue  # the scan skips units in state 4 / 5
+		# search: a hostile site without a brain never locks (docs/ai.md §14); the RWR source lists it (harm.rs).
 		list.append({"key": u.key, "type": int(e.get("type_code", -1)), "klass": int(e.get("klass", -1)),
-			"name": String(e.get("name", "")), "pos": u.pos, "ecm": bool(e.get("ecm", false))})
+			"name": String(e.get("name", "")), "pos": u.pos, "ecm": bool(e.get("ecm", false)),
+			"search": u.hostile and cb != null and cb.brain_of(e) == null})
 	var c = host.get("cockpit")
 	harm.source = Settings.harm_targets
 	harm.capture(list, rwr.slots, o.pos, _base(o), c != null and bool(c.indicators[6]), host.mission_ground)

@@ -928,7 +928,9 @@ the selected store's DLZ max, the seeker diamond at its screen point) and +0x28 
 - **Targets**: the HARM sensor's own scan (the RWR plays no part): the radar classes (9, 10, 11 and class 8 units
   named "RADAR…") within 20 NM in a ±15° cone, emitting or silent, friendlies too (docs/mfd.md "HARM (10)").
   Ctrl+Return steps to the next one.
-- Extras "HARM targets: RWR" (ours) lists the RWR's active emitters as the targets.
+- Extras "HARM targets: RWR" (ours) lists the RWR's active emitters as the targets, plus the hostile scanned sites
+  without a brain (they never lock, so the RWR never lists them; ours counts them as searching, inferred). Mission
+  322's HARM target, the "dummy SA-2" radar (brain −1), is one.
 
 ### 11.6 Validation
 `tests/godot/test_radar_missiles.gd`: the DLZ (AMRAAM example, receding target, target behind, no target), the circle,
@@ -939,7 +941,8 @@ Backspace dropping the Sparrow's guidance but not the AMRAAM's; Real AMRAAM 157 
 and 25 km ahead: '[' selects the AGM88 (master 4, HUD mode 8, the HARM page), the scan lists both and preselects the
 nearer, Ctrl+Return steps to the other and wraps back, the HUD diamond and In Range, the launch at it and the kill; a
 SHRIKE with nothing listed flies at its end point; with Extras "HARM targets: RWR" only the locking unit is listed,
-both after the other locks too (selection kept), and Ctrl+Return steps that list. Rust: `harm.rs` (the class filter, range, cone, line of sight, own
+both after the other locks too (selection kept), and Ctrl+Return steps that list; mission 322 with "HARM targets:
+RWR": the SA-2 radar stays off the RWR, the HARM page lists it and the HARM goes at it. Rust: `harm.rs` (the class filter, range, cone, line of sight, own
 jammer, kept selection, the step).
 
 ## 12. TV weapons (635, 640) and the guided motion (640, 650)

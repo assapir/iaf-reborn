@@ -859,7 +859,9 @@ script fire ops.
     default brain `0x532` is used only by the Mission Creator (`FUN_0058e530`).
   - Before this fix, ours gave such units the object's default brain (untraced). So 112's T-55s (brain −1) killed a
     Merkava 11 s in and the mission failed, which the original does not do.
-  - 322's SA-2 launchers (brain −1) stay silent (its "Shade hawk" launchers have brain 11).
+  - 322's SA-2 launchers and radar (brain −1) stay silent and never lock, so the player's RWR never lists them (its
+    "Shade hawk" launchers have brain 11 and lock the player). The HARM's own scan lists the "RADARSA2 radar"; Extras
+    "HARM targets: RWR" lists it too (docs/weapons.md §11.5).
 
 **Second station**: the handler loads up to two (`FUN_004b7ea3` / `FUN_004aa830`) but fires the one at its index +0x34.
 Start combat sets that index to 0 (`FUN_004ac120`; the previous value is kept in +0x38 and put back by stop combat),

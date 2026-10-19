@@ -651,7 +651,8 @@ as above. Differences from the original:
   original: inside the query sphere; UNCERTAIN radius), with the radar's line of sight. It rescans with the RWR (2 s),
   when it comes on and on a click (the original only re-captures the page on a click). "In Range" comes from the
   HARM's DLZ (docs/weapons.md §11.5). Ctrl+Return steps the list.
-- Extras "HARM targets: RWR" (ours, docs/deviations.md §2): the list holds the RWR's active emitters inside the cone,
+- Extras "HARM targets: RWR" (ours, docs/deviations.md §2): the list holds the RWR's active emitters inside the cone
+  and the hostile scanned sites without a brain the scan accepts (they never lock; mission 322's dummy SA-2 radar),
   the nearest 5, with the nearest preselected.
 
 ## 4. isr.bmp / MAPFRAME georeference

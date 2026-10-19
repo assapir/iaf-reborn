@@ -39,7 +39,7 @@ STBY / STT / BORE / LRS / TWS / ACM / GMT / MAP are the radar modes (docs/radar.
   - Cockpit camera = the original projection, so the HUD ladder lines up (docs/cockpit.md "3D view").
   - Views, time compression, pause / in-flight menu (docs/views.md).
   - RWR (list, lights, sounds, MFD page / panel dial, F5 threat), radar MAP picture (docs/rwr.md, docs/mfd.md §4);
-    nothing locks the player until AI combat / SAMs. Other MFD pages (FLIR / TV / HARM) (docs/mfd.md; open: Open
+    AI jets and ground units with a brain lock the player (docs/ai.md §14); a site without one never does. Other MFD pages (FLIR / TV / HARM) (docs/mfd.md; open: Open
     gaps → Cockpit / MFDs).
   - Helmet sight DASH (weapons.md §5.4: the helmet display in `Dash` 1 cockpits, the IR seeker off-boresight in free
     look / padlock within the generation cone).

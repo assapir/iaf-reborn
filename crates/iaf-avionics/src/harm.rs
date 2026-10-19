@@ -3,7 +3,8 @@
 //! through `FUN_0045b960` (vfunc +0x60) when the sensor comes on (`FUN_0045c2b0`) and on the RWR's 2 s refresh
 //! (`FUN_0044a1a0`). The page captures the list (`FUN_0045bb00` → `FUN_00446050`) into state+0xa28..0xe00.
 //!
-//! Extras "HARM targets: RWR" (ours, deviations.md) lists the RWR's active emitters inside the cone instead.
+//! Extras "HARM targets: RWR" (ours, deviations.md) lists the RWR's active emitters inside the cone instead, plus the
+//! hostile radar sites that have no brain (they never lock, so the RWR never lists them; inferred: they search).
 //!
 //! World frame X east, Y north, Z up, radians. A base is the jet's (heading, pitch).
 
@@ -39,6 +40,9 @@ pub struct Unit {
     pub pos: Vec3,
     /// Its jammer is on.
     pub ecm: bool,
+    /// A hostile site without a brain (mission 322's "dummy SA-2"): no target sensor, so it never locks (docs/ai.md
+    /// §14). The RWR source counts it as searching (ours, inferred).
+    pub search: bool,
 }
 
 impl Unit {
@@ -133,13 +137,21 @@ impl Harm {
     ) {
         match self.source {
             Source::Original => self.scan(units, eye, base, own_ecm, terrain),
-            Source::Rwr => self.capture_rwr(emitters, eye, base),
+            Source::Rwr => self.capture_rwr(units, emitters, eye, base, terrain),
         }
     }
 
-    /// Extras "HARM targets: RWR" (ours): the RWR's active emitters inside the cone, nearest first, at most 5; the
-    /// selection kept when still listed, else the nearest.
-    fn capture_rwr(&mut self, emitters: &[Emitter], eye: Vec3, base: (f64, f64)) {
+    /// Extras "HARM targets: RWR" (ours): the RWR's active emitters inside the cone, and the searching sites the scan
+    /// would accept (in range, in the cone, in sight), nearest first, at most 5; the selection kept when still listed,
+    /// else the nearest.
+    fn capture_rwr(
+        &mut self,
+        units: &[Unit],
+        emitters: &[Emitter],
+        eye: Vec3,
+        base: (f64, f64),
+        terrain: &dyn Fn(Vec3) -> Option<f64>,
+    ) {
         self.base = base;
         self.list = emitters
             .iter()
@@ -149,6 +161,13 @@ impl Harm {
                 Some(Contact { key: e.key.clone(), type_code: e.type_code, az, el, dist })
             })
             .collect();
+        let sites: Vec<Contact> = units
+            .iter()
+            .filter(|u| u.search && u.scanned() && (u.pos - eye).length() <= RANGE)
+            .filter(|u| !self.list.iter().any(|c| c.key == u.key))
+            .filter_map(|u| accept(u, eye, base, terrain))
+            .collect();
+        self.list.extend(sites);
         self.list.sort_by(|a, b| a.dist.total_cmp(&b.dist));
         self.list.truncate(KEEP_RWR);
         if !self.list.iter().any(|c| Some(&c.key) == self.selected.as_ref()) {
@@ -226,7 +245,15 @@ mod tests {
     use super::*;
 
     fn unit(key: &str, klass: i64, name: &str, x: f64, y: f64) -> Unit {
-        Unit { key: key.into(), type_code: 300, klass, name: name.into(), pos: Vec3::new(x, y, 0.0), ecm: false }
+        Unit {
+            key: key.into(),
+            type_code: 300,
+            klass,
+            name: name.into(),
+            pos: Vec3::new(x, y, 0.0),
+            ecm: false,
+            search: false,
+        }
     }
 
     const FLAT: &dyn Fn(Vec3) -> Option<f64> = &|_| Some(0.0);
@@ -296,5 +323,15 @@ mod tests {
         assert_eq!(h.selected(), Some("far"), "kept while listed");
         h.step(true);
         assert_eq!(h.selected(), Some("near"), "Ctrl+Return wraps");
+        // A searching site (no brain, never on the RWR) the scan accepts is listed; a launcher or one out of range is not.
+        let mut site = unit("site", 8, "RADARSA2 radar", 0.0, 5000.0);
+        site.search = true;
+        let mut launcher = unit("launcher", 8, "sa2 launcher 1", 0.0, 4000.0);
+        launcher.search = true;
+        let mut far = unit("far site", 8, "RADARSA2 radar", 0.0, 40000.0);
+        far.search = true;
+        h.capture(&[site, launcher, far], &es, Vec3::ZERO, (0.0, 0.0), false, FLAT);
+        let keys: Vec<_> = h.list().iter().map(|c| c.key.as_str()).collect();
+        assert_eq!(keys, ["site", "near", "far"]);
     }
 }

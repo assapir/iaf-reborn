@@ -4,7 +4,9 @@
 # 25 km ahead, nearest preselected, Ctrl+Return steps to the other and back; HUD mode 8 shows the diamond and
 # "In Range", the launch goes at the selected one and the hit destroys it. The flight model is frozen; the weapons
 # run on a scripted sim time. Extras "HARM targets: RWR": only the RWR's active emitters are listed, the selection
-# is kept over a refresh and Ctrl+Return steps that list.
+# is kept over a refresh and Ctrl+Return steps that list. Mission 322 "Uncle SAM" with "HARM targets: RWR": the dummy
+# SA-2 radar (brain −1) never locks, so the RWR never lists it (as the exe), but the HARM page lists it as a searching
+# site and the HARM goes at it.
 extends "res://../tests/godot/base.gd"
 
 ## [Jet list id, F-35I slot, type].
@@ -26,6 +28,7 @@ func run() -> void:
 		await _rwr_case(tv, name)
 	Settings().jet_id = -1
 	Settings().f35i_slot = -1
+	await _uncle_sam()
 
 
 func _case(tv, name: String, shots: bool) -> void:
@@ -130,4 +133,37 @@ func _rwr_case(tv, name: String) -> void:
 	check(w.harm.list.size() == 2 and w.harm.selected == sites[1].key, "%s: RWR source: both emitters, the selection kept" % name)
 	w.harm_next()
 	check(w.harm.selected == sites[0].key, "%s: RWR source: Ctrl+Return steps (wraps to the nearest)" % name)
+	Settings().harm_targets = "original"
+
+
+## Mission 322: the SA-2 radar 15 km ahead with "HARM targets: RWR".
+func _uncle_sam() -> void:
+	Settings().harm_targets = "rwr"
+	var tv = await start_mission(322)
+	await frames(3)
+	var w = airborne_case(tv, [HARM, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, SHRIKE, 1, 25, 235, 33, 90, 34, 60])
+	var site: Dictionary = {}
+	for e in tv.runtime.entities.values():
+		if e.name == "RADARSA2 radar":
+			site = e
+	check(not site.is_empty() and tv.ai.combat.brain_of(site) == null, "322: the SA-2 radar, no brain")
+	if site.is_empty():
+		Settings().harm_targets = "original"
+		return
+	_place(tv, w, site, w.own(), 15000.0)
+	var t := 1.0
+	for i in 400:  # 20 s of the ground units' sensors and brains
+		t += 0.05
+		tv.ai.combat.update(t)
+	w.update(t)
+	check(w.rwr._find(site.key) < 0, "322: the SA-2 radar never locks: not on the RWR")
+	w.nav_key(0)
+	w.stores.cur = 0
+	w.select_ag()
+	t += 0.05
+	w.update(t)
+	check(w.harm.selected == site.key, "322: RWR source: the SA-2 radar listed and preselected (%s)" % [w.harm.list])
+	w.fire_selected()
+	w.release_selected()
+	check(w.missiles.size() == 1 and w.missiles[0].target_key == site.key, "322: the HARM launched at the SA-2 radar")
 	Settings().harm_targets = "original"
