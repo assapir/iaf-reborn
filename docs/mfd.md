@@ -193,8 +193,10 @@ state+0x318 is the time of day at arrival (`FUN_00452e60`, the nav object's stat
 - Port: hud.gd `nav_cues` `eta`, the time of day = mission start 0x460 + the mission clock (UNCERTAIN: that
   clock+0x18 is 0x460).
 Scroll arrows at (1,22)/(1,107); buttons 0xb/0xf scroll (clamped 0..count). Pass 4: the current waypoint (state+0x320,
-clamped to the count) when visible: box (1, 20·(row+2))–(8, 20·(row+2)+8). The list scrolls to the current waypoint
-when the names change.
+clamped to the count) when visible: box (1, 20·(row+2))–(8, 20·(row+2)+8). After every page (`FUN_005296d0`) a new
+current waypoint scrolls the list to keep it visible: above the rows it becomes the top row, below them the bottom row
+(scroll = cur − 2). Port: `mfd.gd` `_process`, on a change of the current waypoint (UNCERTAIN: the trigger field,
+renderer +0x930).
 
 **Stores (1)** — stations = 0x1c-byte {type,count,name[20]} at state+0x3a8. Count/name positions: st0 (4,62)/(4,72),
 st1 (4,42)/(4,52), st2 (4,22)/(4,32), st3 (24,3)/(17,12), st4 (64,3)/(57,12), st5 (104,3)/(97,12), st6..8 right-

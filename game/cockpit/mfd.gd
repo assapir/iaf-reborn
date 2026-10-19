@@ -39,6 +39,7 @@ var page := RADAR
 var tsd_scale := 40
 var tsd_options := [true, true, true, true]
 var nav_scroll := 0
+var _nav_cur := -1  # the current waypoint the scroll last followed
 var hover_osb := -1
 ## The mouse over the display (MFD px; null = elsewhere): the MAP / GMT cross-hair (renderer +0x27b4 while
 ## this MFD owns the cursor, +0x27e4).
@@ -86,6 +87,16 @@ func _process(_delta: float) -> void:
 	var b := _bezel()
 	position = cockpit.panel_to_screen(o.x - b * portal_scale, o.y - b * portal_scale)
 	size = Vector2.ONE * (SIZE + 2 * b) * s
+	# FUN_005296d0 after every page: a new current waypoint (clamped 0..count) scrolls the NAV list to keep it in its
+	# 3 rows (above: it becomes the top row; below: the bottom row). UNCERTAIN: the trigger field (renderer +0x930),
+	# taken as the last current waypoint, so the OSB scroll stays free in between.
+	var cur := clampi(cockpit.current_waypoint, 0, cockpit.waypoints.size())
+	if cur != _nav_cur:
+		_nav_cur = cur
+		if cur < nav_scroll:
+			nav_scroll = cur
+		elif cur >= nav_scroll + 3:
+			nav_scroll = maxi(cur - 2, 0)
 	queue_redraw()
 
 

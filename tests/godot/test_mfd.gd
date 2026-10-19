@@ -156,6 +156,17 @@ func run() -> void:
 	w.update(t)
 	check(cp.weapons.quantity == 3 and cp.weapons.interval == 10, "stores OSBs: quantity 2 → 3, interval 10 → 20 → 10 → 10")
 	await frames(2)
+	# NAV: a new current waypoint scrolls the 3-row list to keep it visible (FUN_005296d0).
+	var keep_wp: int = cp.current_waypoint
+	other.page = 0
+	other.nav_scroll = 0
+	cp.current_waypoint = mini(3, cp.waypoints.size())
+	await frames(2)
+	check(cp.waypoints.size() < 4 or other.nav_scroll == 1, "NAV: waypoint 4 current scrolls it to the bottom row (scroll %d, %d waypoints)" % [other.nav_scroll, cp.waypoints.size()])
+	cp.current_waypoint = 0
+	await frames(2)
+	check(other.nav_scroll == 0, "NAV: back to waypoint 1 scrolls to the top")
+	cp.current_waypoint = keep_wp
 	# Every page draws on the F-16 and the Lavi (3 MFDs, ADI page).
 	for dir in ["converted/cockpits/f16", "converted/cockpits/lavi"]:
 		if dir != "converted/cockpits/f16":
