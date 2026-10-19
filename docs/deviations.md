@@ -145,8 +145,8 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   speed, range, IR seeker lock ranges by aspect and afterburner (real-weapons.md §1.2), seeker cones, the AIM-9D's 12 g, the radar
   ranges of the seven jets and gun rounds / rate / muzzle velocity — real-weapons.md. The launch zone's maximum then
   comes from the distance the missile really flies, not the original's formula (real-weapons.md §2).
-- **HARM targets (Original / RWR).** Original: the HARM page lists its sensor's own scan (the radar classes within
-  20 NM in the ±15° cone, emitting or not, friendlies too, best 15). Ours, with RWR: the page lists the RWR's active
+- **HARM targets (Original / Real).** Original: the HARM page lists its sensor's own scan (the radar classes within
+  20 NM in the ±15° cone, emitting or not, friendlies too, best 15). Ours, with Real (saved value "rwr"): the page lists the RWR's active
   emitters inside that cone and the hostile scanned sites without a brain (never on the RWR: they never lock; counted
   as searching, inferred, so mission 322's dummy SA-2 stays a HARM target), the nearest 5, the nearest preselected,
   recaptured with the RWR's 2 s refresh and on a click (harm.rs `Source::Rwr`, mfd.md "HARM (10)"). Ctrl+Return

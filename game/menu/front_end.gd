@@ -160,8 +160,9 @@ const EXTRAS := [
 	# Ours: the F-35I (docs/f35i.md) flies from the Jet list button it replaces; more than three choices cycle.
 	["f35i_slot", "F-35I replaces", [["Off", -1], ["F-15", 0], ["F-16", 1], ["F-4E", 2], ["Kurnass 2000", 3],
 		["Lavi", 4], ["Kfir", 5], ["Mirage", 6]]],
-	# Ours: the HARM page's list from the RWR instead of the HARM sensor's scan (docs/deviations.md §2).
-	["harm_targets", "HARM targets", [["Original", "original"], ["RWR", "rwr"]]],
+	# Ours: the HARM page's list from the radars that emit (the RWR's emitters and the searching sites) instead of
+	# the HARM sensor's scan (docs/deviations.md §2). The saved value stays "rwr".
+	["harm_targets", "HARM targets", [["Original", "original"], ["Real", "rwr"]]],
 	# Ours: the CD's autorun launcher before the main menu (menu/startup.gd, docs/front-end.md §18).
 	["cd_launcher", "CD launcher", [["Off", false], ["On", true]]],
 ]
