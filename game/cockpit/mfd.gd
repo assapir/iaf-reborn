@@ -686,6 +686,9 @@ func _draw_menu() -> void:
 
 func _draw_nav() -> void:
 	_tile(TILE_BLANK)
+	# The scroll arrows (the diamond's halves) by OSBs 0xb / 0xf.
+	_blit(Rect2(164, 792, 8, 4), Vector2(1, 22))
+	_blit(Rect2(164, 796, 8, 4), Vector2(1, 107))
 	var wps: Array = cockpit.waypoints
 	var cur: int = cockpit.current_waypoint
 	var own: Vector2 = cockpit.state.get("world", Vector2.ZERO)
@@ -700,7 +703,7 @@ func _draw_nav() -> void:
 		# distance is 3-D; our route has no waypoint heights: horizontal).
 		var d: Vector2 = wps[i].world - own
 		var b := int(rad_to_deg(atan2(d.x, d.y)))
-		_text(Vector2(77, y + 1), "%3dM" % int(d.length() / 1853.0))
+		_text(Vector2(77, y + 1), " %2dM" % int(d.length() / 1853.0))  # "% 3dM": the space flag
 		_text(Vector2(102, y + 1), "%03d" % (b + 360 if b < 0 else b))
 		if i == cur:
 			draw_polyline(PackedVector2Array([Vector2(8, y - 2), Vector2(8, y + 6), Vector2(1, y + 6), Vector2(1, y - 2),
@@ -725,10 +728,9 @@ func _draw_stores() -> void:
 	_tile(TILE_STORES)
 	var wp: Dictionary = cockpit.weapons
 	if not wp.is_empty():
+		# Pass 0: every station, an empty one as "0" (the state copy zeroes its count and name).
 		for i in 9:
 			var st: Dictionary = wp.stations[i]
-			if int(st.type) == 0:
-				continue
 			var pos: Array = STORES_POS[i]
 			var count := "%d" % int(st.count)
 			var name := String(st.name)
@@ -738,10 +740,18 @@ func _draw_stores() -> void:
 			else:
 				_text(Vector2(pos[0], pos[1]), count)
 				_text(Vector2(pos[2], pos[3]), name)
-			if i == int(wp.selected):
-				# Box 15x8 around the count (placement UNCERTAIN).
-				var x: float = pos[0] - (5 * count.length() if i >= 6 else 0)
-				draw_rect(Rect2(x - 2, pos[1] - 2, 15, 8), GREEN, false, 1.0)
+		# Pass 4: the selected station's box, whatever it holds: 15×8 at (2, 20·(3−i)) for 0..2, (40·i − 98, 1)
+		# for 3..5, (114, 20·(i−5)) for 6..8; the gun (9) 36×10 at (48, 82).
+		var sel := int(wp.selected)
+		if sel >= 0 and sel < 10:
+			var box := Rect2(48, 82, 36, 10)
+			if sel < 3:
+				box = Rect2(2, 20 * (3 - sel), 15, 8)
+			elif sel < 6:
+				box = Rect2(40 * sel - 98, 1, 15, 8)
+			elif sel < 9:
+				box = Rect2(114, 20 * (sel - 5), 15, 8)
+			draw_rect(box, GREEN, false, 1.0)
 		_text_right(59, 53, "%d" % int(wp.mrm))
 		_text_right(59, 63, "%d" % int(wp.srm))
 		_text(Vector2(68, 85), "%03d" % int(wp.gun))
@@ -792,8 +802,10 @@ func _draw_adi() -> void:
 	for t in [[31, 27, "%03d" % int(st.ias_kt)], [74, 12, "%03d" % (hdg + 360 if hdg < 0 else hdg)],
 			[124, 27, "%05d" % int(st.get("agl_ft", 0.0))]]:
 		var font: Font = cockpit.digits_font()
-		draw_string(font, Vector2(t[0] - font.get_string_size(t[2], HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x, t[1]), t[2],
-				HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
+		var w := font.get_string_size(t[2], HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x
+		# FUN_00526fe0 case 4: SetBkColor(0), OPAQUE: the digits on black.
+		draw_rect(Rect2(t[0] - w, t[1] - font.get_ascent(11), w, font.get_height(11)), Color.BLACK)
+		draw_string(font, Vector2(t[0] - w, t[1]), t[2], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
 
 
 ## TSD page (FUN_00531a50): heading-up, ownship at (65,85), 1 px = 112·scale m.
@@ -1015,7 +1027,7 @@ func press(osb: int) -> void:
 		NAV:
 			match osb:
 				0xb: nav_scroll = maxi(nav_scroll - 1, 0)
-				0xf: nav_scroll = mini(nav_scroll + 1, maxi(0, cockpit.waypoints.size() - 3))
+				0xf: nav_scroll = mini(nav_scroll + 1, cockpit.waypoints.size())  # FUN_005219e0: 0..count
 
 
 func _mfd_event(ev: int, arg = null) -> void:
