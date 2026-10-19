@@ -8,6 +8,8 @@ use super::*;
 /// The heading scale: a 30° window, 5° ticks, labels every 10°; the data rows' spacing.
 const HDG_WINDOW: f64 = 30.0;
 const ROW: f64 = 9.0;
+/// The boxes and data blocks this far in from the field's sides (`Field::inset`).
+const INSET: f64 = 12.0;
 /// The A-A launch-zone scale inboard of the altitude box.
 const RANGE_HALF: f64 = 26.0;
 const RANGE_IN: f64 = 14.0;
@@ -17,13 +19,14 @@ pub(super) fn frame(f: Field, i: &Input) -> Frame {
     let w = &i.weapons;
     let mode = w.hud_mode;
     let o = &mut fr.outer;
+    let sc = f.inset(INSET);
     let y0 = f.centre_y();
     // Boxed airspeed (KCAS) left, barometric altitude right; under them Mach / G / AoA and the radar altitude.
-    o.extend(box_poly(f.left - 30.0, y0 - 6.0, f.left - 2.0, y0 + 5.0));
-    o.push(text((f.left - 4.0, y0 + 3.0), format!("{}", i.kcas.round() as i64), Align::Right));
-    o.extend(box_poly(f.right + 2.0, y0 - 6.0, f.right + 36.0, y0 + 5.0));
-    o.push(text((f.right + 34.0, y0 + 3.0), format!("{}", i.alt_ft.round() as i64), Align::Right));
-    let (lx, rx, ry) = (f.left - 2.0, f.right + 2.0, y0 + 5.0 + ROW + 2.0);
+    o.extend(box_poly(sc.left - 30.0, y0 - 6.0, sc.left - 2.0, y0 + 5.0));
+    o.push(text((sc.left - 4.0, y0 + 3.0), format!("{}", i.kcas.round() as i64), Align::Right));
+    o.extend(box_poly(sc.right + 2.0, y0 - 6.0, sc.right + 36.0, y0 + 5.0));
+    o.push(text((sc.right + 34.0, y0 + 3.0), format!("{}", i.alt_ft.round() as i64), Align::Right));
+    let (lx, rx, ry) = (sc.left - 2.0, sc.right + 2.0, y0 + 5.0 + ROW + 2.0);
     let mut left = vec![format!("M {:.2}", i.mach), format!("G {:.1}", i.g)];
     if i.gear_down {
         left.push(format!("AOA {:.1}", i.aoa_deg));
@@ -53,7 +56,7 @@ pub(super) fn frame(f: Field, i: &Input) -> Frame {
     }
     heading(o, f, i.heading_deg, i.steerpoint.map(|s| s.bearing_deg));
     if matches!(mode, 1 | 2) && let (Some(t), Some(z)) = (i.target, i.dlz) {
-        dlz_scale(o, f.right - RANGE_IN, y0, RANGE_HALF, t, z);
+        dlz_scale(o, sc.right - RANGE_IN, y0, RANGE_HALF, t, z);
     }
 
     // The field: the ladder and the flight path marker, the steerpoint, the weapon symbols.

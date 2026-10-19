@@ -17,21 +17,24 @@ const DLZ_IN: f64 = 10.0;
 const ALT_OUT: f64 = 12.0;
 /// Data rows 9 px apart.
 const ROW: f64 = 9.0;
+/// The scales and data blocks this far in from the field's sides (`Field::inset`), the right block in A-A included.
+const INSET: f64 = 20.0;
 
 pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
     let mut fr = Frame::default();
     let w = &i.weapons;
     let mode = w.hud_mode;
     let o = &mut fr.outer;
+    let sc = f.inset(INSET);
     let tape_y = f.centre_y() - 6.0;
     let dlz = matches!(mode, 1 | 2).then_some(()).and(i.target.zip(i.dlz));
     // Scales.
-    airspeed(o, f.left, tape_y, i.kcas);
-    o.push(text((f.left + 3.0, tape_y - TAPE_HALF - 4.0), format!("{:.1}", i.g), Align::Left));
-    let alt_x = f.right + if dlz.is_some() { ALT_OUT } else { 0.0 };
+    airspeed(o, sc.left, tape_y, i.kcas);
+    o.push(text((sc.left + 3.0, tape_y - TAPE_HALF - 4.0), format!("{:.1}", i.g), Align::Left));
+    let alt_x = sc.right + if dlz.is_some() { ALT_OUT } else { 0.0 };
     altitude(o, alt_x, tape_y, i.alt_ft);
     if let Some((t, z)) = dlz {
-        dlz_scale(o, f.right - DLZ_IN, tape_y, DLZ_HALF, t, z);
+        dlz_scale(o, sc.right - DLZ_IN, tape_y, DLZ_HALF, t, z);
     }
     // The heading scale: the lower position (below the scales) in NAV, A-A and strafe; the upper one in the A-G modes
     // and gear down.
@@ -42,7 +45,7 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
         roll_indicator(o, i, f.bottom);
     }
     // The left column: ARM, Mach, max g, the mode / weapon.
-    let (lx, ly) = (f.left + 4.0, tape_y + TAPE_HALF + 12.0);
+    let (lx, ly) = (sc.left + 4.0, tape_y + TAPE_HALF + 12.0);
     let mut row = 0.0;
     if mode > 0 {
         o.push(text((lx, ly), "ARM", Align::Right));

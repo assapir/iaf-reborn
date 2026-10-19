@@ -126,6 +126,12 @@ impl Field {
         p.0 >= self.left && p.0 <= self.right && p.1 >= self.top && p.1 <= self.bottom
     }
 
+    /// The field narrowed by `dx` on both sides: where the scales and data blocks go, so that they stay on the
+    /// cockpit art's glass, which is narrower than the real HUD's.
+    fn inset(&self, dx: f64) -> Field {
+        Field { left: self.left + dx, right: self.right - dx, ..*self }
+    }
+
     fn centre_y(&self) -> f64 {
         0.5 * (self.top + self.bottom)
     }
@@ -599,7 +605,7 @@ mod tests {
 
     #[test]
     fn the_f16_display_is_unchanged() {
-        assert_eq!(f16_fingerprint(), 17_235_357_932_935_823_329, "the F-16 Real HUD changed");
+        assert_eq!(f16_fingerprint(), 17_204_937_598_047_660_908, "the F-16 Real HUD changed");
     }
 
     #[test]
@@ -676,6 +682,6 @@ mod f16_snapshot {
 
     #[test]
     fn the_f16_display_is_unchanged() {
-        assert_eq!(f16_frames_hash(), 14_344_365_823_293_722_161, "F-16 frames hash");
+        assert_eq!(f16_frames_hash(), 18_118_015_839_782_508_651, "F-16 frames hash");
     }
 }

@@ -11,6 +11,8 @@ const KT_WINDOW: f64 = 160.0;
 const FT_WINDOW: f64 = 1500.0;
 const HDG_WINDOW: f64 = 30.0;
 const ROW: f64 = 9.0;
+/// The scales and data blocks this far in from the field's sides (`Field::inset`).
+const INSET: f64 = 14.0;
 /// The A-A range scale inboard of the altitude scale.
 const RANGE_HALF: f64 = 26.0;
 const RANGE_IN: f64 = 12.0;
@@ -21,10 +23,11 @@ pub(super) fn frame(f: Field, i: &Input) -> Frame {
     let mode = w.hud_mode;
     let aa = matches!(mode, 1..=3);
     let o = &mut fr.outer;
+    let sc = f.inset(INSET);
     let tape_y = f.centre_y() + if i.gear_down { 10.0 } else { 0.0 };
     // Airspeed (left, increasing downward), altitude (right, increasing upward), heading (top).
     let k_kt = 2.0 * TAPE_HALF / KT_WINDOW;
-    let x = f.left;
+    let x = sc.left;
     o.push(line((x, tape_y - TAPE_HALF), (x, tape_y + TAPE_HALF)));
     for (t, dy) in ticks(i.kcas, 10.0, k_kt, TAPE_HALF, false) {
         if t < 0.0 {
@@ -38,7 +41,7 @@ pub(super) fn frame(f: Field, i: &Input) -> Frame {
     o.push(line((x, tape_y), (x + 5.0, tape_y - 3.0)));
     o.push(line((x, tape_y), (x + 5.0, tape_y + 3.0)));
     let k_ft = 2.0 * TAPE_HALF / FT_WINDOW;
-    let ax = f.right;
+    let ax = sc.right;
     o.push(line((ax, tape_y - TAPE_HALF), (ax, tape_y + TAPE_HALF)));
     for (t, dy) in ticks(i.alt_ft, 100.0, k_ft, TAPE_HALF, true) {
         o.push(line((ax, tape_y + dy), (ax - 3.0, tape_y + dy)));
@@ -50,13 +53,13 @@ pub(super) fn frame(f: Field, i: &Input) -> Frame {
     o.push(line((ax, tape_y), (ax - 5.0, tape_y + 3.0)));
     heading(o, f, i.heading_deg);
     // Lower left: G (and Mach in A-A); lower right: the NAV window.
-    let (lx, ly) = (f.left, tape_y + TAPE_HALF + 12.0);
+    let (lx, ly) = (sc.left, tape_y + TAPE_HALF + 12.0);
     o.push(text((lx, ly), format!("{:.1}G", i.g), Align::Right));
     if aa {
         o.push(text((lx, ly + ROW), format!("{:.2}", i.mach), Align::Right));
     }
     if let Some(s) = i.steerpoint {
-        let rx = f.right;
+        let rx = sc.right;
         o.push(text((rx, ly), format!("{}   NAV", s.number), Align::Left));
         o.push(text((rx, ly + ROW), format!("N {:.1}", s.dist_m / NM), Align::Left));
         if let Some(t) = s.eta_s {
@@ -64,9 +67,9 @@ pub(super) fn frame(f: Field, i: &Input) -> Frame {
         }
     }
     if aa && let (Some(t), Some(z)) = (i.target, i.dlz) {
-        dlz_scale(o, f.right - RANGE_IN, tape_y, RANGE_HALF, t, z);
+        dlz_scale(o, sc.right - RANGE_IN, tape_y, RANGE_HALF, t, z);
         if t.range_m <= z.max && t.range_m >= z.min {
-            o.push(text((f.right - RANGE_IN, tape_y + RANGE_HALF + 10.0), "IN RNG", Align::Centre));
+            o.push(text((sc.right - RANGE_IN, tape_y + RANGE_HALF + 10.0), "IN RNG", Align::Centre));
         }
         // The breakaway X across the HUD inside minimum range.
         if matches!(mode, 1 | 2) && t.range_m < z.min {
@@ -75,7 +78,7 @@ pub(super) fn frame(f: Field, i: &Input) -> Frame {
         }
     }
     if i.gear_down {
-        aoa_scale(o, f.left + 12.0, tape_y, i.aoa_deg);
+        aoa_scale(o, sc.left + 12.0, tape_y, i.aoa_deg);
     }
 
     // The field.
