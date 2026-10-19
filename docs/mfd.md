@@ -688,6 +688,7 @@ world coordinates to its pixels and describes how the page samples it.
 | Activate TSD on MFD | T | 0x5a SET_MFD_SCREEN(3) |
 | FLIR on/off | I | 0x5a(6) (needs the FLIR pod and no TV page shown) |
 | Damage report | D | 0x5a(4) |
+| Cheat: toggle target cheat view (the label is wrong) | U | 0x5a(7): the RWR page |
 | Full screen weapon MFD | Z | 0x1f toggle `ctl+0x938` (only with a TV status ≠ 0 or FLIR; §3) and view 1 / 5 |
 | Radar modes | Q | 0x24 cycle A-A 4→5→6→4 (LRS/TWS/ACM), A-G 7↔8 (GMT/MAP) |
 | Radar on/AA/AG | R | 0x2b toggle A-A/A-G (restores last mode) |
@@ -700,7 +701,8 @@ world coordinates to its pixels and describes how the page samples it.
 | Change HUD color | H | 0x7b (`idx=(idx+1)%11`, see §2; default 0) |
 
 - Event 0x5a(page) replaces the Left page; when Left shows radar and there is more than one MFD, it replaces the Right
-  page. It is ignored when the page is already shown or page = 5.
+  page. It is ignored when the page is already shown or page = 5. A placed page plays SFX_BUTTON (`FUN_0044a240` case
+  0x5a, tail @44d269).
 - Radar events first put the radar page on an MFD if none shows it.
 - STT comes from a lock (event 0x2a).
 - Master mode → page (`FUN_00449810`): NAV→0; modes 1/2→stores; 3→radar; 4→HARM(10)/radar by weapon; 5→FLIR or

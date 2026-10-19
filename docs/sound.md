@@ -178,7 +178,7 @@ The real aircraft's voice warnings (per jet, for a future "Real Betty" option) a
 | SFX_SCREECH 0x29 | `screech.wav` 8.9 s | same, gear **not** fully down (belly), on a runway (terrain flag & 0x30) | no | (non-resident) | speech | yes (`FlightSounds.on_runway` from `terrain.gd surface_at`) |
 | SFX_AIRCRAFT_EXPLODED 0x11 | `AerialExp.wav` 2.7 s | destroyed (unit state 5, `FUN_004a8420` → `FUN_004a86b0`): explosion effect `FUN_0059df20` of an aircraft (classes 1/2/3/0x1c → code 0x11), 3-D, min 500 / max 1000 m; then `FUN_004c4310` stops the object's sounds (engine) | no | 1 | effects | yes |
 | VOC_WINGMAN / WINGMAN_EJECT_EJECT 0x37007000 | `eject.wav` "Eject! Eject!" | unit state 1 → 3 (ejected), player (`FUN_004a8ae0` → `FUN_004a8100`) | no | (non-resident, ch 101) | speech, phrase channel | `FlightSounds.play_eject()` for the ejection code |
-| SFX_BUTTON 0x23 | `FX_BTT.wav` | HUD / master-mode changes (`FUN_00449810` callers @44ad9b, @44b9fb) and other controller events (@44d269) | no | 1 | effects | yes (`player_weapons.gd`, master / HUD mode changes) |
+| SFX_BUTTON 0x23 | `FX_BTT.wav` | HUD / master-mode changes (`FUN_00449810` callers @44ad9b, @44b9fb) and other controller events (@44d269) | no | 1 | effects | yes (`player_weapons.gd`, master / HUD mode changes; `terrain_view.gd`, the T / D / I / U MFD pages) |
 | SFX_FIRE_EXTINGUISHER 0x27 | `Cock_Extinguisher.wav` | engine object `FUN_0045ae10` (fire out, flag +0x3c) | no | — | speech | yes (`player_damage.gd` `extinguish`) |
 
 "Betty" is the female cockpit voice warning. The per-type flag **ctl+0x964** ("has Betty") is set in

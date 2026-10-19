@@ -134,7 +134,7 @@ Checked against the code on 2026-10-14 (each doc's own "not built" notes have th
 - **Damage**: splash / ring explosions on water (flags 0x20000 / 0x40000) draw nothing; per-hit score and feedback, the
   brain's reaction to a hit (`FUN_0043ff50`), effect 0x18, the second explosion of a falling unit; RWR network
   messages.
-- **Cockpit / MFDs**: the U key (RWR page, MFD screen 7); HUD damage (flag 12) does not blank the HUD and the I-mode
+- **Cockpit / MFDs**: HUD damage (flag 12) does not blank the HUD and the I-mode
   marks (docs/damage.md §5.3).
 - **Mission 223 (open question)**: the T-72 column that event 18 sends (t720–t724) never moves in our port; mission
   design or port bug, to check.

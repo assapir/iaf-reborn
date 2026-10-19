@@ -195,6 +195,14 @@ func run() -> void:
 		var pages := [2, 3] if w.m_cycle < 2 else [2, 10 if w.stores.current_type() == 590 else 1]
 		check([L.page, R.page] == pages, "M → cycle %d: pages %s (%s)" % [w.m_cycle, pages, [L.page, R.page]])
 		check(w.radar.aa == (w.m_cycle < 2), "M → cycle %d: radar A-A %s (FUN_004ad8f0)" % [w.m_cycle, w.m_cycle < 2])
+	# U (0x5a(7), FUN_0044a240): the RWR page on the Left, or the Right when the Left shows the radar; once only.
+	L.page = 2
+	R.page = 3
+	tv._command([90, 7, 0])
+	check(L.page == 2 and R.page == 7, "U: the RWR page on the Right next to the radar (%d, %d)" % [L.page, R.page])
+	L.page = 1
+	tv._command([90, 7, 0])
+	check(L.page == 1 and R.page == 7, "U: ignored while an MFD shows the RWR page")
 	# TSD: the scale OSBs wrap (FUN_00531850 / FUN_00531950).
 	other.page = 3
 	other.tsd_scale = 80

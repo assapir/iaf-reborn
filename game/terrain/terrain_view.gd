@@ -1889,12 +1889,14 @@ func _command(cmd: Array) -> bool:
 			else:
 				cockpit.radar_mfd()
 		90:
-			# SET_MFD_SCREEN(page) (docs/mfd.md §5): 3 TSD, 4 damage, 6 FLIR (I: with the pod); 7 not built.
-			if p1 in [3, 4]:
-				cockpit.show_mfd_page(p1)
+			# SET_MFD_SCREEN(page) (FUN_0044a240 case 0x5a, docs/mfd.md §5): 3 TSD (T), 4 damage (D), 6 FLIR (I: with
+			# the pod), 7 RWR (U); a placed page clicks (SFX_BUTTON @44d269), a refused one is silent.
+			if p1 in [3, 4, 7]:
+				if cockpit.show_mfd_page(p1) != null:
+					sounds.play("SFX_BUTTON")
 			elif p1 == 6:
-				if weapons != null:
-					weapons.flir_on()
+				if weapons != null and weapons.flir_on():
+					sounds.play("SFX_BUTTON")
 			else:
 				return false
 		106:
