@@ -32,7 +32,7 @@ Four layers are converted today; SPOT 5 is a candidate.
 | `mapi2015_modern` | Israel | the same, the photo's own colours (haze removed) | done (§8) |
 | SPOT 5 | outside Israel (maybe Israel) | CNES (the French space agency) SPOT World Heritage, 5 m | not started (free CNES account, orthorectification) |
 
-## 2. Pipeline (`iaf-imagery`, crates/iaf-tools/src/bin/iaf-imagery.rs + src/imagery.rs)
+## 2. Pipeline (`iaf-imagery`, crates/iaf-tools/src/imagery_run.rs + src/imagery.rs)
 
 The tool converts a source in seven steps:
 

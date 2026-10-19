@@ -48,6 +48,8 @@ python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded 
 - `crates/iaf-tools` — CLIs used by `tools/setup.sh`: `iaf-extract` (ISO → `assets/install`), `iaf-patch` (v1.1 RTPatch
   without Windows), `iaf-convert` (cockpits, menus, keys, missions, aircraft → `assets/converted`, plus
   `plane-describe` / `plane-checklist`), `iaf-terrain`, `iaf-imagery`, `iaf-import-pack`, `iaf-mission-report`.
+  `iaf-convert` and `iaf-imagery` are argument parsers over library modules (`convert`, `imagery_run`): each entry
+  point takes a `progress::Progress` and a cancel flag.
 - `crates/iaf-flight` — the original flight model and AI autopilot, pure Rust, re-implemented from
   `docs/flight-model.md` / `docs/autopilot.md`. Tests in `crates/iaf-flight/tests/` (validation against the envelope
   reference `tools/envelope_ref.py`).

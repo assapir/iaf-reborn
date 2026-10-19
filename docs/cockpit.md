@@ -564,7 +564,7 @@ The cockpit state S:
     Kfir).
 
 ## What our tooling assumes
-* `crates/iaf-tools/src/bin/iaf-convert.rs` `convert_cockpit` is generic. It takes the dir name as its argument and
+* `crates/iaf-tools/src/convert.rs` `cockpit` is generic. It takes the dir name as its argument and
   converts:
   * the whole ini -> `cockpit.json`;
   * every `*.bmp` in the dir + `mfds.bmp`, `rwrsymb.bmp`, `isr.bmp`;
