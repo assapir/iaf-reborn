@@ -930,7 +930,8 @@ the selected store's DLZ max, the seeker diamond at its screen point) and +0x28 
   Ctrl+Return steps to the next one.
 - Extras "HARM targets: RWR" (ours) lists the RWR's active emitters as the targets, plus the hostile scanned sites
   without a brain (they never lock, so the RWR never lists them; ours counts them as searching, inferred). Mission
-  322's HARM target, the "dummy SA-2" radar (brain −1), is one.
+  322's HARM target, the "dummy SA-2" radar (brain −1), is one. They are common: 28 missions have "RADAR…" sites with brain −1, most of them
+  all their radar sites, so the rule applies in every mission, not only the lessons.
 
 ### 11.6 Validation
 `tests/godot/test_radar_missiles.gd`: the DLZ (AMRAAM example, receding target, target behind, no target), the circle,

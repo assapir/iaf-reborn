@@ -156,7 +156,9 @@ Checked against the code on 2026-10-14 (each doc's own "not built" notes have th
   nearly empty page (F-16 "Not drawn"); the MFD pictures are the ~128 px original art scaled (blocky).
 - **Pilot guide pictures**: the F-16's `landing_final` fails 2 callout checks (7 "R6…", 8 "896"): that picture's HUD
   no longer shows those values; find why and fix the shot or the callouts. The pictures in assets/ have no stamps
-  yet, so the next `tools/guide_shots.sh` renders all of them once.
+  yet, so the next `tools/guide_shots.sh` renders all of them once. That render also brings the pictures up to
+  2026-10-19's changes: the F-16 / F-15 / Lavi Real HUD scales moved in (docs/real-hud.md "What ours draws") and the
+  Real AIM-9L's 10 NM range scale (docs/real-weapons.md; the guides' text already says 16.1 km).
 - **Imagery**: SPOT 5 outside Israel not started.
 - **Multiplayer**: not started (missions 511–516, 666, 777).
 - **To check**: v1.1's ground rudder part (ours follows the stick roll; the v1.1 note says the pedals too,
