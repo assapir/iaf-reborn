@@ -4,6 +4,7 @@ use godot::prelude::*;
 
 mod autorun;
 mod bombs;
+mod fctrl;
 mod flight;
 mod gun;
 mod heights;

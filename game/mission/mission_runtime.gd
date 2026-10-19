@@ -716,6 +716,14 @@ func _set_damage(ent: Dictionary, damage: float, level: int, source: Dictionary,
 				_destroyed(ent)
 	if ent.state == DamageModel.ALIVE:
 		_damaged_alive(ent, source, kind)
+	# FUN_004a9e70: the radio calls after a kill (docs/radio.md §4). With a killer the kill call 5 s later; an
+	# aircraft (class 0x1c) without one "… crashed" 2.5 s later.
+	var radio = host.get("radio") if host != null else null
+	if radio != null and ent.state in [DamageModel.DESTROYED, DamageModel.EXPLODED]:
+		if not source.is_empty():
+			_after(5.0, func(): radio.kill(ent, source))
+		elif ent.klass == 0x1c:
+			_after(2.5, func(): radio.crashed(ent))
 
 
 ## FUN_004a9c60: a hit that left the unit alive. Controlled aircraft (class 0x1c): the controller's

@@ -470,6 +470,12 @@ impl IafFlight {
         self.ap.as_ref().is_some_and(|ap| ap.landed)
     }
 
+    /// TakeoffCL has finished above 100 m AGL (the AirborneReport, docs/radio.md §4).
+    #[func]
+    fn ap_airborne(&self) -> bool {
+        self.ap.as_ref().is_some_and(|ap| ap.airborne)
+    }
+
     /// Frees every airbase hangar (a new mission, `54f920`).
     #[func]
     fn ap_reset_hangars() {

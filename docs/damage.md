@@ -123,7 +123,8 @@ setting a **level**; the unit then moves to that state.
    - **4**: from 1 or 3 → state 4, `FUN_004a8280`.
    - **5**: from 1 or 3 → state 5, `FUN_004a8420`.
 4. If the unit is still alive (state 1), run the alive-hit reaction `FUN_004a9c60` (§5, §6.3).
-5. `FUN_004a9e70` makes the radio calls after a kill. **Not ported** (radio).
+5. `FUN_004a9e70` posts the radio calls after a kill (docs/radio.md §4). It acts only when the unit is now in
+   state 4 or 5.
    - Known killer: `FUN_0054c2a0(killer, victim)` 5 s later (kill calls).
    - An aircraft (class 0x1c) with no killer: `FUN_0054e0e0` 2.5 s later ("… is down").
 

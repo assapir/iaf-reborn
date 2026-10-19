@@ -31,6 +31,16 @@ Related: [controls.md](controls.md) (records 47, 98–103), [ai.md](ai.md) (brai
   still on the ground, or when there is no threat / no locked enemy / nothing to engage.
 - **Waypoint reports.** 3 s after a friendly flight (or you) moves on to the next waypoint, the radio says
   "Alpha leader is passing waypoint 2".
+- **Flight reports.** For your side's jets the radio says "Bravo leader airborne" (an AI jet's take-off),
+  "Alpha wingman landed" (a landing roll stopped), "Alpha wingman crashed" (destroyed with no one to blame) and
+  "Alpha leader ejected".
+- **Kill calls.** 5 s after a kill: "Alpha leader shot down MiG 29", "Alpha wingman was shot down by SAM",
+  "Alpha leader destroyed tank", "Alpha leader shot friendly F-16". The same call within 3 s is not repeated.
+- **AWACS.** From 60 s into the flight, every 12 s, the controller calls enemy aircraft within 35 nm (65 km):
+  "Alpha, bearing 090, 15 miles, target, heading 270, free to engage". An aircraft your radar has never seen is
+  "unidentified contacts, please identify". A contact already called is called again after 60 s, or at once after it
+  moved more than 5 nm; the repeat is short ("Bearing 090, 15 miles, target") unless it is at 10, 20 or 30 miles.
+  The controller is silent while you are less than 50 m above the ground.
 - **Subtitles.** Every radio phrase is spoken from word files and printed in the subtitle console. The text is the
   data's English text; the radio text exists only in English (docs/packs.md).
 
@@ -255,29 +265,87 @@ A report is printed and played only when all hold:
 | event | posted by | delay | template |
 |---|---|---|---|
 | WayptReport (`453740` → `54dc00(unit, wp)`) | the player's waypoint sequencing (`452960`, after `4532a0`: wp = the new current waypoint) and an AI WayPtSet moving on (`5d7450`, wp = the new index ≠ brain+0x88) | 3 s (0x600e00) | PASS_WAYPT_PHRASE, S2 = `G%d` (G1…G25); wp 0: none |
-| AirborneReport (`54e310`) | TakeoffCL above 100 m AGL (`5cdb5d`, 0x613018) | 3 s | AIRBORNE_PHRASE |
-| LandedReport (`54de90`) | StopPlaneCL (`5d6900` area) | 3 s | LANDED_PHRASE |
-| CrashedReport (`54e0e0`) | `4aa2b0` | 2.5 s | CRASHED_PHRASE |
+| AirborneReport (`54e310`) | TakeoffCL above 100 m AGL (`5cdb5d`, 0x613018; delay 0x613030) | 3 s | AIRBORNE_PHRASE |
+| LandedReport (`54de90`) | StopPlaneCL's stop (`5d44d0`, delay 0x613410), also the player's autopilot landing | 3 s | LANDED_PHRASE |
+| CrashedReport (`54e0e0`) | `4a9e70` → `4aa2b0`: a class-0x1c unit now in state 4 / 5 with no killer key | 2.5 s (0x603120) | CRASHED_PHRASE |
 | EjectReport (`54e560`) | ejection `5485a0` | 4.5 s | EJECTED_PHRASE |
-| kill reports | weapons | 5 s | SHOT_ENEMY / SHOT_BY_ENEMY / SHOT_GROUND_TARGET (`54d8d0` ground names) / SHOT_FRIENDLY_PHRASE |
+| kill calls (`54c2a0(victim, killer)`) | `4a9e70` → `4aa160`: a unit now in state 4 / 5 with a killer key | 5 s (0x603118) | see below |
 
-**AWACS contact calls** (AWACS: the airborne early-warning controller; FlightControllerTimer, `54af40` / `54b130`;
-traced in outline):
-1. The timer fires every 12 s (single player); the first call comes after 4 more periods (`50 / 12`).
-2. It scans a 55 620 m (30 nm) sphere around the player.
-3. Every alive, controlled aircraft in it, other than the player and the wingman, flying higher than terrain + 175 m,
-   gets bearing / range / heading from the player.
-4. A 24-slot contact table (60-tick lifetime, `54b790`, `54ac20` change test) picks ACFT_FCTRL_LONG or
-   ACFT_FCTRL_SHORT. ACFT_FCTRL_LONG takes `%S1` = callsign `_r`, BEARING%03d, MILES%02d (≤ 35, > 10 rounded down
-   to 5), description, HEADING%03d, instruction.
+`4a9e70` runs at the end of every damage-level change (docs/damage.md §3.1 step 5).
 
-The description / instruction pairs:
-- 0: friendlies;
-- 1: target + free to engage;
-- 2: target + already engaged (`rand() % 9 == 6`);
-- 3: unidentified + please identify.
+**Airborne / landed filters:** the report is said unless its callsign was the last airborne (+0x38c) or the last
+landed (+0x388) callsign; then that field takes it. Neither checks for a network game.
 
-The hostility / range gate (0x60caa0) and the change test are not fully read (UNCERTAIN).
+**Kill calls** (`54c2a0`). The terms:
+- *air*: class 1, 2, 3 or 0x1c;
+- *enemy*: on another side than the player (`4a4cf0`);
+- *differ*: victim and killer are on different sides.
+
+Before the cases, the gate at +0x318 (`4d4100`, `4d3fa0(0, 3.0, 0)`) is tested: it *fires* when now is outside
+[last, next], then [last, next] = [now, now + 3].
+
+| case | template | S1 | S2 |
+|---|---|---|---|
+| differ, both air, victim enemy, killer class 0x1c | SHOT_ENEMY | killer's callsign | victim's air name |
+| differ, both air, victim not enemy and class 0x1c | SHOT_BY_ENEMY | victim's callsign | killer's air name |
+| differ, killer air and not enemy, class 0x1c, victim not air | SHOT_GROUND_TARGET | killer's callsign | victim's ground name |
+| differ, killer not air and enemy, victim class 0x1c | SHOT_BY_GROUND_TARGET | victim's callsign | killer's ground name |
+| same side, killer not enemy, class 0x1c | SHOT_FRIENDLY_PHRASE | killer's callsign | victim's air / ground name |
+| other | nothing (an enemy's own-side kill only builds ":Enemy shot its own side target") | | |
+
+The callsign is `54ccb0` (above). Then:
+1. SHOT_GROUND_TARGET only (+0x390 counter): when the gate fired, the counter is 1. Otherwise, with the same S1 as
+   the last call and another S2, S2 becomes MULTITARGET ("ground targets") at counter 2 and empty above; the counter
+   goes up.
+2. S1 empty → nothing.
+3. Without the gate firing, a call equal to the last one (S1, S2, S3, template at +0x378..+0x384) is dropped.
+4. Printed, played, and stored as the last call.
+
+**Air names** (`54ce80`; *name* = the unit's name, unit +0x20; the tests are case-blind on its first 3 / 4 / 5
+characters):
+- classes 1, 2: MI24 / MI-24, MI8 / MI-8, UH60 / UH-60, CH53 / CH-53, else AIRTARGET;
+- by type code: 100 F16, 110 F15, 120 F4, 130 KFIR, 140 LAVI, 150 MIG21, 160 SU22 (by name) or MIG23, 170 MIG25,
+  180 MIG29, 190 MIRAGE, 200 PHANTOM2000, 210 MIG17, 220 SU24 / SU22 / TU22 by name or AIRTARGET, 225 C130 / B707 /
+  IL76 by name or LARGEAIRCRAFT, other C130 / B707 / IL76 by name or AIRTARGET.
+
+**Ground names** (`54d8d0`): class 9 IRSAM; by type code 250 TANK, 260 TRUCK, 270 SCUD (by name) or
+ARMOREDVEHICLE, 280 SOFTVEHICLE, 290–340 SAM, 350 AAA, 360 GUNDISH, 370 SHIP, 380 PATROLSHIP, 390 MISSILESHIP,
+400 BUILDING, 410 NUCLEARREACTOR, 420 BRIDGE, 450 RUNWAY, else GROUNDTARGET.
+
+**AWACS contact calls** (AWACS: the airborne early-warning controller):
+1. **Timer** (`54af40` at the flight start): FlightControllerTimer every 12 s in single player. The counter +0x310
+   = 50 / 12 = 4 skips the first four ticks (`54b130`), so the first scan is 60 s into the flight.
+2. **Player gate**: alive, controlled, and |z − terrain| ≥ 50 m (0x60ca90).
+3. **Query** (`4d2620`): sphere r = 55 620 m (`54ba10`) around the player; a unit is in when
+   |p − c|² < (r + ro)² · 3 (0x604e6c), a reach of about 96 km.
+4. **Units**: classes 0x1c, 2, 3; other than the player and the wingman (`5c8cd0`); alive and controlled; higher
+   than terrain + 175 m (0x60ca80).
+5. **Values** from the player: distance (3-D); bearing (`54bc40`); heading (the unit's yaw in degrees, +360 below
+   0). The bearing is acos of the direction's north component, 6.28 − that west of north, times 57.3248
+   (180 / 3.14): due west is 269.95.
+6. **Code**: a same-side unit (`4a4cd0`) is taken only within 10 m (0x60caa0), as code 0. Others are code 1;
+   `rand() % 9 == 6` makes it 2 (`54bc20`); not known to the player (status +0x44) makes it 3.
+7. **Table** (`54b790`, 24 slots of key, distance, delta, life, seen, callsign). Each scan first clears the seen flags
+   (`54b980`) and at the end empties the unseen slots (`54b9a0`). For one unit:
+   - another slot holds the same callsign (`5513c0`, case-blind) → nothing, the unit is not marked seen;
+   - its own slot: seen; miles none → nothing; *long* = on the FlyTSD (+0x314, `4e3dc0`) or miles ∈ {10, 20, 30};
+     the change test (`54ac20`): life −= 12, and it passes when life ≤ 0 or the delta moved more than 5 nm
+     (integer metres / 1854 > 5); then delta and life 60 are stored and the call is long or short;
+   - a new slot: stored with life 60; called long if miles exist.
+   - *miles* (`54bb60`): metres × 0.000539374, truncated; above 35 none; above 10 down to a multiple of 5; below 1
+     none. Bearing and heading (`54bbf0`): truncated to tens; 0 becomes 360.
+8. **Call** (`54be80`): ACFT_FCTRL_LONG = player's callsign + `_r`, BEARING%03d, MILES%02d, description,
+   HEADING%03d, instruction; ACFT_FCTRL_SHORT = bearing, miles, description. Printed and played.
+
+| code | description | instruction |
+|---|---|---|
+| 0 | DESC_FRIENDS "friendlies" | NULL (no text, no file) |
+| 1 | DESC_TARGET "target" | FREE_TO_ENGAGE |
+| 2 | DESC_TARGET | TRGT_ALRDY_ENGAGE "targets are already engaged" |
+| 3 | DESC_UNID_CONTACT "unidentified contacts" | PLEASE_IDENTIFY |
+
+The callsign is `5513c0`: formation kinds 2–6, 9, 10 by name, else "Alpha". Enemy formations (kind 7) are all
+"Alpha", so only one of them is in the table at a time (kept quirk).
 
 ## 5. Port (`game/audio/radio.gd`)
 - `Radio.expand()` / `say()`: the phrase engine from the two .trx files; the parts queue on the phrase channel
@@ -286,7 +354,11 @@ The hostility / range gate (0x60caa0) and the change test are not fully read (UN
 - Wingman commands: §3 on the AI wingman's brain (`brain.gd` `wingman_command` / `target`); NEGATIVE after 3 s.
 - Waypoint reports: the player's (`controls/autopilot.gd` sequencing) and the AI's (`ai_flights.gd`, the autopilot's
   waypoint index moving on) at +3 s; the ejection's "<callsign> ejected" uses EJECTED_PHRASE.
-- Not built: the AWACS contact calls, the airborne / landed / crashed / kill reports.
+- The FlightController's tables and filters are `iaf_avionics::fctrl` (`IafFlightController`): the AWACS table, the
+  kill calls, the airborne / landed filters. `radio.gd` gathers the units and speaks.
+- Airborne / landed: the AI autopilot's TakeoffCL / StopPlaneCL flags (`ap_airborne`, `ap_landed`) in
+  `ai_flights.gd`; the player's autopilot landing in `controls/autopilot.gd`. Crashed / kill: posted by
+  `mission_runtime.gd` `_set_damage` (`4a9e70`).
 
 ## UNCERTAIN
 - The phrase channel queues, because the parts of one phrase must follow each other. Whether a new phrase waits for
@@ -296,3 +368,9 @@ The hostility / range gate (0x60caa0) and the change test are not fully read (UN
   model positions and speeds, others standing) against the zones; static wrecks (state 4) still count.
 - The zone frame's local y along the runway heading (the chains are symmetric, so only the axis matters).
 - A missing particle key: the entry keeps its previous wav / text (stale); here the part is skipped.
+- The AWACS bearing's east / west test in `54bc40` (the frame is the identity; the sign test is read as east of
+  north = the acos).
+- The FlyTSD flag +0x314: the port's FlyTSD freezes the sim and this timer, so it is never seen; passed as false.
+- The AWACS query leaves the units' collision radius out of its 96 km reach (at most 20 m).
+- A jet shot to state 3 explodes later on the ground with no killer key in the port, so it gets "… crashed", not a
+  kill call. Which key the original's ground contact passes is not traced.

@@ -1,5 +1,6 @@
 # The radio (docs/radio.md): the phrase engine (phrasetemplates.trx / phraseparticalsdata.trx), the tower's state
-# machine (FUN_00550ed0) and Ctrl+T (FUN_0054fb40), the wingman commands (FUN_0043f8d0) and the waypoint report.
+# machine (FUN_00550ed0) and Ctrl+T (FUN_0054fb40), the wingman commands (FUN_0043f8d0), the flight controller's
+# reports (waypoint, airborne, landed, crashed, eject, kill calls) and the AWACS contact calls (FUN_0054b130).
 extends "res://../tests/godot/base.gd"
 
 
@@ -70,6 +71,10 @@ func run() -> void:
 	check(r.expand("ACFT_CLEAR_TO_LINEUP", ["CHARLIE_t", "WI_KNOTS15"], [9]).text == "Charlie, clear to line up on runway 9, wind is 15 knots", "line-up phrase with wind")
 	check(r.expand("PASS_WAYPT_PHRASE", ["ALPHALEADER", "G2"]).text == "Alpha leader is passing waypoint 2", "waypoint report phrase")
 	check(r.expand("WINGMAN_REPLY_NEGATIVE", ["NEGATIVE"]).text == "I'm afraid that's a negative, sir!", "negative reply")
+	p = r.expand("ACFT_FCTRL_LONG", ["Alpha_r", "BEARING090", "MILES15", "DESC_UNID_CONTACT", "HEADING270", "PLEASE_IDENTIFY"])
+	check(p.text == "Alpha, bearing 090, 15 miles, unidentified contacts, heading 270, please identify", "AWACS long call text (%s)" % p.text)
+	check(p.wavs == ["Alpha_r", "Pause", "Bear090", "Pause", "Miles15", "Pause", "Unidcont", "Pause", "Head270", "Pause", "PleaseId"], "AWACS call parts")
+	check(r.expand("ACFT_FCTRL_SHORT", ["BEARING350", "MILES09", "DESC_TARGET"]).text == "Bearing 350, 09 miles, target", "AWACS short call text")
 	check(r.bases.size() == 10 and r.bases[0].rwy == 230 and r.bases[1].hangars.size() == 8, "iaf.ibx bases (Ramon rwy 230, David 8 hangars)")
 	r.free()
 
@@ -212,3 +217,52 @@ func run() -> void:
 	send(tv, KEY_T, true)
 	check(tv.sounds.played.has("kch2.wav"), "Ctrl+T far from a tower: the radio click")
 	tv.player_world_override = null
+
+	# The AWACS (FUN_0054b130): an unidentified enemy jet 15 nm east of the player, 5 km up. The timer's first four
+	# ticks only count down; the fifth scans and calls it (long: a new contact).
+	var mig := {}
+	for e in tv.runtime.entities.values():
+		if int(e.get("klass", 0)) in [2, 3, 0x1c] and tv.enemy_of_player(e) and not int(e.state) in [4, 5] and int(e.control) != 0:
+			mig = e
+			break
+	check(not mig.is_empty(), "221 has an enemy aircraft")
+	var pw: Vector3 = tv.player_world()
+	tv.player_world_override = Vector3(pw.x, pw.y, 5000.0)
+	mig.world = Vector3(pw.x + 15.2 * 1854.0, pw.y, 5000.0)
+	mig.known = false
+	mig.heading = 271.0
+	var calls := func(): return tv.radio.said.filter(func(q): return q.template.begins_with("ACFT_FCTRL"))
+	tv.radio.fc = ClassDB.instantiate("IafFlightController")
+	for i in 4:
+		tv.radio._awacs()
+	check(calls.call().is_empty(), "AWACS: no call during the first four ticks")
+	tv.radio._awacs()
+	var awacs: Array = calls.call()
+	check(awacs.any(func(q): return q.text == "Alpha, bearing 090, 15 miles, unidentified contacts, heading 270, please identify"),
+		"AWACS: new contact called (%s)" % [awacs.map(func(q): return q.text)])
+	tv.radio._awacs()
+	check(calls.call().size() == awacs.size(), "AWACS: a known contact is not called again at once")
+	tv.player_world_override = null
+	# The kill calls (FUN_0054c2a0) and the crash report (FUN_0054e0e0, posted by the runtime 2.5 s after a jet was
+	# destroyed without a killer).
+	var mig_name: String = tv.radio.particles.get(tv.radio.fc.kill(1.0e6, tv.radio._kill_unit(mig), tv.radio._kill_unit(me), true)[2], ["", ""])[1]
+	tv.radio.fc = ClassDB.instantiate("IafFlightController")
+	tv.radio.kill(mig, me)
+	check(console_has(tv, "Alpha leader shot down " + mig_name), "kill call: Alpha leader shot down %s" % mig_name)
+	tv.radio.kill(me, mig)
+	check(console_has(tv, "Alpha leader was shot down by " + mig_name), "kill call: Alpha leader was shot down by %s" % mig_name)
+	n = tv.radio.said.size()
+	tv.radio.kill(me, mig)
+	check(tv.radio.said.size() == n, "the same kill call within 3 s is dropped")
+	tv.radio.report_airborne(wing)
+	tv.radio.report_airborne(wing)
+	await fly(tv, 3.2)
+	check(tv.radio.said.filter(func(q): return q.text == "Alpha wingman airborne").size() == 1, "airborne report once")
+	tv.radio.report_landed(wing)
+	await fly(tv, 3.2)
+	check(console_has(tv, "Alpha wingman landed") and tv.sounds.played.has("glanded.wav"), "landed report")
+	tv.runtime.set_damage_level(wing, 5)
+	await fly(tv, 2.0)
+	check(not console_has(tv, "Alpha wingman crashed"), "no crash report before 2.5 s")
+	await fly(tv, 1.0)
+	check(console_has(tv, "Alpha wingman crashed") and tv.sounds.played.has("gcrashed.wav"), "crash report 2.5 s after the wingman blew up")

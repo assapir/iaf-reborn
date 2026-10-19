@@ -105,6 +105,8 @@ func update(world: Vector2) -> void:
 		host._flaps_lever()
 	if o.get("ap_key", false):
 		key()  # StopPlaneCL in FM mode 0 presses the autopilot key (forced)
+		if host.get("radio") != null and host.get("runtime") != null:
+			host.radio.report_landed(host.runtime.player_entity())  # its LandedReport (5d44d0, docs/radio.md §4)
 	_nav_update(world)
 
 

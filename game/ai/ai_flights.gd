@@ -34,6 +34,7 @@ class Pilot:
 	var brain  # brain.gd
 	var formation: Dictionary = {}
 	var landed := false
+	var airborne := false  # TakeoffCL done: the AirborneReport was posted
 	var mode := 0
 	var plane := ""  # the converted plane folder (its flight model start)
 	var airborne_start := true  # the jet's start was airborne (its controller's autopilot starts on, @4483d7)
@@ -316,6 +317,12 @@ func _process(delta: float) -> void:
 		if p.flight.ap_landed() and not p.landed:
 			p.landed = true
 			landed_handler(ent)
+			if host.get("radio") != null:
+				host.radio.report_landed(ent)  # StopPlaneCL's LandedReport (5d44d0, docs/radio.md §4)
+		if p.flight.ap_airborne() and not p.airborne:
+			p.airborne = true
+			if host.get("radio") != null:
+				host.radio.report_airborne(ent)  # TakeoffCL's AirborneReport (5cdb5d)
 		_place(p)
 		p.brain.update(now)
 

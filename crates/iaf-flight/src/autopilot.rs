@@ -1570,6 +1570,8 @@ pub struct Autopilot {
     pub wp_index: usize,
     /// Landed once (brain / controller +0xe0).
     pub landed: bool,
+    /// TakeoffCL finished above 100 m AGL: the AirborneReport is posted then (`5cdb5d`, docs/radio.md §4).
+    pub airborne: bool,
     mode: u8,
     lp: Loop,
     next_tick: f64,
@@ -1590,6 +1592,7 @@ impl Autopilot {
             popup_prev: -1.0,
             wp_index: 0,
             landed: false,
+            airborne: false,
             mode: 0,
             lp: Loop::None,
             next_tick: 0.0,
@@ -1819,6 +1822,7 @@ impl Autopilot {
                 1 => {
                     period = 0.2;
                     if self.takeoff_step(&mut l) == Leaf::Done {
+                        self.airborne = true;
                         period = 0.5;
                         *stage = 2;
                     }

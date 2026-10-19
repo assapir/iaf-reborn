@@ -3,6 +3,7 @@
 
 pub mod bombs;
 pub mod eo;
+pub mod fctrl;
 pub mod gaaf;
 pub mod guided;
 pub mod gun;
