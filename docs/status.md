@@ -160,7 +160,7 @@ Checked against the code on 2026-10-19 (each doc's own "not built" notes have th
   Real AIM-9L's 10 NM range scale (docs/real-weapons.md; the guides' text already says 16.1 km). New pictures since:
   the F-16's delayed CCIP, `hud_ccip_delay` / `hud_ccip_designated` (docs/guides/f16.md §10).
 - **Imagery**: SPOT 5 outside Israel not started.
-- **Multiplayer**: not started (missions 511–516, 666, 777), with its RWR network messages.
+- **Multiplayer**: not started (missions 511–516, 666, 777), with its RWR network messages. Research and plan: [multiplayer.md](multiplayer.md).
 
 ## Decisions (agreed with the user)
 - Airbase runway/apron underlay models stay hidden (the imagery shows the airbase) unless it stops looking good.

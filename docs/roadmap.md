@@ -23,6 +23,8 @@ warning receiver; SAM = surface-to-air missile; TSD = tactical situation display
 Graphics options (models, cockpit, DEM, water, effects, vegetation, lighting, upscaling), with measured costs and a
 ranked order, are in [docs/graphics-research.md](graphics-research.md).
 
+- **Multiplayer** (after the single-player game, docs/status.md "Decisions"): how the original does it and the
+  recommended plan (our own protocol, the original's authority split) are in [docs/multiplayer.md](multiplayer.md).
 - **Separate joystick / throttle / pedal devices** (e.g. a stick, a throttle quadrant and pedals as three USB
   devices). Today the original and the port use one device: the first connected joypad (docs/controls.md §5). Later:
   an Extras option to take each role (stick, throttle, rudder, buttons) from its own device.
