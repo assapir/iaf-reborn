@@ -409,7 +409,13 @@ Evidence (all checked in objdump):
   * v1.1 adds a ground branch: on the ground, a pedal value that differs from the last stick X (`S+0x2d8`) is
     rewritten into a stick event (motion 1 with X = the pedal, Y = 0) and passed to `FUN_0059f3d0`. So in v1.1 the
     pedals / rudder keys steer the nose wheel, move the rudder part and centre the stick's pitch on the ground.
-    Not ported: our ground steering takes the stick X only.
+    The stick and the pedals share one value there: the last event wins. If the jet lifts off with no stick move
+    since the last pedal event, it rolls by that pedal value.
+  * Port: `Aircraft::set_controls` posts a pedal event when the pedal value changes. On the ground, a value that
+    differs from the held stick X sets the stick the FM holds (`Aircraft::stick`) to (pedal, 0), with the stick's
+    damage scaling. The FM reads that stick everywhere it reads `S+0x2e8` / `S+0x2e4`. The state's `stick_x` /
+    `stick_y` show it, so the rudder part follows the pedals (`aircraft_model.gd`). Tests: `ground_pedal_posts_a_stick_event`,
+    `tests/godot/test_ground_pedal.gd`.
   * The only other writer is the init @5ba252, which sets it to 0.
   * In the air, `S+0x2ec` feeds `FUN_005b4910` (@5a4b86 in `5a4230`), which returns `(ru − x·k)·P+0xb8`, the β command
     for the β channel (§5).
@@ -610,8 +616,7 @@ throttle rules and preferences follow §15 (checklist §15.11). These items stil
     the **last aircraft type set up** (shared globals). Our `Aircraft` keeps its own parameters, so every jet uses its
     own slopes in both modes. Reproducing the leak would need a process-wide "last type". It matters only when several
     types fly the FM at once (AI jets do: docs/ai.md).
-  * §15.10 item 15, the "Tornado" map-edge push-back (acceleration ramps that never decay): not ported (we have no
-    map-edge terrain flags).
+  * §15.10 item 15, the "Tornado" map-edge push-back (acceleration ramps that never decay, §15.5a).
   * The 3 s zero-lift stall latch itself (§15.2.4) is kept. It is the model's only stall, and the F-16's deep stall
     starts from it.
 * **Envelope** (§15.9, `envelope.rs`): the exact algorithm, computed in f64 (the original: float32/x87; UNCERTAIN:
@@ -628,9 +633,10 @@ throttle rules and preferences follow §15 (checklist §15.11). These items stil
   * Near-base and runway-start-point tests (§15.6.4) use the iaf.ibx airbases (`551280`, docs/ai.md §9,
     `IafFlight.start_rule`). Mission 311 (1.7 km from Ramat David's lineup point) starts with the engine off.
   * `--at` / free flight: always airborne (debug starts).
-  * Terrain type flags: `terrain.gd` `surface_at` (terraintype.dat) passes water and rough ground
-    (`set_ground_surface`), so those crashes are active. The `S+0x2c8` surface states, the OutRunway effect and the
-    "Tornado" push-back are not ported. The slope for the landing check comes from `height_at` samples ±3 m.
+  * Terrain type flags: `terrain.gd` `surface_at` (terraintype.dat) passes the player's flags (`set_ground_surface`,
+    `Aircraft::ground_flags`). They drive the water and rough-ground crashes, the `S+0x2c8` surface states (§15.6.2),
+    EndWorld.wav and the "Tornado" (§15.5a). The AI jets get no flags (no surface rules, as before). The OutRunway
+    force-feedback effect is not ported. The slope for the landing check comes from `height_at` samples ±3 m.
   * Force feedback: none. Touchdown / belly sounds: docs/sound.md.
   * Crash: the jet explodes, the flight model freezes and the mission runtime runs the player's death (destroy event,
     role rules, flight ends after 5 s → debrief, §5 of docs/mission-runtime.md). Without a mission the flight ends
@@ -1037,12 +1043,39 @@ Constants: 5.0 (imm 0x40a00000), 2.0 `0x612498`, 25.736 `0x6124a4`, 0.000777118 
 20.5889 `0x6124b0`, 0.01 `0x6124b4`, 0.0625 `0x6124b8` (double), −9.806 `0x6124c0`.
 Nothing integrates the heading. The lateral force turns the velocity, and the attitude (mode object, §6) takes its
 heading from the velocity.
+Port: `ground_acc` and the stop rule below use this level frame, whatever pitch / roll the ground attitude (§14.5a)
+shows.
 
 **Stop rule** (5 Hz `5a4230` only, @5a4720–5a48a7, ground only): `v_b = 5ba600(M(0,0,heading), velocity)`.
 If `acc_body.y < 0` and `v_b.y + 0.2·acc_body.y < 0` (0x611bf8 = −0.2), then set `acc_body.y = 0`, recompute
 the world acceleration, and re-base **all three axes with v = 0** (position kept). The 1 Hz/event path (5a70f0)
 has no stop rule (UNCERTAIN: so between two 5 Hz ticks a large deceleration set by an event could briefly
 reverse the velocity).
+
+### 14.5a Ground attitude `FUN_005bb300` (mode object slot 1 on the ground)
+`5b9530` calls it when `S+0x2a0 ≠ 0` with `(out, τ, vx, vy, vz, …, S)` (τ = time since the X axis's base, ≤ 1.1 s).
+```
+s       = |vy| < 100 ? |vy| : 100                              // 0x6124c4; the velocity's y (north), not the speed
+if S+0x2c8 ∈ {1, 2}:                                           // off the runway, belly
+    pj = (rand()·2/32767 − 1) · s · 1° · 2 / 74.53              // rand 566f30, 0x6124c8, 0x8454bc, 0x612440
+    rj = (rand()·2/32767 − 1) · s · 2° · 2 / 74.53              // 0x8454b4 = 2·DAT_008454b0
+else: pj = rj = 0
+pitch = θ − (θ − pj)·τ·(θ < pj ? PitchRate : 1)                 // θ, φ = S+0x14 / S+0x18 (saved by 5aa330)
+roll  = φ − (φ − rj)·τ
+heading from the velocity (atan2(vx, vy)) and the nose-wheel ramp S+0x2a8 (5bdd50)
+```
+* `PitchRate` is `[TAXI] PitchRate` in iaf.ibx (`0x5ba820` → `0x8454cc`, default 1.0). The install's iaf.ibx has
+  no such key, so it is 1.0.
+* `rand()` runs at every sample, so off the runway and on the belly the nose and wings shake.
+  * The amplitude is at most τ times the target. It grows with the north speed: up to ±2.7° pitch and ±5.4° roll
+    at |vy| ≥ 100 m/s.
+  * Land outside every terrain polygon (flag 0x1) is rough ground, which destroys the jet above 25.7 m/s. So off a
+    runway the shake shows at taxi speed (≤ ±0.7° / ±1.4°). On the belly it shows at any speed.
+* On the runway the saved attitude eases to level: by τ at each update, so it is level within about a second.
+* The saved values come from the update before, and each update saves the attitude it samples. So the eased value
+  carries from one update to the next.
+* Port: `Aircraft::ground_pitch_roll`. `rand()` is a hash of the sample time (deterministic per sample).
+  Test: `ground_attitude_jitter_off_the_runway`.
 
 ### 14.6 Air ↔ ground transitions — `FUN_005bb9f0(now, &speed, &Z, &beta)`
 This function is called at the start of every 5 Hz tick (`5a4230` @5a4360) and nowhere per frame.
@@ -1548,17 +1581,38 @@ old acceleration kept); roll channel re-based at pos = roll (rate/target kept); 
 The Tornado mode turns the player's jet back when it reaches the map edge.
 
 Trigger in `5bb9f0` (@5bbb42–5bbc64, every 5 Hz tick, before the air/ground logic): `flags = 4024b0(terrain, ftol X,
-ftol Y)`. `flags & 0x300`: play EndWorld.wav + Kramer18.wav once (latch `DAT_0084548c`, cleared when neither bit is
-set). `flags & 0xc0`, player, not already in c7c: `5ad450(&now, pitch, roll, heading)` + Kram1.wav. (UNCERTAIN: the
-cell flags mark the map border.)
+ftol Y)`. All three branches need the player (`DAT_00699320`, controller type 3) and are tried in this order:
+1. `flags & 0x300`, not in c7c, latch `DAT_008454e0` clear: EndWorld.wav (`4c5470(…, 0, 1)`, the phrase channel)
+   and a console line (`44a060(&DAT_008454d0)`); latch set. v1.0 played Kramer18.wav here (docs/v1.1.md).
+2. else `flags & 0xc0`, not in c7c: `5ad450(&now, pitch, roll, heading)` (the attitude now).
+3. else neither bit: latch cleared.
+
+terraintype.dat has the inner frame (0x100 / 0x200) inside the outer band (0x40 / 0x80): flying east along
+north 600 km, 0x100 starts at east 602.5 km, 0x180 at 614.5 km and 0x80 alone at 616.5 km. So EndWorld warns first;
+the push-back follows 12 km later.
 `5ad450`: schedules `CancelTornadoEvent` (vtable 0x611e68) at now + 8 (`0x611d38`) → `5ae9c0` → `5acfc0` (exit as the
 spin); ramps `S+0x168 = −1.5·V·sin h`, `S+0x188 = −1.5·V·cos h` (`0x611d40`, limits ±1e8) each targeting 0 at rate 10;
 `5ac5d0(enter = 1)`: yaw target ±2π (clamped ±0.4·MaxRollRate, sign of roll), roll `S+0x80` target ±2π (clamped
 ±MaxRollRate), pitch target +50° (`0x3f5f66f3`).
-Each update: `acc = (S+0x168(t), S+0x188(t), −1.0)` (ramps sampled with the axis τ ≤ 1.1, so they never decay:
-UNCERTAIN, verify in game), `L = Lnoflap = p_cmd = α = 0`, channels re-based; on the ground it exits (`5ae080`).
+The roll channel restarts from rate 0. The pitch ramp's rate is the spin's (`S+0xf0`, 0.05·MaxRollRate).
+Each update (`5ac5d0`, enter = 0): `acc = (S+0x168(τ), S+0x188(τ), −1.0)`, `L = Lnoflap = p_cmd = α = 0`, the yaw, pitch
+and roll channels re-based. On the ground it exits (as `5acfc0`, roll re-based by `5ae080`) with `p_cmd = 0.1`.
 Attitude (`5b6fb0`): pitch `S+0xe0`, roll `S+0x80`, heading `S+0xb0`.
-A port needs this only if its world has the equivalent map-edge cell flags (low priority).
+What follows from the code (inferred; not checked in the running game):
+* The ramps keep their entry time and are sampled with the X axis's τ (≤ 1.1 s), so the push-back hardly decays:
+  about −1.5·V m/s² against the heading for the whole 8 s.
+* The 5 Hz tick runs `5ac5d0` and discards its outputs, so only the aero update (1 Hz and control events) re-bases
+  the axes with that acceleration. The push-back therefore starts at the next aero update, up to 1 s after the entry.
+* After the first aero update the roll command is `k·p_cmd = 0`, so the roll stops; the heading keeps turning at
+  0.4·MaxRollRate and the nose rises to 50°.
+* The horizontal velocity reverses within about 0.7 s of the push-back's start and reaches ≈ −11·V. At the exit the
+  velocity becomes the nose direction times V, which slot 0x3c caps at 1200 m/s.
+* A jet still in the outer band after the exit enters again at the next 5 Hz tick.
+
+Port: `Mode::Tornado` (`tornado_entry`, `tornado_hook`, `tornado_exit`; the 8 s event is a step in
+`Aircraft::step`). The state's `tornado` flag and `end_worlds` count (the host plays EndWorld.wav when it grows).
+The console line is not ported (its text, `DAT_008454d0`, is set by an initialiser not traced). Tests:
+`map_edge_end_world_and_tornado`, `tests/godot/test_map_edge.gd`.
 
 ### 15.6 Touchdown, landing and crash (`5bb7d0`, `5bb9f0`), and the start rules
 
@@ -1605,6 +1659,9 @@ ground, `f&0x300` map edge, `f&0xc0` border (Tornado, §15.5a).
   runway && landing check OK → `S+0x2c8 = 0`, else 1 (OutRunway FF on); player and V < 5.1472 m/s (0x612500) →
   OutRunway off; `S+0x2c8 == 4` (water) and not immune → destroyed every tick (returns before clamping Z); otherwise
   Z p0 = clear, t0 = now.
+* The touchdown tick runs the rolling checks too (the Z sample is then `clear`). Only a touchdown sets state 4, so a
+  jet that rolls from land onto water is not destroyed.
+* Port: `Aircraft::transitions`, `surface` (states 1 / 2 shake the ground attitude, §14.5a).
 * `S+0x2c8`: 0 runway, 1 off-runway ground, 2 belly, 4 water. The `0x83afc8` calls are DirectInput force-feedback
   effects (StallShake `4de6a0`/`4def40`, OutRunway `4de730`/`4def30`, Landing `4de970`, Crash `4dec00`); they make no
   sound.
@@ -1937,12 +1994,12 @@ The 1 g hold was decided earlier (§10: original by default, γ-based under `fli
     its magnitude growing); guard the division when the rate is 0. BP: the slope globals (`0x845420/24/40/44`, β `0x8453e8/ec`) belong to the **last
     aircraft type set up**, so every jet uses that type's G_Rate/G_RateForAoa/BetaRate below 220/400 m/s; better:
     per aircraft (F-4 G_Rate 3 vs F-16 5).
-15. **Terrain types and map edge** — PO when the world provides the flags: rough ground > 25.7 m/s and water destroy
-    the jet, `S+0x2c8` states, OutRunway FF; the "Tornado" push-back (§15.5a) — BP: its acceleration ramps never decay
-    (axis τ), reversing the velocity to ≈ 11×V₀ (UNCERTAIN, verify in game); low priority.
+15. **Terrain types and map edge** — PO: rough ground > 25.7 m/s and water destroy the jet, `S+0x2c8` states,
+    OutRunway FF; the "Tornado" push-back (§15.5a) — BP: its acceleration ramps never decay (axis τ), reversing the
+    velocity to ≈ 11×V₀ (inferred, not checked in game); low priority.
 16. **Minor** — PO: only the 5 Hz V is capped at 1200 m/s (the 1 Hz V is uncapped); the airborne thrust may go below 0
     (already so, l. 392–395); `S+0x420` effects flag (75 < V < 150 && sY > 0.7); force-feedback effects and SFX 0x28/
-    0x29, EndWorld/Kramer wavs (host/audio); ground roll constants ×0.8 (rolling drag) and AI brake ×4 (v1.1).
+    0x29, EndWorld wav (host/audio); ground roll constants ×0.8 (rolling drag) and AI brake ×4 (v1.1).
 17. **Landed flag** (v1.1) — PO: the mission's landed handler fires at every gear-down touchdown that passes the check,
     re-armed at lift-off (§15.6.2).
 
@@ -1974,8 +2031,8 @@ Tests: Rust unit tests in `aircraft.rs` / `envelope.rs`; headless Godot test `te
 | 12 | β channel | done (v1.1): `beta_update` = `5aa700` (second-order, RudderK/Beta/StartAccel/StopAccel with the exe defaults for v1.0 data, 400 m/s, K ×1.5 near centre, no clamp), `beta_step` = the ground 1 Hz step, 5 Hz also in the spin; the rudder `S+0x2ec` is taken only while airborne. Tests `rudder_keys_and_v10_defaults`, `beta_channel_second_order`, `beta_steps_on_the_ground_and_in_the_spin`; validation row "rudder step" |
 | 13 | Roll / attitude | done: (0) v1.1 roll about the saved body nose (test `roll_about_the_body_nose`); (a) no `kroll` clamp; (b) roll re-based on the attitude roll and `5aa330` at 1 Hz and 5 Hz; (c) no re-orthogonalisation, roll from the raw left wing in the heading/pitch frame, force matrix from the Euler angles. (d) skipped: channels use their own base time (§10). BP: `kroll ≥ 0` (no reversed roll below Veff ≈ 9.5 m/s) |
 | 14 | Lift-ramp rate factor | done: no `.max(0.01)` floor; BP: floor 1 %. The per-type slope globals: not reproduced in either mode (our slopes are per aircraft, i.e. the better behaviour; it differs from the original when several types fly, §10) |
-| 15 | Terrain types, map edge | partly: water / rough-ground rules are in the FM; the host passes the terraintype.dat flags (`terrain.gd surface_at`, formats/ptt.md "Terrain types"). `S+0x2c8` states, OutRunway FF and the "Tornado" push-back skipped |
-| 16 | Minor | done: the 1 Hz V is not capped (5 Hz caps at 1200 m/s); airborne thrust unclamped; v1.1 rolling drag ×0.8 (test `ground_roll_drag_factor`; the AI wheel brake ×4, `AI_BRAKE`). `S+0x420` is `Aircraft::vortex` (the wingtip vortex trails). Skipped: FF effects, SFX 0x28/0x29, EndWorld/Kramer wavs |
+| 15 | Terrain types, map edge | done: water / rough-ground rules, the `S+0x2c8` states (§15.6.2) and the "Tornado" push-back (§15.5a) are in the FM; the host passes the player's terraintype.dat flags (`terrain.gd surface_at`, formats/ptt.md "Terrain types"). Skipped: OutRunway FF |
+| 16 | Minor | done: the 1 Hz V is not capped (5 Hz caps at 1200 m/s); airborne thrust unclamped; v1.1 rolling drag ×0.8 (test `ground_roll_drag_factor`; the AI wheel brake ×4, `AI_BRAKE`). `S+0x420` is `Aircraft::vortex` (the wingtip vortex trails). EndWorld.wav (host, from `end_worlds`). Skipped: FF effects, SFX 0x28/0x29, the map-edge console line |
 | 17 | Landed flag | done (v1.1): `State::landings` / Godot `landings` +1 at each gear-down touchdown that passes the check, re-armed at lift-off (test `landed_flag_rearmed_at_lift_off`); the mission runtime's landed trigger is the host's |
 | — | Also BP (§10): the nose-wheel ×4 lift quirk off (§14.5), ground effect on the induced drag (not in the original) | done, test `better_physics_minor_fixes` |
 

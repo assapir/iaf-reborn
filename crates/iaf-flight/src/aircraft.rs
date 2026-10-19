@@ -57,6 +57,24 @@ const ROLL_DRAG: f32 = 0.8;
 const BETA_V: f32 = 400.0;
 /// Spin recovery: yaw target slope π/(2.2·MaxBeta) (`0x611cf0` = 1.1, v1.0 0.9 → 1.8).
 const SPIN_SLOPE: f32 = 2.2;
+/// Terrain flags (terraintype.dat through `FUN_004024b0`, read by `5bb9f0`): water, runway, rough ground,
+/// the inner map-edge frame (EndWorld.wav) and the outer border band (the "Tornado" push-back).
+pub const SURFACE_WATER: u32 = 0x6;
+pub const SURFACE_RUNWAY: u32 = 0x30;
+pub const SURFACE_ROUGH: u32 = 0x9;
+pub const SURFACE_MAP_EDGE: u32 = 0x300;
+pub const SURFACE_BORDER: u32 = 0xc0;
+/// Tornado (`5ad450`, §15.5a): the push-back ramps start at −1.5·V (`0x611d40`) along the heading and run to 0
+/// at 10 m/s² (limits ±1e8); the mode ends 8 s after entry (`0x611d38`); the nose pitches to 50° (`0x3f5f66f3`).
+const TORNADO_K: f32 = -1.5;
+const TORNADO_RAMP_RATE: f32 = 10.0;
+const TORNADO_TIME: f64 = 8.0;
+const TORNADO_PITCH: f32 = 0.872_664_6;
+/// Ground attitude jitter (`5bb300`): the north speed counts up to 100 m/s (`0x6124c4`); per m/s the pitch
+/// target swings up to ±1°·2/74.53 (`0x8454bc`, `0x612440`) and the roll target ±2°·2/74.53 (`0x8454b4`).
+const JITTER_V: f32 = 100.0;
+const JITTER_PITCH: f32 = 1.0 * PI / 180.0 * 2.0 / 74.53;
+const JITTER_ROLL: f32 = 2.0 * PI / 180.0 * 2.0 / 74.53;
 
 // Better physics: FLCS (fly-by-wire) departure = deep stall (types 100 F-16, 140 Lavi; not in the
 // original, which never lets them depart). Estimates from public F-16 high-AoA data (NASA TP-1538 wind-tunnel
@@ -85,6 +103,16 @@ const DS_ROLL_PERIOD: f64 = 5.3;
 const DS_YAW_AMP: f32 = 5.0 * PI / 180.0;
 const DS_YAW_PERIOD: f64 = 6.7;
 const DS_ATT_RATE: f32 = 20.0 * PI / 180.0;
+
+/// `rand()·2/32767 − 1` (`566f30`, `0x6124c8`) for the ground jitter: −1..1, from a hash of the sample time.
+// ponytail: a hash of the time in place of the C runtime's shared LCG, so the jitter is deterministic per sample.
+fn jitter(t: f64, salt: u64) -> f32 {
+    let mut x = t.to_bits() ^ salt.wrapping_mul(0x9e37_79b9_7f4a_7c15);
+    x ^= x >> 33;
+    x = x.wrapping_mul(0xff51_afd7_ed55_8ccd);
+    x ^= x >> 33;
+    (x % 32768) as f32 * (2.0 / 32767.0) - 1.0
+}
 
 /// The unit vector, or None for (near) zero.
 pub(crate) fn unit(a: Vec3) -> Option<Vec3> {
@@ -408,6 +436,10 @@ pub struct State {
     pub spinning: bool,
     /// Better physics only: F-16 / Lavi deep stall (§10.1). `alpha` then shows the stalled AoA (~60°).
     pub deep_stall: bool,
+    /// The "Tornado" map-edge push-back is flying the jet (mode `veh+0xc7c`, §15.5a).
+    pub tornado: bool,
+    /// Times the jet entered the inner map-edge frame (terrain flag 0x300): the host plays EndWorld.wav on each.
+    pub end_worlds: u32,
     /// Gear ramp: 0 = down and locked … 1.569 = up.
     pub gear: f32,
     pub crashed: Option<Crash>,
@@ -432,6 +464,8 @@ enum Mode {
     Spin,
     /// Better physics only: the fly-by-wire jets' deep stall (§10.1). Not in the original.
     DeepStall,
+    /// `veh+0xc7c`: the "Tornado" map-edge push-back (§15.5a).
+    Tornado,
 }
 
 struct LiftOut {
@@ -453,6 +487,9 @@ pub struct Aircraft {
     ab_request: Option<(f64, f32)>,
     /// Rudder `S+0x2ec`: only taken while airborne (the handler drops it on the ground, §7).
     rudder: f32,
+    /// The stick the flight model holds: roll `S+0x2e8` (x) and pull `−S+0x2e4` (y). A stick event sets both; on
+    /// the ground a pedal event sets x = pedal, y = 0 (v1.1 `59f5a0` → `59f3d0`, §7 "The rudder handler").
+    stick: [f32; 2],
     axes: [Axis; 3],
     roll: Angle,
     alpha: Angle,
@@ -556,11 +593,20 @@ pub struct Aircraft {
     /// Height of the aircraft origin above the wheels' contact point (the model's `height`
     /// helper, F-16 1.69 m), so the jet rests on its gear.
     pub gear_clearance: f32,
-    /// Terrain under the wheels, supplied by the host: `nz/|n|` of the surface normal (1 = flat),
-    /// water, rough ground (terrain flags `4024b0`, §15.6.2).
+    /// Terrain under the wheels, supplied by the host: `nz/|n|` of the surface normal (1 = flat).
     pub ground_normal_z: f32,
-    pub ground_water: bool,
-    pub ground_rough: bool,
+    /// Terrain flags under the jet (terraintype.dat, `4024b0`, §15.6.2: `SURFACE_*`), supplied by the host for the
+    /// player's jet. None (the AI jets): no water / rough-ground crashes, no surface states, no map edge.
+    pub ground_flags: Option<u32>,
+    /// Surface state `S+0x2c8`: 0 runway, 1 off-runway ground, 2 belly, 4 water (`5bb9f0`). States 1 and 2 shake
+    /// the ground attitude (`5bb300`).
+    surface: u8,
+    /// Tornado: the X / Y push-back ramps `S+0x168` / `S+0x188` and the end time (CancelTornadoEvent).
+    tornado_acc: [Ramp; 2],
+    tornado_end: f64,
+    /// EndWorld latch (`DAT_008454e0`): set at the map-edge frame, cleared off both edge bands.
+    end_world_latch: bool,
+    end_worlds: u32,
     /// Drag chute deployed (adds `Params::chute_cd`, 0 in the original set).
     pub drag_chute: bool,
     /// Destroyed (§15.6); the simulation stops.
@@ -643,6 +689,7 @@ impl Aircraft {
             throttle: controls.throttle,
             ab_request: None,
             rudder: 0.0,
+            stick: [0.0; 2],
             axes: [Axis::new(st.position[0], vel[0] as f32), Axis::new(st.position[1], vel[1] as f32), Axis::new(st.position[2], vel[2] as f32)],
             roll: Angle::new(euler.roll as f64, p.roll_accel.abs(), p.stop_accel.abs(), p.max_roll_rate.abs()),
             alpha: Angle::new(0.0, p.alpha_start_accel.abs(), p.alpha_stop_accel.abs(), p.max_alpha_rate.abs()),
@@ -711,8 +758,12 @@ impl Aircraft {
             ground_height: f32::NEG_INFINITY,
             gear_clearance: 0.0,
             ground_normal_z: 1.0,
-            ground_water: false,
-            ground_rough: false,
+            ground_flags: None,
+            surface: 0,
+            tornado_acc: [Ramp::new(0.0, -1e8, 1e8); 2],
+            tornado_end: f64::INFINITY,
+            end_world_latch: false,
+            end_worlds: 0,
             drag_chute: false,
             crashed: None,
             ground_dir: Vec3::new(sh, ch, 0.0),
@@ -813,6 +864,12 @@ impl Aircraft {
         self.controls
     }
 
+    /// The stick the flight model holds (x roll, y pull): the last stick event, or on the ground the last pedal
+    /// event (x = pedal, y = 0; §7 "The rudder handler"). The part animation reads it.
+    pub fn stick(&self) -> (f32, f32) {
+        (self.stick[0], self.stick[1])
+    }
+
     fn flaps_on_target(&self) -> f32 {
         FLAPS_MAX * if self.params.type_code == 100 { 0.33 } else { 1.0 }
     }
@@ -859,9 +916,17 @@ impl Aircraft {
         if c.brakes != old.brakes {
             self.brakes.set(t, if c.brakes { BRAKES_MAX } else { 0.0 }, CONTROL_RATE);
         }
+        // Motion 1 (`59f3d0`): a stick event sets the stick the flight model holds.
+        if c.stick_x != old.stick_x || c.stick_y != old.stick_y {
+            self.stick = [c.stick_x, c.stick_y];
+        }
         // Motion 5 stores the rudder only while airborne; on the ground it keeps its last value.
         if !self.on_ground {
             self.rudder = c.rudder;
+        } else if c.rudder != old.rudder && c.rudder != self.stick[0] {
+            // v1.1 `59f5a0`: on the ground a pedal that differs from the stick's x (`S+0x2d8`) is re-posted as a
+            // stick event (x = pedal, y = 0) through `59f3d0`, damage scaling included.
+            self.stick = [c.rudder * stick_k, 0.0];
         }
         self.aero_update();
     }
@@ -905,12 +970,15 @@ impl Aircraft {
                 return;
             }
             let ab = self.ab_request.map_or(f64::INFINITY, |r| r.0);
-            let next = self.next_accel.min(self.next_aero).min(ab);
+            let next = self.next_accel.min(self.next_aero).min(ab).min(self.tornado_end);
             if next > end {
                 break;
             }
             self.t = next;
-            if ab <= self.next_aero.min(self.next_accel) {
+            if self.tornado_end <= next {
+                // CancelTornadoEvent (`5ae9c0` → `5acfc0`), 8 s after the entry.
+                self.tornado_exit(next);
+            } else if ab <= self.next_aero.min(self.next_accel) {
                 let (_, value) = self.ab_request.take().unwrap();
                 self.throttle = value.clamp(0.0, 1.0);
                 self.aero_update();
@@ -1011,6 +1079,14 @@ impl Aircraft {
                 heading: wrap(self.spin_yaw.sample(t).0 + (DS_YAW_AMP * osc(DS_YAW_PERIOD)) as f64) as f32,
             };
         }
+        if self.mode == Mode::Tornado {
+            // 5b6fb0: pitch ramp `S+0xe0`, roll channel `S+0x80`, heading = yaw angle `S+0xb0`.
+            return Euler {
+                pitch: wrap(self.spin_pitch.sample(t) as f64) as f32,
+                roll: wrap(self.roll.sample(t).0) as f32,
+                heading: wrap(self.spin_yaw.sample(t).0) as f32,
+            };
+        }
         if self.mode == Mode::Spin {
             // 5b8b70: pitch / roll ramps, heading = yaw angle.
             return Euler {
@@ -1021,9 +1097,10 @@ impl Aircraft {
         }
         let (v, speed) = self.velocity_at(t);
         if self.on_ground {
-            // Ground attitude: level; the heading follows the velocity (§14.5), else the last heading.
+            // Ground attitude `5bb300`: the heading follows the velocity (§14.5), else the last heading.
             let f = if speed > 0.5 { norm(Vec3::new(v[0], v[1], 0.0)) } else { self.ground_dir };
-            return Euler { pitch: 0.0, roll: 0.0, heading: f[0].atan2(f[1]) as f32 };
+            let (pitch, roll) = self.ground_pitch_roll(t, v);
+            return Euler { pitch, roll, heading: f[0].atan2(f[1]) as f32 };
         }
         // 5b9530 (§15.3): velocity, roll about the saved body nose axis (v1.1; v1.0 about the velocity), α
         // about the (left) wing, β about w × f.
@@ -1052,6 +1129,23 @@ impl Aircraft {
             roll = -roll;
         }
         Euler { pitch: pitch as f32, roll: wrap(roll) as f32, heading: heading as f32 }
+    }
+
+    /// Ground pitch and roll (`5bb300`, §14.5a): the attitude saved at the last update (`S+0x14` / `S+0x18`) eases
+    /// toward a target by τ, the time since the X axis's base (≤ 1.1 s). On the runway the target is level. Off the
+    /// runway and on the belly (`S+0x2c8` 1 / 2) it is random, drawn afresh at every sample (`rand()`, `566f30`),
+    /// and grows with the north speed |v_y| up to 100 m/s (the original reads the velocity's y, not the speed).
+    fn ground_pitch_roll(&self, t: f64, v: Vec3) -> (f32, f32) {
+        let tau = ((t - self.axes[0].t0()) as f32).clamp(0.0, 1.1);
+        let (mut pj, mut rj) = (0.0, 0.0);
+        if matches!(self.surface, 1 | 2) {
+            let s = (v[1] as f32).abs().min(JITTER_V);
+            pj = jitter(t, 1) * s * JITTER_PITCH;
+            rj = jitter(t, 2) * s * JITTER_ROLL;
+        }
+        // [TAXI] PitchRate (`0x8454cc`) would scale the nose-up easing; iaf.ibx has none, so it is 1.0.
+        let (p, r) = (self.saved.pitch, self.saved.roll);
+        (p - (p - pj) * tau, r - (r - rj) * tau)
     }
 
     /// `5aa330`: saves the Euler angles and the left-wing vector for the attitude sampler.
@@ -1148,7 +1242,7 @@ impl Aircraft {
         }
         let (mut drag_x, mut stall, mut lim) = (0.0, false, 0.0);
         let centre = if v < self.stick_centre_v { self.stick_centre_a * v + self.stick_centre_b } else { 1.0 };
-        let sp = self.controls.stick_y;
+        let sp = self.stick[1];
         let mut g = if sp > 0.0 { centre + sp * p.max_g_m1 } else { centre + (-sp) * ((p.min_g_m1 + 1.0) - centre) };
         if (g - 1.0).abs() < 1e-5 && att.roll.abs() < 10f32.to_radians() {
             // Neutral stick: 1 g hold, cos(pitch)/cos(roll) in the original. The jet slowly
@@ -1230,7 +1324,7 @@ impl Aircraft {
         if !gear {
             return 0.0;
         }
-        let yaw = (self.controls.stick_x * v * NOSE_K / 74.53).clamp(-NOSE_K, NOSE_K);
+        let yaw = (self.stick[0] * v * NOSE_K / 74.53).clamp(-NOSE_K, NOSE_K);
         if yaw.abs() < 1e-4 { 0.0 } else { yaw }
     }
 
@@ -1253,7 +1347,6 @@ impl Aircraft {
         }
         let t = self.t;
         let p = self.params.clone();
-        let c = self.controls;
         let alt = self.axes[2].sample(t).0 as f32;
         let (vel, v) = self.velocity_at(t); // not capped here
         let air = air(alt);
@@ -1286,7 +1379,7 @@ impl Aircraft {
             thrust = thrust.max(0.0);
             lift *= 0.5;
             lift += lift.abs() * c_f;
-            if !((v > 74.53 || c.stick_y > 0.5) && (gear || ai || self.easy_landing || easy)) {
+            if !((v > 74.53 || self.stick[1] > 0.5) && (gear || ai || self.easy_landing || easy)) {
                 lift = 0.0;
                 lift_noflap = 0.0;
                 stall = false;
@@ -1326,7 +1419,7 @@ impl Aircraft {
         }
         // 5b4910: β_cmd = (ru + 10·asym)·MaxBeta, asym = S+0x428 − S+0x42c (the spin tick passes 0).
         let beta_cmd = (self.rudder + 10.0 * self.stores_asym()) * p.max_beta;
-        let p_cmd = if ground { 0.0 } else { p.max_roll_rate * c.stick_x };
+        let p_cmd = if ground { 0.0 } else { p.max_roll_rate * self.stick[0] };
 
         self.thrust = thrust;
         self.afterburner = stage;
@@ -1388,7 +1481,7 @@ impl Aircraft {
         }
         self.fuel.set(t, 0.0, ff);
         self.fuel_flow = ff;
-        self.vortex = v > 75.0 && v < 150.0 && c.stick_y > 0.7;
+        self.vortex = v > 75.0 && v < 150.0 && self.stick[1] > 0.7;
         self.rpm.set(t, 100.0 * rpm, RPM_RATE);
     }
 
@@ -1447,6 +1540,12 @@ impl Aircraft {
             }
             // Recovered: this tick continues as a normal one.
         }
+        if self.mode == Mode::Tornado {
+            // 5 Hz in mode c7c: `5ac5d0` only, its outputs discarded (no force, no axis update).
+            let mut io = ModeIo { acc: Vec3::ZERO, lift: 0.0, lift_noflap: 0.0, p_cmd: 0.0 };
+            self.tornado_hook(t, &mut io);
+            return;
+        }
         let att = self.attitude(t);
         if self.mode == Mode::Spin {
             let mut io = ModeIo { acc: Vec3::ZERO, lift: 0.0, lift_noflap: 0.0, p_cmd: 0.0 };
@@ -1468,8 +1567,8 @@ impl Aircraft {
         let mut stop = false;
         if self.on_ground {
             // Stop rule (5 Hz only): a deceleration that would reverse the motion within 0.2 s
-            // stops the jet (all three velocities 0).
-            let (fwd, _, _) = att.basis();
+            // stops the jet (all three velocities 0). The frame is level (M(0, 0, heading)).
+            let (fwd, _, _) = Euler { pitch: 0.0, roll: 0.0, heading: att.heading }.basis();
             let (vel, _) = self.velocity_at(t);
             let a_fwd = acc.dot(fwd);
             if a_fwd < 0.0 && vel.dot(fwd) + 0.2 * a_fwd < 0.0 {
@@ -1511,7 +1610,8 @@ impl Aircraft {
     /// Ground acceleration (FUN_005bb060, §14.5): level attitude along the heading; the nose wheel
     /// pushes sideways (Fc), which scrubs speed and can multiply the vertical lift by 4.
     fn ground_acc(&self, _t: f64, lift: f32, v: f32, yaw: f32, att: Euler) -> Vec3 {
-        let (fwd, right, up) = att.basis();
+        // `5b3ef0` forces pitch = roll = 0 on the ground: M = 5ba740(0, 0, heading).
+        let (fwd, right, up) = Euler { pitch: 0.0, roll: 0.0, heading: att.heading }.basis();
         let m = self.mass;
         let fc = match self.params.nose_wheel {
             // Real data set: geometric steering from the pedals, limited by the tyres' grip.
@@ -1553,7 +1653,9 @@ impl Aircraft {
     /// Mode hook (`5aab90`'s place in both updates): the deep stall (BP, FBW jets) or the spin.
     #[allow(clippy::too_many_arguments)]
     fn mode_hook(&mut self, t: f64, drag_x: f32, v: f32, beta: f32, att: Euler, io: &mut ModeIo, aero: bool) {
-        if self.mode == Mode::DeepStall {
+        if self.mode == Mode::Tornado {
+            self.tornado_hook(t, io);
+        } else if self.mode == Mode::DeepStall {
             self.deep_stall_hook(t, att, io, aero);
         } else if self.fbw_departure() {
             if aero && self.mode == Mode::Normal {
@@ -1617,7 +1719,7 @@ impl Aircraft {
         self.spin_yaw.reset_angle(t, h);
         // Rocking: the stick in phase with the pitch rate pumps it, against the phase damps it.
         let rising = ((t - self.ds_t0) * std::f64::consts::TAU / DS_PERIOD).cos().signum() as f32;
-        let pump = self.controls.stick_y * rising;
+        let pump = self.stick[1] * rising;
         if pump > 0.5 {
             self.ds_amp.set(t, DS_AMP_MAX, DS_PUMP * pump);
         } else if pump < -0.5 {
@@ -1735,18 +1837,9 @@ impl Aircraft {
             return;
         }
         // Exit (@5ab6e7): velocity := nose rotated back by α and β, times V.
-        let (f, right, _) = att.basis();
         self.save_attitude(att);
-        let w = -right;
         if !self.better.spin_fixes {
-            let u = norm(f.cross(w));
-            let alpha = self.alpha.sample(t).0;
-            let f2 = f.rotated(u, beta as f64).rotated(w, alpha);
-            for (i, axis) in self.axes.iter_mut().enumerate() {
-                let (pos, _) = axis.sample(t);
-                let a = axis.accel();
-                axis.set_state(t, pos, (f2[i] * v as f64) as f32, a);
-            }
+            self.exit_velocity(t, att, v, beta);
             io.acc[0] = 0.0;
             io.acc[1] = 0.0;
         }
@@ -1796,8 +1889,25 @@ impl Aircraft {
     /// Touchdown / lift-off / rolling checks (FUN_005bb9f0, §14.6, §15.6.2), at the start of every
     /// 5 Hz tick.
     fn transitions(&mut self, t: f64) {
+        // Map edge (@5bbb42, before the air / ground logic; the player's jet only, the one the host passes the
+        // flags for): the inner frame plays EndWorld.wav once, the outer band starts the Tornado.
+        let flags = self.ground_flags.unwrap_or(0);
+        if self.ground_flags.is_some() {
+            let tornado = self.mode == Mode::Tornado;
+            let (edge, border) = (flags & SURFACE_MAP_EDGE != 0, flags & SURFACE_BORDER != 0);
+            if edge && !tornado && !self.end_world_latch {
+                self.end_world_latch = true;
+                self.end_worlds += 1;
+            } else if border && !tornado {
+                self.tornado_entry(t);
+            } else if !edge && !border {
+                self.end_world_latch = false;
+            }
+        }
         let clear = (self.ground_height + self.gear_clearance) as f64;
         let (z, vz) = self.axes[2].sample(t);
+        let (_, v) = self.velocity_at(t);
+        let rough = flags & SURFACE_ROUGH != 0 && v > ROUGH_CRASH_SPEED;
         if !self.on_ground {
             if z > clear {
                 return;
@@ -1816,39 +1926,125 @@ impl Aircraft {
             if self.crashed.is_some() {
                 return;
             }
-            // Gear down and the check passed: the mission's landed handler, once per landing (flag re-armed at
-            // lift-off in v1.1).
-            if self.gear_flag(t) && !self.landed {
+            self.aero_update();
+            if rough && !self.immune() {
+                self.crashed = Some(Crash::RoughGround);
+                return;
+            }
+            if flags & SURFACE_WATER != 0 {
+                self.surface = 4;
+            } else if !self.gear_flag(t) {
+                self.surface = 2; // belly
+            } else if !self.landed {
+                // Gear down and the check passed: the mission's landed handler, once per landing (flag re-armed
+                // at lift-off in v1.1).
                 self.landed = true;
                 self.landings += 1;
             }
-            self.aero_update();
-            return;
-        }
-        if z > clear && vz > 0.001 {
-            // Lift-off: airborne branch; then roll angle 0, its rate and target kept; the landed flag cleared.
+            // The rolling checks below run in the same tick.
+        } else if z > clear && vz > 0.001 {
+            // Lift-off: airborne branch; then roll angle 0, its rate and target kept; the landed flag and the
+            // surface state cleared.
             self.on_ground = false;
             self.landed = false;
+            self.surface = 0;
             self.aero_update();
             self.roll.reset_angle(t, 0.0);
             return;
         }
-        // Rolling: rough ground above 25.7 m/s and water destroy the jet (unless immune).
-        let (_, v) = self.velocity_at(t);
-        if !self.immune() {
-            if self.ground_water {
-                self.crashed = Some(Crash::Water);
-                return;
-            }
-            if self.ground_rough && v > ROUGH_CRASH_SPEED {
-                self.crashed = Some(Crash::RoughGround);
-                return;
-            }
+        // Rolling: rough ground above 25.7 m/s destroys the jet (unless immune); the surface state follows the
+        // runway flag and the landing check, except on the belly and on water; water destroys it.
+        if rough && !self.immune() {
+            self.crashed = Some(Crash::RoughGround);
+            return;
+        }
+        if self.ground_flags.is_some() && !matches!(self.surface, 2 | 4) {
+            let (_, vz) = self.axes[2].sample(t);
+            self.surface = if flags & SURFACE_RUNWAY != 0 && self.landing_check(t, vz).is_none() { 0 } else { 1 };
+        }
+        if self.surface == 4 && !self.immune() {
+            self.crashed = Some(Crash::Water);
+            return;
         }
         // Keep the wheels on the terrain (Z p0 = clear, t0 = now; velocity and acceleration kept).
         let (_, vz_now) = self.axes[2].sample(t);
         let a = self.axes[2].accel();
         self.axes[2].set_state(t, clear, vz_now, a);
+    }
+
+    // --- the "Tornado" map-edge push-back (§15.5a) ---------------------------------------------
+
+    /// Entry `5ad450` + `5ac5d0` (enter = 1): push-back ramps −1.5·V along the heading (to 0 at 10 m/s²), the
+    /// CancelTornadoEvent in 8 s; the heading turns at up to 0.4·MaxRollRate and the roll at up to MaxRollRate
+    /// (both toward ±2π/s, the sign of the roll), the nose pitches to 50°.
+    fn tornado_entry(&mut self, t: f64) {
+        let att = self.attitude(t);
+        let (_, v) = self.velocity_at(t);
+        let v = v.min(1200.0); // slot 0x3c
+        let (s, c) = att.heading.sin_cos();
+        for (ramp, k) in self.tornado_acc.iter_mut().zip([s, c]) {
+            ramp.place(t, TORNADO_K * v * k, 0.0, TORNADO_RAMP_RATE);
+        }
+        self.tornado_end = t + TORNADO_TIME;
+        self.mode = Mode::Tornado;
+        let p = &self.params;
+        let turn = if att.roll > 0.0 { 2.0 * PI } else { -2.0 * PI };
+        self.spin_yaw = Angle::new(att.heading as f64, (0.4 * p.roll_accel).abs(), (0.2 * p.stop_accel).abs(), (0.4 * p.max_roll_rate).abs());
+        self.spin_yaw.set(t, att.heading as f64, turn);
+        // The roll channel `S+0x80` restarts from rate 0.
+        let r = self.roll;
+        self.roll = Angle::new(att.roll as f64, r.start_accel, r.stop_accel, r.max_rate);
+        self.roll.set(t, att.roll as f64, turn);
+        let rate = (0.05 * p.max_roll_rate).abs();
+        self.spin_pitch.place(t, att.pitch.clamp(-PI / 2.0, PI / 2.0), TORNADO_PITCH, rate);
+    }
+
+    /// Update `5ac5d0` (enter = 0): acceleration (X ramp, Y ramp, −1) with the ramps sampled at the X axis's τ
+    /// (≤ 1.1 s, so they hardly decay), no lift, no roll command; on the ground the mode ends.
+    fn tornado_hook(&mut self, t: f64, io: &mut ModeIo) {
+        let tau = ((t - self.axes[0].t0()) as f32).clamp(0.0, 1.1);
+        io.acc = Vec3::new(self.tornado_acc[0].sample_tau(tau) as f64, self.tornado_acc[1].sample_tau(tau) as f64, -1.0);
+        if self.on_ground {
+            self.tornado_exit(t);
+            io.p_cmd = 0.1;
+            return;
+        }
+        io.lift = 0.0;
+        io.lift_noflap = 0.0;
+        io.p_cmd = 0.0;
+        let (h, _) = self.spin_yaw.sample(t);
+        self.spin_yaw.reset_angle(t, h);
+        self.spin_pitch.rebase(t);
+        let (r, _) = self.roll.sample(t);
+        self.roll.reset_angle(t, r);
+    }
+
+    /// Exit (CancelTornadoEvent `5ae9c0` → `5acfc0` after 8 s, or on the ground in `5ac5d0`): as the spin's exit,
+    /// the velocity becomes the nose turned back by β and α, times V (≤ 1200 m/s).
+    fn tornado_exit(&mut self, t: f64) {
+        let att = self.attitude(t);
+        let (_, v) = self.velocity_at(t);
+        let beta = self.beta.sample(t).0 as f32;
+        self.save_attitude(att);
+        self.exit_velocity(t, att, v.min(1200.0), beta);
+        self.roll.reset_angle(t, att.roll as f64);
+        self.tornado_end = f64::INFINITY;
+        self.mode = Mode::Normal;
+    }
+
+    /// The departure modes' exit velocity (@5ab6e7, `5ac5d0`, `5acfc0`): the nose turned back by β and α, times
+    /// `v`; positions and accelerations kept.
+    fn exit_velocity(&mut self, t: f64, att: Euler, v: f32, beta: f32) {
+        let (f, right, _) = att.basis();
+        let w = -right;
+        let u = norm(f.cross(w));
+        let alpha = self.alpha.sample(t).0;
+        let f2 = f.rotated(u, beta as f64).rotated(w, alpha);
+        for (i, axis) in self.axes.iter_mut().enumerate() {
+            let (pos, _) = axis.sample(t);
+            let a = axis.accel();
+            axis.set_state(t, pos, (f2[i] * v as f64) as f32, a);
+        }
     }
 
     /// Stores asymmetry `S+0x428 − S+0x42c` (right minus left drag index).
@@ -2047,6 +2243,8 @@ impl Aircraft {
             on_ground: self.on_ground,
             spinning: self.mode == Mode::Spin,
             deep_stall: self.mode == Mode::DeepStall,
+            tornado: self.mode == Mode::Tornado,
+            end_worlds: self.end_worlds,
             gear: self.gear.sample(t),
             crashed: self.crashed,
             landings: self.landings,
@@ -2916,5 +3114,122 @@ mod tests {
         a.gear.reset(a.t, 1.0);
         land(&mut a);
         assert_eq!(a.state().landings, 2);
+    }
+
+    /// v1.1 `59f5a0` → `59f3d0`: on the ground a pedal change is a stick event (x = pedal, y = 0); in the air the
+    /// pedal leaves the stick alone.
+    #[test]
+    fn ground_pedal_posts_a_stick_event() {
+        let mut a = ground(true);
+        let c = a.controls();
+        a.set_controls(Controls { stick_x: 0.3, stick_y: 0.6, ..c });
+        assert_eq!(a.stick(), (0.3, 0.6));
+        a.set_controls(Controls { rudder: 0.5, ..a.controls() });
+        assert_eq!(a.stick(), (0.5, 0.0), "the pedal steers and centres the pitch");
+        // The nose wheel follows the pedal: clamp(x·V·K/74.53, ±K).
+        let v = 20.0;
+        assert!((a.nose_wheel_yaw(v, true) - 0.5 * v * NOSE_K / 74.53).abs() < 1e-6);
+        // The next stick move takes over again.
+        a.set_controls(Controls { stick_x: -0.2, ..a.controls() });
+        assert_eq!(a.stick(), (-0.2, 0.6));
+        // Hydraulics damage (18) scales the re-posted pedal like the stick.
+        a.set_damage(1 << 18, false);
+        a.set_controls(Controls { rudder: -1.0, ..a.controls() });
+        assert_eq!(a.stick(), (-0.25, 0.0));
+        // In the air the pedal is the rudder only.
+        let mut b = airborne(100, 3000.0, 200.0);
+        b.set_controls(Controls { stick_x: 0.1, stick_y: 0.2, ..b.controls() });
+        b.set_controls(Controls { rudder: 0.7, ..b.controls() });
+        assert_eq!(b.stick(), (0.1, 0.2));
+        assert_eq!(b.rudder, 0.7);
+    }
+
+    /// `5bb9f0` surface states and the `5bb300` ground attitude: level on the runway, a random pitch / roll off the
+    /// runway and on the belly, growing with the north speed.
+    #[test]
+    fn ground_attitude_jitter_off_the_runway() {
+        let mut a = ground(true);
+        a.set_controls(Controls { throttle: 0.74, brakes: false, ..a.controls() });
+        a.ground_flags = Some(0x10); // runway
+        run(&mut a, 10.0);
+        assert_eq!(a.surface, 0);
+        let st = a.state();
+        assert!(st.on_ground, "{st:?}");
+        assert!(st.velocity[1] > 20.0, "rolling north: {:?}", st.velocity);
+        assert_eq!((st.pitch, st.roll), (0.0, 0.0), "level on the runway");
+        // Off the runway (no flag: land 0x1 is rough ground, which destroys the jet above 25.7 m/s): state 1 at the
+        // next 5 Hz tick, then the attitude shakes.
+        a.ground_flags = Some(0);
+        run(&mut a, 0.3);
+        assert_eq!(a.surface, 1);
+        let s = a.state().velocity[1].abs().min(JITTER_V);
+        let (mut pmax, mut rmax) = (0f32, 0f32);
+        for _ in 0..200 {
+            a.step(0.013);
+            let st = a.state();
+            assert!(st.on_ground);
+            pmax = pmax.max(st.pitch.abs());
+            rmax = rmax.max(st.roll.abs());
+        }
+        assert!(pmax > 0.05 * s * JITTER_PITCH && pmax <= s * JITTER_PITCH, "pitch jitter {pmax}");
+        assert!(rmax > 0.05 * s * JITTER_ROLL && rmax <= s * JITTER_ROLL, "roll jitter {rmax}");
+        // Back on the runway the attitude settles level again.
+        a.ground_flags = Some(0x10);
+        run(&mut a, 6.0);
+        assert_eq!(a.surface, 0);
+        let st = a.state();
+        assert!(st.pitch.abs() < 1e-3 && st.roll.abs() < 1e-3, "settled: {} {}", st.pitch, st.roll);
+        // A belly landing shakes even on the runway (state 2 until lift-off); water is state 4 and destroys the jet.
+        let mut b = airborne(0, 20.0, 80.0);
+        b.ground_height = 0.0;
+        b.ground_flags = Some(0x10);
+        b.axes[2] = Axis::new(-0.1, -1.0);
+        let t = b.t;
+        b.transitions(t);
+        assert!(b.on_ground && b.crashed.is_none() && b.surface == 2);
+        let mut w = airborne(0, 20.0, 80.0);
+        w.ground_height = 0.0;
+        w.gear.reset(0.0, 0.0);
+        w.ground_flags = Some(0x4);
+        w.axes[2] = Axis::new(-0.1, -1.0);
+        let t = w.t;
+        w.transitions(t);
+        assert_eq!((w.surface, w.crashed), (4, Some(Crash::Water)));
+    }
+
+    /// The map edge (`5bb9f0`, §15.5a): the inner frame counts one EndWorld until the jet leaves both bands; the
+    /// outer band starts the Tornado, which throws the jet back and ends 8 s later along the nose.
+    #[test]
+    fn map_edge_end_world_and_tornado() {
+        let mut a = Aircraft::new(params(110), Envelope::parse(ENV), Vec3::new(0.0, 0.0, 3000.0), PI / 2.0, 250.0);
+        a.ground_height = 0.0;
+        a.ground_flags = Some(0x100);
+        run(&mut a, 1.0);
+        assert_eq!(a.state().end_worlds, 1, "once while in the frame");
+        a.ground_flags = Some(0x180);
+        run(&mut a, 0.2);
+        let st = a.state();
+        assert!(st.tornado && st.end_worlds == 1);
+        let t0 = a.t;
+        // The push-back acts from the next aero update (≤ 1 s; the 5 Hz ticks leave the axes alone).
+        run(&mut a, 2.0);
+        let st = a.state();
+        assert!(st.velocity[0] < -50.0, "thrown back west: {:?}", st.velocity);
+        // Back inside the map, the mode ends 8 s after the entry.
+        a.ground_flags = Some(0x1);
+        while a.state().tornado {
+            a.step(0.01);
+        }
+        assert!((a.t - (t0 + TORNADO_TIME)).abs() < 0.25, "ended after {:.2} s", a.t - t0);
+        let st = a.state();
+        assert!((st.speed - 1200.0).abs() < 10.0, "the exit speed is V (≤ 1200 m/s): {}", st.speed);
+        // Off both bands the latch cleared: the frame plays EndWorld again.
+        a.ground_flags = Some(0x100);
+        run(&mut a, 0.4);
+        assert_eq!(a.state().end_worlds, 2);
+        // A jet without flags (the AI) never sees the edge.
+        let mut b = airborne(110, 3000.0, 250.0);
+        run(&mut b, 1.0);
+        assert!(!b.state().tornado && b.state().end_worlds == 0);
     }
 }

@@ -113,7 +113,7 @@ Suez, extra sounds, multiplayer, setup wizard + launcher, modern aircraft / weap
 | Controls | original key table, rebinding on the Keyboard page, in-flight keys through the table; joystick (one device: stick / throttle / rudder axes per the Devices page, hat = snap views, buttons through the table and bound on the Keyboard page, menu/joy/*.joy), tested on Linux and macOS hardware |
 | TSD / briefing | vector map, units, flights, waypoints, fly any flight, briefing texts and links (picture windows fit their bitmap whole and, as in the exe, do not zoom; ours: the mouse wheel scrolls the texts by the arrow step, docs/front-end.md §12.9); the selected-unit label, the ruler (right-drag), the map keys; in flight (FlyTSD, docs/views.md §1) the live battle, Fly into another formation's jet (any flyable type, the wingman's seat when the leader is down), Visit, Ctrl+P, waypoints fixed |
 | Mission runtime | scripts, triggers, events, voices + subtitles, win / lose rules, mission boxes, debrief; player = the default (or chosen) flight's leader |
-| Flight model | original ground + airborne logic ported line by line (docs/flight-model.md §14–§15): envelope, stall, spin, landing / crash check, afterburner delay, gear / flaps / brakes, start rules, Gameplay prefs |
+| Flight model | original ground + airborne logic ported line by line (docs/flight-model.md §14–§15): envelope, stall, spin, landing / crash check, afterburner delay, gear / flaps / brakes, start rules, Gameplay prefs; the ground pedal as a stick event, the ground attitude's shake off the runway and on the belly, the map edge (EndWorld.wav, "Tornado" push-back) |
 | Physics switches | 13 "Better physics" options (incl. F-16 deep stall, ground effect; docs/flight-model.md §10) + 6 original-bug fixes (falling-jet heading, enemies tougher on easy AI, lock threat, stores weight / tank fuel, bomb burst depth, collisions with hidden units / wrecks; docs/deviations.md §2) |
 | AI flight | docs/ai.md: the bdb brains (rule engine, conditions, sub-brains, combat ops 21 / 22) and the original's autopilot control loops fly every brain-controlled jet through the same flight model: routes with timed waypoints, formations, take-off from the hangar, go home and land, hold; the player's wingman follows the player; `ai.contacts()` for radar / RWR |
 | Autopilot | docs/autopilot.md: A key off → level → NAV → off, lamp 8, HUD `AP LVL` / `AP NAV`, stick / rudder break-out, NAV = Fly2WayPt with waypoint sequencing, a land waypoint = the AI's go-home circuit and landing (312's demonstration lands on the centreline) |
@@ -131,16 +131,13 @@ Suez, extra sounds, multiplayer, setup wizard + launcher, modern aircraft / weap
 | Radio | docs/radio.md: the phrase engine (word wavs + subtitle); the tower by itself on the ground (taxi / line up / hold / take-off) and Ctrl+T in the air (proceed to runway, cleared to land, gear not down, go around, taxi to hangar; a click elsewhere); wingman commands Alt+P/B/E/W/T/C on the AI wingman's brain (its bdb "Roger" replies, "negative" when it cannot); waypoint, airborne, landed, crashed, eject and kill reports; the AWACS contact calls (bearing, range, heading) |
 | Terrain | all of `map.ptt` (levels 11..6 + all 51 insets, 2342 nodes) as a streamed quadtree with distance LOD to 200 km, level-6 heights with the original's inset interpolation, skirts; runway digits surveyed on every airbase (2 mirrored fixed); `terraintype.dat` surface types (water / rough / runway) feed the flight model; loaded behind the wait screen (docs/formats/ptt.md) |
 | Pilot records | screen 0 at startup (docs/front-end.md §13): pilot list, Dossier (edit boxes, photo, rank, score, missions), Records / Kills / Losses, New / Remove / Login; each debriefed flight recorded (result, MissBonus, destroyed units as kills / losses, score multiplier), best-attempt score and rank, the briefing's "<rank> <name>"; Future Missions 2–7 locked until the previous pass; JSON in the user dir; the Debrief's DEBRIEFING / KILL TALLY / LOSSES pages (headline and notes, this flight's kills and losses per type with counts, the score column) |
-| Tests | `tools/test.sh`: Rust + 61 headless Godot tests (`tests/godot/test_*.gd`), isolated from the player's settings; fails on any script error or a 300 s timeout |
+| Tests | `tools/test.sh`: Rust + 83 headless Godot tests (`tests/godot/test_*.gd`), isolated from the player's settings; fails on any script error or a 300 s timeout |
 
 ## Open gaps (by area)
 Checked against the code on 2026-10-19 (each doc's own "not built" notes have the details).
-- **Terrain**: the map-edge push-back / EndWorld ("Tornado", docs/flight-model.md §15.5a). The original data has no
-  elevation west of Suez (flat −557 m, kept). A modern DEM (digital elevation model) is not built.
-- **Flight**: on the ground, v1.1 turns a pedal / rudder-key change into a stick event (X = pedal, Y = 0;
-  `FUN_0059f5a0` → `FUN_0059f3d0`), so the pedals steer the nose wheel and move the rudder part; ours steers with the
-  stick X only (docs/flight-model.md "The rudder handler"). The ground attitude's random pitch / roll jitter off the
-  runway and on the belly (`S+0x2c8` states 1 / 2 in `FUN_005bb300`; ours rolls level); the OutRunway force feedback.
+- **Terrain**: the original data has no elevation west of Suez (flat −557 m, kept). A modern DEM (digital elevation
+  model) is not built.
+- **Flight**: the OutRunway force feedback; the map-edge console line (`FUN_0044a060`, docs/flight-model.md §15.5a).
 - **Autopilot landing, F-35I**: GoHomeCL's step 7 (gear down) comes at any speed above 102.9 m/s, and the F-35I is
   still at ~370 kt there, so the 300 kt rule keeps its gear up and it lands on its belly (mission 214; the
   mission's own jet is at 220 kt and lands on its gear; docs/autopilot.md §2.3).

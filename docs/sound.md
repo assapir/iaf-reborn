@@ -84,8 +84,8 @@ The sound manager (`DAT_0069931c`) plays, mixes and stops every in-flight sound.
 * **Play a wav by name** `FUN_004c5470(file, 0, phrase)`: volume = the **speech** volume (`manager+0x4c`), pitch 1,
   2-D. With `phrase` ≠ 0 it plays on the phrase channel (`FUN_005448b0`, handle `manager+0x38`). Users:
   - the mission voices (`FUN_004bb10b`);
-  - the map-edge wavs (EndWorld / Kramer18 / Kram1, `FUN_005bb9f0`). v1.1 prints a console line there in place of
-    Kramer18 / Kram1 (docs/flight-model.md);
+  - the map-edge wavs (EndWorld / Kramer18 / Kram1, `FUN_005bb9f0`). v1.1 plays EndWorld.wav and prints a console
+    line in place of Kramer18 / Kram1; the port plays EndWorld.wav (`terrain_view.gd`, docs/flight-model.md §15.5a);
   - every non-resident row. Quirk kept: non-resident effects (`td`, `screech`, …) therefore follow the speech
     slider.
 * **Category volumes** `FUN_004c5900(cat, v)`, set from the Preferences Sound page (`FUN_004fe430`,

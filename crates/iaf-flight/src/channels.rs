@@ -36,7 +36,11 @@ impl Ramp {
     }
 
     pub fn sample(&self, t: f64) -> f32 {
-        let tau = ((t - self.t0) as f32).clamp(0.0, 3.5);
+        self.sample_tau(((t - self.t0) as f32).clamp(0.0, 3.5))
+    }
+
+    /// The value `tau` seconds after the base (`5a2b00`: the caller picks τ, e.g. another channel's).
+    pub fn sample_tau(&self, tau: f32) -> f32 {
         let v = if tau < self.t_end { self.v0 + self.rate * tau } else { self.target };
         v.clamp(self.min, self.max)
     }

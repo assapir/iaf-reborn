@@ -138,14 +138,14 @@ impl IafFlight {
         }
     }
 
-    /// Terrain under the wheels: the surface normal's vertical share `nz/|n|` (1 = flat; the
-    /// landing check fails above 10° of slope), water and rough ground (terraintype.dat, §15.6).
+    /// Terrain under the player's jet: the surface normal's vertical share `nz/|n|` (1 = flat; the
+    /// landing check fails above 10° of slope) and the terraintype.dat flags (terrain.gd `surface_at`: water,
+    /// runway, rough ground, map edge; docs/flight-model.md §15.6.2).
     #[func]
-    fn set_ground_surface(&mut self, normal_z: f64, water: bool, rough: bool) {
+    fn set_ground_surface(&mut self, normal_z: f64, flags: i64) {
         if let Some(ac) = &mut self.aircraft {
             ac.ground_normal_z = normal_z as f32;
-            ac.ground_water = water;
-            ac.ground_rough = rough;
+            ac.ground_flags = Some(flags as u32);
         }
     }
 
@@ -550,13 +550,18 @@ impl IafFlight {
         d.set("crash_reason", s.crashed.map_or("", |c| c.name()));
         // Successful gear-down touchdowns so far: the mission's landed handler fires on each (v1.1).
         d.set("landings", s.landings as i64);
+        // The "Tornado" map-edge push-back and the EndWorld.wav count (docs/flight-model.md §15.5a).
+        d.set("tornado", s.tornado);
+        d.set("end_worlds", s.end_worlds as i64);
         d.set("time", s.time);
         d.set("alpha", s.alpha);
         d.set("beta", s.beta);
         // The pilot's controls as the flight model holds them (the part animation reads these).
         let c = ac.controls();
-        d.set("stick_x", c.stick_x);
-        d.set("stick_y", c.stick_y);
+        // The stick the FM holds: on the ground a pedal event sets x = pedal, y = 0 (v1.1 59f5a0).
+        let (sx, sy) = ac.stick();
+        d.set("stick_x", sx);
+        d.set("stick_y", sy);
         d.set("rudder", c.rudder);
         d.set("flaps", c.flaps);
         d.set("gear_down", c.gear_down);

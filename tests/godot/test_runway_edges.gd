@@ -114,7 +114,7 @@ func _touch_down(t: Node3D, focus: Node3D, flight, p: Vector2, hdg: float) -> Di
 		var gh = t.height_at(pos)
 		flight.set_ground_height(gh if gh != null else -1.0e9)
 		var surface: int = t.surface_at(pos)
-		flight.set_ground_surface(_normal_z(t, pos), (surface & t.SURFACE_WATER) != 0, (surface & t.SURFACE_ROUGH) != 0)
+		flight.set_ground_surface(_normal_z(t, pos), surface)
 		flight.step(DT)
 		var st: Dictionary = flight.state()
 		if st.on_ground and touch < 0:

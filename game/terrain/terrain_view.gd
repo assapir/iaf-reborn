@@ -169,6 +169,8 @@ var _chute: Node3D
 var _derelict := {}
 ## Landings the flight model has reported (its `landings` counter; the landed handler runs on each new one).
 var _landings := 0
+## EndWorld.wav plays the flight model has reported (its `end_worlds` counter, the map edge).
+var _end_worlds := 0
 ## The crash was handled (flight ends like the original's player death).
 var crashed := false
 const MissionRuntime := preload("res://mission/mission_runtime.gd")
@@ -2645,10 +2647,9 @@ func _process(delta: float) -> void:
 	if flight != null:
 		var ground = terrain.height_at(rig.position)
 		flight.set_ground_height(ground if ground != null else -1.0e9)
-		# Water / rough ground from terraintype.dat (FUN_005bb9f0: f & 6, f & 9).
+		# The terraintype.dat flags (FUN_005bb9f0: water, runway, rough ground, map edge).
 		var surface: int = terrain.surface_at(rig.position)
-		flight.set_ground_surface(_ground_normal_z(rig.position), (surface & terrain.SURFACE_WATER) != 0,
-				(surface & terrain.SURFACE_ROUGH) != 0)
+		flight.set_ground_surface(_ground_normal_z(rig.position), surface)
 		sounds.on_runway = (surface & terrain.SURFACE_ANY_RUNWAY) != 0  # the belly screech (f & 0x30)
 		# The systems damage the flight model reads (docs/damage.md §5.3): thrust, stick, spin.
 		flight.set_damage(player_damage.flags, player_damage.twin)
@@ -2686,6 +2687,10 @@ func _process(delta: float) -> void:
 		if int(st.get("landings", 0)) > _landings:
 			_landings = int(st.landings)
 			_on_landed()
+		# The inner map-edge frame (terrain flag 0x300, FUN_005bb9f0): EndWorld.wav on the phrase channel.
+		if int(st.get("end_worlds", 0)) > _end_worlds:
+			_end_worlds = int(st.end_worlds)
+			sounds.play_phrase_wav("EndWorld.wav")
 		if not fm_stopped:
 			rig.position = st.position
 			rig.basis = Basis(st.right, st.up, -st.forward)
