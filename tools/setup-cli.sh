@@ -12,7 +12,7 @@
 # three Hebrew images the packs lack (the startup splash and the Graphics page) are taken from it.
 # --imagery <source>[,<source>…] (off by default) adds modern terrain imagery (docs/imagery.md, README
 # "Terrain imagery data"): sentinel2 = ESA WorldCover 2021 Sentinel-2 outside Israel, fetched and
-# converted (needs GDAL; ~28 GB of range reads, ~6 GB on disk); mapi2015 / mapi2015-bases = the Survey of
+# converted (needs GDAL; ~28 GB of range reads, ~2.5 GB on disk); mapi2015 / mapi2015-bases = the Survey of
 # Israel 2015 2 m sheets (all / around the airbases), downloaded with curl and Firefox's data.gov.il
 # token, else through your browser (tools/imagery/fetch-mapi2015-curl.sh), then converted into the
 # Israel layers (needs GDAL; re-run after adding sheets: only the 20 km units they touch are redone). Without the ISO argument only the imagery steps run

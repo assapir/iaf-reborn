@@ -27,6 +27,7 @@ var finished := false
 var failed := ""
 
 var title_label: Label
+var margin: MarginContainer
 var body: Control
 var back_button: Button
 var next_button: Button
@@ -66,9 +67,7 @@ var done_label: Label
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	get_window().title = TITLE
-	if DisplayServer.get_name() != "headless" and get_window().mode == Window.MODE_WINDOWED:
-		get_window().size = Vector2i(1200, 820)
-		get_window().move_to_center()
+	_resize_window.call_deferred()
 	assets = Settings.assets_dir()
 	repo = ProjectSettings.globalize_path("res://").path_join("..").simplify_path()
 	tools = IafSetup.tools()
@@ -92,14 +91,20 @@ func _build() -> void:
 	bg.color = Color(0.13, 0.14, 0.16)
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
-	var margin := MarginContainer.new()
+	margin = MarginContainer.new()
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for side in ["left", "right", "top", "bottom"]:
 		margin.add_theme_constant_override("margin_" + side, 32)
 	add_child(margin)
+	resized.connect(_cap_width)
+	theme = _theme()
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 16)
 	margin.add_child(v)
+	var header := Label.new()
+	header.text = TITLE
+	header.add_theme_font_size_override("font_size", 20)
+	v.add_child(header)
 	var steps := Label.new()
 	steps.name = "Steps"
 	steps.modulate = Color(1, 1, 1, 0.6)
@@ -209,6 +214,46 @@ func _browse(row: Dictionary, label: String, filters: PackedStringArray) -> void
 	d.popup_centered(Vector2i(900, 600))
 
 
+## The wizard's window: 1200×820, centred (asked once it shows; ./setup also starts it at that size).
+func _resize_window() -> void:
+	await get_tree().process_frame
+	var win := get_window()
+	if DisplayServer.get_name() == "headless" or win.mode == Window.MODE_FULLSCREEN or win.mode == Window.MODE_EXCLUSIVE_FULLSCREEN:
+		return
+	# The project's 1920×1080 window is larger than most work areas, so the desktop maximizes it: back to a window.
+	if win.mode != Window.MODE_WINDOWED:
+		win.mode = Window.MODE_WINDOWED
+		await get_tree().process_frame
+	var screen := DisplayServer.screen_get_usable_rect(win.current_screen)
+	var want := Vector2i(mini(1200, screen.size.x), mini(820, screen.size.y))
+	DisplayServer.window_set_size(want, win.get_window_id())
+	DisplayServer.window_set_position(screen.position + (screen.size - want) / 2, win.get_window_id())
+
+
+## Lines stay readable in a wide window: the content is at most CONTENT_W wide, centred.
+const CONTENT_W := 1100
+
+
+func _cap_width() -> void:
+	var side := maxi(32, int((size.x - CONTENT_W) / 2))
+	margin.add_theme_constant_override("margin_left", side)
+	margin.add_theme_constant_override("margin_right", side)
+
+
+## The default theme with an unchecked box that shows on the dark background (a light outline).
+func _theme() -> Theme:
+	var t := Theme.new()
+	var n := 16
+	for name_color in [["unchecked", Color(0.8, 0.82, 0.86)], ["unchecked_disabled", Color(0.45, 0.46, 0.5)]]:
+		var img := Image.create(n, n, false, Image.FORMAT_RGBA8)
+		for y in n:
+			for x in n:
+				var edge := x <= 1 or y <= 1 or x >= n - 2 or y >= n - 2
+				img.set_pixel(x, y, name_color[1] if edge else Color(0, 0, 0, 0.25))
+		t.set_icon(name_color[0], "CheckBox", ImageTexture.create_from_image(img))
+	return t
+
+
 # --- pages ---
 
 func _page_requirements() -> Control:
@@ -237,7 +282,6 @@ func _fill_requirements() -> void:
 	var free_gb := _free_gb()
 	var items := [
 		[true, gpu != "" or headless, "Graphics (Vulkan)", (gpu + " — " + RenderingServer.get_video_adapter_vendor()) if gpu != "" else "no GPU renderer", "install your GPU's Vulkan driver"],
-		[true, tools.get("display", false) or headless, "A display", "for the game window", "run setup from a desktop session"],
 		[true, free_gb < 0 or free_gb >= BASE_GB, "Disk space", "%s free; the game data takes about %.0f GB (imagery more)" % [("%.1f GB" % free_gb) if free_gb >= 0 else "unknown", BASE_GB], "free some space on this disk"],
 		[false, tools.get("gdal", false), "GDAL (optional)", "modern terrain imagery", _hint("sudo pacman -S gdal", "brew install gdal")],
 		[false, tools.get("curl", false), "curl (optional)", "downloads the Survey of Israel sheets", _hint("sudo pacman -S curl", "brew install curl")],
@@ -350,7 +394,7 @@ func _page_extras() -> Control:
 	var gdal: bool = tools.get("gdal", false)
 	var need_gdal := "" if gdal else "Needs GDAL (see Requirements)."
 	mapi_check = _extra(v, "Survey of Israel 2015 imagery (2 m, over Israel)",
-		"Downloads the Survey's sheets from data.gov.il with curl and your Firefox's data.gov.il token (without one it opens them in your browser's tabs), then converts them: about 1 hour of CPU for all of Israel, about 20 minutes around the airbases only, and some GB on disk. Resumable.",
+		"Downloads the Survey's sheets from data.gov.il with curl and your Firefox's data.gov.il token (without one it opens them in your browser's tabs), then converts them. All of Israel: 79 sheets, about 17 GB of downloads (kept) and 5 GB converted, about an hour of CPU. Around the airbases: 9 sheets, about 18 minutes. Resumable.",
 		"" if gdal and tools.get("curl", false) and tools.get("python3", false) else "Needs GDAL, curl and python3 (see Requirements).")
 	mapi_scope = OptionButton.new()
 	mapi_scope.add_item("all of Israel")
@@ -359,14 +403,14 @@ func _page_extras() -> Control:
 	mapi_scope.disabled = mapi_check.disabled
 	mapi_check.get_parent().add_child(mapi_scope)
 	sentinel_check = _extra(v, "Sentinel-2 imagery (10 m, outside Israel)",
-		"About 28 GB of downloads (range reads over the network), about 6 GB on disk, several hours. Resumable.", need_gdal)
+		"About 28 GB read over the network, about 2.5 GB on disk, about 1 h 40 min. Resumable.", need_gdal)
 	refresh_check = _extra(v, "Bring the imagery up to date",
 		"Converts again the imagery units that older rules made (after copying imagery from another computer).", need_gdal)
 	refresh_note = refresh_check.get_parent().get_child(1)
 	refresh_check.get_parent().visible = _layers().size() > 0
 	guides_check = _extra(v, "Pilot guides (pictures and PDFs)",
-		"Renders each jet's guide pictures with the game, then prints the PDFs with Firefox. Takes a while; the renders run in hidden windows.",
-		"" if tools.get("display", false) and tools.get("python3", false) and tools.get("firefox", false) else "Needs a display, python3 and Firefox (see Requirements).")
+		"Renders each jet's guide pictures with the game, then prints the PDFs with Firefox. Takes a while; the renders open game windows briefly.",
+		"" if tools.get("python3", false) and tools.get("firefox", false) else "Needs python3 and Firefox (see Requirements).")
 	for c in [mapi_check, sentinel_check, refresh_check, guides_check]:
 		c.toggled.connect(func(_on): _update())
 	return v

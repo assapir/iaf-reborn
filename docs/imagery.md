@@ -217,7 +217,7 @@ cargo build --release -p iaf-tools
 ```
 
 - A full `sentinel2` run: 318 work units, ≈ 28 GB of range reads (an upper bound: the estimate counts all four bands
-  of the overlapping tiles), ≈ 6 GB written for both looks.
+  of the overlapping tiles), ≈ 2.5 GB written for both looks (1.2 + 1.3 GB measured).
 - To remove a layer, delete `assets/converted/imagery/<id>/`; the drop-down greys it out again.
 
 ## 8. Survey of Israel 2015 (2 m): `mapi2015`

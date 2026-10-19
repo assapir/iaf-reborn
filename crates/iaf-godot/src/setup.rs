@@ -27,7 +27,8 @@ struct Shared {
     error: String,
 }
 
-struct Sink(Arc<Mutex<Shared>>);
+/// The run's events into `Shared`; log lines name files relative to the assets folder (`prefix`).
+struct Sink(Arc<Mutex<Shared>>, String);
 
 fn state_name(s: &State) -> (&'static str, String) {
     match s {
@@ -53,7 +54,7 @@ impl Events for Sink {
         }
     }
     fn log(&self, step: &Step, line: &str) {
-        self.0.lock().unwrap().log.push(format!("{}: {line}", step.id));
+        self.0.lock().unwrap().log.push(format!("{}: {}", step.id, line.replace(&self.1, "")));
     }
     fn fraction(&self, step: &Step, f: f32) {
         if let Some(r) = self.0.lock().unwrap().rows.iter_mut().find(|r| r.id == step.id) {
@@ -165,8 +166,9 @@ impl IafSetup {
         std::thread::spawn(move || {
             let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                 let guides = |pr: &dyn Progress, c: &AtomicBool| iaf_setup::script_guides(&repo, pr, c);
+                let prefix = format!("{}/", assets.display());
                 let ctx = Ctx { assets, repo: repo.clone(), inputs: i, xdg_data_home: None, guides: Some(&guides) };
-                iaf_setup::run(&steps, &ctx, redo_all, &Sink(shared.clone()), &cancel)
+                iaf_setup::run(&steps, &ctx, redo_all, &Sink(shared.clone(), prefix), &cancel)
             }));
             let mut sh = shared.lock().unwrap();
             sh.error = match result {

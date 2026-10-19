@@ -21,7 +21,7 @@ Setup turns your own copy of Jane's IAF into everything the game reads under `as
 | The Hebrew CD image | no | every translated briefing and menu file, the Hebrew startup splash and Graphics page |
 | `Brief.zip`, `Menu.zip` | no, only without the Hebrew CD | the Hebrew briefings and menus (docs/packs.md) |
 | Imagery sources | no | modern terrain imagery (docs/imagery.md) |
-| Pilot guides | no | the guides' pictures and PDFs (needs a display) |
+| Pilot guides | no | the guides' pictures and PDFs (python3 and Firefox; the renders open game windows briefly) |
 
 The Hebrew CD alone cannot set up the game: its `iafjets.exe` is the copy-protected build, and the English v1.1
 patch does not apply to it. So the English CD is always the base; the Hebrew CD adds the translations.
@@ -90,18 +90,21 @@ start-up when `assets/converted` is missing. The desktop launcher "Jane's IAF (r
 
 Pages:
 
-1. **Requirements**: the graphics driver, a display and the free disk space (required), and GDAL, curl, python3
-   and Firefox (optional), each with its install command. "Check again" looks once more.
+1. **Requirements**: the graphics driver and the free disk space (required), and GDAL, curl, python3 and Firefox
+   (optional), each with its install command. "Check again" looks once more.
 2. **Welcome**: what setup does and where the data goes.
 3. **Your CD**: the English CD image, dropped on the window or picked with Browse, checked at once.
 4. **Optional**: the v1.1 patch, the Hebrew CD, or without it the Hebrew packs.
 5. **Extras**: the Survey of Israel imagery (all of Israel or around the airbases), the Sentinel-2 imagery,
    "Bring the imagery up to date" (only with imagery on disk; it shows how many units older rules made) and the
    pilot guides. Each shows its downloads, time and disk use, and is greyed with the reason when a program it needs
-   is missing.
+   is missing:
+   - Survey of Israel, all of Israel: 79 sheets, about 17 GB of downloads (kept in `assets/source`), about 5 GB
+     converted, about an hour of CPU. Around the airbases: 9 sheets, about 18 minutes.
+   - Sentinel-2: about 28 GB read over the network, about 2.5 GB on disk, about 1 h 40 min.
 6. **Summary**: the inputs and the number of steps.
 7. **Install**: one row per step with its state and progress, the log, Cancel, and "Redo everything".
 8. **Done**: "Start the game".
 
-The pages start from the last run's inputs (`assets/setup.json`). The pilot guides render through
-`tools/guide_shots.sh` (hidden windows) for now.
+The pages start from the last run's inputs (`assets/setup.json`). The log names files relative to the assets
+folder. The pilot guides render through `tools/guide_shots.sh` for now: the renders open game windows briefly.

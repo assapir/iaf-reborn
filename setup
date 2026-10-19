@@ -33,4 +33,4 @@ echo "building the game's extension (the first time takes a few minutes)…"
 cargo build --release -q -p iaf-godot
 # Godot loads iaf.gdextension only once an import has listed it (a fresh clone has no game/.godot).
 [[ -f game/.godot/extension_list.cfg ]] || "$godot" --headless --path game --import >/dev/null 2>&1
-exec "$godot" --path game res://setup/wizard.tscn
+exec "$godot" --path game --resolution 1200x820 res://setup/wizard.tscn
