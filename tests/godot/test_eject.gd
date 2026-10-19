@@ -1,12 +1,29 @@
 # Ejection (docs/part-animation.md "Ejection", docs/mission-runtime.md §5.4): "Eject (x3)" needs three
 # presses less than 1 s apart; one does nothing. In the air: engine off, stick fixed, commands
 # ignored, external view, pilot gone, canopy thrown straight up (v1.1: 3 m per 0.05 s, no aft drift,
-# gone at 100 m), seat after 2 s, flight ends after 5 s. In a mission on the ground (short ejection: the FlyTSD, then the debrief):
+# gone at 100 m), seat after 2 s, the parachuter's swing, flight ends after 5 s. In a mission on the ground (short ejection: the FlyTSD, then the debrief):
 # the player counts as lost at once -> failed debrief.
 extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
+	# The parachuter's swing (FUN_0054a250, 0.2 s ticks): set up at pitch 30°, roll 20°; the first tick (0.2 s)
+	# keeps it still (previous tick +0xbc = 0, more than 0.4 s back), then the rates are (−20·sin pitch,
+	# −40·sin roll) °/s and the attitude settles towards level.
+	var TV := load("res://terrain/terrain_view.gd")
+	var pc := {"ang": TV.CHUTE_ANGLES, "omega": Vector3.ZERO, "tb": 100.0, "last": 0.0}
+	TV.chute_swing(pc, 100.2)
+	check(pc.omega == Vector3.ZERO and pc.ang == Vector3(30, 20, 0), "first tick: no swing yet")
+	TV.chute_swing(pc, 100.4)
+	check(is_equal_approx(pc.omega.x, -10.0) and is_equal_approx(pc.omega.y, -40.0 * sin(deg_to_rad(20.0))) and pc.omega.z == 0.0,
+			"second tick: rates (%.2f, %.2f) °/s" % [pc.omega.x, pc.omega.y])
+	for k in 50:
+		TV.chute_swing(pc, 100.6 + 0.2 * k)
+	check(pc.ang.x > 0.0 and pc.ang.x < 1.5 and pc.ang.y > 0.0 and pc.ang.y < 0.1, "10 s on: nearly level (%s)" % str(pc.ang))
+	pc.last = 0.0
+	TV.chute_swing(pc, 200.0)
+	check(pc.omega == Vector3.ZERO, "a tick more than 0.4 s after the previous one stops the swing")
+
 	# Free flight, airborne at 2500 m (canopy and pilot drawn from outside, as the original).
 	var tv = await start_mission(-1)
 	await frames(10)
@@ -39,6 +56,12 @@ func run() -> void:
 	check(tv.aircraft.canopy_gone == (tv.aircraft.canopy_offset.y > 100.0), "canopy gone once past 100 m")
 	# One seat per crew part of the model (FUN_0053ee90): the F-16 model has pilot and pilotB, so two.
 	check(tv._seats.size() + tv._parachuters.size() == 2, "the seats leave after 2 s (%d: pilot + pilotB)" % (tv._seats.size() + tv._parachuters.size()))
+	await fly(tv, 1.6)
+	check(not tv._parachuters.is_empty(), "the parachuters appear (%d)" % tv._parachuters.size())
+	if not tv._parachuters.is_empty():
+		var pcn: Node3D = tv._parachuters[0].node
+		var tilt := rad_to_deg(pcn.basis.get_euler(EULER_ORDER_YXZ).x)
+		check(tilt > 20.0 and tilt < 30.01, "the parachuter hangs tilted, settling (pitch %.1f°)" % tilt)
 
 	# Mission 311 on the ground: short ejection, the mission is lost.
 	Settings().debrief = {}

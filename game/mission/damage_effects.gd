@@ -20,6 +20,8 @@ const F_REST := 0x1000
 const F_CLUSTER := 0x2000
 const F_FLASH := 0x4000
 const F_SMALL_FIRE := 0x10000000
+const F_SPLASH := 0x20000
+const F_RING := 0x40000
 
 ## World size of a sprite: full width = 0.2 · size · texture width (FUN_00410690, docs/damage.md §6.1):
 ## AirExp1 (128 px, size 10) and smoke3 (64 px, size 1). Sprites are centred on their position.
@@ -28,6 +30,9 @@ const SMALL_FIRE_WIDTH := FIREBALL_WIDTH * 0.15
 const SMOKE_WIDTH := 0.2 * 1.0 * 64.0
 const FIREBALL_TIME := 1.2
 const PUFF_TIME := 2.5
+## Water splash / ring (FUN_0058a420 sprite slots 10 / 11: w_splash.TGA 1.2 s, w_circle.TGA 2.4 s).
+const SPLASH_TIME := 1.2
+const RING_TIME := 2.4
 ## Gravity of pieces and streamers: z -= 15 t² (g = 30 world units / s²).
 const PIECE_G := 30.0
 ## Smoke column (FUN_00416ed0 / FUN_00417000): 33 / (4 - L) puffs, one every 1.6 s, visible from 0.3 s
@@ -79,6 +84,8 @@ void fragment() {
 }
 """
 
+const DecoyFx := preload("res://weapons/decoy_fx.gd")
+
 var _rng := RandomNumberGenerator.new()
 ## Live puffs: {pos, vel, age, life, w0, w1 (width at birth / death), grey, fire, delay}.
 var _puffs: Array = []
@@ -90,6 +97,8 @@ var _streamers: Array = []
 var _columns: Array = []  # {pos, age, n, end}
 var _clusters: Array = []  # {age, end, subs: [{pos, delay, column, done}]}
 var _smokers := {}  # Node3D -> accumulated time (damage smoke, FUN_004d20a0)
+var _water: Array = []  # {node, ring, pos, age, life, scale}
+var _water_mats := {}  # ring? -> material
 var _mm_smoke: MultiMeshInstance3D
 var _mm_fire: MultiMeshInstance3D
 ## Detailed effects (Preferences > Graphics > MORE, gpu_fx.gd): the puffs drawn as GPU particles; null = the original look.
@@ -194,10 +203,15 @@ func explosion(pos: Vector3, flags: int, scale: float, duration: float, ground_y
 		model: Node3D = null) -> void:
 	if flags & F_FLASH:
 		_flash(pos)
+	# The event ends at `duration` (FUN_004167b0 frees it), cutting a longer sprite animation short.
 	if flags & F_FIREBALL:
-		_add_puff(pos, Vector3.ZERO, FIREBALL_TIME, FIREBALL_WIDTH, FIREBALL_WIDTH, 250, true, 0.0)
+		_add_puff(pos, Vector3.ZERO, minf(FIREBALL_TIME, duration), FIREBALL_WIDTH, FIREBALL_WIDTH, 250, true, 0.0)
 	if flags & F_SMALL_FIRE:
-		_add_puff(pos, Vector3.ZERO, FIREBALL_TIME, SMALL_FIRE_WIDTH, SMALL_FIRE_WIDTH, 250, true, 0.0)
+		_add_puff(pos, Vector3.ZERO, minf(FIREBALL_TIME, duration), SMALL_FIRE_WIDTH, SMALL_FIRE_WIDTH, 250, true, 0.0)
+	if flags & F_SPLASH:
+		_water_fx(pos, false, minf(SPLASH_TIME, duration), scale)
+	if flags & F_RING:
+		_water_fx(pos, true, minf(RING_TIME, duration), scale)
 	if flags & F_PUFF:
 		smoke_puff(pos, flags & F_WHITE != 0)
 	if flags & F_SHATTER:
@@ -261,6 +275,69 @@ func _add_puff(pos: Vector3, vel: Vector3, life: float, w0: float, w1: float, gr
 		return
 	_puffs.append({"pos": pos, "vel": vel, "age": 0.0, "life": life, "w0": w0, "w1": w1, "grey": grey,
 			"fire": fire, "delay": delay})
+
+
+## 0x20000 splash (FUN_00418530) and 0x40000 ring (FUN_004188b0), drawn each frame at t = age / sprite time,
+## S = the event's scale, fixed in the world (not turned to the camera), no z-write:
+## - splash: two crossed vertical quads of w_splash.TGA standing on the burst point, height 14·S·sin(πt),
+##   half-width 1.6·S·(t + 0.2), colour 0xFFFAFAFA;
+## - ring: one level quad of w_circle.TGA 0.1 m above it, half-size 9.6·S·t, colour 0xFAFAFA with alpha
+##   255·(1 − t).
+func _water_fx(pos: Vector3, ring: bool, life: float, scale: float) -> void:
+	if not _water_mats.has(ring):
+		var mat := StandardMaterial3D.new()
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+		mat.albedo_color = Color8(250, 250, 250)
+		mat.albedo_texture = DecoyFx._texture("w_circle.png" if ring else "w_splash.png", "w_circle.tga" if ring else "w_splash.tga")
+		_water_mats[ring] = mat
+	var node := Node3D.new()
+	var quads := 1 if ring else 2
+	for k in quads:
+		var mi := MeshInstance3D.new()
+		var m: PrimitiveMesh = PlaneMesh.new() if ring else QuadMesh.new()
+		m.size = Vector2.ONE
+		if not ring:
+			(m as QuadMesh).center_offset = Vector3(0, 0.5, 0)  # standing on the burst point
+		mi.mesh = m
+		mi.material_override = _water_mats[ring]
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.rotation.y = PI / 2.0 * k
+		node.add_child(mi)
+	add_child(node)
+	var w := {"node": node, "ring": ring, "pos": pos, "age": 0.0, "life": life, "scale": scale}
+	_water.append(w)
+	water_transform(w)
+
+
+## A splash / ring at its age (FUN_00418530 / FUN_004188b0); the ring fades by its instance transparency.
+static func water_transform(w: Dictionary) -> void:
+	var t: float = w.age / (RING_TIME if w.ring else SPLASH_TIME)
+	var s: float = w.scale
+	var node: Node3D = w.node
+	if w.ring:
+		var half := maxf(9.6 * s * t, 0.01)
+		node.position = w.pos + Vector3(0, 0.1, 0)
+		node.scale = Vector3(2.0 * half, 1.0, 2.0 * half)
+		for mi in node.get_children():
+			(mi as MeshInstance3D).transparency = t
+	else:
+		var half := 1.6 * s * (t + 0.2)
+		node.position = w.pos
+		node.scale = Vector3(2.0 * half, maxf(14.0 * s * sin(PI * t), 0.01), 2.0 * half)
+
+
+func _update_water(delta: float) -> void:
+	for i in range(_water.size() - 1, -1, -1):
+		var w: Dictionary = _water[i]
+		w.age += delta
+		if w.age >= w.life:
+			w.node.queue_free()
+			_water.remove_at(i)
+			continue
+		water_transform(w)
 
 
 ## 0x4000: the lens flash, drawn for one frame in the original; a 0.1 s light here.
@@ -527,6 +604,7 @@ func _process(delta: float) -> void:
 	_update_shards(delta, step)
 	_update_streamers(delta, step)
 	_update_clusters(delta)
+	_update_water(delta)
 	_update_columns(delta)
 	_update_puffs(delta)
 
@@ -648,4 +726,4 @@ static func puff_transform(p: Dictionary) -> Transform3D:
 
 ## Live counts, for tests.
 func counts() -> Dictionary:
-	return {"puffs": _puffs.size(), "pieces": _pieces.size(), "shards": _shards.size(), "columns": _columns.size(), "smokers": _smokers.size(), "clusters": _clusters.size()}
+	return {"puffs": _puffs.size(), "pieces": _pieces.size(), "shards": _shards.size(), "columns": _columns.size(), "smokers": _smokers.size(), "clusters": _clusters.size(), "water": _water.size()}

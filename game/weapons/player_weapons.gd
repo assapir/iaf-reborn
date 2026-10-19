@@ -864,7 +864,8 @@ func gun_hit_effect(at: Vector3) -> void:
 	var water: bool = (host.terrain.surface_at(sp) & host.terrain.SURFACE_WATER) != 0
 	var g = host.terrain.height_at(sp)
 	if water and (g == null or sp.y < g + 10.5):
-		host.effects.smoke_puff(sp, true)  # splash (look UNCERTAIN)
+		# FUN_0059df20, class 0x17 on water: 0x60000 splash + ring, scale 1 (docs/damage.md §6.1).
+		host.effects.explosion(sp, DamageEffects.F_SPLASH | DamageEffects.F_RING, 1.0, 95.0, g if g != null else sp.y)
 		_place_sound(host.sounds.play("SFX_SPLASH"), at)
 		return
 	host.effects.explosion(sp, DamageEffects.F_SMALL_FIRE, 1.5, 1.2, g if g != null else sp.y)
@@ -1170,7 +1171,12 @@ func _missile_detonate(mis: RefCounted) -> void:
 		host.runtime.scripted_kill(host.runtime.entities.get(String(mis.target_key), {}), owner)
 	var sp := to_scene(p)
 	var g = host.terrain.height_at(sp)
-	host.effects.explosion(sp, DamageEffects.F_FIREBALL | DamageEffects.F_PUFF, 1.0, 5.0, g if g != null else sp.y)
+	var water: bool = (host.terrain.surface_at(sp) & host.terrain.SURFACE_WATER) != 0
+	if water and (g == null or sp.y < g + 10.5):
+		# FUN_0059df20, class 0x18 low on water: 0x60000 splash + ring, scale 3.
+		host.effects.explosion(sp, DamageEffects.F_SPLASH | DamageEffects.F_RING, 3.0, 95.0, g if g != null else sp.y)
+	else:
+		host.effects.explosion(sp, DamageEffects.F_FIREBALL | DamageEffects.F_PUFF, 1.0, 5.0, g if g != null else sp.y)
 	_place_sound(host.sounds.play("SFX_WEAPON_EXPLODED", WEAPON_OST.get(int(mis.weapon.type), "OST_HEATMISSILE")), p)
 	if not hit.is_empty():
 		_place_sound(host.sounds.play("SFX_WEAPON_HIT_TARGET"), p)
@@ -1564,7 +1570,8 @@ func _explosion_effect(p: Vector3, type: int) -> void:
 		sp.y = gy
 	var water: bool = (host.terrain.surface_at(sp) & host.terrain.SURFACE_WATER) != 0
 	if water and low:
-		host.effects.smoke_puff(sp, true)  # splash 0x60000 (look UNCERTAIN, as the gun's)
+		# FUN_0059df20: 0x60000 splash + ring, scale 1 for class 0x17 (the rockets), 3 for the bombs and missiles.
+		host.effects.explosion(sp, DamageEffects.F_SPLASH | DamageEffects.F_RING, 1.0 if type == 560 else 3.0, 95.0, gy)
 		return
 	match type:
 		510:

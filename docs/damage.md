@@ -188,10 +188,17 @@ player, the flight model freezes (`FUN_005a6510`) and the jet stops answering th
   - the first check higher up starts the smoke trail (type 2, §6.3).
 - Ground units, boats and buildings get the motion but no end check. They stay at state 3 where they are until
   more damage comes.
-- `FUN_0046b2b0` also spawns effect 0x18 at the hit point (UNCERTAIN what it looks like; not ported).
+- **Effect 0x18 at the start.** The motion's start (vtable 0x602520 slot 2, `FUN_0046b2b0`) sends effect 0x18 at
+  the unit's position: `FUN_0059ddb0` → `FUN_0059dad0` → `FUN_0057da50`. The effect is a **fireball** (Tgen flag
+  0x10, §6.1) whose event lasts **0.8 s** (`0x843cc0`), so it shows 0.8 s of the fireball's 1.2 s. It has no sound
+  (sound key 0). Within 10.5 m of the ground it also asks for a crater (`FUN_0054a980`); the crater pool is empty
+  (§6.2).
+- **Two explosions at impact.** The end check's ground contact explodes the wreck (`FUN_0059df20`, the class
+  explosion of §6.2) and then asks for level 5. The final status (`FUN_004a86b0`) then makes the same class
+  explosion again at the same spot. So a falling unit leaves two sets of debris and two `SFX_AIRCRAFT_EXPLODED`.
 - **Port:** `DamageModel.fall_start` / `fall_at`. The runtime moves units; `terrain_view.mission_player_fall` moves
-  the player's jet. The original makes one explosion at impact and another in the final status; ours makes one
-  (UNCERTAIN).
+  the player's jet. `terrain_view.gd` `_fatal_hit_effect` draws effect 0x18; `mission_entity_impact` makes the
+  impact explosion.
 
 ## 4. Hits
 
@@ -223,12 +230,24 @@ damage += dmg / strength; ≥ 1.0  -> destroyed
 3. Apply the blast (§4.1). The hit counts only if it destroys the unit or adds **≥ 0.01** (0x603108).
 4. If the shooter (from the weapon key) no longer exists, stop. Otherwise store the weapon key at MStatus+0x2c.
    Then `FUN_004a9b00` plays the force-feedback effects when the player's jet is hit (missiles 0x230..0x262, the
-   gun 0x235, the crash effect `4dec00`; no force feedback in ours). When the player hit a unit on the player's side,
-   `FUN_00551560` → `FUN_005515d0` plays the friendly-hit voice (sound VOC 0x33 or 0x35, `FUN_004c4ea0`) for most unit
-   classes, when `FUN_004d4020(now)` returns 0 (UNCERTAIN: a "voice busy" test). Not ported: the friendly-hit voice.
-5. Set the level: destroyed → level 5; otherwise the new fraction without a level (§3.1). A brain stores the
-   shooter as its last hitter (brain +0x80, `FUN_0043ff50`, with a timed event that clears it, docs/ai.md); its
-   readers are not traced, and it is not ported.
+   gun 0x235, the crash effect `4dec00`; no force feedback in ours).
+5. Set the level: destroyed → level 5; otherwise the new fraction without a level (§3.1).
+6. A brain stores the shooter as its **last hitter** (brain +0x80, `FUN_0043ff50`). A timed event (vtable
+   0x6007f8, `FUN_00440030`) clears it 5 s later (`0x600748` = −5). Nothing reads it: in the exe only the brain's
+   constructor and reset (`FUN_0043eda0`, `FUN_0043eef0`) write it, and `FUN_0043ff50` reads it back only to format
+   the shooter's key into a temporary string that it throws away (debug). So it is not ported.
+7. The **friendly-hit voice** (`FUN_00551560` → `FUN_005515d0`), after the level is set, when the damage grew:
+   - The shooter is the player and the hit unit is on the player's side (`FUN_004a4cd0`: same side; with no unit,
+     side 1).
+   - The hit unit's class is 1, 2, 3, 5, 6, 8, 9, 10, 0xf, 0x10 or 0x1c. Weapons, buildings, trees, ground radars,
+     parachutes, sensors and craters say nothing.
+   - The voice window is free: `FUN_004d4020` on the timer `DAT_0083ffb0` (built by `FUN_00551540`: 0..10 s, not
+     random; start 1e7). It is busy from a call until 10 s later, so a call comes at most once per 10 s.
+   - Who says it (`FUN_004c4ea0`): the hit unit while it still flies (not state 4 / 5, control mode not 0; a fatal
+     hit sets 0) → `VOC_TARGET_SAY_FRIENDLY_HIT` (0x33, Friendly2); else the player's brain partner (brain +0x44)
+     by the same test → `VOC_WINGMAN_SAY_FRIENDLY_HIT` (0x34, Friendly3); else `VOC_TOWER_SAY_FRIENDLY_HIT` (0x35,
+     Friendly4).
+   - Port: `mission_runtime.gd` `_friendly_hit`, `DamageModel.friendly_voice`.
 
 ### 4.3 Weapons (for the weapons port)
 The weapon detonation `FUN_004d6130` (@4d664d) is the only caller of the hit handler. It loops over the units that
@@ -418,6 +437,10 @@ An explosion is one object whose flags pick the effects (table below).
   uses that. Earlier versions of this page said bottom-anchored: wrong.)
 - Sprites are drawn for 4 ≤ z ≤ 30000, depth-tested, without z-write.
 
+In the table, t = age / the sprite's time (0..1) and S = the event's scale [7]. Splash and ring are fixed in the
+world (they do not turn to the camera) and drawn without z-write. Their sprite times are slots 10 / 11 of
+`FUN_0058a420` (w_splash.TGA 1.2 s, w_circle.TGA 2.4 s).
+
 | flag | effect | size / timing |
 |---|---|---|
 | 0x10 | fireball (airexp1, 15 frames) | 1.2 s, size 10 (≈ 256 m wide) |
@@ -434,7 +457,8 @@ An explosion is one object whose flags pick the effects (table below).
 | 0x400 | white smoke (default dark) | |
 | 0x800 | smoke column | 33 / (4 − L) puffs (L = the VISUAL EFFECTS level 1..3, the only reader of that level), one per 1.6 s, each visible 0.3 s … 36 / (4 − detail) s, width 12.8·(1 + 0.32·age) m, rising 2.5–5.8 m/s, grey 10–79 |
 | 0x2000 | cluster: 48 sub-bursts in 3 rings (small fires, every second one with a 5 s column) | CBU (510) bursts, weapons.md §9.5 |
-| 0x20000 / 0x40000 | water splash / ring | 1.2 s / 2.4 s |
+| 0x20000 | water splash: two crossed vertical quads of w_splash.TGA standing on the burst point, height 14·S·sin(πt), half-width 1.6·S·(t + 0.2), colour 0xFFFAFAFA (`FUN_00418530`) | 1.2 s |
+| 0x40000 | water ring: one level quad of w_circle.TGA 0.1 m above the point, half-size 9.6·S·t, colour 0xFAFAFA, alpha 255·(1 − t) (`FUN_004188b0`) | 2.4 s |
 | 0x1, 0x200, 0x4 | dead (animation never registered) / unused | |
 
 ### 6.2 By class (`FUN_0059df20`; "low" = below ground + 10.5 m)
@@ -475,8 +499,9 @@ Our choices:
 - Puffs at a fixed 30 Hz. The original makes one per frame, so its density follows the frame rate.
 - The column follows the VISUAL EFFECTS level.
 - No wind: the exe has none (the mission weather is not decoded).
-- No water splash: `explosion_for` picks the water flags from terraintype.dat, but `explosion` draws nothing for
-  0x20000 / 0x40000.
+- An event's duration [6] cuts its fireball short, as `FUN_004167b0` frees the event (effect 0x18: 0.8 s).
+- The splash and ring are the original quads with the install's textures. Weapons on water use them too: gun
+  rounds and rockets at scale 1, bombs and missiles at scale 3 (docs/weapons.md).
 
 ### 6.4 Smoke trails (Graphics SMOKE TRAILS, pref +0x48 read only by `FUN_004da090`)
 `4da090` draws two kinds of trail, once per rendered frame while the owner is drawn:
@@ -601,9 +626,8 @@ that frame.
 
 ## 8. Uncertain / not ported
 - The lens-flash texture.
-- Effect 0x18 at a fatal hit; the double explosion at a crash-motion impact; state 4.
-- Radio kill / "is down" calls, the friendly-hit voice (§4.2), the brain's reaction to hits (+0x80), FlyTSD 6.5 s after the
-  player's death (campaign), network play.
+- State 4.
+- Radio kill / "is down" calls, FlyTSD 6.5 s after the player's death (campaign), network play.
 - The flight model's reaction to the hit shake.
 - Collision: full vs half extents (the renderer call behind vtable +0xb0 is not traced).
 - Original-vs-better decision for the user: puffs per frame (§6.3). The heading-0 fall and the Rookie / Normal factor

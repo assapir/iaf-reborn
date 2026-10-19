@@ -656,7 +656,29 @@ func _hit(ent: Dictionary, dmg: float, source: Dictionary, kind: String) -> bool
 		set_damage_level(ent, DamageModel.EXPLODED, source, kind)
 	elif new > 0.0:
 		_set_damage(ent, new, -1, source, kind)
+	_friendly_hit(ent, source)
 	return true
+
+
+## Start of the friendly-hit voice window (FUN_004d4020: busy while start <= now <= start + 10 s; starts at 1e7).
+var _friendly_t0 := 1.0e7
+
+
+## FUN_004a9970 -> FUN_00551560 -> FUN_005515d0, after the level is set: the player's hit that raised the damage
+## of a unit on the player's side (FUN_004a4cd0: same side) plays the friendly-hit voice, at most once per 10 s.
+func _friendly_hit(ent: Dictionary, source: Dictionary) -> void:
+	if not source.get("player", false) or ent.player or int(ent.side) != int(source.side):
+		return
+	if not int(ent.klass) in DamageModel.FRIENDLY_VOICE_CLASSES:
+		return
+	if now >= _friendly_t0 and now <= _friendly_t0 + DamageModel.FRIENDLY_VOICE_WINDOW:
+		return
+	_friendly_t0 = now
+	var flying := func(e: Dictionary) -> bool:
+		return not e.is_empty() and not int(e.state) in [DamageModel.DESTROYED, DamageModel.EXPLODED] \
+				and int(e.get("control", 0)) != 0
+	var partner: Dictionary = host.ai.partner_of(source) if host.get("ai") != null else {}
+	host.mission_voice(DamageModel.friendly_voice(flying.call(ent), flying.call(partner)))
 
 
 ## Sets a unit's damage level (FUN_004a8ae0 with damage 0 and a level): 3 fatally hit, 4 destroyed,
@@ -763,8 +785,8 @@ func _fall_update(ent: Dictionary) -> void:
 
 
 ## StopDestructionMotionEvent (FUN_00496c12), every 0.5 s: past its time -> state 5; at 2 m above
-## the ground or less -> snapped to the terrain, explosion, state 5; the first tick higher up starts
-## the smoke trail (type 2).
+## the ground or less -> snapped to the terrain, its smoke stops, an explosion, state 5 (whose final status
+## makes a second explosion); the first tick higher up starts the smoke trail (type 2).
 func _fall_tick(ent: Dictionary) -> void:
 	if ent.fall == null or ent.state != DamageModel.HIT:
 		return
@@ -786,6 +808,8 @@ func _fall_tick(ent: Dictionary) -> void:
 			host.mission_entity_moved(ent)
 		ent.smoke = false
 		host.mission_entity_smoke(ent, false)
+		# The wreck explodes here (FUN_0059df20), and again in the final status (FUN_004a86b0).
+		host.mission_entity_impact(ent)
 		set_damage_level(ent, DamageModel.EXPLODED)
 		return
 	if not ent.fall.smoked:

@@ -124,7 +124,7 @@ MBrain fields (b = brain):
 | +0x74 | primary target (`FUN_005bccb0`, the formation member's target 0x424) |
 | +0x78 | period code |
 | +0x7c | attacker (UNCERTAIN) |
-| +0x80 | last hitter (cleared 5 s later) |
+| +0x80 | last hitter (cleared 5 s later; no reader, docs/damage.md §4.2) |
 | **+0x88** | **current waypoint index** |
 | +0xd8 | in a sub-brain |
 | +0xdc | list switched |

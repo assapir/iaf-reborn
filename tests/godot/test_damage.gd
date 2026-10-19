@@ -3,7 +3,9 @@
 # mission (explosion, destroy events, "Mission Accomplished!"); a partial hit smokes nothing and keeps
 # the unit alive, >= 0.8 fatally hits it (state 3); destroying the role-0 HermonPost fails it. The
 # player's jet: a hit breaks systems (damage page, master caution), a fatal hit takes the controls,
-# the destruction motion brings the jet down and it explodes (flight ends into the debrief).
+# the destruction motion brings the jet down and it explodes (flight ends into the debrief). Also the water
+# splash / ring, the fatal-hit fireball (effect 0x18), the second explosion at a falling jet's impact and the
+# friendly-hit voice.
 extends "res://../tests/godot/base.gd"
 
 const DamageModel := preload("res://mission/damage_model.gd")
@@ -91,6 +93,25 @@ func run() -> void:
 			bad += 1
 	check(fx.counts().shards >= 1 and sh.large.size() > 0 and bad == 0, "model shatter: %d large pieces, %d not on the terrain" % [sh.large.size(), bad])
 
+	# Water splash + ring (0x60000, FUN_00418530 / FUN_004188b0), scale S = 3: the splash rises 14·S·sin(πt) with
+	# half-width 1.6·S·(t + 0.2) over 1.2 s; the ring grows to 9.6·S·t and fades over 2.4 s.
+	var n0: int = fx.counts().water
+	fx.explosion(Vector3(at.x, gy, at.z), 0x60000, 3.0, 95.0, gy)
+	check(fx.counts().water == n0 + 2, "splash and ring drawn (%d)" % (fx.counts().water - n0))
+	var spl: Dictionary = fx._water[fx._water.size() - 2]
+	var ring: Dictionary = fx._water[fx._water.size() - 1]
+	spl.age = 0.6
+	fx.water_transform(spl)
+	check(not spl.ring and is_equal_approx(spl.node.scale.y, 42.0) and is_equal_approx(spl.node.scale.x, 6.72),
+			"splash at t 0.5: 42 m high, 6.72 m wide (%s)" % str(spl.node.scale))
+	ring.age = 1.2
+	fx.water_transform(ring)
+	var rq: MeshInstance3D = ring.node.get_child(0)
+	check(ring.ring and is_equal_approx(ring.node.scale.x, 28.8) and is_equal_approx(rq.transparency, 0.5),
+			"ring at t 0.5: 28.8 m across, half faded (%s, %.2f)" % [str(ring.node.scale), rq.transparency])
+	check(spl.node.get_child(0).material_override.albedo_texture != null, "splash uses the install's w_splash.tga")
+	await seconds(2.6)
+	check(fx.counts().water == n0, "splash and ring gone after 2.4 s")
 	# Destroying the must-survive post fails the mission.
 	tv = await start_mission(231)
 	rt = tv.runtime
@@ -104,6 +125,28 @@ func run() -> void:
 	rt = tv.runtime
 	post = unit(rt, "Mig21 leader")
 	var me: Dictionary = rt.player_entity()
+	# The friendly-hit voice (FUN_00551560 -> FUN_005515d0): the player's hit on its own side; the hit unit says
+	# it while it still flies, at most once per 10 s; nothing for another shooter.
+	check(DamageModel.friendly_voice(true, true) == "VOC_TARGET_SAY_FRIENDLY_HIT"
+			and DamageModel.friendly_voice(false, true) == "VOC_WINGMAN_SAY_FRIENDLY_HIT"
+			and DamageModel.friendly_voice(false, false) == "VOC_TOWER_SAY_FRIENDLY_HIT", "who says the friendly hit")
+	var fr: Dictionary = {}
+	for e in rt.entities.values():
+		if not e.player and e.side == me.side and int(e.klass) in DamageModel.FRIENDLY_VOICE_CLASSES and e.state == 1 \
+				and e.damageable:
+			fr = e
+			break
+	if fr.is_empty():
+		check(false, "324: no unit on the player's side")
+	else:
+		var said := func() -> int: return tv.sounds.played.filter(func(x): return "SAY_FRIENDLY_HIT" in x).size()
+		rt.apply_damage(fr, fr.strength * 0.05, "gun", post)
+		check(said.call() == 0, "an enemy's hit on a friend: no voice")
+		rt.apply_damage(fr, fr.strength * 0.05, "gun", me)
+		check(said.call() == 1 and tv.sounds.played.has("VOC_TARGET_SAY_FRIENDLY_HIT/None"),
+				"the player hits %s: the target says \"friendly\"" % fr.name)
+		rt.apply_damage(fr, fr.strength * 0.05, "gun", me)
+		check(said.call() == 1, "no second call within 10 s")
 	Settings().invulnerable = true
 	rt.apply_damage(me, me.strength * 0.5, "missile", post)
 	check(me.damage == 0.0, "Invulnerable: no damage")
@@ -115,14 +158,20 @@ func run() -> void:
 	# Fatal hit: controls gone, "Eject! Eject!", the jet falls and explodes at the ground.
 	rt.apply_damage(me, me.strength * 0.4, "missile", post)
 	check(me.state == 3 and tv.fatal_hit and tv.fm_stopped, "fatal hit: state 3, flight model stopped")
+	# Effect 0x18 (FUN_0046b2b0): a fireball at the jet, its event cut at 0.8 s.
+	check(tv.effects._puffs.any(func(p): return p.fire and is_equal_approx(p.life, 0.8)), "fatal hit: a 0.8 s fireball")
 	check(tv.sounds.played.has("VOC_WINGMAN/WINGMAN_EJECT_EJECT"), "Eject! Eject!")
+	# The second explosion of a falling unit: the crash motion's impact explodes the wreck (FUN_00496c12), then the
+	# final status again (FUN_004a86b0).
+	var booms := func() -> int: return tv.sounds.played.count("SFX_AIRCRAFT_EXPLODED/None")
+	var b0: int = booms.call()
 	var alt0: float = tv.rig.position.y
 	await seconds(1.0)
 	check(tv.rig.position.y < alt0 - 5.0, "the jet falls (%.0f -> %.0f m)" % [alt0, tv.rig.position.y])
 	var t := Time.get_ticks_msec()
 	while me.state != 5 and Time.get_ticks_msec() - t < 30000:
 		await process_frame
-	check(me.state == 5, "hits the ground and explodes")
+	check(me.state == 5 and booms.call() - b0 == 2, "hits the ground and explodes twice (%d)" % (booms.call() - b0))
 	t = Time.get_ticks_msec()
 	while current_scene == tv and Time.get_ticks_msec() - t < 8000:
 		await process_frame

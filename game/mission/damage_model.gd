@@ -58,6 +58,23 @@ static func add_damage(damage: float, dmg: float, strength: float, enemy_of_play
 	return [damage, false]
 
 
+## The friendly-hit voice (FUN_005515d0): the classes that answer the player's hit on its own side (aircraft 1-3
+## and 0x1c, vehicles 5 / 6, SAM sites 8-10, boats 0xf / 0x10; weapons, buildings, trees, radars and the rest do
+## not), and the voice window (FUN_004d4020 on DAT_0083ffb0, built by FUN_00551540: 0..10 s, not random): after
+## one call, no other for 10 s.
+const FRIENDLY_VOICE_CLASSES := [1, 2, 3, 5, 6, 8, 9, 10, 0xf, 0x10, 0x1c]
+const FRIENDLY_VOICE_WINDOW := 10.0
+
+
+## Who says it (FUN_005515d0): the hit unit while it still flies (not state 4 / 5, control mode not 0: a fatal
+## hit sets 0), else the shooter's brain partner (brain +0x44) by the same test, else the tower. Sound codes
+## 0x33 / 0x34 / 0x35 (SoundProp rows Friendly2 / 3 / 4).
+static func friendly_voice(target_flying: bool, partner_flying: bool) -> String:
+	if target_flying:
+		return "VOC_TARGET_SAY_FRIENDLY_HIT"
+	return "VOC_WINGMAN_SAY_FRIENDLY_HIT" if partner_flying else "VOC_TOWER_SAY_FRIENDLY_HIT"
+
+
 ## FUN_004a8da0: the level a damage fraction asks for (-1 = none, only stored).
 static func level_for(damage: float) -> int:
 	if damage >= DESTROY_AT:

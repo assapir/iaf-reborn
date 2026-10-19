@@ -321,8 +321,8 @@ The round moves ~145 m per check, so it can step over the sphere (original).
 - Ground or end: the blast reaches every unit around.
 - Damage: docs/damage.md.
 - Impact effect, on a hit (at the hit unit) or on the ground: a small fireball (0x10000000, 1.5, 1.2 s) and
-  SFX_WEAPON_EXPLODED / OST_GUNBULLET (WpnMiss). Over water: a splash + SFX_SPLASH (ours: a white puff, look
-  UNCERTAIN).
+  SFX_WEAPON_EXPLODED / OST_GUNBULLET (WpnMiss). Over water: the splash and ring (0x60000, scale 1, docs/damage.md
+  §6.1) and SFX_SPLASH.
 - A round that ends in the air shows nothing and plays no sound.
 
 ### 3.6 Look and sound

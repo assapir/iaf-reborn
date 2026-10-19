@@ -111,8 +111,8 @@ Suez, extra sounds, multiplayer, setup wizard + launcher, modern aircraft / weap
 | Radar | docs/radar.md: modes OFF / STBY / STT / BORE / LRS / TWS / ACM / GMT / MAP with the per-jet tables, scan, terrain line of sight, lock keys, MFD B-scope / PPI, HUD target box, slaves the IR seeker, feeds the gun range; chaff / flares (docs/weapons.md §10) |
 | Arming screen | original screen 0x1f (docs/front-end.md §15): jet front views + stations, weapon list AA / AG / Misc, drag and drop with the per-station allowed counts, right-click, DEFAULT, CURRENT LOAD / MAX T.O.W., the original's blocking checks (overweight, wing balance) and "Use weapon load?"; the load goes on the player's pylons (stores, weight / drag). What the loads unlock: docs/mission-coverage.md (315 "Cold Steel" bombed end to end destroys all 7 targets, test_bomb_missions.gd) |
 | Real aircraft data | Real set for all seven flyable jets (six data sets: F-16, F-15C, F-4E / Kurnass 2000 shared, Kfir C7, Lavi, Mirage IIICJ): weights, thrust, drag, roll, fuel, stall, pedal steering, drag chute, the low-speed indicated airspeed fix (docs/real-aircraft.md); the flight data loader reads the v1.1 files (`bdgen.dat`, `*gen.skp`, XOR-encoded); AI types: their own Real rows, used by the AI jets (docs/real-aircraft.md §9) |
-| Damage | docs/damage.md: hits, blast formula, destruction, falling jets, explosions / smoke, the player's systems damage, collisions |
-| Eject | E ×3: seat, canopy, parachute, mission lost |
+| Damage | docs/damage.md: hits, blast formula, destruction, falling jets, explosions / smoke (water splash and ring, the fatal-hit fireball, two explosions at a falling unit's impact), the player's systems damage, collisions, the friendly-hit voice |
+| Eject | E ×3: seat, canopy, parachute and its swing, mission lost |
 | Views | docs/views.md: pause, On-The-Fly menu (GDI layout, Arial metrics and hit test as the exe; front-end.md §16.2), the in-flight render message box (§16.4), FlyTSD (Esc), time compression, the original cameras (snap views, free look, padlock, external / fly-by, radar target, threat, wingman, weapon) |
 | Graphics / rendering | the Graphics page wired (terrain / object detail, effects, smoke trails, textured sky with the cloud layer, shadows, external stores; docs/front-end.md §12.4); our render options on Graphics → MORE, upscaling, the water shader (waves, sun glint, sky reflection; rendering.md §1.3), the detailed F-16D model with the IAF dorsal spine and every pylon (docs/aircraft-models.md) and the detailed effects (GPU particle explosions, smoke, missile trails, contrails, heat haze; rendering.md §6) among them (docs/rendering.md) |
 | Cockpit | all 9 original 2D cockpits (docs/cockpit.md): round gauges, attitude indicators, vario / AoA tapes, HUD (11 colours, traced symbology incl. ILS and the waypoint marker), I-mode (F12: marks toward the aircraft out of view), panel lights; MFDs (docs/mfd.md: radar incl. the MAP picture, TSD, RWR page, NAV, stores, damage, FLIR / TV with the EO camera, HARM); RWR (docs/rwr.md); helmet sight DASH (docs/weapons.md §5.4). Ours: the F-35I's modelled cockpit (day / night panel art, the panoramic display with status bar, portals, lower windows and standby display, its cockpit-view model; docs/f35i.md §4) |
@@ -136,10 +136,6 @@ Checked against the code on 2026-10-19 (each doc's own "not built" notes have th
 - **Autopilot landing, F-35I**: GoHomeCL's step 7 (gear down) comes at any speed above 102.9 m/s, and the F-35I is
   still at ~370 kt there, so the 300 kt rule keeps its gear up and it lands on its belly (mission 214; the
   mission's own jet is at 220 kt and lands on its gear; docs/autopilot.md §2.3).
-- **Damage**: splash / ring explosions on water (flags 0x20000 / 0x40000) draw nothing; the friendly-hit voice when
-  the player hits a unit on the player's side (`FUN_00551560` → `FUN_005515d0`, VOC 0x33 / 0x35); the brain's last
-  hitter (`FUN_0043ff50`, brain +0x80; readers not traced); effect 0x18 at a fatal hit (`FUN_0046b2b0`); the second
-  explosion of a falling unit (docs/damage.md §8).
 - **F-35I cockpit**: the panel pans as one flat picture, like the originals'; its side-stick and throttle are fixed
   in the render; the portals show the original MFD pages (pixel font) in the F-35 colours; looking 15–90° aside shows
   the panel strip's edge.
@@ -151,8 +147,6 @@ Checked against the code on 2026-10-19 (each doc's own "not built" notes have th
 - **Radio**: AWACS contact calls; airborne / landed / crashed / kill ("… is down") reports.
 - **Front end**: the hardware detection that overwrites the graphics defaults (`FUN_00402510`, `FUN_00402330`,
   docs/front-end.md §12).
-- **Eject**: the parachuter's swing (`0x54a250`, docs/part-animation.md); it is seen for about 1.4 s before the
-  flight ends.
 - **Pilot guide PDFs** (not urgent): some pictures land at the top of the next page above the following heading; one
   nearly empty page (F-16 "Not drawn"); the MFD pictures are the ~128 px original art scaled (blocky).
 - **Pilot guide pictures**: most pictures in assets/ have no stamps yet, so the next `tools/guide_shots.sh` renders all of them once. That render also brings the pictures up to

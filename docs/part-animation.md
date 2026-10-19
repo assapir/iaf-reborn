@@ -217,10 +217,17 @@ view. (Corrected: an earlier note said "hidden on the flying aircraft", which de
      Pure ballistic: p(t) = p0 + v0·dt + ½·a·dt² (`0x4690b0`, `0x4687d0`). There is **no drag and no terminal velocity**.
    * "landing" time `+0xc0 = now + t` with D = sqrt(4·v0z² − 8·a·h); t = (D + 4·v0z)/(2a), and if t < 0,
      t = (4·v0z − D)/(2a). The original has a factor error (4 instead of 2). From h = 1000 m: t = 29.2 s, but the real impact is at 24.2 s.
-   * tick `0x54a250` every **0.2 s** ("CMParachuteUpdateEvent", vtable `0x60c9a0`, first at now+0.2): re-bases p/v,
-     then swing rates `−40·sin(θa)` and `−20·sin(θb)` °/s (`0x60c974`, `0x60c978`; zeroed if the previous tick was > 0.4 s ago).
+   * tick `0x54a250` every **0.2 s** ("CMParachuteUpdateEvent", vtable `0x60c9a0`, first at now+0.2): re-bases
+     position, velocity and attitude at the tick, then sets the **swing**. The attitude (+0x24) starts at
+     (30°, 20°, 0) (`0x549700`); we take it as (pitch, roll, heading), the order of the destruction motion (UNCERTAIN).
+     Until the next tick it turns at ω = (−20·sin pitch, −40·sin roll, 0) °/s (`0x60c978`, `0x60c974`; the angles
+     read by vfunc +0x54 `0x468ff0` = θ0 + ω·dt). ω is zero when the previous tick (+0xbc) is more than 0.4 s back
+     (`0x60c980`). +0xbc is 0 at the set-up (`0x5493d0`), so the first tick keeps the parachuter still and the swing
+     starts at 0.4 s. dθ/dt = −k·sin θ has no overshoot: the parachuter hangs tilted and settles to level (roll
+     under 1° after ≈ 4.5 s, pitch after ≈ 10 s).
      **Stop** when `now > land − 10 s` (`0x60c988`) **or** AGL ≤ 20 m (`0x60c948`). Stop sets +0xc8 = 1 and `0x549b10` zeroes
      velocity and acceleration, so the parachuter **freezes in place** (from 1000 m it freezes at ≈ 351 m AGL). This is an original bug.
+     (`0x549b10` also zeroes the base position, the attitude and ω; ours keeps the last position and attitude.)
    * For the player's ejection (above 50 m, see mission-runtime.md §5.4), "Jump to tactical display event" (`0x60c918`) is scheduled at `land − 10 s`.
 The parachute opens without an animation or a sound (no code references `parachute open.wav`).
 
@@ -233,7 +240,7 @@ The parachute opens without an animation or a sound (no code references `parachu
   and stops at 20 m AGL. The port leaves out the original's `land − 10 s` factor-4 freeze: in single player the
   flight has ended by then. v1.1 did not change the parachuter, so this deviation stays.
 - The crew flag starts at 0 on every jet (`crew_visible`), as in v1.1.
-- Open: the parachuter swing.
+- The swing: `terrain_view.gd` `chute_swing` on the 0.2 s ticks, the attitude θ0 + ω·dt between them.
 - The fly-by cameras on the jet and the parachuter: docs/views.md §4.3.
 
 ## 2.1 Vehicles (part callback `FUN_005c5460`, part record entity+0x3c `FUN_005c5400`, vtable `0x612a78`)

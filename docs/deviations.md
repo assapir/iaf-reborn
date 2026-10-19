@@ -65,7 +65,7 @@ Each row: Original = the 1998 game; Ours = this port, for everyone.
 | AA gun LCOS start | rate filters from untraced first values | start from the attitude at mode entry | avoids a 1 s pipper jump | weapons.md §3.7 |
 | Gun candidate list order | the spatial query's order | nearest first | order untraced | weapons.md §3.3 |
 | Weapon targets | every object in the spatial database | units with a model (sensors / logic nodes left out) | UNCERTAIN whether they are in it | player_weapons.gd |
-| Weapon effects look | muzzle flash scale / blend, splash, missile explosion (partly not decoded) | muzzle flash 1 m additive, white puff splash, fireball + puff | rendering | weapons.md §3.5–3.6 |
+| Weapon effects look | muzzle flash scale / blend, missile explosion (partly not decoded) | muzzle flash 1 m additive, fireball + puff | rendering | weapons.md §3.5–3.6 |
 | Bomb HUD terrain ray (cockpit views) | the pick of the rendered picture at the impact's screen point (`FUN_0045ed40` → TgenAPI slot 0x2c) | the first terrain on the line of sight from the jet to the impact, from the terrain heights (1 % steps, bisection); a point off the screen is not special-cased | the pick is a renderer read-back | weapons.md §9.4 |
 | AI ripple before a weapon-change action | W+0xe8..0xf0 not set by the handler's constructor (`FUN_00453ab0`): an uninitialised quantity until 350 / 360 / 380 | 1 store, 10 m, 0.1 s | UNCERTAIN initial value | combat.gd `_setup_aircraft`, weapons.md §9.9 |
 | AI bomb / rocket aim | T + V·t + ½A·t² (t = \|T − own\| / own speed) | T + V·t (no target acceleration kept) | ours | combat.gd `_ripple_tick` |

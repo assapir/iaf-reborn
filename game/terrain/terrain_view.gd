@@ -149,6 +149,11 @@ const EJECT_LOW_INVERTED := 200.0
 const CHUTE_V0 := Vector3(25, 30, -5)
 const CHUTE_ACCEL := Vector3(0, 0, -3)
 const CHUTE_STOP_AGL := 20.0
+## Its swing: the set-up attitude (pitch 30°, roll 20°, heading 0; FUN_00549700), the 0.2 s tick (0x60c968) and
+## the largest gap between two ticks that keeps the swing going (0.4 s, 0x60c980).
+const CHUTE_ANGLES := Vector3(30, 20, 0)
+const CHUTE_TICK := 0.2
+const CHUTE_SWING_GAP := 0.4
 var eject_short := false
 var _eject_t0 := 0.0
 var _eject_ticks := 0.0
@@ -990,6 +995,11 @@ func mission_player_hit(ent: Dictionary, source: Dictionary, kind: String) -> vo
 			"text": String(DamageModel.SYSTEMS.get(sys, {}).get("text", ""))})
 
 
+## A voice row of the sound table (FUN_004c4ea0 with a VOC code, e.g. the friendly-hit voice).
+func mission_voice(code: String) -> void:
+	sounds.play(code)
+
+
 ## Damage smoke on / off (FUN_004d1f90 / FUN_004d1ff0).
 func mission_entity_smoke(ent: Dictionary, on: bool) -> void:
 	effects.set_smoke(rig if ent.player else ent.node, on)
@@ -1011,12 +1021,30 @@ func mission_entity_state(ent: Dictionary) -> void:
 			blackbox_event({"event": "kill", "key": String(ent.key)})
 	match ent.state:
 		3:
+			_fatal_hit_effect(ent)
 			if ent.player:
 				_player_fatally_hit()
 			else:
 				_entity_fatally_hit(ent)
 		4, 5:
 			_entity_final(ent)
+
+
+## Effect 0x18 at 1 -> 3: the destruction motion's start (DestructionMotion vtable 0x602520 slot 2,
+## FUN_0046b2b0) sends effect 0x18 at the unit's position (FUN_0059ddb0 -> FUN_0059dad0 -> FUN_0057da50): a
+## fireball (Tgen flags 0x10) with an event time of 0.8 s (0x843cc0), so 0.8 s of its 1.2 s, and no sound (key
+## 0). Within 10.5 m of the ground it also asks for a crater (FUN_0054a980); the crater pool is empty in the
+## shipped data.
+func _fatal_hit_effect(ent: Dictionary) -> void:
+	var pos := _entity_scene_pos(ent)
+	var ground = terrain.height_at(pos)
+	effects.explosion(pos, effects.F_FIREBALL, 4.0, 0.8, ground if ground != null else pos.y)
+
+
+## The crash motion's ground contact (FUN_00496c12, ≤ 2 m above the ground): the class explosion
+## (FUN_0059df20) at the wreck, before the final status makes the second one (docs/damage.md §3.3).
+func mission_entity_impact(ent: Dictionary) -> void:
+	_class_explosion(ent)
 
 
 ## State 3 of a unit: the damaged model where the data has one (Present display 2), and an
@@ -1047,19 +1075,7 @@ func _player_fatally_hit() -> void:
 func _entity_final(ent: Dictionary) -> void:
 	if not ent.player:
 		_drop_lods(ent.node)
-	var pos := _entity_scene_pos(ent)
-	var ground = terrain.height_at(pos)
-	var g: float = ground if ground != null else pos.y
-	# Water: terraintype.dat inland water / sea under the unit (FUN_0059df20 terrain type 1 / 2).
-	var water: bool = (terrain.surface_at(pos) & terrain.SURFACE_WATER) != 0
-	var e: Dictionary = effects.explosion_for(ent.klass, ent.type_code, pos.y < g + 10.5, water)
-	if not e.is_empty():
-		effects.explosion(pos, e.flags, e.scale, e.duration, g, maxf(ent.size, 3.0), aircraft if ent.player else ent.node)
-		if not (ent.player and crashed):
-			var p = sounds.play("SFX_AIRCRAFT_EXPLODED")
-			if p is Node3D:
-				p.top_level = true
-				p.global_position = pos
+	var pos := _class_explosion(ent)
 	effects.set_smoke(rig if ent.player else ent.node, false)
 	# Event 0x4d: the external view following this object circles its wreck, then the cockpit (6 s).
 	if not ent.player and ent.node != null and views.snap == null and views.type in [Views.CHASE, Views.FOLLOW] \
@@ -1075,6 +1091,25 @@ func _entity_final(ent: Dictionary) -> void:
 			_burned_copy(ent.node, 0.5, ent.get("max_extent", 10.0))
 		else:
 			ent.node.visible = false
+
+
+## The explosion of the unit's class at its position (FUN_0059df20) with SFX_AIRCRAFT_EXPLODED (the player's
+## crash explosion is played by FlightSounds). Returns the position.
+func _class_explosion(ent: Dictionary) -> Vector3:
+	var pos := _entity_scene_pos(ent)
+	var ground = terrain.height_at(pos)
+	var g: float = ground if ground != null else pos.y
+	# Water: terraintype.dat inland water / sea under the unit (FUN_0059df20 terrain type 1 / 2).
+	var water: bool = (terrain.surface_at(pos) & terrain.SURFACE_WATER) != 0
+	var e: Dictionary = effects.explosion_for(ent.klass, ent.type_code, pos.y < g + 10.5, water)
+	if not e.is_empty():
+		effects.explosion(pos, e.flags, e.scale, e.duration, g, maxf(ent.size, 3.0), aircraft if ent.player else ent.node)
+		if not (ent.player and crashed):
+			var p = sounds.play("SFX_AIRCRAFT_EXPLODED")
+			if p is Node3D:
+				p.top_level = true
+				p.global_position = pos
+	return pos
 
 
 ## The player's jet exploded (crash or shot down): its destroyed model is the empty dummy (class 0x1c,
@@ -2856,6 +2891,11 @@ func _eject_update(delta: float) -> void:
 		var g = terrain.height_at(pos)
 		if g == null or pos.y - g > CHUTE_STOP_AGL:
 			pc.node.position = pos
+			while _sim_time >= pc.next:
+				chute_swing(pc, pc.next)
+				pc.next += CHUTE_TICK
+			var a: Vector3 = pc.ang + pc.omega * (_sim_time - pc.tb)
+			pc.node.basis = Basis.from_euler(Vector3(deg_to_rad(a.x), deg_to_rad(-a.z), deg_to_rad(-a.y)), EULER_ORDER_YXZ)
 	if t >= EJECT_CHUTE_VIEW and not _chute_view_done and _chute != null:
 		_chute_view_done = true
 		views.set_orbit(_chute, [1000.0, 600.0, 200.0, 4.014257, 0.0, 2.792527], 2.0, Views.FLYBY, true)
@@ -2870,9 +2910,24 @@ func _spawn_parachuter(at: Vector3) -> void:
 	if node == null:
 		return
 	node.position = at
-	_parachuters.append({"node": node, "t0": _sim_time, "p0": scene_to_world(at)})
+	# The swing (FUN_00549700 / FUN_0054a250): attitude (pitch, roll, heading) in degrees, its rate, the time it was
+	# re-based, the next tick (now + 0.2 s) and the previous tick (+0xbc, 0 at the set-up FUN_005493d0).
+	_parachuters.append({"node": node, "t0": _sim_time, "p0": scene_to_world(at), "ang": CHUTE_ANGLES,
+		"omega": Vector3.ZERO, "tb": _sim_time, "next": _sim_time + CHUTE_TICK, "last": 0.0})
 	if _chute == null:
 		_chute = node
+
+
+## CMParachuteUpdateEvent (FUN_0054a250) at tick time `t`: the attitude is re-based at t, then it turns at
+## (−20·sin pitch, −40·sin roll, 0) °/s (0x60c978, 0x60c974) until the next tick, or not at all when the previous
+## tick is more than 0.4 s back (0x60c980; so the first tick, after +0xbc = 0, keeps it still). Each angle settles
+## back to level (dθ/dt = −k·sin θ); the 0.2 s steps are the original's.
+static func chute_swing(pc: Dictionary, t: float) -> void:
+	pc.ang += pc.omega * (t - pc.tb)
+	pc.tb = t
+	var rate := Vector3(-20.0 * sin(deg_to_rad(pc.ang.x)), -40.0 * sin(deg_to_rad(pc.ang.y)), 0.0)
+	pc.omega = rate if t - pc.last <= CHUTE_SWING_GAP else Vector3.ZERO
+	pc.last = t
 
 
 ## The seat (pilot on chair) and the parachuter models from the converted objects (Pilot\ejectA, ejectB).
