@@ -157,6 +157,13 @@ func _build() -> void:
 	again_button.text = "Check again"
 	again_button.pressed.connect(func(): tools = IafSetup.tools(); _fill_requirements(); _update())
 	foot.add_child(again_button)
+	log_button = Button.new()
+	log_button.text = "Show the log"
+	log_button.pressed.connect(func():
+		log_view.visible = not log_view.visible
+		log_button.text = "Hide the log" if log_view.visible else "Show the log"
+		_log_to_end.call_deferred())
+	foot.add_child(log_button)
 	next_button = Button.new()
 	next_button.custom_minimum_size.x = 160
 	next_button.pressed.connect(_on_next)
@@ -678,14 +685,6 @@ func _page_install() -> Control:
 	rows_box.add_theme_constant_override("separation", 4)
 	rows_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(rows_box)
-	log_button = Button.new()
-	log_button.text = "Show the log"
-	log_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	log_button.pressed.connect(func():
-		log_view.visible = not log_view.visible
-		log_button.text = "Hide the log" if log_view.visible else "Show the log"
-		_log_to_end.call_deferred())
-	v.add_child(log_button)
 	log_view = TextEdit.new()
 	log_view.editable = false
 	log_view.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
@@ -738,6 +737,7 @@ func _update() -> void:
 	next_button.visible = true
 	next_button.disabled = false
 	again_button.visible = pg == "Requirements"
+	log_button.visible = pg == "Install"
 	match pg:
 		"Requirements":
 			next_button.text = "Next"
@@ -943,6 +943,7 @@ func _process(_delta: float) -> void:
 		done_label.text = "Jane's IAF is set up." if failed == "" else "Setup did not finish: " + failed
 		if failed != "":
 			log_view.visible = true
+			log_button.text = "Hide the log"
 	_update()
 
 
