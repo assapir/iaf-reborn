@@ -57,8 +57,8 @@ var ecm_fitted := false
 var eo_ae := Vector2.ZERO
 var eo_dir := Vector3(0, 1, 0)
 var eo_centre := Vector3.ZERO
-## Pages 5 / 6 put up by the master modes: page -> [mfd, the page it replaced] (ctl+0x930 / +0x934).
-var _eo_replaced := {}
+## The page that TV page 5 (ctl+0x930), FLIR page 6 (+0x934) and HARM page 10 (+0x92c) replaced, by page.
+var _replaced := {5: 0, 6: 0, 10: 0}
 ## Physics "fix_lock_threat" (ours): a radar lock makes the player the AI target's threat (brain+0x7c).
 var lock_threat_fix := false
 ## Homing weapons in flight, any launcher (missile.gd with metas id, owner, node, sound).
@@ -343,25 +343,40 @@ func _set_hud_mode(h: int) -> void:
 ## FUN_00449810: the MFD page of the master mode (NAV 0; bombs / AG gun stores; AA gun radar; the
 ## IR missiles leave the pages; radar missiles radar; HARM 10; laser bombs with the FLIR pod 6, TV weapons 5)
 ## and the EO sensor: 5 with the pod starts the FLIR, 6 the TV camera; the other modes leave them
-## (FUN_0044e6e0: the pages they replaced come back).
+## (FUN_0044e6e0: the pages they replaced come back; modes 1..4, NAV keeps the EO mode). Leaving HUD mode 8 (the
+## HARM) puts page 10 back to what it replaced (ctl+0x92c; a replaced TV / FLIR page: what that one replaced).
 func _mfd_page() -> void:
 	var page: int = _modes.mfd_page(stores.current_type(), flir_pod)
 	var harm_on: bool = master == 4 and stores.current_type() == 590
+	if harm.active:  # HUD mode 8 before this change (also when staying: page 10 is placed again below)
+		var r: int = _replaced[10]
+		_put_back(10, _replaced[r] if r in [5, 6] else r)
 	if harm_on != harm.active:
-		harm.active = harm_on
+		harm.active = harm_on  # FUN_0045c2f0 off
 		if harm_on:
 			_harm_capture()  # FUN_0045c2b0: the sensor comes on with a scan
-	if master < 5:
+	if master in [1, 2, 3, 4]:
 		_eo_leave()
 	# Placed like event 0x5a (FUN_00449f90 / FUN_00449f20; UNCERTAIN: same rule).
 	if page >= 0 and host.cockpit != null:
-		var m = host.cockpit.show_mfd_page(page)
-		if page in [5, 6] and m != null:
-			_eo_replaced[page] = [m, host.cockpit.replaced_page]
+		if host.cockpit.show_mfd_page(page) != null and page in [5, 6, 10]:
+			_replaced[page] = host.cockpit.replaced_page
 	if master == 5 and flir_pod:
 		_eo_start(EoSensor.FLIR)
 	elif master == 6:
+		# Case 6: a FLIR page still shown goes back to what it replaced (the stores page for the TV page).
+		_put_back(6, 1 if _replaced[6] == 5 else _replaced[6])
 		_eo_start(EoSensor.TV)
+
+
+## FUN_0044a000: the first MFD showing `page` shows `to` instead (none shows it: nothing).
+func _put_back(page: int, to: int) -> void:
+	if host.cockpit == null:
+		return
+	for m in host.cockpit.mfds:
+		if m.page == page:
+			m.page = to
+			return
 
 
 ## FUN_0044e6e0: with an EO mode and the previous master mode 5 / 6, page 5 (and page 6 when leaving 5 for
@@ -369,13 +384,9 @@ func _mfd_page() -> void:
 func _eo_leave() -> void:
 	if eo.mode == EoSensor.NONE or not master_prev in [5, 6]:
 		return
-	for page in [5, 6]:
-		if not _eo_replaced.has(page) or (page == 6 and master_prev != 5):
-			continue
-		var r: Array = _eo_replaced[page]
-		if is_instance_valid(r[0]) and r[0].page == page:
-			r[0].page = r[1]
-		_eo_replaced.erase(page)
+	_put_back(5, _replaced[5])
+	if master_prev == 5:
+		_put_back(6, _replaced[6])
 	eo.stop()
 
 
@@ -395,15 +406,18 @@ func _eo_start(mode: int) -> void:
 
 
 ## Event 0x5a(6) (key I) / 0x5b(6) (MENU "FLIR"): only with the pod, page 6 not shown and page 5 not shown;
-## then page 6 (on `mfd`, or placed like 0x5a) and the FLIR. Not a toggle.
+## then page 6 (on `mfd`, or placed like 0x5a) and the FLIR. Not a toggle. ctl+0x934 keeps the page it replaced;
+## 0x5a placed on the Left (1 MFD, or Left not radar) keeps 6 instead (the exe stores the new page there).
 func flir_on(mfd = null) -> bool:
 	var c = host.cockpit
 	if not flir_pod or c == null or c.mfds.any(func(m): return m.page in [5, 6]):
 		return false
 	if mfd != null:
+		_replaced[6] = mfd.page
 		mfd.page = 6
 	else:
-		c.show_mfd_page(6)
+		var m = c.show_mfd_page(6)
+		_replaced[6] = 6 if m != null and m == c.mfds[0] else c.replaced_page
 	_eo_start(EoSensor.FLIR)
 	return true
 
@@ -419,8 +433,9 @@ func mfd_event(ev: int, arg = null) -> void:
 		0x6a:
 			eo.laser_key(flir_pod)
 		0x37:
-			harm.select(String(arg))
-			_harm_capture()
+			if String(arg) != harm.selected:  # FUN_005358b0: the selected entry sends nothing
+				harm.select(String(arg))
+				_harm_capture()
 
 
 ## Event 0x8a(x, y): the EO slew / lock (docs/mfd.md); a TV camera locks only while its launched weapon flies.
@@ -590,7 +605,8 @@ func _next(kind: int) -> void:
 	stores.cycle(kind, true)
 
 
-## M (event 0x63): NAV -> AA -> AG -> NAV; blocked while releasing.
+## M (event 0x63): NAV -> AA -> AG -> NAV; blocked while releasing. Then every MFD gets the cycle position's page
+## (LAB_0044b9fb, IafModes.m_key_pages); a HARM page placed there keeps the page it replaced (ctl+0x92c).
 func master_key() -> void:
 	if releasing:
 		return
@@ -602,6 +618,15 @@ func master_key() -> void:
 		"nav":
 			_set_hud_mode(0)
 			_mfd_page()
+	var c = host.cockpit
+	if c != null:
+		var rwr_panel := int(c.layout.get("PANELRWR", {}).get("Active", 0)) == 1
+		var pages: PackedInt32Array = ClassDB.class_call_static("IafModes", "m_key_pages", m_cycle, c.mfds.size(),
+			rwr_panel, stores.current_type() == 590)
+		for i in mini(pages.size(), c.mfds.size()):
+			if pages[i] == 10:
+				_replaced[10] = c.mfds[i].page
+			c.mfds[i].page = pages[i]
 	host.sounds.play("SFX_BUTTON")
 
 

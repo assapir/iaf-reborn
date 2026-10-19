@@ -167,6 +167,29 @@ func run() -> void:
 	await frames(2)
 	check(other.nav_scroll == 0, "NAV: back to waypoint 1 scrolls to the top")
 	cp.current_waypoint = keep_wp
+	# Leaving HARM puts back the page page 10 replaced (FUN_00449810, ctl+0x92c).
+	var L = cp.mfds[0]
+	var R = cp.mfds[1]
+	w.select_station(0)
+	L.page = 2
+	R.page = 3
+	w.select_station(3)
+	check(R.page == 10 and w.harm.active, "HARM: page 10 on the Right (Left shows the radar)")
+	w.select_station(0)
+	check(R.page == 3 and not w.harm.active, "leaving HARM: the TSD page it replaced comes back, the sensor off")
+	# A TV weapon: a FLIR page still shown goes back to what it replaced (FUN_00449810 case 6, ctl+0x934).
+	L.page = 1
+	w.flir_on(R)
+	check(R.page == 6, "MENU FLIR on the Right")
+	w.select_station(6)
+	check(L.page == 5 and R.page == 3, "POPEYE: TV page on the Left, the FLIR page back to the TSD (%d, %d)" % [L.page, R.page])
+	w.select_station(0)
+	check(L.page == 1, "leaving TV: the stores page back on the Left")
+	# M: every MFD gets the cycle position's pages (LAB_0044b9fb); the F-16: 2 MFDs, a panel RWR.
+	for k in 3:
+		w.master_key()
+		var pages := [2, 3] if w.m_cycle < 2 else [2, 10 if w.stores.current_type() == 590 else 1]
+		check([L.page, R.page] == pages, "M → cycle %d: pages %s (%s)" % [w.m_cycle, pages, [L.page, R.page]])
 	# Every page draws on the F-16 and the Lavi (3 MFDs, ADI page).
 	for dir in ["converted/cockpits/f16", "converted/cockpits/lavi"]:
 		if dir != "converted/cockpits/f16":
@@ -176,3 +199,9 @@ func run() -> void:
 				m.page = pgn
 			await frames(2)
 		check(true, "%s: pages 0..10 drawn" % dir.get_file())
+	# M on the Lavi (3 MFDs: Left, Right, Middle): radar / NAV / TSD, radar / RWR / TSD, radar / stores (HARM) / TSD.
+	for k in 3:
+		w.master_key()
+		var pages: Array = [[2, 0, 3], [2, 7, 3], [2, 10 if w.stores.current_type() == 590 else 1, 3]][w.m_cycle]
+		var got: Array = cp.mfds.map(func(m): return m.page)
+		check(got == pages, "Lavi: M → cycle %d: pages %s (%s)" % [w.m_cycle, pages, got])

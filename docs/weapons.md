@@ -191,7 +191,10 @@ Master mode `ctl+0x78` (`FUN_0044ec80`) → HUD mode `ctl+0x5c` and MFD page (`F
 | 590 | 4 | 8 HARM | HARM |
 | 650 | 5 | 5 (6 with a FLIR pod: the FLIR starts) | stores / FLIR |
 | 635, 640 | 6 | 7 | TV (the TV camera starts) |
-- M (0x63) cycles NAV → AA → AG → NAV (`ctl+0x7c`) with SFX_BUTTON.
+- M (0x63) cycles NAV → AA → AG → NAV (`ctl+0x7c`) with SFX_BUTTON, then sets every MFD's page (docs/mfd.md §5):
+  NAV radar / NAV / TSD (2 MFDs radar / TSD), AA radar / RWR / TSD (2 MFDs: TSD on the Right with a panel RWR),
+  AG radar / stores / TSD (the HARM page for a selected 590).
+- Changing to NAV leaves the EO mode on (`FUN_00449810` case 0 skips `FUN_0044e6e0`).
 - N (0x62, p 0) goes to NAV.
 - '[' / ']' / N play no button click.
 - There is no master arm: firing the selected store needs HUD mode 1..8.
@@ -909,7 +912,8 @@ A semi-active missile (610) needs the launcher's radar to keep its lock.
 ### 11.5 HARM (590: AGM88, SHRIKE)
 The same launch (`FUN_00454b70` case 0x24e, HUD mode 8) and the same homing motion (weapons.ibx 590: dog chase,
 a 120, β 0.08, burn 23 s, tCO 2 s, `_fireEndVec` 7 km ahead). Selecting a 590 puts HUD mode 8, the HARM sensor on
-(`FUN_0045c2b0`) and the HARM page (10) up (`FUN_00449810`).
+(`FUN_0045c2b0`) and the HARM page (10) up (`FUN_00449810`), keeping the page it replaced (`ctl+0x92c`). Leaving
+HUD mode 8 turns the sensor off (`FUN_0045c2f0`) and puts that page back (docs/mfd.md §5).
 
 The HARM HUD object (`FUN_00460a90`, vtable 0x601560)
 differs from the MRM's only in vfunc +0x10 (`FUN_00460ac0`: no circle; "In Range" = the selected emitter nearer than

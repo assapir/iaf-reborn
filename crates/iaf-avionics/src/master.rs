@@ -149,6 +149,27 @@ impl Modes {
     }
 }
 
+/// The M key's MFD pages (`FUN_0044a240` case 0x63 after `FUN_00449810`, `LAB_0044b9fb`) for the cycle position
+/// (0 NAV, 1 AA, 2 AG), slot by slot (`ctl+0x68 + i·4`; slot 0 = Left). `n` = active MFDs (`ctl+0x14`: 3, 2, any
+/// other count sets slot 0 only), `panel_rwr` = the cockpit's panel RWR (`ctl+0x18`), `harm` = a 590 selected (AG:
+/// the HARM page 10 instead of the stores page).
+/// NAV: radar / NAV / TSD, 2: radar / TSD, 1: TSD. AA: radar / RWR / TSD, 2: radar / (TSD with a panel RWR, else
+/// RWR), 1: radar. AG: radar / stores / TSD, 2: radar / stores, 1: stores.
+pub fn m_key_pages(cycle: u8, n: usize, panel_rwr: bool, harm: bool) -> Vec<u8> {
+    let ag = if harm { 10 } else { 1 };
+    match (cycle, n) {
+        (0, 3) => vec![2, 0, 3],
+        (0, 2) => vec![2, 3],
+        (0, _) => vec![3],
+        (1, 3) => vec![2, 7, 3],
+        (1, 2) => vec![2, if panel_rwr { 3 } else { 7 }],
+        (1, _) => vec![2],
+        (_, 3) => vec![2, ag, 3],
+        (_, 2) => vec![2, ag],
+        _ => vec![ag],
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -171,5 +192,14 @@ mod tests {
         assert_eq!(m.master_key(), MasterKey::Nav);
         assert_eq!((m.master, m.prev), (Master::Nav, Master::Missiles));
         assert_eq!(m.mfd_page(570, false), Some(0));
+    }
+
+    #[test]
+    fn m_key_layouts() {
+        assert_eq!(m_key_pages(0, 3, false, false), [2, 0, 3]);
+        assert_eq!(m_key_pages(1, 2, true, false), [2, 3]);
+        assert_eq!(m_key_pages(1, 2, false, false), [2, 7]);
+        assert_eq!(m_key_pages(2, 2, false, true), [2, 10]);
+        assert_eq!(m_key_pages(2, 1, false, false), [1]);
     }
 }

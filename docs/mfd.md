@@ -319,8 +319,13 @@ zoom)`: `0x605250` = 50.0, the main view's 50°).
   the status code also accepts 650 (0x28a) (`FUN_00460470`).
 - Entering: master mode 5 (650 laser bomb) **with** the pod → HUD mode 6, EO mode 2, page 6 (`FUN_00449810` case 5);
   without it HUD 5, stores page. Master mode 6 (635 / 640) → HUD 7, EO mode 1, page 5 (case 6). The replaced page is
-  remembered (`ctl+0x930` for 5, `+0x934` for 6) and put back when a master mode change leaves 5 / 6
-  (`FUN_0044e6e0`, which also sets EO mode 0).
+  remembered (`ctl+0x930` for 5, `+0x934` for 6) and put back when a master mode change to modes 1..4 leaves 5 / 6
+  (`FUN_0044e6e0`, which also sets EO mode 0). NAV (mode 0) skips `FUN_0044e6e0`: the EO mode stays on and the
+  NAV page or the M key's layout replaces the page.
+- Case 6 also puts a page 6 that is still shown back to `+0x934` (the stores page 1 when that is 5), after placing
+  page 5.
+- `+0x934` is also set by the MENU "FLIR" OSB (0x5b(6, mfd): that MFD's page before) and by key I (0x5a(6): the
+  Right's page before when the Left shows the radar; else the exe stores 6 itself, so a later put-back keeps page 6).
 - Key **I** (event 0x5a(6)) and the MENU "FLIR" OSB (event 0x5b(6, mfd)) open page 6 when neither page 6 nor page 5 is
   shown and the pod is fitted: EO mode 2, aimed as master mode 5. I only opens the page: a shown page 6 ignores it.
 - Event 0x5a(5) is refused: page 5 opens only through master mode 6.
@@ -681,7 +686,23 @@ world coordinates to its pixels and describes how the page samples it.
 - Radar events first put the radar page on an MFD if none shows it.
 - STT comes from a lock (event 0x2a).
 - Master mode → page (`FUN_00449810`): NAV→0; modes 1/2→stores; 3→radar; 4→HARM(10)/radar by weapon; 5→FLIR or
-  stores; 6→TV (names of modes 1–6 UNCERTAIN).
+  stores; 6→TV (names of modes 1–6 UNCERTAIN). Page 10 keeps the page it replaced in `ctl+0x92c`. When the HUD mode
+  was 8 (HARM), the sensor goes off (`FUN_0045c2f0`) unless a 590 stays selected, and page 10 goes back to `+0x92c`
+  (that page 5 / 6: to `+0x930` / `+0x934`); a 590 still selected places page 10 again.
+- M (event 0x63, `FUN_0044a240` after `FUN_00449810`, `LAB_0044b9fb`) then sets every MFD's page for the new cycle
+  position. Slot 0 is the Left MFD, slot 1 the Right, slot 2 the Middle (`ctl+0x68 + i·4`, the order of
+  `FUN_00448120`'s defaults); a cockpit with another count than 2 or 3 sets slot 0 only:
+
+| Cycle | 3 MFDs (Left / Right / Middle) | 2 MFDs (Left / Right) | 1 MFD |
+|---|---|---|---|
+| NAV | radar / NAV / TSD | radar / TSD | TSD |
+| AA | radar / RWR / TSD | radar / TSD with a panel RWR (`ctl+0x18`), else RWR | radar |
+| AG | radar / stores / TSD | radar / stores | stores |
+
+  In AG with a 590 selected the stores page is the HARM page (10): the slot's page before goes to `+0x92c` and the
+  sensor comes on (`FUN_0045c2b0`). `FUN_00449810` has usually placed page 10 on that slot already, so `+0x92c`
+  becomes 10 and leaving HARM later keeps page 10 (exe behaviour, kept).
+- A click on the HARM page's entry that is already selected sends nothing (`FUN_005358b0`, `DAT_0083e348`).
 - Radar-page OSBs: 0xb range+, 0xc range−, top 1 = cycle mode (0x24).
 
 ## 6. HUD (brief)

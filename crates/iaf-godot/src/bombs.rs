@@ -167,4 +167,10 @@ impl IafModes {
     fn mfd_page(&self, type_code: i64, flir_pod: bool) -> i64 {
         self.modes.mfd_page(type_code, flir_pod).map_or(-1, i64::from)
     }
+
+    /// The M key's MFD pages, slot by slot (`master::m_key_pages`).
+    #[func]
+    fn m_key_pages(cycle: i64, n: i64, panel_rwr: bool, harm: bool) -> PackedInt32Array {
+        iaf_avionics::master::m_key_pages(cycle as u8, n.max(0) as usize, panel_rwr, harm).into_iter().map(i32::from).collect()
+    }
 }
