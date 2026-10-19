@@ -13,7 +13,8 @@ list=$repo/tools/imagery/mapi2015_sheets.tsv
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 token=""
-for p in ~/.mozilla/firefox/*/cookies.sqlite; do
+# Linux, macOS profiles.
+for p in ~/.mozilla/firefox/*/cookies.sqlite ~/Library/Application\ Support/Firefox/Profiles/*/cookies.sqlite; do
 	cp "$p" "$tmp/c.sqlite" 2>/dev/null || continue
 	t=$(python3 -c "
 import sqlite3

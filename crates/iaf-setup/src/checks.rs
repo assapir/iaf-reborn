@@ -124,7 +124,8 @@ pub fn tools() -> Tools {
         gdal: on_path("gdal_translate") && on_path("gdalbuildvrt"),
         curl: on_path("curl"),
         python3: on_path("python3"),
-        firefox: on_path("firefox"),
+        // macOS: the app bundle, which puts nothing on PATH (the same place tools/guide_pdf.py looks).
+        firefox: on_path("firefox") || Path::new("/Applications/Firefox.app/Contents/MacOS/firefox").is_file(),
         display: env("DISPLAY") || env("WAYLAND_DISPLAY") || (cfg!(target_os = "macos") && !env("SSH_CONNECTION")),
     }
 }
