@@ -20,9 +20,9 @@ func run() -> void:
 	if w == null or w.scene_file_path != "res://setup/wizard.tscn":
 		return
 	check(get_root().title == "Jane's IAF (reborn) — Setup", "the window title")
-	check(w.PAGES[w.page] == "Requirements" and not w.next_button.disabled, "Requirements first, nothing required missing")
+	check(w.PAGES[w.page] == "Welcome", "Welcome first")
 	w._on_next()
-	check(w.PAGES[w.page] == "Welcome", "then Welcome")
+	check(w.PAGES[w.page] == "Requirements" and not w.next_button.disabled, "then Requirements, nothing required missing")
 	w._on_next()
 	check(w.PAGES[w.page] == "Your CD" and w.next_button.disabled, "Your CD: Next waits for the CD")
 	w.set_row(w.cd_row, ProjectSettings.globalize_path("res://project.godot"))

@@ -90,18 +90,26 @@ start-up when `assets/converted` is missing. The desktop launcher "Jane's IAF (r
 
 Pages:
 
-1. **Requirements**: the graphics driver and the free disk space (required), and GDAL, curl, python3 and Firefox
-   (optional), each with its install command. "Check again" looks once more.
-2. **Welcome**: what setup does and where the data goes.
-3. **Your CD**: the English CD image, dropped on the window or picked with Browse, checked at once.
-4. **Optional**: the v1.1 patch, the Hebrew CD, or without it the Hebrew packs.
+The wizard uses the original menus' colours.
+
+1. **Welcome**: the game's name, what is needed and what is optional, the next pages, where the data goes, the
+   repository link, the licence and the attributions (the models and the imagery, as in the credits roll).
+2. **Requirements**: a table of the parts, why each is needed, and whether it is required: the graphics driver and
+   the disk space for the game (required); the disk space for imagery, GDAL, curl, python3 and Firefox (optional).
+   A missing part shows its install command. "Check again", next to Next, looks once more.
+3. **Your CD**: the English CD image, picked with Browse and checked at once. Given the Hebrew CD here, the wizard
+   says so and keeps it for the next page. "Find in a folder…" looks in a folder and its subfolders (3 levels) for
+   the CD images, the v1.1 patch and the Hebrew packs, and fills the empty fields.
+4. **Optional**: the v1.1 patch, the Hebrew CD, or without it the Hebrew packs; each with a link to where to get it.
 5. **Extras**: the Survey of Israel imagery (all of Israel or around the airbases), the Sentinel-2 imagery,
    "Bring the imagery up to date" (only with imagery on disk; it shows how many units older rules made) and the
-   pilot guides. Each shows its downloads, time and disk use, and is greyed with the reason when a program it needs
-   is missing:
+   pilot guides. Each shows its downloads and disk use (no download times: they depend on the network), and is
+   greyed with the reason when a program it needs is missing:
    - Survey of Israel, all of Israel: 79 sheets, about 17 GB of downloads (kept in `assets/source`), about 5 GB
-     converted, about an hour of CPU. Around the airbases: 9 sheets, about 18 minutes.
-   - Sentinel-2: about 28 GB read over the network, about 2.5 GB on disk, about 1 h 40 min.
+     converted. Around the airbases: 9 sheets, about 2 GB of downloads. Sheets already downloaded are not
+     downloaded again.
+   - Sentinel-2: about 28 GB read over the network, about 2.5 GB on disk. Units already converted are not read
+     again.
 6. **Summary**: the inputs and the number of steps.
 7. **Install**: one row per step with its state and progress, the log, Cancel, and "Redo everything".
 8. **Done**: "Start the game".

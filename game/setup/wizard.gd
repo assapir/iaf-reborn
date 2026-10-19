@@ -1,14 +1,37 @@
 # The setup wizard (docs/setup.md): from the player's own CDs to the game data under assets/, through IafSetup
-# (crates/iaf-godot/src/setup.rs, the iaf-setup pipeline in-process). Pages: Requirements → Welcome → Your CD →
-# Optional → Extras → Summary → Install → Done. Running it again adds or redoes things: the last inputs
+# (crates/iaf-godot/src/setup.rs, the iaf-setup pipeline in-process). Pages: Welcome → Requirements → Your CD →
+# Optional → Extras → Summary → Install → Done. Colours: the original menus' (game/menu: the frame greys, the list
+# greens, the credits' orange). Running it again adds or redoes things: the last inputs
 # (assets/setup.json) fill the pages, and the steps whose inputs did not change are "up to date".
 # Opened by ./setup, by ./iafjets without game data, and by startup.gd when assets/converted is missing.
 extends Control
 
 const TITLE := "Jane's IAF (reborn) — Setup"
-const PAGES := ["Requirements", "Welcome", "Your CD", "Optional", "Extras", "Summary", "Install", "Done"]
+const PAGES := ["Welcome", "Requirements", "Your CD", "Optional", "Extras", "Summary", "Install", "Done"]
 ## The game data without imagery: the install, the conversions (GB).
 const BASE_GB := 3.0
+## Imagery on disk (GB): the Survey's kept sheet downloads and its conversion, all of Israel / around the airbases
+## (README "Imagery"); Sentinel-2 converted (its reads are not kept).
+const SURVEY_GB := [17.0, 5.0]
+const SURVEY_BASES_GB := [2.0, 0.6]
+const SENTINEL_GB := 2.5
+const REPO_URL := "https://github.com/assapir/iaf-reborn"
+const PATCH_URL := "https://community.pcgamingwiki.com/files/file/69-janes-israeli-air-force-patch"
+const BRIEF_URL := "https://www.preflight.us/HE/downloadview-details-104.html"
+const PACKS_URL := REPO_URL + "/blob/main/docs/packs.md"
+## The original menus' colours: background, frame greys (frame_window.gd RICH_BG, guide_md.gd HEAD_BG), text
+## greys, list greens (front_end.gd), the labels' yellow, the credits' orange, red.
+const BG := Color8(0, 0, 0)
+const FRAME := Color8(94, 94, 104)
+const PANEL := Color8(70, 70, 82)
+const TEXT := Color8(205, 208, 212)
+const DIM := Color8(170, 170, 180)
+const GREEN := Color8(0, 255, 0)
+const DIM_GREEN := Color8(0, 128, 0)
+const TITLE_GREEN := Color8(40, 205, 40)
+const YELLOW := Color8(255, 255, 0)
+const ORANGE := Color8(255, 173, 0)
+const RED := Color8(255, 0, 0)
 const STATE_TEXT := {
 	"waiting": "waiting", "running": "running", "up_to_date": "up to date", "done": "done", "skipped": "skipped",
 	"failed": "FAILED", "blocked": "not run", "cancelled": "cancelled",
@@ -31,6 +54,7 @@ var margin: MarginContainer
 var body: Control
 var back_button: Button
 var next_button: Button
+var again_button: Button
 var pages: Array[Control] = []
 
 # Requirements
@@ -39,6 +63,7 @@ var req_ok := false
 # Your CD
 var cd_row: Dictionary
 var cd_ok := false
+var scan_note: Label
 # Optional
 var patch_row: Dictionary
 var hebrew_row: Dictionary
@@ -73,7 +98,6 @@ func _ready() -> void:
 	tools = IafSetup.tools()
 	_build()
 	_prefill()
-	get_window().files_dropped.connect(_on_files_dropped)
 	show_page(0)
 
 
@@ -88,7 +112,7 @@ func _exit_tree() -> void:
 
 func _build() -> void:
 	var bg := ColorRect.new()
-	bg.color = Color(0.13, 0.14, 0.16)
+	bg.color = BG
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 	margin = MarginContainer.new()
@@ -104,13 +128,15 @@ func _build() -> void:
 	var header := Label.new()
 	header.text = TITLE
 	header.add_theme_font_size_override("font_size", 20)
+	header.add_theme_color_override("font_color", ORANGE)
 	v.add_child(header)
 	var steps := Label.new()
 	steps.name = "Steps"
-	steps.modulate = Color(1, 1, 1, 0.6)
+	steps.add_theme_color_override("font_color", DIM)
 	v.add_child(steps)
 	title_label = Label.new()
 	title_label.add_theme_font_size_override("font_size", 30)
+	title_label.add_theme_color_override("font_color", TITLE_GREEN)
 	v.add_child(title_label)
 	v.add_child(HSeparator.new())
 	body = MarginContainer.new()
@@ -127,11 +153,15 @@ func _build() -> void:
 	var gap := Control.new()
 	gap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	foot.add_child(gap)
+	again_button = Button.new()
+	again_button.text = "Check again"
+	again_button.pressed.connect(func(): tools = IafSetup.tools(); _fill_requirements(); _update())
+	foot.add_child(again_button)
 	next_button = Button.new()
 	next_button.custom_minimum_size.x = 160
 	next_button.pressed.connect(_on_next)
 	foot.add_child(next_button)
-	for f in [_page_requirements, _page_welcome, _page_cd, _page_optional, _page_extras, _page_summary,
+	for f in [_page_welcome, _page_requirements, _page_cd, _page_optional, _page_extras, _page_summary,
 			_page_install, _page_done]:
 		var p: Control = f.call()
 		p.visible = false
@@ -151,24 +181,30 @@ func _text(parent: Control, t: String, dim := false) -> Label:
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	l.custom_minimum_size.x = 400
 	if dim:
-		l.modulate = Color(1, 1, 1, 0.65)
+		l.add_theme_color_override("font_color", DIM)
 	parent.add_child(l)
 	return l
 
 
-## A file picker row: label, path field, Browse, Clear and a status line; `check(path) -> [ok, text]`.
-func _file_row(parent: Control, label: String, filters: PackedStringArray, check: Callable) -> Dictionary:
+## A file picker row: label (and where to get the file: `link` [text, url]), path field, Browse, Clear and a status
+## line; `check(path) -> [ok, text]`, or [false, text, true] for a note (not an error).
+func _file_row(parent: Control, label: String, filters: PackedStringArray, check: Callable, link := []) -> Dictionary:
 	var box := _vbox()
 	box.add_theme_constant_override("separation", 4)
 	parent.add_child(box)
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 16)
+	box.add_child(head)
 	var l := Label.new()
 	l.text = label
-	box.add_child(l)
+	head.add_child(l)
+	if link:
+		head.add_child(_link(link[0], link[1]))
 	var h := HBoxContainer.new()
 	box.add_child(h)
 	var edit := LineEdit.new()
 	edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	edit.placeholder_text = "drop the file here, or Browse…"
+	edit.placeholder_text = "the file's path, or Browse…"
 	h.add_child(edit)
 	var browse := Button.new()
 	browse.text = "Browse…"
@@ -196,8 +232,19 @@ func set_row(row: Dictionary, path: String) -> void:
 	var r: Array = [true, ""] if path == "" else row.check.call(path)
 	row.ok = r[0]
 	row.status.text = r[1]
-	row.status.modulate = Color(0.55, 0.9, 0.55) if r[0] else Color(1, 0.5, 0.45)
+	row.status.add_theme_color_override("font_color", GREEN if r[0] else (YELLOW if r.size() > 2 else RED))
 	_update()
+
+
+## A link that opens in the browser.
+func _link(text: String, url: String) -> LinkButton:
+	var b := LinkButton.new()
+	b.text = text
+	b.tooltip_text = url
+	b.add_theme_color_override("font_color", ORANGE)
+	b.add_theme_color_override("font_hover_color", YELLOW)
+	b.pressed.connect(func(): OS.shell_open(url))
+	return b
 
 
 func _browse(row: Dictionary, label: String, filters: PackedStringArray) -> void:
@@ -245,11 +292,56 @@ func _cap_width() -> void:
 	margin.add_theme_constant_override("margin_right", side)
 
 
-## The default theme with an unchecked box that shows on the dark background (a light outline).
+## The original menus' colours on Godot's default controls: grey frame buttons and fields, green when lit, and an
+## unchecked box that shows on the black background (a light outline).
 func _theme() -> Theme:
 	var t := Theme.new()
+	var box := func(bg: Color, border: Color) -> StyleBoxFlat:
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = bg
+		sb.border_color = border
+		sb.set_border_width_all(1)
+		sb.set_content_margin_all(6)
+		sb.content_margin_left = 12
+		sb.content_margin_right = 12
+		return sb
+	for c in ["Label", "Button", "CheckBox", "LineEdit", "OptionButton", "TextEdit", "RichTextLabel", "LinkButton"]:
+		t.set_color("font_color", c, TEXT)
+	t.set_color("default_color", "RichTextLabel", TEXT)
+	for c in ["Button", "OptionButton"]:
+		t.set_stylebox("normal", c, box.call(PANEL, FRAME))
+		t.set_stylebox("hover", c, box.call(FRAME, GREEN))
+		t.set_stylebox("pressed", c, box.call(PANEL, GREEN))
+		t.set_stylebox("focus", c, box.call(Color(0, 0, 0, 0), DIM_GREEN))
+		t.set_stylebox("disabled", c, box.call(Color8(30, 30, 36), PANEL))
+		t.set_color("font_hover_color", c, GREEN)
+		t.set_color("font_pressed_color", c, GREEN)
+		t.set_color("font_focus_color", c, TEXT)
+		t.set_color("font_disabled_color", c, Color(DIM, 0.45))
+	for c in ["LineEdit", "TextEdit"]:
+		t.set_stylebox("normal", c, box.call(Color8(16, 16, 20), FRAME))
+		t.set_stylebox("focus", c, box.call(Color(0, 0, 0, 0), GREEN))
+		t.set_stylebox("read_only", c, box.call(Color8(16, 16, 20), PANEL))
+		t.set_color("font_placeholder_color", c, Color(DIM, 0.5))
+		t.set_color("caret_color", c, GREEN)
+	# CheckBox falls back to Button's frames: none for it.
+	for st in ["normal", "hover", "pressed", "hover_pressed", "focus", "disabled"]:
+		t.set_stylebox(st, "CheckBox", StyleBoxEmpty.new())
+	t.set_color("font_hover_color", "CheckBox", GREEN)
+	t.set_color("font_pressed_color", "CheckBox", TEXT)
+	t.set_color("font_hover_pressed_color", "CheckBox", GREEN)
+	t.set_color("font_disabled_color", "CheckBox", Color(DIM, 0.45))
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = DIM_GREEN
+	t.set_stylebox("fill", "ProgressBar", fill)
+	var groove := StyleBoxFlat.new()
+	groove.bg_color = PANEL
+	t.set_stylebox("background", "ProgressBar", groove)
+	var sep := StyleBoxLine.new()
+	sep.color = FRAME
+	t.set_stylebox("separator", "HSeparator", sep)
 	var n := 16
-	for name_color in [["unchecked", Color(0.8, 0.82, 0.86)], ["unchecked_disabled", Color(0.45, 0.46, 0.5)]]:
+	for name_color in [["unchecked", DIM], ["unchecked_disabled", PANEL]]:
 		var img := Image.create(n, n, false, Image.FORMAT_RGBA8)
 		for y in n:
 			for x in n:
@@ -263,14 +355,9 @@ func _theme() -> Theme:
 
 func _page_requirements() -> Control:
 	var v := _vbox()
-	_text(v, "Setup builds the game's data from your own copy of Jane's IAF. First, what this computer has:")
+	_text(v, "What this computer has. The required parts must be here to go on; an optional part missing only greys out its extra.")
 	req_box = _vbox()
 	v.add_child(req_box)
-	var again := Button.new()
-	again.text = "Check again"
-	again.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	again.pressed.connect(func(): tools = IafSetup.tools(); _fill_requirements(); _update())
-	v.add_child(again)
 	_fill_requirements()
 	return v
 
@@ -285,34 +372,47 @@ func _fill_requirements() -> void:
 	var gpu := RenderingServer.get_video_adapter_name()
 	var headless := DisplayServer.get_name() == "headless"
 	var free_gb := _free_gb()
+	var free_text := ("%.1f GB free" % free_gb) if free_gb >= 0 else "free space unknown"
+	var imagery_gb: float = SURVEY_GB[0] + SURVEY_GB[1] + SENTINEL_GB
+	# [required, here, component, why it is needed, status when here, how to get it when missing]
 	var items := [
-		[true, gpu != "" or headless, "Graphics (Vulkan)", (gpu + " — " + RenderingServer.get_video_adapter_vendor()) if gpu != "" else "no GPU renderer", "install your GPU's Vulkan driver"],
-		[true, free_gb < 0 or free_gb >= BASE_GB, "Disk space", "%s free; the game data takes about %.0f GB (imagery more)" % [("%.1f GB" % free_gb) if free_gb >= 0 else "unknown", BASE_GB], "free some space on this disk"],
-		[false, tools.get("gdal", false), "GDAL (optional)", "modern terrain imagery", _hint("sudo pacman -S gdal", "brew install gdal")],
-		[false, tools.get("curl", false), "curl (optional)", "downloads the Survey of Israel sheets", _hint("sudo pacman -S curl", "brew install curl")],
-		[false, tools.get("python3", false), "python3 (optional)", "the Survey sheets' token, the pilot guide PDFs", _hint("sudo pacman -S python", "brew install python")],
-		[false, tools.get("firefox", false), "Firefox (optional)", "the Survey sheets' token, prints the pilot guide PDFs", _hint("sudo pacman -S firefox", "brew install --cask firefox")],
+		[true, gpu != "" or headless, "Graphics (Vulkan)", "draws the game",
+			(gpu + " — " + RenderingServer.get_video_adapter_vendor()) if gpu != "" else "", "install your GPU's Vulkan driver"],
+		[true, free_gb < 0 or free_gb >= BASE_GB, "Disk space: the game", "the install and the converted data, about %.0f GB" % BASE_GB,
+			free_text, "%s; free some space on this disk" % free_text],
+		[false, free_gb < 0 or free_gb >= BASE_GB + imagery_gb, "Disk space: imagery",
+			"Survey of Israel: about %.0f GB of kept downloads + %.0f GB converted\n(around the airbases only: %.0f + %.1f GB)\nSentinel-2: about %.1f GB" % [SURVEY_GB[0], SURVEY_GB[1], SURVEY_BASES_GB[0], SURVEY_BASES_GB[1], SENTINEL_GB],
+			"room for all of it", "%.1f GB left after the game: room for part of it" % maxf(0.0, free_gb - BASE_GB)],
+		[false, tools.get("gdal", false), "GDAL", "converts the terrain imagery", "found", _hint("sudo pacman -S gdal", "brew install gdal")],
+		[false, tools.get("curl", false), "curl", "downloads the Survey of Israel sheets", "found", _hint("sudo pacman -S curl", "brew install curl")],
+		[false, tools.get("python3", false), "python3", "reads the Survey's download token; builds the pilot guide PDFs", "found", _hint("sudo pacman -S python", "brew install python")],
+		[false, tools.get("firefox", false), "Firefox", "holds the Survey's download token; prints the pilot guide PDFs", "found", _hint("sudo pacman -S firefox", "brew install --cask firefox")],
 	]
+	var grid := GridContainer.new()
+	grid.columns = 5
+	grid.add_theme_constant_override("h_separation", 16)
+	grid.add_theme_constant_override("v_separation", 10)
+	req_box.add_child(grid)
+	var cell := func(t: String, color: Color, width: int, wrap := false) -> Label:
+		var l := Label.new()
+		l.text = t
+		l.add_theme_color_override("font_color", color)
+		l.custom_minimum_size.x = width
+		if wrap:
+			l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		grid.add_child(l)
+		return l
+	for h in ["", "Component", "Why it is needed", "Needed", "Status"]:
+		cell.call(h, ORANGE, 0)
 	req_ok = true
 	for it in items:
-		var h := HBoxContainer.new()
-		h.add_theme_constant_override("separation", 12)
-		var mark := Label.new()
-		mark.text = "✓" if it[1] else ("✗" if it[0] else "–")
-		mark.modulate = Color(0.55, 0.9, 0.55) if it[1] else (Color(1, 0.5, 0.45) if it[0] else Color(1, 0.8, 0.4))
-		mark.custom_minimum_size.x = 24
-		h.add_child(mark)
-		var label := Label.new()
-		label.text = it[2]
-		label.custom_minimum_size.x = 220
-		h.add_child(label)
-		var what := Label.new()
-		what.text = it[3] if it[1] else "%s — %s" % [it[3], it[4]]
-		what.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		what.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		what.modulate = Color(1, 1, 1, 0.75)
-		h.add_child(what)
-		req_box.add_child(h)
+		var mark_color: Color = GREEN if it[1] else (RED if it[0] else YELLOW)
+		cell.call("✓" if it[1] else ("✗" if it[0] else "–"), mark_color, 20)
+		cell.call(it[2], TEXT, 170)
+		cell.call(it[3], DIM, 330, true)
+		cell.call("required" if it[0] else "optional", TEXT if it[0] else DIM, 80)
+		cell.call(it[4] if it[1] else it[5], mark_color if not it[1] else DIM, 260, true)
 		if it[0] and not it[1]:
 			req_ok = false
 
@@ -330,19 +430,68 @@ func _free_gb() -> float:
 
 
 func _page_welcome() -> Control:
-	var v := _vbox()
-	_text(v, "Welcome. This sets up Jane's IAF: Israeli Air Force (1998) on a new engine, from your own CDs.")
-	_text(v, "You need the English CD image of Jane's IAF (an .iso file). Optional: the official v1.1 patch, the Hebrew CD or the Hebrew packs, modern terrain imagery and the pilot guides.")
-	_text(v, "Everything stays on this computer, in the assets folder:")
-	_text(v, assets, true)
-	_text(v, "The base setup takes a few minutes and about %.0f GB. You can run setup again at any time to add an extra or redo a step: only what changed runs." % BASE_GB)
-	return v
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 32)
+	var o := "#%s" % ORANGE.to_html(false)
+	var g := "#%s" % TITLE_GREEN.to_html(false)
+	var left := _rich(h, ("[font_size=28][b][i]Jane's IAF[/i][/b] [color=%s]reborn[/color][/font_size]\n" % o) +
+		"[i]Jane's IAF: Israeli Air Force[/i] (1998), reborn on a new open-source engine. Setup builds the game's data from your own CDs. Everything stays on this computer, in:\n" +
+		"[color=#%s]%s[/color]\n\n" % [DIM.to_html(false), assets] +
+		"[color=%s][b]Needed[/b][/color]\n[ul]the English CD image of Jane's IAF (an .iso file)[/ul]\n" % g +
+		"[color=%s][b]Optional[/b][/color]\n[ul]the official v1.1 patch (free download)\nthe Hebrew CD, or the Hebrew packs: the briefings and menus in Hebrew\nmodern terrain imagery: Survey of Israel 2015, Sentinel-2\nthe pilot guides: pictures and PDFs[/ul]\n" % g +
+		"[color=%s][b]Next[/b][/color]\n[ol type=1]Requirements: what this computer has.\nYour CD, then the optional files.\nExtras: the imagery and the pilot guides.\nSummary, then Install: a few minutes and about %.0f GB.[/ol]" % [g, BASE_GB])
+	left.size_flags_stretch_ratio = 1.4
+	for f in ["normal_font_size", "bold_font_size", "italics_font_size", "bold_italics_font_size"]:
+		left.add_theme_font_size_override(f, 15)
+	var right := _rich(h, ("[color=%s][b]About[/b][/color]\n" % g) +
+		("Source code: [url=%s]%s[/url]\n" % [REPO_URL, REPO_URL]) +
+		"Licence: GNU General Public License v3.0 or later. The repository holds no data from the original game.\n" +
+		"\"Jane's\" and \"Jane's IAF\" are trademarks of their owners. This is an independent, non-commercial project, not affiliated with or endorsed by them, Electronic Arts or the original developer.\n\n" +
+		("[color=%s][b]Attributions[/b][/color]\n" % g) +
+		"[ul]Detailed F-16D: from the FlightGear F-16 by Erik Hofman, Nikolai V. Chr. and the other authors (GPL 2.0 or later)\n" +
+		"F-35I Adir: \"Lockheed Martin F35 Lightning II\" by andertan (CC BY 4.0); the 116 Squadron badge by the IDF Spokesperson's Unit (CC BY-SA 3.0)\n" +
+		"Survey of Israel imagery: © Survey of Israel 2015, via data.gov.il\n" +
+		"Sentinel-2 imagery: contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium (CC BY 4.0)[/ul]")
+	right.add_theme_font_size_override("normal_font_size", 14)
+	right.add_theme_font_size_override("bold_font_size", 14)
+	return h
+
+
+## A wrapping BBCode text in `parent` that fills it; its links open in the browser.
+func _rich(parent: Control, bbcode: String) -> RichTextLabel:
+	var r := RichTextLabel.new()
+	r.bbcode_enabled = true
+	r.text = bbcode
+	r.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	r.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	r.add_theme_constant_override("paragraph_separation", 4)
+	r.add_theme_color_override("default_color", TEXT)
+	r.meta_underlined = true
+	r.meta_clicked.connect(func(m): OS.shell_open(str(m)))
+	parent.add_child(r)
+	return r
 
 
 func _page_cd() -> Control:
 	var v := _vbox()
-	_text(v, "Give the English CD image of Jane's IAF. Drop the .iso file on this window, or Browse.")
+	_text(v, "Give the English CD image of Jane's IAF (an .iso file).")
 	cd_row = _file_row(v, "English CD image (required)", PackedStringArray(["*.iso, *.ISO ; CD image"]), _check_cd)
+	v.add_child(HSeparator.new())
+	_text(v, "Or let setup find your files: it looks in a folder and its subfolders for the CD images, the v1.1 patch and the Hebrew packs, and fills in this page and the next.", true)
+	var find := Button.new()
+	find.text = "Find in a folder…"
+	find.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	find.pressed.connect(func():
+		var d := FileDialog.new()
+		d.use_native_dialog = true
+		d.access = FileDialog.ACCESS_FILESYSTEM
+		d.file_mode = FileDialog.FILE_MODE_OPEN_DIR
+		d.title = "The folder with your Jane's IAF files"
+		d.dir_selected.connect(scan_folder)
+		add_child(d)
+		d.popup_centered(Vector2i(900, 600)))
+	v.add_child(find)
+	scan_note = _text(v, "", true)
 	return v
 
 
@@ -352,20 +501,60 @@ func _check_cd(path: String) -> Array:
 		"english":
 			return [true, "✓ The English CD of Jane's IAF."]
 		"hebrew":
-			return [false, "This is the Hebrew CD. The game needs the English CD here; the Hebrew CD goes on the next page."]
+			# The Hebrew CD's game is the copy-protected build and the v1.1 patch does not apply to it (docs/setup.md):
+			# it goes on the Optional page.
+			if hebrew_row.edit.text == "":
+				set_row(hebrew_row, path)
+			return [false, "This is the Hebrew CD of Jane's IAF. It adds the Hebrew briefings and menus, so setup keeps it for the next page. The game itself is built from the English CD: give that one here.", true]
 	return [false, "✗ Not a Jane's IAF CD image (%s)." % r.why]
+
+
+## Looks in `dir` and its subfolders (3 levels) for the CD images, the patch and the packs, and fills the empty rows.
+func scan_folder(dir: String) -> void:
+	var found := []
+	var todo := [[dir, 0]]
+	while todo:
+		var at: Array = todo.pop_back()
+		for f in DirAccess.get_files_at(at[0]):
+			var path: String = at[0].path_join(f)
+			match f.get_extension().to_lower():
+				"iso":
+					var kind: String = IafSetup.check_cd(path).kind
+					if kind == "english" and cd_row.edit.text == "":
+						set_row(cd_row, path)
+						found.append("the English CD")
+					elif kind == "hebrew" and hebrew_row.edit.text == "":
+						set_row(hebrew_row, path)
+						found.append("the Hebrew CD")
+				"exe", "rtp":
+					if patch_row.edit.text == "" and IafSetup.check_patch(path).ok:
+						set_row(patch_row, path)
+						found.append("the v1.1 patch")
+				"zip":
+					var p: Dictionary = IafSetup.check_pack(path)
+					if p.ok and p.brief > 0 and brief_row.edit.text == "":
+						set_row(brief_row, path)
+						found.append("the Hebrew briefings pack")
+					elif p.ok and p.menu > 0 and menu_row.edit.text == "":
+						set_row(menu_row, path)
+						found.append("the Hebrew menus pack")
+		if at[1] < 3:
+			for d in DirAccess.get_directories_at(at[0]):
+				if not d.begins_with("."):
+					todo.append([at[0].path_join(d), at[1] + 1])
+	scan_note.text = ("Found: %s." % ", ".join(found)) if found else "Found nothing new in %s." % dir
 
 
 func _page_optional() -> Control:
 	var v := _vbox()
 	_text(v, "All optional. Leave a field empty to go without it.")
-	patch_row = _file_row(v, "The official v1.1 patch (iafp1_1.exe, or the downloaded update)", PackedStringArray(["*.exe, *.EXE, *.zip, *.rtp ; patch"]), _check_patch)
-	hebrew_row = _file_row(v, "The Hebrew CD image (all the Hebrew briefings and menus)", PackedStringArray(["*.iso, *.ISO ; CD image"]), _check_hebrew)
+	patch_row = _file_row(v, "The official v1.1 patch: the file you download, as it is", PackedStringArray(["*.exe, *.EXE, *.zip, *.rtp ; patch"]), _check_patch, ["Get the patch", PATCH_URL])
+	hebrew_row = _file_row(v, "The Hebrew CD image: all the Hebrew briefings and menus", PackedStringArray(["*.iso, *.ISO ; CD image"]), _check_hebrew)
 	packs_box = _vbox()
 	v.add_child(packs_box)
-	_text(packs_box, "Without the Hebrew CD: the Hebrew packs from preflight.us (docs/packs.md).", true)
-	brief_row = _file_row(packs_box, "Hebrew briefings (Brief.zip)", PackedStringArray(["*.zip ; zip"]), _check_pack.bind("brief"))
-	menu_row = _file_row(packs_box, "Hebrew menus (Menu.zip)", PackedStringArray(["*.zip ; zip"]), _check_pack.bind("menu"))
+	_text(packs_box, "Without the Hebrew CD: the two Hebrew packs from preflight.us, an Israeli flight-sim site (its downloads need a login).", true)
+	brief_row = _file_row(packs_box, "Hebrew briefings (Brief.zip)", PackedStringArray(["*.zip ; zip"]), _check_pack.bind("brief"), ["Get Brief.zip", BRIEF_URL])
+	menu_row = _file_row(packs_box, "Hebrew menus (Menu.zip)", PackedStringArray(["*.zip ; zip"]), _check_pack.bind("menu"), ["About the packs", PACKS_URL])
 	return v
 
 
@@ -399,7 +588,7 @@ func _page_extras() -> Control:
 	var gdal: bool = tools.get("gdal", false)
 	var need_gdal := "" if gdal else "Needs GDAL (see Requirements)."
 	mapi_check = _extra(v, "Survey of Israel 2015 imagery (2 m, over Israel)",
-		"Downloads the Survey's sheets from data.gov.il with curl and your Firefox's data.gov.il token (without one it opens them in your browser's tabs), then converts them. All of Israel: 79 sheets, about 17 GB of downloads (kept) and 5 GB converted, about an hour of CPU. Around the airbases: 9 sheets, about 18 minutes. Resumable.",
+		"Downloads the Survey's sheets from data.gov.il with curl and your Firefox's data.gov.il token (without one it opens them in your browser's tabs), then converts them. All of Israel: 79 sheets, about 17 GB of downloads (kept) and 5 GB converted. Around the airbases: 9 sheets, about 2 GB of downloads. Sheets already downloaded are not downloaded again, and converted units are kept.",
 		"" if gdal and tools.get("curl", false) and tools.get("python3", false) else "Needs GDAL, curl and python3 (see Requirements).")
 	mapi_scope = OptionButton.new()
 	mapi_scope.add_item("all of Israel")
@@ -408,7 +597,7 @@ func _page_extras() -> Control:
 	mapi_scope.disabled = mapi_check.disabled
 	mapi_check.get_parent().add_child(mapi_scope)
 	sentinel_check = _extra(v, "Sentinel-2 imagery (10 m, outside Israel)",
-		"About 28 GB read over the network, about 2.5 GB on disk, about 1 h 40 min. Resumable.", need_gdal)
+		"About 28 GB read over the network, about 2.5 GB on disk. Units already converted are not read again.", need_gdal)
 	refresh_check = _extra(v, "Bring the imagery up to date",
 		"Converts again the imagery units that older rules made (after copying imagery from another computer).", need_gdal)
 	refresh_note = refresh_check.get_parent().get_child(1)
@@ -545,6 +734,7 @@ func _update() -> void:
 	back_button.disabled = false
 	next_button.visible = true
 	next_button.disabled = false
+	again_button.visible = pg == "Requirements"
 	match pg:
 		"Requirements":
 			next_button.text = "Next"
@@ -638,24 +828,6 @@ func _prefill() -> void:
 	guides_check.button_pressed = i.get("guides", false)
 
 
-func _on_files_dropped(files: PackedStringArray) -> void:
-	if files.is_empty():
-		return
-	var f := files[0]
-	match PAGES[page]:
-		"Your CD":
-			set_row(cd_row, f)
-		"Optional":
-			# Where the file goes: what it is.
-			if IafSetup.check_patch(f).ok:
-				set_row(patch_row, f)
-			elif IafSetup.check_cd(f).kind != "none":
-				set_row(hebrew_row, f)
-			else:
-				var p: Dictionary = IafSetup.check_pack(f)
-				set_row(menu_row if p.get("menu", 0) > p.get("brief", 0) else brief_row, f)
-
-
 func _fill_summary() -> void:
 	var i := inputs()
 	var t := "[b]The English CD[/b]\n    %s\n\n" % i.cd
@@ -710,8 +882,8 @@ func _fill_rows(steps: Array, keep: bool) -> void:
 		var st: String = s.get("state", "waiting")
 		r.state.text = STATE_TEXT.get(st, st)
 		r.state.tooltip_text = s.get("detail", "")
-		r.state.modulate = {"done": Color(0.55, 0.9, 0.55), "up_to_date": Color(0.6, 0.8, 1.0), "failed": Color(1, 0.5, 0.45),
-			"running": Color(1, 0.85, 0.4), "skipped": Color(1, 1, 1, 0.6)}.get(st, Color(1, 1, 1, 0.75))
+		r.state.add_theme_color_override("font_color", {"done": GREEN, "up_to_date": DIM_GREEN, "failed": RED,
+			"running": YELLOW, "skipped": DIM}.get(st, TEXT))
 		r.bar.value = s.get("fraction", 0.0)
 		r.bar.modulate.a = 1.0 if st == "running" else 0.0
 

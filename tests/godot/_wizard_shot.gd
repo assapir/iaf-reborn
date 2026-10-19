@@ -1,7 +1,7 @@
 # Real-render screenshots of every setup wizard page, with a real run on a scratch assets folder (the review gate):
 #   tools/godot_window.sh IAF_ASSETS_DIR=<scratch> IAF_DEFAULT_SETTINGS=1 XDG_DATA_HOME=<scratch>/xdg SHOT_OUT=<dir> -- \
 #     --log-file <log> --path game -s ../tests/godot/_wizard_shot.gd
-# Uses the English ISO, the v1.1 patch and Brief.zip / Menu.zip from ~/Downloads.
+# SHOT_PAGES=1: the pages only, no install run. Uses the English ISO, the v1.1 patch and Brief.zip / Menu.zip from ~/Downloads.
 extends "res://../tests/godot/base.gd"
 
 const DL := "Downloads"
@@ -26,9 +26,9 @@ func run() -> void:
 	change_scene_to_file("res://setup/wizard.tscn")
 	await frames(10)
 	var w: Control = current_scene
-	await shot("1_requirements")
+	await shot("1_welcome")
 	w._on_next()
-	await shot("2_welcome")
+	await shot("2_requirements")
 	w._on_next()
 	w.set_row(w.cd_row, dl.path_join("Janes-Combat-Simulations-IAF-Israeli-Air-Force_Win_EN_ISO-Version/Jane's IAF.iso"))
 	await shot("3_your_cd")
@@ -43,6 +43,8 @@ func run() -> void:
 	await shot("6_summary")
 	w._on_next()
 	await shot("7_install_ready")
+	if OS.get_environment("SHOT_PAGES") != "":
+		return
 	w._on_next()
 	await seconds(30.0)
 	w.log_button.pressed.emit()
