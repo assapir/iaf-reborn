@@ -62,7 +62,7 @@ airbases (Graphics → MORE Airbases: procedural runway / taxiway / apron surfac
 docs/rendering.md §7) and the airbase footprints of the Survey imagery (the 2 m photo up to the base edge,
 docs/imagery.md §3).
 
-**PARKED (docs/roadmap.md):** imagery: SPOT 5 outside Israel, 1:1 world scale, better AI, cheats, sea level west of
+**PARKED (docs/roadmap.md):** imagery: SPOT 5 outside Israel, better AI, cheats, sea level west of
 Suez, extra sounds, multiplayer, setup wizard + launcher, modern aircraft / weapons, Pi 5 profile.
 
 ## Small bugs (fix between jobs)

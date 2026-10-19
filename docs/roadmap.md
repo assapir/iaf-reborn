@@ -276,7 +276,7 @@ live play while recording at 4K. Two ways:
 - Add more Israeli bases (e.g. Hatzerim, Nevatim, Hatzor, Palmachim, Ovda) with their real layouts where the terrain
   has no inset (our own airbase imagery / models, real coordinates), selectable in the briefing / Jump In.
 
-## Real world scale — 1:1 mode (decided: we want it; parked, docs/status.md)
+## Real world scale — 1:1 mode (next: after the current parity and wishlist work, user decision 2026-10-20)
 - **Today:** the terrain itself is real size (measured with the georeference: ×0.99–1.01, docs/georef.md). Two
   things are enlarged: the models (bdb Present scale ×2 aircraft / buildings, ×3–4 vehicles) and the airbases
   (runways, base distances 0.75–1.13 of real, away from their real positions — not uniform).
