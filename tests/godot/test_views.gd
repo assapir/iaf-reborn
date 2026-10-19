@@ -148,6 +148,10 @@ func run() -> void:
 	# Own jet from the cockpit (FUN_004d9d70): the *_BC model in 1 / 0x12 / 0x16, the jet model outside.
 	check(tv.own_bc != null and tv.own_bc.visible and not tv.aircraft.visible, "cockpit: the own jet's _bc model drawn")
 	check(tv.own_bc.scale == tv.aircraft.scale, "the _bc model at the jet's Present scale")
+	var bc_stores: Dictionary = tv.weapons._bc_store_nodes
+	check(not bc_stores.is_empty() and bc_stores.keys() == tv.weapons._store_nodes.keys()
+		and bc_stores.values().any(func(l): return l.any(func(n): return n.is_visible_in_tree())),
+		"cockpit: the stores drawn on the _bc model (FUN_004da090 → FUN_0053e430)")
 	press(tv, KEY_F1)
 	await frames(1)
 	check(tv.views.type == V.HUD_ONLY and tv.cockpit.view_mode == 1 and tv.in_cockpit, "F1: HUD only")

@@ -216,7 +216,8 @@ Numpad snap keys turn the orbit: 8 / 2 pitch, 6 / 4 heading. F2 and 1 / 3 / 7 / 
   a heavy rear frame on the Kurnass 2000, a rear hood on the Kfir, a rear fairing on the Mirage, sill rails only on
   the frameless-canopy F-15, through `FUN_004da060` (display slot 4, the crew's cockpit flag
   set so the pilot and canopy stay hidden) and back to slot 1 after the draw (`FUN_004c3210`). The model is moved
-  by the eye offset (`FUN_00444da0`) so the eye sits at the camera. The HUD-only view (5) draws no own jet. The
+  by the eye offset (`FUN_00444da0`) so the eye sits at the camera. The same draw (`FUN_004da090`) then draws the stores on their slots (`FUN_0053e430`, EXTERNAL STORES on), so
+  looking aside or back shows the loads on the wings. The HUD-only view (5) draws no own jet. The
   F-4E draws only its cockpit. Ours: the F-35I's is `f35i_bc.gltf` (`tools/f35i/bc.py`, docs/f35i.md §4.4).
 * **Free look** (0x12, `FUN_00582370`):
   * Press: angle = start + rate · 2·t·(1 − 0.9^t). The rate is 45°/s, so the pan speeds up toward 90°/s.

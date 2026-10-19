@@ -118,6 +118,7 @@ var _round_nodes: Array = []
 var _round_scale := 1.0
 var _flash: Node3D
 var _store_nodes := {}  # station -> [Node3D per slot]
+var _bc_store_nodes := {}  # the same on the cockpit-view model (host.own_bc)
 var _bay_until := -1.0
 var _releases := 0
 var _bay_retry := false  # a missile release waiting for the bay doors
@@ -219,6 +220,7 @@ func rearm(entity: Dictionary, object: Dictionary, bdb: Dictionary, desc: Dictio
 			n.queue_free()
 	_round_nodes.clear()
 	_store_nodes = {}
+	_bc_store_nodes = {}
 	_pod_nodes = []
 	_given_load = load
 	setup(host, entity, object, bdb, desc)
@@ -2053,6 +2055,11 @@ func _build_visuals() -> void:
 		var att := attach_stores(stores, host.aircraft)
 		_store_nodes = att.nodes
 		_pod_nodes = att.pods
+	# The cockpit views draw the stores too, on the `_bc` model (FUN_004da090 → FUN_0053e430 after the slot-4 draw).
+	if host.get("own_bc") != null:
+		var bc := attach_stores(stores, host.own_bc)
+		_bc_store_nodes = bc.nodes
+		_pod_nodes += bc.pods
 	_update_store_nodes()
 
 
@@ -2080,10 +2087,11 @@ func _update_store_nodes() -> void:
 	var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
 	var near := cam == null or host.rig == null or cam.global_position.distance_to(host.rig.global_position) < STORES_DRAW_DIST
 	var bay_shown: bool = host.aircraft != null and host.aircraft.bay_fraction() > 0.5
-	for i in _store_nodes:
-		var n := int(stores.station(i).get("count", 0))
-		for k in _store_nodes[i].size():
-			_store_nodes[i][k].visible = Settings.external_stores and near and k < n and (bay_shown or not _internal(i))
+	for nodes in [_store_nodes, _bc_store_nodes]:
+		for i in nodes:
+			var n := int(stores.station(i).get("count", 0))
+			for k in nodes[i].size():
+				nodes[i][k].visible = Settings.external_stores and near and k < n and (bay_shown or not _internal(i))
 	for b in _pod_nodes:
 		b.visible = Settings.external_stores and near
 
