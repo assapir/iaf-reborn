@@ -173,6 +173,8 @@ func setup(host_node: Node, mission_files: Array, bdb: Dictionary, player_id := 
 				"side": int(e.get("0x2d0", 0)), "heading": float(e.get("0x302", 0)),
 				"vel": Vector3.ZERO, "fall": null, "combat": true, "brain": _brain_of(e),
 				"armament": e.get("armament"),
+				# State +0x44, known to the player (entity 0x35c; the player's radar sets it too): the TSDs show the unit.
+				"known": int(e.get("0x35c", 0)) != 0,
 			}
 			_init_damage(ent, objects.get(ent.type, {}))
 			entities[ent.key] = ent

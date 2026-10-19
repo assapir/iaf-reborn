@@ -41,6 +41,7 @@ fn contact(r: &Radar, c: &Contact) -> VarDictionary {
         "speed" => c.speed_kt,
         "type" => c.type_code,
         "alt" => c.pos.z,
+        "mach" => c.mach,
     }
 }
 
@@ -145,6 +146,11 @@ impl IafRadar {
     #[func]
     fn lock_key(&mut self, key: GString) -> bool {
         self.with(|r, _| r.lock_key(&key.to_string()))
+    }
+
+    #[func]
+    fn select_key(&mut self, key: GString) -> bool {
+        self.with(|r, _| r.select_key(&key.to_string()))
     }
 
     #[func]

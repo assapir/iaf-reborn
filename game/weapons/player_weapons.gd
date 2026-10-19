@@ -16,6 +16,7 @@ const Guided := preload("res://weapons/guided.gd")
 const MrmSight := preload("res://weapons/mrm_sight.gd")
 const Radar := preload("res://weapons/radar.gd")
 const Rwr := preload("res://weapons/rwr.gd")
+const Tsd := preload("res://menu/tsd.gd")
 const EoSensor := preload("res://weapons/eo_sensor.gd")
 const HarmSensor := preload("res://weapons/harm_sensor.gd")
 const DamageEffects := preload("res://mission/damage_effects.gd")
@@ -1585,7 +1586,8 @@ func rocket_effect(pos: Vector3) -> void:
 # --- radar (docs/radar.md) ---------------------------------------------------------------------------
 
 ## Radar key events (FUN_0044a240): 0x21 / 0x22 range, 0x24 Q modes, 0x2b R A-A / A-G, 0x2c S standby,
-## 0x2d / 0x2e boresight down / up, 0x26 / 0x27 next / previous target, 0x31 deselect, 0x2a lock (key).
+## 0x2d / 0x2e boresight down / up, 0x26 / 0x27 next / previous target, 0x31 deselect, 0x2a lock (key),
+## 0x32 select (key, FUN_004add20: a TWS press).
 func radar_event(ev: int, arg = null) -> void:
 	match ev:
 		0x21: radar.step_range(1, now)
@@ -1603,6 +1605,7 @@ func radar_event(ev: int, arg = null) -> void:
 				_eo_start(EoSensor.TV)
 		0x31: radar.deselect(now)
 		0x2a: radar.lock_key(String(arg))
+		0x32: radar.select_key(String(arg))
 		0x2f:
 			var g = host.mission_ground(Vector3(arg.x, arg.y, 0.0))
 			radar.designate(arg.x, arg.y, float(g) if g != null else 0.0, now)
@@ -1969,6 +1972,7 @@ func _publish() -> void:
 		(eo_centre - o.pos).length()), "tv": eo.tv_page(eo_ae, tv_status()), "tv_time": tv_time(), "flir_pod": flir_pod}
 	c.harm = harm.page(_base(o), stores.total(stores.current_type(), stores.current_name()), harm_in_range)
 	c.rwr = rwr.display()
+	c.sam_sites = _sam_sites()
 	c.indicators[Rwr.LAMP_AI] = rwr.lamps[Rwr.LAMP_AI]
 	c.indicators[Rwr.LAMP_SAM] = rwr.lamps[Rwr.LAMP_SAM]
 	c.weapons = {
@@ -1985,6 +1989,24 @@ func _publish() -> void:
 		"ag": {"pipper": ag.pipper if hud_mode in [5, 6] else null, "off": ag.off, "frozen": ag.frozen,
 			"ttg": ClassDB.class_call_static("IafRelease", "ttg_shown", float(ag.ttg)), "blink": now < float(ag.blink_until)},
 	}
+
+
+## The TSD's SAM sites (FUN_00446270, every frame from the TSD table FUN_004d2900): the class-8 units alive
+## (state ∉ {4, 5}), controlled and known to the player (docs/front-end.md §8.1), 16 at most: {pos, r (the table's
+## ring radius by type, 0 for the others)}.
+func _sam_sites() -> Array:
+	var out := []
+	var rt = host.runtime
+	if rt == null:
+		return out
+	for e in rt.entities.values():
+		if int(e.get("klass", -1)) != 8 or int(e.state) in [4, 5] or int(e.control) == 0 or not e.get("known", false):
+			continue
+		var w: Vector3 = rt._world_of(e)
+		out.append({"pos": Vector2(w.x, w.y), "r": float(Tsd.SAM_RING.get(int(e.get("type_code", -1)), 0.0))})
+		if out.size() == 16:
+			break
+	return out
 
 
 # --- visuals ----------------------------------------------------------------------------------------

@@ -16,7 +16,7 @@ var aa := true
 var off := true
 var damaged := false
 ## The contact list (15, nearest first): {key, unit, pos, heading, locked, selected, hostile, prio, aspect, az,
-## el, dist, speed, type, alt}.
+## el, dist, speed, type, alt, mach}.
 var contacts: Array = []
 var antenna := Vector2.ZERO
 var designated := false
@@ -181,6 +181,13 @@ func next_target(forward: bool, _now: float) -> void:
 ## Event 0x2a (a click on a blip).
 func lock_key(key: String) -> bool:
 	var ok: bool = _r.lock_key(key)
+	_sync()
+	return ok
+
+
+## Event 0x32 (a TWS press on a blip): select it, unlocked.
+func select_key(key: String) -> bool:
+	var ok: bool = _r.select_key(key)
 	_sync()
 	return ok
 

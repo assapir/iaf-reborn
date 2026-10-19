@@ -224,7 +224,8 @@ A/P 88, ELCT 97, GNRT 106. Redrawn when state+0x558.. flags change.
 | 7 | GMT | (132,660) | (baked in tile) |
 | 8 | MAP | (132,528) | (baked in tile) |
 
-- Range sprite at (1,33) (modes ≥3 and TSD). Range R (NM) = {5,10,20,40,80,160}[state+0xa08 − 1] (`FUN_00522190`).
+- Range sprite at (1,33) (modes ≥ 2 and TSD; `FUN_00533990`: 5 / 10 / 20 / 40 / 80 / 160 NM → sprites 0..5, rects
+  `0x65d610`). Range R (NM) = {5,10,20,40,80,160}[state+0xa08 − 1] (`FUN_00522190`).
 - Horizon bars (`FUN_00533620`): polylines (−31,4)(−31,0)(−5,0) and mirror, centre (66,66), rotated by roll, shifted
   1 px/deg pitch, pitch clamped ±40 (blink every 300 ms beyond).
 - Antenna carets (`FUN_00533500`): v = clamp(ftol(val·106),0,106); azimuth: x=13+v, y117..120 + bar x11+v..16+v at
@@ -236,21 +237,32 @@ A/P 88, ELCT 97, GNRT 106. Redrawn when state+0x558.. flags change.
   (x, y): (x−3, y+3)–(x+4, y+3), (x−3, y+2)–(x, y−3)–(x+4, y+4)) marks the steerpoint on the GMT and MAP pages.
 - **B-scope blip**: x = 66 + (az + state+0xa14)·112/state+0xa24; y = 115 − range_m/(R·16.5446) (16.5446 = 1853/112,
   i.e. R NM = 112 px); drawn only inside 8<x,y<124. Contacts (≤15, state+0x640.., stride 0x40): X +0x640, Y +0x644,
-  locked +0x658, tracked +0x65c, id +0x664, speed +0x668, aspect +0x66c, az +0x670, range +0x678.
-- BORE/ACM (`FUN_005352c0`): 3x3 box with diagonal per contact.
-- LRS (`FUN_00534840`): 5x5 box + inner 3x3; cursor = two vertical bars at mouse x±4, y±5; click on blip → event 0x2a
-  (lock, id).
-- TWS (`FUN_00534b20`): untracked 5x5 box, tracked ~7 px filled disc; 4-px aspect stub quantised to 45°; hover text
-  "%02d" altitude in kft and "%02d" Mach × 10 (+0x67c·10); the manual (EN 4.17) names both.
-- STT (`FUN_00533db0`/`FUN_00534160`): disc + aspect stub; carets follow the target; range scale line x=121 y10..122
-  with three black ticks at y 39 / 65 / 91 (x 117..121), the selected store's DLZ max / min (S+0x348 / +0x350,
-  docs/weapons.md §11.2) as ticks x 121..117 at y = 122 − ⌊v·112/(R·1853)⌋ while 0 < 112 − ⌊v·k⌋ < 112, and "<"
-  caret at y = 115 − r·112/(R·1853); text "%3dK" speed at
-  (86,3), aspect "%2dL"/"%2dR" at (62,3), closure "%3dK" at (111, caret+8).
+  altitude +0x648 (m; shown ×0.0032808 = kft), locked +0x658, tracked +0x65c, id +0x664, speed +0x668, aspect +0x66c
+  (rad), az +0x670, range +0x678, Mach +0x67c.
+- **Aspect stub** (TWS / STT): bin = ⌊aspect°⌋ % 360 (truncated), wrapped at ±210, / 45 (truncated) → −4..4; a line
+  from 2 px out to 6 px: 0 up, 1 up-right, 2 right, 3 down-right, ±4 down, −3 down-left, −2 left, −1 up-left.
+- BORE/ACM (`FUN_005352c0`): 3x3 box with the \ diagonal (−1,−1)→(1,1) per contact.
+- LRS (`FUN_00534840`): 5x5 box + inner 3x3 with the \ diagonal; cursor = two vertical bars at mouse x±4, y−5..y+5;
+  a press on a blip (button held, +0x27d8) → event 0x2a (lock, id).
+- TWS (`FUN_00534b20`): unselected 5x5 box, the selected contact a ~7 px filled disc; every contact its aspect stub;
+  the LRS cursor bars. A press (+0x27d8) on a contact (±4 px) other than the selected one → event 0x32 (select it,
+  unlocked: `FUN_004add20` → the mode's vt+0x38(id, 0) → `FUN_004b05a0`); a double-click (+0x27e0) → 0x2a (lock →
+  STT). While the mouse is over a contact: "%02d" altitude (kft) right-aligned at (mouse+17, mouse−3) and "%02d"
+  Mach × 10 right-aligned at (mouse−4, mouse−3); the manual (EN 4.17) names both. The selected contact in the window
+  also gets the STT block of `FUN_00533db0` (the scale, caret, DLZ and text below).
+- STT (`FUN_00534160`): the first locked contact only: disc + aspect stub; no antenna carets: the carets sit at the
+  target, x = clamp(tx − 13, 0, 106) + 13, y = clamp(ty − 13, 0, 106) + 13 (the antenna carets' shapes); "%02d"
+  altitude right-aligned at (tx+15, ty−3), "%02d" Mach × 10 at (tx−3, ty−3), each while its anchor (tx+10 / tx−8) is
+  in the window. `FUN_00533db0` (text right-aligned, `FUN_00525920`): range scale line x=121 y10..122 with three
+  black ticks at y 39 / 65 / 91 (x 117..121), the selected store's DLZ max / min (S+0x348 / +0x350, docs/weapons.md
+  §11.2) as ticks x 121..117 at y = 122 − ⌊v·112/(R·1853)⌋ while 0 < 112 − ⌊v·k⌋ < 112; n = 105 − ⌊r·112/(R·1853)⌋,
+  while 0 < n < 112 (no clamping) a ">" caret with its tip at (116, 10+n) and arms to (113, 10+n±3) and the closure
+  "%3dK" ending at x 111, y = n+8 (the caret's row − 2); "%3dK" speed (≥ 0) ending at x 86, aspect "%2dL"/"%2dR"
+  ending at x 62 (y 3).
 - GMT (`FUN_00535400`): heading-up PPI, origin (66,109), R·1853/56 m/px; per contact a ±10 cross when locked, then
   the 3x3 box (always); the steerpoint triangle; the horizon bars and the antenna carets; while the MFD owns the
-  cursor: the cross-hair to the edges with a 3-px gap and 5-px ticks at ±31, and a click within ±4 px of an
-  unlocked contact sends 0x2a (lock it).
+  cursor: the cross-hair to the edges with a 3-px gap and 5-px ticks at ±31, and a double-click (+0x27e0, the
+  WM_LBUTTONDBLCLK handler `FUN_004dc8a0` → `FUN_00522120`) within ±4 px of an unlocked contact sends 0x2a (lock it).
 - MAP (`FUN_00535ea0`, switch on the pass): 0 loads isr.bmp (`FUN_0053ae00(…, 1)`: green palette); 1 the picture
   (§4); 2 OSB 3 (top middle) → event 0x30 (NORM ↔ EXP, latched per press); 3 label "NORM" / "EXP" (0x65d744 /
   0x65d740, state+0xa18) at (60,3); 4 the symbols, clipped to the window (15,15)–(116,109) (so the antenna carets
@@ -267,18 +279,24 @@ The TSD is a heading-up tactical map with waypoints and SAM sites around the own
 - Map = **`Emf\map.emf`** (the radar MAP uses isr.bmp, §4) (load `FUN_0053a630`, draw `FUN_00539f20`, clip (10,10)-(122,122)). 20
   POLYGON16 records, brushes 0xc7c7c8, 0x878889, 0x5b2222. EMF units: `u = ftol(ftol((X+166850)/819200·12601)·1.0071394)`,
   `v = ftol(ftol((1043816−Y)/1064960·16383)·1.0071394)` (floats `0x60c3e8..0x60c400`; ×1.0071394 meaning UNCERTAIN).
-- **Heading-up**, ownship fixed at **(65,85)**. Scale: 1 px = 112·scale m, scale +0x279c ∈ {10,20,40,80}, default 40,
-  OSB 0xb/0xc = next/prev (`FUN_00531850`/`FUN_00531950`). World offset (ex = X−ownX, ny = Y−ownY):
-  `x = 65 + (ex·C − ny·S)/k`, `y = 85 − (ex·S + ny·C)/k`, k = 112·scale, S/C = sin/cos heading (+0x2734/+0x2738).
+- **Heading-up**, ownship fixed at **(65,85)**. Scale: 112 px = scale NM, scale +0x279c ∈ {10,20,40,80}, default 40,
+  OSB 0xb/0xc = next/prev, wrapping 80 → 10 and 10 → 80 (`FUN_00531850`/`FUN_00531950`); range sprite 1..4
+  (`FUN_00533b80`). World offset (ex = X−ownX, ny = Y−ownY): `x = 65 + (ex·C − ny·S)/k`, `y = 85 − (ex·S + ny·C)/k`,
+  k = scale·16.5446 m/px (0x60c410, @531d92 / @532216), S/C = sin/cos heading (+0x2734/+0x2738).
 - Fixed GDI (pen 0x58c, null brush): circle r=22 (43,63)-(87,107); ownship lines (60..71,81), (65,78..91), tail
   (63..68,91); outer ring r=44 (21,41)-(109,129) when SCL on.
 - Compass letters S/E/N/W (sprites) on radius 18 around (65,85), rotating with heading.
 - Right OSBs toggle (default all on): 0x10 SAM (+0x278c), 0x11 WPT (+0x2790), 0x12 MAP (+0x2794), 0x13 SCL
-  (+0x2798); highlight box (111,20+20i)-(128,29+20i) when on.
+  (+0x2798); highlight box (111,20+20i)-(128,29+20i) when on. With MAP on, pass 3 redraws the labels "sa", "wp",
+  "ma", "sc" left-aligned at (113, 22+20i) over the map.
 - Waypoints (state+0x7c/+0x80, stride 0x2c, count +0x310, current +0x320, type +0xa4): polyline in 0x58c; current
-  filled 5x5 green (0x27a4), type 5 (the target waypoint, EN 4.15) red triangle (0x27ac)/purple 5x5 (0x27a8), others hollow
-  5x5 dark green (0x27a0).
-- SAM sites (state+0x1148.., stride 0x14, count +0x1288): 3x3 box+diagonal and ring of radius r/k px.
+  filled 5x5 green (0x27a4); action 5 (the target waypoint, EN 4.15): a red filled triangle when current (0x27ac,
+  0x2400ff), else a purple filled 5x5 (0x27a8, 0x360080); others hollow 5x5 dark green (0x27a0). Pass 4 clips to the
+  region (10,10)–(122,122).
+- SAM sites (state+0x1148.., stride 0x14, count +0x1288, ≤ 16; SAM option): `FUN_00446270` copies them every frame
+  from the TSD unit table (`FUN_004d2900`, docs/front-end.md §8.1): the class-8 units (alive, controlled, known to the
+  player) with X, Y, the ring radius ([0x1a]: 290 / 340 → 37080 m, 300 → 16686, 320 → 22248, others 0) and an
+  active flag ([0x1b], always 1). Each: the 3x3 box with the \ diagonal and, when ⌊r/k⌋ > 0, a ring of that radius.
 
 ### RWR (7) and panel RWR
 (The RWR itself, the positions and the per-cockpit dials: docs/rwr.md.)

@@ -218,6 +218,10 @@ pub struct Contact {
     pub el: f64,
     pub dist: f64,
     pub speed_kt: f64,
+    /// Mach (the MFD record +0x67c, shown ×10 beside the STT / hovered TWS target, `FUN_00534160`). Ours: the
+    /// speed over the standard atmosphere's speed of sound at the unit's height (inferred; the original's source is
+    /// open).
+    pub mach: f64,
     pub type_code: i64,
 }
 
@@ -808,6 +812,25 @@ impl Radar {
         true
     }
 
+    /// Event 0x32 (`FUN_004add20`, a TWS press on a contact): the mode's vt+0x38(key, 0) → vt+0x34 `FUN_004b05a0`
+    /// with the lock flag 0: that contact becomes the selection, unlocked (a locked selection of the same unit
+    /// stays); no illumination loss, no mode change.
+    pub fn select_key(&mut self, key: &str) -> bool {
+        if !self.radiating() || self.contact(key).is_none() {
+            return false;
+        }
+        if self.selection.as_ref().is_some_and(|s| s.locked && s.key == key) {
+            return true;
+        }
+        if let Some(s) = self.selection.take() {
+            self.notify(&s.key, false);
+        }
+        self.selection = Some(Selection { key: key.to_owned(), locked: false });
+        self.notify(key, true);
+        self.dirty = true;
+        true
+    }
+
     /// Backspace (event 0x31, `FUN_004add60`): drop the lock (STT → the last A-A mode); without a lock it clears
     /// the designated point (the EXP flag stays).
     pub fn deselect(&mut self, now: f64, input: &Input) {
@@ -883,6 +906,7 @@ fn hit(u: &Unit, own: &Own, air: bool, cone: f64, terrain: &dyn Fn(Vec3) -> Opti
         el,
         dist,
         speed_kt: u.vel.length() * KT,
+        mach: u.vel.length() / f64::from(iaf_flight::atmosphere::air(u.pos.z as f32).sound),
         type_code: u.type_code,
     })
 }
@@ -1057,6 +1081,22 @@ mod tests {
         assert_eq!(lock.pos, units[0].pos);
         assert!((lock.dist - units[0].pos.distance(OWN.pos)).abs() < 1e-9);
         assert_eq!(r.contact("t").map(|c| c.pos), Some(Vec3::new(0.0, 20000.0, 5000.0)), "the blip waits for the scan");
+    }
+
+    #[test]
+    fn tws_press_selects_without_a_lock() {
+        let mut r = Radar::new(1, None);
+        let units = [jet("t", 0.0, 20000.0), jet("u", 1000.0, 25000.0)];
+        r.toggle_aa_ag(0.0, &scene(&units));
+        r.cycle_mode(0.0, &scene(&units));
+        assert_eq!(r.mode(), Mode::Tws);
+        r.take_events();
+        assert!(r.select_key("u"));
+        assert_eq!(r.selection().map(|s| (s.key.as_str(), s.locked)), Some(("u", false)));
+        assert_eq!(r.mode(), Mode::Tws, "a select keeps TWS");
+        assert!(!r.take_events().contains(&Event::IlluminationLost));
+        assert!((r.contact("u").unwrap().mach - 200.0 / 320.5).abs() < 0.01, "Mach at 5000 m");
+        assert!(!r.select_key("nobody"));
     }
 
     #[test]

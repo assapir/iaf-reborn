@@ -62,6 +62,8 @@ var waypoints: Array = []
 var current_waypoint := 0
 ## The MFD TSD map (map.emf) as world-coordinate polygons: [{points, color}].
 var tsd_map: Array = []
+## The TSD's SAM sites (state+0x1148, FUN_00446270): [{pos (world X / Y), r (ring radius, m)}].
+var sam_sites: Array = []
 var mfds: Array = []
 
 ## Panel lights (docs/cockpit.md "Panel lights"). Indicators 0..8: master, (left) engine fire,

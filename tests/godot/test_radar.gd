@@ -63,6 +63,9 @@ func run() -> void:
 	w.update(t)
 	check(w.radar.mode == w.radar.STT and w.radar.locked().get("key", "") == ent.key, "lock: STT on %s" % ent.name)
 	check(w.radar.range_index() == 3, "STT auto-range: 20 km -> 20 NM scale (index %d)" % w.radar.range_index())
+	for m in tv.cockpit.mfds:
+		m.page = 2  # the radar page draws STT (target carets, scale, text)
+	await frames(2)
 	# The IR seeker follows the radar target.
 	var aim := -1
 	for i in 9:
@@ -125,6 +128,9 @@ func run() -> void:
 	lk = tv.cockpit.radar.get("lock", {})
 	check(lk.get("pos", Vector3.ZERO).distance_to(p2) < 0.01 and absf(float(lk.dist) - (p2 - w.own().pos).length()) < 0.01, "TWS: the lock is at the unit's position between scans")
 	check(w.radar._find(ent.key).pos == blip, "TWS: the contact record (MFD blip) waits for the next scan")
+	w.radar_event(0x32, ent.key)  # a TWS press on the blip (FUN_004add20)
+	check(w.radar.mode == w.radar.TWS and w.radar.locked().get("key", "") == ent.key, "event 0x32: selected, TWS kept (no STT)")
+	await frames(2)  # the radar page draws TWS (the selected contact's scale and text)
 	w.radar_event(0x24)  # Q: TWS -> ACM
 	w.radar_event(0x24)  # Q: ACM -> LRS
 	t += 0.05

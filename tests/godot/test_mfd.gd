@@ -78,6 +78,10 @@ func run() -> void:
 	check(Mfd.harm_symbols(pg2)[0].pos.x < sy[0].pos.x - 10, "turning right moves the symbol left until the next capture")
 	check(h.page(Vector2.ZERO, 0).no_source, "no round left: no source")
 
+	# --- pure: the radar page's aspect stub bins and the STT caret row (FUN_00534b20 / FUN_00533db0) -----------
+	check(Mfd.aspect_bin(deg_to_rad(100.0)) == 2 and Mfd.aspect_bin(deg_to_rad(250.0)) == -2 and Mfd.aspect_bin(deg_to_rad(-200.0)) == -4 and Mfd.aspect_bin(deg_to_rad(44.0)) == 0, "aspect stub: truncated bins, wrapped at ±210°")
+	check(Mfd.stt_caret_n(20.0 * 1853.0, 40.0) == 49, "STT caret: 20 NM on the 40 NM scale = row 105 − 56")
+
 	# --- mission 231 (F-16): FLIR pod, POPEYE, HARM ------------------------------------------------------
 	Settings().arm_loadouts = {1: [[11, 1], [0, 0], [55, 1], [30, 1], [0, 0], [0, 0], [20, 1], [0, 0], [11, 1]]}
 	Settings().player_flight = 1
@@ -190,6 +194,14 @@ func run() -> void:
 		w.master_key()
 		var pages := [2, 3] if w.m_cycle < 2 else [2, 10 if w.stores.current_type() == 590 else 1]
 		check([L.page, R.page] == pages, "M → cycle %d: pages %s (%s)" % [w.m_cycle, pages, [L.page, R.page]])
+	# TSD: the scale OSBs wrap (FUN_00531850 / FUN_00531950).
+	other.page = 3
+	other.tsd_scale = 80
+	other.press(0xb)
+	check(other.tsd_scale == 10, "TSD OSB 0xb: 80 → 10")
+	other.press(0xc)
+	check(other.tsd_scale == 80, "TSD OSB 0xc: 10 → 80")
+	other.tsd_scale = 40
 	# Every page draws on the F-16 and the Lavi (3 MFDs, ADI page).
 	for dir in ["converted/cockpits/f16", "converted/cockpits/lavi"]:
 		if dir != "converted/cockpits/f16":

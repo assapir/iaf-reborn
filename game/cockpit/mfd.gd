@@ -9,6 +9,9 @@ const SIZE := 132.0
 const BEZEL := 16.0
 const GREEN := Color8(0, 255, 0)
 const DIM_GREEN := Color8(0, 128, 0)
+## TSD action-5 waypoint pens (COLORREF 0x2400ff / 0x360080).
+const TSD_RED := Color8(255, 0, 36)
+const TSD_PURPLE := Color8(128, 0, 54)
 
 ## Pages (state+0x504): 0 NAV, 1 stores, 2 radar, 3 TSD, 4 damage, 5 TV, 6 FLIR, 7 RWR, 8 MENU,
 ## 9 ADI, 10 HARM.
@@ -211,7 +214,8 @@ func _draw_radar() -> void:
 		_:
 			_tile(TILE_RADAR_AA)
 			_text(Vector2(17, 3), RADAR_MODES[mode])
-	if mode >= 3:
+	# FUN_005296d0 case 2: STT (it jumps to the BORE path) and every mode after it call FUN_00533990.
+	if mode >= 2:
 		_blit(Rect2(132 + 8 * (idx - 1), 845, 8, 5), Vector2(1, 33))
 	if mode == 8:
 		_text(Vector2(60, 3), "EXP" if r.get("exp", false) else "NORM")
@@ -224,8 +228,14 @@ func _draw_radar() -> void:
 		_draw_horizon_bars()
 	if mode < 2:
 		return
-	_draw_carets(r.get("antenna", Vector2.ZERO))
+	# STT (FUN_00534160) draws no antenna carets: its carets follow the target.
+	if mode != 2:
+		_draw_carets(r.get("antenna", Vector2.ZERO))
+	var target = null  # STT: the first locked contact; TWS: the selected one; in the window: its point
+	var hover = null  # TWS: the contact under the mouse (±4 px)
 	for c in r.get("contacts", []):
+		if mode == 2 and (not c.locked or target != null):
+			continue
 		# B-scope: x = 66 + (az + shift)·112 / width, y = 115 − range / (R·16.5446) (R NM = 112 px).
 		var p := Vector2(66.0 + (float(c.az) + float(r.get("shift", 0.0))) * 112.0 / float(r.get("width", TAU / 3.0)),
 				115.0 - float(c.dist) / (nm * 16.5446))
@@ -234,23 +244,51 @@ func _draw_radar() -> void:
 		p = p.round()
 		match mode:
 			3, 6:
+				# FUN_005352c0: the 3×3 box with the \ diagonal.
 				_box(p, 1)
-				_line(p + Vector2(-1, 1), p + Vector2(1, -1))
+				_line(p + Vector2(-1, -1), p + Vector2(1, 1))
 			4:
+				# FUN_00534840: the 5×5 box, the inner 3×3 with the \ diagonal.
 				_box(p, 2)
 				_box(p, 1)
+				_line(p + Vector2(-1, -1), p + Vector2(1, 1))
 			5:
+				# FUN_00534b20: the selected contact's disc, the others' 5×5 box; every one its aspect stub.
 				if c.selected:
 					draw_circle(p, 3.5, GREEN)
-					_aspect_stub(p, c)
+					target = p
 				else:
 					_box(p, 2)
+				_aspect_stub(p, c)
+				if mouse != null and Rect2(p - Vector2(4, 4), Vector2(8, 8)).has_point(mouse):
+					hover = c
 			2:
 				draw_circle(p, 3.5, GREEN)
 				_aspect_stub(p, c)
+				target = p
+				hover = c
+	# LRS / TWS: the cursor marker, two bars at the mouse x ± 4, y − 5..y + 5.
+	if mode in [4, 5] and mouse != null:
+		var m: Vector2 = Vector2(mouse).floor()
+		for dx in [-4, 4]:
+			_line(m + Vector2(dx, -5), m + Vector2(dx, 5))
 	_draw_steer_bscope(nm)
-	if mode == 2 and not r.get("lock", {}).is_empty():
+	if target != null and mode == 2:
+		_draw_carets_at(target)
+	# STT and the selected TWS contact (FUN_00533db0): the range scale, the caret, the DLZ, the speed / aspect /
+	# closure text.
+	if target != null and not r.get("lock", {}).is_empty():
+		_draw_stt_scale(r, nm)
 		_draw_stt_text(r, nm)
+	# Pass 3: the altitude "%02d" (+0x648, kft) right-aligned at (x + 15, y − 3) and the Mach × 10 (+0x67c) at
+	# (x − 3, y − 3): beside the STT target (FUN_00534160); in TWS by the mouse over a contact (x = mouse + 2,
+	# FUN_00534b20); each only while its anchor (x + 10 / x − 8) is inside the window.
+	if hover != null:
+		var a: Vector2 = target if mode == 2 else Vector2(mouse).floor() + Vector2(2, 0)
+		if a.x + 10 > 8 and a.x + 10 < 124:
+			_text_right(a.x + 15, a.y - 3, "%02d" % int(float(hover.get("alt", 0.0)) * 0.0032808398))
+		if a.x - 8 > 8 and a.x - 8 < 124:
+			_text_right(a.x - 3, a.y - 3, "%02d" % int(float(hover.get("mach", 0.0)) * 10.0))
 
 
 ## The steerpoint (state+0x70: the current waypoint, from the nav update FUN_004459f0) on the A-A pages
@@ -295,8 +333,15 @@ func _steerpoint():
 ## Antenna carets (FUN_00533500): v = clamp(⌊val·106⌋, 0, 106); azimuth at x = 13 + v (y 117..120,
 ## bar x 11+v..16+v at y 117), elevation at y = 13 + v (x 11..14, bar at x 14).
 func _draw_carets(a: Vector2) -> void:
-	var vx := clampi(int(a.x * 106.0), 0, 106)
-	var vy := clampi(int(a.y * 106.0), 0, 106)
+	_caret_pair(clampi(int(a.x * 106.0), 0, 106), clampi(int(a.y * 106.0), 0, 106))
+
+
+## The STT carets at the target (FUN_00534160): v = clamp(t − 13, 0, 106) per axis, the antenna carets' shapes.
+func _draw_carets_at(t: Vector2) -> void:
+	_caret_pair(clampi(int(t.x) - 13, 0, 106), clampi(int(t.y) - 13, 0, 106))
+
+
+func _caret_pair(vx: int, vy: int) -> void:
 	_line(Vector2(13 + vx, 117), Vector2(13 + vx, 120))
 	_line(Vector2(11 + vx, 117), Vector2(16 + vx, 117))
 	_line(Vector2(11, 13 + vy), Vector2(14, 13 + vy))
@@ -307,23 +352,49 @@ func _box(p: Vector2, h: int) -> void:
 	draw_rect(Rect2(p - Vector2(h, h), Vector2(2 * h, 2 * h)), GREEN, false, 1.0)
 
 
-## The 4 px aspect stub, quantised to 45° (TWS / STT): the target's heading on the heading-up scope
-## (UNCERTAIN: the reference of the stub).
+## The aspect stub (FUN_00534b20 / FUN_00534160): bin = aspect_bin(the record's aspect, +0x66c), drawn from 2 px out
+## to 6 px: 0 up, 2 right, ±4 down, −2 left, the odd bins the diagonals.
+const ASPECT_DIRS := {0: Vector2(0, -1), 1: Vector2(1, -1), 2: Vector2(1, 0), 3: Vector2(1, 1), 4: Vector2(0, 1),
+	-4: Vector2(0, 1), -3: Vector2(-1, 1), -2: Vector2(-1, 0), -1: Vector2(-1, -1)}
+
+
 func _aspect_stub(p: Vector2, c: Dictionary) -> void:
-	var own_h: float = cockpit.state.get("heading", 0.0)
-	var a := deg_to_rad(round(wrapf(float(c.heading) - own_h, -180.0, 180.0) / 45.0) * 45.0)
-	_line(p, p + Vector2(sin(a), -cos(a)) * 4.0)
+	var d: Vector2 = ASPECT_DIRS[aspect_bin(float(c.aspect))]
+	_line(p + d * 2, p + d * 6)
 
 
-## STT text (FUN_00533db0 / FUN_00534160): "%3dK" target speed at (86,3), aspect "%2dL" / "%2dR" at
-## (62,3), the range scale at x 121 (y 10..122) with the "<" caret at y = 115 − r·112/(R·1853) and the
-## closure "%3dK" at (111, caret + 8); three black ticks (pen +0x5a0) at y 39 / 65 / 91 (x 117..121) and the
-## selected store's DLZ (S+0x350 min, S+0x348 max, FUN_00456520) as ticks x 121..117 at y = 122 − ⌊v·112/(R·1853)⌋
-## while 0 < 112 − ⌊v·k⌋ < 112.
+## The stub's bin: ⌊aspect°⌋ % 360 (truncated), wrapped at ±210, / 45 truncated: −4..4.
+static func aspect_bin(aspect: float) -> int:
+	var a := int(rad_to_deg(aspect)) % 360
+	if a > 210:
+		a -= 360
+	elif a < -210:
+		a += 360
+	return a / 45
+
+
+## The range scale's caret row (FUN_00533db0 pass 4): n = 105 − ⌊r·112/(R·1853)⌋; the caret and the closure show
+## only while 0 < n < 112.
+static func stt_caret_n(dist: float, nm: float) -> int:
+	return 105 - int(dist * 112.0 / (nm * 1853.0))
+
+
+## STT text (FUN_00533db0 pass 3, right-aligned, FUN_00525920): "%3dK" target speed (at least 0) ending at x 86,
+## aspect "%2dL" / "%2dR" ending at x 62 (y 3), the closure "%3dK" ending at x 111 at y = n + 8 (the caret's row − 2).
 func _draw_stt_text(r: Dictionary, nm: float) -> void:
 	var lk: Dictionary = r.lock
-	_text(Vector2(86, 3), "%3dK" % int(lk.speed))
-	_text(Vector2(62, 3), aspect_text(float(lk.aspect)))
+	_text_right(86, 3, "%3dK" % maxi(int(lk.speed), 0))
+	_text_right(62, 3, aspect_text(float(lk.aspect)))
+	var n := stt_caret_n(float(lk.dist), nm)
+	if n > 0 and n < 112:
+		_text_right(111, n + 8, "%3dK" % int(float(r.get("closure", 0.0)) * 1.9427955))
+
+
+## The range scale (FUN_00533db0 pass 4): the line at x 121 (y 10..122), three black ticks (pen +0x5a0) at
+## y 39 / 65 / 91 (x 117..121), the selected store's DLZ (S+0x350 min, S+0x348 max, FUN_00456520) as ticks
+## x 121..117 at y = 122 − ⌊v·112/(R·1853)⌋ while 0 < 112 − ⌊v·k⌋ < 112, and the ">" caret: its tip at (116, 10 + n),
+## its arms to (113, 10 + n ± 3).
+func _draw_stt_scale(r: Dictionary, nm: float) -> void:
 	for ty in [39, 65, 91]:
 		_line(Vector2(117, ty), Vector2(121, ty), Color.BLACK)
 	_line(Vector2(121, 10), Vector2(121, 122))
@@ -334,11 +405,10 @@ func _draw_stt_text(r: Dictionary, nm: float) -> void:
 			var n := 112 - int(float(v) * k)
 			if n > 0 and n < 112:
 				_line(Vector2(121, 10 + n), Vector2(117, 10 + n))
-	var y := 115.0 - float(lk.dist) * 112.0 / (nm * 1853.0)
-	y = clampf(y, 10.0, 122.0)
-	_line(Vector2(118, y - 2), Vector2(116, y))
-	_line(Vector2(116, y), Vector2(118, y + 2))
-	_text_right(128, y + 8, "%3dK" % int(float(r.get("closure", 0.0)) * 1.9427955))
+	var c := stt_caret_n(float(r.lock.dist), nm)
+	if c > 0 and c < 112:
+		_line(Vector2(116, 10 + c), Vector2(113, 7 + c))
+		_line(Vector2(116, 10 + c), Vector2(113, 13 + c))
 
 
 ## Aspect "%2dL" / "%2dR" (FUN_0052ef20): n = (⌊aspect°⌋ % 360) / 10 wrapped to ±18; the sign gives
@@ -808,7 +878,8 @@ func _draw_adi() -> void:
 		draw_string(font, Vector2(t[0] - w, t[1]), t[2], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
 
 
-## TSD page (FUN_00531a50): heading-up, ownship at (65,85), 1 px = 112·scale m.
+## TSD page (FUN_00531a50): heading-up, ownship at (65,85), 1 px = scale·16.5446 m (112 px = scale NM: the route
+## and the SAM sites @531d92 / @532216, constant 0x60c410).
 func _draw_tsd() -> void:
 	_tile(TILE_TSD)
 	var st: Dictionary = cockpit.state
@@ -816,7 +887,7 @@ func _draw_tsd() -> void:
 	var hdg := deg_to_rad(st.heading)
 	var S := sin(hdg)
 	var C := cos(hdg)
-	var k := 112.0 * tsd_scale
+	var k := tsd_scale * 1853.0 / 112.0
 	var to_mfd := func(w: Vector2) -> Vector2:
 		var ex := w.x - own.x
 		var ny := w.y - own.y
@@ -833,8 +904,9 @@ func _draw_tsd() -> void:
 					draw_colored_polygon(piece, poly.color)
 	# Fixed symbology: range circle r=22, ownship, outer ring r=44 with SCL.
 	draw_arc(Vector2(65, 85), 22, 0, TAU, 48, GREEN, 1.0)
+	_clip = Rect2(10, 10, 112, 112)  # the region (10,10)–(122,122)
 	if tsd_options[3]:
-		draw_arc(Vector2(65, 85), 44, 0, TAU, 64, GREEN, 1.0)
+		_ring(Vector2(65, 85), 44)
 	_line(Vector2(60, 81), Vector2(71, 81))
 	_line(Vector2(65, 78), Vector2(65, 91))
 	_line(Vector2(63, 91), Vector2(68, 91))
@@ -854,16 +926,48 @@ func _draw_tsd() -> void:
 					draw_polyline(seg, GREEN, 1.0)
 			prev = p
 			if Rect2(10, 10, 112, 112).has_point(p):
-				var box := Rect2(p - Vector2(2, 2), Vector2(5, 5))
-				if i == cockpit.current_waypoint:
-					draw_rect(box, Color8(0, 255, 0))
+				# The current one filled 5×5 green (pen +0x27a4), the others hollow dark green (+0x27a0); an action-5
+				# (target) waypoint a red triangle when current (+0x27ac, 0x2400ff), else a purple filled 5×5
+				# (+0x27a8, 0x360080).
+				var box := Rect2(p.floor() - Vector2(2, 2), Vector2(5, 5))
+				var act5 := int(wps[i].get("action", 0)) == 5
+				if i == cockpit.current_waypoint and act5:
+					# Rows (dy, x0, x1): the apex edge (x, y−2)–(x+4, y+2) and the fill lines y−1..y+2.
+					var q := p.floor()
+					_line(q + Vector2(0, -2), q + Vector2(4, 2), TSD_RED)
+					for row in [[-1, -1, 1], [0, -2, 2], [1, -3, 3], [2, -3, 4]]:
+						_line(q + Vector2(row[1], row[0]), q + Vector2(row[2], row[0]), TSD_RED)
+				elif i == cockpit.current_waypoint or act5:
+					draw_rect(box, TSD_PURPLE if act5 else GREEN)
 				else:
-					draw_rect(box, Color8(0, 128, 0), false, 1.0)
+					draw_rect(box, DIM_GREEN, false, 1.0)
+	# SAM sites (state+0x1148, ≤ 16, FUN_00446270 from the TSD table: class 8 units with their ring radius): the 3×3
+	# box with the \ diagonal and the ring of radius ⌊r / k⌋ when > 0.
+	if tsd_options[0]:
+		for site in cockpit.sam_sites:
+			var p: Vector2 = to_mfd.call(site.pos).floor()
+			_ground_symbol(p, false, true)
+			var rr := int(float(site.r) / k)
+			if rr > 0:
+				_ring(p, rr)
+	_clip = Rect2(0, 0, SIZE, SIZE)
 	# Option highlight boxes (right OSBs 0x10..0x13).
 	for i in 4:
 		if tsd_options[i]:
 			draw_rect(Rect2(111, 20 + 20 * i, 17, 9), GREEN, false, 1.0)
-	_blit(Rect2(132 + 8 * TSD_SCALES.find(tsd_scale), 845, 8, 5), Vector2(1, 33))
+	# Pass 3 with MAP on: the option labels again over the map, left-aligned at (113, 22 + 20i).
+	if tsd_options[2]:
+		for i in 4:
+			_text(Vector2(113, 22 + 20 * i), ["sa", "wp", "ma", "sc"][i])
+	# FUN_00533990: scale 10 / 20 / 40 / 80 NM → sprites 1..4 (the radar's 5 NM is sprite 0).
+	_blit(Rect2(132 + 8 * RADAR_RANGES.find(tsd_scale), 845, 8, 5), Vector2(1, 33))
+
+
+## A GDI Ellipse of radius r about c, clipped to _clip.
+func _ring(c: Vector2, r: float) -> void:
+	var n := 48
+	for i in n:
+		_line(c + Vector2.from_angle(TAU * i / n) * r, c + Vector2.from_angle(TAU * (i + 1) / n) * r)
 
 
 # --- bezel buttons (FUN_00520db0 hit test, FUN_005219e0 actions) ---------------------------------
@@ -953,10 +1057,13 @@ func _gui_input(event: InputEvent) -> void:
 				break
 		accept_event()
 	elif page == RADAR and Rect2(10, 10, 112, 112).has_point(p):
+		# GMT / MAP pass 4 and the TWS lock act on the double-click flag (+0x27e0, set by the WM_LBUTTONDBLCLK
+		# handler FUN_004dc8a0 → FUN_00522120); LRS and the TWS select on the press (+0x27d8).
 		match int(cockpit.radar.get("mode", 0)):
 			4: _click_blip(p)
-			7: _click_gmt(p)
-			8: _click_map(p)
+			5: _click_tws(p, event.double_click)
+			7: if event.double_click: _click_gmt(p)
+			8: if event.double_click: _click_map(p)
 		accept_event()
 
 
@@ -976,6 +1083,22 @@ func _click_blip(p: Vector2) -> void:
 		if b.distance_to(p) <= 4.0 and cockpit.on_radar_event.is_valid():
 			cockpit.on_radar_event.call(0x2a, c.key)
 			accept_event()
+			return
+
+
+## TWS (FUN_00534b20): a press on a contact (±4 px) other than the selected one sends event 0x32 (select it,
+## FUN_004add20); a double-click sends 0x2a (lock it → STT).
+func _click_tws(p: Vector2, double: bool) -> void:
+	var r: Dictionary = cockpit.radar
+	var nm: float = RADAR_RANGES[clampi(int(r.get("idx", 1)), 1, 6) - 1]
+	for c in r.get("contacts", []):
+		var b := Vector2(66.0 + (float(c.az) + float(r.get("shift", 0.0))) * 112.0 / float(r.get("width", TAU / 3.0)),
+				115.0 - float(c.dist) / (nm * 16.5446)).round()
+		if Rect2(b - Vector2(4, 4), Vector2(8, 8)).has_point(p):
+			if double:
+				_radar_event(0x2a, c.key)
+			elif not c.selected:
+				_radar_event(0x32, c.key)
 			return
 
 
@@ -1005,8 +1128,9 @@ func press(osb: int) -> void:
 				3: if int(cockpit.radar.get("mode", 0)) == 8: _radar_event(0x30)  # MAP: NORM <-> EXP
 		TSD:
 			match osb:
-				0xb: tsd_scale = TSD_SCALES[mini(TSD_SCALES.find(tsd_scale) + 1, TSD_SCALES.size() - 1)]
-				0xc: tsd_scale = TSD_SCALES[maxi(TSD_SCALES.find(tsd_scale) - 1, 0)]
+				# FUN_00531850 / FUN_00531950: next / previous, wrapping (80 → 10, 10 → 80).
+				0xb: tsd_scale = TSD_SCALES[(TSD_SCALES.find(tsd_scale) + 1) % TSD_SCALES.size()]
+				0xc: tsd_scale = TSD_SCALES[posmod(TSD_SCALES.find(tsd_scale) - 1, TSD_SCALES.size())]
 				0x10, 0x11, 0x12, 0x13: tsd_options[osb - 0x10] = not tsd_options[osb - 0x10]
 		STORES:
 			var i := STORES_OSB.find(osb)
