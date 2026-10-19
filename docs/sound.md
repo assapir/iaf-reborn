@@ -159,6 +159,9 @@ the engine volume slider (default 0.8).
 
 ## 4. Player cockpit sounds (controller `FUN_00448b20` per frame, `FUN_0044a240` events)
 
+The real aircraft's voice warnings (per jet, for a future "Real Betty" option) are researched in
+[real-betty.md](real-betty.md).
+
 | sound (code / sub) | file | trigger (address) | loop | vol in/out | bus | port |
 |---|---|---|---|---|---|---|
 | SFX_LANDING_GEAR 0x1e | `Gear.wav` 1.9 s | gear lever accepted, both ways (GEV 0xe, @44d26e; docs/flight-model.md §12) | no | 0.75 | effects | yes |

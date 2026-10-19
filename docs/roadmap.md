@@ -230,9 +230,7 @@ live play while recording at 4K. Two ways:
   `Sounds/betty/`, GPL-2.0, origin of the recordings unknown) only as an optional download during setup, after asking
   its author where the recordings came from. Not usable: Falcon BMS, DCS, video rips.
 - **Open:** do IAF jets speak English or Hebrew; which F-16 VMS software version fits the 1990s F-16D.
-- **Sources:** en.wikipedia.org/wiki/Voice_warning_system; f-16.net/forum/viewtopic.php?p=22026;
-  falcon4.wikidot.com/avionics:vms; hushkit.net/2018/02/05/f-15-pilot-shares-the-history-of-bitchin-betty/;
-  sldinfo.com/2019/07/f-35-enterprise-fields-auto-gcas/.
+- **Research:** [real-betty.md](real-betty.md) (per-jet phrases, voice actors, recordings and licences, sources).
 
 ## F-16I Sufa option (Extras switch, wishlist; decided 2026-10-17, F-16I chosen 2026-10-19, research first)
 - **Switch:** "F-16: Barak (1990s) / Sufa (F-16I)". The default is the game's early-1990s F-16D Barak.
