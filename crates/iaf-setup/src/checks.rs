@@ -129,3 +129,68 @@ pub fn tools() -> Tools {
         display: env("DISPLAY") || env("WAYLAND_DISPLAY") || (cfg!(target_os = "macos") && !env("SSH_CONNECTION")),
     }
 }
+
+/// Looks in `dir` and its subfolders (3 levels, hidden ones skipped) for the inputs: the first file of each kind, as
+/// (`"english"` | `"hebrew"` | `"patch"` | `"brief"` | `"menu"`, path).
+pub fn scan(dir: &Path) -> Vec<(&'static str, std::path::PathBuf)> {
+    let mut found: Vec<(&'static str, std::path::PathBuf)> = vec![];
+    let has = |f: &Vec<(&str, _)>, k| f.iter().any(|(x, _)| *x == k);
+    let mut todo = vec![(dir.to_path_buf(), 0)];
+    while let Some((at, depth)) = todo.pop() {
+        let Ok(rd) = std::fs::read_dir(&at) else { continue };
+        let mut entries: Vec<_> = rd.filter_map(|e| e.ok().map(|e| e.path())).collect();
+        entries.sort();
+        for p in entries {
+            let name = p.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+            if p.is_dir() {
+                if depth < 3 && !name.starts_with('.') {
+                    todo.push((p, depth + 1));
+                }
+                continue;
+            }
+            match p.extension().map(|e| e.to_string_lossy().to_lowercase()).as_deref() {
+                Some("iso") => {
+                    let kind = match check_cd(&p) {
+                        CdKind::English => "english",
+                        CdKind::Hebrew => "hebrew",
+                        CdKind::NotIaf(_) => continue,
+                    };
+                    if !has(&found, kind) {
+                        found.push((kind, p));
+                    }
+                }
+                Some("exe" | "rtp") if !has(&found, "patch") && check_patch(&p).is_ok() => found.push(("patch", p)),
+                Some("zip") => match check_pack(&p) {
+                    Ok(i) if i.brief > 0 && !has(&found, "brief") => found.push(("brief", p)),
+                    Ok(i) if i.menu > 0 && !has(&found, "menu") => found.push(("menu", p)),
+                    _ => {}
+                },
+                _ => {}
+            }
+        }
+    }
+    found
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A pack two folders down is found; a zip that is no pack and a hidden folder are not looked at.
+    #[test]
+    fn scan_finds_a_pack() {
+        let dir = std::env::temp_dir().join(format!("iaf-setup-scan-{}", std::process::id()));
+        let zip_at = |p: &Path, entry: &str| {
+            std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+            let mut z = zip::ZipWriter::new(std::fs::File::create(p).unwrap());
+            z.start_file(entry, zip::write::SimpleFileOptions::default()).unwrap();
+            z.finish().unwrap();
+        };
+        zip_at(&dir.join("a/b/Brief.zip"), "Brief/txt/1.rtf");
+        zip_at(&dir.join("other.zip"), "readme.txt");
+        zip_at(&dir.join(".hidden/Menu.zip"), "Menu/txt/msgs.trx");
+        let found = scan(&dir);
+        std::fs::remove_dir_all(&dir).unwrap();
+        assert_eq!(found, [("brief", dir.join("a/b/Brief.zip"))]);
+    }
+}

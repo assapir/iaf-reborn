@@ -1,6 +1,7 @@
 # The setup wizard (game/setup/wizard.gd, docs/setup.md) on an empty scratch assets folder:
 #   IAF_ASSETS_DIR=<empty dir> IAF_DEFAULT_SETTINGS=1 godot --headless --path game -s ../tests/godot/test_setup_wizard.gd
-# Startup opens the wizard without game data; the pages go in order; a bad file is rejected; with the English ISO
+# Startup opens the wizard without game data; the pages go in order; a bad file is rejected; Find in a folder finds
+# the CD in the background; before a run the Install rows show which steps are up to date; with the English ISO
 # (~/Downloads/…/Jane's IAF.iso) a short plan (extract, fonts, missions) runs to Done and a second run is all
 # "up to date", and a third with "redo" ticked on one step runs only that step. Without IAF_ASSETS_DIR it does nothing (it never writes into the real assets/).
 extends "res://../tests/godot/base.gd"
@@ -31,6 +32,14 @@ func run() -> void:
 	if not FileAccess.file_exists(iso):
 		print("skipped the run: no English ISO at " + iso)
 		return
+	# Find in a folder: in the background (frames go on), it fills the empty CD field.
+	w.set_row(w.cd_row, "")
+	w.scan_folder(iso.get_base_dir())
+	var f0 := Engine.get_process_frames()
+	var t1 := Time.get_ticks_msec()
+	while w.jobs.has("scan") and Time.get_ticks_msec() - t1 < 60000:
+		await process_frame
+	check(w.cd_row.edit.text == iso and Engine.get_process_frames() > f0, "Find in a folder finds the English CD (%s)" % w.scan_note.text)
 	w.set_row(w.cd_row, iso)
 	check(w.cd_row.ok and not w.next_button.disabled, "the English CD is accepted")
 	w._on_next()
@@ -66,8 +75,15 @@ func run() -> void:
 			check(FileAccess.file_exists(assets.path_join("converted/fonts/hud.fnt")), "the fonts are written")
 			w._on_next()
 			check(w.PAGES[w.page] == "Done", "Finish: Done")
-			w.show_page(w.PAGES.find("Install"))
 			w.finished = false
+			w.show_page(w.PAGES.find("Install"))
+			var t0 := Time.get_ticks_msec()
+			while w.jobs.keys().any(func(j): return j.begins_with("preview")) and Time.get_ticks_msec() - t0 < 60000:
+				await process_frame
+			await frames(2)
+			var shown := ["extract", "fonts", "missions"].map(func(id): return w.rows[id].state.text)
+			check(shown.all(func(t): return t == "up to date") and w.rows.cockpits.state.text == "will run",
+				"before the second run: the steps that ran show up to date, one that did not shows will run (%s)" % [shown])
 	# Selective redo: only the ticked step runs again.
 	w.show_page(w.PAGES.find("Install"))
 	w.finished = false

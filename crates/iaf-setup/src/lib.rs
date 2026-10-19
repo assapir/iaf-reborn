@@ -18,7 +18,7 @@ mod saved;
 mod stamp;
 mod steps;
 
-pub use checks::{CdKind, PackInfo, Tools, check_cd, check_pack, check_patch, tools};
+pub use checks::{CdKind, PackInfo, Tools, check_cd, check_pack, check_patch, scan, tools};
 pub use saved::{from_json, inputs_file, load_inputs, save_inputs, to_json};
 pub use steps::{COCKPITS, imagery_stale, script_guides};
 
@@ -223,6 +223,28 @@ pub fn run(steps: &[Step], ctx: &Ctx, redo: &Redo, events: &dyn Events, cancel: 
 
 /// Which steps run although they are up to date, by id.
 pub type Redo<'a> = dyn Fn(&str) -> bool + Sync + 'a;
+/// Which steps of `steps` (in plan order) a run would find up to date, as `run` decides it (without `redo`). Reads
+/// the inputs to checksum them, so it takes as long as the stamps do (about a second with the CD images).
+pub fn preview(steps: &[Step], ctx: &Ctx) -> Vec<(&'static str, bool)> {
+    let mut texts: HashMap<&'static str, String> = HashMap::new();
+    steps
+        .iter()
+        .map(|step| {
+            let Ok(Some(mut s)) = stamp::of(step, ctx) else {
+                texts.insert(step.id, "ran".into());
+                return (step.id, false);
+            };
+            for a in &step.after {
+                let t = texts.get(a).map_or("none", String::as_str);
+                s.text += &format!("after {a} {:08x}\n", crc32fast::hash(t.as_bytes()));
+            }
+            let up = s.holds();
+            texts.insert(step.id, s.text);
+            (step.id, up)
+        })
+        .collect()
+}
+
 type StampFn<'a> = dyn Fn(&Step) -> Result<Option<stamp::Stamp>> + Sync + 'a;
 type ExecFn<'a> = dyn Fn(&Step, &dyn Progress) -> Result<Outcome> + Sync + 'a;
 

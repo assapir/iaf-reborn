@@ -76,6 +76,8 @@ fn inputs(json: &GString) -> anyhow::Result<iaf_setup::Inputs> {
 pub struct IafSetup {
     shared: Arc<Mutex<Shared>>,
     cancel: Arc<AtomicBool>,
+    /// The background jobs (`begin`): name → None while it runs, else its result as JSON text.
+    jobs: Arc<Mutex<std::collections::HashMap<String, Option<String>>>>,
 }
 
 #[godot_api]
@@ -131,10 +133,46 @@ impl IafSetup {
         iaf_setup::plan(&i).iter().map(|s| vdict! { "id" => s.id, "title" => s.title, "required" => s.required }.to_variant()).collect()
     }
 
-    /// The units of imagery layer `id` on disk that older rules made; -1 when it cannot tell (e.g. offline).
+    /// Starts a background job (gdext objects can only be called on the main thread, so the slow checks run here);
+    /// `result(job)` gives its answer. `job` is a kind, optionally with `#<anything>` after it:
+    /// - "preview" [assets, repo, inputs JSON]: {step id: true when a run would find it up to date} (reads the inputs);
+    /// - "scan" [folder]: {"english" | "hebrew" | "patch" | "brief" | "menu": path} found in it (`iaf_setup::scan`);
+    /// - "stale" [assets, layer ids…]: the imagery units older rules made, -1 when it cannot tell (e.g. offline).
     #[func]
-    fn imagery_stale(assets: GString, id: GString) -> i64 {
-        iaf_setup::imagery_stale(&PathBuf::from(assets.to_string()), &id.to_string()).map_or(-1, |n| n as i64)
+    fn begin(&mut self, job: GString, args: PackedStringArray) {
+        let (job, args): (String, Vec<String>) = (job.to_string(), args.as_slice().iter().map(|s| s.to_string()).collect());
+        let jobs = self.jobs.clone();
+        jobs.lock().unwrap().insert(job.clone(), None);
+        std::thread::spawn(move || {
+            let r = std::panic::catch_unwind(|| -> serde_json::Value {
+                // "preview#2": the kind before '#', the rest tells runs of the same kind apart.
+                match (job.split('#').next().unwrap_or_default(), args.as_slice()) {
+                    ("preview", [assets, repo, i]) => {
+                        let Ok(i) = iaf_setup::from_json(&serde_json::from_str(i).unwrap_or_default()) else { return serde_json::json!({}) };
+                        let steps = iaf_setup::plan(&i);
+                        let ctx = Ctx { assets: assets.into(), repo: repo.into(), inputs: i, xdg_data_home: None, guides: None };
+                        iaf_setup::preview(&steps, &ctx).into_iter().map(|(id, up)| (id.to_string(), serde_json::Value::Bool(up))).collect()
+                    }
+                    ("scan", [dir]) => iaf_setup::scan(dir.as_ref()).into_iter().map(|(k, p)| (k.to_string(), serde_json::Value::String(p.display().to_string()))).collect(),
+                    ("stale", [assets, layers @ ..]) => {
+                        let n: anyhow::Result<usize> = layers.iter().map(|id| iaf_setup::imagery_stale(assets.as_ref(), id)).sum();
+                        n.map_or(-1, |n| n as i64).into()
+                    }
+                    _ => serde_json::Value::Null,
+                }
+            });
+            jobs.lock().unwrap().insert(job, Some(r.unwrap_or_default().to_string()));
+        });
+    }
+
+    /// A job's result as JSON text, once (then it is forgotten); "" while it runs or when there is none.
+    #[func]
+    fn result(&mut self, job: GString) -> GString {
+        let mut jobs = self.jobs.lock().unwrap();
+        match jobs.get(&job.to_string()) {
+            Some(Some(_)) => GString::from(jobs.remove(&job.to_string()).flatten().unwrap_or_default().as_str()),
+            _ => GString::new(),
+        }
     }
 
     /// Starts setup on its own thread: saves the inputs to setup.json, then runs the plan (or only the steps `only`

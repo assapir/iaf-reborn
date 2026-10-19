@@ -99,7 +99,8 @@ The wizard uses the original menus' colours.
    A missing part shows its install command. "Check again", next to Next, looks once more.
 3. **Your CD**: the English CD image, picked with Browse and checked at once. Given the Hebrew CD here, the wizard
    says so and keeps it for the next page. "Find in a folder…" looks in a folder and its subfolders (3 levels) for
-   the CD images, the v1.1 patch and the Hebrew packs, and fills the empty fields.
+   the CD images, the v1.1 patch and the Hebrew packs (`iaf_setup::scan`, in the background), and fills the empty
+   fields.
 4. **Optional**: the v1.1 patch, the Hebrew CD, or without it the Hebrew packs; each with a link to where to get it.
 5. **Extras**: the Survey of Israel imagery (all of Israel or around the airbases), the Sentinel-2 imagery,
    "Bring the imagery up to date" (only with imagery on disk; it shows how many units older rules made) and the
@@ -111,7 +112,8 @@ The wizard uses the original menus' colours.
    - Sentinel-2: about 28 GB read over the network, about 2.5 GB on disk. Units already converted are not read
      again.
 6. **Summary**: the inputs and the number of steps.
-7. **Install**: one row per step with its state and progress (a long step adds the time left at its pace so
+7. **Install**: one row per step. Before Install each row says whether it is "up to date" or "will run"
+   (`iaf_setup::preview`, checked in the background: it reads the CD images). Then its state and progress (a long step adds the time left at its pace so
    far, once it has run 30 s), the log, Cancel, "Redo everything", and a "redo" tick
    per step: a ticked step runs again although it is up to date. The steps after it stay up to date; tick them too
    to redo them.

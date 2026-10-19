@@ -77,7 +77,9 @@ var sentinel_check: CheckBox
 var refresh_check: CheckBox
 var refresh_note: Label
 var guides_check: CheckBox
-var stale_thread: Thread
+## The background jobs running in IafSetup (begin / result): name → what handles the result.
+var jobs := {}
+var previews := 0
 # Summary / Install
 var summary_label: RichTextLabel
 var redo_check: CheckBox
@@ -108,8 +110,7 @@ func _ready() -> void:
 func _exit_tree() -> void:
 	if running:
 		setup.cancel()
-	if stale_thread != null and stale_thread.is_started():
-		stale_thread.wait_to_finish()
+	# Jobs still running end on their own (their threads only read).
 
 
 # --- layout ---
@@ -538,40 +539,26 @@ func _check_cd(path: String) -> Array:
 	return [false, "✗ Not a Jane's IAF CD image (%s)." % r.why]
 
 
-## Looks in `dir` and its subfolders (3 levels) for the CD images, the patch and the packs, and fills the empty rows.
+## Looks in `dir` and its subfolders (3 levels) for the CD images, the patch and the packs in the background
+## (iaf_setup::scan), then fills the empty rows.
 func scan_folder(dir: String) -> void:
-	var found := []
-	var todo := [[dir, 0]]
-	while todo:
-		var at: Array = todo.pop_back()
-		for f in DirAccess.get_files_at(at[0]):
-			var path: String = at[0].path_join(f)
-			match f.get_extension().to_lower():
-				"iso":
-					var kind: String = IafSetup.check_cd(path).kind
-					if kind == "english" and cd_row.edit.text == "":
-						set_row(cd_row, path)
-						found.append("the English CD")
-					elif kind == "hebrew" and hebrew_row.edit.text == "":
-						set_row(hebrew_row, path)
-						found.append("the Hebrew CD")
-				"exe", "rtp":
-					if patch_row.edit.text == "" and IafSetup.check_patch(path).ok:
-						set_row(patch_row, path)
-						found.append("the v1.1 patch")
-				"zip":
-					var p: Dictionary = IafSetup.check_pack(path)
-					if p.ok and p.brief > 0 and brief_row.edit.text == "":
-						set_row(brief_row, path)
-						found.append("the Hebrew briefings pack")
-					elif p.ok and p.menu > 0 and menu_row.edit.text == "":
-						set_row(menu_row, path)
-						found.append("the Hebrew menus pack")
-		if at[1] < 3:
-			for d in DirAccess.get_directories_at(at[0]):
-				if not d.begins_with("."):
-					todo.append([at[0].path_join(d), at[1] + 1])
-	scan_note.text = ("Found: %s." % ", ".join(found)) if found else "Found nothing new in %s." % dir
+	if jobs.has("scan"):
+		return
+	scan_note.text = "Looking in %s…" % dir
+	_begin("scan", [dir], _scanned)
+
+
+## The scan's results into the empty rows.
+func _scanned(found: Dictionary) -> void:
+	var names := {"english": "the English CD", "hebrew": "the Hebrew CD", "patch": "the v1.1 patch",
+		"brief": "the Hebrew briefings pack", "menu": "the Hebrew menus pack"}
+	var row_of := {"english": cd_row, "hebrew": hebrew_row, "patch": patch_row, "brief": brief_row, "menu": menu_row}
+	var got := []
+	for k in found:
+		if row_of[k].edit.text == "":
+			set_row(row_of[k], found[k])
+			got.append(names[k])
+	scan_note.text = ("Found: %s." % ", ".join(got)) if got else "Found nothing new."
 
 
 func _page_optional() -> Control:
@@ -662,22 +649,19 @@ func _layers() -> PackedStringArray:
 	return out
 
 
-## The stale-unit count for "Bring the imagery up to date", counted on a thread (sentinel2 lists over the network).
+## The stale-unit count for "Bring the imagery up to date", counted in the background (sentinel2 lists over the network).
 func _count_stale() -> void:
-	if not refresh_check.get_parent().visible or stale_thread != null:
+	if not refresh_check.get_parent().visible or jobs.has("stale"):
 		return
 	refresh_note.text = "Counting the units older rules made…"
-	stale_thread = Thread.new()
-	var a := assets
-	var layers := _layers()
-	stale_thread.start(func():
-		var total := 0
-		for id in layers:
-			var n: int = IafSetup.imagery_stale(a, id)
-			if n < 0:
-				return -1
-			total += n
-		return total)
+	_begin("stale", [assets] + Array(_layers()), func(n):
+		refresh_note.text = ("Could not count them (offline?). " if n < 0 else "%d units were made under older rules. " % n) + "Converts them again (after copying imagery from another computer).")
+
+
+## Starts IafSetup job `job` (its threads: the window stays live); `done` gets its result.
+func _begin(job: String, args: Array, done: Callable) -> void:
+	jobs[job] = done
+	setup.begin(job, PackedStringArray(args))
 
 
 func _page_summary() -> Control:
@@ -746,6 +730,7 @@ func show_page(n: int) -> void:
 			if not running:
 				_fill_rows(IafSetup.plan(JSON.stringify(inputs())), false)
 				install_note.text = "Ready. Install runs the steps below; the ones whose inputs did not change are \"up to date\" and are skipped."
+				_preview()
 	_update()
 
 
@@ -951,10 +936,31 @@ func start_install() -> void:
 	_update()
 
 
+## Which steps are up to date already, checked in the background (it reads the CD images); the rows show it until
+## Install.
+func _preview() -> void:
+	for id in rows:
+		rows[id].state.text = "checking…"
+	# A new name per check: an older check still running (other inputs) answers to nobody.
+	for j in jobs.keys().filter(func(j): return j.begins_with("preview#")):
+		jobs.erase(j)
+	previews += 1
+	_begin("preview#%d" % previews, [assets, repo, JSON.stringify(inputs())], func(up: Dictionary):
+		if running or finished:
+			return
+		for id in rows:
+			var u: bool = up.get(id, false)
+			rows[id].state.text = "up to date" if u else "will run"
+			rows[id].state.add_theme_color_override("font_color", DIM_GREEN if u else TEXT))
+
+
 func _process(_delta: float) -> void:
-	if stale_thread != null and not stale_thread.is_alive() and stale_thread.is_started():
-		var n: int = stale_thread.wait_to_finish()
-		refresh_note.text = ("Could not count them (offline?). " if n < 0 else "%d units were made under older rules. " % n) + "Converts them again (after copying imagery from another computer)."
+	for job in jobs.keys():
+		var r: String = setup.result(job)
+		if r != "":
+			var done: Callable = jobs[job]
+			jobs.erase(job)
+			done.call(JSON.parse_string(r))
 	if not running:
 		return
 	var p: Dictionary = setup.poll()
