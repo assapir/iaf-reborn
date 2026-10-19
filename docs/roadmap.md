@@ -68,11 +68,10 @@ ranked order, are in [docs/graphics-research.md](graphics-research.md).
   - Report deviations; let the user choose "faithful 1998" vs "realistic" per item (or a setting).
 - **F-35I built-in EOTS** (not built yet): the real jet's targeting sensor under the nose, so the F-35I has the FLIR
   page and the laser with no FLIR pod store (today it needs the pod like every jet; docs/f35i.md §3.1).
-- **Pilot guides: the MFD and radar pages** (future): an annotated section per page, with pictures, as the HUD
-  sections have. Today the guides show only the FLIR / TV / HARM pages, and the radar as a key table (e.g.
-  docs/guides/f16.md §13). The original manual covers the original pages (docs/mfd.md cites it, e.g. EN 4.17), so
-  each guide adds what the realistic options change: the Weapon data = Real radar ranges and the TWS / STT pages
-  first, then the "Real MFDs" pages once built (below).
+- **Pilot guides: the MFD and radar pages** (after "Real MFDs", below): an annotated section per real page, with
+  pictures, as the HUD sections have. Until then the MFDs are the original pages, which the original manual covers
+  (EN 4.12–4.24, docs/manual-audit.md); the guides give only the values the realistic options change (e.g. the radar
+  ranges, docs/guides/f16.md §13).
 
 ## Mouse wheel in the settings (nice to have)
 The mouse wheel scrolls the settings / preferences pages and their lists. An Extras option sets the direction:
