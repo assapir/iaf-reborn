@@ -48,7 +48,7 @@ fn read_patch(path: &str) -> Result<Vec<u8>> {
     let mut zip = zip::ZipArchive::new(std::io::Cursor::new(&raw)).context("not an RTPatch file, patch exe or zip")?;
     for i in 0..zip.len() {
         let mut f = zip.by_index(i)?;
-        let name = f.name().to_lowercase();
+        let name = f.name()?.to_lowercase();
         if name.ends_with(".exe") || name.ends_with(".rtp") {
             let mut data = Vec::new();
             std::io::Read::read_to_end(&mut f, &mut data)?;

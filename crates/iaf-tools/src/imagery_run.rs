@@ -175,7 +175,7 @@ fn list_sheets(dir: &Path, work: &Path, pr: &dyn Progress, cancel: &AtomicBool) 
             .collect();
         if found.is_empty() {
             let names: Vec<String> = match std::fs::File::open(&abs).map_err(anyhow::Error::from).and_then(|f| Ok(zip::ZipArchive::new(f)?)) {
-                Ok(a) => a.file_names().filter(|n| n.to_ascii_lowercase().ends_with(".tif")).map(String::from).collect(),
+                Ok(a) => a.file_names().filter_map(Result::ok).filter(|n| n.to_ascii_lowercase().ends_with(".tif")).map(String::from).collect(),
                 Err(e) => {
                     pr.warn(&format!("  skipping {} (not a complete ZIP: {e})", z.display()));
                     continue;

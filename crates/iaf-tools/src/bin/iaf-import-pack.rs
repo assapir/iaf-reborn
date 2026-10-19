@@ -31,7 +31,7 @@ fn read_zip(path: &Path) -> Result<Vec<ModFile>> {
         if f.is_dir() {
             continue;
         }
-        let path = f.name().replace('\\', "/");
+        let path = f.name()?.replace('\\', "/");
         let mut data = Vec::with_capacity(f.size() as usize);
         f.read_to_end(&mut data)?;
         files.push(ModFile { path, data });
