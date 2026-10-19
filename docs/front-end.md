@@ -369,6 +369,9 @@ Jets disabled per mission (`FUN_00509b80`; rows 0x11c bytes apart in the list ob
     The client at (5, 15) is the bitmap's size.
   * Place: the top-left stays, but the window moves left / up so that it ends inside the TSD client, never past its
     left / top edge (`FUN_0050bb00`). For example `pop-up.bmp` (416×258, mission 322's lesson) opens at (27, 0) 426×277.
+  * Clicks do not zoom. The client is the Reference screen's picture class (`FUN_0050ee40`, §14), whose zoom is
+    switched off. A click (left or right) on the picture focuses it, which activates the frame (`FUN_0050f0b0` sends
+    0x54a to the frame); the picture, the window size and the placement stay as they are.
 * `brief_t`, `obj_t` and `targ_t` are the tab-title art of **three separate floating windows**. The briefing
   has no Brief/Objective/Target tabs. `chat_t` is the multiplayer chat window (`FUN_004f83b0`).
 * The instructor name in training (e.g. "Jonathan" in `txt/311.rtf`) is a type-3 link to `card.bmp`.
@@ -1982,8 +1985,13 @@ of the frame.
 | 3DView | `FUN_0050f50b` (the same 3D viewer class that the TSD `obj_t` frame wraps, §11) | `<3DObjectsDir>\<model path>`. `3DObjectsDir` = ini `[Render] 3DObjectsDir` (`DAT_008366f8`, read at `4e1acb`); loaded via `FUN_0050f90a`. | Plain child with no frame. Ctor arguments `DAT_006992d4`, `DAT_00699334`. Camera and keys are as in §11 (keyboard orbit, `.cp` limits). |
 
 * Pictures zoom (`50f290`/`50f300`): LBUTTON zooms in (`z≤1 ? z·2 : z+2`, while z < 16); RBUTTON zooms
-  out (`z>2 ? z−2 : z·0.5`, while z > 0.2). Both act only when `+0x44` ≠ 0, and nothing sets it, so
-  **there is no zoom in practice** (UNCERTAIN).
+  out (`z>2 ? z−2 : z·0.5`, while z > 0.2). Both act only when the enable flag `+0x44` ≠ 0, so **there is no
+  zoom**, here or in the briefing's picture window (§6), which uses the same class:
+  * The ctor `FUN_0050ee40` sets `+0x44` = 0 (@50eea4). No other code writes it: the class's message map (`0x6098b8`:
+    paint, focus, size, erase, the two buttons, an empty KEYDOWN) never does, and its two owners, the Reference
+    screen (`+0x180`) and the briefing picture frame (`FUN_0050ec60`, child at `+0x40`, empty message map
+    `0x609898`), only create, reload (`FUN_0050f220`, which also resets `z` to 1.0) and destroy it.
+  * With the flag set, the picture would stay centred (`50f0e0`): no panning and no window resize.
 * A missing file shows a Windows message box with the path as its text and the caption "Not exists"
   (`FUN_005e8f0d`; caption role UNCERTAIN).
 * LBUTTONDOWN on the content goes to the empty `4ecf80`.
