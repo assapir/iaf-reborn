@@ -90,3 +90,6 @@ Rule of placement: game logic belongs in the Rust crates. Godot renders and wire
   `docs/adding-a-plane.md` (`iaf-convert plane-checklist <code>` lists every table).
 - Docs follow ISO 24495-1 plain language: relevant, findable, understandable, usable. Describe what a thing is or
   does, never what it isn't.
+- Research facts from outside sources cite each source as a Markdown footnote (`[^name]` in the text, the source with
+  its link at the end of the doc), not as `[S]` / `[R]` tags. Say "inferred" for our own reasoning and "open" where
+  no source was found (example: `docs/real-betty.md`).
