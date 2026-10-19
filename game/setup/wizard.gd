@@ -252,6 +252,7 @@ func _link(text: String, url: String) -> LinkButton:
 	var b := LinkButton.new()
 	b.text = text
 	b.tooltip_text = url
+	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	b.add_theme_color_override("font_color", ORANGE)
 	b.add_theme_color_override("font_hover_color", YELLOW)
 	b.pressed.connect(func(): OS.shell_open(url))
@@ -473,13 +474,16 @@ func _page_welcome() -> Control:
 func _rich(parent: Control, bbcode: String) -> RichTextLabel:
 	var r := RichTextLabel.new()
 	r.bbcode_enabled = true
-	r.text = bbcode
 	r.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	r.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	r.add_theme_constant_override("paragraph_separation", 4)
 	r.add_theme_color_override("default_color", TEXT)
 	r.meta_underlined = true
 	r.meta_clicked.connect(func(m): OS.shell_open(str(m)))
+	# Links look and act like links: orange (as the link buttons), a hand over them.
+	r.meta_hover_started.connect(func(_m): r.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND)
+	r.meta_hover_ended.connect(func(_m): r.mouse_default_cursor_shape = Control.CURSOR_ARROW)
+	r.text = bbcode.replace("[url=", "[color=#%s][url=" % ORANGE.to_html(false)).replace("[/url]", "[/url][/color]")
 	parent.add_child(r)
 	return r
 
