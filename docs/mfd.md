@@ -699,12 +699,15 @@ world coordinates to its pixels and describes how the page samples it.
 | Next / Previous waypoint | W / Shift+W | 0x65 / 0x66 |
 | Change HUD color | H | 0x7b (`idx=(idx+1)%11`, see §2; default 0) |
 
-- Event 0x5a(page) replaces the Left page; when Left shows radar, it replaces the Right page. It is ignored when the
-  page is already shown or page = 5.
+- Event 0x5a(page) replaces the Left page; when Left shows radar and there is more than one MFD, it replaces the Right
+  page. It is ignored when the page is already shown or page = 5.
 - Radar events first put the radar page on an MFD if none shows it.
 - STT comes from a lock (event 0x2a).
 - Master mode → page (`FUN_00449810`): NAV→0; modes 1/2→stores; 3→radar; 4→HARM(10)/radar by weapon; 5→FLIR or
-  stores; 6→TV (names of modes 1–6 UNCERTAIN). Page 10 keeps the page it replaced in `ctl+0x92c`. When the HUD mode
+  stores; 6→TV (names of modes 1–6 UNCERTAIN). A page no active MFD shows (`FUN_00449f90`) goes to the first MFD
+  not showing the radar, slot order Left, Right, Middle (`FUN_00449f20`, `IafModes.free_slot`). All three on the
+  radar: the Left. Two MFDs both on the radar: the exe writes the unused slot `ctl+0x70`, so no MFD shows the page.
+  One MFD: the Left. Page 10 keeps the page it replaced in `ctl+0x92c`. When the HUD mode
   was 8 (HARM), the sensor goes off (`FUN_0045c2f0`) unless a 590 stays selected, and page 10 goes back to `+0x92c`
   (that page 5 / 6: to `+0x930` / `+0x934`); a 590 still selected places page 10 again.
 - M (event 0x63, `FUN_0044a240` after `FUN_00449810`, `LAB_0044b9fb`) then sets every MFD's page for the new cycle
@@ -720,6 +723,13 @@ world coordinates to its pixels and describes how the page samples it.
   In AG with a 590 selected the stores page is the HARM page (10): the slot's page before goes to `+0x92c` and the
   sensor comes on (`FUN_0045c2b0`). `FUN_00449810` has usually placed page 10 on that slot already, so `+0x92c`
   becomes 10 and leaving HARM later keeps page 10 (exe behaviour, kept).
+- M also sets the radar (`FUN_004ad8f0`, the R key's A-A / A-G switch; `IafModes.m_key_radar`), from its A-A flag
+  `ctl+0xc4` (radar+0x40) and mode `ctl+0xb4` (radar+0x30). NAV and AA: one switch when the radar is in A-G or OFF,
+  so it ends in its last A-A mode. AG with 2 or 3 MFDs: one switch when in A-A, and a second one while still in A-A
+  (a radar in OFF / STBY first goes to A-A). AG with another count leaves the radar.
+- M then plays SFX_BUTTON (code `FUN_00450a60(0x23, 0, 0)`, played by `FUN_0044fb10` for the player's jet only).
+  The HARM sensor call of M (`FUN_0045c2b0`) repeats the one in `FUN_00449810`; it acts only on a sensor that is
+  off, so the second call does nothing.
 - A click on the HARM page's entry that is already selected sends nothing (`FUN_005358b0`, `DAT_0083e348`).
 - Radar-page OSBs: 0xb range+, 0xc range−, top 1 = cycle mode (0x24).
 

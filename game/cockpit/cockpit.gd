@@ -276,6 +276,22 @@ func show_mfd_page(page: int) -> Node:
 	return target
 
 
+## A master mode's page (FUN_00449810): ignored when already shown (FUN_00449f90), else on the slot of
+## FUN_00449f20 (IafModes.free_slot: the first MFD not on the radar; none with 2 MFDs both on the radar).
+func place_mfd_page(page: int) -> Node:
+	var pages := PackedInt32Array()
+	for m in mfds:
+		if m.page == page:
+			return null
+		pages.append(m.page)
+	var i: int = ClassDB.class_call_static("IafModes", "free_slot", pages)
+	if i < 0 or i >= mfds.size():
+		return null
+	replaced_page = mfds[i].page
+	mfds[i].page = page
+	return mfds[i]
+
+
 ## The MFD showing the radar (radar keys first put the radar on the Left MFD if none shows it).
 func radar_mfd() -> Node:
 	for m in mfds:

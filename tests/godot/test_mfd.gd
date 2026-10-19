@@ -194,6 +194,7 @@ func run() -> void:
 		w.master_key()
 		var pages := [2, 3] if w.m_cycle < 2 else [2, 10 if w.stores.current_type() == 590 else 1]
 		check([L.page, R.page] == pages, "M → cycle %d: pages %s (%s)" % [w.m_cycle, pages, [L.page, R.page]])
+		check(w.radar.aa == (w.m_cycle < 2), "M → cycle %d: radar A-A %s (FUN_004ad8f0)" % [w.m_cycle, w.m_cycle < 2])
 	# TSD: the scale OSBs wrap (FUN_00531850 / FUN_00531950).
 	other.page = 3
 	other.tsd_scale = 80
@@ -217,3 +218,10 @@ func run() -> void:
 		var pages: Array = [[2, 0, 3], [2, 7, 3], [2, 10 if w.stores.current_type() == 590 else 1, 3]][w.m_cycle]
 		var got: Array = cp.mfds.map(func(m): return m.page)
 		check(got == pages, "Lavi: M → cycle %d: pages %s (%s)" % [w.m_cycle, pages, got])
+	# A master mode's page on 3 MFDs with Left and Right on the radar goes to the Middle (FUN_00449f20).
+	w.select_station(6)
+	for i in 3:
+		cp.mfds[i].page = [2, 2, 3][i]
+	w.select_station(3)
+	var placed: Array = cp.mfds.map(func(m): return m.page)
+	check(placed == [2, 2, 10], "Lavi: HARM page on the Middle when Left and Right show the radar (%s)" % [placed])

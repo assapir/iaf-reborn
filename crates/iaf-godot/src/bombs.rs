@@ -173,4 +173,17 @@ impl IafModes {
     fn m_key_pages(cycle: i64, n: i64, panel_rwr: bool, harm: bool) -> PackedInt32Array {
         iaf_avionics::master::m_key_pages(cycle as u8, n.max(0) as usize, panel_rwr, harm).into_iter().map(i32::from).collect()
     }
+
+    /// `FUN_00449f20`: the slot for a master mode's page, −1 none (`master::free_slot`).
+    #[func]
+    fn free_slot(pages: PackedInt32Array) -> i64 {
+        let pages: Vec<i64> = pages.as_slice().iter().map(|&p| i64::from(p)).collect();
+        iaf_avionics::master::free_slot(&pages).map_or(-1, |i| i as i64)
+    }
+
+    /// The M key's R presses (`master::m_key_radar`).
+    #[func]
+    fn m_key_radar(cycle: i64, n: i64, aa: bool, mode: i64) -> i64 {
+        i64::from(iaf_avionics::master::m_key_radar(cycle as u8, n.max(0) as usize, aa, mode as u8))
+    }
 }

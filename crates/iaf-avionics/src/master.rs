@@ -170,6 +170,29 @@ pub fn m_key_pages(cycle: u8, n: usize, panel_rwr: bool, harm: bool) -> Vec<u8> 
     }
 }
 
+/// `FUN_00449f20`: the slot a master mode's page goes to when no active MFD shows it (`FUN_00449f90`), from the
+/// active MFDs' pages (slot 0 = Left). The first slot not showing the radar (2); all three on the radar: slot 0.
+/// Two MFDs both on the radar: `None` (the exe writes the unused slot `ctl+0x70`, so no MFD shows the page).
+pub fn free_slot(pages: &[i64]) -> Option<usize> {
+    match pages {
+        [a, b] if *a == 2 && *b == 2 => None,
+        [_, _] | [_, _, _] => Some(pages.iter().position(|&p| p != 2).unwrap_or(0)),
+        _ => Some(0),
+    }
+}
+
+/// The M key's radar calls (`LAB_0044b9fb`): how many times R (`FUN_004ad8f0`) runs, from the radar's A-A flag
+/// (`ctl+0xc4` = radar+0x40) and mode (`ctl+0xb4` = radar+0x30, 0 OFF, 1 STBY). NAV / AA: once when A-G or OFF
+/// (→ the last A-A mode). AG with 2 or 3 MFDs: in A-A once, and again while still A-A (a radar not radiating goes
+/// to A-A first); other counts leave the radar.
+pub fn m_key_radar(cycle: u8, n: usize, aa: bool, mode: u8) -> u8 {
+    match cycle {
+        0 | 1 => u8::from(!aa || mode == 0),
+        _ if aa && (n == 2 || n == 3) => 1 + u8::from(mode < 2),
+        _ => 0,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -201,5 +224,21 @@ mod tests {
         assert_eq!(m_key_pages(1, 2, false, false), [2, 7]);
         assert_eq!(m_key_pages(2, 2, false, true), [2, 10]);
         assert_eq!(m_key_pages(2, 1, false, false), [1]);
+    }
+
+    #[test]
+    fn placement_and_radar() {
+        assert_eq!(free_slot(&[2, 2, 0]), Some(2));
+        assert_eq!(free_slot(&[2, 2, 2]), Some(0));
+        assert_eq!(free_slot(&[2, 7, 3]), Some(1));
+        assert_eq!(free_slot(&[2, 2]), None);
+        assert_eq!(free_slot(&[2]), Some(0));
+        assert_eq!(m_key_radar(1, 3, true, 4), 0);
+        assert_eq!(m_key_radar(0, 1, false, 7), 1);
+        assert_eq!(m_key_radar(1, 2, true, 0), 1);
+        assert_eq!(m_key_radar(2, 3, true, 0), 2);
+        assert_eq!(m_key_radar(2, 2, true, 5), 1);
+        assert_eq!(m_key_radar(2, 1, true, 5), 0);
+        assert_eq!(m_key_radar(2, 3, false, 7), 0);
     }
 }

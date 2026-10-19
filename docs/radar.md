@@ -67,7 +67,7 @@ STT takes LRS's (max index, NM). A jet without LRS uses ACM's.
 | key | event | rule |
 |---|---|---|
 | Q | 0x24 (`FUN_004ad6f0`) | A-A: LRS → TWS → ACM → LRS (missing modes skipped; leaving STT unlocks); A-G: GMT ↔ MAP; an off radar starts |
-| R | 0x2b (`FUN_004ad8f0`) | A-G or off → the last A-A mode, else the last A-G mode (the lock is dropped). If no MFD shows the radar, R first puts the page up |
+| R | 0x2b (`FUN_004ad8f0`) | A-G or off → the last A-A mode, else the last A-G mode (the lock is dropped). If no MFD shows the radar, R first puts the page up. M calls it too (docs/mfd.md §5) |
 | S | 0x2c (`FUN_004ad9c0`) | STBY (an on radar is turned off first: lists cleared) |
 | . / , | 0x21 / 0x22 (`FUN_004adb70`) | range index ±1 in [1, max], then a scan; ignored in STT |
 | \ down / up | 0x2d / 0x2e | BORE while held (A-A only), back to the saved mode |

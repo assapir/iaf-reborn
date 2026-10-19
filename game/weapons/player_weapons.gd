@@ -358,9 +358,8 @@ func _mfd_page() -> void:
 			_harm_capture()  # FUN_0045c2b0: the sensor comes on with a scan
 	if master in [1, 2, 3, 4]:
 		_eo_leave()
-	# Placed like event 0x5a (FUN_00449f90 / FUN_00449f20; UNCERTAIN: same rule).
 	if page >= 0 and host.cockpit != null:
-		if host.cockpit.show_mfd_page(page) != null and page in [5, 6, 10]:
+		if host.cockpit.place_mfd_page(page) != null and page in [5, 6, 10]:
 			_replaced[page] = host.cockpit.replaced_page
 	if master == 5 and flir_pod:
 		_eo_start(EoSensor.FLIR)
@@ -628,7 +627,11 @@ func master_key() -> void:
 			if pages[i] == 10:
 				_replaced[10] = c.mfds[i].page
 			c.mfds[i].page = pages[i]
-	host.sounds.play("SFX_BUTTON")
+	# R (FUN_004ad8f0) as the cycle position wants the radar A-A / A-G (IafModes.m_key_radar).
+	var n: int = c.mfds.size() if c != null else 0
+	for k in ClassDB.class_call_static("IafModes", "m_key_radar", m_cycle, n, radar.aa, radar.mode):
+		radar.toggle_aa_ag(now)
+	host.sounds.play("SFX_BUTTON")  # FUN_00450a60(0x23) + FUN_0044fb10: SFX_BUTTON, the player's jet only
 
 
 ## N (event 0x62, p = 0): the master mode p (NAV).
