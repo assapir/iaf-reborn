@@ -1,0 +1,80 @@
+# Setup pipeline
+
+Setup turns your own copy of Jane's IAF into everything the game reads under `assets/`. Two front ends run it:
+
+- `tools/setup-cli.sh`: the scripted way (README "Quick start").
+- `crates/iaf-setup`: the same steps in-process, for the setup wizard. Its small CLI is for testing:
+  ```sh
+  cargo run --release -p iaf-setup -- [--assets DIR] [--patch P] [--hebrew-iso ISO] [--imagery sentinel2,mapi2015] \
+      [--guides] [--redo-all] ["/path/to/Jane's IAF.iso" [Brief.zip] [Menu.zip]]
+  cargo run --release -p iaf-setup -- check <file>      # what a CD image, patch or pack is
+  ```
+
+## What you give it
+
+| Input | Needed | What it adds |
+|---|---|---|
+| The English CD image | yes | the install and every conversion |
+| The v1.1 patch | no | the v1.1 files (docs/v1.1.md); the v1.0 originals stay in `assets/v1.0` |
+| The Hebrew CD image | no | every translated briefing and menu file, the Hebrew startup splash and Graphics page |
+| `Brief.zip`, `Menu.zip` | no, only without the Hebrew CD | the Hebrew briefings and menus (docs/packs.md) |
+| Imagery sources | no | modern terrain imagery (docs/imagery.md) |
+| Pilot guides | no | the guides' pictures and PDFs (needs a display) |
+
+The Hebrew CD alone cannot set up the game: its `iafjets.exe` is the copy-protected build, and the English v1.1
+patch does not apply to it. So the English CD is always the base; the Hebrew CD adds the translations.
+
+`check_cd` tells the CDs apart: the install script and archive make it a Jane's IAF CD, Hebrew menu strings make it
+the Hebrew CD, and the English CD's `iafjets.exe` is a release the tools know.
+
+## Steps
+
+Each step waits only for the steps whose output it reads. Steps that wait for nothing in common run at the same time,
+and each step uses every core inside.
+
+| Step | Waits for | Writes |
+|---|---|---|
+| `extract` | | `assets/install` |
+| `patch` | extract | `assets/v1.1`, `assets/v1.0`, the patched files in `assets/install` |
+| `fonts`, `cockpits`, `reference`, `menu`, `missions`, `theatre`, `icon` | the install | `assets/converted/…` |
+| `hebrew` | the install | `assets/packs/he` |
+| `briefings`, `keys` | the install, hebrew | `assets/converted/briefings`, `keys.json` |
+| `menu_he` | the install, hebrew | `assets/converted/menu_he` |
+| `arm` | menu, menu_he | the extra planes' arming art |
+| `aircraft`, `objects` | missions | `assets/converted/planes`, `objects` |
+| `airbases` | theatre | `assets/converted/terrain/airbases.json`, `airbases/` |
+| `launcher` | icon | the desktop launcher (`tools/install-launcher.sh`) |
+| `sentinel2`, `mapi2015-fetch`, `mapi2015` | airbases | `assets/converted/imagery` |
+| `guides` | the conversions and imagery | the pilot guides |
+
+"The install" is `patch` when a patch is given, else `extract`. A failed required step stops the setup; the steps
+that wait for it do not run. `launcher`, the imagery and the guides are optional: their failure stops only what waits
+for them.
+
+## Running only what changed
+
+Each step writes a stamp next to its output (`<output>.stamp`). The stamp lists:
+
+- the converters' code (a fingerprint of the iaf-tools, iaf-formats and iaf-setup sources and `Cargo.lock`);
+- every outside file the step reads (the CD image, the patch, the packs, the extra planes), with its size and CRC-32;
+- the stamps of the steps it waits for.
+
+When a step's stamp is the same as last time and its output is still there, the step is "up to date" and does not
+run. A changed input therefore redoes its step and the steps after it, and nothing else. `--redo-all` runs every
+step anyway.
+
+Running setup again is how you add or redo things. The last run's inputs are kept in `assets/setup.json` (the wizard
+fills its pages from them; the CLI uses them when no ISO is given, plus the options given). Add an extra, for example
+`--imagery sentinel2`, and only its steps and the steps that wait for them run.
+
+The imagery steps keep their own marks per work unit instead: a run converts only the units that are missing or
+were made under older rules, and is up to date when there are none. The guides decide per picture.
+
+## Outside programs
+
+- GDAL (`gdal_translate`, `gdalbuildvrt`): the imagery steps. Without it they are skipped.
+- `tools/imagery/fetch-mapi2015-curl.sh` (curl, python3, Firefox's data.gov.il token): the Survey sheets.
+- `tools/install-launcher.sh`: the desktop launcher (its `XDG_DATA_HOME` can be set).
+- The guides: the wizard renders them in-process; the CLI runs `tools/guide_shots.sh` and `tools/guide_pdf.py`.
+
+Their output goes to the step's log.

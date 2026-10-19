@@ -50,6 +50,8 @@ python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded 
   `plane-describe` / `plane-checklist`), `iaf-terrain`, `iaf-imagery`, `iaf-import-pack`, `iaf-mission-report`.
   The setup-path bins are argument parsers over library modules (`convert`, `extract`, `patch`, `pack`, `terrain`,
   `imagery_run`): each entry point takes a `progress::Progress` and a cancel flag.
+- `crates/iaf-setup` — the setup pipeline in-process (docs/setup.md): `plan` (setup-cli.sh's steps with their
+  dependencies), `run` (a dependency graph, stamps skip unchanged steps), the input checks; CLI `iaf-setup` for testing.
 - `crates/iaf-flight` — the original flight model and AI autopilot, pure Rust, re-implemented from
   `docs/flight-model.md` / `docs/autopilot.md`. Tests in `crates/iaf-flight/tests/` (validation against the envelope
   reference `tools/envelope_ref.py`).

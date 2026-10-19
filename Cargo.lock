@@ -236,6 +236,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "iaf-setup"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "crc32fast",
+ "iaf-formats",
+ "iaf-tools",
+ "serde_json",
+ "zip",
+]
+
+[[package]]
 name = "iaf-tools"
 version = "0.1.0"
 dependencies = [

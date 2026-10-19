@@ -80,6 +80,9 @@ Options:
 
 Conversion is a one-time step. Re-run it after you update the converters.
 
+The same pipeline also runs in-process (`crates/iaf-setup`, docs/setup.md). It runs only the steps whose inputs
+changed.
+
 Other entry points:
 
 - `godot --path game res://terrain/terrain_view.tscn`: straight into the air.
