@@ -34,6 +34,12 @@ heading scale with a steering bug, straight ladder bars, an LCOS gun sight and C
 The same moment with the Real HUD is the first picture of section 3. Looking aside, the Lavi keeps the original
 game's helmet display.
 
+**Voice and HUD warnings.** The Lavi has Betty, the cockpit voice, with either HUD. In the A-G gun and bomb modes she
+calls "Pull up" every 4 s while the dive is steeper than 1° for each 100 ft above the ground (more than 20° at 2,000
+ft), and below 100 ft with the gear up she calls "Altitude" instead. The 1998 HUD also draws a large X across its
+centre in the same dive, and when the locked target is closer than the selected missile's minimum range (Rmin): then
+it hides the missile circle. The Real HUD draws no X; Betty's calls stay the same.
+
 ---
 
 ## 2. Settings

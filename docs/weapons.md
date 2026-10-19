@@ -887,6 +887,9 @@ docs/real-weapons.md §2); the Original data keeps this rule.
   the cue then follows the lock alone). No in-circle and no radar A-A test. The cue is drawn under the target box
   (`FUN_00537330`, only with a radar lock or designated point), so it shows with a radar lock. Ours keeps the statics
   per flight (`player_weapons.gd` `_srm_dlz`; the original's last a whole session). `hud.rs` `srm_shoot_cue`.
+- **Break X** (S+0x1024, `FUN_0044fe30`; docs/cockpit.md): with a radar lock outside HUD modes 3 / 4, the target
+  closer than the DLZ min of the store about to fire (570–610, refreshed once a second) draws an X on the HUD centre
+  and hides the circle and the caret.
 - **"%2d SEC"** (HUD row 5 in modes 1, 2, 8; S+0x380): the last launched weapon's time left (`FUN_0053bec0` → its
   motion's vfunc +0x80, clamped by `FUN_004d6ac0`: below 0 → 0, above 300 → 60).
 - **STT envelope ticks** (MFD, `FUN_00534160`): three black ticks at y 39 / 65 / 91 and the DLZ max / min as ticks

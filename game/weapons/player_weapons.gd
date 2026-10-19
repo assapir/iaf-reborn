@@ -23,6 +23,7 @@ const Bombs := preload("res://weapons/bombs.gd")
 const Views := preload("res://terrain/views.gd")
 const Hud := preload("res://cockpit/hud.gd")
 const Terrain := preload("res://terrain/terrain.gd")
+const FlightSounds := preload("res://audio/flight_sounds.gd")
 
 ## The gun's shot timer period (DAT_0082f4e8 = 0.2 s, sim time).
 const GUN_PERIOD := 0.2
@@ -95,6 +96,10 @@ var hud_mode: int:
 var _modes = ClassDB.instantiate("IafModes")
 ## ctl+0x970: Safety off (the cheat; firing with the gear handle down).
 var safety_off := false
+## FUN_0044fe30's break X: ctl+0x818, the DLZ min it compares the lock's range with (kept between updates), and the
+## next update time of its 1 s timer (ctl+0x820).
+var _break_min := 0.0
+var _break_next := -1.0
 ## W+0xac release in progress (Space held), W+0xb0 gun firing (also the muzzle flash).
 var releasing := false
 var firing := false
@@ -174,7 +179,7 @@ func setup(host_node: Node, entity: Dictionary, object: Dictionary, bdb: Diction
 	rwr.own = own
 	rwr.now = func(): return now
 	rwr.compact = Settings.real_data()
-	rwr.betty = jet_type in preload("res://audio/flight_sounds.gd").BETTY_TYPES
+	rwr.betty = jet_type in FlightSounds.BETTY_TYPES
 	if host.get("sounds") != null:
 		rwr.play = host.sounds.play
 		rwr.stop = host.sounds.stop
@@ -1848,6 +1853,38 @@ func _lock_bearing(o: Dictionary) -> Variant:
 	return ClassDB.class_call_static("IafRelease", "lock_bearing", o.pos, float(o.yaw), lk.pos)
 
 
+## FUN_0044fe30's return value -> FUN_00445990 -> S+0x1024, the HUD break X: the pull-up dive (FlightSounds.pull_up)
+## or the radar lock's target inside the minimum range.
+func _break_x_cue(o: Dictionary) -> bool:
+	var f = host.flight
+	var t = host.get("terrain")
+	if f != null and t != null:
+		var st: Dictionary = f.state()
+		var g = t.height_at(host.rig.position)
+		if not st.is_empty() and g != null and FlightSounds.pull_up((st.position.y - float(g)) * FlightSounds.FT_PER_M,
+				host.gear_down, float(st.get("pitch", 0.0)), hud_mode):
+			return true
+	return _break_x(o)
+
+
+## The second rule of FUN_0044fe30: a radar lock with its target, HUD mode not 3 / 4 (the guns). Once a second
+## (ctl+0x820, period 1 s) the DLZ min of the store about to fire, when it is a 570–610 missile (FUN_00457bf0), is
+## kept in ctl+0x818 (weapon vfunc +0x24, out[2]); every frame: the target closer than that -> the X.
+func _break_x(o: Dictionary) -> bool:
+	var lk: Dictionary = radar.locked()
+	if not radar.has_lock() or lk.is_empty() or hud_mode in [3, 4]:
+		return false
+	var u := _unit(_units(), String(lk.key))
+	var target: Dictionary = u if not u.is_empty() else {"pos": lk.pos, "vel": Vector3.ZERO}
+	if now >= _break_next:
+		_break_next = now + 1.0
+		if stores.current_type() in [570, 580, 590, 600, 610]:
+			var z := selected_dlz(o, target)
+			if z.size() > 1:
+				_break_min = float(z[1])
+	return (target.pos - o.pos).length() < _break_min
+
+
 ## The cockpit snapshot (FUN_00456520 -> FUN_00445bb0) for the HUD and the stores MFD page.
 func _publish() -> void:
 	var c: Control = host.cockpit
@@ -1915,7 +1952,7 @@ func _publish() -> void:
 		"quantity": ripple_qty, "interval": ripple_int, "seeker": seeker.symbol, "lock": seeker.lock,
 		"have_missiles": stores.total(t, stores.current_name()) > 0, "circle": circle, "mrm_point": mrm_pt,
 		"shoot": shoot, "harm_point": harm_pt, "tv_point": eo_centre if hud_mode == 7 and tv_status() != 0 else null, "sec": s380, "bearing": _lock_bearing(o),
-		"pipper": pip, "pipper_world": hud_mode == 4, "firing": firing,
+		"pipper": pip, "pipper_world": hud_mode == 4, "firing": firing, "break_x": _break_x_cue(o),
 		# The mode-5 object's cockpit state (FUN_00445db0: +0x620 off, +0x624 point, +0x638 time-to-go
 		# capped at 1000, +0x62c frozen, +0x630 blinking).
 		"ag": {"pipper": ag.pipper if hud_mode in [5, 6] else null, "off": ag.off, "frozen": ag.frozen,

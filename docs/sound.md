@@ -167,7 +167,7 @@ the engine volume slider (default 0.8).
 | SFX_SPEED_BREAKES_LOOP 0x1c | `Cock_Arbrks_Loop.wav` | toggle: brake out and airborne → start (handle ctl+0x8cc); else stop. Per frame (@4495d2): brake out: airborne → start if none; on the ground → stop | yes | 1 | effects | yes |
 | SFX_WARNING / WRN_AOA 0x18011000 | `WrnSfxAOA.wav` | per frame (@449247): dragX (getter 0x12 = `S+0x2f0`) > 0.5 and airborne → start (ctl+0x8c4); else stop | yes | 1 | effects | yes (state `drag_x`) |
 | VOC_BBETTY / BTY_ALT 0x2c001000 | `Cock_Bty_Alt.wav` "Altitude" | `FUN_0044fe30`: `(z − terrain(x,y))·3.281 < 100` ft and the gear handle up and ctl+0x964 → MCockpitSoundEvent (vtbl 0x600ce8) at once and every 4.0 s (`DAT_0082f468`, ctl+0x904); cancelled when the condition ends | no | 1 | speech, ch 3 | yes |
-| VOC_BBETTY / BTY_PULL_UP 0x2c00a000 | `Cock_Bty_Alt.wav` (the row reuses "Altitude") | same function, above 100 ft or gear down: pitch-angle·57.3 < 0 and its magnitude > h_ft·0.01, HUD mode ctl+0x5c ∈ {4,5,6} (air-to-ground weapon modes) and ctl+0x964 → every 4 s (ctl+0x908); also sets the HUD pull-up cue (`FUN_00445980`) | no | 1 | speech | not built (the A-G HUD modes exist; neither the Betty nor the HUD pull-up cue is ported) |
+| VOC_BBETTY / BTY_PULL_UP 0x2c00a000 | `Cock_Bty_Pull.wav` "Pull up" | same function, outside the BTY_ALT case: the pitch (state [3] = pitch, ×57.3) < 0 and \|pitch°\| > h_ft·0.01 (0x600ae0 = 0, 0x600b2c = 0.01) in HUD mode ctl+0x5c ∈ {4, 5, 6} (A-G gun, bombs) → at once and every 4 s (ctl+0x908). The timer starts only with the gear handle up and ctl+0x964 and runs until the dive or the mode ends. The function returns 1 in that dive, with the gear up or down: `FUN_00445990` → S+0x1024, the HUD break X (docs/cockpit.md) | no | 1 | speech, ch 3 | yes (`FlightSounds.pull_up`; the X in `hud.gd`) |
 | VOC_BBETTY / BTY_OVER_G 0x2c009000 | `Cock_Bty_Over.wav` | G > OverGThresh, 4 s repeat (@44951e; docs/flight-model.md §13.5) | no | 1 | speech | yes (g_effects.gd) |
 | SFX_G_EFFECT 0x13 | `Cock_G_02.wav` | G > 6, 17 s repeat (@449574) | no | 1 | effects | yes (g_effects.gd) |
 | VOC_BBETTY / BTY_FUEL 0x2c003000 | `Cock_Bty_Fuel.wav` | engine object `FUN_0045aa80` (every fuel update, fuel in lb = kg·2.2046): once when 500 < fuel < 1000 (flag +0x40), once when fuel < 500 (flag +0x44); not gated by ctl+0x964 | no | 1 | speech | yes |
@@ -202,7 +202,7 @@ volume (port: terrain_view `_voice` on the IafSpeech bus).
 | missile launch | SFX_WARNING WRN_MISSILE_LAUNCH 0x18003000 (`WrnSfxMissile`, loop) + Betty BTY_MISS 0x2c002000 | `FUN_0044e160` (@44e197, @44e1b6), `FUN_00448120` (@4482f9) | ported (`rwr.gd` `launch`, from `player_weapons.gd` `launch_homing`: the AI's and SAMs' missiles) |
 | IR seeker / lock | SFX_IR_SEEK 0x25 / SFX_IR_LOCK 0x26 (`Wpn_IRCHIRP`, `WPN_IRCHIRPON`) | `FUN_00461b00`, `FUN_00461bf0` | ported (`player_weapons.gd`) |
 | gun, weapon release / flight / hits | SFX_AIRCRAFT_FIRED_WEAPON 0xf, SFX_OBJECT_SPECIFIC 0xe, WEAPON_EXPLODED 10, … | `FUN_004579f0`, `FUN_0059d9c0`, `FUN_0059dad0`, `FUN_004d5d10` | ported (`player_weapons.gd`, AI launches through its `launch_homing`; the AI's gun bursts / AAA in `ai/combat.gd`) |
-| Betty "Pull up" | BTY_PULL_UP | §4 | not built |
+| Betty "Pull up" | BTY_PULL_UP | §4 | ported |
 | button click | SFX_BUTTON 0x23 | §4 | ported |
 | extinguisher | SFX_FIRE_EXTINGUISHER 0x27 | §4 | ported |
 | belly screech | SFX_SCREECH 0x29 | §4 | ported |
@@ -230,7 +230,6 @@ The stall buffet and touchdown / off-runway rumble are DirectInput force-feedbac
 * **Inside / outside volume**: ours follows the current view every frame. The original picks it when a sound
   starts; UNCERTAIN whether it updates running sounds.
 * **UNCERTAIN**:
-  - the `BTY_PULL_UP` angle (unit state slot 0x34 +0x0c, taken as the pitch);
   - the logical-channel policy;
   - the inside flag's setter;
   - that the per-frame object sound update runs every frame.

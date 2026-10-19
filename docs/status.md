@@ -149,7 +149,6 @@ Checked against the code on 2026-10-14 (each doc's own "not built" notes have th
   feedback); unhandled commands: cheat keys (Shift+S / D / R / F, Ctrl+W), SysRQ screenshot, chat.
 - **FlyTSD**: Fly after the own jet is down changes nothing; the exe hands over the new jet until rule 1 ends the
   flight (docs/views.md §1 "Open").
-- **Sounds**: Betty "Pull up" and the HUD pull-up cue.
 - **Radio**: AWACS contact calls; airborne / landed / crashed / kill ("… is down") reports.
 - **Front end**: Graphics defaults from hardware
   detection, TERRAIN DETAIL's resolution drop / view distance (docs/deviations.md §1). No wind / No malfunctions have

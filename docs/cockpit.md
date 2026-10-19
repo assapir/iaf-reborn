@@ -193,8 +193,20 @@ renderer, S = the cockpit state (`0x82f544`). The reader stores the `[HUD]` keys
     the HUD centre (`FUN_0052db30`). It is a 10 px circle with `"%d"` (its number) or `"T"` (action 5) in Arial at
     (+6, +6);
   * the I-mode marks with S+0xe68 set (`FUN_0052fcc0`, "I-mode" below);
-  * the weapon cues of the bombs / radar (S+0x1460 text, S+0x100c designator, S+0xa04 = 3 cross, S+0x1024 break X:
-    docs/weapons.md).
+  * the weapon cues of the bombs / radar (S+0x1460 text, S+0x100c designator, S+0xa04 = 3 cross: docs/weapons.md);
+  * the **break X** while S+0x1024 ≠ 0: lines (cx − 30, cy − 30) → (cx + 30, cy + 30) and (cx + 30, cy − 30) →
+    (cx − 30, cy + 30), ×scale, on the HUD centre. S+0x1024 is `FUN_0044fe30`'s return value (`FUN_00445990`, every
+    frame from `FUN_00448b20` @449307). It is 1 in two cases:
+    * the pull-up dive: outside the "altitude" case (below 100 ft with the gear handle up), the nose more than
+      h_ft·0.01° below the horizon in HUD mode 4, 5 or 6 (with Betty "Pull up", docs/sound.md §4);
+    * the minimum range: a radar lock with its target (`FUN_0044e430`), HUD mode not 3 / 4, and the target closer
+      than ctl+0x818. Once a second (timer ctl+0x820, `FUN_004d3fa0(0, 1.0, 0)` @4479df) ctl+0x818 takes the DLZ
+      min (store vfunc +0x24, out[2]) of the store about to fire, if it is a 570–610 missile (`FUN_00457bf0`); it
+      keeps the last value otherwise.
+
+    While it is set `FUN_00537120` draws neither the missile circle nor the lock caret (modes 1 / 2). Ours:
+    `player_weapons.gd` `_break_x_cue` → `weapons.break_x`, drawn in `hud.gd`. The Real HUD draws no X and keeps its
+    own circles (user decision); Betty plays with either HUD.
 * **Text block** (`FUN_0052ef20`, k = 1: sprite font). The left column is left-aligned at cx − TxtOffX, the right
   column ends at cx + TxtOffX, and the rows sit at cy + TxtOffY + 0 / 7 / 14.
   * Left 0: `"AB %1d"` while the afterburner is lit (S+0x1054; with two engines (S+0x1038 > 1) the larger of both),

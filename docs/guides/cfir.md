@@ -28,6 +28,11 @@ System 82), its HUD layout is public in outline, so the game draws an early-1980
 
 The same moment with the Real HUD is the first picture of section 3.
 
+**HUD warnings.** The Kfir has no Betty voice. The 1998 HUD draws a large X across its centre in the A-G gun and bomb
+modes while the dive is steeper than 1° for each 100 ft above the ground (more than 20° at 2,000 ft), and when the
+locked target is closer than the selected missile's minimum range (Rmin): then it hides the missile circle. The Real
+HUD draws no X.
+
 ---
 
 ## 2. Settings

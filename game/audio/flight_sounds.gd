@@ -34,6 +34,8 @@ const BETTY_PERIOD := 4.0
 ## "Altitude" below 100 ft above the terrain with the gear handle up (FUN_0044fe30, 0x600aa8).
 const ALT_WARN_FT := 100.0
 const FT_PER_M := 3.281  # 0x600b34
+## "Pull up": the nose below the horizon by more than 0.01° per foot above the terrain (0x600b2c).
+const PULL_UP_DEG_PER_FT := 0.01
 ## AoA / stall warning tone while the flight model's dragX (getter 0x12, S+0x2f0) > 0.5 in the air (@449247).
 const AOA_DRAG_X := 0.5
 ## Betty "Fuel" once below 1000 lb and once more below 500 lb (FUN_0045aa80, 0x6010b4 / 0x6010b8).
@@ -63,6 +65,7 @@ var _engine_row := {}
 var _speed_brake_loop: Node = null  # ctl+0x8cc
 var _aoa_loop: Node = null  # ctl+0x8c4
 var _alt_timer := -1.0  # ctl+0x904: next Betty "altitude" time, < 0 = off
+var _pull_timer := -1.0  # ctl+0x908: next Betty "pull up" time, < 0 = off
 var _fuel_flags := [true, true]  # engine object +0x40 / +0x44
 var _was := {}
 var _crashed := false
@@ -114,16 +117,18 @@ func _process(_delta: float) -> void:
 			if not st.is_empty():
 				global_position = host.rig.global_position
 				var ground = host.terrain.height_at(host.rig.position)
+				var wp = host.get("weapons")
 				update(st, {
 					"gear_down": host.gear_down, "flaps": host.flaps, "flaps_state": host.flaps_state,
 					"brakes": host.brakes, "in_cockpit": host.in_cockpit,
 					"agl_m": st.position.y - ground if ground != null else 1.0e6,
+					"pitch": float(st.get("pitch", 0.0)), "hud_mode": int(wp.hud_mode) if wp != null else 0,
 				})
 	_update_3d()
 
 
 ## One frame: `st` = IafFlight.state(), `inp` = the host's levers and view (gear_down, flaps,
-## flaps_state, brakes, in_cockpit, agl_m).
+## flaps_state, brakes, in_cockpit, agl_m, pitch (degrees), hud_mode).
 func update(st: Dictionary, inp: Dictionary) -> void:
 	var now: float = st.get("time", 0.0)
 	var airborne: bool = not st.on_ground
@@ -153,7 +158,8 @@ func update(st: Dictionary, inp: Dictionary) -> void:
 		elif _speed_brake_loop != null:
 			_stop(_speed_brake_loop)
 			_speed_brake_loop = null
-	_altitude_warning(float(inp.get("agl_m", 1.0e6)) * FT_PER_M, inp.gear_down, now)
+	_altitude_warning(float(inp.get("agl_m", 1.0e6)) * FT_PER_M, inp.gear_down, now, float(inp.get("pitch", 0.0)),
+		int(inp.get("hud_mode", 0)))
 	_fuel_warning(float(st.get("fuel_lbs", 1.0e6)))
 	_was = {"gear_down": inp.gear_down, "flaps": inp.flaps, "flaps_state": inp.get("flaps_state", 0),
 		"brakes": inp.brakes, "airborne": airborne}
@@ -244,18 +250,42 @@ func _aoa_warning(on: bool) -> void:
 
 
 ## FUN_0044fe30: below 100 ft above the terrain with the gear handle up, Betty "altitude" at once
-## and every 4 s (only on jets with Betty). "Pull up" needs an air-to-ground HUD mode (not built).
-func _altitude_warning(h_ft: float, gear_down: bool, now: float) -> void:
+## and every 4 s (only on jets with Betty). Otherwise, diving in an air-to-ground HUD mode
+## (pull_up), Betty "pull up" at once and every 4 s: the timer starts only with the gear handle up
+## on a jet with Betty, and runs until the dive or the mode ends.
+func _altitude_warning(h_ft: float, gear_down: bool, now: float, pitch_deg := 0.0, hud_mode := 0) -> void:
 	if h_ft < ALT_WARN_FT and not gear_down:
+		_pull_timer = -1.0
 		if betty and _alt_timer < 0.0:
 			_alt_timer = now
-		if _alt_timer >= 0.0 and now >= _alt_timer:
-			play("VOC_BBETTY", "BTY_ALT")
-			_alt_timer += BETTY_PERIOD
-			if _alt_timer <= now:
-				_alt_timer = now + BETTY_PERIOD
-	else:
-		_alt_timer = -1.0
+		_alt_timer = _betty_tick(_alt_timer, "BTY_ALT", now)
+		return
+	_alt_timer = -1.0
+	if not pull_up(h_ft, gear_down, pitch_deg, hud_mode):
+		_pull_timer = -1.0
+		return
+	if betty and not gear_down and _pull_timer < 0.0:
+		_pull_timer = now
+	_pull_timer = _betty_tick(_pull_timer, "BTY_PULL_UP", now)
+
+
+## MCockpitSoundEvent (vtbl 0x600ce8): plays the Betty call when its time `t` has come; returns the next time.
+func _betty_tick(t: float, sub: String, now: float) -> float:
+	if t >= 0.0 and now >= t:
+		play("VOC_BBETTY", sub)
+		t += BETTY_PERIOD
+		if t <= now:
+			t = now + BETTY_PERIOD
+	return t
+
+
+## FUN_0044fe30's pull-up rule (also the HUD break X, S+0x1024): outside the "altitude" case (below
+## 100 ft with the gear handle up), the nose below the horizon (0x600ae0 = 0) by more than h_ft·0.01
+## degrees in HUD mode 4 (A-G gun), 5 or 6 (bombs). The gear handle does not matter here.
+static func pull_up(h_ft: float, gear_down: bool, pitch_deg: float, hud_mode: int) -> bool:
+	if h_ft < ALT_WARN_FT and not gear_down:
+		return false
+	return hud_mode in [4, 5, 6] and pitch_deg < 0.0 and -pitch_deg > h_ft * PULL_UP_DEG_PER_FT
 
 
 ## FUN_0045aa80 (every fuel update): Betty "fuel" once between 1000 and 500 lb, and once below 500.
@@ -291,6 +321,7 @@ func _crash() -> void:
 	_speed_brake_loop = null
 	_aoa_loop = null
 	_alt_timer = -1.0
+	_pull_timer = -1.0
 	play("SFX_AIRCRAFT_EXPLODED")
 
 

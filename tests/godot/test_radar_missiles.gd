@@ -117,6 +117,18 @@ func _shot_case(tv, name: String, wid: int, shots: bool) -> void:
 	check(wp.shoot, "%s: the shoot cue" % name)
 	var dlz: Array = tv.cockpit.radar.get("dlz", [])
 	check(dlz.size() == 2 and dlz[1] < 8000.0 and dlz[0] > 8000.0, "%s: DLZ %s around 8 km" % [name, str(dlz)])
+	# The break X (FUN_0044fe30, S+0x1024): the locked MiG inside the DLZ min.
+	check(not wp.break_x, "%s: no break X at 8 km" % name)
+	mig.world = o.pos + aim * float(dlz[1]) * 0.5
+	tv.mission_entity_moved(mig)
+	t += 0.05
+	w.update(t)
+	check(tv.cockpit.weapons.break_x, "%s: break X inside the DLZ min (%.0f m)" % [name, dlz[1]])
+	mig.world = o.pos + aim * 8000.0
+	tv.mission_entity_moved(mig)
+	t += 0.05
+	w.update(t)
+	check(not tv.cockpit.weapons.break_x, "%s: no break X back at 8 km" % name)
 	if shots:
 		await frames(2)
 		tv.views.set_cockpit(tv.views.COCKPIT)

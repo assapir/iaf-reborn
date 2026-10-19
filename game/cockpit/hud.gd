@@ -180,6 +180,10 @@ func _draw() -> void:
 	if int(cockpit.radar.get("mode", 0)) == 3:
 		_ln(self, Vector2(-30, 0), Vector2(30, 0), w)
 		_ln(self, Vector2(0, -20), Vector2(0, 20), w)
+	# The break X (S+0x1024, FUN_0044fe30: the pull-up dive or the lock inside the DLZ min): ±30 px on the HUD centre.
+	if cockpit.weapons.get("break_x", false):
+		_ln(self, Vector2(-30, -30), Vector2(30, 30), w)
+		_ln(self, Vector2(30, -30), Vector2(-30, 30), w)
 	if not cockpit.gear_handle_down and not dash:
 		var g := (gun - _c) / s
 		_ln(self, g + Vector2(-4, 0), g + Vector2(5, 0), w)
@@ -1002,9 +1006,12 @@ func _draw_weapons(s: float, w: float, font: Font, fs: int, gun: Vector2, dash :
 			# 10, at most the field's right / bottom extent from the HUD centre) on the HUD centre; with a radar lock
 			# a caret outside it at the locked target's bearing (state+0x4c; tip on the circle, 4 px deep, 4 px wide,
 			# at angle bearing + π from up, clockwise: UNCERTAIN sign of FUN_0044e770).
+			# The break X (S+0x1024) hides both.
 			var r := minf(maxf(float(wp.circle) * 12.0, 10.0) * s, minf(size.x - _c.x, size.y - _c.y))
-			draw_arc(_c, r, 0, TAU, 48, col, w)
-			if wp.get("bearing") != null:
+			var no_x: bool = not wp.get("break_x", false)
+			if no_x:
+				draw_arc(_c, r, 0, TAU, 48, col, w)
+			if no_x and wp.get("bearing") != null:
 				var a: float = float(wp.bearing) + PI
 				var dir := Vector2(sin(a), -cos(a))
 				var perp := Vector2(cos(a), sin(a))

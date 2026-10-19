@@ -77,6 +77,25 @@ func run() -> void:
 		fs.update(_state({"time": t}), _inp({"agl_m": 20.0}))
 		t += 1.0
 	check(_count(fs, "VOC_BBETTY/BTY_ALT") == 2, "altitude < 100 ft, gear up: Betty at 0 s and 4 s (%d)" % _count(fs, "VOC_BBETTY/BTY_ALT"))
+	# Betty "pull up" (FUN_0044fe30): diving more than h_ft·0.01° in an A-G HUD mode (4, 5, 6).
+	check(FlightSounds.pull_up(2000.0, false, -30.0, 5) and not FlightSounds.pull_up(2000.0, false, -15.0, 5)
+		and not FlightSounds.pull_up(2000.0, false, -30.0, 2) and FlightSounds.pull_up(2000.0, true, -30.0, 4)
+		and not FlightSounds.pull_up(50.0, false, -30.0, 5) and FlightSounds.pull_up(50.0, true, -30.0, 6),
+		"pull_up: dive > h_ft·0.01° in modes 4-6; not below 100 ft with the gear up; the gear handle down counts")
+	var dive := {"agl_m": 600.0, "pitch": -30.0, "hud_mode": 5}  # 1969 ft: the limit is 19.7°
+	for i in 5:
+		fs.update(_state({"time": t}), _inp(dive))
+		t += 1.0
+	check(_count(fs, "VOC_BBETTY/BTY_PULL_UP") == 2 and fs.table.row("VOC_BBETTY", "BTY_PULL_UP").file == "Cock_Bty_Pull",
+		"pull up: Betty (Cock_Bty_Pull) at 0 s and 4 s (%d)" % _count(fs, "VOC_BBETTY/BTY_PULL_UP"))
+	dive.hud_mode = 2
+	fs.update(_state({"time": t}), _inp(dive))
+	dive.hud_mode = 5
+	dive.gear_down = true
+	for i in 5:
+		fs.update(_state({"time": t}), _inp(dive))
+		t += 1.0
+	check(_count(fs, "VOC_BBETTY/BTY_PULL_UP") == 2, "pull up: none in the MRM mode, none starting with the gear down")
 	fs.update(_state({"time": t, "fuel_lbs": 900.0}), _inp())
 	fs.update(_state({"time": t, "fuel_lbs": 800.0}), _inp())
 	fs.update(_state({"time": t, "fuel_lbs": 400.0}), _inp())
@@ -90,7 +109,9 @@ func run() -> void:
 	root.add_child(fs)
 	for i in 3:
 		fs.update(_state({"time": float(i)}), _inp({"agl_m": 20.0}))
-	check(_count(fs, "VOC_BBETTY/BTY_ALT") == 0, "Mirage: no Betty")
+	for i in 3:
+		fs.update(_state({"time": 3.0 + i}), _inp({"agl_m": 600.0, "pitch": -30.0, "hud_mode": 5}))
+	check(_count(fs, "VOC_BBETTY/BTY_ALT") == 0 and _count(fs, "VOC_BBETTY/BTY_PULL_UP") == 0, "Mirage: no Betty")
 	fs.queue_free()
 
 	# Preferences volumes and Mute on the buses.
