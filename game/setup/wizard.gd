@@ -92,6 +92,10 @@ var done_label: Label
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	get_window().title = TITLE
+	# Our own icon (icon.svg), not the CD's: the wizard runs before the CD is read.
+	var icon := Image.load_from_file(ProjectSettings.globalize_path("res://setup/icon.png"))
+	if icon != null:
+		DisplayServer.set_icon(icon)
 	_resize_window.call_deferred()
 	assets = Settings.assets_dir()
 	repo = ProjectSettings.globalize_path("res://").path_join("..").simplify_path()
@@ -457,6 +461,7 @@ func _page_welcome() -> Control:
 		("[color=%s][b]Attributions[/b][/color]\n" % g) +
 		"[ul]Detailed F-16D: from the FlightGear F-16 by Erik Hofman, Nikolai V. Chr. and the other authors (GPL 2.0 or later)\n" +
 		"F-35I Adir: \"Lockheed Martin F35 Lightning II\" by andertan (CC BY 4.0); the 116 Squadron badge by the IDF Spokesperson's Unit (CC BY-SA 3.0)\n" +
+		"Setup icon: the IAF roundel, \"Roundel of Israel.svg\" by Zscout370 (Wikimedia Commons, CC BY-SA 4.0)\n" +
 		"Survey of Israel imagery: © Survey of Israel 2015, via data.gov.il\n" +
 		"Sentinel-2 imagery: contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium (CC BY 4.0)[/ul]")
 	right.add_theme_font_size_override("normal_font_size", 14)

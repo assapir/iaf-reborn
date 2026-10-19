@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The setup wizard's icon: the Israeli Air Force roundel ("Roundel of Israel.svg" by Zscout370, Wikimedia Commons,
+     CC BY-SA 4.0, https://commons.wikimedia.org/wiki/File:Roundel_of_Israel.svg) with our "REBORN" banner;
+     this file is CC BY-SA 4.0 too. icon.png is it rendered: rsvg-convert -w 256 -h 256 icon.svg -o icon.png -->
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <g transform="translate(6 0) scale(0.828)">
+    <circle cx="302" cy="302" r="301" fill="#000"/>
+    <circle cx="302" cy="302" r="300" fill="#fff"/>
+    <path d="M 302,57 514.176,424.500 89.824,424.500 M 302,547 89.824,179.500 514.176,179.500" fill="#001e50"/>
+  </g>
+  <rect x="16" y="372" width="480" height="112" rx="14" fill="#ffad00" stroke="#000" stroke-width="6"/>
+  <text x="256" y="455" text-anchor="middle" font-family="DejaVu Sans, Liberation Sans, sans-serif" font-weight="bold"
+        font-size="86" letter-spacing="4" fill="#000">REBORN</text>
+</svg>

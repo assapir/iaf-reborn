@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Desktop launchers with the original icon (assets/converted/icon.png, extracted from iafjets.exe): "Jane's IAF (reborn)"
-# runs ./iafjets, "Jane's IAF (reborn) — Setup" runs ./setup (the setup wizard, docs/setup.md).
+# Desktop launchers: "Jane's IAF (reborn)" runs ./iafjets, with the original icon (assets/converted/icon.png, extracted
+# from iafjets.exe); "Jane's IAF (reborn) — Setup" runs ./setup (the setup wizard, docs/setup.md), with ours
+# (game/setup/icon.png: the IAF roundel with "REBORN").
 # Linux: ~/.local/share/applications/iaf-reborn.desktop (the file name matches the game window's app id, iaf-reborn,
 # which is how GNOME / KDE pick the window icon) and iaf-reborn-setup.desktop.
 # macOS: ~/Applications/Jane's IAF (reborn).app and "Jane's IAF (reborn) — Setup.app", bundles running the scripts.
@@ -9,8 +10,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 root=$(pwd)
 if [[ "$(uname)" == Darwin ]]; then
-	for entry in "Jane's IAF (reborn)|iafjets|org.iaf-reborn.launcher" "Jane's IAF (reborn) — Setup|setup|org.iaf-reborn.setup"; do
-		IFS='|' read -r name script id <<<"$entry"
+	for entry in "Jane's IAF (reborn)|iafjets|org.iaf-reborn.launcher|assets/converted/icon.png" "Jane's IAF (reborn) — Setup|setup|org.iaf-reborn.setup|game/setup/icon.png"; do
+		IFS='|' read -r name script id icon <<<"$entry"
 		app="$HOME/Applications/$name.app"
 		rm -rf "$app"
 		mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
@@ -37,7 +38,7 @@ export PATH="\$HOME/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:\$PATH"
 exec "$root/$script"
 SH
 		chmod +x "$app/Contents/MacOS/$script"
-		sips -s format icns "$root/assets/converted/icon.png" --out "$app/Contents/Resources/icon.icns" >/dev/null
+		sips -s format icns "$root/$icon" --out "$app/Contents/Resources/icon.icns" >/dev/null
 		echo "launcher: $app"
 	done
 	exit 0
@@ -64,7 +65,7 @@ Name=Jane's IAF (reborn) — Setup
 Comment=Set up Jane's IAF (reborn) from your CDs, or add an extra
 Exec="$root/setup"
 Path=$root
-Icon=$root/assets/converted/icon.png
+Icon=$root/game/setup/icon.png
 Terminal=false
 Categories=Game;Simulation;
 DESKTOP
