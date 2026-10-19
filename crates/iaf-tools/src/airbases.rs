@@ -5,6 +5,7 @@
 
 use std::f64::consts::PI;
 use std::path::Path;
+use std::sync::atomic::AtomicBool;
 
 use anyhow::{Context, Result};
 use iaf_formats::ini::Ini;
@@ -12,6 +13,7 @@ use iaf_formats::terrain_types::{RUNWAY, TerrainTypes};
 
 use crate::georef::UNITS_TO_METRES;
 use crate::imagery::{Cache, KEEP_INSET_LEVEL, Theatre};
+use crate::progress::{par_map, par_map_all};
 
 /// Engine metres (X east, Y north) → terrain units (x east, y south).
 pub fn units(x: f64, y: f64) -> [f64; 2] {
@@ -651,7 +653,7 @@ impl Picture<'_> {
         }
         let (along_max, across_max) = (half + 0.75 * CELL, dc as f64 + 7.5 + 0.75 * CELL);
         let ks: Vec<i32> = (-steps..=steps).collect();
-        let per_heading = par_map(&ks, |&k| {
+        let per_heading = par_map_all(&ks, |&k| {
             let t = Line { th: l.th + (k as f64 * 0.05).to_radians(), ..l };
             let mut bins = vec![0usize; (2 * r + 1) as usize];
             let local = t.dirs_local();
@@ -726,7 +728,7 @@ impl Picture<'_> {
             // Coarse search: per heading (0.5° steps), the longest run of 20 m along-bins holding core pixels (gaps of
             // up to 140 m bridged: a crossing runway taken out) in 5 m across-bins.
             let steps: Vec<u32> = (0..360).collect();
-            let runs = par_map(&steps, |&step| {
+            let runs = par_map_all(&steps, |&step| {
                 let th = (step as f64 * 0.5).to_radians();
                 longest_run(&pts, th, 5.0, 20.0, 7).map(|(len, c, a0, a1)| (len, Line { th, c, a0, a1 }))
             });
@@ -946,7 +948,7 @@ pub fn bases(install: &Path, theatre: &Theatre) -> Result<Vec<Base>> {
     let leaves: Vec<Vec<[f64; 2]>> = types.leaf_polygons(RUNWAY, 2.0e6).into_iter().map(|(_, p)| p).collect();
     let secs: Vec<_> = ini.sections.iter().filter(|s| s.get("LineupLocX").is_some() && s.get("RunwayNumber").is_some()).collect();
     // Each base is independent: one per worker, in iaf.ibx's order.
-    par_map(&secs, |sec| -> Result<Base> {
+    par_map(&secs, &AtomicBool::new(false), |sec| -> Result<Base> {
         let lineup = [ibx_f(sec, "LineupLocX").unwrap_or(0.0), ibx_f(sec, "LineupLocY").unwrap_or(0.0)];
         let n = |k: &str| ibx_f(sec, k).unwrap_or(0.0).max(0.0) as usize;
         let hangars = n("HangarsNum");
@@ -1095,38 +1097,11 @@ pub fn bases(install: &Path, theatre: &Theatre) -> Result<Vec<Base>> {
         let concrete = surface.v.iter().zip(&rgb).map(|(&p, &c)| p && is_apron(c) && !is_asphalt(c)).collect();
         Ok(Base { name: sec.name.clone(), lineup, runway_deg: ibx_f(sec, "RunwayNumber").unwrap_or(0.0), runways, taxi, paved: surface, concrete, origin: corner, px_m })
     })
-    .into_iter()
-    .collect()
-}
-
-/// `f` over `items` on every core (each worker takes the next item), the results in the items' order.
-pub fn par_map<T: Sync, R: Send>(items: &[T], f: impl Fn(&T) -> R + Sync) -> Vec<R> {
-    let next = std::sync::atomic::AtomicUsize::new(0);
-    let out: Vec<std::sync::Mutex<Option<R>>> = items.iter().map(|_| std::sync::Mutex::new(None)).collect();
-    let threads = std::thread::available_parallelism().map_or(4, |n| n.get()).min(items.len());
-    std::thread::scope(|s| {
-        for _ in 0..threads {
-            s.spawn(|| {
-                loop {
-                    let k = next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                    let Some(item) = items.get(k) else { return };
-                    *out[k].lock().unwrap() = Some(f(item));
-                }
-            });
-        }
-    });
-    out.into_iter().map(|m| m.into_inner().unwrap().expect("every item done")).collect()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn par_map_keeps_the_order() {
-        let v: Vec<u64> = (0..1000).collect();
-        assert_eq!(par_map(&v, |&x| x * x), v.iter().map(|&x| x * x).collect::<Vec<_>>());
-    }
 
     /// A 4 km × 4 km site (units) with one runway leaf, a paved apron beside it, a grey road leading away and a unit
     /// near the apron: the footprint covers the leaf, the apron and the unit plus the margin, and not the road's far

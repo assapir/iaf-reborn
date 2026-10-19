@@ -105,6 +105,11 @@ pub fn par_map<T: Sync, R: Send>(items: &[T], cancel: &AtomicBool, f: impl Fn(&T
     results.into_inner().map_err(|_| anyhow::anyhow!("worker panicked"))?.into_iter().map(|r| r.context("item not done")).collect()
 }
 
+/// `par_map` for an `f` that cannot fail and runs to the end (no cancel).
+pub fn par_map_all<T: Sync, R: Send>(items: &[T], f: impl Fn(&T) -> R + Sync) -> Vec<R> {
+    par_map(items, &AtomicBool::new(false), |x| Ok(f(x))).expect("par_map worker panicked")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -116,5 +121,6 @@ mod tests {
         assert_eq!(par_map(&v, &no, |&x| Ok(x * 2)).unwrap(), v.iter().map(|x| x * 2).collect::<Vec<_>>());
         assert!(par_map(&v, &no, |&x| if x == 50 { bail!("x") } else { Ok(x) }).is_err());
         assert!(par_map(&v, &AtomicBool::new(true), |&x| Ok(x)).is_err(), "cancelled");
+        assert_eq!(par_map_all(&v, |&x| x + 1), v.iter().map(|x| x + 1).collect::<Vec<_>>());
     }
 }
