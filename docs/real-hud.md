@@ -554,7 +554,7 @@ gear handle down, or below 15 ft. Ours repeats the call every 4 s (the game's Be
 This section lists, per jet, what the code draws and what it leaves out.
 
 The cockpit art's glass is narrower than the real HUDs' field of view. On the F-16, F-15 and Lavi the scales and
-data blocks sit 20 / 14 / 12 px in from the cockpit's HUD field (`Field::inset`), so the widest layout, the F-16's
+data blocks sit 14 / 10 / 6 px in from the cockpit's HUD field (`Field::inset`), so the widest layout, the F-16's
 A-A one with the altitude scale moved out for the DLZ, stays on the glass. Every block keeps its place relative to
 its scale. The original HUD keeps the original layout.
 

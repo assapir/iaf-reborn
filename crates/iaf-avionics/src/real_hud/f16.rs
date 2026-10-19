@@ -18,7 +18,7 @@ const ALT_OUT: f64 = 12.0;
 /// Data rows 9 px apart.
 const ROW: f64 = 9.0;
 /// The scales and data blocks this far in from the field's sides (`Field::inset`), the right block in A-A included.
-const INSET: f64 = 20.0;
+const INSET: f64 = 14.0;
 
 pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
     let mut fr = Frame::default();

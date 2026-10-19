@@ -9,7 +9,7 @@ use super::*;
 const HDG_WINDOW: f64 = 30.0;
 const ROW: f64 = 9.0;
 /// The boxes and data blocks this far in from the field's sides (`Field::inset`).
-const INSET: f64 = 12.0;
+const INSET: f64 = 6.0;
 /// The A-A launch-zone scale inboard of the altitude box.
 const RANGE_HALF: f64 = 26.0;
 const RANGE_IN: f64 = 14.0;

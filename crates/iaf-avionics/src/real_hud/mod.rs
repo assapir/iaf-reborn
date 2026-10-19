@@ -605,7 +605,7 @@ mod tests {
 
     #[test]
     fn the_f16_display_is_unchanged() {
-        assert_eq!(f16_fingerprint(), 17_204_937_598_047_660_908, "the F-16 Real HUD changed");
+        assert_eq!(f16_fingerprint(), 3_469_542_054_221_360_665, "the F-16 Real HUD changed");
     }
 
     #[test]
@@ -682,6 +682,6 @@ mod f16_snapshot {
 
     #[test]
     fn the_f16_display_is_unchanged() {
-        assert_eq!(f16_frames_hash(), 18_118_015_839_782_508_651, "F-16 frames hash");
+        assert_eq!(f16_frames_hash(), 11_482_222_878_830_027_085, "F-16 frames hash");
     }
 }

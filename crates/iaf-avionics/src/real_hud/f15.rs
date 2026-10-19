@@ -12,7 +12,7 @@ const FT_WINDOW: f64 = 1500.0;
 const HDG_WINDOW: f64 = 30.0;
 const ROW: f64 = 9.0;
 /// The scales and data blocks this far in from the field's sides (`Field::inset`).
-const INSET: f64 = 14.0;
+const INSET: f64 = 10.0;
 /// The A-A range scale inboard of the altitude scale.
 const RANGE_HALF: f64 = 26.0;
 const RANGE_IN: f64 = 12.0;
