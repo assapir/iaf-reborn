@@ -54,7 +54,6 @@ STBY / STT / BORE / LRS / TWS / ACM / GMT / MAP are the radar modes (docs/radar.
   AI's ripple / rockets / laser bombs, Arming loads and stores on AI jets, action 430, STT locks, the player's ECM
   (electronic countermeasures) in the AI sensors (the original has no AI ECM), helicopters and scripted aircraft,
   turrets / dishes / rotors, AI systems damage and engine sound (docs/ai.md §13–§14).
-- Left: the demo video (H.264).
 
 **3. Missions and general fixes:** the mission sweep (`tools/mission_sweep.sh`), the remaining small bugs below,
 ~~Jump In~~ (done: docs/front-end.md §13.11), the Reference screen, ~~night lighting~~ (done: the
