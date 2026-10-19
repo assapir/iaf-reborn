@@ -456,15 +456,15 @@ func _page_welcome() -> Control:
 	for f in ["normal_font_size", "bold_font_size", "italics_font_size", "bold_italics_font_size"]:
 		left.add_theme_font_size_override(f, 15)
 	var right := _rich(h, ("[color=%s][b]About[/b][/color]\n" % g) +
-		("Source code: [url=%s]%s[/url]\n" % [REPO_URL, REPO_URL]) +
-		"Licence: GNU General Public License v3.0 or later. The repository holds no data from the original game.\n" +
+		("Source code: [url=%s]iaf-reborn on GitHub[/url]\n" % REPO_URL) +
+		"Licence: [url=https://www.gnu.org/licenses/gpl-3.0.html]GNU General Public License v3.0[/url] or later. The repository holds no data from the original game.\n" +
 		"\"Jane's\" and \"Jane's IAF\" are trademarks of their owners. This is an independent, non-commercial project, not affiliated with or endorsed by them, Electronic Arts or the original developer.\n\n" +
 		("[color=%s][b]Attributions[/b][/color]\n" % g) +
-		"[ul]Detailed F-16D: from the FlightGear F-16 by Erik Hofman, Nikolai V. Chr. and the other authors (GPL 2.0 or later)\n" +
-		"F-35I Adir: \"Lockheed Martin F35 Lightning II\" by andertan (CC BY 4.0); the 116 Squadron badge by the IDF Spokesperson's Unit (CC BY-SA 3.0)\n" +
-		"Setup icon: the IAF roundel, \"Roundel of Israel.svg\" by Zscout370 (Wikimedia Commons, CC BY-SA 4.0)\n" +
-		"Survey of Israel imagery: © Survey of Israel 2015, via data.gov.il\n" +
-		"Sentinel-2 imagery: contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium (CC BY 4.0)[/ul]")
+		"[ul]Detailed F-16D: from the [url=https://github.com/NikolaiVChr/f16]FlightGear F-16[/url] by Erik Hofman, Nikolai V. Chr. and the other authors ([url=https://www.gnu.org/licenses/old-licenses/gpl-2.0.html]GPL 2.0[/url] or later)\n" +
+		"F-35I Adir: [url=https://sketchfab.com/3d-models/lockheed-martin-f35-lightning-ii-db911de503c74285a8d506951df786d6]\"Lockheed Martin F35 Lightning II\"[/url] by andertan ([url=https://creativecommons.org/licenses/by/4.0/]CC BY 4.0[/url]); the [url=https://commons.wikimedia.org/wiki/File:IAF_Squadron_116_Adir.png]116 Squadron badge[/url] by the IDF Spokesperson's Unit ([url=https://creativecommons.org/licenses/by-sa/3.0/]CC BY-SA 3.0[/url])\n" +
+		"Setup icon: the IAF roundel, [url=https://commons.wikimedia.org/wiki/File:Roundel_of_Israel.svg]\"Roundel of Israel.svg\"[/url] by Zscout370 (Wikimedia Commons, [url=https://creativecommons.org/licenses/by-sa/4.0/]CC BY-SA 4.0[/url])\n" +
+		"Survey of Israel imagery: © Survey of Israel 2015, via [url=https://data.gov.il]data.gov.il[/url]\n" +
+		"Sentinel-2 imagery: contains modified Copernicus Sentinel data (2021) processed by [url=https://esa-worldcover.org]ESA WorldCover[/url] consortium ([url=https://creativecommons.org/licenses/by/4.0/]CC BY 4.0[/url])[/ul]")
 	right.add_theme_font_size_override("normal_font_size", 14)
 	right.add_theme_font_size_override("bold_font_size", 14)
 	return h
