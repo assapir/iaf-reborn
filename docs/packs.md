@@ -60,7 +60,9 @@ The menus, HUD, radio messages and speech stay English.
 
 ### `he` — Hebrew retail CD (Hed Arzi, v1.0, copy-protected)
 
-* Setup: `tools/setup-cli.sh --hebrew-iso IAF.Iso` (archive.org item `iaf_20230527`, `IAF.Iso`).
+* Setup: the setup wizard (docs/setup.md) takes every translated briefing and menu file from the CD, so the packs
+  are not needed with it. `tools/setup-cli.sh --hebrew-iso IAF.Iso` takes only the three images below and needs the
+  packs (archive.org item `iaf_20230527`, `IAF.Iso`).
 * The CD's 591 translated files are byte-identical to `Brief.zip` + `Menu.zip`. Only the CD has
   `menu/bmp/back0.bmp` (the startup splash, "איתחול...") and the Graphics page `menu/bmp/pref/graph_0/1.bmp`.
 * The official Hebrew v1.1 patch (`IAFheb1_1.EXE`) replaces those three files with the English v1.1 ones, so setup

@@ -14,6 +14,7 @@ mod real_hud;
 mod release;
 mod rwr;
 mod sensors;
+mod setup;
 mod sight;
 mod stores;
 mod surface;

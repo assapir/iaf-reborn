@@ -143,6 +143,30 @@ pub(crate) fn run(step: &Step, ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool
             child(cmd, pr, cancel)?;
         }
         "sentinel2" | "mapi2015" => return imagery(step, ctx, pr, cancel),
+        "imagery-refresh" => {
+            let mut any = false;
+            for spec in [&SENTINEL2, &MAPI2015] {
+                let id = if std::ptr::eq(spec, &SENTINEL2) { "sentinel2" } else { "mapi2015" };
+                let chosen = ctx.inputs.imagery.iter().any(|m| matches!((m, id), (Imagery::Sentinel2, "sentinel2") | (Imagery::Mapi2015 { .. }, "mapi2015")));
+                if chosen || !a.join("converted/imagery").join(id).is_dir() {
+                    continue;
+                }
+                if id == "mapi2015" && !a.join("source/imagery/mapi2015").is_dir() {
+                    pr.warn("the Survey sheets are not here (assets/source/imagery/mapi2015): the mapi2015 units keep their older rules");
+                    continue;
+                }
+                let mut r = imagery_job(ctx, spec, true);
+                r.stale = true;
+                if imagery_run::run(&r, pr, cancel)?.to_convert > 0 {
+                    r.dry_run = false;
+                    imagery_run::run(&r, pr, cancel)?;
+                    any = true;
+                }
+            }
+            if !any {
+                return Ok(Outcome::UpToDate);
+            }
+        }
         "mapi2015-fetch" => {
             let bases = ctx.inputs.imagery.contains(&Imagery::Mapi2015 { bases: true }) && !ctx.inputs.imagery.contains(&Imagery::Mapi2015 { bases: false });
             let mut cmd = Command::new(ctx.repo.join("tools/imagery/fetch-mapi2015-curl.sh"));
@@ -214,24 +238,57 @@ fn imagery(step: &Step, ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool) -> Re
     if !crate::tools().gdal {
         return Ok(Outcome::Skipped("GDAL is needed (gdal_translate, gdalbuildvrt)".into()));
     }
-    let a = &ctx.assets;
     let spec = if step.id == "sentinel2" { &SENTINEL2 } else { &MAPI2015 };
-    let n = threads();
-    let mut r = Run {
-        spec,
-        install: a.join("install"),
-        theatre: a.join("converted/terrain/theatre"),
-        out: a.join("converted/imagery"),
-        sheets: a.join("source/imagery/mapi2015"),
-        area: None,
-        dry_run: true,
-        stale: false,
-        threads: if step.id == "sentinel2" { 4 } else if n > 2 { n - 2 } else { 1 },
-    };
+    let mut r = imagery_job(ctx, spec, true);
     if imagery_run::run(&r, pr, cancel)?.to_convert == 0 {
         return Ok(Outcome::UpToDate);
     }
     r.dry_run = false;
     imagery_run::run(&r, pr, cancel)?;
     Ok(Outcome::Done)
+}
+
+/// An imagery run on `ctx`'s assets (sentinel2: 4 network workers; mapi2015: all cores but two).
+fn imagery_job(ctx: &Ctx, spec: &'static imagery_run::Spec, dry_run: bool) -> Run {
+    let a = &ctx.assets;
+    let n = threads();
+    Run {
+        spec,
+        install: a.join("install"),
+        theatre: a.join("converted/terrain/theatre"),
+        out: a.join("converted/imagery"),
+        sheets: a.join("source/imagery/mapi2015"),
+        area: None,
+        dry_run,
+        stale: false,
+        threads: if std::ptr::eq(spec, &SENTINEL2) { 4 } else if n > 2 { n - 2 } else { 1 },
+    }
+}
+
+/// The units of the imagery layer `id` ("sentinel2", "mapi2015") on disk that older rules made (what
+/// "imagery-refresh" converts again); 0 without the layer or the theatre. sentinel2 lists WorldCover over the network.
+pub fn imagery_stale(assets: &Path, id: &str) -> Result<usize> {
+    let spec = match id {
+        "sentinel2" => &SENTINEL2,
+        "mapi2015" => &MAPI2015,
+        _ => bail!("unknown imagery layer {id}"),
+    };
+    if !assets.join("converted/imagery").join(id).is_dir() || !assets.join("converted/terrain/theatre/meta.json").is_file() {
+        return Ok(0);
+    }
+    let ctx = Ctx { assets: assets.to_path_buf(), repo: PathBuf::new(), inputs: crate::Inputs::default(), xdg_data_home: None, guides: None };
+    let mut r = imagery_job(&ctx, spec, true);
+    r.stale = true;
+    Ok(imagery_run::run(&r, &Quiet, &AtomicBool::new(false))?.to_convert)
+}
+
+/// The scripted pilot guides: tools/guide_shots.sh (real renders, a display needed) then tools/guide_pdf.py, output
+/// into the log.
+pub fn script_guides(repo: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
+    let mut shots = Command::new(repo.join("tools/guide_shots.sh"));
+    shots.current_dir(repo);
+    child(shots, pr, cancel)?;
+    let mut pdf = Command::new("python3");
+    pdf.args(["-I", "tools/guide_pdf.py"]).current_dir(repo);
+    child(pdf, pr, cancel)
 }

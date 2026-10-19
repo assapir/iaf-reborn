@@ -229,10 +229,14 @@ dependencies = [
 name = "iaf-godot"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "godot",
  "iaf-avionics",
  "iaf-flight",
  "iaf-formats",
+ "iaf-setup",
+ "iaf-tools",
+ "serde_json",
 ]
 
 [[package]]

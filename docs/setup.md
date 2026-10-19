@@ -1,6 +1,8 @@
 # Setup pipeline
 
-Setup turns your own copy of Jane's IAF into everything the game reads under `assets/`. Two front ends run it:
+Setup turns your own copy of Jane's IAF into everything the game reads under `assets/`. Three front ends run it:
+
+- `./setup`: the setup wizard, a window that asks for the inputs and shows each step (below).
 
 - `tools/setup-cli.sh`: the scripted way (README "Quick start").
 - `crates/iaf-setup`: the same steps in-process, for the setup wizard. Its small CLI is for testing:
@@ -78,3 +80,28 @@ were made under older rules, and is up to date when there are none. The guides d
 - The guides: the wizard renders them in-process; the CLI runs `tools/guide_shots.sh` and `tools/guide_pdf.py`.
 
 Their output goes to the step's log.
+
+## The wizard
+
+`./setup` checks for Rust (cargo) and Godot 4.7 first. A missing one opens a dialog (zenity or kdialog on Linux,
+osascript on macOS, else the terminal) with the install command. Then it builds the game's extension and opens the
+wizard (`game/setup/wizard.tscn`). `./iafjets` starts `./setup` when there is no game data, and so does the game's
+start-up when `assets/converted` is missing. The desktop launcher "Jane's IAF (reborn) — Setup" runs it too.
+
+Pages:
+
+1. **Requirements**: the graphics driver, a display and the free disk space (required), and GDAL, curl, python3
+   and Firefox (optional), each with its install command. "Check again" looks once more.
+2. **Welcome**: what setup does and where the data goes.
+3. **Your CD**: the English CD image, dropped on the window or picked with Browse, checked at once.
+4. **Optional**: the v1.1 patch, the Hebrew CD, or without it the Hebrew packs.
+5. **Extras**: the Survey of Israel imagery (all of Israel or around the airbases), the Sentinel-2 imagery,
+   "Bring the imagery up to date" (only with imagery on disk; it shows how many units older rules made) and the
+   pilot guides. Each shows its downloads, time and disk use, and is greyed with the reason when a program it needs
+   is missing.
+6. **Summary**: the inputs and the number of steps.
+7. **Install**: one row per step with its state and progress, the log, Cancel, and "Redo everything".
+8. **Done**: "Start the game".
+
+The pages start from the last run's inputs (`assets/setup.json`). The pilot guides render through
+`tools/guide_shots.sh` (hidden windows) for now.

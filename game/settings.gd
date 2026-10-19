@@ -311,7 +311,10 @@ func hebrew_available() -> bool:
 	return DirAccess.dir_exists_absolute(assets_dir().path_join("converted/menu_he"))
 
 
+## The assets folder: <repo>/assets, or $IAF_ASSETS_DIR (tests: the setup wizard on a scratch folder).
 func assets_dir() -> String:
+	if OS.get_environment("IAF_ASSETS_DIR") != "":
+		return OS.get_environment("IAF_ASSETS_DIR")
 	return ProjectSettings.globalize_path("res://").path_join("../assets").simplify_path()
 
 

@@ -55,6 +55,16 @@ See [docs/macos.md](docs/macos.md).
 ## Quick start
 
 ```sh
+./setup                                                            # the setup wizard: pick your CD, it does the rest
+./iafjets                                                          # starts the game (without game data: the wizard)
+```
+
+The wizard (docs/setup.md) checks what the computer has, asks for the English CD image and the optional extras,
+and shows each step's progress. Run it again to add an extra or redo a step: only what changed runs.
+
+For scripting, the same steps from a terminal:
+
+```sh
 tools/setup-cli.sh [--patch /path/to/v1.1-patch.exe] [--hebrew-iso /path/to/IAF.Iso] "/path/to/Jane's IAF.iso" [/path/to/Brief.zip /path/to/Menu.zip]
 ./iafjets                                                          # builds what changed and starts the game (front end → Training → mission)
 # setup also installs a desktop launcher, "Jane's IAF (reborn)", with the original icon

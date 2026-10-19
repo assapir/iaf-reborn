@@ -19,11 +19,13 @@ mod stamp;
 mod steps;
 
 pub use checks::{CdKind, PackInfo, Tools, check_cd, check_pack, check_patch, tools};
-pub use saved::{inputs_file, load_inputs, save_inputs};
+pub use saved::{from_json, inputs_file, load_inputs, save_inputs, to_json};
+pub use steps::{COCKPITS, imagery_stale, script_guides};
 
 /// The Hebrew content: the Hebrew retail CD (everything translated), or the preflight.us packs.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub enum Hebrew {
+    #[default]
     None,
     Cd(PathBuf),
     Packs { brief: Option<PathBuf>, menu: Option<PathBuf> },
@@ -39,7 +41,7 @@ pub enum Imagery {
 }
 
 /// What the player gives setup.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Inputs {
     /// The English CD image (required).
     pub cd: PathBuf,
@@ -47,6 +49,9 @@ pub struct Inputs {
     pub patch: Option<PathBuf>,
     pub hebrew: Hebrew,
     pub imagery: Vec<Imagery>,
+    /// Convert again the imagery units made under older rules, in the layers on disk not chosen above (after a
+    /// restore from a mirror; `iaf-imagery --stale`).
+    pub refresh: bool,
     /// Render the pilot guides (needs a display; the renderer is `Ctx::guides`).
     pub guides: bool,
 }
@@ -110,12 +115,33 @@ pub fn plan(inputs: &Inputs) -> Vec<Step> {
             }
         }
     }
+    if inputs.refresh {
+        add("imagery-refresh", "imagery: convert again what older rules made", false, &["airbases"]);
+        last.push("imagery-refresh");
+    }
     if inputs.guides {
         let mut after = vec!["briefings", "reference", "menu", "arm", "keys", "aircraft", "objects", "airbases", "icon"];
         after.extend(last);
         add("guides", "pilot guides: pictures and PDFs", false, &after);
     }
     v
+}
+
+/// The steps `ids` of `steps` and every step they wait for (a shorter run, e.g. for a test), in `steps`' order.
+pub fn only(steps: &[Step], ids: &[&str]) -> Vec<Step> {
+    let mut want: Vec<&str> = ids.to_vec();
+    let mut k = 0;
+    while k < want.len() {
+        if let Some(s) = steps.iter().find(|s| s.id == want[k]) {
+            for a in &s.after {
+                if !want.contains(a) {
+                    want.push(a);
+                }
+            }
+        }
+        k += 1;
+    }
+    steps.iter().filter(|s| want.contains(&s.id)).cloned().collect()
 }
 
 /// A step's state as `run` reports it.
@@ -305,7 +331,7 @@ mod tests {
     use std::sync::atomic::AtomicUsize;
 
     fn inputs() -> Inputs {
-        Inputs { cd: "cd.iso".into(), patch: None, hebrew: Hebrew::None, imagery: vec![], guides: false }
+        Inputs { cd: "cd.iso".into(), patch: None, hebrew: Hebrew::None, imagery: vec![], refresh: false, guides: false }
     }
 
     fn ids(steps: &[Step]) -> Vec<&'static str> {
@@ -342,6 +368,7 @@ mod tests {
         // The briefings pack alone: no Hebrew menus.
         let brief = plan(&Inputs { hebrew: Hebrew::Packs { brief: Some("b.zip".into()), menu: None }, ..inputs() });
         assert!(ids(&brief).contains(&"hebrew") && !ids(&brief).contains(&"menu_he"));
+        assert_eq!(ids(&only(&full, &["aircraft", "fonts"])), ["extract", "patch", "fonts", "missions", "aircraft"]);
     }
 
     /// tools/setup-cli.sh's `step "…"` lines and the plan's steps: every line is a step here (or a CLI-only one),
@@ -350,7 +377,7 @@ mod tests {
     fn steps_match_setup_cli() {
         const LINES: &[(&str, &[&str])] = &[
             ("imagery: restore from", &["cli"]),
-            ("imagery: convert again", &["cli"]),
+            ("imagery: convert again", &["imagery-refresh"]),
             ("imagery: Sentinel-2", &["sentinel2"]),
             ("imagery: Survey of Israel 2015 2 m sheets", &["mapi2015-fetch"]),
             ("imagery: Survey of Israel 2015 2 m layer", &["mapi2015"]),
@@ -389,6 +416,7 @@ mod tests {
             patch: Some("p".into()),
             hebrew: Hebrew::Cd("h".into()),
             imagery: vec![Imagery::Sentinel2, Imagery::Mapi2015 { bases: false }],
+            refresh: true,
             guides: true,
             ..inputs()
         });

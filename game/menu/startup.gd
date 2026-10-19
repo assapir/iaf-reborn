@@ -2,10 +2,12 @@
 #   1. ours, Extras → CD launcher: the CD's autorun poster (menu/autorun.gd); PLAY goes on, QUIT / Esc quits;
 #   2. the main menu (menu/front_end.tscn; the exe's state 2 draws Bmp\Back0.bmp and opens it).
 # The exe plays janes.avi and intro.avi before the menu; ours goes straight on (README "Intro videos").
-# Our command-line runs (--mission, --screenshot, --hover) go straight to the menu.
+# Our command-line runs (--mission, --screenshot, --hover) go straight to the menu. Without assets/converted: the
+# setup wizard (setup/wizard.tscn).
 extends Control
 
 const FRONT_END := "res://menu/front_end.tscn"
+const SETUP := "res://setup/wizard.tscn"
 const DEV_ARGS := ["--mission", "--screenshot", "--hover"]
 
 
@@ -18,6 +20,10 @@ func _ready() -> void:
 
 
 func run() -> void:
+	# No game data yet (a launch that bypassed ./setup and ./iafjets): the setup wizard.
+	if not DirAccess.dir_exists_absolute(Settings.assets_dir().path_join("converted")):
+		get_tree().change_scene_to_file.call_deferred(SETUP)
+		return
 	if Settings.cd_launcher and not await launcher():
 		Settings.quit()
 		return

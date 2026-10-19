@@ -12,7 +12,8 @@ pub fn inputs_file(assets: &Path) -> PathBuf {
     assets.join("setup.json")
 }
 
-pub fn save_inputs(assets: &Path, i: &Inputs) -> Result<()> {
+/// `i` as setup.json's JSON.
+pub fn to_json(i: &Inputs) -> Value {
     let p = |p: &Option<PathBuf>| p.as_ref().map(|p| p.to_string_lossy().into_owned());
     let hebrew = match &i.hebrew {
         Hebrew::None => Value::Null,
@@ -28,16 +29,23 @@ pub fn save_inputs(assets: &Path, i: &Inputs) -> Result<()> {
             Imagery::Mapi2015 { bases: true } => "mapi2015-bases",
         })
         .collect();
-    let doc = json!({ "cd": i.cd.to_string_lossy(), "patch": p(&i.patch), "hebrew": hebrew, "imagery": imagery, "guides": i.guides });
+    json!({ "cd": i.cd.to_string_lossy(), "patch": p(&i.patch), "hebrew": hebrew, "imagery": imagery, "refresh": i.refresh, "guides": i.guides })
+}
+
+pub fn save_inputs(assets: &Path, i: &Inputs) -> Result<()> {
     std::fs::create_dir_all(assets)?;
-    std::fs::write(inputs_file(assets), serde_json::to_string_pretty(&doc)? + "\n").context("writing setup.json")
+    std::fs::write(inputs_file(assets), serde_json::to_string_pretty(&to_json(i))? + "\n").context("writing setup.json")
 }
 
 /// The saved inputs, or `None` before the first run.
 pub fn load_inputs(assets: &Path) -> Result<Option<Inputs>> {
     let Ok(text) = std::fs::read_to_string(inputs_file(assets)) else { return Ok(None) };
-    let v: Value = serde_json::from_str(&text).context("setup.json")?;
-    let path = |v: &Value| v.as_str().map(PathBuf::from);
+    from_json(&serde_json::from_str(&text).context("setup.json")?).map(Some)
+}
+
+/// Inputs from setup.json's JSON.
+pub fn from_json(v: &Value) -> Result<Inputs> {
+    let path = |v: &Value| v.as_str().filter(|s| !s.is_empty()).map(PathBuf::from);
     let hebrew = match &v["hebrew"] {
         Value::Null => Hebrew::None,
         h if h.get("cd").is_some() => Hebrew::Cd(path(&h["cd"]).context("setup.json: hebrew.cd")?),
@@ -52,13 +60,14 @@ pub fn load_inputs(assets: &Path) -> Result<Option<Inputs>> {
             other => bail!("setup.json: unknown imagery source {other:?}"),
         });
     }
-    Ok(Some(Inputs {
+    Ok(Inputs {
         cd: path(&v["cd"]).context("setup.json: cd")?,
         patch: path(&v["patch"]),
         hebrew,
         imagery,
+        refresh: v["refresh"].as_bool().unwrap_or(false),
         guides: v["guides"].as_bool().unwrap_or(false),
-    }))
+    })
 }
 
 #[cfg(test)]
@@ -70,7 +79,7 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("iaf-setup-saved-{}", std::process::id()));
         assert!(load_inputs(&dir).unwrap().is_none());
         for hebrew in [Hebrew::None, Hebrew::Cd("/cd/IAF.Iso".into()), Hebrew::Packs { brief: Some("/b.zip".into()), menu: None }] {
-            let i = Inputs { cd: "/cd/Jane's IAF.iso".into(), patch: Some("/p.exe".into()), hebrew, imagery: vec![Imagery::Sentinel2, Imagery::Mapi2015 { bases: true }], guides: true };
+            let i = Inputs { cd: "/cd/Jane's IAF.iso".into(), patch: Some("/p.exe".into()), hebrew, imagery: vec![Imagery::Sentinel2, Imagery::Mapi2015 { bases: true }], refresh: true, guides: true };
             save_inputs(&dir, &i).unwrap();
             assert_eq!(load_inputs(&dir).unwrap(), Some(i));
         }

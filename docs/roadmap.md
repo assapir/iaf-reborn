@@ -185,7 +185,8 @@ for scripting):
    and the pilot guides, each checked when picked and each optional extra with its warning (download size, time,
    disk);
 2. progress per step; the steps run in parallel where they don't depend on each other;
-3. "Setup…" on Preferences → Extras adds or re-runs steps later.
+3. running setup again adds an extra or redoes a step (only what changed runs); no button in the game (user decision).
+Built: `./setup` and `game/setup/` (docs/setup.md); waiting for the user's review of the pages.
 
 ## Exported build (with the setup wizard)
 A packaged Linux and macOS build of the game (Godot export: one program and its game file, the Rust extension

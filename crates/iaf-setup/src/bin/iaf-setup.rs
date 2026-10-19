@@ -1,21 +1,20 @@
 //! The setup pipeline from a terminal (for testing; tools/setup-cli.sh is the scripted way, the wizard the graphical one):
 //!
 //!   iaf-setup [--assets DIR] [--patch <v1.1 patch>] [--hebrew-iso <Hebrew CD>] [--imagery sentinel2,mapi2015,mapi2015-bases]
-//!             [--guides] [--redo-all] [--xdg-data-home DIR] ["<Jane's IAF.iso>" [Brief.zip] [Menu.zip]]
+//!             [--guides] [--refresh-imagery] [--redo-all] [--xdg-data-home DIR] ["<Jane's IAF.iso>" [Brief.zip] [Menu.zip]]
 //!   iaf-setup check <file>      what a CD image, patch or pack is
 //!
 //! `--assets` defaults to the repo's `assets/`. Without the ISO the last run's inputs (`assets/setup.json`) are used, with
 //! the options given added. Steps whose stamp holds are "up to date"; `--redo-all` runs every step anyway.
 
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::sync::atomic::AtomicBool;
 
 use anyhow::{Context, Result, bail};
 use iaf_setup::{Ctx, Events, Hebrew, Imagery, Inputs, State, Step};
 use iaf_tools::progress::Progress;
 
-const USAGE: &str = "usage: iaf-setup [--assets DIR] [--patch P] [--hebrew-iso ISO] [--imagery sentinel2,mapi2015,mapi2015-bases] [--guides] [--redo-all] [--xdg-data-home DIR] [<Jane's IAF.iso> [Brief.zip] [Menu.zip]]\n       iaf-setup check <file>";
+const USAGE: &str = "usage: iaf-setup [--assets DIR] [--patch P] [--hebrew-iso ISO] [--imagery sentinel2,mapi2015,mapi2015-bases] [--guides] [--refresh-imagery] [--redo-all] [--xdg-data-home DIR] [<Jane's IAF.iso> [Brief.zip] [Menu.zip]]\n       iaf-setup check <file>";
 
 struct Print;
 
@@ -46,6 +45,7 @@ fn main() -> Result<()> {
         return Ok(());
     }
     let (mut assets, mut patch, mut hebrew_iso, mut imagery, mut guides, mut redo_all, mut xdg) = (repo.join("assets"), None, None, Vec::new(), false, false, None);
+    let mut refresh = false;
     let mut pos = Vec::new();
     let mut it = args.into_iter();
     while let Some(a) = it.next() {
@@ -65,6 +65,7 @@ fn main() -> Result<()> {
                 }
             }
             "--guides" => guides = true,
+            "--refresh-imagery" => refresh = true,
             "--redo-all" => redo_all = true,
             "--xdg-data-home" => xdg = Some(PathBuf::from(val()?)),
             "-h" | "--help" => bail!(USAGE),
@@ -79,7 +80,7 @@ fn main() -> Result<()> {
         (None, brief, menu) => Some(Hebrew::Packs { brief, menu }),
     };
     let inputs = match cd {
-        Some(cd) => Inputs { cd, patch, hebrew: given.unwrap_or(Hebrew::None), imagery, guides },
+        Some(cd) => Inputs { cd, patch, hebrew: given.unwrap_or(Hebrew::None), imagery, refresh, guides },
         // Setup again: the last inputs, plus what is given now.
         None => {
             let mut i = iaf_setup::load_inputs(&assets)?.context(USAGE)?;
@@ -91,21 +92,12 @@ fn main() -> Result<()> {
                 }
             }
             i.guides |= guides;
+            i.refresh |= refresh;
             i
         }
     };
     iaf_setup::save_inputs(&assets, &inputs)?;
-    // The CLI's guide renderer: tools/guide_shots.sh (real renders, a display needed) then tools/guide_pdf.py.
-    let render = |pr: &dyn Progress, _cancel: &AtomicBool| -> Result<()> {
-        for (prog, args) in [("tools/guide_shots.sh", vec![]), ("python3", vec!["-I", "tools/guide_pdf.py"])] {
-            let o = Command::new(if prog.starts_with("tools/") { repo.join(prog) } else { PathBuf::from(prog) }).args(&args).current_dir(&repo).output()?;
-            String::from_utf8_lossy(&o.stdout).lines().for_each(|l| pr.log(l));
-            if !o.status.success() {
-                bail!("{prog} failed: {}", String::from_utf8_lossy(&o.stderr));
-            }
-        }
-        Ok(())
-    };
+    let render = |pr: &dyn Progress, cancel: &AtomicBool| iaf_setup::script_guides(&repo, pr, cancel);
     let ctx = Ctx {
         assets,
         repo: repo.clone(),

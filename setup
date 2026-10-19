@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# The setup wizard (docs/setup.md): checks for Rust (cargo) and Godot, builds the game's extension, then opens the
+# wizard's window. Run it again at any time to add an extra or redo a step. tools/setup-cli.sh is the scripted way.
+set -euo pipefail
+cd "$(dirname "$0")"
+
+# A missing tool: a native dialog when there is one (zenity / kdialog / osascript), else the terminal.
+tell() {
+	if [[ $(uname) == Darwin ]]; then
+		osascript -e "display dialog \"$1\" with title \"Jane's IAF (reborn) — Setup\" buttons {\"OK\"} with icon caution" >/dev/null 2>&1 || true
+	elif [[ -n ${DISPLAY:-}${WAYLAND_DISPLAY:-} ]] && command -v zenity >/dev/null; then
+		zenity --error --title="Jane's IAF (reborn) — Setup" --text="$1" 2>/dev/null || true
+	elif [[ -n ${DISPLAY:-}${WAYLAND_DISPLAY:-} ]] && command -v kdialog >/dev/null; then
+		kdialog --title "Jane's IAF (reborn) — Setup" --error "$1" 2>/dev/null || true
+	fi
+	echo "$1" >&2
+}
+if [[ $(uname) == Darwin ]]; then
+	install='brew install rustup godot, then: rustup default stable'
+	export PATH="$HOME/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+else
+	install='sudo pacman -S rustup godot, then: rustup default stable (other systems: rustup.rs and godotengine.org, Godot 4.7)'
+fi
+command -v cargo >/dev/null || { tell "Setup needs Rust (cargo) to build the game. Install it: $install"; exit 1; }
+godot=${GODOT:-godot}
+if ! command -v "$godot" >/dev/null && [[ -x /Applications/Godot.app/Contents/MacOS/Godot ]]; then
+	godot=/Applications/Godot.app/Contents/MacOS/Godot
+fi
+command -v "$godot" >/dev/null || { tell "Setup needs Godot 4.7. Install it: $install"; exit 1; }
+[[ $("$godot" --version 2>/dev/null) == 4.7* ]] || { tell "Setup needs Godot 4.7 (this one is $("$godot" --version 2>/dev/null))."; exit 1; }
+
+echo "building the game's extension (the first time takes a few minutes)…"
+cargo build --release -q -p iaf-godot
+# Godot loads iaf.gdextension only once an import has listed it (a fresh clone has no game/.godot).
+[[ -f game/.godot/extension_list.cfg ]] || "$godot" --headless --path game --import >/dev/null 2>&1
+exec "$godot" --path game res://setup/wizard.tscn
