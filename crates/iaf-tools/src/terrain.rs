@@ -273,10 +273,10 @@ pub fn theatre(path: &Path, out: &Path, threads: usize, pr: &dyn Progress, cance
     }
     log!(
         pr,
-        "{} nodes ({counts} ), {:.0} MB, {:.0} s -> {}",
+        "{} nodes ({counts} ), {:.0} MB, {} -> {}",
         nodes.len(),
         bytes.load(Ordering::Relaxed) as f64 / 1e6,
-        t0.elapsed().as_secs_f64(),
+        crate::progress::duration(t0.elapsed()),
         out.display()
     );
     Ok(())

@@ -108,7 +108,7 @@ fn main() -> Result<()> {
     let steps = iaf_setup::plan(&inputs);
     let t0 = std::time::Instant::now();
     let states = iaf_setup::run(&steps, &ctx, &|_| redo_all, &Print, &AtomicBool::new(false));
-    println!("\nsetup ({:.0} s):", t0.elapsed().as_secs_f64());
+    println!("\nsetup ({}):", iaf_tools::progress::duration(t0.elapsed()));
     let mut failed = false;
     for (id, s) in &states {
         println!("  {id:15} {s:?}");

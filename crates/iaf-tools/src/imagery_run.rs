@@ -427,7 +427,7 @@ pub fn run(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Estimate> 
                         written.lock().map_err(|_| anyhow::anyhow!("worker panicked"))?.extend(keys);
                         let d = done_units.fetch_add(1, Ordering::Relaxed) + 1;
                         pr.fraction(d as f32 / units.len() as f32);
-                        log!(pr, "  unit {d}/{} ({:.0} s)", units.len(), t0.elapsed().as_secs_f64());
+                        log!(pr, "  unit {d}/{} ({})", units.len(), crate::progress::duration(t0.elapsed()));
                     }
                 })
             })
@@ -475,7 +475,7 @@ pub fn run(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Estimate> 
     for layer in spec.layers {
         write_manifest(&prep, &out.join(layer), layer)?;
     }
-    log!(pr, "done in {:.0} s -> {}", t0.elapsed().as_secs_f64(), out.display());
+    log!(pr, "done in {} -> {}", crate::progress::duration(t0.elapsed()), out.display());
     Ok(est)
 }
 

@@ -110,9 +110,25 @@ pub fn par_map_all<T: Sync, R: Send>(items: &[T], f: impl Fn(&T) -> R + Sync) ->
     par_map(items, &AtomicBool::new(false), |x| Ok(f(x))).expect("par_map worker panicked")
 }
 
+/// A duration for the log: "42 s", "9 min 15 s", "1 h 05 min".
+pub fn duration(d: std::time::Duration) -> String {
+    let s = d.as_secs_f64().round() as u64;
+    match s {
+        0..60 => format!("{s} s"),
+        60..3600 => format!("{} min {} s", s / 60, s % 60),
+        _ => format!("{} h {:02} min", s / 3600, s % 3600 / 60),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn durations() {
+        let d = |s| duration(std::time::Duration::from_secs(s));
+        assert_eq!([d(42), d(555), d(3600 + 5 * 60 + 9)], ["42 s", "9 min 15 s", "1 h 05 min"]);
+    }
 
     #[test]
     fn par_map_keeps_order_and_stops_on_error() {
