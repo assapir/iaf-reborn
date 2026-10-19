@@ -430,6 +430,16 @@ func _fill_requirements() -> void:
 		cell.call(it[4] if it[1] else it[5], mark_color if not it[1] else DIM, 260, true)
 		if it[0] and not it[1]:
 			req_ok = false
+	# A light grey line between the rows (midway in the row gap).
+	grid.draw.connect(func():
+		var cells := grid.get_children()
+		for row in range(0, cells.size() / grid.columns - 1):
+			var bottom := 0.0
+			for c in grid.columns:
+				var l: Control = cells[row * grid.columns + c]
+				bottom = maxf(bottom, l.position.y + l.size.y)
+			var y := bottom + grid.get_theme_constant("v_separation") / 2.0
+			grid.draw_line(Vector2(0, y), Vector2(grid.size.x, y), Color(DIM, 0.35)))
 
 
 ## Free space where assets/ is (or would be), GB; -1 when unknown.
