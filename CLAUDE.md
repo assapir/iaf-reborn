@@ -93,6 +93,8 @@ Rule of placement: game logic belongs in the Rust crates. Godot renders and wire
   in `tools/f35i/`) has to be tracked in the repo and be our own or redistributable.
 - Per-aircraft behaviour is keyed by type code scattered across many tables; adding a plane means following
   `docs/adding-a-plane.md` (`iaf-convert plane-checklist <code>` lists every table).
+- Rust is formatted with `cargo fmt --all` (rustfmt.toml: width 120, compact heuristics); run it before committing
+  Rust changes.
 - Docs follow ISO 24495-1 plain language: relevant, findable, understandable, usable. Describe what a thing is or
   does, never what it isn't.
 - Research facts from outside sources cite each source as a Markdown footnote (`[^name]` in the text, the source with
