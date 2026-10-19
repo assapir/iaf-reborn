@@ -11,7 +11,7 @@ func run() -> void:
 	root.add_child(roll)
 	await frames(1)
 	var y := float(OS.get_environment("CREDITS_Y")) if OS.get_environment("CREDITS_Y") != "" else 40.0
-	roll.t_ms = (Roll.START_Y + roll.runs[roll.ours].y - y) * Roll.MS_PER_PX
+	roll.t_ms = (Roll.START_Y + roll.runs[roll.ours_end].y - y) * Roll.MS_PER_PX
 	roll.set_process(false)
 	roll.update()
 	await frames(5)

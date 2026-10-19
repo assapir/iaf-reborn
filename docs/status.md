@@ -159,9 +159,6 @@ Checked against the code on 2026-10-14 (each doc's own "not built" notes have th
   nearly empty page (F-16 "Not drawn"); the MFD pictures are the ~128 px original art scaled (blocky).
 - **Imagery**: SPOT 5 outside Israel not started.
 - **Multiplayer**: not started (missions 511–516, 666, 777).
-- **Tools**: `iaf-convert plane-checklist` misses the "fly-by-wire: no spin" row (its anchor in
-  `crates/iaf-tools/src/plane.rs` predates `matches!(p.type_code, 100 | 140 | 1000)`); `tests/godot/_credits_shot.gd`
-  reads `roll.ours`, renamed `ours_end`.
 - **To check**: v1.1's ground rudder part (ours follows the stick roll; the v1.1 note says the pedals too,
   docs/v1.1.md).
 

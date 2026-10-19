@@ -137,7 +137,7 @@ pub const TABLES: &[Table] = &[
     Table { file: "crates/iaf-tools/src/aircraft.rs", anchor: "pub fn fm_section(type_code: i64)", what: "type -> flight-model section in the descriptor", list: true },
     Table { file: "crates/iaf-flight/src/aircraft.rs", anchor: "FLAPS_MAX * if self.params.type_code == 100", what: "F-16 flaps third", list: false },
     Table { file: "crates/iaf-flight/src/aircraft.rs", anchor: "self.better.fbw_departure && matches!(self.params.type_code", what: "fly-by-wire deep stall", list: true },
-    Table { file: "crates/iaf-flight/src/aircraft.rs", anchor: "if !aero || p.type_code == 100", what: "fly-by-wire: no spin", list: true },
+    Table { file: "crates/iaf-flight/src/aircraft.rs", anchor: "if !aero || matches!(p.type_code", what: "fly-by-wire: no spin", list: true },
     Table { file: "game/aircraft/aircraft_model.gd", anchor: "var delta_wing := type_code in", what: "delta wing (elevons)", list: false },
     Table { file: "game/aircraft/aircraft_model.gd", anchor: "func part_pose(", what: "per-type part signs (speed brake, elevators, gear legs)", list: false },
     Table { file: "game/audio/flight_sounds.gd", anchor: "const BETTY_TYPES :=", what: "voice warnings (also RWR and damage)", list: true },
@@ -269,6 +269,13 @@ mod tests {
         assert!(!row("const TWIN :=").present);
         assert_eq!(row("const BETTY_TYPES :=").line, None);
         std::fs::remove_dir_all(dir).ok();
+    }
+
+    #[test]
+    fn every_anchor_is_in_the_repo() {
+        let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let lost: Vec<_> = checklist(&repo, 0).iter().filter(|r| r.line.is_none()).map(|r| r.table.what).collect();
+        assert!(lost.is_empty(), "anchors not found: {lost:?}");
     }
 }
 
