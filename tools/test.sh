@@ -14,7 +14,10 @@ cargo test -q --workspace 2>&1 | grep -E "test result|FAILED|panicked" || fail=1
 cargo build -q --release -p iaf-godot || fail=1
 for t in tests/godot/test_*.gd; do
 	echo "== $t"
-	out=$(IAF_DEFAULT_SETTINGS=1 timeout 300 godot --log-file "$logs/$(basename "$t" .gd).log" --headless --audio-driver Dummy --path game -s "../$t" 2>&1)
+	# The setup wizard's test builds its own data into an empty scratch folder, never into assets/.
+	env=()
+	[[ $t == */test_setup_wizard.gd ]] && env=(IAF_ASSETS_DIR="$(mktemp -d "$logs/wizard-assets.XXXXXX")")
+	out=$(env "${env[@]}" IAF_DEFAULT_SETTINGS=1 timeout 300 godot --log-file "$logs/$(basename "$t" .gd).log" --headless --audio-driver Dummy --path game -s "../$t" 2>&1)
 	rc=$?
 	echo "$out" | grep -E "^(PASS|FAIL|RESULT)|SCRIPT ERROR"
 	# A hang: say so and show where it stopped.
