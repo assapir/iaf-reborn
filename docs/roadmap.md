@@ -247,7 +247,7 @@ live play while recording at 4K. Two ways:
   - its voice warnings ("Real Betty" option above).
 - **Steps:**
   1. Research the F-16I and its public data; write it into docs/real-aircraft.md (done 2026-10-19:
-     docs/real-aircraft.md §11, with its open questions and build outline).
+     docs/f16i.md, with its open questions and build outline).
   2. Build it behind the switch, the 1990s Barak unchanged.
 
 ## Modern aircraft and weapons (post everything)
