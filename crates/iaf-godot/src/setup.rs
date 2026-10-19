@@ -130,7 +130,10 @@ impl IafSetup {
     #[func]
     fn plan(inputs_json: GString) -> VarArray {
         let Ok(i) = inputs(&inputs_json) else { return VarArray::new() };
-        iaf_setup::plan(&i).iter().map(|s| vdict! { "id" => s.id, "title" => s.title, "required" => s.required }.to_variant()).collect()
+        iaf_setup::plan(&i)
+            .iter()
+            .map(|s| vdict! { "id" => s.id, "title" => s.title, "required" => s.required }.to_variant())
+            .collect()
     }
 
     /// Starts a background job (gdext objects can only be called on the main thread, so the slow checks run here);
@@ -140,7 +143,8 @@ impl IafSetup {
     /// - "stale" [assets, layer ids…]: the imagery units older rules made, -1 when it cannot tell (e.g. offline).
     #[func]
     fn begin(&mut self, job: GString, args: PackedStringArray) {
-        let (job, args): (String, Vec<String>) = (job.to_string(), args.as_slice().iter().map(|s| s.to_string()).collect());
+        let (job, args): (String, Vec<String>) =
+            (job.to_string(), args.as_slice().iter().map(|s| s.to_string()).collect());
         let jobs = self.jobs.clone();
         jobs.lock().unwrap().insert(job.clone(), None);
         std::thread::spawn(move || {
@@ -148,14 +152,29 @@ impl IafSetup {
                 // "preview#2": the kind before '#', the rest tells runs of the same kind apart.
                 match (job.split('#').next().unwrap_or_default(), args.as_slice()) {
                     ("preview", [assets, repo, i]) => {
-                        let Ok(i) = iaf_setup::from_json(&serde_json::from_str(i).unwrap_or_default()) else { return serde_json::json!({}) };
+                        let Ok(i) = iaf_setup::from_json(&serde_json::from_str(i).unwrap_or_default()) else {
+                            return serde_json::json!({});
+                        };
                         let steps = iaf_setup::plan(&i);
-                        let ctx = Ctx { assets: assets.into(), repo: repo.into(), inputs: i, xdg_data_home: None, guides: None };
-                        iaf_setup::preview(&steps, &ctx).into_iter().map(|(id, up)| (id.to_string(), serde_json::Value::Bool(up))).collect()
+                        let ctx = Ctx {
+                            assets: assets.into(),
+                            repo: repo.into(),
+                            inputs: i,
+                            xdg_data_home: None,
+                            guides: None,
+                        };
+                        iaf_setup::preview(&steps, &ctx)
+                            .into_iter()
+                            .map(|(id, up)| (id.to_string(), serde_json::Value::Bool(up)))
+                            .collect()
                     }
-                    ("scan", [dir]) => iaf_setup::scan(dir.as_ref()).into_iter().map(|(k, p)| (k.to_string(), serde_json::Value::String(p.display().to_string()))).collect(),
+                    ("scan", [dir]) => iaf_setup::scan(dir.as_ref())
+                        .into_iter()
+                        .map(|(k, p)| (k.to_string(), serde_json::Value::String(p.display().to_string())))
+                        .collect(),
                     ("stale", [assets, layers @ ..]) => {
-                        let n: anyhow::Result<usize> = layers.iter().map(|id| iaf_setup::imagery_stale(assets.as_ref(), id)).sum();
+                        let n: anyhow::Result<usize> =
+                            layers.iter().map(|id| iaf_setup::imagery_stale(assets.as_ref(), id)).sum();
                         n.map_or(-1, |n| n as i64).into()
                     }
                     _ => serde_json::Value::Null,
@@ -179,7 +198,14 @@ impl IafSetup {
     /// and what they wait for); the steps in `redo` run although they are up to date ("*": all). "" when started,
     /// else why not.
     #[func]
-    fn start(&mut self, assets: GString, repo: GString, inputs_json: GString, redo: PackedStringArray, only: PackedStringArray) -> GString {
+    fn start(
+        &mut self,
+        assets: GString,
+        repo: GString,
+        inputs_json: GString,
+        redo: PackedStringArray,
+        only: PackedStringArray,
+    ) -> GString {
         if self.shared.lock().unwrap().rows.iter().any(|r| r.state == "running") {
             return "setup is running".into();
         }
@@ -198,7 +224,17 @@ impl IafSetup {
             steps = iaf_setup::only(&steps, &only.iter().map(String::as_str).collect::<Vec<_>>());
         }
         *self.shared.lock().unwrap() = Shared {
-            rows: steps.iter().map(|s| Row { id: s.id, title: s.title, required: s.required, state: "waiting", detail: String::new(), fraction: 0.0 }).collect(),
+            rows: steps
+                .iter()
+                .map(|s| Row {
+                    id: s.id,
+                    title: s.title,
+                    required: s.required,
+                    state: "waiting",
+                    detail: String::new(),
+                    fraction: 0.0,
+                })
+                .collect(),
             ..Default::default()
         };
         self.cancel = Arc::new(AtomicBool::new(false));
@@ -208,7 +244,13 @@ impl IafSetup {
                 let guides = |pr: &dyn Progress, c: &AtomicBool| iaf_setup::script_guides(&repo, pr, c);
                 let prefix = format!("{}/", assets.display());
                 let ctx = Ctx { assets, repo: repo.clone(), inputs: i, xdg_data_home: None, guides: Some(&guides) };
-                iaf_setup::run(&steps, &ctx, &|id| redo.iter().any(|r| r == "*" || r == id), &Sink(shared.clone(), prefix), &cancel)
+                iaf_setup::run(
+                    &steps,
+                    &ctx,
+                    &|id| redo.iter().any(|r| r == "*" || r == id),
+                    &Sink(shared.clone(), prefix),
+                    &cancel,
+                )
             }));
             let mut sh = shared.lock().unwrap();
             sh.error = match result {

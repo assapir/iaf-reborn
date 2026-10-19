@@ -57,7 +57,11 @@ impl Grid {
     /// The cell at terrain units (tx, ty); false outside.
     pub fn at(&self, tx: f64, ty: f64) -> bool {
         let (i, j) = (((tx - self.x0) / self.cell).floor(), ((ty - self.y0) / self.cell).floor());
-        i >= 0.0 && j >= 0.0 && (i as usize) < self.w && (j as usize) < self.h && self.v[j as usize * self.w + i as usize]
+        i >= 0.0
+            && j >= 0.0
+            && (i as usize) < self.w
+            && (j as usize) < self.h
+            && self.v[j as usize * self.w + i as usize]
     }
 
     pub fn area_km2(&self) -> f64 {
@@ -91,8 +95,10 @@ impl Grid {
             }
         }
         let cl = |v: f64, n: usize| v.clamp(0.0, n as f64) as usize;
-        let (i0, i1) = (cl(((lo[0] - self.x0) / self.cell).floor(), self.w), cl(((hi[0] - self.x0) / self.cell).ceil(), self.w));
-        let (j0, j1) = (cl(((lo[1] - self.y0) / self.cell).floor(), self.h), cl(((hi[1] - self.y0) / self.cell).ceil(), self.h));
+        let (i0, i1) =
+            (cl(((lo[0] - self.x0) / self.cell).floor(), self.w), cl(((hi[0] - self.x0) / self.cell).ceil(), self.w));
+        let (j0, j1) =
+            (cl(((lo[1] - self.y0) / self.cell).floor(), self.h), cl(((hi[1] - self.y0) / self.cell).ceil(), self.h));
         for j in j0..j1 {
             for i in i0..i1 {
                 let c = self.centre(j * self.w + i);
@@ -152,7 +158,9 @@ impl Grid {
     fn fill_holes(&mut self) {
         let (w, h) = (self.w, self.h);
         let mut outside = vec![false; w * h];
-        let mut stack: Vec<usize> = (0..w * h).filter(|&k| (k % w == 0 || k % w == w - 1 || k / w == 0 || k / w == h - 1) && !self.v[k]).collect();
+        let mut stack: Vec<usize> = (0..w * h)
+            .filter(|&k| (k % w == 0 || k % w == w - 1 || k / w == 0 || k / w == h - 1) && !self.v[k])
+            .collect();
         for &k in &stack {
             outside[k] = true;
         }
@@ -283,7 +291,11 @@ pub fn ibx_points(ibx: &[u8]) -> Vec<[f64; 2]> {
 
 /// iaf.ibx's lineup points (x, y, altitude; engine metres).
 pub fn ibx_lineups(ibx: &[u8]) -> Vec<[f64; 3]> {
-    Ini::parse(ibx).sections.iter().filter_map(|s| Some([ibx_f(s, "LineupLocX")?, ibx_f(s, "LineupLocY")?, ibx_f(s, "LineupLocZ")?])).collect()
+    Ini::parse(ibx)
+        .sections
+        .iter()
+        .filter_map(|s| Some([ibx_f(s, "LineupLocX")?, ibx_f(s, "LineupLocY")?, ibx_f(s, "LineupLocZ")?]))
+        .collect()
 }
 
 /// Units this far above their nearest base's lineup altitude are in the air.
@@ -291,7 +303,8 @@ const GROUND_M: f64 = 150.0;
 
 /// True for a unit (x, y, altitude) on the ground: below the nearest lineup's altitude + GROUND_M.
 pub fn on_ground(lineups: &[[f64; 3]], u: &[f64; 3]) -> bool {
-    let near = lineups.iter().min_by(|a, b| (a[0] - u[0]).hypot(a[1] - u[1]).total_cmp(&(b[0] - u[0]).hypot(b[1] - u[1])));
+    let near =
+        lineups.iter().min_by(|a, b| (a[0] - u[0]).hypot(a[1] - u[1]).total_cmp(&(b[0] - u[0]).hypot(b[1] - u[1])));
     near.is_none_or(|l| u[2] < l[2] + GROUND_M)
 }
 
@@ -301,7 +314,13 @@ pub fn mission_units(dir: &Path) -> Vec<[f64; 3]> {
     let mut out = Vec::new();
     let Ok(list) = std::fs::read(dir.join("missionlist.json")) else { return out };
     let Ok(list) = serde_json::from_slice::<serde_json::Value>(&list) else { return out };
-    let mut names: Vec<&str> = list.as_object().into_iter().flatten().flat_map(|(_, v)| v.as_array().into_iter().flatten()).filter_map(|n| n.as_str()).collect();
+    let mut names: Vec<&str> = list
+        .as_object()
+        .into_iter()
+        .flatten()
+        .flat_map(|(_, v)| v.as_array().into_iter().flatten())
+        .filter_map(|n| n.as_str())
+        .collect();
     names.sort();
     names.dedup();
     for name in names {
@@ -320,7 +339,8 @@ pub fn mission_units(dir: &Path) -> Vec<[f64; 3]> {
 
 /// The inset records of level ≤ KEEP_INSET_LEVEL merged into sites (records that overlap or touch).
 pub fn inset_sites(ptt: &iaf_formats::ptt::Ptt) -> Vec<[u32; 4]> {
-    let mut rects: Vec<[u32; 4]> = ptt.levels.iter().filter(|l| l.flag == 0 && l.level <= KEEP_INSET_LEVEL).map(|l| l.rect).collect();
+    let mut rects: Vec<[u32; 4]> =
+        ptt.levels.iter().filter(|l| l.flag == 0 && l.level <= KEEP_INSET_LEVEL).map(|l| l.rect).collect();
     loop {
         let mut merged = false;
         'outer: for a in 0..rects.len() {
@@ -343,12 +363,21 @@ pub fn inset_sites(ptt: &iaf_formats::ptt::Ptt) -> Vec<[u32; 4]> {
 /// The footprint of the airbase in `rect` (terrain units) from the 1998 art drawn at LEVEL, the runway leaves (terrain
 /// units), the base points and the missions' units (terrain units). None when no runway leaf is in the rect (a
 /// target site, kept whole).
-pub fn footprint(rect: [u32; 4], art: &dyn Fn(i64, i64, usize, usize) -> Vec<[f32; 3]>, leaves: &[Vec<[f64; 2]>], points: &[[f64; 2]], units: &[[f64; 2]]) -> Option<Grid> {
+pub fn footprint(
+    rect: [u32; 4],
+    art: &dyn Fn(i64, i64, usize, usize) -> Vec<[f32; 3]>,
+    leaves: &[Vec<[f64; 2]>],
+    points: &[[f64; 2]],
+    units: &[[f64; 2]],
+) -> Option<Grid> {
     let s = (1u32 << LEVEL) as f64;
     let (px0, py0) = ((rect[0] as f64 / s).floor() as i64, (rect[1] as f64 / s).floor() as i64);
-    let (w, h) = (((rect[2] as f64 / s).ceil() as i64 - px0) as usize, ((rect[3] as f64 / s).ceil() as i64 - py0) as usize);
+    let (w, h) =
+        (((rect[2] as f64 / s).ceil() as i64 - px0) as usize, ((rect[3] as f64 / s).ceil() as i64 - py0) as usize);
     let mut seeds = Grid::new(px0 as f64 * s, py0 as f64 * s, s, w, h);
-    let in_rect = |t: &[f64; 2]| t[0] >= rect[0] as f64 && t[0] < rect[2] as f64 && t[1] >= rect[1] as f64 && t[1] < rect[3] as f64;
+    let in_rect = |t: &[f64; 2]| {
+        t[0] >= rect[0] as f64 && t[0] < rect[2] as f64 && t[1] >= rect[1] as f64 && t[1] < rect[3] as f64
+    };
     for l in leaves.iter().filter(|l| l.iter().any(in_rect)) {
         seeds.polygon(l);
     }
@@ -379,14 +408,26 @@ pub fn footprint(rect: [u32; 4], art: &dyn Fn(i64, i64, usize, usize) -> Vec<[f3
 pub fn sites(install: &Path, theatre: &Theatre, missions: &Path) -> Result<Vec<Site>> {
     let ptt = iaf_formats::ptt::Ptt::open(install.join("resource/terrain/map.ptt"))?;
     let types = TerrainTypes::parse(&std::fs::read(install.join("terraintype.dat")).context("terraintype.dat")?)?;
-    let leaves: Vec<Vec<[f64; 2]>> = types.leaf_polygons(RUNWAY, 2.0e6).into_iter().map(|(_, p)| p.iter().map(|q| units(q[0], q[1])).collect()).collect();
-    let points: Vec<[f64; 2]> = std::fs::read(install.join("iaf.ibx")).map(|b| ibx_points(&b)).unwrap_or_default().iter().map(|p| units(p[0], p[1])).collect();
+    let leaves: Vec<Vec<[f64; 2]>> = types
+        .leaf_polygons(RUNWAY, 2.0e6)
+        .into_iter()
+        .map(|(_, p)| p.iter().map(|q| units(q[0], q[1])).collect())
+        .collect();
+    let points: Vec<[f64; 2]> = std::fs::read(install.join("iaf.ibx"))
+        .map(|b| ibx_points(&b))
+        .unwrap_or_default()
+        .iter()
+        .map(|p| units(p[0], p[1]))
+        .collect();
     // Units on the ground: below the nearest base's lineup altitude + GROUND_M (flights in the air stand on nothing).
     let lineups = ibx_lineups(&std::fs::read(install.join("iaf.ibx")).unwrap_or_default());
-    let units_t: Vec<[f64; 2]> = mission_units(missions).iter().filter(|u| on_ground(&lineups, u)).map(|p| units(p[0], p[1])).collect();
+    let units_t: Vec<[f64; 2]> =
+        mission_units(missions).iter().filter(|u| on_ground(&lineups, u)).map(|p| units(p[0], p[1])).collect();
     let mut out = Vec::new();
     for rect in inset_sites(&ptt) {
-        let art = |x0: i64, y0: i64, w: usize, h: usize| theatre.original_rect(LEVEL, x0, y0, w, h, &mut Cache::default()).unwrap_or_default();
+        let art = |x0: i64, y0: i64, w: usize, h: usize| {
+            theatre.original_rect(LEVEL, x0, y0, w, h, &mut Cache::default()).unwrap_or_default()
+        };
         if let Some(footprint) = footprint(rect, &art, &leaves, &points, &units_t) {
             out.push(Site { rect, footprint });
         }
@@ -490,7 +531,8 @@ impl Line {
 impl Picture<'_> {
     fn index(&self, q: [f64; 2]) -> Option<usize> {
         let (i, j) = ((q[0] / self.px_m).round(), (-q[1] / self.px_m).round());
-        (i >= 0.0 && j >= 0.0 && (i as usize) < self.w && (j as usize) < self.h).then(|| j as usize * self.w + i as usize)
+        (i >= 0.0 && j >= 0.0 && (i as usize) < self.w && (j as usize) < self.h)
+            .then(|| j as usize * self.w + i as usize)
     }
     fn paved(&self, q: [f64; 2]) -> bool {
         self.index(q).is_some_and(|k| self.asphalt[k])
@@ -566,7 +608,9 @@ impl Picture<'_> {
         // Ends: along the centreline while 4 of 5 points across the middle 60 % of the width are asphalt or grey concrete
         // (a road is not;
         // gaps up to 60 m bridged: the painted threshold stripes).
-        let on = |al: f64, test: &dyn Fn([f64; 2]) -> bool| (-2..=2).filter(|&k| test(l.point(al, l.c + k as f64 * width / 7.0))).count() >= 4;
+        let on = |al: f64, test: &dyn Fn([f64; 2]) -> bool| {
+            (-2..=2).filter(|&k| test(l.point(al, l.c + k as f64 * width / 7.0))).count() >= 4
+        };
         let walk = |from: f64, dir: f64, reach: f64, test: &dyn Fn([f64; 2]) -> bool| {
             let (mut s, mut gap, mut last) = (from, 0.0, from);
             while gap <= 60.0 && (s - from).abs() < reach {
@@ -594,11 +638,17 @@ impl Picture<'_> {
         };
         // Thresholds: from each end inward, the first ≥ 12 m long stretch where a third to nine tenths of the points
         // across the middle 80 % are bright paint (the art's threshold stripes), less the 6 m the stripes stand inside it.
-        let mid_lum = (0..20).map(|k| self.lum(l.point(l.a0 + (k as f64 + 0.5) / 20.0 * (l.a1 - l.a0), l.c))).sum::<f32>() / 20.0;
+        let mid_lum =
+            (0..20).map(|k| self.lum(l.point(l.a0 + (k as f64 + 0.5) / 20.0 * (l.a1 - l.a0), l.c))).sum::<f32>() / 20.0;
         const N_PAINT: usize = 17;
         let paint = |al: f64| {
             let n = N_PAINT;
-            (0..n).filter(|&k| self.lum(l.point(al, l.c + (k as f64 / (n - 1) as f64 - 0.5) * 0.8 * width)) > (mid_lum + 55.0).min(200.0)).count()
+            (0..n)
+                .filter(|&k| {
+                    self.lum(l.point(al, l.c + (k as f64 / (n - 1) as f64 - 0.5) * 0.8 * width))
+                        > (mid_lum + 55.0).min(200.0)
+                })
+                .count()
         };
         // Stripes: a third to nine tenths of the points bright (a light concrete end is bright all across).
         let stripes = |al: f64| {
@@ -646,7 +696,11 @@ impl Picture<'_> {
         // points lie within 0.71 · CELL of its centre).
         const CELL: f64 = 16.0;
         let (lo, hi) = bbox(&near);
-        let (nx, ny) = if near.is_empty() { (0, 0) } else { (((hi[0] - lo[0]) / CELL) as usize + 1, ((hi[1] - lo[1]) / CELL) as usize + 1) };
+        let (nx, ny) = if near.is_empty() {
+            (0, 0)
+        } else {
+            (((hi[0] - lo[0]) / CELL) as usize + 1, ((hi[1] - lo[1]) / CELL) as usize + 1)
+        };
         let mut cells: Vec<Vec<[f64; 2]>> = vec![Vec::new(); nx * ny];
         for q in &near {
             cells[((q[1] - lo[1]) / CELL) as usize * nx + ((q[0] - lo[0]) / CELL) as usize].push(*q);
@@ -671,7 +725,8 @@ impl Picture<'_> {
             }
             let mut best = (0, t.th, 0.0);
             for dcc in -dc..=dc {
-                let n: usize = (dcc as i64 - 7..=dcc as i64 + 7).filter(|b| b.abs() <= r).map(|b| bins[(b + r) as usize]).sum();
+                let n: usize =
+                    (dcc as i64 - 7..=dcc as i64 + 7).filter(|b| b.abs() <= r).map(|b| bins[(b + r) as usize]).sum();
                 if n > best.0 {
                     best = (n, t.th, dcc as f64);
                 }
@@ -696,7 +751,9 @@ impl Picture<'_> {
         let (w, h, px_m) = (self.w, self.h, self.px_m);
         let paved = Grid { x0: 0.0, y0: 0.0, cell: 1.0, w, h, v: self.asphalt.to_vec() };
         let mut core = paved.erode((CORE_M / px_m).round().max(1.0) as usize);
-        let points = |g: &Grid| -> Vec<[f64; 2]> { (0..w * h).filter(|&k| g.v[k]).map(|k| [(k % w) as f64 * px_m, -((k / w) as f64) * px_m]).collect() };
+        let points = |g: &Grid| -> Vec<[f64; 2]> {
+            (0..w * h).filter(|&k| g.v[k]).map(|k| [(k % w) as f64 * px_m, -((k / w) as f64) * px_m]).collect()
+        };
         let mut out = Vec::new();
         let take_out = |core: &mut Grid, l: &Line, width: f64| {
             let local = l.dirs_local();
@@ -799,7 +856,12 @@ fn longest_run(pts: &[[f64; 2]], th: f64, across: f64, along: f64, gap: usize) -
                 if holes > gap || i == na {
                     let len = (last - s + 1) as f64 * along;
                     if best.is_none_or(|b| len > b.0) {
-                        best = Some((len, cmin + (lane as f64 + 0.5) * across, amin + s as f64 * along, amin + (last + 1) as f64 * along));
+                        best = Some((
+                            len,
+                            cmin + (lane as f64 + 0.5) * across,
+                            amin + s as f64 * along,
+                            amin + (last + 1) as f64 * along,
+                        ));
                     }
                     start = None;
                 }
@@ -883,8 +945,14 @@ impl Base {
             for seg in path.windows(2) {
                 let (a, b) = (to_px(&seg[0]), to_px(&seg[1]));
                 let r = TAXI_FIELD_M / px;
-                let (i0, i1) = ((a[0].min(b[0]) - r).floor().max(0.0) as usize, ((a[0].max(b[0]) + r).ceil().max(0.0) as usize).min(w));
-                let (j0, j1) = ((a[1].min(b[1]) - r).floor().max(0.0) as usize, ((a[1].max(b[1]) + r).ceil().max(0.0) as usize).min(h));
+                let (i0, i1) = (
+                    (a[0].min(b[0]) - r).floor().max(0.0) as usize,
+                    ((a[0].max(b[0]) + r).ceil().max(0.0) as usize).min(w),
+                );
+                let (j0, j1) = (
+                    (a[1].min(b[1]) - r).floor().max(0.0) as usize,
+                    ((a[1].max(b[1]) + r).ceil().max(0.0) as usize).min(h),
+                );
                 let ab = [b[0] - a[0], b[1] - a[1]];
                 let len2 = (ab[0] * ab[0] + ab[1] * ab[1]).max(1e-9);
                 for j in j0..j1 {
@@ -928,7 +996,9 @@ const PAVED_REACH_M: f64 = 1500.0;
 
 /// (south-west, north-east) corners of a polygon.
 fn bbox(p: &[[f64; 2]]) -> ([f64; 2], [f64; 2]) {
-    p.iter().fold(([f64::MAX; 2], [f64::MIN; 2]), |(lo, hi), q| ([lo[0].min(q[0]), lo[1].min(q[1])], [hi[0].max(q[0]), hi[1].max(q[1])]))
+    p.iter().fold(([f64::MAX; 2], [f64::MIN; 2]), |(lo, hi), q| {
+        ([lo[0].min(q[0]), lo[1].min(q[1])], [hi[0].max(q[0]), hi[1].max(q[1])])
+    })
 }
 
 fn ibx_f(s: &iaf_formats::ini::Section, k: &str) -> Option<f64> {
@@ -946,14 +1016,20 @@ pub fn bases(install: &Path, theatre: &Theatre) -> Result<Vec<Base>> {
     let px_m = s * UNITS_TO_METRES;
     let types = TerrainTypes::parse(&std::fs::read(install.join("terraintype.dat")).context("terraintype.dat")?)?;
     let leaves: Vec<Vec<[f64; 2]>> = types.leaf_polygons(RUNWAY, 2.0e6).into_iter().map(|(_, p)| p).collect();
-    let secs: Vec<_> = ini.sections.iter().filter(|s| s.get("LineupLocX").is_some() && s.get("RunwayNumber").is_some()).collect();
+    let secs: Vec<_> =
+        ini.sections.iter().filter(|s| s.get("LineupLocX").is_some() && s.get("RunwayNumber").is_some()).collect();
     // Each base is independent: one per worker, in iaf.ibx's order.
     par_map(&secs, &AtomicBool::new(false), |sec| -> Result<Base> {
         let lineup = [ibx_f(sec, "LineupLocX").unwrap_or(0.0), ibx_f(sec, "LineupLocY").unwrap_or(0.0)];
         let n = |k: &str| ibx_f(sec, k).unwrap_or(0.0).max(0.0) as usize;
         let hangars = n("HangarsNum");
-        let mut taxi = vec![ibx_path(sec, "ToTaxiPt", n("TaxiWayPtsTo")), ibx_path(sec, "FromTaxiPt", n("TaxiWayPtsFrom"))];
-        let (hp, to, from) = (ibx_path(sec, "HangarPt", hangars), ibx_path(sec, "ToHangarTurnPt", hangars), ibx_path(sec, "FromHangarTurnPt", hangars));
+        let mut taxi =
+            vec![ibx_path(sec, "ToTaxiPt", n("TaxiWayPtsTo")), ibx_path(sec, "FromTaxiPt", n("TaxiWayPtsFrom"))];
+        let (hp, to, from) = (
+            ibx_path(sec, "HangarPt", hangars),
+            ibx_path(sec, "ToHangarTurnPt", hangars),
+            ibx_path(sec, "FromHangarTurnPt", hangars),
+        );
         for (i, h) in hp.iter().enumerate() {
             taxi.extend(to.get(i).map(|t| vec![*t, *h]));
             taxi.extend(from.get(i).map(|f| vec![*h, *f]));
@@ -964,7 +1040,10 @@ pub fn bases(install: &Path, theatre: &Theatre) -> Result<Vec<Base>> {
             .iter()
             .filter(|l| {
                 let (lo, hi) = bbox(l);
-                lineup[0] > lo[0] - BASE_NEAR_M && lineup[0] < hi[0] + BASE_NEAR_M && lineup[1] > lo[1] - BASE_NEAR_M && lineup[1] < hi[1] + BASE_NEAR_M
+                lineup[0] > lo[0] - BASE_NEAR_M
+                    && lineup[0] < hi[0] + BASE_NEAR_M
+                    && lineup[1] > lo[1] - BASE_NEAR_M
+                    && lineup[1] < hi[1] + BASE_NEAR_M
             })
             .collect();
         let (mut lo, mut hi) = (lineup, lineup);
@@ -993,10 +1072,21 @@ pub fn bases(install: &Path, theatre: &Theatre) -> Result<Vec<Base>> {
             (i >= 0 && j >= 0 && (i as usize) < w && (j as usize) < h).then(|| rgb[j as usize * w + i as usize])
         };
         let hd = ibx_f(sec, "RunwayNumber").unwrap_or(0.0).to_radians();
-        let samples: Vec<[f32; 3]> = (150..1200).step_by(5).filter_map(|d| at_px([lineup[0] + hd.sin() * d as f64, lineup[1] + hd.cos() * d as f64])).collect();
+        let samples: Vec<[f32; 3]> = (150..1200)
+            .step_by(5)
+            .filter_map(|d| at_px([lineup[0] + hd.sin() * d as f64, lineup[1] + hd.cos() * d as f64]))
+            .collect();
         let reference = Tone::median(&samples);
-        let asphalt: Vec<bool> = rgb.iter().zip(&region.v).map(|(&c, &r)| r && (is_asphalt(c) || reference.matches(c))).collect();
-        let pic = Picture { rgb: &rgb, asphalt: &asphalt, w, h, px_m, origin: [corner[0] + px_m / 2.0, corner[1] - px_m / 2.0] };
+        let asphalt: Vec<bool> =
+            rgb.iter().zip(&region.v).map(|(&c, &r)| r && (is_asphalt(c) || reference.matches(c))).collect();
+        let pic = Picture {
+            rgb: &rgb,
+            asphalt: &asphalt,
+            w,
+            h,
+            px_m,
+            origin: [corner[0] + px_m / 2.0, corner[1] - px_m / 2.0],
+        };
         let hdg = ibx_f(sec, "RunwayNumber").unwrap_or(0.0);
         let mut runways = pic.runways(Some((lineup, hdg)));
         // Where the art shows no runway through the lineup point (a base only in the coarse imagery), the AI's runway:
@@ -1014,7 +1104,11 @@ pub fn bases(install: &Path, theatre: &Theatre) -> Result<Vec<Base>> {
         if !runways.iter().any(|r| r.through(lineup, hdg)) {
             let d = [hdg.to_radians().sin(), hdg.to_radians().cos()];
             let at = |m: f64| [lineup[0] + d[0] * m, lineup[1] + d[1] * m];
-            runways.push(Runway { ends: [at(-IBX_BEHIND_M), at(IBX_LENGTH_M - IBX_BEHIND_M)], width: IBX_WIDTH_M, thresholds: [IBX_BEHIND_M, 0.0] });
+            runways.push(Runway {
+                ends: [at(-IBX_BEHIND_M), at(IBX_LENGTH_M - IBX_BEHIND_M)],
+                width: IBX_WIDTH_M,
+                thresholds: [IBX_BEHIND_M, 0.0],
+            });
         }
         // The paved surface: paved pixels (roads dropped) reached from the runways.
         let mut seeds = Grid::new(0.0, 0.0, 1.0, w, h);
@@ -1025,13 +1119,24 @@ pub fn bases(install: &Path, theatre: &Theatre) -> Result<Vec<Base>> {
                 let p = [e[0] + d * al + a * ac, e[1] + a * al - d * ac];
                 [(p[0] - corner[0]) / px_m, (corner[1] - p[1]) / px_m]
             };
-            seeds.polygon(&[q(r.ends[0], 0.0, -hw), q(r.ends[1], 0.0, -hw), q(r.ends[1], 0.0, hw), q(r.ends[0], 0.0, hw)]);
+            seeds.polygon(&[
+                q(r.ends[0], 0.0, -hw),
+                q(r.ends[1], 0.0, -hw),
+                q(r.ends[1], 0.0, hw),
+                q(r.ends[0], 0.0, hw),
+            ]);
         }
         // Paved colours: pavement grey (is_grey: light grey taxiways and aprons too) and the aprons' tint anywhere; the
         // runway's own tone (which may match dark fields) within TONE_PAD_M of the runway leaves.
         let near_leaves = leaf.dilate((TONE_PAD_M / px_m) as usize);
         let mut paved = Grid {
-            v: (0..w * h).map(|k| is_grey(rgb[k]) || (is_apron(rgb[k]) && is_paved(rgb[k])) || (near_leaves.v[k] && reference.matches(rgb[k]))).collect(),
+            v: (0..w * h)
+                .map(|k| {
+                    is_grey(rgb[k])
+                        || (is_apron(rgb[k]) && is_paved(rgb[k]))
+                        || (near_leaves.v[k] && reference.matches(rgb[k]))
+                })
+                .collect(),
             ..seeds.clone()
         };
         // Each taxiway's own paving (often lighter or warmer than the runway's, and taxiways differ from aprons): per
@@ -1047,7 +1152,12 @@ pub fn bases(install: &Path, theatre: &Theatre) -> Result<Vec<Base>> {
         for s in taxi.iter().flat_map(|p| p.windows(2)) {
             let n = (((s[1][0] - s[0][0]).hypot(s[1][1] - s[0][1]) / px_m).ceil() as usize).max(1);
             let samples: Vec<[f32; 3]> = (0..=n)
-                .map(|k| [s[0][0] + (s[1][0] - s[0][0]) * k as f64 / n as f64, s[0][1] + (s[1][1] - s[0][1]) * k as f64 / n as f64])
+                .map(|k| {
+                    [
+                        s[0][0] + (s[1][0] - s[0][0]) * k as f64 / n as f64,
+                        s[0][1] + (s[1][1] - s[0][1]) * k as f64 / n as f64,
+                    ]
+                })
                 .filter(|&p| !on_runway(p))
                 .filter_map(at_px)
                 .filter(|&c| is_paved(c))
@@ -1067,7 +1177,10 @@ pub fn bases(install: &Path, theatre: &Theatre) -> Result<Vec<Base>> {
                     let q = [i as f64 + 0.5 - a[0], j as f64 + 0.5 - a[1]];
                     let t = ((q[0] * ab[0] + q[1] * ab[1]) / len2).clamp(0.0, 1.0);
                     let k = j * w + i;
-                    if (q[0] - ab[0] * t).hypot(q[1] - ab[1] * t) < r && is_pavement_like(rgb[k], 0.0) && tone.matches(rgb[k]) {
+                    if (q[0] - ab[0] * t).hypot(q[1] - ab[1] * t) < r
+                        && is_pavement_like(rgb[k], 0.0)
+                        && tone.matches(rgb[k])
+                    {
                         paved.v[k] = true;
                     }
                 }
@@ -1075,7 +1188,10 @@ pub fn bases(install: &Path, theatre: &Theatre) -> Result<Vec<Base>> {
         }
         let near_taxiways = leaf.dilate((TAXIWAYS_PAD_M / px_m) as usize);
         for (k, p) in paved.v.iter_mut().enumerate() {
-            *p = *p || (near_taxiways.v[k] && is_pavement_like(rgb[k], PAVEMENT_MIN_LUM) && tones.iter().any(|t| t.matches(rgb[k])));
+            *p = *p
+                || (near_taxiways.v[k]
+                    && is_pavement_like(rgb[k], PAVEMENT_MIN_LUM)
+                    && tones.iter().any(|t| t.matches(rgb[k])));
         }
         let k = (ROAD_M / px_m / 2.0).round() as usize;
         let mut surface = Grid::grow(&seeds, &paved.erode(k).dilate(k), (PAVED_REACH_M / px_m) as usize);
@@ -1095,7 +1211,17 @@ pub fn bases(install: &Path, theatre: &Theatre) -> Result<Vec<Base>> {
             }
         }
         let concrete = surface.v.iter().zip(&rgb).map(|(&p, &c)| p && is_apron(c) && !is_asphalt(c)).collect();
-        Ok(Base { name: sec.name.clone(), lineup, runway_deg: ibx_f(sec, "RunwayNumber").unwrap_or(0.0), runways, taxi, paved: surface, concrete, origin: corner, px_m })
+        Ok(Base {
+            name: sec.name.clone(),
+            lineup,
+            runway_deg: ibx_f(sec, "RunwayNumber").unwrap_or(0.0),
+            runways,
+            taxi,
+            paved: surface,
+            concrete,
+            origin: corner,
+            px_m,
+        })
     })
 }
 
@@ -1151,11 +1277,13 @@ mod tests {
         let field = [150.0, 110.0, 70.0];
         let shoulder = [190.0, 180.0, 160.0];
         let asphalt = [70.0, 70.0, 75.0];
-        let lines = [
-            ([3000.0, -3000.0], 50.0f64, 3000.0, 60.0),
-            ([3200.0, -3100.0], 150.0, 2400.0, 50.0),
-        ];
-        let taxi = ([3000.0 + 150.0 * 140f64.to_radians().sin(), -3000.0 + 150.0 * 140f64.to_radians().cos()], 50.0f64, 2800.0, 25.0);
+        let lines = [([3000.0, -3000.0], 50.0f64, 3000.0, 60.0), ([3200.0, -3100.0], 150.0, 2400.0, 50.0)];
+        let taxi = (
+            [3000.0 + 150.0 * 140f64.to_radians().sin(), -3000.0 + 150.0 * 140f64.to_radians().cos()],
+            50.0f64,
+            2800.0,
+            25.0,
+        );
         let inside = |q: [f64; 2], (c, h, len, w): ([f64; 2], f64, f64, f64), pad: f64| {
             let (d, a) = ([h.to_radians().sin(), h.to_radians().cos()], [h.to_radians().cos(), -h.to_radians().sin()]);
             let r = [q[0] - c[0], q[1] - c[1]];
@@ -1175,7 +1303,10 @@ mod tests {
             .collect();
         let mask: Vec<bool> = rgb.iter().map(|&c| is_asphalt(c)).collect();
         let pic = Picture { rgb: &rgb, asphalt: &mask, w: n, h: n, px_m: px, origin: [0.0, 0.0] };
-        let mut found = pic.runways(Some(([3000.0 - 1400.0 * 50f64.to_radians().sin(), -3000.0 - 1400.0 * 50f64.to_radians().cos()], 50.0)));
+        let mut found = pic.runways(Some((
+            [3000.0 - 1400.0 * 50f64.to_radians().sin(), -3000.0 - 1400.0 * 50f64.to_radians().cos()],
+            50.0,
+        )));
         found.sort_by(|a, b| b.length().total_cmp(&a.length()));
         assert_eq!(found.len(), 2, "{found:?}");
         for (r, (_, h, len, w)) in found.iter().zip(lines) {
@@ -1199,7 +1330,9 @@ mod tests {
         assert_eq!(r(90.0).numbers(), [9, 27]);
         assert_eq!(r(4.0).numbers(), [36, 18]);
         assert_eq!(r(229.6).numbers(), [23, 5]);
-        assert!(r(150.0).through([1500.0 * 150f64.to_radians().sin() + 10.0, 1500.0 * 150f64.to_radians().cos()], 330.0));
+        assert!(
+            r(150.0).through([1500.0 * 150f64.to_radians().sin() + 10.0, 1500.0 * 150f64.to_radians().cos()], 330.0)
+        );
     }
 
     /// The converted data (`iaf-terrain airbases` → assets/converted/terrain/airbases.json), when present: every iaf.ibx
@@ -1220,8 +1353,17 @@ mod tests {
             .unwrap()
             .iter()
             .map(|b| {
-                let rw = b["runways"].as_array().unwrap().iter().map(|r| Runway { ends: [p(&r["ends"][0]), p(&r["ends"][1])], width: r["width"].as_f64().unwrap(), thresholds: [0.0; 2] });
-                (b["name"].as_str().unwrap().to_string(), p(&b["lineup"]), b["runway_deg"].as_f64().unwrap(), rw.collect())
+                let rw = b["runways"].as_array().unwrap().iter().map(|r| Runway {
+                    ends: [p(&r["ends"][0]), p(&r["ends"][1])],
+                    width: r["width"].as_f64().unwrap(),
+                    thresholds: [0.0; 2],
+                });
+                (
+                    b["name"].as_str().unwrap().to_string(),
+                    p(&b["lineup"]),
+                    b["runway_deg"].as_f64().unwrap(),
+                    rw.collect(),
+                )
             })
             .collect();
         assert_eq!(bases.len(), 10);
@@ -1240,11 +1382,16 @@ mod tests {
             let (dx, dn): (f64, f64) = (z[0] - a[0], a[1] - z[1]);
             let hdg = dx.atan2(dn).to_degrees().rem_euclid(360.0);
             let spacing = dx.hypot(dn) * UNITS_TO_METRES;
-            let mid = [(a[0] + z[0]) / 2.0 * UNITS_TO_METRES - 166850.0, 1043780.0 - (a[1] + z[1]) / 2.0 * UNITS_TO_METRES];
+            let mid =
+                [(a[0] + z[0]) / 2.0 * UNITS_TO_METRES - 166850.0, 1043780.0 - (a[1] + z[1]) / 2.0 * UNITS_TO_METRES];
             let r = b.iter().find(|r| r.through(mid, hdg)).unwrap_or_else(|| panic!("{name}: no runway at {hdg:.1}°"));
             let dh = (r.heading() - hdg).rem_euclid(180.0);
             assert!(dh.min(180.0 - dh) < 0.5, "{name} {hdg:.1}°: {:.2}°", r.heading());
-            assert!(r.length() > spacing && r.length() < spacing + 1000.0, "{name} {hdg:.1}°: {:.0} m vs digits {spacing:.0} m", r.length());
+            assert!(
+                r.length() > spacing && r.length() < spacing + 1000.0,
+                "{name} {hdg:.1}°: {:.0} m vs digits {spacing:.0} m",
+                r.length()
+            );
         }
     }
 }

@@ -55,7 +55,9 @@ pub(super) fn frame(f: Field, i: &Input) -> Frame {
         o.push(text((rx, ry + n as f64 * ROW), r, Align::Left));
     }
     heading(o, f, i.heading_deg, i.steerpoint.map(|s| s.bearing_deg));
-    if matches!(mode, 1 | 2) && let (Some(t), Some(z)) = (i.target, i.dlz) {
+    if matches!(mode, 1 | 2)
+        && let (Some(t), Some(z)) = (i.target, i.dlz)
+    {
         dlz_scale(o, sc.right - RANGE_IN, y0, RANGE_HALF, t, z);
     }
 
@@ -85,21 +87,27 @@ pub(super) fn frame(f: Field, i: &Input) -> Frame {
         };
         ladder(p, i, fpm, f, style);
         marker(p, fpm, i.mr(7.0), i.mr(9.0), i.mr(6.0));
-        if matches!(mode, 5 | 6) && let Some(c) = w.pipper {
+        if matches!(mode, 5 | 6)
+            && let Some(c) = w.pipper
+        {
             // CCIP: the bomb fall line from the marker to the pipper.
             p.push(line(fpm, c));
             pipper(p, c, i.mr(1.0).max(0.8), i.mr(8.0));
         }
     }
     // The steerpoint on the ground in NAV and A-G; an X when held at the field's edge.
-    if !matches!(mode, 1..=3) && let Some(s) = i.steerpoint.and_then(|s| s.at) {
+    if !matches!(mode, 1..=3)
+        && let Some(s) = i.steerpoint.and_then(|s| s.at)
+    {
         let (q, held) = f.clamp_from(i.boresight, s);
         diamond(p, q, i.mr(5.0));
         if held {
             x_over(p, q, i.mr(5.0));
         }
     }
-    if mode > 0 && let Some(at) = i.target.and_then(|t| t.at).filter(|a| f.contains(*a)) {
+    if mode > 0
+        && let Some(at) = i.target.and_then(|t| t.at).filter(|a| f.contains(*a))
+    {
         let h = i.mr(12.0);
         p.extend(box_poly(at.0 - h, at.1 - h, at.0 + h, at.1 + h));
     }
@@ -218,7 +226,10 @@ mod tests {
         i.weapons.pipper = Some((4.0, 50.0));
         let ccip = frame(FIELD, &i);
         assert!(texts(&ccip.outer).contains(&"CCIP"));
-        assert!(ccip.field.iter().any(|p| matches!(p, Prim::Line { a, b } if *a == (0.0, 10.0) && *b == (4.0, 50.0))), "the fall line");
+        assert!(
+            ccip.field.iter().any(|p| matches!(p, Prim::Line { a, b } if *a == (0.0, 10.0) && *b == (4.0, 50.0))),
+            "the fall line"
+        );
         i.weapons.hud_mode = 1;
         i.weapons.srm = 2;
         i.weapons.shoot = true;

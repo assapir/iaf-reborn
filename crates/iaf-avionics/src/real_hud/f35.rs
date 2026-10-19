@@ -79,7 +79,9 @@ pub(super) fn frame(_hud: Field, i: &Input, max_g: f64) -> Frame {
         }
     }
     bank_scale(o, i, f.bottom - 4.0);
-    if matches!(mode, 1 | 2) && let (Some(t), Some(z)) = (i.target, i.dlz) {
+    if matches!(mode, 1 | 2)
+        && let (Some(t), Some(z)) = (i.target, i.dlz)
+    {
         let x = 0.5 * f.right;
         dlz_scale(o, x, y0, 18.0, t, z);
         o.push(text((x, y0 + 30.0), format!("{:.1}", t.range_m / NM), Align::Centre));
@@ -105,7 +107,9 @@ pub(super) fn frame(_hud: Field, i: &Input, max_g: f64) -> Frame {
         };
         ladder(p, i, fpm, f, style);
         marker(p, fpm, i.mr(5.0), i.mr(9.0), i.mr(5.0));
-        if matches!(mode, 5 | 6) && let Some(c) = w.pipper {
+        if matches!(mode, 5 | 6)
+            && let Some(c) = w.pipper
+        {
             p.push(line(fpm, c));
         }
     }
@@ -174,7 +178,11 @@ fn off_boresight(i: &Input) -> Frame {
         ));
         if let Some(t) = s.eta_s {
             let t = t.max(0.0).round() as i64;
-            o.push(text((w, h * 0.6 + 3.0 * ROW), format!("{:02}:{:02}:{:02}", t / 3600, (t / 60) % 60, t % 60), Align::Right));
+            o.push(text(
+                (w, h * 0.6 + 3.0 * ROW),
+                format!("{:02}:{:02}:{:02}", t / 3600, (t / 60) % 60, t % 60),
+                Align::Right,
+            ));
         }
     }
     let field = Field { left: -w, right: w, top: -h, bottom: h };
@@ -258,7 +266,22 @@ mod tests {
         i.weapons = Weapons { hud_mode: 2, mrm: 2, circle: 4.0, ..Weapons::default() };
         let fr = frame(FIELD, &i, 1.9);
         let t = texts(&fr.outer);
-        for want in ["352", "GS 380", "M 0.85", "G 2.3", "1.9", "10450", "-1125", "R15060", "AA1", "2 AIM-A", "ARM", "003 010/12.0", "00:05:23", "333"] {
+        for want in [
+            "352",
+            "GS 380",
+            "M 0.85",
+            "G 2.3",
+            "1.9",
+            "10450",
+            "-1125",
+            "R15060",
+            "AA1",
+            "2 AIM-A",
+            "ARM",
+            "003 010/12.0",
+            "00:05:23",
+            "333",
+        ] {
             assert!(t.contains(&want), "{want} in {t:?}");
         }
         assert_eq!(fr.colour, Some(GREEN));
@@ -274,7 +297,9 @@ mod tests {
                 _ => None,
             }
         };
-        for (bearing, want) in [(340.0, 14.0), (333.0, 0.0), (320.0, -26.0), (10.0, HDG_HALF), (150.0, HDG_HALF), (200.0, -HDG_HALF)] {
+        for (bearing, want) in
+            [(340.0, 14.0), (333.0, 0.0), (320.0, -26.0), (10.0, HDG_HALF), (150.0, HDG_HALF), (200.0, -HDG_HALF)]
+        {
             assert_eq!(caret_tip(Some(bearing)), Some(want), "bearing {bearing}");
         }
         assert_eq!(caret_tip(None), None);
@@ -305,6 +330,9 @@ mod tests {
         let t = texts(&fr.outer);
         assert!(t.contains(&"352") && t.contains(&"10450") && t.contains(&"060"), "{t:?}");
         assert!(!t.iter().any(|x| x.starts_with("GS") || x.starts_with("M ")), "no data stack: {t:?}");
-        assert!(!fr.outer.iter().any(|p| matches!(p, Prim::Circle { r, .. } if (*r - i.mr(5.0)).abs() < 1e-9)), "no marker");
+        assert!(
+            !fr.outer.iter().any(|p| matches!(p, Prim::Circle { r, .. } if (*r - i.mr(5.0)).abs() < 1e-9)),
+            "no marker"
+        );
     }
 }

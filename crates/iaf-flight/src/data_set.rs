@@ -8,7 +8,7 @@
 //! transports keep the F-16's data): each type still gets its own real row.
 
 use crate::aircraft::G;
-use crate::params::{NoseWheel, FT};
+use crate::params::{FT, NoseWheel};
 use crate::{Envelope, Params};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -213,7 +213,6 @@ const NONE: Real = Real {
     nose_wheel: None,
     afterburner: None,
 };
-
 
 const REAL: &[Real] = &[
     // F-16D Block 30/40 with F110-GE-100 (public figures, approximate): the game's F-16 is the two-seater (its model,
@@ -753,7 +752,11 @@ pub fn apply(set: DataSet, name: &str, params: &Params, envelope: &Envelope) -> 
         p.has_afterburner = ab;
     }
     if let Some(n) = r.nose_wheel {
-        p.nose_wheel = Some(NoseWheel { max_angle: n.angle_deg.to_radians(), wheelbase: n.wheelbase_ft * FT, max_lateral: n.grip_g * G });
+        p.nose_wheel = Some(NoseWheel {
+            max_angle: n.angle_deg.to_radians(),
+            wheelbase: n.wheelbase_ft * FT,
+            max_lateral: n.grip_g * G,
+        });
     }
     (p, e)
 }
@@ -765,7 +768,8 @@ mod tests {
     #[test]
     fn real_f4_chute() {
         // The F-4 row's 16 ft chute: 0.63 · 18.68 m² / 49.24 m² ≈ 0.239; the original set keeps 0.
-        let p = Params::from_section(iaf_formats::ini::Ini::parse(b"[F-4]\r\nWingArea = 530\r\n").section("F-4").unwrap());
+        let p =
+            Params::from_section(iaf_formats::ini::Ini::parse(b"[F-4]\r\nWingArea = 530\r\n").section("F-4").unwrap());
         let e = Envelope::parse(b"[Min Velocity Table]\r\n0 100 0\r\n1 150 0\r\n1 160 40000\r\n");
         assert_eq!(apply(DataSet::Original, "F-4", &p, &e).0.chute_cd, 0.0);
         let (r, _) = apply(DataSet::Real, "F-4", &p, &e);
@@ -798,7 +802,8 @@ mod tests {
     #[test]
     fn real_set_fixes_the_low_speed_ias() {
         // Every type with the Real set, also one without a Real row (the TU22); never the original set.
-        let p = Params::from_section(iaf_formats::ini::Ini::parse(b"[F-4]\r\nWingArea = 530\r\n").section("F-4").unwrap());
+        let p =
+            Params::from_section(iaf_formats::ini::Ini::parse(b"[F-4]\r\nWingArea = 530\r\n").section("F-4").unwrap());
         let e = Envelope::parse(b"[Min Velocity Table]\r\n0 100 0\r\n1 150 0\r\n1 160 40000\r\n");
         assert!(!apply(DataSet::Original, "F-4", &p, &e).0.ias_low_speed_fix);
         assert!(apply(DataSet::Real, "F-4", &p, &e).0.ias_low_speed_fix);

@@ -17,7 +17,12 @@ fn emitter(d: &VarDictionary) -> Option<Emitter> {
 /// Runs `f` with the world of `unit` / `own` / `now`.
 fn with_world<R>(unit: &Callable, own: &VarDictionary, now: f64, f: impl FnOnce(&World) -> R) -> R {
     let lookup = |k: &str| unit.call(&[k.to_variant()]).try_to::<VarDictionary>().ok().and_then(|d| emitter(&d));
-    let w = World { pos: vec3(get(own, "pos").unwrap_or_default()), yaw: num(own, "yaw").unwrap_or_default(), now, unit: &lookup };
+    let w = World {
+        pos: vec3(get(own, "pos").unwrap_or_default()),
+        yaw: num(own, "yaw").unwrap_or_default(),
+        now,
+        unit: &lookup,
+    };
     f(&w)
 }
 
@@ -122,7 +127,8 @@ impl IafRwr {
                 .to_variant()
             })
             .collect();
-        let threats: VarArray = r.threats().iter().map(|t| vdict! { "id" => t.id, "dist" => t.dist }.to_variant()).collect();
+        let threats: VarArray =
+            r.threats().iter().map(|t| vdict! { "id" => t.id, "dist" => t.dist }.to_variant()).collect();
         vdict! {
             "slots" => &slots, "count" => r.count() as i64, "ai" => r.lamps.ai, "sam" => r.lamps.sam,
             "threats" => &threats, "next_refresh" => r.next_refresh(),

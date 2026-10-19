@@ -13,7 +13,13 @@ fn walk(dir: &Path, out: &mut Vec<PathBuf>) {
 
 fn main() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let parts = ["crates/iaf-tools/src", "crates/iaf-tools/data", "crates/iaf-formats/src", "crates/iaf-setup/src", "Cargo.lock"];
+    let parts = [
+        "crates/iaf-tools/src",
+        "crates/iaf-tools/data",
+        "crates/iaf-formats/src",
+        "crates/iaf-setup/src",
+        "Cargo.lock",
+    ];
     let mut files = Vec::new();
     for p in parts {
         let p = root.join(p);

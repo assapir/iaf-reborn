@@ -70,7 +70,11 @@ pub fn threads() -> usize {
 
 /// `f` over `items` on `threads()` workers pulling from a shared index; the results in `items`' order. Stops at
 /// the first error (or once `cancel` is set) and returns it.
-pub fn par_map<T: Sync, R: Send>(items: &[T], cancel: &AtomicBool, f: impl Fn(&T) -> Result<R> + Sync) -> Result<Vec<R>> {
+pub fn par_map<T: Sync, R: Send>(
+    items: &[T],
+    cancel: &AtomicBool,
+    f: impl Fn(&T) -> Result<R> + Sync,
+) -> Result<Vec<R>> {
     use std::sync::Mutex;
     use std::sync::atomic::AtomicUsize;
     let next = AtomicUsize::new(0);
@@ -102,7 +106,12 @@ pub fn par_map<T: Sync, R: Send>(items: &[T], cancel: &AtomicBool, f: impl Fn(&T
         }
         first
     })?;
-    results.into_inner().map_err(|_| anyhow::anyhow!("worker panicked"))?.into_iter().map(|r| r.context("item not done")).collect()
+    results
+        .into_inner()
+        .map_err(|_| anyhow::anyhow!("worker panicked"))?
+        .into_iter()
+        .map(|r| r.context("item not done"))
+        .collect()
 }
 
 /// `par_map` for an `f` that cannot fail and runs to the end (no cancel).

@@ -69,7 +69,8 @@ impl HeightField {
         let gy = ((ty - j * m.span) / upp).clamp(0.0, px);
         let (x0, y0) = ((gx.floor() as usize).min(m.node_pixels - 1), (gy.floor() as usize).min(m.node_pixels - 1));
         // An unreadable pixel reads 0, as Image.get_pixel out of range (the 1×1 stand-in of a node that failed to load).
-        let raw = |x: usize, y: usize| f64::from(*node.raw.get(y * node.width + x).filter(|_| x < node.width).unwrap_or(&0));
+        let raw =
+            |x: usize, y: usize| f64::from(*node.raw.get(y * node.width + x).filter(|_| x < node.width).unwrap_or(&0));
         let (fx, fy) = (gx - x0 as f64, gy - y0 as f64);
         let (a, b, c, d) = (raw(x0, y0), raw(x0 + 1, y0), raw(x0, y0 + 1), raw(x0 + 1, y0 + 1));
         // The texel's two triangles: a-b-d when fx >= fy, else a-c-d (terrain.gdshader does the same).
@@ -84,7 +85,15 @@ mod tests {
 
     fn field() -> HeightField {
         let mut f = HeightField::default();
-        f.set_meta(Meta { node_pixels: 2, span: 20.0, sea_level_raw: 100.0, height_scale: 2.0, m_per_unit: 10.0, x_shift: 0.0, y_shift: 0.0 });
+        f.set_meta(Meta {
+            node_pixels: 2,
+            span: 20.0,
+            sea_level_raw: 100.0,
+            height_scale: 2.0,
+            m_per_unit: 10.0,
+            x_shift: 0.0,
+            y_shift: 0.0,
+        });
         // A 3×3 node at (0, 0): raw heights 100..900 row by row (y down = south).
         let bytes: Vec<u8> = (1..=9u16).flat_map(|k| (k * 100).to_be_bytes()).collect();
         f.add(0, 0, 3, &bytes);

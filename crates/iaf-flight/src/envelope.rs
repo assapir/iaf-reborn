@@ -140,12 +140,16 @@ impl Envelope {
         // GetPrivateProfileIntA("Params", "AltitudeStep"): the integer part of the value.
         let mut step_ft = 3000;
         for l in &lines {
-            let value = l.trim_start().strip_prefix("AltitudeStep").map(str::trim_start).and_then(|l| l.strip_prefix('='));
+            let value =
+                l.trim_start().strip_prefix("AltitudeStep").map(str::trim_start).and_then(|l| l.strip_prefix('='));
             if let Some(&n) = value.and_then(|v| scan3(v).first().copied()).as_ref() {
                 step_ft = n;
             }
         }
-        let start = lines.iter().position(|l| l.trim().eq_ignore_ascii_case("[Min Velocity Table]")).map_or(lines.len(), |i| i + 1);
+        let start = lines
+            .iter()
+            .position(|l| l.trim().eq_ignore_ascii_case("[Min Velocity Table]"))
+            .map_or(lines.len(), |i| i + 1);
         let body: Vec<&str> = lines[start..].iter().take_while(|l| !l.starts_with('[')).copied().collect();
         let rows: Vec<(i32, i32, i32)> = body
             .iter()
@@ -318,7 +322,11 @@ impl Envelope {
         let alt = alt.max(0.0).min(ceil - 1.0);
         let i = g.trunc();
         let a = self.slot(self.idx0 + i as i32);
-        let (b, gb) = if g < 0.0 { (self.slot(self.idx0 + i as i32 - 1), i - 1.0) } else { (self.slot(self.idx0 + i as i32 + 1), i + 1.0) };
+        let (b, gb) = if g < 0.0 {
+            (self.slot(self.idx0 + i as i32 - 1), i - 1.0)
+        } else {
+            (self.slot(self.idx0 + i as i32 + 1), i + 1.0)
+        };
         let row_at = |s: usize| {
             let rows = &self.slots[s];
             let mut r = 0usize;
@@ -400,7 +408,8 @@ mod tests {
 
     /// A synthetic envelope text (not from the game) with the file format's quirks: a decimal
     /// row (skipped by `%d %d %d`), trailing text after the third integer, uneven graphs.
-    const F16: &[u8] = b"[Params]\r\nNumberOfG-Graphs=13\r\nAltitudeStep = 3000\r\n[Min Velocity Table]\r\ng\tVel\tAlt\r\n\
+    const F16: &[u8] =
+        b"[Params]\r\nNumberOfG-Graphs=13\r\nAltitudeStep = 3000\r\n[Min Velocity Table]\r\ng\tVel\tAlt\r\n\
         -1\t90\t0\r\n-1\t110\t10000\r\n-1\t140\t20000\r\n\
         0\t50\t0\r\n0\t70.3\t13000\r\n0\t100\t27000\r\n\
         1\t90\t0\r\n1\t100\t5000\r\n1\t110\t10000 trailing text\r\n1\t140\t20000\r\n\
@@ -431,7 +440,9 @@ mod tests {
         let out = child.wait_with_output().unwrap();
         assert!(out.status.success(), "{name}: tools/envelope_ref.py failed");
         let e = Envelope::parse(text);
-        let close = |a: f32, b: f64, what: &str| assert!((a as f64 - b).abs() < 1e-3 * b.abs().max(1.0), "{name} {what}: {a} vs {b}");
+        let close = |a: f32, b: f64, what: &str| {
+            assert!((a as f64 - b).abs() < 1e-3 * b.abs().max(1.0), "{name} {what}: {a} vs {b}")
+        };
         let mut n = 0;
         for line in String::from_utf8(out.stdout).unwrap().lines() {
             let f: Vec<&str> = line.split(' ').collect();
@@ -468,7 +479,11 @@ mod tests {
         assert_eq!(r.vmin(0.0, 1.0), e.vmin(0.0, 1.0));
         // Between the old and the new 1 g ceiling: the old envelope cannot hold 1 g there, the new one can.
         let between = (e.ceiling(1.0) + target) / 2.0;
-        assert!(matches!(e.g_limit(between, 300.0, 1.0), GLimit::Max(_) | GLimit::TooHigh), "{:?}", e.g_limit(between, 300.0, 1.0));
+        assert!(
+            matches!(e.g_limit(between, 300.0, 1.0), GLimit::Max(_) | GLimit::TooHigh),
+            "{:?}",
+            e.g_limit(between, 300.0, 1.0)
+        );
         assert_eq!(r.g_limit(between, 300.0, 1.0), GLimit::None);
     }
 
@@ -486,7 +501,8 @@ mod tests {
             eprintln!("skipped: no extracted game data (assets/install/resource/md)");
             return;
         };
-        let mut files: Vec<_> = rd.flatten().map(|d| d.path()).filter(|p| p.extension().is_some_and(|x| x == "dat")).collect();
+        let mut files: Vec<_> =
+            rd.flatten().map(|d| d.path()).filter(|p| p.extension().is_some_and(|x| x == "dat")).collect();
         files.sort();
         let mut checked = 0;
         for p in files {

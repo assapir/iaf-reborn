@@ -31,10 +31,24 @@ pub struct Font {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Op {
     /// Filled polygon(s); several rings = `PolyPolygon` (filled with `alternate` rule).
-    Polygon { rings: Vec<Vec<[f32; 2]>>, pen: Option<Pen>, brush: Option<Rgb>, alternate: bool },
-    Polyline { points: Vec<[f32; 2]>, pen: Pen },
+    Polygon {
+        rings: Vec<Vec<[f32; 2]>>,
+        pen: Option<Pen>,
+        brush: Option<Rgb>,
+        alternate: bool,
+    },
+    Polyline {
+        points: Vec<[f32; 2]>,
+        pen: Pen,
+    },
     /// Text at a reference point (see `align`, GDI `TA_*` flags).
-    Text { pos: [f32; 2], text: String, font: Font, color: Rgb, align: u32 },
+    Text {
+        pos: [f32; 2],
+        text: String,
+        font: Font,
+        color: Rgb,
+        align: u32,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -150,7 +164,9 @@ pub fn parse(data: &[u8]) -> Result<Metafile, Error> {
         if size < 8 || o + size > data.len() {
             return Err(Error::Format(format!("emf: bad record size at {o:#x}")));
         }
-        let pair = |a: usize| -> Result<[f32; 2], Error> { Ok([i32_at(data, o + a)? as f32, i32_at(data, o + a + 4)? as f32]) };
+        let pair = |a: usize| -> Result<[f32; 2], Error> {
+            Ok([i32_at(data, o + a)? as f32, i32_at(data, o + a + 4)? as f32])
+        };
         match kind {
             14 => break, // EOF
             9 => map.win_ext = pair(8)?,
@@ -165,7 +181,10 @@ pub fn parse(data: &[u8]) -> Result<Metafile, Error> {
                 // CREATEPEN: ih, LOGPEN { style, width.x, width.y, color }
                 let ih = u32_at(data, o + 8)? as usize;
                 let style = u32_at(data, o + 12)?;
-                let p = (style & 0xf != 5).then(|| Pen { color: rgb(u32_at(data, o + 24).unwrap_or(0)), width: map.len_x(i32_at(data, o + 16).unwrap_or(0) as f32) });
+                let p = (style & 0xf != 5).then(|| Pen {
+                    color: rgb(u32_at(data, o + 24).unwrap_or(0)),
+                    width: map.len_x(i32_at(data, o + 16).unwrap_or(0) as f32),
+                });
                 set(&mut objects, ih, Obj::Pen(p));
             }
             39 => {
@@ -181,7 +200,10 @@ pub fn parse(data: &[u8]) -> Result<Metafile, Error> {
                 let height = i32_at(data, lf)? as f32;
                 let weight = i32_at(data, lf + 16)?;
                 let italic = data[lf + 20] != 0;
-                let face: Vec<u16> = (0..32).map(|i| i16_at(data, lf + 28 + i * 2).unwrap_or(0) as u16).take_while(|&c| c != 0).collect();
+                let face: Vec<u16> = (0..32)
+                    .map(|i| i16_at(data, lf + 28 + i * 2).unwrap_or(0) as u16)
+                    .take_while(|&c| c != 0)
+                    .collect();
                 let f = Font { height: map.len_y(height), weight, italic, face: String::from_utf16_lossy(&face) };
                 set(&mut objects, ih, Obj::Font(f));
             }
@@ -279,7 +301,9 @@ mod tests {
                 }
             }
             println!("{name}: {} ops, extent {lo:?}..{hi:?}", mf.ops.len());
-            if let Some(super::Op::Text { text, font, .. }) = mf.ops.iter().find(|o| matches!(o, super::Op::Text { .. })) {
+            if let Some(super::Op::Text { text, font, .. }) =
+                mf.ops.iter().find(|o| matches!(o, super::Op::Text { .. }))
+            {
                 println!("  first text {text:?} {font:?}");
             }
             assert!(!mf.ops.is_empty());

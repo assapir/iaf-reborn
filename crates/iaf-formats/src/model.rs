@@ -128,10 +128,16 @@ impl Model {
     pub fn from_x(objects: &[XObject]) -> Result<Self, Error> {
         let globals: Vec<Material> =
             objects.iter().filter(|o| o.template == "Material").map(parse_material).collect::<Result<_, _>>()?;
-        let mut frames: Vec<Frame> =
-            objects.iter().filter(|o| o.template == "Frame").map(|f| parse_frame(f, &globals)).collect::<Result<_, _>>()?;
-        let loose: Vec<Mesh> =
-            objects.iter().filter(|o| o.template == "Mesh").map(|m| parse_mesh(m, &globals)).collect::<Result<_, _>>()?;
+        let mut frames: Vec<Frame> = objects
+            .iter()
+            .filter(|o| o.template == "Frame")
+            .map(|f| parse_frame(f, &globals))
+            .collect::<Result<_, _>>()?;
+        let loose: Vec<Mesh> = objects
+            .iter()
+            .filter(|o| o.template == "Mesh")
+            .map(|m| parse_mesh(m, &globals))
+            .collect::<Result<_, _>>()?;
         if !loose.is_empty() {
             frames.push(Frame { name: "root".into(), transform: IDENTITY, meshes: loose, children: Vec::new() });
         }

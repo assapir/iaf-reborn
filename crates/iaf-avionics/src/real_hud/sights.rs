@@ -45,7 +45,8 @@ pub(super) fn lcoss(i: &Input) -> Frame {
     // The range bar with a lock: guns 1,000 ft at 6 o'clock + 1,000 ft per clock hour (to 6,667 ft), else 3,000 ft +
     // 3,000 ft per hour (to 20,000 ft).
     if let Some(t) = i.target {
-        let (start, per_hour, max) = if i.weapons.hud_mode == 3 { (1000.0, 1000.0, 6667.0) } else { (3000.0, 3000.0, 20_000.0) };
+        let (start, per_hour, max) =
+            if i.weapons.hud_mode == 3 { (1000.0, 1000.0, 6667.0) } else { (3000.0, 3000.0, 20_000.0) };
         let ft = (t.range_m / FT).clamp(start, max);
         let ccw = (ft - start) / per_hour * FRAC_PI_6;
         p.push(Prim::Arc { c, r: ro - i.mr(2.0), from: PI - ccw, sweep: ccw.max(0.02) });
@@ -89,9 +90,16 @@ mod tests {
         i.target = Some(Target { range_m: 4000.0 * FT, closure: 0.0, at: None, aspect: None });
         let fr = lcoss(&i);
         assert!(fr.sight && fr.colour == Some(RED) && fr.outer.is_empty());
-        let arc = fr.field.iter().rev().find_map(|p| if let Prim::Arc { from, sweep, .. } = p { Some((*from, *sweep)) } else { None });
+        let arc = fr
+            .field
+            .iter()
+            .rev()
+            .find_map(|p| if let Prim::Arc { from, sweep, .. } = p { Some((*from, *sweep)) } else { None });
         let (from, sweep) = arc.unwrap();
-        assert!((sweep - PI / 2.0).abs() < 1e-9 && (from - PI / 2.0).abs() < 1e-9, "4,000 ft at 3 o'clock: {from} {sweep}");
+        assert!(
+            (sweep - PI / 2.0).abs() < 1e-9 && (from - PI / 2.0).abs() < 1e-9,
+            "4,000 ft at 3 o'clock: {from} {sweep}"
+        );
     }
 
     #[test]

@@ -58,7 +58,8 @@ pub struct Theatre {
 
 impl Theatre {
     pub fn load(dir: &Path) -> Result<Self> {
-        let meta: serde_json::Value = serde_json::from_slice(&std::fs::read(dir.join("meta.json")).context("theatre meta.json")?)?;
+        let meta: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(dir.join("meta.json")).context("theatre meta.json")?)?;
         let t = meta["theatre"].as_array().context("theatre rect")?;
         let rect = [0, 1, 2, 3].map(|k| t[k].as_u64().unwrap_or(0) as u32);
         let mut nodes = HashSet::new();
@@ -108,7 +109,15 @@ impl Theatre {
 
     /// The original as drawn at `level` over the pixel rect (x0, y0, w, h) of that level (pixel
     /// (x, y) covers terrain units [x, x+1) · 2^level); black outside the theatre.
-    pub fn original_rect(&self, level: u32, x0: i64, y0: i64, w: usize, h: usize, cache: &mut Cache) -> Result<Vec<[f32; 3]>> {
+    pub fn original_rect(
+        &self,
+        level: u32,
+        x0: i64,
+        y0: i64,
+        w: usize,
+        h: usize,
+        cache: &mut Cache,
+    ) -> Result<Vec<[f32; 3]>> {
         let mut out = vec![[0.0f32; 3]; w * h];
         let np = NODE_PIXELS as i64;
         for nj in y0.div_euclid(np)..=(y0 + h as i64 - 1).div_euclid(np) {
@@ -195,10 +204,17 @@ impl Rules {
     pub fn load(install: &Path, outside_israel: bool, theatre: &Theatre) -> Result<Self> {
         let ptt = iaf_formats::ptt::Ptt::open(install.join("resource/terrain/map.ptt"))?;
         let area = |r: &[u32; 4]| (r[2] - r[0]) as u64 * (r[3] - r[1]) as u64;
-        let israel = ptt.levels.iter().filter(|l| l.flag == 0).max_by_key(|l| area(&l.rect)).context("no inset records")?.rect;
+        let israel =
+            ptt.levels.iter().filter(|l| l.flag == 0).max_by_key(|l| area(&l.rect)).context("no inset records")?.rect;
         let bases = crate::airbases::sites(install, theatre, &theatre.dir.join("../../missions"))?;
         let inside = |r: &[u32; 4], b: &[u32; 4]| r[0] >= b[0] && r[1] >= b[1] && r[2] <= b[2] && r[3] <= b[3];
-        let keep = ptt.levels.iter().filter(|l| l.flag == 0 && l.level <= KEEP_INSET_LEVEL).map(|l| l.rect).filter(|r| !bases.iter().any(|b| inside(r, &b.rect))).collect();
+        let keep = ptt
+            .levels
+            .iter()
+            .filter(|l| l.flag == 0 && l.level <= KEEP_INSET_LEVEL)
+            .map(|l| l.rect)
+            .filter(|r| !bases.iter().any(|b| inside(r, &b.rect)))
+            .collect();
         let types = TerrainTypes::parse(&std::fs::read(install.join("terraintype.dat")).context("terraintype.dat")?)?;
         Ok(Self { israel, outside_israel, keep, bases, types })
     }
@@ -211,8 +227,13 @@ impl Rules {
     fn at(&self, tx: f64, ty: f64) -> Allowed {
         let mask = self.types.at(tx * UNITS_TO_METRES - 166850.0, 1043780.0 - ty * UNITS_TO_METRES);
         let in_region = Self::in_rect(&self.israel, tx, ty) != self.outside_israel;
-        let base = mask & RUNWAY == 0 && !self.bases.iter().any(|b| Self::in_rect(&b.rect, tx, ty) && b.footprint.at(tx, ty));
-        Allowed { region: in_region && !self.keep.iter().any(|r| Self::in_rect(r, tx, ty)), base, land: TerrainTypes::is_land(mask) }
+        let base =
+            mask & RUNWAY == 0 && !self.bases.iter().any(|b| Self::in_rect(&b.rect, tx, ty) && b.footprint.at(tx, ty));
+        Allowed {
+            region: in_region && !self.keep.iter().any(|r| Self::in_rect(r, tx, ty)),
+            base,
+            land: TerrainTypes::is_land(mask),
+        }
     }
 
     /// The rules tag of the terrain rect `r` (units: x0, y0, x1, y1): "v<RULES_VERSION> <hash>" over everything the rules
@@ -243,7 +264,13 @@ fn overlaps(a: &[u32; 4], r: &[f64; 4]) -> bool {
     (a[0] as f64) < r[2] && (a[2] as f64) > r[0] && (a[1] as f64) < r[3] && (a[3] as f64) > r[1]
 }
 
-fn rules_tag(israel: [u32; 4], outside_israel: bool, keep: &[[u32; 4]], bases: &[crate::airbases::Site], r: [f64; 4]) -> String {
+fn rules_tag(
+    israel: [u32; 4],
+    outside_israel: bool,
+    keep: &[[u32; 4]],
+    bases: &[crate::airbases::Site],
+    r: [f64; 4],
+) -> String {
     // FNV-1a: stable across Rust releases (std's hasher is not), so the marks stay valid.
     let mut h: u64 = 0xcbf2_9ce4_8422_2325;
     let mut put = |v: u64| {
@@ -302,7 +329,10 @@ struct Envi {
 fn read_envi(bin: &Path) -> Result<Envi> {
     let hdr = std::fs::read_to_string(bin.with_extension("hdr"))?;
     let field = |k: &str| -> Option<String> {
-        hdr.lines().find(|l| l.trim_start().starts_with(k)).and_then(|l| l.split_once('=')).map(|(_, v)| v.trim().to_string())
+        hdr.lines()
+            .find(|l| l.trim_start().starts_with(k))
+            .and_then(|l| l.split_once('='))
+            .map(|(_, v)| v.trim().to_string())
     };
     let w: usize = field("samples").context("samples")?.parse()?;
     let h: usize = field("lines").context("lines")?.parse()?;
@@ -364,14 +394,20 @@ impl Imagery for Source {
     }
 
     fn sample(&self, x: f64, y: f64) -> Px {
-        let Some((x0, y0, fx, fy)) = bilinear(x, y, self.w, self.h) else { return Px { nodata: true, ..Px::default() } };
+        let Some((x0, y0, fx, fy)) = bilinear(x, y, self.w, self.h) else {
+            return Px { nodata: true, ..Px::default() };
+        };
         let px = |x: usize, y: usize| {
             let i = (y * self.w + x) * 4;
             [self.data[i], self.data[i + 1], self.data[i + 2], self.data[i + 3]]
         };
         let (a, b, c, d) = (px(x0, y0), px(x0 + 1, y0), px(x0, y0 + 1), px(x0 + 1, y0 + 1));
         let s = [0, 1, 2, 3].map(|k| lerp4(a[k] as f32, b[k] as f32, c[k] as f32, d[k] as f32, fx, fy));
-        Px { rgb: tone([s[0], s[1], s[2]]), water: is_water(s), nodata: [a, b, c, d].iter().any(|p| p[..3] == [0, 0, 0]) }
+        Px {
+            rgb: tone([s[0], s[1], s[2]]),
+            water: is_water(s),
+            nodata: [a, b, c, d].iter().any(|p| p[..3] == [0, 0, 0]),
+        }
     }
 }
 
@@ -431,10 +467,13 @@ pub fn sheet_levels(rgb: &[u8]) -> [f32; 4] {
     let pct = |c: usize, q: u64| {
         let n: u64 = hist[c].iter().sum();
         let mut acc = 0;
-        hist[c].iter().position(|&v| {
-            acc += v;
-            acc * 1000 >= n * q
-        }).unwrap_or(0) as f32
+        hist[c]
+            .iter()
+            .position(|&v| {
+                acc += v;
+                acc * 1000 >= n * q
+            })
+            .unwrap_or(0) as f32
     };
     let lo = [0, 1, 2].map(|c| pct(c, 5));
     let hi = (0..3).map(|c| pct(c, 995)).fold(0.0, f32::max);
@@ -458,7 +497,9 @@ impl Imagery for Photo {
     }
 
     fn sample(&self, x: f64, y: f64) -> Px {
-        let Some((x0, y0, fx, fy)) = bilinear(x, y, self.w, self.h) else { return Px { nodata: true, ..Px::default() } };
+        let Some((x0, y0, fx, fy)) = bilinear(x, y, self.w, self.h) else {
+            return Px { nodata: true, ..Px::default() };
+        };
         let px = |x: usize, y: usize| {
             let i = (y * self.w + x) * 3;
             [self.data[i], self.data[i + 1], self.data[i + 2]]
@@ -468,7 +509,8 @@ impl Imagery for Photo {
         let mut rgb = [0, 1, 2].map(|k| lerp4(a[k] as f32, b[k] as f32, c[k] as f32, d[k] as f32, fx, fy));
         let (e, n) = (self.ulx + x * self.res, self.uly - y * self.res);
         if let Some(lv) = levels_at(&self.levels, e, n) {
-            rgb = [0, 1, 2].map(|c| (((rgb[c] - lv[c]) / (lv[3] - lv[c])).max(0.0).powf(1.0 / PHOTO_GAMMA) * WHITE).min(255.0));
+            rgb = [0, 1, 2]
+                .map(|c| (((rgb[c] - lv[c]) / (lv[3] - lv[c])).max(0.0).powf(1.0 / PHOTO_GAMMA) * WHITE).min(255.0));
         }
         Px { rgb, water: is_photo_water(rgb), nodata }
     }
@@ -545,9 +587,17 @@ fn majority(mask: &[bool], w: usize, h: usize, r: i32) -> Vec<bool> {
 
 /// One layer node (level ≤ 3) in both looks: (1998 colours, the source's colours); None when the
 /// layer shows nowhere in it.
-pub fn compose_node(k: Key, theatre: &Theatre, rules: &Rules, warp: &Georef, src: &dyn Imagery, cache: &mut Cache) -> Result<Option<(RgbImage, RgbImage)>> {
+pub fn compose_node(
+    k: Key,
+    theatre: &Theatre,
+    rules: &Rules,
+    warp: &Georef,
+    src: &dyn Imagery,
+    cache: &mut Cache,
+) -> Result<Option<(RgbImage, RgbImage)>> {
     let sc = 1i32 << (REF_LEVEL - k.0.min(REF_LEVEL));
-    let (margin, feather_soft, feather_base, feather_coast) = (MARGIN * sc, FEATHER_SOFT * sc, FEATHER_BASE * sc, FEATHER_COAST * sc);
+    let (margin, feather_soft, feather_base, feather_coast) =
+        (MARGIN * sc, FEATHER_SOFT * sc, FEATHER_BASE * sc, FEATHER_COAST * sc);
     let (match_radius, speck) = (MATCH_RADIUS * sc, SPECK * sc);
     let n = NODE_PIXELS as i32;
     let size = (n + 2 * margin) as usize;
@@ -640,7 +690,11 @@ pub fn compose_node(k: Key, theatre: &Theatre, rules: &Rules, warp: &Georef, src
             let w = weight[i];
             // `shift` = 1 keeps the original as it is; the modern look also takes the original's colours toward the
             // modern image's local means across the feather (by w, so nothing changes where the layer ends).
-            let mix = |s: [f32; 3], shift: [f32; 3]| image::Rgb([0, 1, 2].map(|c| (w * s[c] + (1.0 - w) * orig[i][c] * shift[c]).round().clamp(0.0, 255.0) as u8));
+            let mix = |s: [f32; 3], shift: [f32; 3]| {
+                image::Rgb(
+                    [0, 1, 2].map(|c| (w * s[c] + (1.0 - w) * orig[i][c] * shift[c]).round().clamp(0.0, 255.0) as u8),
+                )
+            };
             a.put_pixel(x as u32, y as u32, mix([0, 1, 2].map(|c| modern[i][c] * ratio[i][c]), [1.0; 3]));
             b.put_pixel(x as u32, y as u32, mix(modern[i], [0, 1, 2].map(|c| 1.0 + (1.0 / ratio[i][c] - 1.0) * w)));
         }
@@ -650,7 +704,12 @@ pub fn compose_node(k: Key, theatre: &Theatre, rules: &Rules, warp: &Georef, src
 
 /// A parent node from its four children: the layer's child where it has one, else the original's
 /// rendition (the downsampled 2048² mosaic, Triangle filter).
-pub fn compose_parent(k: Key, theatre: &Theatre, child_path: impl Fn(Key) -> Option<PathBuf>, cache: &mut Cache) -> Result<RgbImage> {
+pub fn compose_parent(
+    k: Key,
+    theatre: &Theatre,
+    child_path: impl Fn(Key) -> Option<PathBuf>,
+    cache: &mut Cache,
+) -> Result<RgbImage> {
     let n = NODE_PIXELS;
     let mut big = RgbImage::new(2 * n, 2 * n);
     for dy in 0..2 {
@@ -679,10 +738,14 @@ mod tests {
         let site = |x0: f64, cell_on: usize| {
             let mut v = vec![false; 100];
             v[cell_on] = true;
-            Site { rect: [x0 as u32, 0, x0 as u32 + 40, 40], footprint: Grid { x0, y0: 0.0, cell: 4.0, w: 10, h: 10, v } }
+            Site {
+                rect: [x0 as u32, 0, x0 as u32 + 40, 40],
+                footprint: Grid { x0, y0: 0.0, cell: 4.0, w: 10, h: 10, v },
+            }
         };
         let tag = |bases: &[Site]| rules_tag([0, 0, 9000, 9000], false, &[], bases, [0.0, 0.0, 1000.0, 1000.0]);
-        let (none, here, here2, far) = (tag(&[]), tag(&[site(100.0, 5)]), tag(&[site(100.0, 6)]), tag(&[site(5000.0, 5)]));
+        let (none, here, here2, far) =
+            (tag(&[]), tag(&[site(100.0, 5)]), tag(&[site(100.0, 6)]), tag(&[site(5000.0, 5)]));
         assert!(here.starts_with(&format!("v{RULES_VERSION} ")));
         assert_ne!(here, none, "a footprint in the rect");
         assert_ne!(here, here2, "the footprint changed");
@@ -708,7 +771,8 @@ mod tests {
     fn majority_drops_small_patches() {
         let (w, h) = (64, 64);
         // A 4-pixel square (a white roof) and a 40-pixel-wide band (the sea).
-        let mask: Vec<bool> = (0..w * h).map(|i| (i % w >= 10 && i % w < 14 && i / w >= 10 && i / w < 14) || i % w >= 24).collect();
+        let mask: Vec<bool> =
+            (0..w * h).map(|i| (i % w >= 10 && i % w < 14 && i / w >= 10 && i / w < 14) || i % w >= 24).collect();
         let m = majority(&mask, w, h, 4);
         assert!(!m[12 * w + 12], "small patch dropped");
         assert!(m[30 * w + 40] && m[30 * w + 25], "large region kept up to its edge");

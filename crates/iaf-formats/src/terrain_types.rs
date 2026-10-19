@@ -79,9 +79,7 @@ impl TerrainTypes {
     /// The flags of an `n` × `n` grid of `cell` m squares, row by row, sampled at each square's centre: square
     /// (i, j) is centred at engine metres (x0 + (i + ½)·cell, y0 − (j + ½)·cell), so rows run south.
     pub fn raster(&self, x0: f64, y0: f64, cell: f64, n: usize) -> Vec<i32> {
-        (0..n * n)
-            .map(|k| self.at(x0 + ((k % n) as f64 + 0.5) * cell, y0 - ((k / n) as f64 + 0.5) * cell))
-            .collect()
+        (0..n * n).map(|k| self.at(x0 + ((k % n) as f64 + 0.5) * cell, y0 - ((k / n) as f64 + 0.5) * cell)).collect()
     }
 
     /// The leaves whose mask has any bit of `flags`, as convex polygons in engine metres (X east, Y north): the
@@ -91,7 +89,12 @@ impl TerrainTypes {
         // In the tree's frame (the lookup's shift): x' = x + 0x151, y' = y − 0x19a.
         let (sx, sy) = (0x151 as f64, -(0x19a as f64));
         let back = |p: Vec<[f64; 2]>| p.into_iter().map(|q| [q[0] - sx, q[1] - sy]).collect::<Vec<_>>();
-        let root = vec![[sx - extent, sy - extent], [sx + extent, sy - extent], [sx + extent, sy + extent], [sx - extent, sy + extent]];
+        let root = vec![
+            [sx - extent, sy - extent],
+            [sx + extent, sy - extent],
+            [sx + extent, sy + extent],
+            [sx - extent, sy + extent],
+        ];
         let mut out = Vec::new();
         let mut stack = vec![(0usize, root)];
         while let Some((k, poly)) = stack.pop() {
@@ -194,6 +197,10 @@ mod tests {
         let r = t.raster(20.0, 0.0, 40.0, 4);
         assert_eq!(&r[..4], &[SEA, SEA, LAND_RUNWAY, LAND_RUNWAY]);
         assert_eq!(&r[4..8], &r[..4]);
-        assert!(TerrainTypes::is_water(SEA) && !TerrainTypes::is_water(SEA | ISLAND) && !TerrainTypes::is_water(LAND_RUNWAY));
+        assert!(
+            TerrainTypes::is_water(SEA)
+                && !TerrainTypes::is_water(SEA | ISLAND)
+                && !TerrainTypes::is_water(LAND_RUNWAY)
+        );
     }
 }

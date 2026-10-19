@@ -32,7 +32,9 @@ fn main() -> Result<()> {
         // Side by side: the original as drawn, then each converted layer's node (docs/imagery.md §6).
         let t = Theatre::load(Path::new(theatre))?;
         let k: Key = (level.parse()?, i.parse()?, j.parse()?);
-        let pair = ALL_LAYERS.iter().find(|p| Path::new(layers).join(p[0]).join(format!("L{}/c_{}_{}.jpg", k.0, k.1, k.2)).exists());
+        let pair = ALL_LAYERS
+            .iter()
+            .find(|p| Path::new(layers).join(p[0]).join(format!("L{}/c_{}_{}.jpg", k.0, k.1, k.2)).exists());
         let pair = pair.context("no layer has that node")?;
         let mut row = image::RgbImage::new(1024 * 3, 1024);
         if let Some(img) = t.rendition(k, &mut Cache::default())? {
@@ -58,14 +60,17 @@ fn main() -> Result<()> {
         for s in iaf_tools::airbases::sites(Path::new(install), &t, &missions)? {
             let g = &s.footprint;
             let r = s.rect;
-            let rect_km2 = (r[2] - r[0]) as f64 * (r[3] - r[1]) as f64 * iaf_tools::georef::UNITS_TO_METRES.powi(2) / 1e6;
-            let art = t.original_rect(2, (g.x0 / g.cell) as i64, (g.y0 / g.cell) as i64, g.w, g.h, &mut Cache::default())?;
+            let rect_km2 =
+                (r[2] - r[0]) as f64 * (r[3] - r[1]) as f64 * iaf_tools::georef::UNITS_TO_METRES.powi(2) / 1e6;
+            let art =
+                t.original_rect(2, (g.x0 / g.cell) as i64, (g.y0 / g.cell) as i64, g.w, g.h, &mut Cache::default())?;
             let img = image::RgbImage::from_fn(g.w as u32, g.h as u32, |x, y| {
                 let k = y as usize * g.w + x as usize;
-                let edge = g.v[k] && [(1i64, 0i64), (-1, 0), (0, 1), (0, -1)].iter().any(|(dx, dy)| {
-                    let (a, b) = (x as i64 + dx, y as i64 + dy);
-                    a < 0 || b < 0 || a >= g.w as i64 || b >= g.h as i64 || !g.v[b as usize * g.w + a as usize]
-                });
+                let edge = g.v[k]
+                    && [(1i64, 0i64), (-1, 0), (0, 1), (0, -1)].iter().any(|(dx, dy)| {
+                        let (a, b) = (x as i64 + dx, y as i64 + dy);
+                        a < 0 || b < 0 || a >= g.w as i64 || b >= g.h as i64 || !g.v[b as usize * g.w + a as usize]
+                    });
                 let c = art[k].map(|v| if g.v[k] { v } else { v * 0.45 });
                 image::Rgb(if edge { [255, 40, 40] } else { c.map(|v| v as u8) })
             });
@@ -74,10 +79,25 @@ fn main() -> Result<()> {
             println!("site {:?}: rect {:.1} km², footprint {:.1} km²  {name}", r, rect_km2, g.area_km2());
             // The missions' units in the site that stand on the layer's ground (outside the footprint).
             let lineups = iaf_tools::airbases::ibx_lineups(&std::fs::read(Path::new(install).join("iaf.ibx"))?);
-            let units: Vec<_> = iaf_tools::airbases::mission_units(&missions).into_iter().filter(|u| iaf_tools::airbases::on_ground(&lineups, u)).collect();
-            let inside: Vec<_> = units.iter().map(|u| (u, iaf_tools::airbases::units(u[0], u[1]))).filter(|(_, t)| t[0] >= r[0] as f64 && t[0] < r[2] as f64 && t[1] >= r[1] as f64 && t[1] < r[3] as f64).collect();
+            let units: Vec<_> = iaf_tools::airbases::mission_units(&missions)
+                .into_iter()
+                .filter(|u| iaf_tools::airbases::on_ground(&lineups, u))
+                .collect();
+            let inside: Vec<_> = units
+                .iter()
+                .map(|u| (u, iaf_tools::airbases::units(u[0], u[1])))
+                .filter(|(_, t)| t[0] >= r[0] as f64 && t[0] < r[2] as f64 && t[1] >= r[1] as f64 && t[1] < r[3] as f64)
+                .collect();
             let out: Vec<_> = inside.iter().filter(|(_, t)| !g.at(t[0], t[1])).collect();
-            println!("  units in the site {}, outside the footprint {}: {:?}", inside.len(), out.len(), out.iter().take(if std::env::var("ALL").is_ok() { 9999 } else { 12 }).map(|(u, _)| [u[0].round(), u[1].round()]).collect::<Vec<_>>());
+            println!(
+                "  units in the site {}, outside the footprint {}: {:?}",
+                inside.len(),
+                out.len(),
+                out.iter()
+                    .take(if std::env::var("ALL").is_ok() { 9999 } else { 12 })
+                    .map(|(u, _)| [u[0].round(), u[1].round()])
+                    .collect::<Vec<_>>()
+            );
         }
         return Ok(());
     }
@@ -107,7 +127,17 @@ fn main() -> Result<()> {
             _ => bail!(usage),
         }
     }
-    let r = Run { spec, install: install.into(), theatre: theatre.into(), out: out.into(), sheets, area, dry_run: dry, stale, threads };
+    let r = Run {
+        spec,
+        install: install.into(),
+        theatre: theatre.into(),
+        out: out.into(),
+        sheets,
+        area,
+        dry_run: dry,
+        stale,
+        threads,
+    };
     imagery_run::run(&r, &Stdout, &AtomicBool::new(false))?;
     Ok(())
 }

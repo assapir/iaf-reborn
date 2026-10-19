@@ -144,7 +144,10 @@ fn dib_icon(b: &[u8]) -> Option<image::RgbaImage> {
     let u32a = |o: usize| bytes::u32_at(b, o).unwrap();
     let hdr = u32a(0) as usize;
     let (w, h, bpp) = (u32a(4), u32a(8) / 2, u16a(14));
-    let colours = match u32a(32) { 0 if bpp <= 8 => 1usize << bpp, n => n as usize };
+    let colours = match u32a(32) {
+        0 if bpp <= 8 => 1usize << bpp,
+        n => n as usize,
+    };
     let pal = hdr;
     let xor = pal + if bpp <= 8 { colours * 4 } else { 0 };
     let row = |bits: u32| ((w * bits).div_ceil(32) * 4) as usize;
@@ -162,8 +165,14 @@ fn dib_icon(b: &[u8]) -> Option<image::RgbaImage> {
                 1 => px(((b[r + x as usize / 8] >> (7 - x % 8)) & 1) as usize),
                 4 => px(((b[r + x as usize / 2] >> if x % 2 == 0 { 4 } else { 0 }) & 15) as usize),
                 8 => px(b[r + x as usize] as usize),
-                24 => { let o = r + x as usize * 3; [b[o + 2], b[o + 1], b[o], 255] }
-                32 => { let o = r + x as usize * 4; [b[o + 2], b[o + 1], b[o], b[o + 3]] }
+                24 => {
+                    let o = r + x as usize * 3;
+                    [b[o + 2], b[o + 1], b[o], 255]
+                }
+                32 => {
+                    let o = r + x as usize * 4;
+                    [b[o + 2], b[o + 1], b[o], b[o + 3]]
+                }
                 _ => return None,
             };
             let m = and + src * row(1);

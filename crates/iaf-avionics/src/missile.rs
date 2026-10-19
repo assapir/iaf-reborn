@@ -239,7 +239,15 @@ pub struct Missile {
 impl Missile {
     /// Launch (`FUN_004d5d10` → `FUN_00561ef0` after `FUN_00563b70` / `FUN_00563ad0`) from `pos`, at `aim`, with q
     /// (`FUN_00457f70`). The first update runs at launch time.
-    pub fn launch(motion: ChaseMotion, tuning: Tuning, now: f64, pos: Vec3, launcher: &Launcher, aim: Aim, q: f64) -> Self {
+    pub fn launch(
+        motion: ChaseMotion,
+        tuning: Tuning,
+        now: f64,
+        pos: Vec3,
+        launcher: &Launcher,
+        aim: Aim,
+        q: f64,
+    ) -> Self {
         let (chase, gain) = match aim {
             Aim::Unit(_) => {
                 let q = q.clamp(Q_MIN, 1.0);
@@ -248,7 +256,11 @@ impl Missile {
             }
             Aim::Point(_) => (motion.chase, motion.spiral), // FUN_00563ad0: q not applied
         };
-        let v0 = if launcher.vel.length() >= MIN_LAUNCH_SPEED { launcher.vel } else { launcher.fwd * tuning.slow_launch_speed };
+        let v0 = if launcher.vel.length() >= MIN_LAUNCH_SPEED {
+            launcher.vel
+        } else {
+            launcher.fwd * tuning.slow_launch_speed
+        };
         Missile {
             motion,
             tuning,
@@ -376,7 +388,11 @@ impl Missile {
             Chase::Proportional => {
                 let across = tv - u * tv.dot(u);
                 let pp = across.length();
-                if pp < sp { (u * (sp * sp - pp * pp).sqrt() + across).try_normalize().unwrap_or(u) } else { across * (1.0 / pp) }
+                if pp < sp {
+                    (u * (sp * sp - pp * pp).sqrt() + across).try_normalize().unwrap_or(u)
+                } else {
+                    across * (1.0 / pp)
+                }
             }
         };
         let v_perp = v - d * d.dot(v);
@@ -455,7 +471,8 @@ mod tests {
 
     #[test]
     fn the_real_turn_limit_caps_the_lateral_acceleration() {
-        let m = ChaseMotion { accel: 300.0, spiral: 0.0, t_co: 0.0, burn: 10.0, beta: 0.0, chase: Chase::Dog, ..amraam() };
+        let m =
+            ChaseMotion { accel: 300.0, spiral: 0.0, t_co: 0.0, burn: 10.0, beta: 0.0, chase: Chase::Dog, ..amraam() };
         let tuning = Tuning { max_g: Some(12.0), ..Tuning::default() };
         let from = Launcher { vel: Vec3::new(0.0, 300.0, 0.0), ..JET };
         let mut mi = Missile::launch(m, tuning, 0.0, Vec3::new(0.0, 0.0, 1000.0), &from, Aim::Unit("x".into()), 1.0);
@@ -529,13 +546,19 @@ mod tests {
     fn dlz_per_missile_original_and_real() {
         for &(name, a, beta, burn, t_co, rel, real, (max_km, min_km)) in AA {
             let z = motion(a, beta, burn, t_co, rel).dlz(&from_up(), Some(&still_at(5000.0)));
-            assert!((z.max / 1e3 - max_km).abs() < 0.01 && (z.min / 1e3 - min_km).abs() < 0.01, "{name} original {z:?}");
+            assert!(
+                (z.max / 1e3 - max_km).abs() < 0.01 && (z.min / 1e3 - min_km).abs() < 0.01,
+                "{name} original {z:?}"
+            );
             let Some((mach, km)) = real else { continue };
             let beta = a / (mach * 340.3);
             let burn = motion(a, beta, 0.0, t_co, rel).real_burn(km * 1e3);
             let m = ChaseMotion { real: true, ..motion(a, beta, burn, t_co, rel) };
             // The burn flies the published range from 250 m/s.
-            assert!((m.travelled(REAL_LAUNCH_SPEED, burn + END_AFTER_BURN) - km * 1e3).abs() < 1.0 || burn == 1.0, "{name}");
+            assert!(
+                (m.travelled(REAL_LAUNCH_SPEED, burn + END_AFTER_BURN) - km * 1e3).abs() < 1.0 || burn == 1.0,
+                "{name}"
+            );
             let z = m.dlz(&from_up(), Some(&still_at(5000.0)));
             println!("{name}: real burn {burn:.1} s, DLZ {:.2}-{:.2} km", z.max / 1e3, z.min / 1e3);
             // A zone that the missile really reaches, most of the published range.

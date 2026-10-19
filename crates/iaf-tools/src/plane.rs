@@ -27,7 +27,13 @@ pub fn to_model(gltf: &Value) -> Model {
         let children = if depth > 64 {
             Vec::new()
         } else {
-            n["children"].as_array().into_iter().flatten().filter_map(Value::as_u64).map(|c| frame(nodes, c as usize, depth + 1)).collect()
+            n["children"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(Value::as_u64)
+                .map(|c| frame(nodes, c as usize, depth + 1))
+                .collect()
         };
         Frame { name: n["name"].as_str().unwrap_or_default().to_string(), transform, meshes: Vec::new(), children }
     }
@@ -51,7 +57,9 @@ pub fn report(gltf: &Value, desc: &Value) -> Vec<String> {
     let mut out = Vec::new();
     let roots = gltf["scenes"][gltf["scene"].as_u64().unwrap_or(0) as usize]["nodes"].as_array().map_or(0, Vec::len);
     if roots != 1 {
-        out.push(format!("the scene has {roots} root nodes: the game reads the parts as the direct children of one root"));
+        out.push(format!(
+            "the scene has {roots} root nodes: the game reads the parts as the direct children of one root"
+        ));
     }
     let parts = desc["parts"].as_object().cloned().unwrap_or_default();
     let has = |name: &str| {
@@ -64,7 +72,9 @@ pub fn report(gltf: &Value, desc: &Value) -> Vec<String> {
         }
     }
     if !["ElevaL", "ElevaR", "ElevoL", "ElevoR"].iter().any(|n| has(n)) {
-        out.push("no ElevaL/R or ElevoL/R: pitch shows only on a delta (aircraft_model.gd delta_wing: the ailerons)".into());
+        out.push(
+            "no ElevaL/R or ElevoL/R: pitch shows only on a delta (aircraft_model.gd delta_wing: the ailerons)".into(),
+        );
     }
     for (name, p) in &parts {
         let id = p["id"].as_u64().unwrap_or(0);
@@ -103,11 +113,12 @@ pub fn report(gltf: &Value, desc: &Value) -> Vec<String> {
     for (name, _) in parts.iter().filter(|(k, _)| k.to_ascii_lowercase().starts_with("canopy")) {
         let node = gltf["nodes"].as_array().into_iter().flatten().find(|n| n["name"].as_str() == Some(name));
         let mesh = node.and_then(|n| n["mesh"].as_u64()).map(|m| &gltf["meshes"][m as usize]);
-        let blends = mesh.is_some_and(|m| {
-            m["primitives"].as_array().into_iter().flatten().any(|p| {
-                p["material"].as_u64().is_some_and(|i| gltf["materials"][i as usize]["alphaMode"] == "BLEND")
-            })
-        });
+        let blends =
+            mesh.is_some_and(|m| {
+                m["primitives"].as_array().into_iter().flatten().any(|p| {
+                    p["material"].as_u64().is_some_and(|i| gltf["materials"][i as usize]["alphaMode"] == "BLEND")
+                })
+            });
         if !blends {
             out.push(format!("{name}: no alpha-blended material, the glass draws opaque or cut out"));
         }
@@ -127,27 +138,122 @@ pub struct Table {
 
 /// Every place the code tables or switches on aircraft type codes (docs/adding-a-plane.md §1).
 pub const TABLES: &[Table] = &[
-    Table { file: "game/aircraft/player_aircraft.gd", anchor: "const FLYABLE :=", what: "flyable types (else flown as the F-16)", list: true },
-    Table { file: "game/aircraft/player_aircraft.gd", anchor: "const COCKPIT :=", what: "cockpit index in cockpits.ibx (also iaf-avionics radar.rs TABLES' row)", list: true },
-    Table { file: "game/aircraft/player_aircraft.gd", anchor: "const TWIN :=", what: "twin engines (cockpit gauges)", list: true },
-    Table { file: "game/aircraft/player_aircraft.gd", anchor: "const JET_TYPES :=", what: "Jet list id -> type", list: true },
-    Table { file: "crates/iaf-flight/src/data_set.rs", anchor: "pub const TYPES: &[Type] = &[", what: "flight-model type: name, model folder, section, code", list: true },
-    Table { file: "crates/iaf-flight/src/data_set.rs", anchor: "const REAL: &[Real] = &[", what: "Real flight data row (by name; base section)", list: false },
-    Table { file: "crates/iaf-flight/src/params.rs", anchor: "pub fn type_code(section: &str)", what: "section -> type code (original sections only)", list: true },
-    Table { file: "crates/iaf-tools/src/aircraft.rs", anchor: "pub fn fm_section(type_code: i64)", what: "type -> flight-model section in the descriptor", list: true },
-    Table { file: "crates/iaf-flight/src/aircraft.rs", anchor: "FLAPS_MAX * if self.params.type_code == 100", what: "F-16 flaps third", list: false },
-    Table { file: "crates/iaf-flight/src/aircraft.rs", anchor: "self.better.fbw_departure && matches!(self.params.type_code", what: "fly-by-wire deep stall", list: true },
-    Table { file: "crates/iaf-flight/src/aircraft.rs", anchor: "if !aero || matches!(p.type_code", what: "fly-by-wire: no spin", list: true },
-    Table { file: "game/aircraft/aircraft_model.gd", anchor: "var delta_wing := type_code in", what: "delta wing (elevons)", list: false },
-    Table { file: "game/aircraft/aircraft_model.gd", anchor: "func part_pose(", what: "per-type part signs (speed brake, elevators, gear legs)", list: false },
-    Table { file: "game/audio/flight_sounds.gd", anchor: "const BETTY_TYPES :=", what: "voice warnings (also RWR and damage)", list: true },
+    Table {
+        file: "game/aircraft/player_aircraft.gd",
+        anchor: "const FLYABLE :=",
+        what: "flyable types (else flown as the F-16)",
+        list: true,
+    },
+    Table {
+        file: "game/aircraft/player_aircraft.gd",
+        anchor: "const COCKPIT :=",
+        what: "cockpit index in cockpits.ibx (also iaf-avionics radar.rs TABLES' row)",
+        list: true,
+    },
+    Table {
+        file: "game/aircraft/player_aircraft.gd",
+        anchor: "const TWIN :=",
+        what: "twin engines (cockpit gauges)",
+        list: true,
+    },
+    Table {
+        file: "game/aircraft/player_aircraft.gd",
+        anchor: "const JET_TYPES :=",
+        what: "Jet list id -> type",
+        list: true,
+    },
+    Table {
+        file: "crates/iaf-flight/src/data_set.rs",
+        anchor: "pub const TYPES: &[Type] = &[",
+        what: "flight-model type: name, model folder, section, code",
+        list: true,
+    },
+    Table {
+        file: "crates/iaf-flight/src/data_set.rs",
+        anchor: "const REAL: &[Real] = &[",
+        what: "Real flight data row (by name; base section)",
+        list: false,
+    },
+    Table {
+        file: "crates/iaf-flight/src/params.rs",
+        anchor: "pub fn type_code(section: &str)",
+        what: "section -> type code (original sections only)",
+        list: true,
+    },
+    Table {
+        file: "crates/iaf-tools/src/aircraft.rs",
+        anchor: "pub fn fm_section(type_code: i64)",
+        what: "type -> flight-model section in the descriptor",
+        list: true,
+    },
+    Table {
+        file: "crates/iaf-flight/src/aircraft.rs",
+        anchor: "FLAPS_MAX * if self.params.type_code == 100",
+        what: "F-16 flaps third",
+        list: false,
+    },
+    Table {
+        file: "crates/iaf-flight/src/aircraft.rs",
+        anchor: "self.better.fbw_departure && matches!(self.params.type_code",
+        what: "fly-by-wire deep stall",
+        list: true,
+    },
+    Table {
+        file: "crates/iaf-flight/src/aircraft.rs",
+        anchor: "if !aero || matches!(p.type_code",
+        what: "fly-by-wire: no spin",
+        list: true,
+    },
+    Table {
+        file: "game/aircraft/aircraft_model.gd",
+        anchor: "var delta_wing := type_code in",
+        what: "delta wing (elevons)",
+        list: false,
+    },
+    Table {
+        file: "game/aircraft/aircraft_model.gd",
+        anchor: "func part_pose(",
+        what: "per-type part signs (speed brake, elevators, gear legs)",
+        list: false,
+    },
+    Table {
+        file: "game/audio/flight_sounds.gd",
+        anchor: "const BETTY_TYPES :=",
+        what: "voice warnings (also RWR and damage)",
+        list: true,
+    },
     Table { file: "game/weapons/real_weapons.gd", anchor: "const RADAR_KM :=", what: "real radar range", list: true },
     Table { file: "game/weapons/real_weapons.gd", anchor: "const GUN_ROUNDS :=", what: "real gun rounds", list: true },
-    Table { file: "game/weapons/mission_weapons.gd", anchor: "const JET_ART :=", what: "Arming screen art + station boxes", list: true },
-    Table { file: "game/menu/pilots.gd", anchor: "const TYPE_CATEGORY :=", what: "pilot records kill category", list: true },
-    Table { file: "game/menu/tsd.gd", anchor: "const FLYABLE_TYPES :=", what: "flights selectable on the TSD", list: true },
-    Table { file: "game/cockpit/cockpit.gd", anchor: "const RWR_GLYPH :=", what: "RWR symbol when others see this type", list: true },
-    Table { file: "crates/iaf-tools/src/bin/iaf-mission-report.rs", anchor: "const FLYABLE_NOW: &[i64]", what: "mission coverage report", list: true },
+    Table {
+        file: "game/weapons/mission_weapons.gd",
+        anchor: "const JET_ART :=",
+        what: "Arming screen art + station boxes",
+        list: true,
+    },
+    Table {
+        file: "game/menu/pilots.gd",
+        anchor: "const TYPE_CATEGORY :=",
+        what: "pilot records kill category",
+        list: true,
+    },
+    Table {
+        file: "game/menu/tsd.gd",
+        anchor: "const FLYABLE_TYPES :=",
+        what: "flights selectable on the TSD",
+        list: true,
+    },
+    Table {
+        file: "game/cockpit/cockpit.gd",
+        anchor: "const RWR_GLYPH :=",
+        what: "RWR symbol when others see this type",
+        list: true,
+    },
+    Table {
+        file: "crates/iaf-tools/src/bin/iaf-mission-report.rs",
+        anchor: "const FLYABLE_NOW: &[i64]",
+        what: "mission coverage report",
+        list: true,
+    },
     Table { file: "tests/godot/test_jet_list.gd", anchor: "const JETS :=", what: "Jet list test row", list: true },
 ];
 

@@ -78,8 +78,17 @@ mod tests {
     fn inputs_round_trip() {
         let dir = std::env::temp_dir().join(format!("iaf-setup-saved-{}", std::process::id()));
         assert!(load_inputs(&dir).unwrap().is_none());
-        for hebrew in [Hebrew::None, Hebrew::Cd("/cd/IAF.Iso".into()), Hebrew::Packs { brief: Some("/b.zip".into()), menu: None }] {
-            let i = Inputs { cd: "/cd/Jane's IAF.iso".into(), patch: Some("/p.exe".into()), hebrew, imagery: vec![Imagery::Sentinel2, Imagery::Mapi2015 { bases: true }], refresh: true, guides: true };
+        for hebrew in
+            [Hebrew::None, Hebrew::Cd("/cd/IAF.Iso".into()), Hebrew::Packs { brief: Some("/b.zip".into()), menu: None }]
+        {
+            let i = Inputs {
+                cd: "/cd/Jane's IAF.iso".into(),
+                patch: Some("/p.exe".into()),
+                hebrew,
+                imagery: vec![Imagery::Sentinel2, Imagery::Mapi2015 { bases: true }],
+                refresh: true,
+                guides: true,
+            };
             save_inputs(&dir, &i).unwrap();
             assert_eq!(load_inputs(&dir).unwrap(), Some(i));
         }

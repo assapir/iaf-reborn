@@ -42,7 +42,8 @@ pub fn load() -> Result<Vec<Fix>> {
 pub fn parse(json: &str) -> Result<Vec<Fix>> {
     let v: serde_json::Value = serde_json::from_str(json)?;
     let feather = v["feather"].as_f64().unwrap_or(2.0);
-    let num = |f: &serde_json::Value, k: &str| f[k].as_f64().with_context(|| format!("runway fix: missing number '{k}'"));
+    let num =
+        |f: &serde_json::Value, k: &str| f[k].as_f64().with_context(|| format!("runway fix: missing number '{k}'"));
     let mut out = Vec::new();
     for f in v["fixes"].as_array().context("runway fix: no 'fixes' array")? {
         let op = match f["op"].as_str() {
@@ -96,7 +97,14 @@ impl Fix {
     /// Applies the fix to `dst`, whose pixel (0,0) is the world square of `upp` units at
     /// `dst_origin`, reading the unmodified imagery from `src` (origin `src_origin`, same `upp`),
     /// which must cover `source_rect`. Returns the number of pixels changed.
-    pub fn apply(&self, dst: &mut RgbImage, dst_origin: [u32; 2], src: &RgbImage, src_origin: [u32; 2], upp: f64) -> usize {
+    pub fn apply(
+        &self,
+        dst: &mut RgbImage,
+        dst_origin: [u32; 2],
+        src: &RgbImage,
+        src_origin: [u32; 2],
+        upp: f64,
+    ) -> usize {
         let (r, f) = self.frame();
         let b = self.bounds();
         let px_of = |v: f64, o: u32| (v - o as f64) / upp;
@@ -113,7 +121,9 @@ impl Fix {
                 let (dx, dy) = (wx - self.centre[0], wy - self.centre[1]);
                 let (u, v) = (dx * r[0] + dy * r[1], dx * f[0] + dy * f[1]);
                 let fe = self.feather.max(1e-6);
-                let w = ((self.half_across - u.abs()) / fe).clamp(0.0, 1.0).min(((self.half_along - v.abs()) / fe).clamp(0.0, 1.0));
+                let w = ((self.half_across - u.abs()) / fe)
+                    .clamp(0.0, 1.0)
+                    .min(((self.half_along - v.abs()) / fe).clamp(0.0, 1.0));
                 if w <= 0.0 {
                     continue;
                 }
@@ -143,7 +153,8 @@ fn bilinear(img: &RgbImage, x: f64, y: f64) -> [f64; 3] {
     let (a, b, c, d) = (px(x0, y0), px(x0 + 1, y0), px(x0, y0 + 1), px(x0 + 1, y0 + 1));
     let mut o = [0.0; 3];
     for i in 0..3 {
-        o[i] = (a[i] as f64 * (1.0 - fx) + b[i] as f64 * fx) * (1.0 - fy) + (c[i] as f64 * (1.0 - fx) + d[i] as f64 * fx) * fy;
+        o[i] = (a[i] as f64 * (1.0 - fx) + b[i] as f64 * fx) * (1.0 - fy)
+            + (c[i] as f64 * (1.0 - fx) + d[i] as f64 * fx) * fy;
     }
     o
 }
@@ -154,12 +165,22 @@ mod tests {
     use image::Rgb;
 
     fn fix(op: Op, heading: f64) -> Fix {
-        Fix { name: String::new(), centre: [150.0, 250.0], heading_deg: heading, half_across: 8.0, half_along: 6.0, feather: 1.0, op }
+        Fix {
+            name: String::new(),
+            centre: [150.0, 250.0],
+            heading_deg: heading,
+            half_across: 8.0,
+            half_along: 6.0,
+            feather: 1.0,
+            op,
+        }
     }
 
     /// A test image of world rect [100,200)-(200,300): a bright bar on the pilot's left of the centre.
     fn scene() -> RgbImage {
-        RgbImage::from_fn(100, 100, |x, y| if (43..47).contains(&x) && (46..54).contains(&y) { Rgb([250, 250, 250]) } else { Rgb([100, 100, 100]) })
+        RgbImage::from_fn(100, 100, |x, y| {
+            if (43..47).contains(&x) && (46..54).contains(&y) { Rgb([250, 250, 250]) } else { Rgb([100, 100, 100]) }
+        })
     }
 
     #[test]
@@ -226,7 +247,12 @@ mod tests {
         let f = fix(Op::Mirror, 330.0);
         let b = f.bounds();
         let r = f.source_rect(8, 16);
-        assert!(r[0] as f64 <= b[0] - 8.0 && r[1] as f64 <= b[1] - 8.0 && r[2] as f64 >= b[2] + 8.0 && r[3] as f64 >= b[3] + 8.0);
+        assert!(
+            r[0] as f64 <= b[0] - 8.0
+                && r[1] as f64 <= b[1] - 8.0
+                && r[2] as f64 >= b[2] + 8.0
+                && r[3] as f64 >= b[3] + 8.0
+        );
         assert!(r.iter().all(|v| v % 16 == 0));
         assert!(f.intersects(&[140, 240, 160, 260]) && !f.intersects(&[0, 0, 100, 100]));
     }

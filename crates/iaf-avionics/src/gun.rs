@@ -250,7 +250,13 @@ impl Rounds {
     }
 
     /// Fires the next pooled round: its slot, or None when it is still in the air.
-    pub fn fire(&mut self, now: f64, shot: &Shot, bodies: &[Body], terrain: &dyn Fn(Vec3) -> Option<f64>) -> Option<usize> {
+    pub fn fire(
+        &mut self,
+        now: f64,
+        shot: &Shot,
+        bodies: &[Body],
+        terrain: &dyn Fn(Vec3) -> Option<f64>,
+    ) -> Option<usize> {
         if !self.next_free() {
             return None;
         }
@@ -329,12 +335,19 @@ impl Rounds {
 }
 
 /// One hit check of `round` at `t`.
-fn check(m: &Motion, round: &Round, t: f64, bodies: &[Body], terrain: &dyn Fn(Vec3) -> Option<f64>) -> Option<(Vec3, Hit)> {
+fn check(
+    m: &Motion,
+    round: &Round,
+    t: f64,
+    bodies: &[Body],
+    terrain: &dyn Fn(Vec3) -> Option<f64>,
+) -> Option<(Vec3, Hit)> {
     let p = m.position(&round.flight, t);
     // The last body of a key wins (the original's lookup by id).
-    let hit = round.candidates.iter().find(|k| {
-        bodies.iter().rev().find(|b| &b.key == *k).is_some_and(|b| p.distance(b.pos) < round.hit_radius)
-    });
+    let hit = round
+        .candidates
+        .iter()
+        .find(|k| bodies.iter().rev().find(|b| &b.key == *k).is_some_and(|b| p.distance(b.pos) < round.hit_radius));
     if let Some(key) = hit {
         return Some((p, Hit::Unit { key: key.clone(), candidates: round.candidates.clone() }));
     }
@@ -399,7 +412,8 @@ impl Lcos {
         let gd = PI * tf * tf * 16.087 / r;
         let damp = 0.2 + 1.35 * tf;
         let xs = gd * a0.cos() * a1.sin() - tf * qq;
-        let ys = tf * pp + (jet.load_factor - 1.0) * gd - ((3300.0 * tf - r) * v * jet.alpha / r) / (v + 3300.0) + 5.0617 / r;
+        let ys = tf * pp + (jet.load_factor - 1.0) * gd - ((3300.0 * tf - r) * v * jet.alpha / r) / (v + 3300.0)
+            + 5.0617 / r;
         let (x, y) = &mut self.offset;
         *x += DT * (xs - *x) / damp;
         *y += DT * (ys - *y) / damp;
@@ -421,7 +435,16 @@ mod tests {
 
     fn shot<'a>(aim: Vec3, easy: bool) -> Shot<'a> {
         let p = Vec3::new(0.0, 0.0, 100.0);
-        Shot { origin: p, muzzle: p, velocity: Vec3::new(0.0, 200.0, 0.0), aim, locked: None, shooter: "me", easy_aiming: easy, targets: None }
+        Shot {
+            origin: p,
+            muzzle: p,
+            velocity: Vec3::new(0.0, 200.0, 0.0),
+            aim,
+            locked: None,
+            shooter: "me",
+            easy_aiming: easy,
+            targets: None,
+        }
     }
 
     #[test]

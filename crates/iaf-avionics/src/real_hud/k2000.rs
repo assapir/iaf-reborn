@@ -43,11 +43,15 @@ pub(super) fn frame(f: Field, i: &Input) -> Frame {
             row += ROW;
         }
     }
-    if matches!(mode, 1..=3) && let Some(t) = i.target {
+    if matches!(mode, 1..=3)
+        && let Some(t) = i.target
+    {
         o.push(text((rx, row), format!("{:.1}NM", t.range_m / NM), Align::Left));
     }
     heading(o, f, i.heading_deg, i.steerpoint.map(|s| s.bearing_deg));
-    if matches!(mode, 1 | 2) && let (Some(t), Some(z)) = (i.target, i.dlz) {
+    if matches!(mode, 1 | 2)
+        && let (Some(t), Some(z)) = (i.target, i.dlz)
+    {
         dlz_scale(o, f.right - 10.0, y, RANGE_HALF, t, z);
     }
     if w.shoot {
@@ -81,14 +85,18 @@ pub(super) fn frame(f: Field, i: &Input) -> Frame {
         };
         ladder(p, i, fpm, f, style);
         marker(p, fpm, i.mr(6.0), i.mr(10.0), i.mr(5.0));
-        if matches!(mode, 5 | 6) && let Some(c) = w.pipper {
+        if matches!(mode, 5 | 6)
+            && let Some(c) = w.pipper
+        {
             // CCIP: the fall line from the marker to the pipper (a dot in a ring).
             p.push(line(fpm, c));
             pipper(p, c, i.mr(1.0).max(0.8), i.mr(6.0));
         }
     }
     // The waypoint on the ground (a small diamond, an X when held at the field's edge) outside the A-A modes.
-    if !matches!(mode, 1..=3) && let Some(at) = i.steerpoint.and_then(|s| s.at) {
+    if !matches!(mode, 1..=3)
+        && let Some(at) = i.steerpoint.and_then(|s| s.at)
+    {
         let (q, limited) = f.clamp_from((0.0, 0.0), at);
         diamond(p, q, i.mr(4.0));
         if limited {

@@ -99,7 +99,9 @@ impl Ptt {
     pub fn tiles(&mut self, level: &Level) -> Result<Vec<TileEntry>, Error> {
         let n = (level.columns() * level.rows()) as usize;
         let raw = self.read_at(level.offset as u64, n * 8)?;
-        raw.as_chunks::<8>().0.iter()
+        raw.as_chunks::<8>()
+            .0
+            .iter()
             .map(|e| {
                 Ok(TileEntry {
                     offset: level.offset as u64 + u32_at(e, 0)? as u64,

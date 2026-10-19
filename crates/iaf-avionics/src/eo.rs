@@ -9,7 +9,6 @@
 use crate::vec3::Vec3;
 use std::f64::consts::{PI, TAU};
 
-
 /// The start elevation (0xbdb2b8c2 = −5°).
 pub const EL0: f64 = -0.08726646;
 /// Zoom 1, 2, 4, 8 (`FUN_005820e0` while < 8, `FUN_00582160` while > 1).
@@ -163,7 +162,13 @@ impl Eo {
 
     /// `FUN_005805e0`: the camera's (az, el) at `t` against `base` from `eye`; tracking stores them (unclamped) as the
     /// new az / el; then clamped to the limits.
-    pub fn angles(&mut self, t: f64, base: (f64, f64), eye: Vec3, unit_pos: &dyn Fn(&str) -> Option<Vec3>) -> (f64, f64) {
+    pub fn angles(
+        &mut self,
+        t: f64,
+        base: (f64, f64),
+        eye: Vec3,
+        unit_pos: &dyn Fn(&str) -> Option<Vec3>,
+    ) -> (f64, f64) {
         let b = self.frozen.unwrap_or(base);
         let wrap = |a: f64| if a > PI { a - TAU } else { a };
         let (a, e) = match &self.aim {
@@ -197,7 +202,16 @@ impl Eo {
     /// camera locks on `centre`; else `FUN_00581b30`: a changed (x, y) restarts the slew from the current angles (from
     /// tracking: free, the base frozen) at 0.09·x / zoom, 0.09·y / zoom °/s.
     #[allow(clippy::too_many_arguments)] // the original's event arguments and the world
-    pub fn pan(&mut self, keys: (i64, i64), t: f64, base: (f64, f64), eye: Vec3, centre: Aim, launched: bool, unit_pos: &dyn Fn(&str) -> Option<Vec3>) {
+    pub fn pan(
+        &mut self,
+        keys: (i64, i64),
+        t: f64,
+        base: (f64, f64),
+        eye: Vec3,
+        centre: Aim,
+        launched: bool,
+        unit_pos: &dyn Fn(&str) -> Option<Vec3>,
+    ) {
         if self.mode == Mode::None || !self.camera {
             return;
         }

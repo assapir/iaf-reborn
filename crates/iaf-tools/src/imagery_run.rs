@@ -7,12 +7,12 @@ use std::process::Command;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
-use anyhow::{Context, Result, bail};
 use crate::georef::Georef;
 use crate::imagery::{self, Cache, Imagery, Key, Photo, ROOT_LEVEL, Rules, Source, Theatre};
 use crate::itm;
 use crate::log;
 use crate::progress::{Progress, check, utf8};
+use anyhow::{Context, Result, bail};
 
 const BUCKET: &str = "https://esa-worldcover-s2.s3.eu-central-1.amazonaws.com";
 const PREFIX: &str = "rgbnir/2021";
@@ -30,10 +30,22 @@ pub struct Spec {
     outside_israel: bool,
 }
 
-pub const SENTINEL2: Spec = Spec { id: "sentinel2", layers: ["sentinel2", "sentinel2_modern"], unit_level: 5, layer_level: 3, outside_israel: true };
+pub const SENTINEL2: Spec = Spec {
+    id: "sentinel2",
+    layers: ["sentinel2", "sentinel2_modern"],
+    unit_level: 5,
+    layer_level: 3,
+    outside_israel: true,
+};
 /// Work units are compared by their rect plus this margin (m): the node margins (≈ 640 m at level 1) and feathers.
 const UNIT_PAD_M: f64 = 1000.0;
-pub const MAPI2015: Spec = Spec { id: "mapi2015", layers: ["mapi2015", "mapi2015_modern"], unit_level: 4, layer_level: 1, outside_israel: false };
+pub const MAPI2015: Spec = Spec {
+    id: "mapi2015",
+    layers: ["mapi2015", "mapi2015_modern"],
+    unit_level: 4,
+    layer_level: 1,
+    outside_israel: false,
+};
 
 /// One Survey of Israel sheet: a GeoTIFF inside a downloaded ZIP.
 struct Sheet {
@@ -64,7 +76,6 @@ struct Unit {
     on_base: bool,
 }
 
-
 /// Points along a node's outline (17 per side).
 fn outline(k: Key) -> Vec<[f64; 2]> {
     let s = imagery::node_span(k.0) as f64;
@@ -79,7 +90,9 @@ fn outline(k: Key) -> Vec<[f64; 2]> {
 }
 
 fn bbox(points: impl Iterator<Item = [f64; 2]>) -> [f64; 4] {
-    points.fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |b, [x, y]| [b[0].min(x), b[1].min(y), b[2].max(x), b[3].max(y)])
+    points.fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |b, [x, y]| {
+        [b[0].min(x), b[1].min(y), b[2].max(x), b[3].max(y)]
+    })
 }
 
 fn overlap(a: &[f64; 4], b: &[f64; 4]) -> f64 {
@@ -97,7 +110,8 @@ fn list_tiles(lat0: i32, lat1: i32) -> Result<BTreeMap<String, u64>> {
         }
         let xml = String::from_utf8_lossy(&o.stdout);
         for c in xml.split("<Contents>").skip(1) {
-            let tag = |t: &str| c.split(&format!("<{t}>")).nth(1).and_then(|s| s.split('<').next()).unwrap_or("").to_string();
+            let tag =
+                |t: &str| c.split(&format!("<{t}>")).nth(1).and_then(|s| s.split('<').next()).unwrap_or("").to_string();
             let key = tag("Key");
             if let Some(name) = key.rsplit('/').next().and_then(|f| f.split('_').nth(5)) {
                 out.insert(name.to_string(), tag("Size").parse().unwrap_or(0));
@@ -132,8 +146,18 @@ fn gdal_output(cmd: &str, args: &[&str]) -> Result<String> {
         .with_context(|| format!("running {cmd} (install GDAL: sudo pacman -S gdal)"))?;
     if !o.status.success() {
         // GDAL prints plugin-loading noise on some installs; show only the real errors.
-        let err: Vec<String> = String::from_utf8_lossy(&o.stderr).lines().filter(|l| !l.contains("cannot open shared object")).map(String::from).collect();
-        bail!("{cmd} {} failed ({}):\n{}{}", args.join(" "), o.status, String::from_utf8_lossy(&o.stdout), err.join("\n"));
+        let err: Vec<String> = String::from_utf8_lossy(&o.stderr)
+            .lines()
+            .filter(|l| !l.contains("cannot open shared object"))
+            .map(String::from)
+            .collect();
+        bail!(
+            "{cmd} {} failed ({}):\n{}{}",
+            args.join(" "),
+            o.status,
+            String::from_utf8_lossy(&o.stdout),
+            err.join("\n")
+        );
     }
     Ok(String::from_utf8_lossy(&o.stdout).into_owned())
 }
@@ -154,16 +178,24 @@ fn list_sheets(dir: &Path, work: &Path, pr: &dyn Progress, cancel: &AtomicBool) 
     zips.sort();
     let cache_file = work.join("sheets.tsv");
     // zip \t size \t mtime \t tif \t e0 n0 e1 n1 \t levels r g b white
-    let cached: Vec<Vec<String>> = std::fs::read_to_string(&cache_file).unwrap_or_default().lines().map(|l| l.split('\t').map(String::from).collect()).collect();
+    let cached: Vec<Vec<String>> = std::fs::read_to_string(&cache_file)
+        .unwrap_or_default()
+        .lines()
+        .map(|l| l.split('\t').map(String::from).collect())
+        .collect();
     let mut cache_out = String::new();
     let mut sheets = Vec::new();
     let mut ok = Vec::new();
     for z in zips {
         check(cancel)?;
         let abs = std::fs::canonicalize(&z)?;
-        let zname = z.file_name().map(|n| n.to_string_lossy().to_string()).with_context(|| format!("{}: no file name", z.display()))?;
+        let zname = z
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .with_context(|| format!("{}: no file name", z.display()))?;
         let meta = std::fs::metadata(&abs)?;
-        let stamp = [meta.len().to_string(), meta.modified()?.duration_since(std::time::UNIX_EPOCH)?.as_secs().to_string()];
+        let stamp =
+            [meta.len().to_string(), meta.modified()?.duration_since(std::time::UNIX_EPOCH)?.as_secs().to_string()];
         let mut found: Vec<(String, [f64; 4], [f32; 4])> = cached
             .iter()
             .filter(|c| c.len() == 6 && c[0] == zname && c[1] == stamp[0] && c[2] == stamp[1])
@@ -174,16 +206,24 @@ fn list_sheets(dir: &Path, work: &Path, pr: &dyn Progress, cancel: &AtomicBool) 
             })
             .collect();
         if found.is_empty() {
-            let names: Vec<String> = match std::fs::File::open(&abs).map_err(anyhow::Error::from).and_then(|f| Ok(zip::ZipArchive::new(f)?)) {
-                Ok(a) => a.file_names().filter_map(Result::ok).filter(|n| n.to_ascii_lowercase().ends_with(".tif")).map(String::from).collect(),
-                Err(e) => {
-                    pr.warn(&format!("  skipping {} (not a complete ZIP: {e})", z.display()));
-                    continue;
-                }
-            };
+            let names: Vec<String> =
+                match std::fs::File::open(&abs).map_err(anyhow::Error::from).and_then(|f| Ok(zip::ZipArchive::new(f)?))
+                {
+                    Ok(a) => a
+                        .file_names()
+                        .filter_map(Result::ok)
+                        .filter(|n| n.to_ascii_lowercase().ends_with(".tif"))
+                        .map(String::from)
+                        .collect(),
+                    Err(e) => {
+                        pr.warn(&format!("  skipping {} (not a complete ZIP: {e})", z.display()));
+                        continue;
+                    }
+                };
             for n in names {
                 let path = format!("/vsizip/{}/{n}", abs.display());
-                let info: serde_json::Value = serde_json::from_str(&gdal_output("gdalinfo", &["-json", "-nomd", "-norat", "-noct", &path])?)?;
+                let info: serde_json::Value =
+                    serde_json::from_str(&gdal_output("gdalinfo", &["-json", "-nomd", "-norat", "-noct", &path])?)?;
                 let (gt, size) = (&info["geoTransform"], &info["size"]);
                 let f = |v: &serde_json::Value| v.as_f64().unwrap_or(0.0);
                 let (e0, n1, px) = (f(&gt[0]), f(&gt[3]), f(&gt[1]));
@@ -195,7 +235,29 @@ fn list_sheets(dir: &Path, work: &Path, pr: &dyn Progress, cancel: &AtomicBool) 
                 let (w, h) = (f(&size[0]), f(&size[1]));
                 // The levels from a 40 m version of the sheet.
                 let tmp = work.join("levels.bin");
-                gdal("gdal_translate", &["-q", "-of", "ENVI", "-co", "INTERLEAVE=BIP", "-b", "1", "-b", "2", "-b", "3", "-tr", "40", "40", "-r", "nearest", &path, utf8(&tmp)?])?;
+                gdal(
+                    "gdal_translate",
+                    &[
+                        "-q",
+                        "-of",
+                        "ENVI",
+                        "-co",
+                        "INTERLEAVE=BIP",
+                        "-b",
+                        "1",
+                        "-b",
+                        "2",
+                        "-b",
+                        "3",
+                        "-tr",
+                        "40",
+                        "40",
+                        "-r",
+                        "nearest",
+                        &path,
+                        utf8(&tmp)?,
+                    ],
+                )?;
                 let small = Photo::read_envi(&tmp, itm::from_wgs84)?;
                 for f in [tmp.clone(), tmp.with_extension("hdr"), PathBuf::from(format!("{}.aux.xml", tmp.display()))] {
                     let _ = std::fs::remove_file(f);
@@ -204,8 +266,16 @@ fn list_sheets(dir: &Path, work: &Path, pr: &dyn Progress, cancel: &AtomicBool) 
             }
         }
         for (n, b, d) in found {
-            cache_out += &format!("{zname}\t{}\t{}\t{n}\t{} {} {} {}\t{} {} {} {}\n", stamp[0], stamp[1], b[0], b[1], b[2], b[3], d[0], d[1], d[2], d[3]);
-            sheets.push(Sheet { name: format!("{zname}/{n}"), gdal: format!("/vsizip/{}/{n}", abs.display()), bbox: b, levels: d });
+            cache_out += &format!(
+                "{zname}\t{}\t{}\t{n}\t{} {} {} {}\t{} {} {} {}\n",
+                stamp[0], stamp[1], b[0], b[1], b[2], b[3], d[0], d[1], d[2], d[3]
+            );
+            sheets.push(Sheet {
+                name: format!("{zname}/{n}"),
+                gdal: format!("/vsizip/{}/{n}", abs.display()),
+                bbox: b,
+                levels: d,
+            });
         }
         ok.push(abs);
     }
@@ -278,8 +348,17 @@ pub struct Estimate {
 
 /// `iaf-imagery sentinel2|mapi2015`: logs the estimate (the CLI's text) and, unless a dry run, converts.
 pub fn run(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Estimate> {
-    let (spec, install, theatre_dir, out, sheets_dir, area, dry, stale, threads) =
-        (r.spec, r.install.as_path(), r.theatre.as_path(), r.out.as_path(), r.sheets.as_path(), r.area, r.dry_run, r.stale, r.threads);
+    let (spec, install, theatre_dir, out, sheets_dir, area, dry, stale, threads) = (
+        r.spec,
+        r.install.as_path(),
+        r.theatre.as_path(),
+        r.out.as_path(),
+        r.sheets.as_path(),
+        r.area,
+        r.dry_run,
+        r.stale,
+        r.threads,
+    );
     let t0 = std::time::Instant::now();
     let theatre = Theatre::load(theatre_dir)?;
     let rules = Rules::load(install, spec.outside_israel, &theatre)?;
@@ -307,8 +386,14 @@ pub fn run(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Estimate> 
             }
             // The unit's rect with UNIT_PAD_M around it: node margins and feathers reach that far.
             let pad = UNIT_PAD_M / crate::georef::UNITS_TO_METRES;
-            let r = [(i * su) as f64 - pad, (j * su) as f64 - pad, ((i + 1) * su) as f64 + pad, ((j + 1) * su) as f64 + pad];
-            let mut u = Unit { k, geo, itm: [0.0; 4], sheets: Vec::new(), rules: rules.tag(r), on_base: rules.touches_base(r) };
+            let r = [
+                (i * su) as f64 - pad,
+                (j * su) as f64 - pad,
+                ((i + 1) * su) as f64 + pad,
+                ((j + 1) * su) as f64 + pad,
+            ];
+            let mut u =
+                Unit { k, geo, itm: [0.0; 4], sheets: Vec::new(), rules: rules.tag(r), on_base: rules.touches_base(r) };
             if let Prep::Mapi { sheets, .. } = &prep {
                 let b = bbox(pts.iter().map(|p| itm::from_wgs84(p[0], p[1])));
                 if !sheets.iter().any(|s| overlap(&b, &s.bbox) > 0.0) {
@@ -359,7 +444,8 @@ pub fn run(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Estimate> 
             let km2: f64 = sheets.iter().map(|s| (s.bbox[2] - s.bbox[0]) * (s.bbox[3] - s.bbox[1]) / 1e6).sum();
             let node_km = imagery::node_span(spec.layer_level) as f64 * crate::georef::UNITS_TO_METRES / 1000.0;
             let todo = units.iter().filter(|u| unit_done(&work, u).is_err()).count();
-            est.download_bytes = todo as f64 * ((units.first().map_or(0.0, |u| (u.itm[2] - u.itm[0]) * (u.itm[3] - u.itm[1]))) / 4.0 * 3.0);
+            est.download_bytes = todo as f64
+                * ((units.first().map_or(0.0, |u| (u.itm[2] - u.itm[0]) * (u.itm[3] - u.itm[1]))) / 4.0 * 3.0);
             est.output_bytes = km2 / (node_km * node_km) * 2.0 * 0.45e6 * 1.33;
             log!(
                 pr,
@@ -413,8 +499,9 @@ pub fn run(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Estimate> 
                         let keys = match unit_done(&work, u) {
                             Ok(keys) => keys,
                             Err(_) => {
-                                let keys = convert_unit(spec, u, &prep, &theatre, &rules, &warp, &work, out, &mut cache, pr)
-                                    .with_context(|| format!("unit {:?}", u.k))?;
+                                let keys =
+                                    convert_unit(spec, u, &prep, &theatre, &rules, &warp, &work, out, &mut cache, pr)
+                                        .with_context(|| format!("unit {:?}", u.k))?;
                                 let mut text = format!("rules {}\n", u.rules);
                                 if !u.sheets.is_empty() {
                                     text += &format!("# {}\n", u.sheets.join(" "));
@@ -441,7 +528,13 @@ pub fn run(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Estimate> 
     // above newly converted units take them in).
     let mut level_nodes: BTreeSet<Key> = written.into_inner().map_err(|_| anyhow::anyhow!("worker panicked"))?;
     for l in spec.layer_level + 1..=ROOT_LEVEL {
-        let parents: Vec<Key> = level_nodes.iter().filter(|k| k.0 == l - 1).map(|k| (l, k.1 >> 1, k.2 >> 1)).collect::<BTreeSet<_>>().into_iter().collect();
+        let parents: Vec<Key> = level_nodes
+            .iter()
+            .filter(|k| k.0 == l - 1)
+            .map(|k| (l, k.1 >> 1, k.2 >> 1))
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect();
         let next = AtomicUsize::new(0);
         std::thread::scope(|s| -> Result<()> {
             let workers: Vec<_> = (0..threads.max(1) * 2)
@@ -487,15 +580,14 @@ fn mark(work: &Path, u: &Unit) -> PathBuf {
 fn unit_done(work: &Path, u: &Unit) -> std::result::Result<Vec<Key>, &'static str> {
     let text = std::fs::read_to_string(mark(work, u)).map_err(|_| "no mark")?;
     mark_valid(&text, u)?;
-    Ok(
-        text.lines()
-            .filter(|l| !l.starts_with("rules ") && !l.starts_with("# "))
-            .filter_map(|l| {
-                let v: Vec<u32> = l.split(' ').filter_map(|x| x.parse().ok()).collect();
-                (v.len() == 3).then(|| (v[0], v[1], v[2]))
-            })
-            .collect(),
-    )
+    Ok(text
+        .lines()
+        .filter(|l| !l.starts_with("rules ") && !l.starts_with("# "))
+        .filter_map(|l| {
+            let v: Vec<u32> = l.split(' ').filter_map(|x| x.parse().ok()).collect();
+            (v.len() == 3).then(|| (v[0], v[1], v[2]))
+        })
+        .collect())
 }
 
 /// A mark (`rules <tag>`, `# <sheets>`, then one written key per line) still holds when its sheets and rules tag are the
@@ -520,7 +612,18 @@ fn save(img: &image::RgbImage, path: &Path) -> Result<()> {
 
 /// Cuts one unit's source window and writes its layer-level nodes; returns the keys written.
 #[allow(clippy::too_many_arguments)]
-fn convert_unit(spec: &Spec, u: &Unit, prep: &Prep, theatre: &Theatre, rules: &Rules, warp: &Georef, work: &Path, out: &Path, cache: &mut Cache, pr: &dyn Progress) -> Result<Vec<Key>> {
+fn convert_unit(
+    spec: &Spec,
+    u: &Unit,
+    prep: &Prep,
+    theatre: &Theatre,
+    rules: &Rules,
+    warp: &Georef,
+    work: &Path,
+    out: &Path,
+    cache: &mut Cache,
+    pr: &dyn Progress,
+) -> Result<Vec<Key>> {
     let (vrt_s, bin_s);
     let k = u.k;
     let tmp: PathBuf = work.join(format!("unit_{}_{}", k.1, k.2));
@@ -543,10 +646,27 @@ fn convert_unit(spec: &Spec, u: &Unit, prep: &Prep, theatre: &Theatre, rules: &R
             // The VRT is the window itself (on the source's pixel grid; no data where no tile is).
             let te = bb.map(|v| format!("{v:.6}"));
             let res = format!("{:.12}", 1.0 / 12000.0);
-            let mut a = vec!["-q", "-overwrite", "-te", &te[0], &te[1], &te[2], &te[3], "-tr", &res, &res, "-tap", &vrt_s];
+            let mut a =
+                vec!["-q", "-overwrite", "-te", &te[0], &te[1], &te[2], &te[3], "-tr", &res, &res, "-tap", &vrt_s];
             a.extend(urls.iter().map(String::as_str));
             gdal("gdalbuildvrt", &a)?;
-            let args = ["-q", "-of", "ENVI", "-co", "INTERLEAVE=BIP", "-b", "1", "-b", "2", "-b", "3", "-b", "4", &vrt_s, &bin_s];
+            let args = [
+                "-q",
+                "-of",
+                "ENVI",
+                "-co",
+                "INTERLEAVE=BIP",
+                "-b",
+                "1",
+                "-b",
+                "2",
+                "-b",
+                "3",
+                "-b",
+                "4",
+                &vrt_s,
+                &bin_s,
+            ];
             // Network hiccups (e.g. a TLS read cut short) make GDAL fail without a message: retry.
             let mut tries = 0;
             while let Err(e) = gdal("gdal_translate", &args) {
@@ -563,7 +683,19 @@ fn convert_unit(spec: &Spec, u: &Unit, prep: &Prep, theatre: &Theatre, rules: &R
             // The window on the sheets' 2 m grid (black where no sheet is); only the unit's sheets are opened
             // (opening a sheet inside its ZIP inflates it up to the TIFF directory, a second or two each).
             let w = u.itm.map(|v| format!("{v:.0}"));
-            let mut a = vec!["-q", "-overwrite", "-a_srs", "EPSG:2039", "-allow_projection_difference", "-b", "1", "-b", "2", "-b", "3"];
+            let mut a = vec![
+                "-q",
+                "-overwrite",
+                "-a_srs",
+                "EPSG:2039",
+                "-allow_projection_difference",
+                "-b",
+                "1",
+                "-b",
+                "2",
+                "-b",
+                "3",
+            ];
             a.extend(["-te", &w[0], &w[1], &w[2], &w[3], "-tr", "2", "2", &vrt_s]);
             a.extend(sheets.iter().filter(|s| u.sheets.contains(&s.name)).map(|s| s.gdal.as_str()));
             gdal("gdalbuildvrt", &a)?;
@@ -574,11 +706,18 @@ fn convert_unit(spec: &Spec, u: &Unit, prep: &Prep, theatre: &Theatre, rules: &R
         }
     };
     let d = spec.unit_level - spec.layer_level;
-    let mut nodes: Vec<Key> = (0..1u32 << (2 * d)).map(|n| (spec.layer_level, (k.1 << d) + n % (1 << d), (k.2 << d) + n / (1 << d))).collect();
+    let mut nodes: Vec<Key> = (0..1u32 << (2 * d))
+        .map(|n| (spec.layer_level, (k.1 << d) + n % (1 << d), (k.2 << d) + n / (1 << d)))
+        .collect();
     // The original's finer nodes (the site insets) in the unit too: near the jet the runtime draws them instead
     // of the layer's node above, so the layer's feather around a kept inset must be in them as well (a node
     // wholly inside the inset composes to nothing and stays the original's).
-    let mut finer: Vec<Key> = theatre.nodes.iter().filter(|n| n.0 < spec.layer_level && (n.1 >> (k.0 - n.0), n.2 >> (k.0 - n.0)) == (k.1, k.2)).copied().collect();
+    let mut finer: Vec<Key> = theatre
+        .nodes
+        .iter()
+        .filter(|n| n.0 < spec.layer_level && (n.1 >> (k.0 - n.0), n.2 >> (k.0 - n.0)) == (k.1, k.2))
+        .copied()
+        .collect();
     finer.sort();
     nodes.extend(finer);
     let mut keys = Vec::new();
@@ -668,7 +807,14 @@ mod tests {
     use super::*;
 
     fn unit(rules: &str, on_base: bool) -> Unit {
-        Unit { k: (4, 1, 2), geo: [0.0; 4], itm: [0.0; 4], sheets: vec!["a.zip/a.tif".into()], rules: rules.into(), on_base }
+        Unit {
+            k: (4, 1, 2),
+            geo: [0.0; 4],
+            itm: [0.0; 4],
+            sheets: vec!["a.zip/a.tif".into()],
+            rules: rules.into(),
+            on_base,
+        }
     }
 
     #[test]

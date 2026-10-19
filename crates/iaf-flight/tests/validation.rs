@@ -448,8 +448,16 @@ fn flyable_jets_against_public_data() {
 fn report(dir: &std::path::Path, r: &Ref, set: DataSet) {
     let (params, envelope) = iaf_flight::load_with(dir, r.aircraft, set).unwrap();
     let v = r.speed_kt;
-    let at = |item: &str| -> &'static str { Box::leak(item.replace("350 kt", &format!("{v:.0} kt")).replace("420 kt", &format!("{:.0} kt", v + 70.0)).into_boxed_str()) };
-    let jet = |alt_ft: f32, speed_kt: f32| Aircraft::new(params.clone(), envelope.clone(), Vec3::new(0.0, 0.0, (alt_ft / FT) as f64), 0.0, speed_kt / KT);
+    let at = |item: &str| -> &'static str {
+        Box::leak(
+            item.replace("350 kt", &format!("{v:.0} kt"))
+                .replace("420 kt", &format!("{:.0} kt", v + 70.0))
+                .into_boxed_str(),
+        )
+    };
+    let jet = |alt_ft: f32, speed_kt: f32| {
+        Aircraft::new(params.clone(), envelope.clone(), Vec3::new(0.0, 0.0, (alt_ft / FT) as f64), 0.0, speed_kt / KT)
+    };
     let probe = jet(10000.0, v);
     let p = probe.params.clone();
     let mut rows = Vec::new();
@@ -457,18 +465,54 @@ fn report(dir: &std::path::Path, r: &Ref, set: DataSet) {
     let ab = Controls { throttle: 1.0, ..Default::default() };
 
     // Static data.
-    rows.push(Row { item: "empty weight", iaf: format!("{:.0} lb", p.empty_mass / 0.45359), real: label(r.empty), verdict: verdict(p.empty_mass / 0.45359, r.empty) });
-    rows.push(Row { item: "internal fuel", iaf: format!("{:.0} lb", p.fuel_mass / 0.45359), real: label(r.fuel), verdict: verdict(p.fuel_mass / 0.45359, r.fuel) });
-    let t_sl_mil = p.thrust[0][0][0] + (p.thrust[0][0][1] - p.thrust[0][0][0]) * (0.05 + 0.7432432 * 0.74) * p.dry_thrust;
+    rows.push(Row {
+        item: "empty weight",
+        iaf: format!("{:.0} lb", p.empty_mass / 0.45359),
+        real: label(r.empty),
+        verdict: verdict(p.empty_mass / 0.45359, r.empty),
+    });
+    rows.push(Row {
+        item: "internal fuel",
+        iaf: format!("{:.0} lb", p.fuel_mass / 0.45359),
+        real: label(r.fuel),
+        verdict: verdict(p.fuel_mass / 0.45359, r.fuel),
+    });
+    let t_sl_mil =
+        p.thrust[0][0][0] + (p.thrust[0][0][1] - p.thrust[0][0][0]) * (0.05 + 0.7432432 * 0.74) * p.dry_thrust;
     let t_sl_ab = p.thrust[0][0][1];
-    rows.push(Row { item: "thrust SL static, military", iaf: format!("{t_sl_mil:.0} lbf"), real: label(r.thrust_mil), verdict: verdict(t_sl_mil, r.thrust_mil) });
-    rows.push(Row { item: "thrust SL static, full AB", iaf: format!("{t_sl_ab:.0} lbf"), real: label(r.thrust_ab), verdict: verdict(t_sl_ab, r.thrust_ab) });
+    rows.push(Row {
+        item: "thrust SL static, military",
+        iaf: format!("{t_sl_mil:.0} lbf"),
+        real: label(r.thrust_mil),
+        verdict: verdict(t_sl_mil, r.thrust_mil),
+    });
+    rows.push(Row {
+        item: "thrust SL static, full AB",
+        iaf: format!("{t_sl_ab:.0} lbf"),
+        real: label(r.thrust_ab),
+        verdict: verdict(t_sl_ab, r.thrust_ab),
+    });
     let stall = probe.envelope.vmin(0.0, 1.0) * KT;
-    rows.push(Row { item: "1 g stall speed, SL", iaf: format!("{stall:.0} kt"), real: label(r.stall), verdict: verdict(stall, r.stall) });
+    rows.push(Row {
+        item: "1 g stall speed, SL",
+        iaf: format!("{stall:.0} kt"),
+        real: label(r.stall),
+        verdict: verdict(stall, r.stall),
+    });
     let ceiling = probe.envelope.ceiling(1.0) * FT;
-    rows.push(Row { item: "1 g ceiling (envelope)", iaf: format!("{ceiling:.0} ft"), real: label(r.ceiling), verdict: verdict(ceiling, r.ceiling) });
+    rows.push(Row {
+        item: "1 g ceiling (envelope)",
+        iaf: format!("{ceiling:.0} ft"),
+        real: label(r.ceiling),
+        verdict: verdict(ceiling, r.ceiling),
+    });
     let rr = p.max_roll_rate.to_degrees();
-    rows.push(Row { item: "max roll rate", iaf: format!("{rr:.0} deg/s"), real: label(r.roll_rate), verdict: verdict(rr, r.roll_rate) });
+    rows.push(Row {
+        item: "max roll rate",
+        iaf: format!("{rr:.0} deg/s"),
+        real: label(r.roll_rate),
+        verdict: verdict(rr, r.roll_rate),
+    });
 
     // Level flight hold with neutral stick, military power, from 350 kt. Measured after 5 s so the start
     // transient (the original's MaxWeight·g lift ramps give a short up-jolt, §15.6.4) is not counted.
@@ -480,7 +524,12 @@ fn report(dir: &std::path::Path, r: &Ref, set: DataSet) {
         assert!(s.position[2].is_finite() && s.speed.is_finite());
         let dz = (s.position[2] - s0.position[2]) as f32 * FT;
         let item = if bp { "  same, better physics" } else { at("neutral stick, 60 s @10k ft, 350 kt") };
-        rows.push(Row { item, iaf: format!("alt change {dz:+.0} ft, vz {:+.0} ft/min, {:.0} kt", s.velocity[2] * FT * 60.0, s.speed * KT), real: "holds altitude (1 g hold)", verdict: if dz.abs() < 300.0 { "ok" } else { "OFF" } });
+        rows.push(Row {
+            item,
+            iaf: format!("alt change {dz:+.0} ft, vz {:+.0} ft/min, {:.0} kt", s.velocity[2] * FT * 60.0, s.speed * KT),
+            real: "holds altitude (1 g hold)",
+            verdict: if dz.abs() < 300.0 { "ok" } else { "OFF" },
+        });
     }
 
     // Maximum level speed (full AB, neutral stick holds the flight path): peak while fuel lasts.
@@ -500,7 +549,21 @@ fn report(dir: &std::path::Path, r: &Ref, set: DataSet) {
             }
         }
         let mach = best.speed / air(best.position[2] as f32).sound;
-        rows.push(Row { item: if alt == 0.0 { "max level speed, SL" } else { at(&format!("max level speed, {:.0}k ft", alt / 1000.0)) }, iaf: format!("{:.0} kt (Mach {mach:.2}) after {:.0} s, alt {:+.0} ft", best.speed * KT, best.time, best.position[2] as f32 * FT - alt), real: label(rf), verdict: verdict(best.speed * KT, rf) });
+        rows.push(Row {
+            item: if alt == 0.0 {
+                "max level speed, SL"
+            } else {
+                at(&format!("max level speed, {:.0}k ft", alt / 1000.0))
+            },
+            iaf: format!(
+                "{:.0} kt (Mach {mach:.2}) after {:.0} s, alt {:+.0} ft",
+                best.speed * KT,
+                best.time,
+                best.position[2] as f32 * FT - alt
+            ),
+            real: label(rf),
+            verdict: verdict(best.speed * KT, rf),
+        });
     }
 
     // Roll: time to 90° from wings level, full stick, 350 kt @ 10k ft.
@@ -517,7 +580,12 @@ fn report(dir: &std::path::Path, r: &Ref, set: DataSet) {
             t90 = i as f32 / 60.0;
         }
     }
-    rows.push(Row { item: at("roll 0→90°, 350 kt @10k ft"), iaf: format!("{t90:.2} s, peak {peak:.0} deg/s"), real: label(r.roll90), verdict: verdict(t90, r.roll90) });
+    rows.push(Row {
+        item: at("roll 0→90°, 350 kt @10k ft"),
+        iaf: format!("{t90:.2} s, peak {peak:.0} deg/s"),
+        real: label(r.roll90),
+        verdict: verdict(t90, r.roll90),
+    });
 
     // Rudder: full pedal for 4 s, then neutral, 350 kt @ 10k ft. The v1.1 β channel (2nd-order, RudderK; v1.0 data:
     // the exe's defaults) — time to 90 % of MaxBeta, β at the end of the hold, and the overshoot past 0 after release
@@ -540,7 +608,12 @@ fn report(dir: &std::path::Path, r: &Ref, set: DataSet) {
             under = under.min(b);
         }
     }
-    rows.push(Row { item: "rudder step, 350 kt @10k ft", iaf: format!("K {:.2}: 90% in {t90:.2} s, {hold:.1}/{mb:.0}°, overshoot {under:.1}°", p.rudder_k), real: "(no public figure)", verdict: "-" });
+    rows.push(Row {
+        item: "rudder step, 350 kt @10k ft",
+        iaf: format!("K {:.2}: 90% in {t90:.2} s, {hold:.1}/{mb:.0}°, overshoot {under:.1}°", p.rudder_k),
+        real: "(no public figure)",
+        verdict: "-",
+    });
 
     // Instantaneous turn: full pull at ~390 KCAS (420 kt true) @ 10k ft, heading rate over 2..3 s.
     let mut ac = jet(10000.0, v + 70.0);
@@ -557,7 +630,12 @@ fn report(dir: &std::path::Path, r: &Ref, set: DataSet) {
     let a = hold_bank(&mut ac, 1.0, 2.0);
     let b = hold_bank(&mut ac, 1.0, 1.0);
     let turn = ((b.heading - a.heading).rem_euclid(std::f32::consts::TAU)).to_degrees();
-    rows.push(Row { item: at("instantaneous turn, 420 kt TAS @10k ft"), iaf: format!("{turn:.1} deg/s at {:.1} g, bank {:.0}°", b.g, b.roll.to_degrees()), real: label(r.turn), verdict: verdict(turn, r.turn) });
+    rows.push(Row {
+        item: at("instantaneous turn, 420 kt TAS @10k ft"),
+        iaf: format!("{turn:.1} deg/s at {:.1} g, bank {:.0}°", b.g, b.roll.to_degrees()),
+        real: label(r.turn),
+        verdict: verdict(turn, r.turn),
+    });
 
     // Specific excess power at SL, 350 kt, full AB (instant climb rate). The throttle goes to full AB first;
     // the original lights the afterburner only when the RPM would reach 100 % (2 s from the airborne start's
@@ -575,7 +653,12 @@ fn report(dir: &std::path::Path, r: &Ref, set: DataSet) {
         let s2 = fly(&mut ac, ab, 1.0);
         let ps = (s2.speed * s2.speed - s.speed * s.speed) / (2.0 * 9.806) + (s2.position[2] - s.position[2]) as f32;
         let item = if bp { "  same, better physics" } else { at("climb (Ps) SL, ~350 kt, full AB") };
-        rows.push(Row { item, iaf: format!("{:.0} ft/min at {:.0} kt", ps * FT * 60.0, s.speed * KT), real: label(r.climb), verdict: verdict(ps * FT * 60.0, r.climb) });
+        rows.push(Row {
+            item,
+            iaf: format!("{:.0} ft/min at {:.0} kt", ps * FT * 60.0, s.speed * KT),
+            real: label(r.climb),
+            verdict: verdict(ps * FT * 60.0, r.climb),
+        });
     }
 
     // Fuel flow.
@@ -586,8 +669,18 @@ fn report(dir: &std::path::Path, r: &Ref, set: DataSet) {
         (a.fuel_kg - b.fuel_kg) / 10.0 / 0.45359 * 3600.0
     };
     let (f_mil, f_ab) = (ff(0.74), ff(1.0));
-    rows.push(Row { item: "fuel flow military, SL", iaf: format!("{f_mil:.0} lb/h"), real: label(r.ff_mil), verdict: verdict(f_mil, r.ff_mil) });
-    rows.push(Row { item: "fuel flow full AB, SL", iaf: format!("{f_ab:.0} lb/h"), real: label(r.ff_ab), verdict: verdict(f_ab, r.ff_ab) });
+    rows.push(Row {
+        item: "fuel flow military, SL",
+        iaf: format!("{f_mil:.0} lb/h"),
+        real: label(r.ff_mil),
+        verdict: verdict(f_mil, r.ff_mil),
+    });
+    rows.push(Row {
+        item: "fuel flow full AB, SL",
+        iaf: format!("{f_ab:.0} lb/h"),
+        real: label(r.ff_ab),
+        verdict: verdict(f_ab, r.ff_ab),
+    });
 
     let section = iaf_flight::data_set::section(set, r.aircraft);
     println!("\n {} [{} → {section}] ({set:?} data set) vs public references", r.name, r.aircraft);

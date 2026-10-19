@@ -179,7 +179,14 @@ impl Harm {
     /// 100 / distance, friendlies too (the HARM's accept has no side test). Range with the own jammer on: ×0.8
     /// against a jamming unit, else ×0.5; without it a jamming unit is seen at any range. The selection is kept while
     /// alive and still accepted (forced into the list, range not re-tested), else the nearest.
-    fn scan(&mut self, units: &[Unit], eye: Vec3, base: (f64, f64), own_ecm: bool, terrain: &dyn Fn(Vec3) -> Option<f64>) {
+    fn scan(
+        &mut self,
+        units: &[Unit],
+        eye: Vec3,
+        base: (f64, f64),
+        own_ecm: bool,
+        terrain: &dyn Fn(Vec3) -> Option<f64>,
+    ) {
         self.base = base;
         self.list = units
             .iter()
@@ -197,9 +204,11 @@ impl Harm {
             .collect();
         self.list.sort_by(|a, b| a.dist.total_cmp(&b.dist));
         self.list.truncate(KEEP);
-        let kept = self.selected.as_ref().filter(|k| !self.list.iter().any(|c| &c.key == *k)).and_then(|k| {
-            units.iter().find(|u| &u.key == k).and_then(|u| accept(u, eye, base, terrain))
-        });
+        let kept = self
+            .selected
+            .as_ref()
+            .filter(|k| !self.list.iter().any(|c| &c.key == *k))
+            .and_then(|k| units.iter().find(|u| &u.key == k).and_then(|u| accept(u, eye, base, terrain)));
         if let Some(c) = kept {
             if self.list.len() >= KEEP {
                 self.list.pop();

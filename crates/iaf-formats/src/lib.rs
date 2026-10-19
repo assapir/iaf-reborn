@@ -13,9 +13,9 @@ pub mod ptt;
 pub mod refs;
 pub mod rgn;
 pub mod rtf;
-pub mod winfnt;
 pub mod ssf;
 pub mod terrain_types;
+pub mod winfnt;
 pub mod xfile;
 
 #[derive(Debug)]

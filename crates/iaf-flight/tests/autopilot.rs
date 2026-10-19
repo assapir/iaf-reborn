@@ -51,27 +51,9 @@ fn follows_its_route() {
     let mut ap = Autopilot::new(Config::load(&inst));
     // North 30 km, then east 30 km, climbing to 4000 m.
     ap.route = vec![
-        Waypoint {
-            x: 0.0,
-            y: 30000.0,
-            z: 3000.0,
-            t: 0.0,
-            action: 3,
-        },
-        Waypoint {
-            x: 30000.0,
-            y: 30000.0,
-            z: 4000.0,
-            t: 0.0,
-            action: 3,
-        },
-        Waypoint {
-            x: 30000.0,
-            y: 60000.0,
-            z: 4000.0,
-            t: 0.0,
-            action: 3,
-        },
+        Waypoint { x: 0.0, y: 30000.0, z: 3000.0, t: 0.0, action: 3 },
+        Waypoint { x: 30000.0, y: 30000.0, z: 4000.0, t: 0.0, action: 3 },
+        Waypoint { x: 30000.0, y: 60000.0, z: 4000.0, t: 0.0, action: 3 },
     ];
     ap.set_mode(&mut ac, 7);
     assert_eq!(ac.ai_mode, 7);
@@ -81,7 +63,17 @@ fn follows_its_route() {
         let p = ac.state().position;
         if t % 15 == 0 {
             let st = ac.state();
-            println!("{t}: {} pos {:.0} {:.0} {:.0} v {:.0} hdg {:.0} pitch {:.1} roll {:.0}", ap.stage(), p[0], p[1], p[2], st.speed, st.heading.to_degrees(), st.pitch.to_degrees(), st.roll.to_degrees());
+            println!(
+                "{t}: {} pos {:.0} {:.0} {:.0} v {:.0} hdg {:.0} pitch {:.1} roll {:.0}",
+                ap.stage(),
+                p[0],
+                p[1],
+                p[2],
+                st.speed,
+                st.heading.to_degrees(),
+                st.pitch.to_degrees(),
+                st.roll.to_degrees()
+            );
         }
         for (i, w) in ap.route.iter().enumerate() {
             closest[i] = closest[i].min((p[0] - w.x).hypot(p[1] - w.y));
@@ -89,22 +81,12 @@ fn follows_its_route() {
         assert!(ac.state().crashed.is_none(), "crashed at {:?}", p);
     }
     let s = ac.state();
-    println!(
-        "closest {closest:?}, index {}, alt {:.0}, speed {:.0}",
-        ap.wp_index, s.position[2], s.speed
-    );
+    println!("closest {closest:?}, index {}, alt {:.0}, speed {:.0}", ap.wp_index, s.position[2], s.speed);
     for c in closest {
-        assert!(
-            c < 2500.0,
-            "passed every waypoint within the capture radius: {closest:?}"
-        );
+        assert!(c < 2500.0, "passed every waypoint within the capture radius: {closest:?}");
     }
     assert_eq!(ap.wp_index, 2);
-    assert!(
-        (s.speed - 275.0).abs() < 40.0,
-        "cruise 275 m/s without ETAs ({})",
-        s.speed
-    );
+    assert!((s.speed - 275.0).abs() < 40.0, "cruise 275 m/s without ETAs ({})", s.speed);
 }
 
 #[test]
@@ -114,13 +96,7 @@ fn keeps_close_formation() {
     let mut wing = jet(&inst, "F-16", Vec3::new(-1500.0, -1200.0, 2500.0), 90.0, true);
     let cfg = Config::load(&inst);
     let mut lap = Autopilot::new(cfg);
-    lap.route = vec![Waypoint {
-        x: 200000.0,
-        y: 0.0,
-        z: 3000.0,
-        t: 0.0,
-        action: 3,
-    }];
+    lap.route = vec![Waypoint { x: 200000.0, y: 0.0, z: 3000.0, t: 0.0, action: 3 }];
     lap.set_mode(&mut lead, 7);
     let mut wap = Autopilot::new(cfg);
     wap.set_mode(&mut wing, 1);
@@ -130,11 +106,7 @@ fn keeps_close_formation() {
         let ls = lead.state();
         wap.leader = Some(Leader {
             pos: ls.position,
-            vel: Vec3::new(
-                ls.velocity[0] as f64,
-                ls.velocity[1] as f64,
-                ls.velocity[2] as f64,
-            ),
+            vel: Vec3::new(ls.velocity[0] as f64, ls.velocity[1] as f64, ls.velocity[2] as f64),
             att: [ls.pitch, ls.roll, ls.heading],
             active: true,
         });
@@ -179,23 +151,11 @@ fn takes_off_from_ramat_david() {
     // A jet parked at its hangar (the first departure turn point's hangar).
     let h = rd.hangars[0];
     let z = rd.lineup[2] as f64;
-    let mut ac = jet(
-        &inst,
-        "F-16",
-        Vec3::new(h.x as f64, h.y as f64, z),
-        h.hdg.to_degrees(),
-        false,
-    );
+    let mut ac = jet(&inst, "F-16", Vec3::new(h.x as f64, h.y as f64, z), h.hdg.to_degrees(), false);
     ac.ground_height = z as f32;
     let mut ap = Autopilot::new(Config::load(&inst));
     ap.bases = bases;
-    ap.route = vec![Waypoint {
-        x: 340000.0,
-        y: 602383.0,
-        z: 1500.0,
-        t: 20.0,
-        action: 2,
-    }];
+    ap.route = vec![Waypoint { x: 340000.0, y: 602383.0, z: 1500.0, t: 20.0, action: 2 }];
     ap.set_mode(&mut ac, 9);
     let mut reached_lineup = false;
     let mut airborne_at = None;
@@ -203,9 +163,7 @@ fn takes_off_from_ramat_david() {
         fly(&mut ac, &mut ap, 1.0, z as f32);
         let st = ac.state();
         assert!(st.crashed.is_none(), "no crash ({:?})", st.crashed);
-        if (st.position[0] - rd.lineup[0] as f64).hypot(st.position[1] - rd.lineup[1] as f64)
-            < 150.0
-        {
+        if (st.position[0] - rd.lineup[0] as f64).hypot(st.position[1] - rd.lineup[1] as f64) < 150.0 {
             reached_lineup = true;
         }
         if airborne_at.is_none() && st.position[2] > z + 100.0 {
@@ -242,7 +200,14 @@ fn lands_at_ramat_david() {
         let st = ac.state();
         assert!(st.crashed.is_none(), "crashed ({:?}) at {:?}", st.crashed, st.position);
         if t % 60 == 0 {
-            println!("{t}: {} pos {:.0} {:.0} {:.0} v {:.0}", ap.stage(), st.position[0], st.position[1], st.position[2], st.speed);
+            println!(
+                "{t}: {} pos {:.0} {:.0} {:.0} v {:.0}",
+                ap.stage(),
+                st.position[0],
+                st.position[1],
+                st.position[2],
+                st.speed
+            );
         }
         if touchdown.is_none() && st.on_ground {
             touchdown = Some((st.position, t));
@@ -250,10 +215,17 @@ fn lands_at_ramat_david() {
         t += 1;
     }
     let st = ac.state();
-    println!("touchdown {touchdown:?}; landed {} after {t} s at {:.0} {:.0}, speed {:.1}", ap.landed, st.position[0], st.position[1], st.speed);
+    println!(
+        "touchdown {touchdown:?}; landed {} after {t} s at {:.0} {:.0}, speed {:.1}",
+        ap.landed, st.position[0], st.position[1], st.speed
+    );
     let (p, _) = touchdown.expect("touched down");
     // On the runway: within 30 m of the 270° centreline through the lineup point, between its ends.
-    assert!((p[1] - rd.lineup[1] as f64).abs() < 30.0, "on the runway centreline ({:.0} m off)", p[1] - rd.lineup[1] as f64);
+    assert!(
+        (p[1] - rd.lineup[1] as f64).abs() < 30.0,
+        "on the runway centreline ({:.0} m off)",
+        p[1] - rd.lineup[1] as f64
+    );
     assert!(p[0] > RD_RUNWAY_X[0] && p[0] < RD_RUNWAY_X[1], "touchdown on the runway (x {:.0})", p[0]);
     assert!(ap.landed, "stopped on the runway");
     // Then taxis to a hangar and parks with the engine off.
@@ -263,7 +235,6 @@ fn lands_at_ramat_david() {
     println!("after taxi: {:.0} {:.0} speed {:.1} engine {}", st.position[0], st.position[1], st.speed, ac.engine_on);
     assert!(parked && !ac.engine_on, "parked at a hangar, engine off");
 }
-
 
 /// The player's autopilot (docs/autopilot.md) runs in FM mode 0 and returns the commands it posted.
 fn fly_player(ac: &mut Aircraft, ap: &mut Autopilot, seconds: f64, ground: f32) -> Vec<iaf_flight::autopilot::Out> {
@@ -305,11 +276,24 @@ fn player_level_mode_holds_heading_and_altitude() {
     assert_eq!(ac.ai_mode, 0, "the FM keeps the player's rules");
     fly_player(&mut ac, &mut ap, 30.0, 0.0);
     let s0 = ac.state();
-    println!("after 30 s: {} roll {:.1} pitch {:.1} hdg {:.1} alt {:.0}", ap.stage(), s0.roll.to_degrees(), s0.pitch.to_degrees(), s0.heading.to_degrees(), s0.position[2]);
+    println!(
+        "after 30 s: {} roll {:.1} pitch {:.1} hdg {:.1} alt {:.0}",
+        ap.stage(),
+        s0.roll.to_degrees(),
+        s0.pitch.to_degrees(),
+        s0.heading.to_degrees(),
+        s0.position[2]
+    );
     assert!(ap.stage().contains("keep orientation"), "levelled, then keeps orientation ({})", ap.stage());
     let outs = fly_player(&mut ac, &mut ap, 60.0, 0.0);
     let s1 = ac.state();
-    println!("after 90 s: roll {:.1} hdg {:.1} alt {:.0} speed {:.0}", s1.roll.to_degrees(), s1.heading.to_degrees(), s1.position[2], s1.speed);
+    println!(
+        "after 90 s: roll {:.1} hdg {:.1} alt {:.0} speed {:.0}",
+        s1.roll.to_degrees(),
+        s1.heading.to_degrees(),
+        s1.position[2],
+        s1.speed
+    );
     assert!(s1.roll.to_degrees().abs() < 3.0, "wings level");
     assert!(wrap_deg(s1.heading.to_degrees() - s0.heading.to_degrees()).abs() < 2.0, "heading held");
     assert!((s1.position[2] - s0.position[2]).abs() < 150.0, "altitude held");
@@ -381,7 +365,14 @@ fn player_approach_mission_312() {
             closest[i] = closest[i].min((st.position[0] - m.0).hypot(st.position[1] - m.1));
         }
         if t % 30 == 0 {
-            println!("{t}: {} pos {:.0} {:.0} {:.0} v {:.0}", ap.stage(), st.position[0], st.position[1], st.position[2], st.speed);
+            println!(
+                "{t}: {} pos {:.0} {:.0} {:.0} v {:.0}",
+                ap.stage(),
+                st.position[0],
+                st.position[1],
+                st.position[2],
+                st.speed
+            );
         }
         if ap.stage() == "landing step 13" && final_at.is_none() {
             final_at = Some(st.position);
@@ -399,9 +390,16 @@ fn player_approach_mission_312() {
     assert!(gear, "gear lowered on the downwind");
     let p = final_at.expect("reached the final approach");
     // The turn onto final ends on the centreline, well out: the final approach starts beyond P4 (3708 m).
-    assert!((p[1] - rd.lineup[1] as f64).abs() < 30.0 && p[0] > rd.lineup[0] as f64 + 3708.0, "final from the extended centreline ({p:?})");
+    assert!(
+        (p[1] - rd.lineup[1] as f64).abs() < 30.0 && p[0] > rd.lineup[0] as f64 + 3708.0,
+        "final from the extended centreline ({p:?})"
+    );
     let p = touchdown.expect("touched down");
-    assert!((p[1] - rd.lineup[1] as f64).abs() < 30.0, "touchdown on the centreline ({:.0} m off)", p[1] - rd.lineup[1] as f64);
+    assert!(
+        (p[1] - rd.lineup[1] as f64).abs() < 30.0,
+        "touchdown on the centreline ({:.0} m off)",
+        p[1] - rd.lineup[1] as f64
+    );
     assert!(p[0] > RD_RUNWAY_X[0] && p[0] < RD_RUNWAY_X[1], "touchdown on the runway (x {:.0})", p[0]);
     assert!(ap_key, "stopped: StopPlane posts the A key");
     assert!(!ap.landed, "no AI landed handler for the player");
@@ -481,10 +479,20 @@ fn player_circuit_312_from_engage_points() {
     ];
     for (name, pos, hdg) in starts {
         let (legs, gear, touch) = circuit_312(&inst, pos.into(), hdg);
-        let at = |s: usize| *legs.iter().find(|l| l.step == s).unwrap_or_else(|| panic!("{name}: step {s} missing ({legs:?})"));
+        let at = |s: usize| {
+            *legs.iter().find(|l| l.step == s).unwrap_or_else(|| panic!("{name}: step {s} missing ({legs:?})"))
+        };
         println!("{name}:");
         for l in &legs {
-            println!("  step {:2} from ({:6.0}, {:6.0}) hdg {:3.0} bank {:4.0}..{:3.0}", l.step, l.start[0] - lx, l.start[1] - ly, l.hdg, l.roll[0], l.roll[1]);
+            println!(
+                "  step {:2} from ({:6.0}, {:6.0}) hdg {:3.0} bank {:4.0}..{:3.0}",
+                l.step,
+                l.start[0] - lx,
+                l.start[1] - ly,
+                l.hdg,
+                l.roll[0],
+                l.roll[1]
+            );
         }
         let steps: Vec<usize> = legs.iter().map(|l| l.step).collect();
         assert_eq!(steps, (0..=14).collect::<Vec<_>>(), "{name}: every step in order");
@@ -497,21 +505,37 @@ fn player_circuit_312_from_engage_points() {
         // CH2: a left turn onto the downwind, east, south of the runway.
         let (ch2, s5) = (at(4), at(5));
         assert!(ch2.roll[0] < -20.0 && ch2.roll[0] > -82.0, "{name}: CH2 turns left ({:?})", ch2.roll);
-        assert!(wrap_deg(s5.hdg - 90.0).abs() < 10.0 && s5.start[1] < ly - 4500.0, "{name}: downwind east, south side ({s5:?})");
+        assert!(
+            wrap_deg(s5.hdg - 90.0).abs() < 10.0 && s5.start[1] < ly - 4500.0,
+            "{name}: downwind east, south side ({s5:?})"
+        );
         let g = gear.expect("gear down");
         assert!(g[1] < ly - 4500.0 && g[0] < p2[0], "{name}: gear and flaps on the downwind ({g:?})");
         assert!((at(8).start[0] - p2[0]).hypot(at(8).start[1] - p2[1]) < 1500.0, "{name}: KA2 ends at P2");
         // CH3: left onto the base, north, at P2's x; CH4: left onto final, on the centreline beyond P4.
         let (ch3, s9) = (at(8), at(9));
-        assert!(ch3.roll[0] < -20.0 && ch3.roll[0] > -62.0 && ch3.roll[1] < 5.0, "{name}: CH3 turns left ≤ 60° ({:?})", ch3.roll);
+        assert!(
+            ch3.roll[0] < -20.0 && ch3.roll[0] > -62.0 && ch3.roll[1] < 5.0,
+            "{name}: CH3 turns left ≤ 60° ({:?})",
+            ch3.roll
+        );
         assert!(wrap_deg(s9.hdg).abs() < 10.0 && (s9.start[0] - p2[0]).abs() < 300.0, "{name}: base north ({s9:?})");
         let (ch4, s12) = (at(11), at(12));
-        assert!(ch4.roll[0] < -20.0 && ch4.roll[0] > -62.0 && ch4.roll[1] < 5.0, "{name}: CH4 turns left ≤ 60° ({:?})", ch4.roll);
-        assert!(wrap_deg(s12.hdg - 270.0).abs() < 3.0 && (s12.start[1] - ly).abs() < 30.0 && s12.start[0] > lx + 3708.0,
-            "{name}: final from the centreline beyond P4 ({s12:?})");
+        assert!(
+            ch4.roll[0] < -20.0 && ch4.roll[0] > -62.0 && ch4.roll[1] < 5.0,
+            "{name}: CH4 turns left ≤ 60° ({:?})",
+            ch4.roll
+        );
+        assert!(
+            wrap_deg(s12.hdg - 270.0).abs() < 3.0 && (s12.start[1] - ly).abs() < 30.0 && s12.start[0] > lx + 3708.0,
+            "{name}: final from the centreline beyond P4 ({s12:?})"
+        );
         assert!(at(12).roll[0] > -22.0, "{name}: CH5 within 20°");
         let t = touch.unwrap_or_else(|| panic!("{name}: no touchdown / stop"));
-        assert!((t[1] - ly).abs() < 30.0 && t[0] > RD_RUNWAY_X[0] && t[0] < RD_RUNWAY_X[1], "{name}: touchdown on the centreline ({t:?})");
+        assert!(
+            (t[1] - ly).abs() < 30.0 && t[0] > RD_RUNWAY_X[0] && t[0] < RD_RUNWAY_X[1],
+            "{name}: touchdown on the centreline ({t:?})"
+        );
     }
 }
 
@@ -549,7 +573,10 @@ fn dogchase_gets_on_the_targets_tail() {
         tgt.step(DT);
         ch.step(DT);
         let (t, c) = (tgt.state(), ch.state());
-        let d = ((t.position[0] - c.position[0]).powi(2) + (t.position[1] - c.position[1]).powi(2) + (t.position[2] - c.position[2]).powi(2)).sqrt();
+        let d = ((t.position[0] - c.position[0]).powi(2)
+            + (t.position[1] - c.position[1]).powi(2)
+            + (t.position[2] - c.position[2]).powi(2))
+        .sqrt();
         if i as f64 * DT > 60.0 {
             min_d = min_d.min(d);
             if cap.nose_on {
@@ -636,10 +663,19 @@ fn air_fight(mode: u8, close: f64) {
         tgt.step(DT);
         ch.step(DT);
         let (t, c) = (tgt.state(), ch.state());
-        let d = ((t.position[0] - c.position[0]).powi(2) + (t.position[1] - c.position[1]).powi(2) + (t.position[2] - c.position[2]).powi(2)).sqrt();
+        let d = ((t.position[0] - c.position[0]).powi(2)
+            + (t.position[1] - c.position[1]).powi(2)
+            + (t.position[2] - c.position[2]).powi(2))
+        .sqrt();
         min_d = min_d.min(d);
         if i % 1800 == 0 {
-            println!("{mode:#x} t {:.0}: dist {d:.0} alt {:.0} v {:.0} {}", i as f64 * DT, c.position[2], c.speed, cap.stage());
+            println!(
+                "{mode:#x} t {:.0}: dist {d:.0} alt {:.0} v {:.0} {}",
+                i as f64 * DT,
+                c.position[2],
+                c.speed,
+                cap.stage()
+            );
         }
         assert!(c.position[2] > 50.0 && c.position[2].is_finite(), "{mode:#x}: airborne ({:.0} m)", c.position[2]);
     }

@@ -2,7 +2,7 @@
 
 use crate::world::{get, num, vec3, vector3};
 use godot::prelude::*;
-use iaf_avionics::stores::{self, Category, Station, Stores, Weapon, STATIONS};
+use iaf_avionics::stores::{self, Category, STATIONS, Station, Stores, Weapon};
 
 /// A station index from GDScript (negative → none).
 fn idx(i: i64) -> usize {
@@ -12,7 +12,9 @@ fn idx(i: i64) -> usize {
 /// The [weapon id, count] pairs of a bdb `armament` {hardpoints: [id, n, id, n, ...]}.
 fn pairs(d: &VarDictionary) -> Vec<(i64, i64)> {
     let h: VarArray = get::<VarDictionary>(d, "armament").and_then(|a| get(&a, "hardpoints")).unwrap_or_default();
-    let n = |i: usize| h.get(i).and_then(|v| v.try_to::<i64>().ok().or_else(|| v.try_to::<f64>().ok().map(|f| f as i64))).unwrap_or(0);
+    let n = |i: usize| {
+        h.get(i).and_then(|v| v.try_to::<i64>().ok().or_else(|| v.try_to::<f64>().ok().map(|f| f as i64))).unwrap_or(0)
+    };
     (0..h.len() / 2).map(|k| (n(2 * k), n(2 * k + 1))).collect()
 }
 
@@ -45,7 +47,10 @@ impl IafStores {
     #[func]
     fn slots(index: i64, attach: Vector3, count: i64, bomb: bool, pilon: Variant) -> VarArray {
         let pilon = pilon.try_to::<Vector3>().ok().map(vec3);
-        stores::slots(idx(index), vec3(attach), count, bomb, pilon).into_iter().map(|p| vector3(p).to_variant()).collect()
+        stores::slots(idx(index), vec3(attach), count, bomb, pilon)
+            .into_iter()
+            .map(|p| vector3(p).to_variant())
+            .collect()
     }
 
     /// The 12 stations: {} none, else {type, name, weight_lb, drag, rounds_per_tick (optional), count}.

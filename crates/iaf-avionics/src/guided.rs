@@ -285,7 +285,8 @@ mod tests {
     #[test]
     fn flies_to_the_aim_and_bursts_there() {
         let aim = Vec3::new(0.0, 8000.0, 0.0);
-        let mut g = Guided::launch(GuidedMotion::default(), 0.0, Vec3::new(0.0, 0.0, 1000.0), Vec3::new(0.0, 250.0, 0.0), aim);
+        let mut g =
+            Guided::launch(GuidedMotion::default(), 0.0, Vec3::new(0.0, 0.0, 1000.0), Vec3::new(0.0, 250.0, 0.0), aim);
         assert_eq!(g.phase(), Phase::Far);
         let mut t = 0.0;
         while !g.update(t, &|_| Some(0.0)) {

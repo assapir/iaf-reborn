@@ -86,7 +86,8 @@ impl Gray {
             for x in 0..w as i32 {
                 let (x0, y0) = ((x - r).max(0) as usize, (y - r).max(0) as usize);
                 let (x1, y1) = ((x + r + 1).min(w as i32) as usize, (y + r + 1).min(h as i32) as usize);
-                let s = sat[y1 * (w + 1) + x1] - sat[y0 * (w + 1) + x1] - sat[y1 * (w + 1) + x0] + sat[y0 * (w + 1) + x0];
+                let s =
+                    sat[y1 * (w + 1) + x1] - sat[y0 * (w + 1) + x1] - sat[y1 * (w + 1) + x0] + sat[y0 * (w + 1) + x0];
                 let mean = s / ((x1 - x0) * (y1 - y0)) as f64;
                 out[y as usize * w + x as usize] = self.px[y as usize * w + x as usize] - mean as f32;
             }
@@ -301,7 +302,13 @@ pub fn to_points(ms: &[Match]) -> Vec<Point> {
 /// Fits with smoothing `lambda`, drops points whose residual exceeds `k` × the median (at least
 /// `floor_m` metres, × 4 for the level-8 matches: they are less precise) and refits until none
 /// is dropped. Returns the fit and the kept matches.
-pub fn robust_fit(mut ms: Vec<Match>, extra: &[Point], lambda: f64, k: f64, floor_m: f64) -> Result<(Georef, Vec<Match>)> {
+pub fn robust_fit(
+    mut ms: Vec<Match>,
+    extra: &[Point],
+    lambda: f64,
+    k: f64,
+    floor_m: f64,
+) -> Result<(Georef, Vec<Match>)> {
     loop {
         let mut pts = to_points(&ms);
         pts.extend_from_slice(extra);
@@ -325,7 +332,12 @@ pub fn robust_fit(mut ms: Vec<Match>, extra: &[Point], lambda: f64, k: f64, floo
 
 /// Bilinear initial guess from the theatre corners (docs/imagery-research.md §1 first cut).
 pub fn initial() -> Result<Georef> {
-    let c = |id: &str, tx: f64, ty: f64, lon: f64, lat: f64| Point { id: id.into(), kind: "init".into(), game: [tx, ty], geo: [lon, lat] };
+    let c = |id: &str, tx: f64, ty: f64, lon: f64, lat: f64| Point {
+        id: id.into(),
+        kind: "init".into(),
+        game: [tx, ty],
+        geo: [lon, lat],
+    };
     Georef::fit(
         vec![
             c("nw", 0.0, 0.0, 29.77, 36.62),

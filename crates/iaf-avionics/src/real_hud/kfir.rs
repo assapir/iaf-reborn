@@ -61,12 +61,16 @@ pub(super) fn frame(f: Field, i: &Input) -> Frame {
         };
         ladder(p, i, fpm, f, style);
         marker(p, fpm, i.mr(6.0), i.mr(8.0), i.mr(4.0));
-        if matches!(mode, 5 | 6) && let Some(c) = w.pipper {
+        if matches!(mode, 5 | 6)
+            && let Some(c) = w.pipper
+        {
             p.push(line(fpm, c));
         }
     }
     // The waypoint on the ground: a circle on a short post; held on the field's edge (X) when outside it.
-    if mode == 0 && let Some(at) = i.steerpoint.and_then(|s| s.at) {
+    if mode == 0
+        && let Some(at) = i.steerpoint.and_then(|s| s.at)
+    {
         let (q, limited) = f.clamp_from((0.0, 0.0), at);
         let r = i.mr(5.0);
         p.push(Prim::Circle { c: q, r });
@@ -202,7 +206,10 @@ mod tests {
             assert!(t.contains(&want), "{want} in {t:?}");
         }
         assert!(!t.iter().any(|s| s.contains("EEGS") || *s == "SHOOT" || *s == "C"), "no F-16 symbology: {t:?}");
-        assert!(fr.field.iter().any(|p| matches!(p, Prim::Circle { c, .. } if *c == (30.0, 20.0))), "the waypoint marker");
+        assert!(
+            fr.field.iter().any(|p| matches!(p, Prim::Circle { c, .. } if *c == (30.0, 20.0))),
+            "the waypoint marker"
+        );
     }
 
     #[test]
@@ -233,14 +240,18 @@ mod tests {
     #[test]
     fn seeker_diamond_spins_until_it_tracks() {
         let (i, fr) = frame_in(1);
-        let first_line = |fr: &Frame| fr.field.iter().rev().find_map(|p| if let Prim::Line { a, .. } = p { Some(*a) } else { None });
+        let first_line =
+            |fr: &Frame| fr.field.iter().rev().find_map(|p| if let Prim::Line { a, .. } = p { Some(*a) } else { None });
         let a = first_line(&fr);
         let mut j = i.clone();
         j.time_s = 0.1;
         assert_ne!(a, first_line(&frame(FIELD, &j)), "searching: spinning");
         j.weapons.seeker = Some((10.0, -5.0));
         let fr = frame(FIELD, &j);
-        assert!(fr.field.iter().any(|p| matches!(p, Prim::Line { a, .. } if *a == (10.0, -5.0 - j.mr(8.0)))), "tracking");
+        assert!(
+            fr.field.iter().any(|p| matches!(p, Prim::Line { a, .. } if *a == (10.0, -5.0 - j.mr(8.0)))),
+            "tracking"
+        );
     }
 
     #[test]

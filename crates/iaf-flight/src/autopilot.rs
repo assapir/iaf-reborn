@@ -6,7 +6,7 @@
 //! Frame: ENU metres (x east, y north, z up) of the aircraft; headings clockwise from north.
 
 use crate::airbase::{Airbase, TaxiPt};
-use crate::aircraft::{sign, unit, Aircraft, ApView, Controls};
+use crate::aircraft::{Aircraft, ApView, Controls, sign, unit};
 use crate::vec3::Vec3;
 use iaf_formats::ini::Section;
 use std::f32::consts::PI;
@@ -54,11 +54,7 @@ impl Config {
     pub fn load(install: &std::path::Path) -> Self {
         crate::read_md(install, "bd.ibx")
             .ok()
-            .and_then(|b| {
-                iaf_formats::ini::Ini::parse(&b)
-                    .section("Autopilot")
-                    .map(Config::from_section)
-            })
+            .and_then(|b| iaf_formats::ini::Ini::parse(&b).section("Autopilot").map(Config::from_section))
             .unwrap_or_default()
     }
 
@@ -182,11 +178,7 @@ struct Pass {
 
 impl Pass {
     fn new(r: f64) -> Self {
-        Pass {
-            r,
-            min: -1.0,
-            armed: false,
-        }
+        Pass { r, min: -1.0, armed: false }
     }
     fn test(&mut self, pos: Vec3, x: f64, y: f64) -> bool {
         let d = dist2(pos, x, y);
@@ -214,38 +206,21 @@ impl<'a> Laws<'a> {
     /// `5aaa90(V, g)`: the stick (y convention, − = pull) that commands `g`.
     fn inv_g(&self, g: f32) -> f32 {
         let [cv, a, b] = self.v.stick_centre;
-        let c = if self.v.speed < cv {
-            a * self.v.speed + b
-        } else {
-            1.0
-        };
-        if g > c {
-            (-(g - c) / (self.v.max_g - c)).max(-1.0)
-        } else {
-            ((g - c) / (self.v.min_g - c)).min(1.0)
-        }
+        let c = if self.v.speed < cv { a * self.v.speed + b } else { 1.0 };
+        if g > c { (-(g - c) / (self.v.max_g - c)).max(-1.0) } else { ((g - c) / (self.v.min_g - c)).min(1.0) }
     }
 
     /// Roll law `5c9bc0`.
     fn roll(&self, target: f32) -> f32 {
         let rmax = self.v.max_roll_rate;
         let r = self.v.rates[1];
-        let d = if r.abs() <= PI {
-            r * rmax
-        } else {
-            0.5 * rmax * r
-        };
-        (wrap(target - self.v.att.roll) / PI * self.c.roll_k / rmax - self.c.roll_beta * d)
-            .clamp(-1.0, 1.0)
+        let d = if r.abs() <= PI { r * rmax } else { 0.5 * rmax * r };
+        (wrap(target - self.v.att.roll) / PI * self.c.roll_k / rmax - self.c.roll_beta * d).clamp(-1.0, 1.0)
     }
 
     /// The g → stick map of the pitch laws: c in ±1 → g (MaxG / MinG) → stick.
     fn g_stick(&self, c: f32) -> f32 {
-        let g = if -c > 0.0 {
-            (self.v.max_g - 1.0) * -c + 1.0
-        } else {
-            (self.v.min_g - 1.0) * c + 1.0
-        };
+        let g = if -c > 0.0 { (self.v.max_g - 1.0) * -c + 1.0 } else { (self.v.min_g - 1.0) * c + 1.0 };
         self.inv_g(g)
     }
 
@@ -295,8 +270,7 @@ impl<'a> Laws<'a> {
         let inv_cos = 1.0 / roll.cos();
         let q0 = self.inv_g(inv_cos).clamp(-1.0, 1.0);
         let e = wrap(target - self.v.att.pitch);
-        let c =
-            (e / PI * self.c.pitch_k * 0.5 - self.v.rates[0] * self.c.pitch_beta).clamp(-1.0, 1.0);
+        let c = (e / PI * self.c.pitch_k * 0.5 - self.v.rates[0] * self.c.pitch_beta).clamp(-1.0, 1.0);
         let mut q = self.g_stick(c);
         if inv_cos >= 0.0 {
             q = -q;
@@ -398,14 +372,9 @@ impl<'a> Laws<'a> {
         } else {
             let psi = v0.atan2(v1);
             let e = wrap(t_roll - roll);
-            let (ncc, crc, slow) = (
-                c.no_change_roll_cone,
-                c.change_roll_cone,
-                c.slow_cone_roll_k,
-            );
+            let (ncc, crc, slow) = (c.no_change_roll_cone, c.change_roll_cone, c.slow_cone_roll_k);
             // 5ada30: the straight line through (x0, y0) and (x1, y1).
-            let line =
-                |x: f32, x0: f32, y0: f32, x1: f32, y1: f32| y0 + (y1 - y0) * (x - x0) / (x1 - x0);
+            let line = |x: f32, x0: f32, y0: f32, x1: f32, y1: f32| y0 + (y1 - y0) * (x - x0) / (x1 - x0);
             roll_err = match case {
                 1 => {
                     if dist >= 1854.0 {
@@ -428,13 +397,8 @@ impl<'a> Laws<'a> {
         // 5cb4d0.
         let rmax = self.v.max_roll_rate;
         let rr = self.v.rates[1];
-        let dd = if rr.abs() <= PI {
-            rr * rmax
-        } else {
-            0.5 * rmax * rr
-        };
-        let x = (roll_err / PI * c.dog_chase_roll_k / rmax - c.dog_chase_roll_beta * dd)
-            .clamp(-1.0, 1.0);
+        let dd = if rr.abs() <= PI { rr * rmax } else { 0.5 * rmax * rr };
+        let x = (roll_err / PI * c.dog_chase_roll_k / rmax - c.dog_chase_roll_beta * dd).clamp(-1.0, 1.0);
         let mut pp = -(elev / PI * c.look_at_k * 0.5 - self.v.rates[0] * c.look_at_beta);
         if pp > 0.0 {
             pp *= 1.98;
@@ -466,8 +430,7 @@ fn change_heading(l: &mut Laws, t: [f64; 2], tol: f32, lim: f32, hold_speed: Opt
     if e.abs() <= tol {
         return Leaf::Done;
     }
-    let bank = (e / (PI / 6.0) * l.c.change_head_k * lim - l.v.rates[2] * l.c.change_head_beta)
-        .clamp(-lim, lim);
+    let bank = (e / (PI / 6.0) * l.c.change_head_k * lim - l.v.rates[2] * l.c.change_head_beta).clamp(-lim, lim);
     let mut y = l.pitch(0.0);
     let mut x = l.roll(bank);
     let mut thr = hold_speed.map_or(0.0, |s| l.thr(s).min(0.7));
@@ -485,13 +448,8 @@ fn change_heading(l: &mut Laws, t: [f64; 2], tol: f32, lim: f32, hold_speed: Opt
 fn change_alt(l: &mut Laws, z: f64) {
     let c130 = l.v.type_code == C130;
     let k = if c130 { 0.002 } else { 0.001 };
-    let (lo, hi) = if c130 {
-        (-PI / 12.0, PI / 18.0)
-    } else {
-        (-PI / 6.0, PI / 12.0)
-    };
-    let pt = ((z - l.v.pos[2]) as f32 * l.c.change_alt_k * (PI / 12.0) * k
-        - l.v.vel[2] as f32 * l.c.change_alt_beta)
+    let (lo, hi) = if c130 { (-PI / 12.0, PI / 18.0) } else { (-PI / 6.0, PI / 12.0) };
+    let pt = ((z - l.v.pos[2]) as f32 * l.c.change_alt_k * (PI / 12.0) * k - l.v.vel[2] as f32 * l.c.change_alt_beta)
         .clamp(lo, hi);
     let mut x = l.roll(0.0);
     let mut y = l.pitch(pt);
@@ -652,11 +610,7 @@ impl Fly2Wp {
             } else {
                 3983.95
             };
-            self.pass.r = if l.mode != 0 && dist2(pos, self.t[0], self.t[1]) < r {
-                r
-            } else {
-                PASS_R
-            };
+            self.pass.r = if l.mode != 0 && dist2(pos, self.t[0], self.t[1]) < r { r } else { PASS_R };
         }
         let done = match self.end_radius {
             Some(r) => dist2(pos, self.t[0], self.t[1]) < r,
@@ -665,28 +619,24 @@ impl Fly2Wp {
         if done {
             return Leaf::Done;
         }
-        let d = ((self.t[0] - pos[0]).powi(2)
-            + (self.t[1] - pos[1]).powi(2)
-            + (self.t[2] - pos[2]).powi(2))
-        .sqrt() as f32;
+        let d =
+            ((self.t[0] - pos[0]).powi(2) + (self.t[1] - pos[1]).powi(2) + (self.t[2] - pos[2]).powi(2)).sqrt() as f32;
         let dt = ((self.eta - l.v.t) * 1000.0).trunc() * 0.001;
         let c130 = l.v.type_code == C130;
         let mut v = if dt > 0.0 {
             let v = d / dt as f32;
-            if c130 {
-                v.clamp(60.0, 215.0)
-            } else {
-                v.clamp(V_MIN_NAV, V_MAX_NAV)
-            }
+            if c130 { v.clamp(60.0, 215.0) } else { v.clamp(V_MIN_NAV, V_MAX_NAV) }
         } else if c130 {
             215.0
         } else {
             V_NO_ETA
         };
         if let Some(cap) = self.cap
-            && d < 6000.0 && v >= cap {
-                v = cap;
-            }
+            && d < 6000.0
+            && v >= cap
+        {
+            v = cap;
+        }
         let thr = l.thr(v);
         l.throttle(thr);
         // The current child.
@@ -697,17 +647,9 @@ impl Fly2Wp {
         };
         let r = match self.child {
             0 => level_wings_accel(l, &mut self.lw_pitch, lw_speed, vmin12),
-            1 => change_heading(
-                l,
-                [self.t[0], self.t[1]],
-                0.02 * PI,
-                80f32.to_radians(),
-                None,
-            ),
+            1 => change_heading(l, [self.t[0], self.t[1]], 0.02 * PI, 80f32.to_radians(), None),
             2 => {
-                if self.pass_alt.test(pos, self.t[0], self.t[1])
-                    || (pos[2] - self.t[2]).abs() < 250.0
-                {
+                if self.pass_alt.test(pos, self.t[0], self.t[1]) || (pos[2] - self.t[2]).abs() < 250.0 {
                     Leaf::Done
                 } else {
                     change_alt(l, self.t[2]);
@@ -793,17 +735,37 @@ enum Loop {
     /// Dogchase (mode 0x11, manager +0x1de8, Run `5cea30`): chase the target (`Autopilot::target`).
     Dogchase,
     /// Shandel (0xd, kind 0x17) / SplitS (0xf, kind 0x16) / Horizontal (0x10, kind 0x18): Run `5d1100`.
-    Pursuit { kind: u8, speed: f32 },
+    Pursuit {
+        kind: u8,
+        speed: f32,
+    },
     /// Himmelman (0xe, Run `5ce8c0`): ChangeAlt, Fly2ImpactPt, Dogchase.
-    Himmelman { child: u8, pt_z: f64 },
+    Himmelman {
+        child: u8,
+        pt_z: f64,
+    },
     /// TailClear (0x14, Run `5dac30`).
-    TailClear { state: u8, a: f64 },
+    TailClear {
+        state: u8,
+        a: f64,
+    },
     /// DiveBomb (0x17, Run `5d8590`).
     DiveBomb(Box<DiveBomb>),
     /// LevelBomb (0x16, Run `5d9290`): to above the target, release, then LevelWingsPitch0Accel.
-    LevelBomb { released: bool, z: f64, lw_pitch: f32 },
+    LevelBomb {
+        released: bool,
+        z: f64,
+        lw_pitch: f32,
+    },
     /// RunAway (0x12, Init `5dd330`, Run `5dd4a0`).
-    RunAway { state: u8, t30: f64, t60: f64, pt: Vec3, speed: f32, thr: f32 },
+    RunAway {
+        state: u8,
+        t30: f64,
+        t60: f64,
+        pt: Vec3,
+        speed: f32,
+        thr: f32,
+    },
     /// Break90 (0x13, Init `5da210`, Run `5da7a0`); set up on its first tick.
     Break90(Option<Box<Break90>>),
     /// PopupRelease (0x18, Init `5ccbd0`, Run `5cc0f0`); set up on its first tick.
@@ -993,7 +955,8 @@ fn himmelman(l: &mut Laws, t: &Leader, child: &mut u8, pt_z: &mut f64, origin: [
     if *child == 0 {
         let dt = c.watch_ground_dt as f64;
         let p1 = v.pos + v.vel * dt;
-        let z = (((l.ground)(v.pos[0], v.pos[1]) as f64 + 333.0 + (l.ground)(p1[0], p1[1]) as f64) * 0.5).clamp(-100.0, 3200.0);
+        let z = (((l.ground)(v.pos[0], v.pos[1]) as f64 + 333.0 + (l.ground)(p1[0], p1[1]) as f64) * 0.5)
+            .clamp(-100.0, 3200.0);
         if (*pt_z - z).abs() > 200.0 {
             *pt_z = z;
         }
@@ -1109,7 +1072,15 @@ fn angle_to(att: [f32; 3], p: Vec3, pt: Vec3) -> f32 {
 /// beyond 9270 m, after 60 s or with the target's nose more than 60° off me, fly to −1854000·F_T, an ABSOLUTE point
 /// (state 2, quirk); else attack the target + 30 m on each axis at throttle 1.0 (state 3). The states flip every tick
 /// at the borders (quirk, as coded). The throttle, posted last, overrides everything: 1.0 for 30 s, then 0.75.
-fn run_away(l: &mut Laws, t: &Leader, state: &mut u8, times: (f64, f64), pt: &mut Vec3, speed: &mut f32, thr: &mut f32) {
+fn run_away(
+    l: &mut Laws,
+    t: &Leader,
+    state: &mut u8,
+    times: (f64, f64),
+    pt: &mut Vec3,
+    speed: &mut f32,
+    thr: &mut f32,
+) {
     let v = l.v;
     let d = t.pos - v.pos;
     let n = d.try_normalize().unwrap_or(Vec3::ZERO);
@@ -1486,7 +1457,12 @@ impl Acu {
                     break;
                 }
                 let r = (v.speed * v.speed / (bank.tan().abs() * 9.806)) as f64;
-                let (m, cc) = if p[0] != q[0] { let m = (p[1] - q[1]) / (p[0] - q[0]); (m, p[1] - p[0] * m) } else { (0.0, 0.0) };
+                let (m, cc) = if p[0] != q[0] {
+                    let m = (p[1] - q[1]) / (p[0] - q[0]);
+                    (m, p[1] - p[0] * m)
+                } else {
+                    (0.0, 0.0)
+                };
                 let h = v.att.heading as f64;
                 let sb = bank.signum() as f64;
                 let cx = pos[0] + sb * r * h.cos();
@@ -1647,10 +1623,7 @@ impl Autopilot {
         self.next_tick = now + 0.5;
         let v = ac.ap_view();
         self.lp = match mode {
-            7 => Loop::Nav {
-                f: None,
-                idx: self.wp_index,
-            },
+            7 => Loop::Nav { f: None, idx: self.wp_index },
             8 => self.go_home(&v, now),
             9 => {
                 let (ka_target, ka_speed, ka_radius) = match self.route.first() {
@@ -1675,16 +1648,12 @@ impl Autopilot {
                     ka_radius,
                 }
             }
-            1 | 3 => Loop::Formation {
-                recover: false,
-                lateral: if mode == 1 { 100.0 } else { 200.0 },
-                longitudinal: -20.0,
-            },
+            1 | 3 => {
+                Loop::Formation { recover: false, lateral: if mode == 1 { 100.0 } else { 200.0 }, longitudinal: -20.0 }
+            }
             10 => {
                 let g = v.ground_height;
-                Loop::Hold {
-                    t: Vec3::new(v.pos[0], v.pos[1], v.pos[2].max(g as f64 + 300.0)),
-                }
+                Loop::Hold { t: Vec3::new(v.pos[0], v.pos[1], v.pos[2].max(g as f64 + 300.0)) }
             }
             0xb => Loop::Straight { pitch: 0.0 },
             0x11 => Loop::Dogchase,
@@ -1698,7 +1667,9 @@ impl Autopilot {
             0x12 => Loop::RunAway { state: 0, t30: now + 30.0, t60: now + 60.0, pt: Vec3::ZERO, speed: 0.0, thr: 0.0 },
             0x13 => Loop::Break90(None),
             0x18 => Loop::Popup(None),
-            0x17 => Loop::DiveBomb(Box::new(DiveBomb { state: 0, a: None, b: (Vec3::ZERO, 0.0, 0.0, 4), lw_pitch: 0.0 })),
+            0x17 => {
+                Loop::DiveBomb(Box::new(DiveBomb { state: 0, a: None, b: (Vec3::ZERO, 0.0, 0.0, 4), lw_pitch: 0.0 }))
+            }
             _ => Loop::None,
         };
         self.nose_on = false;
@@ -1753,25 +1724,19 @@ impl Autopilot {
         let vmin25 = ac.vmin(v.pos[2] as f32, 2.5);
         let vmin1 = ac.vmin(v.pos[2] as f32, 1.0);
         let cfg = self.cfg;
-        let mut l = Laws {
-            c: &cfg,
-            v: &v,
-            mode: self.mode,
-            watch: self.watch,
-            ground,
-            out: Out::default(),
-            period: None,
-        };
+        let mut l =
+            Laws { c: &cfg, v: &v, mode: self.mode, watch: self.watch, ground, out: Out::default(), period: None };
         let mut lp = std::mem::replace(&mut self.lp, Loop::None);
         let mut period = self.period;
         match &mut lp {
             Loop::Nav { f, idx } => {
                 let mut advance = f.is_none();
                 if let Some(ff) = f
-                    && ff.step(&mut l, vmin12) == Leaf::Done {
-                        l.stick(0.0, 0.0); // 5c99e0
-                        advance = true;
-                    }
+                    && ff.step(&mut l, vmin12) == Leaf::Done
+                {
+                    l.stick(0.0, 0.0); // 5c99e0
+                    advance = true;
+                }
                 if advance {
                     // WayPtSet next (5d7450): the next waypoint, or the stick centred past the last.
                     match self.route.get(*idx).copied() {
@@ -1803,13 +1768,7 @@ impl Autopilot {
                     }
                 }
             }
-            Loop::TakeOff {
-                stage,
-                taxi,
-                ka_target,
-                ka_speed,
-                ka_radius,
-            } => match stage {
+            Loop::TakeOff { stage, taxi, ka_target, ka_speed, ka_radius } => match stage {
                 0 => {
                     period = 0.2;
                     if taxi.step(&mut l, self, false) == Leaf::Done {
@@ -1837,11 +1796,7 @@ impl Autopilot {
                 }
                 _ => l.stick(0.0, 0.0),
             },
-            Loop::Formation {
-                recover,
-                lateral,
-                longitudinal,
-            } => {
+            Loop::Formation { recover, lateral, longitudinal } => {
                 period = 0.25;
                 self.formation_step(&mut l, recover, lateral, *longitudinal, vmin125, vmin25);
             }
@@ -1865,10 +1820,11 @@ impl Autopilot {
             },
             Loop::Fly { f } => {
                 if let Some(ff) = f
-                    && ff.step(&mut l, vmin12) == Leaf::Done {
-                        l.stick(0.0, 0.0);
-                        *f = None;
-                    }
+                    && ff.step(&mut l, vmin12) == Leaf::Done
+                {
+                    l.stick(0.0, 0.0);
+                    *f = None;
+                }
             }
             Loop::Dogchase => match self.target {
                 Some(t) => self.nose_on = dogchase(&mut l, &t),
@@ -2026,11 +1982,7 @@ impl Autopilot {
             }
             return;
         }
-        let e = crate::aircraft::Euler {
-            pitch: ld.att[0],
-            roll: ld.att[1],
-            heading: ld.att[2],
-        };
+        let e = crate::aircraft::Euler { pitch: ld.att[0], roll: ld.att[1], heading: ld.att[2] };
         let (f, _, u) = e.basis();
         let an = f[0].hypot(f[1]).max(1e-9);
         let a = Vec3::new(f[0] / an, f[1] / an, 0.0);
@@ -2061,9 +2013,8 @@ impl Autopilot {
         let cosang = dn.dot(lvn).clamp(-1.0, 1.0);
         let xx = ((cosang.acos() - std::f64::consts::FRAC_PI_2) * dl.min(5562.0) / 4500.0) as f32;
         let vl = vl as f32;
-        let spd = (vl + 2.0 * vl * (xx - xx * xx / 2.0 + xx.powi(3) / 6.0 - xx.powi(4) / 24.0)
-            - 30.0)
-            .clamp(103.0, 515.0);
+        let spd =
+            (vl + 2.0 * vl * (xx - xx * xx / 2.0 + xx.powi(3) / 6.0 - xx.powi(4) / 24.0) - 30.0).clamp(103.0, 515.0);
         let mut thr = l.thr(spd);
         l.watch_ground(&mut x, &mut y, &mut thr);
         l.stick(y, x);
@@ -2077,11 +2028,7 @@ impl Taxi {
         let v = l.v;
         let pos = v.pos;
         let Some((bi, base)) = ap.bases.iter().enumerate().min_by(|a, b| {
-            let d = |x: &Airbase| {
-                (0..3)
-                    .map(|i| (x.lineup[i] as f64 - pos[i]).powi(2))
-                    .sum::<f64>()
-            };
+            let d = |x: &Airbase| (0..3).map(|i| (x.lineup[i] as f64 - pos[i]).powi(2)).sum::<f64>();
             d(a.1).total_cmp(&d(b.1))
         }) else {
             return Leaf::Done;
@@ -2092,11 +2039,7 @@ impl Taxi {
             self.at_lineup = dist2(pos, lineup[0] as f64, lineup[1] as f64) < 100.0;
             if !self.park {
                 let wp0 = ap.route.first().map_or(0.0, |w| w.t);
-                self.start = if ap.leader.is_none() {
-                    wp0
-                } else {
-                    wp0 + if self.at_lineup { 0.0 } else { 10.0 }
-                };
+                self.start = if ap.leader.is_none() { wp0 } else { wp0 + if self.at_lineup { 0.0 } else { 10.0 } };
                 self.waiting = true;
             }
             if self.at_lineup && !self.park {
@@ -2113,30 +2056,20 @@ impl Taxi {
                 path.extend(base.from_taxi.iter().copied());
                 // Drop the points before the one nearest in 2-D.
                 if let Some((n, _)) = path.iter().enumerate().min_by(|a, b| {
-                    dist2(pos, a.1.x as f64, a.1.y as f64).total_cmp(&dist2(
-                        pos,
-                        b.1.x as f64,
-                        b.1.y as f64,
-                    ))
+                    dist2(pos, a.1.x as f64, a.1.y as f64).total_cmp(&dist2(pos, b.1.x as f64, b.1.y as f64))
                 }) {
                     path.drain(..n);
                 }
-                let at_hangar = h.is_some_and(|h| {
-                    dist2(pos, base.hangars[h].x as f64, base.hangars[h].y as f64) <= 100.0
-                });
-                if !at_hangar
-                    && let Some(p0) = path.first() {
-                        // Re-placed 60 m before the first point on its heading, at rest (UNCERTAIN: the sign).
-                        let x = p0.x as f64 - 60.0 * (p0.hdg as f64).sin();
-                        let y = p0.y as f64 - 60.0 * (p0.hdg as f64).cos();
-                        l.out.replace = Some((x, y, p0.hdg));
-                    }
+                let at_hangar =
+                    h.is_some_and(|h| dist2(pos, base.hangars[h].x as f64, base.hangars[h].y as f64) <= 100.0);
+                if !at_hangar && let Some(p0) = path.first() {
+                    // Re-placed 60 m before the first point on its heading, at rest (UNCERTAIN: the sign).
+                    let x = p0.x as f64 - 60.0 * (p0.hdg as f64).sin();
+                    let y = p0.y as f64 - 60.0 * (p0.hdg as f64).cos();
+                    l.out.replace = Some((x, y, p0.hdg));
+                }
                 if path.first().is_some_and(|p| {
-                    dist2(
-                        Vec3::new(p.x as f64, p.y as f64, 0.0),
-                        lineup[0] as f64,
-                        lineup[1] as f64,
-                    ) < 100.0
+                    dist2(Vec3::new(p.x as f64, p.y as f64, 0.0), lineup[0] as f64, lineup[1] as f64) < 100.0
                 }) {
                     self.at_lineup = true;
                 }
@@ -2449,8 +2382,7 @@ impl Landing {
         let vt = (vmin1 + 10.2944).max(72.0611);
         let thr = l.thr(vt).min(0.5);
         let e = wrap(self.rn - v.att.heading);
-        let bank = (-0.001_396_3 * cross + e * l.c.change_head_k / 3.0
-            - l.c.change_head_beta * v.rates[2])
+        let bank = (-0.001_396_3 * cross + e * l.c.change_head_k / 3.0 - l.c.change_head_beta * v.rates[2])
             .clamp(-deg80(), deg80());
         let kz = if above < 0.0 {
             0.03
@@ -2459,8 +2391,7 @@ impl Landing {
         } else {
             0.3
         };
-        let pitch_deg =
-            -kz * above - 0.5 * v.rates[0].to_degrees() - if along < -1000.0 { 6.0 } else { 4.0 };
+        let pitch_deg = -kz * above - 0.5 * v.rates[0].to_degrees() - if along < -1000.0 { 6.0 } else { 4.0 };
         let y = l.pitch(pitch_deg.to_radians());
         let x = l.roll(bank);
         l.stick(y, x);
@@ -2503,14 +2434,8 @@ impl Landing {
     fn park_step(&mut self, l: &mut Laws, ap: &Autopilot) -> Leaf {
         let v = l.v;
         if self.park.is_none() {
-            let base = Airbase::nearest(
-                &ap.bases,
-                [v.pos[0] as f32, v.pos[1] as f32, v.pos[2] as f32],
-            );
-            let t = base.and_then(|b| {
-                b.hangar_near(v.pos[0] as f32, v.pos[1] as f32)
-                    .map(|h| b.hangars[h])
-            });
+            let base = Airbase::nearest(&ap.bases, [v.pos[0] as f32, v.pos[1] as f32, v.pos[2] as f32]);
+            let t = base.and_then(|b| b.hangar_near(v.pos[0] as f32, v.pos[1] as f32).map(|h| b.hangars[h]));
             let Some(t) = t else { return Leaf::Done };
             self.park = Some((t.x as f64, t.y as f64, t.hdg, 1000.0));
         }
@@ -2543,20 +2468,12 @@ mod tests {
     fn landing_points_are_f32_like_the_original() {
         // Runway 270 at Ramat David: in f32 the cos θ residue (~1e-8) vanishes, so the downwind, base and final
         // legs are exactly axis-parallel (the tangent search's x == x / y == y branches).
-        let b = Airbase {
-            lineup: [356483.0, 602383.0, 63.0],
-            runway_deg: 270.0,
-            ..Default::default()
-        };
+        let b = Airbase { lineup: [356483.0, 602383.0, 63.0], runway_deg: 270.0, ..Default::default() };
         let l = Landing::new(&[b], [0.0; 2], Vec3::new(351083.0, 602383.0, 1500.0), 0, true).unwrap();
         let p = l.pts;
         assert_eq!((p[0][1], p[1][1]), (596821.0, 596821.0), "downwind P1 → P2");
         assert_eq!((p[1][0], p[2][0]), (363899.0, 363899.0), "base P2 → P3");
-        assert_eq!(
-            (p[2][1], p[3][1], p[4][1]),
-            (602383.0, 602383.0, 602383.0),
-            "final P3 → P4 → P5"
-        );
+        assert_eq!((p[2][1], p[3][1], p[4][1]), (602383.0, 602383.0, 602383.0), "final P3 → P4 → P5");
         assert_eq!(p[3][0], 360191.0);
     }
 

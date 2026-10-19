@@ -87,13 +87,31 @@ pub enum Align {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Prim {
-    Line { a: P, b: P },
-    Circle { c: P, r: f64 },
+    Line {
+        a: P,
+        b: P,
+    },
+    Circle {
+        c: P,
+        r: f64,
+    },
     /// A filled dot.
-    Dot { c: P, r: f64 },
+    Dot {
+        c: P,
+        r: f64,
+    },
     /// An arc from `from` clockwise through `sweep` (radians, 0 = 12 o'clock).
-    Arc { c: P, r: f64, from: f64, sweep: f64 },
-    Text { at: P, text: String, align: Align },
+    Arc {
+        c: P,
+        r: f64,
+        from: f64,
+        sweep: f64,
+    },
+    Text {
+        at: P,
+        text: String,
+        align: Align,
+    },
 }
 
 fn line(a: P, b: P) -> Prim {
@@ -635,7 +653,8 @@ mod tests {
         let mut p = Vec::new();
         let i = Input { g: 4.0, ..input(Jet::F16) };
         funnel(&mut p, &i, 3000.0);
-        let lines: Vec<(P, P)> = p.iter().filter_map(|x| if let Prim::Line { a, b } = x { Some((*a, *b)) } else { None }).collect();
+        let lines: Vec<(P, P)> =
+            p.iter().filter_map(|x| if let Prim::Line { a, b } = x { Some((*a, *b)) } else { None }).collect();
         let (near, far) = (lines[0].0, lines[lines.len() / 2 - 1].1);
         assert!(far.1 > near.1, "pulling 4 g: the far end of the funnel lower");
         assert!(far.0 > near.0, "the left line narrows toward the centre");

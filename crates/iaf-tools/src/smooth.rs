@@ -144,7 +144,12 @@ pub fn refine(tris: &[Tri]) -> Vec<Tri> {
         };
         let mut push = |a: (usize, usize), b: (usize, usize), c: (usize, usize)| {
             let (va, vb, vc) = (vert(a.0, a.1), vert(b.0, b.1), vert(c.0, c.1));
-            out.push(Tri { p: [va.0, vb.0, vc.0], n: [va.1, vb.1, vc.1], uv: [va.2, vb.2, vc.2], material: t.material });
+            out.push(Tri {
+                p: [va.0, vb.0, vc.0],
+                n: [va.1, vb.1, vc.1],
+                uv: [va.2, vb.2, vc.2],
+                material: t.material,
+            });
         };
         for i in 0..LEVEL {
             for j in 0..LEVEL - i {
@@ -191,7 +196,12 @@ fn flat_pieces(tris: &[Tri]) -> Vec<(V3, Vec<V3>)> {
         .iter()
         .map(|t| {
             let f = cross(sub(t.p[1], t.p[0]), sub(t.p[2], t.p[0]));
-            if dot(f, f) < 1e-14 { None } else { let n = normalize(f); Some((n, dot(n, t.p[0]))) }
+            if dot(f, f) < 1e-14 {
+                None
+            } else {
+                let n = normalize(f);
+                Some((n, dot(n, t.p[0])))
+            }
         })
         .collect();
     let mut comp = vec![usize::MAX; tris.len()];
@@ -251,7 +261,10 @@ fn axes(tris: &[Tri]) -> Vec<V3> {
         }
         let n = normalize(fnrm);
         let d = dot(n, t.p[0]);
-        let g = match groups.iter().position(|g| dot(g.0, n).abs() > 0.999 && (g.1 - d * dot(g.0, n).signum()).abs() < 1e-3) {
+        let g = match groups
+            .iter()
+            .position(|g| dot(g.0, n).abs() > 0.999 && (g.1 - d * dot(g.0, n).signum()).abs() < 1e-3)
+        {
             Some(g) => g,
             None => {
                 groups.push((n, d, Vec::new()));
@@ -314,7 +327,8 @@ fn find_caps(tris: &[Tri]) -> Vec<Loft> {
             let before = rings.len();
             let c = ps.iter().fold([0.0f32; 2], |a, q| [a[0] + q[0], a[1] + q[1]]).map(|v| v / ps.len() as f32);
             // Concentric layers: cluster by distance from the centre.
-            let mut ds: Vec<([f32; 2], f32)> = ps.iter().map(|q| (*q, ((q[0] - c[0]).powi(2) + (q[1] - c[1]).powi(2)).sqrt())).collect();
+            let mut ds: Vec<([f32; 2], f32)> =
+                ps.iter().map(|q| (*q, ((q[0] - c[0]).powi(2) + (q[1] - c[1]).powi(2)).sqrt())).collect();
             ds.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
             let mut layer: Vec<([f32; 2], f32)> = Vec::new();
             let flush = |layer: &mut Vec<([f32; 2], f32)>, rings: &mut Vec<(usize, Ring)>| {
@@ -325,7 +339,8 @@ fn find_caps(tris: &[Tri]) -> Vec<Loft> {
                     ang.sort_by(|a, b| a.partial_cmp(b).unwrap());
                     let step = std::f32::consts::TAU / n as f32;
                     let even = (0..n).all(|i| {
-                        let g = if i + 1 < n { ang[i + 1] - ang[i] } else { ang[0] + std::f32::consts::TAU - ang[n - 1] };
+                        let g =
+                            if i + 1 < n { ang[i + 1] - ang[i] } else { ang[0] + std::f32::consts::TAU - ang[n - 1] };
                         (g - step).abs() < 0.25 * step
                     });
                     if r > 1e-4 && even && layer.iter().all(|x| (x.1 - r).abs() < 0.08 * r) {
@@ -339,9 +354,10 @@ fn find_caps(tris: &[Tri]) -> Vec<Loft> {
                     continue; // a centre vertex
                 }
                 if let Some(last) = layer.last()
-                    && d.1 > last.1 * 1.15 {
-                        flush(&mut layer, &mut rings);
-                    }
+                    && d.1 > last.1 * 1.15
+                {
+                    flush(&mut layer, &mut rings);
+                }
                 layer.push(d);
             }
             flush(&mut layer, &mut rings);
@@ -362,7 +378,10 @@ fn find_caps(tris: &[Tri]) -> Vec<Loft> {
             let c = proj(c3);
             let q = proj(pts[0]);
             let phase = (0..pts.len())
-                .map(|i| { let q = proj(pts[i]); (q[1] - c[1]).atan2(q[0] - c[0]) })
+                .map(|i| {
+                    let q = proj(pts[i]);
+                    (q[1] - c[1]).atan2(q[0] - c[0])
+                })
                 .fold(f32::INFINITY, f32::min);
             let _ = q;
             rings.push((pts.len(), Ring { t, c, r, phase }));

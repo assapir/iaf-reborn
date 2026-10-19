@@ -53,7 +53,11 @@ fn probe(path: &Path) -> Result<CdKind> {
     if trx >= 5 {
         return Ok(CdKind::Hebrew);
     }
-    let exe = esa.entries.iter().find(|e| e.name.eq_ignore_ascii_case("iafjets.exe")).context("no iafjets.exe in the archive")?;
+    let exe = esa
+        .entries
+        .iter()
+        .find(|e| e.name.eq_ignore_ascii_case("iafjets.exe"))
+        .context("no iafjets.exe in the archive")?;
     match PeImage::parse(esa.extract(exe)?).and_then(|p| p.release()) {
         Ok(_) => Ok(CdKind::English),
         Err(e) => Ok(CdKind::NotIaf(format!("iafjets.exe is no known release: {e:#}"))),
@@ -80,9 +84,13 @@ pub struct PackInfo {
 /// Counts a pack's briefing and menu files (`Brief/…`, `Menu/…` at its root, any case).
 pub fn check_pack(path: &Path) -> Result<PackInfo> {
     let names: Vec<String> = if path.is_dir() {
-        iaf_tools::walk_files(path)?.iter().filter_map(|f| f.strip_prefix(path).ok().map(|r| r.to_string_lossy().replace('\\', "/"))).collect()
+        iaf_tools::walk_files(path)?
+            .iter()
+            .filter_map(|f| f.strip_prefix(path).ok().map(|r| r.to_string_lossy().replace('\\', "/")))
+            .collect()
     } else {
-        let zip = zip::ZipArchive::new(std::fs::File::open(path).with_context(|| format!("{}", path.display()))?).context("not a zip")?;
+        let zip = zip::ZipArchive::new(std::fs::File::open(path).with_context(|| format!("{}", path.display()))?)
+            .context("not a zip")?;
         zip.file_names().filter_map(|n| n.ok()).map(|n| n.replace('\\', "/")).collect()
     };
     let mut info = PackInfo::default();

@@ -40,7 +40,11 @@ fn from_ecef(p: [f64; 3], f: f64) -> (f64, f64) {
 fn tm(lon: f64, lat: f64) -> [f64; 2] {
     let n = GRS80_F / (2.0 - GRS80_F);
     let a = GRS80_A / (1.0 + n) * (1.0 + n * n / 4.0 + n.powi(4) / 64.0);
-    let al = [n / 2.0 - 2.0 * n * n / 3.0 + 5.0 * n.powi(3) / 16.0, 13.0 * n * n / 48.0 - 3.0 * n.powi(3) / 5.0, 61.0 * n.powi(3) / 240.0];
+    let al = [
+        n / 2.0 - 2.0 * n * n / 3.0 + 5.0 * n.powi(3) / 16.0,
+        13.0 * n * n / 48.0 - 3.0 * n.powi(3) / 5.0,
+        61.0 * n.powi(3) / 240.0,
+    ];
     let c = 2.0 * n.sqrt() / (1.0 + n);
     let xi_eta = |lon: f64, lat: f64| {
         let s = lat.sin();

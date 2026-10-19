@@ -3,8 +3,8 @@
 
 use crate::world::{get, num};
 use godot::prelude::*;
-use iaf_avionics::imode::{self, Aircraft, Camera, Entry};
 use iaf_avionics::Vec3;
+use iaf_avionics::imode::{self, Aircraft, Camera, Entry};
 
 fn v(p: Vector3) -> Vec3 {
     Vec3::new(p.x.into(), p.y.into(), p.z.into())
@@ -34,7 +34,10 @@ impl IafImode {
         };
         imode::scan(v(own), list, &c, view_h as i32)
             .iter()
-            .map(|e| vdict! { "x" => e.x, "y" => e.y, "friend" => e.friend, "dist" => e.dist, "off_axis" => e.off_axis }.to_variant())
+            .map(|e| {
+                vdict! { "x" => e.x, "y" => e.y, "friend" => e.friend, "dist" => e.dist, "off_axis" => e.off_axis }
+                    .to_variant()
+            })
             .collect()
     }
 

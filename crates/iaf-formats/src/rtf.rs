@@ -46,7 +46,14 @@ fn color_table(data: &[u8]) -> Vec<Option<[u8; 3]>> {
     body.split(';')
         .map(|entry| {
             let get = |name: &str| {
-                entry.find(name).and_then(|j| entry[j + name.len()..].chars().take_while(|c| c.is_ascii_digit()).collect::<String>().parse::<u8>().ok())
+                entry.find(name).and_then(|j| {
+                    entry[j + name.len()..]
+                        .chars()
+                        .take_while(|c| c.is_ascii_digit())
+                        .collect::<String>()
+                        .parse::<u8>()
+                        .ok()
+                })
             };
             match (get("\\red"), get("\\green"), get("\\blue")) {
                 (Some(r), Some(g), Some(b)) => Some([r, g, b]),
@@ -168,9 +175,21 @@ pub fn to_bbcode(data: &[u8]) -> String {
                 // Destinations we don't render.
                 let rest = &data[i..];
                 if rest.starts_with(b"\\*")
-                    || [&b"\\fonttbl"[..], b"\\colortbl", b"\\stylesheet", b"\\info", b"\\listtable", b"\\listoverridetable", b"\\pict", b"\\object", b"\\header", b"\\footer", b"\\pn"]
-                        .iter()
-                        .any(|d| rest.starts_with(d))
+                    || [
+                        &b"\\fonttbl"[..],
+                        b"\\colortbl",
+                        b"\\stylesheet",
+                        b"\\info",
+                        b"\\listtable",
+                        b"\\listoverridetable",
+                        b"\\pict",
+                        b"\\object",
+                        b"\\header",
+                        b"\\footer",
+                        b"\\pn",
+                    ]
+                    .iter()
+                    .any(|d| rest.starts_with(d))
                 {
                     st.skip = true;
                 }
@@ -299,11 +318,14 @@ mod tests {
 
     #[test]
     fn basic_and_hebrew() {
-        let en = to_bbcode(br"{\rtf1\ansi\ansicpg1252{\fonttbl{\f0 Arial;}}\plain\b Mission:\b0  Engines ON\par Line [2]}");
+        let en =
+            to_bbcode(br"{\rtf1\ansi\ansicpg1252{\fonttbl{\f0 Arial;}}\plain\b Mission:\b0  Engines ON\par Line [2]}");
         assert_eq!(en, "[b]Mission:[/b] Engines ON\nLine [lb]2[rb]");
         let he = to_bbcode(br"{\rtf1\ansi\ansicpg1255\plain\rtlch \'ee\'e0\'fa\par}");
         assert_eq!(he, "מאת");
-        let he2 = to_bbcode(br"{\rtf1\ansi\ansicpg1252{\fonttbl{\f0 Arial;}{\f4\fcharset177 David;}}\plain\f4 \'ee\'e0\'fa\par}");
+        let he2 = to_bbcode(
+            br"{\rtf1\ansi\ansicpg1252{\fonttbl{\f0 Arial;}{\f4\fcharset177 David;}}\plain\f4 \'ee\'e0\'fa\par}",
+        );
         assert_eq!(he2, "מאת");
     }
 }

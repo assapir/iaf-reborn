@@ -100,7 +100,18 @@ pub struct Angle {
 
 impl Angle {
     pub fn new(pos: f64, start_accel: f32, stop_accel: f32, max_rate: f32) -> Self {
-        Self { t0: 0.0, pos0: pos, rate0: 0.0, target_rate: 0.0, t_end: 0.0, pos_end: pos, accel: 0.0, start_accel, stop_accel, max_rate }
+        Self {
+            t0: 0.0,
+            pos0: pos,
+            rate0: 0.0,
+            target_rate: 0.0,
+            t_end: 0.0,
+            pos_end: pos,
+            accel: 0.0,
+            start_accel,
+            stop_accel,
+            max_rate,
+        }
     }
 
     /// (angle, rate) at time `t`.

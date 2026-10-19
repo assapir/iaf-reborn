@@ -78,12 +78,7 @@ impl<'a> Esa<'a> {
                 .map_err(|e| Error::Format(format!("{}: DCL explode failed: {e:?}", entry.name)))?,
         };
         if out.len() != entry.size as usize {
-            return Err(Error::Format(format!(
-                "{}: expected {} bytes, got {}",
-                entry.name,
-                entry.size,
-                out.len()
-            )));
+            return Err(Error::Format(format!("{}: expected {} bytes, got {}", entry.name, entry.size, out.len())));
         }
         Ok(out)
     }

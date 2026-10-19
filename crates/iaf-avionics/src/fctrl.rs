@@ -65,10 +65,7 @@ impl Call {
         let m = format!("MILES{:02}", self.miles);
         if self.long {
             let h = format!("HEADING{:03}", self.heading);
-            (
-                "ACFT_FCTRL_LONG",
-                vec![format!("{callsign}_r"), b, m, desc.into(), h, instr.into()],
-            )
+            ("ACFT_FCTRL_LONG", vec![format!("{callsign}_r"), b, m, desc.into(), h, instr.into()])
         } else {
             ("ACFT_FCTRL_SHORT", vec![b, m, desc.into()])
         }
@@ -144,11 +141,7 @@ pub fn bearing(from: Vec3, to: Vec3) -> f32 {
     let n = (dx * dx + dy * dy).sqrt();
     let s = if n == 0.0 { 1.0 } else { 1.0 / n };
     let a = (dy * s).clamp(-1.0, 1.0).acos();
-    if dx * s >= 0.0 {
-        a * 57.32484
-    } else {
-        (6.28 - a) * 57.32484
-    }
+    if dx * s >= 0.0 { a * 57.32484 } else { (6.28 - a) * 57.32484 }
 }
 
 /// `FUN_0054bbf0`: degrees truncated to tens; 0 is 360.
@@ -284,11 +277,7 @@ impl FlightController {
             {
                 continue;
             }
-            let delta = [
-                (player.x - u.pos.x) as f32,
-                (player.y - u.pos.y) as f32,
-                (player.z - u.pos.z) as f32,
-            ];
+            let delta = [(player.x - u.pos.x) as f32, (player.y - u.pos.y) as f32, (player.z - u.pos.z) as f32];
             let dist = (delta[0] * delta[0] + delta[1] * delta[1] + delta[2] * delta[2]).sqrt();
             if !u.enemy && dist > FRIEND_RANGE {
                 continue;
@@ -328,20 +317,10 @@ impl FlightController {
         long_always: bool,
     ) -> Option<Call> {
         // Another unit of the same formation name already has a slot: this one is not called (nor kept).
-        if self
-            .slots
-            .iter()
-            .any(|s| s.key != u.key && eq_ic(&s.callsign, &u.callsign))
-        {
+        if self.slots.iter().any(|s| s.key != u.key && eq_ic(&s.callsign, &u.callsign)) {
             return None;
         }
-        let call = |long, miles| Call {
-            long,
-            code,
-            bearing: tens(bearing),
-            miles,
-            heading: tens(heading),
-        };
+        let call = |long, miles| Call { long, code, bearing: tens(bearing), miles, heading: tens(heading) };
         if let Some(s) = self.slots.iter_mut().find(|s| s.key == u.key) {
             s.dist = dist;
             s.seen = true;
@@ -361,14 +340,7 @@ impl FlightController {
             return Some(call(long, m));
         }
         let s = self.slots.iter_mut().find(|s| s.key.is_empty())?;
-        *s = Slot {
-            key: u.key.clone(),
-            dist,
-            delta,
-            life: LIFE,
-            seen: true,
-            callsign: u.callsign.clone(),
-        };
+        *s = Slot { key: u.key.clone(), dist, delta, life: LIFE, seen: true, callsign: u.callsign.clone() };
         Some(call(true, miles(dist)?))
     }
 
@@ -411,12 +383,7 @@ impl FlightController {
         } else if k.enemy || !k.air() || k.klass != 0x1c {
             return None; // the enemy's own-side kills only log ":Enemy shot its own side target"
         } else {
-            (
-                "SHOT_FRIENDLY_PHRASE",
-                k.callsign.clone(),
-                if v.air() { air(v) } else { ground(v) },
-                String::new(),
-            )
+            ("SHOT_FRIENDLY_PHRASE", k.callsign.clone(), if v.air() { air(v) } else { ground(v) }, String::new())
         };
         if t == "SHOT_GROUND_TARGET" {
             // Ground kills by the same callsign inside the gate: the third and later become MULTITARGET, then "".
@@ -517,29 +484,10 @@ mod tests {
             enemy("e", "Echo", 0.0, 97000.0),
         ];
         let calls = fc.scan(p, &units, false);
-        assert_eq!(
-            calls,
-            vec![Call {
-                long: true,
-                code: 1,
-                bearing: 90,
-                miles: 15,
-                heading: 90
-            }]
-        );
+        assert_eq!(calls, vec![Call { long: true, code: 1, bearing: 90, miles: 15, heading: 90 }]);
         let (t, args) = calls[0].phrase("Alpha");
         assert_eq!(t, "ACFT_FCTRL_LONG");
-        assert_eq!(
-            args,
-            [
-                "Alpha_r",
-                "BEARING090",
-                "MILES15",
-                "DESC_TARGET",
-                "HEADING090",
-                "FREE_TO_ENGAGE"
-            ]
-        );
+        assert_eq!(args, ["Alpha_r", "BEARING090", "MILES15", "DESC_TARGET", "HEADING090", "FREE_TO_ENGAGE"]);
         // Known contacts are called again after 5 scans (60 s), short unless at 10 / 20 / 30 nm.
         for _ in 0..4 {
             assert!(fc.scan(p, &units, false).is_empty());
@@ -561,13 +509,7 @@ mod tests {
     }
 
     fn unit(enemy: bool, klass: i64, type_code: i64, cs: &str) -> KillUnit {
-        KillUnit {
-            enemy,
-            klass,
-            type_code,
-            name: "x".into(),
-            callsign: cs.into(),
-        }
+        KillUnit { enemy, klass, type_code, name: "x".into(), callsign: cs.into() }
     }
 
     #[test]
@@ -576,20 +518,11 @@ mod tests {
         let me = unit(false, 0x1c, 100, "ALPHALEADER");
         let mig = unit(true, 0x1c, 180, "ENEMYLEADER");
         let sam = unit(true, 8, 300, "");
-        assert_eq!(
-            fc.kill(0.0, &mig, &me, true),
-            Some(("SHOT_ENEMY", "ALPHALEADER".into(), "MIG29".into()))
-        );
+        assert_eq!(fc.kill(0.0, &mig, &me, true), Some(("SHOT_ENEMY", "ALPHALEADER".into(), "MIG29".into())));
         // The same call again within 3 s is dropped.
         assert_eq!(fc.kill(1.0, &mig, &me, true), None);
-        assert_eq!(
-            fc.kill(5.0, &me, &mig, true),
-            Some(("SHOT_BY_ENEMY", "ALPHALEADER".into(), "MIG29".into()))
-        );
-        assert_eq!(
-            fc.kill(10.0, &me, &sam, true),
-            Some(("SHOT_BY_GROUND_TARGET", "ALPHALEADER".into(), "SAM".into()))
-        );
+        assert_eq!(fc.kill(5.0, &me, &mig, true), Some(("SHOT_BY_ENEMY", "ALPHALEADER".into(), "MIG29".into())));
+        assert_eq!(fc.kill(10.0, &me, &sam, true), Some(("SHOT_BY_GROUND_TARGET", "ALPHALEADER".into(), "SAM".into())));
         // Ground kills: the second inside the gate as is, the third MULTITARGET.
         let tank = unit(true, 5, 250, "");
         let truck = unit(true, 5, 260, "");

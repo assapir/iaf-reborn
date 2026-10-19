@@ -166,7 +166,8 @@ impl Builder {
     fn push_indices(&mut self, data: &[u32]) -> usize {
         let bytes: Vec<u8> = data.iter().flat_map(|i| i.to_le_bytes()).collect();
         let view = self.push_view(&bytes, Some(34963));
-        self.accessors.push(json!({ "bufferView": view, "componentType": 5125, "count": data.len(), "type": "SCALAR" }));
+        self.accessors
+            .push(json!({ "bufferView": view, "componentType": 5125, "count": data.len(), "type": "SCALAR" }));
         self.accessors.len() - 1
     }
 
@@ -178,9 +179,8 @@ impl Builder {
         let result = match find_texture(name, dirs).map(|p| load_texture(&p)) {
             Some(Ok((img, transparent))) => {
                 // Partial alpha (canopy glass) blends; colour-key holes (0 / 255 only) stay a cutout.
-                let alpha = transparent.then(|| {
-                    if img.pixels().any(|p| p[3] > 0 && p[3] < 255) { "BLEND" } else { "MASK" }
-                });
+                let alpha =
+                    transparent.then(|| if img.pixels().any(|p| p[3] > 0 && p[3] < 255) { "BLEND" } else { "MASK" });
                 let img = if self.upscale { upscale::upscale(&img) } else { img };
                 let file = format!("{}.png", key.rsplit_once('.').map_or(key.as_str(), |(s, _)| s));
                 match img.save(out_dir.join(&file)) {
@@ -396,17 +396,24 @@ mod uv_tests {
             uvs: uvs.clone(),
             ..Default::default()
         };
-        let frame = Frame { name: "root".into(), transform: [1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1.], meshes: vec![mesh], children: vec![] };
+        let frame = Frame {
+            name: "root".into(),
+            transform: [1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1.],
+            meshes: vec![mesh],
+            children: vec![],
+        };
         let dir = std::env::temp_dir().join(format!("iaf_uv_test_{}", std::process::id()));
         super::write_model(&Model { frames: vec![frame] }, "t", &[], &dir, false, false).unwrap();
-        let doc: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(dir.join("t.gltf")).unwrap()).unwrap();
+        let doc: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(dir.join("t.gltf")).unwrap()).unwrap();
         let bin = std::fs::read(dir.join("t.bin")).unwrap();
         let prim = &doc["meshes"][0]["primitives"][0];
         let acc = &doc["accessors"][prim["attributes"]["TEXCOORD_0"].as_u64().unwrap() as usize];
         let view = &doc["bufferViews"][acc["bufferView"].as_u64().unwrap() as usize];
         let off = view["byteOffset"].as_u64().unwrap() as usize;
         let f = |i: usize| f32::from_le_bytes(bin[off + 4 * i..off + 4 * i + 4].try_into().unwrap());
-        let got: Vec<[f32; 2]> = (0..acc["count"].as_u64().unwrap() as usize).map(|i| [f(2 * i), f(2 * i + 1)]).collect();
+        let got: Vec<[f32; 2]> =
+            (0..acc["count"].as_u64().unwrap() as usize).map(|i| [f(2 * i), f(2 * i + 1)]).collect();
         let mut want = uvs;
         want.sort_by(|a, b| a.partial_cmp(b).unwrap());
         let mut got_sorted = got;

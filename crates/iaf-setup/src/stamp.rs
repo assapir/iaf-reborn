@@ -17,12 +17,15 @@ pub(crate) struct Stamp {
 
 impl Stamp {
     pub fn holds(&self) -> bool {
-        std::fs::read_to_string(&self.path).is_ok_and(|t| t == self.text) && self.output.as_ref().is_none_or(|o| o.exists())
+        std::fs::read_to_string(&self.path).is_ok_and(|t| t == self.text)
+            && self.output.as_ref().is_none_or(|o| o.exists())
     }
     /// Removed before the step runs, so a step that fails half way is not up to date.
     pub fn clear(&self) -> Result<()> {
         match std::fs::remove_file(&self.path) {
-            Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(e).with_context(|| format!("{}", self.path.display())),
+            Err(e) if e.kind() != std::io::ErrorKind::NotFound => {
+                Err(e).with_context(|| format!("{}", self.path.display()))
+            }
             _ => Ok(()),
         }
     }
@@ -72,7 +75,11 @@ pub(crate) fn of(step: &Step, ctx: &Ctx) -> Result<Option<Stamp>> {
     let i = &ctx.inputs;
     let conv = |p: &str| a.join("converted").join(p);
     let (out, stamp, inputs): (Option<PathBuf>, PathBuf, Vec<PathBuf>) = match step.id {
-        "extract" => (Some(a.join("install")), a.join("install.stamp"), [Some(i.cd.clone()), i.patch.clone()].into_iter().flatten().collect()),
+        "extract" => (
+            Some(a.join("install")),
+            a.join("install.stamp"),
+            [Some(i.cd.clone()), i.patch.clone()].into_iter().flatten().collect(),
+        ),
         "patch" => (Some(a.join("v1.1")), a.join("v1.1.stamp"), i.patch.iter().cloned().collect()),
         "hebrew" => {
             let files = match &i.hebrew {

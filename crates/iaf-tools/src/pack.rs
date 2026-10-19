@@ -52,12 +52,7 @@ fn extension(path: impl AsRef<Path>) -> Option<String> {
 
 /// Extensions used by files directly inside `dir`.
 fn extensions_in(dir: &Path) -> HashSet<String> {
-    fs::read_dir(dir)
-        .into_iter()
-        .flatten()
-        .flatten()
-        .filter_map(|e| extension(e.file_name()))
-        .collect()
+    fs::read_dir(dir).into_iter().flatten().flatten().filter_map(|e| extension(e.file_name())).collect()
 }
 
 /// What `import` did: files overriding a base file, new files, files identical to the base (not copied), and
@@ -72,8 +67,20 @@ pub struct Imported {
 
 /// `iaf-import-pack`: `src` (zip or folder) into `<packs>/<name>/<into>`; `into` is where the mod's readme said
 /// to extract it, relative to the install root (the CLI's default: `resource`).
-pub fn import(src: &Path, name: &str, install: &Path, packs: &Path, into: &str, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Imported> {
-    let files = if src.is_dir() { read_dir(src)? } else { read_zip(src).with_context(|| format!("reading {}", src.display()))? };
+pub fn import(
+    src: &Path,
+    name: &str,
+    install: &Path,
+    packs: &Path,
+    into: &str,
+    pr: &dyn Progress,
+    cancel: &AtomicBool,
+) -> Result<Imported> {
+    let files = if src.is_dir() {
+        read_dir(src)?
+    } else {
+        read_zip(src).with_context(|| format!("reading {}", src.display()))?
+    };
 
     let into = into.to_lowercase();
     let install = install.join(&into);
@@ -106,7 +113,13 @@ pub fn import(src: &Path, name: &str, install: &Path, packs: &Path, into: &str, 
         fs::write(&dest, &file.data)?;
     }
 
-    log!(pr, "pack '{name}': {} files override the base install, {} new, {} identical to base (not copied)", r.overrides, r.added, r.unchanged);
+    log!(
+        pr,
+        "pack '{name}': {} files override the base install, {} new, {} identical to base (not copied)",
+        r.overrides,
+        r.added,
+        r.unchanged
+    );
     for s in &r.skipped {
         log!(pr, "  skipped non-game file {s:?}");
     }

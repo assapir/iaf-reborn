@@ -3,9 +3,9 @@
 //! dependency graph (independent steps at once), skips the steps whose stamp is unchanged, and reports per step.
 
 use std::collections::HashMap;
-use std::path::PathBuf;
 #[cfg(test)]
 use std::path::Path;
+use std::path::PathBuf;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc;
@@ -28,7 +28,10 @@ pub enum Hebrew {
     #[default]
     None,
     Cd(PathBuf),
-    Packs { brief: Option<PathBuf>, menu: Option<PathBuf> },
+    Packs {
+        brief: Option<PathBuf>,
+        menu: Option<PathBuf>,
+    },
 }
 
 /// Modern terrain imagery (docs/imagery.md).
@@ -70,7 +73,8 @@ pub struct Step {
 /// The steps for `inputs`, in tools/setup-cli.sh's order and conditions.
 pub fn plan(inputs: &Inputs) -> Vec<Step> {
     let mut v = Vec::new();
-    let mut add = |id, title, required, after: &[&'static str]| v.push(Step { id, title, required, after: after.to_vec() });
+    let mut add =
+        |id, title, required, after: &[&'static str]| v.push(Step { id, title, required, after: after.to_vec() });
     add("extract", "extracting the original install from the CD image", true, &[]);
     let base: &'static str = if inputs.patch.is_some() {
         add("patch", "v1.1 patch (the v1.0 originals are kept in assets/v1.0)", true, &["extract"]);
@@ -120,7 +124,8 @@ pub fn plan(inputs: &Inputs) -> Vec<Step> {
         last.push("imagery-refresh");
     }
     if inputs.guides {
-        let mut after = vec!["briefings", "reference", "menu", "arm", "keys", "aircraft", "objects", "airbases", "icon"];
+        let mut after =
+            vec!["briefings", "reference", "menu", "arm", "keys", "aircraft", "objects", "airbases", "icon"];
         after.extend(last);
         add("guides", "pilot guides: pictures and PDFs", false, &after);
     }
@@ -217,7 +222,13 @@ pub(crate) enum Outcome {
 /// independent steps run at once. A step whose stamp matches is up to date unless `redo(id)` (redo all: `&|_| true`). A required step's failure
 /// sets `cancel` (the other running steps stop at their next item); setting `cancel` stops the run the same way.
 /// Returns every step's final state, in `steps`' order.
-pub fn run(steps: &[Step], ctx: &Ctx, redo: &Redo, events: &dyn Events, cancel: &AtomicBool) -> Vec<(&'static str, State)> {
+pub fn run(
+    steps: &[Step],
+    ctx: &Ctx,
+    redo: &Redo,
+    events: &dyn Events,
+    cancel: &AtomicBool,
+) -> Vec<(&'static str, State)> {
     run_graph(steps, redo, events, cancel, &|step| stamp::of(step, ctx), &|step, pr| steps::run(step, ctx, pr, cancel))
 }
 
@@ -249,7 +260,14 @@ type StampFn<'a> = dyn Fn(&Step) -> Result<Option<stamp::Stamp>> + Sync + 'a;
 type ExecFn<'a> = dyn Fn(&Step, &dyn Progress) -> Result<Outcome> + Sync + 'a;
 
 /// `run`'s engine: `stamp` gives a step's stamp (`None`: it keeps none), `exec` runs it.
-pub(crate) fn run_graph(steps: &[Step], redo: &Redo, events: &dyn Events, cancel: &AtomicBool, stamp: &StampFn, exec: &ExecFn) -> Vec<(&'static str, State)> {
+pub(crate) fn run_graph(
+    steps: &[Step],
+    redo: &Redo,
+    events: &dyn Events,
+    cancel: &AtomicBool,
+    stamp: &StampFn,
+    exec: &ExecFn,
+) -> Vec<(&'static str, State)> {
     let states: Mutex<Vec<State>> = Mutex::new(vec![State::Waiting; steps.len()]);
     // The stamps of the finished steps: a step's stamp holds those of the steps it waits for.
     let stamps: Mutex<HashMap<&'static str, String>> = Mutex::new(HashMap::new());
@@ -282,7 +300,9 @@ pub(crate) fn run_graph(steps: &[Step], redo: &Redo, events: &dyn Events, cancel
                     let (tx, stamps, set) = (tx.clone(), &stamps, &set);
                     scope.spawn(move || {
                         let pr = StepProgress { step, events };
-                        let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| run_one(step, redo(step.id), &pr, stamps, stamp, exec)));
+                        let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                            run_one(step, redo(step.id), &pr, stamps, stamp, exec)
+                        }));
                         let state = match r {
                             Ok(Ok(s)) => s,
                             Ok(Err(_)) if cancel.load(Ordering::Relaxed) => State::Cancelled,
@@ -312,7 +332,14 @@ pub(crate) fn run_graph(steps: &[Step], redo: &Redo, events: &dyn Events, cancel
 }
 
 /// One step: up to date when its stamp file holds the same text (and its output is there), else run and stamped.
-fn run_one(step: &Step, redo: bool, pr: &dyn Progress, stamps: &Mutex<HashMap<&'static str, String>>, stamp: &StampFn, exec: &ExecFn) -> Result<State> {
+fn run_one(
+    step: &Step,
+    redo: bool,
+    pr: &dyn Progress,
+    stamps: &Mutex<HashMap<&'static str, String>>,
+    stamp: &StampFn,
+    exec: &ExecFn,
+) -> Result<State> {
     let s = stamp(step)?.map(|mut s| {
         let done = stamps.lock().unwrap();
         for a in &step.after {
@@ -355,7 +382,14 @@ mod tests {
     use std::sync::atomic::AtomicUsize;
 
     fn inputs() -> Inputs {
-        Inputs { cd: "cd.iso".into(), patch: None, hebrew: Hebrew::None, imagery: vec![], refresh: false, guides: false }
+        Inputs {
+            cd: "cd.iso".into(),
+            patch: None,
+            hebrew: Hebrew::None,
+            imagery: vec![],
+            refresh: false,
+            guides: false,
+        }
     }
 
     fn ids(steps: &[Step]) -> Vec<&'static str> {
@@ -365,7 +399,26 @@ mod tests {
     #[test]
     fn plan_follows_the_inputs() {
         let base = plan(&inputs());
-        assert_eq!(ids(&base), ["extract", "fonts", "cockpits", "briefings", "reference", "menu", "arm", "keys", "missions", "aircraft", "objects", "theatre", "airbases", "icon", "launcher"]);
+        assert_eq!(
+            ids(&base),
+            [
+                "extract",
+                "fonts",
+                "cockpits",
+                "briefings",
+                "reference",
+                "menu",
+                "arm",
+                "keys",
+                "missions",
+                "aircraft",
+                "objects",
+                "theatre",
+                "airbases",
+                "icon",
+                "launcher"
+            ]
+        );
         assert!(base.iter().filter(|s| s.id != "extract" && s.after.contains(&"extract")).count() >= 8);
 
         let full = plan(&Inputs {
@@ -428,7 +481,8 @@ mod tests {
             ("pilot guides", &["guides"]),
             ("done", &["cli"]),
         ];
-        let script = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/setup-cli.sh")).unwrap();
+        let script =
+            std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/setup-cli.sh")).unwrap();
         let mut seen = std::collections::HashSet::new();
         for line in script.lines() {
             let Some((_, title)) = line.split_once("step \"") else { continue };
@@ -477,7 +531,11 @@ mod tests {
         let go = |redo: &Redo| {
             ran.lock().unwrap().clear();
             let st = |s: &Step| -> Result<Option<stamp::Stamp>> {
-                Ok(Some(stamp::Stamp { path: dir.join(format!("{}.stamp", s.id)), text: stamp::describe(&dir.join(format!("{}.in", s.id)))?, output: None }))
+                Ok(Some(stamp::Stamp {
+                    path: dir.join(format!("{}.stamp", s.id)),
+                    text: stamp::describe(&dir.join(format!("{}.in", s.id)))?,
+                    output: None,
+                }))
             };
             let ex = |s: &Step, _: &dyn Progress| -> Result<Outcome> {
                 // Order: a step runs after the steps it waits for.
@@ -521,7 +579,11 @@ mod tests {
         let go = |i: &Inputs| {
             ran.lock().unwrap().clear();
             let st = |s: &Step| -> Result<Option<stamp::Stamp>> {
-                Ok(Some(stamp::Stamp { path: dir.join(format!("{}.stamp", s.id)), text: format!("step {}\n", s.id), output: None }))
+                Ok(Some(stamp::Stamp {
+                    path: dir.join(format!("{}.stamp", s.id)),
+                    text: format!("step {}\n", s.id),
+                    output: None,
+                }))
             };
             let ex = |s: &Step, _: &dyn Progress| -> Result<Outcome> {
                 ran.lock().unwrap().push(s.id);
@@ -538,7 +600,10 @@ mod tests {
         assert!(go(&first).is_empty());
         let more = Inputs { imagery: vec![Imagery::Sentinel2], ..first.clone() };
         assert_eq!(go(&more), ["sentinel2"]);
-        let he = Inputs { hebrew: Hebrew::Packs { brief: Some("b.zip".into()), menu: Some("m.zip".into()) }, ..more.clone() };
+        let he = Inputs {
+            hebrew: Hebrew::Packs { brief: Some("b.zip".into()), menu: Some("m.zip".into()) },
+            ..more.clone()
+        };
         assert_eq!(go(&he), ["arm", "briefings", "hebrew", "keys", "menu_he"]);
         assert!(go(&he).is_empty());
         std::fs::remove_dir_all(&dir).unwrap();
@@ -553,6 +618,9 @@ mod tests {
             return;
         }
         assert_eq!(check_cd(&iso), CdKind::English);
-        assert!(matches!(check_cd(Path::new(env!("CARGO_MANIFEST_DIR")).join("Cargo.toml").as_path()), CdKind::NotIaf(_)));
+        assert!(matches!(
+            check_cd(Path::new(env!("CARGO_MANIFEST_DIR")).join("Cargo.toml").as_path()),
+            CdKind::NotIaf(_)
+        ));
     }
 }

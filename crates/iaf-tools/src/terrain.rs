@@ -16,7 +16,14 @@ use crate::progress::{Progress, check};
 /// `iaf-terrain airbases`: the airbases' runways, taxi paths and paved surface from the 1998 art and iaf.ibx
 /// (docs/rendering.md §7): `<out>/airbases.json` and one paved-surface mask per base (`<out>/airbases/<name>.png`:
 /// red = paved, green = concrete (both as coverage blurred over ≈ 5 m; the edge is at 0.5), blue = the distance to the nearest taxi path, 0–10 m). `--debug` also writes each base's art with the runways, taxi paths and the mask drawn on it.
-pub fn airbases(install: &Path, theatre: &Path, out: &Path, debug: Option<&Path>, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
+pub fn airbases(
+    install: &Path,
+    theatre: &Path,
+    out: &Path,
+    debug: Option<&Path>,
+    pr: &dyn Progress,
+    cancel: &AtomicBool,
+) -> Result<()> {
     check(cancel)?;
     use crate::airbases;
     let t = crate::imagery::Theatre::load(theatre)?;
@@ -48,8 +55,25 @@ pub fn airbases(install: &Path, theatre: &Path, out: &Path, debug: Option<&Path>
             "ends": [pt(&r.ends[0]), pt(&r.ends[1])], "width": r1(r.width), "heading": (r.heading() * 100.0).round() / 100.0,
             "length": r1(r.length()), "numbers": r.numbers(), "thresholds": [r1(r.thresholds[0]), r1(r.thresholds[1])],
         })).collect();
-        log!(pr, "{:10} lineup {:?} {:5.1}°: {}", b.name, b.lineup, b.runway_deg,
-            b.runways.iter().map(|r| format!("{:05.1}° {:4.0} × {:2.0} m (thr {:.0}/{:.0})", r.heading(), r.length(), r.width, r.thresholds[0], r.thresholds[1])).collect::<Vec<_>>().join(", "));
+        log!(
+            pr,
+            "{:10} lineup {:?} {:5.1}°: {}",
+            b.name,
+            b.lineup,
+            b.runway_deg,
+            b.runways
+                .iter()
+                .map(|r| format!(
+                    "{:05.1}° {:4.0} × {:2.0} m (thr {:.0}/{:.0})",
+                    r.heading(),
+                    r.length(),
+                    r.width,
+                    r.thresholds[0],
+                    r.thresholds[1]
+                ))
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
         list.push(serde_json::json!({
             "name": b.name, "lineup": pt(&b.lineup), "runway_deg": b.runway_deg, "runways": runways,
             "taxi": b.taxi.iter().map(|p| p.iter().map(pt).collect::<Vec<_>>()).collect::<Vec<_>>(),
@@ -59,11 +83,20 @@ pub fn airbases(install: &Path, theatre: &Path, out: &Path, debug: Option<&Path>
             std::fs::create_dir_all(dbg)?;
             let s = 2.0f64; // level-1 pixels are 2 units
             let t0 = airbases::units(b.origin[0], b.origin[1]);
-            let art = t.original_rect(1, (t0[0] / s).round() as i64, (t0[1] / s).round() as i64, g.w, g.h, &mut crate::imagery::Cache::default())?;
+            let art = t.original_rect(
+                1,
+                (t0[0] / s).round() as i64,
+                (t0[1] / s).round() as i64,
+                g.w,
+                g.h,
+                &mut crate::imagery::Cache::default(),
+            )?;
             let mut img = image::RgbImage::from_fn(g.w as u32, g.h as u32, |x, y| {
                 let k = y as usize * g.w + x as usize;
                 let c = art[k];
-                image::Rgb(if g.v[k] { [c[0] * 0.6 + 100.0, c[1] * 0.6, c[2] * 0.6] } else { c }.map(|v| v.min(255.0) as u8))
+                image::Rgb(
+                    if g.v[k] { [c[0] * 0.6 + 100.0, c[1] * 0.6, c[2] * 0.6] } else { c }.map(|v| v.min(255.0) as u8),
+                )
             });
             let px = |p: &[f64; 2]| ((p[0] - b.origin[0]) / b.px_m, (b.origin[1] - p[1]) / b.px_m);
             let mut line = |a: &[f64; 2], c: &[f64; 2], col: [u8; 3]| {
@@ -81,7 +114,11 @@ pub fn airbases(install: &Path, theatre: &Path, out: &Path, debug: Option<&Path>
                 let h = r.heading().to_radians();
                 let o = [h.cos() * r.width / 2.0, -h.sin() * r.width / 2.0];
                 for sgn in [-1.0, 1.0] {
-                    line(&[r.ends[0][0] + sgn * o[0], r.ends[0][1] + sgn * o[1]], &[r.ends[1][0] + sgn * o[0], r.ends[1][1] + sgn * o[1]], [0, 255, 255]);
+                    line(
+                        &[r.ends[0][0] + sgn * o[0], r.ends[0][1] + sgn * o[1]],
+                        &[r.ends[1][0] + sgn * o[0], r.ends[1][1] + sgn * o[1]],
+                        [0, 255, 255],
+                    );
                 }
                 line(&r.ends[0], &r.ends[1], [0, 255, 0]);
             }
@@ -179,11 +216,8 @@ pub fn theatre(path: &Path, out: &Path, threads: usize, pr: &dyn Progress, cance
     let mut ptt = Ptt::open(path)?;
     let levels = ptt.levels.clone();
     let tiles = levels.iter().map(|l| ptt.tiles(l)).collect::<Result<Vec<_>, _>>()?;
-    let theatre = levels
-        .iter()
-        .find(|l| l.flag == 1 && l.level == HEIGHT_LEVEL)
-        .context("no whole-theatre level 6")?
-        .rect;
+    let theatre =
+        levels.iter().find(|l| l.flag == 1 && l.level == HEIGHT_LEVEL).context("no whole-theatre level 6")?.rect;
     let src = Source { path: path.to_path_buf(), levels, tiles, theatre, fixes: crate::runway_fix::load()? };
 
     // Nodes: every node of a theatre level inside the theatre; for inset levels, every node an
@@ -367,7 +401,10 @@ fn compose(ptt: &mut Ptt, src: &Source, painters: &[usize], cell: [u32; 4], upp:
         for tr in sy0 / n..sy1.div_ceil(n) {
             for tc in sx0 / n..sx1.div_ceil(n) {
                 let t = &src.tiles[k][(tr * l.columns() + tc) as usize];
-                let Ok(tile) = ptt.tile_jpeg(t).map_err(anyhow::Error::from).and_then(|j| Ok(image::load_from_memory(&j)?.to_rgb8()))
+                let Ok(tile) = ptt
+                    .tile_jpeg(t)
+                    .map_err(anyhow::Error::from)
+                    .and_then(|j| Ok(image::load_from_memory(&j)?.to_rgb8()))
                 else {
                     continue;
                 };
@@ -386,7 +423,8 @@ fn compose(ptt: &mut Ptt, src: &Source, painters: &[usize], cell: [u32; 4], upp:
                 }
             }
         }
-        let scaled = if f == 1 { mosaic } else { resize(&mosaic, (sx1 - sx0) * f, (sy1 - sy0) * f, FilterType::Lanczos3) };
+        let scaled =
+            if f == 1 { mosaic } else { resize(&mosaic, (sx1 - sx0) * f, (sy1 - sy0) * f, FilterType::Lanczos3) };
         // Paste r: output pixel (x, y) of the cell is scaled pixel (x + ox, y + oy).
         let ox = (cell[0] as i64 - (l.rect[0] + sx0 * sup) as i64) / upp as i64;
         let oy = (cell[1] as i64 - (l.rect[1] + sy0 * sup) as i64) / upp as i64;

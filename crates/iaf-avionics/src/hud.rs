@@ -96,7 +96,9 @@ mod tests {
         assert!(shoot_cue(true, true, true, z, 5000.0));
         assert!(!shoot_cue(true, true, true, z, 1000.0) && !shoot_cue(true, true, false, z, 5000.0));
         assert!(srm_shoot_cue(true, true, 0.0, 0.0, 0.0), "the statics at start: the cue follows the lock");
-        assert!(srm_shoot_cue(true, true, 10000.0, 2000.0, 5000.0) && !srm_shoot_cue(true, true, 10000.0, 2000.0, 1000.0));
+        assert!(
+            srm_shoot_cue(true, true, 10000.0, 2000.0, 5000.0) && !srm_shoot_cue(true, true, 10000.0, 2000.0, 1000.0)
+        );
         assert!(!srm_shoot_cue(false, true, 10000.0, 2000.0, 5000.0) && !srm_shoot_cue(true, false, 0.0, 0.0, 0.0));
         assert!(harm_in_range(true, z, 9000.0) && !harm_in_range(true, None, 9000.0));
         assert!((lock_bearing(Vec3::ZERO, 0.1, Vec3::new(0.0, -1.0, 0.0)) - (PI - 0.1)).abs() < 1e-12);

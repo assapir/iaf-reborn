@@ -39,8 +39,17 @@ pub struct IafBomb {}
 impl IafBomb {
     /// `FUN_0045e7f0`: {point, t}.
     #[func]
-    fn predict_impact(p: Vector3, vel: Vector3, nose: Vector3, drag: f64, extra: f64, cockpit: bool, ground: Callable) -> VarDictionary {
-        let (i, t) = bombs::predict_impact(vec3(p), vec3(vel), vec3(nose), drag, extra, cockpit, &terrain(Some(ground)));
+    fn predict_impact(
+        p: Vector3,
+        vel: Vector3,
+        nose: Vector3,
+        drag: f64,
+        extra: f64,
+        cockpit: bool,
+        ground: Callable,
+    ) -> VarDictionary {
+        let (i, t) =
+            bombs::predict_impact(vec3(p), vec3(vel), vec3(nose), drag, extra, cockpit, &terrain(Some(ground)));
         vdict! { "point" => vector3(i), "t" => t }
     }
 
@@ -53,7 +62,10 @@ impl IafBomb {
     #[func]
     fn ripple_line(p: Vector3, qty: i64, spacing: f64, heading: f64, ground: Callable) -> VarArray {
         let qty = usize::try_from(qty).unwrap_or(0);
-        bombs::ripple_line(vec3(p), qty, spacing, heading, &terrain(Some(ground))).into_iter().map(|a| vector3(a).to_variant()).collect()
+        bombs::ripple_line(vec3(p), qty, spacing, heading, &terrain(Some(ground)))
+            .into_iter()
+            .map(|a| vector3(a).to_variant())
+            .collect()
     }
 
     /// The falling store's state at launch.
@@ -171,7 +183,10 @@ impl IafModes {
     /// The M key's MFD pages, slot by slot (`master::m_key_pages`).
     #[func]
     fn m_key_pages(cycle: i64, n: i64, panel_rwr: bool, harm: bool) -> PackedInt32Array {
-        iaf_avionics::master::m_key_pages(cycle as u8, n.max(0) as usize, panel_rwr, harm).into_iter().map(i32::from).collect()
+        iaf_avionics::master::m_key_pages(cycle as u8, n.max(0) as usize, panel_rwr, harm)
+            .into_iter()
+            .map(i32::from)
+            .collect()
     }
 
     /// `FUN_00449f20`: the slot for a master mode's page, −1 none (`master::free_slot`).

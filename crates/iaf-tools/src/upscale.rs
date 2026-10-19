@@ -19,6 +19,11 @@ pub fn upscale(img: &RgbaImage) -> RgbaImage {
         let [r, g, b, a] = big.get_pixel(x, y).0;
         let a = a.clamp(0.0, 1.0);
         let un = |c: f32| if a > 1e-4 { (c / a).clamp(0.0, 1.0) } else { 0.0 };
-        image::Rgba([(un(r) * 255.0).round() as u8, (un(g) * 255.0).round() as u8, (un(b) * 255.0).round() as u8, (a * 255.0).round() as u8])
+        image::Rgba([
+            (un(r) * 255.0).round() as u8,
+            (un(g) * 255.0).round() as u8,
+            (un(b) * 255.0).round() as u8,
+            (a * 255.0).round() as u8,
+        ])
     })
 }

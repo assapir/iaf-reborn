@@ -32,7 +32,8 @@ const FLYABLE_NOW: &[i64] = &[100, 110, 120, 130, 140, 190, 200];
 /// Type codes the original lets the player fly (`FUN_00507d00`).
 const FLYABLE_ORIGINAL: &[i64] = &[100, 110, 120, 130, 140, 160, 180, 190, 200];
 /// Jet list per training mission: jets disabled (`FUN_00509b80`), by type code.
-const JET_LIST_DISABLED: &[(i64, &[i64])] = &[(314, &[190, 130]), (322, &[190, 130, 110]), (323, &[190, 130, 120, 110])];
+const JET_LIST_DISABLED: &[(i64, &[i64])] =
+    &[(314, &[190, 130]), (322, &[190, 130, 110]), (323, &[190, 130, 120, 110])];
 /// The seven jets of the Jet list (Mirage, Kfir, F-4E, F-4 2000, F-15, F-16, Lavi).
 const JET_LIST: &[i64] = &[190, 130, 120, 200, 110, 100, 140];
 const AIRCRAFT: &[i64] = &[28, 3];
@@ -56,8 +57,18 @@ const TRIGGER_NAMES: &[(i64, &str)] = &[
 const MOTION_NAMES: &[(i64, &str)] = &[(5, "Turn"), (11, "Yaw to target")];
 
 // Brain actions (bdb Actions `0x64`, lower case) that make a brain fight.
-const AA_ACTIONS: &[&str] = &["launch weapon", "dogchase", "next aa missile", "change to mrm", "change to srm", "shandel", "imelman", "split s"];
-const AG_ACTIONS: &[&str] = &["popup", "change to iron", "change to laser", "next ground target", "level bomb", "dive bomb", "next ag missile"];
+const AA_ACTIONS: &[&str] = &[
+    "launch weapon",
+    "dogchase",
+    "next aa missile",
+    "change to mrm",
+    "change to srm",
+    "shandel",
+    "imelman",
+    "split s",
+];
+const AG_ACTIONS: &[&str] =
+    &["popup", "change to iron", "change to laser", "next ground target", "level bomb", "dive bomb", "next ag missile"];
 const START_COMBAT: &str = "start combat";
 
 // ---- features ----
@@ -89,8 +100,25 @@ const W_ARM: &str = "weapon: anti-radiation (AGM-88, Shrike)";
 /// weapons (docs/weapons.md); the ground units' AAA, SAMs and rockets, and the armed helicopters (they fire only by
 /// script op 2: no sensor; docs/ai.md §14).
 const SUPPORTED_FEATURES: &[&str] = &[
-    F_PLAYER_FLIGHT, F_DAMAGE, W_GUN, W_IR, W_RADAR, F_AI_FLIGHT, W_BOMB, W_ROCKET, W_LGB, W_TV, W_ARM, F_AAA, F_SAM_RADAR,
-    F_SAM_IR, F_GROUND_FIRE, F_AI_HELI, F_AI_AA, F_AI_AG, F_NIGHT,
+    F_PLAYER_FLIGHT,
+    F_DAMAGE,
+    W_GUN,
+    W_IR,
+    W_RADAR,
+    F_AI_FLIGHT,
+    W_BOMB,
+    W_ROCKET,
+    W_LGB,
+    W_TV,
+    W_ARM,
+    F_AAA,
+    F_SAM_RADAR,
+    F_SAM_IR,
+    F_GROUND_FIRE,
+    F_AI_HELI,
+    F_AI_AA,
+    F_AI_AG,
+    F_NIGHT,
 ];
 
 /// Rough implementation size (S ≈ days, M ≈ a week, L ≈ weeks) — an estimate for planning only.
@@ -142,7 +170,8 @@ fn i(v: &Value, k: &str) -> i64 {
 
 fn load_bdb(dir: &Path, name: &str) -> Result<Bdb> {
     let b = load(dir, name)?;
-    let actions: BTreeMap<i64, String> = items(&b, "actions").map(|a| (i(a, "0x1e"), a["0x64"].as_str().unwrap_or("").trim().to_lowercase())).collect();
+    let actions: BTreeMap<i64, String> =
+        items(&b, "actions").map(|a| (i(a, "0x1e"), a["0x64"].as_str().unwrap_or("").trim().to_lowercase())).collect();
     let mut brains = BTreeMap::new();
     for br in items(&b, "brains") {
         let (mut aa, mut ag, mut sc) = (false, false, false);
@@ -161,13 +190,16 @@ fn load_bdb(dir: &Path, name: &str) -> Result<Bdb> {
     Ok(Bdb {
         objects: items(&b, "objects").map(|o| (i(o, "0x1e"), o.clone())).collect(),
         weapon_type: items(&b, "weapons").map(|w| (i(w, "0x1e"), i(w, "0x780"))).collect(),
-        weapon_name: items(&b, "weapons").map(|w| (i(w, "0x1e"), w["0x708"].as_str().unwrap_or("").trim().to_string())).collect(),
+        weapon_name: items(&b, "weapons")
+            .map(|w| (i(w, "0x1e"), w["0x708"].as_str().unwrap_or("").trim().to_string()))
+            .collect(),
         brains,
     })
 }
 
 fn hardpoints(v: &Value) -> Vec<(i64, i64)> {
-    let h: Vec<i64> = v["armament"]["hardpoints"].as_array().into_iter().flatten().map(|x| x.as_i64().unwrap_or(0)).collect();
+    let h: Vec<i64> =
+        v["armament"]["hardpoints"].as_array().into_iter().flatten().map(|x| x.as_i64().unwrap_or(0)).collect();
     h.chunks(2).map(|c| (c[0], *c.get(1).unwrap_or(&0))).collect()
 }
 
@@ -194,7 +226,8 @@ fn start_ops(e: &Value) -> Vec<i64> {
     if i(e, "0x320") & 1 == 0 {
         return Vec::new();
     }
-    let list: BTreeMap<i64, &Value> = e["scripts1"]["items"].as_array().into_iter().flatten().map(|s| (i(s, "raw10"), s)).collect();
+    let list: BTreeMap<i64, &Value> =
+        e["scripts1"]["items"].as_array().into_iter().flatten().map(|s| (i(s, "raw10"), s)).collect();
     let (mut out, mut at, mut seen) = (Vec::new(), 1, BTreeSet::new());
     while let Some(s) = list.get(&at) {
         if !seen.insert(at) {
@@ -290,9 +323,16 @@ fn analyse(dir: &Path, id: i64, names: &[String], bdbs: &mut BTreeMap<String, Bd
         (i(&o, "0x5b4"), o["0x528"].as_str().unwrap_or("?").trim().to_string())
     };
     let jet_name = |t: i64| {
-        bdb.objects.values().find(|o| i(o, "0x5b4") == t && i(o, "0x5aa") == 28).and_then(|o| o["0x528"].as_str()).unwrap_or("?").trim().to_string()
+        bdb.objects
+            .values()
+            .find(|o| i(o, "0x5b4") == t && i(o, "0x5aa") == 28)
+            .and_then(|o| o["0x528"].as_str())
+            .unwrap_or("?")
+            .trim()
+            .to_string()
     };
-    let (mut player, mut flight, mut others, mut start) = ("none".to_string(), "-".to_string(), String::new(), "-".to_string());
+    let (mut player, mut flight, mut others, mut start) =
+        ("none".to_string(), "-".to_string(), String::new(), "-".to_string());
     let mut player_ent: Option<&Value> = None;
     if let Some((n, name, leader)) = flights.first() {
         player_ent = Some(leader);
@@ -324,7 +364,8 @@ fn analyse(dir: &Path, id: i64, names: &[String], bdbs: &mut BTreeMap<String, Bd
     if night {
         clauses.push(one(F_NIGHT));
     }
-    start = format!("{start}, {:02}:{:02}{}", (t0 as i64) / 3600, (t0 as i64) / 60 % 60, if night { " night" } else { "" });
+    start =
+        format!("{start}, {:02}:{:02}{}", (t0 as i64) / 3600, (t0 as i64) / 60 % 60, if night { " night" } else { "" });
 
     // Player weapons by feature.
     let mut player_w: BTreeSet<&'static str> = BTreeSet::new();
@@ -340,7 +381,12 @@ fn analyse(dir: &Path, id: i64, names: &[String], bdbs: &mut BTreeMap<String, Bd
     }
     let aa_w: Clause = [W_IR, W_RADAR, W_GUN].iter().filter(|f| player_w.contains(*f)).map(|f| f.to_string()).collect();
     let ag_w = |emitter: bool| -> Clause {
-        [W_BOMB, W_ROCKET, W_LGB, W_TV].iter().chain(if emitter { &[W_ARM][..] } else { &[][..] }).filter(|f| player_w.contains(*f)).map(|f| f.to_string()).collect()
+        [W_BOMB, W_ROCKET, W_LGB, W_TV]
+            .iter()
+            .chain(if emitter { &[W_ARM][..] } else { &[][..] })
+            .filter(|f| player_w.contains(*f))
+            .map(|f| f.to_string())
+            .collect()
     };
     // The Arming screen (built, docs/front-end.md §15): the weapons the leader's bdb object may load
     // (its CDMEWeaponLoadItems with a count and a station flag), SAM types excluded.
@@ -348,15 +394,22 @@ fn analyse(dir: &Path, id: i64, names: &[String], bdbs: &mut BTreeMap<String, Bd
     if let Some(p) = player_ent {
         for it in obj(p)["loads"]["items"].as_array().into_iter().flatten() {
             let flags = it["raw"].as_str().unwrap_or("");
-            if i(it, "0x906") > 0 && flags.chars().any(|c| c != '0')
-                && let Some(f) = bdb.weapon_type.get(&i(it, "0x910")).and_then(|t| weapon_feature(*t)) {
-                    arm_w.insert(f);
-                }
+            if i(it, "0x906") > 0
+                && flags.chars().any(|c| c != '0')
+                && let Some(f) = bdb.weapon_type.get(&i(it, "0x910")).and_then(|t| weapon_feature(*t))
+            {
+                arm_w.insert(f);
+            }
         }
     }
     let arm_aa: Clause = [W_IR, W_RADAR].iter().filter(|f| arm_w.contains(*f)).map(|f| f.to_string()).collect();
     let arm_ag = |emitter: bool| -> Clause {
-        [W_BOMB, W_ROCKET, W_LGB, W_TV].iter().chain(if emitter { &[W_ARM][..] } else { &[][..] }).filter(|f| arm_w.contains(*f)).map(|f| f.to_string()).collect()
+        [W_BOMB, W_ROCKET, W_LGB, W_TV]
+            .iter()
+            .chain(if emitter { &[W_ARM][..] } else { &[][..] })
+            .filter(|f| arm_w.contains(*f))
+            .map(|f| f.to_string())
+            .collect()
     };
 
     // ---- every entity of every file ----
@@ -383,7 +436,11 @@ fn analyse(dir: &Path, id: i64, names: &[String], bdbs: &mut BTreeMap<String, Bd
         for e in items(m, "entities") {
             for (motion, part) in [(true, "scripts0"), (false, "scripts1")] {
                 for op in ops(e, part) {
-                    let (sup, names, kind) = if motion { (SUPPORTED_MOTION, MOTION_NAMES, "motion") } else { (SUPPORTED_TRIGGER, TRIGGER_NAMES, "trigger") };
+                    let (sup, names, kind) = if motion {
+                        (SUPPORTED_MOTION, MOTION_NAMES, "motion")
+                    } else {
+                        (SUPPORTED_TRIGGER, TRIGGER_NAMES, "trigger")
+                    };
                     // Enable / Disable combat only matter on a unit that fights (checked below).
                     if !sup.contains(&op) && !(!motion && (op == 21 || op == 22)) {
                         let n = names.iter().find(|(k, _)| *k == op).map_or("?", |(_, n)| n);
@@ -432,12 +489,22 @@ fn analyse(dir: &Path, id: i64, names: &[String], bdbs: &mut BTreeMap<String, Bd
             // Brain −1 is none (FUN_004b815f attaches only a brain found by the id).
             let brain = i(e, "0x2da");
             let (b_aa, b_ag, b_sc) = bdb.brains.get(&brain).copied().unwrap_or_default();
-            let weapons: Vec<i64> = loadout(e, &o).iter().filter_map(|(w, _)| bdb.weapon_type.get(w).copied()).filter(|t| !matches!(t, 0 | 540 | 550 | 660)).collect();
+            let weapons: Vec<i64> = loadout(e, &o)
+                .iter()
+                .filter_map(|(w, _)| bdb.weapon_type.get(w).copied())
+                .filter(|t| !matches!(t, 0 | 540 | 550 | 660))
+                .collect();
             // Disabled at activation and never enabled (a Disable combat reached by an event, e.g. 313's SA-3 launchers
             // when their radar dies, leaves the unit fighting until then).
             let disabled_for_good = start_ops(e).contains(&22) && !trig.contains(&21);
             let fights = !weapons.is_empty() && (b_aa || b_ag || b_sc || trig.contains(&21)) && !disabled_for_good;
-            let kind = if AIRCRAFT.contains(&class) { 0 } else if class == HELICOPTER { 1 } else { 2 };
+            let kind = if AIRCRAFT.contains(&class) {
+                0
+            } else if class == HELICOPTER {
+                1
+            } else {
+                2
+            };
             if fights {
                 // Enable / Disable combat are needed on units that fight; on a unit disabled for good
                 // they only keep it passive, which an engine without that unit's fire does anyway.
@@ -528,7 +595,8 @@ fn analyse(dir: &Path, id: i64, names: &[String], bdbs: &mut BTreeMap<String, Bd
     if need.contains(F_AI_AA) || need.contains(F_AI_AG) {
         need.insert(F_AI_FLIGHT);
     }
-    let shooting = [F_AI_AA, F_AI_AG, F_AI_HELI, F_SAM_RADAR, F_SAM_IR, F_AAA, F_GROUND_FIRE].iter().any(|f| need.contains(f));
+    let shooting =
+        [F_AI_AA, F_AI_AG, F_AI_HELI, F_SAM_RADAR, F_SAM_IR, F_AAA, F_GROUND_FIRE].iter().any(|f| need.contains(f));
     if shooting || !kill_clauses.is_empty() {
         need.insert(F_DAMAGE);
     }
@@ -560,11 +628,19 @@ fn analyse(dir: &Path, id: i64, names: &[String], bdbs: &mut BTreeMap<String, Bd
 /// Greedy unlock order: repeatedly add the candidate (a single missing feature, or the completion
 /// bundle of one open mission) with the most newly playable missions per feature. Writes the table,
 /// returns (steps, playable at the end).
-fn greedy(missions: &[Mission], have: &BTreeSet<String>, forbidden: &BTreeSet<String>, md: &mut String) -> (usize, usize) {
+fn greedy(
+    missions: &[Mission],
+    have: &BTreeSet<String>,
+    forbidden: &BTreeSet<String>,
+    md: &mut String,
+) -> (usize, usize) {
     let mut have = have.clone();
     let reachable = |m: &Mission| m.clauses.iter().all(|c| c.iter().any(|f| !forbidden.contains(f)));
     let mut done: BTreeSet<i64> = missions.iter().filter(|m| satisfied(m, &have)).map(|m| m.id).collect();
-    md.push_str(&format!("Start: **{}** playable.\n\n| step | add | size | newly playable | cumulative |\n|---|---|---|---|---|\n", done.len()));
+    md.push_str(&format!(
+        "Start: **{}** playable.\n\n| step | add | size | newly playable | cumulative |\n|---|---|---|---|---|\n",
+        done.len()
+    ));
     let mut step = 0;
     loop {
         let open: Vec<&Mission> = missions.iter().filter(|m| !done.contains(&m.id) && reachable(m)).collect();
@@ -580,7 +656,11 @@ fn greedy(missions: &[Mission], have: &BTreeSet<String>, forbidden: &BTreeSet<St
                 if c.iter().any(|f| b.contains(f)) {
                     continue;
                 }
-                let best = c.iter().filter(|f| !forbidden.contains(*f)).max_by_key(|f| (freq(f), std::cmp::Reverse((*f).clone()))).unwrap();
+                let best = c
+                    .iter()
+                    .filter(|f| !forbidden.contains(*f))
+                    .max_by_key(|f| (freq(f), std::cmp::Reverse((*f).clone())))
+                    .unwrap();
                 b.insert(best.clone());
             }
             for f in &b {
@@ -623,24 +703,31 @@ fn main() -> Result<()> {
         .as_object()
         .context("missionlist")?
         .iter()
-        .filter_map(|(k, v)| Some((k.parse().ok()?, v.as_array()?.iter().filter_map(|n| Some(n.as_str()?.to_string())).collect())))
+        .filter_map(|(k, v)| {
+            Some((k.parse().ok()?, v.as_array()?.iter().filter_map(|n| Some(n.as_str()?.to_string())).collect()))
+        })
         .collect();
     ids.sort_by_key(|(k, _)| *k);
     let mut bdbs = BTreeMap::new();
-    let missions: Vec<Mission> = ids.iter().map(|(id, names)| analyse(dir, *id, names, &mut bdbs)).collect::<Result<_>>()?;
+    let missions: Vec<Mission> =
+        ids.iter().map(|(id, names)| analyse(dir, *id, names, &mut bdbs)).collect::<Result<_>>()?;
 
     // Supported today.
     let mut have: BTreeSet<String> = BTreeSet::new();
     let all: BTreeSet<String> = missions.iter().flat_map(|m| m.clauses.iter().flatten().cloned()).collect();
     for f in &all {
-        if FLYABLE_NOW.iter().any(|t| f.starts_with("jet: ") && f.ends_with(&format!("({t})"))) || SUPPORTED_FEATURES.contains(&f.as_str()) {
+        if FLYABLE_NOW.iter().any(|t| f.starts_with("jet: ") && f.ends_with(&format!("({t})")))
+            || SUPPORTED_FEATURES.contains(&f.as_str())
+        {
             have.insert(f.clone());
         }
     }
 
     let now: Vec<i64> = missions.iter().filter(|m| satisfied(m, &have)).map(|m| m.id).collect();
     let is_jet = |f: &str| f.starts_with("jet: ");
-    let f16_ok = |m: &Mission| m.clauses.iter().filter(|c| c.iter().any(|f| is_jet(f))).all(|c| c.iter().any(|f| have.contains(f)));
+    let f16_ok = |m: &Mission| {
+        m.clauses.iter().filter(|c| c.iter().any(|f| is_jet(f))).all(|c| c.iter().any(|f| have.contains(f)))
+    };
     let mut md = String::from(
         "# Mission coverage\n\nAddresses are `IAFJets.exe` **v1.1** (the reference version); [v1.1.md](v1.1.md) maps them to v1.0 \
          and lists what the patch changed.\n\n",
@@ -671,32 +758,45 @@ fn main() -> Result<()> {
          week, L weeks).\n\n### 1.1 All missions\n\n",
     );
     let (steps, last) = greedy(&missions, &have, &BTreeSet::new(), &mut md);
-    md.push_str("\n### 1.2 F-16 only (no other jet)\n\nThe same order for the F-16 alone (every other jet left out): the \
-                 order to build the F-16's missions.\n\n");
+    md.push_str(
+        "\n### 1.2 F-16 only (no other jet)\n\nThe same order for the F-16 alone (every other jet left out): the \
+                 order to build the F-16's missions.\n\n",
+    );
     let other_jets: BTreeSet<String> = all.iter().filter(|f| is_jet(f) && !have.contains(*f)).cloned().collect();
     greedy(&missions, &have, &other_jets, &mut md);
 
     // ---- per jet ----
-    md.push_str("\n### 1.3 Per jet\n\nThe missions each jet type flies as the player's jet. A training mission counts for \
-                 every jet of its Jet list.\n\n| jet | size | missions | ids |\n|---|---|---|---|\n");
+    md.push_str(
+        "\n### 1.3 Per jet\n\nThe missions each jet type flies as the player's jet. A training mission counts for \
+                 every jet of its Jet list.\n\n| jet | size | missions | ids |\n|---|---|---|---|\n",
+    );
     let mut jets: Vec<(usize, String, Vec<i64>)> = all
         .iter()
         .filter(|f| is_jet(f))
         .map(|f| {
-            let ids: Vec<i64> = missions.iter().filter(|m| m.clauses.iter().any(|c| c.contains(f) && c.iter().all(|x| is_jet(x)))).map(|m| m.id).collect();
+            let ids: Vec<i64> = missions
+                .iter()
+                .filter(|m| m.clauses.iter().any(|c| c.contains(f) && c.iter().all(|x| is_jet(x))))
+                .map(|m| m.id)
+                .collect();
             (ids.len(), f.clone(), ids)
         })
         .collect();
     jets.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.cmp(&b.1)));
     for (n, f, ids) in jets {
         let sz = if have.contains(&f) { "done" } else { size(&f) };
-        md.push_str(&format!("| {} | {sz} | {n} | {} |\n", &f[5..], ids.iter().map(|i| i.to_string()).collect::<Vec<_>>().join(", ")));
+        md.push_str(&format!(
+            "| {} | {sz} | {n} | {} |\n",
+            &f[5..],
+            ids.iter().map(|i| i.to_string()).collect::<Vec<_>>().join(", ")
+        ));
     }
 
     // ---- nearest ----
     md.push_str("\n### 1.4 Nearest to playable\n\nThe missions that lack one to four features (an \"or\" choice counts once).\n\n\
                  | id | title | player jet | missing |\n|---|---|---|---|\n");
-    let mut near: Vec<(usize, &Mission)> = missions.iter().map(|m| (missing(m, &have).len(), m)).filter(|(n, _)| (1..=4).contains(n)).collect();
+    let mut near: Vec<(usize, &Mission)> =
+        missions.iter().map(|m| (missing(m, &have).len(), m)).filter(|(n, _)| (1..=4).contains(n)).collect();
     near.sort_by_key(|(n, m)| (*n, m.id));
     for (_, m) in near {
         md.push_str(&format!("| {} | {} | {} | {} |\n", m.id, m.title, m.player, missing(m, &have).join("; ")));
@@ -713,7 +813,8 @@ fn main() -> Result<()> {
         .iter()
         .filter(|f| !base.contains(*f))
         .map(|f| {
-            let needing: Vec<&Mission> = missions.iter().filter(|m| !satisfied(m, &base) && m.clauses.iter().any(|c| c.contains(f))).collect();
+            let needing: Vec<&Mission> =
+                missions.iter().filter(|m| !satisfied(m, &base) && m.clauses.iter().any(|c| c.contains(f))).collect();
             (needing.len(), needing.iter().filter(|m| f16_ok(m)).count(), f.clone())
         })
         .collect();

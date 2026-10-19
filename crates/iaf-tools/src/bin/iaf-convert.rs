@@ -41,23 +41,29 @@ fn main() -> Result<()> {
     let mut args: Vec<String> = std::env::args().collect();
     let mut flag = |name: &str| args.iter().position(|a| a == name).map(|i| args.remove(i)).is_some();
     let opts = Options { upscale: flag("--upscale"), smooth: flag("--smooth") };
-    let mut value = |name: &str| args.iter().position(|a| a == name).filter(|&i| i + 1 < args.len()).map(|i| {
-        args.remove(i);
-        args.remove(i)
-    });
+    let mut value = |name: &str| {
+        args.iter().position(|a| a == name).filter(|&i| i + 1 < args.len()).map(|i| {
+            args.remove(i);
+            args.remove(i)
+        })
+    };
     let plane = PlaneOptions { type_code: value("--type"), section: value("--section"), label: value("--label") };
     let (pr, cancel) = (&Stdout, &AtomicBool::new(false));
     let p = Path::new;
     match args.iter().map(String::as_str).collect::<Vec<_>>()[..] {
         [_, "model", src, out] => convert::model(p(src), p(out), &[], &opts, pr),
-        [_, "aircraft", install, missions, out] => convert::aircraft(p(install), p(missions), p(out), &opts, pr, cancel),
+        [_, "aircraft", install, missions, out] => {
+            convert::aircraft(p(install), p(missions), p(out), &opts, pr, cancel)
+        }
         [_, "missions", install, out] => convert::missions(p(install), p(out), pr, cancel),
         [_, "objects", install, missions, out] => convert::objects(p(install), p(missions), p(out), &opts, pr, cancel),
         [_, "fonts", install, out] => convert::fonts(p(install), p(out), pr, cancel),
         [_, "briefings", install, packs, out] => convert::briefings(p(install), p(packs), p(out), &opts, pr, cancel),
         [_, "reference", install, out] => convert::reference(p(install), p(out), &opts, pr, cancel),
         [_, "menu", install, out] => convert::menu(p(install), None, p(out), &opts, pr, cancel),
-        [_, "menu", install, out, "--pack", pack] => convert::menu(p(install), Some(p(pack)), p(out), &opts, pr, cancel),
+        [_, "menu", install, out, "--pack", pack] => {
+            convert::menu(p(install), Some(p(pack)), p(out), &opts, pr, cancel)
+        }
         [_, "keys", install, packs, out] => convert::keys(p(install), p(packs), p(out), pr, cancel),
         [_, "icon", install, out] => convert::icon(p(install), p(out), pr, cancel),
         [_, "cockpit", install, name, out] => convert::cockpit(p(install), name, p(out), &opts, pr, cancel),
@@ -65,7 +71,9 @@ fn main() -> Result<()> {
         [_, "plane-describe", model, out] => plane_describe(Path::new(model), Path::new(out), &plane),
         [_, "plane-checklist", code] => plane_checklist(code, Path::new(".")),
         [_, "plane-checklist", code, repo] => plane_checklist(code, Path::new(repo)),
-        _ => bail!("usage: iaf-convert [--upscale] [--smooth] model <file.x|file.xfr> <out-dir>\n       iaf-convert [--upscale] [--smooth] aircraft <install-dir> <missions-dir> <out-dir>\n       iaf-convert [--upscale] cockpit <install-dir> <cockpit> <out-dir>\n       iaf-convert [--upscale] menu <install-dir> <out-dir> [--pack <pack-dir>]\n       iaf-convert [--upscale] briefings <install-dir> <packs-dir> <out-dir>\n       iaf-convert keys <install-dir> <packs-dir> <out.json>\n       iaf-convert plane-describe <model.gltf> <out-dir> [--type N] [--section NAME] [--label L]\n       iaf-convert plane-checklist <type> [repo-dir]"),
+        _ => bail!(
+            "usage: iaf-convert [--upscale] [--smooth] model <file.x|file.xfr> <out-dir>\n       iaf-convert [--upscale] [--smooth] aircraft <install-dir> <missions-dir> <out-dir>\n       iaf-convert [--upscale] cockpit <install-dir> <cockpit> <out-dir>\n       iaf-convert [--upscale] menu <install-dir> <out-dir> [--pack <pack-dir>]\n       iaf-convert [--upscale] briefings <install-dir> <packs-dir> <out-dir>\n       iaf-convert keys <install-dir> <packs-dir> <out.json>\n       iaf-convert plane-describe <model.gltf> <out-dir> [--type N] [--section NAME] [--label L]\n       iaf-convert plane-checklist <type> [repo-dir]"
+        ),
     }
 }
 
@@ -79,7 +87,8 @@ struct PlaneOptions {
 /// the original models) and the report of what the game will miss (docs/adding-a-plane.md §2).
 fn plane_describe(model: &Path, out: &Path, opts: &PlaneOptions) -> Result<()> {
     use iaf_tools::{aircraft, plane};
-    let gltf: serde_json::Value = serde_json::from_slice(&std::fs::read(model)?).with_context(|| format!("reading {}", model.display()))?;
+    let gltf: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(model)?).with_context(|| format!("reading {}", model.display()))?;
     let folder = out.file_name().map_or_else(String::new, |f| f.to_string_lossy().to_lowercase());
     let file = model.file_name().unwrap().to_string_lossy().to_string();
     let mut d = aircraft::describe(&plane::to_model(&gltf), &folder, &file, &format!("hand-made: {file}"), &[]);
@@ -118,7 +127,10 @@ fn plane_checklist(code: &str, repo: &Path) -> Result<()> {
     }
     let mut missing = 0;
     for r in plane::checklist(repo, code) {
-        let at = r.line.map_or_else(|| format!("{} (anchor not found: {})", r.table.file, r.table.anchor), |l| format!("{}:{l}", r.table.file));
+        let at = r.line.map_or_else(
+            || format!("{} (anchor not found: {})", r.table.file, r.table.anchor),
+            |l| format!("{}:{l}", r.table.file),
+        );
         let mark = match (r.line, r.present, r.table.list) {
             (None, _, _) => "??",
             (_, true, _) => "ok",
@@ -128,6 +140,8 @@ fn plane_checklist(code: &str, repo: &Path) -> Result<()> {
         missing += usize::from(mark == "--");
         println!("{mark} {at}  {}", r.table.what);
     }
-    println!("ok = has {code}, -- = add it, .. = conditions to review, ?? = table moved (update plane.rs TABLES); {missing} to add");
+    println!(
+        "ok = has {code}, -- = add it, .. = conditions to review, ?? = table moved (update plane.rs TABLES); {missing} to add"
+    );
     Ok(())
 }

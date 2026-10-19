@@ -194,15 +194,20 @@ pub fn describe(model: &Model, folder: &str, gltf: &str, source: &str, objects: 
         }
         let mut axis = Value::Null;
         if let Some((h1, h2)) = helpers(id)
-            && let Some(p1) = pos(h1) {
-                // X2 is not checked: a missing X2 reads as the origin.
-                let p2 = pos(h2).unwrap_or([0.0; 3]);
-                let d = if len(p1) <= len(p2) { [p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2]] } else { [p1[0] - p2[0], p1[1] - p2[1], p1[2] - p2[2]] };
-                let l = len(d);
-                if l > 0.0 {
-                    axis = round(gl([d[0] / l, d[1] / l, d[2] / l]));
-                }
+            && let Some(p1) = pos(h1)
+        {
+            // X2 is not checked: a missing X2 reads as the origin.
+            let p2 = pos(h2).unwrap_or([0.0; 3]);
+            let d = if len(p1) <= len(p2) {
+                [p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2]]
+            } else {
+                [p1[0] - p2[0], p1[1] - p2[1], p1[2] - p2[2]]
+            };
+            let l = len(d);
+            if l > 0.0 {
+                axis = round(gl([d[0] / l, d[1] / l, d[2] / l]));
             }
+        }
         parts.insert(f.name.clone(), json!({ "id": id, "pivot": round(gl(origin(f))), "axis": axis }));
     }
 
@@ -253,11 +258,8 @@ pub fn describe(model: &Model, folder: &str, gltf: &str, source: &str, objects: 
     let mut types: Vec<i64> = objects.iter().map(|o| o.type_code).collect();
     types.sort();
     types.dedup();
-    let primary = types
-        .iter()
-        .copied()
-        .max_by_key(|t| (objects.iter().filter(|o| o.type_code == *t).count(), -t))
-        .unwrap_or(-1);
+    let primary =
+        types.iter().copied().max_by_key(|t| (objects.iter().filter(|o| o.type_code == *t).count(), -t)).unwrap_or(-1);
     let label = objects.iter().find(|o| o.type_code == primary).map(|o| o.label.clone()).unwrap_or_default();
 
     json!({

@@ -44,7 +44,8 @@ fn main() -> Result<()> {
         println!("tools: {:?}", iaf_setup::tools());
         return Ok(());
     }
-    let (mut assets, mut patch, mut hebrew_iso, mut imagery, mut guides, mut redo_all, mut xdg) = (repo.join("assets"), None, None, Vec::new(), false, false, None);
+    let (mut assets, mut patch, mut hebrew_iso, mut imagery, mut guides, mut redo_all, mut xdg) =
+        (repo.join("assets"), None, None, Vec::new(), false, false, None);
     let mut refresh = false;
     let mut pos = Vec::new();
     let mut it = args.into_iter();

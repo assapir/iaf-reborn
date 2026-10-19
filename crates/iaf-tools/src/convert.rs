@@ -31,7 +31,13 @@ impl Options {
 }
 
 /// `iaf-convert model`: one model → glTF + PNG textures (textures also looked up in `extra_texture_dirs`).
-pub fn model(src: &Path, out_dir: &Path, extra_texture_dirs: &[PathBuf], opts: &Options, pr: &dyn Progress) -> Result<()> {
+pub fn model(
+    src: &Path,
+    out_dir: &Path,
+    extra_texture_dirs: &[PathBuf],
+    opts: &Options,
+    pr: &dyn Progress,
+) -> Result<()> {
     let model = Model::parse(&std::fs::read(src)?).with_context(|| format!("parsing {}", src.display()))?;
     let name = stem_lc(src)?;
     let mut dirs = vec![parent(src)?.to_path_buf()];
@@ -44,13 +50,13 @@ pub fn model(src: &Path, out_dir: &Path, extra_texture_dirs: &[PathBuf], opts: &
     Ok(())
 }
 
-
 /// An extra plane's arming art (docs/adding-a-plane.md §5) from the original arming art in `menu_img`
 /// (`<converted menu>/img`, its `arm/jets/*.png`) and the plane's `arm_dir` (`front.png`, `arm.json`).
 pub fn arm_extra(menu_img: &Path, arm_dir: &Path, out: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
     check(cancel)?;
     let jets = menu_img.join("arm/jets");
-    let arm: serde_json::Value = serde_json::from_slice(&std::fs::read(arm_dir.join("arm.json"))?).context("arm.json")?;
+    let arm: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(arm_dir.join("arm.json"))?).context("arm.json")?;
     let base_name = arm["base_art"].as_str().unwrap_or("f-16");
     let mut originals = Vec::new();
     let mut base = None;
@@ -68,7 +74,12 @@ pub fn arm_extra(menu_img: &Path, arm_dir: &Path, out: &Path, pr: &dyn Progress,
     let base = base.with_context(|| format!("no {base_name}.png in {}", jets.display()))?;
     let front = image::open(arm_dir.join("front.png"))?.to_rgba8();
     let pairs = |k: &str| -> Vec<(f32, f32)> {
-        arm[k].as_array().into_iter().flatten().map(|p| (p[0].as_f64().unwrap_or(0.0) as f32, p[1].as_f64().unwrap_or(0.0) as f32)).collect()
+        arm[k]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .map(|p| (p[0].as_f64().unwrap_or(0.0) as f32, p[1].as_f64().unwrap_or(0.0) as f32))
+            .collect()
     };
     let scale = base.width() as f32 / 454.0;
     let img = crate::plane::compose_arm(&originals, &base, &front, &pairs("boxes"), &pairs("points"), scale);
@@ -77,12 +88,18 @@ pub fn arm_extra(menu_img: &Path, arm_dir: &Path, out: &Path, pr: &dyn Progress,
     Ok(())
 }
 
-
 /// Every aircraft of the install (controllable and non-controllable `*_h.xfr` frame files):
 /// the glTF model plus `aircraft.json` (docs/aircraft.md) per plane folder, the index
 /// `<out>/aircraft.json` and the afterburner texture `<out>/afterburn.png`. `missions` is the
 /// converted mission folder (the object database gives each model its aircraft type codes).
-pub fn aircraft(install: &Path, missions: &Path, out: &Path, opts: &Options, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
+pub fn aircraft(
+    install: &Path,
+    missions: &Path,
+    out: &Path,
+    opts: &Options,
+    pr: &dyn Progress,
+    cancel: &AtomicBool,
+) -> Result<()> {
     use crate::aircraft;
     let objects_root = install.join("resource/3dobjects");
     let mut db = std::collections::HashMap::new();
@@ -136,8 +153,11 @@ pub fn aircraft(install: &Path, missions: &Path, out: &Path, opts: &Options, pr:
         Ok(entries)
     })?;
     // The index in the sequential order.
-    let mut entries: Vec<(usize, &str, serde_json::Value)> =
-        jobs.iter().zip(results).flat_map(|((plane, _), e)| e.into_iter().map(move |(n, v)| (n, plane.as_str(), v))).collect();
+    let mut entries: Vec<(usize, &str, serde_json::Value)> = jobs
+        .iter()
+        .zip(results)
+        .flat_map(|((plane, _), e)| e.into_iter().map(move |(n, v)| (n, plane.as_str(), v)))
+        .collect();
     entries.sort_by_key(|e| e.0);
     let mut index = serde_json::Map::new();
     for (_, plane, v) in entries {
@@ -155,7 +175,14 @@ pub fn aircraft(install: &Path, missions: &Path, out: &Path, opts: &Options, pr:
 /// `3dobjects`, e.g. `STATIONARY\FCTRY\FCTRY3_H.X`; objects point at them with `0x53c`).
 /// Writes `<out>/<path>.gltf` and `<out>/objects.json` = {bdb: {present id: gltf path}}, plus the
 /// decoy sprites `<out>/missflr.png` and `<out>/chaff.png` and the trail sprite `<out>/trail.png`.
-pub fn objects(install: &Path, missions: &Path, out: &Path, opts: &Options, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
+pub fn objects(
+    install: &Path,
+    missions: &Path,
+    out: &Path,
+    opts: &Options,
+    pr: &dyn Progress,
+    cancel: &AtomicBool,
+) -> Result<()> {
     let root = install.join("resource/3dobjects");
     // Every model the databases reference, first use first; models of one folder run in order on one worker
     // (an `.x` and an `.xfr` of the same name, LOD siblings and textures share the folder's files).
@@ -231,7 +258,11 @@ pub fn objects(install: &Path, missions: &Path, out: &Path, opts: &Options, pr: 
         let Some(stem) = name.strip_suffix(".rtf").filter(|s| s.ends_with("_h")) else { continue };
         let rel = rtf.strip_prefix(&root)?.with_file_name(format!("{stem}.x"));
         // The same glTF as a converted `.xfr` (its frames: turret, launcher, radar…): keep that one.
-        if done.contains_key(&rel) || done.contains_key(&rel.with_extension("xfr")) || !root.join(&rel).exists() || extra.contains(&rel) {
+        if done.contains_key(&rel)
+            || done.contains_key(&rel.with_extension("xfr"))
+            || !root.join(&rel).exists()
+            || extra.contains(&rel)
+        {
             continue;
         }
         extra.push(rel);
@@ -269,7 +300,8 @@ fn lod_siblings(h: &Path) -> Vec<PathBuf> {
                 .map(|e| e.path())
                 .filter(|p| {
                     p.file_stem().is_some_and(|s| s.to_string_lossy().to_lowercase() == want)
-                        && p.extension().is_some_and(|e| matches!(e.to_string_lossy().to_lowercase().as_str(), "x" | "xfr"))
+                        && p.extension()
+                            .is_some_and(|e| matches!(e.to_string_lossy().to_lowercase().as_str(), "x" | "xfr"))
                 })
                 .collect();
             hits.sort();
@@ -283,9 +315,16 @@ fn lod_siblings(h: &Path) -> Vec<PathBuf> {
 const SHARED_COCKPIT_IMAGES: &[&str] = &["mfds.bmp", "rwrsymb.bmp", "isr.bmp"];
 
 /// `iaf-convert cockpit`: cockpit art (PNG) + layout (`cockpit.json`).
-pub fn cockpit(install: &Path, name: &str, out: &Path, opts: &Options, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
-    use iaf_formats::ini::Ini;
+pub fn cockpit(
+    install: &Path,
+    name: &str,
+    out: &Path,
+    opts: &Options,
+    pr: &dyn Progress,
+    cancel: &AtomicBool,
+) -> Result<()> {
     use crate::gltf::{COCKPIT_KEYS, load_texture_keyed};
+    use iaf_formats::ini::Ini;
     let root = install.join("resource/cockpits");
     let dir = root.join(name.to_lowercase());
     std::fs::create_dir_all(out)?;
@@ -302,7 +341,8 @@ pub fn cockpit(install: &Path, name: &str, out: &Path, opts: &Options, pr: &dyn 
             if v.trim().is_empty() {
                 continue;
             }
-            let value = v.parse::<f64>().map(serde_json::Value::from).unwrap_or_else(|_| serde_json::Value::from(v.as_str()));
+            let value =
+                v.parse::<f64>().map(serde_json::Value::from).unwrap_or_else(|_| serde_json::Value::from(v.as_str()));
             obj.entry(k.clone()).or_insert(value);
         }
         layout.insert(section.name.clone(), serde_json::Value::Object(obj));
@@ -356,9 +396,16 @@ fn decode_text(data: &[u8], hebrew: bool) -> String {
 }
 
 /// `iaf-convert menu`: front-end screens / lists (`menus.json`), strings, art and TrueType fonts; files in `pack` win.
-pub fn menu(install: &Path, pack: Option<&Path>, out: &Path, opts: &Options, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
-    use iaf_formats::menu::{self, MenuFile};
+pub fn menu(
+    install: &Path,
+    pack: Option<&Path>,
+    out: &Path,
+    opts: &Options,
+    pr: &dyn Progress,
+    cancel: &AtomicBool,
+) -> Result<()> {
     use crate::gltf::{COCKPIT_KEYS, load_texture_keyed};
+    use iaf_formats::menu::{self, MenuFile};
     use serde_json::json;
     let root = install.join("resource/menu");
     let pack_root = pack.map(|p| p.join("resource/menu"));
@@ -393,19 +440,25 @@ pub fn menu(install: &Path, pack: Option<&Path>, out: &Path, opts: &Options, pr:
 
     // Strings (mission / jet titles and descriptions), Windows-1252.
     let mut strings = serde_json::Map::new();
-    for (rel, f) in overlay_files(&root, pack_root.as_deref(), "txt")?.iter().filter(|(r, _)| r.extension().is_some_and(|e| e == "trx")) {
+    for (rel, f) in overlay_files(&root, pack_root.as_deref(), "txt")?
+        .iter()
+        .filter(|(r, _)| r.extension().is_some_and(|e| e == "trx"))
+    {
         let mut text = decode_text(&std::fs::read(f)?, from_pack(f));
         // msgs.trx is indexed by line number (the message box, docs/front-end.md §3.3). A pack made
         // for an older version lacks the lines added later (v1.1 added line 56, docs/v1.1.md): keep
         // the install's lines past the pack's end.
-        if from_pack(f) && rel.file_name().is_some_and(|n| n == "msgs.trx")
-            && let Ok(base) = std::fs::read(root.join(rel)) {
-                let base = decode_text(&base, false);
-                let (have, all): (Vec<&str>, Vec<&str>) = (text.trim_end().lines().collect(), base.trim_end().lines().collect());
-                if all.len() > have.len() {
-                    text = [&have[..], &all[have.len()..]].concat().join("\r\n");
-                }
+        if from_pack(f)
+            && rel.file_name().is_some_and(|n| n == "msgs.trx")
+            && let Ok(base) = std::fs::read(root.join(rel))
+        {
+            let base = decode_text(&base, false);
+            let (have, all): (Vec<&str>, Vec<&str>) =
+                (text.trim_end().lines().collect(), base.trim_end().lines().collect());
+            if all.len() > have.len() {
+                text = [&have[..], &all[have.len()..]].concat().join("\r\n");
             }
+        }
         strings.insert(stem_lc(f)?, text.trim().replace("\r\n", "\n").into());
     }
     std::fs::write(out.join("strings.json"), serde_json::to_string_pretty(&strings)?)?;
@@ -424,7 +477,10 @@ pub fn menu(install: &Path, pack: Option<&Path>, out: &Path, opts: &Options, pr:
         .filter_map(|m| image::open(root.join(format!("bmp/misc/{m}.bmp"))).ok().map(|i| i.to_luma8()))
         .collect();
     let img_root = out.join("img");
-    let bmps: Vec<_> = overlay_files(&root, pack_root.as_deref(), "bmp")?.into_iter().filter(|(r, _)| r.extension().is_some_and(|e| e == "bmp")).collect();
+    let bmps: Vec<_> = overlay_files(&root, pack_root.as_deref(), "bmp")?
+        .into_iter()
+        .filter(|(r, _)| r.extension().is_some_and(|e| e == "bmp"))
+        .collect();
     let saved = par_map(&bmps, cancel, |(rel, src)| -> Result<bool> {
         let dest = img_root.join(rel.strip_prefix("bmp")?.with_extension("png"));
         let mut img = match load_texture_keyed(src, COCKPIT_KEYS) {
@@ -436,19 +492,22 @@ pub fn menu(install: &Path, pack: Option<&Path>, out: &Path, opts: &Options, pr:
         };
         if rel.starts_with("bmp/palettes") {
             // The mask whose size is closest to the panel (bottom panels are a few pixels larger).
-            if let Some(mask) = masks.iter().min_by_key(|m| (m.width() as i64 - img.width() as i64).abs() + (m.height() as i64 - img.height() as i64).abs())
-                && (mask.width() as i64 - img.width() as i64).abs() <= 4 && (mask.height() as i64 - img.height() as i64).abs() <= 4 {
-                    for (x, y, p) in img.enumerate_pixels_mut() {
-                        let visible = if x < mask.width() && y < mask.height() {
-                            mask.get_pixel(x, y)[0] < 128
-                        } else {
-                            p[0] as u32 + p[1] as u32 + p[2] as u32 > 0
-                        };
-                        if !visible {
-                            p[3] = 0;
-                        }
+            if let Some(mask) = masks.iter().min_by_key(|m| {
+                (m.width() as i64 - img.width() as i64).abs() + (m.height() as i64 - img.height() as i64).abs()
+            }) && (mask.width() as i64 - img.width() as i64).abs() <= 4
+                && (mask.height() as i64 - img.height() as i64).abs() <= 4
+            {
+                for (x, y, p) in img.enumerate_pixels_mut() {
+                    let visible = if x < mask.width() && y < mask.height() {
+                        mask.get_pixel(x, y)[0] < 128
+                    } else {
+                        p[0] as u32 + p[1] as u32 + p[2] as u32 > 0
+                    };
+                    if !visible {
+                        p[3] = 0;
                     }
                 }
+            }
         }
         std::fs::create_dir_all(parent(&dest)?)?;
         opts.scaled(img).save(&dest)?;
@@ -487,19 +546,27 @@ pub fn menu(install: &Path, pack: Option<&Path>, out: &Path, opts: &Options, pr:
 fn emf_json(mf: &iaf_formats::emf::Metafile) -> serde_json::Value {
     use iaf_formats::emf::Op;
     use serde_json::json;
-    let flat = |pts: &[[f32; 2]]| pts.iter().flat_map(|p| [(p[0] * 1e5).round() / 1e5, (p[1] * 1e5).round() / 1e5]).collect::<Vec<f32>>();
+    let flat = |pts: &[[f32; 2]]| {
+        pts.iter().flat_map(|p| [(p[0] * 1e5).round() / 1e5, (p[1] * 1e5).round() / 1e5]).collect::<Vec<f32>>()
+    };
     let pen = |p: &Option<iaf_formats::emf::Pen>| p.map(|p| json!({"color": p.color, "width": p.width}));
-    let ops: Vec<_> = mf.ops.iter().map(|op| match op {
-        Op::Polygon { rings, pen: pn, brush, alternate } => json!({
-            "t": "polygon", "rings": rings.iter().map(|r| flat(r)).collect::<Vec<_>>(),
-            "pen": pen(pn), "brush": brush, "alternate": alternate,
-        }),
-        Op::Polyline { points, pen: pn } => json!({"t": "polyline", "points": flat(points), "pen": pen(&Some(*pn))}),
-        Op::Text { pos, text, font, color, align } => json!({
-            "t": "text", "pos": pos, "text": text, "color": color, "align": align,
-            "font": {"height": font.height, "weight": font.weight, "italic": font.italic, "face": font.face},
-        }),
-    }).collect();
+    let ops: Vec<_> = mf
+        .ops
+        .iter()
+        .map(|op| match op {
+            Op::Polygon { rings, pen: pn, brush, alternate } => json!({
+                "t": "polygon", "rings": rings.iter().map(|r| flat(r)).collect::<Vec<_>>(),
+                "pen": pen(pn), "brush": brush, "alternate": alternate,
+            }),
+            Op::Polyline { points, pen: pn } => {
+                json!({"t": "polyline", "points": flat(points), "pen": pen(&Some(*pn))})
+            }
+            Op::Text { pos, text, font, color, align } => json!({
+                "t": "text", "pos": pos, "text": text, "color": color, "align": align,
+                "font": {"height": font.height, "weight": font.weight, "italic": font.italic, "face": font.face},
+            }),
+        })
+        .collect();
     json!({
         "frame_mm": [(mf.frame[2] - mf.frame[0]) as f32 / 100.0, (mf.frame[3] - mf.frame[1]) as f32 / 100.0],
         "ops": ops,
@@ -525,22 +592,38 @@ fn strip_bbcode(line: &str) -> String {
 /// 3 bitmap, 5 target (docs/front-end.md §6).
 fn parse_brl(data: &[u8], hebrew: bool) -> Vec<(String, i32, String)> {
     let text = |b: &[u8]| decode_text(b.split(|&c| c == 0).next().unwrap_or(&[]), hebrew).trim().to_string();
-    data.as_chunks::<516>().0.iter()
-        .map(|e| (text(&e[..256]), i32::from_le_bytes(e[256..260].try_into().unwrap()), text(&e[260..]).replace('\\', "/").to_lowercase()))
+    data.as_chunks::<516>()
+        .0
+        .iter()
+        .map(|e| {
+            (
+                text(&e[..256]),
+                i32::from_le_bytes(e[256..260].try_into().unwrap()),
+                text(&e[260..]).replace('\\', "/").to_lowercase(),
+            )
+        })
         .filter(|(t, _, f)| !t.is_empty() || !f.is_empty())
         .collect()
 }
 
 /// `iaf-convert briefings`: briefing / lesson texts (English + the Hebrew pack), `.brl` entries and diagrams.
-pub fn briefings(install: &Path, packs: &Path, out: &Path, opts: &Options, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
-    use iaf_formats::rtf::to_bbcode;
+pub fn briefings(
+    install: &Path,
+    packs: &Path,
+    out: &Path,
+    opts: &Options,
+    pr: &dyn Progress,
+    cancel: &AtomicBool,
+) -> Result<()> {
     use crate::gltf::load_texture;
+    use iaf_formats::rtf::to_bbcode;
     use serde_json::json;
     let base = install.join("resource/brief");
     let he = packs.join("he/resource/brief");
     std::fs::create_dir_all(out)?;
     let read_rtf = |dir: &Path, name: &str| std::fs::read(dir.join(name)).ok().map(|d| to_bbcode(&d));
-    let read_brl = |dir: &Path, name: &str, hebrew: bool| std::fs::read(dir.join(name)).ok().map(|d| parse_brl(&d, hebrew));
+    let read_brl =
+        |dir: &Path, name: &str, hebrew: bool| std::fs::read(dir.join(name)).ok().map(|d| parse_brl(&d, hebrew));
     let entries_json = |en: Option<Vec<(String, i32, String)>>, he: Option<Vec<(String, i32, String)>>| {
         let en = en.unwrap_or_default();
         let he = he.unwrap_or_default();
@@ -589,7 +672,10 @@ pub fn briefings(install: &Path, packs: &Path, out: &Path, opts: &Options, pr: &
             let v: Vec<f64> = t.split_whitespace().filter_map(|w| w.parse().ok()).collect();
             (v.len() >= 2).then(|| json!([v[0], v[1]]))
         });
-        models.insert(key.to_string(), json!({"text": {"en": std::fs::read(&rtf).ok().map(|d| to_bbcode(&d))}, "cp": cp}));
+        models.insert(
+            key.to_string(),
+            json!({"text": {"en": std::fs::read(&rtf).ok().map(|d| to_bbcode(&d))}, "cp": cp}),
+        );
     }
     doc.insert("models".into(), serde_json::Value::Object(models));
     std::fs::write(out.join("briefings.json"), serde_json::to_string_pretty(&doc)?)?;
@@ -612,8 +698,13 @@ pub fn briefings(install: &Path, packs: &Path, out: &Path, opts: &Options, pr: &
         Ok(true)
     })?;
     let n = saved.iter().filter(|s| **s).count();
-    log!(pr, "briefings: {} missions, {} lessons, {n} diagrams -> {}",
-        doc["missions"].as_object().map_or(0, |m| m.len()), doc["lessons"].as_object().map_or(0, |m| m.len()), out.display());
+    log!(
+        pr,
+        "briefings: {} missions, {} lessons, {n} diagrams -> {}",
+        doc["missions"].as_object().map_or(0, |m| m.len()),
+        doc["lessons"].as_object().map_or(0, |m| m.len()),
+        out.display()
+    );
     Ok(())
 }
 
@@ -680,7 +771,11 @@ pub fn fonts(install: &Path, out: &Path, pr: &dyn Progress, cancel: &AtomicBool)
             "info face=\"{}\" size={} bold=0 italic=0 charset=\"\" unicode=1 stretchH=100 smooth=0 aa=1 padding=0,0,0,0 spacing=1,1\n\
              common lineHeight={} base={} scaleW={atlas_w} scaleH={atlas_h} pages=1 packed=0\n\
              page id=0 file=\"{name}.png\"\nchars count={}\n",
-            font.face, h, h, font.ascent, glyphs.len()
+            font.face,
+            h,
+            h,
+            font.ascent,
+            glyphs.len()
         );
         for (g, &(gx, gy)) in glyphs.iter().zip(&places) {
             for py in 0..h {
@@ -776,26 +871,126 @@ const KEYS_V11: KeyAddrs = KeyAddrs {
     version: "v1.1",
     table: 0x64c3c8,
     dik_names: &[
-        (0x01, 0x658ec4), (0x02, 0x64da60), (0x03, 0x658ec0), (0x04, 0x658ebc), (0x05, 0x658eb8), (0x06, 0x658eb4),
-        (0x07, 0x658eb0), (0x08, 0x658eac), (0x09, 0x658ea8), (0x0a, 0x658ea4), (0x0b, 0x64f7b4), (0x0c, 0x658ea0),
-        (0x0d, 0x658e9c), (0x0e, 0x658e90), (0x0f, 0x658e8c), (0x10, 0x658e88), (0x11, 0x658e84), (0x12, 0x658e80),
-        (0x13, 0x658e7c), (0x14, 0x658e78), (0x15, 0x658e74), (0x16, 0x658e70), (0x17, 0x658e6c), (0x18, 0x658e68),
-        (0x19, 0x658e64), (0x1a, 0x658e60), (0x1b, 0x658e5c), (0x1c, 0x658e54), (0x1d, 0x658e4c), (0x1e, 0x658e48),
-        (0x1f, 0x658e44), (0x20, 0x658e40), (0x21, 0x658e3c), (0x22, 0x658e38), (0x23, 0x658e34), (0x24, 0x658e30),
-        (0x25, 0x658e2c), (0x26, 0x658e28), (0x27, 0x658e24), (0x28, 0x658e20), (0x29, 0x658e1c), (0x2a, 0x658e14),
-        (0x2b, 0x628140), (0x2c, 0x658e10), (0x2d, 0x658e0c), (0x2e, 0x658e08), (0x2f, 0x658e04), (0x30, 0x658e00),
-        (0x31, 0x658dfc), (0x32, 0x658df8), (0x33, 0x63fd54), (0x34, 0x658df4), (0x35, 0x658df0), (0x36, 0x658de8),
-        (0x37, 0x658ddc), (0x38, 0x658dd4), (0x39, 0x658dcc), (0x3a, 0x658dc0), (0x3b, 0x658dbc), (0x3c, 0x658db8),
-        (0x3d, 0x658db4), (0x3e, 0x656f74), (0x3f, 0x658db0), (0x40, 0x658dac), (0x41, 0x658da8), (0x42, 0x658da4),
-        (0x43, 0x658da0), (0x44, 0x658d9c), (0x45, 0x658d94), (0x46, 0x658d88), (0x47, 0x658d7c), (0x48, 0x658d70),
-        (0x49, 0x658d64), (0x4a, 0x658d58), (0x4b, 0x658d4c), (0x4c, 0x658d40), (0x4d, 0x658d34), (0x4e, 0x658d28),
-        (0x4f, 0x658d1c), (0x50, 0x658d10), (0x51, 0x658d04), (0x52, 0x658cf8), (0x53, 0x658cf0), (0x56, 0x658ce8),
-        (0x57, 0x658ce4), (0x58, 0x658ce0), (0x64, 0x658cdc), (0x65, 0x658cd8), (0x66, 0x65583c), (0x70, 0x658cd0),
-        (0x79, 0x658cc8), (0x7b, 0x658cbc), (0x7d, 0x658cb8), (0x8d, 0x658cac), (0x90, 0x658ca0), (0x91, 0x658c9c),
-        (0x92, 0x658c94), (0x93, 0x658c88), (0x94, 0x658c80), (0x95, 0x658c78), (0x96, 0x658c74), (0x97, 0x658c6c),
-        (0x9c, 0x658c64), (0x9d, 0x658c5c), (0xb3, 0x658c4c), (0xb5, 0x658c40), (0xb7, 0x658c38), (0xb8, 0x658c30),
-        (0xc7, 0x658c28), (0xc8, 0x658c24), (0xc9, 0x658c1c), (0xcb, 0x658c14), (0xcd, 0x658c0c), (0xcf, 0x658c08),
-        (0xd0, 0x658c00), (0xd1, 0x658bf4), (0xd2, 0x658bec), (0xd3, 0x658be4), (0xdb, 0x658bdc), (0xdc, 0x658bd4),
+        (0x01, 0x658ec4),
+        (0x02, 0x64da60),
+        (0x03, 0x658ec0),
+        (0x04, 0x658ebc),
+        (0x05, 0x658eb8),
+        (0x06, 0x658eb4),
+        (0x07, 0x658eb0),
+        (0x08, 0x658eac),
+        (0x09, 0x658ea8),
+        (0x0a, 0x658ea4),
+        (0x0b, 0x64f7b4),
+        (0x0c, 0x658ea0),
+        (0x0d, 0x658e9c),
+        (0x0e, 0x658e90),
+        (0x0f, 0x658e8c),
+        (0x10, 0x658e88),
+        (0x11, 0x658e84),
+        (0x12, 0x658e80),
+        (0x13, 0x658e7c),
+        (0x14, 0x658e78),
+        (0x15, 0x658e74),
+        (0x16, 0x658e70),
+        (0x17, 0x658e6c),
+        (0x18, 0x658e68),
+        (0x19, 0x658e64),
+        (0x1a, 0x658e60),
+        (0x1b, 0x658e5c),
+        (0x1c, 0x658e54),
+        (0x1d, 0x658e4c),
+        (0x1e, 0x658e48),
+        (0x1f, 0x658e44),
+        (0x20, 0x658e40),
+        (0x21, 0x658e3c),
+        (0x22, 0x658e38),
+        (0x23, 0x658e34),
+        (0x24, 0x658e30),
+        (0x25, 0x658e2c),
+        (0x26, 0x658e28),
+        (0x27, 0x658e24),
+        (0x28, 0x658e20),
+        (0x29, 0x658e1c),
+        (0x2a, 0x658e14),
+        (0x2b, 0x628140),
+        (0x2c, 0x658e10),
+        (0x2d, 0x658e0c),
+        (0x2e, 0x658e08),
+        (0x2f, 0x658e04),
+        (0x30, 0x658e00),
+        (0x31, 0x658dfc),
+        (0x32, 0x658df8),
+        (0x33, 0x63fd54),
+        (0x34, 0x658df4),
+        (0x35, 0x658df0),
+        (0x36, 0x658de8),
+        (0x37, 0x658ddc),
+        (0x38, 0x658dd4),
+        (0x39, 0x658dcc),
+        (0x3a, 0x658dc0),
+        (0x3b, 0x658dbc),
+        (0x3c, 0x658db8),
+        (0x3d, 0x658db4),
+        (0x3e, 0x656f74),
+        (0x3f, 0x658db0),
+        (0x40, 0x658dac),
+        (0x41, 0x658da8),
+        (0x42, 0x658da4),
+        (0x43, 0x658da0),
+        (0x44, 0x658d9c),
+        (0x45, 0x658d94),
+        (0x46, 0x658d88),
+        (0x47, 0x658d7c),
+        (0x48, 0x658d70),
+        (0x49, 0x658d64),
+        (0x4a, 0x658d58),
+        (0x4b, 0x658d4c),
+        (0x4c, 0x658d40),
+        (0x4d, 0x658d34),
+        (0x4e, 0x658d28),
+        (0x4f, 0x658d1c),
+        (0x50, 0x658d10),
+        (0x51, 0x658d04),
+        (0x52, 0x658cf8),
+        (0x53, 0x658cf0),
+        (0x56, 0x658ce8),
+        (0x57, 0x658ce4),
+        (0x58, 0x658ce0),
+        (0x64, 0x658cdc),
+        (0x65, 0x658cd8),
+        (0x66, 0x65583c),
+        (0x70, 0x658cd0),
+        (0x79, 0x658cc8),
+        (0x7b, 0x658cbc),
+        (0x7d, 0x658cb8),
+        (0x8d, 0x658cac),
+        (0x90, 0x658ca0),
+        (0x91, 0x658c9c),
+        (0x92, 0x658c94),
+        (0x93, 0x658c88),
+        (0x94, 0x658c80),
+        (0x95, 0x658c78),
+        (0x96, 0x658c74),
+        (0x97, 0x658c6c),
+        (0x9c, 0x658c64),
+        (0x9d, 0x658c5c),
+        (0xb3, 0x658c4c),
+        (0xb5, 0x658c40),
+        (0xb7, 0x658c38),
+        (0xb8, 0x658c30),
+        (0xc7, 0x658c28),
+        (0xc8, 0x658c24),
+        (0xc9, 0x658c1c),
+        (0xcb, 0x658c14),
+        (0xcd, 0x658c0c),
+        (0xcf, 0x658c08),
+        (0xd0, 0x658c00),
+        (0xd1, 0x658bf4),
+        (0xd2, 0x658bec),
+        (0xd3, 0x658be4),
+        (0xdb, 0x658bdc),
+        (0xdc, 0x658bd4),
         (0xdd, 0x658bcc),
     ],
     modifiers: [(0x11, 0x658ba8), (0x22, 0x658bb0), (0x44, 0x658bbc), (0x88, 0x658bc4)],
@@ -807,26 +1002,126 @@ const KEYS_V10: KeyAddrs = KeyAddrs {
     version: "v1.0",
     table: 0x647ff8,
     dik_names: &[
-        (0x01, 0x654af8), (0x02, 0x649690), (0x03, 0x654af4), (0x04, 0x654af0), (0x05, 0x654aec), (0x06, 0x654ae8),
-        (0x07, 0x654ae4), (0x08, 0x654ae0), (0x09, 0x654adc), (0x0a, 0x654ad8), (0x0b, 0x654ad4), (0x0c, 0x654ad0),
-        (0x0d, 0x654acc), (0x0e, 0x654ac0), (0x0f, 0x654abc), (0x10, 0x654ab8), (0x11, 0x654ab4), (0x12, 0x654ab0),
-        (0x13, 0x654aac), (0x14, 0x654aa8), (0x15, 0x654aa4), (0x16, 0x654aa0), (0x17, 0x654a9c), (0x18, 0x654a98),
-        (0x19, 0x654a94), (0x1a, 0x654a90), (0x1b, 0x654a8c), (0x1c, 0x654a84), (0x1d, 0x654a7c), (0x1e, 0x654a78),
-        (0x1f, 0x654a74), (0x20, 0x654a70), (0x21, 0x654a6c), (0x22, 0x654a68), (0x23, 0x654a64), (0x24, 0x654a60),
-        (0x25, 0x654a5c), (0x26, 0x654a58), (0x27, 0x654a54), (0x28, 0x654a50), (0x29, 0x654a4c), (0x2a, 0x654a44),
-        (0x2b, 0x6240d0), (0x2c, 0x654a40), (0x2d, 0x654a3c), (0x2e, 0x654a38), (0x2f, 0x654a34), (0x30, 0x654a30),
-        (0x31, 0x654a2c), (0x32, 0x654a28), (0x33, 0x63bb14), (0x34, 0x654a24), (0x35, 0x654a20), (0x36, 0x654a18),
-        (0x37, 0x654a0c), (0x38, 0x654a04), (0x39, 0x6549fc), (0x3a, 0x6549f0), (0x3b, 0x6549ec), (0x3c, 0x6549e8),
-        (0x3d, 0x6549e4), (0x3e, 0x652ba4), (0x3f, 0x6549e0), (0x40, 0x6549dc), (0x41, 0x6549d8), (0x42, 0x6549d4),
-        (0x43, 0x6549d0), (0x44, 0x6549cc), (0x45, 0x6549c4), (0x46, 0x6549b8), (0x47, 0x6549ac), (0x48, 0x6549a0),
-        (0x49, 0x654994), (0x4a, 0x654988), (0x4b, 0x65497c), (0x4c, 0x654970), (0x4d, 0x654964), (0x4e, 0x654958),
-        (0x4f, 0x65494c), (0x50, 0x654940), (0x51, 0x654934), (0x52, 0x654928), (0x53, 0x654920), (0x56, 0x654918),
-        (0x57, 0x654914), (0x58, 0x654910), (0x64, 0x65490c), (0x65, 0x654908), (0x66, 0x65146c), (0x70, 0x654900),
-        (0x79, 0x6548f8), (0x7b, 0x6548ec), (0x7d, 0x6548e8), (0x8d, 0x6548dc), (0x90, 0x6548d0), (0x91, 0x6548cc),
-        (0x92, 0x6548c4), (0x93, 0x6548b8), (0x94, 0x6548b0), (0x95, 0x6548a8), (0x96, 0x6548a4), (0x97, 0x65489c),
-        (0x9c, 0x654894), (0x9d, 0x65488c), (0xb3, 0x65487c), (0xb5, 0x654870), (0xb7, 0x654868), (0xb8, 0x654860),
-        (0xc7, 0x654858), (0xc8, 0x654854), (0xc9, 0x65484c), (0xcb, 0x654844), (0xcd, 0x65483c), (0xcf, 0x654838),
-        (0xd0, 0x654830), (0xd1, 0x654824), (0xd2, 0x65481c), (0xd3, 0x654814), (0xdb, 0x65480c), (0xdc, 0x654804),
+        (0x01, 0x654af8),
+        (0x02, 0x649690),
+        (0x03, 0x654af4),
+        (0x04, 0x654af0),
+        (0x05, 0x654aec),
+        (0x06, 0x654ae8),
+        (0x07, 0x654ae4),
+        (0x08, 0x654ae0),
+        (0x09, 0x654adc),
+        (0x0a, 0x654ad8),
+        (0x0b, 0x654ad4),
+        (0x0c, 0x654ad0),
+        (0x0d, 0x654acc),
+        (0x0e, 0x654ac0),
+        (0x0f, 0x654abc),
+        (0x10, 0x654ab8),
+        (0x11, 0x654ab4),
+        (0x12, 0x654ab0),
+        (0x13, 0x654aac),
+        (0x14, 0x654aa8),
+        (0x15, 0x654aa4),
+        (0x16, 0x654aa0),
+        (0x17, 0x654a9c),
+        (0x18, 0x654a98),
+        (0x19, 0x654a94),
+        (0x1a, 0x654a90),
+        (0x1b, 0x654a8c),
+        (0x1c, 0x654a84),
+        (0x1d, 0x654a7c),
+        (0x1e, 0x654a78),
+        (0x1f, 0x654a74),
+        (0x20, 0x654a70),
+        (0x21, 0x654a6c),
+        (0x22, 0x654a68),
+        (0x23, 0x654a64),
+        (0x24, 0x654a60),
+        (0x25, 0x654a5c),
+        (0x26, 0x654a58),
+        (0x27, 0x654a54),
+        (0x28, 0x654a50),
+        (0x29, 0x654a4c),
+        (0x2a, 0x654a44),
+        (0x2b, 0x6240d0),
+        (0x2c, 0x654a40),
+        (0x2d, 0x654a3c),
+        (0x2e, 0x654a38),
+        (0x2f, 0x654a34),
+        (0x30, 0x654a30),
+        (0x31, 0x654a2c),
+        (0x32, 0x654a28),
+        (0x33, 0x63bb14),
+        (0x34, 0x654a24),
+        (0x35, 0x654a20),
+        (0x36, 0x654a18),
+        (0x37, 0x654a0c),
+        (0x38, 0x654a04),
+        (0x39, 0x6549fc),
+        (0x3a, 0x6549f0),
+        (0x3b, 0x6549ec),
+        (0x3c, 0x6549e8),
+        (0x3d, 0x6549e4),
+        (0x3e, 0x652ba4),
+        (0x3f, 0x6549e0),
+        (0x40, 0x6549dc),
+        (0x41, 0x6549d8),
+        (0x42, 0x6549d4),
+        (0x43, 0x6549d0),
+        (0x44, 0x6549cc),
+        (0x45, 0x6549c4),
+        (0x46, 0x6549b8),
+        (0x47, 0x6549ac),
+        (0x48, 0x6549a0),
+        (0x49, 0x654994),
+        (0x4a, 0x654988),
+        (0x4b, 0x65497c),
+        (0x4c, 0x654970),
+        (0x4d, 0x654964),
+        (0x4e, 0x654958),
+        (0x4f, 0x65494c),
+        (0x50, 0x654940),
+        (0x51, 0x654934),
+        (0x52, 0x654928),
+        (0x53, 0x654920),
+        (0x56, 0x654918),
+        (0x57, 0x654914),
+        (0x58, 0x654910),
+        (0x64, 0x65490c),
+        (0x65, 0x654908),
+        (0x66, 0x65146c),
+        (0x70, 0x654900),
+        (0x79, 0x6548f8),
+        (0x7b, 0x6548ec),
+        (0x7d, 0x6548e8),
+        (0x8d, 0x6548dc),
+        (0x90, 0x6548d0),
+        (0x91, 0x6548cc),
+        (0x92, 0x6548c4),
+        (0x93, 0x6548b8),
+        (0x94, 0x6548b0),
+        (0x95, 0x6548a8),
+        (0x96, 0x6548a4),
+        (0x97, 0x65489c),
+        (0x9c, 0x654894),
+        (0x9d, 0x65488c),
+        (0xb3, 0x65487c),
+        (0xb5, 0x654870),
+        (0xb7, 0x654868),
+        (0xb8, 0x654860),
+        (0xc7, 0x654858),
+        (0xc8, 0x654854),
+        (0xc9, 0x65484c),
+        (0xcb, 0x654844),
+        (0xcd, 0x65483c),
+        (0xcf, 0x654838),
+        (0xd0, 0x654830),
+        (0xd1, 0x654824),
+        (0xd2, 0x65481c),
+        (0xd3, 0x654814),
+        (0xdb, 0x65480c),
+        (0xdc, 0x654804),
         (0xdd, 0x6547fc),
     ],
     modifiers: [(0x11, 0x6547d8), (0x22, 0x6547e0), (0x44, 0x6547ec), (0x88, 0x6547f4)],
@@ -841,7 +1136,10 @@ fn key_addrs(exe: &PeImage) -> Result<&'static KeyAddrs> {
         Release::V11 => &KEYS_V11,
     };
     let esc = k.dik_names.iter().find(|(d, _)| *d == 1).map(|&(_, va)| va).context("no Esc key name")?;
-    if exe.cstr(esc)? != b"Esc" || exe.cstr(k.modifiers[0].1)? != b"Ctrl + " || exe.cstr(k.button_format)? != b"Button %d" {
+    if exe.cstr(esc)? != b"Esc"
+        || exe.cstr(k.modifiers[0].1)? != b"Ctrl + "
+        || exe.cstr(k.button_format)? != b"Button %d"
+    {
         bail!("iafjets.exe {}: the key-name strings are not where expected", k.version);
     }
     for i in 0..KEY_RECORDS {
@@ -911,7 +1209,8 @@ pub fn icon(install: &Path, out: &Path, pr: &dyn Progress, cancel: &AtomicBool) 
     check(cancel)?;
     let exe = crate::exe::PeImage::load(&install.join("iafjets.exe"))?;
     let icon = exe.icons()?.into_iter().next().context("no icon in iafjets.exe")?;
-    let big = image::imageops::resize(&icon, icon.width() * 4, icon.height() * 4, image::imageops::FilterType::Lanczos3);
+    let big =
+        image::imageops::resize(&icon, icon.width() * 4, icon.height() * 4, image::imageops::FilterType::Lanczos3);
     big.save(out)?;
     log!(pr, "icon {}x{} -> {}", icon.width(), icon.height(), out.display());
     Ok(())

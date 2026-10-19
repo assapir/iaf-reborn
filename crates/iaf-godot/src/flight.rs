@@ -83,7 +83,8 @@ impl IafFlight {
         let path = std::path::PathBuf::from(install.to_string()).join("iaf.ibx");
         let bases = std::fs::read(path).map(|b| Airbase::load_all(&b)).unwrap_or_default();
         let Some(b) = Airbase::nearest(&bases, [x as f32, y as f32, z as f32]) else { return Vector2i::ZERO };
-        let near = (b.tower[0] as f64 - x).hypot(b.tower[1] as f64 - y) < 5000.0 && (z - b.tower[2] as f64).abs() < 15.0;
+        let near =
+            (b.tower[0] as f64 - x).hypot(b.tower[1] as f64 - y) < 5000.0 && (z - b.tower[2] as f64).abs() < 15.0;
         let engine = (b.lineup[0] as f64 - x).hypot(b.lineup[1] as f64 - y) <= 100.0;
         Vector2i::new(near as i32, engine as i32)
     }
@@ -97,7 +98,16 @@ impl IafFlight {
     /// Stick x/y −1..1 (y: pull positive), rudder −1..1, throttle 0..1 (0.74 military, ≥0.75 AB).
     #[func]
     #[allow(clippy::too_many_arguments)]
-    fn set_controls(&mut self, stick_x: f64, stick_y: f64, rudder: f64, throttle: f64, flaps: f64, gear_down: bool, brakes: bool) {
+    fn set_controls(
+        &mut self,
+        stick_x: f64,
+        stick_y: f64,
+        rudder: f64,
+        throttle: f64,
+        flaps: f64,
+        gear_down: bool,
+        brakes: bool,
+    ) {
         if let Some(ac) = &mut self.aircraft {
             ac.set_controls(Controls {
                 stick_x: stick_x as f32,
@@ -117,7 +127,9 @@ impl IafFlight {
     #[func]
     fn set_damage(&mut self, flags: VarArray, twin: bool) {
         if let Some(ac) = &mut self.aircraft {
-            let mask = (0..flags.len().min(25)).filter(|&i| flags.get(i).is_some_and(|v| v.booleanize())).fold(0u32, |m, i| m | 1 << i);
+            let mask = (0..flags.len().min(25))
+                .filter(|&i| flags.get(i).is_some_and(|v| v.booleanize()))
+                .fold(0u32, |m, i| m | 1 << i);
             ac.set_damage(mask, twin);
         }
     }
@@ -302,7 +314,9 @@ impl IafFlight {
                 p[0] -= ox;
                 p[1] -= oy;
             }
-            for list in [&mut b.to_taxi, &mut b.from_taxi, &mut b.hangars, &mut b.to_hangar_turn, &mut b.from_hangar_turn] {
+            for list in
+                [&mut b.to_taxi, &mut b.from_taxi, &mut b.hangars, &mut b.to_hangar_turn, &mut b.from_hangar_turn]
+            {
                 for p in list.iter_mut() {
                     p.x -= ox;
                     p.y -= oy;
@@ -328,7 +342,9 @@ impl IafFlight {
         if let Some(ap) = &mut self.ap {
             ap.route = flat
                 .as_slice()
-                .as_chunks::<5>().0.iter()
+                .as_chunks::<5>()
+                .0
+                .iter()
                 .map(|w| Waypoint { x: w[0] - ox, y: w[1] - oy, z: w[2], t: w[3], action: w[4] as i32 })
                 .collect();
         }
@@ -357,7 +373,9 @@ impl IafFlight {
         let ground = self.ground.clone();
         let g = move |x: f64, y: f64| -> f32 {
             match &ground {
-                Some(f) => f.call(&[Vector3::new(x as f32, 0.0, -y as f32).to_variant()]).try_to::<f32>().unwrap_or(-1.0e9),
+                Some(f) => {
+                    f.call(&[Vector3::new(x as f32, 0.0, -y as f32).to_variant()]).try_to::<f32>().unwrap_or(-1.0e9)
+                }
                 None => 0.0,
             }
         };
@@ -434,7 +452,16 @@ impl IafFlight {
     /// velocity, attitude in degrees; `has` false = I lead (or no formation).
     #[func]
     #[allow(clippy::too_many_arguments)]
-    fn ap_set_leader(&mut self, has: bool, active: bool, pos: Vector3, vel: Vector3, pitch: f64, roll: f64, heading: f64) {
+    fn ap_set_leader(
+        &mut self,
+        has: bool,
+        active: bool,
+        pos: Vector3,
+        vel: Vector3,
+        pitch: f64,
+        roll: f64,
+        heading: f64,
+    ) {
         if let Some(ap) = &mut self.ap {
             ap.leader = has.then(|| Leader {
                 pos: to_enu(pos),
@@ -499,8 +526,14 @@ impl IafFlight {
         let Some(ac) = &self.aircraft else { return d };
         let flag = |i: usize| damage.get(i).is_some_and(|v| v.booleanize());
         let engine = |e: usize| EngineDamage { cut_out: flag(2 + e), fire: flag(16 + e), permanent: flag(22 + e) };
-        let i = instruments::instruments(&ac.state(), ac.ground_height, ac.gear_clearance, ac.internal_fuel_kg(),
-            ac.params.ias_low_speed_fix, [engine(0), engine(1)]);
+        let i = instruments::instruments(
+            &ac.state(),
+            ac.ground_height,
+            ac.gear_clearance,
+            ac.internal_fuel_kg(),
+            ac.params.ias_low_speed_fix,
+            [engine(0), engine(1)],
+        );
         d.set("tas_kt", i.tas_kt);
         d.set("ground_kt", i.ground_kt);
         d.set("ias_kt", i.ias_kt);

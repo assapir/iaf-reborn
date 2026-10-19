@@ -209,7 +209,10 @@ impl Stores {
 
     /// Total displayed count of the stations with this weapon (type and name; `FUN_0053bd90` / `FUN_0053bcd0`).
     pub fn total(&self, type_code: i64, name: &str) -> i64 {
-        self.stations().filter(|(_, s)| s.weapon.type_code == type_code && s.weapon.name == name).map(|(_, s)| s.displayed()).sum()
+        self.stations()
+            .filter(|(_, s)| s.weapon.type_code == type_code && s.weapon.name == name)
+            .map(|(_, s)| s.displayed())
+            .sum()
     }
 
     fn remember(&mut self, kind: Category) {
@@ -237,7 +240,9 @@ impl Stores {
             if let Some(s) = self.station(i) {
                 let w = &s.weapon;
                 let cat = Category::of(w.type_code);
-                let fresh = w.type_code != SHELL && cur.as_ref().is_none_or(|c| !s.same_weapon(c)) && !self.visited.contains(&w.name);
+                let fresh = w.type_code != SHELL
+                    && cur.as_ref().is_none_or(|c| !s.same_weapon(c))
+                    && !self.visited.contains(&w.name);
                 if fresh && (cat == kind || (cat == Category::Gun && allow_gun)) {
                     cand = Some(i);
                     let name = w.name.clone();
@@ -287,7 +292,11 @@ impl Stores {
                 }
             }
             self.just_fired = false;
-            self.remember(if Category::of(self.type_of(self.cur)) == Category::AirToAir { Category::AirToAir } else { Category::AirToGround });
+            self.remember(if Category::of(self.type_of(self.cur)) == Category::AirToAir {
+                Category::AirToAir
+            } else {
+                Category::AirToGround
+            });
         }
         if self.current().is_some() {
             return Some(self.cur);

@@ -65,7 +65,9 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
         (None, Some(s)) => rows.push(slant('B', s.dist_m)),
         _ => {}
     }
-    if mode == 3 && let Some(t) = i.target {
+    if mode == 3
+        && let Some(t) = i.target
+    {
         rows.push(format!("{}", (t.closure * MS_TO_KT).round() as i64));
     } else if let Some(d) = w.delay.filter(|d| d.designated && matches!(mode, 5 | 6)) {
         // Designated delayed CCIP: the time to release (fig. 1-283 "TIME DELAY") in place of the steerpoint's.
@@ -111,7 +113,10 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
         if i.gear_down {
             aoa_bracket(p, i, fpm);
         }
-        if matches!(mode, 5 | 6) && delayed.is_none() && let Some(c) = w.pipper {
+        if matches!(mode, 5 | 6)
+            && delayed.is_none()
+            && let Some(c) = w.pipper
+        {
             p.push(line(fpm, c));
         }
     }
@@ -417,7 +422,8 @@ fn target_box(p: &mut Vec<Prim>, i: &Input, f: Field, at: P, gun: bool, t: Targe
     let h = i.mr(12.5);
     if gun {
         let ft = t.range_m / FT;
-        let sweep = if t.range_m > 2.0 * NM { std::f64::consts::TAU } else { (ft / 12_000.0).min(1.0) * std::f64::consts::TAU };
+        let sweep =
+            if t.range_m > 2.0 * NM { std::f64::consts::TAU } else { (ft / 12_000.0).min(1.0) * std::f64::consts::TAU };
         p.push(Prim::Arc { c: at, r: h, from: 0.0, sweep });
         // The maximum effective range (3,000 ft: 3 o'clock) as a dot outside the circle.
         p.push(Prim::Dot { c: (at.0 + h + 3.0, at.1), r: 1.0 });
@@ -438,7 +444,10 @@ mod tests {
             i.fpm = Some((0.0, 0.0));
             i.horizon = (0.0, pitch * i.px_per_deg);
             let fr = frame(FIELD, &i, 1.0);
-            let ring = fr.field.iter().any(|p| matches!(p, Prim::Circle { c, r } if c.1.abs() < 1.0 && (*r - i.mr(6.0)).abs() < 1e-9));
+            let ring = fr
+                .field
+                .iter()
+                .any(|p| matches!(p, Prim::Circle { c, r } if c.1.abs() < 1.0 && (*r - i.mr(6.0)).abs() < 1e-9));
             let on = |q: &P| (0.99 * i.mr(6.0)..=1.81 * i.mr(6.0)).contains(&q.0.hypot(q.1));
             let n = fr.field.iter().filter(|p| matches!(p, Prim::Line { a, b } if on(a) && on(b))).count();
             (ring, n)
@@ -477,7 +486,10 @@ mod tests {
         i.agl_ft = Some(19_500.0);
         let fr = frame(FIELD, &i, 4.1);
         let t = texts(&fr.outer);
-        for want in ["352", "C", "10,450", "2.3", "0.85", "4.1", "NAV", "R 19,500", "B12.0", "05:23", "012>03", "333", "32", "34"] {
+        for want in [
+            "352", "C", "10,450", "2.3", "0.85", "4.1", "NAV", "R 19,500", "B12.0", "05:23", "012>03", "333", "32",
+            "34",
+        ] {
             assert!(t.contains(&want), "{want} in {t:?}");
         }
         assert!(!t.contains(&"ARM"), "NAV: no ARM");
@@ -505,10 +517,16 @@ mod tests {
     #[test]
     fn break_x() {
         let f = Field { left: -100.0, top: -80.0, right: 100.0, bottom: 80.0 };
-        let long = |fr: &Frame| fr.field.iter().filter(|p| matches!(p, Prim::Line { a, b } if (a.0 - b.0).abs() > 90.0 && (a.1 - b.1).abs() > 90.0)).count();
+        let long = |fr: &Frame| {
+            fr.field
+                .iter()
+                .filter(|p| matches!(p, Prim::Line { a, b } if (a.0 - b.0).abs() > 90.0 && (a.1 - b.1).abs() > 90.0))
+                .count()
+        };
         // A 45° dive at 413 kt, 2,000 ft above the ground: the GAAF X, flashing.
         let v = 413.0 * 0.514444;
-        let mut i = Input { agl_ft: Some(2000.0), tas_ms: v, kcas: 413.0, vs_fpm: -v * 0.7071 * 196.85, ..input(Jet::F16) };
+        let mut i =
+            Input { agl_ft: Some(2000.0), tas_ms: v, kcas: 413.0, vs_fpm: -v * 0.7071 * 196.85, ..input(Jet::F16) };
         i.weapons.hud_mode = 5;
         assert_eq!(long(&frame(f, &i, 1.0)), 2, "the break X");
         i.time_s = 0.3;
@@ -530,14 +548,22 @@ mod tests {
     fn eegs_levels() {
         let mut i = input(Jet::F16);
         i.weapons.hud_mode = 3;
-        let low = |fr: &Frame| fr.field.iter().filter(|p| matches!(p, Prim::Line { a, .. } if (a.1 - (FIELD.bottom - 30.0)).abs() < 1e-9)).count();
+        let low = |fr: &Frame| {
+            fr.field
+                .iter()
+                .filter(|p| matches!(p, Prim::Line { a, .. } if (a.1 - (FIELD.bottom - 30.0)).abs() < 1e-9))
+                .count()
+        };
         let l2 = frame(FIELD, &i, 2.3);
         assert_eq!(low(&l2), 5, "level 2: the five MRGS lines");
         i.target = Some(Target { range_m: 1500.0 * FT, closure: 50.0, at: Some((0.0, 20.0)), aspect: None });
         i.weapons.lcos = Some((1.0, 18.0));
         let l5 = frame(FIELD, &i, 2.3);
         assert_eq!(low(&l5), 0, "with a track the MRGS lines go");
-        let long_bar = l5.field.iter().any(|p| matches!(p, Prim::Line { a, b } if (a.1 - b.1).abs() < 1e-9 && (b.0 - a.0) > i.mr(30.0)));
+        let long_bar = l5
+            .field
+            .iter()
+            .any(|p| matches!(p, Prim::Line { a, b } if (a.1 - b.1).abs() < 1e-9 && (b.0 - a.0) > i.mr(30.0)));
         assert!(long_bar, "the T-symbol's bars");
         assert!(l5.field.iter().any(|p| matches!(p, Prim::Dot { .. })), "the maximum-effective-range dot");
     }
@@ -551,7 +577,9 @@ mod tests {
         let pip = |fr: &Frame| fr.field.iter().find_map(|p| if let Prim::Dot { c, .. } = p { Some(*c) } else { None });
         // The delay cue: a 12 mr line across the fall line at height y.
         let h = i.mr(6.0);
-        let ticks = |fr: &Frame, y: f64| fr.field.iter().filter(|p| matches!(p, Prim::Line { a, b } if (a.1 - y).abs() < 1e-6 && (b.1 - y).abs() < 1e-6 && (a.0 + b.0).abs() < 1e-6 && ((a.0 - b.0).abs() - 2.0 * h).abs() < 1e-6)).count();
+        let ticks = |fr: &Frame, y: f64| {
+            fr.field.iter().filter(|p| matches!(p, Prim::Line { a, b } if (a.1 - y).abs() < 1e-6 && (b.1 - y).abs() < 1e-6 && (a.0 + b.0).abs() < 1e-6 && ((a.0 - b.0).abs() - 2.0 * h).abs() < 1e-6)).count()
+        };
         // CCIP: the pipper on the impact point (clipped by the field).
         assert_eq!(pip(&frame(FIELD, &i, 1.0)), Some((0.0, 200.0)));
         // Delayed: the pipper on the target under the HUD-edge point, kept on the glass; the delay cue across the
@@ -566,7 +594,9 @@ mod tests {
         i.weapons.delay = Some(Delay { ttg: 4.9, target: Some((20.0, 60.0)), designated: true });
         let fr = frame(FIELD, &i, 1.0);
         assert_eq!(pip(&fr), None);
-        let steer = fr.field.iter().any(|p| matches!(p, Prim::Line { a, b } if a.0 == 20.0 && b.0 == 20.0 && a.1 < FIELD.top && b.1 > FIELD.bottom));
+        let steer = fr.field.iter().any(
+            |p| matches!(p, Prim::Line { a, b } if a.0 == 20.0 && b.0 == 20.0 && a.1 < FIELD.top && b.1 > FIELD.bottom),
+        );
         assert!(steer, "the steering line through the target");
         let cue_y = -i.mr(CUE_MR_PER_S) * 4.0;
         let cue = fr.field.iter().any(|p| matches!(p, Prim::Line { a, b } if (a.0 - 20.0).abs() < 1e-9 && b.0 < 20.0 && (a.1 - cue_y).abs() < 1e-9 && (b.1 - cue_y).abs() < 1e-9));
@@ -581,7 +611,12 @@ mod tests {
         // At the release the cue reaches the marker's level; rolled 90° right the line runs across the HUD.
         i.weapons.delay = Some(Delay { ttg: 0.9, target: Some((20.0, 60.0)), designated: true });
         let fr = frame(FIELD, &i, 1.0);
-        assert!(fr.field.iter().any(|p| matches!(p, Prim::Line { a, b } if a.0 == 20.0 && a.1.abs() < 1e-9 && b.1.abs() < 1e-9)), "the cue on the marker");
+        assert!(
+            fr.field
+                .iter()
+                .any(|p| matches!(p, Prim::Line { a, b } if a.0 == 20.0 && a.1.abs() < 1e-9 && b.1.abs() < 1e-9)),
+            "the cue on the marker"
+        );
         i.roll_deg = 90.0;
         let fr = frame(FIELD, &i, 1.0);
         assert!(fr.field.iter().any(|p| matches!(p, Prim::Line { a, b } if (a.1 - 60.0).abs() < 1e-9 && (b.1 - 60.0).abs() < 1e-9 && a.0 < FIELD.left && b.0 > FIELD.right)));

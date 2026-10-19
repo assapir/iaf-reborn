@@ -211,7 +211,8 @@ impl Seeker {
     pub fn can_track(&self, eye: &Eye, u: &Heat, limited: bool) -> bool {
         let d = u.pos - eye.pos;
         if limited {
-            let az = (d.x.atan2(d.y) - eye.yaw + std::f64::consts::PI).rem_euclid(std::f64::consts::TAU) - std::f64::consts::PI;
+            let az = (d.x.atan2(d.y) - eye.yaw + std::f64::consts::PI).rem_euclid(std::f64::consts::TAU)
+                - std::f64::consts::PI;
             if az.abs() > LIMITED_AZ_DEG.to_radians() {
                 return false;
             }
@@ -420,7 +421,10 @@ mod tests {
         let away = Vec3::new(0.0, 200.0, 0.0);
         let at = |km: f64| Vec3::new(0.0, km * 1000.0, 0.0);
         assert!(s.can_track(&eye(), &heat("a", at(5.0), away), false), "5 km behind");
-        assert!(!s.can_track(&eye(), &heat("a", at(8.0), away), false), "8 km behind: beyond rear/2 without afterburner");
+        assert!(
+            !s.can_track(&eye(), &heat("a", at(8.0), away), false),
+            "8 km behind: beyond rear/2 without afterburner"
+        );
         assert!(s.can_track(&eye(), &Heat { afterburner: true, ..heat("a", at(8.0), away) }, false));
         assert!(!s.can_track(&eye(), &Heat { afterburner: true, ..heat("a", at(11.5), away) }, false), "beyond rear");
         let off = |deg: f64| Vec3::new(deg.to_radians().sin(), deg.to_radians().cos(), 0.0) * 200.0;
@@ -455,7 +459,10 @@ mod tests {
     #[test]
     fn search_locks_the_centre_target_and_eases_the_symbol() {
         let mut s = Seeker::default();
-        let units = [heat("far", Vec3::new(400.0, 3000.0, 0.0), Vec3::ZERO), heat("near", Vec3::new(250.0, 3000.0, 0.0), Vec3::ZERO)];
+        let units = [
+            heat("far", Vec3::new(400.0, 3000.0, 0.0), Vec3::ZERO),
+            heat("near", Vec3::new(250.0, 3000.0, 0.0), Vec3::ZERO),
+        ];
         s.update(0.0, &eye(), &units, false, true);
         assert_eq!(s.target(), Some("near"));
         assert!(s.locked() && s.tone() == Tone::Lock);
@@ -482,6 +489,9 @@ mod tests {
         assert_eq!(predicted(Vec3::ZERO, Vec3::new(100.0, 0.0, 0.0), 10000.0), Vec3::new(500.0, 0.0, 0.0));
         assert_eq!(in_circle(Some(Px { x: 30.0, y: 40.0 }), 5.0, false), (true, 1.0));
         assert_eq!(in_circle(Some(Px { x: 0.0, y: 120.0 }), 5.0, false).1, 0.5);
-        assert!(target_in_circle(Some(Px { x: 100.0, y: 0.0 }), true) && !target_in_circle(Some(Px { x: 100.0, y: 0.0 }), false));
+        assert!(
+            target_in_circle(Some(Px { x: 100.0, y: 0.0 }), true)
+                && !target_in_circle(Some(Px { x: 100.0, y: 0.0 }), false)
+        );
     }
 }

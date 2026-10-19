@@ -26,7 +26,8 @@ fn chase_motion(m: &VarDictionary, launch: bool) -> ChaseMotion {
         beta: f("_spiralAccelBeta", 0.08),
         spiral: f("_spiralAccel", 1000.0),
         t_co: f("_timeConstOrientation", 2.0),
-        burn: num(m, "burn").unwrap_or_else(|| part("_timeAcceleration") + part("_timeConstVel") + part("_timeDecceleration")),
+        burn: num(m, "burn")
+            .unwrap_or_else(|| part("_timeAcceleration") + part("_timeConstVel") + part("_timeDecceleration")),
         chase: Chase::from_type(num(m, "_chaseType").unwrap_or(1.0) as i64),
         high_angle_turn: part("_highAngleTurn") != 0.0,
         release_time: part("_timeRelease"),
@@ -70,7 +71,11 @@ impl IafMissile {
     ) {
         let motion = chase_motion(&m, true);
         let tuning = Tuning {
-            overshoot_dist: if motion.high_angle_turn { debug(&debug_param, 15, 1000.0) } else { debug(&debug_param, 1, 1.0e7) },
+            overshoot_dist: if motion.high_angle_turn {
+                debug(&debug_param, 15, 1000.0)
+            } else {
+                debug(&debug_param, 1, 1.0e7)
+            },
             no_end: debug(&debug_param, 5, 0.0) == 1.0,
             slow_launch_speed: debug(&debug_param, 0, 100.1),
             max_g: (max_g > 0.0).then_some(max_g),
@@ -155,7 +160,8 @@ impl IafMissile {
     #[func]
     fn dlz(m: VarDictionary, own: VarDictionary, target: VarDictionary) -> VarArray {
         let v = |d: &VarDictionary, k: &str| vec3(get(d, k).unwrap_or_default());
-        let launcher = Launcher { pos: v(&own, "pos"), vel: v(&own, "vel"), fwd: v(&own, "fwd"), up: Default::default() };
+        let launcher =
+            Launcher { pos: v(&own, "pos"), vel: v(&own, "vel"), fwd: v(&own, "fwd"), up: Default::default() };
         let t = (!target.is_empty()).then(|| Kinematics { pos: v(&target, "pos"), vel: v(&target, "vel") });
         dlz_array(chase_motion(&m, false).dlz(&launcher, t.as_ref()))
     }
@@ -200,7 +206,15 @@ impl IafGuided {
 impl IafGuided {
     /// `FUN_00563d30` + `FUN_00563f90`: record `m`, the release point / velocity, the aim point.
     #[func]
-    fn launch(&mut self, m: VarDictionary, now: f64, pos: Vector3, vel: Vector3, point: Vector3, debug_param: Callable) {
+    fn launch(
+        &mut self,
+        m: VarDictionary,
+        now: f64,
+        pos: Vector3,
+        vel: Vector3,
+        point: Vector3,
+        debug_param: Callable,
+    ) {
         self.guided = Some(Guided::launch(guided_motion(&m, &debug_param), now, vec3(pos), vec3(vel), vec3(point)));
     }
 

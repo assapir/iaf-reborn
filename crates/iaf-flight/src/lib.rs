@@ -1,8 +1,8 @@
 //! Flight model of Jane's IAF (1998), re-implemented from the reverse-engineered
 //! spec in `docs/flight-model.md`. Pure Rust, no engine dependencies.
 
-pub mod aircraft;
 pub mod airbase;
+pub mod aircraft;
 pub mod atmosphere;
 pub mod autopilot;
 pub mod channels;

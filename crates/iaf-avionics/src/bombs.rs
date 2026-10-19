@@ -97,7 +97,15 @@ pub fn sight_ray(eye: Vec3, p: Vec3, terrain: &dyn Fn(Vec3) -> Option<f64>) -> O
 /// with both ends 1.5 m up): a hit H is the impact (fall time to the terrain under H); a second ray P → the impact
 /// solved for that height, if it hits too, moves it to that hit, on the terrain. A hill in front of the impact
 /// takes the pipper.
-pub fn predict_impact(p: Vec3, vel: Vec3, nose: Vec3, drag: f64, extra: f64, cockpit: bool, terrain: &dyn Fn(Vec3) -> Option<f64>) -> (Vec3, f64) {
+pub fn predict_impact(
+    p: Vec3,
+    vel: Vec3,
+    nose: Vec3,
+    drag: f64,
+    extra: f64,
+    cockpit: bool,
+    terrain: &dyn Fn(Vec3) -> Option<f64>,
+) -> (Vec3, f64) {
     let mut v = vel;
     if extra.abs() > 0.0 {
         v += nose * extra;
@@ -128,7 +136,13 @@ pub fn predict_impact(p: Vec3, vel: Vec3, nose: Vec3, drag: f64, extra: f64, coc
 
 /// `FUN_00457c20`: the ripple line, frozen at the first release: `qty` points `spacing` m apart along the heading,
 /// centred (index qty/2) on P, each on the terrain.
-pub fn ripple_line(p: Vec3, qty: usize, spacing: f64, heading: f64, terrain: &dyn Fn(Vec3) -> Option<f64>) -> Vec<Vec3> {
+pub fn ripple_line(
+    p: Vec3,
+    qty: usize,
+    spacing: f64,
+    heading: f64,
+    terrain: &dyn Fn(Vec3) -> Option<f64>,
+) -> Vec<Vec3> {
     let d = Vec3::new(heading.sin(), heading.cos(), 0.0);
     let start = p - d * ((qty / 2) as f64 * spacing);
     (0..qty)
@@ -206,7 +220,13 @@ impl Bomb {
     /// ground). `fix_burst` (Physics "Bombs burst at the ground", ours): the burst moves up to where the last step
     /// crossed the terrain. `open_h` > 0 (510): the cluster opens that high above the terrain. The burst point and
     /// time.
-    pub fn check(&mut self, now: f64, terrain: &dyn Fn(Vec3) -> Option<f64>, fix_burst: bool, open_h: f64) -> Option<(Vec3, f64)> {
+    pub fn check(
+        &mut self,
+        now: f64,
+        terrain: &dyn Fn(Vec3) -> Option<f64>,
+        fix_burst: bool,
+        open_h: f64,
+    ) -> Option<(Vec3, f64)> {
         while !self.done && self.next_check <= now {
             let t = self.next_check;
             self.next_check = t + CHECK_PERIOD;
@@ -253,7 +273,15 @@ mod tests {
     fn level_release_impact() {
         // 1000 m, 200 m/s north: t = √(1000 / 4.903).
         for cockpit in [false, true] {
-            let (i, t) = predict_impact(Vec3::new(0.0, 0.0, 1000.0), Vec3::new(0.0, 200.0, 0.0), Vec3::NORTH, 0.0, 0.0, cockpit, FLAT);
+            let (i, t) = predict_impact(
+                Vec3::new(0.0, 0.0, 1000.0),
+                Vec3::new(0.0, 200.0, 0.0),
+                Vec3::NORTH,
+                0.0,
+                0.0,
+                cockpit,
+                FLAT,
+            );
             assert!((t - (1000.0f64 / HALF_G).sqrt()).abs() < 1e-9);
             assert!((i.y - 200.0 * t).abs() < 1e-3 && i.z.abs() < 1e-3, "{cockpit} {i:?}");
         }
@@ -264,7 +292,15 @@ mod tests {
         // A 600 m ridge 1500..1700 m north; the drag-free impact from 1000 m at 200 m/s is 2856 m north.
         let hill: &dyn Fn(Vec3) -> Option<f64> = &|q| Some(if (1500.0..1700.0).contains(&q.y) { 600.0 } else { 0.0 });
         for cockpit in [false, true] {
-            let (i, _) = predict_impact(Vec3::new(0.0, 0.0, 1000.0), Vec3::new(0.0, 200.0, 0.0), Vec3::NORTH, 0.0, 0.0, cockpit, hill);
+            let (i, _) = predict_impact(
+                Vec3::new(0.0, 0.0, 1000.0),
+                Vec3::new(0.0, 200.0, 0.0),
+                Vec3::NORTH,
+                0.0,
+                0.0,
+                cockpit,
+                hill,
+            );
             assert!((1500.0..1700.0).contains(&i.y), "{cockpit} {i:?}");
         }
         assert_eq!(terrain_ray(Vec3::new(0.0, 0.0, 1000.0), Vec3::new(0.0, 2856.0, 1.5), FLAT), None);

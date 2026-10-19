@@ -573,7 +573,9 @@ impl Radar {
         let mut old_unit = None;
         let mut list = Vec::new();
         for u in input.units.iter().filter(|u| u.alive()) {
-            if (u.pos - centre).length_squared() >= QUERY_K * (u.coll_radius + scale / 2.0).powi(2) || !self.mode.sees(u) {
+            if (u.pos - centre).length_squared() >= QUERY_K * (u.coll_radius + scale / 2.0).powi(2)
+                || !self.mode.sees(u)
+            {
                 continue;
             }
             if old.as_ref().is_some_and(|s| s.key == u.key) {
@@ -1007,7 +1009,10 @@ mod tests {
     fn list_keeps_the_15_nearest() {
         let mut list = Vec::new();
         for i in 0..20 {
-            insert(&mut list, Some(Contact { key: i.to_string(), dist: 1000.0 * f64::from(20 - i), ..Default::default() }));
+            insert(
+                &mut list,
+                Some(Contact { key: i.to_string(), dist: 1000.0 * f64::from(20 - i), ..Default::default() }),
+            );
         }
         assert_eq!(list.len(), MAX_CONTACTS);
         assert!(list.is_sorted_by(|a, b| a.dist <= b.dist));

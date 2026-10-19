@@ -49,7 +49,8 @@ pub fn resource<'d>(data: &'d [u8], ty: ResType, id: u32) -> Result<Option<&'d [
                     name & 0x8000_0000 != 0 && {
                         let s = raw + (name & 0x7fff_ffff) as usize;
                         let len = u16_at(data, s)? as usize;
-                        let units: Vec<u16> = (0..len).map(|j| u16_at(data, s + 2 + 2 * j)).collect::<Result<_, _>>()?;
+                        let units: Vec<u16> =
+                            (0..len).map(|j| u16_at(data, s + 2 + 2 * j)).collect::<Result<_, _>>()?;
                         String::from_utf16_lossy(&units).eq_ignore_ascii_case(want)
                     }
                 }

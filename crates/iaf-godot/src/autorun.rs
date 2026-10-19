@@ -16,7 +16,10 @@ impl IafAutorun {
         let mut d = Dictionary::new();
         let rects = std::fs::read(path.to_string()).ok().and_then(|b| rgn::parse(&b).ok()).unwrap_or_default();
         for r in rects {
-            d.set(&GString::from(r.name.as_str()), Rect2i::new(Vector2i::new(r.left, r.top), Vector2i::new(r.right - r.left, r.bottom - r.top)));
+            d.set(
+                &GString::from(r.name.as_str()),
+                Rect2i::new(Vector2i::new(r.left, r.top), Vector2i::new(r.right - r.left, r.bottom - r.top)),
+            );
         }
         d
     }

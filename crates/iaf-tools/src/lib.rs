@@ -1,7 +1,7 @@
 //! Shared code for the iaf-reborn command-line tools.
 
-pub mod aircraft;
 pub mod airbases;
+pub mod aircraft;
 pub mod convert;
 pub mod exe;
 pub mod extract;

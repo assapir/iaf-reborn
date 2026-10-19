@@ -39,11 +39,19 @@ pub(super) fn frame(i: &Input) -> Frame {
     }
     o.push(text(at(rx, y), format!("{}", i.alt_ft.round() as i64), Align::Left));
     if let Some(s) = i.steerpoint {
-        o.push(text(at(rx, y + 2.0 * ROW), format!("{:03}>{:02}", ((s.dist_m / NM).round() as i64).min(999), s.number), Align::Left));
+        o.push(text(
+            at(rx, y + 2.0 * ROW),
+            format!("{:03}>{:02}", ((s.dist_m / NM).round() as i64).min(999), s.number),
+            Align::Left,
+        ));
     }
     // The head's magnetic heading, above the cross (the JHMCS has it at the bottom; ours: the cockpit view's centre
     // sits low on the screen, where the bottom of the field falls off it).
-    o.push(text(at(0.0, -0.6 * r), format!("{:03}", (i.head_heading_deg.round() as i64).rem_euclid(360)), Align::Centre));
+    o.push(text(
+        at(0.0, -0.6 * r),
+        format!("{:03}", (i.head_heading_deg.round() as i64).rem_euclid(360)),
+        Align::Centre,
+    ));
     // The radar target's box, the IR seeker's diamond on its target, inside the field only.
     let inside = |p: P| (p.0 - c.0).hypot(p.1 - c.1) <= r;
     if let Some(p) = i.target.and_then(|t| t.at).filter(|p| inside(*p)) {
@@ -79,7 +87,14 @@ mod tests {
     #[test]
     fn the_helmet_set_on_the_line_of_sight() {
         for jet in [Jet::F16, Jet::F15] {
-            let mut i = Input { off_boresight: true, head_heading_deg: 271.0, kcas: 420.0, alt_ft: 12_340.0, g: 3.2, ..input(jet) };
+            let mut i = Input {
+                off_boresight: true,
+                head_heading_deg: 271.0,
+                kcas: 420.0,
+                alt_ft: 12_340.0,
+                g: 3.2,
+                ..input(jet)
+            };
             i.head_view = (30.0, -10.0);
             i.head_rel_deg = (-60.0, 5.0);
             let fr = RealHud::default().frame(FIELD, &i);
@@ -89,8 +104,12 @@ mod tests {
                 assert!(t.contains(&want), "{jet:?}: {want} in {t:?}");
             }
             // The aiming cross on the head's view; the LOS circle's gap toward the left (azimuth −60°).
-            assert!(fr.outer.iter().any(|p| matches!(p, Prim::Line { a, b } if a.1 == -10.0 && b.1 == -10.0 && a.0 > 30.0)));
-            assert!(fr.outer.iter().any(|p| matches!(p, Prim::Arc { c, from, .. } if *c == (30.0, -10.0) && *from < 0.0)));
+            assert!(
+                fr.outer.iter().any(|p| matches!(p, Prim::Line { a, b } if a.1 == -10.0 && b.1 == -10.0 && a.0 > 30.0))
+            );
+            assert!(
+                fr.outer.iter().any(|p| matches!(p, Prim::Arc { c, from, .. } if *c == (30.0, -10.0) && *from < 0.0))
+            );
         }
     }
 
@@ -101,7 +120,9 @@ mod tests {
         i.weapons.srm = 2;
         i.target = Some(Target { range_m: 3000.0, closure: 0.0, at: Some((20.0, 0.0)), aspect: None });
         i.weapons.seeker = Some((20.0, 0.0));
-        let lines = |i: &Input| RealHud::default().frame(FIELD, i).outer.iter().filter(|p| matches!(p, Prim::Line { .. })).count();
+        let lines = |i: &Input| {
+            RealHud::default().frame(FIELD, i).outer.iter().filter(|p| matches!(p, Prim::Line { .. })).count()
+        };
         let near = lines(&i);
         i.target = Some(Target { range_m: 3000.0, closure: 0.0, at: Some((500.0, 0.0)), aspect: None });
         i.weapons.seeker = Some((500.0, 0.0));

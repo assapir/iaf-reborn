@@ -67,10 +67,7 @@ impl IafFlightController {
     /// [template, S1, S2], or [] for none.
     #[func]
     fn kill(&mut self, now: f64, victim: VarDictionary, killer: VarDictionary, sides_differ: bool) -> VarArray {
-        match self
-            .fc
-            .kill(now, &kill_unit(&victim), &kill_unit(&killer), sides_differ)
-        {
+        match self.fc.kill(now, &kill_unit(&victim), &kill_unit(&killer), sides_differ) {
             Some((t, s1, s2)) => varray![t, s1, s2],
             None => VarArray::new(),
         }

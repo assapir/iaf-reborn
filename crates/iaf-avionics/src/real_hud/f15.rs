@@ -85,7 +85,9 @@ pub(super) fn frame(f: Field, i: &Input) -> Frame {
     let p = &mut fr.field;
     // NAV: the bank steering bar, a vertical line displaced toward the steerpoint (ours: 2 px per degree of bearing
     // error, held at ±20°).
-    if mode == 0 && let Some(s) = i.steerpoint {
+    if mode == 0
+        && let Some(s) = i.steerpoint
+    {
         let err = ((s.bearing_deg - i.heading_deg + 180.0).rem_euclid(360.0) - 180.0).clamp(-20.0, 20.0);
         let x = i.boresight.0 + 2.0 * err;
         p.push(line((x, i.boresight.1 - 12.0), (x, i.boresight.1 + 12.0)));
@@ -116,7 +118,9 @@ pub(super) fn frame(f: Field, i: &Input) -> Frame {
         };
         ladder(p, i, fpm, f, style);
         marker(p, fpm, i.mr(6.0), i.mr(8.0), i.mr(5.0));
-        if matches!(mode, 5 | 6) && let Some(c) = w.pipper {
+        if matches!(mode, 5 | 6)
+            && let Some(c) = w.pipper
+        {
             // No CCIP on the F-15A/C: the bomb fall line to the target square.
             p.push(line(fpm, c));
             let h = i.mr(4.0);
@@ -270,7 +274,11 @@ mod tests {
         i.target = Some(Target { range_m: 500.0, closure: 0.0, at: None, aspect: None });
         i.dlz = Some(Dlz { max: 20_000.0, min: 1_000.0 });
         let fr = frame(FIELD, &i);
-        let long = fr.outer.iter().filter(|p| matches!(p, Prim::Line { a, b } if (b.0 - a.0).abs() > 100.0 && (b.1 - a.1).abs() > 100.0)).count();
+        let long = fr
+            .outer
+            .iter()
+            .filter(|p| matches!(p, Prim::Line { a, b } if (b.0 - a.0).abs() > 100.0 && (b.1 - a.1).abs() > 100.0))
+            .count();
         assert_eq!(long, 2, "the breakaway X inside Rmin");
     }
 }

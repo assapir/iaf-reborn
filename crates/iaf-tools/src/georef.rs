@@ -84,10 +84,8 @@ impl Georef {
     /// Terrain units → (lon, lat).
     pub fn to_geo(&self, tx: f64, ty: f64) -> [f64; 2] {
         let (x, y) = (tx / SCALE, ty / SCALE);
-        let mut out = [
-            self.a[0][0] + self.a[0][1] * x + self.a[0][2] * y,
-            self.a[1][0] + self.a[1][1] * x + self.a[1][2] * y,
-        ];
+        let mut out =
+            [self.a[0][0] + self.a[0][1] * x + self.a[0][2] * y, self.a[1][0] + self.a[1][1] * x + self.a[1][2] * y];
         for (c, w) in self.centres.iter().zip(&self.w) {
             let (dx, dy) = (x - c[0], y - c[1]);
             let k = kernel(dx * dx + dy * dy);
@@ -210,9 +208,7 @@ mod tests {
 
     fn synthetic() -> Vec<Point> {
         // A smooth, non-affine "real world": lon/lat from terrain units.
-        let f = |x: f64, y: f64| {
-            [29.77 + x * 1.29e-5 + 2e-12 * x * y, 36.62 - y * 1.13e-5 + 0.02 * (x / 3e5).sin()]
-        };
+        let f = |x: f64, y: f64| [29.77 + x * 1.29e-5 + 2e-12 * x * y, 36.62 - y * 1.13e-5 + 0.02 * (x / 3e5).sin()];
         let mut v = Vec::new();
         for j in 0..9 {
             for i in 0..7 {
@@ -241,7 +237,10 @@ mod tests {
         let g = Georef::load().unwrap();
         assert!(g.points.len() >= 100, "{} control points", g.points.len());
         let [x, y] = g.geo_to_engine(36.226, 33.479); // Mezzeh (§4) to engine metres and back
-        assert!((g.engine_to_geo(x, y)[0] - 36.226).hypot(g.engine_to_geo(x, y)[1] - 33.479) < 1e-7, "engine round trip");
+        assert!(
+            (g.engine_to_geo(x, y)[0] - 36.226).hypot(g.engine_to_geo(x, y)[1] - 33.479) < 1e-7,
+            "engine round trip"
+        );
         // Well spread: every region of the theatre has points (docs/georef.md §4).
         for (name, lon0, lat0, lon1, lat1) in [
             ("Israel", 34.3, 29.5, 35.9, 33.3),
@@ -252,7 +251,11 @@ mod tests {
             ("Lebanon", 35.1, 33.1, 36.6, 34.7),
             ("Cyprus", 32.2, 34.5, 34.6, 35.7),
         ] {
-            let n = g.points.iter().filter(|p| p.geo[0] > lon0 && p.geo[0] < lon1 && p.geo[1] > lat0 && p.geo[1] < lat1).count();
+            let n = g
+                .points
+                .iter()
+                .filter(|p| p.geo[0] > lon0 && p.geo[0] < lon1 && p.geo[1] > lat0 && p.geo[1] < lat1)
+                .count();
             // Cyprus is painted at ~1 km in the original: only the level-8 pass finds it.
             assert!(n >= if name == "Cyprus" { 3 } else { 10 }, "{name}: only {n} control points");
         }

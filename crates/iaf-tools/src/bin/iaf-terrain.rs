@@ -13,12 +13,28 @@ use iaf_tools::terrain::{self, default_threads};
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
     match args.iter().map(String::as_str).collect::<Vec<_>>()[..] {
-        [_, "theatre", path, out] => terrain::theatre(Path::new(path), Path::new(out), default_threads(), &Stdout, &AtomicBool::new(false)),
-        [_, "theatre", path, out, threads] => terrain::theatre(Path::new(path), Path::new(out), threads.parse()?, &Stdout, &AtomicBool::new(false)),
-        [_, "airbases", install, theatre, out] => terrain::airbases(Path::new(install), Path::new(theatre), Path::new(out), None, &Stdout, &AtomicBool::new(false)),
-        [_, "airbases", install, theatre, out, "--debug", dbg] => {
-            terrain::airbases(Path::new(install), Path::new(theatre), Path::new(out), Some(Path::new(dbg)), &Stdout, &AtomicBool::new(false))
+        [_, "theatre", path, out] => {
+            terrain::theatre(Path::new(path), Path::new(out), default_threads(), &Stdout, &AtomicBool::new(false))
         }
+        [_, "theatre", path, out, threads] => {
+            terrain::theatre(Path::new(path), Path::new(out), threads.parse()?, &Stdout, &AtomicBool::new(false))
+        }
+        [_, "airbases", install, theatre, out] => terrain::airbases(
+            Path::new(install),
+            Path::new(theatre),
+            Path::new(out),
+            None,
+            &Stdout,
+            &AtomicBool::new(false),
+        ),
+        [_, "airbases", install, theatre, out, "--debug", dbg] => terrain::airbases(
+            Path::new(install),
+            Path::new(theatre),
+            Path::new(out),
+            Some(Path::new(dbg)),
+            &Stdout,
+            &AtomicBool::new(false),
+        ),
         [_, "georef-points", theatre, z9, z10, out, lambda] => {
             georef_points(Path::new(theatre), Path::new(z9), Path::new(z10), Path::new(out), lambda.parse()?)
         }
@@ -78,8 +94,14 @@ fn georef_points(theatre: &Path, z9: &Path, z10: &Path, out: &Path, lambda: f64)
                 rough_ms = gm::pass(&rough, &warp, 24576.0, 30, threads);
             }
             // Coarse points only where the fine pass has none within 20 km.
-            let near = |m: &gm::Match| ms.iter().any(|f: &gm::Match| (f.game[0] - m.game[0]).hypot(f.game[1] - m.game[1]) < 16000.0);
-            let add: Vec<gm::Match> = rough_ms.iter().filter(|m| m.ncc >= 0.5 && !near(m)).map(|m| gm::Match { game: m.game, geo: m.geo, ncc: m.ncc, level: m.level }).collect();
+            let near = |m: &gm::Match| {
+                ms.iter().any(|f: &gm::Match| (f.game[0] - m.game[0]).hypot(f.game[1] - m.game[1]) < 16000.0)
+            };
+            let add: Vec<gm::Match> = rough_ms
+                .iter()
+                .filter(|m| m.ncc >= 0.5 && !near(m))
+                .map(|m| gm::Match { game: m.game, geo: m.geo, ncc: m.ncc, level: m.level })
+                .collect();
             ms.extend(add);
         }
         let n = ms.len();
@@ -102,7 +124,13 @@ fn georef_points(theatre: &Path, z9: &Path, z10: &Path, out: &Path, lambda: f64)
     let mut held = Vec::new();
     let mut worst = Vec::new();
     for f in 0..5 {
-        let train: Vec<_> = all.iter().enumerate().filter(|(i, _)| i % 5 != f).map(|(_, p)| p.clone()).chain(extra.iter().cloned()).collect();
+        let train: Vec<_> = all
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| i % 5 != f)
+            .map(|(_, p)| p.clone())
+            .chain(extra.iter().cloned())
+            .collect();
         let g = iaf_tools::georef::Georef::fit(train, lambda)?;
         for p in all.iter().skip(f).step_by(5) {
             let q = g.to_game(p.geo[0], p.geo[1]);
@@ -117,7 +145,12 @@ fn georef_points(theatre: &Path, z9: &Path, z10: &Path, out: &Path, lambda: f64)
     for (e, id, g) in worst.iter().take(8) {
         println!("  hold-out {e:.0} m at {id} ({:.3} N {:.3} E)", g[1], g[0]);
     }
-    println!("hold-out: rms {rms:.0} m, median {:.0} m, 95% {:.0} m, max {:.0} m", held[held.len() / 2], held[held.len() * 95 / 100], held[held.len() - 1]);
+    println!(
+        "hold-out: rms {rms:.0} m, median {:.0} m, 95% {:.0} m, max {:.0} m",
+        held[held.len() / 2],
+        held[held.len() * 95 / 100],
+        held[held.len() - 1]
+    );
     let mut pts: Vec<serde_json::Value> = gm::to_points(&kept)
         .iter()
         .zip(&kept)
@@ -138,4 +171,3 @@ fn georef_points(theatre: &Path, z9: &Path, z10: &Path, out: &Path, lambda: f64)
     println!("{} points -> {}", pts.len(), out.display());
     Ok(())
 }
-

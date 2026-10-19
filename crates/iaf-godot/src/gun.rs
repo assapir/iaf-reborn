@@ -129,7 +129,13 @@ impl IafRounds {
     /// Advances to `now` up to the first detonation: {slot, pos, hit ("unit" / "ground" / "end"), key, candidates}
     /// or {} (none left). Call again after applying its damage.
     #[func]
-    fn step(&mut self, now: f64, keys: PackedStringArray, positions: PackedVector3Array, terrain_at: Callable) -> VarDictionary {
+    fn step(
+        &mut self,
+        now: f64,
+        keys: PackedStringArray,
+        positions: PackedVector3Array,
+        terrain_at: Callable,
+    ) -> VarDictionary {
         let b = bodies(&keys, &positions);
         let t = terrain(Some(terrain_at));
         let Some(d) = self.rounds.as_mut().and_then(|r| r.step(now, &b, &t)) else { return VarDictionary::new() };

@@ -3,9 +3,9 @@
 
 use crate::world::{get, num, terrain, vec3, vector3};
 use godot::prelude::*;
+use iaf_avionics::Vec3;
 use iaf_avionics::eo::{Aim, Eo, Mode};
 use iaf_avionics::harm::{self, Emitter, Harm, Source, Unit};
-use iaf_avionics::Vec3;
 
 fn base(v: Vector2) -> (f64, f64) {
     (v.x.into(), v.y.into())
@@ -77,7 +77,17 @@ impl IafEo {
 
     #[func]
     #[allow(clippy::too_many_arguments)] // a #[func]: GDScript has no struct to pass
-    fn pan(&mut self, x: i64, y: i64, t: f64, b: Vector2, eye: Vector3, centre: Variant, launched: bool, unit_pos: Callable) {
+    fn pan(
+        &mut self,
+        x: i64,
+        y: i64,
+        t: f64,
+        b: Vector2,
+        eye: Vector3,
+        centre: Variant,
+        launched: bool,
+        unit_pos: Callable,
+    ) {
         self.eo.pan((x, y), t, base(b), vec3(eye), aim(&centre), launched, &lookup(&unit_pos));
     }
 
@@ -105,7 +115,13 @@ impl IafEo {
     /// The distance along the ray to the nearest unit box (`iaf_avionics::eo::unit_pick`; `centres` / half extents
     /// `halves` per unit, world axes), or -1 for none within `max`.
     #[func]
-    fn unit_pick(from: Vector3, dir: Vector3, centres: PackedVector3Array, halves: PackedVector3Array, max: f64) -> f64 {
+    fn unit_pick(
+        from: Vector3,
+        dir: Vector3,
+        centres: PackedVector3Array,
+        halves: PackedVector3Array,
+        max: f64,
+    ) -> f64 {
         let boxes: Vec<(Vec3, Vec3)> =
             centres.as_slice().iter().zip(halves.as_slice()).map(|(&c, &h)| (vec3(c), vec3(h))).collect();
         iaf_avionics::eo::unit_pick(vec3(from), vec3(dir), &boxes, max).unwrap_or(-1.0)
@@ -227,7 +243,10 @@ impl IafHarm {
             .harm
             .list()
             .iter()
-            .map(|c| vdict! { "key" => c.key.as_str(), "type" => c.type_code, "az" => c.az, "el" => c.el, "dist" => c.dist }.to_variant())
+            .map(|c| {
+                vdict! { "key" => c.key.as_str(), "type" => c.type_code, "az" => c.az, "el" => c.el, "dist" => c.dist }
+                    .to_variant()
+            })
             .collect();
         vdict! { "list" => &list, "selected" => self.harm.selected().unwrap_or("") }
     }
