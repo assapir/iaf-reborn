@@ -147,7 +147,7 @@ or padlock (**F3**) the seeker takes the target you look at, inside the missile'
 
 | Missile | Real data |
 | --- | --- |
-| AIM-9L | 86 kg, Mach 2.5, 35.4 km |
+| AIM-9L | 86 kg, Mach 2.5, 17.7 km |
 | Python 4 | 120 kg, Mach 3.5, 15 km, 60° off the nose |
 
 **Example**: the MiG is 1,500 m ahead and holds still, so the closure is your own 486 kt (`490>`). Against it the

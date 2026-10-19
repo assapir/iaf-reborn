@@ -145,7 +145,7 @@ radar lock (**R**, then **Return**) the seeker is slaved to the locked target.
 | Missile | Real data |
 | --- | --- |
 | AIM-9D | 88.5 kg, Mach 2.5, 18 km, rear-aspect, 12 g |
-| AIM-9L | 86 kg, Mach 2.5, 35.4 km |
+| AIM-9L | 86 kg, Mach 2.5, 17.7 km |
 | Python 3 | 120 kg, Mach 3.5, 15 km, 30° off the nose |
 
 **Example**: a MiG-23 is 3,000 m (1.6 NM) ahead. Lock it on the radar (**Return**) and select the Python 3 (**]**).

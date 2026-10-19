@@ -111,14 +111,24 @@ const LIMITED_AZ_DEG: f64 = 60.0;
 /// Symbol easing: pos = 0.3·goal + 0.7·pos (0x601680 / 0x601684); snaps within 5 px.
 const EASE: f64 = 0.3;
 const SNAP_PX: f64 = 5.0;
+/// Weapon data Real: the rear sector, the target's tail within 60° of the line of sight (inferred).
+const REAR_SECTOR_DEG: f64 = 60.0;
+
+/// Weapon data Real lock ranges in metres (docs/real-weapons.md §1.4): in the rear sector, and from the front
+/// without / with the target's afterburner (0 = no front lock: a rear-aspect missile).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct RealLock {
+    pub rear: f64,
+    pub front_mil: f64,
+    pub front_ab: f64,
+}
 
 #[derive(Clone, Debug)]
 pub struct Seeker {
     cone_cos: f64,
     lock_range: f64,
-    /// Weapon data Real: a rear-aspect seeker sees only a target moving away from the launcher
-    /// (docs/real-weapons.md).
-    pub rear_only: bool,
+    /// Weapon data Real: lock ranges by aspect and afterburner, in place of the generation's range.
+    pub real_lock: Option<RealLock>,
     /// The radar's lock, set by the host each frame.
     pub radar: Option<RadarLock>,
     /// this+0x14.
@@ -139,7 +149,7 @@ impl Default for Seeker {
         Seeker {
             cone_cos: cone.to_radians().cos(),
             lock_range: nm * NM,
-            rear_only: false,
+            real_lock: None,
             radar: None,
             target: None,
             lock: false,
@@ -160,17 +170,23 @@ impl Seeker {
         }
     }
 
-    /// The selected missile: its generation, then the Real overrides (cone, rear aspect).
-    pub fn set_weapon(&mut self, generation: i64, real_cone_deg: Option<f64>, rear_only: bool) {
+    /// The selected missile: its generation, then the Real overrides (cone = gimbal limit, lock ranges).
+    pub fn set_weapon(&mut self, generation: i64, real_cone_deg: Option<f64>, real_lock: Option<RealLock>) {
         self.set_generation(generation);
         if let Some(c) = real_cone_deg {
             self.cone_cos = c.to_radians().cos();
         }
-        self.rear_only = rear_only;
+        self.real_lock = real_lock;
     }
 
+    /// The longest lock range: the generation's, or with Real the largest of its ranges.
     pub fn lock_range(&self) -> f64 {
-        self.lock_range
+        self.real_lock.map_or(self.lock_range, |l| l.rear.max(l.front_ab).max(l.front_mil))
+    }
+
+    /// A target that moves away from the shooter within the rear sector of the line of sight `d`.
+    fn rear_aspect(d: Vec3, vel: Vec3) -> bool {
+        vel.try_normalize().is_some_and(|v| v.dot(d) >= REAR_SECTOR_DEG.to_radians().cos() * d.length())
     }
     pub fn target(&self) -> Option<&str> {
         self.target.as_deref()
@@ -190,7 +206,8 @@ impl Seeker {
     }
 
     /// `FUN_00461d10`: limited heat (580) only within ±60° of the own heading (bearing, not aspect); range ≤ R;
-    /// beyond R/2 only a target with its afterburner on.
+    /// beyond R/2 only a target with its afterburner on. With Real (`real_lock`): in the rear sector the same rule
+    /// with the rear range; from the front within the front range, the afterburner one when the target's is on.
     pub fn can_track(&self, eye: &Eye, u: &Heat, limited: bool) -> bool {
         let d = u.pos - eye.pos;
         if limited {
@@ -200,10 +217,14 @@ impl Seeker {
             }
         }
         let r = d.length();
-        if (self.rear_only && u.vel.dot(d) <= 0.0) || r > self.lock_range {
-            return false;
+        let Some(l) = self.real_lock else {
+            return r <= self.lock_range && (r <= self.lock_range / 2.0 || u.afterburner);
+        };
+        if Self::rear_aspect(d, u.vel) {
+            return r <= l.rear && (r <= l.rear / 2.0 || u.afterburner);
         }
-        r <= self.lock_range / 2.0 || u.afterburner
+        let front = if u.afterburner { l.front_ab } else { l.front_mil };
+        front > 0.0 && r <= front
     }
 
     /// `FUN_00461f10`. With an A-A radar lock (`FUN_004625f0`): the target within the generation's cone of the nose.
@@ -372,18 +393,52 @@ mod tests {
     }
 
     #[test]
-    fn rear_aspect_and_range() {
+    fn original_range_and_aspect() {
         let mut s = Seeker::default();
-        s.set_weapon(4, None, true);
+        s.set_weapon(1, None, None);
         let ahead = Vec3::new(0.0, 2000.0, 0.0);
-        assert!(s.can_track(&eye(), &heat("a", ahead, Vec3::new(0.0, 200.0, 0.0)), false));
-        assert!(!s.can_track(&eye(), &heat("a", ahead, Vec3::new(0.0, -200.0, 0.0)), false));
-        s.set_weapon(1, None, false);
+        assert!(s.can_track(&eye(), &heat("a", ahead, Vec3::new(0.0, -200.0, 0.0)), false), "any aspect");
         let far = Vec3::new(0.0, 4.0 * NM, 0.0);
         assert!(!s.can_track(&eye(), &heat("a", far, Vec3::ZERO), false), "beyond R/2 without afterburner");
         assert!(s.can_track(&eye(), &Heat { afterburner: true, ..heat("a", far, Vec3::ZERO) }, false));
         let east = Vec3::new(2000.0, 100.0, 0.0);
         assert!(!s.can_track(&eye(), &heat("a", east, Vec3::ZERO), true), "limited heat: 87° off the heading");
+    }
+
+    const AIM9L: RealLock = RealLock { rear: 11_000.0, front_mil: 3000.0, front_ab: 8500.0 };
+    const AIM9D: RealLock = RealLock { rear: 11_000.0, front_mil: 0.0, front_ab: 0.0 };
+
+    fn real(lock: RealLock) -> Seeker {
+        let mut s = Seeker::default();
+        s.set_weapon(3, Some(40.0), Some(lock));
+        s
+    }
+
+    #[test]
+    fn real_rear_sector() {
+        let s = real(AIM9L);
+        let away = Vec3::new(0.0, 200.0, 0.0);
+        let at = |km: f64| Vec3::new(0.0, km * 1000.0, 0.0);
+        assert!(s.can_track(&eye(), &heat("a", at(5.0), away), false), "5 km behind");
+        assert!(!s.can_track(&eye(), &heat("a", at(8.0), away), false), "8 km behind: beyond rear/2 without afterburner");
+        assert!(s.can_track(&eye(), &Heat { afterburner: true, ..heat("a", at(8.0), away) }, false));
+        assert!(!s.can_track(&eye(), &Heat { afterburner: true, ..heat("a", at(11.5), away) }, false), "beyond rear");
+        let off = |deg: f64| Vec3::new(deg.to_radians().sin(), deg.to_radians().cos(), 0.0) * 200.0;
+        assert!(s.can_track(&eye(), &heat("a", at(5.0), off(50.0)), false), "50° off the line of sight: rear");
+        assert!(!s.can_track(&eye(), &heat("a", at(5.0), off(70.0)), false), "70° off: front, beyond 3 km");
+    }
+
+    #[test]
+    fn real_front_mil_ab_and_none() {
+        let s = real(AIM9L);
+        let toward = Vec3::new(0.0, -200.0, 0.0);
+        let at = |km: f64| Vec3::new(0.0, km * 1000.0, 0.0);
+        assert!(s.can_track(&eye(), &heat("a", at(2.5), toward), false), "head-on within 3 km");
+        assert!(!s.can_track(&eye(), &heat("a", at(5.0), toward), false), "head-on 5 km without afterburner");
+        assert!(s.can_track(&eye(), &Heat { afterburner: true, ..heat("a", at(5.0), toward) }, false));
+        assert!(!s.can_track(&eye(), &Heat { afterburner: true, ..heat("a", at(9.0), toward) }, false));
+        assert!(!real(AIM9D).can_track(&eye(), &heat("a", at(1.0), toward), false), "rear-aspect seeker: no head-on");
+        assert_eq!(s.lock_range(), 11_000.0);
     }
 
     #[test]

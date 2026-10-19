@@ -7,7 +7,8 @@ how each number maps onto the original model.
   switch from Flight data.
 - **What it changes:** Real overlays public real-world numbers on the original weapon records
   (`game/weapons/real_weapons.gd`). A value that no public source gives keeps its 1998 value.
-- **What stays the same:** the rules (seeker, chase law, gun timer, hit spheres) stay the original's (docs/weapons.md).
+- **What stays the same:** the rules (chase law, gun timer, hit spheres) stay the original's (docs/weapons.md). The IR
+  seeker's lock ranges follow §1.2.
 
 ## 1. Values
 
@@ -17,24 +18,42 @@ IR (infrared) missiles home on heat.
 | bdb name | weight kg (orig. lb → kg) | top speed | range | sources |
 |---|---|---|---|---|
 | AIM-9D | 88.5 (192 → 87.1) | Mach 2.5 | 18 km | [1], [2] |
-| AIM-9L | 86 (192 → 87.1) | Mach 2.5 | 35.4 km | [1], [2] |
-| AIM-9M | 86 (192 → 87.1) | Mach 2.5 | 35.4 km | [1], [2] |
+| AIM-9L | 86 (192 → 87.1) | Mach 2.5 | 17.7 km | [1], [^f16net], [^navair] |
+| AIM-9M | 86 (192 → 87.1) | Mach 2.5 | 17.7 km | [1], [^f16net], [^navair] |
 | PYTH-3 | 120 (264 → 119.7) | Mach 3.5 | 15 km | [3] |
 | PYTH-4 | 120 (340 → 154.2) | Mach 3.5 | 15 km | [3] |
 | SHFR 2 | 93 (209 → 94.8) | Mach 2.1 | 5 km | [3], [4] |
 
-Seeker and turn limit, for the missiles that have a public figure:
+The AIM-9L / M range is the published 10–18 miles[^navair] at its F-16.net value, 17.7 km[^f16net]. The 35.4 km
+(22 mi) maximum that Wikipedia gives is marked "not verified in body"[^wiki9]; inferred: it is a head-on maximum at
+high altitude, not the zone a medium-altitude HUD shows. The AIM-9D's turn limit is 12 g [1].
 
-| bdb name | seeker | turn limit | sources |
-|---|---|---|---|
-| AIM-9D | rear-aspect | 12 g | [1] |
-| SHFR 2 | rear-aspect | – | [3] |
-| PYTH-3 | off-boresight 30° | – | [12] |
-| PYTH-4 | off-boresight 60° | – | [13] |
+### 1.2 IR seeker lock
+Real lock ranges are classified[^navyff]; the ranges below come from game and simulator sources. With Real, the seeker
+locks a target by its aspect and its afterburner, in place of the generation's range R (docs/weapons.md §5.1):
+- **Rear sector:** the target's velocity within 60° of the line of sight from you (inferred), so it flies away from
+  you. The seeker locks within the rear range; beyond half of it, only a target with its afterburner lit (the
+  original's R/2 rule). A target that holds still counts as front.
+- **Front:** within the front range; the AB range when the target's afterburner is lit. "–" = no front lock, a
+  rear-aspect seeker.
+- **Cone:** the gimbal limit, in place of the generation's cone.
+
+| bdb name | rear | front | front, AB | cone | sources |
+|---|---|---|---|---|---|
+| AIM-9D | 11 km | – | – | 40° | rear-aspect[^dsys]; cone[^edf] |
+| AIM-9L / M | 11 km | 3 km | 8.5 km | 40° | ranges[^wt][^edf]; cone[^hb14] |
+| PYTH-3 | 11 km | 3 km | 8.5 km | 30° | ranges inferred: the AIM-9L's; cone [12][^wsP3] |
+| PYTH-4 | 16 km | 4.5 km | 12.7 km | 60° | ranges inferred: 1.5 × the AIM-9L's, "significantly better acquisition range than the AIM-9M"[^apa97]; cone [13][^fl96] |
+| SHFR 2 | 6 km | – | – | 10° | rear-aspect, cone[^wsS]; range inferred from its 6.4 km maximum[^wsS] |
+
+Open: the rear-sector range against an afterburning target past the rear range.
+
+A real jet shows SHOOT only when the seeker tracks the target and the range is between Rmin and Rmax (simulator
+documentation[^vrs][^hoggit]; no primary F-16 source was found). So a target inside the zone but outside the lock
+range shows no SHOOT, as in the game.
 
 These values keep the original, because no public figure was found:
-- lock range (the generation table of `FUN_00462460`);
-- the other missiles' cones and g limits;
+- the other missiles' g limits;
 - warhead power / radius (game damage units);
 - drag index.
 
@@ -87,7 +106,7 @@ Each real value lands in one field or rule of the original model:
   a − β·v for the whole flight, so the missile starts at the launch speed and only approaches its top speed V = a / β.
   The distance it flies in t seconds from speed s is V·t + (s − V)·(1 − e^(−βt)) / β (`ChaseMotion::travelled`).
   Real sets the burn so that this distance, from a 250 m/s launch, equals the published range (`real_burn`, at
-  least 1 s): AIM-9L 41.6 s (orig. 16), Python 3 14.3 s, Python 4 12.6 s, Shafrir 2 3.7 s, AIM-7B 7.7 s,
+  least 1 s): AIM-9L 20.5 s (orig. 16), Python 3 14.3 s, Python 4 12.6 s, Shafrir 2 3.7 s, AIM-7B 7.7 s,
   AMRAAM 54.6 s.
 - **Launch zone (DLZ):** the original's maximum, flown(|V| − away, burn − 2) (docs/weapons.md §11.2), is a quadratic
   tuned for the 1998 records. With the Real top speeds and burns it is wrong both ways: it gave the Python 3 / 4 about
@@ -95,10 +114,10 @@ Each real value lands in one field or rule of the original model:
   range than the missile flies. With Real the maximum is the distance the missile really flies over its flight less
   the original's 2 s margin, minus the target's travel away from you in that time: travelled(|V|, burn + 4) −
   away·(burn + 4). The minimum keeps the original rule. Against a still target from 250 m/s: AIM-9D 16.3 km, AIM-9L
-  33.7 km, Python 3 13.0 km, Python 4 12.9 km, Shafrir 2 3.7 km, AIM-7B 5.7 km, AIM-7M / AMRAAM 67.3 km. The AI's
+  16.1 km, Python 3 13.0 km, Python 4 12.9 km, Shafrir 2 3.7 km, AIM-7B 5.7 km, AIM-7M / AMRAAM 67.3 km. The AI's
   launch range uses the same zone.
-- **Rear-aspect** (ours; the original tracks from any aspect): the seeker can track only when the target's velocity
-  points away from the launcher (v · line of sight > 0). A head-on or a stationary target gives no tone.
+- **Lock ranges** (ours; the original tracks from any aspect within R): §1.2, `Seeker::can_track` with `RealLock`
+  (crates/iaf-avionics/src/sight.rs).
 - **Seeker cone:** replaces the per-generation cone. This is the half-angle used when the seeker is slaved to a radar
   lock (docs/radar.md §6) or to the helmet (docs/weapons.md §5.4). The 6° view keeps its original value.
 - **Turn limit:** each 0.1 s chase update clamps the acceleration across the velocity to g · 9.80665 m/s².
@@ -109,9 +128,10 @@ Each real value lands in one field or rule of the original model:
 ## 3. Validation
 | test | checks |
 |---|---|
-| `tests/godot/test_weapons.gd` | AIM-9L 86 kg; F-16 511 rounds shown; one M61A1 tick = 20 rounds; the derived chase values (stored in the record's `motion`): AIM-9L top speed a/β = 851 m/s = Mach 2.5, the distance flown in burn + 6 s from 250 m/s = 35.4 km; its DLZ against a still target between 30 and 35.4 km; the AIM-9D / Python 4 flags; the AIM-9D seeker refuses a head-on target (the AIM-9L accepts it); the AIM-9D 12 g clamp |
+| `tests/godot/test_weapons.gd` | AIM-9L 86 kg; F-16 511 rounds shown; one M61A1 tick = 20 rounds; the derived chase values (stored in the record's `motion`): AIM-9L top speed a/β = 851 m/s = Mach 2.5, the distance flown in burn + 6 s from 250 m/s = 17.7 km; its DLZ against a still target between 15 and 17.7 km; the AIM-9D / Python 4 flags; the AIM-9D seeker refuses a head-on target; the AIM-9L locks head-on at 2 km, not at 5 km without afterburner; the AIM-9D 12 g clamp |
 | `tests/godot/test_radar.gd` | the F-16's 80 km |
 | `tests/godot/test_radar_missiles.gd` | the AMRAAM's 157 kg, a/β = Mach 4 and the distance flown in burn + 6 s from 250 m/s = 70 km; the AIM-7B's DLZ against a still target about 5.7 km (not empty) |
+| `crates/iaf-avionics/src/sight.rs` `real_rear_sector`, `real_front_mil_ab_and_none`, `original_range_and_aspect` | the §1.2 rules: rear range and its R/2 afterburner rule, the 60° sector, front with / without afterburner, no front lock, the original unchanged |
 | `crates/iaf-avionics/src/missile.rs` `dlz_per_missile_original_and_real` | the original DLZ of each air-to-air missile; with Real: the burn flies the published range, the zone is not empty, a launch at its maximum reaches a still target and none flies past 1.05 × its range |
 
 ## Sources
@@ -146,3 +166,18 @@ Each real value lands in one field or rule of the original model:
     (AGM-45B 177 kg, Mach 2, 40 km).
 19. designation-systems.net, "Hughes AGM-65 Maverick", https://www.designation-systems.net/dusrm/m-65.html (AGM-65A/B
     209 kg, > 27 km, "supersonic").
+
+[^navyff]: US Navy, "AIM-9 Sidewinder Missile" fact file (range "classified"), https://www.navy.mil/Resources/Fact-Files/Display-FactFiles/Article/2168989/aim-9-sidewinder-missile
+[^navair]: NAVAIR, "AIM-9M Sidewinder" (range 10–18 miles), https://www.navair.navy.mil/product/AIM-9M-Sidewinder
+[^f16net]: F-16.net, "AIM-9 Sidewinder" (AIM-9L / M / P 17.7 km), https://www.f-16.net/f-16_armament_article1.html
+[^wiki9]: Wikipedia, "AIM-9 Sidewinder" (range 0.6–22 mi, "not verified in body"), https://en.wikipedia.org/wiki/AIM-9_Sidewinder
+[^dsys]: designation-systems.net, "Raytheon AIM-9 Sidewinder" (AIM-9D rear-aspect), https://www.designation-systems.net/dusrm/m-9.html
+[^apa97]: Air Power Australia, "Fourth Generation AAMs" (Python 4 acquisition range), https://www.ausairpower.net/TE-Gen-4-AAM-97.html
+[^fl96]: Flight International, "Rafael's agile constrictor", 9 October 1996 (Python 4 60° and more), https://flightglobal.com/rafaels-agile-constrictor/4030.article
+[^wsP3]: weaponsystems.net, "Python 3" (30° acquisition, 40° tracking), https://weaponsystems.net/system/1194-Python+3
+[^wsS]: weaponsystems.net, "Shafrir" (10°, 6.4 km, rear aspect), https://weaponsystems.net/system/1193-Shafrir
+[^wt]: War Thunder wiki, "AIM-9L Sidewinder" (about 11 km rear, 3 km front; a game), https://old-wiki.warthunder.com/AIM-9L_Sidewinder
+[^edf]: ED Forums, "The AIM-9 Sidewinder missile – technology, history and performance" (3 km frontal, 8.5 km against afterburner, AIM-9D 40°; a forum), https://forum.dcs.world/topic/267478-the-aim-9-sidewinder-missile-technology-history-and-performance/
+[^hb14]: Heatblur, F-14 manual, AIM-9 page (40° seeker limit; a simulator; the page now returns 404), https://f14.manuals.heatblur.se/stores/air_to_air/aim_9.html
+[^vrs]: VRS Superbug wiki, "AIM-9 Sidewinder" (a simulator), https://forums.vrsimulations.com/support/index.php/AIM-9_Sidewinder
+[^hoggit]: Hoggit wiki, "F/A-18C" (a simulator), https://wiki.hoggitworld.com/view/F/A-18C

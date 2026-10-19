@@ -4,7 +4,7 @@
 use crate::world::{get, num, vec3, vector3};
 use godot::prelude::*;
 use iaf_avionics::missile::Dlz;
-use iaf_avionics::sight::{self, Eye, Frame, Heat, Px, RadarLock, Seeker, Tone};
+use iaf_avionics::sight::{self, Eye, Frame, Heat, Px, RadarLock, RealLock, Seeker, Tone};
 
 /// Limited heat (580): the ±60° azimuth limit.
 const LIMITED_HEAT: i64 = 580;
@@ -59,16 +59,18 @@ impl IafSeeker {
         self.seeker.set_generation(generation);
     }
 
-    /// The selected missile record: its generation, then the Real overrides (real_cone_deg, real_rear).
+    /// The selected missile record: its generation, then the Real overrides (real_cone_deg, real_rear_km,
+    /// real_front_km, real_front_ab_km; a missing front range = no front lock).
     #[func]
     fn set_weapon(&mut self, w: VarDictionary) {
         let generation = num(&w, "generation").unwrap_or_default() as i64;
-        self.seeker.set_weapon(generation, num(&w, "real_cone_deg"), get(&w, "real_rear").unwrap_or(false));
-    }
-
-    #[func]
-    fn rear_only(&self) -> bool {
-        self.seeker.rear_only
+        let km = |k| num(&w, k).unwrap_or_default() * 1000.0;
+        let lock = num(&w, "real_rear_km").map(|_| RealLock {
+            rear: km("real_rear_km"),
+            front_mil: km("real_front_km"),
+            front_ab: km("real_front_ab_km"),
+        });
+        self.seeker.set_weapon(generation, num(&w, "real_cone_deg"), lock);
     }
 
     #[func]

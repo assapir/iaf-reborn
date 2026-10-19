@@ -29,9 +29,6 @@ var lock: bool:
 var symbol: Vector2:
 	get:
 		return _s.symbol()
-var rear_only: bool:
-	get:
-		return _s.rear_only()
 var lock_range: float:
 	get:
 		return _s.lock_range()

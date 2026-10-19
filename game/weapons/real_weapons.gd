@@ -15,15 +15,16 @@ extends RefCounted
 const LB_PER_KG := 1.0 / 0.45359
 ## Speed of sound at sea level (ISA), m/s.
 const MACH_M_S := 340.3
-## bdb weapon name -> {kg, mach, range_km} and, where sourced, rear (rear-aspect seeker only), max_g
-## (turn limit) and cone_deg (seeker off-boresight half-angle). Sources in docs/real-weapons.md.
+## bdb weapon name -> {kg, mach, range_km} and, where sourced, max_g (turn limit), cone_deg (seeker gimbal limit)
+## and the seeker's lock ranges: rear_km, front_km / front_ab_km (head-on, target without / with afterburner; none =
+## a rear-aspect seeker). Sources in docs/real-weapons.md.
 const MISSILES := {
-	"AIM-9D": {"kg": 88.5, "mach": 2.5, "range_km": 18.0, "rear": true, "max_g": 12.0},
-	"AIM-9L": {"kg": 86.0, "mach": 2.5, "range_km": 35.4},
-	"AIM-9M": {"kg": 86.0, "mach": 2.5, "range_km": 35.4},
-	"PYTH-3": {"kg": 120.0, "mach": 3.5, "range_km": 15.0, "cone_deg": 30.0},
-	"PYTH-4": {"kg": 120.0, "mach": 3.5, "range_km": 15.0, "cone_deg": 60.0},
-	"SHFR 2": {"kg": 93.0, "mach": 2.1, "range_km": 5.0, "rear": true},
+	"AIM-9D": {"kg": 88.5, "mach": 2.5, "range_km": 18.0, "max_g": 12.0, "cone_deg": 40.0, "rear_km": 11.0},
+	"AIM-9L": {"kg": 86.0, "mach": 2.5, "range_km": 17.7, "cone_deg": 40.0, "rear_km": 11.0, "front_km": 3.0, "front_ab_km": 8.5},
+	"AIM-9M": {"kg": 86.0, "mach": 2.5, "range_km": 17.7, "cone_deg": 40.0, "rear_km": 11.0, "front_km": 3.0, "front_ab_km": 8.5},
+	"PYTH-3": {"kg": 120.0, "mach": 3.5, "range_km": 15.0, "cone_deg": 30.0, "rear_km": 11.0, "front_km": 3.0, "front_ab_km": 8.5},
+	"PYTH-4": {"kg": 120.0, "mach": 3.5, "range_km": 15.0, "cone_deg": 60.0, "rear_km": 16.0, "front_km": 4.5, "front_ab_km": 12.7},
+	"SHFR 2": {"kg": 93.0, "mach": 2.1, "range_km": 5.0, "cone_deg": 10.0, "rear_km": 6.0},
 	# Radar missiles (600 / 610), anti-radiation (590), Maverick (635): the same chase motion.
 	"AMRAAM": {"kg": 157.0, "mach": 4.0, "range_km": 70.0},
 	"AIM-7M": {"kg": 230.0, "mach": 4.0, "range_km": 70.0},
@@ -79,7 +80,7 @@ static func apply(db: RefCounted) -> void:
 			mo["_spiralAccelBeta"] = a / v
 			w["motion"] = {"_spiralAccelBeta": a / v,
 				"burn": ClassDB.class_call_static("IafMissile", "real_burn", mo, float(r.range_km) * 1000.0)}
-			for k in ["rear", "max_g", "cone_deg"]:
+			for k in ["max_g", "cone_deg", "rear_km", "front_km", "front_ab_km"]:
 				if r.has(k):
 					w["real_" + k] = r[k]
 			w["real"] = true

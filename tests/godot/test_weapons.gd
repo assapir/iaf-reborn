@@ -39,23 +39,26 @@ func run() -> void:
 	var real = Db.create(bdb, true)
 	check(absf(real.by_id(11).weight_lb * 0.45359 - 86.0) < 0.01, "Weapon data Real: AIM-9L 86 kg")
 	var m9: Dictionary = real.by_id(11).motion
-	check(absf(100.0 / m9._spiralAccelBeta - 2.5 * 340.3) < 0.1 and absf(travelled(100.0, m9._spiralAccelBeta, m9.burn + 6.0) - 35400.0) < 1.0,
-		"Real AIM-9L chase: top speed Mach 2.5, flies 35.4 km from 250 m/s")
+	check(absf(100.0 / m9._spiralAccelBeta - 2.5 * 340.3) < 0.1 and absf(travelled(100.0, m9._spiralAccelBeta, m9.burn + 6.0) - 17700.0) < 1.0,
+		"Real AIM-9L chase: top speed Mach 2.5, flies 17.7 km from 250 m/s")
 	var dlz: Array = load("res://weapons/missile.gd").dlz(real.motion_for(570, 3).merged(m9, true),
 		{"pos": Vector3.ZERO, "fwd": Vector3(0, 1, 0), "vel": Vector3(0, 250, 0)}, {"pos": Vector3(0, 5000, 0), "vel": Vector3.ZERO})
-	check(dlz[0] > 30000.0 and dlz[0] < 35400.0, "Real AIM-9L DLZ against a still target: %.0f m (the flight less 2 s)" % dlz[0])
+	check(dlz[0] > 15000.0 and dlz[0] < 17700.0, "Real AIM-9L DLZ against a still target: %.0f m (the flight less 2 s)" % dlz[0])
 	var by_name := {}
 	for id in real.weapons:
 		by_name[real.weapons[id].name] = real.weapons[id]
-	check(by_name.has("AIM-9D") and by_name["AIM-9D"].get("real_rear", false) and by_name["AIM-9D"].get("real_max_g", 0.0) == 12.0
-		and by_name["PYTH-4"].get("real_cone_deg", 0.0) == 60.0, "Real flags: AIM-9D rear-aspect 12 g, Python 4 cone 60°")
+	check(by_name.has("AIM-9D") and by_name["AIM-9D"].get("real_rear_km", 0.0) == 11.0 and not by_name["AIM-9D"].has("real_front_km") and by_name["AIM-9D"].get("real_max_g", 0.0) == 12.0
+		and by_name["PYTH-4"].get("real_cone_deg", 0.0) == 60.0, "Real flags: AIM-9D rear-aspect 11 km 12 g, Python 4 cone 60°")
 	var sk = load("res://weapons/ir_seeker.gd").new()
 	sk.set_weapon(by_name["AIM-9D"])
 	var me := {"pos": Vector3.ZERO, "yaw": 0.0}
 	check(sk.can_track(me, {"pos": Vector3(0, 2000, 0), "vel": Vector3(0, 200, 0)}, 570)
 		and not sk.can_track(me, {"pos": Vector3(0, 2000, 0), "vel": Vector3(0, -200, 0)}, 570), "Real AIM-9D: tail chase only")
+	sk.set_weapon(by_name["AIM-9L"])
+	check(sk.can_track(me, {"pos": Vector3(0, 2000, 0), "vel": Vector3(0, -200, 0)}, 570)
+		and not sk.can_track(me, {"pos": Vector3(0, 5000, 0), "vel": Vector3(0, -200, 0)}, 570), "Real AIM-9L: head-on within 3 km, not at 5 km without afterburner")
 	sk.set_weapon(db.by_id(11))
-	check(not sk.rear_only and sk.can_track(me, {"pos": Vector3(0, 2000, 0), "vel": Vector3(0, -200, 0)}, 570), "original: all aspects")
+	check(sk.can_track(me, {"pos": Vector3(0, 2000, 0), "vel": Vector3(0, -200, 0)}, 570), "original: all aspects")
 	var mi = load("res://weapons/missile.gd").new()
 	mi.launch(by_name["AIM-9D"], {"_absAcceleration": 300.0, "_spiralAccel": 0.0, "_timeConstOrientation": 0.0, "burn": 10.0}, 0.0, Vector3(0, 0, 1000), Vector3(0, 300, 0), Vector3(0, 1, 0), "x", Vector3.ZERO, 1.0, func(_i, d): return d)
 	mi.update(0.0, Vector3(3000, 0, 1000), Vector3.ZERO, Callable())

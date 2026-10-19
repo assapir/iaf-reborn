@@ -142,7 +142,7 @@ Each entry names the switch and where it lives, then the difference: "Original: 
 
 **Preferences → Extras**
 - **Weapon data (Original / Real).** Original: the 1998 weapon data. Ours, with Real: public missile weights, top
-  speed, range, rear-aspect seekers (ours: a target-moving-away test), seeker cones, the AIM-9D's 12 g, the radar
+  speed, range, IR seeker lock ranges by aspect and afterburner (real-weapons.md §1.2), seeker cones, the AIM-9D's 12 g, the radar
   ranges of the seven jets and gun rounds / rate / muzzle velocity — real-weapons.md. The launch zone's maximum then
   comes from the distance the missile really flies, not the original's formula (real-weapons.md §2).
 - **HARM targets (Original / RWR).** Original: the HARM page lists its sensor's own scan (the radar classes within

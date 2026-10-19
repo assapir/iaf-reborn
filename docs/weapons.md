@@ -398,6 +398,7 @@ centre** within **6000 px²** (≈ 77 px) and that passes can-track.
 - Range ≤ R.
 - Beyond **R/2: only a target with its afterburner on**: a unit with a flight model (+0x34) whose stage
   `FUN_00594c00` (+0x28) is > 0. Ours: an AI jet's FM `afterburner` stage (`player_weapons.gd` `_units`).
+- Weapon data Real replaces R and the R/2 rule with lock ranges by aspect and afterburner (docs/real-weapons.md §1.2).
 
 **Visible** (`FUN_00461f10`), the first case that applies:
 1. **With an A-A radar lock** (`FUN_004625f0`): the target within the generation cone of the nose.
@@ -504,7 +505,7 @@ The quantity and interval strings appear on the stores page only; the HUD weapon
 
 ## 7. Weapon data: Real (Extras)
 Preferences > Extras > Weapon data = Real overlays public numbers (docs/real-weapons.md): missile weights, top speed
-(β) and range (burn), rear-aspect seekers, seeker cones and g limits, radar detection ranges, gun rounds per jet, rate
+(β) and range (burn), IR seeker lock ranges by aspect (real-weapons.md §1.2), seeker cones and g limits, radar detection ranges, gun rounds per jet, rate
 of fire and muzzle velocity. The default is Original. The Arming screen's CURRENT LOAD and weights use the same
 numbers as the flight, so Real shows the real weights.
 
