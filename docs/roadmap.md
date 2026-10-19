@@ -213,10 +213,14 @@ The original already lets you change it: left click on the Dossier photo cycles 
 opens a file dialog for a custom .bmp (ported, docs/front-end.md §13.4). Later: any image (PNG / JPEG / camera), with
 a crop to the photo frame, and an easier way to find it than a right click (e.g. a small "Change" hint).
 
-## Turning panel compass / HSI (Extras, future)
-In the original, every jet's panel compass and HSI is static art; the heading shows only on the HUD tape and the MFD
-pages (docs/cockpit.md). Option: the compass card / HSI rotates with the heading (and the course / bearing pointers on
-an HSI), first on the Kfir's panel compass, then on each jet that has one in its panel art; original by default.
+## Better cockpit (Extras switch) — started
+One Extras switch, "Better cockpit" (Original / Better, original by default), for our improvements to the original
+cockpits; each one is an item with its own flag (`Settings.BETTER_COCKPIT`, docs/cockpit.md "Better cockpit"). New
+cockpit improvements join it as items. Items:
+- Turning panel compass / HSI (`turning_compass`) — **done** (2026-10-20). In the original, every jet's panel compass
+  and HSI is static art; the heading shows only on the HUD tape and the MFD pages. Better: the card turns with the
+  heading on the Kfir, F-4E and Mirage panels, and the Mirage dial's bearing / course pointers point at the current
+  waypoint and the route leg.
 
 ## Glance-down key (Extras, later)
 Hold a key to slide the panel fully into view, release to look ahead again (as modern sims do; a real pilot glances

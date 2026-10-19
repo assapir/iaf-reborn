@@ -465,7 +465,7 @@ Every round gauge is a linear needle; the table under "Panel draw" gives each ga
     stages read the same, because the ramp stops at 100.
   * The heading shows only on the HUD tape and the MFD pages. No cockpit section or code turns a panel compass / HSI
     (horizontal situation indicator), so the panels' compass dials (e.g. the Kfir's) are static art in the original
-    too.
+    too. Ours, with Better cockpit: they turn ("Better cockpit" below).
   * Per-jet check: tests/godot/test_gauges_all_jets.gd. On the seven Jet list jets and the F-35I, every active needle
     turns from idle to military / climbing; military reads 100 % without AB, and AB 1 lights it; with the Real HUD on
     and off.
@@ -566,6 +566,36 @@ The cockpit state S:
     `hud.gd` `speed_text`.
   * Checked on all nine cockpits (tests/godot/test_player_aircraft.gd) and in posed captures (F-16, F-15, F-4 2000,
     Kfir).
+
+## Better cockpit (ours, Extras > Better cockpit)
+One Extras switch, Original / Better (default Original), for our improvements to the original cockpits. Each item
+is listed in `Settings.BETTER_COCKPIT` and has its own flag, on by default (settings.cfg `[cockpit] bc_<id>`);
+`Settings.better_cockpit_on(id)` is true when the switch and the item are both on. Visual only. Items:
+
+### Turning compass / HSI (`turning_compass`)
+In the original every panel compass is static art. With the item on, the compass card turns with the heading, so the
+heading reads under the lubber mark at the top (`game/cockpit/compass.gd`, `compass.gdshader`).
+* **The art:** the card is a disc cut from the panel art itself (the 4x converted panel, mipmapped), so it keeps the
+  original look. The shader turns the disc by the heading; inside the hub radius the panel's own art shows (the face
+  with its aircraft symbol). The dial pans and slides with the panel.
+* **Per cockpit** (`compass.gd` `INSTRUMENTS`, panel px of the 1920-px strip, measured on the art by circle fits of
+  the card's ticks):
+
+  | Cockpit | Dial | Centre | Card r / hub r | Notes |
+  |---|---|---|---|---|
+  | cfir (Kfir) | compass, bottom centre | 964, 302 | 33 / 21 | the card ring turns, the face stays |
+  | phantom (F-4E) | the same compass, bottom centre | 959.2, 347.6 | 32.6 / 20.7 | the panel's edge cuts the dial off, so the card is the Kfir's art |
+  | mirage | bearing-distance-heading dial, right of the HUD | 1109.7, 152.8 | 33.5 / 0 | the painted pointers are erased from the card and drawn new |
+
+* **The Mirage's pointers:** the art paints a double-bar arrow and a single needle on the card. The card takes their
+  pixels from the card 30° aside (the ticks and numbers repeat every 30°), the face colour near the hub. New pointers
+  in the same style are drawn over it: the double-bar arrow points at the bearing to the current waypoint, the single
+  needle at the course of the route leg (the previous waypoint to the current one; on the first leg the bearing).
+  Both are drawn relative to the heading, as on the real dial.
+* **No dial:** the F-15, F-16, F-4 2000 and Lavi panels show no compass or HSI, and the F-35I's display has none. The
+  MiG-23's panel has an HSI, but the player does not fly the MiG-23.
+* Test: tests/godot/test_turning_compass.gd (off = static; on, card angle = heading on the Kfir, F-4E and Mirage, the
+  Mirage's bearing pointer = bearing − heading). Pictures: tests/godot/_compass_shot.gd.
 
 ## What our tooling assumes
 * `crates/iaf-tools/src/convert.rs` `cockpit` is generic. It takes the dir name as its argument and

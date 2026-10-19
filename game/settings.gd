@@ -33,6 +33,12 @@ const BETTER := {
 	"fix_bomb_burst": "Bombs burst at the ground",
 	"fix_ghost_collision": "No collisions with hidden units / wrecks",
 }
+## "Better cockpit" (Extras page, one switch: Original / Better; docs/cockpit.md "Better cockpit"): id -> label, the
+## cockpit improvements it turns on. Each one also has its own flag (cockpit_items, on by default), stored in the
+## [cockpit] section as bc_<id>.
+const BETTER_COCKPIT := {
+	"turning_compass": "Turning panel compass / HSI",
+}
 ## Stored preferences by config section: the original pages, then our own options (Extras tab).
 const PREFS := {
 	"sound": ["mute", "music_volume", "engine_volume", "sfx_volume", "speech_volume"],
@@ -43,7 +49,7 @@ const PREFS := {
 		"no_malfunctions", "ai_level", "invulnerable", "no_crashes", "unlimited_ammo", "unlimited_fuel",
 		"flight_data", "weapon_data", "language", "show_info", "blackbox", "hud_ladder", "hud_style", "show_all_keys", "fullscreen",
 		"imagery_israel", "imagery_outside", "antialiasing", "terrain_closeup", "sky", "upscaling", "night_lights", "water", "f35i_slot", "harm_targets",
-		"models", "rolling_wheels", "particle_effects", "airbases", "cd_launcher", "wheel_scroll"],
+		"models", "rolling_wheels", "particle_effects", "airbases", "cd_launcher", "wheel_scroll", "better_cockpit"],
 }
 
 ## Flight data: "original" (Jane's IAF 1998 numbers) or "real" (corrected real-world data for every flyable jet, docs/real-aircraft.md).
@@ -151,6 +157,10 @@ var cd_launcher := false
 ## (reversed, as on macOS trackpads). The wheel scrolls a list or text by its scroll arrows' step.
 var wheel_scroll := "regular"
 var _pan_rest := 0.0  # the trackpad pan not yet turned into a step
+## Better cockpit (ours, Extras page): false = the original cockpit; true = the BETTER_COCKPIT items whose own flag
+## (cockpit_items: id -> on) is on.
+var better_cockpit := false
+var cockpit_items := {}
 ## Key bindings changed on the Controls page (docs/controls.md): {record index: [key, joystick
 ## button]}, key = DIK | modifier << 16; records not listed keep the original default. Stored in the
 ## [keys] section as r<index> = [key, button].
@@ -191,6 +201,8 @@ func isolated() -> bool:
 func _init() -> void:
 	for id in BETTER:
 		better[id] = false
+	for id in BETTER_COCKPIT:
+		cockpit_items[id] = true
 
 
 func _ready() -> void:
@@ -269,6 +281,8 @@ func write_config(values := {}) -> ConfigFile:
 	var bp: Dictionary = values.get("better", better)
 	for id in BETTER:
 		cfg.set_value("physics", "bp_" + id, bp[id])
+	for id in BETTER_COCKPIT:
+		cfg.set_value("cockpit", "bc_" + id, cockpit_items[id])
 	var keys: Dictionary = values.get("key_bindings", key_bindings)
 	for i in keys:
 		cfg.set_value("keys", "r%d" % i, keys[i])
@@ -286,6 +300,10 @@ func read_config(cfg: ConfigFile) -> void:
 		var on = cfg.get_value("physics", "bp_" + id, false)
 		if on is bool:
 			better[id] = on
+	for id in BETTER_COCKPIT:
+		var on = cfg.get_value("cockpit", "bc_" + id, true)
+		if on is bool:
+			cockpit_items[id] = on
 	key_bindings = {}
 	if cfg.has_section("keys"):
 		for k in cfg.get_section_keys("keys"):
@@ -300,6 +318,11 @@ func default_value(key: String) -> Variant:
 
 
 var _defaults := {}
+
+
+## True when the "Better cockpit" switch and its item `id` (a BETTER_COCKPIT id) are both on.
+func better_cockpit_on(id: String) -> bool:
+	return better_cockpit and cockpit_items.get(id, false)
 
 
 func real_data() -> bool:

@@ -167,6 +167,13 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   UNINSTALL (the uninstaller) and JANE'S ONLINE (a web page that no longer exists). In the exe only PLAY and
   UNINSTALL are disabled, and only while the game is not installed. The art is the English set always (the exe picks
   English, French or German from the Windows locale).
+- **Better cockpit (Original / Better)** (cockpit.md "Better cockpit"). One switch for our cockpit improvements
+  (`Settings.BETTER_COCKPIT`); each item also has its own flag, on by default (settings.cfg `[cockpit] bc_<id>`).
+  Visual only. Items:
+  - **Turning panel compass / HSI** (`turning_compass`). Original: every panel compass is static art; the heading
+    shows only on the HUD tape and the MFD pages. Better: the compass card turns with the heading on the Kfir, F-4E
+    and Mirage panels, cut from the panel art. On the Mirage's dial the painted pointers are replaced by new ones: the
+    bearing pointer to the current waypoint and the course pointer of the route leg.
 - **Additions the original does not have:** flight info line, blackbox, language, Window (framed / full screen),
   "F-35I replaces" (the F-35I flies from a Jet list button, docs/f35i.md), Settings file (export / import the
   preferences, front_end.gd `_settings_file`). Later: extra sounds, canopy open (docs/roadmap.md).

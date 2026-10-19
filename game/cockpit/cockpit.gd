@@ -136,10 +136,11 @@ func _ready() -> void:
 ## replaces the first (the flight scene loads the player's jet's cockpit once it knows the type).
 func load_cockpit(rel: String) -> void:
 	cockpit_dir = rel
-	for m in mfds + [pcd, _pcd_sheen]:
+	for m in mfds + [pcd, _pcd_sheen] + compasses:
 		if m != null:
 			m.free()
 	mfds.clear()
+	compasses.clear()
 	pcd = null
 	_pcd_sheen = null
 	tex.clear()
@@ -445,8 +446,38 @@ func _process(delta: float) -> void:
 	for m in mfds + [pcd, _pcd_sheen]:
 		if m != null:
 			m.visible = view_mode == 0
+	_update_compasses()
 	queue_redraw()
 	hud.queue_redraw()
+
+
+## Ours, "Better cockpit" turning_compass (compass.gd): the panel compasses turn with the heading; made on first
+## use, hidden while off (the static art shows).
+var compasses: Array = []
+
+
+func _update_compasses() -> void:
+	var on := view_mode == 0 and Settings.better_cockpit_on("turning_compass")
+	if on and compasses.is_empty():
+		for spec in preload("res://cockpit/compass.gd").instruments(cockpit_dir.get_file()):
+			var n := preload("res://cockpit/compass.gd").new()
+			n.setup(self, spec)
+			add_child(n)
+			move_child(n, hud.get_index())  # under the HUD (the helmet display may cross the panel)
+			compasses.append(n)
+	if compasses.is_empty():
+		return
+	var nav: Dictionary = preload("res://cockpit/hud.gd").nav_cues(state, waypoints, current_waypoint)
+	# The course: the leg from the previous waypoint to the current one (from the jet on the first leg).
+	var course: float = nav.bearing_deg
+	if current_waypoint > 0 and current_waypoint < waypoints.size():
+		var d: Vector2 = waypoints[current_waypoint].world - waypoints[current_waypoint - 1].world
+		if d != Vector2.ZERO:
+			course = rad_to_deg(atan2(d.x, d.y))
+	for n in compasses:
+		n.visible = on
+		if on:
+			n.update(float(state.heading), nav.bearing_deg, course)
 
 
 ## The panel's screen shift for the head angles (original pixels): pan = 1920 / AzimutAngleDeg (rad) · yaw,
