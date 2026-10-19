@@ -178,14 +178,23 @@ helmet": fielding and optics sourced, the layout from the DASH-derived JHMCS).
 The static maps (TSD / briefing EMF maps, map texts, borders, city names) show the 1998 situation. An optional Extras
 switch adds an updated overlay with today's borders, names and places (drawn by us; original maps by default).
 
-## Setup wizard (after the features)
-A first-run wizard in the game itself (Linux + macOS) to replace `tools/setup.sh` for players:
-1. pick the ISO, optionally the v1.1 patch and the Hebrew packs (file dialogs, with checks: right ISO, patch version,
-   pack contents);
-2. show progress per step;
-3. re-run individual steps later from a menu.
+## Setup wizard (in progress, 2026-10-19)
+A first-run wizard in the game itself (Linux + macOS), a second way to set up next to `tools/setup.sh` (which stays
+for scripting):
+1. the English CD (required), optionally the v1.1 patch, the Hebrew CD (or, without it, the Hebrew packs), imagery
+   and the pilot guides, each checked when picked and each optional extra with its warning (download size, time,
+   disk);
+2. progress per step; the steps run in parallel where they don't depend on each other;
+3. "Setup…" on Preferences → Extras adds or re-runs steps later.
 
-The CLI stays for scripting / CI.
+## Exported build (with the setup wizard)
+A packaged Linux and macOS build of the game (Godot export: one program and its game file, the Rust extension
+bundled), so players need no Godot, Rust or cargo and no `./iafjets` build step; with the setup wizard, no terminal
+at all.
+- **Needs:** Godot's export templates; the extension built and bundled per platform; the data folder beside the
+  program instead of `res://../assets`; macOS signing / notarisation (to check).
+- **Gain:** distribution. Run-time speed is the same (Godot compiles scripts to bytecode at load either way).
+- Development keeps running unexported; the export is built for releases.
 
 ## Keyboard stick option (maybe, post game)
 The original keyboard stick is full deflection at once (taps > ~0.45 s reach 3 g in the F-16; docs/flight-model.md
