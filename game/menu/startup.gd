@@ -29,6 +29,7 @@ func launcher() -> bool:
 	var a: Control = preload("res://menu/autorun.gd").new()
 	add_child(a)
 	if not a.available():
+		push_warning("CD launcher: no files in assets/install/autorun (iaf-extract --autorun <iso> assets/install)")
 		a.queue_free()
 		return true
 	var result := [true]
