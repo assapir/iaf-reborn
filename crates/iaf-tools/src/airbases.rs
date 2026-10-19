@@ -476,8 +476,12 @@ impl Line {
         [d[0] * al + a[0] * ac, d[1] * al + a[1] * ac]
     }
     fn local(&self, q: [f64; 2]) -> (f64, f64) {
+        self.dirs_local()(q)
+    }
+    /// `local` with the heading's sine and cosine taken once (for the loops over every pixel).
+    fn dirs_local(self) -> impl Fn([f64; 2]) -> (f64, f64) {
         let (d, a) = self.dirs();
-        (q[0] * d[0] + q[1] * d[1], q[0] * a[0] + q[1] * a[1])
+        move |q| (q[0] * d[0] + q[1] * d[1], q[0] * a[0] + q[1] * a[1])
     }
 }
 
@@ -622,32 +626,60 @@ impl Picture<'_> {
         let half = 0.5 * (l.a1 - l.a0);
         // Only the points near the line can count (turning by dth moves the span's ends by half · dth).
         let reach = dc as f64 + 8.0 + half * dth;
+        let local = Line { c: 0.0, ..l }.dirs_local();
         let near: Vec<[f64; 2]> = pts
             .iter()
             .map(|p| [p[0] - mid[0], p[1] - mid[1]])
             .filter(|q| {
-                let (al, ac) = Line { c: 0.0, ..l }.local(*q);
+                let (al, ac) = local(*q);
                 al.abs() <= half + 50.0 && ac.abs() < reach
             })
             .collect();
-        let mut best = (0, l.th, 0.0);
         let steps = (dth.to_degrees() / 0.05).round() as i32;
-        // Per heading: the points' across offsets in 1 m bins, then the count within ± 8 m of each offset.
+        // Per heading: the points' across offsets in 1 m bins, then the count within ± 8 m of each offset. The headings
+        // on every core; the first best (by heading, then offset) wins, as in one loop.
         let r = (reach.ceil() as i64) + 1;
-        for k in -steps..=steps {
+        // Only the bins within dc + 7 of the line are read: the points less than dc + 7.5 m across it. The points go
+        // into CELL-metre cells, and per heading only the cells that can hold such a point are visited (a cell's
+        // points lie within 0.71 · CELL of its centre).
+        const CELL: f64 = 16.0;
+        let (lo, hi) = bbox(&near);
+        let (nx, ny) = if near.is_empty() { (0, 0) } else { (((hi[0] - lo[0]) / CELL) as usize + 1, ((hi[1] - lo[1]) / CELL) as usize + 1) };
+        let mut cells: Vec<Vec<[f64; 2]>> = vec![Vec::new(); nx * ny];
+        for q in &near {
+            cells[((q[1] - lo[1]) / CELL) as usize * nx + ((q[0] - lo[0]) / CELL) as usize].push(*q);
+        }
+        let (along_max, across_max) = (half + 0.75 * CELL, dc as f64 + 7.5 + 0.75 * CELL);
+        let ks: Vec<i32> = (-steps..=steps).collect();
+        let per_heading = par_map(&ks, |&k| {
             let t = Line { th: l.th + (k as f64 * 0.05).to_radians(), ..l };
             let mut bins = vec![0usize; (2 * r + 1) as usize];
-            for q in &near {
-                let (al, ac) = t.local(*q);
-                if al.abs() <= half && ac.abs() < r as f64 {
-                    bins[(ac.round() as i64 + r) as usize] += 1;
+            let local = t.dirs_local();
+            for (n, cell) in cells.iter().enumerate() {
+                let (al, ac) = local([lo[0] + ((n % nx) as f64 + 0.5) * CELL, lo[1] + ((n / nx) as f64 + 0.5) * CELL]);
+                if cell.is_empty() || al.abs() > along_max || ac.abs() > across_max {
+                    continue;
+                }
+                for q in cell {
+                    let (al, ac) = local(*q);
+                    if al.abs() <= half && ac.abs() < r as f64 {
+                        bins[(ac.round() as i64 + r) as usize] += 1;
+                    }
                 }
             }
+            let mut best = (0, t.th, 0.0);
             for dcc in -dc..=dc {
                 let n: usize = (dcc as i64 - 7..=dcc as i64 + 7).filter(|b| b.abs() <= r).map(|b| bins[(b + r) as usize]).sum();
                 if n > best.0 {
                     best = (n, t.th, dcc as f64);
                 }
+            }
+            best
+        });
+        let mut best = (0, l.th, 0.0);
+        for b in per_heading {
+            if b.0 > best.0 {
+                best = b;
             }
         }
         let t = Line { th: best.1, ..l };
@@ -665,9 +697,10 @@ impl Picture<'_> {
         let points = |g: &Grid| -> Vec<[f64; 2]> { (0..w * h).filter(|&k| g.v[k]).map(|k| [(k % w) as f64 * px_m, -((k / w) as f64) * px_m]).collect() };
         let mut out = Vec::new();
         let take_out = |core: &mut Grid, l: &Line, width: f64| {
+            let local = l.dirs_local();
             for k in 0..w * h {
                 if core.v[k] {
-                    let (al, ac) = l.local([(k % w) as f64 * px_m, -((k / w) as f64) * px_m]);
+                    let (al, ac) = local([(k % w) as f64 * px_m, -((k / w) as f64) * px_m]);
                     if al >= l.a0 - 20.0 && al <= l.a1 + 20.0 && (ac - l.c).abs() < width / 2.0 + 20.0 {
                         core.v[k] = false;
                     }
@@ -692,13 +725,15 @@ impl Picture<'_> {
             let pts: Vec<[f64; 2]> = all.iter().step_by(stride).copied().collect();
             // Coarse search: per heading (0.5° steps), the longest run of 20 m along-bins holding core pixels (gaps of
             // up to 140 m bridged: a crossing runway taken out) in 5 m across-bins.
-            let mut best: Option<(f64, Line)> = None;
-            for step in 0..360 {
+            let steps: Vec<u32> = (0..360).collect();
+            let runs = par_map(&steps, |&step| {
                 let th = (step as f64 * 0.5).to_radians();
-                if let Some((len, c, a0, a1)) = longest_run(&pts, th, 5.0, 20.0, 7)
-                    && best.is_none_or(|b| len > b.0)
-                {
-                    best = Some((len, Line { th, c, a0, a1 }));
+                longest_run(&pts, th, 5.0, 20.0, 7).map(|(len, c, a0, a1)| (len, Line { th, c, a0, a1 }))
+            });
+            let mut best: Option<(f64, Line)> = None;
+            for (len, l) in runs.into_iter().flatten() {
+                if best.is_none_or(|b| len > b.0) {
+                    best = Some((len, l));
                 }
             }
             let Some((_, l)) = best.filter(|b| b.0 >= RUNWAY_MIN) else { break };
@@ -909,8 +944,9 @@ pub fn bases(install: &Path, theatre: &Theatre) -> Result<Vec<Base>> {
     let px_m = s * UNITS_TO_METRES;
     let types = TerrainTypes::parse(&std::fs::read(install.join("terraintype.dat")).context("terraintype.dat")?)?;
     let leaves: Vec<Vec<[f64; 2]>> = types.leaf_polygons(RUNWAY, 2.0e6).into_iter().map(|(_, p)| p).collect();
-    let mut out = Vec::new();
-    for sec in ini.sections.iter().filter(|s| s.get("LineupLocX").is_some() && s.get("RunwayNumber").is_some()) {
+    let secs: Vec<_> = ini.sections.iter().filter(|s| s.get("LineupLocX").is_some() && s.get("RunwayNumber").is_some()).collect();
+    // Each base is independent: one per worker, in iaf.ibx's order.
+    par_map(&secs, |sec| -> Result<Base> {
         let lineup = [ibx_f(sec, "LineupLocX").unwrap_or(0.0), ibx_f(sec, "LineupLocY").unwrap_or(0.0)];
         let n = |k: &str| ibx_f(sec, k).unwrap_or(0.0).max(0.0) as usize;
         let hangars = n("HangarsNum");
@@ -1057,14 +1093,40 @@ pub fn bases(install: &Path, theatre: &Theatre) -> Result<Vec<Base>> {
             }
         }
         let concrete = surface.v.iter().zip(&rgb).map(|(&p, &c)| p && is_apron(c) && !is_asphalt(c)).collect();
-        out.push(Base { name: sec.name.clone(), lineup, runway_deg: ibx_f(sec, "RunwayNumber").unwrap_or(0.0), runways, taxi, paved: surface, concrete, origin: corner, px_m });
-    }
-    Ok(out)
+        Ok(Base { name: sec.name.clone(), lineup, runway_deg: ibx_f(sec, "RunwayNumber").unwrap_or(0.0), runways, taxi, paved: surface, concrete, origin: corner, px_m })
+    })
+    .into_iter()
+    .collect()
+}
+
+/// `f` over `items` on every core (each worker takes the next item), the results in the items' order.
+pub fn par_map<T: Sync, R: Send>(items: &[T], f: impl Fn(&T) -> R + Sync) -> Vec<R> {
+    let next = std::sync::atomic::AtomicUsize::new(0);
+    let out: Vec<std::sync::Mutex<Option<R>>> = items.iter().map(|_| std::sync::Mutex::new(None)).collect();
+    let threads = std::thread::available_parallelism().map_or(4, |n| n.get()).min(items.len());
+    std::thread::scope(|s| {
+        for _ in 0..threads {
+            s.spawn(|| {
+                loop {
+                    let k = next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    let Some(item) = items.get(k) else { return };
+                    *out[k].lock().unwrap() = Some(f(item));
+                }
+            });
+        }
+    });
+    out.into_iter().map(|m| m.into_inner().unwrap().expect("every item done")).collect()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn par_map_keeps_the_order() {
+        let v: Vec<u64> = (0..1000).collect();
+        assert_eq!(par_map(&v, |&x| x * x), v.iter().map(|&x| x * x).collect::<Vec<_>>());
+    }
 
     /// A 4 km × 4 km site (units) with one runway leaf, a paved apron beside it, a grey road leading away and a unit
     /// near the apron: the footprint covers the leaf, the apron and the unit plus the margin, and not the road's far
