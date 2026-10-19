@@ -509,7 +509,7 @@ What a Real-mode IFF would implement, only from the findings above:
   page as the lines above / below, for the display time above. The interrogate key also works (the pilot asking the
   WSO). The automatic timing is ours and goes in docs/deviations.md.
 - **F-16**: the game's F-16D is the early-1990s Barak, which had no interrogator. Today's IAF F-16s have one, so the
-  modern F-16 becomes its own switch (docs/roadmap.md "Modern F-16 (Extras switch)"), with AIFF (the APX-113 class
+  modern F-16 becomes its own switch (docs/roadmap.md "F-16I Sufa option"), with AIFF (the APX-113 class
   interrogator: TMS left, green circle / yellow square on the FCR, as in the MLU guides above) among its upgrades.
 - **F-35I**: the helmet stays monochrome green with one target designator for every locked contact, as on the real
   jet. The friend / unknown / hostile colours and shapes belong on the panoramic display's radar and map formats, so
