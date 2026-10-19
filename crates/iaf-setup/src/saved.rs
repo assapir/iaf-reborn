@@ -34,12 +34,18 @@ pub fn to_json(i: &Inputs) -> Value {
 
 pub fn save_inputs(assets: &Path, i: &Inputs) -> Result<()> {
     std::fs::create_dir_all(assets)?;
-    std::fs::write(inputs_file(assets), serde_json::to_string_pretty(&to_json(i))? + "\n").context("writing setup.json")
+    std::fs::write(
+        inputs_file(assets),
+        serde_json::to_string_pretty(&to_json(i))? + "\n",
+    )
+    .context("writing setup.json")
 }
 
 /// The saved inputs, or `None` before the first run.
 pub fn load_inputs(assets: &Path) -> Result<Option<Inputs>> {
-    let Ok(text) = std::fs::read_to_string(inputs_file(assets)) else { return Ok(None) };
+    let Ok(text) = std::fs::read_to_string(inputs_file(assets)) else {
+        return Ok(None);
+    };
     from_json(&serde_json::from_str(&text).context("setup.json")?).map(Some)
 }
 
@@ -49,7 +55,10 @@ pub fn from_json(v: &Value) -> Result<Inputs> {
     let hebrew = match &v["hebrew"] {
         Value::Null => Hebrew::None,
         h if h.get("cd").is_some() => Hebrew::Cd(path(&h["cd"]).context("setup.json: hebrew.cd")?),
-        h => Hebrew::Packs { brief: path(&h["brief"]), menu: path(&h["menu"]) },
+        h => Hebrew::Packs {
+            brief: path(&h["brief"]),
+            menu: path(&h["menu"]),
+        },
     };
     let mut imagery = Vec::new();
     for s in v["imagery"].as_array().into_iter().flatten() {
@@ -78,8 +87,22 @@ mod tests {
     fn inputs_round_trip() {
         let dir = std::env::temp_dir().join(format!("iaf-setup-saved-{}", std::process::id()));
         assert!(load_inputs(&dir).unwrap().is_none());
-        for hebrew in [Hebrew::None, Hebrew::Cd("/cd/IAF.Iso".into()), Hebrew::Packs { brief: Some("/b.zip".into()), menu: None }] {
-            let i = Inputs { cd: "/cd/Jane's IAF.iso".into(), patch: Some("/p.exe".into()), hebrew, imagery: vec![Imagery::Sentinel2, Imagery::Mapi2015 { bases: true }], refresh: true, guides: true };
+        for hebrew in [
+            Hebrew::None,
+            Hebrew::Cd("/cd/IAF.Iso".into()),
+            Hebrew::Packs {
+                brief: Some("/b.zip".into()),
+                menu: None,
+            },
+        ] {
+            let i = Inputs {
+                cd: "/cd/Jane's IAF.iso".into(),
+                patch: Some("/p.exe".into()),
+                hebrew,
+                imagery: vec![Imagery::Sentinel2, Imagery::Mapi2015 { bases: true }],
+                refresh: true,
+                guides: true,
+            };
             save_inputs(&dir, &i).unwrap();
             assert_eq!(load_inputs(&dir).unwrap(), Some(i));
         }

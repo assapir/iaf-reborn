@@ -169,6 +169,7 @@ fi
 # Each job writes its own log; the logs are printed in this order as the jobs end, and the first failure stops the
 # setup with its log.
 jobs_dir=$(mktemp -d "${TMPDIR:-/tmp}/iaf-setup.XXXXXX")
+trap 'rm -rf "$jobs_dir" assets/hebrew-cd assets/hebrew-cd-pick' EXIT  # a failed job's log is printed before the exit
 job_names=() job_pids=()
 job() {  # job NAME FUNCTION: runs FUNCTION in the background (set -e), its output into its log
 	local n=$1
@@ -191,7 +192,6 @@ wait_jobs() {
 			exit 1
 		fi
 	done
-	rm -rf "$jobs_dir"
 }
 
 j_fonts() {

@@ -14,7 +14,9 @@ use iaf_tools::{extract, pack, patch, terrain};
 use crate::{Ctx, Hebrew, Imagery, Outcome, Step};
 
 /// The cockpits setup converts (every flyable jet).
-pub const COCKPITS: [&str; 9] = ["f16", "f15", "f4-2000", "phantom", "cfir", "lavi", "mirage", "mig23", "mig29"];
+pub const COCKPITS: [&str; 9] = [
+    "f16", "f15", "f4-2000", "phantom", "cfir", "lavi", "mirage", "mig23", "mig29",
+];
 
 /// Removes `p`, a folder setup itself writes under `assets` (refuses anything else).
 fn remove_dir(assets: &Path, p: &Path) -> Result<()> {
@@ -22,7 +24,9 @@ fn remove_dir(assets: &Path, p: &Path) -> Result<()> {
         bail!("{}: not a folder under {}", p.display(), assets.display());
     }
     match std::fs::remove_dir_all(p) {
-        Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(e).with_context(|| format!("removing {}", p.display())),
+        Err(e) if e.kind() != std::io::ErrorKind::NotFound => {
+            Err(e).with_context(|| format!("removing {}", p.display()))
+        }
         _ => Ok(()),
     }
 }
@@ -40,11 +44,26 @@ fn copy_tree(from: &Path, to: &Path) -> Result<()> {
 /// Runs `cmd`, its output lines into the step's log.
 fn child(mut cmd: Command, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
     let name = format!("{:?}", cmd.get_program());
-    let mut c = cmd.stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().with_context(|| format!("running {name}"))?;
-    let (out, err) = (c.stdout.take().context("stdout")?, c.stderr.take().context("stderr")?);
+    let mut c = cmd
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .with_context(|| format!("running {name}"))?;
+    let (out, err) = (
+        c.stdout.take().context("stdout")?,
+        c.stderr.take().context("stderr")?,
+    );
     std::thread::scope(|s| {
-        s.spawn(|| BufReader::new(err).lines().map_while(Result::ok).for_each(|l| pr.warn(&l)));
-        BufReader::new(out).lines().map_while(Result::ok).for_each(|l| pr.log(&l));
+        s.spawn(|| {
+            BufReader::new(err)
+                .lines()
+                .map_while(Result::ok)
+                .for_each(|l| pr.warn(&l))
+        });
+        BufReader::new(out)
+            .lines()
+            .map_while(Result::ok)
+            .for_each(|l| pr.log(&l));
     });
     let status = c.wait()?;
     check(cancel)?;
@@ -54,15 +73,30 @@ fn child(mut cmd: Command, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()>
     Ok(())
 }
 
-pub(crate) fn run(step: &Step, ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Outcome> {
+pub(crate) fn run(
+    step: &Step,
+    ctx: &Ctx,
+    pr: &dyn Progress,
+    cancel: &AtomicBool,
+) -> Result<Outcome> {
     let a = &ctx.assets;
     let install = a.join("install");
     let conv = a.join("converted");
-    let up = Options { upscale: true, smooth: false };
-    let smooth = Options { upscale: true, smooth: true };
+    let up = Options {
+        upscale: true,
+        smooth: false,
+    };
+    let smooth = Options {
+        upscale: true,
+        smooth: true,
+    };
     let he = ctx.inputs.hebrew != Hebrew::None;
     // Without Hebrew content the converters see no pack (a pack left by an earlier run is not used).
-    let packs = if he { a.join("packs") } else { a.join("packs-none") };
+    let packs = if he {
+        a.join("packs")
+    } else {
+        a.join("packs-none")
+    };
     match step.id {
         "extract" => {
             // Files a previous run overlaid from the v1.1 patch: removed first, so the extraction brings back the
@@ -85,10 +119,16 @@ pub(crate) fn run(step: &Step, ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool
             remove_dir(a, &v11)?;
             let done = patch::apply(&exe, &install, &v11, pr, cancel)?;
             if done.failed > 0 {
-                bail!("{} of {} records not applied", done.failed, done.failed + done.applied);
+                bail!(
+                    "{} of {} records not applied",
+                    done.failed,
+                    done.failed + done.applied
+                );
             }
-            let mut files: Vec<String> =
-                iaf_tools::walk_files(&v11)?.iter().map(|f| Ok(f.strip_prefix(&v11)?.to_string_lossy().replace('\\', "/"))).collect::<Result<_>>()?;
+            let mut files: Vec<String> = iaf_tools::walk_files(&v11)?
+                .iter()
+                .map(|f| Ok(f.strip_prefix(&v11)?.to_string_lossy().replace('\\', "/")))
+                .collect::<Result<_>>()?;
             files.sort();
             for f in &files {
                 if install.join(f).is_file() {
@@ -98,42 +138,99 @@ pub(crate) fn run(step: &Step, ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool
                 }
             }
             copy_tree(&v11, &install)?;
-            std::fs::write(install.join(".v1.1-files"), files.iter().map(|f| format!("{f}\n")).collect::<String>())?;
+            std::fs::write(
+                install.join(".v1.1-files"),
+                files.iter().map(|f| format!("{f}\n")).collect::<String>(),
+            )?;
         }
         "fonts" => convert::fonts(&install, &conv.join("fonts"), pr, cancel)?,
         "cockpits" => {
-            par_map(&COCKPITS, cancel, |c| convert::cockpit(&install, c, &conv.join("cockpits").join(c), &up, pr, cancel))?;
+            par_map(&COCKPITS, cancel, |c| {
+                convert::cockpit(&install, c, &conv.join("cockpits").join(c), &up, pr, cancel)
+            })?;
         }
         "hebrew" => hebrew(ctx, pr, cancel)?,
-        "briefings" => convert::briefings(&install, &packs, &conv.join("briefings"), &up, pr, cancel)?,
+        "briefings" => {
+            convert::briefings(&install, &packs, &conv.join("briefings"), &up, pr, cancel)?
+        }
         "reference" => convert::reference(&install, &conv.join("reference"), &up, pr, cancel)?,
         "menu" => convert::menu(&install, None, &conv.join("menu"), &up, pr, cancel)?,
-        "menu_he" => convert::menu(&install, Some(&a.join("packs/he")), &conv.join("menu_he"), &up, pr, cancel)?,
+        "menu_he" => convert::menu(
+            &install,
+            Some(&a.join("packs/he")),
+            &conv.join("menu_he"),
+            &up,
+            pr,
+            cancel,
+        )?,
         "arm" => {
             // Extra planes' arming art (docs/adding-a-plane.md §5) for each converted menu set.
             let mut arms: Vec<PathBuf> = std::fs::read_dir(ctx.repo.join("game/extra/planes"))
-                .map(|rd| rd.flatten().map(|e| e.path().join("arm")).filter(|p| p.is_dir()).collect())
+                .map(|rd| {
+                    rd.flatten()
+                        .map(|e| e.path().join("arm"))
+                        .filter(|p| p.is_dir())
+                        .collect()
+                })
                 .unwrap_or_default();
             arms.sort();
             for arm in &arms {
-                let p = arm.parent().and_then(|p| p.file_name()).context("plane folder")?.to_string_lossy().to_string();
+                let p = arm
+                    .parent()
+                    .and_then(|p| p.file_name())
+                    .context("plane folder")?
+                    .to_string_lossy()
+                    .to_string();
                 for m in ["menu", "menu_he"] {
                     let img = conv.join(m).join("img");
                     if img.join("arm/jets").is_dir() {
-                        convert::arm_extra(&img, arm, &img.join(format!("arm/jets/x_{p}.png")), pr, cancel)?;
+                        convert::arm_extra(
+                            &img,
+                            arm,
+                            &img.join(format!("arm/jets/x_{p}.png")),
+                            pr,
+                            cancel,
+                        )?;
                     }
                 }
             }
         }
         "keys" => convert::keys(&install, &packs, &conv.join("keys.json"), pr, cancel)?,
         "missions" => convert::missions(&install, &conv.join("missions"), pr, cancel)?,
-        "aircraft" => convert::aircraft(&install, &conv.join("missions"), &conv.join("planes"), &smooth, pr, cancel)?,
-        "objects" => convert::objects(&install, &conv.join("missions"), &conv.join("objects"), &smooth, pr, cancel)?,
+        "aircraft" => convert::aircraft(
+            &install,
+            &conv.join("missions"),
+            &conv.join("planes"),
+            &smooth,
+            pr,
+            cancel,
+        )?,
+        "objects" => convert::objects(
+            &install,
+            &conv.join("missions"),
+            &conv.join("objects"),
+            &smooth,
+            pr,
+            cancel,
+        )?,
         "theatre" => {
             remove_dir(a, &conv.join("terrain/israel_l4"))?; // the old Israel-only layout
-            terrain::theatre(&install.join("resource/terrain/map.ptt"), &conv.join("terrain/theatre"), threads(), pr, cancel)?;
+            terrain::theatre(
+                &install.join("resource/terrain/map.ptt"),
+                &conv.join("terrain/theatre"),
+                threads(),
+                pr,
+                cancel,
+            )?;
         }
-        "airbases" => terrain::airbases(&install, &conv.join("terrain/theatre"), &conv.join("terrain"), None, pr, cancel)?,
+        "airbases" => terrain::airbases(
+            &install,
+            &conv.join("terrain/theatre"),
+            &conv.join("terrain"),
+            None,
+            pr,
+            cancel,
+        )?,
         "icon" => convert::icon(&install, &conv.join("icon.png"), pr, cancel)?,
         "launcher" => {
             let mut cmd = Command::new(ctx.repo.join("tools/install-launcher.sh"));
@@ -146,8 +243,17 @@ pub(crate) fn run(step: &Step, ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool
         "imagery-refresh" => {
             let mut any = false;
             for spec in [&SENTINEL2, &MAPI2015] {
-                let id = if std::ptr::eq(spec, &SENTINEL2) { "sentinel2" } else { "mapi2015" };
-                let chosen = ctx.inputs.imagery.iter().any(|m| matches!((m, id), (Imagery::Sentinel2, "sentinel2") | (Imagery::Mapi2015 { .. }, "mapi2015")));
+                let id = if std::ptr::eq(spec, &SENTINEL2) {
+                    "sentinel2"
+                } else {
+                    "mapi2015"
+                };
+                let chosen = ctx.inputs.imagery.iter().any(|m| {
+                    matches!(
+                        (m, id),
+                        (Imagery::Sentinel2, "sentinel2") | (Imagery::Mapi2015 { .. }, "mapi2015")
+                    )
+                });
                 if chosen || !a.join("converted/imagery").join(id).is_dir() {
                     continue;
                 }
@@ -168,7 +274,14 @@ pub(crate) fn run(step: &Step, ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool
             }
         }
         "mapi2015-fetch" => {
-            let bases = ctx.inputs.imagery.contains(&Imagery::Mapi2015 { bases: true }) && !ctx.inputs.imagery.contains(&Imagery::Mapi2015 { bases: false });
+            let bases = ctx
+                .inputs
+                .imagery
+                .contains(&Imagery::Mapi2015 { bases: true })
+                && !ctx
+                    .inputs
+                    .imagery
+                    .contains(&Imagery::Mapi2015 { bases: false });
             let mut cmd = Command::new(ctx.repo.join("tools/imagery/fetch-mapi2015-curl.sh"));
             if bases {
                 cmd.arg("--bases");
@@ -176,7 +289,9 @@ pub(crate) fn run(step: &Step, ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool
             child(cmd, pr, cancel)?;
         }
         "guides" => {
-            let Some(g) = ctx.guides else { return Ok(Outcome::Skipped("no guide renderer".into())) };
+            let Some(g) = ctx.guides else {
+                return Ok(Outcome::Skipped("no guide renderer".into()));
+            };
             g(pr, cancel)?;
         }
         other => bail!("unknown step {other}"),
@@ -201,26 +316,41 @@ fn hebrew(ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool) -> Result<()> {
             let (cd, pick) = (a.join("hebrew-cd"), a.join("hebrew-cd-pick"));
             remove_dir(a, &cd)?;
             remove_dir(a, &pick)?;
-            let quiet = Quiet;
-            extract::install(iso, &cd, &quiet, cancel)?;
-            for d in ["brief", "menu"] {
-                let from = cd.join("resource").join(d);
-                if from.is_dir() {
-                    std::fs::create_dir_all(&pick)?;
-                    std::fs::rename(&from, pick.join(d))?;
+            // The extract is removed however the import ends (done, failed or cancelled).
+            let r = (|| -> Result<()> {
+                let quiet = Quiet;
+                extract::install(iso, &cd, &quiet, cancel)?;
+                for d in ["brief", "menu"] {
+                    let from = cd.join("resource").join(d);
+                    if from.is_dir() {
+                        std::fs::create_dir_all(&pick)?;
+                        std::fs::rename(&from, pick.join(d))?;
+                    }
                 }
-            }
-            // The CD is v1.0: a file it holds as the English v1.0 original is not a translation (the v1.1 patch
-            // replaced it in the install), so it stays out of the pack.
-            for f in iaf_tools::walk_files(&pick)? {
-                let rel = f.strip_prefix(&pick)?;
-                if std::fs::read(a.join("v1.0/resource").join(rel)).is_ok_and(|orig| std::fs::read(&f).is_ok_and(|d| d == orig)) {
-                    std::fs::remove_file(&f)?;
+                // The CD is v1.0: a file it holds as the English v1.0 original is not a translation (the v1.1 patch
+                // replaced it in the install), so it stays out of the pack.
+                for f in iaf_tools::walk_files(&pick)? {
+                    let rel = f.strip_prefix(&pick)?;
+                    if std::fs::read(a.join("v1.0/resource").join(rel))
+                        .is_ok_and(|orig| std::fs::read(&f).is_ok_and(|d| d == orig))
+                    {
+                        std::fs::remove_file(&f)?;
+                    }
                 }
-            }
-            pack::import(&pick, "he", &install, &a.join("packs"), "resource", pr, cancel)?;
+                pack::import(
+                    &pick,
+                    "he",
+                    &install,
+                    &a.join("packs"),
+                    "resource",
+                    pr,
+                    cancel,
+                )?;
+                Ok(())
+            })();
             remove_dir(a, &cd)?;
             remove_dir(a, &pick)?;
+            r?;
         }
     }
     Ok(())
@@ -236,9 +366,15 @@ impl Progress for Quiet {
 /// A modern imagery layer: the estimate first; nothing to convert (every unit's mark holds) is up to date.
 fn imagery(step: &Step, ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Outcome> {
     if !crate::tools().gdal {
-        return Ok(Outcome::Skipped("GDAL is needed (gdal_translate, gdalbuildvrt)".into()));
+        return Ok(Outcome::Skipped(
+            "GDAL is needed (gdal_translate, gdalbuildvrt)".into(),
+        ));
     }
-    let spec = if step.id == "sentinel2" { &SENTINEL2 } else { &MAPI2015 };
+    let spec = if step.id == "sentinel2" {
+        &SENTINEL2
+    } else {
+        &MAPI2015
+    };
     let mut r = imagery_job(ctx, spec, true);
     if imagery_run::run(&r, pr, cancel)?.to_convert == 0 {
         return Ok(Outcome::UpToDate);
@@ -261,7 +397,13 @@ fn imagery_job(ctx: &Ctx, spec: &'static imagery_run::Spec, dry_run: bool) -> Ru
         area: None,
         dry_run,
         stale: false,
-        threads: if std::ptr::eq(spec, &SENTINEL2) { 4 } else if n > 2 { n - 2 } else { 1 },
+        threads: if std::ptr::eq(spec, &SENTINEL2) {
+            4
+        } else if n > 2 {
+            n - 2
+        } else {
+            1
+        },
     }
 }
 
@@ -273,10 +415,18 @@ pub fn imagery_stale(assets: &Path, id: &str) -> Result<usize> {
         "mapi2015" => &MAPI2015,
         _ => bail!("unknown imagery layer {id}"),
     };
-    if !assets.join("converted/imagery").join(id).is_dir() || !assets.join("converted/terrain/theatre/meta.json").is_file() {
+    if !assets.join("converted/imagery").join(id).is_dir()
+        || !assets.join("converted/terrain/theatre/meta.json").is_file()
+    {
         return Ok(0);
     }
-    let ctx = Ctx { assets: assets.to_path_buf(), repo: PathBuf::new(), inputs: crate::Inputs::default(), xdg_data_home: None, guides: None };
+    let ctx = Ctx {
+        assets: assets.to_path_buf(),
+        repo: PathBuf::new(),
+        inputs: crate::Inputs::default(),
+        xdg_data_home: None,
+        guides: None,
+    };
     let mut r = imagery_job(&ctx, spec, true);
     r.stale = true;
     Ok(imagery_run::run(&r, &Quiet, &AtomicBool::new(false))?.to_convert)

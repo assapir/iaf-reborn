@@ -25,4 +25,5 @@ for t in tests/godot/test_*.gd; do
 	echo "$out" | grep -q "RESULT PASS" || fail=1
 	echo "$out" | grep -q "SCRIPT ERROR" && { echo "FAIL script errors"; fail=1; }
 done
-[[ $fail == 0 ]] && echo "ALL TESTS PASSED" || { echo "SOME TESTS FAILED"; exit 1; }
+# The logs (and the wizard's scratch data) are kept only when something failed.
+[[ $fail == 0 ]] && { rm -rf "$logs"; echo "ALL TESTS PASSED"; } || { echo "SOME TESTS FAILED (logs: $logs)"; exit 1; }

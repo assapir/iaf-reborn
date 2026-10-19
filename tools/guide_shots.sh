@@ -126,4 +126,5 @@ if ((fails > 0)); then
 	echo "guide shots: $fails failures (logs: $logs)"
 	exit 1
 fi
+rm -rf "$logs"  # kept above only when something failed
 echo "guide shots: done"

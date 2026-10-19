@@ -17,12 +17,15 @@ pub(crate) struct Stamp {
 
 impl Stamp {
     pub fn holds(&self) -> bool {
-        std::fs::read_to_string(&self.path).is_ok_and(|t| t == self.text) && self.output.as_ref().is_none_or(|o| o.exists())
+        std::fs::read_to_string(&self.path).is_ok_and(|t| t == self.text)
+            && self.output.as_ref().is_none_or(|o| o.exists())
     }
     /// Removed before the step runs, so a step that fails half way is not up to date.
     pub fn clear(&self) -> Result<()> {
         match std::fs::remove_file(&self.path) {
-            Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(e).with_context(|| format!("{}", self.path.display())),
+            Err(e) if e.kind() != std::io::ErrorKind::NotFound => {
+                Err(e).with_context(|| format!("{}", self.path.display()))
+            }
             _ => Ok(()),
         }
     }
@@ -55,11 +58,21 @@ pub(crate) fn describe(p: &Path) -> Result<String> {
         files.sort();
         let mut s = String::new();
         for f in files {
-            s += &format!("input {} {} {:08x}\n", f.display(), std::fs::metadata(&f)?.len(), crc_file(&f)?);
+            s += &format!(
+                "input {} {} {:08x}\n",
+                f.display(),
+                std::fs::metadata(&f)?.len(),
+                crc_file(&f)?
+            );
         }
         Ok(s)
     } else if p.is_file() {
-        Ok(format!("input {} {} {:08x}\n", p.display(), std::fs::metadata(p)?.len(), crc_file(p)?))
+        Ok(format!(
+            "input {} {} {:08x}\n",
+            p.display(),
+            std::fs::metadata(p)?.len(),
+            crc_file(p)?
+        ))
     } else {
         Ok(format!("input {} missing\n", p.display()))
     }
@@ -72,25 +85,53 @@ pub(crate) fn of(step: &Step, ctx: &Ctx) -> Result<Option<Stamp>> {
     let i = &ctx.inputs;
     let conv = |p: &str| a.join("converted").join(p);
     let (out, stamp, inputs): (Option<PathBuf>, PathBuf, Vec<PathBuf>) = match step.id {
-        "extract" => (Some(a.join("install")), a.join("install.stamp"), [Some(i.cd.clone()), i.patch.clone()].into_iter().flatten().collect()),
-        "patch" => (Some(a.join("v1.1")), a.join("v1.1.stamp"), i.patch.iter().cloned().collect()),
+        "extract" => (
+            Some(a.join("install")),
+            a.join("install.stamp"),
+            [Some(i.cd.clone()), i.patch.clone()]
+                .into_iter()
+                .flatten()
+                .collect(),
+        ),
+        "patch" => (
+            Some(a.join("v1.1")),
+            a.join("v1.1.stamp"),
+            i.patch.iter().cloned().collect(),
+        ),
         "hebrew" => {
             let files = match &i.hebrew {
                 Hebrew::None => vec![],
                 Hebrew::Cd(p) => vec![p.clone()],
-                Hebrew::Packs { brief, menu } => [brief.clone(), menu.clone()].into_iter().flatten().collect(),
+                Hebrew::Packs { brief, menu } => [brief.clone(), menu.clone()]
+                    .into_iter()
+                    .flatten()
+                    .collect(),
             };
             (Some(a.join("packs/he")), a.join("packs/he.stamp"), files)
         }
-        "arm" => (None, conv("arm.stamp"), vec![ctx.repo.join("game/extra/planes")]),
+        "arm" => (
+            None,
+            conv("arm.stamp"),
+            vec![ctx.repo.join("game/extra/planes")],
+        ),
         "launcher" => (None, conv("launcher.stamp"), vec![]),
-        "theatre" => (Some(conv("terrain/theatre")), conv("terrain/theatre.stamp"), vec![]),
-        "airbases" => (Some(conv("terrain/airbases.json")), conv("terrain/airbases.json.stamp"), vec![]),
+        "theatre" => (
+            Some(conv("terrain/theatre")),
+            conv("terrain/theatre.stamp"),
+            vec![],
+        ),
+        "airbases" => (
+            Some(conv("terrain/airbases.json")),
+            conv("terrain/airbases.json.stamp"),
+            vec![],
+        ),
         "keys" => (Some(conv("keys.json")), conv("keys.json.stamp"), vec![]),
         "icon" => (Some(conv("icon.png")), conv("icon.png.stamp"), vec![]),
-        "fonts" | "cockpits" | "briefings" | "reference" | "menu" | "menu_he" | "missions" => {
-            (Some(conv(step.id)), conv(&format!("{}.stamp", step.id)), vec![])
-        }
+        "fonts" | "cockpits" | "briefings" | "reference" | "menu" | "menu_he" | "missions" => (
+            Some(conv(step.id)),
+            conv(&format!("{}.stamp", step.id)),
+            vec![],
+        ),
         "aircraft" => (Some(conv("planes")), conv("planes.stamp"), vec![]),
         "objects" => (Some(conv("objects")), conv("objects.stamp"), vec![]),
         _ => return Ok(None),
@@ -102,5 +143,9 @@ pub(crate) fn of(step: &Step, ctx: &Ctx) -> Result<Option<Stamp>> {
     for p in &inputs {
         text += &describe(p)?;
     }
-    Ok(Some(Stamp { path: stamp, text, output: out }))
+    Ok(Some(Stamp {
+        path: stamp,
+        text,
+        output: out,
+    }))
 }
