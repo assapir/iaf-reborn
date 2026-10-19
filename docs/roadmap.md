@@ -215,12 +215,27 @@ a crop to the photo frame, and an easier way to find it than a right click (e.g.
 
 ## Better cockpit (Extras switch) — started
 One Extras switch, "Better cockpit" (Original / Better, original by default), for our improvements to the original
-cockpits; each one is an item with its own flag (`Settings.BETTER_COCKPIT`, docs/cockpit.md "Better cockpit"). New
-cockpit improvements join it as items. Items:
-- Turning panel compass / HSI (`turning_compass`) — **done** (2026-10-20). In the original, every jet's panel compass
-  and HSI is static art; the heading shows only on the HUD tape and the MFD pages. Better: the card turns with the
-  heading on the Kfir, F-4E and Mirage panels, and the Mirage dial's bearing / course pointers point at the current
-  waypoint and the route leg.
+cockpits. Each improvement is an item with its own flag under the switch (`Settings.BETTER_COCKPIT`: a new item is one
+more id there; docs/cockpit.md "Better cockpit"). Items (approved 2026-10-20):
+1. Turning panel compass / HSI (`turning_compass`) — **done** (2026-10-20). In the original, every panel compass and
+   HSI is static art; the heading shows only on the HUD tape and the MFD pages. Better: the card turns with the
+   heading on the Kfir, F-4E and Mirage panels, and the Mirage dial's bearing / course pointers point at the current
+   waypoint and the route leg.
+2. RPM gauge from the flight model's real RPM %. The original clamps the rpm to 0.6–0.97 (`FUN_0045aa10`).
+3. Engine temperature gauge from a temperature model. The original shows the rpm clamped to 0.5–0.8
+   (`FUN_0045aa40`).
+4. Throttle gauge that shows the AB stages above MIL. The original reads 100 % for both.
+5. Fuel gauge with internal + external fuel, and a digital lb readout where the art has one. The original shows total
+   / internal fuel, capped at 1 (@45acb9).
+6. Live G-meter with a max-G memory, where the panel art has one.
+7. AoA indexer lights (slow / on-speed / fast) with the gear down.
+8. Panel clock that shows the mission time.
+9. Live standby instruments, where the art paints them.
+10. A warning lamp lit for every damage / system state.
+11. Crisp vector-redrawn MFD pages (the first step to Real MFDs).
+12. The shipped art the game never loads (`cfir/cfir-lights.bmp`, `lavi/lavi-lig.bmp`, `phantom/f16adi.bmp`; no exe
+    string, no decompiled reference, in no cockpit.ibx, unused by our code), used where it is better than the loaded
+    art.
 
 ## Glance-down key (Extras, later)
 Hold a key to slide the panel fully into view, release to look ahead again (as modern sims do; a real pilot glances
