@@ -43,7 +43,7 @@ STBY / STT / BORE / LRS / TWS / ACM / GMT / MAP are the radar modes (docs/radar.
     gaps → Cockpit / MFDs).
   - Helmet sight DASH (weapons.md §5.4: the helmet display in `Dash` 1 cockpits, the IR seeker off-boresight in free
     look / padlock within the generation cone).
-  - Joystick / throttle / pedals — untested on hardware (docs/controls.md §5).
+  - Joystick / throttle / pedals (docs/controls.md §5): tested by the user on Linux (2026-10-20) and macOS.
   - Other jets flyable: the Jet list's seven (tests/godot/test_jet_list.gd), the Kfir / Mirage shared data with
     Flight data = Original.
 - Open: detached-looking stores.
@@ -100,7 +100,7 @@ Suez, extra sounds, multiplayer, setup wizard + launcher, modern aircraft / weap
 | Front end | start-up straight to the main menu (the intro videos are not played: README "Intro videos", front-end.md §18); original screens, animations, sounds, music; training + campaign; Jet list; Hebrew packs; QUIT box and credits roll; ours: the CD autorun launcher (Extras) |
 | Terrain imagery | georeference (thin-plate spline, 610 control points, docs/georef.md); Sentinel-2 10 m layers outside Israel (1998 / modern colours, docs/imagery.md), picked per region on Graphics → MORE page; Survey of Israel 2015 2 m over Israel (1998 / modern colours, `iaf-imagery mapi2015`); `setup-cli.sh --imagery` (sentinel2; Survey of Israel sheets download only) |
 | Preferences | original 5 pages (Graphics, Sound, Keyboard, Devices, Gameplay) + our **Extras** (flight data, weapon data, language, info line, blackbox, HUD pitch ladder, Real HUD (every jet's real HUD / sight / helmet display: docs/real-hud.md), all keys, window, anti-aliasing, terrain close up, sky, upscaling, water — docs/rendering.md; imagery per region — docs/imagery.md; scrolls 8 rows at a time) and **Physics** (19 improvement switches, the Keyboard page's scrollbar, 15 rows shown) tabs, EN + HE; VSYNC (ours) on the Graphics page (docs/front-end.md §12) |
-| Controls | original key table, rebinding on the Keyboard page, in-flight keys through the table; joystick (one device: stick / throttle / rudder axes per the Devices page, hat = snap views, buttons through the table and bound on the Keyboard page, menu/joy/*.joy), untested on hardware |
+| Controls | original key table, rebinding on the Keyboard page, in-flight keys through the table; joystick (one device: stick / throttle / rudder axes per the Devices page, hat = snap views, buttons through the table and bound on the Keyboard page, menu/joy/*.joy), tested on Linux and macOS hardware |
 | TSD / briefing | vector map, units, flights, waypoints, fly any flight, briefing texts and links (picture windows fit their bitmap whole and, as in the exe, do not zoom); the selected-unit label, the ruler (right-drag), the map keys; in flight (FlyTSD, docs/views.md §1) the live battle, Fly into another formation's jet (any flyable type, the wingman's seat when the leader is down), Visit, Ctrl+P, waypoints fixed |
 | Mission runtime | scripts, triggers, events, voices + subtitles, win / lose rules, mission boxes, debrief; player = the default (or chosen) flight's leader |
 | Flight model | original ground + airborne logic ported line by line (docs/flight-model.md §14–§15): envelope, stall, spin, landing / crash check, afterburner delay, gear / flaps / brakes, start rules, Gameplay prefs |
@@ -144,7 +144,7 @@ Checked against the code on 2026-10-19 (each doc's own "not built" notes have th
   in the render; the portals show the original MFD pages (pixel font) in the F-35 colours; looking 15–90° aside shows
   the panel strip's edge.
 - **Controls**: one joypad (the first connected), as the original's one DirectInput device; real-hardware use so
-  far: a T.Flight Hotas X on macOS (`SDL_JOYSTICK_MFI=0`). No force feedback. Unhandled commands: the cheats
+  far: a joystick on Linux (2026-10-20), a T.Flight Hotas X on macOS (`SDL_JOYSTICK_MFI=0`). No force feedback. Unhandled commands: the cheats
   (Shift+S / D / R / F, Ctrl+W), the SysRQ screenshot, chat (docs/controls.md §4).
 - **FlyTSD**: Fly after the own jet is down changes nothing; the exe hands over the new jet until rule 1 ends the
   flight (docs/views.md §1 "Open").
