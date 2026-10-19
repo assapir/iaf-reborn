@@ -489,8 +489,8 @@ static func _base(o: Dictionary) -> Vector2:
 
 ## The EO camera this frame and its centre point (FUN_00450480): with the cockpit drawn (views 1, 0x12, 0x16,
 ## the snaps) the first terrain point, unit or building under the line of sight (the original's centre-pixel depth
-## pick; ours: the terrain ray-marched, the units' damage boxes ray-tested; nothing → 1e8 m along it), else 1e7 m
-## along it.
+## pick; ours: the terrain ray-marched, the shown units' model bounds ray-tested; nothing → 1e8 m along it), else
+## 1e7 m along it.
 func _eo_update() -> void:
 	if not eo.camera:
 		return
@@ -507,10 +507,21 @@ func _eo_update() -> void:
 	var hit = ground_hit(eye, eo_dir)
 	var far: float = (hit - eye).length() if hit != null else 100000.0
 	var centres := PackedVector3Array()
-	var halves := PackedFloat64Array()
+	var halves := PackedVector3Array()
 	for u in _units():
-		centres.append(u.pos)
-		halves.append(float(u.ent.size))
+		# What is drawn: the shown model's bounds (not the damage cube: an airfield's 0x564 spans 400 km).
+		var n = u.ent.node
+		if not n is Node3D or not n.is_visible_in_tree():
+			continue
+		if not n.has_meta("eo_box"):  # ponytail: cached per node; a model swapped under it keeps the old bounds
+			n.set_meta("eo_box", preload("res://util/gltf.gd").model_aabb(n))
+		var lb: AABB = n.get_meta("eo_box")
+		if lb.size != Vector3.ZERO:
+			var sb: AABB = n.global_transform * lb
+			var c0 := to_world(sb.position)
+			var c1 := to_world(sb.end)
+			centres.append((c0 + c1) * 0.5)
+			halves.append((c0 - c1).abs() * 0.5)
 	var d: float = ClassDB.class_call_static("IafEo", "unit_pick", eye, eo_dir, centres, halves, far)
 	if d >= 0.0:
 		hit = eye + eo_dir * d

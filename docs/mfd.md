@@ -643,8 +643,8 @@ The HARM page lists the candidate targets (unit classes 9–11 and sites named "
 `terrain/terrain_view.gd`) builds all of the above. The TV weapons fly (`player_weapons.gd` `tv_weapon` /
 `tv_status`): the eye rides the launched weapon and "%3d" shows its time left. The full-screen weapon MFD (Z) is built
 as above. Differences from the original:
-- The EO centre point is the nearest of the terrain under the line of sight (ray-marched) and the units' / buildings'
-  damage boxes on it (ray-tested, `eo.rs` `unit_pick`). The original reads back the depth buffer.
+- The EO centre point is the nearest of the terrain under the line of sight (ray-marched) and the shown units' /
+  buildings' model bounds on it (ray-tested, `eo.rs` `unit_pick`). The original reads back the depth buffer.
 - Before launch the eye is the jet's position (the original: the pylon).
 - The picture is a SubViewport camera of the same world at the display's on-screen resolution (deviations.md).
 - HARM: the sensor's scan as above (`crates/iaf-avionics/src/harm.rs`). The distance is tested from the jet (the

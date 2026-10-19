@@ -102,11 +102,12 @@ impl IafEo {
         iaf_avionics::eo::full_screen_ok(self.eo.mode, tv_status)
     }
 
-    /// The distance along the ray to the nearest unit box (`iaf_avionics::eo::unit_pick`; `centres` / `halves` per
-    /// unit), or -1 for none within `max`.
+    /// The distance along the ray to the nearest unit box (`iaf_avionics::eo::unit_pick`; `centres` / half extents
+    /// `halves` per unit, world axes), or -1 for none within `max`.
     #[func]
-    fn unit_pick(from: Vector3, dir: Vector3, centres: PackedVector3Array, halves: PackedFloat64Array, max: f64) -> f64 {
-        let boxes: Vec<(Vec3, f64)> = centres.as_slice().iter().zip(halves.as_slice()).map(|(&c, &h)| (vec3(c), h)).collect();
+    fn unit_pick(from: Vector3, dir: Vector3, centres: PackedVector3Array, halves: PackedVector3Array, max: f64) -> f64 {
+        let boxes: Vec<(Vec3, Vec3)> =
+            centres.as_slice().iter().zip(halves.as_slice()).map(|(&c, &h)| (vec3(c), vec3(h))).collect();
         iaf_avionics::eo::unit_pick(vec3(from), vec3(dir), &boxes, max).unwrap_or(-1.0)
     }
 
