@@ -214,18 +214,20 @@ pub(crate) enum Outcome {
 }
 
 /// Runs `steps` (from `plan`) as a dependency graph: a step starts once every step it waits for is done or up to date;
-/// independent steps run at once. A step whose stamp matches is up to date unless `redo_all`. A required step's failure
+/// independent steps run at once. A step whose stamp matches is up to date unless `redo(id)` (redo all: `&|_| true`). A required step's failure
 /// sets `cancel` (the other running steps stop at their next item); setting `cancel` stops the run the same way.
 /// Returns every step's final state, in `steps`' order.
-pub fn run(steps: &[Step], ctx: &Ctx, redo_all: bool, events: &dyn Events, cancel: &AtomicBool) -> Vec<(&'static str, State)> {
-    run_graph(steps, redo_all, events, cancel, &|step| stamp::of(step, ctx), &|step, pr| steps::run(step, ctx, pr, cancel))
+pub fn run(steps: &[Step], ctx: &Ctx, redo: &Redo, events: &dyn Events, cancel: &AtomicBool) -> Vec<(&'static str, State)> {
+    run_graph(steps, redo, events, cancel, &|step| stamp::of(step, ctx), &|step, pr| steps::run(step, ctx, pr, cancel))
 }
 
+/// Which steps run although they are up to date, by id.
+pub type Redo<'a> = dyn Fn(&str) -> bool + Sync + 'a;
 type StampFn<'a> = dyn Fn(&Step) -> Result<Option<stamp::Stamp>> + Sync + 'a;
 type ExecFn<'a> = dyn Fn(&Step, &dyn Progress) -> Result<Outcome> + Sync + 'a;
 
 /// `run`'s engine: `stamp` gives a step's stamp (`None`: it keeps none), `exec` runs it.
-pub(crate) fn run_graph(steps: &[Step], redo_all: bool, events: &dyn Events, cancel: &AtomicBool, stamp: &StampFn, exec: &ExecFn) -> Vec<(&'static str, State)> {
+pub(crate) fn run_graph(steps: &[Step], redo: &Redo, events: &dyn Events, cancel: &AtomicBool, stamp: &StampFn, exec: &ExecFn) -> Vec<(&'static str, State)> {
     let states: Mutex<Vec<State>> = Mutex::new(vec![State::Waiting; steps.len()]);
     // The stamps of the finished steps: a step's stamp holds those of the steps it waits for.
     let stamps: Mutex<HashMap<&'static str, String>> = Mutex::new(HashMap::new());
@@ -258,7 +260,7 @@ pub(crate) fn run_graph(steps: &[Step], redo_all: bool, events: &dyn Events, can
                     let (tx, stamps, set) = (tx.clone(), &stamps, &set);
                     scope.spawn(move || {
                         let pr = StepProgress { step, events };
-                        let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| run_one(step, redo_all, &pr, stamps, stamp, exec)));
+                        let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| run_one(step, redo(step.id), &pr, stamps, stamp, exec)));
                         let state = match r {
                             Ok(Ok(s)) => s,
                             Ok(Err(_)) if cancel.load(Ordering::Relaxed) => State::Cancelled,
@@ -288,7 +290,7 @@ pub(crate) fn run_graph(steps: &[Step], redo_all: bool, events: &dyn Events, can
 }
 
 /// One step: up to date when its stamp file holds the same text (and its output is there), else run and stamped.
-fn run_one(step: &Step, redo_all: bool, pr: &dyn Progress, stamps: &Mutex<HashMap<&'static str, String>>, stamp: &StampFn, exec: &ExecFn) -> Result<State> {
+fn run_one(step: &Step, redo: bool, pr: &dyn Progress, stamps: &Mutex<HashMap<&'static str, String>>, stamp: &StampFn, exec: &ExecFn) -> Result<State> {
     let s = stamp(step)?.map(|mut s| {
         let done = stamps.lock().unwrap();
         for a in &step.after {
@@ -301,7 +303,7 @@ fn run_one(step: &Step, redo_all: bool, pr: &dyn Progress, stamps: &Mutex<HashMa
         stamps.lock().unwrap().insert(step.id, text.to_string());
     };
     if let Some(s) = &s {
-        if !redo_all && s.holds() {
+        if !redo && s.holds() {
             record(&s.text);
             return Ok(State::UpToDate);
         }
@@ -450,7 +452,7 @@ mod tests {
         }
         let ran: Mutex<Vec<&str>> = Mutex::new(vec![]);
         let fail = AtomicUsize::new(usize::MAX);
-        let go = |redo: bool| {
+        let go = |redo: &Redo| {
             ran.lock().unwrap().clear();
             let st = |s: &Step| -> Result<Option<stamp::Stamp>> {
                 Ok(Some(stamp::Stamp { path: dir.join(format!("{}.stamp", s.id)), text: stamp::describe(&dir.join(format!("{}.in", s.id)))?, output: None }))
@@ -470,21 +472,22 @@ mod tests {
             r.sort();
             (r, states)
         };
-        assert_eq!(go(false).0, ["a", "b", "c", "d"]);
-        let (r, states) = go(false);
+        assert_eq!(go(&|_| false).0, ["a", "b", "c", "d"]);
+        let (r, states) = go(&|_| false);
         assert!(r.is_empty() && states.iter().all(|s| s.1 == State::UpToDate), "{states:?}");
         std::fs::write(dir.join("c.in"), "2").unwrap();
-        assert_eq!(go(false).0, ["c", "d"], "c changed: c and what waits for it");
-        assert_eq!(go(true).0, ["a", "b", "c", "d"], "redo all");
-        assert!(go(false).0.is_empty(), "redone: the same stamps");
+        assert_eq!(go(&|_| false).0, ["c", "d"], "c changed: c and what waits for it");
+        assert_eq!(go(&|_| true).0, ["a", "b", "c", "d"], "redo all");
+        assert!(go(&|_| false).0.is_empty(), "redone: the same stamps");
+        assert_eq!(go(&|id| id == "b").0, ["b"], "redo one step: only it (its stamp stays the same)");
         std::fs::write(dir.join("a.in"), "2").unwrap();
         fail.store(1, Ordering::Relaxed);
-        let (r, states) = go(false);
+        let (r, states) = go(&|_| false);
         assert!(r.contains(&"a") && !r.contains(&"d"));
         assert!(matches!(states[1].1, State::Failed(_)) && states[3].1 != State::Done, "{states:?}");
         assert!(!dir.join("b.stamp").exists(), "a failed step has no stamp");
         fail.store(usize::MAX, Ordering::Relaxed);
-        assert!(go(false).0.contains(&"b"), "b runs again after its failure");
+        assert!(go(&|_| false).0.contains(&"b"), "b runs again after its failure");
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
@@ -502,7 +505,7 @@ mod tests {
                 ran.lock().unwrap().push(s.id);
                 Ok(Outcome::Done)
             };
-            let states = run_graph(&plan(i), false, &Quiet, &AtomicBool::new(false), &st, &ex);
+            let states = run_graph(&plan(i), &|_| false, &Quiet, &AtomicBool::new(false), &st, &ex);
             assert!(states.iter().all(|s| s.1.ok()), "{states:?}");
             let mut r = ran.lock().unwrap().clone();
             r.sort();

@@ -138,9 +138,10 @@ impl IafSetup {
     }
 
     /// Starts setup on its own thread: saves the inputs to setup.json, then runs the plan (or only the steps `only`
-    /// and what they wait for). "" when started, else why not.
+    /// and what they wait for); the steps in `redo` run although they are up to date ("*": all). "" when started,
+    /// else why not.
     #[func]
-    fn start(&mut self, assets: GString, repo: GString, inputs_json: GString, redo_all: bool, only: PackedStringArray) -> GString {
+    fn start(&mut self, assets: GString, repo: GString, inputs_json: GString, redo: PackedStringArray, only: PackedStringArray) -> GString {
         if self.shared.lock().unwrap().rows.iter().any(|r| r.state == "running") {
             return "setup is running".into();
         }
@@ -152,6 +153,7 @@ impl IafSetup {
         if let Err(e) = iaf_setup::save_inputs(&assets, &i) {
             return err(e);
         }
+        let redo: Vec<String> = redo.as_slice().iter().map(|s| s.to_string()).collect();
         let mut steps = iaf_setup::plan(&i);
         let only: Vec<String> = only.as_slice().iter().map(|s| s.to_string()).collect();
         if !only.is_empty() {
@@ -168,7 +170,7 @@ impl IafSetup {
                 let guides = |pr: &dyn Progress, c: &AtomicBool| iaf_setup::script_guides(&repo, pr, c);
                 let prefix = format!("{}/", assets.display());
                 let ctx = Ctx { assets, repo: repo.clone(), inputs: i, xdg_data_home: None, guides: Some(&guides) };
-                iaf_setup::run(&steps, &ctx, redo_all, &Sink(shared.clone(), prefix), &cancel)
+                iaf_setup::run(&steps, &ctx, &|id| redo.iter().any(|r| r == "*" || r == id), &Sink(shared.clone(), prefix), &cancel)
             }));
             let mut sh = shared.lock().unwrap();
             sh.error = match result {

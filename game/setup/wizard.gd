@@ -665,7 +665,10 @@ func _page_install() -> Control:
 	var v := _vbox()
 	install_note = _text(v, "")
 	redo_check = CheckBox.new()
-	redo_check.text = "Redo everything (also the steps that are up to date)"
+	redo_check.text = "Redo everything (also the steps that are up to date). Or tick \"redo\" on the steps to redo."
+	redo_check.toggled.connect(func(on):
+		for id in rows:
+			rows[id].redo.button_pressed = on)
 	v.add_child(redo_check)
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -876,8 +879,13 @@ func _fill_rows(steps: Array, keep: bool) -> void:
 			var state := Label.new()
 			state.custom_minimum_size.x = 130
 			h.add_child(state)
+			var redo := CheckBox.new()
+			redo.text = "redo"
+			redo.tooltip_text = "Run this step again although it is up to date."
+			redo.button_pressed = redo_check.button_pressed
+			h.add_child(redo)
 			rows_box.add_child(h)
-			r = {"bar": bar, "state": state}
+			r = {"bar": bar, "state": state, "redo": redo}
 			rows[s.id] = r
 		var st: String = s.get("state", "waiting")
 		r.state.text = STATE_TEXT.get(st, st)
@@ -886,14 +894,23 @@ func _fill_rows(steps: Array, keep: bool) -> void:
 			"running": YELLOW, "skipped": DIM}.get(st, TEXT))
 		r.bar.value = s.get("fraction", 0.0)
 		r.bar.modulate.a = 1.0 if st == "running" else 0.0
+		r.redo.disabled = running
+
+
+## The steps to run although they are up to date: "*" for all, else the ticked rows.
+func redo_ids() -> PackedStringArray:
+	if redo_check.button_pressed:
+		return PackedStringArray(["*"])
+	return PackedStringArray(rows.keys().filter(func(id): return rows[id].redo.button_pressed))
 
 
 func start_install() -> void:
 	log_view.text = ""
+	var redo := redo_ids()
 	_fill_rows([], false)
 	failed = ""
 	finished = false
-	var err: String = setup.start(assets, repo, JSON.stringify(inputs()), redo_check.button_pressed, only_steps)
+	var err: String = setup.start(assets, repo, JSON.stringify(inputs()), redo, only_steps)
 	if err != "":
 		install_note.text = "Setup did not start: " + err
 		return

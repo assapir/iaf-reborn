@@ -2,7 +2,7 @@
 #   IAF_ASSETS_DIR=<empty dir> IAF_DEFAULT_SETTINGS=1 godot --headless --path game -s ../tests/godot/test_setup_wizard.gd
 # Startup opens the wizard without game data; the pages go in order; a bad file is rejected; with the English ISO
 # (~/Downloads/…/Jane's IAF.iso) a short plan (extract, fonts, missions) runs to Done and a second run is all
-# "up to date". Without IAF_ASSETS_DIR it does nothing (it never writes into the real assets/).
+# "up to date", and a third with "redo" ticked on one step runs only that step. Without IAF_ASSETS_DIR it does nothing (it never writes into the real assets/).
 extends "res://../tests/godot/base.gd"
 
 const ISO := "Downloads/Janes-Combat-Simulations-IAF-Israeli-Air-Force_Win_EN_ISO-Version/Jane's IAF.iso"
@@ -68,3 +68,13 @@ func run() -> void:
 			check(w.PAGES[w.page] == "Done", "Finish: Done")
 			w.show_page(w.PAGES.find("Install"))
 			w.finished = false
+	# Selective redo: only the ticked step runs again.
+	w.show_page(w.PAGES.find("Install"))
+	w.finished = false
+	await frames(2)
+	w.rows.fonts.redo.button_pressed = true
+	w._on_next()
+	var t := Time.get_ticks_msec()
+	while not w.finished and Time.get_ticks_msec() - t < 180000:
+		await process_frame
+	check(w.rows.fonts.state.text == "done" and w.rows.missions.state.text == "up to date", "redo one step: only it runs (%s, %s)" % [w.rows.fonts.state.text, w.rows.missions.state.text])
