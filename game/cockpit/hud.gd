@@ -532,6 +532,10 @@ func real_hud() -> Dictionary:
 		pip = _hud_point(wp.pipper, false)
 	elif mode in [5, 6] and wp.get("ag", {}).get("pipper") != null:
 		pip = _hud_point(wp.ag.pipper, false)
+	# The delayed CCIP (the impact point below the HUD): the time to go, the target under the HUD-edge pipper,
+	# designated while Space holds it (docs/weapons.md §9.4).
+	var ag: Dictionary = wp.get("ag", {})
+	var delay_on: bool = mode in [5, 6] and ag.get("pipper") != null and ag.get("off", false)
 	var lcos = null
 	if mode == 3 and wp.get("pipper") != null:
 		lcos = gun + Vector2(wp.pipper.x, wp.pipper.y)
@@ -551,7 +555,10 @@ func real_hud() -> Dictionary:
 		"weapons": {"hud_mode": mode, "selected": wp.get("total", 0), "srm": wp.get("srm", 0), "mrm": wp.get("mrm", 0),
 			"seeker": wp.get("seeker") if mode == 1 and wp.get("have_missiles", false) else null, "lcos": lcos,
 			"pipper": pip, "steering": _hud_point(wp.mrm_point, false) if mode == 2 and wp.get("mrm_point") != null else null,
-			"circle": wp.get("circle", 5.0), "shoot": wp.get("shoot", false)}}
+			"circle": wp.get("circle", 5.0), "shoot": wp.get("shoot", false),
+			"delay": float(ag.ttg) if delay_on else null,
+			"delay_at": _hud_point(ag.get("target", ag.pipper), false) if delay_on else null,
+			"designated": delay_on and ag.get("frozen", false)}}
 	_real = _real_hud.frame(_field(), _real_in)
 	return _real
 

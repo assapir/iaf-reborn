@@ -13,7 +13,7 @@
 # scripted sim time, the others real time: "lock" radar lock on the placed unit, "on_impact" the placed unit onto the
 # bomb's predicted impact, "station:N" the A-A store / gun on
 # station N, "ag:N" the A-G store on station N, "flir" / "tv" the camera on the placed unit (FLIR with the laser),
-# "emitter" the placed unit's radar locks the jet, "look:Y,P" the head turned Y° right / P° up (free look), "key:X" a game key, "wait:S"), panel (0 the forward view … 1 the
+# "emitter" the placed unit's radar locks the jet, "fire" Space held, "look:Y,P" the head turned Y° right / P° up (free look), "key:X" a game key, "wait:S"), panel (0 the forward view … 1 the
 # whole panel), "dive" (an airborne start in a `dive_deg` dive `dive_agl` m above the ground), view ("cockpit" / "hud", the HUD-only view / "external"), crop ("full", "hud", "dash", "mfd_left", "mfd_right"; "hud" takes
 # `crop_w`, the box's width as a fraction of the frame, default 0.38: smaller zooms in; and `crop_dy`, the box moved down
 # by that fraction of the frame's height, negative moves it up, default 0: a gunsight's reticle that sits high).
@@ -23,7 +23,7 @@
 # the Real HUD's own output (hud.gd real_hud(), resolved every frame): "sym": "text:REGEX" (the first HUD text it
 # matches: the box the HUD draws it in, hud.gd prim_text_box; "nth": 2 the second match), "circle:N" (the N-th largest circle, at its edge `edge`° clockwise from 12 o'clock,
 # default 270) or a named point of the HUD's input ("fpm", "gun_cross", "boresight", "horizon",
-# "target", "steerpoint", "seeker", "pipper", "lcos", "steering"), moved by "d": [x, y] HUD pixels; or "px": [x, y],
+# "target", "steerpoint", "seeker", "pipper", "lcos", "steering", "delay_at": the delayed CCIP's target), moved by "d": [x, y] HUD pixels; or "px": [x, y],
 # a fraction of the crop (the MFD pages, the original HUD). The guide lists the legend as a numbered list right under
 # the picture (tools/guide_pdf.py checks the counts match). An anchor that resolves to nothing or outside the crop fails
 # the shot (GUIDE_DEBUG=1 outlines each anchor in red). Each shot prints a GUIDE_INFO line with the HUD's texts and the radar lock / DLZ (for the guide's examples).
@@ -99,6 +99,7 @@ func _shot(name: String, e: Dictionary) -> void:
 	elif start == "dive":
 		frozen_start = true
 		w = airborne_case(tv, hp if not hp.is_empty() else [0, 0])
+		w.hud_clip = tv.cockpit.hud.ccip_clip  # the delayed CCIP's HUD test, as terrain_view wires it
 		_dive(float(e.get("dive_deg", 30.0)), float(e.get("dive_agl", 1200.0)), float(e.get("speed", 230.0)))
 	elif start == "final":
 		frozen_start = true
@@ -262,14 +263,17 @@ func _action(a: String) -> void:
 				w.eo.start(EoSensor.FLIR if a == "flir" else EoSensor.TV, a == "flir", target.world, t)
 				w.eo.laser = a == "flir"
 		"on_impact":
-			# The placed ground unit moved onto the CCIP impact point (the pipper on it); the A-G gun: the strafe pipper.
-			var at: Vector3 = w.ag.impact
+			# The placed ground unit moved onto the CCIP impact point (the pipper on it; delayed: the target under the
+			# HUD-edge pipper); the A-G gun: the strafe pipper.
+			var at: Vector3 = w.ag.target if w.ag.off else w.ag.impact
 			if at == Vector3.ZERO and tv.cockpit.weapons.get("pipper") is Vector3:
 				at = tv.cockpit.weapons.pipper
 			if not target.is_empty() and at != Vector3.ZERO:
 				target.world = at
 				target.alt = at.z
 				tv.mission_entity_moved(target)
+		"fire":  # Space held (the release; bombs: the delayed CCIP's designation)
+			w.fire_selected()
 		"emitter":
 			if not target.is_empty():
 				w.rwr.lock(target.key)
@@ -343,6 +347,9 @@ func _info(name: String) -> void:
 	print("GUIDE_INFO %s texts=%s lock_m=%s closure=%s dlz=%s stores=%s points=%s" % [name, texts, lk.get("dist", "-"),
 		rd.get("closure", "-"), rd.get("dlz", []), names, [inp.get("fpm"), inp.get("aoa"), inp.get("horizon"),
 		inp.get("gun_cross"), inp.get("px_per_deg")]])
+	var wi: Dictionary = inp.get("weapons", {})
+	if wi.get("delay") != null:
+		print("GUIDE_INFO %s delay ttg=%s at=%s designated=%s" % [name, wi.delay, wi.delay_at, wi.designated])
 
 
 ## An annotation's anchor in viewport pixels as a Rect2 (a text's box, a point's empty one; null: unresolved).
@@ -391,7 +398,7 @@ func _anchor(a: Dictionary, rect: Rect2i) -> Variant:
 				p = inp.get(sym)
 			"target", "steerpoint":
 				p = inp.get(sym, {}).get("at")
-			"seeker", "pipper", "lcos", "steering":
+			"seeker", "pipper", "lcos", "steering", "delay_at":
 				p = inp.get("weapons", {}).get(sym)
 	if box.has_area():
 		var xf: Transform2D = ci.get_global_transform_with_canvas()

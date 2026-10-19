@@ -6,7 +6,7 @@
 use crate::world::{get, num};
 use godot::prelude::*;
 use iaf_avionics::missile::Dlz;
-use iaf_avionics::real_hud::{Align, Field, Input, Jet, P, Prim, RealHud, Steerpoint, Target, Weapons};
+use iaf_avionics::real_hud::{Align, Delay, Field, Input, Jet, P, Prim, RealHud, Steerpoint, Target, Weapons};
 
 fn v2((x, y): P) -> Vector2 {
     Vector2::new(x as f32, y as f32)
@@ -71,7 +71,8 @@ impl IafRealHud {
     /// kcas, ground_kt, tas_ms, alt_ft, agl_ft (null), vs_fpm, heading, roll, mach, g, aoa, gear_down, fuel_lbs, fpm
     /// (null), boresight, gun_cross, horizon, px_per_deg, steerpoint ({number, bearing, dist_m, eta_s, at} or {}),
     /// target ({range_m, closure, at, aspect} or {}), dlz ([max, min] or []), weapons {hud_mode, selected, srm, mrm, seeker,
-    /// lcos, pipper, steering, circle, shoot}}. Returns {field, outer, colour (Color or null), sight (no HUD)}.
+    /// lcos, pipper, steering, circle, shoot, delay (the delayed CCIP's time to go, or null), delay_at
+    /// (the target under its pipper), designated}}. Returns {field, outer, colour (Color or null), sight (no HUD)}.
     #[func]
     fn frame(&mut self, field: Rect2, i: VarDictionary) -> VarDictionary {
         let f = |k: &str| num(&i, k).unwrap_or_default();
@@ -131,6 +132,11 @@ impl IafRealHud {
                 steering: pt(&w, "steering"),
                 circle: wn("circle"),
                 shoot: get(&w, "shoot").unwrap_or(false),
+                delay: num(&w, "delay").map(|ttg| Delay {
+                    ttg,
+                    target: pt(&w, "delay_at"),
+                    designated: get(&w, "designated").unwrap_or(false),
+                }),
             },
         };
         let r = Field {

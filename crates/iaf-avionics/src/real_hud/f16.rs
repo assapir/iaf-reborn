@@ -1,5 +1,5 @@
 //! The F-16C/D HUD (T.O. GR1F-16CJ-34-1-1 figs. 1-110 / 1-111 / 1-115 and the A-A / A-G chapters; docs/real-hud.md
-//! "F-16C/D"). Also drawn for the Lavi and, as marked reconstructions, the Kurnass 2000 and the Kfir.
+//! "F-16C/D"). Drawn for the F-16 only: the F-35, Lavi, Kurnass 2000 and Kfir have their own layouts (mod.rs `frame`).
 
 use super::*;
 
@@ -67,6 +67,10 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
     }
     if mode == 3 && let Some(t) = i.target {
         rows.push(format!("{}", (t.closure * MS_TO_KT).round() as i64));
+    } else if let Some(d) = w.delay.filter(|d| d.designated && matches!(mode, 5 | 6)) {
+        // Designated delayed CCIP: the time to release (fig. 1-283 "TIME DELAY") in place of the steerpoint's.
+        let t = (d.ttg - RELEASE_TTG).clamp(0.0, 5999.0).ceil() as i64;
+        rows.push(format!("{:02}:{:02}", t / 60, t % 60));
     } else if let Some(t) = i.steerpoint.and_then(|s| s.eta_s) {
         let t = t.max(0.0).round() as i64;
         rows.push(format!("{:02}:{:02}", (t / 60).min(99), t % 60));
@@ -85,6 +89,7 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
 
     // The field: boresight cross, ladder, marker, AoA bracket, steerpoint, target, weapon symbols.
     let p = &mut fr.field;
+    let delayed = w.delay.and_then(|d| d.target.map(|t| (d, t)));
     boresight_cross(p, i);
     if let Some(fpm) = i.fpm {
         let style = LadderStyle {
@@ -106,7 +111,7 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
         if i.gear_down {
             aoa_bracket(p, i, fpm);
         }
-        if matches!(mode, 5 | 6) && let Some(c) = w.pipper {
+        if matches!(mode, 5 | 6) && delayed.is_none() && let Some(c) = w.pipper {
             p.push(line(fpm, c));
         }
     }
@@ -151,6 +156,7 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
             }
         }
         3 => eegs(p, i, f),
+        5 | 6 if let Some((d, t)) = delayed => delayed_ccip(p, i, f, d, t),
         4..=6 => {
             if let Some(c) = w.pipper {
                 pipper(p, c, i.mr(0.5).max(0.8), i.mr(6.0));
@@ -168,6 +174,55 @@ pub(super) fn frame(f: Field, i: &Input, max_g: f64) -> Frame {
         x_over(p, (0.5 * (f.left + f.right), f.centre_y()), 0.3 * (f.right - f.left).min(f.bottom - f.top));
     }
     fr
+}
+
+/// The game releases the first bomb of a delayed CCIP at this time to go (s; docs/weapons.md §9.2 step 5).
+const RELEASE_TTG: f64 = 0.9;
+/// Ours: the solution cue's height above the marker per second to release and its longest time (inferred: the
+/// dash-34 gives no scale; the original's cue moves 100 px over 10 s, which leaves our glass).
+const CUE_MR_PER_S: f64 = 10.0;
+const CUE_MAX_S: f64 = 10.0;
+
+/// The delayed CCIP (dash-34 pp. 1-429..1-430, fig. 1-283; on the HUD the CCIP pipper is a 1 mr dot in a 12 mr circle
+/// with the bomb fall line from the marker). With the impact point below the HUD (the game's delayed CCIP,
+/// docs/weapons.md §9.4):
+/// - before designation: the pipper on the target under the HUD-edge pipper (the real one is held about 14° below the
+///   boresight cross; ours where the game holds it, kept on the glass), the fall line to it and the time delay cue
+///   across the line, running from the marker to the pipper as the time to go falls from 10 to 0 s (the game's cue;
+///   the real cue's motion is not stated);
+/// - Space held (designated): the steering line through the target along the rolled vertical (its offset from the
+///   marker is the azimuth error) and the solution cue on it, left of the line, coming down onto the marker's level at
+///   the release (time to go 0.9 s), held at the glass's edge while further out.
+fn delayed_ccip(p: &mut Vec<Prim>, i: &Input, f: Field, d: Delay, t: P) {
+    let from = i.fpm.unwrap_or(i.gun_cross);
+    if d.designated {
+        let roll = i.roll_deg.to_radians();
+        let down = (roll.sin(), roll.cos());
+        let long = (f.right - f.left).hypot(f.bottom - f.top);
+        p.push(line((t.0 - down.0 * long, t.1 - down.1 * long), (t.0 + down.0 * long, t.1 + down.1 * long)));
+        if let Some(fpm) = i.fpm {
+            let along = (fpm.0 - t.0) * down.0 + (fpm.1 - t.1) * down.1;
+            let l = along - i.mr(CUE_MR_PER_S) * (d.ttg - RELEASE_TTG).clamp(0.0, CUE_MAX_S);
+            let level = (t.0 + down.0 * along, t.1 + down.1 * along);
+            // Pegged at the glass's edge while further out (as the CCRP's cue in its uppermost position, p. 1-428).
+            let (q, _) = f.clamp_from(level, (t.0 + down.0 * l, t.1 + down.1 * l));
+            let left = (-down.1, down.0);
+            p.push(line(q, (q.0 + left.0 * i.mr(10.0), q.1 + left.1 * i.mr(10.0))));
+        }
+        return;
+    }
+    let (c, _) = f.clamp_from(from, t);
+    let (dx, dy) = (c.0 - from.0, c.1 - from.1);
+    let len = dx.hypot(dy);
+    let ring = i.mr(6.0);
+    if len > ring {
+        let u = (dx / len, dy / len);
+        p.push(line(from, (c.0 - u.0 * ring, c.1 - u.1 * ring)));
+        let n = len * ((10.0 - d.ttg) / 10.0).clamp(0.0, 1.0);
+        let (m, h) = ((from.0 + u.0 * n, from.1 + u.1 * n), i.mr(6.0));
+        p.push(line((m.0 - u.1 * h, m.1 + u.0 * h), (m.0 + u.1 * h, m.1 - u.0 * h)));
+    }
+    pipper(p, c, i.mr(0.5).max(0.8), ring);
 }
 
 /// EEGS (dash-34 pp. 1-387..1-390, fig. 1-257). Without a lock, level 2: the funnel (600-3,000 ft) and the MRGS lines
@@ -485,6 +540,51 @@ mod tests {
         let long_bar = l5.field.iter().any(|p| matches!(p, Prim::Line { a, b } if (a.1 - b.1).abs() < 1e-9 && (b.0 - a.0) > i.mr(30.0)));
         assert!(long_bar, "the T-symbol's bars");
         assert!(l5.field.iter().any(|p| matches!(p, Prim::Dot { .. })), "the maximum-effective-range dot");
+    }
+
+    #[test]
+    fn delayed_ccip() {
+        let mut i = input(Jet::F16);
+        i.weapons.hud_mode = 5;
+        i.fpm = Some((0.0, 0.0));
+        i.weapons.pipper = Some((0.0, 200.0)); // the impact point, below the glass
+        let pip = |fr: &Frame| fr.field.iter().find_map(|p| if let Prim::Dot { c, .. } = p { Some(*c) } else { None });
+        // The delay cue: a 12 mr line across the fall line at height y.
+        let h = i.mr(6.0);
+        let ticks = |fr: &Frame, y: f64| fr.field.iter().filter(|p| matches!(p, Prim::Line { a, b } if (a.1 - y).abs() < 1e-6 && (b.1 - y).abs() < 1e-6 && (a.0 + b.0).abs() < 1e-6 && ((a.0 - b.0).abs() - 2.0 * h).abs() < 1e-6)).count();
+        // CCIP: the pipper on the impact point (clipped by the field).
+        assert_eq!(pip(&frame(FIELD, &i, 1.0)), Some((0.0, 200.0)));
+        // Delayed: the pipper on the target under the HUD-edge point, kept on the glass; the delay cue across the
+        // fall line from the marker toward it (5 s to go: half way).
+        i.weapons.delay = Some(Delay { ttg: 5.0, target: Some((0.0, 100.0)), designated: false });
+        let fr = frame(FIELD, &i, 1.0);
+        assert_eq!(pip(&fr), Some((0.0, FIELD.bottom)), "held on the glass");
+        assert_eq!(ticks(&fr, 0.5 * FIELD.bottom), 1, "the time delay cue half way");
+        i.weapons.delay = Some(Delay { ttg: 12.0, target: Some((0.0, 60.0)), designated: false });
+        assert_eq!(ticks(&frame(FIELD, &i, 1.0), 0.0), 1, "10 s or more: the cue at the marker");
+        // Designated: no pipper; the steering line through the target, the solution cue above the marker.
+        i.weapons.delay = Some(Delay { ttg: 4.9, target: Some((20.0, 60.0)), designated: true });
+        let fr = frame(FIELD, &i, 1.0);
+        assert_eq!(pip(&fr), None);
+        let steer = fr.field.iter().any(|p| matches!(p, Prim::Line { a, b } if a.0 == 20.0 && b.0 == 20.0 && a.1 < FIELD.top && b.1 > FIELD.bottom));
+        assert!(steer, "the steering line through the target");
+        let cue_y = -i.mr(CUE_MR_PER_S) * 4.0;
+        let cue = fr.field.iter().any(|p| matches!(p, Prim::Line { a, b } if (a.0 - 20.0).abs() < 1e-9 && b.0 < 20.0 && (a.1 - cue_y).abs() < 1e-9 && (b.1 - cue_y).abs() < 1e-9));
+        assert!(cue, "the solution cue 4 s above the marker, left of the line");
+        assert!(texts(&fr.outer).contains(&"00:04"), "the time to release");
+        // Far out: pegged at the glass's top.
+        i.weapons.delay = Some(Delay { ttg: 30.0, target: Some((20.0, 60.0)), designated: true });
+        let low = Field { top: -40.0, ..FIELD };
+        let fr = frame(low, &i, 1.0);
+        let pegged = |q: &P| (q.1 - low.top).abs() < 1e-9;
+        assert!(fr.field.iter().any(|p| matches!(p, Prim::Line { a, b } if (a.0 - 20.0).abs() < 1e-9 && b.0 < 20.0 && pegged(a) && pegged(b))), "pegged");
+        // At the release the cue reaches the marker's level; rolled 90° right the line runs across the HUD.
+        i.weapons.delay = Some(Delay { ttg: 0.9, target: Some((20.0, 60.0)), designated: true });
+        let fr = frame(FIELD, &i, 1.0);
+        assert!(fr.field.iter().any(|p| matches!(p, Prim::Line { a, b } if a.0 == 20.0 && a.1.abs() < 1e-9 && b.1.abs() < 1e-9)), "the cue on the marker");
+        i.roll_deg = 90.0;
+        let fr = frame(FIELD, &i, 1.0);
+        assert!(fr.field.iter().any(|p| matches!(p, Prim::Line { a, b } if (a.1 - 60.0).abs() < 1e-9 && (b.1 - 60.0).abs() < 1e-9 && a.0 < FIELD.left && b.0 > FIELD.right)));
     }
 
     #[test]

@@ -2002,8 +2002,8 @@ func _publish() -> void:
 		"shoot": shoot, "harm_point": harm_pt, "tv_point": eo_centre if hud_mode == 7 and tv_status() != 0 else null, "sec": s380, "bearing": _lock_bearing(o),
 		"pipper": pip, "pipper_world": hud_mode == 4, "firing": firing, "break_x": _break_x_cue(o),
 		# The mode-5 object's cockpit state (FUN_00445db0: +0x620 off, +0x624 point, +0x638 time-to-go
-		# capped at 1000, +0x62c frozen, +0x630 blinking).
-		"ag": {"pipper": ag.pipper if hud_mode in [5, 6] else null, "off": ag.off, "frozen": ag.frozen,
+		# capped at 1000, +0x62c frozen, +0x630 blinking; ours also the target +0x18 for the Real HUD).
+		"ag": {"pipper": ag.pipper if hud_mode in [5, 6] else null, "off": ag.off, "frozen": ag.frozen, "target": ag.target,
 			"ttg": ClassDB.class_call_static("IafRelease", "ttg_shown", float(ag.ttg)), "blink": now < float(ag.blink_until)},
 	}
 

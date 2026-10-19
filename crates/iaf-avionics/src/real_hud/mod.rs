@@ -198,6 +198,17 @@ pub struct Weapons {
     /// The MRM launch circle's size (the original's 5 / 3 .. 5).
     pub circle: f64,
     pub shoot: bool,
+    /// The delayed CCIP (modes 5 / 6 with the impact point below the HUD; docs/weapons.md §9.4): the time to go (s),
+    /// the target under the HUD-edge pipper (HUD px; None: behind the view) and whether Space designated it.
+    pub delay: Option<Delay>,
+}
+
+/// The delayed CCIP's state (the original's mode-5 object off the HUD).
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct Delay {
+    pub ttg: f64,
+    pub target: Option<P>,
+    pub designated: bool,
 }
 
 /// One frame's values.
@@ -677,11 +688,21 @@ mod f16_snapshot {
                 }
             }
         }
+        // The delayed CCIP before and after designation.
+        for designated in [false, true] {
+            let mut i = input(Jet::F16);
+            i.weapons.hud_mode = 5;
+            i.weapons.pipper = Some((-3.0, 130.0));
+            i.weapons.delay = Some(Delay { ttg: 6.0, target: Some((-2.0, 60.0)), designated });
+            for b in format!("{:?}", RealHud::default().frame(FIELD, &i)).bytes() {
+                h = (h ^ u64::from(b)).wrapping_mul(0x0100_0000_01b3);
+            }
+        }
         h
     }
 
     #[test]
     fn the_f16_display_is_unchanged() {
-        assert_eq!(f16_frames_hash(), 11_482_222_878_830_027_085, "F-16 frames hash");
+        assert_eq!(f16_frames_hash(), 6_752_931_299_143_333_302, "F-16 frames hash");
     }
 }

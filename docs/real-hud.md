@@ -130,7 +130,19 @@ Sources:
 **A-G** [V]
 - CCIP: a 1 mr dot in a 12 mr circle, with a bomb fall line from the FPM. When the impact point is out of the FOV, the
   pipper is held ~14° below the cross with a time-delay cue. After designation: a steering line + a solution cue to
-  the FPM.
+  the FPM.[^dash34ccip]
+  - Before designation (fig. 1-283 "PRE DESIGNATE"): the fall line from the FPM to the held pipper, the time delay cue
+    a short line across it between the two. The cue's presence means a delayed release; its motion is not stated
+    (open).
+  - Designating: the pilot holds the weapon release button with the pipper on the target; the computer stores the
+    target and computes the azimuth steering error and the time to the release point.
+  - After designation (fig. 1-283 "POST DESIGNATE"): a steering line through the target across the whole HUD, its
+    offset from the FPM the azimuth error; the solution cue, a short line on its left, drives down toward the FPM as
+    the time to go falls, and the release is automatic when it reaches the FPM's centre. The time row shows the time
+    to release (`00:06`) in place of the time to the steerpoint. Not explained: the dot-in-circle drawn left of the
+    data block, and the `01 0.5` row (open).
+  - The pipper and the steering must be on the target at the release; the solution allows full flight-path freedom
+    before it.
 - DTOS (dive toss): a 10 mr TD box with a pipper; then a steering line and a solution cue; a pull-up "U".
 - CCRP (continuously computed release point): TD box, azimuth steering line, solution cue; `B004.9`, the time to
   release.
@@ -563,6 +575,19 @@ its scale. The original HUD keeps the original layout.
     box low / high; the roll indicator; the bending ladder with the zenith star / nadir earth; FPM, AoA bracket,
     steerpoint diamond; TD box / locator line; AIM-9 reticle + seeker diamond; AIM-120 ASEC + ASC; DLZ with closure;
     CCIP / strafe pipper with the fall line; FUEL; SHOOT in its window (MLU; the AIM-9 / AIM-120 shoot cue).
+  - The delayed CCIP (fig. 1-283), driven by the game's delayed release (docs/weapons.md §9.2 step 5, §9.4):
+    - before designation: the pipper on the target under the original's HUD-edge pipper, kept on the glass (the real
+      one is held ~14° below the cross; ours sits ~9° below it, where the game's release logic aims), the fall line to
+      it, and the time delay cue across the line. Ours moves the cue from the FPM to the pipper as the time to go runs
+      from 10 to 0 s, as the original HUD's cue (inferred);
+    - Space held (designated): the steering line through the stored target along the rolled vertical and the solution
+      cue left of it, 10 mr above the FPM's level per second to the release (inferred; the source gives no scale),
+      at most 10 s, held at the glass's edge further out (inferred, like the CCRP cue frozen at its uppermost
+      position[^dash34ccip]); it reaches the FPM's level at the game's release (time to
+      go 0.9 s). The time row shows the time to release. The pipper is not drawn (the figure's dot in a circle is
+      unexplained).
+    - The other Real HUDs keep the plain pipper and fall line in the delayed case: the F-35's A-G graphics are the
+      F-16's stand-ins with no public source, and the Lavi / Kurnass 2000 / Kfir layouts are reconstructions.
   - EEGS levels 2 and 5 per fig. 1-257: funnel, MRGS lines, T-symbol, 1 g / 9 g pippers, 4 mr pipper, TD circle with
     the range arc and the maximum-range dot.
   - The target-aspect triangle rides the AIM-9 reticle / ASEC.
@@ -642,3 +667,6 @@ Simulator documentation (used only for detail, each fact tagged [SIM] above):
 [^dash34alow]: T.O. GR1F-16CJ-34-1-1, p. 1-316 "CARA Altitude Low (CARA ALOW)", https://falcon.blu3wolf.com/Docs/HAF-F16-34.pdf
     (PDF page 332).
 [^betty]: [real-betty.md](real-betty.md) §1 and its sources.
+[^dash34ccip]: T.O. GR1F-16CJ-34-1-1, pp. 1-429..1-430 "CCIP Visual Submode" and fig. 1-283 "CCIP Operation",
+    https://falcon.blu3wolf.com/Docs/HAF-F16-34.pdf (PDF pages 445-446); the CCRP solution cue held in its uppermost
+    position, p. 1-428 "No Solution Condition" (PDF page 444).
