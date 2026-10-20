@@ -427,14 +427,13 @@ until the user decides to show it.
   (six Osas) in Real through `tools/mission_sweep.sh`: passes, no errors.
 - **The real runway designators** (`BaseMove::designator`, from real_runways.csv's `designator`). The Detailed
   airbases surface paints each moved runway's ends with the real runway's numbers (the half of the real runway
-  within 15° of it whose number is nearest; off every real runway, the true heading / 10): Ramat David 09 / 27, Tel Nof
-  15 / 33, Bir Gifgafa 15 / 33. The L / R letters are not painted
-  (the surface draws two digits). The tower's runway (`radio.gd`, `b.rwy`) is the designator × 10 (Ramon 250);
+  within 15° of it whose number is nearest; off every real runway, the true heading / 10): Ramon 07 / 25, Ramat David
+  09 / 27, Tel Nof 15 / 33, Bir Gifgafa 15 / 33. The L / R letters are not painted (the surface draws two digits). The tower's runway (`radio.gd`, `b.rwy`) is the designator × 10 (Ramon 250);
   the zones and the alignment check use the true heading (`b.hdg`). The 3D runway signs bake their number
   (`parts.bmp` has 09, 23 and 27; `terrain_view.gd _real_sign`): a single sign `sign<NN><l|r>` whose real number
   has a model swaps to it, any other that disagrees hides; the sign groups keep or hide as a whole. Kept: SIGNDVID
-  (27 at Ramat David). Hidden: SIGNRMON (23, real 25), SIGNTLNF (09, real 15), SIGNRFID (27, real 33), and the
-  single signs at those bases. Original unchanged. Tests: the unit test `the_designator_is_the_real_one`,
+  (27 at Ramat David). Hidden: SIGNRMON (23, real 25), SIGNTLNF (09, real 15), SIGNRFID (27, real 33), and any single
+  sign whose real number is not 09, 23 or 27. Original unchanged. Tests: the unit test `the_designator_is_the_real_one`,
   `tests/godot/test_base_move.gd` (David painted 09 / 27, the tower's 270, the signs kept at David, hidden at
   Ramon), `test_world_scale.gd`.
 - **The new site's ground close up — not fixed.** Low over a moved base the ground around the drawn runways looks
