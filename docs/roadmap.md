@@ -351,3 +351,20 @@ live play while recording at 4K. Two ways:
   `IAF_Hebrew_Fix.zip`, offline) and turns those extras back into the English v1.1 files.
 - Left: the CD's Hebrew briefing 112 is v1.0 text (v1.1 changed its objective), unused unless that sentence is
   corrected.
+
+## Faster mission start: pre-baked terrain, shader warm-up — measured, skipped (2026-10-20)
+Two ideas to shorten a mission start, both measured on 2026-10-20 (Intel Iris Xe, 8 cores, Vulkan) and skipped by
+user decision: each saves about half a second of an 8.6–9.1 s start.
+- **Pre-baked terrain tiles:** setup would store each colour tile already mipmapped and BC1-compressed, so
+  `terrain.gd` `_decode()` would only load it.
+  - Per tile today: 9.2 ms for the base terrain (load 4.5, mipmaps 0.8, BC1 3.9), 13.4 ms for the Survey 2015
+    imagery; pre-baked: about 1 ms.
+  - A start loads about 290 tiles (missions 311, 231) on 6 worker threads: about 2.6 s of work, so about 0.4–0.5 s
+    of the start.
+  - In flight nothing changes: the tiles already decode off the main thread.
+  - Cost: the baked tiles are about 3 times the JPEG size (+0.5 GB for the base terrain, +7–9 GB with the imagery).
+- **Shader warm-up during setup:** Godot already keeps its shader cache and Vulkan pipeline cache in the user folder,
+  and every real-render run (the game, the guide shots) fills them. Mission 311 with empty caches: 9.1 s to the
+  ground; with warm caches: 8.6–8.8 s. The slowest of the first 120 frames was 19 ms in both cases, so the first
+  flight does not stutter. A warm-up would save 0.3–0.5 s once, on the first flight after an install or a Godot or
+  driver update.
