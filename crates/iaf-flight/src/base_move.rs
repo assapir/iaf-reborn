@@ -191,6 +191,46 @@ pub struct BaseMove {
     /// The game runways (their ends), for the drawing.
     pub game_runways: Vec<[[f64; 2]; 2]>,
     pub mask: Option<Mask>,
+    /// The old site's fill colour from a coarse level (`BaseMoves::add_fill_source`); None: each node's own.
+    pub fill: Option<Fill>,
+}
+
+/// The colour around an old site on one world-aligned grid (a coarse terrain level's pixels, docs/world-scale.md
+/// §4.3): the surroundings' mean per cell, so every node and level paints the old paved surface alike (no seams at
+/// the node edges, where each node's own blur ran out of pixels).
+#[derive(Debug, Clone, Default)]
+pub struct Fill {
+    /// The north-west corner (engine metres) and the cell size (m).
+    pub nw: [f64; 2],
+    pub px_m: f64,
+    pub w: usize,
+    pub h: usize,
+    rgb: Vec<u8>,
+    /// The fill colour per cell (the surroundings' mean plus the texture of unpaved ground 400 m away); empty until
+    /// `BaseMoves::finish_fill`.
+    mean: Vec<[f64; 3]>,
+}
+
+impl Fill {
+    /// The fill colour at a point, bilinear; None outside or unfinished.
+    fn mean_at(&self, p: [f64; 2]) -> Option<[f64; 3]> {
+        if self.mean.is_empty() {
+            return None;
+        }
+        let x = (p[0] - self.nw[0]) / self.px_m - 0.5;
+        let y = (self.nw[1] - p[1]) / self.px_m - 0.5;
+        if x < 0.0 || y < 0.0 || x > (self.w - 1) as f64 || y > (self.h - 1) as f64 {
+            return None;
+        }
+        let (x0, y0) = (x as usize, y as usize);
+        let (x1, y1) = ((x0 + 1).min(self.w - 1), (y0 + 1).min(self.h - 1));
+        let (fx, fy) = (x - x0 as f64, y - y0 as f64);
+        let m = |x: usize, y: usize| self.mean[y * self.w + x];
+        let (a, b, c, d) = (m(x0, y0), m(x1, y0), m(x0, y1), m(x1, y1));
+        Some(std::array::from_fn(|k| {
+            (a[k] * (1.0 - fx) + b[k] * fx) * (1.0 - fy) + (c[k] * (1.0 - fx) + d[k] * fx) * fy
+        }))
+    }
 }
 
 impl BaseMove {
@@ -262,6 +302,7 @@ impl BaseMove {
             elev: g.lineup[2],
             game_runways: g.runways.clone(),
             mask: None,
+            fill: None,
         };
         if m.offset() > FAR {
             m.zone_b = ZONE_B;
@@ -508,15 +549,11 @@ impl BaseMoves {
         }
     }
 
-    /// Patches a colour image (RGB8; `px(x, y)` = the pixel centre's engine position, `px_m` = its size): each old
-    /// site's paved surface painted over with the colour of its unpaved surroundings (a normalised box blur), then
-    /// each new site's paved surface painted asphalt / concrete grey.
-    pub fn bake_colour(&self, rgb: &mut [u8], w: usize, h: usize, px: impl Fn(usize, usize) -> [f64; 2], px_m: f64) {
-        if rgb.len() < 3 * w * h {
-            return;
-        }
-        // The old sites: paved weight per pixel.
+    /// The old sites' paved weight (0..1) per pixel of a colour image: the mask's paved surface, the grey around it
+    /// on the old base, grown by ≈ 20 m, fading out over 60 m (the painted edges and the light shoulders).
+    fn old_paved(&self, rgb: &[u8], w: usize, h: usize, px: &impl Fn(usize, usize) -> [f64; 2], px_m: f64) -> Vec<f32> {
         let mut paved = vec![0f32; w * h];
+        let mut grey = vec![0f32; w * h];
         let mut any = false;
         for y in 0..h {
             for x in 0..w {
@@ -525,30 +562,117 @@ impl BaseMoves {
                 for b in &self.bases {
                     if let Some(m) = b.mask.as_ref().filter(|m| m.contains(p, 0.0)) {
                         let c = m.at(p);
-                        let mut v = ((c[0].max(c[1]) - 0.05) / 0.2).clamp(0.0, 1.0) as f32;
-                        // The grey around the paved surface on the old base (shoulders, the infield's worn grey,
-                        // grey roofs) goes too.
-                        if b.in_old(p, 0.0) {
-                            v = v.max(1.0 - smoothstep(0.03, 0.08, chroma(&rgb[3 * i..3 * i + 3])) as f32);
-                        }
+                        let v = ((c[0].max(c[1]) - 0.05) / 0.2).clamp(0.0, 1.0) as f32;
                         if v > 0.0 {
                             paved[i] = paved[i].max(v);
                             any = true;
+                        }
+                        if b.in_old(p, 0.0) {
+                            grey[i] = 1.0 - smoothstep(0.03, 0.08, chroma(&rgb[3 * i..3 * i + 3])) as f32;
                         }
                     }
                 }
             }
         }
-        if any {
-            // Grown by ≈ 15 m: the painted edges and shoulders along the paved surface go too.
-            let rd = (15.0 / px_m).round() as usize;
-            if rd >= 1 {
-                let grown = box_blur(&paved.iter().map(|&v| [v as f64, 0.0, 0.0, 0.0]).collect::<Vec<_>>(), w, h, rd);
-                for (v, g) in paved.iter_mut().zip(&grown) {
-                    *v = v.max((g[0] * 3.0).min(1.0) as f32);
+        // The grey next to the paved surface on the old base (shoulders, worn grey, grey roofs) goes too: within
+        // ≈ 100 m of it, fading out (the grey fields farther out stay, so zone A's edge does not show).
+        let rn = (100.0 / px_m).round() as usize;
+        if any && rn >= 1 {
+            let near = box_blur(&paved.iter().map(|&v| [v as f64, 0.0, 0.0, 0.0]).collect::<Vec<_>>(), w, h, rn);
+            for ((v, g), n) in paved.iter_mut().zip(&grey).zip(&near) {
+                *v = v.max(g * smoothstep(0.02, 0.15, n[0]) as f32);
+            }
+        }
+        let rd = (60.0 / px_m).round() as usize;
+        if any && rd >= 1 {
+            let grown = box_blur(&paved.iter().map(|&v| [v as f64, 0.0, 0.0, 0.0]).collect::<Vec<_>>(), w, h, rd);
+            for (v, g) in paved.iter_mut().zip(&grown) {
+                *v = v.max((g[0] * 3.0).min(1.0) as f32);
+            }
+        }
+        paved
+    }
+
+    /// The box each old site's fill covers (engine metres [x0, y0, x1, y1]): the mask and zone A, plus 1 km.
+    pub fn fill_boxes(&self) -> Vec<[f64; 4]> {
+        self.bases
+            .iter()
+            .map(|b| {
+                let c = [[b.lo[0], b.lo[1]], [b.hi[0], b.lo[1]], [b.hi[0], b.hi[1]], [b.lo[0], b.hi[1]]];
+                let mut pts: Vec<[f64; 2]> = c.iter().map(|q| b.game_xy(*q)).collect();
+                if let Some(mk) = &b.mask {
+                    let (w, h, o) = (mk.w as f64 * mk.px_m, mk.h as f64 * mk.px_m, mk.origin);
+                    pts.extend([[o[0], o[1]], [o[0] + w, o[1] - h]]);
+                }
+                let r = pts.iter().fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |r, p| {
+                    [r[0].min(p[0]), r[1].min(p[1]), r[2].max(p[0]), r[3].max(p[1])]
+                });
+                [r[0] - 1000.0, r[1] - 1000.0, r[2] + 1000.0, r[3] + 1000.0]
+            })
+            .collect()
+    }
+
+    /// Copies a coarse colour image (RGB8, north-west corner `nw`, `px_m` per pixel) into the fills it touches (a new
+    /// cell size starts the fill afresh); then `finish_fill`.
+    pub fn add_fill_source(&mut self, rgb: &[u8], w: usize, h: usize, nw: [f64; 2], px_m: f64) {
+        if rgb.len() < 3 * w * h {
+            return;
+        }
+        let boxes = self.fill_boxes();
+        for (b, bx) in self.bases.iter_mut().zip(boxes) {
+            let f = b.fill.get_or_insert_with(Fill::default);
+            if f.px_m != px_m {
+                let (fw, fh) = (((bx[2] - bx[0]) / px_m).ceil() as usize, ((bx[3] - bx[1]) / px_m).ceil() as usize);
+                *f = Fill { nw: [bx[0], bx[3]], px_m, w: fw, h: fh, rgb: vec![0; 3 * fw * fh], mean: Vec::new() };
+            }
+            f.mean.clear();
+            for y in 0..f.h {
+                for x in 0..f.w {
+                    let p = [f.nw[0] + (x as f64 + 0.5) * px_m, f.nw[1] - (y as f64 + 0.5) * px_m];
+                    let (sx, sy) = ((p[0] - nw[0]) / px_m, (nw[1] - p[1]) / px_m);
+                    if sx < 0.0 || sy < 0.0 || sx >= w as f64 || sy >= h as f64 {
+                        continue;
+                    }
+                    let (i, j) = (3 * (y * f.w + x), 3 * (sy as usize * w + sx as usize));
+                    f.rgb[i..i + 3].copy_from_slice(&rgb[j..j + 3]);
                 }
             }
-            fill_from_surroundings(rgb, w, h, &paved, ((400.0 / px_m).round() as usize).max(2));
+        }
+    }
+
+    /// Computes each fill's surroundings' mean from its sources.
+    pub fn finish_fill(&mut self) {
+        for k in 0..self.bases.len() {
+            let Some(f) = self.bases[k].fill.as_ref() else { continue };
+            let (nw, px_m, w, h) = (f.nw, f.px_m, f.w, f.h);
+            let px = |x: usize, y: usize| [nw[0] + (x as f64 + 0.5) * px_m, nw[1] - (y as f64 + 0.5) * px_m];
+            let paved = self.old_paved(&f.rgb, w, h, &px, px_m);
+            let mut rgb = f.rgb.clone();
+            fill_from_surroundings(
+                &mut rgb,
+                w,
+                h,
+                &vec![1.0; w * h],
+                &paved,
+                ((400.0 / px_m).round() as usize).max(2),
+                &|_| None,
+            );
+            let mean = (0..w * h).map(|i| [rgb[3 * i] as f64, rgb[3 * i + 1] as f64, rgb[3 * i + 2] as f64]).collect();
+            self.bases[k].fill.as_mut().unwrap().mean = mean;
+        }
+    }
+
+    /// Patches a colour image (RGB8; `px(x, y)` = the pixel centre's engine position, `px_m` = its size): each old
+    /// site's paved surface painted over with the colour of its unpaved surroundings (a normalised box blur), then
+    /// each new site's paved surface painted asphalt / concrete grey.
+    pub fn bake_colour(&self, rgb: &mut [u8], w: usize, h: usize, px: impl Fn(usize, usize) -> [f64; 2], px_m: f64) {
+        if rgb.len() < 3 * w * h {
+            return;
+        }
+        let paved = self.old_paved(rgb, w, h, &px, px_m);
+        if paved.iter().any(|&v| v > 0.0) {
+            let fill = |i: usize| self.bases.iter().find_map(|b| b.fill.as_ref()?.mean_at(px(i % w, i / w)));
+            fill_from_surroundings(rgb, w, h, &paved, &paved, ((400.0 / px_m).round() as usize).max(2), &fill);
         }
         // The new sites.
         for y in 0..h {
@@ -572,9 +696,9 @@ impl BaseMoves {
     }
 }
 
-/// Replaces the pixels by their weight `paved` (0..1) with the mean colour of the unpaved pixels within `r` (two
-/// box passes; where none is near, the image's unpaved mean).
-fn fill_from_surroundings(rgb: &mut [u8], w: usize, h: usize, paved: &[f32], r: usize) {
+/// The mean colour of the unpaved, coloured pixels within `r` of each pixel (two box passes; where none is near,
+/// the image's unpaved mean).
+fn surroundings_mean(rgb: &[u8], w: usize, h: usize, paved: &[f32], r: usize) -> Vec<[f64; 3]> {
     let n = w * h;
     let mut acc = vec![[0f64; 4]; n]; // r, g, b, weight
     for i in 0..n {
@@ -591,24 +715,39 @@ fn fill_from_surroundings(rgb: &mut [u8], w: usize, h: usize, paved: &[f32], r: 
     for _ in 0..2 {
         acc = box_blur(&acc, w, h, r);
     }
+    let all = if mean[3] > 0.0 { [mean[0] / mean[3], mean[1] / mean[3], mean[2] / mean[3]] } else { [128.0; 3] };
+    acc.iter().map(|a| if a[3] > 1e-3 { [a[0] / a[3], a[1] / a[3], a[2] / a[3]] } else { all }).collect()
+}
+
+/// Replaces the pixels by their weight `wt` (0..1) with the colour of the ground around the `paved` surface:
+/// `outer`'s where it has one (the coarse fill, used as it is), else the image's own mean within `r` plus the texture
+/// of an unpaved pixel `r` away.
+fn fill_from_surroundings(
+    rgb: &mut [u8],
+    w: usize,
+    h: usize,
+    wt: &[f32],
+    paved: &[f32],
+    r: usize,
+    outer: &dyn Fn(usize) -> Option<[f64; 3]>,
+) {
+    let n = w * h;
+    let local = surroundings_mean(rgb, w, h, paved, r);
     let src = rgb.to_vec();
-    let mean_at = |i: usize| -> Option<[f64; 3]> {
-        let a = &acc[i];
-        if a[3] > 1e-3 {
-            Some([a[0] / a[3], a[1] / a[3], a[2] / a[3]])
-        } else if mean[3] > 0.0 {
-            Some([mean[0] / mean[3], mean[1] / mean[3], mean[2] / mean[3]])
-        } else {
-            None
-        }
-    };
     let d = r as isize;
     for i in 0..n {
-        let p = paved[i];
+        let p = wt[i];
         if p <= 0.0 {
             continue;
         }
-        let Some(mut fill) = mean_at(i) else { continue };
+        let mut fill = local[i];
+        if let Some(c) = outer(i) {
+            for k in 0..3 {
+                let v = rgb[3 * i + k] as f64;
+                rgb[3 * i + k] = (v + (c[k] - v) * p as f64).round().clamp(0.0, 255.0) as u8;
+            }
+            continue;
+        }
         // The texture: an unpaved pixel `r` away (the first of four directions), its difference from its own mean.
         let (x, y) = ((i % w) as isize, (i / w) as isize);
         for (dx, dy) in [(d, d / 2), (-d / 2, d), (-d, -d / 2), (d / 2, -d)] {
@@ -620,12 +759,11 @@ fn fill_from_surroundings(rgb: &mut [u8], w: usize, h: usize, paved: &[f32], r: 
             if paved[j] > 0.1 {
                 continue;
             }
-            if let Some(mj) = mean_at(j) {
-                for c in 0..3 {
-                    fill[c] += (src[3 * j + c] as f64 - mj[c]).clamp(-50.0, 50.0);
-                }
-                break;
+            let mj = local[j];
+            for c in 0..3 {
+                fill[c] += (src[3 * j + c] as f64 - mj[c]).clamp(-50.0, 50.0);
             }
+            break;
         }
         for c in 0..3 {
             let v = rgb[3 * i + c] as f64;
@@ -810,8 +948,25 @@ mod tests {
                 paved[i] = if p { 1.0 } else { 0.0 };
             }
         }
-        fill_from_surroundings(&mut rgb, w, h, &paved, 3);
+        fill_from_surroundings(&mut rgb, w, h, &paved, &paved, 3, &|_| None);
         let i = 3 * (10 * w + 10);
         assert_eq!(&rgb[i..i + 3], &[40, 120, 30]);
+    }
+
+    #[test]
+    fn the_fill_is_one_world_grid() {
+        // Cell centres at x = 5, 15 (m); the colour between them bilinear, the same for any node asking.
+        let f = Fill {
+            nw: [0.0, 20.0],
+            px_m: 10.0,
+            w: 2,
+            h: 2,
+            rgb: Vec::new(),
+            mean: vec![[0.0; 3], [100.0; 3], [0.0; 3], [100.0; 3]],
+        };
+        assert_eq!(f.mean_at([10.0, 10.0]), Some([50.0; 3]));
+        assert_eq!(f.mean_at([5.0, 15.0]), Some([0.0; 3]));
+        assert_eq!(f.mean_at([30.0, 10.0]), None);
+        assert_eq!(Fill { mean: Vec::new(), ..f }.mean_at([10.0, 10.0]), None);
     }
 }

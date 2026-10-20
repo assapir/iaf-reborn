@@ -145,6 +145,8 @@ func _ready() -> void:
 	IafSurface.load(Settings.assets_dir().path_join("install/terraintype.dat"))
 	_bases_moved = Settings.sync_bases()
 	_bake_bounds = IafBases.bounds() if _bases_moved else PackedFloat64Array()
+	if _bases_moved:
+		_fill_sources()
 
 
 func _add_colour_node(n: Vector3i) -> void:
@@ -513,6 +515,29 @@ func _decode(key: Vector4i) -> Image:
 		else:
 			img.convert(Image.FORMAT_RG8)
 	return img
+
+
+## World scale Real: the old sites' fill colour from level FILL_LEVEL (≈ 10 m a pixel), so every node and level
+## paints the old paved surface alike (docs/world-scale.md §4.3). Nodes missing there leave each node its own.
+const FILL_LEVEL := 3
+
+
+func _fill_sources() -> void:
+	var ks := IafBases.fill_nodes(FILL_LEVEL)
+	var imgs: Array[Image] = []
+	var keys: Array[Vector4i] = []
+	for k in range(0, ks.size(), 2):
+		var key := Vector4i(0, ks[k], ks[k + 1], FILL_LEVEL)
+		if not _colour_nodes.has(Vector3i(key.y, key.z, key.w)) or keys.has(key):
+			continue
+		var img := Image.load_from_file(_path(key))
+		if img != null:
+			img.convert(Image.FORMAT_RGB8)
+			imgs.append(img)
+			keys.append(key)
+	for n in imgs.size():
+		IafBases.fill_source(imgs[n].get_data(), imgs[n].get_width(), imgs[n].get_height(), FILL_LEVEL, keys[n].y,
+				keys[n].z, n == imgs.size() - 1)
 
 
 ## World scale Real: true when the node lies on a base's old or new site (IafBases.bounds()).

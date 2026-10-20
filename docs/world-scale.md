@@ -370,8 +370,9 @@ until the user decides to show it.
 - **Shorter runways.** The runways are 0.69–0.86 × the game's, and the AI's touchdown (≈ 1.9 km past the lineup point,
   as in Original) leaves 0.5 km at Ramat David. A take-off from a mission start that is not the lineup can run out
   of runway: 311's start is 0.7 km from the end of the runway it faces.
-- **The old site** keeps a faint ghost: the paved surface's outline shows as lighter, textured ground; the painted
-  shelters and buildings off the paved surface stay.
+- **The old site** (after §4.3): a faint smooth patch where the paved surface was; the painted shelters, trees and
+  buildings more than ≈ 100 m off the paved surface stay.
+- **The new site's ground** close up is the 1998 art's coarse level (≈ 10 m a pixel; §4.3).
 - **Seen from the cockpit, the targets halve.** Gun and missile rules are unchanged (25 m hit sphere), so hitting is
   as easy as before, but finding a target by eye is harder (the original chose ×2, maybe for 640 × 480; inferred).
 - **The two sites.** The old site keeps the 1998 art's painted shelters and buildings outside the paved surface
@@ -398,6 +399,24 @@ until the user decides to show it.
   30°. Touchdown at the moved Ramat David and Ramon: 0.0 m off the centreline (was −8 and 78 m). Original keeps the
   exe's law. Tests: `crates/iaf-flight/tests/base_move.rs` (touchdown within 3 m of the centreline),
   `tests/godot/test_world_scale.gd`.
+- **The old site's ghost and seams** (`BaseMoves::add_fill_source` / `finish_fill`, `terrain.gd _fill_sources`).
+  Each node used to paint the old paved surface from its own pixels: the 400 m blur ran out at the node's edges, so
+  neighbouring nodes and levels painted different colours (square seams), and every grey pixel of zone A counted as
+  paved, so zone A's rectangle showed over grey fields. Now the terrain hands the level-3 colour nodes (≈ 10 m a
+  pixel) under each old site to `IafBases.fill_source` once at load; the fill colour (the surroundings' mean plus the
+  texture of unpaved ground 400 m away) is computed on that one world grid and every node and level samples it. The
+  grey off the paved surface goes only within ≈ 100 m of it, and the paved surface grows by ≈ 20 m, fading out over
+  60 m, so the light dirt shoulders along the runways go too. Pictures (old Ramat David from 2.2 km, old Ramon from
+  2.5 km): `david_oldtop_before.png` / `david_oldtop_after.png`, `cmp_ramon_oldtop.jpg` (local captures,
+  `tests/godot/_airbase_shot.gd`). Left: a faint smooth patch. Tests: the unit tests in `base_move.rs`,
+  `tests/godot/test_base_move.gd`.
+- **The new site's ground close up — not fixed.** Low over a moved base the ground around the drawn runways looks
+  dark and blurred. The cause is the 1998 art: its fine levels exist only over the painted bases (Ramat David's old
+  site has level 0, 1.2 m a pixel; Ramon's level 2, 5 m), and at the real sites the finest is level 3 (≈ 10 m a
+  pixel) of plain farmland or desert. The patch paints only the moved paved surface; it does not darken. A fix needs
+  new fine nodes at each new site (the old site's inset warped through the move, or an imagery layer's photo), a
+  change to the terrain's node lists and the converter: out of this polish's reach. With an imagery layer that has
+  fine nodes at the new site (`mapi2015` in Israel, 2.5 m a pixel), the real base's photo shows there.
 
 ## 5. Decisions (user, 2026-10-20) and open questions
 

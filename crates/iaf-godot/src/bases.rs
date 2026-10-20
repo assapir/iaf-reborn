@@ -183,6 +183,42 @@ impl IafBases {
         PackedFloat64Array::from(g.as_ref().map(|m| m.bounds().concat()).unwrap_or_default().as_slice())
     }
 
+    /// The colour nodes of `level` under the old sites' fills (docs/world-scale.md §4.3): [i0, j0, i1, j1, …].
+    #[func]
+    fn fill_nodes(level: i64) -> PackedInt64Array {
+        let g = MOVES.read().unwrap();
+        let Some(m) = g.as_ref() else { return PackedInt64Array::new() };
+        let meta = *META.read().unwrap();
+        let span = meta.node_pixels as f64 * 2f64.powi(level as i32) * meta.m_per_unit;
+        let mut out = Vec::new();
+        for b in m.fill_boxes() {
+            let (i0, i1) =
+                (((b[0] - meta.x_shift) / span).floor() as i64, ((b[2] - meta.x_shift) / span).floor() as i64);
+            let (j0, j1) =
+                (((meta.y_shift - b[3]) / span).floor() as i64, ((meta.y_shift - b[1]) / span).floor() as i64);
+            for i in i0..=i1 {
+                for j in j0..=j1 {
+                    out.extend([i, j]);
+                }
+            }
+        }
+        PackedInt64Array::from(out.as_slice())
+    }
+
+    /// A colour image of node (level, i, j) (RGB8) as a source of the old sites' fills; `done`: the last one.
+    #[func]
+    fn fill_source(rgb: PackedByteArray, w: i64, h: i64, level: i64, i: i64, j: i64, done: bool) {
+        let mut g = MOVES.write().unwrap();
+        let Some(m) = g.as_mut() else { return };
+        let meta = *META.read().unwrap();
+        let span = meta.node_pixels as f64 * 2f64.powi(level as i32);
+        let nw = [i as f64 * span * meta.m_per_unit + meta.x_shift, meta.y_shift - j as f64 * span * meta.m_per_unit];
+        m.add_fill_source(rgb.as_slice(), w as usize, h as usize, nw, span / w.max(1) as f64 * meta.m_per_unit);
+        if done {
+            m.finish_fill();
+        }
+    }
+
     /// A height image of node (level, i, j) (RG8, w × h texels at its vertices) with the new sites flattened.
     #[func]
     fn bake_heights(rg8: PackedByteArray, w: i64, h: i64, level: i64, i: i64, j: i64) -> PackedByteArray {
