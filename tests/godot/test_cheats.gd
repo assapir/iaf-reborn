@@ -28,7 +28,7 @@ func run() -> void:
 	key(tv, KEY_F, true)
 	check(absf(float(tv.flight.state().fuel_lbs) * 0.45359 - 500.0) < 1.0, "Shift+F upright: no refuel")
 	tv.flight.start(
-		Settings().assets_dir().path_join("install"),
+		settings().assets_dir().path_join("install"),
 		tv.player.fm_section,
 		st0.position,
 		Vector3(0.0, 180.0, st0.heading),
