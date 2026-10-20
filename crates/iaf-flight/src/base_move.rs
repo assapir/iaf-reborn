@@ -2,7 +2,7 @@
 //!
 //! One similarity per base puts the game's main runway (the runway through the iaf.ibx lineup point, on the line at
 //! RunwayNumber's heading) on the real one from `data/real_runways.csv` (© OpenStreetMap contributors, ODbL). Zone A
-//! (the base's box) takes the similarity; zone B (6 km beyond it, at the bases moved more than 5 km) moves and turns
+//! (the base's box) takes the similarity; zone B (10 km beyond it, at the bases moved more than 5 km) moves and turns
 //! with the base without scaling. Coordinates: engine metres, X east, Y north; headings clockwise from north.
 
 use crate::airbase::{Airbase, TaxiPt};
@@ -25,8 +25,9 @@ pub const LETTER_NEAR: f64 = 150.0;
 pub const JOIN_PROBE: f64 = 6.0;
 /// Zone A: the box around the base's runway ends and iaf.ibx points, plus this (m, game frame).
 pub const BOX_MARGIN: f64 = 500.0;
-/// Zone B reaches this far beyond zone A (m), at the bases moved farther than `FAR`.
-pub const ZONE_B: f64 = 6000.0;
+/// Zone B reaches this far beyond zone A (m), at the bases moved farther than `FAR`: 312's circuit corners lie 6.7 km
+/// beyond Ramat David's zone A and its airborne start 9.8 km, the routes' approach points on the centrelines 7–8 km.
+pub const ZONE_B: f64 = 10000.0;
 pub const FAR: f64 = 5000.0;
 /// The flattened site blends into the original ground over this ring (m) around the moved zone A.
 pub const RING: f64 = 1200.0;

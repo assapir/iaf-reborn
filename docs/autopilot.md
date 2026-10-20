@@ -135,8 +135,31 @@ makes this **GoHomeCL**:
 2. LandingCL's left-hand circuit: crosswind to P1, downwind to P2 (gear and flaps), base to P3, the turns to P4 and P5,
    the 6° final, the roll-out.
 
-The mission's markers sit on these corners: "Point 2" (start of downwind), "Point 3" (green point), "Point 4"
-(base), "Point 5" (P4) and "Point 6" (the lineup). Their radius slots fire the instructor's lines.
+**The instructor** (landing.json). A marker fires its reached event when the player comes within its radius, and its
+left event (marked "left") when the player then leaves it (3-D, checked every 4 s, docs/mission-runtime.md §2.2).
+Each event fires once and plays its audio and subtitle:
+
+| marker (position from the lineup L, km) | radius (m) | event: audio | the instructor says (subtitle, short) |
+|---|---|---|---|
+| Point 1 (G, −5.4, 0) | 2700 | 6 Cross wing turn: 257 | turn 90° left to the crosswind leg |
+| Point 2 - B (P1, −5.4, −5.4) | 2300 | 7 Down wing turn: 385 | the turning point to the downwind leg |
+| Point 2 (P1) | 2200, left | 1 Down wind audio: 215 | the downwind checklist; gear and flaps |
+| Point 2.5 (−1.8, −5.4) | 2000, left | 8 Down wing distance: 259 | the downwind distance; ask the tower (CTRL-T) |
+| Point 3 (P2, 7.2, −5.4) | 2500 | 9 Base leg turn: 260; moves Point 4 - B from (1, 1) onto P3 (Path, 1 s) | remember where the runway is for the base turn |
+| Point 4 - B (P3, 7.2, 0) | 2200 | 10 Final leg turn: 261 | watch the ILS localizer move: the turning point to final |
+| Point 4 (P3) | 1200, left | 3 Final start audio: 216 | 165 kt, a 4° approach, stay on the centreline |
+| Point 6 (L, the touchdown zone sensor) | 200 | 4 Go around: 217; starts "Second point 5mark" | disengage the autopilot, full power, take off, fly it yourself |
+| Second point 5mark (after 60 s on P4, 3.6, 0) | 500 | 5 Final land audio: 218; starts the end markers | this time a full landing |
+| End of runway, the win sensors (on the runway / hangars, after 30–60 s) | 120–200 | 11 End mission: 219; the Win sensor explodes | good work: the mission is won |
+
+So the demonstration ends at the touchdown marker with the touch-and-go call: the script has no "stop" line. The
+autopilot lands and stops anyway (StopPlane), and the mission goes on only when the player takes off, flies the
+second final over P4 and lands. Player flown or autopilot flown, the markers are the same. Tests:
+`test_autopilot.gd` and `test_autopilot_real.gd` (events 9, 10, 3, 4 in order with their subtitles).
+
+In World scale Real the markers, the route's waypoint G and the airborne start move with Ramat David (zone B,
+docs/world-scale.md §3.3): the start stays lined up 9.8 km out on the real heading 266.6°, so NAV flies straight
+down the centreline as in Original, and every marker sits on the circuit's corner. The radii keep their size.
 
 **The turn onto final.** The pattern points are f32 in the original (LandingCL Init `5d2b30`, [ai.md](ai.md) §8.3),
 so for runway 270 the downwind P1 → P2, the base P2 → P3 and the final P3 → P4 → P5 are exactly horizontal /

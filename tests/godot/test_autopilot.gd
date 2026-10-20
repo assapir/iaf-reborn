@@ -2,12 +2,15 @@
 # A cycles level → NAV → off, a stick key beyond ±51 % disengages, the throttle keys are dropped in NAV, and
 # level mode holds wings level and heading. Mission 312 "Eagle Baby" (Landing): NAV on its only waypoint
 # (action 7, land) is the go-home / landing circuit the instructor demonstrates: it touches down on the runway
-# centreline and StopPlane's A key turns the autopilot off.
+# centreline and StopPlane's A key turns the autopilot off. The instructor's markers fire on the way: the base turn,
+# the final turn, the final and the touch-and-go call at the touchdown marker. test_autopilot_real.gd: the same in
+# World scale Real 1:1.
 extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
 	var tv = await start_mission(312)
+	var rec := record_mission(tv)
 	await frames(3)
 	check(tv.autopilot != null and tv.autopilot.mode == 1, "airborne start: autopilot on in level mode")
 	check(tv.cockpit.indicators[8], "AP lamp lit")
@@ -80,3 +83,4 @@ func run() -> void:
 	check(touch != Vector2.INF and absf(touch.y - 602383.0) < 30.0, "touchdown on the centreline ±30 m (%s)" % touch)
 	check(tv.autopilot.mode == 0 and not tv.cockpit.indicators[8], "stopped: StopPlane's A key turns the autopilot off")
 	check(st.speed < 2.0, "stopped on the runway (%.1f m/s)" % st.speed)
+	check_instructor_312(tv, rec)

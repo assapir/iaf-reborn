@@ -71,6 +71,33 @@ func start_mission(id: int) -> Node:
 	return tv
 
 
+## Records the mission's fired events (ids, in order) and the subtitles shown (mission_runtime.gd).
+func record_mission(tv: Node) -> Dictionary:
+	var rec := {"events": [], "subtitles": []}
+	tv.runtime.event_fired.connect(func(id, _n): rec.events.append(id))
+	tv.runtime.subtitle.connect(func(s): rec.subtitles.append(s))
+	return rec
+
+
+## 312's instructor (landing.json): the base turn (event 9, audio 260), the final turn (10, 261: the ILS localizer),
+## the final (3, 216) and, at the touchdown marker, the touch-and-go call (4 "Go around", 217), in that order, each
+## with its subtitle.
+func check_instructor_312(tv: Node, rec: Dictionary) -> void:
+	var order := [9, 10, 3, 4]
+	var at := order.map(func(id): return rec.events.find(id))
+	check(not at.has(-1) and _sorted(at), "312 instructor: %s" % [rec.events])
+	for audio in [260, 261, 216, 217]:
+		var sub: String = tv.runtime.audio.get(audio, {}).get("subtitle", "")
+		check(sub != "" and rec.subtitles.has(sub), "312 subtitle of audio %d shown" % audio)
+
+
+func _sorted(a: Array) -> bool:
+	for i in range(1, a.size()):
+		if a[i] < a[i - 1]:
+			return false
+	return true
+
+
 ## Waits `s` s of wall-clock time.
 func seconds(s: float) -> void:
 	var t := Time.get_ticks_msec()

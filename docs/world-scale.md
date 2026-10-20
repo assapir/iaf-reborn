@@ -252,9 +252,11 @@ runway.
 - **Zone A, the base:** the box along the game runway around its ends and every iaf.ibx point (tower, lineup, taxi
   paths, hangars), plus 500 m. Points inside take the similarity.
 - **Zone B, the base's surroundings** (only for the seven bases moved more than 5 km: Ramon, Tel Nof, Ramat David,
-  Refidim, Inshas, Bley, Ryak): up to 6 km beyond zone A. Points there move and turn with the base and keep their distance
-  from zone A's edge (per axis: `u' = k·hi + (u − hi)` beyond the box). This carries the base's SAM / AAA rings,
-  circuit markers and sensors (§1.2: 2–6 km out) without stretching them. Beyond zone B nothing moves.
+  Refidim, Inshas, Bley, Ryak): up to 10 km beyond zone A. Points there move and turn with the base and keep their
+  distance from zone A's edge (per axis: `u' = k·hi + (u − hi)` beyond the box). This carries the base's SAM / AAA
+  rings, circuit markers and sensors (§1.2: 2–6 km out), the routes' approach points on the centreline (7–8 km) and
+  landing training 312's circuit corners (6.7 km) and its airborne start lined up 9.8 km out, without stretching them.
+  Beyond zone B nothing moves.
 - **The three near bases** (Damascus 1.6 km, Kuzeir 0.5, Aman 0.7 km) move only zone A. Their surroundings
   stay with the painted ground (Damascus city's buildings and street lights in "darkness", 2–5 km from the runway;
   Aman's SA-6 sites, 2.8–3.8 km). Confirmed by the user (2026-10-20).
@@ -284,7 +286,7 @@ reads an integer).
 | thing | how |
 |---|---|
 | iaf.ibx (tower, lineup, taxi points and headings, hangars, turn points) | mapped at load (`IafFlight.ap_setup`, `start_rule`, `radio.gd`); RunwayNumber = the real heading (the AI's take-off and landing, the ILS, the circuit: docs/autopilot.md) |
-| mission entities, paths, formation routes | mapped in `mission_files()`: position, heading + turn, altitude; zone A's reached / left radii × k |
+| mission entities, paths, formation routes | mapped in `mission_files()`: position, heading + turn, altitude; the reached / left radii keep their size (the 4 s check samples the jet at its true speed: 312's touchdown marker at 200 × 0.69 m let the landing pass between two checks) |
 | terraintype.dat (the FM's runway bit) | inside the new zone A: the original's flags at the inverse-mapped point, cut to the real runway's width (§4.3, "The runway surface at the real width"); the old base's runway leaves are rough ground |
 | terrain heights | the new site flattened to its elevation inside zone A, a smooth 1.2 km ring around it (height images patched as they load: the drawn ground, `height_at`, `IafHeights`) |
 | the old painted base | its paved surface painted over with its surroundings' colour (the colour images patched as they load, every level, the original art and the imagery layers) |
@@ -312,7 +314,7 @@ Godot tests set `Settings.world_scale = "real"` before `start_mission()` and run
 | 4 ✓ | Weapons, stores, rounds at true size (`STORE_PRESENT_SCALE`, rocket box, `w.scale`) | a store's drawn position equals its launch point; the stores sit on the pylons (`_stores_shot`-style capture, by eye) | S |
 | 5 ✓ | The real runway table (`tools/real_runways.py`, `real_runways.csv`, ODbL) and the base move in Rust (`iaf_flight::base_move`): the transform, zones A / B, the inverse, iaf.ibx mapped, the surface rule, the pad heights | unit tests: each moved main runway on its real one (ends < 1 m, length, heading), zone continuity, identity beyond, inverse round trip; an autopilot take-off and landing at the moved Ramat David and Ramon (flat ground at the new elevation, the surface rule's runway bit under the wheels) | M |
 | 6 ✓ | Godot wiring of the base data: `IafBases` (set up from Settings.world_scale: airbases.json, the masks, the elevations), `ap_setup` / `start_rule` / `radio.gd`, `surface_at` and the surface raster, the height pad | headless: in Real the ground is flat at the moved lineup, its surface has the runway bit and the old lineup's has not; a ground start at the moved lineup; Original unchanged | M |
-| 7 ✓ | Mission data through the move (`mission_files()`): entities, paths, routes, radii; kept models × k and turned; `BASE_LIGHTS` | 311 in Real: the player on the moved lineup with the engine on, the parked jets on the moved apron (relative positions = Original's × k, turned), the take-off markers fire on the take-off; a SAM site around a moved base kept relative; 312's landing completes with the autopilot | M |
+| 7 ✓ | Mission data through the move (`mission_files()`): entities, paths, routes; kept models × k and turned; `BASE_LIGHTS` | 311 in Real: the player on the moved lineup with the engine on, the parked jets on the moved apron (relative positions = Original's × k, turned), the take-off markers fire on the take-off; a SAM site around a moved base kept relative; 312's landing completes with the autopilot | M |
 | 8 ✓ | Drawing: the old site painted over, the new site's paved surface (colour images), the Detailed airbases surface at the new site (turned mask, real width), forced on in Real | `test_airbase_scale.gd` (Original) unchanged; Real: the moved base data; real-render shots of Ramat David and Ramon (original terrain and Survey imagery) and of the old site | M–L |
 | 9 ✓ | Docs (deviations, status, rendering §7, autopilot, this page) and a sweep | `tools/mission_sweep.sh` over the menu missions in Real: no SCRIPT ERROR, no ground start crash | S |
 

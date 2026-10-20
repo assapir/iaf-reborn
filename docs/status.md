@@ -40,7 +40,7 @@ STBY / STT / BORE / LRS / TWS / ACM / GMT / MAP are the radar modes (docs/radar.
   - Radar contacts / lock / STT, HUD target box, IR missile slaved to the radar; chaff / flares (player side); Real
     weapon capabilities (see Done).
   - Autopilot (A key; the AI control loops; Landing 312 approach mode) (see Done; 312's demonstration lands on the
-    centreline: docs/autopilot.md §3).
+    centreline, the instructor's markers fire in Original and Real: docs/autopilot.md §3).
   - Cockpit camera = the original projection, so the HUD ladder lines up (docs/cockpit.md "3D view").
   - Views, time compression, pause / in-flight menu (docs/views.md).
   - RWR (list, lights, sounds, MFD page / panel dial, F5 threat), radar MAP picture (docs/rwr.md, docs/mfd.md §4);
