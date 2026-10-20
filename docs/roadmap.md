@@ -23,6 +23,14 @@ warning receiver; SAM = surface-to-air missile; TSD = tactical situation display
 Graphics options (models, cockpit, DEM, water, effects, vegetation, lighting, upscaling), with measured costs and a
 ranked order, are in [docs/graphics-research.md](graphics-research.md).
 
+- **Iran theatre** (wishlist, user 2026-10-20): a second map east of the original's, for modern long-range strikes.
+  The 1998 world is one fixed theatre (Israel and its neighbours); Iran is far outside it, so this means new terrain,
+  imagery, bases and units (large).
+- **Fighting in Gaza** (wishlist, user 2026-10-20): missions over Gaza, which lies inside the theatre. The Mission
+  Creator (original first, then a freer editor) is the way in.
+- **A modern TSD map** (wishlist, user 2026-10-20): today's borders and place names on the TSD (an opt-in; the 1998
+  map stays the default).
+
 - **Multiplayer** (after the single-player game, docs/status.md "Decisions"): how the original does it and the
   recommended plan (our own protocol, the original's authority split) are in [docs/multiplayer.md](multiplayer.md).
 - **Separate joystick / throttle / pedal devices** (e.g. a stick, a throttle quadrant and pedals as three USB

@@ -231,29 +231,37 @@ rough size each:
 6. **Chat and debrief (small):** `~` chat with its modifiers, F1–F12 and the automatic lines, the MP debrief (winning
    side, "N/A").
 
-### 3.5 Points for discussion (user, 2026-10-20; nothing decided)
-Multiplayer itself is not decided. These are the user's first thoughts, to discuss before any plan:
-- **Our own protocol, no IPX / SPX,** if it is built: designed with care before any code (the messages, who owns
-  what, versioning, the settings handshake below).
-- **The original lobby, as it looks,** would be the big win. The multiplayer screens (0x15–0x18, 0x1b, 0x1d: connection, session list,
-  side and jet choice, the MP TSD, chat, the MP debrief) are rebuilt from the install's own art and the exe's layout,
-  like every other front-end screen, running on our protocol.
-- **A hosted server.** The user might run a server somewhere public. Then besides "host on my machine", the session can
-  live on a dedicated server: it lists sessions (the lobby's session list), relays the star, and can be the host
-  authority for AI and mission scripts (inferred: the simplest way across NAT).
-- **One rule set per session** (open: how to enforce it). Every player flies the same physics and settings level. The host (or the server)
-  owns the session's rule set and sends it at join; a client applies it for the session and cannot change it in
-  flight, and a client whose game cannot apply it (an older version, a missing data set) is refused with the reason.
-  The rule set covers everything that changes the flight or the fight:
-  - Flight data (Original / Real), Better physics and its items, the Physics page;
-  - Weapon data, HARM targets, World scale;
-  - the Gameplay page (skills, AI level, cheats, scoring), the cheat keys (off in multiplayer, as the original's
-    single-player-only Shift+R);
-  - the build: our version and a hash of the converted data that the rules read (flight model blocks, weapons,
-    mission files), so two players never fly different numbers under one name.
-
-  Look-only settings (graphics, cockpit art, Better cockpit, HUD colour, sound, keys, stick response) stay each
-  player's own. One way: each setting tagged "session" or "player" where it is declared (inferred).
+### 3.5 Discussion so far (user, 2026-10-20; multiplayer itself is not approved)
+These are the user's answers in a first discussion. They guide a plan if multiplayer goes ahead; nothing is built.
+- **Order:** the single-player Mission Creator first (useful alone), then a protocol design doc, then All-Out War
+  on a lobby server, then Custom missions from the Mission Creator, then Special missions and campaign co-op. A small
+  MVP by priorities, growing as it is built.
+- **Transport:** no IPX / SPX. Our own game messages, versioned and designed with care, over an existing transport
+  (ENet or WebSocket; inferred).
+- **Server:** a lobby and relay with no game state and no database, cheap or free to run (for example Cloudflare
+  Workers with Durable Objects: rooms in memory; inferred), easy to deploy and easy to run locally so anyone can host
+  one. Not necessarily in Rust. Architecture details later.
+- **Host:** one player's game hosts the AI and scripts, picked by ping to the others and by spare headroom (its
+  frame rate while hosting). If the host drops, the game ends for everyone (as the original); each player keeps what
+  they earned so far.
+- **Room settings:** the room's creator sets the rule set (flight data, physics, weapon data, world scale, "allow
+  F-35I"); everyone flies it for the session. Cheats, Easy aiming and Easy landing always off. Look-only settings stay
+  each player's own.
+- **Hits:** the shooter proposes, the victim's machine accepts within a lag allowance; all on the host's sim clock
+  (no wall clock, so no time-zone or drift issues).
+- **Modes and rules:** All-Out War first: start in the air, apart; the original's re-entry rules and win rules; no AI
+  for now. Mission games start on the base. Rooms and their list as the original's lobby; anyone can create a room;
+  no late join; the player count a dynamic limit from the host's headroom.
+- **Chat:** the original's text chat and F1–F12 calls; voice later through a third-party add-on.
+- **Records:** separate multiplayer records per pilot (sorties, kills, deaths, wins / losses). Open: pilot logs that
+  move between machines but cannot be tampered with (one way: the server signs each session's summary with a key
+  only it holds, still without a database; inferred).
+- **Identity:** a login if easy, the callsign from the game's pilot entry. A version mismatch is refused with a "please
+  update" message.
+- **Platforms:** Mac and Linux together, Windows later. Testing: several instances on one machine, plus the user's Mac
+  and Linux PC (one set of stick).
+- **The lobby look:** the original's screens from the install's art (the session list, the connection pages, side
+  and jet choice, the multiplayer Mission Creator page).
 
 ## 4. Open questions
 - The byte layout of most CommJnet packet types (0x0c, 0x11, 0x12, 0x1c, 0x1d, 0x20–0x24) and of UDP type 0x18.
