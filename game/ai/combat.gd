@@ -175,7 +175,8 @@ func setup(h: Node, flights: Node, bdb: Dictionary) -> void:
 			u.rounds.ground = host.mission_ground
 			u.rounds.detonate = _detonate.bind(String(ent.key))  # the key, not u: u holds the rounds (a cycle never freed)
 			u.limit_vel = float(m.get("_limitVel", 1200.0))
-			u.range_m = float(m.get("_limitDist", 4500.0)) * (0.5 if int(w.type) == 565 else 1.0)  # 565: half _limitDist (2250 m)
+			# 565: half _limitDist (2250 m)
+			u.range_m = float(m.get("_limitDist", 4500.0)) * (0.5 if int(w.type) == 565 else 1.0)
 			_round_nodes(u, w)
 		var rules: Array = ai.brain_rules(int(ent.brain)) if ent.brain >= 0 else []
 		if ent.control in [1, 2] and ent.klass in SENSOR_CLASSES and not rules.is_empty():
@@ -214,9 +215,9 @@ func hand_over(ent: Dictionary) -> Array:
 	return u.stations.map(func(s): return [int(s.w.get("id", 0)) if not s.w.is_empty() else 0, int(s.count)])
 
 
-## An AI jet's handler: the pilot's brain, the sensor (kind 4), its stations (the mission's or the object's load, or
-## `given`: a jet handed over in flight) and the gun's rounds. The first station selected: the first loaded pylon,
-## else the gun (UNCERTAIN).
+## An AI jet's handler: the pilot's brain, the sensor (kind 4), its stations (its flight's Arming load, else the
+## mission's or the object's load, or `given`: a jet handed over in flight) and the gun's rounds. The first station
+## selected: the first loaded pylon, else the gun (UNCERTAIN).
 func _setup_aircraft(ent: Dictionary, obj: Dictionary, db, now: float, given: Array = []) -> void:
 	var u := Unit.new()
 	u.ent = ent

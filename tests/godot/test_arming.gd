@@ -76,16 +76,15 @@ func run() -> void:
 	check(mw.current[1][3] == [19, 1], "No: back to the saved load")
 	mw.use_defaults()
 	check(mw.current[1] == mw.defaults[1] and mw.saved[1][3] == [19, 1], "DEFAULT: current = defaults, saved kept")
-	check(
-		load("res://menu/arming.gd").g(27600.0) == "27600" and load("res://menu/arming.gd").g(1234.5) == "1234.5",
-		"%g formatting"
-	)
+	var Arming = load("res://menu/arming.gd")
+	check(Arming.g(27600.0) == "27600" and Arming.g(1234.5) == "1234.5", "%g formatting")
 
 	# --- where the stores hang (docs/weapons.md §2.2): the stations against the F-16 model ---------
-	var ac: Node3D = load("res://aircraft/aircraft_model.gd").create("f16", 100, false)
+	var Model = load("res://aircraft/aircraft_model.gd")
+	var ac: Node3D = Model.create("f16", 100, false)
 	root.add_child(ac)
 	var airframe := ac.root_frame as MeshInstance3D  # the root frame's mesh is the airframe
-	var desc: Dictionary = load("res://aircraft/aircraft_model.gd").load_descriptor("f16")
+	var desc: Dictionary = Model.load_descriptor("f16")
 	var tip: float = airframe.get_aabb().end.x if airframe != null else 0.0
 	check(
 		absf(absf(desc.stations.StationA[0]) - tip) < 0.1 and absf(desc.stations.StationI[0] - tip) < 0.1,
@@ -96,12 +95,8 @@ func run() -> void:
 	)
 	var PW = load("res://weapons/player_weapons.gd")
 	var st9 = load("res://weapons/stores.gd").new()
-	var db9 = load("res://weapons/weapon_db.gd").create(
-		load("res://mission/mission_runtime.gd").load_bdb(
-			load("res://mission/mission_runtime.gd").mission_files(231)[0].data
-		),
-		false
-	)
+	var Runtime = load("res://mission/mission_runtime.gd")
+	var db9 = load("res://weapons/weapon_db.gd").create(Runtime.load_bdb(Runtime.mission_files(231)[0].data), false)
 	st9.setup(
 		[[11, 1], [8, 1], [17, 1], [19, 1], [61, 1], [19, 1], [17, 1], [8, 1], [11, 1], [25, 235], [33, 90], [34, 60]],
 		db9,
@@ -150,6 +145,17 @@ func run() -> void:
 			and u.store_nodes[2][0].get_parent() == u.ent.node
 		)
 	check(models, "the MK-84 models hang on Bravo's pylons (station 3)")
+	# The player's wingman (Alpha's second member slot, FUN_004f0380) carries Alpha's load, as the player's jet.
+	var wing := []
+	for u in tv.ai.combat.units.values():
+		var f: Dictionary = u.ent.pilot.formation if u.air else {}
+		if int(f.get("kind", 0)) == 1 and f.members.slice(0, 2).has(u.ent):
+			wing.append(u)
+	var same := wing.size() == 1
+	for u in wing:
+		same = same and u.stations[0].w.get("name", "") == "AIM-9L" and u.stations[3].w.get("name", "") == "2700LB"
+		same = same and int(u.stations[2].count) == 0
+	check(same, "the player's wingman (%d) carries Alpha's Arming load (AIM-9L, 2700LB)" % wing.size())
 	var st = tv.weapons.stores
 	check(
 		(

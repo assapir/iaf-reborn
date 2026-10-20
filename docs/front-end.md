@@ -2220,7 +2220,7 @@ dragging, the arrow otherwise (`SETCURSOR 506720`).
 * Station compatibility = the allowed counts: a weapon drops only on a station with `max[i] ≠ 0`, always with
   `max[i]` stores. The balance check is the only symmetry rule.
 * The loads go on the aircraft (`FUN_004f0140`) of **both** members of the flight (`FUN_004f0330` leader,
-  `FUN_004f0380` = `FUN_005bcb90`, the second member): `FUN_004541d0` sets the station, `FUN_00459410` redoes the
+  `FUN_004f0380` = `FUN_005bcb90`, the second member): `FUN_0044e230` → `FUN_004541d0` sets the station, `FUN_00459410` redoes the
   weight / drag. Yes applies the saved tables to every existing flight (`FUN_004eff50`), DEFAULT the defaults to
   slots 0..10. AI flights are edited only by picking their button (Alpha..Delta, enabled like the TSD's).
 * Any flight's leader type with jet art can be armed (the nine types); only the flyable-type rule of the buttons
@@ -2249,13 +2249,14 @@ dragging, the arrow otherwise (`SETCURSOR 506720`).
 * Yes / DEFAULT write `Settings.arm_loadouts` {flight: 9 × [id, count]} (= the aircraft's loads); at the flight,
   `player_weapons.gd` replaces pylons 0..8 of the player's loadout with its flight's entry, so the stores, their
   models, counts and weight / drag follow (gun, chaff, flares unchanged). Cleared when a mission loads.
+* The AI jets in a flight's two member slots carry its entry the same way (`combat.gd` `_armed`, as `FUN_004f0140`):
+  the player's wingman and both jets of every other flight, with their stations, weight / drag and pylon models.
+  Jets beyond the two member slots, and flights without an entry, carry their mission's default stores.
 * Not ported: the multiplayer paths (AG / Misc disabled in 0x29a / 0x213, the session wait, the `FUN_004f0000`
   messages).
 * Ours:
   * Esc on Arming acts as BACK (the original's Esc here is not traced).
   * The scrollbar's track click pages by 6 rows (UNCERTAIN, as the Controls page).
-  * The AI jets of a flight with a table entry carry it too (both member slots, as `FUN_004f0140`; `combat.gd`
-    `_armed`: their stations, weight / drag and pylon models). Other AI jets carry their mission's default stores.
   * A jet flown in place of a non-flyable type keeps its type's load.
   * Text is clipped to its box by whole characters.
 
