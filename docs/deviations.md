@@ -240,10 +240,14 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   - the Lavi's own wide-angle HUD (a reconstruction: its symbology is not public);
   - the F-15A/C HUD;
   - the F-4E's and the Mirage's optical gunsights;
-  - the F-35I's helmet display.
+  - the F-35I's helmet display;
+  - the MiG-23ML's АСП-17МЛ sight (a reconstruction: no flight data, the radar target and range scale on the sight)
+    and the MiG-29's ИЛС-31 HUD with its Щель-3УМ helmet sight (from simulator manuals), Cyrillic legends, metric
+    units.
 
   Ours where the sources stop: the EEGS wingspan (35 ft), the bingo (1500 lb), the sights' bombing depression set
-  automatically, the F-35's gun / A-G graphics (the F-16's).
+  automatically, the F-35's gun / A-G graphics (the F-16's), the MiGs' range-scale steps, gun range bars and bank-scale
+  spacing.
 
   With Real the dive and height warnings follow the real jet too: the F-16's break X and its "PULL UP" / "ALTITUDE"
   voice (GAAF and CARA ALOW), the F-35I's "PULL UP", no voice for these on the F-15C; the Kurnass 2000 and the Lavi

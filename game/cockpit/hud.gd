@@ -602,6 +602,7 @@ func real_hud() -> Dictionary:
 		"agl_ft": agl,
 		"vs_fpm": st.get("vs_fpm", 0.0),
 		"heading": st.get("heading", 0.0),
+		"pitch": pitch,
 		"roll": st.get("roll", 0.0),
 		"mach": st.get("mach", 0.0),
 		"g": st.get("g", 1.0),
@@ -613,6 +614,8 @@ func real_hud() -> Dictionary:
 		"gun_cross": gun,
 		"horizon": (horizon - _c) / _s,
 		"px_per_deg": px_deg / _s,
+		"radar_mode": int(rd.get("mode", 0)),
+		"ils": ils_lines(st.get("ils", Vector2.ZERO), _field()) if mode == 0 and cockpit.gear_handle_down else null,
 		"steerpoint": steer,
 		"target": target,
 		"dlz": rd.get("dlz", []) if not target.is_empty() else [],
@@ -637,9 +640,9 @@ func real_hud() -> Dictionary:
 	return _real
 
 
-## The cockpits with the Real DASH (the IAF F-16C/D's and F-15C/D's Elbit helmet).
+## The cockpits with a Real helmet sight: the IAF F-16C/D's and F-15C/D's Elbit DASH, the MiG-29's Щель-3УМ.
 static func real_dash(dir: String) -> bool:
-	return dir.get_file() in ["f16", "f15"]
+	return dir.get_file() in ["f16", "f15", "mig29"]
 
 
 ## A world point (X east, Y north, Z up) in HUD pixels from the HUD centre; behind the eye: null, or with `far` a

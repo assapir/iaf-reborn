@@ -170,3 +170,29 @@ func run() -> void:
 		)
 	)
 	check(ccip.field.any(func(p): return p.k == "line" and p.b == Vector2(5, 40)), "F-16 CCIP: the bomb fall line")
+
+	# The MiGs (docs/mig-cockpits.md §5–6): the MiG-23's АСП-17МЛ sight (no flight numbers; the range scale in km) and
+	# the MiG-29's ИЛС-31 (km/h, m, the heading in tens, ДВБ with the range scale in km), Cyrillic in the HUD's font.
+	var m23: Dictionary = rh.frame(field, base.merged({"cockpit": "converted/cockpits/mig23"}))
+	var t23 := _texts(m23.outer)
+	check(
+		not m23.sight and t23.has("45") and t23.has("28") and not t23.has("400") and not t23.has("ARM"),
+		"MiG-23: the sight's km range scale, no airspeed, no F-16 windows (%s)" % str(t23)
+	)
+	var m29: Dictionary = rh.frame(field, base.merged({"cockpit": "converted/cockpits/mig29"}))
+	var t29 := _texts(m29.outer)
+	check(
+		t29.has("741") and t29.has("1520") and t29.has("27") and t29.has("ДВБ") and t29.has("50") and t29.has("28"),
+		"MiG-29: 741 km/h, 1520 m, heading 27, ДВБ, the 50 km scale with the target at 28 km (%s)" % str(t29)
+	)
+	var m29h: Dictionary = rh.frame(
+		field, base.merged({"cockpit": "converted/cockpits/mig29", "off_boresight": true, "head_rel": Vector2(-30, 5)})
+	)
+	check(
+		_texts(m29h.outer).has("ШЛЕМ") and hud.real_dash("converted/cockpits/mig29"),
+		"MiG-29 looking aside: the Щель-3УМ helmet sight (%s)" % str(_texts(m29h.outer))
+	)
+	var font: SystemFont = hud.Img.arial()
+	var legends := "ДВБПРОТВШЛЕМНОПКГМРШЗЯФ"
+	var missing := Array(legends.split("")).filter(func(c): return not font.has_char(c.unicode_at(0)))
+	check(missing.is_empty(), "the HUD font has the Cyrillic legends' glyphs (missing %s)" % str(missing))

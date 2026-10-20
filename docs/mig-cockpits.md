@@ -52,8 +52,8 @@ docs/real-hud.md. Research date: 2026-10-20.
   * the MiG-23's SPO-15 lamps live;
   * the MiG-23's HSI bars and the RSBN range counter;
   * the MiG-23's hydraulic pressure gauge.
-* **Real HUD:** today `Jet::of_cockpit` gives both MiGs the **F-16's** HUD, because they fall into its `else`
-  branch. §5 and §6 describe each MiG's own sight / HUD and what the code needs.
+* **Real HUD:** built (2026-10-20): `Jet::MiG23` (`real_hud/mig23.rs`) and `Jet::MiG29` (`real_hud/mig29.rs`).
+  §5 and §6 describe each MiG's own sight / HUD; docs/real-hud.md says what ours draws.
 
 ## 2. MiG-23 panel (`mig23`)
 
@@ -231,6 +231,8 @@ shows its ILS (gear down), and the flags drop otherwise. The hydraulic gauge's t
 
 ### 5.2 Mapping onto our code
 
+**Built** (docs/real-hud.md "MiG-23ML"). The plan below is kept as the research's proposal.
+
 The ML's sight sits between the gyro sights (`sights.rs`) and the reconstructed HUDs (`kfir.rs`): a reticle-centred
 display with a few legends and no flight data. Layout: a reconstruction, as the Kfir's (docs/deviations.md entry
 needed).
@@ -246,7 +248,7 @@ needed).
   * A-G: the CCIP mark and fall line (as the Kfir's).
 * **Not drawn:** a ladder, tapes and numbers (not shown on the real sight: inferred); the helmet (none in the jet).
 * **Text:** Cyrillic legends. The Real HUD text goes through `hud.gd` `_gdi` with `Img.arial()`. Whether that font
-  has Cyrillic glyphs is open (to check).
+  has Cyrillic glyphs: yes (§7 question 8).
 * **Colour:** open; ours keeps the HUD colour until a source says otherwise.
 
 ## 6. Real HUD: MiG-29 9.12 (ИЛС-31, СЕИ-31)
@@ -312,6 +314,8 @@ ring, a time-to-release scale and «Г» at the pull-up.
 
 ### 6.2 Mapping onto our code
 
+**Built** (docs/real-hud.md "MiG-29 9.12"). The plan below is kept as the research's proposal.
+
 * **New:** `Jet::MiG29` (`of_cockpit`: `ends_with("mig29")`) and `real_hud/mig29.rs`. Layout from [EA] / [FC3] (sim
   sources built on the real one); docs/deviations.md entry needed.
 * **Reuse:**
@@ -332,7 +336,7 @@ ring, a time-to-release scale and «Г» at the pull-up.
   than tall; fit by the least inset, as the other jets).
 * **Not drawn:** the Ekran / ИПВ repeats (the MFDs stay), the toss mode (the game has none), the datalink commands
   (no ground control in the game).
-* **Text:** Cyrillic, as §5.2 (font coverage open).
+* **Text:** Cyrillic, as §5.2.
 
 ## 7. Open questions
 
@@ -345,7 +349,8 @@ ring, a time-to-release scale and «Г» at the pull-up.
 5. The real designations: КУС-*, ВДИ-30 (MiG-29), УУАП-72, ИТ-23: no source confirms them for these jets.
 6. The HUD colours of both jets, the АСП-17МЛ's field of view and reticle drawing.
 7. The lamp legends on both jets: the MiG-23's red boards and the sight's side lamps, the MiG-29's blocks (# 17).
-8. Whether the Real HUD's text font has Cyrillic glyphs.
+8. Answered: the Real HUD's text font (Arial, else Liberation Sans, with Godot's system fallback) has the Cyrillic
+   glyphs (`tests/godot/test_real_hud.gd`).
 9. The best unread source: an ML flight manual PDF on an expired Discord link (cited on the War Thunder forum[^wt-23]),
    and the Markovsky / Prikhodchenko book on Calameo[^calameo].
 

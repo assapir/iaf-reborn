@@ -10,6 +10,8 @@
 //! - `f15`: the F-15A/C HUD (TO 1F-15A-1, NADC 1976): moving tapes, no digital boxes.
 //! - `f35`: the F-35's helmet display (the forward "virtual HUD"; LM slides and flight-test video).
 //! - `sights`: the F-4E's AN/ASG-26 LCOSS and the Mirage IIICJ's CSF gyro gunsight (no HUD: a reticle only).
+//! - `mig23`: the MiG-23ML's АСП-17МЛ sight (radar / IRST data on the sight; no flight data; a reconstruction).
+//! - `mig29`: the MiG-29 9.12's ИЛС-31 HUD and the Щель-3УМ helmet sight (layout from the simulator manuals).
 
 mod dash;
 mod f15;
@@ -18,6 +20,8 @@ mod f35;
 mod k2000;
 mod kfir;
 mod lavi;
+mod mig23;
+mod mig29;
 mod sights;
 
 use crate::missile::Dlz;
@@ -31,6 +35,8 @@ const MR_DEG: f64 = 0.0572958;
 const NM: f64 = 1852.0;
 const FT: f64 = 0.3048;
 const MS_TO_KT: f64 = 1.943844;
+/// kt → km/h.
+const KT_KMH: f64 = 1.852;
 /// Ours: the bingo fuel (lb) below which the bingo cue shows (the real one is set by the pilot).
 pub const BINGO_LBS: f64 = 1500.0;
 
@@ -51,10 +57,14 @@ pub enum Jet {
     Kfir,
     /// The Lavi's wide-angle HUD (a reconstruction).
     Lavi,
+    /// The MiG-23ML's АСП-17МЛ sight (a reconstruction).
+    MiG23,
+    /// The MiG-29 9.12's ИЛС-31 HUD.
+    MiG29,
 }
 
 impl Jet {
-    /// The display of a cockpit directory: f4-2000, cfir and lavi their own; f16 (and anything else) the F-16's.
+    /// The display of a cockpit directory: each jet's own; f16 (and anything else) the F-16's.
     pub fn of_cockpit(dir: &str) -> Self {
         let d = dir.to_ascii_lowercase();
         if d.contains("f35") {
@@ -71,6 +81,10 @@ impl Jet {
             Jet::Kfir
         } else if d.ends_with("lavi") {
             Jet::Lavi
+        } else if d.ends_with("mig23") {
+            Jet::MiG23
+        } else if d.ends_with("mig29") {
+            Jet::MiG29
         } else {
             Jet::F16
         }
@@ -250,6 +264,8 @@ pub struct Input {
     pub agl_ft: Option<f64>,
     pub vs_fpm: f64,
     pub heading_deg: f64,
+    /// Pitch (nose up +) and roll (right wing down +), degrees.
+    pub pitch_deg: f64,
     pub roll_deg: f64,
     pub mach: f64,
     pub g: f64,
@@ -264,6 +280,10 @@ pub struct Input {
     /// degree: the conformal ladder.
     pub horizon: P,
     pub px_per_deg: f64,
+    /// The radar mode (`radar::Mode` as its number: 3 BORE, 6 ACM, …).
+    pub radar_mode: i64,
+    /// The ILS bars drawn over the HUD (NAV, gear down): the localizer's x and the glide slope's y (HUD px).
+    pub ils: Option<P>,
     pub steerpoint: Option<Steerpoint>,
     pub target: Option<Target>,
     /// The selected store's launch zone at the target (m).
@@ -313,6 +333,7 @@ impl RealHud {
         self.max_g = self.max_g.max(i.g);
         match i.jet {
             Jet::F16 | Jet::F15 if i.off_boresight => dash::frame(i),
+            Jet::MiG29 if i.off_boresight => mig29::helmet(i),
             Jet::F16 => f16::frame(f, i, self.max_g),
             Jet::F15 => f15::frame(f, i),
             Jet::F35 => f35::frame(f, i, self.max_g),
@@ -321,6 +342,8 @@ impl RealHud {
             Jet::Kurnass2000 => k2000::frame(f, i),
             Jet::Kfir => kfir::frame(f, i),
             Jet::Lavi => lavi::frame(f, i),
+            Jet::MiG23 => mig23::frame(f, i),
+            Jet::MiG29 => mig29::frame(f, i),
         }
     }
 }
@@ -495,12 +518,17 @@ const MUZZLE: f64 = 1036.0;
 /// ago are now — the gun line moved by the jet's pitch rate (n − cos φ)·g / V, and gravity — and the funnel's half
 /// width there (the wingspan at that range).
 fn funnel_at(i: &Input, r_ft: f64, g: f64) -> (P, f64) {
+    funnel_at_v(i, r_ft, g, MUZZLE)
+}
+
+/// `funnel_at` for a gun of muzzle speed `muzzle` (m/s).
+fn funnel_at_v(i: &Input, r_ft: f64, g: f64, muzzle: f64) -> (P, f64) {
     const G: f64 = 9.80665;
     let v = i.tas_ms.max(50.0);
     let roll = i.roll_deg.to_radians();
     let omega = (g - roll.cos()) * G / v;
     let r = r_ft * FT;
-    let t = r / (MUZZLE + v);
+    let t = r / (muzzle + v);
     let drop = gravity_drop(t, r);
     let down = (omega * t + drop * roll.cos()).to_degrees();
     let side = (drop * roll.sin()).to_degrees();
@@ -512,11 +540,16 @@ fn funnel_at(i: &Input, r_ft: f64, g: f64) -> (P, f64) {
 /// `max_ft` (3,000 ft without a lock; longer, toward the HUD's bottom, once the radar tracks the target) is the aim
 /// point at that range and whose width is the wingspan there.
 fn funnel(p: &mut Vec<Prim>, i: &Input, max_ft: f64) {
+    funnel_v(p, i, max_ft, MUZZLE);
+}
+
+/// `funnel` for a gun of muzzle speed `muzzle` (m/s).
+fn funnel_v(p: &mut Vec<Prim>, i: &Input, max_ft: f64, muzzle: f64) {
     let mut left = Vec::new();
     let mut right = Vec::new();
     let mut r = 600.0;
     while r <= max_ft {
-        let (c, half) = funnel_at(i, r, i.g);
+        let (c, half) = funnel_at_v(i, r, i.g, muzzle);
         left.push((c.0 - half, c.1));
         right.push((c.0 + half, c.1));
         r += 200.0;
@@ -568,6 +601,33 @@ fn dlz_scale(p: &mut Vec<Prim>, x: f64, y0: f64, half: f64, t: Target, z: Dlz) {
     p.push(line((x, r), (x - 3.0, r - 2.0)));
     p.push(line((x, r), (x - 3.0, r + 2.0)));
     p.push(text((x - 5.0, r + 3.0), format!("{}>", (t.closure * MS_TO_KT / 10.0).round() as i64 * 10), Align::Right));
+}
+
+/// A distance in km as the Soviet displays show it: tenths below 10 km, whole km above.
+fn km(m: f64) -> String {
+    let k = m / 1000.0;
+    if k < 9.95 { format!("{k:.1}") } else { format!("{:.0}", k) }
+}
+
+/// A metric range scale (the MiGs'): 0 at the bottom, the smallest of `scales_km` above Rmax and the range at the top
+/// (its number above the line); Rmax / Rmin ticks right of the line; the target's caret left of it with its range in
+/// km. Rmin and Rmax come from the game's launch zone (`Dlz`).
+fn km_scale(p: &mut Vec<Prim>, x: f64, y0: f64, half: f64, t: Target, z: Option<Dlz>, scales_km: &[f64]) {
+    let far = z.map_or(0.0, |z| z.max).max(t.range_m);
+    let top = scales_km.iter().copied().find(|&k| k * 1000.0 > far).unwrap_or(scales_km[scales_km.len() - 1]);
+    let y = |m: f64| y0 + half - (m / (top * 1000.0)).clamp(0.0, 1.0) * 2.0 * half;
+    p.push(line((x, y0 - half), (x, y0 + half)));
+    p.push(text((x, y0 - half - 2.0), format!("{}", top as i64), Align::Centre));
+    if let Some(z) = z {
+        for m in [z.max, z.min] {
+            p.push(line((x, y(m)), (x + 4.0, y(m))));
+        }
+    }
+    let r = y(t.range_m);
+    p.push(line((x, r), (x - 3.0, r - 2.0)));
+    p.push(line((x, r), (x - 3.0, r + 2.0)));
+    p.push(line((x - 3.0, r - 2.0), (x - 3.0, r + 2.0)));
+    p.push(text((x - 5.0, r + 3.0), km(t.range_m), Align::Right));
 }
 
 #[cfg(test)]
@@ -646,6 +706,8 @@ mod tests {
         assert_eq!(Jet::of_cockpit("converted/cockpits/mirage"), Jet::Mirage);
         assert_eq!(Jet::of_cockpit("converted/cockpits/f4-2000"), Jet::Kurnass2000);
         assert_eq!(Jet::of_cockpit("converted/cockpits/cfir"), Jet::Kfir);
+        assert_eq!(Jet::of_cockpit("converted/cockpits/mig23"), Jet::MiG23);
+        assert_eq!(Jet::of_cockpit("converted/cockpits/mig29"), Jet::MiG29);
     }
 
     #[test]

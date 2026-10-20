@@ -116,7 +116,7 @@ fn mode_text(mode: i64, ranging: bool) -> &'static str {
 }
 
 /// The heading scale on the field's top, the centre caret and, under it, the steering bug at the waypoint's bearing: a filled triangle under the scale, held at its end with an arrow pointing the way when outside it.
-fn heading(p: &mut Vec<Prim>, f: Field, hdg: f64, bearing: Option<f64>) {
+pub(super) fn heading(p: &mut Vec<Prim>, f: Field, hdg: f64, bearing: Option<f64>) {
     let y = f.top + 6.0;
     let half = 0.5 * (f.right - f.left) - 14.0;
     let k = 2.0 * half / HDG_WINDOW;

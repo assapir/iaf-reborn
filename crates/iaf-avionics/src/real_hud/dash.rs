@@ -16,12 +16,7 @@ pub(super) fn frame(i: &Input) -> Frame {
     let at = |dx: f64, dy: f64| (c.0 + dx, c.1 + dy);
     let r = i.deg(10.0);
     let w = &i.weapons;
-    // The aiming cross: a plus with a centre gap on the helmet's line of sight.
-    let (g, l) = (i.mr(5.0), i.mr(20.0));
-    o.push(line(at(-l, 0.0), at(-g, 0.0)));
-    o.push(line(at(g, 0.0), at(l, 0.0)));
-    o.push(line(at(0.0, -l), at(0.0, -g)));
-    o.push(line(at(0.0, g), at(0.0, l)));
+    aiming_cross(o, i);
     // The line-of-sight indicator: a circle whose gap points where the head looks from the nose (12 o'clock = ahead and
     // up, 3 o'clock = right).
     let (az, el) = i.head_rel_deg;
@@ -67,6 +62,16 @@ pub(super) fn frame(i: &Input) -> Frame {
         diamond(o, p, i.mr(8.0));
     }
     fr
+}
+
+/// The helmet's aiming cross: a plus with a centre gap on its line of sight.
+pub(super) fn aiming_cross(o: &mut Vec<Prim>, i: &Input) {
+    let at = |dx: f64, dy: f64| add(i.head_view, (dx, dy));
+    let (g, l) = (i.mr(5.0), i.mr(20.0));
+    o.push(line(at(-l, 0.0), at(-g, 0.0)));
+    o.push(line(at(g, 0.0), at(l, 0.0)));
+    o.push(line(at(0.0, -l), at(0.0, -g)));
+    o.push(line(at(0.0, g), at(0.0, l)));
 }
 
 fn mode_text(w: &Weapons) -> String {

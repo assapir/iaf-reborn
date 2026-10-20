@@ -7,8 +7,8 @@ aircraft it says what is shown, where, in what format, and how sure we are.
 Key facts:
 - Researched October 2026 from public sources. The repo keeps no source images.
 - Real-world documents describe the F-16, F-15, F-4E, Mirage IIICJ and F-35 displays [V].
-- The Lavi, Kurnass 2000 and Kfir layouts and the DASH helmet's layout are public only in outline; ours are
-  reconstructions [R].
+- The Lavi, Kurnass 2000, Kfir and MiG-23 layouts and the DASH helmet's layout are public only in outline; ours are
+  reconstructions [R]. The MiG-29's comes from simulator manuals (docs/mig-cockpits.md §6).
 - [What ours draws (status)](#what-ours-draws-status) lists, per jet, what the code draws and what it leaves out.
 - [IFF](#iff-identification-friend-or-foe) says how each real jet shows a friend, with a proposed build.
 
@@ -41,6 +41,8 @@ Terms used throughout:
 | Kfir C2/C7 | `cfir` | El-Op HUD with the Elbit System 82 / WDNS-341; layout not public | modes [S], layout [R] |
 | Mirage IIICJ (Shahak) | `mirage` | CSF 95 gyro gunsight (reflector, no HUD) | CSF 97K manual drawings [V] + IAF books [S] |
 | F-35I (Adir) | `extra/planes/f35i` | Gen III helmet display (no HUD) | Lockheed Martin (LM) slides + flight-test video [V] |
+| MiG-23ML | `mig23` | АСП-17МЛ sight: radar / IRST data on the sight, no flight data | outline[^airwar-ml]; layout inferred |
+| MiG-29 9.12 | `mig29` | ИЛС-31 HUD (СЕИ-31); Щель-3УМ helmet sight looking aside | simulator manuals built on the real jet[^ea29][^fc3] |
 | F-16C/D, F-15C/D helmet (looking aside) | `f16`, `f15` | Elbit DASH III (Display And Sight Helmet) | fielding / optics [S]; symbology from the DASH-derived JHMCS [SIM]; layout [R] |
 
 ## F-16C/D (Block 30/40/50)
@@ -367,6 +369,57 @@ follows:
 - No steering line, no distance or time beside the square [R: none is visible in either frame]. The readouts stay in
   the steerpoint block (`001 110/22.0` and the time).
 
+## MiG-23ML: АСП-17МЛ sight (no HUD flight data)
+
+The research, with its sources, is docs/mig-cockpits.md §5. The ML has no radar scope: the radar's target, the IRST
+data and the gun reticle show on the АСП-17МЛ sight[^airwar-ml]. No source shows a ladder, tapes or flight numbers on
+it (inferred), and the reticle's drawing is not public. Ours (`real_hud/mig23.rs`) is a reconstruction:
+- **Every mode but the gun:** a fixed cross at the gun cross. No numbers, no ladder, no heading.
+- **NAV:** a small steering ring on the waypoint, an X when it is held at the field's edge. With the gear down, «К»
+  (course) and «Г» (glide) label the ILS bars the HUD draws[^n003e].
+- **A-A missiles:** the target diamond, held at the sight's designation limits (±12° in azimuth, +16 / −18°
+  vertically[^airwar-ml]) and at the field's edge; «НОП» (aiming error too large) while it is held at the limits
+  (inferred mapping). The range scale on the right in km: 3 / 5 / 10 / 20 / 45 km (3–20 km uncertain, 45 km
+  inferred), with Rmax / Rmin and the target's caret and range. «ПР» (launch authorised) with the shoot cue. The IR
+  missile's seeker as a small circle.
+- **A-A gun:** a ring and pipper on the game's lead point; with a lock the range bar on the ring (a full turn =
+  2,000 m, inferred).
+- **A-G:** the CCIP / strafe pipper, the fall line from the fixed cross.
+- **Colour:** the HUD's (the real one is open). The game's helmet display stays the original's (the ML has no helmet
+  sight: inferred).
+- **Not drawn:** the radar / IRST mode names (БСВ, Т-I…), the «Лазурь» datalink commands, a close-combat scan.
+
+## MiG-29 9.12: ИЛС-31 HUD and Щель-3УМ helmet sight
+
+The research, with its sources, is docs/mig-cockpits.md §6. The layout follows the simulator manuals built from the
+real jet[^ea29][^fc3]. Ours (`real_hud/mig29.rs`):
+- **Every mode:** indicated airspeed in km/h upper left; the height in m upper right: the radar height to 1 m below
+  1,000 m, else the barometric height to 10 m. The heading tape on top in tens of degrees (the Kfir's tape). The
+  pitch scale on the right (5° ticks, labels every 10°, a fixed caret); the horizon line; the bank scale at the
+  bottom (ticks at 0, ±15, ±30, ±45°: inferred spacing); the fixed aircraft cross at the boresight.
+- **Mode name, lower left:** МРШ (route), ПОС (landing: the gear down), ДВБ (long-range combat: the MRM), ТП / БВБ
+  / Ф0 (the IR missile: the seeker, the radar's ACM, the radar's BORE), ОПТ ЗЕМЛЯ (A-G).
+- **NAV:** the steering circle, moved sideways by the bearing to the waypoint (held inside the field); the
+  waypoint's range in km at the bottom centre.
+- **A-A:** the target diamond (an X when held at the field's edge); the range scale on the left in km, 10 / 25 / 50 /
+  100 km (inferred from the manual's nautical-mile steps), with Rmax / Rmin and the target's caret and range;
+  «ПР» with the shoot cue, «ОТВ» (break away) inside Rmin; the MRM's steering circle; the IR seeker's lock strobe.
+- **Close combat:** the radar's ACM draws the vertical scan (two lines from 10° below to 50° above the boresight)
+  with «РЛ»; the radar's BORE draws the 2.5° circle round the BORE cross (Ф0).
+- **Gun:** with a lock, the ring and cross on the game's lead point with the range bar (a full turn = 1,200 m,
+  inferred); without one, the funnel for the GSh-30-1's 860 m/s muzzle speed[^gsh30].
+- **A-G:** the impact pipper and its fall line from the aircraft cross.
+- **Looking aside:** the Щель-3УМ helmet sight: the DASH's aiming cross on the line of sight, «ШЛЕМ», a flashing
+  «ПР» with the shoot cue, an X outside the seeker's limits (±60° in azimuth, +60 / −14°), the IR seeker's diamond.
+- **Colour:** the HUD's (the real one is open).
+- **Not drawn (no game value):** the commanded speed and height, the acceleration triangle, Rtr, «Г» (zoom climb),
+  ВЗВ (return), ОПТ (A-A optical aiming), the A-G range scale and its «ОТВ», the toss mode, the datalink commands,
+  the rounds left.
+
+**Text:** the legends are Cyrillic. The HUD font (`Img.arial()`: Arial, else Liberation Sans) has the glyphs, and
+Godot's system font fallback covers any font without them; `tests/godot/test_real_hud.gd` checks every legend's
+letters.
+
 ## DASH helmet (F-16D, F-15C)
 
 The Elbit **DASH** (Display And Sight Helmet) puts flight and weapon data on the visor and aims by the pilot's look.
@@ -542,6 +595,7 @@ game's rule (docs/cockpit.md "break X", docs/sound.md §4).
 | Lavi, Kurnass 2000 | open (none drawn) | the game's Betty rule (the jets' voice systems are open[^betty]) |
 | Kfir | open (none drawn) | none (no voice[^betty]) |
 | F-4E, Mirage | none: the optical sights have no such mark (inferred from the sight manuals above) | none (no voice[^betty]) |
+| MiG-23, MiG-29 | open (none drawn) | none with the Real HUD (the jets' voice systems are open) |
 
 F-16 ground avoidance advisory (GAAF, `crates/iaf-avionics/src/gaaf.rs`)[^dash34gaaf]:
 - Active with the gear up, above 50 ft AGL and descending at 960 fpm or more.
@@ -607,7 +661,14 @@ its scale. The original HUD keeps the original layout.
   ladder and marker, SRM / MRM / LCOS gun / CCIP / strafe symbols, the launch-range scale, SHOOT / FUEL.
 - F-35: the forward virtual HUD and the off-boresight head set; the gun / A-G graphics are the F-16's
   (reconstruction).
-- DASH: in the F-16 / F-15 cockpits only; the Lavi, Kurnass 2000 and Kfir keep the original's helmet display.
+- MiG-23: its own reconstruction (`mig23.rs`, the section above): the fixed cross, the steering ring, К / Г on the ILS,
+  the target diamond at the designation limits with «НОП», the km range scale, «ПР», the gun ring with its metre range
+  bar, the CCIP pipper. No flight data, as the real sight.
+- MiG-29: its own HUD (`mig29.rs`, the section above): km/h, m, the heading tape in tens, the right-hand pitch scale,
+  the horizon line, the bank scale, the steering circle, the waypoint range in km, the mode names, the km range scale
+  with «ПР» / «ОТВ», the vertical scan, Ф0, the gun ring or GSh-30-1 funnel, the A-G pipper; the Щель-3УМ looking
+  aside.
+- DASH: in the F-16 / F-15 cockpits only (the MiG-29 has its Щель-3УМ); the Lavi, Kurnass 2000 and Kfir keep the original's helmet display.
   - When: looking aside with the Real HUD on (the original's dash condition: the panel panned ≥ 250 px aside or
     ≥ 200 px down).
   - Drawn in green, around the helmet's line of sight: the aiming cross, the line-of-sight circle with its gap, G /
@@ -670,3 +731,8 @@ Simulator documentation (used only for detail, each fact tagged [SIM] above):
 [^dash34ccip]: T.O. GR1F-16CJ-34-1-1, pp. 1-429..1-430 "CCIP Visual Submode" and fig. 1-283 "CCIP Operation",
     https://falcon.blu3wolf.com/Docs/HAF-F16-34.pdf (PDF pages 445-446); the CCRP solution cue held in its uppermost
     position, p. 1-428 "No Solution Condition" (PDF page 444).
+[^airwar-ml]: airwar.ru, "МиГ-23МЛ" (radar data on the sight, the designation limits, НОП): https://www.airwar.ru/enc/fighter/mig23ml.html
+[^n003e]: "N003E modes", Soviet aircraft tech (the К / Г symbols in the НВГ mode): https://sites.google.com/site/sovietaircrafttech/mig-23/n003e/modes
+[^ea29]: Eagle Dynamics, *DCS MiG-29A Early Access Manual* (Sept 2025), pp. 65–104 (HUD): https://www.digitalcombatsimulator.com/upload/iblock/aa2/ulzl67k42kj99ushy9m29hlvmtk0y2tg/DCS%20MiG-29A%20Early%20Access%20Manual%20EN.pdf
+[^fc3]: Eagle Dynamics, *DCS MiG-29 Flight Manual* (Flaming Cliffs 3), pp. 40–59 (HUD): https://www.digitalcombatsimulator.com/upload/iblock/463/DCS%20MIG-29%20Flight%20Manual%20EN.pdf
+[^gsh30]: Wikipedia, "Gryazev-Shipunov GSh-30-1" (muzzle velocity 860 m/s): https://en.wikipedia.org/wiki/Gryazev-Shipunov_GSh-30-1

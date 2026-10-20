@@ -67,8 +67,8 @@ impl IafRealHud {
     }
 
     /// One frame. `field` the symbology field (Rect2, HUD px from the HUD centre); `i` {cockpit (the cockpit dir), time, off_boresight, head_heading, head_view, head_rel ([az, el]),
-    /// kcas, ground_kt, tas_ms, alt_ft, agl_ft (null), vs_fpm, heading, roll, mach, g, aoa, gear_down, fuel_lbs, fpm
-    /// (null), boresight, gun_cross, horizon, px_per_deg, steerpoint ({number, bearing, dist_m, eta_s, at} or {}),
+    /// kcas, ground_kt, tas_ms, alt_ft, agl_ft (null), vs_fpm, heading, pitch, roll, mach, g, aoa, gear_down, fuel_lbs, fpm
+    /// (null), boresight, gun_cross, horizon, px_per_deg, radar_mode, ils (the ILS bars' [x, y] or null), steerpoint ({number, bearing, dist_m, eta_s, at} or {}),
     /// target ({range_m, closure, at, aspect} or {}), dlz ([max, min] or []), weapons {hud_mode, selected, srm, mrm, seeker,
     /// lcos, pipper, steering, circle, shoot, delay (the delayed CCIP's time to go, or null), delay_at
     /// (the target under its pipper), designated}}. Returns {field, outer, colour (Color or null), sight (no HUD)}.
@@ -92,6 +92,7 @@ impl IafRealHud {
             agl_ft: num(&i, "agl_ft"),
             vs_fpm: f("vs_fpm"),
             heading_deg: f("heading"),
+            pitch_deg: f("pitch"),
             roll_deg: f("roll"),
             mach: f("mach"),
             g: f("g"),
@@ -103,6 +104,8 @@ impl IafRealHud {
             gun_cross: pt(&i, "gun_cross").unwrap_or_default(),
             horizon: pt(&i, "horizon").unwrap_or_default(),
             px_per_deg: f("px_per_deg"),
+            radar_mode: f("radar_mode") as i64,
+            ils: pt(&i, "ils"),
             steerpoint: dict("steerpoint").map(|s| Steerpoint {
                 number: num(&s, "number").unwrap_or_default() as i64,
                 bearing_deg: num(&s, "bearing").unwrap_or_default(),
