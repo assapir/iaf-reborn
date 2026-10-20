@@ -44,7 +44,7 @@ Set these on the Preferences screen before the flight. Every row starts at the 1
 | Extras | Flight data | Real aircraft | The Kfir C7 numbers (section 10) |
 | Extras | Weapon data | Real weapons | Radar range, gun rounds, missile weights, speeds and ranges |
 | Extras | HUD | Real | The Kfir's HUD (looking aside shows the original's helmet display) |
-| Extras | Better cockpit | Better | The panel compass turns with the heading (section 3) |
+| Extras | Better cockpit | Better | The panel compass turns with the heading; live engine and fuel needles, sharp display pages (section 3) |
 | Graphics → MORE | Sky, Terrain close up, Imagery | Atmospheric, Detailed, Survey 2 m / Sentinel-2 | A physical sky, ground detail and photo imagery, if setup converted it |
 | Graphics → MORE | Airbases | Detailed | Runways, taxiways and aprons with real markings near the ground |
 | Physics | every row | on | Section 10 lists the ones that change how the Kfir flies |
@@ -94,6 +94,23 @@ a still picture). **V** brings the panel up into view, **PgUp** / **PgDn** slide
 
 **Example**: the HUD's heading scale is a 30° window; the compass shows the whole circle. To fly 090° from 320°, find
 9 on the card: it sits on the card's right half, so turn right and roll out when 9 reaches the lubber mark.
+
+### Better cockpit: the panel
+
+With Extras → Better cockpit on, the engine and fuel needles on the right of the panel show the flight model's own
+values (in the 1998 game they read rough values). The display's pages are drawn sharp at the screen's resolution.
+
+![The engine and fuel gauges with Better cockpit on](shots/cfir/better_panel.png)
+
+1. **RPM**: the engine's real RPM, 60 % at idle, 100 % at military. It needs about 3 s from idle to military.
+2. **Exhaust temperature**: about 450 °C at idle and 650 °C at military, a little more in AB; 900 °C with an engine
+   fire. It rises in about 2 s and falls slowly.
+3. **Throttle**: military at the full mark; in AB it moves on past military, further in AB 2.
+4. **Fuel needle**: all the fuel you carry, the drop tanks too, over the most the jet holds with them. It falls from
+   the first pound burnt (in the 1998 game it stays full until the tanks are empty).
+
+**Example**: take off with a drop tank: the fuel needle starts full and falls from the first minute. At half scale
+you have half of all the fuel you took off with, the tank's included.
 
 ---
 

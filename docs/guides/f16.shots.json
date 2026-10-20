@@ -237,6 +237,136 @@
   ]
  },
  {
+  "name": "better_panel",
+  "caption": "The panel with Better cockpit on",
+  "mission": 231,
+  "jet": -1,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   },
+   "better_cockpit": true
+  },
+  "start": "airborne",
+  "crop": "panel",
+  "panel": 1.0,
+  "annotations": [
+   {
+    "n": 1,
+    "px": [
+     0.194,
+     0.139
+    ],
+    "label_at": [
+     0.1,
+     0.1
+    ]
+   },
+   {
+    "n": 2,
+    "px": [
+     0.81,
+     0.435
+    ],
+    "label_at": [
+     0.7,
+     0.3
+    ]
+   },
+   {
+    "n": 3,
+    "px": [
+     0.828,
+     0.477
+    ],
+    "label_at": [
+     0.93,
+     0.36
+    ]
+   },
+   {
+    "n": 4,
+    "px": [
+     0.805,
+     0.543
+    ],
+    "label_at": [
+     0.95,
+     0.52
+    ]
+   },
+   {
+    "n": 5,
+    "px": [
+     0.809,
+     0.631
+    ],
+    "label_at": [
+     0.95,
+     0.63
+    ]
+   },
+   {
+    "n": 6,
+    "px": [
+     0.81,
+     0.756
+    ],
+    "label_at": [
+     0.95,
+     0.76
+    ]
+   },
+   {
+    "n": 7,
+    "px": [
+     0.651,
+     0.689
+    ],
+    "label_at": [
+     0.56,
+     0.47
+    ]
+   }
+  ],
+  "crop_at": [
+   1040,
+   130
+  ],
+  "crop_w": 0.5,
+  "actions": [
+   "wait:1"
+  ]
+ },
+ {
   "name": "landing_final",
   "caption": "Final approach, the gear-down HUD",
   "mission": 311,

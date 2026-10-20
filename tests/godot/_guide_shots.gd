@@ -17,7 +17,8 @@
 # whole panel), "dive" (an airborne start in a `dive_deg` dive `dive_agl` m above the ground), view ("cockpit" / "hud", the HUD-only view / "external"), crop ("full", "hud", "dash", "mfd_left", "mfd_right"; "hud" takes
 # `crop_w`, the box's width as a fraction of the frame, default 0.38: smaller zooms in; and `crop_dy`, the box moved down
 # by that fraction of the frame's height, negative moves it up, default 0: a gunsight's reticle that sits high;
-# "compass": a 16:10 box around the panel's compass / HSI dial, game/cockpit/compass.gd, with the same crop_w / crop_dy).
+# "compass": a 16:10 box around the panel's compass / HSI dial, game/cockpit/compass.gd, with the same crop_w / crop_dy;
+# "panel": the same box around `crop_at`, [x, y] panel px of the 1920-px strip).
 # Callouts ("annotations": [{n, anchor, label_at | off}]) are drawn on the picture: a numbered yellow marker at
 # `label_at` (a fraction of the crop) or at the anchor + `off` (× the crop's shorter side; [0, 0] puts the marker on
 # the anchor, no arrow) with an arrow to the anchor. The anchor is
@@ -129,7 +130,7 @@ func _shot(name: String, e: Dictionary) -> void:
 	for i in 40:
 		await _tick()
 	var rect := _crop(String(e.get("crop", "full")), root.get_viewport().get_texture().get_size(), float(e.get("crop_w", 0.38)),
-			float(e.get("crop_dy", 0.0)))
+			float(e.get("crop_dy", 0.0)), e.get("crop_at", [0, 0]))
 	_info(name)
 	var anns: Array = e.get("annotations", [])
 	if not anns.is_empty():
@@ -297,7 +298,7 @@ func _action(a: String) -> void:
 ## The picture's crop: the whole frame, the HUD (a 16:10 box around the HUD centre, 38 % of the frame wide), the helmet
 ## display ("dash", around the head's line of sight) or one
 ## MFD with a margin.
-func _crop(c: String, size: Vector2i, hud_w := 0.38, hud_dy := 0.0) -> Rect2i:
+func _crop(c: String, size: Vector2i, hud_w := 0.38, hud_dy := 0.0, at: Array = [0, 0]) -> Rect2i:
 	var full := Rect2i(Vector2i.ZERO, size)
 	match c:
 		"hud":
@@ -312,10 +313,12 @@ func _crop(c: String, size: Vector2i, hud_w := 0.38, hud_dy := 0.0) -> Rect2i:
 			var wd := int(size.x * 0.45)
 			var ht := int(wd * 10 / 16)
 			return Rect2i(Vector2i(los) - Vector2i(wd / 2, ht / 2), Vector2i(wd, ht)).intersection(full)
-		"compass":  # the panel's compass / HSI dial (compass.gd): a 16:10 box around it, crop_w of the frame wide
+		"compass", "panel":  # the compass / HSI dial (compass.gd) or the panel point `at`: a 16:10 box, crop_w wide
 			var ck = tv.cockpit
-			var spec: Dictionary = load("res://cockpit/compass.gd").instruments(String(ck.cockpit_dir).get_file())[0]
-			var ctr: Vector2 = ck.panel_to_screen(spec.centre.x, spec.centre.y) + ck.global_position
+			var p := Vector2(at[0], at[1])
+			if c == "compass":
+				p = load("res://cockpit/compass.gd").instruments(String(ck.cockpit_dir).get_file())[0].centre
+			var ctr: Vector2 = ck.panel_to_screen(p.x, p.y) + ck.global_position
 			var wd := int(size.x * hud_w)
 			var ht := int(wd * 10 / 16)
 			ctr.y += size.y * hud_dy

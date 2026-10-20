@@ -51,6 +51,7 @@ Set these on the Preferences screen before the flight. Every row starts at the 1
 | Extras | Flight data | Real aircraft | The Lavi design numbers (section 10) |
 | Extras | Weapon data | Real weapons | Radar range, missile weights, speeds and ranges |
 | Extras | HUD | Real | The Lavi's HUD reconstruction |
+| Extras | Better cockpit | Better | Live engine and fuel needles, the panel clock, sharp MFD pages (section 3) |
 | Graphics → MORE | Sky, Terrain close up, Imagery | Atmospheric, Detailed, Survey 2 m / Sentinel-2 | A physical sky, ground detail and photo imagery, if setup converted it |
 | Graphics → MORE | Airbases | Detailed | Runways, taxiways and aprons with real markings near the ground |
 | Physics | every row | on | Section 10 lists the ones that change how the Lavi flies |
@@ -87,6 +88,26 @@ mode. **W** / **Shift+W** pick the next / previous steerpoint. **H** changes the
 **Example**: the start of mission 231. `WP 1`, `4.7 NM`, `00:35`: steerpoint 1 is 35 s ahead. The bug sits over the
 centre of the heading scale, so the steerpoint is straight ahead; its diamond waits at the bottom edge. Lower the
 nose until the diamond leaves the edge and fly the marker onto it.
+
+### Better cockpit: the panel
+
+With Extras → Better cockpit on, the engine and fuel needles show the flight model's own values, the panel clock runs,
+and the MFD pages are drawn sharp (in the 1998 game the needles read rough values and the clock stays still). **V**
+brings the panel up into view, **PgUp** / **PgDn** slide it.
+
+![The Lavi panel with Better cockpit on](shots/lavi/better_panel.png)
+
+1. **Throttle**: military at the full mark; in AB it moves on past military, further in AB 2.
+2. **RPM**: the engine's real RPM, 60 % at idle, 100 % at military. It needs about 3 s from idle to military.
+3. **Turbine temperature**: about 450 °C at idle and 650 °C at military, a little more in AB; 900 °C with an engine
+   fire. It rises in about 2 s and falls slowly.
+4. **Fuel needle**: all the fuel you carry, the drop tanks too, over the most the jet holds with them. It falls from
+   the first pound burnt (in the 1998 game it stays full until the tanks are empty).
+5. **Clock**: the time of day in the mission, hour and minute hands.
+6. **MFD pages**: the same pages, drawn at the screen's resolution. The TV and FLIR pictures stay as they are.
+
+**Example**: select AB 2 (**8**): the throttle needle moves past military at once, the RPM needle follows in about
+3 s, and the temperature rises a little above 650 °C. Back at military the temperature falls over several seconds.
 
 ---
 

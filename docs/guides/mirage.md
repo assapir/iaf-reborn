@@ -43,7 +43,7 @@ Set these on the Preferences screen before the flight. Every row starts at the 1
 | Extras | Flight data | Real aircraft | The Mirage IIICJ numbers (section 9) |
 | Extras | Weapon data | Real weapons | Radar range, gun rounds, missile weights, speeds and ranges |
 | Extras | HUD | Real | The CSF 95 gunsight |
-| Extras | Better cockpit | Better | The bearing-distance-heading dial turns with the heading; its pointers show the waypoint (section 3) |
+| Extras | Better cockpit | Better | The bearing-distance-heading dial turns with the heading and its pointers show the waypoint; the fuel needle counts the tanks, the clock and the vertical-speed dial work (section 3) |
 | Graphics → MORE | Sky, Terrain close up, Imagery | Atmospheric, Detailed, Survey 2 m / Sentinel-2 | A physical sky, ground detail and photo imagery, if setup converted it |
 | Graphics → MORE | Airbases | Detailed | Runways, taxiways and aprons with real markings near the ground |
 | Physics | every row | on | Section 9 lists the ones that change how the Mirage flies |
@@ -79,7 +79,8 @@ Speed, altitude and heading are on the panel: fly with its instruments.
 
 1. **Altimeter**.
 2. **Airspeed** (true airspeed): the needle makes one turn per 1,000 kt, so each figure on the dial is 100 kt
-   (5 = 500 kt). The Mirage has no vertical-speed dial.
+   (5 = 500 kt). The vertical-speed dial at the panel's upper left stays still in the 1998 game (section 3, Better
+   cockpit).
 3. **Attitude indicator**: the horizon disc.
 4. **Fuel**.
 5. **Chaff and flare counters**: `CHF 060`, `FLR 030`.
@@ -103,6 +104,22 @@ route (in the 1998 game it is a still picture). **W** / **Shift+W** pick the nex
 **Example**: here the arrow points about 90° right of the nose and the needle about 60° right: the waypoint is off
 your right wing. Turn right until the arrow points up. When the arrow and the needle lie on each other you are on the
 leg's line.
+
+### Better cockpit: fuel, clock and vertical speed
+
+With Extras → Better cockpit on, three more instruments work (in the 1998 game the clock and the vertical-speed dial
+stay still). The display's pages are drawn sharp at the screen's resolution.
+
+![Fuel, clock and vertical speed with Better cockpit on](shots/mirage/better_panel.png)
+
+1. **Fuel needle**: all the fuel you carry, the drop tanks too, over the most the jet holds with them. It falls from
+   the first pound burnt (in the 1998 game it stays full until the tanks are empty).
+2. **Clock**: the time of day in the mission, hour and minute hands.
+3. **Vertical speed**, upper left: level at 9 o'clock; a climb turns the needle clockwise, a descent anticlockwise.
+   The marks are 500, 1,000, 2,000, 4,000 and 6,000 ft/min, 6,000 at 3 o'clock.
+
+**Example**: the picture is level flight: the vertical-speed needle points at 9 o'clock. In a climb at 2,000 ft/min
+it points at about 12 o'clock.
 
 ---
 
@@ -232,8 +249,8 @@ What changes in the cockpit:
 - **Ground effect** (Physics): a longer float in the flare. **Real idle thrust on the ground**: the jet settles near
   30 kt at idle.
 - **The engine gauges stay still**: on the Mirage's panel the speed and fuel needles move, and the original's own
-  cockpit data switches the engine clocks off. With Better cockpit (Extras) the fuel needle counts the drop tanks and
-  the panel clock (right of the fuel gauge) shows the time of day.
+  cockpit data switches the engine clocks off. With Better cockpit (Extras) the fuel needle counts the drop tanks
+  (section 3).
 - **The map edge**: about 12 km (6.5 NM) before the map's edge the EndWorld warning sounds: turn back. Past it the
   game pushes the jet back for about 8 s: the nose rises and the jet turns back toward the map.
 
