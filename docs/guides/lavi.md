@@ -316,7 +316,7 @@ What changes in the cockpit:
 - **Climb**: 37,400 ft/min against the published 50,000+: the thrust and drag fit the published top speeds first.
 - **Roll**: 220°/s, slower than the F-16's 280°/s: start rolls a little earlier.
 - **Flight-path hold** (Physics): with the stick centred the fly-by-wire jet holds its flight path.
-- **Deep stall** (Physics: Realistic spins, F-16 / Lavi deep stall): the Lavi takes the F-16's departure, a stand-in
+- **Deep stall** (Physics: Realistic spins, Fly-by-wire deep stall): the Lavi takes the F-16's departure, a stand-in
   from the closest public data. Zoom 30° or more nose-high until the speed is gone and it hangs at about 60° AoA, the
   nose rocking near the horizon. Holding the stick forward keeps it there. **Recovery**: rock the stick in phase
   with the nose (pull while it rises, push while it falls) until the nose falls through, then pull out of the dive.

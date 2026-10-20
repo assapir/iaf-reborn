@@ -20,7 +20,7 @@ const BETTER := {
 	"start_alpha": "Air start trimmed",
 	"landing_limits": "Real landing limits (sink, tail strike)",
 	"spin_fixes": "Realistic spins",
-	"fbw_departure": "F-16 / Lavi deep stall",
+	"fbw_departure": "Fly-by-wire deep stall",
 	"lift_rate_floor": "Low-speed lift rate fix",
 	"low_speed_roll": "No reversed roll at low speed",
 	"no_nose_wheel_lift": "No nose-wheel lift quirk",
