@@ -2038,6 +2038,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventJoypadButton and Joystick.ours(event):
 		_joy_button(event)
 	elif event is InputEventKey and not event.pressed:
+		if event.keycode == KEY_V:
+			cockpit.release_panel()  # ours: a held V glances (cockpit.gd toggle_panel)
 		# Release commands of the table (Space up 0x41, Tab up 0x43).
 		var rel: int = keys.find_key(keys.key_of_event(event), Settings.key_bindings)
 		if rel >= 0:

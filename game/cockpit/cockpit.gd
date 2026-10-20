@@ -473,9 +473,24 @@ func slide_panel(steps: int) -> void:
 	panel_target = clamp(snappedf(panel_target + steps * PANEL_STEP, PANEL_STEP), 0.0, 1.0)
 
 
-## V: jump to the other end of the travel (animated).
+## V (ours): the whole panel, or from there none (animated). Held longer than GLANCE_S, its release returns the
+## panel to where it was: from the forward view, a glance down at the panel and up again.
 func toggle_panel() -> void:
-	panel_target = 0.0 if panel_target > 0.5 else 1.0
+	_glance_from = panel_target
+	_glance_at = Time.get_ticks_msec()
+	panel_target = 0.0 if panel_target >= 1.0 else 1.0
+
+
+func release_panel() -> void:
+	if _glance_from >= 0.0 and Time.get_ticks_msec() - _glance_at >= GLANCE_S * 1000.0:
+		panel_target = _glance_from
+	_glance_from = -1.0
+
+
+## A V press held this long (s) is a glance; shorter is a tap (the jump stays).
+const GLANCE_S := 0.3
+var _glance_from := -1.0
+var _glance_at := 0
 
 
 func _process(delta: float) -> void:

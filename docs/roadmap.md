@@ -254,9 +254,10 @@ more id there; docs/cockpit.md "Better cockpit"). Items (approved 2026-10-20):
     unreadable legends. Digital readouts in the wrong place: the F-16's fuel counter stays (the art paints no fuel
     quantity indicator); the F-15's counter is already on its fuel gauge.
 
-## Glance-down key (Extras, later)
-Hold a key to slide the panel fully into view, release to look ahead again (as modern sims do; a real pilot glances
-down with the eyes). The original has only the stepped panel slide (PgUp / PgDn, V).
+## Glance-down key — done (2026-10-20)
+Hold V to slide the panel fully into view, release to look ahead again (as modern sims do; a real pilot glances
+down with the eyes). A tap keeps the jump: the whole panel, or from there none (docs/controls.md "Own keys",
+`cockpit.gd` `toggle_panel` / `release_panel`). The original has only the stepped panel slide (PgUp / PgDn).
 
 ## Video record key (Extras, future idea; 2026-10-18)
 A key in flight starts and stops a video recording, next to the screenshot key. Godot's movie writer

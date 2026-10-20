@@ -110,7 +110,7 @@ Terms used on this page:
   | Ctrl+F2 | cockpit ↔ external | — (was on C, now time compression 119, and F2, now the back view) |
   | Ctrl+F12 | flight-info line on / off | — (was on F12, now I-mode 124) |
   | F1 | cockpit | Cockpit / HUD view (28,1) — the same, runs through the table |
-  | V | panel up / down | — |
+  | V | the whole panel, or from there none; held (≥ 0.3 s), its release returns the panel (a glance down) | — |
   | PgUp / PgDn | slide the panel | — |
   | = / − / Numpad + / − | cockpit art zoom (cockpit views) | Zoom in / out (20 / 21): the orbit distance in the external views (views.md §4) |
 
