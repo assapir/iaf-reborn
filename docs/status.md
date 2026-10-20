@@ -148,7 +148,7 @@ Checked against the code on 2026-10-19 (each doc's own "not built" notes have th
 - **Pilot guide PDFs** (not urgent): some pictures land at the top of the next page above the following heading; one
   nearly empty page (F-16 "Not drawn"); the MFD pictures are the ~128 px original art scaled (blocky; Better cockpit's
   crisp MFD pages draw them sharp, docs/mfd.md §8).
-- **Pilot guide pictures**: most pictures in assets/ have no stamps yet, so the next `tools/guide_shots.sh` renders all of them once. That render also brings the pictures up to
+- **Pilot guide pictures**: the stamps' rule changed on 2026-10-20 (inputs only, no game code), so the next `tools/guide_shots.sh` renders all of them once; later runs keep them. That render also brings the pictures up to
   2026-10-19's changes: the F-16 / F-15 / Lavi Real HUD scales moved in (docs/real-hud.md "What ours draws") and the
   Real AIM-9L's 10 NM range scale (docs/real-weapons.md; the guides' text already says 16.1 km). New pictures since:
   the F-16's delayed CCIP, `hud_ccip_delay` / `hud_ccip_designated` (docs/guides/f16.md §11).

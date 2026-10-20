@@ -2055,8 +2055,9 @@ of the frame.
        mission; several processes run at once (`GUIDE_JOBS`, default half the cores, at most one per 2 GB of free
        memory). On an 8-core laptop with integrated graphics (Iris Xe) the F-16's 13 shots take about 2.5 minutes,
        against about 11.5 with one process per shot one after another.
-     * A picture whose stamp (`<name>.stamp`: its entry, the game's scripts and library, the converted data) still
-       matches is kept; `--force` renders every one.
+     * A picture whose stamp (`<name>.stamp`: its entry, the shot tools, Godot's version, the frame size and the
+       data's paths and sizes) still matches is kept, so setup runs again without rendering. Game code changes keep
+       the pictures too: `--force` renders every one.
      * A FAIL line (a callout's symbol missing, a crash, a process stuck past its time) makes the exit status 1.
   2. `python3 -I tools/guide_pdf.py` prints the guide as an A4 PDF (title page with the record's picture, contents,
      the pictures with their legends, warning when a legend's length differs from the callouts) with headless

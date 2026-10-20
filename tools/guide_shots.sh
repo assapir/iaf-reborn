@@ -73,30 +73,25 @@ if [[ -z $jobs ]]; then
 	jobs=$((cores / 2 < free_gb / 2 ? cores / 2 : free_gb / 2))
 	((jobs >= 1)) || jobs=1
 fi
-# Which shots to render: a shot is up to date when its picture's stamp (<name>.stamp beside it) matches its entry, the
-# game (game/ and tests/godot as git has them plus uncommitted changes, the extension library, Godot's version, this
-# script) and the data (assets/install and assets/converted, every file's size and time; the guides' own output and
-# hidden work folders left out). One line per process: <jet> <name,name,…>; each shot's new stamp waits in $logs/<jet>/<name>.stamp.
+# Which shots to render: a shot is up to date when its picture's stamp (<name>.stamp beside it) matches its inputs: its
+# entry, the shot tools (this script, godot_window.sh, tests/godot/_guide_shots.gd), Godot's version, the frame size
+# and the data (assets/install and assets/converted, every file's path and size; the guides' own output and hidden
+# work folders left out). Game code changes do not re-render (so setup runs again without rendering): --force does.
+# One line per process: <jet> <name,name,…>; each shot's new stamp waits in $logs/<jet>/<name>.stamp.
 python3 -I - "$logs" "$shots_dir" "$only" "$batch" "${GUIDE_FORCE:-$force}" "${jets[@]}" <<'EOF' >"$logs/jobs"
-import glob, hashlib, json, os, subprocess, sys
+import hashlib, json, os, subprocess, sys
 logs, shots_dir, only, batch, force, *jets = sys.argv[1:]
 h = hashlib.sha256()
-def git(*a):
-    return subprocess.run(["git", *a], capture_output=True, check=True).stdout
-h.update(git("rev-parse", "HEAD:game", "HEAD:tests/godot"))
-h.update(git("diff", "HEAD", "--", "game", "tests/godot"))
-for f in git("ls-files", "-z", "-o", "--exclude-standard", "game", "tests/godot").split(b"\0"):
-    if f:
-        h.update(f + open(f, "rb").read())
-for f in sorted(glob.glob("target/release/libiaf_godot.*")) + ["tools/guide_shots.sh", "tools/godot_window.sh"]:
+for f in ["tools/guide_shots.sh", "tools/godot_window.sh", "tests/godot/_guide_shots.gd"]:
     h.update(f.encode() + open(f, "rb").read())
 h.update(subprocess.run(["godot", "--version"], capture_output=True).stdout + (os.environ.get("GUIDE_SIZE") or "3840x2160").encode())
 for top in ("assets/install", "assets/converted"):
     for d, dirs, files in os.walk(top, followlinks=True):
         dirs[:] = sorted(x for x in dirs if not x.startswith(".") and os.path.join(d, x) != "assets/converted/guides")
         for f in sorted(files):
-            st = os.stat(os.path.join(d, f))
-            h.update(f"{d}/{f} {st.st_size} {st.st_mtime_ns}\n".encode())
+            # ponytail: path and size, not the time, so identical regenerated data keeps the pictures; a same-size
+            # change goes unseen (--force).
+            h.update(f"{d}/{f} {os.path.getsize(os.path.join(d, f))}\n".encode())
 build = h.hexdigest()
 for jet in jets:
     names = []
