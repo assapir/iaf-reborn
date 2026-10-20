@@ -823,6 +823,9 @@ func _spawn_mission_objects() -> void:
 		var keep := Settings.keeps_present(path, raw, present, ent.klass, UNDERLAY_MAX_HEIGHT)
 		# A kept layout on a moved base shrinks or grows with it (docs/world-scale.md §3.2).
 		node.scale = Vector3.ONE * Settings.model_scale(present, keep) * (float(ent.base_scale) if keep else 1.0)
+		var ship := Settings.ship_scale(path, raw)  # Real 1:1: a ship at its real hull length
+		if ship > 0.0:
+			node.scale = Vector3.ONE * ship
 		# Collision radius (FUN_0043b1c0): 0.25 · (dx + dy + dz) of the scaled model's full extents
 		# (object +0x268..0x270, FUN_0041bb00).
 		var box := AABB(raw.position * node.scale.x, raw.size * node.scale.x)

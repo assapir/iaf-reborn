@@ -70,8 +70,13 @@ Where ours applies it (every place reads `0x65e`):
 
 The front-end model viewer uses a fixed 10.0, as the exe (`FUN_0050f9e6`).
 
-**Ships are open.** The Osa model's raw box is 29 × 126 m (the real Osa is 38.6 m long[^osa]), the Israeli boat's
-17 × 135 m. Their boxes probably hold more than the hull (a wake?): to be measured part by part.
+**Ships** (measured 2026-10-20, part by part): each ship model is one hull over its whole box, no wake or other
+part; the vertices at the waterline span the same length. Raw lengths: the Osa ("osa", `enmysp_h`) 126.4 × 29.0 m and
+its light set `LT_OSSA` 126.5 m; the small Osa ("smallosa", `boat_h`) 62.3 × 23.0 m; the Israeli missile boat
+("satil", `isrlsp_h`) 134.9 × 14.9 m. So the models are 3–4 times the real ships before the Present scale (×2; the
+small Osa ×0.5). Real hulls: the Osa 38.6 m[^osa]; the small Osa as a Komar 25.5 m[^komar] (inferred from the
+name: the Komar is the small Soviet missile boat beside the Osa); the satil as a Sa'ar 4.5 61.7 m[^saar45]
+(inferred: its length / beam 9.1 fits the Sa'ar 4.5's 8.1 best among the navy's 1998 missile boats).
 
 **What the exe scales.** `FUN_0041bb00` calls the mesh builder's `Scale(s, s, s)` and then `GetBox`. So the extents
 at object +0x268..+0x270 are the scaled ones, and the collision, LOD and view code reads those. The `.xfr` loader
@@ -209,7 +214,8 @@ One helper decides every model scale: `model_scale(present, keep)` (§4.1).
   out on the base's ×2 picture, so on a moved base they take the Present scale × k and the base's turn, about their
   own origin at the moved position. The underlays stay hidden as today.
 - **Exceptions:** the cloud keeps 8.0 and the crater 7.0 (effects, not real things); the stadium already is 1.0; the
-  speed boat's 0.5 and the ships stay until measured (§1.1).
+  ships take their real hull length (§1.1, `Settings.SHIP_LENGTHS` / `ship_scale`): the Osa ×0.305, the small Osa
+  ×0.409, the satil ×0.457 of the raw model (the user: "just make it real").
 
 ### 3.3 Airbases: each base at its real place (the base move)
 
@@ -314,7 +320,7 @@ until the user decides to show it.
   Real for a kept model, else 1. `keeps_present(path, raw_box, present, klass, flat)` names the kept models: the
   light sets (`LT_*`), the flat underlays (their Original height under 0.05 m), the multi-part layouts
   `KEPT_LAYOUTS` (the sign groups SIGNTLNF / SIGNRMON / SIGNRFID / SIGNDVID, the SA-5 cables), the effects (Present
-  ≥ 7: the cloud, the crater) and the ships (class 15, 16). Following decision 2 (§5), buildings, shelters, hangars,
+  ≥ 7: the cloud, the crater) and the ships (class 15, 16; since §4.3 the three ship models take their real length). Following decision 2 (§5), buildings, shelters, hangars,
   the single runway signs (`sign09l` …) and the power plant (`ppchbg_h`, 302 m raw) are objects at 1, not kept by
   their size; the 200 m rule of §3.2 is replaced by this list.
 - **Where it applies:** mission models (`terrain_view.gd` `_spawn_mission_objects`; the underlay hide test reads
@@ -416,6 +422,9 @@ until the user decides to show it.
   2.5 km): `david_oldtop_before.png` / `david_oldtop_after.png`, `cmp_ramon_oldtop.jpg` (local captures,
   `tests/godot/_airbase_shot.gd`). Left: a faint smooth patch. Tests: the unit tests in `base_move.rs`,
   `tests/godot/test_base_move.gd`.
+- **Ships at their real size** (§1.1, §3.2): `Settings.ship_scale` in `terrain_view.gd` and the briefing's
+  `model_view.gd`. Tests: `test_world_scale.gd` (the Osa 38.6 m in Real, the Present scale in Original), mission 125
+  (six Osas) in Real through `tools/mission_sweep.sh`: passes, no errors.
 - **The real runway designators** (`BaseMove::designator`, from real_runways.csv's `designator`). The Detailed
   airbases surface paints each moved runway's ends with the real runway's numbers (the half of the real runway
   within 15° of it whose number is nearest; off every real runway, the true heading / 10): Ramat David 09 / 27, Tel Nof
@@ -462,7 +471,6 @@ Decided by the agent (2026-10-20), to confirm:
 - The Detailed airbases surface is on at a moved base whatever the Graphics setting (the new site has no painted base).
 
 Open:
-- Ships' true size (§1.1): measure the hull parts.
 - Bley's real base: Marj Ruhayyil is inferred (§1.2); a source naming the base "Bley" with a place would settle it.
 
 [^f16]: Wikipedia, "General Dynamics F-16 Fighting Falcon", specifications: https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon
@@ -472,6 +480,8 @@ Open:
 [^c130]: Wikipedia, "Lockheed C-130 Hercules", specifications: https://en.wikipedia.org/wiki/Lockheed_C-130_Hercules
 [^t72]: Wikipedia, "T-72": https://en.wikipedia.org/wiki/T-72
 [^osa]: Wikipedia, "Osa-class missile boat": https://en.wikipedia.org/wiki/Osa-class_missile_boat
+[^komar]: Wikipedia, "Komar-class missile boat" (25.5 m): https://en.wikipedia.org/wiki/Komar-class_missile_boat
+[^saar45]: Wikipedia, "Sa'ar 4.5-class missile boat" (61.7 m): https://en.wikipedia.org/wiki/Sa%27ar_4.5-class_missile_boat
 [^osm]: © OpenStreetMap contributors (ODbL), `aeroway=runway` ways via the Overpass API, queried 2026-10-20:
     https://overpass-api.de/
 [^thalah]: Wikipedia, "Tha'lah Military Airbase": https://en.wikipedia.org/wiki/Tha%27lah_Military_Airbase

@@ -198,7 +198,7 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   scale (0x65e: ×2 jets and buildings, ×3–4 vehicles and SAMs). Real 1:1 (`Settings.world_scale = "real"`): the
   models at true size (`Settings.model_scale`): mission units, the player's and the AI jets with their cockpit model,
   gear clearance (F-16 3.38 → 1.69 m), eye and gun, the weapons, stores and rounds. The flat base underlays, the
-  light sets, the bases' sign groups, the SA-5 cables, the cloud, the crater and the ships keep their scale (on a
+  light sets, the bases' sign groups, the SA-5 cables, the cloud and the crater keep their scale, the ships take their real hull length (on a
   moved base × its k). Every airbase moves to its real place (world-scale.md §3.3): one transform per base puts the
   game's main runway on the real one (OpenStreetMap, ODbL) at its real length, heading and width; iaf.ibx's points,
   the runway surface, the base's mission units, markers and routes move with it; the new site is flattened and drawn

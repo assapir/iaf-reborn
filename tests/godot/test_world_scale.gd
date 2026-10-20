@@ -26,6 +26,15 @@ func run() -> void:
 	check(
 		not S.keeps_present("x/t72_h.gltf", AABB(Vector3.ZERO, Vector3(3, 2, 9)), 3.0, 5, 0.05), "a tank is an object"
 	)
+	# Ships at their real hull length (the Osa model's box is 126.4 m long, the real Osa 38.6 m).
+	var osa := AABB(Vector3(-14.3, 0, -46.8), Vector3(29.0, 24.8, 126.4))
+	S.world_scale = "real"
+	check(
+		absf(S.ship_scale("x/enmysp_h.gltf", osa) * 126.4 - 38.6) < 0.01 and S.ship_scale("x/t72_h.gltf", osa) == 0.0,
+		"Real: the Osa 38.6 m long"
+	)
+	S.world_scale = "original"
+	check(S.ship_scale("x/enmysp_h.gltf", osa) == 0.0, "Original: the ships at their Present scale")
 
 	# --- steps 2–4 in both modes ---
 	S.world_scale = "original"

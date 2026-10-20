@@ -134,7 +134,8 @@ func setup_target(front_end: Control, world: Vector3, units: Array) -> void:
 		node.rotation.y = -deg_to_rad(float(u.heading))
 		# World scale Real 1:1: true size, as in the flight (terrain_view.gd, docs/world-scale.md §3.2).
 		var keep := Settings.keeps_present(u.path, raw, float(u.scale), int(u.get("klass", -1)), 0.05)
-		node.scale = Vector3.ONE * Settings.model_scale(float(u.scale), keep)
+		var ship := Settings.ship_scale(u.path, raw)
+		node.scale = Vector3.ONE * (ship if ship > 0.0 else Settings.model_scale(float(u.scale), keep))
 		_vp.add_child(node)
 		if u.ground:
 			_snap.append([node, p])

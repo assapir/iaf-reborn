@@ -398,8 +398,8 @@ const KEPT_LAYOUTS := ["signtlnf", "signrmon", "signrfid", "signdvid", "cabels"]
 
 ## A model that keeps its Present scale in Real 1:1 (docs/world-scale.md §3.2, §5): the ground layouts drawn on the
 ## base's ×2 picture (a light set LT_, a flat underlay: its Original height under `flat` m, KEPT_LAYOUTS), the
-## effects (the cloud ×8, the crater ×7) and the ships (bdb class 15, 16: their true size is open). Buildings,
-## shelters and hangars are objects: true size.
+## effects (the cloud ×8, the crater ×7) and any ship not in SHIP_LENGTHS (bdb class 15, 16). Buildings, shelters and
+## hangars are objects: true size.
 static func keeps_present(path: String, raw_box: AABB, present: float, klass: int, flat: float) -> bool:
 	var f := path.get_file().to_lower()
 	return (
@@ -409,6 +409,18 @@ static func keeps_present(path: String, raw_box: AABB, present: float, klass: in
 		or present >= 7.0
 		or klass in [15, 16]
 	)
+
+
+## World scale Real 1:1: the ships' real hull lengths (m) by model (docs/world-scale.md §1.1): the Osa ("osa", and its
+## light set LT_OSSA) 38.6 m, the small Osa ("smallosa", inferred: a Komar) 25.5 m, the Israeli missile boat ("satil",
+## inferred: a Sa'ar 4.5) 61.7 m. Each model's hull runs its whole box.
+const SHIP_LENGTHS := {"enmysp_h": 38.6, "lt_ossa": 38.6, "boat_h": 25.5, "isrlsp_h": 61.7}
+
+
+## A ship's drawn scale in Real 1:1: its box's length to the real hull's; 0 for any other model or in Original.
+func ship_scale(path: String, raw_box: AABB) -> float:
+	var l: float = SHIP_LENGTHS.get(path.get_file().get_basename().to_lower(), 0.0)
+	return l / maxf(raw_box.size.x, raw_box.size.z) if l > 0.0 and world_scale == "real" else 0.0
 
 
 ## World scale Real: every airbase at its real place (docs/world-scale.md §3.3). Sets up the extension's base moves
