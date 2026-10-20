@@ -20,7 +20,7 @@ mod steps;
 
 pub use checks::{CdKind, PackInfo, Tools, check_cd, check_pack, check_patch, scan, tools};
 pub use saved::{from_json, inputs_file, load_inputs, save_inputs, to_json};
-pub use steps::{COCKPITS, OUTPUTS, imagery_stale, script_guides, uninstall};
+pub use steps::{COCKPITS, KEPT, OUTPUTS, imagery_stale, script_guides, uninstall};
 
 /// The Hebrew content: the Hebrew retail CD (everything translated), or the preflight.us packs.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]

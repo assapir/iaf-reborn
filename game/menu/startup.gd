@@ -62,22 +62,33 @@ func launcher() -> String:
 
 
 ## UNINSTALL (ours, docs/setup.md "Uninstall"): asks, then removes what the setup wrote under assets/
-## (IafSetup.uninstall); the pilots and settings in the user folder stay. Without its data the game then quits.
+## (IafSetup.uninstall); the pilots and settings in the user folder stay, and the imported packs and the imagery
+## downloads too unless the box is ticked. Without its data the game then quits.
 func uninstall() -> void:
 	var ask := ConfirmationDialog.new()
 	ask.title = "Uninstall"
-	ask.dialog_text = (
+	var box := VBoxContainer.new()
+	var text := Label.new()
+	text.text = (
 		"Remove the game data the setup made (the CD's files and the converted data in assets/)?\n"
 		+ "Your pilots and settings stay. Run ./setup to install again."
 	)
+	box.add_child(text)
+	var all := CheckBox.new()
+	all.text = (
+		"Also remove the imported Hebrew packs and the downloaded imagery (they need the pack zips\n"
+		+ "and hours of downloads to get back)"
+	)
+	box.add_child(all)
+	ask.add_child(box)
 	ask.ok_button_text = "Uninstall"
-	ask.confirmed.connect(_remove_data)
+	ask.confirmed.connect(func(): _remove_data(all.button_pressed))
 	add_child(ask)
 	ask.popup_centered()
 
 
-func _remove_data() -> void:
-	var e: String = IafSetup.uninstall(Settings.assets_dir())
+func _remove_data(everything: bool) -> void:
+	var e: String = IafSetup.uninstall(Settings.assets_dir(), everything)
 	var done := AcceptDialog.new()
 	done.title = "Uninstall"
 	done.dialog_text = (

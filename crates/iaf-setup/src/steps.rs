@@ -39,17 +39,21 @@ pub const OUTPUTS: &[&str] = &[
     "v1.1.stamp",
     "patch",
     "converted",
-    "packs",
     "packs-none",
     "hebrew-cd",
     "hebrew-cd-pick",
-    "source/imagery",
     "setup.json",
 ];
 
-/// Removes the setup's outputs ([`OUTPUTS`]) from `assets`; a missing one is fine.
-pub fn uninstall(assets: &Path) -> Result<()> {
-    for name in OUTPUTS {
+/// What the setup keeps on an uninstall unless asked: the imported packs (the pack zips may be gone) and the
+/// imagery downloads (hours and tens of GB to fetch again).
+pub const KEPT: &[&str] = &["packs", "source/imagery"];
+
+/// Removes the setup's outputs ([`OUTPUTS`]) from `assets`, and with `everything` the [`KEPT`] ones too; a
+/// missing one is fine.
+pub fn uninstall(assets: &Path, everything: bool) -> Result<()> {
+    let kept: &[&str] = if everything { KEPT } else { &[] };
+    for name in OUTPUTS.iter().chain(kept) {
         let p = assets.join(name);
         if p.is_dir() {
             remove_dir(assets, &p)?;
@@ -375,12 +379,37 @@ mod tests {
         for f in ["setup.json", "install.stamp", "converted/terrain/x.json", "ghidra/iafjets.c"] {
             std::fs::write(a.join(f), "x").unwrap();
         }
-        uninstall(&a).unwrap();
+        uninstall(&a, true).unwrap();
         for gone in ["install", "converted", "source/imagery", "setup.json", "install.stamp"] {
             assert!(!a.join(gone).exists(), "{gone} removed");
         }
         assert!(a.join("ghidra/iafjets.c").exists() && a.join("source/keep").is_dir(), "the rest stays");
-        uninstall(&a).unwrap(); // nothing left to remove: fine
+        uninstall(&a, true).unwrap(); // nothing left to remove: fine
         std::fs::remove_dir_all(&a).unwrap();
+    }
+}
+
+#[cfg(test)]
+mod uninstall_tests {
+    use super::*;
+
+    #[test]
+    fn keeps_packs_and_downloads_unless_asked() {
+        let dir = std::env::temp_dir().join(format!("iaf-setup-uninstall-{}", std::process::id()));
+        let make = || {
+            for d in ["install/resource", "converted/fonts", "packs/he", "source/imagery/x", "manual_en"] {
+                std::fs::create_dir_all(dir.join(d)).unwrap();
+            }
+            std::fs::write(dir.join("setup.json"), "{}").unwrap();
+        };
+        make();
+        uninstall(&dir, false).unwrap();
+        assert!(!dir.join("install").exists() && !dir.join("converted").exists() && !dir.join("setup.json").exists());
+        assert!(
+            dir.join("packs/he").exists() && dir.join("source/imagery/x").exists() && dir.join("manual_en").exists()
+        );
+        uninstall(&dir, true).unwrap();
+        assert!(!dir.join("packs").exists() && !dir.join("source/imagery").exists() && dir.join("manual_en").exists());
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 }
