@@ -12,6 +12,20 @@ class FakeFlight:
 		return st
 
 
+## The phrase channel on the real sound table: the file each wav name resolves to (a stream that loads).
+class FakeSounds:
+	extends RefCounted
+	var table = load("res://audio/sound_table.gd").load_table()
+	var played: Array[String] = []
+
+	func path(file: String) -> String:
+		return String(table._files.get(file.to_lower() + ".wav", ""))
+
+	func play_phrase_wav(file: String) -> void:
+		if table.stream_file(file.to_lower() + ".wav") != null:
+			played.append(path(file))
+
+
 class FakeHost:
 	extends Node
 	var flight = FakeFlight.new()
@@ -77,6 +91,26 @@ func run() -> void:
 	check(r.expand("ACFT_FCTRL_SHORT", ["BEARING350", "MILES09", "DESC_TARGET"]).text == "Bearing 350, 09 miles, target", "AWACS short call text")
 	check(r.bases.size() == 10 and r.bases[0].rwy == 230 and r.bases[1].hangars.size() == 8, "iaf.ibx bases (Ramon rwy 230, David 8 hangars)")
 	r.free()
+
+	# --- the runway-number clips: the install's where it has one, else ours (game/extra/tower_numbers) -----
+	var nh := FakeHost.new()
+	root.add_child(nh)
+	nh.sounds = FakeSounds.new()
+	var inst: String = Settings().assets_dir().path_join("install/resource/soundfiles")
+	r = load("res://audio/radio.gd").new()
+	r.host = nh
+	r._ready()
+	for i in r.TOWER_BASES:  # the original bases never need ours
+		var n: String = r.expand("ACFT_PROCEED_TO_RUNWAY", ["Alpha_t"], [int(r.bases[i].rwy) / 10]).wavs[-1]
+		check(nh.sounds.path(n).begins_with(inst), "%s runway %s: the install's clip" % [r.BASES[i], n])
+	r.base = 0
+	for c in [[250, "res://extra/tower_numbers/num025.wav"], [270, inst.path_join("num027.wav")]]:
+		r.bases[0].rwy = c[0]
+		nh.sounds.played.clear()
+		r._say(5)
+		check(nh.sounds.played.has(c[1]), "runway %d: %s plays (%s)" % [c[0] / 10, c[1].get_file(), nh.sounds.played])
+	r.free()
+	nh.free()
 
 	# --- the tower's state machine on a stand-in host (Ramon: tower, lineup, runway 23) ------------
 	var h := FakeHost.new()

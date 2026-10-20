@@ -7,6 +7,7 @@
 extends RefCounted
 
 const DIR := "install/resource/soundfiles"
+const OUR_NUMBERS := "res://extra/tower_numbers"
 
 ## "CODE/SUB1" -> row Dictionary (see _parse_row).
 var rows := {}
@@ -27,6 +28,10 @@ func _load() -> void:
 	if d != null:
 		for f in d.get_files():
 			_files[f.to_lower()] = dir.path_join(f)
+	# The tower's runway numbers the install lacks (our TTS clips, docs/radio.md §1); the install's own win.
+	for f in DirAccess.get_files_at(OUR_NUMBERS):
+		if f.ends_with(".wav") and not _files.has(f):
+			_files[f] = OUR_NUMBERS.path_join(f)
 	var path: String = _files.get("soundprop.trx", "")
 	if path == "":
 		return

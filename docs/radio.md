@@ -66,6 +66,12 @@ ALPHA_T, MORNING, 27 → "Alpha, good morning, taxi to runway 27".
 The install lacks:
 - `Pause.wav` (the `,` / `.` particle), `Null`, `Bear000`, `Head000` and the three `…Twr` files;
 - most `NumNNN`. It ships 3, 5, 9, 15, 18, 21, 23, 27, 33, which include the runway numbers of the four Israeli bases.
+  (It also has `num36.wav`, which `Num036` does not name.) The port fills the other runway numbers 01-36 from
+  `game/extra/tower_numbers/`: our clips, read by `sound_table.gd` only for names the install lacks, so the install's
+  own clip always wins. They are spoken like the originals, digit by digit ("zero four", "two five"), by Piper TTS
+  with the public-domain voice en_US-john-medium, then matched to the originals' format (22050 Hz, 16-bit, mono),
+  radio band (300-3000 Hz), loudness and trimmed silence. `tools/tower_numbers.py` regenerates them; the folder's
+  README names the voice and its licence. Only World scale Real's real runway numbers need them (deviations.md §2).
 **Subtitle**: the callers push the text with `FUN_0044a060` (the console, mission-runtime.md §3.3).
 
 ## 2. Tower (TowersManager `DAT_00699344`, ctor `54eb30`)

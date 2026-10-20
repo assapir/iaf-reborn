@@ -205,6 +205,9 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   the runway surface, the base's mission units, markers and routes move with it; the new site is flattened and drawn
   with the Detailed airbases surface (on in Real whatever the Graphics setting), the old site's paved surface is
   painted over. Hit spheres, blast radii and every sensor range stay the original's.
+  The tower then says the real runway number (`b.rwy`); the numbers the install has no clip for (all but 03, 05,
+  09, 15, 18, 21, 23, 27, 33) come from our TTS clips in `game/extra/tower_numbers/` (radio.md §1). Original:
+  the missing `NumNNN` is silent. The original bases' runways all have install clips, so Original never plays ours.
 - **Additions the original does not have:** flight info line (ORIGINAL, or a short tag per switch not at its original setting — FLT, WPN, HUD:<style>, 1:1, CKPT+, PHYS+ — then the position, speed, G, throttle, fps), blackbox, language, Window (framed / full screen),
   "F-35I replaces" (the F-35I flies from a Jet list button, docs/f35i.md), Settings file (export / import the
   preferences, front_end.gd `_settings_file`). Later: extra sounds, canopy open (docs/roadmap.md).
