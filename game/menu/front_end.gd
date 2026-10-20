@@ -24,6 +24,12 @@ const LIST_DESC_PX := 11.0
 const LIST_TITLE := Color8(0, 255, 0)
 const LIST_DESC := Color8(0, 128, 0)
 const LIST_DESC_LIT := Color8(0, 255, 0)
+## Ours on the Devices page, matched to the page art's labels (cntrl_0, measured): size, title and item greens, shadow.
+const PREF_LABEL_PX := 12.0
+const PREF_LABEL_TITLE := Color8(0, 220, 0)
+const PREF_LABEL_ITEM := Color8(0, 160, 4)
+const PREF_LABEL_SHADOW := Color8(0, 24, 4)
+const PREF_LABEL_SLANT := 0.25
 
 ## Preferences (docs/front-end.md §12). Page rects are (l, t, r, b) in page coordinates; a page
 ## covers the content window, so screen = page + CONTENT.position.
@@ -301,6 +307,9 @@ var font: SystemFont
 var font_bold: SystemFont
 ## Our own labels in the style of the original art's baked labels: bold italic condensed capitals.
 var font_art: SystemFont
+## Ours on the Devices page: the face of the page art's labels (Gill Sans, the install's menu/fnt/cr4.ttf, slanted
+## as the art; Arial when the file is missing), so our rows match FLIGHT CONTROLS / JOYSTICK.
+var font_pref: Font
 
 ## The game starts on the Login / Pilot Records screen (screen 0, docs/front-end.md §13.1).
 var screen := "log"
@@ -372,6 +381,7 @@ func _ready() -> void:
 	font_bold = Img.arial(700)
 	font_art = Img.arial(800, true)
 	font_art.font_stretch = 85
+	font_pref = _pref_face()
 	music = AudioStreamPlayer.new()
 	sfx = AudioStreamPlayer.new()
 	preview = AudioStreamPlayer.new()
@@ -1067,38 +1077,49 @@ func _draw_prefs() -> void:
 
 ## Ours on the Devices page: a title and two radio rows (`rects` title / off / set); `on` = the lit row (0, 1),
 ## `can_set` false dims the second row (no joystick).
+## A title and two radio rows of ours on the Devices page, drawn as the page art draws FLIGHT CONTROLS / JOYSTICK /
+## KEYBOARD (measured on cntrl_0: the title's baseline 19.75 px under its row, x + 4.5; an item's baseline 13.75
+## px under its row, its text at x + 25, its box at + (4, 5); titles (0, 220, 0), items a steady (0, 160, 4) with
+## only the box showing the choice; a dark drop shadow).
 func _draw_pref_pair(at: Vector2, rects: Dictionary, title: String, labels: Array, on: int, can_set: bool) -> void:
-	var fs := int(round(LIST_TITLE_PX * _scale()))
-	var tr := _rect(Rect2(at + rects.title.position, rects.title.size))
-	draw_string(
-		font_art,
-		Vector2(tr.position.x, tr.end.y - font_art.get_descent(fs)),
-		_art(title),
-		HORIZONTAL_ALIGNMENT_LEFT,
-		tr.size.x,
-		fs,
-		LIST_TITLE
-	)
+	var fs := int(round(PREF_LABEL_PX * _scale()))
+	_pref_label(at + rects.title.position + Vector2(4.5, 19.75), _art(title), fs, PREF_LABEL_TITLE)
 	for i in 2:
 		var r0: Rect2 = rects["off" if i == 0 else "set"]
 		_blit_region(
 			"pref/gamep_%d.png" % (1 if on == i else 0),
 			Rect2(Vector2(28, 55), Vector2(11, 11)),
-			at + r0.position + Vector2(4, 6)
+			at + r0.position + Vector2(4, 5)
 		)
-		var r := _rect(Rect2(at + r0.position + Vector2(22, 0), Vector2(r0.size.x - 22, 20)))
-		var col: Color = LIST_DESC_LIT if on == i else LIST_DESC
+		var col := PREF_LABEL_ITEM
 		if i == 1 and not can_set:
-			col = Color(LIST_DESC, 0.45)
-		draw_string(
-			font_art,
-			Vector2(r.position.x, r.end.y - font_art.get_descent(fs)),
-			_art(labels[i]),
-			HORIZONTAL_ALIGNMENT_LEFT,
-			r.size.x,
-			fs,
-			col
-		)
+			col = Color(PREF_LABEL_ITEM, 0.45)
+		_pref_label(at + r0.position + Vector2(25, 13.75), _art(labels[i]), fs, col)
+
+
+## One label in the Devices art's style at a baseline point (original coordinates): the shadow, then the text.
+func _pref_label(base: Vector2, text: String, fs: int, col: Color) -> void:
+	var p := _rect(Rect2(base, Vector2.ZERO)).position
+	var off := Vector2(1, 1) * _scale()
+	# The art's slant (≈ 14°), about the baseline point.
+	draw_set_transform_matrix(Transform2D(Vector2(1, 0), Vector2(-PREF_LABEL_SLANT, 1), p))
+	draw_string(font_pref, off, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(PREF_LABEL_SHADOW, col.a))
+	draw_string(font_pref, Vector2.ZERO, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
+	draw_set_transform_matrix(Transform2D())
+
+
+## Gill Sans Bold Condensed from the install, a little heavier like the art's labels (_pref_label slants it).
+func _pref_face() -> Font:
+	var file := Settings.assets_dir().path_join("install/resource/menu/fnt/cr4.ttf")
+	var base: Font = font_art
+	if FileAccess.file_exists(file):
+		var ff := FontFile.new()
+		ff.load_dynamic_font(file)
+		base = ff
+	var v := FontVariation.new()
+	v.base_font = base
+	v.variation_embolden = 0.15
+	return v
 
 
 ## MORE on the Graphics page / BACK on its MORE view, in the strip left of DEFAULT (page rect PREF_MORE).

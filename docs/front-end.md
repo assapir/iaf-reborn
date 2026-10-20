@@ -1299,6 +1299,9 @@ Three two-way choices. The top option has value 1.
 * The Godot axis numbers (`joy_axes`) are set in settings.cfg only; no page shows them.
 * Ours on the page: "Detent = MIL" (Off / Set at lever, `throttle_detent` in `[devices]`).
 * Ours on the page: "Stick response" under FLIGHT CONTROLS (Linear / Soft centre, `stick_response` in `[devices]`).
+  Our rows (Stick response, Detent = MIL) are drawn in the page art's style: the install's Gill Sans Bold Condensed
+  (`menu/fnt/cr4.ttf`) slanted as the art, its title and item greens, a dark shadow, at the art's text positions one
+  block lower; only the box shows the choice (`front_end.gd` `_draw_pref_pair`).
 
 ### 12.7 Controls page (`cntrl_2.bmp`; `FUN_00511580`)
 The key table itself (records, modifiers, key names, dispatch, the full list) is in
