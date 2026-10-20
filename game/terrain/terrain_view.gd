@@ -811,16 +811,12 @@ func _spawn_mission_objects() -> void:
 		# Classes 0x11, 0x12 (fire sensors), 0x1b are never drawn (FUN_004b7c4d).
 		if path == "" or ent.klass in [0x11, 0x12, 0x1b]:
 			continue
-		var sign := _real_sign(path, ent)
-		path = sign if sign != "" else path
 		var model = Gltf.object(path)
 		if model == null:
 			continue
 		var node: Node3D = Gltf.instance(model)
 		ent.node = node
-		if sign == "-":
-			node.visible = false
-			ent["drawn"] = false
+		_real_sign(node, path, ent)
 		ent["airborne_class"] = int(obj.get("0x5aa", -1)) in [2, 3, 0x1c]
 		add_child(node)
 		node.rotation.y = -deg_to_rad(float(_entity_heading(files, ent)))
@@ -866,28 +862,41 @@ func _spawn_mission_objects() -> void:
 	runtime.start()
 
 
-## World scale Real (docs/world-scale.md §4.3): a runway sign on a moved base shows the real designator. The sign
-## models bake their number (parts.bmp has 09, 23 and 27): a single sign whose real number has a model swaps to it,
-## any other sign that disagrees (and every sign group: SIGNDVID 27, SIGNRFID 27, SIGNRMON 23, SIGNTLNF 09) hides.
-## "" keeps `path`, "-" hides it, else the new path.
+## World scale Real (docs/world-scale.md §4.3): a taxi sign on a moved base shows the real designation. The sign
+## models bake their number in parts.png's boards (09, 23, 27; the groups SIGNDVID 27, SIGNRFID 27, SIGNRMON 23,
+## SIGNTLNF 09, the single signs sign<NN><l|r>); a sign whose real designation differs is re-lettered (SignBoards).
 const SIGN_GROUPS := {"signdvid": 27, "signrfid": 27, "signrmon": 23, "signtlnf": 9}
-const SIGN_NUMBERS := [9, 23, 27]
+const SignBoards := preload("res://terrain/sign_boards.gd")
 
 
-static func _real_sign(path: String, ent: Dictionary) -> String:
+## The runway number a sign model shows (its board), 0 when it is not a sign.
+static func _sign_number(path: String) -> int:
 	var f := path.get_file().get_basename().to_lower()
-	if not f.begins_with("sign") or not Settings.sync_bases():
+	if not f.begins_with("sign"):
+		return 0
+	if f.length() == 7 and f.substr(4, 2).is_valid_int():
+		return int(f.substr(4, 2))
+	return int(SIGN_GROUPS.get(f, 0))
+
+
+## The label a sign at `path` on `ent` must show ("25L"), "" when it keeps its own (Original, not a sign, or agreeing).
+static func _real_sign_label(path: String, ent: Dictionary) -> String:
+	var n := _sign_number(path)
+	if n == 0 or not Settings.sync_bases():
 		return ""
-	var single := f.length() == 7 and f.substr(4, 2).is_valid_int()
-	var n: int = int(f.substr(4, 2)) if single else int(SIGN_GROUPS.get(f, 0))
-	if n == 0:
-		return ""
-	var r := IafBases.sign_number(ent.world.x, ent.world.y, n)
-	if r == n:
-		return ""
-	if single and r in SIGN_NUMBERS:
-		return path.get_base_dir().path_join("sign%02d%s.%s" % [r, f.substr(6), path.get_extension()])
-	return "-"
+	var r := IafBases.sign_designation(ent.world.x, ent.world.y, n)
+	return "" if r == "%02d" % n else r
+
+
+## Re-letters the sign `node` (World scale Real); one that cannot be keeps its number, with a warning.
+static func _real_sign(node: Node3D, path: String, ent: Dictionary) -> void:
+	var label := _real_sign_label(path, ent)
+	if label == "":
+		return
+	if SignBoards.reletter(node, _sign_number(path), label):
+		ent["sign_label"] = label
+	else:
+		push_warning("world scale real: %s keeps its number (no board for %s)" % [path.get_file(), label])
 
 
 ## Detailed night lights: a home airbase's runway model gets its light set at night (NightLights.BASE_LIGHTS), on

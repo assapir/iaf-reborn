@@ -53,24 +53,24 @@ func run() -> void:
 	)
 	# The tower's runway: the real designator (Ramat David's 09/27: 27 at 267° true) × 10.
 	check(rb.get("rwy", 0) == 270, "the radio's runway is the real designator (%s)" % rb.get("rwy"))
-	# The runway signs (terrain_view.gd _real_sign): David's 27 / 09 agree with the real 09/27; Ramon's 23 is the
-	# real 25 (07/25), which no sign model has: hidden.
+	# The taxi signs (terrain_view.gd _real_sign): David's 27 / 09 agree with the real 09/27; Ramon's 23 is the
+	# real 25L (the main runway 07R/25L): re-lettered.
 	var TV = load("res://terrain/terrain_view.gd")
 	var ramon: Vector3 = tv.radio.bases.filter(func(b): return b.name == "Ramon")[0].lineup
 	check(
 		(
-			TV._real_sign("stationary/rw_ul_1/signdvid.gltf", {"world": Vector3(new.x, new.y, 0)}) == ""
-			and TV._real_sign("stationary/rw_ul_1/sign09l.gltf", {"world": Vector3(new.x, new.y, 0)}) == ""
+			TV._real_sign_label("stationary/rw_ul_1/signdvid.gltf", {"world": Vector3(new.x, new.y, 0)}) == ""
+			and TV._real_sign_label("stationary/rw_ul_1/sign09l.gltf", {"world": Vector3(new.x, new.y, 0)}) == ""
 		),
 		"signs: David's 27 / 09 kept"
 	)
 	check(
 		(
-			IafBases.sign_number(ramon.x, ramon.y, 23) == 25
-			and TV._real_sign("stationary/rw_ul_1/signrmon.gltf", {"world": ramon}) == "-"
-			and TV._real_sign("stationary/rw_ul_1/sign23l.gltf", {"world": ramon}) == "-"
+			IafBases.sign_designation(ramon.x, ramon.y, 23) == "25L"
+			and TV._real_sign_label("stationary/rw_ul_1/signrmon.gltf", {"world": ramon}) == "25L"
+			and TV._real_sign_label("stationary/rw_ul_1/sign23l.gltf", {"world": ramon}) == "25L"
 		),
-		"signs: Ramon's 23 (real 25) hidden"
+		"signs: Ramon's 23 reads the real 25L (%s)" % IafBases.sign_designation(ramon.x, ramon.y, 23)
 	)
 	# The new site is flat at its elevation (the height images patched as they load).
 	var heights := []
@@ -178,8 +178,8 @@ func run() -> void:
 	var e0 := Vector2(r0.ends[0][0], r0.ends[0][1]) if r0.has("ends") else Vector2.ZERO
 	var e1 := Vector2(r0.ends[1][0], r0.ends[1][1]) if r0.has("ends") else Vector2.ZERO
 	check(
-		david.has("mask_affine") and float(r0.get("width", 0)) == 45.0,
-		"Detailed: David's runways at the real width (%s m)" % r0.get("width")
+		david.has("mask_affine") and absf(float(r0.get("width", 0)) - 44.2) < 0.01,
+		"Detailed: David's runways at the real width (%s m, OurAirports' 145 ft)" % r0.get("width")
 	)
 	check(
 		absf(e0.distance_to(e1) - 2934.0) < 60.0 and AB.centre(david).distance_to(new) < 3000.0,
@@ -190,10 +190,50 @@ func run() -> void:
 		nums.size() == 2 and 9 in nums and 27 in nums,
 		"Detailed: the main runway painted 09 / 27, the real designator (%s)" % [nums]
 	)
+	check(r0.get("letters", []) == ["", ""], "Detailed: David's 09/27 has no letter (%s)" % [r0.get("letters")])
+	# A parallel pair's letter: Ramon's main runway lies on 07R/25L.
+	var rr: Dictionary = AB.bases().filter(func(b): return b.name == "Ramon")[0].runways[0]
+	check(
+		rr.numbers == [25, 7] and rr.letters == ["L", "R"],
+		"Detailed: Ramon's main runway painted 25L / 07R (%s %s)" % [rr.numbers, rr.letters]
+	)
+	# The flight model's runway surface: the real width (+ 5 m) on the centreline, the 1998 runway's wider part beside
+	# it ground, except where a taxiway or apron joins.
+	var dir := (e1 - e0).normalized()
+	var side := Vector2(dir.y, -dir.x)
+	var cut := 0
+	var centre := 0
+	for f in [0.2, 0.35, 0.5, 0.65, 0.8]:
+		var c := e0.lerp(e1, f)
+		centre += 1 if tv.terrain.surface_at(_scene(tv, c)) & 0x10 != 0 else 0
+		for sgn in [-1.0, 1.0]:
+			var q: Vector2 = c + side * sgn * (0.5 * float(r0.width) + 5.0 + 4.0)
+			cut += 1 if tv.terrain.surface_at(_scene(tv, q)) & 0x10 == 0 else 0
+	check(centre == 5, "the FM: runway ground on the centreline (%d / 5)" % centre)
+	check(cut >= 6, "the FM: ground 9 m beyond the real edge (%d / 10, the rest taxiway joins)" % cut)
 	check(AB._on, "Detailed: the surface is drawn in Real whatever the Graphics setting")
+	# Mission 322 starts at Ramon: its SIGNRMON boards shown, re-lettered 25L.
+	tv = await start_mission(322)
+	var signs: Array = tv.runtime.entities.values().filter(func(e): return e.get("sign_label", "") != "")
+	check(
+		not signs.is_empty() and signs.all(func(e): return e.sign_label == "25L" and e.node.visible),
+		"322: Ramon's taxi signs shown, re-lettered 25L (%d)" % signs.size()
+	)
+	var mi: MeshInstance3D = null if signs.is_empty() else signs[0].node.find_children("*", "MeshInstance3D")[0]
+	check(
+		(
+			mi != null
+			and mi.get_surface_override_material(0) != null
+			and mi.get_surface_override_material(0).albedo_texture != mi.mesh.surface_get_material(0).albedo_texture
+		),
+		"322: the boards take a re-lettered copy of parts.png"
+	)
 	prefs.world_scale = "original"
 	prefs.sync_bases()
 	check(not AB.bases()[0].has("mask_affine"), "Original: the bases as measured")
+	tv = await start_mission(322)
+	var plain: Array = tv.runtime.entities.values().filter(func(e): return e.get("sign_label", "") != "")
+	check(plain.is_empty(), "322 Original: no sign re-lettered")
 
 
 ## The player's start (engine X, Y, z) of a menu mission in a world scale.

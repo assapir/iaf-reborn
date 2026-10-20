@@ -48,6 +48,7 @@ fn load(assets: &Path) -> Option<(BaseMoves, Meta)> {
         .filter_map(|b| {
             let jb = jbases.iter().find(|x| x["name"] == b.name.as_str())?;
             let rw = jb["runways"].as_array()?.iter().map(|r| [pt(&r["ends"][0]), pt(&r["ends"][1])]).collect();
+            let widths = jb["runways"].as_array()?.iter().map(|r| r["width"].as_f64().unwrap_or(0.0)).collect();
             let m = &jb["mask"];
             let img = m["file"].as_str().and_then(|f| image::open(terrain.join(f)).ok()).map(|i| i.to_rgb8());
             masks.push((
@@ -60,7 +61,7 @@ fn load(assets: &Path) -> Option<(BaseMoves, Meta)> {
                     rgb: i.into_raw(),
                 }),
             ));
-            Some(GameBase::new(b, rw))
+            Some(GameBase { widths, ..GameBase::new(b, rw) })
         })
         .collect();
     let mut moves = BaseMoves::new(&games);
@@ -295,12 +296,22 @@ impl IafBases {
         g.as_ref().and_then(|ms| ms.get(&name.to_string())).map_or(0, |m| m.designator(heading))
     }
 
-    /// A runway sign at the world point (its new site) showing runway `n` in the game: the real designator there;
-    /// `n` off the moved bases (docs/world-scale.md §4.3).
+    /// A runway sign at the world point (its new site) showing runway `n` in the game: the real designation there
+    /// as a sign reads it ("25L", "09"); `n` ("23") off the moved bases (docs/world-scale.md §4.3).
     #[func]
-    fn sign_number(x: f64, y: f64, n: i64) -> i64 {
+    fn sign_designation(x: f64, y: f64, n: i64) -> GString {
         let g = MOVES.read().unwrap();
-        g.as_ref().and_then(|ms| ms.sign_number([x, y], n)).unwrap_or(n)
+        let s = g.as_ref().and_then(|ms| ms.sign_designation([x, y], n));
+        GString::from(&s.unwrap_or_else(|| format!("{n:02}")))
+    }
+
+    /// The moved base `name`'s paved-surface mask (RGB8, airbases.json's size) with the 1998 runways' wider part cut
+    /// to the real width (`BaseMove::moved_mask`); empty when not moved or without a mask.
+    #[func]
+    fn moved_mask(name: GString) -> PackedByteArray {
+        let g = MOVES.read().unwrap();
+        let m = g.as_ref().and_then(|ms| ms.get(&name.to_string())).map(|m| m.moved_mask()).unwrap_or_default();
+        PackedByteArray::from(m)
     }
 
     /// The moved base `name` in airbases.json's layout for the Detailed airbases drawing: runways (ends, width,
@@ -323,14 +334,19 @@ impl IafBases {
                 mv([n(0), n(1)])
             };
             let (e0, e1) = (e(0), e(1));
-            // The real runway's designator (magnetic, OSM's ref), docs/world-scale.md §4.3.
-            let num = |a: [f64; 2], b: [f64; 2]| m.designator((b[0] - a[0]).atan2(b[1] - a[1]).to_degrees());
+            // The real runway's designation (magnetic, OSM's ref) nearest the moved runway's middle, docs/world-scale.md
+            // §4.3: the number and the letter of a parallel pair.
+            let mid = [0.5 * (e0[0] + e1[0]), 0.5 * (e0[1] + e1[1])];
+            let num =
+                |a: [f64; 2], b: [f64; 2]| m.designation((b[0] - a[0]).atan2(b[1] - a[1]).to_degrees(), Some(mid));
             let th: VarArray = r.get("thresholds").and_then(|v| v.try_to().ok()).unwrap_or_default();
             let t = |i: usize| th.get(i).and_then(|v| v.try_to::<f64>().ok()).unwrap_or(0.0) * m.k;
             let mut d = r.duplicate_deep();
             d.set("ends", &varray![&varray![e0[0], e0[1]], &varray![e1[0], e1[1]]]);
             d.set("width", m.width);
-            d.set("numbers", &varray![num(e0, e1), num(e1, e0)]);
+            let (n0, n1) = (num(e0, e1), num(e1, e0));
+            d.set("numbers", &varray![n0.0, n1.0]);
+            d.set("letters", &varray![n0.1.as_str(), n1.1.as_str()]);
             d.set("thresholds", &varray![t(0), t(1)]);
             runways.push(&d.to_variant());
         }

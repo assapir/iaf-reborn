@@ -153,9 +153,9 @@ Checked against the code on 2026-10-19 (each doc's own "not built" notes have th
   the F-16's delayed CCIP, `hud_ccip_delay` / `hud_ccip_designated` (docs/guides/f16.md §11).
 - **World scale Real 1:1** (docs/world-scale.md, Extras → World scale): steps 1–8 built (true-size
   models, jets, gear clearance, weapons; every airbase at its real place on its real main runway, with its mission
-  units, markers and routes). The AI's final approach holds the real runway's centreline; the old site is painted over without seams; the new site's ground close up is the old site's fine art warped there (§4.3). The runway numbers are the real designators, the ships their real length, Bley is Marj Ruhayyil (inferred). With
+  units, markers and routes). The AI's final approach holds the real runway's centreline; the old site is painted over without seams; the new site's ground close up is the old site's fine art warped there (§4.3). The runway numbers are the real designators (with L / R, the taxi signs re-lettered), the runway surface the real width (OurAirports' widths), the ships their real length, Bley is Marj Ruhayyil (inferred, now sourced). With
   Weapon data Real the gun's hit test and the sourced blast radii are real (docs/real-weapons.md §1.4). Open: the
-  Israeli runway widths, and the real blast radii of the missiles / SAMs without a published lethal radius.
+  real blast radii of the missiles / SAMs without a published lethal radius.
 - **Imagery**: SPOT 5 outside Israel not started.
 - **Multiplayer**: not started (missions 511–516, 666, 777), with its RWR network messages. Research and plan: [multiplayer.md](multiplayer.md).
 

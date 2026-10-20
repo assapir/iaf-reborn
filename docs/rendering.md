@@ -473,7 +473,9 @@ thresholds. In the terrain's fragment, inside the mask's rectangle and within 6 
   side, 1.8 m, 30 m long, 6 m past the threshold), the designation (two digits 9 m tall, 12 m past the stripes),
   centreline (30 m dashes, 20 m gaps), touchdown zone marks every 150 m (3, 3, 2, 2, 1, 1 bars), the aiming point
   (45 × 8 m at 400 m, on runways over 2400 m), edge lines. Before a threshold: yellow chevrons 30 m apart. Taxi lines:
-  yellow, 0.3 m, within 2 km.
+  yellow, 0.3 m, within 2 km. World scale Real (world-scale.md §4.3): a parallel runway's letter (L, R, C) between
+  the stripes and the digits, the taxi lines 1 m wide, and the 1998 runways' paved part beyond the real width plus
+  5 m drawn as ground (`IafBases.moved_mask`).
 - **Tyre rubber**: dark streaks in the main gears' tracks (1–6 m off the centreline) from ≈ 150 to 1100 m past each
   threshold.
 - Every mark is box-filtered over the pixel's footprint along and across the runway, so it fades to its average far

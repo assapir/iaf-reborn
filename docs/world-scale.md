@@ -106,17 +106,22 @@ The ten iaf.ibx bases against the real ones. "Game" = the runways the setup meas
 What the table shows:
 - **The runways are enlarged by 1.13–1.45** where the art has runways (k = 0.69–0.88). The bases without art
   runways use the AI's default 3000 m, which is close to real or short (Aman).
-- **The widths are enlarged more:** 75–97 m in the game against 45–61 m where OpenStreetMap gives a width. The
-  Israeli bases' real widths are open.
+- **The widths are enlarged more:** 75–97 m in the game against 40–61 m real for the main runways (the OpenStreetMap
+  tag, else OurAirports' width[^oa]: Ramon 45.1, Ramat David 44.2, Tel Nof 45.7, Inshas 39.9, Marj Ruhayyil 45.7,
+  Rayak 45.1 m). Cross-checks: Ramon 45 m[^latc]. Bir Gifgafa's main runway has no sourced width (45 m).
 - **The layouts are not the real ones** ([imagery.md](imagery.md) §9): no move, rotation and single scale puts the
   game's runways on the real ones (residuals 340–890 m at the three Israeli bases). Ramon is also turned 17°.
 - **Bley** (checked 2026-10-20). The briefings (237, 511) call it a Syrian MiG base; the game puts it next to
   Tha'lah AB (32.712 N 36.425 E[^thalah], 2.8 km away). OpenStreetMap has no aerodrome or runway named Bley / Ble /
   بلي; its only match is the village Beli (بلي, 33.224 N 36.463 E[^beli]), 6.6 km south of Marj Ruhayyil Air Base
-  (33.283 N 36.464 E[^osm]) and 17 km north-west of Khalkhalah Air Base (33.081 N 36.562 E[^khalkhalah]). A report of
-  a "Ble (Bley) airport" ≈ 45 km south of Damascus (ynetnews / Intelli Times, 2023) gives no coordinates; open.
-  Inferred: Bley is the air base named after the nearest village, Marj Ruhayyil (2 runways at 063°, 3.0 and 2.8 km;
-  31 km from Damascus, Khalkhalah 55 km). The base moves 62.8 km north-east.
+  (33.283 N 36.464 E[^osm]) and 17 km north-west of Khalkhalah Air Base (33.081 N 36.562 E[^khalkhalah]). Enab Baladi
+  (13 Nov 2025, drawing on a 2022 Jusoor Center study of the airfields around Damascus) names "Ble Airport" (مطار
+  "بلي"): south of Damascus, about 45 km away and about 50 km west of Tal Dakwa; "eight helicopters, along with a
+  single runway for combat aircraft and munitions depots"[^enab][^enabar]. It gives no coordinates. Tall ad Dakwah
+  lies 46 km east-north-east of Marj Ruhayyil[^osmdakwa]; the article's list of Rural Damascus airfields does not name
+  Marj Ruhayyil itself, which Wikipedia lists with MiG-23 and Mi-25 squadrons[^wplist]. Inferred, now sourced: Bley is
+  Marj Ruhayyil (2 runways at 063°, 3.0 and 2.8 km; 31 km from Damascus in a straight line, so the article's 45 km is
+  likely by road). The base moves 62.8 km north-east.
 - **Base distances** (all 45 pairs, middle to middle): game / real median 1.01, 5th–95th percentile 0.90–1.18,
   extremes 0.71 (Kuzeir–Ryak) and 1.34 (Damascus–Ryak). Ramon–Tel Nof is 90.5 km in the game, 118.7 km real.
 
@@ -227,9 +232,11 @@ real layout (§1.2), but its main runway lies exactly on the real one.
 bases (decision 5; © OpenStreetMap contributors, ODbL 1.0, the attribution in the file's header), their ends in
 lat/lon and in engine metres through the georeference ([georef.md](georef.md)). Made by `tools/real_runways.py`
 (Overpass API, then `iaf-terrain game` per end). Width: the OSM `width` tag (Mezzeh and Al Qusayr 45 m, Queen Alia
-61 m), else 45 m (decided by the agent, to confirm: the Israeli widths are open). Bley = Marj Ruhayyil (inferred,
-§1.2). Designator: the OSM `ref` (e.g. "07L/25R", magnetic), else from the magnetic heading with a declination of
-5° E (Inshas, Marj Ruhayyil, Rayak, one Bir Gifgafa way; inferred[^wmm]).
+61 m), else OurAirports' `width_ft` in metres[^oa] (the column `width_src`; matched by designator and length), else
+45 m (Bir Gifgafa's main runway and two other ways; confirmed by the user). Bley = Marj Ruhayyil (inferred, §1.2).
+Designator: the OSM `ref` (e.g. "07L/25R", magnetic), else OurAirports' (Marj Ruhayyil 06L/24R, the northern and
+wider way, and 06R/24L), else from the magnetic heading with a declination of 5° E (Inshas, Rayak, one Bir Gifgafa
+way; inferred[^wmm]).
 
 **The transform of a base** (`iaf_flight::base_move`, Rust): a similarity (move, turn, one scale k) set by the main
 runway.
@@ -249,7 +256,7 @@ runway.
   circuit markers and sensors (§1.2: 2–6 km out) without stretching them. Beyond zone B nothing moves.
 - **The three near bases** (Damascus 1.6 km, Kuzeir 0.5, Aman 0.7 km) move only zone A. Their surroundings
   stay with the painted ground (Damascus city's buildings and street lights in "darkness", 2–5 km from the runway;
-  Aman's SA-6 sites, 2.8–3.8 km). Decided by the agent, to confirm.
+  Aman's SA-6 sites, 2.8–3.8 km). Confirmed by the user (2026-10-20).
 - **Altitudes:** every moved point keeps its height over the base: z + (the new site's elevation − the old lineup's
   z). The new site's elevation is the original terrain's mean height along the real runway.
 
@@ -257,15 +264,15 @@ The moves (test `every_base_sits_on_its_real_runway`, crates/iaf-flight/tests/ba
 
 | base | real main runway (take-off heading, length × width) | turn | k | the base's middle moves |
 |---|---|---|---|---|
-| Ramon | 247° 2990 × 45 m (07R/25L) | +17.1° | 0.85 | 17.6 km |
-| Ramat David | 267° 2934 × 45 m (09/27) | −3.4° | 0.69 | 7.3 km |
-| Tel Nof | 151° 3198 × 45 m (15L/33R) | +61.1° | 0.72 | 17.0 km |
+| Ramon | 247° 2990 × 45.1 m (07R/25L) | +17.1° | 0.85 | 17.6 km |
+| Ramat David | 267° 2934 × 44.2 m (09/27) | −3.4° | 0.69 | 7.3 km |
+| Tel Nof | 151° 3198 × 45.7 m (15R/33L) | +61.1° | 0.72 | 17.0 km |
 | Refidim (Bir Gifgafa) | 327° 3066 × 45 m (15L/33R) | +57.4° | 0.78 | 17.2 km |
-| Inshas | 271° 2576 × 45 m | +1.0° | 0.86 | 25.0 km |
+| Inshas | 271° 2576 × 39.9 m (09/27 from the heading) | +1.0° | 0.86 | 25.0 km |
 | Damascus (Mezzeh) | 240° 2834 × 45 m (06/24) | +0.3° | 0.72 | 1.6 km |
 | Kuzeir (Al Qusayr) | 280° 3127 × 45 m (10/28) | +0.2° | 0.84 | 0.9 km |
-| Bley (Marj Ruhayyil, inferred) | 243° 3084 × 45 m (06/24 from the heading) | +8.1° | 0.76 | 64.8 km |
-| Ryak (Rayak) | 047° 3046 × 45 m | −43.3° | 1.02 | 28.8 km |
+| Bley (Marj Ruhayyil, inferred) | 243° 3084 × 45.7 m (06L/24R) | +8.1° | 0.76 | 64.8 km |
+| Ryak (Rayak) | 047° 3046 × 45.1 m | −43.3° | 1.02 | 28.8 km |
 | Aman (Queen Alia) | 260° 4044 × 61 m (08L/26R) | +0.1° | 1.35 | 0.2 km |
 
 RunwayNumber takes the real heading exactly (a float; the HUD ILS truncates it to whole degrees as the original
@@ -277,10 +284,10 @@ reads an integer).
 |---|---|
 | iaf.ibx (tower, lineup, taxi points and headings, hangars, turn points) | mapped at load (`IafFlight.ap_setup`, `start_rule`, `radio.gd`); RunwayNumber = the real heading (the AI's take-off and landing, the ILS, the circuit: docs/autopilot.md) |
 | mission entities, paths, formation routes | mapped in `mission_files()`: position, heading + turn, altitude; zone A's reached / left radii × k |
-| terraintype.dat (the FM's runway bit) | inside the new zone A: the original's flags at the inverse-mapped point; the old base's runway leaves are rough ground |
+| terraintype.dat (the FM's runway bit) | inside the new zone A: the original's flags at the inverse-mapped point, cut to the real runway's width (§4.3, "The runway surface at the real width"); the old base's runway leaves are rough ground |
 | terrain heights | the new site flattened to its elevation inside zone A, a smooth 1.2 km ring around it (height images patched as they load: the drawn ground, `height_at`, `IafHeights`) |
 | the old painted base | its paved surface painted over with its surroundings' colour (the colour images patched as they load, every level, the original art and the imagery layers) |
-| the new base | its paved surface painted grey at the new site (seen from afar), and the Detailed airbases surface there (forced on in Real), from the moved runways at the real width and the base's mask turned and scaled |
+| the new base | its paved surface painted grey at the new site (seen from afar), and the Detailed airbases surface there (forced on in Real), from the moved runways at the real width and the base's mask turned and scaled, its runways' wider part cut |
 | night lights | the light sets as kept models (§3.2); `BASE_LIGHTS` spots mapped |
 | TSD icons | the type-450 runway entities are mission entities (mapped) |
 
@@ -430,17 +437,44 @@ until the user decides to show it.
 - **Ships at their real size** (§1.1, §3.2): `Settings.ship_scale` in `terrain_view.gd` and the briefing's
   `model_view.gd`. Tests: `test_world_scale.gd` (the Osa 38.6 m in Real, the Present scale in Original), mission 125
   (six Osas) in Real through `tools/mission_sweep.sh`: passes, no errors.
-- **The real runway designators** (`BaseMove::designator`, from real_runways.csv's `designator`). The Detailed
-  airbases surface paints each moved runway's ends with the real runway's numbers (the half of the real runway
-  within 15° of it whose number is nearest; off every real runway, the true heading / 10): Ramon 07 / 25, Ramat David
-  09 / 27, Tel Nof 15 / 33, Bir Gifgafa 15 / 33. The L / R letters are not painted (the surface draws two digits). The tower's runway (`radio.gd`, `b.rwy`) is the designator × 10 (Ramon 250);
-  the zones and the alignment check use the true heading (`b.hdg`). The 3D runway signs bake their number
-  (`parts.bmp` has 09, 23 and 27; `terrain_view.gd _real_sign`): a single sign `sign<NN><l|r>` whose real number
-  has a model swaps to it, any other that disagrees hides; the sign groups keep or hide as a whole. Kept: SIGNDVID
-  (27 at Ramat David). Hidden: SIGNRMON (23, real 25), SIGNTLNF (09, real 15), SIGNRFID (27, real 33), and any single
-  sign whose real number is not 09, 23 or 27. Original unchanged. Tests: the unit test `the_designator_is_the_real_one`,
-  `tests/godot/test_base_move.gd` (David painted 09 / 27, the tower's 270, the signs kept at David, hidden at
-  Ramon), `test_world_scale.gd`.
+- **The real runway designators** (`BaseMove::designation`, from real_runways.csv's `designator`). The Detailed
+  airbases surface paints each moved runway's ends with the real runway's number (from the real runways within 15°
+  of it, the one nearest the moved runway's middle, its half whose number is within 30° of the heading; off every
+  real runway, the true heading / 10) and, where that real runway is one of a parallel pair and the moved runway
+  lies within 150 m of it (`LETTER_NEAR`), its letter between the threshold stripes and the digits (`ab_letter` in
+  `terrain.gdshader`: L, R, C as block strokes; the digits and the centreline move up by the letter's 9 m and a 6 m
+  gap, inferred). Main runways: Ramon 25L / 07R, Ramat David 27 / 09, Tel Nof 15R / 33L, Bir Gifgafa 33R / 15L,
+  Marj Ruhayyil 24R / 06L, Queen Alia 26R / 08L; Bley's second runway lies on 06R/24L; Ramon's second lies more than
+  150 m from both real runways (07 / 25, no letter). The tower's runway (`radio.gd`, `b.rwy`) is the number × 10 (Ramon 250), without the
+  letter; the zones and the alignment check use the true heading (`b.hdg`).
+- **The taxi signs re-lettered** (`game/terrain/sign_boards.gd`, `terrain_view.gd _real_sign`). The sign models
+  bake their number in parts.png's yellow boards (`<27>`, `<09>`, `<23>`; the groups SIGNDVID 27, SIGNRFID 27,
+  SIGNRMON 23, SIGNTLNF 09, the single signs `sign<NN><l|r>`). In Real a sign whose real designation differs
+  (`IafBases.sign_designation`: the game number turned with the base, on the main real runway, with its letter) shows
+  it: its surfaces take a copy of parts.png where that board's digits are covered by the board's own yellow (the
+  clean strip between the left arrow and the digits, stretched) and the label is drawn in black at the digits'
+  height in the install's menu font (Gill Sans Condensed, `resource/menu/fnt/cr1.ttf`, rasterised by Godot's font
+  engine), narrowed to fit between the arrows. Shown: SIGNRMON 25L (mission 322's start at Ramon), SIGNTLNF 15R,
+  SIGNRFID 33R; SIGNDVID keeps 27. A sign whose board cannot be made keeps its original number (a warning); none so
+  far. Picture: `boards.png` (local capture of the re-lettered boards). The groups stand at the moved junctions × k.
+- **The taxi lines in Real are 1 m wide** (`airbases.gd TAXI_HALF_WIDTH_REAL`, `airbase_info.y`; Original 0.3 m).
+  A real taxiway centreline is about 0.15–0.3 m wide; at the game's resolution such a line is lost from the cockpit
+  once the 1998 art's painted lines are gone at the new site, so the line is widened (inferred).
+- **The runway surface at the real width** (`BaseMove::runway_cover`, user decision, §5). The original's runway
+  leaves, carried through the move, cover each 1998 runway's full width × k (Ramon 66 m, Ramat David 67 m) against
+  the real 44–46 m. In each moved game runway's band (its painted width + 20 m each side, game metres) the runway
+  bit stays within the real half-width + 5 m (`SHOULDER`, inferred) of the centreline; beyond it the band is land
+  (rough ground above 25.7 m/s, flight-model.md §15.6.2), except where the paved surface goes on 6 m past the band
+  (`JOIN_PROBE`: a taxiway or apron joining), which stays runway ground so taxiing in and out stays smooth.
+  terraintype.dat has no separate taxiway type: its runway bit is the airbase's whole paved surface. The drawn
+  pavement follows the same cut: the Detailed surface's mask (`IafBases.moved_mask`, anti-aliased over one 2.5 m
+  pixel) and the grey painted at the new site from afar. Taxiways and aprons off the runways keep the original's
+  leaves. Tests: the unit tests `the_runway_surface_is_the_real_width`, `the_designator_is_the_real_one`;
+  `tests/godot/test_base_move.gd` (the centreline runway ground at 5 of 5 points along Ramat David's main runway, 9 m
+  beyond the real edge ground at 9 of 10, the one left a taxiway join; Ramon's main runway painted 25L / 07R, David's
+  without letters; mission 322's SIGNRMON shown and re-lettered 25L in Real, untouched in Original); the autopilot's
+  take-off and landing at the moved Ramat David and Ramon (`crates/iaf-flight/tests/base_move.rs`, the bands from
+  airbases.json's widths).
 - **The new site's ground close up** (`BaseMove::inset_source` / `bake_inset` in
   `crates/iaf-flight/src/base_move.rs`, `IafBases.moved_insets` in `crates/iaf-godot/src/bases.rs`, `terrain.gd
   _add_insets` / `_inset_image`). The 1998 art has fine levels only over its painted bases (Ramat David's old site
@@ -466,28 +500,31 @@ until the user decides to show it.
 Decided:
 1. **The far bases move to their real places** too: all ten bases at their real positions (§3.3).
 2. **Base buildings at true size (1:1)**, not the base's k.
-3. **Runways at their real proportions:** real length and real width (45–61 m), not a uniform k; the paint and the
-   terraintype polygon get an axis-wise warp. Built as (§3.3): the length by the base's k, the marked width (paint,
-   edge lines) the real one; the FM's runway leaves keep k (see "Decided by the agent").
+3. **Runways at their real proportions:** real length and real width (40–61 m), not a uniform k. Built as (§3.3,
+   §4.3): the length by the base's k, the marked width (paint, edge lines), the drawn pavement and the FM's runway
+   surface the real one (+ 5 m); the 1998 runway's wider part is ground except where taxiways and aprons join.
 4. **Gun hit sphere and blast radii follow the weapon data:** with Weapon data = Real (docs/real-weapons.md) they
    take real values for true-size targets; with Weapon data = Original they stay the original's.
 5. **The real runway table may be committed:** a small table of coordinates derived from OpenStreetMap, with the
    ODbL attribution in the repo[^osm].
 
-Decided by the agent (2026-10-20), to confirm:
-- The untagged real runway widths (the Israeli bases, Bir Gifgafa, Inshas, Marj Ruhayyil, Rayak): 45 m.
+Decided by the agent, confirmed by the user (2026-10-20):
+- A real runway without a sourced width: 45 m (now only Bir Gifgafa's main runway and two other ways; the rest from
+  OurAirports, §3.3).
 - The main real runway: the one whose heading is nearest RunwayNumber's (the longer of a parallel pair).
-- Zones: zone A = the base's box + 500 m (similarity); zone B (6 km, move and turn without scaling) only at the six
+- Zones: zone A = the base's box + 500 m (similarity); zone B (6 km, move and turn without scaling) only at the seven
   far-moved bases; the near bases' surroundings stay.
-- The FM's runway surface on a moved base is the original's terraintype leaves through the base's transform (they
-  also cover the taxiways and aprons, so cutting them to the real runway width would make taxiing rough ground).
-  The paved shoulders between the real width and the game's width × k stay paved, unmarked.
-- The light sets and sign groups are scaled by k with their base; at the real width the runway edge lights stand on
-  the paved shoulder (about 11 m outside the edge line at Ramat David).
+- The light sets and sign groups are scaled by k with their base; at the real width the runway edge lights stand
+  beside the runway (about 11 m outside the edge line at Ramat David).
 - The Detailed airbases surface is on at a moved base whatever the Graphics setting (the new site has no painted base).
 
+Changed by the user (2026-10-20):
+- The FM's runway surface: first the original's leaves through the move, with paved unmarked shoulders out to the
+  game's width × k; now the real width + 5 m, the wider part ground except at taxiway and apron joins (§4.3).
+- The taxi signs: first hidden where the number disagreed; now re-lettered with the real designation (§4.3).
+
 Open:
-- Bley's real base: Marj Ruhayyil is inferred (§1.2); a source naming the base "Bley" with a place would settle it.
+- Bley's real base: Marj Ruhayyil is inferred from a source that names "Ble" and its region but no place (§1.2).
 
 [^f16]: Wikipedia, "General Dynamics F-16 Fighting Falcon", specifications: https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon
 [^f15]: Wikipedia, "McDonnell Douglas F-15 Eagle", specifications: https://en.wikipedia.org/wiki/McDonnell_Douglas_F-15_Eagle
@@ -505,3 +542,13 @@ Open:
     https://www.openstreetmap.org/node/12248489937
 [^khalkhalah]: Wikipedia, "Khalkhalah Military Airbase": https://en.wikipedia.org/wiki/Khalkhalah_Military_Airbase
 [^wmm]: NOAA NCEI, World Magnetic Model 2025, declination calculator: https://www.ngdc.noaa.gov/geomag/calculators/magcalc.shtml
+[^oa]: OurAirports, runways.csv (`width_ft`, `le_ident` / `he_ident`; public domain), read 2026-10-20:
+    https://davidmegginson.github.io/ourairports-data/runways.csv
+[^latc]: Learn-ATC aerodrome data, LLRM (Ramon, 45 m): https://www.learn-atc.com/tools/aerodrome/LLRM
+[^enab]: Enab Baladi (English), "Eight military airfields around Damascus, what are they?", 13 Nov 2025 (archived):
+    https://web.archive.org/web/2025/https://english.enabbaladi.net/archives/2025/11/eight-military-airfields-around-damascus-what-are-they/
+[^enabar]: Enab Baladi (Arabic), "ثمانية مطارات عسكرية في محيط دمشق.. ما هي؟" (archived):
+    https://web.archive.org/web/20251115151234/https://www.enabbaladi.net/782715/
+[^osmdakwa]: OpenStreetMap node 508455448, Tall ad Dakwah (© OpenStreetMap contributors, ODbL):
+    https://www.openstreetmap.org/node/508455448
+[^wplist]: Wikipedia, "List of Syrian Air Force bases": https://en.wikipedia.org/wiki/List_of_Syrian_Air_Force_bases

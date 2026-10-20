@@ -221,7 +221,7 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   game's main runway on the real one (OpenStreetMap, ODbL) at its real length, heading and width; iaf.ibx's points,
   the runway surface, the base's mission units, markers and routes move with it; the new site is flattened and drawn
   with the Detailed airbases surface (on in Real whatever the Graphics setting), the old site's paved surface is
-  painted over. The AI's final approach holds the real runway's centreline (world-scale.md §4.3). The runway numbers (painted, the tower's, the signs) are the real designators; a sign without a matching model hides. Hit spheres, blast radii and every sensor range stay the original's.
+  painted over. The AI's final approach holds the real runway's centreline (world-scale.md §4.3). The runway numbers (painted, the tower's, the taxi signs) are the real designators, with a parallel runway's letter painted and on the signs (the signs re-lettered in the install's menu font); the taxi lines are 1 m wide. The flight model's runway surface and the drawn pavement are the real runway's width plus 5 m; the 1998 runway's wider part is ground, except where a taxiway or apron joins (world-scale.md §4.3). Hit spheres, blast radii and every sensor range stay the original's.
   The tower then says the real runway number (`b.rwy`); the numbers the install has no clip for (all but 03, 05,
   09, 15, 18, 21, 23, 27, 33) come from our TTS clips in `game/extra/tower_numbers/` (radio.md §1). Original:
   the missing `NumNNN` is silent. The original bases' runways all have install clips, so Original never plays ours.

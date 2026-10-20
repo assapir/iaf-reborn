@@ -2,11 +2,18 @@
 # ground, terrain.gdshader draws a procedural runway, taxiway and apron surface with markings over the nearest base's
 # paved surface. The runways (ends, width, designation numbers), the AI's taxi paths and the paved-surface mask come
 # from the 1998 art and iaf.ibx (`iaf-terrain airbases` → assets/converted/terrain/airbases.json, crates/iaf-tools
-# airbases.rs). Rendering only: the flight model's runway surface stays terraintype.dat's.
+# airbases.rs). Rendering only: the flight model's runway surface stays terraintype.dat's (World scale Real cuts both
+# to the real runway's width: IafBases.moved_mask, docs/world-scale.md §3.3).
 extends RefCounted
 
 ## The nearest base within this distance of the camera (m, to its runways' middle) is drawn.
 const RANGE := 15000.0
+## The taxi lines' half width (m): the original 0.3 m line; World scale Real 1 m, to be seen from the cockpit over the
+## real-size base (docs/world-scale.md §4.3; inferred).
+const TAXI_HALF_WIDTH := 0.15
+const TAXI_HALF_WIDTH_REAL := 0.5
+## A runway designation's letter → the shader's code (terrain.gdshader ab_letter).
+const LETTERS := {"L": 1, "R": 2, "C": 3}
 
 static var _bases := []
 static var _loaded := false
@@ -86,6 +93,10 @@ static func update_view(cam: Vector3, terrain: Node) -> void:
 static func _select(b: Dictionary, o: Vector2) -> void:
 	var m: Dictionary = b.mask
 	var img := Image.load_from_file(Settings.assets_dir().path_join("converted/terrain").path_join(m.file))
+	# World scale Real: the 1998 runways' paved part beyond the real width is ground (as for the flight model).
+	var cut := IafBases.moved_mask(String(b.name)) if b.has("mask_affine") else PackedByteArray()
+	if img != null and not img.is_empty() and cut.size() == 3 * img.get_width() * img.get_height():
+		img = Image.create_from_data(img.get_width(), img.get_height(), false, Image.FORMAT_RGB8, cut)
 	if img == null or img.is_empty():
 		RenderingServer.global_shader_parameter_set("airbase_info", Vector4.ZERO)
 		return
@@ -116,12 +127,14 @@ static func _select(b: Dictionary, o: Vector2) -> void:
 		texels.append(Color(c.x, c.y, d.x, d.y))
 		texels.append(Color(e0.distance_to(e1) * 0.5, float(r.width) * 0.5, float(r.numbers[0]), float(r.numbers[1])))
 		var t: Array = r.get("thresholds", [0, 0])
-		texels.append(Color(float(t[0]), float(t[1]), 0.0, 0.0))
+		var l: Array = r.get("letters", ["", ""])
+		texels.append(Color(float(t[0]), float(t[1]), LETTERS.get(l[0], 0), LETTERS.get(l[1], 0)))
 	var data := Image.create(maxi(texels.size(), 1), 1, false, Image.FORMAT_RGBAF)
 	for i in texels.size():
 		data.set_pixel(i, 0, texels[i])
 	RenderingServer.global_shader_parameter_set("airbase_data", ImageTexture.create_from_image(data))
-	RenderingServer.global_shader_parameter_set("airbase_info", Vector4(b.runways.size(), 0, 0, 0))
+	var taxi := TAXI_HALF_WIDTH_REAL if b.has("mask_affine") else TAXI_HALF_WIDTH
+	RenderingServer.global_shader_parameter_set("airbase_info", Vector4(b.runways.size(), taxi, 0, 0))
 
 
 ## Engine metres [X, Y] → Godot (x, z) relative to the world origin.

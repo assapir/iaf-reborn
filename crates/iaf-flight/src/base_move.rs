@@ -13,8 +13,16 @@ const LAND: i32 = 0x1;
 
 /// The real runway table (tools/real_runways.py).
 pub const REAL_RUNWAYS_CSV: &str = include_str!("../data/real_runways.csv");
-/// The width of a real runway without an OSM width tag (decided by the agent, docs/world-scale.md §5).
+/// The width of a real runway without a sourced width (docs/world-scale.md §5).
 pub const DEFAULT_WIDTH: f64 = 45.0;
+/// The paved surface the flight model takes as runway reaches this far beyond the real runway's edge (m; inferred).
+pub const SHOULDER: f64 = 5.0;
+/// A game runway's band: its painted width plus this each side (m, game frame), covering the art's paved shoulders.
+pub const BAND_PAD: f64 = 20.0;
+/// A moved runway takes the letter of the real runway nearest it only within this distance across (m).
+pub const LETTER_NEAR: f64 = 150.0;
+/// A taxiway or apron joins the runway where the paved surface goes on this far beyond the band (m, game frame).
+pub const JOIN_PROBE: f64 = 6.0;
 /// Zone A: the box around the base's runway ends and iaf.ibx points, plus this (m, game frame).
 pub const BOX_MARGIN: f64 = 500.0;
 /// Zone B reaches this far beyond zone A (m), at the bases moved farther than `FAR`.
@@ -63,6 +71,8 @@ pub struct GameBase {
     pub runway_deg: f64,
     /// The runways' ends; the first is the runway through the lineup point.
     pub runways: Vec<[[f64; 2]; 2]>,
+    /// The runways' painted widths (m, airbases.json); a runway without one keeps its paved shoulders.
+    pub widths: Vec<f64>,
     /// Points the base's box must hold (tower, taxi paths, hangars).
     pub points: Vec<[f64; 2]>,
 }
@@ -81,6 +91,7 @@ impl GameBase {
             lineup: b.lineup.map(f64::from),
             runway_deg: b.runway_deg as f64,
             runways,
+            widths: Vec::new(),
             points,
         }
     }
@@ -193,10 +204,11 @@ pub struct BaseMove {
     /// The old lineup's z and the new site's elevation (m).
     pub old_z: f64,
     pub elev: f64,
-    /// The game runways (their ends), for the drawing.
+    /// The game runways (their ends) and painted widths, for the drawing and the shoulders.
     pub game_runways: Vec<[[f64; 2]; 2]>,
-    /// The real runways' true headings (a → b) and designators.
-    pub designators: Vec<(f64, String)>,
+    pub game_widths: Vec<f64>,
+    /// The base's real runways, the main one first.
+    pub reals: Vec<RealRunway>,
     pub mask: Option<Mask>,
     /// The old site's fill colour from a coarse level (`BaseMoves::add_fill_source`); None: each node's own.
     pub fill: Option<Fill>,
@@ -255,23 +267,23 @@ impl BaseMove {
         let game_c = [l[0] + u0 * d[0], l[1] + u0 * d[1]];
         let game_len = u1 - u0;
         // The real runway and direction nearest RunwayNumber's heading; within 1° the longer.
-        type Pick = ([f64; 2], [f64; 2], f64, f64, f64); // a, b, heading diff, length, width
+        type Pick = ([f64; 2], [f64; 2], f64, f64, f64, usize); // a, b, heading diff, length, width, row
         let mut best: Option<Pick> = None;
-        for row in &rows {
+        for (i, row) in rows.iter().enumerate() {
             for (a, b) in [(row.a, row.b), (row.b, row.a)] {
                 let len = sub(b, a);
                 let len = len[0].hypot(len[1]);
                 let diff = wrap180(heading(sub(b, a)) - g.runway_deg).abs();
                 let better = match best {
                     None => true,
-                    Some((_, _, bd, bl, _)) => diff < bd - 1.0 || (diff <= bd + 1.0 && len > bl),
+                    Some((_, _, bd, bl, _, _)) => diff < bd - 1.0 || (diff <= bd + 1.0 && len > bl),
                 };
                 if better {
-                    best = Some((a, b, diff, len, row.width));
+                    best = Some((a, b, diff, len, row.width, i));
                 }
             }
         }
-        let (a, b, _, real_len, width) = best?;
+        let (a, b, _, real_len, width, main) = best?;
         let real_d = {
             let v = sub(b, a);
             [v[0] / real_len, v[1] / real_len]
@@ -308,7 +320,11 @@ impl BaseMove {
             old_z: g.lineup[2],
             elev: g.lineup[2],
             game_runways: g.runways.clone(),
-            designators: rows.iter().map(|r| (heading(sub(r.b, r.a)), r.designator.clone())).collect(),
+            game_widths: g.widths.clone(),
+            reals: std::iter::once(rows[main])
+                .chain(rows.iter().enumerate().filter(|(i, _)| *i != main).map(|(_, r)| *r))
+                .cloned()
+                .collect(),
             mask: None,
             fill: None,
         };
@@ -455,29 +471,96 @@ impl BaseMove {
         1.0 - smoothstep(0.0, RING, du.hypot(dv))
     }
 
-    /// The real designator's number (1–36) of a runway direction at the new site, `heading` true (deg): the half of
-    /// the real runway within 15° of it whose number is nearest the heading; else from the heading (36 for 0).
+    /// The real designator's number (1–36) of a runway direction at the new site, `heading` true (deg).
     pub fn designator(&self, heading: f64) -> i64 {
-        let mut best: Option<(f64, i64)> = None;
-        for (h, d) in &self.designators {
+        self.designation(heading, None).0
+    }
+
+    /// The real designation of a runway direction at the new site, `heading` true (deg): its number (1–36) and letter
+    /// ("L", "R", "C" or ""). From the real runways within 15° of it, the one nearest `at` (across its line; without
+    /// `at` the main one), the half whose number is within 30° of the heading; its letter only when `at` lies within
+    /// `LETTER_NEAR` of it. Off every real runway: the number from the heading (36 for 0), no letter.
+    pub fn designation(&self, heading: f64, at: Option<[f64; 2]>) -> (i64, String) {
+        let mut best: Option<(f64, i64, &str)> = None;
+        for (i, r) in self.reals.iter().enumerate() {
+            let v = sub(r.b, r.a);
+            let h = self::heading(v);
             if wrap180(h - heading).abs().min(wrap180(h + 180.0 - heading).abs()) > 15.0 {
                 continue;
             }
-            for half in d.split('/') {
-                let Ok(n) = half.trim_end_matches(|c: char| c.is_ascii_alphabetic()).parse::<i64>() else { continue };
-                let e = wrap180(n as f64 * 10.0 - heading).abs();
-                if best.is_none_or(|(be, _)| e < be) {
-                    best = Some((e, n));
+            let dist = at.map_or(i as f64, |p| {
+                let q = sub(p, r.a);
+                (q[0] * v[1] - q[1] * v[0]).abs() / v[0].hypot(v[1]).max(1e-9)
+            });
+            for half in r.designator.split('/') {
+                let num = half.trim_end_matches(|c: char| c.is_ascii_alphabetic());
+                let Ok(n) = num.parse::<i64>() else { continue };
+                if wrap180(n as f64 * 10.0 - heading).abs() < 30.0 && best.is_none_or(|(bd, _, _)| dist < bd) {
+                    best = Some((dist, n, &half[num.len()..]));
                 }
             }
         }
         match best {
-            Some((e, n)) if e < 30.0 => n,
-            _ => match (heading.rem_euclid(360.0) / 10.0).round() as i64 % 36 {
-                0 => 36,
-                n => n,
+            Some((d, n, l)) => (n, if at.is_some() && d > LETTER_NEAR { String::new() } else { l.to_string() }),
+            None => match (heading.rem_euclid(360.0) / 10.0).round() as i64 % 36 {
+                0 => (36, String::new()),
+                n => (n, String::new()),
             },
         }
+    }
+
+    /// The paved surface's share kept at a game point (0..1; docs/world-scale.md §3.3), None off every game runway's
+    /// band (its painted width + `BAND_PAD`). In a band the paved surface stays within the real runway's width plus
+    /// `SHOULDER` of the centreline (anti-aliased over one mask pixel) and where it goes on beyond the band (a taxiway
+    /// or apron joining); the rest of the band, the 1998 runway's wider part, is ground.
+    pub fn runway_cover(&self, q: [f64; 2]) -> Option<f64> {
+        let px = self.mask.as_ref().map_or(2.5, |m| m.px_m);
+        let core = (0.5 * self.width + SHOULDER) / self.k;
+        let mut cover: Option<f64> = None;
+        for (e, &w) in self.game_runways.iter().zip(&self.game_widths) {
+            let v = sub(e[1], e[0]);
+            let len = v[0].hypot(v[1]);
+            if len <= 0.0 || w <= 0.0 {
+                continue;
+            }
+            let (d, rel) = ([v[0] / len, v[1] / len], sub(q, e[0]));
+            let r = [d[1], -d[0]];
+            let (along, across) = (dot(rel, d), dot(rel, r));
+            let band = 0.5 * w + BAND_PAD;
+            if along < 0.0 || along > len || across.abs() > band {
+                continue;
+            }
+            let side = if across < 0.0 { -1.0 } else { 1.0 } * (band + JOIN_PROBE);
+            let probe = [e[0][0] + along * d[0] + side * r[0], e[0][1] + along * d[1] + side * r[1]];
+            let join = self.mask.as_ref().map_or(0.0, |m| m.at(probe)[0]);
+            let c = ((core - across.abs()) / px + 0.5).clamp(0.0, 1.0).max(join);
+            cover = Some(cover.map_or(c, |x: f64| x.max(c)));
+        }
+        cover
+    }
+
+    /// The mask's (paved, concrete) coverage at a game point with the 1998 runways' wider part cut (`runway_cover`).
+    pub fn paved_at(&self, q: [f64; 2]) -> [f64; 2] {
+        let c = self.mask.as_ref().map_or([0.0; 2], |m| m.at(q));
+        let k = self.runway_cover(q).unwrap_or(1.0);
+        [c[0].min(k), c[1].min(k)]
+    }
+
+    /// The mask's pixels (RGB8) with `paved_at`'s cut; empty without a mask.
+    pub fn moved_mask(&self) -> Vec<u8> {
+        let Some(m) = &self.mask else { return Vec::new() };
+        let mut rgb = m.rgb.clone();
+        for y in 0..m.h {
+            for x in 0..m.w {
+                let q = [m.origin[0] + (x as f64 + 0.5) * m.px_m, m.origin[1] - (y as f64 + 0.5) * m.px_m];
+                let Some(k) = self.runway_cover(q) else { continue };
+                let i = 3 * (y * m.w + x);
+                for c in &mut rgb[i..i + 2] {
+                    *c = (*c as f64).min(k * 255.0).round() as u8;
+                }
+            }
+        }
+        rgb
     }
 
     /// iaf.ibx's base at the new site: its points mapped (z + dz), headings turned, RunwayNumber the real heading.
@@ -556,22 +639,29 @@ impl BaseMoves {
         }
     }
 
-    /// A runway sign at `p` (its new site) showing runway `n` in the game: the real designator of that runway
-    /// direction (n · 10° turned with the base); None off the moved bases.
-    pub fn sign_number(&self, p: [f64; 2], n: i64) -> Option<i64> {
+    /// A runway sign at `p` (its new site) showing runway `n` in the game: the real designation of that runway
+    /// direction (n · 10° turned with the base) on the main real runway, as a sign reads it ("25L", "09"); None off
+    /// the moved bases.
+    pub fn sign_designation(&self, p: [f64; 2], n: i64) -> Option<String> {
         let b = self.bases.iter().find(|b| b.to_game(p, 0.0).is_some())?;
-        Some(b.designator(n as f64 * 10.0 + b.turn))
+        let (n, l) = b.designation(n as f64 * 10.0 + b.turn, None);
+        Some(format!("{n:02}{l}"))
     }
 
     /// The surface flags at `p` with `lookup` = terraintype.dat's: on a new site the original's runway leaves (their
-    /// flags at the inverse-mapped point); on an old site the runway leaves are land (rough ground off a runway).
+    /// flags at the inverse-mapped point) within the real runway's width and the taxiways and aprons, the 1998
+    /// runway's wider part land (`BaseMove::runway_cover`); on an old site the runway leaves are land (rough ground
+    /// off a runway).
     pub fn surface(&self, p: [f64; 2], lookup: impl Fn(f64, f64) -> i32) -> i32 {
         let here = lookup(p[0], p[1]);
         for b in &self.bases {
             if let Some(q) = b.to_game(p, 0.0) {
                 let g = lookup(q[0], q[1]);
                 if g & RUNWAY != 0 {
-                    return g;
+                    return match b.runway_cover(q) {
+                        Some(c) if c < 0.5 => (g & !RUNWAY) | LAND,
+                        _ => g,
+                    };
                 }
                 return if here & RUNWAY != 0 { (here & !RUNWAY) | LAND } else { here };
             }
@@ -771,8 +861,8 @@ impl BaseMoves {
             for x in 0..w {
                 let p = px(x, y);
                 for b in &self.bases {
-                    let (Some(m), Some(q)) = (b.mask.as_ref(), b.to_game(p, 0.0)) else { continue };
-                    let c = m.at(q);
+                    let (Some(_), Some(q)) = (b.mask.as_ref(), b.to_game(p, 0.0)) else { continue };
+                    let c = b.paved_at(q);
                     if c[0] <= 0.0 {
                         continue;
                     }
@@ -914,6 +1004,7 @@ mod tests {
             lineup: [356483.0, 602383.0, 63.0],
             runway_deg: 270.0,
             runways: vec![[[357155.0, 602373.0], [352891.0, 602401.0]]],
+            widths: vec![97.0],
             points: vec![[353954.0, 601500.0], [354934.0, 602088.0]],
         }
     }
@@ -924,8 +1015,11 @@ mod tests {
         for b in crate::airbase::SECTIONS {
             assert!(t.iter().any(|r| r.base == b), "{b}");
         }
-        assert!(t.iter().all(|r| r.width >= 45.0 && r.width <= 61.0));
+        assert!(t.iter().all(|r| r.width >= 29.0 && r.width <= 61.0));
         assert_eq!(t.iter().find(|r| r.base == "Aman").unwrap().width, 61.0);
+        // OurAirports' widths where OSM has no tag: Ramon 148 ft, Marj Ruhayyil's 06R/24L 97 ft.
+        assert_eq!(t.iter().find(|r| r.base == "Ramon").unwrap().width, 45.1);
+        assert!(t.iter().any(|r| r.designator == "06R/24L" && r.width == 29.6));
     }
 
     #[test]
@@ -1053,15 +1147,26 @@ mod tests {
                 lineup: [0.0, 0.0, 0.0],
                 runway_deg: 230.0,
                 runways: vec![[[0.0, 0.0], [-2000.0, -1700.0]]],
+                widths: Vec::new(),
                 points: Vec::new(),
             },
-            &[RealRunway {
-                base: "X".into(),
-                a: [0.0, 0.0],
-                b: [-2700.0, -1150.0],
-                width: 45.0,
-                designator: "07L/25R".into(),
-            }],
+            &[
+                // The twin first in the table, 400 m north; the longer one is the main runway.
+                RealRunway {
+                    base: "X".into(),
+                    a: [0.0, 400.0],
+                    b: [-2500.0, -665.0],
+                    width: 45.0,
+                    designator: "07L/25R".into(),
+                },
+                RealRunway {
+                    base: "X".into(),
+                    a: [0.0, 0.0],
+                    b: [-2700.0, -1150.0],
+                    width: 45.0,
+                    designator: "07R/25L".into(),
+                },
+            ],
         )
         .unwrap();
         // True 247° flies runway 25 (the magnetic number), the other way 07; off any runway: from the heading.
@@ -1069,6 +1174,64 @@ mod tests {
         assert_eq!(m.designator(67.0), 7);
         assert_eq!(m.designator(150.0), 15);
         assert_eq!(m.designator(2.0), 36);
+        // The letters: the main runway's without a place, else the runway nearest the place.
+        assert_eq!(m.designation(247.0, None), (25, "L".to_string()));
+        assert_eq!(m.designation(67.0, None), (7, "R".to_string()));
+        assert_eq!(m.designation(247.0, Some([-1000.0, 0.0])), (25, "R".to_string()));
+        assert_eq!(m.designation(247.0, Some([-1000.0, -900.0])), (25, String::new()), "far off: no letter");
+        assert_eq!(m.designation(150.0, None), (15, String::new()));
+        let ms = BaseMoves { bases: vec![m] };
+        assert_eq!(ms.sign_designation([-100.0, -40.0], 23).as_deref(), Some("25L"));
+        assert_eq!(ms.sign_designation([1e6, 0.0], 23), None);
+    }
+
+    #[test]
+    fn the_runway_surface_is_the_real_width() {
+        let mut ms = BaseMoves { bases: vec![BaseMove::new(&game("David"), &real_runways()).unwrap()] };
+        // The old leaves cover the game runway's 97 m and a taxiway joining from the south at x 355000 (20 m wide).
+        let old = |x: f64, y: f64| {
+            let rw = (y - 602387.0).abs() < 50.0 && x > 352891.0 && x < 357155.0;
+            let taxi = (x - 355000.0).abs() < 10.0 && y > 602000.0 && y < 602387.0;
+            if rw || taxi { 0x10 } else { 1 }
+        };
+        // The mask: paved where the leaves are (2.5 m pixels).
+        let (o, px, w, h) = ([352800.0, 602500.0], 2.5, 1800, 200);
+        let mut rgb = vec![0u8; 3 * w * h];
+        for y in 0..h {
+            for x in 0..w {
+                if old(o[0] + (x as f64 + 0.5) * px, o[1] - (y as f64 + 0.5) * px) == 0x10 {
+                    rgb[3 * (y * w + x)] = 255;
+                }
+            }
+        }
+        ms.bases[0].mask = Some(Mask { origin: o, w, h, px_m: px, rgb });
+        let m = &ms.bases[0];
+        let at = |along: f64, off: f64| {
+            // A new-site point `off` m right of the real centreline, `along` m from the real start.
+            let d = m.real_d;
+            [m.real_c[0] + along * d[0] + off * d[1], m.real_c[1] + along * d[1] - off * d[0]]
+        };
+        let edge = 0.5 * m.width;
+        assert_eq!(ms.surface(at(1000.0, 0.0), old), 0x10, "the centreline");
+        assert_eq!(ms.surface(at(1000.0, edge + SHOULDER - 1.0), old), 0x10, "inside the margin");
+        assert_eq!(ms.surface(at(1000.0, edge + SHOULDER + 3.0), old), 1, "the 1998 runway's wider part");
+        assert_eq!(ms.surface(at(1000.0, -(edge + SHOULDER + 3.0)), old), 1, "both sides");
+        // Where the taxiway joins, it stays taxiable across the wider part.
+        let tj = m.map([355000.0, 602345.0]).unwrap().p;
+        assert_eq!(ms.surface(tj, old), 0x10, "the taxiway's join");
+        let tq = m.map([355000.0, 602200.0]).unwrap().p;
+        assert_eq!(ms.surface(tq, old), 0x10, "the taxiway");
+        // The drawn mask agrees: the wider part unpaved, the join paved.
+        let mm = m.moved_mask();
+        let mk = m.mask.as_ref().unwrap();
+        let pix = |p: [f64; 2]| {
+            let (x, y) = (((p[0] - o[0]) / px) as usize, ((o[1] - p[1]) / px) as usize);
+            mm[3 * (y * mk.w + x)]
+        };
+        let g = |p: [f64; 2]| m.to_game(p, 0.0).unwrap();
+        assert_eq!(pix(g(at(1000.0, 0.0))), 255);
+        assert_eq!(pix(g(at(1000.0, edge + SHOULDER + 3.0))), 0);
+        assert_eq!(pix([355000.0, 602345.0]), 255);
     }
 
     #[test]

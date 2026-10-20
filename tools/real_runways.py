@@ -37,6 +37,20 @@ BASES = [
 ]
 
 
+# OurAirports' runways.csv (public domain, https://davidmegginson.github.io/ourairports-data/runways.csv, read
+# 2026-10-20) for the ways OSM has no width tag for: way -> (width_ft, designator or None), matched by designator and
+# length (docs/world-scale.md §1.2).
+OURAIRPORTS = {
+    188475529: (148, None), 188475532: (148, None),
+    193609947: (145, None), 193609938: (115, None), 193609945: (150, None),
+    292231592: (150, None), 292231603: (150, None), 292231604: (150, None),
+    97684531: (148, None),
+    30160502: (141, None), 30444201: (131, None),
+    95678643: (150, "06L/24R"), 95678635: (97, "06R/24L"),
+    23880576: (148, None),
+}
+
+
 # The magnetic declination for an untagged runway's designator: ≈ 5° E over the theatre in 2026 (NOAA WMM, inferred
 # as one value for all bases).
 DECLINATION = 5.0
@@ -78,18 +92,24 @@ def main():
             a, b = e["geometry"][0], e["geometry"][-1]
             x0, y0 = engine(a["lat"], a["lon"])
             x1, y1 = engine(b["lat"], b["lon"])
-            width = e["tags"].get("width", "")
+            width, src = e["tags"].get("width", ""), "osm"
+            oa_ft, oa_ref = OURAIRPORTS.get(w, (None, None))
+            if not width:
+                width, src = ("%.1f" % (oa_ft * 0.3048), "ourairports") if oa_ft else ("", "")
+            ref = e["tags"].get("ref", "") or oa_ref or ""
             rows.append([base, real, w, e["tags"].get("ref", ""), width, "%.7f" % a["lat"], "%.7f" % a["lon"],
                          "%.7f" % b["lat"], "%.7f" % b["lon"], "%.1f" % x0, "%.1f" % y0, "%.1f" % x1, "%.1f" % y1,
-                         designator(e["tags"].get("ref", ""), a["lat"], a["lon"], b["lat"], b["lon"])])
+                         designator(ref, a["lat"], a["lon"], b["lat"], b["lon"]), src])
     with open(OUT, "w") as f:
-        f.write("# The real runways of the ten iaf.ibx airbases (docs/world-scale.md §3.4), from tools/real_runways.py.\n")
+        f.write("# The real runways of the ten iaf.ibx airbases (docs/world-scale.md §3.3), from tools/real_runways.py.\n")
         f.write("# Data (c) OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright\n")
         f.write("# (aeroway=runway ways via the Overpass API, %s). x / y: the way's ends in engine metres\n"
                 % data.get("osm3s", {}).get("timestamp_osm_base", "?")[:10])
-        f.write("# (X east, Y north) through the georeference (docs/georef.md). width: the OSM tag (m), empty = untagged.\n")
-        f.write("# designator: the OSM ref, else from the magnetic heading (declination %.0f° E, inferred).\n" % DECLINATION)
-        f.write("base,real,osm_way,ref,width,lat0,lon0,lat1,lon1,x0,y0,x1,y1,designator\n")
+        f.write("# (X east, Y north) through the georeference (docs/georef.md).\n")
+        f.write("# width (m): the OSM tag (width_src osm), else OurAirports' runways.csv width_ft in metres (width_src ourairports;\n")
+        f.write("# public domain, https://davidmegginson.github.io/ourairports-data/runways.csv, 2026-10-20); empty = neither (45 m).\n")
+        f.write("# designator: the OSM ref, else OurAirports' (Marj Ruhayyil), else from the magnetic heading (declination %.0f° E, inferred).\n" % DECLINATION)
+        f.write("base,real,osm_way,ref,width,lat0,lon0,lat1,lon1,x0,y0,x1,y1,designator,width_src\n")
         for r in rows:
             f.write(",".join(str(v) for v in r) + "\n")
     print("wrote", OUT, len(rows), "runways")

@@ -26,7 +26,8 @@ fn load(a: &std::path::Path) -> (Vec<Airbase>, BaseMoves) {
         .map(|b| {
             let jb = j["bases"].as_array().unwrap().iter().find(|x| x["name"] == b.name.as_str()).unwrap();
             let rw = jb["runways"].as_array().unwrap().iter().map(|r| [pt(&r["ends"][0]), pt(&r["ends"][1])]).collect();
-            GameBase::new(b, rw)
+            let widths = jb["runways"].as_array().unwrap().iter().map(|r| r["width"].as_f64().unwrap()).collect();
+            GameBase { widths, ..GameBase::new(b, rw) }
         })
         .collect();
     (ibx, BaseMoves::new(&games))

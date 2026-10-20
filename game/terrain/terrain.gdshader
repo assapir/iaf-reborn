@@ -46,7 +46,8 @@ global uniform sampler2D terrain_water_warp : filter_linear_mipmap, repeat_enabl
 // procedural runway, taxiway and apron surface with markings over the nearest base's paved surface. The mask: R = paved,
 // G = apron (tinted concrete), B = the distance to the nearest taxi line / 10 m; rect = (x0, z0 of its north-west corner, 1 / width m, 1 / height m). The data: per runway
 // three texels (centre x, z, unit direction x, z from end 0 to end 1), (half length, half width, number at end 0, at
-// end 1), (threshold at end 0, at end 1: metres in from the end, 0, 0); info = (runways, 0, 0, 0).
+// end 1), (threshold at end 0, at end 1: metres in from the end, letter at end 0, at end 1: 0 none, 1 L, 2 R, 3 C);
+// info = (runways, the taxi lines' half width m, 0, 0).
 global uniform float terrain_airbases;
 global uniform sampler2D airbase_mask : filter_linear_mipmap, repeat_disable;
 // The mask's uv = mat2(airbase_mask_xf.xy, airbase_mask_xf.zw) · world_xz + airbase_mask_rect.xy (a moved base's mask is
@@ -221,10 +222,38 @@ float ab_digit(int d, vec2 p, float w, float h, float t, vec2 fw) {
 	return c;
 }
 
+// A runway designation's letter (1 L, 2 R, 3 C) as block strokes in a cell of w × h m, as ab_digit; R's leg a
+// diagonal stroke.
+float ab_letter(int l, vec2 p, float w, float h, float t, vec2 fw) {
+	float hm = 0.5 * h;
+	float c = ab_box(p, vec2(0.0, 0.0), vec2(t, h), fw);
+	if (l != 2) {
+		c = max(c, ab_box(p, vec2(0.0, 0.0), vec2(w, t), fw));
+	}
+	if (l != 1) {
+		c = max(c, ab_box(p, vec2(0.0, h - t), vec2(w, h), fw));
+	}
+	if (l == 2) {
+		c = max(c, ab_box(p, vec2(w - t, hm), vec2(w, h), fw));
+		c = max(c, ab_box(p, vec2(0.0, hm - 0.5 * t), vec2(w, hm + 0.5 * t), fw));
+		vec2 a = vec2(0.35 * w, hm);
+		vec2 ab = vec2(w - 0.5 * t, 0.5 * t) - a;
+		float u = clamp(dot(p - a, ab) / dot(ab, ab), 0.0, 1.0);
+		c = max(c, ab_band(length(p - a - ab * u), 0.5 * t, max(fw.x, fw.y)));
+	}
+	return c;
+}
+
+// The designation's extra length when it has a letter (m past the stripes): the letter's height and a 6 m gap.
+float ab_letter_len(int letter, float sc) {
+	return letter > 0 ? 15.0 * sc : 0.0;
+}
+
 // The paint at one runway end: s = metres past the threshold into the runway, x = metres to the right of the
 // centreline for a pilot landing from this end, (fs, fx) their pixel footprints; sc = width / 60 m; len = the
-// runway's length; num = its designation number at this end. Returns (paint, rubber).
-vec2 ab_end_marks(float s, float x, float fs, float fx, float sc, float hw, float len, int num) {
+// runway's length; num = its designation number at this end, letter its letter (ab_letter, 0: none). Returns (paint,
+// rubber).
+vec2 ab_end_marks(float s, float x, float fs, float fx, float sc, float hw, float len, int num, int letter) {
 	vec2 f = vec2(fx, fs);
 	vec2 p = vec2(x, s);
 	float ax = abs(x);
@@ -238,14 +267,19 @@ vec2 ab_end_marks(float s, float x, float fs, float fx, float sc, float hw, floa
 		float xa = ax - 1.8 * sc;
 		paint = ab_train(xa, 1.8 * sc, 3.6 * sc, fx) * step(0.0, xa) * step(xa, 28.8 * sc) * ab_band(s - t0 - 15.0, 15.0, fs);
 	}
-	// Designation: two digits 9 m tall, 12 m past the stripes, upright to the landing pilot.
+	// Designation: two digits 9 m tall, 12 m past the stripes, upright to the landing pilot. A parallel runway's
+	// letter stands between the stripes and the digits (World scale Real, docs/world-scale.md §4.3).
 	float dh = 9.0 * sc;
 	float dw = 3.6 * sc;
 	float gap = 1.8 * sc;
 	float n0 = t0 + 30.0 + 12.0;
-	if (s > n0 - 1.0 && s < n0 + dh + 1.0) {
-		paint = max(paint, ab_digit(num / 10, p - vec2(-dw - 0.5 * gap, n0), dw, dh, 0.9 * sc, f));
-		paint = max(paint, ab_digit(num % 10, p - vec2(0.5 * gap, n0), dw, dh, 0.9 * sc, f));
+	float nl = n0 + ab_letter_len(letter, sc);
+	if (letter > 0 && s > n0 - 1.0 && s < n0 + dh + 1.0) {
+		paint = max(paint, ab_letter(letter, p - vec2(-0.5 * dw, n0), dw, dh, 0.9 * sc, f));
+	}
+	if (s > nl - 1.0 && s < nl + dh + 1.0) {
+		paint = max(paint, ab_digit(num / 10, p - vec2(-dw - 0.5 * gap, nl), dw, dh, 0.9 * sc, f));
+		paint = max(paint, ab_digit(num % 10, p - vec2(0.5 * gap, nl), dw, dh, 0.9 * sc, f));
 	}
 	// Aiming point: two bars 45 m long, 8 m wide, inner edges 18 m apart, 400 m past the threshold.
 	float aim = t0 + 400.0;
@@ -372,13 +406,13 @@ void fragment() {
 			float s0 = al + hl - a2.x;
 			float s1 = hl - al - a2.y;
 			float len = 2.0 * hl - a2.x - a2.y;
-			vec2 e0 = ab_end_marks(s0, ac, fa, fc, sc, hw, len, int(a1.z));
-			vec2 e1 = ab_end_marks(s1, -ac, fa, fc, sc, hw, len, int(a1.w));
+			vec2 e0 = ab_end_marks(s0, ac, fa, fc, sc, hw, len, int(a1.z), int(a2.z));
+			vec2 e1 = ab_end_marks(s1, -ac, fa, fc, sc, hw, len, int(a1.w), int(a2.w));
 			float pt = max(e0.x, e1.x);
 			float landing = step(0.0, s0) * step(0.0, s1);
 			// Centreline: 30 m dashes, 20 m gaps, 0.9 m wide, between the designations.
 			float cl0 = 30.0 + 12.0 + 9.0 * sc + 12.0;
-			if (s0 > cl0 && s1 > cl0) {
+			if (s0 > cl0 + ab_letter_len(int(a2.z), sc) && s1 > cl0 + ab_letter_len(int(a2.w), sc)) {
 				pt = max(pt, ab_train(s0 - cl0, 30.0, 50.0, fa) * ab_band(ac, 0.45 * sc, fc));
 			}
 			// Edge lines: 0.9 m wide, 1.5 m inside the edge, past both thresholds.
@@ -406,10 +440,11 @@ void fragment() {
 				rubber = max(rubber, rub * smoothstep(0.45, 0.8, streak));
 			}
 		}
-		// Taxi lines (iaf.ibx's taxi paths): yellow, 0.3 m wide, on the paved surface off the runways, within 2 km; the
-		// mask's B channel holds the distance to the nearest path (0–10 m).
+		// Taxi lines (iaf.ibx's taxi paths): yellow, airbase_info.y each side of the path (0.3 m wide; World scale Real
+		// 1 m), on the paved surface off the runways, within 2 km; the mask's B channel holds the distance to the nearest
+		// path (0–10 m).
 		float fpx = max(length(wdx), length(wdy));
-		float taxi = ab_band(textureLod(airbase_mask, muv, 0.0).b * 10.0, 0.15, fpx) * paved * (1.0 - runway)
+		float taxi = ab_band(textureLod(airbase_mask, muv, 0.0).b * 10.0, airbase_info.y, fpx) * paved * (1.0 - runway)
 				* (1.0 - smoothstep(1500.0, 2000.0, length(VERTEX)));
 		float surf = max(paved, runway) * kab;
 		// Concrete slabs on the aprons only.
