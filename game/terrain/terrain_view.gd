@@ -766,7 +766,8 @@ func _spawn_mission_objects() -> void:
 		var raw := Gltf.model_aabb(node)  # the local box is unscaled
 		# World scale Real 1:1: true size, the ground models kept with their base (docs/world-scale.md §3.2).
 		var keep := Settings.keeps_present(path, raw, present, ent.klass, UNDERLAY_MAX_HEIGHT)
-		node.scale = Vector3.ONE * Settings.model_scale(present, keep)
+		# A kept layout on a moved base shrinks or grows with it (docs/world-scale.md §3.2).
+		node.scale = Vector3.ONE * Settings.model_scale(present, keep) * (float(ent.base_scale) if keep else 1.0)
 		# Collision radius (FUN_0043b1c0): 0.25 · (dx + dy + dz) of the scaled model's full extents
 		# (object +0x268..0x270, FUN_0041bb00).
 		var box := AABB(raw.position * node.scale.x, raw.size * node.scale.x)
@@ -800,6 +801,10 @@ func _spawn_mission_objects() -> void:
 ## the same spot, heading and scale, when the mission places none there (214 places lt_dvd_h itself).
 func _add_base_lights(underlay: Node3D, path: String, ent: Dictionary) -> void:
 	var b = NightLights.BASE_LIGHTS.get(path.get_file())
+	if b != null:
+		var mv := Settings.base_moved(b[1].x, b[1].y)  # World scale Real: the spot on the moved base
+		if not mv.is_empty():
+			b = [b[0], Vector2(mv[0], mv[1])]
 	var spot := Vector2(ent.world.x, ent.world.y)
 	if b == null or not NightLights.detailed() or not TimeOfDay.sun(time_of_day()).night or spot.distance_to(b[1]) > 200.0 \
 			or runtime.entities.values().any(func(e): return e.get("light_set", false) and Vector2(e.world.x, e.world.y).distance_to(spot) < 200.0):

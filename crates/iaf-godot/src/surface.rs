@@ -9,6 +9,17 @@ use iaf_formats::terrain_types::{RUNWAY, TerrainTypes};
 /// One tree for the process: the theatre's terraintype.dat.
 static TYPES: LazyLock<RwLock<Option<TerrainTypes>>> = LazyLock::new(Default::default);
 
+/// The surface flags at engine metres (X east, Y north): terraintype.dat, through the base moves in World scale
+/// Real (`bases.rs`); 0 without the file.
+pub fn at(x: f64, y: f64) -> i32 {
+    let t = TYPES.read().unwrap();
+    let Some(t) = &*t else { return 0 };
+    match &*crate::bases::MOVES.read().unwrap() {
+        Some(m) => m.surface([x, y], |x, y| t.at(x, y)),
+        None => t.at(x, y),
+    }
+}
+
 #[derive(GodotClass)]
 #[class(base = RefCounted, init)]
 pub struct IafSurface {}
@@ -33,6 +44,15 @@ impl IafSurface {
             return PackedByteArray::from(vec![0u8; 2 * n * n]);
         };
         let px = |m: i32| [if TerrainTypes::is_water(m) { 255 } else { 0 }, if m & RUNWAY != 0 { 255 } else { 0 }];
-        PackedByteArray::from(t.raster(x0, y0, cell, n).into_iter().flat_map(px).collect::<Vec<u8>>())
+        let flags = match &*crate::bases::MOVES.read().unwrap() {
+            Some(m) => (0..n * n)
+                .map(|k| {
+                    let p = [x0 + ((k % n) as f64 + 0.5) * cell, y0 - ((k / n) as f64 + 0.5) * cell];
+                    m.surface(p, |x, y| t.at(x, y))
+                })
+                .collect(),
+            None => t.raster(x0, y0, cell, n),
+        };
+        PackedByteArray::from(flags.into_iter().flat_map(px).collect::<Vec<u8>>())
     }
 }

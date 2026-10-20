@@ -237,6 +237,7 @@ dependencies = [
  "iaf-formats",
  "iaf-setup",
  "iaf-tools",
+ "image",
  "serde_json",
 ]
 

@@ -96,6 +96,10 @@ var _bsp_plane := PackedFloat64Array()
 var _bsp_child0 := PackedInt32Array()
 var _bsp_child1 := PackedInt32Array()
 var _bsp_mask := PackedInt32Array()
+## World scale Real (docs/world-scale.md §3.3): the images are patched as they load (the old bases painted over, the
+## new sites drawn and flattened) and the surface lookups go through the base moves.
+var _bases_moved := false
+var _bake_bounds := PackedFloat64Array()  # IafBases.bounds()
 
 
 func _ready() -> void:
@@ -131,6 +135,8 @@ func _ready() -> void:
 		_meshes.append(_grid_mesh(_span_m(l), _quads(l)))
 	_load_terrain_types(Settings.assets_dir().path_join("install/terraintype.dat"))
 	IafSurface.load(Settings.assets_dir().path_join("install/terraintype.dat"))
+	_bases_moved = Settings.sync_bases()
+	_bake_bounds = IafBases.bounds() if _bases_moved else PackedFloat64Array()
 
 
 func _add_colour_node(n: Vector3i) -> void:
@@ -478,6 +484,9 @@ func _work() -> void:
 ## Colour -> mipmapped BC1; heights -> RG8 (R = high byte, G = low byte of the raw u16).
 func _decode(key: Vector4i) -> Image:
 	var img := Image.load_from_file(_path(key))
+	if img != null and _needs_bake(key):
+		img.set_meta("bake", true)  # patched on the main thread (_finish_jobs), then compressed there
+		return img
 	if img != null:
 		if key.x == 0:
 			img.generate_mipmaps()
@@ -485,6 +494,35 @@ func _decode(key: Vector4i) -> Image:
 		else:
 			img.convert(Image.FORMAT_RG8)
 	return img
+
+
+## World scale Real: true when the node lies on a base's old or new site (IafBases.bounds()).
+func _needs_bake(key: Vector4i) -> bool:
+	if _bake_bounds.is_empty():
+		return false
+	var s := _span_m(key.w)
+	var x0 := key.y * s + float(meta.get("x_shift", 0))
+	var y1 := float(meta.get("y_shift", 0)) - key.z * s
+	for b in range(0, _bake_bounds.size(), 4):
+		if _bake_bounds[b] <= x0 + s and _bake_bounds[b + 2] >= x0 and _bake_bounds[b + 1] <= y1 and _bake_bounds[b + 3] >= y1 - s:
+			return true
+	return false
+
+
+## A node's image with the base moves' patches (IafBases: colour RGB8 then mipmapped and compressed, heights RG8).
+## ponytail: on the main thread (the extension is not callable from the decode workers): ~10–40 ms per patched node,
+## only the few nodes on the ten bases' sites; a Rust worker if it shows as a hitch.
+static func _bake(img: Image, key: Vector4i) -> Image:
+	var w := img.get_width()
+	var h := img.get_height()
+	if key.x == 0:
+		img.convert(Image.FORMAT_RGB8)
+		img = Image.create_from_data(w, h, false, Image.FORMAT_RGB8, IafBases.bake_colour(img.get_data(), w, h, key.w, key.y, key.z))
+		img.generate_mipmaps()
+		img.compress(Image.COMPRESS_S3TC)
+		return img
+	img.convert(Image.FORMAT_RG8)
+	return Image.create_from_data(w, h, false, Image.FORMAT_RG8, IafBases.bake_heights(img.get_data(), w, h, key.w, key.y, key.z))
 
 
 ## Takes the decoded images (texture upload on the main thread); true if any. `block`: stops the
@@ -502,6 +540,8 @@ func _finish_jobs(block := false) -> bool:
 		if img == null:
 			push_error("terrain: cannot load %s" % _path(key))
 			img = Image.create(1, 1, false, Image.FORMAT_RG8 if key.x == 1 else Image.FORMAT_RGB8)
+		elif img.has_meta("bake"):
+			img = _bake(img, key)
 		if not _res.has(key):
 			_feed_heights(key, img)
 		_res[key] = {"tex": ImageTexture.create_from_image(img), "img": img if key.x == 1 else null,
@@ -558,8 +598,8 @@ func ground_progress() -> float:
 ## area, terrain_preload.gd): its running decodes finish first. The next frame re-chooses the tree.
 func adopt(other: Node) -> void:
 	other._finish_jobs(true)
-	if other.layers != layers:
-		return  # loaded with other imagery (the Extras choice changed since)
+	if other.layers != layers or other._bases_moved != _bases_moved:
+		return  # loaded with other imagery or world scale (the Extras choice changed since)
 	var now := Time.get_ticks_msec()
 	for k in other._res:
 		if not _res.has(k):
@@ -653,6 +693,8 @@ func _load_terrain_types(path: String) -> void:
 func surface_at(pos: Vector3) -> int:
 	if _bsp_mask.is_empty():
 		return 0
+	if _bases_moved:
+		return IafBases.surface(world_origin.x + pos.x, world_origin.y - pos.z)
 	var x := float(int(world_origin.x + pos.x) + 0x151)
 	var y := float(int(world_origin.y - pos.z) - 0x19a)
 	var k := 0

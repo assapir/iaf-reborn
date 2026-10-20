@@ -3,6 +3,7 @@
 use godot::prelude::*;
 
 mod autorun;
+mod bases;
 mod bombs;
 mod fctrl;
 mod flight;

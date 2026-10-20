@@ -83,7 +83,8 @@ impl IafFlight {
     #[func]
     fn start_rule(install: GString, x: f64, y: f64, z: f64) -> Vector2i {
         let path = std::path::PathBuf::from(install.to_string()).join("iaf.ibx");
-        let bases = std::fs::read(path).map(|b| Airbase::load_all(&b)).unwrap_or_default();
+        let mut bases = std::fs::read(path).map(|b| Airbase::load_all(&b)).unwrap_or_default();
+        crate::bases::map_airbases(&mut bases);
         let Some(b) = Airbase::nearest(&bases, [x as f32, y as f32, z as f32]) else { return Vector2i::ZERO };
         let near =
             (b.tower[0] as f64 - x).hypot(b.tower[1] as f64 - y) < 5000.0 && (z - b.tower[2] as f64).abs() < 15.0;
@@ -310,6 +311,7 @@ impl IafFlight {
         let dir = std::path::PathBuf::from(install.to_string());
         let mut ap = Autopilot::new(autopilot::Config::load(&dir));
         let mut bases = std::fs::read(dir.join("iaf.ibx")).map(|b| Airbase::load_all(&b)).unwrap_or_default();
+        crate::bases::map_airbases(&mut bases);
         let (ox, oy) = (origin_x as f32, origin_y as f32);
         for b in &mut bases {
             for p in [&mut b.tower, &mut b.lineup] {

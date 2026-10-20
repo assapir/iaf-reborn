@@ -1,0 +1,233 @@
+//! `IafBases`: World scale Real 1:1's base move (iaf_flight::base_move, docs/world-scale.md §3.3) for the whole
+//! process: set up from the setting at mission load, read by the flight model's bases (`flight.rs`), the surface
+//! lookups (`surface.rs`), the terrain's image patches and the mission data (GDScript).
+
+use std::path::Path;
+use std::sync::{LazyLock, RwLock};
+
+use godot::prelude::*;
+use iaf_avionics::heights::{HeightField, Meta};
+use iaf_flight::airbase::Airbase;
+use iaf_flight::base_move::{BaseMoves, GameBase, Mask};
+
+/// The moves; None in Original (every path then is the original's).
+pub static MOVES: LazyLock<RwLock<Option<BaseMoves>>> = LazyLock::new(Default::default);
+/// The theatre's frame (meta.json) for the image patches.
+static META: LazyLock<RwLock<Meta>> = LazyLock::new(Default::default);
+
+/// iaf.ibx's bases at their new sites (no change in Original).
+pub fn map_airbases(bases: &mut [Airbase]) {
+    if let Some(m) = &*MOVES.read().unwrap() {
+        m.map_airbases(bases);
+    }
+}
+
+fn load(assets: &Path) -> Option<(BaseMoves, Meta)> {
+    let ibx = Airbase::load_all(&std::fs::read(assets.join("install/iaf.ibx")).ok()?);
+    let terrain = assets.join("converted/terrain");
+    let j: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(terrain.join("airbases.json")).ok()?).ok()?;
+    let mj: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(terrain.join("theatre/meta.json")).ok()?).ok()?;
+    let f = |k: &str| mj[k].as_f64().unwrap_or(0.0);
+    let meta = Meta {
+        node_pixels: f("node_pixels") as usize,
+        span: f("node_pixels") * 2f64.powi(f("height_level") as i32),
+        sea_level_raw: f("sea_level_raw"),
+        height_scale: f("height_scale"),
+        m_per_unit: f("units_to_metres"),
+        x_shift: f("x_shift"),
+        y_shift: f("y_shift"),
+    };
+    let pt = |v: &serde_json::Value| [v[0].as_f64().unwrap_or(0.0), v[1].as_f64().unwrap_or(0.0)];
+    let jbases = j["bases"].as_array()?;
+    let mut masks = Vec::new();
+    let games: Vec<GameBase> = ibx
+        .iter()
+        .filter_map(|b| {
+            let jb = jbases.iter().find(|x| x["name"] == b.name.as_str())?;
+            let rw = jb["runways"].as_array()?.iter().map(|r| [pt(&r["ends"][0]), pt(&r["ends"][1])]).collect();
+            let m = &jb["mask"];
+            let img = m["file"].as_str().and_then(|f| image::open(terrain.join(f)).ok()).map(|i| i.to_rgb8());
+            masks.push((
+                b.name.clone(),
+                img.map(|i| Mask {
+                    origin: pt(&m["origin"]),
+                    w: i.width() as usize,
+                    h: i.height() as usize,
+                    px_m: m["px_m"].as_f64().unwrap_or(2.5),
+                    rgb: i.into_raw(),
+                }),
+            ));
+            Some(GameBase::new(b, rw))
+        })
+        .collect();
+    let mut moves = BaseMoves::new(&games);
+    for b in &mut moves.bases {
+        b.mask = masks.iter().find(|(n, _)| *n == b.name).and_then(|(_, m)| m.clone());
+    }
+    // The elevations from the original level-6 heights (unpatched).
+    let mut field = HeightField::default();
+    field.set_meta(meta);
+    let mut loaded = std::collections::HashSet::new();
+    for b in &moves.bases {
+        for t in [0.0, 0.5, 1.0] {
+            let p = [b.real_c[0] + t * b.real_len * b.real_d[0], b.real_c[1] + t * b.real_len * b.real_d[1]];
+            let (tx, ty) = ((p[0] - meta.x_shift) / meta.m_per_unit, (meta.y_shift - p[1]) / meta.m_per_unit);
+            let (i, j) = ((tx / meta.span).floor() as i64, (ty / meta.span).floor() as i64);
+            if loaded.insert((i, j)) {
+                let path = terrain.join(format!("theatre/L6/h_{i}_{j}.png"));
+                if let Ok(img) = image::open(&path) {
+                    let img = img.to_rgb8();
+                    let rg8: Vec<u8> = img.pixels().flat_map(|p| [p[0], p[1]]).collect();
+                    field.add(i, j, img.width() as usize, &rg8);
+                }
+            }
+        }
+    }
+    moves.set_elevations(|x, y| field.height(iaf_avionics::Vec3::new(x, y, 0.0)));
+    Some((moves, meta))
+}
+
+#[derive(GodotClass)]
+#[class(base = RefCounted, init)]
+pub struct IafBases {}
+
+#[godot_api]
+impl IafBases {
+    /// Real (`on`): the moves from `assets` (iaf.ibx, airbases.json and its masks, the level-6 heights); Original:
+    /// none. False when on but the data is missing (then none).
+    #[func]
+    fn setup(on: bool, assets: GString) -> bool {
+        let got = if on { load(Path::new(&assets.to_string())) } else { None };
+        let ok = got.is_some() == on;
+        if let Some((m, meta)) = got {
+            *META.write().unwrap() = meta;
+            *MOVES.write().unwrap() = Some(m);
+        } else {
+            *MOVES.write().unwrap() = None;
+        }
+        ok
+    }
+
+    #[func]
+    fn active() -> bool {
+        MOVES.read().unwrap().is_some()
+    }
+
+    /// A point's move: [x, y, turn (deg, clockwise), scale (k on the base, 1 around it), dz]; empty when it stays.
+    #[func]
+    fn map(x: f64, y: f64) -> PackedFloat64Array {
+        let g = MOVES.read().unwrap();
+        match g.as_ref().and_then(|m| m.map([x, y])) {
+            Some(m) => PackedFloat64Array::from(&[m.p[0], m.p[1], m.turn, m.scale, m.dz][..]),
+            None => PackedFloat64Array::new(),
+        }
+    }
+
+    /// The surface flags at a world point (terraintype.dat through the moves).
+    #[func]
+    fn surface(x: f64, y: f64) -> i64 {
+        crate::surface::at(x, y) as i64
+    }
+
+    /// The moved base `name` in airbases.json's layout for the Detailed airbases drawing: runways (ends, width,
+    /// numbers, thresholds) at the new site, `mask_affine` = the game point of a new-site point
+    /// ([a0, a1, a2, b0, b1, b2]: x = a0·X + a1·Y + a2), `centre`; {} when not moved.
+    #[func]
+    fn base(name: GString, game: VarDictionary) -> VarDictionary {
+        let g = MOVES.read().unwrap();
+        let Some(m) = g.as_ref().and_then(|ms| ms.get(&name.to_string())) else { return VarDictionary::new() };
+        let mut out = game.duplicate_deep();
+        let mv = |p: [f64; 2]| m.map(p).map_or(p, |q| q.p);
+        let mut runways = VarArray::new();
+        let src: VarArray = game.get("runways").and_then(|v| v.try_to().ok()).unwrap_or_default();
+        for r in src.iter_shared() {
+            let Ok(r) = r.try_to::<VarDictionary>() else { continue };
+            let ends: VarArray = r.get("ends").and_then(|v| v.try_to().ok()).unwrap_or_default();
+            let e = |i: usize| -> [f64; 2] {
+                let a: VarArray = ends.get(i).and_then(|v| v.try_to().ok()).unwrap_or_default();
+                let n = |j: usize| a.get(j).and_then(|v| v.try_to::<f64>().ok()).unwrap_or(0.0);
+                mv([n(0), n(1)])
+            };
+            let (e0, e1) = (e(0), e(1));
+            let num = |a: [f64; 2], b: [f64; 2]| {
+                let h = (b[0] - a[0]).atan2(b[1] - a[1]).to_degrees().rem_euclid(360.0);
+                let n = (h / 10.0).round() as i64;
+                if n == 0 { 36 } else { n }
+            };
+            let th: VarArray = r.get("thresholds").and_then(|v| v.try_to().ok()).unwrap_or_default();
+            let t = |i: usize| th.get(i).and_then(|v| v.try_to::<f64>().ok()).unwrap_or(0.0) * m.k;
+            let mut d = r.duplicate_deep();
+            d.set("ends", &varray![&varray![e0[0], e0[1]], &varray![e1[0], e1[1]]]);
+            d.set("width", m.width);
+            d.set("numbers", &varray![num(e0, e1), num(e1, e0)]);
+            d.set("thresholds", &varray![t(0), t(1)]);
+            runways.push(&d.to_variant());
+        }
+        out.set("runways", &runways);
+        let a = m.game_affine();
+        out.set("mask_affine", &PackedFloat64Array::from(&[a[0][0], a[0][1], a[0][2], a[1][0], a[1][1], a[1][2]][..]));
+        let l = mv([m.game_c[0], m.game_c[1]]);
+        let c = [l[0] + 0.5 * m.real_len * m.real_d[0], l[1] + 0.5 * m.real_len * m.real_d[1]];
+        out.set("centre", Vector2::new(c[0] as f32, c[1] as f32));
+        out.set("k", m.k);
+        out
+    }
+
+    /// The boxes where the terrain images need the patches: [x0, y0, x1, y1] per base (engine metres); empty in
+    /// Original. The terrain's decode workers test their nodes against these (the extension is not callable there).
+    #[func]
+    fn bounds() -> PackedFloat64Array {
+        let g = MOVES.read().unwrap();
+        PackedFloat64Array::from(g.as_ref().map(|m| m.bounds().concat()).unwrap_or_default().as_slice())
+    }
+
+    /// A height image of node (level, i, j) (RG8, w × h texels at its vertices) with the new sites flattened.
+    #[func]
+    fn bake_heights(rg8: PackedByteArray, w: i64, h: i64, level: i64, i: i64, j: i64) -> PackedByteArray {
+        let g = MOVES.read().unwrap();
+        let Some(m) = g.as_ref() else { return rg8 };
+        let meta = *META.read().unwrap();
+        let span = meta.node_pixels as f64 * 2f64.powi(level as i32);
+        let upp = span / meta.node_pixels as f64;
+        let mut v = rg8.to_vec();
+        m.bake_heights(
+            &mut v,
+            w as usize,
+            h as usize,
+            |x, y| {
+                let tx = i as f64 * span + x as f64 * upp;
+                let ty = j as f64 * span + y as f64 * upp;
+                [tx * meta.m_per_unit + meta.x_shift, meta.y_shift - ty * meta.m_per_unit]
+            },
+            |raw| (raw - meta.sea_level_raw) / meta.height_scale * meta.m_per_unit,
+            |m_| m_ / meta.m_per_unit * meta.height_scale + meta.sea_level_raw,
+        );
+        PackedByteArray::from(v)
+    }
+
+    /// A colour image of node (level, i, j) (RGB8, w × h pixels over the node) with the old sites painted over and
+    /// the new sites' paved surface drawn.
+    #[func]
+    fn bake_colour(rgb: PackedByteArray, w: i64, h: i64, level: i64, i: i64, j: i64) -> PackedByteArray {
+        let g = MOVES.read().unwrap();
+        let Some(m) = g.as_ref() else { return rgb };
+        let meta = *META.read().unwrap();
+        let span = meta.node_pixels as f64 * 2f64.powi(level as i32);
+        let upp = span / w.max(1) as f64;
+        let mut v = rgb.to_vec();
+        m.bake_colour(
+            &mut v,
+            w as usize,
+            h as usize,
+            |x, y| {
+                let tx = i as f64 * span + (x as f64 + 0.5) * upp;
+                let ty = j as f64 * span + (y as f64 + 0.5) * upp;
+                [tx * meta.m_per_unit + meta.x_shift, meta.y_shift - ty * meta.m_per_unit]
+            },
+            upp * meta.m_per_unit,
+        );
+        PackedByteArray::from(v)
+    }
+}

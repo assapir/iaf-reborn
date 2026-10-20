@@ -50,9 +50,10 @@ func run() -> void:
 		if b.is_empty():
 			bad.append([id, a])
 			continue
-		if absf(b[0] - a[0]) < 1e-3:
+		# A kept layout on a moved base (World scale Real, docs/world-scale.md §3.2) takes the base's scale too.
+		if absf(b[0] - a[0] * b[4]) < 1e-3:
 			kinds.kept += 1
-			if absf(a[0] - 1.0) > 1e-3 and not absf(b[1] - a[1]) < 0.01:
+			if absf(a[0] - 1.0) > 1e-3 and not absf(b[1] - a[1] * b[4]) < 0.01:
 				bad.append([id, a, b])
 		elif absf(b[0] - 1.0) > 1e-3 or absf(b[1] - a[1] / a[0]) > 0.01:
 			bad.append([id, a, b])
@@ -64,10 +65,11 @@ func run() -> void:
 			kinds.building += 1
 	check(bad.is_empty(), "every unit at 1 (radius / its Present scale) or kept (bad: %s)" % [bad])
 	check(kinds["ai jet"] > 0 and kinds["ground unit"] > 0 and kinds.building > 0, "AI jets, ground units, buildings at 1 (%s)" % kinds)
-	check(r.underlay == 2.0, "Ramat David's underlay keeps ×2 (%s)" % r.underlay)
+	check(absf(r.underlay - 2.0) < 1e-4, "Ramat David's underlay keeps ×2 (× its base's k: %s)" % r.underlay)
 
-	# --- take-off in Real: wheels on the runway until it lifts off, no crash ---
-	var tv = await start_mission(311)
+	# --- take-off in Real: wheels on the runway until it lifts off, no crash. 315 starts on Ramon's lineup (311's
+	# start is 0.7 km from the moved runway's end at Ramat David, too short for a straight take-off at k 0.69). ---
+	var tv = await start_mission(315)
 	key(tv, KEY_1)
 	key(tv, KEY_B)
 	key(tv, KEY_8)
@@ -75,17 +77,21 @@ func run() -> void:
 	var airborne := false
 	var worst := 0.0
 	await frames(30)
+	var h0 := _height(tv)
 	while Time.get_ticks_msec() - t0 < 40000:
 		await process_frame
+		if not is_instance_valid(tv):
+			print("the flight ended at %.0f s" % ((Time.get_ticks_msec() - t0) / 1000.0))
+			break
 		var st: Dictionary = tv.flight.state()
 		tv.scripted_stick = Vector2(0.0, 0.5 if st.speed_kt > 150.0 else 0.0)
 		if st.on_ground:
-			worst = maxf(worst, absf(_height(tv) - 1.69))
+			worst = maxf(worst, absf(_height(tv) - h0))
 		elif st.speed_kt > 120.0:
 			airborne = true
 			break
 	check(airborne and not tv.flight.state().crashed, "Real: takes off (%.0f kt)" % tv.flight.state().speed_kt)
-	check(worst < 0.3, "Real: on the wheels during the roll (worst %.2f m off 1.69)" % worst)
+	check(worst < 0.3, "Real: on the wheels during the roll (worst %.2f m off %.2f)" % [worst, h0])
 
 	# --- the autopilot's landing in Real (312, as test_autopilot.gd) ---
 	tv = await start_mission(312)
@@ -121,11 +127,11 @@ func _sample(id: int) -> Dictionary:
 	for ent in tv.runtime.entities.values():
 		if ent.player or ent.get("node") == null or not ent.has("coll_radius"):
 			continue
-		out.units[ent.key] = [ent.node.scale.x, ent.coll_radius, ent.klass, ent.has("pilot")]
+		out.units[ent.key] = [ent.node.scale.x, ent.coll_radius, ent.klass, ent.has("pilot"), float(ent.get("base_scale", 1.0))]
 		if not ent.get("drawn", true):
 			out.hidden.append(ent.key)
 		if ent.name == "Ramat David":
-			out.underlay = ent.node.scale.x
+			out.underlay = ent.node.scale.x / float(ent.get("base_scale", 1.0))
 	out.hidden.sort()
 	if id != 311:
 		return out

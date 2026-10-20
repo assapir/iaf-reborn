@@ -8,6 +8,9 @@
 use crate::airbase::{Airbase, TaxiPt};
 use iaf_formats::terrain_types::RUNWAY;
 
+/// terraintype.dat's land bit: with it, ground off a runway is rough (flight-model.md §15.6.2).
+const LAND: i32 = 0x1;
+
 /// The real runway table (tools/real_runways.py).
 pub const REAL_RUNWAYS_CSV: &str = include_str!("../data/real_runways.csv");
 /// The width of a real runway without an OSM width tag (decided by the agent, docs/world-scale.md §5).
@@ -325,7 +328,21 @@ impl BaseMove {
         let q = self.real_uv(p);
         let k = self.k;
         let ok = (0..2).all(|i| q[i] >= k * self.lo[i] - margin && q[i] <= k * self.hi[i] + margin);
-        ok.then(|| self.game_xy([q[0] / k, q[1] / k]))
+        ok.then(|| self.to_game_any(p))
+    }
+
+    /// The inverse similarity as an affine map: the game point of a new-site point is
+    /// (a[0]·X + a[1]·Y + a[2], b[0]·X + b[1]·Y + b[2]).
+    pub fn game_affine(&self) -> [[f64; 3]; 2] {
+        let o = self.to_game_any([0.0, 0.0]);
+        let ex = self.to_game_any([1.0, 0.0]);
+        let ey = self.to_game_any([0.0, 1.0]);
+        [[ex[0] - o[0], ey[0] - o[0], o[0]], [ex[1] - o[1], ey[1] - o[1], o[1]]]
+    }
+
+    fn to_game_any(&self, p: [f64; 2]) -> [f64; 2] {
+        let q = self.real_uv(p);
+        self.game_xy([q[0] / self.k, q[1] / self.k])
     }
 
     /// The flattening's weight at a point: 1 on the new zone A, falling to 0 over `RING`.
@@ -413,17 +430,21 @@ impl BaseMoves {
         }
     }
 
-    /// The surface flags at `p` with `lookup` = terraintype.dat's: on a new site the runway bit comes from the
-    /// original's point (the inverse map); on an old site the runway leaves are rough ground.
+    /// The surface flags at `p` with `lookup` = terraintype.dat's: on a new site the original's runway leaves (their
+    /// flags at the inverse-mapped point); on an old site the runway leaves are land (rough ground off a runway).
     pub fn surface(&self, p: [f64; 2], lookup: impl Fn(f64, f64) -> i32) -> i32 {
         let here = lookup(p[0], p[1]);
         for b in &self.bases {
             if let Some(q) = b.to_game(p, 0.0) {
-                return (here & !RUNWAY) | (lookup(q[0], q[1]) & RUNWAY);
+                let g = lookup(q[0], q[1]);
+                if g & RUNWAY != 0 {
+                    return g;
+                }
+                return if here & RUNWAY != 0 { (here & !RUNWAY) | LAND } else { here };
             }
         }
         if here & RUNWAY != 0 && self.bases.iter().any(|b| b.in_old(p, 0.0)) {
-            return here & !RUNWAY;
+            return (here & !RUNWAY) | LAND;
         }
         here
     }
@@ -436,28 +457,26 @@ impl BaseMoves {
         })
     }
 
-    /// True when any base's old or new site (grown by `margin`) touches the box [x0, x1] × [y0, y1].
-    pub fn touches(&self, x0: f64, y0: f64, x1: f64, y1: f64, margin: f64) -> bool {
-        let corners = |b: &BaseMove| -> Vec<[f64; 2]> {
-            let k = b.k;
-            let (lo, hi) = (b.lo, b.hi);
-            let m = margin + RING;
-            let c = [[lo[0] - m, lo[1] - m], [hi[0] + m, lo[1] - m], [hi[0] + m, hi[1] + m], [lo[0] - m, hi[1] + m]];
-            let mut out: Vec<[f64; 2]> = c.iter().map(|q| b.game_xy(*q)).collect();
-            out.extend(c.iter().map(|q| b.real_xy([q[0] * k, q[1] * k])));
-            if let Some(mk) = &b.mask {
-                let (w, h) = (mk.w as f64 * mk.px_m, mk.h as f64 * mk.px_m);
-                let o = mk.origin;
-                out.extend([[o[0], o[1]], [o[0] + w, o[1]], [o[0], o[1] - h], [o[0] + w, o[1] - h]]);
-            }
-            out
-        };
-        self.bases.iter().any(|b| {
-            let c = corners(b);
-            let (cx0, cx1) = c.iter().fold((f64::MAX, f64::MIN), |a, p| (a.0.min(p[0]), a.1.max(p[0])));
-            let (cy0, cy1) = c.iter().fold((f64::MAX, f64::MIN), |a, p| (a.0.min(p[1]), a.1.max(p[1])));
-            cx0 <= x1 && cx1 >= x0 && cy0 <= y1 && cy1 >= y0
-        })
+    /// Each base's old and new site with the flattening's ring, as one engine-metre box [x0, y0, x1, y1]: the
+    /// images there need the patches.
+    pub fn bounds(&self) -> Vec<[f64; 4]> {
+        self.bases
+            .iter()
+            .map(|b| {
+                let (lo, hi, k, m) = (b.lo, b.hi, b.k, RING);
+                let c =
+                    [[lo[0] - m, lo[1] - m], [hi[0] + m, lo[1] - m], [hi[0] + m, hi[1] + m], [lo[0] - m, hi[1] + m]];
+                let mut pts: Vec<[f64; 2]> = c.iter().map(|q| b.game_xy(*q)).collect();
+                pts.extend(c.iter().map(|q| b.real_xy([q[0] * k, q[1] * k])));
+                if let Some(mk) = &b.mask {
+                    let (w, h, o) = (mk.w as f64 * mk.px_m, mk.h as f64 * mk.px_m, mk.origin);
+                    pts.extend([[o[0], o[1]], [o[0] + w, o[1] - h]]);
+                }
+                pts.iter().fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |r, p| {
+                    [r[0].min(p[0]), r[1].min(p[1]), r[2].max(p[0]), r[3].max(p[1])]
+                })
+            })
+            .collect()
     }
 
     /// Patches a height image (RG8: raw = r·256 + g; `texel(x, y)` = the texel's engine position): the new sites
@@ -719,11 +738,11 @@ mod tests {
         let ms = BaseMoves { bases: vec![BaseMove::new(&game("David"), &real_runways()).unwrap()] };
         let m = &ms.bases[0];
         // The old runway: a strip of the runway bit along the game runway.
-        let old = |x: f64, y: f64| if (y - 602387.0).abs() < 50.0 && x > 352891.0 && x < 357155.0 { 0x11 } else { 1 };
+        let old = |x: f64, y: f64| if (y - 602387.0).abs() < 50.0 && x > 352891.0 && x < 357155.0 { 0x10 } else { 1 };
         let mid_old = [355000.0, 602387.0];
         let mid_new = m.map(mid_old).unwrap().p;
-        assert_eq!(ms.surface(mid_new, old) & RUNWAY, RUNWAY);
-        assert_eq!(ms.surface(mid_old, old) & RUNWAY, 0, "the old site is rough ground");
+        assert_eq!(ms.surface(mid_new, old), 0x10, "the runway leaf's own flags");
+        assert_eq!(ms.surface(mid_old, old), 1, "the old site is rough ground");
         assert_eq!(ms.surface([0.0, 0.0], old), 1);
         // Flat on the site, the ground beyond the ring unchanged.
         assert_eq!(ms.height(mid_new, 300.0), m.elev);

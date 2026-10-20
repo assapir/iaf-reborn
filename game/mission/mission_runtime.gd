@@ -49,9 +49,42 @@ var _all_dead := false  # rule 1 posted (debrief unit +0x661c)
 static func mission_files(id: int) -> Array:
 	var dir := Settings.assets_dir().path_join("converted/missions")
 	var out := []
+	var moved := Settings.sync_bases()
 	for name in Settings.load_json(dir.path_join("missionlist.json")).get(str(id), []):
-		out.append({"name": String(name), "data": Settings.load_json(dir.path_join(String(name) + ".json"))})
+		var data := Settings.load_json(dir.path_join(String(name) + ".json"))
+		if moved:
+			move_with_bases(data)
+		out.append({"name": String(name), "data": data})
 	return out
+
+
+## World scale Real (docs/world-scale.md §3.3): a mission file's geometry on the moved bases. Each placed entity,
+## path point and formation route point on or around a base moves with it (position, altitude + dz, heading + the
+## base's turn); a moved entity's reached / left radii scale with the base (k on the base, 1 around it), and it keeps
+## that scale as "base_scale" for its kept model (Settings.keeps_present).
+static func move_with_bases(m: Dictionary) -> void:
+	for e in m.get("entities", {}).get("items", []):
+		if not (e is Dictionary) or (float(e.get("0x2e4", -1)) < 0 and float(e.get("0x2ee", -1)) < 0):
+			continue
+		var mv := Settings.base_moved(float(e["0x2e4"]), float(e["0x2ee"]))
+		if mv.is_empty():
+			continue
+		e["0x2e4"] = mv[0]
+		e["0x2ee"] = mv[1]
+		e["0x2f8"] = float(e.get("0x2f8", 0)) + mv[4]
+		e["0x302"] = fposmod(float(e.get("0x302", 0)) + mv[2], 360.0)
+		e["base_scale"] = mv[3]
+		for s in e.get("slots", []):
+			if s is Dictionary and s.has("0x348"):
+				s["0x348"] = float(s["0x348"]) * mv[3]
+	for kind in ["paths", "formations"]:
+		for p in m.get(kind, {}).get("items", []):
+			for q in p.get("points", []):
+				var mv := Settings.base_moved(float(q[1]), float(q[2]))
+				if not mv.is_empty():
+					q[1] = mv[0]
+					q[2] = mv[1]
+					q[3] = float(q[3]) + mv[4]
 
 
 ## The object database a mission file names (converted .bdb); {} when missing.
@@ -175,6 +208,8 @@ func setup(host_node: Node, mission_files: Array, bdb: Dictionary, player_id := 
 				"armament": e.get("armament"),
 				# State +0x44, known to the player (entity 0x35c; the player's radar sets it too): the TSDs show the unit.
 				"known": int(e.get("0x35c", 0)) != 0,
+				# World scale Real: the scale its base took (move_with_bases; 1 elsewhere).
+				"base_scale": float(e.get("base_scale", 1.0)),
 			}
 			_init_damage(ent, objects.get(ent.type, {}))
 			entities[ent.key] = ent

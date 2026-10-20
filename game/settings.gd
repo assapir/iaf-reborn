@@ -358,6 +358,28 @@ static func keeps_present(path: String, raw_box: AABB, present: float, klass: in
 			or present >= 7.0 or klass in [15, 16]
 
 
+## World scale Real: every airbase at its real place (docs/world-scale.md §3.3). Sets up the extension's base moves
+## for the current `world_scale` (once per change; the terrain, the mission data and the flight model read them) and
+## returns true when the bases move.
+var _bases_for := ""
+
+
+func sync_bases() -> bool:
+	if not ClassDB.class_exists("IafBases"):
+		return false
+	if _bases_for != world_scale:
+		_bases_for = world_scale
+		if not IafBases.setup(world_scale == "real", assets_dir()):
+			push_warning("world scale real: the base data is missing (iaf.ibx, airbases.json): the bases stay")
+	return IafBases.active()
+
+
+## A world point (engine X, Y) moved with its base in World scale Real: [x, y, turn (deg, clockwise), scale, dz], or
+## [] when it stays (Original, or away from every base).
+func base_moved(x: float, y: float) -> PackedFloat64Array:
+	return IafBases.map(x, y) if sync_bases() else PackedFloat64Array()
+
+
 func real_data() -> bool:
 	return flight_data == "real"
 

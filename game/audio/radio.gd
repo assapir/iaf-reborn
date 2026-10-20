@@ -256,9 +256,22 @@ func _load_bases(path: String) -> void:
 		var hangars := []
 		for i in int(f.call("HangarsNum")):
 			hangars.append(Vector2(f.call("HangarPtX%d" % i), f.call("HangarPtY%d" % i)))
-		bases.append({"name": name, "tower": Vector3(f.call("TowerLocX"), f.call("TowerLocY"), f.call("TowerLocZ")),
+		var b := {"name": name, "tower": Vector3(f.call("TowerLocX"), f.call("TowerLocY"), f.call("TowerLocZ")),
 			"lineup": Vector3(f.call("LineupLocX"), f.call("LineupLocY"), f.call("LineupLocZ")),
-			"rwy": int(f.call("RunwayNumber")), "hangars": hangars})
+			"rwy": int(f.call("RunwayNumber")), "hangars": hangars}
+		# World scale Real: the base at its real place (docs/world-scale.md §3.3).
+		var m := Settings.base_moved(b.lineup.x, b.lineup.y)
+		if not m.is_empty():
+			b.rwy = wrapi(roundi(b.rwy + m[2]), 0, 360)
+			for k in ["tower", "lineup"]:
+				var q := Settings.base_moved(b[k].x, b[k].y)
+				if not q.is_empty():
+					b[k] = Vector3(q[0], q[1], b[k].z + q[4])
+			for i in hangars.size():
+				var q := Settings.base_moved(hangars[i].x, hangars[i].y)
+				if not q.is_empty():
+					hangars[i] = Vector2(q[0], q[1])
+		bases.append(b)
 
 
 ## FUN_00550ed0: one TowersManagerTimer tick.
