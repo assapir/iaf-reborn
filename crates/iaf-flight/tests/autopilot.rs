@@ -218,8 +218,9 @@ fn lands_at_ramat_david_real_size() {
 }
 
 /// Better physics' ground effect: the jet floats and touches down further along, still on the runway, at the Present
-/// scale's clearance (×2) and at true size. The autopilot flies its 6° glide path into the ground without a flare, so
-/// it crosses the ground-effect band in about one 1 Hz lift update: F-16 0.01 m longer at 3.38 m, 13 m at 1.69 m.
+/// scale's clearance (×2) and at true size; the wing's height uses the true-size clearance in both. The autopilot
+/// flies its 6° glide path into the ground without a flare and crosses the ground-effect band in about one 1 Hz lift
+/// update, so the float depends on where that update falls: F-16 83 m longer at 3.38 m, 13 m at 1.69 m.
 #[test]
 fn lands_at_ramat_david_in_ground_effect() {
     for clearance in [2.0 * F16_CLEARANCE_REAL, F16_CLEARANCE_REAL] {
@@ -242,6 +243,7 @@ fn land_at_ramat_david(clearance: f32, ground_effect: bool) -> Option<f64> {
     let home = Waypoint { x: rd.lineup[0] as f64 - 15000.0, y: rd.lineup[1] as f64, z: 1500.0, t: 0.0, action: 7 };
     let mut ac = jet(&inst, "F-16", Vec3::new(home.x - 40000.0, home.y + 5000.0, 2000.0), 90.0, true);
     ac.gear_clearance = clearance;
+    ac.true_clearance = Some(F16_CLEARANCE_REAL);
     ac.better.ground_effect = ground_effect;
     let mut ap = Autopilot::new(Config::load(&inst));
     ap.bases = bases;

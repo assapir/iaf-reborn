@@ -341,6 +341,7 @@ func _ready() -> void:
 		# The model's `height` helper: how far the wheels reach below the aircraft origin.
 		var h := aircraft.find_child("height", true, false) as Node3D
 		flight.set_gear_clearance(-h.position.y * aircraft.scale.y if h != null else 0.0)
+		flight.set_true_gear_clearance(-h.position.y if h != null else 0.0)
 	var shot := args.find("--screenshot")
 	if shot >= 0:
 		# Captures ignore stray keyboard / mouse input (the window may receive the user's typing).
@@ -2531,6 +2532,7 @@ func _take_over(target: Dictionary, old: Dictionary) -> void:
 	if aircraft != null:
 		var h := aircraft.find_child("height", true, false) as Node3D
 		flight.set_gear_clearance(-h.position.y * aircraft.scale.y if h != null else 0.0)
+		flight.set_true_gear_clearance(-h.position.y if h != null else 0.0)
 	# The levers follow the new jet; the stick and throttle stay the player's (FUN_005a28c0: the input devices'
 	# current values go to the new jet).
 	gear_down = bool(st.gear_down)

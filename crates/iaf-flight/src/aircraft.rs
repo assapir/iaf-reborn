@@ -617,6 +617,9 @@ pub struct Aircraft {
     /// Height of the aircraft origin above the wheels' contact point (the model's `height`
     /// helper, F-16 1.69 m), so the jet rests on its gear.
     pub gear_clearance: f32,
+    /// The true-size gear clearance (the `height` helper at scale 1, F-16 1.69 m in both world scales), for the ground
+    /// effect's wing height; None: `gear_clearance`.
+    pub true_clearance: Option<f32>,
     /// Terrain under the wheels, supplied by the host: `nz/|n|` of the surface normal (1 = flat).
     pub ground_normal_z: f32,
     /// Terrain flags under the jet (terraintype.dat, `4024b0`, §15.6.2: `SURFACE_*`), supplied by the host for the
@@ -802,6 +805,7 @@ impl Aircraft {
             on_ground: !st.airborne,
             ground_height: f32::NEG_INFINITY,
             gear_clearance: 0.0,
+            true_clearance: None,
             ground_normal_z: 1.0,
             ground_flags: None,
             surface: 0,
@@ -1368,10 +1372,11 @@ impl Aircraft {
     }
 
     /// Better physics: ground effect on the induced drag, McCormick's `φ = (16h/b)² / (1 + (16h/b)²)`
-    /// (h = wing height above the terrain, b = span): 0.5 at h ≈ b/16, 0.8 at b/8, 0.94 at b/4. Not in the
-    /// original (no ground effect at all).
+    /// (h = wing height above the terrain, b = span): 0.5 at h ≈ b/16, 0.8 at b/8, 0.94 at b/4. h is the wheels'
+    /// height plus the true-size clearance, the same in both world scales. Not in the original (no ground effect).
     fn ground_effect(&self, alt: f32) -> f32 {
-        let h = (alt - self.ground_height).max(0.0);
+        let wing = self.true_clearance.unwrap_or(self.gear_clearance);
+        let h = (alt - self.ground_height - self.gear_clearance + wing).max(0.0);
         let r = 16.0 * h / self.params.wing_span.max(1.0);
         if !r.is_finite() || r > 64.0 {
             return 1.0;
@@ -3019,6 +3024,16 @@ mod tests {
             c.ground_effect_lift(h)
         };
         assert!(gl(b / 16.0) > 1.2 && gl(b / 4.0) > 1.0 && gl(b) < 1.002 && gl(5.0 * b) == 1.0);
+        // The wing's height is the wheels' height plus the true-size clearance: the same in both world scales.
+        let wheels = |clearance: f32| {
+            let mut c = a.clone();
+            c.ground_height = 0.0;
+            c.gear_clearance = clearance;
+            c.true_clearance = Some(1.69);
+            c.ground_effect_lift(clearance + 0.5)
+        };
+        assert_eq!(wheels(3.38), wheels(1.69));
+        assert_eq!(wheels(1.69), gl(2.19));
         // The nose-wheel side force's ×4 vertical lift (original data set): gone with BP.
         let az = |bp: bool| {
             let mut g = ground(true);

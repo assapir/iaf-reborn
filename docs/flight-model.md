@@ -609,12 +609,14 @@ throttle rules and preferences follow §15 (checklist §15.11). These items stil
       CL, so at the same α it can rise, but for the same lift the L/D is better.
     * Not modelled: the nose-down pitching moment from the reduced tail downwash (the model has no pitching moment:
       α is commanded) and a lower stall speed (the stall comes from the envelope's g limit, not from CLmax).
-    * On the wheels h = the gear clearance: 3.38 m (the `height` helper's 1.69 m at the Present scale ×2) → φ 0.97,
-      lift ×1.02; 1.69 m at true size (World scale Real 1:1, world-scale.md) → φ 0.88, lift ×1.06. The span is the
-      real one at both scales, so the effect is weaker at the Present scale.
+    * h is the wing's real height: the wheels' height above the terrain plus the true-size gear clearance (the
+      `height` helper at scale 1, F-16 1.69 m; the host passes it with `set_true_gear_clearance`), so the physics is
+      the same in both world scales (world-scale.md). On the wheels the F-16 gets φ 0.88 and lift ×1.06 at the
+      Present scale and at World scale Real 1:1 alike.
     * Effect: a float in the flare (touchdown further along) and a slightly shorter take-off run. The autopilot flies
-      its 6° glide path into the ground without a flare: F-16 at Ramat David 0.01 m longer at 3.38 m, 13 m at 1.69 m
-      (test `lands_at_ramat_david_in_ground_effect`).
+      its 6° glide path into the ground without a flare and crosses the ground-effect band in about one 1 Hz update,
+      so its float depends on where that update falls (inferred): F-16 at Ramat David 83 m longer at the Present
+      clearance (3.38 m), 13 m at true size (1.69 m) (test `lands_at_ramat_david_in_ground_effect`).
     * Like all lift and drag, it is refreshed by the 1 Hz / event update.
   * **Ground idle thrust** [`ground_idle`] (§15.8, §14.3).
     * Original: the idle thrust is constant (k 0.05 of the full-AB curve, F-16 ≈ 1000 lbf static), and the ground

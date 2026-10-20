@@ -140,6 +140,15 @@ impl IafFlight {
         }
     }
 
+    /// The true-size gear clearance (the `height` helper at scale 1) for the ground effect's wing height: the
+    /// physics is the same in both world scales (docs/flight-model.md §10).
+    #[func]
+    fn set_true_gear_clearance(&mut self, metres: f64) {
+        if let Some(ac) = &mut self.aircraft {
+            ac.true_clearance = Some(metres as f32);
+        }
+    }
+
     /// Terrain under the player's jet: the surface normal's vertical share `nz/|n|` (1 = flat; the
     /// landing check fails above 10° of slope) and the terraintype.dat flags (terrain.gd `surface_at`: water,
     /// runway, rough ground, map edge; docs/flight-model.md §15.6.2).

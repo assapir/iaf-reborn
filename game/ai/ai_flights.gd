@@ -156,6 +156,7 @@ func _attach(p: Pilot, scale: float, on_ground: bool) -> void:
 		# origin) at the Present scale.
 		var hp := model.find_child("height", true, false) as Node3D
 		p.flight.set_gear_clearance(-hp.position.y * model.scale.y if hp != null else 0.0)
+		p.flight.set_true_gear_clearance(-hp.position.y if hp != null else 0.0)
 		model.add_child(FlightSounds.create_engine(host, p.flight, ent))  # docs/sound.md §3
 	p.node = model
 	ent.node = model

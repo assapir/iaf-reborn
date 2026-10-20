@@ -161,6 +161,7 @@ the model scale (every one is derived from the node's scale today, so it changes
 | player vs unit and mid-air collisions | `_check_collisions` (centre distance < the target's radius) | — | targets half as wide |
 | radio lineup / runway zones `3(r+ro)²` | `game/audio/radio.gd` | ro = the jet's radius | slightly smaller |
 | gear clearance (the FM's ground contact height) | `set_gear_clearance(−height.y × scale)` | F-16 3.38 m | 1.69 m |
+| true-size clearance (the ground effect's wing height) | `set_true_gear_clearance(−height.y)` | F-16 1.69 m | 1.69 m |
 | radar altimeter, AGL, the AI's rolling test | via the gear clearance | — | follows |
 | cockpit model offset | `own_bc.position = −eye × scale` | F-16 eye 8.98 m ahead of the origin | 4.49 m |
 | gun muzzle, muzzle flash, afterburner, nav lights, wingtip trails | model-relative | — | follow |
@@ -337,7 +338,8 @@ until the user decides to show it.
 - **What follows by itself** (derived from the node scale): collision radii, the gear clearance (`height` helper ×
   scale: F-16 3.38 → 1.69 m, set into the FM by `set_gear_clearance`), the eye offset (F-16 8.98 → 4.49 m ahead),
   the gun muzzle, the LOD distances, the orbit views, the EO pick, the missile trail head, the burned copy jitter.
-  The flight model needed no change; the clearance is its one size input.
+  The flight model needed no change; the clearance is its one size input (the ground effect takes the true-size
+  clearance as well, so it stays the same).
 - **Stores:** at 1:1 a store is drawn at its launch point (`body_to_world(attach)`); at ×2 it is drawn 5.3 m off it
   (F-16, mission 311).
 - **Hit volumes (decision 4):** built with Weapon data Real, in both world scales (docs/real-weapons.md §1.4). The
@@ -403,8 +405,8 @@ until the user decides to show it.
   (only the paved surface is painted over). The new site is the game's layout, not the real one; with a modern
   imagery layer the real base's own runways may show beside the drawn ones where the photo shows them (outside
   Israel's 2015 photo).
-- **Gear clearance.** Halving it changes the ground effect (φ 0.97 at 3.38 m, 0.88 at 1.69 m) and the take-off
-  rotation. Checked (§4.1): the autopilot's take-off and landing at David and the player's take-off and landing
+- **Gear clearance.** Halving it changes the take-off rotation. The ground effect uses the true-size clearance in
+  both scales (`set_true_gear_clearance`, flight-model.md §10), so it stays the same. Checked (§4.1): the autopilot's take-off and landing at David and the player's take-off and landing
   work at 1.69 m. docs/flight-model.md §10 quoted 1.69 m for Original; corrected to 3.38 m (the helper's 1.69 m × 2).
 - **The shatter pieces** use the unscaled local offset for their speed, so their spread already ignores the scale
   (half the exe's at ×2, inferred); unrelated to this switch but visible after it.
