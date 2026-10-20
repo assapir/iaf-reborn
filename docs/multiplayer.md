@@ -238,8 +238,9 @@ These are the user's answers in a first discussion. They guide a plan if multipl
   MVP by priorities, growing as it is built.
 - **Transport:** no IPX / SPX. Our own game messages, versioned and designed with care, over an existing transport
   (ENet or WebSocket; inferred).
-- **Server:** a lobby and relay with no game state and no database (once a room flies, the server only relays
-  its messages and keeps nothing), cheap or free to run (for example Cloudflare
+- **Server:** a lobby and relay with no game state during a flight (once a room flies, the server only relays
+  its messages). A login and saved statistics are server state, so a small store is needed for them (for
+  example Cloudflare D1 or KV on the free tier; inferred), cheap or free to run (for example Cloudflare
   Workers with Durable Objects: rooms in memory; inferred), easy to deploy and easy to run locally so anyone can host
   one. Not necessarily in Rust. Architecture details later.
 - **Host:** one player's game hosts the AI and scripts, picked by ping to the others and by spare headroom (its
