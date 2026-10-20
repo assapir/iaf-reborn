@@ -25,10 +25,11 @@ static func arial(weight := 400) -> SystemFont:
 
 
 ## FUN_004eee10(p, weight): lfHeight = -round(cy·p/100) with cy the cell height of "A…Za…z" at lfHeight -100 in
-## that weight (VDMX: Arial 112, Arial Bold 115), so size 10 → 11 ppem, 11 → 12, bold 50 → 58.
+## that weight (VDMX: Arial 112, Arial Bold 115), so size 10 → 11 ppem, 11 → 12, bold 50 → 58. A font without VDMX
+## (Liberation Sans standing in for Arial) uses those two values.
 static func ppem(p: int, weight := 400) -> int:
 	var v: Dictionary = _font_tables(weight).vdmx
-	var cy: int = v[100].x + v[100].y if v.has(100) else 112
+	var cy: int = v[100].x + v[100].y if v.has(100) else (115 if weight >= 700 else 112)
 	return int(cy * p / 100.0 + 0.5)
 
 

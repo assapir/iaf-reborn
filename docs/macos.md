@@ -43,4 +43,8 @@ Godot renders with Metal on macOS, so terrain shaders may look slightly differen
 | fonts     | Arial is installed and used directly                           | Liberation Sans is the fallback for Arial       |
 | user data | `~/Library/Application Support/Godot/app_userdata/iaf-reborn/` | `~/.local/share/godot/app_userdata/iaf-reborn/` |
 
+With Liberation Sans the in-flight menu and boxes keep the exe's font sizes but use Godot's widths and heights:
+GDI's exact pixels come from Arial's `hdmx` and `VDMX` tables (docs/front-end.md §16.2), which Liberation Sans lacks.
+Install Arial (Arch: `ttf-ms-fonts`) for the exact layout; `test_views` skips its pixel checks without it.
+
 User data is Godot's `user://` folder. It holds the settings, key bindings, pilots and the blackbox's `flights/`.

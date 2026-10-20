@@ -51,18 +51,24 @@ func run() -> void:
 	check(not tv.paused, "Ctrl+P ignored while the menu is open")
 	# The layout of FUN_004ee7b0 in 640×480 units: Arial 11 ppem, W = 91 (RESTART MISSION, GDI widths), H = 14.
 	var ov = tv.overlay
+	var Gdi := preload("res://util/gdi.gd")
+	# The exact GDI pixels need Arial's own hdmx / VDMX tables; a stand-in font (Liberation Sans) has neither.
+	var arial: bool = not Gdi._font_tables(400).hdmx.is_empty()
+	if not arial:
+		print("SKIP the GDI pixel layout checks: no Arial with hdmx / VDMX installed")
 	var want: Array[Rect2i] = []
 	for i in 6:
 		want.append(Rect2i(15, 20 + i * 37, 107, 30))
-	check(ov.item_rects() == want, "item rects (15, 20 + 37i, 122, 50 + 37i) %s" % [ov.item_rects()])
-	var Gdi := preload("res://util/gdi.gd")
+	if arial:
+		check(ov.item_rects() == want, "item rects (15, 20 + 37i, 122, 50 + 37i) %s" % [ov.item_rects()])
 	check(
 		Gdi.ppem(10) == 11 and Gdi.ppem(11) == 12 and Gdi.ppem(50, 900) == 58,
 		"FUN_004eee10 sizes: 10 → 11, 11 → 12, bold 50 → 58 ppem"
 	)
-	check(ov.frame_rect() == Rect2i(5, 10, 127, 235), "frame (5, 10)-(132, 245) %s" % [ov.frame_rect()])
+	if arial:
+		check(ov.frame_rect() == Rect2i(5, 10, 127, 235), "frame (5, 10)-(132, 245) %s" % [ov.frame_rect()])
 	var sc: float = ov._scale()
-	var r2: Rect2i = want[2]
+	var r2: Rect2i = ov.item_rects()[2]
 	ov.mouse = Vector2(r2.end) * sc + Vector2(0.5, 0.5) * sc  # the right / bottom edge counts (FUN_004f0680)
 	await frames(2)
 	check(ov.hover == 2, "hover on item 2's bottom-right edge (%d)" % ov.hover)
@@ -79,10 +85,15 @@ func run() -> void:
 	if box != null:
 		check(
 			(
-				box.box_size == Vector2i(326, 89)
-				and box.panel == Rect2i(10, 10, 306, 31)
-				and box.button_rects == [Rect2i(10, 48, 87, 31), Rect2i(229, 48, 87, 31)]
-				and box.labels == ["YES", "NO"]
+				box.labels == ["YES", "NO"]
+				and (
+					not arial
+					or (
+						box.box_size == Vector2i(326, 89)
+						and box.panel == Rect2i(10, 10, 306, 31)
+						and box.button_rects == [Rect2i(10, 48, 87, 31), Rect2i(229, 48, 87, 31)]
+					)
+				)
 			),
 			"render box layout (FUN_004e52a0) %s %s %s" % [box.box_size, box.panel, box.button_rects]
 		)
