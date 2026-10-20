@@ -137,6 +137,9 @@ Each entry names the switch and where it lives, then the difference: "Original: 
 **Flight data = Real**
 - **RWR display.** Original: the display copies the first `count` slots without compacting, so an entry can vanish
   after a removal. Ours, with the switch: it lists every used slot — rwr.md.
+- **Autopilot landing gear.** Original: the NAV landing lowers the gear once, at step 7, and the lever refuses it
+  above 300 kt, so a jet still faster there lands on its belly. Ours, with the switch (and always on the F-35I): the
+  step before (LW2) holds wings level at idle until 292 kt, so the gear comes down — autopilot.md §2.3.
 
 **Preferences → Extras**
 - **Weapon data (Original / Real).** Original: the 1998 weapon data. Ours, with Real: public missile weights, top

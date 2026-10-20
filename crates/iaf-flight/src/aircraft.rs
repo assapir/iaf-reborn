@@ -233,6 +233,8 @@ pub struct ApView {
     pub type_code: u32,
     pub gear_clearance: f32,
     pub ground_height: f32,
+    /// [`Params::gear_speed_wait`].
+    pub gear_speed_wait: bool,
     /// Stick-centre line (P+0x144, P+0x180, P+0x184): centre g = V < v ? a·V + b : 1.
     pub stick_centre: [f32; 3],
 }
@@ -2222,6 +2224,7 @@ impl Aircraft {
             type_code: p.type_code,
             gear_clearance: self.gear_clearance,
             ground_height: self.ground_height,
+            gear_speed_wait: p.gear_speed_wait,
             stick_centre: [self.stick_centre_v, self.stick_centre_a, self.stick_centre_b],
         }
     }

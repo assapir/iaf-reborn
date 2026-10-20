@@ -442,6 +442,34 @@ fn player_approach_mission_312() {
     assert!(!ap.landed, "no AI landed handler for the player");
 }
 
+/// Real data (the F-35I always flies it): the NAV landing lowers the gear below the lever's 300 kt limit, also from
+/// a fast entry (550 kt; the Original F-16 reaches step 7 at ~320 kt from here, docs/autopilot.md §2.3).
+#[test]
+fn player_landing_real_data_gear_below_300_kt() {
+    let Some(inst) = install() else { return };
+    let bases = Airbase::load_all(&std::fs::read(inst.join("iaf.ibx")).unwrap());
+    let z = bases.iter().find(|b| b.name == "David").unwrap().lineup[2];
+    let mut ac = jet(&inst, "F-35I", Vec3::new(366755.0, 602361.0, 2000.0), 270.0, true);
+    let mut ap = Autopilot::new(Config::load(&inst));
+    ap.bases = bases;
+    ap.route = vec![Waypoint { x: 351083.0, y: 602383.0, z: 1500.0, t: 60.0, action: 7 }];
+    ap.player_mode(&mut ac, 2, 0);
+    let mut gear_kt = None;
+    for _ in 0..700 {
+        let outs = fly_player(&mut ac, &mut ap, 1.0, z);
+        let st = ac.state();
+        assert!(st.crashed.is_none(), "crashed ({:?}) in {}", st.crashed, ap.stage());
+        if gear_kt.is_none() && outs.iter().any(|o| o.gear == Some(true)) {
+            gear_kt = Some(st.speed * 1.943844);
+        }
+        if outs.iter().any(|o| o.ap_key) {
+            break;
+        }
+    }
+    let kt = gear_kt.expect("gear commanded");
+    assert!(kt < 300.0, "gear commanded at {kt:.0} kt");
+}
+
 /// One leg of the 312 circuit as flown: the landing step, where it began (x, y, heading °) and the bank range
 /// during it (°).
 #[derive(Debug, Clone, Copy)]

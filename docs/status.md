@@ -138,9 +138,6 @@ Checked against the code on 2026-10-19 (each doc's own "not built" notes have th
 - **Terrain**: the original data has no elevation west of Suez (flat −557 m, kept). A modern DEM (digital elevation
   model) is not built.
 - **Flight**: the OutRunway force feedback; the map-edge console line (`FUN_0044a060`, docs/flight-model.md §15.5a).
-- **Autopilot landing, F-35I**: GoHomeCL's step 7 (gear down) comes at any speed above 102.9 m/s, and the F-35I is
-  still at ~370 kt there, so the 300 kt rule keeps its gear up and it lands on its belly (mission 214; the
-  mission's own jet is at 220 kt and lands on its gear; docs/autopilot.md §2.3).
 - **F-35I cockpit**: the panel pans as one flat picture, like the originals'; its side-stick and throttle are fixed
   in the render; the portals show the original MFD pages (pixel font) in the F-35 colours; looking 15–90° aside shows
   the panel strip's edge.

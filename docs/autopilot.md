@@ -113,8 +113,12 @@ approach and the float before touchdown steer to the centreline with a damped la
 - Gear and flaps go down at landing step 7, as for the AI. The commands reach the levers through the controller.
   The port mirrors them on the cockpit levers, so the gear's 300 kt rule and the flaps damage still apply.
   Step 7 comes when LW2 ends, and LW2 ends at any speed above its 102.944 m/s target. So a jet still faster than
-  300 kt there keeps its gear up and lands on its belly: the F-35I does (mission 214, Home waypoint: 369 kt at step 7,
-  touchdown gear up), the mission's own jet slows to 220 kt first and lands on its gear.
+  300 kt there keeps its gear up and lands on its belly: the F-35I did before the fix below (mission 214, Home
+  waypoint: 369 kt at step 7, touchdown gear up), the mission's own jet slows to 220 kt first and lands on its gear.
+- Ours, Flight data = Real (`Params::gear_speed_wait`; the F-35I always flies it): in the player's landing, LW2 also
+  waits for 150 m/s (292 kt), at idle and wings level, so step 7's gear command comes under the 300 kt limit. The
+  Real jets enter faster (the F-16 Real: 371 kt at LW2 from 312's start at 550 kt). The AI's gear has no lever limit
+  and is unchanged.
 - The pitch law's "gear / flaps / brakes in above 150 m/s" clean-up is skipped in modes 0 and 8.
 - The ChangeHeading2PtAcu legs run without the ground watch (modes 0 and 8).
 - LandingCL Init (`5d36d2`): the stop condition is **1.0295 m/s** in FM mode 0 (25.736 m/s in mode 8). The children

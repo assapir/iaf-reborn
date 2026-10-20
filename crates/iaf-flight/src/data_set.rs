@@ -679,6 +679,7 @@ pub fn apply(set: DataSet, name: &str, params: &Params, envelope: &Envelope) -> 
     let (mut p, mut e) = (params.clone(), envelope.clone());
     // A fix of the original's instrument logic, for every type with Real data.
     p.ias_low_speed_fix = set == DataSet::Real;
+    p.gear_speed_wait = set == DataSet::Real;
     let Some(r) = find_type(name).and_then(real) else {
         return (p, e);
     };

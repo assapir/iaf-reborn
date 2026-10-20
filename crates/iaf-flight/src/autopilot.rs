@@ -492,9 +492,14 @@ fn keep_attitude(l: &mut Laws, t: Vec3, speed: Option<f32>) {
 
 /// LevelWingsPitch0Accel `5d2400`: wings level, pitch 0 (FpmPitchReqAtLowVels below Vmin(1.2 g)), speed.
 fn level_wings_accel(l: &mut Laws, pitch_t: &mut f32, speed: f32, vmin: f32) -> Leaf {
+    level_wings_accel_max(l, pitch_t, speed, vmin, None)
+}
+
+/// [`level_wings_accel`]; ours: `max` keeps it running while faster than that.
+fn level_wings_accel_max(l: &mut Laws, pitch_t: &mut f32, speed: f32, vmin: f32, max: Option<f32>) -> Leaf {
     let c130 = l.v.type_code == C130;
     let tol = if c130 { 6.0 } else { 3.0 };
-    let spd_ok = l.v.speed > speed || (l.v.speed - speed).abs() <= tol;
+    let spd_ok = (l.v.speed > speed || (l.v.speed - speed).abs() <= tol) && max.is_none_or(|m| l.v.speed <= m);
     if !c130 {
         if l.v.speed <= vmin {
             *pitch_t = l.c.fpm_pitch_low;
@@ -2310,7 +2315,12 @@ impl Landing {
                 }
             }
             // 5d2400 takes Vmin at 1.2 g (push 0x3f99999a @5d24ad), as in Fly2WayPt.
-            Leg::Lw(speed) => level_wings_accel(l, &mut self.lw_pitch, speed, vmin12),
+            Leg::Lw(speed) => {
+                // Ours (Real data, the player): LW2 ends below the gear's 300 kt lever limit (150 m/s = 292 kt),
+                // so step 7's gear command is not refused (docs/autopilot.md §2.3).
+                let wait = self.step == 6 && self.player && l.v.gear_speed_wait;
+                level_wings_accel_max(l, &mut self.lw_pitch, speed, vmin12, wait.then_some(150.0))
+            }
             Leg::Ka(i, speed, r) => self.ka(l, i, speed, r),
             Leg::Fa(r) => {
                 *period = 0.1;
