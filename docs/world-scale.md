@@ -275,19 +275,22 @@ flag) until step 9, so players never see true-size jets on ×2 bases (inferred; 
   and counts `5.0`, Ryak `90.0`, Aman `260.0`; the ini reader's integers now take a written float and truncate it, as
   the exe does (`FUN_0054eda0`), so those bases get their headings and Ramon its taxi points and hangars.
 
-## 5. Open questions
+## 5. Decisions (user, 2026-10-20) and open questions
 
-1. Moving the six far bases to their real places (§3.4): wanted, or is "real size where the game puts them" enough?
-2. Base buildings at true size on the painted ×2 shelters (they look small on their pads), or the base's k for
-   them too (the base stays one picture)?
-3. Runway widths: uniform k (67–80 m) or a separate width factor to the real 45–61 m (the paint and the terraintype
-   polygon then need an axis-wise warp)?
-4. Ships' true size (§1.1): measure the hull parts.
-5. Gun hit sphere, blast radii: kept as the original's (proposed); a smaller hit sphere for true-size targets would be
-   a "Better" option, not part of this switch.
-6. The real runway table derives from OpenStreetMap (ODbL). A small table of coordinates with the attribution is
-   proposed; the licence terms for a derived table are to be checked.
-7. Bley: Tha'lah (2.8 km) rather than Khalkhalah (42.5 km, georef.md §4)? A runway length from imagery would settle k.
+Decided:
+1. **The far bases move to their real places** too (§3.4 is in scope): all ten bases at their real positions.
+2. **Base buildings at true size (1:1)**, not the base's k.
+3. **Runways at their real proportions:** real length and real width (45–61 m), not a uniform k; the paint and the
+   terraintype polygon get an axis-wise warp.
+4. **Gun hit sphere and blast radii follow the weapon data:** with Weapon data = Real (docs/real-weapons.md) they
+   take real values for true-size targets; with Weapon data = Original they stay the original's.
+5. **The real runway table may be committed:** a small table of coordinates derived from OpenStreetMap, with the
+   ODbL attribution in the repo[^osm].
+
+Open:
+- Ships' true size (§1.1): measure the hull parts.
+- Bley: Tha'lah (2.8 km from the game's base) rather than Khalkhalah (42.5 km, georef.md §4) is inferred; the user
+  does not know either. A runway length from imagery would settle it.
 
 [^f16]: Wikipedia, "General Dynamics F-16 Fighting Falcon", specifications: https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon
 [^f15]: Wikipedia, "McDonnell Douglas F-15 Eagle", specifications: https://en.wikipedia.org/wiki/McDonnell_Douglas_F-15_Eagle
