@@ -238,7 +238,8 @@ These are the user's answers in a first discussion. They guide a plan if multipl
   MVP by priorities, growing as it is built.
 - **Transport:** no IPX / SPX. Our own game messages, versioned and designed with care, over an existing transport
   (ENet or WebSocket; inferred).
-- **Server:** a lobby and relay with no game state and no database, cheap or free to run (for example Cloudflare
+- **Server:** a lobby and relay with no game state and no database (once a room flies, the server only relays
+  its messages and keeps nothing), cheap or free to run (for example Cloudflare
   Workers with Durable Objects: rooms in memory; inferred), easy to deploy and easy to run locally so anyone can host
   one. Not necessarily in Rust. Architecture details later.
 - **Host:** one player's game hosts the AI and scripts, picked by ping to the others and by spare headroom (its
@@ -250,7 +251,8 @@ These are the user's answers in a first discussion. They guide a plan if multipl
 - **Hits:** the shooter proposes, the victim's machine accepts within a lag allowance; all on the host's sim clock
   (no wall clock, so no time-zone or drift issues).
 - **Modes and rules:** All-Out War first: start in the air, apart; the original's re-entry rules and win rules; no AI
-  for now. Mission games start on the base. Rooms and their list as the original's lobby; anyone can create a room;
+  for now; a room setting can show every player's score in the debrief (the original shows "N/A" but the
+  pilot's own). Mission games start on the base. Rooms and their list as the original's lobby; anyone can create a room;
   no late join; the player count a dynamic limit from the host's headroom.
 - **Chat:** the original's text chat and F1–F12 calls; voice later through a third-party add-on.
 - **Records:** separate multiplayer records per pilot (sorties, kills, deaths, wins / losses). Open: pilot logs that
