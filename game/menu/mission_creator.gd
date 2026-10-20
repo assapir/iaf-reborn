@@ -339,8 +339,9 @@ func _gui_input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT):
 		return
 	if event.pressed:
-		press(q)
-		accept_event()
+		# Only a press on our own controls stops here; the rest reaches the frame's buttons (RANDOM, FLY, BACK …).
+		if press(q):
+			accept_event()
 	else:
 		release(q)
 

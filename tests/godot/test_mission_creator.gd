@@ -55,6 +55,18 @@ func run() -> void:
 		await process_frame
 	check(fe.screen == "mc" and fe.mc_view != null, "Main -> MissionCreator opens the MC screen")
 	mcv = fe.mc_view
+	# A click on the frame's RANDOM button through the viewport reaches the front end (the content over the whole
+	# screen passes presses that hit none of its controls).
+	var before: Dictionary = settings().mc.duplicate(true)
+	var rb: Dictionary = fe._button(fe._key_for_label("Random"))
+	var at: Vector2 = fe._to_screen(Vector2(rb.rect[0] + rb.rect[2] / 2.0, rb.rect[1] + rb.rect[3] / 2.0))
+	root.push_input(mouse_button(at, true))
+	root.push_input(mouse_button(at, false))
+	await frames(2)
+	while fe.busy:
+		await process_frame
+	check(str(settings().mc) != str(before), "a real click on RANDOM reaches the button (the content passes it)")
+	settings().mc = before
 	var mc: Dictionary = settings().mc
 	check(mc.name == "" and int(mc.count[0]) == 0 and int(mc.base) == 0, "the state starts zeroed (FUN_004f64a0)")
 
