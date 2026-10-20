@@ -233,6 +233,7 @@ static func _extent_sum(model: Node3D) -> float:
 func _load_formations(files: Array) -> void:
 	if files.is_empty():
 		return
+	var slots := MissionRuntime.flight_slots(files[0])
 	for f in files[0].get("formations", {}).get("items", []):
 		var members := []
 		var targets := []
@@ -246,6 +247,7 @@ func _load_formations(files: Array) -> void:
 			{
 				"id": int(f["0x1e"]),
 				"kind": int(f.get("0x3f2", 0)),
+				"slot": int(slots.get(int(f["0x1e"]), 0)),
 				"members": members,
 				"targets": targets,
 				"route": route

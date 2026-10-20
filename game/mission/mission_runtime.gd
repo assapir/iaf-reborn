@@ -101,6 +101,51 @@ static func bdb_objects(bdb: Dictionary) -> Dictionary:
 	return out
 
 
+## The formation each Arming table slot k = 1..10 loads (docs/front-end.md §15): {formation id (0x1e): k}. Slot k
+## exists when flight-table slot k does (FUN_004d2900 walks formation ids 0..49: a formation with a placed member among
+## its two member slots takes slot n for flight numbers 1..6, every other one the next slot from 7). Its formation is
+## the first one with flight number k (FUN_004f0330 → FUN_005bce10) in the formation map's order: an MFC CMap keyed by
+## the id (bucket id >> 4, the latest inserted first within a bucket; FUN_005bc980), filled in file order.
+static func flight_slots(mission: Dictionary) -> Dictionary:
+	var placed := {}
+	for e in mission.get("entities", {}).get("items", []):
+		if e is Dictionary and not (float(e.get("0x2e4", -1)) < 0 and float(e.get("0x2ee", -1)) < 0):
+			placed[int(e.get("0x1e", -1))] = true
+	var formations: Array = mission.get("formations", {}).get("items", [])
+	var number := func(f: Dictionary) -> int:  # FUN_005bd2b0: 1..10 kept, -1 -> 8
+		var n := int(f.get("0x3f2", 0))
+		return 8 if n == -1 else (n if n >= 1 and n <= 10 else 0)
+	var exists := {}
+	var next := 7
+	var by_id := {}
+	for f in formations:
+		by_id[int(f.get("0x1e", -1))] = f
+	for id in 50:
+		var f: Dictionary = by_id.get(id, {})
+		if f.get("members", []).slice(0, 2).any(func(m): return placed.has(int(m.get("0x41a", -1)))):
+			var n: int = number.call(f)
+			if n >= 1 and n <= 6:
+				exists[n] = true
+			else:
+				exists[next] = true
+				next += 1
+	var order := range(formations.size())
+	order.sort_custom(
+		func(i, j):
+			var bi := int(formations[i].get("0x1e", -1)) >> 4
+			var bj := int(formations[j].get("0x1e", -1)) >> 4
+			return bi < bj or (bi == bj and i > j)
+	)
+	var out := {}
+	for k in range(1, 11):
+		if exists.has(k):
+			for i in order:
+				if number.call(formations[i]) == k:
+					out[int(formations[i].get("0x1e", -1))] = k
+					break
+	return out
+
+
 ## The player's aircraft at mission load (FUN_004bb439): the leader of the formation with id (0x1e)
 ## 1, else 2, 3, 4 (the formation map is keyed by the formation id, FUN_005bcb40 / insert FUN_005bc980
 ## from FUN_004b3604), whatever its flight letter. A formation's leader is member 0 if placed, else

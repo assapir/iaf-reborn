@@ -1,7 +1,7 @@
 # Arming screen data (docs/front-end.md §15, game/weapons/mission_weapons.gd): the weapon list and
 # its tabs, the per-station allowed counts of the flight leader, the default loadout, drops with the
 # station maximum, the overweight / wing balance checks, Yes / No / DEFAULT; then the loadout put on
-# the aircraft reaching the player's stores in mission 231 (weight / drag, counts).
+# the aircraft reaching the player's stores in mission 231 (weight / drag, counts); slots 7..10 in mission 112.
 extends "res://../tests/godot/base.gd"
 
 
@@ -170,4 +170,38 @@ func run() -> void:
 		"flight: two tanks' fuel, AIM-9 weight only"
 	)
 	check(st.station(9).get("count", 0) > 0, "flight: the gun is kept (not an Arming station)")
+
+	# --- slots 7..10 (FUN_004efef0, FUN_004f0330 -> FUN_005bce10): mission 112's two "Other" flights make slots 7 and
+	# 8 exist; slot 8 loads the first number-8 formation in the formation map's order (id 4, the later of ids 3 / 4).
+	var mw112 = MW.create(112)
+	var slots: Dictionary = Runtime.flight_slots(Runtime.mission_files(112)[0].data)
+	check(
+		slots == {1: 1, 2: 2, 4: 8} and mw112.flights[8].entity.get("0x2bc", "") == "mig17N1",
+		"mission 112: slot 8 = formation 4 (mig17N1), slot 7 has no number-7 formation (%s)" % slots
+	)
+	# Yes / DEFAULT put every slot's table on its aircraft (arming.gd _answer / use_defaults).
+	Settings().arm_loadouts = {}
+	for n in mw112.flights:
+		Settings().arm_loadouts[n] = mw112.defaults[n].duplicate(true)
+	tv = await start_mission(112)
+	var other := []
+	var unarmed := []
+	for u in tv.ai.combat.units.values():
+		var f: Dictionary = u.ent.pilot.formation if u.air else {}
+		if int(f.get("id", 0)) == 4 and f.members.slice(0, 2).has(u.ent):
+			other.append(u)
+		elif int(f.get("id", 0)) == 3:
+			unarmed.append(u)
+	var lead: Array = mw112.defaults[8]
+	var carries := other.size() == 2 and lead.any(func(s): return int(s[1]) > 0)
+	for u in other:
+		for i in 9:
+			var want: String = mw112.weapon(int(lead[i][0])).get("name", "") if int(lead[i][1]) > 0 else ""
+			var have: String = u.stations[i].w.get("name", "") if int(u.stations[i].count) > 0 else ""
+			carries = carries and want == have and (want == "" or int(u.stations[i].count) == int(lead[i][1]))
+	check(carries, "slot 8: both mig17N jets (%d) carry the leader's default load %s" % [other.size(), lead])
+	check(
+		unarmed.size() == 2 and unarmed.all(func(u): return int(u.ent.pilot.formation.slot) == 0),
+		"formation 3 has no slot"
+	)
 	Settings().arm_loadouts = {}

@@ -107,7 +107,8 @@ const PREFS := {
 	],
 }
 
-## Flight data: "original" (Jane's IAF 1998 numbers) or "real" (corrected real-world data for every flyable jet, docs/real-aircraft.md).
+## Flight data: "original" (Jane's IAF 1998 numbers) or "real" (corrected real-world data for every flyable jet,
+## docs/real-aircraft.md).
 var flight_data := "original"
 ## Weapon data: "original" (the 1998 numbers of the bdb Weapons table and weapons.ibx) or "real"
 ## (public real-world data per weapon, docs/real-weapons.md). Separate from the flight data.
@@ -179,20 +180,25 @@ var vsync := true
 ## (terrain/imagery_layers.gd), e.g. "sentinel2" / "sentinel2_modern" outside Israel.
 var imagery_israel := "original"
 var imagery_outside := "original"
-## Ours (Devices page): the throttle lever's detent (raw 0..100) that maps to MIL; −1 = off, the original's linear lever.
+## Ours (Devices page): the throttle lever's detent (raw 0..100) that maps to MIL; −1 = off, the original's linear
+## lever.
 var throttle_detent := -1
 ## Render options for high resolutions (ours, Extras page; docs/rendering.md, terrain/render_options.gd):
-## anti-aliasing "msaa4" (as before) / "msaa4_fxaa" / "taa" (TAA instead of MSAA); the terrain close up (detail texture, normal detail,
-## 16× anisotropic filtering); the sky "original" (gradient) or "atmospheric" (physical scattering, sun disc).
+## anti-aliasing "msaa4" (as before) / "msaa4_fxaa" / "taa" (TAA instead of MSAA); the terrain close up (detail texture,
+## normal detail, 16× anisotropic filtering); the sky "original" (gradient) or "atmospheric" (physical scattering, sun
+## disc).
 var antialiasing := "msaa4"
 var terrain_closeup := false
 var sky := "original"
-## Upscaling: "off" (native), "quality" (3D at 0.77 of the window) or "balanced" (0.67); MetalFX spatial on Metal, FSR 1 on other drivers.
+## Upscaling: "off" (native), "quality" (3D at 0.77 of the window) or "balanced" (0.67); MetalFX spatial on Metal, FSR 1
+## on other drivers.
 var upscaling := "off"
 ## Night lights (ours, Extras page; docs/rendering.md §5): "original" (the LT_ light sets as 1-px points) or
-## "detailed" (glowing lights, the home airbases lit, the jets' navigation lights and strobes, stars, a moon, moonlight).
+## "detailed" (glowing lights, the home airbases lit, the jets' navigation lights and strobes, stars, a moon,
+## moonlight).
 var night_lights := "original"
-## Water (ours, Graphics → MORE; docs/rendering.md §1.3): false = the original flat-shaded water, true = waves, sun glint and sky reflection.
+## Water (ours, Graphics → MORE; docs/rendering.md §1.3): false = the original flat-shaded water, true = waves, sun
+## glint and sky reflection.
 var water := false
 ## Models (ours, Extras page; docs/aircraft-models.md): "original" (the 1998 models) or "detailed" (our detailed
 ## models where there is one, util/gltf.gd DETAILED: the F-16D; visual only).
@@ -237,8 +243,8 @@ var route_override: Array = []
 ## 0 = the mission's default flight (mission_runtime.gd player_flight()).
 var player_flight := 0
 ## Pylon loads the Arming screen put on the aircraft of each flight (docs/front-end.md §15):
-## {flight 1..6: [[weapon id, count] × 9]}; a flight not listed keeps the mission's own. Cleared when
-## a mission loads.
+## {Arming table slot 1..10 (MissionRuntime.flight_slots): [[weapon id, count] × 9]}; a flight not listed keeps the
+## mission's own. Cleared when a mission loads.
 var arm_loadouts := {}
 ## Result of the last flight for the debrief screen: {passed, headline, notes} and what the pilot records
 ## keep {result, bonus, kills, losses} (mission_runtime.gd debrief_text()); empty = none.
@@ -333,7 +339,8 @@ func save() -> void:
 	write_config().save(PATH)
 
 
-## The stored preferences as settings.cfg holds them; `values` (the Preferences working copy, for Export) overrides them.
+## The stored preferences as settings.cfg holds them; `values` (the Preferences working copy, for Export) overrides
+## them.
 func write_config(values := {}) -> ConfigFile:
 	var cfg := ConfigFile.new()
 	for section in PREFS:

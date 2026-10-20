@@ -701,8 +701,8 @@ Any other type code falls back to the unit's class (rec[0]):
 * Text: `0x68e8b0 + n·0x370`, i.e. flight-table `+0x328` ("Alpha"…"Foxtrot").
 * Position: `(x + W/2, line1_y + L + 2)`, where `L = this+0x60` is the overlay line height (see
   "Top-left text"). Font, colour and alignment are the same as line 1.
-* UNCERTAIN: flight numbers 7+ do not index the table directly (formations beyond 6 take slots 7+),
-  and names exist only for 1..6. Line 2 is therefore empty or unrelated for enemy/"Other" flights.
+* Flight numbers 7+ do not index the table directly (formations other than 1..6 take slots 7+, see
+  "Flight table"), and names exist only for 1..6. Line 2 is therefore empty or unrelated for enemy/"Other" flights.
   For units in no flight, the slot-0 exists flag is presumably 0, so no line 2 is drawn.
 
 #### Flights
@@ -716,7 +716,10 @@ Any other type code falls back to the unit's class (rec[0]):
 
 Over all missions: 1×86, 2×58, 3×42, 4×28, 5×9, 6×3, 8×239.
 
-**Flight table.** Flights 1..6 are stored at slot n. Other formations take slots 7+. Record layout:
+**Flight table.** `FUN_004d2900` walks formation ids 0..49 in order (`FUN_005bc940` / `FUN_005bc900`, the formation
+map). A formation with a spawned, alive member among its two member slots takes a slot: flights 1..6 slot n, every
+other formation (numbers 0 and 7..10) the next slot from 7 whose exists flag is clear. That search has no upper bound;
+the zeroed area holds 50 slots. Record layout:
 
 | offset | content |
 |---|---|
@@ -2223,6 +2226,20 @@ dragging, the arrow otherwise (`SETCURSOR 506720`).
   `FUN_004f0380` = `FUN_005bcb90`, the second member): `FUN_0044e230` → `FUN_004541d0` sets the station, `FUN_00459410` redoes the
   weight / drag. Yes applies the saved tables to every existing flight (`FUN_004eff50`), DEFAULT the defaults to
   slots 0..10. AI flights are edited only by picking their button (Alpha..Delta, enabled like the TSD's).
+* **Table slots 1..10.** The tables hold 11 slots × 9 stations (0xc6 dwords). `FUN_004efef0` fills the defaults of
+  every slot k = 1..10 whose flight-table exists flag is set (`DAT_0068ec1c + (k−1)·0x370`, §8.1). Yes
+  (`FUN_004eff50`) applies the slots 1..10 that exist; DEFAULT (`FUN_00506790`) applies slots 0..10.
+  * Slot k loads the formation `FUN_004f0330(k)` = `FUN_005bce10(k)`: the first formation with flight number k
+    (`+0x38`; −1 is stored as 8, `FUN_005bd2b0`) in the formation map's order. The map is an MFC CMap keyed by the
+    formation id (`FUN_005bc980`): bucket `id >> 4` ascending, the latest inserted first within a bucket. Formations
+    are inserted in file order (`FUN_004b3604`).
+  * So slots 1..6 are flights Alpha..Foxtrot. Slots 7..10 are the formations numbered 7 (Enemy), 8 (Other),
+    9 (Hotel) and 10 (India); slot k exists only when at least k − 6 formations other than 1..6 took a flight-table
+    slot. With no formation of number k (no mission numbers one 7, 9 or 10), `FUN_004f0330` returns 0 and slot k
+    changes nothing. Slot 0 has no flight number, so DEFAULT's slot 0 changes nothing.
+  * Example, mission 112: formations 3 and 4 are both "Other" (8). They take flight-table slots 7 and 8, so Arming
+    slot 8 exists and loads formation 4 (bucket 0, inserted last): its two MiG-17s get their leader's default load.
+    Formation 3 keeps its own stores.
 * Any flight's leader type with jet art can be armed (the nine types); only the flyable-type rule of the buttons
   limits it.
 * **Sounds:** none in the Arming handlers (paint, drag, drop, right-click, list, `5061c0`–`507c30`,
@@ -2235,8 +2252,8 @@ dragging, the arrow otherwise (`SETCURSOR 506720`).
 
 **Implementation** (`game/menu/arming.gd`, `game/weapons/mission_weapons.gd`, `game/menu/front_end.gd`):
 * `mission_weapons.gd` = `CMissionWeapons`: the list (bdb order, tabs), `reset(n)` = `FUN_004ef8a0` from the
-  leader object's `loads` (`CDMEWeaponLoadItem` `raw` = 9 int32 station flags), the three tables for flights
-  1..6 (defaults = `Stores.loadout()` of the leader matched by name, `FUN_004efd50`), `check()` =
+  leader object's `loads` (`CDMEWeaponLoadItem` `raw` = 9 int32 station flags), the three tables for slots
+  1..10 (`MissionRuntime.flight_slots()` picks each slot's formation as above; defaults = `Stores.loadout()` of the leader matched by name, `FUN_004efd50`), `check()` =
   `FUN_00507480`, `put()` = `FUN_00507aa0`, the jet `.trx`. Created on the first visit to Arming after a mission
   loads, dropped when one loads (`_reset_tsd_checks`). Weights are the ones the flight uses (Weapon data: Real
   shows the real ones).
@@ -2246,12 +2263,13 @@ dragging, the arrow otherwise (`SETCURSOR 506720`).
   buttons (`_arm_button`), BACK (`arm.leave(3)`) and the flight buttons (checks first).
 * The TSD node stays loaded (hidden) while Arming is shown, so a flight picked on either screen is the other's
   (`DAT_0083b8a4`) and Fly from Arming flies that flight's leader with the TSD's route.
-* Yes / DEFAULT write `Settings.arm_loadouts` {flight: 9 × [id, count]} (= the aircraft's loads); at the flight,
+* Yes / DEFAULT write `Settings.arm_loadouts` {slot: 9 × [id, count]} (= the aircraft's loads); at the flight,
   `player_weapons.gd` replaces pylons 0..8 of the player's loadout with its flight's entry, so the stores, their
   models, counts and weight / drag follow (gun, chaff, flares unchanged). Cleared when a mission loads.
-* The AI jets in a flight's two member slots carry its entry the same way (`combat.gd` `_armed`, as `FUN_004f0140`):
-  the player's wingman and both jets of every other flight, with their stations, weight / drag and pylon models.
-  Jets beyond the two member slots, and flights without an entry, carry their mission's default stores.
+* The AI jets in the two member slots of a slot's formation carry its entry the same way (`combat.gd` `_armed`, as
+  `FUN_004f0140`; `ai_flights.gd` keeps each formation's `slot`): the player's wingman, both jets of every other
+  flight and of the formation slots 7..10 load, with their stations, weight / drag and pylon models. Jets beyond the
+  two member slots, and formations that no slot loads, carry their mission's default stores.
 * Not ported: the multiplayer paths (AG / Misc disabled in 0x29a / 0x213, the session wait, the `FUN_004f0000`
   messages).
 * Ours:

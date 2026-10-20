@@ -273,10 +273,11 @@ func _round_nodes(u: Unit, w: Dictionary) -> void:
 
 
 ## The Arming screen's loads go on both members of the flight (FUN_004f0140 on FUN_004f0330 the leader and
-## FUN_004f0380 the second member; docs/front-end.md §15): pylons 0..8 of the formation's two member slots.
+## FUN_004f0380 the second member; docs/front-end.md §15): pylons 0..8 of the two member slots of the formation
+## its Arming table slot loads (MissionRuntime.flight_slots).
 func _armed(ent: Dictionary, load: Array) -> Array:
 	var f: Dictionary = ent.pilot.formation if ent.get("pilot") != null else {}
-	var n := int(f.get("kind", 0))
+	var n := int(f.get("slot", 0))
 	if f.is_empty() or not Settings.arm_loadouts.has(n) or not f.members.slice(0, 2).has(ent):
 		return load
 	var arm: Array = Settings.arm_loadouts[n]

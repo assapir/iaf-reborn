@@ -57,8 +57,8 @@ const MSG_RIGHT_HEAVY := 0x34
 ## max: [9] allowed count per station for the current flight (+0x164)}.
 var weapons: Array = []
 var _by_id := {}
-## Flights 1..6 of the main mission file: n -> {entity, object, type} of the leader (member 0 when
-## placed, else member 1).
+## The Arming table slots 1..10 of the main mission file (FUN_004efef0; MissionRuntime.flight_slots): n -> {entity,
+## object, type} of the leader of the slot's formation (member 0 when placed, else member 1).
 var flights := {}
 ## n -> [[id, count] × 9].
 var defaults := {}
@@ -109,17 +109,18 @@ static func _copy(t: Dictionary) -> Dictionary:
 
 
 ## Flights (docs/front-end.md §8.1): the formation number 0x3f2 (−1 = 8), its two member slots; a
-## flight exists when a member is placed; the leader is member 0 if placed, else member 1. Only the
-## named flights 1..6 have their own table slot.
+## flight exists when a member is placed; the leader is member 0 if placed, else member 1. Slots 1..6 are flights
+## 1..6; slots 7..10 load the first formation numbered 7..10 (8 = Other) when that many other flights exist.
 func _load_flights(mission: Dictionary, bdb: Dictionary) -> void:
 	var by_id := {}
 	for e in mission.get("entities", {}).get("items", []):
 		if e is Dictionary:
 			by_id[int(e.get("0x1e", -1))] = e
 	var objects := MissionRuntime.bdb_objects(bdb)
+	var slots := MissionRuntime.flight_slots(mission)
 	for f in mission.get("formations", {}).get("items", []):
-		var n := int(f.get("0x3f2", 0))
-		if n < 1 or n > 6 or flights.has(n):
+		var n := int(slots.get(int(f.get("0x1e", -1)), 0))
+		if n == 0:
 			continue
 		for mem in f.get("members", []).slice(0, 2):
 			var e: Dictionary = by_id.get(int(mem.get("0x41a", -1)), {})
