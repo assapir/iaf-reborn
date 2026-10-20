@@ -119,8 +119,8 @@ func run() -> void:
 	# --- the flight: the Arming load of the player's flight on the pylons --------------------------
 	var arm := [[11, 1], [0, 0], [0, 0], [28, 1], [0, 0], [28, 1], [0, 0], [0, 0], [11, 1]]
 	var arm2 := [[0, 0], [0, 0], [19, 1], [0, 0], [0, 0], [0, 0], [19, 1], [0, 0], [0, 0]]
-	Settings().arm_loadouts = {1: arm, 2: arm2}
-	Settings().player_flight = 1
+	settings().arm_loadouts = {1: arm, 2: arm2}
+	settings().player_flight = 1
 	var tv = await start_mission(231)
 	# Bravo's AI jets (both member slots, FUN_004f0140 on the leader and the second member) carry its Arming load.
 	var bravo := []
@@ -180,9 +180,9 @@ func run() -> void:
 		"mission 112: slot 8 = formation 4 (mig17N1), slot 7 has no number-7 formation (%s)" % slots
 	)
 	# Yes / DEFAULT put every slot's table on its aircraft (arming.gd _answer / use_defaults).
-	Settings().arm_loadouts = {}
+	settings().arm_loadouts = {}
 	for n in mw112.flights:
-		Settings().arm_loadouts[n] = mw112.defaults[n].duplicate(true)
+		settings().arm_loadouts[n] = mw112.defaults[n].duplicate(true)
 	tv = await start_mission(112)
 	var other := []
 	var unarmed := []
@@ -204,7 +204,7 @@ func run() -> void:
 		unarmed.size() == 2 and unarmed.all(func(u): return int(u.ent.pilot.formation.slot) == 0),
 		"formation 3 has no slot"
 	)
-	Settings().arm_loadouts = {}
+	settings().arm_loadouts = {}
 
 	# --- which members count (MissionRuntime.spawned, FUN_004b74f0 -> FUN_0058f110; FUN_004f0330 -> FUN_005bcb40): every
 	# entity but the placeholder row has an object, also an unused player slot at (-1, -1); with a jet picked Player2..
@@ -230,8 +230,8 @@ func run() -> void:
 		"formations":
 		{"items": [form.call(1, 1, 1, 2), form.call(2, 2, 6, 3), form.call(3, 8, 4, 5), form.call(4, 8, 7, -1)]},
 	}
-	var jet_was: int = Settings().jet_id
-	Settings().jet_id = -1
+	var jet_was: int = settings().jet_id
+	settings().jet_id = -1
 	var sp: Dictionary = Runtime.spawned(fake)
 	check(sp.size() == 6 and not sp.has(6), "spawned: every entity but the placeholder row (%s)" % sp.keys())
 	check(
@@ -247,11 +247,11 @@ func run() -> void:
 		mwf.flights.keys() == [1, 8] and mwf.flights[8].entity["0x1e"] == 7,
 		"Arming leaders: Player1, mig2 for slot 8; flight 2 (member 0 = the placeholder) has none %s" % [mwf.flights]
 	)
-	Settings().jet_id = 1
+	settings().jet_id = 1
 	sp = Runtime.spawned(fake)
 	check(
 		not sp.has(2) and not sp.has(4) and not sp.has(5) and sp.has(1),
 		"jet picked: Player2 / Player7 / Player77 not spawned"
 	)
 	check(Runtime.flight_slots(fake) == {1: 1, 2: 2}, "jet picked: formation 3 has no member, slot 8 does not exist")
-	Settings().jet_id = jet_was
+	settings().jet_id = jet_was

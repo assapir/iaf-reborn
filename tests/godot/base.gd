@@ -25,12 +25,6 @@ func settings() -> Node:
 	return root.get_node("Settings")
 
 
-## The old name of settings(), kept until test_arming.gd (edited in another branch) moves to settings().
-# gdlint: ignore=function-name
-func Settings() -> Node:
-	return settings()
-
-
 func check(ok: bool, what: String) -> void:
 	print(("PASS " if ok else "FAIL ") + what)
 	if not ok:
