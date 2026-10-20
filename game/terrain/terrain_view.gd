@@ -2773,20 +2773,23 @@ func _process(delta: float) -> void:
 
 
 
-## The info line's first field: the flight data, then every other switch that is not the original's.
+## The info line's first field: ORIGINAL, or a short tag per switch not at its original setting (FLT real flight
+## data, WPN real weapons, HUD:<style>, 1:1 world scale, CKPT+ better cockpit, PHYS+ better physics).
 func _modes_text() -> String:
-	var t := ["REAL DATA" if real_data else "ORIGINAL 1998 DATA"]
+	var t := []
+	if real_data:
+		t.append("FLT")
 	if Settings.weapon_data == "real":
-		t.append("REAL WEAPONS")
+		t.append("WPN")
 	if Settings.hud_style != "original":
-		t.append("%s HUD" % Settings.hud_style.to_upper())
+		t.append("HUD:" + Settings.hud_style)
 	if Settings.world_scale == "real":
-		t.append("1:1 SCALE")
+		t.append("1:1")
 	if Settings.better_cockpit:
-		t.append("BETTER COCKPIT")
+		t.append("CKPT+")
 	if Settings.better.values().has(true) or _all_better:
-		t.append("BETTER PHYSICS")
-	return " + ".join(t)
+		t.append("PHYS+")
+	return "ORIGINAL" if t.is_empty() else "REAL " + " ".join(t)
 
 ## Scripted stick / rudder for tests (held until changed).
 var scripted_stick = null
