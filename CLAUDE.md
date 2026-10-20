@@ -100,7 +100,8 @@ Rule of placement: game logic belongs in the Rust crates. Godot renders and wire
   Godot types; an exe constant is written as its exact stored value).
 - GDScript is formatted with gdtoolkit's `gdformat --line-length 120 <files>` (gdtoolkit 4.x: `pip install
   'gdtoolkit==4.*'` in a venv) and linted with `gdlint <files>` (config: `gdlintrc`); run both on the `.gd` files you
-  changed before committing.
+  changed before committing. Then parse-check each formatted file (`godot --headless --path game --check-only -s
+  res://<path>`): gdformat can split a multi-line lambda inside an array in a way Godot rejects (7d3c78e).
 - Docs follow ISO 24495-1 plain language: relevant, findable, understandable, usable. Describe what a thing is or
   does, never what it isn't.
 - Research facts from outside sources cite each source as a Markdown footnote (`[^name]` in the text, the source with
