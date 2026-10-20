@@ -2,7 +2,7 @@
 # Runs tests/godot/_mission_sweep.gd once per mission, JOBS at a time, headless; one log per mission in OUT, then
 # a summary: each mission's SWEEP line and its script errors / engine errors. Usage:
 #   tools/mission_sweep.sh OUT_DIR [mission ids…]   (default: the playable missions of docs/mission-coverage.md)
-# Env: SWEEP_SECONDS (mission time, default 240), JOBS (default 2).
+# Env: SWEEP_SECONDS (mission time, default 240), JOBS (default 2), SWEEP_WORLD_SCALE (original / real).
 set -uo pipefail
 cd "$(dirname "$0")/.."
 out=${1:?out dir}; shift

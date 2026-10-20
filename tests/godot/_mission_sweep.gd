@@ -2,17 +2,23 @@
 # mission time at ×8 with the player invulnerable and parked; then the remaining role-1 targets are destroyed and
 # the mission must pass. Prints one SWEEP line per mission: how it ended, the targets, the surviving-role losses, the
 # events fired of those defined, the subtitles, the units that moved of those placed, the message boxes.
-# Run one process per mission (tools/mission_sweep.sh) so an error is tied to its mission.
+# Run one process per mission (tools/mission_sweep.sh) so an error is tied to its mission. SWEEP_WORLD_SCALE sets
+# Settings.world_scale.
 extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
 	Settings().invulnerable = true
 	Settings().no_crashes = true
+	# SWEEP_WORLD_SCALE=real: the bases at their real places (docs/world-scale.md §3.3).
+	if OS.get_environment("SWEEP_WORLD_SCALE") != "":
+		Settings().world_scale = OS.get_environment("SWEEP_WORLD_SCALE")
 	var secs := float(OS.get_environment("SWEEP_SECONDS")) if OS.get_environment("SWEEP_SECONDS") != "" else 240.0
 	for id in OS.get_environment("MISSIONS").split(" ", false):
 		var tv = await start_mission(int(id))
 		var rt = tv.runtime
+		# A ground start: the surface under the jet (terraintype.dat flags; 0x10 = runway ground).
+		var ground: String = "surface 0x%x" % tv.terrain.surface_at(tv.rig.position) if tv.flight.state().on_ground else "airborne"
 		var fired := {}
 		var subs := [0]
 		var boxes := []
@@ -43,7 +49,7 @@ func run() -> void:
 		var t1: float = rt.now
 		while rt.now - t1 < 2.0:
 			await process_frame
-		print("SWEEP %s: after %ds %s %s; targets %d (%d by others), left %d; lost %s; events %d/%d %s; subtitles %d; moved %d/%d; boxes %s; then %s" % [
-			id, int(secs), early, notes, targets.size(), by_others, rt.targets_left, lost, fired.size(), rt.events.size(),
+		print("SWEEP %s: start %s; after %ds %s %s; targets %d (%d by others), left %d; lost %s; events %d/%d %s; subtitles %d; moved %d/%d; boxes %s; then %s" % [
+			id, ground, int(secs), early, notes, targets.size(), by_others, rt.targets_left, lost, fired.size(), rt.events.size(),
 			fired.values(), subs[0], moved, start.size(), boxes, "PASS" if rt.passed else ("FAILED" if rt.failed else "open")])
 		check(rt.passed or rt.failed, "mission %s ends" % id)

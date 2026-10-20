@@ -294,7 +294,7 @@ Godot tests set `Settings.world_scale = "real"` before `start_mission()` and run
 | 6 ✓ | Godot wiring of the base data: `IafBases` (set up from Settings.world_scale: airbases.json, the masks, the elevations), `ap_setup` / `start_rule` / `radio.gd`, `surface_at` and the surface raster, the height pad | headless: in Real the ground is flat at the moved lineup, its surface has the runway bit and the old lineup's has not; a ground start at the moved lineup; Original unchanged | M |
 | 7 ✓ | Mission data through the move (`mission_files()`): entities, paths, routes, radii; kept models × k and turned; `BASE_LIGHTS` | 311 in Real: the player on the moved lineup with the engine on, the parked jets on the moved apron (relative positions = Original's × k, turned), the take-off markers fire on the take-off; a SAM site around a moved base kept relative; 312's landing completes with the autopilot | M |
 | 8 ✓ | Drawing: the old site painted over, the new site's paved surface (colour images), the Detailed airbases surface at the new site (turned mask, real width), forced on in Real | `test_airbase_scale.gd` (Original) unchanged; Real: the moved base data; real-render shots of Ramat David and Ramon (original terrain and Survey imagery) and of the old site | M–L |
-| 9 | Docs (deviations, status, rendering §7, autopilot, this page) and a sweep | `tools/mission_sweep.sh` over the menu missions in Real: no SCRIPT ERROR, no ground start crash | S |
+| 9 ✓ | Docs (deviations, status, rendering §7, autopilot, this page) and a sweep | `tools/mission_sweep.sh` over the menu missions in Real: no SCRIPT ERROR, no ground start crash | S |
 
 Steps 1–4 give true-size models on the ×2 bases; steps 5–9 move the bases. The switch stays hidden (a dev flag)
 until the user decides to show it.
@@ -361,6 +361,10 @@ until the user decides to show it.
   distances × k and headings turned; 237's SA-3 site at Ryak kept around its radar; the Detailed surface's moved
   runways). `test_world_scale.gd`: kept layouts × k; its Real take-off now from Ramon's lineup (315); the autopilot
   landing of 312 at the moved Ramat David.
+
+**Sweep (2026-10-20):** `SWEEP_WORLD_SCALE=real SWEEP_SECONDS=60 tools/mission_sweep.sh` over 20 missions on bases
+(the ground starts 121, 131, 211, 231, 233, 234, 311, 313, 315, 322, 401, 403, 404, 407 and 112, 122, 221, 227, 237,
+312): every ground start on runway ground (0x10), every mission passes, no script or engine errors.
 
 **Risks**
 - **The AI's final approach.** The original pattern's base turn can leave the final approach 100–300 m off the
