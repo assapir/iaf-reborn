@@ -212,7 +212,9 @@ Its Real rows are per type too: `crates/iaf-flight/src/data_set.rs` (flight data
 `game/weapons/real_weapons.gd` (`RADAR_KM`, `GUN_ROUNDS`). Ejection throws one seat per crew part of the model
 (`pilot`, `pilotB`). Flyable: the Jet list's seven — F-15 (110), F-16 (100), F-4E (120), F-4 2000 (200), Lavi (140),
 Kfir (130), Mirage (190), plus the F-35I (1000) from Extras (docs/f35i.md); tests/godot/test_jet_list.gd flies each
-(roll-out, gear, flaps, speed brake, afterburner, ejection; the F-16 and the Kurnass 2000 have their own tests).
+(roll-out, gear, flaps, speed brake, afterburner, ejection; the F-16 and the Kurnass 2000 have their own tests). The
+MiG-23 (160) and MiG-29 (180) fly too, with their cockpits, when a mission makes them the player's jet (the Mission
+Creator, docs/front-end.md §19; tests/godot/test_mission_creator.gd starts in a MiG-29).
 
 With Flight data = Original the Kfir and the Mirage share one parameter block per game session, as in the
 original (`iaf_flight::data_set::Blocks`, docs/flight-model.md §1).

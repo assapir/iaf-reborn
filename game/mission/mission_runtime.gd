@@ -50,6 +50,13 @@ static func mission_files(id: int) -> Array:
 	var dir := Settings.assets_dir().path_join("converted/missions")
 	var out := []
 	var moved := Settings.sync_bases()
+	if id == 0x29a:  # the Mission Creator's (docs/front-end.md §19.3), built on FLY
+		for f in Settings.mc_files:
+			var data: Dictionary = f.data.duplicate(true)
+			if moved:
+				move_with_bases(data)
+			out.append({"name": String(f.name), "data": data})
+		return out
 	for name in Settings.load_json(dir.path_join("missionlist.json")).get(str(id), []):
 		var data := Settings.load_json(dir.path_join(String(name) + ".json"))
 		if moved:

@@ -252,7 +252,14 @@ func fly() -> void:
 		return
 	Settings.mission_id = 0x29a
 	Settings.jet_id = -1
+	Settings.mc_files = build(mc())
 	fe._load_mission()
+
+
+## Mission 0x29a's files for a state (IafMcr.build: docs/front-end.md §19.3).
+static func build(state: Dictionary) -> Array:
+	var json = JSON.parse_string(ClassDB.class_call_static("IafMcr", "build", state, Settings.assets_dir()))
+	return json if json is Array else []
 
 
 # --- combos ---------------------------------------------------------------------------------------------

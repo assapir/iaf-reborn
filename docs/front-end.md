@@ -2734,3 +2734,11 @@ gone stays empty (`FUN_004b7ea3`). Guns Only also disables the TSD's Arm (`FUN_0
   `Settings.mc`, read and written by `IafMcr` (`crates/iaf-godot/src/mcr.rs` over `crates/iaf-formats/src/mcr.rs`).
 * LOAD opens the system's file dialog on `user://mcr` (the exe: its old-style Windows dialog, template 0x72, a bare
   file list with OK / Cancel). A file shorter than 0x5ac bytes is refused and the screen keeps its state.
+* FLY builds the mission once (`IafMcr.build` → `crates/iaf-tools/src/mission_creator.rs`): the converted files of
+  §19.3 changed as the exe's document changes them, kept in `Settings.mc_files`, which `MissionRuntime.mission_files`
+  returns for 0x29a. The main file carries the weapon types kept (`weapon_types`, read by the Arming tables) and,
+  for a target in another file, the member's `target_key` (read by the AI). Arm is disabled for Guns Only.
+* Not built yet: the By Kills score and the "blue / red team won" debrief headline (`FUN_004a8420`, `FUN_0059a480`;
+  the debrief shows the mission's own texts), the formations' target position (`FUN_005bd7b0`). UNCERTAIN: the side
+  of the runway wingman offsets (`FUN_0058eb40`), the order of the entity map when several entities qualify as the
+  ground target (ours: file order).

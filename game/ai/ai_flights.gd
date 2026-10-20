@@ -239,7 +239,8 @@ func _load_formations(files: Array) -> void:
 		var targets := []
 		for m in f.get("members", []):
 			members.append(runtime.entities.get("0:%d" % int(m.get("0x41a", -1)), {}))
-			targets.append(runtime.entities.get("0:%d" % int(m.get("0x424", -1)), {}))
+			# target_key: a Mission Creator target in another file (mission_creator.rs).
+			targets.append(runtime.entities.get(m.get("target_key", "0:%d" % int(m.get("0x424", -1))), {}))
 		var route := []
 		for q in f.get("points", []):
 			route.append([float(q[1]), float(q[2]), float(q[3]), float(q[4]), int(q[5])])

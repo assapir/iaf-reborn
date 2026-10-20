@@ -85,6 +85,24 @@ impl IafMcr {
         dict(&m)
     }
 
+    /// Mission 0x29a for the state (`iaf_tools::mission_creator`, docs/front-end.md §19.3): the files read from
+    /// `<assets>/converted/missions` and `<assets>/install/iaf.ibx`, as a JSON array of {name, data} in load order;
+    /// "[]" without the converted missions.
+    #[func]
+    fn build(d: VarDictionary, assets: GString) -> GString {
+        let a = std::path::PathBuf::from(assets.to_string());
+        let dir = a.join("converted/missions");
+        let read = |n: &str| -> Option<serde_json::Value> {
+            serde_json::from_str(&std::fs::read_to_string(dir.join(format!("{n}.json"))).ok()?).ok()
+        };
+        let ibx = iaf_formats::ini::Ini::parse(&std::fs::read(a.join("install/iaf.ibx")).unwrap_or_default());
+        let Some(bdb) = read("default6_1.bdb") else { return GString::from("[]") };
+        let files = iaf_tools::mission_creator::build(&mission(&d), &read, &ibx, &bdb);
+        let out: Vec<_> =
+            files.into_iter().map(|(name, data)| serde_json::json!({"name": name, "data": data})).collect();
+        GString::from(serde_json::to_string(&out).unwrap_or_default().as_str())
+    }
+
     /// FLY's checks (`FUN_004faad0`): the msgs.trx line to show (44, 47, 48), or 0 to fly.
     #[func]
     fn fly_check(d: VarDictionary) -> i64 {

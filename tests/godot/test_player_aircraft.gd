@@ -14,7 +14,12 @@ func run() -> void:
 		p.plane == "f42000" and p.fm_section == "F-4" and p.cockpit_dir.ends_with("/f4-2000") and p.twin,
 		"profile 200: %s" % p
 	)
-	check(PlayerAircraft.profile(180).type == 100, "an unflyable type (MiG-29) falls back to the F-16")
+	var mig: Dictionary = PlayerAircraft.profile(180)
+	check(
+		mig.type == 180 and mig.fm_section == "MIG29" and mig.cockpit_dir.ends_with("/mig29") and mig.twin,
+		"the MiG-29 flies with its own cockpit (FUN_00447e70 index 7): %s" % mig
+	)
+	check(PlayerAircraft.profile(150).type == 100, "an unflyable type (MiG-21) falls back to the F-16")
 
 	settings().jet_id = 3
 	var tv = await start_mission(311)

@@ -115,5 +115,54 @@ func run() -> void:
 	mcv.button("save")
 	check(box_msg() == 49, "SAVE without a name -> msg 49")
 	answer("ok")
+
+	# FLY: Alpha 2 MiG-29 Aggressors from Ramon at 10000ft, Charlie 1 MiG-21 Bombers, Radar Station, By Target.
+	settings().mc = saved
+	var m: Dictionary = settings().mc
+	m.count[0] = 2
+	m.type[0] = 8
+	m.count[2] = 1
+	m.type[2] = 11
+	m.ai[2] = 2
+	m.alt = 2
+	m.sams = 1
+	m.victory = 1
+	m.weapons = 1
+	mcv.button("fly")
+	check(fe.msgbox == null and settings().mission_id == 0x29a, "FLY: mission 0x29a")
+	var files: Array = settings().mc_files
+	check(
+		files.map(func(f): return f.name) == ["mission", "bmisrmon", "ramon4", "bmisamman"],
+		"the files: mission, Ramon's base, the Radar Station set, BMISAMMAN"
+	)
+	var main: Dictionary = files[0].data
+	var ents := {}
+	for e in main.entities.items:
+		ents[String(e["0x2bc"])] = e
+	check(
+		(
+			int(ents.Player1["0x2c6"]) == 2
+			and ents.has("Player11")
+			and not ents.has("Player2")
+			and not ents.has("Player33")
+		),
+		"Alpha: 2 MiG-29; Bravo and Charlie's wingman dropped"
+	)
+	check(float(ents.Player1["0x2f8"]) == 580.0 + 3333.0, "10000ft: base altitude + 3333 m")
+	while fe.busy or fe.loading:
+		await process_frame
+	check(fe.screen == "tsd" and fe.tsd != null, "the TSD opens on the built mission")
+	check(fe._selected_flight() == "alpha" and fe.tsd.flight_enabled(1), "Alpha (MiG-29) selected and flyable")
+	check(fe._button_enabled("Arm"), "Arm on (Multipurpose)")
+	settings().mc.weapons = 0
+	check(not fe._button_enabled("Arm"), "Guns Only disables Arm (FUN_00505c10)")
+	settings().mc.weapons = 1
 	fe.queue_free()
 	await frames(2)
+
+	# The flight: the player in the MiG-29 with its cockpit (FUN_00447e70: type 180 -> cockpit 7, mig29).
+	var tv: Node = await start_mission(0x29a)
+	check(int(tv.player.type) == 180, "the player flies the MiG-29 (type 180)")
+	check(String(tv.player.cockpit_dir).ends_with("mig29"), "with the mig29 cockpit")
+	check(tv.ai != null and tv.runtime.entities.size() > 10, "the mission's units are up")
+	await seconds(2.0)

@@ -248,6 +248,8 @@ var route_override: Array = []
 ## The Mission Creator's state (the exe's global record DAT_0083ca10, docs/formats/mcr.md; IafMcr's Dictionary):
 ## zeroed when the MC screen opens, read by the mission 0x29a it builds (Replay builds it again).
 var mc := {}
+## Mission 0x29a as FLY built it from `mc` ([{name, data}], IafMcr.build); MissionRuntime.mission_files(0x29a) reads it.
+var mc_files: Array = []
 ## Flight picked on the TSD (1..4 = Alpha..Delta; Fly / double-click makes its leader the player);
 ## 0 = the mission's default flight (mission_runtime.gd player_flight()).
 var player_flight := 0

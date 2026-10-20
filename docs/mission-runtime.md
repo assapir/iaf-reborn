@@ -90,8 +90,8 @@ The role decides win and loss (§5.1). Distribution over all missions: 2 = 3.8k 
 | 1 | **target**: the mission succeeds when *all* role-1 entities are destroyed |
 | 2 | neutral |
 
-- Single player uses the file value. Network play forces the role of `PlayerN` to 2 (when `DAT_00832ad4` != 0 and
-  option +0x59c == 0, `FUN_0058f110`).
+- The file value, except in a Mission Creator mission (`DAT_00832ad4` = its record) with victory By Kills (+0x59c
+  == 0): every entity gets role 2 and, in single player, the red jets role 1 (`FUN_0058f110`, front-end.md §19.3).
 - Named sensors confirm the rule: "Win sensor" and "sucsess sensor" are 1, "Loose sensor" and "Red win sensor" are 0.
 
 ## 2. Entity event slots (0x334 name / 0x33e id / 0x348 / 0x352)
@@ -387,12 +387,12 @@ entity destroyed. The engine then shows a message box (§5.2) and compiles the d
 Called from the entity final-status path `FUN_004a86b0` (after destroy) and from `FUN_005485a0` (**ejection**, §5.4).
 
 - `FUN_0059aca0(slot)` counts a player slot as alive only if its entity has state ≠ 4/5 **and** control mode
-  (status+0x14) ≠ 0. In a campaign (`DAT_00832adc`), a second aircraft of the slot also counts if it is a flyable jet
+  (status+0x14) ≠ 0. In a Mission Creator mission (`DAT_00832adc`, `FUN_004c2e98`), a second aircraft of the slot also counts if it is a flyable jet
   (type 100…200). UNCERTAIN: which aircraft that is (`FUN_005bcb90`).
 - Mission start (`FUN_00599980`) sets `unit+0x6618 = #entities with role 1` (`FUN_0059ac00`), and clears passed
   (+0x34), failed (+0x35) and result (+0x6615).
 
-**Rule 1 — all players dead.** For player slots 1..4 (1..2 in campaign), `FUN_0059aca0` checks whether a player
+**Rule 1 — all players dead.** For player slots 1..4 (1..2 in a Mission Creator mission), `FUN_0059aca0` checks whether a player
 entity exists with state ≠ 4/5. If none does:
 - result := 0;
 - post game event **0x82** at now + **5.0 s** (`DAT_00843c70`).

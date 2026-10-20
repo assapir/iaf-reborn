@@ -798,10 +798,11 @@ Per-plane panel geometry (`[PANEL]`): MaskOffsetY1/MaskOffsetY2/MainOffsetY - Mi
 F-4-2000 292/85/200; F-15 264/69/206 (+ ElevationAngleDeg 50, AzimutAngleDeg 100, not traced); F-16 288/93/190; Lavi 296/92/180;
 MiG-23 298/126/190; MiG-29 297/44/190. HUD `[HUD]` values are in docs/cockpit.md.
 
-Reachability: the menu offers only the seven jets above. `mig23` and `mig29` (enemy types 160/180) cannot be selected from the
-menu; `Cockpit009..012 = F16` in cockpits.ibx are never returned by `FUN_00447e70` (indices only 0..8). The manual (EN 2.4,
-2.6) lets the player fly the MiG-23 and MiG-29 in Mission Creator, multiplayer and All-Out War missions; which cockpit
-they get there is not traced. `fsmfd/` (full-screen MFD art + `data.ibx`) and
+Reachability: the Jet list offers only the seven jets above. `mig23` and `mig29` (types 160/180) are reached through a
+mission that makes the player's flight MiGs: the Mission Creator's Alpha / Bravo TYPE lists hold both (docs/front-end.md
+§19), the TSD's flyable list `FUN_00505730` has them, and `FUN_00447e70` gives them cockpits 8 (`mig23`) and 7 (`mig29`).
+Ours flies them the same way (game/aircraft/player_aircraft.gd FLYABLE). `Cockpit009..012 = F16` in cockpits.ibx are
+never returned by `FUN_00447e70` (indices only 0..8). `fsmfd/` (full-screen MFD art + `data.ibx`) and
 `mfds.bmp/rwrsymb.bmp/isr.bmp` are shared by all cockpits; `emf/map.emf` is the TSD map for all.
 
 ## 8. Ours: crisp pages ("Better cockpit" `crisp_mfd`)

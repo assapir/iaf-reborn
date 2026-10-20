@@ -19,9 +19,14 @@ STBY / STT / BORE / LRS / TWS / ACM / GMT / MAP are the radar modes (docs/radar.
     AI wingman destroys its target). The player's own targets there were not flown.
   - Left: multiplayer (8).
 - **Flyable jets: all seven of the Jet list** — F-15, F-16, F-4E, F-4 Kurnass 2000, Lavi, Kfir, Mirage (Jet list or a
-  mission's jet; docs/aircraft.md §5) — plus our F-35I in one jet's slot (Extras, docs/f35i.md). The MiGs are
-  AI-only in the campaigns, as in the original (the manual lets the player fly them in Mission Creator, multiplayer and
-  All-Out War missions, which we have not built). A mission whose player jet is any other type flies it as the F-16.
+  mission's jet; docs/aircraft.md §5) — plus the MiG-23 / MiG-29 with their own cockpits wherever a mission puts the
+  player in one (the Mission Creator does; no campaign mission does), plus our F-35I in one jet's slot (Extras,
+  docs/f35i.md). A mission whose player jet is any other type flies it as the F-16.
+- **Mission Creator** (single player; docs/front-end.md §19): the screen with all its controls, RANDOM, LOAD / SAVE
+  of the original's files (docs/formats/mcr.md, in the user data folder), FLY builds mission 0x29a as the exe
+  (files, jets, brains, positions, routes, targets, SAMs / AAA, time, weapons, roles) and flies it through the TSD and
+  Arming. Open: the debrief's "blue / red team won" headline and the By Kills score (`FUN_0059a480`, `FUN_004a8420`),
+  the formations' target position (`FUN_005bd7b0`), the side of the runway wingman offsets (`FUN_0058eb40`).
 - **Game version: v1.1 logic**, with v1.1 data when setup is given the patch (`--patch`); v1.0 data still plays. Doc
   addresses are v1.1 (docs/v1.1.md maps them to v1.0). All the flight model's v1.1 changes are ported
   (docs/flight-model.md §16).
@@ -170,7 +175,7 @@ Checked against the code on 2026-10-19 (each doc's own "not built" notes have th
   no import of original files (maybe a converter later if easy).
 - Screenshots (SysRQ): PNG, timestamped, in the user data folder (original: IafJets000.bmp in the game folder).
 - Multiplayer (incl. the original's TCP/IP lobby mode): after the single-player game is finished.
-- Mission Creator much later.
+- Mission Creator: single player built (2026-10-20); the multiplayer screen comes with multiplayer.
 - Setup ends with one launcher you can click / call (a run script + a .desktop entry, on macOS an .app, with the
   game's icon from the CD). CI and release packages: not urgent.
 - Every change from the original is listed in `docs/deviations.md`.

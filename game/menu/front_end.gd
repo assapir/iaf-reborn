@@ -728,6 +728,9 @@ func _button_enabled(label: String) -> bool:
 			"zoomout":
 				return tsd.can_zoom_out()
 			"arm":
+				# FUN_00505c10: also disabled in a Mission Creator mission with Guns Only (DAT_0083cfa8 == 0).
+				if Settings.mission_id == 0x29a and int(Settings.mc.get("weapons", 1)) == 0:
+					return false
 				return _selected_flight() != "" and tsd.flights.has(_flight_number(_selected_flight()))
 		if _norm(label) in Tsd.FLIGHT_NAMES:
 			return tsd.flight_enabled(_flight_number(_norm(label)))

@@ -80,10 +80,12 @@ static func from_mission(mission: Dictionary, bdb: Dictionary, real := false) ->
 	var mw = load("res://weapons/mission_weapons.gd").new()
 	var db = WeaponDb.create(bdb, real)
 	var raw: Array = bdb.get("weapons", {}).get("items", [])
+	# The Mission Creator's WEAPONS choice (FUN_0058c9c0): only these weapon types are in the table; absent = all.
+	var kept: Array = mission.get("weapon_types", [])
 	for w in raw:
 		var id := int(w.get("0x1e", -1))
 		var r: Dictionary = db.by_id(id)
-		if r.is_empty() or not TABS.has(int(r.type)):
+		if r.is_empty() or not TABS.has(int(r.type)) or (not kept.is_empty() and not float(r.type) in kept):
 			continue
 		var rec := {
 			"id": id,

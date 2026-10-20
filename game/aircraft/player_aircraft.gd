@@ -7,9 +7,10 @@ extends RefCounted
 
 const AircraftModel := preload("res://aircraft/aircraft_model.gd")
 
-## Types the player can fly: the Jet list's seven (F-15, F-16, F-4E, F-4 Kurnass 2000, Lavi, Kfir, Mirage), and
-## ours, the F-35I (docs/f35i.md), on the Jet list slot the Extras page gives it.
-const FLYABLE := [110, 100, 120, 200, 140, 130, 190, 1000]
+## Types the player can fly: the Jet list's seven (F-15, F-16, F-4E, F-4 Kurnass 2000, Lavi, Kfir, Mirage), the
+## MiG-23 / MiG-29 (160 / 180: the exe's flyable list FUN_00505730 and their cockpits mig23 / mig29; a Mission Creator
+## mission puts the player in one), and ours, the F-35I (docs/f35i.md), on the Jet list slot the Extras page gives it.
+const FLYABLE := [110, 100, 120, 200, 140, 130, 190, 160, 180, 1000]
 ## The F-35I Adir: not in the original (docs/adding-a-plane.md).
 const F35I := 1000
 ## Cockpits of ours (in the repo) by type; the others are the converted cockpits.ibx ones.
