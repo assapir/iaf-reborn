@@ -213,7 +213,15 @@ func _polygon(pts: PackedVector2Array, color: Color) -> void:
 	_rec(["polygon", pts, color])
 	if crisp:
 		pts = Transform2D.IDENTITY.scaled(Vector2(_k, _k)) * pts
-	draw_colored_polygon(pts, color)
+	# Our own triangulation, drawn as triangles: draw_colored_polygon triangulates again with the renderer's own
+	# method, which rejects some clipped map pieces that this one accepts ("triangulation failed" on the TSD page).
+	var tris := Geometry2D.triangulate_polygon(pts)
+	if tris.is_empty():
+		return
+	var cols := PackedColorArray()
+	cols.resize(pts.size())
+	cols.fill(color)
+	RenderingServer.canvas_item_add_triangle_array(get_canvas_item(), tris, pts, cols)
 
 
 func _atlas() -> Texture2D:
