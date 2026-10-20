@@ -62,7 +62,11 @@ func run() -> void:
 	var best := -1
 	for i in tsd.units.size():
 		var ent: Dictionary = tv.runtime.entities.get(tsd.units[i].key, {})
-		if i != tsd.selected and ent.get("node") is Node3D and (best < 0 or tsd.units[i].pos.distance_to(me) < tsd.units[best].pos.distance_to(me)):
+		if (
+			i != tsd.selected
+			and ent.get("node") is Node3D
+			and (best < 0 or tsd.units[i].pos.distance_to(me) < tsd.units[best].pos.distance_to(me))
+		):
 			best = i
 	print("visit: ", tsd.units[best].key, " ", tsd.unit_label(tsd.units[best]))
 	tsd.selected = best

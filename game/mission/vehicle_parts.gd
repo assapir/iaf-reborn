@@ -9,8 +9,17 @@
 extends RefCounted
 
 ## Part frame name → the angle it reads.
-const FIELDS := {"turret": "turret", "carrier": "elevation", "missile": "elevation", "launcher": "launcher", "radar": "radar",
-	"rotora": "rotor", "rotorb": "rotor", "rotorc": "rotor", "rotord": "rotor"}
+const FIELDS := {
+	"turret": "turret",
+	"carrier": "elevation",
+	"missile": "elevation",
+	"launcher": "launcher",
+	"radar": "radar",
+	"rotora": "rotor",
+	"rotorb": "rotor",
+	"rotorc": "rotor",
+	"rotord": "rotor"
+}
 ## The rotors' step (0x612a64 / 0x612a6c): +10° per part per draw call, one angle for all of them, back to 0 past 360°.
 const ROTOR_STEP := 10.0
 ## The Radar part's step (0x612a60 / 0x612a5c): +0.4° once 2.0 s have passed since the last step.
@@ -36,8 +45,16 @@ static func rig(model: Node3D) -> Array:
 		var far := b.position if near == a.position else a.position
 		if (far - near).length() < 1e-6:
 			continue
-		out.append({"node": n, "basis": n.transform.basis, "origin": n.transform.origin, "axis": (far - near).normalized(),
-			"field": field, "missile": String(n.name).to_lower() == "missile"})
+		out.append(
+			{
+				"node": n,
+				"basis": n.transform.basis,
+				"origin": n.transform.origin,
+				"axis": (far - near).normalized(),
+				"field": field,
+				"missile": String(n.name).to_lower() == "missile"
+			}
+		)
 	return out
 
 

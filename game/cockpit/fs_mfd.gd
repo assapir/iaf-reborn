@@ -12,7 +12,12 @@ var render_rect := Rect2(128, 49, 385, 382)
 var corners: Array[Rect2] = []
 var render_corners: Array[Rect2] = []
 ## The OSB strips (table 0x65cd18): buttons every 57 px, live on their first 27; ids as the small MFD's.
-const STRIPS := [[Vector2(193, 12), true, 1], [Vector2(192, 441), true, 6], [Vector2(88, 108), false, 11], [Vector2(522, 109), false, 16]]
+const STRIPS := [
+	[Vector2(193, 12), true, 1],
+	[Vector2(192, 441), true, 6],
+	[Vector2(88, 108), false, 11],
+	[Vector2(522, 109), false, 16]
+]
 const STRIP_DEPTH := [27.0, 29.0, 28.0, 28.0]
 
 var cockpit: Control  # cockpit.gd: eo / weapons / state / waypoints
@@ -46,7 +51,9 @@ func _ready() -> void:
 			corners.append(rect.call("CORNER%03d" % i))
 		if ibx.has("RENDERCORNER%03d" % i):
 			render_corners.append(rect.call("RENDERCORNER%03d" % i))
-	var img := Image.load_from_file(dir.path_join("fsmfd.bmp")) if FileAccess.file_exists(dir.path_join("fsmfd.bmp")) else null
+	var img := (
+		Image.load_from_file(dir.path_join("fsmfd.bmp")) if FileAccess.file_exists(dir.path_join("fsmfd.bmp")) else null
+	)
 	if img != null:
 		_frame = ImageTexture.create_from_image(img)
 		# The RENDERCORNER surfaces' colour key 0xffffff: white shows the picture through.
@@ -103,8 +110,10 @@ func _draw() -> void:
 	if picture != null:
 		draw_texture_rect(picture, Rect2(_p(render_rect.position), render_rect.size * _s()), false)
 	match page():
-		5: _draw_tv()
-		6: _draw_flir()
+		5:
+			_draw_tv()
+		6:
+			_draw_flir()
 	if _frame != null:
 		for r in corners:
 			draw_texture_rect_region(_frame, Rect2(_p(r.position), r.size * _s()), r)

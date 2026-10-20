@@ -22,11 +22,16 @@ func run() -> void:
 	tv.scripted_rudder = 1.0
 	await frames(5)
 	var st: Dictionary = tv.flight.state()
-	check(st.stick_x == 1.0 and st.stick_y == 0.0, "the pedal is the stick's x, the pull centred (%.2f, %.2f)" % [st.stick_x, st.stick_y])
+	check(
+		st.stick_x == 1.0 and st.stick_y == 0.0,
+		"the pedal is the stick's x, the pull centred (%.2f, %.2f)" % [st.stick_x, st.stick_y]
+	)
 	check(tv.aircraft._targets.rudder < 0.0, "the rudder part follows the pedal (%.3f)" % tv.aircraft._targets.rudder)
 	await fly(tv, 3.0)
 	var turned: float = wrapf(tv.flight.state().heading - hdg0, -180.0, 180.0)
 	check(turned > 1.0, "the right pedal turns right (%.1f deg, %.0f kt)" % [turned, tv.flight.state().speed_kt])
 	tv.scripted_stick = Vector2(-0.5, 0.0)
 	await frames(5)
-	check(is_equal_approx(tv.flight.state().stick_x, -0.5), "a stick move takes over (%.2f)" % tv.flight.state().stick_x)
+	check(
+		is_equal_approx(tv.flight.state().stick_x, -0.5), "a stick move takes over (%.2f)" % tv.flight.state().stick_x
+	)

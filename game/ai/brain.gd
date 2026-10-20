@@ -17,8 +17,27 @@ const BOOL_CODES := [0, 1, 2, 8, 18, 19, 20, 22, 23, 25, 26, 27, 28, 31, 32, 34,
 const FLOAT_CONST := [9, 13, 24]
 
 ## Manoeuvre code (bdb action 0xbe) → autopilot mode (§5). Codes marked T need a target.
-const MANOEUVRES := {100: 0xb, 110: 0xd, 120: 0xe, 130: 0xf, 140: 0x11, 150: 0x10, 160: 0x12, 170: 0x13,
-	180: 0x14, 190: 1, 200: 3, 210: 0x18, 220: 0x16, 230: 10, 240: 7, 250: 8, 270: 8, 280: 9, 290: 0x17}
+const MANOEUVRES := {
+	100: 0xb,
+	110: 0xd,
+	120: 0xe,
+	130: 0xf,
+	140: 0x11,
+	150: 0x10,
+	160: 0x12,
+	170: 0x13,
+	180: 0x14,
+	190: 1,
+	200: 3,
+	210: 0x18,
+	220: 0x16,
+	230: 10,
+	240: 7,
+	250: 8,
+	270: 8,
+	280: 9,
+	290: 0x17
+}
 const NEEDS_TARGET := [110, 120, 130, 140, 150, 160, 170, 180, 210, 220, 290]
 
 var ent: Dictionary  # the mission runtime entity
@@ -149,11 +168,16 @@ func _test(code: int, op: int, value: float) -> bool:
 		return false
 	var l := float(m)
 	match op:
-		1: return l > k
-		2: return l < k
-		3: return l >= k
-		4: return l <= k
-		_: return l != k
+		1:
+			return l > k
+		2:
+			return l < k
+		3:
+			return l >= k
+		4:
+			return l <= k
+		_:
+			return l != k
 
 
 func _alive(e: Dictionary) -> bool:
@@ -248,13 +272,20 @@ static func _type_of(code: int) -> int:
 	if code >= 100 and code <= 290:
 		return 0
 	match code:
-		300: return 1
-		310: return 2
-		320: return 3
-		330, 340, 350, 360, 370, 380, 390: return 4
-		400, 410, 420: return 5
-		430, 440: return 6
-		550, 560: return 8
+		300:
+			return 1
+		310:
+			return 2
+		320:
+			return 3
+		330, 340, 350, 360, 370, 380, 390:
+			return 4
+		400, 410, 420:
+			return 5
+		430, 440:
+			return 6
+		550, 560:
+			return 8
 	if code >= 450 and code <= 540:
 		return 7
 	return -1

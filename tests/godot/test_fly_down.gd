@@ -28,13 +28,22 @@ func run() -> void:
 	check(tv.fatal_hit and int(me.state) == DM.HIT, "the own jet is fatally hit")
 	await fly_bravo(tv)
 	var now: Dictionary = rt.player_entity()
-	check(not now.is_empty() and now != me and now.control == 3 and not now.has("pilot"), "Fly: Bravo's leader is the player's jet")
-	check(not me.player and me.get("pilot") == null and tv.ai.pilots.filter(func(p): return p.ent == me).is_empty(),
-			"the falling jet gets no brain")
-	check(not tv.fatal_hit and not tv.fm_stopped and tv.flight != old_flight and tv.views.type == tv.Views.COCKPIT,
-			"the player's state starts over in the new jet's cockpit")
-	check(me.node is Node3D and is_instance_valid(me.node) and me.node != tv.aircraft and me.node.get_parent() != tv.rig,
-			"the falling jet keeps its model, off the player's rig")
+	check(
+		not now.is_empty() and now != me and now.control == 3 and not now.has("pilot"),
+		"Fly: Bravo's leader is the player's jet"
+	)
+	check(
+		not me.player and me.get("pilot") == null and tv.ai.pilots.filter(func(p): return p.ent == me).is_empty(),
+		"the falling jet gets no brain"
+	)
+	check(
+		not tv.fatal_hit and not tv.fm_stopped and tv.flight != old_flight and tv.views.type == tv.Views.COCKPIT,
+		"the player's state starts over in the new jet's cockpit"
+	)
+	check(
+		me.node is Node3D and is_instance_valid(me.node) and me.node != tv.aircraft and me.node.get_parent() != tv.rig,
+		"the falling jet keeps its model, off the player's rig"
+	)
 	var p0: Vector3 = me.node.global_position
 	await fly(tv, 1.0)
 	check(me.node.global_position.distance_to(p0) > 1.0, "it falls on in its destruction motion")
@@ -52,7 +61,12 @@ func run() -> void:
 	check(tv.ejected and rt._all_dead, "ejected: rule 1 runs (short ejection: the FlyTSD at once: %s)" % tv.eject_short)
 	await fly_bravo(tv)
 	now = rt.player_entity()
-	check(not now.is_empty() and now != me and not tv.ejected and tv.fe_overlay == null, "Fly after the ejection: the new jet")
-	check(not me.player and me.node is Node3D and not tv._derelict.is_empty() and tv._derelict.ent == me,
-			"the empty old jet flies on with its own flight model")
+	check(
+		not now.is_empty() and now != me and not tv.ejected and tv.fe_overlay == null,
+		"Fly after the ejection: the new jet"
+	)
+	check(
+		not me.player and me.node is Node3D and not tv._derelict.is_empty() and tv._derelict.ent == me,
+		"the empty old jet flies on with its own flight model"
+	)
 	check(rt._all_dead, "rule 1 still ends the flight")

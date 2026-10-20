@@ -36,13 +36,19 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var dir := Settings.assets_dir().path_join("converted/menu_he" if Settings.language == "he" else "converted/menu")
 	var scale_file := dir.path_join("image_scale.txt")
-	_art_scale = float(FileAccess.get_file_as_string(scale_file).strip_edges()) if FileAccess.file_exists(scale_file) else 1.0
+	_art_scale = (
+		float(FileAccess.get_file_as_string(scale_file).strip_edges()) if FileAccess.file_exists(scale_file) else 1.0
+	)
 	var Img := preload("res://util/img.gd")
 	_back = Img.load_texture(dir.path_join("img/back.png"), true)
 	_wait = Img.load_texture(dir.path_join("img/mis/wait.png"), true)
 	_pb_back = Img.load_texture(dir.path_join("img/mis/pbback.png"), true)
 	_pb_bar = Img.load_texture(dir.path_join("img/mis/pbbar.png"), true)
-	var knob := Image.load_from_file(dir.path_join("img/mis/pbslider.png")) if FileAccess.file_exists(dir.path_join("img/mis/pbslider.png")) else null
+	var knob := (
+		Image.load_from_file(dir.path_join("img/mis/pbslider.png"))
+		if FileAccess.file_exists(dir.path_join("img/mis/pbslider.png"))
+		else null
+	)
 	if knob != null:
 		# Top half the knob, bottom half its AND mask (SRCAND + SRCPAINT in FUN_0053d1b0).
 		var k := Img.masked_sprite(knob)
@@ -77,5 +83,8 @@ func _draw() -> void:
 		# Clipped to the bar's left edge (the original composes bar and knob in a bitmap starting there).
 		var ks := _knob.get_size() / _art_scale
 		var cut := maxf(0.0, KNOB_BACK - fill)
-		draw_texture_rect_region(_knob, Rect2(origin + (bar + Vector2(fill - KNOB_BACK + cut, 0)) * s,
-				Vector2(ks.x - cut, ks.y) * s), Rect2(Vector2(cut, 0) * _art_scale, (ks - Vector2(cut, 0)) * _art_scale))
+		draw_texture_rect_region(
+			_knob,
+			Rect2(origin + (bar + Vector2(fill - KNOB_BACK + cut, 0)) * s, Vector2(ks.x - cut, ks.y) * s),
+			Rect2(Vector2(cut, 0) * _art_scale, (ks - Vector2(cut, 0)) * _art_scale)
+		)

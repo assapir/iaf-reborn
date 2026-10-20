@@ -18,27 +18,46 @@ func run() -> void:
 	var v := Vector3(0, 200, 0)
 	var t_fall := sqrt(1000.0 / 4.903)
 	var i0: Vector3 = B.predict_impact(p, v, Vector3(0, 1, 0), 0.0, 0.0, flat).point
-	check(absf(i0.y - 200.0 * t_fall) < 0.01 and absf(i0.z) < 0.01, "level release from 1000 m at 200 m/s: impact %.1f m ahead" % i0.y)
+	check(
+		absf(i0.y - 200.0 * t_fall) < 0.01 and absf(i0.z) < 0.01,
+		"level release from 1000 m at 200 m/s: impact %.1f m ahead" % i0.y
+	)
 	var i1: Vector3 = B.predict_impact(p, v, Vector3(0, 1, 0), 23.0, 0.0, flat).point
-	check(absf(i1.y - 177.0 * t_fall) < 0.01, "the HUD prediction takes the MK-82's drag 23 as m/s off the nose: %.1f m" % i1.y)
+	check(
+		absf(i1.y - 177.0 * t_fall) < 0.01,
+		"the HUD prediction takes the MK-82's drag 23 as m/s off the nose: %.1f m" % i1.y
+	)
 	var ridge := func(q): return 600.0 if q.y >= 1500.0 and q.y < 1700.0 else 0.0
 	for cockpit in [true, false]:
 		var ih: Vector3 = B.predict_impact(p, v, Vector3(0, 1, 0), 0.0, 0.0, ridge, cockpit).point
-		check(ih.y >= 1500.0 and ih.y < 1700.0, "the terrain ray (cockpit %s): a 600 m ridge in front takes the impact, %.0f m ahead" % [cockpit, ih.y])
+		check(
+			ih.y >= 1500.0 and ih.y < 1700.0,
+			"the terrain ray (cockpit %s): a 600 m ridge in front takes the impact, %.0f m ahead" % [cockpit, ih.y]
+		)
 	var b: Dictionary = B.launch(0.0, p, v, i1, 15.0)
-	check(absf(b.acc.y - 2.0 * (i1.y - 200.0 * t_fall) / (t_fall * t_fall)) < 1e-3 and absf(b.end - t_fall) < 1e-3,
-		"solver: along-track %.2f m/s² lands it on the aim at t = %.2f s" % [b.acc.y, b.end])
+	check(
+		absf(b.acc.y - 2.0 * (i1.y - 200.0 * t_fall) / (t_fall * t_fall)) < 1e-3 and absf(b.end - t_fall) < 1e-3,
+		"solver: along-track %.2f m/s² lands it on the aim at t = %.2f s" % [b.acc.y, b.end]
+	)
 	check(B.position(b, b.end).distance_to(i1) < 0.05, "the bomb meets the predicted point")
 	var b2: Dictionary = b.duplicate(true)
 	var burst: Dictionary = B.check(b, 30.0, flat)
-	check(not burst.is_empty() and is_equal_approx(burst.t, 14.5) and burst.pos.z < -20.0,
-		"original: the 0.5 s checks burst it under the ground (z %.1f at t %.1f)" % [burst.pos.z, burst.t])
+	check(
+		not burst.is_empty() and is_equal_approx(burst.t, 14.5) and burst.pos.z < -20.0,
+		"original: the 0.5 s checks burst it under the ground (z %.1f at t %.1f)" % [burst.pos.z, burst.t]
+	)
 	var burst2: Dictionary = B.check(b2, 30.0, flat, true)
-	check(absf(burst2.pos.z) < 0.01 and burst2.pos.distance_to(i1) < 0.5, "fix: burst on the ground at the aim (%.2f m off)" % burst2.pos.distance_to(i1))
+	check(
+		absf(burst2.pos.z) < 0.01 and burst2.pos.distance_to(i1) < 0.5,
+		"fix: burst on the ground at the aim (%.2f m off)" % burst2.pos.distance_to(i1)
+	)
 	var far: Dictionary = B.launch(0.0, p, v, Vector3(0, 6000, 0), 15.0)
 	check(is_equal_approx(far.acc.y, 15.0), "the player's correction is clamped to ±15 m/s² (_debugParam016)")
 	var line: Array = B.ripple_line(Vector3(0, 1000, 0), 4, 10.0, 0.0, flat)
-	check(line.size() == 4 and is_equal_approx(line[0].y, 980.0) and is_equal_approx(line[3].y, 1010.0), "ripple line: 4 points 10 m apart along the heading, index 2 on the aim")
+	check(
+		line.size() == 4 and is_equal_approx(line[0].y, 980.0) and is_equal_approx(line[3].y, 1010.0),
+		"ripple line: 4 points 10 m apart along the heading, index 2 on the aim"
+	)
 
 	# --- in flight: mission 231 ---------------------------------------------------------------
 	var MR = load("res://mission/mission_runtime.gd")
@@ -50,7 +69,10 @@ func run() -> void:
 	tv.frozen = true
 	tv.fm_stopped = true
 	tv.gear_down = false
-	var load := {"armament": {"hardpoints": [14, 4, 0, 0, 31, 1, 15, 3, 28, 1, 15, 3, 31, 1, 0, 0, 14, 4, 25, 235, 33, 90, 34, 60]}}
+	var load := {
+		"armament":
+		{"hardpoints": [14, 4, 0, 0, 31, 1, 15, 3, 28, 1, 15, 3, 31, 1, 0, 0, 14, 4, 25, 235, 33, 90, 34, 60]}
+	}
 	w = load("res://weapons/player_weapons.gd").new()
 	tv.add_child(w)
 	w.setup(tv, load, f16, bdb, desc)
@@ -59,7 +81,10 @@ func run() -> void:
 	check(tanks.size() >= 4, "mission 231 has T-55 tanks")
 	var tank0: Dictionary = tanks[0]
 	start_over(tv, w, tv.runtime._world_of(tank0), vel_scene, "F-16")
-	check(w.stores.total(500, "MK-82") == 6 and w.stores.type_of(0) == 560 and w.stores.type_of(2) == 510, "MK-82 x6, CBU-87, ZUNNI pods loaded")
+	check(
+		w.stores.total(500, "MK-82") == 6 and w.stores.type_of(0) == 560 and w.stores.type_of(2) == 510,
+		"MK-82 x6, CBU-87, ZUNNI pods loaded"
+	)
 	w.stores.cur = 3
 	w._master_from_type(false)
 	check(w.hud_mode == 5 and w.master == 1, "a bomb selected: master mode 1, HUD mode 5")
@@ -93,7 +118,10 @@ func run() -> void:
 		w.ripple_event(0x4a, true)
 	for k in 19:
 		w.ripple_event(0x4b, true)
-	check(w.ripple_qty == 4 and w.ripple_int == 200 and is_equal_approx(w.ripple_period, 0.2), "quantity 4, interval 200, period 0.2 s")
+	check(
+		w.ripple_qty == 4 and w.ripple_int == 200 and is_equal_approx(w.ripple_period, 0.2),
+		"quantity 4, interval 200, period 0.2 s"
+	)
 	w.update(t)
 	var times := []
 	var n0: int = w.bombs.size()
@@ -106,10 +134,19 @@ func run() -> void:
 	check(times.size() == 4, "ripple: 4 bombs (%d)" % times.size())
 	if times.size() == 4:
 		# The first bomb goes on the timer's first tick (the next update), then one per period.
-		check(absf(times[3] - times[1] - 0.4) < 0.01 and times[0] - times[1] < 0.0, "one every 0.2 s (%.2f s from the 2nd to the 4th)" % (times[3] - times[1]))
+		check(
+			absf(times[3] - times[1] - 0.4) < 0.01 and times[0] - times[1] < 0.0,
+			"one every 0.2 s (%.2f s from the 2nd to the 4th)" % (times[3] - times[1])
+		)
 		var aims: Array = w.bombs.slice(n0).map(func(x): return x.b.aim)
-		check(absf(_hd(aims[0], aims[3]) - 600.0) < 1.0, "ripple aims 200 m apart along the heading (%.0f m over 3)" % _hd(aims[0], aims[3]))
-	check(w.stores.displayed(3) == 0 and w.stores.displayed(5) == 1, "stations 3 / 5 alternate (left %d / %d)" % [w.stores.displayed(3), w.stores.displayed(5)])
+		check(
+			absf(_hd(aims[0], aims[3]) - 600.0) < 1.0,
+			"ripple aims 200 m apart along the heading (%.0f m over 3)" % _hd(aims[0], aims[3])
+		)
+	check(
+		w.stores.displayed(3) == 0 and w.stores.displayed(5) == 1,
+		"stations 3 / 5 alternate (left %d / %d)" % [w.stores.displayed(3), w.stores.displayed(5)]
+	)
 	await _until_landed()
 	# Holding Space shorter stops the ripple.
 	w.ripple_qty = 4
@@ -173,15 +210,27 @@ func run() -> void:
 		t = fly_step(tv, w, vel_scene, t, 0.05)
 		if w.rockets.flying_count() == 0:
 			break
-	check(w.rockets.flying_count() == 0 and int(tank3.state) == 5, "the rocket hit the tank at its aim (state %d)" % tank3.state)
+	check(
+		w.rockets.flying_count() == 0 and int(tank3.state) == 5,
+		"the rocket hit the tank at its aim (state %d)" % tank3.state
+	)
 
 	# Jettison: the tank first (it falls), then the bombs (rockets stay).
 	n0 = w.bombs.size()
 	w.jettison()
-	check(w.tanks_jettisoned and w.bombs.size() == n0 + 1 and w.stores.displayed(4) == 0, "first jettison: the tank falls")
+	check(
+		w.tanks_jettisoned and w.bombs.size() == n0 + 1 and w.stores.displayed(4) == 0, "first jettison: the tank falls"
+	)
 	w.jettison()
-	check(w.bombs_jettisoned and w.stores.total(500, "MK-82") == 0 and w.stores.total(510, "CBU-87") == 0
-		and w.stores.total(560, "ZUNNI") == z0 - 1, "second jettison: every bomb, not the rockets")
+	check(
+		(
+			w.bombs_jettisoned
+			and w.stores.total(500, "MK-82") == 0
+			and w.stores.total(510, "CBU-87") == 0
+			and w.stores.total(560, "ZUNNI") == z0 - 1
+		),
+		"second jettison: every bomb, not the rockets"
+	)
 	await _until_landed()
 	check(w.bombs.is_empty(), "jettisoned stores reached the ground")
 	w.queue_free()

@@ -35,7 +35,7 @@ func run() -> void:
 		check(visited > 10, "%s: visited %d screens and pressed their buttons" % [lang, visited])
 		await _log_screen(fe, lang)
 		# TSD and Arming: a mission with two flights (231) and (English) one with four (136).
-		for id in ([231, 136] if lang == "en" else [231]):
+		for id in [231, 136] if lang == "en" else [231]:
 			await _tsd_and_arm(fe, id, lang)
 		await _extras_imagery(fe, lang)
 		await _extras_render(fe, lang)
@@ -76,7 +76,10 @@ func run() -> void:
 			fe.phys_top = fe._phys_max_top()  # the last rows (scrolled to the end)
 			await frames(2)
 			var rows: Array = fe._physics_items().filter(func(i): return i.key == "fix_stores_weight")
-			check(rows.size() == 1 and rows[0].rect.end.y <= fe.CONTENT.size.y, "%s: Physics lists Stores weight fix inside the page" % lang)
+			check(
+				rows.size() == 1 and rows[0].rect.end.y <= fe.CONTENT.size.y,
+				"%s: Physics lists Stores weight fix inside the page" % lang
+			)
 			fe._on_button("extras")
 			await frames(2)
 			fe._on_button(fe._key_for_label("Keyboard"))
@@ -97,11 +100,16 @@ func run() -> void:
 			for page in ["extras", "physics"]:
 				fe._on_button(page)
 				for top in 30:
-					if page == "extras": fe._extras_scroll(top)
-					else: fe._phys_scroll(top)
+					if page == "extras":
+						fe._extras_scroll(top)
+					else:
+						fe._phys_scroll(top)
 					fe.queue_redraw()
 					await frames(1)
-			check(fe.missing_he.is_empty(), "he: every label of ours has a Hebrew text (missing: %s)" % str(fe.missing_he.keys()))
+			check(
+				fe.missing_he.is_empty(),
+				"he: every label of ours has a Hebrew text (missing: %s)" % str(fe.missing_he.keys())
+			)
 		fe.queue_free()
 		await frames(3)
 	Settings().language = "en"
@@ -116,29 +124,43 @@ func _extras_imagery(fe, lang: String) -> void:
 	var click := func(q: Vector2):
 		fe._gui_input(mouse_button(fe._to_screen(fe.CONTENT.position + q), true))
 		fe._gui_input(mouse_button(fe._to_screen(fe.CONTENT.position + q), false))
-	check(fe._extras_max_top() > 0 and fe._extras_items().all(func(i): return i.rect.end.y <= fe.PREF_DEFAULT.position.y),
-			"%s: Extras scrolls; the shown rows end above DEFAULT" % lang)
+	check(
+		fe._extras_max_top() > 0 and fe._extras_items().all(func(i): return i.rect.end.y <= fe.PREF_DEFAULT.position.y),
+		"%s: Extras scrolls; the shown rows end above DEFAULT" % lang
+	)
 	check(fe._extras_rows().all(func(r): return not fe._graphics_row(r[0])), "%s: Extras holds no graphics row" % lang)
 	# Graphics → MORE: our graphics options (the imagery rows last); MORE again (BACK) returns.
 	fe._on_button(fe._key_for_label("Graphics"))
 	await frames(2)
 	click.call(fe.PREF_MORE.get_center())
 	await frames(2)
-	check(Settings().pref_page == fe.GFX_MORE,
-			"%s: Graphics MORE opens our graphics options" % lang)
+	check(Settings().pref_page == fe.GFX_MORE, "%s: Graphics MORE opens our graphics options" % lang)
 	check(fe._extras_rows().map(func(r): return r[0]).has("upscaling"), "%s: MORE lists Upscaling" % lang)
 	fe._extras_scroll(fe._extras_max_top())  # the imagery rows are the last ones
 	await frames(2)
 	var items: Array = fe._extras_items()
-	check(items.all(func(i): return i.rect.end.y <= fe.CONTENT.size.y and i.rect.position.x >= 0.0 and i.rect.end.x <= fe.CONTENT.size.x),
-			"%s: every Extras choice inside the page" % lang)
+	check(
+		items.all(
+			func(i):
+				return (
+					i.rect.end.y <= fe.CONTENT.size.y and i.rect.position.x >= 0.0 and i.rect.end.x <= fe.CONTENT.size.x
+				)
+		),
+		"%s: every Extras choice inside the page" % lang
+	)
 	for key in ["imagery_israel", "imagery_outside"]:
 		var row: Array = items.filter(func(i): return i.key == key)
-		check(row.size() >= 2 and row[0].value == "original" and row[0].available, "%s: %s row, Original first" % [lang, key])
+		check(
+			row.size() >= 2 and row[0].value == "original" and row[0].available,
+			"%s: %s row, Original first" % [lang, key]
+		)
 		var missing: Array = row.filter(func(i): return not i.available)
 		if not missing.is_empty():
 			click.call(missing[0].rect.get_center())
-			check(fe.pref_work[key] == "original", "%s: %s: %s is not converted -> greyed, not picked" % [lang, key, missing[0].value])
+			check(
+				fe.pref_work[key] == "original",
+				"%s: %s: %s is not converted -> greyed, not picked" % [lang, key, missing[0].value]
+			)
 		click.call(row[0].rect.get_center())
 		check(fe.pref_work[key] == "original", "%s: %s set to Original" % [lang, key])
 	click.call(fe.PREF_MORE.get_center())
@@ -150,14 +172,20 @@ func _extras_imagery(fe, lang: String) -> void:
 	await frames(2)
 	items = fe._extras_items()
 	# Settings file (ours): Export writes the working copy, Import stores it and reloads the working copy.
-	check(items.any(func(i): return i.key == "settings_file" and i.value == "export"), "%s: Extras Settings file row" % lang)
+	check(
+		items.any(func(i): return i.key == "settings_file" and i.value == "export"),
+		"%s: Extras Settings file row" % lang
+	)
 	var path := OS.get_temp_dir().path_join("iaf_settings_test.cfg")
 	var sky0: String = Settings().sky
 	fe.pref_work["sky"] = "atmospheric"
 	Settings().write_config(fe.pref_work).save(path)
 	fe.pref_work["sky"] = "original"
 	fe._import_settings(path)
-	check(Settings().sky == "atmospheric" and fe.pref_work["sky"] == "atmospheric", "%s: settings exported and imported" % lang)
+	check(
+		Settings().sky == "atmospheric" and fe.pref_work["sky"] == "atmospheric",
+		"%s: settings exported and imported" % lang
+	)
 	Settings().sky = sky0
 	fe._pref_load_work()
 	DirAccess.remove_absolute(path)
@@ -181,12 +209,27 @@ func _extras_render(fe, lang: String) -> void:
 	for key in keys:
 		var row: Array = items.filter(func(i): return i.key == key)
 		var opt: Array = rows.filter(func(r): return r[0] == key)[0]
-		check(row.size() == opt[2].size() and row[0].value == Settings().default_value(key)
-				and row.all(func(i): return i.rect.position.x >= 0.0 and i.rect.end.x <= fe.CONTENT.size.x and i.rect.end.y <= fe.PREF_DEFAULT.position.y),
-				"%s: Extras %s row inside the page, default first" % [lang, key])
+		check(
+			(
+				row.size() == opt[2].size()
+				and row[0].value == Settings().default_value(key)
+				and row.all(
+					func(i):
+						return (
+							i.rect.position.x >= 0.0
+							and i.rect.end.x <= fe.CONTENT.size.x
+							and i.rect.end.y <= fe.PREF_DEFAULT.position.y
+						)
+				)
+			),
+			"%s: Extras %s row inside the page, default first" % [lang, key]
+		)
 		if lang == "he":
 			# The anti-aliasing choices are technical names (MSAA / FXAA / TAA), as in English.
-			check(fe._art(opt[1]) != opt[1] and (key == "antialiasing" or fe._art(row[1].label) != row[1].label), "he: %s row in Hebrew (%s)" % [key, fe._art(opt[1])])
+			check(
+				fe._art(opt[1]) != opt[1] and (key == "antialiasing" or fe._art(row[1].label) != row[1].label),
+				"he: %s row in Hebrew (%s)" % [key, fe._art(opt[1])]
+			)
 		click.call(row[1].rect.get_center())
 		check(fe.pref_work[key] == row[1].value, "%s: %s set to %s" % [lang, key, str(row[1].value)])
 		click.call(row[0].rect.get_center())
@@ -217,19 +260,33 @@ func _tsd_and_arm(fe, id: int, lang: String) -> void:
 	await _settle(fe)
 	check(fe.screen == "arm" and fe.arm != null, "%s %d: Arming opened from the TSD" % [lang, id])
 	var enabled: Array = flights.filter(func(f): return fe._button_enabled(f.capitalize()))
-	check(enabled == exist.filter(func(f): return fe.tsd.flight_enabled(flights.find(f) + 1)) and enabled.size() <= exist.size(),
-		"%s %d: Arming flight buttons enabled only for the mission's flights %s" % [lang, id, enabled])
+	check(
+		(
+			enabled == exist.filter(func(f): return fe.tsd.flight_enabled(flights.find(f) + 1))
+			and enabled.size() <= exist.size()
+		),
+		"%s %d: Arming flight buttons enabled only for the mission's flights %s" % [lang, id, enabled]
+	)
 	if id == 231:
-		check(not fe._button_enabled("Charlie") and not fe._button_enabled("Delta"), "%s 231: no Charlie / Delta flight -> disabled" % lang)
+		check(
+			not fe._button_enabled("Charlie") and not fe._button_enabled("Delta"),
+			"%s 231: no Charlie / Delta flight -> disabled" % lang
+		)
 	for f in enabled + [enabled[0]]:
 		fe._on_button(fe._key_for_label(f.capitalize()))
 		await _settle(fe)
 		_dismiss_box(fe)
-		check(fe.arm.flight == flights.find(f) + 1 and fe.tsd_checks.get(f, false), "%s %d: Arming shows %s" % [lang, id, f])
+		check(
+			fe.arm.flight == flights.find(f) + 1 and fe.tsd_checks.get(f, false),
+			"%s %d: Arming shows %s" % [lang, id, f]
+		)
 	for t in ["AG", "Misc", "AA"]:
 		fe._on_button(fe._key_for_label(t))
 		await frames(2)
-	check(fe.arm.tab == 0 and fe.checked.get(fe._key_for_label(enabled[0].capitalize()), false), "%s %d: tabs keep the flight checked" % [lang, id])
+	check(
+		fe.arm.tab == 0 and fe.checked.get(fe._key_for_label(enabled[0].capitalize()), false),
+		"%s %d: tabs keep the flight checked" % [lang, id]
+	)
 	var arm = fe.arm
 	var st: Dictionary = arm.jet.get("stations", {})
 	var ld: Array = arm.current_load()
@@ -257,7 +314,10 @@ func _tsd_and_arm(fe, id: int, lang: String) -> void:
 		var def: Vector2 = fe._to_screen(arm.CLIENT.position + arm.DEFAULT_RECT.get_center())
 		arm._gui_input(mouse_button(def, true))
 		arm._gui_input(mouse_button(def, false))
-		check(arm.current_load() == fe.mission_weapons.defaults[arm.flight], "%s %d: DEFAULT restores the loads" % [lang, id])
+		check(
+			arm.current_load() == fe.mission_weapons.defaults[arm.flight],
+			"%s %d: DEFAULT restores the loads" % [lang, id]
+		)
 	# A list row: select it and drag its icon onto a station.
 	var row: Vector2 = fe._to_screen(arm._row_box(0) + Vector2(20, 12))
 	arm._gui_input(mouse_button(row, true))
@@ -274,7 +334,9 @@ func _tsd_and_arm(fe, id: int, lang: String) -> void:
 		fe.mission_weapons.put(arm.flight, 0, heavy)
 		fe._on_button(fe._key_for_label("TacticalDisplay"))
 		await _settle(fe)
-		check(fe.msgbox != null and fe.screen == "arm", "%s %d: unbalanced load -> warning, stays on Arming" % [lang, id])
+		check(
+			fe.msgbox != null and fe.screen == "arm", "%s %d: unbalanced load -> warning, stays on Arming" % [lang, id]
+		)
 		_dismiss_box(fe)
 		fe.mission_weapons.put(arm.flight, 0, {})
 	# Changed load: TacticalDisplay asks "Use weapon load?"; No reverts.
@@ -296,7 +358,10 @@ func _tsd_and_arm(fe, id: int, lang: String) -> void:
 	if fe.msgbox != null:
 		_click_box(fe.msgbox, 0)
 		await _settle(fe)
-	check(fe.screen == "tsd" and Settings().arm_loadouts.get(n, []) == fe.mission_weapons.saved[n], "%s %d: BACK + Yes -> TSD, load on the aircraft" % [lang, id])
+	check(
+		fe.screen == "tsd" and Settings().arm_loadouts.get(n, []) == fe.mission_weapons.saved[n],
+		"%s %d: BACK + Yes -> TSD, load on the aircraft" % [lang, id]
+	)
 	fe._on_button("main")
 	await _settle(fe)
 	_dismiss_box(fe)
@@ -310,8 +375,26 @@ func _log_screen(fe, lang: String) -> void:
 	var Pilots = load("res://menu/pilots.gd")
 	await _open(fe, "log")
 	var rec = fe.records
-	var kills := [[110, 28], [150, 28], [220, 3], [230, 3], [0, 2], [250, 5], [260, 6], [270, 5], [290, 8], [380, 15], [400, 12], [410, 12]]
-	Pilots.record(rec.data.current().id, 111, {"result": 1, "bonus": 1500, "kills": kills + kills, "losses": [[100, 28], [250, 5], [400, 12]]}, 1.0)
+	var kills := [
+		[110, 28],
+		[150, 28],
+		[220, 3],
+		[230, 3],
+		[0, 2],
+		[250, 5],
+		[260, 6],
+		[270, 5],
+		[290, 8],
+		[380, 15],
+		[400, 12],
+		[410, 12]
+	]
+	Pilots.record(
+		rec.data.current().id,
+		111,
+		{"result": 1, "bonus": 1500, "kills": kills + kills, "losses": [[100, 28], [250, 5], [400, 12]]},
+		1.0
+	)
 	Pilots.record(rec.data.current().id, 112, {"result": 0, "bonus": -750, "kills": [], "losses": []}, 1.0)
 	rec._select(rec.data.selected)
 	while rec.data.pilots.size() < 13:

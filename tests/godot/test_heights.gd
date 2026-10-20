@@ -29,8 +29,14 @@ func run() -> void:
 			continue
 		n += 1
 		worst = maxf(worst, absf(float(g) - float(r)))
-	check(n > 3000 and mismatch == 0, "heights: %d points compared, %d unloaded on both sides, %d loaded on one side only" % [n, both_null, mismatch])
-	check(worst < 0.05, "heights: Rust = GDScript within %.4f m (the GDScript path rounds the world point to float32)" % worst)
+	check(
+		n > 3000 and mismatch == 0,
+		"heights: %d points compared, %d unloaded on both sides, %d loaded on one side only" % [n, both_null, mismatch]
+	)
+	check(
+		worst < 0.05,
+		"heights: Rust = GDScript within %.4f m (the GDScript path rounds the world point to float32)" % worst
+	)
 	# Line of sight: ground sites (+1.5 m) to jets 30..300 m over the ground, 2..15 km away.
 	var old := func(q: Vector3) -> Variant: return tv.mission_ground(q)
 	var pairs := 0
@@ -59,5 +65,10 @@ func run() -> void:
 		differ += int(los_old != los_new)
 		masked += int(not los_new)
 	check(differ == 0, "line of sight: %d site-to-jet pairs (%d masked), %d differ" % [pairs, masked, differ])
-	print("  line of sight: GDScript heights %.1f ms, Rust field %.1f ms for %d pairs" % [t_old / 1000.0, t_new / 1000.0, pairs])
+	print(
+		(
+			"  line of sight: GDScript heights %.1f ms, Rust field %.1f ms for %d pairs"
+			% [t_old / 1000.0, t_new / 1000.0, pairs]
+		)
+	)
 	check(t_new * 3 < t_old, "the Rust field is much faster")

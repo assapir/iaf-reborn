@@ -26,7 +26,10 @@ func run() -> void:
 	check(leader_name(136, 7) == "Alpha Leader/1", "a flight that does not exist falls back to the default")
 	# The default is by formation id (FUN_005bcb40 keys the map by 0x1e): 117 "engaged" has formation id 1 =
 	# Bravo (0x3f2 2) and id 2 = Alpha, so the player leads Bravo.
-	check(leader_name(117).ends_with("/2"), "117: formation id 1 is Bravo -> the player leads Bravo (%s)" % leader_name(117))
+	check(
+		leader_name(117).ends_with("/2"),
+		"117: formation id 1 is Bravo -> the player leads Bravo (%s)" % leader_name(117)
+	)
 
 	# 324: airborne start at the leader's position / altitude / heading, the runtime knows it.
 	Settings().player_flight = 0
@@ -35,9 +38,14 @@ func run() -> void:
 	check(tv.player_entity_id == int(p["0x1e"]), "324: flying entity %d" % tv.player_entity_id)
 	check(tv.start_airborne, "324: airborne start (2000 m)")
 	var w: Vector3 = tv.player_world()
-	check(Vector2(w.x, w.y).distance_to(Vector2(369000, 673000)) < 300.0 and absf(w.z - 2000.0) < 100.0,
-			"324: starts at the leader (%.0f, %.0f, %.0f)" % [w.x, w.y, w.z])
-	check(absf(fposmod(tv.flight.state().heading - 30.0 + 180.0, 360.0) - 180.0) < 5.0, "324: heading 30 (%.1f)" % tv.flight.state().heading)
+	check(
+		Vector2(w.x, w.y).distance_to(Vector2(369000, 673000)) < 300.0 and absf(w.z - 2000.0) < 100.0,
+		"324: starts at the leader (%.0f, %.0f, %.0f)" % [w.x, w.y, w.z]
+	)
+	check(
+		absf(fposmod(tv.flight.state().heading - 30.0 + 180.0, 360.0) - 180.0) < 5.0,
+		"324: heading 30 (%.1f)" % tv.flight.state().heading
+	)
 	var players: Array = tv.runtime.entities.values().filter(func(e): return e.player)
 	check(players.size() == 1 and players[0].id == int(p["0x1e"]), "324: the runtime's player is that entity")
 

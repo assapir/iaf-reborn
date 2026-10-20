@@ -48,7 +48,9 @@ func run() -> void:
 		check(rpm1 < rpm0 - 0.3, "single engine on fire: RPM falls (%.2f -> %.2f)" % [rpm0, rpm1])
 	# X: the extinguisher clears the fire (and the cut-out flags), the lights go out; one charge only.
 	tv._command([73, 0, 0])
-	check(not pd.flags[16] and not tv.cockpit.indicators[1] and not pd.extinguisher, "extinguisher: fire out, charge used")
+	check(
+		not pd.flags[16] and not tv.cockpit.indicators[1] and not pd.extinguisher, "extinguisher: fire out, charge used"
+	)
 	check(pd.flags[8], "the afterburner damage the fire set stays")
 	pd.system_damage(16)
 	tv._command([73, 0, 0])
@@ -59,7 +61,10 @@ func run() -> void:
 	await seconds(3.0)
 	var st: Dictionary = fl.state()
 	if not pd.twin:
-		check(st.afterburner == 0, "single engine with AB damage (8): full throttle, no afterburner (stage %d)" % st.afterburner)
+		check(
+			st.afterburner == 0,
+			"single engine with AB damage (8): full throttle, no afterburner (stage %d)" % st.afterburner
+		)
 
 	# Air brakes damage (5): the B key is refused.
 	var b: bool = tv.brakes

@@ -17,50 +17,109 @@ func run() -> void:
 	# --- data ---------------------------------------------------------------------------------
 	var db = Db.create(bdb, false)
 	check(db.by_id(11).name == "AIM-9L" and db.by_id(11).generation == 3, "bdb weapon 11 = AIM-9L, generation 3")
-	check(db.motion_for(570, 3).get("_absAcceleration") == 100.0 and db.motion_for(565, 0).get("_spiralAccel") == 50.0,
-		"weapons.ibx: AIM-9L acceleration 100, gun hit distance 50")
+	check(
+		db.motion_for(570, 3).get("_absAcceleration") == 100.0 and db.motion_for(565, 0).get("_spiralAccel") == 50.0,
+		"weapons.ibx: AIM-9L acceleration 100, gun hit distance 50"
+	)
 	var st = Stores.new()
 	st.setup(Stores.loadout({}, f16), db, desc, Callable(), 100)
 	check(st.displayed(9) == 940, "F-16 gun: 235 x 4 = 940 rounds shown")
-	check(is_equal_approx(st.fm_mass, 192 + 192 + 346 + 346 + 1040 + 1040 + 2020 + 2020), "original stores weight: one store per pylon, pounds in the kg field")
-	check(is_equal_approx(st.fm_di_left, 0.0108) and is_equal_approx(st.fm_di_right, 0.0108), "stores drag index per side")
+	check(
+		is_equal_approx(st.fm_mass, 192 + 192 + 346 + 346 + 1040 + 1040 + 2020 + 2020),
+		"original stores weight: one store per pylon, pounds in the kg field"
+	)
+	check(
+		is_equal_approx(st.fm_di_left, 0.0108) and is_equal_approx(st.fm_di_right, 0.0108), "stores drag index per side"
+	)
 	var fix = Stores.new()
 	fix.weight_fix = true
 	fix.setup(Stores.loadout({}, f16), db, desc, Callable(), 100)
-	check(is_equal_approx(fix.fm_mass, (192 * 2 + 346 * 2 + 1040 * 6 + 2020 * 2) * 0.45359), "Stores weight fix: every store, in kg")
+	check(
+		is_equal_approx(fix.fm_mass, (192 * 2 + 346 * 2 + 1040 * 6 + 2020 * 2) * 0.45359),
+		"Stores weight fix: every store, in kg"
+	)
 	st.cycle(1)
 	check(st.current_name() == "AMRAAM", "']' from AIM-9L: next AA weapon AMRAAM")
 	st.cycle(1)
 	st.cycle(1)
 	check(st.cur == 9, "the gun is in the AA cycle")
 	var tank = Stores.new()
-	tank.setup([[11, 1], [0, 0], [0, 0], [0, 0], [28, 1], [0, 0], [0, 0], [0, 0], [11, 1], [25, 235], [33, 90], [34, 60]], db, desc, Callable(), 100)
-	check(tank.has_tank and is_equal_approx(tank.tank_fuel, 2700.0) and is_equal_approx(tank.fm_mass, 384.0), "tank: its 2700 goes to the fuel (lb as kg), not the stores weight")
+	tank.setup(
+		[[11, 1], [0, 0], [0, 0], [0, 0], [28, 1], [0, 0], [0, 0], [0, 0], [11, 1], [25, 235], [33, 90], [34, 60]],
+		db,
+		desc,
+		Callable(),
+		100
+	)
+	check(
+		tank.has_tank and is_equal_approx(tank.tank_fuel, 2700.0) and is_equal_approx(tank.fm_mass, 384.0),
+		"tank: its 2700 goes to the fuel (lb as kg), not the stores weight"
+	)
 	var real = Db.create(bdb, true)
 	check(absf(real.by_id(11).weight_lb * 0.45359 - 86.0) < 0.01, "Weapon data Real: AIM-9L 86 kg")
 	var m9: Dictionary = real.by_id(11).motion
-	check(absf(100.0 / m9._spiralAccelBeta - 2.5 * 340.3) < 0.1 and absf(travelled(100.0, m9._spiralAccelBeta, m9.burn + 6.0) - 17700.0) < 1.0,
-		"Real AIM-9L chase: top speed Mach 2.5, flies 17.7 km from 250 m/s")
-	var dlz: Array = load("res://weapons/missile.gd").dlz(real.motion_for(570, 3).merged(m9, true),
-		{"pos": Vector3.ZERO, "fwd": Vector3(0, 1, 0), "vel": Vector3(0, 250, 0)}, {"pos": Vector3(0, 5000, 0), "vel": Vector3.ZERO})
-	check(dlz[0] > 15000.0 and dlz[0] < 17700.0, "Real AIM-9L DLZ against a still target: %.0f m (the flight less 2 s)" % dlz[0])
+	check(
+		(
+			absf(100.0 / m9._spiralAccelBeta - 2.5 * 340.3) < 0.1
+			and absf(travelled(100.0, m9._spiralAccelBeta, m9.burn + 6.0) - 17700.0) < 1.0
+		),
+		"Real AIM-9L chase: top speed Mach 2.5, flies 17.7 km from 250 m/s"
+	)
+	var dlz: Array = load("res://weapons/missile.gd").dlz(
+		real.motion_for(570, 3).merged(m9, true),
+		{"pos": Vector3.ZERO, "fwd": Vector3(0, 1, 0), "vel": Vector3(0, 250, 0)},
+		{"pos": Vector3(0, 5000, 0), "vel": Vector3.ZERO}
+	)
+	check(
+		dlz[0] > 15000.0 and dlz[0] < 17700.0,
+		"Real AIM-9L DLZ against a still target: %.0f m (the flight less 2 s)" % dlz[0]
+	)
 	var by_name := {}
 	for id in real.weapons:
 		by_name[real.weapons[id].name] = real.weapons[id]
-	check(by_name.has("AIM-9D") and by_name["AIM-9D"].get("real_rear_km", 0.0) == 11.0 and not by_name["AIM-9D"].has("real_front_km") and by_name["AIM-9D"].get("real_max_g", 0.0) == 12.0
-		and by_name["PYTH-4"].get("real_cone_deg", 0.0) == 60.0, "Real flags: AIM-9D rear-aspect 11 km 12 g, Python 4 cone 60°")
+	check(
+		(
+			by_name.has("AIM-9D")
+			and by_name["AIM-9D"].get("real_rear_km", 0.0) == 11.0
+			and not by_name["AIM-9D"].has("real_front_km")
+			and by_name["AIM-9D"].get("real_max_g", 0.0) == 12.0
+			and by_name["PYTH-4"].get("real_cone_deg", 0.0) == 60.0
+		),
+		"Real flags: AIM-9D rear-aspect 11 km 12 g, Python 4 cone 60°"
+	)
 	var sk = load("res://weapons/ir_seeker.gd").new()
 	sk.set_weapon(by_name["AIM-9D"])
 	var me := {"pos": Vector3.ZERO, "yaw": 0.0}
-	check(sk.can_track(me, {"pos": Vector3(0, 2000, 0), "vel": Vector3(0, 200, 0)}, 570)
-		and not sk.can_track(me, {"pos": Vector3(0, 2000, 0), "vel": Vector3(0, -200, 0)}, 570), "Real AIM-9D: tail chase only")
+	check(
+		(
+			sk.can_track(me, {"pos": Vector3(0, 2000, 0), "vel": Vector3(0, 200, 0)}, 570)
+			and not sk.can_track(me, {"pos": Vector3(0, 2000, 0), "vel": Vector3(0, -200, 0)}, 570)
+		),
+		"Real AIM-9D: tail chase only"
+	)
 	sk.set_weapon(by_name["AIM-9L"])
-	check(sk.can_track(me, {"pos": Vector3(0, 2000, 0), "vel": Vector3(0, -200, 0)}, 570)
-		and not sk.can_track(me, {"pos": Vector3(0, 5000, 0), "vel": Vector3(0, -200, 0)}, 570), "Real AIM-9L: head-on within 3 km, not at 5 km without afterburner")
+	check(
+		(
+			sk.can_track(me, {"pos": Vector3(0, 2000, 0), "vel": Vector3(0, -200, 0)}, 570)
+			and not sk.can_track(me, {"pos": Vector3(0, 5000, 0), "vel": Vector3(0, -200, 0)}, 570)
+		),
+		"Real AIM-9L: head-on within 3 km, not at 5 km without afterburner"
+	)
 	sk.set_weapon(db.by_id(11))
 	check(sk.can_track(me, {"pos": Vector3(0, 2000, 0), "vel": Vector3(0, -200, 0)}, 570), "original: all aspects")
 	var mi = load("res://weapons/missile.gd").new()
-	mi.launch(by_name["AIM-9D"], {"_absAcceleration": 300.0, "_spiralAccel": 0.0, "_timeConstOrientation": 0.0, "burn": 10.0}, 0.0, Vector3(0, 0, 1000), Vector3(0, 300, 0), Vector3(0, 1, 0), "x", Vector3.ZERO, 1.0, func(_i, d): return d)
+	mi.launch(
+		by_name["AIM-9D"],
+		{"_absAcceleration": 300.0, "_spiralAccel": 0.0, "_timeConstOrientation": 0.0, "burn": 10.0},
+		0.0,
+		Vector3(0, 0, 1000),
+		Vector3(0, 300, 0),
+		Vector3(0, 1, 0),
+		"x",
+		Vector3.ZERO,
+		1.0,
+		func(_i, d): return d
+	)
 	mi.update(0.0, Vector3(3000, 0, 1000), Vector3.ZERO, Callable())
 	mi.update(0.1, Vector3(3000, 0, 1000), Vector3.ZERO, Callable())
 	var lat: Vector3 = mi.acc - mi.v0.normalized() * mi.acc.dot(mi.v0.normalized())
@@ -81,10 +140,22 @@ func run() -> void:
 	var det := []
 	g.detonate = func(_r, p, c, h): det.append([p, c, h])
 	var d := Vector3(0, 1, 0)
-	g.fire(0.0, Vector3(0, 0, 100), Vector3(0, 0, 100), Vector3(0, 200, 0), g.aim_point(Vector3(0, 0, 100), Vector3.ZERO, d, false), "", "me", false)
+	g.fire(
+		0.0,
+		Vector3(0, 0, 100),
+		Vector3(0, 0, 100),
+		Vector3(0, 200, 0),
+		g.aim_point(Vector3(0, 0, 100), Vector3.ZERO, d, false),
+		"",
+		"me",
+		false
+	)
 	var r: Dictionary = g.pool[0]
 	check(is_equal_approx(r.hit_r, 25.0), "gun hit sphere 25 m (Easy aiming off)")
-	check(absf(r.t_end - (1400.0 - sqrt(1400.0 * 1400.0 - 20.0 * 2781.0)) / 10.0) < 1e-4, "round flight time to the 2781 m aim point")
+	check(
+		absf(r.t_end - (1400.0 - sqrt(1400.0 * 1400.0 - 20.0 * 2781.0)) / 10.0) < 1e-4,
+		"round flight time to the 2781 m aim point"
+	)
 	g.update(2.0)
 	check(det.size() == 1 and det[0][2].get("key", "") == "u", "round hits the unit on the line")
 	g.fire(3.0, Vector3(0, 0, 100), Vector3(0, 0, 100), Vector3(0, 200, 0), Vector3(0, 2781, 100), "", "me", true)
@@ -114,7 +185,10 @@ func run() -> void:
 		w.update(t)
 	w.gun_stop()
 	check(w.stores.displayed(9) < 940, "rounds used: %d left" % w.stores.displayed(9))
-	check(mig.damage > 0.0 or mig.state != 1, "gun rounds damage the unit ahead (damage %.2f, state %d)" % [mig.damage, mig.state])
+	check(
+		mig.damage > 0.0 or mig.state != 1,
+		"gun rounds damage the unit ahead (damage %.2f, state %d)" % [mig.damage, mig.state]
+	)
 
 	# AA gun mode (']' onto the gun): the LCOS pipper settles near the gun cross in steady flight.
 	w.stores.cur = 9
@@ -122,8 +196,10 @@ func run() -> void:
 	for i in 40:
 		t += 0.05
 		w.update(t)
-	check(w.hud_mode == 3 and tv.cockpit.weapons.pipper != null and tv.cockpit.weapons.pipper.length() < 20.0,
-		"AA gun: LCOS pipper %s px from the gun cross" % str(tv.cockpit.weapons.pipper))
+	check(
+		w.hud_mode == 3 and tv.cockpit.weapons.pipper != null and tv.cockpit.weapons.pipper.length() < 20.0,
+		"AA gun: LCOS pipper %s px from the gun cross" % str(tv.cockpit.weapons.pipper)
+	)
 	# IR missile: select the AIM-9, the seeker locks a unit 3 km ahead, launch, it hits.
 	var mig2: Dictionary = tv.runtime.entities.values().filter(func(e): return e.name == "mig23_1")[0]
 	mig2.world = o.pos + o.fwd * 3000.0 + Vector3(0, 0, 30)
@@ -145,14 +221,29 @@ func run() -> void:
 	for i in 20:
 		t += 0.05
 		w.update(t)
-	print("seeker: ", w.seeker.target_key, " ", w.seeker.lock, " mig2 visible ", mig2.visible, " node ", mig2.node != null, " units ", w._units().map(func(u): return u.key).has(mig2.key), " gen R ", w.seeker.lock_range)
+	print(
+		"seeker: ",
+		w.seeker.target_key,
+		" ",
+		w.seeker.lock,
+		" mig2 visible ",
+		mig2.visible,
+		" node ",
+		mig2.node != null,
+		" units ",
+		w._units().map(func(u): return u.key).has(mig2.key),
+		" gen R ",
+		w.seeker.lock_range
+	)
 	check(w.seeker.target_key == mig2.key and w.seeker.lock, "the seeker locks the unit ahead")
 	var n0: int = w.stores.total(w.stores.current_type(), w.stores.current_name())
 	var drawn0 := _drawn(w)
 	w.fire_selected()
 	w.release_selected()
 	# The player's own (231's MI-24 launches at a Merkava by script op 2 meanwhile).
-	check(w.missiles.filter(func(m): return is_same(m.get_meta("owner"), w._me())).size() == 1, "Space: missile launched")
+	check(
+		w.missiles.filter(func(m): return is_same(m.get_meta("owner"), w._me())).size() == 1, "Space: missile launched"
+	)
 	check(w.stores.total(w.stores.current_type(), w.stores.current_name()) == n0 - 1, "missile count -1")
 	check(_drawn(w) == drawn0 - 1, "the store left its pylon")
 	# The fired station is empty: in IR mode on it (FUN_0053bcd0 checks the selected station, not the weapon's
@@ -165,16 +256,32 @@ func run() -> void:
 		for i in 3:
 			keep_t += 0.05
 			w.seeker.update(keep_t, w.own(), w._units(), 570, w._station_has_rounds())
-		check(w._seek_sound == null and w._lock_sound == null and not w.seeker.lock, "empty station: no seeker tone (chirp stopped)")
+		check(
+			w._seek_sound == null and w._lock_sound == null and not w.seeker.lock,
+			"empty station: no seeker tone (chirp stopped)"
+		)
 		w._set_hud_mode(0)
 		w.select_aa()
-	check(tv.flight.state().mass_kg < before_mass, "flight model mass dropped (%.0f -> %.0f kg)" % [before_mass, tv.flight.state().mass_kg])
+	check(
+		tv.flight.state().mass_kg < before_mass,
+		"flight model mass dropped (%.0f -> %.0f kg)" % [before_mass, tv.flight.state().mass_kg]
+	)
 	var m0 = w.missiles.filter(func(m): return is_same(m.get_meta("owner"), w._me()))[0]
 	for i in 300:
 		t += 0.05
 		w.update(t)
 		if i % 10 == 0 and m0 in w.missiles:
-			print("t %.2f pos %s v %.0f dist %.0f" % [t - 1.0, m0.position(t), m0.velocity(t).length(), m0.position(t).distance_to(tv.runtime._world_of(mig2))])
+			print(
+				(
+					"t %.2f pos %s v %.0f dist %.0f"
+					% [
+						t - 1.0,
+						m0.position(t),
+						m0.velocity(t).length(),
+						m0.position(t).distance_to(tv.runtime._world_of(mig2))
+					]
+				)
+			)
 		if not m0 in w.missiles:
 			print("end at ", m0.last_pos, " target ", tv.runtime._world_of(mig2))
 			break
@@ -183,7 +290,9 @@ func run() -> void:
 	# External fuel tank (docs/weapons.md "Fuel tanks"): the original adds the tank's bdb weight
 	# (2700 "LB", as kg) to the fuel; the Stores weight fix adds it in kg. The external part burns
 	# first; the jettison drops the tank and the fuel above FuelWeight.
-	var tank_load := {"armament": {"hardpoints": [11, 1, 0, 0, 0, 0, 0, 0, 28, 1, 0, 0, 0, 0, 0, 0, 11, 1, 25, 235, 33, 90, 34, 60]}}
+	var tank_load := {
+		"armament": {"hardpoints": [11, 1, 0, 0, 0, 0, 0, 0, 28, 1, 0, 0, 0, 0, 0, 0, 11, 1, 25, 235, 33, 90, 34, 60]}
+	}
 	var internal: float = tv.flight.state().internal_fuel_kg
 	for fixed in [false, true]:
 		Settings().better["fix_stores_weight"] = fixed
@@ -192,7 +301,10 @@ func run() -> void:
 		w2.setup(tv, tank_load, f16, bdb, desc)
 		var want: float = internal + (2700.0 * 0.45359 if fixed else 2700.0)
 		var fuel0: float = tv.flight.state().fuel_lbs * 0.45359
-		check(absf(fuel0 - want) < 1.0, "%s: fuel with a 2700LB tank %.0f kg (internal %.0f)" % ["fix" if fixed else "original", fuel0, internal])
+		check(
+			absf(fuel0 - want) < 1.0,
+			"%s: fuel with a 2700LB tank %.0f kg (internal %.0f)" % ["fix" if fixed else "original", fuel0, internal]
+		)
 		if fixed:
 			tv.flight.set_engine_on(true)
 			tv.flight.set_controls(Vector2(0, 0), 0, 1.0, 0, false, false)
@@ -203,7 +315,10 @@ func run() -> void:
 			var di0: float = w2.stores.fm_di_right
 			w2.jettison()
 			check(absf(tv.flight.state().fuel_lbs * 0.45359 - internal) < 1.0, "jettison: the tank's fuel is gone")
-			check(w2.stores.fm_di_right < di0 and w2.stores.displayed(4) == 0, "jettison: the tank left station E, drag dropped")
+			check(
+				w2.stores.fm_di_right < di0 and w2.stores.displayed(4) == 0,
+				"jettison: the tank left station E, drag dropped"
+			)
 		w2.queue_free()
 	Settings().better["fix_stores_weight"] = false
 	# Chaff / flares (Insert / Delete, events 0x44 / 0x45): one decoy per press from stations 10 / 11,
@@ -224,8 +339,13 @@ func run() -> void:
 	# The look (decoy_fx.gd): the flare sprite at the decoy, chaff bursts along the decoy path.
 	var fx = w.decoy_fx
 	var ch: Dictionary = w.decoys.filter(func(d): return d.type == 540)[0]
-	check(fx.counts(t).flares == 1 and fx.counts(t).chaff > 0, "a flare sprite and chaff pieces drawn (%s)" % fx.counts(t))
-	check(fx._flares[fl].node.position.distance_to(w.to_scene(w.decoy_position(fl))) < 0.01, "the flare sprite is at the decoy")
+	check(
+		fx.counts(t).flares == 1 and fx.counts(t).chaff > 0, "a flare sprite and chaff pieces drawn (%s)" % fx.counts(t)
+	)
+	check(
+		fx._flares[fl].node.position.distance_to(w.to_scene(w.decoy_position(fl))) < 0.01,
+		"the flare sprite is at the decoy"
+	)
 	var on_path := true
 	for b in fx.bursts:
 		on_path = on_path and b[1].distance_to(w.to_scene(w._decoy_motion[540].position(ch.r, b[0]))) < 0.01

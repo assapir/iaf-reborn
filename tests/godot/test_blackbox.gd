@@ -49,17 +49,29 @@ func run() -> void:
 
 	var lines := FileAccess.get_file_as_string(path).split("\n", false)
 	var head = JSON.parse_string(lines[0])
-	check(head is Dictionary and head.get("threats", []).any(func(x): return x.name == "sa3 1launcher1" and x.type == 630),
-		"the header lists the threats (sa3 1launcher1, 630)")
+	check(
+		(
+			head is Dictionary
+			and head.get("threats", []).any(func(x): return x.name == "sa3 1launcher1" and x.type == 630)
+		),
+		"the header lists the threats (sa3 1launcher1, 630)"
+	)
 	var ev := {}
 	for l in lines.slice(1):
 		var e = JSON.parse_string(l)
 		if e is Dictionary and (not ev.has(e.event) or e.get("unit") == "sa3 1launcher1"):
 			ev[e.event] = e  # site 1's event of each kind
-	check(ev.has("lock") and ev.lock.get("unit") == "sa3 1launcher1" and ev.lock.dist_m > 9000.0,
-		"lock: the site's sensor (%s)" % str(ev.get("lock")))
-	check(ev.has("launch") and ev.launch.get("unit") == "sa3 1launcher1" and int(ev.launch.type) == 630,
-		"launch: the SA-3 at the jet (%s)" % str(ev.get("launch")))
-	check(ev.has("hit") and ev.hit.damage > 0.0 and ev.hit.get("unit") == "sa3 1launcher1", "hit: by the site (%s)" % str(ev.get("hit")))
+	check(
+		ev.has("lock") and ev.lock.get("unit") == "sa3 1launcher1" and ev.lock.dist_m > 9000.0,
+		"lock: the site's sensor (%s)" % str(ev.get("lock"))
+	)
+	check(
+		ev.has("launch") and ev.launch.get("unit") == "sa3 1launcher1" and int(ev.launch.type) == 630,
+		"launch: the SA-3 at the jet (%s)" % str(ev.get("launch"))
+	)
+	check(
+		ev.has("hit") and ev.hit.damage > 0.0 and ev.hit.get("unit") == "sa3 1launcher1",
+		"hit: by the site (%s)" % str(ev.get("hit"))
+	)
 	check(ev.has("in_sight") and ev.has("masked"), "line of sight gained, then masked under the terrain")
 	DirAccess.remove_absolute(path)

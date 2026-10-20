@@ -7,11 +7,19 @@ extends "res://../tests/godot/base.gd"
 func run() -> void:
 	var tv = await start_mission(221)
 	await frames(3)
-	check(tv.ai != null and tv.ai.pilots.size() >= 8, "AI jets flying (%d)" % (tv.ai.pilots.size() if tv.ai != null else 0))
+	check(
+		tv.ai != null and tv.ai.pilots.size() >= 8,
+		"AI jets flying (%d)" % (tv.ai.pilots.size() if tv.ai != null else 0)
+	)
 	var p0: Dictionary = {}
 	for p in tv.ai.pilots:
 		p0[p] = {"world": p.ent.world, "wp": p.waypoint_index()}
-		print("  %s mode %d wp %d alt %.0f speed %.0f" % [p.ent.name, p.mode, p.waypoint_index(), p.ent.world.z, p.state().speed])
+		print(
+			(
+				"  %s mode %d wp %d alt %.0f speed %.0f"
+				% [p.ent.name, p.mode, p.waypoint_index(), p.ent.world.z, p.state().speed]
+			)
+		)
 	Engine.time_scale = 8.0
 	var t0: float = tv.runtime.now
 	while tv.runtime.now - t0 < 120.0:
@@ -19,17 +27,43 @@ func run() -> void:
 	Engine.time_scale = 1.0
 	var moved := 0
 	for p in tv.ai.pilots:
-		print("  %s mode %d wp %d alt %.0f speed %.0f moved %.0f m" % [p.ent.name, p.mode, p.waypoint_index(), p.ent.world.z, p.state().speed, (p.ent.world - p0[p].world).length()])
+		print(
+			(
+				"  %s mode %d wp %d alt %.0f speed %.0f moved %.0f m"
+				% [
+					p.ent.name,
+					p.mode,
+					p.waypoint_index(),
+					p.ent.world.z,
+					p.state().speed,
+					(p.ent.world - p0[p].world).length()
+				]
+			)
+		)
 		if (p.ent.world - p0[p].world).length() > 10000.0:
 			moved += 1
 	check(moved >= 6, "the AI jets flew (%d moved > 10 km in 120 s)" % moved)
 	# The radio's waypoint report (docs/radio.md §4): every jet whose WayPtSet moved on posts it; only the player's
 	# side is heard ("<callsign> is passing waypoint N").
-	var moved_on: Array = tv.ai.pilots.filter(func(p): return p.waypoint_index() != p0[p].wp).map(func(p): return [p.ent.name, p.waypoint_index()])
-	var reports: Array = tv.radio.said.filter(func(x): return x.template == "PASS_WAYPT_PHRASE").map(func(x): return x.text)
+	var moved_on: Array = (
+		tv
+		. ai
+		. pilots
+		. filter(func(p): return p.waypoint_index() != p0[p].wp)
+		. map(func(p): return [p.ent.name, p.waypoint_index()])
+	)
+	var reports: Array = (
+		tv.radio.said.filter(func(x): return x.template == "PASS_WAYPT_PHRASE").map(func(x): return x.text)
+	)
 	print("  moved on: ", moved_on, "  posted: ", tv.radio.posted, "  said: ", reports)
-	check(not moved_on.is_empty() and moved_on.all(func(m): return tv.radio.posted.has(m)), "every jet that moved on posted a waypoint report")
-	check(reports.all(func(x): return x.begins_with("Alpha ") or x.begins_with("Bravo ")), "only the player's side is heard")
+	check(
+		not moved_on.is_empty() and moved_on.all(func(m): return tv.radio.posted.has(m)),
+		"every jet that moved on posted a waypoint report"
+	)
+	check(
+		reports.all(func(x): return x.begins_with("Alpha ") or x.begins_with("Bravo ")),
+		"only the player's side is heard"
+	)
 	# Wingmen in formation (tactical, mode 3) stay near their leaders; the leaders navigate (mode 7).
 	var close := 0
 	var pairs := 0
@@ -48,5 +82,8 @@ func run() -> void:
 	for p in tv.ai.pilots:
 		if p.ent.name == "bravo_1":
 			# Above 250 kt its brain's combat rules take over: it may engage a passing Su-24 low (watch-ground guards it).
-			check(not p.state().on_ground and p.ent.world.z > 634.0, "bravo_1 took off from Ramon (alt %.0f, 584 at the runway)" % p.ent.world.z)
+			check(
+				not p.state().on_ground and p.ent.world.z > 634.0,
+				"bravo_1 took off from Ramon (alt %.0f, 584 at the runway)" % p.ent.world.z
+			)
 	check(tv.ai.contacts().size() == tv.ai.pilots.size(), "contacts for radar / RWR")

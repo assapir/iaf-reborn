@@ -13,14 +13,22 @@ func run() -> void:
 	var friends := []
 	var enemies := []
 	for e in rt.entities.values():
-		if not e.player and int(e.get("klass", -1)) in [1, 2, 3, 0x1c] and e.node is Node3D and e.node.is_visible_in_tree():
+		if (
+			not e.player
+			and int(e.get("klass", -1)) in [1, 2, 3, 0x1c]
+			and e.node is Node3D
+			and e.node.is_visible_in_tree()
+		):
 			(friends if int(e.side) == int(me.side) else enemies).append(e)
 	key(tv, KEY_F12)
 	var cam: Camera3D = tv.get_viewport().get_camera_3d()
 	var b := cam.global_basis
 	var eye := cam.global_position
 	# [right, ahead, up] in metres from the eye.
-	var spots := {"f": [[-3000.0, 600.0, 200.0], [-1500.0, -200.0, -400.0]], "e": [[2500.0, 400.0, 1800.0], [3000.0, 300.0, -300.0], [300.0, 2500.0, 150.0]]}
+	var spots := {
+		"f": [[-3000.0, 600.0, 200.0], [-1500.0, -200.0, -400.0]],
+		"e": [[2500.0, 400.0, 1800.0], [3000.0, 300.0, -300.0], [300.0, 2500.0, 150.0]]
+	}
 	for i in 30:
 		for e in friends + enemies:
 			e.node.global_position = eye + Vector3(0, 60000, 0)

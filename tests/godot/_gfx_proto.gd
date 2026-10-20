@@ -13,7 +13,9 @@ func run() -> void:
 	tv.frozen = true
 	tv.fm_stopped = true
 	await frames(30)
-	var env: Environment = tv.get_viewport().world_3d.environment if tv.get_viewport().world_3d.environment != null else null
+	var env: Environment = (
+		tv.get_viewport().world_3d.environment if tv.get_viewport().world_3d.environment != null else null
+	)
 	if env == null:
 		for n in tv.find_children("*", "WorldEnvironment", true, false):
 			env = n.environment
@@ -76,7 +78,9 @@ func run() -> void:
 	for t in times:
 		avg += t
 	avg /= times.size()
-	print("GFX %-12s frame %6.2f ms (p95 %6.2f)  %5.1f fps" % [what, avg, sorted[int(times.size() * 0.95)], 1000.0 / avg])
+	print(
+		"GFX %-12s frame %6.2f ms (p95 %6.2f)  %5.1f fps" % [what, avg, sorted[int(times.size() * 0.95)], 1000.0 / avg]
+	)
 	if OS.get_environment("GFX_SHOT") != "":
 		await RenderingServer.frame_post_draw
 		root.get_viewport().get_texture().get_image().save_png(OS.get_environment("GFX_SHOT"))

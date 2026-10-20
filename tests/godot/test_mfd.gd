@@ -16,7 +16,10 @@ func run() -> void:
 	var eye := Vector3(0, 0, 3000)
 	e.start(Eo.FLIR, true, null, 0.0)
 	var ae: Vector2 = e.angles(0.0, base, eye)
-	check(e.camera and e.zoom == 1.0 and is_equal_approx(ae.x, 0.0) and is_equal_approx(ae.y, deg_to_rad(-5.0)), "start: az 0, el −5°, zoom 1")
+	check(
+		e.camera and e.zoom == 1.0 and is_equal_approx(ae.x, 0.0) and is_equal_approx(ae.y, deg_to_rad(-5.0)),
+		"start: az 0, el −5°, zoom 1"
+	)
 	e.pan(100, 0, 0.0, base, eye, null)
 	ae = e.angles(1.0, base, eye)
 	check(absf(rad_to_deg(ae.x) - 9.0) < 1e-3, "Pan right: 9°/s at zoom 1 (%.3f°)" % rad_to_deg(ae.x))
@@ -25,7 +28,10 @@ func run() -> void:
 	e.pan(0, -100, 10.0, base, eye, Vector3(0, 5000, 0))
 	check(e.track == Eo.FREE, "a changed key pair slews (no lock while a key is held)")
 	ae = e.angles(30.0, base, eye)
-	check(absf(rad_to_deg(ae.y) + 80.0) < 1e-3 and absf(rad_to_deg(ae.x) - 45.0) < 1e-3, "pod: el limit −80°, az stays at its clamp")
+	check(
+		absf(rad_to_deg(ae.y) + 80.0) < 1e-3 and absf(rad_to_deg(ae.x) - 45.0) < 1e-3,
+		"pod: el limit −80°, az stays at its clamp"
+	)
 	e.pan(0, 100, 30.0, base, eye, null)
 	ae = e.angles(100.0, base, eye)
 	check(absf(rad_to_deg(ae.y) - 30.0) < 1e-3, "pod: el limit +30°")
@@ -37,13 +43,19 @@ func run() -> void:
 	check(not e.spot and e.zoom == 1.0, "WIDE: three steps out, at least 1")
 	e.pan(0, 0, 100.0, base, eye, Vector3(1000, 1000, 3000 - 1000 * sqrt(2.0)))
 	ae = e.angles(100.0, base, eye)
-	check(e.track == Eo.TRACK and absf(rad_to_deg(ae.x) - 45.0) < 1e-3 and absf(rad_to_deg(ae.y) + 45.0) < 1e-3, "FLIR: releasing the keys locks the centre point (tracked: 45° right, 45° down)")
+	check(
+		e.track == Eo.TRACK and absf(rad_to_deg(ae.x) - 45.0) < 1e-3 and absf(rad_to_deg(ae.y) + 45.0) < 1e-3,
+		"FLIR: releasing the keys locks the centre point (tracked: 45° right, 45° down)"
+	)
 	ae = e.angles(100.0, Vector2(deg_to_rad(10.0), 0.0), eye)
 	check(absf(rad_to_deg(ae.x) - 35.0) < 1e-3, "tracking follows the jet's turn (heading 10°: az 35°)")
 	e.pan(-100, 0, 100.0, Vector2(deg_to_rad(10.0), 0.0), eye, null)
 	check(e.track == Eo.FREE and e.frozen != null, "a slew from tracking: free, the base frozen")
 	var f: Dictionary = e.flir_page(Vector2(deg_to_rad(45.0), deg_to_rad(-5.0)), 40000.0)
-	check(absf(f.u - 1.0) < 1e-4 and absf(f.v) < 1e-4 and f.range == "XXX.X", "FLIR page: 45° = u 1 (56 px), −5° = v 0; 40 km (≥ 20 NM) = XXX.X")
+	check(
+		absf(f.u - 1.0) < 1e-4 and absf(f.v) < 1e-4 and f.range == "XXX.X",
+		"FLIR page: 45° = u 1 (56 px), −5° = v 0; 40 km (≥ 20 NM) = XXX.X"
+	)
 	check(e.flir_page(Vector2.ZERO, 1853.0 * 12.34).range == "12.3", "range %3.1f NM")
 	e.laser_key(false)
 	check(not e.laser, "laser: needs the pod")
@@ -55,7 +67,10 @@ func run() -> void:
 	ae = tvs.angles(100.0, base, eye)
 	check(absf(rad_to_deg(ae.x) - 30.0) < 1e-3 and absf(rad_to_deg(ae.y) - 15.0) < 1e-3, "weapon: az ±30°, el +15°")
 	tvs.pan(0, 0, 100.0, base, eye, Vector3.ZERO)
-	check(tvs.track == Eo.FREE and tvs.angles(200.0, base, eye) == ae, "TV before launch: releasing stops the slew (no lock)")
+	check(
+		tvs.track == Eo.FREE and tvs.angles(200.0, base, eye) == ae,
+		"TV before launch: releasing stops the slew (no lock)"
+	)
 	var tp: Dictionary = tvs.tv_page(Vector2(deg_to_rad(30.0), 0.0), 1)
 	check(absf(tp.u - 1.0) < 1e-4, "TV page: 30° = u 1 (56 px)")
 
@@ -69,17 +84,36 @@ func run() -> void:
 	]
 	h.capture(units, [], Vector3(0, 0, 3000), Vector2.ZERO, false, func(_p): return 0.0)
 	var pg: Dictionary = h.page(Vector2.ZERO, 2)
-	check(pg.list.size() == 1 and pg.list[0].key == "sam" and pg.list[0].selected, "HARM: the radar unit inside ±15° is listed and preselected, the one at 45° and the tank not")
+	check(
+		pg.list.size() == 1 and pg.list[0].key == "sam" and pg.list[0].selected,
+		"HARM: the radar unit inside ±15° is listed and preselected, the one at 45° and the tank not"
+	)
 	var sy: Array = Mfd.harm_symbols(pg)
-	var want := Vector2(66 + int(atan2(1000.0, 20000.0) * 112.0 / deg_to_rad(30.0)), 66 + int(-atan2(-3000.0, Vector2(1000, 20000).length()) * 112.0 / deg_to_rad(30.0)))
-	check(sy.size() == 1 and sy[0].pos == want, "HARM symbol at %s (%s)" % [want, sy[0].pos if not sy.is_empty() else null])
+	var want := Vector2(
+		66 + int(atan2(1000.0, 20000.0) * 112.0 / deg_to_rad(30.0)),
+		66 + int(-atan2(-3000.0, Vector2(1000, 20000).length()) * 112.0 / deg_to_rad(30.0))
+	)
+	check(
+		sy.size() == 1 and sy[0].pos == want,
+		"HARM symbol at %s (%s)" % [want, sy[0].pos if not sy.is_empty() else null]
+	)
 	check(not pg.no_source and not pg.in_range, "rounds left: a source; no DLZ: not in range")
 	var pg2: Dictionary = h.page(Vector2(deg_to_rad(5.0), 0.0), 2)
-	check(Mfd.harm_symbols(pg2)[0].pos.x < sy[0].pos.x - 10, "turning right moves the symbol left until the next capture")
+	check(
+		Mfd.harm_symbols(pg2)[0].pos.x < sy[0].pos.x - 10, "turning right moves the symbol left until the next capture"
+	)
 	check(h.page(Vector2.ZERO, 0).no_source, "no round left: no source")
 
 	# --- pure: the radar page's aspect stub bins and the STT caret row (FUN_00534b20 / FUN_00533db0) -----------
-	check(Mfd.aspect_bin(deg_to_rad(100.0)) == 2 and Mfd.aspect_bin(deg_to_rad(250.0)) == -2 and Mfd.aspect_bin(deg_to_rad(-200.0)) == -4 and Mfd.aspect_bin(deg_to_rad(44.0)) == 0, "aspect stub: truncated bins, wrapped at ±210°")
+	check(
+		(
+			Mfd.aspect_bin(deg_to_rad(100.0)) == 2
+			and Mfd.aspect_bin(deg_to_rad(250.0)) == -2
+			and Mfd.aspect_bin(deg_to_rad(-200.0)) == -4
+			and Mfd.aspect_bin(deg_to_rad(44.0)) == 0
+		),
+		"aspect stub: truncated bins, wrapped at ±210°"
+	)
 	check(Mfd.stt_caret_n(20.0 * 1853.0, 40.0) == 49, "STT caret: 20 NM on the 40 NM scale = row 105 − 56")
 
 	# --- mission 231 (F-16): FLIR pod, POPEYE, HARM ------------------------------------------------------
@@ -101,7 +135,10 @@ func run() -> void:
 	var flir_mfd = cp.mfds.filter(func(m): return m.page == 6)
 	check(flir_mfd.size() == 1 and w.eo.mode == Eo.FLIR, "I: the FLIR page and EO mode 2")
 	await frames(2)
-	check(cp.eo.flir.zoom == 1 and cp.eo.flir.range != "", "FLIR page data published (zoom %d, range %s)" % [cp.eo.flir.zoom, cp.eo.flir.range])
+	check(
+		cp.eo.flir.zoom == 1 and cp.eo.flir.range != "",
+		"FLIR page data published (zoom %d, range %s)" % [cp.eo.flir.zoom, cp.eo.flir.range]
+	)
 	check(tv.eo_viewport != null and cp.eo_texture != null, "the EO picture: a SubViewport camera")
 	var right_rec := 50
 	tv._apply_held(right_rec, [139, 100, 0])
@@ -113,7 +150,9 @@ func run() -> void:
 	var jet_fwd: Vector3 = -tv.rig.global_basis.z
 	var turn := rad_to_deg(Vector2(jet_fwd.x, jet_fwd.z).angle_to(Vector2(fwd.x, fwd.z)))
 	check(absf(absf(turn) - 18.0) < 1.0, "the EO camera turned 18° from the nose (%.1f°)" % turn)
-	check(absf(tv.eo_camera.fov - 50.0) < 1e-3 and tv.eo_camera.keep_aspect == Camera3D.KEEP_WIDTH, "50° across at zoom 1")
+	check(
+		absf(tv.eo_camera.fov - 50.0) < 1e-3 and tv.eo_camera.keep_aspect == Camera3D.KEEP_WIDTH, "50° across at zoom 1"
+	)
 	flir_mfd[0].press(0xb)
 	w.update(t)
 	check(w.eo.zoom == 2.0 and cp.eo.flir.zoom == 2, "OSB 0xb: zoom 2")
@@ -131,7 +170,10 @@ func run() -> void:
 	# The TV page: the POPEYE (station 7).
 	w.select_station(6)
 	w.update(t)
-	check(w.master == 6 and w.eo.mode == Eo.TV and w.eo.limits == Eo.WEAPON_LIMITS, "POPEYE: master 6, EO mode 1, weapon limits")
+	check(
+		w.master == 6 and w.eo.mode == Eo.TV and w.eo.limits == Eo.WEAPON_LIMITS,
+		"POPEYE: master 6, EO mode 1, weapon limits"
+	)
 	check(cp.mfds.any(func(m): return m.page == 5) and cp.eo.tv.status == 1, "the TV page, RDY")
 	check(not cp.mfds.any(func(m): return m.page == 6), "page 5 took the FLIR page's place")
 	await frames(2)
@@ -144,9 +186,15 @@ func run() -> void:
 	w.update(t)
 	var harm_mfd = cp.mfds.filter(func(m): return m.page == 10)
 	check(w.master == 4 and harm_mfd.size() == 1 and w.eo.mode == Eo.NONE, "HARM: master 4, page 10, the EO mode off")
-	check(cp.harm.list.size() == 1 and not cp.harm.no_source, "HARM page lists the unit ahead (%d)" % cp.harm.get("list", []).size())
+	check(
+		cp.harm.list.size() == 1 and not cp.harm.no_source,
+		"HARM page lists the unit ahead (%d)" % cp.harm.get("list", []).size()
+	)
 	var hs: Array = Mfd.harm_symbols(cp.harm)
-	check(hs.size() == 1 and absf(hs[0].pos.x - 66) <= 2, "ahead: near the centre column (%s)" % [hs[0].pos if not hs.is_empty() else null])
+	check(
+		hs.size() == 1 and absf(hs[0].pos.x - 66) <= 2,
+		"ahead: near the centre column (%s)" % [hs[0].pos if not hs.is_empty() else null]
+	)
 	# MENU "FLIR" (with the pod) and the stores page quantity / interval OSBs.
 	var other = cp.mfds.filter(func(m): return m.page != 10)[0]
 	other.page = 8
@@ -158,7 +206,10 @@ func run() -> void:
 	other.press(0x14)
 	other.press(0x14)
 	w.update(t)
-	check(cp.weapons.quantity == 3 and cp.weapons.interval == 10, "stores OSBs: quantity 2 → 3, interval 10 → 20 → 10 → 10")
+	check(
+		cp.weapons.quantity == 3 and cp.weapons.interval == 10,
+		"stores OSBs: quantity 2 → 3, interval 10 → 20 → 10 → 10"
+	)
 	await frames(2)
 	# NAV: a new current waypoint scrolls the 3-row list to keep it visible (FUN_005296d0).
 	var keep_wp: int = cp.current_waypoint
@@ -166,7 +217,13 @@ func run() -> void:
 	other.nav_scroll = 0
 	cp.current_waypoint = mini(3, cp.waypoints.size())
 	await frames(2)
-	check(cp.waypoints.size() < 4 or other.nav_scroll == 1, "NAV: waypoint 4 current scrolls it to the bottom row (scroll %d, %d waypoints)" % [other.nav_scroll, cp.waypoints.size()])
+	check(
+		cp.waypoints.size() < 4 or other.nav_scroll == 1,
+		(
+			"NAV: waypoint 4 current scrolls it to the bottom row (scroll %d, %d waypoints)"
+			% [other.nav_scroll, cp.waypoints.size()]
+		)
+	)
 	cp.current_waypoint = 0
 	await frames(2)
 	check(other.nav_scroll == 0, "NAV: back to waypoint 1 scrolls to the top")
@@ -186,7 +243,10 @@ func run() -> void:
 	w.flir_on(R)
 	check(R.page == 6, "MENU FLIR on the Right")
 	w.select_station(6)
-	check(L.page == 5 and R.page == 3, "POPEYE: TV page on the Left, the FLIR page back to the TSD (%d, %d)" % [L.page, R.page])
+	check(
+		L.page == 5 and R.page == 3,
+		"POPEYE: TV page on the Left, the FLIR page back to the TSD (%d, %d)" % [L.page, R.page]
+	)
 	w.select_station(0)
 	check(L.page == 1, "leaving TV: the stores page back on the Left")
 	# M: every MFD gets the cycle position's pages (LAB_0044b9fb); the F-16: 2 MFDs, a panel RWR.
@@ -248,11 +308,19 @@ func run() -> void:
 			traces.append(L3.trace)
 			L3.trace = null
 			if better:
-				check(L3.crisp and L3._k == L3._s() and L3.material != null, "page %d Better: crisp, %.2f canvas px per MFD px" % [pgn, L3._k])
+				check(
+					L3.crisp and L3._k == L3._s() and L3.material != null,
+					"page %d Better: crisp, %.2f canvas px per MFD px" % [pgn, L3._k]
+				)
 			else:
-				check(not L3.crisp and L3._k == 1.0 and L3.material == null, "page %d Original: the scaled canvas" % pgn)
+				check(
+					not L3.crisp and L3._k == 1.0 and L3.material == null, "page %d Original: the scaled canvas" % pgn
+				)
 		if not traces[0].is_empty() and traces[0] == traces[1]:
 			same.append(pgn)
 	Settings().better_cockpit = false
 	check(same == range(11), "Better draws every page's geometry as Original (pages the same: %s)" % [same])
-	check(Mfd.crisp_sprite("mfds.bmp", Rect2(0, 264, 132, 132)).get_size() == Vector2(134, 134), "a crisp sprite: the original bitmap's pixels with a 1-px border")
+	check(
+		Mfd.crisp_sprite("mfds.bmp", Rect2(0, 264, 132, 132)).get_size() == Vector2(134, 134),
+		"a crisp sprite: the original bitmap's pixels with a 1-px border"
+	)

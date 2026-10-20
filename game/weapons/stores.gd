@@ -9,8 +9,20 @@ const CHAFF := 540
 const FLARE := 550
 const SHELL := 660  # fuel tanks and pods
 ## Station index -> descriptor frame (FUN_005876a0 names, ids 0x29..0x34).
-const FRAMES := ["StationA", "StationB", "StationC", "StationD", "StationE", "StationF", "StationG",
-	"StationH", "StationI", "StationGun", "StationCha", "StationFla"]
+const FRAMES := [
+	"StationA",
+	"StationB",
+	"StationC",
+	"StationD",
+	"StationE",
+	"StationF",
+	"StationG",
+	"StationH",
+	"StationI",
+	"StationGun",
+	"StationCha",
+	"StationFla"
+]
 ## Types that get a store model (FUN_0053ceb0 / FUN_0053ced0; 560 rockets get the rocket box).
 const BOMBS := [500, 510]
 const DRAWN := [500, 510, 640, 635, 570, 650, 580, 590, 600, 610, 660]
@@ -94,13 +106,23 @@ func setup(load: Array, db: RefCounted, descriptor: Dictionary, pilon_of: Callab
 			var real_n: int = preload("res://weapons/real_weapons.gd").gun_rounds(jet_type)
 			if real_n > 0:
 				n = real_n
-		var st := {"index": i, "w": w, "count": float(n), "initial": float(n), "unlimited": false, "attach": attach,
-			"slots": [], "drawn": w.type in DRAWN and i < 9 and p is Array}  # no Station helper: nowhere to hang it
+		var st := {
+			"index": i,
+			"w": w,
+			"count": float(n),
+			"initial": float(n),
+			"unlimited": false,
+			"attach": attach,
+			"slots": [],
+			"drawn": w.type in DRAWN and i < 9 and p is Array
+		}  # no Station helper: nowhere to hang it
 		if st.drawn:
 			var pilon = pilon_of.call(w.model_path) if pilon_of.is_valid() else null
 			st.slots = ClassDB.class_call_static("IafStores", "slots", i, attach, n, w.type in BOMBS, pilon)
 		stations[i] = st
-		var r := {"type": w.type, "name": w.name, "weight_lb": w.get("weight_lb", 0.0), "drag": w.get("drag", 0.0), "count": n}
+		var r := {
+			"type": w.type, "name": w.name, "weight_lb": w.get("weight_lb", 0.0), "drag": w.get("drag", 0.0), "count": n
+		}
 		if w.has("rounds_per_tick"):
 			r.rounds_per_tick = w.rounds_per_tick
 		rs[i] = r

@@ -13,15 +13,41 @@ const DEAD_ZONE := 0.25  ## DIPROP_DEADZONE 2500 (of 10000) on lX, lY and the ru
 const HAT := [JOY_BUTTON_DPAD_UP, JOY_BUTTON_DPAD_RIGHT, JOY_BUTTON_DPAD_DOWN, JOY_BUTTON_DPAD_LEFT]
 ## POV (hundredths of a degree) → GEV 22 (p1 angle, p2 numpad digit) (@4dfa2c..4dfbae): the snap-view keys'
 ## own values; centred (0xffff) sends (−1, 5).
-const POV := {0: [0, 8], 4500: [45, 9], 9000: [90, 6], 13500: [135, 3], 18000: [180, 2],
-	22500: [225, 1], 27000: [270, 4], 31500: [315, 7], 0xffff: [-1, 5]}
+const POV := {
+	0: [0, 8],
+	4500: [45, 9],
+	9000: [90, 6],
+	13500: [135, 3],
+	18000: [180, 2],
+	22500: [225, 1],
+	27000: [270, 4],
+	31500: [315, 7],
+	0xffff: [-1, 5]
+}
 const JOY_DIR := "install/resource/menu/joy"
 ## Ours: an unknown stick (no SDL gamepad mapping) reports its buttons by raw index and its hat as the D-pad
 ## buttons 11..14, so a 12th..15th button is the same event as a hat direction. Such a stick gets a mapping:
 ## buttons 0..10 keep their index, 11..16 move to 15..20 (misc1, paddles, touchpad), the hat stays on 11..14;
 ## buttons from the 18th on are lost (Godot has 21 gamepad buttons). docs/controls.md §4.
-const REMAP_BUTTONS := ["a", "b", "x", "y", "back", "guide", "start", "leftstick", "rightstick", "leftshoulder",
-	"rightshoulder", "misc1", "paddle1", "paddle2", "paddle3", "paddle4", "touchpad"]
+const REMAP_BUTTONS := [
+	"a",
+	"b",
+	"x",
+	"y",
+	"back",
+	"guide",
+	"start",
+	"leftstick",
+	"rightstick",
+	"leftshoulder",
+	"rightshoulder",
+	"misc1",
+	"paddle1",
+	"paddle2",
+	"paddle3",
+	"paddle4",
+	"touchpad"
+]
 
 ## Tests: device ids to treat as connected (Godot has no script hook to plug a joypad in).
 var fake_devices: Array = []
@@ -87,7 +113,11 @@ func drops_key(id: int) -> bool:
 
 ## A joypad event from the joystick in use.
 func ours(event: InputEvent) -> bool:
-	return (event is InputEventJoypadButton or event is InputEventJoypadMotion) and event.device == device() and device() >= 0
+	return (
+		(event is InputEventJoypadButton or event is InputEventJoypadMotion)
+		and event.device == device()
+		and device() >= 0
+	)
 
 
 func _ready() -> void:
@@ -247,7 +277,12 @@ func _connected(d: int) -> void:
 		Input.add_joy_mapping(m, true)
 		remapped = true
 		print("joystick: unknown device, buttons 12+ moved off the hat's D-pad indices")
-	print("joystick: %s (device %d, %s); axes x / y / throttle / rudder = %s" % [name, d, Input.get_joy_guid(d), str(Settings.joy_axes)])
+	print(
+		(
+			"joystick: %s (device %d, %s); axes x / y / throttle / rudder = %s"
+			% [name, d, Input.get_joy_guid(d), str(Settings.joy_axes)]
+		)
+	)
 	_load_joy_map(name)
 
 

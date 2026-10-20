@@ -28,14 +28,20 @@ func run() -> void:
 	await settle(fe)
 	check(fe.screen == "pref", "Main -> Preferences")
 	# The lists: [page, its first-row field, its scrollbar (page rect)].
-	for l in [["Controls", "ctrl_top", fe.CTRL_BAR], ["Extras", "extras_top", fe._extras_bar()], ["Physics", "phys_top", fe._phys_bar()]]:
+	for l in [
+		["Controls", "ctrl_top", fe.CTRL_BAR],
+		["Extras", "extras_top", fe._extras_bar()],
+		["Physics", "phys_top", fe._phys_bar()]
+	]:
 		Settings().pref_page = l[0]
 		fe.set(l[1], 0)
 		click(fe, fe.CONTENT.position + Vector2(l[2].get_center().x, l[2].end.y - 2))  # the down arrow
 		var arrow: int = fe.get(l[1])
 		fe.set(l[1], 0)
 		fe._gui_input(wheel(true))
-		check(arrow == 1 and fe.get(l[1]) == 1, "%s: wheel down scrolls one row, as the down arrow (%d)" % [l[0], arrow])
+		check(
+			arrow == 1 and fe.get(l[1]) == 1, "%s: wheel down scrolls one row, as the down arrow (%d)" % [l[0], arrow]
+		)
 		fe._gui_input(wheel(true))
 		fe._gui_input(wheel(false))
 		check(fe.get(l[1]) == 1, "%s: wheel up scrolls one row back" % l[0])
@@ -65,7 +71,10 @@ func run() -> void:
 	fe.tsd.open_briefing(true)
 	await frames(3)
 	var w = fe.tsd.brief_window
-	check(is_instance_valid(w) and w._max_scroll() > 3 * w.TEXT_PX, "the briefing text scrolls (%.0f px)" % w._max_scroll())
+	check(
+		is_instance_valid(w) and w._max_scroll() > 3 * w.TEXT_PX,
+		"the briefing text scrolls (%.0f px)" % w._max_scroll()
+	)
 	var body: Rect2 = w._body()
 	var down_arrow: Vector2 = Vector2(body.end.x - w.SCROLL_W / 2.0, body.end.y - 4) * w._s()
 	w._gui_input(mouse_button(down_arrow, true))
@@ -73,7 +82,10 @@ func run() -> void:
 	var step: float = w.scroll
 	w.scroll = 0.0
 	w._gui_input(wheel(true))
-	check(step == w.TEXT_PX and w.scroll == step, "briefing: wheel down scrolls one line, as the down arrow (%.0f px)" % step)
+	check(
+		step == w.TEXT_PX and w.scroll == step,
+		"briefing: wheel down scrolls one line, as the down arrow (%.0f px)" % step
+	)
 	w._gui_input(wheel(true))
 	w._gui_input(wheel(false))
 	check(w.scroll == step, "briefing: wheel up scrolls one line back")

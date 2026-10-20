@@ -32,8 +32,14 @@ const MUSIC_FADE_Y := 480.0
 ## table picks cr4 for "Gill Sans", cr1 for "Gill Sans Condensed"; cr0/2/3 are not used).
 const FACES := {"Gill Sans": "cr4.ttf", "Gill Sans Condensed": "cr1.ttf"}
 ## Our line styles (credits_ours.json) as the original's: [face, \fs half-points].
-const STYLES := {"heading": ["Gill Sans", 40], "name": ["Gill Sans", 40], "role": ["Gill Sans Condensed", 40],
-	"small": ["Gill Sans", 32], "gap": ["Gill Sans", 24], "blank": ["Gill Sans", 40]}
+const STYLES := {
+	"heading": ["Gill Sans", 40],
+	"name": ["Gill Sans", 40],
+	"role": ["Gill Sans Condensed", 40],
+	"small": ["Gill Sans", 32],
+	"gap": ["Gill Sans", 24],
+	"blank": ["Gill Sans", 40]
+}
 ## Our lines wrap inside the original's margins (it never wraps; its lines are short).
 const WRAP := W - 2 * X0
 
@@ -70,13 +76,16 @@ func _ready() -> void:
 		s.loop_mode = AudioStreamWAV.LOOP_FORWARD
 		s.loop_end = int(s.get_length() * s.mix_rate)
 		music.stream = s
-		music.volume_db = -80.0 if Settings.mute or Settings.music_volume <= 0.0 else linear_to_db(Settings.music_volume)
+		music.volume_db = (
+			-80.0 if Settings.mute or Settings.music_volume <= 0.0 else linear_to_db(Settings.music_volume)
+		)
 		music.play()
 	# WM_SETCURSOR (FUN_004e81d0): no cursor over the roll.
 	Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
 
 
 # --- the RTF reader (FUN_004e8200) ---------------------------------------------------------------
+
 
 ## credits.trx: an RTF file read line by line. The first line's font table gives the faces; every
 ## other line is one or more runs: \f<n> / \fs<n> / \b close the text before them (on the same line)
@@ -165,7 +174,7 @@ static func _unescape(line: String) -> String:
 	while p >= 0:
 		line = line.substr(0, p) + char(("0x" + line.substr(p + 2, 2)).hex_to_int()) + line.substr(p + 4)
 		p = line.find("\\'")
-	for pair in [["\\ldblquote", "\""], ["\\rdblquote", "\""], ["\\lquote", "'"], ["\\rquote", "'"]]:
+	for pair in [["\\ldblquote", '"'], ["\\rdblquote", '"'], ["\\lquote", "'"], ["\\rquote", "'"]]:
 		p = line.find(pair[0])
 		while p >= 0:
 			line = line.substr(0, p) + pair[1] + line.substr(p + pair[0].length() + 1)
@@ -191,6 +200,7 @@ static func _strpbrk(s: String, from: int) -> int:
 
 
 # --- ours -------------------------------------------------------------------------------------
+
 
 ## Our lines (credits_ours.json) as runs in the original's styles, Hebrew where given; "imagery" is the
 ## Terrain Imagery section: its title as a role line, then each converted layer's credit as small lines.
@@ -239,6 +249,7 @@ func _lines(style: String, text: String) -> Array:
 
 # --- layout and drawing (FUN_004e7750 / FUN_004e7de0) ------------------------------------------------
 
+
 ## CreateFont height -MulDiv(fs / 2, LOGPIXELSY 96, 72).
 static func _px(fs: int) -> int:
 	return (fs / 2 * 96 + 36) / 72
@@ -257,7 +268,9 @@ func _font(r: Dictionary) -> Font:
 			f = ff
 		else:
 			var sf := SystemFont.new()
-			sf.font_names = PackedStringArray([r.face, "Liberation Serif" if r.face == "Times New Roman" else "Liberation Sans"])
+			sf.font_names = PackedStringArray(
+				[r.face, "Liberation Serif" if r.face == "Times New Roman" else "Liberation Sans"]
+			)
 			f = sf
 		f.fallbacks = [Img.arial(700)]
 		if r.bold and f is FontFile:
@@ -360,8 +373,14 @@ func finish() -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if (event is InputEventKey and event.pressed and not event.echo) or (event is InputEventMouseButton
-			and event.pressed and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]):
+	if (
+		(event is InputEventKey and event.pressed and not event.echo)
+		or (
+			event is InputEventMouseButton
+			and event.pressed
+			and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]
+		)
+	):
 		get_viewport().set_input_as_handled()
 		finish()
 

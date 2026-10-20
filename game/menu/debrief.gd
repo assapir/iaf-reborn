@@ -18,12 +18,23 @@ const TEXT_RECT := Rect2(10, 10, 300, 165)
 ## Icon slots, page-local (0x60aa10..): air 9, ground 6, structure from 0x60aa88. The structure row has no bound
 ## of its own (its check reads the ground row's slot pointer, < 0x60aa78), so its 5th and 6th icons take the next
 ## words of the table, the score column's first two positions.
-const AIR_SLOTS := [Vector2(75, 7), Vector2(165, 7), Vector2(255, 7), Vector2(75, 37), Vector2(165, 37),
-	Vector2(255, 37), Vector2(75, 67), Vector2(165, 67), Vector2(255, 67)]
-const GROUND_SLOTS := [Vector2(75, 105), Vector2(165, 105), Vector2(255, 105), Vector2(75, 135),
-	Vector2(165, 135), Vector2(255, 135)]
-const STRUCT_SLOTS := [Vector2(75, 190), Vector2(165, 190), Vector2(75, 220), Vector2(165, 220),
-	Vector2(378, 58), Vector2(378, 128)]
+const AIR_SLOTS := [
+	Vector2(75, 7),
+	Vector2(165, 7),
+	Vector2(255, 7),
+	Vector2(75, 37),
+	Vector2(165, 37),
+	Vector2(255, 37),
+	Vector2(75, 67),
+	Vector2(165, 67),
+	Vector2(255, 67)
+]
+const GROUND_SLOTS := [
+	Vector2(75, 105), Vector2(165, 105), Vector2(255, 105), Vector2(75, 135), Vector2(165, 135), Vector2(255, 135)
+]
+const STRUCT_SLOTS := [
+	Vector2(75, 190), Vector2(165, 190), Vector2(75, 220), Vector2(165, 220), Vector2(378, 58), Vector2(378, 128)
+]
 ## The score column (0x60aaa8..0x60aae4): right edge x and the line's centre y.
 const SCORE_X := 378
 const ROW_Y := [58, 128, 184]
@@ -94,8 +105,15 @@ func items(t: int) -> Array:
 	var a: Dictionary = stats.attempt
 	var sc := Pilots.attempt_score(a)
 	if t == 0:
-		out.append({"text": "%s\n %s" % [d.get("headline", ""), d.get("notes", "")], "at": TEXT_RECT.position,
-			"align": "wrap", "key": true, "color": GREEN})
+		out.append(
+			{
+				"text": "%s\n %s" % [d.get("headline", ""), d.get("notes", "")],
+				"at": TEXT_RECT.position,
+				"align": "wrap",
+				"key": true,
+				"color": GREEN
+			}
+		)
 	else:
 		var counts: Array = a.kills if t == 1 else a.losses
 		var used := [0, 0, 0]
@@ -154,12 +172,26 @@ func _draw() -> void:
 				# DT_WORDBREAK: the 6×8 font's lines are 8 px apart. Split at "\n" here: the font has a glyph for it.
 				var y := p.y + 7.0 * s
 				for line in it.text.split("\n"):
-					draw_multiline_string(key_font, Vector2(p.x, y), line, HORIZONTAL_ALIGNMENT_LEFT, TEXT_RECT.size.x * s, ks, -1, it.color)
-					y += maxf(key_font.get_multiline_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, TEXT_RECT.size.x * s, ks).y, 8.0 * s)
+					draw_multiline_string(
+						key_font,
+						Vector2(p.x, y),
+						line,
+						HORIZONTAL_ALIGNMENT_LEFT,
+						TEXT_RECT.size.x * s,
+						ks,
+						-1,
+						it.color
+					)
+					y += maxf(
+						key_font.get_multiline_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, TEXT_RECT.size.x * s, ks).y,
+						8.0 * s
+					)
 			else:
 				# TA_CENTER | TA_TOP.
 				var w := key_font.get_string_size(it.text, HORIZONTAL_ALIGNMENT_LEFT, -1, ks).x
-				draw_string(key_font, p + Vector2(-w / 2.0, 7.0 * s), it.text, HORIZONTAL_ALIGNMENT_LEFT, -1, ks, it.color)
+				draw_string(
+					key_font, p + Vector2(-w / 2.0, 7.0 * s), it.text, HORIZONTAL_ALIGNMENT_LEFT, -1, ks, it.color
+				)
 		else:
 			# TA_RIGHT | TA_TOP at y − tmHeight / 2, with GDI's Arial metrics (gdi.gd works in units from the origin).
 			var o: Vector2 = fe._to_screen(Vector2.ZERO)

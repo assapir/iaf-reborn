@@ -24,8 +24,10 @@ func run() -> void:
 	tv.set_physics_process(false)
 	c.state["better"] = {"aoa_index": 1, "flcs": true, "to_ldg_config": true}
 	await frames(2)
-	check(c.better_instruments == null or (c.better_instruments.indexer == 0 and c.better_instruments.lamps.is_empty()),
-			"f16: Original = the static art (no indexer, no lamps)")
+	check(
+		c.better_instruments == null or (c.better_instruments.indexer == 0 and c.better_instruments.lamps.is_empty()),
+		"f16: Original = the static art (no indexer, no lamps)"
+	)
 	Settings().better_cockpit = true
 	await frames(1)
 	check(c.better_instruments._unlit != null, "f16: the unlit copy of the indexer art")
@@ -37,12 +39,18 @@ func run() -> void:
 		c.state["better"] = {"flcs": w[0], "to_ldg_config": w[1]}
 		await frames(2)
 		var l: Dictionary = c.better_instruments.lamps
-		check(l.get("flcs") == w[0] and l.get("to_ldg_config") == w[1], "f16: lamps FLCS %s TO/LDG %s (%s)" % [w[0], w[1], l])
+		check(
+			l.get("flcs") == w[0] and l.get("to_ldg_config") == w[1],
+			"f16: lamps FLCS %s TO/LDG %s (%s)" % [w[0], w[1], l]
+		)
 	Settings().cockpit_items["aoa_indexer"] = false
 	Settings().cockpit_items["warning_lamps"] = false
 	c.state["better"] = {"aoa_index": 2, "flcs": true}
 	await frames(2)
-	check(c.better_instruments.indexer == 0 and c.better_instruments.lamps.is_empty(), "f16: the items' own flags off = static")
+	check(
+		c.better_instruments.indexer == 0 and c.better_instruments.lamps.is_empty(),
+		"f16: the items' own flags off = static"
+	)
 	Settings().cockpit_items["aoa_indexer"] = true
 	Settings().cockpit_items["warning_lamps"] = true
 
@@ -62,7 +70,10 @@ func run() -> void:
 		c.state["vs_fpm"] = v[0]
 		await frames(2)
 		var a: float = c.better_instruments.needles[0]
-		check(is_equal_approx(a, deg_to_rad(v[1])), "mirage: %d ft/min → needle %.1f° (%.1f°)" % [v[0], v[1], rad_to_deg(a)])
+		check(
+			is_equal_approx(a, deg_to_rad(v[1])),
+			"mirage: %d ft/min → needle %.1f° (%.1f°)" % [v[0], v[1], rad_to_deg(a)]
+		)
 	Settings().cockpit_items["standby_instruments"] = false
 	await frames(2)
 	check(is_nan(c.better_instruments.needles[0]), "mirage: the item's own flag off = static")

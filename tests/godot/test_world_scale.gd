@@ -19,8 +19,13 @@ func run() -> void:
 	check(S.world_scale == "real", "settings.cfg round trip")
 	var flat := AABB(Vector3(-500, 0, -100), Vector3(1000, 0, 200))
 	check(S.keeps_present("x/ul_rw1.gltf", flat, 2.0, 13, 0.05), "a flat underlay keeps its scale")
-	check(S.keeps_present("x/lt_dvd_h.gltf", AABB(Vector3.ZERO, Vector3.ONE), 2.0, 14, 0.05), "a light set keeps its scale")
-	check(not S.keeps_present("x/t72_h.gltf", AABB(Vector3.ZERO, Vector3(3, 2, 9)), 3.0, 5, 0.05), "a tank is an object")
+	check(
+		S.keeps_present("x/lt_dvd_h.gltf", AABB(Vector3.ZERO, Vector3.ONE), 2.0, 14, 0.05),
+		"a light set keeps its scale"
+	)
+	check(
+		not S.keeps_present("x/t72_h.gltf", AABB(Vector3.ZERO, Vector3(3, 2, 9)), 3.0, 5, 0.05), "a tank is an object"
+	)
 
 	# --- steps 2–4 in both modes ---
 	S.world_scale = "original"
@@ -29,15 +34,30 @@ func run() -> void:
 	S.world_scale = "real"
 	var r := await _sample(311)
 	var r2 := await _sample(214)
-	check(o.player_scale == 2.0 and r.player_scale == 1.0, "player's jet: ×2 / ×1 (%s / %s)" % [o.player_scale, r.player_scale])
-	check(absf(o.clearance - 3.38) < 0.05 and absf(r.clearance - 1.69) < 0.05,
-			"on its wheels: origin 3.38 / 1.69 m above the ground (%.2f / %.2f)" % [o.clearance, r.clearance])
-	check(r.eye.is_equal_approx(o.eye * 0.5) and o.eye.length() > 1.0, "cockpit model offset halves (%s / %s)" % [o.eye, r.eye])
+	check(
+		o.player_scale == 2.0 and r.player_scale == 1.0,
+		"player's jet: ×2 / ×1 (%s / %s)" % [o.player_scale, r.player_scale]
+	)
+	check(
+		absf(o.clearance - 3.38) < 0.05 and absf(r.clearance - 1.69) < 0.05,
+		"on its wheels: origin 3.38 / 1.69 m above the ground (%.2f / %.2f)" % [o.clearance, r.clearance]
+	)
+	check(
+		r.eye.is_equal_approx(o.eye * 0.5) and o.eye.length() > 1.0,
+		"cockpit model offset halves (%s / %s)" % [o.eye, r.eye]
+	)
 	check(r.gun.is_equal_approx(o.gun * 0.5) and o.gun.length() > 1.0, "gun muzzle halves (%s / %s)" % [o.gun, r.gun])
-	check(o.store_err > 0.5 and r.store_err < 0.01,
-			"stores: drawn at their launch points in Real (%.2f m off in Original, %.3f in Real)" % [o.store_err, r.store_err])
+	check(
+		o.store_err > 0.5 and r.store_err < 0.01,
+		(
+			"stores: drawn at their launch points in Real (%.2f m off in Original, %.3f in Real)"
+			% [o.store_err, r.store_err]
+		)
+	)
 	check(o.weapon_scale == 2.0 and r.weapon_scale == 1.0, "weapon models ×2 / ×1")
-	check(o.hidden == r.hidden and not o.hidden.is_empty(), "the same units hidden in both modes (%d)" % o.hidden.size())
+	check(
+		o.hidden == r.hidden and not o.hidden.is_empty(), "the same units hidden in both modes (%d)" % o.hidden.size()
+	)
 	check(o2.hidden == r2.hidden, "214: the same units hidden in both modes (%d)" % o2.hidden.size())
 	# 311 has the base's buildings only; 214 adds AI jets (some parked) and SAM sites (Present 3).
 	var kinds := {"ai jet": 0, "ground unit": 0, "building": 0, "kept": 0}
@@ -64,7 +84,10 @@ func run() -> void:
 		elif a[2] in [12, 13]:
 			kinds.building += 1
 	check(bad.is_empty(), "every unit at 1 (radius / its Present scale) or kept (bad: %s)" % [bad])
-	check(kinds["ai jet"] > 0 and kinds["ground unit"] > 0 and kinds.building > 0, "AI jets, ground units, buildings at 1 (%s)" % kinds)
+	check(
+		kinds["ai jet"] > 0 and kinds["ground unit"] > 0 and kinds.building > 0,
+		"AI jets, ground units, buildings at 1 (%s)" % kinds
+	)
 	check(absf(r.underlay - 2.0) < 1e-4, "Ramat David's underlay keeps ×2 (× its base's k: %s)" % r.underlay)
 
 	# --- take-off in Real: wheels on the runway until it lifts off, no crash. 315 starts on Ramon's lineup (311's
@@ -127,7 +150,9 @@ func _sample(id: int) -> Dictionary:
 	for ent in tv.runtime.entities.values():
 		if ent.player or ent.get("node") == null or not ent.has("coll_radius"):
 			continue
-		out.units[ent.key] = [ent.node.scale.x, ent.coll_radius, ent.klass, ent.has("pilot"), float(ent.get("base_scale", 1.0))]
+		out.units[ent.key] = [
+			ent.node.scale.x, ent.coll_radius, ent.klass, ent.has("pilot"), float(ent.get("base_scale", 1.0))
+		]
 		if not ent.get("drawn", true):
 			out.hidden.append(ent.key)
 		if ent.name == "Ramat David":
@@ -145,7 +170,9 @@ func _sample(id: int) -> Dictionary:
 	for i in tv.weapons._store_nodes:
 		var st: Dictionary = tv.weapons.stores.stations[i]
 		for j in tv.weapons._store_nodes[i].size():
-			var drawn: Vector3 = tv.rig.global_transform.affine_inverse() * tv.weapons._store_nodes[i][j].global_position
+			var drawn: Vector3 = (
+				tv.rig.global_transform.affine_inverse() * tv.weapons._store_nodes[i][j].global_position
+			)
 			err = maxf(err, drawn.distance_to(st.slots[j]))
 	out["store_err"] = err
 	out["weapon_scale"] = float(tv.weapons.db.weapons.values()[0].scale)

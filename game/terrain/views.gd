@@ -33,8 +33,16 @@ const TWO_UP := 30.0  # 0x66d71c
 const CIRCLE_RATE := 0.314159  # 0x610e68 (18°/s)
 const CIRCLE_R := 600.0  # 0x610e6c
 ## Snap views (FUN_0057fd10): id 0x1c..0x23 → head yaw (fractions of π: 0x610f14..0x610f2c) and pitch.
-const SNAPS := {0: Vector2(0, 0.261799), 45: Vector2(0.2 * PI, 0), 90: Vector2(0.5 * PI, 0), 135: Vector2(0.8 * PI, 0),
-	180: Vector2(PI, 0.20944), 225: Vector2(-0.8 * PI, 0), 270: Vector2(-0.5 * PI, 0), 315: Vector2(-0.2 * PI, 0)}
+const SNAPS := {
+	0: Vector2(0, 0.261799),
+	45: Vector2(0.2 * PI, 0),
+	90: Vector2(0.5 * PI, 0),
+	135: Vector2(0.8 * PI, 0),
+	180: Vector2(PI, 0.20944),
+	225: Vector2(-0.8 * PI, 0),
+	270: Vector2(-0.5 * PI, 0),
+	315: Vector2(-0.2 * PI, 0)
+}
 
 ## Host (terrain_view.gd): terrain heights (`ground_at(scene pos)`), the clock.
 var ground_at: Callable
@@ -94,6 +102,7 @@ func head_angles() -> Vector2:
 
 
 # --- setters -------------------------------------------------------------------------------------
+
 
 ## FUN_0057f2a0 case 1 / 5: the cockpit or HUD-only view; coming from a panned or padlocked cockpit view
 ## the head returns to straight ahead linearly at 45°/s on the larger axis (FUN_0057fa10), from an
@@ -184,6 +193,7 @@ func set_circle(ent: Node3D, h: float, t: int) -> void:
 
 # --- keys ----------------------------------------------------------------------------------------
 
+
 ## Pans (23 right, 24 left, 26 up, 27 down) and zoom (20 in, 21 out) → FUN_00582290 codes; `down` = press.
 ## External orbit views (6 / 9): ±45°/s heading / pitch, ±60 m/s distance (FUN_00582510); cockpit-like
 ## views: free look (FUN_00582370; padlock breaks; zoom codes enter it with no motion); else nothing.
@@ -225,6 +235,7 @@ func snap_key(angle: int) -> void:
 
 
 # --- per frame -----------------------------------------------------------------------------------
+
 
 func head_now() -> Vector2:
 	if type == FREE_LOOK:
@@ -311,7 +322,9 @@ func external_pose(dt: float) -> Array:
 				_circle_centre = c
 			var t := (Time.get_ticks_msec() * 0.001) if _circle_wall else (now - _circle_t0)
 			var a := CIRCLE_RATE * t
-			var eye := Terrain.dir_to_scene(Terrain.dir_to_world(c) + Vector3(CIRCLE_R * cos(a), CIRCLE_R * sin(a), _circle_h))
+			var eye := Terrain.dir_to_scene(
+				Terrain.dir_to_world(c) + Vector3(CIRCLE_R * cos(a), CIRCLE_R * sin(a), _circle_h)
+			)
 			eye.y = maxf(eye.y, _ground(eye) + 15.0)
 			return [eye, c]
 	return []

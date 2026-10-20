@@ -23,7 +23,9 @@ func run() -> void:
 		# A made-up route, on its second leg, so the course pointer (the leg, 090°) and the bearing pointer (the
 		# waypoint, 045°) part.
 		var own: Vector2 = c.state.world
-		c.waypoints = [{"name": "A", "world": own + Vector2(-10000, 10000)}, {"name": "B", "world": own + Vector2(10000, 10000)}]
+		c.waypoints = [
+			{"name": "A", "world": own + Vector2(-10000, 10000)}, {"name": "B", "world": own + Vector2(10000, 10000)}
+		]
 		c.current_waypoint = 1
 		for k in CASES:
 			Settings().better_cockpit = k[1]
@@ -31,9 +33,14 @@ func run() -> void:
 			c.panel_shift = 1.0
 			var h := deg_to_rad(float(k[0]))
 			var st: Dictionary = tv.flight.state()
-			tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, st.position,
-					Vector3(0.0, 0.0, k[0]), Vector3(sin(h), 0, -cos(h)) * 200.0,
-					{"airborne": true, "engine_on": true, "real_data": false})
+			tv.flight.start(
+				Settings().assets_dir().path_join("install"),
+				tv.player.fm_section,
+				st.position,
+				Vector3(0.0, 0.0, k[0]),
+				Vector3(sin(h), 0, -cos(h)) * 200.0,
+				{"airborne": true, "engine_on": true, "real_data": false}
+			)
 			await frames(4)
 			await RenderingServer.frame_post_draw
 			var img: Image = root.get_viewport().get_texture().get_image()
@@ -44,12 +51,18 @@ func run() -> void:
 				var s: float = c.ui_scale()
 				var ctr: Vector2 = c.panel_to_screen(spec.centre.x, spec.centre.y) + c.global_position
 				var half := int((float(spec.r) + 8.0) * s)
-				var r := Rect2i(Vector2i(ctr) - Vector2i(half, half), Vector2i(2 * half, 2 * half)).intersection(Rect2i(Vector2i.ZERO, img.get_size()))
+				var r := Rect2i(Vector2i(ctr) - Vector2i(half, half), Vector2i(2 * half, 2 * half)).intersection(
+					Rect2i(Vector2i.ZERO, img.get_size())
+				)
 				var z := img.get_region(r)
 				z.resize(z.get_width() * 3, z.get_height() * 3, Image.INTERPOLATE_NEAREST)
 				z.save_png(dir.path_join(name + "_zoom.png"))
-			print("%s heading %.1f (state %.1f), compasses %d, waypoint %d / %d" % [name, k[0], float(c.state.heading),
-					c.compasses.size(), c.current_waypoint, c.waypoints.size()])
+			print(
+				(
+					"%s heading %.1f (state %.1f), compasses %d, waypoint %d / %d"
+					% [name, k[0], float(c.state.heading), c.compasses.size(), c.current_waypoint, c.waypoints.size()]
+				)
+			)
 	Settings().jet_id = -1
 	Settings().better_cockpit = false
 	print("RESULT PASS")

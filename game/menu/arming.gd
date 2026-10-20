@@ -173,6 +173,7 @@ func use_defaults() -> void:
 
 # --- drawing ------------------------------------------------------------------------------------
 
+
 func _process(_delta: float) -> void:
 	queue_redraw()
 
@@ -202,7 +203,15 @@ func _draw() -> void:
 	if flight >= 1 and flight <= MissionWeapons.FLIGHT_NAMES.size():
 		var fs := int(round(NAME_PX * fe._scale()))
 		var p: Vector2 = fe._to_screen(at + NAME_POS)
-		draw_string(name_font, p + Vector2(0, name_font.get_ascent(fs)), MissionWeapons.FLIGHT_NAMES[flight - 1], HORIZONTAL_ALIGNMENT_LEFT, -1, fs, GREEN)
+		draw_string(
+			name_font,
+			p + Vector2(0, name_font.get_ascent(fs)),
+			MissionWeapons.FLIGHT_NAMES[flight - 1],
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1,
+			fs,
+			GREEN
+		)
 	# MAX T.O.W. then CURRENT LOAD (red when over), key.fnt, centred.
 	var mx := float(jet.max)
 	var cur: float = data.current_weight(flight, float(jet.base))
@@ -250,17 +259,25 @@ func _draw_list() -> void:
 		var box := _row_box(r)
 		fe._blit("arm/hiitem.png" if idx == sel else "arm/item.png", box, self)
 		_region(_icon(w), Rect2(Vector2.ZERO, ICON), box + Vector2.ONE)
-		_key_text(Rect2(box + Vector2.ONE + ROW_TEXT.position, ROW_TEXT.size), w.name, GREEN if idx == sel else DIM_GREEN)
+		_key_text(
+			Rect2(box + Vector2.ONE + ROW_TEXT.position, ROW_TEXT.size), w.name, GREEN if idx == sel else DIM_GREEN
+		)
 	# Scrollbar (FUN_004f3700 layout): SlDownB at the top, SlUpB at the bottom, the thumb between.
 	var bar := _bar()
 	fe._blit("arm/sldownb_%d.png" % (2 if fe.ctrl_arrow == "up" else 0), bar.position, self)
-	fe._blit("arm/slupb_%d.png" % (2 if fe.ctrl_arrow == "down" else 0), Vector2(bar.position.x, bar.end.y - ARROW.y), self)
+	fe._blit(
+		"arm/slupb_%d.png" % (2 if fe.ctrl_arrow == "down" else 0), Vector2(bar.position.x, bar.end.y - ARROW.y), self
+	)
 	fe._blit("arm/slider.png", Vector2(bar.position.x, fe._bar_thumb_y(bar, top, _max_top(), THUMB)), self)
 
 
 ## Row r's item box: item.bmp 51×32 centred in its 72×42 cell.
 func _row_box(r: int) -> Vector2:
-	return LIST_POS + LIST_INNER.position + Vector2(floorf((LIST_INNER.size.x - BOX.x) / 2.0), ROW_H * r + floorf((ROW_H - BOX.y) / 2.0))
+	return (
+		LIST_POS
+		+ LIST_INNER.position
+		+ Vector2(floorf((LIST_INNER.size.x - BOX.x) / 2.0), ROW_H * r + floorf((ROW_H - BOX.y) / 2.0))
+	)
 
 
 ## The drag image (506be0 / 5197f0): the icon under the cursor and "%dx%s" (from a station) or the
@@ -318,6 +335,7 @@ static func g(v: float) -> String:
 
 # --- scrollbar ---------------------------------------------------------------------------------
 
+
 func _max_top() -> int:
 	return maxi(0, rows.size() - ROWS)
 
@@ -339,6 +357,7 @@ func select_row(idx: int) -> void:
 
 
 # --- input -------------------------------------------------------------------------------------
+
 
 func _station_at(p: Vector2, loaded_only: bool) -> int:
 	var st: Dictionary = jet.get("stations", {})
@@ -471,4 +490,3 @@ func _motion(p: Vector2) -> void:
 		if top + r < rows.size() and Rect2(_row_box(r) + Vector2.ONE, ICON).has_point(p):
 			over = true
 	_set_cursor(1 if over else 0)
-

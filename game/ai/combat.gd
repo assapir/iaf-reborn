@@ -234,8 +234,9 @@ func _setup_aircraft(ent: Dictionary, obj: Dictionary, db, now: float, given: Ar
 	# The stores on the jet (FUN_0053b580; the Arming loads: FUN_004541d0 + FUN_00459410 redo the weight / drag).
 	u.stores = Stores.new()
 	u.stores.player = false
-	u.stores.setup(load, db, AircraftModel.load_descriptor(String(ent.pilot.plane)), PlayerWeapons._pilon_of,
-		int(ent.type_code))
+	u.stores.setup(
+		load, db, AircraftModel.load_descriptor(String(ent.pilot.plane)), PlayerWeapons._pilon_of, int(ent.type_code)
+	)
 	_push_stores(u)
 	if ent.get("node") is Node3D:
 		u.store_nodes = PlayerWeapons.attach_stores(u.stores, ent.node).nodes
@@ -307,8 +308,14 @@ func _show_stores(u: Unit) -> void:
 		return
 	var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
 	var node = u.ent.get("node")
-	var near: bool = cam == null or (node is Node3D and is_instance_valid(node)
-		and cam.global_position.distance_to(node.global_position) < PlayerWeapons.STORES_DRAW_DIST)
+	var near: bool = (
+		cam == null
+		or (
+			node is Node3D
+			and is_instance_valid(node)
+			and cam.global_position.distance_to(node.global_position) < PlayerWeapons.STORES_DRAW_DIST
+		)
+	)
 	for i in u.store_nodes:
 		var n := int(u.stores.station(i).get("count", 0))
 		for k in u.store_nodes[i].size():
@@ -392,7 +399,9 @@ func update(now: float) -> void:
 				if r.flying:
 					n.position = host.world_to_scene(u.rounds.position(r, now))
 					var d := Terrain.dir_to_scene(r.u)
-					n.basis = Basis.looking_at(d, Vector3.UP if absf(d.y) < 0.99 else Vector3.RIGHT).scaled(Vector3.ONE * u.round_scale)
+					n.basis = Basis.looking_at(d, Vector3.UP if absf(d.y) < 0.99 else Vector3.RIGHT).scaled(
+						Vector3.ONE * u.round_scale
+					)
 
 
 ## The sensor scan (FUN_004af300): hostile units in range with terrain line of sight, score 100 / dist, the
@@ -465,11 +474,17 @@ func combat(ent: Dictionary, what: String, target: Dictionary) -> Variant:
 
 # --- AI aircraft (docs/ai.md §13) -------------------------------------------------------------------
 
+
 ## The jet's pose now (world): {pos, vel, fwd, up, right}.
 func _pose(u: Unit) -> Dictionary:
 	var st: Dictionary = u.pilot.state()
-	return {"pos": ai.runtime._world_of(u.ent), "vel": u.ent.vel, "fwd": Terrain.dir_to_world(st.get("forward", Vector3.FORWARD)),
-		"up": Terrain.dir_to_world(st.get("up", Vector3.UP)), "right": Terrain.dir_to_world(st.get("right", Vector3.RIGHT))}
+	return {
+		"pos": ai.runtime._world_of(u.ent),
+		"vel": u.ent.vel,
+		"fwd": Terrain.dir_to_world(st.get("forward", Vector3.FORWARD)),
+		"up": Terrain.dir_to_world(st.get("up", Vector3.UP)),
+		"right": Terrain.dir_to_world(st.get("right", Vector3.RIGHT))
+	}
 
 
 ## The fire gate B+0x98 (FUN_004d4100): passes when now < last or now > next, then next = now + interval.
@@ -500,8 +515,14 @@ func _air_action(u: Unit, code: int, t: Dictionary) -> bool:
 				return true
 			var o := _pose(u)
 			var st: Dictionary = u.pilot.state()
-			if host.weapons.release_decoy(550 if code == 310 else 540, o.pos, o, u.ent.key, int(st.get("afterburner", 0)) > 0,
-					float(st.get("g", 1.0))):
+			if host.weapons.release_decoy(
+				550 if code == 310 else 540,
+				o.pos,
+				o,
+				u.ent.key,
+				int(st.get("afterburner", 0)) > 0,
+				float(st.get("g", 1.0))
+			):
 				_spent(u, i)
 			return true
 		330, 340:
@@ -578,8 +599,11 @@ func _envelope(u: Unit, t: Dictionary) -> Array:
 		return [u.range_m * GUN_MAX_K, GUN_MIN]
 	if type in AA_TYPES and host.weapons != null:
 		var o := _pose(u)
-		return Missile.dlz(host.weapons._motion(u.w), {"pos": o.pos, "fwd": o.fwd, "vel": o.vel},
-			{"pos": ai.runtime._world_of(t), "vel": _velocity_of(t)})
+		return Missile.dlz(
+			host.weapons._motion(u.w),
+			{"pos": o.pos, "fwd": o.fwd, "vel": o.vel},
+			{"pos": ai.runtime._world_of(t), "vel": _velocity_of(t)}
+		)
 	return [0.0, 0.0]
 
 
@@ -667,8 +691,9 @@ func _ripple_tick(u: Unit) -> void:
 		# 650 (FUN_00454b70 case 0x28a, AI): the target where it is now, no lead.
 		if not t.is_empty() and spd > 1.0 and int(u.w.type) != 650:
 			p += _velocity_of(t) * (p.distance_to(o.pos) / spd)
-		u.ripple_line = Bombs.ripple_line(p, qty, float(u.ripple.interval()), deg_to_rad(float(u.ent.heading)),
-			host.mission_ground)
+		u.ripple_line = Bombs.ripple_line(
+			p, qty, float(u.ripple.interval()), deg_to_rad(float(u.ent.heading)), host.mission_ground
+		)
 	var aim: Vector3 = u.ripple_line[u.ripple.index(u.ripple_left)]
 	_spent(u, u.cur)
 	host.weapons.release_store(u.w, o.pos, o.vel, aim, u.ent)
@@ -685,8 +710,16 @@ func _gun_round(u: Unit, now: float) -> void:
 		return
 	var o := _pose(u)
 	var a: Vector3 = u.rounds.aim_point(o.pos, o.vel, o.fwd, false)
-	u.rounds.fire(now, o.pos, o.pos + o.fwd * 10.0, o.vel, a, String(u.brain.target.get("key", "")), u.ent.key,
-		Settings.easy_aiming)
+	u.rounds.fire(
+		now,
+		o.pos,
+		o.pos + o.fwd * 10.0,
+		o.vel,
+		a,
+		String(u.brain.target.get("key", "")),
+		u.ent.key,
+		Settings.easy_aiming
+	)
 	_spent(u, 9)
 
 
@@ -848,7 +881,9 @@ func _fire_tick(u: Unit, now: float) -> void:
 		var ft: float = dist / u.limit_vel
 		aim = tp + tv * ft + 0.5 * acc * ft * ft
 	elif int(u.w.type) in HOMING and host.weapons != null:
-		var env: Array = Missile.dlz(host.weapons._motion(u.w), {"pos": p, "fwd": nose, "vel": Vector3.ZERO}, {"pos": tp, "vel": tv})
+		var env: Array = Missile.dlz(
+			host.weapons._motion(u.w), {"pos": p, "fwd": nose, "vel": Vector3.ZERO}, {"pos": tp, "vel": tv}
+		)
 		if dist < float(env[1]) or dist > float(env[0]):
 			return
 	else:
@@ -904,7 +939,9 @@ func _release(u: Unit, t: Dictionary, aim: Vector3, now: float, truce: bool, fla
 		_truce_until = now + TRUCE_MIN + randf() * TRUCE_RAND
 	if not _fixed(u) and (not int(u.w.type) in HOMING or host.weapons == null):
 		return
-	var busy: bool = u.missile != null and u.missile in host.weapons.missiles if not _fixed(u) else not u.rounds.next_free()
+	var busy: bool = (
+		u.missile != null and u.missile in host.weapons.missiles if not _fixed(u) else not u.rounds.next_free()
+	)
 	# The release's line of sight raises both ends by 3 m (−1.5 subtracted twice, 0x6031e0 @4abd14), not the
 	# sensor's 1.5 m.
 	if busy or not line_of_sight(p, tp, RELEASE_LOS_RAISE):
@@ -929,7 +966,17 @@ func _release(u: Unit, t: Dictionary, aim: Vector3, now: float, truce: bool, fla
 	var at := p + right * LAUNCH_OFFSET.x + nose * LAUNCH_OFFSET.y + up * LAUNCH_OFFSET.z
 	if _fixed(u):
 		# Its speed adds the launcher's (FUN_004d5d10 takes the mover's velocity, vt+0x38).
-		var slot: int = u.rounds.fire(now, at, at, u.ent.get("vel", Vector3.ZERO), aim, "", u.ent.key, Settings.easy_aiming, [t.key] if not t.is_empty() else [])
+		var slot: int = u.rounds.fire(
+			now,
+			at,
+			at,
+			u.ent.get("vel", Vector3.ZERO),
+			aim,
+			"",
+			u.ent.key,
+			Settings.easy_aiming,
+			[t.key] if not t.is_empty() else []
+		)
 		if slot >= 0:
 			u.rounds.pool[slot].flag = flag
 			u.rounds.pool[slot].target = t
@@ -942,8 +989,15 @@ func _release(u: Unit, t: Dictionary, aim: Vector3, now: float, truce: bool, fla
 				u.fire_sound.top_level = true
 				u.fire_sound.global_position = host.world_to_scene(at)
 		return
-	u.missile = host.weapons.launch_homing(u.w, at, {"vel": Vector3.ZERO, "fwd": nose, "up": up, "right": right},
-		String(t.get("key", "")), 1.0, u.ent, null if not t.is_empty() else aim)
+	u.missile = host.weapons.launch_homing(
+		u.w,
+		at,
+		{"vel": Vector3.ZERO, "fwd": nose, "up": up, "right": right},
+		String(t.get("key", "")),
+		1.0,
+		u.ent,
+		null if not t.is_empty() else aim
+	)
 	u.missile.set_meta("flag", flag)
 
 

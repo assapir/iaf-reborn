@@ -20,11 +20,23 @@ func unit(rt, name: String) -> Dictionary:
 
 func run() -> void:
 	# Blast (FUN_004642f0): full power at the centre, falling off per axis, nothing outside R.
-	check(is_equal_approx(DamageModel.blast(Vector3.ZERO, 0.0, Vector3.ZERO, 100.0, 50.0), 100.0), "blast at the centre = power")
-	check(is_equal_approx(DamageModel.blast(Vector3(25, 0, 0), 0.0, Vector3.ZERO, 100.0, 50.0), 50.0), "half the radius on one axis = half")
-	check(is_equal_approx(DamageModel.blast(Vector3(30, 0, 0), 10.0, Vector3.ZERO, 100.0, 40.0), 50.0), "the unit's size shortens the distance")
+	check(
+		is_equal_approx(DamageModel.blast(Vector3.ZERO, 0.0, Vector3.ZERO, 100.0, 50.0), 100.0),
+		"blast at the centre = power"
+	)
+	check(
+		is_equal_approx(DamageModel.blast(Vector3(25, 0, 0), 0.0, Vector3.ZERO, 100.0, 50.0), 50.0),
+		"half the radius on one axis = half"
+	)
+	check(
+		is_equal_approx(DamageModel.blast(Vector3(30, 0, 0), 10.0, Vector3.ZERO, 100.0, 40.0), 50.0),
+		"the unit's size shortens the distance"
+	)
 	check(DamageModel.blast(Vector3(0, 60, 0), 0.0, Vector3.ZERO, 100.0, 50.0) == 0.0, "outside the radius: nothing")
-	check(DamageModel.level_for(0.79) == -1 and DamageModel.level_for(0.8) == 3 and DamageModel.level_for(1.0) == 5, "levels: 0.8 hit, 1.0 destroyed")
+	check(
+		DamageModel.level_for(0.79) == -1 and DamageModel.level_for(0.8) == 3 and DamageModel.level_for(1.0) == 5,
+		"levels: 0.8 hit, 1.0 destroyed"
+	)
 	var r: Array = DamageModel.add_damage(0.0, 50.0, 100.0, true, 0)
 	check(is_equal_approx(r[0], 0.4) and not r[1], "Rookie: an enemy takes 0.8 of the damage (%.2f)" % r[0])
 	r = DamageModel.add_damage(0.5, 60.0, 100.0, false, 0)
@@ -37,7 +49,9 @@ func run() -> void:
 	rng.seed = 7
 	var seen := {}
 	for i in 400:
-		var p: Array = DamageModel.pick_system(0.2 + 0.7 * (i % 3) / 2.0, flags, false, true, false, false, func(): return rng.randi() & 0x7fff)
+		var p: Array = DamageModel.pick_system(
+			0.2 + 0.7 * (i % 3) / 2.0, flags, false, true, false, false, func(): return rng.randi() & 0x7fff
+		)
 		seen[p[0]] = true
 	check(not seen.has(2) and not seen.has(3), "engine cut-out never picked (quirk kept)")
 	check(not seen.has(9) and not seen.has(17) and not seen.has(23), "single engine: no right-engine systems")
@@ -54,14 +68,19 @@ func run() -> void:
 	check(t0.strength > 0.0, "tank strength from the bdb (%.0f)" % t0.strength)
 	# A small hit: stored, still alive (an enemy of the player takes 0.9 of it at the Normal AI level).
 	rt.apply_damage(t0, t0.strength * 0.3, "blast", p0)
-	check(t0.state == 1 and is_equal_approx(t0.damage, 0.27), "30 %% hit at Normal: alive, damage 0.27 (%.2f)" % t0.damage)
+	check(
+		t0.state == 1 and is_equal_approx(t0.damage, 0.27), "30 %% hit at Normal: alive, damage 0.27 (%.2f)" % t0.damage
+	)
 	# Past 0.8: fatally hit (state 3), the unit stays where it is (no end check for ground units).
 	rt.apply_damage(t0, t0.strength * 0.65, "blast", p0)
 	check(t0.state == 3, "0.855: fatally hit, state 3 (%d)" % t0.state)
 	# A blast on the tank destroys it: explosion, the second one too -> mission passed.
 	rt.area_damage(rt._world_of(t0), t0.strength * 2.0, 20.0, p0)
 	check(t0.state == 5 and rt.targets_left == 1, "blast destroys the first tank (state %d)" % t0.state)
-	check(tv.effects.counts().pieces > 0 or tv.effects.counts().columns > 0, "explosion effect spawned (%s)" % str(tv.effects.counts()))
+	check(
+		tv.effects.counts().pieces > 0 or tv.effects.counts().columns > 0,
+		"explosion effect spawned (%s)" % str(tv.effects.counts())
+	)
 	rt.apply_damage(t1, t1.strength * 5.0, "blast", p0)
 	check(t1.state == 5 and rt.passed, "second tank destroyed: mission passed")
 	await seconds(10.5)
@@ -79,8 +98,13 @@ func run() -> void:
 	fx.explosion(Vector3(at.x, gy + 8.0, at.z), 0x58ba, 4.0, 95.0, gy, 6.0)
 	await seconds(4.0)
 	var resting: Array = fx._pieces.filter(func(p): return p.resting)
-	var off: Array = resting.filter(func(p): return absf(p.node.position.y - tv.terrain.height_at(p.node.position)) > 0.05)
-	check(resting.size() > 0 and off.is_empty(), "debris rests on the terrain (%d resting, %d off)" % [resting.size(), off.size()])
+	var off: Array = resting.filter(
+		func(p): return absf(p.node.position.y - tv.terrain.height_at(p.node.position)) > 0.05
+	)
+	check(
+		resting.size() > 0 and off.is_empty(),
+		"debris rests on the terrain (%d resting, %d off)" % [resting.size(), off.size()]
+	)
 
 	# With the unit's model the pieces are its polygons (FUN_004172b0): one shatter mesh; the resting
 	# ones (0x1000) end on the terrain under their landing point.
@@ -91,7 +115,10 @@ func run() -> void:
 		var q: Vector3 = p.c + p.vel * p.stop + Vector3(0, -0.5 * fx.PIECE_G * p.stop * p.stop, 0)
 		if p.stop < p.end and absf(q.y - tv.terrain.height_at(q)) > 0.5:
 			bad += 1
-	check(fx.counts().shards >= 1 and sh.large.size() > 0 and bad == 0, "model shatter: %d large pieces, %d not on the terrain" % [sh.large.size(), bad])
+	check(
+		fx.counts().shards >= 1 and sh.large.size() > 0 and bad == 0,
+		"model shatter: %d large pieces, %d not on the terrain" % [sh.large.size(), bad]
+	)
 
 	# Water splash + ring (0x60000, FUN_00418530 / FUN_004188b0), scale S = 3: the splash rises 14·S·sin(πt) with
 	# half-width 1.6·S·(t + 0.2) over 1.2 s; the ring grows to 9.6·S·t and fades over 2.4 s.
@@ -102,13 +129,17 @@ func run() -> void:
 	var ring: Dictionary = fx._water[fx._water.size() - 1]
 	spl.age = 0.6
 	fx.water_transform(spl)
-	check(not spl.ring and is_equal_approx(spl.node.scale.y, 42.0) and is_equal_approx(spl.node.scale.x, 6.72),
-			"splash at t 0.5: 42 m high, 6.72 m wide (%s)" % str(spl.node.scale))
+	check(
+		not spl.ring and is_equal_approx(spl.node.scale.y, 42.0) and is_equal_approx(spl.node.scale.x, 6.72),
+		"splash at t 0.5: 42 m high, 6.72 m wide (%s)" % str(spl.node.scale)
+	)
 	ring.age = 1.2
 	fx.water_transform(ring)
 	var rq: MeshInstance3D = ring.node.get_child(0)
-	check(ring.ring and is_equal_approx(ring.node.scale.x, 28.8) and is_equal_approx(rq.transparency, 0.5),
-			"ring at t 0.5: 28.8 m across, half faded (%s, %.2f)" % [str(ring.node.scale), rq.transparency])
+	check(
+		ring.ring and is_equal_approx(ring.node.scale.x, 28.8) and is_equal_approx(rq.transparency, 0.5),
+		"ring at t 0.5: 28.8 m across, half faded (%s, %.2f)" % [str(ring.node.scale), rq.transparency]
+	)
 	check(spl.node.get_child(0).material_override.albedo_texture != null, "splash uses the install's w_splash.tga")
 	await seconds(2.6)
 	check(fx.counts().water == n0, "splash and ring gone after 2.4 s")
@@ -127,13 +158,23 @@ func run() -> void:
 	var me: Dictionary = rt.player_entity()
 	# The friendly-hit voice (FUN_00551560 -> FUN_005515d0): the player's hit on its own side; the hit unit says
 	# it while it still flies, at most once per 10 s; nothing for another shooter.
-	check(DamageModel.friendly_voice(true, true) == "VOC_TARGET_SAY_FRIENDLY_HIT"
+	check(
+		(
+			DamageModel.friendly_voice(true, true) == "VOC_TARGET_SAY_FRIENDLY_HIT"
 			and DamageModel.friendly_voice(false, true) == "VOC_WINGMAN_SAY_FRIENDLY_HIT"
-			and DamageModel.friendly_voice(false, false) == "VOC_TOWER_SAY_FRIENDLY_HIT", "who says the friendly hit")
+			and DamageModel.friendly_voice(false, false) == "VOC_TOWER_SAY_FRIENDLY_HIT"
+		),
+		"who says the friendly hit"
+	)
 	var fr: Dictionary = {}
 	for e in rt.entities.values():
-		if not e.player and e.side == me.side and int(e.klass) in DamageModel.FRIENDLY_VOICE_CLASSES and e.state == 1 \
-				and e.damageable:
+		if (
+			not e.player
+			and e.side == me.side
+			and int(e.klass) in DamageModel.FRIENDLY_VOICE_CLASSES
+			and e.state == 1
+			and e.damageable
+		):
 			fr = e
 			break
 	if fr.is_empty():
@@ -143,8 +184,10 @@ func run() -> void:
 		rt.apply_damage(fr, fr.strength * 0.05, "gun", post)
 		check(said.call() == 0, "an enemy's hit on a friend: no voice")
 		rt.apply_damage(fr, fr.strength * 0.05, "gun", me)
-		check(said.call() == 1 and tv.sounds.played.has("VOC_TARGET_SAY_FRIENDLY_HIT/None"),
-				"the player hits %s: the target says \"friendly\"" % fr.name)
+		check(
+			said.call() == 1 and tv.sounds.played.has("VOC_TARGET_SAY_FRIENDLY_HIT/None"),
+			'the player hits %s: the target says "friendly"' % fr.name
+		)
 		rt.apply_damage(fr, fr.strength * 0.05, "gun", me)
 		check(said.call() == 1, "no second call within 10 s")
 	Settings().invulnerable = true

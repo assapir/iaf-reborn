@@ -16,22 +16,47 @@ extends Control
 ##   clockwise)] pairs in increasing value, linear between them, held at the ends; `value` = the cockpit.state key.
 ## * warning_lamps: `state` = the key of cockpit.state.better that lights it, `quad` = the lamp's corners.
 const INSTRUMENTS := {
-	"f16": [
+	"f16":
+	[
 		# The AoA indexer on the HUD frame, left of the glass (T.O. GR1F-16CJ-1 fig. 1-3 item 37).
 		{"item": "aoa_indexer", "boxes": [Rect2(15, 120, 15, 13), Rect2(15, 138, 15, 14), Rect2(15, 156, 15, 13)]},
 		# The right glareshield lamps (fig. 1-3 items 4, 6): FLCS (the upper half of the FLCS / DBU ON lamp) and
 		# TO/LDG CONFIG. DBU ON and CANOPY stay unlit: the game has no backup mode or canopy state.
-		{"item": "warning_lamps", "state": "flcs",
-			"quad": [Vector2(1254.8, 97.3), Vector2(1260.5, 92.0), Vector2(1275.0, 105.0), Vector2(1268.0, 111.0)]},
-		{"item": "warning_lamps", "state": "to_ldg_config",
-			"quad": [Vector2(1263.0, 120.5), Vector2(1275.0, 110.0), Vector2(1289.0, 123.0), Vector2(1276.0, 134.0)]},
+		{
+			"item": "warning_lamps",
+			"state": "flcs",
+			"quad": [Vector2(1254.8, 97.3), Vector2(1260.5, 92.0), Vector2(1275.0, 105.0), Vector2(1268.0, 111.0)]
+		},
+		{
+			"item": "warning_lamps",
+			"state": "to_ldg_config",
+			"quad": [Vector2(1263.0, 120.5), Vector2(1275.0, 110.0), Vector2(1289.0, 123.0), Vector2(1276.0, 134.0)]
+		},
 	],
-	"mirage": [
-		# The vertical speed indicator, upper left: 0 at 9 o'clock, climb clockwise, descent anticlockwise, the
+	"mirage":
+	# The vertical speed indicator, upper left: 0 at 9 o'clock, climb clockwise, descent anticlockwise, the
+	[
 		# marks 0.5, 1, 2, 4, 6 (×1000 ft/min, inferred) both ways, 6 at 3 o'clock.
-		{"item": "standby_instruments", "value": "vs_fpm", "centre": Vector2(686.0, 159.5), "r": 19.0,
-			"scale": [[-6000, -270], [-4000, -225], [-2000, -184], [-1000, -156], [-500, -127], [0, -90],
-				[500, -53], [1000, -24], [2000, 4], [4000, 45], [6000, 90]]},
+		{
+			"item": "standby_instruments",
+			"value": "vs_fpm",
+			"centre": Vector2(686.0, 159.5),
+			"r": 19.0,
+			"scale":
+			[
+				[-6000, -270],
+				[-4000, -225],
+				[-2000, -184],
+				[-1000, -156],
+				[-500, -127],
+				[0, -90],
+				[500, -53],
+				[1000, -24],
+				[2000, 4],
+				[4000, 45],
+				[6000, 90]
+			]
+		},
 	],
 }
 ## The lit lamp's brightening (of the art's colours).
@@ -111,7 +136,9 @@ func refresh() -> void:
 					_indexer_spec = spec
 					indexer = int(better.get("aoa_index", 0))
 			"standby_instruments":
-				needles.append(deg_to_rad(dial_angle(spec.scale, float(cockpit.state.get(spec.value, 0.0)))) if on else NAN)
+				needles.append(
+					deg_to_rad(dial_angle(spec.scale, float(cockpit.state.get(spec.value, 0.0)))) if on else NAN
+				)
 			"warning_lamps":
 				if on:
 					lamps[spec.state] = bool(better.get(spec.state, false))
@@ -129,8 +156,13 @@ func _draw() -> void:
 				n += 1
 				if not is_nan(a):
 					var c: Vector2 = cockpit.panel_to_screen(spec.centre.x, spec.centre.y)
-					draw_line(c, c + Vector2(sin(a), -cos(a)) * float(spec.r) * s * 0.9,
-						NEEDLE * cockpit._night_mod("PANEL"), maxf(1.0, 2.0 * s * 0.6), true)
+					draw_line(
+						c,
+						c + Vector2(sin(a), -cos(a)) * float(spec.r) * s * 0.9,
+						NEEDLE * cockpit._night_mod("PANEL"),
+						maxf(1.0, 2.0 * s * 0.6),
+						true
+					)
 			"warning_lamps":
 				if lamps.get(spec.state, false):
 					_draw_lamp(spec.quad, s)
@@ -146,8 +178,12 @@ func _draw_unlit(s: float) -> void:
 	for i in 3:
 		if i + 1 != indexer:
 			var b: Rect2 = _indexer_spec.boxes[i]
-			draw_texture_rect_region(_unlit, Rect2(tl + b.position * s, b.size * s), Rect2(b.position * k, b.size * k),
-				cockpit._night_mod("PANEL"))
+			draw_texture_rect_region(
+				_unlit,
+				Rect2(tl + b.position * s, b.size * s),
+				Rect2(b.position * k, b.size * k),
+				cockpit._night_mod("PANEL")
+			)
 
 
 ## A lit lamp: its quad of the panel art drawn brighter.

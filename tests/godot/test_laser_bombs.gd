@@ -8,13 +8,15 @@ extends "res://../tests/godot/base.gd"
 
 const EoSensor := preload("res://weapons/eo_sensor.gd")
 ## [Jet list id, F-35I slot, type].
-const CASES := [[-1, -1, 100], [0, -1, 110], [2, -1, 120], [3, -1, 200], [4, -1, 140], [5, -1, 130], [6, -1, 190], [4, 4, 1000]]
+const CASES := [
+	[-1, -1, 100], [0, -1, 110], [2, -1, 120], [3, -1, 200], [4, -1, 140], [5, -1, 130], [6, -1, 190], [4, 4, 1000]
+]
 const MK82L := 16
 const FLIR := 55
 
 
 func run() -> void:
-	for c in (CASES if DisplayServer.get_name() == "headless" else CASES.slice(0, 1)):
+	for c in CASES if DisplayServer.get_name() == "headless" else CASES.slice(0, 1):
 		Settings().f35i_slot = c[1]
 		Settings().jet_id = c[0]
 		var tv = await start_mission(231)
@@ -44,7 +46,9 @@ func _case(tv, name: String, shots: bool) -> void:
 	w.ripple_qty = 1
 	t += 0.05
 	w.update(t)
-	check(w.stores.current_type() == 650 and w.master == 5, "%s: %s selected: master 5" % [name, w.stores.current_name()])
+	check(
+		w.stores.current_type() == 650 and w.master == 5, "%s: %s selected: master 5" % [name, w.stores.current_name()]
+	)
 	# Designated: the FLIR camera started on the site (the radar's target), the laser on. (On a ground point the
 	# centre point is the drawn model's face, above the 2 m limit for a model taller than that.)
 	w.eo.start(EoSensor.FLIR, true, String(site.key), t)
@@ -53,11 +57,16 @@ func _case(tv, name: String, shots: bool) -> void:
 	t += 0.05
 	w.update(t)
 	var dlz: Array = w.selected_dlz(w.own(), {})
-	check(dlz.size() == 2 and float(dlz[0]) > 0.0, "%s: the laser bomb's DLZ %.0f m" % [name, float(dlz[0]) if dlz.size() == 2 else 0.0])
+	check(
+		dlz.size() == 2 and float(dlz[0]) > 0.0,
+		"%s: the laser bomb's DLZ %.0f m" % [name, float(dlz[0]) if dlz.size() == 2 else 0.0]
+	)
 	_release(w, t)
 	t += 0.1
-	check(w.guided.size() == 1 and w.guided[0].aim.distance_to(p) < 30.0 and w.bombs.is_empty(),
-		"%s: the guided bomb aims at the designation" % name)
+	check(
+		w.guided.size() == 1 and w.guided[0].aim.distance_to(p) < 30.0 and w.bombs.is_empty(),
+		"%s: the guided bomb aims at the designation" % name
+	)
 	if shots:
 		tv.views.set_cockpit(tv.views.COCKPIT)
 		await frames(3)
@@ -71,7 +80,10 @@ func _case(tv, name: String, shots: bool) -> void:
 			await _save("laser_terminal.png")
 		if w.guided.is_empty():
 			break
-	check(w.guided.is_empty() and int(site.state) != 1, "%s: the laser bomb hit the designated unit (state %d)" % [name, int(site.state)])
+	check(
+		w.guided.is_empty() and int(site.state) != 1,
+		"%s: the laser bomb hit the designated unit (state %d)" % [name, int(site.state)]
+	)
 	if shots:
 		tv.views.set_cockpit(tv.views.COCKPIT)
 	# Laser off: the ripple aim (the impact point).
@@ -79,7 +91,10 @@ func _case(tv, name: String, shots: bool) -> void:
 	t += 0.5
 	w.update(t)
 	_release(w, t)
-	check(w.guided.size() == 1 and w.guided[0].aim.distance_to(w.ag.impact) < 30.0, "%s: laser off: the bomb aims at the impact point" % name)
+	check(
+		w.guided.size() == 1 and w.guided[0].aim.distance_to(w.ag.impact) < 30.0,
+		"%s: laser off: the bomb aims at the impact point" % name
+	)
 	# A designation behind the jet: refused (> 60° off the line to the bomb's point).
 	var back: Vector3 = w.own().pos - flat * 4000.0
 	var gb = tv.terrain.height_at(w.to_scene(Vector3(back.x, back.y, 0)))
@@ -90,7 +105,10 @@ func _case(tv, name: String, shots: bool) -> void:
 	t += 0.5
 	w.update(t)
 	_release(w, t)
-	check(w.guided.size() == 2 and w.guided[1].aim.distance_to(back) > 1000.0, "%s: a designation behind the jet is refused" % name)
+	check(
+		w.guided.size() == 2 and w.guided[1].aim.distance_to(back) > 1000.0,
+		"%s: a designation behind the jet is refused" % name
+	)
 
 
 ## Every unit shown (the airfield's runway and sign over Ramat David among them), the FLIR camera on a ground point
@@ -104,7 +122,13 @@ func _ground_point(w, t: float) -> void:
 	w.eo.start(EoSensor.FLIR, true, p, t)
 	w.eo.laser = true
 	w.update(t + 0.05)
-	check(w.eo_centre.distance_to(p) < 30.0, "the FLIR camera on a ground point: the centre point there (%.0f m off, %.0f m from the eye)" % [w.eo_centre.distance_to(p), w.eo_centre.distance_to(o.pos)])
+	check(
+		w.eo_centre.distance_to(p) < 30.0,
+		(
+			"the FLIR camera on a ground point: the centre point there (%.0f m off, %.0f m from the eye)"
+			% [w.eo_centre.distance_to(p), w.eo_centre.distance_to(o.pos)]
+		)
+	)
 	w.eo.laser = false
 	w.eo.stop()
 

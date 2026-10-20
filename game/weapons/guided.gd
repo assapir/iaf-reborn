@@ -28,7 +28,9 @@ var _s := {}
 
 ## FUN_00563d30 + FUN_00563f90: motion record `m` (weapons.ibx), the release point / velocity, the aim point;
 ## `debug` = db.debug_param.
-func launch(w: Dictionary, m: Dictionary, now: float, pos: Vector3, vel: Vector3, point: Vector3, debug: Callable) -> void:
+func launch(
+	w: Dictionary, m: Dictionary, now: float, pos: Vector3, vel: Vector3, point: Vector3, debug: Callable
+) -> void:
 	weapon = w
 	_g.launch(m, now, pos, vel, point, debug)
 	_s = _g.state()

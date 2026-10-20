@@ -59,7 +59,12 @@ func _base(b: Dictionary) -> void:
 	var rw := 0.0
 	while on.call(at.call(mid, -rw - 1.0)) and rw < 20000.0:
 		rw += 1.0
-	print("%s: footprint %d m along the runway (%d behind the lineup point), %d m wide at the middle" % [b.name, far + back, back, lw + rw])
+	print(
+		(
+			"%s: footprint %d m along the runway (%d behind the lineup point), %d m wide at the middle"
+			% [b.name, far + back, back, lw + rw]
+		)
+	)
 	# [case, touchdown point, heading]: the ends are approached along the runway, the sides parallel to it.
 	var cases := [
 		["threshold end inside", at.call(-back + MARGIN, 0.0), hdg],
@@ -78,11 +83,25 @@ func _base(b: Dictionary) -> void:
 		var r: Dictionary = await _touch_down(t, focus, flight, c[1], c[2])
 		var m: int = r.mask
 		var inside: bool = String(c[0]).ends_with("inside")
-		check(((m & t.SURFACE_RUNWAY) != 0) == inside, "%s %s: touched down %s the footprint (mask %x)" % [b.name, c[0], "inside" if inside else "outside", m])
+		check(
+			((m & t.SURFACE_RUNWAY) != 0) == inside,
+			"%s %s: touched down %s the footprint (mask %x)" % [b.name, c[0], "inside" if inside else "outside", m]
+		)
 		var want := ""
 		if not inside:
 			want = "water" if (m & t.SURFACE_WATER) != 0 else "rough ground"
-		check(r.crash == want, "%s %s: %s (got %s)" % [b.name, c[0], "no crash" if want == "" else want + " crash", r.crash if r.crash != "" else "no crash"])
+		check(
+			r.crash == want,
+			(
+				"%s %s: %s (got %s)"
+				% [
+					b.name,
+					c[0],
+					"no crash" if want == "" else want + " crash",
+					r.crash if r.crash != "" else "no crash"
+				]
+			)
+		)
 	focus.queue_free()
 	t.queue_free()
 	await frames(2)
@@ -103,9 +122,14 @@ func _touch_down(t: Node3D, focus: Node3D, flight, p: Vector2, hdg: float) -> Di
 	var start := Vector3(s.x, 0.0, -s.y)
 	var g = t.height_at(start)
 	start.y = (g if g != null else 0.0) + clearance + 1.0
-	flight.start(install, "F-16", start, Vector3(0.0, 0.0, hdg),
-			Vector3(dir.x, 0, -dir.y) * SPEED + Vector3(0, -1.5, 0),
-			{"airborne": true, "engine_on": true, "real_data": false})
+	flight.start(
+		install,
+		"F-16",
+		start,
+		Vector3(0.0, 0.0, hdg),
+		Vector3(dir.x, 0, -dir.y) * SPEED + Vector3(0, -1.5, 0),
+		{"airborne": true, "engine_on": true, "real_data": false}
+	)
 	flight.set_gear_clearance(clearance)
 	flight.set_easy_landing(true)
 	flight.set_controls(Vector2(0.0, 0.0), 0.0, 0.0, 0.0, true, false)

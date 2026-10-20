@@ -143,6 +143,7 @@ func _set_crisp(on: bool) -> void:
 # the canvas is at screen px (_k = _s()); a GDI stroke (pixels x..x+1 lit) is a 1-px-wide line through the pixel
 # centres, the art comes from the original bitmap through mfd_crisp.gdshader.
 
+
 ## Records one primitive for a test.
 func _rec(op: Array) -> void:
 	if trace != null:
@@ -213,6 +214,7 @@ func _polygon(pts: PackedVector2Array, color: Color) -> void:
 		pts = Transform2D.IDENTITY.scaled(Vector2(_k, _k)) * pts
 	draw_colored_polygon(pts, color)
 
+
 func _atlas() -> Texture2D:
 	return cockpit.tex.get("MFDS")
 
@@ -277,11 +279,16 @@ static func _glyph_x(c: String) -> int:
 	if u >= 48 and u <= 57:
 		return 130 + 5 * (u - 48)
 	match c:
-		".": return 185
-		":": return 190
-		"+": return 195
-		"-": return 200
-		"%": return 205
+		".":
+			return 185
+		":":
+			return 190
+		"+":
+			return 195
+		"-":
+			return 200
+		"%":
+			return 205
 	return 180
 
 
@@ -310,6 +317,7 @@ func _line(a: Vector2, b: Vector2, color := GREEN) -> void:
 
 
 # --- pages ------------------------------------------------------------------------------------
+
 
 func _draw() -> void:
 	if cockpit == null or cockpit.layout.is_empty():
@@ -354,7 +362,8 @@ func _draw_radar() -> void:
 	var idx := int(r.get("idx", 1))
 	var nm: float = RADAR_RANGES[clampi(idx, 1, 6) - 1]
 	match mode:
-		7: _tile(TILE_GMT)
+		7:
+			_tile(TILE_GMT)
 		8:
 			_tile(TILE_MAP)  # over the picture (_draw_pictures)
 		_:
@@ -383,8 +392,10 @@ func _draw_radar() -> void:
 		if mode == 2 and (not c.locked or target != null):
 			continue
 		# B-scope: x = 66 + (az + shift)·112 / width, y = 115 − range / (R·16.5446) (R NM = 112 px).
-		var p := Vector2(66.0 + (float(c.az) + float(r.get("shift", 0.0))) * 112.0 / float(r.get("width", TAU / 3.0)),
-				115.0 - float(c.dist) / (nm * 16.5446))
+		var p := Vector2(
+			66.0 + (float(c.az) + float(r.get("shift", 0.0))) * 112.0 / float(r.get("width", TAU / 3.0)),
+			115.0 - float(c.dist) / (nm * 16.5446)
+		)
 		if p.x <= 8 or p.x >= 124 or p.y <= 8 or p.y >= 124:
 			continue
 		p = p.round()
@@ -500,8 +511,17 @@ func _box(p: Vector2, h: int) -> void:
 
 ## The aspect stub (FUN_00534b20 / FUN_00534160): bin = aspect_bin(the record's aspect, +0x66c), drawn from 2 px out
 ## to 6 px: 0 up, 2 right, ±4 down, −2 left, the odd bins the diagonals.
-const ASPECT_DIRS := {0: Vector2(0, -1), 1: Vector2(1, -1), 2: Vector2(1, 0), 3: Vector2(1, 1), 4: Vector2(0, 1),
-	-4: Vector2(0, 1), -3: Vector2(-1, 1), -2: Vector2(-1, 0), -1: Vector2(-1, -1)}
+const ASPECT_DIRS := {
+	0: Vector2(0, -1),
+	1: Vector2(1, -1),
+	2: Vector2(1, 0),
+	3: Vector2(1, 1),
+	4: Vector2(0, 1),
+	-4: Vector2(0, 1),
+	-3: Vector2(-1, 1),
+	-2: Vector2(-1, 0),
+	-1: Vector2(-1, -1)
+}
 
 
 func _aspect_stub(p: Vector2, c: Dictionary) -> void:
@@ -634,8 +654,10 @@ const MAP_WINDOW := Rect2(15, 15, 101, 94)
 
 static func isr_px(w: Vector2) -> Vector2:
 	var f: Dictionary = MAPFRAME
-	return Vector2((w.x + 166828.0 - f.left) / (f.right - f.left) * ISR_SIZE.x,
-			(f.top - (w.y + 21164.0)) / (f.top - f.bottom) * ISR_SIZE.y)
+	return Vector2(
+		(w.x + 166828.0 - f.left) / (f.right - f.left) * ISR_SIZE.x,
+		(f.top - (w.y + 21164.0)) / (f.top - f.bottom) * ISR_SIZE.y
+	)
 
 
 ## The MAP page centre and heading: NORM = the ownship and its heading; EXP = the point clicked last and
@@ -649,8 +671,12 @@ func _map_frame(r: Dictionary) -> Dictionary:
 		_map_exp_prev = e
 	if e:
 		return {"centre": _map_centre, "hdg": _map_heading, "img": Vector2(65, 62), "sym": Vector2(66, 66)}
-	return {"centre": st.get("world", Vector2.ZERO), "hdg": deg_to_rad(st.heading), "img": Vector2(65, 109),
-		"sym": Vector2(66, 109)}
+	return {
+		"centre": st.get("world", Vector2.ZERO),
+		"hdg": deg_to_rad(st.heading),
+		"img": Vector2(65, 109),
+		"sym": Vector2(66, 109)
+	}
 
 
 ## The MAP picture (FUN_0053b0a0, pass 1, before the tile): isr.bmp's green channel (loaded with the
@@ -678,8 +704,14 @@ static func map_picture(centre: Vector2, hdg: float, nm: float, img: Vector2) ->
 	for q in [Vector2.ZERO, Vector2(ISR_SIZE.x, 0), ISR_SIZE, Vector2(0, ISR_SIZE.y)]:
 		var d: Vector2 = (q - q0) / s
 		corners.append(img + Vector2(d.x * C + d.y * S, -d.x * S + d.y * C))
-	var win := PackedVector2Array([MAP_WINDOW.position, Vector2(MAP_WINDOW.end.x, MAP_WINDOW.position.y),
-		MAP_WINDOW.end, Vector2(MAP_WINDOW.position.x, MAP_WINDOW.end.y)])
+	var win := PackedVector2Array(
+		[
+			MAP_WINDOW.position,
+			Vector2(MAP_WINDOW.end.x, MAP_WINDOW.position.y),
+			MAP_WINDOW.end,
+			Vector2(MAP_WINDOW.position.x, MAP_WINDOW.end.y)
+		]
+	)
 	var out := []
 	for piece in Geometry2D.intersect_polygons(corners, win):
 		if piece.size() < 3:
@@ -757,7 +789,10 @@ func _click_gmt(p: Vector2) -> void:
 	var own: Vector2 = st.get("world", Vector2.ZERO)
 	for c in r.get("contacts", []):
 		var w: Vector3 = c.pos
-		var cp := (Vector2(66, 109) + _heading_up(Vector2(w.x, w.y) - own, deg_to_rad(st.heading), nm * 1853.0 / 56.0)).floor()
+		var cp := (
+			(Vector2(66, 109) + _heading_up(Vector2(w.x, w.y) - own, deg_to_rad(st.heading), nm * 1853.0 / 56.0))
+			. floor()
+		)
 		if not c.locked and absf(p.x - cp.x) < 4 and absf(p.y - cp.y) < 4:
 			_radar_event(0x2a, c.key)
 			return
@@ -797,9 +832,22 @@ func _draw_flir() -> void:
 	_text_right(98, 124, String(f.range))
 	var x := int(66.0 - 56.0 * float(f.u))
 	var y := int(66.0 + 56.0 * float(f.v))
-	_polyline(PackedVector2Array([Vector2(x - 1, y - 2), Vector2(x + 1, y - 2), Vector2(x + 2, y - 1),
-		Vector2(x - 2, y - 1), Vector2(x - 2, y), Vector2(x + 2, y), Vector2(x + 2, y + 1), Vector2(x - 2, y + 1),
-		Vector2(x - 1, y + 2), Vector2(x + 2, y + 2)]))
+	_polyline(
+		PackedVector2Array(
+			[
+				Vector2(x - 1, y - 2),
+				Vector2(x + 1, y - 2),
+				Vector2(x + 2, y - 1),
+				Vector2(x - 2, y - 1),
+				Vector2(x - 2, y),
+				Vector2(x + 2, y),
+				Vector2(x + 2, y + 1),
+				Vector2(x - 2, y + 1),
+				Vector2(x - 1, y + 2),
+				Vector2(x + 2, y + 2)
+			]
+		)
+	)
 
 
 ## TV page (FUN_005369e0): with a source (status ≠ 0) the picture, the tile (0,792), zoom "%1d" (11,33) and the
@@ -929,8 +977,11 @@ func _draw_nav() -> void:
 		_text(Vector2(77, y + 1), " %2dM" % int(d.length() / 1853.0))  # "% 3dM": the space flag
 		_text(Vector2(102, y + 1), "%03d" % (b + 360 if b < 0 else b))
 		if i == cur:
-			_polyline(PackedVector2Array([Vector2(8, y - 2), Vector2(8, y + 6), Vector2(1, y + 6), Vector2(1, y - 2),
-				Vector2(8, y - 2)]))
+			_polyline(
+				PackedVector2Array(
+					[Vector2(8, y - 2), Vector2(8, y + 6), Vector2(1, y + 6), Vector2(1, y - 2), Vector2(8, y - 2)]
+				)
+			)
 	_text(Vector2(72, 124), "ETA   :")
 	# "%02d %02d" hours, minutes of the ETA (a time of day; not wrapped at 24 h, as the original), right-aligned at 117.
 	if not wps.is_empty():
@@ -942,8 +993,17 @@ func _draw_nav() -> void:
 ## Stores page (FUN_0052c740, docs/mfd.md): per pylon station 0..8 the count and name positions
 ## (stations 6..8 right-aligned to x 128), the MRM / SRM totals, the gun rounds, the fuel and the
 ## selected station's box. OSBs 0xd, 0xc, 0xb, 1, 3, 5, 0x10, 0x11, 0x12 select stations 0..8.
-const STORES_POS := [[4, 62, 4, 72], [4, 42, 4, 52], [4, 22, 4, 32], [24, 3, 17, 12], [64, 3, 57, 12],
-	[104, 3, 97, 12], [128, 22, 128, 32], [128, 42, 128, 52], [128, 62, 128, 72]]
+const STORES_POS := [
+	[4, 62, 4, 72],
+	[4, 42, 4, 52],
+	[4, 22, 4, 32],
+	[24, 3, 17, 12],
+	[64, 3, 57, 12],
+	[104, 3, 97, 12],
+	[128, 22, 128, 32],
+	[128, 42, 128, 52],
+	[128, 62, 128, 72]
+]
 const STORES_OSB := [0xd, 0xc, 0xb, 1, 3, 5, 0x10, 0x11, 0x12]
 
 
@@ -990,12 +1050,24 @@ func _draw_stores() -> void:
 ## +0x558 + 4n = the controller's damage flags, docs/damage.md §5). "ENG %s %s" / "AB %s %s" take
 ## "L" on twin-engine jets (else ""); the ENG R / AB R rows appear on twin-engine jets only.
 const DAMAGE_ROWS := [
-	["ENG %s %s", 12, 10, [22, 16, 2]], ["AB %s %s", 72, 10, [8]], ["INS  %s", 72, 34, [11]],
-	["FUEL %s", 12, 43, [10]], ["RDR  %s", 72, 43, [15]], ["AILN %s", 12, 52, [18]],
-	["RWR  %s", 72, 52, [14]], ["FLTC %s", 12, 61, [24]], ["WPNS %s", 72, 61, [20]],
-	["FLAP %s", 12, 70, [4]], ["GUN  %s", 72, 70, [13]], ["GEAR %s", 12, 79, [7]],
-	["ECM  %s", 72, 79, [1]], ["HUD  %s", 12, 88, [12]], ["A/P  %s", 72, 88, [6]],
-	["BRAK %s", 12, 97, [5]], ["ELCT %s", 72, 97, [19]], ["GNRT %s", 72, 106, [21]],
+	["ENG %s %s", 12, 10, [22, 16, 2]],
+	["AB %s %s", 72, 10, [8]],
+	["INS  %s", 72, 34, [11]],
+	["FUEL %s", 12, 43, [10]],
+	["RDR  %s", 72, 43, [15]],
+	["AILN %s", 12, 52, [18]],
+	["RWR  %s", 72, 52, [14]],
+	["FLTC %s", 12, 61, [24]],
+	["WPNS %s", 72, 61, [20]],
+	["FLAP %s", 12, 70, [4]],
+	["GUN  %s", 72, 70, [13]],
+	["GEAR %s", 12, 79, [7]],
+	["ECM  %s", 72, 79, [1]],
+	["HUD  %s", 12, 88, [12]],
+	["A/P  %s", 72, 88, [6]],
+	["BRAK %s", 12, 97, [5]],
+	["ELCT %s", 72, 97, [19]],
+	["GNRT %s", 72, 106, [21]],
 ]
 const DAMAGE_ROWS_TWIN := [["ENG R %s", 12, 19, [23, 17, 3]], ["AB R %s", 72, 19, [9]]]
 
@@ -1010,7 +1082,7 @@ func _draw_damage() -> void:
 			nogo = nogo or (f < flags.size() and flags[f])
 		var state := "NOGO" if nogo else "GO"
 		var fmt: String = row[0]
-		_text(Vector2(row[1], row[2]), fmt % [("L" if twin else ""), state] if fmt.count("%s") == 2 else fmt % state)
+		_text(Vector2(row[1], row[2]), fmt % ["L" if twin else "", state] if fmt.count("%s") == 2 else fmt % state)
 
 
 ## ADI page (9) for cockpits with [HORIZON] OnMfd (FUN_00526fe0 mode 4): the panel's horizon disc
@@ -1023,8 +1095,11 @@ func _draw_adi() -> void:
 	cockpit.draw_horizon_disc(self, Vector2(65, 74) * _k, _k, _k if crisp else 0.0)
 	var st: Dictionary = cockpit.state
 	var hdg := int(st.heading) % 360
-	for t in [[31, 27, "%03d" % int(st.ias_kt)], [74, 12, "%03d" % (hdg + 360 if hdg < 0 else hdg)],
-			[124, 27, "%05d" % int(st.get("agl_ft", 0.0))]]:
+	for t in [
+		[31, 27, "%03d" % int(st.ias_kt)],
+		[74, 12, "%03d" % (hdg + 360 if hdg < 0 else hdg)],
+		[124, 27, "%05d" % int(st.get("agl_ft", 0.0))]
+	]:
 		var font: Font = cockpit.digits_font()
 		var w := font.get_string_size(t[2], HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x
 		# FUN_00526fe0 case 4: SetBkColor(0), OPAQUE: the digits on black.
@@ -1130,6 +1205,7 @@ func _ring(c: Vector2, r: float) -> void:
 
 # --- bezel buttons (FUN_00520db0 hit test, FUN_005219e0 actions) ---------------------------------
 
+
 ## OSB id under an MFD-local point: top 1-5, bottom 6-10, left 11-15, right 16-20; -1 = none.
 static func osb_at(p: Vector2) -> int:
 	var along := -1.0
@@ -1218,10 +1294,16 @@ func _gui_input(event: InputEvent) -> void:
 		# GMT / MAP pass 4 and the TWS lock act on the double-click flag (+0x27e0, set by the WM_LBUTTONDBLCLK
 		# handler FUN_004dc8a0 → FUN_00522120); LRS and the TWS select on the press (+0x27d8).
 		match int(cockpit.radar.get("mode", 0)):
-			4: _click_blip(p)
-			5: _click_tws(p, event.double_click)
-			7: if event.double_click: _click_gmt(p)
-			8: if event.double_click: _click_map(p)
+			4:
+				_click_blip(p)
+			5:
+				_click_tws(p, event.double_click)
+			7:
+				if event.double_click:
+					_click_gmt(p)
+			8:
+				if event.double_click:
+					_click_map(p)
 		accept_event()
 
 
@@ -1236,8 +1318,10 @@ func _click_blip(p: Vector2) -> void:
 	var r: Dictionary = cockpit.radar
 	var nm: float = RADAR_RANGES[clampi(int(r.get("idx", 1)), 1, 6) - 1]
 	for c in r.get("contacts", []):
-		var b := Vector2(66.0 + (float(c.az) + float(r.get("shift", 0.0))) * 112.0 / float(r.get("width", TAU / 3.0)),
-				115.0 - float(c.dist) / (nm * 16.5446))
+		var b := Vector2(
+			66.0 + (float(c.az) + float(r.get("shift", 0.0))) * 112.0 / float(r.get("width", TAU / 3.0)),
+			115.0 - float(c.dist) / (nm * 16.5446)
+		)
 		if b.distance_to(p) <= 4.0 and cockpit.on_radar_event.is_valid():
 			cockpit.on_radar_event.call(0x2a, c.key)
 			accept_event()
@@ -1250,8 +1334,13 @@ func _click_tws(p: Vector2, double: bool) -> void:
 	var r: Dictionary = cockpit.radar
 	var nm: float = RADAR_RANGES[clampi(int(r.get("idx", 1)), 1, 6) - 1]
 	for c in r.get("contacts", []):
-		var b := Vector2(66.0 + (float(c.az) + float(r.get("shift", 0.0))) * 112.0 / float(r.get("width", TAU / 3.0)),
-				115.0 - float(c.dist) / (nm * 16.5446)).round()
+		var b := (
+			Vector2(
+				66.0 + (float(c.az) + float(r.get("shift", 0.0))) * 112.0 / float(r.get("width", TAU / 3.0)),
+				115.0 - float(c.dist) / (nm * 16.5446)
+			)
+			. round()
+		)
 		if Rect2(b - Vector2(4, 4), Vector2(8, 8)).has_point(p):
 			if double:
 				_radar_event(0x2a, c.key)
@@ -1270,26 +1359,45 @@ func press(osb: int) -> void:
 			var h: Dictionary = cockpit.layout.get("HORIZON", {})
 			var rwr_panel := int(cockpit.layout.get("PANELRWR", {}).get("Active", 0)) == 1
 			match osb:
-				0xb: if _flir_menu() and cockpit.on_flir.is_valid(): cockpit.on_flir.call(self)
-				0xd: page = STORES
-				0xe: if not rwr_panel: page = RWR
-				0xf: page = RADAR
-				0x11: page = NAV
-				0x12: page = DAMAGE
-				0x13: page = TSD
-				0x14: if int(h.get("OnMfd", 0)) == 1: page = ADI
+				0xb:
+					if _flir_menu() and cockpit.on_flir.is_valid():
+						cockpit.on_flir.call(self)
+				0xd:
+					page = STORES
+				0xe:
+					if not rwr_panel:
+						page = RWR
+				0xf:
+					page = RADAR
+				0x11:
+					page = NAV
+				0x12:
+					page = DAMAGE
+				0x13:
+					page = TSD
+				0x14:
+					if int(h.get("OnMfd", 0)) == 1:
+						page = ADI
 		RADAR:
 			match osb:
-				0xb: step_range(1)
-				0xc: step_range(-1)
-				1: cycle_radar_mode()
-				3: if int(cockpit.radar.get("mode", 0)) == 8: _radar_event(0x30)  # MAP: NORM <-> EXP
+				0xb:
+					step_range(1)
+				0xc:
+					step_range(-1)
+				1:
+					cycle_radar_mode()
+				3:
+					if int(cockpit.radar.get("mode", 0)) == 8:
+						_radar_event(0x30)  # MAP: NORM <-> EXP
 		TSD:
 			match osb:
 				# FUN_00531850 / FUN_00531950: next / previous, wrapping (80 → 10, 10 → 80).
-				0xb: tsd_scale = TSD_SCALES[(TSD_SCALES.find(tsd_scale) + 1) % TSD_SCALES.size()]
-				0xc: tsd_scale = TSD_SCALES[posmod(TSD_SCALES.find(tsd_scale) - 1, TSD_SCALES.size())]
-				0x10, 0x11, 0x12, 0x13: tsd_options[osb - 0x10] = not tsd_options[osb - 0x10]
+				0xb:
+					tsd_scale = TSD_SCALES[(TSD_SCALES.find(tsd_scale) + 1) % TSD_SCALES.size()]
+				0xc:
+					tsd_scale = TSD_SCALES[posmod(TSD_SCALES.find(tsd_scale) - 1, TSD_SCALES.size())]
+				0x10, 0x11, 0x12, 0x13:
+					tsd_options[osb - 0x10] = not tsd_options[osb - 0x10]
 		STORES:
 			var i := STORES_OSB.find(osb)
 			if i >= 0 and cockpit.on_station_select.is_valid():
@@ -1302,14 +1410,22 @@ func press(osb: int) -> void:
 			# FUN_005219e0 cases 5 / 6: 0xb zoom in (0x14), 0xc out (0x15); FLIR: top 5 WIDE / SPOT (0x20),
 			# top 3 laser (0x6a).
 			match osb:
-				0xb: _mfd_event(0x14)
-				0xc: _mfd_event(0x15)
-				5: if page == FLIR: _mfd_event(0x20)
-				3: if page == FLIR: _mfd_event(0x6a)
+				0xb:
+					_mfd_event(0x14)
+				0xc:
+					_mfd_event(0x15)
+				5:
+					if page == FLIR:
+						_mfd_event(0x20)
+				3:
+					if page == FLIR:
+						_mfd_event(0x6a)
 		NAV:
 			match osb:
-				0xb: nav_scroll = maxi(nav_scroll - 1, 0)
-				0xf: nav_scroll = mini(nav_scroll + 1, cockpit.waypoints.size())  # FUN_005219e0: 0..count
+				0xb:
+					nav_scroll = maxi(nav_scroll - 1, 0)
+				0xf:
+					nav_scroll = mini(nav_scroll + 1, cockpit.waypoints.size())  # FUN_005219e0: 0..count
 
 
 func _mfd_event(ev: int, arg = null) -> void:

@@ -16,7 +16,10 @@ func run() -> void:
 	var g = tv.ai.combat
 	# Six SA-3 launchers (630; their Disable combat runs only when their radar dies) and three ZSUs (565).
 	var aaa: Array = g.units.values().filter(func(x): return int(x.w.type) == 565)
-	check(g.units.size() == 9 and aaa.size() == 3, "313: nine armed ground units, three ZSUs (%d / %d)" % [aaa.size(), g.units.size()])
+	check(
+		g.units.size() == 9 and aaa.size() == 3,
+		"313: nine armed ground units, three ZSUs (%d / %d)" % [aaa.size(), g.units.size()]
+	)
 	var u = null
 	for k in g.units:
 		if g.units[k].ent.name == "first zsu":
@@ -48,7 +51,6 @@ func run() -> void:
 	tv.player_world_override = zsu + Vector3(6200, 0, 300)
 	t = _run(g, t, 15.0)
 	check(not u.brain.engaged and u.fire_next == INF, "beyond 6000 m combat stops")
-
 
 	# A fresh load: the AAA hits may have broken the RWR (system 14).
 	tv = await start_mission(313)
@@ -112,8 +114,10 @@ func _sam(tv, g) -> void:
 		var off: Vector3 = start - site
 		var want := rad_to_deg(h) - 30.0
 		var got := rad_to_deg(atan2(off.x, off.y))
-		check(int(u.ent.type_code) < 290 or int(u.ent.type_code) > 340 or absf(wrapf(got - want, -180.0, 180.0)) < 3.0,
-			"launched along the launcher's heading (%.1f°, want %.1f°; type %d)" % [got, want, int(u.ent.type_code)])
+		check(
+			int(u.ent.type_code) < 290 or int(u.ent.type_code) > 340 or absf(wrapf(got - want, -180.0, 180.0)) < 3.0,
+			"launched along the launcher's heading (%.1f°, want %.1f°; type %d)" % [got, want, int(u.ent.type_code)]
+		)
 	check(flagged, "the RWR's launch flag")
 	check(ended and me.damage > 0.0, "the SA-3 reaches the jet (damage %.2f)" % me.damage)
 
@@ -138,7 +142,10 @@ func _rockets() -> void:
 			u = x
 		elif int(x.w.type) == 630:
 			sams += 1
-	check(u != null and sams == 9 and u.brain == null, "322: the rocket vehicle and nine SAM launchers (SA-2, Hawk) armed, the vehicle without a brain (%d)" % sams)
+	check(
+		u != null and sams == 9 and u.brain == null,
+		"322: the rocket vehicle and nine SAM launchers (SA-2, Hawk) armed, the vehicle without a brain (%d)" % sams
+	)
 	if u == null:
 		return
 	for x in g.units.values():

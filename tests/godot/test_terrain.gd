@@ -50,10 +50,16 @@ func run() -> void:
 	for e in tv.runtime.entities.values():
 		if e.get("name", "") == "Ramat David":
 			base = e
-	check(not base.is_empty() and base.node != null and not base.node.visible, "Ramat David underlay: unit kept, not drawn")
+	check(
+		not base.is_empty() and base.node != null and not base.node.visible,
+		"Ramat David underlay: unit kept, not drawn"
+	)
 	var apron := Vector3(354722.0 - tv.terrain.world_origin.x, 0, -(602038.0 - 25.0 - tv.terrain.world_origin.y))
 	var apron_s: int = tv.terrain.surface_at(apron)
-	check((apron_s & tv.terrain.SURFACE_ROUGH) == 0 or (apron_s & tv.terrain.SURFACE_ANY_RUNWAY) != 0, "Ramat David apron is tarmac, not rough (surface %x)" % apron_s)
+	check(
+		(apron_s & tv.terrain.SURFACE_ROUGH) == 0 or (apron_s & tv.terrain.SURFACE_ANY_RUNWAY) != 0,
+		"Ramat David apron is tarmac, not rough (surface %x)" % apron_s
+	)
 	var h = tv.terrain.height_at(tv.rig.position)
 	check(h != null and absf(h - 63.7) < 2.0, "Ramat David runway height %s m (takeoff.mis: 63 m)" % h)
 	tv.queue_free()
@@ -62,21 +68,30 @@ func run() -> void:
 	# Outside the old Israel rectangle: ground, heights and inset imagery. map.ptt has no elevation
 	# for Egypt west of Suez: a flat plane at raw 16191 = -557 m, where the missions put their
 	# ground objects (against_all_odds: Suez objects at Z = -557).
-	for place in [["Nile delta west of Cairo", 100000.0, 560000.0, -556.5], ["Damascus inset", 525000.0, 190000.0, NAN]]:
+	for place in [
+		["Nile delta west of Cairo", 100000.0, 560000.0, -556.5], ["Damascus inset", 525000.0, 190000.0, NAN]
+	]:
 		var t := await terrain_at(place[1], place[2], 1500.0)
 		var hh = t.height_at(Vector3.ZERO)
-		var h_ok: bool = hh != null and (absf(hh - place[3]) < 1.0 if not is_nan(place[3]) else hh > 300.0 and hh < 1500.0)
+		var h_ok: bool = (
+			hh != null and (absf(hh - place[3]) < 1.0 if not is_nan(place[3]) else hh > 300.0 and hh < 1500.0)
+		)
 		check(t.ground_ready() and h_ok, "%s: ground loaded, height %s m" % [place[0], hh])
 		check(t._drawn.size() > 0, "%s: %d nodes drawn" % [place[0], t._drawn.size()])
 		var n6 := Vector3i(int(place[1]) >> 16, int(place[2]) >> 16, 6)
-		check(t._finest.get(n6, 99) <= 4, "%s: inset imagery finer than the theatre (level %s)" % [place[0], t._finest.get(n6)])
+		check(
+			t._finest.get(n6, 99) <= 4,
+			"%s: inset imagery finer than the theatre (level %s)" % [place[0], t._finest.get(n6)]
+		)
 		await drop(t)
 
 	# terraintype.dat: the Mediterranean is sea (water for the flight model), the Negev is rough land.
 	var t2 := await terrain_at(200000.0, 300000.0, 3000.0)
 	var sea: int = t2.surface_at(Vector3.ZERO)
 	check((sea & t2.SURFACE_SEA) != 0 and (sea & t2.SURFACE_WATER) != 0, "Mediterranean = water (surface %x)" % sea)
-	t2.world_origin = Vector2(400000.0 * t2.m_per_unit + float(t2.meta.x_shift), float(t2.meta.y_shift) - 560000.0 * t2.m_per_unit)
+	t2.world_origin = Vector2(
+		400000.0 * t2.m_per_unit + float(t2.meta.x_shift), float(t2.meta.y_shift) - 560000.0 * t2.m_per_unit
+	)
 	var land: int = t2.surface_at(Vector3.ZERO)
 	check((land & t2.SURFACE_ROUGH) != 0 and (land & t2.SURFACE_WATER) == 0, "Negev = rough land (surface %x)" % land)
 	await drop(t2)

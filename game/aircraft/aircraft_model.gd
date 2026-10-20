@@ -44,8 +44,18 @@ var parts := {}
 ## Afterburner flames (left, right) — only when the model has an engine pair.
 var flames: Array = []
 ## The original's animation ramps (radians).
-var ramps := {"flaps": 0.0, "gear": GEAR_MAX, "speed_brake": 0.0, "hook": 0.0,
-	"rudder": 0.0, "elevator_l": 0.0, "elevator_r": 0.0, "aileron_l": 0.0, "aileron_r": 0.0, "bay": 0.0}
+var ramps := {
+	"flaps": 0.0,
+	"gear": GEAR_MAX,
+	"speed_brake": 0.0,
+	"hook": 0.0,
+	"rudder": 0.0,
+	"elevator_l": 0.0,
+	"elevator_r": 0.0,
+	"aileron_l": 0.0,
+	"aileron_r": 0.0,
+	"bay": 0.0
+}
 var _targets := {}
 ## Last lever positions: like the original's events, a ramp is retargeted only when its lever moves.
 var _levers := {}
@@ -140,8 +150,13 @@ static func index() -> Dictionary:
 	for plane in DirAccess.get_directories_at(EXTRA_DIR):
 		var d: Dictionary = load_descriptor(plane)
 		if not d.is_empty():
-			idx[plane] = {"model": plane.path_join(d.model), "descriptor": plane.path_join("aircraft.json"),
-				"type": d.get("type", -1), "label": d.get("label", ""), "group": "extra"}
+			idx[plane] = {
+				"model": plane.path_join(d.model),
+				"descriptor": plane.path_join("aircraft.json"),
+				"type": d.get("type", -1),
+				"label": d.get("label", ""),
+				"group": "extra"
+			}
 	return idx
 
 
@@ -157,7 +172,9 @@ func _borrow_parts() -> void:
 		var sd := load_descriptor(String(src.plane))
 		if mine == null or sd.is_empty():
 			continue
-		var model = preload("res://util/gltf.gd").open(_planes_dir(String(src.plane)).path_join(String(src.plane)).path_join(sd.model))
+		var model = preload("res://util/gltf.gd").open(
+			_planes_dir(String(src.plane)).path_join(String(src.plane)).path_join(sd.model)
+		)
 		if model == null:
 			continue
 		var other: Node3D = preload("res://util/gltf.gd").instance(model)
@@ -210,7 +227,9 @@ func setup(gltf_scene: Node3D, descriptor: Dictionary, type := -1, on_ground := 
 		var axis = null
 		if p.axis != null:
 			axis = Vector3(p.axis[0], p.axis[1], p.axis[2]).normalized()
-		parts[str(n.name)] = {"node": n, "id": int(p.id), "basis": n.transform.basis, "origin": n.transform.origin, "axis": axis}
+		parts[str(n.name)] = {
+			"node": n, "id": int(p.id), "basis": n.transform.basis, "origin": n.transform.origin, "axis": axis
+		}
 	for p in parts.values():
 		for w in p.node.get_children():
 			if w is Node3D and str(w.name).begins_with("Wheels"):
@@ -320,7 +339,9 @@ func update(input: Dictionary, delta: float) -> void:
 		_targets.elevator_l = l
 		_targets.elevator_r = r
 	for k in ramps:
-		var rate := RATE_SURFACE if k in ["rudder", "elevator_l", "elevator_r", "aileron_l", "aileron_r"] else RATE_CONFIG
+		var rate := (
+			RATE_SURFACE if k in ["rudder", "elevator_l", "elevator_r", "aileron_l", "aileron_r"] else RATE_CONFIG
+		)
 		if k == "bay":
 			rate = RATE_BAY
 		ramps[k] = move_toward(ramps[k], _targets[k], rate * delta)
@@ -357,8 +378,10 @@ func wingtips() -> Array:
 	var ew: Dictionary = desc.get("end_wing", {}) if desc.get("end_wing") is Dictionary else {}
 	if not (ew.get("left") is Array and ew.get("right") is Array) or root_frame == null:
 		return []
-	return [root_frame.to_global(Vector3(ew.left[0], ew.left[1], ew.left[2])),
-		root_frame.to_global(Vector3(ew.right[0], ew.right[1], ew.right[2]))]
+	return [
+		root_frame.to_global(Vector3(ew.left[0], ew.left[1], ew.left[2])),
+		root_frame.to_global(Vector3(ew.right[0], ew.right[1], ew.right[2]))
+	]
 
 
 ## How far the weapon bay doors are open (0 shut .. 1).
@@ -386,7 +409,9 @@ func _lever(key: String, value) -> bool:
 ## A wheel's radius (m): half its mesh's height (a wheel frame's mesh is the wheel, centred on its axle).
 static func _wheel_radius(w: Node3D) -> float:
 	var r := 0.0
-	for mi: MeshInstance3D in w.find_children("*", "MeshInstance3D", true, false) + ([w] if w is MeshInstance3D else []):
+	for mi: MeshInstance3D in (
+		w.find_children("*", "MeshInstance3D", true, false) + ([w] if w is MeshInstance3D else [])
+	):
 		if mi.mesh != null:
 			r = maxf(r, mi.mesh.get_aabb().size.y / 2.0)
 	return r

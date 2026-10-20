@@ -165,6 +165,7 @@ static func _soft_texture(fire: bool) -> Texture2D:
 
 # --- the explosion object (FUN_00416880) ---------------------------------------------------------
 
+
 ## What a destroyed unit's explosion looks like (FUN_0059df20) by unit class, bdb type code (0x5b4)
 ## and where it is: `low` = below ground + 10.5 m (0x6119ec), `water` = terrain type 1 / 2
 ## (terraintype.dat under the unit). Returns {flags, scale, duration} ({} = none); the constructor's
@@ -199,8 +200,9 @@ static func explosion_for(klass: int, type_code: int, low: bool, water: bool) ->
 ## One explosion event at `pos`: `flags` as above, `scale` (param[7]), `duration` (param[6], the
 ## lifetime of the whole event), `ground_y` = terrain height under it, `radius` = the unit's size
 ## (the shatter pieces start within it).
-func explosion(pos: Vector3, flags: int, scale: float, duration: float, ground_y: float, radius := 6.0,
-		model: Node3D = null) -> void:
+func explosion(
+	pos: Vector3, flags: int, scale: float, duration: float, ground_y: float, radius := 6.0, model: Node3D = null
+) -> void:
 	if flags & F_FLASH:
 		_flash(pos)
 	# The event ends at `duration` (FUN_004167b0 frees it), cutting a longer sprite animation short.
@@ -237,8 +239,14 @@ func _cluster(pos: Vector3, radius: float, duration: float) -> void:
 		var j := maxi(int(r * 0.15), 1)
 		for k in 16:
 			var d := float(_rng.randi() % (2 * j)) + r - float(j)
-			subs.append({"pos": pos + Vector3(cos(a) * d, -10.0, -sin(a) * d), "delay": float(_rng.randi() & 7) * 0.1,
-				"column": subs.size() % 2 == 1, "done": false})
+			subs.append(
+				{
+					"pos": pos + Vector3(cos(a) * d, -10.0, -sin(a) * d),
+					"delay": float(_rng.randi() & 7) * 0.1,
+					"column": subs.size() % 2 == 1,
+					"done": false
+				}
+			)
 			a -= PI / 8.0
 		r *= 0.65
 		a -= PI / 16.0
@@ -268,13 +276,26 @@ func smoke_puff(pos: Vector3, white := false, life := PUFF_TIME, width := SMOKE_
 	_add_puff(pos, v, life, width, width * 3.0, 255 if white else 40, false, 0.0)
 
 
-func _add_puff(pos: Vector3, vel: Vector3, life: float, w0: float, w1: float, grey: int, fire: bool, delay: float) -> void:
+func _add_puff(
+	pos: Vector3, vel: Vector3, life: float, w0: float, w1: float, grey: int, fire: bool, delay: float
+) -> void:
 	spawned += 1
 	if gpu != null:
 		gpu.puff(pos, vel, life, w0, w1, grey, fire, delay)
 		return
-	_puffs.append({"pos": pos, "vel": vel, "age": 0.0, "life": life, "w0": w0, "w1": w1, "grey": grey,
-			"fire": fire, "delay": delay})
+	_puffs.append(
+		{
+			"pos": pos,
+			"vel": vel,
+			"age": 0.0,
+			"life": life,
+			"w0": w0,
+			"w1": w1,
+			"grey": grey,
+			"fire": fire,
+			"delay": delay
+		}
+	)
 
 
 ## 0x20000 splash (FUN_00418530) and 0x40000 ring (FUN_004188b0), drawn each frame at t = age / sprite time,
@@ -291,7 +312,9 @@ func _water_fx(pos: Vector3, ring: bool, life: float, scale: float) -> void:
 		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 		mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
 		mat.albedo_color = Color8(250, 250, 250)
-		mat.albedo_texture = DecoyFx._texture("w_circle.png" if ring else "w_splash.png", "w_circle.tga" if ring else "w_splash.tga")
+		mat.albedo_texture = DecoyFx._texture(
+			"w_circle.png" if ring else "w_splash.png", "w_circle.tga" if ring else "w_splash.tga"
+		)
 		_water_mats[ring] = mat
 	var node := Node3D.new()
 	var quads := 1 if ring else 2
@@ -377,15 +400,27 @@ func _shatter(pos: Vector3, flags: int, scale: float, duration: float, ground_y:
 		node.position = pos + off
 		node.visible = flags & F_NO_DELAY != 0
 		add_child(node)
-		_pieces.append({
-			"node": node, "vel": (off + base) * k * scale,
-			"spin": Vector3((_rng.randi() & 63) - 32, (_rng.randi() & 63) - 32, (_rng.randi() & 63) - 32) * 0.03,
-			"age": 0.0, "life": (1.0 + (_rng.randi() % 100) * 0.01) * duration * 0.5,
-			"delay": 0.0 if flags & F_NO_DELAY else (_rng.randi() % 100) * 0.003,
-			"rest": flags & F_REST != 0, "ground_y": ground_y,
-			"large": i % 3 == 0, "smoke": flags & F_SMOKE_TRAILS != 0, "burn": flags & F_BURN_PIECES != 0,
-			"smoke_t": 0.0, "resting": false,
-		})
+		(
+			_pieces
+			. append(
+				{
+					"node": node,
+					"vel": (off + base) * k * scale,
+					"spin":
+					Vector3((_rng.randi() & 63) - 32, (_rng.randi() & 63) - 32, (_rng.randi() & 63) - 32) * 0.03,
+					"age": 0.0,
+					"life": (1.0 + (_rng.randi() % 100) * 0.01) * duration * 0.5,
+					"delay": 0.0 if flags & F_NO_DELAY else (_rng.randi() % 100) * 0.003,
+					"rest": flags & F_REST != 0,
+					"ground_y": ground_y,
+					"large": i % 3 == 0,
+					"smoke": flags & F_SMOKE_TRAILS != 0,
+					"burn": flags & F_BURN_PIECES != 0,
+					"smoke_t": 0.0,
+					"resting": false,
+				}
+			)
+		)
 
 
 ## 0x2 with the unit's model (FUN_004172b0): one piece per polygon, starting where it is drawn. Its
@@ -434,8 +469,14 @@ func _shatter_model(model: Node3D, pos: Vector3, flags: int, scale: float, durat
 				ix = PackedInt32Array(range(vs.size()))
 			var mat: Material = mi.get_active_material(si)
 			if not groups.has(mat):
-				groups[mat] = {"v": PackedVector3Array(), "n": PackedVector3Array(), "uv": PackedVector2Array(),
-						"c0": PackedFloat32Array(), "c1": PackedFloat32Array(), "c2": PackedFloat32Array()}
+				groups[mat] = {
+					"v": PackedVector3Array(),
+					"n": PackedVector3Array(),
+					"uv": PackedVector2Array(),
+					"c0": PackedFloat32Array(),
+					"c1": PackedFloat32Array(),
+					"c2": PackedFloat32Array()
+				}
 			var g: Dictionary = groups[mat]
 			var t := 0
 			while t < ix.size() / 3:
@@ -470,9 +511,11 @@ func _shatter_model(model: Node3D, pos: Vector3, flags: int, scale: float, durat
 				t += n_t
 	var node := MeshInstance3D.new()
 	var mesh := ArrayMesh.new()
-	var fmt: int = Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT \
-			| Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM1_SHIFT \
-			| Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM2_SHIFT
+	var fmt: int = (
+		Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT
+		| Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM1_SHIFT
+		| Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM2_SHIFT
+	)
 	var mats: Array = []
 	for mat in groups:
 		var g: Dictionary = groups[mat]
@@ -507,8 +550,17 @@ func _shatter_model(model: Node3D, pos: Vector3, flags: int, scale: float, durat
 	var last := 0.0
 	for e in all:
 		last = maxf(last, e[3] + e[5])
-	_shards.append({"node": node, "mats": mats, "age": 0.0, "last": last, "large": large,
-			"smoke": flags & F_SMOKE_TRAILS != 0, "burn": flags & F_BURN_PIECES != 0})
+	_shards.append(
+		{
+			"node": node,
+			"mats": mats,
+			"age": 0.0,
+			"last": last,
+			"large": large,
+			"smoke": flags & F_SMOKE_TRAILS != 0,
+			"burn": flags & F_BURN_PIECES != 0
+		}
+	)
 	return true
 
 
@@ -574,11 +626,18 @@ func _streamers_at(pos: Vector3, scale: float) -> void:
 	var s := {"pos": pos, "items": [], "t": 0.0}
 	for i in 12:
 		var a := deg_to_rad(30.0 * i)
-		s.items.append({"p": pos - Vector3(0, 0.5, 0), "v": Vector3(cos(a) * 5.0 * scale, 3.0 * scale, sin(a) * 5.0 * scale), "on": true})
+		s.items.append(
+			{
+				"p": pos - Vector3(0, 0.5, 0),
+				"v": Vector3(cos(a) * 5.0 * scale, 3.0 * scale, sin(a) * 5.0 * scale),
+				"on": true
+			}
+		)
 	_streamers.append(s)
 
 
 # --- damage smoke (FUN_004d1f90 / FUN_004d20a0) --------------------------------------------------
+
 
 ## Start / stop the damage smoke of a unit: one 0x100 puff per frame at the unit.
 func set_smoke(node: Node3D, on: bool) -> void:
@@ -646,7 +705,9 @@ func _update_pieces(delta: float, step: float) -> void:
 				if p.smoke:
 					smoke_puff(node.position)
 				if p.burn and _rng.randi() % 32 == 0:
-					_add_puff(node.position, Vector3.ZERO, FIREBALL_TIME, SMALL_FIRE_WIDTH, SMALL_FIRE_WIDTH, 250, true, 0.0)
+					_add_puff(
+						node.position, Vector3.ZERO, FIREBALL_TIME, SMALL_FIRE_WIDTH, SMALL_FIRE_WIDTH, 250, true, 0.0
+					)
 					p.age = p.life + 1.0
 
 
@@ -681,9 +742,13 @@ func _update_columns(delta: float) -> void:
 		var c: Dictionary = _columns[i]
 		c.age += delta
 		while c.born < c.n and c.age >= c.born * 1.6 and c.born * 1.6 < c.end:
-			var v := Vector3((_rng.randi() % 10 - 5) * 0.3, 4.0 + (_rng.randi() % 12 - 5) * 0.3, (_rng.randi() % 10 - 5) * 0.3)
+			var v := Vector3(
+				(_rng.randi() % 10 - 5) * 0.3, 4.0 + (_rng.randi() % 12 - 5) * 0.3, (_rng.randi() % 10 - 5) * 0.3
+			)
 			var life := minf(36.0 / (4 - column_detail), c.end - c.born * 1.6)
-			_add_puff(c.pos, v, life, SMOKE_WIDTH, SMOKE_WIDTH * (1.0 + 0.32 * life), 10 + _rng.randi() % 70, false, 0.3)
+			_add_puff(
+				c.pos, v, life, SMOKE_WIDTH, SMOKE_WIDTH * (1.0 + 0.32 * life), 10 + _rng.randi() % 70, false, 0.3
+			)
 			c.born += 1
 		if c.born >= c.n or c.age >= c.end:
 			_columns.remove_at(i)
@@ -726,4 +791,12 @@ static func puff_transform(p: Dictionary) -> Transform3D:
 
 ## Live counts, for tests.
 func counts() -> Dictionary:
-	return {"puffs": _puffs.size(), "pieces": _pieces.size(), "shards": _shards.size(), "columns": _columns.size(), "smokers": _smokers.size(), "clusters": _clusters.size(), "water": _water.size()}
+	return {
+		"puffs": _puffs.size(),
+		"pieces": _pieces.size(),
+		"shards": _shards.size(),
+		"columns": _columns.size(),
+		"smokers": _smokers.size(),
+		"clusters": _clusters.size(),
+		"water": _water.size()
+	}

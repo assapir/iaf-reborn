@@ -47,7 +47,10 @@ func run() -> void:
 	# --- no device: the Devices choices do nothing, the keys work, the poller sends nothing ----------
 	S.throttle = 1
 	S.rudder = 1
-	check(not J.stick_used() and not J.drops_key(2) and not J.drops_key(9) and J.throttle_axis() == -1, "no device: no axis in use, no key dropped")
+	check(
+		not J.stick_used() and not J.drops_key(2) and not J.drops_key(9) and J.throttle_axis() == -1,
+		"no device: no axis in use, no key dropped"
+	)
 	check(J.poll().is_empty(), "no device: the poller sends nothing")
 	set_key(KEY_DOWN, true)
 	tv._read_controls(DT)
@@ -85,7 +88,9 @@ func run() -> void:
 	axis(JOY_AXIS_LEFT_X, -1.0)
 	set_key(KEY_DOWN, true)
 	tv._read_controls(DT)
-	check(tv.stick == Vector2(0, 1), "flight controls KEYBOARD: stick axis ignored, Down arrow pulls (%s)" % str(tv.stick))
+	check(
+		tv.stick == Vector2(0, 1), "flight controls KEYBOARD: stick axis ignored, Down arrow pulls (%s)" % str(tv.stick)
+	)
 	set_key(KEY_DOWN, false)
 	tv._read_controls(DT)
 	S.flight_controls = 1
@@ -108,7 +113,10 @@ func run() -> void:
 	tv.autopilot._engage(2)
 	tv.throttle = 0.9
 	tv.autopilot.key()
-	check(tv.autopilot.mode == 0 and is_equal_approx(tv.throttle, 0.26), "leaving NAV re-syncs to the axis (%.2f)" % tv.throttle)
+	check(
+		tv.autopilot.mode == 0 and is_equal_approx(tv.throttle, 0.26),
+		"leaving NAV re-syncs to the axis (%.2f)" % tv.throttle
+	)
 
 	# Rudder (lRz): ±100 with the dead zone; the rudder keys are dropped.
 	S.rudder = 1
@@ -167,7 +175,10 @@ func run() -> void:
 
 	# menu/joy/*.joy (FUN_004e1590): a device whose name contains a file's first line gets its buttons.
 	J._load_joy_map("Microsoft SideWinder Precision Pro (USB)")
-	check(kt.default_joystick(64) == 0 and kt.default_joystick(69) == 1 and kt.default_joystick(22) == 9, "sw_precp.joy: gun 1, weapon 2, brakes 10")
+	check(
+		kt.default_joystick(64) == 0 and kt.default_joystick(69) == 1 and kt.default_joystick(22) == 9,
+		"sw_precp.joy: gun 1, weapon 2, brakes 10"
+	)
 	check(kt.default_joystick(61) == -1, "records not in the file: no button")
 	J.default_buttons = null
 	check(kt.default_joystick(58) == 2, "no file: the table's own buttons")
@@ -192,15 +203,23 @@ func run() -> void:
 	e.button_index = 5
 	e.pressed = true
 	fe._unhandled_input(e)
-	check(kt.joystick_of(19, fe.pref_work.key_bindings) == 5 and kt.button_name(5) == "Button 6", "Flaps bound to Button 6")
+	check(
+		kt.joystick_of(19, fe.pref_work.key_bindings) == 5 and kt.button_name(5) == "Button 6",
+		"Flaps bound to Button 6"
+	)
 	e = e.duplicate()
 	e.button_index = 0
 	fe._unhandled_input(e)
-	check(fe.msgbox != null and fe.msgbox.text.begins_with("This button is already assigned"), "taken button asks msg 37")
+	check(
+		fe.msgbox != null and fe.msgbox.text.begins_with("This button is already assigned"), "taken button asks msg 37"
+	)
 	var yes: Rect2 = fe.msgbox.rects()[0]
 	fe.msgbox._gui_input(mouse_button(yes.get_center(), true))
 	fe.msgbox._gui_input(mouse_button(yes.get_center(), false))
-	check(kt.joystick_of(19, fe.pref_work.key_bindings) == 0 and kt.joystick_of(64, fe.pref_work.key_bindings) == -1, "Yes: Flaps on Button 1, Fire gun none")
+	check(
+		kt.joystick_of(19, fe.pref_work.key_bindings) == 0 and kt.joystick_of(64, fe.pref_work.key_bindings) == -1,
+		"Yes: Flaps on Button 1, Fire gun none"
+	)
 	# Devices page choices go through the same working copy.
 	fe.pref_work.rudder = 1
 	fe._pref_close("main", true)
@@ -211,7 +230,10 @@ func run() -> void:
 	S.key_bindings = {}
 	S.rudder = 0
 	S.read_config(cfg)
-	check(S.key_bindings.get(19, [])[1] == 0 and S.key_bindings.get(64, [])[1] == -1 and S.rudder == 1, "settings.cfg keeps the buttons and the Devices choices")
+	check(
+		S.key_bindings.get(19, [])[1] == 0 and S.key_bindings.get(64, [])[1] == -1 and S.rudder == 1,
+		"settings.cfg keeps the buttons and the Devices choices"
+	)
 	S.key_bindings = {}
 	S.rudder = 0
 	fe.queue_free()
@@ -221,12 +243,30 @@ func run() -> void:
 	# Ours: Extras "Throttle detent = MIL" maps the lever's detent to MIL (74), below it 0..74, above it 74..100.
 	var J2 = joy()
 	check(J2.detent_map(60, -1) == 60, "detent off: the original's linear lever")
-	check(J2.detent_map(85, 85) == 74 and J2.detent_map(0, 85) == 0 and J2.detent_map(100, 85) == 100, "detent 85: 85 -> MIL 74, ends kept")
-	check(J2.detent_map(42, 85) == 37 and J2.detent_map(90, 85) == 82, "detent 85: linear below, AB 78..100 above the hold")
-	check(J2.detent_map(51, 50) == 74 and J2.detent_map(53, 50) == 74 and J2.detent_map(54, 50) == 78,
-			"detent 50: a lever resting a point or two past the detent stays MIL (75 would light AB 1); AB from 78")
+	check(
+		J2.detent_map(85, 85) == 74 and J2.detent_map(0, 85) == 0 and J2.detent_map(100, 85) == 100,
+		"detent 85: 85 -> MIL 74, ends kept"
+	)
+	check(
+		J2.detent_map(42, 85) == 37 and J2.detent_map(90, 85) == 82,
+		"detent 85: linear below, AB 78..100 above the hold"
+	)
+	check(
+		J2.detent_map(51, 50) == 74 and J2.detent_map(53, 50) == 74 and J2.detent_map(54, 50) == 78,
+		"detent 50: a lever resting a point or two past the detent stays MIL (75 would light AB 1); AB from 78"
+	)
 
 	# Unknown sticks: the hat (D-pad 11..14) is never a button; with our mapping Godot 15..20 = buttons 12..17.
-	check(J2.physical_button(3) == 3 and J2.physical_button(JOY_BUTTON_DPAD_UP) == -1 and J2.physical_button(JOY_BUTTON_DPAD_RIGHT) == -1, "hat is not a button")
+	check(
+		(
+			J2.physical_button(3) == 3
+			and J2.physical_button(JOY_BUTTON_DPAD_UP) == -1
+			and J2.physical_button(JOY_BUTTON_DPAD_RIGHT) == -1
+		),
+		"hat is not a button"
+	)
 	J2.remapped = true
-	check(J2.physical_button(15) == 11 and J2.physical_button(20) == 16 and J2.physical_button(10) == 10, "remapped: misc1 = button 12")
+	check(
+		J2.physical_button(15) == 11 and J2.physical_button(20) == 16 and J2.physical_button(10) == 10,
+		"remapped: misc1 = button 12"
+	)

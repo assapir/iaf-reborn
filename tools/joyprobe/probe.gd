@@ -6,8 +6,25 @@
 #   REMAP=1 SECONDS=10 godot --path tools/joyprobe -s probe.gd
 extends SceneTree
 
-const REMAP_BUTTONS := ["a", "b", "x", "y", "back", "guide", "start", "leftstick", "rightstick", "leftshoulder",
-	"rightshoulder", "misc1", "paddle1", "paddle2", "paddle3", "paddle4", "touchpad"]
+const REMAP_BUTTONS := [
+	"a",
+	"b",
+	"x",
+	"y",
+	"back",
+	"guide",
+	"start",
+	"leftstick",
+	"rightstick",
+	"leftshoulder",
+	"rightshoulder",
+	"misc1",
+	"paddle1",
+	"paddle2",
+	"paddle3",
+	"paddle4",
+	"touchpad"
+]
 
 
 func _init() -> void:
@@ -18,7 +35,12 @@ func _init() -> void:
 		quit()
 		return
 	var d: int = pads[0]
-	print("device %d: %s  guid %s  known gamepad: %s  %s" % [d, Input.get_joy_name(d), Input.get_joy_guid(d), Input.is_joy_known(d), Input.get_joy_info(d)])
+	print(
+		(
+			"device %d: %s  guid %s  known gamepad: %s  %s"
+			% [d, Input.get_joy_name(d), Input.get_joy_guid(d), Input.is_joy_known(d), Input.get_joy_info(d)]
+		)
+	)
 	if OS.get_environment("REMAP") != "":
 		var m := "%s,%s," % [Input.get_joy_guid(d), Input.get_joy_name(d).replace(",", " ")]
 		for i in REMAP_BUTTONS.size():
@@ -41,7 +63,12 @@ func _init() -> void:
 			var p := Input.is_joy_button_pressed(d, b)
 			if p != held.get(b, false):
 				held[b] = p
-				print("  button index %d %s%s" % [b, "down" if p else "up", "  (D-pad / hat)" if b >= 11 and b <= 14 else ""])
+				print(
+					(
+						"  button index %d %s%s"
+						% [b, "down" if p else "up", "  (D-pad / hat)" if b >= 11 and b <= 14 else ""]
+					)
+				)
 		for i in 8:
 			var v := Input.get_joy_axis(d, i)
 			lo[i] = minf(lo[i], v)

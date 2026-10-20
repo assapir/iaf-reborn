@@ -20,11 +20,27 @@ const INSTRUMENTS := {
 	# The Kfir's compass (bottom centre): the card ring turns, the face with the aircraft symbol stays.
 	"cfir": [{"centre": Vector2(964.0, 302.0), "r": 33.0, "hub": 21.0}],
 	# The F-4E's has the same dial, cut off below the panel's edge: the Kfir's card.
-	"phantom": [{"centre": Vector2(959.2, 347.6), "r": 32.6, "hub": 20.7, "from": ["cfir", Vector2(964.0, 302.0), 33.0]}],
-	# The Mirage's bearing-distance-heading dial (right of the HUD): the card with two painted pointers.
-	"mirage": [{"centre": Vector2(1109.7, 152.8), "r": 33.5, "hub": 0.0, "face": Color8(14, 14, 16),
-		"erase": [[Vector2(1080.0, 146.8), Vector2(1136.5, 157.8), 2.3], [Vector2(1102.5, 177.5), Vector2(1115.2, 123.6), 4.8]],
-		"pointers": true, "pointer": Color8(226, 224, 214), "hub_colour": Color8(118, 120, 122), "hub_r": 2.4}],
+	"phantom":
+	[{"centre": Vector2(959.2, 347.6), "r": 32.6, "hub": 20.7, "from": ["cfir", Vector2(964.0, 302.0), 33.0]}],
+	"mirage":
+	[
+		# The Mirage's bearing-distance-heading dial (right of the HUD): the card with two painted pointers.
+		{
+			"centre": Vector2(1109.7, 152.8),
+			"r": 33.5,
+			"hub": 0.0,
+			"face": Color8(14, 14, 16),
+			"erase":
+			[
+				[Vector2(1080.0, 146.8), Vector2(1136.5, 157.8), 2.3],
+				[Vector2(1102.5, 177.5), Vector2(1115.2, 123.6), 4.8]
+			],
+			"pointers": true,
+			"pointer": Color8(226, 224, 214),
+			"hub_colour": Color8(118, 120, 122),
+			"hub_r": 2.4
+		}
+	],
 }
 
 var cockpit: Control
@@ -143,13 +159,27 @@ func _draw_pointers() -> void:
 	var col: Color = spec.pointer
 	var dir := Vector2(sin(course), -cos(course))
 	var side := Vector2(-dir.y, dir.x)
-	_needles.draw_colored_polygon(PackedVector2Array([c + dir * 29.5 * k, c + (dir * 25.0 + side * 0.7) * k,
-		c + (-dir * 28.5 + side * 0.7) * k, c + (-dir * 28.5 - side * 0.7) * k, c + (dir * 25.0 - side * 0.7) * k]), col)
+	_needles.draw_colored_polygon(
+		PackedVector2Array(
+			[
+				c + dir * 29.5 * k,
+				c + (dir * 25.0 + side * 0.7) * k,
+				c + (-dir * 28.5 + side * 0.7) * k,
+				c + (-dir * 28.5 - side * 0.7) * k,
+				c + (dir * 25.0 - side * 0.7) * k
+			]
+		),
+		col
+	)
 	dir = Vector2(sin(bearing), -cos(bearing))
 	side = Vector2(-dir.y, dir.x)
 	for sgn in [-1.0, 1.0]:
 		var off: Vector2 = side * sgn * 1.9 * k
 		_needles.draw_line(c - dir * 26.0 * k + off, c + dir * 20.0 * k + off, col, 1.0 * k, true)
-	_needles.draw_colored_polygon(PackedVector2Array([c + dir * 29.0 * k, c + dir * 20.0 * k + side * 3.3 * k,
-		c + dir * 20.0 * k - side * 3.3 * k]), col)
+	_needles.draw_colored_polygon(
+		PackedVector2Array(
+			[c + dir * 29.0 * k, c + dir * 20.0 * k + side * 3.3 * k, c + dir * 20.0 * k - side * 3.3 * k]
+		),
+		col
+	)
 	_needles.draw_circle(c, float(spec.hub_r) * k, spec.hub_colour, true, -1.0, true)

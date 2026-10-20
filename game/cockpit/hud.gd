@@ -83,8 +83,12 @@ func _process(_delta: float) -> void:
 		# Ours: the Real HUD (not the F-35I's helmet) is cut at the panel's top edge, so the glareshield hides what
 		# falls below the glass, as on the real jet. The original HUD draws over the panel.
 		# Not while looking aside: the DASH helmet sight draws in this layer and is not on the glass.
-		var real: bool = cockpit != null and Settings.hud_style == "real" and not String(cockpit.cockpit_dir).contains("f35") \
+		var real: bool = (
+			cockpit != null
+			and Settings.hud_style == "real"
+			and not String(cockpit.cockpit_dir).contains("f35")
 			and not cockpit.dash()
+		)
 		cut.clip_contents = real
 		if cockpit != null:
 			cut.size = Vector2(cockpit.size.x, cockpit.panel_top() if real else cockpit.size.y)
@@ -219,6 +223,7 @@ func _field() -> Rect2:
 
 # --- drawing primitives: original pixels from the HUD centre -----------------------------------------
 
+
 ## The colour every symbol draws in: the Real HUD frame's own colour (the F-35 helmet's and the DASH's green) when it
 ## sets one, so the ILS, weapon and BORE symbols drawn over it match; else the HUD's colour (H cycles it).
 func _hc() -> Color:
@@ -294,6 +299,8 @@ func _sprite(ci: CanvasItem, p: Vector2, text: String, right := false) -> void:
 ## A glyph as strokes: [segments between 8-neighbouring lit pixels (a diagonal only where no orthogonal step
 ## joins the two), every lit pixel as a round joint].
 var _strokes := {}
+
+
 func _glyph_strokes(x: int) -> Array:
 	if _strokes.has(x) and _glyph_tex == cockpit.tex.get("MFDS"):
 		return _strokes[x]
@@ -319,7 +326,9 @@ func _gdi(ci: CanvasItem, p: Vector2, text: String, right := false, colour = nul
 	if box.size.y <= 0.0:
 		return
 	ci.draw_set_transform(Vector2(box.position.x, _pt(p).y), 0.0, Vector2(_arial_squeeze, 1.0))
-	ci.draw_string(_arial, Vector2.ZERO, text, HORIZONTAL_ALIGNMENT_LEFT, -1, _gdi_size(), colour if colour != null else _hc())
+	ci.draw_string(
+		_arial, Vector2.ZERO, text, HORIZONTAL_ALIGNMENT_LEFT, -1, _gdi_size(), colour if colour != null else _hc()
+	)
 	ci.draw_set_transform(Vector2.ZERO)
 
 
@@ -327,7 +336,18 @@ func _gdi_size() -> int:
 	var em := 10.0 / 1.15
 	if _arial == null:
 		_arial = Img.arial()
-		var avg := _arial.get_string_size("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", HORIZONTAL_ALIGNMENT_LEFT, -1, 100).x / 52.0 / 100.0 * em
+		var avg := (
+			(
+				_arial
+				. get_string_size(
+					"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", HORIZONTAL_ALIGNMENT_LEFT, -1, 100
+				)
+				. x
+			)
+			/ 52.0
+			/ 100.0
+			* em
+		)
 		_arial_squeeze = 5.0 / avg
 	return int(round(em * _s))
 
@@ -355,6 +375,7 @@ func prim_text_box(q: Dictionary) -> Rect2:
 
 
 # --- the unclipped layer -----------------------------------------------------------------------------
+
 
 func _draw_outer() -> void:
 	if cockpit == null or cockpit.layout.is_empty() or not visible or hud_failed():
@@ -386,7 +407,11 @@ func _draw_outer() -> void:
 	var at := alt_value(st, mode, gear)
 	var x := f.end.x
 	_gdi(outer, Vector2(x + 43, vy + 4), at[1], true)
-	_poly(outer, [Vector2(x, vy - 6), Vector2(x + 34, vy - 6), Vector2(x + 34, vy + 6), Vector2(x, vy + 6), Vector2(x, vy - 6)], w)
+	_poly(
+		outer,
+		[Vector2(x, vy - 6), Vector2(x + 34, vy - 6), Vector2(x + 34, vy + 6), Vector2(x, vy + 6), Vector2(x, vy - 6)],
+		w
+	)
 	if scales:
 		var sc := alt_scale(at[0])
 		_ln(outer, Vector2(x, vy - 51), Vector2(x, vy + 51), w)
@@ -400,7 +425,11 @@ func _draw_outer() -> void:
 	x = f.position.x
 	if v.size() > 0:
 		_gdi(outer, Vector2(x - 2, vy + 4), v[1], true)
-	_poly(outer, [Vector2(x, vy - 6), Vector2(x - 34, vy - 6), Vector2(x - 34, vy + 6), Vector2(x, vy + 6), Vector2(x, vy - 6)], w)
+	_poly(
+		outer,
+		[Vector2(x, vy - 6), Vector2(x - 34, vy - 6), Vector2(x - 34, vy + 6), Vector2(x, vy + 6), Vector2(x, vy - 6)],
+		w
+	)
 	if scales:
 		var sv: float = v[0] if v.size() > 0 else 0.0
 		var sc := speed_scale(sv, nav.req_kt if mode != 3 else null)
@@ -449,7 +478,9 @@ func _draw_outer() -> void:
 ## blue for a friend and red for an enemy (`IafImode.marks`). Clipped only to the screen, over the panel.
 func _draw_imode(w: float) -> void:
 	var h := int(cockpit.view_bottom())
-	var o: Vector2 = cockpit.projection_centre() - cockpit.position - outer.position - Vector2(320, floori(h / 2.0)) * _s
+	var o: Vector2 = (
+		cockpit.projection_centre() - cockpit.position - outer.position - Vector2(320, floori(h / 2.0)) * _s
+	)
 	for m in IafImode.marks(cockpit.imode_entries, h):
 		var at := Vector2(m.at)
 		outer.draw_line(o + at * _s, o + Vector2(m.to) * _s, _hc(), w)
@@ -459,17 +490,22 @@ func _draw_imode(w: float) -> void:
 func _draw_range_scale(f: Rect2, w: float) -> void:
 	var rd: Dictionary = cockpit.radar
 	var nm: float = Mfd.RADAR_RANGES[clampi(int(rd.get("idx", 1)), 1, 6) - 1]
-	var r: Vector3i = ClassDB.class_call_static("IafRelease", "range_scale", 66, nm, rd.get("dlz", []), float(rd.lock.dist))
+	var r: Vector3i = ClassDB.class_call_static(
+		"IafRelease", "range_scale", 66, nm, rd.get("dlz", []), float(rd.lock.dist)
+	)
 	var x := f.end.x - 4.0
 	var y := -50.0
 	_poly(outer, [Vector2(x - 2, y), Vector2(x, y), Vector2(x, y + 66), Vector2(x - 3, y + 66)], w)
-	_poly(outer, [Vector2(x + 1, y + r.x), Vector2(x - 2, y + r.x), Vector2(x - 2, y + r.y), Vector2(x + 2, y + r.y)], w)
+	_poly(
+		outer, [Vector2(x + 1, y + r.x), Vector2(x - 2, y + r.x), Vector2(x - 2, y + r.y), Vector2(x + 2, y + r.y)], w
+	)
 	_poly(outer, [Vector2(x - 6, y + r.z - 2), Vector2(x - 4, y + r.z), Vector2(x - 7, y + r.z + 3)], w)
 	_sprite(outer, Vector2(x - 7, y + r.z - 2), "%3dK" % int(float(rd.get("closure", 0.0)) * 1.9427955), true)
 	_sprite(outer, Vector2(x, y - 8), "%3d" % int(nm), true)
 
 
 # --- the Real HUD (ours, Extras > HUD) ---------------------------------------------------------------------
+
 
 ## The Real HUD's primitives of this frame ({field, outer, colour, sight}; {} with the original HUD or without a
 ## camera; on the helmet display only for the F-35, whose display is its helmet), computed once per frame for both
@@ -519,14 +555,22 @@ func real_hud() -> Dictionary:
 			var g = host_ground.call(wpt.world.x, wpt.world.y)
 			z = float(g) if g != null else 0.0
 		var minutes := float(nav.minutes)
-		steer = {"number": int(nav.index) + 1, "bearing": nav.bearing_deg, "dist_m": float(nav.dist_nm) / M_TO_NM,
+		steer = {
+			"number": int(nav.index) + 1,
+			"bearing": nav.bearing_deg,
+			"dist_m": float(nav.dist_nm) / M_TO_NM,
 			"eta_s": minutes * 60.0 if minutes < 1000.0 / 60.0 else null,
-			"at": _hud_point(Vector3(wpt.world.x, wpt.world.y, z), true)}
+			"at": _hud_point(Vector3(wpt.world.x, wpt.world.y, z), true)
+		}
 	var lk: Dictionary = rd.get("lock", {})
 	var target := {}
 	if not lk.is_empty():
-		target = {"range_m": float(lk.dist), "closure": float(rd.get("closure", 0.0)), "at": _hud_point(lk.pos, true),
-			"aspect": lk.get("aspect")}
+		target = {
+			"range_m": float(lk.dist),
+			"closure": float(rd.get("closure", 0.0)),
+			"at": _hud_point(lk.pos, true),
+			"aspect": lk.get("aspect")
+		}
 	var pip = null
 	if mode == 4 and wp.get("pipper") != null:
 		pip = _hud_point(wp.pipper, false)
@@ -541,24 +585,54 @@ func real_hud() -> Dictionary:
 		lcos = gun + Vector2(wp.pipper.x, wp.pipper.y)
 	var agl = st.get("agl_ft")
 	_real_in = {
-		"cockpit": cockpit.cockpit_dir, "time": st.get("time", 0.0), "off_boresight": helmet and cockpit.dash(),
-		"head_view": (centre - _c) / _s, "head_rel": Vector2(wrapf(rad_to_deg(atan2(fwd.x, -fwd.z)) - float(st.get("heading", 0.0)), -180.0, 180.0),
-			rad_to_deg(asin(clampf(fwd.y, -1.0, 1.0))) - pitch),
-		"head_heading": fposmod(rad_to_deg(atan2(fwd.x, -fwd.z)), 360.0), "kcas": st.get("ias_kt", 0.0), "ground_kt": st.get("ground_kt", 0.0),
-		"tas_ms": float(st.get("tas_kt", 0.0)) / MS_TO_KT, "alt_ft": st.get("alt_ft", 0.0), "agl_ft": agl,
-		"vs_fpm": st.get("vs_fpm", 0.0), "heading": st.get("heading", 0.0), "roll": st.get("roll", 0.0),
-		"mach": st.get("mach", 0.0), "g": st.get("g", 1.0), "aoa": st.get("aoa", 0.0),
-		"gear_down": cockpit.gear_handle_down, "fuel_lbs": st.get("fuel_lbs", 0.0),
-		"fpm": (fpm - _c) / _s if fpm != null else null, "boresight": (cockpit.boresight() - position - _c) / _s,
-		"gun_cross": gun, "horizon": (horizon - _c) / _s, "px_per_deg": px_deg / _s,
-		"steerpoint": steer, "target": target, "dlz": rd.get("dlz", []) if not target.is_empty() else [],
-		"weapons": {"hud_mode": mode, "selected": wp.get("total", 0), "srm": wp.get("srm", 0), "mrm": wp.get("mrm", 0),
-			"seeker": wp.get("seeker") if mode == 1 and wp.get("have_missiles", false) else null, "lcos": lcos,
-			"pipper": pip, "steering": _hud_point(wp.mrm_point, false) if mode == 2 and wp.get("mrm_point") != null else null,
-			"circle": wp.get("circle", 5.0), "shoot": wp.get("shoot", false),
+		"cockpit": cockpit.cockpit_dir,
+		"time": st.get("time", 0.0),
+		"off_boresight": helmet and cockpit.dash(),
+		"head_view": (centre - _c) / _s,
+		"head_rel":
+		Vector2(
+			wrapf(rad_to_deg(atan2(fwd.x, -fwd.z)) - float(st.get("heading", 0.0)), -180.0, 180.0),
+			rad_to_deg(asin(clampf(fwd.y, -1.0, 1.0))) - pitch
+		),
+		"head_heading": fposmod(rad_to_deg(atan2(fwd.x, -fwd.z)), 360.0),
+		"kcas": st.get("ias_kt", 0.0),
+		"ground_kt": st.get("ground_kt", 0.0),
+		"tas_ms": float(st.get("tas_kt", 0.0)) / MS_TO_KT,
+		"alt_ft": st.get("alt_ft", 0.0),
+		"agl_ft": agl,
+		"vs_fpm": st.get("vs_fpm", 0.0),
+		"heading": st.get("heading", 0.0),
+		"roll": st.get("roll", 0.0),
+		"mach": st.get("mach", 0.0),
+		"g": st.get("g", 1.0),
+		"aoa": st.get("aoa", 0.0),
+		"gear_down": cockpit.gear_handle_down,
+		"fuel_lbs": st.get("fuel_lbs", 0.0),
+		"fpm": (fpm - _c) / _s if fpm != null else null,
+		"boresight": (cockpit.boresight() - position - _c) / _s,
+		"gun_cross": gun,
+		"horizon": (horizon - _c) / _s,
+		"px_per_deg": px_deg / _s,
+		"steerpoint": steer,
+		"target": target,
+		"dlz": rd.get("dlz", []) if not target.is_empty() else [],
+		"weapons":
+		{
+			"hud_mode": mode,
+			"selected": wp.get("total", 0),
+			"srm": wp.get("srm", 0),
+			"mrm": wp.get("mrm", 0),
+			"seeker": wp.get("seeker") if mode == 1 and wp.get("have_missiles", false) else null,
+			"lcos": lcos,
+			"pipper": pip,
+			"steering": _hud_point(wp.mrm_point, false) if mode == 2 and wp.get("mrm_point") != null else null,
+			"circle": wp.get("circle", 5.0),
+			"shoot": wp.get("shoot", false),
 			"delay": float(ag.ttg) if delay_on else null,
 			"delay_at": _hud_point(ag.get("target", ag.pipper), false) if delay_on else null,
-			"designated": delay_on and ag.get("frozen", false)}}
+			"designated": delay_on and ag.get("frozen", false)
+		}
+	}
 	_real = _real_hud.frame(_field(), _real_in)
 	return _real
 
@@ -604,6 +678,7 @@ func _draw_prims(ci: CanvasItem, prims: Array, w: float, colour = null) -> void:
 
 
 # --- traced values (original pixels; tests/godot/test_hud.gd) -----------------------------------------
+
 
 ## The DASH symbol (FUN_00539ac0) as polylines in original pixels from the helmet display's centre: the aircraft
 ## symbol's wings and tail (LineTo ∓4 → ∓1 leaves the last pixel: 4..2 px, as the marker; its circle
@@ -655,6 +730,7 @@ func _dash_steady() -> bool:
 		_blink = 1
 	_blink_last = now
 	return _blink == 1
+
 
 ## The heading tape (FUN_00537cd0, scale 1): 2 px per degree, ±57 px. `ticks`: x of the 5° ticks outside
 ## the box (|x| 11..57, 2 px up); `labels`: [x, "%02d" tens of degrees] every 10° (sprite font ending at
@@ -815,8 +891,9 @@ static func nav_cues(st: Dictionary, route: Array, index: int) -> Dictionary:
 ## 5: in NAV "%3.1f MIN" below 60 minutes, in mode 5 the bomb time-to-go "%2d SEC" / "XX SEC" (≥ 90), in modes
 ## 1, 2, 8 "%2d SEC" and in mode 4 "%2d" of the last launched weapon's time left (S+0x380). Mode 1 without a lock
 ## shows "AUD" in row 4 while the cockpit has a target (S+0x3a4, `wp.target`: the seeker's; FUN_0052ef20 @52f437).
-static func text_block(st: Dictionary, mode: int, nav: Dictionary, wp: Dictionary, radar: Dictionary,
-		twin: bool, flags: Array) -> Array:
+static func text_block(
+	st: Dictionary, mode: int, nav: Dictionary, wp: Dictionary, radar: Dictionary, twin: bool, flags: Array
+) -> Array:
 	var rows := ["", "", "", "", "", ""]
 	var eng: PackedFloat32Array = st.get("engines", PackedFloat32Array([0, 0, 0, 0, 0, 0]))
 	var dmg := func(i: int) -> bool: return i < flags.size() and bool(flags[i])
@@ -835,7 +912,9 @@ static func text_block(st: Dictionary, mode: int, nav: Dictionary, wp: Dictionar
 	if mode == 0:
 		rows[2] = "NAV"
 	elif not wp.is_empty():
-		rows[2] = "%1d %s %s" % [int(wp.get("total", 0)), wp.get("name", ""), "RDY" if wp.get("ready", false) else "MAL"]
+		rows[2] = (
+			"%1d %s %s" % [int(wp.get("total", 0)), wp.get("name", ""), "RDY" if wp.get("ready", false) else "MAL"]
+		)
 	var lk: Dictionary = radar.get("lock", {})
 	if not lk.is_empty():
 		rows[3] = "R %2.1f" % (float(lk.get("dist", 0.0)) * M_TO_NM)
@@ -882,7 +961,9 @@ func _project(dir: Vector3) -> Vector2:
 	# (unproject_position errors at the plane, mirrors behind it): far off-screen toward that side.
 	var d := camera.global_basis.orthonormalized().inverse() * dir
 	if d.z > -1e-3:
-		var centre := camera.unproject_position(camera.global_position - camera.global_basis.z * 1000.0) - global_position
+		var centre := (
+			camera.unproject_position(camera.global_position - camera.global_basis.z * 1000.0) - global_position
+		)
 		var side := Vector2(d.x, -d.y)
 		return centre + (side.normalized() if side.length() > 1e-6 else Vector2.DOWN) * size.length() * 4.0
 	return camera.unproject_position(camera.global_position + dir * 1000.0) - global_position
@@ -966,11 +1047,15 @@ func _draw_rung(c: Vector2, along: Vector2, e: int, s: float, w: float, _font: F
 		if e == 0:
 			draw_line(at.call(9 * side, 0), at.call(46 * side, 0), col, w)
 		elif e > 0:
-			draw_polyline(PackedVector2Array([at.call(9 * side, 0), at.call(32 * side, 0), at.call(32 * side, 3)]), col, w)
+			draw_polyline(
+				PackedVector2Array([at.call(9 * side, 0), at.call(32 * side, 0), at.call(32 * side, 3)]), col, w
+			)
 		else:
 			draw_line(at.call(9 * side, 0), at.call(20 * side, 0), col, w)
 			draw_line(at.call(22 * side, 0), at.call(25 * side, 0), col, w)
-			draw_polyline(PackedVector2Array([at.call(27 * side, 0), at.call(32 * side, 0), at.call(32 * side, -3)]), col, w)
+			draw_polyline(
+				PackedVector2Array([at.call(27 * side, 0), at.call(32 * side, 0), at.call(32 * side, -3)]), col, w
+			)
 		if e != 0 and e % 10 == 0:
 			var p: Vector2 = (at.call(39 * side, 0) - _c) / s + Vector2(5, -2)
 			if _field().has_point(p):
@@ -1034,12 +1119,28 @@ func _draw_weapons(s: float, w: float, font: Font, fs: int, gun: Vector2, dash :
 				var dir := Vector2(sin(a), -cos(a))
 				var perp := Vector2(cos(a), sin(a))
 				var base := _c + dir * (r + 4.0 * s)
-				draw_polyline(PackedVector2Array([_c + dir * r, base + perp * 2.0 * s, base - perp * 2.0 * s, _c + dir * r]), col, w)
+				draw_polyline(
+					PackedVector2Array([_c + dir * r, base + perp * 2.0 * s, base - perp * 2.0 * s, _c + dir * r]),
+					col,
+					w
+				)
 			if mode == 1 and wp.have_missiles:
 				# The seeker diamond ±7 px, held inside the field along the line from the centre (FUN_0052db30).
 				var d: Vector2 = _pt(waypoint_marker_point(wp.seeker, _field()))
 				var k := 7.0 * s
-				draw_polyline(PackedVector2Array([d + Vector2(0, -k), d + Vector2(k, 0), d + Vector2(0, k), d + Vector2(-k, 0), d + Vector2(0, -k)]), col, w)
+				draw_polyline(
+					PackedVector2Array(
+						[
+							d + Vector2(0, -k),
+							d + Vector2(k, 0),
+							d + Vector2(0, k),
+							d + Vector2(-k, 0),
+							d + Vector2(0, -k)
+						]
+					),
+					col,
+					w
+				)
 			if mode == 2 and wp.get("mrm_point") != null:
 				_draw_mrm_point(wp.mrm_point, s, w, col)
 		7, 8:
@@ -1051,7 +1152,19 @@ func _draw_weapons(s: float, w: float, font: Font, fs: int, gun: Vector2, dash :
 				if not camera.is_position_behind(sp):
 					var d := clip_toward(_c, camera.unproject_position(sp) - global_position)
 					var k := 7.0 * s
-					draw_polyline(PackedVector2Array([d + Vector2(0, -k), d + Vector2(k, 0), d + Vector2(0, k), d + Vector2(-k, 0), d + Vector2(0, -k)]), col, w)
+					draw_polyline(
+						PackedVector2Array(
+							[
+								d + Vector2(0, -k),
+								d + Vector2(k, 0),
+								d + Vector2(0, k),
+								d + Vector2(-k, 0),
+								d + Vector2(0, -k)
+							]
+						),
+						col,
+						w
+					)
 		3, 4:
 			var pip = wp.pipper
 			var p = null
@@ -1063,8 +1176,10 @@ func _draw_weapons(s: float, w: float, font: Font, fs: int, gun: Vector2, dash :
 					p = camera.unproject_position(sp) - global_position
 			if p != null:
 				var lk: Dictionary = cockpit.radar.get("lock", {})
-				_pipper_at = {"p": pipper_clamp(p, Rect2(Vector2.ZERO, size), s),
-					"arc": range_arc(float(lk.dist)) if not lk.is_empty() else 0.0}
+				_pipper_at = {
+					"p": pipper_clamp(p, Rect2(Vector2.ZERO, size), s),
+					"arc": range_arc(float(lk.dist)) if not lk.is_empty() else 0.0
+				}
 		5, 6:
 			_draw_ag(wp.get("ag", {}), s, w, col)
 
@@ -1235,7 +1350,11 @@ func _draw_target_box(s: float, w: float) -> void:
 	if bool(cockpit.weapons.get("shoot", false)) and _mode() in [1, 2]:
 		var l := 2.0 * h
 		var a := p + Vector2(0, l - 6.0 * _s)
-		draw_polyline(PackedVector2Array([a, p + Vector2(3, 0) * _s + Vector2(0, l), p + Vector2(-3, 0) * _s + Vector2(0, l), a]), col, w)
+		draw_polyline(
+			PackedVector2Array([a, p + Vector2(3, 0) * _s + Vector2(0, l), p + Vector2(-3, 0) * _s + Vector2(0, l), a]),
+			col,
+			w
+		)
 
 
 ## The box: {p (HUD px), h (half size), edge (held at the HUD edge), hostile}; {} without a lock or a designation.
@@ -1257,7 +1376,9 @@ func target_box(s: float) -> Dictionary:
 	var edge := not inner.has_point(p)
 	if edge:
 		var d := p - centre
-		var k := minf(absf((inner.size.x / 2) / d.x) if d.x != 0.0 else INF, absf((inner.size.y / 2) / d.y) if d.y != 0.0 else INF)
+		var k := minf(
+			absf((inner.size.x / 2) / d.x) if d.x != 0.0 else INF, absf((inner.size.y / 2) / d.y) if d.y != 0.0 else INF
+		)
 		p = centre + d * k
 	return {"p": p, "h": h, "edge": edge, "hostile": bool(lk.get("hostile", true))}
 
@@ -1272,7 +1393,12 @@ var host_world_to_scene: Callable
 ## waypoint (action 5) in Arial at (+6, +6).
 func _draw_waypoint_marker(w: float) -> void:
 	var m := _mode()
-	if not (m == 0 or (m >= 4 and m <= 8)) or cockpit.waypoints.is_empty() or camera == null or not host_world_to_scene.is_valid():
+	if (
+		not (m == 0 or (m >= 4 and m <= 8))
+		or cockpit.waypoints.is_empty()
+		or camera == null
+		or not host_world_to_scene.is_valid()
+	):
 		return
 	var i := clampi(cockpit.current_waypoint, 0, cockpit.waypoints.size() - 1)
 	var wpt: Dictionary = cockpit.waypoints[i]

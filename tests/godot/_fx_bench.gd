@@ -61,8 +61,12 @@ func run() -> void:
 			fx.explosion(h, fx.F_FIREBALL | fx.F_PUFF, 1.0, 5.0, h.y)
 		if tv.trails != null:
 			for m in 2:
-				var head: Vector3 = tv.rig.position + fwd * (600.0 + 400.0 * m) + Vector3(0, 60.0 + 80.0 * m, 0) \
-						+ side * (fposmod(t * 450.0, 1800.0) - 900.0) * (1 if m == 0 else -1)
+				var head: Vector3 = (
+					tv.rig.position
+					+ fwd * (600.0 + 400.0 * m)
+					+ Vector3(0, 60.0 + 80.0 * m, 0)
+					+ side * (fposmod(t * 450.0, 1800.0) - 900.0) * (1 if m == 0 else -1)
+				)
 				tv.trails.emit("bench%d" % m, head, tv.trails.MISSILE)
 		await process_frame
 		var now := Time.get_ticks_usec()
@@ -87,9 +91,20 @@ func run() -> void:
 	for x in means[false]:
 		off_avg += x
 	off_avg /= maxi(means[false].size(), 1)
-	print("FX %s: drawing on - off median %+.2f ms (quartiles %+.2f / %+.2f, %d pairs), frame with it off %.2f ms, emitted %s" % [
-		"detailed" if Settings().particle_effects else "original", diffs[diffs.size() / 2], diffs[diffs.size() / 4],
-		diffs[diffs.size() * 3 / 4], diffs.size(), off_avg, fx.gpu.emitted if fx.gpu != null else {}])
+	print(
+		(
+			"FX %s: drawing on - off median %+.2f ms (quartiles %+.2f / %+.2f, %d pairs), frame with it off %.2f ms, emitted %s"
+			% [
+				"detailed" if Settings().particle_effects else "original",
+				diffs[diffs.size() / 2],
+				diffs[diffs.size() / 4],
+				diffs[diffs.size() * 3 / 4],
+				diffs.size(),
+				off_avg,
+				fx.gpu.emitted if fx.gpu != null else {}
+			]
+		)
+	)
 	for l in layers:
 		l.visible = true
 	if OS.get_environment("FX_SHOT") != "":

@@ -11,21 +11,40 @@ func run() -> void:
 	# --- pure: range, cone ------------------------------------------------------------------------
 	var r = Radar.new()
 	r.setup(100)
-	check(r.mode == r.OFF and r.modes[r.LRS].nm == 45.0 and r.modes[r.LRS].idx == 4, "F-16: off, LRS 45 NM, range 40 NM")
-	var tgt := {"key": "t", "pos": Vector3(0, 30000, 5000), "vel": Vector3(0, 200, 0), "ent": {"klass": 1, "heading": 0.0}}
+	check(
+		r.mode == r.OFF and r.modes[r.LRS].nm == 45.0 and r.modes[r.LRS].idx == 4, "F-16: off, LRS 45 NM, range 40 NM"
+	)
+	var tgt := {
+		"key": "t", "pos": Vector3(0, 30000, 5000), "vel": Vector3(0, 200, 0), "ent": {"klass": 1, "heading": 0.0}
+	}
 	var far := {"key": "u", "pos": Vector3(0, 50 * 1854.0, 5000), "vel": Vector3.ZERO, "ent": {"klass": 1}}
 	r.units = func(): return [tgt, far]
-	r.own = func(): return {"pos": Vector3(0, 0, 5000), "vel": Vector3(0, 200, 0), "fwd": Vector3(0, 1, 0), "up": Vector3(0, 0, 1), "yaw": 0.0}
+	r.own = func():
+		return {
+			"pos": Vector3(0, 0, 5000),
+			"vel": Vector3(0, 200, 0),
+			"fwd": Vector3(0, 1, 0),
+			"up": Vector3(0, 0, 1),
+			"yaw": 0.0
+		}
 	r.toggle_aa_ag(0.0)
-	check(r.mode == r.LRS and r.contacts.size() == 1 and r.contacts[0].key == "t", "R: LRS, the unit 30 km ahead is a contact, the one at 50 NM not")
+	check(
+		r.mode == r.LRS and r.contacts.size() == 1 and r.contacts[0].key == "t",
+		"R: LRS, the unit 30 km ahead is a contact, the one at 50 NM not"
+	)
 	check(absf(r.contacts[0].aspect) < 0.01, "flying away: aspect 0 (tail)")
 	tgt.pos = Vector3(0, 45 * 1854.0 + 500.0, 5000)
 	r.step_range(2, 1.0)
-	check(r.contacts.size() == 1 and r.contacts[0].key == "t", "the selected unit beyond 45 NM is kept (re-tested without the range)")
+	check(
+		r.contacts.size() == 1 and r.contacts[0].key == "t",
+		"the selected unit beyond 45 NM is kept (re-tested without the range)"
+	)
 	tgt.pos = Vector3(30000 * sin(deg_to_rad(65)), 30000 * cos(deg_to_rad(65)), 5000)
 	r.scan(2.0)
 	check(r.contacts.is_empty(), "65° off the nose: outside the 60° cone")
-	check(absf(load("res://weapons/real_weapons.gd").radar_nm(100) * 1854.0 - 80000.0) < 1.0, "Real F-16 (APG-68): 80 km")
+	check(
+		absf(load("res://weapons/real_weapons.gd").radar_nm(100) * 1854.0 - 80000.0) < 1.0, "Real F-16 (APG-68): 80 km"
+	)
 
 	# --- mission 221 ------------------------------------------------------------------------------
 	var tv = await start_mission(221)
@@ -76,12 +95,18 @@ func run() -> void:
 	for i in 4:
 		t += 0.05
 		w.update(t)
-	check(w.hud_mode == 1 and w.seeker.target_key == ent.key and w.seeker.slaved(), "the IR seeker is slaved to the radar target")
+	check(
+		w.hud_mode == 1 and w.seeker.target_key == ent.key and w.seeker.slaved(),
+		"the IR seeker is slaved to the radar target"
+	)
 	# HUD: the target box.
 	var lk: Dictionary = tv.cockpit.radar.get("lock", {})
 	check(lk.get("key", "") == ent.key, "the cockpit gets the lock")
 	var box: Dictionary = tv.cockpit.hud.target_box(tv.cockpit.ui_scale())
-	check(not box.is_empty() and box.p.x > tv.cockpit.hud.size.x / 2 and box.edge, "HUD target box held at the right edge (20° off the nose)")
+	check(
+		not box.is_empty() and box.p.x > tv.cockpit.hud.size.x / 2 and box.edge,
+		"HUD target box held at the right edge (20° off the nose)"
+	)
 	check(not box.get("hostile", true), "a friendly (alpha_2): the box gets the X")
 	# The IR seeker beyond R/2 (FUN_00461d10): only with the AI jet's afterburner lit (its FM stage); then 5 km ahead
 	# the SRM shoot cue (FUN_00461290 → state+0x1010): the seeker's lock, rounds, inside the DLZ; the circle shrinks.
@@ -114,25 +139,42 @@ func run() -> void:
 		return ent.world
 	var p1: Vector3 = moved.call(Vector3(300, 0, 0))
 	lk = tv.cockpit.radar.get("lock", {})
-	check(lk.get("pos", Vector3.ZERO).distance_to(p1) < 0.01 and absf(float(lk.dist) - (p1 - w.own().pos).length()) < 0.01, "STT: the lock is at the unit's position this frame")
+	check(
+		(
+			lk.get("pos", Vector3.ZERO).distance_to(p1) < 0.01
+			and absf(float(lk.dist) - (p1 - w.own().pos).length()) < 0.01
+		),
+		"STT: the lock is at the unit's position this frame"
+	)
 	# Backspace: the lock drops, back to LRS.
 	w.radar_event(0x31)
 	t += 0.05
 	w.update(t)
 	check(w.radar.mode == w.radar.LRS and w.radar.locked().is_empty(), "Backspace: unlocked, LRS")
 	# S+0x3a4 (FUN_00456520): without a lock in HUD mode 1 the cockpit's target flag is the seeker's target ("AUD").
-	check(w.hud_mode == 1 and bool(tv.cockpit.weapons.get("target", null)) == (w.seeker.target_key != ""),
-			"no lock, SRM: the target flag follows the seeker (%s)" % w.seeker.target_key)
+	check(
+		w.hud_mode == 1 and bool(tv.cockpit.weapons.get("target", null)) == (w.seeker.target_key != ""),
+		"no lock, SRM: the target flag follows the seeker (%s)" % w.seeker.target_key
+	)
 	# TWS: the selection is the lock; between scans the blip stays, the lock (HUD box) follows the unit.
 	w.radar_event(0x24)  # Q: LRS -> TWS (a scan)
 	check(w.radar.mode == w.radar.TWS and w.radar.locked().get("key", "") == ent.key, "Q: TWS, %s selected" % ent.name)
 	var blip: Vector3 = w.radar._find(ent.key).pos
 	var p2: Vector3 = moved.call(Vector3(0, 400, 0))
 	lk = tv.cockpit.radar.get("lock", {})
-	check(lk.get("pos", Vector3.ZERO).distance_to(p2) < 0.01 and absf(float(lk.dist) - (p2 - w.own().pos).length()) < 0.01, "TWS: the lock is at the unit's position between scans")
+	check(
+		(
+			lk.get("pos", Vector3.ZERO).distance_to(p2) < 0.01
+			and absf(float(lk.dist) - (p2 - w.own().pos).length()) < 0.01
+		),
+		"TWS: the lock is at the unit's position between scans"
+	)
 	check(w.radar._find(ent.key).pos == blip, "TWS: the contact record (MFD blip) waits for the next scan")
 	w.radar_event(0x32, ent.key)  # a TWS press on the blip (FUN_004add20)
-	check(w.radar.mode == w.radar.TWS and w.radar.locked().get("key", "") == ent.key, "event 0x32: selected, TWS kept (no STT)")
+	check(
+		w.radar.mode == w.radar.TWS and w.radar.locked().get("key", "") == ent.key,
+		"event 0x32: selected, TWS kept (no STT)"
+	)
 	await frames(2)  # the radar page draws TWS (the selected contact's scale and text)
 	w.radar_event(0x24)  # Q: TWS -> ACM
 	w.radar_event(0x24)  # Q: ACM -> LRS
@@ -146,7 +188,10 @@ func run() -> void:
 	var Mfd = load("res://cockpit/mfd.gd")
 	var own2: Vector2 = tv.cockpit.state.world
 	var q: Vector2 = Mfd.isr_px(own2)
-	check(absf(q.x - (own2.x + 166828.0) / 1280.0) < 1e-3 and absf(q.y - (1043796.0 - own2.y) / 1280.0) < 1e-3, "isr.bmp: 1280 m per pixel (col %.1f row %.1f)" % [q.x, q.y])
+	check(
+		absf(q.x - (own2.x + 166828.0) / 1280.0) < 1e-3 and absf(q.y - (1043796.0 - own2.y) / 1280.0) < 1e-3,
+		"isr.bmp: 1280 m per pixel (col %.1f row %.1f)" % [q.x, q.y]
+	)
 	var polys: Array = Mfd.map_picture(own2, 0.0, 10.0, Vector2(65, 109))
 	var area := 0.0
 	for pc in polys:
@@ -169,7 +214,10 @@ func run() -> void:
 				return U[0] + (U[1] - U[0]) * l.x + (U[2] - U[0]) * l.y
 		return Vector2(-1, -1)
 	var top: Vector2 = uv_at.call(polys, Vector2(65, 15)) * Mfd.ISR_SIZE
-	check(top.distance_to(q + Vector2(0, -94.0 * 10.0 * 1853.0 / (94.0 * 1280.0))) < 0.05, "heading 0: the window top is 10 NM north")
+	check(
+		top.distance_to(q + Vector2(0, -94.0 * 10.0 * 1853.0 / (94.0 * 1280.0))) < 0.05,
+		"heading 0: the window top is 10 NM north"
+	)
 	var east: Array = Mfd.map_picture(own2, PI / 2.0, 10.0, Vector2(65, 109))
 	var e2: Vector2 = uv_at.call(east, Vector2(65, 62)) * Mfd.ISR_SIZE
 	check(e2.distance_to(q + Vector2(47.0 * 10.0 * 1853.0 / (94.0 * 1280.0), 0)) < 0.05, "heading 090: up is east")
@@ -185,7 +233,10 @@ func run() -> void:
 	check(w.radar.mode == w.radar.MAP, "R, R, Q: MAP")
 	var m = tv.cockpit.radar_mfd()
 	m._click_map(Vector2(66, 60))
-	check(w.radar.designated and absf(Vector2(w.radar.desig.x, w.radar.desig.y).distance_to(m._map_point)) < 1.0, "a MAP click designates the point under it")
+	check(
+		w.radar.designated and absf(Vector2(w.radar.desig.x, w.radar.desig.y).distance_to(m._map_point)) < 1.0,
+		"a MAP click designates the point under it"
+	)
 	var exp_d: float = Vector2(w.radar.desig.x, w.radar.desig.y).distance_to(own2)
 	check(absf(exp_d - 49.0 * 40.0 * 19.7128) < 60.0, "49 px above the jet at 40 NM: %.0f m" % exp_d)
 	m.press(3)
@@ -195,6 +246,9 @@ func run() -> void:
 	# The TD box without a lock (FUN_0052f690 → FUN_00537330 at FUN_0044e370's ctl+0xdc = radar+0x58: the designated
 	# point): drawn at the designated point, no friendly X.
 	var tdb: Dictionary = tv.cockpit.hud.target_box(tv.cockpit.ui_scale())
-	check(w.radar.locked().is_empty() and not tdb.is_empty() and tdb.hostile, "MAP designation: the HUD TD box (%s)" % str(tdb))
+	check(
+		w.radar.locked().is_empty() and not tdb.is_empty() and tdb.hostile,
+		"MAP designation: the HUD TD box (%s)" % str(tdb)
+	)
 	await frames(2)
 	check(m._map_centre == m._map_point, "EXP centres on the designated point")

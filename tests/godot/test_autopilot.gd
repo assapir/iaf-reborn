@@ -20,7 +20,10 @@ func run() -> void:
 	# Stick key: Right arrow sends +100 → the autopilot goes off, the lamp too, the stick moves.
 	set_key(KEY_RIGHT, true)
 	await frames(2)
-	check(tv.autopilot.mode == 0 and not tv.cockpit.indicators[8] and tv.stick.x > 0.9, "stick key beyond ±51 %: autopilot off")
+	check(
+		tv.autopilot.mode == 0 and not tv.cockpit.indicators[8] and tv.stick.x > 0.9,
+		"stick key beyond ±51 %: autopilot off"
+	)
 	set_key(KEY_RIGHT, false)
 	await frames(2)
 	# A: off → level → NAV.
@@ -34,7 +37,9 @@ func run() -> void:
 	key(tv, KEY_1)
 	check(is_equal_approx(tv.throttle, thr), "NAV: throttle keys dropped")
 	await fly(tv, 5.0)
-	check(tv.flight.ap_stage().begins_with("go home"), "NAV to the landing waypoint: go home (%s)" % tv.flight.ap_stage())
+	check(
+		tv.flight.ap_stage().begins_with("go home"), "NAV to the landing waypoint: go home (%s)" % tv.flight.ap_stage()
+	)
 	# The demonstration circuit: crosswind, downwind (gear and flaps), base.
 	var stage := ""
 	var t0: float = tv._sim_time
@@ -43,7 +48,12 @@ func run() -> void:
 	Engine.time_scale = 1.0
 	stage = tv.flight.ap_stage()
 	st = tv.flight.state()
-	print("  after %.0f s: %s alt %.0f ft speed %.0f kt gear %s flaps %.1f" % [tv._sim_time - t0, stage, st.alt_ft, st.speed_kt, tv.gear_down, tv.flaps])
+	print(
+		(
+			"  after %.0f s: %s alt %.0f ft speed %.0f kt gear %s flaps %.1f"
+			% [tv._sim_time - t0, stage, st.alt_ft, st.speed_kt, tv.gear_down, tv.flaps]
+		)
+	)
 	check(stage == "landing step 8", "the circuit: downwind flown, base turn next (%s)" % stage)
 	check(tv.gear_down and tv.flaps > 0.0, "gear and flaps lowered by the autopilot (on the levers)")
 	check(not st.crashed, "no crash")
@@ -56,7 +66,12 @@ func run() -> void:
 		if touch == Vector2.INF and st.on_ground:
 			touch = Vector2(st.position.x + tv.terrain.world_origin.x, -st.position.z + tv.terrain.world_origin.y)
 			var surf: int = tv.terrain.surface_at(st.position)
-			print("  touchdown at %.0f %.0f (%.1f m off the centreline), surface %x" % [touch.x, touch.y, touch.y - 602383.0, surf])
+			print(
+				(
+					"  touchdown at %.0f %.0f (%.1f m off the centreline), surface %x"
+					% [touch.x, touch.y, touch.y - 602383.0, surf]
+				)
+			)
 			check((surf & tv.terrain.SURFACE_ANY_RUNWAY) != 0, "touchdown on the runway surface (%x)" % surf)
 		await process_frame
 	Engine.time_scale = 1.0

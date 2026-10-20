@@ -14,21 +14,50 @@ func run() -> void:
 	var Missile = load("res://weapons/missile.gd")
 	var Sight = load("res://weapons/mrm_sight.gd")
 	# --- pure ----------------------------------------------------------------------------------------
-	var m := {"_absAcceleration": 120.0, "_spiralAccelBeta": 0.1, "_timeAcceleration": 15.0, "_timeConstVel": 15.0,
-		"_timeDecceleration": 5.0, "_timeConstOrientation": 3.0}
+	var m := {
+		"_absAcceleration": 120.0,
+		"_spiralAccelBeta": 0.1,
+		"_timeAcceleration": 15.0,
+		"_timeConstVel": 15.0,
+		"_timeDecceleration": 5.0,
+		"_timeConstOrientation": 3.0
+	}
 	var own := {"pos": Vector3.ZERO, "fwd": Vector3(0, 1, 0), "vel": Vector3(0, 250, 0)}
 	var head_on: Array = Missile.dlz(m, own, {"pos": Vector3(0, 20000, 0), "vel": Vector3(0, -250, 0)})
-	check(absf(head_on[0] - (500.0 * 33.0 + 0.5 * 120.0 * 0.6 * 33.0 * 33.0)) < 0.5 and absf(head_on[1] - (250.0 * 5.0 + 0.5 * 120.0 * 0.6 * 25.0)) < 0.5,
-		"AMRAAM DLZ head-on at 250 m/s: max %.0f m, min %.0f m" % head_on)
+	check(
+		(
+			absf(head_on[0] - (500.0 * 33.0 + 0.5 * 120.0 * 0.6 * 33.0 * 33.0)) < 0.5
+			and absf(head_on[1] - (250.0 * 5.0 + 0.5 * 120.0 * 0.6 * 25.0)) < 0.5
+		),
+		"AMRAAM DLZ head-on at 250 m/s: max %.0f m, min %.0f m" % head_on
+	)
 	var tail: Array = Missile.dlz(m, own, {"pos": Vector3(0, 20000, 0), "vel": Vector3(0, 250, 0)})
-	check(tail[0] < head_on[0] and is_equal_approx(tail[1], head_on[1]), "a receding target shortens the max range only")
-	check(Missile.dlz(m, own, {"pos": Vector3(0, -5000, 0), "vel": Vector3.ZERO}) == [0.0, 0.0], "a target behind: no DLZ")
+	check(
+		tail[0] < head_on[0] and is_equal_approx(tail[1], head_on[1]), "a receding target shortens the max range only"
+	)
+	check(
+		Missile.dlz(m, own, {"pos": Vector3(0, -5000, 0), "vel": Vector3.ZERO}) == [0.0, 0.0], "a target behind: no DLZ"
+	)
 	check(Missile.dlz(m, own, {})[1] == Missile.flown(m, 250.0, 1.0), "no target: min = 1 s of flight")
-	check(is_equal_approx(Sight.circle(true, [10000.0, 2000.0], 6000.0), 2.5) and is_equal_approx(Sight.circle(true, [10000.0, 2000.0], 12000.0), 5.0 / 3.0)
-		and Sight.circle(false, [], 0.0) == 5.0, "circle: 5 without a lock, shrinks across the DLZ, 5/3 outside")
-	check(Sight.predicted(Vector3.ZERO, Vector3(100, 0, 0), 10000.0).is_equal_approx(Vector3(500, 0, 0)), "lead dist/2000 s")
-	check(Sight.in_circle(Vector2(30, 40), 5.0, false) == [true, 1.0] and is_equal_approx(Sight.in_circle(Vector2(0, 120), 5.0, false)[1], 0.5),
-		"in circle: q 1, outside R/d")
+	check(
+		(
+			is_equal_approx(Sight.circle(true, [10000.0, 2000.0], 6000.0), 2.5)
+			and is_equal_approx(Sight.circle(true, [10000.0, 2000.0], 12000.0), 5.0 / 3.0)
+			and Sight.circle(false, [], 0.0) == 5.0
+		),
+		"circle: 5 without a lock, shrinks across the DLZ, 5/3 outside"
+	)
+	check(
+		Sight.predicted(Vector3.ZERO, Vector3(100, 0, 0), 10000.0).is_equal_approx(Vector3(500, 0, 0)),
+		"lead dist/2000 s"
+	)
+	check(
+		(
+			Sight.in_circle(Vector2(30, 40), 5.0, false) == [true, 1.0]
+			and is_equal_approx(Sight.in_circle(Vector2(0, 120), 5.0, false)[1], 0.5)
+		),
+		"in circle: q 1, outside R/d"
+	)
 
 	# --- per jet ------------------------------------------------------------------------------------
 	for c in CASES:
@@ -51,17 +80,24 @@ func run() -> void:
 	var v := 120.0 / float(mot._spiralAccelBeta)
 	var t := float(mot.burn) + 6.0
 	var flown := v * t + (250.0 - v) * (1.0 - exp(-float(mot._spiralAccelBeta) * t)) / float(mot._spiralAccelBeta)
-	check(absf(am.weight_lb * 0.45359 - 157.0) < 0.01 and absf(v - 4.0 * 340.3) < 0.1 and absf(flown - 70000.0) < 1.0,
-		"Real AMRAAM: 157 kg, Mach 4, flies 70 km from 250 m/s")
+	check(
+		absf(am.weight_lb * 0.45359 - 157.0) < 0.01 and absf(v - 4.0 * 340.3) < 0.1 and absf(flown - 70000.0) < 1.0,
+		"Real AMRAAM: 157 kg, Mach 4, flies 70 km from 250 m/s"
+	)
 	# Real AIM-7B (7 km): its zone against a still target is not empty (was: burn 2.2 s, max below min).
 	for id in real.weapons:
 		var w: Dictionary = real.weapons[id]
 		if w.name == "AIM-7B":
 			var m7: Dictionary = real.motion_for(int(w.type), int(w.generation)).merged(w.motion, true)
-			var z: Array = load("res://weapons/missile.gd").dlz(m7, {"pos": Vector3.ZERO, "fwd": Vector3(0, 1, 0),
-				"vel": Vector3(0, 250, 0)}, {"pos": Vector3(0, 5000, 0), "vel": Vector3.ZERO})
-			check(z.size() == 2 and z[0] > z[1] and absf(z[0] - 5660.0) < 300.0,
-				"Real AIM-7B DLZ against a still target: %s m (about 5.7 km)" % str(z))
+			var z: Array = load("res://weapons/missile.gd").dlz(
+				m7,
+				{"pos": Vector3.ZERO, "fwd": Vector3(0, 1, 0), "vel": Vector3(0, 250, 0)},
+				{"pos": Vector3(0, 5000, 0), "vel": Vector3.ZERO}
+			)
+			check(
+				z.size() == 2 and z[0] > z[1] and absf(z[0] - 5660.0) < 300.0,
+				"Real AIM-7B DLZ against a still target: %s m (about 5.7 km)" % str(z)
+			)
 
 
 ## One jet: the loadout gets the radar missile on stations 0 / 8, a MiG is put 8 km ahead and locked.
@@ -72,9 +108,14 @@ func _shot_case(tv, name: String, wid: int, shots: bool) -> void:
 	tv.rig.position.y += 3000.0
 	# 250 m/s along the nose (the rig stays put: the missiles leave at the jet's velocity).
 	var st0: Dictionary = tv.flight.state()
-	tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, st0.position,
-			Vector3(0.0, 0.0, st0.heading), st0.forward * 250.0,
-			{"airborne": true, "engine_on": true, "real_data": false})
+	tv.flight.start(
+		Settings().assets_dir().path_join("install"),
+		tv.player.fm_section,
+		st0.position,
+		Vector3(0.0, 0.0, st0.heading),
+		st0.forward * 250.0,
+		{"airborne": true, "engine_on": true, "real_data": false}
+	)
 	var w = tv.weapons
 	var hp := [wid, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, wid, 1, 25, 235, 33, 90, 34, 60]
 	var w2 = load("res://weapons/player_weapons.gd").new()
@@ -114,7 +155,10 @@ func _shot_case(tv, name: String, wid: int, shots: bool) -> void:
 		t += 0.05
 		w.update(t)
 	var wp: Dictionary = tv.cockpit.weapons
-	check(float(wp.circle) < 5.0 and float(wp.circle) > 5.0 / 3.0 and wp.mrm_point != null, "%s: circle %.2f inside the DLZ, the lead point" % [name, wp.circle])
+	check(
+		float(wp.circle) < 5.0 and float(wp.circle) > 5.0 / 3.0 and wp.mrm_point != null,
+		"%s: circle %.2f inside the DLZ, the lead point" % [name, wp.circle]
+	)
 	check(wp.shoot, "%s: the shoot cue" % name)
 	var dlz: Array = tv.cockpit.radar.get("dlz", [])
 	check(dlz.size() == 2 and dlz[1] < 8000.0 and dlz[0] > 8000.0, "%s: DLZ %s around 8 km" % [name, str(dlz)])
@@ -137,9 +181,15 @@ func _shot_case(tv, name: String, wid: int, shots: bool) -> void:
 		await _save("radar_missile_hud.png")
 	w.fire_selected()
 	w.release_selected()
-	check(w.missiles.size() == 1 and w.missiles[0].has_target and w.missiles[0].target_key == mig.key, "%s: launched at the locked MiG" % name)
+	check(
+		w.missiles.size() == 1 and w.missiles[0].has_target and w.missiles[0].target_key == mig.key,
+		"%s: launched at the locked MiG" % name
+	)
 	var semi: bool = int(w.missiles[0].weapon.type) == 610
-	check(semi == (w.semi_active.size() == 1) and w.radar.mode == w.radar.STT, "%s: semi-active list %d, radar STT" % [name, w.semi_active.size()])
+	check(
+		semi == (w.semi_active.size() == 1) and w.radar.mode == w.radar.STT,
+		"%s: semi-active list %d, radar STT" % [name, w.semi_active.size()]
+	)
 	var mis = w.missiles[0]
 	for i in 600:
 		t += 0.05
@@ -149,7 +199,10 @@ func _shot_case(tv, name: String, wid: int, shots: bool) -> void:
 			await _save("radar_missile_flight.png")
 		if w.missiles.is_empty():
 			break
-	check(w.missiles.is_empty() and (mig.damage > 0.0 or mig.state != 1), "%s: the missile hit (damage %.2f)" % [name, mig.damage])
+	check(
+		w.missiles.is_empty() and (mig.damage > 0.0 or mig.state != 1),
+		"%s: the missile hit (damage %.2f)" % [name, mig.damage]
+	)
 	# The second missile: Backspace drops the track; a Sparrow flies on unguided, an AMRAAM keeps guiding.
 	var mig2: Dictionary = migs[1]
 	mig2.visible = true

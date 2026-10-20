@@ -13,11 +13,36 @@ const MissionRuntime := preload("res://mission/mission_runtime.gd")
 
 ## Menu tab by bdb Weapons type (FUN_004ef290, record +8): 0 AA, 1 AG, 2 Misc; other types (SAMs
 ## 620 / 630, 0) are not in the list.
-const TABS := {540: 0, 550: 0, 570: 0, 580: 0, 600: 0, 610: 0,
-	500: 1, 510: 1, 560: 1, 590: 1, 635: 1, 640: 1, 650: 1, 565: 2, 660: 2}
+const TABS := {
+	540: 0,
+	550: 0,
+	570: 0,
+	580: 0,
+	600: 0,
+	610: 0,
+	500: 1,
+	510: 1,
+	560: 1,
+	590: 1,
+	635: 1,
+	640: 1,
+	650: 1,
+	565: 2,
+	660: 2
+}
 ## Jet front views bmp/arm/jets/<name>.bmp / .trx by the leader's type code (FUN_00507750).
-const JET_ART := {100: "f-16", 110: "f-15", 120: "f4e", 130: "kfir", 140: "lavi2", 160: "mig23",
-	180: "mig29", 190: "mirage", 200: "phantom", 1000: "x_f35i"}
+const JET_ART := {
+	100: "f-16",
+	110: "f-15",
+	120: "f4e",
+	130: "kfir",
+	140: "lavi2",
+	160: "mig23",
+	180: "mig29",
+	190: "mirage",
+	200: "phantom",
+	1000: "x_f35i"
+}
 const JET_DIR := "install/resource/menu/bmp/arm/jets"
 ## Flight names 1..6 (FUN_005bd3c0; flight table +0x328).
 const FLIGHT_NAMES := ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]
@@ -60,9 +85,15 @@ static func from_mission(mission: Dictionary, bdb: Dictionary, real := false) ->
 		var r: Dictionary = db.by_id(id)
 		if r.is_empty() or not TABS.has(int(r.type)):
 			continue
-		var rec := {"id": id, "type": int(r.type), "tab": TABS[int(r.type)], "name": String(r.name),
-			"icon": String(r.model_path).get_base_dir().get_file(), "weight": float(r.weight_lb),
-			"max": [0, 0, 0, 0, 0, 0, 0, 0, 0]}
+		var rec := {
+			"id": id,
+			"type": int(r.type),
+			"tab": TABS[int(r.type)],
+			"name": String(r.name),
+			"icon": String(r.model_path).get_base_dir().get_file(),
+			"weight": float(r.weight_lb),
+			"max": [0, 0, 0, 0, 0, 0, 0, 0, 0]
+		}
 		mw._by_id[id] = mw.weapons.size()
 		mw.weapons.append(rec)
 	mw._load_flights(mission, bdb)
@@ -106,8 +137,12 @@ func _load_flights(mission: Dictionary, bdb: Dictionary) -> void:
 	if picked >= 0 and flights.has(pn) and picked != int(flights[pn].type):
 		var pobj := PlayerAircraft.object_for(picked, bdb)
 		if not pobj.is_empty():
-			flights[pn] = {"entity": {}, "object": pobj, "type": picked,
-				"limits": pobj if picked == PlayerAircraft.F35I else flights[pn].object}
+			flights[pn] = {
+				"entity": {},
+				"object": pobj,
+				"type": picked,
+				"limits": pobj if picked == PlayerAircraft.F35I else flights[pn].object
+			}
 
 
 ## FUN_004efd50: station i of the table = the leader's store at mission start (weapon name and
@@ -296,7 +331,8 @@ static func _extra_jet(art: String, out: Dictionary) -> Dictionary:
 
 static func _tokens(path: String) -> PackedStringArray:
 	var out := PackedStringArray()
-	for t in FileAccess.get_file_as_string(path).replace("\t", " ").replace("\r", " ").replace("\n", " ").split(" ", false):
+	for t in FileAccess.get_file_as_string(path).replace("\t", " ").replace("\r", " ").replace("\n", " ").split(
+		" ", false
+	):
 		out.append(t)
 	return out
-

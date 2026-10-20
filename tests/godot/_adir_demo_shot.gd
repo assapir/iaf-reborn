@@ -60,10 +60,22 @@ func run() -> void:
 		check(false, "needs a window")
 		return
 	var s := Settings()
-	var detailed := {"models": "detailed", "sky": "atmospheric", "water": true, "particle_effects": true,
-			"airbases": "detailed", "terrain_closeup": true, "night_lights": "detailed", "rolling_wheels": true,
-			"antialiasing": "taa", "imagery_israel": "mapi2015", "imagery_outside": "sentinel2",
-			"external_stores": true, "show_info": false, "hud_style": "real"}
+	var detailed := {
+		"models": "detailed",
+		"sky": "atmospheric",
+		"water": true,
+		"particle_effects": true,
+		"airbases": "detailed",
+		"terrain_closeup": true,
+		"night_lights": "detailed",
+		"rolling_wheels": true,
+		"antialiasing": "taa",
+		"imagery_israel": "mapi2015",
+		"imagery_outside": "sentinel2",
+		"external_stores": true,
+		"show_info": false,
+		"hud_style": "real"
+	}
 	for k in detailed:
 		s.set(k, detailed[k])
 	var part := OS.get_environment("DEMO_PART")
@@ -112,6 +124,7 @@ func _arm() -> void:
 
 
 # --- shots ------------------------------------------------------------------------------------------
+
 
 func _day() -> void:
 	match OS.get_environment("DEMO_FROM"):
@@ -234,7 +247,10 @@ func _kill() -> void:
 				return [mig_at[0] + n.global_basis.orthonormalized() * Vector3(30.0, 8.0, 75.0), mig_at[0]]
 		# The hit: the camera backs off to 150 m and holds, clear of the smoke.
 		if held[0] == null:
-			held[0] = mig_at[0] + ((_eye if _eye != null else mig_at[0] + Vector3(60, 20, 60)) - mig_at[0]).normalized() * 150.0
+			held[0] = (
+				mig_at[0]
+				+ ((_eye if _eye != null else mig_at[0] + Vector3(60, 20, 60)) - mig_at[0]).normalized() * 150.0
+			)
 		return [held[0], mig_at[0]]
 	shot = bay
 	fov = 45.0
@@ -251,12 +267,15 @@ func _kill() -> void:
 		if mis != null:
 			# Until it is gone or has flown past the MiG.
 			var closest := [INF]
-			await _until(func():
-				if not mis in w.missiles:
-					return true
-				var dm: float = mis.position(w.now).distance_to(mig.ent.world)
-				closest[0] = minf(closest[0], dm)
-				return dm > closest[0] + 400.0, 20.0)
+			await _until(
+				func():
+					if not mis in w.missiles:
+						return true
+					var dm: float = mis.position(w.now).distance_to(mig.ent.world)
+					closest[0] = minf(closest[0], dm)
+					return dm > closest[0] + 400.0,
+				20.0
+			)
 			print("KILL missile %d closest %.0f" % [i, closest[0]])
 		print("KILL mig state %s damage %s" % [mig.ent.state, mig.ent.damage])
 		if int(mig.ent.state) != 1:
@@ -328,13 +347,21 @@ func _sea() -> void:
 				near[0] = bp.distance_to(tgt_s) < bv.length() * 2.5
 				var f := bv.normalized()
 				return [bp - f * 10.0 + Vector3(0, 3.0, 0) + f.cross(Vector3.UP).normalized() * 2.5, bp + f * 30.0]
-			return [tgt_s - _s_dir(hdg) * 160.0 + _s_dir(hdg + 90.0) * 70.0 + Vector3(0, 35.0, 0), tgt_s + Vector3(0, 8.0, 0)]
+			return [
+				tgt_s - _s_dir(hdg) * 160.0 + _s_dir(hdg + 90.0) * 70.0 + Vector3(0, 35.0, 0),
+				tgt_s + Vector3(0, 8.0, 0)
+			]
 		fov = 50.0
-		await _until(func():
-			if bomb in w.guided:
-				bl[0] = bomb.position(w.now)
-			return not bomb in w.guided, 40.0)
-		print("BOMB end %s target %s miss %.0f m" % [bl[0], tgt_w, Vector2(bl[0].x - tgt_w.x, bl[0].y - tgt_w.y).length()])
+		await _until(
+			func():
+				if bomb in w.guided:
+					bl[0] = bomb.position(w.now)
+				return not bomb in w.guided,
+			40.0
+		)
+		print(
+			"BOMB end %s target %s miss %.0f m" % [bl[0], tgt_w, Vector2(bl[0].x - tgt_w.x, bl[0].y - tgt_w.y).length()]
+		)
 	print("BOMB tank state %s damage %s" % [tank.get("state"), tank.get("damage")])
 	await _secs(3.5)
 	_seg("strike", f0)
@@ -365,14 +392,24 @@ func _wing() -> void:
 	adir = load("res://aircraft/aircraft_model.gd").create("f35i", 1000, false)
 	tv.add_child(adir)
 	adir_fm = ClassDB.instantiate("IafFlight")
-	var ap: Vector3 = tv.scene_to_world(tv.rig.global_position) + _dir(65.0) * 75.0 + _dir(155.0) * 8.0 + Vector3(0, 0, 4.0)
-	adir_fm.start(install, load("res://aircraft/player_aircraft.gd").profile(1000).fm_section, _w2s(ap),
-			Vector3(0.0, 0.0, 65.0), _s_dir(65.0) * 226.0, {"airborne": true, "engine_on": true, "real_data": false})
+	var ap: Vector3 = (
+		tv.scene_to_world(tv.rig.global_position) + _dir(65.0) * 75.0 + _dir(155.0) * 8.0 + Vector3(0, 0, 4.0)
+	)
+	adir_fm.start(
+		install,
+		load("res://aircraft/player_aircraft.gd").profile(1000).fm_section,
+		_w2s(ap),
+		Vector3(0.0, 0.0, 65.0),
+		_s_dir(65.0) * 226.0,
+		{"airborne": true, "engine_on": true, "real_data": false}
+	)
 	_clearance(adir_fm, adir)
 	adir_fm.ap_setup(install, tv.terrain.world_origin.x, tv.terrain.world_origin.y)
-	adir_fm.ap_set_ground(func(pos: Vector3):
-		var g = tv.terrain.height_at(pos)
-		return float(g) if g != null else -1.0e9)
+	adir_fm.ap_set_ground(
+		func(pos: Vector3):
+			var g = tv.terrain.height_at(pos)
+			return float(g) if g != null else -1.0e9
+	)
 	adir_fm.ap_set_mode(0xb, 0.0)  # straight
 	await frames(3)
 	shot = null
@@ -403,8 +440,16 @@ func _takeoff(lineup: Vector3, rwy: float, title: bool) -> void:
 	await _ready_terrain()
 	await _until(func(): return tv.flight.state().on_ground, 5.0)
 	await _secs(1.0)  # (not recorded: the jet settles on its gear)
-	print("GROUND on_ground %s gear %s clearance %.2f" % [tv.flight.state().on_ground, tv.flight.state().gear,
-			tv.rig.global_position.y - float(tv.terrain.height_at(tv.rig.global_position))])
+	print(
+		(
+			"GROUND on_ground %s gear %s clearance %.2f"
+			% [
+				tv.flight.state().on_ground,
+				tv.flight.state().gear,
+				tv.rig.global_position.y - float(tv.terrain.height_at(tv.rig.global_position))
+			]
+		)
+	)
 	# By night wider and higher: the wingtip lights and the runway's lights behind the jet.
 	var est := Vector3(13.0, 0.4, -20.0) if title else Vector3(19.0, 1.6, -27.0)
 	shot = func(): return _body(est, Vector3(0, 0.4, 1.0))
@@ -469,11 +514,18 @@ func _title(text: String, sub: String) -> void:
 
 # --- the jets -----------------------------------------------------------------------------------------
 
+
 ## The player's flight model restarted as the flight scene starts it: the wheels' height under the origin and the
 ## player's preferences go to the new one.
 func _start_fm(sp: Vector3, heading: float, vel: Vector3, airborne: bool) -> void:
-	tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, sp, Vector3(0.0, 0.0, heading),
-			vel, {"airborne": airborne, "engine_on": true, "real_data": false})
+	tv.flight.start(
+		Settings().assets_dir().path_join("install"),
+		tv.player.fm_section,
+		sp,
+		Vector3(0.0, 0.0, heading),
+		vel,
+		{"airborne": airborne, "engine_on": true, "real_data": false}
+	)
 	_clearance(tv.flight, tv.aircraft)
 	tv._apply_player_prefs()
 
@@ -571,8 +623,14 @@ func _move_ai(a, p: Vector3, heading: float, speed: float) -> void:
 	if pl == null:
 		return
 	var fm = pl.flight
-	fm.start(Settings().assets_dir().path_join("install"), pl.plane, _w2s(p), Vector3(0.0, 0.0, heading),
-			_s_dir(heading) * speed, {"airborne": true, "engine_on": true, "real_data": tv.real_data})
+	fm.start(
+		Settings().assets_dir().path_join("install"),
+		pl.plane,
+		_w2s(p),
+		Vector3(0.0, 0.0, heading),
+		_s_dir(heading) * speed,
+		{"airborne": true, "engine_on": true, "real_data": tv.real_data}
+	)
 	_clearance(fm, pl.node)
 	fm.ap_set_mode(pl.mode, tv.runtime.now)
 	pl._state = fm.state()
@@ -614,7 +672,9 @@ func _step_adir(dt: float) -> void:
 	adir.position = st.position
 	adir.basis = Basis(st.right, st.up, -st.forward).scaled(adir.scale)
 	var parts := {}
-	for k in ["stick_x", "stick_y", "rudder", "flaps", "gear_down", "brakes", "gear", "on_ground", "afterburner", "rpm"]:
+	for k in [
+		"stick_x", "stick_y", "rudder", "flaps", "gear_down", "brakes", "gear", "on_ground", "afterburner", "rpm"
+	]:
 		if st.has(k):
 			parts[k] = st[k]
 	adir.update(parts, dt)
@@ -644,6 +704,7 @@ func _w_dist(p: Vector3) -> float:
 
 # --- cameras ------------------------------------------------------------------------------------------
 
+
 ## A point in the jet's frame (m: x right, y up, z aft) and a look-at point in it.
 func _body(eye: Vector3, at: Vector3) -> Array:
 	var b: Basis = tv.rig.global_basis.orthonormalized()
@@ -659,6 +720,7 @@ func _behind(dist: float, up: float, side: float) -> Array:
 
 
 # --- helpers ------------------------------------------------------------------------------------------
+
 
 func _w2s(p: Vector3) -> Vector3:
 	return tv.world_to_scene(p)
@@ -730,14 +792,16 @@ func _until(cond: Callable, max_s: float) -> void:
 		n += 1
 
 
-class Mover extends Node:
+class Mover:
+	extends Node
 	var demo
 
 	func _process(delta: float) -> void:
 		demo._step(delta)
 
 
-class Pin extends Node:
+class Pin:
+	extends Node
 	var demo
 
 	func _process(_delta: float) -> void:

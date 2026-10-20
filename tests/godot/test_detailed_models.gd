@@ -46,9 +46,14 @@ func run() -> void:
 	# Off (the default): the original, untouched.
 	check(Settings().models == "original", "Models defaults to Original")
 	var off: Node3D = AircraftModel.create("f16", 100, false)
-	check(off.find_child("LdgDrUp", true, false) == null and off.desc == orig_desc, "off: the original descriptor and model")
-	check(_names(off.root_frame) == _names(orig_root) and _tris(off) == _tris(orig_scene),
-			"off: the original's nodes and triangles (%d)" % _tris(off))
+	check(
+		off.find_child("LdgDrUp", true, false) == null and off.desc == orig_desc,
+		"off: the original descriptor and model"
+	)
+	check(
+		_names(off.root_frame) == _names(orig_root) and _tris(off) == _tris(orig_scene),
+		"off: the original's nodes and triangles (%d)" % _tris(off)
+	)
 	check(Gltf.detailed("controllableplanes/f16/f16_h.gltf") == "", "off: no detailed model for the Reference viewer")
 	off.free()
 
@@ -65,21 +70,46 @@ func run() -> void:
 	var tris := _tris(on)
 	check(tris > 30000, "on: detailed triangles %d (original %d)" % [tris, _tris(orig_scene)])
 	var tex := _albedo(on)
-	check(tex != null and tex.get_width() >= 2048 and tex.get_image().has_mipmaps(), "on: the 2048 px KTX2 livery with mipmaps")
+	check(
+		tex != null and tex.get_width() >= 2048 and tex.get_image().has_mipmaps(),
+		"on: the 2048 px KTX2 livery with mipmaps"
+	)
 	var paint := _material_with(on, tex)
-	check(paint != null and paint.normal_enabled and paint.normal_texture != null and paint.roughness_texture != null
-			and paint.metallic_texture != null and paint.ao_enabled and paint.ao_texture != null,
-			"on: the paint is PBR (normal, roughness, metallic, occlusion maps)")
+	check(
+		(
+			paint != null
+			and paint.normal_enabled
+			and paint.normal_texture != null
+			and paint.roughness_texture != null
+			and paint.metallic_texture != null
+			and paint.ao_enabled
+			and paint.ao_texture != null
+		),
+		"on: the paint is PBR (normal, roughness, metallic, occlusion maps)"
+	)
 	var pivot_box := _box(on.part_node("AilerL"), on.part_node("AilerL")).grow(HINGE_M)
-	check(pivot_box.size != Vector3.ZERO and pivot_box.has_point(Vector3.ZERO) and not pivot_box.has_point(Vector3(5, 0, 0)),
-			"on: the pivot check sees the part's own mesh (a point 5 m off fails)")
+	check(
+		(
+			pivot_box.size != Vector3.ZERO
+			and pivot_box.has_point(Vector3.ZERO)
+			and not pivot_box.has_point(Vector3(5, 0, 0))
+		),
+		"on: the pivot check sees the part's own mesh (a point 5 m off fails)"
+	)
 	var lods := 0
 	for mi: MeshInstance3D in on.find_children("*", "MeshInstance3D", true, false):
 		var am := mi.mesh as ArrayMesh
-		if am != null and am.get_surface_count() > 0 and (RenderingServer.mesh_get_surface(am.get_rid(), 0).get("lods", []) as Array).size() > 0:
+		if (
+			am != null
+			and am.get_surface_count() > 0
+			and (RenderingServer.mesh_get_surface(am.get_rid(), 0).get("lods", []) as Array).size() > 0
+		):
 			lods += 1
 	check(lods > 0, "on: meshes carry LODs (%d)" % lods)
-	check(Gltf.detailed("controllableplanes/f16/f16_h.gltf") != "", "on: the Reference viewer's F-16 maps to the detailed model")
+	check(
+		Gltf.detailed("controllableplanes/f16/f16_h.gltf") != "",
+		"on: the Reference viewer's F-16 maps to the detailed model"
+	)
 
 	# Every helper of the original, same place; every part present.
 	var fr: Node3D = on.root_frame
@@ -92,7 +122,10 @@ func run() -> void:
 		if mine == null:
 			missing.append(name)
 			continue
-		if orig_desc.parts.has(name) or (name.ends_with("1") or name.ends_with("2")) and orig_desc.parts.has(name.left(-1)):
+		if (
+			orig_desc.parts.has(name)
+			or (name.ends_with("1") or name.ends_with("2")) and orig_desc.parts.has(name.left(-1))
+		):
 			continue  # parts and their hinge helpers: below
 		var dd: float = mine.position.distance_to((n as Node3D).position)
 		report.append("%s %.3f" % [name, dd])
@@ -118,7 +151,10 @@ func run() -> void:
 		if deg > AXIS_DEG or box.size == Vector3.ZERO or not box.has_point(Vector3.ZERO):
 			bad.append(name)
 	print("hinges (name, pivot off the original's hinge line, axis angle to the original's): ", ", ".join(report))
-	check(bad.is_empty(), "on: each pivot on its own part, axes within %.0f° of the original's (outside: %s)" % [AXIS_DEG, bad])
+	check(
+		bad.is_empty(),
+		"on: each pivot on its own part, axes within %.0f° of the original's (outside: %s)" % [AXIS_DEG, bad]
+	)
 
 	# Nothing detached: every mesh (the body and each part, rest pose) inside the original's bounds grown by
 	# LOOSE_M, each part touching the body, the afterburner at the tail cone's end.
@@ -126,9 +162,19 @@ func run() -> void:
 	var body := _box(fr, fr, false)
 	var stray := []
 	for mi: MeshInstance3D in [fr] + fr.find_children("*", "MeshInstance3D", true, false):
-		if mi.mesh != null and not String(mi.name).begins_with("Afterburner_") and not obox.grow(LOOSE_M).encloses(_xf(mi, fr) * mi.get_aabb()):
+		if (
+			mi.mesh != null
+			and not String(mi.name).begins_with("Afterburner_")
+			and not obox.grow(LOOSE_M).encloses(_xf(mi, fr) * mi.get_aabb())
+		):
 			stray.append(String(mi.name))
-	check(stray.is_empty(), "on: every mesh inside the original's bounds + %.1f m (stray: %s; original %s, detailed body %s)" % [LOOSE_M, stray, obox, body])
+	check(
+		stray.is_empty(),
+		(
+			"on: every mesh inside the original's bounds + %.1f m (stray: %s; original %s, detailed body %s)"
+			% [LOOSE_M, stray, obox, body]
+		)
+	)
 	var loose := []
 	for name in orig_desc.parts:
 		var part := fr.get_node_or_null(NodePath(name)) as Node3D
@@ -151,8 +197,10 @@ func run() -> void:
 		spine.append("%.1f m aft x %.1f: %.3f / %.3f" % [absf(st), x, d, o])
 		spine_bad = spine_bad or absf(d - o) > (SPINE_M if st > 0 else SPINE_SIDE_M)
 	print("dorsal spine top (detailed / original - %.3f m), m above the eye: " % off_m, ", ".join(spine))
-	check(not spine_bad and absf(off_m) < SPINE_OFFSET_M,
-			"on: the IAF dorsal spine follows the original's top from the canopy to the fin (offset %.2f m)" % off_m)
+	check(
+		not spine_bad and absf(off_m) < SPINE_OFFSET_M,
+		"on: the IAF dorsal spine follows the original's top from the canopy to the fin (offset %.2f m)" % off_m
+	)
 	# The afterburner's ring (the engine point, its radius) lies on the body's nozzle: body vertices within 10 cm of
 	# the exit plane at about that radius all round.
 	var eng: Array = on.desc.engines.left
@@ -164,7 +212,10 @@ func run() -> void:
 			var d := Vector2(v.x - ep.x, v.y - ep.y)
 			if absf(v.z - ep.z) < 0.1 and d.length() > 0.7 * r and d.length() < 1.3 * r:
 				sectors[posmod(int(round(rad_to_deg(d.angle()) / 45.0)), 8)] = true
-	check(sectors.size() == 8, "on: the afterburner ring sits on the nozzle's exit (r %.2f m, %d of 8 sectors)" % [r, sectors.size()])
+	check(
+		sectors.size() == 8,
+		"on: the afterburner ring sits on the nozzle's exit (r %.2f m, %d of 8 sectors)" % [r, sectors.size()]
+	)
 
 	# What the game reads stays the original's.
 	var same := true
@@ -191,14 +242,21 @@ func run() -> void:
 		if gap > (TIP_M if String(s) in ["StationA", "StationI"] else ATTACH_M):
 			floating.append(String(s))
 	print("stations (name, gap to the body m): ", ", ".join(att))
-	check(floating.is_empty(), "on: every station has its pylon or rail (within %.2f m, tips %.2f m; none: %s)" % [ATTACH_M, TIP_M, floating])
+	check(
+		floating.is_empty(),
+		"on: every station has its pylon or rail (within %.2f m, tips %.2f m; none: %s)" % [ATTACH_M, TIP_M, floating]
+	)
 	check(on.flames.size() == 1, "on: one afterburner nozzle")
 
 	# Animation: airborne gear up (legs and open doors hidden, closed doors shown), ground start gear down.
-	check(not on.part_node("LdgL").visible and not on.part_node("LdgDr").visible and on.part_node("LdgDrUp").visible,
-			"airborne: gear and open doors hidden, closed doors shown")
-	check(again.part_node("LdgL").visible and again.part_node("LdgDr").visible and not again.part_node("LdgDrUp").visible,
-			"ground: gear and open doors shown, closed doors hidden")
+	check(
+		not on.part_node("LdgL").visible and not on.part_node("LdgDr").visible and on.part_node("LdgDrUp").visible,
+		"airborne: gear and open doors hidden, closed doors shown"
+	)
+	check(
+		again.part_node("LdgL").visible and again.part_node("LdgDr").visible and not again.part_node("LdgDrUp").visible,
+		"ground: gear and open doors shown, closed doors hidden"
+	)
 	var sb: Node3D = on.part_node("SpdbrU")
 	var b0 := sb.transform.basis
 	on.update({"brakes": false}, 0.0)
@@ -218,8 +276,10 @@ func run() -> void:
 	mi_a.owner = null
 	mi_a.reparent(holder, false)
 	load("res://terrain/night_lights.gd").to_points(holder, StandardMaterial3D.new())
-	check(mi_a.mesh != mi_b.mesh and mi_b.mesh.surface_get_primitive_type(0) == Mesh.PRIMITIVE_TRIANGLES,
-			"changing one jet's mesh leaves the other's")
+	check(
+		mi_a.mesh != mi_b.mesh and mi_b.mesh.surface_get_primitive_type(0) == Mesh.PRIMITIVE_TRIANGLES,
+		"changing one jet's mesh leaves the other's"
+	)
 	holder.free()
 	on.free()
 	again.free()
@@ -228,7 +288,10 @@ func run() -> void:
 	# In a mission: the player's and the AI's F-16s.
 	var tv := await start_mission(231)
 	await frames(5)
-	check(tv.aircraft != null and tv.aircraft.find_child("LdgDrUp", true, false) != null, "mission 231: the player's F-16 is detailed")
+	check(
+		tv.aircraft != null and tv.aircraft.find_child("LdgDrUp", true, false) != null,
+		"mission 231: the player's F-16 is detailed"
+	)
 	var ai := 0
 	for n in tv.find_children("f16", "Node3D", true, false):
 		if n != tv.aircraft and n.find_child("LdgDrUp", true, false) != null:
@@ -287,7 +350,11 @@ func _albedo(n: Node) -> Texture2D:
 			continue
 		for s in mi.mesh.get_surface_count():
 			var m := mi.mesh.surface_get_material(s) as BaseMaterial3D
-			if m != null and m.albedo_texture != null and (best == null or m.albedo_texture.get_width() > best.get_width()):
+			if (
+				m != null
+				and m.albedo_texture != null
+				and (best == null or m.albedo_texture.get_width() > best.get_width())
+			):
 				best = m.albedo_texture
 	return best
 
@@ -319,7 +386,9 @@ func _box(n: Node3D, frame: Node3D, deep := true) -> AABB:
 
 
 func _material_with(n: Node, tex: Texture2D) -> BaseMaterial3D:
-	for mi: MeshInstance3D in n.find_children("*", "MeshInstance3D", true, false) + ([n] if n is MeshInstance3D else []):
+	for mi: MeshInstance3D in (
+		n.find_children("*", "MeshInstance3D", true, false) + ([n] if n is MeshInstance3D else [])
+	):
 		if mi.mesh == null:
 			continue
 		for s in mi.mesh.get_surface_count():

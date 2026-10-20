@@ -38,9 +38,16 @@ func run() -> void:
 	a.quit.connect(func(): quitted += 1)
 	check(a.poster.get_size() == Vector2(468, 451), "poster.bmp 468x451")
 	check(a.buttons.get_size() == Vector2(1500, 456), "buttons.bmp 1500x456 (8-bit BMP loads)")
-	var want := [Rect2i(0, 328, 128, 38), Rect2i(128, 328, 212, 38), Rect2i(340, 328, 128, 38),
-		Rect2i(0, 366, 234, 38), Rect2i(234, 366, 234, 38),
-		Rect2i(0, 404, 128, 38), Rect2i(128, 404, 212, 38), Rect2i(340, 404, 128, 38)]
+	var want := [
+		Rect2i(0, 328, 128, 38),
+		Rect2i(128, 328, 212, 38),
+		Rect2i(340, 328, 128, 38),
+		Rect2i(0, 366, 234, 38),
+		Rect2i(234, 366, 234, 38),
+		Rect2i(0, 404, 128, 38),
+		Rect2i(128, 404, 212, 38),
+		Rect2i(340, 404, 128, 38)
+	]
 	var rects_ok := true
 	var cells_ok := true
 	for i in 8:
@@ -50,12 +57,16 @@ func run() -> void:
 			cells_ok = cells_ok and c.size == want[i].size
 	check(rects_ok, "slots B1..B8 = poster.rgn rows of 3, 2, 3")
 	check(cells_ok, "every state cell N/F/P/D E1..E8 has its slot's size")
-	check(a.cells.get("NE1") == Rect2i(0, 0, 128, 38) and a.cells.get("DE4") == Rect2i(468, 114, 234, 38),
-		"cells: NE1 at (0,0), DE4 at (468,114)")
+	check(
+		a.cells.get("NE1") == Rect2i(0, 0, 128, 38) and a.cells.get("DE4") == Rect2i(468, 114, 234, 38),
+		"cells: NE1 at (0,0), DE4 at (468,114)"
+	)
 	check(a.sound != null and a.sound.stream != null, "startup sound: WAVE 131 from jauto.exe")
 	check(a.focus == a.PLAY, "focus starts on PLAY (first enabled tab stop)")
-	check(a.cell_name(2) == "FE3" and a.cell_name(7) == "NE8" and a.cell_name(0) == "DE1" and a.cell_name(6) == "DE7",
-		"art: PLAY active, QUIT normal, HELP / UNINSTALL disabled")
+	check(
+		a.cell_name(2) == "FE3" and a.cell_name(7) == "NE8" and a.cell_name(0) == "DE1" and a.cell_name(6) == "DE7",
+		"art: PLAY active, QUIT normal, HELP / UNINSTALL disabled"
+	)
 	check(a.button_at(centre(a, 7)) == 7 and a.button_at(a._poster_origin() - Vector2(5, 5)) == -1, "hit test")
 	# A click on a disabled button does nothing.
 	a._gui_input(mouse_button(centre(a, 0), true))

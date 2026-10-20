@@ -20,9 +20,20 @@ func run() -> void:
 	if legs.is_empty():
 		legs = [[150.0, 250.0, 20.0], [1500.0, 250.0, 20.0], [6000.0, 300.0, 20.0]]
 	if OS.get_environment("BENCH_BEST") == "1":
-		var best := {"terrain_detail": 1.0, "object_detail": 1.0, "visual_effects": 1.0, "smoke_trails": true, "textured_sky": true,
-			"shadows": true, "external_stores": true, "antialiasing": "msaa4_fxaa", "terrain_closeup": true, "sky": "atmospheric",
-			"imagery_israel": "mapi2015", "imagery_outside": "sentinel2"}
+		var best := {
+			"terrain_detail": 1.0,
+			"object_detail": 1.0,
+			"visual_effects": 1.0,
+			"smoke_trails": true,
+			"textured_sky": true,
+			"shadows": true,
+			"external_stores": true,
+			"antialiasing": "msaa4_fxaa",
+			"terrain_closeup": true,
+			"sky": "atmospheric",
+			"imagery_israel": "mapi2015",
+			"imagery_outside": "sentinel2"
+		}
 		for k in best:
 			Settings().set(k, best[k])
 	# BENCH_SET=key=value,...: overrides after that (e.g. antialiasing=msaa4 / terrain_closeup=false / shadows=false).
@@ -30,7 +41,9 @@ func run() -> void:
 		var p := kv.split("=")
 		var cur = Settings().get(p[0])
 		Settings().set(p[0], (p[1] == "true") if cur is bool else (float(p[1]) if cur is float else p[1]))
-	var tv = await start_mission(int(OS.get_environment("BENCH_MISSION")) if OS.get_environment("BENCH_MISSION") != "" else 311)
+	var tv = await start_mission(
+		int(OS.get_environment("BENCH_MISSION")) if OS.get_environment("BENCH_MISSION") != "" else 311
+	)
 	tv.apply_render_options()
 	print("layers: ", tv.terrain.layers)
 	tv.frozen = true
@@ -68,8 +81,11 @@ func run() -> void:
 	if sh.size() == 3:
 		RenderingServer.directional_shadow_atlas_set_size(int(sh[0]), true)
 		var sun: DirectionalLight3D = tv.get_node("Sun")
-		sun.directional_shadow_mode = {1: DirectionalLight3D.SHADOW_ORTHOGONAL, 2: DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS,
-			4: DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS}[int(sh[1])]
+		sun.directional_shadow_mode = {
+			1: DirectionalLight3D.SHADOW_ORTHOGONAL,
+			2: DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS,
+			4: DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
+		}[int(sh[1])]
 		RenderingServer.directional_soft_shadow_filter_set_quality(int(sh[2]))
 	var vp := root.get_viewport().get_viewport_rid()
 	RenderingServer.viewport_set_measure_render_time(vp, true)
@@ -118,6 +134,22 @@ func run() -> void:
 		for t in times:
 			avg += t
 		avg /= n
-		print("FLIGHT %5.0f m %3.0f m/s: %5.1f fps  frame %5.2f ms (p95 %5.2f, max %6.2f)  process %5.2f ms  gpu %5.2f ms  calls %5.0f  prims %7.0fk  nodes %4.0f"
-			% [alt, speed, 1000.0 / avg, avg, sorted[int(n * 0.95)], sorted[-1], proc / n, gpu / n, calls / n, prims / n / 1000.0, nodes / n])
+		print(
+			(
+				"FLIGHT %5.0f m %3.0f m/s: %5.1f fps  frame %5.2f ms (p95 %5.2f, max %6.2f)  process %5.2f ms  gpu %5.2f ms  calls %5.0f  prims %7.0fk  nodes %4.0f"
+				% [
+					alt,
+					speed,
+					1000.0 / avg,
+					avg,
+					sorted[int(n * 0.95)],
+					sorted[-1],
+					proc / n,
+					gpu / n,
+					calls / n,
+					prims / n / 1000.0,
+					nodes / n
+				]
+			)
+		)
 	print("RESULT PASS")

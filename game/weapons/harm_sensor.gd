@@ -19,7 +19,6 @@ var active := false:
 var _h = ClassDB.instantiate("IafHarm")
 var _st: Dictionary = _h.state()
 
-
 ## The list source: "original" (the sensor's scan) or "rwr" (Extras "HARM targets: RWR", the RWR's emitters).
 var source := "original":
 	set(v):
@@ -53,5 +52,11 @@ func page(own_base: Vector2, rounds: int, in_range := false) -> Dictionary:
 	for e in list:
 		out.append({"key": e.key, "type": e.type, "az": e.az, "el": e.el, "selected": e.key == selected})
 	var d: Vector2 = _h.drift(own_base)
-	return {"list": out if active else [], "field": ClassDB.class_call_static("IafHarm", "field"), "dpsi": d.x,
-		"dtheta": d.y, "no_source": not active or rounds == 0, "in_range": in_range}
+	return {
+		"list": out if active else [],
+		"field": ClassDB.class_call_static("IafHarm", "field"),
+		"dpsi": d.x,
+		"dtheta": d.y,
+		"no_source": not active or rounds == 0,
+		"in_range": in_range
+	}

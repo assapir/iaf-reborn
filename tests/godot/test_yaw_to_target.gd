@@ -18,12 +18,17 @@ func run() -> void:
 	_step(rt, 0.1)
 	var d: Vector3 = rt._world_of(tgt) - rt._world_of(t62)
 	var want := wrapf(float(t62.heading) - rad_to_deg(atan2(d.x, d.y)), -180.0, 180.0)
-	check(absf(float(t62.get("parts", {}).get("turret", 999.0)) - want) < 1e-3, "231 t62_0: turret at the target's bearing (%.1f°)" % want)
+	check(
+		absf(float(t62.get("parts", {}).get("turret", 999.0)) - want) < 1e-3,
+		"231 t62_0: turret at the target's bearing (%.1f°)" % want
+	)
 	var turret: Node3D = t62.node.find_child("turret", true, false)
 	var rig: Array = t62.get("rig", [])
 	var fwd: Vector3 = turret.global_transform.basis * Vector3(0, 0, -1)
-	check(absf(wrapf(rad_to_deg(atan2(fwd.x, -fwd.z)) - rad_to_deg(atan2(d.x, d.y)), -180.0, 180.0)) < 0.5,
-		"the turret's barrel points at the target (%d parts rigged)" % rig.size())
+	check(
+		absf(wrapf(rad_to_deg(atan2(fwd.x, -fwd.z)) - rad_to_deg(atan2(d.x, d.y)), -180.0, 180.0)) < 0.5,
+		"the turret's barrel points at the target (%d parts rigged)" % rig.size()
+	)
 	# The target moves: re-aimed within a second.
 	tgt.world += Vector3(3000, 0, 0)
 	_step(rt, 1.1)
@@ -39,7 +44,10 @@ func run() -> void:
 	_step(rt, 0.1)
 	check(is_equal_approx(float(scud.parts.elevation), -1.5), "222 scud3: the launcher starts rising (−1.5°)")
 	_step(rt, 9.5)
-	check(is_equal_approx(float(scud.parts.elevation), -15.0), "−1.5° a second (%.1f° after 10 ticks)" % scud.parts.elevation)
+	check(
+		is_equal_approx(float(scud.parts.elevation), -15.0),
+		"−1.5° a second (%.1f° after 10 ticks)" % scud.parts.elevation
+	)
 	_step(rt, 120.0)
 	check(is_equal_approx(float(scud.parts.elevation), -90.0), "stops at −90° (upright)")
 	var carrier: Node3D = scud.node.find_child("carrier", true, false)
@@ -58,7 +66,10 @@ func run() -> void:
 	rt._jump(boat, 0, 2)
 	_step(rt, 0.1)
 	d = rt._world_of(sat) - rt._world_of(boat)
-	check(absf(wrapf(float(boat.heading) - rad_to_deg(atan2(d.x, d.y)), -180.0, 180.0)) < 1e-3, "233 speedboat 3 faces its target")
+	check(
+		absf(wrapf(float(boat.heading) - rad_to_deg(atan2(d.x, d.y)), -180.0, 180.0)) < 1e-3,
+		"233 speedboat 3 faces its target"
+	)
 
 	tv = await start_mission(212)
 	await frames(2)
@@ -76,20 +87,34 @@ func run() -> void:
 		var t0: float = rt.now
 		_step(rt, 2.1)
 		await frames(1)
-		check(is_equal_approx(float(dish.parts.radar) - a0, 0.4), "the dish stepped 0.4° in 2 s (%.1f → %.1f)" % [a0, dish.parts.radar])
+		check(
+			is_equal_approx(float(dish.parts.radar) - a0, 0.4),
+			"the dish stepped 0.4° in 2 s (%.1f → %.1f)" % [a0, dish.parts.radar]
+		)
 		_step(rt, 1.0)
 		await frames(1)
 		check(is_equal_approx(float(dish.parts.radar) - a0, 0.4), "and not again within the next second")
 		check(rt.now > t0, "the clock ran")
-	check(not heli.is_empty(), "212: a helicopter with rotors (%s, %d rotor parts)" % [heli.get("name", "-"), VehicleParts.rotor_count(heli.get("rig", []))])
+	check(
+		not heli.is_empty(),
+		(
+			"212: a helicopter with rotors (%s, %d rotor parts)"
+			% [heli.get("name", "-"), VehicleParts.rotor_count(heli.get("rig", []))]
+		)
+	)
 	if not heli.is_empty():
 		var rotor: Node3D = heli.node.find_child("rotora", true, false)
 		var b0: Basis = rotor.transform.basis
 		var r0 := float(heli.parts.get("rotor", 0.0))
 		await frames(1)
 		var n := VehicleParts.rotor_count(heli.rig)
-		check(is_equal_approx(fposmod(float(heli.parts.rotor) - r0, 360.0), fposmod(10.0 * n, 360.0)) or float(heli.parts.rotor) < r0,
-			"the rotors' angle +10° per rotor part a frame (%.0f → %.0f)" % [r0, heli.parts.rotor])
+		check(
+			(
+				is_equal_approx(fposmod(float(heli.parts.rotor) - r0, 360.0), fposmod(10.0 * n, 360.0))
+				or float(heli.parts.rotor) < r0
+			),
+			"the rotors' angle +10° per rotor part a frame (%.0f → %.0f)" % [r0, heli.parts.rotor]
+		)
 		check(not rotor.transform.basis.is_equal_approx(b0), "the main rotor turned")
 
 

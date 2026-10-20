@@ -11,7 +11,9 @@ const FrameWindow := preload("res://menu/frame_window.gd")
 const ModelView := preload("res://menu/model_view.gd")
 
 ## Sub-category rows per group and their category numbers (FUN_004fcbc0 fills, FUN_004fca90 reads).
-const GROUPS := {"aircraft": ["Fighters", "Helicopters", "Support"], "vehicles": ["Tanks", "Other"], "weapons": ["AA", "AG"]}
+const GROUPS := {
+	"aircraft": ["Fighters", "Helicopters", "Support"], "vehicles": ["Tanks", "Other"], "weapons": ["AA", "AG"]
+}
 const CATEGORY := {"Fighters": 0, "Helicopters": 1, "Support": 2, "Tanks": 3, "Other": 6, "AA": 8, "AG": 9}
 ## The list widget (FUN_0050d390, .rdata 0x607a98): 6 rows of 19 px, Arial p11, green / bright green when selected.
 const LIST := Rect2(21, 184, 97, 114)
@@ -64,7 +66,9 @@ func setup(front_end: Control) -> void:
 	add_child(client)
 	guides = guides_dir()
 	guides_out = Settings.assets_dir().path_join("converted/guides")
-	records = Settings.load_json(Settings.assets_dir().path_join("converted/reference/reference.json")).get("records", [])
+	records = Settings.load_json(Settings.assets_dir().path_join("converted/reference/reference.json")).get(
+		"records", []
+	)
 	# Initial state (FUN_004fc910): IDF, Aircraft, Description; row 0 (Fighters) selected -> the first match.
 	select_row(0)
 
@@ -195,7 +199,9 @@ func _show(i: int) -> void:
 			else:
 				v.free()
 		"pictures":
-			picture = preload("res://util/img.gd").load_texture(Settings.assets_dir().path_join("converted/reference/img/%s.png" % r.dir), true)
+			picture = preload("res://util/img.gd").load_texture(
+				Settings.assets_dir().path_join("converted/reference/img/%s.png" % r.dir), true
+			)
 
 
 ## Ours: the Pilot guide button.
@@ -236,9 +242,19 @@ func _draw() -> void:
 		var box := Rect2(LIST.position + Vector2(0, ROW_H * r), Vector2(LIST.size.x, ROW_H))
 		if r == row:
 			fe._blit("ref/item.png", box.position, self)
-		_centred(Rect2(box.position + Vector2(3, 0), box.size - Vector2(3, 0)), fe._t(rows()[r]), LIST_PX, ROW_TEXT_SEL if r == row else ROW_TEXT)
+		_centred(
+			Rect2(box.position + Vector2(3, 0), box.size - Vector2(3, 0)),
+			fe._t(rows()[r]),
+			LIST_PX,
+			ROW_TEXT_SEL if r == row else ROW_TEXT
+		)
 	if shown >= 0:
-		_centred(Rect2(content.position, Vector2(content.size.x, TITLE_H)), String(records[shown].name), TITLE_PX, Color.WHITE)
+		_centred(
+			Rect2(content.position, Vector2(content.size.x, TITLE_H)),
+			String(records[shown].name),
+			TITLE_PX,
+			Color.WHITE
+		)
 	if view == "pictures":
 		var vr: Rect2 = fe._rect(Rect2(content.position + VIEW.position, VIEW.size))
 		draw_rect(vr, Color.BLACK)
@@ -248,7 +264,9 @@ func _draw() -> void:
 			var at := (VIEW.size - isz) * 0.5
 			var vis := Rect2(at, isz).intersection(Rect2(Vector2.ZERO, VIEW.size))
 			var src := Rect2((vis.position - at) * fe.art_scale, vis.size * fe.art_scale)
-			draw_texture_rect_region(picture, fe._rect(Rect2(content.position + VIEW.position + vis.position, vis.size)), src)
+			draw_texture_rect_region(
+				picture, fe._rect(Rect2(content.position + VIEW.position + vis.position, vis.size)), src
+			)
 	if has_guide():
 		_draw_guide_button()
 
@@ -277,5 +295,11 @@ func _draw_guide_button() -> void:
 	# The label clear of the light (GUIDE_LABEL), heavier as the column's baked labels.
 	var area: Rect2 = GUIDE_LABEL_HE if fe._he() else GUIDE_LABEL
 	var label := Rect2(GUIDE_BUTTON.position + area.position + Vector2(dx, 0), area.size)
-	fe._draw_baked_label(self, fe._rect(label), fe._t("Pilot guide") if fe._he() else "PILOT GUIDE", f, 12 if fe._he() else 11,
-			0.8 if fe._he() else 0.4)
+	fe._draw_baked_label(
+		self,
+		fe._rect(label),
+		fe._t("Pilot guide") if fe._he() else "PILOT GUIDE",
+		f,
+		12 if fe._he() else 11,
+		0.8 if fe._he() else 0.4
+	)

@@ -53,7 +53,9 @@ static func load_cursor(path: String) -> Array:
 			var bit := 7 - x % 8
 			var a := (d[and_at + row * stride + x / 8] >> bit) & 1
 			var c := (d[xor_at + row * stride + x / 8] >> bit) & 1
-			img.set_pixel(x, y, Color(0, 0, 0, 0) if a == 1 and c == 0 else (Color.WHITE if a == 0 and c == 1 else Color.BLACK))
+			img.set_pixel(
+				x, y, Color(0, 0, 0, 0) if a == 1 and c == 0 else (Color.WHITE if a == 0 and c == 1 else Color.BLACK)
+			)
 	return [img, hot]
 
 

@@ -47,10 +47,22 @@ func _initialize() -> void:
 
 func run() -> void:
 	var s := Settings()
-	var detailed := {"models": "detailed", "sky": "atmospheric", "water": true, "particle_effects": true,
-			"airbases": "detailed", "terrain_closeup": true, "night_lights": "detailed", "rolling_wheels": true,
-			"antialiasing": "taa", "imagery_israel": "mapi2015", "imagery_outside": "sentinel2",
-			"external_stores": true, "show_info": false, "hud_style": "real"}
+	var detailed := {
+		"models": "detailed",
+		"sky": "atmospheric",
+		"water": true,
+		"particle_effects": true,
+		"airbases": "detailed",
+		"terrain_closeup": true,
+		"night_lights": "detailed",
+		"rolling_wheels": true,
+		"antialiasing": "taa",
+		"imagery_israel": "mapi2015",
+		"imagery_outside": "sentinel2",
+		"external_stores": true,
+		"show_info": false,
+		"hud_style": "real"
+	}
 	for k in detailed:
 		s.set(k, detailed[k])
 	seed(int(OS.get_environment("DEMO_SEED")) if OS.get_environment("DEMO_SEED") != "" else 35)
@@ -76,6 +88,7 @@ func run() -> void:
 
 
 # --- 315 Cold Steel ---------------------------------------------------------------------------------
+
 
 func _m315() -> void:
 	await _secs(1.0)
@@ -103,7 +116,9 @@ func _m315() -> void:
 	tv._time_compress()
 	tv._time_compress()
 	tv.radio.wingman_command(6)  # close formation
-	await _until(func(): return _dist2(CRATER + Vector2(9000, 5000)) < 9000.0 and tv.cockpit.current_waypoint >= 2, 900.0)
+	await _until(
+		func(): return _dist2(CRATER + Vector2(9000, 5000)) < 9000.0 and tv.cockpit.current_waypoint >= 2, 900.0
+	)
 	tv._set_time_factor(1)
 	await _secs(2.0)
 	# 3. The two-ship over the crater: F6, the wingman view.
@@ -115,6 +130,7 @@ func _m315() -> void:
 
 
 # --- 223 Tumble Down --------------------------------------------------------------------------------
+
 
 func _m223() -> void:
 	tv.autopilot.key()  # A: level -> NAV (the route)
@@ -156,7 +172,12 @@ func _strike() -> void:
 	await _until(func(): return w.radar.contacts.any(func(c): return c.get("key", "") == tank.key), 10.0)
 	w.radar_event(0x2a, tank.key)
 	await process_frame
-	print("STRIKE lock %s aa %s t %.1f d %.0f" % [w.radar.locked().get("key", "none"), w.radar.aa, tv.runtime.now, _dist(tank)])
+	print(
+		(
+			"STRIKE lock %s aa %s t %.1f d %.0f"
+			% [w.radar.locked().get("key", "none"), w.radar.aa, tv.runtime.now, _dist(tank)]
+		)
+	)
 	# 8. The tanks rolling west: F4, the radar-target view.
 	tv._view_command(9)
 	var f0 := _begin("tanks")
@@ -171,8 +192,12 @@ func _strike() -> void:
 	w.ripple_qty = 1
 	await _secs(1.0)
 	w.mfd_event(0x6a)  # L: the laser
-	print("STRIKE sel %s master %d laser %s eo %d on unit %s" % [w.stores.current_name(), w.master, w.eo.laser, w.eo.mode,
-			w.eo_on_unit])
+	print(
+		(
+			"STRIKE sel %s master %d laser %s eo %d on unit %s"
+			% [w.stores.current_name(), w.master, w.eo.laser, w.eo.mode, w.eo_on_unit]
+		)
+	)
 	# Down to 350 m over the tank's ground and in level; Space 1.4 km out. The bomb flies to the designated tank's
 	# position at the release (no lead, docs/weapons.md §9.8).
 	aim = func(): return tv.runtime._world_of(tank) + Vector3(0, 0, 350.0)
@@ -186,24 +211,39 @@ func _strike() -> void:
 	var bomb = _mine(w.guided)[0] if not _mine(w.guided).is_empty() else null
 	var rel := Engine.get_process_frames()
 	var rel_t: float = tv.runtime.now
-	print("STRIKE release t %.1f hdist %.0f bomb %s aim %s tank %s" % [rel_t, _hdist(tank), bomb != null,
-			bomb.aim if bomb != null else null, tv.runtime._world_of(tank)])
+	print(
+		(
+			"STRIKE release t %.1f hdist %.0f bomb %s aim %s tank %s"
+			% [rel_t, _hdist(tank), bomb != null, bomb.aim if bomb != null else null, tv.runtime._world_of(tank)]
+		)
+	)
 	await _secs(1.5)
 	_seg("laser", maxi(f0, rel - 150))
 	# 10. The impact: F4 on the tank; the last seconds of the bomb's fall are kept.
 	tv._view_command(9)
 	var fv := _begin("bombhit")
 	var bl := [Vector3.ZERO]
-	await _until(func():
-		if bomb != null and bomb in w.guided:
-			bl[0] = bomb.position(w.now)
-			return false
-		return true, 30.0)
+	await _until(
+		func():
+			if bomb != null and bomb in w.guided:
+				bl[0] = bomb.position(w.now)
+				return false
+			return true,
+		30.0
+	)
 	var hit := Engine.get_process_frames()
 	var tof: float = tv.runtime.now - rel_t
 	await _secs(2.0)
-	print("STRIKE end tof %.1f miss %.0f m tank state %s" % [tof, Vector2(bl[0].x - tv.runtime._world_of(tank).x, bl[0].y - tv.runtime._world_of(tank).y).length(),
-			tank.get("state")])
+	print(
+		(
+			"STRIKE end tof %.1f miss %.0f m tank state %s"
+			% [
+				tof,
+				Vector2(bl[0].x - tv.runtime._world_of(tank).x, bl[0].y - tv.runtime._world_of(tank).y).length(),
+				tank.get("state")
+			]
+		)
+	)
 	_seg("bombhit", maxi(fv, hit - 75))
 	aim = null
 	tv.scripted_stick = null
@@ -275,8 +315,12 @@ func _amraam() -> void:
 	var hit := Engine.get_process_frames()
 	await _secs(1.0)
 	var ok: bool = fired and int(mig.get("state", 1)) != 1 and closest < 100.0
-	print("OUTCOME %s mig state %s t %.1f missile closest %.0f m" % ["hit" if ok else "no hit", mig.get("state"),
-			tv.runtime.now, closest])
+	print(
+		(
+			"OUTCOME %s mig state %s t %.1f missile closest %.0f m"
+			% ["hit" if ok else "no hit", mig.get("state"), tv.runtime.now, closest]
+		)
+	)
 	check(ok, "the AMRAAM kills the MiG-29")
 	_seg("amraam", maxi(f0, hit - 75))
 	# 7. F3: the burning MiG falls.
@@ -299,8 +343,14 @@ func _rule() -> Dictionary:
 	var rad: float = float(sg.r) * 12.0
 	var d_px: float = (off as Vector2).length() if off != null else INF
 	var ok: bool = sg.locked and sg.dist >= float(sg.dlz[1]) and sg.dist <= MAX_LAUNCH and d_px <= CENTRED * rad
-	return {"ok": ok, "text": "range %.0f Rmin %.0f Rmax %.0f dot %.1f px circle %.1f px q %.2f" % [
-		sg.dist, sg.dlz[1], sg.dlz[0], d_px, rad, sg.q]}
+	return {
+		"ok": ok,
+		"text":
+		(
+			"range %.0f Rmin %.0f Rmax %.0f dot %.1f px circle %.1f px q %.2f"
+			% [sg.dist, sg.dlz[1], sg.dlz[0], d_px, rad, sg.q]
+		)
+	}
 
 
 func _wingman_on(prefix: String) -> void:
@@ -316,6 +366,7 @@ func _wingman_on(prefix: String) -> void:
 
 # --- 214 Damascus Blackout --------------------------------------------------------------------------
 
+
 func _m214() -> void:
 	# A: level -> NAV; W W W: the Home waypoint (its landing action: the autopilot's circuit and landing); C C: x4.
 	tv.autopilot.key()
@@ -324,8 +375,15 @@ func _m214() -> void:
 	tv._time_compress()
 	tv._time_compress()
 	# x1 again on the final approach (heading west, below 350 m over the ground).
-	await _until(func(): return absf(wrapf(float(tv.flight.state().heading) - 270.0, -180, 180)) < 10.0 \
-			and _dist2(DAVID) < 8000.0 and _me().z - _ground_y() < 350.0, 1200.0)
+	await _until(
+		func():
+			return (
+				absf(wrapf(float(tv.flight.state().heading) - 270.0, -180, 180)) < 10.0
+				and _dist2(DAVID) < 8000.0
+				and _me().z - _ground_y() < 350.0
+			),
+		1200.0
+	)
 	tv._set_time_factor(1)
 	if not tv.gear_down:
 		tv._toggle_gear()  # G: the gear down on final (our autopilot's landing leaves it up)
@@ -338,9 +396,22 @@ func _m214() -> void:
 	print("214 %s" % _gear_text())
 	check(tv.gear_down and tv.gear_legs == [2, 2, 2], "214 touchdown on the gear (%s)" % _gear_text())
 	var me := _me()
-	print("214 touchdown t %.1f kt %d ab %s throttle %.2f gear_down %s at %d %d (runway %d %d)" % [tv.runtime.now,
-			tv.flight.state().speed_kt, tv.flight.state().get("afterburner"), tv.throttle, tv.gear_down, me.x, me.y,
-			DAVID.x, DAVID.y])
+	print(
+		(
+			"214 touchdown t %.1f kt %d ab %s throttle %.2f gear_down %s at %d %d (runway %d %d)"
+			% [
+				tv.runtime.now,
+				tv.flight.state().speed_kt,
+				tv.flight.state().get("afterburner"),
+				tv.throttle,
+				tv.gear_down,
+				me.x,
+				me.y,
+				DAVID.x,
+				DAVID.y
+			]
+		)
+	)
 	await _secs(2.0)
 	_title("F-35I ADIR", "IAF Reborn")
 	await _secs(4.5)
@@ -349,11 +420,14 @@ func _m214() -> void:
 
 func _gear_text() -> String:
 	var st: Dictionary = tv.flight.state()
-	return "lever %s legs %s fm gear %s gear_down %s on_ground %s" % [tv.gear_down, tv.gear_legs, st.get("gear"),
-			st.get("gear_down"), st.get("on_ground")]
+	return (
+		"lever %s legs %s fm gear %s gear_down %s on_ground %s"
+		% [tv.gear_down, tv.gear_legs, st.get("gear"), st.get("gear_down"), st.get("on_ground")]
+	)
 
 
 # --- per frame ---------------------------------------------------------------------------------------
+
 
 ## Pure pursuit of `aim` (a world point): roll the point into the lift plane and pull toward it; near the nose,
 ## small stick in both axes. Far away the point is held at `aim_alt`.
@@ -371,9 +445,13 @@ func _fly() -> void:
 	var roll := deg_to_rad(float(tv.flight.state().roll))
 	var stick: Vector2
 	if ang > deg_to_rad(4.0):
-		stick = Vector2(clampf(atan2(x, y) * 1.5, -1.0, 1.0), clampf(ang * 4.0, 0.0, 0.7) if absf(atan2(x, y)) < 1.2 else 0.1)
+		stick = Vector2(
+			clampf(atan2(x, y) * 1.5, -1.0, 1.0), clampf(ang * 4.0, 0.0, 0.7) if absf(atan2(x, y)) < 1.2 else 0.1
+		)
 	else:
-		stick = Vector2(clampf(x * 15.0, -0.6, 0.6), clampf(y * 15.0 + 0.5 * (1.0 / maxf(cos(roll), 0.3) - 1.0), -0.6, 0.8))
+		stick = Vector2(
+			clampf(x * 15.0, -0.6, 0.6), clampf(y * 15.0 + 0.5 * (1.0 / maxf(cos(roll), 0.3) - 1.0), -0.6, 0.8)
+		)
 	tv.scripted_stick = stick
 
 
@@ -385,10 +463,25 @@ func _watch() -> void:
 		var st: Dictionary = tv.flight.state()
 		var me := _me()
 		var wm: Node3D = tv.wingman()
-		print("ST t %.1f x%d me %d %d %d kt %d hdg %d gnd %s gear %s ab %s wp %d wing %.0f m" % [tv.runtime.now,
-				tv.time_factor, me.x, me.y, me.z, st.speed_kt, st.heading, st.on_ground, tv.gear_down,
-				st.get("afterburner"), tv.cockpit.current_waypoint,
-				wm.global_position.distance_to(tv.rig.global_position) if wm != null else -1.0])
+		print(
+			(
+				"ST t %.1f x%d me %d %d %d kt %d hdg %d gnd %s gear %s ab %s wp %d wing %.0f m"
+				% [
+					tv.runtime.now,
+					tv.time_factor,
+					me.x,
+					me.y,
+					me.z,
+					st.speed_kt,
+					st.heading,
+					st.on_ground,
+					tv.gear_down,
+					st.get("afterburner"),
+					tv.cockpit.current_waypoint,
+					wm.global_position.distance_to(tv.rig.global_position) if wm != null else -1.0
+				]
+			)
+		)
 	var busy := false
 	for p in tv.sounds.get_children() + [tv._voice]:
 		if p is AudioStreamPlayer and p.bus == "IafSpeech" and p.playing:
@@ -413,7 +506,8 @@ func _watch() -> void:
 		_cam_min = minf(_cam_min, cam.global_position.distance_to(j.global_position))
 
 
-class Helper extends Node:
+class Helper:
+	extends Node
 	var demo
 
 	func _process(_delta: float) -> void:
@@ -423,11 +517,14 @@ class Helper extends Node:
 
 # --- helpers ----------------------------------------------------------------------------------------
 
+
 func _log_radio() -> void:
 	tv.runtime.subtitle.connect(func(t): print("SUB %.1f f%d %s" % [tv.runtime.now, Engine.get_process_frames(), t]))
-	tv.runtime.event_fired.connect(func(id, n):
-		_events[id] = true
-		print("EVT %.1f %d %s" % [tv.runtime.now, id, n]))
+	tv.runtime.event_fired.connect(
+		func(id, n):
+			_events[id] = true
+			print("EVT %.1f %d %s" % [tv.runtime.now, id, n])
+	)
 
 
 ## A shot's first frame (the closest-jet watch starts).

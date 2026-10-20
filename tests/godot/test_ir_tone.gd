@@ -46,15 +46,22 @@ func scenario(jet: int, load: Array, wd: String, hs: String, full: bool) -> void
 	var mig: Dictionary = _named(rt, "first target mig21")
 	var f15: Dictionary = _named(rt, "instructr f-15")
 	var keys: Array = w._units().map(func(u): return u.key)
-	check(keys.has(mig.key) and keys.has(f15.key), "%s: the MiG-21 and the instructor's F-15 are seeker candidates" % tag)
+	check(
+		keys.has(mig.key) and keys.has(f15.key), "%s: the MiG-21 and the instructor's F-15 are seeker candidates" % tag
+	)
 	for e in rt.entities.values():
 		if e != mig and e != f15 and not e.player:
 			e.visible = false
 	w.nav_key(0)
 	w.select_aa()  # from NAV, ']' enters the selected AA missile
 	_step(w, 1)
-	check(w.master == 4 and w.hud_mode == 1 and w.stores.current_name() == "PYTH-4",
-		"%s: ']' selects the Python 4, master mode 4, SRM HUD (%d %d %s)" % [tag, w.master, w.hud_mode, w.stores.current_name()])
+	check(
+		w.master == 4 and w.hud_mode == 1 and w.stores.current_name() == "PYTH-4",
+		(
+			"%s: ']' selects the Python 4, master mode 4, SRM HUD (%d %d %s)"
+			% [tag, w.master, w.hud_mode, w.stores.current_name()]
+		)
+	)
 	check(is_equal_approx(w.seeker.lock_range, 15.0 * NM), "%s: Python 4 lock range 15 NM" % tag)
 	# The friendly instructor 1 km ahead (the seeker takes any side), then the MiG.
 	_put(w, f15, 1000.0, 0.0)
@@ -77,8 +84,10 @@ func scenario(jet: int, load: Array, wd: String, hs: String, full: bool) -> void
 	pilot._state["afterburner"] = 0
 	_put(w, mig, far, 0.0)
 	_step(w, 12)
-	check(not w.seeker.lock and w._lock_sound == null and _playing(w._seek_sound),
-		"%s: %.1f km ahead, no afterburner: no lock, the seek tone" % [tag, far / 1000.0])
+	check(
+		not w.seeker.lock and w._lock_sound == null and _playing(w._seek_sound),
+		"%s: %.1f km ahead, no afterburner: no lock, the seek tone" % [tag, far / 1000.0]
+	)
 	pilot._state["afterburner"] = 1
 	_step(w, 12)
 	_check_lock(w, mig, "%s: %.1f km ahead with the afterburner lit" % [tag, far / 1000.0])
@@ -91,7 +100,10 @@ func scenario(jet: int, load: Array, wd: String, hs: String, full: bool) -> void
 	w.select_aa()
 	_step(w, 2)
 	check(w.stores.current_name() == "PYTH-3" and w.hud_mode == 1, "%s: ']' Python 4 -> Python 3, SRM HUD" % tag)
-	check(is_equal_approx(w.seeker.lock_range, 10.0 * NM), "%s: Python 3 lock range 10 NM (%.0f m)" % [tag, w.seeker.lock_range])
+	check(
+		is_equal_approx(w.seeker.lock_range, 10.0 * NM),
+		"%s: Python 3 lock range 10 NM (%.0f m)" % [tag, w.seeker.lock_range]
+	)
 	_put(w, mig, 3000.0, 0.0)
 	_step(w, 12)
 	_check_lock(w, mig, "%s: Python 3, the MiG-21 3 km ahead" % tag)
@@ -102,7 +114,16 @@ func scenario(jet: int, load: Array, wd: String, hs: String, full: bool) -> void
 		var e = JSON.parse_string(l)
 		if not (e is Dictionary and e.get("event") == "seeker" and e.get("unit") == "first target mig21"):
 			continue
-		lock_ev = lock_ev or (e.tone == "lock" and e.off_nose_deg < 1.0 and e.weapon == "PYTH-4" and not e.afterburner and not e.slaved)
+		lock_ev = (
+			lock_ev
+			or (
+				e.tone == "lock"
+				and e.off_nose_deg < 1.0
+				and e.weapon == "PYTH-4"
+				and not e.afterburner
+				and not e.slaved
+			)
+		)
 		seek_ev = seek_ev or (e.tone == "seek" and absf(e.off_nose_deg - 10.0) < 0.5)
 	check(lock_ev, "%s: the recorder's seeker event: lock on the MiG-21 dead ahead" % tag)
 	check(seek_ev, "%s: the recorder's seeker event: seek, the MiG-21 10° off the nose" % tag)
@@ -131,6 +152,10 @@ func _playing(p) -> bool:
 
 
 func _check_lock(w, ent: Dictionary, what: String) -> void:
-	var ok: bool = w.seeker.target_key == ent.key and w.seeker.lock and _playing(w._lock_sound) and w._seek_sound == null
-	check(ok and w.host.sounds.played.has("SFX_IR_LOCK/None"),
-		"%s: lock, SFX_IR_LOCK playing (target %s, lock %s)" % [what, w.seeker.target_key, w.seeker.lock])
+	var ok: bool = (
+		w.seeker.target_key == ent.key and w.seeker.lock and _playing(w._lock_sound) and w._seek_sound == null
+	)
+	check(
+		ok and w.host.sounds.played.has("SFX_IR_LOCK/None"),
+		"%s: lock, SFX_IR_LOCK playing (target %s, lock %s)" % [what, w.seeker.target_key, w.seeker.lock]
+	)

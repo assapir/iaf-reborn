@@ -23,7 +23,9 @@ func run() -> void:
 	check(get_root().title == "Jane's IAF (reborn) — Setup", "the window title")
 	check(w.PAGES[w.page] == "Welcome", "Welcome first")
 	w._on_next()
-	check(w.PAGES[w.page] == "Requirements" and not w.next_button.disabled, "then Requirements, nothing required missing")
+	check(
+		w.PAGES[w.page] == "Requirements" and not w.next_button.disabled, "then Requirements, nothing required missing"
+	)
 	w._on_next()
 	check(w.PAGES[w.page] == "Your CD" and w.next_button.disabled, "Your CD: Next waits for the CD")
 	w.set_row(w.cd_row, ProjectSettings.globalize_path("res://project.godot"))
@@ -39,7 +41,10 @@ func run() -> void:
 	var t1 := Time.get_ticks_msec()
 	while w.jobs.has("scan") and Time.get_ticks_msec() - t1 < 60000:
 		await process_frame
-	check(w.cd_row.edit.text == iso and Engine.get_process_frames() > f0, "Find in a folder finds the English CD (%s)" % w.scan_note.text)
+	check(
+		w.cd_row.edit.text == iso and Engine.get_process_frames() > f0,
+		"Find in a folder finds the English CD (%s)" % w.scan_note.text
+	)
 	w.set_row(w.cd_row, iso)
 	check(w.cd_row.ok and not w.next_button.disabled, "the English CD is accepted")
 	w._on_next()
@@ -69,7 +74,10 @@ func run() -> void:
 		print("%s run: %s" % [pass_name, states])
 		check(w.finished and w.failed == "", "%s run finished without errors" % pass_name)
 		var want := "done" if pass_name == "first" else "up to date"
-		check(states.size() == 3 and states.values().all(func(s): return s == want), "%s run: every step %s" % [pass_name, want])
+		check(
+			states.size() == 3 and states.values().all(func(s): return s == want),
+			"%s run: every step %s" % [pass_name, want]
+		)
 		if pass_name == "first":
 			check(FileAccess.file_exists(assets.path_join("setup.json")), "the inputs are saved (setup.json)")
 			check(FileAccess.file_exists(assets.path_join("converted/fonts/hud.fnt")), "the fonts are written")
@@ -82,8 +90,13 @@ func run() -> void:
 				await process_frame
 			await frames(2)
 			var shown := ["extract", "fonts", "missions"].map(func(id): return w.rows[id].state.text)
-			check(shown.all(func(t): return t == "up to date") and w.rows.cockpits.state.text == "will run",
-				"before the second run: the steps that ran show up to date, one that did not shows will run (%s)" % [shown])
+			check(
+				shown.all(func(t): return t == "up to date") and w.rows.cockpits.state.text == "will run",
+				(
+					"before the second run: the steps that ran show up to date, one that did not shows will run (%s)"
+					% [shown]
+				)
+			)
 	# Selective redo: only the ticked step runs again.
 	w.show_page(w.PAGES.find("Install"))
 	w.finished = false
@@ -93,4 +106,7 @@ func run() -> void:
 	var t := Time.get_ticks_msec()
 	while not w.finished and Time.get_ticks_msec() - t < 180000:
 		await process_frame
-	check(w.rows.fonts.state.text == "done" and w.rows.missions.state.text == "up to date", "redo one step: only it runs (%s, %s)" % [w.rows.fonts.state.text, w.rows.missions.state.text])
+	check(
+		w.rows.fonts.state.text == "done" and w.rows.missions.state.text == "up to date",
+		"redo one step: only it runs (%s, %s)" % [w.rows.fonts.state.text, w.rows.missions.state.text]
+	)

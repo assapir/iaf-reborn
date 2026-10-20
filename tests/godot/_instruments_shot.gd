@@ -41,7 +41,9 @@ func run() -> void:
 				var s: float = c.ui_scale()
 				var ctr: Vector2 = c.panel_to_screen(p.x, p.y) + c.global_position
 				var half := int(32.0 * s)
-				var r := Rect2i(Vector2i(ctr) - Vector2i(half, half), Vector2i(2 * half, 2 * half)).intersection(Rect2i(Vector2i.ZERO, img.get_size()))
+				var r := Rect2i(Vector2i(ctr) - Vector2i(half, half), Vector2i(2 * half, 2 * half)).intersection(
+					Rect2i(Vector2i.ZERO, img.get_size())
+				)
 				var z := img.get_region(r)
 				z.resize(z.get_width() * 3, z.get_height() * 3, Image.INTERPOLATE_NEAREST)
 				z.save_png(dir.path_join("%s_zoom%d.png" % [name, n]))

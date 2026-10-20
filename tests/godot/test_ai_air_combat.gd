@@ -33,7 +33,15 @@ func run() -> void:
 		fired = w.missiles.any(func(m): return is_same(m.get_meta("owner"), mig))
 		flagged = flagged or w.rwr.any_launch()
 	Engine.time_scale = 1.0
-	print("MiG target ", mig.pilot.brain.target.get("name", "-"), " mode ", mig.pilot.mode, " station ", u.cur, " after %.0f s" % (rt.now - t0))
+	print(
+		"MiG target ",
+		mig.pilot.brain.target.get("name", "-"),
+		" mode ",
+		mig.pilot.mode,
+		" station ",
+		u.cur,
+		" after %.0f s" % (rt.now - t0)
+	)
 	check(is_same(mig.pilot.brain.target, me), "the MiG targets the player")
 	check(fired, "the MiG launched a missile at the player")
 	check(flagged, "the player's RWR: missile launch")

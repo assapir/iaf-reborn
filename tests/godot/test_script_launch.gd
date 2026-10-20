@@ -15,21 +15,30 @@ func run() -> void:
 	var heli: Dictionary = _named(rt, "MI24 1")
 	var boat: Dictionary = _named(rt, "satil 2")
 	var u = tv.ai.combat.units.get(heli.key)
-	check(u != null and u.brain == null and int(u.w.type) == 580, "233 MI24 1: armed (580), no brain-driven fire (class 2)")
+	check(
+		u != null and u.brain == null and int(u.w.type) == 580,
+		"233 MI24 1: armed (580), no brain-driven fire (class 2)"
+	)
 	if u == null:
 		return
 	_place_ahead(tv, heli, boat)
 	var w = tv.weapons
 	var n0: int = w.missiles.size()
 	rt._jump(heli, 1, 8)
-	check(w.missiles.size() == n0 + 1 and u.missile != null and u.missile.target_key == boat.key, "op 2 \"hit satil 2\": a missile at the boat")
+	check(
+		w.missiles.size() == n0 + 1 and u.missile != null and u.missile.target_key == boat.key,
+		'op 2 "hit satil 2": a missile at the boat'
+	)
 	var t: float = w.now
 	for i in 600:
 		t += 0.05
 		w.update(t)
 		if not u.missile in w.missiles:
 			break
-	check(not u.missile in w.missiles and int(boat.state) >= 4, "the kill shot destroys the boat (state %d)" % int(boat.state))
+	check(
+		not u.missile in w.missiles and int(boat.state) >= 4,
+		"the kill shot destroys the boat (state %d)" % int(boat.state)
+	)
 
 	tv = await start_mission(112)
 	await frames(3)
@@ -52,9 +61,12 @@ func run() -> void:
 			if u.rounds.flying_count() == 0:
 				break
 		if entry == 3:
-			check(u.rounds.flying_count() == 0 and mk.damage == 0.0 and int(mk.state) == 1, "\"Miss Merkava 1\": the rocket bursts, the Merkava unhurt")
+			check(
+				u.rounds.flying_count() == 0 and mk.damage == 0.0 and int(mk.state) == 1,
+				'"Miss Merkava 1": the rocket bursts, the Merkava unhurt'
+			)
 		else:
-			check(int(mk.state) >= 4, "\"Kill Merkava 1\": the Merkava destroyed (state %d)" % int(mk.state))
+			check(int(mk.state) >= 4, '"Kill Merkava 1": the Merkava destroyed (state %d)' % int(mk.state))
 	await _launch_at()
 
 

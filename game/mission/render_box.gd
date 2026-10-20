@@ -98,7 +98,11 @@ func _scale() -> float:
 ## window the window's centre, as the menus' box).
 func origin() -> Vector2i:
 	var s := _scale()
-	return Vector2i(int(size.x / s) / 2 - box_size.x / 2, int(size.y / s) / 2 - box_size.y / 2) if s > 0.0 else Vector2i.ZERO
+	return (
+		Vector2i(int(size.x / s) / 2 - box_size.x / 2, int(size.y / s) / 2 - box_size.y / 2)
+		if s > 0.0
+		else Vector2i.ZERO
+	)
 
 
 ## Clicks reach the box only inside its window (a child window of the main window); the rest go to the flight.
@@ -123,16 +127,38 @@ func _draw() -> void:
 	var px := Gdi.ppem(FONT_SIZE)
 	var cursor := Vector2i((mouse / s).floor()) - o
 	# FUN_004e5c40: the text panel (normal brush, 1 px dark pen, 16×16 corners), the text TA_CENTER|TA_TOP.
-	Gdi.round_rect(self, Rect2i(panel.position + o, panel.size), 2 * PAD, 2 * PAD, Overlay.PEN_DARK, 1, Overlay.NORMAL, s)
-	Gdi.text_out(self, _font, WEIGHT, text.to_upper(), px, o.x + (panel.position.x + panel.end.x) / 2,
-			o.y + panel.position.y + PAD, s, Color.BLACK, true)
+	Gdi.round_rect(
+		self, Rect2i(panel.position + o, panel.size), 2 * PAD, 2 * PAD, Overlay.PEN_DARK, 1, Overlay.NORMAL, s
+	)
+	Gdi.text_out(
+		self,
+		_font,
+		WEIGHT,
+		text.to_upper(),
+		px,
+		o.x + (panel.position.x + panel.end.x) / 2,
+		o.y + panel.position.y + PAD,
+		s,
+		Color.BLACK,
+		true
+	)
 	# The buttons: the hover brush under the cursor (FUN_004f0680, edges included).
 	for i in button_rects.size():
 		var r := button_rects[i]
 		var brush := Overlay.HOVER if Gdi.hit(r, cursor) else Overlay.NORMAL
 		Gdi.round_rect(self, Rect2i(r.position + o, r.size), 2 * PAD, 2 * PAD, Overlay.PEN_DARK, 1, brush, s)
-		Gdi.text_out(self, _font, WEIGHT, labels[i], px, o.x + (r.position.x + r.end.x) / 2, o.y + r.position.y + PAD,
-				s, Color.BLACK, true)
+		Gdi.text_out(
+			self,
+			_font,
+			WEIGHT,
+			labels[i],
+			px,
+			o.x + (r.position.x + r.end.x) / 2,
+			o.y + r.position.y + PAD,
+			s,
+			Color.BLACK,
+			true
+		)
 	# The frame (0, 0, W, H) with NULL_BRUSH, 20×20 corners: the 2 px light pen, then the 1 px dark pen.
 	var f := Rect2i(o, box_size)
 	Gdi.round_rect(self, f, 2 * MARGIN, 2 * MARGIN, Overlay.PEN_LIGHT, 2, Color.TRANSPARENT, s)

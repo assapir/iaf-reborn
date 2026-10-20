@@ -25,7 +25,10 @@ func run() -> void:
 	tv.scripted_rudder = -1.0
 	await frames(120)
 	var turned: float = hdg0 - tv.flight.state().heading
-	check(turned > 20.0, "left pedal turns left fast at taxi speed (%.1f deg in 2 s, %.0f kt)" % [turned, tv.flight.state().speed_kt])
+	check(
+		turned > 20.0,
+		"left pedal turns left fast at taxi speed (%.1f deg in 2 s, %.0f kt)" % [turned, tv.flight.state().speed_kt]
+	)
 	# Takeoff roll with steering corrections: no early lift-off (the original's x4 quirk is off).
 	tv.scripted_stick = Vector2.ZERO
 	key(tv, KEY_8)

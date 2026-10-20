@@ -36,7 +36,12 @@ func run() -> void:
 		var pts := []
 		for k in c.layout:
 			var g = c.layout[k]
-			if g is Dictionary and String(k).contains("CLOCK") and int(g.get("Active", 0)) == 1 and not String(k) in ["SPEEDCLOCK", "ALTITUDELOCK", "VARIOCLOCK"]:
+			if (
+				g is Dictionary
+				and String(k).contains("CLOCK")
+				and int(g.get("Active", 0)) == 1
+				and not String(k) in ["SPEEDCLOCK", "ALTITUDELOCK", "VARIOCLOCK"]
+			):
 				pts.append([Vector2(g.OffsetX, g.OffsetY), float(g.Radius)])
 		if G.CLOCKS.has(folder):
 			pts.append([G.CLOCKS[folder].centre, G.CLOCKS[folder].r])
@@ -51,8 +56,21 @@ func run() -> void:
 		z.resize(z.get_width() * 2, z.get_height() * 2, Image.INTERPOLATE_NEAREST)
 		z.save_png(dir.path_join("gauges_%s_zoom.png" % folder))
 		var st: Dictionary = c.state
-		print("%s: rpm %.2f AB %d temp %s fuel %.3f (orig %.3f) %d lb tod %.0f" % [folder, float(st.rpm),
-				int(st.afterburner), st.engine_temp_c, st.fuel_fill_total, st.fuel_fill, int(st.fuel_lbs), float(st.tod)])
+		print(
+			(
+				"%s: rpm %.2f AB %d temp %s fuel %.3f (orig %.3f) %d lb tod %.0f"
+				% [
+					folder,
+					float(st.rpm),
+					int(st.afterburner),
+					st.engine_temp_c,
+					st.fuel_fill_total,
+					st.fuel_fill,
+					int(st.fuel_lbs),
+					float(st.tod)
+				]
+			)
+		)
 	Settings().jet_id = -1
 	Settings().better_cockpit = false
 	print("RESULT PASS")

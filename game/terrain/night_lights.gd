@@ -253,8 +253,12 @@ static func add_lights_on(frame: Node3D, key: String, ew) -> Node3D:
 	if s.is_empty():
 		return null
 	# The EndWing helpers when they sit at the tips (the F-16's are a third of the way out: the mesh's tips then).
-	if ew is Dictionary and ew.get("left") is Array and ew.get("right") is Array \
-			and float(ew.right[0]) - float(ew.left[0]) > 0.8 * (s[1].x - s[0].x):
+	if (
+		ew is Dictionary
+		and ew.get("left") is Array
+		and ew.get("right") is Array
+		and float(ew.right[0]) - float(ew.left[0]) > 0.8 * (s[1].x - s[0].x)
+	):
 		s[0] = Vector3(ew.left[0], ew.left[1], ew.left[2])
 		s[1] = Vector3(ew.right[0], ew.right[1], ew.right[2])
 	# Out of the skin: each light sits a little outside the surface it marks (2 % of the span).
@@ -281,7 +285,12 @@ static func add_lights_on(frame: Node3D, key: String, ew) -> Node3D:
 static func _light_spots(frame: Node3D) -> Array:
 	var verts := PackedVector3Array()
 	for mi: MeshInstance3D in frame.find_children("*", "MeshInstance3D", true, false):
-		if mi.mesh == null or not _shown(frame, mi) or str(mi.name).begins_with("Afterburner") or str(mi.name) in ["NavLights", "Strobe"]:
+		if (
+			mi.mesh == null
+			or not _shown(frame, mi)
+			or str(mi.name).begins_with("Afterburner")
+			or str(mi.name) in ["NavLights", "Strobe"]
+		):
 			continue
 		var t := _rel(frame, mi)
 		for i in mi.mesh.get_surface_count():

@@ -50,7 +50,19 @@ var _s := {}
 
 ## Launch (FUN_004d5d10 -> FUN_00561ef0): motion record `m` (weapons.ibx, with the weapon's Real overrides), launch
 ## position / velocity / nose, and q (FUN_00457f70); `target` "" = aim at `point`; `debug` = db.debug_param.
-func launch(w: Dictionary, m: Dictionary, now: float, pos: Vector3, vel: Vector3, nose: Vector3, target: String, point: Vector3, q: float, debug: Callable, up := Vector3.ZERO) -> void:
+func launch(
+	w: Dictionary,
+	m: Dictionary,
+	now: float,
+	pos: Vector3,
+	vel: Vector3,
+	nose: Vector3,
+	target: String,
+	point: Vector3,
+	q: float,
+	debug: Callable,
+	up := Vector3.ZERO
+) -> void:
 	weapon = w
 	var shot := {"pos": pos, "vel": vel, "nose": nose, "up": up, "target": target, "point": point, "q": q}
 	_m.launch(m, float(w.get("real_max_g", 0.0)), now, shot, debug)

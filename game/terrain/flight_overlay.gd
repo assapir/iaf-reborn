@@ -111,17 +111,40 @@ func _draw() -> void:
 		for i in rects.size():
 			var r := rects[i]
 			# FUN_004ee9f0: RoundRect 16×16 with the 1 px dark pen, hover brush under the cursor (not while paused).
-			Gdi.round_rect(self, r, 2 * ITEM_PAD, 2 * ITEM_PAD, PEN_DARK, 1, HOVER if i == hover and not host.paused else NORMAL, s)
-			Gdi.text_out(self, _font, MENU_WEIGHT, labels[i], Gdi.ppem(MENU_SIZE), (r.position.x + r.end.x) / 2,
-					r.position.y + ITEM_PAD, s, Color.BLACK, true)
+			Gdi.round_rect(
+				self, r, 2 * ITEM_PAD, 2 * ITEM_PAD, PEN_DARK, 1, HOVER if i == hover and not host.paused else NORMAL, s
+			)
+			Gdi.text_out(
+				self,
+				_font,
+				MENU_WEIGHT,
+				labels[i],
+				Gdi.ppem(MENU_SIZE),
+				(r.position.x + r.end.x) / 2,
+				r.position.y + ITEM_PAD,
+				s,
+				Color.BLACK,
+				true
+			)
 		# The frame with NULL_BRUSH (the scene shows between the items): RoundRect 20×20, 2 px light pen, then 1 px dark.
 		var f := frame_rect()
 		Gdi.round_rect(self, f, 2 * FRAME_PAD, 2 * FRAME_PAD, PEN_LIGHT, 2, Color.TRANSPARENT, s)
 		Gdi.round_rect(self, f, 2 * FRAME_PAD, 2 * FRAME_PAD, PEN_DARK, 1, Color.TRANSPARENT, s)
 	if host.paused:
 		if (Time.get_ticks_msec() / PAUSE_BLINK_MS) % 2 == 0:
-			Gdi.text_out(self, _pause_font, PAUSE_WEIGHT, PAUSE_TEXT, Gdi.ppem(50, PAUSE_WEIGHT), PAUSE_POS.x, PAUSE_POS.y, s,
-					PAUSE_COLOUR, false, true)
+			Gdi.text_out(
+				self,
+				_pause_font,
+				PAUSE_WEIGHT,
+				PAUSE_TEXT,
+				Gdi.ppem(50, PAUSE_WEIGHT),
+				PAUSE_POS.x,
+				PAUSE_POS.y,
+				s,
+				PAUSE_COLOUR,
+				false,
+				true
+			)
 		# The wash is drawn after the text, so it covers it too (D3D only; the software renderer has none). Its
 		# rect (0, 0, 640, 480) is the whole back surface: here the whole window.
 		draw_rect(Rect2(Vector2.ZERO, size), WASH)

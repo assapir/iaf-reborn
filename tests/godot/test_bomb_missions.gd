@@ -55,7 +55,10 @@ func run() -> void:
 	for e in rt.entities.values():
 		if int(e.state) >= 4 and int(e.role) != rt.ROLE_TARGET:
 			print("also destroyed: %s (role %d)" % [e.name, e.role])
-	check(targets.all(func(e): return int(e.state) >= 4) and rt.targets_left == 0, "every target destroyed (%d bombs)" % used)
+	check(
+		targets.all(func(e): return int(e.state) >= 4) and rt.targets_left == 0,
+		"every target destroyed (%d bombs)" % used
+	)
 	# The jet starts inside its shelter (schacha3, no collider: 0x58c = 0, docs/damage.md §7) and lives.
 	check(int(rt.player_entity().state) == 1, "the jet survives its shelter start")
 	# The Merkava's bomb also destroys the "Start motion sensor" at the same spot: the original does too

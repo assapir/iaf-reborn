@@ -34,8 +34,13 @@ func run() -> void:
 		return n
 	var loaded0: int = loaded.call()
 	var mass0: float = u.stores.fm_mass
-	check(loaded0 > 0 and mass0 > 0.0 and u.store_nodes.is_empty(),
-		"the Su-24's stores (%d) weigh on its FM (%.0f lb); no models: its model has no Station helpers" % [loaded0, mass0])
+	check(
+		loaded0 > 0 and mass0 > 0.0 and u.store_nodes.is_empty(),
+		(
+			"the Su-24's stores (%d) weigh on its FM (%.0f lb); no models: its model has no Station helpers"
+			% [loaded0, mass0]
+		)
+	)
 	var w = tv.weapons
 	var dropped := false
 	var drops := []
@@ -54,13 +59,27 @@ func run() -> void:
 				var bp: Vector3 = load("res://weapons/bombs.gd").position(bm.b, w.now)
 				near = minf(near, Vector2(bp.x - tp.x, bp.y - tp.y).length())
 	Engine.time_scale = 1.0
-	print("Su-24 modes ", modes.keys(), " station ", u.cur, " ", u.w.get("name", ""), " stage ", p.flight.ap_stage() if p.flight.has_method("ap_stage") else "")
+	print(
+		"Su-24 modes ",
+		modes.keys(),
+		" station ",
+		u.cur,
+		" ",
+		u.w.get("name", ""),
+		" stage ",
+		p.flight.ap_stage() if p.flight.has_method("ap_stage") else ""
+	)
 	check(modes.has(0x17), "the Su-24 dive-bombs (mode 0x17)")
 	check(dropped, "a bomb released")
 	check(near < 600.0, "the bomb falls near the target (%.0f m)" % near)
-	check(u.ripple.qty() == 2 and is_equal_approx(u.ripple.period(), 0.1) and drops.size() == 2,
-		"the ripple: 380's quantity 2 every 0.1 s, two bombs (%d)" % drops.size())
-	check(loaded.call() == loaded0 - 2 and u.stores.fm_mass < mass0, "the two bombs left the pylons (%d -> %d), lighter (%.0f lb)" % [loaded0, loaded.call(), u.stores.fm_mass])
+	check(
+		u.ripple.qty() == 2 and is_equal_approx(u.ripple.period(), 0.1) and drops.size() == 2,
+		"the ripple: 380's quantity 2 every 0.1 s, two bombs (%d)" % drops.size()
+	)
+	check(
+		loaded.call() == loaded0 - 2 and u.stores.fm_mass < mass0,
+		"the two bombs left the pylons (%d -> %d), lighter (%.0f lb)" % [loaded0, loaded.call(), u.stores.fm_mass]
+	)
 	await _rockets_and_lgb(tv, su, tgt, u)
 
 
@@ -106,5 +125,8 @@ func _rockets_and_lgb(tv, su: Dictionary, tgt: Dictionary, u) -> void:
 						fired = maxi(fired, 1)
 						var gp: Vector3 = g.position(w.now)
 						near = minf(near, Vector2(gp.x - tp.x, gp.y - tp.y).length())
-		check(fired > 0 and int(u.stations[0].count) < 4, "%d: the Su-24's ripple releases them (%d left)" % [type, int(u.stations[0].count)])
+		check(
+			fired > 0 and int(u.stations[0].count) < 4,
+			"%d: the Su-24's ripple releases them (%d left)" % [type, int(u.stations[0].count)]
+		)
 		check(near < 150.0, "%d: they reach the target (%.0f m)" % [type, near])

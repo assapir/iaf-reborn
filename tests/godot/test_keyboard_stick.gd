@@ -9,8 +9,14 @@ const DT := 1.0 / 60.0
 
 func tap_peak_g(tv: Node, real: bool, seconds: float) -> float:
 	var install: String = Settings().assets_dir().path_join("install")
-	tv.flight.start(install, "F-16", Vector3(0, 3048, 0), Vector3(0.0, 0.0, 0.0), Vector3(0, 0, -180.06),
-			{"airborne": true, "engine_on": true, "real_data": real})
+	tv.flight.start(
+		install,
+		"F-16",
+		Vector3(0, 3048, 0),
+		Vector3(0.0, 0.0, 0.0),
+		Vector3(0, 0, -180.06),
+		{"airborne": true, "engine_on": true, "real_data": real}
+	)
 	var fly := func(t: float) -> float:
 		var peak := -INF
 		for i in roundi(t / DT):
@@ -54,4 +60,7 @@ func run() -> void:
 		var want := {0.1: 1.44, 0.3: 2.31, 1.0: 5.36} if not real else {0.1: 1.46, 0.3: 2.38, 1.0: 5.61}
 		for t in [0.1, 0.3, 1.0]:
 			var g := tap_peak_g(tv, real, t)
-			check(absf(g - want[t]) < 0.12, "%s data: %.1f s tap → peak %.2f g (≈ %.2f)" % ["real" if real else "original", t, g, want[t]])
+			check(
+				absf(g - want[t]) < 0.12,
+				"%s data: %.1f s tap → peak %.2f g (≈ %.2f)" % ["real" if real else "original", t, g, want[t]]
+			)

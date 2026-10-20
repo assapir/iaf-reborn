@@ -9,33 +9,151 @@ extends RefCounted
 ## Categories per attempt (nCat, FUN_004f7a40).
 const N_CAT := 37
 ## Points per category (FUN_004f7550).
-const POINTS := [1000, 800, 700, 600, 1200, 500, 600, 600, 700, 600, 800,
-	400, 400, 2000, 2000, 200, 100, 50, 100, 50, 300, 350,
-	800, 400, 400, 400, 800, 100, 100, 200, 500,
-	200, 3000, 600, 100, 2000, 2000]
+const POINTS := [
+	1000,
+	800,
+	700,
+	600,
+	1200,
+	500,
+	600,
+	600,
+	700,
+	600,
+	800,
+	400,
+	400,
+	2000,
+	2000,
+	200,
+	100,
+	50,
+	100,
+	50,
+	300,
+	350,
+	800,
+	400,
+	400,
+	400,
+	800,
+	100,
+	100,
+	200,
+	500,
+	200,
+	3000,
+	600,
+	100,
+	2000,
+	2000
+]
 ## Type code -> category (FUN_004f6da0; the TSD label table, §8.1).
-const TYPE_CATEGORY := {110: 0, 100: 1, 120: 2, 130: 3, 140: 4, 150: 5, 160: 6, 170: 7, 180: 8, 190: 9,
-	200: 10, 210: 11, 220: 12, 225: 14, 230: 14, 240: 14, 250: 16, 260: 17, 270: 18, 280: 19, 290: 20,
-	300: 21, 310: 22, 320: 23, 330: 24, 340: 26, 350: 27, 360: 28, 370: 29, 380: 30, 390: 30, 400: 31,
-	410: 32, 420: 33, 430: 34, 440: 36, 450: 35}
+const TYPE_CATEGORY := {
+	110: 0,
+	100: 1,
+	120: 2,
+	130: 3,
+	140: 4,
+	150: 5,
+	160: 6,
+	170: 7,
+	180: 8,
+	190: 9,
+	200: 10,
+	210: 11,
+	220: 12,
+	225: 14,
+	230: 14,
+	240: 14,
+	250: 16,
+	260: 17,
+	270: 18,
+	280: 19,
+	290: 20,
+	300: 21,
+	310: 22,
+	320: 23,
+	330: 24,
+	340: 26,
+	350: 27,
+	360: 28,
+	370: 29,
+	380: 30,
+	390: 30,
+	400: 31,
+	410: 32,
+	420: 33,
+	430: 34,
+	440: 36,
+	450: 35
+}
 ## Category names (FUN_004f7670, .rdata 0x6513bc..0x6514e0; English in both languages).
-const CATEGORY_NAMES := ["F-15", "F-16", "F-4E", "Kfir", "Lavi", "MiG21", "MiG23", "MiG25", "MiG29", "Mirage",
-	"F-42000", "MiG17", "Bomber", "Cargo", "Transport", "Helo", "Tank", "Truck", "Armored", "Soft", "SA-2", "SA-3",
-	"SA-5", "SA-6", "SA8", "IR-SAM", "Hawk", "AAA", "Gundish", "Boat", "Ship", "Building", "Strategic", "Bridge",
-	"Road", "Runway", "Airport"]
+const CATEGORY_NAMES := [
+	"F-15",
+	"F-16",
+	"F-4E",
+	"Kfir",
+	"Lavi",
+	"MiG21",
+	"MiG23",
+	"MiG25",
+	"MiG29",
+	"Mirage",
+	"F-42000",
+	"MiG17",
+	"Bomber",
+	"Cargo",
+	"Transport",
+	"Helo",
+	"Tank",
+	"Truck",
+	"Armored",
+	"Soft",
+	"SA-2",
+	"SA-3",
+	"SA-5",
+	"SA-6",
+	"SA8",
+	"IR-SAM",
+	"Hawk",
+	"AAA",
+	"Gundish",
+	"Boat",
+	"Ship",
+	"Building",
+	"Strategic",
+	"Bridge",
+	"Road",
+	"Runway",
+	"Airport"
+]
 ## Fallback by unit class.
 const CLASS_CATEGORY := {2: 15, 6: 17, 9: 25, 0xb: 31, 0xc: 31, 0xd: 31, 0x1d: 31, 0x1e: 31}
 ## Display groups (FUN_004f7120) with their names (FUN_004f78d0) and rows (FUN_004f74f0: 0 air, 1 ground,
 ## 2 structure).
 const GROUPS := [
-	["Fighter", 0, [2, 3, 5, 6, 7, 9, 10, 11]], ["Adv Fighter", 0, [0, 1, 4, 8]], ["Bomber", 0, [12]],
-	["Support", 0, [13, 14]], ["Helo", 0, [15]], ["Tank", 1, [16]], ["Soft", 1, [17, 19]],
-	["Armored", 1, [18]], ["Anti Aircraft", 1, [20, 21, 22, 23, 24, 25, 26, 27, 28]],
-	["Naval", 1, [29, 30]], ["Structure", 2, [31, 32, 33, 34, 35, 36]],
+	["Fighter", 0, [2, 3, 5, 6, 7, 9, 10, 11]],
+	["Adv Fighter", 0, [0, 1, 4, 8]],
+	["Bomber", 0, [12]],
+	["Support", 0, [13, 14]],
+	["Helo", 0, [15]],
+	["Tank", 1, [16]],
+	["Soft", 1, [17, 19]],
+	["Armored", 1, [18]],
+	["Anti Aircraft", 1, [20, 21, 22, 23, 24, 25, 26, 27, 28]],
+	["Naval", 1, [29, 30]],
+	["Structure", 2, [31, 32, 33, 34, 35, 36]],
 ]
 ## Ranks by pilot score (FUN_0051bb90 @51bd3e, §8.1).
-const RANKS := [[5000, "Second Lieutenant"], [15000, "Lieutenant"], [30000, "Captain"], [45000, "Major"],
-	[75000, "Lt. Colonel"], [100000, "Colonel"]]
+const RANKS := [
+	[5000, "Second Lieutenant"],
+	[15000, "Lieutenant"],
+	[30000, "Captain"],
+	[45000, "Major"],
+	[75000, "Lt. Colonel"],
+	[100000, "Colonel"]
+]
 ## Multiplayer missions: not saved, not counted in the totals (§13.7).
 const MP_IDS := [0x21d, 0x29a, 0x213]
 ## The first mission of each war (FUN_004f17b0).
@@ -65,8 +183,14 @@ func load_list() -> void:
 	var d = Settings.load_json(dir().path_join("pilots.json"))
 	pilots = []
 	for p in d.get("pilots", []):
-		pilots.append({"name": String(p.name).left(10), "callsign": String(p.callsign).left(12),
-			"id": int(p.id), "photo": int(p.photo)})
+		pilots.append(
+			{
+				"name": String(p.name).left(10),
+				"callsign": String(p.callsign).left(12),
+				"id": int(p.id),
+				"photo": int(p.photo)
+			}
+		)
 	if pilots.is_empty():
 		pilots.append(blank(14))
 		pilots[0].name = "Gal"
@@ -125,6 +249,7 @@ static func photo_path(id: int) -> String:
 
 
 # --- mission history (Pilots\<id>.mis) ------------------------------------------------------------
+
 
 static func history(id: int) -> Array:
 	return Settings.load_json(dir().path_join("%d.json" % id)).get("missions", [])

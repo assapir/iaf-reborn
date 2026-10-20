@@ -51,12 +51,22 @@ func setup(type_code: int, lrs_nm := 0.0) -> void:
 func _feed() -> void:
 	var list := []
 	_by_key = {}
-	for u in (units.call() if units.is_valid() else []):
+	for u in units.call() if units.is_valid() else []:
 		var e: Dictionary = u.ent
 		_by_key[u.key] = u
-		list.append({"key": u.key, "pos": u.pos, "vel": u.vel, "klass": int(e.get("klass", -1)),
-			"state": int(e.get("state", 1)), "coll_radius": float(e.get("coll_radius", 0.0)),
-			"heading": float(e.get("heading", 0.0)), "type": int(e.get("type_code", -1)), "hostile": bool(u.get("hostile", true))})
+		list.append(
+			{
+				"key": u.key,
+				"pos": u.pos,
+				"vel": u.vel,
+				"klass": int(e.get("klass", -1)),
+				"state": int(e.get("state", 1)),
+				"coll_radius": float(e.get("coll_radius", 0.0)),
+				"heading": float(e.get("heading", 0.0)),
+				"type": int(e.get("type_code", -1)),
+				"hostile": bool(u.get("hostile", true))
+			}
+		)
 	_r.set_input(own.call() if own.is_valid() else {}, list, ground)
 
 
@@ -126,6 +136,7 @@ func _find(key: String) -> Dictionary:
 
 
 # --- per frame and keys (FUN_004ad300, FUN_0044a240; docs/radar.md §2) -----------------------------
+
 
 func update(now: float) -> void:
 	_feed()

@@ -39,7 +39,11 @@ func launcher() -> bool:
 		a.queue_free()
 		return true
 	var result := [true]
-	a.quit.connect(func(): result[0] = false; a.play.emit())
+	a.quit.connect(
+		func():
+			result[0] = false
+			a.play.emit()
+	)
 	await a.play
 	a.queue_free()
 	return result[0]

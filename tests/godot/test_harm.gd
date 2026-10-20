@@ -10,14 +10,16 @@
 extends "res://../tests/godot/base.gd"
 
 ## [Jet list id, F-35I slot, type].
-const CASES := [[-1, -1, 100], [0, -1, 110], [2, -1, 120], [3, -1, 200], [4, -1, 140], [5, -1, 130], [6, -1, 190], [4, 4, 1000]]
+const CASES := [
+	[-1, -1, 100], [0, -1, 110], [2, -1, 120], [3, -1, 200], [4, -1, 140], [5, -1, 130], [6, -1, 190], [4, 4, 1000]
+]
 const HARM := 30
 const SHRIKE := 59
 
 
 func run() -> void:
 	# A real-render run (the screenshots) takes the F-16 only.
-	for c in (CASES if DisplayServer.get_name() == "headless" else CASES.slice(0, 1)):
+	for c in CASES if DisplayServer.get_name() == "headless" else CASES.slice(0, 1):
 		Settings().f35i_slot = c[1]
 		Settings().jet_id = c[0]
 		var tv = await start_mission(231)
@@ -48,11 +50,15 @@ func _case(tv, name: String, shots: bool) -> void:
 	w.select_ag()  # '['
 	t += 0.05
 	w.update(t)
-	check(w.master == 4 and w.hud_mode == 8 and tv.cockpit.mfds.any(func(m): return m.page == 10),
-		"%s: AGM88 selected: master 4, HUD mode 8, the HARM page" % name)
+	check(
+		w.master == 4 and w.hud_mode == 8 and tv.cockpit.mfds.any(func(m): return m.page == 10),
+		"%s: AGM88 selected: master 4, HUD mode 8, the HARM page" % name
+	)
 	var cp = tv.cockpit
-	check(cp.harm.list.size() == 2 and cp.harm.list[0].selected and w.harm.selected == site.key,
-		"%s: the HARM page lists both, the nearest preselected" % name)
+	check(
+		cp.harm.list.size() == 2 and cp.harm.list[0].selected and w.harm.selected == site.key,
+		"%s: the HARM page lists both, the nearest preselected" % name
+	)
 	w.harm_next()
 	check(w.harm.selected == sites[1].key, "%s: Ctrl+Return: the next target" % name)
 	w.harm_next()
@@ -68,8 +74,10 @@ func _case(tv, name: String, shots: bool) -> void:
 		await _save("harm_hud.png")
 	w.fire_selected()
 	w.release_selected()
-	check(w.missiles.size() == 1 and w.missiles[0].target_key == site.key and int(w.missiles[0].weapon.type) == 590,
-		"%s: the HARM launched at the emitter" % name)
+	check(
+		w.missiles.size() == 1 and w.missiles[0].target_key == site.key and int(w.missiles[0].weapon.type) == 590,
+		"%s: the HARM launched at the emitter" % name
+	)
 	var terminal := false
 	var site_scene: Vector3 = site.node.global_position
 	for i in 1200:
@@ -85,7 +93,10 @@ func _case(tv, name: String, shots: bool) -> void:
 			await _save("harm_terminal.png")
 		if w.missiles.is_empty():
 			break
-	check(w.missiles.is_empty() and int(site.state) != 1, "%s: the HARM hit the emitter (state %d)" % [name, int(site.state)])
+	check(
+		w.missiles.is_empty() and int(site.state) != 1,
+		"%s: the HARM hit the emitter (state %d)" % [name, int(site.state)]
+	)
 	if shots:
 		var mark := Node3D.new()
 		tv.add_child(mark)
@@ -104,7 +115,10 @@ func _case(tv, name: String, shots: bool) -> void:
 	check(w.stores.current_name() == "SHRIKE" and w.hud_mode == 8, "%s: SHRIKE: HUD mode 8" % name)
 	w.fire_selected()
 	w.release_selected()
-	check(w.missiles.size() == 1 and not w.missiles[0].has_target, "%s: no emitter: the SHRIKE flies at its end point" % name)
+	check(
+		w.missiles.size() == 1 and not w.missiles[0].has_target,
+		"%s: no emitter: the SHRIKE flies at its end point" % name
+	)
 
 
 ## Extras "HARM targets: RWR": the far unit locks the jet (an RWR emitter), the near one is silent.
@@ -126,11 +140,16 @@ func _rwr_case(tv, name: String) -> void:
 	w.select_ag()
 	t += 0.05
 	w.update(t)
-	check(w.harm.list.size() == 1 and w.harm.selected == sites[1].key, "%s: RWR source: only the emitter is listed" % name)
+	check(
+		w.harm.list.size() == 1 and w.harm.selected == sites[1].key, "%s: RWR source: only the emitter is listed" % name
+	)
 	w.rwr.lock(sites[0].key)
 	t += 2.1  # the RWR's refresh recaptures
 	w.update(t)
-	check(w.harm.list.size() == 2 and w.harm.selected == sites[1].key, "%s: RWR source: both emitters, the selection kept" % name)
+	check(
+		w.harm.list.size() == 2 and w.harm.selected == sites[1].key,
+		"%s: RWR source: both emitters, the selection kept" % name
+	)
 	w.harm_next()
 	check(w.harm.selected == sites[0].key, "%s: RWR source: Ctrl+Return steps (wraps to the nearest)" % name)
 	Settings().harm_targets = "original"

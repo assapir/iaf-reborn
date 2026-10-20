@@ -8,9 +8,18 @@ extends "res://../tests/godot/base.gd"
 func run() -> void:
 	var kt = load("res://controls/key_table.gd").load_table()
 	check(kt.size() == 117, "117 records (%d)" % kt.size())
-	check(kt.label(0) == "TSD and cockpit toggle" and kt.key_name(kt.default_key(0)) == "Esc", "record 0 = TSD toggle on Esc")
-	check(kt.label(17) == "Eject (x3)" and kt.key_name(kt.default_key(17)) == "E" and kt.records[17].press[0] == 18, "record 17 = Eject on E, command 18")
-	check(kt.key_name(kt.default_key(1)) == "Ctrl + Q" and kt.key_name(kt.default_key(40)) == "Shift + W", "modifier names")
+	check(
+		kt.label(0) == "TSD and cockpit toggle" and kt.key_name(kt.default_key(0)) == "Esc",
+		"record 0 = TSD toggle on Esc"
+	)
+	check(
+		kt.label(17) == "Eject (x3)" and kt.key_name(kt.default_key(17)) == "E" and kt.records[17].press[0] == 18,
+		"record 17 = Eject on E, command 18"
+	)
+	check(
+		kt.key_name(kt.default_key(1)) == "Ctrl + Q" and kt.key_name(kt.default_key(40)) == "Shift + W",
+		"modifier names"
+	)
 	check(kt.button_name(kt.default_joystick(58)) == "Button 3", "joystick button names")
 	check(kt.shown_records().size() == 92, "92 listed records (%d)" % kt.shown_records().size())
 
@@ -44,7 +53,10 @@ func run() -> void:
 	var yes: Rect2 = box.rects()[0]
 	box._gui_input(mouse_button(yes.get_center(), true))
 	box._gui_input(mouse_button(yes.get_center(), false))
-	check(kt.key_of(19, fe.pref_work.key_bindings) == 0x22 and kt.key_of(20, fe.pref_work.key_bindings) == 0, "Yes: flaps on G, gear unbound")
+	check(
+		kt.key_of(19, fe.pref_work.key_bindings) == 0x22 and kt.key_of(20, fe.pref_work.key_bindings) == 0,
+		"Yes: flaps on G, gear unbound"
+	)
 	# Shift + key is a different key.
 	key(fe, KEY_K, true)
 	check(kt.key_name(kt.key_of(19, fe.pref_work.key_bindings)) == "Shift + K", "Shift + K")
@@ -74,7 +86,10 @@ func run() -> void:
 	# Extras "All keys on the Keyboard page" (ours): the hidden records (stick, rudder, RPM ± 5, pans)
 	# are listed too (cheats and screen capture included), except the two unlabelled records; they rebind like the rest.
 	var all: Array = kt.shown_records(true)
-	check(all.size() == 115 and 37 in all and 38 in all and 15 in all and 108 in all and 114 in all, "all keys: 115 records incl. rudder, RPM ± 5, cheats, capture (%d)" % all.size())
+	check(
+		all.size() == 115 and 37 in all and 38 in all and 15 in all and 108 in all and 114 in all,
+		"all keys: 115 records incl. rudder, RPM ± 5, cheats, capture (%d)" % all.size()
+	)
 	check(not 115 in all and not 116 in all, "the two unlabelled records stay out")
 	Settings().show_all_keys = true
 	fe = load("res://menu/front_end.tscn").instantiate()
@@ -111,14 +126,28 @@ func run() -> void:
 	Settings().show_all_keys = false
 	# SysRQ (record 116, command 0x88): the screen capture (FUN_004dc8d0). Isolated runs write nothing unless a
 	# folder is given; the headless renderer may give no image, then nothing is written either.
-	check(kt.key_name(kt.default_key(116)) == "SysRQ" and kt.records[116].press[0] == 136, "record 116 = SysRQ, command 136")
+	check(
+		kt.key_name(kt.default_key(116)) == "SysRQ" and kt.records[116].press[0] == 136,
+		"record 116 = SysRQ, command 136"
+	)
 	check(tv._command([136, 0, 0]) and tv.screenshot() == "", "SysRQ handled; no folder in a test run: nothing written")
 	var dir := OS.get_environment("HOME").path_join(".cache/iaf-test-shots-%d" % OS.get_process_id())
 	tv.screenshot_dir = dir
 	var shot: String = tv.screenshot()
 	var shot2: String = tv.screenshot()
-	check(shot == "" or (FileAccess.file_exists(shot) and shot.get_file().begins_with("IafJets-") and shot.ends_with(".png")
-			and shot2 != shot and FileAccess.file_exists(shot2)), "a PNG per press, never overwritten (%s, %s)" % [shot, shot2])
+	check(
+		(
+			shot == ""
+			or (
+				FileAccess.file_exists(shot)
+				and shot.get_file().begins_with("IafJets-")
+				and shot.ends_with(".png")
+				and shot2 != shot
+				and FileAccess.file_exists(shot2)
+			)
+		),
+		"a PNG per press, never overwritten (%s, %s)" % [shot, shot2]
+	)
 	if DirAccess.dir_exists_absolute(dir):
 		for f in DirAccess.get_files_at(dir):
 			DirAccess.remove_absolute(dir.path_join(f))

@@ -50,15 +50,19 @@ func _load() -> void:
 
 static func _parse_row(c: PackedStringArray) -> Dictionary:
 	return {
-		"code": c[0].strip_edges(), "sub1": c[1].strip_edges(), "sub2": c[2].strip_edges(),
+		"code": c[0].strip_edges(),
+		"sub1": c[1].strip_edges(),
+		"sub2": c[2].strip_edges(),
 		"category": c[3].strip_edges().to_upper(),
 		"resident": c[4].strip_edges().to_upper() == "Y",
 		"cyclic": c[5].strip_edges().to_upper() == "C",
 		"is3d": c[6].strip_edges().to_upper() == "Y",
 		"channel": int(c[7]),
 		"random": mini(int(c[8]), 5),  # FUN_004c82f0 clamps the count to 5
-		"vol_in": float(c[9]), "vol_out": float(c[10]),
-		"min_d": float(c[11]), "max_d": float(c[12]),
+		"vol_in": float(c[9]),
+		"vol_out": float(c[10]),
+		"min_d": float(c[11]),
+		"max_d": float(c[12]),
 		"file": c[13].strip_edges(),
 	}
 

@@ -64,14 +64,16 @@ func run() -> void:
 			var gpu := 0.0
 			var f0 := Engine.get_frames_drawn()
 			var m0 := Time.get_ticks_usec()
-			for i in (60 if p[5] else 180):
+			for i in 60 if p[5] else 180:
 				await process_frame
 				gpu += RenderingServer.viewport_get_measured_render_time_gpu(vp)
 			var fps := 1e6 * (Engine.get_frames_drawn() - f0) / (Time.get_ticks_usec() - m0)
 			await RenderingServer.frame_post_draw
 			var path := dir.path_join("%s_%s.png" % [p[0], name])
 			root.get_viewport().get_texture().get_image().save_png(path)
-			print("BENCH %-14s %-12s %6.1f fps  gpu %5.2f ms  %s" % [p[0], name, fps, gpu / (60 if p[5] else 180), path])
+			print(
+				"BENCH %-14s %-12s %6.1f fps  gpu %5.2f ms  %s" % [p[0], name, fps, gpu / (60 if p[5] else 180), path]
+			)
 
 
 func _pose(tv, p: Array, start: Transform3D) -> void:

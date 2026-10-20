@@ -67,7 +67,12 @@ func set_text(bbcode: String, links: Array) -> void:
 		rich.mouse_filter = Control.MOUSE_FILTER_PASS
 		rich.meta_underlined = false
 		rich.meta_clicked.connect(func(meta): link_clicked.emit(str(meta)))
-		for pair in [["normal_font", 400, false], ["bold_font", 700, false], ["italics_font", 400, true], ["bold_italics_font", 700, true]]:
+		for pair in [
+			["normal_font", 400, false],
+			["bold_font", 700, false],
+			["italics_font", 400, true],
+			["bold_italics_font", 700, true]
+		]:
 			rich.add_theme_font_override(pair[0], preload("res://util/img.gd").arial(pair[1], pair[2]))
 		body_clip = Control.new()
 		body_clip.clip_contents = true
@@ -253,8 +258,16 @@ func _draw() -> void:
 		var track_h := body.size.y
 		_blit("framewnd/scroll.png", Rect2(0, 0, SCROLL_W, track_h), Vector2(x, body.position.y))
 		# FUN_004f3700's layout: sldownb (its art points up) at the top, slupb (pointing down) at the bottom.
-		_blit("framewnd/sldownb_%d.png" % (2 if pressed_btn == "up" else 0), Rect2(Vector2.ZERO, Vector2(10, 8)), Vector2(x, body.position.y))
-		_blit("framewnd/slupb_%d.png" % (2 if pressed_btn == "down" else 0), Rect2(Vector2.ZERO, Vector2(10, 8)), Vector2(x, body.end.y - 8))
+		_blit(
+			"framewnd/sldownb_%d.png" % (2 if pressed_btn == "up" else 0),
+			Rect2(Vector2.ZERO, Vector2(10, 8)),
+			Vector2(x, body.position.y)
+		)
+		_blit(
+			"framewnd/slupb_%d.png" % (2 if pressed_btn == "down" else 0),
+			Rect2(Vector2.ZERO, Vector2(10, 8)),
+			Vector2(x, body.end.y - 8)
+		)
 		_blit("framewnd/slider.png", Rect2(0, 0, 10, 23), Vector2(x, _thumb_y()))
 
 
@@ -324,7 +337,10 @@ func _thumb_y() -> float:
 func _gui_input(event: InputEvent) -> void:
 	var p: Vector2 = event.position / _s() if "position" in event else Vector2.ZERO
 	# Ours (the original has no wheel): the wheel / a trackpad pan steps as the scroll arrows do, one line each.
-	if event is InputEventPanGesture or (event is InputEventMouseButton and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]):
+	if (
+		event is InputEventPanGesture
+		or (event is InputEventMouseButton and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN])
+	):
 		if rich != null:
 			_scroll_by(TEXT_PX * Settings.wheel_steps(event))
 		accept_event()

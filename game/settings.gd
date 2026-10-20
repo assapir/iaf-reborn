@@ -51,14 +51,60 @@ const BETTER_COCKPIT := {
 ## Stored preferences by config section: the original pages, then our own options (Extras tab).
 const PREFS := {
 	"sound": ["mute", "music_volume", "engine_volume", "sfx_volume", "speech_volume"],
-	"graphics": ["terrain_detail", "object_detail", "visual_effects", "smoke_trails", "textured_sky",
-		"shadows", "external_stores", "vsync"],
+	"graphics":
+	[
+		"terrain_detail",
+		"object_detail",
+		"visual_effects",
+		"smoke_trails",
+		"textured_sky",
+		"shadows",
+		"external_stores",
+		"vsync"
+	],
 	"devices": ["flight_controls", "rudder", "throttle", "joy_axes", "throttle_detent"],
-	"gameplay": ["no_wind", "no_blackouts", "no_spins", "no_stalls", "easy_landing", "easy_aiming",
-		"no_malfunctions", "ai_level", "invulnerable", "no_crashes", "unlimited_ammo", "unlimited_fuel",
-		"flight_data", "weapon_data", "language", "show_info", "blackbox", "hud_ladder", "hud_style", "show_all_keys", "fullscreen",
-		"imagery_israel", "imagery_outside", "antialiasing", "terrain_closeup", "sky", "upscaling", "night_lights", "water", "f35i_slot", "harm_targets",
-		"models", "rolling_wheels", "particle_effects", "airbases", "cd_launcher", "wheel_scroll", "better_cockpit", "world_scale"],
+	"gameplay":
+	[
+		"no_wind",
+		"no_blackouts",
+		"no_spins",
+		"no_stalls",
+		"easy_landing",
+		"easy_aiming",
+		"no_malfunctions",
+		"ai_level",
+		"invulnerable",
+		"no_crashes",
+		"unlimited_ammo",
+		"unlimited_fuel",
+		"flight_data",
+		"weapon_data",
+		"language",
+		"show_info",
+		"blackbox",
+		"hud_ladder",
+		"hud_style",
+		"show_all_keys",
+		"fullscreen",
+		"imagery_israel",
+		"imagery_outside",
+		"antialiasing",
+		"terrain_closeup",
+		"sky",
+		"upscaling",
+		"night_lights",
+		"water",
+		"f35i_slot",
+		"harm_targets",
+		"models",
+		"rolling_wheels",
+		"particle_effects",
+		"airbases",
+		"cd_launcher",
+		"wheel_scroll",
+		"better_cockpit",
+		"world_scale"
+	],
 }
 
 ## Flight data: "original" (Jane's IAF 1998 numbers) or "real" (corrected real-world data for every flyable jet, docs/real-aircraft.md).
@@ -266,7 +312,9 @@ func apply_display() -> void:
 	# which freed the box mid-signal and crashed.
 	if fullscreen != _applied_fullscreen:
 		_applied_fullscreen = fullscreen
-		DisplayServer.window_set_mode.call_deferred(DisplayServer.WINDOW_MODE_FULLSCREEN if fullscreen else DisplayServer.WINDOW_MODE_WINDOWED)
+		DisplayServer.window_set_mode.call_deferred(
+			DisplayServer.WINDOW_MODE_FULLSCREEN if fullscreen else DisplayServer.WINDOW_MODE_WINDOWED
+		)
 	# Off = uncapped: Mailbox (no tearing) where the platform offers it (Wayland has no Disabled mode),
 	# else Disabled.
 	if vsync:
@@ -354,8 +402,13 @@ const KEPT_LAYOUTS := ["signtlnf", "signrmon", "signrfid", "signdvid", "cabels"]
 ## shelters and hangars are objects: true size.
 static func keeps_present(path: String, raw_box: AABB, present: float, klass: int, flat: float) -> bool:
 	var f := path.get_file().to_lower()
-	return f.begins_with("lt_") or f.get_basename() in KEPT_LAYOUTS or raw_box.size.y * present < flat \
-			or present >= 7.0 or klass in [15, 16]
+	return (
+		f.begins_with("lt_")
+		or f.get_basename() in KEPT_LAYOUTS
+		or raw_box.size.y * present < flat
+		or present >= 7.0
+		or klass in [15, 16]
+	)
 
 
 ## World scale Real: every airbase at its real place (docs/world-scale.md §3.3). Sets up the extension's base moves

@@ -16,9 +16,19 @@ const Gauges := preload("res://cockpit/gauges.gd")
 const PANEL_CENTRE_X := 960.0
 ## HUD colour table (renderer+0x2864, COLORREFs 0x2400 … 0xbcf8): eight greens dark to bright,
 ## near-white, red, amber. Index 0 at the start of a run; key H cycles (idx + 1) % 11 (docs/mfd.md §2).
-const HUD_COLOURS := [Color8(0, 0x24, 0), Color8(0, 0x34, 0), Color8(0, 0x54, 0), Color8(0, 0x6c, 0),
-	Color8(0, 0x88, 0), Color8(0, 0xa4, 0), Color8(0, 0xe4, 0), Color8(0, 0xfc, 0),
-	Color8(0xf8, 0xf4, 0xf0), Color8(0xf8, 0, 0), Color8(0xf8, 0xbc, 0)]
+const HUD_COLOURS := [
+	Color8(0, 0x24, 0),
+	Color8(0, 0x34, 0),
+	Color8(0, 0x54, 0),
+	Color8(0, 0x6c, 0),
+	Color8(0, 0x88, 0),
+	Color8(0, 0xa4, 0),
+	Color8(0, 0xe4, 0),
+	Color8(0, 0xfc, 0),
+	Color8(0xf8, 0xf4, 0xf0),
+	Color8(0xf8, 0, 0),
+	Color8(0xf8, 0xbc, 0)
+]
 ## Kept for the run (the original's global 0x82f4c4), not saved.
 static var hud_colour_index := 0
 
@@ -26,17 +36,33 @@ static var hud_colour_index := 0
 static func hud_colour() -> Color:
 	return HUD_COLOURS[hud_colour_index]
 
+
 ## Under assets/.
 @export var cockpit_dir := "converted/cockpits/f16"
 
 ## Flight state shown by the instruments. Angles in degrees, speed in knots,
 ## altitude in feet, vertical speed in ft/min, fuel in lbs, rpm/throttle 0..1.
 var state := {
-	"speed_kt": 0.0, "mach": 0.0, "alt_ft": 0.0, "vs_fpm": 0.0,
-	"pitch": 0.0, "roll": 0.0, "heading": 0.0, "aoa": 0.0, "g": 1.0,
-	"rpm": 0.0, "throttle": 0.0, "fuel_lbs": 0.0, "internal_fuel_kg": 0.0,
+	"speed_kt": 0.0,
+	"mach": 0.0,
+	"alt_ft": 0.0,
+	"vs_fpm": 0.0,
+	"pitch": 0.0,
+	"roll": 0.0,
+	"heading": 0.0,
+	"aoa": 0.0,
+	"g": 1.0,
+	"rpm": 0.0,
+	"throttle": 0.0,
+	"fuel_lbs": 0.0,
+	"internal_fuel_kg": 0.0,
 	# From IafFlight.instruments (iaf_flight::instruments): S+0x330 / 0x334 / 0x33c, 0x3c, 0x1058, the engine needles.
-	"tas_kt": 0.0, "ground_kt": 0.0, "ias_kt": 0.0, "agl_ft": 0.0, "fuel_fill": 0.0, "engines": PackedFloat32Array([0, 0, 0, 0, 0, 0]),
+	"tas_kt": 0.0,
+	"ground_kt": 0.0,
+	"ias_kt": 0.0,
+	"agl_ft": 0.0,
+	"fuel_fill": 0.0,
+	"engines": PackedFloat32Array([0, 0, 0, 0, 0, 0]),
 	"world": Vector2.ZERO,  # ownship in mission world coordinates (X east, Y north, metres)
 }
 ## The weapons snapshot for the HUD and the stores page (player_weapons.gd _publish; {} = none).
@@ -113,7 +139,6 @@ var mfd_font: FontFile
 var dir := ""
 @onready var hud: Control = $Hud
 
-
 ## Night (FUN_0052df40, applied once at load in the original): the panel and the HUD glass are darkened by the [PANEL]
 ## Night*Scale shifts, the lights bitmap by [LIGHTSON]'s (R >>= shift per channel of the 16-bit art: ×2^−shift here).
 var night := false
@@ -123,8 +148,11 @@ func _night_mod(section: String) -> Color:
 	if not night:
 		return Color.WHITE
 	var p: Dictionary = layout.get(section, {})
-	return Color(pow(2.0, -float(p.get("NightRScale", 0))), pow(2.0, -float(p.get("NightGScale", 0))),
-		pow(2.0, -float(p.get("NightBScale", 0))))
+	return Color(
+		pow(2.0, -float(p.get("NightRScale", 0))),
+		pow(2.0, -float(p.get("NightGScale", 0))),
+		pow(2.0, -float(p.get("NightBScale", 0)))
+	)
 
 
 func _ready() -> void:
@@ -204,7 +232,12 @@ func _load_tsd_map() -> void:
 		var pts := PackedVector2Array()
 		var ring: Array = op.rings[0]
 		for i in range(0, ring.size(), 2):
-			pts.append(Vector2(ring[i] / f * Tsd.WORLD_W - Tsd.WORLD_X_SHIFT, Tsd.WORLD_H - Tsd.WORLD_Y_SHIFT - ring[i + 1] / f * Tsd.WORLD_H))
+			pts.append(
+				Vector2(
+					ring[i] / f * Tsd.WORLD_W - Tsd.WORLD_X_SHIFT,
+					Tsd.WORLD_H - Tsd.WORLD_Y_SHIFT - ring[i + 1] / f * Tsd.WORLD_H
+				)
+			)
 		tsd_map.append({"points": pts, "color": Color8(op.brush[0], op.brush[1], op.brush[2])})
 
 
@@ -512,8 +545,10 @@ func head_pan() -> Vector2:
 	var el := deg_to_rad(float(p.get("ElevationAngleDeg", 15.0)))
 	var ph := float(p.get("PanelHeight", 352))
 	var pan := roundf(1920.0 / az * head.x)
-	var vpan := maxf(roundf((ph + float(layout.get("HUD", {}).get("CenterY", 0))) / el * head.y),
-			480.0 - float(p.get("MainOffsetY", 190)) - ph)
+	var vpan := maxf(
+		roundf((ph + float(layout.get("HUD", {}).get("CenterY", 0))) / el * head.y),
+		480.0 - float(p.get("MainOffsetY", 190)) - ph
+	)
 	return Vector2(-pan, vpan)
 
 
@@ -568,15 +603,30 @@ func _draw() -> void:
 	if fuel.get("Active", 0) == 1:
 		var col := Color8(int(fuel.ColorR), int(fuel.ColorG), int(fuel.ColorB))
 		var font := digits_font()
-		draw_string(font, panel_to_screen(fuel.OffsetX, fuel.OffsetY + 9), "%05d" % int(state.fuel_lbs),
-				HORIZONTAL_ALIGNMENT_LEFT, -1, maxi(int(11 * s), 1), col)
+		draw_string(
+			font,
+			panel_to_screen(fuel.OffsetX, fuel.OffsetY + 9),
+			"%05d" % int(state.fuel_lbs),
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1,
+			maxi(int(11 * s), 1),
+			col
+		)
 	# Ours: a digital throttle (an extra cockpit without a throttle clock, e.g. the F-35I's display): percent of the
 	# lever, AB in afterburner.
 	var thr: Dictionary = layout.get("THROTTLEDIGITAL", {})
 	if thr.get("Active", 0) == 1:
 		var col := Color8(int(thr.ColorR), int(thr.ColorG), int(thr.ColorB))
 		var t := "%3d%s" % [int(round(state.throttle * 100.0)), " AB" if float(state.get("afterburner", 0)) > 0 else ""]
-		draw_string(digits_font(), panel_to_screen(thr.OffsetX, thr.OffsetY + 9), t, HORIZONTAL_ALIGNMENT_LEFT, -1, maxi(int(11 * s), 1), col)
+		draw_string(
+			digits_font(),
+			panel_to_screen(thr.OffsetX, thr.OffsetY + 9),
+			t,
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1,
+			maxi(int(11 * s), 1),
+			col
+		)
 
 	_draw_decoy_counters(s)
 	_draw_console()
@@ -600,8 +650,15 @@ func _draw_decoy_counters(s: float) -> void:
 	for pair in [["CHAFF", "chaff"], ["FLARE", "flares"]]:
 		var c: Dictionary = layout.get(pair[0], {})
 		var at := panel_to_screen(float(c.get("OffX", 36)), float(c.get("OffY", 36)))
-		draw_string(_counter_font, at + Vector2(0, _counter_font.get_ascent(fs)), "%03d" % int(weapons.get(pair[1], 0)),
-				HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color8(255, 255, 179))
+		draw_string(
+			_counter_font,
+			at + Vector2(0, _counter_font.get_ascent(fs)),
+			"%03d" % int(weapons.get(pair[1], 0)),
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1,
+			fs,
+			Color8(255, 255, 179)
+		)
 
 
 func _draw_console() -> void:
@@ -613,7 +670,18 @@ func _draw_console() -> void:
 	var em := 12.0 / 1.15
 	if _console_font == null:
 		_console_font = Img.arial()
-		var avg: float = _console_font.get_string_size("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", HORIZONTAL_ALIGNMENT_LEFT, -1, 100).x / 52.0 / 100.0 * em
+		var avg: float = (
+			(
+				_console_font
+				. get_string_size(
+					"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", HORIZONTAL_ALIGNMENT_LEFT, -1, 100
+				)
+				. x
+			)
+			/ 52.0
+			/ 100.0
+			* em
+		)
 		_console_squeeze = 4.0 / avg
 	var fs := int(round(em * s))
 	if fs < 1:
@@ -628,15 +696,40 @@ func _draw_console() -> void:
 	if time_factor > 1:
 		var t := "%1dX" % time_factor
 		var w := _console_font.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x * _console_squeeze
-		draw_set_transform(Vector2(left + 630 * s - w, 10 * s + _console_font.get_ascent(fs) - position.y), 0.0, Vector2(_console_squeeze, 1.0))
+		draw_set_transform(
+			Vector2(left + 630 * s - w, 10 * s + _console_font.get_ascent(fs) - position.y),
+			0.0,
+			Vector2(_console_squeeze, 1.0)
+		)
 		draw_string(_console_font, Vector2.ZERO, t, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, hud_colour())
 	draw_set_transform(Vector2.ZERO)
 
 
 ## rwrsymb.bmp glyph row (10 × 10 at (0, y)) per emitter bdb type code (FUN_00531470): SAM / AAA radars
 ## 290–390, aircraft 100–200; other types are not drawn.
-const RWR_GLYPH := {290: 0, 300: 10, 310: 20, 320: 30, 330: 40, 340: 50, 360: 60, 380: 60, 390: 60, 350: 70,
-	150: 80, 160: 90, 180: 100, 170: 110, 120: 120, 200: 120, 110: 130, 100: 140, 130: 150, 190: 150, 140: 160}
+const RWR_GLYPH := {
+	290: 0,
+	300: 10,
+	310: 20,
+	320: 30,
+	330: 40,
+	340: 50,
+	360: 60,
+	380: 60,
+	390: 60,
+	350: 70,
+	150: 80,
+	160: 90,
+	180: 100,
+	170: 110,
+	120: 120,
+	200: 120,
+	110: 130,
+	100: 140,
+	130: 150,
+	190: 150,
+	140: 160
+}
 ## The RWR distance scale: 37060 m (0x60c3d8 / 0x60c3e0) at the radius, farther emitters on the rim.
 const RWR_RANGE := 37060.0
 
@@ -662,7 +755,9 @@ func draw_rwr_symbols(ci: CanvasItem, centre: Vector2, radius: float, s: float, 
 		if blit.is_valid():
 			blit.call(src, dest, _night_mod("LIGHTSON"))
 		else:
-			ci.draw_texture_rect_region(tex.RWRSYMB, dest, Rect2(src.position * a, src.size * a), _night_mod("LIGHTSON"))
+			ci.draw_texture_rect_region(
+				tex.RWRSYMB, dest, Rect2(src.position * a, src.size * a), _night_mod("LIGHTSON")
+			)
 
 
 ## An emitter's symbol centre from the dial centre (FUN_00531470 @53160d): heading-up, 37060 m = radius, the
@@ -699,8 +794,11 @@ func _draw_light(l: Dictionary, frame: int, s: float) -> void:
 	var h := float(l.Bottom) - float(l.Top)
 	var src := Rect2(float(l.Left), float(l.Top) + frame * h, w, h)
 	var t: Texture2D = tex.LIGHTS_NIGHT if night and tex.has("LIGHTS_NIGHT") else tex.LIGHTS
-	draw_texture_rect_region(t, Rect2(panel_to_screen(l.OffsetX, l.OffsetY), Vector2(w, h) * s * float(l.get("Scale", 1.0))),
-			Rect2(src.position * a, src.size * a))
+	draw_texture_rect_region(
+		t,
+		Rect2(panel_to_screen(l.OffsetX, l.OffsetY), Vector2(w, h) * s * float(l.get("Scale", 1.0))),
+		Rect2(src.position * a, src.size * a)
+	)
 
 
 func _draw_lights(s: float) -> void:
@@ -812,7 +910,9 @@ func draw_horizon_disc(ci: CanvasItem, c: Vector2, px: float, line_px := 0.0) ->
 	var at := func(x: float, y: float) -> Vector2:
 		return c + (Vector2(int(sn * y + cs * x), int(cs * y - sn * x)) + o) * px
 	var box := Rect2(c - Vector2(r, r) * px, Vector2(2 * r, 2 * r) * px)
-	var clip := PackedVector2Array([box.position, Vector2(box.end.x, box.position.y), box.end, Vector2(box.position.x, box.end.y)])
+	var clip := PackedVector2Array(
+		[box.position, Vector2(box.end.x, box.position.y), box.end, Vector2(box.position.x, box.end.y)]
+	)
 	ci.draw_rect(box, _colorref(int(h.get("GndColor", 0x9bb4))))
 	var sky := PackedVector2Array([at.call(-30, 0), at.call(30, 0), at.call(30, -90), at.call(-30, -90)])
 	for piece in Geometry2D.intersect_polygons(sky, clip):
@@ -829,9 +929,20 @@ func draw_horizon_disc(ci: CanvasItem, c: Vector2, px: float, line_px := 0.0) ->
 
 
 ## The disc's white lines (0x65cec0, x0 y0 x1 y1): ground perspective lines, then pitch ticks (4 px = 8°).
-const HORIZON_LINES := [[0, 0, 20, 6], [0, 0, -20, 6], [0, 0, 15, 15], [0, 0, -15, 15],
-		[-3, -4, 3, -4], [-8, -8, 8, -8], [-3, -12, 3, -12], [-8, -16, 8, -16],
-		[-3, 4, 3, 4], [-8, 8, 8, 8], [-3, 12, 3, 12], [-8, 16, 8, 16]]
+const HORIZON_LINES := [
+	[0, 0, 20, 6],
+	[0, 0, -20, 6],
+	[0, 0, 15, 15],
+	[0, 0, -15, 15],
+	[-3, -4, 3, -4],
+	[-8, -8, 8, -8],
+	[-3, -12, 3, -12],
+	[-8, -16, 8, -16],
+	[-3, 4, 3, 4],
+	[-8, 8, 8, 8],
+	[-3, 12, 3, 12],
+	[-8, 16, 8, 16]
+]
 
 
 ## The original MFD font (FUELDIGITAL, the MFD ADI page's numbers), loaded once.
@@ -856,8 +967,11 @@ func _draw_tape(key: String, shift: int, s: float) -> void:
 	var k := tx.get_height() / float(t.Height)
 	var window: int = int(t.PanelHeight)
 	var src_y: int = clampi(int(t.Height / 2.0) - int(window / 2.0) + shift, 0, int(t.Height) - window)
-	draw_texture_rect_region(tx, Rect2(panel_to_screen(t.OffsetX, t.OffsetY), Vector2(t.Width, window) * s),
-			Rect2(0, src_y * k, t.Width * k, window * k))
+	draw_texture_rect_region(
+		tx,
+		Rect2(panel_to_screen(t.OffsetX, t.OffsetY), Vector2(t.Width, window) * s),
+		Rect2(0, src_y * k, t.Width * k, window * k)
+	)
 
 
 ## A needle's angle (rad) for `value` (FUN_00527e50: max(value · 2π / FullClock, 0) + AngleOffset — no needle turns

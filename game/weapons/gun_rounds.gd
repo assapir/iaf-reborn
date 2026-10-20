@@ -57,10 +57,26 @@ func next_free() -> bool:
 ## unit's round's only candidates (its target, docs/ai.md §14) in place of the query. Without candidates a weapon
 ## other than the gun flies only to the `ground` on its line to `a` (FUN_004d7690). Returns the round's pool slot,
 ## −1 when the pooled round is busy.
-func fire(now: float, p: Vector3, muzzle: Vector3, vel: Vector3, a: Vector3, locked: String, me: String, easy: bool, only = null) -> int:
+func fire(
+	now: float,
+	p: Vector3,
+	muzzle: Vector3,
+	vel: Vector3,
+	a: Vector3,
+	locked: String,
+	me: String,
+	easy: bool,
+	only = null
+) -> int:
 	var b := _bodies()
 	var shot := {
-		"origin": p, "muzzle": muzzle, "velocity": vel, "aim": a, "locked": locked, "shooter": me, "easy_aiming": easy,
+		"origin": p,
+		"muzzle": muzzle,
+		"velocity": vel,
+		"aim": a,
+		"locked": locked,
+		"shooter": me,
+		"easy_aiming": easy,
 		"targets": PackedStringArray(only) if only != null else null,
 	}
 	var slot: int = _r.fire(now, shot, b[0], b[1], ground)
@@ -95,7 +111,7 @@ func _bodies() -> Array:
 	var keys := PackedStringArray()
 	var pos := PackedVector3Array()
 	_by_key = {}
-	for u in (units.call() if units.is_valid() else []):
+	for u in units.call() if units.is_valid() else []:
 		keys.append(u.key)
 		pos.append(u.pos)
 		_by_key[u.key] = u

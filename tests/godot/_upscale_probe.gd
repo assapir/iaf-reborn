@@ -7,10 +7,19 @@
 #   IAF_DEFAULT_SETTINGS=1 godot --path game --screen 1 --resolution 3840x2160 -s ../tests/godot/_upscale_probe.gd [-- --external --orbit 150 10 25]
 extends "res://../tests/godot/base.gd"
 
-const CFGS := [["native msaa4", 0, 1.0, true, false], ["native none", 0, 1.0, false, false], ["native taa", 0, 1.0, false, true],
-	["mfx spatial .77 msaa4", 3, 0.77, true, false], ["mfx spatial .67 msaa4", 3, 0.67, true, false],
-	["fsr1 .77 msaa4", 1, 0.77, true, false], ["mfx temporal .77", 4, 0.77, false, false],
-	["mfx temporal .67", 4, 0.67, false, false], ["mfx temporal .5", 4, 0.5, false, false], ["fsr2 .77", 2, 0.77, false, false]]
+const CFGS := [
+	["native msaa4", 0, 1.0, true, false],
+	["native none", 0, 1.0, false, false],
+	["native taa", 0, 1.0, false, true],
+	["mfx spatial .77 msaa4", 3, 0.77, true, false],
+	["mfx spatial .67 msaa4", 3, 0.67, true, false],
+	["fsr1 .77 msaa4", 1, 0.77, true, false],
+	["mfx temporal .77", 4, 0.77, false, false],
+	["mfx temporal .67", 4, 0.67, false, false],
+	["mfx temporal .5", 4, 0.5, false, false],
+	["fsr2 .77", 2, 0.77, false, false]
+]
+
 
 func run() -> void:
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
@@ -20,9 +29,13 @@ func run() -> void:
 	var vp := tv.get_viewport()
 	var env: Environment = (tv.get_node("WorldEnvironment") as WorldEnvironment).environment
 	match OS.get_environment("UP_GFX"):
-		"ssao": env.ssao_enabled = true
-		"vol_fog": env.volumetric_fog_enabled = true
-		"ssao_ssil": env.ssao_enabled = true; env.ssil_enabled = true
+		"ssao":
+			env.ssao_enabled = true
+		"vol_fog":
+			env.volumetric_fog_enabled = true
+		"ssao_ssil":
+			env.ssao_enabled = true
+			env.ssil_enabled = true
 	var shots := OS.get_environment("UP_SHOT_DIR")
 	if shots != "":
 		var t0 := Time.get_ticks_msec()
@@ -33,12 +46,27 @@ func run() -> void:
 			tv.apply_render_options()
 			await frames(60)
 			await RenderingServer.frame_post_draw
-			root.get_viewport().get_texture().get_image().save_png(shots.path_join("upscale_%s_%s.png" % [OS.get_environment("UP_TAG"), u]))
+			root.get_viewport().get_texture().get_image().save_png(
+				shots.path_join("upscale_%s_%s.png" % [OS.get_environment("UP_TAG"), u])
+			)
 		print("RESULT PASS")
 		return
-	print("driver ", RenderingServer.get_current_rendering_driver_name(), " size ", root.size, " gfx ", OS.get_environment("UP_GFX"))
+	print(
+		"driver ",
+		RenderingServer.get_current_rendering_driver_name(),
+		" size ",
+		root.size,
+		" gfx ",
+		OS.get_environment("UP_GFX")
+	)
 	await frames(120)
-	var cfgs := CFGS.filter(func(c): return OS.get_environment("UP_LIVE") != "1" or c[0] in ["native msaa4", "mfx spatial .77 msaa4", "mfx spatial .67 msaa4"])
+	var cfgs := CFGS.filter(
+		func(c):
+			return (
+				OS.get_environment("UP_LIVE") != "1"
+				or c[0] in ["native msaa4", "mfx spatial .77 msaa4", "mfx spatial .67 msaa4"]
+			)
+	)
 	var res := {}
 	for c in CFGS:
 		res[c[0]] = []

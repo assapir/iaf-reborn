@@ -86,9 +86,34 @@ var g_effects: Control
 ## and the engagement: a sensor locking / unlocking the jet, launches at it, hits with the system broken, the player's
 ## kills, a site's terrain line of sight gained / lost, master mode / weapon changes). The debrief screen exports it;
 ## tools/flight_timeline.py reads it.
-const BLACKBOX_COLUMNS := ["t", "x", "z", "alt_m", "agl_m", "vs_ms", "speed_kt", "mach", "aoa", "g", "heading", "pitch", "roll",
-	"on_ground", "engine", "throttle", "air_brakes", "gear", "flaps", "stick_x", "stick_y", "rudder", "fuel_kg", "ap_mode",
-	"ap_stage", "fps"]
+const BLACKBOX_COLUMNS := [
+	"t",
+	"x",
+	"z",
+	"alt_m",
+	"agl_m",
+	"vs_ms",
+	"speed_kt",
+	"mach",
+	"aoa",
+	"g",
+	"heading",
+	"pitch",
+	"roll",
+	"on_ground",
+	"engine",
+	"throttle",
+	"air_brakes",
+	"gear",
+	"flaps",
+	"stick_x",
+	"stick_y",
+	"rudder",
+	"fuel_kg",
+	"ap_mode",
+	"ap_stage",
+	"fps"
+]
 var _log: FileAccess
 var _log_next := 0.0
 var _log_t := 0.0
@@ -318,8 +343,9 @@ func _ready() -> void:
 		set_process_unhandled_input(false)
 		var n := args.find("--shots")
 		var step := args.find("--orbit-step")
-		_screenshot(args[shot + 1], int(args[n + 1]) if n >= 0 else 1,
-				deg_to_rad(float(args[step + 1])) if step >= 0 else 0.0)
+		_screenshot(
+			args[shot + 1], int(args[n + 1]) if n >= 0 else 1, deg_to_rad(float(args[step + 1])) if step >= 0 else 0.0
+		)
 
 
 var _start_external := false
@@ -372,7 +398,9 @@ func _update_time_of_day(cam: Camera3D) -> void:
 		var sd := Vector3(d.x, d.z, -d.y)
 		sun.basis = Basis.looking_at(sd, Vector3.UP if absf(sd.y) < 0.99 else Vector3.FORWARD)
 		sun.light_color = _tod_sun.color
-		sun.sky_mode = DirectionalLight3D.SKY_MODE_LIGHT_ONLY if _tod_sun.night else DirectionalLight3D.SKY_MODE_LIGHT_AND_SKY
+		sun.sky_mode = (
+			DirectionalLight3D.SKY_MODE_LIGHT_ONLY if _tod_sun.night else DirectionalLight3D.SKY_MODE_LIGHT_AND_SKY
+		)
 		sun.shadow_enabled = Settings.shadows and _tod_sun.shadows
 		env.ambient_light_energy = float(_tod_sun.ambient) / 0.6
 		if NightLights.detailed():
@@ -395,7 +423,10 @@ func _update_time_of_day(cam: Camera3D) -> void:
 	# so only when the colour changed by more than an 8-bit step (turning), not every frame.
 	var mat2 = env.sky.sky_material if env.sky != null else null
 	var was: Color = mat2.sky_horizon_color if mat2 is ProceduralSkyMaterial else Color()
-	if mat2 is ProceduralSkyMaterial and maxf(maxf(absf(was.r - fog.r), absf(was.g - fog.g)), absf(was.b - fog.b)) > 1.0 / 255.0:
+	if (
+		mat2 is ProceduralSkyMaterial
+		and maxf(maxf(absf(was.r - fog.r), absf(was.g - fog.g)), absf(was.b - fog.b)) > 1.0 / 255.0
+	):
 		mat2.sky_horizon_color = fog
 		mat2.ground_horizon_color = fog
 		mat2.ground_bottom_color = fog
@@ -526,13 +557,20 @@ func _update_full_screen() -> void:
 			if not eo_camera.is_position_behind(sp):
 				var px: Vector2 = eo_camera.unproject_position(sp) / fs_mfd._s()
 				fs_mfd.waypoint_at = fs_mfd.render_rect.position + px
-				fs_mfd.waypoint_label = "T" if int(route[cockpit.current_waypoint].get("action", 0)) == 5 else str(cockpit.current_waypoint + 1)
+				fs_mfd.waypoint_label = (
+					"T"
+					if int(route[cockpit.current_waypoint].get("action", 0)) == 5
+					else str(cockpit.current_waypoint + 1)
+				)
 
 
 func _update_eo_view() -> void:
 	var full: bool = weapons != null and weapons.full_screen
-	var show: bool = weapons != null and weapons.eo.camera and (full or views.cockpit_drawn() \
-			and cockpit.mfds.any(func(m): return m.page in [5, 6]))
+	var show: bool = (
+		weapons != null
+		and weapons.eo.camera
+		and (full or views.cockpit_drawn() and cockpit.mfds.any(func(m): return m.page in [5, 6]))
+	)
 	if eo_viewport == null:
 		if not show:
 			return
@@ -573,7 +611,9 @@ func _screenshot(path: String, shots := 1, orbit_step := 0.0) -> void:
 	var m0 := Time.get_ticks_msec()
 	for i in 120:
 		await get_tree().process_frame
-	print("average %.1f fps over 120 frames" % (1000.0 * (Engine.get_frames_drawn() - f0) / (Time.get_ticks_msec() - m0)))
+	print(
+		"average %.1f fps over 120 frames" % (1000.0 * (Engine.get_frames_drawn() - f0) / (Time.get_ticks_msec() - m0))
+	)
 	if shots > 1:
 		for i in shots:
 			views.orbit_heading += orbit_step
@@ -611,7 +651,13 @@ func _choose_start(args: PackedStringArray) -> void:
 		# FUN_005a5820: airborne above 800 m unless at a base (the base with the nearest lineup point:
 		# within 5 km / 15 m of its tower); a ground start has gear down, full flaps, brakes on, throttle 0,
 		# and the engine runs only within 100 m of the lineup point (docs/ai.md §7.1).
-		var rule: Vector2i = ClassDB.class_call_static("IafFlight", "start_rule", Settings.assets_dir().path_join("install"), origin.x, origin.y, alt) if ClassDB.class_exists("IafFlight") else Vector2i.ZERO
+		var rule: Vector2i = (
+			ClassDB.class_call_static(
+				"IafFlight", "start_rule", Settings.assets_dir().path_join("install"), origin.x, origin.y, alt
+			)
+			if ClassDB.class_exists("IafFlight")
+			else Vector2i.ZERO
+		)
 		var near_base := rule.x != 0
 		start_engine_on = rule.y != 0
 		start_airborne = alt > 800.0 and not near_base
@@ -714,12 +760,16 @@ func _spawn_mission_objects() -> void:
 	if mission_id < 0:
 		return
 	var base := Settings.assets_dir().path_join("converted")
-	var files: Array = MissionRuntime.mission_files(mission_id).map(func(f): return f.data).filter(func(m): return not m.is_empty())
+	var files: Array = (
+		MissionRuntime.mission_files(mission_id).map(func(f): return f.data).filter(func(m): return not m.is_empty())
+	)
 	if files.is_empty():
 		return
 	var bdb := MissionRuntime.load_bdb(files[0])
 	var objs := MissionRuntime.bdb_objects(bdb)
-	var paths: Dictionary = Settings.load_json(base.path_join("objects/objects.json")).get(String(files[0].bdb).to_lower(), {})
+	var paths: Dictionary = Settings.load_json(base.path_join("objects/objects.json")).get(
+		String(files[0].bdb).to_lower(), {}
+	)
 	# Present record 0x65e: the model's uniform scale (FUN_00593b60, default 10.0 before version 5), applied by
 	# the original's mesh loader (FUN_0041bb00 → IDirect3DRMMeshBuilder::Scale) about the model origin.
 	var scales := {}
@@ -784,8 +834,12 @@ func _spawn_mission_objects() -> void:
 		ent["coll_radius"] = 0.25 * (box.size.x + box.size.y + box.size.z)
 		ent["max_extent"] = maxf(box.size.x, maxf(box.size.y, box.size.z))
 		if path.ends_with("_h.gltf"):
-			_add_lods(node, Gltf.object(path.trim_suffix("_h.gltf") + "_m.gltf"), Gltf.object(path.trim_suffix("_h.gltf") + "_l.gltf"),
-					ent.max_extent)
+			_add_lods(
+				node,
+				Gltf.object(path.trim_suffix("_h.gltf") + "_m.gltf"),
+				Gltf.object(path.trim_suffix("_h.gltf") + "_l.gltf"),
+				ent.max_extent
+			)
 		ent["rig"] = VehicleParts.rig(node)
 		if VehicleParts.has_radar(ent.rig) or VehicleParts.rotor_count(ent.rig) > 0:
 			_dishes.append(ent)
@@ -806,8 +860,15 @@ func _add_base_lights(underlay: Node3D, path: String, ent: Dictionary) -> void:
 		if not mv.is_empty():
 			b = [b[0], Vector2(mv[0], mv[1])]
 	var spot := Vector2(ent.world.x, ent.world.y)
-	if b == null or not NightLights.detailed() or not TimeOfDay.sun(time_of_day()).night or spot.distance_to(b[1]) > 200.0 \
-			or runtime.entities.values().any(func(e): return e.get("light_set", false) and Vector2(e.world.x, e.world.y).distance_to(spot) < 200.0):
+	if (
+		b == null
+		or not NightLights.detailed()
+		or not TimeOfDay.sun(time_of_day()).night
+		or spot.distance_to(b[1]) > 200.0
+		or runtime.entities.values().any(
+			func(e): return e.get("light_set", false) and Vector2(e.world.x, e.world.y).distance_to(spot) < 200.0
+		)
+	):
 		return
 	var model = Gltf.object(b[0])
 	if model == null:
@@ -905,8 +966,11 @@ func mission_entity_moved(ent: Dictionary) -> void:
 		node.rotation.y = -deg_to_rad(float(ent.heading))  # along its path (mission_runtime.gd _move_on_path)
 	if ent.has("angles"):
 		var a: Vector3 = ent.angles  # destruction motion attitude (pitch, roll, heading)
-		node.basis = Basis.from_euler(Vector3(deg_to_rad(a.x), deg_to_rad(-a.z), deg_to_rad(-a.y)), EULER_ORDER_YXZ) \
-				.scaled(node.scale)  # keeps the Present scale
+		node.basis = (
+			Basis
+			. from_euler(Vector3(deg_to_rad(a.x), deg_to_rad(-a.z), deg_to_rad(-a.y)), EULER_ORDER_YXZ)
+			. scaled(node.scale)
+		)  # keeps the Present scale
 
 
 ## A unit's moving parts and heading changed (script motion op 11, game/mission/vehicle_parts.gd).
@@ -926,6 +990,7 @@ func mission_entity_visible(ent: Dictionary) -> void:
 
 
 # --- damage and destruction host (docs/damage.md) -------------------------------------------------
+
 
 ## A gameplay preference the damage rules read (Preferences > Gameplay): "invulnerable", "ai_level".
 func mission_pref(name: String) -> Variant:
@@ -1004,8 +1069,14 @@ func mission_player_fall(p: Vector3, a: Vector3) -> void:
 func mission_player_hit(ent: Dictionary, source: Dictionary, kind: String) -> void:
 	var sys: int = player_damage.hit(ent.damage, kind, _sim_time)
 	if sys != 0:
-		blackbox_event({"event": "system", "key": String(source.get("key", "")), "system": sys,
-			"text": String(DamageModel.SYSTEMS.get(sys, {}).get("text", ""))})
+		blackbox_event(
+			{
+				"event": "system",
+				"key": String(source.get("key", "")),
+				"system": sys,
+				"text": String(DamageModel.SYSTEMS.get(sys, {}).get("text", ""))
+			}
+		)
 
 
 ## A voice row of the sound table (FUN_004c4ea0 with a VOC code, e.g. the friendly-hit voice).
@@ -1091,8 +1162,13 @@ func _entity_final(ent: Dictionary) -> void:
 	var pos := _class_explosion(ent)
 	effects.set_smoke(rig if ent.player else ent.node, false)
 	# Event 0x4d: the external view following this object circles its wreck, then the cockpit (6 s).
-	if not ent.player and ent.node != null and views.snap == null and views.type in [Views.CHASE, Views.FOLLOW] \
-			and views.target == ent.node:
+	if (
+		not ent.player
+		and ent.node != null
+		and views.snap == null
+		and views.type in [Views.CHASE, Views.FOLLOW]
+		and views.target == ent.node
+	):
 		views._circle_centre = ent.node.global_position
 		_followed_destroyed()
 	if ent.player:
@@ -1116,7 +1192,9 @@ func _class_explosion(ent: Dictionary) -> Vector3:
 	var water: bool = (terrain.surface_at(pos) & terrain.SURFACE_WATER) != 0
 	var e: Dictionary = effects.explosion_for(ent.klass, ent.type_code, pos.y < g + 10.5, water)
 	if not e.is_empty():
-		effects.explosion(pos, e.flags, e.scale, e.duration, g, maxf(ent.size, 3.0), aircraft if ent.player else ent.node)
+		effects.explosion(
+			pos, e.flags, e.scale, e.duration, g, maxf(ent.size, 3.0), aircraft if ent.player else ent.node
+		)
 		if not (ent.player and crashed):
 			var p = sounds.play("SFX_AIRCRAFT_EXPLODED")
 			if p is Node3D:
@@ -1154,7 +1232,11 @@ func _burned_copy(node: Node3D, p: float, max_extent: float) -> void:
 			cols.resize(verts.size())
 			for i in verts.size():
 				if rng.randf() < p:
-					verts[i] += Vector3(rng.randi() % 200 - 100, rng.randi() % 200 - 100, rng.randi() % 200 - 100) * max_extent * 1e-4
+					verts[i] += (
+						Vector3(rng.randi() % 200 - 100, rng.randi() % 200 - 100, rng.randi() % 200 - 100)
+						* max_extent
+						* 1e-4
+					)
 					cols[i] = dark
 				else:
 					cols[i] = Color.WHITE
@@ -1370,8 +1452,15 @@ func _load_route(mission: Dictionary, player_id: int, override: Array = Settings
 			# Waypoints moved on the TSD replace the mission's positions.
 			if i < override.size():
 				w = override[i]
-			route.append({"name": names.get(int(p[0]), ""), "world": w, "alt": float(p[3]), "t": float(p[4]),
-				"action": int(p[5])})
+			route.append(
+				{
+					"name": names.get(int(p[0]), ""),
+					"world": w,
+					"alt": float(p[3]),
+					"t": float(p[4]),
+					"action": int(p[5])
+				}
+			)
 		return
 
 
@@ -1388,8 +1477,14 @@ func _start_flight() -> void:
 	# In the air the flight model takes the pitch from the velocity (0 for mission starts; `--at` pitch).
 	var p := deg_to_rad(start_pitch)
 	var velocity := Vector3(sin(h) * cos(p), sin(p), -cos(h) * cos(p)) * (AIR_START_SPEED if start_airborne else 0.0)
-	var err: String = flight.start(install, player.fm_section, rig.position, Vector3(start_pitch, start_roll, heading),
-			velocity, {"airborne": start_airborne, "engine_on": start_engine_on, "real_data": real_data})
+	var err: String = flight.start(
+		install,
+		player.fm_section,
+		rig.position,
+		Vector3(start_pitch, start_roll, heading),
+		velocity,
+		{"airborne": start_airborne, "engine_on": start_engine_on, "real_data": real_data}
+	)
 	if err != "":
 		push_error("flight model: " + err)
 		flight = null
@@ -1422,9 +1517,11 @@ func _apply_player_prefs() -> void:
 ## terrain and the player's route ([X, Y, alt, T, action] per waypoint).
 func _setup_autopilot(install: String) -> void:
 	flight.ap_setup(install, terrain.world_origin.x, terrain.world_origin.y)
-	flight.ap_set_ground(func(pos: Vector3):
-		var g = terrain.height_at(pos)
-		return float(g) if g != null else -1.0e9)
+	flight.ap_set_ground(
+		func(pos: Vector3):
+			var g = terrain.height_at(pos)
+			return float(g) if g != null else -1.0e9
+	)
 	_start_autopilot(start_airborne)
 
 
@@ -1485,7 +1582,9 @@ func _spawn_player() -> void:
 	# Seen from the cockpit (FUN_004d9d70 → FUN_004da060: display slot 4 = model [8], the *_BC.X, with the crew's
 	# cockpit flag set so pilot and canopy stay hidden): same frame and Present scale as the jet model.
 	var bc = Gltf.object("controllableplanes/%s/%s_bc.gltf" % [player.plane, player.plane])
-	var extra: String = preload("res://aircraft/aircraft_model.gd").EXTRA_DIR.path_join(player.plane).path_join(player.plane + "_bc.gltf")
+	var extra: String = preload("res://aircraft/aircraft_model.gd").EXTRA_DIR.path_join(player.plane).path_join(
+		player.plane + "_bc.gltf"
+	)
 	if bc == null and FileAccess.file_exists(extra):
 		bc = Gltf.open(extra)  # ours: an extra plane's (the F-35I's, tools/f35i/bc.py)
 		# Its seat head box and canopy frame sit closer to the eye than the originals' parts: a nearer near plane.
@@ -1506,9 +1605,14 @@ func _spawn_player() -> void:
 
 ## Present scale (0x65e) of the player's type's bdb object in the mission's database (default6_1 otherwise).
 func _player_model_scale() -> float:
-	var files: Array = MissionRuntime.mission_files(mission_id).map(func(f): return f.data).filter(func(m): return not m.is_empty())
-	var bdb: Dictionary = MissionRuntime.load_bdb(files[0]) if not files.is_empty() else \
-			Settings.load_json(Settings.assets_dir().path_join("converted/missions/default6_1.bdb.json"))
+	var files: Array = (
+		MissionRuntime.mission_files(mission_id).map(func(f): return f.data).filter(func(m): return not m.is_empty())
+	)
+	var bdb: Dictionary = (
+		MissionRuntime.load_bdb(files[0])
+		if not files.is_empty()
+		else Settings.load_json(Settings.assets_dir().path_join("converted/missions/default6_1.bdb.json"))
+	)
 	for db in [bdb, Settings.load_json(Settings.assets_dir().path_join("converted/missions/default6_1.bdb.json"))]:
 		var o := _player_object(db, false)
 		if o.is_empty():
@@ -1585,9 +1689,11 @@ func _apply_view() -> void:
 func _followed_destroyed() -> void:
 	views.set_circle(null, 600.0, Views.WRECK)
 	var since: float = views.now
-	get_tree().create_timer(6.0, false).timeout.connect(func():
-		if views.type == Views.WRECK and views._circle_t0 == since:
-			views.set_cockpit(Views.HUD_ONLY if views.hud_pref else Views.COCKPIT))
+	get_tree().create_timer(6.0, false).timeout.connect(
+		func():
+			if views.type == Views.WRECK and views._circle_t0 == since:
+				views.set_cockpit(Views.HUD_ONLY if views.hud_pref else Views.COCKPIT)
+	)
 
 
 ## Gear legs / flaps lamps and the panel indicators the cockpit shows.
@@ -1643,11 +1749,18 @@ func _record(st: Dictionary, delta: float) -> void:
 		var path := blackbox_path
 		if path == "":
 			DirAccess.make_dir_recursive_absolute(Settings.BLACKBOX_DIR)
-			var old := Array(DirAccess.get_files_at(Settings.BLACKBOX_DIR)).filter(func(f): return f.begins_with("flight-") and f.ends_with(".jsonl"))
+			var old := Array(DirAccess.get_files_at(Settings.BLACKBOX_DIR)).filter(
+				func(f): return f.begins_with("flight-") and f.ends_with(".jsonl")
+			)
 			old.sort()  # the names sort by time
 			for f in old.slice(0, maxi(0, old.size() - Settings.BLACKBOX_KEEP + 1)):
 				DirAccess.remove_absolute(Settings.BLACKBOX_DIR.path_join(f))
-			path = Settings.BLACKBOX_DIR.path_join("flight-%s-m%d.jsonl" % [Time.get_datetime_string_from_system().replace("T", "_").replace(":", "-"), mission_id])
+			path = Settings.BLACKBOX_DIR.path_join(
+				(
+					"flight-%s-m%d.jsonl"
+					% [Time.get_datetime_string_from_system().replace("T", "_").replace(":", "-"), mission_id]
+				)
+			)
 		_log = FileAccess.open(path, FileAccess.WRITE)
 		if _log == null:
 			return
@@ -1659,11 +1772,25 @@ func _record(st: Dictionary, delta: float) -> void:
 			settings[section] = {}
 			for k in cfg.get_section_keys(section):
 				settings[section][k] = cfg.get_value(section, k)
-		_log.store_line(JSON.stringify({"blackbox": 1, "date": Time.get_datetime_string_from_system(), "mission": mission_id,
-			"flight": Settings.player_flight, "type": int(player.get("type", -1)), "jet": player.get("fm_section", ""), "pilot": Settings.pilot_callsign,
-			"loadouts": Settings.arm_loadouts, "route": route.map(func(w): return {"name": w.name, "x": w.world.x, "y": w.world.y}),
-			"threats": _log_threats(), "origin": [terrain.world_origin.x, terrain.world_origin.y], "settings": settings,
-			"columns": BLACKBOX_COLUMNS}))
+		_log.store_line(
+			JSON.stringify(
+				{
+					"blackbox": 1,
+					"date": Time.get_datetime_string_from_system(),
+					"mission": mission_id,
+					"flight": Settings.player_flight,
+					"type": int(player.get("type", -1)),
+					"jet": player.get("fm_section", ""),
+					"pilot": Settings.pilot_callsign,
+					"loadouts": Settings.arm_loadouts,
+					"route": route.map(func(w): return {"name": w.name, "x": w.world.x, "y": w.world.y}),
+					"threats": _log_threats(),
+					"origin": [terrain.world_origin.x, terrain.world_origin.y],
+					"settings": settings,
+					"columns": BLACKBOX_COLUMNS
+				}
+			)
+		)
 	_log_st = st
 	var air := not bool(st.on_ground)
 	if air != _log_air:
@@ -1687,13 +1814,38 @@ func _record(st: Dictionary, delta: float) -> void:
 		return
 	_log_next = _log_t + 0.1
 	var ground = terrain.height_at(rig.position)
-	_log.store_line(JSON.stringify([_r(_log_t, 0.01), _r(rig.position.x, 0.1), _r(rig.position.z, 0.1),
-		_r(rig.position.y, 0.1), _r(rig.position.y - ground, 0.1) if ground != null else null,
-		_r(float(st.get("vs_fpm", 0.0)) * 0.3048 / 60.0, 0.01), _r(st.speed_kt, 0.1), _r(st.get("mach", 0.0), 0.01),
-		_r(st.get("aoa", 0.0), 0.1), _r(st.get("g", 1.0), 0.01), _r(st.heading, 0.1), _r(st.pitch, 0.1),
-		_r(st.roll, 0.1), st.on_ground, st.get("engine_on", true), _r(throttle, 0.01), brakes, gear_down, _r(flaps, 0.01),
-		_r(stick.x, 0.01), _r(stick.y, 0.01), _r(rudder, 0.01), _r(st.get("internal_fuel_kg", 0.0), 1.0), _log_ap,
-		String(flight.ap_stage()), Engine.get_frames_per_second()]))
+	_log.store_line(
+		JSON.stringify(
+			[
+				_r(_log_t, 0.01),
+				_r(rig.position.x, 0.1),
+				_r(rig.position.z, 0.1),
+				_r(rig.position.y, 0.1),
+				_r(rig.position.y - ground, 0.1) if ground != null else null,
+				_r(float(st.get("vs_fpm", 0.0)) * 0.3048 / 60.0, 0.01),
+				_r(st.speed_kt, 0.1),
+				_r(st.get("mach", 0.0), 0.01),
+				_r(st.get("aoa", 0.0), 0.1),
+				_r(st.get("g", 1.0), 0.01),
+				_r(st.heading, 0.1),
+				_r(st.pitch, 0.1),
+				_r(st.roll, 0.1),
+				st.on_ground,
+				st.get("engine_on", true),
+				_r(throttle, 0.01),
+				brakes,
+				gear_down,
+				_r(flaps, 0.01),
+				_r(stick.x, 0.01),
+				_r(stick.y, 0.01),
+				_r(rudder, 0.01),
+				_r(st.get("internal_fuel_kg", 0.0), 1.0),
+				_log_ap,
+				String(flight.ap_stage()),
+				Engine.get_frames_per_second()
+			]
+		)
+	)
 	_log.flush()
 
 
@@ -1706,8 +1858,14 @@ func _log_event(st: Dictionary, e: Dictionary) -> void:
 	if _log == null or st.is_empty():
 		return
 	var ground = terrain.height_at(rig.position)
-	e.merge({"t": snappedf(_log_t, 0.01), "agl_m": snappedf(rig.position.y - ground, 0.1) if ground != null else null,
-		"speed_kt": snappedf(float(st.speed_kt), 0.1), "pitch": snappedf(float(st.pitch), 0.1)})
+	e.merge(
+		{
+			"t": snappedf(_log_t, 0.01),
+			"agl_m": snappedf(rig.position.y - ground, 0.1) if ground != null else null,
+			"speed_kt": snappedf(float(st.speed_kt), 0.1),
+			"pitch": snappedf(float(st.pitch), 0.1)
+		}
+	)
 	_log.store_line(JSON.stringify(e))
 	_log.flush()
 
@@ -1719,8 +1877,16 @@ func _log_threats() -> Array:
 	var out := []
 	for u in ai.combat.units.values():
 		var w: Vector3 = runtime._world_of(u.ent)
-		out.append({"key": String(u.ent.key), "name": String(u.ent.name), "type": int(u.w.get("type", 0)),
-			"weapon": String(u.w.get("name", "")), "x": snappedf(w.x, 1.0), "y": snappedf(w.y, 1.0)})
+		out.append(
+			{
+				"key": String(u.ent.key),
+				"name": String(u.ent.name),
+				"type": int(u.w.get("type", 0)),
+				"weapon": String(u.w.get("name", "")),
+				"x": snappedf(w.x, 1.0),
+				"y": snappedf(w.y, 1.0)
+			}
+		)
 	return out
 
 
@@ -1808,7 +1974,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT:
 		looking = event.pressed
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if looking else Input.MOUSE_MODE_VISIBLE
-	elif event is InputEventMouseButton and event.pressed and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
+	elif (
+		event is InputEventMouseButton
+		and event.pressed
+		and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]
+	):
 		var closer: bool = event.button_index == MOUSE_BUTTON_WHEEL_UP
 		if in_cockpit:
 			_zoom_cockpit(0.05 if closer else -0.05)
@@ -2033,6 +2203,7 @@ func _quit_key() -> void:
 
 # --- views (docs/views.md §4) ----------------------------------------------------------------------
 
+
 ## Event 0x1c "set view" (FUN_004cd630 @4cdb..): only while the player flies the jet (control mode 3) and
 ## no snap key is held. A view whose object is missing (no radar target, threat, wingman, weapon) does
 ## nothing. DAT_00833704 = the id (not for padlock).
@@ -2123,8 +2294,9 @@ func fly_unit(key: String) -> void:
 		return
 	var old: Dictionary = runtime.player_entity()
 	if int(target.control) == 1 and target.get("pilot") != null and ai != null:
-		var keep_old: bool = not old.is_empty() and old != target and not int(old.state) in [4, 5] \
-				and not int(old.control) in [0, 1]
+		var keep_old: bool = (
+			not old.is_empty() and old != target and not int(old.state) in [4, 5] and not int(old.control) in [0, 1]
+		)
 		if not keep_old and not old.is_empty() and old != target:
 			_leave_downed(old)
 		_take_over(target, old if keep_old else {})
@@ -2158,7 +2330,8 @@ func _leave_downed(old: Dictionary) -> void:
 	if ejected and not eject_short and not _eject_radio_done:
 		_eject_radio_done = true
 		get_tree().create_timer(maxf(EJECT_RADIO - (_sim_time - _eject_t0), 0.0), false).timeout.connect(
-				func(): radio.ejected(old))  # EjectReport for the old jet (docs/radio.md §4)
+			func(): radio.ejected(old)
+		)  # EjectReport for the old jet (docs/radio.md §4)
 	fatal_hit = false
 	ejected = false
 	eject_short = false
@@ -2215,7 +2388,9 @@ func _take_over(target: Dictionary, old: Dictionary) -> void:
 	player_entity_id = int(target.id)
 	var f: Dictionary = ai._formation_of(target)
 	player_flight_number = int(f.get("kind", 0))
-	_load_route(mission, player_entity_id, Settings.route_override if player_flight_number == Settings.player_flight else [])
+	_load_route(
+		mission, player_entity_id, Settings.route_override if player_flight_number == Settings.player_flight else []
+	)
 	cockpit.waypoints = route
 	cockpit.current_waypoint = clampi(new_flight.ap_waypoint_index(), 0, maxi(route.size() - 1, 0))
 	# The old jet goes to its brain (FUN_004a8e70(1)); "not on the player's side" is now about the new jet.
@@ -2274,7 +2449,13 @@ func _take_over(target: Dictionary, old: Dictionary) -> void:
 	drag_chute = 0
 	rig.position = st.position
 	rig.basis = Basis(st.right, st.up, -st.forward)
-	weapons.rearm(target, mission_object, mission_bdb, preload("res://aircraft/aircraft_model.gd").load_descriptor(player.plane), new_load)
+	weapons.rearm(
+		target,
+		mission_object,
+		mission_bdb,
+		preload("res://aircraft/aircraft_model.gd").load_descriptor(player.plane),
+		new_load
+	)
 	_start_autopilot(airborne_start)
 	padlock_target = null
 	print("player: now %s (flight %d, type %d)" % [target.name, player_flight_number, player.type])
@@ -2406,15 +2587,26 @@ func _imode_update() -> void:
 			continue
 		if not (n is Node3D) or not is_instance_valid(n) or not n.is_visible_in_tree():
 			continue
-		list.append({"pos": n.global_position, "radius": float(ent.get("size", 0.0)),
-				"friend": not me.is_empty() and int(ent.side) == int(me.side)})
+		list.append(
+			{
+				"pos": n.global_position,
+				"radius": float(ent.get("size", 0.0)),
+				"friend": not me.is_empty() and int(ent.side) == int(me.side)
+			}
+		)
 	var b := cam.global_basis
-	var view := {"eye": cam.global_position, "right": b.x, "up": b.y, "forward": -b.z,
-			"focal": cockpit.focal_length() / cockpit.ui_scale()}
+	var view := {
+		"eye": cam.global_position,
+		"right": b.x,
+		"up": b.y,
+		"forward": -b.z,
+		"focal": cockpit.focal_length() / cockpit.ui_scale()
+	}
 	cockpit.imode_entries = IafImode.scan(rig.global_position, list, view, int(cockpit.view_bottom()))
 
 
 # --- pause, On-The-Fly menu, FlyTSD, time compression (docs/front-end.md §16, docs/views.md) --------
+
 
 ## The flight window's commands (FUN_004dc280); true when `id` is one of them. Single player only. While
 ## paused the key manager passes only Ctrl+P (FUN_004df500(-1), @4e0cd7); while the menu is open the sim
@@ -2487,7 +2679,10 @@ func _freeze(on: bool, sounds: bool) -> void:
 	get_tree().paused = on
 	if on and sounds:
 		_frozen_sounds.clear()
-		for n in find_children("*", "AudioStreamPlayer", true, false) + find_children("*", "AudioStreamPlayer3D", true, false):
+		for n in (
+			find_children("*", "AudioStreamPlayer", true, false)
+			+ find_children("*", "AudioStreamPlayer3D", true, false)
+		):
 			if n.playing and not n.stream_paused:
 				n.stream_paused = true
 				_frozen_sounds.append(n)
@@ -2676,9 +2871,13 @@ func _process(delta: float) -> void:
 		# motion, which the mission runtime drives (mission_player_fall).
 		if not frozen and not waiting_for_ground and not fm_stopped:
 			if autopilot != null and not ejected and not fatal_hit:
-				autopilot.update(Vector2(terrain.world_origin.x + rig.position.x, terrain.world_origin.y - rig.position.z))
+				autopilot.update(
+					Vector2(terrain.world_origin.x + rig.position.x, terrain.world_origin.y - rig.position.z)
+				)
 			# The 1998 autopilot's touchdown exceeds Physics "Real landing limits": its landings use the original's.
-			flight.set_ap_landing(autopilot != null and autopilot.mode == 2 and String(flight.ap_stage()).begins_with("landing"))
+			flight.set_ap_landing(
+				autopilot != null and autopilot.mode == 2 and String(flight.ap_stage()).begins_with("landing")
+			)
 			# Time compression: the frame's sim time is rate × the real frame time (Engine.time_scale); the
 			# flight model takes it in `time_factor` equal steps (its 1 Hz / 5 Hz updates fall on fixed sim
 			# times, so this is the same as one step of the whole time, docs/views.md §2).
@@ -2706,10 +2905,28 @@ func _process(delta: float) -> void:
 			_check_collisions()
 		if not (frozen or waiting_for_ground or fm_stopped or crashed):
 			player_damage.gear_overspeed(st.speed, gear_down, gear_legs[1], mission_pref("invulnerable"))
-		for k in ["speed_kt", "mach", "alt_ft", "vs_fpm", "pitch", "roll", "heading", "aoa", "g", "rpm", "throttle", "fuel_lbs", "internal_fuel_kg", "time", "afterburner"]:
+		for k in [
+			"speed_kt",
+			"mach",
+			"alt_ft",
+			"vs_fpm",
+			"pitch",
+			"roll",
+			"heading",
+			"aoa",
+			"g",
+			"rpm",
+			"throttle",
+			"fuel_lbs",
+			"internal_fuel_kg",
+			"time",
+			"afterburner"
+		]:
 			cockpit.state[k] = st[k]
 		# The time of day (clock+0x38 + clock+0x18, FUN_004cf8c0): the mission start time 0x460 + the mission clock.
-		cockpit.state["tod"] = float(runtime.misc.get("0x460", 0.0)) + runtime.now if runtime != null else float(st.time)
+		cockpit.state["tod"] = (
+			float(runtime.misc.get("0x460", 0.0)) + runtime.now if runtime != null else float(st.time)
+		)
 		# The HUD ILS deviations (NAV HUD mode update 460130, docs/cockpit.md "ILS").
 		cockpit.state["ils"] = flight.ils()
 		# The cockpit state's instrument values (iaf_flight::instruments, docs/cockpit.md).
@@ -2729,13 +2946,22 @@ func _process(delta: float) -> void:
 		g_effects.g = st.g
 		g_effects.over_g = st.over_g
 		cockpit.state["ap_mode"] = autopilot.mode if autopilot != null and cockpit.indicators[8] else 0
-		cockpit.state["world"] = Vector2(terrain.world_origin.x + rig.position.x, terrain.world_origin.y - rig.position.z)
+		cockpit.state["world"] = Vector2(
+			terrain.world_origin.x + rig.position.x, terrain.world_origin.y - rig.position.z
+		)
 		cockpit.hud.velocity_dir = st.velocity.normalized() if st.velocity.length() > 1.0 else null
 	if aircraft != null:
-		var parts_in := {"stick_x": stick.x, "stick_y": stick.y, "rudder": rudder, "flaps": flaps,
-			"gear_down": gear_down, "brakes": brakes, "chute": drag_chute,
+		var parts_in := {
+			"stick_x": stick.x,
+			"stick_y": stick.y,
+			"rudder": rudder,
+			"flaps": flaps,
+			"gear_down": gear_down,
+			"brakes": brakes,
+			"chute": drag_chute,
 			"ab_damage": [player_damage.flags[8], player_damage.flags[9]],
-			"bay_open": weapons != null and weapons.bay_open()}
+			"bay_open": weapons != null and weapons.bay_open()
+		}
 		if flight != null:
 			var fs: Dictionary = flight.state()
 			if drag_chute == 1 and fs.on_ground:
@@ -2759,18 +2985,33 @@ func _process(delta: float) -> void:
 		clouds.update_view(get_viewport().get_camera_3d().global_position, delta)
 	_update_time_of_day(get_viewport().get_camera_3d())
 	if get_viewport().get_camera_3d() != null:
-		RenderOptions.update_view(($WorldEnvironment as WorldEnvironment).environment,
-				get_viewport().get_camera_3d().global_position, terrain)
+		RenderOptions.update_view(
+			($WorldEnvironment as WorldEnvironment).environment, get_viewport().get_camera_3d().global_position, terrain
+		)
 		Airbases.update_view(get_viewport().get_camera_3d().global_position, terrain)
 	var p := rig.position
 	var ground_h = terrain.height_at(p)
 	var agl := "" if ground_h == null else "  (%.0f m above ground)" % (p.y - ground_h)
 	var st2: Dictionary = cockpit.state
 	hud_label.visible = Settings.show_info
-	hud_label.text = "%s%s   x %.1f km  y %.1f km  alt %.0f m%s   %d kt  %.1f g  thr %d%%%s%s%s   %d fps" % [
-		_modes_text(), ("   mission: " + mission_name) if mission_name != "" else "", p.x / 1000.0, p.z / 1000.0, p.y, agl, st2.speed_kt, st2.g, int(throttle * 100),
-		"  GEAR" if gear_down else "", "  FLAPS" if flaps > 0 else "", "  BRAKE" if brakes else "", Engine.get_frames_per_second()]
-
+	hud_label.text = (
+		"%s%s   x %.1f km  y %.1f km  alt %.0f m%s   %d kt  %.1f g  thr %d%%%s%s%s   %d fps"
+		% [
+			_modes_text(),
+			("   mission: " + mission_name) if mission_name != "" else "",
+			p.x / 1000.0,
+			p.z / 1000.0,
+			p.y,
+			agl,
+			st2.speed_kt,
+			st2.g,
+			int(throttle * 100),
+			"  GEAR" if gear_down else "",
+			"  FLAPS" if flaps > 0 else "",
+			"  BRAKE" if brakes else "",
+			Engine.get_frames_per_second()
+		]
+	)
 
 
 ## The info line's first field: ORIGINAL, or a short tag per switch not at its original setting (FLT real flight
@@ -2791,6 +3032,7 @@ func _modes_text() -> String:
 		t.append("PHYS+")
 	return "ORIGINAL" if t.is_empty() else " ".join(t)
 
+
 ## Scripted stick / rudder for tests (held until changed).
 var scripted_stick = null
 var scripted_rudder = null
@@ -2798,7 +3040,6 @@ var scripted_rudder = null
 var _all_better := OS.get_cmdline_user_args().has("--better")
 ## --freeze: don't advance the flight model (for posed test captures).
 var frozen := false
-
 
 ## Keyboard stick, the original's law (FUN_004e0b80 → GEV 1 → FUN_0059f3d0, docs/controls.md): each key
 ## press or release sets its axis at once to the record's value (±1 or 0), the last event wins (Up held +
@@ -2898,6 +3139,7 @@ func _on_landed() -> void:
 
 # --- ejection -----------------------------------------------------------------------------------
 
+
 ## "Eject (x3)" (command 18, FUN_00548330): three presses, each less than 1 s after the previous one.
 ## Nothing is shown or said per press.
 func _eject_key() -> void:
@@ -2985,7 +3227,9 @@ func _eject_update(delta: float) -> void:
 	for seat in _seats:
 		var pilot: Node3D = aircraft.part_node(seat.part) if aircraft != null else null
 		var base: Vector3 = pilot.global_position if pilot != null else rig.global_position
-		seat.node.global_transform = Transform3D(rig.global_basis.orthonormalized(), base + rig.global_basis.orthonormalized() * seat.offset)
+		seat.node.global_transform = Transform3D(
+			rig.global_basis.orthonormalized(), base + rig.global_basis.orthonormalized() * seat.offset
+		)
 	if t >= EJECT_CHUTE_VIEW and not _chute_view_done and _chute != null:
 		_chute_view_done = true
 		views.set_orbit(_chute, [1000.0, 600.0, 200.0, 4.014257, 0.0, 2.792527], 2.0, Views.FLYBY, true)
@@ -3008,7 +3252,9 @@ func _chutes_update() -> void:
 				chute_swing(pc, pc.next)
 				pc.next += CHUTE_TICK
 			var a: Vector3 = pc.ang + pc.omega * (_sim_time - pc.tb)
-			pc.node.basis = Basis.from_euler(Vector3(deg_to_rad(a.x), deg_to_rad(-a.z), deg_to_rad(-a.y)), EULER_ORDER_YXZ)
+			pc.node.basis = Basis.from_euler(
+				Vector3(deg_to_rad(a.x), deg_to_rad(-a.z), deg_to_rad(-a.y)), EULER_ORDER_YXZ
+			)
 
 
 func _spawn_parachuter(at: Vector3) -> void:
@@ -3018,8 +3264,18 @@ func _spawn_parachuter(at: Vector3) -> void:
 	node.position = at
 	# The swing (FUN_00549700 / FUN_0054a250): attitude (pitch, roll, heading) in degrees, its rate, the time it was
 	# re-based, the next tick (now + 0.2 s) and the previous tick (+0xbc, 0 at the set-up FUN_005493d0).
-	_parachuters.append({"node": node, "t0": _sim_time, "p0": scene_to_world(at), "ang": CHUTE_ANGLES,
-		"omega": Vector3.ZERO, "tb": _sim_time, "next": _sim_time + CHUTE_TICK, "last": 0.0})
+	_parachuters.append(
+		{
+			"node": node,
+			"t0": _sim_time,
+			"p0": scene_to_world(at),
+			"ang": CHUTE_ANGLES,
+			"omega": Vector3.ZERO,
+			"tb": _sim_time,
+			"next": _sim_time + CHUTE_TICK,
+			"last": 0.0
+		}
+	)
 	if _chute == null:
 		_chute = node
 

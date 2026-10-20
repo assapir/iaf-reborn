@@ -63,7 +63,9 @@ func _init() -> void:
 	_material.no_depth_test = false
 	_material.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
 	_material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-	var tex := preload("res://util/img.gd").load_texture(Settings.assets_dir().path_join("converted/planes/afterburn.png"))
+	var tex := preload("res://util/img.gd").load_texture(
+		Settings.assets_dir().path_join("converted/planes/afterburn.png")
+	)
 	if tex != null:
 		_material.albedo_texture = tex
 	else:
@@ -93,8 +95,10 @@ func _ready() -> void:
 	if haze != null:
 		# Along +Z from the nozzle: radius r at the nozzle widening to 2.2 r, 8 r long.
 		var length := radius * 8.0
-		haze.transform = Transform3D(Basis(Vector3.RIGHT, PI / 2.0) * Basis.from_scale(Vector3(radius, length, radius)),
-				nozzle + Vector3(0, 0, length * 0.5))
+		haze.transform = Transform3D(
+			Basis(Vector3.RIGHT, PI / 2.0) * Basis.from_scale(Vector3(radius, length, radius)),
+			nozzle + Vector3(0, 0, length * 0.5)
+		)
 		get_parent().add_child.call_deferred(haze)
 
 

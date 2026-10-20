@@ -33,9 +33,11 @@ const MISSIONS_AT := Vector2(140, 220)
 const STAMP_Y := {31: 64, 32: 79, 11: 96, 12: 111, 13: 126, 21: 143, 22: 158, 23: 173, 40: 190}
 ## Kills / Losses icon slots per row (0x60b800..0x60b857) and the row totals' right edge / centre
 ## (0x60b858..0x60b86f).
-const SLOTS := [[Vector2(75, 14), Vector2(165, 14), Vector2(255, 14), Vector2(120, 48), Vector2(210, 48)],
+const SLOTS := [
+	[Vector2(75, 14), Vector2(165, 14), Vector2(255, 14), Vector2(120, 48), Vector2(210, 48)],
 	[Vector2(75, 88), Vector2(165, 88), Vector2(255, 88), Vector2(120, 118), Vector2(210, 118)],
-	[Vector2(75, 166)]]
+	[Vector2(75, 166)]
+]
 const ICON_CELL := [0, 1, 5]
 const TOTALS := [Vector2(378, 58), Vector2(378, 128), Vector2(378, 184)]
 const CELL := Vector2(27, 17)
@@ -94,6 +96,7 @@ func _process(delta: float) -> void:
 
 
 # --- selection, pages ---------------------------------------------------------------------------
+
 
 ## A new selection (FUN_0051d220 after the checks): its history, totals and the Dossier.
 func _select(i: int) -> void:
@@ -188,6 +191,7 @@ func _remove() -> void:
 
 # --- list box -----------------------------------------------------------------------------------
 
+
 func _max_top() -> int:
 	return maxi(0, data.pilots.size() - ROWS)
 
@@ -210,6 +214,7 @@ func _thumb_y() -> float:
 
 
 # --- input --------------------------------------------------------------------------------------
+
 
 func _gui_input(event: InputEvent) -> void:
 	if fe == null or fe.busy or fe.msgbox != null or not _shown() or not (event is InputEventMouse):
@@ -277,7 +282,10 @@ func _press(p: Vector2, double: bool) -> bool:
 			# FUN_004f24f0: the caret goes to the nearest character boundary.
 			var best := 0
 			for k in edit[b].length() + 1:
-				if absf(_text_width(edit[b].left(k)) - (q.x - box.position.x)) < absf(_text_width(edit[b].left(best)) - (q.x - box.position.x)):
+				if (
+					absf(_text_width(edit[b].left(k)) - (q.x - box.position.x))
+					< absf(_text_width(edit[b].left(best)) - (q.x - box.position.x))
+				):
 					best = k
 			caret[b] = best
 			return true
@@ -312,14 +320,21 @@ func _pick_photo() -> void:
 	if not DisplayServer.has_feature(DisplayServer.FEATURE_NATIVE_DIALOG_FILE):
 		return
 	var id: int = data.current().id
-	DisplayServer.file_dialog_show("", "", "", false, DisplayServer.FILE_DIALOG_MODE_OPEN_FILE,
-		PackedStringArray(["*.bmp;Bmp Files"]), func(ok: bool, paths: PackedStringArray, _filter: int):
+	DisplayServer.file_dialog_show(
+		"",
+		"",
+		"",
+		false,
+		DisplayServer.FILE_DIALOG_MODE_OPEN_FILE,
+		PackedStringArray(["*.bmp;Bmp Files"]),
+		func(ok: bool, paths: PackedStringArray, _filter: int):
 			if not ok or paths.is_empty():
 				return
 			var img := Image.load_from_file(paths[0])
 			if img != null and img.save_png(Pilots.dir().path_join("%d.png" % id)) == OK and data.current().id == id:
 				photo = id
-				data.current().photo = id)
+				data.current().photo = id
+	)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -350,6 +365,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 # --- drawing ------------------------------------------------------------------------------------
+
 
 func _shown() -> bool:
 	return fe.screen == "log" and not fe.loading
@@ -383,11 +399,17 @@ func _draw_list() -> void:
 		var box := Rect2(LIST + ITEMS.position + Vector2(0, ROW_H * r), Vector2(ITEMS.size.x, ROW_H))
 		var s: String = data.pilots[i].name
 		var w := _text_width(s)
-		_text(Vector2(box.position.x + (box.size.x - w) / 2.0, box.end.y - (ROW_H - _line_h()) / 2.0), s, GREEN if i == data.selected else DIM_GREEN)
+		_text(
+			Vector2(box.position.x + (box.size.x - w) / 2.0, box.end.y - (ROW_H - _line_h()) / 2.0),
+			s,
+			GREEN if i == data.selected else DIM_GREEN
+		)
 	# Scrollbar (FUN_004f3700 layout, as Arming): sldownb at the top, slupb at the bottom, the thumb between.
 	var bar := _bar()
 	fe._blit("log/sldownb_%d.png" % (2 if fe.ctrl_arrow == "up" else 0), bar.position, self)
-	fe._blit("log/slupb_%d.png" % (2 if fe.ctrl_arrow == "down" else 0), Vector2(bar.position.x, bar.end.y - ARROW.y), self)
+	fe._blit(
+		"log/slupb_%d.png" % (2 if fe.ctrl_arrow == "down" else 0), Vector2(bar.position.x, bar.end.y - ARROW.y), self
+	)
 	fe._blit("log/slider.png", Vector2(bar.position.x, _thumb_y()), self)
 
 
@@ -396,7 +418,11 @@ func _draw_dossier(at: Vector2) -> void:
 		var box: Rect2 = [NAME_BOX, CALL_BOX][b]
 		_text(at + Vector2(box.position.x, box.end.y), edit[b], GREEN)
 		if focus == b and caret_on:
-			fe._blit("misc/logincaret.png", at + Vector2(box.position.x + _text_width(edit[b].left(caret[b])), box.end.y - 16), self)
+			fe._blit(
+				"misc/logincaret.png",
+				at + Vector2(box.position.x + _text_width(edit[b].left(caret[b])), box.end.y - 16),
+				self
+			)
 	var path := ""
 	if photo < 14:
 		path = "log/pilots/%d.png" % photo
@@ -479,4 +505,6 @@ func _raster(f: Font, at: Vector2, s: String, color: Color) -> void:
 	if f == null:
 		return
 	var p: Vector2 = fe._to_screen(at)
-	draw_string(f, p + Vector2(0, 7.0 * fe._scale()), s, HORIZONTAL_ALIGNMENT_LEFT, -1, int(round(8.0 * fe._scale())), color)
+	draw_string(
+		f, p + Vector2(0, 7.0 * fe._scale()), s, HORIZONTAL_ALIGNMENT_LEFT, -1, int(round(8.0 * fe._scale())), color
+	)

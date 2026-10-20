@@ -38,12 +38,22 @@ func run() -> void:
 	await frames(3)
 	check(fe.screen == "log" and fe.records != null, "the game starts on the Pilot Records screen")
 	var rec = fe.records
-	check(rec.data.pilots.size() == 1 and rec.data.pilots[0].name == "Gal" and rec.data.pilots[0].callsign == "default" \
-		and rec.data.pilots[0].id == 14, "no records: the default pilot Gal / default, id 14")
+	check(
+		(
+			rec.data.pilots.size() == 1
+			and rec.data.pilots[0].name == "Gal"
+			and rec.data.pilots[0].callsign == "default"
+			and rec.data.pilots[0].id == 14
+		),
+		"no records: the default pilot Gal / default, id 14"
+	)
 
 	# New_Pilot: a blank record, id 15, selected; Login refuses the empty name.
 	rec.new_pilot()
-	check(rec.data.pilots.size() == 2 and rec.data.selected == 1 and rec.data.current().id == 15, "New_Pilot: blank pilot id 15 selected")
+	check(
+		rec.data.pilots.size() == 2 and rec.data.selected == 1 and rec.data.current().id == 15,
+		"New_Pilot: blank pilot id 15 selected"
+	)
 	check(not rec.login() and ok_box(), "Login with an empty name -> msg box")
 	var page: Vector2 = rec.CONTENT + rec.PAGE
 	click_rec(page + rec.NAME_BOX.get_center())
@@ -61,8 +71,16 @@ func run() -> void:
 	type_text(rec, "viper")
 	click_rec(page + rec.PHOTO.get_center())
 	check(rec.photo == 1, "a click on the photo shows the next one")
-	check(rec.login() and Settings().pilot_id == 15 and Settings().pilot_name == "AcePilot12" \
-		and Settings().pilot_callsign == "viper" and Settings().pilot_rank == "Second Lieutenant", "Login sets the pilot and rank")
+	check(
+		(
+			rec.login()
+			and Settings().pilot_id == 15
+			and Settings().pilot_name == "AcePilot12"
+			and Settings().pilot_callsign == "viper"
+			and Settings().pilot_rank == "Second Lieutenant"
+		),
+		"Login sets the pilot and rank"
+	)
 
 	# Recording and scoring.
 	check(Pilots.mission_bonus(311) == 500 and Pilots.mission_bonus(217) == 5000, "MissBonus from scores.ibx")
@@ -70,8 +88,14 @@ func run() -> void:
 	Pilots.record(15, 311, {"result": 1, "bonus": 500, "kills": [[150, 28], [250, 5]], "losses": [[100, 28]]}, 1.0)
 	var h: Array = Pilots.history(15)
 	var t: Dictionary = Pilots.totals(h)
-	check(t.score == 300 and t.completed == 1 and t.k == [500, 100, 0] and t.l == [800, 0, 0], "attempt score 500 + 100 - 800 + 500 = 300 (%s)" % t)
-	check(t.kill_groups[0] == 1 and t.kill_groups[5] == 1 and t.loss_groups[1] == 1, "Fighter, Tank kills; Adv Fighter loss")
+	check(
+		t.score == 300 and t.completed == 1 and t.k == [500, 100, 0] and t.l == [800, 0, 0],
+		"attempt score 500 + 100 - 800 + 500 = 300 (%s)" % t
+	)
+	check(
+		t.kill_groups[0] == 1 and t.kill_groups[5] == 1 and t.loss_groups[1] == 1,
+		"Fighter, Tank kills; Adv Fighter loss"
+	)
 	Pilots.record(15, 311, {"result": 0, "bonus": -250, "kills": [], "losses": []}, 1.0)
 	check(Pilots.totals(Pilots.history(15)).score == 300, "a worse attempt does not lower the best")
 	# Score multiplier 0.5: kills halved, bonus too; no scoring (0): nothing but a negative bonus.
@@ -87,9 +111,19 @@ func run() -> void:
 	check(Pilots.attempt_score(a).score == 0, "mult 0 (no scoring): no kill, loss or bonus points")
 	a.bonus = -500
 	check(Pilots.attempt_score(a).score == -500, "a failed mission's negative bonus is not multiplied")
-	check(Pilots.rank(4999) == "Second Lieutenant" and Pilots.rank(5000) == "Lieutenant" and Pilots.rank(99999) == "Colonel" \
-		and Pilots.rank(100000) == "General", "rank table")
-	check(Pilots.category(999, 2) == 15 and Pilots.category(999, 0xc) == 31 and Pilots.category(999, 4) == 37, "class fallback categories")
+	check(
+		(
+			Pilots.rank(4999) == "Second Lieutenant"
+			and Pilots.rank(5000) == "Lieutenant"
+			and Pilots.rank(99999) == "Colonel"
+			and Pilots.rank(100000) == "General"
+		),
+		"rank table"
+	)
+	check(
+		Pilots.category(999, 2) == 15 and Pilots.category(999, 0xc) == 31 and Pilots.category(999, 4) == 37,
+		"class fallback categories"
+	)
 
 	# Future fronts: Mission 2 locked until Mission 1 is passed; an attempt out of order counts -1.
 	fe.screen = "fut1mis"
@@ -99,7 +133,10 @@ func run() -> void:
 	check(int(Pilots.attempts(Pilots.history(15), 212)[0].result) == -1, "212 before 211 is passed: result -1")
 	Pilots.record(15, 211, {"result": 1, "bonus": 1000, "kills": [], "losses": []}, 1.0)
 	fe._enter_screen()
-	check(fe._button_enabled("Mission 2") and not fe._button_enabled("Mission 3"), "211 passed: Mission 2 open, 3 still locked")
+	check(
+		fe._button_enabled("Mission 2") and not fe._button_enabled("Mission 3"),
+		"211 passed: Mission 2 open, 3 still locked"
+	)
 	fe.screen = "his1mis"
 	fe._enter_screen()
 	check(fe._button_enabled("Mission 7"), "historical wars are open")
@@ -108,15 +145,25 @@ func run() -> void:
 	fe.queue_free()
 	await frames(2)
 	Settings().mission_id = 311
-	Settings().debrief = {"passed": true, "headline": "", "notes": "", "result": 1, "bonus": 500, "kills": [[400, 12]], "losses": []}
+	Settings().debrief = {
+		"passed": true, "headline": "", "notes": "", "result": 1, "bonus": 500, "kills": [[400, 12]], "losses": []
+	}
 	fe = load("res://menu/front_end.tscn").instantiate()
 	root.add_child(fe)
 	await frames(2)
-	check(fe.screen == "deb" and Pilots.attempts(Pilots.history(15), 311).size() == 3, "the debrief records the attempt")
-	check(Pilots.totals(Pilots.history(15)).score == 200 + 500 + 1000 + 1000, "best 311 attempt (building 200 + bonus) counts (%d)" % Pilots.totals(Pilots.history(15)).score)
+	check(
+		fe.screen == "deb" and Pilots.attempts(Pilots.history(15), 311).size() == 3, "the debrief records the attempt"
+	)
+	check(
+		Pilots.totals(Pilots.history(15)).score == 200 + 500 + 1000 + 1000,
+		"best 311 attempt (building 200 + bonus) counts (%d)" % Pilots.totals(Pilots.history(15)).score
+	)
 	# The Debrief's PILOT SCORE line (FUN_00517130 @0x60aae0) is the pilot's score after this attempt.
 	var pilot_line: Array = fe.debrief_view.items(0).filter(func(it): return it.get("at") == Vector2(378, 269))
-	check(pilot_line.size() == 1 and pilot_line[0].text == str(Pilots.totals(Pilots.history(15)).score), "debrief PILOT SCORE = the pilot's total (%s)" % [pilot_line])
+	check(
+		pilot_line.size() == 1 and pilot_line[0].text == str(Pilots.totals(Pilots.history(15)).score),
+		"debrief PILOT SCORE = the pilot's total (%s)" % [pilot_line]
+	)
 	Settings().debrief = {}
 
 	# The list survives a reload with the selection; the new pilot's records are there.
@@ -124,8 +171,15 @@ func run() -> void:
 	fe._enter_screen()
 	await frames(2)
 	rec = fe.records
-	check(rec.data.pilots.size() == 2 and rec.data.selected == 1 and rec.data.current().name == "AcePilot12" and rec.data.current().photo == 1,
-		"pilot list and selection saved and read back")
+	check(
+		(
+			rec.data.pilots.size() == 2
+			and rec.data.selected == 1
+			and rec.data.current().name == "AcePilot12"
+			and rec.data.current().photo == 1
+		),
+		"pilot list and selection saved and read back"
+	)
 	check(rec.totals.completed == 2, "Dossier: missions completed 311, 211")
 
 	# A blank new pilot is dropped when the list is written.
@@ -146,7 +200,10 @@ func run() -> void:
 	rec.remove_pilot()
 	check(fe.msgbox != null, "Remove_Pilot asks first")
 	ok_box()
-	check(rec.data.pilots.size() == 1 and rec.data.selected == 0 and Pilots.history(15).is_empty(), "Yes: pilot and history removed")
+	check(
+		rec.data.pilots.size() == 1 and rec.data.selected == 0 and Pilots.history(15).is_empty(),
+		"Yes: pilot and history removed"
+	)
 	rec.remove_pilot()
 	check(rec.data.pilots.size() == 1 and fe.msgbox == null, "the last pilot cannot be removed")
 

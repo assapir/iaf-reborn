@@ -30,7 +30,9 @@ func run() -> void:
 	w._on_next()
 	await shot("2_requirements")
 	w._on_next()
-	w.set_row(w.cd_row, dl.path_join("Janes-Combat-Simulations-IAF-Israeli-Air-Force_Win_EN_ISO-Version/Jane's IAF.iso"))
+	w.set_row(
+		w.cd_row, dl.path_join("Janes-Combat-Simulations-IAF-Israeli-Air-Force_Win_EN_ISO-Version/Jane's IAF.iso")
+	)
 	await shot("3_your_cd")
 	w._on_next()
 	w.set_row(w.patch_row, dl.path_join("Janes-Combat-Simulations-IAF-Israeli-Air-Force_Patch_Win_EN_Patch-v11.exe"))

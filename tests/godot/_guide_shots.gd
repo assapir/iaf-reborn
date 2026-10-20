@@ -39,7 +39,6 @@ var t := 1.0
 var target := {}
 var frozen_start := false
 
-
 var _extra: Array[Node] = []  # the shot's own nodes under the root (the AoA hold, the callouts), freed after it
 
 
@@ -96,10 +95,14 @@ func _shot(name: String, e: Dictionary) -> void:
 		var st: Dictionary = tv.flight.state()
 		var turn := float(e.get("turn_deg", 0.0))
 		tv.rig.rotate(Vector3.UP, deg_to_rad(-turn))
-		tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, tv.rig.position,
-				Vector3(0.0, 0.0, st.heading + turn),
-				Vector3(st.forward).rotated(Vector3.UP, deg_to_rad(-turn)) * 250.0,
-				{"airborne": true, "engine_on": true, "real_data": Settings().real_data()})
+		tv.flight.start(
+			Settings().assets_dir().path_join("install"),
+			tv.player.fm_section,
+			tv.rig.position,
+			Vector3(0.0, 0.0, st.heading + turn),
+			Vector3(st.forward).rotated(Vector3.UP, deg_to_rad(-turn)) * 250.0,
+			{"airborne": true, "engine_on": true, "real_data": Settings().real_data()}
+		)
 	elif start == "dive":
 		frozen_start = true
 		w = airborne_case(tv, hp if not hp.is_empty() else [0, 0])
@@ -131,8 +134,13 @@ func _shot(name: String, e: Dictionary) -> void:
 		await _tick()
 	for i in 40:
 		await _tick()
-	var rect := _crop(String(e.get("crop", "full")), root.get_viewport().get_texture().get_size(), float(e.get("crop_w", 0.38)),
-			float(e.get("crop_dy", 0.0)), e.get("crop_at", [0, 0]))
+	var rect := _crop(
+		String(e.get("crop", "full")),
+		root.get_viewport().get_texture().get_size(),
+		float(e.get("crop_w", 0.38)),
+		float(e.get("crop_dy", 0.0)),
+		e.get("crop_at", [0, 0])
+	)
 	_info(name)
 	var anns: Array = e.get("annotations", [])
 	if not anns.is_empty():
@@ -195,9 +203,14 @@ func _final(dist: float, alt: float, aoa: float) -> Node:
 		root.add_child(n)
 		_extra.append(n)
 	var glide := (flat * cos(deg_to_rad(3.0)) + Vector3.DOWN * sin(deg_to_rad(3.0))) * 75.0
-	tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, tv.rig.position,
-			Vector3(aoa - 3.0, 0.0, st0.heading), glide,
-			{"airborne": true, "engine_on": true, "real_data": Settings().real_data()})
+	tv.flight.start(
+		Settings().assets_dir().path_join("install"),
+		tv.player.fm_section,
+		tv.rig.position,
+		Vector3(aoa - 3.0, 0.0, st0.heading),
+		glide,
+		{"airborne": true, "engine_on": true, "real_data": Settings().real_data()}
+	)
 	return tv.weapons
 
 
@@ -210,9 +223,14 @@ func _dive(deg: float, agl: float, speed: float) -> void:
 	tv.rig.position.y = (float(g) if g != null else 0.0) + agl
 	tv.rig.rotate_object_local(Vector3.RIGHT, deg_to_rad(-deg))
 	var dir := (flat * cos(deg_to_rad(deg)) + Vector3.DOWN * sin(deg_to_rad(deg))).normalized()
-	tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, tv.rig.position,
-			Vector3(-deg, 0.0, st0.heading), dir * speed,
-			{"airborne": true, "engine_on": true, "real_data": Settings().real_data()})
+	tv.flight.start(
+		Settings().assets_dir().path_join("install"),
+		tv.player.fm_section,
+		tv.rig.position,
+		Vector3(-deg, 0.0, st0.heading),
+		dir * speed,
+		{"airborne": true, "engine_on": true, "real_data": Settings().real_data()}
+	)
 
 
 func _put(p: Dictionary) -> void:
@@ -313,7 +331,9 @@ func _crop(c: String, size: Vector2i, hud_w := 0.38, hud_dy := 0.0, at: Array = 
 			return Rect2i(Vector2i(centre) - Vector2i(wd / 2, ht / 2), Vector2i(wd, ht)).intersection(full)
 		"dash":  # the helmet display: a 16:10 box around the helmet's line of sight (the camera's centre), 45 % wide
 			var hud = tv.cockpit.hud
-			var los: Vector2 = hud.camera.unproject_position(hud.camera.global_position - hud.camera.global_basis.z * 1000.0)
+			var los: Vector2 = hud.camera.unproject_position(
+				hud.camera.global_position - hud.camera.global_basis.z * 1000.0
+			)
 			var wd := int(size.x * 0.45)
 			var ht := int(wd * 10 / 16)
 			return Rect2i(Vector2i(los) - Vector2i(wd / 2, ht / 2), Vector2i(wd, ht)).intersection(full)
@@ -359,10 +379,26 @@ func _info(name: String) -> void:
 		names.append(w.stores.name_of(i))
 	var inp: Dictionary = hud._real_in
 	var sk = w.get("seeker")
-	print("GUIDE_INFO %s seeker_lock=%s shoot=%s" % [name, sk.lock if sk != null else "-", tv.cockpit.weapons.get("shoot", "-")])
-	print("GUIDE_INFO %s texts=%s lock_m=%s closure=%s dlz=%s stores=%s points=%s" % [name, texts, lk.get("dist", "-"),
-		rd.get("closure", "-"), rd.get("dlz", []), names, [inp.get("fpm"), inp.get("aoa"), inp.get("horizon"),
-		inp.get("gun_cross"), inp.get("px_per_deg")]])
+	print(
+		(
+			"GUIDE_INFO %s seeker_lock=%s shoot=%s"
+			% [name, sk.lock if sk != null else "-", tv.cockpit.weapons.get("shoot", "-")]
+		)
+	)
+	print(
+		(
+			"GUIDE_INFO %s texts=%s lock_m=%s closure=%s dlz=%s stores=%s points=%s"
+			% [
+				name,
+				texts,
+				lk.get("dist", "-"),
+				rd.get("closure", "-"),
+				rd.get("dlz", []),
+				names,
+				[inp.get("fpm"), inp.get("aoa"), inp.get("horizon"), inp.get("gun_cross"), inp.get("px_per_deg")]
+			]
+		)
+	)
 	var wi: Dictionary = inp.get("weapons", {})
 	if wi.get("delay") != null:
 		print("GUIDE_INFO %s delay ttg=%s at=%s designated=%s" % [name, wi.delay, wi.delay_at, wi.designated])
@@ -469,7 +505,10 @@ func _draw_annotations(ov: Control, anns: Array, rect: Rect2i) -> void:
 			var base := end - dir * head
 			var side := dir.orthogonal() * head * 0.5
 			ov.draw_line(at, base, ANN_DARK, lw * 2.6, true)
-			ov.draw_colored_polygon(PackedVector2Array([end + dir * lw, base + side * 1.5 - dir * lw, base - side * 1.5 - dir * lw]), ANN_DARK)
+			ov.draw_colored_polygon(
+				PackedVector2Array([end + dir * lw, base + side * 1.5 - dir * lw, base - side * 1.5 - dir * lw]),
+				ANN_DARK
+			)
 			ov.draw_line(at, base, ANN_FILL, lw, true)
 			ov.draw_colored_polygon(PackedVector2Array([end, base + side, base - side]), ANN_FILL)
 		ov.draw_circle(at, r + lw, ANN_DARK, true, -1.0, true)
@@ -477,4 +516,12 @@ func _draw_annotations(ov: Control, anns: Array, rect: Rect2i) -> void:
 		var label := str(int(a.n)) if a.get("n") is float else str(a.get("n", ""))
 		var fs := int(r * 1.25)
 		var sz := _ann_font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs)
-		ov.draw_string(_ann_font, at + Vector2(-sz.x / 2.0, _ann_font.get_ascent(fs) * 0.36), label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, ANN_DARK)
+		ov.draw_string(
+			_ann_font,
+			at + Vector2(-sz.x / 2.0, _ann_font.get_ascent(fs) * 0.36),
+			label,
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1,
+			fs,
+			ANN_DARK
+		)

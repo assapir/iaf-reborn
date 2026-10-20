@@ -26,14 +26,28 @@ const RUNWAY_ZONE := [1500.0, 30]
 const LINEUP_ZONE := [100.0, 4]
 const ZONE_FACTOR := 3.0  # 0x6006b8
 ## Tower messages (551c20): code → template; 1 / 6 have a no-wind variant.
-const MSG_TEMPLATES := {0: "ACFT_TAXI_TO_RUNWAY", 1: "ACFT_CLEAR_TO_LINEUP", 3: "ACFT_HOLD_POS",
-	4: "ACFT_CLEAR_TO_TAKEOFF", 5: "ACFT_PROCEED_TO_RUNWAY", 6: "ACFT_CLEAR_TO_LAND", 8: "ACFT_GO_AROUND_RUNWAY",
-	9: "ACFT_TAXI_TO_PARK", 10: "ACFT_GEARS_NOT_OPEN"}
+const MSG_TEMPLATES := {
+	0: "ACFT_TAXI_TO_RUNWAY",
+	1: "ACFT_CLEAR_TO_LINEUP",
+	3: "ACFT_HOLD_POS",
+	4: "ACFT_CLEAR_TO_TAKEOFF",
+	5: "ACFT_PROCEED_TO_RUNWAY",
+	6: "ACFT_CLEAR_TO_LAND",
+	8: "ACFT_GO_AROUND_RUNWAY",
+	9: "ACFT_TAXI_TO_PARK",
+	10: "ACFT_GEARS_NOT_OPEN"
+}
 const CLICK := 0xb  # 551c20 case 0xb: KCH2.WAV, no text
 const NO_MSG := 0xb
 ## Wingman commands (command 108 p1 → FUN_00441080's particle).
-const WINGMAN_KEYS := {1: "WINGMAN_PROTECTME", 2: "WINGMAN_BUGOUT", 3: "WINGMAN_ENGAGEDESIGNATETARGET",
-	4: "WINGMAN_ENGAGEANYTARGETIMNOT", 5: "WINGMAN_TACTICALFORMATION", 6: "WINGMAN_CLOSEFORMATION"}
+const WINGMAN_KEYS := {
+	1: "WINGMAN_PROTECTME",
+	2: "WINGMAN_BUGOUT",
+	3: "WINGMAN_ENGAGEDESIGNATETARGET",
+	4: "WINGMAN_ENGAGEANYTARGETIMNOT",
+	5: "WINGMAN_TACTICALFORMATION",
+	6: "WINGMAN_CLOSEFORMATION"
+}
 const COMMAND_PERIOD := 1.5  # brain+0xb8 timer (43edf2)
 const REPLY_DELAY := 3.0  # 0x600738
 const PROTECT_RANGE := 18540.0  # 0x600740
@@ -44,8 +58,18 @@ const AIRCRAFT := [2, 3, 0x1c]
 const AWACS_PERIOD := 12.0  # FlightControllerTimer (54af40), single player
 const AWACS_PLAYER_AGL := 50.0  # 0x60ca90: the player at least this high above the terrain
 ## FUN_005bd3c0: formation kind → name.
-const KIND_NAMES := {1: "Alpha", 2: "Bravo", 3: "Charlie", 4: "Delta", 5: "Echo", 6: "Foxtrot", 7: "Enemy",
-	8: "Other", 9: "Hotel", 10: "India"}
+const KIND_NAMES := {
+	1: "Alpha",
+	2: "Bravo",
+	3: "Charlie",
+	4: "Delta",
+	5: "Echo",
+	6: "Foxtrot",
+	7: "Enemy",
+	8: "Other",
+	9: "Hotel",
+	10: "India"
+}
 
 var host: Node
 var now := 0.0
@@ -84,6 +108,7 @@ func _ready() -> void:
 
 
 # --- phrases (§1) -------------------------------------------------------------------------------
+
 
 func _load_templates(path: String) -> void:
 	for line in FileAccess.get_file_as_string(path).split("\n"):
@@ -157,6 +182,7 @@ func play_wav(file: String) -> void:
 
 # --- time ---------------------------------------------------------------------------------------
 
+
 ## Every frame with the sim time: the tower timer and the one-shot radio events.
 func update(t: float) -> void:
 	now = t
@@ -205,6 +231,7 @@ func _misc(key: String, def: Variant) -> Variant:
 
 # --- the player ---------------------------------------------------------------------------------
 
+
 func _st() -> Dictionary:
 	return host.flight.state() if host != null and host.flight != null else {}
 
@@ -248,6 +275,7 @@ func callsign(ent: Dictionary) -> String:
 
 # --- the tower (§2) -----------------------------------------------------------------------------
 
+
 func _load_bases(path: String) -> void:
 	var sections := Settings.load_ibx(path)
 	for name in BASES:
@@ -256,9 +284,13 @@ func _load_bases(path: String) -> void:
 		var hangars := []
 		for i in int(f.call("HangarsNum")):
 			hangars.append(Vector2(f.call("HangarPtX%d" % i), f.call("HangarPtY%d" % i)))
-		var b := {"name": name, "tower": Vector3(f.call("TowerLocX"), f.call("TowerLocY"), f.call("TowerLocZ")),
+		var b := {
+			"name": name,
+			"tower": Vector3(f.call("TowerLocX"), f.call("TowerLocY"), f.call("TowerLocZ")),
 			"lineup": Vector3(f.call("LineupLocX"), f.call("LineupLocY"), f.call("LineupLocZ")),
-			"rwy": int(f.call("RunwayNumber")), "hangars": hangars}
+			"rwy": int(f.call("RunwayNumber")),
+			"hangars": hangars
+		}
 		# World scale Real: the base at its real place (docs/world-scale.md §3.3).
 		var m := Settings.base_moved(b.lineup.x, b.lineup.y)
 		if not m.is_empty():
@@ -347,9 +379,17 @@ func _zone_check(zone: Array, clear_always: bool) -> bool:
 	if rt != null:
 		for ent in rt.entities.values():
 			# Aircraft leave the object list at state 5 (FUN_004a86b0).
-			if ent.player or int(ent.get("klass", 0)) != 0x1c or int(ent.state) == 5 or mates.any(func(m): return is_same(m, ent)):
+			if (
+				ent.player
+				or int(ent.get("klass", 0)) != 0x1c
+				or int(ent.state) == 5
+				or mates.any(func(m): return is_same(m, ent))
+			):
 				continue
-			if (ent.vel as Vector3).length() < STOPPED and _in_zone(b, zone, ent.world, float(ent.get("coll_radius", 0.0))):
+			if (
+				(ent.vel as Vector3).length() < STOPPED
+				and _in_zone(b, zone, ent.world, float(ent.get("coll_radius", 0.0)))
+			):
 				runway_clear = false
 	return aligned and _in_zone(b, zone, _pos(), _player_radius())
 
@@ -477,6 +517,7 @@ func _say(code: int) -> void:
 
 # --- wingman commands (§3) ----------------------------------------------------------------------
 
+
 ## Command 108 (records 98–103): FUN_0043f8d0(cmd) on the player's brain.
 func wingman_command(cmd: int) -> void:
 	var ai = host.get("ai")
@@ -579,6 +620,7 @@ func engage_any(w: Dictionary) -> Dictionary:
 
 # --- flight-controller reports (§4) -------------------------------------------------------------
 
+
 ## WayptReport (FUN_0054dc00) 3 s after `ent` moved on to waypoint `wp`.
 func waypoint_passed(ent: Dictionary, wp: int) -> void:
 	posted.append([String(ent.get("name", "")), wp])
@@ -593,17 +635,23 @@ func ejected(ent: Dictionary) -> void:
 ## AirborneReport (FUN_0054e310), 3 s after an AI jet's take-off (TakeoffCL above 100 m AGL): "<callsign> airborne",
 ## not twice in a row for one callsign.
 func report_airborne(ent: Dictionary) -> void:
-	_after(REPORT_DELAY, func():
-		if not ent.is_empty() and not host.enemy_of_player(ent) and fc.airborne(callsign(ent)):
-			say("AIRBORNE_PHRASE", [callsign(ent)]))
+	_after(
+		REPORT_DELAY,
+		func():
+			if not ent.is_empty() and not host.enemy_of_player(ent) and fc.airborne(callsign(ent)):
+				say("AIRBORNE_PHRASE", [callsign(ent)])
+	)
 
 
 ## LandedReport (FUN_0054de90), 3 s after a landing roll stopped (StopPlaneCL): "<callsign> landed", not twice in
 ## a row for one callsign.
 func report_landed(ent: Dictionary) -> void:
-	_after(REPORT_DELAY, func():
-		if not ent.is_empty() and not host.enemy_of_player(ent) and fc.landed(callsign(ent)):
-			say("LANDED_PHRASE", [callsign(ent)]))
+	_after(
+		REPORT_DELAY,
+		func():
+			if not ent.is_empty() and not host.enemy_of_player(ent) and fc.landed(callsign(ent)):
+				say("LANDED_PHRASE", [callsign(ent)])
+	)
 
 
 ## CrashedReport (FUN_0054e0e0): "<callsign> crashed" (the runtime posts it 2.5 s after an aircraft was destroyed
@@ -623,8 +671,13 @@ func kill(victim: Dictionary, killer: Dictionary) -> void:
 
 
 func _kill_unit(ent: Dictionary) -> Dictionary:
-	return {"enemy": host.enemy_of_player(ent), "klass": int(ent.get("klass", -1)),
-		"type_code": int(ent.get("type_code", -1)), "name": String(ent.get("name", "")).left(19), "callsign": callsign(ent)}
+	return {
+		"enemy": host.enemy_of_player(ent),
+		"klass": int(ent.get("klass", -1)),
+		"type_code": int(ent.get("type_code", -1)),
+		"name": String(ent.get("name", "")).left(19),
+		"callsign": callsign(ent)
+	}
 
 
 ## FlightControllerTimer (FUN_0054b130): the AWACS calls. With the player alive, controlled and at least 50 m above
@@ -644,14 +697,28 @@ func _awacs() -> void:
 	var wing: Dictionary = ai.partner_of(me) if ai != null else {}
 	var units := []
 	for ent in host.runtime.entities.values():
-		if ent.player or is_same(ent, wing) or not int(ent.get("klass", 0)) in AIRCRAFT or int(ent.state) in [4, 5] \
-				or int(ent.control) == 0:
+		if (
+			ent.player
+			or is_same(ent, wing)
+			or not int(ent.get("klass", 0)) in AIRCRAFT
+			or int(ent.state) in [4, 5]
+			or int(ent.control) == 0
+		):
 			continue
 		var w: Vector3 = ai.world_of(ent) if ai != null else ent.world
 		var eg = host.mission_ground(w)
-		units.append({"key": ent.key, "callsign": formation_name(ent), "enemy": host.enemy_of_player(ent),
-			"known": ent.get("known", false), "pos": w, "ground": float(eg) if eg != null else 0.0,
-			"heading": float(ent.get("heading", 0.0)), "rand": randi() & 0x7fff})
+		units.append(
+			{
+				"key": ent.key,
+				"callsign": formation_name(ent),
+				"enemy": host.enemy_of_player(ent),
+				"known": ent.get("known", false),
+				"pos": w,
+				"ground": float(eg) if eg != null else 0.0,
+				"heading": float(ent.get("heading", 0.0)),
+				"rand": randi() & 0x7fff
+			}
+		)
 	# +0x314 (the player on the FlyTSD: long calls only) stays false: the FlyTSD freezes the sim and this timer.
 	for c in fc.scan(p, units, false, formation_name(me)):
 		say(c[0], Array(c[1]))

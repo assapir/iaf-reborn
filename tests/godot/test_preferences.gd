@@ -37,7 +37,10 @@ func run() -> void:
 	fe._on_button("back")
 	await settle(fe)
 	check(fe.msgbox != null and fe.msgbox.text == "Save changes?", "leaving asks Save changes?")
-	check(fe.msgbox.buttons == ["yes", "no", "can"] and fe.msgbox.button_xs() == [40.0, 130.0, 220.0], "Yes / No / Cancel at 40 / 130 / 220")
+	check(
+		fe.msgbox.buttons == ["yes", "no", "can"] and fe.msgbox.button_xs() == [40.0, 130.0, 220.0],
+		"Yes / No / Cancel at 40 / 130 / 220"
+	)
 	# Cancel stays on the screen.
 	click_box(fe.msgbox, 2)
 	await settle(fe)
@@ -98,7 +101,9 @@ func run() -> void:
 	await settle(fe)
 	fe._on_button(fe._key_for_label("Devices"))
 	click(fe, fe.CONTENT.position + fe.PREF_DETENT.off.get_center())
-	check(fe.pref_work.throttle_detent == -1 and Settings().throttle_detent == 60, "DETENT OFF in the working copy only")
+	check(
+		fe.pref_work.throttle_detent == -1 and Settings().throttle_detent == 60, "DETENT OFF in the working copy only"
+	)
 	fe._on_button("back")
 	await settle(fe)
 	click_box(fe.msgbox, 1)

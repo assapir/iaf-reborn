@@ -139,7 +139,9 @@ static func system_allowed(n: int, flags: Array, twin: bool, player: bool, ecm: 
 ## Returns [code, cut_out]. `rand` returns the CRT rand() (0..32767). Quirk kept: picking 2 or 3 sets
 ## the cut-out flag before the test, and the test refuses 2 once that flag is set and 3 always, so an
 ## engine cut-out never happens; the search then steps to a neighbour.
-static func pick_system(damage: float, flags: Array, twin: bool, player: bool, ecm: bool, cut_out: bool, rand: Callable) -> Array:
+static func pick_system(
+	damage: float, flags: Array, twin: bool, player: bool, ecm: bool, cut_out: bool, rand: Callable
+) -> Array:
 	if damage <= 0.0:
 		return [0, cut_out]
 	var n := 0
@@ -162,8 +164,13 @@ static func pick_system(damage: float, flags: Array, twin: bool, player: bool, e
 			var step := 1 if rand.call() % 2 == 1 else -1
 			if n < 0x17 and n != 1 and n - 1 >= 0:
 				n += step
-			while n > 0 and n < 0x17 and n != 1 and n - 1 >= 0 \
-					and (not system_allowed(n, flags, twin, player, ecm, cut_out) or flags[n]):
+			while (
+				n > 0
+				and n < 0x17
+				and n != 1
+				and n - 1 >= 0
+				and (not system_allowed(n, flags, twin, player, ecm, cut_out) or flags[n])
+			):
 				n += step
 		if n >= 0 and n < 25 and flags[n]:
 			n = 0
@@ -176,6 +183,7 @@ static func pick_system(damage: float, flags: Array, twin: bool, player: bool, e
 
 
 # --- the destruction motion (motion 0x14, DestructionMotion.cpp; FUN_004a8100 -> FUN_00465c19) ------
+
 
 ## Mover kinds (mover +0x58, FUN_00465f83) by unit class.
 static func mover_kind(klass: int) -> int:
@@ -192,6 +200,7 @@ static func mover_kind(klass: int) -> int:
 	if klass == 7:
 		return 6
 	return 7  # buildings, trees, sensors …
+
 
 ## Gravity of the fall: 4 g for fixed-wing aircraft (0x63d0e4), none for boats, else 1 g.
 const G := 9.806
@@ -212,11 +221,23 @@ static var fall_keep_heading := false
 ## (pitch, roll, heading, degrees), velocity `vel` (world m/s), terrain height `ground`. Returns the
 ## motion; "timer" = whether the 0.5 s end check runs (fixed-wing aircraft and helicopters only:
 ## the others stay at state 3 where they are).
-static func fall_start(klass: int, pos: Vector3, angles: Vector3, vel: Vector3, ground: float, rand: Callable) -> Dictionary:
+static func fall_start(
+	klass: int, pos: Vector3, angles: Vector3, vel: Vector3, ground: float, rand: Callable
+) -> Dictionary:
 	var kind := mover_kind(klass)
 	var u := func(): return float(rand.call()) / 32767.0
-	var m := {"kind": kind, "p0": pos, "a0": angles, "v0": Vector3.ZERO, "t": 0.0, "T": 0.1,
-		"s": (u.call() - 0.5) * 2.0, "timer": false, "n": 0, "yaw_rate": 0.0}
+	var m := {
+		"kind": kind,
+		"p0": pos,
+		"a0": angles,
+		"v0": Vector3.ZERO,
+		"t": 0.0,
+		"T": 0.1,
+		"s": (u.call() - 0.5) * 2.0,
+		"timer": false,
+		"n": 0,
+		"yaw_rate": 0.0
+	}
 	match kind:
 		1, 4, 6:
 			# (a, b) = (0.5, 1.0): T = a + (b - a)·U; no motion (the hop velocity is overwritten by 0).
@@ -262,7 +283,9 @@ static func fall_at(m: Dictionary, tau: float) -> Array:
 			if tau < m.T:
 				var th := deg_to_rad(a.x)
 				var w: float = (m.n * TAU - s * th) / m.T
-				a = Vector3(rad_to_deg(th + s * w * tau), a.y * (1.0 - tau / m.T), a.z + rad_to_deg(s * m.yaw_rate * tau))
+				a = Vector3(
+					rad_to_deg(th + s * w * tau), a.y * (1.0 - tau / m.T), a.z + rad_to_deg(s * m.yaw_rate * tau)
+				)
 			else:
 				a = Vector3(a.x, a.y, 0.0)
 	return [p, a]

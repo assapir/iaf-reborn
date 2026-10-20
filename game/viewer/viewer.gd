@@ -119,8 +119,10 @@ func _frame_camera() -> void:
 
 func _update_hud() -> void:
 	var name := models[index].get_file() if not models.is_empty() else "-"
-	hud.text = "%s  (%d/%d)   %s\n[←/→] model  [H] helpers %s  [R] auto-rotate  [drag] orbit  [wheel] zoom\nhot reload: re-run iaf-convert and the model refreshes" % [
-		name, index + 1, models.size(), status, "on" if show_helpers else "off"]
+	hud.text = (
+		"%s  (%d/%d)   %s\n[←/→] model  [H] helpers %s  [R] auto-rotate  [drag] orbit  [wheel] zoom\nhot reload: re-run iaf-convert and the model refreshes"
+		% [name, index + 1, models.size(), status, "on" if show_helpers else "off"]
+	)
 
 
 func _process(delta: float) -> void:

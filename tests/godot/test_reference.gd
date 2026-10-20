@@ -18,26 +18,46 @@ func run() -> void:
 	var sorted := names.duplicate()
 	sorted.sort()
 	check(names == sorted, "records sorted by name without case")
-	check(_name(ref) == "A-4E" and not fe._button_enabled("Prev") and fe._button_enabled("Next"),
-		"start: IDF fighters, A-4E, Prev off, Next on")
-	check(fe.checked.get(fe._key_for_label("IDF"), false) and fe.checked.get(fe._key_for_label("Aircraft"), false)
-		and fe.checked.get(fe._key_for_label("Description"), false), "IDF, Aircraft, Description checked")
+	check(
+		_name(ref) == "A-4E" and not fe._button_enabled("Prev") and fe._button_enabled("Next"),
+		"start: IDF fighters, A-4E, Prev off, Next on"
+	)
+	check(
+		(
+			fe.checked.get(fe._key_for_label("IDF"), false)
+			and fe.checked.get(fe._key_for_label("Aircraft"), false)
+			and fe.checked.get(fe._key_for_label("Description"), false)
+		),
+		"IDF, Aircraft, Description checked"
+	)
 	var seen := [_name(ref)]
 	while fe._button_enabled("Next"):
 		fe._on_button(fe._key_for_label("Next"))
 		seen.append(_name(ref))
-	check(seen == ["A-4E", "F-15", "F-16", "F-4 2000", "F-4 E", "Kfir", "Lavi", "Mirage"], "Next walks the IDF fighters: %s" % [seen])
+	check(
+		seen == ["A-4E", "F-15", "F-16", "F-4 2000", "F-4 E", "Kfir", "Lavi", "Mirage"],
+		"Next walks the IDF fighters: %s" % [seen]
+	)
 	fe._on_button(fe._key_for_label("Prev"))
 	check(_name(ref) == "Lavi" and fe._button_enabled("Prev"), "Prev steps back")
 	fe._on_button(fe._key_for_label("Enemy"))
-	check(_name(ref) == "MIG-17" and fe.checked.get(fe._key_for_label("Aircraft"), false), "Enemy: MIG-17, the group stays checked")
+	check(
+		_name(ref) == "MIG-17" and fe.checked.get(fe._key_for_label("Aircraft"), false),
+		"Enemy: MIG-17, the group stays checked"
+	)
 	fe._on_button(fe._key_for_label("Weapons"))
 	check(ref.rows() == ["AA", "AG"] and _name(ref) == "AA-10", "Weapons: AA / AG rows, AA-10")
-	check(ref.press(ref.LIST.position + Vector2(10, ref.ROW_H * 1.5)) and _name(ref) == "AS-14", "a click on the AG row: AS-14")
+	check(
+		ref.press(ref.LIST.position + Vector2(10, ref.ROW_H * 1.5)) and _name(ref) == "AS-14",
+		"a click on the AG row: AS-14"
+	)
 	fe._on_button(fe._key_for_label("IDF"))
 	fe._on_button(fe._key_for_label("Aircraft"))
 	await frames(2)
-	check(ref.pane != null and String(ref.pane.rich.get_parsed_text()).contains("TITLE"), "Description: the record's RTF text")
+	check(
+		ref.pane != null and String(ref.pane.rich.get_parsed_text()).contains("TITLE"),
+		"Description: the record's RTF text"
+	)
 	fe._on_button(fe._key_for_label("Pictures"))
 	check(ref.pane == null and ref.picture != null, "Pictures: the record's picture")
 	fe._on_button(fe._key_for_label("3DView"))
@@ -59,12 +79,25 @@ func run() -> void:
 	ref.guide_button(true)
 	await frames(2)
 	var text := String(ref.pane.rich.get_parsed_text())
-	check(ref.view == "guide" and text.contains("F-16 fixture guide") and text.contains("A missing picture")
-		and not fe.checked.get(fe._key_for_label("Description"), false), "the Pilot guide view: the guide, the missing picture's caption")
+	check(
+		(
+			ref.view == "guide"
+			and text.contains("F-16 fixture guide")
+			and text.contains("A missing picture")
+			and not fe.checked.get(fe._key_for_label("Description"), false)
+		),
+		"the Pilot guide view: the guide, the missing picture's caption"
+	)
 	check(text.begins_with("Open PDF"), "the guide's PDF made: an Open PDF link")
 	fe._on_button(fe._key_for_label("Next"))
-	check(_name(ref) == "F-4 2000" and ref.view == "description" and fe.checked.get(fe._key_for_label("Description"), false),
-		"a record without a guide goes back to Description")
+	check(
+		(
+			_name(ref) == "F-4 2000"
+			and ref.view == "description"
+			and fe.checked.get(fe._key_for_label("Description"), false)
+		),
+		"a record without a guide goes back to Description"
+	)
 	DirAccess.remove_absolute(dir.path_join("f16.md"))
 	DirAccess.remove_absolute(dir.path_join("f16.pdf"))
 	fe.queue_free()
@@ -80,14 +113,35 @@ func _markdown() -> void:
 	var parts: Array = G.parse(md, "/nonexistent", 10)
 	check(parts.size() == 1 and parts[0] is String, "no picture file: one BBCode part")
 	var b: String = parts[0]
-	check(b.contains("[font_size=16][b]Title[/b][/font_size]") and b.contains("[font_size=14][b]Sub[/b]") and b.contains("[font_size=12][b]Small"),
-		"headings # / ## / ###")
-	check(b.contains("A [b]bold[/b] [i]it[/i] [code]code[/code] link a\\b [lb]x]. Same para."), "inline markup, link text, escapes, a joined paragraph")
-	check(b.contains("[ul]one\ntwo more[/ul]") and b.contains("[ol type=1]first\nsecond[/ol]"), "bullet and numbered lists (continuation line)")
-	check(b.contains("[table=2]") and b.contains("[b]A[/b][/cell]") and b.contains("]2[/cell][/table]"), "pipe table, header row bold")
-	check(b.contains("─") and b.contains("[i][color=#aaaab4]Caption here[/color][/i]"), "rule; a missing picture leaves its caption")
+	check(
+		(
+			b.contains("[font_size=16][b]Title[/b][/font_size]")
+			and b.contains("[font_size=14][b]Sub[/b]")
+			and b.contains("[font_size=12][b]Small")
+		),
+		"headings # / ## / ###"
+	)
+	check(
+		b.contains("A [b]bold[/b] [i]it[/i] [code]code[/code] link a\\b [lb]x]. Same para."),
+		"inline markup, link text, escapes, a joined paragraph"
+	)
+	check(
+		b.contains("[ul]one\ntwo more[/ul]") and b.contains("[ol type=1]first\nsecond[/ol]"),
+		"bullet and numbered lists (continuation line)"
+	)
+	check(
+		b.contains("[table=2]") and b.contains("[b]A[/b][/cell]") and b.contains("]2[/cell][/table]"),
+		"pipe table, header row bold"
+	)
+	check(
+		b.contains("─") and b.contains("[i][color=#aaaab4]Caption here[/color][/i]"),
+		"rule; a missing picture leaves its caption"
+	)
 	var png := OS.get_user_data_dir().path_join("guide_md_test.png")
 	Image.create(4, 4, false, Image.FORMAT_RGB8).save_png(png)
 	var with_img: Array = G.parse("Text\n\n![Cap](%s)\n\nAfter\n" % png.get_file(), png.get_base_dir(), 10)
-	check(with_img.size() == 3 and with_img[1] is Dictionary and with_img[1].caption == "Cap", "a picture: its own part with the caption")
+	check(
+		with_img.size() == 3 and with_img[1] is Dictionary and with_img[1].caption == "Cap",
+		"a picture: its own part with the caption"
+	)
 	DirAccess.remove_absolute(png)

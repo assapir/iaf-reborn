@@ -19,17 +19,27 @@ func run() -> void:
 	tv.cockpit.current_waypoint = 0
 	tv._landings = -1  # one more landing than the host has seen (as after a touchdown)
 	await frames(3)
-	check(wing.waypoint_index() == tv.route.size() - 1, "landed: the wingman on the last waypoint (%d)" % wing.waypoint_index())
+	check(
+		wing.waypoint_index() == tv.route.size() - 1,
+		"landed: the wingman on the last waypoint (%d)" % wing.waypoint_index()
+	)
 	check(tv.cockpit.current_waypoint == 0, "the player's NAV is not touched")
 	tv.autopilot.set_waypoint(1)
-	check(tv.flight.ap_waypoint_index() == 1, "next waypoint: the brain index follows (%d)" % tv.flight.ap_waypoint_index())
+	check(
+		tv.flight.ap_waypoint_index() == 1,
+		"next waypoint: the brain index follows (%d)" % tv.flight.ap_waypoint_index()
+	)
 
 	# --- leader death (FUN_004a86b0 → FUN_00440eb0 → FUN_00440ed0): the wingman takes the dead leader's index ---
 	var DM = load("res://mission/damage_model.gd")
 	var ai_pair: Dictionary = {}
 	for f in tv.ai._formations:
-		if f.members.size() >= 2 and f.members[0].get("pilot") != null and f.members[1].get("pilot") != null \
-				and f.route.size() > 2:
+		if (
+			f.members.size() >= 2
+			and f.members[0].get("pilot") != null
+			and f.members[1].get("pilot") != null
+			and f.route.size() > 2
+		):
 			ai_pair = f
 			break
 	check(not ai_pair.is_empty(), "an AI formation with two AI jets")
@@ -43,9 +53,14 @@ func run() -> void:
 		w2.set_waypoint_index(0)
 		l.set_waypoint_index(ai_pair.route.size() - 2)
 		tv.runtime.set_damage_level(ai_pair.members[0], DM.EXPLODED)
-		check(w2.waypoint_index() == ai_pair.route.size() - 2,
-				"an AI leader's death: its wingman on the leader's waypoint (%d)" % w2.waypoint_index())
+		check(
+			w2.waypoint_index() == ai_pair.route.size() - 2,
+			"an AI leader's death: its wingman on the leader's waypoint (%d)" % w2.waypoint_index()
+		)
 	wing.set_waypoint_index(0)
 	tv.autopilot.set_waypoint(2)
 	tv.runtime.set_damage_level(tv.runtime.player_entity(), DM.EXPLODED)
-	check(wing.waypoint_index() == 2, "the player (leader) dies: the wingman on the player's waypoint (%d)" % wing.waypoint_index())
+	check(
+		wing.waypoint_index() == 2,
+		"the player (leader) dies: the wingman on the player's waypoint (%d)" % wing.waypoint_index()
+	)

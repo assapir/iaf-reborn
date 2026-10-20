@@ -49,7 +49,11 @@ func run() -> void:
 		f.set_process(false)
 		f.level = 100
 	var tail: Vector3 = tv.aircraft.global_position
-	var nz: Vector3 = tv.aircraft.flames[0].global_transform * tv.aircraft.flames[0].nozzle if not tv.aircraft.flames.is_empty() else tail
+	var nz: Vector3 = (
+		tv.aircraft.flames[0].global_transform * tv.aircraft.flames[0].nozzle
+		if not tv.aircraft.flames.is_empty()
+		else tail
+	)
 	_look(nz - fwd * 12.0 + side * 2.5 + Vector3(0, 1.0, 0), nz + fwd * 60.0)
 	tv.views.set_cockpit(tv.views.CHASE)
 	for i in 30:
@@ -87,12 +91,16 @@ func _scenes(g: Vector3, fwd: Vector3, side: Vector3, fx: Node) -> void:
 	# 5. A missile trail crossing the view at 500 m/s.
 	if tv.trails != null:
 		var p0 := g + side * 2000.0 + Vector3(0, 400, 0) - side * 900.0
-		_look(g + side * 2000.0 + Vector3(0, 385, 0) - fwd * 140.0, g + side * 2000.0 + Vector3(0, 400, 0) + side * 200.0)
+		_look(
+			g + side * 2000.0 + Vector3(0, 385, 0) - fwd * 140.0, g + side * 2000.0 + Vector3(0, 400, 0) + side * 200.0
+		)
 		var t := 0.0
 		while t < 2.5:
 			var dt: float = tv.get_process_delta_time()
 			t += dt
-			tv.trails.emit("shot_missile", p0 + side * 500.0 * t + Vector3(0, 40.0 * sin(t * 2.0), 0), tv.trails.MISSILE)
+			tv.trails.emit(
+				"shot_missile", p0 + side * 500.0 * t + Vector3(0, 40.0 * sin(t * 2.0), 0), tv.trails.MISSILE
+			)
 			await process_frame
 		var head: Vector3 = p0 + side * 500.0 * t
 		await _save_png("trail_2.5")

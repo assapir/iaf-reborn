@@ -87,6 +87,7 @@ func _text(at: Vector2, t: String, size: float, col: Color, align := HORIZONTAL_
 
 # --- the status bar and the frames ----------------------------------------------------------------------------
 
+
 ## The cautions the lamps / indicators raise (docs/cockpit.md "Panel lights"), worst first: [text, colour].
 func cautions() -> Array:
 	var ind: Array = cockpit.indicators
@@ -116,12 +117,23 @@ func _draw_bar(g: Rect2) -> void:
 	var st: Dictionary = cockpit.state
 	var c := cautions()
 	var warn := c.any(func(e): return e[1] == RED)
-	_text(Vector2(g.position.x + 6 * cockpit.ui_scale(), y), "ICAWS", 9, RED if warn else (AMBER if not c.is_empty() else CYAN))
+	_text(
+		Vector2(g.position.x + 6 * cockpit.ui_scale(), y),
+		"ICAWS",
+		9,
+		RED if warn else (AMBER if not c.is_empty() else CYAN)
+	)
 	_text(Vector2(g.position.x + 40 * cockpit.ui_scale(), y), "%d" % c.size(), 9, WHITE)
 	_text(Vector2(g.position.x + 62 * cockpit.ui_scale(), y), "AP", 9, GREEN if cockpit.indicators[8] else DIM)
 	var tod := int(st.get("tod", 0.0))
-	_text(Vector2(g.position.x, y), "%02d:%02d:%02d" % [(tod / 3600) % 24, (tod / 60) % 60, tod % 60], 9, WHITE,
-			HORIZONTAL_ALIGNMENT_CENTER, g.size.x)
+	_text(
+		Vector2(g.position.x, y),
+		"%02d:%02d:%02d" % [(tod / 3600) % 24, (tod / 60) % 60, tod % 60],
+		9,
+		WHITE,
+		HORIZONTAL_ALIGNMENT_CENTER,
+		g.size.x
+	)
 
 
 func _draw_frames(g: Rect2) -> void:
@@ -150,6 +162,7 @@ func _title(r: Rect2, t: String) -> float:
 
 # --- the lower windows ------------------------------------------------------------------------------------------
 
+
 func _draw_fuel(r: Rect2) -> void:
 	var s: float = cockpit.ui_scale()
 	var y := _title(r, "FUEL")
@@ -169,9 +182,23 @@ func _draw_engine(r: Rect2) -> void:
 	var st: Dictionary = cockpit.state
 	var ab := float(st.get("afterburner", 0.0)) > 0.0
 	_text(Vector2(r.position.x + 4 * s, y + 14.5 * s), "THR", 8, DIM)
-	_text(Vector2(r.position.x, y + 14.5 * s), "%d%%  " % int(round(float(st.throttle) * 100.0)), 11, WHITE, HORIZONTAL_ALIGNMENT_RIGHT, r.size.x)
+	_text(
+		Vector2(r.position.x, y + 14.5 * s),
+		"%d%%  " % int(round(float(st.throttle) * 100.0)),
+		11,
+		WHITE,
+		HORIZONTAL_ALIGNMENT_RIGHT,
+		r.size.x
+	)
 	_text(Vector2(r.position.x + 4 * s, y + 30.4 * s), "RPM", 8, DIM)
-	_text(Vector2(r.position.x, y + 30.4 * s), "%d%%  " % int(round(float(st.get("rpm", 0.0)) * 100.0)), 11, WHITE, HORIZONTAL_ALIGNMENT_RIGHT, r.size.x)
+	_text(
+		Vector2(r.position.x, y + 30.4 * s),
+		"%d%%  " % int(round(float(st.get("rpm", 0.0)) * 100.0)),
+		11,
+		WHITE,
+		HORIZONTAL_ALIGNMENT_RIGHT,
+		r.size.x
+	)
 	if ab:
 		_text(Vector2(r.position.x, r.end.y - 4 * s), "AB", 11, AMBER, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
 
@@ -191,8 +218,14 @@ func _draw_gear(r: Rect2) -> void:
 		else:
 			draw_rect(b, DIM, false, 1.0)
 	var flaps: int = cockpit.flaps_state
-	_text(Vector2(r.position.x, r.end.y - 4 * s), "FLAPS " + ["UP", "TRANS", "DN"][clampi(flaps, 0, 2)], 8,
-			[DIM, AMBER, GREEN][clampi(flaps, 0, 2)], HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
+	_text(
+		Vector2(r.position.x, r.end.y - 4 * s),
+		"FLAPS " + ["UP", "TRANS", "DN"][clampi(flaps, 0, 2)],
+		8,
+		[DIM, AMBER, GREEN][clampi(flaps, 0, 2)],
+		HORIZONTAL_ALIGNMENT_CENTER,
+		r.size.x
+	)
 
 
 func _draw_icaws(r: Rect2) -> void:
@@ -209,9 +242,23 @@ func _draw_autopilot(r: Rect2) -> void:
 	var s: float = cockpit.ui_scale()
 	var y := _title(r, "AP")
 	var on: bool = cockpit.indicators[8]
-	_text(Vector2(r.position.x, y + 17.4 * s), "ON" if on else "OFF", 11, GREEN if on else DIM, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
+	_text(
+		Vector2(r.position.x, y + 17.4 * s),
+		"ON" if on else "OFF",
+		11,
+		GREEN if on else DIM,
+		HORIZONTAL_ALIGNMENT_CENTER,
+		r.size.x
+	)
 	var mode := int(cockpit.state.get("ap_mode", 0))
-	_text(Vector2(r.position.x, y + 31.9 * s), ["", "LVL", "NAV"][clampi(mode, 0, 2)], 8, CYAN, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
+	_text(
+		Vector2(r.position.x, y + 31.9 * s),
+		["", "LVL", "NAV"][clampi(mode, 0, 2)],
+		8,
+		CYAN,
+		HORIZONTAL_ALIGNMENT_CENTER,
+		r.size.x
+	)
 
 
 func _draw_cm(r: Rect2) -> void:
@@ -222,21 +269,39 @@ func _draw_cm(r: Rect2) -> void:
 		var key: String = ["chaff", "flares"][i]
 		_text(Vector2(r.position.x + 4 * s, y + (14.5 + 15.9 * i) * s), ["CHAFF", "FLARE"][i], 8, DIM)
 		var n := int(wp.get(key, 0))
-		_text(Vector2(r.position.x, y + (14.5 + 15.9 * i) * s), "%d  " % n, 11, WHITE if n > 0 else AMBER, HORIZONTAL_ALIGNMENT_RIGHT, r.size.x)
+		_text(
+			Vector2(r.position.x, y + (14.5 + 15.9 * i) * s),
+			"%d  " % n,
+			11,
+			WHITE if n > 0 else AMBER,
+			HORIZONTAL_ALIGNMENT_RIGHT,
+			r.size.x
+		)
 
 
 func _draw_nav(r: Rect2) -> void:
 	var s: float = cockpit.ui_scale()
 	var y := _title(r, "CNI")
 	var st: Dictionary = cockpit.state
-	var rows := [["HDG", "%03d" % (int(round(float(st.heading))) % 360)], ["CAS", "%d" % int(st.get("ias_kt", 0.0))],
-		["G", "%.1f" % float(st.get("g", 1.0))]]
+	var rows := [
+		["HDG", "%03d" % (int(round(float(st.heading))) % 360)],
+		["CAS", "%d" % int(st.get("ias_kt", 0.0))],
+		["G", "%.1f" % float(st.get("g", 1.0))]
+	]
 	for i in rows.size():
 		_text(Vector2(r.position.x + 4 * s, y + (14.5 + 14.5 * i) * s), rows[i][0], 8, DIM)
-		_text(Vector2(r.position.x, y + (14.5 + 14.5 * i) * s), rows[i][1] + "  ", 11, WHITE, HORIZONTAL_ALIGNMENT_RIGHT, r.size.x)
+		_text(
+			Vector2(r.position.x, y + (14.5 + 14.5 * i) * s),
+			rows[i][1] + "  ",
+			11,
+			WHITE,
+			HORIZONTAL_ALIGNMENT_RIGHT,
+			r.size.x
+		)
 
 
 # --- the standby display ------------------------------------------------------------------------------------------
+
 
 ## The ESIS (electronic standby instrument): the attitude sphere as a flat sky / ground split rolled and pitched
 ## (2 px per degree of the 60° tall field), pitch lines every 10°, the fixed aircraft, speed and altitude boxes and
@@ -261,8 +326,19 @@ func _draw_esis(r: Rect2) -> void:
 			draw_polyline(seg, WHITE, maxf(1.0, s * 0.6))
 	# The aircraft symbol, then the speed / altitude / heading readouts.
 	var a := 0.16 * r.size.x
-	draw_polyline(PackedVector2Array([c + Vector2(-a, 0), c + Vector2(-a * 0.35, 0), c + Vector2(0, a * 0.25),
-			c + Vector2(a * 0.35, 0), c + Vector2(a, 0)]), AMBER, maxf(1.5, s * 1.2))
+	draw_polyline(
+		PackedVector2Array(
+			[
+				c + Vector2(-a, 0),
+				c + Vector2(-a * 0.35, 0),
+				c + Vector2(0, a * 0.25),
+				c + Vector2(a * 0.35, 0),
+				c + Vector2(a, 0)
+			]
+		),
+		AMBER,
+		maxf(1.5, s * 1.2)
+	)
 	var fs := r.size.y / s * 0.12
 	var bw := r.size.x * 0.30
 	var bh := r.size.y * 0.17
@@ -274,8 +350,14 @@ func _draw_esis(r: Rect2) -> void:
 		_text(Vector2(b.position.x, b.end.y - bh * 0.22), v, fs, WHITE, HORIZONTAL_ALIGNMENT_CENTER, bw)
 	var hb := Rect2(Vector2(c.x - bw * 0.5, r.end.y - bh), Vector2(bw, bh))
 	draw_rect(hb, Color(0, 0, 0, 0.85))
-	_text(Vector2(hb.position.x, hb.end.y - bh * 0.22), "%03d" % (int(round(float(st.heading))) % 360), fs, WHITE,
-			HORIZONTAL_ALIGNMENT_CENTER, bw)
+	_text(
+		Vector2(hb.position.x, hb.end.y - bh * 0.22),
+		"%03d" % (int(round(float(st.heading))) % 360),
+		fs,
+		WHITE,
+		HORIZONTAL_ALIGNMENT_CENTER,
+		bw
+	)
 	draw_rect(r, Color(0, 0, 0), false, maxf(1.0, s))
 
 
@@ -284,11 +366,16 @@ func _draw_esis(r: Rect2) -> void:
 ## ("Invalid polygon data"): such slivers are left out.
 static func ground_polys(box: PackedVector2Array, h: Vector2, right: Vector2, down: Vector2) -> Array:
 	var big := (box[2] - box[0]).length() * 2.0
-	var ground := PackedVector2Array([h - right * big, h + right * big, h + right * big + down * big, h - right * big + down * big])
-	return Geometry2D.intersect_polygons(box, ground).filter(func(p): return not Geometry2D.triangulate_polygon(p).is_empty())
+	var ground := PackedVector2Array(
+		[h - right * big, h + right * big, h + right * big + down * big, h - right * big + down * big]
+	)
+	return Geometry2D.intersect_polygons(box, ground).filter(
+		func(p): return not Geometry2D.triangulate_polygon(p).is_empty()
+	)
 
 
 # --- layer 1: the glass ------------------------------------------------------------------------------------------
+
 
 ## A faint sheen over the whole glass, the canopy's light reflected near its top fading downward.
 func _draw_sheen() -> void:
@@ -296,11 +383,24 @@ func _draw_sheen() -> void:
 	var mid := g.position.y + g.size.y * 0.45
 	var top := Color(0.75, 0.82, 0.95, 0.07)
 	var clear := Color(0.75, 0.82, 0.95, 0.0)
-	draw_polygon(PackedVector2Array([g.position, Vector2(g.end.x, g.position.y), Vector2(g.end.x, mid), Vector2(g.position.x, mid)]),
-			PackedColorArray([top, top, clear, clear]))
+	draw_polygon(
+		PackedVector2Array(
+			[g.position, Vector2(g.end.x, g.position.y), Vector2(g.end.x, mid), Vector2(g.position.x, mid)]
+		),
+		PackedColorArray([top, top, clear, clear])
+	)
 	# A soft diagonal streak across the left half.
 	var x0 := g.position.x + g.size.x * 0.08
 	var w := g.size.x * 0.10
 	var streak := Color(0.85, 0.9, 1.0, 0.035)
-	draw_polygon(PackedVector2Array([Vector2(x0 + w, g.position.y), Vector2(x0 + 2.2 * w, g.position.y),
-			Vector2(x0 + w * 1.2, g.end.y), Vector2(x0, g.end.y)]), PackedColorArray([streak, clear, clear, streak]))
+	draw_polygon(
+		PackedVector2Array(
+			[
+				Vector2(x0 + w, g.position.y),
+				Vector2(x0 + 2.2 * w, g.position.y),
+				Vector2(x0 + w * 1.2, g.end.y),
+				Vector2(x0, g.end.y)
+			]
+		),
+		PackedColorArray([streak, clear, clear, streak])
+	)

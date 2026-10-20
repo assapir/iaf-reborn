@@ -40,7 +40,7 @@ static func object_for(type: int, bdb: Dictionary, fallback := true) -> Dictiona
 	var dbs := [bdb]
 	if fallback:
 		dbs.append(Settings.load_json(Settings.assets_dir().path_join("converted/missions/default6_1.bdb.json")))
-	for want in ([type] if type != F35I else [FALLBACK]):
+	for want in [type] if type != F35I else [FALLBACK]:
 		for db in dbs:
 			for o in db.get("objects", {}).get("items", []):
 				if int(o.get("0x5b4", -1)) == want and int(o.get("0x5aa", -1)) == 0x1c:
@@ -62,8 +62,16 @@ static func f35i_object(f16: Dictionary) -> Dictionary:
 	o["0x528"] = "F35I"
 	o["armament"]["hardpoints"] = [0, 0, 0, 0, 54, 1, 8, 1, 0, 0, 8, 1, 54, 1, 0, 0, 0, 0, 25, 180, 33, 60, 34, 60]
 	# [weapon id, max count, stations A..I allowed].
-	var loads := [[8, 1, "BCDFGH"], [12, 1, "AI"], [22, 1, "AI"], [54, 1, "BCGH"], [19, 1, "BCGH"], [18, 1, "BCGH"],
-		[17, 1, "BCGH"], [53, 1, "BH"]]
+	var loads := [
+		[8, 1, "BCDFGH"],
+		[12, 1, "AI"],
+		[22, 1, "AI"],
+		[54, 1, "BCGH"],
+		[19, 1, "BCGH"],
+		[18, 1, "BCGH"],
+		[17, 1, "BCGH"],
+		[53, 1, "BH"]
+	]
 	var items := []
 	for l in loads:
 		var raw := PackedByteArray()
@@ -81,8 +89,13 @@ static func profile(type: int) -> Dictionary:
 		type = FALLBACK
 	var plane := plane_for(type)
 	var d := AircraftModel.load_descriptor(plane)
-	return {"type": type, "plane": plane, "fm_section": String(d.get("fm_section", "F-16")),
-			"cockpit_dir": EXTRA_COCKPIT.get(type, "converted/cockpits/" + cockpit_folder(type)), "twin": type in TWIN}
+	return {
+		"type": type,
+		"plane": plane,
+		"fm_section": String(d.get("fm_section", "F-16")),
+		"cockpit_dir": EXTRA_COCKPIT.get(type, "converted/cockpits/" + cockpit_folder(type)),
+		"twin": type in TWIN
+	}
 
 
 ## The converted plane folder whose descriptor lists `type` (f42000 serves both F-4E 120 and F-4 2000 200).

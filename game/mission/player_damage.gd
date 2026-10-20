@@ -130,6 +130,5 @@ func extinguish() -> void:
 ## gear handle down and the left main leg down and locked (leg 1 == 2), not Invulnerable and no gear
 ## damage yet: gear damage (7) through the damage handler (console text, red lamps, master caution).
 func gear_overspeed(speed_mps: float, handle_down: bool, leg1: int, invulnerable: bool) -> void:
-	if minf(speed_mps, 1200.0) * 1.9427955 > 450.0 and not invulnerable and handle_down \
-			and not flags[7] and leg1 == 2:
+	if minf(speed_mps, 1200.0) * 1.9427955 > 450.0 and not invulnerable and handle_down and not flags[7] and leg1 == 2:
 		system_damage(7)

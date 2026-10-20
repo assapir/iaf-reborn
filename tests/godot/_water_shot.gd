@@ -14,7 +14,7 @@ func run() -> void:
 	for kv in OS.get_environment("SHOT_SET").split(",", false):
 		var p := kv.split("=")
 		Settings().set(p[0], str_to_var(p[1]) if str_to_var(p[1]) != null else p[1])
-	for on in ([true, false] if OS.get_environment("SHOT_REVERSE") != "" else [false, true]):
+	for on in [true, false] if OS.get_environment("SHOT_REVERSE") != "" else [false, true]:
 		Settings().water = on
 		change_scene_to_file("res://terrain/terrain_view.tscn")
 		await frames(2)
@@ -43,7 +43,12 @@ func run() -> void:
 		var path := dir.path_join("%s_%s.png" % [OS.get_environment("SHOT_NAME"), "detailed" if on else "original"])
 		root.get_viewport().get_texture().get_image().save_png(path)
 		var to_sun: Vector3 = (tv.get_node("Sun") as Node3D).global_transform.basis.z
-		print("SUN heading %.0f elevation %.0f" % [fposmod(rad_to_deg(atan2(to_sun.x, -to_sun.z)), 360.0), rad_to_deg(asin(to_sun.y))])
+		print(
+			(
+				"SUN heading %.0f elevation %.0f"
+				% [fposmod(rad_to_deg(atan2(to_sun.x, -to_sun.z)), 360.0), rad_to_deg(asin(to_sun.y))]
+			)
+		)
 		print("SHOT water %-5s frame %6.2f ms (p95 %6.2f)  %s" % [on, avg, sorted[int(times.size() * 0.95)], path])
 	Settings().water = false
 	if OS.get_environment("SHOT_BENCH") != "":

@@ -100,10 +100,12 @@ static func _select(b: Dictionary, o: Vector2) -> void:
 		a = b.mask_affine
 	var gx0 := a[0] * o.x + a[1] * o.y + a[2]
 	var gy0 := a[3] * o.x + a[4] * o.y + a[5]
-	RenderingServer.global_shader_parameter_set("airbase_mask_xf",
-			Vector4(a[0] / w_m, -a[3] / h_m, -a[1] / w_m, a[4] / h_m))
-	RenderingServer.global_shader_parameter_set("airbase_mask_rect",
-			Vector4((gx0 - float(m.origin[0])) / w_m, (float(m.origin[1]) - gy0) / h_m, 0.0, 0.0))
+	RenderingServer.global_shader_parameter_set(
+		"airbase_mask_xf", Vector4(a[0] / w_m, -a[3] / h_m, -a[1] / w_m, a[4] / h_m)
+	)
+	RenderingServer.global_shader_parameter_set(
+		"airbase_mask_rect", Vector4((gx0 - float(m.origin[0])) / w_m, (float(m.origin[1]) - gy0) / h_m, 0.0, 0.0)
+	)
 	var texels := []
 	for r in b.runways:
 		var e0 := _godot(r.ends[0], o)

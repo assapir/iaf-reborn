@@ -10,6 +10,7 @@ static var object_level := 3
 static func detail_level(slider: float) -> int:
 	return clampi(1 + floori(2.0 * slider + 1e-4), 1, 3)
 
+
 ## Parses a glTF file: [GLTFDocument, GLTFState], or null when missing / unreadable. Godot's runtime
 ## glTF import creates the textures without mipmaps, so a model seen from afar samples its full-size
 ## texture and shimmers while the camera moves; every texture gets mipmaps and anisotropic filtering.
@@ -25,8 +26,11 @@ static func open(path: String) -> Variant:
 		var bm := m as BaseMaterial3D
 		if bm == null:
 			continue
-		bm.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST if object_level == 1 \
-				else BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+		bm.texture_filter = (
+			BaseMaterial3D.TEXTURE_FILTER_NEAREST
+			if object_level == 1
+			else BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+		)
 		if object_level < 3:
 			bm.metallic_specular = 0.0  # SPECULARENABLE off
 		var t := bm.albedo_texture
@@ -100,7 +104,6 @@ static func instance(model: Array) -> Node3D:
 	return n
 
 
-
 ## Where model_aabb() measures each mesh: its own frame (no transform), the model node's frame, the world.
 enum { MESH_SPACE, NODE_SPACE, GLOBAL_SPACE }
 
@@ -108,13 +111,21 @@ enum { MESH_SPACE, NODE_SPACE, GLOBAL_SPACE }
 ## The merged bounds of every mesh under `node`, each in `space` (the mesh's own frame when the node is
 ## outside the tree); AABB() when it has none.
 static func model_aabb(node: Node3D, space := NODE_SPACE) -> AABB:
-	var inv := node.global_transform.affine_inverse() if space == NODE_SPACE and node.is_inside_tree() else Transform3D.IDENTITY
+	var inv := (
+		node.global_transform.affine_inverse()
+		if space == NODE_SPACE and node.is_inside_tree()
+		else Transform3D.IDENTITY
+	)
 	var box := AABB()
 	var first := true
 	for mi: MeshInstance3D in node.find_children("*", "MeshInstance3D", true, false):
 		if mi.mesh == null:
 			continue
-		var b := mi.get_aabb() if space == MESH_SPACE or not node.is_inside_tree() else (inv * mi.global_transform) * mi.get_aabb()
+		var b := (
+			mi.get_aabb()
+			if space == MESH_SPACE or not node.is_inside_tree()
+			else (inv * mi.global_transform) * mi.get_aabb()
+		)
 		box = b if first else box.merge(b)
 		first = false
 	return box

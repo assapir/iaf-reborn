@@ -51,8 +51,11 @@ static func apply(vp: Viewport, env: Environment) -> void:
 	vp.scaling_3d_scale = scale
 	vp.scaling_3d_mode = upscale_mode() if scale < 1.0 else Viewport.SCALING_3D_MODE_BILINEAR
 	var close: bool = Settings.terrain_closeup
-	vp.anisotropic_filtering_level = Viewport.ANISOTROPY_16X if close \
-			else ProjectSettings.get_setting("rendering/textures/default_filters/anisotropic_filtering_level", 2)
+	vp.anisotropic_filtering_level = (
+		Viewport.ANISOTROPY_16X
+		if close
+		else ProjectSettings.get_setting("rendering/textures/default_filters/anisotropic_filtering_level", 2)
+	)
 	terrain_detail = DETAIL if close else 0.0
 	RenderingServer.global_shader_parameter_set("terrain_detail", terrain_detail)
 	terrain_water = 1.0 if Settings.water else 0.0
@@ -124,4 +127,6 @@ static func _update_surface(c: Vector2, terrain: Node) -> void:
 		RenderingServer.global_shader_parameter_set("terrain_surface", _surf_tex)
 	else:
 		_surf_tex.update(_surf_img)
-	RenderingServer.global_shader_parameter_set("terrain_surface_rect", Vector4(_surf_origin.x, _surf_origin.y, 1.0 / side, 0.0))
+	RenderingServer.global_shader_parameter_set(
+		"terrain_surface_rect", Vector4(_surf_origin.x, _surf_origin.y, 1.0 / side, 0.0)
+	)

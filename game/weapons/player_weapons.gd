@@ -175,7 +175,9 @@ func setup(host_node: Node, entity: Dictionary, object: Dictionary, bdb: Diction
 		var ent = host.runtime.entities.get(key) if host.get("runtime") != null else null
 		if ent != null:
 			ent["known"] = true  # state +0x44: the TSD shows the unit (docs/front-end.md §8.1)
-	radar.setup(jet_type, preload("res://weapons/real_weapons.gd").radar_nm(jet_type) if Settings.real_weapons() else 0.0)
+	radar.setup(
+		jet_type, preload("res://weapons/real_weapons.gd").radar_nm(jet_type) if Settings.real_weapons() else 0.0
+	)
 	rwr = Rwr.new()
 	rwr.unit = _rwr_unit
 	rwr.own = own
@@ -253,6 +255,7 @@ func _push_stores() -> void:
 
 # --- world <-> scene --------------------------------------------------------------------------------
 
+
 func to_scene(w: Vector3) -> Vector3:
 	return host.world_to_scene(w)
 
@@ -268,8 +271,14 @@ func own() -> Dictionary:
 	if host.flight != null:
 		vel = Terrain.dir_to_world(host.flight.state().velocity)
 	var fwd := Terrain.dir_to_world(-b.z)
-	var o := {"pos": to_world(host.rig.global_position), "vel": vel, "fwd": fwd, "up": Terrain.dir_to_world(b.y),
-		"right": Terrain.dir_to_world(b.x), "yaw": atan2(fwd.x, fwd.y)}
+	var o := {
+		"pos": to_world(host.rig.global_position),
+		"vel": vel,
+		"fwd": fwd,
+		"up": Terrain.dir_to_world(b.y),
+		"right": Terrain.dir_to_world(b.x),
+		"yaw": atan2(fwd.x, fwd.y)
+	}
 	o.merge(seeker_view())
 	return o
 
@@ -286,8 +295,11 @@ func seeker_view() -> Dictionary:
 	var f := Terrain.dir_to_world(Hud.ray_normal(cam, c.hud_centre_screen())).normalized()
 	var r := Terrain.dir_to_world(cb.x)
 	r = (r - f * r.dot(f)).normalized()
-	return {"sight": {"fwd": f, "right": r, "up": r.cross(f)}, "view_fwd": Terrain.dir_to_world(-cb.z),
-		"helmet": host.views.snap == null and host.views.type in [Views.FREE_LOOK, Views.PADLOCK]}
+	return {
+		"sight": {"fwd": f, "right": r, "up": r.cross(f)},
+		"view_fwd": Terrain.dir_to_world(-cb.z),
+		"helmet": host.views.snap == null and host.views.type in [Views.FREE_LOOK, Views.PADLOCK]
+	}
 
 
 ## A body point of the jet (descriptor glTF metres) in the world.
@@ -308,8 +320,16 @@ func _units() -> Array:
 		if ent.player or ent.node == null or not ent.visible or ent.state == 5:
 			continue
 		var ab: bool = ent.has("pilot") and int(ent.pilot.state().get("afterburner", 0)) > 0
-		out.append({"key": ent.key, "pos": rt._world_of(ent), "vel": ent.vel, "afterburner": ab, "ent": ent,
-			"hostile": rt._enemy_of_player(ent)})
+		out.append(
+			{
+				"key": ent.key,
+				"pos": rt._world_of(ent),
+				"vel": ent.vel,
+				"afterburner": ab,
+				"ent": ent,
+				"hostile": rt._enemy_of_player(ent)
+			}
+		)
 	return out
 
 
@@ -318,6 +338,7 @@ func _me() -> Dictionary:
 
 
 # --- master and HUD modes (FUN_0044ec80, FUN_00449810, FUN_0044a220) ---------------------------------
+
 
 ## FUN_0044ec80: the master mode and HUD mode of the selected store; `aa_key` = reached by ']'.
 func _master_from_type(aa_key: bool) -> void:
@@ -563,9 +584,17 @@ func _harm_capture() -> void:
 		if int(e.state) >= 4:
 			continue  # the scan skips units in state 4 / 5
 		# search: a hostile site without a brain never locks (docs/ai.md §14); the RWR source lists it (harm.rs).
-		list.append({"key": u.key, "type": int(e.get("type_code", -1)), "klass": int(e.get("klass", -1)),
-			"name": String(e.get("name", "")), "pos": u.pos, "ecm": bool(e.get("ecm", false)),
-			"search": u.hostile and cb != null and cb.brain_of(e) == null})
+		list.append(
+			{
+				"key": u.key,
+				"type": int(e.get("type_code", -1)),
+				"klass": int(e.get("klass", -1)),
+				"name": String(e.get("name", "")),
+				"pos": u.pos,
+				"ecm": bool(e.get("ecm", false)),
+				"search": u.hostile and cb != null and cb.brain_of(e) == null
+			}
+		)
 	var c = host.get("cockpit")
 	harm.source = Settings.harm_targets
 	harm.capture(list, rwr.slots, o.pos, _base(o), c != null and bool(c.indicators[6]), host.mission_ground)
@@ -584,8 +613,14 @@ func tv_status() -> int:
 	var flying := tv_flying()
 	var ft: int = int(tv_weapon.weapon.type) if flying else -1
 	var gs: int = tv_weapon.status() if flying and ft != 635 else 0
-	return ClassDB.class_call_static("IafRelease", "tv_status", ft, gs, stores.current_type(),
-		stores.total(stores.current_type(), stores.current_name()))
+	return ClassDB.class_call_static(
+		"IafRelease",
+		"tv_status",
+		ft,
+		gs,
+		stores.current_type(),
+		stores.total(stores.current_type(), stores.current_name())
+	)
 
 
 ## The TV page's "%3d" (FUN_004d6ac0 of the TV weapon's time left: < 0 → 0, > 300 → 60); 0 before a launch
@@ -635,8 +670,9 @@ func master_key() -> void:
 	var c = host.cockpit
 	if c != null:
 		var rwr_panel := int(c.layout.get("PANELRWR", {}).get("Active", 0)) == 1
-		var pages: PackedInt32Array = ClassDB.class_call_static("IafModes", "m_key_pages", m_cycle, c.mfds.size(),
-			rwr_panel, stores.current_type() == 590)
+		var pages: PackedInt32Array = ClassDB.class_call_static(
+			"IafModes", "m_key_pages", m_cycle, c.mfds.size(), rwr_panel, stores.current_type() == 590
+		)
 		for i in mini(pages.size(), c.mfds.size()):
 			if pages[i] == 10:
 				_replaced[10] = c.mfds[i].page
@@ -666,6 +702,7 @@ func select_station(i: int) -> void:
 
 # --- release (Space) --------------------------------------------------------------------------------
 
+
 func _flag(i: int) -> bool:
 	var f: Array = host.player_damage.flags
 	return i < f.size() and bool(f[i])
@@ -678,8 +715,15 @@ func _weapons_down() -> bool:
 ## Space (event 0x40): HUD mode 1..8; the gear handle down only with Safety off and the gun; not
 ## with weapon systems damage (flag 20).
 func fire_selected() -> void:
-	if not ClassDB.class_call_static("IafRelease", "space_allowed", hud_mode, host.gear_down, safety_off,
-			stores.current_type() == Stores.GUN, _flag(20)):
+	if not ClassDB.class_call_static(
+		"IafRelease",
+		"space_allowed",
+		hud_mode,
+		host.gear_down,
+		safety_off,
+		stores.current_type() == Stores.GUN,
+		_flag(20)
+	):
 		return
 	# FUN_00454270
 	if _weapons_down() or releasing or stores.total(stores.current_type(), stores.current_name()) == 0:
@@ -790,6 +834,7 @@ func _jettison_aim(type: int) -> Vector3:
 
 # --- the gun ----------------------------------------------------------------------------------------
 
+
 ## Tab (event 0x42): the gear handle down needs Safety off.
 func gun_key() -> void:
 	if host.gear_down and not safety_off:
@@ -834,7 +879,16 @@ func _gun_shot() -> bool:
 	var d: Vector3 = GunRounds.shot_dir(o.fwd, o.up)
 	var a: Vector3 = gun.aim_point(o.pos, o.vel, d, hud_mode == 4)
 	var me := _me()
-	gun.fire(now, o.pos, body_to_world(_gun_offset()), o.vel, a, String(radar.locked().get("key", "")), String(me.get("key", "")), easy_aiming)
+	gun.fire(
+		now,
+		o.pos,
+		body_to_world(_gun_offset()),
+		o.vel,
+		a,
+		String(radar.locked().get("key", "")),
+		String(me.get("key", "")),
+		easy_aiming
+	)
 	stores.consume(9)
 	return true
 
@@ -875,9 +929,18 @@ func gun_hit_effect(at: Vector3) -> void:
 # --- homing weapons (class 0x18: 570, 580, 590, 600, 610, 635; docs/weapons.md §5, §11) ---------------
 
 ## The OST of each weapon type (the sound table's sub code 1).
-const WEAPON_OST := {570: "OST_HEATMISSILE", 580: "OST_LIMITEDHEATMISSILE", 590: "OST_HARM", 600: "OST_RADARMISSILE",
-	610: "OST_SEMIRADARMISSILE", 620: "OST_HEATSAM", 630: "OST_RADARSAM", 635: "OST_MAVRICK", 640: "OST_TVMISSILE",
-	650: "OST_LASERBOMB"}
+const WEAPON_OST := {
+	570: "OST_HEATMISSILE",
+	580: "OST_LIMITEDHEATMISSILE",
+	590: "OST_HARM",
+	600: "OST_RADARMISSILE",
+	610: "OST_SEMIRADARMISSILE",
+	620: "OST_HEATSAM",
+	630: "OST_RADARSAM",
+	635: "OST_MAVRICK",
+	640: "OST_TVMISSILE",
+	650: "OST_LASERBOMB"
+}
 ## W+0x274: the semi-active (610) missiles launched at a target and still flying; the radar losing its track
 ## (FUN_00458130) turns their guidance off.
 var semi_active: Array = []
@@ -998,13 +1061,18 @@ func _launch_target(o: Dictionary) -> Array:
 			target = seeker.current(units) if easy_aiming else seeker.target_in_circle(o, units)
 		2, 8:
 			var s := _sight(o, units)
-			if not s.target.is_empty() and (easy_aiming or MrmSight.target_in_circle(IrSeeker.screen_offset(o, s.target.pos), s.locked)):
+			if (
+				not s.target.is_empty()
+				and (easy_aiming or MrmSight.target_in_circle(IrSeeker.screen_offset(o, s.target.pos), s.locked))
+			):
 				target = s.target
 				sight_q = float(s.q)
 	if target.is_empty():
 		return [target, 1.0]
 	var ecm = float(randi() & 0x7fff) / 32767.0 if hud_mode == 2 and bool(target.get("ecm", false)) else null
-	return [target, ClassDB.class_call_static("IafRelease", "launch_q", hud_mode, seeker.lock, sight_q, easy_aiming, ecm)]
+	return [
+		target, ClassDB.class_call_static("IafRelease", "launch_q", hud_mode, seeker.lock, sight_q, easy_aiming, ecm)
+	]
 
 
 ## The MRM (mode 2) / HARM (mode 8) sight this frame: {target (vfunc +0x28: the radar's A-A lock or TWS
@@ -1072,7 +1140,9 @@ func _motion(w: Dictionary) -> Dictionary:
 ## in the launcher's body axes) with q. `owner` = the launcher's mission entity (the blast's attacker). The
 ## weapon's model and flight loop; a target with a controller (the player) hears the launch on its RWR
 ## (FUN_004d8130 -> FUN_0044e160). Not player-specific: AI launchers use it too.
-func launch_homing(w: Dictionary, pos: Vector3, from: Dictionary, target: String, q: float, owner: Dictionary, at = null) -> RefCounted:
+func launch_homing(
+	w: Dictionary, pos: Vector3, from: Dictionary, target: String, q: float, owner: Dictionary, at = null
+) -> RefCounted:
 	var m := _motion(w)
 	var fe := Vector3(m.get("_fireEndVecX", 0.0), m.get("_fireEndVecY", 10000.0), m.get("_fireEndVecZ", 0.0))
 	var point: Vector3 = at if at != null else pos + from.right * fe.x + from.fwd * fe.y + from.up * fe.z
@@ -1091,13 +1161,24 @@ func launch_homing(w: Dictionary, pos: Vector3, from: Dictionary, target: String
 	if target != "" and target == String(_me().get("key", "")):
 		rwr.launch(String(owner.get("key", "")), _rwr_missile(mis))
 		if host.has_method("blackbox_event"):
-			host.blackbox_event({"event": "launch", "key": String(owner.get("key", "")), "weapon": String(w.get("name", "")),
-				"type": int(w.get("type", 0))})
+			host.blackbox_event(
+				{
+					"event": "launch",
+					"key": String(owner.get("key", "")),
+					"weapon": String(w.get("name", "")),
+					"type": int(w.get("type", 0))
+				}
+			)
 	return mis
 
 
 func _rwr_missile(mis: RefCounted) -> Dictionary:
-	return {"id": mis.get_meta("id"), "pos": mis.position(now), "decoy": String(mis.target_key).begins_with("decoy:"), "m": mis}
+	return {
+		"id": mis.get_meta("id"),
+		"pos": mis.position(now),
+		"decoy": String(mis.target_key).begins_with("decoy:"),
+		"m": mis
+	}
 
 
 func _missile_visual(mis: RefCounted) -> void:
@@ -1145,7 +1226,9 @@ func _update_missiles() -> void:
 			node.position = to_scene(p)
 			var dv := Terrain.dir_to_scene(v)
 			if dv.length() > 1.0:
-				node.basis = Basis.looking_at(dv.normalized(), Vector3.UP if absf(dv.normalized().y) < 0.99 else Vector3.RIGHT)
+				node.basis = Basis.looking_at(
+					dv.normalized(), Vector3.UP if absf(dv.normalized().y) < 0.99 else Vector3.RIGHT
+				)
 		_place_sound(mis.get_meta("sound"), p)
 		if not gone:
 			_trail(mis, node)
@@ -1269,8 +1352,15 @@ var _ripple_line: Array = []
 ## The mode-5 HUD object (FUN_0045d0a0 / update FUN_0045d1d0): +0xc impact, +0x18 target, +0x2c off the
 ## HUD (cockpit views), +0x30 time-to-go, +0x3c frozen (Space held), +0x40 blinking (until), and
 ## the world point the pipper is drawn at.
-var ag := {"impact": Vector3.ZERO, "target": Vector3.ZERO, "off": false, "ttg": -1.0, "frozen": false,
-	"blink_until": -INF, "pipper": null}
+var ag := {
+	"impact": Vector3.ZERO,
+	"target": Vector3.ZERO,
+	"off": false,
+	"ttg": -1.0,
+	"frozen": false,
+	"blink_until": -INF,
+	"pipper": null
+}
 ## The host's HUD test (cockpit views only): world point -> {off: bool, origin, dir (scene ray through
 ## the point clipped to the HUD edge toward the flight path marker)}; unset = always on the HUD
 ## (the original's other views).
@@ -1442,7 +1532,11 @@ func _update_ag() -> void:
 	var views = host.get("views")
 	var cockpit: bool = views == null or views.cockpit_like()
 	if not ag.frozen:
-		ag.impact = Bombs.predict_impact(o.pos, o.vel, o.fwd, float(w.get("drag", 0.0)), extra, host.mission_ground, cockpit).point
+		ag.impact = (
+			Bombs
+			. predict_impact(o.pos, o.vel, o.fwd, float(w.get("drag", 0.0)), extra, host.mission_ground, cockpit)
+			. point
+		)
 		var c: Dictionary = hud_clip.call(ag.impact) if hud_clip.is_valid() else {}
 		ag.off = bool(c.get("off", false))
 		ag.pipper = ag.impact
@@ -1452,7 +1546,11 @@ func _update_ag() -> void:
 				ag.target = t
 			ag.ttg = _hdist(ag.impact, ag.target) / maxf(gs, 1.0)
 	elif ag.off:
-		ag.impact = Bombs.predict_impact(o.pos, o.vel, o.fwd, float(w.get("drag", 0.0)), extra, host.mission_ground, cockpit).point
+		ag.impact = (
+			Bombs
+			. predict_impact(o.pos, o.vel, o.fwd, float(w.get("drag", 0.0)), extra, host.mission_ground, cockpit)
+			. point
+		)
 		ag.ttg = _hdist(ag.impact, ag.target) / maxf(gs, 1.0)
 		ag.pipper = ag.target
 	else:
@@ -1523,7 +1621,11 @@ func _trail(key, node: Node3D) -> void:
 	if not node.has_meta("half_length"):
 		node.set_meta("half_length", 0.5 * preload("res://util/gltf.gd").model_aabb(node).size.z * node.scale.z)
 	var back := node.global_basis.z.normalized()  # looking_at: the nose is −Z
-	host.trails.emit(key, node.global_position + back * (MISSILE_FLARE_DISTANCE + float(node.get_meta("half_length"))), host.trails.MISSILE)
+	host.trails.emit(
+		key,
+		node.global_position + back * (MISSILE_FLARE_DISTANCE + float(node.get_meta("half_length"))),
+		host.trails.MISSILE
+	)
 
 
 ## [SFX] MissileFlareDistance (default 1.0, 0x6389fc): how far behind the tail the trail starts.
@@ -1535,7 +1637,9 @@ static func _orient(node: Node3D, v: Vector3) -> void:
 	var dv := Terrain.dir_to_scene(v)
 	if dv.length() > 1.0:
 		var s := node.scale
-		node.basis = Basis.looking_at(dv.normalized(), Vector3.UP if absf(dv.normalized().y) < 0.99 else Vector3.RIGHT).scaled(s)
+		node.basis = (
+			Basis.looking_at(dv.normalized(), Vector3.UP if absf(dv.normalized().y) < 0.99 else Vector3.RIGHT).scaled(s)
+		)
 
 
 ## FUN_004d6130 for a falling store: one area blast (bdb power / radius) over every unit, the
@@ -1609,31 +1713,48 @@ func rocket_effect(pos: Vector3) -> void:
 
 # --- radar (docs/radar.md) ---------------------------------------------------------------------------
 
+
 ## Radar key events (FUN_0044a240): 0x21 / 0x22 range, 0x24 Q modes, 0x2b R A-A / A-G, 0x2c S standby,
 ## 0x2d / 0x2e boresight down / up, 0x26 / 0x27 next / previous target, 0x31 deselect, 0x2a lock (key),
 ## 0x32 select (key, FUN_004add20: a TWS press).
 func radar_event(ev: int, arg = null) -> void:
 	match ev:
-		0x21: radar.step_range(1, now)
-		0x22: radar.step_range(-1, now)
-		0x24: radar.cycle_mode(now)
-		0x2b: radar.toggle_aa_ag(now)
-		0x2c: radar.standby()
-		0x2d: radar.boresight(true)
-		0x2e: radar.boresight(false)
+		0x21:
+			radar.step_range(1, now)
+		0x22:
+			radar.step_range(-1, now)
+		0x24:
+			radar.cycle_mode(now)
+		0x2b:
+			radar.toggle_aa_ag(now)
+		0x2c:
+			radar.standby()
+		0x2d:
+			radar.boresight(true)
+		0x2e:
+			radar.boresight(false)
 		0x26, 0x27:
 			radar.next_target(ev == 0x26, now)
 			# FUN_0044a240 @44a923: with the TV camera running, a Maverick selected and the radar on a target, the
 			# camera restarts on the new target (FUN_00450280).
-			if eo.mode == EoSensor.TV and stores.current_type() == 635 and not radar.damaged and not radar.locked().is_empty():
+			if (
+				eo.mode == EoSensor.TV
+				and stores.current_type() == 635
+				and not radar.damaged
+				and not radar.locked().is_empty()
+			):
 				_eo_start(EoSensor.TV)
-		0x31: radar.deselect(now)
-		0x2a: radar.lock_key(String(arg))
-		0x32: radar.select_key(String(arg))
+		0x31:
+			radar.deselect(now)
+		0x2a:
+			radar.lock_key(String(arg))
+		0x32:
+			radar.select_key(String(arg))
 		0x2f:
 			var g = host.mission_ground(Vector3(arg.x, arg.y, 0.0))
 			radar.designate(arg.x, arg.y, float(g) if g != null else 0.0, now)
-		0x30: radar.toggle_exp()
+		0x30:
+			radar.toggle_exp()
 
 
 ## The radar's on-lock / on-unlock (FUN_004b0510 / FUN_004b04d0, combat.gd `on_lock`; docs/rwr.md §2).
@@ -1654,8 +1775,12 @@ func _rwr_unit(key: String) -> Dictionary:
 	if rt == null or not rt.entities.has(key):
 		return {}
 	var ent: Dictionary = rt.entities[key]
-	return {"pos": rt._world_of(ent), "klass": int(ent.get("klass", -1)), "type": int(ent.get("type_code", 0)),
-		"state": int(ent.get("state", 1))}
+	return {
+		"pos": rt._world_of(ent),
+		"klass": int(ent.get("klass", -1)),
+		"type": int(ent.get("type_code", 0)),
+		"state": int(ent.get("state", 1))
+	}
 
 
 ## The cockpit's radar snapshot (FUN_00445f10 → state+0x640.., +0xa00..): mode, range index (1..6),
@@ -1668,10 +1793,21 @@ func radar_snapshot() -> Dictionary:
 		var d: Vector3 = (lk.pos - o.pos).normalized()
 		# The record keeps no unit once its unit left the list (destroyed / hidden this frame): no closure then.
 		closure = (o.vel - (lk.unit.vel as Vector3)).dot(d) if lk.has("unit") else 0.0
-	return {"mode": radar.mode, "idx": radar.range_index(), "width": radar.scope_width(),
-		"shift": radar.heading_shift, "antenna": radar.antenna, "contacts": radar.contacts,
-		"lock": lk, "closure": closure, "has_lock": not lk.is_empty(),
-		"exp": radar.exp, "designated": radar.designated, "desig": radar.desig, "dlz": s348}
+	return {
+		"mode": radar.mode,
+		"idx": radar.range_index(),
+		"width": radar.scope_width(),
+		"shift": radar.heading_shift,
+		"antenna": radar.antenna,
+		"contacts": radar.contacts,
+		"lock": lk,
+		"closure": closure,
+		"has_lock": not lk.is_empty(),
+		"exp": radar.exp,
+		"designated": radar.designated,
+		"desig": radar.desig,
+		"dlz": s348
+	}
 
 
 # --- chaff and flares (events 0x44 / 0x45, docs/weapons.md §10) ------------------------------------
@@ -1704,8 +1840,14 @@ func dispense(type: int) -> bool:
 	if not stores.stations.has(i) or stores.displayed(i) == 0:
 		return false  # no message, no sound
 	var st: Dictionary = host.flight.state() if host.flight != null else {}
-	if not release_decoy(type, body_to_world(stores.station(i).attach), own(), String(_me().get("key", "")),
-			int(st.get("afterburner", 0)) > 0, float(st.get("g", 1.0))):
+	if not release_decoy(
+		type,
+		body_to_world(stores.station(i).attach),
+		own(),
+		String(_me().get("key", "")),
+		int(st.get("afterburner", 0)) > 0,
+		float(st.get("g", 1.0))
+	):
 		return false
 	stores.consume(i)
 	return true
@@ -1771,7 +1913,9 @@ func _decoy_effect(type: int, dc_id: int, key: String, ab: bool, g_load: float) 
 	for mis in list:
 		if not int(mis.weapon.get("type", 0)) in DECOY_KINDS[type]:
 			continue
-		var p := (0.3 if g_load > 4.0 else 0.1) if type == Stores.CHAFF else (0.0 if ab else (0.5 if g_load > 4.0 else 0.33))
+		var p := (
+			(0.3 if g_load > 4.0 else 0.1) if type == Stores.CHAFF else (0.0 if ab else (0.5 if g_load > 4.0 else 0.33))
+		)
 		if (type == Stores.FLARE and ab) or randf() > p:
 			break
 		mis.retarget("decoy:%d" % dc_id)
@@ -1791,7 +1935,12 @@ func ecm_key() -> void:
 		return
 	var me := String(_me().get("key", ""))
 	for mis in missiles:
-		if String(mis.target_key) == me and int(mis.weapon.get("type", 0)) in [600, 610] and not mis.ended and randf() < 0.6:
+		if (
+			String(mis.target_key) == me
+			and int(mis.weapon.get("type", 0)) in [600, 610]
+			and not mis.ended
+			and randf() < 0.6
+		):
 			mis.guidance_off = true
 	c.indicators[6] = true
 
@@ -1811,6 +1960,7 @@ func decoy_position(dc: Dictionary) -> Vector3:
 
 
 # --- every frame ------------------------------------------------------------------------------------
+
 
 ## Advances the weapons to sim time `t`.
 func update(t: float) -> void:
@@ -1915,8 +2065,16 @@ func _break_x_cue(o: Dictionary) -> bool:
 	if f != null and t != null:
 		var st: Dictionary = f.state()
 		var g = t.height_at(host.rig.position)
-		if not st.is_empty() and g != null and FlightSounds.pull_up((st.position.y - float(g)) * FlightSounds.FT_PER_M,
-				host.gear_down, float(st.get("pitch", 0.0)), hud_mode):
+		if (
+			not st.is_empty()
+			and g != null
+			and FlightSounds.pull_up(
+				(st.position.y - float(g)) * FlightSounds.FT_PER_M,
+				host.gear_down,
+				float(st.get("pitch", 0.0)),
+				hud_mode
+			)
+		):
 			return true
 	return _break_x(o)
 
@@ -1969,15 +2127,18 @@ func _publish() -> void:
 			circle = float(sg.r)
 			if not sg.dlz.is_empty():
 				_srm_dlz = [float(sg.dlz[0]), float(sg.dlz[1]), float(sg.dist)]
-			shoot = ClassDB.class_call_static("IafRelease", "srm_shoot_cue", seeker.lock, _station_has_rounds(),
-				_srm_dlz[0], _srm_dlz[1], _srm_dlz[2])
+			shoot = ClassDB.class_call_static(
+				"IafRelease", "srm_shoot_cue", seeker.lock, _station_has_rounds(), _srm_dlz[0], _srm_dlz[1], _srm_dlz[2]
+			)
 		elif hud_mode == 2:
 			circle = float(sg.r)
 			if sg.pred != null and radar.has_lock():
 				mrm_pt = sg.pred
 				var hud_only: bool = host.get("views") != null and host.views.type == Views.HUD_ONLY
 				var inside: bool = MrmSight.in_circle(IrSeeker.screen_offset(o, sg.pred), sg.r, hud_only)[0]
-				shoot = ClassDB.class_call_static("IafRelease", "shoot_cue", inside, have, radar.aa, sg.dlz, float(sg.dist))
+				shoot = ClassDB.class_call_static(
+					"IafRelease", "shoot_cue", inside, have, radar.aa, sg.dlz, float(sg.dist)
+				)
 		elif not sg.target.is_empty():
 			harm_pt = sg.target.pos
 			harm_in_range = ClassDB.class_call_static("IafRelease", "harm_in_range", have, sg.dlz, float(sg.dist))
@@ -1992,29 +2153,71 @@ func _publish() -> void:
 		var d: Vector3 = GunRounds.shot_dir(o.fwd, o.up)
 		pip = gun.aim_point(o.pos, o.vel, d, true)  # world point, projected by the HUD
 	c.radar = radar_snapshot()
-	c.eo = {"mode": eo.mode, "camera": eo.camera, "fov": eo.FOV_DEG / eo.zoom, "flir": eo.flir_page(eo_ae,
-		(eo_centre - o.pos).length()), "tv": eo.tv_page(eo_ae, tv_status()), "tv_time": tv_time(), "flir_pod": flir_pod}
+	c.eo = {
+		"mode": eo.mode,
+		"camera": eo.camera,
+		"fov": eo.FOV_DEG / eo.zoom,
+		"flir": eo.flir_page(eo_ae, (eo_centre - o.pos).length()),
+		"tv": eo.tv_page(eo_ae, tv_status()),
+		"tv_time": tv_time(),
+		"flir_pod": flir_pod
+	}
 	c.harm = harm.page(_base(o), stores.total(stores.current_type(), stores.current_name()), harm_in_range)
 	c.rwr = rwr.display()
 	c.sam_sites = _sam_sites()
 	c.indicators[Rwr.LAMP_AI] = rwr.lamps[Rwr.LAMP_AI]
 	c.indicators[Rwr.LAMP_SAM] = rwr.lamps[Rwr.LAMP_SAM]
 	c.weapons = {
-		"hud_mode": hud_mode, "master": master, "stations": list, "selected": stores.cur,
-		"name": stores.current_name(), "type": t, "total": stores.total(t, stores.current_name()),
-		"ready": not mal, "srm": srm, "mrm": mrm, "gun": stores.displayed(9),
-		"chaff": stores.displayed(10), "flares": stores.displayed(11),
-		"quantity": ripple_qty, "interval": ripple_int, "seeker": seeker.symbol, "lock": seeker.lock,
-		"have_missiles": stores.total(t, stores.current_name()) > 0, "circle": circle, "mrm_point": mrm_pt,
-		"shoot": shoot, "harm_point": harm_pt, "tv_point": eo_centre if hud_mode == 7 and tv_status() != 0 else null, "sec": s380, "bearing": _lock_bearing(o),
+		"hud_mode": hud_mode,
+		"master": master,
+		"stations": list,
+		"selected": stores.cur,
+		"name": stores.current_name(),
+		"type": t,
+		"total": stores.total(t, stores.current_name()),
+		"ready": not mal,
+		"srm": srm,
+		"mrm": mrm,
+		"gun": stores.displayed(9),
+		"chaff": stores.displayed(10),
+		"flares": stores.displayed(11),
+		"quantity": ripple_qty,
+		"interval": ripple_int,
+		"seeker": seeker.symbol,
+		"lock": seeker.lock,
+		"have_missiles": stores.total(t, stores.current_name()) > 0,
+		"circle": circle,
+		"mrm_point": mrm_pt,
+		"shoot": shoot,
+		"harm_point": harm_pt,
+		"tv_point": eo_centre if hud_mode == 7 and tv_status() != 0 else null,
+		"sec": s380,
+		"bearing": _lock_bearing(o),
 		# S+0x3a4 (FUN_00456520): the radar's lock / TWS selection, the HARM sensor's target, the mode-1 seeker's.
-		"target": ClassDB.class_call_static("IafRelease", "has_target", not radar.locked().is_empty(),
-			harm.active and harm.selected != "", hud_mode, seeker.target_key != ""),
-		"pipper": pip, "pipper_world": hud_mode == 4, "firing": firing, "break_x": _break_x_cue(o),
+		"target":
+		ClassDB.class_call_static(
+			"IafRelease",
+			"has_target",
+			not radar.locked().is_empty(),
+			harm.active and harm.selected != "",
+			hud_mode,
+			seeker.target_key != ""
+		),
+		"pipper": pip,
+		"pipper_world": hud_mode == 4,
+		"firing": firing,
+		"break_x": _break_x_cue(o),
 		# The mode-5 object's cockpit state (FUN_00445db0: +0x620 off, +0x624 point, +0x638 time-to-go
-		# capped at 1000, +0x62c frozen, +0x630 blinking; ours also the target +0x18 for the Real HUD).
-		"ag": {"pipper": ag.pipper if hud_mode in [5, 6] else null, "off": ag.off, "frozen": ag.frozen, "target": ag.target,
-			"ttg": ClassDB.class_call_static("IafRelease", "ttg_shown", float(ag.ttg)), "blink": now < float(ag.blink_until)},
+		"ag":
+		{
+			# capped at 1000, +0x62c frozen, +0x630 blinking; ours also the target +0x18 for the Real HUD).
+			"pipper": ag.pipper if hud_mode in [5, 6] else null,
+			"off": ag.off,
+			"frozen": ag.frozen,
+			"target": ag.target,
+			"ttg": ClassDB.class_call_static("IafRelease", "ttg_shown", float(ag.ttg)),
+			"blink": now < float(ag.blink_until)
+		},
 	}
 
 
@@ -2037,6 +2240,7 @@ func _sam_sites() -> Array:
 
 
 # --- visuals ----------------------------------------------------------------------------------------
+
 
 static func _instance(path: String) -> Node3D:
 	if path == "":
@@ -2159,7 +2363,9 @@ func _internal(i: int) -> bool:
 ## and within 9000 m of the camera. Ours: a bay station's stores only while its doors are half open.
 func _update_store_nodes() -> void:
 	var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
-	var near := cam == null or host.rig == null or cam.global_position.distance_to(host.rig.global_position) < STORES_DRAW_DIST
+	var near := (
+		cam == null or host.rig == null or cam.global_position.distance_to(host.rig.global_position) < STORES_DRAW_DIST
+	)
 	var bay_shown: bool = host.aircraft != null and host.aircraft.bay_fraction() > 0.5
 	for nodes in [_store_nodes, _bc_store_nodes]:
 		for i in nodes:
@@ -2207,7 +2413,9 @@ func _update_visuals() -> void:
 			n.position = to_scene(gun.position(r, now))
 			var u: Vector3 = r.u
 			var du := Terrain.dir_to_scene(u)
-			n.basis = Basis.looking_at(du, Vector3.UP if absf(du.y) < 0.99 else Vector3.RIGHT).scaled(Vector3.ONE * _round_scale)
+			n.basis = Basis.looking_at(du, Vector3.UP if absf(du.y) < 0.99 else Vector3.RIGHT).scaled(
+				Vector3.ONE * _round_scale
+			)
 	if _flash != null:
 		_flash.visible = firing
 		if firing:

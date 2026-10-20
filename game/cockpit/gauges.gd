@@ -27,8 +27,11 @@ static func engine_needles(st: Dictionary) -> PackedFloat32Array:
 	if b.size() != 6:
 		return en
 	var out := en.duplicate()
-	var on := [Settings.better_cockpit_on("throttle_ab"), Settings.better_cockpit_on("engine_rpm"),
-			Settings.better_cockpit_on("engine_temp")]
+	var on := [
+		Settings.better_cockpit_on("throttle_ab"),
+		Settings.better_cockpit_on("engine_rpm"),
+		Settings.better_cockpit_on("engine_temp")
+	]
 	for i in 6:
 		if on[i % 3]:
 			out[i] = b[i]
@@ -66,8 +69,15 @@ static func draw(c: Control, s: float) -> void:
 		var fs := maxi(int(r.size.y * 1.2 * s), 1)
 		while fs > 1 and font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x > r.size.x * s:
 			fs -= 1
-		c.draw_string(font, tl + Vector2(0, r.size.y * s * 0.92), text, HORIZONTAL_ALIGNMENT_CENTER, r.size.x * s, fs,
-				Color8(226, 224, 214))
+		c.draw_string(
+			font,
+			tl + Vector2(0, r.size.y * s * 0.92),
+			text,
+			HORIZONTAL_ALIGNMENT_CENTER,
+			r.size.x * s,
+			fs,
+			Color8(226, 224, 214)
+		)
 	if Settings.better_cockpit_on("panel_clock") and CLOCKS.has(folder):
 		var k: Dictionary = CLOCKS[folder]
 		var at: Vector2 = c.panel_to_screen(k.centre.x, k.centre.y)

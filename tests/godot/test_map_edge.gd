@@ -15,8 +15,14 @@ func run() -> void:
 	check(t.surface_at(at.call(616000.0, 600000.0, 0.0)) & 0xc0 != 0, "the outer band 4 km east")
 	tv.gear_down = false
 	tv.throttle = 0.74
-	tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, start, Vector3(0.0, 0.0, 90.0),
-			Vector3(250.0, 0.0, 0.0), {"airborne": true, "engine_on": true, "real_data": false})
+	tv.flight.start(
+		Settings().assets_dir().path_join("install"),
+		tv.player.fm_section,
+		start,
+		Vector3(0.0, 0.0, 90.0),
+		Vector3(250.0, 0.0, 0.0),
+		{"airborne": true, "engine_on": true, "real_data": false}
+	)
 	await fly(tv, 1.0)
 	check(int(tv.flight.state().end_worlds) == 1, "EndWorld counted once in the frame")
 	check("endworld.wav" in tv.sounds.played, "EndWorld.wav played")

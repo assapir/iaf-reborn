@@ -82,7 +82,16 @@ func _draw() -> void:
 	if back != null:
 		draw_texture_rect(back, Rect2(o, SIZE * s), false)
 	var fs := int(round(12 * s))
-	draw_multiline_string(font, o + Vector2(10, 20) * s + Vector2(0, font.get_ascent(fs)), text, HORIZONTAL_ALIGNMENT_CENTER, (SIZE.x - 20) * s, fs, 4, Color.WHITE)
+	draw_multiline_string(
+		font,
+		o + Vector2(10, 20) * s + Vector2(0, font.get_ascent(fs)),
+		text,
+		HORIZONTAL_ALIGNMENT_CENTER,
+		(SIZE.x - 20) * s,
+		fs,
+		4,
+		Color.WHITE
+	)
 	var r := rects()
 	for i in r.size():
 		var t := _tex("misc/mbg%s_%d.png" % [buttons[i], 2 if pressed == i else 0])

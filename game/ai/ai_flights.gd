@@ -174,7 +174,9 @@ func _attach(p: Pilot, scale: float, on_ground: bool) -> void:
 ## FUN_004a8e70(1) on the player's old jet (the FlyTSD's Fly, docs/views.md §1): brain controlled, it flies on from
 ## its state with the player's flight model `flight`, its systems damage and the stores it had left (`load`,
 ## [[weapon id, count] × 12]); `airborne_start`: its start was airborne.
-func adopt(ent: Dictionary, flight, plane: String, scale: float, systems: Array, load: Array, airborne_start: bool) -> void:
+func adopt(
+	ent: Dictionary, flight, plane: String, scale: float, systems: Array, load: Array, airborne_start: bool
+) -> void:
 	var p := Pilot.new()
 	p._host = self
 	p.ent = ent
@@ -240,7 +242,15 @@ func _load_formations(files: Array) -> void:
 		var route := []
 		for q in f.get("points", []):
 			route.append([float(q[1]), float(q[2]), float(q[3]), float(q[4]), int(q[5])])
-		_formations.append({"id": int(f["0x1e"]), "kind": int(f.get("0x3f2", 0)), "members": members, "targets": targets, "route": route})
+		_formations.append(
+			{
+				"id": int(f["0x1e"]),
+				"kind": int(f.get("0x3f2", 0)),
+				"members": members,
+				"targets": targets,
+				"route": route
+			}
+		)
 
 
 func _formation_of(ent: Dictionary) -> Dictionary:
@@ -261,16 +271,24 @@ func _start(p: Pilot, install: String, plane: String) -> bool:
 	var rule: Vector2i = flight.start_rule(install, w.x, w.y, w.z)
 	var airborne: bool = flight.is_airborne_start(w.z, rule.x != 0)
 	var engine_on := rule.y != 0
-	var err: String = flight.start(install, plane, pos, Vector3(0.0, 0.0, float(p.ent.heading)),
-			vel if airborne else Vector3.ZERO, {"airborne": airborne, "engine_on": engine_on, "real_data": host.real_data})
+	var err: String = flight.start(
+		install,
+		plane,
+		pos,
+		Vector3(0.0, 0.0, float(p.ent.heading)),
+		vel if airborne else Vector3.ZERO,
+		{"airborne": airborne, "engine_on": engine_on, "real_data": host.real_data}
+	)
 	if err != "":
 		push_warning("AI %s: %s" % [p.ent.name, err])
 		return false
 	flight.set_ai(host.enemy_of_player(p.ent), int(host.mission_pref("ai_level")))
 	flight.ap_setup(install, host.terrain.world_origin.x, host.terrain.world_origin.y)
-	flight.ap_set_ground(func(pos: Vector3):
-		var g = host.terrain.height_at(pos)
-		return float(g) if g != null else -1.0e9)
+	flight.ap_set_ground(
+		func(pos: Vector3):
+			var g = host.terrain.height_at(pos)
+			return float(g) if g != null else -1.0e9
+	)
 	var pts := PackedFloat64Array()
 	for q in p.route():
 		pts.append_array(q)
@@ -334,7 +352,9 @@ func _place(p: Pilot) -> void:
 	p.node.position = st.position
 	p.node.basis = Basis(st.right, st.up, -st.forward).scaled(p.node.scale) if st.has("right") else p.node.basis
 	var parts := {}
-	for k in ["stick_x", "stick_y", "rudder", "flaps", "gear_down", "brakes", "gear", "on_ground", "afterburner", "rpm"]:
+	for k in [
+		"stick_x", "stick_y", "rudder", "flaps", "gear_down", "brakes", "gear", "on_ground", "afterburner", "rpm"
+	]:
 		if st.has(k):
 			parts[k] = st[k]
 	p.node.update(parts, get_process_delta_time())
@@ -362,7 +382,13 @@ func _feed_leader(p: Pilot) -> void:
 		st = ref.pilot.state()
 	else:
 		var w: Vector3 = world_of(ref)
-		st = {"position": host.world_to_scene(w), "velocity": Vector3.ZERO, "pitch": 0.0, "roll": 0.0, "heading": float(ref.heading)}
+		st = {
+			"position": host.world_to_scene(w),
+			"velocity": Vector3.ZERO,
+			"pitch": 0.0,
+			"roll": 0.0,
+			"heading": float(ref.heading)
+		}
 	var att := Vector3(st.pitch, st.roll, st.heading)
 	p.flight.ap_set_leader(true, active, st.position, st.velocity, att)
 
@@ -380,8 +406,13 @@ func _feed_target(p: Pilot) -> void:
 		st = t.pilot.state()
 	else:
 		var w: Vector3 = world_of(t)
-		st = {"position": host.world_to_scene(w), "velocity": Terrain.dir_to_scene(t.vel), "pitch": 0.0, "roll": 0.0,
-			"heading": float(t.heading)}
+		st = {
+			"position": host.world_to_scene(w),
+			"velocity": Terrain.dir_to_scene(t.vel),
+			"pitch": 0.0,
+			"roll": 0.0,
+			"heading": float(t.heading)
+		}
 	p.flight.ap_set_target(true, st.position, st.velocity, st.pitch, st.roll, st.heading)
 
 
@@ -390,6 +421,7 @@ func follow(_p: Pilot, _leader) -> void:
 
 
 # --- brain host --------------------------------------------------------------------------------
+
 
 ## brain+0x44 (FUN_0043eef0): the wingman of my formation, else its leader unless that is me.
 func partner_of(ent: Dictionary) -> Dictionary:

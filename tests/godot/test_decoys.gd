@@ -69,8 +69,10 @@ func run() -> void:
 	w.ecm_fitted = true
 	w.ecm_key()
 	var jammed := radar_m.filter(func(m): return m.guidance_off).size()
-	check(tv.cockpit.indicators[6] and jammed > 0 and jammed < 10 and not ir.guidance_off,
-			"ECM on: light 6, %d of 10 radar missiles jammed, the IR missile not" % jammed)
+	check(
+		tv.cockpit.indicators[6] and jammed > 0 and jammed < 10 and not ir.guidance_off,
+		"ECM on: light 6, %d of 10 radar missiles jammed, the IR missile not" % jammed
+	)
 	w.ecm_key()
 	check(not tv.cockpit.indicators[6], "J again: ECM off")
 	w.ecm_fitted = false
@@ -83,8 +85,10 @@ func run() -> void:
 	check(w.release_decoy(550, p0, from, "cut_test", false, 1.0), "a low flare released")
 	var dc: Dictionary = w.decoys.back()
 	var g = tv.mission_ground(dc.r.A)
-	check(g != null and absf(dc.r.A.z - float(g)) < 1.0 and p0.distance_to(dc.r.A) < 150.0,
-			"its aim cut at the terrain: %.0f m out, %.2f m off the ground" % [p0.distance_to(dc.r.A), dc.r.A.z - float(g)])
+	check(
+		g != null and absf(dc.r.A.z - float(g)) < 1.0 and p0.distance_to(dc.r.A) < 150.0,
+		"its aim cut at the terrain: %.0f m out, %.2f m off the ground" % [p0.distance_to(dc.r.A), dc.r.A.z - float(g)]
+	)
 
 
 func _weapon_id(w, type: int) -> int:

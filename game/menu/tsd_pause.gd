@@ -76,5 +76,16 @@ static func text_on() -> bool:
 func _draw_text() -> void:
 	if text_on():
 		_text.draw_set_transform(fe._origin())
-		Gdi.text_out(_text, _font, Overlay.PAUSE_WEIGHT, Overlay.PAUSE_TEXT, Gdi.ppem(50, Overlay.PAUSE_WEIGHT),
-				Overlay.PAUSE_POS.x, Overlay.PAUSE_POS.y, fe._scale(), Overlay.PAUSE_COLOUR, false, true)
+		Gdi.text_out(
+			_text,
+			_font,
+			Overlay.PAUSE_WEIGHT,
+			Overlay.PAUSE_TEXT,
+			Gdi.ppem(50, Overlay.PAUSE_WEIGHT),
+			Overlay.PAUSE_POS.x,
+			Overlay.PAUSE_POS.y,
+			fe._scale(),
+			Overlay.PAUSE_COLOUR,
+			false,
+			true
+		)

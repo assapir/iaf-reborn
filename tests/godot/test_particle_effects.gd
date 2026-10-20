@@ -15,8 +15,17 @@ func _effects(detailed: bool) -> Node3D:
 	fx._rng.seed = 1234
 	# Every explosion kind of explosion_for, a missile hit, a bomb, a cluster, damage smoke.
 	var p := Vector3(0, 100, 0)
-	for k in [[1, 0, false, false], [1, 0, true, false], [1, 0, true, true], [5, 0, true, false], [8, 0, true, false],
-			[0xc, 410, true, false], [0xc, 420, true, false], [0xc, 0, true, false], [0xf, 0, true, false]]:
+	for k in [
+		[1, 0, false, false],
+		[1, 0, true, false],
+		[1, 0, true, true],
+		[5, 0, true, false],
+		[8, 0, true, false],
+		[0xc, 410, true, false],
+		[0xc, 420, true, false],
+		[0xc, 0, true, false],
+		[0xf, 0, true, false]
+	]:
 		var e: Dictionary = fx.explosion_for(k[0], k[1], k[2], k[3])
 		fx.explosion(p, e.flags, e.scale, e.duration, 0.0, 6.0)
 		p.x += 50.0
@@ -46,9 +55,14 @@ func run() -> void:
 	var shown_b := _run(b, 300)
 	var t2 := Time.get_ticks_usec()
 	print("CPU per step: original %.3f ms, detailed %.3f ms" % [(t1 - t0) / 300000.0, (t2 - t1) / 300000.0])
-	check(a.gpu == null and a.find_children("*", "GPUParticles3D", true, false).is_empty(), "Original: no GPU particles")
+	check(
+		a.gpu == null and a.find_children("*", "GPUParticles3D", true, false).is_empty(), "Original: no GPU particles"
+	)
 	check(shown_a > 0, "Original: the puffs are drawn as billboards (%d at most)" % shown_a)
-	check(b.gpu != null and b.find_children("*", "GPUParticles3D", true, false).size() == 3, "Detailed: the three GPU pools")
+	check(
+		b.gpu != null and b.find_children("*", "GPUParticles3D", true, false).size() == 3,
+		"Detailed: the three GPU pools"
+	)
 	check(a.spawned > 100 and a.spawned == b.spawned, "the same puffs spawn in both (%d / %d)" % [a.spawned, b.spawned])
 	var ca: Dictionary = a.counts()
 	var cb: Dictionary = b.counts()
@@ -73,7 +87,9 @@ func run() -> void:
 			t.emit("missile", Vector3(i * 10.0, 500, 0), t.MISSILE)
 			t._process(STEP)
 	check(ta.counts() == tb.counts(), "trails: the same points and glows (%s)" % [tb.counts()])
-	check(ta._mesh.get_surface_count() == 1 and tb._mesh.get_surface_count() == 0, "missile trail: a ribbon / GPU smoke")
+	check(
+		ta._mesh.get_surface_count() == 1 and tb._mesh.get_surface_count() == 0, "missile trail: a ribbon / GPU smoke"
+	)
 	check(b.gpu.emitted.smoke > smoke0, "missile trail: GPU smoke emitted")
 	for t in [ta, tb]:
 		for i in 3:
@@ -118,7 +134,10 @@ func run() -> void:
 		f.level = 100
 		f.rebuild()
 		if detailed:
-			check(f.haze != null and f.haze.get_parent() == holder and f.haze.visible, "Detailed: the afterburner's heat haze")
+			check(
+				f.haze != null and f.haze.get_parent() == holder and f.haze.visible,
+				"Detailed: the afterburner's heat haze"
+			)
 			# The haze's near end (the cylinder's bottom ring centre) sits on the nozzle, in the model's frame.
 			var near: Vector3 = f.haze.global_transform * Vector3(0, -0.5, 0)
 			var nz: Vector3 = f.global_transform * f.nozzle
@@ -142,8 +161,13 @@ func run() -> void:
 			var helper: Node3D = m.find_child("EngineR" if f.name.ends_with("right") else "EngineL", true, false)
 			worst = maxf(worst, (f.haze.global_transform * Vector3(0, -0.5, 0)).distance_to(helper.global_position))
 			n += 1
-		check(n > 0 and worst < 0.03, "%s (%s model): the heat haze starts at the Engine helper (%d nozzles, %.3f m off)" % [
-				plane, case[1], n, worst])
+		check(
+			n > 0 and worst < 0.03,
+			(
+				"%s (%s model): the heat haze starts at the Engine helper (%d nozzles, %.3f m off)"
+				% [plane, case[1], n, worst]
+			)
+		)
 		m.free()
 	Settings().particle_effects = false
 	Settings().models = "original"

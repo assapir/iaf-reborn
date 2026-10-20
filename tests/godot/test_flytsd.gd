@@ -6,7 +6,6 @@
 extends "res://../tests/godot/base.gd"
 
 
-
 func key_event(k: Key, ctrl := false) -> InputEventKey:
 	var e := InputEventKey.new()
 	e.keycode = k
@@ -49,11 +48,16 @@ func run() -> void:
 	var tsd = fe.tsd
 	check(fe.screen == "flytsd" and tsd != null and paused, "Esc: the FlyTSD over the frozen flight")
 	var t := int(float(rt.misc.get("0x460", 0.0)) + rt.now)
-	check(tsd.mission_clock == "%02d:%02d:%02d" % [t / 3600 % 24, t / 60 % 60, t % 60], "the clock is the time of day now")
+	check(
+		tsd.mission_clock == "%02d:%02d:%02d" % [t / 3600 % 24, t / 60 % 60, t % 60], "the clock is the time of day now"
+	)
 	var me: Dictionary = rt.player_entity()
 	var mine: Array = tsd.units.filter(func(u): return u.key == me.key)
 	var w: Vector3 = tv.player_world()
-	check(mine.size() == 1 and mine[0].pos.distance_to(tsd.world_to_map(w.x, w.y)) < 0.001, "the own jet at its live position")
+	check(
+		mine.size() == 1 and mine[0].pos.distance_to(tsd.world_to_map(w.x, w.y)) < 0.001,
+		"the own jet at its live position"
+	)
 	check(tsd.default_flight() == 1 and tsd.units[tsd.selected].key == me.key, "the player's flight and jet selected")
 
 	# --- the selected-unit label ---
@@ -79,10 +83,16 @@ func run() -> void:
 	check(is_equal_approx(tsd.zoom, z0 / 1.5), "Numpad − and Insert: zoom out")
 
 	# --- the ruler (5022d0 / 501cb0 / 502380, paint 501300) ---
-	check(tsd.ruler_distance(Vector2.ZERO, Vector2(18520, 0)) == "10.00 NM", "10 NM east: \"10.00 NM\"")
-	check(tsd.ruler_bearing(Vector2.ZERO, Vector2(18520, 0)) == "090 T", "east: \"090 T\"")
-	check(tsd.ruler_bearing(Vector2.ZERO, Vector2(0, 1000)) == "000 T" and tsd.ruler_bearing(Vector2.ZERO, Vector2(0, -1000)) == "180 T"
-			and tsd.ruler_bearing(Vector2.ZERO, Vector2(-1000, -1)) == "269 T", "north 000, south 180, west-south-west 269 (truncated)")
+	check(tsd.ruler_distance(Vector2.ZERO, Vector2(18520, 0)) == "10.00 NM", '10 NM east: "10.00 NM"')
+	check(tsd.ruler_bearing(Vector2.ZERO, Vector2(18520, 0)) == "090 T", 'east: "090 T"')
+	check(
+		(
+			tsd.ruler_bearing(Vector2.ZERO, Vector2(0, 1000)) == "000 T"
+			and tsd.ruler_bearing(Vector2.ZERO, Vector2(0, -1000)) == "180 T"
+			and tsd.ruler_bearing(Vector2.ZERO, Vector2(-1000, -1)) == "269 T"
+		),
+		"north 000, south 180, west-south-west 269 (truncated)"
+	)
 	var c1: Vector2 = tsd.CLIENT.size / 2 - Vector2(60, 0)
 	var c2: Vector2 = c1 + Vector2(120, 0)
 	tsd._gui_input(right(screen_of(fe, c1), true))
@@ -90,8 +100,15 @@ func run() -> void:
 	tsd._gui_input(motion(screen_of(fe, c2), MOUSE_BUTTON_MASK_RIGHT))
 	tsd._gui_input(right(screen_of(fe, c2), false))
 	var expect: float = 120.0 / tsd.zoom * tsd.WORLD_W / (tsd.MAP_SIZE.x * tsd.MAP_X_FACTOR)
-	check(tsd.ruler_kept and not tsd.ruler_on and absf(tsd.ruler_a.distance_to(tsd.ruler_b) - expect) < 2.0 * expect / 120.0
-			and tsd.ruler_bearing(tsd.ruler_a, tsd.ruler_b) == "090 T", "right drag measures (kept after the release)")
+	check(
+		(
+			tsd.ruler_kept
+			and not tsd.ruler_on
+			and absf(tsd.ruler_a.distance_to(tsd.ruler_b) - expect) < 2.0 * expect / 120.0
+			and tsd.ruler_bearing(tsd.ruler_a, tsd.ruler_b) == "090 T"
+		),
+		"right drag measures (kept after the release)"
+	)
 	check(Input.mouse_mode == Input.MOUSE_MODE_VISIBLE, "the cursor is back after the drag")
 
 	# --- no waypoint drag in flight (501cb0 moves it only before the flight) ---
@@ -137,7 +154,9 @@ func run() -> void:
 	fe._on_button(fe._key_for_label("Visit"))
 	await frames(3)
 	check(tv.fe_overlay == null and not paused, "Visit returns to the flight")
-	check(tv.views.type == tv.Views.FOLLOW and tv.views.target == visited, "the camera follows the visited unit (type 9)")
+	check(
+		tv.views.type == tv.Views.FOLLOW and tv.views.target == visited, "the camera follows the visited unit (type 9)"
+	)
 	check(rt.player_entity() == me, "Visit keeps the player in the own jet")
 	fe = await open_tsd(tv)
 	tsd = fe.tsd
@@ -158,8 +177,14 @@ func run() -> void:
 		var gkey: String = tsd.units[gi].key
 		tsd._gui_input(mouse_button(screen_of(fe, tsd._to_client(tsd.units[gi].pos)), true, true))
 		await frames(3)
-		check(tv.fe_overlay == null and tv.views.type == tv.Views.FOLLOW and tv.views.target == rt.entities[gkey].get("node"),
-				"double-clicking a ground unit visits it")
+		check(
+			(
+				tv.fe_overlay == null
+				and tv.views.type == tv.Views.FOLLOW
+				and tv.views.target == rt.entities[gkey].get("node")
+			),
+			"double-clicking a ground unit visits it"
+		)
 		fe = await open_tsd(tv)
 		tsd = fe.tsd
 	else:
@@ -184,11 +209,19 @@ func run() -> void:
 	fe = await open_tsd(tv)
 	tsd = fe.tsd
 	var mu: Array = tsd.units.filter(func(u): return u.key == moved.key)
-	check(mu.size() == 1 and mu[0].pos.distance_to(tsd.world_to_map(mw.x + 20000, mw.y)) < 0.001, "a unit's live position")
+	check(
+		mu.size() == 1 and mu[0].pos.distance_to(tsd.world_to_map(mw.x + 20000, mw.y)) < 0.001, "a unit's live position"
+	)
 	moved.world = mw
 	check(tsd.units.filter(func(u): return u.key == b0.key).is_empty(), "a downed jet leaves the map")
-	check(tsd.flights.has(2) and tsd.units[tsd.flights[2].leader].key == b1.key and tsd.units[tsd.flights[2].leader].leader,
-			"Bravo's leader is down: its wingman leads (record [0x18])")
+	check(
+		(
+			tsd.flights.has(2)
+			and tsd.units[tsd.flights[2].leader].key == b1.key
+			and tsd.units[tsd.flights[2].leader].leader
+		),
+		"Bravo's leader is down: its wingman leads (record [0x18])"
+	)
 
 	# --- a unit unknown to the player (entity 0x35c = 0) shows once the player's radar records it (@4afae6) ---
 	var hidden: Dictionary = {}
@@ -196,8 +229,14 @@ func run() -> void:
 	for fi in files.size():
 		for e in files[fi].data.get("entities", {}).get("items", []):
 			var ent: Dictionary = rt.entities.get("%d:%d" % [fi, int(e.get("0x1e", -1))], {}) if e is Dictionary else {}
-			if not ent.is_empty() and int(e.get("0x35c", 0)) == 0 and int(ent.klass) in tsd.ICON_CLASS and int(ent.state) < 4 \
-					and int(ent.control) != 0 and (float(e.get("0x2e4", -1)) >= 0 or float(e.get("0x2ee", -1)) >= 0):
+			if (
+				not ent.is_empty()
+				and int(e.get("0x35c", 0)) == 0
+				and int(ent.klass) in tsd.ICON_CLASS
+				and int(ent.state) < 4
+				and int(ent.control) != 0
+				and (float(e.get("0x2e4", -1)) >= 0 or float(e.get("0x2ee", -1)) >= 0)
+			):
 				hidden = ent
 	if hidden.is_empty():
 		tv.weapons.radar.detected.call(moved.key)
@@ -209,7 +248,10 @@ func run() -> void:
 		await frames(2)
 		fe = await open_tsd(tv)
 		tsd = fe.tsd
-		check(not tsd.units.filter(func(u): return u.key == hidden.key).is_empty(), "after a radar record it is on the map")
+		check(
+			not tsd.units.filter(func(u): return u.key == hidden.key).is_empty(),
+			"after a radar record it is on the map"
+		)
 
 	# --- Fly: Bravo's current leader, the wingman (FUN_005045b0 → FUN_004d3250) ---
 	tv.views.set_orbit(tv.rig, tv.CHASE_OFFS, 1.0, tv.Views.FLYBY, false)
@@ -219,18 +261,36 @@ func run() -> void:
 	await frames(3)
 	check(tv.fe_overlay == null and not paused, "Fly returns to the flight")
 	check(rt.player_entity() == b1 and b1.control == 3 and not b1.has("pilot"), "Bravo's wingman is the player's jet")
-	check(not me.player and me.control == 1 and me.get("pilot") != null and tv.ai.pilots.has(me.pilot),
-			"the old jet goes to the AI")
-	check(me.pilot.flight != tv.flight and me.node is Node3D and me.node.global_position.distance_to(tv.world_to_scene(old_world)) < 50.0,
-			"the old jet flies on where it was, with its own flight model")
-	check(tv.player_world().distance_to(rt._world_of(b1)) < 1.0 and tv.rig.position.distance_to(tv.world_to_scene(b1.world)) < 50.0,
-			"the rig is at the new jet")
+	check(
+		not me.player and me.control == 1 and me.get("pilot") != null and tv.ai.pilots.has(me.pilot),
+		"the old jet goes to the AI"
+	)
+	check(
+		(
+			me.pilot.flight != tv.flight
+			and me.node is Node3D
+			and me.node.global_position.distance_to(tv.world_to_scene(old_world)) < 50.0
+		),
+		"the old jet flies on where it was, with its own flight model"
+	)
+	check(
+		(
+			tv.player_world().distance_to(rt._world_of(b1)) < 1.0
+			and tv.rig.position.distance_to(tv.world_to_scene(b1.world)) < 50.0
+		),
+		"the rig is at the new jet"
+	)
 	check(tv.views.type == tv.Views.COCKPIT, "the cockpit view on the new jet")
-	check(tv.player_flight_number == 2 and tv.weapons.stores != null and tv.autopilot != null, "flight 2's route, stores and autopilot")
+	check(
+		tv.player_flight_number == 2 and tv.weapons.stores != null and tv.autopilot != null,
+		"flight 2's route, stores and autopilot"
+	)
 	check(tv.flight.ap_mode() == 0, "the new jet's brain mode ends (FM mode 0: the player's rules)")
 	await seconds(3.0)
 	check(tv.flight.state().speed_kt > 50.0 or tv.flight.state().on_ground, "the new jet flies under the player")
-	check(me.pilot.flight.ap_mode() != 0, "the old jet's brain flies it (autopilot mode %d)" % me.pilot.flight.ap_mode())
+	check(
+		me.pilot.flight.ap_mode() != 0, "the old jet's brain flies it (autopilot mode %d)" % me.pilot.flight.ap_mode()
+	)
 
 	# --- Fly back to Alpha: the old jet, now AI, is the player's again ---
 	fe = await open_tsd(tv)
@@ -243,9 +303,11 @@ func run() -> void:
 	b1.state = 4
 	fe = await open_tsd(tv)
 	tsd = fe.tsd
-	check(not tsd.flights.has(2) and tsd.units.filter(func(u): return u.key == b1.key).is_empty(), "Bravo down: off the map")
-	check(not fe._button_enabled("Bravo") and fe._button_enabled("Alpha"),
-			"Bravo's button is disabled, Alpha's is not")
+	check(
+		not tsd.flights.has(2) and tsd.units.filter(func(u): return u.key == b1.key).is_empty(),
+		"Bravo down: off the map"
+	)
+	check(not fe._button_enabled("Bravo") and fe._button_enabled("Alpha"), "Bravo's button is disabled, Alpha's is not")
 	fe._on_button("back")
 	await frames(2)
 
@@ -257,6 +319,8 @@ func run() -> void:
 	fe._on_button(fe._key_for_label("Bravo"))
 	fe._on_button(fe._key_for_label("Fly"))
 	await frames(5)
-	check(tv.player.type == 110 and tv.cockpit.cockpit_dir == tv.player.cockpit_dir and tv.aircraft != null,
-			"Fly into an F-15: its type, cockpit and model")
+	check(
+		tv.player.type == 110 and tv.cockpit.cockpit_dir == tv.player.cockpit_dir and tv.aircraft != null,
+		"Fly into an F-15: its type, cockpit and model"
+	)
 	check(tv.weapons.jet_type == 110 and tv.sounds != null, "the F-15's weapons and sounds")

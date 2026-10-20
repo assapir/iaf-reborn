@@ -125,13 +125,20 @@ func _process(_delta: float) -> void:
 				var ground = host.terrain.height_at(host.rig.position)
 				var wp = host.get("weapons")
 				var ck = host.get("cockpit")
-				update(st, {
-					"gear_down": host.gear_down, "flaps": host.flaps, "flaps_state": host.flaps_state,
-					"brakes": host.brakes, "in_cockpit": host.in_cockpit,
-					"agl_m": st.position.y - ground if ground != null else 1.0e6,
-					"pitch": float(st.get("pitch", 0.0)), "hud_mode": int(wp.hud_mode) if wp != null else 0,
-					"kcas": float(ck.state.get("ias_kt", st.speed_kt)) if ck != null else float(st.speed_kt),
-				})
+				update(
+					st,
+					{
+						"gear_down": host.gear_down,
+						"flaps": host.flaps,
+						"flaps_state": host.flaps_state,
+						"brakes": host.brakes,
+						"in_cockpit": host.in_cockpit,
+						"agl_m": st.position.y - ground if ground != null else 1.0e6,
+						"pitch": float(st.get("pitch", 0.0)),
+						"hud_mode": int(wp.hud_mode) if wp != null else 0,
+						"kcas": float(ck.state.get("ias_kt", st.speed_kt)) if ck != null else float(st.speed_kt),
+					}
+				)
 	_update_3d()
 
 
@@ -173,15 +180,20 @@ func update(st: Dictionary, inp: Dictionary) -> void:
 	else:
 		_real_warning(voice, h_ft, st, inp, now)
 	_fuel_warning(float(st.get("fuel_lbs", 1.0e6)))
-	_was = {"gear_down": inp.gear_down, "flaps": inp.flaps, "flaps_state": inp.get("flaps_state", 0),
-		"brakes": inp.brakes, "airborne": airborne}
+	_was = {
+		"gear_down": inp.gear_down,
+		"flaps": inp.flaps,
+		"flaps_state": inp.get("flaps_state", 0),
+		"brakes": inp.brakes,
+		"airborne": airborne
+	}
 	_inside = inside
 
 
 var _inside := true
 
-
 # --- engine (FUN_004c3e00 via FUN_004c3c10, every frame and on throttle events) -----------------
+
 
 ## An AI jet: the engine rule from its flight model; the unit destroyed (state 5, FUN_004a86b0 → FUN_004c4310)
 ## or crashed stops it.
@@ -238,6 +250,7 @@ func _update_engine(stage: int, rpm: float, inside: bool) -> void:
 
 # --- controller rules ---------------------------------------------------------------------------
 
+
 ## GEV 0x11 (@44c97b): the air brake sound on every toggle; the loop starts when the brake comes out
 ## in the air, otherwise a running loop stops.
 func _speed_brake_toggle(on: bool, airborne: bool) -> void:
@@ -292,9 +305,20 @@ func _real_warning(voice: String, h_ft: float, st: Dictionary, inp: Dictionary, 
 		_alt_timer = _betty_tick(_alt_timer, "BTY_ALT", now)
 	else:
 		_alt_timer = -1.0
-	var g: bool = voice != "" and ClassDB.class_call_static("IafRealHud", "gaaf", h_ft,
-		float(inp.get("kcas", st.get("speed_kt", 0.0))), float(st.get("speed", 0.0)), vs, float(st.get("roll", 0.0)),
-		inp.gear_down, int(inp.get("hud_mode", 0)) in [4, 5, 6, 7])
+	var g: bool = (
+		voice != ""
+		and ClassDB.class_call_static(
+			"IafRealHud",
+			"gaaf",
+			h_ft,
+			float(inp.get("kcas", st.get("speed_kt", 0.0))),
+			float(st.get("speed", 0.0)),
+			vs,
+			float(st.get("roll", 0.0)),
+			inp.gear_down,
+			int(inp.get("hud_mode", 0)) in [4, 5, 6, 7]
+		)
+	)
 	if g and not _gaaf_on:
 		play("VOC_BBETTY", "BTY_PULL_UP")
 	_gaaf_on = g
@@ -363,6 +387,7 @@ func play_eject() -> Node:
 
 
 # --- playing a table sound (FUN_004c4ea0) --------------------------------------------------------
+
 
 ## Plays the row of `code` / `sub1`; returns its player (null when the row or its file is missing).
 ## Resident rows: volume = table volume (inside / outside the cockpit) × the category bus; 3-D rows
@@ -478,6 +503,7 @@ func _looped(s: AudioStreamWAV) -> AudioStreamWAV:
 
 
 # --- 3-D: DirectSound's distance rule, Godot's panning --------------------------------------------
+
 
 func _setup_3d(p: AudioStreamPlayer3D) -> void:
 	p.attenuation_model = AudioStreamPlayer3D.ATTENUATION_DISABLED

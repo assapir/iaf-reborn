@@ -20,12 +20,17 @@ func load_maps(map: Dictionary, grid: Dictionary, text: Dictionary) -> void:
 	var size_: Vector2 = tsd.MAP_SIZE
 	for op in text.get("ops", []):
 		if op.t == "text":
-			text_ops.append({
-				"pos": Vector2(op.pos[0], op.pos[1]) * size_,
-				"text": op.text,
-				"px": float(op.font.height) * size_.y,
-				"color": Color8(op.color[0], op.color[1], op.color[2]),
-			})
+			(
+				text_ops
+				. append(
+					{
+						"pos": Vector2(op.pos[0], op.pos[1]) * size_,
+						"text": op.text,
+						"px": float(op.font.height) * size_.y,
+						"color": Color8(op.color[0], op.color[1], op.color[2]),
+					}
+				)
+			)
 	queue_redraw()
 
 

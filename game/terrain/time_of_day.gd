@@ -23,7 +23,9 @@ static func _load() -> void:
 		if v.size() < 18:
 			continue
 		var n := func(i: int) -> Color: return Color8(int(v[i]), int(v[i + 1]), int(v[i + 2]))
-		_rows.append([int(v[0]) * 60 + int(v[1]), n.call(2), n.call(5), n.call(8), n.call(11), n.call(14), float(v[17])])
+		_rows.append(
+			[int(v[0]) * 60 + int(v[1]), n.call(2), n.call(5), n.call(8), n.call(11), n.call(14), float(v[17])]
+		)
 
 
 ## FUN_00422b90: the table's colours at `minute`, linear between its rows, clamped outside them.
@@ -45,8 +47,14 @@ static func colors(minute: float) -> Dictionary:
 				b = _rows[i]
 				break
 	var f := 0.0 if a[0] == b[0] else (minute - float(a[0])) / float(b[0] - a[0])
-	return {"sky": a[1].lerp(b[1], f), "light": a[2].lerp(b[2], f), "b": a[3].lerp(b[3], f), "c": a[4].lerp(b[4], f),
-		"d": a[5].lerp(b[5], f), "k": lerpf(a[6], b[6], f)}
+	return {
+		"sky": a[1].lerp(b[1], f),
+		"light": a[2].lerp(b[2], f),
+		"b": a[3].lerp(b[3], f),
+		"c": a[4].lerp(b[4], f),
+		"d": a[5].lerp(b[5], f),
+		"k": lerpf(a[6], b[6], f)
+	}
 
 
 ## FUN_00407920 at `t` s: {night, dir (ENU, the light's travel), color, ambient (factor), shadows, sun_az (deg,
@@ -54,16 +62,31 @@ static func colors(minute: float) -> Dictionary:
 static func sun(t: float) -> Dictionary:
 	var f := (fposmod(t, 86400.0) - 18000.0) / 54000.0
 	if f < 0.0 or f > 1.0:
-		return {"night": true, "dir": Vector3(0, 0, -1), "color": NIGHT_LIGHT, "ambient": 0.2, "shadows": false, "sun_az": 180.0}
+		return {
+			"night": true,
+			"dir": Vector3(0, 0, -1),
+			"color": NIGHT_LIGHT,
+			"ambient": 0.2,
+			"shadows": false,
+			"sun_az": 180.0
+		}
 	var a := deg_to_rad(f * 180.0 + 90.0)
 	var c := colors(fposmod(t, 86400.0) / 60.0)
 	var k: float = float(c.get("k", 255.0))
 	var l: Color = c.get("light", Color.WHITE)
 	# tcs_light·(1 − k/255) + k, per channel (0..255).
-	var col := Color(l.r * (1.0 - k / 255.0) + k / 255.0, l.g * (1.0 - k / 255.0) + k / 255.0, l.b * (1.0 - k / 255.0) + k / 255.0)
+	var col := Color(
+		l.r * (1.0 - k / 255.0) + k / 255.0, l.g * (1.0 - k / 255.0) + k / 255.0, l.b * (1.0 - k / 255.0) + k / 255.0
+	)
 	var dir := Vector3(-sin(a), -cos(a), cos(a)).normalized()
-	return {"night": false, "dir": dir, "color": col, "ambient": 0.2 + 0.4 * -cos(a), "shadows": f >= 0.2 and f <= 0.8,
-		"sun_az": rad_to_deg(atan2(-dir.x, -dir.y))}
+	return {
+		"night": false,
+		"dir": dir,
+		"color": col,
+		"ambient": 0.2 + 0.4 * -cos(a),
+		"shadows": f >= 0.2 and f <= 0.8,
+		"sun_az": rad_to_deg(atan2(-dir.x, -dir.y))
+	}
 
 
 ## FUN_004229c0's fog colour for a view `heading` (deg): horizon B toward the sun, C across, D away, by

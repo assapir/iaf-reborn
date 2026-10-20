@@ -13,15 +13,21 @@ func run() -> void:
 	var shelter: Dictionary = _named(rt, "schacha3")
 	check(not shelter.is_empty() and not shelter.collidable, "schacha3 (shelter) has no collider (0x58c = 0)")
 	var d0: float = tv.rig.position.distance_to(shelter.node.position)
-	check(d0 < shelter.coll_radius, "the jet starts inside the shelter (%.1f m from its centre, radius %.0f m)" % [d0, shelter.coll_radius])
+	check(
+		d0 < shelter.coll_radius,
+		"the jet starts inside the shelter (%.1f m from its centre, radius %.0f m)" % [d0, shelter.coll_radius]
+	)
 	await frames(30)
 	check(int(me.state) == 1 and int(shelter.state) == 1, "no collision at the start")
 	# Taxi out: brakes off, throttle up, until the jet is clear of the shelter's radius.
 	tv.brakes = false
 	tv.throttle = 0.9
 	var t0 := Time.get_ticks_msec()
-	while tv.rig.position.distance_to(shelter.node.position) < shelter.coll_radius + 5.0 \
-			and Time.get_ticks_msec() - t0 < 60000 and int(me.state) == 1:
+	while (
+		tv.rig.position.distance_to(shelter.node.position) < shelter.coll_radius + 5.0
+		and Time.get_ticks_msec() - t0 < 60000
+		and int(me.state) == 1
+	):
 		await process_frame
 	tv.throttle = 0.0
 	var d1: float = tv.rig.position.distance_to(shelter.node.position)
@@ -34,7 +40,10 @@ func run() -> void:
 	tv.fm_stopped = true  # the test places the jet
 	tv.rig.position = tgt.node.position
 	await frames(3)
-	check(int(me.state) >= 3 and int(tgt.state) == 5, "flying into a vehicle destroys both (jet %d, vehicle %d)" % [me.state, tgt.state])
+	check(
+		int(me.state) >= 3 and int(tgt.state) == 5,
+		"flying into a vehicle destroys both (jet %d, vehicle %d)" % [me.state, tgt.state]
+	)
 
 	# A hidden collidable building keeps its collider; Physics "fix_ghost_collision" skips it.
 	for fix in [false, true]:
@@ -44,8 +53,13 @@ func run() -> void:
 		me = rt.player_entity()
 		var b: Dictionary = {}
 		for e in rt.entities.values():
-			if e.get("collidable", false) and e.node != null and e.klass in [0xc, 0xd] and e.type_code != 450 \
-					and int(e.role) == 2:
+			if (
+				e.get("collidable", false)
+				and e.node != null
+				and e.klass in [0xc, 0xd]
+				and e.type_code != 450
+				and int(e.role) == 2
+			):
 				b = e
 				break
 		check(not b.is_empty(), "a collidable building (%s)" % b.get("name", "-"))
@@ -54,7 +68,9 @@ func run() -> void:
 		tv.rig.position = b.node.position
 		await frames(3)
 		if fix:
-			check(int(me.state) == 1 and int(b.state) == 1, "fix_ghost_collision: no collision with the hidden building")
+			check(
+				int(me.state) == 1 and int(b.state) == 1, "fix_ghost_collision: no collision with the hidden building"
+			)
 		else:
 			check(int(me.state) >= 3 and int(b.state) == 5, "original: the hidden building still collides")
 	Settings().better["fix_ghost_collision"] = false

@@ -10,7 +10,8 @@ extends "res://../tests/godot/base.gd"
 
 func run() -> void:
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
-	var env := func(k: String, d: float) -> float: return float(OS.get_environment(k)) if OS.get_environment(k) != "" else d
+	var env := func(k: String, d: float) -> float:
+		return float(OS.get_environment(k)) if OS.get_environment(k) != "" else d
 	if OS.get_environment("PROFILE_UPSCALING") != "":
 		Settings().upscaling = OS.get_environment("PROFILE_UPSCALING")
 	var tv = await start_mission(int(env.call("PROFILE_MISSION", 221.0)))
@@ -18,8 +19,15 @@ func run() -> void:
 	tv.frozen = not live
 	tv.fm_stopped = not live
 	await frames(30)
-	var parts := {"terrain": tv.terrain, "scene (terrain_view)": tv, "mission runtime": tv.runtime, "ai flights": tv.ai,
-		"ai combat": tv.ai.combat, "cockpit": tv.cockpit, "hud": tv.cockpit.hud}
+	var parts := {
+		"terrain": tv.terrain,
+		"scene (terrain_view)": tv,
+		"mission runtime": tv.runtime,
+		"ai flights": tv.ai,
+		"ai combat": tv.ai.combat,
+		"cockpit": tv.cockpit,
+		"hud": tv.cockpit.hud
+	}
 	for i in tv.cockpit.mfds.size():
 		parts["mfd %d" % i] = tv.cockpit.mfds[i]
 	for k in parts.keys():
@@ -69,7 +77,20 @@ func run() -> void:
 		setup += RenderingServer.get_frame_setup_time_cpu()
 		frame += dt * 1000.0
 		n += 1
-	print("PROFILE %s 3D mode %d scale %.2f frames %d  frame %.2f ms  render-thread cpu %.2f ms  frame setup %.2f ms" % [str(root.size), tv.get_viewport().scaling_3d_mode, tv.get_viewport().scaling_3d_scale, n, frame / n, render_cpu / n, setup / n])
+	print(
+		(
+			"PROFILE %s 3D mode %d scale %.2f frames %d  frame %.2f ms  render-thread cpu %.2f ms  frame setup %.2f ms"
+			% [
+				str(root.size),
+				tv.get_viewport().scaling_3d_mode,
+				tv.get_viewport().scaling_3d_scale,
+				n,
+				frame / n,
+				render_cpu / n,
+				setup / n
+			]
+		)
+	)
 	for k in sum:
 		print("  %-20s avg %6.3f ms  worst %7.2f ms" % [k, sum[k] / n, worst[k]])
 	print("RESULT PASS")

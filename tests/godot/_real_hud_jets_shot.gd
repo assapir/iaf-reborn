@@ -54,7 +54,11 @@ func run() -> void:
 	for r in rows.size():
 		for c in 3:
 			var img: Image = rows[r][c]
-			out.blit_rect(img, Rect2i(0, 0, mini(cw, img.get_width()), mini(ch, img.get_height())), Vector2i(c * (cw + GAP), r * (ch + GAP)))
+			out.blit_rect(
+				img,
+				Rect2i(0, 0, mini(cw, img.get_width()), mini(ch, img.get_height())),
+				Vector2i(c * (cw + GAP), r * (ch + GAP))
+			)
 	out.save_png(dir.path_join("real_hud_jets.png"))
 	Settings().jet_id = -1
 	Settings().f35i_slot = -1
@@ -68,7 +72,9 @@ func _cell(tv) -> Image:
 	await RenderingServer.frame_post_draw
 	var img: Image = root.get_viewport().get_texture().get_image()
 	var c: Vector2 = tv.cockpit.hud_centre_screen() + tv.cockpit.global_position
-	var r := Rect2i(Vector2i(c) - Vector2i(450, 230), Vector2i(900, 400)).intersection(Rect2i(Vector2i.ZERO, img.get_size()))
+	var r := Rect2i(Vector2i(c) - Vector2i(450, 230), Vector2i(900, 400)).intersection(
+		Rect2i(Vector2i.ZERO, img.get_size())
+	)
 	var crop := img.get_region(r)
 	crop.convert(Image.FORMAT_RGB8)
 	return crop

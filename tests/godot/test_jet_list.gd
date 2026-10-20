@@ -5,9 +5,13 @@
 extends "res://../tests/godot/base.gd"
 
 ## Jet list id -> [type, cockpit folder, twin].
-const JETS := {0: [110, "f15", true], 2: [120, "phantom", true], 4: [140, "lavi", false], 5: [130, "cfir", false],
-		6: [190, "mirage", false]}
-
+const JETS := {
+	0: [110, "f15", true],
+	2: [120, "phantom", true],
+	4: [140, "lavi", false],
+	5: [130, "cfir", false],
+	6: [190, "mirage", false]
+}
 
 ## Ours: the F-35I flown from the Lavi's button (Settings.f35i_slot = 4), in its own cockpit.
 const F35I_CASE := [4, [1000, "cockpit", false]]
@@ -19,11 +23,21 @@ func run() -> void:
 	var MW: GDScript = load("res://weapons/mission_weapons.gd")
 	Settings().jet_id = 0
 	var picked: Array = MW.create(311).flights.values().filter(func(x): return x.has("limits"))
-	check(picked.size() == 1 and int(picked[0].type) == 110 and int(picked[0].object.get("0x5b4", -1)) == 110
-			and int(picked[0].limits.get("0x5b4", -1)) == 100 and MW.jet(110).get("art", "") != MW.jet(100).get("art", ""),
-			"311 with the F-15 picked: arms the F-15 (its art and load), the F-16's allowed counts")
+	check(
+		(
+			picked.size() == 1
+			and int(picked[0].type) == 110
+			and int(picked[0].object.get("0x5b4", -1)) == 110
+			and int(picked[0].limits.get("0x5b4", -1)) == 100
+			and MW.jet(110).get("art", "") != MW.jet(100).get("art", "")
+		),
+		"311 with the F-15 picked: arms the F-15 (its art and load), the F-16's allowed counts"
+	)
 	Settings().jet_id = 1
-	check(MW.create(311).flights.values().all(func(x): return not x.has("limits")), "311 with the F-16 picked: the mission's own flight")
+	check(
+		MW.create(311).flights.values().all(func(x): return not x.has("limits")),
+		"311 with the F-16 picked: the mission's own flight"
+	)
 	var cases := []
 	for id in JETS:
 		cases.append([id, -1, JETS[id]])
@@ -36,17 +50,40 @@ func run() -> void:
 		var tv = await start_mission(311)
 		var name := "jet %d (type %d)" % [id, want[0]]
 		check(tv.player.type == want[0] and tv.aircraft != null and tv.aircraft.type_code == want[0], "%s flies" % name)
-		check(tv.cockpit.cockpit_dir.ends_with("/" + want[1]) and tv.cockpit.twin_engines == want[2]
-				and tv.player_damage.twin == want[2], "%s: cockpit %s, twin %s" % [name, tv.cockpit.cockpit_dir, want[2]])
+		check(
+			(
+				tv.cockpit.cockpit_dir.ends_with("/" + want[1])
+				and tv.cockpit.twin_engines == want[2]
+				and tv.player_damage.twin == want[2]
+			),
+			"%s: cockpit %s, twin %s" % [name, tv.cockpit.cockpit_dir, want[2]]
+		)
 		check(tv.weapons != null and tv.weapons.jet_type == want[0], "%s: its weapons" % name)
 		if want[0] == 1000:
-			check(tv.cockpit.mfds.size() == 4 and tv.cockpit.tex.has("LIGHTS") and tv.cockpit.tex.has("PANEL")
-					and not tv.cockpit.tex.has("HUD") and tv.cockpit.tex.has("MFDS"),
-					"%s: the panoramic display's 4 portals, our panel and lights, no HUD glass, the shared MFD art" % name)
+			check(
+				(
+					tv.cockpit.mfds.size() == 4
+					and tv.cockpit.tex.has("LIGHTS")
+					and tv.cockpit.tex.has("PANEL")
+					and not tv.cockpit.tex.has("HUD")
+					and tv.cockpit.tex.has("MFDS")
+				),
+				"%s: the panoramic display's 4 portals, our panel and lights, no HUD glass, the shared MFD art" % name
+			)
 			var M = tv.cockpit.mfds[0]
-			check(M.touch_osb(Vector2(24, 5)) == 1 and M.touch_osb(Vector2(104, 128)) == 10 and M.touch_osb(Vector2(5, 44)) == 12
-					and M.touch_osb(Vector2(127, 104)) == 20 and M.touch_osb(Vector2(66, 66)) == -1,
-					"%s: the portals are pressed on their labels (top OSB 1, bottom 10, left 12, right 20, none mid-page)" % name)
+			check(
+				(
+					M.touch_osb(Vector2(24, 5)) == 1
+					and M.touch_osb(Vector2(104, 128)) == 10
+					and M.touch_osb(Vector2(5, 44)) == 12
+					and M.touch_osb(Vector2(127, 104)) == 20
+					and M.touch_osb(Vector2(66, 66)) == -1
+				),
+				(
+					"%s: the portals are pressed on their labels (top OSB 1, bottom 10, left 12, right 20, none mid-page)"
+					% name
+				)
+			)
 			# The panoramic display (pcd.gd): its glass holds the 4 portal pages side by side over the 8 lower
 			# windows, the pages restyled (portal.gdshader); the night art and the cockpit-view model load.
 			await process_frame
@@ -56,38 +93,74 @@ func run() -> void:
 			for m in tv.cockpit.mfds:
 				inside = inside and g.grow(1.0).encloses(Rect2(m.position, m.size)) and m.material != null and m.visible
 			var w: Array = P.windows() if P != null else []
-			check(inside and w.size() == 8 and w[0].position.y >= tv.cockpit.mfds[0].position.y + tv.cockpit.mfds[0].size.y - 1.0
-					and P.visible and tv.cockpit.tex.has("PANEL_NIGHT") and tv.cockpit.tex.has("LIGHTS_NIGHT") and tv.own_bc != null,
-					"%s: the PCD's glass holds the 4 portals over 8 windows; night art and cockpit-view model (%s)" % [name, g])
+			check(
+				(
+					inside
+					and w.size() == 8
+					and w[0].position.y >= tv.cockpit.mfds[0].position.y + tv.cockpit.mfds[0].size.y - 1.0
+					and P.visible
+					and tv.cockpit.tex.has("PANEL_NIGHT")
+					and tv.cockpit.tex.has("LIGHTS_NIGHT")
+					and tv.own_bc != null
+				),
+				(
+					"%s: the PCD's glass holds the 4 portals over 8 windows; night art and cockpit-view model (%s)"
+					% [name, g]
+				)
+			)
 			# The ESIS horizon grazing a corner (pitch 33°, roll −5° in a 141 × 118 box) leaves an untriangulable sliver
 			# ("Invalid polygon data"): ground_polys leaves it out, and a level horizon keeps the box's lower half.
-			var bx := PackedVector2Array([Vector2(812.3, 640.7), Vector2(953.8, 640.7), Vector2(953.8, 758.9), Vector2(812.3, 758.9)])
+			var bx := PackedVector2Array(
+				[Vector2(812.3, 640.7), Vector2(953.8, 640.7), Vector2(953.8, 758.9), Vector2(812.3, 758.9)]
+			)
 			var rl := deg_to_rad(-5.0)
 			var hz := Vector2(883.05, 699.8) + Vector2(sin(rl), cos(rl)) * 33.0 * 118.2 / 60.0
 			var bg := (bx[2] - bx[0]).length() * 2.0
-			var raw := Geometry2D.intersect_polygons(bx, PackedVector2Array([hz - Vector2(cos(rl), -sin(rl)) * bg, hz + Vector2(cos(rl), -sin(rl)) * bg,
-					hz + Vector2(cos(rl), -sin(rl)) * bg + Vector2(sin(rl), cos(rl)) * bg, hz - Vector2(cos(rl), -sin(rl)) * bg + Vector2(sin(rl), cos(rl)) * bg]))
+			var raw := Geometry2D.intersect_polygons(
+				bx,
+				PackedVector2Array(
+					[
+						hz - Vector2(cos(rl), -sin(rl)) * bg,
+						hz + Vector2(cos(rl), -sin(rl)) * bg,
+						hz + Vector2(cos(rl), -sin(rl)) * bg + Vector2(sin(rl), cos(rl)) * bg,
+						hz - Vector2(cos(rl), -sin(rl)) * bg + Vector2(sin(rl), cos(rl)) * bg
+					]
+				)
+			)
 			var lvl: Array = P.ground_polys(bx, Vector2(883.05, 699.8), Vector2.RIGHT, Vector2.DOWN)
-			check(raw.any(func(q): return Geometry2D.triangulate_polygon(q).is_empty())
+			check(
+				(
+					raw.any(func(q): return Geometry2D.triangulate_polygon(q).is_empty())
 					and P.ground_polys(bx, hz, Vector2(cos(rl), -sin(rl)), Vector2(sin(rl), cos(rl))).is_empty()
-					and lvl.size() == 1 and absf(absf(_area(lvl[0])) - 141.5 * 59.1) < 1.0,
-					"%s: the ESIS leaves out a horizon's untriangulable corner sliver" % name)
+					and lvl.size() == 1
+					and absf(absf(_area(lvl[0])) - 141.5 * 59.1) < 1.0
+				),
+				"%s: the ESIS leaves out a horizon's untriangulable corner sliver" % name
+			)
 		key(tv, KEY_1)
 		key(tv, KEY_B)
 		key(tv, KEY_6)
 		var v0: float = tv.flight.state().speed_kt
 		await create_timer(6.0).timeout
 		var st: Dictionary = tv.flight.state()
-		check(st.speed_kt > v0 + 5.0 and st.on_ground and not st.crashed, "%s rolls (%.0f -> %.0f kt)" % [name, v0, st.speed_kt])
+		check(
+			st.speed_kt > v0 + 5.0 and st.on_ground and not st.crashed,
+			"%s rolls (%.0f -> %.0f kt)" % [name, v0, st.speed_kt]
+		)
 
 		tv = await start_mission(312)
 		var ac = tv.aircraft
 		check(tv.player.type == want[0] and not tv.gear_down, "%s: 312 in the air" % name)
 		var p0: Vector3 = tv.flight.state().position
 		var fwd: Vector3 = tv.flight.state().forward
-		tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, p0,
-				Vector3(0.0, 0.0, tv.flight.state().heading), fwd * 200.0 * 0.5144,
-				{"airborne": true, "engine_on": true, "real_data": false})
+		tv.flight.start(
+			Settings().assets_dir().path_join("install"),
+			tv.player.fm_section,
+			p0,
+			Vector3(0.0, 0.0, tv.flight.state().heading),
+			fwd * 200.0 * 0.5144,
+			{"airborne": true, "engine_on": true, "real_data": false}
+		)
 		if want[0] == 1000:
 			# The bay AMRAAM (station D) waits for the doors, which open first.
 			var w = tv.weapons
@@ -101,11 +174,18 @@ func run() -> void:
 		key(tv, KEY_F)
 		key(tv, KEY_B)
 		await create_timer(4.0).timeout
-		check(tv.gear_down and ac.ramps.gear < 0.01, "%s: the gear comes down at 200 kt (ramp %.3f)" % [name, ac.ramps.gear])
-		check(tv.flaps > 0.0 and ac.ramps.flaps > 0.1 and ac.ramps.speed_brake > 0.1, "%s: flaps and speed brake" % name)
+		check(
+			tv.gear_down and ac.ramps.gear < 0.01,
+			"%s: the gear comes down at 200 kt (ramp %.3f)" % [name, ac.ramps.gear]
+		)
+		check(
+			tv.flaps > 0.0 and ac.ramps.flaps > 0.1 and ac.ramps.speed_brake > 0.1, "%s: flaps and speed brake" % name
+		)
 		key(tv, KEY_8)
 		await create_timer(2.0).timeout
-		check(not ac.flames.is_empty() and ac.flame_lit(), "%s: full AB lights its flames (%d)" % [name, ac.flames.size()])
+		check(
+			not ac.flames.is_empty() and ac.flame_lit(), "%s: full AB lights its flames (%d)" % [name, ac.flames.size()]
+		)
 		# Crew seats: the model's pilot / pilotB parts (FUN_0053ee90).
 		var crew := ["pilot", "pilotB"].filter(func(p): return ac.part_node(p) != null).size()
 		for i in 3:

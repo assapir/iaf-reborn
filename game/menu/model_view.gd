@@ -178,13 +178,24 @@ func _gui_input(event: InputEvent) -> void:
 					set_tab(i)
 	elif event is InputEventKey and event.pressed and has_focus() and tab < 0:
 		match event.keycode:
-			KEY_LEFT: yaw += STEP_DEG
-			KEY_RIGHT: yaw -= STEP_DEG
-			KEY_UP: if pitch > PITCH_MIN: pitch -= STEP_DEG
-			KEY_DOWN: if pitch < PITCH_MAX: pitch += STEP_DEG
-			KEY_KP_ADD: if d > dist: d -= STEP_DIST
-			KEY_KP_SUBTRACT: if d < 4.0 * dist: d += STEP_DIST
-			_: return
+			KEY_LEFT:
+				yaw += STEP_DEG
+			KEY_RIGHT:
+				yaw -= STEP_DEG
+			KEY_UP:
+				if pitch > PITCH_MIN:
+					pitch -= STEP_DEG
+			KEY_DOWN:
+				if pitch < PITCH_MAX:
+					pitch += STEP_DEG
+			KEY_KP_ADD:
+				if d > dist:
+					d -= STEP_DIST
+			KEY_KP_SUBTRACT:
+				if d < 4.0 * dist:
+					d += STEP_DIST
+			_:
+				return
 		_place()
 		accept_event()
 
@@ -203,15 +214,28 @@ func _draw() -> void:
 		var off: Texture2D = fe._tex("framewnd/tvw_off.png")
 		var on: Texture2D = fe._tex("framewnd/tvw_on.png")
 		if off != null:
-			draw_texture_rect_region(off, Rect2(Vector2(x0, h) * s, Vector2(480, STRIP_H) * s), Rect2(Vector2.ZERO, Vector2(480, STRIP_H) * a))
+			draw_texture_rect_region(
+				off,
+				Rect2(Vector2(x0, h) * s, Vector2(480, STRIP_H) * s),
+				Rect2(Vector2.ZERO, Vector2(480, STRIP_H) * a)
+			)
 		if on != null:
 			var r: Vector2 = TABS[tab]
-			draw_texture_rect_region(on, Rect2(Vector2(x0 + r.x, h) * s, Vector2(r.y - r.x, STRIP_H) * s),
-					Rect2(Vector2(r.x, 0) * a, Vector2(r.y - r.x, STRIP_H) * a))
-	for e in [["mvbrdrl", Rect2(0, 0, 3, h), Vector2.ZERO], ["mvbrdrt", Rect2(0, 0, w, 3), Vector2.ZERO],
-			["mvbrdrr", Rect2(0, 0, 3, h), Vector2(w - 3, 0)], ["mvbrdrb", Rect2(0, 0, w, 3), Vector2(0, h - 3)],
-			["mvcrnrlt", Rect2(0, 0, 3, 3), Vector2.ZERO], ["mvcrnrrt", Rect2(0, 0, 3, 3), Vector2(w - 3, 0)],
-			["mvcrnrlb", Rect2(0, 0, 3, 3), Vector2(0, h - 3)], ["mvcrnrrb", Rect2(0, 0, 3, 3), Vector2(w - 3, h - 3)]]:
+			draw_texture_rect_region(
+				on,
+				Rect2(Vector2(x0 + r.x, h) * s, Vector2(r.y - r.x, STRIP_H) * s),
+				Rect2(Vector2(r.x, 0) * a, Vector2(r.y - r.x, STRIP_H) * a)
+			)
+	for e in [
+		["mvbrdrl", Rect2(0, 0, 3, h), Vector2.ZERO],
+		["mvbrdrt", Rect2(0, 0, w, 3), Vector2.ZERO],
+		["mvbrdrr", Rect2(0, 0, 3, h), Vector2(w - 3, 0)],
+		["mvbrdrb", Rect2(0, 0, w, 3), Vector2(0, h - 3)],
+		["mvcrnrlt", Rect2(0, 0, 3, 3), Vector2.ZERO],
+		["mvcrnrrt", Rect2(0, 0, 3, 3), Vector2(w - 3, 0)],
+		["mvcrnrlb", Rect2(0, 0, 3, 3), Vector2(0, h - 3)],
+		["mvcrnrrb", Rect2(0, 0, 3, 3), Vector2(w - 3, h - 3)]
+	]:
 		var t: Texture2D = fe._tex("framewnd/%s.png" % e[0])
 		if t != null:
 			draw_texture_rect_region(t, Rect2(e[2] * s, e[1].size * s), Rect2(e[1].position * a, e[1].size * a))

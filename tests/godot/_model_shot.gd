@@ -59,12 +59,17 @@ func run() -> void:
 	if not ground:
 		airborne_case(tv, _hardpoints())
 		var st: Dictionary = tv.flight.state()
-		tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, tv.rig.position,
-				Vector3(0.0, 0.0, st.heading), st.forward * 250.0,
-				{"airborne": true, "engine_on": true, "real_data": Settings().real_data()})
+		tv.flight.start(
+			Settings().assets_dir().path_join("install"),
+			tv.player.fm_section,
+			tv.rig.position,
+			Vector3(0.0, 0.0, st.heading),
+			st.forward * 250.0,
+			{"airborne": true, "engine_on": true, "real_data": Settings().real_data()}
+		)
 	if OS.get_environment("SHOT_NO_NORMAL") == "1":  # (debug: the normal maps' share of the look)
 		for mi: MeshInstance3D in tv.aircraft.find_children("*", "MeshInstance3D", true, false):
-			for si in (mi.mesh.get_surface_count() if mi.mesh != null else 0):
+			for si in mi.mesh.get_surface_count() if mi.mesh != null else 0:
 				var m := mi.mesh.surface_get_material(si) as BaseMaterial3D
 				if m != null:
 					m.normal_enabled = false
@@ -78,7 +83,7 @@ func run() -> void:
 		await _bench()
 		return
 	var only := OS.get_environment("SHOT_ONLY")
-	for s in (GROUND_SHOTS if ground else AIR_SHOTS):
+	for s in GROUND_SHOTS if ground else AIR_SHOTS:
 		if only != "" and not String(s[0]) in only.split(","):
 			continue
 		await _shot(s, out, Settings().models)
@@ -99,8 +104,18 @@ func _bench() -> void:
 		gpu += RenderingServer.viewport_get_measured_render_time_gpu(vp)
 	ft.sort()
 	var avg: float = ft.reduce(func(a, b): return a + b) / ft.size()
-	print("BENCH %s frame avg %.2f ms p95 %.2f ms gpu %.2f ms primitives %d" % [Settings().models, avg, ft[int(ft.size() * 0.95)],
-			gpu / 600.0, RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME)])
+	print(
+		(
+			"BENCH %s frame avg %.2f ms p95 %.2f ms gpu %.2f ms primitives %d"
+			% [
+				Settings().models,
+				avg,
+				ft[int(ft.size() * 0.95)],
+				gpu / 600.0,
+				RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME)
+			]
+		)
+	)
 	check(true, "bench done")
 
 
@@ -170,7 +185,8 @@ func _place_camera() -> void:
 		tv.chase.fov = _fov
 
 
-class CamPin extends Node:
+class CamPin:
+	extends Node
 	var place: Callable
 
 	func _process(_delta: float) -> void:

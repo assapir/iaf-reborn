@@ -33,8 +33,14 @@ const YELLOW := Color8(255, 255, 0)
 const ORANGE := Color8(255, 173, 0)
 const RED := Color8(255, 0, 0)
 const STATE_TEXT := {
-	"waiting": "waiting", "running": "running", "up_to_date": "up to date", "done": "done", "skipped": "skipped",
-	"failed": "FAILED", "blocked": "not run", "cancelled": "cancelled",
+	"waiting": "waiting",
+	"running": "running",
+	"up_to_date": "up to date",
+	"done": "done",
+	"skipped": "skipped",
+	"failed": "FAILED",
+	"blocked": "not run",
+	"cancelled": "cancelled",
 }
 
 ## Tests: only these steps (and what they wait for) run.
@@ -115,6 +121,7 @@ func _exit_tree() -> void:
 
 # --- layout ---
 
+
 func _build() -> void:
 	var bg := ColorRect.new()
 	bg.color = BG
@@ -160,21 +167,36 @@ func _build() -> void:
 	foot.add_child(gap)
 	again_button = Button.new()
 	again_button.text = "Check again"
-	again_button.pressed.connect(func(): tools = IafSetup.tools(); _fill_requirements(); _update())
+	again_button.pressed.connect(
+		func():
+			tools = IafSetup.tools()
+			_fill_requirements()
+			_update()
+	)
 	foot.add_child(again_button)
 	log_button = Button.new()
 	log_button.text = "Show the log"
-	log_button.pressed.connect(func():
-		log_view.visible = not log_view.visible
-		log_button.text = "Hide the log" if log_view.visible else "Show the log"
-		_log_to_end.call_deferred())
+	log_button.pressed.connect(
+		func():
+			log_view.visible = not log_view.visible
+			log_button.text = "Hide the log" if log_view.visible else "Show the log"
+			_log_to_end.call_deferred()
+	)
 	foot.add_child(log_button)
 	next_button = Button.new()
 	next_button.custom_minimum_size.x = 160
 	next_button.pressed.connect(_on_next)
 	foot.add_child(next_button)
-	for f in [_page_welcome, _page_requirements, _page_cd, _page_optional, _page_extras, _page_summary,
-			_page_install, _page_done]:
+	for f in [
+		_page_welcome,
+		_page_requirements,
+		_page_cd,
+		_page_optional,
+		_page_extras,
+		_page_summary,
+		_page_install,
+		_page_done
+	]:
 		var p: Control = f.call()
 		p.visible = false
 		body.add_child(p)
@@ -229,9 +251,11 @@ func _file_row(parent: Control, label: String, filters: PackedStringArray, check
 	box.add_child(status)
 	var row := {"box": box, "edit": edit, "status": status, "check": check, "ok": true}
 	edit.text_submitted.connect(func(_t): set_row(row, edit.text))
-	edit.focus_exited.connect(func():
-		if edit.text != row.get("checked", ""):
-			set_row(row, edit.text))
+	edit.focus_exited.connect(
+		func():
+			if edit.text != row.get("checked", ""):
+				set_row(row, edit.text)
+	)
 	browse.pressed.connect(func(): _browse(row, label, filters))
 	clear.pressed.connect(func(): set_row(row, ""))
 	return row
@@ -278,7 +302,11 @@ func _browse(row: Dictionary, label: String, filters: PackedStringArray) -> void
 func _resize_window() -> void:
 	await get_tree().process_frame
 	var win := get_window()
-	if DisplayServer.get_name() == "headless" or win.mode == Window.MODE_FULLSCREEN or win.mode == Window.MODE_EXCLUSIVE_FULLSCREEN:
+	if (
+		DisplayServer.get_name() == "headless"
+		or win.mode == Window.MODE_FULLSCREEN
+		or win.mode == Window.MODE_EXCLUSIVE_FULLSCREEN
+	):
 		return
 	# The project's 1920×1080 window is larger than most work areas, so the desktop maximizes it: back to a window.
 	if win.mode != Window.MODE_WINDOWED:
@@ -290,7 +318,10 @@ func _resize_window() -> void:
 	var grow := maxf(DisplayServer.screen_get_scale(win.current_screen), screen.size.y / 1080.0)
 	var fit := minf(screen.size.x / 1200.0, screen.size.y / 820.0) * 0.95
 	win.content_scale_factor = maxf(1.0, floorf(minf(grow, fit) * 4.0) / 4.0)
-	var want := Vector2i(mini(int(1200 * win.content_scale_factor), screen.size.x), mini(int(820 * win.content_scale_factor), screen.size.y))
+	var want := Vector2i(
+		mini(int(1200 * win.content_scale_factor), screen.size.x),
+		mini(int(820 * win.content_scale_factor), screen.size.y)
+	)
 	DisplayServer.window_set_size(want, win.get_window_id())
 	DisplayServer.window_set_position(screen.position + (screen.size - want) / 2, win.get_window_id())
 
@@ -366,9 +397,13 @@ func _theme() -> Theme:
 
 # --- pages ---
 
+
 func _page_requirements() -> Control:
 	var v := _vbox()
-	_text(v, "What this computer has. The required parts must be here to go on; an optional part missing only greys out its extra.")
+	_text(
+		v,
+		"What this computer has. The required parts must be here to go on; an optional part missing only greys out its extra."
+	)
 	req_box = _vbox()
 	v.add_child(req_box)
 	_fill_requirements()
@@ -385,24 +420,73 @@ func _fill_requirements() -> void:
 	var gpu := RenderingServer.get_video_adapter_name()
 	# The renderer Godot runs on here: Vulkan on Linux, Metal on macOS.
 	var api: String = {"vulkan": "Vulkan", "metal": "Metal", "d3d12": "Direct3D 12", "opengl3": "OpenGL"}.get(
-		RenderingServer.get_current_rendering_driver_name(), RenderingServer.get_current_rendering_driver_name())
+		RenderingServer.get_current_rendering_driver_name(), RenderingServer.get_current_rendering_driver_name()
+	)
 	var headless := DisplayServer.get_name() == "headless"
 	var free_gb := _free_gb()
 	var free_text := ("%.1f GB free" % free_gb) if free_gb >= 0 else "free space unknown"
 	var imagery_gb: float = SURVEY_GB[0] + SURVEY_GB[1] + SENTINEL_GB
 	# [required, here, component, why it is needed, status when here, how to get it when missing]
 	var items := [
-		[true, gpu != "" or headless, "Graphics (%s)" % api, "draws the game",
-			(gpu + " — " + RenderingServer.get_video_adapter_vendor()) if gpu != "" else "", _hint("install your GPU's Vulkan driver", "update macOS")],
-		[true, free_gb < 0 or free_gb >= BASE_GB, "Disk space: the game", "the install and the converted data, about %.0f GB" % BASE_GB,
-			free_text, "%s; free some space on this disk" % free_text],
-		[false, free_gb < 0 or free_gb >= BASE_GB + imagery_gb, "Disk space: imagery",
-			"Survey of Israel: about %.0f GB of kept downloads + %.0f GB converted\n(around the airbases only: %.0f + %.1f GB)\nSentinel-2: about %.1f GB" % [SURVEY_GB[0], SURVEY_GB[1], SURVEY_BASES_GB[0], SURVEY_BASES_GB[1], SENTINEL_GB],
-			"room for all of it", "%.1f GB left after the game: room for part of it" % maxf(0.0, free_gb - BASE_GB)],
-		[false, tools.get("gdal", false), "GDAL", "converts the terrain imagery", "found", _hint("sudo pacman -S gdal", "brew install gdal")],
-		[false, tools.get("curl", false), "curl", "downloads the Survey of Israel sheets", "found", _hint("sudo pacman -S curl", "brew install curl")],
-		[false, tools.get("python3", false), "python3", "reads the Survey's download token; builds the pilot guide PDFs", "found", _hint("sudo pacman -S python", "brew install python")],
-		[false, tools.get("firefox", false), "Firefox", "holds the Survey's download token; prints the pilot guide PDFs", "found", _hint("sudo pacman -S firefox", "brew install --cask firefox")],
+		[
+			true,
+			gpu != "" or headless,
+			"Graphics (%s)" % api,
+			"draws the game",
+			(gpu + " — " + RenderingServer.get_video_adapter_vendor()) if gpu != "" else "",
+			_hint("install your GPU's Vulkan driver", "update macOS")
+		],
+		[
+			true,
+			free_gb < 0 or free_gb >= BASE_GB,
+			"Disk space: the game",
+			"the install and the converted data, about %.0f GB" % BASE_GB,
+			free_text,
+			"%s; free some space on this disk" % free_text
+		],
+		[
+			false,
+			free_gb < 0 or free_gb >= BASE_GB + imagery_gb,
+			"Disk space: imagery",
+			(
+				"Survey of Israel: about %.0f GB of kept downloads + %.0f GB converted\n(around the airbases only: %.0f + %.1f GB)\nSentinel-2: about %.1f GB"
+				% [SURVEY_GB[0], SURVEY_GB[1], SURVEY_BASES_GB[0], SURVEY_BASES_GB[1], SENTINEL_GB]
+			),
+			"room for all of it",
+			"%.1f GB left after the game: room for part of it" % maxf(0.0, free_gb - BASE_GB)
+		],
+		[
+			false,
+			tools.get("gdal", false),
+			"GDAL",
+			"converts the terrain imagery",
+			"found",
+			_hint("sudo pacman -S gdal", "brew install gdal")
+		],
+		[
+			false,
+			tools.get("curl", false),
+			"curl",
+			"downloads the Survey of Israel sheets",
+			"found",
+			_hint("sudo pacman -S curl", "brew install curl")
+		],
+		[
+			false,
+			tools.get("python3", false),
+			"python3",
+			"reads the Survey's download token; builds the pilot guide PDFs",
+			"found",
+			_hint("sudo pacman -S python", "brew install python")
+		],
+		[
+			false,
+			tools.get("firefox", false),
+			"Firefox",
+			"holds the Survey's download token; prints the pilot guide PDFs",
+			"found",
+			_hint("sudo pacman -S firefox", "brew install --cask firefox")
+		],
 	]
 	var grid := GridContainer.new()
 	grid.columns = 5
@@ -432,15 +516,17 @@ func _fill_requirements() -> void:
 		if it[0] and not it[1]:
 			req_ok = false
 	# A light grey line between the rows (midway in the row gap).
-	grid.draw.connect(func():
-		var cells := grid.get_children()
-		for row in range(0, cells.size() / grid.columns - 1):
-			var bottom := 0.0
-			for c in grid.columns:
-				var l: Control = cells[row * grid.columns + c]
-				bottom = maxf(bottom, l.position.y + l.size.y)
-			var y := bottom + grid.get_theme_constant("v_separation") / 2.0
-			grid.draw_line(Vector2(0, y), Vector2(grid.size.x, y), Color(DIM, 0.35)))
+	grid.draw.connect(
+		func():
+			var cells := grid.get_children()
+			for row in range(0, cells.size() / grid.columns - 1):
+				var bottom := 0.0
+				for c in grid.columns:
+					var l: Control = cells[row * grid.columns + c]
+					bottom = maxf(bottom, l.position.y + l.size.y)
+				var y := bottom + grid.get_theme_constant("v_separation") / 2.0
+				grid.draw_line(Vector2(0, y), Vector2(grid.size.x, y), Color(DIM, 0.35))
+	)
 
 
 ## Free space where assets/ is (or would be), GB; -1 when unknown.
@@ -460,25 +546,41 @@ func _page_welcome() -> Control:
 	h.add_theme_constant_override("separation", 32)
 	var o := "#%s" % ORANGE.to_html(false)
 	var g := "#%s" % TITLE_GREEN.to_html(false)
-	var left := _rich(h, ("[font_size=28][b][i]Jane's IAF[/i][/b] [color=%s]reborn[/color][/font_size]\n" % o) +
-		"[i]Jane's IAF: Israeli Air Force[/i] (1998), reborn on a new open-source engine. Setup builds the game's data from your own CDs. Everything stays on this computer, in:\n" +
-		"[color=#%s]%s[/color]\n\n" % [DIM.to_html(false), assets] +
-		"[color=%s][b]Needed[/b][/color]\n[ul]the English CD image of Jane's IAF (an .iso file)[/ul]\n" % g +
-		"[color=%s][b]Optional[/b][/color]\n[ul]the official v1.1 patch (free download)\nthe Hebrew CD, or the Hebrew packs: the briefings and menus in Hebrew\nmodern terrain imagery: Survey of Israel 2015, Sentinel-2\nthe pilot guides: pictures and PDFs[/ul]\n" % g +
-		"[color=%s][b]Next[/b][/color]\n[ol type=1]Requirements: what this computer has.\nYour CD, then the optional files.\nExtras: the imagery and the pilot guides.\nSummary, then Install: a few minutes and about %.0f GB.[/ol]" % [g, BASE_GB])
+	var left := _rich(
+		h,
+		(
+			("[font_size=28][b][i]Jane's IAF[/i][/b] [color=%s]reborn[/color][/font_size]\n" % o)
+			+ "[i]Jane's IAF: Israeli Air Force[/i] (1998), reborn on a new open-source engine. Setup builds the game's data from your own CDs. Everything stays on this computer, in:\n"
+			+ "[color=#%s]%s[/color]\n\n" % [DIM.to_html(false), assets]
+			+ "[color=%s][b]Needed[/b][/color]\n[ul]the English CD image of Jane's IAF (an .iso file)[/ul]\n" % g
+			+ (
+				"[color=%s][b]Optional[/b][/color]\n[ul]the official v1.1 patch (free download)\nthe Hebrew CD, or the Hebrew packs: the briefings and menus in Hebrew\nmodern terrain imagery: Survey of Israel 2015, Sentinel-2\nthe pilot guides: pictures and PDFs[/ul]\n"
+				% g
+			)
+			+ (
+				"[color=%s][b]Next[/b][/color]\n[ol type=1]Requirements: what this computer has.\nYour CD, then the optional files.\nExtras: the imagery and the pilot guides.\nSummary, then Install: a few minutes and about %.0f GB.[/ol]"
+				% [g, BASE_GB]
+			)
+		)
+	)
 	left.size_flags_stretch_ratio = 1.4
 	for f in ["normal_font_size", "bold_font_size", "italics_font_size", "bold_italics_font_size"]:
 		left.add_theme_font_size_override(f, 15)
-	var right := _rich(h, ("[color=%s][b]About[/b][/color]\n" % g) +
-		("Source code: [url=%s]iaf-reborn on GitHub[/url]\n" % REPO_URL) +
-		"Licence: [url=https://www.gnu.org/licenses/gpl-3.0.html]GNU General Public License v3.0[/url] or later. The repository holds no data from the original game.\n" +
-		"\"Jane's\" and \"Jane's IAF\" are trademarks of their owners. This is an independent, non-commercial project, not affiliated with or endorsed by them, Electronic Arts or the original developer.\n\n" +
-		("[color=%s][b]Attributions[/b][/color]\n" % g) +
-		"[ul]Detailed F-16D: from the [url=https://github.com/NikolaiVChr/f16]FlightGear F-16[/url] by Erik Hofman, Nikolai V. Chr. and the other authors ([url=https://www.gnu.org/licenses/old-licenses/gpl-2.0.html]GPL 2.0[/url] or later)\n" +
-		"F-35I Adir: [url=https://sketchfab.com/3d-models/lockheed-martin-f35-lightning-ii-db911de503c74285a8d506951df786d6]\"Lockheed Martin F35 Lightning II\"[/url] by andertan ([url=https://creativecommons.org/licenses/by/4.0/]CC BY 4.0[/url]); the [url=https://commons.wikimedia.org/wiki/File:IAF_Squadron_116_Adir.png]116 Squadron badge[/url] by the IDF Spokesperson's Unit ([url=https://creativecommons.org/licenses/by-sa/3.0/]CC BY-SA 3.0[/url])\n" +
-		"Setup icon: the IAF roundel, [url=https://commons.wikimedia.org/wiki/File:Roundel_of_Israel.svg]\"Roundel of Israel.svg\"[/url] by Zscout370 (Wikimedia Commons, [url=https://creativecommons.org/licenses/by-sa/4.0/]CC BY-SA 4.0[/url])\n" +
-		"Survey of Israel imagery: © Survey of Israel 2015, via [url=https://data.gov.il]data.gov.il[/url]\n" +
-		"Sentinel-2 imagery: contains modified Copernicus Sentinel data (2021) processed by [url=https://esa-worldcover.org]ESA WorldCover[/url] consortium ([url=https://creativecommons.org/licenses/by/4.0/]CC BY 4.0[/url])[/ul]")
+	var right := _rich(
+		h,
+		(
+			("[color=%s][b]About[/b][/color]\n" % g)
+			+ ("Source code: [url=%s]iaf-reborn on GitHub[/url]\n" % REPO_URL)
+			+ "Licence: [url=https://www.gnu.org/licenses/gpl-3.0.html]GNU General Public License v3.0[/url] or later. The repository holds no data from the original game.\n"
+			+ '"Jane\'s" and "Jane\'s IAF" are trademarks of their owners. This is an independent, non-commercial project, not affiliated with or endorsed by them, Electronic Arts or the original developer.\n\n'
+			+ ("[color=%s][b]Attributions[/b][/color]\n" % g)
+			+ "[ul]Detailed F-16D: from the [url=https://github.com/NikolaiVChr/f16]FlightGear F-16[/url] by Erik Hofman, Nikolai V. Chr. and the other authors ([url=https://www.gnu.org/licenses/old-licenses/gpl-2.0.html]GPL 2.0[/url] or later)\n"
+			+ 'F-35I Adir: [url=https://sketchfab.com/3d-models/lockheed-martin-f35-lightning-ii-db911de503c74285a8d506951df786d6]"Lockheed Martin F35 Lightning II"[/url] by andertan ([url=https://creativecommons.org/licenses/by/4.0/]CC BY 4.0[/url]); the [url=https://commons.wikimedia.org/wiki/File:IAF_Squadron_116_Adir.png]116 Squadron badge[/url] by the IDF Spokesperson\'s Unit ([url=https://creativecommons.org/licenses/by-sa/3.0/]CC BY-SA 3.0[/url])\n'
+			+ 'Setup icon: the IAF roundel, [url=https://commons.wikimedia.org/wiki/File:Roundel_of_Israel.svg]"Roundel of Israel.svg"[/url] by Zscout370 (Wikimedia Commons, [url=https://creativecommons.org/licenses/by-sa/4.0/]CC BY-SA 4.0[/url])\n'
+			+ "Survey of Israel imagery: © Survey of Israel 2015, via [url=https://data.gov.il]data.gov.il[/url]\n"
+			+ "Sentinel-2 imagery: contains modified Copernicus Sentinel data (2021) processed by [url=https://esa-worldcover.org]ESA WorldCover[/url] consortium ([url=https://creativecommons.org/licenses/by/4.0/]CC BY 4.0[/url])[/ul]"
+		)
+	)
 	right.add_theme_font_size_override("normal_font_size", 14)
 	right.add_theme_font_size_override("bold_font_size", 14)
 	return h
@@ -507,19 +609,25 @@ func _page_cd() -> Control:
 	_text(v, "Give the English CD image of Jane's IAF (an .iso file).")
 	cd_row = _file_row(v, "English CD image (required)", PackedStringArray(["*.iso, *.ISO ; CD image"]), _check_cd)
 	v.add_child(HSeparator.new())
-	_text(v, "Or let setup find your files: it looks in a folder and its subfolders for the CD images, the v1.1 patch and the Hebrew packs, and fills in this page and the next.", true)
+	_text(
+		v,
+		"Or let setup find your files: it looks in a folder and its subfolders for the CD images, the v1.1 patch and the Hebrew packs, and fills in this page and the next.",
+		true
+	)
 	var find := Button.new()
 	find.text = "Find in a folder…"
 	find.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	find.pressed.connect(func():
-		var d := FileDialog.new()
-		d.use_native_dialog = true
-		d.access = FileDialog.ACCESS_FILESYSTEM
-		d.file_mode = FileDialog.FILE_MODE_OPEN_DIR
-		d.title = "The folder with your Jane's IAF files"
-		d.dir_selected.connect(scan_folder)
-		add_child(d)
-		d.popup_centered(Vector2i(900, 600)))
+	find.pressed.connect(
+		func():
+			var d := FileDialog.new()
+			d.use_native_dialog = true
+			d.access = FileDialog.ACCESS_FILESYSTEM
+			d.file_mode = FileDialog.FILE_MODE_OPEN_DIR
+			d.title = "The folder with your Jane's IAF files"
+			d.dir_selected.connect(scan_folder)
+			add_child(d)
+			d.popup_centered(Vector2i(900, 600))
+	)
 	v.add_child(find)
 	scan_note = _text(v, "", true)
 	return v
@@ -535,7 +643,11 @@ func _check_cd(path: String) -> Array:
 			# it goes on the Optional page.
 			if hebrew_row.edit.text == "":
 				set_row(hebrew_row, path)
-			return [false, "This is the Hebrew CD of Jane's IAF. It adds the Hebrew briefings and menus, so setup keeps it for the next page. The game itself is built from the English CD: give that one here.", true]
+			return [
+				false,
+				"This is the Hebrew CD of Jane's IAF. It adds the Hebrew briefings and menus, so setup keeps it for the next page. The game itself is built from the English CD: give that one here.",
+				true
+			]
 	return [false, "✗ Not a Jane's IAF CD image (%s)." % r.why]
 
 
@@ -550,8 +662,13 @@ func scan_folder(dir: String) -> void:
 
 ## The scan's results into the empty rows.
 func _scanned(found: Dictionary) -> void:
-	var names := {"english": "the English CD", "hebrew": "the Hebrew CD", "patch": "the v1.1 patch",
-		"brief": "the Hebrew briefings pack", "menu": "the Hebrew menus pack"}
+	var names := {
+		"english": "the English CD",
+		"hebrew": "the Hebrew CD",
+		"patch": "the v1.1 patch",
+		"brief": "the Hebrew briefings pack",
+		"menu": "the Hebrew menus pack"
+	}
 	var row_of := {"english": cd_row, "hebrew": hebrew_row, "patch": patch_row, "brief": brief_row, "menu": menu_row}
 	var got := []
 	for k in found:
@@ -564,13 +681,40 @@ func _scanned(found: Dictionary) -> void:
 func _page_optional() -> Control:
 	var v := _vbox()
 	_text(v, "All optional. Leave a field empty to go without it.")
-	patch_row = _file_row(v, "The official v1.1 patch: the file you download, as it is", PackedStringArray(["*.exe, *.EXE, *.zip, *.rtp ; patch"]), _check_patch, ["Get the patch", PATCH_URL])
-	hebrew_row = _file_row(v, "The Hebrew CD image: all the Hebrew briefings and menus", PackedStringArray(["*.iso, *.ISO ; CD image"]), _check_hebrew)
+	patch_row = _file_row(
+		v,
+		"The official v1.1 patch: the file you download, as it is",
+		PackedStringArray(["*.exe, *.EXE, *.zip, *.rtp ; patch"]),
+		_check_patch,
+		["Get the patch", PATCH_URL]
+	)
+	hebrew_row = _file_row(
+		v,
+		"The Hebrew CD image: all the Hebrew briefings and menus",
+		PackedStringArray(["*.iso, *.ISO ; CD image"]),
+		_check_hebrew
+	)
 	packs_box = _vbox()
 	v.add_child(packs_box)
-	_text(packs_box, "Without the Hebrew CD: the two Hebrew packs from preflight.us, an Israeli flight-sim site (its downloads need a login).", true)
-	brief_row = _file_row(packs_box, "Hebrew briefings (Brief.zip)", PackedStringArray(["*.zip ; zip"]), _check_pack.bind("brief"), ["Get Brief.zip", BRIEF_URL])
-	menu_row = _file_row(packs_box, "Hebrew menus (Menu.zip)", PackedStringArray(["*.zip ; zip"]), _check_pack.bind("menu"), ["About the packs", PACKS_URL])
+	_text(
+		packs_box,
+		"Without the Hebrew CD: the two Hebrew packs from preflight.us, an Israeli flight-sim site (its downloads need a login).",
+		true
+	)
+	brief_row = _file_row(
+		packs_box,
+		"Hebrew briefings (Brief.zip)",
+		PackedStringArray(["*.zip ; zip"]),
+		_check_pack.bind("brief"),
+		["Get Brief.zip", BRIEF_URL]
+	)
+	menu_row = _file_row(
+		packs_box,
+		"Hebrew menus (Menu.zip)",
+		PackedStringArray(["*.zip ; zip"]),
+		_check_pack.bind("menu"),
+		["About the packs", PACKS_URL]
+	)
 	return v
 
 
@@ -594,7 +738,9 @@ func _check_pack(path: String, what: String) -> Array:
 	if not r.ok:
 		return [false, "✗ Not a Hebrew pack (%s)." % r.why]
 	if r[what] == 0:
-		return [false, "✗ This pack has no %s files (it holds %d briefing and %d menu files)." % [what, r.brief, r.menu]]
+		return [
+			false, "✗ This pack has no %s files (it holds %d briefing and %d menu files)." % [what, r.brief, r.menu]
+		]
 	return [true, "✓ %d %s files." % [r[what], "briefing" if what == "brief" else "menu"]]
 
 
@@ -603,24 +749,46 @@ func _page_extras() -> Control:
 	_text(v, "Extras, all optional. Each can also be added later by running setup again.")
 	var gdal: bool = tools.get("gdal", false)
 	var need_gdal := "" if gdal else "Needs GDAL (see Requirements)."
-	mapi_check = _extra(v, "Survey of Israel 2015 imagery (2 m, over Israel)",
+	mapi_check = _extra(
+		v,
+		"Survey of Israel 2015 imagery (2 m, over Israel)",
 		"Downloads the Survey's sheets from data.gov.il with curl and your Firefox's data.gov.il token (without one it opens them in your browser's tabs), then converts them. All of Israel: 79 sheets, about 17 GB of downloads (kept) and 5 GB converted. Around the airbases: 9 sheets, about 2 GB of downloads. Sheets already downloaded are not downloaded again, and converted units are kept.",
-		"" if gdal and tools.get("curl", false) and tools.get("python3", false) else "Needs GDAL, curl and python3 (see Requirements).")
+		(
+			""
+			if gdal and tools.get("curl", false) and tools.get("python3", false)
+			else "Needs GDAL, curl and python3 (see Requirements)."
+		)
+	)
 	mapi_scope = OptionButton.new()
 	mapi_scope.add_item("all of Israel")
 	mapi_scope.add_item("around the airbases only")
 	mapi_scope.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	mapi_scope.disabled = mapi_check.disabled
 	mapi_check.get_parent().add_child(mapi_scope)
-	sentinel_check = _extra(v, "Sentinel-2 imagery (10 m, outside Israel)",
-		"About 28 GB read over the network, about 2.5 GB on disk. Units already converted are not read again.", need_gdal)
-	refresh_check = _extra(v, "Bring the imagery up to date",
-		"Converts again the imagery units that older rules made (after copying imagery from another computer).", need_gdal)
+	sentinel_check = _extra(
+		v,
+		"Sentinel-2 imagery (10 m, outside Israel)",
+		"About 28 GB read over the network, about 2.5 GB on disk. Units already converted are not read again.",
+		need_gdal
+	)
+	refresh_check = _extra(
+		v,
+		"Bring the imagery up to date",
+		"Converts again the imagery units that older rules made (after copying imagery from another computer).",
+		need_gdal
+	)
 	refresh_note = refresh_check.get_parent().get_child(1)
 	refresh_check.get_parent().visible = _layers().size() > 0
-	guides_check = _extra(v, "Pilot guides (pictures and PDFs)",
+	guides_check = _extra(
+		v,
+		"Pilot guides (pictures and PDFs)",
 		"Renders each jet's guide pictures with the game, then prints the PDFs with Firefox. Takes a while; the renders open game windows briefly.",
-		"" if tools.get("python3", false) and tools.get("firefox", false) else "Needs python3 and Firefox (see Requirements).")
+		(
+			""
+			if tools.get("python3", false) and tools.get("firefox", false)
+			else "Needs python3 and Firefox (see Requirements)."
+		)
+	)
 	for c in [mapi_check, sentinel_check, refresh_check, guides_check]:
 		c.toggled.connect(func(_on): _update())
 	return v
@@ -654,8 +822,15 @@ func _count_stale() -> void:
 	if not refresh_check.get_parent().visible or jobs.has("stale"):
 		return
 	refresh_note.text = "Counting the units older rules made…"
-	_begin("stale", [assets] + Array(_layers()), func(n):
-		refresh_note.text = ("Could not count them (offline?). " if n < 0 else "%d units were made under older rules. " % n) + "Converts them again (after copying imagery from another computer).")
+	_begin(
+		"stale",
+		[assets] + Array(_layers()),
+		func(n):
+			refresh_note.text = (
+				("Could not count them (offline?). " if n < 0 else "%d units were made under older rules. " % n)
+				+ "Converts them again (after copying imagery from another computer)."
+			)
+	)
 
 
 ## Starts IafSetup job `job` (its threads: the window stays live); `done` gets its result.
@@ -678,10 +853,12 @@ func _page_install() -> Control:
 	var v := _vbox()
 	install_note = _text(v, "")
 	redo_check = CheckBox.new()
-	redo_check.text = "Redo everything (also the steps that are up to date). Or tick \"redo\" on the steps to redo."
-	redo_check.toggled.connect(func(on):
-		for id in rows:
-			rows[id].redo.button_pressed = on)
+	redo_check.text = 'Redo everything (also the steps that are up to date). Or tick "redo" on the steps to redo.'
+	redo_check.toggled.connect(
+		func(on):
+			for id in rows:
+				rows[id].redo.button_pressed = on
+	)
 	v.add_child(redo_check)
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -709,18 +886,25 @@ func _page_done() -> Control:
 	start.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	start.pressed.connect(start_game)
 	v.add_child(start)
-	_text(v, "Run setup again at any time (./setup, or the \"Jane's IAF (reborn) — Setup\" launcher) to add an extra or redo a step.", true)
+	_text(
+		v,
+		'Run setup again at any time (./setup, or the "Jane\'s IAF (reborn) — Setup" launcher) to add an extra or redo a step.',
+		true
+	)
 	return v
 
 
 # --- flow ---
+
 
 func show_page(n: int) -> void:
 	page = clampi(n, 0, PAGES.size() - 1)
 	for i in pages.size():
 		pages[i].visible = i == page
 	title_label.text = PAGES[page]
-	(find_child("Steps", true, false) as Label).text = "  ›  ".join(PAGES.map(func(p): return p if p != PAGES[page] else "[%s]" % p))
+	(find_child("Steps", true, false) as Label).text = "  ›  ".join(
+		PAGES.map(func(p): return p if p != PAGES[page] else "[%s]" % p)
+	)
 	match PAGES[page]:
 		"Extras":
 			_count_stale()
@@ -729,7 +913,7 @@ func show_page(n: int) -> void:
 		"Install":
 			if not running:
 				_fill_rows(IafSetup.plan(JSON.stringify(inputs())), false)
-				install_note.text = "Ready. Install runs the steps below; the ones whose inputs did not change are \"up to date\" and are skipped."
+				install_note.text = 'Ready. Install runs the steps below; the ones whose inputs did not change are "up to date" and are skipped.'
 				_preview()
 	_update()
 
@@ -797,7 +981,10 @@ func inputs() -> Dictionary:
 	if hebrew_row.edit.text != "":
 		he = {"cd": hebrew_row.edit.text}
 	elif brief_row.edit.text != "" or menu_row.edit.text != "":
-		he = {"brief": brief_row.edit.text if brief_row.edit.text != "" else null, "menu": menu_row.edit.text if menu_row.edit.text != "" else null}
+		he = {
+			"brief": brief_row.edit.text if brief_row.edit.text != "" else null,
+			"menu": menu_row.edit.text if menu_row.edit.text != "" else null
+		}
 	var imagery := []
 	if mapi_check.button_pressed and not mapi_check.disabled:
 		imagery.append("mapi2015-bases" if mapi_scope.selected == 1 else "mapi2015")
@@ -851,7 +1038,13 @@ func _fill_summary() -> void:
 	t += "[b]Hebrew[/b]\n    %s\n\n" % he_text
 	var extras := []
 	for m in i.imagery:
-		extras.append({"sentinel2": "Sentinel-2 imagery", "mapi2015": "Survey of Israel imagery (all of Israel)", "mapi2015-bases": "Survey of Israel imagery (around the airbases)"}[m])
+		extras.append(
+			{
+				"sentinel2": "Sentinel-2 imagery",
+				"mapi2015": "Survey of Israel imagery (all of Israel)",
+				"mapi2015-bases": "Survey of Israel imagery (around the airbases)"
+			}[m]
+		)
 	if i.refresh:
 		extras.append("bring the imagery up to date")
 	if i.guides:
@@ -907,8 +1100,10 @@ func _fill_rows(steps: Array, keep: bool) -> void:
 			if t > 30.0 and f > 0.02:
 				r.state.text = "%s, %s left" % [r.state.text, duration(t * (1.0 - f) / f)]
 		r.state.tooltip_text = s.get("detail", "")
-		r.state.add_theme_color_override("font_color", {"done": GREEN, "up_to_date": DIM_GREEN, "failed": RED,
-			"running": YELLOW, "skipped": DIM}.get(st, TEXT))
+		r.state.add_theme_color_override(
+			"font_color",
+			{"done": GREEN, "up_to_date": DIM_GREEN, "failed": RED, "running": YELLOW, "skipped": DIM}.get(st, TEXT)
+		)
 		r.bar.value = s.get("fraction", 0.0)
 		r.bar.modulate.a = 1.0 if st == "running" else 0.0
 		r.redo.disabled = running
@@ -945,13 +1140,17 @@ func _preview() -> void:
 	for j in jobs.keys().filter(func(j): return j.begins_with("preview#")):
 		jobs.erase(j)
 	previews += 1
-	_begin("preview#%d" % previews, [assets, repo, JSON.stringify(inputs())], func(up: Dictionary):
-		if running or finished:
-			return
-		for id in rows:
-			var u: bool = up.get(id, false)
-			rows[id].state.text = "up to date" if u else "will run"
-			rows[id].state.add_theme_color_override("font_color", DIM_GREEN if u else TEXT))
+	_begin(
+		"preview#%d" % previews,
+		[assets, repo, JSON.stringify(inputs())],
+		func(up: Dictionary):
+			if running or finished:
+				return
+			for id in rows:
+				var u: bool = up.get(id, false)
+				rows[id].state.text = "up to date" if u else "will run"
+				rows[id].state.add_theme_color_override("font_color", DIM_GREEN if u else TEXT)
+	)
 
 
 func _process(_delta: float) -> void:
@@ -973,8 +1172,11 @@ func _process(_delta: float) -> void:
 		finished = true
 		failed = p.error
 		var up: int = p.steps.filter(func(s): return s.state == "up_to_date").size()
-		install_note.text = ("Setup stopped: %s. The log has the details; fix the input and press Back, then Install again." % failed) if failed != "" \
+		install_note.text = (
+			("Setup stopped: %s. The log has the details; fix the input and press Back, then Install again." % failed)
+			if failed != ""
 			else "Done: %d steps ran, %d were up to date." % [p.steps.size() - up, up]
+		)
 		done_label.text = "Jane's IAF is set up." if failed == "" else "Setup did not finish: " + failed
 		if failed != "":
 			log_view.visible = true

@@ -12,16 +12,32 @@ func run() -> void:
 	await frames(10)
 	var drawn: Array = tv.terrain.find_children("*", "MeshInstance3D", false, false)
 	var terrain_shader := func() -> bool:
-		return not drawn.is_empty() and drawn.all(func(m): return m.material_override is ShaderMaterial and m.material_override.shader == shader)
-	check(RO.terrain_water == 0.0 and not Settings().terrain_closeup and RO._surf_tex == null and terrain_shader.call(),
-			"off: the original terrain material, water 0, no surface raster")
+		return (
+			not drawn.is_empty()
+			and drawn.all(
+				func(m): return m.material_override is ShaderMaterial and m.material_override.shader == shader
+			)
+		)
+	check(
+		RO.terrain_water == 0.0 and not Settings().terrain_closeup and RO._surf_tex == null and terrain_shader.call(),
+		"off: the original terrain material, water 0, no surface raster"
+	)
 
 	Settings().water = true
 	tv.apply_render_options()
 	await frames(3)
-	check(RO.terrain_water == 1.0 and terrain_shader.call() and shader.code.contains("global uniform float terrain_water"),
-			"on: the terrain shader's water on")
-	check(RO._surf_tex != null and RO._surf_img.get_width() == RO.SURF_N, "on: the surface raster built with the close up off")
+	check(
+		(
+			RO.terrain_water == 1.0
+			and terrain_shader.call()
+			and shader.code.contains("global uniform float terrain_water")
+		),
+		"on: the terrain shader's water on"
+	)
+	check(
+		RO._surf_tex != null and RO._surf_img.get_width() == RO.SURF_N,
+		"on: the surface raster built with the close up off"
+	)
 	# The Rust raster against the GDScript lookup at every 9th texel centre.
 	var bad := 0
 	var n := 0
@@ -35,7 +51,9 @@ func run() -> void:
 				bad += 1
 			n += 1
 			wet += int(px.r > 0.5)
-	check(bad == 0 and wet > 0, "surface raster = surface_at at %d texels, %d of them water (%d differ)" % [n, wet, bad])
+	check(
+		bad == 0 and wet > 0, "surface raster = surface_at at %d texels, %d of them water (%d differ)" % [n, wet, bad]
+	)
 	# And across the coast at Tel Aviv (engine metres 309000..315144 east, 543568 north): 64 × 64 texels of 96 m.
 	var o: Vector2 = tv.terrain.world_origin
 	var t0 := Time.get_ticks_usec()
@@ -50,7 +68,10 @@ func run() -> void:
 		if (rg[2 * k] > 0) != ((f & 0x6) != 0 and (f & 0x8) == 0):
 			bad += 1
 		wet += int(rg[2 * k] > 0)
-	check(bad == 0 and wet > 500 and wet < 64 * 64 - 500, "Tel Aviv coast raster = surface_at (%d of 4096 water, %d differ)" % [wet, bad])
+	check(
+		bad == 0 and wet > 500 and wet < 64 * 64 - 500,
+		"Tel Aviv coast raster = surface_at (%d of 4096 water, %d differ)" % [wet, bad]
+	)
 	var cfg: ConfigFile = Settings().write_config()
 	Settings().water = false
 	Settings().read_config(cfg)
@@ -58,4 +79,6 @@ func run() -> void:
 
 	Settings().water = false
 	tv.apply_render_options()
-	check(RO.terrain_water == 0.0 and RO._surf_tex == null and terrain_shader.call(), "off again: water 0, raster dropped")
+	check(
+		RO.terrain_water == 0.0 and RO._surf_tex == null and terrain_shader.call(), "off again: water 0, raster dropped"
+	)

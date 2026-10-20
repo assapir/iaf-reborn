@@ -51,7 +51,10 @@ func run() -> void:
 	check(absf(pa[0] + 0.29275 * 0.33) < 1e-4, "left flaperon = aileron - flaps")
 	f16.update({"brakes": true}, 0.0)
 	f16.settle()
-	check(absf(f16.part_pose(9)[0] - 0.855) < 1e-4 and absf(f16.part_pose(10)[0] + 0.855) < 1e-4, "speed brakes open 49 degrees")
+	check(
+		absf(f16.part_pose(9)[0] - 0.855) < 1e-4 and absf(f16.part_pose(10)[0] + 0.855) < 1e-4,
+		"speed brakes open 49 degrees"
+	)
 	# Afterburner: only at an AB stage; military power (RPM 100 %) draws nothing (level 74).
 	f16.update({"afterburner": 0, "rpm": 1.0}, 0.1)
 	await process_frame
@@ -70,7 +73,10 @@ func run() -> void:
 	check(mig.type_code == 180 and mig.flames.size() == 2, "MiG-29: type 180, two nozzles")
 	mig.update({"gear_down": true}, 0.0)
 	mig.update({"gear_down": false}, 2.85)
-	check(not mig.part_node("LdgL").visible and mig.part_node("LdgF").visible, "MiG-29 main legs gone at 8/9, nose leg still out")
+	check(
+		not mig.part_node("LdgL").visible and mig.part_node("LdgF").visible,
+		"MiG-29 main legs gone at 8/9, nose leg still out"
+	)
 	mig.free()
 
 	# Ours: the F-35I's bay doors open on bay_open and shut again; the F-16's pilot borrowed.

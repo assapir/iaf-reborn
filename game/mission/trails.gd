@@ -63,7 +63,9 @@ func _ready() -> void:
 
 
 static func _texture(name: String) -> Texture2D:
-	var path: String = Engine.get_main_loop().root.get_node("Settings").assets_dir().path_join("converted/objects").path_join(name)
+	var path: String = (
+		Engine.get_main_loop().root.get_node("Settings").assets_dir().path_join("converted/objects").path_join(name)
+	)
 	var img := Image.load_from_file(path) if FileAccess.file_exists(path) else null
 	return ImageTexture.create_from_image(img) if img != null else null
 

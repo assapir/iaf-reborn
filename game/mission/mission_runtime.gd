@@ -165,7 +165,9 @@ func setup(host_node: Node, mission_files: Array, bdb: Dictionary, player_id := 
 		if fi == 0:
 			misc = m.misc.items[0]
 		for d in m.get("debrief", {}).get("items", []):
-			debriefs["%d:%d" % [fi, int(d["0x1e"])]] = {"text": String(d.get("0x26c", "")), "flag": int(d.get("0x262", 0))}
+			debriefs["%d:%d" % [fi, int(d["0x1e"])]] = {
+				"text": String(d.get("0x26c", "")), "flag": int(d.get("0x262", 0))
+			}
 		for p in m.get("paths", {}).get("items", []):
 			var pts: Array = []
 			for q in p.get("points", []):
@@ -178,9 +180,12 @@ func setup(host_node: Node, mission_files: Array, bdb: Dictionary, player_id := 
 					for id in range(1, int(c["0x3de"]) + 1):
 						counters[id] = 0
 			events["%d:%d" % [fi, int(ev["0x1e"])]] = {
-				"debrief": int(ev.get("0x38e", -1)), "audio": int(ev.get("0x3ac", -1)),
-				"left": int(ev.get("0x398", 0)), "actions": ev.get("list", []),
-				"conds": conds.slice(0, 2), "counter": conds[2] if conds.size() > 2 else {},
+				"debrief": int(ev.get("0x38e", -1)),
+				"audio": int(ev.get("0x3ac", -1)),
+				"left": int(ev.get("0x398", 0)),
+				"actions": ev.get("list", []),
+				"conds": conds.slice(0, 2),
+				"counter": conds[2] if conds.size() > 2 else {},
 				"name": String(ev.get("0x384", "")),
 			}
 		for e in m.entities.items:
@@ -194,17 +199,32 @@ func setup(host_node: Node, mission_files: Array, bdb: Dictionary, player_id := 
 			if unplaced and name.to_lower().begins_with("player") and not is_player:
 				continue
 			var ent := {
-				"key": "%d:%d" % [fi, int(e["0x1e"])], "name": name, "file": fi, "id": int(e["0x1e"]),
+				"key": "%d:%d" % [fi, int(e["0x1e"])],
+				"name": name,
+				"file": fi,
+				"id": int(e["0x1e"]),
 				"world": Vector3(float(e["0x2e4"]), float(e["0x2ee"]), float(e.get("0x2f8", 0))),
-				"role": int(e.get("0x32a", 2)), "mission_ctl": int(e.get("0x320", 0)) & 1 == 1,
-				"slots": e.get("slots", []), "watched": int(e.get("0xac", -1)),
-				"sensor": true, "alive_scenario": true, "state": 1, "visible": true, "node": null,
+				"role": int(e.get("0x32a", 2)),
+				"mission_ctl": int(e.get("0x320", 0)) & 1 == 1,
+				"slots": e.get("slots", []),
+				"watched": int(e.get("0xac", -1)),
+				"sensor": true,
+				"alive_scenario": true,
+				"state": 1,
+				"visible": true,
+				"node": null,
 				"player": is_player,
 				"lists": [_list(e.get("scripts0", {})), _list(e.get("scripts1", {}))],
-				"current": [-1, -1], "path": null, "type": int(e.get("0x2c6", -1)),
+				"current": [-1, -1],
+				"path": null,
+				"type": int(e.get("0x2c6", -1)),
 				"control": 3 if is_player else (2 if int(e.get("0x320", 0)) & 1 == 1 else 1),
-				"side": int(e.get("0x2d0", 0)), "heading": float(e.get("0x302", 0)),
-				"vel": Vector3.ZERO, "fall": null, "combat": true, "brain": _brain_of(e),
+				"side": int(e.get("0x2d0", 0)),
+				"heading": float(e.get("0x302", 0)),
+				"vel": Vector3.ZERO,
+				"fall": null,
+				"combat": true,
+				"brain": _brain_of(e),
 				"armament": e.get("armament"),
 				# State +0x44, known to the player (entity 0x35c; the player's radar sets it too): the TSDs show the unit.
 				"known": int(e.get("0x35c", 0)) != 0,
@@ -282,6 +302,7 @@ func _after(seconds: float, what: Callable) -> void:
 
 # --- scripts (§4) -----------------------------------------------------------------------------
 
+
 func _jump(ent: Dictionary, li: int, index: int) -> void:
 	if not ent.alive_scenario or not ent.lists[li].has(index):
 		return
@@ -315,13 +336,20 @@ func _trigger(ent: Dictionary, sc: Dictionary) -> void:
 			# Launch at location (FUN_005c4160): the point (x, y, z) at the script's +0x28..+0x30 — the editor stores x in
 			# the text field 0x848, y / z in 0x852 / 0x85c (215's Scud: "447090", 620870, 10000).
 			if host.has_method("mission_launch_at"):
-				host.mission_launch_at(ent, Vector3(float(String(sc.get("0x848", "0"))), float(sc.get("0x852", 0.0)),
-					float(sc.get("0x85c", 0.0))))
+				host.mission_launch_at(
+					ent,
+					Vector3(
+						float(String(sc.get("0x848", "0"))), float(sc.get("0x852", 0.0)), float(sc.get("0x85c", 0.0))
+					)
+				)
 		2:
 			# Launch at target (FUN_005c42f0): the unit's weapon at entity 0x8ac (docs/ai.md §14). 0x852 (script +0x3c)
 			# ≠ 0 is a kill shot (release flag 2), 0 a miss for show (flag 0: its blast hurts nothing).
-			host.mission_launch(ent, entities.get("%d:%d" % [ent.file, int(sc.get("0x8ac", -1))], {}),
-				float(sc.get("0x852", 0.0)) != 0.0)
+			host.mission_launch(
+				ent,
+				entities.get("%d:%d" % [ent.file, int(sc.get("0x8ac", -1))], {}),
+				float(sc.get("0x852", 0.0)) != 0.0
+			)
 		5:
 			if not ent.player:
 				_destroy(ent)
@@ -374,7 +402,9 @@ func _motion(ent: Dictionary, sc: Dictionary, duration: float) -> void:
 		16:
 			var pts: Array = paths.get("%d:%d" % [ent.file, int(sc.get("0x8ac", -1))], [])
 			if not pts.is_empty():
-				ent.path = _path_from(ent, pts, float(sc.get("0x852", 1.0)) < 0.0, maxf(duration, 0.001) if duration > 0.0 else 1e7)
+				ent.path = _path_from(
+					ent, pts, float(sc.get("0x852", 1.0)) < 0.0, maxf(duration, 0.001) if duration > 0.0 else 1e7
+				)
 		_:
 			ent.path = null  # 1 Hover and the rest: hold position
 
@@ -479,6 +509,7 @@ func _set_visible(ent: Dictionary, on: bool) -> void:
 
 # --- reached / left checks (§2.2) -------------------------------------------------------------
 
+
 func _slot(ent: Dictionary, i: int) -> Dictionary:
 	return ent.slots[i] if i < ent.slots.size() else {}
 
@@ -538,6 +569,7 @@ func _notification(what: int) -> void:
 
 # --- events (§3) -------------------------------------------------------------------------------
 
+
 ## Fire (FUN_004c3425): the counter action runs on every trigger, before the executions and the
 ## condition are checked (v1.1; v1.0 ran it only when the event fired).
 func fire_event(file: int, id: int) -> void:
@@ -576,13 +608,20 @@ func _condition(conds: Array) -> bool:
 		var x := int(c.get("0x3ca", 0))
 		var ok: bool
 		match int(c.get("0x3d4", -1)):
-			0: ok = v == x
-			1: ok = v > x
-			2: ok = v < x
-			3: ok = v >= x
-			4: ok = v <= x
-			5: ok = v != x
-			_: ok = false
+			0:
+				ok = v == x
+			1:
+				ok = v > x
+			2:
+				ok = v < x
+			3:
+				ok = v >= x
+			4:
+				ok = v <= x
+			5:
+				ok = v != x
+			_:
+				ok = false
 		if not ok:
 			return false
 	return true
@@ -595,11 +634,16 @@ func _counter_action(c: Dictionary) -> void:
 		return
 	var x := int(c.get("0x3ca", 0))
 	match int(c.get("0x3d4", -1)):
-		6: counters[k] = x
-		7: counters[k] += x
-		8: counters[k] -= x
-		9: counters[k] -= 1
-		10: counters[k] += 1
+		6:
+			counters[k] = x
+		7:
+			counters[k] += x
+		8:
+			counters[k] -= x
+		9:
+			counters[k] -= 1
+		10:
+			counters[k] += 1
 
 
 ## PlayMessage (FUN_004bb10b): the bdb Audio wav on the speech channel and its subtitle.
@@ -626,12 +670,15 @@ func _add_debrief(file: int, id: int) -> void:
 # 5 exploded; +0x10 the damage fraction 0..1, +0x28 the requested level. The damage object
 # (entity+0x10): strength (hit points) and the shield flag (trigger ops 11 / 12).
 
+
 ## A blast at `point` (world X, Y, alt) of `power` within `radius` m: every unit it reaches takes
 ## FUN_004642f0's share (DamageModel.blast). `source` = the entity that fired (hits need one, as in
 ## FUN_004a9970); `kind` = "gun" for gun rounds (the player's hit thump), else a weapon / "blast".
 ## `only` = the unit keys the blast may reach (a gun round's candidate list, docs/weapons.md §3.7);
 ## null = every unit. Returns the entities it damaged.
-func area_damage(point: Vector3, power: float, radius: float, source: Dictionary, kind := "blast", only = null) -> Array:
+func area_damage(
+	point: Vector3, power: float, radius: float, source: Dictionary, kind := "blast", only = null
+) -> Array:
 	var out := []
 	for ent in entities.values():
 		if ent.state == DamageModel.EXPLODED or ent == source or not ent.damageable:
@@ -685,8 +732,15 @@ func _hit(ent: Dictionary, dmg: float, source: Dictionary, kind: String) -> bool
 		return false
 	ent.killer = source
 	if ent.player and host.has_method("blackbox_event"):
-		host.blackbox_event({"event": "hit", "key": String(source.get("key", "")), "kind": kind, "damage": snappedf(new, 0.01),
-			"kill": kill or new >= DamageModel.HIT_AT})
+		host.blackbox_event(
+			{
+				"event": "hit",
+				"key": String(source.get("key", "")),
+				"kind": kind,
+				"damage": snappedf(new, 0.01),
+				"kill": kill or new >= DamageModel.HIT_AT
+			}
+		)
 	if kill:
 		set_damage_level(ent, DamageModel.EXPLODED, source, kind)
 	elif new > 0.0:
@@ -710,8 +764,11 @@ func _friendly_hit(ent: Dictionary, source: Dictionary) -> void:
 		return
 	_friendly_t0 = now
 	var flying := func(e: Dictionary) -> bool:
-		return not e.is_empty() and not int(e.state) in [DamageModel.DESTROYED, DamageModel.EXPLODED] \
-				and int(e.get("control", 0)) != 0
+		return (
+			not e.is_empty()
+			and not int(e.state) in [DamageModel.DESTROYED, DamageModel.EXPLODED]
+			and int(e.get("control", 0)) != 0
+		)
 	var partner: Dictionary = host.ai.partner_of(source) if host.get("ai") != null else {}
 	host.mission_voice(DamageModel.friendly_voice(flying.call(ent), flying.call(partner)))
 
@@ -771,19 +828,26 @@ func _damaged_alive(ent: Dictionary, source: Dictionary, kind: String) -> void:
 		host.mission_player_hit(ent, source, kind)
 	elif ent.get("pilot") != null and host.get("ai") != null:
 		host.ai.hit(ent)  # an AI jet's systems damage (ai_flights.gd)
-	if ent.damage >= DamageModel.SMOKE_AT and not ent.smoke_timer and ent.state != DamageModel.EXPLODED \
-			and ent.state != DamageModel.DESTROYED:
+	if (
+		ent.damage >= DamageModel.SMOKE_AT
+		and not ent.smoke_timer
+		and ent.state != DamageModel.EXPLODED
+		and ent.state != DamageModel.DESTROYED
+	):
 		ent.smoke_timer = true
 		ent.smoke = true
 		host.mission_entity_smoke(ent, true)
 		# FUN_004a7de0: below 0.5 the smoke stops and the timer handle (+0x48) is cleared, so a later
 		# hit can start it again; at 0.5 or more it smokes for good.
-		_after(DamageModel.SMOKE_CHECK, func():
-			if ent.damage < DamageModel.SMOKE_KEEP_AT:
-				if ent.smoke:
-					ent.smoke = false
-					host.mission_entity_smoke(ent, false)
-				ent.smoke_timer = false)
+		_after(
+			DamageModel.SMOKE_CHECK,
+			func():
+				if ent.damage < DamageModel.SMOKE_KEEP_AT:
+					if ent.smoke:
+						ent.smoke = false
+						host.mission_entity_smoke(ent, false)
+					ent.smoke_timer = false
+		)
 
 
 ## State 1 -> 3 (FUN_004a8100): the hit event (slot 0, sensor on), control mode 0 (a mission-controlled
@@ -800,8 +864,9 @@ func _fatally_hit(ent: Dictionary) -> void:
 	var w := _world_of(ent)
 	var mv: Array = host.mission_unit_motion(ent)  # [angles (pitch, roll, heading), velocity]
 	var g = host.mission_ground(w)
-	ent.fall = DamageModel.fall_start(ent.klass, w, mv[0], mv[1], g if g != null else 0.0,
-			func(): return randi() & 0x7fff)
+	ent.fall = DamageModel.fall_start(
+		ent.klass, w, mv[0], mv[1], g if g != null else 0.0, func(): return randi() & 0x7fff
+	)
 	ent.fall.t0 = now
 	ent.fall.smoked = false
 	if ent.fall.timer:
@@ -949,7 +1014,11 @@ func _role_rules(ent: Dictionary) -> void:
 func debrief_text(mission_id := -1) -> Dictionary:
 	# evNotDestroy (FUN_004a63c0 for every unit not in state 4 / 5): a live scenario's slot-2 id adds its debrief item.
 	for ent in entities.values():
-		if ent.state != DamageModel.DESTROYED and ent.state != DamageModel.EXPLODED and ent.get("alive_scenario", false):
+		if (
+			ent.state != DamageModel.DESTROYED
+			and ent.state != DamageModel.EXPLODED
+			and ent.get("alive_scenario", false)
+		):
 			var id := int(_slot(ent, 2).get("0x33e", 0))
 			if id > 0:
 				_add_debrief(ent.file, id)
@@ -963,5 +1032,12 @@ func debrief_text(mission_id := -1) -> Dictionary:
 			continue
 		var own: bool = ent.side == 1 if p.is_empty() else ent.side == p.side
 		(losses if own else kills).append([ent.type_code, ent.klass])
-	return {"passed": passed, "headline": headline, "notes": (debrief_notes[0] + debrief_notes[1]).strip_edges(),
-		"result": 1 if passed else 0, "bonus": bonus if passed else int(-0.5 * bonus), "kills": kills, "losses": losses}
+	return {
+		"passed": passed,
+		"headline": headline,
+		"notes": (debrief_notes[0] + debrief_notes[1]).strip_edges(),
+		"result": 1 if passed else 0,
+		"bonus": bonus if passed else int(-0.5 * bonus),
+		"kills": kills,
+		"losses": losses
+	}

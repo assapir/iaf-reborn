@@ -112,9 +112,17 @@ func _ready() -> void:
 	_span0 = float(meta.node_pixels)
 	_theatre = PackedFloat64Array(meta.theatre)
 	_height_level = int(meta.height_level)
-	IafHeights.set_meta({"node_pixels": meta.node_pixels, "span": _span(_height_level), "sea_level_raw": meta.sea_level_raw,
-		"height_scale": meta.height_scale, "m_per_unit": m_per_unit, "x_shift": meta.get("x_shift", 0),
-		"y_shift": meta.get("y_shift", 0)})
+	IafHeights.set_meta(
+		{
+			"node_pixels": meta.node_pixels,
+			"span": _span(_height_level),
+			"sea_level_raw": meta.sea_level_raw,
+			"height_scale": meta.height_scale,
+			"m_per_unit": m_per_unit,
+			"x_shift": meta.get("x_shift", 0),
+			"y_shift": meta.get("y_shift", 0)
+		}
+	)
 	_root_level = int(meta.root_level)
 	for l in meta.nodes:
 		for ij in meta.nodes[l]:
@@ -160,8 +168,11 @@ func colour_dir(n: Vector3i) -> String:
 
 ## Terrain units (as in map.ptt) -> Godot position (y = 0).
 func terrain_to_godot(tx: float, ty: float) -> Vector3:
-	return Vector3(tx * m_per_unit + float(meta.get("x_shift", 0)) - world_origin.x, 0.0,
-			ty * m_per_unit - float(meta.get("y_shift", 0)) + world_origin.y)
+	return Vector3(
+		tx * m_per_unit + float(meta.get("x_shift", 0)) - world_origin.x,
+		0.0,
+		ty * m_per_unit - float(meta.get("y_shift", 0)) + world_origin.y
+	)
 
 
 ## A direction / velocity: scene (X east, Y up, Z south) -> world (X east, Y north, up), and back.
@@ -175,8 +186,10 @@ static func dir_to_scene(w: Vector3) -> Vector3:
 
 ## Godot position -> terrain units.
 func godot_to_terrain(p: Vector3) -> Vector2:
-	return Vector2((p.x + world_origin.x - float(meta.get("x_shift", 0))) / m_per_unit,
-			(p.z - world_origin.y + float(meta.get("y_shift", 0))) / m_per_unit)
+	return Vector2(
+		(p.x + world_origin.x - float(meta.get("x_shift", 0))) / m_per_unit,
+		(p.z - world_origin.y + float(meta.get("y_shift", 0))) / m_per_unit
+	)
 
 
 ## Engine world coordinates (metres, X east, Y north) at the centre of the theatre.
@@ -187,6 +200,7 @@ func centre_world() -> Vector2:
 
 
 # --- quadtree ------------------------------------------------------------------------------------
+
 
 func _span(level: int) -> float:
 	return _span0 * float(1 << level)
@@ -380,8 +394,10 @@ func _add_node(n: Vector3i) -> MeshInstance3D:
 	mat.set_shader_parameter("skirt", 10.0 + 0.5 * _span_m(n.z) / _quads(n.z))
 	# The part of the node inside the theatre (levels 7+ overhang its east / south edge).
 	var s := _span(n.z)
-	mat.set_shader_parameter("valid_uv", Vector2(clampf((_theatre[2] - n.x * s) / s, 0.0, 1.0),
-			clampf((_theatre[3] - n.y * s) / s, 0.0, 1.0)))
+	mat.set_shader_parameter(
+		"valid_uv",
+		Vector2(clampf((_theatre[2] - n.x * s) / s, 0.0, 1.0), clampf((_theatre[3] - n.y * s) / s, 0.0, 1.0))
+	)
 	var mi := MeshInstance3D.new()
 	mi.mesh = _meshes[n.z]
 	mi.material_override = mat
@@ -445,6 +461,7 @@ static func _grid_mesh(span: float, quads: int) -> ArrayMesh:
 
 # --- loading -------------------------------------------------------------------------------------
 
+
 ## Hands this frame's wanted keys (nearest first) to the workers and starts workers up to max_jobs.
 func _start_jobs() -> void:
 	_results_mutex.lock()
@@ -461,7 +478,9 @@ func _start_jobs() -> void:
 
 func _path(key: Vector4i) -> String:
 	var base: String = _layer_dir.get(Vector3i(key.y, key.z, key.w), dir) if key.x == 0 else dir
-	return base.path_join("L%d/%s_%d_%d.%s" % [key.w, "c" if key.x == 0 else "h", key.y, key.z, "jpg" if key.x == 0 else "png"])
+	return base.path_join(
+		"L%d/%s_%d_%d.%s" % [key.w, "c" if key.x == 0 else "h", key.y, key.z, "jpg" if key.x == 0 else "png"]
+	)
 
 
 ## Worker: decodes queued keys until the queue is empty.
@@ -504,7 +523,12 @@ func _needs_bake(key: Vector4i) -> bool:
 	var x0 := key.y * s + float(meta.get("x_shift", 0))
 	var y1 := float(meta.get("y_shift", 0)) - key.z * s
 	for b in range(0, _bake_bounds.size(), 4):
-		if _bake_bounds[b] <= x0 + s and _bake_bounds[b + 2] >= x0 and _bake_bounds[b + 1] <= y1 and _bake_bounds[b + 3] >= y1 - s:
+		if (
+			_bake_bounds[b] <= x0 + s
+			and _bake_bounds[b + 2] >= x0
+			and _bake_bounds[b + 1] <= y1
+			and _bake_bounds[b + 3] >= y1 - s
+		):
 			return true
 	return false
 
@@ -517,12 +541,16 @@ static func _bake(img: Image, key: Vector4i) -> Image:
 	var h := img.get_height()
 	if key.x == 0:
 		img.convert(Image.FORMAT_RGB8)
-		img = Image.create_from_data(w, h, false, Image.FORMAT_RGB8, IafBases.bake_colour(img.get_data(), w, h, key.w, key.y, key.z))
+		img = Image.create_from_data(
+			w, h, false, Image.FORMAT_RGB8, IafBases.bake_colour(img.get_data(), w, h, key.w, key.y, key.z)
+		)
 		img.generate_mipmaps()
 		img.compress(Image.COMPRESS_S3TC)
 		return img
 	img.convert(Image.FORMAT_RG8)
-	return Image.create_from_data(w, h, false, Image.FORMAT_RG8, IafBases.bake_heights(img.get_data(), w, h, key.w, key.y, key.z))
+	return Image.create_from_data(
+		w, h, false, Image.FORMAT_RG8, IafBases.bake_heights(img.get_data(), w, h, key.w, key.y, key.z)
+	)
 
 
 ## Takes the decoded images (texture upload on the main thread); true if any. `block`: stops the
@@ -544,8 +572,11 @@ func _finish_jobs(block := false) -> bool:
 			img = _bake(img, key)
 		if not _res.has(key):
 			_feed_heights(key, img)
-		_res[key] = {"tex": ImageTexture.create_from_image(img), "img": img if key.x == 1 else null,
-				"used": Time.get_ticks_msec()}
+		_res[key] = {
+			"tex": ImageTexture.create_from_image(img),
+			"img": img if key.x == 1 else null,
+			"used": Time.get_ticks_msec()
+		}
 		any = true
 	return any
 
@@ -618,6 +649,7 @@ func ground_ready() -> bool:
 
 # --- heights and surface types -------------------------------------------------------------------
 
+
 ## Terrain height in metres at a Godot position (null while its heights aren't loaded): the
 ## level-6 elevation interpolated over triangles split along the north-west -> south-east diagonal
 ## (the original's inset heights, FUN_004281e0) — the surface the nodes of level <= 2 draw (one
@@ -637,8 +669,9 @@ func height_at(pos: Vector3) -> Variant:
 	var gy := clampf((t.y - n.y * s6) / upp, 0.0, float(meta.node_pixels))
 	var x0 := mini(floori(gx), int(meta.node_pixels) - 1)
 	var y0 := mini(floori(gy), int(meta.node_pixels) - 1)
-	var raw := _triangle(_raw(img, x0, y0), _raw(img, x0 + 1, y0), _raw(img, x0, y0 + 1),
-			_raw(img, x0 + 1, y0 + 1), gx - x0, gy - y0)
+	var raw := _triangle(
+		_raw(img, x0, y0), _raw(img, x0 + 1, y0), _raw(img, x0, y0 + 1), _raw(img, x0 + 1, y0 + 1), gx - x0, gy - y0
+	)
 	return (raw - float(meta.sea_level_raw)) / float(meta.height_scale) * m_per_unit
 
 

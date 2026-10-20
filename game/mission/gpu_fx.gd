@@ -22,8 +22,12 @@ var _contrail_last := {}
 var _now := 0.0
 var _mats: Array = []
 
-const FLAGS := GPUParticles3D.EMIT_FLAG_POSITION | GPUParticles3D.EMIT_FLAG_ROTATION_SCALE \
-		| GPUParticles3D.EMIT_FLAG_COLOR | GPUParticles3D.EMIT_FLAG_CUSTOM
+const FLAGS := (
+	GPUParticles3D.EMIT_FLAG_POSITION
+	| GPUParticles3D.EMIT_FLAG_ROTATION_SCALE
+	| GPUParticles3D.EMIT_FLAG_COLOR
+	| GPUParticles3D.EMIT_FLAG_CUSTOM
+)
 ## The longest particle: a smoke-column puff at VISUAL EFFECTS 3 lives 36 s.
 const MAX_LIFE := 40.0
 ## Contrails form above this altitude (m): the Schmidt-Appleman limit of a warm (ISA + 10 °C) atmosphere.
@@ -59,7 +63,9 @@ vec3 motion(vec3 p0, vec3 v0, float k, float age, out vec3 vel) {
 """
 
 ## Billboards: the quad faces the camera, turned by a per-particle angle, built in view space (POSITION).
-const VERTEX := MOTION + """
+const VERTEX := (
+	MOTION
+	+ """
 varying float v_seed;
 varying vec2 v_local;
 varying float v_w;
@@ -83,6 +89,7 @@ void vertex() {
 	POSITION = PROJECTION_MATRIX * vec4(v, 1.0);
 }
 """
+)
 
 ## Soft edge where the billboard meets the scene (linear depth difference over a share of the width).
 const SOFT := """
@@ -94,7 +101,8 @@ float soft(vec2 suv, float vz, float d, mat4 inv_proj, sampler2D dt) {
 }
 """
 
-const SMOKE_SHADER := """
+const SMOKE_SHADER := (
+	"""
 shader_type spatial;
 render_mode unshaded, blend_mix, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
 uniform sampler2D noise : repeat_enable, filter_linear_mipmap;
@@ -102,7 +110,10 @@ uniform sampler2D depth_tex : hint_depth_texture, filter_nearest;
 uniform vec3 sun_dir = vec3(0.3, 0.8, 0.5);
 uniform vec3 sun_col : source_color = vec3(1.0);
 uniform vec3 ambient : source_color = vec3(0.45, 0.5, 0.58);
-""" + VERTEX + SOFT + """
+"""
+	+ VERTEX
+	+ SOFT
+	+ """
 void fragment() {
 	float r = length(v_local);
 	vec2 o = vec2(v_seed * 7.1, v_seed * 3.3);
@@ -123,13 +134,18 @@ void fragment() {
 	ALPHA = clamp(a, 0.0, 1.0);
 }
 """
+)
 
-const FIRE_SHADER := """
+const FIRE_SHADER := (
+	"""
 shader_type spatial;
 render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
 uniform sampler2D noise : repeat_enable, filter_linear_mipmap;
 uniform sampler2D depth_tex : hint_depth_texture, filter_nearest;
-""" + VERTEX + SOFT + """
+"""
+	+ VERTEX
+	+ SOFT
+	+ """
 vec3 ramp(float t) {
 	vec3 c = mix(vec3(0.25, 0.03, 0.0), vec3(0.95, 0.28, 0.03), smoothstep(0.0, 0.35, t));
 	c = mix(c, vec3(1.0, 0.62, 0.18), smoothstep(0.35, 0.7, t));
@@ -149,11 +165,15 @@ void fragment() {
 	ALPHA = 1.0;
 }
 """
+)
 
-const SPARK_SHADER := """
+const SPARK_SHADER := (
+	"""
 shader_type spatial;
 render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
-""" + MOTION + """
+"""
+	+ MOTION
+	+ """
 varying vec2 v_local;
 void vertex() {
 	// A streak along the velocity (0.08 s of travel, at least as long as wide), facing the camera.
@@ -176,6 +196,7 @@ void fragment() {
 	ALPHA = 1.0;
 }
 """
+)
 
 static var _noise_tex: Texture2D
 
@@ -252,10 +273,26 @@ func _process(delta: float) -> void:
 		m.set_shader_parameter("sun_col", _sun.light_color * minf(_sun.light_energy, 1.5))
 
 
-func _emit(pool: GPUParticles3D, key: String, pos: Vector3, vel: Vector3, life: float, w0: float, w1: float,
-		grey: float, delay: float, drag: float, alpha: float) -> void:
-	pool.emit_particle(Transform3D(Basis(vel, Vector3.UP, Vector3.BACK), pos), Vector3.ZERO, Color(grey, delay, drag, alpha),
-			Color(w0, w1, life, _now), FLAGS)
+func _emit(
+	pool: GPUParticles3D,
+	key: String,
+	pos: Vector3,
+	vel: Vector3,
+	life: float,
+	w0: float,
+	w1: float,
+	grey: float,
+	delay: float,
+	drag: float,
+	alpha: float
+) -> void:
+	pool.emit_particle(
+		Transform3D(Basis(vel, Vector3.UP, Vector3.BACK), pos),
+		Vector3.ZERO,
+		Color(grey, delay, drag, alpha),
+		Color(w0, w1, life, _now),
+		FLAGS
+	)
 	emitted[key] += 1
 
 
@@ -277,18 +314,51 @@ func puff(pos: Vector3, vel: Vector3, life: float, w0: float, w1: float, grey: i
 	for i in 22 / k:
 		var d := _rand_dir()
 		d.y = absf(d.y) * 1.3
-		_emit(_fire, "fire", pos + d * r * 0.5, d * r * 3.5, life * _rng.randf_range(0.45, 1.0),
-				w * 0.06, w * _rng.randf_range(0.15, 0.3), _rng.randf_range(0.8, 1.3), delay + _rng.randf() * 0.15, 3.5, 1.0)
+		_emit(
+			_fire,
+			"fire",
+			pos + d * r * 0.5,
+			d * r * 3.5,
+			life * _rng.randf_range(0.45, 1.0),
+			w * 0.06,
+			w * _rng.randf_range(0.15, 0.3),
+			_rng.randf_range(0.8, 1.3),
+			delay + _rng.randf() * 0.15,
+			3.5,
+			1.0
+		)
 	for i in 28 / k:
 		var d := _rand_dir().normalized()
 		d.y = absf(d.y) + 0.2
-		_emit(_sparks, "sparks", pos, d * w * _rng.randf_range(0.3, 0.8), life * _rng.randf_range(0.5, 1.0),
-				w * 0.012, w * 0.006, 1.0, delay, 0.8, 1.0)
+		_emit(
+			_sparks,
+			"sparks",
+			pos,
+			d * w * _rng.randf_range(0.3, 0.8),
+			life * _rng.randf_range(0.5, 1.0),
+			w * 0.012,
+			w * 0.006,
+			1.0,
+			delay,
+			0.8,
+			1.0
+		)
 	for i in 10 / k:
 		var d := _rand_dir()
 		d.y = absf(d.y)
-		_emit(_smoke, "smoke", pos + d * r * 1.2, Vector3(d.x, 1.5, d.z) * r * 0.35, life, w * 0.12,
-				w * _rng.randf_range(0.35, 0.5), _rng.randf_range(0.07, 0.14), delay + life * 0.4, 0.6, 0.85)
+		_emit(
+			_smoke,
+			"smoke",
+			pos + d * r * 1.2,
+			Vector3(d.x, 1.5, d.z) * r * 0.35,
+			life,
+			w * 0.12,
+			w * _rng.randf_range(0.35, 0.5),
+			_rng.randf_range(0.07, 0.14),
+			delay + life * 0.4,
+			0.6,
+			0.85
+		)
 
 
 ## A missile / rocket trail point (trails.gd MISSILE kind) at `pos`, the last one at `prev`: white smoke along the
@@ -298,8 +368,19 @@ func trail(pos: Vector3, prev, life: float, size: float) -> void:
 	var n := clampi(ceili(from.distance_to(pos) / 1.5), 1, 16)
 	for i in n:
 		var p := from.lerp(pos, float(i + 1) / n)
-		_emit(_smoke, "smoke", p, _rand_dir() * 1.2, life * _rng.randf_range(0.7, 1.0), size * 4.0,
-				size * _rng.randf_range(20.0, 30.0), 0.95, 0.0, 0.0, 0.4)
+		_emit(
+			_smoke,
+			"smoke",
+			p,
+			_rand_dir() * 1.2,
+			life * _rng.randf_range(0.7, 1.0),
+			size * 4.0,
+			size * _rng.randf_range(20.0, 30.0),
+			0.95,
+			0.0,
+			0.0,
+			0.4
+		)
 	_emit(_fire, "fire", pos, Vector3.ZERO, 0.08, size * 3.0, size * 1.5, 1.2, 0.0, 0.0, 0.8)
 
 
@@ -317,6 +398,17 @@ func contrail(model: Node3D) -> void:
 		var from: Vector3 = _contrail_last.get(key, pos)
 		var n := clampi(ceili(from.distance_to(pos) / 3.0), 1, 24)
 		for k in n:
-			_emit(_smoke, "smoke", from.lerp(pos, float(k + 1) / n), _rand_dir() * 0.3, CONTRAIL_LIFE, 1.2, 9.0, 1.0,
-					0.0, 0.0, 0.5)
+			_emit(
+				_smoke,
+				"smoke",
+				from.lerp(pos, float(k + 1) / n),
+				_rand_dir() * 0.3,
+				CONTRAIL_LIFE,
+				1.2,
+				9.0,
+				1.0,
+				0.0,
+				0.0,
+				0.5
+			)
 		_contrail_last[key] = pos

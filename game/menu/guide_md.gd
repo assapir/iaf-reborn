@@ -50,7 +50,12 @@ static func parse(md: String, base: String, px: int) -> Array:
 	var item_re := RegEx.create_from_string("^\\s*(?:[-*]|\\d+\\.)\\s")
 	for line in md.replace("\r", "").split("\n"):
 		# An indented continuation line joins its list item (so markup may span the break).
-		if line.begins_with(" ") and line.strip_edges() != "" and not lines.is_empty() and item_re.search(lines[-1]) != null:
+		if (
+			line.begins_with(" ")
+			and line.strip_edges() != ""
+			and not lines.is_empty()
+			and item_re.search(lines[-1]) != null
+		):
 			lines[-1] += " " + line.strip_edges()
 		else:
 			lines.append(line)
@@ -107,7 +112,10 @@ static func parse(md: String, base: String, px: int) -> Array:
 				for c in n:
 					var text: String = inline(rows[r][c]) if c < rows[r].size() else ""
 					var bg := HEAD_BG if r == 0 else CELL_BG
-					out += "[cell bg=#%s padding=4,2,4,2]%s[/cell]" % [bg.to_html(false), "[b]%s[/b]" % text if r == 0 else text]
+					out += (
+						"[cell bg=#%s padding=4,2,4,2]%s[/cell]"
+						% [bg.to_html(false), "[b]%s[/b]" % text if r == 0 else text]
+					)
 			out += "[/table]\n\n"
 		elif item != null:
 			out += flush_para.call()

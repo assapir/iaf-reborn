@@ -53,8 +53,10 @@ func run() -> void:
 	var f = marks.filter(func(m): return m.friend)
 	var r = marks.filter(func(m): return not m.friend)
 	check(f.size() == 1 and f[0].at.x < 320, "the friend's mark (blue) is on the left: %s" % [f])
-	check(r.size() == 1 and r[0].at.x > 320 and r[0].at.y < int(tv.cockpit.view_bottom()) / 2,
-			"the enemy's mark (red) is up on the right: %s" % [r])
+	check(
+		r.size() == 1 and r[0].at.x > 320 and r[0].at.y < int(tv.cockpit.view_bottom()) / 2,
+		"the enemy's mark (red) is up on the right: %s" % [r]
+	)
 	check(f.size() == 1 and f[0].to != f[0].at, "a mark well off the nose has a line toward the centre")
 
 	put.call(enemy, 0.0, 3000.0, 0.0)

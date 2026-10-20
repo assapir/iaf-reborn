@@ -48,12 +48,29 @@ func _initialize() -> void:
 		var size := maxf(box.size.length() * 0.5, 3.0)
 		var centre := box.get_center()
 		var shots: Array[Image] = []
-		var landing := {"gear_down": true, "flaps": 1.0, "brakes": true, "stick_x": 0.6, "stick_y": 0.8, "rudder": 1.0, "afterburner": 0, "chute": 2}
-		var clean := {"gear_down": false, "flaps": 0.0, "brakes": false, "stick_x": 0.0, "stick_y": 0.0, "afterburner": 2}
-		for pose in [[landing, Vector3(-0.9, 0.45, 1.0)], [landing, Vector3(-1.0, -0.55, -0.6)],
-				[clean, Vector3(-0.9, 0.45, 1.0)], [clean, Vector3(0.25, 0.2, 1.0)]]:
+		var landing := {
+			"gear_down": true,
+			"flaps": 1.0,
+			"brakes": true,
+			"stick_x": 0.6,
+			"stick_y": 0.8,
+			"rudder": 1.0,
+			"afterburner": 0,
+			"chute": 2
+		}
+		var clean := {
+			"gear_down": false, "flaps": 0.0, "brakes": false, "stick_x": 0.0, "stick_y": 0.0, "afterburner": 2
+		}
+		for pose in [
+			[landing, Vector3(-0.9, 0.45, 1.0)],
+			[landing, Vector3(-1.0, -0.55, -0.6)],
+			[clean, Vector3(-0.9, 0.45, 1.0)],
+			[clean, Vector3(0.25, 0.2, 1.0)]
+		]:
 			# Levers start from the opposite state so every ramp gets an event, then settles.
-			m.update({"gear_down": not pose[0].gear_down, "flaps": 1.0 - pose[0].flaps, "brakes": not pose[0].brakes}, 0.0)
+			m.update(
+				{"gear_down": not pose[0].gear_down, "flaps": 1.0 - pose[0].flaps, "brakes": not pose[0].brakes}, 0.0
+			)
 			m.update(pose[0], 0.0)
 			m.settle()
 			m.update(pose[0], 0.0)

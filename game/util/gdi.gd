@@ -106,8 +106,19 @@ static func extent(font: Font, weight: int, text: String, px: int) -> Vector2i:
 ## x - width/2, integer division), TA_TOP or TA_BOTTOM (`bottom`: y is the cell's bottom). At scale `s` the text is
 ## Arial at round(px·s) ppem with that size's own GDI advances and cell, placed at the scaled anchor (at s = 1
 ## exactly GDI's pixels).
-static func text_out(ci: CanvasItem, font: Font, weight: int, text: String, px: int, x: int, y: int, s: float,
-		colour: Color, centre := false, bottom := false) -> void:
+static func text_out(
+	ci: CanvasItem,
+	font: Font,
+	weight: int,
+	text: String,
+	px: int,
+	x: int,
+	y: int,
+	s: float,
+	colour: Color,
+	centre := false,
+	bottom := false
+) -> void:
 	var ts := TextServerManager.get_primary_interface()
 	var size := maxi(1, roundi(px * s))
 	var glyphs := _glyphs(font, weight, text, size)
@@ -147,7 +158,9 @@ static func _span(py: float, l: float, t: float, r: float, b: float, w: float, h
 ## ellipses (GDI's ellipse sizes are diameters); the pen, `pen_w` units wide, is drawn inside the shape
 ## (PS_INSIDEFRAME) as the band down to the shape inset by `pen_w`; the brush fills the rest (`brush` with alpha 0 =
 ## NULL_BRUSH). Runs of identical rows are drawn as one rectangle.
-static func round_rect(ci: CanvasItem, rect: Rect2i, w: int, h: int, pen: Color, pen_w: int, brush: Color, s: float) -> void:
+static func round_rect(
+	ci: CanvasItem, rect: Rect2i, w: int, h: int, pen: Color, pen_w: int, brush: Color, s: float
+) -> void:
 	var l := rect.position.x * s
 	var t := rect.position.y * s
 	var r := rect.end.x * s
@@ -163,7 +176,12 @@ static func round_rect(ci: CanvasItem, rect: Rect2i, w: int, h: int, pen: Color,
 	var i := 0
 	while i < rows.size():
 		var j := i + 1
-		while j < rows.size() and rows[j][1] == rows[i][1] and rows[j][2] == rows[i][2] and rows[j][0] == rows[j - 1][0] + 1:
+		while (
+			j < rows.size()
+			and rows[j][1] == rows[i][1]
+			and rows[j][2] == rows[i][2]
+			and rows[j][0] == rows[j - 1][0] + 1
+		):
 			j += 1
 		var y0: int = rows[i][0]
 		var hh: int = rows[j - 1][0] + 1 - y0

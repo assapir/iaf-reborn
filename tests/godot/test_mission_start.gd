@@ -17,7 +17,10 @@ func run() -> void:
 	key(tv, KEY_B)
 	for i in 3:
 		key(tv, KEY_0)
-	check(is_equal_approx(tv.flight.state().throttle, 0.2775), "three 5 %% steps in one frame add up (%.4f)" % tv.flight.state().throttle)
+	check(
+		is_equal_approx(tv.flight.state().throttle, 0.2775),
+		"three 5 %% steps in one frame add up (%.4f)" % tv.flight.state().throttle
+	)
 	# The brakes release over 1.7 s (ramp 0.855 at 0.5/s, docs/flight-model.md §15.6.4).
 	var t0 := Time.get_ticks_msec()
 	while tv.flight.state().speed_kt < 5.0 and Time.get_ticks_msec() - t0 < 15000:
