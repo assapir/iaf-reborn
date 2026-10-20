@@ -804,11 +804,16 @@ func _spawn_mission_objects() -> void:
 		# Classes 0x11, 0x12 (fire sensors), 0x1b are never drawn (FUN_004b7c4d).
 		if path == "" or ent.klass in [0x11, 0x12, 0x1b]:
 			continue
+		var sign := _real_sign(path, ent)
+		path = sign if sign != "" else path
 		var model = Gltf.object(path)
 		if model == null:
 			continue
 		var node: Node3D = Gltf.instance(model)
 		ent.node = node
+		if sign == "-":
+			node.visible = false
+			ent["drawn"] = false
 		ent["airborne_class"] = int(obj.get("0x5aa", -1)) in [2, 3, 0x1c]
 		add_child(node)
 		node.rotation.y = -deg_to_rad(float(_entity_heading(files, ent)))
@@ -849,6 +854,30 @@ func _spawn_mission_objects() -> void:
 	for u in underlays:
 		_add_base_lights(u[0], u[1], u[2])
 	runtime.start()
+
+
+## World scale Real (docs/world-scale.md §4.3): a runway sign on a moved base shows the real designator. The sign
+## models bake their number (parts.bmp has 09, 23 and 27): a single sign whose real number has a model swaps to it,
+## any other sign that disagrees (and every sign group: SIGNDVID 27, SIGNRFID 27, SIGNRMON 23, SIGNTLNF 09) hides.
+## "" keeps `path`, "-" hides it, else the new path.
+const SIGN_GROUPS := {"signdvid": 27, "signrfid": 27, "signrmon": 23, "signtlnf": 9}
+const SIGN_NUMBERS := [9, 23, 27]
+
+
+static func _real_sign(path: String, ent: Dictionary) -> String:
+	var f := path.get_file().get_basename().to_lower()
+	if not f.begins_with("sign") or not Settings.sync_bases():
+		return ""
+	var single := f.length() == 7 and f.substr(4, 2).is_valid_int()
+	var n: int = int(f.substr(4, 2)) if single else int(SIGN_GROUPS.get(f, 0))
+	if n == 0:
+		return ""
+	var r := IafBases.sign_number(ent.world.x, ent.world.y, n)
+	if r == n:
+		return ""
+	if single and r in SIGN_NUMBERS:
+		return path.get_base_dir().path_join("sign%02d%s.%s" % [r, f.substr(6), path.get_extension()])
+	return "-"
 
 
 ## Detailed night lights: a home airbase's runway model gets its light set at night (NightLights.BASE_LIGHTS), on

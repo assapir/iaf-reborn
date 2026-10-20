@@ -30,6 +30,8 @@ pub struct RealRunway {
     pub a: [f64; 2],
     pub b: [f64; 2],
     pub width: f64,
+    /// The runway's designator ("07L/25R"): the OSM ref, else from the magnetic heading (tools/real_runways.py).
+    pub designator: String,
 }
 
 /// Every row of the table.
@@ -45,6 +47,7 @@ pub fn real_runways() -> Vec<RealRunway> {
                 a: [f(9)?, f(10)?],
                 b: [f(11)?, f(12)?],
                 width: f(4).unwrap_or(DEFAULT_WIDTH),
+                designator: c.get(13).map_or(String::new(), |d| d.trim().to_string()),
             })
         })
         .collect()
@@ -190,6 +193,8 @@ pub struct BaseMove {
     pub elev: f64,
     /// The game runways (their ends), for the drawing.
     pub game_runways: Vec<[[f64; 2]; 2]>,
+    /// The real runways' true headings (a → b) and designators.
+    pub designators: Vec<(f64, String)>,
     pub mask: Option<Mask>,
     /// The old site's fill colour from a coarse level (`BaseMoves::add_fill_source`); None: each node's own.
     pub fill: Option<Fill>,
@@ -301,6 +306,7 @@ impl BaseMove {
             old_z: g.lineup[2],
             elev: g.lineup[2],
             game_runways: g.runways.clone(),
+            designators: rows.iter().map(|r| (heading(sub(r.b, r.a)), r.designator.clone())).collect(),
             mask: None,
             fill: None,
         };
@@ -395,6 +401,31 @@ impl BaseMove {
         1.0 - smoothstep(0.0, RING, du.hypot(dv))
     }
 
+    /// The real designator's number (1–36) of a runway direction at the new site, `heading` true (deg): the half of
+    /// the real runway within 15° of it whose number is nearest the heading; else from the heading (36 for 0).
+    pub fn designator(&self, heading: f64) -> i64 {
+        let mut best: Option<(f64, i64)> = None;
+        for (h, d) in &self.designators {
+            if wrap180(h - heading).abs().min(wrap180(h + 180.0 - heading).abs()) > 15.0 {
+                continue;
+            }
+            for half in d.split('/') {
+                let Ok(n) = half.trim_end_matches(|c: char| c.is_ascii_alphabetic()).parse::<i64>() else { continue };
+                let e = wrap180(n as f64 * 10.0 - heading).abs();
+                if best.is_none_or(|(be, _)| e < be) {
+                    best = Some((e, n));
+                }
+            }
+        }
+        match best {
+            Some((e, n)) if e < 30.0 => n,
+            _ => match (heading.rem_euclid(360.0) / 10.0).round() as i64 % 36 {
+                0 => 36,
+                n => n,
+            },
+        }
+    }
+
     /// iaf.ibx's base at the new site: its points mapped (z + dz), headings turned, RunwayNumber the real heading.
     pub fn map_airbase(&self, b: &mut Airbase) {
         let mp = |p: [f32; 3]| -> [f32; 3] {
@@ -469,6 +500,13 @@ impl BaseMoves {
                 m.map_airbase(a);
             }
         }
+    }
+
+    /// A runway sign at `p` (its new site) showing runway `n` in the game: the real designator of that runway
+    /// direction (n · 10° turned with the base); None off the moved bases.
+    pub fn sign_number(&self, p: [f64; 2], n: i64) -> Option<i64> {
+        let b = self.bases.iter().find(|b| b.to_game(p, 0.0).is_some())?;
+        Some(b.designator(n as f64 * 10.0 + b.turn))
     }
 
     /// The surface flags at `p` with `lookup` = terraintype.dat's: on a new site the original's runway leaves (their
@@ -951,6 +989,32 @@ mod tests {
         fill_from_surroundings(&mut rgb, w, h, &paved, &paved, 3, &|_| None);
         let i = 3 * (10 * w + 10);
         assert_eq!(&rgb[i..i + 3], &[40, 120, 30]);
+    }
+
+    #[test]
+    fn the_designator_is_the_real_one() {
+        let m = BaseMove::new(
+            &GameBase {
+                name: "X".into(),
+                lineup: [0.0, 0.0, 0.0],
+                runway_deg: 230.0,
+                runways: vec![[[0.0, 0.0], [-2000.0, -1700.0]]],
+                points: Vec::new(),
+            },
+            &[RealRunway {
+                base: "X".into(),
+                a: [0.0, 0.0],
+                b: [-2700.0, -1150.0],
+                width: 45.0,
+                designator: "07L/25R".into(),
+            }],
+        )
+        .unwrap();
+        // True 247° flies runway 25 (the magnetic number), the other way 07; off any runway: from the heading.
+        assert_eq!(m.designator(247.0), 25);
+        assert_eq!(m.designator(67.0), 7);
+        assert_eq!(m.designator(150.0), 15);
+        assert_eq!(m.designator(2.0), 36);
     }
 
     #[test]

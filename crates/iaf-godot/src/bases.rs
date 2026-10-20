@@ -131,6 +131,21 @@ impl IafBases {
         crate::surface::at(x, y) as i64
     }
 
+    /// The real designator's number (1–36) of base `name`'s runway flown at true `heading` (deg); 0 when not moved.
+    #[func]
+    fn designator(name: GString, heading: f64) -> i64 {
+        let g = MOVES.read().unwrap();
+        g.as_ref().and_then(|ms| ms.get(&name.to_string())).map_or(0, |m| m.designator(heading))
+    }
+
+    /// A runway sign at the world point (its new site) showing runway `n` in the game: the real designator there;
+    /// `n` off the moved bases (docs/world-scale.md §4.3).
+    #[func]
+    fn sign_number(x: f64, y: f64, n: i64) -> i64 {
+        let g = MOVES.read().unwrap();
+        g.as_ref().and_then(|ms| ms.sign_number([x, y], n)).unwrap_or(n)
+    }
+
     /// The moved base `name` in airbases.json's layout for the Detailed airbases drawing: runways (ends, width,
     /// numbers, thresholds) at the new site, `mask_affine` = the game point of a new-site point
     /// ([a0, a1, a2, b0, b1, b2]: x = a0·X + a1·Y + a2), `centre`; {} when not moved.
@@ -151,11 +166,8 @@ impl IafBases {
                 mv([n(0), n(1)])
             };
             let (e0, e1) = (e(0), e(1));
-            let num = |a: [f64; 2], b: [f64; 2]| {
-                let h = (b[0] - a[0]).atan2(b[1] - a[1]).to_degrees().rem_euclid(360.0);
-                let n = (h / 10.0).round() as i64;
-                if n == 0 { 36 } else { n }
-            };
+            // The real runway's designator (magnetic, OSM's ref), docs/world-scale.md §4.3.
+            let num = |a: [f64; 2], b: [f64; 2]| m.designator((b[0] - a[0]).atan2(b[1] - a[1]).to_degrees());
             let th: VarArray = r.get("thresholds").and_then(|v| v.try_to().ok()).unwrap_or_default();
             let t = |i: usize| th.get(i).and_then(|v| v.try_to::<f64>().ok()).unwrap_or(0.0) * m.k;
             let mut d = r.duplicate_deep();

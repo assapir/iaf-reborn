@@ -40,7 +40,28 @@ func run() -> void:
 			rb = b
 	check(not rb.is_empty() and Vector2(rb.lineup.x, rb.lineup.y).distance_to(new) < 1.0, "the radio's lineup moved")
 	check(
-		rb.get("rwy", 0) == wrapi(roundi(270 + m[2]), 0, 360), "the radio's runway heading turned (%s)" % rb.get("rwy")
+		rb.get("hdg", 0) == wrapi(roundi(270 + m[2]), 0, 360), "the radio's runway heading turned (%s)" % rb.get("hdg")
+	)
+	# The tower's runway: the real designator (Ramat David's 09/27: 27 at 267° true) × 10.
+	check(rb.get("rwy", 0) == 270, "the radio's runway is the real designator (%s)" % rb.get("rwy"))
+	# The runway signs (terrain_view.gd _real_sign): David's 27 / 09 agree with the real 09/27; Ramon's 23 is the
+	# real 25 (07/25), which no sign model has: hidden.
+	var TV = load("res://terrain/terrain_view.gd")
+	var ramon: Vector3 = tv.radio.bases.filter(func(b): return b.name == "Ramon")[0].lineup
+	check(
+		(
+			TV._real_sign("stationary/rw_ul_1/signdvid.gltf", {"world": Vector3(new.x, new.y, 0)}) == ""
+			and TV._real_sign("stationary/rw_ul_1/sign09l.gltf", {"world": Vector3(new.x, new.y, 0)}) == ""
+		),
+		"signs: David's 27 / 09 kept"
+	)
+	check(
+		(
+			IafBases.sign_number(ramon.x, ramon.y, 23) == 25
+			and TV._real_sign("stationary/rw_ul_1/signrmon.gltf", {"world": ramon}) == "-"
+			and TV._real_sign("stationary/rw_ul_1/sign23l.gltf", {"world": ramon}) == "-"
+		),
+		"signs: Ramon's 23 (real 25) hidden"
 	)
 	# The new site is flat at its elevation (the height images patched as they load).
 	var heights := []
@@ -154,6 +175,11 @@ func run() -> void:
 	check(
 		absf(e0.distance_to(e1) - 2934.0) < 60.0 and AB.centre(david).distance_to(new) < 3000.0,
 		"Detailed: the main runway at its real length on the new site (%.0f m)" % e0.distance_to(e1)
+	)
+	var nums: Array = r0.get("numbers", [])
+	check(
+		nums.size() == 2 and 9 in nums and 27 in nums,
+		"Detailed: the main runway painted 09 / 27, the real designator (%s)" % [nums]
 	)
 	check(AB._on, "Detailed: the surface is drawn in Real whatever the Graphics setting")
 	S.world_scale = "original"

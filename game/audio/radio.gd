@@ -75,7 +75,7 @@ var host: Node
 var now := 0.0
 var templates := {}  # NAME -> PackedStringArray of tokens
 var particles := {}  # KEY -> [wav, text]
-var bases: Array = []  # [{tower: Vector3, lineup: Vector3, rwy: int, hangars: [Vector2]}]
+var bases: Array = []  # [{tower: Vector3, lineup: Vector3, rwy: int, hangars: [Vector2]}; World scale Real: + hdg]
 ## For tests: every phrase said, {template, text, wavs}; every waypoint report posted, [unit name, waypoint].
 var said: Array = []
 var posted: Array = []
@@ -294,7 +294,9 @@ func _load_bases(path: String) -> void:
 		# World scale Real: the base at its real place (docs/world-scale.md §3.3).
 		var m := Settings.base_moved(b.lineup.x, b.lineup.y)
 		if not m.is_empty():
-			b.rwy = wrapi(roundi(b.rwy + m[2]), 0, 360)
+			# rwy: the real designator × 10 (magnetic, what the tower says); hdg: the true heading (the zones).
+			b.hdg = wrapi(roundi(b.rwy + m[2]), 0, 360)
+			b.rwy = IafBases.designator(name, b.hdg) * 10
 			for k in ["tower", "lineup"]:
 				var q := Settings.base_moved(b[k].x, b[k].y)
 				if not q.is_empty():
@@ -347,7 +349,7 @@ func _find_base() -> void:
 
 ## The runway heading wrapped to (−180, 180] (550850).
 static func _rwy_heading(b: Dictionary) -> float:
-	var r := fmod(float(b.rwy), 360.0)
+	var r := fmod(float(b.get("hdg", b.rwy)), 360.0)
 	return r - 360.0 if r > 180.0 else r
 
 
