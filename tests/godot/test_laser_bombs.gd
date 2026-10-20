@@ -1,7 +1,8 @@
 # Laser bombs (650; docs/weapons.md §9.3, §12): always the guided motion. With the FLIR pod's laser on, the
 # designation (the FLIR camera's centre point) replaces the ripple aim when it lies within 60° of the line to the bomb's
 # point and on the ground; else the bomb flies to the ripple aim. Mission 231 for every jet (the seven Jet list jets and
-# the F-35I) with three MK-82L on station 0 and the FLIR pod on station 8: a designated ground unit 6 km ahead is hit;
+# the F-35I) with three MK-82L on station 0 and the FLIR pod on station 8 (the F-35I: no pod, its built-in EOTS): a
+# designated ground unit 6 km ahead is hit;
 # with the laser off the bomb aims at the impact point; a designation behind the jet is refused. The flight model is
 # frozen; the weapons run on a scripted sim time.
 extends "res://../tests/godot/base.gd"
@@ -23,13 +24,14 @@ func run() -> void:
 		await frames(3)
 		var name := "type %d" % c[2]
 		check(tv.player.type == c[2], "%s flies mission 231" % name)
-		await _case(tv, name, c[2] == 100)
+		await _case(tv, name, c[2] == 100, c[2] == 1000)
 	settings().jet_id = -1
 	settings().f35i_slot = -1
 
 
-func _case(tv, name: String, shots: bool) -> void:
-	var w = airborne_case(tv, [MK82L, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, FLIR, 1, 25, 235, 33, 90, 34, 60])
+func _case(tv, name: String, shots: bool, eots: bool) -> void:
+	var pod := [0, 0] if eots else [FLIR, 1]
+	var w = airborne_case(tv, [MK82L, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] + pod + [25, 235, 33, 90, 34, 60])
 	var t := 1.0
 	_ground_point(w, t)
 	var site := _ground_unit(tv)
