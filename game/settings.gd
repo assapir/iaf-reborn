@@ -38,6 +38,9 @@ const BETTER := {
 ## [cockpit] section as bc_<id>.
 const BETTER_COCKPIT := {
 	"turning_compass": "Turning panel compass / HSI",
+	"aoa_indexer": "AoA indexer lights",
+	"standby_instruments": "Live painted instruments",
+	"warning_lamps": "Warning lamps for every failure",
 }
 ## Stored preferences by config section: the original pages, then our own options (Extras tab).
 const PREFS := {

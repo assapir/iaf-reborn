@@ -227,15 +227,21 @@ more id there; docs/cockpit.md "Better cockpit"). Items (approved 2026-10-20):
 4. Throttle gauge that shows the AB stages above MIL. The original reads 100 % for both.
 5. Fuel gauge with internal + external fuel, and a digital lb readout where the art has one. The original shows total
    / internal fuel, capped at 1 (@45acb9).
-6. Live G-meter with a max-G memory, where the panel art has one.
-7. AoA indexer lights (slow / on-speed / fast) with the gear down.
+6. Live G-meter with a max-G memory, where the panel art has one — **none to do** (2026-10-20): no panel paints a
+   G-meter (docs/cockpit.md "The panels' instruments").
+7. AoA indexer lights (slow / on-speed / fast) (`aoa_indexer`) — **done** (2026-10-20): the F-16's, the only one in the
+   art; gear up or down, as the real one.
 8. Panel clock that shows the mission time.
-9. Live standby instruments, where the art paints them.
-10. A warning lamp lit for every damage / system state.
+9. Live standby instruments, where the art paints them (`standby_instruments`) — **done** (2026-10-20): every painted
+   standby ASI / altimeter / ADI was already live; the Mirage's needle-less VVI is now live. Open: the Kfir's likely
+   VVI (its scale is unreadable).
+10. A warning lamp lit for every damage / system state (`warning_lamps`) — **done** (2026-10-20) where the legend is
+    readable: the F-16's FLCS and TO/LDG CONFIG. The other jets' unwired lamps have unreadable legends.
 11. Crisp vector-redrawn MFD pages (the first step to Real MFDs).
 12. The shipped art the game never loads (`cfir/cfir-lights.bmp`, `lavi/lavi-lig.bmp`, `phantom/f16adi.bmp`; no exe
     string, no decompiled reference, in no cockpit.ibx, unused by our code), used where it is better than the loaded
-    art.
+    art — **none to do** (2026-10-20): each is an earlier or equal version of the loaded art (docs/cockpit.md "The
+    unused shipped art").
 
 ## Glance-down key (Extras, later)
 Hold a key to slide the panel fully into view, release to look ahead again (as modern sims do; a real pilot glances

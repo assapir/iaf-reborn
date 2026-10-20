@@ -136,9 +136,10 @@ func _ready() -> void:
 ## replaces the first (the flight scene loads the player's jet's cockpit once it knows the type).
 func load_cockpit(rel: String) -> void:
 	cockpit_dir = rel
-	for m in mfds + [pcd, _pcd_sheen] + compasses:
+	for m in mfds + [pcd, _pcd_sheen, better_instruments] + compasses:
 		if m != null:
 			m.free()
+	better_instruments = null
 	mfds.clear()
 	compasses.clear()
 	pcd = null
@@ -447,6 +448,7 @@ func _process(delta: float) -> void:
 		if m != null:
 			m.visible = view_mode == 0
 	_update_compasses()
+	_update_instruments()
 	queue_redraw()
 	hud.queue_redraw()
 
@@ -478,6 +480,24 @@ func _update_compasses() -> void:
 		n.visible = on
 		if on:
 			n.update(float(state.heading), nav.bearing_deg, course)
+
+
+## Ours, "Better cockpit" aoa_indexer / standby_instruments / warning_lamps (instruments.gd): one node for the
+## cockpit's entries, made on first use; it draws only the items that are on.
+var better_instruments: Control
+
+
+func _update_instruments() -> void:
+	if better_instruments == null:
+		var specs: Array = preload("res://cockpit/instruments.gd").instruments(cockpit_dir.get_file())
+		if specs.is_empty() or not Settings.better_cockpit:
+			return
+		better_instruments = preload("res://cockpit/instruments.gd").new()
+		better_instruments.setup(self, specs)
+		add_child(better_instruments)
+		move_child(better_instruments, hud.get_index())  # under the HUD symbology
+	better_instruments.visible = view_mode == 0
+	better_instruments.refresh()
 
 
 ## The panel's screen shift for the head angles (original pixels): pan = 1920 / AzimutAngleDeg (rad) · yaw,

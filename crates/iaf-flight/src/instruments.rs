@@ -102,6 +102,54 @@ pub fn instruments(
     }
 }
 
+/// Ours, "Better cockpit" (docs/cockpit.md "Better cockpit"): the AoA indexer's lit symbol (`aoa_indexer`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Indexer {
+    /// No indexer on the jet.
+    #[default]
+    Off = 0,
+    /// The upper chevron: AoA high, speed low.
+    Slow = 1,
+    /// The donut: on-speed AoA.
+    OnSpeed = 2,
+    /// The lower chevron: AoA low, speed high.
+    Fast = 3,
+}
+
+/// The indexer for type `type_code` at `aoa_deg`. Only the F-16 (100) has one in the panel art. Its T.O.
+/// GR1F-16CJ-1 fig. 1-52 shows the upper chevron at 15°, the donut at 13° (the optimum landing AoA), the lower
+/// chevron at 11°, and the indexer works with the gear up or down; the band edges 12° / 14° (half-way) are
+/// inferred.
+pub fn aoa_indexer(type_code: u32, aoa_deg: f32) -> Indexer {
+    match type_code {
+        100 if aoa_deg > 14.0 => Indexer::Slow,
+        100 if aoa_deg >= 12.0 => Indexer::OnSpeed,
+        100 => Indexer::Fast,
+        _ => Indexer::Off,
+    }
+}
+
+/// Ours, "Better cockpit" warning lamps the original leaves unlit (`warning_lamps`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct Warnings {
+    /// F-16 FLCS: a flight-control failure, damage 18 (hydraulics) or 24 (total flight control).
+    pub flcs: bool,
+    /// F-16 TO/LDG CONFIG: in flight below 10,000 ft and 190 kt, descending faster than 250 ft/min, with the gear
+    /// not down and locked (T.O. GR1F-16CJ-1, "TO/LDG CONFIG Warning Light"; its TEF condition is left out: the
+    /// game's flaps are a key of their own).
+    pub to_ldg_config: bool,
+}
+
+/// The warning lamps from the flight state ([`Instruments`] units; `gear` the FM's gear ramp, 0 = down and locked)
+/// and the damage flags 0..24 (docs/damage.md §5; a shorter slice reads as unset).
+pub fn warnings(on_ground: bool, alt_ft: f32, ias_kt: f32, vs_fpm: f32, gear: f32, flags: &[bool]) -> Warnings {
+    let flag = |i: usize| flags.get(i).copied().unwrap_or(false);
+    Warnings {
+        flcs: flag(18) || flag(24),
+        to_ldg_config: !on_ground && alt_ft < 10_000.0 && ias_kt < 190.0 && vs_fpm < -250.0 && gear > 0.0,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -131,5 +179,32 @@ mod tests {
         assert_eq!(engine_needles(1.0, dead), [0.0, 0.0, 0.8]);
         let cut = EngineDamage { cut_out: true, ..none };
         assert_eq!(engine_needles(0.7, cut), [0.7, 0.0, 0.7]);
+    }
+
+    #[test]
+    fn f16_aoa_indexer_bands() {
+        assert_eq!(aoa_indexer(100, 16.0), Indexer::Slow);
+        assert_eq!(aoa_indexer(100, 13.0), Indexer::OnSpeed);
+        assert_eq!(aoa_indexer(100, 12.0), Indexer::OnSpeed);
+        assert_eq!(aoa_indexer(100, 11.0), Indexer::Fast);
+        assert_eq!(aoa_indexer(100, 0.0), Indexer::Fast);
+        assert_eq!(aoa_indexer(110, 13.0), Indexer::Off);
+    }
+
+    #[test]
+    fn warnings_follow_damage_and_the_approach() {
+        let w = warnings(false, 2000.0, 160.0, -1000.0, 1.569, &[]);
+        assert!(w.to_ldg_config && !w.flcs);
+        assert!(!warnings(false, 2000.0, 160.0, -1000.0, 0.0, &[]).to_ldg_config, "gear down and locked");
+        assert!(!warnings(false, 2000.0, 200.0, -1000.0, 0.5, &[]).to_ldg_config, "fast");
+        assert!(!warnings(false, 2000.0, 160.0, 0.0, 0.5, &[]).to_ldg_config, "level");
+        assert!(!warnings(false, 12000.0, 160.0, -1000.0, 0.5, &[]).to_ldg_config, "high");
+        assert!(!warnings(true, 0.0, 100.0, -1000.0, 0.5, &[]).to_ldg_config, "on the ground");
+        let mut f = vec![false; 25];
+        f[18] = true;
+        assert!(warnings(false, 0.0, 0.0, 0.0, 0.0, &f).flcs);
+        f[18] = false;
+        f[24] = true;
+        assert!(warnings(false, 0.0, 0.0, 0.0, 0.0, &f).flcs);
     }
 }

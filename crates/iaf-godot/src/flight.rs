@@ -544,6 +544,30 @@ impl IafFlight {
         d
     }
 
+    /// Ours, the "Better cockpit" values (iaf_flight::instruments, docs/cockpit.md "Better cockpit"): `aoa_index`
+    /// (0 no indexer, 1 slow, 2 on speed, 3 fast), the lamps `flcs` and `to_ldg_config`. `damage`: as `instruments`.
+    #[func]
+    fn better_instruments(&self, damage: VarArray) -> VarDictionary {
+        use iaf_flight::instruments;
+        let mut d = VarDictionary::new();
+        let Some(ac) = &self.aircraft else { return d };
+        let s = ac.state();
+        let flags: Vec<bool> = damage.iter_shared().map(|v| v.booleanize()).collect();
+        let i = instruments::instruments(
+            &s,
+            ac.ground_height,
+            ac.gear_clearance,
+            ac.internal_fuel_kg(),
+            ac.params.ias_low_speed_fix,
+            Default::default(),
+        );
+        let w = instruments::warnings(s.on_ground, s.position[2] as f32 * 3.281, i.ias_kt, i.vs_fpm, s.gear, &flags);
+        d.set("aoa_index", instruments::aoa_indexer(ac.params.type_code, s.alpha.to_degrees()) as i64);
+        d.set("flcs", w.flcs);
+        d.set("to_ldg_config", w.to_ldg_config);
+        d
+    }
+
     /// Current state for the renderer and instruments.
     #[func]
     fn state(&self) -> VarDictionary {

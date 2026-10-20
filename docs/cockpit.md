@@ -597,6 +597,76 @@ heading reads under the lubber mark at the top (`game/cockpit/compass.gd`, `comp
 * Test: tests/godot/test_turning_compass.gd (off = static; on, card angle = heading on the Kfir, F-4E and Mirage, the
   Mirage's bearing pointer = bearing − heading). Pictures: tests/godot/_compass_shot.gd.
 
+### The panels' instruments (survey 2026-10-20)
+What each flyable cockpit's panel art paints, and what the original drives (panel px of the 1920-px strip). Read on
+the 1x original art and its 4x conversion; the art is small, so many dial faces and lamp legends are unreadable.
+
+| Cockpit | Live in the original | Painted only (static) | Unwired lamps (legend) |
+|---|---|---|---|
+| f16 | ASI, altimeter, lens ADI, standby ADI disc (1100,91), VVI and AoA tapes, OIL / NOZ POS / RPM needles, fuel digits | FTIT (1268,295); the AoA indexer and the AR / NWS indexer on the HUD frame (painted lit) | right glareshield: FLCS / DBU ON, TO/LDG CONFIG, CANOPY / a blank half; an unlabelled round amber lamp (1212,98) |
+| f15 | ASI, lens ADI, altimeter, the engine needles, fuel | six small hydraulic / oil pressure dials (PC1, PC2, UTIL, L / R OIL PRESS; 1225..1250,125..180), a dial at 1258,328, the fuel panel's digits | two red lamps right of the right MFD (1205..1245,77..110), no legend |
+| f4-2000 | altimeter, ASI, lens ADI, VVI, the engine needles, fuel | – | three green lamps left of the left MFD (690,95..135), two small square lamps (1233 / 1251,119); legends unreadable |
+| phantom (F-4E) | altimeter, ASI / Mach, lens ADI, the engine needles, fuel | – | three green lamps (690,93..160), the IN RANGE lamp; legends unreadable |
+| cfir (Kfir) | ASI, altimeter, lens ADI, horizon disc, RPM / throttle / temperature needles, fuel | the dial under the altimeter (856,94; likely the VVI), dials at 1127,186, 1120,256 and 1227,203 | the 6 × 5 annunciator panel (1150..1240,215..270); green / yellow / amber lamps (749,58..98); legends unreadable |
+| lavi | the three engine needles, ASI, lens ADI, altimeter, VVI, fuel | the clock (1167,272) | a yellow-green and two amber lamps (1228..1250,110..143); legends unreadable |
+| mirage | ASI, altimeter, lens ADI, fuel | the VVI (686,159.5), a "H" drum (862,52), the clock (1242,258), a dial at 1242,302 | the red lamp stack round the master caution and fire lamps (1240,145..205); legends unreadable |
+
+* **G-meter (accelerometer): no panel paints one that the art shows clearly.** The F-16 art is an earlier panel than
+  the dash-1's figure, whose accelerometer sits beside the altimeter[^f16-dash1]; the game's F-16 panel has none
+  there. So the roadmap's item 6 has nothing to drive; no item id.
+* **AoA indexer:** only the F-16's HUD frame art paints one. The original lights none of it: the three symbols are
+  painted lit, and no `[LIGHT00x]` rect covers the HUD frame.
+* **Standby instruments:** every painted standby airspeed, altimeter and ADI is already live (the F-16's and Kfir's
+  horizon discs; the F-15, F-4 2000 and Lavi have their ADI on an MFD page). The painted flight instruments with no
+  needle are the Mirage's VVI (now live, below) and the Kfir's likely VVI (its numbers are unreadable, so its scale is
+  unknown).
+
+### AoA indexer (`aoa_indexer`)
+The F-16's indexer on the HUD frame, left of the glass (`game/cockpit/instruments.gd`). The art paints all three
+symbols lit; with the item on, the unlit ones are drawn from a copy of the art with their colour taken out (each pixel
+keeps its darkest channel), so only the lit symbol glows.
+* **Bands** (`iaf_flight::instruments::aoa_indexer`, from IafFlight.better_instruments `aoa_index`): the upper chevron
+  (slow) above 14°, the donut (on speed) from 12° to 14°, the lower chevron (fast) below 12°. The dash-1 shows the
+  upper chevron at 15°, the donut at 13° (the optimum landing AoA) and the lower chevron at 11°[^f16-aoa]; the 12° /
+  14° band edges are inferred (half-way). The real indexer works with the gear up or down[^f16-aoa], so ours does too.
+* The other jets' panels have no indexer.
+
+### Live painted instruments (`standby_instruments`)
+A needle over a dial the art paints without one, in the original needles' style (NeedleColor 0xFAF6EA, the same
+width), from the cockpit state.
+* **Mirage VVI** (centre 686,159.5, needle 19 px): 0 at 9 o'clock, climb clockwise, descent anticlockwise; marks at
+  0.5, 1, 2, 4 and 6 both ways, 6 at 3 o'clock, read as ×1000 ft/min (inferred). The angles measured on the art
+  (clock degrees): 0 → −90, 500 → −53, 1000 → −24, 2000 → 4, 4000 → 45, 6000 → 90; a descent mirrors them. Linear
+  between the marks; past 6000 the needle stays on the stop.
+
+### Warning lamps (`warning_lamps`)
+A lamp the original leaves unlit is lit for the state its legend names: the painted (unlit) lamp is drawn brighter
+(×1.9 / 1.7 / 1.5 per channel, the [LIGHTSON] night shifts at night).
+* **F-16 FLCS** (the upper half of the FLCS / DBU ON lamp): damage 18 (hydraulics) or 24 (total flight control). The
+  real light shows a dual FLCS failure[^f16-flcs].
+* **F-16 TO/LDG CONFIG:** in flight below 10,000 ft and 190 kt, descending faster than 250 ft/min, with the gear not
+  down and locked (the FM's gear ramp above 0)[^f16-config]. The real light also lights with the trailing-edge flaps
+  not fully down; that part is left out, since the game's flaps are a key of their own.
+* DBU ON and CANOPY stay unlit: the game has no digital backup mode or canopy state.
+* Every other damage code already lights the master caution (docs/damage.md §5). The other jets' unwired lamps have
+  unreadable legends (the survey above), so they are not mapped. The F-15's right-engine fire (17) has no light: its
+  `[LIGHT002]` is inactive and its two unlabelled red lamps are not tied to it.
+* Logic: `iaf_flight::instruments::warnings` (unit tests there), via IafFlight.better_instruments.
+
+### The unused shipped art
+The three bitmaps the game ships but never loads, compared with the art the cockpits load. None is better, so none is
+used:
+* `cfir/cfir-lights.bmp` (108×198) is an earlier Kfir lights sheet: a HOOK lamp, red FLPS / AP / BRK lamps and no ECM
+  lamp. The loaded `cfirligh.bmp` (64×139) has the ECM lamp the Kfir uses (`[LIGHT006]`) and green FLPS / AP / BRK;
+  the hook lamp has no state in the game (`[LIGHT007]` is never set).
+* `lavi/lavi-lig.bmp` (62×165) is `laviligh.bmp` (57×165) without the ECM lamp the Lavi uses.
+* `phantom/f16adi.bmp` is not the F-16's blue / brown ball: it is the F-4E's own grey / black ball, 121 pixels (0.7 %)
+  off the loaded `phantom/adi.bmp`.
+
+* Test: tests/godot/test_better_instruments.gd (Original static; Better: the F-16 indexer symbol and lamps follow
+  their inputs, the Mirage VVI needle the vertical speed; each item's own flag). Pictures:
+  tests/godot/_instruments_shot.gd.
+
 ## What our tooling assumes
 * `crates/iaf-tools/src/convert.rs` `cockpit` is generic. It takes the dir name as its argument and
   converts:
@@ -835,3 +905,12 @@ The `[PANEL]` Night shifts are listed separately. File names are case-insensitiv
 * The exact GEV key names for 0x46/0x49/0x69.
 * The emitter class ids behind AI vs SAM.
 * The R+0xc double-blit flag.
+
+[^f16-dash1]: T.O. GR1F-16CJ-1, Hellenic AF F-16C/D flight manual, fig. 1-3 sheet 9 "Cockpit Arrangement", p. 1-19
+    (item 18 Accelerometer, item 37 AoA Indexer). <https://falcon.blu3wolf.com/Docs/HAF-F16.pdf>
+[^f16-aoa]: T.O. GR1F-16CJ-1, "AOA Indexer" and fig. 1-52 "AOA Displays", p. 1-137 (slow 15°, on speed 13°, fast 11°;
+    "operates continuously with the LG handle up or down"). <https://falcon.blu3wolf.com/Docs/HAF-F16.pdf>
+[^f16-flcs]: T.O. GR1F-16CJ-1, "FLCS Warning Light" (a dual malfunction in the FLCC electronics, AoA or air data
+    inputs). <https://falcon.blu3wolf.com/Docs/HAF-F16.pdf>
+[^f16-config]: T.O. GR1F-16CJ-1, "TO/LDG CONFIG Warning Light" (in flight below 10,000 ft, 190 kt, descending more
+    than 250 fpm, with the TEFs not full down or a gear leg not down and locked). <https://falcon.blu3wolf.com/Docs/HAF-F16.pdf>

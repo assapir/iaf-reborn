@@ -2711,6 +2711,7 @@ func _process(delta: float) -> void:
 		var ins: Dictionary = flight.instruments(player_damage.flags if player_damage != null else [])
 		for k in ins:
 			cockpit.state[k] = ins[k]
+		cockpit.state["better"] = flight.better_instruments(player_damage.flags if player_damage != null else [])
 		_record(st, delta)
 		if not frozen and not waiting_for_ground:
 			_sim_time += delta

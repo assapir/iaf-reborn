@@ -174,6 +174,12 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     shows only on the HUD tape and the MFD pages. Better: the compass card turns with the heading on the Kfir, F-4E
     and Mirage panels, cut from the panel art. On the Mirage's dial the painted pointers are replaced by new ones: the
     bearing pointer to the current waypoint and the course pointer of the route leg.
+  - **AoA indexer** (`aoa_indexer`). Original: the F-16's indexer on the HUD frame is art painted lit. Better: only
+    the symbol for the AoA lights (slow above 14°, on speed 12°–14°, fast below 12°), gear up or down.
+  - **Live painted instruments** (`standby_instruments`). Original: the Mirage's VVI is art without a needle. Better:
+    a needle shows the vertical speed.
+  - **Warning lamps** (`warning_lamps`). Original: the F-16's FLCS and TO/LDG CONFIG lamps never light. Better: FLCS
+    lights with hydraulics or flight-control damage (18 / 24), TO/LDG CONFIG on an approach with the gear not down.
 - **World scale (Original / Real 1:1)** (world-scale.md; in progress, its Extras row shows only with the dev flag
   `IAF_DEV_WORLD_SCALE=1` until the airbases shrink too, the plan's step 9). Original: every model at its bdb Present
   scale (0x65e: ×2 jets and buildings, ×3–4 vehicles and SAMs). Real 1:1 (`Settings.world_scale = "real"`): the
