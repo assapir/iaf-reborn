@@ -96,7 +96,8 @@ Rule of placement: game logic belongs in the Rust crates. Godot renders and wire
 - Rust is formatted with `cargo fmt --all` (rustfmt.toml: width 120, compact heuristics); run it before committing
   Rust changes.
 - GDScript is formatted with gdtoolkit's `gdformat --line-length 120 <files>` (gdtoolkit 4.x: `pip install
-  'gdtoolkit==4.*'` in a venv); run it on the `.gd` files you changed before committing.
+  'gdtoolkit==4.*'` in a venv) and linted with `gdlint <files>` (config: `gdlintrc`); run both on the `.gd` files you
+  changed before committing.
 - Docs follow ISO 24495-1 plain language: relevant, findable, understandable, usable. Describe what a thing is or
   does, never what it isn't.
 - Research facts from outside sources cite each source as a Markdown footnote (`[^name]` in the text, the source with
