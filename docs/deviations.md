@@ -190,6 +190,10 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     total / the load with the tanks; the F-15's painted "TOTAL LBS" counter shows the live total.
   - **Panel clock** (`panel_clock`). Original: the Lavi and Mirage clocks are static art. Better: hands at the time of
     day of the mission.
+  - **Crisp MFD pages** (`crisp_mfd`). Original: each MFD page is a 132 × 132 px picture scaled to the screen. Better:
+    the same pages drawn at the screen's resolution, the vectors antialiased, the pixel art as smooth strokes through
+    its original pixels (mfd.md §8). Its strokes sit on the pixels the original lights, half a pixel right and down
+    of Original's.
 - **World scale (Original / Real 1:1)** (world-scale.md; in progress, its Extras row shows only with the dev flag
   `IAF_DEV_WORLD_SCALE=1` until the airbases shrink too, the plan's step 9). Original: every model at its bdb Present
   scale (0x65e: ×2 jets and buildings, ×3–4 vehicles and SAMs). Real 1:1 (`Settings.world_scale = "real"`): the

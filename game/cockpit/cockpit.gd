@@ -643,8 +643,8 @@ const RWR_RANGE := 37060.0
 
 ## The RWR symbols (FUN_00531470) on `ci` about `centre` with `radius` (the MFD page: (66,66) r 56; the panel
 ## dial: [PANELRWR] Center / Radius), `s` = canvas px per original px: heading-up, the active entries,
-## launch-flag ones blinking at 300 ms.
-func draw_rwr_symbols(ci: CanvasItem, centre: Vector2, radius: float, s: float) -> void:
+## launch-flag ones blinking at 300 ms. `blit` (src, dest, modulate) draws a symbol instead (the crisp MFD page).
+func draw_rwr_symbols(ci: CanvasItem, centre: Vector2, radius: float, s: float, blit := Callable()) -> void:
 	if not tex.has("RWRSYMB"):
 		return
 	var a: float = layout.get("image_scale", 1)
@@ -658,8 +658,11 @@ func draw_rwr_symbols(ci: CanvasItem, centre: Vector2, radius: float, s: float) 
 			continue
 		var off := rwr_offset(e.pos, own, hdg, radius)
 		var src := Rect2(0, RWR_GLYPH[int(e.type)], 10, 10)
-		ci.draw_texture_rect_region(tex.RWRSYMB, Rect2(centre + (off - Vector2(5, 5)) * s, Vector2(10, 10) * s),
-				Rect2(src.position * a, src.size * a), _night_mod("LIGHTSON"))
+		var dest := Rect2(centre + (off - Vector2(5, 5)) * s, Vector2(10, 10) * s)
+		if blit.is_valid():
+			blit.call(src, dest, _night_mod("LIGHTSON"))
+		else:
+			ci.draw_texture_rect_region(tex.RWRSYMB, dest, Rect2(src.position * a, src.size * a), _night_mod("LIGHTSON"))
 
 
 ## An emitter's symbol centre from the dial centre (FUN_00531470 @53160d): heading-up, 37060 m = radius, the
@@ -787,7 +790,8 @@ func _draw_standby_horizon(s: float) -> void:
 ## maps to (sin·y + cos·x, cos·y − sin·x) + pitch / 2 · (sin, cos), truncated to pixels: 0.5 px per degree of
 ## pitch at Scale 1. Clipped to the ±Radius square: GndColor fill, the SkyColor rectangle (−30, 0)..(30, −90) above
 ## the horizon, outlined, and the 12 white lines (0x65cec0: four ground perspective lines, pitch ticks every 8°).
-func draw_horizon_disc(ci: CanvasItem, c: Vector2, px: float) -> void:
+## `line_px` > 0: the lines that wide and antialiased (the crisp MFD page).
+func draw_horizon_disc(ci: CanvasItem, c: Vector2, px: float, line_px := 0.0) -> void:
 	var h: Dictionary = layout.get("HORIZON", {})
 	var r := float(h.get("Radius", 40))
 	var k := float(h.get("Scale", 1.0))
@@ -821,7 +825,7 @@ func draw_horizon_disc(ci: CanvasItem, c: Vector2, px: float) -> void:
 	for i in range(0, lines.size(), 2):
 		for seg in Geometry2D.intersect_polyline_with_polygon(PackedVector2Array([lines[i], lines[i + 1]]), clip):
 			if seg.size() >= 2:
-				ci.draw_polyline(seg, Color.WHITE, maxf(1.0, px * 0.6))
+				ci.draw_polyline(seg, Color.WHITE, line_px if line_px > 0.0 else maxf(1.0, px * 0.6), line_px > 0.0)
 
 
 ## The disc's white lines (0x65cec0, x0 y0 x1 y1): ground perspective lines, then pitch ticks (4 px = 8°).

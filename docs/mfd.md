@@ -804,6 +804,30 @@ menu; `Cockpit009..012 = F16` in cockpits.ibx are never returned by `FUN_00447e7
 they get there is not traced. `fsmfd/` (full-screen MFD art + `data.ibx`) and
 `mfds.bmp/rwrsymb.bmp/isr.bmp` are shared by all cockpits; `emf/map.emf` is the TSD map for all.
 
+## 8. Ours: crisp pages ("Better cockpit" `crisp_mfd`)
+With Better cockpit and its `crisp_mfd` item on (docs/cockpit.md "Better cockpit"), `mfd.gd` draws every page at the
+MFD's screen resolution. The page code is the same in both modes: every page draws through the primitives of `mfd.gd`
+in MFD px (`_seg`, `_polyline`, `_frame`, `_fill`, `_disc`, `_circle`, `_polygon`, `_blit`, `_text`), so a later page
+set (the "Real MFDs" option, docs/roadmap.md) can reuse them.
+- **Original:** the canvas is scaled by the MFD's screen scale; the art comes from the converted 4× atlas.
+- **Crisp:** the canvas is at screen px, `_k` (screen px per MFD px) scales each coordinate. A GDI stroke is a line
+  1 MFD px wide, antialiased, over the pixels GDI lights: through the pixel centres, from the first pixel up to the
+  last (LineTo leaves its end pixel unlit). Original draws its strokes half a pixel up and left of those pixels.
+  Fills (rectangles, the TSD map, the waypoint boxes) cover the same area in both modes.
+- **The pixel art** comes from the original `mfds.bmp` / `rwrsymb.bmp` (install `resource/cockpits`), one texture per
+  sprite with a clear 1-px border (`crisp_sprite`), drawn through `mfd_crisp.gdshader` (`mfd_crisp.gdshaderinc`; the
+  F-35I's portals use it from `portal.gdshader`). The shader draws each lit pixel's centre joined to its lit
+  neighbours by a stroke 1 px wide (a diagonal only where no straight step joins the two). A pixel on a stair (one
+  straight and one diagonal neighbour, opposite) joins the two half-way points instead, so shallow lines and arcs
+  turn smooth while square corners stay square. The black ground is the opaque pixels' coverage cut at one half, so
+  straight edges stay on the pixel edges and the rounded tile corners and the radar fans turn smooth. The colour keys
+  RGB(0,255,255) and RGB(0,210,255) are transparent.
+- **The pictures** (the EO camera, the radar MAP's isr.bmp) are drawn on a canvas under the page (`_draw_pictures`),
+  unchanged in both modes.
+- Test: tests/godot/test_mfd.gd (every page records the same primitives with the same MFD-px geometry in both
+  modes; crisp draws at `_k` = the screen scale through the shader). Pictures: tests/godot/_mfd_shot.gd (every page,
+  Original and crisp).
+
 ## Open questions
 - Unreferenced tiles (132,132) "Debug", (132,264) LAS, (132,396) TWS, (0,528): leftovers?
 - Straight-ahead vertical pan (+0x568) → exact on-screen MFD y.

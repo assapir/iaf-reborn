@@ -734,6 +734,13 @@ The faces paint no hands. The other panels show no clock face (checked on each p
   original fill stays 1 while the Better fill falls; the clock hands at 15:15). Pictures:
   tests/godot/_gauges_shot.gd.
 
+### Crisp MFD pages (`crisp_mfd`)
+In the original every MFD page is a 132 × 132 px picture, which a modern screen scales up blocky. With the item on,
+every page has the same layout, content and colours, drawn at the MFD's screen resolution: the vectors antialiased at
+their original coordinates, the pixel art (tiles, the 5 × 5 font, the range numbers, the RWR symbols, the ADI page's
+digits) as smooth strokes through its original pixels. The EO and MAP pictures stay as they are. How it works:
+docs/mfd.md §8.
+
 ## What our tooling assumes
 * `crates/iaf-tools/src/convert.rs` `cockpit` is generic. It takes the dir name as its argument and
   converts:

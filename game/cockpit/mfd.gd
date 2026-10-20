@@ -56,6 +56,20 @@ var _map_centre := Vector2.ZERO
 var _map_point := Vector2.ZERO
 ## Line clipping (MFD px): the whole display (the GDI clip rect of pass 4), the MAP window there.
 var _clip := Rect2(0, 0, SIZE, SIZE)
+## Ours, "Better cockpit" crisp_mfd: the same pages drawn at the screen's resolution (the drawing primitives below):
+## strokes antialiased over the pixels the original's GDI lights, the pixel art through mfd_crisp.gdshader.
+var crisp := false
+## Canvas px per MFD px: 1 in Original (the canvas is scaled by _s()), _s() when crisp (the canvas at screen px).
+var _k := 1.0
+## Tests: an Array makes every primitive append [op, its MFD-px arguments…] (the pages' geometry, the same in both modes).
+var trace = null
+## The EO / MAP pictures, under the page's art (show_behind_parent): pictures, drawn as they are in both modes.
+var _under: Control
+const PORTAL_SHADER := preload("res://cockpit/portal.gdshader")
+static var _crisp_material: ShaderMaterial
+## The original bitmaps (install resource/cockpits/<file>) and the crisp sprites cut from them, by "file rect".
+static var _art := {}
+static var _sprites := {}
 
 
 func setup(c: Control, idx: int, start_page: int) -> void:
@@ -63,6 +77,11 @@ func setup(c: Control, idx: int, start_page: int) -> void:
 	index = idx
 	page = start_page
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	_under = Control.new()
+	_under.show_behind_parent = true
+	_under.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_under.draw.connect(_draw_pictures)
+	add_child(_under)
 
 
 func _panel_offset() -> Vector2:
@@ -90,6 +109,10 @@ func _process(_delta: float) -> void:
 	var b := _bezel()
 	position = cockpit.panel_to_screen(o.x - b * portal_scale, o.y - b * portal_scale)
 	size = Vector2.ONE * (SIZE + 2 * b) * s
+	_under.size = size
+	var want := Settings.better_cockpit_on("crisp_mfd")
+	if want != crisp:
+		_set_crisp(want)
 	# FUN_005296d0 after every page: a new current waypoint (clamped 0..count) scrolls the NAV list to keep it in its
 	# 3 rows (above: it becomes the top row; below: the bottom row). UNCERTAIN: the trigger field (renderer +0x930),
 	# taken as the last current waypoint, so the OSB scroll stays free in between.
@@ -101,20 +124,143 @@ func _process(_delta: float) -> void:
 		elif cur >= nav_scroll + 3:
 			nav_scroll = maxi(cur - 2, 0)
 	queue_redraw()
+	_under.queue_redraw()
+
+
+func _set_crisp(on: bool) -> void:
+	crisp = on
+	if material is ShaderMaterial and material.shader == PORTAL_SHADER:
+		material.set_shader_parameter("crisp", on)
+		return
+	if on and _crisp_material == null:
+		_crisp_material = ShaderMaterial.new()
+		_crisp_material.shader = preload("res://cockpit/mfd_crisp.gdshader")
+	material = _crisp_material if on else null
 
 
 # --- drawing primitives (MFD pixels) ----------------------------------------------------------
+# Every page draws through these, in MFD px. Original: the canvas is scaled by _s() and draws the 1998 look. Crisp:
+# the canvas is at screen px (_k = _s()); a GDI stroke (pixels x..x+1 lit) is a 1-px-wide line through the pixel
+# centres, the art comes from the original bitmap through mfd_crisp.gdshader.
+
+## Records one primitive for a test.
+func _rec(op: Array) -> void:
+	if trace != null:
+		trace.append(op)
+
+
+## A GDI MoveTo / LineTo: the pixels from a up to b (b's own pixel not lit).
+func _seg(a: Vector2, b: Vector2, color: Color) -> void:
+	_rec(["line", a, b, color])
+	_stroke(a, b, color)
+
+
+func _stroke(a: Vector2, b: Vector2, color: Color) -> void:
+	if not crisp:
+		draw_line(a, b, color, 1.0)
+		return
+	var d := b - a
+	var st := d / maxf(absf(d.x), absf(d.y)) if d != Vector2.ZERO else Vector2.ZERO
+	var o := Vector2(0.5, 0.5) - 0.5 * st
+	draw_line((a + o) * _k, (b + o) * _k, color, _k, true)
+
+
+## A 1-px outline of `r` (its edge rows / columns lit).
+func _frame(r: Rect2, color := GREEN) -> void:
+	_rec(["frame", r, color])
+	if not crisp:
+		draw_rect(r, color, false, 1.0)
+		return
+	draw_rect(Rect2((r.position + Vector2(0.5, 0.5)) * _k, r.size * _k), color, false, _k, true)
+
+
+func _fill(r: Rect2, color: Color) -> void:
+	_rec(["fill", r, color])
+	draw_rect(Rect2(r.position * _k, r.size * _k), color)
+
+
+## A filled disc about pixel c.
+func _disc(c: Vector2, r: float, color := GREEN) -> void:
+	_rec(["disc", c, r, color])
+	if not crisp:
+		draw_circle(c, r, color)
+		return
+	draw_circle((c + Vector2(0.5, 0.5)) * _k, r * _k, color, true, -1.0, true)
+
+
+## A 1-px circle about pixel c.
+func _circle(c: Vector2, r: float, color := GREEN) -> void:
+	_rec(["circle", c, r, color])
+	if not crisp:
+		draw_arc(c, r, 0, TAU, 48, color, 1.0)
+		return
+	draw_arc((c + Vector2(0.5, 0.5)) * _k, r * _k, 0, TAU, 96, color, _k, true)
+
+
+## A GDI Polyline (crisp: each leg a LineTo).
+func _polyline(pts: PackedVector2Array, color := GREEN) -> void:
+	_rec(["polyline", pts, color])
+	if not crisp:
+		draw_polyline(pts, color, 1.0)
+		return
+	for i in pts.size() - 1:
+		_stroke(pts[i], pts[i + 1], color)
+
+
+func _polygon(pts: PackedVector2Array, color: Color) -> void:
+	_rec(["polygon", pts, color])
+	if crisp:
+		pts = Transform2D.IDENTITY.scaled(Vector2(_k, _k)) * pts
+	draw_colored_polygon(pts, color)
 
 func _atlas() -> Texture2D:
 	return cockpit.tex.get("MFDS")
 
 
+## A sprite of mfds.bmp at `dest` (its top-left pixel).
 func _blit(src: Rect2, dest: Vector2) -> void:
+	_rec(["blit", src, dest])
+	if crisp:
+		var ct := crisp_sprite("mfds.bmp", src)
+		if ct != null:
+			draw_texture_rect(ct, Rect2((dest - Vector2.ONE) * _k, (src.size + Vector2(2, 2)) * _k), false)
+			return
 	var t := _atlas()
 	if t == null:
 		return
 	var a: float = cockpit.layout.get("image_scale", 1)
-	draw_texture_rect_region(t, Rect2(dest, src.size), Rect2(src.position * a, src.size * a))
+	draw_texture_rect_region(t, Rect2(dest * _k, src.size * _k), Rect2(src.position * a, src.size * a))
+
+
+## A crisp sprite: `src` of the original bitmap with a clear 1-px border (the shader's strokes end round inside it),
+## null without the bitmap.
+static func crisp_sprite(file: String, src: Rect2) -> Texture2D:
+	var key := "%s %s" % [file, src]
+	if _sprites.has(key):
+		return _sprites[key]
+	if not _art.has(file):
+		var img := Image.new()
+		var path: String = Settings.assets_dir().path_join("install/resource/cockpits").path_join(file)
+		var ok := FileAccess.file_exists(path) and img.load_bmp_from_buffer(FileAccess.get_file_as_bytes(path)) == OK
+		if ok:
+			img.convert(Image.FORMAT_RGBA8)
+		_art[file] = img if ok else null
+	var art: Image = _art[file]
+	var t: Texture2D = null
+	if art != null:
+		var r := Rect2i(src)
+		var out := Image.create_empty(r.size.x + 2, r.size.y + 2, false, Image.FORMAT_RGBA8)
+		out.blit_rect(art, r, Vector2i.ONE)
+		t = ImageTexture.create_from_image(out)
+	_sprites[key] = t
+	return t
+
+
+## An rwrsymb.bmp symbol for cockpit.draw_rwr_symbols (canvas px).
+func _rwr_symbol(src: Rect2, dest: Rect2, mod: Color) -> void:
+	var t := crisp_sprite("rwrsymb.bmp", src)
+	if t != null:
+		draw_texture_rect(t, dest.grow(dest.size.x / src.size.x), false, mod)
 
 
 func _tile(at: Vector2) -> void:
@@ -152,7 +298,7 @@ func _text_right(end_x: float, y: float, text: String) -> void:
 
 func _line(a: Vector2, b: Vector2, color := GREEN) -> void:
 	if _clip.has_point(a) and _clip.has_point(b):
-		draw_line(a, b, color, 1.0)
+		_seg(a, b, color)
 		return
 	if a.is_equal_approx(b):
 		return
@@ -160,7 +306,7 @@ func _line(a: Vector2, b: Vector2, color := GREEN) -> void:
 	var poly := PackedVector2Array([c.position, Vector2(c.end.x, c.position.y), c.end, Vector2(c.position.x, c.end.y)])
 	for seg in Geometry2D.intersect_polyline_with_polygon(PackedVector2Array([a, b]), poly):
 		if seg.size() >= 2:
-			draw_polyline(seg, color, 1.0)
+			_polyline(seg, color)
 
 
 # --- pages ------------------------------------------------------------------------------------
@@ -169,10 +315,11 @@ func _draw() -> void:
 	if cockpit == null or cockpit.layout.is_empty():
 		return
 	var s := _s()
-	draw_set_transform(Vector2.ONE * _bezel() * s, 0.0, Vector2(s, s))
+	_k = s if crisp else 1.0
+	draw_set_transform(Vector2.ONE * _bezel() * s, 0.0, Vector2.ONE * s / _k)
 	# A portal's hovered label: the touch box (ours; the originals' buttons are in their panel art).
 	if _bezel() == 0.0 and hover_osb > 0:
-		draw_rect(touch_rect(hover_osb), DIM_GREEN, false, 1.0)
+		_frame(touch_rect(hover_osb), DIM_GREEN)
 	match page:
 		RADAR:
 			_draw_radar()
@@ -209,8 +356,7 @@ func _draw_radar() -> void:
 	match mode:
 		7: _tile(TILE_GMT)
 		8:
-			_draw_map_picture(r, nm)
-			_tile(TILE_MAP)
+			_tile(TILE_MAP)  # over the picture (_draw_pictures)
 		_:
 			_tile(TILE_RADAR_AA)
 			_text(Vector2(17, 3), RADAR_MODES[mode])
@@ -255,7 +401,7 @@ func _draw_radar() -> void:
 			5:
 				# FUN_00534b20: the selected contact's disc, the others' 5×5 box; every one its aspect stub.
 				if c.selected:
-					draw_circle(p, 3.5, GREEN)
+					_disc(p, 3.5)
 					target = p
 				else:
 					_box(p, 2)
@@ -263,7 +409,7 @@ func _draw_radar() -> void:
 				if mouse != null and Rect2(p - Vector2(4, 4), Vector2(8, 8)).has_point(mouse):
 					hover = c
 			2:
-				draw_circle(p, 3.5, GREEN)
+				_disc(p, 3.5)
 				_aspect_stub(p, c)
 				target = p
 				hover = c
@@ -349,7 +495,7 @@ func _caret_pair(vx: int, vy: int) -> void:
 
 
 func _box(p: Vector2, h: int) -> void:
-	draw_rect(Rect2(p - Vector2(h, h), Vector2(2 * h, 2 * h)), GREEN, false, 1.0)
+	_frame(Rect2(p - Vector2(h, h), Vector2(2 * h, 2 * h)))
 
 
 ## The aspect stub (FUN_00534b20 / FUN_00534160): bin = aspect_bin(the record's aspect, +0x66c), drawn from 2 px out
@@ -511,13 +657,13 @@ func _map_frame(r: Dictionary) -> Dictionary:
 ## green palette, FUN_0053ae00(…, 1)) turned heading-up about the centre, S = R·1853·832 / ((top −
 ## bottom)·94) isr px per MFD px; black outside the image. It shows through the tile's cyan fan.
 func _draw_map_picture(r: Dictionary, nm: float) -> void:
-	draw_rect(MAP_WINDOW, Color.BLACK)
+	_under.draw_rect(MAP_WINDOW, Color.BLACK)
 	var t := _isr()
 	if t == null:
 		return
 	var f := _map_frame(r)
 	for piece in map_picture(f.centre, f.hdg, nm, f.img):
-		draw_colored_polygon(piece.points, Color(0, 1, 0), piece.uvs, t)
+		_under.draw_colored_polygon(piece.points, Color(0, 1, 0), piece.uvs, t)
 
 
 ## The MAP picture's polygons in the window: [{points (MFD px), uvs (0..1 of isr.bmp)}] for the centre
@@ -622,18 +768,25 @@ func _radar_event(ev: int, arg = null) -> void:
 		cockpit.on_radar_event.call(ev, arg)
 
 
-## The EO picture (viewport 1 into the video rect (10,10)–(122,122), before the tile: it shows through the
-## tile's cyan box).
-func _eo_picture() -> void:
-	if cockpit.eo_texture != null and cockpit.eo.get("camera", false):
-		draw_texture_rect(cockpit.eo_texture, Rect2(10, 10, 112, 112), false)
+## The pictures under the page's art (the _under canvas, MFD px): the radar MAP's (FUN_0053b0a0 pass 1) and the EO
+## picture (viewport 1 into the video rect (10,10)–(122,122)); they show through the tile's cyan.
+func _draw_pictures() -> void:
+	if cockpit == null or cockpit.layout.is_empty():
+		return
+	var s := _s()
+	_under.draw_set_transform(Vector2.ONE * _bezel() * s, 0.0, Vector2(s, s))
+	var r: Dictionary = cockpit.radar
+	if page == RADAR and int(r.get("mode", 0)) == 8:
+		_draw_map_picture(r, RADAR_RANGES[clampi(int(r.get("idx", 1)), 1, 6) - 1])
+	elif page == FLIR or (page == TV and int(cockpit.eo.get("tv", {}).get("status", 0)) != 0):
+		if cockpit.eo_texture != null and cockpit.eo.get("camera", false):
+			_under.draw_texture_rect(cockpit.eo_texture, Rect2(10, 10, 112, 112), false)
 
 
 ## FLIR page (FUN_00536c10): the picture, the tile (0,660), zoom "%1d" right-aligned at (11,33), WIDE / SPOT
 ## right-aligned at (114,3), LASER OFF / ON at (42,3), the range NM right-aligned at (98,124), the gimbal blob
 ## at (66 − 56u, 66 + 56v).
 func _draw_flir() -> void:
-	_eo_picture()
 	_tile(TILE_FLIR)
 	var f: Dictionary = cockpit.eo.get("flir", {})
 	if f.is_empty():
@@ -644,9 +797,9 @@ func _draw_flir() -> void:
 	_text_right(98, 124, String(f.range))
 	var x := int(66.0 - 56.0 * float(f.u))
 	var y := int(66.0 + 56.0 * float(f.v))
-	draw_polyline(PackedVector2Array([Vector2(x - 1, y - 2), Vector2(x + 1, y - 2), Vector2(x + 2, y - 1),
+	_polyline(PackedVector2Array([Vector2(x - 1, y - 2), Vector2(x + 1, y - 2), Vector2(x + 2, y - 1),
 		Vector2(x - 2, y - 1), Vector2(x - 2, y), Vector2(x + 2, y), Vector2(x + 2, y + 1), Vector2(x - 2, y + 1),
-		Vector2(x - 1, y + 2), Vector2(x + 2, y + 2)]), GREEN, 1.0)
+		Vector2(x - 1, y + 2), Vector2(x + 2, y + 2)]))
 
 
 ## TV page (FUN_005369e0): with a source (status ≠ 0) the picture, the tile (0,792), zoom "%1d" (11,33) and the
@@ -659,7 +812,6 @@ func _draw_tv() -> void:
 	var tv: Dictionary = cockpit.eo.get("tv", {})
 	var st := int(tv.get("status", 0))
 	if st != 0:
-		_eo_picture()
 		_tile(TILE_TV)
 		_text_right(11, 33, "%d" % int(tv.zoom))
 		var x := int(66.0 - 56.0 * float(tv.u))
@@ -687,7 +839,7 @@ func _draw_harm() -> void:
 	for e in harm_symbols(h):
 		_text(e.pos - Vector2(2, 2), HARM_CHAR.get(int(e.type), "0"))
 		if e.selected:
-			draw_rect(Rect2(e.pos - Vector2(4, 4), Vector2(8, 8)), GREEN, false, 1.0)
+			_frame(Rect2(e.pos - Vector2(4, 4), Vector2(8, 8)))
 	var status := ""
 	if h.get("no_source", true):
 		status = "no source"
@@ -718,7 +870,8 @@ func _draw_rwr() -> void:
 	if f.size() > 14 and f[14]:
 		_text(Vector2(101, 3), "Mal")
 	else:
-		cockpit.draw_rwr_symbols(self, Vector2(66, 66), 56.0, 1.0)
+		_rec(["rwr", cockpit.rwr.size()])
+		cockpit.draw_rwr_symbols(self, Vector2(66, 66) * _k, 56.0, _k, _rwr_symbol if crisp else Callable())
 
 
 ## Artificial horizon bars (FUN_00533620): centre (66,66), rolled, 1 px per degree of pitch.
@@ -743,7 +896,7 @@ func _flir_menu() -> bool:
 
 func _draw_menu() -> void:
 	_tile(TILE_BLANK)
-	draw_rect(Rect2(14, 124, 19, 5), Color.BLACK)
+	_fill(Rect2(14, 124, 19, 5), Color.BLACK)
 	var h: Dictionary = cockpit.layout.get("HORIZON", {})
 	var rwr_panel := int(cockpit.layout.get("PANELRWR", {}).get("Active", 0)) == 1
 	var left := {0xb: "FLIR" if _flir_menu() else "", 0xd: "stores", 0xe: "" if rwr_panel else "rwr", 0xf: "radar"}
@@ -776,8 +929,8 @@ func _draw_nav() -> void:
 		_text(Vector2(77, y + 1), " %2dM" % int(d.length() / 1853.0))  # "% 3dM": the space flag
 		_text(Vector2(102, y + 1), "%03d" % (b + 360 if b < 0 else b))
 		if i == cur:
-			draw_polyline(PackedVector2Array([Vector2(8, y - 2), Vector2(8, y + 6), Vector2(1, y + 6), Vector2(1, y - 2),
-				Vector2(8, y - 2)]), GREEN, 1.0)
+			_polyline(PackedVector2Array([Vector2(8, y - 2), Vector2(8, y + 6), Vector2(1, y + 6), Vector2(1, y - 2),
+				Vector2(8, y - 2)]))
 	_text(Vector2(72, 124), "ETA   :")
 	# "%02d %02d" hours, minutes of the ETA (a time of day; not wrapped at 24 h, as the original), right-aligned at 117.
 	if not wps.is_empty():
@@ -821,7 +974,7 @@ func _draw_stores() -> void:
 				box = Rect2(40 * sel - 98, 1, 15, 8)
 			elif sel < 9:
 				box = Rect2(114, 20 * (sel - 5), 15, 8)
-			draw_rect(box, GREEN, false, 1.0)
+			_frame(box)
 		_text_right(59, 53, "%d" % int(wp.mrm))
 		_text_right(59, 63, "%d" % int(wp.srm))
 		_text(Vector2(68, 85), "%03d" % int(wp.gun))
@@ -829,7 +982,7 @@ func _draw_stores() -> void:
 		_text(Vector2(1, 94), "%dQnt" % int(wp.get("quantity", 2)))
 		_text_right(131, 94, "int%d" % int(wp.get("interval", 10)))
 		if int(wp.selected) == 9:
-			draw_rect(Rect2(48, 82, 36, 10), GREEN, false, 1.0)
+			_frame(Rect2(48, 82, 36, 10))
 	_text(Vector2(55, 124), "Fuel : %5dLB" % int(cockpit.state.fuel_lbs))
 
 
@@ -866,7 +1019,8 @@ func _draw_damage() -> void:
 ## at (74,12) and the height above the ground "%05d" at (124,27) (S+0x3c).
 func _draw_adi() -> void:
 	_tile(TILE_BLANK)
-	cockpit.draw_horizon_disc(self, Vector2(65, 74), 1.0)
+	_rec(["horizon", Vector2(65, 74)])
+	cockpit.draw_horizon_disc(self, Vector2(65, 74) * _k, _k, _k if crisp else 0.0)
 	var st: Dictionary = cockpit.state
 	var hdg := int(st.heading) % 360
 	for t in [[31, 27, "%03d" % int(st.ias_kt)], [74, 12, "%03d" % (hdg + 360 if hdg < 0 else hdg)],
@@ -874,8 +1028,12 @@ func _draw_adi() -> void:
 		var font: Font = cockpit.digits_font()
 		var w := font.get_string_size(t[2], HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x
 		# FUN_00526fe0 case 4: SetBkColor(0), OPAQUE: the digits on black.
-		draw_rect(Rect2(t[0] - w, t[1] - font.get_ascent(11), w, font.get_height(11)), Color.BLACK)
+		_fill(Rect2(t[0] - w, t[1] - font.get_ascent(11), w, font.get_height(11)), Color.BLACK)
+		_rec(["string", Vector2(t[0] - w, t[1]), t[2]])
+		# The bitmap font at its 11 px, the canvas scaled for it (crisp: the shader draws its glyphs sharp).
+		draw_set_transform(Vector2.ONE * _bezel() * _s(), 0.0, Vector2.ONE * _s())
 		draw_string(font, Vector2(t[0] - w, t[1]), t[2], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
+		draw_set_transform(Vector2.ONE * _bezel() * _s(), 0.0, Vector2.ONE * _s() / _k)
 
 
 ## TSD page (FUN_00531a50): heading-up, ownship at (65,85), 1 px = scale·16.5446 m (112 px = scale NM: the route
@@ -901,9 +1059,9 @@ func _draw_tsd() -> void:
 			for piece in Geometry2D.intersect_polygons(pts, clip):
 				# Skip slivers the clipper leaves (they don't triangulate).
 				if piece.size() >= 3 and not Geometry2D.triangulate_polygon(piece).is_empty():
-					draw_colored_polygon(piece, poly.color)
+					_polygon(piece, poly.color)
 	# Fixed symbology: range circle r=22, ownship, outer ring r=44 with SCL.
-	draw_arc(Vector2(65, 85), 22, 0, TAU, 48, GREEN, 1.0)
+	_circle(Vector2(65, 85), 22)
 	_clip = Rect2(10, 10, 112, 112)  # the region (10,10)–(122,122)
 	if tsd_options[3]:
 		_ring(Vector2(65, 85), 44)
@@ -923,7 +1081,7 @@ func _draw_tsd() -> void:
 			var p: Vector2 = to_mfd.call(wps[i].world)
 			if prev != null:
 				for seg in Geometry2D.intersect_polyline_with_polygon(PackedVector2Array([prev, p]), clip):
-					draw_polyline(seg, GREEN, 1.0)
+					_polyline(seg)
 			prev = p
 			if Rect2(10, 10, 112, 112).has_point(p):
 				# The current one filled 5×5 green (pen +0x27a4), the others hollow dark green (+0x27a0); an action-5
@@ -938,9 +1096,9 @@ func _draw_tsd() -> void:
 					for row in [[-1, -1, 1], [0, -2, 2], [1, -3, 3], [2, -3, 4]]:
 						_line(q + Vector2(row[1], row[0]), q + Vector2(row[2], row[0]), TSD_RED)
 				elif i == cockpit.current_waypoint or act5:
-					draw_rect(box, TSD_PURPLE if act5 else GREEN)
+					_fill(box, TSD_PURPLE if act5 else GREEN)
 				else:
-					draw_rect(box, DIM_GREEN, false, 1.0)
+					_frame(box, DIM_GREEN)
 	# SAM sites (state+0x1148, ≤ 16, FUN_00446270 from the TSD table: class 8 units with their ring radius): the 3×3
 	# box with the \ diagonal and the ring of radius ⌊r / k⌋ when > 0.
 	if tsd_options[0]:
@@ -954,7 +1112,7 @@ func _draw_tsd() -> void:
 	# Option highlight boxes (right OSBs 0x10..0x13).
 	for i in 4:
 		if tsd_options[i]:
-			draw_rect(Rect2(111, 20 + 20 * i, 17, 9), GREEN, false, 1.0)
+			_frame(Rect2(111, 20 + 20 * i, 17, 9))
 	# Pass 3 with MAP on: the option labels again over the map, left-aligned at (113, 22 + 20i).
 	if tsd_options[2]:
 		for i in 4:

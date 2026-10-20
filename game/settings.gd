@@ -46,6 +46,7 @@ const BETTER_COCKPIT := {
 	"throttle_ab": "Throttle gauge shows the afterburner stages",
 	"fuel_total": "Fuel gauge with the drop tanks, live fuel counter",
 	"panel_clock": "Panel clock shows the mission time",
+	"crisp_mfd": "Crisp MFD pages",
 }
 ## Stored preferences by config section: the original pages, then our own options (Extras tab).
 const PREFS := {

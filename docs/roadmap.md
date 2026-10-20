@@ -239,7 +239,8 @@ more id there; docs/cockpit.md "Better cockpit"). Items (approved 2026-10-20):
    VVI (its scale is unreadable).
 10. A warning lamp lit for every damage / system state (`warning_lamps`) — **done** (2026-10-20) where the legend is
     readable: the F-16's FLCS and TO/LDG CONFIG. The other jets' unwired lamps have unreadable legends.
-11. Crisp vector-redrawn MFD pages (the first step to Real MFDs).
+11. Crisp MFD pages (`crisp_mfd`, the first step to Real MFDs) — **done** (2026-10-20): every page drawn at the
+    screen's resolution through one set of drawing primitives (docs/mfd.md §8).
 12. The shipped art the game never loads (`cfir/cfir-lights.bmp`, `lavi/lavi-lig.bmp`, `phantom/f16adi.bmp`; no exe
     string, no decompiled reference, in no cockpit.ibx, unused by our code), used where it is better than the loaded
     art — **none to do** (2026-10-20): each is an earlier or equal version of the loaded art (docs/cockpit.md "The

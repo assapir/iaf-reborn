@@ -233,3 +233,26 @@ func run() -> void:
 	w.select_station(3)
 	var placed: Array = cp.mfds.map(func(m): return m.page)
 	check(placed == [2, 2, 10], "Lavi: HARM page on the Middle when Left and Right show the radar (%s)" % [placed])
+	# Better cockpit crisp_mfd: every page draws the same primitives at the same MFD-px geometry, on a canvas at screen
+	# px (_k = the MFD's screen scale) through the crisp shader; Original keeps the scaled canvas (_k 1).
+	var L3 = cp.mfds[0]
+	var same := []
+	for pgn in range(11):
+		L3.page = pgn
+		var traces := []
+		for better in [false, true]:
+			Settings().better_cockpit = better
+			await frames(1)
+			L3.trace = []
+			await frames(1)
+			traces.append(L3.trace)
+			L3.trace = null
+			if better:
+				check(L3.crisp and L3._k == L3._s() and L3.material != null, "page %d Better: crisp, %.2f canvas px per MFD px" % [pgn, L3._k])
+			else:
+				check(not L3.crisp and L3._k == 1.0 and L3.material == null, "page %d Original: the scaled canvas" % pgn)
+		if not traces[0].is_empty() and traces[0] == traces[1]:
+			same.append(pgn)
+	Settings().better_cockpit = false
+	check(same == range(11), "Better draws every page's geometry as Original (pages the same: %s)" % [same])
+	check(Mfd.crisp_sprite("mfds.bmp", Rect2(0, 264, 132, 132)).get_size() == Vector2(134, 134), "a crisp sprite: the original bitmap's pixels with a 1-px border")
