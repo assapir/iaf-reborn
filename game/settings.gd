@@ -50,6 +50,10 @@ const BETTER_COCKPIT := {
 	"dials_by_label": "Gauges on their labelled dials",
 	"ar_nws_lights": "AR/NWS lamp shows nose-wheel steering",
 	"smooth_needles": "Needles follow with an instrument's lag",
+	"metric_gauges": "Metric units on the MiGs' Russian dials",
+	"uua": "MiG-29 AoA / g meter",
+	"radar_alt": "MiG-29 radar altimeter",
+	"rsbn_counter": "MiG-23 range counter shows the waypoint distance",
 }
 ## Stored preferences by config section: the original pages, then our own options (Extras tab).
 const PREFS := {

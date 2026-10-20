@@ -252,9 +252,41 @@ pub fn warnings(on_ground: bool, alt_ft: f32, ias_kt: f32, vs_fpm: f32, gear: f3
     }
 }
 
+/// Ours, "Better cockpit" MiG gauges (docs/mig-cockpits.md §4): jet fuel's density, kg per litre (inferred: a
+/// kerosene's, 0.775–0.84 kg/l).
+pub const FUEL_DENSITY: f32 = 0.78;
+/// The MiG-29's radar altimeter face ends at 1500 m (the art); above it the set's flag shows (inferred).
+pub const RADAR_ALT_MAX_M: f32 = 1500.0;
+/// The bank beyond which the radar altimeter's beam leaves the ground below and the flag shows (inferred).
+pub const RADAR_ALT_MAX_BANK: f32 = 60.0;
+
+/// The MiG-23's litre fuel gauge (`dials_by_label`): the fuel in litres. `with_tanks` (`fuel_total`) reads all
+/// the fuel; else the fuel capped at the internal capacity, as the original's fill.
+pub fn fuel_litres(fuel_kg: f32, internal_fuel_kg: f32, with_tanks: bool) -> f32 {
+    (if with_tanks { fuel_kg } else { fuel_kg.min(internal_fuel_kg) }) / FUEL_DENSITY
+}
+
+/// The MiG-29's radar altimeter (`radar_alt`): the wheels' height in m (`agl_ft` from [`Instruments`]) and
+/// whether it is valid (the red flag hidden): on the face and within the bank limit.
+pub fn radar_altimeter(agl_ft: f32, roll_deg: f32) -> (f32, bool) {
+    let m = agl_ft / FT;
+    (m, m <= RADAR_ALT_MAX_M && roll_deg.abs() <= RADAR_ALT_MAX_BANK)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn mig_fuel_litres_and_radar_altimeter() {
+        assert!((fuel_litres(780.0, 5000.0, false) - 1000.0).abs() < 0.01);
+        assert!((fuel_litres(7800.0, 3900.0, false) - 5000.0).abs() < 0.01, "capped at the internal fuel");
+        assert!((fuel_litres(7800.0, 3900.0, true) - 10_000.0).abs() < 0.1, "with the tanks");
+        let (m, ok) = radar_altimeter(328.1, 10.0);
+        assert!((m - 100.0).abs() < 0.01 && ok);
+        assert!(!radar_altimeter(328.1, -70.0).1, "steep bank");
+        assert!(!radar_altimeter(1600.0 * FT, 0.0).1, "off the face");
+    }
 
     #[test]
     fn ias_reads_low_at_altitude_and_slips_below_50_unless_fixed() {

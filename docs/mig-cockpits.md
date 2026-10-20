@@ -55,6 +55,19 @@ docs/real-hud.md. Research date: 2026-10-20.
 * **Real HUD:** built (2026-10-20): `Jet::MiG23` (`real_hud/mig23.rs`) and `Jet::MiG29` (`real_hud/mig29.rs`).
   §5 and §6 describe each MiG's own sight / HUD; docs/real-hud.md says what ours draws.
 
+### What is built (2026-10-20)
+docs/cockpit.md "Gauges on their labelled dials" and "MiG gauges" describe the built items; test
+tests/godot/test_mig_cockpit.gd.
+* `dials_by_label` for both MiGs (`gauges.gd` `DIALS` `mig23` / `mig29`): the MiG-23's Mach, EGT, litre and VVI
+  needles on their faces, RPM / THROTTLE / the hydraulic needle off; the MiG-29's two tachometers per engine, the
+  airspeed and vertical speed off the radar altimeter and the UUA. The scales were measured again on the art; they
+  differ from §4's first reading by up to 10°.
+* `turning_compass` on the MiG-23's ПНП; `fuel_total`, `smooth_needles`, `crisp_mfd`, `engine_rpm`, `engine_temp`
+  apply as they stand.
+* Proposals 4.1 (`metric_gauges`), 4.2 (`uua`), 4.3 (`radar_alt`) and 4.5 (`rsbn_counter`).
+* Open: proposal 4.4 (SPO-15 lamps), 4.6 (the HSI bars, the hydraulic gauge); `panel_clock` on # 13 (the art paints
+  hands on that face, so a clock is likely but the hands would need erasing; open).
+
 ## 2. MiG-23 panel (`mig23`)
 
 ### 2.1 What the art paints and what the original drives
@@ -136,8 +149,8 @@ are in %, as the game. The fuel face is in lb (Western art), as the game.
 ## 4. Better cockpit items per MiG
 
 `Settings.BETTER_COCKPIT` (game/settings.gd) and docs/cockpit.md "Better cockpit". "Applies" means the item changes
-something on that panel. Today none of the per-cockpit tables (`gauges.gd` `DIALS` / `CLOCKS` / `FUEL_COUNTERS`,
-`compass.gd` `INSTRUMENTS`, `instruments.gd` `INSTRUMENTS`) has a MiG entry, so only the generic items reach them.
+something on that panel. At the time of the research no per-cockpit table had a MiG entry; `gauges.gd` `DIALS` and
+`compass.gd` `INSTRUMENTS` now have (see "What is built" in §1).
 
 | Item | MiG-23 | MiG-29 |
 |---|---|---|
@@ -164,19 +177,20 @@ What `dials_by_label` needs for the MiG-23 (inferred from the table in §2.1):
 * the VVI's scale, as the Mirage's (`standby_instruments`): marks 1, 2, 4, 6 at 10:30, 11:30, 1 and 3 o'clock; the
   unit is open (see proposal 4.1).
 
-### Proposals (MiG-only; none decided)
+### Proposals (MiG-only)
+4.1, 4.2, 4.3 and 4.5 are built (§1 "What is built"); 4.4 and 4.6 are open.
 
-**4.1 Metric gauges (`metric_gauges`).** Each MiG face reads its own unit: the altimeters in metres (one turn = 1000
+**4.1 Metric gauges (`metric_gauges`, built).** Each MiG face reads its own unit: the altimeters in metres (one turn = 1000
 m), the radar altimeter in metres, fuel in litres (MiG-23) and the vertical speed in m/s if the MiG-23's face is
 metric (open). The original reads ft and kt everywhere. Needs: a per-dial unit in `DIALS`; the HUD stays in the
 original's units unless the Real HUD is on (§5, §6).
 
-**4.2 MiG-29 AoA / g meter live (`uua`).** Two needles on the UUA (# 6): AoA on the left scale (0 … 30°, with the 15°
+**4.2 MiG-29 AoA / g meter live (`uua`, built).** Two needles on the UUA (# 6): AoA on the left scale (0 … 30°, with the 15°
 / 25° marks[^ea]) and g on the right (0 … 10). It replaces the vertical speed the original draws there. The cockpit
 state has `aoa` and `g`. Needs: both scales measured on the art. A max-g memory needle is open (the real meter has a
 reset button[^ea], which suggests one).
 
-**4.3 MiG-29 radar altimeter live (`radar_alt`).** The needle shows the radar height (`agl_ft` → m) on the non-linear
+**4.3 MiG-29 radar altimeter live (`radar_alt`, built).** The needle shows the radar height (`agl_ft` → m) on the non-linear
 0–1500 m face (# 1). The red flag shows when the height is invalid (above the set's range, or a large bank; inferred).
 The yellow index is the danger height (ours: a fixed value, e.g. 50 m; inferred). It replaces the airspeed the
 original draws there. The panel then shows no airspeed; the HUD and the MFD still do.
@@ -187,7 +201,7 @@ Threat-type lamps: П airborne radar, З long-range, Х medium-range, Н short-r
 `iaf-avionics` `rwr.rs` (the contacts' bearings and kinds). About 10° resolution within ±50°[^spo15-ed]. The
 original's ML / AI boxes stay. Open: the lamp count on the MLD panel.
 
-**4.5 MiG-23 RSBN range counter (`rsbn_counter`).** The drum (# 12) shows the distance to the current waypoint in km
+**4.5 MiG-23 RSBN range counter (`rsbn_counter`, built).** The drum (# 12) shows the distance to the current waypoint in km
 (the real counter shows the range to the RSBN beacon[^ub]; the game has no beacons, so the waypoint stands in:
 inferred).
 

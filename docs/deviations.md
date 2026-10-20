@@ -181,8 +181,8 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   (`Settings.BETTER_COCKPIT`); each item also has its own flag, on by default (settings.cfg `[cockpit] bc_<id>`).
   Visual only. Items:
   - **Turning panel compass / HSI** (`turning_compass`). Original: every panel compass is static art; the heading
-    shows only on the HUD tape and the MFD pages. Better: the compass card turns with the heading on the Kfir, F-4E
-    and Mirage panels, cut from the panel art. On the Mirage's dial the painted pointers are replaced by new ones: the
+    shows only on the HUD tape and the MFD pages. Better: the compass card turns with the heading on the Kfir, F-4E,
+    Mirage and MiG-23 panels, cut from the panel art. On the Mirage's dial the painted pointers are replaced by new ones: the
     bearing pointer to the current waypoint and the course pointer of the route leg.
   - **AoA indexer** (`aoa_indexer`). Original: the F-16's indexer on the HUD frame is art painted lit. Better: only
     the symbol for the AoA lights (slow above 14°, on speed 12°–14°, fast below 12°), gear up or down.
@@ -209,7 +209,21 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     unlabelled one, its EXH TEMP dial static. Better: each needle on the dial its label names (F-16: OIL pressure,
     NOZ POS, RPM, FTIT; Kfir: FUEL FLOW from the throttle, EXH TEMP), the F-16's oil pressure and nozzle from the RPM,
     the AB stage and the gear (constants inferred); the F-16's throttle needle goes (the real jet has no throttle
-    dial). Other jets unchanged (cockpit.md "Panel instruments per jet").
+    dial). MiG-23: the airspeed on the Mach meter, RPM on the litre gauge, fuel on the EGT face, TEMP on the
+    hydraulic gauge, THROTTLE on the wing-sweep indicator, the VVI off its marks; Better: the Mach number, the fuel in
+    litres (0.78 kg/l, inferred), TEMP on the EGT face, the VVI on its marks, RPM / THROTTLE / the hydraulic needle
+    gone. MiG-29: the rpm from 12 o'clock on the tachometers, the airspeed on the radar altimeter, the vertical speed
+    on the AoA / g meter; Better: each engine's RPM on its tachometer's scale, the other two faces empty unless their
+    own items are on. Other jets unchanged (cockpit.md "Panel instruments per jet").
+  - **MiG-29 radar altimeter** (`radar_alt`). Original: the airspeed needle on it, its red flag painted in view.
+    Better: the height above the ground in metres on the face; the flag hides while the height is valid (at most
+    1500 m and 60° of bank, inferred).
+  - **MiG-29 AoA / g meter** (`uua`). Original: the vertical speed needle on it. Better: AoA and g needles on its two
+    scales.
+  - **Metric units** (`metric_gauges`). Original: the MiGs' metric altimeters read feet. Better: metres; the
+    MiG-23's VVI (with `dials_by_label`) × 10 m/s (unit inferred).
+  - **MiG-23 range counter** (`rsbn_counter`). Original: the "КМ" drum is static art. Better: the distance to the
+    current waypoint in km (the game has no RSBN beacons).
   - **AR/NWS lamp** (`ar_nws_lights`). Original: the F-16's AR status indicator right of the HUD is static art.
     Better: its green AR/NWS legend lights on the ground (nose-wheel steering engaged); RDY and DISC stay dark.
   - **Smooth needles** (`smooth_needles`). Original: each panel needle shows its value of the frame, so it starts and

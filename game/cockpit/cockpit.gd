@@ -605,8 +605,10 @@ func _draw() -> void:
 	_draw_needle("SPEEDCLOCK", state.tas_kt, s)
 	# The altimeter (FUN_00527c10) ignores FullClock: a long needle at one turn per 1000 ft and one 3 px shorter at
 	# one turn per 10,000 ft.
-	_draw_needle("ALTITUDELOCK", state.alt_ft, s, 1000.0)
-	_draw_needle("ALTITUDELOCK", state.alt_ft, s, 10000.0, 3.0)
+	# Better metric_gauges: metres on the MiGs' metric faces (gauges.gd altitude).
+	var alt := Gauges.altitude(self)
+	_draw_needle("ALTITUDELOCK", alt, s, 1000.0)
+	_draw_needle("ALTITUDELOCK", alt, s, 10000.0, 3.0)
 	# Engine needles [THROTTLE, RPM, TEMP] left then right (the *SECONDARY needles, twin-engine cockpits); the
 	# Better cockpit's values where its items are on (gauges.gd).
 	var en := Gauges.engine_needles(state)
@@ -615,7 +617,8 @@ func _draw() -> void:
 		_draw_needle("THROTTLECLOCK" + sfx, en[3 * e], s, Gauges.needle_full("THROTTLECLOCK" + sfx, layout))
 		_draw_needle("RPMCLOCK" + sfx, en[3 * e + 1], s)
 		_draw_needle("TEMPCLOCK" + sfx, en[3 * e + 2], s)
-	# Better dials_by_label: those needles on the dials their labels name instead (gauges.gd DIALS).
+	# Better dials_by_label (and the MiG dial items): those needles on the dials their labels name instead
+	# (gauges.gd DIALS).
 	for d in Gauges.dial_needles(self):
 		var g: Dictionary = layout[d.style]
 		var at := panel_to_screen(d.centre.x, d.centre.y)
@@ -1024,7 +1027,7 @@ func needle_angles() -> Dictionary:
 		var a := needle_angle(k, lagged(k, values[k]), Gauges.needle_full(k, layout))
 		if not is_nan(a):
 			out[k] = a
-	var alt := needle_angle("ALTITUDELOCK", lagged("ALTITUDELOCK", state.alt_ft), 1000.0)
+	var alt := needle_angle("ALTITUDELOCK", lagged("ALTITUDELOCK", Gauges.altitude(self)), 1000.0)
 	if not is_nan(alt):
 		out["ALTITUDELOCK"] = alt
 	return out

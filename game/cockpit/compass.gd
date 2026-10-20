@@ -15,7 +15,7 @@ extends Control
 ## * erase: the pointers painted on the card, [tail, tip, half width] (panel px). Their pixels take the card 30°
 ##   aside (the ticks and the numbers repeat every 30°), else `face`.
 ## * pointers: draw the bearing / course pointers (with `pointer`, `hub_colour`, `hub_r`).
-## The F-15, F-16, F-4 2000 and Lavi panels show no compass. The MiG-23's HSI is not flown by the player.
+## The F-15, F-16, F-4 2000, Lavi and MiG-29 panels show no compass.
 const INSTRUMENTS := {
 	# The Kfir's compass (bottom centre): the card ring turns, the face with the aircraft symbol stays.
 	"cfir": [{"centre": Vector2(964.0, 302.0), "r": 33.0, "hub": 21.0}],
@@ -39,6 +39,19 @@ const INSTRUMENTS := {
 			"pointer": Color8(226, 224, 214),
 			"hub_colour": Color8(118, 120, 122),
 			"hub_r": 2.4
+		}
+	],
+	# The MiG-23's ПНП (HSI, under the ADI): the card ring turns; the face with the aircraft symbol and the К / Г bars
+	# stays. The course arrow's head and tail and the lubber triangle are painted on the card: erased from it.
+	"mig23":
+	[
+		{
+			"centre": Vector2(826.0, 228.3),
+			"r": 33.0,
+			"hub": 16.0,
+			"face": Color8(8, 8, 10),
+			"erase":
+			[[Vector2(826.0, 195.0), Vector2(826.0, 212.0), 2.0], [Vector2(826.0, 244.5), Vector2(826.0, 261.5), 2.0]]
 		}
 	],
 }

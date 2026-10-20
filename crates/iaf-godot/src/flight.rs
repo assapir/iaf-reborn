@@ -558,7 +558,8 @@ impl IafFlight {
     }
 
     /// Ours, the "Better cockpit" values (iaf_flight::instruments, docs/cockpit.md "Better cockpit"): `aoa_index`
-    /// (0 no indexer, 1 slow, 2 on speed, 3 fast), the lamps `flcs`, `to_ldg_config` and `ar_nws`. `damage`: as `instruments`.
+    /// (0 no indexer, 1 slow, 2 on speed, 3 fast), the lamps `flcs`, `to_ldg_config` and `ar_nws`; the MiG gauges
+    /// `fuel_l` / `fuel_l_total` (litres) and `radalt_m` / `radalt_valid`. `damage`: as `instruments`.
     #[func]
     fn better_instruments(&self, damage: VarArray) -> VarDictionary {
         use iaf_flight::instruments;
@@ -580,6 +581,12 @@ impl IafFlight {
         d.set("flcs", w.flcs);
         d.set("to_ldg_config", w.to_ldg_config);
         d.set("ar_nws", w.ar_nws);
+        // The MiG gauges (docs/mig-cockpits.md §4): the litre fuel gauge, without / with the tanks.
+        d.set("fuel_l", instruments::fuel_litres(s.fuel_kg, ac.internal_fuel_kg(), false));
+        d.set("fuel_l_total", instruments::fuel_litres(s.fuel_kg, ac.internal_fuel_kg(), true));
+        let (radalt_m, radalt_valid) = instruments::radar_altimeter(i.agl_ft, s.roll.to_degrees());
+        d.set("radalt_m", radalt_m);
+        d.set("radalt_valid", radalt_valid);
         d
     }
 

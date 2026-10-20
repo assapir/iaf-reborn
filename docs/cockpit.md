@@ -467,7 +467,7 @@ Every round gauge is a linear needle; the table under "Panel draw" gives each ga
     (horizontal situation indicator), so the panels' compass dials (e.g. the Kfir's) are static art in the original
     too. Ours, with Better cockpit: they turn ("Better cockpit" below).
   * With Better cockpit, the RPM, TEMP, THROTTLE and FUEL needles read the flight model's own values ("Engine
-    gauges" and "Fuel gauge" under "Better cockpit" below). The F-16's and Kfir's needles sit on dials whose labels
+    gauges" and "Fuel gauge" under "Better cockpit" below). The F-16's, Kfir's and MiGs' needles sit on dials whose labels
     name other values; "Panel instruments per jet" below lists them, and `dials_by_label` moves them.
   * Per-jet check: tests/godot/test_gauges_all_jets.gd. On the seven Jet list jets and the F-35I, every active needle
     turns from idle to military / climbing; military reads 100 % without AB, and AB 1 lights it; with the Real HUD on
@@ -589,14 +589,15 @@ heading reads under the lubber mark at the top (`game/cockpit/compass.gd`, `comp
   | cfir (Kfir) | compass, bottom centre | 964, 302 | 33 / 21 | the card ring turns, the face stays |
   | phantom (F-4E) | the same compass, bottom centre | 959.2, 347.6 | 32.6 / 20.7 | the panel's edge cuts the dial off, so the card is the Kfir's art |
   | mirage | bearing-distance-heading dial, right of the HUD | 1109.7, 152.8 | 33.5 / 0 | the painted pointers are erased from the card and drawn new |
+  | mig23 | ПНП (HSI), under the lens ADI | 826, 228.3 | 33 / 16 | the course arrow's head and tail and the lubber triangle are painted on the card: erased from it (the card 30° aside); the К / Г bars and the aircraft symbol stay on the face |
 
 * **The Mirage's pointers:** the art paints a double-bar arrow and a single needle on the card. The card takes their
   pixels from the card 30° aside (the ticks and numbers repeat every 30°), the face colour near the hub. New pointers
   in the same style are drawn over it: the double-bar arrow points at the bearing to the current waypoint, the single
   needle at the course of the route leg (the previous waypoint to the current one; on the first leg the bearing).
   Both are drawn relative to the heading, as on the real dial.
-* **No dial:** the F-15, F-16, F-4 2000 and Lavi panels show no compass or HSI, and the F-35I's display has none. The
-  MiG-23's panel has an HSI, but the player does not fly the MiG-23.
+* **No dial:** the F-15, F-16, F-4 2000, Lavi and MiG-29 panels show no compass or HSI, and the F-35I's display has
+  none.
 * Test: tests/godot/test_turning_compass.gd (off = static; on, card angle = heading on the Kfir, F-4E and Mirage, the
   Mirage's bearing pointer = bearing − heading). Pictures: tests/godot/_compass_shot.gd.
 
@@ -668,6 +669,20 @@ real gauge reads to military only[^hb-f4]). Unchanged.
 **Lavi:** three unlabelled arc dials (`THROTTLECLOCK`, `RPMCLOCK`, `TEMPCLOCK`, left to right) with green / yellow /
 red bands: nothing to compare. Unchanged.
 
+**MiG-23 and MiG-29:** docs/mig-cockpits.md §2.1 and §3.1 list every painted dial, its real instrument and the record
+the original draws on it. With `dials_by_label`:
+
+| Cockpit | Painted dial (centre) | Original draws | Better + `dials_by_label` draws |
+|---|---|---|---|
+| mig23 | Mach meter, 0.6 … 3 (735,275) | `SPEEDCLOCK`: kt, 1000 per turn | the Mach number |
+| mig23 | exhaust temperature, × 100 °C (1183,226) | `FUELCLOCK` | the TEMP needle value |
+| mig23 | fuel, × 1000 l (1175,280) | `RPMCLOCK` | the fuel in litres (kg ÷ 0.78 kg/l, inferred); with `fuel_total` all the fuel, else capped at the internal capacity |
+| mig23 | vertical speed, 1 / 2 / 4 / 6 (1098,270) | `VARIOCLOCK`: 30,000 ft/min per turn | the vertical speed on the face's marks, × 1000 ft/min (× 10 m/s with `metric_gauges`; unit open) |
+| mig23 | hydraulic pressure (1051,336), wing sweep (1245,192) | `TEMPCLOCK`, `THROTTLECLOCK` | nothing (static): the panel has no tachometer or throttle dial |
+| mig29 | two tachometers, % (1009,253 / 1062,253) | `THROTTLECLOCK` / `…SECONDARY`: rpm from 12 o'clock | each engine's RPM on the face's scale |
+| mig29 | radar altimeter (904,168) | `SPEEDCLOCK` | nothing; with `radar_alt` the radar height |
+| mig29 | AoA / g meter (1116,55) | `VARIOCLOCK` | nothing; with `uua` the AoA and g |
+
 **Mirage:** no engine needle is active (its `RPMCLOCK` / `TEMPCLOCK` / `THROTTLECLOCK` carry the F-16's values with
 Active 0); its engine dials are not identified on the art. Unchanged. **F-35I:** its display paints no dials.
 
@@ -694,9 +709,38 @@ rises_with_rpm`).
   200 °C 140°, 700 °C 215°, 800 °C 270°, 900 °C 330°, 1000 °C 35°, 1100 °C 55°, 1200 °C 75° (the 1000–1200 °C
   numbers are hard to read; inferred). The OIL dial's numbers are unreadable: its 0 / 100 positions are inferred
   from the ticks.
+* MiG dial scales (clock degrees, read on the 4x art, ±5°): Mach 0.6 at 40°, 1 at 65°, 1.2 96°, 1.4 125°, 1.6 149°,
+  1.8 189°, 2 221°, 2.2 247°, 2.4 274°, 2.6 302°, 2.8 331°, 3 352°; MiG-23 EGT 200 °C 255°, 400 °C 298°, 600 °C 339°,
+  800 °C 36°, 1000 °C 98°; litres 0 at 204°, 37.6° per 1000 l; MiG-23 VVI 0 at 270°, 1 at 316°, 2 at 348°, 4 at 34°,
+  6 at 90°, a descent mirrored; MiG-29 tachometers 0 % 41°, 20 % 104°, 40 % 167°, 60 % 230°, 80 % 294°, 100 % 348°.
+  Below or above a scale the needle stays on its end.
 * Test: tests/godot/test_gauges_all_jets.gd (each moved needle's centre is its labelled dial and its angle follows
   its value; the moved records leave their dials; the nozzle opens in AB; with the item off, every needle is the
-  original's).
+  original's); tests/godot/test_mig_cockpit.gd for the MiGs.
+
+### MiG gauges (`radar_alt`, `uua`, `metric_gauges`, `rsbn_counter`)
+Ours, for the two MiGs a Mission Creator mission puts the player in (docs/mig-cockpits.md §4). Each is a dial entry
+of `gauges.gd` `DIALS` with its own item; it takes the original's record off that face, with or without
+`dials_by_label`.
+* **MiG-29 radar altimeter (`radar_alt`):** the needle shows the wheels' height above the ground in metres on the
+  non-linear "МЕТРЫ" face (904,168): 0 at 1°, 20 m 24°, 40 m 45°, 60 m 65°, 80 m 86°, 100 m 105°, 150 m 152°, 200 m
+  178°, 400 m 237°, 600 m 267°, 1000 m 298°, 1500 m 316° (the major ticks on the art). The art paints the red failure
+  flag in view; while the height is valid the flag window (900,152.8, 10 × 5 px) is drawn over in the face's black.
+  Valid: at most 1500 m (the face's end) and at most 60° of bank (both inferred). The painted yellow danger-height
+  index stays where the art puts it (about 65 m); the real set's lamp and voice warning below it are open. Logic:
+  `iaf_flight::instruments::radar_altimeter` (IafFlight.better_instruments `radalt_m`, `radalt_valid`).
+* **MiG-29 AoA / g meter (`uua`):** two needles from the dial's centre (1116,55): the AoA on the left scale (0 at 228°,
+  10° 258°, 20° 288°, 30° 322°), the g on the right scale (0 at 149°, 2 g 122°, 4 g 96°, 6 g 71°, 8 g 45°, 10 g 23°).
+  Below 0 each stays on its end. A max-g memory needle is open.
+* **Metric units (`metric_gauges`):** the MiGs' altimeters read metres (one turn per 1000 m; the short needle per
+  10,000 m) and the MiG-23's VVI (with `dials_by_label`) × 10 m/s. The other faces are already in their units: the
+  radar altimeter in m, the fuel in litres, the Mach meter. The HUD stays in the original's units.
+* **MiG-23 range counter (`rsbn_counter`):** the 3-digit "КМ" drum (862,321.5, 28 × 11 px) shows the distance to the
+  current waypoint in whole km (at most 999), in the F-15 fuel counter's style. The real counter shows the range to
+  the RSBN beacon; the game has no beacons, so the waypoint stands in (inferred).
+* Test: tests/godot/test_mig_cockpit.gd (each MiG flown in a Mission Creator mission; Original unchanged; each needle
+  on its dial at its value; the flag covered only while valid; the items without `dials_by_label`; the HSI card turns
+  with the heading; the drum's reading).
 
 ### AR/NWS lamp (`ar_nws_lights`)
 The F-16's AR status indicator, right of the HUD glass. With the item on, its middle lamp shows a green "AR NWS"

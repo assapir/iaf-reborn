@@ -209,8 +209,8 @@ const EXTRAS := [
 	# Ours: the wheel / trackpad scroll direction (Settings.wheel_steps; the original has no wheel).
 	["wheel_scroll", "Mouse wheel", [["Regular", "regular"], ["Natural", "natural"]]],
 	# Ours: the cockpit improvements (Settings.BETTER_COCKPIT: the turning compass / HSI, the engine, fuel and clock
-	# gauges, the AoA indexer, live painted instruments, warning lamps, crisp MFD pages, smooth needles), docs/cockpit.md
-	# "Better cockpit".
+	# gauges, the AoA indexer, live painted instruments, warning lamps, crisp MFD pages, smooth needles, the MiG
+	# gauges), docs/cockpit.md "Better cockpit".
 	["better_cockpit", "Better cockpit", [["Original", false], ["Better", true]]],
 ]
 
