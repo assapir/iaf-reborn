@@ -55,7 +55,8 @@ Registry `[Scenario] LoadScripts` (default 1; `FUN_0058b340` → `DAT_0066f2cc`)
   - `FUN_005bcb40(n)`: the formation map `DAT_00699340` is keyed by the formation id. The insert
     `FUN_005bc980(id, kind)` from `FUN_004b3604` @4b367b pushes rec[1] = kind, then rec[0] = id.
   - Of the 131 mission files, only in 117 "engaged" does this differ from "flight 1": id 1 is Bravo (a Mirage).
-  - Its leader is member 0 if spawned, else member 1 (docs/front-end.md §8 flight table).
+  - Its leader is member 0's object (`FUN_005bcb40`); a formation whose member 0 was not spawned gives none, and the
+    search goes on to the next id. Spawned: docs/front-end.md §8.1 "Spawned before take-off".
   - The entity name plays no part: campaign and scramble missions have no `Player1` (e.g. 324 "Player", 221
     "alpha_1").
 - **The TSD choice:** the TSD's default flight is the formation holding that object (`FUN_005bcd70`). Picking another

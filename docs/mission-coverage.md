@@ -151,7 +151,7 @@ One row per mission. Columns: player = default flight's leader type (training: t
 * **Player aircraft.** At mission load the player object is the leader of flight 1, else of flights 2..4
   (`FUN_004bb439` asks the flight map for 1, then 2..4). The TSD's default flight is the formation holding it
   (`FUN_005bcd70`, docs/front-end.md §8).
-  * A flight is formation `0x3f2` 1..4. Its leader is member 0 if placed, else member 1.
+  * A flight is formation `0x3f2` 1..4. Its leader is member 0 (`FUN_005bcb40`).
   * Campaign and scramble missions have no `Player1`: the player flies that leader's bdb type (`0x5b4`).
   * Training missions 311–326 except 325 are entered through the Jet list and load the chosen jet (`FUN_004c2e30`;
     jets disabled per mission by `FUN_00509b80`), so any allowed jet flies them.

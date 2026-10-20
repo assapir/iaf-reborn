@@ -205,3 +205,53 @@ func run() -> void:
 		"formation 3 has no slot"
 	)
 	Settings().arm_loadouts = {}
+
+	# --- which members count (MissionRuntime.spawned, FUN_004b74f0 -> FUN_0058f110; FUN_004f0330 -> FUN_005bcb40): every
+	# entity but the placeholder row has an object, also an unused player slot at (-1, -1); with a jet picked Player2..
+	# have none. The Arming leader is member 0's object, never member 1.
+	var ent := func(id: int, name: String, xy: float) -> Dictionary:
+		return {"0x1e": id, "0x2bc": name, "0x2c6": 1, "0x2e4": xy, "0x2ee": xy, "0x14": 0}
+	var form := func(id: int, n: int, a: int, b: int) -> Dictionary:
+		return {"0x1e": id, "0x3f2": n, "members": [{"0x41a": a}, {"0x41a": b}]}
+	var fake := {
+		"entities":
+		{
+			"items":
+			[
+				ent.call(1, "Player1", 1000.0),
+				ent.call(2, "Player2", -1.0),
+				ent.call(3, "mig", 1000.0),
+				ent.call(4, "Player7", -1.0),
+				ent.call(5, "Player77", -1.0),
+				{"0x1e": 6, "0x2bc": "Add data here", "0x14": 1, "0x2e4": 0, "0x2ee": 0},
+				ent.call(7, "mig2", 1000.0),
+			]
+		},
+		"formations":
+		{"items": [form.call(1, 1, 1, 2), form.call(2, 2, 6, 3), form.call(3, 8, 4, 5), form.call(4, 8, 7, -1)]},
+	}
+	var jet_was: int = Settings().jet_id
+	Settings().jet_id = -1
+	var sp: Dictionary = Runtime.spawned(fake)
+	check(sp.size() == 6 and not sp.has(6), "spawned: every entity but the placeholder row (%s)" % sp.keys())
+	check(
+		Runtime.flight_slots(fake) == {1: 1, 2: 2, 4: 8},
+		(
+			"flight_slots: unplaced Player7 / Player77 give formation 3 slot 7, so slot 8 exists (%s)"
+			% Runtime.flight_slots(fake)
+		)
+	)
+	var mwf = MW.new()
+	mwf._load_flights(fake, {})
+	check(
+		mwf.flights.keys() == [1, 8] and mwf.flights[8].entity["0x1e"] == 7,
+		"Arming leaders: Player1, mig2 for slot 8; flight 2 (member 0 = the placeholder) has none %s" % [mwf.flights]
+	)
+	Settings().jet_id = 1
+	sp = Runtime.spawned(fake)
+	check(
+		not sp.has(2) and not sp.has(4) and not sp.has(5) and sp.has(1),
+		"jet picked: Player2 / Player7 / Player77 not spawned"
+	)
+	check(Runtime.flight_slots(fake) == {1: 1, 2: 2}, "jet picked: formation 3 has no member, slot 8 does not exist")
+	Settings().jet_id = jet_was

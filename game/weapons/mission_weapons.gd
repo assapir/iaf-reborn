@@ -58,7 +58,7 @@ const MSG_RIGHT_HEAVY := 0x34
 var weapons: Array = []
 var _by_id := {}
 ## The Arming table slots 1..10 of the main mission file (FUN_004efef0; MissionRuntime.flight_slots): n -> {entity,
-## object, type} of the leader of the slot's formation (member 0 when placed, else member 1).
+## object, type} of the leader of the slot's formation (member 0, _load_flights).
 var flights := {}
 ## n -> [[id, count] × 9].
 var defaults := {}
@@ -108,31 +108,25 @@ static func _copy(t: Dictionary) -> Dictionary:
 	return t.duplicate(true)
 
 
-## Flights (docs/front-end.md §8.1): the formation number 0x3f2 (−1 = 8), its two member slots; a
-## flight exists when a member is placed; the leader is member 0 if placed, else member 1. Slots 1..6 are flights
-## 1..6; slots 7..10 load the first formation numbered 7..10 (8 = Other) when that many other flights exist.
+## Flights (docs/front-end.md §8.1, §15): the Arming table slots 1..10 (MissionRuntime.flight_slots) and the leader of
+## each slot's formation: member 0's object (FUN_004f0330 → FUN_005bcb40, no turn to member 1). A slot whose member 0
+## has no object (MissionRuntime.spawned) has no entry: no art, no allowed counts, no defaults, nothing applied.
 func _load_flights(mission: Dictionary, bdb: Dictionary) -> void:
-	var by_id := {}
-	for e in mission.get("entities", {}).get("items", []):
-		if e is Dictionary:
-			by_id[int(e.get("0x1e", -1))] = e
+	var by_id := MissionRuntime.spawned(mission)
 	var objects := MissionRuntime.bdb_objects(bdb)
 	var slots := MissionRuntime.flight_slots(mission)
 	for f in mission.get("formations", {}).get("items", []):
 		var n := int(slots.get(int(f.get("0x1e", -1)), 0))
-		if n == 0:
-			continue
-		for mem in f.get("members", []).slice(0, 2):
-			var e: Dictionary = by_id.get(int(mem.get("0x41a", -1)), {})
-			if not e.is_empty() and not (float(e.get("0x2e4", -1)) < 0 and float(e.get("0x2ee", -1)) < 0):
-				var obj: Dictionary = objects.get(int(e.get("0x2c6", -1)), {})
-				flights[n] = {"entity": e, "object": obj, "type": int(obj.get("0x5b4", -1))}
-				break
+		var members: Array = f.get("members", [])
+		var e: Dictionary = by_id.get(int(members[0].get("0x41a", -1)), {}) if not members.is_empty() else {}
+		if n != 0 and not e.is_empty():
+			var obj: Dictionary = objects.get(int(e.get("0x2c6", -1)), {})
+			flights[n] = {"entity": e, "object": obj, "type": int(obj.get("0x5b4", -1))}
 	# A jet picked on the Jet list (training missions: FUN_004c2e30 loads the mission with the aircraft id, and
 	# FUN_0058f110 gives Player1 that jet's bdb object): the player's flight shows the picked jet's art, stations and
 	# default load (Stores.loadout takes the object's default without an entity), but the allowed counts stay the
 	# mission jet's (FUN_004ef8a0 walks the file's entities unsubstituted). The F-35I (ours) keeps its own counts.
-	# Not ported: the load of a same-type PlayerN entity copied instead of the default, Player2+ not spawned.
+	# Not ported: the load of a same-type PlayerN entity copied instead of the default.
 	var picked := PlayerAircraft.jet_type(Settings.jet_id) if Settings.jet_id >= 0 else -1
 	var pn := int(MissionRuntime.player_flight(mission, Settings.player_flight).get("flight", -1))
 	if picked >= 0 and flights.has(pn) and picked != int(flights[pn].type):

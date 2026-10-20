@@ -101,16 +101,31 @@ static func bdb_objects(bdb: Dictionary) -> Dictionary:
 	return out
 
 
-## The formation each Arming table slot k = 1..10 loads (docs/front-end.md §15): {formation id (0x1e): k}. Slot k
-## exists when flight-table slot k does (FUN_004d2900 walks formation ids 0..49: a formation with a placed member among
-## its two member slots takes slot n for flight numbers 1..6, every other one the next slot from 7). Its formation is
-## the first one with flight number k (FUN_004f0330 → FUN_005bce10) in the formation map's order: an MFC CMap keyed by
-## the id (bucket id >> 4, the latest inserted first within a bucket; FUN_005bc980), filled in file order.
-static func flight_slots(mission: Dictionary) -> Dictionary:
-	var placed := {}
+## The entities of a mission file that have an object before take-off, {id (0x1e): entity} (docs/front-end.md §8.1).
+## The single-player spawn (FUN_004b74f0 → FUN_0058f110) creates every entity but the editor's placeholder row
+## (0x14 = 1, FUN_0058a350), wherever it is, also the unused player slots at (-1, -1). Only with a jet picked on the
+## Jet list (FUN_004c2e30 passes its id) it skips Player2.. ("Player" and a last digit > 1, CString Right(1)). The
+## formations take their members' objects from these (FUN_004b3573 runs after the spawn, FUN_005bd2b0 →
+## FUN_005bd6d0), and all are alive until the flight starts.
+static func spawned(mission: Dictionary) -> Dictionary:
+	var out := {}
 	for e in mission.get("entities", {}).get("items", []):
-		if e is Dictionary and not (float(e.get("0x2e4", -1)) < 0 and float(e.get("0x2ee", -1)) < 0):
-			placed[int(e.get("0x1e", -1))] = true
+		if not (e is Dictionary) or int(e.get("0x14", 0)) != 0:
+			continue
+		var name := String(e.get("0x2bc", "")).to_lower()
+		if Settings.jet_id >= 0 and name.begins_with("player") and name.right(1).to_int() > 1:
+			continue
+		out[int(e.get("0x1e", -1))] = e
+	return out
+
+
+## The formation each Arming table slot k = 1..10 loads (docs/front-end.md §15): {formation id (0x1e): k}. Slot k
+## exists when flight-table slot k does (FUN_004d2900 walks formation ids 0..49: a formation with a spawned() member
+## among its two member slots takes slot n for flight numbers 1..6, every other one the next slot from 7). Its formation
+## is the first one with flight number k (FUN_004f0330 → FUN_005bce10) in the formation map's order: an MFC CMap keyed
+## by the id (bucket id >> 4, the latest inserted first within a bucket; FUN_005bc980), filled in file order.
+static func flight_slots(mission: Dictionary) -> Dictionary:
+	var objs := spawned(mission)
 	var formations: Array = mission.get("formations", {}).get("items", [])
 	var number := func(f: Dictionary) -> int:  # FUN_005bd2b0: 1..10 kept, -1 -> 8
 		var n := int(f.get("0x3f2", 0))
@@ -122,7 +137,7 @@ static func flight_slots(mission: Dictionary) -> Dictionary:
 		by_id[int(f.get("0x1e", -1))] = f
 	for id in 50:
 		var f: Dictionary = by_id.get(id, {})
-		if f.get("members", []).slice(0, 2).any(func(m): return placed.has(int(m.get("0x41a", -1)))):
+		if f.get("members", []).slice(0, 2).any(func(m): return objs.has(int(m.get("0x41a", -1)))):
 			var n: int = number.call(f)
 			if n >= 1 and n <= 6:
 				exists[n] = true
@@ -148,22 +163,16 @@ static func flight_slots(mission: Dictionary) -> Dictionary:
 
 ## The player's aircraft at mission load (FUN_004bb439): the leader of the formation with id (0x1e)
 ## 1, else 2, 3, 4 (the formation map is keyed by the formation id, FUN_005bcb40 / insert FUN_005bc980
-## from FUN_004b3604), whatever its flight letter. A formation's leader is member 0 if placed, else
-## member 1 (unplaced = both coordinates negative, like the unused PlayerN slots). `wanted` = the
-## flight (0x3f2 = 1..4, Alpha..Delta) picked on the TSD (Fly makes that flight's leader the player
-## object, FUN_005045b0 -> FUN_004d31f0); 0 or a flight without a leader = the default. Returns
+## from FUN_004b3604), whatever its flight letter. A formation's leader is member 0 when spawned() (FUN_005bcb40
+## gives member 0's object; FUN_004d35c0 turns to member 1 only once member 0 is dead, which no jet is before
+## take-off). `wanted` = the flight (0x3f2 = 1..4, Alpha..Delta) picked on the TSD (Fly makes that flight's leader the
+## player object, FUN_005045b0 -> FUN_004d31f0); 0 or a flight without a leader = the default. Returns
 ## {flight (the formation's 0x3f2), entity} or {} when there is none.
 static func player_flight(mission: Dictionary, wanted := 0) -> Dictionary:
-	var by_id := {}
-	for e in mission.get("entities", {}).get("items", []):
-		if e is Dictionary:
-			by_id[int(e.get("0x1e", -1))] = e
+	var by_id := spawned(mission)
 	var leader := func(f: Dictionary) -> Dictionary:
-		for mem in f.get("members", []):
-			var e: Dictionary = by_id.get(int(mem.get("0x41a", -1)), {})
-			if not e.is_empty() and not (float(e.get("0x2e4", -1)) < 0 and float(e.get("0x2ee", -1)) < 0):
-				return e
-		return {}
+		var members: Array = f.get("members", [])
+		return by_id.get(int(members[0].get("0x41a", -1)), {}) if not members.is_empty() else {}
 	var formations: Array = mission.get("formations", {}).get("items", [])
 	if wanted >= 1 and wanted <= 4:
 		for f in formations:

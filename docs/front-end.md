@@ -577,8 +577,10 @@ Units that are never shown:
 * sensors (class 18);
 * ground radars (class 11);
 * trees and parachutes (class 14);
-* player slots that were not spawned. Only slots marked used in the session slot table are spawned,
-  `FUN_0058f110` @58f7fc (UNCERTAIN for SP; takeoff's Player2..7 are at −1,−1).
+* player slots that were not spawned. In multiplayer only the slots marked used in the session slot table are spawned
+  (`FUN_0058f110` @58f7fc). In single player every slot is spawned, also the unused ones at (−1, −1), except
+  `Player2..` in a training mission flown with a Jet list pick ("Spawned before take-off" above). Such a slot gets a
+  record when its `0x35c` is set; only mission 666's Player7 / 77 / 8 / 88 are. Ours never shows units at (−1, −1).
 
 **Drawing** (`FUN_00504ea0`). Record i is drawn only if `FUN_00504a10` passes:
 * icon class 1..6 × (side==1 → the `…1` filter, else → the `…2` filter);
@@ -733,6 +735,20 @@ the zeroed area holds 50 slots. Record layout:
 
 * Flight membership is the formation's **two** member slots (`0x41a` ids).
 * A flight exists if either member is spawned and alive.
+* **Spawned before take-off** (checked 2026-10-20). The formations are built after the spawn (`FUN_004b74f0`, then
+  `FUN_004b3573`): `FUN_005bd2b0` → `FUN_005bd6d0` looks each member's object up by its descriptor, so a member has an
+  object exactly when its entity was spawned. The single-player spawn (`FUN_0058f110`) creates every entity of the
+  main file but the editor's placeholder row (`0x14` = 1, `FUN_0058a350`), wherever it stands. This includes the
+  unused player slots at (−1, −1). One exception: a training mission entered through the Jet list
+  (`FUN_004c2e30` passes the jet id instead of 99) skips `Player2..`, the names "Player" whose last character is a
+  digit above 1 (`FUN_0058ea00`: CString `Right(1)`). Every spawned object is alive until the flight starts.
+  * The rule differs from "placed in the world" in one shipped file only: `mission.json` (666, the multiplayer
+    session). Its formations 7 and 8 ("Other1", "Other2") hold the unused slots Player7 / Player77 and Player8 /
+    Player88 at (−1, −1); they take flight-table slots 7 and 8. In every other mission file each formation has a
+    placed member when it has a spawned one, and the training missions place no `Player2..`.
+  * Port: `MissionRuntime.spawned()` (the flight table of the Arming slots, `flight_slots()`, and the player's
+    flight, `player_flight()`). The flight's runtime spawn (`mission_runtime.gd` `setup`) still skips the unused player
+    slots at (−1, −1), and the TSD draws only placed units (`tsd.gd`); see "Units that are never shown".
 
 **Player's default flight in SP** (ctor `4ffba0`, unless returning from Arm):
 * `DAT_0083b8a4 = DAT_00699168`, the number of the formation that contains the player object
@@ -2240,6 +2256,12 @@ dragging, the arrow otherwise (`SETCURSOR 506720`).
   * Example, mission 112: formations 3 and 4 are both "Other" (8). They take flight-table slots 7 and 8, so Arming
     slot 8 exists and loads formation 4 (bucket 0, inserted last): its two MiG-17s get their leader's default load.
     Formation 3 keeps its own stores.
+* **The leader is member 0.** Reset (`FUN_004ef8a0`), the defaults (`FUN_004efd50`) and the loads (`FUN_004f0140`)
+  take the formation's member-0 object (`FUN_004f0330` → `FUN_005bcb40`), and the second member through it
+  (`FUN_004f0380` → `FUN_005bcb90`). The jet art is the flight record's member-0 type `+0x350` (`FUN_00507750`). None
+  of them turns to member 1, unlike the flight buttons (`FUN_00507df0`, member 0's type, else member 1's). So a flight
+  whose member 0 has no object has no art, allows nothing, and its table changes no aircraft. No shipped mission has
+  such a flight (checked 2026-10-20).
 * Any flight's leader type with jet art can be armed (the nine types); only the flyable-type rule of the buttons
   limits it.
 * **Sounds:** none in the Arming handlers (paint, drag, drop, right-click, list, `5061c0`–`507c30`,
@@ -2253,7 +2275,8 @@ dragging, the arrow otherwise (`SETCURSOR 506720`).
 **Implementation** (`game/menu/arming.gd`, `game/weapons/mission_weapons.gd`, `game/menu/front_end.gd`):
 * `mission_weapons.gd` = `CMissionWeapons`: the list (bdb order, tabs), `reset(n)` = `FUN_004ef8a0` from the
   leader object's `loads` (`CDMEWeaponLoadItem` `raw` = 9 int32 station flags), the three tables for slots
-  1..10 (`MissionRuntime.flight_slots()` picks each slot's formation as above; defaults = `Stores.loadout()` of the leader matched by name, `FUN_004efd50`), `check()` =
+  1..10 (`MissionRuntime.flight_slots()` picks each slot's formation as above; the leader is member 0, a slot without
+  it has no entry; defaults = `Stores.loadout()` of the leader matched by name, `FUN_004efd50`), `check()` =
   `FUN_00507480`, `put()` = `FUN_00507aa0`, the jet `.trx`. Created on the first visit to Arming after a mission
   loads, dropped when one loads (`_reset_tsd_checks`). Weights are the ones the flight uses (Weapon data: Real
   shows the real ones).
