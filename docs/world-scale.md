@@ -314,8 +314,7 @@ until the user decides to show it.
 ### 4.1 Steps 1–4: what was built (2026-10-20)
 
 - **The setting:** `Settings.world_scale` ("original" / "real", settings.cfg `[gameplay]`), read at mission load.
-  Its Extras row ("World scale": Original / Real 1:1) shows only with the environment variable
-  `IAF_DEV_WORLD_SCALE=1` until step 9.
+  Its Extras row: "World scale", Original / Real 1:1 (shown since 2026-10-20).
 - **The helpers** (`game/settings.gd`): `model_scale(present, keep)` returns the Present scale in Original and in
   Real for a kept model, else 1. `keeps_present(path, raw_box, present, klass, flat)` names the kept models: the
   light sets (`LT_*`), the flat underlays (their Original height under 0.05 m), the multi-part layouts

@@ -177,9 +177,8 @@ const EXTRAS := [
 ## converted are greyed out and cannot be picked).
 func _extras_rows() -> Array:
 	var rows: Array = EXTRAS.duplicate()
-	# Ours, in progress (docs/world-scale.md): hidden behind a dev flag until the airbases shrink too (step 9).
-	if OS.get_environment("IAF_DEV_WORLD_SCALE") == "1":
-		rows.append(["world_scale", "World scale", [["Original", "original"], ["Real 1:1", "real"]]])
+	# Ours (docs/world-scale.md): true-size models and every airbase at its real place.
+	rows.append(["world_scale", "World scale", [["Original", "original"], ["Real 1:1", "real"]]])
 	for key in ImageryLayers.REGIONS:
 		rows.append([key, ImageryLayers.REGION_LABELS[key], ImageryLayers.REGIONS[key].map(func(o): return [o[1], o[0]])])
 	# Ours: the preferences to / from a .cfg file (not a setting: a press opens the file dialog, _settings_file).

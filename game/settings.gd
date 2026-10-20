@@ -225,8 +225,7 @@ var _pan_rest := 0.0  # the trackpad pan not yet turned into a step
 var better_cockpit := false
 var cockpit_items := {}
 ## World scale (ours, Extras page; docs/world-scale.md): "original" (the models at their Present scale, ×2 for
-## the jets) or "real" (true size, model_scale). Read at mission load. Its Extras row shows only with the dev flag
-## IAF_DEV_WORLD_SCALE=1 until the airbases shrink too (the plan's step 9).
+## the jets) or "real" (true size, model_scale). Read at mission load.
 var world_scale := "original"
 ## Key bindings changed on the Controls page (docs/controls.md): {record index: [key, joystick
 ## button]}, key = DIK | modifier << 16; records not listed keep the original default. Stored in the

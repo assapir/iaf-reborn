@@ -201,8 +201,7 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     dial). Other jets unchanged (cockpit.md "Panel instruments per jet").
   - **AR/NWS lamp** (`ar_nws_lights`). Original: the F-16's AR status indicator right of the HUD is static art.
     Better: its green AR/NWS legend lights on the ground (nose-wheel steering engaged); RDY and DISC stay dark.
-- **World scale (Original / Real 1:1)** (world-scale.md; its Extras row shows only with the dev flag
-  `IAF_DEV_WORLD_SCALE=1` until the user decides to show it). Original: every model at its bdb Present
+- **World scale (Original / Real 1:1)** (world-scale.md; Extras → World scale). Original: every model at its bdb Present
   scale (0x65e: ×2 jets and buildings, ×3–4 vehicles and SAMs). Real 1:1 (`Settings.world_scale = "real"`): the
   models at true size (`Settings.model_scale`): mission units, the player's and the AI jets with their cockpit model,
   gear clearance (F-16 3.38 → 1.69 m), eye and gun, the weapons, stores and rounds. The flat base underlays, the
