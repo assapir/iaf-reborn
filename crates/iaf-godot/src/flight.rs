@@ -16,6 +16,8 @@ pub struct IafFlight {
     origin: (f64, f64),
     /// Terrain height at a scene position (Callable(Vector3) -> float).
     ground: Option<Callable>,
+    /// The Better cockpit's engine temperatures (iaf_flight::instruments::EngineTemps).
+    temps: iaf_flight::instruments::EngineTemps,
 }
 
 /// Godot scene position → the FM's ENU frame.
@@ -519,21 +521,38 @@ impl IafFlight {
     /// The cockpit state the panel / HUD / MFDs draw (iaf_flight::instruments, docs/cockpit.md): speeds in kt
     /// (`tas_kt`, `ground_kt`, `ias_kt`), `vs_fpm`, `agl_ft`, `fuel_fill`, and `engines` = [THROTTLE, RPM, TEMP]
     /// left then right (6 floats). `damage`: the player's damage flags 0..24 (docs/damage.md §5), or empty.
+    /// Better cockpit (ours): `engines_better` (the same 6 floats from the FM's own values,
+    /// `better_engine_needles`), `engine_temp_c` (2 floats, °C), `fuel_fill_total` (fuel / capacity with tanks).
     #[func]
-    fn instruments(&self, damage: VarArray) -> VarDictionary {
+    fn instruments(&mut self, damage: VarArray) -> VarDictionary {
         use iaf_flight::instruments::{self, EngineDamage};
         let mut d = VarDictionary::new();
         let Some(ac) = &self.aircraft else { return d };
         let flag = |i: usize| damage.get(i).is_some_and(|v| v.booleanize());
-        let engine = |e: usize| EngineDamage { cut_out: flag(2 + e), fire: flag(16 + e), permanent: flag(22 + e) };
+        let engine = |e: usize| EngineDamage {
+            cut_out: flag(2 + e),
+            fire: flag(16 + e),
+            permanent: flag(22 + e),
+            afterburner: flag(8 + e),
+        };
+        let dmg = [engine(0), engine(1)];
+        let s = ac.state();
         let i = instruments::instruments(
-            &ac.state(),
+            &s,
             ac.ground_height,
             ac.gear_clearance,
             ac.internal_fuel_kg(),
+            ac.fuel_capacity_kg(),
             ac.params.ias_low_speed_fix,
-            [engine(0), engine(1)],
+            dmg,
         );
+        let rpm = s.rpm * 0.01;
+        let temps = self.temps.update(s.time, rpm, s.afterburner, dmg);
+        let better: Vec<f32> =
+            (0..2).flat_map(|e| instruments::better_engine_needles(rpm, s.afterburner, temps[e], dmg[e])).collect();
+        d.set("engines_better", &PackedFloat32Array::from(better.as_slice()));
+        d.set("engine_temp_c", &PackedFloat32Array::from(temps.as_slice()));
+        d.set("fuel_fill_total", i.fuel_fill_total);
         d.set("tas_kt", i.tas_kt);
         d.set("ground_kt", i.ground_kt);
         d.set("ias_kt", i.ias_kt);
@@ -558,6 +577,7 @@ impl IafFlight {
             ac.ground_height,
             ac.gear_clearance,
             ac.internal_fuel_kg(),
+            ac.fuel_capacity_kg(),
             ac.params.ias_low_speed_fix,
             Default::default(),
         );

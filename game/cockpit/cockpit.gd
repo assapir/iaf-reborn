@@ -12,6 +12,7 @@ extends Control
 const ORIGINAL_HEIGHT := 480.0
 const Img := preload("res://util/img.gd")
 const Tsd := preload("res://menu/tsd.gd")
+const Gauges := preload("res://cockpit/gauges.gd")
 const PANEL_CENTRE_X := 960.0
 ## HUD colour table (renderer+0x2864, COLORREFs 0x2400 … 0xbcf8): eight greens dark to bright,
 ## near-white, red, amber. Index 0 at the start of a run; key H cycles (idx + 1) % 11 (docs/mfd.md §2).
@@ -551,15 +552,17 @@ func _draw() -> void:
 	# one turn per 10,000 ft.
 	_draw_needle("ALTITUDELOCK", state.alt_ft, s, 1000.0)
 	_draw_needle("ALTITUDELOCK", state.alt_ft, s, 10000.0, 3.0)
-	# Engine needles [THROTTLE, RPM, TEMP] left then right (the *SECONDARY needles, twin-engine cockpits).
-	var en: PackedFloat32Array = state.engines
+	# Engine needles [THROTTLE, RPM, TEMP] left then right (the *SECONDARY needles, twin-engine cockpits); the
+	# Better cockpit's values where its items are on (gauges.gd).
+	var en := Gauges.engine_needles(state)
 	for e in 2:
 		var sfx := "SECONDARY" if e == 1 else ""
-		_draw_needle("THROTTLECLOCK" + sfx, en[3 * e], s)
+		_draw_needle("THROTTLECLOCK" + sfx, en[3 * e], s, Gauges.needle_full("THROTTLECLOCK" + sfx, layout))
 		_draw_needle("RPMCLOCK" + sfx, en[3 * e + 1], s)
 		_draw_needle("TEMPCLOCK" + sfx, en[3 * e + 2], s)
 	# FUELCLOCK "LBS x1000 TOTAL INTERNAL" (the fill), VARIOCLOCK "CLIMB 1000 FT/MIN".
-	_draw_needle("FUELCLOCK", state.fuel_fill, s)
+	_draw_needle("FUELCLOCK", Gauges.fuel_fill(state), s)
+	Gauges.draw(self, s)
 	_draw_needle("VARIOCLOCK", state.vs_fpm, s)
 	var fuel: Dictionary = layout.get("FUELDIGITAL", {})
 	if fuel.get("Active", 0) == 1:
@@ -865,15 +868,15 @@ func needle_angle(key: String, value: float, full := 0.0) -> float:
 ## The drawn needles' angles this frame (the values `_draw` passes): {section: angle}.
 func needle_angles() -> Dictionary:
 	var out := {}
-	var en: PackedFloat32Array = state.engines
-	var values := {"SPEEDCLOCK": state.tas_kt, "FUELCLOCK": state.fuel_fill, "VARIOCLOCK": state.vs_fpm}
+	var en := Gauges.engine_needles(state)
+	var values := {"SPEEDCLOCK": state.tas_kt, "FUELCLOCK": Gauges.fuel_fill(state), "VARIOCLOCK": state.vs_fpm}
 	for e in 2:
 		var sfx := "SECONDARY" if e == 1 else ""
 		values["THROTTLECLOCK" + sfx] = en[3 * e]
 		values["RPMCLOCK" + sfx] = en[3 * e + 1]
 		values["TEMPCLOCK" + sfx] = en[3 * e + 2]
 	for k in values:
-		var a := needle_angle(k, values[k])
+		var a := needle_angle(k, values[k], Gauges.needle_full(k, layout))
 		if not is_nan(a):
 			out[k] = a
 	var alt := needle_angle("ALTITUDELOCK", state.alt_ft, 1000.0)

@@ -466,6 +466,8 @@ Every round gauge is a linear needle; the table under "Panel draw" gives each ga
   * The heading shows only on the HUD tape and the MFD pages. No cockpit section or code turns a panel compass / HSI
     (horizontal situation indicator), so the panels' compass dials (e.g. the Kfir's) are static art in the original
     too. Ours, with Better cockpit: they turn ("Better cockpit" below).
+  * With Better cockpit, the RPM, TEMP, THROTTLE and FUEL needles read the flight model's own values ("Engine
+    gauges" and "Fuel gauge" under "Better cockpit" below).
   * Per-jet check: tests/godot/test_gauges_all_jets.gd. On the seven Jet list jets and the F-35I, every active needle
     turns from idle to military / climbing; military reads 100 % without AB, and AB 1 lights it; with the Real HUD on
     and off.
@@ -666,6 +668,71 @@ used:
 * Test: tests/godot/test_better_instruments.gd (Original static; Better: the F-16 indexer symbol and lamps follow
   their inputs, the Mirage VVI needle the vertical speed; each item's own flag). Pictures:
   tests/godot/_instruments_shot.gd.
+
+### Engine gauges (`engine_rpm`, `engine_temp`, `throttle_ab`)
+With these items on, the round engine needles read the flight model's own values (`iaf_flight::instruments::
+better_engine_needles`, `EngineTemps`; `IafFlight.instruments` → `engines_better`, `engine_temp_c`;
+`game/cockpit/gauges.gd` picks them per item). Twin-engine cockpits (F-15, F-4E, Kurnass 2000) get both needles, each
+with its own damage flags.
+
+| Needle | Original | Better |
+|---|---|---|
+| `RPMCLOCK` | clamp(rpm, 0.6, 0.97) | the RPM ramp (docs/flight-model.md "RPM ramp"): 0 with the engine off, 0.6 idle, 1.0 military, the spool-up at 15 %/s |
+| `TEMPCLOCK` | clamp(rpm, 0.5, 0.8) | the engine temperature in °C / 1000 (below) |
+| `THROTTLECLOCK` | rpm (military and AB both 1.0) | rpm, then 1.1 in AB 1 and 1.2 in AB 2; drawn with FullClock at least 1.25, so on the dials with FullClock 1 (one turn = military) AB 2 reads before the zero mark |
+
+* Damage, as the original: an engine cut out reads RPM 0; permanent damage reads THROTTLE and RPM 0. AB damage
+  (8 / 9) and a dead engine show no AB stage.
+* **Engine temperature** (exhaust gas / turbine temperature): a first-order lag toward a target temperature, one per
+  engine. The needle unit is °C / 1000, the unit the original's 0.5–0.8 range fits (500–800 °C) and the F-4's
+  exhaust temperature dial reads (0–12 × 100 °C)[^hb-f4]. Constants (all inferred, one set for every jet):
+
+  | | Value | Basis |
+  |---|---|---|
+  | engine off / cut out | 15 °C (ambient) | inferred |
+  | idle (60 % RPM) | 450 °C | J79 idle 400–500 °C, as a forum post quotes the F-4C manual[^dcs-j79] |
+  | military (100 % RPM) | 650 °C | J79 in AB settles at 625 ± 10 °C (the same post[^dcs-j79]); inferred: military about the same |
+  | per AB stage | +15 °C | inferred: the nozzle opens in AB, so the turbine temperature rises only a little |
+  | engine fire (16 / 17) | 900 °C | inferred (the original shows 0.9) |
+  | heating / cooling time constant | 2 s / 8 s | the J79's AB temperature settles in about 2 s[^dcs-j79]; cooling inferred |
+
+  Between ambient and idle the target is linear in RPM (the spool-up), between idle and military too. A restarted
+  flight starts at its target.
+* Rust unit tests: `instruments.rs` (`better_needles_show_real_rpm_and_ab_stages`,
+  `engine_temperature_heats_with_power_and_cools_with_time`).
+
+### Fuel gauge (`fuel_total`)
+* **Needle:** total fuel / the fuel maximum now (FuelWeight + the tanks carried, the FM's `S+0x448`;
+  `Aircraft::fuel_capacity_kg`), so it falls from the first pound of tank fuel burnt. The original's fill (total /
+  internal, capped at 1) stays full until the tanks are empty. After a tank jettison the maximum is FuelWeight again.
+* **Digital lb readout** (the live total, `%05d`, in the MFD font): the F-16's `FUELDIGITAL` (the original draws it
+  too) and the F-15's fuel dial, whose art paints a "TOTAL LBS" counter. There the count covers the painted digits
+  (`gauges.gd` `FUEL_COUNTERS`, panel px of the 1920-px strip):
+
+  | Cockpit | Counter rect (x, y, w, h) |
+  |---|---|
+  | f15 | 1232, 247, 15, 6.5 |
+
+  The other fuel dials paint no clear counter (the F-4E / Kurnass 2000 dials' "LBS TOTAL INTERNAL" digits sit under
+  the needle hub and read as a scale), so they get none.
+
+### Panel clock (`panel_clock`)
+The clock shows the time of day in the mission (the mission start time + the mission clock, the cockpit's `tod`):
+an hour hand (0.55 r) and a minute hand (0.85 r) with a hub, in the panel's off-white, drawn over the painted face
+(`gauges.gd` `CLOCKS`, centre and minute-ring radius measured on the art by circle fits):
+
+| Cockpit | Clock | Centre | r |
+|---|---|---|---|
+| lavi | right of the attitude / altitude group, left of the fuel gauge | 1167.2, 271.0 | 18.6 |
+| mirage | right of the fuel gauge | 1241.0, 257.2 | 15.9 |
+
+The faces paint no hands. The other panels show no clock face (checked on each panel's art: the F-15's small dial at
+1257, 327 paints its own needle and no hour numbers).
+
+* Test (all three subsections): tests/godot/test_gauges_all_jets.gd (Better off = the original values; Better on,
+  each needle at its Better input; the temperature rises idle → military → AB and cools at idle; with tanks the
+  original fill stays 1 while the Better fill falls; the clock hands at 15:15). Pictures:
+  tests/godot/_gauges_shot.gd.
 
 ## What our tooling assumes
 * `crates/iaf-tools/src/convert.rs` `cockpit` is generic. It takes the dir name as its argument and
@@ -914,3 +981,8 @@ The `[PANEL]` Night shifts are listed separately. File names are case-insensitiv
     inputs). <https://falcon.blu3wolf.com/Docs/HAF-F16.pdf>
 [^f16-config]: T.O. GR1F-16CJ-1, "TO/LDG CONFIG Warning Light" (in flight below 10,000 ft, 190 kt, descending more
     than 250 fpm, with the TEFs not full down or a gear leg not down and locked). <https://falcon.blu3wolf.com/Docs/HAF-F16.pdf>
+[^hb-f4]: Heatblur Simulations, DCS: F-4E Phantom II manual, "Engines": the EGT indicator's large pointer reads a 0–12
+    scale of 100 °C, measured at the turbine exit. <https://f4.manuals.heatblur.se/systems/engines_and_fuel_systems/engines.html>
+[^dcs-j79]: Eagle Dynamics forum, "Spoolup time of J79 engines too quick" (a post quoting the F-4C flight manual: idle
+    EGT 400–500 °C; in AB the EGT should stabilise after about 2 s at 625 ± 10 °C; a secondary source).
+    <https://forum.dcs.world/topic/349516-spoolup-time-of-j79-engines-too-quick>

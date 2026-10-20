@@ -2181,6 +2181,11 @@ impl Aircraft {
         self.params.fuel_mass
     }
 
+    /// The fuel maximum `S+0x448` (kg): FuelWeight + the tanks carried ([`Self::set_fuel_capacity`], [`Self::set_fuel`]).
+    pub fn fuel_capacity_kg(&self) -> f32 {
+        self.fuel.max
+    }
+
     /// What the autopilot's control loops read from the FM (docs/ai.md §8): the pose `5a68f0` (position and
     /// the flight-path attitude: velocity direction and roll, α = β = 0), the rates
     /// `5a6b10` (flight-path pitch rate, roll rate, turn rate), TAS, the acceleration (slot 0x44) and the

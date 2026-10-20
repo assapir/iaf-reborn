@@ -180,6 +180,16 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     a needle shows the vertical speed.
   - **Warning lamps** (`warning_lamps`). Original: the F-16's FLCS and TO/LDG CONFIG lamps never light. Better: FLCS
     lights with hydraulics or flight-control damage (18 / 24), TO/LDG CONFIG on an approach with the gear not down.
+  - **RPM gauge** (`engine_rpm`). Original: clamp(rpm, 0.6, 0.97). Better: the FM's RPM ramp itself (0 with the engine
+    off, 60 % idle, 100 % military, the spool-up at 15 %/s).
+  - **Engine temperature gauge** (`engine_temp`). Original: clamp(rpm, 0.5, 0.8). Better: a first-order temperature
+    model per engine (°C / 1000; constants inferred), hotter with the throttle and the AB, cooling with time.
+  - **Throttle gauge** (`throttle_ab`). Original: rpm, so military and AB both read 100 %. Better: 1.1 / 1.2 in AB 1 /
+    2, on a dial scale of at least 1.25 per turn.
+  - **Fuel gauge** (`fuel_total`). Original: total / internal fuel, capped at 1 (full while tank fuel burns). Better:
+    total / the load with the tanks; the F-15's painted "TOTAL LBS" counter shows the live total.
+  - **Panel clock** (`panel_clock`). Original: the Lavi and Mirage clocks are static art. Better: hands at the time of
+    day of the mission.
 - **World scale (Original / Real 1:1)** (world-scale.md; in progress, its Extras row shows only with the dev flag
   `IAF_DEV_WORLD_SCALE=1` until the airbases shrink too, the plan's step 9). Original: every model at its bdb Present
   scale (0x65e: ×2 jets and buildings, ×3–4 vehicles and SAMs). Real 1:1 (`Settings.world_scale = "real"`): the

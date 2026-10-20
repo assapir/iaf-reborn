@@ -19,6 +19,8 @@ pub struct EngineDamage {
     pub cut_out: bool,
     pub fire: bool,
     pub permanent: bool,
+    /// Afterburner damage (8 / 9): the AB flag reads 0. Only the Better cockpit's throttle needle reads it.
+    pub afterburner: bool,
 }
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -37,6 +39,8 @@ pub struct Instruments {
     pub fuel_fill: f32,
     /// S+0x1040.. / +0x1060..: [THROTTLE, RPM, TEMP] needles per engine (left, right), [`engine_needles`].
     pub engines: [[f32; 3]; 2],
+    /// Better cockpit (ours): total fuel / the fuel capacity with the tanks loaded now (FuelWeight + tanks).
+    pub fuel_fill_total: f32,
 }
 
 /// FM query 0x10 (@5a9894): with V the airspeed in kt and h the height in ft,
@@ -73,14 +77,86 @@ pub fn engine_needles(rpm: f32, d: EngineDamage) -> [f32; 3] {
     n
 }
 
+/// Better cockpit (ours, docs/cockpit.md "Better cockpit"): the engine needles from the FM's own values.
+/// THROTTLE = rpm, then 1.1 / 1.2 in AB 1 / 2 (no AB with the afterburner or the engine damaged); RPM = the RPM
+/// ramp itself (0 engine off, 0.6 idle, 1.0 military, spool-up at 15 %/s); TEMP = `temp_c` / 1000 ([`EngineTemps`]).
+/// Cut out → RPM 0, permanent damage → THROTTLE and RPM 0, as the original.
+pub fn better_engine_needles(rpm: f32, ab_stage: u8, temp_c: f32, d: EngineDamage) -> [f32; 3] {
+    let stage = if d.afterburner || d.permanent || d.cut_out { 0 } else { ab_stage.min(2) };
+    let mut n = [rpm + 0.1 * stage as f32, rpm, temp_c / 1000.0];
+    if d.cut_out {
+        n[1] = 0.0;
+    }
+    if d.permanent {
+        n[0] = 0.0;
+        n[1] = 0.0;
+    }
+    n
+}
+
+/// The Better cockpit's engine temperature (exhaust gas / turbine temperature, °C), one per engine: a first-order
+/// lag toward a target from the RPM and the AB stage. All constants are inferred (docs/cockpit.md "Engine
+/// temperature"): ambient 15 °C, idle (60 % RPM) 450 °C, military 650 °C, +15 °C per AB stage, an engine fire
+/// 900 °C; it heats with a 2 s time constant and cools with 8 s.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct EngineTemps {
+    c: [f32; 2],
+    /// The FM time of the last update; None before the first (the temperature then starts at its target).
+    t: Option<f64>,
+}
+
+impl EngineTemps {
+    pub const AMBIENT: f32 = 15.0;
+    pub const IDLE: f32 = 450.0;
+    pub const MIL: f32 = 650.0;
+    pub const PER_AB_STAGE: f32 = 15.0;
+    pub const FIRE: f32 = 900.0;
+    pub const TAU_HEAT: f32 = 2.0;
+    pub const TAU_COOL: f32 = 8.0;
+
+    /// The temperature an engine settles at.
+    pub fn target(rpm: f32, ab_stage: u8, d: EngineDamage) -> f32 {
+        if d.fire {
+            return Self::FIRE;
+        }
+        if d.cut_out || d.permanent || rpm <= 0.0 {
+            return Self::AMBIENT;
+        }
+        let dry = if rpm < 0.6 {
+            Self::AMBIENT + (Self::IDLE - Self::AMBIENT) * rpm / 0.6
+        } else {
+            Self::IDLE + (Self::MIL - Self::IDLE) * ((rpm - 0.6) / 0.4).min(1.0)
+        };
+        let stage = if d.afterburner { 0 } else { ab_stage.min(2) };
+        dry + Self::PER_AB_STAGE * stage as f32
+    }
+
+    /// Steps both engines to the FM time `time` (s) and returns their temperatures (°C). A time going back (a
+    /// restarted flight) starts again at the target.
+    pub fn update(&mut self, time: f64, rpm: f32, ab_stage: u8, d: [EngineDamage; 2]) -> [f32; 2] {
+        let dt = match self.t {
+            Some(t0) if time >= t0 => (time - t0) as f32,
+            _ => f32::INFINITY,
+        };
+        self.t = Some(time);
+        for (c, d) in self.c.iter_mut().zip(d) {
+            let target = Self::target(rpm, ab_stage, d);
+            let tau = if target > *c { Self::TAU_HEAT } else { Self::TAU_COOL };
+            *c += (target - *c) * (1.0 - (-dt / tau).exp());
+        }
+        self.c
+    }
+}
+
 /// The cockpit state from the FM state. `ground_height` / `gear_clearance` in m, `internal_fuel_kg` the
-/// capacity (FuelWeight), `ias_fix` = `Params::ias_low_speed_fix`. Both engines read the one RPM (the original
+/// capacity (FuelWeight), `fuel_capacity_kg` the fuel maximum with the tanks (FuelWeight + tanks), `ias_fix` = `Params::ias_low_speed_fix`. Both engines read the one RPM (the original
 /// has one engine state too).
 pub fn instruments(
     s: &State,
     ground_height: f32,
     gear_clearance: f32,
     internal_fuel_kg: f32,
+    fuel_capacity_kg: f32,
     ias_fix: bool,
     damage: [EngineDamage; 2],
 ) -> Instruments {
@@ -99,6 +175,7 @@ pub fn instruments(
         agl_ft: if agl < 1.0 { 0.0 } else { agl },
         fuel_fill: if cap > 0.0 { (fuel / cap).min(1.0) } else { fuel },
         engines: [engine_needles(rpm, damage[0]), engine_needles(rpm, damage[1])],
+        fuel_fill_total: if fuel_capacity_kg > 0.0 { (s.fuel_kg / fuel_capacity_kg).min(1.0) } else { 0.0 },
     }
 }
 
@@ -206,5 +283,46 @@ mod tests {
         f[18] = false;
         f[24] = true;
         assert!(warnings(false, 0.0, 0.0, 0.0, 0.0, &f).flcs);
+    }
+
+    #[test]
+    fn better_needles_show_real_rpm_and_ab_stages() {
+        let none = EngineDamage::default();
+        // Engine off, spool-up, idle, military: the RPM ramp itself (the original reads 0.6 / 0.6 / 0.6 / 0.97).
+        for rpm in [0.0, 0.3, 0.6, 1.0] {
+            assert_eq!(better_engine_needles(rpm, 0, 0.0, none)[1], rpm);
+        }
+        // AB 1 / 2 above military on the throttle needle.
+        assert!((better_engine_needles(1.0, 1, 0.0, none)[0] - 1.1).abs() < 1e-6);
+        assert!((better_engine_needles(1.0, 2, 0.0, none)[0] - 1.2).abs() < 1e-6);
+        let ab = EngineDamage { afterburner: true, ..none };
+        assert_eq!(better_engine_needles(1.0, 2, 0.0, ab)[0], 1.0);
+        let dead = EngineDamage { permanent: true, ..none };
+        assert_eq!(better_engine_needles(1.0, 2, 650.0, dead), [0.0, 0.0, 0.65]);
+    }
+
+    #[test]
+    fn engine_temperature_heats_with_power_and_cools_with_time() {
+        let none = [EngineDamage::default(); 2];
+        let mut t = EngineTemps::default();
+        // The first update starts at the target: idle.
+        assert_eq!(t.update(0.0, 0.6, 0, none), [EngineTemps::IDLE; 2]);
+        // Military: one heating time constant covers 63 % of the step.
+        let c = t.update(EngineTemps::TAU_HEAT as f64, 1.0, 0, none)[0];
+        let want = EngineTemps::IDLE + (EngineTemps::MIL - EngineTemps::IDLE) * (1.0 - (-1.0f32).exp());
+        assert!((c - want).abs() < 0.5, "{c} {want}");
+        // Settled, then AB 2 is hotter still.
+        let mil = t.update(60.0, 1.0, 0, none)[0];
+        assert!((mil - EngineTemps::MIL).abs() < 0.1);
+        assert!(t.update(80.0, 1.0, 2, none)[0] > mil + 25.0);
+        // Back to idle: cooling is slower than heating.
+        let one = t.update(80.0 + EngineTemps::TAU_HEAT as f64, 0.6, 0, none)[0];
+        assert!(one > EngineTemps::IDLE + 0.6 * (EngineTemps::MIL + 30.0 - EngineTemps::IDLE), "{one}");
+        // A fire on the right engine only.
+        let fire = [EngineDamage::default(), EngineDamage { fire: true, ..Default::default() }];
+        let c = t.update(200.0, 0.6, 0, fire);
+        assert!((c[0] - EngineTemps::IDLE).abs() < 0.1 && (c[1] - EngineTemps::FIRE).abs() < 0.1);
+        // A restarted flight (time back to 0) starts at the target again: engine off, ambient.
+        assert_eq!(t.update(0.0, 0.0, 0, none), [EngineTemps::AMBIENT; 2]);
     }
 }

@@ -232,7 +232,8 @@ What changes in the cockpit:
 - **Ground effect** (Physics): a longer float in the flare. **Real idle thrust on the ground**: the jet settles near
   30 kt at idle.
 - **The engine gauges stay still**: on the Mirage's panel the speed and fuel needles move, and the original's own
-  cockpit data switches the engine clocks off.
+  cockpit data switches the engine clocks off. With Better cockpit (Extras) the fuel needle counts the drop tanks and
+  the panel clock (right of the fuel gauge) shows the time of day.
 - **The map edge**: about 12 km (6.5 NM) before the map's edge the EndWorld warning sounds: turn back. Past it the
   game pushes the jet back for about 8 s: the nose rises and the jet turns back toward the map.
 

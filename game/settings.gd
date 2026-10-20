@@ -41,6 +41,11 @@ const BETTER_COCKPIT := {
 	"aoa_indexer": "AoA indexer lights",
 	"standby_instruments": "Live painted instruments",
 	"warning_lamps": "Warning lamps for every failure",
+	"engine_rpm": "RPM gauge from the engine's real RPM",
+	"engine_temp": "Engine temperature gauge",
+	"throttle_ab": "Throttle gauge shows the afterburner stages",
+	"fuel_total": "Fuel gauge with the drop tanks, live fuel counter",
+	"panel_clock": "Panel clock shows the mission time",
 }
 ## Stored preferences by config section: the original pages, then our own options (Extras tab).
 const PREFS := {
