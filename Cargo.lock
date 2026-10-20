@@ -216,6 +216,7 @@ name = "iaf-flight"
 version = "0.1.0"
 dependencies = [
  "iaf-formats",
+ "serde_json",
 ]
 
 [[package]]

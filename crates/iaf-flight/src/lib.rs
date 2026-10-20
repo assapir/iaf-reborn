@@ -5,6 +5,7 @@ pub mod airbase;
 pub mod aircraft;
 pub mod atmosphere;
 pub mod autopilot;
+pub mod base_move;
 pub mod channels;
 pub mod data_set;
 pub mod envelope;
