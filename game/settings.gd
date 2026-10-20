@@ -128,8 +128,9 @@ var music_volume := 1.0
 var engine_volume := 0.8
 var sfx_volume := 1.0
 var speech_volume := 1.0
-## Graphics page (the original then overwrites these defaults from hardware detection).
-var terrain_detail := 0.75
+## Graphics page: the defaults the original's hardware detection gives a top-tier machine (FUN_00402510 /
+## FUN_00402330; docs/deviations.md): TERRAIN DETAIL (det − 1) · 0.25 = 1.0 (the ctor's 0.75 before it).
+var terrain_detail := 1.0
 var object_detail := 1.0
 var visual_effects := 1.0
 var smoke_trails := true

@@ -248,7 +248,7 @@ func _dist(n: Vector3i) -> float:
 
 ## The original's LOD distances per terrain detail 1..5 relative to detail 4 (FUN_00408ea0 tables,
 ## the level-3 limit 2200 / 2500 / 2900 / 3200 / 3300 m); detail = 1 + 4 × the TERRAIN DETAIL
-## slider (0.25 steps, default 0.75 -> 4).
+## slider (0.25 steps, default 1.0 -> 5).
 const DETAIL_SCALE := [0.69, 0.78, 0.91, 1.0, 1.03]
 
 

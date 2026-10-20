@@ -1167,7 +1167,11 @@ timer.
   * The copy that DEFAULT uses sits 0x14 further on: sound `d44..d54`, graphics `d74..d8c`, devices
     `d9c..da4`, gameplay `ddc..e0c`.
   * Hardware detection (`FUN_00402510`, `FUN_00402330`) then overwrites the graphics defaults in both
-    the current copy and the default copy.
+    the current copy and the default copy. `FUN_00402510` asks the 3D engine (`DAT_0069942c` vfunc +0x14) for a
+    level per slider; `FUN_00402330` (vfunc +0xb4) is a capable-machine flag: the TEXTURED SKY / SHADOWS / EXTERNAL
+    STORES defaults, and the mission list (`FUN_00401a70`: `missionlist.ibx`, else `lowmissionlist.ibx`). The port
+    takes a top-tier machine's result: every slider at its top, the three checks on, the normal mission list
+    (docs/deviations.md).
 
 ### 12.3 Gameplay page (paint `516220`, click `516a60`, DEFAULT `516950`)
 * A click toggles a check. The AI row is a 3-way radio.
@@ -1212,7 +1216,7 @@ timer.
 
 | control | page rect | global | default (ctor, then hardware detection) | applied |
 |---|---|---|---|---|
-| TERRAIN DETAIL slider | 19,62,419,77 | d68, step 0.25 (5 positions); v1.1 caps it at `(FUN_00402530() − 1)·0.25` (a Tgen capability, new global `0x779508`; UNCERTAIN meaning) | 0.75, then (det−1)·0.25 | level = 1 − ftol(−4v), min 1 (1..5): the LOD tables (`408ea0`, formats/ptt.md), the view-distance base 26000 / 28000 / 29000 / 30000 / 31000 and the terrain render resolution 0.7 / 0.8 / 0.9 / 1 / 1 × the viewport (`405c20` → `405990`) |
+| TERRAIN DETAIL slider | 19,62,419,77 | d68, step 0.25 (5 positions); v1.1 caps it at `(FUN_00402530() − 1)·0.25` (a Tgen capability, new global `0x779508`; UNCERTAIN meaning) | 0.75, then (det−1)·0.25; ours 1.0 (top tier) | level = 1 − ftol(−4v), min 1 (1..5): the LOD tables (`408ea0`, formats/ptt.md), the view-distance base 26000 / 28000 / 29000 / 30000 / 31000 and the terrain render resolution 0.7 / 0.8 / 0.9 / 1 / 1 × the viewport (`405c20` → `405990`) |
 | OBJECT DETAIL slider | 19,148,419,163 | d6c, step 0.5 (3 positions) | 1.0, then (det−1)·0.5 | level = 1 − ftol(−2v) (1..3) → 0x7d1924: the `_h` / `_m` / `_l` model switch and two render states (below) |
 | VISUAL EFFECTS slider | 19,236,419,251 | d70, step 0.5 | 1.0, then (det−1)·0.5 | level 1..3 → 0x7d1928: only the smoke column (explosion flag 0x800): 33 / (4 − L) puffs, each visible until 36 / (4 − L) s (docs/damage.md §6.1) |
 | SMOKE TRAILS | 7,306,112,326 | d58 | 1 | pref +0x48, read only by `4da090` @4da1bb: the missile / rocket trails with the motor glow and the wingtip vortex trails (docs/damage.md §6.4). Damage smoke, decoy and explosion smoke are not gated |
