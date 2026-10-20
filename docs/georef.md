@@ -130,7 +130,7 @@ metres) through the warp and compares them with the real airbase (OpenStreetMap 
 | Inshas | 30.431 N 31.228 E | Inshas AB 30.326 N 31.456 E | 24.8 |
 | Damescuss | 33.486 N 36.223 E | Mezzeh 33.479 N 36.226 E | 0.8 |
 | Kuzeir | 34.572 N 36.598 E | Al Qusayr AB 34.566 N 36.575 E | 2.3 |
-| Bley | 32.719 N 36.413 E | Khalkhalah AB 33.081 N 36.562 E (?) | 42.5 |
+| Bley | 32.719 N 36.413 E | Marj Ruhayyil AB 33.283 N 36.464 E (inferred[^bley]) | 62.8 |
 | Ryak | 34.047 N 36.168 E | Rayak AB 33.850 N 35.989 E | 27.4 |
 | Aman | 31.731 N 36.004 E | Queen Alia Intl 31.724 N 35.995 E | 1.2 |
 
@@ -162,3 +162,7 @@ To re-measure the control points:
 2. Run `georef-points`.
 3. Review the printed residuals.
 4. Commit the JSON.
+
+[^bley]: No real airfield is named Bley in OpenStreetMap; the name matches the village Beli (بلي, 33.224 N 36.463 E),
+    6.6 km south of Marj Ruhayyil Air Base. Khalkhalah (33.081 N 36.562 E, 17 km from Beli) was the earlier guess.
+    Reasoning and sources: [world-scale.md](world-scale.md) §1.2.

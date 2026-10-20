@@ -19,7 +19,7 @@ base to its real place (§3.3). Research date: 2026-10-20.
 - **The models are enlarged.** The raw meshes are real size; the Present scale enlarges them: ×2 aircraft and
   buildings, ×3–3.2 vehicles and SAMs, ×4 some radars and trucks (§1.1).
 - **The airbases are enlarged, and some are moved.** The game's runways are ×1.13–1.45 the real ones (Aman ×0.75).
-  Damascus, Kuzeir, Bley and Aman lie within 0.5–2.8 km of the real base; the other six lie 7–29 km away (§1.2).
+  Damascus, Kuzeir and Aman lie within 0.5–1.6 km of the real base; the other seven lie 7–63 km away (§1.2).
 - **The design:** Real 1:1 draws every model at its true size (scale 1) and moves each airbase to its real place:
   one transform per base puts the game's main runway on the real one, at its real length and heading; the base's
   layout, its mission units and markers move with it (the "base move", §3.3).
@@ -94,7 +94,7 @@ The ten iaf.ibx bases against the real ones. "Game" = the runways the setup meas
 | Inshas | Inshas AB | 24.8 km | none in the art (the AI's 3000 × 45 at 270°) | 091° 2576, 046° 2595, 046° 2062 | 0.86 |
 | Damescuss | Mezzeh | 1.6 km | 060° 3946 × 75 | 060° 2834 (45 m wide) | 0.72 |
 | Kuzeir | Al Qusayr AB | 0.5 km | 280° 3702 × 84, 100° 3538 × 75 (parallel) | 100° 3127 (45 m wide) | 0.84 |
-| Bley | Tha'lah AB (inferred) | 2.8 km | 235° 4058 × 95, 055° 3860 × 96 | two, about 3 km each[^thalah] | ≈ 0.75 |
+| Bley | Marj Ruhayyil AB (inferred) | 62.8 km | 235° 4058 × 95, 055° 3860 × 96 | 063° 3084, 063° 2884 (parallel) | 0.76 |
 | Ryak | Rayak AB | 28.6 km | none in the art (AI's 3000 × 45 at 090°) | 047° 3046 | 1.02 |
 | Aman | Queen Alia | 0.7 km | none in the art (AI's 3000 × 45 at 260°) | 080° 4004, 080° 4044 (61 m wide) | 1.33 |
 
@@ -105,8 +105,13 @@ What the table shows:
   Israeli bases' real widths are open.
 - **The layouts are not the real ones** ([imagery.md](imagery.md) §9): no move, rotation and single scale puts the
   game's runways on the real ones (residuals 340–890 m at the three Israeli bases). Ramon is also turned 17°.
-- **Bley.** [georef.md](georef.md) §4 pairs it with Khalkhalah (42.5 km away). Tha'lah AB (32.712 N 36.425 E[^thalah])
-  is 2.8 km from the game's runways and fits the game's position. Inferred: Bley is Tha'lah, not Khalkhalah.
+- **Bley** (checked 2026-10-20). The briefings (237, 511) call it a Syrian MiG base; the game puts it next to
+  Tha'lah AB (32.712 N 36.425 E[^thalah], 2.8 km away). OpenStreetMap has no aerodrome or runway named Bley / Ble /
+  بلي; its only match is the village Beli (بلي, 33.224 N 36.463 E[^beli]), 6.6 km south of Marj Ruhayyil Air Base
+  (33.283 N 36.464 E[^osm]) and 17 km north-west of Khalkhalah Air Base (33.081 N 36.562 E[^khalkhalah]). A report of
+  a "Ble (Bley) airport" ≈ 45 km south of Damascus (ynetnews / Intelli Times, 2023) gives no coordinates; open.
+  Inferred: Bley is the air base named after the nearest village, Marj Ruhayyil (2 runways at 063°, 3.0 and 2.8 km;
+  31 km from Damascus, Khalkhalah 55 km). The base moves 62.8 km north-east.
 - **Base distances** (all 45 pairs, middle to middle): game / real median 1.01, 5th–95th percentile 0.90–1.18,
   extremes 0.71 (Kuzeir–Ryak) and 1.34 (Damascus–Ryak). Ramon–Tel Nof is 90.5 km in the game, 118.7 km real.
 
@@ -216,8 +221,9 @@ real layout (§1.2), but its main runway lies exactly on the real one.
 bases (decision 5; © OpenStreetMap contributors, ODbL 1.0, the attribution in the file's header), their ends in
 lat/lon and in engine metres through the georeference ([georef.md](georef.md)). Made by `tools/real_runways.py`
 (Overpass API, then `iaf-terrain game` per end). Width: the OSM `width` tag (Mezzeh and Al Qusayr 45 m, Queen Alia
-61 m), else 45 m (decided by the agent, to confirm: the Israeli widths are open). Bley = Tha'lah (inferred, §1.2):
-Tha'lah has no `aeroway=runway` way, so its straight 2.7 km way along the base, tagged taxiway, stands in (inferred).
+61 m), else 45 m (decided by the agent, to confirm: the Israeli widths are open). Bley = Marj Ruhayyil (inferred,
+§1.2). Designator: the OSM `ref` (e.g. "07L/25R", magnetic), else from the magnetic heading with a declination of
+5° E (Inshas, Marj Ruhayyil, Rayak, one Bir Gifgafa way; inferred[^wmm]).
 
 **The transform of a base** (`iaf_flight::base_move`, Rust): a similarity (move, turn, one scale k) set by the main
 runway.
@@ -231,11 +237,11 @@ runway.
   across the runway by 0.46–0.6).
 - **Zone A, the base:** the box along the game runway around its ends and every iaf.ibx point (tower, lineup, taxi
   paths, hangars), plus 500 m. Points inside take the similarity.
-- **Zone B, the base's surroundings** (only for the six bases moved more than 5 km: Ramon, Tel Nof, Ramat David,
-  Refidim, Inshas, Ryak): up to 6 km beyond zone A. Points there move and turn with the base and keep their distance
+- **Zone B, the base's surroundings** (only for the seven bases moved more than 5 km: Ramon, Tel Nof, Ramat David,
+  Refidim, Inshas, Bley, Ryak): up to 6 km beyond zone A. Points there move and turn with the base and keep their distance
   from zone A's edge (per axis: `u' = k·hi + (u − hi)` beyond the box). This carries the base's SAM / AAA rings,
   circuit markers and sensors (§1.2: 2–6 km out) without stretching them. Beyond zone B nothing moves.
-- **The four near bases** (Damascus 1.6 km, Kuzeir 0.5, Bley 2.8, Aman 0.7 km) move only zone A. Their surroundings
+- **The three near bases** (Damascus 1.6 km, Kuzeir 0.5, Aman 0.7 km) move only zone A. Their surroundings
   stay with the painted ground (Damascus city's buildings and street lights in "darkness", 2–5 km from the runway;
   Aman's SA-6 sites, 2.8–3.8 km). Decided by the agent, to confirm.
 - **Altitudes:** every moved point keeps its height over the base: z + (the new site's elevation − the old lineup's
@@ -252,7 +258,7 @@ The moves (test `every_base_sits_on_its_real_runway`, crates/iaf-flight/tests/ba
 | Inshas | 271° 2576 × 45 m | +1.0° | 0.86 | 25.0 km |
 | Damascus (Mezzeh) | 240° 2834 × 45 m (06/24) | +0.3° | 0.72 | 1.6 km |
 | Kuzeir (Al Qusayr) | 280° 3127 × 45 m (10/28) | +0.2° | 0.84 | 0.9 km |
-| Bley (Tha'lah, inferred) | 237° 2794 × 45 m | +2.2° | 0.69 | 1.4 km |
+| Bley (Marj Ruhayyil, inferred) | 243° 3084 × 45 m (06/24 from the heading) | +8.1° | 0.76 | 64.8 km |
 | Ryak (Rayak) | 047° 3046 × 45 m | −43.3° | 1.02 | 28.8 km |
 | Aman (Queen Alia) | 260° 4044 × 61 m (08L/26R) | +0.1° | 1.35 | 0.2 km |
 
@@ -432,8 +438,7 @@ Decided:
    ODbL attribution in the repo[^osm].
 
 Decided by the agent (2026-10-20), to confirm:
-- The untagged real runway widths (the Israeli bases, Bir Gifgafa, Inshas, Tha'lah, Rayak): 45 m.
-- Tha'lah's runway: the OSM way tagged taxiway along the base (no runway way in OSM).
+- The untagged real runway widths (the Israeli bases, Bir Gifgafa, Inshas, Marj Ruhayyil, Rayak): 45 m.
 - The main real runway: the one whose heading is nearest RunwayNumber's (the longer of a parallel pair).
 - Zones: zone A = the base's box + 500 m (similarity); zone B (6 km, move and turn without scaling) only at the six
   far-moved bases; the near bases' surroundings stay.
@@ -446,8 +451,7 @@ Decided by the agent (2026-10-20), to confirm:
 
 Open:
 - Ships' true size (§1.1): measure the hull parts.
-- Bley: Tha'lah (2.8 km from the game's base) rather than Khalkhalah (42.5 km, georef.md §4) is inferred; asked
-  the user (2026-10-20). A runway length from imagery would settle it.
+- Bley's real base: Marj Ruhayyil is inferred (§1.2); a source naming the base "Bley" with a place would settle it.
 
 [^f16]: Wikipedia, "General Dynamics F-16 Fighting Falcon", specifications: https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon
 [^f15]: Wikipedia, "McDonnell Douglas F-15 Eagle", specifications: https://en.wikipedia.org/wiki/McDonnell_Douglas_F-15_Eagle
@@ -459,3 +463,7 @@ Open:
 [^osm]: © OpenStreetMap contributors (ODbL), `aeroway=runway` ways via the Overpass API, queried 2026-10-20:
     https://overpass-api.de/
 [^thalah]: Wikipedia, "Tha'lah Military Airbase": https://en.wikipedia.org/wiki/Tha%27lah_Military_Airbase
+[^beli]: OpenStreetMap node 12248489937, place=village, name بلي, name:en Beli (© OpenStreetMap contributors, ODbL):
+    https://www.openstreetmap.org/node/12248489937
+[^khalkhalah]: Wikipedia, "Khalkhalah Military Airbase": https://en.wikipedia.org/wiki/Khalkhalah_Military_Airbase
+[^wmm]: NOAA NCEI, World Magnetic Model 2025, declination calculator: https://www.ngdc.noaa.gov/geomag/calculators/magcalc.shtml
