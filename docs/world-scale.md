@@ -198,7 +198,7 @@ These do **not** depend on size (they stay in Real 1:1, the original's rules):
 | airbases | the 1998 ×2 layout at the game's places | each base moved to its real place, on its real main runway (§3.3) |
 | base-bound mission units, markers, routes | the game's | moved with their base (§3.3) |
 | ground, routes and missions away from bases | unchanged | unchanged |
-| weapon, sensor, blast, sound ranges | unchanged | unchanged (decision 4: real values once sourced) |
+| weapon, sensor, blast, sound ranges | unchanged | unchanged; the gun hit test and the sourced blast radii follow Weapon data Real (decision 4, §4.1) |
 
 **How the modes coexist:** one setting, `Settings.world_scale` = "original" / "real" (settings.cfg, Extras page).
 It is read at mission load only: the models get their scale when spawned, the base moves are set up before the
@@ -333,9 +333,14 @@ until the user decides to show it.
   The flight model needed no change; the clearance is its one size input.
 - **Stores:** at 1:1 a store is drawn at its launch point (`body_to_world(attach)`); at ×2 it is drawn 5.3 m off it
   (F-16, mission 311).
-- **Hit volumes (decision 4):** with Weapon data Real the gun hit sphere and blast radii are to take real values
-  for true-size targets. No sourced values yet, so both modes keep the original's; the switch point is
-  `weapon_db.gd` `create` (open).
+- **Hit volumes (decision 4):** built with Weapon data Real, in both world scales (docs/real-weapons.md §1.4). The
+  gun hits when the round's path since the last check passes within the target's drawn half-span + 0.004 · range
+  (×2 with Easy aiming), in place of the 25 m sphere. The half-span is the drawn model's: true size in World scale
+  Real, the Present scale (×2 for most jets) in Original, so the hit follows what the player sees (inferred). The
+  missiles and SAMs with a published lethal radius (SA-2, SA-3, SA-8, AA-2, AA-8, AIM-7B / F / M) get a blast
+  radius from it. With Weapon data Original both stay the original's. Open: the lethal radii of the other missiles
+  and SAMs (they keep the original's), the DEFA's dispersion (the M61A1's used), the blast formula's unit size
+  (2.5 m for almost every unit, not the target's real half-size), and a ground unit's length (its width is used).
 - **Tests:** `tests/godot/test_world_scale.gd` (the helper and a settings round trip; missions 311 and 214 in both
   modes: every unit at 1 with its radius / Present scale, or kept; 11 AI jets, 15 SAM / AAA units, 71 buildings at 1;
   the same units hidden; the player's jet ×1, its origin 1.69 m over the runway, eye and gun halved, stores at their

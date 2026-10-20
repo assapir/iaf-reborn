@@ -170,7 +170,7 @@ func setup(h: Node, flights: Node, bdb: Dictionary) -> void:
 			if int(w.type) == 560:
 				m = {"_spiralAccel": 0.0}  # as the player's rockets: no hit sphere, they burst on the ground
 				m.merge(db.motion_for(560, int(w.generation)), true)
-			u.rounds.configure(m, int(w.type))
+			u.rounds.configure(m, int(w.type), db.real)
 			u.rounds.units = _units_of
 			u.rounds.ground = host.mission_ground
 			u.rounds.detonate = _detonate.bind(String(ent.key))  # the key, not u: u holds the rounds (a cycle never freed)
@@ -250,7 +250,7 @@ func _setup_aircraft(ent: Dictionary, obj: Dictionary, db, now: float, given: Ar
 	if not gw.is_empty():
 		var m: Dictionary = db.motion_for(565, int(gw.generation))
 		u.rounds = GunRounds.new()
-		u.rounds.configure(m, 565)
+		u.rounds.configure(m, 565, db.real)
 		u.rounds.units = _units_of
 		u.rounds.ground = host.mission_ground
 		u.rounds.detonate = _detonate.bind(String(ent.key))  # the key, not u: u holds the rounds (a cycle never freed)
@@ -353,12 +353,20 @@ static func sensor_nm(type: int) -> float:
 	return 40.0
 
 
-## The units a round can hit ({key, pos}): the player and every drawn unit (the round's candidates are its target).
+## The units a round can hit ({key, pos, half_span}): the player and every drawn unit (the round's candidates are its
+## target).
 func _units_of() -> Array:
 	var out := []
 	for ent in ai.runtime.entities.values():
 		if int(ent.state) < 5 and (ent.player or ent.node != null):
-			out.append({"key": ent.key, "pos": ai.runtime._world_of(ent)})
+			var model = host.get("aircraft") if ent.player else ent.node
+			out.append(
+				{
+					"key": ent.key,
+					"pos": ai.runtime._world_of(ent),
+					"half_span": GunRounds.half_span_of(ent, model if model is Node3D else null)
+				}
+			)
 	return out
 
 

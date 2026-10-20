@@ -27,6 +27,11 @@ const EASY_OFF_FACTOR: f64 = 0.5;
 const MAX_RANGE: f64 = 30000.0;
 /// Without terrain a round detonates at 0.1 m.
 const NO_TERRAIN_Z: f64 = 0.1;
+/// Weapon data Real (docs/real-weapons.md §1.4): the M61A1's dispersion, 8 mrad diameter for 80 % of the rounds,
+/// as a radius per metre of range (GD-OTS data sheet).
+const REAL_DISPERSION: f64 = 0.004;
+/// Weapon data Real with Easy aiming: the real hit volume doubled (ours).
+const REAL_EASY_FACTOR: f64 = 2.0;
 
 /// The first terrain point on the segment `p0` → `a` (`FUN_004020d0`; ours: steps of 2 % of the distance, at least
 /// 25 m, then 8 halvings), None when it is clear.
@@ -87,6 +92,9 @@ pub struct Motion {
     pub pool_size: usize,
     /// Not the gun (type 565): a round without candidates has its aim cut at the terrain (`FUN_004d7690`).
     pub cut_aim: bool,
+    /// Weapon data Real, the gun only: a round hits when its path since the last check passes within the target's
+    /// half-span + 0.4 % of the range (`real_hit`), in place of the sphere round the candidate's origin.
+    pub real_hits: bool,
 }
 
 impl Default for Motion {
@@ -100,6 +108,7 @@ impl Default for Motion {
             hit_distance: 50.0,
             pool_size: 20,
             cut_aim: false,
+            real_hits: false,
         }
     }
 }
@@ -172,11 +181,12 @@ impl Motion {
     }
 }
 
-/// A unit a round can hit: its key and origin.
+/// A unit a round can hit: its key, origin and drawn half-span (m; read only with `Motion::real_hits`).
 #[derive(Clone, Debug, PartialEq)]
 pub struct Body {
     pub key: String,
     pub pos: Vec3,
+    pub half_span: f64,
 }
 
 /// One shot (`FUN_00456d40` after the ammo checks).
@@ -203,7 +213,11 @@ pub struct Round {
     /// The units it can hit (`FUN_004577c0`).
     pub candidates: Vec<String>,
     pub hit_radius: f64,
+    /// Easy aiming (with `Motion::real_hits`: the real hit volume ×2).
+    pub easy: bool,
     next_check: f64,
+    /// The position at the last check (the start of the segment the next check sweeps).
+    last: Vec3,
 }
 
 /// What ended a round.
@@ -279,7 +293,9 @@ impl Rounds {
             flight,
             candidates,
             hit_radius: self.motion.hit_distance * if shot.easy_aiming { 1.0 } else { EASY_OFF_FACTOR },
+            easy: shot.easy_aiming,
             next_check: now + self.motion.check_period,
+            last: shot.muzzle,
         });
         Some(slot)
     }
@@ -323,6 +339,7 @@ impl Rounds {
                     *entry = None;
                     return Some(Detonation { slot, pos, hit });
                 }
+                round.last = m.position(&round.flight, t);
             }
             if now >= round.flight.t_end {
                 let pos = round.flight.a;
@@ -344,14 +361,30 @@ fn check(
 ) -> Option<(Vec3, Hit)> {
     let p = m.position(&round.flight, t);
     // The last body of a key wins (the original's lookup by id).
-    let hit = round
-        .candidates
-        .iter()
-        .find(|k| bodies.iter().rev().find(|b| &b.key == *k).is_some_and(|b| p.distance(b.pos) < round.hit_radius));
-    if let Some(key) = hit {
-        return Some((p, Hit::Unit { key: key.clone(), candidates: round.candidates.clone() }));
+    let hit = round.candidates.iter().find_map(|k| {
+        let b = bodies.iter().rev().find(|b| &b.key == k)?;
+        if m.real_hits {
+            // A contact hit (point-detonating fuze): the blast at the target's origin.
+            real_hit(round, p, b).then_some((b.pos, k))
+        } else {
+            (p.distance(b.pos) < round.hit_radius).then_some((p, k))
+        }
+    });
+    if let Some((pos, key)) = hit {
+        return Some((pos, Hit::Unit { key: key.clone(), candidates: round.candidates.clone() }));
     }
     (p.z <= terrain(p).unwrap_or(NO_TERRAIN_Z)).then_some((p, Hit::Ground))
+}
+
+/// Weapon data Real (docs/real-weapons.md §1.4): the segment the round flew since the last check (to `p`) passes
+/// within the target's half-span + 0.4 % of the range (×2 with Easy aiming) of its origin. A round covers about
+/// 145 m per 0.1 s check, so a point test would step over a fighter-size target.
+fn real_hit(round: &Round, p: Vec3, b: &Body) -> bool {
+    let (a, ab) = (round.last, p - round.last);
+    let s = if ab.length_squared() > 0.0 { ((b.pos - a).dot(ab) / ab.length_squared()).clamp(0.0, 1.0) } else { 0.0 };
+    let q = a + ab * s;
+    let r = b.half_span + REAL_DISPERSION * round.flight.p0.distance(q);
+    q.distance(b.pos) < r * if round.easy { REAL_EASY_FACTOR } else { 1.0 }
 }
 
 /// The jet as the LCOS reads it: attitude (degrees), speed (m/s), load factor and the flight model's `alpha`.
@@ -430,7 +463,7 @@ mod tests {
     }
 
     fn body(key: &str, x: f64, y: f64, z: f64) -> Body {
-        Body { key: key.into(), pos: Vec3::new(x, y, z) }
+        Body { key: key.into(), pos: Vec3::new(x, y, z), half_span: 5.0 }
     }
 
     fn shot<'a>(aim: Vec3, easy: bool) -> Shot<'a> {
@@ -468,6 +501,28 @@ mod tests {
         assert!(matches!(det.hit, Hit::Unit { ref key, .. } if key == "u"));
         assert_eq!(g.step(2.0, &bodies, &|_| Some(0.0)), None);
         assert!(g.slots()[0].is_none());
+    }
+
+    #[test]
+    fn real_hits_sweep_the_path_between_checks() {
+        // A fighter (half-span 5 m) 1000 m out, 5 m / 10 m off the line, between two 0.1 s checks (~140 m apart).
+        let real = Motion { real_hits: true, ..gun() };
+        let aim = Vec3::new(0.0, 2781.0, 100.0);
+        let fly = |off: f64, easy: bool| {
+            let mut g = Rounds::new(real);
+            let bodies = [body("u", off, 1070.0, 100.0)];
+            g.fire(0.0, &shot(aim, easy), &bodies, &|_| None);
+            g.step(3.0, &bodies, &|_| Some(0.0)).map(|d| d.hit)
+        };
+        // 1000 m: 5 m + 4 m of dispersion = 9 m.
+        assert!(matches!(fly(5.0, false), Some(Hit::Unit { ref key, .. }) if key == "u"), "5 m off: a hit");
+        assert_eq!(fly(10.0, false), Some(Hit::End), "10 m off: a miss");
+        assert!(matches!(fly(10.0, true), Some(Hit::Unit { .. })), "Easy aiming: 18 m");
+        // A point test at the checks with a 1 m sphere steps over a target right on the line.
+        let mut g = Rounds::new(Motion { hit_distance: 2.0, ..gun() });
+        let bodies = [body("u", 0.0, 1070.0, 100.0)];
+        g.fire(0.0, &shot(aim, false), &bodies, &|_| None);
+        assert_eq!(g.step(3.0, &bodies, &|_| Some(0.0)).map(|d| d.hit), Some(Hit::End));
     }
 
     #[test]

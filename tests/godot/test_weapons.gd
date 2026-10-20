@@ -88,6 +88,19 @@ func run() -> void:
 		),
 		"Real flags: AIM-9D rear-aspect 11 km 12 g, Python 4 cone 60°"
 	)
+	# Blast radii (docs/real-weapons.md §1.4): only the sourced missiles / SAMs change, only with Real.
+	var orig := {}
+	for id in db.weapons:
+		orig[db.weapons[id].name] = db.weapons[id].radius
+	var radius_want := {
+		"SA2": 65.0, "SA3": 12.5, "SA8": 5.0, "AA-8": 2.5, "AIM-7F": 12.0, "AIM-7M": 23.75, "AIM-7B": 38.0
+	}
+	var radii_ok: bool = orig.SA2 == 40.0 and orig["AIM-7M"] == 20.0 and orig["AA-8"] == 15.0
+	for n in radius_want:
+		radii_ok = radii_ok and is_equal_approx(by_name[n].radius, radius_want[n])
+	for n in ["AIM-9L", "PYTH-3", "SA6", "MK-82", "20 MM"]:
+		radii_ok = radii_ok and by_name[n].radius == orig[n]
+	check(radii_ok, "Real blast radii from the lethal radii (SA-2 65 m, AIM-7M 23.75 m); the rest and Original kept")
 	var sk = load("res://weapons/ir_seeker.gd").new()
 	sk.set_weapon(by_name["AIM-9D"])
 	var me := {"pos": Vector3.ZERO, "yaw": 0.0}
@@ -161,6 +174,26 @@ func run() -> void:
 	check(det.size() == 1 and det[0][2].get("key", "") == "u", "round hits the unit on the line")
 	g.fire(3.0, Vector3(0, 0, 100), Vector3(0, 0, 100), Vector3(0, 200, 0), Vector3(0, 2781, 100), "", "me", true)
 	check(is_equal_approx(g.pool[1].hit_r, 50.0), "Easy aiming: hit sphere 50 m")
+	# Weapon data Real: the swept hit test against the half-span (docs/real-weapons.md §1.4), 8 m off at 1070 m.
+	var gr = G.new()
+	gr.configure(db.motion_for(565, 0), 565, true)
+	gr.ground = g.ground
+	var side := {"key": "u", "pos": Vector3(8, 1070, 100), "half_span": 5.0}
+	gr.units = func(): return [side]
+	var det_r := []
+	gr.detonate = func(_r, p, _c, h): det_r.append([p, h])
+	var shoot := func(t: float):
+		gr.fire(t, Vector3(0, 0, 100), Vector3(0, 0, 100), Vector3(0, 200, 0), Vector3(0, 2781, 100), "", "me", false)
+	shoot.call(0.0)
+	gr.update(3.0)
+	var real_hit: bool = det_r.size() == 1 and det_r[0][1].get("key", "") == "u"
+	side.half_span = 2.0
+	shoot.call(4.0)
+	gr.update(7.0)
+	check(
+		real_hit and det_r.size() == 2 and det_r[1][1].is_empty(),
+		"Real gun: a 5 m half-span 8 m off the line is hit, a 2 m one missed"
+	)
 
 	# --- in flight: mission 231 ---------------------------------------------------------------
 	var tv = await start_mission(231)
@@ -173,6 +206,12 @@ func run() -> void:
 	check(w != null and not w.stores.stations.is_empty(), "the player's stores are set up")
 	var o: Dictionary = w.own()
 	var mig: Dictionary = tv.runtime.entities.values().filter(func(e): return e.name == "mig23_0")[0]
+	var span: float = w._units().filter(func(u): return u.key == mig.key)[0].half_span
+	var mig_scale: float = mig.node.scale.x
+	# The MiG-23's real span: 13.97 m spread, 7.78 m swept; drawn at its Present scale in World scale Original.
+	check(
+		span / mig_scale > 3.8 and span / mig_scale < 7.0, "MiG-23 half-span %.1f m drawn (×%.1f)" % [span, mig_scale]
+	)
 	var dline: Vector3 = G.shot_dir(o.fwd, o.up)
 	var tpos: Vector3 = o.pos + dline * 600.0
 	mig.world = tpos

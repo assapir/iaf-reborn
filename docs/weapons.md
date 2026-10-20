@@ -316,6 +316,10 @@ Every 0.1 s (`FUN_00560710`) the round detonates:
 
 The round moves ~145 m per check, so it can step over the sphere (original).
 
+Ours, with Weapon data Real (docs/real-weapons.md §1.4): the check sweeps the segment flown since the last one and
+hits within the target's drawn half-span + 0.004 · range (×2 with Easy aiming); the blast goes off at the target's
+origin.
+
 ### 3.5 Detonation (`FUN_004d6130`, `FUN_004d7c80`)
 - Sphere hit: the blast (power 100, radius 50 for "20 MM" / DEFA) reaches the round's candidate list only.
 - Ground or end: the blast reaches every unit around.

@@ -5,8 +5,14 @@ use crate::world::{get, terrain, vec3, vector3};
 use godot::prelude::*;
 use iaf_avionics::gun::{self, Body, Flight, Hit, JetState, Lcos, Motion, Rounds, Shot};
 
-fn bodies(keys: &PackedStringArray, positions: &PackedVector3Array) -> Vec<Body> {
-    keys.as_slice().iter().zip(positions.as_slice()).map(|(k, &p)| Body { key: k.to_string(), pos: vec3(p) }).collect()
+fn bodies(keys: &PackedStringArray, positions: &PackedVector3Array, spans: &PackedFloat64Array) -> Vec<Body> {
+    let spans = spans.as_slice();
+    keys.as_slice()
+        .iter()
+        .zip(positions.as_slice())
+        .enumerate()
+        .map(|(i, (k, &p))| Body { key: k.to_string(), pos: vec3(p), half_span: spans.get(i).copied().unwrap_or(0.0) })
+        .collect()
 }
 
 fn flight(f: &Flight) -> VarDictionary {
@@ -29,7 +35,7 @@ impl IafRounds {
 impl IafRounds {
     /// The motion of a weapons.ibx section (_absAcceleration, _limitVel, _limitDist, _velocityJump,
     /// _timeConstOrientation = the check period, _spiralAccel = the hit distance, _maxNumInAir) for weapon `type`
-    /// (565 = the gun); an empty pool.
+    /// (565 = the gun; with `real_hits` true, Weapon data Real: the swept real hit test); an empty pool.
     #[func]
     fn configure(&mut self, m: VarDictionary, r#type: i64) {
         let d = Motion::default();
@@ -43,6 +49,7 @@ impl IafRounds {
             hit_distance: f("_spiralAccel", d.hit_distance),
             pool_size: get::<i64>(&m, "_maxNumInAir").and_then(|n| usize::try_from(n).ok()).unwrap_or(d.pool_size),
             cut_aim: r#type != 565,
+            real_hits: r#type == 565 && get::<bool>(&m, "real_hits").unwrap_or(false),
         };
         self.rounds = Some(Rounds::new(motion));
     }
@@ -86,8 +93,8 @@ impl IafRounds {
         self.rounds.as_ref().is_some_and(Rounds::next_free)
     }
 
-    /// One shot: its pool slot, or −1 when the pooled round is still in the air. `locked` "" = no radar lock; the units as keys and
-    /// positions. `shot` = {origin, muzzle, velocity, aim (Vector3), locked, shooter (String), easy_aiming (bool), targets}:
+    /// One shot: its pool slot, or −1 when the pooled round is still in the air. `locked` "" = no radar lock; the units as keys,
+    /// positions and drawn half-spans (m). `shot` = {origin, muzzle, velocity, aim (Vector3), locked, shooter (String), easy_aiming (bool), targets}:
     /// `targets` a PackedStringArray of a ground unit's round's only candidates (docs/ai.md §14), else null.
     #[func]
     fn fire(
@@ -96,6 +103,7 @@ impl IafRounds {
         shot: VarDictionary,
         keys: PackedStringArray,
         positions: PackedVector3Array,
+        spans: PackedFloat64Array,
         terrain_at: Callable,
     ) -> i64 {
         let v = |k: &str| vec3(get(&shot, k).unwrap_or_default());
@@ -117,7 +125,7 @@ impl IafRounds {
             easy_aiming: get(&shot, "easy_aiming").unwrap_or(false),
             targets: targets.as_deref(),
         };
-        let b = bodies(&keys, &positions);
+        let b = bodies(&keys, &positions, &spans);
         let t = terrain(Some(terrain_at));
         self.rounds.as_mut().and_then(|r| r.fire(now, &shot, &b, &t)).map_or(-1, |slot| slot as i64)
     }
@@ -130,9 +138,10 @@ impl IafRounds {
         now: f64,
         keys: PackedStringArray,
         positions: PackedVector3Array,
+        spans: PackedFloat64Array,
         terrain_at: Callable,
     ) -> VarDictionary {
-        let b = bodies(&keys, &positions);
+        let b = bodies(&keys, &positions, &spans);
         let t = terrain(Some(terrain_at));
         let Some(d) = self.rounds.as_mut().and_then(|r| r.step(now, &b, &t)) else { return VarDictionary::new() };
         let mut out = vdict! { "slot" => d.slot as i64, "pos" => vector3(d.pos) };

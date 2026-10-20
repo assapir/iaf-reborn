@@ -7,8 +7,9 @@ how each number maps onto the original model.
   switch from Flight data.
 - **What it changes:** Real overlays public real-world numbers on the original weapon records
   (`game/weapons/real_weapons.gd`). A value that no public source gives keeps its 1998 value.
-- **What stays the same:** the rules (chase law, gun timer, hit spheres) stay the original's (docs/weapons.md). The IR
-  seeker's lock ranges follow §1.2.
+- **What stays the same:** the rules (chase law, gun timer) stay the original's (docs/weapons.md). The IR seeker's
+  lock ranges follow §1.2; the gun's hit test and the blast radii of the missiles and SAMs with a published lethal
+  radius follow §1.4.
 
 ## 1. Values
 
@@ -93,6 +94,56 @@ keeps the original gun and count.
 U marks an uncertain figure. LRS is long-range search; STT is single-target track. The table is keyed by aircraft type
 (`RADAR_KM`, like `GUN_ROUNDS`), so a new jet needs only its own row.
 
+### 1.4 Hit volumes
+**Gun** (`real_hit`, crates/iaf-avionics/src/gun.rs; every gun round, type 565: the player's, the AI jets' and the
+AAA's). A round hits a candidate when the segment it flew since the last 0.1 s check passes within
+
+  r = (the target's half-span + 0.004 · range) · (2 with Easy aiming)
+
+of the candidate's origin. The blast then goes off at that origin (a contact hit), with the original power and radius.
+The original tests the round's point against a 25 m sphere (50 m with Easy aiming) at each check (docs/weapons.md
+§3.4).
+
+- **0.004 · range:** the M61A1 puts 80 % of its rounds inside an 8 mrad circle (diameter)[^gdots], a 4 mrad radius:
+  2 m at 500 m, 4 m at 1000 m. The DEFA's dispersion is open; it uses the same value (inferred).
+- **Half-span:** US 20 mm HEI uses the M505 point-detonating fuze, which fires on impact[^m505], so a round damages
+  only by striking the airframe. The target's half-span is half the X extent (across the wings) of its drawn model
+  (`gun_rounds.gd` `half_span_of`): in World scale Real the true size (an F-16 4.98 m[^f16], a MiG-21 3.58 m[^mig21],
+  a MiG-29 5.68 m[^mig29], a MiG-23 6.99 m spread / 3.89 m swept[^mig23]); in World scale Original the model at its
+  Present scale, ×2 for most jets (the MiG-23's model: 6.0 m, drawn 12.0 m). The hit volume follows what the player
+  sees, so a round that visibly passes through a wing hits (inferred). A ground unit's half-span is half its width.
+- **The swept segment:** a round flies about 145 m per check, so a point test would step over a 5–8 m target almost
+  always.
+- **Easy aiming ×2:** ours, as the original doubles its sphere with Easy aiming.
+- At 500 m an F-16 is hit within 7.0 m of its origin, a MiG-21 within 5.6 m (the original: 25 m).
+
+**Blast radii** (`LETHAL_M`, `blast_radius` in real_weapons.gd). The blast formula's radius R (bdb `0x74e`) is the
+zero-damage edge, not a lethal radius (docs/damage.md §4.1): on one axis the damage is P · (1 − d / R), with
+d = the distance less the unit's size s (2.5 m for almost every unit). Real keeps the power P and sets R so that one
+hit destroys a fighter (strength S = 300, the F-16's) within the real lethal radius L of its origin on one axis:
+
+  R = (L − s) / (1 − S / P); R = L when P ≤ S (one hit never destroys a fighter on its own, in the original too)
+
+This rule is ours (inferred). Only the weapons with a published lethal radius change:
+
+| bdb | P | lethal radius L | R (orig.) | source |
+|---|---|---|---|---|
+| SA2 (S-75 V-750) | 300 | 65 m at low altitude, up to 250 m high | 65 (40) | [^s75] |
+| SA3 (S-125 V-601) | 250 | 12.5 m (one secondary source, weak) | 12.5 (30) | [^armsnet] |
+| SA8 (9K33 Osa) | 200 | 5 m at low altitude against an F-4-size target | 5 (40) | [^osa] |
+| AA-2 (R-3S) | 200 | hits within 10 m (fuze detection 9 m) | 10 (10) | [^polot] |
+| AA-8 (R-60) | 200 | about 2.5 m (news sources) | 2.5 (15) | [^liga] |
+| AIM-7B | 400 | kill radius 40 ft (12 m), variant not given | 38 (30) | [^fw] |
+| AIM-7F | 300 | as AIM-7B | 12 (30) | [^fw] |
+| AIM-7M | 500 | as AIM-7B | 23.75 (20) | [^fw] |
+
+- The AIM-7 rows show the rule's step at P = S: the same 12 m gives 12 m for the AIM-7F (P 300) and 23.75 m for the
+  AIM-7M (P 500), since only a warhead stronger than the fighter destroys it in one hit.
+- The AIM-9A / B's "effective kill radius about 9 m"[^ds9] is for a 4.5 kg warhead; the game has the AIM-9D / L / M,
+  which keep the original's radius, as do every other missile and SAM without a published value (Python, Shafrir,
+  R-73, R-40, R-27, AMRAAM, SA-5, SA-6, SA-13, Hawk) and the bombs (their original radii are already near the real
+  ones).
+
 ## 2. Mapping onto the original's model
 Each real value lands in one field or rule of the original model:
 
@@ -124,11 +175,14 @@ Each real value lands in one field or rule of the original model:
 - **Radar:** the LRS (and so STT) detection NM = km · 1000 / 1854.
 - **Guns:** the station holds the real rounds and shows them 1:1 (orig. ×4 / ×2). The 0.2 s shot tick fires
   rate · 0.2 s rounds (M61A1 20, two DEFA 8.67). The round's `_velocityJump` / `_limitVel` = the muzzle velocity.
+  The hit test is §1.4's.
+- **Blast radius:** bdb `0x74e` from the lethal radius (§1.4).
 
 ## 3. Validation
 | test | checks |
 |---|---|
-| `tests/godot/test_weapons.gd` | AIM-9L 86 kg; F-16 511 rounds shown; one M61A1 tick = 20 rounds; the derived chase values (stored in the record's `motion`): AIM-9L top speed a/β = 851 m/s = Mach 2.5, the distance flown in burn + 6 s from 250 m/s = 17.7 km; its DLZ against a still target between 15 and 17.7 km; the AIM-9D / Python 4 flags; the AIM-9D seeker refuses a head-on target; the AIM-9L locks head-on at 2 km, not at 5 km without afterburner; the AIM-9D 12 g clamp |
+| `tests/godot/test_weapons.gd` | AIM-9L 86 kg; F-16 511 rounds shown; one M61A1 tick = 20 rounds; the derived chase values (stored in the record's `motion`): AIM-9L top speed a/β = 851 m/s = Mach 2.5, the distance flown in burn + 6 s from 250 m/s = 17.7 km; its DLZ against a still target between 15 and 17.7 km; the AIM-9D / Python 4 flags; the AIM-9D seeker refuses a head-on target; the AIM-9L locks head-on at 2 km, not at 5 km without afterburner; the AIM-9D 12 g clamp; the §1.4 blast radii (only the sourced ones, only with Real); the real gun hit test (a 5 m half-span 8 m off the line at 1070 m hit, a 2 m one missed); the MiG-23's drawn half-span in 231 |
+| `crates/iaf-avionics/src/gun.rs` `real_hits_sweep_the_path_between_checks` | a fighter 5 m off the line between two checks is hit, 10 m off missed, 10 m with Easy aiming hit; a point test steps over it |
 | `tests/godot/test_radar.gd` | the F-16's 80 km |
 | `tests/godot/test_radar_missiles.gd` | the AMRAAM's 157 kg, a/β = Mach 4 and the distance flown in burn + 6 s from 250 m/s = 70 km; the AIM-7B's DLZ against a still target about 5.7 km (not empty) |
 | `crates/iaf-avionics/src/sight.rs` `real_rear_sector`, `real_front_mil_ab_and_none`, `original_range_and_aspect` | the §1.2 rules: rear range and its R/2 afterburner rule, the 60° sector, front with / without afterburner, no front lock, the original unchanged |
@@ -181,3 +235,21 @@ Each real value lands in one field or rule of the original model:
 [^hb14]: Heatblur, F-14 manual, AIM-9 page (40° seeker limit; a simulator; the page now returns 404), https://f14.manuals.heatblur.se/stores/air_to_air/aim_9.html
 [^vrs]: VRS Superbug wiki, "AIM-9 Sidewinder" (a simulator), https://forums.vrsimulations.com/support/index.php/AIM-9_Sidewinder
 [^hoggit]: Hoggit wiki, "F/A-18C" (a simulator), https://wiki.hoggitworld.com/view/F/A-18C
+
+[^gdots]: General Dynamics OTS, "20mm M61A1/M61A2 Gatling Gun" data sheet (dispersion 8 mrad diameter, 80 % circle):
+    https://gd-ots.com/wp-content/uploads/2024/11/400003097-20mm-M61A1-M61A2-Gatling-Gun.pdf
+[^m505]: Bulletpicker, "PD M505A3" (point-detonating, functions on impact; for 20 mm HEI against aircraft):
+    https://bulletpicker.com/pd_-m505a3.html
+[^f16]: Wikipedia, "General Dynamics F-16 Fighting Falcon": https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon
+[^mig21]: Wikipedia, "Mikoyan-Gurevich MiG-21" (span 7.15 m): https://en.wikipedia.org/wiki/Mikoyan-Gurevich_MiG-21
+[^mig29]: Wikipedia, "Mikoyan MiG-29" (span 11.36 m): https://en.wikipedia.org/wiki/Mikoyan_MiG-29
+[^mig23]: Wikipedia, "Mikoyan-Gurevich MiG-23" (span 13.97 m spread, 7.78 m swept): https://en.wikipedia.org/wiki/Mikoyan-Gurevich_MiG-23
+[^ds9]: Andreas Parsch, Designation-Systems.net, "AIM-9 Sidewinder": https://designation-systems.net/dusrm/m-9.html
+[^fw]: Fly and Wire, "Unsung hero: the AIM-7 Sparrow, part I" (citing P-825; kill radius 40 ft):
+    https://flyandwire.com/2022/10/05/unsung-hero-the-aim-7-sparrow-part-i/
+[^polot]: Polot.net, "R-3, R-13M guided missile" (1000 fragments, hit radius 10 m; fuze detection 9 m): https://polot.net/?p=3936
+[^liga]: LIGA.net, on R-60 dummies (non-contact fuze, destruction within ≈2.5 m):
+    https://news.liga.net/en/amp/war/news/russia-starts-firing-drones-with-dummy-close-combat-missiles---photos
+[^s75]: Wikipedia, "S-75 Dvina": https://en.wikipedia.org/wiki/S-75_Dvina
+[^armsnet]: Armsnet, S-125 data (kill radius 12.5 m): https://armsnet.duckdns.org/equipment/f689b32c-5770-4c4c-e5d6-08de6e3c1543
+[^osa]: Wikipedia, "9K33 Osa": https://en.wikipedia.org/wiki/9K33_Osa

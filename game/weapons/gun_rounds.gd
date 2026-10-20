@@ -4,7 +4,10 @@
 # t_end, A, cands, hit_r}). World frame X east, Y north, Z up, metres, sim seconds.
 extends RefCounted
 
-## Callbacks set by the owner: units() -> [{key, pos: Vector3 world}], ground(p) -> height or null,
+const Gltf := preload("res://util/gltf.gd")
+
+## Callbacks set by the owner: units() -> [{key, pos: Vector3 world, half_span (m, optional: Weapon data Real's hit
+## test, half_span_of)}], ground(p) -> height or null,
 ## detonate(round, pos, hit_units: Array or null, hit_unit or {}) — null = the area query.
 var units: Callable
 var ground: Callable
@@ -19,9 +22,11 @@ var _by_key := {}
 
 
 ## The motion of a weapons.ibx section for weapon `type` (565 = the gun: its aim is never cut at the terrain); an
-## empty pool.
-func configure(m: Dictionary, type: int) -> void:
-	_r.configure(m, type)
+## empty pool. `real` = Weapon data Real: the gun's swept real hit test (docs/real-weapons.md §1.4).
+func configure(m: Dictionary, type: int, real := false) -> void:
+	var mm := m.duplicate()
+	mm["real_hits"] = real
+	_r.configure(mm, type)
 	velocity_jump = _r.velocity_jump()
 	pool.clear()
 	_sync()
@@ -79,7 +84,7 @@ func fire(
 		"easy_aiming": easy,
 		"targets": PackedStringArray(only) if only != null else null,
 	}
-	var slot: int = _r.fire(now, shot, b[0], b[1], ground)
+	var slot: int = _r.fire(now, shot, b[0], b[1], b[2], ground)
 	_sync()
 	return slot
 
@@ -88,7 +93,7 @@ func fire(
 func update(now: float) -> void:
 	while flying_count() > 0:
 		var b := _bodies()
-		var d: Dictionary = _r.step(now, b[0], b[1], ground)
+		var d: Dictionary = _r.step(now, b[0], b[1], b[2], ground)
 		_sync()
 		if d.is_empty():
 			return
@@ -106,16 +111,27 @@ func flying_count() -> int:
 	return pool.filter(func(r): return r.flying).size()
 
 
-## [keys, positions] of the units now.
+## [keys, positions, half-spans] of the units now.
 func _bodies() -> Array:
 	var keys := PackedStringArray()
 	var pos := PackedVector3Array()
+	var spans := PackedFloat64Array()
 	_by_key = {}
 	for u in units.call() if units.is_valid() else []:
 		keys.append(u.key)
 		pos.append(u.pos)
+		spans.append(float(u.get("half_span", 0.0)))
 		_by_key[u.key] = u
-	return [keys, pos]
+	return [keys, pos, spans]
+
+
+## A unit's half-span as drawn (m): half the X extent (across the wings; a model faces −Z) of its `model` at its scale
+## (in World scale Original the Present scale, ×2 for most jets), kept in `ent` after the first call; 0 without a
+## model. ponytail: a ground unit's width, also seen end-on; its length if strafing along it ever needs it.
+static func half_span_of(ent: Dictionary, model: Node3D) -> float:
+	if not ent.has("half_span") and model != null:
+		ent["half_span"] = 0.5 * Gltf.model_aabb(model).size.x * model.scale.x
+	return float(ent.get("half_span", 0.0))
 
 
 ## The pool records follow the slots in place (a landed round keeps its last flight, flying = false).

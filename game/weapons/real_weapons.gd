@@ -9,7 +9,8 @@
 # - missile range: the flight ends burn + 6 s after launch; the burn is the one with which the
 #   motion flies the range from a 250 m/s launch (IafMissile.real_burn, at least 1 s).
 # - gun: rounds per jet (station count, shown 1:1), rate of fire (rounds used per 0.2 s shot tick)
-#   and muzzle velocity (the round's velocityJump).
+#   and muzzle velocity (the round's velocityJump); the hit test is the real one (gun.rs real_hit, §1.4).
+# - blast radius: from a sourced lethal radius (LETHAL_M, blast_radius, §1.4).
 extends RefCounted
 
 const LB_PER_KG := 1.0 / 0.45359
@@ -86,10 +87,38 @@ const GUN_ROUNDS := {
 	1000: 180,  # F-35I: GAU-22/A 25 mm, 180 rounds (the 20 MM record stands in)
 }
 
+## bdb weapon name -> the real lethal radius (m) of the missiles and SAMs with a published one (docs/real-weapons.md
+## §1.4); the others keep the original's blast radius.
+const LETHAL_M := {
+	"SA2": 65.0,  # S-75: 65 m at low altitude
+	"SA3": 12.5,  # S-125: one secondary source
+	"SA8": 5.0,  # 9K33 Osa: 5 m at low altitude against an F-4-size target
+	"AA-2": 10.0,  # R-3S: hits within 10 m
+	"AA-8": 2.5,  # R-60: about 2.5 m
+	"AIM-7B": 12.0,  # Sparrow: kill radius 40 ft, variant not given
+	"AIM-7F": 12.0,
+	"AIM-7M": 12.0,
+}
+## The blast formula's target: a fighter's strength (the F-16's, bdb 0x56e) and its size (0.5 · 0x564, docs/damage.md
+## §2.1).
+const FIGHTER_STRENGTH := 300.0
+const FIGHTER_SIZE := 2.5
+
+
+## The blast radius (bdb 0x74e, the zero-damage edge) for a warhead of `power` with the real lethal radius `lethal`:
+## one hit destroys a fighter within `lethal` of its origin on one axis, (L − s) / (1 − S / P); where the power never
+## destroys it in one hit (P ≤ S), the zero-damage edge at the lethal radius.
+static func blast_radius(power: float, lethal: float) -> float:
+	if power <= FIGHTER_STRENGTH:
+		return lethal
+	return (lethal - FIGHTER_SIZE) / (1.0 - FIGHTER_STRENGTH / power)
+
 
 static func apply(db: RefCounted) -> void:
 	for id in db.weapons:
 		var w: Dictionary = db.weapons[id]
+		if LETHAL_M.has(w.name):
+			w.radius = blast_radius(float(w.power), LETHAL_M[w.name])
 		if MISSILES.has(w.name):
 			var r: Dictionary = MISSILES[w.name]
 			w.weight_lb = r.kg * LB_PER_KG

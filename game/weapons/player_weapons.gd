@@ -160,7 +160,7 @@ func setup(host_node: Node, entity: Dictionary, object: Dictionary, bdb: Diction
 	var gm: Dictionary = db.motion_for(Stores.GUN, 0).duplicate()
 	var gw: Dictionary = stores.station(9).get("w", {})
 	gm.merge(gw.get("motion", {}), true)
-	gun.configure(gm, Stores.GUN)
+	gun.configure(gm, Stores.GUN, db.real)
 	gun.units = _units
 	gun.ground = host.mission_ground
 	gun.detonate = _gun_detonate
@@ -311,8 +311,9 @@ func body_to_world(p: Vector3) -> Vector3:
 
 ## The mission's units the weapons see: every placed unit with a model other than the player, not
 ## exploded (UNCERTAIN: the original's spatial query also holds objects without a model, e.g.
-## sensors). {key, pos (world), vel, afterburner, ent}; `afterburner` = an AI jet's FM afterburner stage > 0 (the
-## seeker's `FUN_00594c00` on the unit's FM, +0x28), false for units without a flight model.
+## sensors). {key, pos (world), vel, afterburner, ent, hostile, half_span (gun_rounds.gd half_span_of)};
+## `afterburner` = an AI jet's FM afterburner stage > 0 (the seeker's `FUN_00594c00` on the unit's FM, +0x28), false
+## for units without a flight model.
 func _units() -> Array:
 	var out := []
 	var rt = host.runtime
@@ -329,7 +330,8 @@ func _units() -> Array:
 				"vel": ent.vel,
 				"afterburner": ab,
 				"ent": ent,
-				"hostile": rt._enemy_of_player(ent)
+				"hostile": rt._enemy_of_player(ent),
+				"half_span": GunRounds.half_span_of(ent, ent.node)
 			}
 		)
 	return out

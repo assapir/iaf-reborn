@@ -146,7 +146,10 @@ Each entry names the switch and where it lives, then the difference: "Original: 
 - **Weapon data (Original / Real).** Original: the 1998 weapon data. Ours, with Real: public missile weights, top
   speed, range, IR seeker lock ranges by aspect and afterburner (real-weapons.md §1.2), seeker cones, the AIM-9D's 12 g, the radar
   ranges of the seven jets and gun rounds / rate / muzzle velocity — real-weapons.md. The launch zone's maximum then
-  comes from the distance the missile really flies, not the original's formula (real-weapons.md §2).
+  comes from the distance the missile really flies, not the original's formula (real-weapons.md §2). The gun hits
+  when the round's path passes within the target's drawn half-span + 0.004 · range (×2 with Easy aiming), not the
+  original's 25 m sphere at each 0.1 s check; the missiles and SAMs with a published lethal radius get a blast
+  radius from it (real-weapons.md §1.4).
 - **HARM targets (Original / Real).** Original: the HARM page lists its sensor's own scan (the radar classes within
   20 NM in the ±15° cone, emitting or not, friendlies too, best 15). Ours, with Real (saved value "rwr"): the page lists the RWR's active
   emitters inside that cone and the hostile scanned sites without a brain (never on the RWR: they never lock; counted
