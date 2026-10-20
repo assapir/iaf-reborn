@@ -259,7 +259,13 @@ These are the user's answers in a first discussion. They guide a plan if multipl
 - **Records:** separate multiplayer records per pilot (sorties, kills, deaths, wins / losses). Open: pilot logs that
   move between machines but cannot be tampered with (one way: the server signs each session's summary with a key
   only it holds, still without a database; inferred).
-- **Identity:** a login if easy, the callsign from the game's pilot entry. A version mismatch is refused with a "please
+- **Identity:** a login as easy and stateless as possible (for example a signed token the server checks without a
+  session store; inferred), the callsign from the game's pilot entry; bans by login. The user already has a
+  Cloudflare account.
+- **Statistics:** a leaderboard across servers is nice to have (it needs one shared store the servers report to;
+  inferred).
+- **After the flight:** no spectators; each player debriefs with their own blackbox (the flight recorder).
+- **Custom missions:** the host's Mission Creator mission is sent to every player at the start. A version mismatch is refused with a "please
   update" message.
 - **Platforms:** Mac and Linux together, Windows later. Testing: several instances on one machine, plus the user's Mac
   and Linux PC (one set of stick).
