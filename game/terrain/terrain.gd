@@ -536,8 +536,15 @@ func _fill_sources() -> void:
 			imgs.append(img)
 			keys.append(key)
 	for n in imgs.size():
-		IafBases.fill_source(imgs[n].get_data(), imgs[n].get_width(), imgs[n].get_height(), FILL_LEVEL, keys[n].y,
-				keys[n].z, n == imgs.size() - 1)
+		IafBases.fill_source(
+			imgs[n].get_data(),
+			imgs[n].get_width(),
+			imgs[n].get_height(),
+			FILL_LEVEL,
+			keys[n].y,
+			keys[n].z,
+			n == imgs.size() - 1
+		)
 
 
 ## World scale Real: true when the node lies on a base's old or new site (IafBases.bounds()).
