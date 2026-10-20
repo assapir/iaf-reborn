@@ -4,7 +4,7 @@ This guide covers what changes in the Mirage IIICJ Shahak when you switch on the
 gyro gunsight in place of a HUD (head-up display), the real jet's numbers, the DEFA guns and the rear-aspect
 missiles. The game's model is the single-seat Mirage III in IAF (Israeli Air Force) camouflage; the Real flight data
 are the IIICJ as the IAF flew it, with the SEPR rocket removed. Each sight mode has its own section: when to use it,
-the keys, a picture with numbered callouts, what each mark means, and a worked example. Section 11 explains the
+the keys, a picture with numbered callouts, what each mark means, and a worked example. Section 12 explains the
 abbreviations.
 
 How to read the pictures: each yellow number points at one mark. The list under the picture explains it.
@@ -40,13 +40,13 @@ Set these on the Preferences screen before the flight. Every row starts at the 1
 
 | Tab | Row | Set to | What it changes |
 | --- | --- | --- | --- |
-| Extras | Flight data | Real aircraft | The Mirage IIICJ numbers (section 9) |
+| Extras | Flight data | Real aircraft | The Mirage IIICJ numbers (section 10) |
 | Extras | Weapon data | Real weapons | Radar range, gun rounds, missile weights, speeds and ranges |
 | Extras | HUD | Real | The CSF 95 gunsight |
-| Extras | Better cockpit | Better | The bearing-distance-heading dial turns with the heading and its pointers show the waypoint; the fuel needle counts the tanks, the clock and the vertical-speed dial work (section 3) |
+| Extras | Better cockpit | Better | A turning bearing-distance-heading dial, the fuel needle with the tanks, a working clock and vertical-speed dial (section 4) |
 | Graphics → MORE | Sky, Terrain close up, Imagery | Atmospheric, Detailed, Survey 2 m / Sentinel-2 | A physical sky, ground detail and photo imagery, if setup converted it |
 | Graphics → MORE | Airbases | Detailed | Runways, taxiways and aprons with real markings near the ground |
-| Physics | every row | on | Section 9 lists the ones that change how the Mirage flies |
+| Physics | every row | on | Section 10 lists the ones that change how the Mirage flies |
 | Gameplay | Easy landing, Easy aiming, No blackouts / spins / stalls | off | Real landing limits, real launch rules, g-effects and stalls |
 
 A greyed-out imagery choice needs its data: convert it with `tools/setup-cli.sh --imagery`.
@@ -79,8 +79,7 @@ Speed, altitude and heading are on the panel: fly with its instruments.
 
 1. **Altimeter**.
 2. **Airspeed** (true airspeed): the needle makes one turn per 1,000 kt, so each figure on the dial is 100 kt
-   (5 = 500 kt). The vertical-speed dial at the panel's upper left stays still in the 1998 game (section 3, Better
-   cockpit).
+   (5 = 500 kt). The vertical-speed dial at the panel's upper left stays still in the 1998 game (section 4).
 3. **Attitude indicator**: the horizon disc.
 4. **Fuel**.
 5. **Chaff and flare counters**: `CHF 060`, `FLR 030`.
@@ -88,10 +87,18 @@ Speed, altitude and heading are on the panel: fly with its instruments.
 7. **AI / ML lamps**: an air threat, a missile launch at you.
 8. **The gunsight** on the glass.
 
-### The bearing-distance-heading dial
+---
 
-With Extras → Better cockpit on, the dial right of the gunsight turns with the heading and its two pointers show the
-route (in the 1998 game it is a still picture). **W** / **Shift+W** pick the next / previous waypoint.
+## 4. Better cockpit
+
+**When**: any flight. **Keys**: Preferences → Extras → Better cockpit; **V** brings the panel up into view, **PgUp** /
+**PgDn** slide it; **W** / **Shift+W** pick the next / previous waypoint.
+
+With Better cockpit on, the bearing-distance-heading dial turns with the heading and its two pointers show the route,
+the fuel needle counts the drop tanks, the clock and the vertical-speed dial work, and the display's pages are drawn
+sharp at the screen's resolution. In the 1998 game the dial, the clock and the vertical-speed dial are still
+pictures. The Mirage's panel has no engine needles in either game (the original's cockpit data switches them off), so
+"Gauges on their labelled dials" changes nothing here.
 
 ![The bearing-distance-heading dial with Better cockpit on](shots/mirage/compass.png)
 
@@ -104,11 +111,6 @@ route (in the 1998 game it is a still picture). **W** / **Shift+W** pick the nex
 **Example**: here the arrow points about 90° right of the nose and the needle about 60° right: the waypoint is off
 your right wing. Turn right until the arrow points up. When the arrow and the needle lie on each other you are on the
 leg's line.
-
-### Better cockpit: fuel, clock and vertical speed
-
-With Extras → Better cockpit on, three more instruments work (in the 1998 game the clock and the vertical-speed dial
-stay still). The display's pages are drawn sharp at the screen's resolution.
 
 ![Fuel, clock and vertical speed with Better cockpit on](shots/mirage/better_panel.png)
 
@@ -123,7 +125,7 @@ it points at about 12 o'clock.
 
 ---
 
-## 4. Guns: 2 × DEFA
+## 5. Guns: 2 × DEFA
 
 **When**: a target inside about 600 m. **Keys**: **]** to the gun, **Tab** fires. With Real data: 2 × 125 rounds at
 2 × 1,300 rounds/min, 815 m/s: about 6 s of firing.
@@ -141,7 +143,7 @@ fixed range (600 / 400 / 250 m) because the radar ranging was unreliable; the ga
 
 ---
 
-## 5. IR missiles: Shafrir 2, AIM-9D
+## 6. IR missiles: Shafrir 2, AIM-9D
 
 **When**: behind a target, inside the missile's range. **Keys**: **]** to the missile, **Space** fires. With a radar
 lock (**R**, then **Return**) the seeker is slaved to the locked target within its 15° cone; otherwise it looks
@@ -166,7 +168,7 @@ half its range the seeker sees a jet with its afterburner lit.
 
 ---
 
-## 6. Bombs and rockets
+## 7. Bombs and rockets
 
 **When**: MK-82 / MK-83 / MK-84 and ZUNNI rockets. **Keys**: **[** to the store, hold **Space** to release (the
 ripple releases one store per interval; the stores page sets it).
@@ -184,7 +186,7 @@ the game sets the reticle on the impact point by itself [R: a reconstruction].
 
 ---
 
-## 7. Radar: Cyrano I bis
+## 8. Radar: Cyrano I bis
 
 With Weapon data = Real the radar detects at **27 km** (uncertain: a nominal air-to-air lock range). Its modes are LRS
 (long-range search), ACM (air combat mode) and boresight in A-A (air-to-air), MAP and GMT (ground moving target) in
@@ -200,7 +202,7 @@ A-G (air-to-ground). The single display shows it.
 
 ---
 
-## 8. Self-protection
+## 9. Self-protection
 
 - **RWR** (radar warning receiver): on the display's RWR page (MENU) and the AI / ML lamps; a new threat sounds a
   tone, a missile launch at you the launch warning.
@@ -219,7 +221,7 @@ A-G (air-to-ground). The single display shows it.
 
 ---
 
-## 9. Flying the Mirage with Real flight data
+## 10. Flying the Mirage with Real flight data
 
 With Flight data = Real the Mirage row (docs/real-aircraft.md §7) is checked by the game's validation test.
 
@@ -249,8 +251,7 @@ What changes in the cockpit:
 - **Ground effect** (Physics): a longer float in the flare. **Real idle thrust on the ground**: the jet settles near
   30 kt at idle.
 - **The engine gauges stay still**: on the Mirage's panel the speed and fuel needles move, and the original's own
-  cockpit data switches the engine clocks off. With Better cockpit (Extras) the fuel needle counts the drop tanks
-  (section 3).
+  cockpit data switches the engine clocks off. Better cockpit: see section 4.
 - **The map edge**: about 12 km (6.5 NM) before the map's edge the EndWorld warning sounds: turn back. Past it the
   game pushes the jet back for about 8 s: the nose rises and the jet turns back toward the map.
 
@@ -273,12 +274,13 @@ airspeed needle.
 
 ---
 
-## 10. Key card
+## 11. Key card
 
 | Key | Action |
 | --- | --- |
 | 1 … 8 | Throttle: idle, 65, 70, 80, 90 %, military, AB 1, AB 2 |
 | 9 / 0 | Throttle − / + 5 % |
+| V / PgUp / PgDn | Panel into view / slide it up / down |
 | Arrows | Stick |
 | Numpad 0 / Decimal | Rudder left / right |
 | G / B | Gear / wheel brakes |
@@ -307,7 +309,7 @@ airspeed needle.
 
 ---
 
-## 11. Abbreviations
+## 12. Abbreviations
 
 | Term | Meaning |
 | --- | --- |

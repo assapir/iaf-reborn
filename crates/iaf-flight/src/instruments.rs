@@ -94,6 +94,26 @@ pub fn better_engine_needles(rpm: f32, ab_stage: u8, temp_c: f32, d: EngineDamag
     n
 }
 
+/// Better cockpit `dials_by_label` (ours, docs/cockpit.md "Gauges on their labelled dials"): the F-16's exhaust
+/// nozzle position (%, 0 closed .. 100 open) and engine oil pressure (psi) from the needle RPM `rpm` (0 engine off,
+/// 0.6 idle, 1.0 military; the Better RPM after damage) and the AB stage. T.O. GR1F-16CJ-1 gives the shape: ground
+/// idle (gear handle down) opens the nozzle past 80 %, flight idle 0–20 %, military at most 20 %, the AB opens it;
+/// oil rises about 15 psi from idle to military, at least 15 psi at idle. The numbers are inferred: ground idle 85 %,
+/// flight idle 20 %, military 5 %, AB 1 / 2 at 50 / 100 %; oil 30 psi at idle, 45 psi at military; both fall to 0
+/// with the RPM below idle.
+pub fn nozzle_and_oil(rpm: f32, ab_stage: u8, gear_down: bool, d: EngineDamage) -> [f32; 2] {
+    let stage = if d.afterburner || d.permanent || d.cut_out { 0 } else { ab_stage.min(2) };
+    let idle_noz = if gear_down { 85.0 } else { 20.0 };
+    let (noz, oil) = if rpm < 0.6 {
+        let k = (rpm / 0.6).max(0.0);
+        (idle_noz * k, 30.0 * k)
+    } else {
+        let k = ((rpm - 0.6) / 0.4).min(1.0);
+        (idle_noz * (1.0 - k) + 5.0 * k, 30.0 + 15.0 * k)
+    };
+    [if stage > 0 { 50.0 * stage as f32 } else { noz }, oil]
+}
+
 /// The Better cockpit's engine temperature (exhaust gas / turbine temperature, °C), one per engine: a first-order
 /// lag toward a target from the RPM and the AB stage. All constants are inferred (docs/cockpit.md "Engine
 /// temperature"): ambient 15 °C, idle (60 % RPM) 450 °C, military 650 °C, +15 °C per AB stage, an engine fire
@@ -215,6 +235,10 @@ pub struct Warnings {
     /// not down and locked (T.O. GR1F-16CJ-1, "TO/LDG CONFIG Warning Light"; its TEF condition is left out: the
     /// game's flaps are a key of their own).
     pub to_ldg_config: bool,
+    /// F-16 AR/NWS (the AR status indicator's middle lamp, green): nose-wheel steering engaged. The real jet
+    /// engages it with the NWS button on the ground (T.O. GR1F-16CJ-1, "NWS Light"); the game steers the nose wheel
+    /// with the pedals whenever it is on the ground (v1.1), so: on the ground (inferred).
+    pub ar_nws: bool,
 }
 
 /// The warning lamps from the flight state ([`Instruments`] units; `gear` the FM's gear ramp, 0 = down and locked)
@@ -224,6 +248,7 @@ pub fn warnings(on_ground: bool, alt_ft: f32, ias_kt: f32, vs_fpm: f32, gear: f3
     Warnings {
         flcs: flag(18) || flag(24),
         to_ldg_config: !on_ground && alt_ft < 10_000.0 && ias_kt < 190.0 && vs_fpm < -250.0 && gear > 0.0,
+        ar_nws: on_ground,
     }
 }
 
@@ -277,12 +302,27 @@ mod tests {
         assert!(!warnings(false, 2000.0, 160.0, 0.0, 0.5, &[]).to_ldg_config, "level");
         assert!(!warnings(false, 12000.0, 160.0, -1000.0, 0.5, &[]).to_ldg_config, "high");
         assert!(!warnings(true, 0.0, 100.0, -1000.0, 0.5, &[]).to_ldg_config, "on the ground");
+        assert!(warnings(true, 0.0, 0.0, 0.0, 0.0, &[]).ar_nws && !w.ar_nws, "AR/NWS on the ground only");
         let mut f = vec![false; 25];
         f[18] = true;
         assert!(warnings(false, 0.0, 0.0, 0.0, 0.0, &f).flcs);
         f[18] = false;
         f[24] = true;
         assert!(warnings(false, 0.0, 0.0, 0.0, 0.0, &f).flcs);
+    }
+
+    #[test]
+    fn nozzle_opens_at_ground_idle_and_in_ab_and_oil_rises_with_rpm() {
+        let ok = EngineDamage::default();
+        let near = |a: [f32; 2], b: [f32; 2]| (a[0] - b[0]).abs() < 1e-4 && (a[1] - b[1]).abs() < 1e-4;
+        assert!(near(nozzle_and_oil(0.6, 0, true, ok), [85.0, 30.0]));
+        assert!(near(nozzle_and_oil(0.6, 0, false, ok), [20.0, 30.0]));
+        assert!(near(nozzle_and_oil(1.0, 0, false, ok), [5.0, 45.0]));
+        assert!(near(nozzle_and_oil(1.0, 1, false, ok), [50.0, 45.0]));
+        assert!(near(nozzle_and_oil(1.0, 2, false, ok), [100.0, 45.0]));
+        assert!(near(nozzle_and_oil(0.0, 0, true, ok), [0.0, 0.0]));
+        // No AB with the afterburner damaged.
+        assert!(near(nozzle_and_oil(1.0, 2, false, EngineDamage { afterburner: true, ..ok }), [5.0, 45.0]));
     }
 
     #[test]

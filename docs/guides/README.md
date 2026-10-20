@@ -5,9 +5,11 @@ HUD, the Physics switches). The game shows them in the Reference screen (its **P
 §14), and setup prints each as a PDF (`assets/converted/guides/<jet>.pdf`, `python3 -I tools/guide_pdf.py`).
 
 Each guide leads with what the realistic options change in that jet, then one section per HUD, sight or helmet mode
-the jet has (when to use it, the keys, an annotated picture, what each symbol means, a worked example), then the
-flight-model numbers that change how it flies, a short take-off and landing table, the key card and the
-abbreviations.
+the jet has (when to use it, the keys, an annotated picture, what each symbol means, a worked example), then one
+"Better cockpit" section (everything Extras → Better cockpit changes in that jet: compass, gauges, lamps, readouts,
+sharp MFD pages; it comes after the HUD, sight and landing sections, before the first weapon section), then the
+weapon sections, the flight-model numbers that change how it flies, a short take-off and landing table, the key card
+and the abbreviations.
 
 - [F-16](f16.md): the F-16C HUD (NAV, gear down, EEGS, SRM, MRM with the DLZ, STRF, CCIP), the DASH helmet, laser /
   TV / HARM weapons, the deep stall.
@@ -29,8 +31,9 @@ schema in the header of `tests/godot/_guide_shots.gd`). A "hud" crop takes `crop
 the frame; smaller zooms in) and `crop_dy` (the box moved down by that fraction of the frame's height; negative moves
 it up): the F-4E and Mirage gunsight shots use them to centre and enlarge a reticle that sits high on the glass.
 A "compass" crop frames the panel's compass dial (`game/cockpit/compass.gd`) with the same `crop_w` / `crop_dy`: the
-Kfir, F-4E and Mirage guides show it with Better cockpit on. A "panel" crop frames the same box around `crop_at`
-([x, y] panel px of the 1920-px strip): each guide's `better_panel` picture. A
+Mirage guide shows its bearing-distance-heading dial so. A "panel" crop frames the same box around `crop_at`
+([x, y] panel px of the 1920-px strip): each guide's `better_panel` picture (the Kfir's and F-4E's take in their
+compass too). A
 `text:` callout's arrow ends on the box the HUD draws the text in (`hud.gd prim_text_box`). Readings that move by a few feet from one render to the next (the start height settles differently) take a pattern, such as `text:^[89]\d\d$` for an altitude near 900 ft, and the guide gives them as "about". A shot's `annotations` draw numbered yellow callouts with
 arrows onto the picture; the guide gives their legend as a numbered list right under the picture (same count:
 `tools/guide_pdf.py` warns otherwise). They show the original game's art, so they stay

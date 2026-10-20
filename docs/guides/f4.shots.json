@@ -174,137 +174,90 @@
    {
     "n": 1,
     "px": [
-     0.409,
-     0.118
+     0.162,
+     0.744
     ],
     "label_at": [
-     0.28,
-     0.05
+     0.248,
+     0.597
     ]
    },
    {
     "n": 2,
     "px": [
-     0.409,
-     0.351
+     0.105,
+     0.87
     ],
     "label_at": [
-     0.5,
-     0.27
+     0.03,
+     0.79
     ]
    },
    {
     "n": 3,
     "px": [
-     0.412,
-     0.611
+     0.162,
+     0.89
     ],
     "label_at": [
-     0.5,
-     0.53
+     0.305,
+     0.933
     ]
    },
    {
     "n": 4,
     "px": [
-     0.409,
-     0.882
+     0.713,
+     0.138
     ],
     "label_at": [
-     0.5,
-     0.8
+     0.611,
+     0.084
+    ]
+   },
+   {
+    "n": 5,
+    "px": [
+     0.713,
+     0.321
+    ],
+    "label_at": [
+     0.784,
+     0.257
+    ]
+   },
+   {
+    "n": 6,
+    "px": [
+     0.715,
+     0.525
+    ],
+    "label_at": [
+     0.784,
+     0.462
+    ]
+   },
+   {
+    "n": 7,
+    "px": [
+     0.713,
+     0.738
+    ],
+    "label_at": [
+     0.784,
+     0.674
     ]
    }
   ],
   "crop_at": [
-   1200,
-   240
+   1090,
+   255
   ],
-  "crop_w": 0.22,
+  "crop_w": 0.28,
   "actions": [
    "wait:1"
-  ]
- },
- {
-  "name": "compass",
-  "caption": "The panel compass with Better cockpit on",
-  "mission": 231,
-  "jet": 2,
-  "settings": {
-   "flight_data": "real",
-   "weapon_data": "real",
-   "hud_style": "real",
-   "hud_ladder": "conformal",
-   "sky": "atmospheric",
-   "terrain_closeup": true,
-   "imagery_israel": "mapi2015",
-   "imagery_outside": "sentinel2",
-   "easy_landing": false,
-   "easy_aiming": false,
-   "better": {
-    "flight_path_hold": true,
-    "force_angles": true,
-    "start_lift": true,
-    "start_rpm": true,
-    "start_alpha": true,
-    "landing_limits": true,
-    "spin_fixes": true,
-    "fbw_departure": true,
-    "lift_rate_floor": true,
-    "low_speed_roll": true,
-    "no_nose_wheel_lift": true,
-    "ground_effect": true,
-    "ground_idle": true,
-    "fix_fall_heading": true,
-    "fix_skill_damage": true,
-    "fix_lock_threat": true,
-    "fix_stores_weight": true,
-    "fix_bomb_burst": true,
-    "fix_ghost_collision": true
-   },
-   "better_cockpit": true
-  },
-  "start": "airborne",
-  "turn_deg": 40,
-  "crop": "compass",
-  "crop_w": 0.2,
-  "panel": 1.0,
-  "crop_dy": -0.0778,
-  "annotations": [
-   {
-    "n": 1,
-    "px": [
-     0.5,
-     0.656
-    ],
-    "label_at": [
-     0.62,
-     0.45
-    ]
-   },
-   {
-    "n": 2,
-    "px": [
-     0.39,
-     0.86
-    ],
-    "label_at": [
-     0.22,
-     0.72
-    ]
-   },
-   {
-    "n": 3,
-    "px": [
-     0.5,
-     0.86
-    ],
-    "label_at": [
-     0.7,
-     0.92
-    ]
-   }
-  ]
+  ],
+  "turn_deg": 40
  },
  {
   "name": "sight_gun",

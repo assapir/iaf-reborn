@@ -5,7 +5,7 @@ This guide covers what changes in the IAI Lavi when you switch on the realistic 
 Lavi**, the B-3 Technology Demonstrator of the game's Reference text. The Lavi stayed a prototype (cancelled in August
 1987), so its Real flight data are the single-seat production design figures (Jane's 1987-88). Each HUD mode has its
 own section: when to use it, the keys, a picture with numbered callouts, what each symbol means, and a worked example.
-Section 13 explains the abbreviations.
+Section 14 explains the abbreviations.
 
 How to read the pictures: each yellow number points at one symbol. The list under the picture explains it.
 
@@ -48,13 +48,13 @@ Set these on the Preferences screen before the flight. Every row starts at the 1
 
 | Tab | Row | Set to | What it changes |
 | --- | --- | --- | --- |
-| Extras | Flight data | Real aircraft | The Lavi design numbers (section 10) |
+| Extras | Flight data | Real aircraft | The Lavi design numbers (section 11) |
 | Extras | Weapon data | Real weapons | Radar range, missile weights, speeds and ranges |
 | Extras | HUD | Real | The Lavi's HUD reconstruction |
-| Extras | Better cockpit | Better | Live engine and fuel needles, the panel clock, sharp MFD pages (section 3) |
+| Extras | Better cockpit | Better | Live engine and fuel needles, the panel clock, sharp MFD pages (section 5) |
 | Graphics → MORE | Sky, Terrain close up, Imagery | Atmospheric, Detailed, Survey 2 m / Sentinel-2 | A physical sky, ground detail and photo imagery, if setup converted it |
 | Graphics → MORE | Airbases | Detailed | Runways, taxiways and aprons with real markings near the ground |
-| Physics | every row | on | Section 10 lists the ones that change how the Lavi flies |
+| Physics | every row | on | Section 11 lists the ones that change how the Lavi flies |
 | Gameplay | Easy landing, Easy aiming, No blackouts / spins / stalls | off | Real landing limits, real launch rules, g-effects and stalls |
 
 A greyed-out imagery choice needs its data: convert it with `tools/setup-cli.sh --imagery`.
@@ -88,26 +88,6 @@ mode. **W** / **Shift+W** pick the next / previous steerpoint. **H** changes the
 **Example**: the start of mission 231. `WP 1`, `4.7 NM`, `00:35`: steerpoint 1 is 35 s ahead. The bug sits over the
 centre of the heading scale, so the steerpoint is straight ahead; its diamond waits at the bottom edge. Lower the
 nose until the diamond leaves the edge and fly the marker onto it.
-
-### Better cockpit: the panel
-
-With Extras → Better cockpit on, the engine and fuel needles show the flight model's own values, the panel clock runs,
-and the MFD pages are drawn sharp (in the 1998 game the needles read rough values and the clock stays still). **V**
-brings the panel up into view, **PgUp** / **PgDn** slide it.
-
-![The Lavi panel with Better cockpit on](shots/lavi/better_panel.png)
-
-1. **Throttle**: military at the full mark; in AB it moves on past military, further in AB 2.
-2. **RPM**: the engine's real RPM, 60 % at idle, 100 % at military. It needs about 3 s from idle to military.
-3. **Turbine temperature**: about 450 °C at idle and 650 °C at military, a little more in AB; 900 °C with an engine
-   fire. It rises in about 2 s and falls slowly.
-4. **Fuel needle**: all the fuel you carry, the drop tanks too, over the most the jet holds with them. It falls from
-   the first pound burnt (in the 1998 game it stays full until the tanks are empty).
-5. **Clock**: the time of day in the mission, hour and minute hands.
-6. **MFD pages**: the same pages, drawn at the screen's resolution. The TV and FLIR pictures stay as they are.
-
-**Example**: select AB 2 (**8**): the throttle needle moves past military at once, the RPM needle follows in about
-3 s, and the temperature rises a little above 650 °C. Back at military the temperature falls over several seconds.
 
 ---
 
@@ -149,7 +129,33 @@ measure. Read the AoA directly: fly the final at the game's landing-lesson 165 k
 
 ---
 
-## 5. SRM: AIM-9L, Python 4
+## 5. Better cockpit
+
+**When**: any flight. **Keys**: Preferences → Extras → Better cockpit; **V** brings the panel up into view, **PgUp** /
+**PgDn** slide it.
+
+With Better cockpit on, the engine and fuel needles show the flight model's own values, the panel clock runs, and the
+MFD pages are drawn sharp (in the 1998 game the needles read rough values and the clock stays still). The Lavi's
+three engine dials carry no labels, only coloured bands, so "Gauges on their labelled dials" leaves the needles where
+the 1998 game draws them.
+
+![The Lavi panel with Better cockpit on](shots/lavi/better_panel.png)
+
+1. **Throttle**: military at the full mark; in AB it moves on past military, further in AB 2.
+2. **RPM**: the engine's real RPM, 60 % at idle, 100 % at military. It needs about 3 s from idle to military.
+3. **Turbine temperature**: about 450 °C at idle and 650 °C at military, a little more in AB; 900 °C with an engine
+   fire. It rises in about 2 s and falls slowly.
+4. **Fuel needle**: all the fuel you carry, the drop tanks too, over the most the jet holds with them. It falls from
+   the first pound burnt (in the 1998 game it stays full until the tanks are empty).
+5. **Clock**: the time of day in the mission, hour and minute hands.
+6. **MFD pages**: the same pages, drawn at the screen's resolution. The TV and FLIR pictures stay as they are.
+
+**Example**: select AB 2 (**8**): the throttle needle moves past military at once, the RPM needle follows in about
+3 s, and the temperature rises a little above 650 °C. Back at military the temperature falls over several seconds.
+
+---
+
+## 6. SRM: AIM-9L, Python 4
 
 **When**: a target inside the missile's launch zone, best from behind. **Keys**: **]** until `SRM`, **Space** to fire.
 With a radar lock (**R**, then **Return**) the seeker is slaved to the locked target. In free look (**Shift+arrows**)
@@ -178,7 +184,7 @@ its range the seeker sees a jet with its afterburner lit.
 
 ---
 
-## 6. MRM: AMRAAM
+## 7. MRM: AMRAAM
 
 **When**: a target beyond the IR missiles' reach. **Keys**: radar on (**R**), lock (**Return** in LRS (long-range
 search), or click its blip), **]** until `MRM`, **Space** to fire.
@@ -204,7 +210,7 @@ the minimum: well inside, so the circle is near its largest. The dot is in the c
 
 ---
 
-## 7. A-A gun: LCOS
+## 8. A-A gun: LCOS
 
 **When**: a target inside about 3,000 ft. **Keys**: **]** to the gun (`GUN`), **Tab** fires. The real Lavi had a 30 mm
 DEFA; the game gives it the 20 mm gun with the game's own round count (its real count is unpublished).
@@ -223,7 +229,7 @@ DEFA; the game gives it the 20 mm gun with the game's own round count (its real 
 
 ---
 
-## 8. A-G gun: STRF
+## 9. A-G gun: STRF
 
 **When**: strafing a ground target. **Keys**: **[** to the gun (`STRF`), **Tab** fires.
 
@@ -239,7 +245,7 @@ and pull out: the ground comes up at about 240 ft/s.
 
 ---
 
-## 9. Bombs, laser and TV weapons, HARM
+## 10. Bombs, laser and TV weapons, HARM
 
 ### Bombs and rockets: CCIP
 
@@ -284,7 +290,7 @@ when the spot is on the ground within 60° of its path; with the laser off it fa
 
 ---
 
-## 10. Flying the Lavi with Real flight data
+## 11. Flying the Lavi with Real flight data
 
 With Flight data = Real the Lavi row comes from the design figures (Jane's 1987-88), checked by the game's validation
 test.
@@ -320,7 +326,7 @@ What changes in the cockpit:
 
 ---
 
-## 11. Radar, displays and self-protection
+## 12. Radar, displays and self-protection
 
 With Weapon data = Real the EL/M-2035 detects at **46 km** in LRS and STT (single-target track); it tracks several
 targets at that range. (With the original weapon data the Lavi has the game's longest search table: 90 NM.) The left
@@ -351,11 +357,12 @@ weapon's page replaces the right display.
 
 ---
 
-## 12. Key card
+## 13. Key card
 
 | Key | Action |
 | --- | --- |
 | 1 … 8 | Throttle: idle, 65, 70, 80, 90 %, military, AB 1, AB 2 |
+| V / PgUp / PgDn | Panel into view / slide it up / down |
 | Arrows / Numpad 0, Decimal | Stick / rudder |
 | G / F / B | Gear / flaps / wheel brakes |
 | A / W | Autopilot / next steerpoint |
@@ -379,7 +386,7 @@ The **F-35I** (ours) can take the Lavi's place on the Jet list (Extras → F-35I
 
 ---
 
-## 13. Abbreviations
+## 14. Abbreviations
 
 | Term | Meaning |
 | --- | --- |

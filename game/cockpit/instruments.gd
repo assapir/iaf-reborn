@@ -7,6 +7,8 @@
 #   with their colour taken out (a pixel keeps its darkest channel), so the symbol turns to the dark glass around it.
 # * standby_instruments: a needle over a dial the art paints without one, in the style of the original needles.
 # * warning_lamps: the art paints the lamps unlit. A lit lamp is its own art drawn brighter.
+# * ar_nws_lights: the art paints no legend in the F-16's AR status indicator; the lit AR/NWS lamp is its green
+#   legend drawn in the lamp's place.
 # The values come from IafFlight.better_instruments (iaf_flight::instruments) via cockpit.state.better.
 extends Control
 
@@ -15,6 +17,7 @@ extends Control
 ## * standby_instruments: `centre`, `r` (needle length), `scale` = [value, clock angle (deg, 0 = 12 o'clock,
 ##   clockwise)] pairs in increasing value, linear between them, held at the ends; `value` = the cockpit.state key.
 ## * warning_lamps: `state` = the key of cockpit.state.better that lights it, `quad` = the lamp's corners.
+## * ar_nws_lights: `state` as warning_lamps, `rect` = the lamp's legend (HUD px).
 const INSTRUMENTS := {
 	"f16":
 	[
@@ -32,6 +35,10 @@ const INSTRUMENTS := {
 			"state": "to_ldg_config",
 			"quad": [Vector2(1263.0, 120.5), Vector2(1275.0, 110.0), Vector2(1289.0, 123.0), Vector2(1276.0, 134.0)]
 		},
+		# The AR status indicator on the HUD frame, right of the glass (fig. 1-3 item 3): RDY / AR/NWS / DISC lamps.
+		# The art paints only its two orange brackets, no legends; AR/NWS (the middle lamp, green) is drawn as its
+		# legend. RDY and DISC stay dark: the game has no air refuelling.
+		{"item": "ar_nws_lights", "state": "ar_nws", "rect": Rect2(290.5, 135.0, 11.0, 18.0)},
 	],
 	"mirage":
 	# The vertical speed indicator, upper left: 0 at 9 o'clock, climb clockwise, descent anticlockwise, the
@@ -139,7 +146,7 @@ func refresh() -> void:
 				needles.append(
 					deg_to_rad(dial_angle(spec.scale, float(cockpit.state.get(spec.value, 0.0)))) if on else NAN
 				)
-			"warning_lamps":
+			"warning_lamps", "ar_nws_lights":
 				if on:
 					lamps[spec.state] = bool(better.get(spec.state, false))
 	queue_redraw()
@@ -166,6 +173,9 @@ func _draw() -> void:
 			"warning_lamps":
 				if lamps.get(spec.state, false):
 					_draw_lamp(spec.quad, s)
+			"ar_nws_lights":
+				if lamps.get(spec.state, false):
+					_draw_legend(spec.rect, ["AR", "NWS"], s)
 
 
 ## The indexer's unlit symbols, from the unlit copy of the HUD frame art (the art paints them lit).
@@ -184,6 +194,23 @@ func _draw_unlit(s: float) -> void:
 				Rect2(b.position * k, b.size * k),
 				cockpit._night_mod("PANEL")
 			)
+
+
+## A lit legend lamp on the HUD frame: `lines` in green (the real NWS light's colour), filling `rect` (HUD px).
+func _draw_legend(rect: Rect2, lines: Array, s: float) -> void:
+	var h: Dictionary = cockpit.layout.HUD
+	var tl := Vector2(size.x / 2 - float(h.Width) * s / 2, cockpit.panel_top() - float(h.Height) * s)
+	var font: Font = cockpit.digits_font()
+	var r := Rect2(tl + rect.position * s, rect.size * s)
+	var lh := r.size.y / lines.size()
+	var fs := maxi(int(lh), 1)
+	for t in lines:  # the largest size whose every line fits the width
+		while fs > 1 and font.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x > r.size.x:
+			fs -= 1
+	var col: Color = Color8(70, 235, 100) * cockpit._night_mod("LIGHTSON")
+	for i in lines.size():
+		var base := r.position + Vector2(0, lh * i + (lh + fs * 0.7) / 2)
+		draw_string(font, base, lines[i], HORIZONTAL_ALIGNMENT_CENTER, r.size.x, fs, col)
 
 
 ## A lit lamp: its quad of the panel art drawn brighter.

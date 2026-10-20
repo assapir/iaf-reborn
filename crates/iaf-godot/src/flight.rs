@@ -502,7 +502,8 @@ impl IafFlight {
     /// (`tas_kt`, `ground_kt`, `ias_kt`), `vs_fpm`, `agl_ft`, `fuel_fill`, and `engines` = [THROTTLE, RPM, TEMP]
     /// left then right (6 floats). `damage`: the player's damage flags 0..24 (docs/damage.md §5), or empty.
     /// Better cockpit (ours): `engines_better` (the same 6 floats from the FM's own values,
-    /// `better_engine_needles`), `engine_temp_c` (2 floats, °C), `fuel_fill_total` (fuel / capacity with tanks).
+    /// `better_engine_needles`), `engine_temp_c` (2 floats, °C), `fuel_fill_total` (fuel / capacity with tanks),
+    /// `nozzle_oil` (left nozzle %, left oil psi, then right; `nozzle_and_oil`).
     #[func]
     fn instruments(&mut self, damage: VarArray) -> VarDictionary {
         use iaf_flight::instruments::{self, EngineDamage};
@@ -532,6 +533,10 @@ impl IafFlight {
             (0..2).flat_map(|e| instruments::better_engine_needles(rpm, s.afterburner, temps[e], dmg[e])).collect();
         d.set("engines_better", &PackedFloat32Array::from(better.as_slice()));
         d.set("engine_temp_c", &PackedFloat32Array::from(temps.as_slice()));
+        let no: Vec<f32> = (0..2)
+            .flat_map(|e| instruments::nozzle_and_oil(better[3 * e + 1], s.afterburner, s.gear <= 0.0, dmg[e]))
+            .collect();
+        d.set("nozzle_oil", &PackedFloat32Array::from(no.as_slice()));
         d.set("fuel_fill_total", i.fuel_fill_total);
         d.set("tas_kt", i.tas_kt);
         d.set("ground_kt", i.ground_kt);
@@ -544,7 +549,7 @@ impl IafFlight {
     }
 
     /// Ours, the "Better cockpit" values (iaf_flight::instruments, docs/cockpit.md "Better cockpit"): `aoa_index`
-    /// (0 no indexer, 1 slow, 2 on speed, 3 fast), the lamps `flcs` and `to_ldg_config`. `damage`: as `instruments`.
+    /// (0 no indexer, 1 slow, 2 on speed, 3 fast), the lamps `flcs`, `to_ldg_config` and `ar_nws`. `damage`: as `instruments`.
     #[func]
     fn better_instruments(&self, damage: VarArray) -> VarDictionary {
         use iaf_flight::instruments;
@@ -565,6 +570,7 @@ impl IafFlight {
         d.set("aoa_index", instruments::aoa_indexer(ac.params.type_code, s.alpha.to_degrees()) as i64);
         d.set("flcs", w.flcs);
         d.set("to_ldg_config", w.to_ldg_config);
+        d.set("ar_nws", w.ar_nws);
         d
     }
 

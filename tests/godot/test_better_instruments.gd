@@ -1,7 +1,7 @@
-# "Better cockpit" aoa_indexer, standby_instruments and warning_lamps (game/cockpit/instruments.gd, docs/cockpit.md
-# "Better cockpit"): with Original nothing is drawn; with Better each item follows its input (the F-16's AoA
-# indexer and FLCS / TO/LDG CONFIG lamps, the Mirage's VVI needle), and each item's own flag turns it off. The
-# values come from IafFlight.better_instruments (iaf_flight::instruments).
+# "Better cockpit" aoa_indexer, standby_instruments, warning_lamps and ar_nws_lights (game/cockpit/instruments.gd,
+# docs/cockpit.md "Better cockpit"): with Original nothing is drawn; with Better each item follows its input (the
+# F-16's AoA indexer, FLCS / TO/LDG CONFIG lamps and AR/NWS lamp, the Mirage's VVI needle), and each item's own flag
+# turns it off. The values come from IafFlight.better_instruments (iaf_flight::instruments).
 extends "res://../tests/godot/base.gd"
 
 
@@ -19,6 +19,7 @@ func run() -> void:
 	flags.fill(false)
 	flags[18] = true
 	check(tv.flight.better_instruments(flags).flcs, "bridge: hydraulics damage (18) lights FLCS")
+	check(not b.ar_nws, "bridge: AR/NWS dark in the air")
 	# The flight scene stops writing the cockpit state, so the test sets the inputs.
 	tv.set_process(false)
 	tv.set_physics_process(false)
@@ -43,9 +44,17 @@ func run() -> void:
 			l.get("flcs") == w[0] and l.get("to_ldg_config") == w[1],
 			"f16: lamps FLCS %s TO/LDG %s (%s)" % [w[0], w[1], l]
 		)
+	for on in [true, false]:
+		c.state["better"] = {"ar_nws": on}
+		await frames(2)
+		check(
+			c.better_instruments.lamps.get("ar_nws") == on,
+			"f16: AR/NWS lamp %s (%s)" % [on, c.better_instruments.lamps]
+		)
 	Settings().cockpit_items["aoa_indexer"] = false
 	Settings().cockpit_items["warning_lamps"] = false
-	c.state["better"] = {"aoa_index": 2, "flcs": true}
+	Settings().cockpit_items["ar_nws_lights"] = false
+	c.state["better"] = {"aoa_index": 2, "flcs": true, "ar_nws": true}
 	await frames(2)
 	check(
 		c.better_instruments.indexer == 0 and c.better_instruments.lamps.is_empty(),
@@ -53,6 +62,7 @@ func run() -> void:
 	)
 	Settings().cockpit_items["aoa_indexer"] = true
 	Settings().cockpit_items["warning_lamps"] = true
+	Settings().cockpit_items["ar_nws_lights"] = true
 
 	# Mirage (jet 6): the VVI needle.
 	Settings().jet_id = 6

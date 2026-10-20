@@ -467,7 +467,8 @@ Every round gauge is a linear needle; the table under "Panel draw" gives each ga
     (horizontal situation indicator), so the panels' compass dials (e.g. the Kfir's) are static art in the original
     too. Ours, with Better cockpit: they turn ("Better cockpit" below).
   * With Better cockpit, the RPM, TEMP, THROTTLE and FUEL needles read the flight model's own values ("Engine
-    gauges" and "Fuel gauge" under "Better cockpit" below).
+    gauges" and "Fuel gauge" under "Better cockpit" below). The F-16's and Kfir's needles sit on dials whose labels
+    name other values; "Panel instruments per jet" below lists them, and `dials_by_label` moves them.
   * Per-jet check: tests/godot/test_gauges_all_jets.gd. On the seven Jet list jets and the F-35I, every active needle
     turns from idle to military / climbing; military reads 100 % without AB, and AB 1 lights it; with the Real HUD on
     and off.
@@ -613,6 +614,7 @@ the 1x original art and its 4x conversion; the art is small, so many dial faces 
 | lavi | the three engine needles, ASI, lens ADI, altimeter, VVI, fuel | the clock (1167,272) | a yellow-green and two amber lamps (1228..1250,110..143); legends unreadable |
 | mirage | ASI, altimeter, lens ADI, fuel | the VVI (686,159.5), a "H" drum (862,52), the clock (1242,258), a dial at 1242,302 | the red lamp stack round the master caution and fire lamps (1240,145..205); legends unreadable |
 
+* **Engine dials against their labels:** "Panel instruments per jet" below.
 * **G-meter (accelerometer): no panel paints one that the art shows clearly.** The F-16 art is an earlier panel than
   the dash-1's figure, whose accelerometer sits beside the altimeter[^f16-dash1]; the game's F-16 panel has none
   there. So the roadmap's item 6 has nothing to drive; no item id.
@@ -622,6 +624,87 @@ the 1x original art and its 4x conversion; the art is small, so many dial faces 
   horizon discs; the F-15, F-4 2000 and Lavi have their ADI on an MFD page). The painted flight instruments with no
   needle are the Mirage's VVI (now live, below) and the Kfir's likely VVI (its numbers are unreadable, so its scale is
   unknown).
+
+### Panel instruments per jet (reference)
+One table per flyable cockpit: each round engine dial, lamp and readout the panel art paints, its real name and
+meaning, where the 2D art has it (panel px of the 1920-px strip), which original record draws on it and which game
+value drives it with Better cockpit on. A future 3D cockpit can take the same mapping. The data the code reads is
+`game/cockpit/gauges.gd` `DIALS` (the dials) and `game/cockpit/instruments.gd` `INSTRUMENTS` (the lamps).
+
+How it was read: every `*CLOCK` record of the cockpit.ibx against the dial at its centre, on the 4x art cropped at
+full resolution. The records sit on the dials' centres to within a pixel.
+
+**F-16** (T.O. GR1F-16CJ-1[^f16-panel]: the instrument panel's right side stacks OIL, NOZ POS, RPM and FTIT, top
+down; the fuel quantity indicator with the totalizer is on the right auxiliary console[^f16-fqi]).
+
+| Painted dial / lamp (centre) | Real meaning | Original draws | Better + `dials_by_label` draws |
+|---|---|---|---|
+| OIL (1257,151) | engine oil pressure, 0–100 psi[^f16-eng] | `THROTTLECLOCK` (r10): rpm | oil pressure from the RPM: 30 psi at idle, 45 psi at military (inferred from the dash-1's "15 psi minimum at idle" and "about 15 psi more at military"[^f16-oil]) |
+| NOZ POS (1260,189.5) | exhaust nozzle, 0 % closed – 100 % open[^f16-eng] | `RPMCLOCK` (r20): clamp(rpm, 0.6, 0.97) | the nozzle from the RPM, the AB stage and the gear: 85 % at ground idle (gear down), 20 % at flight idle, 5 % at military, 50 / 100 % in AB 1 / 2 (inferred from the dash-1's ground idle "greater than 80 percent", flight idle "0–20 percent", military "should not exceed 20 percent"[^f16-noz]) |
+| RPM (1260.75,243) | engine RPM, 0–110 %[^f16-eng] | `TEMPCLOCK` (r12): clamp(rpm, 0.5, 0.8) | the RPM needle value (`engine_rpm` on: the RPM ramp; off: the original's) |
+| FTIT (1269.5,297.5) | fan turbine inlet temperature, 200–1200 °C[^f16-eng] | nothing (static) | the TEMP needle value ×1000 °C (`engine_temp` on: the temperature model; off: the original's 500–800 °C) |
+| AR status indicator, right of the HUD glass (HUD px 290–302, 120–167) | three lamps: RDY (blue), AR/NWS (green: boom latched, or nose-wheel steering engaged), DISC (amber)[^f16-ar][^f16-nws] | nothing: the art paints two orange brackets and no legend | `ar_nws_lights`: a green "AR NWS" legend on the ground; RDY and DISC stay dark |
+| fuel counter, the box right of the ICP (`FUELDIGITAL` 1094,39) | the real totalizer sits on the fuel quantity indicator, off this art[^f16-fqi] | the total in lb | unchanged: the art paints no fuel quantity indicator to move it to |
+
+The throttle has no dial on the real F-16, so with `dials_by_label` the throttle needle goes.
+
+**Kfir** (no public flight manual found: open. The art's engine dials are the F-4E's J79 faces).
+
+| Painted dial (centre) | Real meaning | Original draws | Better + `dials_by_label` draws |
+|---|---|---|---|
+| PERCENT RPM (1174,132) | engine RPM | `RPMCLOCK` | unchanged |
+| FUEL FLOW (1168,186) | fuel flow, as the F-4E's 0–12 × 1000 lb/h[^hb-f4] | `TEMPCLOCK` (r12): clamp(rpm, 0.5, 0.8) | the THROTTLE needle value, on the F-4E's `THROTTLECLOCK` scale (one turn at military, AB past it) |
+| EXH TEMP °C ×100 (1121,256) | exhaust gas temperature, 0–12 × 100 °C[^hb-f4] | nothing (static) | the TEMP needle value, on the F-4E's `TEMPCLOCK` scale (FullClock 1.3, AngleOffset 0.770796) |
+| dial right of RPM (1212,154), legend unreadable | open | `THROTTLECLOCK` (r10): rpm | nothing (static) |
+
+**F-4E and Kurnass 2000** (the same engine stack, twice): PERCENT RPM ← `RPMCLOCK`, EXH TEMP ← `TEMPCLOCK`, FUEL
+FLOW ← `THROTTLECLOCK`. The labels match the inputs; fuel flow from the rpm is a stand-in the original chose (the
+real gauge reads to military only[^hb-f4]). Unchanged.
+
+**F-15:** two engine rows (`RPMCLOCK` / `…SECONDARY` on the upper pair, which paints a digital counter;
+`THROTTLECLOCK` / `…SECONDARY` on the lower pair); the legends are unreadable on the art, so the match is open.
+`TEMPCLOCK` is inactive. Unchanged.
+
+**Lavi:** three unlabelled arc dials (`THROTTLECLOCK`, `RPMCLOCK`, `TEMPCLOCK`, left to right) with green / yellow /
+red bands: nothing to compare. Unchanged.
+
+**Mirage:** no engine needle is active (its `RPMCLOCK` / `TEMPCLOCK` / `THROTTLECLOCK` carry the F-16's values with
+Active 0); its engine dials are not identified on the art. Unchanged. **F-35I:** its display paints no dials.
+
+**Error or reuse?** (inferred)
+* **F-16: an ini error.** The art's labels follow the real stack, top down OIL, NOZ POS, RPM, FTIT[^f16-panel]. The
+  ini measured the top three centres on this art (the radii 10 / 20 fit the OIL and NOZ POS dials), then gave them
+  RPM, TEMP and THROTTLE in an order that matches no label: each record sits one dial above the dial its value fits.
+  `TEMPCLOCK`'s radius 12 is half the RPM dial's, so it was not sized for that dial either. The Mirage's and F-15's
+  inactive records hold the same three positions: the F-16 file was the template.
+* **Kfir: an ini error.** `TEMPCLOCK` sits on the FUEL FLOW face with a scale (FullClock 1.2 from 12 o'clock) that
+  fits neither that face nor the EGT face next to it, which no record uses.
+* **F-4E / Kurnass 2000: intentional reuse.** Throttle on the fuel flow dial, with a scale fitted to the face.
+
+### Gauges on their labelled dials (`dials_by_label`)
+With the item on, each engine needle the table above moves is drawn on the dial its label names, in the original
+needles' colour and width (`gauges.gd` `DIALS`: centre, needle length, the dial's scale as value / clock-angle pairs
+measured on the art, linear between them). The records it moves are not drawn on their original dials. The values
+come from the other gauge items: RPM from `engine_rpm`, TEMP from `engine_temp`, THROTTLE from `throttle_ab` (each
+the original's value while its item is off). The F-16's oil pressure and nozzle are `iaf_flight::instruments::
+nozzle_and_oil` (`IafFlight.instruments` → `nozzle_oil`; unit test `nozzle_opens_at_ground_idle_and_in_ab_and_oil_
+rises_with_rpm`).
+* F-16 dial scales (clock degrees, read on the art, ±5°): OIL 0 psi at 210°, 3° per psi; NOZ POS 0 % at 60°, 2.4°
+  per %; RPM 0 at 0°, 20 % 30°, 40 % 65°, 60 % 100°, 70 % 145°, 80 % 185°, 90 % 235°, 100 % 280°, 110 % 325°; FTIT
+  200 °C 140°, 700 °C 215°, 800 °C 270°, 900 °C 330°, 1000 °C 35°, 1100 °C 55°, 1200 °C 75° (the 1000–1200 °C
+  numbers are hard to read; inferred). The OIL dial's numbers are unreadable: its 0 / 100 positions are inferred
+  from the ticks.
+* Test: tests/godot/test_gauges_all_jets.gd (each moved needle's centre is its labelled dial and its angle follows
+  its value; the moved records leave their dials; the nozzle opens in AB; with the item off, every needle is the
+  original's).
+
+### AR/NWS lamp (`ar_nws_lights`)
+The F-16's AR status indicator, right of the HUD glass. With the item on, its middle lamp shows a green "AR NWS"
+legend while nose-wheel steering is engaged. The real jet engages steering with the NWS button on the
+ground[^f16-nws]; the game steers the nose wheel with the pedals whenever the jet is on the ground (v1.1,
+docs/flight-model.md "The rudder handler"), so the lamp lights on the ground (inferred). The art paints no legend, so
+the legend is drawn (`instruments.gd` `_draw_legend`, the digits font). RDY and DISC stay dark: the game has no air
+refuelling. Logic: `iaf_flight::instruments::warnings` `ar_nws`. Test: tests/godot/test_better_instruments.gd.
 
 ### AoA indexer (`aoa_indexer`)
 The F-16's indexer on the HUD frame, left of the glass (`game/cockpit/instruments.gd`). The art paints all three
@@ -988,6 +1071,23 @@ The `[PANEL]` Night shifts are listed separately. File names are case-insensitiv
     inputs). <https://falcon.blu3wolf.com/Docs/HAF-F16.pdf>
 [^f16-config]: T.O. GR1F-16CJ-1, "TO/LDG CONFIG Warning Light" (in flight below 10,000 ft, 190 kt, descending more
     than 250 fpm, with the TEFs not full down or a gear leg not down and locked). <https://falcon.blu3wolf.com/Docs/HAF-F16.pdf>
+[^f16-panel]: T.O. GR1F-16CJ-1, fig. 1-3 sheet 4 "Cockpit Arrangement", instrument panel, p. 1-14 (item 3 AR Status/NWS
+    Indicator, items 14–17 OIL Pressure, NOZ POS, RPM and FTIT Indicators). <https://falcon.blu3wolf.com/Docs/HAF-F16.pdf>
+[^f16-fqi]: T.O. GR1F-16CJ-1, fig. 1-3 sheet 3, right auxiliary console, p. 1-13 (item 2 FUEL Quantity Indicator),
+    and "Fuel Quantity Indicating System", p. 1-74 ("the totalizer shows all fuel in the internal and external tanks
+    in pounds"). <https://falcon.blu3wolf.com/Docs/HAF-F16.pdf>
+[^f16-eng]: T.O. GR1F-16CJ-1, "RPM Indicator", "NOZ POS Indicator", "FTIT Indicator" and "OIL Pressure Indicator"
+    PW 229, p. 1-39 (NOZ POS 0 % closed to 100 % open; FTIT 200–1200 °C; oil 0–100 psi). <https://falcon.blu3wolf.com/Docs/HAF-F16.pdf>
+[^f16-oil]: T.O. GR1F-16CJ-1, "Engine Oil System" PW 229, p. 1-34 (about 15 psi more from idle to military below
+    35,000 ft) and fig. 5-2 "Engine Limitations" (idle 15 psi minimum; military 30–95 psi). <https://falcon.blu3wolf.com/Docs/HAF-F16.pdf>
+[^f16-noz]: T.O. GR1F-16CJ-1, "Engine Operating Characteristics" PW 229, p. 1-40 (ground idle with the LG handle DN:
+    nozzle open more than 80 %; flight idle: 0–20 %; at military the NOZ POS should not exceed 20 %).
+    <https://falcon.blu3wolf.com/Docs/HAF-F16.pdf>
+[^f16-ar]: T.O. GR1F-16CJ-1, "Air Refueling (AR) Status Indicator", p. 1-78 (RDY blue, AR/NWS green, DISC amber).
+    <https://falcon.blu3wolf.com/Docs/HAF-F16.pdf>
+[^f16-nws]: T.O. GR1F-16CJ-1, "NWS A/R DISC MSL STEP Button" and "NWS Light", p. 1-110 (the button engages NWS on the
+    ground; the light, the AR/NWS indicator's centre element, lights green when NWS is engaged).
+    <https://falcon.blu3wolf.com/Docs/HAF-F16.pdf>
 [^hb-f4]: Heatblur Simulations, DCS: F-4E Phantom II manual, "Engines": the EGT indicator's large pointer reads a 0–12
     scale of 100 °C, measured at the turbine exit. <https://f4.manuals.heatblur.se/systems/engines_and_fuel_systems/engines.html>
 [^dcs-j79]: Eagle Dynamics forum, "Spoolup time of J79 engines too quick" (a post quoting the F-4C flight manual: idle

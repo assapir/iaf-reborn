@@ -595,6 +595,12 @@ func _draw() -> void:
 		_draw_needle("THROTTLECLOCK" + sfx, en[3 * e], s, Gauges.needle_full("THROTTLECLOCK" + sfx, layout))
 		_draw_needle("RPMCLOCK" + sfx, en[3 * e + 1], s)
 		_draw_needle("TEMPCLOCK" + sfx, en[3 * e + 2], s)
+	# Better dials_by_label: those needles on the dials their labels name instead (gauges.gd DIALS).
+	for d in Gauges.dial_needles(self):
+		var g: Dictionary = layout[d.style]
+		var at := panel_to_screen(d.centre.x, d.centre.y)
+		var tip: Vector2 = at + Vector2(sin(d.angle), -cos(d.angle)) * float(d.r) * s * 0.9
+		draw_line(at, tip, _colorref(int(g.NeedleColor)), max(1.0, g.NeedleWidth * s * 0.6), true)
 	# FUELCLOCK "LBS x1000 TOTAL INTERNAL" (the fill), VARIOCLOCK "CLIMB 1000 FT/MIN".
 	_draw_needle("FUELCLOCK", Gauges.fuel_fill(state), s)
 	Gauges.draw(self, s)
@@ -975,10 +981,11 @@ func _draw_tape(key: String, shift: int, s: float) -> void:
 
 
 ## A needle's angle (rad) for `value` (FUN_00527e50: max(value · 2π / FullClock, 0) + AngleOffset — no needle turns
-## below its zero, the vario rests at 0 in a descent); NAN when the gauge is inactive. `full` > 0 replaces FullClock.
+## below its zero, the vario rests at 0 in a descent); NAN when the gauge is inactive or Better dials_by_label
+## moved it (gauges.gd). `full` > 0 replaces FullClock.
 func needle_angle(key: String, value: float, full := 0.0) -> float:
 	var g: Dictionary = layout.get(key, {})
-	if g.get("Active", 0) != 1:
+	if g.get("Active", 0) != 1 or Gauges.replaced(self).has(key):
 		return NAN
 	return g.AngleOffset + maxf(value / (full if full > 0.0 else float(g.FullClock)) * TAU, 0.0)
 

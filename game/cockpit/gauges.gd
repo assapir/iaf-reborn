@@ -4,6 +4,8 @@
 # original value is kept.
 extends RefCounted
 
+const Instruments := preload("res://cockpit/instruments.gd")
+
 ## Per converted cockpit folder, the panel clocks (panel px of the 1920-px strip, measured on the art): centre, r
 ## (the minute ring). Only these panels paint a clock face; it has no painted hands.
 const CLOCKS := {
@@ -15,6 +17,96 @@ const CLOCKS := {
 const FUEL_COUNTERS := {
 	"f15": Rect2(1232.0, 247.0, 15.0, 6.5),
 }
+## dials_by_label (docs/cockpit.md "Panel instruments per jet"): per cockpit folder, the engine needle records it
+## takes off the dials they sit on in the original (`replaces`) and the dials that get a needle instead. Per dial:
+## `dial` its painted label; `value` THROTTLE / RPM / TEMP (the engine needle values, with the Better items above)
+## or NOZ (%) / OIL (psi) (cockpit.state.nozzle_oil); `style` the record whose needle colour and width it keeps;
+## `centre` and `r` (needle length) in panel px of the 1920-px strip; `scale` [value, clock deg (0 = 12 o'clock,
+## clockwise)] pairs, linear between them (instruments.gd dial_angle), all measured on the art. Single-engine
+## cockpits only (the left engine's values).
+const DIALS := {
+	"f16":
+	{
+		"replaces": ["THROTTLECLOCK", "RPMCLOCK", "TEMPCLOCK"],
+		"dials":
+		[
+			# 0–100 psi, 0 at 7 o'clock, clockwise (labels unreadable; inferred from the ticks).
+			{
+				"dial": "OIL",
+				"value": "OIL",
+				"style": "THROTTLECLOCK",
+				"centre": Vector2(1257.0, 151.0),
+				"r": 10.0,
+				"scale": [[0.0, 210.0], [100.0, 510.0]]
+			},
+			# 0–100 % open, 0 at 2 o'clock, clockwise.
+			{
+				"dial": "NOZ POS",
+				"value": "NOZ",
+				"style": "RPMCLOCK",
+				"centre": Vector2(1260.0, 189.5),
+				"r": 16.0,
+				"scale": [[0.0, 60.0], [100.0, 300.0]]
+			},
+			# 0–110 %, 0 at 12 o'clock, 0–60 % on the first third.
+			{
+				"dial": "RPM",
+				"value": "RPM",
+				"style": "TEMPCLOCK",
+				"centre": Vector2(1260.75, 243.0),
+				"r": 19.0,
+				"scale":
+				[
+					[0.0, 0.0],
+					[0.2, 30.0],
+					[0.4, 65.0],
+					[0.6, 100.0],
+					[0.7, 145.0],
+					[0.8, 185.0],
+					[0.9, 235.0],
+					[1.0, 280.0],
+					[1.1, 325.0]
+				]
+			},
+			# 200–1200 °C (°C / 1000 here), 200–700 on the bottom, 800 at 9 o'clock, 1000 at 1 o'clock.
+			{
+				"dial": "FTIT",
+				"value": "TEMP",
+				"style": "TEMPCLOCK",
+				"centre": Vector2(1269.5, 297.5),
+				"r": 19.0,
+				"scale":
+				[[0.2, 140.0], [0.7, 215.0], [0.8, 270.0], [0.9, 330.0], [1.0, 395.0], [1.1, 415.0], [1.2, 435.0]]
+			},
+		]
+	},
+	"cfir":
+	{
+		"replaces": ["THROTTLECLOCK", "TEMPCLOCK"],
+		"dials":
+		[
+			# The F-4E's fuel flow face: its THROTTLECLOCK scale (FullClock 1 from 12 o'clock).
+			{
+				"dial": "FUEL FLOW",
+				"value": "THROTTLE",
+				"style": "THROTTLECLOCK",
+				"centre": Vector2(1168.0, 186.0),
+				"r": 10.0,
+				"scale": [[0.0, 0.0], [1.25, 450.0]]
+			},
+			# The F-4E's exhaust temperature face: its TEMPCLOCK scale (FullClock 1.3, AngleOffset 0.770796).
+			{
+				"dial": "EXH TEMP",
+				"value": "TEMP",
+				"style": "TEMPCLOCK",
+				"centre": Vector2(1121.0, 256.0),
+				"r": 12.0,
+				"scale": [[0.0, 134.16], [1.3, 494.16]]
+			},
+		]
+	},
+}
+
 ## The Better throttle needle's FullClock floor: on a dial with FullClock 1 (one turn = military) AB 2 (1.2) reads
 ## before the zero mark.
 const THROTTLE_FULL := 1.25
@@ -49,6 +141,29 @@ static func needle_full(key: String, layout: Dictionary) -> float:
 	if key.begins_with("THROTTLECLOCK") and Settings.better_cockpit_on("throttle_ab"):
 		return maxf(float(layout.get(key, {}).get("FullClock", 1.0)), THROTTLE_FULL)
 	return 0.0
+
+
+## The records dials_by_label takes off their dials in the cockpit `c` ([] while off).
+static func replaced(c: Control) -> Array:
+	if not Settings.better_cockpit_on("dials_by_label"):
+		return []
+	return DIALS.get(c.cockpit_dir.get_file().to_lower(), {}).get("replaces", [])
+
+
+## The dials_by_label needles of the cockpit `c` this frame ([] while off): per dial {dial, centre, r, angle (rad,
+## clockwise from 12 o'clock), style}.
+static func dial_needles(c: Control) -> Array:
+	var spec: Dictionary = DIALS.get(c.cockpit_dir.get_file().to_lower(), {})
+	if spec.is_empty() or not Settings.better_cockpit_on("dials_by_label"):
+		return []
+	var en := engine_needles(c.state)
+	var no: PackedFloat32Array = c.state.get("nozzle_oil", PackedFloat32Array([0.0, 0.0]))
+	var values := {"THROTTLE": en[0], "RPM": en[1], "TEMP": en[2], "NOZ": no[0], "OIL": no[1]}
+	var out := []
+	for d in spec.dials:
+		var a := deg_to_rad(Instruments.dial_angle(d.scale, values[d.value]))
+		out.append({"dial": d.dial, "centre": d.centre, "r": d.r, "angle": a, "style": d.style})
+	return out
 
 
 ## The clock hands' angles (rad, clockwise from 12) for a time of day in s: [hour, minute].

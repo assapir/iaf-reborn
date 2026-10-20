@@ -3,7 +3,7 @@
 This guide covers what changes in the Kfir C7 when you switch on the realistic options: the Kfir's own HUD (head-up
 display), the real jet's numbers and the real weapons. The Kfir C7 is the single-seat delta of the game's model. Each
 HUD mode has its own section: when to use it, the keys, a picture with numbered callouts, what each symbol means, and
-a worked example. The numbers come from the game's own data and tests. Section 12 explains the abbreviations.
+a worked example. The numbers come from the game's own data and tests. Section 13 explains the abbreviations.
 
 How to read the pictures: each yellow number points at one symbol. The list under the picture explains it.
 
@@ -41,13 +41,13 @@ Set these on the Preferences screen before the flight. Every row starts at the 1
 
 | Tab | Row | Set to | What it changes |
 | --- | --- | --- | --- |
-| Extras | Flight data | Real aircraft | The Kfir C7 numbers (section 10) |
+| Extras | Flight data | Real aircraft | The Kfir C7 numbers (section 11) |
 | Extras | Weapon data | Real weapons | Radar range, gun rounds, missile weights, speeds and ranges |
 | Extras | HUD | Real | The Kfir's HUD (looking aside shows the original's helmet display) |
-| Extras | Better cockpit | Better | The panel compass turns with the heading; live engine and fuel needles, sharp display pages (section 3) |
+| Extras | Better cockpit | Better | A turning panel compass, live engine and fuel needles on their labelled dials, sharp display pages (section 5) |
 | Graphics → MORE | Sky, Terrain close up, Imagery | Atmospheric, Detailed, Survey 2 m / Sentinel-2 | A physical sky, ground detail and photo imagery, if setup converted it |
 | Graphics → MORE | Airbases | Detailed | Runways, taxiways and aprons with real markings near the ground |
-| Physics | every row | on | Section 10 lists the ones that change how the Kfir flies |
+| Physics | every row | on | Section 11 lists the ones that change how the Kfir flies |
 | Gameplay | Easy landing, Easy aiming, No blackouts / spins / stalls | off | Real landing limits, real launch rules, g-effects and stalls |
 
 A greyed-out imagery choice needs its data: convert it with `tools/setup-cli.sh --imagery`.
@@ -79,38 +79,6 @@ A greyed-out imagery choice needs its data: convert it with `tools/setup-cli.sh 
 **Example**: at the start of mission 231 the bug sits under the caret: waypoint 1 is straight ahead, 4.7 NM away. Its
 marker waits at the bottom edge with an X: the waypoint is below the HUD's view. Lower the nose until the marker
 leaves the edge, then put the flight path marker on it.
-
-### The panel compass
-
-With Extras → Better cockpit on, the compass at the bottom of the panel turns with the heading (in the 1998 game it is
-a still picture). **V** brings the panel up into view, **PgUp** / **PgDn** slide it.
-
-![The panel compass with Better cockpit on](shots/cfir/compass.png)
-
-1. **Lubber mark**: the heading reads on the card under it, here about 320°.
-2. **Compass card**: it turns as the jet turns. The letters are the cardinal points (N, E, S, W), the numbers tens of
-   degrees (`33` = 330°).
-3. **Aircraft symbol**: fixed; it stands for your jet, its nose toward the lubber mark.
-
-**Example**: the HUD's heading scale is a 30° window; the compass shows the whole circle. To fly 090° from 320°, find
-9 on the card: it sits on the card's right half, so turn right and roll out when 9 reaches the lubber mark.
-
-### Better cockpit: the panel
-
-With Extras → Better cockpit on, the engine and fuel needles on the right of the panel show the flight model's own
-values (in the 1998 game they read rough values). The display's pages are drawn sharp at the screen's resolution.
-
-![The engine and fuel gauges with Better cockpit on](shots/cfir/better_panel.png)
-
-1. **RPM**: the engine's real RPM, 60 % at idle, 100 % at military. It needs about 3 s from idle to military.
-2. **Exhaust temperature**: about 450 °C at idle and 650 °C at military, a little more in AB; 900 °C with an engine
-   fire. It rises in about 2 s and falls slowly.
-3. **Throttle**: military at the full mark; in AB it moves on past military, further in AB 2.
-4. **Fuel needle**: all the fuel you carry, the drop tanks too, over the most the jet holds with them. It falls from
-   the first pound burnt (in the 1998 game it stays full until the tanks are empty).
-
-**Example**: take off with a drop tank: the fuel needle starts full and falls from the first minute. At half scale
-you have half of all the fuel you took off with, the tank's included.
 
 ---
 
@@ -152,7 +120,42 @@ sits under the HUD glass's lower edge in this cockpit.
 
 ---
 
-## 5. MSL: AIM-9D, AIM-9L, Python 3
+## 5. Better cockpit
+
+**When**: any flight. **Keys**: Preferences → Extras → Better cockpit; **V** brings the panel up into view, **PgUp** /
+**PgDn** slide it.
+
+With Better cockpit on, the compass at the bottom of the panel turns with the heading, the engine and fuel needles on
+the right of the panel show the flight model's own values, and each engine needle sits on the dial its label names.
+The display's pages are drawn sharp at the screen's resolution. In the 1998 game the compass is a still picture, the
+needles read rough values, and the temperature needle sits on the FUEL FLOW dial while the EXH TEMP dial stays still.
+
+![The Kfir panel with Better cockpit on](shots/cfir/better_panel.png)
+
+1. **Lubber mark**: the heading reads on the card under it, here about 320°.
+2. **Compass card**: it turns as the jet turns. The letters are the cardinal points (N, E, S, W), the numbers tens of
+   degrees (`33` = 330°).
+3. **Aircraft symbol**: fixed; it stands for your jet, its nose toward the lubber mark.
+4. **RPM** (PERCENT RPM): the engine's real RPM, 60 % at idle, 100 % at military. It needs about 3 s from idle to
+   military.
+5. **Exhaust temperature** (EXH TEMP, lower left of the engine dials): about 450 °C at idle and 650 °C at military, a
+   little more in AB; 900 °C with an engine fire. It rises in about 2 s and falls slowly.
+6. **Fuel flow** (FUEL FLOW): it follows the throttle, as on the F-4E: military at the full mark; in AB it moves on
+   past military, further in AB 2.
+7. **Fuel needle**: all the fuel you carry, the drop tanks too, over the most the jet holds with them. It falls from
+   the first pound burnt (in the 1998 game it stays full until the tanks are empty).
+
+The small dial right of the RPM dial, where the 1998 game draws the throttle needle, then has no needle: its label is
+too small to read.
+
+**Example**: the HUD's heading scale is a 30° window; the compass shows the whole circle. To fly 090° from 320°, find
+9 on the card: it sits on the card's right half, so turn right and roll out when 9 reaches the lubber mark. Take off
+with a drop tank: the fuel needle starts full and falls from the first minute. At half scale you have half of all
+the fuel you took off with, the tank's included.
+
+---
+
+## 6. MSL: AIM-9D, AIM-9L, Python 3
 
 **When**: a target inside a few miles, best from behind. **Keys**: **]** until `MSL`, **Space** to fire. With a
 radar lock (**R**, then **Return**) the seeker is slaved to the locked target.
@@ -188,7 +191,7 @@ afterburner lit.
 
 ---
 
-## 6. A-A gun: LCOS and HOTL
+## 7. A-A gun: LCOS and HOTL
 
 **When**: a target inside about 3,000 ft. **Keys**: **]** to the gun, **Tab** fires. The two DEFA 553 guns have
 2 × 140 rounds at 2 × 1,300 rounds/min and 815 m/s: about 6.5 s of firing. The mode window shows `LCOS` once the radar
@@ -224,7 +227,7 @@ third: inside 3,000 ft. Put the pipper on the MiG and hold **Tab** for a 1 s bur
 
 ---
 
-## 7. A-G gun: STRF
+## 8. A-G gun: STRF
 
 **When**: strafing a ground target. **Keys**: **[** to the gun (`STRF`), **Tab** fires.
 
@@ -240,7 +243,7 @@ third: inside 3,000 ft. Put the pipper on the MiG and hold **Tab** for a 1 s bur
 
 ---
 
-## 8. Bombs and rockets: CCIP
+## 9. Bombs and rockets: CCIP
 
 **When**: MK-82 / MK-83 / MK-84, the CBU-87 / CBU-97 clusters and ZUNNI rockets. **Keys**: **[** until `CCIP`; hold
 **Space** to release. The stores page sets the ripple: quantity 1–14, interval 10–200 (default 2 bombs, 10 m apart).
@@ -264,7 +267,7 @@ the edge and hold **Space**. The bombs go at 0.9 s to go, with positive g and le
 
 ---
 
-## 9. Radar and self-protection
+## 10. Radar and self-protection
 
 The real Kfir C7 carries the **EL/M-2001B ranging radar**. In the game it has the same radar modes as every jet; with
 Weapon data = Real its detection range is **14.8 km** (8 NM; uncertain, one database). Use it to lock and range at
@@ -295,7 +298,7 @@ close range. It sees targets from 30 m above the ground, in line of sight; the o
 
 ---
 
-## 10. Flying the Kfir with Real flight data
+## 11. Flying the Kfir with Real flight data
 
 With Flight data = Real the Kfir C7 row comes from Jane's and other public figures, checked by the game's validation
 test. The 1998 Kfir weighed 25 % more and had less thrust.
@@ -332,12 +335,13 @@ What changes in the cockpit:
 
 ---
 
-## 11. Key card
+## 12. Key card
 
 | Key | Action |
 | --- | --- |
 | 1 … 8 | Throttle: idle, 65, 70, 80, 90 %, military, AB 1, AB 2 |
 | 9 / 0 | Throttle − / + 5 % |
+| V / PgUp / PgDn | Panel into view / slide it up / down |
 | Arrows | Stick |
 | Numpad 0 / Decimal | Rudder left / right |
 | G / F / B | Gear / flaps / wheel brakes |
@@ -366,7 +370,7 @@ What changes in the cockpit:
 
 ---
 
-## 12. Abbreviations
+## 13. Abbreviations
 
 | Term | Meaning |
 | --- | --- |
@@ -377,6 +381,7 @@ What changes in the cockpit:
 | CCIP | continuously computed impact point: where the bomb lands now |
 | DEFA | the French 30 mm aircraft gun (DEFA 553) |
 | ECM | electronic countermeasures: jamming |
+| EXH TEMP | exhaust temperature |
 | GMT | ground moving target |
 | GP | general-purpose (bomb) |
 | HOTL | hotline: the bullets' path from the gun cross |
@@ -392,6 +397,7 @@ What changes in the cockpit:
 | NAV | navigation mode |
 | NM | nautical mile (1,852 m) |
 | \[R\] | a reconstruction: the real layout is public in outline |
+| RPM | engine speed, as % of maximum |
 | RWR | radar warning receiver |
 | STRF | strafe: the air-to-ground gun |
 | STT | single-target track: a radar lock |

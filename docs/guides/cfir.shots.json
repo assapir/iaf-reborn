@@ -241,137 +241,90 @@
    {
     "n": 1,
     "px": [
-     0.545,
-     0.285
+     0.189,
+     0.673
     ],
     "label_at": [
-     0.62,
-     0.08
+     0.278,
+     0.519
     ]
    },
    {
     "n": 2,
     "px": [
-     0.525,
-     0.56
+     0.108,
+     0.793
     ],
     "label_at": [
-     0.56,
-     0.76
+     0.03,
+     0.904
     ]
    },
    {
     "n": 3,
     "px": [
-     0.665,
-     0.393
+     0.189,
+     0.832
     ],
     "label_at": [
-     0.8,
-     0.3
+     0.322,
+     0.963
     ]
    },
    {
     "n": 4,
     "px": [
-     0.355,
-     0.7
+     0.752,
+     0.101
     ],
     "label_at": [
-     0.22,
-     0.9
+     0.85,
+     0.03
+    ]
+   },
+   {
+    "n": 5,
+    "px": [
+     0.61,
+     0.633
+    ],
+    "label_at": [
+     0.528,
+     0.837
+    ]
+   },
+   {
+    "n": 6,
+    "px": [
+     0.736,
+     0.333
+    ],
+    "label_at": [
+     0.834,
+     0.414
+    ]
+   },
+   {
+    "n": 7,
+    "px": [
+     0.594,
+     0.453
+    ],
+    "label_at": [
+     0.488,
+     0.371
     ]
    }
   ],
   "crop_at": [
-   1160,
-   175
+   1080,
+   225
   ],
-  "crop_w": 0.22,
+  "crop_w": 0.27,
   "actions": [
    "wait:1"
-  ]
- },
- {
-  "name": "compass",
-  "caption": "The panel compass with Better cockpit on",
-  "mission": 231,
-  "jet": 5,
-  "settings": {
-   "flight_data": "real",
-   "weapon_data": "real",
-   "hud_style": "real",
-   "hud_ladder": "conformal",
-   "sky": "atmospheric",
-   "terrain_closeup": true,
-   "imagery_israel": "mapi2015",
-   "imagery_outside": "sentinel2",
-   "easy_landing": false,
-   "easy_aiming": false,
-   "better": {
-    "flight_path_hold": true,
-    "force_angles": true,
-    "start_lift": true,
-    "start_rpm": true,
-    "start_alpha": true,
-    "landing_limits": true,
-    "spin_fixes": true,
-    "fbw_departure": true,
-    "lift_rate_floor": true,
-    "low_speed_roll": true,
-    "no_nose_wheel_lift": true,
-    "ground_effect": true,
-    "ground_idle": true,
-    "fix_fall_heading": true,
-    "fix_skill_damage": true,
-    "fix_lock_threat": true,
-    "fix_stores_weight": true,
-    "fix_bomb_burst": true,
-    "fix_ghost_collision": true
-   },
-   "better_cockpit": true
-  },
-  "start": "airborne",
-  "turn_deg": 40,
-  "crop": "compass",
-  "crop_w": 0.2,
-  "panel": 1.0,
-  "crop_dy": -0.049,
-  "annotations": [
-   {
-    "n": 1,
-    "px": [
-     0.5,
-     0.508
-    ],
-    "label_at": [
-     0.62,
-     0.3
-    ]
-   },
-   {
-    "n": 2,
-    "px": [
-     0.39,
-     0.67
-    ],
-    "label_at": [
-     0.22,
-     0.82
-    ]
-   },
-   {
-    "n": 3,
-    "px": [
-     0.5,
-     0.723
-    ],
-    "label_at": [
-     0.68,
-     0.9
-    ]
-   }
-  ]
+  ],
+  "turn_deg": 40
  },
  {
   "name": "landing_final",

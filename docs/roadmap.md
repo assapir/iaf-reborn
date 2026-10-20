@@ -73,7 +73,7 @@ ranked order, are in [docs/graphics-research.md](graphics-research.md).
 - **Pilot guides: the MFD and radar pages** (after "Real MFDs", below): an annotated section per real page, with
   pictures, as the HUD sections have. Until then the MFDs are the original pages, which the original manual covers
   (EN 4.12–4.24, docs/manual-audit.md); the guides give only the values the realistic options change (e.g. the radar
-  ranges, docs/guides/f16.md §13).
+  ranges, docs/guides/f16.md §14).
 
 ## Mouse wheel in the settings (nice to have) — done
 The mouse wheel scrolls the settings / preferences pages and their lists. An Extras option sets the direction:
@@ -245,6 +245,14 @@ more id there; docs/cockpit.md "Better cockpit"). Items (approved 2026-10-20):
     string, no decompiled reference, in no cockpit.ibx, unused by our code), used where it is better than the loaded
     art — **none to do** (2026-10-20): each is an earlier or equal version of the loaded art (docs/cockpit.md "The
     unused shipped art").
+
+13. Gauges on their labelled dials (`dials_by_label`) — **done** (2026-10-20): the F-16's four engine dials (OIL,
+    NOZ POS, RPM, FTIT) and the Kfir's FUEL FLOW / EXH TEMP; the other jets' needles already match their labels or
+    the labels are unreadable (docs/cockpit.md "Panel instruments per jet").
+14. Painted status lamps the original never lights, where the game has the state (`ar_nws_lights`) — **done**
+    (2026-10-20): the F-16's AR/NWS lamp (nose-wheel steering on the ground). The other jets' unwired lamps have
+    unreadable legends. Digital readouts in the wrong place: the F-16's fuel counter stays (the art paints no fuel
+    quantity indicator); the F-15's counter is already on its fuel gauge.
 
 ## Glance-down key (Extras, later)
 Hold a key to slide the panel fully into view, release to look ahead again (as modern sims do; a real pilot glances

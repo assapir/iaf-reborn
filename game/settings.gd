@@ -47,6 +47,8 @@ const BETTER_COCKPIT := {
 	"fuel_total": "Fuel gauge with the drop tanks, live fuel counter",
 	"panel_clock": "Panel clock shows the mission time",
 	"crisp_mfd": "Crisp MFD pages",
+	"dials_by_label": "Gauges on their labelled dials",
+	"ar_nws_lights": "AR/NWS lamp shows nose-wheel steering",
 }
 ## Stored preferences by config section: the original pages, then our own options (Extras tab).
 const PREFS := {

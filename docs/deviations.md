@@ -193,6 +193,14 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     the same pages drawn at the screen's resolution, the vectors antialiased, the pixel art as smooth strokes through
     its original pixels (mfd.md §8). Its strokes sit on the pixels the original lights, half a pixel right and down
     of Original's.
+  - **Gauges on their labelled dials** (`dials_by_label`). Original: the F-16 draws THROTTLE on the dial marked OIL,
+    RPM on NOZ POS and TEMP on RPM, the FTIT dial static; the Kfir draws TEMP on its FUEL FLOW dial and THROTTLE on an
+    unlabelled one, its EXH TEMP dial static. Better: each needle on the dial its label names (F-16: OIL pressure,
+    NOZ POS, RPM, FTIT; Kfir: FUEL FLOW from the throttle, EXH TEMP), the F-16's oil pressure and nozzle from the RPM,
+    the AB stage and the gear (constants inferred); the F-16's throttle needle goes (the real jet has no throttle
+    dial). Other jets unchanged (cockpit.md "Panel instruments per jet").
+  - **AR/NWS lamp** (`ar_nws_lights`). Original: the F-16's AR status indicator right of the HUD is static art.
+    Better: its green AR/NWS legend lights on the ground (nose-wheel steering engaged); RDY and DISC stay dark.
 - **World scale (Original / Real 1:1)** (world-scale.md; its Extras row shows only with the dev flag
   `IAF_DEV_WORLD_SCALE=1` until the user decides to show it). Original: every model at its bdb Present
   scale (0x65e: ×2 jets and buildings, ×3–4 vehicles and SAMs). Real 1:1 (`Settings.world_scale = "real"`): the
