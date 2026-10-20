@@ -2768,9 +2768,25 @@ func _process(delta: float) -> void:
 	var st2: Dictionary = cockpit.state
 	hud_label.visible = Settings.show_info
 	hud_label.text = "%s%s   x %.1f km  y %.1f km  alt %.0f m%s   %d kt  %.1f g  thr %d%%%s%s%s   %d fps" % [
-		"REAL DATA" if real_data else "ORIGINAL 1998 DATA", ("   mission: " + mission_name) if mission_name != "" else "", p.x / 1000.0, p.z / 1000.0, p.y, agl, st2.speed_kt, st2.g, int(throttle * 100),
+		_modes_text(), ("   mission: " + mission_name) if mission_name != "" else "", p.x / 1000.0, p.z / 1000.0, p.y, agl, st2.speed_kt, st2.g, int(throttle * 100),
 		"  GEAR" if gear_down else "", "  FLAPS" if flaps > 0 else "", "  BRAKE" if brakes else "", Engine.get_frames_per_second()]
 
+
+
+## The info line's first field: the flight data, then every other switch that is not the original's.
+func _modes_text() -> String:
+	var t := ["REAL DATA" if real_data else "ORIGINAL 1998 DATA"]
+	if Settings.weapon_data == "real":
+		t.append("REAL WEAPONS")
+	if Settings.hud_style != "original":
+		t.append("%s HUD" % Settings.hud_style.to_upper())
+	if Settings.world_scale == "real":
+		t.append("1:1 SCALE")
+	if Settings.better_cockpit:
+		t.append("BETTER COCKPIT")
+	if Settings.better.values().has(true) or _all_better:
+		t.append("BETTER PHYSICS")
+	return " + ".join(t)
 
 ## Scripted stick / rudder for tests (held until changed).
 var scripted_stick = null
