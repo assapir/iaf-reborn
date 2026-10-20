@@ -41,7 +41,7 @@ impl HeightField {
     pub fn add(&mut self, i: i64, j: i64, width: usize, rg8: &[u8]) {
         let node = self.nodes.entry((i, j)).or_insert_with(|| Node {
             width,
-            raw: rg8.chunks_exact(2).map(|p| u16::from(p[0]) << 8 | u16::from(p[1])).collect(),
+            raw: rg8.as_chunks::<2>().0.iter().map(|p| u16::from(p[0]) << 8 | u16::from(p[1])).collect(),
             holders: 0,
         });
         node.holders += 1;

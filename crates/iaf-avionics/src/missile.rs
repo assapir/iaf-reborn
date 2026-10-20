@@ -506,7 +506,9 @@ mod tests {
     /// The air-to-air chase records (weapons.ibx: a, β, tAcc + tConstVel + tDecel, tCO, release time) and the Real
     /// data (Mach, km; game/weapons/real_weapons.gd) with the original DLZ against a still target from 250 m/s
     /// straight ahead (max, min km).
-    const AA: &[(&str, f64, f64, f64, f64, f64, Option<(f64, f64)>, (f64, f64))] = &[
+    /// (name, a, β, tAcc + tConstVel + tDecel, tCO, release time, Real (Mach, km), original DLZ (max, min km)).
+    type ChaseRecord = (&'static str, f64, f64, f64, f64, f64, Option<(f64, f64)>, (f64, f64));
+    const AA: &[ChaseRecord] = &[
         ("AIM-9D", 150.0, 0.08, 10.0, 2.0, 0.0, Some((2.5, 18.0)), (5.264, 1.816)),
         ("AIM-9L", 100.0, 0.08, 16.0, 2.0, 0.0, Some((2.5, 17.7)), (10.164, 1.544)),
         ("PYTH-3", 100.0, 0.08, 16.0, 2.0, 0.0, Some((3.5, 15.0)), (10.164, 1.544)),

@@ -525,8 +525,13 @@ mod tests {
         };
         // A 45° dive at 413 kt, 2,000 ft above the ground: the GAAF X, flashing.
         let v = 413.0 * 0.514444;
-        let mut i =
-            Input { agl_ft: Some(2000.0), tas_ms: v, kcas: 413.0, vs_fpm: -v * 0.7071 * 196.85, ..input(Jet::F16) };
+        let mut i = Input {
+            agl_ft: Some(2000.0),
+            tas_ms: v,
+            kcas: 413.0,
+            vs_fpm: -v * std::f64::consts::FRAC_1_SQRT_2 * 196.85,
+            ..input(Jet::F16)
+        };
         i.weapons.hud_mode = 5;
         assert_eq!(long(&frame(f, &i, 1.0)), 2, "the break X");
         i.time_s = 0.3;

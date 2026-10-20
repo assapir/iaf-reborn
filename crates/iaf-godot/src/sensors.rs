@@ -182,7 +182,7 @@ impl IafHarm {
     /// The list source: "original" (the sensor's scan) or "rwr" (Extras, the RWR's emitters).
     #[func]
     fn set_source(&mut self, source: GString) {
-        self.harm.source = if source.to_string() == "rwr" { Source::Rwr } else { Source::Original };
+        self.harm.source = if source == "rwr" { Source::Rwr } else { Source::Original };
     }
 
     /// A capture from the units [{key, type, klass, name, pos, ecm, search}] (the scan; `search`: harm.rs
