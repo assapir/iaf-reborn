@@ -16,6 +16,7 @@ func run() -> void:
 	prefs.world_scale = "original"
 	var tv: Node = await start_mission(311)
 	check(not IafBases.active(), "Original: no base moves")
+	check(tv.terrain._inset.is_empty(), "Original: no warped insets")
 	check(tv.terrain.surface_at(_scene(tv, DAVID_LINEUP)) & 0x10 != 0, "Original: the lineup is on runway ground")
 
 	prefs.world_scale = "real"
@@ -33,6 +34,14 @@ func run() -> void:
 	check(new.distance_to(DAVID_LINEUP) > 5000.0, "it moved %.1f km" % (new.distance_to(DAVID_LINEUP) / 1000.0))
 	check(tv.terrain.surface_at(_scene(tv, new)) & 0x10 != 0, "the moved lineup is on runway ground")
 	check(tv.terrain.surface_at(_scene(tv, DAVID_LINEUP)) & 0x10 == 0, "the old lineup is rough ground")
+	# The new site's fine ground: the old site's level-0 art warped there (terrain.gd _add_insets), unless a layer has
+	# its own node there.
+	var t: Vector2 = tv.terrain.godot_to_terrain(_scene(tv, new)) / tv.terrain._span(0)
+	var n0 := Vector3i(floori(t.x), floori(t.y), 0)
+	check(
+		tv.terrain._inset.has(n0) or tv.terrain._layer_dir.has(n0),
+		"the moved lineup's level-0 node has fine ground (%d inset nodes)" % tv.terrain._inset.size()
+	)
 	# The radio's tower and lineup follow (radio.gd).
 	var rb: Dictionary = {}
 	for b in tv.radio.bases:

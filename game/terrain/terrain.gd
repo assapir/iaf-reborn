@@ -65,6 +65,10 @@ var _layer_dir := {}
 var layers: Array[String] = []
 var _layers_set := false
 const ImageryLayers := preload("res://terrain/imagery_layers.gd")
+## World scale Real: the new sites' nodes with the old site's fine art (IafBases.moved_insets) -> the node whose
+## texture they lay it over (docs/world-scale.md §4.3).
+var _inset := {}
+var _inset_dir := ""
 var _finest := {}  # Vector3i -> finest level with its own texture in the node's subtree
 var _meshes: Array[ArrayMesh] = []
 var shader := preload("res://terrain/terrain.gdshader")
@@ -139,14 +143,29 @@ func _ready() -> void:
 				if not _layer_dir.has(n):
 					_layer_dir[n] = ldir
 					_add_colour_node(n)
+	_bases_moved = Settings.sync_bases()
+	if _bases_moved:
+		_add_insets()
 	for l in _root_level + 1:
 		_meshes.append(_grid_mesh(_span_m(l), _quads(l)))
 	_load_terrain_types(Settings.assets_dir().path_join("install/terraintype.dat"))
 	IafSurface.load(Settings.assets_dir().path_join("install/terraintype.dat"))
-	_bases_moved = Settings.sync_bases()
 	_bake_bounds = IafBases.bounds() if _bases_moved else PackedFloat64Array()
 	if _bases_moved:
 		_fill_sources()
+
+
+## World scale Real: the new sites' fine art (the old site's inset warped through the move), where no imagery layer
+## has its own node.
+func _add_insets() -> void:
+	_inset_dir = dir.get_base_dir().path_join("moved_insets")
+	var ns := IafBases.moved_insets(dir, _inset_dir)
+	for k in range(0, ns.size(), 3):
+		var n := Vector3i(ns[k + 1], ns[k + 2], ns[k])
+		if not _layer_dir.has(n):
+			_inset[n] = _colour_source(n)
+	for n in _inset:
+		_add_colour_node(n)
 
 
 func _add_colour_node(n: Vector3i) -> void:
@@ -504,7 +523,8 @@ func _work() -> void:
 
 ## Colour -> mipmapped BC1; heights -> RG8 (R = high byte, G = low byte of the raw u16).
 func _decode(key: Vector4i) -> Image:
-	var img := Image.load_from_file(_path(key))
+	var n := Vector3i(key.y, key.z, key.w)
+	var img := _inset_image(n) if key.x == 0 and _inset.has(n) else Image.load_from_file(_path(key))
 	if img != null and _needs_bake(key):
 		img.set_meta("bake", true)  # patched on the main thread (_finish_jobs), then compressed there
 		return img
@@ -514,6 +534,24 @@ func _decode(key: Vector4i) -> Image:
 			img.compress(Image.COMPRESS_S3TC)
 		else:
 			img.convert(Image.FORMAT_RG8)
+	return img
+
+
+## A new site's node: its colour source's part with the old site's warped fine art laid over it (alpha blended).
+func _inset_image(n: Vector3i) -> Image:
+	var b: Vector3i = _inset[n]
+	var img := Image.load_from_file(_path(_key(0, b)))
+	var over := Image.load_from_file(_inset_dir.path_join("L%d/c_%d_%d.png" % [n.z, n.x, n.y]))
+	if img == null or over == null:
+		return img
+	var k := b.z - n.z
+	var w := img.get_width() >> k
+	img = img.get_region(Rect2i((n.x - (b.x << k)) * w, (n.y - (b.y << k)) * w, w, w))
+	img.convert(Image.FORMAT_RGBA8)
+	img.resize(over.get_width(), over.get_height(), Image.INTERPOLATE_BILINEAR)
+	over.convert(Image.FORMAT_RGBA8)
+	img.blend_rect(over, Rect2i(Vector2i.ZERO, over.get_size()), Vector2i.ZERO)
+	img.convert(Image.FORMAT_RGB8)
 	return img
 
 

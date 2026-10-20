@@ -383,7 +383,8 @@ until the user decides to show it.
   of runway: 311's start is 0.7 km from the end of the runway it faces.
 - **The old site** (after §4.3): a faint smooth patch where the paved surface was; the painted shelters, trees and
   buildings more than ≈ 100 m off the paved surface stay.
-- **The new site's ground** close up is the 1998 art's coarse level (≈ 10 m a pixel; §4.3).
+- **The new site's ground** (after §4.3) is the old site's art: its fields, orchards and buildings, not the real
+  site's. Ryak, Aman and Inshas have no fine art at their old sites and keep the coarse level (≈ 10 m a pixel).
 - **Seen from the cockpit, the targets halve.** Gun and missile rules are unchanged (25 m hit sphere), so hitting is
   as easy as before, but finding a target by eye is harder (the original chose ×2, maybe for 640 × 480; inferred).
 - **The two sites.** The old site keeps the 1998 art's painted shelters and buildings outside the paved surface
@@ -435,13 +436,25 @@ until the user decides to show it.
   sign whose real number is not 09, 23 or 27. Original unchanged. Tests: the unit test `the_designator_is_the_real_one`,
   `tests/godot/test_base_move.gd` (David painted 09 / 27, the tower's 270, the signs kept at David, hidden at
   Ramon), `test_world_scale.gd`.
-- **The new site's ground close up — not fixed.** Low over a moved base the ground around the drawn runways looks
-  dark and blurred. The cause is the 1998 art: its fine levels exist only over the painted bases (Ramat David's old
-  site has level 0, 1.2 m a pixel; Ramon's level 2, 5 m), and at the real sites the finest is level 3 (≈ 10 m a
-  pixel) of plain farmland or desert. The patch paints only the moved paved surface; it does not darken. A fix needs
-  new fine nodes at each new site (the old site's inset warped through the move, or an imagery layer's photo), a
-  change to the terrain's node lists and the converter: out of this polish's reach. With an imagery layer that has
-  fine nodes at the new site (`mapi2015` in Israel, 2.5 m a pixel), the real base's photo shows there.
+- **The new site's ground close up** (`BaseMove::inset_source` / `bake_inset` in
+  `crates/iaf-flight/src/base_move.rs`, `IafBases.moved_insets` in `crates/iaf-godot/src/bases.rs`, `terrain.gd
+  _add_insets` / `_inset_image`). The 1998 art has fine levels only over its painted bases (Ramat David's old site
+  level 0, 1.2 m a pixel); at the real sites its finest is level 3 (≈ 10 m a pixel), so low over a moved base the
+  ground looked dark and blurred. Now each new site gets fine nodes at levels 0–2 wherever the old site has them:
+  every pixel over the new zone A shows the old site's original art at the point the move's inverse gives (the
+  similarity: translation, turn and the base's k), bilinear. The art fades in over 250 m inside zone A's edge
+  (`INSET_FADE`) onto the node's own coarse colour, so the old aprons, taxiways, buildings and fields lie around the
+  drawn runways and the ground beyond stays the 1998 art's. The warp is made once, on the first load in Real, into
+  `assets/converted/terrain/moved_insets/` (RGBA PNGs, alpha = the fade; 139 nodes, ≈ 100 MB, ≈ 1 s on every core;
+  `nodes.txt` holds the moves they were made for and is remade when they change). The terrain lays each one over its
+  colour source's part as the node loads (a worker thread), then patches it like any node on a site (the old paved
+  surface painted over, the new one drawn). An imagery layer's own node wins (`mapi2015` in Israel: the real base's
+  photo). Original loads none. Pictures (Real, 250 m over the moved Ramat David and Ramon, looking north):
+  `david_before_r.png` / `david_after_r.png`, `ramon_before_r.png` / `ramon_after_r.png` (local captures,
+  `tests/godot/_airbase_shot.gd`). Left: the art is the old site's, not the real base's; a faint lighter rectangle
+  shows around the base from 2.5 km where the old site's fields are paler than the new site's. Tests: the unit test
+  `the_new_site_takes_the_old_art`, `tests/godot/test_base_move.gd` (the moved lineup's level-0 node has fine
+  ground; none in Original).
 
 ## 5. Decisions (user, 2026-10-20) and open questions
 

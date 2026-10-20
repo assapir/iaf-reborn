@@ -22,6 +22,8 @@ pub const ZONE_B: f64 = 6000.0;
 pub const FAR: f64 = 5000.0;
 /// The flattened site blends into the original ground over this ring (m) around the moved zone A.
 pub const RING: f64 = 1200.0;
+/// The old site's fine art warped onto the new site fades in over this far inside the new zone A's edge (m).
+pub const INSET_FADE: f64 = 250.0;
 
 /// A real runway: its ends (engine metres) and width (m).
 #[derive(Debug, Clone, PartialEq)]
@@ -390,6 +392,58 @@ impl BaseMove {
     fn to_game_any(&self, p: [f64; 2]) -> [f64; 2] {
         let q = self.real_uv(p);
         self.game_xy([q[0] / self.k, q[1] / self.k])
+    }
+
+    /// The new site's fine art (docs/world-scale.md §4.3): the old site's point that a new-site point shows (the
+    /// similarity's inverse) and its weight, 1 deeper than `INSET_FADE` inside the new zone A, 0 at its edge; None
+    /// outside.
+    pub fn inset_source(&self, p: [f64; 2]) -> Option<([f64; 2], f64)> {
+        let q = self.real_uv(p);
+        let (k, lo, hi) = (self.k, self.lo, self.hi);
+        let d = (q[0] - k * lo[0]).min(k * hi[0] - q[0]).min(q[1] - k * lo[1]).min(k * hi[1] - q[1]);
+        (d > 0.0).then(|| (self.to_game_any(p), smoothstep(0.0, INSET_FADE, d)))
+    }
+
+    /// Zone A's box (engine metres [x0, y0, x1, y1]): the old site's (`new` false) or the new site's.
+    pub fn zone_box(&self, new: bool) -> [f64; 4] {
+        let (lo, hi, k) = (self.lo, self.hi, self.k);
+        [[lo[0], lo[1]], [hi[0], lo[1]], [hi[0], hi[1]], [lo[0], hi[1]]]
+            .iter()
+            .map(|q| if new { self.real_xy([q[0] * k, q[1] * k]) } else { self.game_xy(*q) })
+            .fold([f64::MAX, f64::MAX, f64::MIN, f64::MIN], |r, p| {
+                [r[0].min(p[0]), r[1].min(p[1]), r[2].max(p[0]), r[3].max(p[1])]
+            })
+    }
+
+    /// Draws the old site's fine art over a new-site image (RGBA8; `px(x, y)` = the pixel centre's engine position,
+    /// `sample` = the old art's colour at an engine point): colour and alpha = `inset_source`'s weight, where it is
+    /// above the alpha already there. True when any pixel took it.
+    pub fn bake_inset(
+        &self,
+        rgba: &mut [u8],
+        w: usize,
+        h: usize,
+        px: impl Fn(usize, usize) -> [f64; 2],
+        mut sample: impl FnMut([f64; 2]) -> Option<[f64; 3]>,
+    ) -> bool {
+        let mut any = false;
+        for y in 0..h {
+            for x in 0..w {
+                let i = 4 * (y * w + x);
+                let Some((q, wt)) = self.inset_source(px(x, y)) else { continue };
+                let a = (wt * 255.0).round() as u8;
+                if i + 3 >= rgba.len() || a <= rgba[i + 3] {
+                    continue;
+                }
+                let Some(c) = sample(q) else { continue };
+                for ch in 0..3 {
+                    rgba[i + ch] = c[ch].round().clamp(0.0, 255.0) as u8;
+                }
+                rgba[i + 3] = a;
+                any = true;
+            }
+        }
+        any
     }
 
     /// The flattening's weight at a point: 1 on the new zone A, falling to 0 over `RING`.
@@ -1015,6 +1069,28 @@ mod tests {
         assert_eq!(m.designator(67.0), 7);
         assert_eq!(m.designator(150.0), 15);
         assert_eq!(m.designator(2.0), 36);
+    }
+
+    #[test]
+    fn the_new_site_takes_the_old_art() {
+        let m = BaseMove::new(&game("David"), &real_runways()).unwrap();
+        // The old art: its colour is its game x (mod 256); 1 m pixels along the new runway's middle.
+        let mid = m.map([355000.0, 602387.0]).unwrap().p;
+        let (w, h) = (8, 1);
+        let mut rgba = vec![0u8; 4 * w * h];
+        let px = |x: usize, _| [mid[0] + x as f64, mid[1]];
+        assert!(m.bake_inset(&mut rgba, w, h, px, |q| Some([q[0].rem_euclid(256.0); 3])));
+        let back = m.to_game(px(3, 0), 0.0).unwrap();
+        assert_eq!(
+            rgba[4 * 3..4 * 4],
+            [back[0].rem_euclid(256.0).round() as u8; 3].into_iter().chain([255]).collect::<Vec<_>>()[..]
+        );
+        // Zone A's edge fades; outside, nothing.
+        let b = m.zone_box(true);
+        let corner_in = m.real_xy([m.k * m.lo[0] + 10.0, m.k * m.lo[1] + 400.0]);
+        assert!(m.inset_source(corner_in).unwrap().1 < 0.2);
+        assert!(m.inset_source([b[0] - 1.0, b[1] - 1.0]).is_none());
+        assert!(!m.bake_inset(&mut rgba, w, h, |_, _| [0.0, 0.0], |_| Some([0.0; 3])));
     }
 
     #[test]

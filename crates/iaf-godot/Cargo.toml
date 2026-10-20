@@ -17,4 +17,4 @@ iaf-setup = { path = "../iaf-setup" }
 iaf-tools = { path = "../iaf-tools" }
 serde_json = "1.0.154"
 anyhow = "1"
-image = { version = "0.25.10", default-features = false, features = ["png"] }
+image = { version = "0.25.10", default-features = false, features = ["png", "jpeg"] }

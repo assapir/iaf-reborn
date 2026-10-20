@@ -2,6 +2,7 @@
 //! process: set up from the setting at mission load, read by the flight model's bases (`flight.rs`), the surface
 //! lookups (`surface.rs`), the terrain's image patches and the mission data (GDScript).
 
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::sync::{LazyLock, RwLock};
 
@@ -87,6 +88,162 @@ fn load(assets: &Path) -> Option<(BaseMoves, Meta)> {
     }
     moves.set_elevations(|x, y| field.height(iaf_avionics::Vec3::new(x, y, 0.0)));
     Some((moves, meta))
+}
+
+/// The terrain levels that get the new sites' fine art (finer than the old sites' fill level, 3).
+const INSET_LEVELS: std::ops::Range<i32> = 0..3;
+
+/// The original's colour nodes of one level that the warp reads.
+struct Art {
+    level: i32,
+    meta: Meta,
+    nodes: HashMap<(i64, i64), image::RgbImage>,
+}
+
+impl Art {
+    fn pixel(&self, gx: i64, gy: i64) -> Option<[u8; 3]> {
+        let np = self.meta.node_pixels as i64;
+        let img = self.nodes.get(&(gx.div_euclid(np), gy.div_euclid(np)))?;
+        let (x, y) = (gx.rem_euclid(np) as u32, gy.rem_euclid(np) as u32);
+        (x < img.width() && y < img.height()).then(|| img.get_pixel(x, y).0)
+    }
+
+    /// The colour at an engine point, bilinear; None where a pixel is missing.
+    fn sample(&self, p: [f64; 2]) -> Option<[f64; 3]> {
+        let upp = 2f64.powi(self.level) * self.meta.m_per_unit;
+        let gx = (p[0] - self.meta.x_shift) / upp - 0.5;
+        let gy = (self.meta.y_shift - p[1]) / upp - 0.5;
+        let (x0, y0) = (gx.floor() as i64, gy.floor() as i64);
+        let (fx, fy) = (gx - x0 as f64, gy - y0 as f64);
+        let (a, b, c, d) =
+            (self.pixel(x0, y0)?, self.pixel(x0 + 1, y0)?, self.pixel(x0, y0 + 1)?, self.pixel(x0 + 1, y0 + 1)?);
+        Some(std::array::from_fn(|k| {
+            let l = |v: [u8; 3]| v[k] as f64;
+            (l(a) * (1.0 - fx) + l(b) * fx) * (1.0 - fy) + (l(c) * (1.0 - fx) + l(d) * fx) * fy
+        }))
+    }
+}
+
+/// `f` over `items` on every core; the results in order.
+fn par_map<T: Sync, R: Send>(items: &[T], f: impl Fn(&T) -> R + Sync) -> Vec<R> {
+    let next = std::sync::atomic::AtomicUsize::new(0);
+    let out = std::sync::Mutex::new(Vec::new());
+    let n = std::thread::available_parallelism().map_or(4, |n| n.get()).min(items.len());
+    std::thread::scope(|s| {
+        for _ in 0..n {
+            s.spawn(|| {
+                loop {
+                    let i = next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    let Some(t) = items.get(i) else { break };
+                    let r = f(t);
+                    out.lock().unwrap().push((i, r));
+                }
+            });
+        }
+    });
+    let mut v = out.into_inner().unwrap();
+    v.sort_by_key(|(i, _)| *i);
+    v.into_iter().map(|(_, r)| r).collect()
+}
+
+/// The new sites' fine art (docs/world-scale.md §4.3): per base and level 0–2, the nodes over the new zone A with
+/// the old site's original art warped through the move, as RGBA PNGs (alpha = the weight) in `out`
+/// (`L<level>/c_<i>_<j>.png`; the terrain lays them over the node's own colour). Made once; `out/nodes.txt` holds
+/// the moves they were made for and the nodes. Returns [level, i, j] per node.
+fn insets(moves: &BaseMoves, meta: Meta, theatre: &Path, out: &Path) -> std::io::Result<Vec<[i64; 3]>> {
+    let stamp = format!(
+        "v1 {:?}",
+        moves
+            .bases
+            .iter()
+            .map(|b| (&b.name, b.game_c, b.game_d, b.real_c, b.real_d, b.k, b.lo, b.hi))
+            .collect::<Vec<_>>()
+    );
+    let list = out.join("nodes.txt");
+    if let Ok(t) = std::fs::read_to_string(&list)
+        && let Some(rest) = t.strip_prefix(&format!("{stamp}\n"))
+    {
+        return Ok(rest
+            .lines()
+            .filter_map(|l| {
+                let v: Vec<i64> = l.split(' ').filter_map(|x| x.parse().ok()).collect();
+                (v.len() == 3).then(|| [v[0], v[1], v[2]])
+            })
+            .collect());
+    }
+    let mj: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(theatre.join("meta.json"))?)?;
+    let np = meta.node_pixels;
+    let mut done: Vec<[i64; 3]> = Vec::new();
+    for level in INSET_LEVELS {
+        let have: HashSet<(i64, i64)> = mj["nodes"][level.to_string()]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|ij| Some((ij[0].as_i64()?, ij[1].as_i64()?)))
+            .collect();
+        let span = np as f64 * 2f64.powi(level) * meta.m_per_unit;
+        let upp = span / np as f64;
+        let nodes = |b: [f64; 4]| {
+            let (i0, i1) =
+                (((b[0] - meta.x_shift) / span).floor() as i64, ((b[2] - meta.x_shift) / span).floor() as i64);
+            let (j0, j1) =
+                (((meta.y_shift - b[3]) / span).floor() as i64, ((meta.y_shift - b[1]) / span).floor() as i64);
+            (i0..=i1).flat_map(move |i| (j0..=j1).map(move |j| (i, j)))
+        };
+        let dir = out.join(format!("L{level}"));
+        std::fs::create_dir_all(&dir)?;
+        for b in &moves.bases {
+            let src: Vec<(i64, i64)> = nodes(b.zone_box(false)).filter(|n| have.contains(n)).collect();
+            if src.is_empty() {
+                continue;
+            }
+            let decoded = par_map(&src, |n| {
+                image::open(theatre.join(format!("L{level}/c_{}_{}.jpg", n.0, n.1))).ok().map(|i| (*n, i.to_rgb8()))
+            });
+            let art = Art { level, meta, nodes: decoded.into_iter().flatten().collect() };
+            let outs: Vec<(i64, i64)> = nodes(b.zone_box(true)).collect();
+            let made = par_map(&outs, |&(i, j)| -> std::io::Result<bool> {
+                let path = dir.join(format!("c_{i}_{j}.png"));
+                let mut rgba = match done.contains(&[level as i64, i, j]) {
+                    true => image::open(&path).map_err(std::io::Error::other)?.to_rgba8().into_raw(),
+                    false => vec![0u8; 4 * np * np],
+                };
+                let px = |x: usize, y: usize| {
+                    [
+                        i as f64 * span + (x as f64 + 0.5) * upp + meta.x_shift,
+                        meta.y_shift - j as f64 * span - (y as f64 + 0.5) * upp,
+                    ]
+                };
+                if !b.bake_inset(&mut rgba, np, np, px, |q| art.sample(q)) {
+                    return Ok(false);
+                }
+                let tmp = dir.join(format!("c_{i}_{j}.png.tmp"));
+                let file = std::io::BufWriter::new(std::fs::File::create(&tmp)?);
+                let enc = image::codecs::png::PngEncoder::new_with_quality(
+                    file,
+                    image::codecs::png::CompressionType::Fast,
+                    image::codecs::png::FilterType::Adaptive,
+                );
+                image::ImageEncoder::write_image(enc, &rgba, np as u32, np as u32, image::ExtendedColorType::Rgba8)
+                    .map_err(std::io::Error::other)?;
+                std::fs::rename(&tmp, &path)?;
+                Ok(true)
+            });
+            for (&(i, j), m) in outs.iter().zip(made) {
+                if m? && !done.contains(&[level as i64, i, j]) {
+                    done.push([level as i64, i, j]);
+                }
+            }
+        }
+    }
+    let mut t = format!("{stamp}\n");
+    for n in &done {
+        t += &format!("{} {} {}\n", n[0], n[1], n[2]);
+    }
+    let tmp = out.join("nodes.txt.tmp");
+    std::fs::write(&tmp, t)?;
+    std::fs::rename(&tmp, &list)?;
+    Ok(done)
 }
 
 #[derive(GodotClass)]
@@ -215,6 +372,22 @@ impl IafBases {
             }
         }
         PackedInt64Array::from(out.as_slice())
+    }
+
+    /// The new sites' fine-art nodes (`insets`, made into `out` when missing or stale): [level, i, j, …]; empty in
+    /// Original or on a failure (the new sites then keep the coarse ground).
+    #[func]
+    fn moved_insets(theatre: GString, out: GString) -> PackedInt64Array {
+        let g = MOVES.read().unwrap();
+        let Some(m) = g.as_ref() else { return PackedInt64Array::new() };
+        let meta = *META.read().unwrap();
+        match insets(m, meta, Path::new(&theatre.to_string()), Path::new(&out.to_string())) {
+            Ok(v) => PackedInt64Array::from(v.concat().as_slice()),
+            Err(e) => {
+                godot_warn!("world scale real: the new sites' fine ground: {e}");
+                PackedInt64Array::new()
+            }
+        }
     }
 
     /// A colour image of node (level, i, j) (RGB8) as a source of the old sites' fills; `done`: the last one.
