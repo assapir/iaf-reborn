@@ -28,6 +28,11 @@ ranked order, are in [docs/graphics-research.md](graphics-research.md).
   imagery, bases and units (large).
 - **Fighting in Gaza** (wishlist, user 2026-10-20): missions over Gaza, which lies inside the theatre. The Mission
   Creator (original first, then a freer editor) is the way in.
+- **More airbases** (wishlist, user 2026-10-20): the game has ten bases (Israel: Ramon, Tel Nof, Ramat David;
+  Refidim / Bir Gifgafa in Sinai; Inshas, Damascus (Mezzeh), Al Qusayr, Bley, Rayak, Amman). Wanted: Hatzerim, Hatzor,
+  Nevatim, Ovda, and maybe Ben Gurion (LLBG) — Ramon is already in. Each needs a base layout (runways, taxiways,
+  shelters, tower, lineup / taxi / hangar points in iaf.ibx terms), its 3D objects and ground art, and missions that
+  use it (inferred: the Mission Creator and the Real 1:1 base move already read bases from data).
 - **A modern TSD map** (wishlist, user 2026-10-20): today's borders and place names on the TSD (an opt-in; the 1998
   map stays the default).
 
