@@ -205,6 +205,152 @@ impl Grid {
         }
         Self { v: dist.iter().map(|&d| d != u32::MAX).collect(), ..seeds.clone() }
     }
+
+    /// The set cells' outlines on the cell corners (cell units, rows running down), each a closed ring (first point not
+    /// repeated). Cells touching only at a corner get separate rings.
+    fn outlines(&self) -> Vec<Vec<[f64; 2]>> {
+        let (w, h) = (self.w, self.h);
+        let set =
+            |i: i64, j: i64| i >= 0 && j >= 0 && i < w as i64 && j < h as i64 && self.v[j as usize * w + i as usize];
+        let vid = |i: usize, j: usize| j * (w + 1) + i;
+        // Each set cell's sides toward unset cells, clockwise on screen (the cell on the right).
+        let mut edges: Vec<(usize, usize)> = Vec::new();
+        for j in 0..h {
+            for i in 0..w {
+                if !self.v[j * w + i] {
+                    continue;
+                }
+                let (a, b) = (i as i64, j as i64);
+                let (tl, tr, br, bl) = (vid(i, j), vid(i + 1, j), vid(i + 1, j + 1), vid(i, j + 1));
+                for (n, e) in
+                    [((a, b - 1), (tl, tr)), ((a + 1, b), (tr, br)), ((a, b + 1), (br, bl)), ((a - 1, b), (bl, tl))]
+                {
+                    if !set(n.0, n.1) {
+                        edges.push(e);
+                    }
+                }
+            }
+        }
+        const NONE: usize = usize::MAX;
+        let mut out: Vec<[usize; 2]> = vec![[NONE; 2]; (w + 1) * (h + 1)];
+        for (k, &(a, _)) in edges.iter().enumerate() {
+            let slot = (out[a][0] != NONE) as usize;
+            out[a][slot] = k;
+        }
+        let xy = |v: usize| [(v % (w + 1)) as f64, (v / (w + 1)) as f64];
+        let mut used = vec![false; edges.len()];
+        let mut rings = Vec::new();
+        for start in 0..edges.len() {
+            let mut ring = Vec::new();
+            let mut k = start;
+            while !used[k] {
+                used[k] = true;
+                let (a, b) = edges[k];
+                ring.push(xy(a));
+                // At a corner shared by two diagonal cells, turn right (around this cell) so the rings stay apart.
+                k = match out[b] {
+                    [x, NONE] => x,
+                    [x, y] if used[x] => y,
+                    [x, y] if used[y] => x,
+                    [x, y] => {
+                        let (pa, pb) = (xy(a), xy(b));
+                        let right = [pb[0] - (pb[1] - pa[1]), pb[1] + (pb[0] - pa[0])];
+                        if xy(edges[y].1) == right { y } else { x }
+                    }
+                };
+            }
+            if !ring.is_empty() {
+                rings.push(ring);
+            }
+        }
+        rings
+    }
+}
+
+/// Douglas-Peucker on a closed ring: the fewest of its points that keep every point within `tol` of the outline.
+fn simplify(ring: &[[f64; 2]], tol: f64) -> Vec<[f64; 2]> {
+    fn dp(p: &[[f64; 2]], tol: f64, keep: &mut [bool]) {
+        let (a, b) = (p[0], p[p.len() - 1]);
+        let ab = [b[0] - a[0], b[1] - a[1]];
+        let len = ab[0].hypot(ab[1]).max(1e-9);
+        let dist = |q: &[f64; 2]| ((q[0] - a[0]) * ab[1] - (q[1] - a[1]) * ab[0]).abs() / len;
+        let far = (1..p.len().saturating_sub(1)).map(|i| (i, dist(&p[i]))).max_by(|x, y| x.1.total_cmp(&y.1));
+        if let Some((i, _)) = far.filter(|f| f.1 > tol) {
+            keep[i] = true;
+            dp(&p[..=i], tol, &mut keep[..=i]);
+            dp(&p[i..], tol, &mut keep[i..]);
+        }
+    }
+    // Split at two far apart points (the farthest from the first point, and the farthest from that), each half
+    // simplified on its own.
+    let n = ring.len();
+    let farthest = |from: usize| {
+        let d = |k: usize| (ring[k][0] - ring[from][0]).hypot(ring[k][1] - ring[from][1]);
+        (0..n).max_by(|&x, &y| d(x).total_cmp(&d(y))).unwrap_or(from)
+    };
+    let a = farthest(0);
+    let far = (farthest(a) + n - a) % n;
+    if far == 0 {
+        return ring.to_vec();
+    }
+    let closed: Vec<[f64; 2]> = (0..=n).map(|k| ring[(a + k) % n]).collect();
+    let mut keep = vec![false; n + 1];
+    keep[0] = true;
+    keep[far] = true;
+    dp(&closed[..=far], tol, &mut keep[..=far]);
+    dp(&closed[far..], tol, &mut keep[far..]);
+    (0..n).filter(|&k| keep[k]).map(|k| closed[k]).collect()
+}
+
+/// A closed ring's points each moved to the mean of the `r` points before and after it (the wobble averaged out).
+fn smooth(ring: &[[f64; 2]], r: usize) -> Vec<[f64; 2]> {
+    let n = ring.len();
+    if n <= 2 * r {
+        return ring.to_vec();
+    }
+    let m = (2 * r + 1) as f64;
+    (0..n)
+        .map(|k| {
+            let s = (0..=2 * r).map(|d| ring[(k + n + d - r) % n]).fold([0.0; 2], |a, p| [a[0] + p[0], a[1] + p[1]]);
+            [s[0] / m, s[1] / m]
+        })
+        .collect()
+}
+
+/// A ring's area (cell units², signed by its direction).
+fn ring_area(r: &[[f64; 2]]) -> f64 {
+    let n = r.len();
+    (0..n).map(|k| r[k][0] * r[(k + 1) % n][1] - r[(k + 1) % n][0] * r[k][1]).sum::<f64>() / 2.0
+}
+
+/// Each cell's coverage (0–1) by the rings (even-odd), from 4 rows per cell and the spans' exact ends.
+fn coverage(rings: &[Vec<[f64; 2]>], w: usize, h: usize) -> Vec<f32> {
+    const SUB: usize = 4;
+    let mut cov = vec![0f32; w * h];
+    let mut xs: Vec<f64> = Vec::new();
+    for j in 0..h {
+        for s in 0..SUB {
+            let y = j as f64 + (s as f64 + 0.5) / SUB as f64;
+            xs.clear();
+            for r in rings {
+                for k in 0..r.len() {
+                    let (a, b) = (r[k], r[(k + 1) % r.len()]);
+                    if (a[1] <= y) != (b[1] <= y) {
+                        xs.push(a[0] + (y - a[1]) / (b[1] - a[1]) * (b[0] - a[0]));
+                    }
+                }
+            }
+            xs.sort_by(f64::total_cmp);
+            for &[a, b] in xs.as_chunks::<2>().0 {
+                let (x0, x1) = (a.clamp(0.0, w as f64), b.clamp(0.0, w as f64));
+                for i in x0.floor() as usize..(x1.ceil() as usize).min(w) {
+                    let part = x1.min(i as f64 + 1.0) - x0.max(i as f64);
+                    cov[j * w + i] += part.max(0.0) as f32 / SUB as f32;
+                }
+            }
+        }
+    }
+    cov
 }
 
 fn inside_convex(poly: &[[f64; 2]], p: [f64; 2]) -> bool {
@@ -921,6 +1067,8 @@ pub struct Base {
     /// The paved surface (runways, taxiways, aprons) as a raster: `paved.v` row by row, rows running south, pixel
     /// (i, j)'s north-west corner at engine metres (origin[0] + i·px_m, origin[1] − j·px_m).
     pub paved: Grid,
+    /// Each pixel's paved coverage (0–1) by the straightened outline; `paved` is where it reaches 0.5.
+    pub cover: Vec<f32>,
     /// The paved pixels in the aprons' tint (concrete), same raster.
     pub concrete: Vec<bool>,
     pub origin: [f64; 2],
@@ -988,6 +1136,14 @@ const TAXI_MIN_SAMPLES: usize = 8;
 const TAXIWAYS_PAD_M: f64 = 600.0;
 /// The paved mask's edge is closed over this radius (m).
 const CLOSE_EDGE_M: f64 = 5.0;
+/// Each paved outline point is averaged with its neighbours within SMOOTH_M (m) along the outline, then the outline is
+/// simplified to straight edges within STRAIGHT_M (m); outline parts (holes, islands) under SPECK_M2 (m²) are dropped.
+const SMOOTH_M: f64 = 12.5;
+const STRAIGHT_M: f64 = 5.0;
+const SPECK_M2: f64 = 100.0;
+/// The aprons: what of the paved surface off the runways stays when eroded over this radius (m; taxiways narrower than
+/// twice this drop out).
+const APRON_M: f64 = 12.5;
 /// Beside the runways (this far beyond their edges, m) the paved mask is opened over SHOULDER_OPEN_M (m).
 const SHOULDER_M: f64 = 40.0;
 const SHOULDER_OPEN_M: f64 = 7.5;
@@ -1210,7 +1366,46 @@ pub fn bases(install: &Path, theatre: &Theatre) -> Result<Vec<Base>> {
                 surface.v[k] = opened.v[k];
             }
         }
-        let concrete = surface.v.iter().zip(&rgb).map(|(&p, &c)| p && is_apron(c) && !is_asphalt(c)).collect();
+        // Straight edges: the outlines simplified, then drawn back anti-aliased (the coverage's 0.5 is the edge).
+        let rings: Vec<Vec<[f64; 2]>> = surface
+            .outlines()
+            .iter()
+            .map(|r| simplify(&smooth(r, (SMOOTH_M / px_m).round() as usize), STRAIGHT_M / px_m))
+            .filter(|r| r.len() >= 3 && ring_area(r).abs() * px_m * px_m >= SPECK_M2)
+            .collect();
+        let cover = coverage(&rings, w, h);
+        surface.v = cover.iter().map(|&c| c >= 0.5).collect();
+        // Concrete per apron, not per pixel: each part of the surface off the runways that survives an erosion over
+        // APRON_M is concrete when most of its pixels show the aprons' tint; the concrete parts then grow back over the
+        // surface off the runways.
+        let off = Grid { v: surface.v.iter().zip(&seeds.v).map(|(&p, &s)| p && !s).collect(), ..seeds.clone() };
+        let e = (APRON_M / px_m).round() as usize;
+        let core = off.erode(e);
+        let tinted = |k: usize| is_apron(rgb[k]) && !is_asphalt(rgb[k]);
+        let mut apron = Grid { v: vec![false; w * h], ..seeds.clone() };
+        let mut seen = vec![false; w * h];
+        for k0 in 0..w * h {
+            if !core.v[k0] || seen[k0] {
+                continue;
+            }
+            seen[k0] = true;
+            let mut part = vec![k0];
+            let mut n = 0;
+            while n < part.len() {
+                let (i, j) = (part[n] % w, part[n] / w);
+                n += 1;
+                for (a, b) in [(i.wrapping_sub(1), j), (i + 1, j), (i, j.wrapping_sub(1)), (i, j + 1)] {
+                    if a < w && b < h && core.v[b * w + a] && !seen[b * w + a] {
+                        seen[b * w + a] = true;
+                        part.push(b * w + a);
+                    }
+                }
+            }
+            if part.iter().filter(|&&k| tinted(k)).count() * 2 >= part.len() {
+                part.iter().for_each(|&k| apron.v[k] = true);
+            }
+        }
+        let concrete = Grid::grow(&apron, &off, e + 1).v;
         Ok(Base {
             name: sec.name.clone(),
             lineup,
@@ -1218,6 +1413,7 @@ pub fn bases(install: &Path, theatre: &Theatre) -> Result<Vec<Base>> {
             runways,
             taxi,
             paved: surface,
+            cover,
             concrete,
             origin: corner,
             px_m,
@@ -1260,6 +1456,44 @@ mod tests {
         assert!(!f.at(1600.0, 1600.0 + 450.0 + m + 100.0), "the grass beyond the margin");
         // ≈ the base's bounding box grown by the close and the margin, far less than the site.
         assert!(f.area_km2() < 0.25 * 16.0, "{} km²", f.area_km2());
+    }
+
+    /// A 60 × 30 cell rectangle whose edges wobble by ±1 cell (with a one-cell notch and a diagonal speck beside a
+    /// corner) and a 10 × 10 hole: the outline simplifies to 4 straight edges and the hole to 4 more; drawn back, the
+    /// edges lie on the rectangle's own lines (coverage 0.5 there) and the hole stays.
+    #[test]
+    fn wobbly_outline_becomes_straight() {
+        let (w, h) = (80, 50);
+        let mut g = Grid::new(0.0, 0.0, 1.0, w, h);
+        for j in 10..40 {
+            for i in 10..70 {
+                let hole = (30..40).contains(&i) && (20..30).contains(&j);
+                g.v[j * w + i] = !hole;
+            }
+        }
+        for k in 0..60 {
+            let i = 10 + k;
+            let d = [0, 1, 0, -1, 0][k % 5];
+            if d > 0 {
+                g.v[9 * w + i] = true;
+            } else if d < 0 {
+                g.v[10 * w + i] = false;
+            }
+        }
+        g.v[25 * w + 69] = false;
+        g.v[9 * w + 9] = true;
+        let rings: Vec<Vec<[f64; 2]>> =
+            g.outlines().iter().map(|r| simplify(r, 2.0)).filter(|r| r.len() >= 3).collect();
+        let mut n: Vec<usize> = rings.iter().map(|r| r.len()).collect();
+        n.sort();
+        assert_eq!(n, [4, 4], "{rings:?}");
+        let cov = coverage(&rings, w, h);
+        let at = |i: usize, j: usize| cov[j * w + i];
+        assert!(at(40, 35) > 0.99 && at(5, 5) < 0.01 && at(35, 25) < 0.01, "inside, outside, the hole");
+        // The wobbling top edge lies near row 10 all along it.
+        for i in 15..65 {
+            assert!(at(i, 9) < 0.5 && at(i, 10) >= 0.5, "column {i}: {} {}", at(i, 9), at(i, 10));
+        }
     }
 
     #[test]

@@ -336,8 +336,8 @@ void fragment() {
 	float kab = terrain_airbases * (1.0 - smoothstep(2500.0, 6000.0, length(VERTEX))) * (1.0 - sea);
 	vec2 muv = mat2(airbase_mask_xf.xy, airbase_mask_xf.zw) * world_xz + airbase_mask_rect.xy;
 	if (kab > 0.0 && muv.x > 0.0 && muv.y > 0.0 && muv.x < 1.0 && muv.y < 1.0) {
-		// R / G: paved / concrete coverage blurred over ≈ 5 m, so the bilinear lookup has a smooth edge at 0.5, drawn
-		// one pixel wide (fwidth); mipmapped, the edges soften far away.
+		// R / G: paved coverage (straight anti-aliased edges) / concrete coverage (blurred over ≈ 5 m), so the bilinear
+		// lookup has a smooth edge at 0.5, drawn one pixel wide (fwidth); mipmapped, the edges soften far away.
 		vec2 pm = texture(airbase_mask, muv).rg;
 		vec2 p = world_xz;
 		vec2 pw = clamp(fwidth(pm) * 0.75, vec2(0.02), vec2(0.5));

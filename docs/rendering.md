@@ -423,8 +423,15 @@ runway cells:
    Roads (narrower than 12 m) are dropped, and only pixels reached from the runways within 1.5 km stay. The edge is
    then closed over 5 m (gaps and notches filled). Within 40 m of the runways' sides it is also opened over 7.5 m: the
    shoulders' worn grey made a wavy fringe there, and the opening drops it but keeps the wider taxiway junctions.
-   Concrete (the aprons' tint) is a second channel. The file stores both as coverage blurred over ≈ 5 m, so the edge
-   lies where the value is 0.5.
+   The art's colours make the edge wobble by 5–10 m, so the outline is then straightened: traced along the pixels,
+   each point averaged with its neighbours within 12.5 m along the outline, simplified to straight edges
+   (Douglas-Peucker, 5 m), and drawn back with anti-aliased edges. Outline parts under 100 m² (specks, small holes)
+   are dropped. The file stores the paved coverage, so the edge lies where the value is 0.5.
+
+   Concrete (the aprons' tint) is a second channel, set per apron instead of per pixel: the surface off the runways is
+   eroded over 12.5 m (the taxiways drop out), and each remaining part is concrete when most of its pixels show the
+   aprons' tint. The concrete parts then grow back over the surface off the runways. The file stores concrete as
+   coverage blurred over ≈ 5 m (edge at 0.5).
 7. **Taxi lines**: iaf.ibx's taxi paths (runway → hangars, hangars → runway, each hangar's turn point → hangar), the
    paths the AI taxis, as a distance field in the mask's third channel (0–10 m, 4 cm steps).
 8. **No runway in the art** (bases only in the coarse imagery): the AI's runway, 3000 × 45 m from 150 m behind the

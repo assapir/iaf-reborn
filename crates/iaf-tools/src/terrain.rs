@@ -15,7 +15,7 @@ use crate::progress::{Progress, check};
 
 /// `iaf-terrain airbases`: the airbases' runways, taxi paths and paved surface from the 1998 art and iaf.ibx
 /// (docs/rendering.md §7): `<out>/airbases.json` and one paved-surface mask per base (`<out>/airbases/<name>.png`:
-/// red = paved, green = concrete (both as coverage blurred over ≈ 5 m; the edge is at 0.5), blue = the distance to the nearest taxi path, 0–10 m). `--debug` also writes each base's art with the runways, taxi paths and the mask drawn on it.
+/// red = paved coverage of the straightened outline, green = concrete coverage blurred over ≈ 5 m (the edges are at 0.5), blue = the distance to the nearest taxi path, 0–10 m). `--debug` also writes each base's art with the runways, taxi paths and the mask drawn on it.
 pub fn airbases(
     install: &Path,
     theatre: &Path,
@@ -37,13 +37,11 @@ pub fn airbases(
         pr.fraction(n as f32 / bases.len() as f32);
         let g = &b.paved;
         let taxi = b.taxi_distance();
-        // Paved and concrete as coverage blurred over ≈ 5 m: the shader's bilinear lookup then finds a smooth edge at 0.5.
-        let soft = |v: &[bool]| {
-            let mut f: Vec<f32> = v.iter().map(|&b| b as u8 as f32 * 255.0).collect();
-            crate::imagery::blur(&mut f, g.w, g.h, 1);
-            f
-        };
-        let (paved, concrete) = (soft(&g.v), soft(&b.concrete));
+        // Paved: the straightened outline's coverage; concrete: blurred over ≈ 5 m. The shader's bilinear lookup then
+        // finds a smooth edge at 0.5.
+        let paved: Vec<f32> = b.cover.iter().map(|c| c * 255.0).collect();
+        let mut concrete: Vec<f32> = b.concrete.iter().map(|&c| c as u8 as f32 * 255.0).collect();
+        crate::imagery::blur(&mut concrete, g.w, g.h, 1);
         let mask = image::RgbImage::from_fn(g.w as u32, g.h as u32, |x, y| {
             let k = y as usize * g.w + x as usize;
             let t = (taxi[k] / airbases::TAXI_FIELD_M as f32 * 255.0).round().clamp(0.0, 255.0) as u8;
