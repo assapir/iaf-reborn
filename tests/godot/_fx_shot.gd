@@ -1,7 +1,9 @@
 # Dev helper (not run by tools/test.sh): real-render pictures of the effects (docs/rendering.md §6)
 # from a fixed camera near the player's jet: a ground vehicle's and an air kill's explosion, a missile hit, a missile
-# trail and the engine heat haze. FX_DETAILED=1 turns on Preferences > Graphics > MORE "Particle effects: Detailed". Needs a window:
-#   FX_OUT=/tmp/fx FX_DETAILED=1 IAF_DEFAULT_SETTINGS=1 godot --path game --resolution 1920x1080 -s ../tests/godot/_fx_shot.gd
+# trail and the engine heat haze. FX_DETAILED=1 turns on Preferences > Graphics > MORE "Particle effects: Detailed".
+# Needs a window:
+#   FX_OUT=/tmp/fx FX_DETAILED=1 IAF_DEFAULT_SETTINGS=1 godot --path game --resolution 1920x1080 -s \
+#     ../tests/godot/_fx_shot.gd
 # Saves FX_OUT/<scene>_<t>_<original|detailed>.png; FX_MISSION picks the mission (default 231).
 extends "res://../tests/godot/base.gd"
 
@@ -17,9 +19,9 @@ func run() -> void:
 		return
 	out = OS.get_environment("FX_OUT")
 	DirAccess.make_dir_recursive_absolute(out)
-	Settings().particle_effects = OS.get_environment("FX_DETAILED") == "1"
-	mode = "detailed" if Settings().particle_effects else "original"
-	Settings().show_info = false
+	settings().particle_effects = OS.get_environment("FX_DETAILED") == "1"
+	mode = "detailed" if settings().particle_effects else "original"
+	settings().show_info = false
 	var mid := OS.get_environment("FX_MISSION")
 	tv = await start_mission(int(mid) if mid != "" else 231)
 	tv.frozen = true

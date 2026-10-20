@@ -37,13 +37,13 @@ func run() -> void:
 		"the panel clock reads 15:15 as 3:15 (%s)" % [hands]
 	)
 	for id in JETS:
-		Settings().jet_id = 4 if id == -1 else id
-		Settings().f35i_slot = 4 if id == -1 else -1
-		Settings().hud_style = "real" if absi(id) % 2 == 1 else "original"
+		settings().jet_id = 4 if id == -1 else id
+		settings().f35i_slot = 4 if id == -1 else -1
+		settings().hud_style = "real" if absi(id) % 2 == 1 else "original"
 		await _jet(JETS[id])
-	Settings().jet_id = -1
-	Settings().f35i_slot = -1
-	Settings().hud_style = "original"
+	settings().jet_id = -1
+	settings().f35i_slot = -1
+	settings().hud_style = "original"
 
 
 func _jet(name: String) -> void:
@@ -61,7 +61,7 @@ func _jet(name: String) -> void:
 	# Military, gear down, climbing.
 	var st: Dictionary = tv.flight.state()
 	tv.flight.start(
-		Settings().assets_dir().path_join("install"),
+		settings().assets_dir().path_join("install"),
 		tv.player.fm_section,
 		st.position,
 		Vector3(0.0, 0.0, st.heading),
@@ -138,8 +138,8 @@ func _better(c, name: String, active: Array, phase: String) -> void:
 		func(k): return active.has(k) and not is_equal_approx(off[k], c.needle_angle(k, orig[k]))
 	)
 	check(bad.is_empty(), "%s (%s): Better cockpit off, every needle is the original's (off: %s)" % [name, phase, bad])
-	Settings().better_cockpit = true
-	Settings().cockpit_items["dials_by_label"] = false  # the needles on the original's dials first
+	settings().better_cockpit = true
+	settings().cockpit_items["dials_by_label"] = false  # the needles on the original's dials first
 	var on: Dictionary = c.needle_angles()
 	var st: Dictionary = c.state
 	var ab: int = int(st.get("afterburner", 0))
@@ -160,12 +160,12 @@ func _better(c, name: String, active: Array, phase: String) -> void:
 			% [name, phase, st.rpm, ab, st.engine_temp_c[0], bad]
 		)
 	)
-	Settings().cockpit_items["dials_by_label"] = true
+	settings().cockpit_items["dials_by_label"] = true
 	_dials(c, name, phase)
 	# The F-15's painted fuel counter and the Lavi / Mirage clock are drawn (no script error in the panel draw).
 	c.queue_redraw()
 	await process_frame
-	Settings().better_cockpit = false
+	settings().better_cockpit = false
 
 
 ## Better dials_by_label: each moved needle is on the dial its label names (docs/cockpit.md "Panel instruments per

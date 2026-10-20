@@ -9,9 +9,9 @@ const WING := ["StationB", "StationC", "StationD", "StationF", "StationG", "Stat
 
 
 func run() -> void:
-	var base: String = Settings().assets_dir().path_join("converted/planes")
+	var base: String = settings().assets_dir().path_join("converted/planes")
 	for jet in JETS:
-		var desc: Dictionary = Settings().load_json(base.path_join(jet).path_join("aircraft.json"))
+		var desc: Dictionary = settings().load_json(base.path_join(jet).path_join("aircraft.json"))
 		var model = Gltf.open(base.path_join(jet).path_join(String(desc.get("model", ""))))
 		if model == null:
 			check(false, "%s: model loads" % jet)

@@ -14,8 +14,8 @@ func run() -> void:
 	var tv = await start_mission(-1)
 	await frames(5)
 	var hud = tv.cockpit.hud
-	check(Settings().hud_style == "original" and hud.real_hud().is_empty(), "original HUD by default")
-	Settings().hud_style = "real"
+	check(settings().hud_style == "original" and hud.real_hud().is_empty(), "original HUD by default")
+	settings().hud_style = "real"
 	await frames(3)
 	var st: Dictionary = tv.cockpit.state
 	var r: Dictionary = hud.real_hud()
@@ -70,7 +70,7 @@ func run() -> void:
 	hud._process(0.0)
 	hud._real_frame = -1
 	await _save("real_hud.png")
-	Settings().hud_style = "original"
+	settings().hud_style = "original"
 	await frames(2)
 	check(hud.real_hud().is_empty(), "back to the original HUD")
 	check(not hud.cut.clip_contents, "the original HUD draws over the panel")

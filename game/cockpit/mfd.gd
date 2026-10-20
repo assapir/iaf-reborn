@@ -61,7 +61,8 @@ var _clip := Rect2(0, 0, SIZE, SIZE)
 var crisp := false
 ## Canvas px per MFD px: 1 in Original (the canvas is scaled by _s()), _s() when crisp (the canvas at screen px).
 var _k := 1.0
-## Tests: an Array makes every primitive append [op, its MFD-px arguments…] (the pages' geometry, the same in both modes).
+## Tests: an Array makes every primitive append [op, its MFD-px arguments…] (the pages' geometry, the same in both
+## modes).
 var trace = null
 ## The EO / MAP pictures, under the page's art (show_behind_parent): pictures, drawn as they are in both modes.
 var _under: Control
@@ -590,9 +591,9 @@ static func aspect_text(aspect: float) -> String:
 
 ## The heading-up transform of a world offset (ex east, ny north) to MFD px at k m/px.
 static func _heading_up(e: Vector2, hdg: float, k: float) -> Vector2:
-	var S := sin(hdg)
-	var C := cos(hdg)
-	return Vector2(e.x * C - e.y * S, -(e.x * S + e.y * C)) / k
+	var sin_h := sin(hdg)
+	var cos_h := cos(hdg)
+	return Vector2(e.x * cos_h - e.y * sin_h, -(e.x * sin_h + e.y * cos_h)) / k
 
 
 ## A ground contact (GMT / MAP): ±10 cross when locked, then the 3×3 box (MAP: with the \ diagonal).
@@ -697,13 +698,13 @@ func _draw_map_picture(r: Dictionary, nm: float) -> void:
 ## q = q0 + S·(dx·C − dy·S', dx·S' + dy·C), (dx, dy) = p − img.
 static func map_picture(centre: Vector2, hdg: float, nm: float, img: Vector2) -> Array:
 	var s: float = nm * 1853.0 * ISR_SIZE.y / ((MAPFRAME.top - MAPFRAME.bottom) * 94.0)
-	var C := cos(hdg)
-	var S := sin(hdg)
+	var cos_h := cos(hdg)
+	var sin_h := sin(hdg)
 	var q0 := isr_px(centre)
 	var corners := PackedVector2Array()
 	for q in [Vector2.ZERO, Vector2(ISR_SIZE.x, 0), ISR_SIZE, Vector2(0, ISR_SIZE.y)]:
 		var d: Vector2 = (q - q0) / s
-		corners.append(img + Vector2(d.x * C + d.y * S, -d.x * S + d.y * C))
+		corners.append(img + Vector2(d.x * cos_h + d.y * sin_h, -d.x * sin_h + d.y * cos_h))
 	var win := PackedVector2Array(
 		[
 			MAP_WINDOW.position,
@@ -719,7 +720,7 @@ static func map_picture(centre: Vector2, hdg: float, nm: float, img: Vector2) ->
 		var uvs := PackedVector2Array()
 		for p in piece:
 			var d: Vector2 = p - img
-			uvs.append((q0 + s * Vector2(d.x * C - d.y * S, d.x * S + d.y * C)) / ISR_SIZE)
+			uvs.append((q0 + s * Vector2(d.x * cos_h - d.y * sin_h, d.x * sin_h + d.y * cos_h)) / ISR_SIZE)
 		out.append({"points": piece, "uvs": uvs})
 	return out
 
@@ -1118,13 +1119,13 @@ func _draw_tsd() -> void:
 	var st: Dictionary = cockpit.state
 	var own: Vector2 = st.get("world", Vector2.ZERO)
 	var hdg := deg_to_rad(st.heading)
-	var S := sin(hdg)
-	var C := cos(hdg)
+	var sin_h := sin(hdg)
+	var cos_h := cos(hdg)
 	var k := tsd_scale * 1853.0 / 112.0
 	var to_mfd := func(w: Vector2) -> Vector2:
 		var ex := w.x - own.x
 		var ny := w.y - own.y
-		return Vector2(65 + (ex * C - ny * S) / k, 85 - (ex * S + ny * C) / k)
+		return Vector2(65 + (ex * cos_h - ny * sin_h) / k, 85 - (ex * sin_h + ny * cos_h) / k)
 	var clip := PackedVector2Array([Vector2(10, 10), Vector2(122, 10), Vector2(122, 122), Vector2(10, 122)])
 	if tsd_options[2]:
 		for poly in cockpit.tsd_map:

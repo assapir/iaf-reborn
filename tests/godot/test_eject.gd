@@ -1,8 +1,8 @@
 # Ejection (docs/part-animation.md "Ejection", docs/mission-runtime.md §5.4): "Eject (x3)" needs three
 # presses less than 1 s apart; one does nothing. In the air: engine off, stick fixed, commands
 # ignored, external view, pilot gone, canopy thrown straight up (v1.1: 3 m per 0.05 s, no aft drift,
-# gone at 100 m), seat after 2 s, the parachuter's swing, flight ends after 5 s. In a mission on the ground (short ejection: the FlyTSD, then the debrief):
-# the player counts as lost at once -> failed debrief.
+# gone at 100 m), seat after 2 s, the parachuter's swing, flight ends after 5 s. In a mission on the ground (short
+# ejection: the FlyTSD, then the debrief): the player counts as lost at once -> failed debrief.
 extends "res://../tests/godot/base.gd"
 
 
@@ -82,7 +82,7 @@ func run() -> void:
 		check(tilt > 20.0 and tilt < 30.01, "the parachuter hangs tilted, settling (pitch %.1f°)" % tilt)
 
 	# Mission 311 on the ground: short ejection, the mission is lost.
-	Settings().debrief = {}
+	settings().debrief = {}
 	tv = await start_mission(311)
 	key(tv, KEY_E)
 	key(tv, KEY_E)
@@ -94,9 +94,9 @@ func run() -> void:
 	check(tv.fe_overlay != null and tv.fe_overlay.screen == "flytsd", "short ejection: the FlyTSD opens")
 	tv.close_front_end()
 	var w0 := Time.get_ticks_msec()
-	while Settings().debrief.is_empty() and Time.get_ticks_msec() - w0 < 12000:
+	while settings().debrief.is_empty() and Time.get_ticks_msec() - w0 < 12000:
 		await process_frame
 	check(
-		not Settings().debrief.is_empty() and not Settings().debrief.passed,
-		"mission failed -> debrief (%s)" % str(Settings().debrief.get("headline", ""))
+		not settings().debrief.is_empty() and not settings().debrief.passed,
+		"mission failed -> debrief (%s)" % str(settings().debrief.get("headline", ""))
 	)

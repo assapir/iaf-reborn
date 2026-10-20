@@ -1,7 +1,8 @@
 # Real-render screenshots of every setup wizard page, with a real run on a scratch assets folder (the review gate):
-#   tools/godot_window.sh IAF_ASSETS_DIR=<scratch> IAF_DEFAULT_SETTINGS=1 XDG_DATA_HOME=<scratch>/xdg SHOT_OUT=<dir> -- \
-#     --log-file <log> --path game -s ../tests/godot/_wizard_shot.gd
-# SHOT_PAGES=1: the pages only, no install run. Uses the English ISO, the v1.1 patch and Brief.zip / Menu.zip from ~/Downloads.
+#   tools/godot_window.sh IAF_ASSETS_DIR=<scratch> IAF_DEFAULT_SETTINGS=1 XDG_DATA_HOME=<scratch>/xdg \
+#     SHOT_OUT=<dir> -- --log-file <log> --path game -s ../tests/godot/_wizard_shot.gd
+# SHOT_PAGES=1: the pages only, no install run. Uses the English ISO, the v1.1 patch and Brief.zip / Menu.zip from
+# ~/Downloads.
 extends "res://../tests/godot/base.gd"
 
 const DL := "Downloads"

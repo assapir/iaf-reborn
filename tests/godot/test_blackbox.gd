@@ -6,7 +6,7 @@ extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
-	Settings().jet_id = -1
+	settings().jet_id = -1
 	var tv = await start_mission(313)
 	await frames(3)
 	tv.frozen = true
@@ -29,7 +29,7 @@ func run() -> void:
 	var fwd := Vector3(sin(h), cos(h), 0)
 	tv.player_world_override = null
 	tv.rig.position = tv.world_to_scene(site + fwd * 10000.0 + Vector3(0, 0, 3000))
-	tv._log_masking(tv._log_st)
+	tv._log_masking()
 	var w = tv.weapons
 	var t: float = rt.now + 100.0
 	var wt: float = w.now
@@ -44,7 +44,7 @@ func run() -> void:
 	var under := site + fwd * 10000.0
 	under.z = float(tv.mission_ground(under)) - 50.0
 	tv.rig.position = tv.world_to_scene(under)
-	tv._log_masking(tv._log_st)
+	tv._log_masking()
 	tv._log.flush()
 
 	var lines := FileAccess.get_file_as_string(path).split("\n", false)

@@ -6,7 +6,7 @@ extends "res://../tests/godot/base.gd"
 
 
 func restart(tv, pos: Vector3, heading: float, velocity: Vector3) -> void:
-	var install: String = Settings().assets_dir().path_join("install")
+	var install: String = settings().assets_dir().path_join("install")
 	tv.flight.start(
 		install,
 		"F-16",
@@ -64,5 +64,5 @@ func run() -> void:
 		current_scene != tv and current_scene.scene_file_path.ends_with("front_end.tscn"),
 		"flight ended (back to the front end)"
 	)
-	var d: Dictionary = Settings().debrief
+	var d: Dictionary = settings().debrief
 	check(String(d.get("headline", "")).begins_with("Mission - failed"), "debrief headline: %s" % d.get("headline", ""))

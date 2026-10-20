@@ -5,20 +5,20 @@
 extends "res://../tests/godot/base.gd"
 
 ## Loaded at run time: scripts that use the Settings autoload do not compile before it exists.
-var MissionRuntime: GDScript
+var mission_runtime: GDScript
 
 
 func mission(id: int) -> Dictionary:
-	return MissionRuntime.mission_files(id)[0].data
+	return mission_runtime.mission_files(id)[0].data
 
 
 func leader_name(id: int, wanted := 0) -> String:
-	var pf: Dictionary = MissionRuntime.player_flight(mission(id), wanted)
+	var pf: Dictionary = mission_runtime.player_flight(mission(id), wanted)
 	return "%s/%d" % [pf.entity.get("0x2bc", ""), pf.flight] if not pf.is_empty() else ""
 
 
 func run() -> void:
-	MissionRuntime = load("res://mission/mission_runtime.gd")
+	mission_runtime = load("res://mission/mission_runtime.gd")
 	check(leader_name(311) == "Player1/1", "311: Player1 leads flight 1 (%s)" % leader_name(311))
 	check(leader_name(324) == "Player/1", "324: the flight-1 leader 'Player' (%s)" % leader_name(324))
 	check(leader_name(136) == "Alpha Leader/1", "136: Alpha Leader (%s)" % leader_name(136))
@@ -32,9 +32,9 @@ func run() -> void:
 	)
 
 	# 324: airborne start at the leader's position / altitude / heading, the runtime knows it.
-	Settings().player_flight = 0
+	settings().player_flight = 0
 	var tv = await start_mission(324)
-	var p: Dictionary = MissionRuntime.player_flight(mission(324)).entity
+	var p: Dictionary = mission_runtime.player_flight(mission(324)).entity
 	check(tv.player_entity_id == int(p["0x1e"]), "324: flying entity %d" % tv.player_entity_id)
 	check(tv.start_airborne, "324: airborne start (2000 m)")
 	var w: Vector3 = tv.player_world()
@@ -56,9 +56,9 @@ func run() -> void:
 	check(tv.start_airborne, "221: airborne start (1200 m)")
 
 	# 136 with Bravo picked on the TSD: the runtime's player is Bravo Leader, Alpha Leader stays a unit.
-	Settings().player_flight = 2
+	settings().player_flight = 2
 	tv = await start_mission(136)
 	players = tv.runtime.entities.values().filter(func(e): return e.player)
 	check(players.size() == 1 and players[0].name == "Bravo Leader", "136: TSD choice Bravo flies Bravo Leader")
 	check(tv.route.size() > 0, "136: Bravo's route loaded (%d waypoints)" % tv.route.size())
-	Settings().player_flight = 0
+	settings().player_flight = 0

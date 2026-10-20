@@ -101,7 +101,8 @@ var _water: Array = []  # {node, ring, pos, age, life, scale}
 var _water_mats := {}  # ring? -> material
 var _mm_smoke: MultiMeshInstance3D
 var _mm_fire: MultiMeshInstance3D
-## Detailed effects (Preferences > Graphics > MORE, gpu_fx.gd): the puffs drawn as GPU particles; null = the original look.
+## Detailed effects (Preferences > Graphics > MORE, gpu_fx.gd): the puffs drawn as GPU particles; null = the original
+## look.
 var gpu: Node3D
 ## Puffs spawned so far (both looks; tests compare the two).
 var spawned := 0

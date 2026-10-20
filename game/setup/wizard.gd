@@ -449,7 +449,10 @@ func _fill_requirements() -> void:
 			free_gb < 0 or free_gb >= BASE_GB + imagery_gb,
 			"Disk space: imagery",
 			(
-				"Survey of Israel: about %.0f GB of kept downloads + %.0f GB converted\n(around the airbases only: %.0f + %.1f GB)\nSentinel-2: about %.1f GB"
+				(
+					"Survey of Israel: about %.0f GB of kept downloads + %.0f GB converted\n(around the airbases only: %.0f + "
+					+ "%.1f GB)\nSentinel-2: about %.1f GB"
+				)
 				% [SURVEY_GB[0], SURVEY_GB[1], SURVEY_BASES_GB[0], SURVEY_BASES_GB[1], SENTINEL_GB]
 			),
 			"room for all of it",
@@ -550,15 +553,26 @@ func _page_welcome() -> Control:
 		h,
 		(
 			("[font_size=28][b][i]Jane's IAF[/i][/b] [color=%s]reborn[/color][/font_size]\n" % o)
-			+ "[i]Jane's IAF: Israeli Air Force[/i] (1998), reborn on a new open-source engine. Setup builds the game's data from your own CDs. Everything stays on this computer, in:\n"
+			+ (
+				"[i]Jane's IAF: Israeli Air Force[/i] (1998), reborn on a new open-source engine. Setup builds the game's data "
+				+ "from your own CDs. Everything stays on this computer, in:\n"
+			)
 			+ "[color=#%s]%s[/color]\n\n" % [DIM.to_html(false), assets]
 			+ "[color=%s][b]Needed[/b][/color]\n[ul]the English CD image of Jane's IAF (an .iso file)[/ul]\n" % g
 			+ (
-				"[color=%s][b]Optional[/b][/color]\n[ul]the official v1.1 patch (free download)\nthe Hebrew CD, or the Hebrew packs: the briefings and menus in Hebrew\nmodern terrain imagery: Survey of Israel 2015, Sentinel-2\nthe pilot guides: pictures and PDFs[/ul]\n"
+				(
+					"[color=%s][b]Optional[/b][/color]\n[ul]the official v1.1 patch (free download)\nthe Hebrew CD, or the Hebrew "
+					+ "packs: the briefings and menus in Hebrew\nmodern terrain imagery: Survey of Israel 2015, Sentinel-2\nthe "
+					+ "pilot guides: pictures and PDFs[/ul]\n"
+				)
 				% g
 			)
 			+ (
-				"[color=%s][b]Next[/b][/color]\n[ol type=1]Requirements: what this computer has.\nYour CD, then the optional files.\nExtras: the imagery and the pilot guides.\nSummary, then Install: a few minutes and about %.0f GB.[/ol]"
+				(
+					"[color=%s][b]Next[/b][/color]\n[ol type=1]Requirements: what this computer has.\nYour CD, then the optional "
+					+ "files.\nExtras: the imagery and the pilot guides.\nSummary, then Install: a few minutes and about %.0f "
+					+ "GB.[/ol]"
+				)
 				% [g, BASE_GB]
 			)
 		)
@@ -571,14 +585,40 @@ func _page_welcome() -> Control:
 		(
 			("[color=%s][b]About[/b][/color]\n" % g)
 			+ ("Source code: [url=%s]iaf-reborn on GitHub[/url]\n" % REPO_URL)
-			+ "Licence: [url=https://www.gnu.org/licenses/gpl-3.0.html]GNU General Public License v3.0[/url] or later. The repository holds no data from the original game.\n"
-			+ '"Jane\'s" and "Jane\'s IAF" are trademarks of their owners. This is an independent, non-commercial project, not affiliated with or endorsed by them, Electronic Arts or the original developer.\n\n'
+			+ (
+				"Licence: [url=https://www.gnu.org/licenses/gpl-3.0.html]GNU General Public License v3.0[/url] or later. The "
+				+ "repository holds no data from the original game.\n"
+			)
+			+ (
+				'"Jane\'s" and "Jane\'s IAF" are trademarks of their owners. This is an independent, non-commercial project, '
+				+ "not affiliated with or endorsed by them, Electronic Arts or the original developer.\n\n"
+			)
 			+ ("[color=%s][b]Attributions[/b][/color]\n" % g)
-			+ "[ul]Detailed F-16D: from the [url=https://github.com/NikolaiVChr/f16]FlightGear F-16[/url] by Erik Hofman, Nikolai V. Chr. and the other authors ([url=https://www.gnu.org/licenses/old-licenses/gpl-2.0.html]GPL 2.0[/url] or later)\n"
-			+ 'F-35I Adir: [url=https://sketchfab.com/3d-models/lockheed-martin-f35-lightning-ii-db911de503c74285a8d506951df786d6]"Lockheed Martin F35 Lightning II"[/url] by andertan ([url=https://creativecommons.org/licenses/by/4.0/]CC BY 4.0[/url]); the [url=https://commons.wikimedia.org/wiki/File:IAF_Squadron_116_Adir.png]116 Squadron badge[/url] by the IDF Spokesperson\'s Unit ([url=https://creativecommons.org/licenses/by-sa/3.0/]CC BY-SA 3.0[/url])\n'
-			+ 'Setup icon: the IAF roundel, [url=https://commons.wikimedia.org/wiki/File:Roundel_of_Israel.svg]"Roundel of Israel.svg"[/url] by Zscout370 (Wikimedia Commons, [url=https://creativecommons.org/licenses/by-sa/4.0/]CC BY-SA 4.0[/url])\n'
+			+ (
+				"[ul]Detailed F-16D: from the [url=https://github.com/NikolaiVChr/f16]FlightGear F-16[/url] by Erik Hofman, "
+				+ "Nikolai V. Chr. and the other authors ([url=https://www.gnu.org/licenses/old-licenses/gpl-2.0.html]GPL "
+				+ "2.0[/url] or later)\n"
+			)
+			+ (
+				"F-35I Adir: "
+				+ "[url=https://sketchfab.com/3d-models/"
+				+ 'lockheed-martin-f35-lightning-ii-db911de503c74285a8d506951df786d6]"Lockheed '
+				+ 'Martin F35 Lightning II"[/url] by andertan ([url=https://creativecommons.org/licenses/by/4.0/]CC BY '
+				+ "4.0[/url]); the [url=https://commons.wikimedia.org/wiki/File:IAF_Squadron_116_Adir.png]116 Squadron "
+				+ "badge[/url] by the IDF Spokesperson's Unit ([url=https://creativecommons.org/licenses/by-sa/3.0/]CC BY-SA "
+				+ "3.0[/url])\n"
+			)
+			+ (
+				'Setup icon: the IAF roundel, [url=https://commons.wikimedia.org/wiki/File:Roundel_of_Israel.svg]"Roundel of '
+				+ 'Israel.svg"[/url] by Zscout370 (Wikimedia Commons, [url=https://creativecommons.org/licenses/by-sa/4.0/]CC '
+				+ "BY-SA 4.0[/url])\n"
+			)
 			+ "Survey of Israel imagery: © Survey of Israel 2015, via [url=https://data.gov.il]data.gov.il[/url]\n"
-			+ "Sentinel-2 imagery: contains modified Copernicus Sentinel data (2021) processed by [url=https://esa-worldcover.org]ESA WorldCover[/url] consortium ([url=https://creativecommons.org/licenses/by/4.0/]CC BY 4.0[/url])[/ul]"
+			+ (
+				"Sentinel-2 imagery: contains modified Copernicus Sentinel data (2021) processed by "
+				+ "[url=https://esa-worldcover.org]ESA WorldCover[/url] consortium "
+				+ "([url=https://creativecommons.org/licenses/by/4.0/]CC BY 4.0[/url])[/ul]"
+			)
 		)
 	)
 	right.add_theme_font_size_override("normal_font_size", 14)
@@ -611,7 +651,10 @@ func _page_cd() -> Control:
 	v.add_child(HSeparator.new())
 	_text(
 		v,
-		"Or let setup find your files: it looks in a folder and its subfolders for the CD images, the v1.1 patch and the Hebrew packs, and fills in this page and the next.",
+		(
+			"Or let setup find your files: it looks in a folder and its subfolders for the CD images, the v1.1 patch and "
+			+ "the Hebrew packs, and fills in this page and the next."
+		),
 		true
 	)
 	var find := Button.new()
@@ -645,7 +688,10 @@ func _check_cd(path: String) -> Array:
 				set_row(hebrew_row, path)
 			return [
 				false,
-				"This is the Hebrew CD of Jane's IAF. It adds the Hebrew briefings and menus, so setup keeps it for the next page. The game itself is built from the English CD: give that one here.",
+				(
+					"This is the Hebrew CD of Jane's IAF. It adds the Hebrew briefings and menus, so setup keeps it for the next "
+					+ "page. The game itself is built from the English CD: give that one here."
+				),
 				true
 			]
 	return [false, "✗ Not a Jane's IAF CD image (%s)." % r.why]
@@ -698,7 +744,10 @@ func _page_optional() -> Control:
 	v.add_child(packs_box)
 	_text(
 		packs_box,
-		"Without the Hebrew CD: the two Hebrew packs from preflight.us, an Israeli flight-sim site (its downloads need a login).",
+		(
+			"Without the Hebrew CD: the two Hebrew packs from preflight.us, an Israeli flight-sim site (its downloads need "
+			+ "a login)."
+		),
 		true
 	)
 	brief_row = _file_row(
@@ -752,7 +801,12 @@ func _page_extras() -> Control:
 	mapi_check = _extra(
 		v,
 		"Survey of Israel 2015 imagery (2 m, over Israel)",
-		"Downloads the Survey's sheets from data.gov.il with curl and your Firefox's data.gov.il token (without one it opens them in your browser's tabs), then converts them. All of Israel: 79 sheets, about 17 GB of downloads (kept) and 5 GB converted. Around the airbases: 9 sheets, about 2 GB of downloads. Sheets already downloaded are not downloaded again, and converted units are kept.",
+		(
+			"Downloads the Survey's sheets from data.gov.il with curl and your Firefox's data.gov.il token (without one it "
+			+ "opens them in your browser's tabs), then converts them. All of Israel: 79 sheets, about 17 GB of downloads "
+			+ "(kept) and 5 GB converted. Around the airbases: 9 sheets, about 2 GB of downloads. Sheets already downloaded "
+			+ "are not downloaded again, and converted units are kept."
+		),
 		(
 			""
 			if gdal and tools.get("curl", false) and tools.get("python3", false)
@@ -782,7 +836,10 @@ func _page_extras() -> Control:
 	guides_check = _extra(
 		v,
 		"Pilot guides (pictures and PDFs)",
-		"Renders each jet's guide pictures with the game, then prints the PDFs with Firefox. Takes a while; the renders open game windows briefly.",
+		(
+			"Renders each jet's guide pictures with the game, then prints the PDFs with Firefox. Takes a while; the renders "
+			+ "open game windows briefly."
+		),
 		(
 			""
 			if tools.get("python3", false) and tools.get("firefox", false)
@@ -817,7 +874,8 @@ func _layers() -> PackedStringArray:
 	return out
 
 
-## The stale-unit count for "Bring the imagery up to date", counted in the background (sentinel2 lists over the network).
+## The stale-unit count for "Bring the imagery up to date", counted in the background (sentinel2 lists over the
+## network).
 func _count_stale() -> void:
 	if not refresh_check.get_parent().visible or jobs.has("stale"):
 		return
@@ -888,7 +946,10 @@ func _page_done() -> Control:
 	v.add_child(start)
 	_text(
 		v,
-		'Run setup again at any time (./setup, or the "Jane\'s IAF (reborn) — Setup" launcher) to add an extra or redo a step.',
+		(
+			'Run setup again at any time (./setup, or the "Jane\'s IAF (reborn) — Setup" launcher) to add an extra or redo '
+			+ "a step."
+		),
 		true
 	)
 	return v
@@ -913,7 +974,10 @@ func show_page(n: int) -> void:
 		"Install":
 			if not running:
 				_fill_rows(IafSetup.plan(JSON.stringify(inputs())), false)
-				install_note.text = 'Ready. Install runs the steps below; the ones whose inputs did not change are "up to date" and are skipped.'
+				install_note.text = (
+					"Ready. Install runs the steps below; the ones whose inputs did not change are "
+					+ '"up to date" and are skipped.'
+				)
 				_preview()
 	_update()
 

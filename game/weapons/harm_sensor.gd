@@ -1,6 +1,7 @@
 # The HARM sensor's list (docs/mfd.md "HARM (10)"): its own scan of the radar classes inside a ±15° cone, 20 NM;
-# Extras "HARM targets: RWR": the RWR's active emitters inside the cone. The logic is iaf_avionics::harm (crates/iaf-avionics/src/harm.rs) through IafHarm; this keeps the GDScript
-# face. World frame X east, Y north, Z up, radians; a base is Vector2(heading, pitch).
+# Extras "HARM targets: RWR": the RWR's active emitters inside the cone. The logic is iaf_avionics::harm
+# (crates/iaf-avionics/src/harm.rs) through IafHarm; this keeps the GDScript face. World frame X east, Y north, Z up,
+# radians; a base is Vector2(heading, pitch).
 extends RefCounted
 
 ## [{key, type, az, el, dist}] as captured, and the selected key.

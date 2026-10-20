@@ -19,15 +19,15 @@ const AGM65 := 7
 func run() -> void:
 	_motion_rules()
 	for c in CASES if DisplayServer.get_name() == "headless" else CASES.slice(0, 1):
-		Settings().f35i_slot = c[1]
-		Settings().jet_id = c[0]
+		settings().f35i_slot = c[1]
+		settings().jet_id = c[0]
 		var tv = await start_mission(231)
 		await frames(3)
 		var name := "type %d" % c[2]
 		check(tv.player.type == c[2], "%s flies mission 231" % name)
 		await _case(tv, name, c[2] == 100)
-	Settings().jet_id = -1
-	Settings().f35i_slot = -1
+	settings().jet_id = -1
+	settings().f35i_slot = -1
 
 
 ## The guided motion alone: the DLZ formula (a = 1 for the 640's 20 m/s² up accel), mode switching by the squared

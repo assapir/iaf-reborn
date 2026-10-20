@@ -117,10 +117,10 @@ func run() -> void:
 	check(Mfd.stt_caret_n(20.0 * 1853.0, 40.0) == 49, "STT caret: 20 NM on the 40 NM scale = row 105 − 56")
 
 	# --- mission 231 (F-16): FLIR pod, POPEYE, HARM ------------------------------------------------------
-	Settings().arm_loadouts = {1: [[11, 1], [0, 0], [55, 1], [30, 1], [0, 0], [0, 0], [20, 1], [0, 0], [11, 1]]}
-	Settings().player_flight = 1
+	settings().arm_loadouts = {1: [[11, 1], [0, 0], [55, 1], [30, 1], [0, 0], [0, 0], [20, 1], [0, 0], [11, 1]]}
+	settings().player_flight = 1
 	var tv = await start_mission(231)
-	Settings().arm_loadouts = {}
+	settings().arm_loadouts = {}
 	await frames(5)
 	tv.frozen = true
 	tv.fm_stopped = true
@@ -229,40 +229,46 @@ func run() -> void:
 	check(other.nav_scroll == 0, "NAV: back to waypoint 1 scrolls to the top")
 	cp.current_waypoint = keep_wp
 	# Leaving HARM puts back the page page 10 replaced (FUN_00449810, ctl+0x92c).
-	var L = cp.mfds[0]
-	var R = cp.mfds[1]
+	var left = cp.mfds[0]
+	var right = cp.mfds[1]
 	w.select_station(0)
-	L.page = 2
-	R.page = 3
+	left.page = 2
+	right.page = 3
 	w.select_station(3)
-	check(R.page == 10 and w.harm.active, "HARM: page 10 on the Right (Left shows the radar)")
+	check(right.page == 10 and w.harm.active, "HARM: page 10 on the Right (Left shows the radar)")
 	w.select_station(0)
-	check(R.page == 3 and not w.harm.active, "leaving HARM: the TSD page it replaced comes back, the sensor off")
+	check(right.page == 3 and not w.harm.active, "leaving HARM: the TSD page it replaced comes back, the sensor off")
 	# A TV weapon: a FLIR page still shown goes back to what it replaced (FUN_00449810 case 6, ctl+0x934).
-	L.page = 1
-	w.flir_on(R)
-	check(R.page == 6, "MENU FLIR on the Right")
+	left.page = 1
+	w.flir_on(right)
+	check(right.page == 6, "MENU FLIR on the Right")
 	w.select_station(6)
 	check(
-		L.page == 5 and R.page == 3,
-		"POPEYE: TV page on the Left, the FLIR page back to the TSD (%d, %d)" % [L.page, R.page]
+		left.page == 5 and right.page == 3,
+		"POPEYE: TV page on the Left, the FLIR page back to the TSD (%d, %d)" % [left.page, right.page]
 	)
 	w.select_station(0)
-	check(L.page == 1, "leaving TV: the stores page back on the Left")
+	check(left.page == 1, "leaving TV: the stores page back on the Left")
 	# M: every MFD gets the cycle position's pages (LAB_0044b9fb); the F-16: 2 MFDs, a panel RWR.
 	for k in 3:
 		w.master_key()
 		var pages := [2, 3] if w.m_cycle < 2 else [2, 10 if w.stores.current_type() == 590 else 1]
-		check([L.page, R.page] == pages, "M → cycle %d: pages %s (%s)" % [w.m_cycle, pages, [L.page, R.page]])
+		check(
+			[left.page, right.page] == pages,
+			"M → cycle %d: pages %s (%s)" % [w.m_cycle, pages, [left.page, right.page]]
+		)
 		check(w.radar.aa == (w.m_cycle < 2), "M → cycle %d: radar A-A %s (FUN_004ad8f0)" % [w.m_cycle, w.m_cycle < 2])
 	# U (0x5a(7), FUN_0044a240): the RWR page on the Left, or the Right when the Left shows the radar; once only.
-	L.page = 2
-	R.page = 3
+	left.page = 2
+	right.page = 3
 	tv._command([90, 7, 0])
-	check(L.page == 2 and R.page == 7, "U: the RWR page on the Right next to the radar (%d, %d)" % [L.page, R.page])
-	L.page = 1
+	check(
+		left.page == 2 and right.page == 7,
+		"U: the RWR page on the Right next to the radar (%d, %d)" % [left.page, right.page]
+	)
+	left.page = 1
 	tv._command([90, 7, 0])
-	check(L.page == 1 and R.page == 7, "U: ignored while an MFD shows the RWR page")
+	check(left.page == 1 and right.page == 7, "U: ignored while an MFD shows the RWR page")
 	# TSD: the scale OSBs wrap (FUN_00531850 / FUN_00531950).
 	other.page = 3
 	other.tsd_scale = 80
@@ -295,30 +301,31 @@ func run() -> void:
 	check(placed == [2, 2, 10], "Lavi: HARM page on the Middle when Left and Right show the radar (%s)" % [placed])
 	# Better cockpit crisp_mfd: every page draws the same primitives at the same MFD-px geometry, on a canvas at screen
 	# px (_k = the MFD's screen scale) through the crisp shader; Original keeps the scaled canvas (_k 1).
-	var L3 = cp.mfds[0]
+	var left3 = cp.mfds[0]
 	var same := []
 	for pgn in range(11):
-		L3.page = pgn
+		left3.page = pgn
 		var traces := []
 		for better in [false, true]:
-			Settings().better_cockpit = better
+			settings().better_cockpit = better
 			await frames(1)
-			L3.trace = []
+			left3.trace = []
 			await frames(1)
-			traces.append(L3.trace)
-			L3.trace = null
+			traces.append(left3.trace)
+			left3.trace = null
 			if better:
 				check(
-					L3.crisp and L3._k == L3._s() and L3.material != null,
-					"page %d Better: crisp, %.2f canvas px per MFD px" % [pgn, L3._k]
+					left3.crisp and left3._k == left3._s() and left3.material != null,
+					"page %d Better: crisp, %.2f canvas px per MFD px" % [pgn, left3._k]
 				)
 			else:
 				check(
-					not L3.crisp and L3._k == 1.0 and L3.material == null, "page %d Original: the scaled canvas" % pgn
+					not left3.crisp and left3._k == 1.0 and left3.material == null,
+					"page %d Original: the scaled canvas" % pgn
 				)
 		if not traces[0].is_empty() and traces[0] == traces[1]:
 			same.append(pgn)
-	Settings().better_cockpit = false
+	settings().better_cockpit = false
 	check(same == range(11), "Better draws every page's geometry as Original (pages the same: %s)" % [same])
 	check(
 		Mfd.crisp_sprite("mfds.bmp", Rect2(0, 264, 132, 132)).get_size() == Vector2(134, 134),

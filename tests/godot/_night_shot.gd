@@ -15,12 +15,12 @@ func _env(k: String, d: String) -> String:
 func run() -> void:
 	var dir := _env("SHOT_DIR", "/tmp")
 	DirAccess.make_dir_recursive_absolute(dir)
-	Settings().vsync = false
+	settings().vsync = false
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	var mission := int(_env("NIGHT_MISSION", "214"))
 	var orbit := _env("SHOT_ORBIT", "150,12,40").split(",")
 	for value in _env("NIGHT_LIGHTS", "original,detailed").split(","):
-		Settings().night_lights = value
+		settings().night_lights = value
 		var tv = await start_mission(mission)
 		tv.frozen = true
 		var t0 := Time.get_ticks_msec()
@@ -43,6 +43,6 @@ func run() -> void:
 			var path := dir.path_join("night_%d_%s_%s.png" % [mission, value, view])
 			root.get_viewport().get_texture().get_image().save_png(path)
 			print("SHOT %-9s %-8s %6.1f fps  %s" % [value, view, fps, path])
-	Settings().night_lights = "original"
+	settings().night_lights = "original"
 	print("RESULT PASS")
 	quit()

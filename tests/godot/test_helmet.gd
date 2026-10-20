@@ -46,9 +46,9 @@ func run() -> void:
 	var dash_of = func(dir: String) -> int:
 		return int(
 			(
-				Settings()
+				settings()
 				. load_json(
-					Settings().assets_dir().path_join("converted/cockpits").path_join(dir).path_join("cockpit.json")
+					settings().assets_dir().path_join("converted/cockpits").path_join(dir).path_join("cockpit.json")
 				)
 				. get("HUD", {})
 				. get("Dash", 0)

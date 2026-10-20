@@ -16,7 +16,7 @@ func run() -> void:
 	tv.gear_down = false
 	tv.throttle = 0.74
 	tv.flight.start(
-		Settings().assets_dir().path_join("install"),
+		settings().assets_dir().path_join("install"),
 		tv.player.fm_section,
 		start,
 		Vector3(0.0, 0.0, 90.0),

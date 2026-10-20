@@ -15,8 +15,10 @@ func run() -> void:
 	var p = pilots[0]
 	# The engine loop: one per AI jet, from its flight model; gone when the unit is destroyed.
 	var e = p.node.find_child("EngineSound", true, false)
-	check(e != null and e.engine_code in ["SFX_START_ENGINE", "SFX_DRY_THRUST", "SFX_AFTERBURNER_THRUST"],
-		"an AI jet's engine plays (%s)" % (e.engine_code if e != null else "none"))
+	check(
+		e != null and e.engine_code in ["SFX_START_ENGINE", "SFX_DRY_THRUST", "SFX_AFTERBURNER_THRUST"],
+		"an AI jet's engine plays (%s)" % (e.engine_code if e != null else "none")
+	)
 	var last = pilots[pilots.size() - 1]
 	var le = last.node.find_child("EngineSound", true, false)
 	if le != null and pilots.size() > 2:
@@ -29,12 +31,12 @@ func run() -> void:
 	p.ent.damage = 0.9
 	for i in 40:
 		tv.ai.hit(p.ent)
-	var set := []
+	var broken := []
 	for n in 25:
 		if p.systems[n]:
-			set.append(n)
-	check(not set.is_empty(), "hits broke systems %s" % str(set))
-	check(not (2 in set or 3 in set or 5 in set or 7 in set), "no 2 / 3 / 5 / 7 on an AI jet")
+			broken.append(n)
+	check(not broken.is_empty(), "hits broke systems %s" % str(broken))
+	check(not (2 in broken or 3 in broken or 5 in broken or 7 in broken), "no 2 / 3 / 5 / 7 on an AI jet")
 
 	# Engine damage on a single-engine jet (22 → FM bits 4 and 8): no thrust, the RPM runs down.
 	var singles: Array = pilots.filter(func(x): return x != p and not x.twin and int(x.ent.state) < 3)
@@ -49,4 +51,3 @@ func run() -> void:
 	await seconds(3.0)
 	var rpm1: float = q.flight.state().rpm
 	check(rpm1 < rpm0 - 0.2, "engine damage: the RPM runs down (%.2f -> %.2f)" % [rpm0, rpm1])
-

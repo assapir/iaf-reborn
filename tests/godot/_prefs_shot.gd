@@ -1,12 +1,13 @@
 # Dev helper (not run by tools/test.sh): a real-render capture of a Preferences page (PREF_PAGE: the tab's label,
-# e.g. Devices, Extras, Physics, or Graphics+ for the Graphics page's MORE view; default Devices) in PREF_LANG (en / he), saved to PREF_SHOT; prints the labels
-# that have no Hebrew text.
-#   PREF_PAGE=Devices PREF_LANG=he PREF_SHOT=/tmp/p.png IAF_DEFAULT_SETTINGS=1 godot --path game --resolution 1920x1080 -s ../tests/godot/_prefs_shot.gd
+# e.g. Devices, Extras, Physics, or Graphics+ for the Graphics page's MORE view; default Devices) in PREF_LANG (en /
+# he), saved to PREF_SHOT; prints the labels that have no Hebrew text.
+#   PREF_PAGE=Devices PREF_LANG=he PREF_SHOT=/tmp/p.png IAF_DEFAULT_SETTINGS=1 godot --path game --resolution \
+#     1920x1080 -s ../tests/godot/_prefs_shot.gd
 extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
-	Settings().language = OS.get_environment("PREF_LANG") if OS.get_environment("PREF_LANG") != "" else "en"
+	settings().language = OS.get_environment("PREF_LANG") if OS.get_environment("PREF_LANG") != "" else "en"
 	var page := OS.get_environment("PREF_PAGE") if OS.get_environment("PREF_PAGE") != "" else "Devices"
 	var fe = load("res://menu/front_end.tscn").instantiate()
 	root.add_child(fe)

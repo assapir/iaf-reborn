@@ -152,8 +152,8 @@ func _draw() -> void:
 	# The helmet display (R+0x2788): no ladder / marker, ILS, gun cross, mode 3–6 aiming symbols.
 	var dash: bool = cockpit.dash()
 
-	# The Real HUD (docs/real-hud.md): the jet's own symbology instead of the original's; a jet without a HUD (the F-4E's
-	# and the Mirage's gunsights) shows its reticle only. The ILS, the BORE cross and the TV / HARM diamonds stay.
+	# The Real HUD (docs/real-hud.md): the jet's own symbology instead of the original's; a jet without a HUD (the
+	# F-4E's and the Mirage's gunsights) shows its reticle only. The ILS, the BORE cross and the TV / HARM diamonds stay.
 	var real := real_hud()
 	if not real.is_empty():
 		# A gunsight's reticle (the F-4E's, the Mirage's) is not cut to the original HUD's field: the outer layer draws it.
@@ -163,7 +163,7 @@ func _draw() -> void:
 		if _mode() == 0 and cockpit.gear_handle_down and not dash:
 			_draw_ils(st, w)
 		if _mode() in [7, 8]:
-			_draw_weapons(s, w, font, fs, gun, dash)
+			_draw_weapons(s, w, gun, dash)
 		if int(cockpit.radar.get("mode", 0)) == 3:
 			_ln(self, Vector2(-30, 0), Vector2(30, 0), w)
 			_ln(self, Vector2(0, -20), Vector2(0, 20), w)
@@ -183,7 +183,7 @@ func _draw() -> void:
 	if _mode() == 0 and cockpit.gear_handle_down and not dash:
 		_draw_ils(st, w)
 
-	_draw_weapons(s, w, font, fs, gun, dash)
+	_draw_weapons(s, w, gun, dash)
 	# FUN_0052f690, every HUD mode: the target box, the gun cross with the gear handle up (GunRetPositionY:
 	# −4..+5 across, −5..+10 down; not on the helmet display), the waypoint marker in NAV and the air-to-ground modes.
 	_draw_target_box(s, w)
@@ -1095,7 +1095,7 @@ func _pipper_tex() -> Texture2D:
 	return _pipper
 
 
-func _draw_weapons(s: float, w: float, font: Font, fs: int, gun: Vector2, dash := false) -> void:
+func _draw_weapons(s: float, w: float, gun: Vector2, dash := false) -> void:
 	var wp: Dictionary = cockpit.weapons
 	if wp.is_empty():
 		return

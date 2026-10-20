@@ -5,16 +5,16 @@
 extends "res://../tests/godot/base.gd"
 
 ## Loaded at run time: scripts that use the Settings autoload do not compile before it exists.
-var AircraftModel: GDScript
+var aircraft_model: GDScript
 
 
 func run() -> void:
-	AircraftModel = load("res://aircraft/aircraft_model.gd")
-	var idx: Dictionary = AircraftModel.index()
+	aircraft_model = load("res://aircraft/aircraft_model.gd")
+	var idx: Dictionary = aircraft_model.index()
 	check(idx.size() >= 8, "aircraft index lists every plane (%d)" % idx.size())
 	var bad := []
 	for plane in idx:
-		var m: Node3D = AircraftModel.create(plane)
+		var m: Node3D = aircraft_model.create(plane)
 		if m == null or m.desc.get("format", 0) != 1:
 			bad.append(plane)
 			continue
@@ -23,7 +23,7 @@ func run() -> void:
 		m.free()
 	check(bad.is_empty(), "all aircraft descriptors and models load (failed: %s)" % [bad])
 
-	var f16: Node3D = AircraftModel.create("f16", 100, false)
+	var f16: Node3D = aircraft_model.create("f16", 100, false)
 	root.add_child(f16)
 	check(f16.parts.has("LdgL") and f16.parts.has("AilerL") and f16.flames.size() == 1, "F-16 parts and one nozzle")
 	var leg: Node3D = f16.part_node("LdgL")
@@ -68,7 +68,7 @@ func run() -> void:
 	f16.free()
 
 	# Per-type rule: the MiG-29 main legs vanish at 8/9 of the travel.
-	var mig: Node3D = AircraftModel.create("mig29", -1, true)
+	var mig: Node3D = aircraft_model.create("mig29", -1, true)
 	root.add_child(mig)
 	check(mig.type_code == 180 and mig.flames.size() == 2, "MiG-29: type 180, two nozzles")
 	mig.update({"gear_down": true}, 0.0)
@@ -80,7 +80,7 @@ func run() -> void:
 	mig.free()
 
 	# Ours: the F-35I's bay doors open on bay_open and shut again; the F-16's pilot borrowed.
-	var f35: Node3D = AircraftModel.create("f35i", -1, false)
+	var f35: Node3D = aircraft_model.create("f35i", -1, false)
 	root.add_child(f35)
 	var door: Node3D = f35.part_node("BayLo")
 	var shut: Basis = door.transform.basis

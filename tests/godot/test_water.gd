@@ -7,7 +7,7 @@ extends "res://../tests/godot/base.gd"
 func run() -> void:
 	var RO: GDScript = load("res://terrain/render_options.gd")
 	var shader: Shader = load("res://terrain/terrain.gdshader")
-	check(not Settings().water and Settings().default_value("water") == false, "water defaults to the original")
+	check(not settings().water and settings().default_value("water") == false, "water defaults to the original")
 	var tv = await start_mission(311)
 	await frames(10)
 	var drawn: Array = tv.terrain.find_children("*", "MeshInstance3D", false, false)
@@ -19,11 +19,11 @@ func run() -> void:
 			)
 		)
 	check(
-		RO.terrain_water == 0.0 and not Settings().terrain_closeup and RO._surf_tex == null and terrain_shader.call(),
+		RO.terrain_water == 0.0 and not settings().terrain_closeup and RO._surf_tex == null and terrain_shader.call(),
 		"off: the original terrain material, water 0, no surface raster"
 	)
 
-	Settings().water = true
+	settings().water = true
 	tv.apply_render_options()
 	await frames(3)
 	check(
@@ -72,12 +72,12 @@ func run() -> void:
 		bad == 0 and wet > 500 and wet < 64 * 64 - 500,
 		"Tel Aviv coast raster = surface_at (%d of 4096 water, %d differ)" % [wet, bad]
 	)
-	var cfg: ConfigFile = Settings().write_config()
-	Settings().water = false
-	Settings().read_config(cfg)
-	check(Settings().water, "water saved and loaded")
+	var cfg: ConfigFile = settings().write_config()
+	settings().water = false
+	settings().read_config(cfg)
+	check(settings().water, "water saved and loaded")
 
-	Settings().water = false
+	settings().water = false
 	tv.apply_render_options()
 	check(
 		RO.terrain_water == 0.0 and RO._surf_tex == null and terrain_shader.call(), "off again: water 0, raster dropped"

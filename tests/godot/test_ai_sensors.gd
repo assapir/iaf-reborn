@@ -8,7 +8,7 @@ extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
-	Settings().jet_id = -1
+	settings().jet_id = -1
 	var tv = await start_mission(313)
 	await frames(3)
 	tv.frozen = true

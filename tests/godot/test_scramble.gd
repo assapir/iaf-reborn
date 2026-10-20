@@ -49,10 +49,10 @@ func run() -> void:
 	var fe = load("res://menu/front_end.tscn").instantiate()
 	root.add_child(fe)
 	await frames(2)
-	Settings().pilot_name = "make sim"
-	Settings().pilot_callsign = "not war"
-	Settings().mission_id = 311
-	Settings().jet_id = 1
+	settings().pilot_name = "make sim"
+	settings().pilot_callsign = "not war"
+	settings().mission_id = 311
+	settings().jet_id = 1
 	fe.screen = "main"
 	fe._enter_screen()
 	fe._on_button(fe._key_for_label("Jump_In"))
@@ -71,7 +71,7 @@ func run() -> void:
 			fe.scramble_prompt == 0
 			and fe.screen == "main"
 			and (current_scene == null or current_scene.name != "TerrainView")
-			and Settings().mission_id == 311
+			and settings().mission_id == 311
 		),
 		"No to every dialog stays on Main"
 	)
@@ -84,7 +84,7 @@ func run() -> void:
 	fe._scramble_answer(403, 0)
 	await frames(2)
 	check(
-		fe.loading and Settings().mission_id == 403 and Settings().jet_id == -1,
+		fe.loading and settings().mission_id == 403 and settings().jet_id == -1,
 		"Yes on box 3 loads 403 with the mission's jet (wait.bmp)"
 	)
 	await wait_flight()
@@ -98,19 +98,19 @@ func run() -> void:
 	change_scene_to_file("res://menu/front_end.tscn")
 	await frames(5)
 	fe = current_scene
-	Settings().pilot_name = "Ace"
-	Settings().pilot_callsign = "viper"
+	settings().pilot_name = "Ace"
+	settings().pilot_callsign = "viper"
 	fe.screen = "main"
 	fe._enter_screen()
 	fe.history = hist([401])  # _enter_screen reads the logged-in pilot's
 	fe._on_button(fe._key_for_label("Jump_In"))
 	await frames(1)
 	check(
-		fe.msgbox == null and fe.loading and Settings().mission_id == 402,
+		fe.msgbox == null and fe.loading and settings().mission_id == 402,
 		"no cheat: no box, the pick (402 after 401) loads"
 	)
 	await wait_flight()
 	check(
-		current_scene != null and current_scene.name == "TerrainView" and Settings().mission_id == 402,
+		current_scene != null and current_scene.name == "TerrainView" and settings().mission_id == 402,
 		"straight into the flight"
 	)

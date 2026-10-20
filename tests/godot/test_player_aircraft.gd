@@ -16,7 +16,7 @@ func run() -> void:
 	)
 	check(PlayerAircraft.profile(180).type == 100, "an unflyable type (MiG-29) falls back to the F-16")
 
-	Settings().jet_id = 3
+	settings().jet_id = 3
 	var tv = await start_mission(311)
 	check(
 		tv.player.type == 200 and tv.aircraft != null and tv.aircraft.type_code == 200,
@@ -101,8 +101,8 @@ func run() -> void:
 
 	# Real flight data: the Real [F-4] row (internal fuel 12,060 lb against the original's 12,500).
 	var fuel_orig: float = st.internal_fuel_kg / 0.45359
-	Settings().flight_data = "real"
-	Settings().weapon_data = "real"
+	settings().flight_data = "real"
+	settings().weapon_data = "real"
 	tv = await start_mission(311)
 	var radar = tv.weapons.radar
 	check(
@@ -116,7 +116,7 @@ func run() -> void:
 		guns.size() == 1 and int(guns[0].count) == 639,
 		"Real weapons: the F-4E airframe's 639 gun rounds (%s)" % [guns.map(func(st): return st.count)]
 	)
-	Settings().weapon_data = "original"
+	settings().weapon_data = "original"
 	var fuel_real: float = tv.flight.state().internal_fuel_kg / 0.45359
 	check(
 		tv.real_data and absf(fuel_orig - 12500.0) < 5.0 and absf(fuel_real - 12060.0) < 5.0,
@@ -141,7 +141,7 @@ func run() -> void:
 		lost[1] > lost[0] * 1.5 and lost[1] > lost[0] + 0.5,
 		"Real data: the chute brakes the roll (2 s: %.2f m/s with it, %.2f without)" % [lost[1], lost[0]]
 	)
-	Settings().flight_data = "original"
+	settings().flight_data = "original"
 
 	# In the air (312 starts airborne, the autopilot holding level): gear, flaps, speed brake, afterburner.
 	tv = await start_mission(312)
@@ -168,7 +168,7 @@ func run() -> void:
 	var p0: Vector3 = tv.flight.state().position
 	var fwd: Vector3 = tv.flight.state().forward
 	tv.flight.start(
-		Settings().assets_dir().path_join("install"),
+		settings().assets_dir().path_join("install"),
 		tv.player.fm_section,
 		p0,
 		Vector3(0.0, 0.0, tv.flight.state().heading),
@@ -200,7 +200,7 @@ func run() -> void:
 		await process_frame
 	check(n == 2, "two-seat ejection: %d parachuters" % n)
 
-	Settings().jet_id = -1
+	settings().jet_id = -1
 	tv = await start_mission(311)
 	check(
 		tv.player.type == 100 and tv.cockpit.cockpit_dir.ends_with("/f16") and not tv.cockpit.twin_engines,

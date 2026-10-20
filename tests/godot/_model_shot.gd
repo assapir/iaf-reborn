@@ -5,9 +5,10 @@
 # SHOT_START: "airborne" (mission 231, frozen 3000 m up, LOADOUT on the pylons) or "ground" (mission 311 on the
 # runway, gear down). Each shot in SHOTS: the camera at `dist` m from the jet's origin, `yaw` degrees round from
 # the nose (90 = from the right), `pitch` degrees above; the pose (gear / flaps / brakes / afterburner) set and
-# settled; an optional 6th entry is the look-at point in the jet's frame (m, nose -Z). Writes SHOT_OUT/<models>_<name>.png and prints the frame time of a settled view.
-# SHOT_BENCH=1: no pictures; the frame time (vsync off) and GPU time over 600 frames with the camera 50 m behind the
-# jet (mission 231: the player's jet and the AI's F-16s drawn).
+# settled; an optional 6th entry is the look-at point in the jet's frame (m, nose -Z). Writes
+# SHOT_OUT/<models>_<name>.png and prints the frame time of a settled view. SHOT_BENCH=1: no pictures; the frame time
+# (vsync off) and GPU time over 600 frames with the camera 50 m behind the jet (mission 231: the player's jet and the
+# AI's F-16s drawn).
 extends "res://../tests/godot/base.gd"
 
 ## AIM-9 on the tips, AIM-120 outboard, Mk-84 at C / G, tanks at D / F, an ECM pod at E (weapon ids by name below).
@@ -52,20 +53,20 @@ func run() -> void:
 	var models := OS.get_environment("SHOT_MODELS")
 	var out := OS.get_environment("SHOT_OUT")
 	var ground := OS.get_environment("SHOT_START") == "ground"
-	Settings().models = models if models != "" else "original"
-	Settings().show_info = false
+	settings().models = models if models != "" else "original"
+	settings().show_info = false
 	tv = await start_mission(311 if ground else 231)
 	await frames(3)
 	if not ground:
 		airborne_case(tv, _hardpoints())
 		var st: Dictionary = tv.flight.state()
 		tv.flight.start(
-			Settings().assets_dir().path_join("install"),
+			settings().assets_dir().path_join("install"),
 			tv.player.fm_section,
 			tv.rig.position,
 			Vector3(0.0, 0.0, st.heading),
 			st.forward * 250.0,
-			{"airborne": true, "engine_on": true, "real_data": Settings().real_data()}
+			{"airborne": true, "engine_on": true, "real_data": settings().real_data()}
 		)
 	if OS.get_environment("SHOT_NO_NORMAL") == "1":  # (debug: the normal maps' share of the look)
 		for mi: MeshInstance3D in tv.aircraft.find_children("*", "MeshInstance3D", true, false):
@@ -86,7 +87,7 @@ func run() -> void:
 	for s in GROUND_SHOTS if ground else AIR_SHOTS:
 		if only != "" and not String(s[0]) in only.split(","):
 			continue
-		await _shot(s, out, Settings().models)
+		await _shot(s, out, settings().models)
 	check(true, "shots done")
 
 
@@ -94,7 +95,7 @@ func _bench() -> void:
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	var vp := root.get_viewport_rid()
 	RenderingServer.viewport_set_measure_render_time(vp, true)
-	await _shot(["bench", 50.0, 175.0, 6.0, {}], "", Settings().models)
+	await _shot(["bench", 50.0, 175.0, 6.0, {}], "", settings().models)
 	var ft := []
 	var gpu := 0.0
 	for i in 600:
@@ -108,7 +109,7 @@ func _bench() -> void:
 		(
 			"BENCH %s frame avg %.2f ms p95 %.2f ms gpu %.2f ms primitives %d"
 			% [
-				Settings().models,
+				settings().models,
 				avg,
 				ft[int(ft.size() * 0.95)],
 				gpu / 600.0,

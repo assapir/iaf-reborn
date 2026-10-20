@@ -17,16 +17,16 @@ func load_maps(map: Dictionary, grid: Dictionary, text: Dictionary) -> void:
 	map_batches = _batches(map)
 	grid_batches = _batches(grid)
 	text_shape_batches = _batches(text)
-	var size_: Vector2 = tsd.MAP_SIZE
+	var map_size: Vector2 = tsd.MAP_SIZE
 	for op in text.get("ops", []):
 		if op.t == "text":
 			(
 				text_ops
 				. append(
 					{
-						"pos": Vector2(op.pos[0], op.pos[1]) * size_,
+						"pos": Vector2(op.pos[0], op.pos[1]) * map_size,
 						"text": op.text,
-						"px": float(op.font.height) * size_.y,
+						"px": float(op.font.height) * map_size.y,
 						"color": Color8(op.color[0], op.color[1], op.color[2]),
 					}
 				)
@@ -42,7 +42,7 @@ var _colors := PackedColorArray()
 
 
 func _batches(mf: Dictionary) -> Array:
-	var size_: Vector2 = tsd.MAP_SIZE
+	var map_size: Vector2 = tsd.MAP_SIZE
 	_out = []
 	_kind = ""
 	for op in mf.get("ops", []):
@@ -52,24 +52,24 @@ func _batches(mf: Dictionary) -> Array:
 					_begin("fill")
 					var c := Color8(op.brush[0], op.brush[1], op.brush[2])
 					# Outer ring only (holes are rare in these maps and drawn over later).
-					var pts := _points(op.rings[0], size_)
+					var pts := _points(op.rings[0], map_size)
 					for i in Geometry2D.triangulate_polygon(pts):
 						_verts.append(pts[i])
 						_colors.append(c)
 				if op.pen != null:
 					for ring in op.rings:
-						var pts := _points(ring, size_)
+						var pts := _points(ring, map_size)
 						pts.append(pts[0])
-						_add_line(op.pen, pts, size_)
+						_add_line(op.pen, pts, map_size)
 			"polyline":
-				_add_line(op.pen, _points(op.points, size_), size_)
+				_add_line(op.pen, _points(op.points, map_size), map_size)
 	_flush()
 	return _out
 
 
-func _add_line(pen: Dictionary, pts: PackedVector2Array, size_: Vector2) -> void:
+func _add_line(pen: Dictionary, pts: PackedVector2Array, map_size: Vector2) -> void:
 	var c := Color8(pen.color[0], pen.color[1], pen.color[2])
-	var width := float(pen.width) * size_.x
+	var width := float(pen.width) * map_size.x
 	if width >= 1.0:
 		_flush()
 		_kind = ""
@@ -103,11 +103,11 @@ func _flush() -> void:
 	_colors = PackedColorArray()
 
 
-static func _points(flat: Array, size_: Vector2) -> PackedVector2Array:
+static func _points(flat: Array, map_size: Vector2) -> PackedVector2Array:
 	var pts := PackedVector2Array()
 	pts.resize(flat.size() / 2)
 	for i in pts.size():
-		pts[i] = Vector2(flat[2 * i], flat[2 * i + 1]) * size_
+		pts[i] = Vector2(flat[2 * i], flat[2 * i + 1]) * map_size
 	return pts
 
 

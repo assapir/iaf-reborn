@@ -1,7 +1,9 @@
 # The turning panel compass ("Better cockpit", compass.gd) of each jet that has one (not a test): per jet the full
 # panel at two headings (with the static original first), written as compass_<cockpit>_<heading>.png (the whole
-# frame) and compass_<cockpit>_<heading>_zoom.png (the dial, 3× nearest). Mission 312, airborne, on a made-up two-leg route. Usage:
-#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=~/.cache/shots -- --log-file ~/.cache/g.log --resolution 1920x1080 --path game -s ../tests/godot/_compass_shot.gd
+# frame) and compass_<cockpit>_<heading>_zoom.png (the dial, 3× nearest). Mission 312, airborne, on a made-up two-leg
+# route. Usage:
+#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=~/.cache/shots -- --log-file ~/.cache/g.log --resolution \
+#     1920x1080 --path game -s ../tests/godot/_compass_shot.gd
 extends "res://../tests/godot/base.gd"
 
 ## Jet list id: Kfir, F-4E, Mirage.
@@ -17,7 +19,7 @@ func run() -> void:
 		return
 	DirAccess.make_dir_recursive_absolute(dir)
 	for id in JETS:
-		Settings().jet_id = id
+		settings().jet_id = id
 		var tv = await start_mission(312)
 		var c = tv.cockpit
 		# A made-up route, on its second leg, so the course pointer (the leg, 090°) and the bearing pointer (the
@@ -28,13 +30,13 @@ func run() -> void:
 		]
 		c.current_waypoint = 1
 		for k in CASES:
-			Settings().better_cockpit = k[1]
+			settings().better_cockpit = k[1]
 			c.panel_target = 1.0
 			c.panel_shift = 1.0
 			var h := deg_to_rad(float(k[0]))
 			var st: Dictionary = tv.flight.state()
 			tv.flight.start(
-				Settings().assets_dir().path_join("install"),
+				settings().assets_dir().path_join("install"),
 				tv.player.fm_section,
 				st.position,
 				Vector3(0.0, 0.0, k[0]),
@@ -63,6 +65,6 @@ func run() -> void:
 					% [name, k[0], float(c.state.heading), c.compasses.size(), c.current_waypoint, c.waypoints.size()]
 				)
 			)
-	Settings().jet_id = -1
-	Settings().better_cockpit = false
+	settings().jet_id = -1
+	settings().better_cockpit = false
 	print("RESULT PASS")

@@ -236,7 +236,8 @@ static func moon_dir() -> Vector3:
 
 ## Detailed: the jet's lights under `model` (an aircraft_model.gd): red on the left wingtip, green on the right, white
 ## at the tail, and a white strobe on top of the fin. Spots: the model's outermost vertices (left / right, rearmost
-## near the centre line, highest; the EndWing helpers when the model has them at its tips), cached per model file. Returns the strobe node (blink with strobe_on).
+## near the centre line, highest; the EndWing helpers when the model has them at its tips), cached per model file.
+## Returns the strobe node (blink with strobe_on).
 static var _spots := {}
 
 

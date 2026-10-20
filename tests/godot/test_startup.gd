@@ -12,7 +12,7 @@ func wait_menu() -> bool:
 
 
 func run() -> void:
-	var st = Settings()
+	var st = settings()
 	change_scene_to_file("res://menu/startup.tscn")
 	await frames(2)
 	check(await wait_menu(), "the main menu at once")

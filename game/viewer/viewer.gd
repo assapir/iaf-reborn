@@ -3,6 +3,8 @@
 # whenever the converter rewrites them.
 extends Node3D
 
+const Gltf := preload("res://util/gltf.gd")
+
 const POLL_SECONDS := 0.5
 
 @onready var pivot: Node3D = $Pivot
@@ -75,12 +77,12 @@ func _load() -> void:
 		_update_hud()
 		return
 	var path := models[index]
-	var model = preload("res://util/gltf.gd").open(path)
+	var model = Gltf.open(path)
 	if model == null:
 		status = "Failed to load %s" % path
 		_update_hud()
 		return
-	var scene := preload("res://util/gltf.gd").instance(model)
+	var scene := Gltf.instance(model)
 	model_root.add_child(scene)
 	loaded_mtime = FileAccess.get_modified_time(path)
 	_apply_helpers()
@@ -111,7 +113,6 @@ func _apply_helpers() -> void:
 
 
 func _frame_camera() -> void:
-	const Gltf := preload("res://util/gltf.gd")
 	var aabb := Gltf.model_aabb(model_root, Gltf.GLOBAL_SPACE)
 	pivot.position = aabb.get_center()
 	distance = max(aabb.get_longest_axis_size() * 1.15, 2.0)
@@ -120,7 +121,10 @@ func _frame_camera() -> void:
 func _update_hud() -> void:
 	var name := models[index].get_file() if not models.is_empty() else "-"
 	hud.text = (
-		"%s  (%d/%d)   %s\n[←/→] model  [H] helpers %s  [R] auto-rotate  [drag] orbit  [wheel] zoom\nhot reload: re-run iaf-convert and the model refreshes"
+		(
+			"%s  (%d/%d)   %s\n[←/→] model  [H] helpers %s  [R] auto-rotate  [drag] orbit  [wheel] zoom\nhot reload: re-run "
+			+ "iaf-convert and the model refreshes"
+		)
 		% [name, index + 1, models.size(), status, "on" if show_helpers else "off"]
 	)
 

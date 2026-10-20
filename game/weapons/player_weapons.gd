@@ -25,6 +25,7 @@ const Views := preload("res://terrain/views.gd")
 const Hud := preload("res://cockpit/hud.gd")
 const Terrain := preload("res://terrain/terrain.gd")
 const FlightSounds := preload("res://audio/flight_sounds.gd")
+const Gltf := preload("res://util/gltf.gd")
 
 ## The gun's shot timer period (DAT_0082f4e8 = 0.2 s, sim time).
 const GUN_PERIOD := 0.2
@@ -535,7 +536,7 @@ func _eo_update() -> void:
 		if not n is Node3D or not n.is_visible_in_tree():
 			continue
 		if not n.has_meta("eo_box"):  # ponytail: cached per node; a model swapped under it keeps the old bounds
-			n.set_meta("eo_box", preload("res://util/gltf.gd").model_aabb(n))
+			n.set_meta("eo_box", Gltf.model_aabb(n))
 		var lb: AABB = n.get_meta("eo_box")
 		if lb.size != Vector3.ZERO:
 			var sb: AABB = n.global_transform * lb
@@ -1631,7 +1632,7 @@ func _trail(key, node: Node3D) -> void:
 	if host.trails == null or node == null:
 		return
 	if not node.has_meta("half_length"):
-		node.set_meta("half_length", 0.5 * preload("res://util/gltf.gd").model_aabb(node).size.z * node.scale.z)
+		node.set_meta("half_length", 0.5 * Gltf.model_aabb(node).size.z * node.scale.z)
 	var back := node.global_basis.z.normalized()  # looking_at: the nose is −Z
 	host.trails.emit(
 		key,
@@ -1933,8 +1934,8 @@ func _decoy_effect(type: int, dc_id: int, key: String, ab: bool, g_load: float) 
 		mis.retarget("decoy:%d" % dc_id)
 
 
-## ECM Jammer on/off (J, GEV 0x46 in FUN_0044a240, light 6; docs/weapons.md §10): refused with ECM damage (flag 1). Off →
-## on (FUN_004582f0, with an ECM fitted): once, each radar missile (600 / 610) flying at the player and not chasing a
+## ECM Jammer on/off (J, GEV 0x46 in FUN_0044a240, light 6; docs/weapons.md §10): refused with ECM damage (flag 1). Off
+## → on (FUN_004582f0, with an ECM fitted): once, each radar missile (600 / 610) flying at the player and not chasing a
 ## decoy loses its guidance with rand < 0.6 (0x600f68); later launches are not jammed. On → off: the light only.
 func ecm_key() -> void:
 	if _flag(1):
@@ -2257,10 +2258,10 @@ func _sam_sites() -> Array:
 static func _instance(path: String) -> Node3D:
 	if path == "":
 		return null
-	var model = preload("res://util/gltf.gd").object(path)
+	var model = Gltf.object(path)
 	if model == null:
 		return null
-	var n: Node3D = preload("res://util/gltf.gd").instance(model)
+	var n: Node3D = Gltf.instance(model)
 	# The store's `pilon` attach helper (id 0x35) is a flat marker mesh: helpers are never drawn (FUN_0041c270).
 	for h in n.find_children("*", "Node3D", true, false):
 		if String(h.name).to_lower() == "pilon":

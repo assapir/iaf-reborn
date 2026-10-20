@@ -9,7 +9,8 @@
 # Arial) Godot's rounded advances and heights stand in.
 extends RefCounted
 
-static var _tables := {}  # font file path → {"hdmx": {ppem: PackedByteArray}, "vdmx": {ppem: Vector2i(ascent, descent)}}
+# font file path → {"hdmx": {ppem: PackedByteArray}, "vdmx": {ppem: Vector2i(ascent, descent)}}
+static var _tables := {}
 
 
 ## Arial as GDI's CreateFont(weight) picks it (weight 900 → Arial Bold): bilevel, fully hinted.

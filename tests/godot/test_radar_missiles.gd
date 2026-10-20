@@ -61,15 +61,15 @@ func run() -> void:
 
 	# --- per jet ------------------------------------------------------------------------------------
 	for c in CASES:
-		Settings().f35i_slot = c[1]
-		Settings().jet_id = c[0]
+		settings().f35i_slot = c[1]
+		settings().jet_id = c[0]
 		var tv = await start_mission(231)
 		await frames(3)
 		var name := "type %d" % c[2]
 		check(tv.player.type == c[2], "%s flies mission 231" % name)
 		await _shot_case(tv, name, int(c[3]), c[2] == 100)
-	Settings().jet_id = -1
-	Settings().f35i_slot = -1
+	settings().jet_id = -1
+	settings().f35i_slot = -1
 	# Weapon data Real: AMRAAM 157 kg, Mach 4, 70 km.
 	var MR = load("res://mission/mission_runtime.gd")
 	var bdb: Dictionary = MR.load_bdb(MR.mission_files(231)[0].data)
@@ -89,7 +89,7 @@ func run() -> void:
 		var w: Dictionary = real.weapons[id]
 		if w.name == "AIM-7B":
 			var m7: Dictionary = real.motion_for(int(w.type), int(w.generation)).merged(w.motion, true)
-			var z: Array = load("res://weapons/missile.gd").dlz(
+			var z: Array = Missile.dlz(
 				m7,
 				{"pos": Vector3.ZERO, "fwd": Vector3(0, 1, 0), "vel": Vector3(0, 250, 0)},
 				{"pos": Vector3(0, 5000, 0), "vel": Vector3.ZERO}
@@ -109,7 +109,7 @@ func _shot_case(tv, name: String, wid: int, shots: bool) -> void:
 	# 250 m/s along the nose (the rig stays put: the missiles leave at the jet's velocity).
 	var st0: Dictionary = tv.flight.state()
 	tv.flight.start(
-		Settings().assets_dir().path_join("install"),
+		settings().assets_dir().path_join("install"),
 		tv.player.fm_section,
 		st0.position,
 		Vector3(0.0, 0.0, st0.heading),

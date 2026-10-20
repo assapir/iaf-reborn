@@ -8,23 +8,26 @@ extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
-	Settings().invulnerable = true
-	Settings().no_crashes = true
+	settings().invulnerable = true
+	settings().no_crashes = true
 	# SWEEP_WORLD_SCALE=real: the bases at their real places (docs/world-scale.md §3.3).
 	if OS.get_environment("SWEEP_WORLD_SCALE") != "":
-		Settings().world_scale = OS.get_environment("SWEEP_WORLD_SCALE")
+		settings().world_scale = OS.get_environment("SWEEP_WORLD_SCALE")
 	var secs := float(OS.get_environment("SWEEP_SECONDS")) if OS.get_environment("SWEEP_SECONDS") != "" else 240.0
 	for id in OS.get_environment("MISSIONS").split(" ", false):
 		var tv = await start_mission(int(id))
 		var rt = tv.runtime
 		# A ground start: the surface under the jet (terraintype.dat flags; 0x10 = runway ground).
-		var ground: String = "surface 0x%x" % tv.terrain.surface_at(tv.rig.position) if tv.flight.state().on_ground else "airborne"
+		var ground: String = (
+			"surface 0x%x" % tv.terrain.surface_at(tv.rig.position) if tv.flight.state().on_ground else "airborne"
+		)
 		var fired := {}
 		var subs := [0]
 		var boxes := []
 		rt.event_fired.connect(func(eid, name): fired[eid] = name)
 		rt.subtitle.connect(func(_t): subs[0] += 1)
-		rt.message_box.connect(func(msg, _b): boxes.append(msg))  # base.gd answers CONTINUE (the box freezes the flight)
+		# base.gd answers CONTINUE (the box freezes the flight)
+		rt.message_box.connect(func(msg, _b): boxes.append(msg))
 		var start := {}
 		for k in rt.entities:
 			start[k] = rt._world_of(rt.entities[k])
@@ -34,12 +37,24 @@ func run() -> void:
 		while rt.now - t0 < secs and not rt.failed:
 			await process_frame
 		Engine.time_scale = 1.0
-		var moved := start.keys().filter(func(k): return rt.entities.has(k) and rt._world_of(rt.entities[k]).distance_to(start[k]) > 50.0).size()
+		var moved := (
+			start
+			. keys()
+			. filter(func(k): return rt.entities.has(k) and rt._world_of(rt.entities[k]).distance_to(start[k]) > 50.0)
+			. size()
+		)
 		var targets: Array = rt.entities.values().filter(func(e): return int(e.role) == rt.ROLE_TARGET)
 		var by_others := targets.filter(func(e): return int(e.state) >= 4).size()
 		var me: Vector3 = rt._world_of(rt.player_entity())
-		var lost: Array = rt.entities.values().filter(func(e): return int(e.role) == rt.ROLE_SURVIVE and int(e.state) >= 4 and not e.player).map(
-			func(e): return "%s %.0f km away" % [e.name, Vector2(e.world.x - me.x, e.world.y - me.y).length() / 1000.0])
+		var away := func(e):
+			return "%s %.0f km away" % [e.name, Vector2(e.world.x - me.x, e.world.y - me.y).length() / 1000.0]
+		var lost: Array = (
+			rt
+			. entities
+			. values()
+			. filter(func(e): return int(e.role) == rt.ROLE_SURVIVE and int(e.state) >= 4 and not e.player)
+			. map(away)
+		)
 		if rt.failed:
 			notes.append("failed at %ds" % int(rt.now - t0))
 		var early := "failed" if rt.failed else ("passed" if rt.passed else "open")
@@ -49,7 +64,31 @@ func run() -> void:
 		var t1: float = rt.now
 		while rt.now - t1 < 2.0:
 			await process_frame
-		print("SWEEP %s: start %s; after %ds %s %s; targets %d (%d by others), left %d; lost %s; events %d/%d %s; subtitles %d; moved %d/%d; boxes %s; then %s" % [
-			id, ground, int(secs), early, notes, targets.size(), by_others, rt.targets_left, lost, fired.size(), rt.events.size(),
-			fired.values(), subs[0], moved, start.size(), boxes, "PASS" if rt.passed else ("FAILED" if rt.failed else "open")])
+		print(
+			(
+				(
+					"SWEEP %s: start %s; after %ds %s %s; targets %d (%d by others), left %d; lost %s; events %d/%d %s; subtitles "
+					+ "%d; moved %d/%d; boxes %s; then %s"
+				)
+				% [
+					id,
+					ground,
+					int(secs),
+					early,
+					notes,
+					targets.size(),
+					by_others,
+					rt.targets_left,
+					lost,
+					fired.size(),
+					rt.events.size(),
+					fired.values(),
+					subs[0],
+					moved,
+					start.size(),
+					boxes,
+					"PASS" if rt.passed else ("FAILED" if rt.failed else "open")
+				]
+			)
+		)
 		check(rt.passed or rt.failed, "mission %s ends" % id)

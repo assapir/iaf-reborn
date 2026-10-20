@@ -83,8 +83,13 @@ var _players3d: Array = []
 var played: Array[String] = []
 
 
+## A new FlightSounds node (the script loads itself lazily: a preload of its own path is a cycle).
+static func _new() -> Node:
+	return load("res://audio/flight_sounds.gd").new()
+
+
 static func create(host_node: Node, type: int) -> Node:
-	var n = load("res://audio/flight_sounds.gd").new()
+	var n = _new()
 	n.name = "FlightSounds"
 	n.host = host_node
 	n.type_code = type
@@ -94,7 +99,7 @@ static func create(host_node: Node, type: int) -> Node:
 ## An AI jet's engine (slot 0 of its object sound, the same rows as the player's, FUN_004c3e00): a child of
 ## its model, so it goes with it.
 static func create_engine(view_host: Node, flight, ent: Dictionary) -> Node:
-	var n = load("res://audio/flight_sounds.gd").new()
+	var n = _new()
 	n.name = "EngineSound"
 	n.host = view_host
 	n.engine_flight = flight

@@ -23,7 +23,8 @@ func run() -> void:
 	check(kt.button_name(kt.default_joystick(58)) == "Button 3", "joystick button names")
 	check(kt.shown_records().size() == 92, "92 listed records (%d)" % kt.shown_records().size())
 
-	var fe = load("res://menu/front_end.tscn").instantiate()
+	var front_end: PackedScene = load("res://menu/front_end.tscn")
+	var fe = front_end.instantiate()
 	root.add_child(fe)
 	await frames(2)
 	fe.screen = "main"  # the game starts on Pilot Records
@@ -31,7 +32,7 @@ func run() -> void:
 	fe._on_button(fe._key_for_label("Preferences"))
 	await settle(fe)
 	fe._on_button(fe._key_for_label("Controls"))
-	check(Settings().pref_page == "Controls", "Controls tab")
+	check(settings().pref_page == "Controls", "Controls tab")
 	check(fe.ctrl_sel == 0 and not fe.ctrl_focus, "first row selected, no keyboard yet")
 	# Scroll down one row with the down arrow, then click the row of "Flaps up/down" (list row 16).
 	var at: Vector2 = fe.CONTENT.position
@@ -45,7 +46,7 @@ func run() -> void:
 	# A free key: assigned at once.
 	key(fe, KEY_K)
 	check(kt.key_name(kt.key_of(19, fe.pref_work.key_bindings)) == "K", "Flaps rebound to K")
-	check(Settings().key_bindings.is_empty(), "only the working copy changed")
+	check(settings().key_bindings.is_empty(), "only the working copy changed")
 	# A taken key (G = gear): msg 36, Yes takes it from the gear.
 	key(fe, KEY_G)
 	check(fe.msgbox != null and fe.msgbox.text.begins_with("This key is already assigned"), "taken key asks msg 36")
@@ -71,14 +72,14 @@ func run() -> void:
 
 	# In flight: gear moved to K; G does nothing any more, K toggles the gear (in the air: mission
 	# 311 starts on the ground, where the gear can't be raised, so use flaps instead).
-	Settings().key_bindings = {19: [0x25, -1]}  # Flaps on K (DIK 0x25)
+	settings().key_bindings = {19: [0x25, -1]}  # Flaps on K (DIK 0x25)
 	var tv = await start_mission(311)
 	var f0: float = tv.flaps
 	key(tv, KEY_F)
 	check(tv.flaps == f0, "old key F no longer moves the flaps")
 	key(tv, KEY_K)
 	check(tv.flaps != f0, "rebound key K moves the flaps")
-	Settings().key_bindings = {}
+	settings().key_bindings = {}
 	# Throttle presets from the table: key 2 = p1 10 -> 0.10.
 	key(tv, KEY_2)
 	check(is_equal_approx(tv.throttle, 0.10), "key 2 = throttle 0.10 (%.3f)" % tv.throttle)
@@ -91,8 +92,8 @@ func run() -> void:
 		"all keys: 115 records incl. rudder, RPM ± 5, cheats, capture (%d)" % all.size()
 	)
 	check(not 115 in all and not 116 in all, "the two unlabelled records stay out")
-	Settings().show_all_keys = true
-	fe = load("res://menu/front_end.tscn").instantiate()
+	settings().show_all_keys = true
+	fe = front_end.instantiate()
 	root.add_child(fe)
 	await frames(2)
 	fe.screen = "main"
@@ -110,7 +111,7 @@ func run() -> void:
 	check(kt.key_name(kt.key_of(37, fe.pref_work.key_bindings)) == "K", "Rudder left rebound to K")
 	fe.queue_free()
 	await frames(2)
-	Settings().key_bindings = {37: [0x25, -1]}
+	settings().key_bindings = {37: [0x25, -1]}
 	tv = await start_mission(311)
 	var e := InputEventKey.new()
 	e.keycode = KEY_K
@@ -122,8 +123,8 @@ func run() -> void:
 	e = e.duplicate()
 	e.pressed = false
 	Input.parse_input_event(e)
-	Settings().key_bindings = {}
-	Settings().show_all_keys = false
+	settings().key_bindings = {}
+	settings().show_all_keys = false
 	# SysRQ (record 116, command 0x88): the screen capture (FUN_004dc8d0). Isolated runs write nothing unless a
 	# folder is given; the headless renderer may give no image, then nothing is written either.
 	check(

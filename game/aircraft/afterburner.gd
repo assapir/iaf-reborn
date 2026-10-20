@@ -19,8 +19,8 @@ const CONES := [[2, 0.7], [3, 1.0]]
 
 var _mesh := ImmediateMesh.new()
 var _material: StandardMaterial3D
-## Heat haze (Detailed effects, Preferences > Graphics > MORE): a refracting cone behind the nozzle, a sibling so it shows
-## while the flame is off. null = the original look.
+## Heat haze (Detailed effects, Preferences > Graphics > MORE): a refracting cone behind the nozzle, a sibling so it
+## shows while the flame is off. null = the original look.
 var haze: MeshInstance3D
 
 const HAZE_SHADER := """

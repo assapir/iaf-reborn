@@ -4,17 +4,17 @@
 # derived runway edges.
 extends "res://../tests/godot/base.gd"
 
-var Airbases: GDScript
+var airbases: GDScript
 
 
 func run() -> void:
-	Airbases = load("res://terrain/airbases.gd")
-	var bases: Array = Airbases.bases()
+	airbases = load("res://terrain/airbases.gd")
+	var bases: Array = airbases.bases()
 	check(bases.size() == 10, "airbases.json: the ten iaf.ibx bases (%d)" % bases.size())
 	for b in bases:
 		var ok: bool = (
 			not b.runways.is_empty()
-			and FileAccess.file_exists(Settings().assets_dir().path_join("converted/terrain").path_join(b.mask.file))
+			and FileAccess.file_exists(settings().assets_dir().path_join("converted/terrain").path_join(b.mask.file))
 		)
 		for r in b.runways:
 			var e0 := Vector2(r.ends[0][0], r.ends[0][1])
@@ -33,20 +33,20 @@ func run() -> void:
 		check(ok, "%s: %d runways with numbers, lengths and widths; its mask" % [b.name, b.runways.size()])
 
 	# Original: nothing reaches the shader.
-	Settings().airbases = "original"
+	settings().airbases = "original"
 	var tv = await start_mission(311)
 	await frames(5)
-	check(not Airbases._on and Airbases._current == -1, "original: no airbase surface")
+	check(not airbases._on and airbases._current == -1, "original: no airbase surface")
 
 	# Detailed at Ramat David (311 starts on its runway): the base's three runways and its taxi lines.
-	Settings().airbases = "detailed"
+	settings().airbases = "detailed"
 	tv = await start_mission(311)
 	await frames(5)
 	check(
-		Airbases._on and Airbases._current >= 0 and bases[Airbases._current].name == "David",
+		airbases._on and airbases._current >= 0 and bases[airbases._current].name == "David",
 		"detailed: Ramat David is drawn"
 	)
-	var david: Dictionary = bases[Airbases._current]
+	var david: Dictionary = bases[airbases._current]
 	check(david.runways.size() == 3, "Ramat David: three runways (%d)" % david.runways.size())
 	var hdgs := []
 	for r in david.runways:
@@ -59,7 +59,7 @@ func run() -> void:
 	# The player starts on the base's paved surface (its mask).
 	var p: Vector3 = tv.rig.position
 	var here := Vector2(tv.terrain.world_origin.x + p.x, tv.terrain.world_origin.y - p.z)
-	var mask := Image.load_from_file(Settings().assets_dir().path_join("converted/terrain").path_join(david.mask.file))
+	var mask := Image.load_from_file(settings().assets_dir().path_join("converted/terrain").path_join(david.mask.file))
 	var px := Vector2i(
 		int((here.x - float(david.mask.origin[0])) / float(david.mask.px_m)),
 		int((float(david.mask.origin[1]) - here.y) / float(david.mask.px_m))
@@ -70,7 +70,7 @@ func run() -> void:
 	)
 
 	# Night: 214 places lt_dvd_h on Ramat David; its edge lights stand at the derived runways' edges.
-	Settings().night_lights = "detailed"
+	settings().night_lights = "detailed"
 	tv = await start_mission(214)
 	await frames(5)
 	var lights = tv.runtime.entities.values().filter(
@@ -78,7 +78,7 @@ func run() -> void:
 			return (
 				e.get("light_set", false)
 				and e.node != null
-				and Vector2(e.world.x, e.world.y).distance_to(Airbases.centre(david)) < 5000.0
+				and Vector2(e.world.x, e.world.y).distance_to(airbases.centre(david)) < 5000.0
 			)
 	)
 	check(lights.size() == 1, "214: one light set on Ramat David (%d)" % lights.size())
@@ -107,8 +107,8 @@ func run() -> void:
 				% [devs[devs.size() / 4], med, devs[devs.size() * 3 / 4]]
 			)
 		)
-	Settings().night_lights = "original"
-	Settings().airbases = "original"
+	settings().night_lights = "original"
+	settings().airbases = "original"
 
 
 ## (along from the middle, across) of engine point p in runway r's frame.

@@ -3,11 +3,12 @@
 # model stopped. Per leg: frames per second, frame time average / 95th percentile / worst, the main-thread process
 # time, the GPU time, draw calls, primitives and the terrain nodes drawn.
 #   IAF_DEFAULT_SETTINGS=1 godot --path game --resolution 1920x1080 -s ../tests/godot/_flight_bench.gd
-# BENCH_MISSION=id flies another mission's start. BENCH_LEGS=alt:speed:secs,... (default 150:250:20,1500:250:20,6000:300:20). BENCH_BEST=1: the best graphics (every
-# Graphics slider / switch up, MSAA 4× + FXAA, terrain close up, atmospheric sky, the modern imagery layers where
-# converted: mapi2015 in Israel, sentinel2 outside). BENCH_OFF=a,b: switch parts off to
-# see their cost: terrain (streaming), terrain_draw (the nodes hidden), cockpit, runtime, ai, weapons, effects, trails,
-# overlay, sounds, scene (the whole flight scene's _process), mfd, hud. BENCH_SPIKES=1 prints every frame over 12 ms.
+# BENCH_MISSION=id flies another mission's start. BENCH_LEGS=alt:speed:secs,... (default
+# 150:250:20,1500:250:20,6000:300:20). BENCH_BEST=1: the best graphics (every Graphics slider / switch up, MSAA 4× +
+# FXAA, terrain close up, atmospheric sky, the modern imagery layers where converted: mapi2015 in Israel, sentinel2
+# outside). BENCH_OFF=a,b: switch parts off to see their cost: terrain (streaming), terrain_draw (the nodes hidden),
+# cockpit, runtime, ai, weapons, effects, trails, overlay, sounds, scene (the whole flight scene's _process), mfd, hud.
+# BENCH_SPIKES=1 prints every frame over 12 ms.
 extends "res://../tests/godot/base.gd"
 
 
@@ -35,12 +36,12 @@ func run() -> void:
 			"imagery_outside": "sentinel2"
 		}
 		for k in best:
-			Settings().set(k, best[k])
+			settings().set(k, best[k])
 	# BENCH_SET=key=value,...: overrides after that (e.g. antialiasing=msaa4 / terrain_closeup=false / shadows=false).
 	for kv in OS.get_environment("BENCH_SET").split(",", false):
 		var p := kv.split("=")
-		var cur = Settings().get(p[0])
-		Settings().set(p[0], (p[1] == "true") if cur is bool else (float(p[1]) if cur is float else p[1]))
+		var cur = settings().get(p[0])
+		settings().set(p[0], (p[1] == "true") if cur is bool else (float(p[1]) if cur is float else p[1]))
 	var tv = await start_mission(
 		int(OS.get_environment("BENCH_MISSION")) if OS.get_environment("BENCH_MISSION") != "" else 311
 	)
@@ -75,8 +76,8 @@ func run() -> void:
 					n.process_mode = Node.PROCESS_MODE_DISABLED
 					if n is CanvasItem or n is Node3D:
 						n.visible = false
-	# BENCH_SHADOW=atlas,splits,filter: the sun's shadow atlas size, its cascades (1 / 2 / 4) and the soft filter quality
-	# (0..5).
+	# BENCH_SHADOW=atlas,splits,filter: the sun's shadow atlas size, its cascades (1 / 2 / 4) and the soft filter
+	# quality (0..5).
 	var sh := OS.get_environment("BENCH_SHADOW").split(",", false)
 	if sh.size() == 3:
 		RenderingServer.directional_shadow_atlas_set_size(int(sh[0]), true)
@@ -136,7 +137,10 @@ func run() -> void:
 		avg /= n
 		print(
 			(
-				"FLIGHT %5.0f m %3.0f m/s: %5.1f fps  frame %5.2f ms (p95 %5.2f, max %6.2f)  process %5.2f ms  gpu %5.2f ms  calls %5.0f  prims %7.0fk  nodes %4.0f"
+				(
+					"FLIGHT %5.0f m %3.0f m/s: %5.1f fps  frame %5.2f ms (p95 %5.2f, max %6.2f)  process %5.2f ms  gpu %5.2f ms  "
+					+ "calls %5.0f  prims %7.0fk  nodes %4.0f"
+				)
 				% [
 					alt,
 					speed,

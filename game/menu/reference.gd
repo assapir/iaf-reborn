@@ -26,7 +26,8 @@ const TITLE_H := 34.0
 const TITLE_PX := 20.0
 ## Content-local view rect (0,34)–(453,357).
 const VIEW := Rect2(0, 34, 453, 323)
-## Ours: the Pilot guide button, the next row of the view column (its 18 px pitch) under Pictures, art cut from Pictures.
+## Ours: the Pilot guide button, the next row of the view column (its 18 px pitch) under Pictures, art cut from
+## Pictures.
 const GUIDE_BUTTON := Rect2(15, 362, 108, 18)
 const PICTURES_BUTTON := Rect2(15, 344, 108, 18)
 ## The baked label's area inside a view button (button-relative), blended out for our label.

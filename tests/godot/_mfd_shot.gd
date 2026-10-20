@@ -1,7 +1,8 @@
 # Every MFD page, Original and "Better cockpit" crisp_mfd (not a test): the F-16 cockpit alone (the Lavi for the ADI
 # page) with made-up radar / RWR / stores / EO / HARM / route data, the Left MFD cropped per page as
 # mfd_<page>_original.png and mfd_<page>_crisp.png (MFD_SCALE=2: drawn twice as large, as on a 4K screen). Usage:
-#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=~/.cache/shots -- --log-file ~/.cache/g.log --resolution 1920x1080 --path game -s ../tests/godot/_mfd_shot.gd
+#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=~/.cache/shots -- --log-file ~/.cache/g.log --resolution \
+#     1920x1080 --path game -s ../tests/godot/_mfd_shot.gd
 extends "res://../tests/godot/base.gd"
 
 ## [name, page, radar mode, cockpit].
@@ -48,14 +49,15 @@ func run() -> void:
 		c.panel_target = 1.0
 		c.panel_shift = 1.0
 		var m = c.mfds[0]
-		m.portal_scale = float(OS.get_environment("MFD_SCALE")) if OS.get_environment("MFD_SCALE") != "" else 1.0  # 2: a 4K screen's MFD on 1080p
+		# 2: a 4K screen's MFD on 1080p
+		m.portal_scale = float(OS.get_environment("MFD_SCALE")) if OS.get_environment("MFD_SCALE") != "" else 1.0
 		m.page = int(k[1])
 		if int(k[2]) in [5, 7, 8]:
 			m.mouse = Vector2(80, 60)
 		else:
 			m.mouse = null
 		for better in [false, true]:
-			Settings().better_cockpit = better
+			settings().better_cockpit = better
 			await frames(4)
 			await RenderingServer.frame_post_draw
 			var img: Image = root.get_viewport().get_texture().get_image()
@@ -63,7 +65,7 @@ func run() -> void:
 			var r := Rect2i(m.get_global_rect()).intersection(Rect2i(Vector2i.ZERO, img.get_size()))
 			img.get_region(r).save_png(dir.path_join("mfd_%s_%s.png" % [k[0], "crisp" if better else "original"]))
 		print("mfd %s: page %d, %s" % [k[0], k[1], m.get_global_rect()])
-	Settings().better_cockpit = false
+	settings().better_cockpit = false
 	print("RESULT PASS")
 
 

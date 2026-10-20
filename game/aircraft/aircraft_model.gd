@@ -12,6 +12,7 @@
 extends Node3D
 
 const NightLights := preload("res://terrain/night_lights.gd")
+const Gltf := preload("res://util/gltf.gd")
 
 ## Ramp limits (rad) and rates (rad/s), constructor FUN_005ba430 / FUN_005a5820.
 const FLAPS_MAX := 0.29275  # 16.8°
@@ -87,7 +88,6 @@ static func create(plane: String, type := -1, on_ground := false) -> Node3D:
 	var d: Dictionary = load_descriptor(plane)
 	if d.is_empty():
 		return null
-	var Gltf := preload("res://util/gltf.gd")
 	var hd: String = Gltf.detailed(String(d.model))
 	var model = Gltf.open_detailed(hd) if hd != "" else Gltf.open(dir.path_join(d.model))
 	if model == null:
@@ -172,12 +172,10 @@ func _borrow_parts() -> void:
 		var sd := load_descriptor(String(src.plane))
 		if mine == null or sd.is_empty():
 			continue
-		var model = preload("res://util/gltf.gd").open(
-			_planes_dir(String(src.plane)).path_join(String(src.plane)).path_join(sd.model)
-		)
+		var model = Gltf.open(_planes_dir(String(src.plane)).path_join(String(src.plane)).path_join(sd.model))
 		if model == null:
 			continue
-		var other: Node3D = preload("res://util/gltf.gd").instance(model)
+		var other: Node3D = Gltf.instance(model)
 		var theirs := other.find_child(String(src.get("part", part)), true, false) as Node3D
 		if theirs == null:
 			other.free()

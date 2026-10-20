@@ -8,7 +8,8 @@ extends Node
 
 ## The original's DirectInput axes lX, lY, lZ, lRz as Godot axis numbers: Settings.joy_axes
 ## (default [0, 1, 2, 3]; ours: Godot / SDL hide the DirectInput axis names, docs/controls.md §4.2).
-const DEAD_ZONE := 0.25  ## DIPROP_DEADZONE 2500 (of 10000) on lX, lY and the rudder axis (@4e116f, 4e11f3, 4e12e2 / 4e1333); none on lZ
+## DIPROP_DEADZONE 2500 (of 10000) on lX, lY and the rudder axis (@4e116f, 4e11f3, 4e12e2 / 4e1333); none on lZ
+const DEAD_ZONE := 0.25
 ## The hat as Godot reports it: the D-pad buttons.
 const HAT := [JOY_BUTTON_DPAD_UP, JOY_BUTTON_DPAD_RIGHT, JOY_BUTTON_DPAD_DOWN, JOY_BUTTON_DPAD_LEFT]
 ## POV (hundredths of a degree) → GEV 22 (p1 angle, p2 numpad digit) (@4dfa2c..4dfbae): the snap-view keys'
@@ -273,7 +274,8 @@ func _connected(d: int) -> void:
 		var m := "%s,%s," % [Input.get_joy_guid(d), name.replace(",", " ")]
 		for i in REMAP_BUTTONS.size():
 			m += "%s:b%d," % [REMAP_BUTTONS[i], i]
-		m += "dpup:h0.1,dpright:h0.2,dpdown:h0.4,dpleft:h0.8,leftx:a0,lefty:a1,rightx:a2,righty:a3,lefttrigger:a4,righttrigger:a5,"
+		m += "dpup:h0.1,dpright:h0.2,dpdown:h0.4,dpleft:h0.8,"
+		m += "leftx:a0,lefty:a1,rightx:a2,righty:a3,lefttrigger:a4,righttrigger:a5,"
 		Input.add_joy_mapping(m, true)
 		remapped = true
 		print("joystick: unknown device, buttons 12+ moved off the hat's D-pad indices")

@@ -3,32 +3,37 @@
 # (name,name,…) in turn, saved as GUIDE_OUT/<name>.png. Each shot starts from the default settings and a fresh flight
 # scene (its mission reloaded). The frame is GUIDE_SIZE (WxH, default 3840×2160, so the crops stay sharp) whatever
 # the window's size. tools/guide_shots.sh runs a few shots per process:
-#   GUIDE_JSON=$PWD/docs/guides/f16.shots.json GUIDE_SHOTS=hud_nav,hud_original GUIDE_OUT=/tmp/shots IAF_DEFAULT_SETTINGS=1 \
-#       tools/godot_window.sh -- --log-file /tmp/g.log --path game --resolution 3840x2160 -s ../tests/godot/_guide_shots.gd
+#   GUIDE_JSON=$PWD/docs/guides/f16.shots.json GUIDE_SHOTS=hud_nav,hud_original GUIDE_OUT=/tmp/shots \
+#     IAF_DEFAULT_SETTINGS=1 \
+#       tools/godot_window.sh -- --log-file /tmp/g.log --path game --resolution 3840x2160 -s \
+#         ../tests/godot/_guide_shots.gd
 # An entry: name, caption, mission, jet (Jet list id, -1 the mission's), settings ({Settings property: value}, "better"
 # the Physics switches), start ("mission": the mission's own start; "airborne": frozen 3000 m up at 250 m/s with
-# `loadout` (9 [weapon id, count] pairs) on the pylons, the heading turned `turn_deg`° right; "final": frozen on final approach, `final_m` before the start
-# point at `final_alt` m on a 3° glide path, the nose `final_aoa`° above it, gear down), place ({"unit_prefix": "mig23" | "ground_unit": true, "ahead_m": N} puts that
-# unit N m ahead (`bearing_deg` right of the nose; an air unit flying away at `vel_ms`), in the air at the jet's height / on the ground), actions (in order; the frozen starts advance a
-# scripted sim time, the others real time: "lock" radar lock on the placed unit, "on_impact" the placed unit onto the
-# bomb's predicted impact, "station:N" the A-A store / gun on
-# station N, "ag:N" the A-G store on station N, "flir" / "tv" the camera on the placed unit (FLIR with the laser),
-# "emitter" the placed unit's radar locks the jet, "fire" Space held, "look:Y,P" the head turned Y° right / P° up (free look), "key:X" a game key, "wait:S"), panel (0 the forward view … 1 the
-# whole panel), "dive" (an airborne start in a `dive_deg` dive `dive_agl` m above the ground), view ("cockpit" / "hud", the HUD-only view / "external"), crop ("full", "hud", "dash", "mfd_left", "mfd_right"; "hud" takes
-# `crop_w`, the box's width as a fraction of the frame, default 0.38: smaller zooms in; and `crop_dy`, the box moved down
-# by that fraction of the frame's height, negative moves it up, default 0: a gunsight's reticle that sits high;
-# "compass": a 16:10 box around the panel's compass / HSI dial, game/cockpit/compass.gd, with the same crop_w / crop_dy;
-# "panel": the same box around `crop_at`, [x, y] panel px of the 1920-px strip).
-# Callouts ("annotations": [{n, anchor, label_at | off}]) are drawn on the picture: a numbered yellow marker at
-# `label_at` (a fraction of the crop) or at the anchor + `off` (× the crop's shorter side; [0, 0] puts the marker on
-# the anchor, no arrow) with an arrow to the anchor. The anchor is
-# the Real HUD's own output (hud.gd real_hud(), resolved every frame): "sym": "text:REGEX" (the first HUD text it
-# matches: the box the HUD draws it in, hud.gd prim_text_box; "nth": 2 the second match), "circle:N" (the N-th largest circle, at its edge `edge`° clockwise from 12 o'clock,
-# default 270) or a named point of the HUD's input ("fpm", "gun_cross", "boresight", "horizon",
-# "target", "steerpoint", "seeker", "pipper", "lcos", "steering", "delay_at": the delayed CCIP's target), moved by "d": [x, y] HUD pixels; or "px": [x, y],
-# a fraction of the crop (the MFD pages, the original HUD). The guide lists the legend as a numbered list right under
-# the picture (tools/guide_pdf.py checks the counts match). An anchor that resolves to nothing or outside the crop fails
-# the shot (GUIDE_DEBUG=1 outlines each anchor in red). Each shot prints a GUIDE_INFO line with the HUD's texts and the radar lock / DLZ (for the guide's examples).
+# `loadout` (9 [weapon id, count] pairs) on the pylons, the heading turned `turn_deg`° right; "final": frozen on final
+# approach, `final_m` before the start point at `final_alt` m on a 3° glide path, the nose `final_aoa`° above it, gear
+# down), place ({"unit_prefix": "mig23" | "ground_unit": true, "ahead_m": N} puts that unit N m ahead (`bearing_deg`
+# right of the nose; an air unit flying away at `vel_ms`), in the air at the jet's height / on the ground), actions (in
+# order; the frozen starts advance a scripted sim time, the others real time: "lock" radar lock on the placed unit,
+# "on_impact" the placed unit onto the bomb's predicted impact, "station:N" the A-A store / gun on station N, "ag:N" the
+# A-G store on station N, "flir" / "tv" the camera on the placed unit (FLIR with the laser), "emitter" the placed unit's
+# radar locks the jet, "fire" Space held, "look:Y,P" the head turned Y° right / P° up (free look), "key:X" a game key,
+# "wait:S"), panel (0 the forward view … 1 the whole panel), "dive" (an airborne start in a `dive_deg` dive `dive_agl` m
+# above the ground), view ("cockpit" / "hud", the HUD-only view / "external"), crop ("full", "hud", "dash", "mfd_left",
+# "mfd_right"; "hud" takes `crop_w`, the box's width as a fraction of the frame, default 0.38: smaller zooms in; and
+# `crop_dy`, the box moved down by that fraction of the frame's height, negative moves it up, default 0: a gunsight's
+# reticle that sits high; "compass": a 16:10 box around the panel's compass / HSI dial, game/cockpit/compass.gd, with
+# the same crop_w / crop_dy; "panel": the same box around `crop_at`, [x, y] panel px of the 1920-px strip). Callouts
+# ("annotations": [{n, anchor, label_at | off}]) are drawn on the picture: a numbered yellow marker at `label_at` (a
+# fraction of the crop) or at the anchor + `off` (× the crop's shorter side; [0, 0] puts the marker on the anchor, no
+# arrow) with an arrow to the anchor. The anchor is the Real HUD's own output (hud.gd real_hud(), resolved every frame):
+# "sym": "text:REGEX" (the first HUD text it matches: the box the HUD draws it in, hud.gd prim_text_box; "nth": 2 the
+# second match), "circle:N" (the N-th largest circle, at its edge `edge`° clockwise from 12 o'clock, default 270) or a
+# named point of the HUD's input ("fpm", "gun_cross", "boresight", "horizon", "target", "steerpoint", "seeker",
+# "pipper", "lcos", "steering", "delay_at": the delayed CCIP's target), moved by "d": [x, y] HUD pixels; or "px": [x,
+# y], a fraction of the crop (the MFD pages, the original HUD). The guide lists the legend as a numbered list right
+# under the picture (tools/guide_pdf.py checks the counts match). An anchor that resolves to nothing or outside the crop
+# fails the shot (GUIDE_DEBUG=1 outlines each anchor in red). Each shot prints a GUIDE_INFO line with the HUD's texts
+# and the radar lock / DLZ (for the guide's examples).
 extends "res://../tests/godot/base.gd"
 
 const EoSensor := preload("res://weapons/eo_sensor.gd")
@@ -60,16 +65,16 @@ func run() -> void:
 			check(false, "shot %s: needs a window and an entry" % name)
 			continue
 		# Each shot from the defaults: its settings set, then put back; the flight scene reloads with the mission.
-		var keep := {"jet_id": Settings().jet_id, "show_info": Settings().show_info}
+		var keep := {"jet_id": settings().jet_id, "show_info": settings().show_info}
 		for k in e.get("settings", {}):
-			var v = Settings().get(k)
+			var v = settings().get(k)
 			keep[k] = v.duplicate(true) if v is Dictionary or v is Array else v
 		await _shot(name, e)
 		for n in _extra:
 			n.free()
 		_extra.clear()
 		for k in keep:
-			Settings().set(k, keep[k])
+			settings().set(k, keep[k])
 		t = 1.0
 		target = {}
 		frozen_start = false
@@ -77,9 +82,9 @@ func run() -> void:
 
 func _shot(name: String, e: Dictionary) -> void:
 	for k in e.get("settings", {}):
-		Settings().set(k, e.settings[k])
-	Settings().jet_id = int(e.get("jet", -1))
-	Settings().show_info = false
+		settings().set(k, e.settings[k])
+	settings().jet_id = int(e.get("jet", -1))
+	settings().show_info = false
 	tv = await start_mission(int(e.mission))
 	await frames(3)
 	var start: String = e.get("start", "mission")
@@ -96,12 +101,12 @@ func _shot(name: String, e: Dictionary) -> void:
 		var turn := float(e.get("turn_deg", 0.0))
 		tv.rig.rotate(Vector3.UP, deg_to_rad(-turn))
 		tv.flight.start(
-			Settings().assets_dir().path_join("install"),
+			settings().assets_dir().path_join("install"),
 			tv.player.fm_section,
 			tv.rig.position,
 			Vector3(0.0, 0.0, st.heading + turn),
 			Vector3(st.forward).rotated(Vector3.UP, deg_to_rad(-turn)) * 250.0,
-			{"airborne": true, "engine_on": true, "real_data": Settings().real_data()}
+			{"airborne": true, "engine_on": true, "real_data": settings().real_data()}
 		)
 	elif start == "dive":
 		frozen_start = true
@@ -204,12 +209,12 @@ func _final(dist: float, alt: float, aoa: float) -> Node:
 		_extra.append(n)
 	var glide := (flat * cos(deg_to_rad(3.0)) + Vector3.DOWN * sin(deg_to_rad(3.0))) * 75.0
 	tv.flight.start(
-		Settings().assets_dir().path_join("install"),
+		settings().assets_dir().path_join("install"),
 		tv.player.fm_section,
 		tv.rig.position,
 		Vector3(aoa - 3.0, 0.0, st0.heading),
 		glide,
-		{"airborne": true, "engine_on": true, "real_data": Settings().real_data()}
+		{"airborne": true, "engine_on": true, "real_data": settings().real_data()}
 	)
 	return tv.weapons
 
@@ -224,12 +229,12 @@ func _dive(deg: float, agl: float, speed: float) -> void:
 	tv.rig.rotate_object_local(Vector3.RIGHT, deg_to_rad(-deg))
 	var dir := (flat * cos(deg_to_rad(deg)) + Vector3.DOWN * sin(deg_to_rad(deg))).normalized()
 	tv.flight.start(
-		Settings().assets_dir().path_join("install"),
+		settings().assets_dir().path_join("install"),
 		tv.player.fm_section,
 		tv.rig.position,
 		Vector3(-deg, 0.0, st0.heading),
 		dir * speed,
-		{"airborne": true, "engine_on": true, "real_data": Settings().real_data()}
+		{"airborne": true, "engine_on": true, "real_data": settings().real_data()}
 	)
 
 

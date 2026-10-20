@@ -1,13 +1,15 @@
 # Dev helper (not run by tools/test.sh): a real-render capture with the Jet list pick in HUD_JET (-1 = the
-# mission's jet) and HUD_STYLE (e.g. real; default the settings'), saved to HUD_SHOT once the ground is loaded. Pose with terrain_view's user args, e.g.
-#   HUD_JET=3 HUD_SHOT=/tmp/a.png godot --path game -s ../tests/godot/_hud_shot.gd -- --mission 312 --at X Y Z HDG PITCH --gear --freeze
+# mission's jet) and HUD_STYLE (e.g. real; default the settings'), saved to HUD_SHOT once the ground is loaded. Pose
+# with terrain_view's user args, e.g.
+#   HUD_JET=3 HUD_SHOT=/tmp/a.png godot --path game -s ../tests/godot/_hud_shot.gd -- --mission 312 --at X Y Z HDG \
+#     PITCH --gear --freeze
 extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
-	Settings().jet_id = int(OS.get_environment("HUD_JET")) if OS.get_environment("HUD_JET") != "" else -1
+	settings().jet_id = int(OS.get_environment("HUD_JET")) if OS.get_environment("HUD_JET") != "" else -1
 	if OS.get_environment("HUD_STYLE") != "":
-		Settings().hud_style = OS.get_environment("HUD_STYLE")
+		settings().hud_style = OS.get_environment("HUD_STYLE")
 	change_scene_to_file("res://terrain/terrain_view.tscn")
 	var tv: Node = null
 	while tv == null or tv.get("flight") == null or tv.waiting_for_ground:

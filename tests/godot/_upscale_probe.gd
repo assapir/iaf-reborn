@@ -1,10 +1,11 @@
-# Dev helper (not a test): the cost of each 3D scaling mode on mission 231 (docs/graphics-research.md §3.10). One process
-# cycles every config 12 times, 90 frames each, so load from other processes hits every config alike; prints the
+# Dev helper (not a test): the cost of each 3D scaling mode on mission 231 (docs/graphics-research.md §3.10). One
+# process cycles every config 12 times, 90 frames each, so load from other processes hits every config alike; prints the
 # median and 90th percentile frame. UP_LIVE=1: the simulation runs and only native / the two Upscaling presets are
 # timed (default: frozen, every mode). UP_GFX=ssao | vol_fog | ssao_ssil adds a heavy per-pixel effect.
 # UP_SHOT_DIR=dir: no timing; one shot per Upscaling choice (Settings.upscaling) as dir/upscale_<UP_TAG>_<choice>.png.
 # Run on the 120 Hz screen (--screen 1 here), so the GPU sets the frame (Metal holds it at the display's refresh):
-#   IAF_DEFAULT_SETTINGS=1 godot --path game --screen 1 --resolution 3840x2160 -s ../tests/godot/_upscale_probe.gd [-- --external --orbit 150 10 25]
+#   IAF_DEFAULT_SETTINGS=1 godot --path game --screen 1 --resolution 3840x2160 -s ../tests/godot/_upscale_probe.gd [-- \
+#     --external --orbit 150 10 25]
 extends "res://../tests/godot/base.gd"
 
 const CFGS := [
@@ -42,7 +43,7 @@ func run() -> void:
 		while tv.terrain.missing_after_frame() and Time.get_ticks_msec() - t0 < 20000:
 			await process_frame
 		for u in ["off", "quality", "balanced"]:
-			Settings().upscaling = u
+			settings().upscaling = u
 			tv.apply_render_options()
 			await frames(60)
 			await RenderingServer.frame_post_draw

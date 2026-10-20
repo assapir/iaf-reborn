@@ -16,7 +16,7 @@ func run() -> void:
 		layers = PackedStringArray(["original", "mapi2015", "mapi2015_modern"])
 	var orbit := OS.get_environment("SHOT_ORBIT").split(",", false)
 	for layer in layers:
-		Settings().imagery_israel = layer
+		settings().imagery_israel = layer
 		change_scene_to_file("res://terrain/terrain_view.tscn")
 		await frames(2)
 		var tv: Node = null
@@ -43,4 +43,4 @@ func run() -> void:
 		var path := dir.path_join("%s_%s.png" % [OS.get_environment("SHOT_NAME"), layer])
 		root.get_viewport().get_texture().get_image().save_png(path)
 		print("SHOT %-16s %6.1f fps  layers %s  %s" % [layer, fps, tv.terrain.layers, path])
-	Settings().imagery_israel = "original"
+	settings().imagery_israel = "original"

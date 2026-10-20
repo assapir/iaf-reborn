@@ -57,7 +57,7 @@ func run() -> void:
 	check(not seen.has(9) and not seen.has(17) and not seen.has(23), "single engine: no right-engine systems")
 
 	# 231: two role-1 tanks, a role-0 post.
-	Settings().invulnerable = false
+	settings().invulnerable = false
 	continue_boxes = false  # this test answers the mission boxes itself
 	var tv = await start_mission(231)
 	var rt = tv.runtime
@@ -190,10 +190,10 @@ func run() -> void:
 		)
 		rt.apply_damage(fr, fr.strength * 0.05, "gun", me)
 		check(said.call() == 1, "no second call within 10 s")
-	Settings().invulnerable = true
+	settings().invulnerable = true
 	rt.apply_damage(me, me.strength * 0.5, "missile", post)
 	check(me.damage == 0.0, "Invulnerable: no damage")
-	Settings().invulnerable = false
+	settings().invulnerable = false
 	rt.apply_damage(me, me.strength * 0.5, "missile", post)
 	check(me.state == 1 and is_equal_approx(me.damage, 0.5), "player hit: damage 0.5")
 	check(tv.player_damage.flags.has(true) and tv.cockpit.indicators[0], "a system broke, master caution on")

@@ -20,16 +20,16 @@ const SHRIKE := 59
 func run() -> void:
 	# A real-render run (the screenshots) takes the F-16 only.
 	for c in CASES if DisplayServer.get_name() == "headless" else CASES.slice(0, 1):
-		Settings().f35i_slot = c[1]
-		Settings().jet_id = c[0]
+		settings().f35i_slot = c[1]
+		settings().jet_id = c[0]
 		var tv = await start_mission(231)
 		await frames(3)
 		var name := "type %d" % c[2]
 		check(tv.player.type == c[2], "%s flies mission 231" % name)
 		await _case(tv, name, c[2] == 100)
 		await _rwr_case(tv, name)
-	Settings().jet_id = -1
-	Settings().f35i_slot = -1
+	settings().jet_id = -1
+	settings().f35i_slot = -1
 	await _uncle_sam()
 
 
@@ -123,12 +123,12 @@ func _case(tv, name: String, shots: bool) -> void:
 
 ## Extras "HARM targets: RWR": the far unit locks the jet (an RWR emitter), the near one is silent.
 func _rwr_case(tv, name: String) -> void:
-	Settings().harm_targets = "rwr"
+	settings().harm_targets = "rwr"
 	var w = airborne_case(tv, [HARM, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, SHRIKE, 1, 25, 235, 33, 90, 34, 60])
 	var t := 1.0
 	var sites := _radar_units(tv, 2)
 	if sites.size() < 2:
-		Settings().harm_targets = "original"
+		settings().harm_targets = "original"
 		return
 	# The second airborne case starts 3000 m higher: farther out to stay inside the ±15° cone.
 	_place(tv, w, sites[0], w.own(), 25000.0)
@@ -152,12 +152,12 @@ func _rwr_case(tv, name: String) -> void:
 	)
 	w.harm_next()
 	check(w.harm.selected == sites[0].key, "%s: RWR source: Ctrl+Return steps (wraps to the nearest)" % name)
-	Settings().harm_targets = "original"
+	settings().harm_targets = "original"
 
 
 ## Mission 322: the SA-2 radar 15 km ahead with "HARM targets: RWR".
 func _uncle_sam() -> void:
-	Settings().harm_targets = "rwr"
+	settings().harm_targets = "rwr"
 	var tv = await start_mission(322)
 	await frames(3)
 	var w = airborne_case(tv, [HARM, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, SHRIKE, 1, 25, 235, 33, 90, 34, 60])
@@ -167,7 +167,7 @@ func _uncle_sam() -> void:
 			site = e
 	check(not site.is_empty() and tv.ai.combat.brain_of(site) == null, "322: the SA-2 radar, no brain")
 	if site.is_empty():
-		Settings().harm_targets = "original"
+		settings().harm_targets = "original"
 		return
 	_place(tv, w, site, w.own(), 15000.0)
 	var t := 1.0
@@ -185,4 +185,4 @@ func _uncle_sam() -> void:
 	w.fire_selected()
 	w.release_selected()
 	check(w.missiles.size() == 1 and w.missiles[0].target_key == site.key, "322: the HARM launched at the SA-2 radar")
-	Settings().harm_targets = "original"
+	settings().harm_targets = "original"

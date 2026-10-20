@@ -1,9 +1,11 @@
 # The setup wizard (game/setup/wizard.gd, docs/setup.md) on an empty scratch assets folder:
-#   IAF_ASSETS_DIR=<empty dir> IAF_DEFAULT_SETTINGS=1 godot --headless --path game -s ../tests/godot/test_setup_wizard.gd
+#   IAF_ASSETS_DIR=<empty dir> IAF_DEFAULT_SETTINGS=1 godot --headless --path game -s \
+#     ../tests/godot/test_setup_wizard.gd
 # Startup opens the wizard without game data; the pages go in order; a bad file is rejected; Find in a folder finds
 # the CD in the background; before a run the Install rows show which steps are up to date; with the English ISO
 # (~/Downloads/…/Jane's IAF.iso) a short plan (extract, fonts, missions) runs to Done and a second run is all
-# "up to date", and a third with "redo" ticked on one step runs only that step. Without IAF_ASSETS_DIR it does nothing (it never writes into the real assets/).
+# "up to date", and a third with "redo" ticked on one step runs only that step. Without IAF_ASSETS_DIR it does nothing
+# (it never writes into the real assets/).
 extends "res://../tests/godot/base.gd"
 
 const ISO := "Downloads/Janes-Combat-Simulations-IAF-Israeli-Air-Force_Win_EN_ISO-Version/Jane's IAF.iso"

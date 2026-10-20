@@ -1,7 +1,8 @@
 # The Better cockpit's gauges (gauges.gd: RPM, temperature, throttle with AB, fuel with tanks, panel clock) on each
 # Jet list jet with round gauges (not a test): mission 312, airborne, drop tanks, AB 1 for 3 s, the panel fully up.
 # Writes gauges_<cockpit>.png (the whole frame) and gauges_<cockpit>_zoom.png (the gauges' area, 2× nearest).
-#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=~/.cache/shots -- --log-file ~/.cache/g.log --resolution 1920x1080 --path game -s ../tests/godot/_gauges_shot.gd
+#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=~/.cache/shots -- --log-file ~/.cache/g.log --resolution \
+#     1920x1080 --path game -s ../tests/godot/_gauges_shot.gd
 extends "res://../tests/godot/base.gd"
 
 ## Jet list ids: F-15, F-16, F-4E, Kurnass 2000, Lavi, Kfir, Mirage.
@@ -15,9 +16,9 @@ func run() -> void:
 		return
 	DirAccess.make_dir_recursive_absolute(dir)
 	var G = load("res://cockpit/gauges.gd")
-	Settings().better_cockpit = true
+	settings().better_cockpit = true
 	for id in JETS:
-		Settings().jet_id = id
+		settings().jet_id = id
 		var tv = await start_mission(312)
 		var c = tv.cockpit
 		tv.flight.set_fuel_capacity(tv.flight.state().internal_fuel_kg * 0.5)
@@ -71,6 +72,6 @@ func run() -> void:
 				]
 			)
 		)
-	Settings().jet_id = -1
-	Settings().better_cockpit = false
+	settings().jet_id = -1
+	settings().better_cockpit = false
 	print("RESULT PASS")

@@ -11,9 +11,9 @@ func _initialize() -> void:
 	await process_frame
 	await run()
 	print("RESULT %s" % ("FAIL" if failures > 0 else "PASS"))
-	Settings()._free_sounds()  # as the game's quit (Settings.quit): no playback reported leaked at exit
+	settings()._free_sounds()  # as the game's quit (Settings.quit): no playback reported leaked at exit
 	paused = true
-	await create_timer(Settings().QUIT_AUDIO_S, true, false, true).timeout
+	await create_timer(settings().QUIT_AUDIO_S, true, false, true).timeout
 	quit(1 if failures > 0 else 0)
 
 
@@ -21,8 +21,14 @@ func run() -> void:
 	pass
 
 
-func Settings() -> Node:
+func settings() -> Node:
 	return root.get_node("Settings")
+
+
+## The old name of settings(), kept until test_arming.gd (edited in another branch) moves to settings().
+# gdlint: ignore=function-name
+func Settings() -> Node:
+	return settings()
 
 
 func check(ok: bool, what: String) -> void:
@@ -60,7 +66,7 @@ var continue_boxes := true
 
 
 func start_mission(id: int) -> Node:
-	Settings().mission_id = id
+	settings().mission_id = id
 	change_scene_to_file("res://terrain/terrain_view.tscn")
 	var tv: Node = null
 	while tv == null or tv.get("flight") == null or tv.waiting_for_ground:
@@ -138,7 +144,7 @@ func airborne_case(tv, hardpoints: Array):
 	tv.rig.position.y += 3000.0
 	var st0: Dictionary = tv.flight.state()
 	tv.flight.start(
-		Settings().assets_dir().path_join("install"),
+		settings().assets_dir().path_join("install"),
 		tv.player.fm_section,
 		st0.position,
 		Vector3(0.0, 0.0, st0.heading),
@@ -188,7 +194,7 @@ func start_over(tv, w, ground_pt: Vector3, vel: Vector3, section: String) -> voi
 	tv.rig.position = sp
 	tv.rig.basis = Basis()
 	tv.flight.start(
-		Settings().assets_dir().path_join("install"),
+		settings().assets_dir().path_join("install"),
 		section,
 		sp,
 		Vector3(0.0, 0.0, 0.0),

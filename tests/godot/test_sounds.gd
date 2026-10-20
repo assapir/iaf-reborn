@@ -4,7 +4,7 @@
 extends "res://../tests/godot/base.gd"
 
 ## Loaded at run time: scripts that use the Settings autoload do not compile before it exists.
-var FlightSounds: GDScript
+var flight_sounds: GDScript
 const SoundBuses := preload("res://audio/sound_buses.gd")
 
 
@@ -34,9 +34,9 @@ func _count(fs, what: String) -> int:
 
 
 func run() -> void:
-	FlightSounds = load("res://audio/flight_sounds.gd")
+	flight_sounds = load("res://audio/flight_sounds.gd")
 	# The original table.
-	var fs = FlightSounds.create(null, 100)
+	var fs = flight_sounds.create(null, 100)
 	root.add_child(fs)
 	var r: Dictionary = fs.table.row("SFX_DRY_THRUST")
 	check(
@@ -66,7 +66,7 @@ func run() -> void:
 	fs.queue_free()
 
 	# Levers, warnings, touchdown.
-	fs = FlightSounds.create(null, 100)
+	fs = flight_sounds.create(null, 100)
 	root.add_child(fs)
 	var t := 0.0
 	fs.update(_state(), _inp())
@@ -101,12 +101,12 @@ func run() -> void:
 	# Betty "pull up" (FUN_0044fe30): diving more than h_ft·0.01° in an A-G HUD mode (4, 5, 6).
 	check(
 		(
-			FlightSounds.pull_up(2000.0, false, -30.0, 5)
-			and not FlightSounds.pull_up(2000.0, false, -15.0, 5)
-			and not FlightSounds.pull_up(2000.0, false, -30.0, 2)
-			and FlightSounds.pull_up(2000.0, true, -30.0, 4)
-			and not FlightSounds.pull_up(50.0, false, -30.0, 5)
-			and FlightSounds.pull_up(50.0, true, -30.0, 6)
+			flight_sounds.pull_up(2000.0, false, -30.0, 5)
+			and not flight_sounds.pull_up(2000.0, false, -15.0, 5)
+			and not flight_sounds.pull_up(2000.0, false, -30.0, 2)
+			and flight_sounds.pull_up(2000.0, true, -30.0, 4)
+			and not flight_sounds.pull_up(50.0, false, -30.0, 5)
+			and flight_sounds.pull_up(50.0, true, -30.0, 6)
 		),
 		"pull_up: dive > h_ft·0.01° in modes 4-6; not below 100 ft with the gear up; the gear handle down counts"
 	)
@@ -136,10 +136,10 @@ func run() -> void:
 
 	# The Real HUD: the real jet's calls (REAL_VOICE, docs/real-betty.md). F-16: GAAF "Pull up" once per advisory (a
 	# 45° dive at 413 kt is inside it at 2,000 ft, outside at 3,000), CARA ALOW "Altitude" below 300 ft with the gear up.
-	Settings().hud_style = "real"
+	settings().hud_style = "real"
 	var kt := 413.0 * 0.514444
 	var real := {"time": 0.0, "speed": kt, "speed_kt": 413.0, "vs_fpm": -kt * 0.7071 * 196.85, "roll": 0.0}
-	fs = FlightSounds.create(null, 100)
+	fs = flight_sounds.create(null, 100)
 	root.add_child(fs)
 	for i in 3:
 		real.time = float(i)
@@ -158,7 +158,7 @@ func run() -> void:
 		"Real F-16: Altitude below 300 ft at once and every 4 s (%d)" % _count(fs, "VOC_BBETTY/BTY_ALT")
 	)
 	fs.queue_free()
-	fs = FlightSounds.create(null, 110)
+	fs = flight_sounds.create(null, 110)
 	root.add_child(fs)
 	real.vs_fpm = -kt * 0.7071 * 196.85
 	for i in 5:
@@ -169,10 +169,10 @@ func run() -> void:
 		"Real F-15C: no dive or height call"
 	)
 	fs.queue_free()
-	Settings().hud_style = "original"
+	settings().hud_style = "original"
 
 	# Betty only on the types that carry it (FUN_00447e70): the Mirage (190) has none.
-	fs = FlightSounds.create(null, 190)
+	fs = flight_sounds.create(null, 190)
 	root.add_child(fs)
 	for i in 3:
 		fs.update(_state({"time": float(i)}), _inp({"agl_m": 20.0}))
@@ -182,7 +182,7 @@ func run() -> void:
 	fs.queue_free()
 
 	# Preferences volumes and Mute on the buses.
-	var s := Settings()
+	var s := settings()
 	s.engine_volume = 0.3
 	s.sfx_volume = 0.5
 	s.speech_volume = 0.7

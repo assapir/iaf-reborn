@@ -1,7 +1,8 @@
 # Every jet's Real HUD (not a test): per row one jet (Jet list id; the F-35I in place of the F-16), three cells: the
 # original HUD in NAV, the Real HUD in NAV, the Real HUD in the A-A gun mode with a MiG locked 800 m ahead. Mission
 # 231, 3000 m up. Writes real_hud_jets.png. Usage:
-#   SHOT_DIR=/tmp/shots IAF_DEFAULT_SETTINGS=1 godot --audio-driver Dummy --path game -s ../tests/godot/_real_hud_jets_shot.gd
+#   SHOT_DIR=/tmp/shots IAF_DEFAULT_SETTINGS=1 godot --audio-driver Dummy --path game -s \
+#     ../tests/godot/_real_hud_jets_shot.gd
 extends "res://../tests/godot/base.gd"
 
 ## [Jet list id, F-35I slot]: F-15, F-16, F-4E, Kurnass 2000, Lavi, Kfir, Mirage, F-35I.
@@ -16,16 +17,16 @@ func run() -> void:
 		return
 	var rows := []
 	for j in JETS:
-		Settings().jet_id = j[0]
-		Settings().f35i_slot = j[1]
-		Settings().hud_style = "original"
+		settings().jet_id = j[0]
+		settings().f35i_slot = j[1]
+		settings().hud_style = "original"
 		var tv = await start_mission(231)
 		await frames(3)
 		var w = airborne_case(tv, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 		var t := 1.0
 		w.update(t)
 		var row := [await _cell(tv)]
-		Settings().hud_style = "real"
+		settings().hud_style = "real"
 		row.append(await _cell(tv))
 		var o: Dictionary = w.own()
 		var mig: Dictionary = tv.runtime.entities.values().filter(func(e): return String(e.name).begins_with("mig23"))[0]
@@ -60,9 +61,9 @@ func run() -> void:
 				Vector2i(c * (cw + GAP), r * (ch + GAP))
 			)
 	out.save_png(dir.path_join("real_hud_jets.png"))
-	Settings().jet_id = -1
-	Settings().f35i_slot = -1
-	Settings().hud_style = "original"
+	settings().jet_id = -1
+	settings().f35i_slot = -1
+	settings().hud_style = "original"
 	print("RESULT PASS")
 
 

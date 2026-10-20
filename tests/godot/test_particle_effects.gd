@@ -8,7 +8,7 @@ const STEP := 1.0 / 30.0
 
 
 func _effects(detailed: bool) -> Node3D:
-	Settings().particle_effects = detailed
+	settings().particle_effects = detailed
 	var fx: Node3D = load("res://mission/damage_effects.gd").new()
 	root.add_child(fx)
 	fx.set_process(false)
@@ -74,8 +74,9 @@ func run() -> void:
 	check(em.smoke > 0 and em.fire > 0 and em.sparks > 0, "Detailed: smoke, fire and sparks emitted (%s)" % [em])
 
 	# Trails: the same bookkeeping; missile trails become GPU smoke, wingtip trails stay ribbons.
-	var ta: Node3D = load("res://mission/trails.gd").new()
-	var tb: Node3D = load("res://mission/trails.gd").new()
+	var trails_script: GDScript = load("res://mission/trails.gd")
+	var ta: Node3D = trails_script.new()
+	var tb: Node3D = trails_script.new()
 	root.add_child(ta)
 	root.add_child(tb)
 	ta.set_process(false)
@@ -104,7 +105,8 @@ func run() -> void:
 	var jet := Node3D.new()
 	jet.set_script(model_script)
 	root.add_child(jet)
-	var noz: MeshInstance3D = load("res://aircraft/afterburner.gd").new()
+	var afterburner_script: GDScript = load("res://aircraft/afterburner.gd")
+	var noz: MeshInstance3D = afterburner_script.new()
 	jet.add_child(noz)
 	jet.flames.append(noz)
 	var s0: int = b.gpu.emitted.smoke
@@ -121,10 +123,10 @@ func run() -> void:
 
 	# Afterburner heat haze.
 	for detailed in [false, true]:
-		Settings().particle_effects = detailed
+		settings().particle_effects = detailed
 		var holder := Node3D.new()
 		root.add_child(holder)
-		var f: MeshInstance3D = load("res://aircraft/afterburner.gd").new()
+		var f: MeshInstance3D = afterburner_script.new()
 		f.nozzle = Vector3(0.3, -0.2, 7.5)
 		f.radius = 0.45
 		holder.scale = Vector3.ONE * 0.2  # a model's clump scale
@@ -145,11 +147,11 @@ func run() -> void:
 		else:
 			check(f.haze == null and holder.get_child_count() == 1, "Original: no heat haze")
 	# On real jets the haze starts at the model's EngineL / EngineR helper, also with the jet moved and turned.
-	Settings().particle_effects = true
+	settings().particle_effects = true
 	var AM = load("res://aircraft/aircraft_model.gd")
 	for case in [["f16", "original"], ["mig29", "original"], ["f16", "detailed"]]:
 		var plane: String = case[0]
-		Settings().models = case[1]
+		settings().models = case[1]
 		var m: Node3D = AM.create(plane, -1, false)
 		root.add_child(m)
 		m.position = Vector3(1500, 3000, -800)
@@ -169,5 +171,5 @@ func run() -> void:
 			)
 		)
 		m.free()
-	Settings().particle_effects = false
-	Settings().models = "original"
+	settings().particle_effects = false
+	settings().models = "original"

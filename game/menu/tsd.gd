@@ -103,6 +103,7 @@ const RULER_ARROW_ANGLE := 0.6283185
 
 const Img := preload("res://util/img.gd")
 const MissionRuntime := preload("res://mission/mission_runtime.gd")
+const ModelView := preload("res://menu/model_view.gd")
 
 static var _map_cache := {}
 
@@ -477,8 +478,8 @@ func _on_link(name: String, entry: Dictionary) -> void:
 	# A closed window is freed: its slot reads as none (a typed Control would refuse the freed instance).
 	var held = link_windows.get(kind)
 	var w: Control = held if is_instance_valid(held) else null
-	var W := CLIENT.size.x
-	var H := CLIENT.size.y
+	var cw := CLIENT.size.x
+	var ch := CLIENT.size.y
 	match kind:
 		0:
 			# An RTF: a lesson (brief/text) or another briefing text (brief/txt, e.g. the war history 67.rtf).
@@ -487,7 +488,7 @@ func _on_link(name: String, entry: Dictionary) -> void:
 				return
 			if not is_instance_valid(w):
 				w = _new_window(
-					Rect2(floor(W / 3), floor(H / 2), floor(2 * W / 3), floor(H / 2)), "framewnd/brief_t.png"
+					Rect2(floor(cw / 3), floor(ch / 2), floor(2 * cw / 3), floor(ch / 2)), "framewnd/brief_t.png"
 				)
 				link_windows[kind] = w
 				var lw := w
@@ -499,7 +500,7 @@ func _on_link(name: String, entry: Dictionary) -> void:
 			if tex == null:
 				return
 			if not is_instance_valid(w):
-				w = _new_window(Rect2(floor(W / 2), 0, floor(W / 2), floor(H / 2)), "")
+				w = _new_window(Rect2(floor(cw / 2), 0, floor(cw / 2), floor(ch / 2)), "")
 				w.has_max = false
 				link_windows[kind] = w
 			w.set_image(tex)
@@ -510,7 +511,7 @@ func _on_link(name: String, entry: Dictionary) -> void:
 			if not key.begins_with("3dobjects/"):
 				return
 			var info: Dictionary = fe.briefings.get("models", {}).get(key, {})
-			var v := preload("res://menu/model_view.gd").new()
+			var v := ModelView.new()
 			if not v.setup(fe, key.trim_prefix("3dobjects/") + ".gltf", info.get("cp")):
 				v.free()
 				return
@@ -538,7 +539,7 @@ func _on_link(name: String, entry: Dictionary) -> void:
 			if not is_instance_valid(w):
 				w = _new_window(Rect2(22, 16, 406, 322), "framewnd/targ_t.png")
 				link_windows[kind] = w
-			var v := preload("res://menu/model_view.gd").new()
+			var v := ModelView.new()
 			v.setup_target(fe, obj.world, obj.units)
 			w.set_target(v)
 		_:
@@ -942,7 +943,7 @@ func _map_input(event: InputEvent, c: Vector2) -> bool:
 			return true
 		drag_wp = _waypoint_at(c)
 		return true
-	elif event is InputEventMouseMotion:
+	if event is InputEventMouseMotion:
 		if event.button_mask & MOUSE_BUTTON_MASK_LEFT and drag_wp >= 0:
 			var n := default_flight()
 			if fe.flight == null and flights.has(n):

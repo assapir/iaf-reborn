@@ -9,7 +9,7 @@ extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
-	Settings().jet_id = -1
+	settings().jet_id = -1
 	var tv = await start_mission(313)
 	await frames(3)
 	tv.frozen = true
@@ -46,8 +46,8 @@ func run() -> void:
 		flew = maxi(flew, u.rounds.flying_count())
 	check(flew > 0, "rounds in the air inside 2250 m (%d)" % flew)
 	check(me.damage > 0.0, "the rounds hit the player (damage %.3f)" % me.damage)
-	# 6200 m: beyond 6000 the brain stops combat; the fire timer is off (still inside the sensor's 0.7 R = 6489 m, so the
-	# target stays selected).
+	# 6200 m: beyond 6000 the brain stops combat; the fire timer is off (still inside the sensor's 0.7 R = 6489 m, so
+	# the target stays selected).
 	tv.player_world_override = zsu + Vector3(6200, 0, 300)
 	t = _run(g, t, 15.0)
 	check(not u.brain.engaged and u.fire_next == INF, "beyond 6000 m combat stops")

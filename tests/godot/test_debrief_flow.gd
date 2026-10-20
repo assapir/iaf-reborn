@@ -9,8 +9,8 @@ var fe: Control
 
 
 func debrief(id: int, passed := true) -> void:
-	Settings().mission_id = id
-	Settings().debrief = {"passed": passed, "headline": "", "notes": ""}
+	settings().mission_id = id
+	settings().debrief = {"passed": passed, "headline": "", "notes": ""}
 	fe.screen = "deb"
 	fe.busy = false
 	fe._enter_screen()
@@ -19,31 +19,31 @@ func debrief(id: int, passed := true) -> void:
 
 func run() -> void:
 	fe = load("res://menu/front_end.tscn").instantiate()
-	Settings().debrief = {"passed": true, "headline": "", "notes": ""}
+	settings().debrief = {"passed": true, "headline": "", "notes": ""}
 	root.add_child(fe)
 	await frames(2)
-	var FE = fe.get_script()
+	var fe_script = fe.get_script()
 
 	await debrief(311)
 	fe._debrief_button("replaymission")
 	await frames(90)
 	check(
-		fe.screen == "jet" and fe.jet_parent == "basic" and Settings().mission_id == 311,
+		fe.screen == "jet" and fe.jet_parent == "basic" and settings().mission_id == 311,
 		"Replay 311 -> Jet list (screen 9, under Basic)"
 	)
-	check(Settings().debrief.is_empty(), "debrief consumed")
+	check(settings().debrief.is_empty(), "debrief consumed")
 
 	await debrief(311)
 	check(fe._button_enabled("Next_Mission"), "311 has a next mission")
 	fe._debrief_button("nextmission")
 	await frames(90)
-	check(fe.screen == "jet" and Settings().mission_id == 312, "Next after 311 -> 312 on the Jet list")
+	check(fe.screen == "jet" and settings().mission_id == 312, "Next after 311 -> 312 on the Jet list")
 
 	await debrief(315)
 	fe._debrief_button("nextmission")
 	await frames(90)
 	check(
-		fe.screen == "jet" and fe.jet_parent == "combat" and Settings().mission_id == 321,
+		fe.screen == "jet" and fe.jet_parent == "combat" and settings().mission_id == 321,
 		"Next after 315 -> 321, Jet list under Combat (screen 10)"
 	)
 
@@ -55,17 +55,17 @@ func run() -> void:
 	await frames(90)
 	check(fe.screen == "combat", "New Mission after 322 -> Combat list")
 
-	check(FE.next_mission(137, false) == 211, "137 -> 211")
+	check(fe_script.next_mission(137, false) == 211, "137 -> 211")
 	check(
-		FE.next_mission(211, false) == 0 and FE.next_mission(211, true) == 212,
+		fe_script.next_mission(211, false) == 0 and fe_script.next_mission(211, true) == 212,
 		"a Future front's next needs this one passed"
 	)
-	check(FE.next_mission(217, true) == 0, "217 is the front's last")
+	check(fe_script.next_mission(217, true) == 0, "217 is the front's last")
 	check(
 		(
-			FE.new_mission_screen(124) == "his2mis"
-			and FE.new_mission_screen(233) == "fut3mis"
-			and FE.new_mission_screen(401) == "main"
+			fe_script.new_mission_screen(124) == "his2mis"
+			and fe_script.new_mission_screen(233) == "fut3mis"
+			and fe_script.new_mission_screen(401) == "main"
 		),
 		"New Mission lists"
 	)
@@ -83,7 +83,7 @@ func run() -> void:
 	var box = load("res://mission/mission_box.gd").new()
 	box.setup(56, ["ok"])
 	var lines: int = (
-		String(Settings().load_json(Settings().assets_dir().path_join("converted/menu/strings.json")).get("msgs", ""))
+		String(settings().load_json(settings().assets_dir().path_join("converted/menu/strings.json")).get("msgs", ""))
 		. split("\n")
 		. size()
 	)
@@ -99,8 +99,8 @@ func run() -> void:
 ## The Debrief's tabs and pages (FUN_004ff1f0, FUN_00517130): this flight's kills / losses per category with
 ## their names and counts, and the score column.
 func _pages() -> void:
-	Settings().mission_id = 113
-	Settings().debrief = {
+	settings().mission_id = 113
+	settings().debrief = {
 		"passed": false,
 		"headline": "Mission - failed.",
 		"notes": "A note.",
@@ -174,7 +174,7 @@ func _pages() -> void:
 		"losses: F-4E, −700 red, empty rows not drawn"
 	)
 	# The structure row's bound reads the ground row's slot (< 4 ground icons placed).
-	Settings().debrief = {
+	settings().debrief = {
 		"passed": false,
 		"headline": "",
 		"notes": "",
@@ -188,7 +188,7 @@ func _pages() -> void:
 		_text_at(dv.items(1), Vector2(88, 207)) == "" and _line(dv.items(1), 184)[0] == "200",
 		"4 ground icons: no structure icon, its points still shown"
 	)
-	Settings().debrief = {"passed": true, "headline": "", "notes": ""}
+	settings().debrief = {"passed": true, "headline": "", "notes": ""}
 	dv.free()
 	fe.debrief_view = null
 

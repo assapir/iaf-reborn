@@ -207,11 +207,11 @@ func run() -> void:
 		for pc in pcs:
 			if Geometry2D.is_point_in_polygon(p, pc.points):
 				# Affine map: solve from the first three vertices.
-				var P: PackedVector2Array = pc.points
-				var U: PackedVector2Array = pc.uvs
-				var m := Transform2D(P[1] - P[0], P[2] - P[0], P[0]).affine_inverse()
+				var poly_pts: PackedVector2Array = pc.points
+				var poly_uvs: PackedVector2Array = pc.uvs
+				var m := Transform2D(poly_pts[1] - poly_pts[0], poly_pts[2] - poly_pts[0], poly_pts[0]).affine_inverse()
 				var l: Vector2 = m * p
-				return U[0] + (U[1] - U[0]) * l.x + (U[2] - U[0]) * l.y
+				return poly_uvs[0] + (poly_uvs[1] - poly_uvs[0]) * l.x + (poly_uvs[2] - poly_uvs[0]) * l.y
 		return Vector2(-1, -1)
 	var top: Vector2 = uv_at.call(polys, Vector2(65, 15)) * Mfd.ISR_SIZE
 	check(
@@ -221,7 +221,7 @@ func run() -> void:
 	var east: Array = Mfd.map_picture(own2, PI / 2.0, 10.0, Vector2(65, 109))
 	var e2: Vector2 = uv_at.call(east, Vector2(65, 62)) * Mfd.ISR_SIZE
 	check(e2.distance_to(q + Vector2(47.0 * 10.0 * 1853.0 / (94.0 * 1280.0), 0)) < 0.05, "heading 090: up is east")
-	var img := Image.load_from_file(Settings().assets_dir().path_join("converted/cockpits/f16/isr.png"))
+	var img := Image.load_from_file(settings().assets_dir().path_join("converted/cockpits/f16/isr.png"))
 	var px := img.get_pixelv((q / Mfd.ISR_SIZE * Vector2(img.get_size())).floor())
 	check(px.g > 0.05, "the picture under the jet is land (isr green %.2f)" % px.g)
 	# The page: R → GMT (A-G), Q → MAP; a click off the contacts designates, OSB 3 toggles EXP.

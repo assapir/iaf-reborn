@@ -45,7 +45,8 @@ func _init() -> void:
 		var m := "%s,%s," % [Input.get_joy_guid(d), Input.get_joy_name(d).replace(",", " ")]
 		for i in REMAP_BUTTONS.size():
 			m += "%s:b%d," % [REMAP_BUTTONS[i], i]
-		m += "dpup:h0.1,dpright:h0.2,dpdown:h0.4,dpleft:h0.8,leftx:a0,lefty:a1,rightx:a2,righty:a3,lefttrigger:a4,righttrigger:a5,"
+		m += "dpup:h0.1,dpright:h0.2,dpdown:h0.4,dpleft:h0.8,"
+		m += "leftx:a0,lefty:a1,rightx:a2,righty:a3,lefttrigger:a4,righttrigger:a5,"
 		Input.add_joy_mapping(m, true)
 		print("remapped (axes 4 / 5 now read 0..1)")
 	var secs := float(OS.get_environment("SECONDS")) if OS.get_environment("SECONDS") != "" else 8.0

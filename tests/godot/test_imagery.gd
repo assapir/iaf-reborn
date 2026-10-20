@@ -31,18 +31,19 @@ func run() -> void:
 		Layers.available("original") and Layers.available(ID) and not Layers.available("no_such_layer"),
 		"available: original always, layers when converted"
 	)
-	Settings().imagery_outside = "no_such_layer"
+	settings().imagery_outside = "no_such_layer"
 	check(
 		Layers.selected().is_empty() and Layers.attributions(["no_such_layer"]).is_empty(),
 		"a picked layer that is not converted is ignored"
 	)
-	Settings().imagery_outside = ID
+	settings().imagery_outside = ID
 	check(Layers.selected() == [ID] and Layers.attributions([ID]) == ["test credit"], "the picked layer and its credit")
 
 	# Terrain with the layer (from the setting) vs without.
-	var t: Node3D = load("res://terrain/terrain.gd").new()
+	var terrain_script: GDScript = load("res://terrain/terrain.gd")
+	var t: Node3D = terrain_script.new()
 	root.add_child(t)
-	var plain: Node3D = load("res://terrain/terrain.gd").new()
+	var plain: Node3D = terrain_script.new()
 	plain.set_layers([] as Array[String])
 	root.add_child(plain)
 	await frames(1)
@@ -85,7 +86,7 @@ func run() -> void:
 	check(not t._res.has(Vector4i(0, 0, 0, 11)), "adopt() skips textures loaded with other imagery")
 	t.queue_free()
 	plain.queue_free()
-	Settings().imagery_outside = "original"
+	settings().imagery_outside = "original"
 	for f in [
 		dir.path_join("L3/c_%d_%d.jpg" % [NODE.x, NODE.y]),
 		dir.path_join("L1/c_%d_%d.jpg" % [FINE.x, FINE.y]),

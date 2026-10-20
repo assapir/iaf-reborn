@@ -12,16 +12,16 @@ func _scene(tv: Node, w: Vector2) -> Vector3:
 
 
 func run() -> void:
-	var S := Settings()
-	S.world_scale = "original"
+	var prefs := settings()
+	prefs.world_scale = "original"
 	var tv: Node = await start_mission(311)
 	check(not IafBases.active(), "Original: no base moves")
 	check(tv.terrain.surface_at(_scene(tv, DAVID_LINEUP)) & 0x10 != 0, "Original: the lineup is on runway ground")
 
-	S.world_scale = "real"
+	prefs.world_scale = "real"
 	tv = await start_mission(311)
 	check(IafBases.active(), "Real: the bases move")
-	var m: PackedFloat64Array = S.base_moved(DAVID_LINEUP.x, DAVID_LINEUP.y)
+	var m: PackedFloat64Array = prefs.base_moved(DAVID_LINEUP.x, DAVID_LINEUP.y)
 	check(m.size() == 5, "Ramat David's lineup moves")
 	var new := Vector2(m[0], m[1])
 	print(
@@ -75,15 +75,15 @@ func run() -> void:
 		"at the lineup's moved height (%s, %.1f)" % [heights[0], 63.0 + m[4]]
 	)
 	check(
-		IafFlight.start_rule(S.assets_dir().path_join("install"), new.x, new.y, 63.0 + m[4]) == Vector2i(1, 1),
+		IafFlight.start_rule(prefs.assets_dir().path_join("install"), new.x, new.y, 63.0 + m[4]) == Vector2i(1, 1),
 		"the start rule: at the moved base, engine on at the moved lineup"
 	)
 
 	# --- step 7: the mission data moves with the base ---
 	var MR = load("res://mission/mission_runtime.gd")
-	var o_start: Vector3 = _start_of(S, MR, 311, "original")
-	var r_start: Vector3 = _start_of(S, MR, 311, "real")
-	var ms: PackedFloat64Array = S.base_moved(o_start.x, o_start.y)
+	var o_start: Vector3 = _start_of(prefs, MR, 311, "original")
+	var r_start: Vector3 = _start_of(prefs, MR, 311, "real")
+	var ms: PackedFloat64Array = prefs.base_moved(o_start.x, o_start.y)
 	check(
 		(
 			Vector2(r_start.x, r_start.y).distance_to(Vector2(ms[0], ms[1])) < 0.01
@@ -109,8 +109,8 @@ func run() -> void:
 	)
 	# The base's units: distances × k, headings + the turn (zone A); the parked jets of 122; 237's SA-3 site at Ryak.
 	for id in [311, 122]:
-		var o := _units(S, MR, id, "original")
-		var r := _units(S, MR, id, "real")
+		var o := _units(prefs, MR, id, "original")
+		var r := _units(prefs, MR, id, "real")
 		var bad := 0
 		var n := 0
 		var keys := o.keys()
@@ -145,8 +145,8 @@ func run() -> void:
 			n >= 2 and bad == 0,
 			"%d: %d units on the moved base, relative distances × k and headings turned (%d wrong)" % [id, n, bad]
 		)
-	var o237 := _units(S, MR, 237, "original")
-	var r237 := _units(S, MR, 237, "real")
+	var o237 := _units(prefs, MR, 237, "original")
+	var r237 := _units(prefs, MR, 237, "real")
 	var rk := ""
 	for k in o237:
 		if String(k).begins_with("RADARsa3"):
@@ -182,22 +182,22 @@ func run() -> void:
 		"Detailed: the main runway painted 09 / 27, the real designator (%s)" % [nums]
 	)
 	check(AB._on, "Detailed: the surface is drawn in Real whatever the Graphics setting")
-	S.world_scale = "original"
-	S.sync_bases()
+	prefs.world_scale = "original"
+	prefs.sync_bases()
 	check(not AB.bases()[0].has("mask_affine"), "Original: the bases as measured")
 
 
 ## The player's start (engine X, Y, z) of a menu mission in a world scale.
-func _start_of(S: Node, MR, id: int, scale: String) -> Vector3:
-	S.world_scale = scale
-	return MR.player_start(id)
+func _start_of(prefs: Node, mr, id: int, scale: String) -> Vector3:
+	prefs.world_scale = scale
+	return mr.player_start(id)
 
 
 ## A mission's placed entities in a world scale: name -> [Vector3 (X, Y, z), heading, base_scale] (every file).
-func _units(S: Node, MR, id: int, scale: String) -> Dictionary:
-	S.world_scale = scale
+func _units(prefs: Node, mr, id: int, scale: String) -> Dictionary:
+	prefs.world_scale = scale
 	var out := {}
-	var files: Array = MR.mission_files(id)
+	var files: Array = mr.mission_files(id)
 	for fi in files.size():
 		for e in files[fi].data.get("entities", {}).get("items", []):
 			if e is Dictionary and float(e.get("0x2e4", -1)) >= 0:

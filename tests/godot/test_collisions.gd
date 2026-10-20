@@ -47,7 +47,7 @@ func run() -> void:
 
 	# A hidden collidable building keeps its collider; Physics "fix_ghost_collision" skips it.
 	for fix in [false, true]:
-		Settings().better["fix_ghost_collision"] = fix
+		settings().better["fix_ghost_collision"] = fix
 		tv = await start_mission(315)
 		rt = tv.runtime
 		me = rt.player_entity()
@@ -73,4 +73,4 @@ func run() -> void:
 			)
 		else:
 			check(int(me.state) >= 3 and int(b.state) == 5, "original: the hidden building still collides")
-	Settings().better["fix_ghost_collision"] = false
+	settings().better["fix_ghost_collision"] = false

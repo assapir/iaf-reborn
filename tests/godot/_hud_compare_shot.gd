@@ -2,7 +2,8 @@
 # frames — NAV cruise; the MRM mode with a MiG locked 8 km ahead; the AA gun (LCOS pipper, range arc) with the MiG
 # 800 m ahead; the AG gun (strafe pipper) — mission 231, the F-16 3000 m up with AMRAAMs. Writes hud_compare.png
 # (each cell the HUD area, ×2). Usage:
-#   SHOT_DIR=/tmp/shots IAF_DEFAULT_SETTINGS=1 godot --audio-driver Dummy --path game -s ../tests/godot/_hud_compare_shot.gd
+#   SHOT_DIR=/tmp/shots IAF_DEFAULT_SETTINGS=1 godot --audio-driver Dummy --path game -s \
+#     ../tests/godot/_hud_compare_shot.gd
 extends "res://../tests/godot/base.gd"
 
 const ZOOM := 2
@@ -70,7 +71,7 @@ func run() -> void:
 func _pair(tv) -> Array:
 	var out := []
 	for style in ["original", "real"]:
-		Settings().hud_style = style
+		settings().hud_style = style
 		await frames(3)
 		await RenderingServer.frame_post_draw
 		var img: Image = root.get_viewport().get_texture().get_image()

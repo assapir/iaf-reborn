@@ -79,9 +79,9 @@ var mission_name := ""
 ## The player's waypoints: [{name, world}] (mission world coordinates).
 var route: Array = []
 var g_effects: Control
-## Blackbox (Extras, on by default): each flight in Settings.BLACKBOX_DIR (JSON lines, docs/blackbox.schema.json) for debriefs and
-## diagnosing glitches reported from play: a header object (mission, flight, jet, pilot, loadouts, route, every
-## setting, the column names), then a row array ten times a second, and an event object the moment one happens
+## Blackbox (Extras, on by default): each flight in Settings.BLACKBOX_DIR (JSON lines, docs/blackbox.schema.json) for
+## debriefs and diagnosing glitches reported from play: a header object (mission, flight, jet, pilot, loadouts, route,
+## every setting, the column names), then a row array ten times a second, and an event object the moment one happens
 ## (touchdown with its sink rate, lift-off, crash with its reason, autopilot changes, mission events and messages,
 ## and the engagement: a sensor locking / unlocking the jet, launches at it, hits with the system broken, the player's
 ## kills, a site's terrain line of sight gained / lost, master mode / weapon changes). The debrief screen exports it;
@@ -206,6 +206,10 @@ const Terrain := preload("res://terrain/terrain.gd")
 const UNDERLAY_MAX_HEIGHT := 0.05
 const DamageModel := preload("res://mission/damage_model.gd")
 const PlayerAircraft := preload("res://aircraft/player_aircraft.gd")
+const AircraftModel := preload("res://aircraft/aircraft_model.gd")
+const FlightSounds := preload("res://audio/flight_sounds.gd")
+const SoundBuses := preload("res://audio/sound_buses.gd")
+const PlayerDamage := preload("res://mission/player_damage.gd")
 ## The player's aircraft (player_aircraft.gd): type, plane folder, flight-model section, cockpit, twin engines.
 ## Chosen after the start (_choose_start): the Jet list's pick, else the mission's jet; an unflyable type flies
 ## as the F-16.
@@ -296,7 +300,7 @@ func _ready() -> void:
 	g_effects.disabled = Settings.no_blackouts
 	$CockpitLayer.add_child(g_effects)
 	# In-flight sounds of your jet (game/audio/flight_sounds.gd, docs/sound.md); polls this node.
-	sounds = preload("res://audio/flight_sounds.gd").create(self, player.type)
+	sounds = FlightSounds.create(self, player.type)
 	add_child(sounds)
 	# The radio (docs/radio.md): tower, wingman commands, waypoint / eject reports.
 	radio = preload("res://audio/radio.gd").new()
@@ -315,7 +319,7 @@ func _ready() -> void:
 	add_child(effects)
 	if trails != null:
 		trails.gpu = effects.gpu
-	player_damage = preload("res://mission/player_damage.gd").new()
+	player_damage = PlayerDamage.new()
 	player_damage.host = self
 	player_damage.betty = player.type in sounds.BETTY_TYPES
 	player_damage.twin = player.twin
@@ -485,7 +489,7 @@ func _setup_weapons() -> void:
 	weapons = preload("res://weapons/player_weapons.gd").new()
 	weapons.lock_threat_fix = _all_better or Settings.better.get("fix_lock_threat", false)
 	add_child(weapons)
-	weapons.setup(self, ent, obj, bdb, preload("res://aircraft/aircraft_model.gd").load_descriptor(player.plane))
+	weapons.setup(self, ent, obj, bdb, AircraftModel.load_descriptor(player.plane))
 	cockpit.hud.host_world_to_scene = world_to_scene
 	cockpit.hud.host_ground = func(x: float, y: float):
 		var g = terrain.height_at(world_to_scene(Vector3(x, y, 0.0)))
@@ -500,8 +504,9 @@ func _setup_weapons() -> void:
 
 
 ## The EO picture (docs/mfd.md: view slot 1, type 0xb, rendered as viewport 1 into the MFD's video rect): a
-## camera in a SubViewport of the same world at the jet (or the launched TV weapon it rides), heading / pitch = the jet's (or the frozen base) + az /
-## el, roll 0, 50° / zoom across its width; rendered only while an MFD shows page 5 or 6 with the cockpit drawn.
+## camera in a SubViewport of the same world at the jet (or the launched TV weapon it rides), heading / pitch = the
+## jet's (or the frozen base) + az / el, roll 0, 50° / zoom across its width; rendered only while an MFD shows page 5 or
+## 6 with the cockpit drawn.
 var eo_viewport: SubViewport
 var eo_camera: Camera3D
 ## The full-screen weapon MFD (Z, docs/mfd.md §3): the overlay (game/cockpit/fs_mfd.gd) while weapons.full_screen.
@@ -777,7 +782,7 @@ func _spawn_mission_objects() -> void:
 	var scales := {}
 	for pr in bdb.get("present", {}).get("items", []):
 		scales[int(pr.get("0x1e", -1))] = float(pr.get("0x65e", 10.0))
-	runtime = preload("res://mission/mission_runtime.gd").new()
+	runtime = MissionRuntime.new()
 	add_child(runtime)
 	runtime.setup(self, files, bdb, player_entity_id)
 	# Test pose: --hour H starts the mission at H o'clock (the start time misc 0x460).
@@ -1605,7 +1610,7 @@ func _ground_normal_z(p: Vector3) -> float:
 
 func _spawn_player() -> void:
 	# Generic aircraft model (docs/aircraft.md): the player's plane and type; ground-start ramps on the ground.
-	aircraft = preload("res://aircraft/aircraft_model.gd").create(player.plane, player.type, not start_airborne)
+	aircraft = AircraftModel.create(player.plane, player.type, not start_airborne)
 	if aircraft == null:
 		return
 	# The original draws every model at its Present-record scale (0x65e, ×2 for the F-16), the player's jet
@@ -1616,9 +1621,7 @@ func _spawn_player() -> void:
 	# Seen from the cockpit (FUN_004d9d70 → FUN_004da060: display slot 4 = model [8], the *_BC.X, with the crew's
 	# cockpit flag set so pilot and canopy stay hidden): same frame and Present scale as the jet model.
 	var bc = Gltf.object("controllableplanes/%s/%s_bc.gltf" % [player.plane, player.plane])
-	var extra: String = preload("res://aircraft/aircraft_model.gd").EXTRA_DIR.path_join(player.plane).path_join(
-		player.plane + "_bc.gltf"
-	)
+	var extra: String = AircraftModel.EXTRA_DIR.path_join(player.plane).path_join(player.plane + "_bc.gltf")
 	if bc == null and FileAccess.file_exists(extra):
 		bc = Gltf.open(extra)  # ours: an extra plane's (the F-35I's, tools/f35i/bc.py)
 		# Its seat head box and canopy frame sit closer to the eye than the originals' parts: a nearer near plane.
@@ -1628,7 +1631,7 @@ func _spawn_player() -> void:
 		own_bc.scale = aircraft.scale
 		# Moved by the eye offset (FUN_00444da0 before the draw), so the eye is at the camera (the jet's origin);
 		# the model is cut just behind the eye, so the nose stays out of the view.
-		var e = preload("res://aircraft/aircraft_model.gd").load_descriptor(player.plane).get("eye")
+		var e = AircraftModel.load_descriptor(player.plane).get("eye")
 		if e is Array:
 			own_bc.position = -Vector3(e[0], e[1], e[2]) * aircraft.scale
 		own_bc.visible = false
@@ -1843,7 +1846,7 @@ func _record(st: Dictionary, delta: float) -> void:
 			_log_event(st, {"event": "weapon", "master": weapons.master, "store": weapons.stores.current_name()})
 	if _log_t >= _log_los_next:
 		_log_los_next = _log_t + 1.0
-		_log_masking(st)
+		_log_masking()
 	if _log_t < _log_next:
 		return
 	_log_next = _log_t + 0.1
@@ -1924,9 +1927,9 @@ func _log_threats() -> Array:
 	return out
 
 
-## Each armed enemy within its engage / sensor range: its terrain line of sight to the jet gained or lost (once a second;
-## the sites' own check, IafRadar.line_of_sight through combat.gd).
-func _log_masking(st: Dictionary) -> void:
+## Each armed enemy within its engage / sensor range: its terrain line of sight to the jet gained or lost (once a
+## second; the sites' own check, IafRadar.line_of_sight through combat.gd).
+func _log_masking() -> void:
 	if ai == null or ai.get("combat") == null or runtime == null:
 		return
 	var me := player_world()
@@ -2218,7 +2221,7 @@ func _command(cmd: Array) -> bool:
 			_set_time_factor(1)  # Normal time (event 0x78): clock vfunc +4
 		135:
 			# Mute sound toggle (0x4e3442): flips the Sound page's MUTE (game/audio/sound_buses.gd).
-			preload("res://audio/sound_buses.gd").toggle_mute()
+			SoundBuses.toggle_mute()
 		123:
 			# Change HUD color (event 0x7b): next of the 11 table colours.
 			cockpit.hud_colour_index = (cockpit.hud_colour_index + 1) % 11
@@ -2499,9 +2502,9 @@ func _take_over(target: Dictionary, old: Dictionary) -> void:
 		cockpit.load_cockpit(player.cockpit_dir)
 	cockpit.twin_engines = player.twin
 	sounds.queue_free()
-	sounds = preload("res://audio/flight_sounds.gd").create(self, player.type)
+	sounds = FlightSounds.create(self, player.type)
 	add_child(sounds)
-	player_damage = preload("res://mission/player_damage.gd").new()
+	player_damage = PlayerDamage.new()
 	player_damage.host = self
 	player_damage.betty = player.type in sounds.BETTY_TYPES
 	player_damage.twin = player.twin
@@ -2527,13 +2530,7 @@ func _take_over(target: Dictionary, old: Dictionary) -> void:
 	drag_chute = 0
 	rig.position = st.position
 	rig.basis = Basis(st.right, st.up, -st.forward)
-	weapons.rearm(
-		target,
-		mission_object,
-		mission_bdb,
-		preload("res://aircraft/aircraft_model.gd").load_descriptor(player.plane),
-		new_load
-	)
+	weapons.rearm(target, mission_object, mission_bdb, AircraftModel.load_descriptor(player.plane), new_load)
 	_start_autopilot(airborne_start)
 	padlock_target = null
 	print("player: now %s (flight %d, type %d)" % [target.name, player_flight_number, player.type])
@@ -2861,7 +2858,7 @@ func close_front_end() -> void:
 
 ## Preferences the flight reads while flying (the in-flight page has no Gameplay tab).
 func _apply_preferences() -> void:
-	preload("res://audio/sound_buses.gd").apply()
+	SoundBuses.apply()
 	apply_render_options()
 	_tod_t = -INF  # the sun, sky and SHADOWS again
 	g_effects.disabled = Settings.no_blackouts

@@ -7,12 +7,12 @@ extends SceneTree
 
 const CELL := Vector2i(640, 400)
 ## Loaded at run time: scripts that use the Settings autoload do not compile before it exists.
-var AircraftModel: GDScript
+var aircraft_model: GDScript
 
 
 func _initialize() -> void:
 	await process_frame
-	AircraftModel = load("res://aircraft/aircraft_model.gd")
+	aircraft_model = load("res://aircraft/aircraft_model.gd")
 	var args := OS.get_cmdline_user_args()
 	var out := args[0] if args.size() > 0 else "user://aircraft_sheet"
 	DirAccess.make_dir_recursive_absolute(out)
@@ -34,12 +34,12 @@ func _initialize() -> void:
 	root.add_child(cam)
 	cam.current = true
 	var rows: Array[Image] = []
-	var names: Array = AircraftModel.index().keys()
+	var names: Array = aircraft_model.index().keys()
 	names.sort()
 	for plane in names:
 		if not only.is_empty() and not only.has(plane):
 			continue
-		var m: Node3D = AircraftModel.create(plane)
+		var m: Node3D = aircraft_model.create(plane)
 		if m == null:
 			print("FAILED ", plane)
 			continue

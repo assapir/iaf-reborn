@@ -121,8 +121,8 @@ func setup_target(front_end: Control, world: Vector3, units: Array) -> void:
 		if model == null:
 			continue
 		var node := Gltf.instance(model)
-		# LT_ light sets draw as points (night_lights.gd); the airbases' flat underlays are hidden (the imagery shows the
-		# base, terrain_view.gd UNDERLAY_MAX_HEIGHT).
+		# LT_ light sets draw as points (night_lights.gd); the airbases' flat underlays are hidden (the imagery shows
+		# the base, terrain_view.gd UNDERLAY_MAX_HEIGHT).
 		var raw := Gltf.model_aabb(node, Gltf.MESH_SPACE)
 		if NightLights.is_light_set(u.path):
 			NightLights.dress(node, float(_vp.size.y))
@@ -162,7 +162,8 @@ func _place() -> void:
 	var p := deg_to_rad(pitch)
 	var y := deg_to_rad(yaw)
 	var at := Vector3(0, height, 0)
-	_cam.look_at_from_position(at + Vector3(-cos(p) * sin(y) * d, sin(-p) * d, cos(p) * cos(y) * d), at)  # Godot z = south
+	# Godot z = south
+	_cam.look_at_from_position(at + Vector3(-cos(p) * sin(y) * d, sin(-p) * d, cos(p) * cos(y) * d), at)
 
 
 func _gui_input(event: InputEvent) -> void:

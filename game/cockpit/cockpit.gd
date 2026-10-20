@@ -13,6 +13,10 @@ const ORIGINAL_HEIGHT := 480.0
 const Img := preload("res://util/img.gd")
 const Tsd := preload("res://menu/tsd.gd")
 const Gauges := preload("res://cockpit/gauges.gd")
+const Compass := preload("res://cockpit/compass.gd")
+const Hud := preload("res://cockpit/hud.gd")
+const Instruments := preload("res://cockpit/instruments.gd")
+const Mfd := preload("res://cockpit/mfd.gd")
 const PANEL_CENTRE_X := 960.0
 ## HUD colour table (renderer+0x2864, COLORREFs 0x2400 … 0xbcf8): eight greens dark to bright,
 ## near-white, red, amber. Index 0 at the start of a run; key H cycles (idx + 1) % 11 (docs/mfd.md §2).
@@ -264,7 +268,7 @@ func _create_mfds() -> void:
 			pcd = _pcd_layer(0)
 		for i in m.Portals.size():
 			var pt: Array = m.Portals[i]
-			var node := preload("res://cockpit/mfd.gd").new()
+			var node := Mfd.new()
 			node.setup(self, i, int(pt[3]))
 			node.portal_scale = float(pt[2])
 			if pcd != null:
@@ -286,7 +290,7 @@ func _create_mfds() -> void:
 			page = 7 if active.size() == 3 or not rwr_panel else 3
 		elif i == 2:
 			page = 3
-		var node := preload("res://cockpit/mfd.gd").new()
+		var node := Mfd.new()
 		node.setup(self, i, page)
 		add_child(node)
 		mfds.append(node)
@@ -495,15 +499,15 @@ var compasses: Array = []
 func _update_compasses() -> void:
 	var on := view_mode == 0 and Settings.better_cockpit_on("turning_compass")
 	if on and compasses.is_empty():
-		for spec in preload("res://cockpit/compass.gd").instruments(cockpit_dir.get_file()):
-			var n := preload("res://cockpit/compass.gd").new()
+		for spec in Compass.instruments(cockpit_dir.get_file()):
+			var n := Compass.new()
 			n.setup(self, spec)
 			add_child(n)
 			move_child(n, hud.get_index())  # under the HUD (the helmet display may cross the panel)
 			compasses.append(n)
 	if compasses.is_empty():
 		return
-	var nav: Dictionary = preload("res://cockpit/hud.gd").nav_cues(state, waypoints, current_waypoint)
+	var nav: Dictionary = Hud.nav_cues(state, waypoints, current_waypoint)
 	# The course: the leg from the previous waypoint to the current one (from the jet on the first leg).
 	var course: float = nav.bearing_deg
 	if current_waypoint > 0 and current_waypoint < waypoints.size():
@@ -523,10 +527,10 @@ var better_instruments: Control
 
 func _update_instruments() -> void:
 	if better_instruments == null:
-		var specs: Array = preload("res://cockpit/instruments.gd").instruments(cockpit_dir.get_file())
+		var specs: Array = Instruments.instruments(cockpit_dir.get_file())
 		if specs.is_empty() or not Settings.better_cockpit:
 			return
-		better_instruments = preload("res://cockpit/instruments.gd").new()
+		better_instruments = Instruments.new()
 		better_instruments.setup(self, specs)
 		add_child(better_instruments)
 		move_child(better_instruments, hud.get_index())  # under the HUD symbology
@@ -770,15 +774,15 @@ func draw_rwr_symbols(ci: CanvasItem, centre: Vector2, radius: float, s: float, 
 ## horizontal offset clamped to 37060 m, each axis truncated.
 static func rwr_offset(pos: Vector2, own: Vector2, hdg: float, radius: float) -> Vector2:
 	var k := RWR_RANGE / radius
-	var S := sin(hdg)
-	var C := cos(hdg)
+	var sin_h := sin(hdg)
+	var cos_h := cos(hdg)
 	var dx: float = pos.x - own.x
 	var dy: float = own.y - pos.y
 	var d := sqrt(dx * dx + dy * dy)
 	if d > RWR_RANGE:
 		dx = dx / d * RWR_RANGE
 		dy = dy / d * RWR_RANGE
-	return Vector2(int((C * dx + S * dy) / k), int((C * dy - S * dx) / k))
+	return Vector2(int((cos_h * dx + sin_h * dy) / k), int((cos_h * dy - sin_h * dx) / k))
 
 
 ## The panel RWR dial (FUN_00531330, [PANELRWR] Active): the symbols at Center with Radius; nothing with RWR
@@ -954,7 +958,7 @@ const HORIZON_LINES := [
 ## The original MFD font (FUELDIGITAL, the MFD ADI page's numbers), loaded once.
 func digits_font() -> Font:
 	if mfd_font == null:
-		mfd_font = preload("res://cockpit/hud.gd").load_original_font("mfd")
+		mfd_font = Hud.load_original_font("mfd")
 	return mfd_font if mfd_font != null else get_theme_default_font()
 
 

@@ -7,7 +7,7 @@ extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
-	Settings().invulnerable = false
+	settings().invulnerable = false
 	var tv = await start_mission(324)  # airborne at 2000 m
 	var pd = tv.player_damage
 	var fl = tv.flight

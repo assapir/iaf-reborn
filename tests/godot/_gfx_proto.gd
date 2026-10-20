@@ -1,9 +1,10 @@
 # Dev helper (not a test): the cost and look of one Godot rendering feature switched on in a flight, for
 # docs/graphics-research.md. GFX = none | ssao | ssil | sdfgi | glow | vol_fog | shadows_off | shadows_hq | fsr_0.67 |
 # all_light. Mission 311 at Ramat David, the rig GFX_ALT m up (default 60) looking along the base, flown ahead for 10 s:
-# the average / p95 frame; then a shot to GFX_SHOT. Run at 3840x2160 with GFX_SCALE (e.g. 1.6) so the GPU, not the display's
-# refresh (Metal presents at it even with vsync off; Godot reports no GPU time on Metal), sets the frame.
-#   GFX=ssao GFX_SHOT=/tmp/ssao.png IAF_DEFAULT_SETTINGS=1 godot --path game --resolution 3840x2160 -s ../tests/godot/_gfx_proto.gd
+# the average / p95 frame; then a shot to GFX_SHOT. Run at 3840x2160 with GFX_SCALE (e.g. 1.6) so the GPU, not the
+# display's refresh (Metal presents at it even with vsync off; Godot reports no GPU time on Metal), sets the frame.
+#   GFX=ssao GFX_SHOT=/tmp/ssao.png IAF_DEFAULT_SETTINGS=1 godot --path game --resolution 3840x2160 -s \
+#     ../tests/godot/_gfx_proto.gd
 extends "res://../tests/godot/base.gd"
 
 

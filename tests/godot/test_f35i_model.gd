@@ -4,12 +4,12 @@
 # wheels turn by ground speed / radius; in the air, or with the switch off, they hold.
 extends "res://../tests/godot/base.gd"
 
-var AircraftModel: GDScript
+var aircraft_model: GDScript
 
 
 func run() -> void:
-	AircraftModel = load("res://aircraft/aircraft_model.gd")
-	var air: Node3D = AircraftModel.create("f35i", 1000, false)
+	aircraft_model = load("res://aircraft/aircraft_model.gd")
+	var air: Node3D = aircraft_model.create("f35i", 1000, false)
 	root.add_child(air)
 	air.update({}, 0.1)
 	for n in ["LdgDr", "LdgF", "LdgL", "LdgR"]:
@@ -26,7 +26,7 @@ func run() -> void:
 		var py := air.root_frame.get_node_or_null("Pylon" + letter) as Node3D
 		check(py != null and not py.visible, "pylon %s present and hidden while its station is empty" % letter)
 
-	var ground: Node3D = AircraftModel.create("f35i", 1000, true)
+	var ground: Node3D = aircraft_model.create("f35i", 1000, true)
 	root.add_child(ground)
 	ground.update({"on_ground": true, "gear_down": true}, 0.0)
 	check(
@@ -47,10 +47,10 @@ func run() -> void:
 		not main.is_empty() and absf(main.radius - 0.25) < 0.02,
 		"main wheel radius from its mesh (%.3f m)" % main.get("radius", 0.0)
 	)
-	Settings().rolling_wheels = false
+	settings().rolling_wheels = false
 	ground.update({"on_ground": true, "gear_down": true, "ground_speed": 20.0}, 0.5)
 	check(is_zero_approx(ground.wheel_roll), "switch off: the wheels stand still (original)")
-	Settings().rolling_wheels = true
+	settings().rolling_wheels = true
 	ground.update({"on_ground": true, "gear_down": true, "ground_speed": 20.0}, 0.5)
 	check(
 		is_equal_approx(ground.wheel_roll, -10.0),
@@ -66,7 +66,7 @@ func run() -> void:
 	var held: float = ground.wheel_roll
 	ground.update({"on_ground": false, "gear_down": true, "ground_speed": 80.0}, 0.5)
 	check(is_equal_approx(ground.wheel_roll, held), "in the air the wheels hold")
-	Settings().rolling_wheels = false
+	settings().rolling_wheels = false
 	air.free()
 	ground.free()
 

@@ -2,12 +2,13 @@
 # after a real mission DEB_MISSION (default 115): up to DEB_PER_TYPE (2) enemy units of each type and the player's
 # jet are set destroyed, the flight ends through DEBRIEF, and each tab (Debriefing / Kill Tally / Losses) is saved
 # as DEB_SHOT with _0 / _1 / _2 before ".png", in DEB_LANG (en / he).
-#   DEB_LANG=he DEB_SHOT=/tmp/deb.png IAF_DEFAULT_SETTINGS=1 godot --path game --resolution 1280x960 -s ../tests/godot/_debrief_shot.gd
+#   DEB_LANG=he DEB_SHOT=/tmp/deb.png IAF_DEFAULT_SETTINGS=1 godot --path game --resolution 1280x960 -s \
+#     ../tests/godot/_debrief_shot.gd
 extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
-	Settings().language = OS.get_environment("DEB_LANG") if OS.get_environment("DEB_LANG") != "" else "en"
+	settings().language = OS.get_environment("DEB_LANG") if OS.get_environment("DEB_LANG") != "" else "en"
 	var id := int(OS.get_environment("DEB_MISSION")) if OS.get_environment("DEB_MISSION") != "" else 115
 	var per := int(OS.get_environment("DEB_PER_TYPE")) if OS.get_environment("DEB_PER_TYPE") != "" else 2
 	var tv = await start_mission(id)
@@ -26,9 +27,9 @@ func run() -> void:
 		await process_frame
 		fe = current_scene as Control
 	# Shows our EXPORT FLIGHT DATA button (it needs this flight's recording; any existing file will do here).
-	Settings().blackbox_file = "res://project.godot"
+	settings().blackbox_file = "res://project.godot"
 	var path := OS.get_environment("DEB_SHOT")
-	print("debrief: ", Settings().debrief.stats)
+	print("debrief: ", settings().debrief.stats)
 	for t in 3:
 		fe.debrief_view.tab = t
 		await frames(5)

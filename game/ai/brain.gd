@@ -120,7 +120,7 @@ func update(now: float) -> void:
 
 
 ## One evaluation (FUN_00442120).
-func tick(now: float) -> void:
+func tick(_now: float) -> void:
 	var loops := 0
 	var i := 0
 	done.clear()
@@ -128,7 +128,7 @@ func tick(now: float) -> void:
 		var r: Dictionary = rules[i]
 		if _fires(r):
 			for a in r.acts:
-				_run(a, now)
+				_run(a)
 			if switched:
 				switched = false
 				done.clear()
@@ -250,7 +250,7 @@ func measure(code: int) -> Variant:
 
 
 ## One action: type gate (5, 6 never marked; sub-brains never gated), its effect, its audio.
-func _run(a: Array, now: float) -> void:
+func _run(a: Array) -> void:
 	var id: int = a[0]
 	if id == 1000:
 		_sub_brain(a[1])

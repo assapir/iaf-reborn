@@ -7,9 +7,9 @@
 #   DEMO_PART=315  Cold Steel: the two-ship with the instructor's F-16 over Makhtesh Ramon (the clip's title).
 #   DEMO_PART=223  Tumble Down: the fly-by over the Dead Sea, the laser-guided MK-84L at a moving T-72, the AMRAAM kill.
 #   DEMO_PART=214  Damascus Blackout: home to Ramat David on the autopilot and the night landing.
-# DEMO_SEED fixes the dice (default 35). Prints "SEG <name> <first frame> <last frame>" (process frames from the start: the movie's frames),
-# "VOICE <first> <last>" for every radio call and "CAM <name> <closest jet m>" for the outside views;
-# tools/demo/adir_demo.py renders the parts with Godot's movie writer and cuts the clip from these lines.
+# DEMO_SEED fixes the dice (default 35). Prints "SEG <name> <first frame> <last frame>" (process frames from the start:
+# the movie's frames), "VOICE <first> <last>" for every radio call and "CAM <name> <closest jet m>" for the outside
+# views; tools/demo/adir_demo.py renders the parts with Godot's movie writer and cuts the clip from these lines.
 extends "res://../tests/godot/base.gd"
 
 ## Internal only: AMRAAM on D / F, MK-84L (the GBU-31 stand-in) on C / G (the Arming screen's pylons 0..8).
@@ -21,7 +21,7 @@ const CENTRED := 0.25
 ## Makhtesh Ramon (30.60 N 34.80 E, engine metres).
 var _bogies_done := false
 ## When the jet leaves the route for the MiG-29s (mission time, s).
-var TURN_NORTH := float(OS.get_environment("DEMO_TURN")) if OS.get_environment("DEMO_TURN") != "" else 180.0
+var turn_north := float(OS.get_environment("DEMO_TURN")) if OS.get_environment("DEMO_TURN") != "" else 180.0
 const CRATER := Vector2(315482.0, 379382.0)
 ## Ramat David's runway (iaf.ibx [David]).
 const DAVID := Vector2(356483.0, 602383.0)
@@ -46,7 +46,7 @@ func _initialize() -> void:
 
 
 func run() -> void:
-	var s := Settings()
+	var s := settings()
 	var detailed := {
 		"models": "detailed",
 		"sky": "atmospheric",
@@ -264,7 +264,7 @@ func _amraam() -> void:
 		print("SEG bogies %d %d" % [fb - 15, Engine.get_process_frames()])
 		_bogies_done = true
 	bogies.call()
-	await _until(func(): return tv.runtime.now >= TURN_NORTH, 90.0)
+	await _until(func(): return tv.runtime.now >= turn_north, 90.0)
 	tv.autopilot.key()  # NAV -> off
 	tv.throttle = 0.9
 	aim_alt = 4000.0

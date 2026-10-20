@@ -1,6 +1,7 @@
 # Dev helper (not run by tools/test.sh): a real-render capture of I-mode (F12) in mission 221 with friends and enemies
 # placed around the jet out of view, plus one in view (no mark). Saved to IMODE_SHOT.
-#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 IMODE_SHOT=/tmp/imode.png -- --log-file /tmp/g.log --path game -s ../tests/godot/_imode_shot.gd
+#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 IMODE_SHOT=/tmp/imode.png -- --log-file /tmp/g.log --path game -s \
+#     ../tests/godot/_imode_shot.gd
 extends "res://../tests/godot/base.gd"
 
 

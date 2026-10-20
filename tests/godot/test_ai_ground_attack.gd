@@ -1,8 +1,9 @@
 # AI air-to-ground (docs/ai.md §13): mission 221's second-wave Su-24 lead ('AG LEAD') within 10 km of its primary
 # target changes to its bombs (380) and dive-bombs (290 → DiveBomb, mode 0x17): approach, dive, the release at the
 # vacuum impact (440440) starts the AI ripple (380's quantity 2: two MK-83s, 0.1 s apart) that bursts near the
-# target. Its stores weigh on its flight model and leave the pylons with the release. The Su-24 is restarted 15 km from the target,
-# 4500 m above it (the dive starts from above 3048 m: docs/ai.md §13.3); the AI runs at 8× time, the player's jet holds still.
+# target. Its stores weigh on its flight model and leave the pylons with the release. The Su-24 is restarted 15 km from
+# the target, 4500 m above it (the dive starts from above 3048 m: docs/ai.md §13.3); the AI runs at 8× time, the
+# player's jet holds still.
 extends "res://../tests/godot/base.gd"
 
 
@@ -24,7 +25,7 @@ func run() -> void:
 	su.world = tp + Vector3(15000, 0, 0)
 	su.world.z = tp.z + 4500.0
 	su.heading = 270.0
-	tv.ai._start(p, Settings().assets_dir().path_join("install"), p.plane)
+	tv.ai._start(p, settings().assets_dir().path_join("install"), p.plane)
 	su.shield = true  # the player's side fights back (its AI wingman shot the Su-24 down in a trial run)
 	var u = tv.ai.combat.units[su.key]
 	var loaded := func() -> int:
@@ -102,7 +103,7 @@ func _rockets_and_lgb(tv, su: Dictionary, tgt: Dictionary, u) -> void:
 			continue
 		su.world = tp + Vector3(3000, 0, 800)
 		su.heading = 270.0
-		tv.ai._start(su.pilot, Settings().assets_dir().path_join("install"), su.pilot.plane)
+		tv.ai._start(su.pilot, settings().assets_dir().path_join("install"), su.pilot.plane)
 		u.stations[0] = {"w": wt, "count": 4}
 		tv.ai.combat._select(u, 0)
 		u.ripple_left = u.ripple.qty()

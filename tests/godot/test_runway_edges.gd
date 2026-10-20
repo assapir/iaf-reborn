@@ -18,7 +18,7 @@ var lead := -1.0
 
 
 func run() -> void:
-	install = Settings().assets_dir().path_join("install")
+	install = settings().assets_dir().path_join("install")
 	# The F-16's gear clearance as the flight scene sets it (its model's `height` helper).
 	var tv = await start_mission(311)
 	var h := tv.aircraft.find_child("height", true, false) as Node3D

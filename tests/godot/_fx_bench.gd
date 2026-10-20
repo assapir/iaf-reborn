@@ -2,16 +2,17 @@
 # scripted combat load in mission 231 (FX_MISSION): every 2 s a ground vehicle and an aircraft explode and a missile
 # hits, two missile trails fly through the view, three units smoke. The effects' drawing is switched off and on every
 # 120 frames in the same window (the water bench's method); prints the median of the on − off pairs. FX_DETAILED=1
-# turns on "Particle effects: Detailed". Run at 4K with a render scale so the GPU, not the display's refresh, sets the frame
-# (docs/graphics-research.md §1):
-#   FX_DETAILED=1 FX_SCALE=1.6 IAF_DEFAULT_SETTINGS=1 godot --path game --resolution 3840x2160 -s ../tests/godot/_fx_bench.gd
+# turns on "Particle effects: Detailed". Run at 4K with a render scale so the GPU, not the display's refresh, sets the
+# frame (docs/graphics-research.md §1):
+#   FX_DETAILED=1 FX_SCALE=1.6 IAF_DEFAULT_SETTINGS=1 godot --path game --resolution 3840x2160 -s \
+#     ../tests/godot/_fx_bench.gd
 extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
-	Settings().particle_effects = OS.get_environment("FX_DETAILED") == "1"
-	Settings().show_info = false
+	settings().particle_effects = OS.get_environment("FX_DETAILED") == "1"
+	settings().show_info = false
 	var mid := OS.get_environment("FX_MISSION")
 	var tv = await start_mission(int(mid) if mid != "" else 231)
 	tv.frozen = true
@@ -95,7 +96,7 @@ func run() -> void:
 		(
 			"FX %s: drawing on - off median %+.2f ms (quartiles %+.2f / %+.2f, %d pairs), frame with it off %.2f ms, emitted %s"
 			% [
-				"detailed" if Settings().particle_effects else "original",
+				"detailed" if settings().particle_effects else "original",
 				diffs[diffs.size() / 2],
 				diffs[diffs.size() / 4],
 				diffs[diffs.size() * 3 / 4],

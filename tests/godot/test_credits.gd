@@ -96,7 +96,7 @@ func run() -> void:
 	)
 
 	# A click ends the roll too; Hebrew rolls our lines in Hebrew.
-	Settings().language = "he"
+	settings().language = "he"
 	var roll3 = Roll.new()
 	root.add_child(roll3)
 	await frames(1)
@@ -105,7 +105,7 @@ func run() -> void:
 	)
 	roll3._input(mouse_button(Vector2(10, 10), true))
 	check(roll3.done, "a click ends the roll")
-	Settings().language = "en"
+	settings().language = "en"
 
 
 func _key(k: Key) -> InputEventKey:

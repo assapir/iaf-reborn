@@ -33,19 +33,19 @@ const SPINE_M := 0.05
 const SPINE_SIDE_M := 0.08
 const SPINE_OFFSET_M := 0.15
 
-var AircraftModel: GDScript
+var aircraft_model: GDScript
 
 
 func run() -> void:
-	AircraftModel = load("res://aircraft/aircraft_model.gd")
-	var orig_desc: Dictionary = AircraftModel.load_descriptor("f16")
-	var orig_path: String = Settings().assets_dir().path_join("converted/planes/f16").path_join(orig_desc.model)
+	aircraft_model = load("res://aircraft/aircraft_model.gd")
+	var orig_desc: Dictionary = aircraft_model.load_descriptor("f16")
+	var orig_path: String = settings().assets_dir().path_join("converted/planes/f16").path_join(orig_desc.model)
 	var orig_scene: Node3D = Gltf.instance(Gltf.open(orig_path))
 	var orig_root := orig_scene.find_child("f16", true, false) as Node3D
 
 	# Off (the default): the original, untouched.
-	check(Settings().models == "original", "Models defaults to Original")
-	var off: Node3D = AircraftModel.create("f16", 100, false)
+	check(settings().models == "original", "Models defaults to Original")
+	var off: Node3D = aircraft_model.create("f16", 100, false)
 	check(
 		off.find_child("LdgDrUp", true, false) == null and off.desc == orig_desc,
 		"off: the original descriptor and model"
@@ -58,12 +58,12 @@ func run() -> void:
 	off.free()
 
 	# On.
-	Settings().models = "detailed"
+	settings().models = "detailed"
 	var t0 := Time.get_ticks_msec()
-	var on: Node3D = AircraftModel.create("f16", 100, false)
+	var on: Node3D = aircraft_model.create("f16", 100, false)
 	var first_ms := Time.get_ticks_msec() - t0
 	t0 = Time.get_ticks_msec()
-	var again: Node3D = AircraftModel.create("f16", 100, true)
+	var again: Node3D = aircraft_model.create("f16", 100, true)
 	var second_ms := Time.get_ticks_msec() - t0
 	check(on != null and on.find_child("LdgDrUp", true, false) != null, "on: the detailed model loads")
 	check(second_ms < 100, "on: parsed once, later jets share it (first %d ms, second %d ms)" % [first_ms, second_ms])
@@ -297,7 +297,7 @@ func run() -> void:
 		if n != tv.aircraft and n.find_child("LdgDrUp", true, false) != null:
 			ai += 1
 	check(ai > 0, "mission 231: the AI's F-16s are detailed (%d)" % ai)
-	Settings().models = "original"
+	settings().models = "original"
 
 
 ## The highest point of `tris` (frame of the root) straight under (x, `aft` m behind the eye), above the eye's height.

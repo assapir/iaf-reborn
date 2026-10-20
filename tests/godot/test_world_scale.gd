@@ -1,46 +1,53 @@
 # World scale (docs/world-scale.md steps 1–4): Settings.world_scale "original" draws every model at its bdb Present
 # scale (0x65e); "real" at true size (1), the ground models (underlays, light sets, > 200 m, ships) kept. Mission
-# 311 (a ground start at Ramat David) and 214 (AI jets, SAM sites) in both modes: the mission models' scales and collision radii, the same units
-# hidden, the player's jet (model, cockpit model offset, gear clearance, gun), its stores on the pylons at their
-# launch points; then in Real a take-off from 311 and the autopilot's landing in 312 with the halved clearance.
+# 311 (a ground start at Ramat David) and 214 (AI jets, SAM sites) in both modes: the mission models' scales and
+# collision radii, the same units hidden, the player's jet (model, cockpit model offset, gear clearance, gun), its
+# stores on the pylons at their launch points; then in Real a take-off from 311 and the autopilot's landing in 312 with
+# the halved clearance.
 extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
-	var S := Settings()
+	var prefs := settings()
 	# --- step 1: the setting and the helper ---
-	check(S.world_scale == "original", "default: Original")
-	check(S.model_scale(2.0) == 2.0 and S.model_scale(3.0, true) == 3.0, "Original: the Present scale")
-	S.world_scale = "real"
-	check(S.model_scale(2.0) == 1.0 and S.model_scale(2.0, true) == 2.0, "Real: 1, a kept model its Present scale")
-	var cfg: ConfigFile = S.write_config()
-	S.world_scale = "original"
-	S.read_config(cfg)
-	check(S.world_scale == "real", "settings.cfg round trip")
-	var flat := AABB(Vector3(-500, 0, -100), Vector3(1000, 0, 200))
-	check(S.keeps_present("x/ul_rw1.gltf", flat, 2.0, 13, 0.05), "a flat underlay keeps its scale")
+	check(prefs.world_scale == "original", "default: Original")
+	check(prefs.model_scale(2.0) == 2.0 and prefs.model_scale(3.0, true) == 3.0, "Original: the Present scale")
+	prefs.world_scale = "real"
 	check(
-		S.keeps_present("x/lt_dvd_h.gltf", AABB(Vector3.ZERO, Vector3.ONE), 2.0, 14, 0.05),
+		prefs.model_scale(2.0) == 1.0 and prefs.model_scale(2.0, true) == 2.0, "Real: 1, a kept model its Present scale"
+	)
+	var cfg: ConfigFile = prefs.write_config()
+	prefs.world_scale = "original"
+	prefs.read_config(cfg)
+	check(prefs.world_scale == "real", "settings.cfg round trip")
+	var flat := AABB(Vector3(-500, 0, -100), Vector3(1000, 0, 200))
+	check(prefs.keeps_present("x/ul_rw1.gltf", flat, 2.0, 13, 0.05), "a flat underlay keeps its scale")
+	check(
+		prefs.keeps_present("x/lt_dvd_h.gltf", AABB(Vector3.ZERO, Vector3.ONE), 2.0, 14, 0.05),
 		"a light set keeps its scale"
 	)
 	check(
-		not S.keeps_present("x/t72_h.gltf", AABB(Vector3.ZERO, Vector3(3, 2, 9)), 3.0, 5, 0.05), "a tank is an object"
+		not prefs.keeps_present("x/t72_h.gltf", AABB(Vector3.ZERO, Vector3(3, 2, 9)), 3.0, 5, 0.05),
+		"a tank is an object"
 	)
 	# Ships at their real hull length (the Osa model's box is 126.4 m long, the real Osa 38.6 m).
 	var osa := AABB(Vector3(-14.3, 0, -46.8), Vector3(29.0, 24.8, 126.4))
-	S.world_scale = "real"
+	prefs.world_scale = "real"
 	check(
-		absf(S.ship_scale("x/enmysp_h.gltf", osa) * 126.4 - 38.6) < 0.01 and S.ship_scale("x/t72_h.gltf", osa) == 0.0,
+		(
+			absf(prefs.ship_scale("x/enmysp_h.gltf", osa) * 126.4 - 38.6) < 0.01
+			and prefs.ship_scale("x/t72_h.gltf", osa) == 0.0
+		),
 		"Real: the Osa 38.6 m long"
 	)
-	S.world_scale = "original"
-	check(S.ship_scale("x/enmysp_h.gltf", osa) == 0.0, "Original: the ships at their Present scale")
+	prefs.world_scale = "original"
+	check(prefs.ship_scale("x/enmysp_h.gltf", osa) == 0.0, "Original: the ships at their Present scale")
 
 	# --- steps 2–4 in both modes ---
-	S.world_scale = "original"
+	prefs.world_scale = "original"
 	var o := await _sample(311)
 	var o2 := await _sample(214)
-	S.world_scale = "real"
+	prefs.world_scale = "real"
 	var r := await _sample(311)
 	var r2 := await _sample(214)
 	check(
@@ -144,7 +151,7 @@ func run() -> void:
 	check(touch and on_runway, "Real: the autopilot touches down on the runway")
 	check(not st.crashed and st.speed < 2.0, "Real: landed and stopped (%s, %.1f m/s)" % [st.crash_reason, st.speed])
 	check(absf(_height(tv) - 1.69) < 0.1, "Real: stopped on its wheels (%.2f m)" % _height(tv))
-	S.world_scale = "original"
+	prefs.world_scale = "original"
 
 
 func _height(tv) -> float:

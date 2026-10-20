@@ -4,7 +4,7 @@ extends "res://../tests/godot/base.gd"
 
 
 func run() -> void:
-	Settings().flight_data = "real"
+	settings().flight_data = "real"
 	var tv = await start_mission(311)
 	key(tv, KEY_1)
 	key(tv, KEY_B)

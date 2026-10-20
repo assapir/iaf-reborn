@@ -21,7 +21,7 @@ func run() -> void:
 	# The Arming screen of a training mission (311, the file's F-16) after the Jet list's F-15: the F-15's art,
 	# stations and default load, the F-16's allowed counts (FUN_0058f110 / FUN_004ef8a0).
 	var MW: GDScript = load("res://weapons/mission_weapons.gd")
-	Settings().jet_id = 0
+	settings().jet_id = 0
 	var picked: Array = MW.create(311).flights.values().filter(func(x): return x.has("limits"))
 	check(
 		(
@@ -33,7 +33,7 @@ func run() -> void:
 		),
 		"311 with the F-15 picked: arms the F-15 (its art and load), the F-16's allowed counts"
 	)
-	Settings().jet_id = 1
+	settings().jet_id = 1
 	check(
 		MW.create(311).flights.values().all(func(x): return not x.has("limits")),
 		"311 with the F-16 picked: the mission's own flight"
@@ -45,8 +45,8 @@ func run() -> void:
 	for c in cases:
 		var id: int = c[0]
 		var want: Array = c[2]
-		Settings().f35i_slot = c[1]
-		Settings().jet_id = id
+		settings().f35i_slot = c[1]
+		settings().jet_id = id
 		var tv = await start_mission(311)
 		var name := "jet %d (type %d)" % [id, want[0]]
 		check(tv.player.type == want[0] and tv.aircraft != null and tv.aircraft.type_code == want[0], "%s flies" % name)
@@ -70,14 +70,14 @@ func run() -> void:
 				),
 				"%s: the panoramic display's 4 portals, our panel and lights, no HUD glass, the shared MFD art" % name
 			)
-			var M = tv.cockpit.mfds[0]
+			var mfd = tv.cockpit.mfds[0]
 			check(
 				(
-					M.touch_osb(Vector2(24, 5)) == 1
-					and M.touch_osb(Vector2(104, 128)) == 10
-					and M.touch_osb(Vector2(5, 44)) == 12
-					and M.touch_osb(Vector2(127, 104)) == 20
-					and M.touch_osb(Vector2(66, 66)) == -1
+					mfd.touch_osb(Vector2(24, 5)) == 1
+					and mfd.touch_osb(Vector2(104, 128)) == 10
+					and mfd.touch_osb(Vector2(5, 44)) == 12
+					and mfd.touch_osb(Vector2(127, 104)) == 20
+					and mfd.touch_osb(Vector2(66, 66)) == -1
 				),
 				(
 					"%s: the portals are pressed on their labels (top OSB 1, bottom 10, left 12, right 20, none mid-page)"
@@ -87,18 +87,18 @@ func run() -> void:
 			# The panoramic display (pcd.gd): its glass holds the 4 portal pages side by side over the 8 lower
 			# windows, the pages restyled (portal.gdshader); the night art and the cockpit-view model load.
 			await process_frame
-			var P = tv.cockpit.pcd
-			var g: Rect2 = P.glass() if P != null else Rect2()
-			var inside: bool = P != null
+			var pcd = tv.cockpit.pcd
+			var g: Rect2 = pcd.glass() if pcd != null else Rect2()
+			var inside: bool = pcd != null
 			for m in tv.cockpit.mfds:
 				inside = inside and g.grow(1.0).encloses(Rect2(m.position, m.size)) and m.material != null and m.visible
-			var w: Array = P.windows() if P != null else []
+			var w: Array = pcd.windows() if pcd != null else []
 			check(
 				(
 					inside
 					and w.size() == 8
 					and w[0].position.y >= tv.cockpit.mfds[0].position.y + tv.cockpit.mfds[0].size.y - 1.0
-					and P.visible
+					and pcd.visible
 					and tv.cockpit.tex.has("PANEL_NIGHT")
 					and tv.cockpit.tex.has("LIGHTS_NIGHT")
 					and tv.own_bc != null
@@ -127,11 +127,11 @@ func run() -> void:
 					]
 				)
 			)
-			var lvl: Array = P.ground_polys(bx, Vector2(883.05, 699.8), Vector2.RIGHT, Vector2.DOWN)
+			var lvl: Array = pcd.ground_polys(bx, Vector2(883.05, 699.8), Vector2.RIGHT, Vector2.DOWN)
 			check(
 				(
 					raw.any(func(q): return Geometry2D.triangulate_polygon(q).is_empty())
-					and P.ground_polys(bx, hz, Vector2(cos(rl), -sin(rl)), Vector2(sin(rl), cos(rl))).is_empty()
+					and pcd.ground_polys(bx, hz, Vector2(cos(rl), -sin(rl)), Vector2(sin(rl), cos(rl))).is_empty()
 					and lvl.size() == 1
 					and absf(absf(_area(lvl[0])) - 141.5 * 59.1) < 1.0
 				),
@@ -154,7 +154,7 @@ func run() -> void:
 		var p0: Vector3 = tv.flight.state().position
 		var fwd: Vector3 = tv.flight.state().forward
 		tv.flight.start(
-			Settings().assets_dir().path_join("install"),
+			settings().assets_dir().path_join("install"),
 			tv.player.fm_section,
 			p0,
 			Vector3(0.0, 0.0, tv.flight.state().heading),
@@ -196,8 +196,8 @@ func run() -> void:
 			n = tv._parachuters.size()
 			await process_frame
 		check(crew >= 1 and n == crew, "%s: ejection, %d parachuters for %d seats" % [name, n, crew])
-	Settings().jet_id = -1
-	Settings().f35i_slot = -1
+	settings().jet_id = -1
+	settings().f35i_slot = -1
 
 
 static func _area(p: PackedVector2Array) -> float:

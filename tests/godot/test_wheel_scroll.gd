@@ -33,7 +33,7 @@ func run() -> void:
 		["Extras", "extras_top", fe._extras_bar()],
 		["Physics", "phys_top", fe._phys_bar()]
 	]:
-		Settings().pref_page = l[0]
+		settings().pref_page = l[0]
 		fe.set(l[1], 0)
 		click(fe, fe.CONTENT.position + Vector2(l[2].get_center().x, l[2].end.y - 2))  # the down arrow
 		var arrow: int = fe.get(l[1])
@@ -53,17 +53,17 @@ func run() -> void:
 		fe._gui_input(wheel(false))
 		check(fe.get(l[1]) == 0, "%s: the wheel stops at the first row" % l[0])
 	check(fe.EXTRAS.any(func(o): return o[0] == "wheel_scroll"), "Extras has the Mouse wheel row")
-	Settings().wheel_scroll = "natural"
-	Settings().pref_page = "Controls"
+	settings().wheel_scroll = "natural"
+	settings().pref_page = "Controls"
 	fe.ctrl_top = 3
 	fe._gui_input(wheel(true))
 	check(fe.ctrl_top == 2, "natural: wheel down scrolls up")
 	fe._gui_input(wheel(false))
 	fe._gui_input(wheel(false))
 	check(fe.ctrl_top == 4, "natural: wheel up scrolls down")
-	Settings().wheel_scroll = "regular"
+	settings().wheel_scroll = "regular"
 	# The briefing text (TSD, mission 113).
-	Settings().mission_id = 113
+	settings().mission_id = 113
 	fe._reset_tsd_checks()
 	fe.screen = "tsd"
 	fe._enter_screen()
@@ -91,9 +91,9 @@ func run() -> void:
 	check(w.scroll == step, "briefing: wheel up scrolls one line back")
 	w._gui_input(pan(1.0))
 	check(w.scroll == 2 * step, "briefing: a trackpad pan scrolls down")
-	Settings().wheel_scroll = "natural"
+	settings().wheel_scroll = "natural"
 	w._gui_input(wheel(true))
 	check(w.scroll == step, "briefing, natural: wheel down scrolls up")
 	w._gui_input(pan(1.0))
 	check(w.scroll == 0.0, "briefing, natural: a pan down scrolls up")
-	Settings().wheel_scroll = "regular"
+	settings().wheel_scroll = "regular"

@@ -7,8 +7,8 @@ extends "res://../tests/godot/base.gd"
 
 func run() -> void:
 	# F-16 (jet 1).
-	Settings().jet_id = 1
-	Settings().better_cockpit = false
+	settings().jet_id = 1
+	settings().better_cockpit = false
 	var tv = await start_mission(312)
 	var c = tv.cockpit
 	check(String(c.cockpit_dir).get_file() == "f16", "jet 1 flies the f16 cockpit")
@@ -29,7 +29,7 @@ func run() -> void:
 		c.better_instruments == null or (c.better_instruments.indexer == 0 and c.better_instruments.lamps.is_empty()),
 		"f16: Original = the static art (no indexer, no lamps)"
 	)
-	Settings().better_cockpit = true
+	settings().better_cockpit = true
 	await frames(1)
 	check(c.better_instruments._unlit != null, "f16: the unlit copy of the indexer art")
 	for i in [1, 2, 3, 0]:
@@ -51,22 +51,22 @@ func run() -> void:
 			c.better_instruments.lamps.get("ar_nws") == on,
 			"f16: AR/NWS lamp %s (%s)" % [on, c.better_instruments.lamps]
 		)
-	Settings().cockpit_items["aoa_indexer"] = false
-	Settings().cockpit_items["warning_lamps"] = false
-	Settings().cockpit_items["ar_nws_lights"] = false
+	settings().cockpit_items["aoa_indexer"] = false
+	settings().cockpit_items["warning_lamps"] = false
+	settings().cockpit_items["ar_nws_lights"] = false
 	c.state["better"] = {"aoa_index": 2, "flcs": true, "ar_nws": true}
 	await frames(2)
 	check(
 		c.better_instruments.indexer == 0 and c.better_instruments.lamps.is_empty(),
 		"f16: the items' own flags off = static"
 	)
-	Settings().cockpit_items["aoa_indexer"] = true
-	Settings().cockpit_items["warning_lamps"] = true
-	Settings().cockpit_items["ar_nws_lights"] = true
+	settings().cockpit_items["aoa_indexer"] = true
+	settings().cockpit_items["warning_lamps"] = true
+	settings().cockpit_items["ar_nws_lights"] = true
 
 	# Mirage (jet 6): the VVI needle.
-	Settings().jet_id = 6
-	Settings().better_cockpit = false
+	settings().jet_id = 6
+	settings().better_cockpit = false
 	tv = await start_mission(312)
 	c = tv.cockpit
 	check(String(c.cockpit_dir).get_file() == "mirage", "jet 6 flies the mirage cockpit")
@@ -75,7 +75,7 @@ func run() -> void:
 	c.state["vs_fpm"] = 1000.0
 	await frames(2)
 	check(c.better_instruments == null or is_nan(c.better_instruments.needles[0]), "mirage: Original = no VVI needle")
-	Settings().better_cockpit = true
+	settings().better_cockpit = true
 	for v in [[0.0, -90.0], [1000.0, -24.0], [-1000.0, -156.0], [3000.0, 24.5], [9000.0, 90.0], [-9000.0, -270.0]]:
 		c.state["vs_fpm"] = v[0]
 		await frames(2)
@@ -84,9 +84,9 @@ func run() -> void:
 			is_equal_approx(a, deg_to_rad(v[1])),
 			"mirage: %d ft/min → needle %.1f° (%.1f°)" % [v[0], v[1], rad_to_deg(a)]
 		)
-	Settings().cockpit_items["standby_instruments"] = false
+	settings().cockpit_items["standby_instruments"] = false
 	await frames(2)
 	check(is_nan(c.better_instruments.needles[0]), "mirage: the item's own flag off = static")
-	Settings().cockpit_items["standby_instruments"] = true
-	Settings().jet_id = -1
-	Settings().better_cockpit = false
+	settings().cockpit_items["standby_instruments"] = true
+	settings().jet_id = -1
+	settings().better_cockpit = false

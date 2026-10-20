@@ -20,17 +20,17 @@ func run() -> void:
 		for hs in ["original", "real"]:
 			await scenario(-1, F4_LOAD, wd, hs, true)
 	await scenario(1, F16_LOAD, "real", "real", false)
-	Settings().weapon_data = "original"
-	Settings().hud_style = "original"
-	Settings().jet_id = -1
-	Settings().arm_loadouts = {}
+	settings().weapon_data = "original"
+	settings().hud_style = "original"
+	settings().jet_id = -1
+	settings().arm_loadouts = {}
 
 
 func scenario(jet: int, load: Array, wd: String, hs: String, full: bool) -> void:
-	Settings().weapon_data = wd
-	Settings().hud_style = hs
-	Settings().jet_id = jet
-	Settings().arm_loadouts = {1: load}
+	settings().weapon_data = wd
+	settings().hud_style = hs
+	settings().jet_id = jet
+	settings().arm_loadouts = {1: load}
 	var tag := "%s, weapon data %s, HUD %s" % ["F-16" if jet == 1 else "F-4 2000", wd, hs]
 	var tv = await start_mission(321)
 	await fly(tv, 2.0)  # past the mission's t = 0 events ("initiate invisiblity")

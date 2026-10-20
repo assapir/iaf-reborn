@@ -33,7 +33,8 @@ func ok_box() -> bool:
 func run() -> void:
 	var Pilots = load("res://menu/pilots.gd")
 	check(not Pilots.dir().begins_with("user://"), "tests keep the records in a temporary directory")
-	fe = load("res://menu/front_end.tscn").instantiate()
+	var front_end: PackedScene = load("res://menu/front_end.tscn")
+	fe = front_end.instantiate()
 	root.add_child(fe)
 	await frames(3)
 	check(fe.screen == "log" and fe.records != null, "the game starts on the Pilot Records screen")
@@ -74,10 +75,10 @@ func run() -> void:
 	check(
 		(
 			rec.login()
-			and Settings().pilot_id == 15
-			and Settings().pilot_name == "AcePilot12"
-			and Settings().pilot_callsign == "viper"
-			and Settings().pilot_rank == "Second Lieutenant"
+			and settings().pilot_id == 15
+			and settings().pilot_name == "AcePilot12"
+			and settings().pilot_callsign == "viper"
+			and settings().pilot_rank == "Second Lieutenant"
 		),
 		"Login sets the pilot and rank"
 	)
@@ -144,11 +145,11 @@ func run() -> void:
 	# The debrief records the flight for the logged-in pilot.
 	fe.queue_free()
 	await frames(2)
-	Settings().mission_id = 311
-	Settings().debrief = {
+	settings().mission_id = 311
+	settings().debrief = {
 		"passed": true, "headline": "", "notes": "", "result": 1, "bonus": 500, "kills": [[400, 12]], "losses": []
 	}
-	fe = load("res://menu/front_end.tscn").instantiate()
+	fe = front_end.instantiate()
 	root.add_child(fe)
 	await frames(2)
 	check(
@@ -164,7 +165,7 @@ func run() -> void:
 		pilot_line.size() == 1 and pilot_line[0].text == str(Pilots.totals(Pilots.history(15)).score),
 		"debrief PILOT SCORE = the pilot's total (%s)" % [pilot_line]
 	)
-	Settings().debrief = {}
+	settings().debrief = {}
 
 	# The list survives a reload with the selection; the new pilot's records are there.
 	fe.screen = "log"
@@ -210,6 +211,6 @@ func run() -> void:
 	# A double-click on the selected pilot logs in and goes to Main.
 	click_rec(rec.LIST + rec.ITEMS.position + Vector2(10, 5), true)
 	await frames(60)
-	check(fe.screen == "main" and Settings().pilot_id == 14, "double-click logs in -> Main")
-	Settings().pilot_id = -1
+	check(fe.screen == "main" and settings().pilot_id == 14, "double-click logs in -> Main")
+	settings().pilot_id = -1
 	fe.queue_free()

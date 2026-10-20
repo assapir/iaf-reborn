@@ -1,7 +1,7 @@
 # Pause, On-The-Fly menu, FlyTSD, time compression and the views (docs/views.md, docs/front-end.md §16):
-# Views: F1 cockpit / HUD only (the own jet's _bc model in the cockpit views), F10 chase behind the jet, F9 fly-by gliding in, snaps and F2 back view while
-# held, cockpit pans (free look), orbit pans / zoom in the external views, padlock, targets missing = no change,
-# a followed object destroyed = wreck circle.
+# Views: F1 cockpit / HUD only (the own jet's _bc model in the cockpit views), F10 chase behind the jet, F9 fly-by
+# gliding in, snaps and F2 back view while held, cockpit pans (free look), orbit pans / zoom in the external views,
+# padlock, targets missing = no change, a followed object destroyed = wreck circle.
 # Ctrl+P freezes the sim (sim time stops) and passes only Ctrl+P; Ctrl+O opens the menu (sim frozen),
 # Esc closes it; Esc opens the FlyTSD over the frozen flight and Esc returns; C steps the time rate
 # 1 → 2 → 4 → 1 (sim time runs at that rate), Ctrl+C back to 1; Ctrl+M flips Mute.
@@ -55,9 +55,9 @@ func run() -> void:
 	for i in 6:
 		want.append(Rect2i(15, 20 + i * 37, 107, 30))
 	check(ov.item_rects() == want, "item rects (15, 20 + 37i, 122, 50 + 37i) %s" % [ov.item_rects()])
-	var gdi := preload("res://util/gdi.gd")
+	var Gdi := preload("res://util/gdi.gd")
 	check(
-		gdi.ppem(10) == 11 and gdi.ppem(11) == 12 and gdi.ppem(50, 900) == 58,
+		Gdi.ppem(10) == 11 and Gdi.ppem(11) == 12 and Gdi.ppem(50, 900) == 58,
 		"FUN_004eee10 sizes: 10 → 11, 11 → 12, bold 50 → 58 ppem"
 	)
 	check(ov.frame_rect() == Rect2i(5, 10, 127, 235), "frame (5, 10)-(132, 245) %s" % [ov.frame_rect()])
@@ -156,9 +156,9 @@ func run() -> void:
 	check(tv.time_factor == 2, "compression on the ground is allowed and stays")
 	press(tv, KEY_C, true)
 	# --- mute ---
-	var m: bool = Settings().mute
+	var m: bool = settings().mute
 	press(tv, KEY_M, true)
-	check(Settings().mute != m, "Ctrl+M flips Mute")
+	check(settings().mute != m, "Ctrl+M flips Mute")
 	press(tv, KEY_M, true)
 	# --- our keys moved to Ctrl + F-keys ---
 	press(tv, KEY_F2, true)
@@ -169,8 +169,8 @@ func run() -> void:
 	check(tv.in_cockpit, "Ctrl+F2: cockpit")
 
 	# --- views ---
-	var V = tv.Views
-	check(tv.views.type == V.COCKPIT and tv.cockpit.view_mode == 0, "starts in the cockpit")
+	var view_types = tv.Views
+	check(tv.views.type == view_types.COCKPIT and tv.cockpit.view_mode == 0, "starts in the cockpit")
 	# Own jet from the cockpit (FUN_004d9d70): the *_BC model in 1 / 0x12 / 0x16, the jet model outside.
 	check(tv.own_bc != null and tv.own_bc.visible and not tv.aircraft.visible, "cockpit: the own jet's _bc model drawn")
 	check(tv.own_bc.scale == tv.aircraft.scale, "the _bc model at the jet's Present scale")
@@ -185,17 +185,17 @@ func run() -> void:
 	)
 	press(tv, KEY_F1)
 	await frames(1)
-	check(tv.views.type == V.HUD_ONLY and tv.cockpit.view_mode == 1 and tv.in_cockpit, "F1: HUD only")
+	check(tv.views.type == view_types.HUD_ONLY and tv.cockpit.view_mode == 1 and tv.in_cockpit, "F1: HUD only")
 	check(not tv.own_bc.visible and not tv.aircraft.visible, "HUD only: no own jet")
 	press(tv, KEY_F1)
-	check(tv.views.type == V.COCKPIT, "F1 again: cockpit")
+	check(tv.views.type == view_types.COCKPIT, "F1 again: cockpit")
 	# Snap 90 left while Numpad 4 is held, back on release; F2 back view.
 	press(tv, KEY_KP_4)
 	await frames(2)
 	check(tv.views.snap != null and is_equal_approx(tv.views.head_angles().x, -PI / 2), "Numpad 4: snap 90 left")
 	check(tv.cockpit.position.x > 0.0, "the panel pans right off the view")
 	press(tv, KEY_KP_4, false, false, false)
-	check(tv.views.snap == null and tv.views.type == V.COCKPIT, "release: back to the cockpit")
+	check(tv.views.snap == null and tv.views.type == view_types.COCKPIT, "release: back to the cockpit")
 	press(tv, KEY_F2)
 	await frames(1)
 	var h: Vector2 = tv.views.head_angles()
@@ -206,7 +206,7 @@ func run() -> void:
 	check(tv.views.snap == null, "F2 released")
 	# Cockpit pan right: free look, accelerating; release stops.
 	press(tv, KEY_KP_6, false, true)
-	check(tv.views.type == V.FREE_LOOK, "Shift+Numpad 6: free look")
+	check(tv.views.type == view_types.FREE_LOOK, "Shift+Numpad 6: free look")
 	await frames(1)
 	check(tv.own_bc.visible, "free look: the _bc model drawn")
 	await create_timer(1.0).timeout  # 2·t·(1 − 0.9^t)·45°/s: about 9° after 1 s
@@ -218,18 +218,21 @@ func run() -> void:
 		is_equal_approx(tv.views.head_angles().x, tv.views.head.x) and tv.views.head.x >= y1, "release: the head stays"
 	)
 	press(tv, KEY_F1)
-	check(tv.views.type == V.COCKPIT and not tv.views._ret.is_empty(), "F1: the head returns to straight ahead (45°/s)")
+	check(
+		tv.views.type == view_types.COCKPIT and not tv.views._ret.is_empty(),
+		"F1: the head returns to straight ahead (45°/s)"
+	)
 	await frames(120)
 	check(tv.views.head_angles() == Vector2.ZERO, "head back to (0, 0)")
 	# Views with a missing object do nothing (no radar target, threat, wingman, weapon here).
 	for k in [KEY_F3, KEY_F4, KEY_F5, KEY_F7, KEY_F8, KEY_F11]:
 		press(tv, k)
-	check(tv.views.type == V.COCKPIT, "F3 F4 F5 F7 F8 F11 without their object: no change")
+	check(tv.views.type == view_types.COCKPIT, "F3 F4 F5 F7 F8 F11 without their object: no change")
 	# F10 chase: behind the jet along its path, 10° up, 3·dmin away.
 	press(tv, KEY_F10)
 	await frames(3)
 	check(
-		tv.views.type == V.CHASE and tv.chase.current and not tv.in_cockpit and tv.cockpit.view_mode == 2,
+		tv.views.type == view_types.CHASE and tv.chase.current and not tv.in_cockpit and tv.cockpit.view_mode == 2,
 		"F10: chase, messages only"
 	)
 	check(tv.aircraft.visible and not tv.own_bc.visible, "chase: the jet model, not the _bc")
@@ -252,7 +255,7 @@ func run() -> void:
 	check(tv.views.orbit_heading > hd, "Shift+Numpad 6: the orbit turns")
 	# F9 fly-by: from a random offset point gliding into the chase position (0.3^t).
 	press(tv, KEY_F9)
-	check(tv.views.type == V.FOLLOW and not tv.views._swoop.is_empty(), "F9: fly-by (type 9) with the swoop")
+	check(tv.views.type == view_types.FOLLOW and not tv.views._swoop.is_empty(), "F9: fly-by (type 9) with the swoop")
 	# F6 / padlock on an object: a test object in front of the jet.
 	var obj := Node3D.new()
 	tv.add_child(obj)
@@ -260,14 +263,16 @@ func run() -> void:
 	tv.padlock_target = obj
 	press(tv, KEY_F1)
 	press(tv, KEY_F3)
-	check(tv.views.type == V.PADLOCK and tv.in_cockpit, "F3: padlock the stored target")
+	check(tv.views.type == view_types.PADLOCK and tv.in_cockpit, "F3: padlock the stored target")
 	await frames(60)
 	check(tv.views.head_angles().x > 0.2, "the head follows the target to the right (%.2f)" % tv.views.head_angles().x)
 	# A followed object destroyed: wreck circle.
-	tv.views.set_orbit(obj, tv.CHASE_OFFS, 1.0, V.FLYBY, false)
+	tv.views.set_orbit(obj, tv.CHASE_OFFS, 1.0, view_types.FLYBY, false)
 	await frames(2)
 	obj.free()
 	await frames(2)
-	check(tv.views.type == V.WRECK and tv.chase.current, "the followed object is gone: circle its last position")
+	check(
+		tv.views.type == view_types.WRECK and tv.chase.current, "the followed object is gone: circle its last position"
+	)
 	press(tv, KEY_F1)
-	check(tv.views.type in [V.COCKPIT, V.HUD_ONLY], "F1 back")
+	check(tv.views.type in [view_types.COCKPIT, view_types.HUD_ONLY], "F1 back")

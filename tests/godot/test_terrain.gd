@@ -28,7 +28,7 @@ func drop(t: Node3D) -> void:
 
 func run() -> void:
 	# The flight scene: the loading screen is up and the simulation holds until the ground is ready.
-	Settings().mission_id = 311
+	settings().mission_id = 311
 	change_scene_to_file("res://terrain/terrain_view.tscn")
 	var tv = null
 	while tv == null or tv.get("flight") == null:

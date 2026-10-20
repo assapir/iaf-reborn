@@ -1,6 +1,7 @@
 # Dev helper (not run by tools/test.sh): one real-render run that measures the frame rate of the Graphics /
 # Extras render options at fixed poses and saves a screenshot of each to BENCH_DIR (docs/rendering.md).
-#   IAF_DEFAULT_SETTINGS=1 BENCH_DIR=/tmp/bench godot --path game --resolution 1920x1080 -s ../tests/godot/_visual_bench.gd
+#   IAF_DEFAULT_SETTINGS=1 BENCH_DIR=/tmp/bench godot --path game --resolution 1920x1080 -s \
+#     ../tests/godot/_visual_bench.gd
 # BENCH_ONLY=name,name limits the configs; BENCH_POSES=name,name the poses; BENCH_SEED the cloud texture's seed
 # (7: Cloud256_5, the overcast one; 3: Cloud256_0, broken clouds).
 extends "res://../tests/godot/base.gd"
@@ -44,7 +45,7 @@ func run() -> void:
 	var defaults := {}
 	for c in CONFIGS.values():
 		for k in c:
-			defaults[k] = Settings().get(k)
+			defaults[k] = settings().get(k)
 	for p in POSES:
 		if not poses.is_empty() and not poses.has(p[0]):
 			continue
@@ -52,8 +53,9 @@ func run() -> void:
 			if not only.is_empty() and not only.has(name):
 				continue
 			for k in defaults:
-				Settings().set(k, CONFIGS[name].get(k, defaults[k]))
-			seed(int(OS.get_environment("BENCH_SEED")) if OS.get_environment("BENCH_SEED") != "" else 7)  # the same cloud texture every time
+				settings().set(k, CONFIGS[name].get(k, defaults[k]))
+			# the same cloud texture every time
+			seed(int(OS.get_environment("BENCH_SEED")) if OS.get_environment("BENCH_SEED") != "" else 7)
 			if tv.clouds != null:
 				tv.clouds.free()
 				tv.clouds = null

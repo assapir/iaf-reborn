@@ -1,7 +1,7 @@
 # Airbases, Detailed (Preferences → Graphics → MORE → Airbases; docs/rendering.md §7, docs/deviations.md §2): near the
 # ground, terrain.gdshader draws a procedural runway, taxiway and apron surface with markings over the nearest base's
-# paved surface. The runways (ends, width, designation numbers), the AI's taxi paths and the paved-surface mask come from
-# the 1998 art and iaf.ibx (`iaf-terrain airbases` → assets/converted/terrain/airbases.json, crates/iaf-tools
+# paved surface. The runways (ends, width, designation numbers), the AI's taxi paths and the paved-surface mask come
+# from the 1998 art and iaf.ibx (`iaf-terrain airbases` → assets/converted/terrain/airbases.json, crates/iaf-tools
 # airbases.rs). Rendering only: the flight model's runway surface stays terraintype.dat's.
 extends RefCounted
 
@@ -17,7 +17,8 @@ static var _on := false
 
 
 ## The bases (airbases.json's list; [] when it was not converted).
-## World scale Real: each base at its new site (IafBases.base: the runways moved at the real width, `mask_affine`, `centre`).
+## World scale Real: each base at its new site (IafBases.base: the runways moved at the real width, `mask_affine`,
+## `centre`).
 static func bases() -> Array:
 	var moved := Settings.sync_bases()
 	if not _loaded or moved != _loaded_moved:

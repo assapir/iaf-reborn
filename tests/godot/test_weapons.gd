@@ -65,7 +65,8 @@ func run() -> void:
 		),
 		"Real AIM-9L chase: top speed Mach 2.5, flies 17.7 km from 250 m/s"
 	)
-	var dlz: Array = load("res://weapons/missile.gd").dlz(
+	var missile_script: GDScript = load("res://weapons/missile.gd")
+	var dlz: Array = missile_script.dlz(
 		real.motion_for(570, 3).merged(m9, true),
 		{"pos": Vector3.ZERO, "fwd": Vector3(0, 1, 0), "vel": Vector3(0, 250, 0)},
 		{"pos": Vector3(0, 5000, 0), "vel": Vector3.ZERO}
@@ -107,7 +108,7 @@ func run() -> void:
 	)
 	sk.set_weapon(db.by_id(11))
 	check(sk.can_track(me, {"pos": Vector3(0, 2000, 0), "vel": Vector3(0, -200, 0)}, 570), "original: all aspects")
-	var mi = load("res://weapons/missile.gd").new()
+	var mi = missile_script.new()
 	mi.launch(
 		by_name["AIM-9D"],
 		{"_absAcceleration": 300.0, "_spiralAccel": 0.0, "_timeConstOrientation": 0.0, "burn": 10.0},
@@ -295,7 +296,7 @@ func run() -> void:
 	}
 	var internal: float = tv.flight.state().internal_fuel_kg
 	for fixed in [false, true]:
-		Settings().better["fix_stores_weight"] = fixed
+		settings().better["fix_stores_weight"] = fixed
 		var w2 = load("res://weapons/player_weapons.gd").new()
 		tv.add_child(w2)
 		w2.setup(tv, tank_load, f16, bdb, desc)
@@ -320,7 +321,7 @@ func run() -> void:
 				"jettison: the tank left station E, drag dropped"
 			)
 		w2.queue_free()
-	Settings().better["fix_stores_weight"] = false
+	settings().better["fix_stores_weight"] = false
 	# Chaff / flares (Insert / Delete, events 0x44 / 0x45): one decoy per press from stations 10 / 11,
 	# behind the jet, gone 4 s later; refused with the gear handle down.
 	var ch0: int = w.stores.displayed(10)

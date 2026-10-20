@@ -13,7 +13,7 @@ func run() -> void:
 		"effects level 1 + 2·slider"
 	)
 	for v in [0.0, 0.5, 1.0]:
-		Settings().visual_effects = v
+		settings().visual_effects = v
 		var fx = FX.new()
 		root.add_child(fx)
 		fx.explosion(Vector3(0, 100, 0), FX.F_COLUMN, 4.0, 95.0, 0.0)
@@ -23,7 +23,7 @@ func run() -> void:
 			"visual effects %.1f: column of %d puffs (%d)" % [v, want, fx._columns[0].n]
 		)
 		fx.queue_free()
-	Settings().visual_effects = 1.0
+	settings().visual_effects = 1.0
 	# A fireball is centred on the explosion point (sprite flag +0x178 = 1).
 	var fx = FX.new()
 	root.add_child(fx)
@@ -90,7 +90,7 @@ func run() -> void:
 	check(lod.size() == 1 and h_end > 0.0, "t62: one _m copy, _h drawn to %.0f m" % h_end)
 	# Level 1: point-sampled textures; a destroyed unit drops its copies.
 	Gltf.object_level = 1
-	var m = Gltf.open(Settings().assets_dir().path_join("converted/objects/groundforces/t62/t62_h.gltf"))
+	var m = Gltf.open(settings().assets_dir().path_join("converted/objects/groundforces/t62/t62_h.gltf"))
 	var mats: Array = m[1].get_materials().filter(func(x): return x is BaseMaterial3D)
 	check(
 		mats.size() > 0 and mats.all(func(x): return x.texture_filter == BaseMaterial3D.TEXTURE_FILTER_NEAREST),
@@ -137,10 +137,10 @@ func run() -> void:
 		tv.clouds._mat.shader.code.contains("POSITION.z = 0.0"),
 		"cloud dome at the far plane: behind every terrain point (the cut)"
 	)
-	Settings().textured_sky = false
+	settings().textured_sky = false
 	tv.apply_render_options()
 	check(tv.clouds == null, "textured sky off in flight: the layer goes")
-	Settings().textured_sky = true
+	settings().textured_sky = true
 	tv.apply_render_options()
 	check(tv.clouds != null, "textured sky on in flight: the layer comes back")
 	# Extras render options (docs/rendering.md): defaults = the look before; each switch sets its render settings.
@@ -150,10 +150,10 @@ func run() -> void:
 	var sky0: Sky = env.sky
 	check(
 		(
-			Settings().antialiasing == "msaa4"
-			and not Settings().terrain_closeup
-			and Settings().sky == "original"
-			and not Settings().water
+			settings().antialiasing == "msaa4"
+			and not settings().terrain_closeup
+			and settings().sky == "original"
+			and not settings().water
 		),
 		"render options default to the look before"
 	)
@@ -173,7 +173,7 @@ func run() -> void:
 		"upscaling off: 3D at native resolution"
 	)
 	for u in [["quality", 0.77], ["balanced", 0.67]]:
-		Settings().upscaling = u[0]
+		settings().upscaling = u[0]
 		tv.apply_render_options()
 		check(
 			(
@@ -194,7 +194,7 @@ func run() -> void:
 		),
 		"upscaler: MetalFX spatial on Metal, FSR 1 elsewhere"
 	)
-	Settings().upscaling = "off"
+	settings().upscaling = "off"
 	tv.apply_render_options()
 	check(
 		(
@@ -204,15 +204,15 @@ func run() -> void:
 		),
 		"upscaling off again: native"
 	)
-	Settings().antialiasing = "msaa4_fxaa"
+	settings().antialiasing = "msaa4_fxaa"
 	tv.apply_render_options()
 	check(
 		vp.msaa_3d == Viewport.MSAA_4X and vp.screen_space_aa == Viewport.SCREEN_SPACE_AA_FXAA and not vp.use_taa,
 		"anti-aliasing + FXAA"
 	)
-	Settings().antialiasing = "taa"
-	Settings().terrain_closeup = true
-	Settings().sky = "atmospheric"
+	settings().antialiasing = "taa"
+	settings().terrain_closeup = true
+	settings().sky = "atmospheric"
 	tv.apply_render_options()
 	check(
 		vp.msaa_3d == Viewport.MSAA_DISABLED and vp.screen_space_aa == Viewport.SCREEN_SPACE_AA_DISABLED and vp.use_taa,
@@ -266,26 +266,26 @@ func run() -> void:
 		),
 		"terrain shader needs no tangents (the grid has none: no Godot warning)"
 	)
-	Settings().upscaling = "balanced"
-	var cfg: ConfigFile = Settings().write_config()
-	Settings().antialiasing = "msaa4"
-	Settings().terrain_closeup = false
-	Settings().sky = "original"
-	Settings().upscaling = "off"
-	Settings().read_config(cfg)
+	settings().upscaling = "balanced"
+	var cfg: ConfigFile = settings().write_config()
+	settings().antialiasing = "msaa4"
+	settings().terrain_closeup = false
+	settings().sky = "original"
+	settings().upscaling = "off"
+	settings().read_config(cfg)
 	check(
 		(
-			Settings().antialiasing == "taa"
-			and Settings().terrain_closeup
-			and Settings().sky == "atmospheric"
-			and Settings().upscaling == "balanced"
+			settings().antialiasing == "taa"
+			and settings().terrain_closeup
+			and settings().sky == "atmospheric"
+			and settings().upscaling == "balanced"
 		),
 		"render options saved and loaded"
 	)
-	Settings().upscaling = "off"
-	Settings().antialiasing = "msaa4"
-	Settings().terrain_closeup = false
-	Settings().sky = "original"
+	settings().upscaling = "off"
+	settings().antialiasing = "msaa4"
+	settings().terrain_closeup = false
+	settings().sky = "original"
 	tv.apply_render_options()
 	check(
 		(
@@ -299,10 +299,10 @@ func run() -> void:
 		),
 		"render options off again: everything as before"
 	)
-	Settings().smoke_trails = false
-	Settings().textured_sky = false
+	settings().smoke_trails = false
+	settings().textured_sky = false
 	tv = await start_mission(231)
 	check(tv.trails == null, "smoke trails off: no trails")
 	check(tv.clouds == null, "textured sky off: no cloud layer")
-	Settings().smoke_trails = true
-	Settings().textured_sky = true
+	settings().smoke_trails = true
+	settings().textured_sky = true

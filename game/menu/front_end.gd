@@ -31,7 +31,8 @@ const LIST_DESC_LIT := Color8(0, 255, 0)
 const PREF_ART := {"Sound": "sound", "Graphics": "graph", "Controls": "cntrl", "Devices": "cntrl", "Gameplay": "gamep"}
 ## Controls per page: [kind, setting, value (radio) / step (slider, 0 = continuous), rect].
 const PREF_CONTROLS := {
-	"Sound": [
+	"Sound":
+	[
 		["slider", "master_volume", 0.0, [19, 17, 419, 32]],
 		["slider", "music_volume", 0.0, [19, 78, 419, 93]],
 		["slider", "engine_volume", 0.0, [19, 139, 419, 164]],
@@ -39,7 +40,8 @@ const PREF_CONTROLS := {
 		["slider", "speech_volume", 0.0, [19, 261, 419, 276]],
 		["check", "mute", true, [8, 307, 68, 327]],
 	],
-	"Graphics": [
+	"Graphics":
+	[
 		["slider", "terrain_detail", 0.25, [19, 62, 419, 77]],
 		["slider", "object_detail", 0.5, [19, 148, 419, 163]],
 		["slider", "visual_effects", 0.5, [19, 236, 419, 251]],
@@ -49,7 +51,8 @@ const PREF_CONTROLS := {
 		["check", "external_stores", true, [303, 306, 423, 326]],
 	],
 	"Controls": [],
-	"Devices": [
+	"Devices":
+	[
 		["radio", "flight_controls", 1, [25, 73, 102, 92]],
 		["radio", "flight_controls", 0, [25, 108, 109, 127]],
 		["radio", "rudder", 1, [193, 73, 267, 92]],
@@ -57,7 +60,8 @@ const PREF_CONTROLS := {
 		["radio", "throttle", 1, [317, 73, 394, 92]],
 		["radio", "throttle", 0, [317, 108, 399, 127]],
 	],
-	"Gameplay": [
+	"Gameplay":
+	[
 		["check", "no_wind", true, [24, 45, 154, 78]],
 		["check", "no_blackouts", true, [24, 78, 154, 113]],
 		["check", "no_spins", true, [24, 113, 154, 148]],
@@ -84,14 +88,30 @@ const PREF_VSYNC := Rect2(8, 330, 110, 23)
 ## GRAPHICS_KEYS and the terrain imagery); on that view the same spot is BACK.
 const PREF_MORE := Rect2(230, 330, 110, 23)
 const GFX_MORE := "Graphics+"
-const GRAPHICS_KEYS := ["fullscreen", "antialiasing", "terrain_closeup", "sky", "upscaling", "night_lights", "water", "models",
-	"rolling_wheels", "particle_effects", "airbases"]
+const GRAPHICS_KEYS := [
+	"fullscreen",
+	"antialiasing",
+	"terrain_closeup",
+	"sky",
+	"upscaling",
+	"night_lights",
+	"water",
+	"models",
+	"rolling_wheels",
+	"particle_effects",
+	"airbases"
+]
 ## Ours on the debrief screen: EXPORT FLIGHT DATA at the content's top right, above the tab strip (content
 ## coordinates; the original's pages fill the rest).
 const DEB_EXPORT := Rect2(253, 12, 180, 20)
 ## Ours on the Devices page, under THROTTLE on the page's 35 px row grid: the throttle detent (joystick.gd
 ## `detent_map`): OFF = the original's linear lever, SET AT LEVER stores the lever's position in its detent as MIL.
-const PREF_DETENT := {"title": Rect2(317, 143, 115, 20), "off": Rect2(317, 178, 110, 20), "set": Rect2(317, 213, 115, 20), "note": Rect2(317, 245, 125, 60)}
+const PREF_DETENT := {
+	"title": Rect2(317, 143, 115, 20),
+	"off": Rect2(317, 178, 110, 20),
+	"set": Rect2(317, 213, 115, 20),
+	"note": Rect2(317, 245, 125, 60)
+}
 ## Gameplay scoring strip: pref/score.bmp, 25 frames of 151x34.
 const PREF_SCORE := Rect2(290, 184, 151, 34)
 ## Live preview sounds while dragging (wav/pref, FUN_00544560).
@@ -158,8 +178,20 @@ const EXTRAS := [
 	["particle_effects", "Particle effects", [["Original", false], ["Detailed", true]]],
 	["airbases", "Airbases", [["Original", "original"], ["Detailed", "detailed"]]],
 	# Ours: the F-35I (docs/f35i.md) flies from the Jet list button it replaces; more than three choices cycle.
-	["f35i_slot", "F-35I replaces", [["Off", -1], ["F-15", 0], ["F-16", 1], ["F-4E", 2], ["Kurnass 2000", 3],
-		["Lavi", 4], ["Kfir", 5], ["Mirage", 6]]],
+	[
+		"f35i_slot",
+		"F-35I replaces",
+		[
+			["Off", -1],
+			["F-15", 0],
+			["F-16", 1],
+			["F-4E", 2],
+			["Kurnass 2000", 3],
+			["Lavi", 4],
+			["Kfir", 5],
+			["Mirage", 6]
+		]
+	],
 	# Ours: the HARM page's list from the radars that emit (the RWR's emitters and the searching sites) instead of
 	# the HARM sensor's scan (docs/deviations.md §2). The saved value stays "rwr".
 	["harm_targets", "HARM targets", [["Original", "original"], ["Real", "rwr"]]],
@@ -180,7 +212,9 @@ func _extras_rows() -> Array:
 	# Ours (docs/world-scale.md): true-size models and every airbase at its real place.
 	rows.append(["world_scale", "World scale", [["Original", "original"], ["Real 1:1", "real"]]])
 	for key in ImageryLayers.REGIONS:
-		rows.append([key, ImageryLayers.REGION_LABELS[key], ImageryLayers.REGIONS[key].map(func(o): return [o[1], o[0]])])
+		rows.append(
+			[key, ImageryLayers.REGION_LABELS[key], ImageryLayers.REGIONS[key].map(func(o): return [o[1], o[0]])]
+		)
 	# Ours: the preferences to / from a .cfg file (not a setting: a press opens the file dialog, _settings_file).
 	rows.append(["settings_file", "Settings file", [["Export", "export"], ["Import", "import"]]])
 	# Our graphics options show on the Graphics page's MORE view, the rest on Extras.
@@ -196,12 +230,21 @@ static func _graphics_row(key: String) -> bool:
 static func _rows_page(page: String) -> bool:
 	return page == "Extras" or page == GFX_MORE
 
+
 ## Button-release dispatcher FUN_004ec770: screen -> {button label -> next screen}.
 ## Basic/Combat mission buttons go to the Jet list; Jet and campaign mission buttons load the
 ## mission (-> TSD).
 const FORWARD := {
-	"main": {"training": "training", "campaigns": "camp", "preferences": "pref",
-		"missioncreator": "mc", "pilotrecords": "log", "reference": "ref", "multiplayer": "ctype"},
+	"main":
+	{
+		"training": "training",
+		"campaigns": "camp",
+		"preferences": "pref",
+		"missioncreator": "mc",
+		"pilotrecords": "log",
+		"reference": "ref",
+		"multiplayer": "ctype"
+	},
 	"training": {"basiccourse": "basic", "combatcourse": "combat"},
 	"camp": {"historical": "his", "future": "fut"},
 	"his": {"sixdaywar": "his1mis", "yomkipurwar": "his2mis", "lebanonwar": "his3mis"},
@@ -210,10 +253,26 @@ const FORWARD := {
 const TO_JET := ["basic", "combat"]
 const LOADS_MISSION := ["jet", "his1mis", "his2mis", "his3mis", "fut1mis", "fut2mis", "fut3mis"]
 ## BACK (FUN_004ed1b0). The Jet list goes back to where it came from (screen 9 / 10).
-const BACK := {"pref": "main", "ref": "main", "training": "main", "ctype": "main",
-	"basic": "training", "combat": "training", "camp": "main", "mc": "main",
-	"his": "camp", "fut": "camp", "his1mis": "his", "his2mis": "his", "his3mis": "his",
-	"fut1mis": "fut", "fut2mis": "fut", "fut3mis": "fut", "tcp": "ctype", "ipx": "ctype"}
+const BACK := {
+	"pref": "main",
+	"ref": "main",
+	"training": "main",
+	"ctype": "main",
+	"basic": "training",
+	"combat": "training",
+	"camp": "main",
+	"mc": "main",
+	"his": "camp",
+	"fut": "camp",
+	"his1mis": "his",
+	"his2mis": "his",
+	"his3mis": "his",
+	"fut1mis": "fut",
+	"fut2mis": "fut",
+	"fut3mis": "fut",
+	"tcp": "ctype",
+	"ipx": "ctype"
+}
 ## No BACK here (FUN_004ea2a0): its disabled plate, and the blank lower clip (lowclipc, which
 ## otherwise holds the BACK plate). QUIT replaces MAIN on QUIT_SCREENS.
 const NO_BACK := ["log", "main", "deb", "jump"]
@@ -332,7 +391,9 @@ func _ready() -> void:
 		for k in Settings.PREFS.gameplay:
 			p[k] = Settings.get(k)
 		# Without a logged-in pilot nothing is saved; the Debrief still shows the flight's numbers.
-		Settings.debrief["stats"] = Pilots.record(Settings.pilot_id, Settings.mission_id, Settings.debrief, score_multiplier(p))
+		Settings.debrief["stats"] = Pilots.record(
+			Settings.pilot_id, Settings.mission_id, Settings.debrief, score_multiplier(p)
+		)
 	var at := args.find("--mission")
 	if at >= 0:
 		Settings.mission_id = int(args[at + 1])
@@ -363,7 +424,9 @@ func _load_menu_data() -> void:
 		push_error("front end: run tools/setup-cli.sh (menus not converted)")
 	hebrew = Settings.load_json("res://menu/strings_he.json")
 	var scale_file := dir.path_join("image_scale.txt")
-	art_scale = float(FileAccess.get_file_as_string(scale_file).strip_edges()) if FileAccess.file_exists(scale_file) else 1.0
+	art_scale = (
+		float(FileAccess.get_file_as_string(scale_file).strip_edges()) if FileAccess.file_exists(scale_file) else 1.0
+	)
 	sounds.clear()
 
 
@@ -394,6 +457,7 @@ static func _norm(label: String) -> String:
 
 
 # --- assets -----------------------------------------------------------------------------
+
 
 func _tex(path: String) -> Texture2D:
 	if not textures.has(path):
@@ -447,6 +511,7 @@ func _apply_music_volume() -> void:
 
 
 # --- screen model -----------------------------------------------------------------------
+
 
 func _def() -> Dictionary:
 	return menus.get(screen, {})
@@ -570,7 +635,9 @@ func _enter_arm() -> void:
 		tsd.setup(self, Settings.mission_id)
 		tsd.visible = false
 	if mission_weapons == null:
-		mission_weapons = preload("res://weapons/mission_weapons.gd").create(Settings.mission_id, Settings.real_weapons())
+		mission_weapons = preload("res://weapons/mission_weapons.gd").create(
+			Settings.mission_id, Settings.real_weapons()
+		)
 	var n := _flight_number(_selected_flight())
 	if n <= 0:
 		n = tsd.default_flight()
@@ -678,6 +745,7 @@ func _frame(key: String, label: String) -> int:
 
 # --- drawing ----------------------------------------------------------------------------
 
+
 func _scale() -> float:
 	return min(size.x / W, size.y / H)
 
@@ -716,7 +784,9 @@ func _blit(path: String, pos: Vector2, on: CanvasItem = null) -> void:
 func _blit_region(path: String, src: Rect2, dest: Vector2, on: CanvasItem = null) -> void:
 	var t := _tex(path)
 	if t != null:
-		(on if on else self).draw_texture_rect_region(t, _rect(Rect2(dest, src.size)), Rect2(src.position * art_scale, src.size * art_scale))
+		(on if on else self).draw_texture_rect_region(
+			t, _rect(Rect2(dest, src.size)), Rect2(src.position * art_scale, src.size * art_scale)
+		)
 
 
 func _process(_delta: float) -> void:
@@ -858,11 +928,25 @@ func _draw_list(list: Dictionary) -> void:
 			title = row.name
 		var desc := _string(row.desc_key)
 		# Ours: the Jet list row of the button the F-35I replaces describes the F-35I.
-		if screen == "jet" and int(Settings.f35i_slot) >= 0 and JET_IDS.get(_norm(row.name), -1) == int(Settings.f35i_slot):
+		if (
+			screen == "jet"
+			and int(Settings.f35i_slot) >= 0
+			and JET_IDS.get(_norm(row.name), -1) == int(Settings.f35i_slot)
+		):
 			title = "אדיר" if _he() else "F-35I"
 			desc = _t(F35I_DESC)
-		_text_line(Rect2(CONTENT.position + Vector2(tb[0], tb[1]), Vector2(tb[2] - tb[0], tb[3] - tb[1])), title, LIST_TITLE_PX, LIST_TITLE)
-		_text_block(Rect2(CONTENT.position + Vector2(db[0], db[1]), Vector2(db[2] - db[0], db[3] - db[1])), desc, LIST_DESC_PX, LIST_DESC_LIT if lit else LIST_DESC)
+		_text_line(
+			Rect2(CONTENT.position + Vector2(tb[0], tb[1]), Vector2(tb[2] - tb[0], tb[3] - tb[1])),
+			title,
+			LIST_TITLE_PX,
+			LIST_TITLE
+		)
+		_text_block(
+			Rect2(CONTENT.position + Vector2(db[0], db[1]), Vector2(db[2] - db[0], db[3] - db[1])),
+			desc,
+			LIST_DESC_PX,
+			LIST_DESC_LIT if lit else LIST_DESC
+		)
 
 
 ## Single line, bottom-aligned (DT_SINGLELINE|DT_BOTTOM); right-aligned in Hebrew.
@@ -878,13 +962,17 @@ func _text_line(box: Rect2, text: String, px: float, color: Color, f: Font = nul
 func _text_fit(box: Rect2, text: String, px: float, color: Color, f: Font = null) -> void:
 	f = f if f != null else font
 	var p := px
-	while p > px * 0.6 and f.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, int(round(p * _scale()))).x > _rect(box).size.x:
+	while (
+		p > px * 0.6
+		and f.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, int(round(p * _scale()))).x > _rect(box).size.x
+	):
 		p -= 0.5
 	_text_line(box, text, p, color, f)
 
 
 ## Word-wrapped block from the top (DT_WORDBREAK); returns the wrapped text's height in page pixels.
-## `by_script`: right-aligned only when the text itself is Hebrew (English texts in the Hebrew menus read left to right).
+## `by_script`: right-aligned only when the text itself is Hebrew (English texts in the Hebrew menus read left to
+## right).
 func _text_block(box: Rect2, text: String, px: float, color: Color, f: Font = null, by_script := false) -> float:
 	f = f if f != null else font
 	var r := _rect(box)
@@ -941,26 +1029,63 @@ func _draw_prefs() -> void:
 	if page == "Devices":
 		var fs := int(round(LIST_TITLE_PX * _scale()))
 		var tr := _rect(Rect2(at + PREF_DETENT.title.position, PREF_DETENT.title.size))
-		draw_string(font_art, Vector2(tr.position.x, tr.end.y - font_art.get_descent(fs)), _art("Detent = MIL"), HORIZONTAL_ALIGNMENT_LEFT, tr.size.x, fs, LIST_TITLE)
+		draw_string(
+			font_art,
+			Vector2(tr.position.x, tr.end.y - font_art.get_descent(fs)),
+			_art("Detent = MIL"),
+			HORIZONTAL_ALIGNMENT_LEFT,
+			tr.size.x,
+			fs,
+			LIST_TITLE
+		)
 		var d := int(pref_work.get("throttle_detent", -1))
 		var has_joy := Joystick.device() >= 0
 		for k in ["off", "set"]:
 			var on := (d < 0) if k == "off" else (d >= 0)
 			var r0: Rect2 = PREF_DETENT[k]
-			_blit_region("pref/gamep_%d.png" % (1 if on else 0), Rect2(Vector2(28, 55), Vector2(11, 11)), at + r0.position + Vector2(4, 6))
+			_blit_region(
+				"pref/gamep_%d.png" % (1 if on else 0),
+				Rect2(Vector2(28, 55), Vector2(11, 11)),
+				at + r0.position + Vector2(4, 6)
+			)
 			var r := _rect(Rect2(at + r0.position + Vector2(22, 0), Vector2(r0.size.x - 22, 20)))
 			var col: Color = LIST_DESC_LIT if on else LIST_DESC
 			if k == "set" and not has_joy:
 				col = Color(LIST_DESC, 0.45)
-			draw_string(font_art, Vector2(r.position.x, r.end.y - font_art.get_descent(fs)), _art("Off" if k == "off" else "Set at lever"), HORIZONTAL_ALIGNMENT_LEFT, r.size.x, fs, col)
-		_text_block(Rect2(at + PREF_DETENT.note.position, PREF_DETENT.note.size), _t("Put the lever in its MIL click, then choose Set at lever."), LIST_DESC_PX, LIST_DESC)
+			draw_string(
+				font_art,
+				Vector2(r.position.x, r.end.y - font_art.get_descent(fs)),
+				_art("Off" if k == "off" else "Set at lever"),
+				HORIZONTAL_ALIGNMENT_LEFT,
+				r.size.x,
+				fs,
+				col
+			)
+		_text_block(
+			Rect2(at + PREF_DETENT.note.position, PREF_DETENT.note.size),
+			_t("Put the lever in its MIL click, then choose Set at lever."),
+			LIST_DESC_PX,
+			LIST_DESC
+		)
 	if page == "Graphics":
 		# Not mirrored in Hebrew: the Graphics art is left-to-right in both languages (the Hebrew CD's too).
 		var vs_on := bool(pref_work.get("vsync", true))
-		_blit_region("pref/gamep_%d.png" % (1 if vs_on else 0), Rect2(Vector2(28, 55), Vector2(11, 11)), at + PREF_VSYNC.position + Vector2(4, 6))
+		_blit_region(
+			"pref/gamep_%d.png" % (1 if vs_on else 0),
+			Rect2(Vector2(28, 55), Vector2(11, 11)),
+			at + PREF_VSYNC.position + Vector2(4, 6)
+		)
 		var r := _rect(Rect2(at + PREF_VSYNC.position + Vector2(22, 0), Vector2(PREF_VSYNC.size.x - 22, 20)))
 		var fs := int(round(LIST_TITLE_PX * _scale()))
-		draw_string(font_art, Vector2(r.position.x, r.end.y - font_art.get_descent(fs)), "VSYNC", HORIZONTAL_ALIGNMENT_LEFT, r.size.x, fs, LIST_DESC_LIT if vs_on else LIST_DESC)
+		draw_string(
+			font_art,
+			Vector2(r.position.x, r.end.y - font_art.get_descent(fs)),
+			"VSYNC",
+			HORIZONTAL_ALIGNMENT_LEFT,
+			r.size.x,
+			fs,
+			LIST_DESC_LIT if vs_on else LIST_DESC
+		)
 		_draw_more_button(at, "More")
 
 
@@ -968,7 +1093,15 @@ func _draw_prefs() -> void:
 func _draw_more_button(at: Vector2, label: String) -> void:
 	var r := _rect(Rect2(at + PREF_MORE.position, Vector2(PREF_MORE.size.x, 20)))
 	var fs := int(round(LIST_TITLE_PX * _scale()))
-	draw_string(font_art, Vector2(r.position.x, r.end.y - font_art.get_descent(fs)), _art(label), HORIZONTAL_ALIGNMENT_CENTER, r.size.x, fs, LIST_TITLE)
+	draw_string(
+		font_art,
+		Vector2(r.position.x, r.end.y - font_art.get_descent(fs)),
+		_art(label),
+		HORIZONTAL_ALIGNMENT_CENTER,
+		r.size.x,
+		fs,
+		LIST_TITLE
+	)
 
 
 func _keys() -> RefCounted:
@@ -998,7 +1131,9 @@ func _draw_controls(at: Vector2) -> void:
 			break
 		var rec: int = rows[idx]
 		var colour := CTRL_TEXT_SEL if idx == ctrl_sel else CTRL_TEXT
-		var texts := [kt.label(rec, _he()), kt.key_name(kt.key_of(rec, binds)), kt.button_name(kt.joystick_of(rec, binds))]
+		var texts := [
+			kt.label(rec, _he()), kt.key_name(kt.key_of(rec, binds)), kt.button_name(kt.joystick_of(rec, binds))
+		]
 		for c in 3:
 			var cell: Rect2 = CTRL_COLS[c]
 			cell.position += at + CTRL_LIST.position + Vector2(0, row_h * n)
@@ -1006,7 +1141,15 @@ func _draw_controls(at: Vector2) -> void:
 			cell.size.x = minf(cell.size.x, at.x + CTRL_LIST.end.x - cell.position.x)
 			var r := _rect(cell)
 			var base := r.position.y + (r.size.y + font.get_ascent(fs) - font.get_descent(fs)) / 2.0
-			draw_string(font, Vector2(r.position.x, base), texts[c], HORIZONTAL_ALIGNMENT_LEFT if c == 0 else HORIZONTAL_ALIGNMENT_CENTER, r.size.x, fs, colour)
+			draw_string(
+				font,
+				Vector2(r.position.x, base),
+				texts[c],
+				HORIZONTAL_ALIGNMENT_LEFT if c == 0 else HORIZONTAL_ALIGNMENT_CENTER,
+				r.size.x,
+				fs,
+				colour
+			)
 	_draw_bar(at, CTRL_BAR, ctrl_top, _ctrl_max_top())
 
 
@@ -1018,8 +1161,14 @@ func _draw_bar(at: Vector2, page_bar: Rect2, top: int, max_top: int) -> void:
 	# FUN_004f3700 moves the first button (SlUpB, a down-pointing arrow) to the bottom and leaves the
 	# second (SlDownB, pointing up) at the top.
 	var ax := bar.position.x - (CTRL_ARROW.x - CTRL_BAR.size.x) / 2.0  # centred on the 11 px bar
-	_blit_region("pref/sldownb_%d.png" % (2 if ctrl_arrow == "up" else 0), Rect2(Vector2.ZERO, clip), Vector2(ax, bar.position.y))
-	_blit_region("pref/slupb_%d.png" % (2 if ctrl_arrow == "down" else 0), Rect2(Vector2.ZERO, clip), Vector2(ax, bar.end.y - CTRL_ARROW.y))
+	_blit_region(
+		"pref/sldownb_%d.png" % (2 if ctrl_arrow == "up" else 0), Rect2(Vector2.ZERO, clip), Vector2(ax, bar.position.y)
+	)
+	_blit_region(
+		"pref/slupb_%d.png" % (2 if ctrl_arrow == "down" else 0),
+		Rect2(Vector2.ZERO, clip),
+		Vector2(ax, bar.end.y - CTRL_ARROW.y)
+	)
 	_blit("pref/sldcntrl.png", Vector2(bar.position.x, at.y + _bar_thumb_y(page_bar, top, max_top)))
 
 
@@ -1107,9 +1256,10 @@ func _ctrl_key(event: InputEventKey) -> void:
 	if other < 0:
 		kt.set_binding(binds, rec, key, kt.joystick_of(rec, binds))
 		return
-	_message(36, [["yes", func():
+	var swap := func():
 		kt.set_binding(binds, other, 0, kt.joystick_of(other, binds))
-		kt.set_binding(binds, rec, key, kt.joystick_of(rec, binds))], ["no", Callable()]])
+		kt.set_binding(binds, rec, key, kt.joystick_of(rec, binds))
+	_message(36, [["yes", swap], ["no", Callable()]])
 
 
 ## A joystick button pressed while the list has the keyboard (FUN_00511fb0, the poller's msg 0x555): it is
@@ -1125,9 +1275,10 @@ func _ctrl_button(button: int) -> void:
 	if other < 0:
 		kt.set_binding(binds, rec, kt.key_of(rec, binds), button)
 		return
-	_message(37, [["yes", func():
+	var swap := func():
 		kt.set_binding(binds, other, kt.key_of(other, binds), -1)
-		kt.set_binding(binds, rec, kt.key_of(rec, binds), button)], ["no", Callable()]])
+		kt.set_binding(binds, rec, kt.key_of(rec, binds), button)
+	_message(37, [["yes", swap], ["no", Callable()]])
 
 
 static func _ltrb(a: Array) -> Rect2:
@@ -1158,9 +1309,18 @@ static func _score_frame(p: Dictionary) -> int:
 ## The score multiplier of the Gameplay options (FUN_004f1120, DAT_0083b998), kept with each attempt.
 static func score_multiplier(p: Dictionary) -> float:
 	var m := 1.0 + (0.2 if p.get("ai_level") == 2 else 0.0)
-	var costs := {"no_wind": 0.05, "no_blackouts": 0.1, "no_spins": 0.05, "no_stalls": 0.05,
-		"easy_aiming": 0.1, "no_malfunctions": 0.05, "invulnerable": 1.0, "no_crashes": 0.5,
-		"unlimited_ammo": 0.5, "unlimited_fuel": 0.25}
+	var costs := {
+		"no_wind": 0.05,
+		"no_blackouts": 0.1,
+		"no_spins": 0.05,
+		"no_stalls": 0.05,
+		"easy_aiming": 0.1,
+		"no_malfunctions": 0.05,
+		"invulnerable": 1.0,
+		"no_crashes": 0.5,
+		"unlimited_ammo": 0.5,
+		"unlimited_fuel": 0.25
+	}
 	for k in costs:
 		if p.get(k, false):
 			m -= costs[k]
@@ -1213,7 +1373,9 @@ func _draw_f35i_slot(p: int, panel: Dictionary, delta: Vector2) -> void:
 			continue
 		var f := _frame("%d/%d" % [p, b], btn.label)
 		var r: Array = btn.rect
-		var t := _button_tex(String(panel.name).to_lower(), Rect2(r[0] - panel.pos[0], r[1] - panel.pos[1], r[2], r[3]), f)
+		var t := _button_tex(
+			String(panel.name).to_lower(), Rect2(r[0] - panel.pos[0], r[1] - panel.pos[1], r[2], r[3]), f
+		)
 		if t == null:
 			return
 		var box := _rect(Rect2(Vector2(r[0], r[1]) + delta, Vector2(r[2], r[3])))
@@ -1241,7 +1403,9 @@ func _draw_baked_label(on: CanvasItem, box: Rect2, text: String, f: int, px: flo
 	var b := bold * _scale() / sq
 	if gap == 0.0:
 		for dx in [0.0, b]:
-			on.draw_string(lf, Vector2(_scale() + dx, _scale()), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color8(25, 25, 25))
+			on.draw_string(
+				lf, Vector2(_scale() + dx, _scale()), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color8(25, 25, 25)
+			)
 		for dx in [0.0, b]:
 			on.draw_string(lf, Vector2(dx, 0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
 	else:
@@ -1251,7 +1415,9 @@ func _draw_baked_label(on: CanvasItem, box: Rect2, text: String, f: int, px: flo
 			var cw := lf.get_string_size(ch, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 			x -= cw
 			for dx in [0.0, b]:
-				on.draw_string(lf, Vector2(x + _scale() + dx, _scale()), ch, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color8(25, 25, 25))
+				on.draw_string(
+					lf, Vector2(x + _scale() + dx, _scale()), ch, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color8(25, 25, 25)
+				)
 			for dx in [0.0, b]:
 				on.draw_string(lf, Vector2(x + dx, 0), ch, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
 			x -= gap
@@ -1270,7 +1436,6 @@ func _label_width(lf: Font, text: String, fs: int, sq: float, gap: float) -> flo
 
 ## The F-35I's Jet list description (Hebrew in strings_he.json).
 const F35I_DESC := "The IAF's fifth-generation stealth fighter: internal weapon bays, sensor fusion, a helmet display."
-
 
 ## The baked label's area inside a Jet list button (button-relative, panel px).
 const JET_LABEL := Rect2(14, 9, 81, 21)
@@ -1316,7 +1481,11 @@ func _extras_tab_tex(f: int) -> Texture2D:
 		# The panel from _0, the button rect (Gameplay: panel (16,208) 109x39) from _<f>.
 		var band: Image = imgs[0].get_region(Rect2i(EXTRAS_BAND.position * art_scale, EXTRAS_BAND.size * art_scale))
 		var button := Rect2(16, 208, 109, 39)
-		band.blit_rect(imgs[1], Rect2i(button.position * art_scale, button.size * art_scale), Vector2i((button.position - EXTRAS_BAND.position) * art_scale))
+		band.blit_rect(
+			imgs[1],
+			Rect2i(button.position * art_scale, button.size * art_scale),
+			Vector2i((button.position - EXTRAS_BAND.position) * art_scale)
+		)
 		var a := Rect2i((EXTRAS_LABEL.position - EXTRAS_BAND.position) * art_scale, EXTRAS_LABEL.size * art_scale)
 		for y in range(a.position.y, a.end.y):
 			var c0 := band.get_pixel(a.position.x - 1, y)
@@ -1347,17 +1516,30 @@ func _extras_items() -> Array:
 			var cell := Rect2(164.0, y, 250.0, EXTRAS_ROW)
 			if _he():
 				cell.position.x = CONTENT.size.x - cell.end.x
-			items.append({"rect": cell, "key": opt[0], "value": choices[(k + 1) % choices.size()][1],
-				"label": choices[k][0], "available": true, "on": true})
+			items.append(
+				{
+					"rect": cell,
+					"key": opt[0],
+					"value": choices[(k + 1) % choices.size()][1],
+					"label": choices[k][0],
+					"available": true,
+					"on": true
+				}
+			)
 			continue
 		for j in choices.size():
 			# Two choices in the Gameplay page's columns (x 164 / 285); three narrower; all left of the scrollbar.
-			var r := Rect2(164.0 + 121.0 * j, y, 111.0 if j == 0 else 129.0, EXTRAS_ROW) if choices.size() < 3 \
-					else Rect2([164.0, 240.0, 314.0][j], y, [74.0, 72.0, 100.0][j], EXTRAS_ROW)
+			var r := (
+				Rect2(164.0 + 121.0 * j, y, 111.0 if j == 0 else 129.0, EXTRAS_ROW)
+				if choices.size() < 3
+				else Rect2([164.0, 240.0, 314.0][j], y, [74.0, 72.0, 100.0][j], EXTRAS_ROW)
+			)
 			if _he():
 				r.position.x = CONTENT.size.x - r.end.x
 			var value = choices[j][1]
-			var available: bool = not (typeof(value) == TYPE_STRING and value == "he" and not Settings.hebrew_available())
+			var available: bool = not (
+				typeof(value) == TYPE_STRING and value == "he" and not Settings.hebrew_available()
+			)
 			if String(opt[0]).begins_with("imagery_"):
 				available = ImageryLayers.available(String(value))
 			items.append({"rect": r, "key": opt[0], "value": value, "label": choices[j][0], "available": available})
@@ -1367,7 +1549,13 @@ func _extras_items() -> Array:
 ## Our pages (Extras, Physics): the general background and the header, as on the original pages.
 func _draw_our_page(title: String) -> void:
 	_blit("screens/sgeneral.png", CONTENT.position)
-	_text_line(Rect2(CONTENT.position + Vector2(24, 12), Vector2(CONTENT.size.x - 48, 22)), _art(title), LIST_TITLE_PX + 2, LIST_TITLE, font_art)
+	_text_line(
+		Rect2(CONTENT.position + Vector2(24, 12), Vector2(CONTENT.size.x - 48, 22)),
+		_art(title),
+		LIST_TITLE_PX + 2,
+		LIST_TITLE,
+		font_art
+	)
 
 
 ## Our label text in the art's style: capitals (English); Hebrew as is.
@@ -1379,7 +1567,12 @@ func _art(text: String) -> String:
 ## the background's grid lines and every rule looks the same whether or not it falls on one.
 func _draw_rule(y: float) -> void:
 	var at := CONTENT.position
-	draw_line(_to_screen(at + Vector2(18, y)), _to_screen(at + Vector2(CONTENT.size.x - 18, y)), LIST_TITLE.darkened(0.55), maxf(1.0, _scale()))
+	draw_line(
+		_to_screen(at + Vector2(18, y)),
+		_to_screen(at + Vector2(CONTENT.size.x - 18, y)),
+		LIST_TITLE.darkened(0.55),
+		maxf(1.0, _scale())
+	)
 
 
 ## An option of our pages (page rect `r`): the LED with its frame from the Gameplay page's NO WIND
@@ -1390,9 +1583,21 @@ func _draw_option(r: Rect2, label: String, on: bool, led_y: float, text_y: float
 	var led := Rect2(Vector2(4, led_y), Vector2(11, 11))
 	var led_x := r.end.x - led.end.x if _he() else r.position.x + led.position.x
 	if available:
-		_blit_region("pref/gamep_%d.png" % (1 if on else 0), Rect2(Vector2(28, 55), led.size), at + Vector2(led_x, r.position.y + led.position.y))
-	var box := Rect2(at + Vector2(r.position.x + (0.0 if _he() else 22.0), r.position.y + text_y), Vector2(r.size.x - 22, 20))
-	_text_fit(box, _art(label), LIST_TITLE_PX, (LIST_DESC_LIT if on else LIST_DESC) if available else Color(LIST_DESC, 0.5), font_art)
+		_blit_region(
+			"pref/gamep_%d.png" % (1 if on else 0),
+			Rect2(Vector2(28, 55), led.size),
+			at + Vector2(led_x, r.position.y + led.position.y)
+		)
+	var box := Rect2(
+		at + Vector2(r.position.x + (0.0 if _he() else 22.0), r.position.y + text_y), Vector2(r.size.x - 22, 20)
+	)
+	_text_fit(
+		box,
+		_art(label),
+		LIST_TITLE_PX,
+		(LIST_DESC_LIT if on else LIST_DESC) if available else Color(LIST_DESC, 0.5),
+		font_art
+	)
 
 
 func _draw_extras() -> void:
@@ -1476,12 +1681,19 @@ func _draw_physics() -> void:
 	for it in _physics_items():
 		var r: Rect2 = it.rect
 		if it.key == "all" or it.key == "none":
-			_text_line(Rect2(CONTENT.position + r.position + Vector2(0, 3), r.size), _art(it.label), LIST_TITLE_PX, LIST_DESC_LIT, font_art)
+			_text_line(
+				Rect2(CONTENT.position + r.position + Vector2(0, 3), r.size),
+				_art(it.label),
+				LIST_TITLE_PX,
+				LIST_DESC_LIT,
+				font_art
+			)
 		else:
 			_draw_option(r, it.label, pref_work.get("better", Settings.better)[it.key], 7, 1)
 
 
 # --- input ------------------------------------------------------------------------------
+
 
 ## Button under a point (menu coordinates): "panel/button", "back", "main" or "".
 func _hit(p: Vector2) -> String:
@@ -1506,7 +1718,14 @@ func _hit(p: Vector2) -> String:
 func _gui_input(event: InputEvent) -> void:
 	if busy:
 		return
-	if screen == "pref" and msgbox == null and (event is InputEventPanGesture or event is InputEventMouseButton and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]):
+	if (
+		screen == "pref"
+		and msgbox == null
+		and (
+			event is InputEventPanGesture
+			or event is InputEventMouseButton and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]
+		)
+	):
 		_pref_wheel(Settings.wheel_steps(event))
 		return
 	if event is InputEventMouseMotion:
@@ -1700,11 +1919,16 @@ func _pref_changed() -> bool:
 ## Extras SETTINGS FILE (ours): Export writes the working copy as a settings.cfg wherever the player picks; Import
 ## reads one, stores and saves it at once (any unsaved changes are replaced).
 func _settings_file(saving: bool) -> void:
-	_file_dialog(saving, "*.cfg ; IAF settings", "iaf-settings.cfg", func(path: String) -> void:
-		if saving:
-			Settings.write_config(pref_work).save(path)
-		else:
-			_import_settings(path))
+	_file_dialog(
+		saving,
+		"*.cfg ; IAF settings",
+		"iaf-settings.cfg",
+		func(path: String) -> void:
+			if saving:
+				Settings.write_config(pref_work).save(path)
+			else:
+				_import_settings(path)
+	)
 
 
 ## A native file dialog (ours): save or open one file of `filter`, `done(path)` on a pick.
@@ -1715,9 +1939,11 @@ func _file_dialog(saving: bool, filter: String, file: String, done: Callable) ->
 	dlg.file_mode = FileDialog.FILE_MODE_SAVE_FILE if saving else FileDialog.FILE_MODE_OPEN_FILE
 	dlg.filters = PackedStringArray([filter])
 	dlg.current_file = file
-	dlg.file_selected.connect(func(path: String) -> void:
-		dlg.queue_free()
-		done.call(path))
+	dlg.file_selected.connect(
+		func(path: String) -> void:
+			dlg.queue_free()
+			done.call(path)
+	)
 	dlg.canceled.connect(dlg.queue_free)
 	add_child(dlg)
 	dlg.popup_centered()
@@ -1906,8 +2132,16 @@ func _debrief_button(label: String) -> void:
 
 ## The list a mission belongs to (FUN_004ff620, single player): New Mission and the TSD's BACK go there.
 static func new_mission_screen(id: int) -> String:
-	for r in [[111, 117, "his1mis"], [121, 127, "his2mis"], [131, 137, "his3mis"], [211, 217, "fut1mis"],
-			[221, 227, "fut2mis"], [231, 237, "fut3mis"], [311, 315, "basic"], [321, 326, "combat"]]:
+	for r in [
+		[111, 117, "his1mis"],
+		[121, 127, "his2mis"],
+		[131, 137, "his3mis"],
+		[211, 217, "fut1mis"],
+		[221, 227, "fut2mis"],
+		[231, 237, "fut3mis"],
+		[311, 315, "basic"],
+		[321, 326, "combat"]
+	]:
 		if id >= r[0] and id <= r[1]:
 			return r[2]
 	return "mc" if id == 0x213 or id == 0x29a else "main"
@@ -1932,8 +2166,13 @@ static func next_mission(id: int, passed: bool, history: Array = [], r := 0) -> 
 			return 321
 		511, 512, 513, 514, 515:
 			return 1
-	if (id >= 111 and id <= 116) or (id >= 121 and id <= 126) or (id >= 131 and id <= 136) \
-			or (id >= 311 and id <= 314) or (id >= 321 and id <= 325):
+	if (
+		(id >= 111 and id <= 116)
+		or (id >= 121 and id <= 126)
+		or (id >= 131 and id <= 136)
+		or (id >= 311 and id <= 314)
+		or (id >= 321 and id <= 325)
+	):
 		return id + 1
 	if (id >= 211 and id <= 216) or (id >= 221 and id <= 226) or (id >= 231 and id <= 236):
 		return id + 1 if passed else 0
@@ -1976,8 +2215,12 @@ func _jump_in(n := 401) -> void:
 	scramble_prompt = n
 	# Headless (tests) has no dialogs: the test answers through _scramble_answer.
 	if DisplayServer.get_name() != "headless":
-		DisplayServer.dialog_show("Scramble Mission", "Do you want a %d mission ?" % n, PackedStringArray(["Yes", "No"]),
-				func(button: int) -> void: _scramble_answer.call_deferred(n, button))
+		DisplayServer.dialog_show(
+			"Scramble Mission",
+			"Do you want a %d mission ?" % n,
+			PackedStringArray(["Yes", "No"]),
+			func(button: int) -> void: _scramble_answer.call_deferred(n, button)
+		)
 
 
 ## The cheat dialog's answer: button 0 Yes flies `n`, 1 No asks for the next.
@@ -2073,7 +2316,7 @@ func tsd_briefing_closed() -> void:
 ## A briefing diagram / card, from the Hebrew pack when the language is Hebrew.
 func briefing_image(stem: String) -> Texture2D:
 	var base := Settings.assets_dir().path_join("converted/briefings")
-	for sub in (["img_he", "img"] if _he() else ["img"]):
+	for sub in ["img_he", "img"] if _he() else ["img"]:
 		var t := Img.load_texture(base.path_join(sub).path_join(stem + ".png"), true)
 		if t != null:
 			return t
@@ -2130,7 +2373,13 @@ func tsd_visit(key: String) -> void:
 func _draw_debrief() -> void:
 	_blit("screens/sgeneral.png", CONTENT.position)
 	if FileAccess.file_exists(Settings.blackbox_file):
-		_text_fit(Rect2(CONTENT.position + DEB_EXPORT.position, DEB_EXPORT.size), _art("Export flight data"), LIST_TITLE_PX, LIST_TITLE, font_art)
+		_text_fit(
+			Rect2(CONTENT.position + DEB_EXPORT.position, DEB_EXPORT.size),
+			_art("Export flight data"),
+			LIST_TITLE_PX,
+			LIST_TITLE,
+			font_art
+		)
 
 
 ## A click in the debrief's content (content-local): a tab (debrief.gd), or ours: the blackbox
@@ -2140,8 +2389,13 @@ func _deb_press(q: Vector2) -> bool:
 		return true
 	if not DEB_EXPORT.has_point(q) or not FileAccess.file_exists(Settings.blackbox_file):
 		return false
-	_file_dialog(true, "*.jsonl ; Flight data", "iaf-" + Settings.blackbox_file.get_file(), func(path: String) -> void:
-		DirAccess.copy_absolute(ProjectSettings.globalize_path(Settings.blackbox_file), path))
+	_file_dialog(
+		true,
+		"*.jsonl ; Flight data",
+		"iaf-" + Settings.blackbox_file.get_file(),
+		func(path: String) -> void:
+			DirAccess.copy_absolute(ProjectSettings.globalize_path(Settings.blackbox_file), path)
+	)
 	return true
 
 
@@ -2236,23 +2490,52 @@ func _load_mission() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if screen == "pref" and Settings.pref_page == "Controls" and ctrl_focus and msgbox == null \
-			and event is InputEventKey and event.pressed and not event.echo:
+	if (
+		screen == "pref"
+		and Settings.pref_page == "Controls"
+		and ctrl_focus
+		and msgbox == null
+		and event is InputEventKey
+		and event.pressed
+		and not event.echo
+	):
 		_ctrl_key(event)
 		return
-	if screen == "pref" and Settings.pref_page == "Controls" and ctrl_focus and msgbox == null \
-			and event is InputEventJoypadButton and event.pressed and Joystick.ours(event):
+	if (
+		screen == "pref"
+		and Settings.pref_page == "Controls"
+		and ctrl_focus
+		and msgbox == null
+		and event is InputEventJoypadButton
+		and event.pressed
+		and Joystick.ours(event)
+	):
 		if Joystick.physical_button(event.button_index) >= 0:
 			_ctrl_button(Joystick.physical_button(event.button_index))
 		return
-	if screen == "flytsd" and flight != null and not busy and msgbox == null and event is InputEventKey and event.pressed \
-			and not event.echo and _flight_command(event) == 132:
+	if (
+		screen == "flytsd"
+		and flight != null
+		and not busy
+		and msgbox == null
+		and event is InputEventKey
+		and event.pressed
+		and not event.echo
+		and _flight_command(event) == 132
+	):
 		tsd_pause_key()
 		return
 	if tsd_pause != null:
 		return  # paused: the key manager passes only Ctrl+P (FUN_004df500(-1)) and the window is disabled
-	if _is_tsd() and tsd != null and not busy and msgbox == null and event is InputEventKey and event.pressed \
-			and tsd.key(event.keycode):
+	if (
+		_is_tsd()
+		and tsd != null
+		and not busy
+		and msgbox == null
+		and event is InputEventKey
+		and event.pressed
+		and tsd.key(event.keycode)
+	):
 		return
 	if busy or msgbox != null or not (event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE):
 		return
@@ -2312,6 +2595,7 @@ func _exit_tree() -> void:
 
 # --- message box (§3.3) ---------------------------------------------------------------------
 
+
 ## Shows txt/msgs.trx line `msg` with buttons [[art, action]] ("yes", "no", "can", "ok"); a button
 ## closes the box, then runs its action. A `text` replaces the msgs.trx line.
 func _message(msg: int, buttons: Array, text := "") -> void:
@@ -2322,9 +2606,11 @@ func _message(msg: int, buttons: Array, text := "") -> void:
 	if text != "":
 		msgbox.text = text
 	msgbox.on_click = _play
-	msgbox.chosen.connect(func(art: String):
-		var action: Callable = buttons[arts.find(art)][1]
-		msgbox.queue_free()
-		msgbox = null
-		if action.is_valid():
-			action.call())
+	msgbox.chosen.connect(
+		func(art: String):
+			var action: Callable = buttons[arts.find(art)][1]
+			msgbox.queue_free()
+			msgbox = null
+			if action.is_valid():
+				action.call()
+	)

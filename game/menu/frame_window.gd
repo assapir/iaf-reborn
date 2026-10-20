@@ -7,6 +7,7 @@ extends Control
 signal closed
 signal link_clicked(name: String)
 
+const Img := preload("res://util/img.gd")
 const BORDER := 5.0
 const TITLE_Y := 4.0
 const TITLE_H := 11.0
@@ -73,7 +74,7 @@ func set_text(bbcode: String, links: Array) -> void:
 			["italics_font", 400, true],
 			["bold_italics_font", 700, true]
 		]:
-			rich.add_theme_font_override(pair[0], preload("res://util/img.gd").arial(pair[1], pair[2]))
+			rich.add_theme_font_override(pair[0], Img.arial(pair[1], pair[2]))
 		body_clip = Control.new()
 		body_clip.clip_contents = true
 		body_clip.mouse_filter = Control.MOUSE_FILTER_PASS
@@ -106,7 +107,7 @@ func _build_guide(s: float) -> void:
 		if part is String:
 			rich.append_text(part)
 			continue
-		var tex := preload("res://util/img.gd").load_texture(part.image, true)
+		var tex := Img.load_texture(part.image, true)
 		rich.append_text("[center]")
 		rich.add_image(tex, int(minf(width, tex.get_width())))
 		rich.append_text("\n[i][color=#aaaab4]%s[/color][/i][/center]\n\n" % part.caption)

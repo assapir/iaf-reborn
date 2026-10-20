@@ -123,7 +123,8 @@ void fragment() {
 	float shape = smoothstep(1.05, 0.5, r + (0.5 - n) * 0.45);
 	if (shape <= 0.0) { discard; }
 	// A sphere's normal from the billboard position, bumped by the noise: sunlit side and self-shadowed core.
-	vec3 nv = normalize(vec3(v_local.x, -v_local.y, sqrt(max(1.0 - r * r, 0.0)) + 0.3) + vec3(n2 - 0.5, n1 - 0.5, 0.0) * 0.9);
+	vec3 nv = normalize(vec3(v_local.x, -v_local.y, sqrt(max(1.0 - r * r, 0.0)) + 0.3)
+		+ vec3(n2 - 0.5, n1 - 0.5, 0.0) * 0.9);
 	vec3 nw = (INV_VIEW_MATRIX * vec4(nv, 0.0)).xyz;
 	float lit = clamp(dot(nw, normalize(sun_dir)) * 0.6 + 0.45, 0.0, 1.0);
 	float grey = COLOR.r;

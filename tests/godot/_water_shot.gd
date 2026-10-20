@@ -1,7 +1,9 @@
 # Dev helper (not run by tools/test.sh): real-render captures of the Extras "Water" switch (docs/rendering.md §1.3),
 # Original then Detailed, at one pose, with the average / p95 frame over 600 frames (vsync off). SHOT_SCALE (e.g. 1.6)
 # sets the 3D render scale so the GPU, not the display's refresh, sets the frame (docs/graphics-research.md §1).
-# SHOT_BENCH=1 then times the switch in place (_bench). SHOT_REVERSE=1 takes Detailed first (to see the order's own effect on the frame). SHOT_SET="key=value,..." sets more Settings first (e.g. sky=atmospheric). Pose with terrain_view's user args:
+# SHOT_BENCH=1 then times the switch in place (_bench). SHOT_REVERSE=1 takes Detailed first (to see the order's own
+# effect on the frame). SHOT_SET="key=value,..." sets more Settings first (e.g. sky=atmospheric). Pose with
+# terrain_view's user args:
 #   IAF_DEFAULT_SETTINGS=1 SHOT_DIR=/tmp/shots SHOT_NAME=coast godot --path game --resolution 1920x1080 \
 #       -s ../tests/godot/_water_shot.gd -- --at X Y ALT HDG PITCH --freeze
 extends "res://../tests/godot/base.gd"
@@ -13,9 +15,9 @@ func run() -> void:
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	for kv in OS.get_environment("SHOT_SET").split(",", false):
 		var p := kv.split("=")
-		Settings().set(p[0], str_to_var(p[1]) if str_to_var(p[1]) != null else p[1])
+		settings().set(p[0], str_to_var(p[1]) if str_to_var(p[1]) != null else p[1])
 	for on in [true, false] if OS.get_environment("SHOT_REVERSE") != "" else [false, true]:
-		Settings().water = on
+		settings().water = on
 		change_scene_to_file("res://terrain/terrain_view.tscn")
 		await frames(2)
 		var tv: Node = null
@@ -50,7 +52,7 @@ func run() -> void:
 			)
 		)
 		print("SHOT water %-5s frame %6.2f ms (p95 %6.2f)  %s" % [on, avg, sorted[int(times.size() * 0.95)], path])
-	Settings().water = false
+	settings().water = false
 	if OS.get_environment("SHOT_BENCH") != "":
 		await _bench()
 
@@ -58,7 +60,7 @@ func run() -> void:
 ## SHOT_BENCH=1: in the last flight (water on), the global `terrain_water` switched 0 / 1 every 120 frames, 12 pairs:
 ## the median of the pairs' differences (on − off), robust to other processes on the machine.
 func _bench() -> void:
-	Settings().water = true
+	settings().water = true
 	var tv: Node = current_scene
 	tv.apply_render_options()
 	await frames(60)
@@ -75,4 +77,4 @@ func _bench() -> void:
 		print("BENCH pair %2d  off %6.2f  on %6.2f ms" % [pair, avg[0], avg[1]])
 	diffs.sort()
 	print("BENCH water on - off: median %+.2f ms (quartiles %+.2f / %+.2f)" % [diffs[6], diffs[3], diffs[9]])
-	Settings().water = false
+	settings().water = false

@@ -2,8 +2,8 @@
 # (12,16) 415×260 with the model in the left two-thirds and its description on the right; a second one reuses the
 # window; the text window (type 0: a lesson or a briefing text such as 67.rtf) opens at its rect, every picture window
 # (type 3) fits its bitmap; a target link (type 5) opens the targ_t window at (22,16) 406×322 on the named object and
-# closes the model window, its view strip switches the camera; every target file names an object of its mission (but the known misses).
-# SHOT_DIR=dir writes briefing_model.png and briefing_target_<tab>.png.
+# closes the model window, its view strip switches the camera; every target file names an object of its mission (but the
+# known misses). SHOT_DIR=dir writes briefing_model.png and briefing_target_<tab>.png.
 extends "res://../tests/godot/base.gd"
 
 
@@ -11,7 +11,7 @@ func run() -> void:
 	var fe = load("res://menu/front_end.tscn").instantiate()
 	root.add_child(fe)
 	await frames(3)
-	Settings().mission_id = 113
+	settings().mission_id = 113
 	fe._reset_tsd_checks()
 	fe.screen = "tsd"
 	fe._enter_screen()
@@ -166,7 +166,7 @@ func run() -> void:
 			count += 1
 			var nm := (
 				FileAccess
-				. get_file_as_string(Settings().assets_dir().path_join("install/resource").path_join(String(e.file)))
+				. get_file_as_string(settings().assets_dir().path_join("install/resource").path_join(String(e.file)))
 				. split("\n")[0]
 			)
 			if tsd._target_unit(nm).is_empty():

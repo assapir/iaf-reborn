@@ -1,7 +1,8 @@
 # The "Better cockpit" instruments (instruments.gd) in a real render (not a test): the F-16 (AoA indexer on speed,
 # the FLCS and TO/LDG CONFIG lamps lit) and the Mirage (VVI at +2000 ft/min), each Original then Better, written as
 # instruments_<cockpit>_<original|better>.png (the frame) and _zoom.png (each item, 3× nearest). Mission 312. Usage:
-#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=~/.cache/shots -- --log-file ~/.cache/g.log --resolution 1920x1080 --path game -s ../tests/godot/_instruments_shot.gd
+#   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=~/.cache/shots -- --log-file ~/.cache/g.log --resolution \
+#     1920x1080 --path game -s ../tests/godot/_instruments_shot.gd
 extends "res://../tests/godot/base.gd"
 
 ## Jet list id -> [the cockpit state to show, the panel points to zoom on].
@@ -18,8 +19,8 @@ func run() -> void:
 		return
 	DirAccess.make_dir_recursive_absolute(dir)
 	for id in JETS:
-		Settings().jet_id = id
-		Settings().better_cockpit = false
+		settings().jet_id = id
+		settings().better_cockpit = false
 		var tv = await start_mission(312)
 		var c = tv.cockpit
 		tv.set_process(false)
@@ -29,7 +30,7 @@ func run() -> void:
 		for k in JETS[id][0]:
 			c.state[k] = JETS[id][0][k]
 		for better in [false, true]:
-			Settings().better_cockpit = better
+			settings().better_cockpit = better
 			await frames(4)
 			await RenderingServer.frame_post_draw
 			var img: Image = root.get_viewport().get_texture().get_image()
@@ -49,6 +50,6 @@ func run() -> void:
 				z.save_png(dir.path_join("%s_zoom%d.png" % [name, n]))
 				n += 1
 			print(name)
-	Settings().jet_id = -1
-	Settings().better_cockpit = false
+	settings().jet_id = -1
+	settings().better_cockpit = false
 	print("RESULT PASS")

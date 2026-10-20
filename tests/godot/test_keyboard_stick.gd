@@ -8,7 +8,7 @@ const DT := 1.0 / 60.0
 
 
 func tap_peak_g(tv: Node, real: bool, seconds: float) -> float:
-	var install: String = Settings().assets_dir().path_join("install")
+	var install: String = settings().assets_dir().path_join("install")
 	tv.flight.start(
 		install,
 		"F-16",
@@ -33,7 +33,7 @@ func tap_peak_g(tv: Node, real: bool, seconds: float) -> float:
 
 
 func run() -> void:
-	Settings().player_flight = 0
+	settings().player_flight = 0
 	var tv = await start_mission(324)
 	tv.frozen = true  # the test steps the flight model itself
 

@@ -172,7 +172,7 @@ func _draw() -> void:
 					)
 			"warning_lamps":
 				if lamps.get(spec.state, false):
-					_draw_lamp(spec.quad, s)
+					_draw_lamp(spec.quad)
 			"ar_nws_lights":
 				if lamps.get(spec.state, false):
 					_draw_legend(spec.rect, ["AR", "NWS"], s)
@@ -214,7 +214,7 @@ func _draw_legend(rect: Rect2, lines: Array, s: float) -> void:
 
 
 ## A lit lamp: its quad of the panel art drawn brighter.
-func _draw_lamp(quad: Array, s: float) -> void:
+func _draw_lamp(quad: Array) -> void:
 	var t: Texture2D = cockpit.tex.get("PANEL")
 	if t == null:
 		return

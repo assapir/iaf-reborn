@@ -59,7 +59,7 @@ func run() -> void:
 	if DisplayServer.get_name() == "headless":
 		check(false, "needs a window")
 		return
-	var s := Settings()
+	var s := settings()
 	var detailed := {
 		"models": "detailed",
 		"sky": "atmospheric",
@@ -388,7 +388,7 @@ func _wing() -> void:
 	var p := Vector3(CRATER.x, CRATER.y, floor_z + 300.0) - _dir(65.0) * 2500.0
 	await _fly_ready(p, 65.0, 230.0, false)
 	_ap_level()
-	var install: String = Settings().assets_dir().path_join("install")
+	var install: String = settings().assets_dir().path_join("install")
 	adir = load("res://aircraft/aircraft_model.gd").create("f35i", 1000, false)
 	tv.add_child(adir)
 	adir_fm = ClassDB.instantiate("IafFlight")
@@ -519,7 +519,7 @@ func _title(text: String, sub: String) -> void:
 ## player's preferences go to the new one.
 func _start_fm(sp: Vector3, heading: float, vel: Vector3, airborne: bool) -> void:
 	tv.flight.start(
-		Settings().assets_dir().path_join("install"),
+		settings().assets_dir().path_join("install"),
 		tv.player.fm_section,
 		sp,
 		Vector3(0.0, 0.0, heading),
@@ -624,7 +624,7 @@ func _move_ai(a, p: Vector3, heading: float, speed: float) -> void:
 		return
 	var fm = pl.flight
 	fm.start(
-		Settings().assets_dir().path_join("install"),
+		settings().assets_dir().path_join("install"),
 		pl.plane,
 		_w2s(p),
 		Vector3(0.0, 0.0, heading),

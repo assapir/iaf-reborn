@@ -77,27 +77,70 @@ func console_has(tv: Node, line: String) -> bool:
 
 func run() -> void:
 	# --- the phrase engine ----------------------------------------------------------------------
-	var r = load("res://audio/radio.gd").new()
+	var radio_script: GDScript = load("res://audio/radio.gd")
+	var r = radio_script.new()
 	r._ready()
 	var p: Dictionary = r.expand("ACFT_TAXI_TO_RUNWAY", ["Alpha_t", "MORNING"], [27])
 	check(p.text == "Alpha, good morning, taxi to runway 27", "taxi phrase text (%s)" % p.text)
-	check(p.wavs == ["Alpha_t", "Pause", "GMorning", "Pause", "Taxi2rwy", "Num027"], "taxi phrase parts (%s)" % [p.wavs])
-	check(r.expand("ACFT_CLEAR_TO_LINEUP", ["CHARLIE_t", "WI_KNOTS15"], [9]).text == "Charlie, clear to line up on runway 9, wind is 15 knots", "line-up phrase with wind")
-	check(r.expand("PASS_WAYPT_PHRASE", ["ALPHALEADER", "G2"]).text == "Alpha leader is passing waypoint 2", "waypoint report phrase")
-	check(r.expand("WINGMAN_REPLY_NEGATIVE", ["NEGATIVE"]).text == "I'm afraid that's a negative, sir!", "negative reply")
-	p = r.expand("ACFT_FCTRL_LONG", ["Alpha_r", "BEARING090", "MILES15", "DESC_UNID_CONTACT", "HEADING270", "PLEASE_IDENTIFY"])
-	check(p.text == "Alpha, bearing 090, 15 miles, unidentified contacts, heading 270, please identify", "AWACS long call text (%s)" % p.text)
-	check(p.wavs == ["Alpha_r", "Pause", "Bear090", "Pause", "Miles15", "Pause", "Unidcont", "Pause", "Head270", "Pause", "PleaseId"], "AWACS call parts")
-	check(r.expand("ACFT_FCTRL_SHORT", ["BEARING350", "MILES09", "DESC_TARGET"]).text == "Bearing 350, 09 miles, target", "AWACS short call text")
-	check(r.bases.size() == 10 and r.bases[0].rwy == 230 and r.bases[1].hangars.size() == 8, "iaf.ibx bases (Ramon rwy 230, David 8 hangars)")
+	check(
+		p.wavs == ["Alpha_t", "Pause", "GMorning", "Pause", "Taxi2rwy", "Num027"], "taxi phrase parts (%s)" % [p.wavs]
+	)
+	check(
+		(
+			r.expand("ACFT_CLEAR_TO_LINEUP", ["CHARLIE_t", "WI_KNOTS15"], [9]).text
+			== "Charlie, clear to line up on runway 9, wind is 15 knots"
+		),
+		"line-up phrase with wind"
+	)
+	check(
+		r.expand("PASS_WAYPT_PHRASE", ["ALPHALEADER", "G2"]).text == "Alpha leader is passing waypoint 2",
+		"waypoint report phrase"
+	)
+	check(
+		r.expand("WINGMAN_REPLY_NEGATIVE", ["NEGATIVE"]).text == "I'm afraid that's a negative, sir!", "negative reply"
+	)
+	p = r.expand(
+		"ACFT_FCTRL_LONG", ["Alpha_r", "BEARING090", "MILES15", "DESC_UNID_CONTACT", "HEADING270", "PLEASE_IDENTIFY"]
+	)
+	check(
+		p.text == "Alpha, bearing 090, 15 miles, unidentified contacts, heading 270, please identify",
+		"AWACS long call text (%s)" % p.text
+	)
+	check(
+		(
+			p.wavs
+			== [
+				"Alpha_r",
+				"Pause",
+				"Bear090",
+				"Pause",
+				"Miles15",
+				"Pause",
+				"Unidcont",
+				"Pause",
+				"Head270",
+				"Pause",
+				"PleaseId"
+			]
+		),
+		"AWACS call parts"
+	)
+	check(
+		r.expand("ACFT_FCTRL_SHORT", ["BEARING350", "MILES09", "DESC_TARGET"]).text == "Bearing 350, 09 miles, target",
+		"AWACS short call text"
+	)
+	check(
+		r.bases.size() == 10 and r.bases[0].rwy == 230 and r.bases[1].hangars.size() == 8,
+		"iaf.ibx bases (Ramon rwy 230, David 8 hangars)"
+	)
 	r.free()
 
 	# --- the runway-number clips: the install's where it has one, else ours (game/extra/tower_numbers) -----
 	var nh := FakeHost.new()
 	root.add_child(nh)
 	nh.sounds = FakeSounds.new()
-	var inst: String = Settings().assets_dir().path_join("install/resource/soundfiles")
-	r = load("res://audio/radio.gd").new()
+	var inst: String = settings().assets_dir().path_join("install/resource/soundfiles")
+	r = radio_script.new()
 	r.host = nh
 	r._ready()
 	for i in r.TOWER_BASES:  # the original bases never need ours
@@ -115,7 +158,7 @@ func run() -> void:
 	# --- the tower's state machine on a stand-in host (Ramon: tower, lineup, runway 23) ------------
 	var h := FakeHost.new()
 	root.add_child(h)
-	r = load("res://audio/radio.gd").new()
+	r = radio_script.new()
 	r.host = h
 	r._ready()
 	var ramon: Dictionary = r.bases[0]
@@ -126,8 +169,13 @@ func run() -> void:
 	step(1.5)  # the first tick 1 s after the start (54f8f0)
 	check(r.state == 2 and r.base == 0, "airborne near Ramon: state 2, base 0 (state %d base %d)" % [r.state, r.base])
 	r.contact_tower()
-	check(texts(r).has("Alpha, proceed to runway 23") and r.state == 3, "Ctrl+T in the air: proceed to runway 23, state 3")
-	check(r.said[-1].template == "ACFT_ROGER" and r.said[-1].text == "Roger" and not h.lines.has("Roger"), "the pilot's Roger is spoken, not printed")
+	check(
+		texts(r).has("Alpha, proceed to runway 23") and r.state == 3, "Ctrl+T in the air: proceed to runway 23, state 3"
+	)
+	check(
+		r.said[-1].template == "ACFT_ROGER" and r.said[-1].text == "Roger" and not h.lines.has("Roger"),
+		"the pilot's Roger is spoken, not printed"
+	)
 	h.pos = ramon.lineup - fwd * 8000.0 + Vector3(0, 0, 400)
 	h.flight.st.heading = -130.0
 	step(1.0)
@@ -142,7 +190,10 @@ func run() -> void:
 	h.flight.st.on_ground = true
 	h.flight.st.speed = 10.0
 	step(1.0)
-	check(texts(r).has("Alpha, nice to have you back taxi to hangar") and r.state == 1, "rolled out: taxi to hangar, state 1")
+	check(
+		texts(r).has("Alpha, nice to have you back taxi to hangar") and r.state == 1,
+		"rolled out: taxi to hangar, state 1"
+	)
 	# Airborne again, a new approach, then off the corridor's heading after the clearance: back to state 2.
 	r.last = 0xb
 	h.flight.st.on_ground = false
@@ -162,7 +213,10 @@ func run() -> void:
 	r.last = 0xb
 	h.pos = ramon.lineup + Vector3(fwd.y, -fwd.x, 0) * 300.0
 	step(2.0)
-	check(texts(r)[-2] == "Alpha, clear to line up on runway 23, no wind", "300 m from the lineup: clear to line up (%s)" % texts(r)[-2])
+	check(
+		texts(r)[-2] == "Alpha, clear to line up on runway 23, no wind",
+		"300 m from the lineup: clear to line up (%s)" % texts(r)[-2]
+	)
 	h.pos = ramon.lineup + Vector3(0, 0, 2)
 	step(1.0)
 	check(texts(r)[-2] == "Alpha, clear to take-off", "lined up at the lineup: clear to take-off (%s)" % texts(r)[-2])
@@ -171,7 +225,9 @@ func run() -> void:
 	step(2.0)
 	check(r.said.size() == n, "Ctrl+T on the ground at an Israeli base: nothing")
 	step(31.0)
-	check(r.said.size() == n + 2 and texts(r)[-2] == "Alpha, clear to take-off", "standing still 30 s: the tower repeats")
+	check(
+		r.said.size() == n + 2 and texts(r)[-2] == "Alpha, clear to take-off", "standing still 30 s: the tower repeats"
+	)
 	# Far from every tower: Ctrl+T only clicks.
 	h.pos = Vector3(100000, 100000, 3000)
 	h.flight.st.on_ground = false
@@ -179,12 +235,15 @@ func run() -> void:
 	check(r.base == -1, "far away: no base")
 	n = r.said.size()
 	r.contact_tower()
-	check(r.said.size() == n + 1 and r.said[-1].template == "KCH2" and r.said[-1].text == "", "Ctrl+T far away: the radio click, no text")
+	check(
+		r.said.size() == n + 1 and r.said[-1].template == "KCH2" and r.said[-1].text == "",
+		"Ctrl+T far away: the radio click, no text"
+	)
 	r.free()
 	h.free()
 
 	# --- in flight: the tower at a hangar (313, Ramat David), Hebrew mode keeps the data's text ------
-	Settings().language = "he"
+	settings().language = "he"
 	var tv = await start_mission(313)
 	await fly(tv, 2.5)
 	var line := "Alpha, good morning, taxi to runway 27"
@@ -195,8 +254,11 @@ func run() -> void:
 	n = tv.radio.said.size()
 	send(tv, KEY_T, true)
 	await fly(tv, 2.0)
-	check(tv.radio.said.size() == n and not tv.sounds.played.has("kch2.wav"), "Ctrl+T on the ground at the base: no answer (the tower talks by itself)")
-	Settings().language = "en"
+	check(
+		tv.radio.said.size() == n and not tv.sounds.played.has("kch2.wav"),
+		"Ctrl+T on the ground at the base: no answer (the tower talks by itself)"
+	)
+	settings().language = "en"
 
 	# --- 211: lined up on Ramat David's runway 27; the wingman still on the ground says negative -----
 	tv = await start_mission(211)
@@ -208,22 +270,34 @@ func run() -> void:
 	send(tv, KEY_C, false, true)
 	check(console_has(tv, "Close formation."), "Alt+C: the pilot says close formation")
 	await fly(tv, 3.2)
-	check(console_has(tv, "I'm afraid that's a negative, sir!") and wing.pilot.brain.wingman_command == 0, "wingman on the ground: negative after 3 s, no command")
+	check(
+		console_has(tv, "I'm afraid that's a negative, sir!") and wing.pilot.brain.wingman_command == 0,
+		"wingman on the ground: negative after 3 s, no command"
+	)
 
 	# --- 221: airborne by Ramon; Ctrl+T, the wingman commands, the radio click far away ------------
 	tv = await start_mission(221)
 	await fly(tv, 1.5)
 	send(tv, KEY_T, true)
-	check(texts(tv.radio).has("Alpha, proceed to runway 23") and tv.sounds.played.has("prcd2rwy.wav"), "221 Ctrl+T in the air: proceed to runway 23")
+	check(
+		texts(tv.radio).has("Alpha, proceed to runway 23") and tv.sounds.played.has("prcd2rwy.wav"),
+		"221 Ctrl+T in the air: proceed to runway 23"
+	)
 	me = tv.runtime.player_entity()
 	wing = tv.ai.partner_of(me)
 	var b = wing.pilot.brain
 	# From a sub-brain the command goes back to the base list, which answers it (setRules keeps +0x48).
-	var cmds := [[KEY_C, 6, "Close formation.", "Roger, closing formation.", 1], [KEY_T, 5, "Tactical formation.", "Roger, going tactical.", 3],
-		[KEY_B, 2, "Bug out.", "Roger, bugging out.", 8]]
+	var cmds := [
+		[KEY_C, 6, "Close formation.", "Roger, closing formation.", 1],
+		[KEY_T, 5, "Tactical formation.", "Roger, going tactical.", 3],
+		[KEY_B, 2, "Bug out.", "Roger, bugging out.", 8]
+	]
 	for c in cmds:
 		send(tv, c[0], false, true)
-		check(console_has(tv, c[2]) and b.wingman_command == c[1], "Alt+%s: %s, the wingman's command %d" % [OS.get_keycode_string(c[0]), c[2], b.wingman_command])
+		check(
+			console_has(tv, c[2]) and b.wingman_command == c[1],
+			"Alt+%s: %s, the wingman's command %d" % [OS.get_keycode_string(c[0]), c[2], b.wingman_command]
+		)
 		await fly(tv, 4.5)
 		check(console_has(tv, c[3]), "the wingman's brain answers: %s" % c[3])
 		check(wing.pilot.mode == c[4], "the wingman's mode %d (%d)" % [c[4], wing.pilot.mode])
@@ -232,20 +306,32 @@ func run() -> void:
 		var was: int = b.wingman_command
 		send(tv, k, false, true)
 		await fly(tv, 3.2)
-		check(b.wingman_command == was and tv.radio.said[-1].text == "I'm afraid that's a negative, sir!", "Alt+%s without a target: negative" % OS.get_keycode_string(k))
+		check(
+			b.wingman_command == was and tv.radio.said[-1].text == "I'm afraid that's a negative, sir!",
+			"Alt+%s without a target: negative" % OS.get_keycode_string(k)
+		)
 	var any: Dictionary = tv.radio.engage_any(wing)
 	await fly(tv, 1.6)
 	send(tv, KEY_W, false, true)
 	# FUN_004a4cf0 is "another side": near Ramon the nearest such unit can be a side-0 object (original quirk).
-	check((b.wingman_command == 4 and is_same(b.target, any)) == not any.is_empty(), "Alt+W: engage the nearest other-side unit within 9.27 km (%s)" % any.get("name", "none"))
+	check(
+		(b.wingman_command == 4 and is_same(b.target, any)) == (not any.is_empty()),
+		"Alt+W: engage the nearest other-side unit within 9.27 km (%s)" % any.get("name", "none")
+	)
 	await fly(tv, 3.2)
 	# The player's waypoint report.
 	tv.waypoint_passed(2)
 	await fly(tv, 3.2)
-	check(console_has(tv, "Alpha leader is passing waypoint 2") and tv.sounds.played.has("gpaswpnt.wav"), "waypoint report 3 s later")
+	check(
+		console_has(tv, "Alpha leader is passing waypoint 2") and tv.sounds.played.has("gpaswpnt.wav"),
+		"waypoint report 3 s later"
+	)
 	# The ejection's report (EjectReport): "<callsign> ejected".
 	tv.radio.ejected(me)
-	check(console_has(tv, "Alpha leader ejected") and tv.sounds.played.has("gejected.wav"), "eject report: Alpha leader ejected")
+	check(
+		console_has(tv, "Alpha leader ejected") and tv.sounds.played.has("gejected.wav"),
+		"eject report: Alpha leader ejected"
+	)
 	tv.player_world_override = Vector3(100000, 100000, 3000)
 	await fly(tv, 5.0)
 	send(tv, KEY_T, true)
@@ -256,7 +342,12 @@ func run() -> void:
 	# ticks only count down; the fifth scans and calls it (long: a new contact).
 	var mig := {}
 	for e in tv.runtime.entities.values():
-		if int(e.get("klass", 0)) in [2, 3, 0x1c] and tv.enemy_of_player(e) and not int(e.state) in [4, 5] and int(e.control) != 0:
+		if (
+			int(e.get("klass", 0)) in [2, 3, 0x1c]
+			and tv.enemy_of_player(e)
+			and not int(e.state) in [4, 5]
+			and int(e.control) != 0
+		):
 			mig = e
 			break
 	check(not mig.is_empty(), "221 has an enemy aircraft")
@@ -272,19 +363,28 @@ func run() -> void:
 	check(calls.call().is_empty(), "AWACS: no call during the first four ticks")
 	tv.radio._awacs()
 	var awacs: Array = calls.call()
-	check(awacs.any(func(q): return q.text == "Alpha, bearing 090, 15 miles, unidentified contacts, heading 270, please identify"),
-		"AWACS: new contact called (%s)" % [awacs.map(func(q): return q.text)])
+	var new_contact := func(q):
+		return q.text == "Alpha, bearing 090, 15 miles, unidentified contacts, heading 270, please identify"
+	check(awacs.any(new_contact), "AWACS: new contact called (%s)" % [awacs.map(func(q): return q.text)])
 	tv.radio._awacs()
 	check(calls.call().size() == awacs.size(), "AWACS: a known contact is not called again at once")
 	tv.player_world_override = null
 	# The kill calls (FUN_0054c2a0) and the crash report (FUN_0054e0e0, posted by the runtime 2.5 s after a jet was
 	# destroyed without a killer).
-	var mig_name: String = tv.radio.particles.get(tv.radio.fc.kill(1.0e6, tv.radio._kill_unit(mig), tv.radio._kill_unit(me), true)[2], ["", ""])[1]
+	var mig_name: String = (
+		tv
+		. radio
+		. particles
+		. get(tv.radio.fc.kill(1.0e6, tv.radio._kill_unit(mig), tv.radio._kill_unit(me), true)[2], ["", ""])[1]
+	)
 	tv.radio.fc = ClassDB.instantiate("IafFlightController")
 	tv.radio.kill(mig, me)
 	check(console_has(tv, "Alpha leader shot down " + mig_name), "kill call: Alpha leader shot down %s" % mig_name)
 	tv.radio.kill(me, mig)
-	check(console_has(tv, "Alpha leader was shot down by " + mig_name), "kill call: Alpha leader was shot down by %s" % mig_name)
+	check(
+		console_has(tv, "Alpha leader was shot down by " + mig_name),
+		"kill call: Alpha leader was shot down by %s" % mig_name
+	)
 	n = tv.radio.said.size()
 	tv.radio.kill(me, mig)
 	check(tv.radio.said.size() == n, "the same kill call within 3 s is dropped")
@@ -299,4 +399,7 @@ func run() -> void:
 	await fly(tv, 2.0)
 	check(not console_has(tv, "Alpha wingman crashed"), "no crash report before 2.5 s")
 	await fly(tv, 1.0)
-	check(console_has(tv, "Alpha wingman crashed") and tv.sounds.played.has("gcrashed.wav"), "crash report 2.5 s after the wingman blew up")
+	check(
+		console_has(tv, "Alpha wingman crashed") and tv.sounds.played.has("gcrashed.wav"),
+		"crash report 2.5 s after the wingman blew up"
+	)

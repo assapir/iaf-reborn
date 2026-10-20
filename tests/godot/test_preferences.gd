@@ -20,15 +20,15 @@ func run() -> void:
 	fe._on_button(fe._key_for_label("Preferences"))
 	await settle(fe)
 	check(fe.screen == "pref", "Main -> Preferences")
-	check(Settings().pref_page == "Sound", "first visit opens Sound")
+	check(settings().pref_page == "Sound", "first visit opens Sound")
 	check(fe.checked.get(fe._key_for_label("Sound"), false), "Sound tab lit")
 	check(fe._score_frame(fe.pref_work) == 4, "defaults score 100 % (frame 4)")
 	check(fe.pref_work.easy_landing and fe.pref_work.ai_level == 1, "defaults: Easy Landing on, Normal AI")
 	fe._on_button(fe._key_for_label("Gameplay"))
-	check(Settings().pref_page == "Gameplay", "Gameplay tab")
+	check(settings().pref_page == "Gameplay", "Gameplay tab")
 	# NO BLACKOUTS: page rect (24,78)-(154,113).
 	click(fe, fe.CONTENT.position + Vector2(60, 95))
-	check(fe.pref_work.no_blackouts and not Settings().no_blackouts, "NO BLACKOUTS toggled in the working copy only")
+	check(fe.pref_work.no_blackouts and not settings().no_blackouts, "NO BLACKOUTS toggled in the working copy only")
 	check(fe._score_frame(fe.pref_work) == 6, "NO BLACKOUTS costs 10 % (frame 6)")
 	# Expert AI adds 20 %.
 	click(fe, fe.CONTENT.position + Vector2(200, 130))
@@ -48,11 +48,11 @@ func run() -> void:
 	fe._on_button("back")
 	click_box(fe.msgbox, 0)
 	await settle(fe)
-	check(Settings().no_blackouts, "Yes commits NO BLACKOUTS")
+	check(settings().no_blackouts, "Yes commits NO BLACKOUTS")
 	check(fe.screen == "main", "then goes back to Main")
 	fe._on_button(fe._key_for_label("Preferences"))
 	await settle(fe)
-	check(Settings().pref_page == "Gameplay", "Preferences reopens the last page")
+	check(settings().pref_page == "Gameplay", "Preferences reopens the last page")
 	fe._on_button("back")
 	await settle(fe)
 	check(fe.msgbox == null and fe.screen == "main", "no changes: no question")
@@ -60,18 +60,18 @@ func run() -> void:
 	fe._on_button(fe._key_for_label("Preferences"))
 	await settle(fe)
 	fe._on_button("physics")
-	check(Settings().pref_page == "Physics", "Physics tab")
+	check(settings().pref_page == "Physics", "Physics tab")
 	var items: Array = fe._physics_items()
 	click(fe, fe.CONTENT.position + items[7].rect.get_center())
 	check(fe.pref_work.better.fbw_departure and not fe.pref_work.better.ground_effect, "one option toggles alone")
 	var by_key := func(k): return items.filter(func(i): return i.key == k)[0]
 	click(fe, fe.CONTENT.position + by_key.call("all").rect.get_center())
-	check(Settings().BETTER.keys().all(func(id): return fe.pref_work.better[id]), "ALL ON sets every option")
+	check(settings().BETTER.keys().all(func(id): return fe.pref_work.better[id]), "ALL ON sets every option")
 	if OS.get_environment("IAF_SHOT") != "":
 		await frames(5)
 		root.get_viewport().get_texture().get_image().save_png(OS.get_environment("IAF_SHOT"))
 	click(fe, fe.CONTENT.position + by_key.call("none").rect.get_center())
-	check(not Settings().BETTER.keys().any(func(id): return fe.pref_work.better[id]), "ALL OFF clears them")
+	check(not settings().BETTER.keys().any(func(id): return fe.pref_work.better[id]), "ALL OFF clears them")
 	# Leaving from the Physics page (Save changes? -> Yes) draws the page while the working copy is gone.
 	click(fe, fe.CONTENT.position + items[0].rect.get_center())
 	fe._on_button("back")
@@ -79,8 +79,8 @@ func run() -> void:
 	click_box(fe.msgbox, 0)
 	await settle(fe)
 	await frames(10)
-	check(fe.screen == "main" and Settings().better.flight_path_hold, "leaving from Physics commits without errors")
-	Settings().better.flight_path_hold = false
+	check(fe.screen == "main" and settings().better.flight_path_hold, "leaving from Physics commits without errors")
+	settings().better.flight_path_hold = false
 	# Extras DEFAULT (ours): every Extras option back to its default, the language kept.
 	fe._on_button(fe._key_for_label("Preferences"))
 	await settle(fe)
@@ -96,19 +96,19 @@ func run() -> void:
 		await settle(fe)
 	# Devices DETENT = MIL (ours): the click edits the working copy; Back -> No keeps the stored value,
 	# Back -> Yes stores it.
-	Settings().throttle_detent = 60
+	settings().throttle_detent = 60
 	fe._on_button(fe._key_for_label("Preferences"))
 	await settle(fe)
 	fe._on_button(fe._key_for_label("Devices"))
 	click(fe, fe.CONTENT.position + fe.PREF_DETENT.off.get_center())
 	check(
-		fe.pref_work.throttle_detent == -1 and Settings().throttle_detent == 60, "DETENT OFF in the working copy only"
+		fe.pref_work.throttle_detent == -1 and settings().throttle_detent == 60, "DETENT OFF in the working copy only"
 	)
 	fe._on_button("back")
 	await settle(fe)
 	click_box(fe.msgbox, 1)
 	await settle(fe)
-	check(Settings().throttle_detent == 60, "Back -> No keeps the detent")
+	check(settings().throttle_detent == 60, "Back -> No keeps the detent")
 	fe._on_button(fe._key_for_label("Preferences"))
 	await settle(fe)
 	click(fe, fe.CONTENT.position + fe.PREF_DETENT.off.get_center())
@@ -116,4 +116,4 @@ func run() -> void:
 	await settle(fe)
 	click_box(fe.msgbox, 0)
 	await settle(fe)
-	check(Settings().throttle_detent == -1, "Back -> Yes stores the detent")
+	check(settings().throttle_detent == -1, "Back -> Yes stores the detent")
