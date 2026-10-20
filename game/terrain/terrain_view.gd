@@ -2789,7 +2789,7 @@ func _modes_text() -> String:
 		t.append("CKPT+")
 	if Settings.better.values().has(true) or _all_better:
 		t.append("PHYS+")
-	return "ORIGINAL" if t.is_empty() else "REAL " + " ".join(t)
+	return "ORIGINAL" if t.is_empty() else " ".join(t)
 
 ## Scripted stick / rudder for tests (held until changed).
 var scripted_stick = null
