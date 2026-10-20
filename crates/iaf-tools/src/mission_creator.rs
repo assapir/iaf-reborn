@@ -153,9 +153,11 @@ impl Ctx<'_> {
         let (mut x, mut y, mut z, mut h);
         if self.m.alt == 0 && n <= 2 {
             (x, y, z, h) = (bx, by, bz, yaw);
+            // FUN_0058eb40: (0, 50, 0) through the rotation about z by the bearing (FUN_0043d5b0), i.e.
+            // (−50 sin, 50 cos).
             let mut step = |bearing: f64| {
                 let r = bearing.to_radians();
-                x += 50.0 * r.sin();
+                x -= 50.0 * r.sin();
                 y += 50.0 * r.cos();
             };
             if !leader {
@@ -241,6 +243,7 @@ pub fn build(m: &Mission, read: &dyn Fn(&str) -> Option<Value>, ibx: &Ini, bdb: 
         })
         .unwrap_or_default();
     let cx = Ctx { m, ibx, bdb, allowed: weapon_types(m), templates };
+    let ground = ground_targets(&files, m, bdb);
     let by_kills = m.victory == 0;
     // formation kind n → (leader id, wingman id) in the main file.
     let mut members: [(i64, i64); 9] = [(-1, -1); 9];
@@ -297,19 +300,8 @@ pub fn build(m: &Mission, read: &dyn Fn(&str) -> Option<Value>, ibx: &Ini, bdb: 
             true
         });
     }
-    // Attack targets (FUN_004c286f): Bombers / Kamikaze the first ground "target"; others the enemy leader.
-    let objects = &bdb["objects"]["items"];
-    let category = |oid: &Value| {
-        objects.as_array().and_then(|a| a.iter().find(|o| o["0x1e"] == *oid)).and_then(|o| o["0x5aa"].as_i64())
-    };
-    let ground_target = files.iter().enumerate().find_map(|(fi, (_, f))| {
-        f["entities"]["items"].as_array()?.iter().find_map(|e| {
-            let ok = e["0x14"].as_i64() == Some(0)
-                && e["0x2bc"].as_str().is_some_and(|s| s.contains("target"))
-                && category(&e["0x2c6"]).is_some_and(|c| GROUND.contains(&c));
-            ok.then(|| (fi, e["0x1e"].as_i64().unwrap_or(-1)))
-        })
-    });
+    // Attack targets (FUN_004c286f): Bombers / Kamikaze the first ground "target" of another side in the entity
+    // map's order; the others the enemy leader.
     let title = String::from_utf8_lossy(&m.name).into_owned();
     let start = [43200.0, 21600.0, 68400.0, 79200.0][m.time.clamp(0, 3) as usize];
     let main = &mut files[0].1;
@@ -334,7 +326,12 @@ pub fn build(m: &Mission, read: &dyn Fn(&str) -> Option<Value>, ibx: &Ini, bdb: 
         let n = n as usize;
         let enemy = if n <= 2 { [3, 4] } else { [1, 2] }.iter().map(|&k| members[k].0).find(|&id| id >= 0);
         let ai = m.formations[n - 1].ai;
-        let target = if ai == 2 || ai == 3 { ground_target } else { enemy.map(|id| (0, id)) };
+        let side = if n <= 2 { 1 } else { 2 };
+        let target = if ai == 2 || ai == 3 {
+            ground.iter().find(|g| g.2 != side).map(|g| (g.0, g.1))
+        } else {
+            enemy.map(|id| (0, id))
+        };
         let mut f = f;
         let (points, names) = cx.route(n);
         f["points"] = points;
@@ -353,6 +350,40 @@ pub fn build(m: &Mission, read: &dyn Fn(&str) -> Option<Value>, ibx: &Ini, bdb: 
     }
     main["formations"]["items"] = json!(formations);
     files
+}
+
+/// The ground "target" entities a Bombers / Kamikaze formation can attack (`FUN_004c286f`): (file index, entity id,
+/// side) in the order the exe walks its entity map (`FUN_00439f20`, a 17-bucket hash map; `FUN_004c1c90`). An entity's
+/// key is {class, document index + 1, 0, 0} (`FUN_0058d860` → `FUN_004aa040`): the document appends each later file's
+/// entities in reverse (`FUN_0058bce0`), the placeholder rows included. The bucket is (class << 10 | index) << 12 mod 17
+/// (`FUN_00439b40`); a bucket lists its newest entry first. A candidate is spawned (the SAM / AAA filter), named with
+/// "target" (case kept, `FUN_005de669`) and of a ground class (`GROUND`, the key's class).
+fn ground_targets(files: &[(String, Value)], m: &Mission, bdb: &Value) -> Vec<(usize, i64, i64)> {
+    let objects = &bdb["objects"]["items"];
+    let class = |oid: &Value| {
+        objects.as_array().and_then(|a| a.iter().find(|o| o["0x1e"] == *oid)).and_then(|o| o["0x5aa"].as_i64())
+    };
+    let mut found = vec![]; // (bucket, insertion, file, id, side)
+    let mut index = 0i64;
+    for (fi, (_, f)) in files.iter().enumerate() {
+        let items = f["entities"]["items"].as_array().map(Vec::as_slice).unwrap_or_default();
+        let order: Vec<&Value> = if fi == 0 { items.iter().collect() } else { items.iter().rev().collect() };
+        for e in order {
+            index += 1;
+            let name = e["0x2bc"].as_str().unwrap_or("");
+            let lower = name.to_ascii_lowercase();
+            let filtered = lower.starts_with("sam") && !site_kept(name, m.sams)
+                || lower.starts_with("aaa") && !site_kept(name, m.aaa);
+            let Some(c) = class(&e["0x2c6"]) else { continue };
+            if e["0x14"].as_i64() != Some(0) || filtered || !name.contains("target") || !GROUND.contains(&c) {
+                continue;
+            }
+            let bucket = (((index & 0xffff) | (c & 0x3f) << 10) << 12) % 17;
+            found.push((bucket, -index, fi, e["0x1e"].as_i64().unwrap_or(-1), e["0x2d0"].as_i64().unwrap_or(0)));
+        }
+    }
+    found.sort();
+    found.into_iter().map(|g| (g.2, g.3, g.4)).collect()
 }
 
 #[cfg(test)]
@@ -429,7 +460,7 @@ mod tests {
         assert_eq!(alpha["points"][1][1], 331502.0, "Ramon Target waypoint");
         assert_eq!(alpha["members"][0]["0x424"], p3["0x1e"], "Aggressors attack the red leader");
         let charlie = fs.iter().find(|f| f["0x3f2"] == 3).unwrap();
-        assert!(charlie["members"][0]["target_key"].as_str().unwrap().starts_with("2:"), "Bombers: the target set");
+        assert!(charlie["members"][0].get("target_key").is_none(), "red Bombers: the targets are red too, so none");
         assert!(!fs.iter().any(|f| f["0x3f2"] == 2 || f["0x3f2"] == 5), "Bravo (No 0) and Echo dropped");
         let sams: Vec<&str> = files[2].1["entities"]["items"]
             .as_array()
@@ -439,18 +470,59 @@ mod tests {
             .filter(|n| n.starts_with("sam") || n.starts_with("AAA"))
             .collect();
         assert_eq!(sams, ["sam1"], "SAMs 1: the '1' site; AAA 0: none");
-        // Runway start: Alpha on the base point, the wingman 50 m off.
+        // Runway start: Alpha on the base point, the wingman 50 m off at yaw + 90 as (−50 sin, 50 cos)
+        // (FUN_0058eb40); Bravo another 50 m at yaw + 180.
         m.alt = 0;
         m.victory = 0;
+        m.formations[1] = Formation { count: 2, kind: 0, ai: 2, base: 2 };
         let files = build(&m, &read, &ibx, &bdb);
         let ents = files[0].1["entities"]["items"].as_array().unwrap();
-        let p1 = ents.iter().find(|e| e["0x2bc"] == "Player1").unwrap();
-        let p11 = ents.iter().find(|e| e["0x2bc"] == "Player11").unwrap();
+        let named = |n: &str| ents.iter().find(|e| e["0x2bc"] == n).unwrap();
+        let p1 = named("Player1");
         assert_eq!([&p1["0x2e4"], &p1["0x2ee"], &p1["0x2f8"]], [317544.0, 411180.0, 580.0]);
         let num = |v: &Value| v.as_f64().unwrap();
-        let d = (num(&p11["0x2e4"]) - 317544.0).hypot(num(&p11["0x2ee"]) - 411180.0);
-        assert!((d - 50.0).abs() < 1e-6);
-        assert_eq!(ents.iter().find(|e| e["0x2bc"] == "Player3").unwrap()["0x32a"], 1, "By Kills: red jets role 1");
+        let off = |e: &Value| [num(&e["0x2e4"]) - 317544.0, num(&e["0x2ee"]) - 411180.0];
+        let near = |a: [f64; 2], b: [f64; 2]| (a[0] - b[0]).abs() < 1e-6 && (a[1] - b[1]).abs() < 1e-6;
+        let r = |deg: f64| [-50.0 * deg.to_radians().sin(), 50.0 * deg.to_radians().cos()];
+        assert!(near(off(named("Player11")), r(320.0)), "{:?}", off(named("Player11")));
+        assert!(near(off(named("Player2")), r(410.0)), "{:?}", off(named("Player2")));
+        let w = r(320.0);
+        let b = r(410.0);
+        assert!(near(off(named("Player22")), [w[0] + b[0], w[1] + b[1]]));
+        // Blue Bombers: Ramon's Radar Station set walked in the entity map's order: "target" (Radum1, id 7) first.
+        let fs = files[0].1["formations"]["items"].as_array().unwrap();
+        let bravo = fs.iter().find(|f| f["0x3f2"] == 2).unwrap();
+        assert_eq!(bravo["members"][0]["target_key"], "2:7");
+        assert_eq!(bravo["members"][1]["target_key"], "2:7");
+        assert_eq!(named("Player3")["0x32a"], 1, "By Kills: red jets role 1");
         assert_eq!(p1["0x32a"], 2);
+    }
+
+    /// The entity map's order for each target set (FUN_00439b40 buckets over the appended document): the first blue
+    /// Bombers target per base / target.
+    #[test]
+    fn ground_target_order() {
+        let Some(a) = assets() else {
+            eprintln!("skip: no converted missions (tools/setup-cli.sh)");
+            return;
+        };
+        let dir = a.join("converted/missions");
+        let read = |n: &str| -> Option<Value> {
+            serde_json::from_str(&std::fs::read_to_string(dir.join(format!("{n}.json"))).ok()?).ok()
+        };
+        let bdb = read("default6_1.bdb").unwrap();
+        let mut got = vec![];
+        for base in 0..3 {
+            for target in 1..5 {
+                let m = Mission { base, target, sams: 3, aaa: 3, ..Default::default() };
+                let files: Vec<(String, Value)> =
+                    file_names(&m).into_iter().filter_map(|n| read(&n).map(|v| (n, v))).collect();
+                let first = ground_targets(&files, &m, &bdb).into_iter().find(|g| g.2 != 1).map(|g| g.1);
+                got.push(first.unwrap_or(-1));
+            }
+        }
+        // Entity ids (item index + 1): Tel Nof / Ramat David 9 target5, 7 target, 7 target, 11 target3; Ramon 8
+        // target2, 8 target0, 7 target, 12 target34.
+        assert_eq!(got, [9, 7, 7, 11, 9, 7, 7, 11, 8, 8, 7, 12]);
     }
 }

@@ -1873,7 +1873,8 @@ shows the new page.
 (45,63).
 * The text font is `fnt/key.fnt` (a 6×8 raster font, green RGB(0,255,0), transparent). The numbers' font is Arial p11
   weight 500 (`FUN_004eee10(0xb, …, 500, …)`).
-* DEBRIEFING: `"%s\n %s"` = the headline (R+0x3e88, misc 0x47e / 0x492), a new line, a space and the notes
+* DEBRIEFING: `"%s\n %s"` = the headline (R+0x3e88: misc 0x47e / 0x492; the Mission Creator's "… team won." of
+  §19.3), a new line, a space and the notes
   (R+0x4288). `DrawTextA` into (10,10)–(310,175) with `DT_WORDBREAK | DT_NOCLIP`: the lines wrap at 300 px and may
   run past the rect. There is no scrolling.
 * KILL TALLY / LOSSES: for each of the 37 categories (§13.7) with a count in this attempt, in category order:
@@ -2612,8 +2613,13 @@ format of LOAD / SAVE (formats/mcr.md).
 * Accepted characters: space, `.`, `0-9`, `A-Z`, `a-z`. Backspace / Delete delete; Home / End, Left / Up, Right / Down
   move the caret by one character; Enter (0xd) and Tab (0xe) copy the text into the record; Esc (0xf) is ignored.
 * Caret `Misc\LoginCaret.bmp` (1×16) at (x, line bottom − 16), 200 ms blink. Focus puts it at the start of line 0; a
-  click moves it to the nearest character.
+  click moves it to the nearest character. The box is a child window (`FUN_004f1890`) and clips the caret: 13 px in
+  the 13 px high MISSION NAME box, all 16 px in NOTES.
 * The notes are shown and saved only. The mission never reads them.
+* Hebrew: the same code, rects and English texts as in English, left to right; only `spback.bmp` changes. Its MISSION
+  NAME box starts at x ≈ 111 (the English art's at ≈ 120), so the text sits 15 px into it, and with no NOTES label
+  the first notes rule starts at x ≈ 254 while the first notes line still starts at 281. The edit refuses Hebrew
+  letters (the accepted set above). The port does the same.
 
 **Combo boxes** (class `FUN_004f4fa0`, vtable 0x606f10; Bravo..Delta TYPE use the derived class `FUN_004f5bd0`):
 a read-only edit (the text), the arrow button `MC\but_0..2` (9×19, the bottom-bar button class) right of it, and a
@@ -2704,8 +2710,9 @@ After each file `FUN_0058ba00` empties every formation's member and target ids; 
   loads), else the type's bdb default; stations 9..11 from the type.
 
 **Positions** (`FUN_0058ed60`; IAF.ibx [BlueTeam] `<Base>X/Y/Z/Yaw`):
-* Runway start and Alpha / Bravo (n ≤ 2): on the base point; the wingman 50 m off at bearing yaw + 90; Bravo another
-  50 m at yaw + 180 (`FUN_0058eb40`; the side is UNCERTAIN).
+* Runway start and Alpha / Bravo (n ≤ 2): on the base point; the wingman 50 m off at bearing yaw + 90 (`.rdata
+  0x6111a8` = −90 subtracted); Bravo another 50 m at yaw + 180 (0x6111ac = −180). `FUN_0058eb40` turns (0, 50, 0) by
+  the bearing about z (`FUN_0043d5b0`): the offset is (−50 sin b, 50 cos b).
 * Otherwise: x = base X + 1000 (leader) or base X (wingman), y = base Y + n · 1000, z = base Z.
 * Charlie / Delta (n ≥ 3) then: x − 20000 at Ramat David, + 25000 elsewhere; z = 4000; yaw + 180 at Tel Nof and Ramat
   David (not wrapped).
@@ -2716,21 +2723,47 @@ After each file `FUN_0058ba00` empties every formation's member and target ids; 
 keys `<Base><X|Y|Z|Name><i>` of Alpha's base. Speed / action per point: blue 0 (Alpha) or 40 (Bravo) / 2, 120 / 8,
 200 / 3, 400 / 7; red 40 / 3, 120 / 8, 900 / 3, 1000 / 7.
 
-**Attack targets** (`FUN_004c286f`, flights 1..4): Bombers and Kamikaze take the first entity whose name contains
-"target" and whose object is a ground one (`FUN_004c2fc0`); the others take the enemy leader (flight 3 else 4 for
-blue, 1 else 2 for red).
+**Attack targets** (`FUN_004c286f`, flights 1..4): Bombers and Kamikaze walk the entity map (`FUN_00439f20`) and take
+the first entity on another side than their leader (`FUN_004c2fc0` → `FUN_004a4cf0`), of a ground class (its key's
+class: 5, 6, 8, 9, 10, 11, 12, 13, 15, 16) and whose name contains "target" (case kept). The others take the enemy
+leader (flight 3 else 4 for blue, 1 else 2 for red). No match leaves the formation without a target.
+* `FUN_005bd7b0` computes nothing: it stores the target's 20-byte entity key in the formation (+4 for 0, +0x1c for 1;
+  both get the same key), and `FUN_005ccbc0` hands the target object to the leader's and the wingman's brains.
+* The target sets' "target" objects are all red (side 2), so red Bombers / Kamikaze get no target.
+* The map's order: a 17-bucket hash map (`CTypeLibCacheMap` ctor, size 0x11). An entity's key is {class, document
+  index + 1, 0, 0} (`FUN_0058d860` → `FUN_004aa040`; "Parachute" class 4, "Crater" 0x1f). The document holds every
+  file's entities: the first file in order, each later file appended in reverse (`FUN_0058bce0` takes its array
+  from the end), placeholder rows included. The bucket is ((class << 10 | index) << 12) mod 17 (`FUN_00439b40`), a
+  bucket lists its newest entry first, and the walk goes bucket 0..16 (`FUN_004c1c90`). The first blue target per
+  set: Tel Nof / Ramat David Bunkers `target5`, Armored Column `target`, Radar Station `target`, Encampment
+  `target3`; Ramon `target2`, `target0`, `target`, `target34` (No Target: none, the sensor is no ground object).
 
 **Misc** (`FUN_0058d720`): the title is the mission name; start time Noon 43200, Dawn 21600, Sunset 68400, Night
 79200 s.
 
 **Weapons** (`FUN_0058c9c0`, the bdb weapon table): Guns Only keeps the guns (565), the SAMs (620, 630), chaff (540)
-and flares (550); Air To Air adds the AAMs (570, 580, 600, 610); Multipurpose keeps all. A station whose weapon is
-gone stays empty (`FUN_004b7ea3`). Guns Only also disables the TSD's Arm (`FUN_00505c10`, §8.1).
+and flares (550); Air To Air adds the AAMs (570, 580, 600, 610); Multipurpose keeps all. The runtime weapon table
+registers only those, so on every jet, AI or player, a station whose weapon is gone stays empty (`FUN_004b7ea3`),
+also when the stores come from the type's default load. Guns Only also disables the TSD's Arm (`FUN_00505c10`, §8.1).
 
 **Victory**:
-* By Kills: every entity is role 2, the red jets role 1, so the mission passes when every red jet is down. The
-  score (`FUN_004a8420`) counts blue and red losses; the debrief headline (`FUN_0059a480`) says which side won.
+* By Kills: every entity is role 2, the red jets role 1, so the mission passes when every red jet is down.
+* The score (`FUN_004a8420`, a unit going from state 1 or 3 to 5 in mission 0x29a): an aircraft (it has a
+  controller, entity +0x34) of formation flight 3 or 4 (`FUN_0059a450`: formation +0x38 = `0x3f2`) adds 1 to blue
+  (`DAT_00832ab4`) and takes 1 from red (`DAT_00832ab8`); any other aircraft the other way round. Both start at 0
+  with the mission (`FUN_004b234f`).
 * By Target: the files' roles: the target set's objects are role 1.
+* The debrief (`FUN_0059a0f0` calls `FUN_0059a480` for 0x29a; the rest of the debrief as §13.7) sets the headline
+  (R+0x3e88) and the result R[0]; the bonus R[1] stays 0:
+  * the winner: By Kills blue when blue's score is above red's (`FUN_004bb881`), red when below (`FUN_004bb898`),
+    else a draw; By Target blue when the mission passed (+0x6615), else red;
+  * with a player: "Congratulations," (result 1) when the winner is the player's side (flight 3 / 4 = red), else
+    "Too bad," (result 0), then a space;
+  * then "blue team won." / "red team won." and "\n\n\n\n" (`DAT_00670aa4`). A draw is "Red team/Blue team draw." +
+    "\n\n\n\n" alone, result 0.
+  * The texts are IAF.ibx `[Debrief]` `Congratulations`, `Too_Bad`, `blue_team_won`, `red_team_won`, `Draw`
+    (`FUN_004d3b00`); the shipped IAF.ibx has no such section, so the defaults above show.
+  * So single player (the player is blue) shows "Congratulations, blue team won." or "Too bad, red team won.".
 * The player is the leader of Alpha, else of Bravo (`FUN_004bb439`). MiG-23 / MiG-29 are flyable: cockpits 8 / 7
   (`FUN_00447e70`).
 
@@ -2743,7 +2776,8 @@ gone stays empty (`FUN_004b7ea3`). Guns Only also disables the TSD's Arm (`FUN_0
   §19.3 changed as the exe's document changes them, kept in `Settings.mc_files`, which `MissionRuntime.mission_files`
   returns for 0x29a. The main file carries the weapon types kept (`weapon_types`, read by the Arming tables) and,
   for a target in another file, the member's `target_key` (read by the AI). Arm is disabled for Guns Only.
-* Not built yet: the By Kills score and the "blue / red team won" debrief headline (`FUN_004a8420`, `FUN_0059a480`;
-  the debrief shows the mission's own texts), the formations' target position (`FUN_005bd7b0`). UNCERTAIN: the side
-  of the runway wingman offsets (`FUN_0058eb40`), the order of the entity map when several entities qualify as the
-  ground target (ours: file order).
+* The attack targets are picked in the exe's entity map order (`ground_targets` in
+  `crates/iaf-tools/src/mission_creator.rs`). The weapon table drops the types not kept (`MissionRuntime.load_bdb`
+  with the main file's `weapon_types`), for the player's and the AI's stores.
+* The score and headline: `game/mission/mission_runtime.gd` `_mc_count` / `mc_headline`, read by `debrief_text` for
+  0x29a. Assumed: a unit's spawn order is its document order (it orders the entries of one hash bucket).

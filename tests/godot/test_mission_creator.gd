@@ -9,6 +9,11 @@ var fe: Control
 var mcv: Control
 
 
+## Mission 0x29a's files for the current state (the screen's FLY build).
+func mc_build() -> Array:
+	return load("res://menu/mission_creator.gd").build(settings().mc)
+
+
 func type_text(s: String) -> void:
 	for ch in s:
 		var e := InputEventKey.new()
@@ -106,6 +111,11 @@ func run() -> void:
 	mc_click(mcv.NAME_BOX.get_center())
 	type_text("Test 1!")
 	check(settings().mc.name == "Test 1", "the name box takes letters, digits, space, '.' only")
+	type_text("שם")
+	check(settings().mc.name == "Test 1", "Hebrew letters are refused (the edit class's WM_CHAR table, both languages)")
+	var cr: Rect2 = mcv.caret_rect(0, 130, mcv.NAME_BOX.end.y)
+	check(cr.size.y == 13 and cr.position.y == mcv.NAME_BOX.position.y, "the name caret clipped to the 13 px box")
+	check(mcv.caret_rect(1, 300, 271).size.y == 16, "the notes caret: all 16 px")
 	mc_click(mcv.NOTES_BOX.get_center())
 	type_text("abc")
 	check(settings().mc.notes == "abc", "the notes box")
@@ -178,3 +188,53 @@ func run() -> void:
 	check(String(tv.player.cockpit_dir).ends_with("mig29"), "with the mig29 cockpit")
 	check(tv.ai != null and tv.runtime.entities.size() > 10, "the mission's units are up")
 	await seconds(2.0)
+	var rt = tv.runtime
+	# By Target (FUN_0059a480): the mission's passed flag picks the side.
+	check(rt.debrief_text(0x29a).headline == "Too bad, red team won.\n\n\n\n", "By Target, not passed: red won")
+	rt.passed = true
+	var d: Dictionary = rt.debrief_text(0x29a)
+	check(d.headline == "Congratulations, blue team won.\n\n\n\n" and d.result == 1, "By Target passed: blue won")
+	rt.passed = false
+
+	# By Kills (FUN_004a8420): every aircraft that explodes scores for the other side; Charlie's MiG-21 down.
+	settings().mc.victory = 0
+	settings().mc_files = mc_build()
+	tv = await start_mission(0x29a)
+	rt = tv.runtime
+	var red: Dictionary = rt.entities["0:5"]
+	check(red.name == "Player3" and red.role == 1, "By Kills: the red leader is a target (role 1)")
+	check(rt.debrief_text(0x29a).headline == "Red team/Blue team draw.\n\n\n\n", "no losses: a draw")
+	rt.set_damage_level(red, 5)
+	check(rt.mc_score == [1, -1], "a red jet down: blue +1, red -1 (%s)" % [rt.mc_score])
+	check(rt.passed, "every red jet down: the mission passes")
+	d = rt.debrief_text(0x29a)
+	check(d.headline == "Congratulations, blue team won.\n\n\n\n" and d.result == 1, "blue won (%s)" % d.headline)
+	# The reverse: both blue jets down (the player's wingman, then a second blue loss counted on the leader).
+	rt.set_damage_level(rt.entities["0:2"], 5)
+	check(rt.mc_score == [0, 0], "a blue jet down evens it")
+	rt.set_damage_level(rt.player_entity(), 5)
+	d = rt.debrief_text(0x29a)
+	check(d.headline == "Too bad, red team won.\n\n\n\n" and d.result == 0, "red won (%s)" % d.headline)
+	settings().mc.victory = 1
+
+	# WEAPONS (FUN_0058c9c0): the weapon table keeps only the allowed types, so no jet carries another store, even
+	# when its stores come from the type's default.
+	settings().mc.victory = 1
+	for w in [[0, "Guns Only: guns, chaff, flares"], [2, "Air To Air: guns, AAMs, chaff, flares"]]:
+		settings().mc.weapons = w[0]
+		settings().mc_files = mc_build()
+		tv = await start_mission(0x29a)
+		var kept: Array = settings().mc_files[0].data.weapon_types
+		var types := []
+		for st in tv.weapons.loadout():
+			if int(st[0]) > 0:
+				types.append(int(tv.weapons.db.by_id(int(st[0])).type))
+		check(not types.is_empty() and types.all(func(t): return float(t) in kept), "%s (%s)" % [w[1], types])
+		check(
+			tv.ai.combat._db.weapons.values().all(func(r): return float(r.type) in kept),
+			"the AI jets' weapon table holds only the kept types"
+		)
+		if w[0] == 0:
+			tv.weapons.select_aa()
+			check(tv.weapons.hud_mode != 1, "Guns Only: no SRM (IR) mode")
+	settings().mc.weapons = 1

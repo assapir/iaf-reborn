@@ -590,9 +590,19 @@ func _draw_edit(b: int) -> void:
 		var n := String(ls[i]).length()
 		if focus == b and caret_on and not caret_drawn and caret[b] >= used and caret[b] <= used + n:
 			var x: float = at.x + _text_width(String(ls[i]).left(caret[b] - used))
-			fe._blit("misc/logincaret.png", CONTENT + Vector2(x, at.y - 16), self)
+			var r := caret_rect(b, x, at.y)
+			fe._blit_region(
+				"misc/logincaret.png", Rect2(0, r.position.y - (at.y - 16), 1, r.size.y), CONTENT + r.position, self
+			)
 			caret_drawn = true
 		used += n
+
+
+## The caret's visible part (box-local x, line bottom y → content rect): LoginCaret.bmp (1×16) drawn at (x, bottom −
+## 16) in the edit's child window (FUN_004f1890), which clips it to the box: 13 px in the 13 px high MISSION NAME box.
+static func caret_rect(b: int, x: float, bottom: float) -> Rect2:
+	var box: Rect2 = [NAME_BOX, NOTES_BOX][b]
+	return Rect2(x, bottom - 16, 1, 16).intersection(box)
 
 
 func _line_h() -> float:

@@ -25,8 +25,8 @@ STBY / STT / BORE / LRS / TWS / ACM / GMT / MAP are the radar modes (docs/radar.
 - **Mission Creator** (single player; docs/front-end.md §19): the screen with all its controls, RANDOM, LOAD / SAVE
   of the original's files (docs/formats/mcr.md, in the user data folder), FLY builds mission 0x29a as the exe
   (files, jets, brains, positions, routes, targets, SAMs / AAA, time, weapons, roles) and flies it through the TSD and
-  Arming. Open: the debrief's "blue / red team won" headline and the By Kills score (`FUN_0059a480`, `FUN_004a8420`),
-  the formations' target position (`FUN_005bd7b0`), the side of the runway wingman offsets (`FUN_0058eb40`).
+  Arming; the By Kills score and the "blue / red team won" debrief headline (`FUN_004a8420`, `FUN_0059a480`); the
+  WEAPONS choice empties every jet's other stores (`FUN_0058c9c0`).
 - **Game version: v1.1 logic**, with v1.1 data when setup is given the patch (`--patch`); v1.0 data still plays. Doc
   addresses are v1.1 (docs/v1.1.md maps them to v1.0). All the flight model's v1.1 changes are ported
   (docs/flight-model.md §16).

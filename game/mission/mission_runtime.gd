@@ -41,6 +41,10 @@ var failed := false
 var debrief_notes := ["", ""]  # flag 0 texts, flag 1 texts
 var _shown_debriefs := {}
 var _all_dead := false  # rule 1 posted (debrief unit +0x661c)
+## The Mission Creator's kill score (FUN_004a8420): [blue (DAT_00832ab4), red (DAT_00832ab8)], each the other
+## side's aircraft lost minus its own.
+var mc_score := [0, 0]
+var formation_of := {}  # entity key -> its formation's flight (0x3f2, formation +0x38) in the main file
 
 
 ## The files of menu mission `id` (missionlist.json: the main .mis, then its base missions, as
@@ -95,9 +99,16 @@ static func move_with_bases(m: Dictionary) -> void:
 
 
 ## The object database a mission file names (converted .bdb); {} when missing.
+## The Mission Creator's WEAPONS choice (`weapon_types` of its main file): the runtime weapon table registers only
+## the kept types (FUN_0058c9c0), so every jet's station holding another weapon stays empty (FUN_004b7ea3), the
+## object defaults' stores too.
 static func load_bdb(mission: Dictionary) -> Dictionary:
 	var name := String(mission.get("bdb", "")).to_lower()
-	return Settings.load_json(Settings.assets_dir().path_join("converted/missions").path_join(name + ".json"))
+	var bdb := Settings.load_json(Settings.assets_dir().path_join("converted/missions").path_join(name + ".json"))
+	var kept: Array = mission.get("weapon_types", [])
+	if not kept.is_empty() and bdb.has("weapons"):
+		bdb.weapons.items = bdb.weapons.items.filter(func(w): return float(w.get("0x780", -1)) in kept)
+	return bdb
 
 
 ## A bdb's Objects by id (0x1e).
@@ -225,6 +236,10 @@ func setup(host_node: Node, mission_files: Array, bdb: Dictionary, player_id := 
 		var m: Dictionary = mission_files[fi]
 		if fi == 0:
 			misc = m.misc.items[0]
+			for f in m.get("formations", {}).get("items", []):
+				for mm in f.get("members", []).slice(0, 2):
+					if int(mm.get("0x41a", -1)) >= 0:
+						formation_of["0:%d" % int(mm["0x41a"])] = int(f.get("0x3f2", -1))
 		for d in m.get("debrief", {}).get("items", []):
 			debriefs["%d:%d" % [fi, int(d["0x1e"])]] = {
 				"text": String(d.get("0x26c", "")), "flag": int(d.get("0x262", 0))
@@ -866,6 +881,7 @@ func _set_damage(ent: Dictionary, damage: float, level: int, source: Dictionary,
 		DamageModel.EXPLODED:
 			if ent.state == DamageModel.ALIVE or ent.state == DamageModel.HIT:
 				ent.state = DamageModel.EXPLODED
+				_mc_count(ent)
 				_destroyed(ent)
 	if ent.state == DamageModel.ALIVE:
 		_damaged_alive(ent, source, kind)
@@ -1006,6 +1022,17 @@ func _destroyed(ent: Dictionary) -> void:
 	_role_rules(ent)
 
 
+## FUN_004a8420 (state 1 / 3 -> 5) in a Mission Creator mission: an aircraft (it has a controller, entity +0x34)
+## of Charlie / Delta (FUN_0059a450: formation flight 3 or 4) scores one for blue and minus one for red; any other
+## aircraft the other way round. Counted in every mission; only mission 0x29a's debrief reads it.
+func _mc_count(ent: Dictionary) -> void:
+	if ent.klass != 0x1c:
+		return
+	var red: bool = formation_of.get(ent.key, -1) in [3, 4]
+	mc_score[0] += 1 if red else -1
+	mc_score[1] += -1 if red else 1
+
+
 ## Explode (trigger op 5) and the flight model's crash: level 5.
 func _destroy(ent: Dictionary) -> void:
 	set_damage_level(ent, DamageModel.EXPLODED)
@@ -1085,6 +1112,12 @@ func debrief_text(mission_id := -1) -> Dictionary:
 				_add_debrief(ent.file, id)
 	var headline := String(misc.get("0x47e" if passed else "0x492", ""))
 	var bonus: int = preload("res://menu/pilots.gd").mission_bonus(mission_id)
+	var result := 1 if passed else 0
+	if mission_id == 0x29a:
+		var mc := mc_headline(int(Settings.mc.get("victory", 1)) == 0)
+		headline = mc[0]
+		result = mc[1]
+		bonus = 0  # R[1] stays 0: FUN_0059a0f0 sets it only outside 0x29a / 0x309
 	var kills: Array = []
 	var losses: Array = []
 	var p := player_entity()
@@ -1097,8 +1130,42 @@ func debrief_text(mission_id := -1) -> Dictionary:
 		"passed": passed,
 		"headline": headline,
 		"notes": (debrief_notes[0] + debrief_notes[1]).strip_edges(),
-		"result": 1 if passed else 0,
+		"result": result,
 		"bonus": bonus if passed else int(-0.5 * bonus),
 		"kills": kills,
 		"losses": losses
 	}
+
+
+## FUN_0059a480, the Mission Creator's debrief headline (R+0x3e88) and result (R[0]): By Kills blue wins when its
+## score beats red's (FUN_004bb881), red when red's beats blue's (FUN_004bb898), else a draw; By Target blue wins
+## when the mission passed (+0x6615). The texts are IAF.ibx [Debrief] keys (FUN_004d3b00), the exe's defaults when
+## absent: "Congratulations," / "Too bad," + " " for the player's side (FUN_0059a450: Charlie / Delta red), then
+## "<side> team won." + "\n\n\n\n"; a draw "Red team/Blue team draw." + "\n\n\n\n" alone, result 0.
+func mc_headline(by_kills: bool) -> Array:
+	var ibx: Dictionary = Settings.load_ibx(Settings.assets_dir().path_join("install/iaf.ibx"))
+	var sec := {}
+	for k in ibx:
+		if String(k).to_lower() == "debrief":
+			sec = ibx[k]
+	var text := func(key: String, def: String) -> String:
+		for k in sec:
+			if String(k).to_lower() == key.to_lower():
+				return String(sec[k])
+		return def
+	var blue_won: bool = mc_score[1] < mc_score[0] if by_kills else passed
+	if by_kills and not blue_won and mc_score[0] == mc_score[1]:
+		return [text.call("Draw", "Red team/Blue team draw.") + "\n\n\n\n", 0]
+	var p := player_entity()
+	var head := ""
+	var result := 0
+	if not p.is_empty():
+		var player_red: bool = formation_of.get(p.key, -1) in [3, 4]
+		result = 1 if blue_won != player_red else 0
+		head = text.call("Congratulations", "Congratulations,") if result else text.call("Too_Bad", "Too bad,")
+		head += " "
+	if blue_won:
+		head += text.call("blue_team_won", "blue team won.")
+	else:
+		head += text.call("red_team_won", "red team won.")
+	return [head + "\n\n\n\n", result]
