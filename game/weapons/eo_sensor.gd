@@ -95,7 +95,7 @@ func los(ae: Vector2, base: Vector2) -> Vector3:
 
 ## Event 0x8a(x, y) (Ctrl+arrows): the slew, or with the keys released the lock on the EO centre point `centre`.
 func pan(x: int, y: int, t: float, base: Vector2, eye: Vector3, centre, launched := false) -> void:
-	_e.pan(x, y, t, base, eye, centre, launched, unit_pos)
+	_e.pan(Vector2i(x, y), t, base, eye, [centre, launched], unit_pos)
 	_st = _e.state()
 
 

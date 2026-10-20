@@ -103,10 +103,12 @@ func _touch_down(t: Node3D, focus: Node3D, flight, p: Vector2, hdg: float) -> Di
 	var start := Vector3(s.x, 0.0, -s.y)
 	var g = t.height_at(start)
 	start.y = (g if g != null else 0.0) + clearance + 1.0
-	flight.start(install, "F-16", start, hdg, 0.0, 0.0, Vector3(dir.x, 0, -dir.y) * SPEED + Vector3(0, -1.5, 0), true, true, false)
+	flight.start(install, "F-16", start, Vector3(0.0, 0.0, hdg),
+			Vector3(dir.x, 0, -dir.y) * SPEED + Vector3(0, -1.5, 0),
+			{"airborne": true, "engine_on": true, "real_data": false})
 	flight.set_gear_clearance(clearance)
 	flight.set_easy_landing(true)
-	flight.set_controls(0.0, 0.0, 0.0, 0.0, 0.0, true, false)
+	flight.set_controls(Vector2(0.0, 0.0), 0.0, 0.0, 0.0, true, false)
 	var touch := -1
 	var td_mask := 0
 	for i in 600:

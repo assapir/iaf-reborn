@@ -59,7 +59,11 @@ func next_free() -> bool:
 ## −1 when the pooled round is busy.
 func fire(now: float, p: Vector3, muzzle: Vector3, vel: Vector3, a: Vector3, locked: String, me: String, easy: bool, only = null) -> int:
 	var b := _bodies()
-	var slot: int = _r.fire(now, p, muzzle, vel, a, locked, me, easy, b[0], b[1], PackedStringArray(only) if only != null else null, ground)
+	var shot := {
+		"origin": p, "muzzle": muzzle, "velocity": vel, "aim": a, "locked": locked, "shooter": me, "easy_aiming": easy,
+		"targets": PackedStringArray(only) if only != null else null,
+	}
+	var slot: int = _r.fire(now, shot, b[0], b[1], ground)
 	_sync()
 	return slot
 

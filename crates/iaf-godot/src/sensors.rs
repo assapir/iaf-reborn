@@ -76,19 +76,11 @@ impl IafEo {
     }
 
     #[func]
-    #[allow(clippy::too_many_arguments)] // a #[func]: GDScript has no struct to pass
-    fn pan(
-        &mut self,
-        x: i64,
-        y: i64,
-        t: f64,
-        b: Vector2,
-        eye: Vector3,
-        centre: Variant,
-        launched: bool,
-        unit_pos: Callable,
-    ) {
-        self.eo.pan((x, y), t, base(b), vec3(eye), aim(&centre), launched, &lookup(&unit_pos));
+    /// `lock` = [centre (an aim), a TV weapon launched (bool)].
+    fn pan(&mut self, keys: Vector2i, t: f64, b: Vector2, eye: Vector3, lock: VarArray, unit_pos: Callable) {
+        let centre = aim(&lock.get(0).unwrap_or_default());
+        let launched = lock.get(1).is_some_and(|v| v.booleanize());
+        self.eo.pan((keys.x.into(), keys.y.into()), t, base(b), vec3(eye), (centre, launched), &lookup(&unit_pos));
     }
 
     #[func]

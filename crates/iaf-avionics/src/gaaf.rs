@@ -23,7 +23,6 @@ pub const ALOW_FT: f64 = 300.0;
 /// GAAF (p. 1-313): gear up, above 50 ft AGL, descending at 960 fpm or more, and the height at or below the height
 /// lost in the recovery (reaction, the roll to wings level, the 4 g pull-up) plus the clearance buffer: above 375 KCAS
 /// 12.5 % of it + 50 ft, below 325 KCAS 25 % + 150 ft, linear between (p. 1-314). `ag`: an A-G HUD mode.
-#[allow(clippy::too_many_arguments)]
 pub fn advisory(agl_ft: f64, kcas: f64, tas_ms: f64, vs_fpm: f64, roll_deg: f64, gear_down: bool, ag: bool) -> bool {
     if gear_down || agl_ft <= 50.0 || vs_fpm > -960.0 || tas_ms <= 0.0 {
         return false;

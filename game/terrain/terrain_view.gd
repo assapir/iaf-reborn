@@ -1388,8 +1388,8 @@ func _start_flight() -> void:
 	# In the air the flight model takes the pitch from the velocity (0 for mission starts; `--at` pitch).
 	var p := deg_to_rad(start_pitch)
 	var velocity := Vector3(sin(h) * cos(p), sin(p), -cos(h) * cos(p)) * (AIR_START_SPEED if start_airborne else 0.0)
-	var err: String = flight.start(install, player.fm_section, rig.position, heading, start_pitch, start_roll, velocity,
-			start_airborne, start_engine_on, real_data)
+	var err: String = flight.start(install, player.fm_section, rig.position, Vector3(start_pitch, start_roll, heading),
+			velocity, {"airborne": start_airborne, "engine_on": start_engine_on, "real_data": real_data})
 	if err != "":
 		push_error("flight model: " + err)
 		flight = null
@@ -1766,7 +1766,7 @@ func _throttle_event() -> void:
 	if flight != null:
 		flight.set_engine_on(true)
 		# The event reaches the flight model at once (several keys in one frame add up, §15.8).
-		flight.set_controls(stick.x, stick.y, rudder, throttle, flaps, gear_down, brakes)
+		flight.set_controls(stick, rudder, throttle, flaps, gear_down, brakes)
 
 
 ## The flaps lever (GEV 0xc): refused while the flaps are damaged; 2 s per step.
@@ -2661,7 +2661,7 @@ func _process(delta: float) -> void:
 		sounds.on_runway = (surface & terrain.SURFACE_ANY_RUNWAY) != 0  # the belly screech (f & 0x30)
 		# The systems damage the flight model reads (docs/damage.md §5.3): thrust, stick, spin.
 		flight.set_damage(player_damage.flags, player_damage.twin)
-		flight.set_controls(stick.x, stick.y, rudder, throttle, flaps, gear_down, brakes)
+		flight.set_controls(stick, rudder, throttle, flaps, gear_down, brakes)
 		# The flight starts once the ground around the jet is loaded at full detail (behind the
 		# loading screen).
 		if _loading != null:

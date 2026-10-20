@@ -52,7 +52,8 @@ var _s := {}
 ## position / velocity / nose, and q (FUN_00457f70); `target` "" = aim at `point`; `debug` = db.debug_param.
 func launch(w: Dictionary, m: Dictionary, now: float, pos: Vector3, vel: Vector3, nose: Vector3, target: String, point: Vector3, q: float, debug: Callable, up := Vector3.ZERO) -> void:
 	weapon = w
-	_m.launch(m, float(w.get("real_max_g", 0.0)), now, pos, vel, nose, up, target, point, q, debug)
+	var shot := {"pos": pos, "vel": vel, "nose": nose, "up": up, "target": target, "point": point, "q": q}
+	_m.launch(m, float(w.get("real_max_g", 0.0)), now, shot, debug)
 	_s = _m.state()
 
 

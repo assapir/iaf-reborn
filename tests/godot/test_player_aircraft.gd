@@ -105,8 +105,9 @@ func run() -> void:
 	# Slow (the flight model restarted at 200 kt, same place and heading): the gear cycles.
 	var p0: Vector3 = tv.flight.state().position
 	var fwd: Vector3 = tv.flight.state().forward
-	tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, p0, tv.flight.state().heading, 0.0, 0.0,
-			fwd * 200.0 * 0.5144, true, true, false)
+	tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, p0,
+			Vector3(0.0, 0.0, tv.flight.state().heading), fwd * 200.0 * 0.5144,
+			{"airborne": true, "engine_on": true, "real_data": false})
 	key(tv, KEY_G)
 	await create_timer(4.0).timeout
 	check(tv.gear_down and ac.ramps.gear < 0.01 and tv.cockpit.gear_legs == [2, 2, 2],

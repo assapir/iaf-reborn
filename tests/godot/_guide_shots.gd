@@ -96,8 +96,10 @@ func _shot(name: String, e: Dictionary) -> void:
 		var st: Dictionary = tv.flight.state()
 		var turn := float(e.get("turn_deg", 0.0))
 		tv.rig.rotate(Vector3.UP, deg_to_rad(-turn))
-		tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, tv.rig.position, st.heading + turn,
-				0.0, 0.0, Vector3(st.forward).rotated(Vector3.UP, deg_to_rad(-turn)) * 250.0, true, true, Settings().real_data())
+		tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, tv.rig.position,
+				Vector3(0.0, 0.0, st.heading + turn),
+				Vector3(st.forward).rotated(Vector3.UP, deg_to_rad(-turn)) * 250.0,
+				{"airborne": true, "engine_on": true, "real_data": Settings().real_data()})
 	elif start == "dive":
 		frozen_start = true
 		w = airborne_case(tv, hp if not hp.is_empty() else [0, 0])
@@ -193,8 +195,9 @@ func _final(dist: float, alt: float, aoa: float) -> Node:
 		root.add_child(n)
 		_extra.append(n)
 	var glide := (flat * cos(deg_to_rad(3.0)) + Vector3.DOWN * sin(deg_to_rad(3.0))) * 75.0
-	tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, tv.rig.position, st0.heading,
-			aoa - 3.0, 0.0, glide, true, true, Settings().real_data())
+	tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, tv.rig.position,
+			Vector3(aoa - 3.0, 0.0, st0.heading), glide,
+			{"airborne": true, "engine_on": true, "real_data": Settings().real_data()})
 	return tv.weapons
 
 
@@ -207,8 +210,9 @@ func _dive(deg: float, agl: float, speed: float) -> void:
 	tv.rig.position.y = (float(g) if g != null else 0.0) + agl
 	tv.rig.rotate_object_local(Vector3.RIGHT, deg_to_rad(-deg))
 	var dir := (flat * cos(deg_to_rad(deg)) + Vector3.DOWN * sin(deg_to_rad(deg))).normalized()
-	tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, tv.rig.position, st0.heading,
-			-deg, 0.0, dir * speed, true, true, Settings().real_data())
+	tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, tv.rig.position,
+			Vector3(-deg, 0.0, st0.heading), dir * speed,
+			{"airborne": true, "engine_on": true, "real_data": Settings().real_data()})
 
 
 func _put(p: Dictionary) -> void:

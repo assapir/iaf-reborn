@@ -50,7 +50,6 @@ pub struct IafRealHud {
 #[godot_api]
 impl IafRealHud {
     /// The F-16's ground avoidance advisory (GAAF, `iaf_avionics::gaaf::advisory`): the break X and "PULL UP".
-    #[allow(clippy::too_many_arguments)]
     #[func]
     fn gaaf(agl_ft: f64, kcas: f64, tas_ms: f64, vs_fpm: f64, roll_deg: f64, gear_down: bool, ag: bool) -> bool {
         iaf_avionics::gaaf::advisory(agl_ft, kcas, tas_ms, vs_fpm, roll_deg, gear_down, ag)

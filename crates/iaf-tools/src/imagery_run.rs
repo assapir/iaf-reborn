@@ -484,6 +484,7 @@ pub fn run(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Estimate> 
             std::fs::create_dir_all(out.join(layer).join(format!("L{l}")))?;
         }
     }
+    let job = Job { spec, prep: &prep, theatre: &theatre, rules: &rules, warp: &warp, work: &work, out, pr };
     let next = AtomicUsize::new(0);
     let written = Mutex::new(BTreeSet::<Key>::new());
     let done_units = AtomicUsize::new(0);
@@ -500,8 +501,7 @@ pub fn run(r: &Run, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Estimate> 
                             Ok(keys) => keys,
                             Err(_) => {
                                 let keys =
-                                    convert_unit(spec, u, &prep, &theatre, &rules, &warp, &work, out, &mut cache, pr)
-                                        .with_context(|| format!("unit {:?}", u.k))?;
+                                    convert_unit(&job, u, &mut cache).with_context(|| format!("unit {:?}", u.k))?;
                                 let mut text = format!("rules {}\n", u.rules);
                                 if !u.sheets.is_empty() {
                                     text += &format!("# {}\n", u.sheets.join(" "));
@@ -610,20 +610,21 @@ fn save(img: &image::RgbImage, path: &Path) -> Result<()> {
     Ok(())
 }
 
+/// What every work unit of a run shares.
+struct Job<'a> {
+    spec: &'a Spec,
+    prep: &'a Prep,
+    theatre: &'a Theatre,
+    rules: &'a Rules,
+    warp: &'a Georef,
+    work: &'a Path,
+    out: &'a Path,
+    pr: &'a dyn Progress,
+}
+
 /// Cuts one unit's source window and writes its layer-level nodes; returns the keys written.
-#[allow(clippy::too_many_arguments)]
-fn convert_unit(
-    spec: &Spec,
-    u: &Unit,
-    prep: &Prep,
-    theatre: &Theatre,
-    rules: &Rules,
-    warp: &Georef,
-    work: &Path,
-    out: &Path,
-    cache: &mut Cache,
-    pr: &dyn Progress,
-) -> Result<Vec<Key>> {
+fn convert_unit(job: &Job, u: &Unit, cache: &mut Cache) -> Result<Vec<Key>> {
+    let Job { spec, prep, theatre, rules, warp, work, out, pr } = *job;
     let (vrt_s, bin_s);
     let k = u.k;
     let tmp: PathBuf = work.join(format!("unit_{}_{}", k.1, k.2));

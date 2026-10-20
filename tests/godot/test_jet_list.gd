@@ -85,8 +85,9 @@ func run() -> void:
 		check(tv.player.type == want[0] and not tv.gear_down, "%s: 312 in the air" % name)
 		var p0: Vector3 = tv.flight.state().position
 		var fwd: Vector3 = tv.flight.state().forward
-		tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, p0, tv.flight.state().heading,
-				0.0, 0.0, fwd * 200.0 * 0.5144, true, true, false)
+		tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, p0,
+				Vector3(0.0, 0.0, tv.flight.state().heading), fwd * 200.0 * 0.5144,
+				{"airborne": true, "engine_on": true, "real_data": false})
 		if want[0] == 1000:
 			# The bay AMRAAM (station D) waits for the doors, which open first.
 			var w = tv.weapons

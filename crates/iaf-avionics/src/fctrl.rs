@@ -133,15 +133,17 @@ impl Default for FlightController {
     }
 }
 
+/// 0x60cab4: the exe's 6.28 (a stored f32, not 2π).
+const EXE_6_28: f32 = f32::from_bits(0x40c8_f5c3);
+
 /// `FUN_0054bc40`: the bearing from `from` to `to` (2-D), as coded: acos of the north component of the direction,
 /// 6.28 − that west of north, times 57.3248 (180 / 3.14). The east / west test is inferred (the frame is the identity).
-#[allow(clippy::approx_constant)] // 6.28 (0x60cab4) as coded, not 2π
 pub fn bearing(from: Vec3, to: Vec3) -> f32 {
     let (dx, dy) = ((to.x - from.x) as f32, (to.y - from.y) as f32);
     let n = (dx * dx + dy * dy).sqrt();
     let s = if n == 0.0 { 1.0 } else { 1.0 / n };
     let a = (dy * s).clamp(-1.0, 1.0).acos();
-    if dx * s >= 0.0 { a * 57.32484 } else { (6.28 - a) * 57.32484 }
+    if dx * s >= 0.0 { a * 57.32484 } else { (EXE_6_28 - a) * 57.32484 }
 }
 
 /// `FUN_0054bbf0`: degrees truncated to tens; 0 is 360.
@@ -292,7 +294,7 @@ impl FlightController {
                 0
             };
             let heading = u.heading.rem_euclid(360.0) as f32;
-            if let Some(c) = self.contact(u, code, bearing(player, u.pos), dist, heading, delta, long_always) {
+            if let Some(c) = self.contact(u, code, bearing(player, u.pos), heading, delta, long_always) {
                 calls.push(c);
             }
         }
@@ -305,17 +307,16 @@ impl FlightController {
     }
 
     /// `FUN_0054b790`: the contact table's entry for one unit.
-    #[allow(clippy::too_many_arguments)]
     fn contact(
         &mut self,
         u: &Unit,
         code: u8,
         bearing: f32,
-        dist: f32,
         heading: f32,
         delta: [f32; 3],
         long_always: bool,
     ) -> Option<Call> {
+        let dist = (delta[0] * delta[0] + delta[1] * delta[1] + delta[2] * delta[2]).sqrt();
         // Another unit of the same formation name already has a slot: this one is not called (nor kept).
         if self.slots.iter().any(|s| s.key != u.key && eq_ic(&s.callsign, &u.callsign)) {
             return None;

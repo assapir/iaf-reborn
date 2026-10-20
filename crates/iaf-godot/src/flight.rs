@@ -33,27 +33,24 @@ fn to_godot(v: Vec3) -> Vector3 {
 #[godot_api]
 impl IafFlight {
     /// Loads `section` (e.g. "F-16") from `<install>/resource/md` and starts it (`FUN_005a5820`,
-    /// docs/flight-model.md §15.6.4) at `position` (Godot frame) with `heading_deg` (clockwise from
-    /// north), `pitch_deg` / `roll_deg`, and `velocity` (Godot frame, m/s; the horizontal speed is
-    /// re-aimed along the heading). `airborne`: see `is_airborne_start`; a ground start has gear
-    /// down, full flaps, brakes on, throttle 0, RPM 0 and the engine running only if `engine_on`.
-    /// `real_data` picks the corrected real-world data set (chosen before the flight).
-    /// Returns an error string or "" on success.
+    /// docs/flight-model.md §15.6.4) at `position` (Godot frame) with `attitude_deg` (pitch, roll,
+    /// heading clockwise from north), and `velocity` (Godot frame, m/s; the horizontal speed is
+    /// re-aimed along the heading). `flags` = {airborne, engine_on, real_data}: `airborne`: see
+    /// `is_airborne_start`; a ground start has gear down, full flaps, brakes on, throttle 0, RPM 0
+    /// and the engine running only if `engine_on`. `real_data` picks the corrected real-world data
+    /// set (chosen before the flight). Returns an error string or "" on success.
     #[func]
-    #[allow(clippy::too_many_arguments)]
     fn start(
         &mut self,
         install: GString,
         section: GString,
         position: Vector3,
-        heading_deg: f64,
-        pitch_deg: f64,
-        roll_deg: f64,
+        attitude_deg: Vector3,
         velocity: Vector3,
-        airborne: bool,
-        engine_on: bool,
-        real_data: bool,
+        flags: VarDictionary,
     ) -> GString {
+        let flag = |k: &str| flags.get(k).is_some_and(|v| v.booleanize());
+        let (airborne, engine_on, real_data) = (flag("airborne"), flag("engine_on"), flag("real_data"));
         let set = if real_data { iaf_flight::DataSet::Real } else { iaf_flight::DataSet::Original };
         // The game session's parameter blocks (iaf_flight::data_set::Blocks): this process is one session.
         static BLOCKS: std::sync::Mutex<iaf_flight::data_set::Blocks> =
@@ -63,9 +60,9 @@ impl IafFlight {
             Ok((params, envelope)) => {
                 let st = Start {
                     position: to_enu(position),
-                    pitch: (pitch_deg as f32).to_radians(),
-                    roll: (roll_deg as f32).to_radians(),
-                    heading: (heading_deg as f32).to_radians(),
+                    pitch: attitude_deg.x.to_radians(),
+                    roll: attitude_deg.y.to_radians(),
+                    heading: attitude_deg.z.to_radians(),
                     velocity: to_enu(velocity),
                     airborne,
                     engine_on,
@@ -100,21 +97,11 @@ impl IafFlight {
 
     /// Stick x/y −1..1 (y: pull positive), rudder −1..1, throttle 0..1 (0.74 military, ≥0.75 AB).
     #[func]
-    #[allow(clippy::too_many_arguments)]
-    fn set_controls(
-        &mut self,
-        stick_x: f64,
-        stick_y: f64,
-        rudder: f64,
-        throttle: f64,
-        flaps: f64,
-        gear_down: bool,
-        brakes: bool,
-    ) {
+    fn set_controls(&mut self, stick: Vector2, rudder: f64, throttle: f64, flaps: f64, gear_down: bool, brakes: bool) {
         if let Some(ac) = &mut self.aircraft {
             ac.set_controls(Controls {
-                stick_x: stick_x as f32,
-                stick_y: stick_y as f32,
+                stick_x: stick.x,
+                stick_y: stick.y,
                 rudder: rudder as f32,
                 throttle: throttle as f32,
                 flaps: flaps as f32,
@@ -453,24 +440,14 @@ impl IafFlight {
     }
 
     /// The formation leader (member 0) for the formation / taxi / take-off loops: scene position and
-    /// velocity, attitude in degrees; `has` false = I lead (or no formation).
+    /// velocity, attitude (pitch, roll, heading) in degrees; `has` false = I lead (or no formation).
     #[func]
-    #[allow(clippy::too_many_arguments)]
-    fn ap_set_leader(
-        &mut self,
-        has: bool,
-        active: bool,
-        pos: Vector3,
-        vel: Vector3,
-        pitch: f64,
-        roll: f64,
-        heading: f64,
-    ) {
+    fn ap_set_leader(&mut self, has: bool, active: bool, pos: Vector3, vel: Vector3, attitude_deg: Vector3) {
         if let Some(ap) = &mut self.ap {
             ap.leader = has.then(|| Leader {
                 pos: to_enu(pos),
                 vel: to_enu(vel),
-                att: [(pitch as f32).to_radians(), (roll as f32).to_radians(), (heading as f32).to_radians()],
+                att: [attitude_deg.x.to_radians(), attitude_deg.y.to_radians(), attitude_deg.z.to_radians()],
                 active,
             });
         }

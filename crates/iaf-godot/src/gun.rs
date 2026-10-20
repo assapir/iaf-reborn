@@ -87,38 +87,34 @@ impl IafRounds {
     }
 
     /// One shot: its pool slot, or −1 when the pooled round is still in the air. `locked` "" = no radar lock; the units as keys and
-    /// positions; `targets` a PackedStringArray of a ground unit's round's only candidates (docs/ai.md §14), else null.
+    /// positions. `shot` = {origin, muzzle, velocity, aim (Vector3), locked, shooter (String), easy_aiming (bool), targets}:
+    /// `targets` a PackedStringArray of a ground unit's round's only candidates (docs/ai.md §14), else null.
     #[func]
-    #[allow(clippy::too_many_arguments)] // a #[func]: GDScript has no struct to pass
     fn fire(
         &mut self,
         now: f64,
-        origin: Vector3,
-        muzzle: Vector3,
-        velocity: Vector3,
-        aim: Vector3,
-        locked: GString,
-        shooter: GString,
-        easy_aiming: bool,
+        shot: VarDictionary,
         keys: PackedStringArray,
         positions: PackedVector3Array,
-        targets: Variant,
         terrain_at: Callable,
     ) -> i64 {
-        let (locked, shooter) = (locked.to_string(), shooter.to_string());
+        let v = |k: &str| vec3(get(&shot, k).unwrap_or_default());
+        let s = |k: &str| get::<GString>(&shot, k).unwrap_or_default().to_string();
+        let (locked, shooter) = (s("locked"), s("shooter"));
+        let targets = shot.get("targets").unwrap_or_default();
         // A null Variant converts to an empty array: only a given array is a fixed list.
         let targets: Option<Vec<String>> = (!targets.is_nil())
             .then(|| targets.try_to::<PackedStringArray>().ok())
             .flatten()
             .map(|t| t.as_slice().iter().map(GString::to_string).collect());
         let shot = Shot {
-            origin: vec3(origin),
-            muzzle: vec3(muzzle),
-            velocity: vec3(velocity),
-            aim: vec3(aim),
+            origin: v("origin"),
+            muzzle: v("muzzle"),
+            velocity: v("velocity"),
+            aim: v("aim"),
             locked: Some(locked.as_str()).filter(|k| !k.is_empty()),
             shooter: &shooter,
-            easy_aiming,
+            easy_aiming: get(&shot, "easy_aiming").unwrap_or(false),
             targets: targets.as_deref(),
         };
         let b = bodies(&keys, &positions);

@@ -31,8 +31,9 @@ func run() -> void:
 			c.panel_shift = 1.0
 			var h := deg_to_rad(float(k[0]))
 			var st: Dictionary = tv.flight.state()
-			tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, st.position, k[0],
-					0.0, 0.0, Vector3(sin(h), 0, -cos(h)) * 200.0, true, true, false)
+			tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, st.position,
+					Vector3(0.0, 0.0, k[0]), Vector3(sin(h), 0, -cos(h)) * 200.0,
+					{"airborne": true, "engine_on": true, "real_data": false})
 			await frames(4)
 			await RenderingServer.frame_post_draw
 			var img: Image = root.get_viewport().get_texture().get_image()

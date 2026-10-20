@@ -137,8 +137,9 @@ func airborne_case(tv, hardpoints: Array):
 	tv.gear_down = false
 	tv.rig.position.y += 3000.0
 	var st0: Dictionary = tv.flight.state()
-	tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, st0.position, st0.heading,
-			0.0, 0.0, st0.forward * 250.0, true, true, false)
+	tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, st0.position,
+			Vector3(0.0, 0.0, st0.heading), st0.forward * 250.0,
+			{"airborne": true, "engine_on": true, "real_data": false})
 	var w = tv.weapons
 	var w2 = load("res://weapons/player_weapons.gd").new()
 	tv.add_child(w2)
@@ -181,7 +182,8 @@ func start_over(tv, w, ground_pt: Vector3, vel: Vector3, section: String) -> voi
 	var sp: Vector3 = tv.world_to_scene(Vector3(ground_pt.x, ground_pt.y, float(g if g != null else 0.0) + 1000.0))
 	tv.rig.position = sp
 	tv.rig.basis = Basis()
-	tv.flight.start(Settings().assets_dir().path_join("install"), section, sp, 0.0, 0.0, 0.0, vel, true, true, false)
+	tv.flight.start(Settings().assets_dir().path_join("install"), section, sp, Vector3(0.0, 0.0, 0.0), vel,
+			{"airborne": true, "engine_on": true, "real_data": false})
 	w._push_stores()
 
 

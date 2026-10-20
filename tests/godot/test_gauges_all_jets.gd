@@ -38,8 +38,9 @@ func _jet(name: String) -> void:
 	check(active.all(func(k): return a.has(k)), "%s: every active needle is drawn (%s)" % [name, active])
 	# Military, gear down, climbing.
 	var st: Dictionary = tv.flight.state()
-	tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, st.position, st.heading,
-			0.0, 0.0, st.forward * 200.0 * 0.5144 + Vector3(0, 0, 25), true, true, false)
+	tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, st.position,
+			Vector3(0.0, 0.0, st.heading), st.forward * 200.0 * 0.5144 + Vector3(0, 0, 25),
+			{"airborne": true, "engine_on": true, "real_data": false})
 	key(tv, KEY_6)
 	key(tv, KEY_G)
 	await create_timer(0.5).timeout

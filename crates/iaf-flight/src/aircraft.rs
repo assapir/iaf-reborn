@@ -456,12 +456,14 @@ pub struct State {
     pub landings: u32,
 }
 
-/// In/out values of the mode hooks (`5aab90`): acceleration, lift targets, roll command.
+/// In/out values of the mode hooks (`5aab90`): acceleration, lift targets, roll command; `aero`: called from the
+/// aero update (else the 5 Hz tick).
 struct ModeIo {
     acc: Vec3,
     lift: f32,
     lift_noflap: f32,
     p_cmd: f32,
+    aero: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -474,6 +476,18 @@ enum Mode {
     DeepStall,
     /// `veh+0xc7c`: the "Tornado" map-edge push-back (§15.5a).
     Tornado,
+}
+
+/// The inputs of `lift_fn` (`5b4470`).
+struct LiftIn {
+    v: f32,
+    alt: f32,
+    mass: f32,
+    att: Euler,
+    latched: bool,
+    gamma: f32,
+    alpha_now: f32,
+    flaps: f32,
 }
 
 struct LiftOut {
@@ -1276,18 +1290,8 @@ impl Aircraft {
     }
 
     /// Lift `5b4470` (§14.3), shared by the air and ground branches.
-    #[allow(clippy::too_many_arguments)]
-    fn lift_fn(
-        &self,
-        v: f32,
-        alt: f32,
-        mass: f32,
-        att: Euler,
-        latched: bool,
-        gamma: f32,
-        alpha_now: f32,
-        flaps: f32,
-    ) -> LiftOut {
+    fn lift_fn(&self, i: LiftIn) -> LiftOut {
+        let LiftIn { v, alt, mass, att, latched, gamma, alpha_now, flaps } = i;
         let p = &self.params;
         // An AI jet stalls unless it is an Expert (AI level 2) on the enemy team.
         let ai = self.ai();
@@ -1425,7 +1429,8 @@ impl Aircraft {
         let no_ab = if ground { ai } else { !p.has_afterburner || (ai && !matches!(self.ai_mode, 7 | 8)) };
         let (mut thrust, rpm, ff, stage) = self.thrust_at(alt, mach, no_ab);
         // The ground call passes latched = 0 (§14.3).
-        let lo = self.lift_fn(v, alt, mass, att, latched && !ground, gamma, alpha_s, flaps);
+        let lo =
+            self.lift_fn(LiftIn { v, alt, mass, att, latched: latched && !ground, gamma, alpha_now: alpha_s, flaps });
         let (mut lift, mut lift_noflap, drag_x, mut stall) = (lo.lift, lo.lift_noflap, lo.drag_x, lo.stall);
         let c_f = p.flaps_lift_coef * flaps * FLAPS_K;
         let easy = self.cheat();
@@ -1500,8 +1505,8 @@ impl Aircraft {
             self.air_acc(att, lift_old, v, alpha_s, beta)
         };
         self.latch(t, stall, lo.vib);
-        let mut io = ModeIo { acc, lift, lift_noflap, p_cmd };
-        self.mode_hook(t, drag_x, v, beta_s, att, &mut io, true);
+        let mut io = ModeIo { acc, lift, lift_noflap, p_cmd, aero: true };
+        self.mode_hook(t, drag_x, v, beta_s, att, &mut io);
         self.drag_x = drag_x;
 
         // Lift ramps; rate factor 1 % at 20 m/s … 100 % at 220, no floor (|negative| below 18 m/s, so the
@@ -1596,7 +1601,7 @@ impl Aircraft {
         let beta_s = if self.on_ground { self.nose_yaw.sample(t) } else { beta_air };
         if self.mode == Mode::DeepStall {
             let att = self.attitude(t);
-            let mut io = ModeIo { acc: Vec3::ZERO, lift: 0.0, lift_noflap: 0.0, p_cmd: 0.0 };
+            let mut io = ModeIo { acc: Vec3::ZERO, lift: 0.0, lift_noflap: 0.0, p_cmd: 0.0, aero: false };
             self.deep_stall_hook(t, att, &mut io, false);
             if self.mode == Mode::DeepStall {
                 self.beta_update(t, v, self.rudder * self.params.max_beta);
@@ -1606,14 +1611,14 @@ impl Aircraft {
         }
         if self.mode == Mode::Tornado {
             // 5 Hz in mode c7c: `5ac5d0` only, its outputs discarded (no force, no axis update).
-            let mut io = ModeIo { acc: Vec3::ZERO, lift: 0.0, lift_noflap: 0.0, p_cmd: 0.0 };
+            let mut io = ModeIo { acc: Vec3::ZERO, lift: 0.0, lift_noflap: 0.0, p_cmd: 0.0, aero: false };
             self.tornado_hook(t, &mut io);
             return;
         }
         let att = self.attitude(t);
         if self.mode == Mode::Spin {
-            let mut io = ModeIo { acc: Vec3::ZERO, lift: 0.0, lift_noflap: 0.0, p_cmd: 0.0 };
-            self.spin_hook(t, self.drag_x, v, beta_air, att, &mut io, false);
+            let mut io = ModeIo { acc: Vec3::ZERO, lift: 0.0, lift_noflap: 0.0, p_cmd: 0.0, aero: false };
+            self.spin_hook(t, self.drag_x, v, beta_air, att, &mut io);
             // v1.1: the β command (asym = 0 in the spin) and the β update also run in the spin tick.
             self.beta_update(t, v, self.rudder * self.params.max_beta);
             return;
@@ -1715,8 +1720,8 @@ impl Aircraft {
     }
 
     /// Mode hook (`5aab90`'s place in both updates): the deep stall (BP, FBW jets) or the spin.
-    #[allow(clippy::too_many_arguments)]
-    fn mode_hook(&mut self, t: f64, drag_x: f32, v: f32, beta: f32, att: Euler, io: &mut ModeIo, aero: bool) {
+    fn mode_hook(&mut self, t: f64, drag_x: f32, v: f32, beta: f32, att: Euler, io: &mut ModeIo) {
+        let aero = io.aero;
         if self.mode == Mode::Tornado {
             self.tornado_hook(t, io);
         } else if self.mode == Mode::DeepStall {
@@ -1726,7 +1731,7 @@ impl Aircraft {
                 self.deep_stall_entry(t, v, att);
             }
         } else {
-            self.spin_hook(t, drag_x, v, beta, att, io, aero);
+            self.spin_hook(t, drag_x, v, beta, att, io);
         }
     }
 
@@ -1830,8 +1835,8 @@ impl Aircraft {
     // --- spin (§15.5) --------------------------------------------------------------------------
 
     /// Mode hook `5aab90`: spin entry (aero update, normal mode) and the spin update (both updates).
-    #[allow(clippy::too_many_arguments)]
-    fn spin_hook(&mut self, t: f64, drag_x: f32, v: f32, beta: f32, att: Euler, io: &mut ModeIo, aero: bool) {
+    fn spin_hook(&mut self, t: f64, drag_x: f32, v: f32, beta: f32, att: Euler, io: &mut ModeIo) {
+        let aero = io.aero;
         let p = self.params.clone();
         let max_beta = p.max_beta.abs();
         if self.mode == Mode::Normal {
@@ -2737,12 +2742,12 @@ mod tests {
         // Total flight control damage forces the spin at the next aero update, whatever β / dragX
         // (not on the F-16 / Lavi, which return before the test).
         let att = Euler { pitch: 0.0, roll: 0.0, heading: 0.5 };
-        let mut io = ModeIo { acc: Vec3::ZERO, lift: 5.0, lift_noflap: 5.0, p_cmd: 0.0 };
-        b.spin_hook(1.0, 0.0, 200.0, 0.0, att, &mut io, true);
+        let mut io = ModeIo { acc: Vec3::ZERO, lift: 5.0, lift_noflap: 5.0, p_cmd: 0.0, aero: true };
+        b.spin_hook(1.0, 0.0, 200.0, 0.0, att, &mut io);
         assert_eq!(b.mode, Mode::Spin);
         let mut f16 = airborne(100, 3000.0, 200.0);
         f16.set_damage(1 << 24, false);
-        f16.spin_hook(1.0, 0.0, 200.0, 0.0, att, &mut io, true);
+        f16.spin_hook(1.0, 0.0, 200.0, 0.0, att, &mut io);
         assert_eq!(f16.mode, Mode::Normal);
     }
 
@@ -2750,61 +2755,61 @@ mod tests {
     fn spin_entry_and_exit() {
         let mb = 15f32.to_radians();
         let att = Euler { pitch: 0.0, roll: 0.0, heading: 0.5 };
-        let io = || ModeIo { acc: Vec3::new(1.0, 1.0, 1.0), lift: 5.0, lift_noflap: 5.0, p_cmd: 1.0 };
+        let io = || ModeIo { acc: Vec3::new(1.0, 1.0, 1.0), lift: 5.0, lift_noflap: 5.0, p_cmd: 1.0, aero: true };
         // Original: the second consecutive qualifying aero update enters, whatever the spacing.
         let mut a = airborne(0, 3000.0, 100.0);
-        a.spin_hook(1.0, 1.2, 100.0, 0.9 * mb, att, &mut io(), true);
+        a.spin_hook(1.0, 1.2, 100.0, 0.9 * mb, att, &mut io());
         assert_eq!(a.mode, Mode::Normal);
-        a.spin_hook(1.05, 1.2, 100.0, 0.9 * mb, att, &mut io(), true);
+        a.spin_hook(1.05, 1.2, 100.0, 0.9 * mb, att, &mut io());
         assert_eq!(a.mode, Mode::Spin);
         // A non-qualifying update in between resets the arm step.
         let mut b = airborne(0, 3000.0, 100.0);
-        b.spin_hook(1.0, 1.2, 100.0, 0.9 * mb, att, &mut io(), true);
-        b.spin_hook(2.0, 0.5, 100.0, 0.9 * mb, att, &mut io(), true);
-        b.spin_hook(3.0, 1.2, 100.0, 0.9 * mb, att, &mut io(), true);
+        b.spin_hook(1.0, 1.2, 100.0, 0.9 * mb, att, &mut io());
+        b.spin_hook(2.0, 0.5, 100.0, 0.9 * mb, att, &mut io());
+        b.spin_hook(3.0, 1.2, 100.0, 0.9 * mb, att, &mut io());
         assert_eq!(b.mode, Mode::Normal);
-        b.spin_hook(4.0, 1.2, 100.0, 0.9 * mb, att, &mut io(), true);
+        b.spin_hook(4.0, 1.2, 100.0, 0.9 * mb, att, &mut io());
         assert_eq!(b.mode, Mode::Spin);
         // "No spins" (original bug): the arm step is skipped, so the first qualifying update enters.
         let mut c = airborne(0, 3000.0, 100.0);
         c.no_spins = true;
-        c.spin_hook(1.0, 1.2, 100.0, 0.9 * mb, att, &mut io(), true);
+        c.spin_hook(1.0, 1.2, 100.0, 0.9 * mb, att, &mut io());
         assert_eq!(c.mode, Mode::Spin);
         // Better physics: "No spins" blocks; otherwise the condition must hold for 1.2 s.
         let mut d = airborne(0, 3000.0, 100.0);
         d.better.spin_fixes = true;
         for t in [1.0, 2.0, 2.2] {
-            d.spin_hook(t, 1.2, 100.0, 0.9 * mb, att, &mut io(), true);
+            d.spin_hook(t, 1.2, 100.0, 0.9 * mb, att, &mut io());
             assert_eq!(d.mode, Mode::Normal, "{t}");
         }
-        d.spin_hook(2.3, 1.2, 100.0, 0.9 * mb, att, &mut io(), true);
+        d.spin_hook(2.3, 1.2, 100.0, 0.9 * mb, att, &mut io());
         assert_eq!(d.mode, Mode::Spin);
         let mut e = airborne(0, 3000.0, 100.0);
         e.better.spin_fixes = true;
         e.no_spins = true;
         for t in [1.0, 2.0, 3.0, 4.0] {
-            e.spin_hook(t, 1.2, 100.0, 0.9 * mb, att, &mut io(), true);
+            e.spin_hook(t, 1.2, 100.0, 0.9 * mb, att, &mut io());
         }
         assert_eq!(e.mode, Mode::Normal);
         // The F-16 (type 100) and the Lavi (140) never spin; not below 0.8·MaxBeta or dragX ≤ 0.57.
         for (ty, beta, dx) in [(100, 0.9 * mb, 1.2), (140, 0.9 * mb, 1.2), (0, 0.79 * mb, 1.2), (0, 0.9 * mb, 0.57)] {
             let mut f = airborne(ty, 3000.0, 100.0);
             for t in [1.0, 2.0, 3.0] {
-                f.spin_hook(t, dx, 100.0, beta, att, &mut io(), true);
+                f.spin_hook(t, dx, 100.0, beta, att, &mut io());
             }
             assert_eq!(f.mode, Mode::Normal, "type {ty} β {beta} dragX {dx}");
         }
         // In the spin: no lift, no roll command, frozen horizontal velocity, acc.z = min(0, 0.04 V − g).
         let t = a.t.max(1.05);
         let mut o = io();
-        a.spin_hook(t + 1.0, 1.2, 100.0, 0.9 * mb, att, &mut o, true);
+        a.spin_hook(t + 1.0, 1.2, 100.0, 0.9 * mb, att, &mut o);
         assert_eq!(a.mode, Mode::Spin);
         assert_eq!((o.lift, o.lift_noflap, o.p_cmd), (0.0, 0.0, 0.0));
         assert_eq!(o.acc, Vec3::new(0.0, 0.0, (0.04 * 100.0 - G) as f64));
         let spin_att = a.attitude(t + 1.0);
         assert!(spin_att.pitch < 0.0 && spin_att.heading != 0.5, "nose drops and turns: {spin_att:?}");
         // Recovery: ≥ 90 % opposite rudder but still stalled (dragX ≥ 0.1) → stays.
-        a.spin_hook(t + 2.0, 0.1, 100.0, -0.95 * mb, att, &mut io(), true);
+        a.spin_hook(t + 2.0, 0.1, 100.0, -0.95 * mb, att, &mut io());
         assert_eq!(a.mode, Mode::Spin);
         // ... and with dragX < 0.1 it exits at the next tick (the yaw rate is still positive):
         // velocity = the nose direction · V, roll command s1·0.1.
@@ -2812,7 +2817,8 @@ mod tests {
             ax.set(t + 2.0, 0.0);
         }
         let mut o = io();
-        a.spin_hook(t + 2.2, 0.05, 100.0, -0.95 * mb, att, &mut o, false);
+        o.aero = false;
+        a.spin_hook(t + 2.2, 0.05, 100.0, -0.95 * mb, att, &mut o);
         assert_eq!(a.mode, Mode::Normal);
         assert!((o.p_cmd - 0.1).abs() < 1e-6);
         let v = a.velocity_at(t + 2.2).0;
@@ -3138,15 +3144,16 @@ mod tests {
         let mb = 15f32.to_radians();
         let att = Euler { pitch: 0.0, roll: 0.0, heading: 0.5 };
         let mut a = airborne(0, 3000.0, 100.0);
-        let mut io = ModeIo { acc: Vec3::ZERO, lift: 0.0, lift_noflap: 0.0, p_cmd: 0.0 };
-        a.spin_hook(1.0, 1.2, 100.0, 0.9 * mb, att, &mut io, true);
-        a.spin_hook(1.05, 1.2, 100.0, 0.9 * mb, att, &mut io, true);
+        let mut io = ModeIo { acc: Vec3::ZERO, lift: 0.0, lift_noflap: 0.0, p_cmd: 0.0, aero: true };
+        a.spin_hook(1.0, 1.2, 100.0, 0.9 * mb, att, &mut io);
+        a.spin_hook(1.05, 1.2, 100.0, 0.9 * mb, att, &mut io);
         assert_eq!(a.mode, Mode::Spin);
         for ax in a.axes.iter_mut() {
             ax.set(1.05, 0.0);
         }
+        io.aero = false;
         for i in 0..10 {
-            a.spin_hook(1.5 + 0.2 * i as f64, 1.2, 100.0, -0.95 * mb, att, &mut io, false);
+            a.spin_hook(1.5 + 0.2 * i as f64, 1.2, 100.0, -0.95 * mb, att, &mut io);
         }
         assert_eq!(a.mode, Mode::Spin);
         let (_, rate) = a.spin_yaw.sample(3.5);

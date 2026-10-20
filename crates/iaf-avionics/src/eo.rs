@@ -198,20 +198,19 @@ impl Eo {
         Vec3::new(h.sin() * p.cos(), h.cos() * p.cos(), p.sin())
     }
 
-    /// Event 0x8a(x, y) (Ctrl+arrows, ±100; release 0): with the keys released and (a launched TV weapon or FLIR) the
-    /// camera locks on `centre`; else `FUN_00581b30`: a changed (x, y) restarts the slew from the current angles (from
+    /// Event 0x8a(x, y) (Ctrl+arrows, ±100; release 0): `lock` = (`centre`, a TV weapon launched). With the keys
+    /// released and (a launched TV weapon or FLIR) the camera locks on `centre`; else `FUN_00581b30`: a changed (x, y) restarts the slew from the current angles (from
     /// tracking: free, the base frozen) at 0.09·x / zoom, 0.09·y / zoom °/s.
-    #[allow(clippy::too_many_arguments)] // the original's event arguments and the world
     pub fn pan(
         &mut self,
         keys: (i64, i64),
         t: f64,
         base: (f64, f64),
         eye: Vec3,
-        centre: Aim,
-        launched: bool,
+        lock: (Aim, bool),
         unit_pos: &dyn Fn(&str) -> Option<Vec3>,
     ) {
+        let (centre, launched) = lock;
         if self.mode == Mode::None || !self.camera {
             return;
         }
@@ -370,7 +369,7 @@ mod tests {
     fn slew_freezes_the_base_and_zoom_halves_the_rate() {
         let mut eo = Eo::default();
         eo.start(Mode::Tv, false, Aim::Point(Vec3::new(0.0, 1000.0, 0.0)), 0.0);
-        eo.pan((100, 0), 1.0, (0.0, 0.0), Vec3::ZERO, Aim::Free, false, NONE);
+        eo.pan((100, 0), 1.0, (0.0, 0.0), Vec3::ZERO, (Aim::Free, false), NONE);
         assert_eq!(*eo.aim(), Aim::Free);
         let (a, _) = eo.angles(2.0, (1.0, 0.0), Vec3::ZERO, NONE);
         assert!((a - 9f64.to_radians()).abs() < 1e-9, "1 s at 9°/s, base frozen: {a}");

@@ -366,8 +366,8 @@ func _wing() -> void:
 	tv.add_child(adir)
 	adir_fm = ClassDB.instantiate("IafFlight")
 	var ap: Vector3 = tv.scene_to_world(tv.rig.global_position) + _dir(65.0) * 75.0 + _dir(155.0) * 8.0 + Vector3(0, 0, 4.0)
-	adir_fm.start(install, load("res://aircraft/player_aircraft.gd").profile(1000).fm_section, _w2s(ap), 65.0, 0.0, 0.0,
-			_s_dir(65.0) * 226.0, true, true, false)
+	adir_fm.start(install, load("res://aircraft/player_aircraft.gd").profile(1000).fm_section, _w2s(ap),
+			Vector3(0.0, 0.0, 65.0), _s_dir(65.0) * 226.0, {"airborne": true, "engine_on": true, "real_data": false})
 	_clearance(adir_fm, adir)
 	adir_fm.ap_setup(install, tv.terrain.world_origin.x, tv.terrain.world_origin.y)
 	adir_fm.ap_set_ground(func(pos: Vector3):
@@ -472,8 +472,8 @@ func _title(text: String, sub: String) -> void:
 ## The player's flight model restarted as the flight scene starts it: the wheels' height under the origin and the
 ## player's preferences go to the new one.
 func _start_fm(sp: Vector3, heading: float, vel: Vector3, airborne: bool) -> void:
-	tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, sp, heading, 0.0, 0.0, vel,
-			airborne, true, false)
+	tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, sp, Vector3(0.0, 0.0, heading),
+			vel, {"airborne": airborne, "engine_on": true, "real_data": false})
 	_clearance(tv.flight, tv.aircraft)
 	tv._apply_player_prefs()
 
@@ -571,8 +571,8 @@ func _move_ai(a, p: Vector3, heading: float, speed: float) -> void:
 	if pl == null:
 		return
 	var fm = pl.flight
-	fm.start(Settings().assets_dir().path_join("install"), pl.plane, _w2s(p), heading, 0.0, 0.0, _s_dir(heading) * speed,
-			true, true, tv.real_data)
+	fm.start(Settings().assets_dir().path_join("install"), pl.plane, _w2s(p), Vector3(0.0, 0.0, heading),
+			_s_dir(heading) * speed, {"airborne": true, "engine_on": true, "real_data": tv.real_data})
 	_clearance(fm, pl.node)
 	fm.ap_set_mode(pl.mode, tv.runtime.now)
 	pl._state = fm.state()

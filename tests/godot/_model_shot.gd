@@ -59,8 +59,9 @@ func run() -> void:
 	if not ground:
 		airborne_case(tv, _hardpoints())
 		var st: Dictionary = tv.flight.state()
-		tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, tv.rig.position, st.heading,
-				0.0, 0.0, st.forward * 250.0, true, true, Settings().real_data())
+		tv.flight.start(Settings().assets_dir().path_join("install"), tv.player.fm_section, tv.rig.position,
+				Vector3(0.0, 0.0, st.heading), st.forward * 250.0,
+				{"airborne": true, "engine_on": true, "real_data": Settings().real_data()})
 	if OS.get_environment("SHOT_NO_NORMAL") == "1":  # (debug: the normal maps' share of the look)
 		for mi: MeshInstance3D in tv.aircraft.find_children("*", "MeshInstance3D", true, false):
 			for si in (mi.mesh.get_surface_count() if mi.mesh != null else 0):

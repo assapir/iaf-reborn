@@ -195,7 +195,7 @@ func run() -> void:
 		check(absf(fuel0 - want) < 1.0, "%s: fuel with a 2700LB tank %.0f kg (internal %.0f)" % ["fix" if fixed else "original", fuel0, internal])
 		if fixed:
 			tv.flight.set_engine_on(true)
-			tv.flight.set_controls(0, 0, 0, 1.0, 0, false, false)
+			tv.flight.set_controls(Vector2(0, 0), 0, 1.0, 0, false, false)
 			for k in 20:
 				tv.flight.step(0.25)
 			var fuel1: float = tv.flight.state().fuel_lbs * 0.45359

@@ -261,8 +261,8 @@ func _start(p: Pilot, install: String, plane: String) -> bool:
 	var rule: Vector2i = flight.start_rule(install, w.x, w.y, w.z)
 	var airborne: bool = flight.is_airborne_start(w.z, rule.x != 0)
 	var engine_on := rule.y != 0
-	var err: String = flight.start(install, plane, pos, float(p.ent.heading), 0.0, 0.0, vel if airborne else Vector3.ZERO,
-			airborne, engine_on, host.real_data)
+	var err: String = flight.start(install, plane, pos, Vector3(0.0, 0.0, float(p.ent.heading)),
+			vel if airborne else Vector3.ZERO, {"airborne": airborne, "engine_on": engine_on, "real_data": host.real_data})
 	if err != "":
 		push_warning("AI %s: %s" % [p.ent.name, err])
 		return false
@@ -352,7 +352,7 @@ func _place(p: Pilot) -> void:
 func _feed_leader(p: Pilot) -> void:
 	var ref: Dictionary = p.formation.members[0] if not p.formation.is_empty() else {}
 	if ref.is_empty() or ref == p.ent:
-		p.flight.ap_set_leader(false, false, Vector3.ZERO, Vector3.ZERO, 0.0, 0.0, 0.0)
+		p.flight.ap_set_leader(false, false, Vector3.ZERO, Vector3.ZERO, Vector3.ZERO)
 		return
 	var active := not (int(ref.state) in [4, 5]) and int(ref.control) != 0
 	var st: Dictionary
@@ -363,7 +363,8 @@ func _feed_leader(p: Pilot) -> void:
 	else:
 		var w: Vector3 = world_of(ref)
 		st = {"position": host.world_to_scene(w), "velocity": Vector3.ZERO, "pitch": 0.0, "roll": 0.0, "heading": float(ref.heading)}
-	p.flight.ap_set_leader(true, active, st.position, st.velocity, st.pitch, st.roll, st.heading)
+	var att := Vector3(st.pitch, st.roll, st.heading)
+	p.flight.ap_set_leader(true, active, st.position, st.velocity, att)
 
 
 ## The combat manoeuvres' target (brain +0x70), every frame (the original's loops read the entity live).

@@ -51,24 +51,13 @@ impl IafMissile {
 
 #[godot_api]
 impl IafMissile {
-    /// Launch (`FUN_004d5d10` → `FUN_00561ef0`): motion record `m`, the Real turn limit `max_g` (0 none), the launcher
-    /// at `pos` with velocity / nose / up, at the unit `target` ("" = the point), q; `debug` = db.debug_param.
+    /// Launch (`FUN_004d5d10` → `FUN_00561ef0`): motion record `m`, the Real turn limit `max_g` (0 none), `shot` =
+    /// {pos, vel, nose, up: the launcher; target: the unit ("" = the point), point, q}; `debug` = db.debug_param.
     #[func]
-    #[allow(clippy::too_many_arguments)] // a #[func]: GDScript has no struct to pass
-    fn launch(
-        &mut self,
-        m: VarDictionary,
-        max_g: f64,
-        now: f64,
-        pos: Vector3,
-        vel: Vector3,
-        nose: Vector3,
-        up: Vector3,
-        target: GString,
-        point: Vector3,
-        q: f64,
-        debug_param: Callable,
-    ) {
+    fn launch(&mut self, m: VarDictionary, max_g: f64, now: f64, shot: VarDictionary, debug_param: Callable) {
+        let v = |k: &str| vec3(get(&shot, k).unwrap_or_default());
+        let target = get::<GString>(&shot, "target").unwrap_or_default();
+        let q = num(&shot, "q").unwrap_or_default();
         let motion = chase_motion(&m, true);
         let tuning = Tuning {
             overshoot_dist: if motion.high_angle_turn {
@@ -80,9 +69,9 @@ impl IafMissile {
             slow_launch_speed: debug(&debug_param, 0, 100.1),
             max_g: (max_g > 0.0).then_some(max_g),
         };
-        let aim = if target.is_empty() { Aim::Point(vec3(point)) } else { Aim::Unit(target.to_string()) };
-        let launcher = Launcher { pos: vec3(pos), vel: vec3(vel), fwd: vec3(nose), up: vec3(up) };
-        self.missile = Some(Missile::launch(motion, tuning, now, vec3(pos), &launcher, aim, q));
+        let aim = if target.is_empty() { Aim::Point(v("point")) } else { Aim::Unit(target.to_string()) };
+        let launcher = Launcher { pos: v("pos"), vel: v("vel"), fwd: v("nose"), up: v("up") };
+        self.missile = Some(Missile::launch(motion, tuning, now, launcher.pos, &launcher, aim, q));
     }
 
     #[func]
