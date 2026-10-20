@@ -6,6 +6,7 @@ pub mod esa;
 pub mod ini;
 pub mod iso9660;
 pub mod lzo;
+pub mod mcr;
 pub mod menu;
 pub mod model;
 pub mod pe;

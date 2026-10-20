@@ -362,6 +362,8 @@ var records: Control
 var debrief_view: Control
 ## The Reference screen's content (reference.gd, §14), while on it.
 var ref_view: Control
+## The Mission Creator's content (mission_creator.gd, §19), while on it.
+var mc_view: Control
 var history: Array = []
 ## In flight (docs/front-end.md §16): the flight scene that opened this front end over itself for the
 ## FlyTSD (Esc, screen 0x20) or the in-flight Preferences (screen 0x21); null in the menus. Set with
@@ -630,6 +632,13 @@ func _enter_screen() -> void:
 	elif screen != "ref" and ref_view != null:
 		ref_view.queue_free()
 		ref_view = null
+	if screen == "mc" and mc_view == null:
+		mc_view = preload("res://menu/mission_creator.gd").new()
+		add_child(mc_view)
+		mc_view.setup(self)
+	elif screen != "mc" and mc_view != null:
+		mc_view.queue_free()
+		mc_view = null
 	history = Pilots.history(Settings.pilot_id) if Settings.pilot_id >= 0 else []
 
 
@@ -900,7 +909,7 @@ func _draw_content(def: Dictionary) -> void:
 	if loading:
 		_blit("mis/wait.png", CONTENT.position)
 		return
-	if _is_tsd():
+	if _is_tsd() or screen == "mc":  # MC: mission_creator.gd draws MC/SPBack.bmp (FUN_004f8f90), not screens/smc
 		return
 	if screen == "deb":
 		_draw_debrief()
@@ -2104,6 +2113,10 @@ func _on_button(key: String) -> void:
 	if screen == "ref":
 		if ref_view != null:
 			ref_view.button(_norm(label))
+		return
+	if screen == "mc":
+		if mc_view != null:
+			mc_view.button(_norm(label))
 		return
 	if screen == "log":
 		match _norm(label):

@@ -245,6 +245,9 @@ var jet_id := -1
 var f35i_slot := -1
 ## The player's route as set on the TSD ([Vector2 world]); empty = the mission's own.
 var route_override: Array = []
+## The Mission Creator's state (the exe's global record DAT_0083ca10, docs/formats/mcr.md; IafMcr's Dictionary):
+## zeroed when the MC screen opens, read by the mission 0x29a it builds (Replay builds it again).
+var mc := {}
 ## Flight picked on the TSD (1..4 = Alpha..Delta; Fly / double-click makes its leader the player);
 ## 0 = the mission's default flight (mission_runtime.gd player_flight()).
 var player_flight := 0
