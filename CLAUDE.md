@@ -96,8 +96,8 @@ Rule of placement: game logic belongs in the Rust crates. Godot renders and wire
 - Rust is formatted with `cargo fmt --all` (rustfmt.toml: width 120, compact heuristics); run it before committing
   Rust changes.
 - Rust passes `cargo clippy --workspace --all-targets` with no warnings; fix what it finds, also outside the files
-  you changed. An `#[allow(clippy::…)]` only where the code cannot change (a Godot `#[func]`'s argument list, an exe
-  constant), with the reason in a comment on the same line.
+  you changed. Never silence it: no `#[allow(clippy::…)]` (a long argument list becomes a struct or, for a `#[func]`,
+  Godot types; an exe constant is written as its exact stored value).
 - GDScript is formatted with gdtoolkit's `gdformat --line-length 120 <files>` (gdtoolkit 4.x: `pip install
   'gdtoolkit==4.*'` in a venv) and linted with `gdlint <files>` (config: `gdlintrc`); run both on the `.gd` files you
   changed before committing.
