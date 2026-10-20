@@ -1377,6 +1377,8 @@ struct Landing {
     /// Flown by the player's autopilot (FM mode 0): no taxi / park children (`5d43e0`), StopPlane ends at
     /// 1.0295 m/s instead of 25.736 (`5d36d2`), no landed handler, then the autopilot key.
     player: bool,
+    /// `Autopilot::align_final`.
+    align: bool,
 }
 
 /// A LandingCL child (docs/ai.md §8.3).
@@ -1548,6 +1550,9 @@ pub struct Autopilot {
     pub landed: bool,
     /// TakeoffCL finished above 100 m AGL: the AirborneReport is posted then (`5cdb5d`, docs/radio.md §4).
     pub airborne: bool,
+    /// World scale Real (docs/world-scale.md §4.3): the final approach and the float before touchdown hold the
+    /// runway's centreline (`Landing::align_bank`); false: the original's laws.
+    pub align_final: bool,
     mode: u8,
     lp: Loop,
     next_tick: f64,
@@ -1569,6 +1574,7 @@ impl Autopilot {
             wp_index: 0,
             landed: false,
             airborne: false,
+            align_final: false,
             mode: 0,
             lp: Loop::None,
             next_tick: 0.0,
@@ -1756,7 +1762,8 @@ impl Autopilot {
                 if land.is_none() {
                     if f.step(&mut l, vmin12) == Leaf::Done {
                         l.stick(0.0, 0.0);
-                        *land = Landing::new(&self.bases, self.origin, f.t, v.type_code, self.mode == 0).map(Box::new);
+                        *land = Landing::new(&self.bases, self.origin, f.t, v.type_code, self.mode == 0)
+                            .map(|ld| Box::new(Landing { align: self.align_final, ..ld }));
                     }
                 } else if let Some(ld) = land {
                     ld.step(&mut l, self, &mut period, vmin1, vmin12);
@@ -2230,6 +2237,7 @@ impl Landing {
             landed: false,
             acu: None,
             player,
+            align: false,
         })
     }
 
@@ -2382,8 +2390,12 @@ impl Landing {
         let vt = (vmin1 + 10.2944).max(72.0611);
         let thr = l.thr(vt).min(0.5);
         let e = wrap(self.rn - v.att.heading);
-        let bank = (-0.001_396_3 * cross + e * l.c.change_head_k / 3.0 - l.c.change_head_beta * v.rates[2])
-            .clamp(-deg80(), deg80());
+        let bank = if self.align {
+            self.align_bank(l)
+        } else {
+            (-0.001_396_3 * cross + e * l.c.change_head_k / 3.0 - l.c.change_head_beta * v.rates[2])
+                .clamp(-deg80(), deg80())
+        };
         let kz = if above < 0.0 {
             0.03
         } else if v.type_code == C130 {
@@ -2424,10 +2436,25 @@ impl Landing {
         } else {
             l.throttle(0.0);
             let y = l.pitch(0.0);
-            let x = l.roll(0.0);
+            let x = l.roll(if self.align { self.align_bank(l) } else { 0.0 });
             l.stick(y, x);
         }
         Leaf::Run
+    }
+
+    /// World scale Real only (docs/world-scale.md §4.3): the bank that holds the centreline through the lineup at
+    /// RunwayNumber. The original's law (`final_approach`) is underdamped (its base turn can leave the final 100–700 m
+    /// off, and it still swings ±80 m at the threshold), and the float wings-level drifts on. Here the track to the
+    /// line closes at −cross / 8 s (an intercept of at most 30°) and the heading follows at 3× the original's gain.
+    fn align_bank(&self, l: &Laws) -> f32 {
+        let v = l.v;
+        let (s, c) = ((self.rn as f64).sin(), (self.rn as f64).cos());
+        let d = v.pos - self.pts[4];
+        let cross = (d[0] * c - d[1] * s) as f32;
+        let speed = v.speed.max(1.0);
+        let want = wrap(self.rn + (-cross / 8.0 / speed).clamp(-0.5, 0.5).asin());
+        let e = wrap(want - v.att.heading);
+        (e * l.c.change_head_k - l.c.change_head_beta * v.rates[2]).clamp(-deg30(), deg30())
     }
 
     /// ParkInHangarCL `5d66b0`: creep at 2 kt to the hangar; stop, brakes, engine off.
@@ -2454,6 +2481,10 @@ impl Landing {
         self.park = Some((x, y, hdg, d));
         Leaf::Run
     }
+}
+
+fn deg30() -> f32 {
+    30f32.to_radians()
 }
 
 fn deg80() -> f32 {

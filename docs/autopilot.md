@@ -105,7 +105,9 @@ leader-death hand-over (`440eb0` → `440ed0`: the wingman takes the dead leader
 
 World scale Real ([world-scale.md](world-scale.md) §3.3): the bases the autopilot reads (lineup, RunwayNumber, taxi
 points, hangars) are the moved ones; RunwayNumber is the real heading as a float, so the circuit, the final approach
-and the take-off roll follow the real runway. The pattern's sizes stay the exe's fixed metres.
+and the take-off roll follow the real runway. The pattern's sizes stay the exe's fixed metres. In Real only, the final
+approach and the float before touchdown steer to the centreline with a damped law (`align_final`, world-scale.md
+§4.3) instead of FinalApproach's underdamped one.
 
 ### 2.3 Landing (GoHomeCL in FM mode 0)
 - Gear and flaps go down at landing step 7, as for the AI. The commands reach the levers through the controller.

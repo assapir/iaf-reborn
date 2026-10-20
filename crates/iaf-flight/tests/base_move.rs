@@ -175,6 +175,7 @@ fn land(name: &str, elev: f64) {
         jet(&a, Vec3::new(lx - 55000.0 * d.sin(), ly - 55000.0 * d.cos(), 2000.0 + z as f64), b.runway_deg, true);
     let mut ap = Autopilot::new(Config::load(&a.join("install")));
     ap.bases = ibx;
+    ap.align_final = true;
     ap.route = vec![home];
     ap.set_mode(&mut ac, 8);
     let mut touchdown = None;
@@ -189,13 +190,13 @@ fn land(name: &str, elev: f64) {
         t += 1;
     }
     let p = touchdown.expect("touched down");
-    // On the moved base's runway ground (the original's leaves through the move), on the real runway's length. The
-    // original pattern's base turn can leave the final approach tens of metres off the centreline (any heading;
-    // docs/world-scale.md §4.1 risks), so the side offset is printed, not bound to the real width.
+    // On the moved base's runway ground (the original's leaves through the move), on the real runway's length, on
+    // the centreline: in Real the final approach holds it (`align_final`, docs/world-scale.md §4.3).
     let q = [p[0] - m.real_c[0], p[1] - m.real_c[1]];
     let (along, across) = (q[0] * m.real_d[0] + q[1] * m.real_d[1], q[0] * m.real_d[1] - q[1] * m.real_d[0]);
     println!("{name}: touchdown {along:.0} m along, {across:.1} m across; landed {} after {t} s", ap.landed);
     assert!(along > 0.0 && along < m.real_len, "{name}: touchdown along the runway ({along:.0} m)");
+    assert!(across.abs() < 3.0, "{name}: touchdown on the centreline ({across:.1} m)");
     assert_eq!(surf(p[0], p[1]) & RUNWAY, RUNWAY, "{name}: touchdown on runway ground");
     let st = ac.state();
     assert_eq!(surf(st.position[0], st.position[1]) & RUNWAY, RUNWAY, "{name}: stopped on runway ground");

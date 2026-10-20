@@ -315,6 +315,7 @@ impl IafFlight {
             }
         }
         ap.bases = bases;
+        ap.align_final = crate::bases::MOVES.read().unwrap().is_some();
         ap.origin = [origin_x, origin_y];
         self.ap = Some(ap);
         self.origin = (origin_x, origin_y);

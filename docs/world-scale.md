@@ -367,11 +367,6 @@ until the user decides to show it.
 312): every ground start on runway ground (0x10), every mission passes, no script or engine errors.
 
 **Risks**
-- **The AI's final approach.** The original pattern's base turn can leave the final approach 100–300 m off the
-  centreline, depending on the runway heading (measured with the jet starting 55 km out: 13 m at 230°, 285 m at 247°,
-  694 m at 260°); the final approach does not take it out in 3.7 km. At Ramon (247°) the AI touches down 78 m off
-  the centreline: on the moved base's runway leaves (no crash), beside the marked 45 m runway. It is the original's
-  logic (the same off-centre landings happen at other headings in Original); open.
 - **Shorter runways.** The runways are 0.69–0.86 × the game's, and the AI's touchdown (≈ 1.9 km past the lineup point,
   as in Original) leaves 0.5 km at Ramat David. A take-off from a mission start that is not the lineup can run out
   of runway: 311's start is 0.7 km from the end of the runway it faces.
@@ -391,6 +386,18 @@ until the user decides to show it.
 - **iaf.ibx parse bug (found here, unrelated to the switch) — fixed 2026-10-20.** Ramon writes `RunwayNumber=230.0`
   and counts `5.0`, Ryak `90.0`, Aman `260.0`; the ini reader's integers now take a written float and truncate it, as
   the exe does (`FUN_0054eda0`), so those bases get their headings and Ramon its taxi points and hangars.
+
+### 4.3 Polish (2026-10-20)
+
+- **The AI's final approach holds the centreline** (`Autopilot::align_final`, set by `IafFlight.ap_setup` when the
+  bases are moved; `Landing::align_bank` in `crates/iaf-flight/src/autopilot.rs`). The original's FinalApproach
+  lateral law (bank = −0.0014 · cross + heading error, `5d4c50`) is underdamped: from the 100–700 m the base turn
+  leaves at some headings it still swings ±80 m at the threshold, and StopPlane's float keeps the wings level, so the
+  jet drifts on (at Ramon, 247°: 78 m off at touchdown). In Real the final approach and the float steer the track to
+  the centreline at −cross / 8 s (an intercept of at most 30°), the heading at 3× the original's gain, bank at most
+  30°. Touchdown at the moved Ramat David and Ramon: 0.0 m off the centreline (was −8 and 78 m). Original keeps the
+  exe's law. Tests: `crates/iaf-flight/tests/base_move.rs` (touchdown within 3 m of the centreline),
+  `tests/godot/test_world_scale.gd`.
 
 ## 5. Decisions (user, 2026-10-20) and open questions
 
