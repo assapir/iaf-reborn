@@ -231,16 +231,17 @@ rough size each:
 6. **Chat and debrief (small):** `~` chat with its modifiers, F1–F12 and the automatic lines, the MP debrief (winning
    side, "N/A").
 
-### 3.5 Decisions (user, 2026-10-20)
-- **Our own protocol, no IPX / SPX.** Option (a). The protocol is designed with care before any code: the messages,
-  who owns what, versioning and the settings handshake below.
-- **The original lobby, as it looks.** The multiplayer screens (0x15–0x18, 0x1b, 0x1d: connection, session list,
+### 3.5 Points for discussion (user, 2026-10-20; nothing decided)
+Multiplayer itself is not decided. These are the user's first thoughts, to discuss before any plan:
+- **Our own protocol, no IPX / SPX,** if it is built: designed with care before any code (the messages, who owns
+  what, versioning, the settings handshake below).
+- **The original lobby, as it looks,** would be the big win. The multiplayer screens (0x15–0x18, 0x1b, 0x1d: connection, session list,
   side and jet choice, the MP TSD, chat, the MP debrief) are rebuilt from the install's own art and the exe's layout,
-  like every other front-end screen, and run on our protocol.
-- **A hosted server.** The user may run a server somewhere public. So besides "host on my machine", the session can
+  like every other front-end screen, running on our protocol.
+- **A hosted server.** The user might run a server somewhere public. Then besides "host on my machine", the session can
   live on a dedicated server: it lists sessions (the lobby's session list), relays the star, and can be the host
   authority for AI and mission scripts (inferred: the simplest way across NAT).
-- **One rule set per session.** Every player flies the same physics and settings level. The host (or the server)
+- **One rule set per session** (open: how to enforce it). Every player flies the same physics and settings level. The host (or the server)
   owns the session's rule set and sends it at join; a client applies it for the session and cannot change it in
   flight, and a client whose game cannot apply it (an older version, a missing data set) is refused with the reason.
   The rule set covers everything that changes the flight or the fight:
@@ -252,7 +253,7 @@ rough size each:
     mission files), so two players never fly different numbers under one name.
 
   Look-only settings (graphics, cockpit art, Better cockpit, HUD colour, sound, keys, stick response) stay each
-  player's own. Each setting is tagged "session" or "player" where it is declared, so a new setting must choose.
+  player's own. One way: each setting tagged "session" or "player" where it is declared (inferred).
 
 ## 4. Open questions
 - The byte layout of most CommJnet packet types (0x0c, 0x11, 0x12, 0x1c, 0x1d, 0x20–0x24) and of UDP type 0x18.
