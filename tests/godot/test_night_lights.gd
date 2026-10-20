@@ -9,31 +9,15 @@ const NightLights := preload("res://terrain/night_lights.gd")
 
 ## The mission units drawn as light points.
 func _light_sets(tv) -> Array:
-	return tv.runtime.entities.values().filter(
-		func(e):
-			return (
-				e.node != null
-				and not e.has("pilot")
-				and e.node.find_children("*", "MeshInstance3D", true, false).any(
-					func(m):
-						return m.mesh is ArrayMesh and m.mesh.surface_get_primitive_type(0) == Mesh.PRIMITIVE_POINTS
-				)
-			)
-	)
+	return tv.runtime.entities.values().filter(func(e): return e.node != null and not e.has("pilot") \
+		and e.node.find_children("*", "MeshInstance3D", true, false).any(func(m): return m.mesh is ArrayMesh \
+			and m.mesh.surface_get_primitive_type(0) == Mesh.PRIMITIVE_POINTS))
 
 
 func run() -> void:
-	check(
-		(
-			NightLights.is_light_set("stationary/rw_ul_1/LT_dvd_h.gltf")
-			and not NightLights.is_light_set("stationary/rw_ul_1/ul_rwdavid.gltf")
-		),
-		"LT_ by the file name, any case"
-	)
-	check(
-		NightLights.strobe_on(0.0, 0.0) and not NightLights.strobe_on(0.5, 0.0),
-		"the strobe flashes at the start of its period"
-	)
+	check(NightLights.is_light_set("stationary/rw_ul_1/LT_dvd_h.gltf") and not NightLights.is_light_set("stationary/rw_ul_1/ul_rwdavid.gltf"),
+		"LT_ by the file name, any case")
+	check(NightLights.strobe_on(0.0, 0.0) and not NightLights.strobe_on(0.5, 0.0), "the strobe flashes at the start of its period")
 
 	# Original, 214 at 01:00: 15 LT_ sets (Damascus, the power plant, Ramat David), 1-px-per-480-rows points.
 	Settings().night_lights = "original"
@@ -43,32 +27,19 @@ func run() -> void:
 	check(sets.size() == 15, "214: the LT_ light sets are drawn (%d)" % sets.size())
 	var mi: MeshInstance3D = sets[0].node.find_children("*", "MeshInstance3D", true, false)[0]
 	var mat := mi.material_override as StandardMaterial3D
-	check(
-		(
-			mat != null
-			and mat.use_point_size
-			and mat.point_size >= 1.0
-			and mat.depth_draw_mode == BaseMaterial3D.DEPTH_DRAW_DISABLED
-			and mat.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED
-		),
-		"points: unshaded, sized, no depth write"
-	)
+	check(mat != null and mat.use_point_size and mat.point_size >= 1.0 and mat.depth_draw_mode == BaseMaterial3D.DEPTH_DRAW_DISABLED \
+		and mat.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED, "points: unshaded, sized, no depth write")
 	check(sets.all(func(e): return e.node.visible and e.get("drawn", true)), "light sets are never hidden as underlays")
 	var zone: Dictionary = sets.filter(func(e): return String(e.name).begins_with("Zone_"))[0]
 	tv.runtime._set_visible(zone, false)
 	check(not zone.node.visible, "Vanish (Visible off) puts a light set out")
-	check(
-		tv.get_node_or_null("NightSky") == null and tv.aircraft.find_child("NavLights", true, false) == null,
-		"original: no night sky, no navigation lights"
-	)
+	check(tv.get_node_or_null("NightSky") == null and tv.aircraft.find_child("NavLights", true, false) == null,
+		"original: no night sky, no navigation lights")
 
 	# Original by day, 125 (lt_ossa boats): light points at every hour.
 	tv = await start_mission(125)
 	await frames(10)
-	check(
-		not tv._tod_sun.night and _light_sets(tv).size() == 6,
-		"125 by day: the boats' light sets are points (%d)" % _light_sets(tv).size()
-	)
+	check(not tv._tod_sun.night and _light_sets(tv).size() == 6, "125 by day: the boats' light sets are points (%d)" % _light_sets(tv).size())
 	# A destroyed light set gets the burned copy (FUN_0041f980) on its points.
 	tv._burned_copy(_light_sets(tv)[0].node, 0.5, 10.0)
 	check(_light_sets(tv).size() == 6, "the burned copy keeps the points")
@@ -80,68 +51,36 @@ func run() -> void:
 	sets = _light_sets(tv)
 	mi = sets[0].node.find_children("*", "MeshInstance3D", true, false)[0]
 	check(mi.material_override == NightLights.glow(), "detailed: the light sets glow")
-	check(
-		tv.get_node_or_null("NightSky") != null and tv.get_node("NightSky").visible, "detailed: stars and moon at night"
-	)
-	check(
-		(tv.get_node("Sun") as DirectionalLight3D).light_color == NightLights.MOON_LIGHT,
-		"detailed: the moon lights the ground"
-	)
-	check(
-		tv.find_child("BaseLights", true, false) == null, "detailed: 214's own lt_dvd_h, no second set on Ramat David"
-	)
-	check(
-		(
-			tv.aircraft.find_child("NavLights", true, false) != null
-			and tv.aircraft.find_child("Strobe", true, false) != null
-		),
-		"detailed: the player's jet has navigation lights and a strobe"
-	)
-	check(
-		tv.ai.pilots.any(
-			func(p): return p.ent.node != null and p.ent.node.find_child("NavLights", true, false) != null
-		),
-		"detailed: the AI jets too"
-	)
+	check(tv.get_node_or_null("NightSky") != null and tv.get_node("NightSky").visible, "detailed: stars and moon at night")
+	check((tv.get_node("Sun") as DirectionalLight3D).light_color == NightLights.MOON_LIGHT, "detailed: the moon lights the ground")
+	check(tv.find_child("BaseLights", true, false) == null, "detailed: 214's own lt_dvd_h, no second set on Ramat David")
+	check(tv.aircraft.find_child("NavLights", true, false) != null and tv.aircraft.find_child("Strobe", true, false) != null,
+		"detailed: the player's jet has navigation lights and a strobe")
+	check(tv.ai.pilots.any(func(p): return p.ent.node != null and p.ent.node.find_child("NavLights", true, false) != null),
+		"detailed: the AI jets too")
 	# The cockpit-view model carries its own set at its wingtips (they can lie farther out than the jet model's).
 	var bcl: MeshInstance3D = tv.own_bc.find_child("NavLights", false, false) if tv.own_bc != null else null
 	var tips: Array = NightLights._light_spots(tv.own_bc) if tv.own_bc != null else []
 	var lx: float = bcl.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX][0].x if bcl != null else 0.0
-	check(
-		(
-			bcl != null
-			and tv.own_bc.find_child("Strobe", false, false) != null
-			and not tips.is_empty()
-			and absf(lx - tips[0].x) < 0.05 * (tips[1].x - tips[0].x)
-		),
-		(
-			"detailed: the cockpit-view model has lights at its wingtips (%.2f, tip %.2f)"
-			% [lx, tips[0].x if not tips.is_empty() else 0.0]
-		)
-	)
+	check(bcl != null and tv.own_bc.find_child("Strobe", false, false) != null and not tips.is_empty() \
+		and absf(lx - tips[0].x) < 0.05 * (tips[1].x - tips[0].x),
+		"detailed: the cockpit-view model has lights at its wingtips (%.2f, tip %.2f)" % [lx, tips[0].x if not tips.is_empty() else 0.0])
 	# Upscaling: the glows are sized in the 3D render's rows, not the window's.
 	tv.get_viewport().scaling_3d_scale = 0.5
 	tv._tod_t = -INF
 	await frames(3)
 	var vp_h: float = NightLights.glow().get_shader_parameter("vp_h")
-	check(
-		absf(vp_h - tv.get_viewport().get_visible_rect().size.y * 0.5) < 0.5,
-		"detailed: glow size in the render's rows (%.1f)" % vp_h
-	)
+	check(absf(vp_h - tv.get_viewport().get_visible_rect().size.y * 0.5) < 0.5, "detailed: glow size in the render's rows (%.1f)" % vp_h)
 	tv.get_viewport().scaling_3d_scale = 1.0
 	# A shot-down jet's lights go out and its strobe stays dark.
 	var p = tv.ai.pilots.filter(func(p): return p.ent.node != null and p.ent.node.find_child("NavLights", true, false) != null)[0]
 	tv.runtime.set_damage_level(p.ent, 3)
 	await frames(30)
-	var lit: Array = p.ent.node.find_children("*", "MeshInstance3D", true, false).filter(
-		func(m): return m.name in ["NavLights", "Strobe"] and m.visible
-	)
+	var lit: Array = p.ent.node.find_children("*", "MeshInstance3D", true, false).filter(func(m): return m.name in ["NavLights", "Strobe"] and m.visible)
 	check(lit.is_empty(), "detailed: a hit jet's lights are off (%d lit)" % lit.size())
 	tv.aircraft.lights_off()
 	await frames(80)
-	lit = tv.own_bc.find_children("*", "MeshInstance3D", false, false).filter(
-		func(m): return m.name in ["NavLights", "Strobe"] and m.visible
-	)
+	lit = tv.own_bc.find_children("*", "MeshInstance3D", false, false).filter(func(m): return m.name in ["NavLights", "Strobe"] and m.visible)
 	check(lit.is_empty(), "detailed: the cockpit-view model's lights go out with the jet's (%d lit)" % lit.size())
 
 	# Detailed by day, 311 at 11:00 (Ramat David): no base lights, no night sky, the sun.
@@ -152,7 +91,8 @@ func run() -> void:
 	check((tv.get_node("Sun") as DirectionalLight3D).light_color != NightLights.MOON_LIGHT, "detailed, day: the sun")
 	# The same base at 22:00: its runway model gets lt_dvd_h on the same spot.
 	tv.runtime.misc["0x460"] = 22.0 * 3600.0 - tv.runtime.now
-	var rw: Dictionary = tv.runtime.entities.values().filter(func(e): return e.node != null and not e.get("drawn", true) and String(e.name) == "Ramat David")[0]
+	var rw: Dictionary = tv.runtime.entities.values().filter(func(e): return e.node != null and not e.get("drawn", true) \
+		and String(e.name) == "Ramat David")[0]
 	tv._add_base_lights(rw.node, "stationary/rw_ul_1/ul_rwdavid.gltf", rw)
 	var bl: Node3D = tv.find_child("BaseLights", true, false)
 	check(bl != null and bl.transform == rw.node.transform, "detailed, night: Ramat David's light set on its runway")
