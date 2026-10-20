@@ -49,7 +49,10 @@ global uniform sampler2D terrain_water_warp : filter_linear_mipmap, repeat_enabl
 // end 1), (threshold at end 0, at end 1: metres in from the end, 0, 0); info = (runways, 0, 0, 0).
 global uniform float terrain_airbases;
 global uniform sampler2D airbase_mask : filter_linear_mipmap, repeat_disable;
+// The mask's uv = mat2(airbase_mask_xf.xy, airbase_mask_xf.zw) · world_xz + airbase_mask_rect.xy (a moved base's mask is
+// turned and scaled, World scale Real).
 global uniform vec4 airbase_mask_rect;
+global uniform vec4 airbase_mask_xf;
 global uniform sampler2D airbase_data : filter_nearest, repeat_disable;
 global uniform vec4 airbase_info;
 varying vec2 world_xz;
@@ -331,7 +334,7 @@ void fragment() {
 	SPECULAR = 0.1;
 	// Airbases (Preferences "Airbases"): within 6 km, on the nearest base's paved surface.
 	float kab = terrain_airbases * (1.0 - smoothstep(2500.0, 6000.0, length(VERTEX))) * (1.0 - sea);
-	vec2 muv = (world_xz - airbase_mask_rect.xy) * airbase_mask_rect.zw;
+	vec2 muv = mat2(airbase_mask_xf.xy, airbase_mask_xf.zw) * world_xz + airbase_mask_rect.xy;
 	if (kab > 0.0 && muv.x > 0.0 && muv.y > 0.0 && muv.x < 1.0 && muv.y < 1.0) {
 		// R / G: paved / concrete coverage blurred over ≈ 5 m, so the bilinear lookup has a smooth edge at 0.5, drawn
 		// one pixel wide (fwidth); mipmapped, the edges soften far away.

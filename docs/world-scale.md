@@ -293,7 +293,7 @@ Godot tests set `Settings.world_scale = "real"` before `start_mission()` and run
 | 5 ✓ | The real runway table (`tools/real_runways.py`, `real_runways.csv`, ODbL) and the base move in Rust (`iaf_flight::base_move`): the transform, zones A / B, the inverse, iaf.ibx mapped, the surface rule, the pad heights | unit tests: each moved main runway on its real one (ends < 1 m, length, heading), zone continuity, identity beyond, inverse round trip; an autopilot take-off and landing at the moved Ramat David and Ramon (flat ground at the new elevation, the surface rule's runway bit under the wheels) | M |
 | 6 ✓ | Godot wiring of the base data: `IafBases` (set up from Settings.world_scale: airbases.json, the masks, the elevations), `ap_setup` / `start_rule` / `radio.gd`, `surface_at` and the surface raster, the height pad | headless: in Real the ground is flat at the moved lineup, its surface has the runway bit and the old lineup's has not; a ground start at the moved lineup; Original unchanged | M |
 | 7 ✓ | Mission data through the move (`mission_files()`): entities, paths, routes, radii; kept models × k and turned; `BASE_LIGHTS` | 311 in Real: the player on the moved lineup with the engine on, the parked jets on the moved apron (relative positions = Original's × k, turned), the take-off markers fire on the take-off; a SAM site around a moved base kept relative; 312's landing completes with the autopilot | M |
-| 8 | Drawing: the old site painted over, the new site's paved surface (colour images), the Detailed airbases surface at the new site (turned mask, real width), forced on in Real | `test_airbase_scale.gd` (Original) unchanged; Real: the moved base data; real-render shots of Ramat David and Ramon (original terrain and Survey imagery) and of the old site | M–L |
+| 8 ✓ | Drawing: the old site painted over, the new site's paved surface (colour images), the Detailed airbases surface at the new site (turned mask, real width), forced on in Real | `test_airbase_scale.gd` (Original) unchanged; Real: the moved base data; real-render shots of Ramat David and Ramon (original terrain and Survey imagery) and of the old site | M–L |
 | 9 | Docs (deviations, status, rendering §7, autopilot, this page) and a sweep | `tools/mission_sweep.sh` over the menu missions in Real: no SCRIPT ERROR, no ground start crash | S |
 
 Steps 1–4 give true-size models on the ×2 bases; steps 5–9 move the bases. The switch stays hidden (a dev flag)
@@ -331,7 +331,48 @@ until the user decides to show it.
   launch points; a take-off from 311 and the autopilot's landing in 312 in Real). Rust:
   `takes_off_from_ramat_david_real_size`, `lands_at_ramat_david_real_size` (crates/iaf-flight/tests/autopilot.rs).
 
+### 4.2 Steps 5–8: what was built (2026-10-20)
+
+- **Rust** (`crates/iaf-flight/src/base_move.rs`): the table, the transform, zones A / B, iaf.ibx mapped
+  (`map_airbase`), the surface rule, the flattened sites, and the image patches (`bake_heights`, `bake_colour`).
+  The Godot bridge `IafBases` (`crates/iaf-godot/src/bases.rs`) holds the moves for the process; `Settings.sync_bases()`
+  sets them up from `world_scale` (once per change) and `Settings.base_moved(x, y)` maps a point.
+- **The flight model:** `IafFlight.ap_setup` and `start_rule` map iaf.ibx; `radio.gd` maps its tower, lineup,
+  hangars and runway heading; `terrain.gd surface_at` and the `IafSurface` raster go through the surface rule. On a
+  new site the original's runway leaf flags apply as they are (0x10); an old site's runway leaves read as land (0x1:
+  rough ground off a runway).
+- **The terrain images** are patched where `IafBases.bounds()` touches a node: heights (the new site at its
+  elevation, the 1.2 km ring) and colours (the old paved surface, its painted edges and the base's grey replaced by
+  the colour and texture of the coloured ground ≈ 400 m away; the new site's paved surface painted grey). The
+  extension is not callable from the decode workers, so the patch runs on the main thread when the image arrives
+  (`terrain.gd _bake`, about 10–40 ms per patched node, only the nodes on the sites).
+- **The mission data** moves in `MissionRuntime.mission_files()` (`move_with_bases`): so the flight, the AI, the
+  routes, the TSD and the briefing all read the moved positions. A kept layout on a moved base gets × its
+  `base_scale`.
+- **The Detailed airbases surface** (`airbases.gd`, `terrain.gdshader`): in Real `IafBases.base()` gives each base's
+  runways at the new site (the real width, the thresholds × k, the numbers from the new headings) and the mask's
+  inverse map; the shader reads the mask through `airbase_mask_xf` (a 2 × 2 matrix; in Original the axis-aligned
+  scale) and `airbase_mask_rect.xy` (the offset). On in Real whatever the Graphics setting.
+- **Tests:** Rust `crates/iaf-flight/tests/base_move.rs` (every base on its real runway; the moved lineup on runway
+  ground, the old one not; the autopilot's take-off and landing at the moved Ramat David and Ramon with the
+  player's surface rule on) and the unit tests in `base_move.rs`. Godot `tests/godot/test_base_move.gd` (Original
+  unchanged; Real: the moved lineup on runway ground, the old one rough; the radio's base; the site flat at its
+  elevation; the start rule; 311's start on the moved base on its wheels; 311's and 122's base units with their
+  distances × k and headings turned; 237's SA-3 site at Ryak kept around its radar; the Detailed surface's moved
+  runways). `test_world_scale.gd`: kept layouts × k; its Real take-off now from Ramon's lineup (315); the autopilot
+  landing of 312 at the moved Ramat David.
+
 **Risks**
+- **The AI's final approach.** The original pattern's base turn can leave the final approach 100–300 m off the
+  centreline, depending on the runway heading (measured with the jet starting 55 km out: 13 m at 230°, 285 m at 247°,
+  694 m at 260°); the final approach does not take it out in 3.7 km. At Ramon (247°) the AI touches down 78 m off
+  the centreline: on the moved base's runway leaves (no crash), beside the marked 45 m runway. It is the original's
+  logic (the same off-centre landings happen at other headings in Original); open.
+- **Shorter runways.** The runways are 0.69–0.86 × the game's, and the AI's touchdown (≈ 1.9 km past the lineup point,
+  as in Original) leaves 0.5 km at Ramat David. A take-off from a mission start that is not the lineup can run out
+  of runway: 311's start is 0.7 km from the end of the runway it faces.
+- **The old site** keeps a faint ghost: the paved surface's outline shows as lighter, textured ground; the painted
+  shelters and buildings off the paved surface stay.
 - **Seen from the cockpit, the targets halve.** Gun and missile rules are unchanged (25 m hit sphere), so hitting is
   as easy as before, but finding a target by eye is harder (the original chose ×2, maybe for 640 × 480; inferred).
 - **The two sites.** The old site keeps the 1998 art's painted shelters and buildings outside the paved surface

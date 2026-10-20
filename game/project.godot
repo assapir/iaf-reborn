@@ -79,6 +79,10 @@ airbase_mask_rect={
 "type": "vec4",
 "value": Vector4(0, 0, 0, 0)
 }
+airbase_mask_xf={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
 airbase_data={
 "type": "sampler2D",
 "value": ""

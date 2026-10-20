@@ -521,12 +521,18 @@ impl BaseMoves {
         for y in 0..h {
             for x in 0..w {
                 let p = px(x, y);
+                let i = y * w + x;
                 for b in &self.bases {
                     if let Some(m) = b.mask.as_ref().filter(|m| m.contains(p, 0.0)) {
                         let c = m.at(p);
-                        let v = ((c[0].max(c[1]) - 0.15) / 0.3).clamp(0.0, 1.0) as f32;
+                        let mut v = ((c[0].max(c[1]) - 0.05) / 0.2).clamp(0.0, 1.0) as f32;
+                        // The grey around the paved surface on the old base (shoulders, the infield's worn grey,
+                        // grey roofs) goes too.
+                        if b.in_old(p, 0.0) {
+                            v = v.max(1.0 - smoothstep(0.03, 0.08, chroma(&rgb[3 * i..3 * i + 3])) as f32);
+                        }
                         if v > 0.0 {
-                            paved[y * w + x] = paved[y * w + x].max(v);
+                            paved[i] = paved[i].max(v);
                             any = true;
                         }
                     }
@@ -534,7 +540,15 @@ impl BaseMoves {
             }
         }
         if any {
-            fill_from_surroundings(rgb, w, h, &paved, ((150.0 / px_m).round() as usize).max(2));
+            // Grown by ≈ 15 m: the painted edges and shoulders along the paved surface go too.
+            let rd = (15.0 / px_m).round() as usize;
+            if rd >= 1 {
+                let grown = box_blur(&paved.iter().map(|&v| [v as f64, 0.0, 0.0, 0.0]).collect::<Vec<_>>(), w, h, rd);
+                for (v, g) in paved.iter_mut().zip(&grown) {
+                    *v = v.max((g[0] * 3.0).min(1.0) as f32);
+                }
+            }
+            fill_from_surroundings(rgb, w, h, &paved, ((400.0 / px_m).round() as usize).max(2));
         }
         // The new sites.
         for y in 0..h {
@@ -564,7 +578,8 @@ fn fill_from_surroundings(rgb: &mut [u8], w: usize, h: usize, paved: &[f32], r: 
     let n = w * h;
     let mut acc = vec![[0f64; 4]; n]; // r, g, b, weight
     for i in 0..n {
-        let wt = 1.0 - paved[i] as f64;
+        // The surroundings' colour: unpaved, coloured ground (grey roads and roofs left out).
+        let wt = (1.0 - paved[i] as f64) * smoothstep(0.03, 0.08, chroma(&rgb[3 * i..3 * i + 3]));
         acc[i] = [rgb[3 * i] as f64 * wt, rgb[3 * i + 1] as f64 * wt, rgb[3 * i + 2] as f64 * wt, wt];
     }
     let mut mean = [0f64; 4];
@@ -576,24 +591,52 @@ fn fill_from_surroundings(rgb: &mut [u8], w: usize, h: usize, paved: &[f32], r: 
     for _ in 0..2 {
         acc = box_blur(&acc, w, h, r);
     }
+    let src = rgb.to_vec();
+    let mean_at = |i: usize| -> Option<[f64; 3]> {
+        let a = &acc[i];
+        if a[3] > 1e-3 {
+            Some([a[0] / a[3], a[1] / a[3], a[2] / a[3]])
+        } else if mean[3] > 0.0 {
+            Some([mean[0] / mean[3], mean[1] / mean[3], mean[2] / mean[3]])
+        } else {
+            None
+        }
+    };
+    let d = r as isize;
     for i in 0..n {
         let p = paved[i];
         if p <= 0.0 {
             continue;
         }
-        let a = &acc[i];
-        let fill = if a[3] > 1e-3 {
-            [a[0] / a[3], a[1] / a[3], a[2] / a[3]]
-        } else if mean[3] > 0.0 {
-            [mean[0] / mean[3], mean[1] / mean[3], mean[2] / mean[3]]
-        } else {
-            continue;
-        };
+        let Some(mut fill) = mean_at(i) else { continue };
+        // The texture: an unpaved pixel `r` away (the first of four directions), its difference from its own mean.
+        let (x, y) = ((i % w) as isize, (i / w) as isize);
+        for (dx, dy) in [(d, d / 2), (-d / 2, d), (-d, -d / 2), (d / 2, -d)] {
+            let (sx, sy) = (x + dx, y + dy);
+            if sx < 0 || sy < 0 || sx >= w as isize || sy >= h as isize {
+                continue;
+            }
+            let j = sy as usize * w + sx as usize;
+            if paved[j] > 0.1 {
+                continue;
+            }
+            if let Some(mj) = mean_at(j) {
+                for c in 0..3 {
+                    fill[c] += (src[3 * j + c] as f64 - mj[c]).clamp(-50.0, 50.0);
+                }
+                break;
+            }
+        }
         for c in 0..3 {
             let v = rgb[3 * i + c] as f64;
             rgb[3 * i + c] = (v + (fill[c] - v) * p as f64).round().clamp(0.0, 255.0) as u8;
         }
     }
+}
+
+/// A pixel's chroma 0..1 (max − min channel).
+fn chroma(c: &[u8]) -> f64 {
+    (c.iter().max().copied().unwrap_or(0) - c.iter().min().copied().unwrap_or(0)) as f64 / 255.0
 }
 
 /// A (2r + 1)² box mean, clamped at the edges (separable running sums).
@@ -760,6 +803,10 @@ mod tests {
                 let i = y * w + x;
                 let p = (7..13).contains(&x) && (7..13).contains(&y);
                 rgb[3 * i..3 * i + 3].copy_from_slice(if p { &[100, 100, 100] } else { &[40, 120, 30] });
+                // A grey road outside: not part of the surroundings' colour.
+                if y == 2 {
+                    rgb[3 * i..3 * i + 3].copy_from_slice(&[90, 90, 90]);
+                }
                 paved[i] = if p { 1.0 } else { 0.0 };
             }
         }

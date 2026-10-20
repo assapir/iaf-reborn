@@ -97,8 +97,23 @@ func run() -> void:
 			var d1 := Vector2(r237[k][0].x, r237[k][0].y).distance_to(Vector2(r237[rk][0].x, r237[rk][0].y))
 			ok = ok and absf(d1 / d0 - 1.0) < 0.05
 	check(ok, "237: the SA-3 site at Ryak moved with the base, its launchers kept around the radar")
+
+	# --- step 8: the Detailed airbases surface at the new site ---
+	var AB = load("res://terrain/airbases.gd")
+	var david: Dictionary = {}
+	for b in AB.bases():
+		if b.name == "David":
+			david = b
+	var r0: Dictionary = david.get("runways", [{}])[0]
+	var e0 := Vector2(r0.ends[0][0], r0.ends[0][1]) if r0.has("ends") else Vector2.ZERO
+	var e1 := Vector2(r0.ends[1][0], r0.ends[1][1]) if r0.has("ends") else Vector2.ZERO
+	check(david.has("mask_affine") and float(r0.get("width", 0)) == 45.0, "Detailed: David's runways at the real width (%s m)" % r0.get("width"))
+	check(absf(e0.distance_to(e1) - 2934.0) < 60.0 and AB.centre(david).distance_to(new) < 3000.0,
+			"Detailed: the main runway at its real length on the new site (%.0f m)" % e0.distance_to(e1))
+	check(AB._on, "Detailed: the surface is drawn in Real whatever the Graphics setting")
 	S.world_scale = "original"
 	S.sync_bases()
+	check(not AB.bases()[0].has("mask_affine"), "Original: the bases as measured")
 
 
 ## The player's start (engine X, Y, z) of a menu mission in a world scale.

@@ -194,13 +194,17 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     the same pages drawn at the screen's resolution, the vectors antialiased, the pixel art as smooth strokes through
     its original pixels (mfd.md §8). Its strokes sit on the pixels the original lights, half a pixel right and down
     of Original's.
-- **World scale (Original / Real 1:1)** (world-scale.md; in progress, its Extras row shows only with the dev flag
-  `IAF_DEV_WORLD_SCALE=1` until the airbases shrink too, the plan's step 9). Original: every model at its bdb Present
+- **World scale (Original / Real 1:1)** (world-scale.md; its Extras row shows only with the dev flag
+  `IAF_DEV_WORLD_SCALE=1` until the user decides to show it). Original: every model at its bdb Present
   scale (0x65e: ×2 jets and buildings, ×3–4 vehicles and SAMs). Real 1:1 (`Settings.world_scale = "real"`): the
   models at true size (`Settings.model_scale`): mission units, the player's and the AI jets with their cockpit model,
   gear clearance (F-16 3.38 → 1.69 m), eye and gun, the weapons, stores and rounds. The flat base underlays, the
-  light sets, the bases' sign groups, the SA-5 cables, the cloud, the crater and the ships keep their scale. Hit
-  spheres, blast radii and every sensor range stay the original's.
+  light sets, the bases' sign groups, the SA-5 cables, the cloud, the crater and the ships keep their scale (on a
+  moved base × its k). Every airbase moves to its real place (world-scale.md §3.3): one transform per base puts the
+  game's main runway on the real one (OpenStreetMap, ODbL) at its real length, heading and width; iaf.ibx's points,
+  the runway surface, the base's mission units, markers and routes move with it; the new site is flattened and drawn
+  with the Detailed airbases surface (on in Real whatever the Graphics setting), the old site's paved surface is
+  painted over. Hit spheres, blast radii and every sensor range stay the original's.
 - **Additions the original does not have:** flight info line, blackbox, language, Window (framed / full screen),
   "F-35I replaces" (the F-35I flies from a Jet list button, docs/f35i.md), Settings file (export / import the
   preferences, front_end.gd `_settings_file`). Later: extra sounds, canopy open (docs/roadmap.md).

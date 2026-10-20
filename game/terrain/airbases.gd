@@ -10,24 +10,35 @@ const RANGE := 15000.0
 
 static var _bases := []
 static var _loaded := false
+static var _loaded_moved := false
 static var _current := -1
 static var _origin := Vector2(INF, INF)
 static var _on := false
 
 
 ## The bases (airbases.json's list; [] when it was not converted).
+## World scale Real: each base at its new site (IafBases.base: the runways moved at the real width, `mask_affine`, `centre`).
 static func bases() -> Array:
-	if not _loaded:
+	var moved := Settings.sync_bases()
+	if not _loaded or moved != _loaded_moved:
 		_loaded = true
+		_loaded_moved = moved
 		var j: Dictionary = Settings.load_json(Settings.assets_dir().path_join("converted/terrain/airbases.json"))
 		_bases = j.get("bases", [])
 		if _bases.is_empty():
 			push_warning("airbases.json missing: run tools/setup-cli.sh (Airbases = Detailed draws nothing)")
+		if moved:
+			for i in _bases.size():
+				var m: Dictionary = IafBases.base(String(_bases[i].name), _bases[i])
+				if not m.is_empty():
+					_bases[i] = m
 	return _bases
 
 
 ## A base's middle (engine metres): its runways' middle, else its lineup point.
 static func centre(b: Dictionary) -> Vector2:
+	if b.has("centre"):
+		return b.centre
 	var rw: Array = b.get("runways", [])
 	if rw.is_empty():
 		return Vector2(b.lineup[0], b.lineup[1])
@@ -38,8 +49,9 @@ static func centre(b: Dictionary) -> Vector2:
 
 
 ## Applies Settings.airbases (a flight's start, or the Graphics page during a flight).
+## World scale Real: always on (a moved base has no painted runways at its new site; docs/world-scale.md §3.3).
 static func apply() -> void:
-	_on = Settings.airbases == "detailed"
+	_on = Settings.airbases == "detailed" or Settings.sync_bases()
 	RenderingServer.global_shader_parameter_set("terrain_airbases", 1.0 if _on else 0.0)
 	_current = -1
 	if not _on:
@@ -81,8 +93,17 @@ static func _select(b: Dictionary, o: Vector2) -> void:
 	RenderingServer.global_shader_parameter_set("airbase_mask", ImageTexture.create_from_image(img))
 	var w_m: float = float(m.w) * float(m.px_m)
 	var h_m: float = float(m.h) * float(m.px_m)
+	# The mask's uv = M · (x, z) + offset (Godot x, z from the world origin): the game point G of a scene point is
+	# (X, Y) itself, or on a moved base the inverse move (mask_affine); u = (G.x − origin.x) / w, v = (origin.y − G.y) / h.
+	var a := PackedFloat64Array([1, 0, 0, 0, 1, 0])
+	if b.has("mask_affine"):
+		a = b.mask_affine
+	var gx0 := a[0] * o.x + a[1] * o.y + a[2]
+	var gy0 := a[3] * o.x + a[4] * o.y + a[5]
+	RenderingServer.global_shader_parameter_set("airbase_mask_xf",
+			Vector4(a[0] / w_m, -a[3] / h_m, -a[1] / w_m, a[4] / h_m))
 	RenderingServer.global_shader_parameter_set("airbase_mask_rect",
-			Vector4(float(m.origin[0]) - o.x, -(float(m.origin[1]) - o.y), 1.0 / w_m, 1.0 / h_m))
+			Vector4((gx0 - float(m.origin[0])) / w_m, (float(m.origin[1]) - gy0) / h_m, 0.0, 0.0))
 	var texels := []
 	for r in b.runways:
 		var e0 := _godot(r.ends[0], o)

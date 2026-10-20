@@ -388,6 +388,12 @@ Preferences → Graphics → MORE → **Airbases = Detailed** (ours, docs/deviat
 taxiways and aprons as a procedural surface with ICAO markings when the camera is near the ground. Original shows the
 1998 imagery's painted runways. Rendering only: the flight model's runway surface stays terraintype.dat's.
 
+**World scale Real** ([world-scale.md](world-scale.md) §3.3, §4.2): the surface is always on, each base at its new
+site: `IafBases.base()` hands `airbases.gd` the moved runways (the real width, thresholds × k, numbers from the new
+headings) and the mask's inverse map, and the shader reads the mask through `airbase_mask_xf` (a 2 × 2 matrix) plus
+the offset in `airbase_mask_rect.xy`. The terrain's colour images are patched as they load: the old site's paved
+surface painted over, the new site's painted grey (seen from afar, where the surface has faded out).
+
 **The data** (`iaf-terrain airbases <install> <theatre> <out>`, run by `tools/setup-cli.sh`; `crates/iaf-tools/src/airbases.rs`).
 For each of iaf.ibx's ten bases, from the 1998 art at level 1 (2.5 m per pixel) around the base's terraintype.dat
 runway cells:
