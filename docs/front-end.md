@@ -422,8 +422,13 @@ Jets disabled per mission (`FUN_00509b80`; rows 0x11c bytes apart in the list ob
 * Zoom_In: ×1.5, max 32. Zoom_Out: ×2/3, min 1. Both then **centre** the selected unit (or keep the
   view centre) (`5032d0`, see §8.1). Each button is disabled at its limit.
 * Scrollbars (screen coordinates):
-  * V: `tsd/vscroll.bmp` 10×356 at (608,42); thumb `vslider` 10×75; `vslupb`/`vsldownb`
+  * V: `tsd/vscroll.bmp` 10×356 at (608,42); thumb `vslider` 10×75
   * H: `hscroll.bmp` 462×10 at (146,399); thumb `hslider` 74×10
+  * arrows, the `FUN_004f3700` layout (§12): `FUN_004ffba0` passes `vslupb` / `hslupb` as the first arrow, which
+    moves to the bar's end, the bottom (10×23) / the right (24×10); `vsldownb` / `hsldownb` (10×21 / 21×10) stay at
+    the start, the top / the left. The art agrees: `slupb` points down / right, `sldownb` up / left. A click on the
+    end arrow adds one step, on the start arrow subtracts one (`FUN_004f4110`); the thumb travels between them.
+    Pressed: frame `_1`. Hebrew uses the same art and layout.
   * `Cur/move.cur` and `grab.cur` are loaded (`501bd0`) but never set on the map: WM_SETCURSOR (`501c60`) shows the
     arrow, and no cursor while the ruler is dragged. The Arming screen uses them (§15). The manual (EN 3.3) describes
     no map drag.
@@ -1322,8 +1327,8 @@ The key table itself (records, modifiers, key names, dispatch, the full list) is
 * **Scrollbar** (`FUN_004f3700`) at page (422,53)-(433,323), vertical. The first arrow child
   (`pref/slupb_0..2`, whose art points **down**) is moved to the bar's bottom (`SetWindowPos` y = bar
   height − arrow height @4f38ae); the second (`sldownb_0..2`, pointing up) stays at (0,0), the top. Both
-  15×18, clipped to the 11 px bar. Thumb `pref/sldcntrl.bmp` 10×23 between them. (The same class
-  serves other scrollbars: check the TSD's `vslupb` / `vsldownb` placement against this.)
+  15×18, clipped to the 11 px bar. Thumb `pref/sldcntrl.bmp` 10×23 between them. The same class serves the
+  TSD's scrollbars (§8).
 * **Key capture** (`FUN_00511dc0`, the list's key-down handler):
   * VK_LEFT/UP/RIGHT/DOWN go to the list (move the selection); arrows therefore cannot be bound.
   * For any other key, the handler scans the DirectInput keyboard state for the first pressed key that is not a

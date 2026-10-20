@@ -11,10 +11,12 @@ const MAP_SIZE := Vector2(454, 590)
 const ZOOM_STEP := 1.5
 const ZOOM_MAX := 32.0
 ## Scrollbars by axis (0 = horizontal, 1 = vertical), screen coordinates, and the lengths of their
-## arrow / thumb art along the bar.
+## arrow / thumb art along the bar. FUN_004ffba0 passes xSlUpB as FUN_004f3700's first arrow, which it moves to
+## the bar's end (right / bottom); xSlDownB stays at the start (left / top). The art agrees: SlUpB points right /
+## down, SlDownB left / up.
 const BARS := [Rect2(146, 399, 462, 10), Rect2(608, 42, 10, 356)]
-const BAR_UP := [24.0, 23.0]
-const BAR_DOWN := [21.0, 21.0]
+const BAR_UP := [21.0, 21.0]  # start arrow, h/vsldownb
+const BAR_DOWN := [24.0, 23.0]  # end arrow, h/vslupb
 const BAR_THUMB := [74.0, 75.0]
 const BAR_ART := ["h", "v"]
 const BAR_ARROWS := [["left", "right"], ["up", "down"]]
@@ -606,12 +608,22 @@ func _draw() -> void:
 		var bar: Rect2 = BARS[axis]
 		var a: String = BAR_ART[axis]
 		fe_blit("tsd/%sscroll.png" % a, bar.position)
-		fe_blit("tsd/%sslupb_%d.png" % [a, 1 if pressed_arrow == BAR_ARROWS[axis][0] else 0], bar.position)
-		fe_blit(
-			"tsd/%ssldownb_%d.png" % [a, 1 if pressed_arrow == BAR_ARROWS[axis][1] else 0],
-			_along(bar.position, axis, bar.end[axis] - BAR_DOWN[axis])
-		)
+		for arrow in bar_arrows(axis):
+			fe_blit(arrow[0], arrow[1])
 		fe_blit("tsd/%sslider.png" % a, _along(bar.position, axis, _thumb(axis)))
+
+
+## A bar's two arrows as [art path, screen position]: the start one (sldownb, left / top), then the end one (slupb).
+func bar_arrows(axis: int) -> Array:
+	var bar: Rect2 = BARS[axis]
+	var a: String = BAR_ART[axis]
+	return [
+		["tsd/%ssldownb_%d.png" % [a, 1 if pressed_arrow == BAR_ARROWS[axis][0] else 0], bar.position],
+		[
+			"tsd/%sslupb_%d.png" % [a, 1 if pressed_arrow == BAR_ARROWS[axis][1] else 0],
+			_along(bar.position, axis, bar.end[axis] - BAR_DOWN[axis])
+		],
+	]
 
 
 func fe_blit(path: String, pos: Vector2) -> void:
