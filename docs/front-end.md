@@ -2575,3 +2575,162 @@ Theora video, and the project keeps no Indeo 5 decoder. `iaf-extract` copies bot
 ### 18.3 Main menu
 After the videos the exe draws `Bmp\Back0.bmp` and opens the menu window (§1). Ours: the start-up (after the CD
 launcher, when on) changes to `menu/front_end.tscn`; a return from a flight goes straight there.
+
+## 19. Mission Creator (screen 0x14 `MC`, `mc.trx`; content ctor `FUN_004f8f90`, vtable `0x6078a0`)
+
+The Mission Creator builds a single-player mission from a page of choices and flies it as menu mission **0x29a
+(666)**. Multiplayer uses the same screen with `MC\MPBack.bmp` and three more combos, and flies 0x213; this section
+covers single player. The choices live in one global record, `DAT_0083ca10` (0x5ac bytes), which is also the file
+format of LOAD / SAVE (formats/mcr.md).
+
+### 19.1 Screen
+* Left panel `pMC` (`palettes/pmc_0..3`) at (0,35): **Random** (16,65), **Load** (16,112), **Save** (16,155),
+  **Fly** (16,199), all 109×39 Push buttons. Title `tmc`.
+* Content window (155,42) 453×357. Its background is `MC\SPBack.bmp` (paint `FUN_004f8dc0`), not
+  `screens/smc.bmp` (an older layout with three formations a side, unused). The Hebrew pack has its own
+  `spback.bmp` (Hebrew labels; no NOTES label); the rest of the MC art is the English set.
+* Font: Arial −10 (`FUN_004eee10(9,…,400,"Arial")`). Text RGB(0,255,0), transparent, `TA_BOTTOM`.
+* The ctor zeroes the record (`FUN_004f64a0` with ECX = 0x83ca10): **every entry to the screen starts blank**,
+  also BACK from the TSD. OnCreate (`FUN_004f9320`, message 0x549) creates the controls, fills the combos from the
+  record (`FUN_004fafb0`) and gives the name box the keyboard.
+* BACK → Main, MAIN → Main, both without a question (content vfuncs +0xd4 / +0xd8 = `FUN_0055c510`, always 1).
+
+**Edit boxes** (the Pilot Records edit class `FUN_004f1820`, §13.4; setup `FUN_004f1890`):
+
+| box | rect (content) | max length | lines: text bottom-left (box-local), width |
+|---|---|---|---|
+| MISSION NAME | (126,14) 314×13 | 64 (`+0x4c` = 0x40) | (0,13) 314 |
+| NOTES | (227,251) 227×105 | none | (54,20) 162; (8,40) 208; (8,60) 208; (8,80) 208 |
+
+* Text wraps per character (`FUN_004f2660`): a line ends before the character that would pass its width. Typing that
+  needs more lines than the box has is refused.
+* Accepted characters: space, `.`, `0-9`, `A-Z`, `a-z`. Backspace / Delete delete; Home / End, Left / Up, Right / Down
+  move the caret by one character; Enter (0xd) and Tab (0xe) copy the text into the record; Esc (0xf) is ignored.
+* Caret `Misc\LoginCaret.bmp` (1×16) at (x, line bottom − 16), 200 ms blink. Focus puts it at the start of line 0; a
+  click moves it to the nearest character.
+* The notes are shown and saved only. The mission never reads them.
+
+**Combo boxes** (class `FUN_004f4fa0`, vtable 0x606f10; Bravo..Delta TYPE use the derived class `FUN_004f5bd0`):
+a read-only edit (the text), the arrow button `MC\but_0..2` (9×19, the bottom-bar button class) right of it, and a
+list. Rects from `.data 0x6076b8..0x6077f0` (content-local x, y, w; h 19):
+
+| combo | rect | items (record field) |
+|---|---|---|
+| No Alpha / Bravo / Charlie / Delta | (63,95) / (63,125) / (289,95) / (289,125) w27 | 0, 1, 2 (+0x500 + 0x10·i) |
+| TYPE Alpha | (103,95) w42 | F-15, F-16, F-4 E, F-42000, Lavi, Kfir, Mirage, MiG-23, MiG-29 (+0x504) |
+| TYPE Bravo / Charlie / Delta | (103,125) / (329,95) / (329,125) w42 | those 9, then A-4 N, MiG-17, MiG-21, MiG-25, Su-22, Su-24, Tu-22 |
+| AI TYPE Alpha / Bravo | (158,95) / (158,125) w55 | Aggressors, Defenders, Bombers, Kamikaze (+0x508) |
+| AI TYPE Charlie / Delta | (384,95) / (384,125) w55 | Aggressors, Defenders |
+| BASE | (6,224) w71 | Tel Nof, Ramat David, Ramon (+0x580; copied into all 8 formation records) |
+| TIME | (91,224) w52 | Noon, Dawn, Sunset, Night (+0x584) |
+| STARTING ALT. | (158,224) w52 | Runway, 5000ft, 10000ft, 15000ft (+0x588) |
+| TARGET | (232,224) w101 | No Target, Bunker, Armored Column, Radar Station, Terrorists Camp (+0x58c) |
+| SAMS / AAA | (346,224) / (399,224) w40 | 0..3 (+0x590 / +0x594) |
+| WEAPONS | (6,313) w92 | Guns Only, Multipurpose, Air To Air (+0x598) |
+| VICTORY CONDITION | (118,313) w92 | By Kills, By Target (+0x59c) |
+
+The item strings are the exe's English (`.data 0x652648..0x6528d0`), in both languages.
+
+* Closed: the text at x 2, bottom y 17, over the SPBack copy under the box.
+* Open (`FUN_004f5570`): the combo window grows to (w+9) × (19+1+listH) and comes to the top; `MC\combBack.bmp`
+  (solid green) shows as a 1 px frame. The list is (w+7) × listH at (1,19). It opens **up** when
+  357 ≤ y + 19 + listH (only WEAPONS does).
+* Rows 12 px (Arial −10's height + 2, inferred from the metrics); one row per item, so no list scrolls (`MC\scrlback`,
+  `sldcntrl`, `slupb_*`, `sldownb_*` are never loaded). Every row copies the top strip of `MC\listBack.bmp`, the
+  current row that of `MC\listHi.bmp`; text at left + 3, vertically centred, RGB(0,200,0), the current row
+  RGB(0,255,0). The derived lists draw the rows from A-4 N on in italic, 2 px lower, under a RGB(0,210,0) line at
+  y 108.
+* Mouse: a press on the arrow animates it `_0→_1→_2` with ButtonIn and opens; its release animates back with
+  ButtonOut. A press on the text opens without a sound. While open the list holds the mouse: moving sets the current
+  row; a press on a row (or a release on a row after moving) commits; a press anywhere else closes unchanged. The
+  release of the opening click leaves the list open.
+* Keys (open only, `FUN_004f48e0`): Up / Down, PgUp / PgDn, Home / End move the current row; Enter / Tab commit. Esc
+  does nothing. A closed combo takes no keys.
+* A commit (`FUN_004f5a60`) shows the item and sends notification 0x10; the handler `FUN_004fb180` stores the index
+  (by text compare, `FUN_004f5b20`). No sound. Showing a value from the record (`FUN_004f5ac0`) sets only the text, so
+  the list's current row is the last one used (the exe's quirk, kept).
+
+### 19.2 Buttons (`FUN_004faad0`)
+* **Random** (`FUN_004f64b0`): `srand(timeGetTime())`, then, from the C runtime's rand through `FUN_004f6430(lo, hi)`
+  = lo + trunc(rand · (hi − lo + 1) / 32768): name "Random", notes empty, base 0..2; for Alpha..Delta in turn count
+  1..2, type 0..8, AI 0..4; time 0..3, alt 0..3, target 0..4, SAMs 0..4, AAA 0..4; weapons Multipurpose; victory
+  0..1, By Kills when the target is No Target. AI 4 (Aces) and SAMs / AAA 4 are past their lists: the combo shows
+  nothing and the record keeps the index (the mission then treats 4 as 3).
+* **Load** / **Save**: formats/mcr.md (msgs 46, 49; the `MCR` folder).
+* **Fly**: the texts into the record (`FUN_004fc150`), then in order:
+  1. Alpha or Bravo has No ≥ 1 and a TYPE ≤ 8 (`FUN_004fc040`), else msg 44 "At least one controllable jet should be
+     assigned to the Blue Force.";
+  2. By Target needs a target (`FUN_004fc0e0`), else msg 47;
+  3. By Kills needs a jet on each side (`FUN_004fc100`), else msg 48.
+
+  Then mission 0x29a loads (`FUN_004edec0` → `FUN_004c286f`) and the TSD opens. BACK from there (msg 8) returns to
+  MC (blank again); the Debrief's New Mission goes to MC (§13.14), Replay builds the mission again from the record.
+
+### 19.3 The mission (`FUN_004c286f` → `FUN_004b234f(0x29a)`)
+`FUN_004b234f` sets the MC flag `DAT_00832adc` (`FUN_004c2e98`) and the record pointer `DAT_00832ad4`
+(`FUN_004bb732`). The mission document then reads the record while it loads.
+
+**Files** (`FUN_0058b620`), in this order:
+1. `mission.mis` (missionlist.ibx [666] MISSION0): the template, formations Alpha..Foxtrot, Other1, Other2 with the
+   placeholder jets Player1 / Player11 … Player8 / Player88.
+2. `BMisTLNF.MIS` / `BMisRDVD.MIS` / `BMisRMON.MIS` for the base (each distinct formation base once; single player
+   has one). `_LOW` on a weak machine (`FUN_00402330`); the port takes the full one (deviations.md, graphics defaults).
+3. `telnof<t+1>.mis` / `david<t+1>.mis` / `ramon<t+1>.mis` for target t (No Target loads `*1`: a "target1" sensor at
+   (2000, 2000) and the SAM / AAA sites only).
+4. `BMISAMMAN.MIS` (missionlist MISSION1; not on a weak machine's `lowmissionlist.ibx`).
+
+After each file `FUN_0058ba00` empties every formation's member and target ids; the spawn fills them again.
+
+**Entity filter** (`FUN_0058f110`, every file; names compared without case):
+* `Sam…`: SAMs 0 drops them all; 1 keeps the names ending in "1"; 2 drops those ending in "2"; 3 (or 4) keeps all.
+  `Aaa…`: the same with AAA. Each target file has sam1..3 (sa3l, sa6launcher) and AAA1..3 (zsu) of its own.
+* By Kills: every entity's role (0x32a) becomes 2.
+* `Player<n>` (leader, 7 characters) / `Player<nn>` (wingman, 8): formation f = n − 1. No 0 drops both, 1 drops the
+  wingman. Records 4..7 are 0 in single player, so Echo..Other2 never spawn.
+* Type (`FUN_0058d9e0`): the bdb object named by IAF.ibx [MissionCreator] `<key>` or the default: F15, F16, f4his,
+  f42000, Lavi, CFIR, mirage, Mig23, mig29, A-4, mig17, mig21, mig25, su22, Su24, tu22 (default6_1 objects 40, 1, 48,
+  17, 74, 99, 47, 11, 2, 144, 44, 8, 33, 45, 73, 54).
+* Side stays the file's: Player1 / 11 / 2 / 22 blue (1), Player3 / 33 / 4 / 44 red (2).
+* Brain (`FUN_0058e530`, IAF.ibx [MissionCreator] over the exe's defaults), leader / wingman:
+  Aggressors "AA leader" / "AA wing command"; Defenders "interceptor1" / "AA wing command"; Bombers
+  "AG super brain" / "AG wing commands"; Kamikaze "AG multi leader" / "AG multi wing comman"; Aces "AA leader" /
+  "AA wing".
+* Pylons 0..8: those of the first `Player<digit>` entity of `mission.mis` whose type is the new type (the template
+  loads), else the type's bdb default; stations 9..11 from the type.
+
+**Positions** (`FUN_0058ed60`; IAF.ibx [BlueTeam] `<Base>X/Y/Z/Yaw`):
+* Runway start and Alpha / Bravo (n ≤ 2): on the base point; the wingman 50 m off at bearing yaw + 90; Bravo another
+  50 m at yaw + 180 (`FUN_0058eb40`; the side is UNCERTAIN).
+* Otherwise: x = base X + 1000 (leader) or base X (wingman), y = base Y + n · 1000, z = base Z.
+* Charlie / Delta (n ≥ 3) then: x − 20000 at Ramat David, + 25000 elsewhere; z = 4000; yaw + 180 at Tel Nof and Ramat
+  David (not wrapped).
+* Altitude add (formation index < 4): Runway 0, 5000ft +1666, 10000ft +3333, 15000ft +5000 (metres, constants at
+  0x6111dc..d4). It applies to the red formations too.
+
+**Routes** (`FUN_005916b0`): 4 waypoints from IAF.ibx, [BlueTeam] for Alpha / Bravo, [RedTeam] for Charlie / Delta,
+keys `<Base><X|Y|Z|Name><i>` of Alpha's base. Speed / action per point: blue 0 (Alpha) or 40 (Bravo) / 2, 120 / 8,
+200 / 3, 400 / 7; red 40 / 3, 120 / 8, 900 / 3, 1000 / 7.
+
+**Attack targets** (`FUN_004c286f`, flights 1..4): Bombers and Kamikaze take the first entity whose name contains
+"target" and whose object is a ground one (`FUN_004c2fc0`); the others take the enemy leader (flight 3 else 4 for
+blue, 1 else 2 for red).
+
+**Misc** (`FUN_0058d720`): the title is the mission name; start time Noon 43200, Dawn 21600, Sunset 68400, Night
+79200 s.
+
+**Weapons** (`FUN_0058c9c0`, the bdb weapon table): Guns Only keeps the guns (565), the SAMs (620, 630), chaff (540)
+and flares (550); Air To Air adds the AAMs (570, 580, 600, 610); Multipurpose keeps all. A station whose weapon is
+gone stays empty (`FUN_004b7ea3`). Guns Only also disables the TSD's Arm (`FUN_00505c10`, §8.1).
+
+**Victory**:
+* By Kills: every entity is role 2, the red jets role 1, so the mission passes when every red jet is down. The
+  score (`FUN_004a8420`) counts blue and red losses; the debrief headline (`FUN_0059a480`) says which side won.
+* By Target: the files' roles: the target set's objects are role 1.
+* The player is the leader of Alpha, else of Bravo (`FUN_004bb439`). MiG-23 / MiG-29 are flyable: cockpits 8 / 7
+  (`FUN_00447e70`).
+
+### 19.4 Ours
+* `game/menu/mission_creator.gd` draws the screen and drives the combos and boxes as above; the record is
+  `Settings.mc`, read and written by `IafMcr` (`crates/iaf-godot/src/mcr.rs` over `crates/iaf-formats/src/mcr.rs`).
+* LOAD opens the system's file dialog on `user://mcr` (the exe: its old-style Windows dialog, template 0x72, a bare
+  file list with OK / Cancel). A file shorter than 0x5ac bytes is refused and the screen keeps its state.
