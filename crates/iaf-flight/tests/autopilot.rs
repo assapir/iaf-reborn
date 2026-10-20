@@ -156,14 +156,29 @@ fn float_valued_bases_load() {
 
 #[test]
 fn takes_off_from_ramat_david() {
+    take_off_at_ramat_david(0.0);
+}
+
+/// World scale Real 1:1 (docs/world-scale.md step 3): the F-16 at true size stands on its wheels 1.69 m above the
+/// ground (the `height` helper unscaled; Original ×2: 3.38 m).
+#[test]
+fn takes_off_from_ramat_david_real_size() {
+    take_off_at_ramat_david(F16_CLEARANCE_REAL);
+}
+
+/// The F-16 model's `height` helper (f16_h.xfr: y −1.691): its gear clearance at true size.
+const F16_CLEARANCE_REAL: f32 = 1.691;
+
+fn take_off_at_ramat_david(clearance: f32) {
     let Some(inst) = install() else { return };
     let bases = Airbase::load_all(&std::fs::read(inst.join("iaf.ibx")).unwrap());
     let rd = bases.iter().find(|b| b.name == "David").unwrap().clone();
     // A jet parked at its hangar (the first departure turn point's hangar).
     let h = rd.hangars[0];
     let z = rd.lineup[2] as f64;
-    let mut ac = jet(&inst, "F-16", Vec3::new(h.x as f64, h.y as f64, z), h.hdg.to_degrees(), false);
+    let mut ac = jet(&inst, "F-16", Vec3::new(h.x as f64, h.y as f64, z + clearance as f64), h.hdg.to_degrees(), false);
     ac.ground_height = z as f32;
+    ac.gear_clearance = clearance;
     let mut ap = Autopilot::new(Config::load(&inst));
     ap.bases = bases;
     ap.route = vec![Waypoint { x: 340000.0, y: 602383.0, z: 1500.0, t: 20.0, action: 2 }];
@@ -177,7 +192,7 @@ fn takes_off_from_ramat_david() {
         if (st.position[0] - rd.lineup[0] as f64).hypot(st.position[1] - rd.lineup[1] as f64) < 150.0 {
             reached_lineup = true;
         }
-        if airborne_at.is_none() && st.position[2] > z + 100.0 {
+        if airborne_at.is_none() && st.position[2] > z + clearance as f64 + 100.0 {
             airborne_at = Some(s);
         }
     }
@@ -193,6 +208,16 @@ fn takes_off_from_ramat_david() {
 
 #[test]
 fn lands_at_ramat_david() {
+    land_at_ramat_david(0.0);
+}
+
+/// World scale Real 1:1: the autopilot landing with the true-size F-16's 1.69 m gear clearance.
+#[test]
+fn lands_at_ramat_david_real_size() {
+    land_at_ramat_david(F16_CLEARANCE_REAL);
+}
+
+fn land_at_ramat_david(clearance: f32) {
     let Some(inst) = install() else { return };
     let bases = Airbase::load_all(&std::fs::read(inst.join("iaf.ibx")).unwrap());
     let rd = bases.iter().find(|b| b.name == "David").unwrap().clone();
@@ -200,6 +225,7 @@ fn lands_at_ramat_david() {
     // Home = a last waypoint 15 km west of the base at 1500 m; the jet starts 40 km further west.
     let home = Waypoint { x: rd.lineup[0] as f64 - 15000.0, y: rd.lineup[1] as f64, z: 1500.0, t: 0.0, action: 7 };
     let mut ac = jet(&inst, "F-16", Vec3::new(home.x - 40000.0, home.y + 5000.0, 2000.0), 90.0, true);
+    ac.gear_clearance = clearance;
     let mut ap = Autopilot::new(Config::load(&inst));
     ap.bases = bases;
     ap.route = vec![home];

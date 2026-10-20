@@ -498,7 +498,7 @@ func _target_unit(name: String) -> Dictionary:
 		if path == "" or int(obj.get("0x5aa", -1)) in [0x11, 0x12, 0x1b]:
 			continue
 		units.append({"path": path, "scale": p[3].get(present, 1.0), "heading": float(p[1].get("0x302", 0.0)),
-			"world": p[0], "ground": not int(obj.get("0x5aa", -1)) in [2, 3, 0x1c]})
+			"world": p[0], "ground": not int(obj.get("0x5aa", -1)) in [2, 3, 0x1c], "klass": int(obj.get("0x5aa", -1))})
 	found["units"] = units
 	return found
 

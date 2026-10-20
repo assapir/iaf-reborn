@@ -597,8 +597,9 @@ throttle rules and preferences follow §15 (checklist §15.11). These items stil
   * **Ground effect** [`ground_effect`] (new; the original has none). BP multiplies the induced drag `K·CL²` by
     McCormick's `φ = (16h/b)² / (1 + (16h/b)²)`, where h = height of the aircraft origin above the terrain and
     b = span.
-    * F-16: φ = 0.5 at 0.6 m, 0.8 at 1.3 m, 0.94 at 2.5 m, ≈ 1 above ~10 m. On the wheels h = the gear clearance,
-      1.69 m → 0.9.
+    * F-16: φ = 0.5 at 0.6 m, 0.8 at 1.3 m, 0.94 at 2.5 m, ≈ 1 above ~10 m. On the wheels h = the gear clearance: 3.38 m
+      (the `height` helper's 1.69 m at the Present scale ×2) → 0.97; 1.69 m at true size (World scale Real 1:1,
+      world-scale.md) → 0.88.
     * Effect: a longer flare/float and a slightly shorter take-off run. Lift, α and the envelope stay the same (the
       model commands g, not CL).
     * Like all drag, it is refreshed by the 1 Hz / event update.

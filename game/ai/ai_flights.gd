@@ -137,7 +137,7 @@ func setup(h: Node, rt: Node, bdb: Dictionary, files: Array) -> void:
 		p.twin = int(ent.type_code) in PlayerAircraft.TWIN
 		if not _start(p, install, plane):
 			continue
-		_attach(p, float(pr.get("0x65e", 10.0)), bool(p._state.on_ground_start))
+		_attach(p, Settings.model_scale(float(pr.get("0x65e", 10.0))), bool(p._state.on_ground_start))
 	print("AI aircraft: %d flying" % pilots.size())
 	combat = Combat.new()
 	add_child(combat)

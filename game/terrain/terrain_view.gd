@@ -762,11 +762,14 @@ func _spawn_mission_objects() -> void:
 		ent["airborne_class"] = int(obj.get("0x5aa", -1)) in [2, 3, 0x1c]
 		add_child(node)
 		node.rotation.y = -deg_to_rad(float(_entity_heading(files, ent)))
-		node.scale = Vector3.ONE * float(scales.get(int(obj.get("0x53c", -1)), 1.0))
+		var present := float(scales.get(int(obj.get("0x53c", -1)), 1.0))
+		var raw := Gltf.model_aabb(node)  # the local box is unscaled
+		# World scale Real 1:1: true size, the ground models kept with their base (docs/world-scale.md §3.2).
+		var keep := Settings.keeps_present(path, raw, present, ent.klass, UNDERLAY_MAX_HEIGHT)
+		node.scale = Vector3.ONE * Settings.model_scale(present, keep)
 		# Collision radius (FUN_0043b1c0): 0.25 · (dx + dy + dz) of the scaled model's full extents
 		# (object +0x268..0x270, FUN_0041bb00).
-		var box := Gltf.model_aabb(node)
-		box = AABB(box.position * node.scale.x, box.size * node.scale.x)  # the local box is unscaled
+		var box := AABB(raw.position * node.scale.x, raw.size * node.scale.x)
 		# Flat ground models (the airbases' runway / taxiway / apron underlays, ul_rw*.x) are not
 		# drawn: the terrain's inset imagery already shows the airbase (user decision, docs/deviations.md).
 		# At the Present scale they register with it. The unit stays for the mission logic.
@@ -774,7 +777,7 @@ func _spawn_mission_objects() -> void:
 		if NightLights.is_light_set(path):
 			NightLights.dress(node, get_viewport().get_visible_rect().size.y)
 			ent["light_set"] = true
-		elif box.size.y < UNDERLAY_MAX_HEIGHT:
+		elif raw.size.y * present < UNDERLAY_MAX_HEIGHT:  # the Original height: the same units hide in both modes
 			ent["drawn"] = false
 			node.visible = false
 		ent["coll_radius"] = 0.25 * (box.size.x + box.size.y + box.size.z)
@@ -1471,7 +1474,7 @@ func _spawn_player() -> void:
 		return
 	# The original draws every model at its Present-record scale (0x65e, ×2 for the F-16), the player's jet
 	# too (docs/ai.md: AI jets and mission models already use it).
-	aircraft.scale = Vector3.ONE * _player_model_scale()
+	aircraft.scale = Vector3.ONE * Settings.model_scale(_player_model_scale())  # true size in Real 1:1
 	# Your own jet rides on the rig; converted models face -Z like Godot, so no rotation needed.
 	rig.add_child(aircraft)
 	# Seen from the cockpit (FUN_004d9d70 → FUN_004da060: display slot 4 = model [8], the *_BC.X, with the crew's

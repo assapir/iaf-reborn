@@ -49,7 +49,7 @@ const PREFS := {
 		"no_malfunctions", "ai_level", "invulnerable", "no_crashes", "unlimited_ammo", "unlimited_fuel",
 		"flight_data", "weapon_data", "language", "show_info", "blackbox", "hud_ladder", "hud_style", "show_all_keys", "fullscreen",
 		"imagery_israel", "imagery_outside", "antialiasing", "terrain_closeup", "sky", "upscaling", "night_lights", "water", "f35i_slot", "harm_targets",
-		"models", "rolling_wheels", "particle_effects", "airbases", "cd_launcher", "wheel_scroll", "better_cockpit"],
+		"models", "rolling_wheels", "particle_effects", "airbases", "cd_launcher", "wheel_scroll", "better_cockpit", "world_scale"],
 }
 
 ## Flight data: "original" (Jane's IAF 1998 numbers) or "real" (corrected real-world data for every flyable jet, docs/real-aircraft.md).
@@ -161,6 +161,10 @@ var _pan_rest := 0.0  # the trackpad pan not yet turned into a step
 ## (cockpit_items: id -> on) is on.
 var better_cockpit := false
 var cockpit_items := {}
+## World scale (ours, Extras page; docs/world-scale.md): "original" (the models at their Present scale, ×2 for
+## the jets) or "real" (true size, model_scale). Read at mission load. Its Extras row shows only with the dev flag
+## IAF_DEV_WORLD_SCALE=1 until the airbases shrink too (the plan's step 9).
+var world_scale := "original"
 ## Key bindings changed on the Controls page (docs/controls.md): {record index: [key, joystick
 ## button]}, key = DIK | modifier << 16; records not listed keep the original default. Stored in the
 ## [keys] section as r<index> = [key, button].
@@ -323,6 +327,26 @@ var _defaults := {}
 ## True when the "Better cockpit" switch and its item `id` (a BETTER_COCKPIT id) are both on.
 func better_cockpit_on(id: String) -> bool:
 	return better_cockpit and cockpit_items.get(id, false)
+
+
+## The drawn scale of a model whose Present scale (bdb 0x65e) is `present` (docs/world-scale.md §3.2): `present`
+## in Original; in Real 1:1 the true size 1, except a model that `keeps_present` (`keep`).
+func model_scale(present: float, keep := false) -> float:
+	return present if keep or world_scale != "real" else 1.0
+
+
+## The multi-part layouts spread over a base or site: the bases' sign groups and the SA-5 site's cables.
+const KEPT_LAYOUTS := ["signtlnf", "signrmon", "signrfid", "signdvid", "cabels"]
+
+
+## A model that keeps its Present scale in Real 1:1 (docs/world-scale.md §3.2, §5): the ground layouts drawn on the
+## base's ×2 picture (a light set LT_, a flat underlay: its Original height under `flat` m, KEPT_LAYOUTS), the
+## effects (the cloud ×8, the crater ×7) and the ships (bdb class 15, 16: their true size is open). Buildings,
+## shelters and hangars are objects: true size.
+static func keeps_present(path: String, raw_box: AABB, present: float, klass: int, flat: float) -> bool:
+	var f := path.get_file().to_lower()
+	return f.begins_with("lt_") or f.get_basename() in KEPT_LAYOUTS or raw_box.size.y * present < flat \
+			or present >= 7.0 or klass in [15, 16]
 
 
 func real_data() -> bool:

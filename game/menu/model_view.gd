@@ -123,15 +123,18 @@ func setup_target(front_end: Control, world: Vector3, units: Array) -> void:
 		var node := Gltf.instance(model)
 		# LT_ light sets draw as points (night_lights.gd); the airbases' flat underlays are hidden (the imagery shows the
 		# base, terrain_view.gd UNDERLAY_MAX_HEIGHT).
+		var raw := Gltf.model_aabb(node, Gltf.MESH_SPACE)
 		if NightLights.is_light_set(u.path):
 			NightLights.dress(node, float(_vp.size.y))
-		elif Gltf.model_aabb(node, Gltf.MESH_SPACE).size.y * float(u.scale) < 0.05:
+		elif raw.size.y * float(u.scale) < 0.05:
 			node.free()
 			continue
 		var p := Vector3(u.world.x - world.x, u.world.z, -(u.world.y - world.y))
 		node.position = p
 		node.rotation.y = -deg_to_rad(float(u.heading))
-		node.scale = Vector3.ONE * float(u.scale)
+		# World scale Real 1:1: true size, as in the flight (terrain_view.gd, docs/world-scale.md §3.2).
+		var keep := Settings.keeps_present(u.path, raw, float(u.scale), int(u.get("klass", -1)), 0.05)
+		node.scale = Vector3.ONE * Settings.model_scale(float(u.scale), keep)
 		_vp.add_child(node)
 		if u.ground:
 			_snap.append([node, p])

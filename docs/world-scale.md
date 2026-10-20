@@ -2,7 +2,8 @@
 
 This page is the research and the plan for the roadmap item "Real world scale — 1:1 mode" ([roadmap.md](roadmap.md)).
 It lists what is not drawn at real size today, what depends on those sizes, a design for the switch, and a step
-plan. Nothing here is built yet. Research date: 2026-10-20.
+plan. Steps 1–4 (true-size models on the original bases) are built, behind a dev flag (§4.1). Research date:
+2026-10-20.
 
 **The switch:** Extras → World scale: **Original** (the default, the 1998 game unchanged) / **Real 1:1**.
 
@@ -248,10 +249,10 @@ Godot tests set `Settings.world_scale = "real"` before `start_mission()` and run
 
 | # | step | tests | size |
 |---|---|---|---|
-| 1 | The setting: `world_scale` in `settings.gd` / settings.cfg, the Extras row, the `model_scale()` helper (returns the Present scale in Original). docs/deviations.md row | Original: `test_airbase_scale.gd` passes unchanged; a settings round trip | S |
-| 2 | Mission models at true size (objects 1, ground models kept at ×2 for now); the underlay test on the Original height | 311 in Real: an AI F-16's node scale 1, a T-72 1, the Ramat David underlay 2; coll_radius half of Original's; the same units hidden in both modes | S |
-| 3 | The player's and AI jets at true size: model, `own_bc`, gear clearance | 311 ground start in Real: clearance 1.69 m, the jet stays on the runway (no crash, wheels on the ground), eye offset half; Rust `cargo test -p iaf-flight` with a 1.69 m clearance: take-off to 100 m AGL and an autopilot landing at David | M |
-| 4 | Weapons, stores, rounds at true size (`STORE_PRESENT_SCALE`, rocket box, `w.scale`) | a store's drawn position equals its launch point; the stores sit on the pylons (`_stores_shot`-style capture, by eye) | S |
+| 1 ✓ | The setting: `world_scale` in `settings.gd` / settings.cfg, the Extras row, the `model_scale()` helper (returns the Present scale in Original). docs/deviations.md row | Original: `test_airbase_scale.gd` passes unchanged; a settings round trip | S |
+| 2 ✓ | Mission models at true size (objects 1, ground models kept at ×2 for now); the underlay test on the Original height | 311 in Real: an AI F-16's node scale 1, a T-72 1, the Ramat David underlay 2; coll_radius half of Original's; the same units hidden in both modes | S |
+| 3 ✓ | The player's and AI jets at true size: model, `own_bc`, gear clearance | 311 ground start in Real: clearance 1.69 m, the jet stays on the runway (no crash, wheels on the ground), eye offset half; Rust `cargo test -p iaf-flight` with a 1.69 m clearance: take-off to 100 m AGL and an autopilot landing at David | M |
+| 4 ✓ | Weapons, stores, rounds at true size (`STORE_PRESENT_SCALE`, rocket box, `w.scale`) | a store's drawn position equals its launch point; the stores sit on the pylons (`_stores_shot`-style capture, by eye) | S |
 | 5 | The real runway table (our measurements, §1.2) and the warp in Rust (`iaf-flight` or `iaf-formats`): forward / inverse, per base k, R0, R1 | unit tests: continuity at R0 and R1, inverse round trip < 1 mm, identity beyond R1, David's runway 4264 m → 2934 m | M |
 | 6 | The warp on the base data: iaf.ibx points, the AI runway length, terraintype and height lookups through the inverse, BASE_LIGHTS, airbases.json | Rust: the warped lineup lies on a runway cell; an autopilot landing at the warped David stops on the runway; Godot: ground start at the warped lineup with the engine on | M |
 | 7 | The warp in the terrain shader (imagery, Detailed airbases mask) | 311 in Real: the painted runway numbers at the warped places (`test_airbase_scale.gd` with k); a capture at take-off, final and 1500 m overhead (by eye, no seam at R0 / R1) | M–L |
@@ -261,14 +262,46 @@ Godot tests set `Settings.world_scale = "real"` before `start_mission()` and run
 Steps 1–4 give true-size models on the ×2 bases; steps 5–9 shrink the bases. The switch can stay hidden (a dev
 flag) until step 9, so players never see true-size jets on ×2 bases (inferred; open question 2).
 
+### 4.1 Steps 1–4: what was built (2026-10-20)
+
+- **The setting:** `Settings.world_scale` ("original" / "real", settings.cfg `[gameplay]`), read at mission load.
+  Its Extras row ("World scale": Original / Real 1:1) shows only with the environment variable
+  `IAF_DEV_WORLD_SCALE=1` until step 9.
+- **The helpers** (`game/settings.gd`): `model_scale(present, keep)` returns the Present scale in Original and in
+  Real for a kept model, else 1. `keeps_present(path, raw_box, present, klass, flat)` names the kept models: the
+  light sets (`LT_*`), the flat underlays (their Original height under 0.05 m), the multi-part layouts
+  `KEPT_LAYOUTS` (the sign groups SIGNTLNF / SIGNRMON / SIGNRFID / SIGNDVID, the SA-5 cables), the effects (Present
+  ≥ 7: the cloud, the crater) and the ships (class 15, 16). Following decision 2 (§5), buildings, shelters, hangars,
+  the single runway signs (`sign09l` …) and the power plant (`ppchbg_h`, 302 m raw) are objects at 1, not kept by
+  their size; the 200 m rule of §3.2 is replaced by this list.
+- **Where it applies:** mission models (`terrain_view.gd` `_spawn_mission_objects`; the underlay hide test reads
+  the Original height, so the same units hide in both modes), the player's jet and its cockpit model
+  (`_spawn_player`), the AI jets (`ai_flights.gd`), the weapon models and rounds (`weapon_db.gd`: `w.scale`; the
+  stores on the pylons ride on the jet's scale, the rocket box keeps its ×2 relative to the jet), the briefing's
+  target view (`model_view.gd`). The front-end model viewer's fixed ×10 stays.
+- **What follows by itself** (derived from the node scale): collision radii, the gear clearance (`height` helper ×
+  scale: F-16 3.38 → 1.69 m, set into the FM by `set_gear_clearance`), the eye offset (F-16 8.98 → 4.49 m ahead),
+  the gun muzzle, the LOD distances, the orbit views, the EO pick, the missile trail head, the burned copy jitter.
+  The flight model needed no change; the clearance is its one size input.
+- **Stores:** at 1:1 a store is drawn at its launch point (`body_to_world(attach)`); at ×2 it is drawn 5.3 m off it
+  (F-16, mission 311).
+- **Hit volumes (decision 4):** with Weapon data Real the gun hit sphere and blast radii are to take real values
+  for true-size targets. No sourced values yet, so both modes keep the original's; the switch point is
+  `weapon_db.gd` `create` (open).
+- **Tests:** `tests/godot/test_world_scale.gd` (the helper and a settings round trip; missions 311 and 214 in both
+  modes: every unit at 1 with its radius / Present scale, or kept; 11 AI jets, 15 SAM / AAA units, 71 buildings at 1;
+  the same units hidden; the player's jet ×1, its origin 1.69 m over the runway, eye and gun halved, stores at their
+  launch points; a take-off from 311 and the autopilot's landing in 312 in Real). Rust:
+  `takes_off_from_ramat_david_real_size`, `lands_at_ramat_david_real_size` (crates/iaf-flight/tests/autopilot.rs).
+
 **Risks**
 - **Seen from the cockpit, the targets halve.** Gun and missile rules are unchanged (25 m hit sphere), so hitting is
   as easy as before, but finding a target by eye is harder (the original chose ×2, maybe for 640 × 480; inferred).
 - **The warp ring.** The countryside between R0 and R1 is stretched up to 1/k (×1.45 at David). Roads and fields
   there look stretched; with a modern imagery layer the ring is visibly distorted.
-- **Gear clearance.** Halving it changes the ground effect (φ at 1.69 m) and the take-off rotation; the Real flight
-  data's take-off and landing tests need a rerun. docs/flight-model.md §10 (ground effect) quotes 1.69 m for the F-16 on its wheels,
-  but today's ×2 clearance is 3.38 m: that line is to be checked.
+- **Gear clearance.** Halving it changes the ground effect (φ 0.97 at 3.38 m, 0.88 at 1.69 m) and the take-off
+  rotation. Checked (§4.1): the autopilot's take-off and landing at David and the player's take-off and landing
+  work at 1.69 m. docs/flight-model.md §10 quoted 1.69 m for Original; corrected to 3.38 m (the helper's 1.69 m × 2).
 - **The shatter pieces** use the unscaled local offset for their speed, so their spread already ignores the scale
   (half the exe's at ×2, inferred); unrelated to this switch but visible after it.
 - **iaf.ibx parse bug (found here, unrelated to the switch) — fixed 2026-10-20.** Ramon writes `RunwayNumber=230.0`

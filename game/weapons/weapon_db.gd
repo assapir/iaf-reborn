@@ -28,10 +28,12 @@ static func create(bdb: Dictionary, real_data := false) -> RefCounted:
 		scales[int(pr.get("0x1e", -1))] = float(pr.get("0x65e", 10.0))
 	for w in bdb.get("weapons", {}).get("items", []):
 		var r := _record(w, paths)
-		r["scale"] = float(scales.get(r.model, 1.0))
+		r["scale"] = Settings.model_scale(float(scales.get(r.model, 1.0)))  # true size in Real 1:1
 		db.weapons[r.id] = r
 	if real_data:
 		preload("res://weapons/real_weapons.gd").apply(db)
+	# ponytail: World scale Real with Weapon data Real should give real hit spheres and blast radii for true-size
+	# targets (docs/world-scale.md §5 decision 4); no sourced values yet, so the original's stay. They go here.
 	return db
 
 
