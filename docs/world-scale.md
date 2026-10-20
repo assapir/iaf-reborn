@@ -289,8 +289,8 @@ Decided:
 
 Open:
 - Ships' true size (§1.1): measure the hull parts.
-- Bley: Tha'lah (2.8 km from the game's base) rather than Khalkhalah (42.5 km, georef.md §4) is inferred; the user
-  does not know either. A runway length from imagery would settle it.
+- Bley: Tha'lah (2.8 km from the game's base) rather than Khalkhalah (42.5 km, georef.md §4) is inferred; asked
+  the user (2026-10-20). A runway length from imagery would settle it.
 
 [^f16]: Wikipedia, "General Dynamics F-16 Fighting Falcon", specifications: https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon
 [^f15]: Wikipedia, "McDonnell Douglas F-15 Eagle", specifications: https://en.wikipedia.org/wiki/McDonnell_Douglas_F-15_Eagle
