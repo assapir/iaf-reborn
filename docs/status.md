@@ -43,7 +43,8 @@ STBY / STT / BORE / LRS / TWS / ACM / GMT / MAP are the radar modes (docs/radar.
     gaps → Cockpit / MFDs).
   - Helmet sight DASH (weapons.md §5.4: the helmet display in `Dash` 1 cockpits, the IR seeker off-boresight in free
     look / padlock within the generation cone).
-  - Joystick / throttle / pedals (docs/controls.md §5): tested by the user on Linux (2026-10-20) and macOS.
+  - Joystick / throttle / pedals (docs/controls.md §5): tested by the user on Linux (2026-10-20) and macOS. Ours:
+    Devices "Stick response" Soft centre (smaller dead zone + expo) for a stick that feels too sensitive at the centre.
   - Other jets flyable: the Jet list's seven (tests/godot/test_jet_list.gd), the Kfir / Mirage shared data with
     Flight data = Original.
 - Open: detached-looking stores.

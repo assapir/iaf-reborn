@@ -112,6 +112,9 @@ const PREF_DETENT := {
 	"set": Rect2(317, 213, 115, 20),
 	"note": Rect2(317, 245, 125, 60)
 }
+## Ours on the Devices page, under FLIGHT CONTROLS on the same grid: the stick response (joystick.gd `stick_curve`):
+## LINEAR = the original's stick, SOFT CENTRE = a 5 % dead zone and an expo curve.
+const PREF_STICK := {"title": Rect2(25, 143, 160, 20), "off": Rect2(25, 178, 150, 20), "set": Rect2(25, 213, 150, 20)}
 ## Gameplay scoring strip: pref/score.bmp, 25 frames of 151x34.
 const PREF_SCORE := Rect2(290, 184, 151, 34)
 ## Live preview sounds while dragging (wav/pref, FUN_00544560).
@@ -1028,40 +1031,12 @@ func _draw_prefs() -> void:
 	if page != "Devices":
 		_blit("pref/defbut_%d.png" % (2 if pref_default_held else 0), at + PREF_DEFAULT.position)
 	if page == "Devices":
-		var fs := int(round(LIST_TITLE_PX * _scale()))
-		var tr := _rect(Rect2(at + PREF_DETENT.title.position, PREF_DETENT.title.size))
-		draw_string(
-			font_art,
-			Vector2(tr.position.x, tr.end.y - font_art.get_descent(fs)),
-			_art("Detent = MIL"),
-			HORIZONTAL_ALIGNMENT_LEFT,
-			tr.size.x,
-			fs,
-			LIST_TITLE
-		)
 		var d := int(pref_work.get("throttle_detent", -1))
-		var has_joy := Joystick.device() >= 0
-		for k in ["off", "set"]:
-			var on := (d < 0) if k == "off" else (d >= 0)
-			var r0: Rect2 = PREF_DETENT[k]
-			_blit_region(
-				"pref/gamep_%d.png" % (1 if on else 0),
-				Rect2(Vector2(28, 55), Vector2(11, 11)),
-				at + r0.position + Vector2(4, 6)
-			)
-			var r := _rect(Rect2(at + r0.position + Vector2(22, 0), Vector2(r0.size.x - 22, 20)))
-			var col: Color = LIST_DESC_LIT if on else LIST_DESC
-			if k == "set" and not has_joy:
-				col = Color(LIST_DESC, 0.45)
-			draw_string(
-				font_art,
-				Vector2(r.position.x, r.end.y - font_art.get_descent(fs)),
-				_art("Off" if k == "off" else "Set at lever"),
-				HORIZONTAL_ALIGNMENT_LEFT,
-				r.size.x,
-				fs,
-				col
-			)
+		_draw_pref_pair(
+			at, PREF_DETENT, "Detent = MIL", ["Off", "Set at lever"], 0 if d < 0 else 1, Joystick.device() >= 0
+		)
+		var soft := str(pref_work.get("stick_response", "linear")) == "soft"
+		_draw_pref_pair(at, PREF_STICK, "Stick response", ["Linear", "Soft centre"], 1 if soft else 0, true)
 		_text_block(
 			Rect2(at + PREF_DETENT.note.position, PREF_DETENT.note.size),
 			_t("Put the lever in its MIL click, then choose Set at lever."),
@@ -1088,6 +1063,42 @@ func _draw_prefs() -> void:
 			LIST_DESC_LIT if vs_on else LIST_DESC
 		)
 		_draw_more_button(at, "More")
+
+
+## Ours on the Devices page: a title and two radio rows (`rects` title / off / set); `on` = the lit row (0, 1),
+## `can_set` false dims the second row (no joystick).
+func _draw_pref_pair(at: Vector2, rects: Dictionary, title: String, labels: Array, on: int, can_set: bool) -> void:
+	var fs := int(round(LIST_TITLE_PX * _scale()))
+	var tr := _rect(Rect2(at + rects.title.position, rects.title.size))
+	draw_string(
+		font_art,
+		Vector2(tr.position.x, tr.end.y - font_art.get_descent(fs)),
+		_art(title),
+		HORIZONTAL_ALIGNMENT_LEFT,
+		tr.size.x,
+		fs,
+		LIST_TITLE
+	)
+	for i in 2:
+		var r0: Rect2 = rects["off" if i == 0 else "set"]
+		_blit_region(
+			"pref/gamep_%d.png" % (1 if on == i else 0),
+			Rect2(Vector2(28, 55), Vector2(11, 11)),
+			at + r0.position + Vector2(4, 6)
+		)
+		var r := _rect(Rect2(at + r0.position + Vector2(22, 0), Vector2(r0.size.x - 22, 20)))
+		var col: Color = LIST_DESC_LIT if on == i else LIST_DESC
+		if i == 1 and not can_set:
+			col = Color(LIST_DESC, 0.45)
+		draw_string(
+			font_art,
+			Vector2(r.position.x, r.end.y - font_art.get_descent(fs)),
+			_art(labels[i]),
+			HORIZONTAL_ALIGNMENT_LEFT,
+			r.size.x,
+			fs,
+			col
+		)
 
 
 ## MORE on the Graphics page / BACK on its MORE view, in the strip left of DEFAULT (page rect PREF_MORE).
@@ -1828,6 +1839,9 @@ func _pref_press(q: Vector2) -> bool:
 			return true
 		if PREF_DETENT.set.has_point(q) and Joystick.device() >= 0:
 			pref_work["throttle_detent"] = Joystick.raw_throttle()
+			return true
+		if PREF_STICK.off.has_point(q) or PREF_STICK.set.has_point(q):
+			pref_work["stick_response"] = "soft" if PREF_STICK.set.has_point(q) else "linear"
 			return true
 	if page == "Graphics" and PREF_VSYNC.has_point(q):
 		pref_work["vsync"] = not bool(pref_work.get("vsync", true))

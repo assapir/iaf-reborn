@@ -434,7 +434,7 @@ the same code).
   `[0, 1, 2, 3]`): 0 → lX (stick x), 1 → lY (stick y), 2 → lZ (throttle), 3 → lRz (rudder).
   * Godot gives −1..1. The port maps it to DirectInput's 0..65535 and runs the original formulas (MulDiv
     rounding).
-  * Dead zone: 25 % on x, y and the rudder; none on the throttle.
+  * Dead zone: 25 % on x, y and the rudder; none on the throttle. Ours "Soft centre" (below) makes it 5 %.
   * Godot / SDL give the axes numbers only, no names. A stick that SDL knows as a gamepad uses the gamepad layout
     (2 = right stick x, 3 = right stick y). Other sticks use the device's own axis order. If the throttle or the
     rudder sit on other numbers, edit `joy_axes`.
@@ -472,3 +472,18 @@ the same code).
   2. Lever t ≤ d → 74·t/d.
   3. d < t ≤ d + 3 → 74. A lever resting in its detent reads a point or two over, and 75 already lights AB 1.
   4. t > d + 3 → 78 + 22·(t − d − 3)/(100 − d − 3): AB 1 (the "7" key) to 100.
+* **Ours: Devices page "Stick response"** (under FLIGHT CONTROLS; settings.cfg `[devices] stick_response`). It
+  shapes the joystick only; the keys stay digital ±100.
+  * **Linear** (the default) is the original: the 25 % dead zone, then linear to ±100.
+  * **Soft centre** gives finer control near the centre (`Joystick.stick_curve`):
+    1. Stick x and y and the rudder get a 5 % dead zone instead of 25 %. The rest is stretched over the full range,
+       as DirectInput does.
+    2. Stick x and y then go through an expo curve: out = 0.4·in + 0.6·in³. The rudder stays linear.
+    3. Full deflection still gives ±100, the sign is kept and the curve is monotonic.
+  * Effect: near the centre one point of stick travel moves the command by about a third of what Linear moves it past
+    its dead zone. Stick x = 0.45 gives 21 instead of 27; full deflection is unchanged.
+  * The smaller dead zone is part of Soft centre, not a separate choice: the curve's flat start does the dead zone's
+    job (inferred). A worn stick that does not centre within 5 % drifts slightly; use Linear then.
+  * Why: the flight model turns stick y into commanded g and stick x into a share of the maximum roll rate
+    (docs/flight-model.md), so a small linear deflection already commands a lot (inferred).
+  * Events are still sent only when the integer value changes.

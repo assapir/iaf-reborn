@@ -10,6 +10,11 @@ extends Node
 ## (default [0, 1, 2, 3]; ours: Godot / SDL hide the DirectInput axis names, docs/controls.md §4.2).
 ## DIPROP_DEADZONE 2500 (of 10000) on lX, lY and the rudder axis (@4e116f, 4e11f3, 4e12e2 / 4e1333); none on lZ
 const DEAD_ZONE := 0.25
+## Ours (Devices page "Stick response" = Soft centre, Settings.stick_response "soft"; docs/controls.md §5): a 5 %
+## dead zone on x, y and the rudder, then on x and y an expo curve out = (1 − e)·in + e·in³ (inferred: the FM
+## turns small deflections into a lot of g and roll rate). Full deflection and the sign are kept.
+const SOFT_DEAD_ZONE := 0.05
+const SOFT_EXPO := 0.6
 ## The hat as Godot reports it: the D-pad buttons.
 const HAT := [JOY_BUTTON_DPAD_UP, JOY_BUTTON_DPAD_RIGHT, JOY_BUTTON_DPAD_DOWN, JOY_BUTTON_DPAD_LEFT]
 ## POV (hundredths of a degree) → GEV 22 (p1 angle, p2 numpad digit) (@4dfa2c..4dfbae): the snap-view keys'
@@ -184,13 +189,14 @@ func poll() -> Array:
 		return []
 	var ax: Array = Settings.joy_axes if Settings.joy_axes.size() == 4 else [0, 1, 2, 3]
 	var out := []
+	var soft: bool = Settings.stick_response == "soft"
 	if Settings.flight_controls == 1:
 		# MulDiv(lX, 200, max − min) − 100 and MulDiv(lY, −200, max − min) + 100 (@4df6b8, 4df770).
-		var x := _lin(_dead(axis(d, ax[0])), 200) - 100
+		var x := _lin(stick_curve(axis(d, ax[0]), soft), 200) - 100
 		if x != last_x:
 			last_x = x
 			out.append([1, last_x, last_y])
-		var y := 100 - _lin(_dead(axis(d, ax[1])), 200)
+		var y := 100 - _lin(stick_curve(axis(d, ax[1]), soft), 200)
 		if y != last_y:
 			last_y = y
 			out.append([1, last_x, last_y])
@@ -202,7 +208,7 @@ func poll() -> Array:
 			out.append([9, last_throttle, 0])
 	if Settings.rudder == 1:
 		# MulDiv(lRz, 200, max − min) − 100 (@4df8d7).
-		var r := _lin(_dead(axis(d, ax[3])), 200) - 100
+		var r := _lin(_dead(axis(d, ax[3]), SOFT_DEAD_ZONE if soft else DEAD_ZONE), 200) - 100
 		if r != last_rudder:
 			last_rudder = r
 			out.append([10, last_rudder, 0])
@@ -227,10 +233,18 @@ func flush() -> Array:
 	return [22, -1, -5]
 
 
-## DirectInput's dead zone: the centre within ±25 % of the half range, the rest scaled to the full range.
-static func _dead(v: float) -> float:
+## DirectInput's dead zone: the centre within ±dz of the half range (25 %), the rest scaled to the full range.
+static func _dead(v: float, dz := DEAD_ZONE) -> float:
 	var a := absf(v)
-	return 0.0 if a <= DEAD_ZONE else signf(v) * (a - DEAD_ZONE) / (1.0 - DEAD_ZONE)
+	return 0.0 if a <= dz else signf(v) * (a - dz) / (1.0 - dz)
+
+
+## A stick axis (−1..1) after the dead zone: the original's linear one, or ours soft (SOFT_DEAD_ZONE + expo).
+static func stick_curve(v: float, soft: bool) -> float:
+	if not soft:
+		return _dead(v)
+	var u := _dead(v, SOFT_DEAD_ZONE)
+	return (1.0 - SOFT_EXPO) * u + SOFT_EXPO * u * u * u
 
 
 ## MulDiv(value, scale, 65535) of the axis (−1..1 → DirectInput 0..65535), rounded as MulDiv rounds.

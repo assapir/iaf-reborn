@@ -1,6 +1,7 @@
 # Joystick (docs/controls.md §4): the original's DirectInput poller FUN_004df560 on Godot's joypad API, with
 # a fake device (Joystick.fake_devices) and injected joypad events. No device: nothing changes. With one:
-# stick / throttle / rudder axes per the Devices page (linear ±100, 25 % dead zone on the stick and rudder),
+# stick / throttle / rudder axes per the Devices page (linear ±100, 25 % dead zone on the stick and rudder; ours
+# Soft centre: 5 % and an expo curve),
 # the keyboard axis keys dropped while their axis is used, the hat's snap views, buttons through the key
 # table (bound on the Keyboard page, kept in settings.cfg, used in flight), menu/joy/*.joy, hot-plug and the
 # autopilot's throttle re-sync from the axis.
@@ -98,6 +99,45 @@ func run() -> void:
 	axis(JOY_AXIS_LEFT_Y, 0.0)
 	tv._read_controls(DT)
 	check(tv.stick == Vector2.ZERO, "stick centred")
+	# Ours: Devices "Stick response". Linear (default) = the original mapping; Soft centre = 5 % dead zone + expo.
+	check(prefs.stick_response == "linear", "stick response defaults to Linear (the original)")
+	var lin := func(v: float, soft: bool) -> int: return js._lin(js.stick_curve(v, soft), 200) - 100
+	check(
+		lin.call(0.2, false) == 0 and lin.call(0.5, false) == 33 and lin.call(-0.4, false) == -20,
+		"Linear: the original 25 % dead zone, MulDiv ±100 (0.2 → 0, 0.5 → 33, −0.4 → −20)"
+	)
+	check(lin.call(0.04, true) == 0 and js.stick_curve(0.06, true) > 0.0, "Soft centre: 5 % dead zone")
+	check(
+		lin.call(0.45, true) < lin.call(0.45, false) and lin.call(-0.45, true) > lin.call(-0.45, false),
+		"Soft centre: a small deflection commands less (0.45: %d vs %d)" % [lin.call(0.45, true), lin.call(0.45, false)]
+	)
+	check(
+		(
+			js.stick_curve(0.15, true) - js.stick_curve(0.10, true)
+			< js.stick_curve(0.35, false) - js.stick_curve(0.30, false)
+		),
+		"Soft centre: finer near the centre than Linear past its dead zone"
+	)
+	check(lin.call(1.0, true) == 100 and lin.call(-1.0, true) == -100, "Soft centre: full deflection still ±100")
+	var mono := true
+	for i in range(-100, 100):
+		mono = mono and js.stick_curve((i + 1) / 100.0, true) >= js.stick_curve(i / 100.0, true)
+	check(mono, "Soft centre: monotonic")
+	prefs.stick_response = "soft"
+	prefs.rudder = 1
+	axis(JOY_AXIS_LEFT_X, 0.45)
+	axis(JOY_AXIS_RIGHT_Y, 0.1)
+	var ev: Array = js.poll()
+	check(
+		js.last_x == 21 and js.last_rudder == 5 and ev.size() == 2,
+		"Soft centre in the poller: x 0.45 → 21 (Linear 27), rudder 0.1 → 5 (5 %% dead zone, no curve) (%s)" % str(ev)
+	)
+	check(js.poll().is_empty(), "Soft centre: unchanged axes send nothing")
+	axis(JOY_AXIS_LEFT_X, 0.0)
+	axis(JOY_AXIS_RIGHT_Y, 0.0)
+	js.poll()
+	prefs.stick_response = "linear"
+	prefs.rudder = 0
 
 	# Throttle (lZ): lever forward (−1) = 100 %, no dead zone; the throttle keys are dropped.
 	prefs.throttle = 1

@@ -65,7 +65,7 @@ const PREFS := {
 		"external_stores",
 		"vsync"
 	],
-	"devices": ["flight_controls", "rudder", "throttle", "joy_axes", "throttle_detent"],
+	"devices": ["flight_controls", "rudder", "throttle", "joy_axes", "throttle_detent", "stick_response"],
 	"gameplay":
 	[
 		"no_wind",
@@ -187,6 +187,9 @@ var imagery_outside := "original"
 ## Ours (Devices page): the throttle lever's detent (raw 0..100) that maps to MIL; −1 = off, the original's linear
 ## lever.
 var throttle_detent := -1
+## Ours (Devices page "Stick response"): "linear" = the original's stick, "soft" = a 5 % dead zone and an expo curve
+## (joystick.gd `stick_curve`).
+var stick_response := "linear"
 ## Render options for high resolutions (ours, Extras page; docs/rendering.md, terrain/render_options.gd):
 ## anti-aliasing "msaa4" (as before) / "msaa4_fxaa" / "taa" (TAA instead of MSAA); the terrain close up (detail texture,
 ## normal detail, 16× anisotropic filtering); the sky "original" (gradient) or "atmospheric" (physical scattering, sun

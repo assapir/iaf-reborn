@@ -324,6 +324,9 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   switch: "Set at lever" stores the lever position in its detent; the lever then maps piecewise so the detent is MIL
   (74), the next 3 points stay MIL, and the travel past them is afterburner from AB 1 (78) — joystick.gd
   `detent_map`, docs/controls.md §5.
+- **Stick response** (ours, under FLIGHT CONTROLS, Linear by default). Original: the stick has a 25 % dead zone, then
+  maps linearly to ±100. Ours, with "Soft centre": a 5 % dead zone on stick x / y and the rudder, then an expo curve
+  0.4·in + 0.6·in³ on stick x / y; full deflection unchanged — joystick.gd `stick_curve`, docs/controls.md §5.
 
 **Preferences → Graphics**
 - **VSYNC** (ours): a check in the empty strip left of DEFAULT, default on.
