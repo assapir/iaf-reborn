@@ -479,6 +479,7 @@ func toggle_panel() -> void:
 
 
 func _process(delta: float) -> void:
+	_lag_dt = delta
 	panel_shift = move_toward(panel_shift, panel_target, PANEL_SLIDE_SPEED * delta)
 	position = head_pan() * ui_scale() if view_mode == 0 else Vector2.ZERO
 	hud.visible = view_mode != 2
@@ -1005,18 +1006,41 @@ func needle_angles() -> Dictionary:
 		values["RPMCLOCK" + sfx] = en[3 * e + 1]
 		values["TEMPCLOCK" + sfx] = en[3 * e + 2]
 	for k in values:
-		var a := needle_angle(k, values[k], Gauges.needle_full(k, layout))
+		var a := needle_angle(k, lagged(k, values[k]), Gauges.needle_full(k, layout))
 		if not is_nan(a):
 			out[k] = a
-	var alt := needle_angle("ALTITUDELOCK", state.alt_ft, 1000.0)
+	var alt := needle_angle("ALTITUDELOCK", lagged("ALTITUDELOCK", state.alt_ft), 1000.0)
 	if not is_nan(alt):
 		out["ALTITUDELOCK"] = alt
 	return out
 
 
+## Ours, Better cockpit `smooth_needles` (docs/cockpit.md "Smooth needles"): the time constant (s) of the lag a
+## needle follows its input with, as a real instrument's (inferred).
+const NEEDLE_LAG_S := 0.3
+var _lag := {}  # needle id -> [shown value, process frame]
+var _lag_dt := 0.0  # this frame's delta (_process)
+
+
+## The value the needle `id` shows for its input `value` this frame: the input itself, or with smooth_needles a
+## first-order lag of it (frame-rate independent, advanced once per frame however often it is asked). A needle not
+## shown in the last frame starts at its input.
+func lagged(id: String, value: float) -> float:
+	if not Settings.better_cockpit_on("smooth_needles"):
+		return value
+	var f := Engine.get_process_frames()
+	var e: Array = _lag.get(id, [value, -2])
+	if f - int(e[1]) > 1:
+		e = [value, f]
+	elif int(e[1]) != f:
+		e = [lerpf(value, e[0], exp(-_lag_dt / NEEDLE_LAG_S)), f]
+	_lag[id] = e
+	return e[0]
+
+
 ## `full` > 0 replaces the gauge's FullClock; `shorter` px off its Radius.
 func _draw_needle(key: String, value: float, s: float, full := 0.0, shorter := 0.0) -> void:
-	var angle := needle_angle(key, value, full)
+	var angle := needle_angle(key, lagged(key, value), full)
 	if is_nan(angle):
 		return
 	var g: Dictionary = layout[key]

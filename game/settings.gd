@@ -49,6 +49,7 @@ const BETTER_COCKPIT := {
 	"crisp_mfd": "Crisp MFD pages",
 	"dials_by_label": "Gauges on their labelled dials",
 	"ar_nws_lights": "AR/NWS lamp shows nose-wheel steering",
+	"smooth_needles": "Needles follow with an instrument's lag",
 }
 ## Stored preferences by config section: the original pages, then our own options (Extras tab).
 const PREFS := {

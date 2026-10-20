@@ -209,6 +209,9 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     dial). Other jets unchanged (cockpit.md "Panel instruments per jet").
   - **AR/NWS lamp** (`ar_nws_lights`). Original: the F-16's AR status indicator right of the HUD is static art.
     Better: its green AR/NWS legend lights on the ground (nose-wheel steering engaged); RDY and DISC stay dark.
+  - **Smooth needles** (`smooth_needles`). Original: each panel needle shows its value of the frame, so it starts and
+    stops at once (the RPM ramp's corners) and jumps with a value that jumps (Better's throttle AB stages, the F-16's
+    nozzle). Better: each needle follows its value as a first-order lag with a 0.3 s time constant (inferred).
 - **World scale (Original / Real 1:1)** (world-scale.md; Extras → World scale). Original: every model at its bdb Present
   scale (0x65e: ×2 jets and buildings, ×3–4 vehicles and SAMs). Real 1:1 (`Settings.world_scale = "real"`): the
   models at true size (`Settings.model_scale`): mission units, the player's and the AI jets with their cockpit model,

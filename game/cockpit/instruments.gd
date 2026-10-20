@@ -143,9 +143,8 @@ func refresh() -> void:
 					_indexer_spec = spec
 					indexer = int(better.get("aoa_index", 0))
 			"standby_instruments":
-				needles.append(
-					deg_to_rad(dial_angle(spec.scale, float(cockpit.state.get(spec.value, 0.0)))) if on else NAN
-				)
+				var v: float = cockpit.lagged("standby " + spec.value, float(cockpit.state.get(spec.value, 0.0)))
+				needles.append(deg_to_rad(dial_angle(spec.scale, v)) if on else NAN)
 			"warning_lamps", "ar_nws_lights":
 				if on:
 					lamps[spec.state] = bool(better.get(spec.state, false))

@@ -161,7 +161,7 @@ static func dial_needles(c: Control) -> Array:
 	var values := {"THROTTLE": en[0], "RPM": en[1], "TEMP": en[2], "NOZ": no[0], "OIL": no[1]}
 	var out := []
 	for d in spec.dials:
-		var a := deg_to_rad(Instruments.dial_angle(d.scale, values[d.value]))
+		var a := deg_to_rad(Instruments.dial_angle(d.scale, c.lagged("dial " + d.dial, values[d.value])))
 		out.append({"dial": d.dial, "centre": d.centre, "r": d.r, "angle": a, "style": d.style})
 	return out
 

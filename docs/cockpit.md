@@ -706,6 +706,21 @@ docs/flight-model.md "The rudder handler"), so the lamp lights on the ground (in
 the legend is drawn (`instruments.gd` `_draw_legend`, the digits font). RDY and DISC stay dark: the game has no air
 refuelling. Logic: `iaf_flight::instruments::warnings` `ar_nws`. Test: tests/godot/test_better_instruments.gd.
 
+### Smooth needles (`smooth_needles`)
+Every round panel needle (the `*CLOCK` records, the altimeter, the `dials_by_label` and `standby_instruments`
+needles) follows its value as a first-order lag: each frame the shown value moves `1 − e^(−dt / 0.3 s)` of the way
+to the value (`cockpit.gd` `lagged`, `NEEDLE_LAG_S`; frame-rate independent). The 0.3 s time constant is inferred, a
+real instrument's lag.
+* **Why:** the original draws each needle at its value of the frame (mode 4 of `FUN_00527a40`, every frame), as
+  Original does. Those values move smoothly but with corners: the RPM ramp moves at a constant 15 %/s and stops or
+  turns at once. Some Better values jump: the throttle needle by 0.1 per AB stage (0.5 rad on a FullClock 1.25
+  dial in one frame), the F-16's nozzle by 30–80 % when the AB lights or the gear moves. With the lag the jumps glide
+  in and the corners round off.
+* A needle not drawn in the last frame (the down view, the item just turned on) starts at its value.
+* Test: tests/godot/test_smooth_needles.gd (the F-15 idle → AB: with the item on no needle steps more than
+  0.05 rad + 1 rad/s · dt in a frame and the engine needles settle on their values; with it off the throttle needle
+  jumps 0.5 rad when the AB lights; Original draws every needle at its value).
+
 ### AoA indexer (`aoa_indexer`)
 The F-16's indexer on the HUD frame, left of the glass (`game/cockpit/instruments.gd`). The art paints all three
 symbols lit; with the item on, the unlit ones are drawn from a copy of the art with their colour taken out (each pixel

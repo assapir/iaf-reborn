@@ -76,6 +76,7 @@ func run() -> void:
 	await frames(2)
 	check(c.better_instruments == null or is_nan(c.better_instruments.needles[0]), "mirage: Original = no VVI needle")
 	settings().better_cockpit = true
+	settings().cockpit_items["smooth_needles"] = false  # the dial's scale: the needle at its value at once
 	for v in [[0.0, -90.0], [1000.0, -24.0], [-1000.0, -156.0], [3000.0, 24.5], [9000.0, 90.0], [-9000.0, -270.0]]:
 		c.state["vs_fpm"] = v[0]
 		await frames(2)
@@ -88,5 +89,6 @@ func run() -> void:
 	await frames(2)
 	check(is_nan(c.better_instruments.needles[0]), "mirage: the item's own flag off = static")
 	settings().cockpit_items["standby_instruments"] = true
+	settings().cockpit_items["smooth_needles"] = true
 	settings().jet_id = -1
 	settings().better_cockpit = false
