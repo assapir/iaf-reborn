@@ -142,8 +142,7 @@ Checked against the code on 2026-10-19 (each doc's own "not built" notes have th
   in the render; the portals show the original MFD pages (pixel font) in the F-35 colours; looking 15–90° aside shows
   the panel strip's edge.
 - **Controls**: one joypad (the first connected), as the original's one DirectInput device; real-hardware use so
-  far: a joystick on Linux (2026-10-20), a T.Flight Hotas X on macOS (`SDL_JOYSTICK_MFI=0`). No force feedback. Unhandled commands: the cheats
-  (Shift+S / D / R / F, Ctrl+W), chat (docs/controls.md §4).
+  far: a joystick on Linux (2026-10-20), a T.Flight Hotas X on macOS (`SDL_JOYSTICK_MFI=0`). No force feedback. Unhandled commands: chat (multiplayer only; docs/controls.md §4).
 - **Front end**: the hardware detection that overwrites the graphics defaults (`FUN_00402510`, `FUN_00402330`,
   docs/front-end.md §12).
 - **Pilot guide PDFs** (not urgent): some pictures land at the top of the next page above the following heading; one

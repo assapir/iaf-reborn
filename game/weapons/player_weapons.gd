@@ -772,6 +772,18 @@ func jettison() -> void:
 		_jettison_bombs()
 
 
+## Shift+R "Cheat: Reload Weapons" (FUN_00450780 case 4): only with the gear handle up, the radar in STBY, the speed
+## brakes out and HUD mode 4 (AG gun); false = refused, no message. Then FUN_00456ce0 puts every station back to its
+## initial count, unless the tanks or the bombs were jettisoned (W+0xb8 / W+0xbc); the message shows either way.
+func cheat_reload() -> bool:
+	if host.gear_down or radar.mode != radar.STBY or not host.brakes or hud_mode != 4:
+		return false
+	if not (tanks_jettisoned or bombs_jettisoned):
+		stores.reload()
+		_push_stores()
+	return true
+
+
 ## FUN_0045ee10, the release permission of bombs and jettisons: load factor ≥ 0 and |roll| ≤ 90°.
 func release_allowed() -> bool:
 	var st: Dictionary = host.flight.state() if host.flight != null else {}

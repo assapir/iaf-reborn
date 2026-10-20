@@ -750,6 +750,8 @@ var _voice: AudioStreamPlayer
 const CONSOLE_SLOTS := 40
 var _console: Array[String] = []
 var _console_tick := -1.0
+## DAT_0062f064 (Shift+D): the console takes messages; off skips every one (the 3 s ticker still runs).
+var text_messages := true
 var _sim_time := 0.0
 var _msgbox: Control
 ## The open box froze the sim (single player, the clock running: FUN_004e3fd0 event 0x75(0); its close sends 0x76).
@@ -1376,7 +1378,7 @@ func mission_play_wav(wav: String) -> void:
 func _on_subtitle(text: String) -> void:
 	# FUN_0044a060: first letter upper-cased, wrapped at the last space before 40 characters.
 	var t := text
-	if t == "":
+	if t == "" or not text_messages:
 		return
 	_log_event(_log_st, {"event": "message", "text": t})
 	t = t[0].to_upper() + t.substr(1)
@@ -2200,6 +2202,8 @@ func _command(cmd: Array) -> bool:
 			radio.contact_tower()  # Contact tower (Ctrl+T, FUN_0054fb40)
 		108:
 			radio.wingman_command(p1)  # Wingman commands (Alt+P/B/E/W/T/C, FUN_0043f8d0)
+		110:
+			_cheat(p1)
 		101, 102:
 			var i: int = cockpit.current_waypoint + (1 if int(cmd[0]) == 101 else -1)
 			if autopilot != null:
@@ -2223,6 +2227,48 @@ func _command(cmd: Array) -> bool:
 		_:
 			return false
 	return true
+
+
+## The cheats (command 0x6e -> FUN_004d19d0 -> FUN_00450780 on the player controller, docs/controls.md §4): only
+## while the player flies the jet. Ctrl+W (26) re-reads Weapons.ibx, which changes nothing with the shipped file;
+## Shift+T (25) calls an empty function.
+func _cheat(p1: int) -> void:
+	if fatal_hit or ejected:
+		return
+	match p1:
+		4:
+			# Shift+R: the stores reload, behind its key combination (player_weapons.gd cheat_reload).
+			if weapons != null and weapons.cheat_reload():
+				_on_subtitle("Cheat: Reload Weapons")
+		12:
+			_cheat_refuel()
+		27:
+			# Shift+S: ctl+0x970, firing with the gear handle down ([DamageLocalization] SafetyOff / SafetyOn defaults).
+			if weapons != null:
+				weapons.safety_off = not weapons.safety_off
+				_on_subtitle("Safety Off" if weapons.safety_off else "Safety On")
+		28:
+			# Shift+D: DAT_0062f064, the console on / off; each message goes through the console, so "off" shows first.
+			if text_messages:
+				_on_subtitle("Cheat: Text messages off")
+				text_messages = false
+			else:
+				text_messages = true
+				_on_subtitle("Cheat: Text messages on")
+
+
+## Shift+F "Cheat: Refuel internal tank" (FUN_0044e250): only while the release permission fails (FUN_0045ee10 = 0:
+## a negative load factor or more than 90° of roll, as coded). Below the internal capacity, the fuel and its maximum
+## become that capacity (motion 0x18). The message shows even when the tank is already full.
+func _cheat_refuel() -> void:
+	if flight == null:
+		return
+	var st: Dictionary = flight.state()
+	if ClassDB.class_call_static("IafRelease", "release_allowed", float(st.g), float(st.roll)):
+		return
+	if float(st.fuel_lbs) < float(st.internal_fuel_kg) * 2.2046:
+		flight.set_fuel(float(st.internal_fuel_kg))
+	_on_subtitle("Cheat: Refuel internal tank")
 
 
 ## Ctrl+Q: "Are you sure you want to quit the mission?" with DEBRIEF / CONTINUE / EXIT; outside a mission: the menus.
