@@ -341,7 +341,7 @@ pub struct BetterPhysics {
     pub low_speed_roll: bool,
     /// No ×4 vertical lift from a strong nose-wheel side force.
     pub no_nose_wheel_lift: bool,
-    /// Ground effect on the induced drag.
+    /// Ground effect: less induced drag and more lift near the ground.
     pub ground_effect: bool,
     /// On the ground the idle thrust falls with speed (ram drag) and no ×0.8 ground drag: taxi speeds near 30 kt, not 90+.
     pub ground_idle: bool,
@@ -361,7 +361,7 @@ impl BetterPhysics {
         ("lift_rate_floor", "No faster lift changes below 20 m/s"),
         ("low_speed_roll", "No reversed roll at very low speed"),
         ("no_nose_wheel_lift", "No lift jump from nose-wheel steering"),
-        ("ground_effect", "Ground effect (less induced drag near the ground)"),
+        ("ground_effect", "Ground effect (less drag, more lift near the ground)"),
         ("ground_idle", "Realistic idle thrust on the ground (taxi speed)"),
     ];
 
@@ -1379,6 +1379,15 @@ impl Aircraft {
         (r * r / (1.0 + r * r)).max(0.05)
     }
 
+    /// Better physics: ground effect on the lift. The wing's effective aspect ratio near the ground is
+    /// `A/φ` (φ from `ground_effect`); Helmbold's lift-curve slope `a(A) = 2πA / (2 + √(A² + 4))` gives the
+    /// lift factor `a(A/φ) / a(A)` at the same α. F-16 (A ≈ 3.2): ×1.06 at 1.7 m, ×1.02 at 3.4 m, 1.002 at one span.
+    fn ground_effect_lift(&self, alt: f32) -> f32 {
+        let slope = |ar: f32| ar / (2.0 + (ar * ar + 4.0).sqrt());
+        let ar = self.params.wing_span * self.params.wing_span / self.params.wing_area.max(1.0);
+        slope(ar / self.ground_effect(alt)) / slope(ar)
+    }
+
     /// Nose-wheel yaw target (7a20 arg 19): clamp(stickX · V · K / 74.53, ±K), 0 with the gear not
     /// fully down or below 1e-4. The rudder is ignored on the ground.
     fn nose_wheel_yaw(&self, v: f32, gear: bool) -> f32 {
@@ -1434,6 +1443,10 @@ impl Aircraft {
         let lo =
             self.lift_fn(LiftIn { v, alt, mass, att, latched: latched && !ground, gamma, alpha_now: alpha_s, flaps });
         let (mut lift, mut lift_noflap, drag_x, mut stall) = (lo.lift, lo.lift_noflap, lo.drag_x, lo.stall);
+        if self.better.ground_effect {
+            // BP: more lift at the same α (the α ramp keeps Lnoflap), so the jet floats in the flare.
+            lift *= self.ground_effect_lift(alt);
+        }
         let c_f = p.flaps_lift_coef * flaps * FLAPS_K;
         let easy = self.cheat();
         if ground {
@@ -2968,13 +2981,14 @@ mod tests {
             let r = a.roll.sample(a.t + 0.1).1;
             assert_eq!(r.signum() * (r.abs() > 1e-6) as i32 as f32, sign, "bp {bp}: roll rate {r}");
         }
-        // Ground effect (BP): less induced drag near the ground, none without BP or far from it.
+        // Ground effect (BP): less induced drag for the lift (a better L/D) near the ground, none without BP or far
+        // from it.
         let drag = |bp: bool, ground: f32| {
             let mut a = airborne(0, 11.0, 80.0);
             a.better = if bp { BetterPhysics::all() } else { BetterPhysics::none() };
             a.ground_height = ground;
             a.aero_update();
-            a.drag
+            a.drag / a.lift.target()
         };
         assert_eq!(drag(false, 10.0), drag(false, f32::NEG_INFINITY));
         assert_eq!(drag(true, -1000.0), drag(true, f32::NEG_INFINITY));
@@ -2987,6 +3001,24 @@ mod tests {
             c.ground_effect(h)
         };
         assert!((phi(b / 16.0) - 0.5).abs() < 1e-3 && phi(b / 4.0) > 0.93 && phi(5.0 * b) == 1.0);
+        // And more lift at the same α near the ground: the lift ramp's target rises, the α target stays.
+        let lift = |bp: bool, ground: f32| {
+            let mut a = airborne(0, 11.0, 80.0);
+            a.better = if bp { BetterPhysics::all() } else { BetterPhysics::none() };
+            a.ground_height = ground;
+            a.aero_update();
+            (a.lift.target(), a.lift_aoa.target())
+        };
+        let (far, near, orig) = (lift(true, f32::NEG_INFINITY), lift(true, 10.0), lift(false, 10.0));
+        assert_eq!(orig, lift(false, f32::NEG_INFINITY));
+        assert!(near.0 > 1.1 * far.0, "near {near:?} far {far:?}");
+        assert_eq!(near.1, far.1);
+        let gl = |h: f32| {
+            let mut c = a.clone();
+            c.ground_height = 0.0;
+            c.ground_effect_lift(h)
+        };
+        assert!(gl(b / 16.0) > 1.2 && gl(b / 4.0) > 1.0 && gl(b) < 1.002 && gl(5.0 * b) == 1.0);
         // The nose-wheel side force's ×4 vertical lift (original data set): gone with BP.
         let az = |bp: bool| {
             let mut g = ground(true);

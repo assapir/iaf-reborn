@@ -100,8 +100,9 @@ and Reference texts and trackpad pans (docs/front-end.md §12.9).
 ## "Better physics" option (separate from original / real data)
 Improvements over the 1998 model that the player can opt into, decided case by case with the user. Every "better
 physics" option has its own switch; all are listed in docs/flight-model.md §10.
-- Ground effect — **done** for the induced drag (McCormick φ(h/b), docs/flight-model.md §10). Lift / α / stall speed
-  in ground effect stay unmodelled (the model commands g, not CL).
+- Ground effect — **done** for the induced drag (McCormick φ(h/b)) and the lift (lift-curve slope at the effective
+  aspect ratio A/φ: more lift at the same α, the flare floats), docs/flight-model.md §10. The pitching moment and the
+  stall speed in ground effect stay unmodelled (the model commands α / g, not CL).
 - 1 g hold on the flight path (in place of the nose pitch), so there is no slow dive at high speed — **done**
   (`flight_path_hold`).
 - F-16 / Lavi departure: FLCS (flight control system) deep stall with MPO (manual pitch override) rocking recovery —

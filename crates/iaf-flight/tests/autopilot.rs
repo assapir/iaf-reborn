@@ -208,17 +208,33 @@ fn take_off_at_ramat_david(clearance: f32) {
 
 #[test]
 fn lands_at_ramat_david() {
-    land_at_ramat_david(0.0);
+    land_at_ramat_david(0.0, false);
 }
 
 /// World scale Real 1:1: the autopilot landing with the true-size F-16's 1.69 m gear clearance.
 #[test]
 fn lands_at_ramat_david_real_size() {
-    land_at_ramat_david(F16_CLEARANCE_REAL);
+    land_at_ramat_david(F16_CLEARANCE_REAL, false);
 }
 
-fn land_at_ramat_david(clearance: f32) {
-    let Some(inst) = install() else { return };
+/// Better physics' ground effect: the jet floats and touches down further along, still on the runway, at the Present
+/// scale's clearance (×2) and at true size. The autopilot flies its 6° glide path into the ground without a flare, so
+/// it crosses the ground-effect band in about one 1 Hz lift update: F-16 0.01 m longer at 3.38 m, 13 m at 1.69 m.
+#[test]
+fn lands_at_ramat_david_in_ground_effect() {
+    for clearance in [2.0 * F16_CLEARANCE_REAL, F16_CLEARANCE_REAL] {
+        let (Some(off), Some(on)) = (land_at_ramat_david(clearance, false), land_at_ramat_david(clearance, true))
+        else {
+            return;
+        };
+        println!("clearance {clearance} m: touchdown x {off:.2} -> {on:.2} ({:.2} m float)", off - on);
+        assert!(on <= off, "touches down no earlier on the 270° approach");
+    }
+}
+
+/// The touchdown's x (the landing runs west), None without the install.
+fn land_at_ramat_david(clearance: f32, ground_effect: bool) -> Option<f64> {
+    let inst = install()?;
     let bases = Airbase::load_all(&std::fs::read(inst.join("iaf.ibx")).unwrap());
     let rd = bases.iter().find(|b| b.name == "David").unwrap().clone();
     let z = rd.lineup[2] as f64;
@@ -226,6 +242,7 @@ fn land_at_ramat_david(clearance: f32) {
     let home = Waypoint { x: rd.lineup[0] as f64 - 15000.0, y: rd.lineup[1] as f64, z: 1500.0, t: 0.0, action: 7 };
     let mut ac = jet(&inst, "F-16", Vec3::new(home.x - 40000.0, home.y + 5000.0, 2000.0), 90.0, true);
     ac.gear_clearance = clearance;
+    ac.better.ground_effect = ground_effect;
     let mut ap = Autopilot::new(Config::load(&inst));
     ap.bases = bases;
     ap.route = vec![home];
@@ -271,6 +288,7 @@ fn land_at_ramat_david(clearance: f32) {
     let parked = rd.hangars.iter().any(|h| (st.position[0] - h.x as f64).hypot(st.position[1] - h.y as f64) < 100.0);
     println!("after taxi: {:.0} {:.0} speed {:.1} engine {}", st.position[0], st.position[1], st.speed, ac.engine_on);
     assert!(parked && !ac.engine_on, "parked at a hangar, engine off");
+    Some(p[0])
 }
 
 /// The player's autopilot (docs/autopilot.md) runs in FM mode 0 and returns the commands it posted.

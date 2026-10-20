@@ -594,15 +594,28 @@ throttle rules and preferences follow §15 (checklist §15.11). These items stil
     0.1·L (V > 20.6 m/s) multiplies the vertical lift by 4. Steering during the take-off run then throws the jet into
     the air. This is not physical, and BP leaves it out. The real data set already leaves it out: it uses geometric
     steering.
-  * **Ground effect** [`ground_effect`] (new; the original has none). BP multiplies the induced drag `K·CL²` by
-    McCormick's `φ = (16h/b)² / (1 + (16h/b)²)`, where h = height of the aircraft origin above the terrain and
-    b = span.
-    * F-16: φ = 0.5 at 0.6 m, 0.8 at 1.3 m, 0.94 at 2.5 m, ≈ 1 above ~10 m. On the wheels h = the gear clearance: 3.38 m
-      (the `height` helper's 1.69 m at the Present scale ×2) → 0.97; 1.69 m at true size (World scale Real 1:1,
-      world-scale.md) → 0.88.
-    * Effect: a longer flare/float and a slightly shorter take-off run. Lift, α and the envelope stay the same (the
-      model commands g, not CL).
-    * Like all drag, it is refreshed by the 1 Hz / event update.
+  * **Ground effect** [`ground_effect`] (new; the original has none). One switch covers the drag and the lift.
+    h = height of the aircraft origin above the terrain, b = span, A = b²/S (aspect ratio).
+    * Drag: BP multiplies the induced drag `K·CL²` by McCormick's `φ = (16h/b)² / (1 + (16h/b)²)`[^mccormick].
+      F-16: φ = 0.5 at 0.6 m, 0.8 at 1.3 m, 0.94 at 2.5 m, ≈ 1 above ~10 m.
+    * Lift: near the ground the wing acts as one of effective aspect ratio `A/φ` (the same φ). Its lift-curve slope
+      follows the DATCOM / Helmbold expression `a(A) = 2πA / (2 + √(A² + 4))`[^raymer][^tudelft], so BP multiplies
+      the lift by `a(A/φ) / a(A)` at the same α. F-16 (A ≈ 3.2): ×1.32 at b/16, ×1.06 at 1.7 m, ×1.02 at 3.4 m,
+      1.002 at one span. The sizes match published data: McCormick's A = 6 wing gains up to ~20 % lift and loses
+      ~60 % of its induced drag near the ground[^cpp].
+    * Where (inferred): the model commands g, and α follows the Lnoflap ramp (`lift_aoa`). BP scales only the lift
+      ramp's target (the force), after `5b4470`. At the same stick and α the jet gets more lift: it balloons / floats
+      when the pilot holds the attitude, and the α for the g actually flown drops. The induced drag uses the larger
+      CL, so at the same α it can rise, but for the same lift the L/D is better.
+    * Not modelled: the nose-down pitching moment from the reduced tail downwash (the model has no pitching moment:
+      α is commanded) and a lower stall speed (the stall comes from the envelope's g limit, not from CLmax).
+    * On the wheels h = the gear clearance: 3.38 m (the `height` helper's 1.69 m at the Present scale ×2) → φ 0.97,
+      lift ×1.02; 1.69 m at true size (World scale Real 1:1, world-scale.md) → φ 0.88, lift ×1.06. The span is the
+      real one at both scales, so the effect is weaker at the Present scale.
+    * Effect: a float in the flare (touchdown further along) and a slightly shorter take-off run. The autopilot flies
+      its 6° glide path into the ground without a flare: F-16 at Ramat David 0.01 m longer at 3.38 m, 13 m at 1.69 m
+      (test `lands_at_ramat_david_in_ground_effect`).
+    * Like all lift and drag, it is refreshed by the 1 Hz / event update.
   * **Ground idle thrust** [`ground_idle`] (§15.8, §14.3).
     * Original: the idle thrust is constant (k 0.05 of the full-AB curve, F-16 ≈ 1000 lbf static), and the ground
       drag drops ×0.8 above 1 m/s. At idle with no brakes a jet therefore keeps accelerating (F-16 Original data
@@ -2035,7 +2048,7 @@ Tests: Rust unit tests in `aircraft.rs` / `envelope.rs`; headless Godot test `te
 | 15 | Terrain types, map edge | done: water / rough-ground rules, the `S+0x2c8` states (§15.6.2) and the "Tornado" push-back (§15.5a) are in the FM; the host passes the player's terraintype.dat flags (`terrain.gd surface_at`, formats/ptt.md "Terrain types"). Skipped: OutRunway FF |
 | 16 | Minor | done: the 1 Hz V is not capped (5 Hz caps at 1200 m/s); airborne thrust unclamped; v1.1 rolling drag ×0.8 (test `ground_roll_drag_factor`; the AI wheel brake ×4, `AI_BRAKE`). `S+0x420` is `Aircraft::vortex` (the wingtip vortex trails). EndWorld.wav (host, from `end_worlds`). Skipped: FF effects, SFX 0x28/0x29, the map-edge console line |
 | 17 | Landed flag | done (v1.1): `State::landings` / Godot `landings` +1 at each gear-down touchdown that passes the check, re-armed at lift-off (test `landed_flag_rearmed_at_lift_off`); the mission runtime's landed trigger is the host's |
-| — | Also BP (§10): the nose-wheel ×4 lift quirk off (§14.5), ground effect on the induced drag (not in the original) | done, test `better_physics_minor_fixes` |
+| — | Also BP (§10): the nose-wheel ×4 lift quirk off (§14.5), ground effect on the induced drag and the lift (not in the original) | done, test `better_physics_minor_fixes` |
 
 ## 16. v1.0 → v1.1 (what the patch changed in the flight model)
 The official v1.1 patch changed the flight model in the ways below. Each change comes from docs/v1.1.md, was verified
@@ -2057,3 +2070,12 @@ Changed only in layout or code generation, so the behaviour is the same: lift `5
 landing check `5bb7d0`, the start state (MaxWeight·g, RPM 70 %, α = 0), the over-G logic. All our better-physics
 options are still needed (docs/v1.1.md "Our fixes made redundant"): `spin_fixes` keeps all its items, and the v1.1 slope
 and spin β apply underneath in both modes (§10).
+
+[^mccormick]: B. W. McCormick, *Aerodynamics, Aeronautics, and Flight Mechanics*, Wiley, 1979 (2nd ed. 1995),
+    ground effect on the induced drag.
+[^raymer]: D. P. Raymer, *Aircraft Design: A Conceptual Approach*, AIAA, eq. 12.6 (the USAF DATCOM lift-curve slope,
+    after Helmbold 1942), here for an unswept wing at low Mach (β = η = 1).
+[^tudelft]: TU Delft OpenCourseWare, "4.1.3 Optional: Lift curve slope in more detail",
+    <https://ocw.tudelft.nl/course-readings/4-1-3-optional-lift-curve-slope-in-more-detail>.
+[^cpp]: A. Serang, Cal Poly Pomona research poster on wings in ground effect, citing McCormick's AR = 6 results,
+    <https://www.cpp.edu/honorscollege/documents/research-posters/EGR/aro_serang.pdf>.
