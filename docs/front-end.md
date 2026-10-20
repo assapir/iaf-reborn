@@ -2541,8 +2541,9 @@ passing over a button changes nothing.
 
 Ours, with the switch on: the poster shows centred in the 640×480 frame on black, before the main menu, drawn
 from `assets/install/autorun` at run time (the startup sound is read out of `jauto.exe`). PLAY opens the
-main menu; QUIT and Esc quit the game. The other six buttons show their disabled art (docs/deviations.md §2). The
-focus starts on PLAY, the first enabled button. Without the CD files (`iaf-extract --autorun <iso> assets/install`
+main menu; QUIT and Esc quit the game. INSTALL opens the setup wizard (to add or redo steps); UNINSTALL asks, then
+removes the setup's data (docs/setup.md "Uninstall") and quits. The other four buttons show their disabled art
+(docs/deviations.md §2). The focus starts on PLAY. Without the CD files (`iaf-extract --autorun <iso> assets/install`
 copies them) the start-up goes on without the launcher.
 
 ### 18.2 Intro videos

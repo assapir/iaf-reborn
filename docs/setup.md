@@ -72,6 +72,13 @@ fills its pages from them; the CLI uses them when no ISO is given, plus the opti
 The imagery steps keep their own marks per work unit instead: a run converts only the units that are missing or
 were made under older rules, and is up to date when there are none. The guides decide per picture.
 
+## Uninstall
+The CD launcher's UNINSTALL button (Extras → CD launcher, docs/front-end.md §18.1) asks first, then removes what the
+setup wrote under `assets/` (`iaf_setup::OUTPUTS`): `install`, `v1.0`, `v1.1`, `patch`, `converted`, `packs`,
+`packs-none`, `hebrew-cd`, `hebrew-cd-pick`, `source/imagery`, the stamps and `setup.json`. Everything else under
+`assets/` stays, and so do the pilots, settings and logs in the user folder, the repo and the built extension. The
+game then quits; `./setup` installs again. The launcher's INSTALL button opens the setup wizard.
+
 ## Outside programs
 
 - GDAL (`gdal_translate`, `gdalbuildvrt`): the imagery steps. Without it they are skipped.

@@ -165,9 +165,10 @@ Each entry names the switch and where it lives, then the difference: "Original: 
 - **CD launcher (Off / On)** (front-end.md §18.1, formats/autorun.md). Original: the CD's `Jauto.exe` poster is a
   separate program that runs when the CD is inserted; the game starts without it. Ours, with On: the poster shows
   at start-up, before the main menu, centred in the 640×480 frame on black (the exe centres it on the desktop).
-  PLAY opens the main menu, QUIT and Esc quit. The buttons that start Windows programs or files show their
-  disabled art: HELP and PREVIEWS (WinHelp `.hlp` files), INSTALL (`SETUP.EXE`), REGISTER ONLINE (`ERegIP.EXE`),
-  UNINSTALL (the uninstaller) and JANE'S ONLINE (a web page that no longer exists). In the exe only PLAY and
+  PLAY opens the main menu, QUIT and Esc quit. INSTALL opens our setup wizard (the exe runs `SETUP.EXE`), UNINSTALL
+  asks and removes the setup's data (the exe runs the uninstaller; setup.md "Uninstall"). The buttons that start
+  other Windows programs or files show their disabled art: HELP and PREVIEWS (WinHelp `.hlp` files), REGISTER
+  ONLINE (`ERegIP.EXE`) and JANE'S ONLINE (a web page that no longer exists). In the exe only PLAY and
   UNINSTALL are disabled, and only while the game is not installed. The art is the English set always (the exe picks
   English, French or German from the Windows locale).
 - **Better cockpit (Original / Better)** (cockpit.md "Better cockpit"). One switch for our cockpit improvements

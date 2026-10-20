@@ -29,6 +29,37 @@ fn remove_dir(assets: &Path, p: &Path) -> Result<()> {
     }
 }
 
+/// What the setup writes under `assets/` (folders and files), which the CD launcher's UNINSTALL removes
+/// (docs/setup.md "Uninstall"). Anything else there (the decompile, the manuals) stays.
+pub const OUTPUTS: &[&str] = &[
+    "install",
+    "install.stamp",
+    "v1.0",
+    "v1.1",
+    "v1.1.stamp",
+    "patch",
+    "converted",
+    "packs",
+    "packs-none",
+    "hebrew-cd",
+    "hebrew-cd-pick",
+    "source/imagery",
+    "setup.json",
+];
+
+/// Removes the setup's outputs ([`OUTPUTS`]) from `assets`; a missing one is fine.
+pub fn uninstall(assets: &Path) -> Result<()> {
+    for name in OUTPUTS {
+        let p = assets.join(name);
+        if p.is_dir() {
+            remove_dir(assets, &p)?;
+        } else if p.exists() {
+            std::fs::remove_file(&p).with_context(|| format!("removing {}", p.display()))?;
+        }
+    }
+    Ok(())
+}
+
 /// Copies every file under `from` to the same path under `to`.
 fn copy_tree(from: &Path, to: &Path) -> Result<()> {
     for f in iaf_tools::walk_files(from)? {
@@ -329,4 +360,27 @@ pub fn script_guides(repo: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Res
     let mut pdf = Command::new("python3");
     pdf.args(["-I", "tools/guide_pdf.py"]).current_dir(repo);
     child(pdf, pr, cancel)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn uninstall_removes_only_the_setups_outputs() {
+        let a = std::env::temp_dir().join(format!("iaf-uninstall-{}", std::process::id()));
+        for d in ["install/resource", "converted/terrain", "source/imagery/mapi2015", "source/keep", "ghidra"] {
+            std::fs::create_dir_all(a.join(d)).unwrap();
+        }
+        for f in ["setup.json", "install.stamp", "converted/terrain/x.json", "ghidra/iafjets.c"] {
+            std::fs::write(a.join(f), "x").unwrap();
+        }
+        uninstall(&a).unwrap();
+        for gone in ["install", "converted", "source/imagery", "setup.json", "install.stamp"] {
+            assert!(!a.join(gone).exists(), "{gone} removed");
+        }
+        assert!(a.join("ghidra/iafjets.c").exists() && a.join("source/keep").is_dir(), "the rest stays");
+        uninstall(&a).unwrap(); // nothing left to remove: fine
+        std::fs::remove_dir_all(&a).unwrap();
+    }
 }

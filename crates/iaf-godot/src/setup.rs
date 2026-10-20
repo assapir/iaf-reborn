@@ -117,6 +117,16 @@ impl IafSetup {
         vdict! { "gdal" => t.gdal, "curl" => t.curl, "python3" => t.python3, "firefox" => t.firefox, "display" => t.display }
     }
 
+    /// The CD launcher's UNINSTALL: removes what the setup wrote under `assets` (`iaf_setup::OUTPUTS`); "" or the
+    /// error.
+    #[func]
+    fn uninstall(assets: GString) -> GString {
+        match iaf_setup::uninstall(&PathBuf::from(assets.to_string())) {
+            Ok(()) => GString::new(),
+            Err(e) => err(e),
+        }
+    }
+
     /// The last run's inputs (setup.json's text), or "" before the first run.
     #[func]
     fn load_inputs(assets: GString) -> GString {

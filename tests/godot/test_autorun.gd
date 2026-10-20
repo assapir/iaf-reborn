@@ -1,5 +1,6 @@
 # The CD launcher (ours, Extras → CD launcher; docs/front-end.md §18.1): Jauto.exe's poster and buttons from the
-# CD's files: slot rects B1..B8 from poster.rgn, art cells <state>E<n> from buttons.rgn, only PLAY / QUIT enabled,
+# CD's files: slot rects B1..B8 from poster.rgn, art cells <state>E<n> from buttons.rgn, PLAY / QUIT / INSTALL /
+# UNINSTALL enabled (INSTALL and UNINSTALL emit their signals),
 # the focus (active art) on PLAY first, Tab / arrows move it, mouse down shows the pressed cell and dragging off
 # releases it, a release inside clicks, Enter presses the focused button, Esc quits; the startup sound loads.
 extends "res://../tests/godot/base.gd"
@@ -64,8 +65,8 @@ func run() -> void:
 	check(a.sound != null and a.sound.stream != null, "startup sound: WAVE 131 from jauto.exe")
 	check(a.focus == a.PLAY, "focus starts on PLAY (first enabled tab stop)")
 	check(
-		a.cell_name(2) == "FE3" and a.cell_name(7) == "NE8" and a.cell_name(0) == "DE1" and a.cell_name(6) == "DE7",
-		"art: PLAY active, QUIT normal, HELP / UNINSTALL disabled"
+		a.cell_name(2) == "FE3" and a.cell_name(7) == "NE8" and a.cell_name(0) == "DE1" and a.cell_name(6) == "NE7",
+		"art: PLAY active, QUIT / UNINSTALL normal, HELP disabled"
 	)
 	check(a.button_at(centre(a, 7)) == 7 and a.button_at(a._poster_origin() - Vector2(5, 5)) == -1, "hit test")
 	# A click on a disabled button does nothing.
@@ -74,9 +75,19 @@ func run() -> void:
 	check(a.focus == a.PLAY and played == 0 and quitted == 0, "disabled HELP: no focus, no action")
 	# Tab / arrows move the focus between the enabled buttons.
 	key_ev(a, KEY_TAB)
-	check(a.focus == a.QUIT and a.cell_name(7) == "FE8" and a.cell_name(2) == "NE3", "Tab: focus to QUIT")
+	check(a.focus == a.UNINSTALL and a.cell_name(6) == "FE7" and a.cell_name(2) == "NE3", "Tab: focus to UNINSTALL")
 	key_ev(a, KEY_LEFT)
 	check(a.focus == a.PLAY, "Left: back to PLAY")
+	# INSTALL / UNINSTALL emit their signals (startup.gd opens the setup wizard / asks and uninstalls).
+	var got := []
+	a.install.connect(func(): got.append("install"))
+	a.uninstall.connect(func(): got.append("uninstall"))
+	for i in [a.INSTALL, a.UNINSTALL]:
+		a._gui_input(mouse_button(centre(a, i), true))
+		a._gui_input(mouse_button(centre(a, i), false))
+	check(got == ["install", "uninstall"], "click INSTALL / UNINSTALL: their signals")
+	key_ev(a, KEY_LEFT)
+	check(a.focus == a.PLAY, "Left from UNINSTALL: PLAY")
 	# Mouse down on QUIT: focus + pressed art; drag off: not pressed; release outside: nothing.
 	a._gui_input(mouse_button(centre(a, 7), true))
 	check(a.focus == a.QUIT and a.cell_name(7) == "PE8", "mouse down on QUIT: pressed art")
@@ -86,7 +97,9 @@ func run() -> void:
 	check(quitted == 0 and played == 0, "release outside: no click")
 	# Enter presses the focused (default) button.
 	key_ev(a, KEY_RIGHT)
-	check(a.focus == a.PLAY, "Right wraps to PLAY")
+	check(a.focus == a.INSTALL, "Right wraps to INSTALL")
+	key_ev(a, KEY_RIGHT)
+	check(a.focus == a.PLAY, "Right: PLAY")
 	key_ev(a, KEY_ENTER)
 	check(played == 1, "Enter: PLAY")
 	a._gui_input(mouse_button(centre(a, 7), true))

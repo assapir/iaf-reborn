@@ -8,17 +8,22 @@ extends Control
 
 signal play
 signal quit
+signal install
+signal uninstall
 
 const W := 640.0
 const H := 480.0
 ## Button order = control ids 0x3e8.. = slots B1..B8 = cells 1..8.
 const NAMES := ["HELP", "INSTALL", "PLAY", "JANE'S ONLINE", "REGISTER ONLINE", "PREVIEWS", "UNINSTALL", "QUIT"]
+const INSTALL := 1
 const PLAY := 2
+const UNINSTALL := 6
 const QUIT := 7
 ## Enabled buttons. The exe enables all but PLAY and UNINSTALL, and those two when the game is installed
-## (FUN_00404e3e). Ours: only PLAY and QUIT work here (HELP / PREVIEWS open WinHelp .hlp files, INSTALL / REGISTER
-## ONLINE / UNINSTALL run Windows programs, JANE'S ONLINE opens a dead URL); the rest show their disabled art.
-const ENABLED := [false, false, true, false, false, false, false, true]
+## (FUN_00404e3e). Ours: PLAY and QUIT; INSTALL opens the setup wizard and UNINSTALL removes the setup's data (the
+## exe runs the Windows installer / uninstaller); HELP / PREVIEWS (WinHelp .hlp files), REGISTER ONLINE (a Windows
+## program) and JANE'S ONLINE (a dead URL) show their disabled art.
+const ENABLED := [false, true, true, false, false, false, true, true]
 ## The art's language set: the exe picks E / F / G from the Windows locale (FUN_004047d0); the Hebrew CD has the
 ## same art, so English always.
 const LANG := "E"
@@ -50,8 +55,8 @@ func _ready() -> void:
 		sound.stream = AudioStreamWAV.load_from_buffer(wav)
 		add_child(sound)
 		sound.play()
-	# The dialog's first enabled tab stop takes the focus.
-	focus = ENABLED.find(true)
+	# Ours: PLAY takes the focus (the exe's first enabled tab stop, with INSTALL enabled here before it).
+	focus = PLAY
 	focus_mode = Control.FOCUS_ALL
 	grab_focus()
 
@@ -176,7 +181,7 @@ func move_focus(step: int) -> void:
 
 
 ## A click (BN_CLICKED) on button `i`: PLAY ends the launcher into the start-up (the exe runs IAFJets.EXE and
-## closes, FUN_0040499f), QUIT ends it (EndDialog, FUN_00404e36).
+## closes, FUN_0040499f), QUIT ends it (EndDialog, FUN_00404e36); INSTALL / UNINSTALL (ours) go to startup.gd.
 func press(i: int) -> void:
 	if not ENABLED[i]:
 		return
@@ -186,3 +191,7 @@ func press(i: int) -> void:
 		play.emit()
 	elif i == QUIT:
 		quit.emit()
+	elif i == INSTALL:
+		install.emit()
+	elif i == UNINSTALL:
+		uninstall.emit()
