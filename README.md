@@ -157,7 +157,8 @@ the wrong control moves, edit `[devices] joy_axes` in the settings file. Details
 ## License and trademarks
 
 The code in this repository is licensed under the GNU General Public License v3.0 or later — see [LICENSE](LICENSE).
-It contains no data from the original game; you must supply your own copy.
+It contains no data from the original game; you must supply your own copy. Third-party models, pictures and sounds
+in `game/extra/` keep their own licences; each has its credits beside it (`SOURCES.md`, `CREDITS.md`, `README.md`).
 
 "Jane's" and "Jane's IAF" are trademarks of their respective owners. This project is an independent, non-commercial
 re-implementation and is not affiliated with, endorsed by or sponsored by them or by the original publisher
