@@ -13,18 +13,18 @@ use serde_json::{Map, Value, json};
 
 /// The assets directory and what `check` / `ground_height` read from it, loaded when first asked for.
 #[derive(Default)]
-struct Data {
-    assets: PathBuf,
-    heights: Option<me::Heights>,
-    bdb: Option<Value>,
-    types: Option<TerrainTypes>,
+pub(crate) struct Data {
+    pub(crate) assets: PathBuf,
+    pub(crate) heights: Option<me::Heights>,
+    pub(crate) bdb: Option<Value>,
+    pub(crate) types: Option<TerrainTypes>,
     loaded: bool,
 }
 
-static DATA: LazyLock<Mutex<Data>> = LazyLock::new(Default::default);
+pub(crate) static DATA: LazyLock<Mutex<Data>> = LazyLock::new(Default::default);
 
 impl Data {
-    fn load(&mut self) {
+    pub(crate) fn load(&mut self) {
         if self.loaded {
             return;
         }
@@ -38,11 +38,11 @@ impl Data {
     }
 }
 
-fn parse(s: &GString) -> Value {
+pub(crate) fn parse(s: &GString) -> Value {
     serde_json::from_str(&s.to_string()).unwrap_or_else(|_| json!({}))
 }
 
-fn text(v: &Value) -> GString {
+pub(crate) fn text(v: &Value) -> GString {
     GString::from(serde_json::to_string(v).unwrap_or_default().as_str())
 }
 

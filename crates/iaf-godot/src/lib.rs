@@ -14,6 +14,7 @@ mod imode;
 mod mcr;
 mod missile;
 mod mission_edit;
+mod mission_intel;
 mod radar;
 mod real_hud;
 mod release;
