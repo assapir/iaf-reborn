@@ -1,8 +1,8 @@
 # Adding a new plane
 
 This guide is for developers who add a flyable aircraft beyond the original game's set: its model, flight data,
-cockpit, weapons and Jet list entry. The worked example is the F-35I Adir: [f35i.md](f35i.md) has its real data,
-sources and the choices per section. To add an *original-format* model (an `.xfr` in the install), see
+cockpit, weapons and Jet list entry. The worked example is the F-35I Adir ([f35i.md](f35i.md): its real data, sources
+and the choice per section). An *original-format* model (an `.xfr` in the install) is
 [aircraft.md §4](aircraft.md#4-adding-a-new-aircraft).
 
 **Terms**
@@ -15,10 +15,10 @@ sources and the choices per section. To add an *original-format* model (an `.xfr
 - **Original** / **Real**: the two Flight data (and Weapon data) settings: the 1998 game's numbers, or published
   real-world numbers.
 
-Everything under `assets/` is generated from the user's ISO and git-ignored. A new plane's content (model,
-descriptor, cockpit art) therefore has to be **tracked in the repo** and copied or merged in at run time. It must be
-our own work or licensed for redistribution (CC BY / CC BY-SA / public domain; CC BY-NC only for local use). A new
-plane is a deviation from the original: make it an opt-in on the Extras page (§8).
+Everything under `assets/` is generated from the user's ISO and git-ignored, so a new plane's content (model,
+descriptor, cockpit art) is **tracked in the repo** and merged in at run time. It must be our own work or licensed for
+redistribution (CC BY / CC BY-SA / public domain; CC BY-NC only for local use). A new plane is a deviation from the
+original: an opt-in on the Extras page (§8).
 
 **Steps in order**
 1. Pick a type code and add it to the code tables (§1).
@@ -47,10 +47,10 @@ share this code space:
 - weapon types run 500–660 (`crates/iaf-avionics/src/stores.rs`);
 - `crates/iaf-avionics/src/rwr.rs` `IGNORED_TYPES` (220, 250, 270) is skipped by the RWR; `plane-describe` refuses these.
 
-1. Take a code **≥ 1000** (e.g. 1000).
-2. Check that it is in no table: `iaf-convert plane-checklist 1000` marks every list `--` (the `..` rows are
+1. Take a code **≥ 1000** (the F-35I has 1000).
+2. Check that it is in no table: `iaf-convert plane-checklist <code>` marks every list `--` (the `..` rows are
    conditions to read).
-3. Add it to the tables below. `iaf-convert plane-checklist <code>` prints this list from the live sources:
+3. Add it to the tables below (`plane-checklist` prints this list from the live sources):
 
 | where | table | what it decides | needed? |
 |---|---|---|---|
@@ -60,6 +60,7 @@ share this code space:
 | | `JET_TYPES` | Jet list id → type | yes (§6) |
 | `crates/iaf-flight/src/data_set.rs` | `TYPES` | name, model folder, bd.ibx section, code | yes (§3) |
 | | `REAL` | Real flight data (by name) | yes (§3) |
+| `crates/iaf-flight/src/spool.rs` | `ENGINES` | engine spool-up times (better physics `engine_spool`) | yes (§3) |
 | `crates/iaf-flight/src/params.rs` | `type_code()` | original sections → code | no (`TYPES` overrides it) |
 | `crates/iaf-tools/src/aircraft.rs` | `fm_section()` | type → section in converted descriptors | no (hand-written descriptor) |
 | `crates/iaf-flight/src/aircraft.rs` | `type_code == 100` (flaps) | F-16 flaps at one third | review |
@@ -76,7 +77,7 @@ share this code space:
 | `tests/godot/test_jet_list.gd` | `JETS` | Jet list test row | yes (§9) |
 
 Until these tables become data (one per-type record read from a file), each new plane is a code change in all of
-them. That refactor is the real fix for "add a plane without code".
+them.
 
 ## 2. The 3D model
 
@@ -108,6 +109,7 @@ The glTF must be in the converted models' frame:
 | `Camera` / `Pilon` | cockpit eye |
 | `EndWingL/R` | wing tips |
 | `Parach` | drag chute |
+| `WheelsA`…`WheelsF` | wheels on the legs: turn with Rolling wheels (part-animation.md §2.2) |
 | `BayLi/Lo/Ri/Ro` (ours) | weapon bay doors, inboard / outboard per side: origin on the hinge, open with the bay ramp |
 
 **Glass:** a canopy material with partial alpha is blended (`alphaMode` BLEND). A cut-out or opaque canopy draws
@@ -159,8 +161,7 @@ holds only the install's planes. Extra planes live in the repo:
 Example: `game/extra/planes/f35i/`, built by `tools/f35i/rig.py` (Blender, headless).
 
 ### 2.5 Check it
-- `godot --path game -s tools/aircraft_sheet.gd -- /tmp/sheet <plane>` renders gear, flaps, speed brakes and the
-  flame.
+- The contact sheet (aircraft.md §3, `<out-dir> <plane>`) renders gear, flaps, speed brakes and the flame.
 - `tests/godot/test_aircraft_parts.gd` loads every descriptor.
 
 ## 3. Flight model
@@ -300,7 +301,7 @@ Hebrew labels go in `game/menu/strings_he.json` (our strings only).
 ## 8. Opt-in
 The original stays the default (docs/deviations.md):
 1. Add an Extras row for the plane, off by default.
-2. Add one line to deviations §2.
+2. Add one line to [deviations.md §2](deviations.md#2-opt-in-switches-original-by-default).
 
 With the row off, the Jet list and every table behave as in the original.
 

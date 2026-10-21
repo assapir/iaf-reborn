@@ -1,8 +1,9 @@
 # Real HUD: per-aircraft reference (Extras > HUD)
 
 The Real HUD (head-up display) is an Extras option. It replaces the original 1998 HUD with each jet's real sight / HUD
-/ helmet symbology. This file is the reference the code (`crates/iaf-avionics/src/real_hud/`) is built from. For each
-aircraft it says what is shown, where, in what format, and how sure we are.
+/ helmet symbology (docs/deviations.md §2). This file is the reference the code (`crates/iaf-avionics/src/real_hud/`)
+is built from: per aircraft, what is shown, where, in what format, and how sure we are. How the game draws it:
+[cockpit.md "Real HUD"](cockpit.md#real-hud-ours-extras--hud).
 
 Key facts:
 - Researched October 2026 from public sources. The repo keeps no source images.
@@ -265,7 +266,7 @@ the late 1980s. Its layout is its own, distinct by design from the F-16's dash-3
     caret, closure) inboard of the altitude box;
   - gun: an **LCOS** ring with the pipper dot and a range arc (12,000 ft a turn).
 - A-G: the CCIP pipper (a dot in a ring) with the fall line from the marker; strafe: the pipper [R].
-- `SHOOT` (or `FUEL` below the bingo) at the bottom centre [R]. No wind readout (the game has no wind on the HUD).
+- `SHOOT` (or `FUEL` below the bingo) at the bottom centre [R]. No wind readout [R].
 
 ## Kfir C2/C7
 
@@ -324,9 +325,9 @@ Shahak's CSF 95 lacks the 97's gyro horizon / heading [S].
 
 ## F-35I Adir: Gen III helmet display (no HUD)
 
-The F-35I shows its flight data in the Gen III helmet display: green, 40° × 30°. The symbols the game adds over it
-(the ILS lines, the weapon symbols, the radar's BORE cross) are green too; so are they over the DASH (`hud.gd _hc`). Looking forward, it shows an
-aircraft-stabilised "virtual HUD" [V].
+The F-35I shows its flight data in the Gen III helmet display: green, 40° × 30°. Looking forward, it shows an
+aircraft-stabilised "virtual HUD" [V]. The symbols the game adds over it (the ILS lines, the weapon symbols, the
+radar's BORE cross) are green too, as over the DASH (`hud.gd` `_hc`).
 
 Sources: Lockheed Martin "The F-35 Cockpit" slides (c. 2012; https://www.f-16.net/forum/viewtopic.php?t=16223&start=180);
 US Navy flight-test helmet video (https://www.twz.com/12297/); Collins datasheet; Aviation Today 2010 / 2015.
@@ -350,7 +351,7 @@ The forward virtual HUD:
 Off-boresight: the virtual HUD stays with the airframe. The helmet shows a reduced head-stabilised set: bare airspeed
 / altitude, heading, steerpoint, targets [V].
 
-Navigation (researched October 2026). No public source names the helmet's navigation symbols or says how they behave.
+Navigation. No public source names the helmet's navigation symbols or says how they behave.
 The F-35 flight manual and the Collins symbology are not public; Collins, Elbit, Code One and the Aviation Today
 articles describe the helmet only in general terms. The two LM frames are the only primary evidence. Ours reads them as
 follows:
@@ -456,9 +457,9 @@ Helmet-Mounted Cueing System, its descendant), whose F-16 set is documented in s
 
 ## IFF (identification friend or foe)
 
-This section says how each real jet tells the pilot that an aircraft is a friend. It was researched in October 2026
-from public sources. It is the reference for a future Real-mode IFF. Today the Real HUD draws no friend mark: the
-original's friendly X on the target box is part of the original HUD, which Real mode hides (docs/radar.md §6).
+This section says how each real jet tells the pilot that an aircraft is a friend. It is the reference for a future
+Real-mode IFF (not built). Today the Real HUD draws no friend mark: the original's friendly X on the target box is
+part of the original HUD, which Real mode hides (docs/radar.md §6).
 
 Terms:
 - **Transponder**: the set that answers interrogations (every jet here has one).
@@ -548,38 +549,26 @@ Key facts:
 **Kurnass 2000, Kfir, Lavi, Mirage IIICJ.** No public document describes an interrogator or an IFF display for these
 jets. Searched: flight-manual text, Jane's, Flight International, IAI / Elbit material, simulator communities.
 
-### Proposed build
+### Build plan (user decisions 2026-10-17; not built yet)
 
-What a Real-mode IFF would implement, only from the findings above:
+Only from the findings above, under the Real HUD switch only; the original HUD's friendly X and the original radar
+page stay as they are.
 - **Every HUD, sight and helmet**: no friend mark (as today). No public source puts IFF on any of these displays.
-- **F-16C/D (Block 30/40)**: no interrogator, no IFF display. The F-16 HUD and radar page stay as they are.
 - **F-15C**: an interrogate key (the throttle button; a new, unused key). While the key is held, reply symbols on
   the radar page at each friendly reply's range and azimuth: a circle (high confidence). No symbol for a unit that
-  does not reply. The time a reply stays after release is ours (3 s, the only figure found [SIM]) and goes in
-  docs/deviations.md.
-- **F-4E (Kurnass)**: the same key stands for the WSO's button. Replies on the radar page as a line above and a line
-  below the friendly contact (matching mode and code). Display time as for the F-15.
-- **F-35I**: no key. On the radar page, a friend's contact gets a circle and a hostile's a diamond, for as long as
-  the contact is shown (fused tracks). Colours (green / red) only if the radar page can draw them without changing
-  the original page.
-- **Kurnass 2000, Kfir, Lavi, Mirage IIICJ**: nothing, and the pilot guides say the jet has no IFF display.
-- All of it under the Real HUD switch only; the original HUD's friendly X and the original radar page stay as they
-  are.
-
-### Decisions (user, 2026-10-17; not built yet)
-
-- **F-15C**: build as proposed above.
+  does not reply. A reply stays 3 s after release (ours, the only figure found [SIM]; goes in docs/deviations.md).
 - **F-4E (Kurnass)**: the game has no back seat, so the WSO's interrogation is automatic. The virtual WSO
   interrogates each new radar contact once and the locked contact every few seconds; the replies show on the radar
-  page as the lines above / below, for the display time above. The interrogate key also works (the pilot asking the
-  WSO). The automatic timing is ours and goes in docs/deviations.md.
-- **F-16**: the game's F-16D is the early-1990s Barak, which had no interrogator. Today's IAF F-16s have one, so the
-  modern F-16 becomes its own switch (docs/roadmap.md "F-16I Sufa option"), with AIFF (the APX-113 class
-  interrogator: TMS left, green circle / yellow square on the FCR, as in the MLU guides above) among its upgrades.
+  page as a line above and a line below the friendly contact (matching mode and code), for the F-15's display time.
+  The interrogate key also works (the pilot asking the WSO). The automatic timing is ours and goes in
+  docs/deviations.md.
+- **F-16**: the game's F-16D is the early-1990s Barak, which had no interrogator: its HUD and radar page stay as they
+  are. Today's IAF F-16s have one, so AIFF (the APX-113 class: TMS left, green circle / yellow square on the FCR, as
+  in the MLU guides above) comes with the modern F-16's own switch ([f16i.md](f16i.md) §3).
 - **F-35I**: the helmet stays monochrome green with one target designator for every locked contact, as on the real
   jet. The friend / unknown / hostile colours and shapes belong on the panoramic display's radar and map formats, so
   they come with the Real MFDs (docs/roadmap.md "Real MFDs"), drawn in the real formats, not added to today's pages.
-- **Kurnass 2000, Kfir, Lavi, Mirage IIICJ**: as proposed above.
+- **Kurnass 2000, Kfir, Lavi, Mirage IIICJ**: nothing, and the pilot guides say the jet has no IFF display.
 
 ## Pull-up and break marks, and the dive / height voice (per jet)
 
@@ -652,23 +641,14 @@ its scale. The original HUD keeps the original layout.
   in A-A, NAV window, TD box, ASE circle + dot, range scale + IN RNG, breakaway X inside Rmin, LCOS reticle with the
   range arc, bomb fall line to the target square, AoA scale gear down (ours: degrees as units), NAV bank steering bar
   (ours: 2 px per degree of bearing error). Not drawn: the ILS flight-director cross, Mach outside A-A.
-- Kfir: its own layout (§ Kfir C2/C7): numbers for speed / altitude, the heading scale with the steering bug, the
-  waypoint marker, straight ladder, LCOS / hotline, spinning seeker diamond, CCIP pipper and fall line.
-- Lavi: everything in its section above (a reconstruction). Not drawn: the bank scale, an ILS flight director, a
-  VVI.
-- F-4E / Mirage: the reticles as specified (ours: the reticle rides the LCOS / CCIP pipper).
-- Kurnass 2000: its own reconstruction (`k2000.rs`, the section above): boxes, heading scale with the steering caret,
-  ladder and marker, SRM / MRM / LCOS gun / CCIP / strafe symbols, the launch-range scale, SHOOT / FUEL.
-- F-35: the forward virtual HUD and the off-boresight head set; the gun / A-G graphics are the F-16's
+- Kfir (`kfir.rs`), Kurnass 2000 (`k2000.rs`), MiG-23 (`mig23.rs`), MiG-29 (`mig29.rs`): everything in "Ours" of
+  their sections above; what those sections mark "not drawn" stays out.
+- Lavi (`lavi.rs`): everything in its section above. Not drawn: the bank scale, an ILS flight director, a VVI.
+- F-4E / Mirage (`sights.rs`): the reticles as specified (ours: the reticle rides the LCOS / CCIP pipper).
+- F-35 (`f35.rs`): the forward virtual HUD and the off-boresight head set; the gun / A-G graphics are the F-16's
   (reconstruction).
-- MiG-23: its own reconstruction (`mig23.rs`, the section above): the fixed cross, the steering ring, К / Г on the ILS,
-  the target diamond at the designation limits with «НОП», the km range scale, «ПР», the gun ring with its metre range
-  bar, the CCIP pipper. No flight data, as the real sight.
-- MiG-29: its own HUD (`mig29.rs`, the section above): km/h, m, the heading tape in tens, the right-hand pitch scale,
-  the horizon line, the bank scale, the steering circle, the waypoint range in km, the mode names, the km range scale
-  with «ПР» / «ОТВ», the vertical scan, Ф0, the gun ring or GSh-30-1 funnel, the A-G pipper; the Щель-3УМ looking
-  aside.
-- DASH: in the F-16 / F-15 cockpits only (the MiG-29 has its Щель-3УМ); the Lavi, Kurnass 2000 and Kfir keep the original's helmet display.
+- DASH (`dash.rs`): in the F-16 / F-15 cockpits only (the MiG-29 has its Щель-3УМ); the Lavi, Kurnass 2000 and
+  Kfir keep the original's helmet display.
   - When: looking aside with the Real HUD on (the original's dash condition: the panel panned ≥ 250 px aside or
     ≥ 200 px down).
   - Drawn in green, around the helmet's line of sight: the aiming cross, the line-of-sight circle with its gap, G /

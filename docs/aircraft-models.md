@@ -8,8 +8,8 @@ aircraft:
 | **Original** (default) | the 1998 models from your install |
 | **Detailed** | our detailed model where one exists; every other aircraft keeps its original model |
 
-The switch changes the look only. Stores, the gun, the flight model, damage and the cockpit view work as with the
-original models. docs/deviations.md lists it.
+The switch changes the look only (docs/deviations.md §2 "Models"). Stores, the gun, the flight model, damage and the
+cockpit view work as with the original models.
 
 Today one detailed model exists: the **F-16D** (`game/extra/models/f16/f16d.glb`). It is used for the player's F-16,
 the AI's F-16s, parked F-16s and the Reference viewer. Plans for more jets and for detailed stores:
@@ -56,8 +56,7 @@ The game reads positions from the aircraft model. The detailed model keeps them 
 It also builds LODs for every mesh (`ImporterMesh.generate_lods`).
 
 KTX2: Godot 4.7.2's runtime glTF loader reads `KHR_texture_basisu` and decodes it to RGBA8 with the mipmaps stored
-in the file. The KTX2 files keep the glb small; in video memory the textures are uncompressed RGBA8 (about 110 MB for the
-model's set).
+in the file. KTX2 keeps the glb small; in video memory the textures are uncompressed (§1).
 
 ## 2. Rebuilding the F-16D
 
