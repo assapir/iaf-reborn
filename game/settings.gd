@@ -268,6 +268,15 @@ var route_override: Array = []
 var mc := {}
 ## Mission 0x29a as FLY built it from `mc` ([{name, data}], IafMcr.build); MissionRuntime.mission_files(0x29a) reads it.
 var mc_files: Array = []
+## The mission editor's Fly (fly_edited, docs/mission-editor.md), run time only: the edited mission's files ([{name,
+## data}], the main file first, then its base missions), which MissionRuntime.mission_files gives for any id while set;
+## its briefing ({en, he} plain text, the TSD's), the flight to select on the TSD (1..4, 0 the default), and the user://
+## file the editor reopens after.
+var mission_files_override: Array = []
+var briefing_override := {}
+var return_to_editor := false
+var editor_flight := 0
+var editor_file := ""
 ## Flight picked on the TSD (1..4 = Alpha..Delta; Fly / double-click makes its leader the player);
 ## 0 = the mission's default flight (mission_runtime.gd player_flight()).
 var player_flight := 0
@@ -620,3 +629,27 @@ func _free_sounds() -> void:
 		if p is AudioStreamPlayer or p is AudioStreamPlayer2D or p is AudioStreamPlayer3D:
 			p.stop()
 			p.queue_free()
+
+
+## The mission editor's Fly: mission `id` (the source mission: its bdb, bases and rules) with the edited `files` and
+## `briefing`, opened on its TSD with `flight` selected; the debrief and the TSD's BACK come back to the editor.
+func fly_edited(id: int, files: Array, briefing: Dictionary, flight: int, file: String) -> void:
+	mission_files_override = files.duplicate(true)
+	briefing_override = briefing.duplicate()
+	return_to_editor = true
+	editor_flight = flight
+	editor_file = file
+	mission_id = id
+	jet_id = -1
+	debrief = {}
+	(Engine.get_main_loop() as SceneTree).change_scene_to_file("res://menu/front_end.tscn")
+
+
+## Back to the mission editor from the TSD or the debrief: the Fly state cleared (editor_file kept for it to reopen).
+func back_to_editor() -> void:
+	mission_files_override = []
+	briefing_override = {}
+	return_to_editor = false
+	editor_flight = 0
+	debrief = {}
+	(Engine.get_main_loop() as SceneTree).change_scene_to_file("res://editor/mission_editor.tscn")

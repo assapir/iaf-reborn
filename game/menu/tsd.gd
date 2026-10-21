@@ -405,6 +405,11 @@ func set_layer(name: String, on: bool) -> void:
 
 
 func _briefing() -> Dictionary:
+	if not Settings.briefing_override.is_empty():  # the mission editor's Fly (Settings.fly_edited): plain text
+		var plain := {}
+		for lang in Settings.briefing_override:
+			plain[lang] = String(Settings.briefing_override[lang]).replace("[", "[lb]")
+		return {"text": plain}
 	return fe.briefings.get("missions", {}).get(str(mission_id), {})
 
 

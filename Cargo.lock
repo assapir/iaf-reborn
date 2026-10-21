@@ -258,6 +258,7 @@ name = "iaf-tools"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "iaf-avionics",
  "iaf-formats",
  "image",
  "serde_json",

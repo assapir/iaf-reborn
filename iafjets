@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Builds what changed (the Rust extension the game loads) and starts the game — named after the original
-# iafjets.exe. Without game data it starts the setup wizard (./setup). Extra arguments go to the game (after --), e.g. ./iafjets --mission 311
+# iafjets.exe. Without game data it starts the setup wizard (./setup). Extra arguments go to the game (after --), e.g. ./iafjets --mission 311.
+# IAF_SCENE=res://… starts that scene instead of the main menu (./mission-editor).
 set -euo pipefail
 cd "$(dirname "$0")"
 [[ -d assets/converted ]] || { echo "No game data yet: starting the setup wizard (./setup)." >&2; exec ./setup; }
@@ -14,4 +15,4 @@ fi
 [[ -f game/.godot/extension_list.cfg ]] || "$godot" --headless --path game --import >/dev/null 2>&1
 # macOS: SDL's GameController (MFi) backend hides sticks like the T.Flight Hotas X from Godot; plain IOKit HID sees them.
 [[ $(uname) == Darwin ]] && export SDL_JOYSTICK_MFI=${SDL_JOYSTICK_MFI:-0}
-exec "$godot" --path game -- "$@"
+exec "$godot" --path game ${IAF_SCENE:+"$IAF_SCENE"} -- "$@"

@@ -16,6 +16,7 @@ Run from the repo root.
 ./setup                                                       # the setup wizard (docs/setup.md); re-run to add / redo
 tools/setup-cli.sh [--patch v1.1.exe] "/path/to/Jane's IAF.iso"   # one-time: extract + convert everything into assets/
 ./iafjets [-- --mission 311]                                  # builds the iaf-godot extension (release) and starts the game
+./mission-editor                                              # the mission editor (docs/mission-editor.md), same build as ./iafjets
 cargo test -q --workspace                                     # Rust tests (data/python3-dependent ones skip with a message)
 cargo test -q -p iaf-flight --test validation <name>          # one Rust test
 tools/test.sh                                                 # everything: cargo tests + every tests/godot/test_*.gd headless
@@ -49,7 +50,8 @@ python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded 
 - `crates/iaf-tools` — CLIs used by `tools/setup-cli.sh`: `iaf-extract` (ISO → `assets/install`), `iaf-patch` (v1.1 RTPatch
   without Windows), `iaf-convert` (cockpits, menus, keys, missions, aircraft → `assets/converted`, plus
   `plane-describe` / `plane-checklist`), `iaf-terrain`, `iaf-imagery`, `iaf-import-pack`, `iaf-mission-report`;
-  the library also builds the Mission Creator's mission 0x29a (`mission_creator.rs`).
+  the library also builds the Mission Creator's mission 0x29a (`mission_creator.rs`) and holds the mission editor's
+  edits and checks (`mission_edit.rs`, docs/mission-editor.md).
   The setup-path bins are argument parsers over library modules (`convert`, `extract`, `patch`, `pack`, `terrain`,
   `imagery_run`): each entry point takes a `progress::Progress` and a cancel flag.
 - `crates/iaf-setup` — the setup pipeline in-process (docs/setup.md): `plan` (setup-cli.sh's steps with their
@@ -67,12 +69,12 @@ python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded 
   `eo_sensor.gd`, `harm_sensor.gd`; the modes in `player_weapons.gd`) keep the old interface and mirror the state.
 - `crates/iaf-godot` — gdext bridge: `IafFlight` (`flight.rs`), `IafRadar` (`radar.rs`), `IafRounds` / `IafLcos`
   (`gun.rs`), `IafMissile` / `IafGuided` (`missile.rs`), `IafSeeker` / `IafMrmSight` (`sight.rs`), `IafStores`
-  (`stores.rs`), `IafBomb` / `IafModes` (`bombs.rs`), `IafRwr` (`rwr.rs`), `IafEo` / `IafHarm` (`sensors.rs`), `IafRelease` / `IafRipple` (`release.rs`), `IafRealHud` (`real_hud.rs`), `IafFlightController` (`fctrl.rs`, the AWACS and radio reports), `IafSetup` (`setup.rs`, the setup wizard's pipeline), `IafSurface` (`surface.rs`, terraintype.dat rasterised for the terrain shader), `IafHeights` (`heights.rs`), `IafImode` (`imode.rs`), `IafBases` (`bases.rs`, the base move), `IafMcr` (`mcr.rs`, the Mission Creator), `IafAutorun` (`autorun.rs`, the CD launcher);
+  (`stores.rs`), `IafBomb` / `IafModes` (`bombs.rs`), `IafRwr` (`rwr.rs`), `IafEo` / `IafHarm` (`sensors.rs`), `IafRelease` / `IafRipple` (`release.rs`), `IafRealHud` (`real_hud.rs`), `IafFlightController` (`fctrl.rs`, the AWACS and radio reports), `IafSetup` (`setup.rs`, the setup wizard's pipeline), `IafSurface` (`surface.rs`, terraintype.dat rasterised for the terrain shader), `IafHeights` (`heights.rs`), `IafImode` (`imode.rs`), `IafBases` (`bases.rs`, the base move), `IafMcr` (`mcr.rs`, the Mission Creator), `IafMissionEdit` (`mission_edit.rs`, the mission editor), `IafAutorun` (`autorun.rs`, the CD launcher);
   `world.rs` converts the weapons' world frame. Handles the frame conversion: FM is ENU (east, north, up); Godot is
   X east, Y up, Z south. Loaded via `game/iaf.gdextension`.
 - `game/` — Godot project. Main scene `menu/front_end.tscn`; autoloads `Settings` (`settings.gd`) and `Joystick`.
   Flight scene is `terrain/terrain_view.tscn`. Subdirs by system: `aircraft`, `ai`, `cockpit`, `weapons` (radar, RWR,
-  stores), `mission`, `menu`, `audio`, `controls`, `terrain`. Assets are read at run time from
+  stores), `mission`, `menu`, `audio`, `controls`, `terrain`, `editor` (the mission editor, `./mission-editor`). Assets are read at run time from
   `res://../assets/converted/...` and `assets/install`.
 - `tests/godot/` — headless tests extending `tests/godot/base.gd` (`check()`, `frames()`, `start_mission(id)`).
 
