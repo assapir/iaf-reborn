@@ -53,7 +53,6 @@ Each row: Original = the 1998 game; Ours = this port, for everyone.
 | Credits roll (§4.1 front-end.md) | credits.trx only; scroll step `__ftol(0.5 + dt/16)` px and palette steps of ≥ 8 ms per loop pass (so the speed followed the loop / flip rate) | our lines (project, author, source, licence) and the converted imagery layers' credits roll before the original's (game/menu/credits_ours.json, docs/credits.md); scroll a steady 1 px per 16 ms, fades a steady 400 ms | crediting the port and the CC BY imagery; smooth rendering | credits_roll.gd |
 | Trail blending | global blend state (UNCERTAIN) | alpha blend, crossed quads as the original | rendering | trails.gd |
 | Damaged stick (hydraulics 18 / flight control 24) | scaled in the stick motion, so it applies at the next stick event (a keyboard: the next key change) | the host sends the stick every frame, so it applies at the next frame | per-frame input (same as the keyboard-edge row) | aircraft.rs `set_controls` |
-| AI systems damage | the pick has AI rules (no 2, 3, 5, 7), the AI's reaction is not traced | AI jets take no systems damage | untraced | damage.md §5.3 |
 | Runway numbers | two mirrored "33" at Ramat David | re-flipped at conversion | 1998 art error | formats/ptt.md |
 | In-flight subtitles in Hebrew mode | — (no Hebrew exists) | English | user decision | — |
 | Autopilot leaving NAV | throttle re-sync (`FUN_005a29d0`) gated on a vehicle getter == 0x1e (not traced) | re-sync (0.74 airborne, no throttle axis) on every exit from NAV | gate not traced | autopilot.md §1, controls/autopilot.gd |
@@ -86,13 +85,13 @@ Each row: Original = the 1998 game; Ours = this port, for everyone.
 | AI watch-ground line of sight | terrain ray `0x4020d0` | 8 terrain samples along the segment | ray not decoded | ai.md §8.4 |
 | AI landing pattern height | terrain height at the lineup point | the lineup point's iaf.ibx altitude | the loop runs without terrain access (they agree to a few m) | ai.md §8.3 |
 | FM data per type, Flight data = Real | Kfir and Mirage share one parameter block, loaded once per game session: the second type flies on the first's data | Real: each jet its own section (Original: shared, as the original) | original bug, fixed with the Real set (user decision) | flight-model.md §1 |
-| Radio reports | AWACS contact calls, airborne / landed / crashed / kill reports | not yet (waypoint and eject reports, tower, wingman commands are built) | need the take-off / landing loop hooks and the combat job | radio.md §4 |
 | Mission voices and radio phrases | one phrase channel: the mission voices (`FUN_004c5470(wav, 0, 1)`) queue with the radio's word wavs | the radio queues on the phrase channel; the mission voices keep their own player (a new one replaces the old) and can overlap a radio phrase | the voice player predates the radio; the channel policy is UNCERTAIN | radio.md §1, sound.md §2 |
 | Tower: hangar −1 | `5521c0` returns −1 beyond 1000 m and the "at the hangar" test reads the entry before the table (uninitialised) | no hangar | undefined memory | radio.md §2 |
 | Decoy look | missFLR sprite (blend state not traced); chaff bursts and flare smoke once per rendered frame | the flare additive; bursts and smoke at a fixed 30 Hz | rendering; same density at any frame rate | decoy_fx.gd, weapons.md §10 |
 | Missile chasing a decoy that ended | it keeps chasing the decoy's pool object (which a later decoy of the ring reuses: UNCERTAIN) | the decoy's end point | pool reuse not traced | player_weapons.gd `target_state` |
 | Radar MAP picture | isr.bmp sampled per pixel, nearest, the centre truncated to whole isr pixels (`FUN_0053b0a0`) | the 4× isr art as a textured polygon (smooth scrolling and turning), same window, scale, centre and green channel | rendering | mfd.gd `map_picture`, mfd.md §4 |
 | EO (FLIR / TV) picture | the 3D engine's viewport 1 at the MFD's 112 × 112 screen px, colour | a SubViewport camera of the same world at the display's on-screen size (same 50° / zoom, eye, attitude, roll 0), only while page 5 / 6 shows with the cockpit drawn | rendering | mfd.md "FLIR (6), TV (5)", terrain_view.gd `_update_eo_view` |
+| Full-screen weapon MFD (Z, v1.1) | the GDI full-screen renderer (`FullScreenRender.cpp`, loader `FUN_00522250`) in the stock ANSI_VAR_FONT | the same layers and art (`fs_mfd.gd`); the mouse cursor stays visible over the picture; ANSI_VAR_FONT drawn as Arial 13 px; the whole frame redrawn every frame | Godot has no GDI stock font; per-frame drawing | mfd.md "Full-screen weapon MFD" |
 | EO camera eye | the store's pylon position | the jet's position | pylon offsets are metres | player_weapons.gd `_eo_from` |
 | EO centre point | the depth pick of the picture's centre pixel (terrain, buildings, units: what is drawn there) | the nearer of the terrain under the line of sight (ray-marched, 2 % steps, 8 halvings, 100 km) and the shown units' drawn model bounds (world-axis boxes, ray-tested) | the pick is a renderer read-back | player_weapons.gd `_eo_update`, eo.rs `unit_pick` |
 | NAV page distance | 3-D to the waypoint | horizontal (our route has no waypoint heights) | data | mfd.gd `_draw_nav` |
@@ -103,7 +102,7 @@ Each row: Original = the 1998 game; Ours = this port, for everyone.
 | Pilot list box during panel slides | a frame child created after the slide-in (destroy order on leaving not traced) | drawn only while the left panel is fully in | order untraced | pilot_records.gd |
 | Pilot list / Dossier details | the scrollbar's track click page step not traced; an empty pilot list never occurs | track click pages 11 rows (as Arming / Controls); the last pilot is kept when the list is written even if blank | untraced / edge case | pilot_records.gd, pilots.gd |
 | Our keys Ctrl+F1 / F2 / F12 | — (no table record uses them) | quit box / cockpit ↔ external / info line (were on Esc, C, F2, F12 before those commands were built) | user decision | controls.md |
-| FlyTSD (Esc) | Fly can switch to another formation's aircraft; Visit; Ctrl+P there; units probably live | Fly / Esc / BACK return to your jet; Visit does nothing; no pause there; units at their mission start | not built (taking over another jet; Visit untraced) | views.md §1 |
+| FlyTSD Visit | sets the visual-record flag +8 of the unit and of the player's jet and clears the cockpit part's (UNCERTAIN: "drawn from outside") | no such flags: every model is drawn | no visual records in ours | views.md §1 |
 | Views: unknown conventions | — | fly-by offset axes (x right, y forward, z up), orbit signs, object size = largest scaled-model dimension, visual lock at the screen centre | UNCERTAIN in the trace | views.md §4.4 |
 | HUD-only view (F1 twice) | viewport grows to 480 rows (projection centre moves); the HUD drawn at scale 2 around (320, 240) (`FUN_00530b70` case 5) | the cockpit projection kept, no panel / MFDs drawn, the HUD at the cockpit scale and place | keeps the HUD registered | views.md §4.4 |
 | Cockpit zoom keys | 20 / 21 enter free look with no motion (the zoom only sets culling) | our cockpit art zoom, one step per press | ours (kept) | views.md §4.4 |
@@ -119,25 +118,11 @@ Each row: Original = the 1998 game; Ours = this port, for everyone.
 Each entry names the switch and where it lives, then the difference: "Original: X. Ours, with the switch: Y."
 
 **Preferences → Physics**
-- **"Better physics" options and original-bug fixes** (falling-jet heading, tougher enemies on easy AI levels):
-  see flight-model.md §10, damage.md.
-  - **"Ground effect"** (`ground_effect`). Original: no ground effect. Ours, with the switch: near the ground less
-    induced drag and more lift at the same α, so the jet floats in the flare and lands longer.
-  - **"Nose dips under braking"** (`brake_pitch`). Original: on the wheels the jet stays level whatever the brakes
-    or thrust do. Ours, with the switch: braking dips the nose up to 2°, thrust at brake release squats it up to 1°,
-    and it eases back level within about a second — flight-model.md §10.
-  - **"Unbalanced stores roll the jet"** (`asymmetric_stores`). Original: unbalanced stores only bias the sideslip
-    through their drag; their weight has no lateral effect. Ours, with the switch: the stores' lateral moment × load
-    factor rolls the jet toward the heavy wing, and the pilot holds it with stick (the original has no roll trim).
-  - **"Wind and turbulence"** (`wind`). Original: still air; the mission's wind (misc 0x46a) is only spoken by the
-    tower, and NO WIND has no effect but the score. Ours, with the switch: the tower's wind, from the mission's misc
-    0x474 direction, moves the air mass (airspeed vs ground speed, drift, crab on a crosswind approach), with light
-    gusts strongest below 300 m; NO WIND calms it — flight-model.md §10. The AI jets fly in the same wind, the
-    autopilots crab, and bombs drift with a wind-aware CCIP — weapons.md §9.5.
-  - **"Engine spool-up per real engine"** (`engine_spool`). Original: the thrust follows the throttle at once; only
-    the RPM gauge ramps (15 %/s) and the afterburner waits for that ramp. Ours, with the switch: the player's thrust
-    and RPM gauge follow the jet's real engine (core lag, slower at low RPM, then the afterburner's light-off and
-    fill; per-type table `spool::ENGINES`) — flight-model.md §10.2.
+- **"Better physics"** (17 flight-model options, `Settings.BETTER`): each option's original and ours are in
+  flight-model.md §10 (engine spool: §10.2). Among them: ground effect (the flare floats), nose dips under braking,
+  unbalanced stores roll the jet, wind and turbulence (the tower's wind moves the air mass, the AI jets and the bombs
+  too, weapons.md §9.5; NO WIND calms it), engine spool-up per real engine.
+- **Original-bug fixes:** falling jets keep their heading and no tougher enemies on easy AI levels (damage.md), and the four below.
 - **"Locked enemies know who locked them"** (`fix_lock_threat`). Original: the player's radar lock writes the target
   itself into the AI target's threat (brain+0x7c). Ours, with the switch: the lock makes the player the target's
   threat — rwr.md §2.
@@ -155,7 +140,7 @@ Each entry names the switch and where it lives, then the difference: "Original: 
 
 **Flight data = Real**
 - **RWR display.** Original: the display copies the first `count` slots without compacting, so an entry can vanish
-  after a removal. Ours, with the switch: it lists every used slot — rwr.md.
+  after a removal. Ours, with the switch: it lists every used slot — rwr.md §1.
 - **Autopilot landing gear.** Original: the NAV landing lowers the gear once, at step 7, and the lever refuses it
   above 300 kt, so a jet still faster there lands on its belly. Ours, with the switch (and always on the F-35I): the
   step before (LW2) holds wings level at idle until 292 kt, so the gear comes down — autopilot.md §2.3.
@@ -205,8 +190,8 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     a needle shows the vertical speed.
   - **Warning lamps** (`warning_lamps`). Original: the F-16's FLCS and TO/LDG CONFIG lamps never light. Better: FLCS
     lights with hydraulics or flight-control damage (18 / 24), TO/LDG CONFIG on an approach with the gear not down.
-  - **RPM gauge** (`engine_rpm`). Original: clamp(rpm, 0.6, 0.97). Better: the FM's RPM ramp itself (0 with the engine
-    off, 60 % idle, 100 % military, the spool-up at 15 %/s).
+  - **RPM gauge** (`engine_rpm`). Original: clamp(rpm, 0.6, 0.97). Better: the FM's RPM itself (0 with the engine off,
+    60 % idle, 100 % military; the 15 %/s ramp, or the real engine's spool with Physics `engine_spool`).
   - **Engine temperature gauge** (`engine_temp`). Original: clamp(rpm, 0.5, 0.8). Better: a first-order temperature
     model per engine (°C / 1000; constants inferred), hotter with the throttle and the AB, cooling with time.
   - **Throttle gauge** (`throttle_ab`). Original: rpm, so military and AB both read 100 %. Better: 1.1 / 1.2 in AB 1 /
@@ -269,7 +254,7 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   the missing `NumNNN` is silent. The original bases' runways all have install clips, so Original never plays ours.
 - **Additions the original does not have:** flight info line (ORIGINAL, or a short tag per switch not at its original setting — FLT, WPN, HUD:<style>, 1:1, CKPT+, PHYS+ — then the position, speed, G, throttle, fps), blackbox, language, Window (framed / full screen),
   "F-35I replaces" (the F-35I flies from a Jet list button, docs/f35i.md), Settings file (export / import the
-  preferences, front_end.gd `_settings_file`). Later: extra sounds, canopy open (docs/roadmap.md).
+  preferences, front_end.gd `_settings_file`). Later: extra sounds (roadmap.md).
   - The F-35I's stations are the real F-35A's (docs/f35i.md §3.1). Its outboard wing pylons (stations 1 / 11, the
     AIM-9X's) take the newest AIM-9 the game has, the AIM-9M, and the Python 4.
 - **HUD (Original (1998) / Real)** (references: [real-hud.md](real-hud.md)). Original: the 1998 HUD on every jet.

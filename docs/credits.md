@@ -37,8 +37,8 @@ margins: 70 px on both sides of the 640 px screen.
 
 ## Model credits
 
-Each third-party model carries its full credit next to it; the in-game roll (`credits_ours.json`) shows a line for
-each.
+Each third-party model or picture carries its full credit next to it; the roll (`credits_ours.json`) shows a line
+for each.
 
 | Model | Based on | Licence | Full credit |
 |---|---|---|---|
@@ -63,7 +63,7 @@ This section gives the CC BY (Creative Commons Attribution) credit (docs/imagery
 
 ## Testing
 
-* `tests/godot/test_credits.gd` (run by `tools/test.sh`) checks:
+* `tests/godot/test_credits.gd` checks:
   - the RTF (Rich Text Format) reader;
   - QUIT → msg 7 → Yes → the roll → exit;
   - that our lines and the imagery credits come before the original's;
@@ -75,7 +75,8 @@ This section gives the CC BY (Creative Commons Attribution) credit (docs/imagery
 * To look at the roll, take a real-render screenshot. `CREDITS_Y` sets our first line's distance from the top in px
   (default 40):
   ```sh
-  CREDITS_SHOT=/tmp/credits.png godot --path game -s ../tests/godot/_credits_shot.gd
-  CREDITS_LANG=he CREDITS_SHOT=/tmp/credits_he.png godot --path game -s ../tests/godot/_credits_shot.gd
+  tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 CREDITS_SHOT=/tmp/credits.png -- \
+      --log-file /tmp/credits.log --path game -s ../tests/godot/_credits_shot.gd
   ```
+  `CREDITS_LANG=he` takes the Hebrew roll.
 * In the game: run `./iafjets`, then QUIT and Yes.

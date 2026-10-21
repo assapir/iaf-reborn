@@ -35,7 +35,7 @@ python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded 
   `tools/test.sh`, `guide_shots.sh` and `mission_sweep.sh` already do both; the project keeps 30 logs as a safety net.
 - A Godot test passes only if it prints `RESULT PASS` and prints zero `SCRIPT ERROR` lines.
 - Godot tests need the converted assets, so they run locally only (no hosted CI).
-- On a fresh clone `game/.godot` is missing. Run `godot --headless --path game --import` once, or the extension won't
+- On a fresh clone Godot's import folder (`.godot` in `game/`) is missing. Run `godot --headless --path game --import` once, or the extension won't
   load (`./iafjets` does this for you).
 - `tests/godot/_*_shot.gd` are real-render screenshot helpers (usage in each header). `tools/test.sh` skips them.
 - Run every real-render Godot process (screenshots, benches) through `tools/godot_window.sh VAR=value … -- <godot args>`:
@@ -45,27 +45,29 @@ python3 -I tools/flight_timeline.py <flight.jsonl> [--html f.html] # a recorded 
 ## Architecture
 
 - `crates/iaf-formats` — parsers for the original file formats (ISO9660, PTT terrain, terraintype.dat, X models, ESA, EMF, menu, RTF,
-  LZO, PE resources, the CD launcher's .rgn…). Format notes in `docs/formats/`.
+  LZO, PE resources, the CD launcher's .rgn, the Mission Creator's .mcr…). Format notes in `docs/formats/`.
 - `crates/iaf-tools` — CLIs used by `tools/setup-cli.sh`: `iaf-extract` (ISO → `assets/install`), `iaf-patch` (v1.1 RTPatch
   without Windows), `iaf-convert` (cockpits, menus, keys, missions, aircraft → `assets/converted`, plus
-  `plane-describe` / `plane-checklist`), `iaf-terrain`, `iaf-imagery`, `iaf-import-pack`, `iaf-mission-report`.
+  `plane-describe` / `plane-checklist`), `iaf-terrain`, `iaf-imagery`, `iaf-import-pack`, `iaf-mission-report`;
+  the library also builds the Mission Creator's mission 0x29a (`mission_creator.rs`).
   The setup-path bins are argument parsers over library modules (`convert`, `extract`, `patch`, `pack`, `terrain`,
   `imagery_run`): each entry point takes a `progress::Progress` and a cancel flag.
 - `crates/iaf-setup` — the setup pipeline in-process (docs/setup.md): `plan` (setup-cli.sh's steps with their
   dependencies), `run` (a dependency graph, stamps skip unchanged steps), the input checks; CLI `iaf-setup` for testing.
 - `crates/iaf-flight` — the original flight model and AI autopilot, pure Rust, re-implemented from
-  `docs/flight-model.md` / `docs/autopilot.md`. Tests in `crates/iaf-flight/tests/` (validation against the envelope
+  `docs/flight-model.md` / `docs/autopilot.md`; also the engine spool (`spool.rs`) and World scale Real's base move
+  (`base_move.rs`, docs/world-scale.md). Tests in `crates/iaf-flight/tests/` (validation against the envelope
   reference `tools/envelope_ref.py`).
 - `crates/iaf-avionics` — the player's avionics, pure Rust: the radar (`radar.rs`), the gun / rounds / LCOS
   (`gun.rs`), the homing / guided missiles (`missile.rs`, `guided.rs`), the IR seeker and MRM sight (`sight.rs`),
-  the radio controller (`fctrl.rs`: AWACS contact calls, kill / airborne / landed reports), the stores (`stores.rs`), bombs / CCIP (`bombs.rs`), the master / HUD modes (`master.rs`), the RWR (`rwr.rs`),
+  the radio controller (`fctrl.rs`: AWACS contact calls, kill / airborne / landed reports), the stores (`stores.rs`), bombs / CCIP (`bombs.rs`), the master / HUD modes (`master.rs`), the RWR (`rwr.rs`), I-mode (`imode.rs`), the terrain height field (`heights.rs`),
   the EO (`eo.rs`) and HARM (`harm.rs`) sensors, the release rules (`release.rs`), the HUD's weapon values and range
-  scale (`hud.rs`) and the per-jet Real HUD symbology (`real_hud/`). Their GDScript fronts in `game/weapons/` (`radar.gd`,
+  scale (`hud.rs`), the per-jet Real HUD symbology (`real_hud/`) and the F-16's ground-avoidance cues (`gaaf.rs`). Their GDScript fronts in `game/weapons/` (`radar.gd`,
   `gun_rounds.gd`, `missile.gd`, `guided.gd`, `ir_seeker.gd`, `mrm_sight.gd`, `stores.gd`, `bombs.gd`, `rwr.gd`,
   `eo_sensor.gd`, `harm_sensor.gd`; the modes in `player_weapons.gd`) keep the old interface and mirror the state.
 - `crates/iaf-godot` — gdext bridge: `IafFlight` (`flight.rs`), `IafRadar` (`radar.rs`), `IafRounds` / `IafLcos`
   (`gun.rs`), `IafMissile` / `IafGuided` (`missile.rs`), `IafSeeker` / `IafMrmSight` (`sight.rs`), `IafStores`
-  (`stores.rs`), `IafBomb` / `IafModes` (`bombs.rs`), `IafRwr` (`rwr.rs`), `IafEo` / `IafHarm` (`sensors.rs`), `IafRelease` / `IafRipple` (`release.rs`), `IafRealHud` (`real_hud.rs`), `IafFlightController` (`fctrl.rs`, the AWACS and radio reports), `IafSetup` (`setup.rs`, the setup wizard's pipeline), `IafSurface` (`surface.rs`, terraintype.dat rasterised for the terrain shader);
+  (`stores.rs`), `IafBomb` / `IafModes` (`bombs.rs`), `IafRwr` (`rwr.rs`), `IafEo` / `IafHarm` (`sensors.rs`), `IafRelease` / `IafRipple` (`release.rs`), `IafRealHud` (`real_hud.rs`), `IafFlightController` (`fctrl.rs`, the AWACS and radio reports), `IafSetup` (`setup.rs`, the setup wizard's pipeline), `IafSurface` (`surface.rs`, terraintype.dat rasterised for the terrain shader), `IafHeights` (`heights.rs`), `IafImode` (`imode.rs`), `IafBases` (`bases.rs`, the base move), `IafMcr` (`mcr.rs`, the Mission Creator), `IafAutorun` (`autorun.rs`, the CD launcher);
   `world.rs` converts the weapons' world frame. Handles the frame conversion: FM is ENU (east, north, up); Godot is
   X east, Y up, Z south. Loaded via `game/iaf.gdextension`.
 - `game/` — Godot project. Main scene `menu/front_end.tscn`; autoloads `Settings` (`settings.gd`) and `Joystick`.

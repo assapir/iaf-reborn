@@ -1,44 +1,43 @@
 # iaf-reborn
 
-A native (Linux and macOS) re-implementation of the engine for **Jane's IAF: Israeli Air Force** (1998).
+A native (Linux and macOS) re-implementation of the engine for **Jane's IAF: Israeli Air Force** (1998). It loads the
+game data from **your own copy** of the original game and renders it with modern graphics.
 
-The engine loads the game data from **your own copy** of the original game (ISO + v1.1 patch) and renders it with
-modern graphics.
+**You need your own copy of the original game (the CD / ISO).** This repository holds no original game assets or
+data. Setup extracts and converts everything the engine uses on your machine, from your ISO.
 
-**You need your own copy of the original game (the CD / ISO).** No original game assets or data are
-included in this repository. Setup extracts and converts everything the engine uses on your machine, from your ISO.
-
-Platforms: **Linux** (primary), **macOS** (runs; less tested).
-
-## Status
-
-See [docs/status.md](docs/status.md) for what works, known gaps and the plan.
+The game plays as the original v1.1 by default; every improvement is an opt-in switch
+([docs/deviations.md](docs/deviations.md)). What works and what is open: [docs/status.md](docs/status.md).
 
 ## Layout
 
-- `crates/` – Rust workspace: file-format parsers, extraction/conversion tools, flight model, Godot extension
-- `game/` – Godot 4 project
-- `docs/formats/` – reverse-engineered file format notes
+- `crates/` – Rust workspace: file-format parsers, extraction / conversion tools, setup, flight model, avionics,
+  Godot extension
+- `game/` – Godot 4.7 project
+- `docs/` – reverse-engineering notes per system; `docs/formats/` – file formats
 - `assets/` – generated from your ISO (git-ignored)
 
 ## Requirements
 
-### What you need from the original game
+### From the original game
 
-- `Jane's IAF.iso` — the original CD image (English, v1.0).
+- `Jane's IAF.iso` — the original English CD image (v1.0).
 - _(optional, recommended)_ the official v1.1 patch (the WinZip self-extractor holding `iafp1_1.exe`). Setup applies
-  it without Windows, so the game runs on v1.1 data. The engine's logic is always v1.1; without the patch it plays
-  the v1.0 data ([docs/v1.1.md](docs/v1.1.md#v10-data-compatibility)).
+  it without Windows. The engine's logic is always v1.1; without the patch it plays the v1.0 data
+  ([docs/v1.1.md](docs/v1.1.md#v10-data-compatibility)).
+- _(optional)_ the Hebrew CD, or the Hebrew packs `Brief.zip` / `Menu.zip` ([docs/packs.md](docs/packs.md)).
+
+If you do not have them, search the web for the ISO and the Hebrew packs. I trust you.
 
 ### Arch Linux packages
 
-| package                                                            | source | needed for                                                                |
-| ------------------------------------------------------------------ | ------ | ------------------------------------------------------------------------- |
-| `rustup` (then `rustup default stable`)                            | extra  | building the tools (`crates/`)                                            |
-| `godot` (4.7+)                                                     | extra  | running the viewer / game (`game/`)                                       |
-| `vulkan-intel` / `vulkan-radeon` / `nvidia-utils` (match your GPU) | extra  | Vulkan rendering                                                          |
-| `ttf-liberation` (or `ttf-ms-fonts` from AUR for real Arial)         | extra  | menu text (the original uses Arial; Liberation Sans is metric-compatible) |
-| `gdal` _(optional)_                                                | extra  | modern terrain imagery (`tools/setup-cli.sh --imagery …`): fetch, warp, mosaic |
+| package | source | needed for |
+|---|---|---|
+| `rustup` (then `rustup default stable`) | extra | building the tools (`crates/`) |
+| `godot` (4.7) | extra | running the game (`game/`) |
+| `vulkan-intel` / `vulkan-radeon` / `nvidia-utils` (match your GPU) | extra | Vulkan rendering |
+| `ttf-liberation` (or `ttf-ms-fonts` from AUR for real Arial) | extra | menu text (the original uses Arial; Liberation Sans is metric-compatible, [docs/macos.md](docs/macos.md#platform-differences)) |
+| `gdal` _(optional)_ | extra | modern terrain imagery |
 
 ```sh
 sudo pacman -S --needed rustup godot vulkan-intel
@@ -46,191 +45,113 @@ sudo pacman -S --needed gdal          # optional: modern terrain imagery
 rustup default stable
 ```
 
-Handy for development (not required): `ffmpeg` (image/video inspection), `python` (quick format probes).
-
-### macOS
-
-See [docs/macos.md](docs/macos.md).
+macOS: [docs/macos.md](docs/macos.md).
 
 ## Quick start
 
 ```sh
-./setup                                                            # the setup wizard: pick your CD, it does the rest
-./iafjets                                                          # starts the game (without game data: the wizard)
+./setup        # the setup wizard: pick your CD, it does the rest
+./iafjets      # builds what changed and starts the game (without game data: the wizard)
 ```
 
-The wizard (docs/setup.md) checks what the computer has, asks for the English CD image and the optional extras,
-and shows each step's progress. Run it again to add an extra or redo a step: only what changed runs.
+The wizard checks what the computer has, asks for the English CD image and the optional extras, and shows each
+step's progress. Run it again to add an extra or redo a step: only what changed runs. Setup also installs a desktop
+launcher, "Jane's IAF (reborn)", with the original icon.
 
-For scripting, the same steps from a terminal:
+The same steps from a terminal, for scripting:
 
 ```sh
-tools/setup-cli.sh [--patch /path/to/v1.1-patch.exe] [--hebrew-iso /path/to/IAF.Iso] "/path/to/Jane's IAF.iso" [/path/to/Brief.zip /path/to/Menu.zip]
-./iafjets                                                          # builds what changed and starts the game (front end → Training → mission)
-# setup also installs a desktop launcher, "Jane's IAF (reborn)", with the original icon
+tools/setup-cli.sh [--patch v1.1.exe] [--hebrew-iso IAF.Iso] [--imagery sentinel2,mapi2015] "/path/to/Jane's IAF.iso" [Brief.zip Menu.zip]
 ```
 
-`tools/setup-cli.sh` runs the whole pipeline in this order (the script lists each command):
-
-1. extract the ISO;
-2. apply the v1.1 patch;
-3. add the Hebrew packs;
-4. convert cockpits, briefings, menus, keys, missions, aircraft and objects;
-5. convert the terrain (all of map.ptt, ~730 MB);
-6. build the Godot extension.
-
-Options:
-
-- `--patch` (or the `IAF_PATCH` environment variable) takes the downloaded v1.1 update: `iafp1_1.exe` or a bare
-  patch file. Before any conversion, the patched files replace the v1.0 ones in `assets/install`. The originals are
-  kept in `assets/v1.0` and the patch output in `assets/v1.1`. Without `--patch`, setup builds everything from the
-  v1.0 files.
-- The Hebrew packs (optional, docs/packs.md) go on top of the patched English files.
-- `--hebrew-iso` adds the Hebrew CD's startup splash and Graphics page.
-
-Conversion is a one-time step. Re-run it after you update the converters.
-
-The same pipeline also runs in-process (`crates/iaf-setup`, docs/setup.md). It runs only the steps whose inputs
-changed.
+Inputs, steps, stamps and uninstall: [docs/setup.md](docs/setup.md). The tools also run by hand, for example
+`cargo run --release -p iaf-tools --bin iaf-extract -- "/path/to/Jane's IAF.iso" assets/install` (the original "Full
+Install", lower-cased paths) and `… --bin iaf-patch -- apply v1.1.exe assets/install assets/v1.1` (the 41 patched
+files; [docs/formats/rtpatch.md](docs/formats/rtpatch.md)).
 
 Other entry points:
 
+- `./iafjets -- --mission 311`: straight into a mission.
 - `godot --path game res://terrain/terrain_view.tscn`: straight into the air.
 - `godot --path game res://viewer/viewer.tscn`: the model viewer, with hot reload.
 
-## Getting the game data
-
-```sh
-cargo run --release -p iaf-tools --bin iaf-extract -- "/path/to/Jane's IAF.iso" assets/install
-```
-
-This reproduces the original "Full Install" (lower-cased paths) without Windows.
-
-The v1.1 update is applied the same way. `apply` reads the install and writes the 41 updated files to the output
-directory. `tools/setup-cli.sh --patch` runs it and then copies those files over the install. Format notes:
-[docs/formats/rtpatch.md](docs/formats/rtpatch.md).
-
-```sh
-cargo run --release -p iaf-tools --bin iaf-patch -- apply /path/to/v1.1-patch.exe assets/install assets/v1.1
-```
-
-What v1.1 changes against v1.0, and the v1.0 → v1.1 address map: [docs/v1.1.md](docs/v1.1.md).
-
-Use google to find the original game ISO if you do not have them. I trust you. Same for the optional Hebrew packs.
-
 ## Intro videos
 
-At start-up the original game plays `janes.avi` (the Jane's logo) and then `intro.avi` (the opening movie). Our port
-goes straight to the main menu and does not play them. After setup, both files are in `assets/install/resource/avi/`.
-
-They use the Indeo 5 video format. VLC and ffmpeg's `ffplay` play them, for example:
+The original plays `janes.avi` (the Jane's logo) and `intro.avi` (the opening movie) at start-up. Ours goes straight
+to the main menu. After setup both files are in `assets/install/resource/avi/`, in the Indeo 5 format. VLC and
+ffmpeg's `ffplay` play them (QuickTime does not):
 
 ```sh
 ffplay -autoexit assets/install/resource/avi/intro.avi
 ```
 
-QuickTime does not play them.
-
-## Optional packs
-
-Community mods (e.g. Hebrew briefings) can be imported as overlay packs — see [docs/packs.md](docs/packs.md).
-
 ## Terrain imagery data (optional)
 
-The 1998 imagery stays the default. Modern imagery is an opt-in layer per region (Israel / outside Israel), picked on
-Preferences → Graphics → MORE ("Imagery Israel", "Imagery outside Israel"); a choice whose data is not converted is greyed out. Nothing is downloaded unless you ask:
+The 1998 imagery stays the default. Modern imagery is an opt-in layer per region, picked on Preferences → Graphics →
+MORE ("Imagery Israel", "Imagery outside Israel"); a choice whose data is not converted is greyed out. Nothing is
+downloaded unless you ask (the wizard's Extras page, or):
 
 ```sh
-tools/setup-cli.sh --imagery sentinel2                  # alone: only the imagery steps, on an install set up before
-tools/setup-cli.sh --imagery mapi2015-bases             # or several: --imagery sentinel2,mapi2015
+tools/setup-cli.sh --imagery sentinel2          # alone: only the imagery steps, on an install set up before
+tools/setup-cli.sh --imagery mapi2015-bases     # or several: --imagery sentinel2,mapi2015
 ```
 
-| source | region | where from | licence / credit | size | how | folder |
-|---|---|---|---|---|---|---|
-| **Sentinel-2** (ESA WorldCover 2021 S2 RGB composite, 10 m) — `sentinel2` | outside Israel (two looks: 1998 colours, modern colours) | `https://esa-worldcover-s2.s3.eu-central-1.amazonaws.com/rgbnir/2021/` (public S3, HTTP range reads through GDAL) | CC BY 4.0 — "Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium" (in the credits roll on Quit) | ≈ 28 GB of range reads (setup prints the estimate and asks first), ≈ 2.5 GB on disk for both looks, ≈ 1 h 40 min | automatic: fetch + convert, resumable (needs `gdal`) | `assets/converted/imagery/sentinel2`, `…/sentinel2_modern` |
-| **Survey of Israel 2015 aerial photo, 2 m** — `mapi2015` (all 79 sheets), `mapi2015-bases` (the sheets around the airbases) | Israel, West Bank, Golan (two looks: 1998 colours, modern colours; at 2.5 m per pixel) | data.gov.il, one ZIP per 1:50 000 sheet; links in [tools/imagery/mapi2015_sheets.tsv](tools/imagery/mapi2015_sheets.tsv) | data.gov.il open licence (copy, modify, redistribute; credit) — "© Survey of Israel 2015, via data.gov.il" | ≈ 250 MB per sheet: ≈ 20 GB all, ≈ 2 GB bases | manual-assisted: [tools/imagery/fetch-mapi2015-curl.sh](tools/imagery/fetch-mapi2015-curl.sh) downloads them with curl and the bot-challenge token Firefox earned on data.gov.il (open one sheet link in Firefox first); without one it falls back to [fetch-mapi2015.sh](tools/imagery/fetch-mapi2015.sh), which opens the links in your browser and moves the finished ZIPs; then converts them (needs `gdal`; ≈ 1 hour for all sheets on 6 threads, ≈ 4.7 GB on disk for both looks; re-run after adding sheets: only what they touch is redone) | `assets/source/imagery/mapi2015` (sheets), `assets/converted/imagery/mapi2015`, `…/mapi2015_modern` |
-| _coming:_ **SPOT 5** (CNES SPOT World Heritage, 5 m pan + 10 m colour) | outside Israel (maybe Israel too) | GEODES (`https://geodes-portal.cnes.fr/api/stac/search`), free CNES account | Etalab Open Licence 2.0 — "© CNES, distribution SWH / Airbus DS" | ≈ 20–40 GB | not yet (needs a free CNES account and orthorectification) | — |
+Each source comes in two looks: 1998 colours and modern colours.
 
-Pipeline and how to run it by hand: [docs/imagery.md](docs/imagery.md); the warp to the game frame:
-[docs/georef.md](docs/georef.md) (`iaf-terrain geo <points.json> <X> <Y>` → lat lon, `iaf-terrain game <points.json> <lat> <lon>` →
-engine metres X Y, with `crates/iaf-tools/data/georef_points.json`); every source we checked and why: [docs/imagery-sources.md](docs/imagery-sources.md).
+| source | region | where from | licence / credit | size | how |
+|---|---|---|---|---|---|
+| **Sentinel-2** (ESA WorldCover 2021 S2 RGB composite, 10 m) — `sentinel2` | outside Israel | `https://esa-worldcover-s2.s3.eu-central-1.amazonaws.com/rgbnir/2021/` (public S3, HTTP range reads through GDAL) | CC BY 4.0 — "Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium" | ≈ 28 GB of range reads (setup prints the estimate and asks first), ≈ 2.5 GB on disk, ≈ 1 h 40 min | automatic, resumable (needs `gdal`) |
+| **Survey of Israel 2015 aerial photo, 2 m** — `mapi2015` (all 79 sheets), `mapi2015-bases` (the sheets around the airbases) | Israel, West Bank, Golan (at 2.5 m per pixel) | data.gov.il, one ZIP per 1:50 000 sheet ([tools/imagery/mapi2015_sheets.tsv](tools/imagery/mapi2015_sheets.tsv)) | data.gov.il open licence — "© Survey of Israel 2015, via data.gov.il" | ≈ 250 MB per sheet: ≈ 20 GB all, ≈ 2 GB bases; ≈ 4.7 GB on disk; ≈ 1 h to convert all on 6 threads | manual-assisted: [fetch-mapi2015-curl.sh](tools/imagery/fetch-mapi2015-curl.sh) downloads with curl and the bot-challenge token Firefox earned on data.gov.il (open one sheet link in Firefox first); without one, [fetch-mapi2015.sh](tools/imagery/fetch-mapi2015.sh) opens the links in your browser and moves the finished ZIPs; then converts (needs `gdal`; after adding sheets only what they touch is redone) |
+| _coming:_ **SPOT 5** (CNES SPOT World Heritage, 5 m pan + 10 m colour) | outside Israel (maybe Israel too) | GEODES (`https://geodes-portal.cnes.fr/api/stac/search`), free CNES account | Etalab Open Licence 2.0 — "© CNES, distribution SWH / Airbus DS" | ≈ 20–40 GB | not yet (needs a free CNES account and orthorectification) |
 
-## Flying (the original key table)
+The credits roll on Quit shows the converted layers' credits. Pipeline, folders and running by hand:
+[docs/imagery.md](docs/imagery.md); the warp to the game frame: [docs/georef.md](docs/georef.md); every source checked
+and why: [docs/imagery-sources.md](docs/imagery-sources.md).
 
-Every key comes from the original game's own key table (converted from `iafjets.exe`); you can
-rebind them on **Preferences → Keyboard** (the original Controls page). The full list of the 117
-original commands, and which ones work yet, is in [docs/controls.md](docs/controls.md).
+## Flying
 
-| key (default)  | action                                                                    |
-| -------------- | ------------------------------------------------------------------------- |
-| arrows         | stick (↑ forward = nose down, ↓ pull), sprung; ←/→ steer the nose wheel on the ground |
-| Numpad 0 / Numpad . | rudder (ignored on the ground, as in the original)                   |
-| 1–8            | throttle presets idle, 65, 70, 80, 90 %, military, AB1, AB2 (throttle 0 / 0.10 / 0.19 / 0.38 / 0.56 / 0.74 / 0.78 / 1.0); **1 starts the engine** |
-| 0 / 9          | throttle +/− 5 % RPM                                                      |
-| G / F / B      | gear / flaps / brakes (wheel brakes on the ground, speed brake in the air) |
-| E (×3)         | eject: press three times                                                  |
-| T / D          | MFD: TSD / damage page                                                    |
-| Q / R / S      | radar: cycle mode / A-A ↔ A-G / standby                                   |
-| . / ,          | radar range + / −                                                         |
-| W, Shift+W     | next / previous waypoint                                                  |
-| H              | HUD colour                                                                |
-| F1 / F10       | cockpit / external (chase) view                                           |
-| = / − (Numpad + / −) | cockpit zoom                                                        |
-| Ctrl+Q         | quit mission? (debrief)                                                   |
-| Ctrl+P / Ctrl+O | pause / On-The-Fly menu                                                  |
-| Esc            | tactical display (FlyTSD) and back; closes the menu                       |
-| C / Ctrl+C     | time compression x2 / x4 / x1, normal time                                |
-| Ctrl+M         | mute                                                                      |
+Every key comes from the original game's key table (converted from `iafjets.exe`). Rebind them on **Preferences →
+Keyboard**. All 117 original commands and our own keys: [docs/controls.md](docs/controls.md).
 
-Our own keys, added to the original set (see docs/controls.md): **Ctrl+F1** quit mission?, **Ctrl+F2** cockpit ↔
-external, **Ctrl+F12** flight-info line, **V** / **PgUp** / **PgDn** panel, mouse wheel zoom, RMB drag orbits the
-external view.
+| key (default) | action |
+|---|---|
+| arrows | stick (↑ forward = nose down, ↓ pull), sprung; ←/→ steer the nose wheel on the ground |
+| Numpad 0 / Numpad . | rudder (ignored on the ground, as in the original) |
+| 1–8 | throttle presets idle, 65, 70, 80, 90 %, military, AB1, AB2; **1 starts the engine** |
+| 0 / 9 | throttle +/− 5 % RPM |
+| G / F / B | gear / flaps / brakes (wheel brakes on the ground, speed brake in the air) |
+| A | autopilot |
+| E (×3) | eject: press three times |
+| T / D | MFD: TSD / damage page |
+| Q / R / S | radar: cycle mode / A-A ↔ A-G / standby |
+| . / , | radar range + / − |
+| W, Shift+W | next / previous waypoint |
+| H | HUD colour |
+| F1 / F10 | cockpit / external (chase) view |
+| = / − (Numpad + / −) | cockpit zoom |
+| Ctrl+Q | quit mission? (debrief) |
+| Ctrl+P / Ctrl+O | pause / On-The-Fly menu |
+| Esc | tactical display (FlyTSD) and back; closes the menu |
+| C / Ctrl+C | time compression x2 / x4 / x1, normal time |
+| Ctrl+M | mute |
 
-### Joystick, throttle and pedals
+Our own keys: **Ctrl+F1** quit mission?, **Ctrl+F2** cockpit ↔ external, **Ctrl+F12** flight-info line, **V** /
+**PgUp** / **PgDn** panel, mouse wheel zoom, right-drag orbits the external view.
 
-One joystick (the first one connected; plug it in any time) works as in the original. No extra packages: Godot
-reads it through SDL. Set it up on **Preferences → Devices**:
-
-* **FLIGHT CONTROLS: JOYSTICK** (the default) — the stick flies the jet and the hat is the snap views; the arrow
-  keys are ignored while a joystick is connected (as in the original). KEYBOARD = arrows again.
-* **THROTTLE: JOYSTICK** — the throttle lever; the 1–8 / 0 / 9 throttle keys are then ignored.
-* **RUDDER: PEDALS** — the twist / pedals; the rudder keys are then ignored.
-* Buttons: Button 1 fire gun, 2 fire weapon, 3 next target, 4 flare (the original defaults). To rebind, open
-  **Preferences → Keyboard**, click a function and press the joystick button.
-
-With no joystick connected these choices change nothing. What to try first when it arrives:
-
-1. Start the game with the stick plugged in and check the log: it prints `joystick: <name> (device 0, …); axes
-   x / y / throttle / rudder = [0, 1, 2, 3]`.
-2. Fly Training "Engines ON" with FLIGHT CONTROLS JOYSTICK: stick right = roll right, pull = nose up. The
-   original has a large dead zone (25 % around the centre), so small movements do nothing.
-3. Set THROTTLE JOYSTICK and RUDDER PEDALS, move the lever (forward = full power) and the twist / pedals. If the
-   wrong control moves something, swap the numbers in `~/.local/share/godot/app_userdata/iaf-reborn/settings.cfg`,
-   `[devices]` → `joy_axes=[x, y, throttle, rudder]` (Godot axis numbers 0–9; SDL names no axes).
-4. Press the hat (snap views) and buttons 1–4; rebind on the Keyboard page.
-
-Details: [docs/controls.md](docs/controls.md) §5. The engine reads one device; a separate throttle / pedals device
-is still open.
-
-### Tests / captures
-
-`cargo test -q --workspace` runs the Rust tests; tests that need game data or `python3` (the envelope
-reference, `tools/envelope_ref.py`) are skipped with a message when those are missing.
-`tools/test.sh` runs everything: the Rust tests and the headless Godot tests `tests/godot/test_*.gd`
-(flight, AI, weapons, radar / RWR, radio, cockpit / HUD / MFDs, views, menus, missions; any script error fails).
-It needs the converted assets, so it runs locally. Run scripted tests and captures with `IAF_DEFAULT_SETTINGS=1` so they use default settings and never read or write your saved preferences (`user://settings.cfg`).
+**Joystick, throttle and pedals.** One device (the first connected; hot-plug works) works as in the original, read
+through Godot's SDL with no extra packages. Set it up on **Preferences → Devices** (FLIGHT CONTROLS, THROTTLE,
+RUDDER); bind its buttons on the Keyboard page. The log prints the device and its axis numbers when it connects; if
+the wrong control moves, edit `[devices] joy_axes` in the settings file. Details: [docs/controls.md](docs/controls.md)
+§5.
 
 ## Contributing
 
-- What works and what is open: [docs/status.md](docs/status.md); plans: [docs/roadmap.md](docs/roadmap.md); how
-  we differ from the original: [docs/deviations.md](docs/deviations.md).
-- Dev tools: `tools/test.sh` (all tests; while iterating run single tests: `IAF_DEFAULT_SETTINGS=1 godot --headless
-  --path game -s ../tests/godot/<test>.gd`), `tests/godot/_*_shot.gd` (real-render screenshots: HUD, Preferences
-  pages, the On-The-Fly menu, credits, imagery; usage in each header), `tools/ghidra/fn.sh` (look up the exe's
-  decompiled functions), `tools/joyprobe` (what Godot reports for a joystick: `godot --path tools/joyprobe -s
-  probe.gd`), `cargo run --release -p iaf-flight --example idle_roll` (idle taxi speeds per jet),
-  `tools/worktree.sh` (a git worktree for a parallel job).
-- Credits: the credits roll on Quit (ours and the imagery credits, then the original's). To add a credit, see
+- Commands, architecture and conventions: [CLAUDE.md](CLAUDE.md). Plans: [docs/roadmap.md](docs/roadmap.md).
+- Tests: `cargo test -q --workspace` (tests that need game data or `python3` skip with a message);
+  `tools/test.sh` runs those and every headless Godot test `tests/godot/test_*.gd`. The Godot tests need the
+  converted assets, so they run locally. Run scripted tests with `IAF_DEFAULT_SETTINGS=1`: they then never read or
+  write your saved preferences.
+- Credits: the roll on Quit shows ours and the imagery credits, then the original's. To add one:
   [docs/credits.md](docs/credits.md).
 
 ## License and trademarks
