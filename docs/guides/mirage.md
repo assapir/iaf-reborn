@@ -1,13 +1,10 @@
 # Mirage pilot guide (realistic settings)
 
-This guide covers what changes in the Mirage IIICJ Shahak when you switch on the realistic options: the real CSF 95
-gyro gunsight in place of a HUD (head-up display), the real jet's numbers, the DEFA guns and the rear-aspect
-missiles. The game's model is the single-seat Mirage III in IAF (Israeli Air Force) camouflage; the Real flight data
-are the IIICJ as the IAF flew it, with the SEPR rocket removed. Each sight mode has its own section: when to use it,
-the keys, a picture with numbered callouts, what each mark means, and a worked example. Section 12 explains the
-abbreviations.
-
-How to read the pictures: each yellow number points at one mark. The list under the picture explains it.
+This guide covers what changes in the Mirage IIICJ Shahak when you switch on the realistic options: the real CSF 95 gyro
+gunsight in place of a HUD (head-up display), the real jet's numbers, the DEFA guns and the rear-aspect missiles. The
+game's model is the single-seat Mirage III in IAF (Israeli Air Force) camouflage; the Real flight data are the IIICJ as
+the IAF flew it, with the SEPR rocket removed. Each sight mode has its own section: when to use it, the keys, a picture
+whose numbered yellow callouts the list under it explains, and a worked example. Section 11 explains the abbreviations.
 
 ---
 
@@ -21,16 +18,15 @@ How to read the pictures: each yellow number points at one mark. The list under 
 | Guns | The game's own gun | 2 × DEFA: 2 × 125 rounds at 2 × 1,300 rounds/min, 815 m/s |
 | Missiles | The game's own values | Shafrir 2 (5 km) and AIM-9D (18 km), both rear-aspect: a tone from behind the target |
 | Radar | The game's own range | Cyrano I bis, 27 km |
-| Physics | The original's quirks | Real touchdown limits, ground effect, realistic spins with mechanical controls |
+| Physics | The original's quirks: still air, instant thrust | Real touchdown limits, ground effect, realistic spins with mechanical controls, the tower's wind, the engine's real spool-up |
 
 ![The 1998 HUD at the start of mission 231](shots/mirage/hud_original.png)
 
 The same moment with the Real sight is the first picture of section 3.
 
-**HUD warnings.** The Mirage has no Betty voice. The 1998 HUD draws a large X across its centre in the A-G gun and
-bomb modes while the dive is steeper than 1° for each 100 ft above the ground (more than 20° at 2,000 ft), and when
-the locked target is closer than the selected missile's minimum range (Rmin): then it hides the missile circle. The
-Real gunsight has no such mark.
+**HUD warnings.** The Mirage has no Betty voice. The 1998 HUD draws a large X across its centre in the A-G gun and bomb
+modes while the dive is steeper than 1° per 100 ft above the ground (20° at 2,000 ft), and in place of the missile
+circle when the locked target is inside the missile's minimum range (Rmin). The Real gunsight has no such mark.
 
 ---
 
@@ -40,14 +36,15 @@ Set these on the Preferences screen before the flight. Every row starts at the 1
 
 | Tab | Row | Set to | What it changes |
 | --- | --- | --- | --- |
-| Extras | Flight data | Real aircraft | The Mirage IIICJ numbers (section 10) |
+| Extras | Flight data | Real aircraft | The Mirage IIICJ numbers (section 4) |
 | Extras | Weapon data | Real weapons | Radar range, gun rounds, missile weights, speeds and ranges |
 | Extras | HUD | Real | The CSF 95 gunsight |
-| Extras | Better cockpit | Better | A turning bearing-distance-heading dial, the fuel needle with the tanks, a working clock and vertical-speed dial (section 4) |
-| Graphics → MORE | Sky, Terrain close up, Imagery | Atmospheric, Detailed, Survey 2 m / Sentinel-2 | A physical sky, ground detail and photo imagery, if setup converted it |
+| Extras | Better cockpit | Better | A turning bearing-distance-heading dial, the fuel needle with the tanks, a working clock and vertical-speed dial (section 9) |
+| Extras | World scale | Real 1:1 | True-size models; every airbase at its real place, with its real runway numbers |
+| Graphics → MORE | Sky, Terrain close up, Imagery Israel / outside Israel | Atmospheric, Detailed, Survey 2 m / Sentinel-2 | A physical sky, ground detail and photo imagery, if setup converted it |
 | Graphics → MORE | Airbases | Detailed | Runways, taxiways and aprons with real markings near the ground |
-| Physics | every row | on | Section 10 lists the ones that change how the Mirage flies |
-| Gameplay | Easy landing, Easy aiming, No blackouts / spins / stalls | off | Real landing limits, real launch rules, g-effects and stalls |
+| Physics | every row | on | Section 4 lists the ones that change how the Mirage flies |
+| Gameplay | Easy landing, Easy aiming, No blackouts / spins / stalls, No wind | off | Real landing limits, real launch rules, g-effects, stalls and the mission's wind |
 
 A greyed-out imagery choice needs its data: convert it with `tools/setup-cli.sh --imagery`.
 
@@ -79,7 +76,7 @@ Speed, altitude and heading are on the panel: fly with its instruments.
 
 1. **Altimeter**.
 2. **Airspeed** (true airspeed): the needle makes one turn per 1,000 kt, so each figure on the dial is 100 kt
-   (5 = 500 kt). The vertical-speed dial at the panel's upper left stays still in the 1998 game (section 4).
+   (5 = 500 kt). The vertical-speed dial at the panel's upper left stays still in the 1998 game (section 9).
 3. **Attitude indicator**: the horizon disc.
 4. **Fuel**.
 5. **Chaff and flare counters**: `CHF 060`, `FLR 030`.
@@ -89,57 +86,92 @@ Speed, altitude and heading are on the panel: fly with its instruments.
 
 ---
 
-## 4. Better cockpit
+## 4. Flying the Mirage with Real flight data
 
-**When**: any flight. **Keys**: Preferences → Extras → Better cockpit; **V** brings the panel up into view, **PgUp** /
-**PgDn** slide it; **W** / **Shift+W** pick the next / previous waypoint.
+With Flight data = Real the Mirage row (docs/real-aircraft.md §7) is checked by the game's validation test.
 
-With Better cockpit on, the bearing-distance-heading dial turns with the heading and its two pointers show the route,
-the fuel needle counts the drop tanks, the clock and the vertical-speed dial work, and the display's pages are drawn
-sharp at the screen's resolution. In the 1998 game the dial, the clock and the vertical-speed dial are still
-pictures. The Mirage's panel has no engine needles in either game (the original's cockpit data switches them off), so
-"Gauges on their labelled dials" changes nothing here.
+| Item | In the game | Real Mirage IIICJ |
+| --- | --- | --- |
+| Empty weight | 13,000 lb | 12,350–13,450 lb |
+| Internal fuel | 4,800 lb | about 4,500–5,100 lb (uncertain) |
+| Thrust, military / full afterburner | 9,436 / 13,228 lbf | 9,430–9,440 / 13,240–13,670 lbf (Atar 09C) |
+| Wing area | 375 ft² | 375 ft² |
+| 1 g stall speed, sea level | 140 kt | approach 170–200 kt ÷ 1.3 |
+| g limits | +7 / −1 | +7 / about −3 (uncertain) |
+| Maximum roll rate | 150°/s | unpublished; about 150–200°/s |
+| Maximum speed, sea level / 40,000 ft | 758 kt (Mach 1.15) / 1,134 kt (Mach 1.98) | about Mach 1.1–1.14 / Mach 2.1–2.2 |
+| Climb at 350 kt, sea level, full afterburner | about 24,900 ft/min | 16,400 ft/min (average; understated) |
+| Instantaneous turn, 420 kt at 10,000 ft | 18.4°/s at 7.0 g | unpublished |
+| Fuel flow, military / full afterburner | 9,500 / 26,900 lb/h | about 9,500 / 26,900–27,700 lb/h |
+| Service ceiling | 55,770 ft | 17,000 m (55,770 ft) |
 
-![The bearing-distance-heading dial with Better cockpit on](shots/mirage/compass.png)
+What changes in the cockpit:
 
-1. **Heading**: read on the card at the top of the dial. The numbers are tens of degrees (`33` = 330°).
-2. **Bearing arrow** (the double bar): it points at the current waypoint. Turn until it points straight up, and you
-   fly to the waypoint.
-3. **Course needle** (the single line): the course of the route's leg, from the previous waypoint to the current one.
-   On the first leg it lies on the arrow.
+- **Fuel**: about 11 minutes at full afterburner, about 30 minutes at military power at sea level. The 2,300 lb tank
+  on stations 4, 5 or 6 helps.
+- **Mechanical flight controls**: the stick moves the surfaces directly, so you own the limits. At low speed a hard
+  pull stalls the wing, and with Realistic spins on the jet can spin: recover with the stick forward and rudder
+  against the spin. The F-16 / Lavi deep-stall switch acts on the fly-by-wire jets.
+- **g limit +7 / −1**: the original's (the real negative limit, about −3, is uncertain, so the game keeps it).
+- **Ground effect** (Physics): a longer float in the flare. **Real idle thrust on the ground**: at idle the jet taxis at
+  about 35–45 kt.
+- **Engine spool-up** (Physics): the thrust follows the Atar's spool, slowest at first: 5 s from idle to military; the
+  afterburner lights 1 s after the core reaches military and fills in 1.5 s. Out of afterburner the thrust drops at
+  once.
+- **Wind and turbulence** (Physics): the air moves with the tower's wind. The jet crabs into a crosswind and drifts
+  downwind, a headwind shortens the take-off run, and light gusts shake it, strongest below 300 m (1,000 ft). Gameplay →
+  No wind calms the air.
+- **Brakes and stores** (Physics: Nose dips under braking, Unbalanced stores roll the jet): the nose dips up to 2° under
+  the wheel brakes and squats up to 1° at full thrust on the brakes. Stores left on one wing roll the jet toward it:
+  hold that wing up with the stick (the game has no roll trim).
+- **The map edge**: 12 km (6.5 NM) before it the EndWorld warning sounds: turn back. Past it the game pushes the jet
+  back for about 8 s (the nose rises and the jet turns).
 
-**Example**: here the arrow points about 90° right of the nose and the needle about 60° right: the waypoint is off
-your right wing. Turn right until the arrow points up. When the arrow and the needle lie on each other you are on the
-leg's line.
+### Take-off and landing numbers
 
-![Fuel, clock and vertical speed with Better cockpit on](shots/mirage/better_panel.png)
+The delta lands flapless and fast: the real jet approaches at 170–200 kt (Dassault 170, pilots about 185).
 
-1. **Fuel needle**: all the fuel you carry, the drop tanks too, over the most the jet holds with them. It falls from
-   the first pound burnt (in the 1998 game it stays full until the tanks are empty).
-2. **Clock**: the time of day in the mission, hour and minute hands.
-3. **Vertical speed**, upper left: level at 9 o'clock; a climb turns the needle clockwise, a descent anticlockwise.
-   The marks are 500, 1,000, 2,000, 4,000 and 6,000 ft/min, 6,000 at 3 o'clock.
+| Item | Mirage with Real flight data |
+| --- | --- |
+| Rotate | about 180 kt |
+| Gear up below | 300 kt |
+| Downwind / base / final | 220 kt at 2,000 ft above the ground / 190 kt / about 185 kt |
+| 1 g stall, sea level | 140 kt |
+| Touchdown | nose-high; limits (Real landing limits, Easy landing off): sink below 4 m/s (790 ft/min), pitch below 15° |
+| Drag chute (**Shift+B**) | drawn, with zero drag |
+| Nose-wheel steering | rudder pedals, ±30° (uncertain) |
 
-**Example**: the picture is level flight: the vertical-speed needle points at 9 o'clock. In a climb at 2,000 ft/min
-it points at about 12 o'clock.
+The sight is the reticle alone, with the ILS (instrument landing system) lines left to the HUD jets: line up with the runway through the glass and fly the
+airspeed needle.
 
 ---
 
-## 5. Guns: 2 × DEFA
+## 5. Radar and self-protection
 
-**When**: a target inside about 600 m. **Keys**: **]** to the gun, **Tab** fires. With Real data: 2 × 125 rounds at
-2 × 1,300 rounds/min, 815 m/s: about 6 s of firing.
+With Weapon data = Real the radar detects at **27 km** (uncertain: a nominal air-to-air lock range). Its modes are LRS
+(long-range search), ACM (air combat mode) and boresight in A-A (air-to-air), MAP and GMT (ground moving target) in
+A-G (air-to-ground). The single display shows it.
 
-![The gun: a MiG-23 600 m ahead](shots/mirage/sight_gun.png)
+| Key | Action |
+| --- | --- |
+| **R** / **Q** / **S** | Radar on, A-A ↔ A-G / mode (LRS → ACM; GMT ↔ MAP) / standby |
+| **.** / **,** | Range scale up / down |
+| **Return** / **Shift+Return** | Next / previous contact (in LRS this locks it: STT) |
+| **Backspace** | Drop the lock |
+| **\\** (hold) | Boresight |
 
-1. **Pipper**: the lead-computed aim point. Put it on the target and fire.
-2. **The target**: a MiG-23.
-3. **Ring of diamonds** around the pipper.
-4. **Fixed cross**.
-
-**Example**: the MiG is 600 m ahead and closing at 486 kt. It sits above the pipper: the rounds would pass under it.
-Pull the nose up until the pipper covers the MiG, then fire a 1 s burst (43 rounds). The IAF fed the real sight a
-fixed range (600 / 400 / 250 m) because the radar ranging was unreliable; the game's sight computes the lead.
+- **RWR** (radar warning receiver): on the display's RWR page (MENU) and the AI / ML lamps; a new threat sounds a
+  tone, a missile launch at you the launch warning.
+- **Chaff (Insert)** and **flares (Delete)**: 60 chaff and 30 flares. Chaff fools a radar missile with 10 % (30 %
+  above 4 g), a flare an IR (infrared) missile with 33 % (50 % above 4 g) while the afterburner is off.
+- Chaff and flares are the Mirage's whole self-protection; the **J** jammer key belongs to jets with a jammer.
+- **AWACS calls**: from 60 s into the flight the airborne controller calls the enemy aircraft within 35 NM, one scan
+  every 12 s. "Alpha, bearing 090, 15 miles, target, heading 270, free to engage": the contact's bearing and distance
+  from you, then its heading ("targets are already engaged" in place of "free to engage").
+  "Unidentified contacts, please identify": your radar has not seen it yet; find it before you engage. A contact is
+  called again, in short, after 60 s or when it moved more than 5 NM. Below 50 m (165 ft) the controller is silent.
+- **Flight reports**: the radio reports your side's jets airborne, landed, crashed or ejected, and each kill 5 s after
+  it ("Alpha leader shot down MiG 29").
 
 ---
 
@@ -168,7 +200,25 @@ half its range the seeker sees a jet with its afterburner lit.
 
 ---
 
-## 7. Bombs and rockets
+## 7. Guns: 2 × DEFA
+
+**When**: a target inside about 600 m. **Keys**: **]** to the gun, **Tab** fires. With Real data: 2 × 125 rounds at
+2 × 1,300 rounds/min, 815 m/s: about 6 s of firing.
+
+![The gun: a MiG-23 600 m ahead](shots/mirage/sight_gun.png)
+
+1. **Pipper**: the lead-computed aim point. Put it on the target and fire.
+2. **The target**: a MiG-23.
+3. **Ring of diamonds** around the pipper.
+4. **Fixed cross**.
+
+**Example**: the MiG is 600 m ahead and closing at 486 kt. It sits above the pipper: the rounds would pass under it.
+Pull the nose up until the pipper covers the MiG, then fire a 1 s burst (43 rounds). The IAF fed the real sight a
+fixed range (600 / 400 / 250 m) because the radar ranging was unreliable; the game's sight computes the lead.
+
+---
+
+## 8. Bombs and rockets
 
 **When**: MK-82 / MK-83 / MK-84 and ZUNNI rockets. **Keys**: **[** to the store, hold **Space** to release (the
 ripple releases one store per interval; the stores page sets it).
@@ -186,101 +236,49 @@ the game sets the reticle on the impact point by itself [R: a reconstruction].
 
 ---
 
-## 8. Radar: Cyrano I bis
+## 9. Better cockpit
 
-With Weapon data = Real the radar detects at **27 km** (uncertain: a nominal air-to-air lock range). Its modes are LRS
-(long-range search), ACM (air combat mode) and boresight in A-A (air-to-air), MAP and GMT (ground moving target) in
-A-G (air-to-ground). The single display shows it.
+**When**: any flight. **Keys**: tap **V** for the whole panel (hold it to glance down and back), **PgUp** / **PgDn**
+slide it; **W** / **Shift+W** pick the next / previous waypoint.
 
-| Key | Action |
-| --- | --- |
-| **R** / **Q** / **S** | Radar on, A-A ↔ A-G / mode (LRS → ACM; GMT ↔ MAP) / standby |
-| **.** / **,** | Range scale up / down |
-| **Return** / **Shift+Return** | Next / previous contact (in LRS this locks it: STT) |
-| **Backspace** | Drop the lock |
-| **\\** (hold) | Boresight |
+With Better cockpit on, the bearing-distance-heading dial turns with the heading and its two pointers show the route,
+the fuel needle counts the drop tanks, the clock and the vertical-speed dial work, and the display's pages are drawn
+sharp at the screen's resolution. In the 1998 game the dial, the clock and the vertical-speed dial are still pictures.
+The Mirage's panel has no engine needles in either game (the original's cockpit data switches them off), so "Gauges on
+their labelled dials" changes nothing here. The needles follow their values with a 0.3 s instrument lag.
 
----
+![The bearing-distance-heading dial with Better cockpit on](shots/mirage/compass.png)
 
-## 9. Self-protection
+1. **Heading**: read on the card at the top of the dial. The numbers are tens of degrees (`33` = 330°).
+2. **Bearing arrow** (the double bar): it points at the current waypoint. Turn until it points straight up, and you
+   fly to the waypoint.
+3. **Course needle** (the single line): the course of the route's leg, from the previous waypoint to the current one.
+   On the first leg it lies on the arrow.
 
-- **RWR** (radar warning receiver): on the display's RWR page (MENU) and the AI / ML lamps; a new threat sounds a
-  tone, a missile launch at you the launch warning.
-- **Chaff (Insert)** and **flares (Delete)**: 60 chaff and 30 flares. Chaff fools a radar missile with 10 % (30 %
-  above 4 g), a flare an IR (infrared) missile with 33 % (50 % above 4 g) while the afterburner is off.
-- Chaff and flares are the Mirage's whole self-protection; the **J** jammer key belongs to jets with a jammer.
-- **AWACS calls** (AWACS: the airborne early-warning controller): from 60 s into the flight the controller calls the
-  enemy aircraft within 35 NM, one scan every 12 s. "Alpha, bearing 090, 15 miles, target, heading 270, free to
-  engage" gives the contact's bearing and distance from you, then the heading it flies; sometimes "targets are already
-  engaged" takes the place of "free to engage". "Unidentified contacts, please identify" is a contact your radar has
-  not seen yet: find it on the radar before you engage. A contact is called again after 60 s, or at once when it moved
-  more than 5 NM; the repeat is short ("bearing 090, 15 miles, target"). The controller is silent while you fly less
-  than 50 m (165 ft) above the ground.
-- **Flight reports**: the radio also says when a jet of your side is airborne, has landed, crashed or ejected, and
-  calls each kill 5 s after it ("Alpha leader shot down MiG 29").
+**Example**: here the arrow points about 90° right of the nose and the needle about 60° right: the waypoint is off
+your right wing. Turn right until the arrow points up. When the arrow and the needle lie on each other you are on the
+leg's line.
 
----
+![Fuel, clock and vertical speed with Better cockpit on](shots/mirage/better_panel.png)
 
-## 10. Flying the Mirage with Real flight data
+1. **Fuel needle**: all the fuel you carry, the drop tanks too, over the most the jet holds with them. It falls from
+   the first pound burnt (in the 1998 game it stays full until the tanks are empty).
+2. **Clock**: the time of day in the mission, hour and minute hands.
+3. **Vertical speed**, upper left: level at 9 o'clock; a climb turns the needle clockwise, a descent anticlockwise.
+   The marks are 500, 1,000, 2,000, 4,000 and 6,000 ft/min, 6,000 at 3 o'clock.
 
-With Flight data = Real the Mirage row (docs/real-aircraft.md §7) is checked by the game's validation test.
-
-| Item | In the game | Real Mirage IIICJ |
-| --- | --- | --- |
-| Empty weight | 13,000 lb | 12,350–13,450 lb |
-| Internal fuel | 4,800 lb | about 4,500–5,100 lb (uncertain) |
-| Thrust, military / full afterburner | 9,436 / 13,228 lbf | 9,430–9,440 / 13,240–13,670 lbf (Atar 09C) |
-| Wing area | 375 ft² | 375 ft² |
-| 1 g stall speed, sea level | 140 kt | approach 170–200 kt ÷ 1.3 |
-| g limits | +7 / −1 | +7 / about −3 (uncertain) |
-| Maximum roll rate | 150°/s | unpublished; about 150–200°/s |
-| Maximum speed, sea level / 40,000 ft | 758 kt (Mach 1.15) / 1,134 kt (Mach 1.98) | about Mach 1.1–1.14 / Mach 2.1–2.2 |
-| Climb at 350 kt, sea level, full afterburner | about 24,900 ft/min | 16,400 ft/min (average; understated) |
-| Instantaneous turn, 420 kt at 10,000 ft | 18.4°/s at 7.0 g | unpublished |
-| Fuel flow, military / full afterburner | 9,500 / 26,900 lb/h | about 9,500 / 26,900–27,700 lb/h |
-| Service ceiling | 55,770 ft | 17,000 m (55,770 ft) |
-
-What changes in the cockpit:
-
-- **Fuel**: about 11 minutes at full afterburner, about 30 minutes at military power at sea level. The 2,300 lb tank
-  on stations 4, 5 or 6 helps.
-- **Mechanical flight controls**: the stick moves the surfaces directly, so you own the limits. At low speed a hard
-  pull stalls the wing, and with Realistic spins on the jet can spin: recover with the stick forward and rudder
-  against the spin. The F-16 / Lavi deep-stall switch acts on the fly-by-wire jets.
-- **g limit +7 / −1**: the original's (the real negative limit, about −3, is uncertain, so the game keeps it).
-- **Ground effect** (Physics): a longer float in the flare. **Real idle thrust on the ground**: the jet settles near
-  30 kt at idle.
-- **The engine gauges stay still**: on the Mirage's panel the speed and fuel needles move, and the original's own
-  cockpit data switches the engine clocks off. Better cockpit: see section 4.
-- **The map edge**: about 12 km (6.5 NM) before the map's edge the EndWorld warning sounds: turn back. Past it the
-  game pushes the jet back for about 8 s: the nose rises and the jet turns back toward the map.
-
-### Take-off and landing numbers
-
-The delta lands flapless and fast: the real jet approaches at 170–200 kt (Dassault 170, pilots about 185).
-
-| Item | Mirage with Real flight data |
-| --- | --- |
-| Rotate | about 180 kt |
-| Gear up below | 300 kt |
-| Downwind / base / final | 220 kt at 2,000 ft above the ground / 190 kt / about 185 kt |
-| 1 g stall, sea level | 140 kt |
-| Touchdown | nose-high; limits (Real landing limits, Easy landing off): sink below 4 m/s (790 ft/min), pitch below 15° |
-| Drag chute (**Shift+B**) | drawn, with zero drag |
-| Nose-wheel steering | rudder pedals, ±30° (uncertain) |
-
-The sight is the reticle alone, with the ILS (instrument landing system) lines left to the HUD jets: line up with the runway through the glass and fly the
-airspeed needle.
+**Example**: the picture is level flight: the vertical-speed needle points at 9 o'clock. In a climb at 2,000 ft/min
+it points at about 12 o'clock.
 
 ---
 
-## 11. Key card
+## 10. Key card
 
 | Key | Action |
 | --- | --- |
 | 1 … 8 | Throttle: idle, 65, 70, 80, 90 %, military, AB 1, AB 2 |
 | 9 / 0 | Throttle − / + 5 % |
-| V / PgUp / PgDn | Panel into view / slide it up / down |
+| V / PgUp / PgDn | Whole panel ↔ none (hold V: a glance down) / slide the panel up / down |
 | Arrows | Stick |
 | Numpad 0 / Decimal | Rudder left / right |
 | G / B | Gear / wheel brakes |
@@ -302,6 +300,7 @@ airspeed needle.
 | Shift+arrows, Numpad 1–9, F3 | Look around, snap views, padlock |
 | F1 / Ctrl+F2 | Cockpit ↔ sight only / cockpit ↔ external |
 | SysRQ | Screen capture: a PNG in the `screenshots` folder of the game's user folder |
+| X | Fire extinguisher (one charge) |
 | E | Eject |
 | C / Ctrl+C | Time ×2 ×4 ×1 / normal time |
 | Ctrl+P / Ctrl+O / Esc | Pause / in-flight menu / TSD map |
@@ -309,7 +308,7 @@ airspeed needle.
 
 ---
 
-## 12. Abbreviations
+## 11. Abbreviations
 
 | Term | Meaning |
 | --- | --- |
