@@ -106,5 +106,7 @@ view (`@4ce003`), AI action 430 and condition 38 (for a unit with a controller) 
   - every missile launched at the player (`player_weapons.launch_homing`: `rwr.launch(key, missile)`; its end
     `rwr.missile_end(key, missile)`).
 - `tests/godot/test_rwr.gd` drives these feeds with synthetic emitters.
+- Better cockpit `spo15` (ours): the MiG-23 panel's SPO-15 lamps from the cockpit copy (`rwr.rs` `spo15`,
+  `IafRwr.spo15`; docs/cockpit.md "MiG gauges").
 - Not ported: the network messages; the restart path of the launch loop in `FUN_00448120` (@4482ee, a flight
   restored with launch flags).

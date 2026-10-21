@@ -273,6 +273,44 @@ pub fn radar_altimeter(agl_ft: f32, roll_deg: f32) -> (f32, bool) {
     (m, m <= RADAR_ALT_MAX_M && roll_deg.abs() <= RADAR_ALT_MAX_BANK)
 }
 
+/// The MiG-29 radar altimeter's danger height, m (`radar_alt`): the reading of the yellow index the art paints
+/// (77.5° on the face, between the 60 m and 80 m ticks; inferred: the real index is set by the pilot).
+pub const RADAR_ALT_DANGER_M: f32 = 70.0;
+
+/// Below the danger height with a valid reading: the warning lamp lights (and the voice warning plays).
+pub fn radar_alt_danger(m: f32, valid: bool) -> bool {
+    valid && m < RADAR_ALT_DANGER_M
+}
+
+/// The MiG-23's hydraulic pressure gauge (`hyd_gauge`): the normal pressure, kgf/cm² (inferred: above the
+/// 160–175 kgf/cm² low-pressure warning the MiG-23 manual pages quote, docs/mig-cockpits.md §4.6).
+pub const HYD_NORMAL: f32 = 210.0;
+/// The engine RPM (fraction) from which the engine-driven pumps give the full pressure (inferred).
+pub const HYD_FULL_RPM: f32 = 0.5;
+
+/// The pressure of both hydraulic systems, kgf/cm²: the normal pressure from the engine-driven pumps, 0 with the
+/// hydraulics damage (flag 18).
+pub fn hydraulic_pressure(rpm: f32, damaged: bool) -> f32 {
+    if damaged { 0.0 } else { HYD_NORMAL * (rpm / HYD_FULL_RPM).clamp(0.0, 1.0) }
+}
+
+/// The ILS deviation at the full deflection of the MiG-23 ПНП's bars, degrees (`pnp_bars`; inferred: the usual
+/// ILS full scale, localizer ±2.5°, glideslope ±0.7°).
+pub const PNP_LOC_FULL_DEG: f32 = 2.5;
+pub const PNP_GS_FULL_DEG: f32 = 0.7;
+
+/// The ПНП's К (course) and Г (glide) bars from the HUD's ILS deviations (degrees): each −1..1 of the full
+/// deflection, the same sense as the HUD's lines (the bar shows where the beam is).
+pub fn pnp_bars(loc_deg: f32, gs_deg: f32) -> [f32; 2] {
+    [(loc_deg / PNP_LOC_FULL_DEG).clamp(-1.0, 1.0), (gs_deg / PNP_GS_FULL_DEG).clamp(-1.0, 1.0)]
+}
+
+/// The MiG-29 AoA / g meter's max-g memory needle (`uua`, inferred): the highest g since the flight start; on the
+/// ground it resets to the current g (the real meter's reset button has no key in the game).
+pub fn g_memory(held: f32, g: f32, on_ground: bool) -> f32 {
+    if on_ground { g } else { held.max(g) }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -286,6 +324,19 @@ mod tests {
         assert!((m - 100.0).abs() < 0.01 && ok);
         assert!(!radar_altimeter(328.1, -70.0).1, "steep bank");
         assert!(!radar_altimeter(1600.0 * FT, 0.0).1, "off the face");
+        assert!(radar_alt_danger(50.0, true) && !radar_alt_danger(50.0, false) && !radar_alt_danger(90.0, true));
+    }
+
+    #[test]
+    fn mig_hydraulics_pnp_bars_and_g_memory() {
+        assert_eq!(hydraulic_pressure(0.9, false), HYD_NORMAL);
+        assert_eq!(hydraulic_pressure(0.25, false), HYD_NORMAL * 0.5, "spooling pumps");
+        assert_eq!(hydraulic_pressure(0.9, true), 0.0, "hydraulics damage");
+        assert_eq!(pnp_bars(1.25, -0.35), [0.5, -0.5]);
+        assert_eq!(pnp_bars(-9.0, 3.0), [-1.0, 1.0], "pinned at full deflection");
+        let held = [1.0, 6.5, 3.0].iter().fold(0.0, |h, &g| g_memory(h, g, false));
+        assert_eq!(held, 6.5);
+        assert_eq!(g_memory(held, 1.0, true), 1.0, "reset on the ground");
     }
 
     #[test]

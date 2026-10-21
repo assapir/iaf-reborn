@@ -718,29 +718,59 @@ rises_with_rpm`).
   its value; the moved records leave their dials; the nozzle opens in AB; with the item off, every needle is the
   original's); tests/godot/test_mig_cockpit.gd for the MiGs.
 
-### MiG gauges (`radar_alt`, `uua`, `metric_gauges`, `rsbn_counter`)
+### MiG gauges (`radar_alt`, `uua`, `metric_gauges`, `rsbn_counter`, `spo15`, `pnp_bars`, `hyd_gauge`)
 Ours, for the two MiGs a Mission Creator mission puts the player in (docs/mig-cockpits.md §4). Each is a dial entry
-of `gauges.gd` `DIALS` with its own item; it takes the original's record off that face, with or without
-`dials_by_label`.
+of `gauges.gd` `DIALS` with its own item, or a lamp table there (`SPO15`, `PNP`, `RADALT_LAMPS`); a dial item takes
+the original's record off that face, with or without `dials_by_label`.
 * **MiG-29 radar altimeter (`radar_alt`):** the needle shows the wheels' height above the ground in metres on the
   non-linear "МЕТРЫ" face (904,168): 0 at 1°, 20 m 24°, 40 m 45°, 60 m 65°, 80 m 86°, 100 m 105°, 150 m 152°, 200 m
   178°, 400 m 237°, 600 m 267°, 1000 m 298°, 1500 m 316° (the major ticks on the art). The art paints the red failure
   flag in view; while the height is valid the flag window (900,152.8, 10 × 5 px) is drawn over in the face's black.
-  Valid: at most 1500 m (the face's end) and at most 60° of bank (both inferred). The painted yellow danger-height
-  index stays where the art puts it (about 65 m); the real set's lamp and voice warning below it are open. Logic:
-  `iaf_flight::instruments::radar_altimeter` (IafFlight.better_instruments `radalt_m`, `radalt_valid`).
+  Valid: at most 1500 m (the face's end) and at most 60° of bank (both inferred).
+  * **Danger height:** 70 m, the reading of the yellow index the art paints (77.5°, between the 60 m and 80 m
+    ticks; the real index is set by the pilot). Below it, with a valid reading, an amber lamp on the face lights
+    (896,174, r 2.2; drawn: the art paints none; dark brown while off). With the gear handle up, Betty "altitude"
+    (`VOC_BBETTY` `BTY_ALT`, the install's sample) plays at once and every 4 s. It replaces the original's 100 ft rule
+    (`flight_sounds.gd` `_altitude_warning`) on the MiG-29, with the Original or the Real HUD.
+  * Logic: `iaf_flight::instruments::radar_altimeter`, `radar_alt_danger` (IafFlight.better_instruments `radalt_m`,
+    `radalt_valid`, `radalt_danger`).
 * **MiG-29 AoA / g meter (`uua`):** two needles from the dial's centre (1116,55): the AoA on the left scale (0 at 228°,
   10° 258°, 20° 288°, 30° 322°), the g on the right scale (0 at 149°, 2 g 122°, 4 g 96°, 6 g 71°, 8 g 45°, 10 g 23°).
-  Below 0 each stays on its end. A max-g memory needle is open.
+  Below 0 each stays on its end. A third, shorter needle (r 15) on the g scale holds the highest g since the flight
+  start; on the ground it resets to the current g (inferred: the real meter has a reset button; the game has no key
+  for it). Logic: `iaf_flight::instruments::g_memory` (IafFlight.better_instruments `g_max`).
 * **Metric units (`metric_gauges`):** the MiGs' altimeters read metres (one turn per 1000 m; the short needle per
   10,000 m) and the MiG-23's VVI (with `dials_by_label`) × 10 m/s. The other faces are already in their units: the
   radar altimeter in m, the fuel in litres, the Mach meter. The HUD stays in the original's units.
 * **MiG-23 range counter (`rsbn_counter`):** the 3-digit "КМ" drum (862,321.5, 28 × 11 px) shows the distance to the
   current waypoint in whole km (at most 999), in the F-15 fuel counter's style. The real counter shows the range to
   the RSBN beacon; the game has no beacons, so the waypoint stands in (inferred).
+* **MiG-23 SPO-15 (`spo15`):** the SPO-15 indicator's lamps (1185,140) from the RWR's cockpit copy (docs/rwr.md §4;
+  only active entries). Unlit lamps are dimmed; lit ones glow. Logic: `iaf_avionics::rwr::spo15` (`IafRwr.spo15`).
+  * 10 sector lamps (the art's 8 front and 2 rear lamps): the front lamps stand for 10°, 30°, 50° and 90° each side
+    and light for 0–20°, 20–40°, 40–70° and 70–90° off the nose; within 5° of the nose or of the 20° / 40° edges both
+    neighbours light (about 10° resolution within ±50°). An emitter past 90° lights its side's rear lamp.
+  * The power strip: the 15 dashes of the ring round the aircraft, lit in pairs from the tail up, the nose dash last.
+    Lamps lit = ⌈15 × (1 − distance / 37080 m)⌉ for the nearest emitter (the RWR's range; inferred).
+  * The red centre lamp: steady while any emitter is listed (the game's RWR lists only radars that lock the jet),
+    flashing (300 ms) while any entry has the launch flag; dimmed otherwise.
+  * The six type dashes under it, П З Х Н F С: П aircraft (types 100–210), З SA-2 / SA-5, Х SA-3 / SA-6 / Hawk / ships,
+    Н SA-8 / AAA / Gun Dish (inferred from each system's real range); F (early warning) and С (AWACS) stay dark.
+  * Dark with RWR damage (flag 14), as the panel RWR. The original's ML / AI boxes (`LIGHT004` / `LIGHT003`) stay.
+* **MiG-23 ПНП bars (`pnp_bars`):** while the HUD shows its ILS (NAV mode, gear handle down) the painted К (course,
+  vertical) and Г (glide, horizontal) bars are erased and drawn at the ILS deviation, the same sense as the HUD's
+  lines; full deflection 8 px at ±2.5° localizer / ±0.7° glideslope (the usual ILS full scale; inferred). The К / Г
+  flags are covered then. Otherwise the art stays: bars centred, flags in view. Logic:
+  `iaf_flight::instruments::pnp_bars` (IafFlight.better_instruments `pnp_bars`).
+* **MiG-23 hydraulic gauge (`hyd_gauge`):** two needles, one per hydraulic system, on the two quarter scales of the
+  УИ2-300К face (0–300 kgf/cm²): pivots (1030,311.5) and (1055.5,337), 0 at 185° / 265°, 300 at 92.5° / 362.5°
+  (inferred from the art: the numbers are unreadable). Both read 210 kgf/cm² (inferred) once the engine passes
+  50 % RPM (less while it spools), and 0 with the hydraulics damage (flag 18). It takes the original's TEMP needle off
+  the face. Logic: `iaf_flight::instruments::hydraulic_pressure` (IafFlight.better_instruments `hyd`).
 * Test: tests/godot/test_mig_cockpit.gd (each MiG flown in a Mission Creator mission; Original unchanged; each needle
   on its dial at its value; the flag covered only while valid; the items without `dials_by_label`; the HSI card turns
-  with the heading; the drum's reading).
+  with the heading; the drum's reading; the SPO-15's lamps from synthetic RWR entries; the ПНП live only with the
+  gear down; the hydraulic pressure and its loss; the max-g needle; the danger lamp and Betty at 40 m).
 
 ### AR/NWS lamp (`ar_nws_lights`)
 The F-16's AR status indicator, right of the HUD glass. With the item on, its middle lamp shows a green "AR NWS"

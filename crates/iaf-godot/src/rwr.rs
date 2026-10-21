@@ -3,7 +3,8 @@
 
 use crate::world::{get, num, vec3, vector3};
 use godot::prelude::*;
-use iaf_avionics::rwr::{Emitter, Launched, Rwr, World};
+use iaf_avionics::rwr::{Emitter, Launched, Rwr, Shown, World, spo15};
+use iaf_avionics::vec3::Vec3;
 
 fn emitter(d: &VarDictionary) -> Option<Emitter> {
     (!d.is_empty()).then(|| Emitter {
@@ -110,6 +111,31 @@ impl IafRwr {
                 vdict! { "type" => s.type_code, "pos" => pos, "launch" => s.launch, "active" => s.active }.to_variant()
             })
             .collect()
+    }
+
+    /// Ours, Better cockpit `spo15` (`iaf_avionics::rwr::spo15`): the MiG-23's SPO-15 lamps from the cockpit copy
+    /// `entries` ([`display`](Self::display)), the own world X / Y and heading (degrees): {sectors (bits), power
+    /// (lamps lit), lock, launch, types (bits)}.
+    #[func]
+    fn spo15(entries: VarArray, own: Vector2, heading_deg: f64) -> VarDictionary {
+        let shown: Vec<Shown> = entries
+            .iter_shared()
+            .filter_map(|v| v.try_to::<VarDictionary>().ok())
+            .map(|d| {
+                let p: Vector2 = get(&d, "pos").unwrap_or_default();
+                Shown {
+                    type_code: num(&d, "type").unwrap_or_default() as i64,
+                    pos: Vec3::new(p.x as f64, p.y as f64, 0.0),
+                    launch: get(&d, "launch").unwrap_or(false),
+                    active: get(&d, "active").unwrap_or(false),
+                }
+            })
+            .collect();
+        let s = spo15(&shown, Vec3::new(own.x as f64, own.y as f64, 0.0), heading_deg);
+        vdict! {
+            "sectors" => s.sectors as i64, "power" => s.power as i64, "lock" => s.lock, "launch" => s.launch,
+            "types" => s.types as i64,
+        }
     }
 
     /// {slots [{unit, type, pos, launch, missiles, drop, active}], count, ai, sam, threats [{id, dist}], next_refresh}.

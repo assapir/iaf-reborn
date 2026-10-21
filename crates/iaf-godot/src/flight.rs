@@ -18,6 +18,8 @@ pub struct IafFlight {
     ground: Option<Callable>,
     /// The Better cockpit's engine temperatures (iaf_flight::instruments::EngineTemps).
     temps: iaf_flight::instruments::EngineTemps,
+    /// The MiG-29 AoA / g meter's max-g memory (iaf_flight::instruments::g_memory); reset by `start`.
+    g_max: f32,
 }
 
 /// Godot scene position → the FM's ENU frame.
@@ -68,6 +70,7 @@ impl IafFlight {
                     engine_on,
                 };
                 self.aircraft = Some(Aircraft::start(params, envelope, st));
+                self.g_max = 0.0;
                 GString::new()
             }
             Err(e) => GString::from(e.as_str()),
@@ -446,6 +449,10 @@ impl IafFlight {
     /// "ILS") from the airbases of `ap_setup`; ZERO without them.
     #[func]
     fn ils(&self) -> Vector2 {
+        self.ils_deg()
+    }
+
+    fn ils_deg(&self) -> Vector2 {
         let (Some(ap), Some(ac)) = (&self.ap, &self.aircraft) else { return Vector2::ZERO };
         let p = ac.state().position;
         match iaf_flight::airbase::ils(&ap.bases, [p[0] as f32, p[1] as f32, p[2] as f32]) {
@@ -577,9 +584,10 @@ impl IafFlight {
 
     /// Ours, the "Better cockpit" values (iaf_flight::instruments, docs/cockpit.md "Better cockpit"): `aoa_index`
     /// (0 no indexer, 1 slow, 2 on speed, 3 fast), the lamps `flcs`, `to_ldg_config` and `ar_nws`; the MiG gauges
-    /// `fuel_l` / `fuel_l_total` (litres) and `radalt_m` / `radalt_valid`. `damage`: as `instruments`.
+    /// `fuel_l` / `fuel_l_total` (litres), `radalt_m` / `radalt_valid` / `radalt_danger`, `hyd` (kgf/cm²),
+    /// `pnp_bars` (the ПНП's К / Г bars, −1..1) and `g_max` (the max-g memory). `damage`: as `instruments`.
     #[func]
-    fn better_instruments(&self, damage: VarArray) -> VarDictionary {
+    fn better_instruments(&mut self, damage: VarArray) -> VarDictionary {
         use iaf_flight::instruments;
         let mut d = VarDictionary::new();
         let Some(ac) = &self.aircraft else { return d };
@@ -605,6 +613,13 @@ impl IafFlight {
         let (radalt_m, radalt_valid) = instruments::radar_altimeter(i.agl_ft, s.roll.to_degrees());
         d.set("radalt_m", radalt_m);
         d.set("radalt_valid", radalt_valid);
+        d.set("radalt_danger", instruments::radar_alt_danger(radalt_m, radalt_valid));
+        d.set("hyd", instruments::hydraulic_pressure(s.rpm * 0.01, flags.get(18).copied().unwrap_or(false)));
+        let ils = self.ils_deg();
+        let [k, g] = instruments::pnp_bars(ils.x, ils.y);
+        d.set("pnp_bars", Vector2::new(k, g));
+        self.g_max = instruments::g_memory(self.g_max, s.g, s.on_ground);
+        d.set("g_max", self.g_max);
         d
     }
 

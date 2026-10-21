@@ -377,6 +377,83 @@ impl Rwr {
     }
 }
 
+/// Ours, Better cockpit `spo15` (docs/mig-cockpits.md §4.4): the MiG-23 panel's SPO-15 lamps from the cockpit
+/// copy. The game's RWR lists only the radars that lock the jet (docs/rwr.md §2), so every active entry locks it.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Spo15 {
+    /// Sector lamps, bit i: 0..3 the left 10° / 30° / 50° / 90° lamps, 4..7 the right ones, 8 / 9 the left / right
+    /// rear lamps.
+    pub sectors: u16,
+    /// Power strip lamps lit, 0..=SPO15_POWER_LAMPS: the strongest (nearest) emitter.
+    pub power: u8,
+    /// The red centre lamp: steady on a lock.
+    pub lock: bool,
+    /// A missile launched at the jet: the centre lamp flashes.
+    pub launch: bool,
+    /// Threat-type lamps, bit i: П airborne, З long-range, Х medium-range, Н short-range SAM radar, F early warning,
+    /// С AWACS (the game has none of the last two).
+    pub types: u8,
+}
+
+/// The art's power strip: 15 lamps (the real set's count).
+pub const SPO15_POWER_LAMPS: u8 = 15;
+/// The edges between the front lamps' sectors, degrees off the nose (inferred: lamps at 10 / 30 / 50 / 90°).
+const SPO15_EDGES: [f64; 3] = [20.0, 40.0, 70.0];
+/// Within this many degrees of the nose or of the 20° / 40° edge both neighbouring lamps light: about 10°
+/// resolution within ±50° (docs/mig-cockpits.md §4.4).
+const SPO15_SHARE: f64 = 5.0;
+
+/// The sector lamps (bits as [`Spo15::sectors`]) for an emitter `rel_deg` off the nose (−180..180, right +).
+pub fn spo15_sectors(rel_deg: f64) -> u16 {
+    let side = if rel_deg < 0.0 { 0 } else { 4 };
+    let a = rel_deg.abs();
+    if a > 90.0 {
+        return 1 << (8 + side / 4);
+    }
+    let mut m = 1 << (side + SPO15_EDGES.iter().filter(|&&e| a >= e).count());
+    if a < SPO15_SHARE {
+        m |= 1 << (4 - side);
+    }
+    for (k, e) in SPO15_EDGES[..2].iter().enumerate() {
+        if (a - e).abs() < SPO15_SHARE {
+            m |= 3 << (side + k);
+        }
+    }
+    m
+}
+
+/// The threat-type lamp of a bdb type code (inferred from each system's real range): aircraft П; SA-2 / SA-5 З;
+/// SA-3 / SA-6 / Hawk / ships Х; SA-8 / AAA / Gun Dish Н.
+pub fn spo15_type(type_code: i64) -> Option<usize> {
+    match type_code {
+        100..=210 => Some(0),
+        290 | 310 => Some(1),
+        300 | 320 | 340 | 380 | 390 => Some(2),
+        330 | 350 | 360 => Some(3),
+        _ => None,
+    }
+}
+
+/// The SPO-15 face from the cockpit copy `shown`, the own position and heading (degrees clockwise from north).
+/// The power is the nearest active emitter's closeness: all lamps at the jet, none at the RWR range (inferred).
+pub fn spo15(shown: &[Shown], own: Vec3, heading_deg: f64) -> Spo15 {
+    let mut out = Spo15::default();
+    let mut power: f64 = 0.0;
+    for e in shown.iter().filter(|e| e.active) {
+        let (dx, dy) = (e.pos.x - own.x, e.pos.y - own.y);
+        let rel = (dx.atan2(dy).to_degrees() - heading_deg + 540.0).rem_euclid(360.0) - 180.0;
+        out.sectors |= spo15_sectors(rel);
+        power = power.max(1.0 - e.pos.distance(own) / RANGE);
+        out.lock = true;
+        out.launch |= e.launch;
+        if let Some(t) = spo15_type(e.type_code) {
+            out.types |= 1 << t;
+        }
+    }
+    out.power = (power.clamp(0.0, 1.0) * SPO15_POWER_LAMPS as f64).ceil() as u8;
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -420,5 +497,27 @@ mod tests {
         assert!(r.count() == 1 && r.slots()[0].drop);
         r.missile_end("sam", Some(1));
         assert!(r.count() == 0 && r.slots()[0].unit.is_none() && !r.any_launch() && r.threats().is_empty());
+    }
+
+    #[test]
+    fn spo15_lamps() {
+        assert_eq!(spo15_sectors(0.0), 0b1_0001, "the nose: both 10° lamps");
+        assert_eq!(spo15_sectors(12.0), 1 << 4);
+        assert_eq!(spo15_sectors(-21.0), 0b11, "on the 20° edge: the left 10° and 30° lamps");
+        assert_eq!(spo15_sectors(55.0), 1 << 6);
+        assert_eq!(spo15_sectors(-80.0), 1 << 3);
+        assert_eq!(spo15_sectors(-135.0), 1 << 8, "left rear");
+        assert_eq!(spo15_sectors(170.0), 1 << 9, "right rear");
+        // Heading east: a SAM to the south is 90° right, half the range away; an aircraft ahead launching.
+        let own = Vec3::new(0.0, 0.0, 0.0);
+        let sam = Shown { type_code: 320, pos: Vec3::new(0.0, -RANGE / 2.0, 0.0), launch: false, active: true };
+        let air = Shown { type_code: 180, pos: Vec3::new(30000.0, 0.0, 0.0), launch: true, active: true };
+        let off = Shown { type_code: 290, pos: Vec3::new(100.0, 0.0, 0.0), launch: false, active: false };
+        let s = spo15(&[sam, air, off], own, 90.0);
+        assert_eq!(s.sectors, 1 << 7 | 0b1_0001);
+        assert_eq!(s.power, 8, "the SAM at half the range: ceil(7.5)");
+        assert!(s.lock && s.launch);
+        assert_eq!(s.types, 0b101, "П and Х; the inactive SA-2 is not heard");
+        assert_eq!(spo15(&[off], own, 0.0), Spo15::default());
     }
 }

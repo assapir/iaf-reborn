@@ -45,7 +45,7 @@ docs/real-hud.md. Research date: 2026-10-20.
 * **Better items that apply as they stand:** `smooth_needles` and `crisp_mfd` on both; `turning_compass` on the
   MiG-23's HSI; `fuel_total` on both, with a change for the MiG-23; `engine_rpm`, `engine_temp`, `throttle_ab` and
   `dials_by_label` only after the needles move to their labelled dials.
-* **Proposals:**
+* **Proposals** (all built, "What is built" below):
   * metric gauges (km/h, m, m/s, litres);
   * the MiG-29's AoA / g meter live;
   * the MiG-29's radar altimeter live;
@@ -55,7 +55,7 @@ docs/real-hud.md. Research date: 2026-10-20.
 * **Real HUD:** built (2026-10-20): `Jet::MiG23` (`real_hud/mig23.rs`) and `Jet::MiG29` (`real_hud/mig29.rs`).
   §5 and §6 describe each MiG's own sight / HUD; docs/real-hud.md says what ours draws.
 
-### What is built (2026-10-20)
+### What is built (2026-10-20, 2026-10-21)
 docs/cockpit.md "Gauges on their labelled dials" and "MiG gauges" describe the built items; test
 tests/godot/test_mig_cockpit.gd.
 * `dials_by_label` for both MiGs (`gauges.gd` `DIALS` `mig23` / `mig29`): the MiG-23's Mach, EGT, litre and VVI
@@ -64,9 +64,10 @@ tests/godot/test_mig_cockpit.gd.
   differ from §4's first reading by up to 10°.
 * `turning_compass` on the MiG-23's ПНП; `fuel_total`, `smooth_needles`, `crisp_mfd`, `engine_rpm`, `engine_temp`
   apply as they stand.
-* Proposals 4.1 (`metric_gauges`), 4.2 (`uua`), 4.3 (`radar_alt`) and 4.5 (`rsbn_counter`).
-* Open: proposal 4.4 (SPO-15 lamps), 4.6 (the HSI bars, the hydraulic gauge); `panel_clock` on # 13 (the art paints
-  hands on that face, so a clock is likely but the hands would need erasing; open).
+* Proposals 4.1 (`metric_gauges`), 4.2 (`uua`, with the max-g needle), 4.3 (`radar_alt`, with the danger-height lamp
+  and Betty "altitude"), 4.4 (`spo15`), 4.5 (`rsbn_counter`) and 4.6 (`pnp_bars`, `hyd_gauge`).
+* Open: `panel_clock` on # 13 (the art paints hands on that face, so a clock is likely but the hands would need
+  erasing; the art is too unclear).
 
 ## 2. MiG-23 panel (`mig23`)
 
@@ -178,7 +179,7 @@ What `dials_by_label` needs for the MiG-23 (inferred from the table in §2.1):
   unit is open (see proposal 4.1).
 
 ### Proposals (MiG-only)
-4.1, 4.2, 4.3 and 4.5 are built (§1 "What is built"); 4.4 and 4.6 are open.
+All six are built (§1 "What is built"); docs/cockpit.md "MiG gauges" gives the values and the art positions.
 
 **4.1 Metric gauges (`metric_gauges`, built).** Each MiG face reads its own unit: the altimeters in metres (one turn = 1000
 m), the radar altimeter in metres, fuel in litres (MiG-23) and the vertical speed in m/s if the MiG-23's face is
@@ -187,27 +188,36 @@ original's units unless the Real HUD is on (§5, §6).
 
 **4.2 MiG-29 AoA / g meter live (`uua`, built).** Two needles on the UUA (# 6): AoA on the left scale (0 … 30°, with the 15°
 / 25° marks[^ea]) and g on the right (0 … 10). It replaces the vertical speed the original draws there. The cockpit
-state has `aoa` and `g`. Needs: both scales measured on the art. A max-g memory needle is open (the real meter has a
-reset button[^ea], which suggests one).
+state has `aoa` and `g`. A third needle holds the highest g (inferred: the real meter has a reset button[^ea], which
+suggests one); the game has no key for the button, so the needle resets on the ground and at the flight start.
 
 **4.3 MiG-29 radar altimeter live (`radar_alt`, built).** The needle shows the radar height (`agl_ft` → m) on the non-linear
 0–1500 m face (# 1). The red flag shows when the height is invalid (above the set's range, or a large bank; inferred).
-The yellow index is the danger height (ours: a fixed value, e.g. 50 m; inferred). It replaces the airspeed the
-original draws there. The panel then shows no airspeed; the HUD and the MFD still do.
+The yellow index is the danger height: ours is fixed at 70 m, the reading of the index the art paints (inferred; a
+50 m value would warn below the painted index). Below it an amber lamp drawn on the face lights and, with the gear
+handle up, Betty "altitude" plays every 4 s (the real set has a lamp and a voice warning[^ea]). It replaces the
+airspeed the original draws there. The panel then shows no airspeed; the HUD and the MFD still do.
 
 **4.4 MiG-23 SPO-15 lamps live (`spo15`).** The SPO-15's sector lamps light toward each emitter, the power strip
 shows the strongest signal, and the red centre lamp lights on a lock (steady) or a launch (flashing)[^su25t][^hoggit].
 Threat-type lamps: П airborne radar, З long-range, Х medium-range, Н short-range SAM radars[^su25t][^fc3]. Data from
 `iaf-avionics` `rwr.rs` (the contacts' bearings and kinds). About 10° resolution within ±50°[^spo15-ed]. The
-original's ML / AI boxes stay. Open: the lamp count on the MLD panel.
+original's ML / AI boxes stay. The lamps on the art (measured on the 4× panel): 8 front sector lamps (4 a side, at
+about 15°, 35°, 55° and 75° round the aircraft; ours stand for 10°, 30°, 50° and 90°), 2 rear lamps, a ring of 15
+dashes round the aircraft (the power strip: the real set's 15 lamps), the red disc behind the aircraft (the centre
+lamp) and 6 dashes under it (the type lamps П З Х Н F С[^su25t]). The 8 small green dots and the 2 blue ones stay
+static (their meaning is open). The game's RWR lists only radars that lock the jet (docs/rwr.md), so the centre lamp
+is steady whenever a sector lamp is lit.
 
 **4.5 MiG-23 RSBN range counter (`rsbn_counter`, built).** The drum (# 12) shows the distance to the current waypoint in km
 (the real counter shows the range to the RSBN beacon[^ub]; the game has no beacons, so the waypoint stands in:
 inferred).
 
-**4.6 MiG-23 HSI bars and hydraulic gauge.** The ПНП's К / Г bars follow the ILS deviation when the original HUD
-shows its ILS (gear down), and the flags drop otherwise. The hydraulic gauge's two needles show the normal pressure
-(value open), and fall to 0 with the hydraulics damage (18).
+**4.6 MiG-23 HSI bars and hydraulic gauge (`pnp_bars`, `hyd_gauge`, built).** The ПНП's К / Г bars follow the ILS
+deviation when the original HUD shows its ILS (gear down), and the flags drop otherwise. The hydraulic gauge's two
+needles show the normal pressure and fall to 0 with the hydraulics damage (18). Normal pressure: 210 kgf/cm²
+(inferred: the MiG-23's low-pressure lamp comes on at 160–175 kgf/cm²[^dcs-hyd], and 210 kgf/cm² is usual for the
+Soviet systems of its time; no source gives the MiG-23's value). The face is the УИ2-300К[^ub], 0–300 kgf/cm².
 
 ## 5. Real HUD: MiG-23ML (АСП-17МЛ sight)
 
@@ -394,4 +404,5 @@ https://www.digitalcombatsimulator.com/upload/iblock/463/DCS%20MIG-29%20Flight%2
 [^calameo]: Markovsky / Prikhodchenko, MiG-23 book, Calameo: https://www.calameo.com/read/00188772198ad5eede3a8
 [^su25t]: Eagle Dynamics, *DCS World Su-25T Flight Manual* (SPO-15 lamps and threat letters): https://www.digitalcombatsimulator.com/upload/iblock/61b/DCS%20World%20Su-25T%20Flight%20Manual%20EN.pdf
 [^hoggit]: Hoggit wiki, "Su-25T" (SPO-15: red steady = lock, flashing = launch): https://wiki.hoggitworld.com/view/Su-25T
+[^dcs-hyd]: ED forum, "Main hydraulic system failure" (MiG-23 manual pages quoted: the warning lamp at 160–175 kp/cm², dual failure below 165 kgf/cm²): https://forum.dcs.world/topic/290417-main-hydraulic-system-failure
 [^spo15-ed]: Fly and Wire, "MiG-29's SPO-15 RWR: Q&A with Eagle Dynamics" (2025): https://flyandwire.com/2025/09/04/mig-29s-spo-15-rwr-qa-with-eagle-dynamics/

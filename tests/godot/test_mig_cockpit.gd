@@ -4,7 +4,9 @@
 # dials_by_label takes the misplaced records off their faces and draws each labelled dial from its value (MiG-23:
 # Mach, EGT, litres, VVI; MiG-29: both tachometers); radar_alt / uua drive the MiG-29's radar altimeter (its flag
 # covered while valid) and AoA / g meter; metric_gauges reads the altimeter in m and the MiG-23's VVI in m/s;
-# turning_compass turns the MiG-23's HSI card with the heading; rsbn_counter shows the waypoint distance in km.
+# turning_compass turns the MiG-23's HSI card with the heading; rsbn_counter shows the waypoint distance in km;
+# spo15 lights the SPO-15's lamps from the RWR; pnp_bars moves the ПНП's bars with the ILS; hyd_gauge shows the
+# hydraulic pressure (0 with damage 18); the UUA's max-g needle; radar_alt's danger lamp and Betty "altitude".
 extends "res://../tests/godot/base.gd"
 
 ## Per cockpit folder: the Mission Creator's type index, each dial's label -> its centre (panel px).
@@ -17,7 +19,9 @@ const JETS := {
 			"M": Vector2(735, 275),
 			"× 100 °C": Vector2(1183, 226),
 			"× 1000 Л": Vector2(1175, 280),
-			"VVI": Vector2(1098, 270)
+			"VVI": Vector2(1098, 270),
+			"HYD 1": Vector2(1030, 311.5),
+			"HYD 2": Vector2(1055.5, 337)
 		}
 	},
 	"mig29":
@@ -29,7 +33,8 @@ const JETS := {
 			"RPM R": Vector2(1062, 253),
 			"RADALT": Vector2(904, 168),
 			"α": Vector2(1116, 55),
-			"nᵧ": Vector2(1116, 55)
+			"nᵧ": Vector2(1116, 55),
+			"nᵧ max": Vector2(1116, 55)
 		}
 	},
 }
@@ -95,6 +100,7 @@ func _jet(folder: String) -> void:
 			comp.size() == 1 and comp[0].visible and is_equal_approx(comp[0].angle, deg_to_rad(float(c.state.heading))),
 			"mig23: turning_compass: the HSI card turns with the heading (%.0f°)" % float(c.state.heading)
 		)
+		await _mig23_extras(tv, c)
 	else:
 		# 3333 m above the base: off the radar altimeter's face, so its flag shows (not covered); valid, covered.
 		var b: Dictionary = c.state.better
@@ -114,12 +120,17 @@ func _jet(folder: String) -> void:
 		settings().cockpit_items["radar_alt"] = true
 		settings().cockpit_items["uua"] = true
 		settings().cockpit_items["dials_by_label"] = false
-		_dials(c, folder, ["RADALT", "α", "nᵧ"])
+		_dials(c, folder, ["RADALT", "α", "nᵧ", "nᵧ max"])
 		check(
 			gauges.replaced(c) == ["SPEEDCLOCK", "VARIOCLOCK", "VARIOCLOCK"] and c.needle_angles().has("THROTTLECLOCK"),
 			"mig29: without dials_by_label only the items' records leave (%s)" % [gauges.replaced(c)]
 		)
 		settings().cockpit_items["dials_by_label"] = true
+		check(
+			float(c.state.better.g_max) >= float(c.state.g) - 1e-4,
+			"mig29: uua: the max-g needle holds the highest g (%.2f ≥ %.2f)" % [c.state.better.g_max, c.state.g]
+		)
+		await _radalt_warning(tv, c)
 	c.queue_redraw()
 	await frames(2)  # the panel draw with every item (no script error)
 	settings().cockpit_items["smooth_needles"] = true
@@ -147,6 +158,9 @@ func _dials(c, folder: String, want: Array) -> void:
 		"RADALT": float(st.agl_ft) / 3.281,
 		"α": st.aoa,
 		"nᵧ": st.g,
+		"nᵧ max": float(b.g_max),
+		"HYD 1": float(b.hyd),
+		"HYD 2": float(b.hyd),
 	}
 	var specs := {}
 	for d in gauges.DIALS[folder].dials:
@@ -175,3 +189,74 @@ func _dials(c, folder: String, want: Array) -> void:
 		not gone.is_empty() and gone.all(func(k): return not a.has(k)),
 		"%s: the records taken off are not drawn (%s)" % [folder, gone]
 	)
+
+
+## The MiG-23's SPO-15 (synthetic RWR entries), ПНП bars and hydraulic gauge.
+func _mig23_extras(tv: Node, c) -> void:
+	var own: Vector2 = c.state.world
+	var hdg := deg_to_rad(float(c.state.heading))
+	var ahead := Vector2(sin(hdg), cos(hdg))
+	var right := Vector2(cos(hdg), -sin(hdg))
+	# An SA-6 90° right at half the RWR range; a MiG-29 ahead that launched; an inactive SA-2.
+	c.rwr = [
+		{"type": 320, "pos": own + right * 18540.0, "launch": false, "active": true},
+		{"type": 180, "pos": own + ahead * 30000.0, "launch": true, "active": true},
+		{"type": 290, "pos": own + right * 100.0, "launch": false, "active": false},
+	]
+	var sp: Dictionary = gauges.spo15(c)
+	check(
+		sp.sectors == (1 << 7 | 1 << 0 | 1 << 4) and sp.power == 8 and sp.types == 0b101 and sp.lock and sp.launch,
+		"mig23: spo15: the right 90° and both 10° lamps, 8 of 15 power lamps, П and Х, the centre flashing (%s)" % sp
+	)
+	settings().cockpit_items["spo15"] = false
+	check(gauges.spo15(c).is_empty(), "mig23: spo15 off: the art as painted")
+	settings().cockpit_items["spo15"] = true
+	# The ПНП: live only while the HUD shows its ILS (NAV, gear handle down); the bars follow the deviation.
+	var gear: bool = c.gear_handle_down
+	c.gear_handle_down = false
+	var off: bool = gauges.pnp_live(c)
+	c.gear_handle_down = true
+	c.weapons["hud_mode"] = 0
+	var ils: Vector2 = c.state.ils
+	var bars: Vector2 = c.state.better.pnp_bars
+	var want := Vector2(clampf(ils.x / 2.5, -1, 1), clampf(ils.y / 0.7, -1, 1))
+	check(
+		not off and gauges.pnp_live(c) and bars.distance_to(want) < 1e-3,
+		"mig23: pnp_bars: live with the gear down only; the bars %s at the ILS %s" % [bars, ils]
+	)
+	c.queue_redraw()
+	await frames(2)  # the SPO-15 and ПНП drawn (no script error)
+	c.gear_handle_down = gear
+	# The hydraulic gauge: the normal pressure, 0 with the hydraulics damage (18).
+	check(is_equal_approx(float(c.state.better.hyd), 210.0), "mig23: hyd_gauge: %.0f kgf/cm²" % c.state.better.hyd)
+	tv.player_damage.flags[18] = true
+	await frames(3)
+	check(float(c.state.better.hyd) == 0.0, "mig23: hyd_gauge: 0 with the hydraulics damage")
+	tv.player_damage.flags[18] = false
+	await frames(2)
+
+
+## The MiG-29's radar altimeter warning: moved to 40 m above the ground (gear up), below the 70 m index: the lamp
+## lights and Betty "altitude" plays (the original's rule alone waits for 100 ft).
+func _radalt_warning(tv: Node, c) -> void:
+	var st: Dictionary = tv.flight.state()
+	var pos: Vector3 = st.position
+	pos.y -= float(c.state.agl_ft) / 3.281 - 40.0
+	tv.flight.start(
+		settings().assets_dir().path_join("install"),
+		tv.player.fm_section,
+		pos,
+		Vector3(0.0, 0.0, st.heading),
+		st.forward * 300.0 * 0.5144,
+		{"airborne": true, "engine_on": true, "real_data": false}
+	)
+	tv.sounds.played.clear()
+	await seconds(0.5)
+	check(
+		c.state.better.radalt_danger and gauges.radalt_danger(c) == true and not tv.gear_down,
+		"mig29: radar_alt: below the danger height the lamp lights (%.0f m)" % c.state.better.radalt_m
+	)
+	check(tv.sounds.played.has("VOC_BBETTY/BTY_ALT"), "mig29: radar_alt: Betty altitude (%s)" % [tv.sounds.played])
+	settings().cockpit_items["radar_alt"] = false
+	check(gauges.radalt_danger(c) == null, "mig29: radar_alt off: no warning of its own")
+	settings().cockpit_items["radar_alt"] = true

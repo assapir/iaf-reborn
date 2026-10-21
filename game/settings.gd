@@ -58,6 +58,9 @@ const BETTER_COCKPIT := {
 	"uua": "MiG-29 AoA / g meter",
 	"radar_alt": "MiG-29 radar altimeter",
 	"rsbn_counter": "MiG-23 range counter shows the waypoint distance",
+	"spo15": "MiG-23 SPO-15 warning lamps",
+	"pnp_bars": "MiG-23 HSI bars follow the ILS",
+	"hyd_gauge": "MiG-23 hydraulic pressure gauge",
 }
 ## Stored preferences by config section: the original pages, then our own options (Extras tab).
 const PREFS := {

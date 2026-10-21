@@ -232,13 +232,23 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     own items are on. Other jets unchanged (cockpit.md "Panel instruments per jet").
   - **MiG-29 radar altimeter** (`radar_alt`). Original: the airspeed needle on it, its red flag painted in view.
     Better: the height above the ground in metres on the face; the flag hides while the height is valid (at most
-    1500 m and 60° of bank, inferred).
+    1500 m and 60° of bank, inferred). Below the painted danger-height index (70 m, inferred) an amber lamp drawn on
+    the face lights, and with the gear handle up Betty "altitude" plays every 4 s in place of the original's 100 ft
+    rule (also with the Real HUD, where the MiG-29 otherwise has no voice calls).
   - **MiG-29 AoA / g meter** (`uua`). Original: the vertical speed needle on it. Better: AoA and g needles on its two
-    scales.
+    scales, and a max-g memory needle (inferred) that resets on the ground.
   - **Metric units** (`metric_gauges`). Original: the MiGs' metric altimeters read feet. Better: metres; the
     MiG-23's VVI (with `dials_by_label`) × 10 m/s (unit inferred).
   - **MiG-23 range counter** (`rsbn_counter`). Original: the "КМ" drum is static art. Better: the distance to the
     current waypoint in km (the game has no RSBN beacons).
+  - **MiG-23 SPO-15** (`spo15`). Original: the SPO-15 indicator is static art; only its ML / AI boxes light.
+    Better: its sector lamps toward each emitter the RWR lists, the power ring for the nearest, the red centre lamp
+    steady on a lock and flashing on a launch, the П / З / Х / Н type lamps; unlit lamps dimmed (docs/cockpit.md
+    "MiG gauges").
+  - **MiG-23 ПНП bars** (`pnp_bars`). Original: the HSI's К / Г bars and flags are static art. Better: while the HUD
+    shows its ILS (gear handle down) the bars follow the ILS deviation and the flags are hidden.
+  - **MiG-23 hydraulic gauge** (`hyd_gauge`). Original: the TEMP needle on it. Better: both needles at 210 kgf/cm²
+    (inferred), 0 with the hydraulics damage.
   - **AR/NWS lamp** (`ar_nws_lights`). Original: the F-16's AR status indicator right of the HUD is static art.
     Better: its green AR/NWS legend lights on the ground (nose-wheel steering engaged); RDY and DISC stay dark.
   - **Smooth needles** (`smooth_needles`). Original: each panel needle shows its value of the frame, so it starts and

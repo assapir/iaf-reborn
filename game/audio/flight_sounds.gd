@@ -16,6 +16,7 @@ extends Node3D
 
 const SoundBuses := preload("res://audio/sound_buses.gd")
 const SoundTable := preload("res://audio/sound_table.gd")
+const Gauges := preload("res://cockpit/gauges.gd")
 
 ## Aircraft types whose player controller carries the Betty voice warnings: ctl+0x964, set per type
 ## code in FUN_00447e70 (switch @447e95, byte table 0x448094): F-16 100, F-15 110, Lavi 140,
@@ -142,6 +143,7 @@ func _process(_delta: float) -> void:
 						"pitch": float(st.get("pitch", 0.0)),
 						"hud_mode": int(wp.hud_mode) if wp != null else 0,
 						"kcas": float(ck.state.get("ias_kt", st.speed_kt)) if ck != null else float(st.speed_kt),
+						"radalt_danger": Gauges.radalt_danger(ck) if ck != null else null,
 					}
 				)
 	_update_3d()
@@ -180,8 +182,12 @@ func update(st: Dictionary, inp: Dictionary) -> void:
 			_speed_brake_loop = null
 	var h_ft := float(inp.get("agl_m", 1.0e6)) * FT_PER_M
 	var voice: String = REAL_VOICE.get(type_code, "") if Settings.hud_style == "real" else "original"
-	if voice == "original":
-		_altitude_warning(h_ft, inp.gear_down, now, float(inp.get("pitch", 0.0)), int(inp.get("hud_mode", 0)))
+	# Better radar_alt (the MiG-29): its danger-height warning replaces the 100 ft rule, with either HUD.
+	var radalt = inp.get("radalt_danger")
+	if voice == "original" or radalt != null:
+		var hud_mode := int(inp.get("hud_mode", 0)) if voice == "original" else -1
+		var low: bool = radalt if radalt != null else h_ft < ALT_WARN_FT
+		_altitude_warning(low, h_ft, inp.gear_down, now, float(inp.get("pitch", 0.0)), hud_mode)
 	else:
 		_real_warning(voice, h_ft, st, inp, now)
 	_fuel_warning(float(st.get("fuel_lbs", 1.0e6)))
@@ -279,19 +285,19 @@ func _aoa_warning(on: bool) -> void:
 		_aoa_loop = null
 
 
-## FUN_0044fe30: below 100 ft above the terrain with the gear handle up, Betty "altitude" at once
-## and every 4 s (only on jets with Betty). Otherwise, diving in an air-to-ground HUD mode
-## (pull_up), Betty "pull up" at once and every 4 s: the timer starts only with the gear handle up
-## on a jet with Betty, and runs until the dive or the mode ends.
-func _altitude_warning(h_ft: float, gear_down: bool, now: float, pitch_deg := 0.0, hud_mode := 0) -> void:
-	if h_ft < ALT_WARN_FT and not gear_down:
+## FUN_0044fe30: `low` (below 100 ft above the terrain; ours: the MiG-29's radar altimeter danger height with
+## Better radar_alt) with the gear handle up, Betty "altitude" at once and every 4 s (only on jets with Betty).
+## Otherwise, diving in an air-to-ground HUD mode (pull_up), Betty "pull up" at once and every 4 s: the timer
+## starts only with the gear handle up on a jet with Betty, and runs until the dive or the mode ends.
+func _altitude_warning(low: bool, h_ft: float, gear_down: bool, now: float, pitch: float, mode: int) -> void:
+	if low and not gear_down:
 		_pull_timer = -1.0
 		if betty and _alt_timer < 0.0:
 			_alt_timer = now
 		_alt_timer = _betty_tick(_alt_timer, "BTY_ALT", now)
 		return
 	_alt_timer = -1.0
-	if not pull_up(h_ft, gear_down, pitch_deg, hud_mode):
+	if not pull_up(h_ft, gear_down, pitch, mode):
 		_pull_timer = -1.0
 		return
 	if betty and not gear_down and _pull_timer < 0.0:
