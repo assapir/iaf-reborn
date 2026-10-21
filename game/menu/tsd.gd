@@ -140,6 +140,18 @@ var pressed_arrow := ""
 var dragging := -1  # axis of the thumb being dragged
 var drag_offset := 0.0
 
+## Ours, the mission editor (game/editor/mission_editor.gd): the files to show in place of the mission id's, and the
+## edit mode. In it every placed unit shows (not only the ones known to the player), every flight's route is drawn and
+## its waypoints drag, a pressed unit drags, and the presses are reported by the signals below. `issues` rings a unit
+## (by key) red ("error") or yellow ("warning").
+signal unit_dragged(index: int)
+signal waypoint_dragged(flight: int, index: int)
+signal map_clicked(map_pos: Vector2)
+var files_override: Array = []
+var edit := false
+var issues := {}
+var drag_unit := -1
+
 
 func setup(front_end: Control, mission: int) -> void:
 	fe = front_end
@@ -208,7 +220,7 @@ func _load_units() -> void:
 	var bdbs := {}
 	var first := true
 	var formations: Array = []  # [flight number, [member keys], points]
-	var files := MissionRuntime.mission_files(mission_id)
+	var files := files_override if not files_override.is_empty() else MissionRuntime.mission_files(mission_id)
 	for fi in files.size():
 		var m: Dictionary = files[fi].data
 		if m.is_empty():
@@ -249,7 +261,7 @@ func _load_units() -> void:
 					if ent.player and fe.flight.flight != null
 					else float(ent.heading)
 				)
-			elif int(e.get("0x35c", 0)) == 0:
+			elif int(e.get("0x35c", 0)) == 0 and not edit:
 				continue
 			var type := int(obj.get("0x5b4", -1))
 			(
@@ -271,12 +283,15 @@ func _load_units() -> void:
 				)
 			)
 		if first:
-			for f in m.formations.items:
+			for fo in m.formations.items.size():
+				var f: Dictionary = m.formations.items[fo]
 				var n := int(f.get("0x3f2", 0))
 				if n == -1:
 					n = 8
 				if n <= 0:
 					continue
+				if edit and n > 4:
+					n = 100 + fo  # ours, the editor: each other flight (the red ones all 8) by its own key
 				# The flight's two member slots (0x41a).
 				var keys: Array = f.get("members", []).slice(0, 2).map(
 					func(mem): return "%d:%d" % [fi, int(mem.get("0x41a", -1))]
@@ -284,7 +299,7 @@ func _load_units() -> void:
 				var pts: Array = []
 				for p in f.get("points", []):
 					pts.append(world_to_map(float(p[1]), float(p[2])))
-				formations.append([n, keys, pts])
+				formations.append([n, keys, pts, fo])
 		first = false
 	# A flight exists while either member has a record; its leader is member 0, else member 1 (FUN_004d35c0).
 	var index := {}
@@ -294,7 +309,7 @@ func _load_units() -> void:
 		var members: Array = f[1].filter(func(k): return index.has(k)).map(func(k): return index[k])
 		if members.is_empty():
 			continue
-		flights[f[0]] = {"members": members, "points": f[2], "leader": members[0]}
+		flights[f[0]] = {"members": members, "points": f[2], "leader": members[0], "formation": f[3]}
 		units[members[0]].leader = true
 		for i in members:
 			units[i].flight = f[0]
@@ -311,6 +326,19 @@ func _load_units() -> void:
 		n = int(pf.get("flight", 0))
 	if flights.has(n):
 		select_flight(n)
+
+
+## Ours, the editor: reads `files` again, keeping the view and the selected flight.
+func reload(files: Array) -> void:
+	files_override = files
+	var keep := [zoom, scroll, sel_flight]
+	units.clear()
+	flights.clear()
+	selected = -1
+	_load_units()
+	zoom = keep[0]
+	scroll = keep[1]
+	sel_flight = keep[2] if flights.has(keep[2]) else 0
 
 
 ## The flight's mission runtime (the FlyTSD reads the live battle), else null.
@@ -699,7 +727,7 @@ func _draw_overlay() -> void:
 			Color.WHITE
 		)
 	if layers.waypoint:
-		for n in [1, 2, 3, 4]:
+		for n in flights.keys() if edit else [1, 2, 3, 4]:
 			if flights.has(n) and n != default_flight():
 				_draw_route(n, s)
 		if flights.has(default_flight()):
@@ -750,6 +778,8 @@ func _draw_units(s: float) -> void:
 				false,
 				2 * s
 			)
+		if issues.has(u.key):
+			overlay.draw_arc(c * s, 16 * s, 0, TAU, 32, Color.RED if issues[u.key] == "error" else Color.YELLOW, 2 * s)
 	if selected >= 0 and _unit_visible(units[selected]):
 		var u: Dictionary = units[selected]
 		var t := _selection_texture("icselair" if u.klass == 1 else "icselveh")
@@ -860,7 +890,7 @@ func _selection_texture(name: String) -> Texture2D:
 
 ## A flight's route: numbered circles (r 10 px) in the flight colour, joined when > 20 px apart.
 func _draw_route(n: int, s: float) -> void:
-	var color: Color = FLIGHT_COLORS[n - 1]
+	var color: Color = FLIGHT_COLORS[clampi(n, 1, FLIGHT_COLORS.size()) - 1]
 	var pts: Array = flights[n].points
 	var fs := int(round(11 * s))
 	for i in pts.size():
@@ -938,8 +968,10 @@ func _map_input(event: InputEvent, c: Vector2) -> bool:
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 			return true
 		return false
-	if not inside and drag_wp < 0 and not ruler_on:
+	if not inside and drag_wp < 0 and drag_unit < 0 and not ruler_on:
 		return false
+	if edit and _edit_input(event, c):
+		return true
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if not event.pressed:
 			if drag_wp >= 0:
@@ -966,6 +998,38 @@ func _map_input(event: InputEvent, c: Vector2) -> bool:
 		if event.button_mask & MOUSE_BUTTON_MASK_RIGHT and ruler_on:
 			ruler_b = _client_to_world(c)
 			return true
+	return false
+
+
+## Ours, the editor's left button: a pressed unit is selected (its flight too) and drags; a press elsewhere takes the
+## selected flight's waypoint, or reports the map point. The release reports the drag.
+func _edit_input(event: InputEvent, c: Vector2) -> bool:
+	var at := (c.clamp(Vector2.ZERO, CLIENT.size) / zoom + scroll).clamp(Vector2.ZERO, MAP_SIZE)
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.double_click:
+		if event.pressed:
+			selected = unit_at(c)
+			if selected >= 0:
+				if flights.has(units[selected].flight):
+					sel_flight = units[selected].flight
+				drag_unit = selected
+				return true
+			drag_wp = _waypoint_at(c)
+			if drag_wp < 0:
+				map_clicked.emit(at)
+			return true
+		if drag_unit >= 0:
+			var i := drag_unit
+			drag_unit = -1
+			unit_dragged.emit(i)
+			return true
+		if drag_wp >= 0:
+			var i := drag_wp
+			drag_wp = -1
+			waypoint_dragged.emit(sel_flight, i)
+			return true
+	if event is InputEventMouseMotion and event.button_mask & MOUSE_BUTTON_MASK_LEFT and drag_unit >= 0:
+		units[drag_unit].pos = at
+		return true
 	return false
 
 
