@@ -71,7 +71,7 @@ imagery_refresh() {
 	[[ ${restored:-} == 1 && -f assets/converted/terrain/theatre/meta.json ]] || return 0
 	command -v gdal_translate >/dev/null || { echo "GDAL is needed to bring the restored imagery up to date (README: prerequisites)"; return 0; }
 	step "imagery: convert again what the restored copy holds from older rules"
-	cargo build -q --release -p iaf-tools
+	cargo build --release -p iaf-tools
 	if [[ -d assets/converted/imagery/mapi2015 && -d assets/source/imagery/mapi2015 ]]; then
 		./target/release/iaf-imagery mapi2015 assets/install assets/converted/terrain/theatre assets/converted/imagery --stale \
 			--threads "$(( $(nproc) > 2 ? $(nproc) - 2 : 1 ))"
@@ -94,7 +94,7 @@ imagery_steps() {
 				step "imagery: Sentinel-2 outside Israel (ESA WorldCover 2021, CC BY 4.0; GDAL range reads, resumable)"
 				command -v gdal_translate >/dev/null || { echo "GDAL is needed (README: prerequisites)"; exit 1; }
 				[[ -f assets/converted/terrain/theatre/meta.json ]] || { echo "run the base setup (with the ISO) first"; exit 1; }
-				cargo build -q --release -p iaf-tools
+				cargo build --release -p iaf-tools
 				./target/release/iaf-imagery sentinel2 assets/install assets/converted/terrain/theatre assets/converted/imagery --dry-run
 				# A ~28 GB fetch: asked on a terminal; without one only with IAF_IMAGERY_YES=1.
 				if [[ -t 0 ]]; then
@@ -111,7 +111,7 @@ imagery_steps() {
 				step "imagery: Survey of Israel 2015 2 m layer from the downloaded sheets (resumable, incremental)"
 				command -v gdal_translate >/dev/null || { echo "GDAL is needed (README: prerequisites)"; exit 1; }
 				[[ -f assets/converted/terrain/theatre/meta.json ]] || { echo "run the base setup (with the ISO) first"; exit 1; }
-				cargo build -q --release -p iaf-tools
+				cargo build --release -p iaf-tools
 				./target/release/iaf-imagery mapi2015 assets/install assets/converted/terrain/theatre assets/converted/imagery --dry-run
 				# About an hour of CPU for all of Israel: asked on a terminal; without one only with IAF_IMAGERY_YES=1.
 				if [[ -t 0 ]]; then

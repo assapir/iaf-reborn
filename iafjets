@@ -5,7 +5,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 [[ -d assets/converted ]] || { echo "No game data yet: starting the setup wizard (./setup)." >&2; exec ./setup; }
-cargo build --release -q -p iaf-godot
+cargo build --release -p iaf-godot
 godot=${GODOT:-godot}
 if ! command -v "$godot" >/dev/null && [[ -x /Applications/Godot.app/Contents/MacOS/Godot ]]; then
 	godot=/Applications/Godot.app/Contents/MacOS/Godot
