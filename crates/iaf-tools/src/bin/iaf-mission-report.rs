@@ -924,8 +924,8 @@ const NOTES: &str = r#"
 * **Base missions** (bmis*) are included like the main file: their SAMs / AAA count even far from the route.
 * **Jet choice**: a player who picks another flight on the TSD can make more missions playable. The report leaves
   this out; it does count the Arming screen's loads of the default flight.
-* **Weather** (`0x46a` / `0x474`, probably wind) and the time-of-day option (+0x584, which overrides `0x460`) are
-  still undecoded. The data holds nothing about refuelling, carriers or a landing end condition (there is no
-  landing / time / waypoint end rule, docs/mission-runtime.md §5.1).
+* **Wind** (`0x46a` / `0x474`, docs/radio.md §2) and the time-of-day option (+0x584 overrides `0x460`,
+  docs/mission-runtime.md §5.3) are left out. The data holds nothing about refuelling, carriers or a landing end
+  condition (there is no landing / time / waypoint end rule, docs/mission-runtime.md §5.1).
 * Sizes are rough planning estimates, not measurements.
 "#;

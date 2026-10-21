@@ -1,15 +1,14 @@
 # Mission runtime — what the engine does with a loaded .mis
 
 This document describes what the original engine does with a loaded mission: entity event slots, radius checks,
-events, scripts, and how a mission ends. It applies to every mission. Read it to re-implement or debug mission logic.
+events, scripts, and how a mission ends. It applies to every mission.
 
-- **Addresses** are `IAFJets.exe` **v1.1** (the reference version); [v1.1.md](v1.1.md) maps them to v1.0 and lists
-  what the patch changed.
+- **Addresses** are `IAFJets.exe` **v1.1**; [v1.1.md](v1.1.md) maps them to v1.0.
 - **File format:** [formats/mis.md](formats/mis.md).
 - **Worked example:** `takeoff.mis` (§7).
-- **Decompile:** most functions cited here are missing from `assets/ghidra_v11/iafjets.c`. Ghidra did not find them,
-  because only vtables or indirect calls reach them. Re-decompile them with a headless script, `DecompAt`-style:
-  create the function at the address, then decompile it.
+- **Decompile:** most functions cited here are missing from `assets/ghidra_v11/iafjets.c`, because only vtables or
+  indirect calls reach them. Re-decompile them with a headless script, `DecompAt`-style: create the function at the
+  address, then decompile it.
 
 **Main finding: nothing runs per frame.** Four things drive everything:
 
@@ -186,8 +185,8 @@ editor-only. The record copies cond1's operator from an uninitialised slot (+0x2
 - `FUN_004ba3fd` (cond 2 = action on a counter; `FUN_004ba4ce`): 6 var=v, 7 var+=v, 8 var-=v, 9 var--, **10 `++`**.
 
 **In all 131 shipped missions every counter id `0x3de` is unset** (0xCDCDCDCD or -1). So no event has a
-condition or a counter action, and "COUNT", "NUMOFLAUNCHERS", `==`/`++`/`>=` never take effect. They are
-listed above for completeness only. `DAT_00843c5c` (#counters) is the largest counter id any event names, + 1.
+condition or a counter action, and "COUNT", "NUMOFLAUNCHERS", `==`/`++`/`>=` never take effect.
+`DAT_00843c5c` (#counters) is the largest counter id any event names, + 1.
 Port: `mission_runtime.gd` builds the counters, conditions and counter actions anyway (`counters`, `_condition`,
 `_counter_action`); a condition with an operator code outside 0..5 (cond1's copied junk) is taken as false (UNCERTAIN).
 
@@ -458,8 +457,6 @@ Misc fields as the engine uses them (via doc vtbl+0x90 `FUN_0058d720` → unit f
 | 0x4a6 text | +0x2c | unused in single player (default "Passed") |
 | 0x4ce audio | +0x30 | **played at success** (for example 43 "The terrorist attack on Haifa has failed.") |
 
-mis.md's "second failure" labels for 0x4a6 and 0x4ce are wrong.
-
 The start time (0x460) is overridden by option +0x584 (0..3 → 43200 / 21600 / 68400 / 79200 s).
 
 ### 5.4 Ejection / player lost (`FUN_005485a0`)
@@ -592,13 +589,10 @@ No "ejected"/"rescued"/"MIA" strings exist in the exe or the menu texts. The pla
 - **When it runs:** the flight model calls it at a gear-down touchdown of the player that passes the landing check,
   while the controller's landed flag (`ctl+0xe0`) is 0, then sets the flag (docs/flight-model.md §15.6.2). v1.1
   clears the flag at lift-off, so it runs on **every** landing (v1.0: only the first landing of a flight).
-- **What it does (first reading):** it looks up the route of the player's formation (`FUN_005bcb90` / `FUN_005bcd70`)
-  and, if the route's +0x2c is set, makes its last waypoint the current NAV waypoint (`FUN_00440e90(count − 1)` →
-  `FUN_00453450`: +0x44 = index, the waypoint copied, NAV state 5). UNCERTAIN: route+0x2c, taken as "the route has
-  waypoints".
-- **Correction (docs/ai.md §7.2):** `FUN_005bcb90` is getWingman. So the handler moves the **wingman's** waypoint
-  index (brain +0x88, and the wingman's NAV) to the route's last waypoint, and "route+0x2c" is the wingman's brain.
-  The player's own NAV stays as it was.
+- **What it does:** it takes the lander's wingman (`FUN_005bcb90` = getWingman) and its formation's route
+  (`FUN_005bcd70`). If the wingman has a brain (+0x2c), it moves the **wingman's** waypoint index (brain +0x88, and
+  the wingman's NAV) to the route's last waypoint (`FUN_00440e90(count − 1)` → `FUN_00453450`: +0x44 = index, the
+  waypoint copied, NAV state 5; docs/ai.md §7.2). The lander's own NAV stays as it was.
 - **Callers:** the player (FM @5bbf4f), an AI leader at the end of its roll-out (StopPlaneCL) and the brain's "Land"
   action, once per unit (brain +0xe0).
 - It fires no mission event: no script can trigger on "landed" (§5, §8).
@@ -660,20 +654,19 @@ try again."
 
 ## 8. Corrections to formats/mis.md and open items
 
-Corrections:
+Corrections (formats/mis.md still has the older readings):
 - Slot meanings are in §2. Slot 2 is a debrief id (formats/mis.md called it a "landed" event). Slot 4 is left +
   radius, slot 5 is reached.
 - 0x32a = role. 0x320 bit 0 = mission vs brain control.
 - 0x398 = the maximum fire count.
 - 0x3d4 = the operator code, 0x3de = the counter id.
-- The misc audio pairing is in §5.3.
+- The misc audio pairing is in §5.3: 0x4a6 / 0x4ce are no "second failure" message (0x4ce plays at success).
 - Script opcodes: scripts0 and scripts1 have separate opcode spaces (§4).
 
 UNCERTAIN / open:
 - Slot 3 reader.
 - Args of trigger ops 1, 2, 9, 20, 24–28.
 - Path variants 1 / 3 (current speed, acceleration).
-- Subtitle lifetime: resolved in §3.3 (14 pushes; a 3 s empty-line ticker gives 39–42 s). Which exit path
-  runs `FUN_004e3070` (console reset) is still open.
+- Which flight exit runs `FUN_004e3070` (the console reset, §3.3).
 - Whether the 0x81 box can appear after 0x82 has ended the flight.
 - Where the Deb screens draw +0x5e0c and +0x620c (front-end).

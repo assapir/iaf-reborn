@@ -1,8 +1,8 @@
 # Multiplayer — research
 
 This page records how the original game's multiplayer works and how the port could build it. It is research only:
-no multiplayer code exists yet (docs/status.md "Multiplayer"). Functions are v1.1 addresses (`FUN_xxxxxxxx`).
-Research date: 2026-10-20.
+multiplayer is undecided and no multiplayer code exists (docs/status.md "Multiplayer"). Functions are v1.1 addresses
+(`FUN_xxxxxxxx`). Research date: 2026-10-20.
 
 **Terms**
 - **Host / client:** the player who opens a session / a player who joins it. The exe calls them master and slave.
@@ -21,7 +21,7 @@ Research date: 2026-10-20.
   scripts) (§2.4).
 - The version check is a session tag, `IAF11` in v1.1 (`IAF01` in v1.0) (§2.6).
 - Recommendation: our own protocol between our clients, with the original's authority split; no wire compatibility
-  with the original exe (§3).
+  with the original exe (§3.4).
 
 ## 1. What the original offers
 
@@ -187,8 +187,8 @@ The scale of the packed position and attitude fields is open (the `__ftol` argum
 
 ### 3.2 Option (a): our own protocol between our clients
 - Transport: Godot's ENet (`ENetMultiplayerPeer`, UDP with reliable and unreliable channels). LAN search by UDP
-  broadcast (`PacketPeerUDP`), as the original; join by IP for the internet. WebSocket is not needed (no browser
-  build).
+  broadcast (`PacketPeerUDP`), as the original; join by IP for the internet. WebSocket only where a server needs it
+  (no browser build; §3.5).
 - Message definitions and the state packing belong in a new Rust crate (rule of placement); Godot only moves bytes.
 - Keep the original's authority split (§2.4): it is simple and fair, and needs no lock-step. Own jet state on an
   unreliable channel at 5 Hz (original), events (hits, kills, launches, script jumps, chat) on a reliable one.
@@ -231,9 +231,10 @@ rough size each:
 6. **Chat and debrief (small):** `~` chat with its modifiers, F1–F12 and the automatic lines, the MP debrief (winning
    side, "N/A").
 
-### 3.5 Discussion so far (user, 2026-10-20; multiplayer itself is not approved)
-These are the user's answers in a first discussion. They guide a plan if multiplayer goes ahead; nothing is built.
-- **Order:** the single-player Mission Creator first (useful alone), then a protocol design doc, then All-Out War
+### 3.5 Points for discussion (user, 2026-10-20; multiplayer itself is not approved)
+These are the user's answers in a first discussion, not decisions. They guide a plan if multiplayer goes ahead.
+- **Order:** the single-player Mission Creator first (useful alone; built since, docs/front-end.md §19), then a
+  protocol design doc, then All-Out War
   on a lobby server, then Custom missions from the Mission Creator, then Special missions and campaign co-op. A small
   MVP by priorities, growing as it is built.
 - **Transport:** no IPX / SPX. Our own game messages, versioned and designed with care, over an existing transport
