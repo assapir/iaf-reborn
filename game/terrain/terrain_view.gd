@@ -884,16 +884,19 @@ static func _sign_number(path: String) -> int:
 	return int(SIGN_GROUPS.get(f, 0))
 
 
-## The label a sign at `path` on `ent` must show ("25L"), "" when it keeps its own (Original, not a sign, or agreeing).
+## The label a sign at `path` on `ent` must show ("25L"), "" when it keeps its own (not a sign, or agreeing): World
+## scale Real's real designation, and Better physics "Wind and turbulence"'s runway end into the wind
+## (IafBases.sign_label, docs/autopilot.md §2.4).
 static func _real_sign_label(path: String, ent: Dictionary) -> String:
 	var n := _sign_number(path)
-	if n == 0 or not Settings.sync_bases():
+	if n == 0 or not ClassDB.class_exists("IafBases"):
 		return ""
-	var r := IafBases.sign_designation(ent.world.x, ent.world.y, n)
-	return "" if r == "%02d" % n else r
+	Settings.sync_bases()
+	return IafBases.sign_label(ent.world.x, ent.world.y, n)
 
 
-## Re-letters the sign `node` (World scale Real); one that cannot be keeps its number, with a warning.
+## Re-letters the sign `node` (World scale Real, the runway into the wind); one that cannot be keeps its number, with a
+## warning.
 static func _real_sign(node: Node3D, path: String, ent: Dictionary) -> void:
 	var label := _real_sign_label(path, ent)
 	if label == "":
@@ -901,7 +904,7 @@ static func _real_sign(node: Node3D, path: String, ent: Dictionary) -> void:
 	if SignBoards.reletter(node, _sign_number(path), label):
 		ent["sign_label"] = label
 	else:
-		push_warning("world scale real: %s keeps its number (no board for %s)" % [path.get_file(), label])
+		push_warning("taxi sign %s keeps its number (no board for %s)" % [path.get_file(), label])
 
 
 ## Detailed night lights: a home airbase's runway model gets its light set at night (NightLights.BASE_LIGHTS), on
@@ -1481,6 +1484,7 @@ func _end_flight(debrief: bool, auto := "") -> void:
 func _exit_tree() -> void:
 	if Joystick.consumer == self:
 		Joystick.consumer = null
+	Settings.clear_runway_wind()  # the next flight picks its wind and runways again
 	# The sim clock and its rate belong to this flight.
 	Engine.time_scale = 1.0
 	if get_tree() != null:

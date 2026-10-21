@@ -627,6 +627,10 @@ Where our port differs from the original. Everything else follows §15 (status i
     * Test `wind_moves_the_air_mass`: off and calm fly as the original; on, the airspeed is kept when the wind
       starts, the track drifts 20 kt × 20 s east in a west wind, and the gusts move the jet 3 × as much at 250 m as
       at 2000 m.
+    * The runway into the wind: with the switch on the tower turns each base whose main runway has a wind of 5 kt or
+      more from behind to that runway's other end; the starts, the tower, the taxi signs, the AI, the autopilot and
+      the ILS use it, in both world scales; training missions keep theirs. The wind is then picked with the mission
+      (`Settings.runway_wind`), not at the radio's start ([autopilot.md](autopilot.md) §2.4).
   * **Engine spool-up** [`engine_spool`]: the player's thrust and RPM gauge follow each real engine's spool and
     afterburner light-off (§10.2).
 * **Kept in both modes** (not changed by better physics):

@@ -121,7 +121,8 @@ Each entry names the switch and where it lives, then the difference: "Original: 
 - **"Better physics"** (17 flight-model options, `Settings.BETTER`): each option's original and ours are in
   flight-model.md §10 (engine spool: §10.2). Among them: ground effect (the flare floats), nose dips under braking,
   unbalanced stores roll the jet, wind and turbulence (the tower's wind moves the air mass, the AI jets and the bombs
-  too, weapons.md §9.5; NO WIND calms it), engine spool-up per real engine.
+  too, weapons.md §9.5; NO WIND calms it; the tower turns a base whose main runway has the wind from behind to its other
+  end, training missions keep theirs, autopilot.md §2.4), engine spool-up per real engine.
 - **Original-bug fixes:** falling jets keep their heading and no tougher enemies on easy AI levels (damage.md), and the four below.
 - **"Locked enemies know who locked them"** (`fix_lock_threat`). Original: the player's radar lock writes the target
   itself into the AI target's threat (brain+0x7c). Ours, with the switch: the lock makes the player the target's

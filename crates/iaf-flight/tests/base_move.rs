@@ -91,6 +91,18 @@ fn the_moved_lineup_is_on_runway_ground() {
         if ms.get(&b.name).unwrap().offset() > 5000.0 {
             assert_eq!(s(o.lineup) & RUNWAY, 0, "{}: the old lineup is rough ground", b.name);
         }
+        // Turned into the wind (docs/autopilot.md §2.4): the other end's lineup at the new site, on the real runway's
+        // reciprocal heading, with runway ground ahead.
+        let m = ms.get(&b.name).unwrap();
+        let e = m.game_runways[0].map(|p| p.map(|v| v as f32));
+        let mut r = o.reversed(Some(e));
+        m.map_airbase(&mut r);
+        assert!(((r.runway_deg as f64 - m.heading - 180.0).rem_euclid(360.0) + 0.01).rem_euclid(360.0) < 0.02);
+        let d = r.runway_deg.to_radians();
+        for t in [0.0f32, 300.0, 1000.0] {
+            let p = [r.lineup[0] + t * d.sin(), r.lineup[1] + t * d.cos(), 0.0];
+            assert_eq!(s(p) & RUNWAY, RUNWAY, "{} turned, at {t} m", b.name);
+        }
     }
 }
 
@@ -127,11 +139,16 @@ fn fly(ac: &mut Aircraft, ap: &mut Autopilot, seconds: f64, z: f32, surf: &dyn F
     }
 }
 
-fn setup(name: &str, elev: f64) -> Option<(PathBuf, Airbase, Vec<Airbase>, BaseMoves, TerrainTypes)> {
+/// `turned`: the tower turned base `name` into the wind (its runway's other end, docs/autopilot.md §2.4).
+fn setup(name: &str, elev: f64, turned: bool) -> Option<(PathBuf, Airbase, Vec<Airbase>, BaseMoves, TerrainTypes)> {
     let a = assets()?;
     let (mut ibx, mut ms) = load(&a);
     for m in &mut ms.bases {
         m.elev = elev;
+    }
+    if turned {
+        let b = ibx.iter_mut().find(|b| b.name == name).unwrap();
+        *b = b.reversed(Some(ms.get(name).unwrap().game_runways[0].map(|p| p.map(|v| v as f32))));
     }
     ms.map_airbases(&mut ibx);
     let tt = TerrainTypes::parse(&std::fs::read(a.join("install/terraintype.dat")).unwrap()).unwrap();
@@ -139,8 +156,8 @@ fn setup(name: &str, elev: f64) -> Option<(PathBuf, Airbase, Vec<Airbase>, BaseM
     Some((a, b, ibx, ms, tt))
 }
 
-fn take_off(name: &str, elev: f64) {
-    let Some((a, b, ibx, ms, tt)) = setup(name, elev) else { return };
+fn take_off(name: &str, elev: f64, turned: bool) {
+    let Some((a, b, ibx, ms, tt)) = setup(name, elev, turned) else { return };
     let surf = |x: f64, y: f64| ms.surface([x, y], |x, y| tt.at(x, y));
     let h = b.hangars[0];
     let z = b.lineup[2];
@@ -152,7 +169,8 @@ fn take_off(name: &str, elev: f64) {
     ap.route = vec![Waypoint { x: wp[0], y: wp[1], z: 1500.0, t: 20.0, action: 2 }];
     ap.set_mode(&mut ac, 9);
     let (mut lined_up, mut airborne) = (false, false);
-    for _ in 0..400 {
+    // A turned base's departure backtracks down the runway.
+    for _ in 0..if turned { 900 } else { 400 } {
         fly(&mut ac, &mut ap, 1.0, z, &surf);
         let st = ac.state();
         assert!(st.crashed.is_none(), "{name}: crashed ({:?}) at {:?}", st.crashed, st.position);
@@ -162,8 +180,8 @@ fn take_off(name: &str, elev: f64) {
     assert!(lined_up && airborne, "{name}: taxied to the moved runway ({lined_up}) and took off ({airborne})");
 }
 
-fn land(name: &str, elev: f64) {
-    let Some((a, b, ibx, ms, tt)) = setup(name, elev) else { return };
+fn land(name: &str, elev: f64, turned: bool) {
+    let Some((a, b, ibx, ms, tt)) = setup(name, elev, turned) else { return };
     let surf = |x: f64, y: f64| ms.surface([x, y], |x, y| tt.at(x, y));
     let m = ms.get(name).unwrap().clone();
     let z = b.lineup[2];
@@ -202,7 +220,7 @@ fn land(name: &str, elev: f64) {
     let st = ac.state();
     assert_eq!(surf(st.position[0], st.position[1]) & RUNWAY, RUNWAY, "{name}: stopped on runway ground");
     assert!(ap.landed, "{name}: stopped on the runway");
-    fly(&mut ac, &mut ap, 600.0, z, &surf);
+    fly(&mut ac, &mut ap, 900.0, z, &surf);
     let st = ac.state();
     let parked = b.hangars.iter().any(|h| (st.position[0] - h.x as f64).hypot(st.position[1] - h.y as f64) < 100.0);
     assert!(parked && !ac.engine_on, "{name}: parked at a moved hangar, engine off");
@@ -210,20 +228,31 @@ fn land(name: &str, elev: f64) {
 
 #[test]
 fn takes_off_from_the_moved_ramat_david() {
-    take_off("David", 52.0);
+    take_off("David", 52.0, false);
 }
 
 #[test]
 fn lands_at_the_moved_ramat_david() {
-    land("David", 52.0);
+    land("David", 52.0, false);
 }
 
 #[test]
 fn takes_off_from_the_moved_ramon() {
-    take_off("Ramon", 480.0);
+    take_off("Ramon", 480.0, false);
 }
 
 #[test]
 fn lands_at_the_moved_ramon() {
-    land("Ramon", 480.0);
+    land("Ramon", 480.0, false);
+}
+
+/// Ramon turned into the wind: runway 07R at the real site (the game's 23 turned 17° onto the real 25L, then reversed).
+#[test]
+fn takes_off_into_the_wind_from_the_moved_ramon() {
+    take_off("Ramon", 480.0, true);
+}
+
+#[test]
+fn lands_into_the_wind_at_the_moved_ramon() {
+    land("Ramon", 480.0, true);
 }

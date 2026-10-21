@@ -65,12 +65,16 @@ ALPHA_T, MORNING, 27 → "Alpha, good morning, taxi to runway 27".
 The install lacks:
 - `Pause.wav` (the `,` / `.` particle), `Null`, `Bear000`, `Head000` and the three `…Twr` files;
 - most `NumNNN`. It ships 3, 5, 9, 15, 18, 21, 23, 27, 33, which include the runway numbers of the four Israeli bases.
-  (It also has `num36.wav`, which `Num036` does not name.) Only World scale Real's real runway numbers need the others
+  (It also has `num36.wav`, which `Num036` does not name.) Only World scale Real's real runway numbers and the runway into the wind need the others
   (deviations.md §2). The port fills them from `game/extra/tower_numbers/` (01-36): `sound_table.gd` reads our clip
   only for a name the install lacks. The clips say the digits like the originals ("zero four") in Piper TTS's
   public-domain voice en_US-john-medium, matched to the originals' format (22050 Hz, 16-bit, mono), radio band
   (300-3000 Hz), loudness and trimmed silence. `tools/tower_numbers.py` regenerates them; the folder's README names
   the voice and its licence.
+- any runway letter. Ours: in World scale Real the tower adds the real main runway's letter after its number
+  ("runway 25 left"): the particles `RWY_L` / `RWY_R` / `RWY_C` ("left", "right", "center"), our clips
+  `rwyl` / `rwyr` / `rwyc.wav` in the same folder, made by the same tool (`radio.gd` `LETTERS`).
+
 **Subtitle**: the callers push the text with `FUN_0044a060` (the console, mission-runtime.md §3.3).
 
 ## 2. Tower (TowersManager `DAT_00699344`, ctor `54eb30`)
@@ -109,7 +113,10 @@ clear, +0x3388 last message (0xb = none).
 **Wind** (`551320`, set at mission load from misc **0x46a**): 0, 10, 15 or 20 kt is used as is; any other value
 becomes a random one of these (`rand() % 4`). All bases share it. The tower says "wind is NN knots" / "no wind".
 Misc 0x474 (the direction, inferred) has no reader. Better physics "Wind and turbulence" flies the air mass at this
-speed from `radio.gd` `wind_from` (0x474, or 0x46a above 60: a swapped pair; flight-model.md §10).
+speed from `radio.gd` `wind_from` (0x474, or 0x46a above 60: a swapped pair; flight-model.md §10). With
+that switch the wind is picked with the mission (`Settings.runway_wind`, the same rule), and a base whose main runway
+has the wind from behind is flown from that runway's other end: the tower's `rwy` is then that end's number
+([autopilot.md](autopilot.md) §2.4).
 
 **Timer** (`550e40(period)`): a repeating event "TowersManagerTimer" every `period` s. Each call restarts it.
 

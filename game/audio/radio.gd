@@ -136,6 +136,15 @@ func _load_particles(path: String) -> void:
 			continue
 		var text := " ".join(cols.slice(2)) if cols.size() > 2 else ""
 		particles[cols[0].to_upper()] = [cols[1], text]
+	for k in LETTER_PARTS:
+		if not particles.has(k):
+			particles[k] = LETTER_PARTS[k]
+
+
+## Ours: a parallel runway's letter as a particle (World scale Real's real designations, docs/radio.md §1): our clips
+## rwyl / rwyr / rwyc (game/extra/tower_numbers).
+const LETTERS := {"L": "RWY_L", "R": "RWY_R", "C": "RWY_C"}
+const LETTER_PARTS := {"RWY_L": ["RwyL", "left"], "RWY_R": ["RwyR", "right"], "RWY_C": ["RwyC", "center"]}
 
 
 ## FUN_004c66a0: the template's tokens with %Sn / %Dn from the arguments, each key's wav and text; the text
@@ -144,14 +153,25 @@ func expand(template: String, strings: Array = [], ints: Array = []) -> Dictiona
 	var text := ""
 	var wavs: Array[String] = []
 	var count := 0
+	var toks: Array = []  # [token, key]
 	for tok in templates.get(template, PackedStringArray()):
 		var key: String = tok
+		var letter := ""
 		if tok.begins_with("%") and tok.length() >= 3:
 			var i := int(tok.substr(2)) - 1
 			if tok[1] == "S":
 				key = String(strings[i]) if i >= 0 and i < strings.size() else ""
 			elif tok[1] == "D":
 				key = "%d" % int(ints[i]) if i >= 0 and i < ints.size() else ""
+				# Ours: a parallel runway's number "25L" speaks its letter after it (LETTERS).
+				if i >= 0 and i < ints.size() and ints[i] is String and String(ints[i]).right(1) in LETTERS:
+					letter = LETTERS[String(ints[i]).right(1)]
+		toks.append([tok, key])
+		if letter != "":
+			toks.append([letter, letter])
+	for tk in toks:
+		var tok: String = tk[0]
+		var key: String = tk[1]
 		var part: Array = particles.get(key.to_upper(), [])
 		if part.is_empty():
 			continue  # "Error: key … was not found in map" (UNCERTAIN: the original keeps the stale entry)
@@ -223,11 +243,17 @@ func _start() -> void:
 	_awacs_next = now + AWACS_PERIOD
 	state = 0
 	last = NO_MSG
-	var w := int(_misc("0x46a", 0))
-	wind = w if w in [0, 10, 15, 20] else [0, 10, 15, 20][randi() % 4]
-	wind_from = w if w > 60 else int(_misc("0x474", 0))
+	# Better physics "Wind and turbulence": the flight's wind was picked with the mission (Settings.runway_wind).
+	var picked: Array = Settings.flight_wind if not Settings.flight_wind.is_empty() else Settings.pick_wind(_misc_all())
+	wind = int(picked[0])
+	wind_from = int(picked[1])
 	if host != null and host.has_method("apply_wind"):
 		host.apply_wind()
+
+
+func _misc_all() -> Dictionary:
+	var rt = host.get("runtime") if host != null else null
+	return rt.misc if rt != null else {}
 
 
 func _misc(key: String, def: Variant) -> Variant:
@@ -295,14 +321,21 @@ func _load_bases(path: String) -> void:
 			"tower": Vector3(f.call("TowerLocX"), f.call("TowerLocY"), f.call("TowerLocZ")),
 			"lineup": Vector3(f.call("LineupLocX"), f.call("LineupLocY"), f.call("LineupLocZ")),
 			"rwy": int(f.call("RunwayNumber")),
-			"hangars": hangars
+			"hangars": hangars,
+			"letter": ""
 		}
+		# Better physics "Wind and turbulence": the other end of a runway the tower turned into the wind.
+		var iw := IafBases.into_wind(name) if ClassDB.class_exists("IafBases") else PackedFloat64Array()
+		if not iw.is_empty():
+			b.lineup = Vector3(iw[0], iw[1], iw[2])
+			b.rwy = int(iw[3])
 		# World scale Real: the base at its real place (docs/world-scale.md §3.3).
 		var m := Settings.base_moved(b.lineup.x, b.lineup.y)
 		if not m.is_empty():
 			# rwy: the real designator × 10 (magnetic, what the tower says); hdg: the true heading (the zones).
 			b.hdg = wrapi(roundi(b.rwy + m[2]), 0, 360)
 			b.rwy = IafBases.designator(name, b.hdg) * 10
+			b.letter = IafBases.designator_letter(name, b.hdg)  # a parallel runway's L / R / C
 			for k in ["tower", "lineup"]:
 				var q := Settings.base_moved(b[k].x, b[k].y)
 				if not q.is_empty():
@@ -500,7 +533,9 @@ func _say(code: int) -> void:
 		return
 	var b: Dictionary = bases[base]
 	var cs := _tower_callsign()
-	var rwy: int = int(b.rwy) / 10
+	var rwy: Variant = int(b.rwy) / 10
+	if b.letter != "":
+		rwy = "%d%s" % [rwy, b.letter]
 	var t: String = MSG_TEMPLATES[code]
 	match code:
 		0:

@@ -590,7 +590,9 @@ impl BaseMove {
         for v in [&mut b.to_taxi, &mut b.from_taxi, &mut b.hangars, &mut b.to_hangar_turn, &mut b.from_hangar_turn] {
             v.iter_mut().for_each(tp);
         }
-        b.runway_deg = self.heading as f32;
+        // The real runway's heading; a base the tower turned into the wind (airbase::Airbase::reversed) its other end.
+        let reversed = wrap180(b.runway_deg as f64 - (self.heading - self.turn)).abs() > 90.0;
+        b.runway_deg = if reversed { (self.heading + 180.0).rem_euclid(360.0) } else { self.heading } as f32;
     }
 }
 

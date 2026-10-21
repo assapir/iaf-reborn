@@ -94,6 +94,85 @@ impl Airbase {
     }
 }
 
+/// Better physics "Wind and turbulence": the tower turns the runway into the wind from this speed up (knots). The
+/// missions' winds are 0, 10, 15 or 20 kt, so any announced wind counts and a calm one never does
+/// (docs/flight-model.md §10).
+pub const INTO_WIND_KT: f32 = 5.0;
+
+/// A runway's length where the setup measured none (the AI's default, docs/world-scale.md §1.2).
+pub const DEFAULT_RUNWAY_M: f32 = 3000.0;
+
+/// Whether the tower flies runway `rwy_deg` (true heading) the other way round in a `knots` wind from `from_deg`:
+/// the wind at least `INTO_WIND_KT` and more than 90° off the runway's heading (the reverse end is then nearer the
+/// wind's direction; at exactly 90° the base keeps its own).
+pub fn wind_reverses(rwy_deg: f32, knots: f32, from_deg: f32) -> bool {
+    let d = (from_deg - rwy_deg).rem_euclid(360.0);
+    knots >= INTO_WIND_KT && d > 90.0 && d < 270.0
+}
+
+/// The heading of (dx, dy) (rad, clockwise from north).
+fn bearing(dx: f32, dy: f32) -> f32 {
+    dx.atan2(dy)
+}
+
+impl Airbase {
+    /// The base flown from the main runway's other end (Better physics "Wind and turbulence", docs/autopilot.md §2.4),
+    /// in the game's frame. `ends`: the main runway's ends (airbases.json's first runway); None: `DEFAULT_RUNWAY_M`
+    /// ahead of the lineup.
+    /// - The lineup point mirrored about the runway's middle along its axis (as far from the other threshold), the
+    ///   heading +180°.
+    /// - Departure: the hangars' path to the old lineup, then down the runway to the new one (a backtrack).
+    /// - Arrival: the departure path backwards (from the old lineup's end to the hangar turn point, then the hangar),
+    ///   each point's heading toward the next.
+    pub fn reversed(&self, ends: Option<[[f32; 2]; 2]>) -> Airbase {
+        let h = self.runway_deg.to_radians();
+        let d = [h.sin(), h.cos()];
+        let l = self.lineup;
+        let along = |p: [f32; 2]| (p[0] - l[0]) * d[0] + (p[1] - l[1]) * d[1];
+        let s = ends.map_or(DEFAULT_RUNWAY_M, |e| along(e[0]) + along(e[1]));
+        let lineup = [l[0] + s * d[0], l[1] + s * d[1], l[2]];
+        let runway_deg = (self.runway_deg + 180.0).rem_euclid(360.0);
+        let mut from_taxi = self.from_taxi.clone();
+        from_taxi.push(TaxiPt { x: lineup[0], y: lineup[1], hdg: hdg(runway_deg) });
+        // The arrival: the departure's points backwards, each heading toward the next; the last toward the hangar
+        // turn points' middle (one heading for every hangar, as the original's to-taxi path).
+        let mut to_taxi: Vec<TaxiPt> = self.from_taxi.iter().rev().copied().collect();
+        let n = self.from_hangar_turn.len().max(1) as f32;
+        let mid = self.from_hangar_turn.iter().fold([0.0, 0.0], |a, t| [a[0] + t.x / n, a[1] + t.y / n]);
+        for i in 0..to_taxi.len() {
+            let next = match to_taxi.get(i + 1) {
+                Some(q) => [q.x, q.y],
+                None if !self.from_hangar_turn.is_empty() => mid,
+                None => break,
+            };
+            to_taxi[i].hdg = bearing(next[0] - to_taxi[i].x, next[1] - to_taxi[i].y);
+        }
+        let to_hangar_turn = self
+            .from_hangar_turn
+            .iter()
+            .zip(&self.hangars)
+            .map(|(t, g)| TaxiPt { hdg: bearing(g.x - t.x, g.y - t.y), ..*t })
+            .collect();
+        Airbase { lineup, runway_deg, from_taxi, to_taxi, to_hangar_turn, ..self.clone() }
+    }
+
+    /// An aircraft placed at this base's lineup (within `LINEUP_ZONE_M` of it, on the ground, within 45° of the
+    /// runway's heading) moved to the reversed base `rev`'s: its offset from the lineup turned 180° about it, the
+    /// heading +180° (deg). None for any other place.
+    pub fn to_reversed_lineup(&self, rev: &Airbase, p: [f32; 3], heading_deg: f32) -> Option<([f32; 3], f32)> {
+        let off = [p[0] - self.lineup[0], p[1] - self.lineup[1]];
+        let dh = (heading_deg - self.runway_deg).rem_euclid(360.0);
+        let aligned = !(45.0..=315.0).contains(&dh);
+        let on_ground = p[2] <= self.lineup[2] + 15.0;
+        (off[0].hypot(off[1]) < LINEUP_ZONE_M && aligned && on_ground)
+            .then(|| ([rev.lineup[0] - off[0], rev.lineup[1] - off[1], p[2]], (heading_deg + 180.0).rem_euclid(360.0)))
+    }
+}
+
+/// How far from the lineup point a mission's ground start counts as lined up (the tower's "near the lineup" range,
+/// 0x60cb38).
+pub const LINEUP_ZONE_M: f32 = 400.0;
+
 /// The HUD ILS reference glide path, −5° (`0x82f678`, set from −5.0 at `0x45fbce`).
 pub const ILS_GLIDE_DEG: f32 = -5.0;
 /// The localizer / glideslope deviation limits (`0x82f670` 19°, `0x82f67c` 5°).

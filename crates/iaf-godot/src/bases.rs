@@ -8,7 +8,7 @@ use std::sync::{LazyLock, RwLock};
 
 use godot::prelude::*;
 use iaf_avionics::heights::{HeightField, Meta};
-use iaf_flight::airbase::Airbase;
+use iaf_flight::airbase::{Airbase, wind_reverses};
 use iaf_flight::base_move::{BaseMoves, GameBase, Mask};
 
 /// The moves; None in Original (every path then is the original's).
@@ -16,8 +16,18 @@ pub static MOVES: LazyLock<RwLock<Option<BaseMoves>>> = LazyLock::new(Default::d
 /// The theatre's frame (meta.json) for the image patches.
 static META: LazyLock<RwLock<Meta>> = LazyLock::new(Default::default);
 
-/// iaf.ibx's bases at their new sites (no change in Original).
+/// Better physics "Wind and turbulence": the bases whose runway the tower turned into the wind, flown from the main
+/// runway's other end: (iaf.ibx's base, `Airbase::reversed`), game frame; empty with the switch off, in a calm or in
+/// training.
+pub static INTO_WIND: LazyLock<RwLock<Vec<(Airbase, Airbase)>>> = LazyLock::new(Default::default);
+
+/// iaf.ibx's bases as flown: turned into the wind (`INTO_WIND`), then at their new sites (no move in Original).
 pub fn map_airbases(bases: &mut [Airbase]) {
+    for b in bases.iter_mut() {
+        if let Some((_, r)) = INTO_WIND.read().unwrap().iter().find(|(o, _)| o.name == b.name) {
+            *b = r.clone();
+        }
+    }
     if let Some(m) = &*MOVES.read().unwrap() {
         m.map_airbases(bases);
     }
@@ -247,6 +257,24 @@ fn insets(moves: &BaseMoves, meta: Meta, theatre: &Path, out: &Path) -> std::io:
     Ok(done)
 }
 
+/// airbases.json's main runway (its first, through the lineup point) per base: its two ends, game frame.
+fn main_runways(assets: &Path) -> Vec<(String, [[f32; 2]; 2])> {
+    let path = assets.join("converted/terrain/airbases.json");
+    let j: serde_json::Value =
+        std::fs::read_to_string(path).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default();
+    let f = |v: &serde_json::Value| v.as_f64().unwrap_or(0.0) as f32;
+    let pt = |v: &serde_json::Value| [f(&v[0]), f(&v[1])];
+    j["bases"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|b| {
+            let e = &b["runways"][0]["ends"];
+            e.is_array().then_some((b["name"].as_str()?.to_string(), [pt(&e[0]), pt(&e[1])]))
+        })
+        .collect()
+}
+
 #[derive(GodotClass)]
 #[class(base = RefCounted, init)]
 pub struct IafBases {}
@@ -266,6 +294,58 @@ impl IafBases {
             *MOVES.write().unwrap() = None;
         }
         ok
+    }
+
+    /// Better physics "Wind and turbulence" (docs/autopilot.md §2.4): the tower turns each base whose main runway
+    /// (its true heading: the real one when moved) has the wind `knots` from `from_deg` behind it (`wind_reverses`)
+    /// to the runway's other end; 0 knots (the switch off, calm, NO WIND, training) turns none. Call after `setup`.
+    /// Returns the names of the bases turned.
+    #[func]
+    fn set_wind(knots: f64, from_deg: f64, assets: GString) -> PackedStringArray {
+        let mut out = Vec::new();
+        if knots > 0.0 {
+            let assets = Path::new(&assets.to_string()).to_path_buf();
+            let ibx = std::fs::read(assets.join("install/iaf.ibx")).map(|b| Airbase::load_all(&b)).unwrap_or_default();
+            let ends = main_runways(&assets);
+            let moves = MOVES.read().unwrap();
+            for b in ibx {
+                let true_deg = moves.as_ref().and_then(|m| m.get(&b.name)).map_or(b.runway_deg, |m| m.heading as f32);
+                if wind_reverses(true_deg, knots as f32, from_deg as f32) {
+                    let e = ends.iter().find(|(n, _)| *n == b.name).map(|(_, e)| *e);
+                    let r = b.reversed(e);
+                    out.push((b, r));
+                }
+            }
+        }
+        let names: Vec<GString> = out.iter().map(|(b, _)| GString::from(b.name.as_str())).collect();
+        *INTO_WIND.write().unwrap() = out;
+        PackedStringArray::from(names.as_slice())
+    }
+
+    /// The base `name` as the tower flies it (game frame, before the World scale Real move): [lineup x, y, z,
+    /// RunwayNumber]; empty when it keeps its own (`set_wind`).
+    #[func]
+    fn into_wind(name: GString) -> PackedFloat64Array {
+        let g = INTO_WIND.read().unwrap();
+        g.iter().map(|(_, r)| r).find(|b| b.name == name.to_string()).map_or_else(PackedFloat64Array::new, |b| {
+            PackedFloat64Array::from(
+                &[b.lineup[0] as f64, b.lineup[1] as f64, b.lineup[2] as f64, b.runway_deg as f64][..],
+            )
+        })
+    }
+
+    /// A mission aircraft placed at the lineup of a base the tower turned into the wind, moved to the other end's
+    /// lineup (`Airbase::to_reversed_lineup`, game frame): [x, y, z, heading deg]; empty when it stays.
+    #[func]
+    fn lineup_into_wind(x: f64, y: f64, z: f64, heading_deg: f64) -> PackedFloat64Array {
+        let g = INTO_WIND.read().unwrap();
+        let p = [x as f32, y as f32, z as f32];
+        for (orig, rev) in g.iter() {
+            if let Some((q, h)) = orig.to_reversed_lineup(rev, p, heading_deg as f32) {
+                return PackedFloat64Array::from(&[q[0] as f64, q[1] as f64, q[2] as f64, h as f64][..]);
+            }
+        }
+        PackedFloat64Array::new()
     }
 
     #[func]
@@ -296,6 +376,15 @@ impl IafBases {
         g.as_ref().and_then(|ms| ms.get(&name.to_string())).map_or(0, |m| m.designator(heading))
     }
 
+    /// The letter ("L", "R", "C" or "") of the real designation of base `name`'s main runway flown at true `heading`
+    /// (a parallel runway's side); "" when not moved.
+    #[func]
+    fn designator_letter(name: GString, heading: f64) -> GString {
+        let g = MOVES.read().unwrap();
+        let l = g.as_ref().and_then(|ms| ms.get(&name.to_string())).map(|m| m.designation(heading, None).1);
+        GString::from(l.unwrap_or_default().as_str())
+    }
+
     /// A runway sign at the world point (its new site) showing runway `n` in the game: the real designation there
     /// as a sign reads it ("25L", "09"); `n` ("23") off the moved bases (docs/world-scale.md §4.3).
     #[func]
@@ -303,6 +392,26 @@ impl IafBases {
         let g = MOVES.read().unwrap();
         let s = g.as_ref().and_then(|ms| ms.sign_designation([x, y], n));
         GString::from(&s.unwrap_or_else(|| format!("{n:02}")))
+    }
+
+    /// The label a taxi sign at world point (x, y) showing runway `n` must show, "" when it keeps its own: on a base
+    /// the tower turned into the wind (within 5 km of its lineup) a sign of its main runway shows the other end's
+    /// number; in World scale Real the real designation ("25L", `sign_designation`).
+    #[func]
+    fn sign_label(x: f64, y: f64, n: i64) -> GString {
+        let moves = MOVES.read().unwrap();
+        let world = |p: [f32; 3]| {
+            let q = [p[0] as f64, p[1] as f64];
+            moves.as_ref().and_then(|m| m.map(q)).map_or(q, |m| m.p)
+        };
+        let turned = INTO_WIND.read().unwrap().iter().any(|(o, _)| {
+            let l = world(o.lineup);
+            let off = (n as f32 * 10.0 - o.runway_deg).rem_euclid(360.0);
+            (l[0] - x).hypot(l[1] - y) < 5000.0 && !(30.0..=330.0).contains(&off)
+        });
+        let n2 = if turned { (n + 17) % 36 + 1 } else { n };
+        let label = moves.as_ref().and_then(|m| m.sign_designation([x, y], n2)).unwrap_or_else(|| format!("{n2:02}"));
+        GString::from(if label == format!("{n:02}") { "" } else { label.as_str() })
     }
 
     /// The moved base `name`'s paved-surface mask (RGB8, airbases.json's size) with the 1998 runways' wider part cut

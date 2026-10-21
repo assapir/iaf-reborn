@@ -57,16 +57,39 @@ static func mission_files(id: int) -> Array:
 	if id == 0x29a:  # the Mission Creator's (docs/front-end.md §19.3), built on FLY
 		for f in Settings.mc_files:
 			var data: Dictionary = f.data.duplicate(true)
+			_into_wind(id, data, out.is_empty())
 			if moved:
 				move_with_bases(data)
 			out.append({"name": String(f.name), "data": data})
 		return out
 	for name in Settings.load_json(dir.path_join("missionlist.json")).get(str(id), []):
 		var data := Settings.load_json(dir.path_join(String(name) + ".json"))
+		_into_wind(id, data, out.is_empty())
 		if moved:
 			move_with_bases(data)
 		out.append({"name": String(name), "data": data})
 	return out
+
+
+## Better physics "Wind and turbulence" (docs/autopilot.md §2.4): the main file picks the flight's wind and the bases
+## the tower turns into it (Settings.runway_wind); every file's aircraft placed at a turned base's lineup move to the
+## other end's lineup (IafBases.lineup_into_wind, the game frame, before World scale Real's move).
+static func _into_wind(id: int, m: Dictionary, main: bool) -> void:
+	if main:
+		var misc: Array = m.get("misc", {}).get("items", [])
+		Settings.runway_wind(id, misc[0] if not misc.is_empty() else {})
+	if Settings.flight_wind.is_empty():
+		return
+	for e in m.get("entities", {}).get("items", []):
+		if not (e is Dictionary) or not e.has("0x2e4"):
+			continue
+		var q := IafBases.lineup_into_wind(
+			float(e["0x2e4"]), float(e["0x2ee"]), float(e.get("0x2f8", 0)), float(e.get("0x302", 0))
+		)
+		if not q.is_empty():
+			e["0x2e4"] = q[0]
+			e["0x2ee"] = q[1]
+			e["0x302"] = q[3]
 
 
 ## World scale Real (docs/world-scale.md §3.3): a mission file's geometry on the moved bases. Each placed entity,

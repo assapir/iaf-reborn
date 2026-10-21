@@ -126,6 +126,50 @@ approach and the float before touchdown steer to the centreline with a damped la
 - StopPlane done (`5d4b22`): in mode 0 it posts **GEV 0x10 forced** (the A key), which turns the autopilot off from
   NAV. (Mode 0 lacks a landed handler.)
 
+### 2.4 Runway into the wind (ours, Better physics "Wind and turbulence")
+**The original** flies every base one way, whatever the wind:
+- Each iaf.ibx base has one lineup point and one `RunwayNumber` (`54eda0`). The AI's take-off taxi ends at that lineup
+  (TaxiCL), the landing circuit lands at it on that heading (LandingCL `5d2b30`, FinalApproach `5d4c50`), and the HUD
+  ILS points down it (`460130`).
+- The tower speaks `RunwayNumber / 10` in every call (`551c20`, [radio.md](radio.md) §2). The wind (`551320`) only
+  changes "wind is NN knots" / "no wind".
+- A ground start is where the mission places the jet: the entity's position and heading (`5a5820`, the engine runs
+  within 100 m of the lineup point). Missions place lined-up jets at the lineup, others at hangars and shelters.
+
+**Ours**, with the switch on, the tower picks the runway end into the wind:
+- **The rule** (`airbase::wind_reverses`): a wind of at least 5 kt (`INTO_WIND_KT`) blowing from more than 90° off the
+  main runway's true heading turns the base to that runway's other end. That end's heading is then nearest the wind's
+  "from" direction. At exactly 90° the base keeps its own. The missions' winds are 0, 10, 15 or 20 kt, so every
+  announced wind counts and a calm never does. The wind and its direction are radio.md §2's, picked once per flight
+  with the mission (`Settings.runway_wind`).
+- **Only runways that exist and have the base's data.** The tower picks between the two ends of the main runway: the
+  runway through the lineup point (airbases.json's first runway; World scale Real: the real runway the base sits on,
+  [world-scale.md](world-scale.md) §3.3). The crossing runways of Ramon, David, TelNof, Kuzeir and Bley have no lineup,
+  taxi path or approach in iaf.ibx, so the tower never picks them.
+- **The other end** (`Airbase::reversed`, the game frame, then World scale Real's move): the lineup point mirrored about
+  the runway's middle (as far from the far threshold as the original lineup is from its own), heading + 180°.
+  Without measured ends: 3000 m ahead.
+- **Departure:** the hangars' path to the old lineup, then down the runway to the new lineup (a backtrack), where the
+  jet turns round.
+- **Arrival:** the departure path backwards, from the old lineup's end to the hangar turn point and the hangar.
+- **Ground starts:** a mission jet lined up on a turned runway (within 400 m of the lineup, within 45° of its heading,
+  on the ground) starts at the other end's lineup, its offset turned 180° (a wingman behind the leader stays behind
+  it), heading + 180° (`Airbase::to_reversed_lineup`, `MissionRuntime._into_wind`). The original puts lined-up starts
+  on the lineup point, so ours puts them on the chosen end's. A jet at a hangar or shelter stays there and taxis.
+- **The tower** names the chosen end in every call. In World scale Real it adds a parallel runway's letter
+  ("taxi to runway 7 right"; radio.md §1).
+- **Taxi signs:** a sign of the turned runway shows the chosen end's number ("09"; Real: "07R"), so the signs lead to
+  the end the tower names (`IafBases.sign_label`).
+- **The autopilot, the AI, the HUD ILS** read the turned bases (`bases::map_airbases`). The player's circuit, the AI's
+  take-offs and landings and the ILS all fly the chosen end, in both world scales.
+- **Training missions keep their runway** (`Settings.TRAINING_MISSIONS`: 311–315, 321–326). Their instructor markers
+  and circuits are laid out for it (§3). Every one of them has a calm wind (misc 0x46a = 0), so they also fly calm.
+- Tests: `ramat_david_into_the_wind` (autopilot.rs: the rule, the turned lineup, an AI jet's backtrack and take-off on
+  09, a landing on 09 and the taxi back to a hangar), base_move.rs `the_moved_lineup_is_on_runway_ground` (every
+  moved base's other end on runway ground, on the real reciprocal heading), `…_into_the_wind_…_moved_ramon` (take-off
+  and landing on Ramon's 07R), `tests/godot/test_wind_runway.gd` (the tower's calls, the signs, the starts, the
+  cases without a turn, World scale Real's letter).
+
 ## 3. Landing training 312 "Eagle Baby"
 The player starts at 2000 m, heading 270°, east of Ramat David. The start is airborne, so the autopilot is on in level
 mode. The first message (audio 256, `LANDING1.WAV`): "Press the "A" key to engage the autopilot, and I'll demonstrate

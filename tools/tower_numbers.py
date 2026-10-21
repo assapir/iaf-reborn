@@ -5,7 +5,9 @@ The tower says the runway as RunwayNumber / 10 through the particle NumNNN (num0
 some of them; this speaks the missing ones with Piper TTS and the voice en_US-john-medium (public-domain LibriVox data), then
 matches the originals: 22050 Hz 16-bit mono, the radio band (300-3000 Hz, nothing of the originals is above 4 kHz
 or below 200 Hz), the voiced RMS of the install's NumNNN clips, the peak at their 0.79, the silence trimmed.
-The wording follows the originals: digit by digit with a leading zero ("zero three", "two seven").
+The wording follows the originals: digit by digit with a leading zero ("zero three", "two seven"). It also speaks a
+parallel runway's letter (left, right, center). A clip already in game/extra/tower_numbers is kept: delete it to
+make it again.
 
 Setup (once, under ~/.cache, not system-wide):
     python3 -m venv ~/.cache/iaf-tts/venv && ~/.cache/iaf-tts/venv/bin/pip install piper-tts==1.8.0 numpy scipy
@@ -32,6 +34,8 @@ PEAK = 0.79  # the originals' peak (-2 dBFS)
 TILT = 0.9  # pre-emphasis: the originals' spectrum centre is 0.7-1.8 kHz, the TTS's ~0.5 kHz
 TAKES = 7  # the TTS varies from run to run
 DIGITS = "zero one two three four five six seven eight nine".split()
+# A parallel runway's letter after the number ("two five left"; docs/radio.md §1): rwyl / rwyr / rwyc.wav.
+LETTERS = ["left", "right", "center"]
 
 
 def voiced(x):
@@ -64,21 +68,21 @@ def main():
     rms = float(np.median([np.sqrt(np.mean(voiced(load(os.path.join(INSTALL, f))) ** 2)) for f in refs]))
     band = butter(4, [300, 3000], btype="bandpass", fs=SR, output="sos")
     os.makedirs(OUT, exist_ok=True)
-    for n in range(1, 37):
-        name = "num%03d.wav" % n
-        if name in have:
+    clips = [("num%03d.wav" % n, " ".join(DIGITS[int(d)] for d in "%02d" % n)) for n in range(1, 37)]
+    clips += [(f"rwy{w[0]}.wav", w) for w in LETTERS]
+    for name, words in clips:
+        if name in have or os.path.exists(os.path.join(OUT, name)):
             continue
-        words = [DIGITS[int(d)] for d in "%02d" % n]
         takes = []
         for _ in range(TAKES):
-            x = say(voice, " ".join(words) + ".")
+            x = say(voice, words + ".")
             takes.append(voiced(sosfiltfilt(band, np.append(x[0], x[1:] - TILT * x[:-1]))))
         x = sorted(takes, key=len)[TAKES // 2]  # the median length: a take with a stray sound or a lost digit is an outlier
         for _ in range(4):  # the RMS, then a soft limit at the originals' peak, until both hold
             x = PEAK * np.tanh(x * rms / np.sqrt(np.mean(x ** 2)) / PEAK)
         x = np.concatenate([np.zeros(int(0.01 * SR)), x, np.zeros(int(0.01 * SR))])
         wavfile.write(os.path.join(OUT, name), SR, np.round(x * 32767).astype(np.int16))
-        print(f"{name}  {' '.join(words):12s} {len(x) / SR:.2f} s")
+        print(f"{name}  {words:12s} {len(x) / SR:.2f} s")
     print(f"target RMS {rms:.3f} (median of {len(refs)} install clips)")
 
 

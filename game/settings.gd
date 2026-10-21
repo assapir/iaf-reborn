@@ -452,6 +452,46 @@ func ship_scale(path: String, raw_box: AABB) -> float:
 	return l / maxf(raw_box.size.x, raw_box.size.z) if l > 0.0 and world_scale == "real" else 0.0
 
 
+## Better physics "Wind and turbulence": the flight's tower wind [knots, from deg] (pick_wind), picked once per
+## flight so the start, the AI, the tower and the taxi signs share the runway into the wind (docs/autopilot.md §2.4);
+## [] with the switch off (the radio then picks at its start, as the original). terrain_view clears it at the end.
+var flight_wind: Array = []
+var _flight_wind_id := -1
+## The training missions (basic 311–315, combat 321–326): the tower keeps their runway (their instructor markers and
+## circuits are laid out for it); every one has a calm wind (misc 0x46a = 0), so they fly calm.
+const TRAINING_MISSIONS := [311, 312, 313, 314, 315, 321, 322, 323, 324, 325, 326]
+
+
+## FUN_00551320: the mission's wind [knots, from deg] from its misc: 0x46a of 0, 10, 15 or 20 kt as is, any other
+## value a random one of those (rand() % 4); from: misc 0x474, or 0x46a itself above 60 (the pair stored swapped).
+static func pick_wind(misc: Dictionary) -> Array:
+	var w := int(misc.get("0x46a", 0))
+	return [w if w in [0, 10, 15, 20] else [0, 10, 15, 20][randi() % 4], w if w > 60 else int(misc.get("0x474", 0))]
+
+
+## Mission `id`'s tower wind with Better physics "Wind and turbulence" (`flight_wind`, picked from `misc` once per
+## flight), and the bases the tower turns into it (IafBases.set_wind; none with the switch off, NO WIND, a calm or a
+## training mission). Call after sync_bases.
+func runway_wind(id: int, misc: Dictionary) -> Array:
+	if not (better.get("wind", false) or OS.get_cmdline_user_args().has("--better")):
+		flight_wind = []
+	elif id != _flight_wind_id or flight_wind.is_empty():
+		flight_wind = pick_wind(misc)
+	_flight_wind_id = id
+	var kt := 0.0 if flight_wind.is_empty() or no_wind or id in TRAINING_MISSIONS else float(flight_wind[0])
+	if ClassDB.class_exists("IafBases"):
+		IafBases.set_wind(kt, float(flight_wind[1]) if kt > 0.0 else 0.0, assets_dir())
+	return flight_wind
+
+
+## The flight ended: the next one picks its wind again, and no base stays turned.
+func clear_runway_wind() -> void:
+	flight_wind = []
+	_flight_wind_id = -1
+	if ClassDB.class_exists("IafBases"):
+		IafBases.set_wind(0.0, 0.0, assets_dir())
+
+
 ## World scale Real: every airbase at its real place (docs/world-scale.md §3.3). Sets up the extension's base moves
 ## for the current `world_scale` (once per change; the terrain, the mission data and the flight model read them) and
 ## returns true when the bases move.

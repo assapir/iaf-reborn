@@ -2,7 +2,8 @@
 
 The tower's runway-number clips (`numNNN.wav`, NNN = runway 01-36) that the original install lacks. The game plays
 one only when the install has no clip of that name (docs/radio.md §1). They are spoken digit by digit ("two five"),
-like the install's.
+like the install's. `rwyl.wav`, `rwyr.wav` and `rwyc.wav` say a parallel runway's letter ("left", "right",
+"center") after the number in World scale Real.
 
 - **Made with:** `tools/tower_numbers.py` (setup and run in its header), Piper TTS 1.8.0 (`piper-tts`, GPL-3.0-or-later).
 - **Voice:** `en_US-john-medium` from rhasspy/piper-voices, revision `c10ece1aade47bb51c153c893d14e5bf8e5b7117`

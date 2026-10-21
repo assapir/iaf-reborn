@@ -324,6 +324,93 @@ fn land_at_ramat_david(clearance: f32, ground_effect: bool) -> Option<f64> {
     Some(p[0])
 }
 
+/// Ramat David's main runway as the setup measures it (airbases.json's first runway): its two ends.
+const RD_ENDS: [[f32; 2]; 2] = [[357155.0, 602373.0], [352891.0, 602401.0]];
+
+/// Better physics "Wind and turbulence" (docs/autopilot.md §2.4): a 10 kt easterly turns Ramat David to runway 09.
+/// An AI jet taxis from its hangar, backtracks down the runway to the 09 lineup and takes off to the east; another
+/// flies home, lands on 09 and taxis back to a hangar.
+#[test]
+fn ramat_david_into_the_wind() {
+    use iaf_flight::airbase::wind_reverses;
+    let Some(inst) = install() else { return };
+    assert!(wind_reverses(270.0, 10.0, 90.0) && wind_reverses(270.0, 5.0, 179.0));
+    assert!(
+        !wind_reverses(270.0, 10.0, 180.0)
+            && !wind_reverses(270.0, 10.0, 0.0)
+            && !wind_reverses(270.0, 4.9, 90.0)
+            && !wind_reverses(270.0, 20.0, 300.0)
+    );
+    let mut bases = Airbase::load_all(&std::fs::read(inst.join("iaf.ibx")).unwrap());
+    let i = bases.iter().position(|b| b.name == "David").unwrap();
+    let orig = bases[i].clone();
+    let rd = orig.reversed(Some(RD_ENDS));
+    // The 09 lineup: as far from the east threshold as the 27 lineup is from the west one, on the centreline.
+    assert_eq!(rd.runway_deg, 90.0);
+    assert!((rd.lineup[0] - (352891.0 + 357155.0 - 356483.0)).abs() < 30.0 && (rd.lineup[1] - 602383.0).abs() < 1.0);
+    // A jet lined up on 27 (and a wingman 60 m behind it) moves to 09's lineup, the wingman 60 m behind it there.
+    let lead = orig.to_reversed_lineup(&rd, orig.lineup, 270.0).unwrap();
+    assert!((lead.0[0] - rd.lineup[0]).abs() < 1.0 && lead.1 == 90.0);
+    let wing = orig.to_reversed_lineup(&rd, [orig.lineup[0] + 60.0, orig.lineup[1], orig.lineup[2]], 270.0).unwrap();
+    assert!((wing.0[0] - (rd.lineup[0] - 60.0)).abs() < 1.0);
+    assert!(orig.to_reversed_lineup(&rd, [orig.lineup[0], orig.lineup[1], orig.lineup[2]], 0.0).is_none());
+    bases[i] = rd.clone();
+    let z = rd.lineup[2] as f64;
+
+    // Take-off from the first hangar.
+    let h = rd.hangars[0];
+    let mut ac = jet(&inst, "F-16", Vec3::new(h.x as f64, h.y as f64, z), h.hdg.to_degrees(), false);
+    ac.ground_height = z as f32;
+    let mut ap = Autopilot::new(Config::load(&inst));
+    ap.bases = bases.clone();
+    ap.route = vec![Waypoint { x: 375000.0, y: 602383.0, z: 1500.0, t: 20.0, action: 2 }];
+    ap.set_mode(&mut ac, 9);
+    let (mut reached, mut lift_off) = (false, None);
+    for _ in 0..900 {
+        fly(&mut ac, &mut ap, 1.0, z as f32);
+        let st = ac.state();
+        assert!(st.crashed.is_none(), "no crash ({:?})", st.crashed);
+        reached |= (st.position[0] - rd.lineup[0] as f64).hypot(st.position[1] - rd.lineup[1] as f64) < 150.0;
+        if lift_off.is_none() && !st.on_ground {
+            lift_off = Some((st.position, st.velocity));
+        }
+    }
+    let (p, v) = lift_off.expect("took off");
+    println!("lift-off at {:.0} {:.0}, velocity {:.0} {:.0}", p[0], p[1], v[0], v[1]);
+    assert!(reached, "taxied to the 09 lineup");
+    assert!(v[0] > 50.0 && v[1].abs() < 10.0 && p[0] > rd.lineup[0] as f64, "took off to the east on 09");
+
+    // Home 15 km west at 1500 m; the circuit lands on 09 (eastbound).
+    let home = Waypoint { x: orig.lineup[0] as f64 - 15000.0, y: orig.lineup[1] as f64, z: 1500.0, t: 0.0, action: 7 };
+    let mut ac = jet(&inst, "F-16", Vec3::new(home.x - 40000.0, home.y + 5000.0, 2000.0), 90.0, true);
+    let mut ap = Autopilot::new(Config::load(&inst));
+    ap.bases = bases;
+    ap.route = vec![home];
+    ap.set_mode(&mut ac, 8);
+    let mut touchdown = None;
+    for _ in 0..1800 {
+        if ap.landed {
+            break;
+        }
+        fly(&mut ac, &mut ap, 1.0, z as f32);
+        let st = ac.state();
+        assert!(st.crashed.is_none(), "crashed ({:?}) at {:?}", st.crashed, st.position);
+        if touchdown.is_none() && st.on_ground {
+            touchdown = Some((st.position, st.velocity));
+        }
+    }
+    let (p, v) = touchdown.expect("touched down");
+    println!("touchdown at {:.0} {:.0}, velocity {:.0} {:.0}", p[0], p[1], v[0], v[1]);
+    assert!((p[1] - rd.lineup[1] as f64).abs() < 30.0, "on the centreline");
+    assert!(p[0] > RD_RUNWAY_X[0] && p[0] < RD_RUNWAY_X[1] && v[0] > 30.0, "landed eastbound on the runway");
+    assert!(ap.landed, "stopped on the runway");
+    fly(&mut ac, &mut ap, 900.0, z as f32);
+    let st = ac.state();
+    let parked = rd.hangars.iter().any(|h| (st.position[0] - h.x as f64).hypot(st.position[1] - h.y as f64) < 100.0);
+    println!("after taxi: {:.0} {:.0} speed {:.1} engine {}", st.position[0], st.position[1], st.speed, ac.engine_on);
+    assert!(parked && !ac.engine_on, "parked at a hangar, engine off");
+}
+
 /// The player's autopilot (docs/autopilot.md) runs in FM mode 0 and returns the commands it posted.
 fn fly_player(ac: &mut Aircraft, ap: &mut Autopilot, seconds: f64, ground: f32) -> Vec<iaf_flight::autopilot::Out> {
     let g = |_: f64, _: f64| ground;
