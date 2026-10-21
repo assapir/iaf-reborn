@@ -3377,8 +3377,6 @@ mod tests {
         assert_eq!(b.rudder, 0.7);
     }
 
-    /// `5bb9f0` surface states and the `5bb300` ground attitude: level on the runway, a random pitch / roll off the
-    /// runway and on the belly, growing with the north speed.
     /// Better physics "brake pitch": thrust squats the nose up, braking dips it, and it settles level when the jet
     /// stops. Off (the original, `5bb300`): level throughout.
     #[test]
@@ -3412,6 +3410,8 @@ mod tests {
         assert_eq!(roll_out[0], roll_out[1], "the pitch is the attitude only: the ground roll is the same");
     }
 
+    /// `5bb9f0` surface states and the `5bb300` ground attitude: level on the runway, a random pitch / roll off the
+    /// runway and on the belly, growing with the north speed.
     #[test]
     fn ground_attitude_jitter_off_the_runway() {
         let mut a = ground(true);
