@@ -327,6 +327,40 @@ func run() -> void:
 			same.append(pgn)
 	settings().better_cockpit = false
 	check(same == range(11), "Better draws every page's geometry as Original (pages the same: %s)" % [same])
+	# TSD scale (FUN_00531a50, FUN_00533b80): the label is the scale's sprite (10 / 20 / 40 / 80 at 0x65d610 [1..4])
+	# and 112 px = scale NM: each waypoint inside the window is drawn at its distance / (scale · 16.5446 m).
+	left3.page = 3
+	for sc in [10, 20, 40, 80]:
+		left3.tsd_scale = sc
+		left3.trace = []
+		await frames(1)
+		var tops: Array = left3.trace
+		left3.trace = null
+		var ts: Dictionary = cp.state
+		var hd := deg_to_rad(ts.heading)
+		var kpx: float = sc * 1853.0 / 112.0
+		var lbl := tops.filter(func(o): return o[0] == "blit" and o[2] == Vector2(1, 33))
+		var bx := tops.filter(func(o): return o[0] in ["fill", "frame"] and o[1].size == Vector2(5, 5))
+		var n_in := 0
+		var n_hit := 0
+		for wp in cp.waypoints:
+			var dw: Vector2 = wp.world - ts.world
+			var pw := Vector2(
+				65 + (dw.x * cos(hd) - dw.y * sin(hd)) / kpx, 85 - (dw.x * sin(hd) + dw.y * cos(hd)) / kpx
+			)
+			if Rect2(12, 12, 108, 108).has_point(pw):
+				n_in += 1
+				if bx.any(func(o): return (o[1].position + Vector2(2, 2)).distance_to(pw) < 1.5):
+					n_hit += 1
+		check(
+			lbl.size() == 1 and lbl[0][1].position.x == 132 + 8 * [5, 10, 20, 40, 80, 160].find(sc),
+			"TSD %d NM: its own range sprite" % sc
+		)
+		check(
+			n_hit == n_in,
+			"TSD %d NM: %d of %d waypoints in the window at distance / (scale · 16.5446)" % [sc, n_hit, n_in]
+		)
+	left3.tsd_scale = 40
 	check(
 		Mfd.crisp_sprite("mfds.bmp", Rect2(0, 264, 132, 132)).get_size() == Vector2(134, 134),
 		"a crisp sprite: the original bitmap's pixels with a 1-px border"

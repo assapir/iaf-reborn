@@ -283,6 +283,12 @@ The TSD is a heading-up tactical map with waypoints and SAM sites around the own
   OSB 0xb/0xc = next/prev, wrapping 80 → 10 and 10 → 80 (`FUN_00531850`/`FUN_00531950`); range sprite 1..4
   (`FUN_00533b80`). World offset (ex = X−ownX, ny = Y−ownY): `x = 65 + (ex·C − ny·S)/k`, `y = 85 − (ex·S + ny·C)/k`,
   k = scale·16.5446 m/px (0x60c410, @531d92 / @532216), S/C = sin/cos heading (+0x2734/+0x2738).
+  So the number is the window's width (112 px), not the range to its edge: at 40 the window shows 26.8 NM ahead
+  (75 px), 13.2 NM behind (37 px) and about 20 NM each side; the circle r=22 is 7.9 NM and the SCL ring r=44 is
+  15.7 NM. The map (`FUN_00539f20`, factor 65.004 / (scale·1853) · 112, `0x60c408..0x60c40c`) is drawn at the same
+  scale within 0.7 % (the ×1.0071394). Labels (`FUN_00533b80`, rects `0x65d610`): mfds.bmp's cells read 5, 10, 20,
+  40, 80, 80 (the 160 cell repeats 80), and the TSD uses cells 1..4. Test: test_mfd.gd (label and waypoint
+  positions at every scale).
 - Fixed GDI (pen 0x58c, null brush): circle r=22 (43,63)-(87,107); ownship lines (60..71,81), (65,78..91), tail
   (63..68,91); outer ring r=44 (21,41)-(109,129) when SCL on.
 - Compass letters S/E/N/W (sprites) on radius 18 around (65,85), rotating with heading.
