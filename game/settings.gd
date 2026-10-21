@@ -117,6 +117,7 @@ const PREFS := {
 		"cd_launcher",
 		"wheel_scroll",
 		"better_cockpit",
+		"better_mc",
 		"world_scale"
 	],
 }
@@ -240,6 +241,9 @@ var _pan_rest := 0.0  # the trackpad pan not yet turned into a step
 ## (cockpit_items: id -> on) is on.
 var better_cockpit := false
 var cockpit_items := {}
+## Mission Creator: Better (ours, Extras page; docs/front-end.md §19.4): false = the original screen; true = its WIND
+## and FROM combos, whose wind FLY writes into mission 0x29a.
+var better_mc := false
 ## World scale (ours, Extras page; docs/world-scale.md): "original" (the models at their Present scale, ×2 for
 ## the jets) or "real" (true size, model_scale). Read at mission load.
 var world_scale := "original"

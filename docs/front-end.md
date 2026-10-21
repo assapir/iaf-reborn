@@ -1388,9 +1388,9 @@ So the Hebrew pages use the same rects as §12.3–§12.6.
     deviations.md §2): Flight data, Weapon data, Language (English / Hebrew; Hebrew only when the pack is installed),
     Flight info (Ctrl+F12), Blackbox, HUD pitch ladder, HUD (Original (1998) / Real), All keys on the Keyboard page,
     F-35I replaces (Off / one of the seven jets, docs/f35i.md), HARM targets, CD launcher (§18.1), Mouse wheel
-    (below), Better cockpit (`Settings.BETTER_COCKPIT`, docs/cockpit.md "Better cockpit"), World scale
-    (docs/world-scale.md), Settings file. 8 rows show, with the Keyboard page's scrollbar beyond. DEFAULT resets
-    every row except Language and Settings file.
+    (below), Better cockpit (`Settings.BETTER_COCKPIT`, docs/cockpit.md "Better cockpit"), Mission Creator
+    (Original / Better, §19.4), World scale (docs/world-scale.md), Settings file. 8 rows show, with the Keyboard
+    page's scrollbar beyond. DEFAULT resets every row except Language and Settings file.
   * **Settings file:** Export / Import through a native file dialog. Export writes the working copy as a
     settings.cfg; Import stores and saves the file's settings at once.
   * **Blackbox:** each flight is recorded to `user://flights/flight-<date>_<time>-m<mission>.jsonl`, the newest 10
@@ -2743,3 +2743,17 @@ also when the stores come from the type's default load. Guns Only also disables 
   with the main file's `weapon_types`), for the player's and the AI's stores.
 * The score and headline: `game/mission/mission_runtime.gd` `_mc_count` / `mc_headline`, read by `debrief_text` for
   0x29a. Assumed: a unit's spawn order is its document order (it orders the entries of one hash bucket).
+* **Mission Creator: Better** (Extras, `Settings.better_mc`; off by default, deviations.md §2). The exe's mission
+  0x29a writes no wind: `FUN_0058d720` sets the title and the start time only, so misc 0x46a / 0x474 stay the
+  template's (`mission.mis`: 10 kt from 270), and the tower always gives that wind. With the switch on:
+  * Two more combos in the Blue Force panel's free rows under Bravo, in the BASE / TIME columns: **WIND** (6,170)
+    w52 Calm, 10 kt, 15 kt, 20 kt (the tower's spoken speeds, radio.md) and **FROM** (91,170) w52 N, NE, E, SE, S,
+    SW, W, NW (the wind's "from", true). Their boxes are copies of TIME's art, their labels Arial bold −11; they
+    open, list and commit as the other combos. The state starts at the template's wind (10 kt, W), so the switch
+    alone changes nothing in the mission.
+  * FLY writes the knots into misc 0x46a and the degrees into 0x474. The tower says that wind, and Better physics
+    "Wind and turbulence" flies it and turns the runways into it (flight-model.md §10, autopilot.md §2.4).
+  * SAVE appends the wind to the 0x5ac bytes as a 12-byte trailer (formats/mcr.md); LOAD reads it, and a file
+    without one gets the template's wind.
+  * RANDOM draws the wind after the exe's draws (speed 0..3, direction 0..7 × 45°), so the rest is the original's.
+  * Switch off: the screen, RANDOM, SAVE (0x5ac bytes) and FLY are the original's; LOAD ignores a trailer.

@@ -178,6 +178,10 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   ONLINE (`ERegIP.EXE`) and JANE'S ONLINE (a web page that no longer exists). In the exe only PLAY and
   UNINSTALL are disabled, and only while the game is not installed. The art is the English set always (the exe picks
   English, French or German from the Windows locale).
+- **Mission Creator (Original / Better)** (front-end.md §19.4, formats/mcr.md). Original: the Mission Creator's
+  mission flies the template's wind (10 kt from 270) whatever the choices. Better: WIND (Calm / 10 / 15 / 20 kt) and
+  FROM (8 compass points) combos under Bravo; FLY writes them into misc 0x46a / 0x474, SAVE adds them as a trailer
+  after the original's 0x5ac bytes, RANDOM draws them too.
 - **Better cockpit (Original / Better)** (cockpit.md "Better cockpit"). One switch for our cockpit improvements
   (`Settings.BETTER_COCKPIT`); each item also has its own flag, on by default (settings.cfg `[cockpit] bc_<id>`).
   Visual only. Items:

@@ -57,7 +57,22 @@ const LISTS := {
 	"aaa": COUNTS,
 	"weapons": ["Guns Only", "Multipurpose", "Air To Air"],
 	"victory": ["By Kills", "By Target"],
+	"wind_kt": ["Calm", "10 kt", "15 kt", "20 kt"],
+	"wind_from": ["N", "NE", "E", "SE", "S", "SW", "W", "NW"],
 }
+## Ours, Extras "Mission Creator: Better" (docs/front-end.md §19.4): WIND and FROM in the Blue Force panel's free rows
+## under Bravo, in the BASE / TIME columns. The state keeps the values (knots, degrees from), not the item index.
+const WIND_COMBOS := [
+	["wind_kt", -1, "wind_kt", Rect2(6, 170, 52, 19)],
+	["wind_from", -1, "wind_from", Rect2(91, 170, 52, 19)],
+]
+const WIND_LABELS := ["WIND", "FROM"]
+const WIND_VALUES := {"wind_kt": [0, 10, 15, 20], "wind_from": [0, 45, 90, 135, 180, 225, 270, 315]}
+## The template's wind (mission.mis misc 0x46a / 0x474), what the original's mission 0x29a flies.
+const WIND_DEFAULT := {"wind_kt": 10, "wind_from": 270}
+## The art the wind combos' boxes are copied from: TIME's box with its frame and arrow column.
+const WIND_BOX_ART := Rect2(90, 223, 64, 21)
+const LABEL_PX := 11.0
 ## The 20 single-player combos (FUN_004f9320, rects .data 0x6076b8..0x6077f0): [state key, formation index or -1,
 ## list, rect of the text box]. The arrow button (MC/but_0..2, 9×19) sits right of the rect.
 const COMBOS := [
@@ -83,6 +98,8 @@ const COMBOS := [
 	["victory", -1, "victory", Rect2(118, 313, 92, 19)],
 ]
 const ARROW := Vector2(9, 19)
+## TIME's index in COMBOS.
+const TIME := 13
 ## A list row: tmHeight − leadings + 2 for Arial −10 (FUN_004f4470; inferred from the font metrics).
 const ROW_H := 12.0
 ## The Type lists of Bravo..Delta (the derived list class FUN_004f6080): rows from FLYABLE_ROWS on in italic, 2 px
@@ -91,9 +108,12 @@ const FLYABLE_ROWS := 9
 const SEPARATOR_Y := 108.0
 
 var fe: Control
+## The combos on the screen: COMBOS, then WIND_COMBOS with the switch on.
+var combos: Array = COMBOS
 var font: SystemFont
+var font_bold: SystemFont
 var font_italic: SystemFont
-## The open combo (index into COMBOS, -1 none), its current row (-1 none; the list keeps it between openings, the
+## The open combo (index into combos, -1 none), its current row (-1 none; the list keeps it between openings, the
 ## exe's quirk: FUN_004f5ac0 sets only the text), and whether a press happened while it was open.
 var open := -1
 var current := {}
@@ -113,9 +133,22 @@ func setup(front_end: Control) -> void:
 	mouse_filter = Control.MOUSE_FILTER_PASS
 	font = Img.arial(400)
 	font_italic = Img.arial(400, true)
+	font_bold = Img.arial(700)
+	combos = COMBOS + WIND_COMBOS if Settings.better_mc else COMBOS
 	# The ctor zeroes the global record (FUN_004f64a0 with ECX = 0x83ca10); OnCreate focuses the name box.
-	Settings.mc = ClassDB.class_call_static("IafMcr", "blank")
+	_set_state(ClassDB.class_call_static("IafMcr", "blank"))
 	_focus(0)
+
+
+## A new state: with the switch on it has a wind (the template's when it has none), with it off none, so FLY and
+## SAVE are the original's.
+func _set_state(d: Dictionary) -> void:
+	for k in WIND_DEFAULT:
+		if not Settings.better_mc:
+			d.erase(k)
+		elif not d.has(k):
+			d[k] = WIND_DEFAULT[k]
+	Settings.mc = d
 
 
 func mc() -> Dictionary:
@@ -135,14 +168,18 @@ func _process(delta: float) -> void:
 
 ## The combo's item index in the state.
 func value(c: int) -> int:
-	var spec: Array = COMBOS[c]
+	var spec: Array = combos[c]
+	if WIND_VALUES.has(spec[0]):
+		return WIND_VALUES[spec[0]].find(int(mc()[spec[0]]))
 	return int(mc()[spec[0]][spec[1]]) if spec[1] >= 0 else int(mc()[spec[0]])
 
 
 ## A choice (FUN_004fb180): the item index into the state; BASE also into every formation record.
 func choose(c: int, i: int) -> void:
-	var spec: Array = COMBOS[c]
-	if spec[1] >= 0:
+	var spec: Array = combos[c]
+	if WIND_VALUES.has(spec[0]):
+		mc()[spec[0]] = WIND_VALUES[spec[0]][i]
+	elif spec[1] >= 0:
 		mc()[spec[0]][spec[1]] = i
 	else:
 		mc()[spec[0]] = i
@@ -152,7 +189,7 @@ func choose(c: int, i: int) -> void:
 
 
 func items(c: int) -> Array:
-	return LISTS[COMBOS[c][2]]
+	return LISTS[combos[c][2]]
 
 
 ## The text a combo shows: its item, nothing for an index past its list (RANDOM can draw AI 4 and SAMs / AAA 4).
@@ -166,7 +203,7 @@ func button(label: String) -> void:
 	_close_list()
 	match label:
 		"random":
-			Settings.mc = ClassDB.class_call_static("IafMcr", "random", mc(), Time.get_ticks_msec())
+			_set_state(ClassDB.class_call_static("IafMcr", "random", mc(), Time.get_ticks_msec()))
 			_focus(0)
 		"load":
 			load_dialog()
@@ -236,7 +273,7 @@ func read(path: String) -> bool:
 	if d.is_empty():
 		fe._message(0, [["ok", Callable()]], "Bad misison file")
 		return false
-	Settings.mc = d
+	_set_state(d)
 	_focus(0)
 	return true
 
@@ -269,24 +306,24 @@ func _shown() -> bool:
 	return fe != null and fe.screen == "mc" and not fe.loading
 
 
-static func arrow_rect(c: int) -> Rect2:
-	var r: Rect2 = COMBOS[c][3]
+func arrow_rect(c: int) -> Rect2:
+	var r: Rect2 = combos[c][3]
 	return Rect2(r.end.x, r.position.y, ARROW.x, ARROW.y)
 
 
 ## The list's height: a row per item (the visible rows are the item count), +1 for the derived class.
 func list_h(c: int) -> float:
-	return ROW_H * items(c).size() + (1.0 if COMBOS[c][2] == "type" else 0.0)
+	return ROW_H * items(c).size() + (1.0 if combos[c][2] == "type" else 0.0)
 
 
 ## The list opens up when it would reach the content's bottom (FUN_004f5570: 357 ≤ y + 19 + listH).
 func opens_up(c: int) -> bool:
-	return CONTENT_H <= COMBOS[c][3].position.y + 19.0 + list_h(c)
+	return CONTENT_H <= combos[c][3].position.y + 19.0 + list_h(c)
 
 
 ## The open list's rows area: (w + 7) × listH at (1, 19) of the combo, or above the box when it opens up.
 func list_rect(c := open) -> Rect2:
-	var r: Rect2 = COMBOS[c][3]
+	var r: Rect2 = combos[c][3]
 	var h := list_h(c)
 	var y := r.position.y - h if opens_up(c) else r.end.y
 	return Rect2(r.position.x + 1, y, r.size.x + 7, h)
@@ -295,7 +332,7 @@ func list_rect(c := open) -> Rect2:
 ## The whole open combo window, its 1 px combBack frame included.
 func frame_rect(c := open) -> Rect2:
 	var lr := list_rect(c)
-	var r: Rect2 = COMBOS[c][3]
+	var r: Rect2 = combos[c][3]
 	var top := minf(lr.position.y - 1.0, r.position.y)
 	var bottom := maxf(lr.end.y + 1.0, r.end.y)
 	return Rect2(r.position.x, top, r.size.x + ARROW.x, bottom - top)
@@ -358,13 +395,13 @@ func press(q: Vector2) -> bool:
 		else:
 			_close_list()
 		return true
-	for c in COMBOS.size():
+	for c in combos.size():
 		if arrow_rect(c).has_point(q):
 			held_arrow = c
 			fe._play("buttonin")
 			_open_list(c)
 			return true
-		if COMBOS[c][3].has_point(q):
+		if combos[c][3].has_point(q):
 			_open_list(c)
 			return true
 	for b in 2:
@@ -524,7 +561,12 @@ func _draw() -> void:
 	if not _shown():
 		return
 	fe._blit("mc/spback.png", CONTENT, self)
-	for c in COMBOS.size():
+	for c in range(COMBOS.size(), combos.size()):
+		var r: Rect2 = combos[c][3]
+		var at := r.position + WIND_BOX_ART.position - COMBOS[TIME][3].position
+		fe._blit_region("mc/spback.png", WIND_BOX_ART, CONTENT + at, self)
+		_text(CONTENT + r.position + Vector2(1, -3), WIND_LABELS[c - COMBOS.size()], GREEN, font_bold, LABEL_PX)
+	for c in combos.size():
 		if c != open:
 			_draw_combo(c)
 	_draw_edit(0)
@@ -534,7 +576,7 @@ func _draw() -> void:
 
 
 func _draw_combo(c: int) -> void:
-	var r: Rect2 = COMBOS[c][3]
+	var r: Rect2 = combos[c][3]
 	_text(CONTENT + Vector2(r.position.x + 2, r.position.y + 17), shown_text(c), GREEN, font)
 	fe._blit("mc/but_%d.png" % (2 if held_arrow == c else 0), CONTENT + arrow_rect(c).position, self)
 
@@ -544,12 +586,12 @@ func _draw_combo(c: int) -> void:
 func _draw_open() -> void:
 	var fr := frame_rect()
 	fe._blit_region("mc/combback.png", Rect2(Vector2.ZERO, fr.size), CONTENT + fr.position, self)
-	var r: Rect2 = COMBOS[open][3]
-	fe._blit_region("mc/spback.png", Rect2(r.position, Vector2(r.size.x, 19)), CONTENT + r.position, self)
+	var r: Rect2 = combos[open][3]
+	fe._blit_region("mc/spback.png", Rect2(_art_at(open), Vector2(r.size.x, 19)), CONTENT + r.position, self)
 	_draw_combo(open)
 	var lr := list_rect()
 	fe._blit_region("mc/listback.png", Rect2(Vector2.ZERO, lr.size), CONTENT + lr.position, self)
-	var derived: bool = COMBOS[open][2] == "type"
+	var derived: bool = combos[open][2] == "type"
 	var strip := Vector2(lr.size.x, ROW_H)
 	for i in items(open).size():
 		var at := lr.position + Vector2(0, ROW_H * i)
@@ -575,6 +617,11 @@ func _draw_open() -> void:
 			SEPARATOR,
 			fe._scale()
 		)
+
+
+## Where combo c's box is in SPBack: its own place, TIME's for the wind combos (copied there).
+func _art_at(c: int) -> Vector2:
+	return COMBOS[TIME][3].position if c >= COMBOS.size() else combos[c][3].position
 
 
 func _draw_edit(b: int) -> void:
@@ -614,7 +661,7 @@ func _text_width(s: String) -> float:
 
 
 ## Arial −10, TA_BOTTOM | TA_LEFT at `at` (menu coordinates), left to right in both languages.
-func _text(at: Vector2, s: String, color: Color, f: Font) -> void:
-	var fs := int(round(TEXT_PX * fe._scale()))
+func _text(at: Vector2, s: String, color: Color, f: Font, px := TEXT_PX) -> void:
+	var fs := int(round(px * fe._scale()))
 	var p: Vector2 = fe._to_screen(at)
 	draw_string(f, Vector2(p.x, p.y - f.get_descent(fs)), s, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, color)

@@ -212,6 +212,8 @@ const EXTRAS := [
 	# gauges, the AoA indexer, live painted instruments, warning lamps, crisp MFD pages, smooth needles, the MiG
 	# gauges), docs/cockpit.md "Better cockpit".
 	["better_cockpit", "Better cockpit", [["Original", false], ["Better", true]]],
+	# Ours: the Mission Creator's WIND / FROM combos (menu/mission_creator.gd, docs/front-end.md §19.4).
+	["better_mc", "Mission Creator", [["Original", false], ["Better", true]]],
 ]
 
 

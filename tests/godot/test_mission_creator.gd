@@ -30,7 +30,7 @@ func mc_click(q: Vector2) -> void:
 
 ## Opens combo c and picks item i by clicking its row.
 func pick(c: int, i: int) -> void:
-	mc_click(mcv.COMBOS[c][3].get_center())
+	mc_click(mcv.combos[c][3].get_center())
 	var lr: Rect2 = mcv.list_rect()
 	mc_click(Vector2(lr.get_center().x, lr.position.y + mcv.ROW_H * (i + 0.5)))
 
@@ -137,6 +137,46 @@ func run() -> void:
 	mcv.button("save")
 	check(box_msg() == 49, "SAVE without a name -> msg 49")
 	answer("ok")
+
+	# Mission Creator: Better off (the default): the original's 20 combos, no wind in the state, the template's wind.
+	settings().mc = saved.duplicate(true)
+	var misc0: Dictionary = mc_build()[0].data.misc.items[0]
+	check(mcv.combos.size() == 20 and not saved.has("wind_kt"), "switch off: the original's 20 combos, no wind")
+	check(int(misc0["0x46a"]) == 10 and int(misc0["0x474"]) == 270, "switch off: the template's 10 kt from 270")
+	# On: WIND / FROM after the 20, the template's wind to start, picked like any combo.
+	settings().better_mc = true
+	mcv.setup(fe)
+	check(mcv.combos.size() == 22 and mcv.shown_text(20) == "10 kt" and mcv.shown_text(21) == "W", "on: WIND 10 kt W")
+	check(mcv.items(20).size() == 4 and mcv.items(21).size() == 8, "WIND: Calm / 10 / 15 / 20 kt; FROM: 8 points")
+	settings().mc = saved.duplicate(true)
+	mcv._set_state(settings().mc)
+	pick(20, 3)
+	pick(21, 3)
+	check(int(settings().mc.wind_kt) == 20 and int(settings().mc.wind_from) == 135, "picked 20 kt from SE")
+	misc0 = mc_build()[0].data.misc.items[0]
+	check(int(misc0["0x46a"]) == 20 and int(misc0["0x474"]) == 135, "FLY writes misc 0x46a = 20, 0x474 = 135")
+	var wpath := folder.path_join("Wind")
+	check(mcv.write(wpath) and FileAccess.get_file_as_bytes(wpath).size() == 0x5ac + 12, "SAVE adds the wind trailer")
+	check(
+		FileAccess.get_file_as_bytes(wpath).slice(0, 0x5ac) == FileAccess.get_file_as_bytes(folder.path_join("Test 1")),
+		"the first 0x5ac bytes are the original record"
+	)
+	var windy: Dictionary = settings().mc.duplicate(true)
+	check(
+		mcv.read(folder.path_join("Test 1")) and int(settings().mc.wind_kt) == 10, "an original file: the default wind"
+	)
+	check(mcv.read(wpath) and settings().mc == windy, "LOAD restores the wind")
+	mcv.button("random")
+	check(
+		int(settings().mc.wind_kt) in [0, 10, 15, 20] and int(settings().mc.wind_from) % 45 == 0,
+		"RANDOM draws a wind (%s)" % [[settings().mc.wind_kt, settings().mc.wind_from]]
+	)
+	# Off again: the wind file loads without its wind, FLY keeps the template's.
+	settings().better_mc = false
+	mcv.setup(fe)
+	check(mcv.read(wpath) and not settings().mc.has("wind_kt"), "switch off: LOAD drops the trailer's wind")
+	misc0 = mc_build()[0].data.misc.items[0]
+	check(int(misc0["0x46a"]) == 10 and int(misc0["0x474"]) == 270, "switch off: FLY keeps the template's wind")
 
 	# FLY: Alpha 2 MiG-29 Aggressors from Ramon at 10000ft, Charlie 1 MiG-21 Bombers, Radar Station, By Target.
 	settings().mc = saved

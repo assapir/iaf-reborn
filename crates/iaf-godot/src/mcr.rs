@@ -3,11 +3,12 @@
 //!
 //! The Dictionary: `name`, `notes` (String); `count`, `type`, `ai`, `fbase` (Array of 8 ints, the formation
 //! records: Alpha, Bravo, Charlie, Delta, then the multiplayer's four); `base`, `time`, `alt`, `target`, `sams`, `aaa`,
-//! `weapons`, `victory`, `revive`, `wait`, `reload` (ints, the combo indexes).
+//! `weapons`, `victory`, `revive`, `wait`, `reload` (ints, the combo indexes); ours, only with a wind (`Mission::wind`):
+//! `wind_kt`, `wind_from` (knots, degrees).
 
 use crate::world::num;
 use godot::prelude::*;
-use iaf_formats::mcr::{Formation, Mission};
+use iaf_formats::mcr::{Formation, Mission, Wind};
 
 const TAIL: [&str; 11] =
     ["base", "time", "alt", "target", "sams", "aaa", "weapons", "victory", "revive", "wait", "reload"];
@@ -33,6 +34,9 @@ fn mission(d: &VarDictionary) -> Mission {
     let v: Vec<i32> = TAIL.iter().map(|k| num(d, k).unwrap_or(0.0) as i32).collect();
     [m.base, m.time, m.alt, m.target, m.sams, m.aaa, m.weapons, m.victory, m.revive, m.wait, m.reload] =
         std::array::from_fn(|i| v[i]);
+    if let (Some(knots), Some(from)) = (num(d, "wind_kt"), num(d, "wind_from")) {
+        m.wind = Some(Wind { knots: knots as i32, from: from as i32 });
+    }
     m
 }
 
@@ -49,6 +53,10 @@ fn dict(m: &Mission) -> VarDictionary {
     let v = [m.base, m.time, m.alt, m.target, m.sams, m.aaa, m.weapons, m.victory, m.revive, m.wait, m.reload];
     for (k, x) in TAIL.iter().zip(v) {
         d.set(*k, x as i64);
+    }
+    if let Some(w) = m.wind {
+        d.set("wind_kt", w.knots as i64);
+        d.set("wind_from", w.from as i64);
     }
     d
 }

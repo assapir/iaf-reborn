@@ -35,10 +35,9 @@ ranked order: [graphics-research.md](graphics-research.md).
     its 3D objects and ground art at its real coordinates, and missions that use it (inferred: the Mission Creator
     and the Real 1:1 base move already read bases from data).
   - The player picks the home base in the briefing / Jump In.
-- **Mission Creator "Better"** (wishlist): a free map editor on the TSD, after the original screen. Wind levels
-  (user 2026-10-21): a wind choice beside the time of day (e.g. calm / light / moderate / strong, plus a direction),
-  written to the mission's wind fields (misc 0x46a / 0x474) that the "Wind and turbulence" switch flies in
-  (flight-model.md §10).
+- **Mission Creator "Better"** (wishlist): a free map editor on the TSD, after the original screen. Wind levels are
+  built (Extras "Mission Creator: Better": WIND / FROM beside the time of day, written to misc 0x46a / 0x474;
+  front-end.md §19.4); the map editor can reuse the switch.
 - **A modern TSD map** (wishlist, user 2026-10-20; "just for fun"): an Extras overlay on the static maps (TSD /
   briefing EMF maps, map texts) with today's borders, names and places, drawn by us; the 1998 maps stay the default.
 - **Realistic night vision** (wishlist, user 2026-10-21): an Extras night-vision view for night missions (the

@@ -308,6 +308,10 @@ pub fn build(m: &Mission, read: &dyn Fn(&str) -> Option<Value>, ibx: &Ini, bdb: 
     if let Some(misc) = main["misc"]["items"].as_array_mut().and_then(|a| a.first_mut()) {
         misc["0x44c"] = json!(title);
         misc["0x460"] = json!(start);
+        // Ours, Extras "Mission Creator: Better": the wind chosen (the exe keeps the template's 10 kt from 270).
+        if let Some(w) = m.wind {
+            (misc["0x46a"], misc["0x474"]) = (json!(w.knots), json!(w.from));
+        }
     }
     if let Some(t) = &cx.allowed {
         main["weapon_types"] = json!(t);
@@ -389,7 +393,7 @@ fn ground_targets(files: &[(String, Value)], m: &Mission, bdb: &Value) -> Vec<(u
 #[cfg(test)]
 mod tests {
     use super::*;
-    use iaf_formats::mcr::Formation;
+    use iaf_formats::mcr::{Formation, Wind};
     use std::path::Path;
 
     fn assets() -> Option<std::path::PathBuf> {
@@ -454,6 +458,14 @@ mod tests {
         assert!(hp.chunks(2).any(|p| p[0] != 0 && AAMS.contains(&wtype(p[0]).unwrap())), "the AAMs stay");
         assert_eq!(main["misc"]["items"][0]["0x460"], 79200.0);
         assert_eq!(main["misc"]["items"][0]["0x44c"], "Test");
+        let wind = |m: &Mission| {
+            let f = build(m, &read, &ibx, &bdb);
+            let misc = &f[0].1["misc"]["items"][0];
+            [misc["0x46a"].clone(), misc["0x474"].clone()]
+        };
+        assert_eq!(wind(&m), [10, 270], "the template's wind");
+        let gusty = Mission { wind: Some(Wind { knots: 20, from: 135 }), ..m.clone() };
+        assert_eq!(wind(&gusty), [20, 135], "Mission Creator: Better writes its wind");
         let fs = main["formations"]["items"].as_array().unwrap();
         let alpha = fs.iter().find(|f| f["0x3f2"] == 1).unwrap();
         assert_eq!(alpha["points"].as_array().unwrap().len(), 4);
