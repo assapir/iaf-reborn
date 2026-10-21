@@ -8,7 +8,7 @@ Related: [controls.md](controls.md) (records 47, 98–103), [ai.md](ai.md) (brai
 [autopilot.md](autopilot.md) §2.2 (waypoint sequencing), [sound.md](sound.md) (speech volume, phrase channel),
 [mission-runtime.md](mission-runtime.md) §3.3 (subtitle console). Port: `game/audio/radio.gd`.
 
-## How it sounds in the game (plain language)
+## How it sounds in the game
 - **The tower talks on its own.** It talks when you are on the ground within 18.54 km of one of the four Israeli
   towers (Ramon, Ramat David, Tel Nof, Refidim):
   - at a hangar: "taxi to runway NN";
@@ -23,8 +23,7 @@ Related: [controls.md](controls.md) (records 47, 98–103), [ai.md](ai.md) (brai
   - "go around, runway is not clear" (a stopped aircraft on the runway).
 
   After the roll-out it says "nice to have you back, taxi to hangar". On the ground at an Israeli base Ctrl+T does
-  nothing, because the tower already talks. Near no tower, or near an Arab base, you hear only a radio click
-  (`kch2.wav`).
+  nothing (the tower already talks). Near no tower, or near an Arab base, you hear only a radio click (`kch2.wav`).
 - **Wingman commands (Alt+P/B/E/W/T/C).** Your pilot says the command ("Close formation." …). The wingman's brain
   (bdb rules: the AI rule database) reacts: its "Roger, …" reply and manoeuvre come from the mission database. If
   the wingman cannot comply, it answers "I'm afraid that's a negative, sir!" 3 s later. It cannot comply while it is
@@ -41,8 +40,8 @@ Related: [controls.md](controls.md) (records 47, 98–103), [ai.md](ai.md) (brai
   "unidentified contacts, please identify". A contact already called is called again after 60 s, or at once after it
   moved more than 5 nm; the repeat is short ("Bearing 090, 15 miles, target") unless it is at 10, 20 or 30 miles.
   The controller is silent while you are less than 50 m above the ground.
-- **Subtitles.** Every radio phrase is spoken from word files and printed in the subtitle console. The text is the
-  data's English text; the radio text exists only in English (docs/packs.md).
+- **Subtitles.** Every radio phrase is spoken from word files and printed in the subtitle console, in English only
+  (docs/packs.md).
 
 ## 1. Phrases (`phrasetemplates.trx`, `phraseparticalsdata.trx`)
 A phrase is a template of tokens; each token names a particle (one wav file plus its text). Both files are in
@@ -66,12 +65,12 @@ ALPHA_T, MORNING, 27 → "Alpha, good morning, taxi to runway 27".
 The install lacks:
 - `Pause.wav` (the `,` / `.` particle), `Null`, `Bear000`, `Head000` and the three `…Twr` files;
 - most `NumNNN`. It ships 3, 5, 9, 15, 18, 21, 23, 27, 33, which include the runway numbers of the four Israeli bases.
-  (It also has `num36.wav`, which `Num036` does not name.) The port fills the other runway numbers 01-36 from
-  `game/extra/tower_numbers/`: our clips, read by `sound_table.gd` only for names the install lacks, so the install's
-  own clip always wins. They are spoken like the originals, digit by digit ("zero four", "two five"), by Piper TTS
-  with the public-domain voice en_US-john-medium, then matched to the originals' format (22050 Hz, 16-bit, mono),
-  radio band (300-3000 Hz), loudness and trimmed silence. `tools/tower_numbers.py` regenerates them; the folder's
-  README names the voice and its licence. Only World scale Real's real runway numbers need them (deviations.md §2).
+  (It also has `num36.wav`, which `Num036` does not name.) Only World scale Real's real runway numbers need the others
+  (deviations.md §2). The port fills them from `game/extra/tower_numbers/` (01-36): `sound_table.gd` reads our clip
+  only for a name the install lacks. The clips say the digits like the originals ("zero four") in Piper TTS's
+  public-domain voice en_US-john-medium, matched to the originals' format (22050 Hz, 16-bit, mono), radio band
+  (300-3000 Hz), loudness and trimmed silence. `tools/tower_numbers.py` regenerates them; the folder's README names
+  the voice and its licence.
 **Subtitle**: the callers push the text with `FUN_0044a060` (the console, mission-runtime.md §3.3).
 
 ## 2. Tower (TowersManager `DAT_00699344`, ctor `54eb30`)
@@ -107,10 +106,10 @@ that is ≈ 205 m around the lineup cells and ≈ 2.6 km around the runway corri
 Manager fields: +0x3318 current base (−1 none), +0x336c state, +0x3370 timer, +0x3374 timer period, +0x337c runway
 clear, +0x3388 last message (0xb = none).
 
-**Wind** (`551320`, set at mission load from misc **0x46a**): a value of 0, 10, 15 or 20 kt is used as is. Any
-other value becomes a random one of {0, 10, 15, 20} (`rand() % 4`). All bases share it. The tower says "wind is NN
-knots" / "no wind". Misc 0x474 (the direction, inferred) has no reader. Ours: Better physics "Wind and turbulence"
-flies the air mass at this speed (`radio.gd` `wind_from`: 0x474, or 0x46a above 60; flight-model.md §10).
+**Wind** (`551320`, set at mission load from misc **0x46a**): 0, 10, 15 or 20 kt is used as is; any other value
+becomes a random one of these (`rand() % 4`). All bases share it. The tower says "wind is NN knots" / "no wind".
+Misc 0x474 (the direction, inferred) has no reader. Better physics "Wind and turbulence" flies the air mass at this
+speed from `radio.gd` `wind_from` (0x474, or 0x46a above 60: a swapped pair; flight-model.md §10).
 
 **Timer** (`550e40(period)`): a repeating event "TowersManagerTimer" every `period` s. Each call restarts it.
 
@@ -300,7 +299,7 @@ Before the cases, the gate at +0x318 (`4d4100`, `4d3fa0(0, 3.0, 0)`) is tested: 
 | same side, killer not enemy, class 0x1c | SHOT_FRIENDLY_PHRASE | killer's callsign | victim's air / ground name |
 | other | nothing (an enemy's own-side kill only builds ":Enemy shot its own side target") | | |
 
-The callsign is `54ccb0` (above). Then:
+Then:
 1. SHOT_GROUND_TARGET only (+0x390 counter): when the gate fired, the counter is 1. Otherwise, with the same S1 as
    the last call and another S2, S2 becomes MULTITARGET ("ground targets") at counter 2 and empty above; the counter
    goes up.
@@ -351,8 +350,8 @@ ARMOREDVEHICLE, 280 SOFTVEHICLE, 290–340 SAM, 350 AAA, 360 GUNDISH, 370 SHIP, 
 | 2 | DESC_TARGET | TRGT_ALRDY_ENGAGE "targets are already engaged" |
 | 3 | DESC_UNID_CONTACT "unidentified contacts" | PLEASE_IDENTIFY |
 
-The callsign is `5513c0`: formation kinds 2–6, 9, 10 by name, else "Alpha". Enemy formations (kind 7) are all
-"Alpha", so only one of them is in the table at a time (kept quirk).
+The callsign is `5513c0` (§2), so every enemy formation (kind 7) is "Alpha" and only one of them is in the table at
+a time (kept quirk).
 
 ## 5. Port (`game/audio/radio.gd`)
 - `Radio.expand()` / `say()`: the phrase engine from the two .trx files; the parts queue on the phrase channel

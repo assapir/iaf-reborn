@@ -1,7 +1,7 @@
 # AI aircraft: brain, control loops, formations, take-off and landing
 
-This document describes how the original game's computer-controlled (AI) units decide and fly, decoded from the
-exe, and where our port of each part lives. Read it to re-implement or change AI behaviour.
+This document describes how the original game's computer-controlled (AI) units decide, fly and fight, decoded from
+the exe, and where our port of each part lives.
 
 - **Addresses** are `IAFJets.exe` **v1.1** (the reference version); [v1.1.md](v1.1.md) maps them to v1.0.
 - **Source:** the decompile `assets/ghidra_v11/iafjets.c`. Argument orders were checked in the disassembly.
@@ -101,7 +101,7 @@ The AI uses these runtime objects:
 | autopilot / control-loop manager | vehicle+0xc50 (`FUN_005c6be0`, vtable 0x611e54) | `FUN_005c89f0` returns its mode (+0x24): the FM's "ai" test |
 | formation manager | `DAT_00699340` (frmtnMngrPtr), hash map by formation **id** (0x1e) | built by `FUN_004b3573` → `FUN_004b3604` |
 | TowersManager | `DAT_00699344`, ctor `54eb30` | airbase data (§8), player ATC |
-| FlightController | `DAT_00699348` (0x3a0 bytes, ctor `FUN_0054acc0`) | AWACS / tower **radio voice** only (§10) |
+| FlightController | `DAT_00699348` (0x3a0 bytes, ctor `FUN_0054acc0`) | the radio reports and AWACS calls only (§10) |
 
 MBrain fields (b = brain):
 
@@ -167,7 +167,7 @@ A brain is attached at spawn, reset at activation and then ticked on a fixed per
   - Only a unit that gets a brain gets a mover. An unarmed ground unit gets no brain, so a BRAIN-controlled unarmed
     vehicle (116's, 324's) just stands (UNCERTAIN, from the research of `FUN_004a9100`'s callers).
   - The control mode picks the mover, whatever the class: the transports (class 3: C-130, IL-76) fly too
-    (`ai_flights.gd`). Before this fix, only class 0x1c flew, and 237's C-130 hung in the air in the player's path.
+    (`ai_flights.gd`).
 - **Reset `FUN_0043eef0`:**
   - clears the tick flags, +0x48..+0x50, +0x58..+0x64, +0x68, +0x70, +0x7c..+0x84 (it keeps +0x6c and +0x88);
   - +0x78 = 480;
@@ -212,26 +212,26 @@ Operators (`FUN_004b5e6a`): 0 `==` (bool measures compare as bools, floats exact
 | 5 | 5c05f0 | own heading, deg (−180, 180] |
 | 6 | 5c07b0 | **own speed, kt** (m/s × 1.9427955, 0x612690) |
 | 7 | 5c0800 | own load factor (g) |
-| 8 | 5c0850 | weapon available (UNCERTAIN) |
+| 8 | 5c0850 | no external tanks attached (§13.2) |
 | 9 | 5c0890 | T altitude (m) |
-| 10 | 5c0940 | angle to T, deg (UNCERTAIN which) |
+| 10 | 5c0940 | relative bearing to T, deg (§13.2) |
 | 11 | 5c0980 | T heading, deg |
 | 12 | 5c0b60 | T speed, kt |
 | 13 | 5c0bc0 | 3-D range to T (m); invalid if T destroyed |
-| 14 | 5c0d30 | `FUN_0044ea60(T)` UNCERTAIN |
+| 14 | 5c0d30 | closure on T, m/s (`FUN_0044ea60`, §13.2) |
 | 15 | 5c0d60 | random 0..100 |
 | 16 | 5c0db0 | own z − T z |
 | 17 | 5c0ee0 | T load factor |
 | 18 | 5c0f40 | own z < T z |
-| 19 | 5c14e0 | I am locked (UNCERTAIN) |
-| 20 | 5c1740 | T within the current weapon's range |
-| 21 | 5c1a30 | weapon state (UNCERTAIN) |
+| 19 | 5c14e0 | I am locked (§13.2) |
+| 20 | 5c1740 | T within the current weapon's range (§13.2) |
+| 21 | 5c1a30 | the selected store's round count (§13.2) |
 | 22 | 5c1080 | **leader destroyed**; invalid without a leader |
 | 23 | 5c1aa0 | **leader on the ground** (z − terrain − model height < 3) |
 | 24 | 5c10c0 | range to the primary target (m) |
 | 25 | 5c1210 | primary target destroyed |
-| 26 | 5c1530 | T's brain+0x7c set (a sensor locked it), or T has a controller whose RWR lists something |
-| 27 | 5c15a0 | leader locked (UNCERTAIN) |
+| 26 | 5c1530 | T attacking or locked (§13.2) |
+| 27 | 5c15a0 | leader locked (§13.2) |
 | 28 | 5c15f0 | T's target == my leader |
 | 29 | 5c1250 | **wingman command** +0x48 (1 ProtectMe, 2 BugOut, 3 EngageDesignated, 4 EngageAny, 5 Tactical, 6 Close) |
 | 30 | 5c1270 | **action of the current waypoint** `route[+0x88].action` (0 without a formation) |
@@ -241,11 +241,11 @@ Operators (`FUN_004b5e6a`): 0 `==` (bool measures compare as bools, floats exact
 | 34 | 5c1380 | T is the player |
 | 35 | 5c1a60 → 453540 | **fuel ratio**: 100 without a route; `r = endurance / (3-D distance to the last waypoint / 220)`; ≤ 1.1 latches 1.0; returns r × 10 (bingo rule `35 <= 11`) |
 | 36 | 5c13e0 | own damage % |
-| 37 | 5c16a0 | leader's target == my target |
-| 38 | 5c1410 | T == my threat |
-| 39 | 5c1490 | a missile is launched at me |
+| 37 | 5c16a0 | leader's target == my target (§13.2) |
+| 38 | 5c1410 | T == my threat (§13.2) |
+| 39 | 5c1490 | a missile is launched at me (§13.2) |
 
-§13.2 resolves several of the UNCERTAIN measures.
+§13.2 details the combat measures.
 
 ## 5. Actions
 
@@ -280,15 +280,13 @@ The other action types belong to the combat job (built in `game/ai/combat.gd`, �
 | type | codes | effect |
 |---|---|---|
 | 1 Launch | 300 (`4440d0`) | needs T, a ready weapon, a range in [min, max] and nose-to-LOS ≤ 30° (0x6008f8; 5° for weapon 0x235); single-player enemy cone ×0.5 Rookie / ×1.5 Expert; weapon 0x244 also needs `|44e770| ≤ 60°`; fires `FUN_00452680(T)` |
-| 2 / 3 flares / chaff | 310 / 320 | busy 2.25 s, `FUN_004545e0(0x226 / 0x21c, 0, 1)` |
-| 4 change weapon | 330–390 | |
-| 5 target | 400 next, 410, 420 best | → +0x70 |
-| 6 radar | 430, 440 | |
+| 2 / 3 flares / chaff | 310 / 320 | busy 4.0 s (0x600920; a second reading gives 2.25 s: UNCERTAIN), `FUN_004545e0(0x226 / 0x21c, 0, 1)` |
+| 4 change weapon | 330–390 | §13.1 |
+| 5 target | 400 / 410 / 420 | → +0x70: the best of the air scan / the ground scan / the primary target (§13) |
+| 6 radar | 430, 440 | 430: T = my nearest RWR emitter (`CTL.451f70()`, within 370 800 m; without a controller B+0x7c); 440 runs the same exec as 400 |
 | 7 response | 450–540 | only the node's audio, e.g. 250 "Roger, closing formation" |
 | 8 scenario | 550, 560 | 550 start combat (needs +0x68 == 0, +0x6c == 0, T alive: +0x68 = 1, weapons free); 560 stop combat |
 | sub-brain | **1000** | `setRules(list(f4), 1)` `440790`: +0xd8 = 1, +0xdc = 1, **+0x48 = 0**. f4 0 / −1 / unknown → back to the base list: +0xd8 = 0, +0xdc = 1, **+0x48 kept**, so the base list then sees the wingman command (docs/radio.md §3) |
-
-§13 corrects some of these readings (430, 440, the flare busy time).
 
 ## 6. Combat on / off and control modes (v1.1)
 
@@ -303,9 +301,6 @@ Trigger ops and control-mode changes start and stop a brain:
 - **Trigger op 20 (`5c4470`)**: new base brain `setRules(list(arg), 0)` + switchControlStatus(1).
 - **switchControlStatus `FUN_004a8e70`**: leaving 1 or 2 → transferControl (leaving 2 also kills the scenario);
   entering 0 → transferControl; 1 → reset; 2 → scenario start + reset; 3 → player takeover.
-
-Two readings here correct older text in mission-runtime.md: `FUN_004aa900(v)` is the weapon handler's SAFE flag; and
-reset only schedules the brain, while transferControl unschedules it ("reset unschedules the brain" was wrong).
 
 ## 7. Spawn, start and route
 
@@ -580,21 +575,9 @@ The TowersManager's ATC (`ACFT_*` calls, runway occupancy) serves the **player**
 geometry and the hangar flags; they also occupy the runway zones for the player's tower.
 
 ## 10. Radio reports (FlightController, `DAT_00699348`)
-The FlightController posts one-shot scheduler events that only play radio / subtitles, for friendly units with a
-callsign:
-
-| report | when |
-|---|---|
-| WayptReport | +3 s after WayPtSet moves on; "X passing waypoint N" |
-| AirborneReport | +3 s, TakeoffCL at 100 m AGL |
-| LandedReport | +3 s, StopPlane |
-| CrashedReport | +2.5 s |
-| kill reports | +5 s |
-| EjectReport | |
-| AWACS contact | a 12 s timer (first call ≈ 60 s, 30 nm around the player) |
-
-Traced in docs/radio.md §4. Built: the waypoint report (`ai_flights.gd` posts it when the autopilot's waypoint index
-moves on) and the player's EjectReport (`radio.gd` `ejected`). The others are open.
+The FlightController posts one-shot radio / subtitle reports for friendly units with a callsign: waypoint passed
+(WayPtSet, §7.2), airborne (TakeoffCL, §8.2), landed (StopPlaneCL, §8.3), crashed, ejected, kill calls, and the AWACS
+contact calls. They change no AI behaviour. Trace and port: docs/radio.md §4, §5 (all built).
 
 ## 11. Flight model: AI cases
 `ai = FUN_005c89f0() != 0` (the mode of §8.1). Ported in `crates/iaf-flight/src/aircraft.rs` (fields `ai_mode`,
@@ -606,9 +589,6 @@ moves on) and the player's EjectReport (`radio.gd` `ejected`). The others are op
 - Stall unless Expert enemy; Rookie enemy g > 4.3 → 4 + 0.02 g²; no buffet.
 - Throttle: every change counts, the afterburner lights at once, the engine starts only on a change.
 - Crash immunity: `(mode 9 && fuel) || (mode active > 3.5 s && fuel && damage ≤ 0.1 && !(enemy && mode 0x11))`.
-
-Correction to flight-model.md §15.6.4: the start's "base" is the nearest by the Lineup point; the airborne test uses
-its Tower point, the engine test its Lineup point.
 
 ## 12. Port
 Where each part of this document lives in our code:
@@ -632,7 +612,7 @@ Where each part of this document lives in our code:
   - The helicopters' brains 2 / 24 open with "select air target" (400), but class 2 gets no target sensor
     (`FUN_0043eef0`), so their "start combat" never has a target: they fire only by script (op 2, §14).
   - Ours attaches no brain to them, which gives the same outcome.
-- Open: the combat parts listed as open in §13, the radio reports other than the waypoint / eject (§10), network paths.
+- Open: the combat parts listed as open in §13.3, network paths.
 - Tests: `test_ai_flight.gd` (mission 221: 13 AI jets navigate, wingmen in formation, a take-off from Ramon).
 
 ## 13. Combat (partly built)
@@ -662,9 +642,7 @@ in `game/ai/combat.gd` (AI jets) and `crates/iaf-flight/src/autopilot.rs` (manoe
   empty (`FUN_00457b40`). The bdb's 370 has 0x82 = 80, clamped to 14: about 2.6 s. No new burst starts while one
   runs (W+0xb0). A Launch that does not fire leaves its type
   gate free (brain.gd).
-- **Conditions** 8, 10, 12, 14, 17, 20, 21, 26, 37; 27 invalid. **26** (`FUN_005c1530`): no T → invalid; T's
-  brain+0x7c set → 1; else T with a controller (the player) → its RWR list non-empty (`FUN_00452110`, RWR+0x174),
-  else 0.
+- **Conditions** 8, 10, 12, 14, 17, 20, 21, 26, 37 (§13.2); 27 invalid.
 - **Locks** (`combat.gd` `on_lock`, shared with the player's radar):
   - A selector's pick unlocks the old target and locks the new one.
   - The AI sensor's override (`FUN_004aca60` / `FUN_004aca80`) passes only aircraft (class 0x1c) on to
@@ -691,16 +669,8 @@ in `game/ai/combat.gd` (AI jets) and `crates/iaf-flight/src/autopilot.rs` (manoe
 Tests: tests/godot/test_ai_sensors.gd (ECM in the scan, condition 26, the locks, 430),
 crates/iaf-flight/tests/autopilot.rs (Dogchase), tests/godot/test_ai_air_combat.gd.
 
-**Decode of the AI combat job** (partial; scratch work; argument orders of `4440d0` checked in the disassembly).
-Corrections to §4 / §5:
-- action **430 is "target = my nearest RWR emitter"** (`CTL.451f70()`, within 370 800 m; without a controller
-  B+0x7c);
-- **440 runs the same exec as 400**;
-- **condition 8 = no external tanks attached** (`4593e0`: !(W+0xb8 == 0 && W+0xc0 != 0));
-- **condition 21 = the selected store's round count** (`456cd0`);
-- flares (310) set the busy flag for **4.0 s** (0x600920 = −4.0; a second reading gives 2.25 s: UNCERTAIN), chaff
-  likewise;
-- the type gate is marked only when an action really fires (a Launch that does not fire leaves type 1 free).
+Argument orders of `4440d0` were checked in the disassembly. The type gate is marked only when an action really
+fires (a Launch that does not fire leaves type 1 free).
 
 ### 13.1 Actions (class by bdb 0xbe in `4b62b6`; exec = vtable +4 with the entity E; act+8 = 0xc8, +0xc = 0x82,
 +0x10 = 0x96, +0x14 = 0x8c)
@@ -745,14 +715,13 @@ RWR = CTL+0x5b0 (10 entries × 0x24 from +0xc; +0 emitter, +0x14 launch flag; +0
 
 | code | measure |
 |---|---|
-| 3 | B+0x78 period code |
+| 8 | no external tanks attached (`4593e0`: !(W+0xb8 == 0 && W+0xc0 != 0)) |
 | 10 | relative bearing to T (deg, `44e770`) |
-| 12 | T speed kt |
 | 14 | closure d̂·(V_own − V_T) m/s |
-| 17 | T load factor |
 | 19 | I am locked (RWR+0x174, invalid without a controller) |
 | 20 | gun: distance ≤ _limitDist (4500) and, for an aircraft, its loop is Dogchase with the nose within NoseOnTargetAng 7° (0x67bad0); other weapons: the envelope with max ≠ 0 (bug: no station → max = vx, min = vz) |
-| 26 | T attacking (T.brain+0x7c) or T locked |
+| 21 | the selected store's round count (`456cd0`) |
+| 26 | no T → invalid; T's brain+0x7c set (a sensor locked it) → 1; else T with a controller (the player) → its RWR list non-empty (`FUN_00452110`, RWR+0x174), else 0 |
 | 27 | leader locked |
 | 37 | leader's target == mine (no leader target: 1 but invalid) |
 | 38 | T == threat (nearest RWR emitter, else B+0x7c) |
@@ -814,10 +783,11 @@ RWR = CTL+0x5b0 (10 entries × 0x24 from +0xc; +0 emitter, +0x14 launch flag; +0
   fire per weapon (`454270(T, 1)`: gun burst / aim, missile q, bomb ripple), the target selectors, the decoy logic,
   B+0x7c writers, the RWR internals, the hit reactions `44d590` / `43ff50`.
 
-## 14. Ground defences, RWR, script ops 1 / 2 (traced; built: the player's RWR and the decoys, docs/rwr.md, docs/weapons.md §10, and the ground units' fire, game/ai/combat.gd; the decoys' effect on missiles, docs/weapons.md §10)
+## 14. Ground defences, RWR, script ops 1 / 2
 
 This section covers how ground units (guns, SAM sites, armed vehicles) find targets and fire, the RWR, and the
-script fire ops.
+script fire ops. All of it is traced and built: the ground units' fire in `game/ai/combat.gd`, the player's RWR in
+docs/rwr.md, the decoys and their effect on missiles in docs/weapons.md §10.
 
 **Port** (`game/ai/combat.gd`):
 - Every armed unit other than the aircraft has a weapon handler (its first valid station), which script op 2 fires
@@ -841,16 +811,15 @@ script fire ops.
       script motion op 11, `FUN_005c3ee0`): types 290–340 use the launcher's heading (hull + part +0x14) pitched
       toward the target; tanks (250) the turret's heading (part +0xc; UNCERTAIN: hull + turret, Ghidra's stack
       aliasing hides the hull term); others the hull's level heading.
-    - The launch point is (0, 4, 1) in that attitude (`FUN_004ab7b0`: 4 m ahead, 1 m up), at 100.1 m/s
-      (_debugParam000, the launcher being slower than 5 m/s). The flight, RWR launch flag, blast and look are the
+    - A missile leaves at 100.1 m/s (_debugParam000, the launcher being slower than 5 m/s). The flight, RWR launch flag, blast and look are the
       player's homing weapons' (`player_weapons.gd` `launch_homing`).
 - **Release order** (`FUN_004ab810`):
   1. the truce (taken even when the shot is then skipped);
   2. a busy pool object;
   3. the terrain line of sight (both ends +3 m: −1.5 subtracted twice).
 
-  Every round and missile starts at (0, 4, 1) in the launch attitude (`FUN_004ab7b0`), with the launcher's velocity
-  (`FUN_004d5d10`). Every release of a non-aircraft unit first clears its part record's +8 (@4aba06), so the Missile
+  Every round and missile starts at (0, 4, 1) in the launch attitude (`FUN_004ab7b0`: 4 m ahead, 1 m up), with the
+  launcher's velocity (`FUN_004d5d10`). Every release of a non-aircraft unit first clears its part record's +8 (@4aba06), so the Missile
   part (the Scud's) disappears.
 - **Script op 2** (`script_fire`): the weapon at the target's position now (no lead, no range, no DLZ), q 1.0, then the
   release.
@@ -862,15 +831,13 @@ script fire ops.
     - 0 → flag 0, the editor's **"Miss …"** shot: it flies and bursts, but `FUN_004d6130` applies no blast (@4d6597).
   - The brain's fire and op 1 use flag 1 (the blast).
   - The missions name them so: "Miss Merkava 1" / "Kill Merkava 1" (112), "Miss Hermon Post" (231), "miss satil1" /
-    "hit satil 2" (233). Before this fix, every op 2 shot hit for real: 112's and 231's opening barrages killed the
-    units the player must protect within seconds.
+    "hit satil 2" (233). So 112's and 231's opening barrages spare the units the player must protect.
   - **Helicopters** (class 2) have no sensor (`FUN_0043eef0`: classes 5 / 9, 8, 10 / 0x10, 0x1c only), so they fire
     only this way (MI-24s: 580, aimed first by motion op 11).
 - **Brain −1**: no brain (§3), so an armed unit fires only by script (op 1 / 2).
   - Traced: the loader keeps 0x2da as is, and `FUN_004b815f` attaches only a brain found by that id. The bdb Objects
     default brain `0x532` is used only by the Mission Creator (`FUN_0058e530`).
-  - Before this fix, ours gave such units the object's default brain (untraced). So 112's T-55s (brain −1) killed a
-    Merkava 11 s in and the mission failed, which the original does not do.
+  - So 112's T-55s (brain −1) do not engage the Merkavas on their own.
   - 322's SA-2 launchers and radar (brain −1) stay silent and never lock, so the player's RWR never lists them (its
     "Shade hawk" launchers have brain 11 and lock the player). The HARM's own scan lists the "RADARSA2 radar"; Extras
     "HARM targets: Real" lists it too (docs/weapons.md §11.5).
@@ -878,7 +845,7 @@ script fire ops.
 **Second station**: the handler loads up to two (`FUN_004b7ea3` / `FUN_004aa830`) but fires the one at its index +0x34.
 Start combat sets that index to 0 (`FUN_004ac120`; the previous value is kept in +0x38 and put back by stop combat),
 and nothing else writes it (the ctor's 0). So in the original too, the second station never fires. Turrets / launchers
-turn only by script motion op 11 (mission_runtime.gd `_yaw_to_target`, now drawn: the vehicle models keep their `.xfr`
+turn only by script motion op 11 (mission_runtime.gd `_yaw_to_target`, drawn: the vehicle models keep their `.xfr`
 frames, docs/part-animation.md §2.1).
 
 Not reproduced: the ring pool's 3–4 steps per gun shot. Tests: tests/godot/test_ground_fire.gd (313 AAA and SA-3
@@ -958,10 +925,9 @@ locks, 430, condition 26).
 
 ## UNCERTAIN
 Open questions in this document:
-- Avionics sensors behind conditions 8, 10, 14, 19, 21, 26, 27, 38, 39; what writes brain+0x7c.
+- The RWR field names behind conditions 19, 26, 27, 38, 39 (§13.2); what else writes brain+0x7c.
 - The pitch law's tail (`5ca010`), the speed law's acceleration term, the formation loops' details (§8.5).
 - Waypoint actions 1, 4, 5, 6; the sim clock origin of the waypoint times (mission start taken).
 - The leader flag gating the wingman's take-off roll; the taxi re-placement's 60 m sign; what happens after parking
   (the root timer keeps running ParkInHangar).
-- (Resolved) Kfir and Mirage share one FM parameter block (`0x8442d4`), read once per game session: ported with
-  Flight data = Original (docs/flight-model.md §1, `iaf_flight::data_set::Blocks`).
+

@@ -1,20 +1,18 @@
 # In-flight sound
 
-Addresses are `IAFJets.exe` **v1.1** (the reference version); [v1.1.md](v1.1.md) maps them to v1.0 and lists what the patch changed.
-
 This doc specifies which sound plays in flight, when, and how loud: the sound table, the sound manager, the engine
-loop and the cockpit sounds.
+loop and the cockpit sounds. Addresses are `IAFJets.exe` **v1.1**; [v1.1.md](v1.1.md) maps them to v1.0.
 
 * **Sources**: `assets/ghidra_v11/iafjets.c` plus `objdump` of `v1.1/iafjets.exe`, and the original sound table
   `resource/soundfiles/SoundProp.trx`.
 * **Port**: `game/audio/` (`flight_sounds.gd`, `sound_table.gd`, `sound_buses.gd`); test
   `tests/godot/test_sounds.gd`.
-* **Elsewhere**: front-end sounds (buttons, palettes, music, the Preferences previews) are in docs/front-end.md;
-  mission voices in docs/mission-runtime.md.
+* **Elsewhere**: front-end sounds (buttons, palettes, music, the Preferences previews): docs/front-end.md; mission
+  voices: docs/mission-runtime.md §3.3; radio phrases: docs/radio.md.
 
-**Rule of the port**: which sound plays when, its file, loop, volume and pitch follow the original. Two improvements
-are allowed: Godot's resampler for pitch changes, and positional panning of the 3-D sounds. The distance rule is
-DirectSound's (below). DirectSound is the Windows audio API the original uses.
+**Rule of the port**: which sound plays when, its file, loop, volume and pitch follow the original. Two improvements:
+Godot's resampler for pitch changes, and positional panning of the 3-D sounds. The distance rule is DirectSound's
+(the Windows audio API the original uses, §6).
 
 ## 1. The sound table (SoundProp.trx)
 
@@ -64,8 +62,7 @@ DoorCloseFx, RadarLock, MislSeekTon, VocAircraftCrash, ….
 `cock_eng_idle_gnd_f100/_j79`, `afterburner1/2`, `internal plane 1`, `gearup`, `geardown`, `speedbreak`,
 `speedbreakloop`, `parachute open`, `mfd click`, `wind1–5` (radio "wind is …" phrases), and more.
 
-**Wind**: the table has **no SFX_WIND row**, and no code calls code 0x24. The original plays no airflow / wind
-noise.
+**Wind**: the table has **no SFX_WIND row**, and no code calls code 0x24: the original plays no airflow noise.
 
 ## 2. Sound manager (`DAT_0069931c`, ctor `FUN_004c4410`)
 
@@ -83,11 +80,11 @@ The sound manager (`DAT_0069931c`) plays, mixes and stops every in-flight sound.
      any other row through `FUN_00544560`.
 * **Play a wav by name** `FUN_004c5470(file, 0, phrase)`: volume = the **speech** volume (`manager+0x4c`), pitch 1,
   2-D. With `phrase` ≠ 0 it plays on the phrase channel (`FUN_005448b0`, handle `manager+0x38`). Users:
-  - the mission voices (`FUN_004bb10b`);
+  - the mission voices (`FUN_004bb10b` → `FUN_004c5470(wav, 0, 1)`; port: terrain_view `_voice` on the IafSpeech
+    bus);
   - the map-edge wavs (EndWorld / Kramer18 / Kram1, `FUN_005bb9f0`). v1.1 plays EndWorld.wav and prints a console
     line in place of Kramer18 / Kram1; the port plays EndWorld.wav (`terrain_view.gd`, docs/flight-model.md §15.5a);
-  - every non-resident row. Quirk kept: non-resident effects (`td`, `screech`, …) therefore follow the speech
-    slider.
+  - every non-resident row, so non-resident effects (`td`, `screech`, …) follow the speech slider (quirk kept).
 * **Category volumes** `FUN_004c5900(cat, v)`, set from the Preferences Sound page (`FUN_004fe430`,
   `FUN_004e2960`):
   - 1 engine (`d34`, default 0.8);
@@ -108,10 +105,6 @@ The sound manager (`DAT_0069931c`) plays, mixes and stops every in-flight sound.
   Ab1PitchPerc 0.8, Ab2PitchPerc 1.2.
 * **Player-only gate** `FUN_0044fb10(code)`: passes when the controller is the player's (ctl+4 ∈ {2,4,5}, same
   unit as `DAT_00699320`, unit state 3 in `[unit+0x1c]+0x14`). All cockpit sounds below go through it.
-* UNCERTAIN:
-  - the setter of the inside flag `manager+0x34` was not found. We take it as "listener in the cockpit", from the
-    column names.
-  - the logical-channel policy. Here a new sound on a busy channel waits; queue vs replace was not traced.
 
 **Port** (`sound_buses.gd`): three buses, IafEngine / IafSfx / IafSpeech, at the Preferences volumes. Mute mutes all
 three; `toggle_mute()` serves the Ctrl+M command. `sound_table.gd` reads SoundProp.trx at run time, so our code holds
@@ -154,13 +147,12 @@ Pitch is a playback-rate factor (the DirectSound wrapper's default is 1.0). What
 2. Key "1" starts the engine. The RPM ramp (15 %/s) raises the pitch from 1.125.
 3. The afterburner swaps the dry loop for the burner loop after the light-up delay.
 
-Start-up and shut-down have no sample of their own; SFX_TAKE_OFF 5 has a row but no caller. The engine category follows
-the engine volume slider (default 0.8).
+Start-up and shut-down have no sample of their own. The engine category follows the engine volume slider (default
+0.8).
 
 ## 4. Player cockpit sounds (controller `FUN_00448b20` per frame, `FUN_0044a240` events)
 
-The real aircraft's voice warnings (per jet, for a future "Real Betty" option) are researched in
-[real-betty.md](real-betty.md).
+The real jets' voice warnings (research for a "Real Betty" option): [real-betty.md](real-betty.md).
 
 | sound (code / sub) | file | trigger (address) | loop | vol in/out | bus | port |
 |---|---|---|---|---|---|---|
@@ -190,9 +182,6 @@ The real aircraft's voice warnings (per jet, for a future "Real Betty" option) a
 It gates BTY_ALT / BTY_PULL_UP and the damage Betty calls. Over-G and Fuel play on every type. Port:
 `FlightSounds.BETTY_TYPES`.
 
-Mission instructor voices (`FUN_004bb10b` → `FUN_004c5470(wav, 0, 1)`) play on the phrase channel at the speech
-volume (port: terrain_view `_voice` on the IafSpeech bus).
-
 ## 5. Sounds tied to other systems
 
 | sound | code | trigger in the exe | status |
@@ -205,10 +194,6 @@ volume (port: terrain_view `_voice` on the IafSpeech bus).
 | missile launch | SFX_WARNING WRN_MISSILE_LAUNCH 0x18003000 (`WrnSfxMissile`, loop) + Betty BTY_MISS 0x2c002000 | `FUN_0044e160` (@44e197, @44e1b6), `FUN_00448120` (@4482f9) | ported (`rwr.gd` `launch`, from `player_weapons.gd` `launch_homing`: the AI's and SAMs' missiles) |
 | IR seeker / lock | SFX_IR_SEEK 0x25 / SFX_IR_LOCK 0x26 (`Wpn_IRCHIRP`, `WPN_IRCHIRPON`) | `FUN_00461b00`, `FUN_00461bf0` | ported (`player_weapons.gd`) |
 | gun, weapon release / flight / hits | SFX_AIRCRAFT_FIRED_WEAPON 0xf, SFX_OBJECT_SPECIFIC 0xe, WEAPON_EXPLODED 10, … | `FUN_004579f0`, `FUN_0059d9c0`, `FUN_0059dad0`, `FUN_004d5d10` | ported (`player_weapons.gd`, AI launches through its `launch_homing`; the AI's gun bursts / AAA in `ai/combat.gd`) |
-| Betty "Pull up" | BTY_PULL_UP | §4 | ported |
-| button click | SFX_BUTTON 0x23 | §4 | ported |
-| extinguisher | SFX_FIRE_EXTINGUISHER 0x27 | §4 | ported |
-| belly screech | SFX_SCREECH 0x29 | §4 | ported |
 | AI jets' engines | slot 0 (§3), the player's rows | unit reset `FUN_004a8060` → `FUN_004c3f90(code 0)`; the engine rule for an entity with a flight model (`+0x34`) | ported (`flight_sounds.gd` `create_engine`, one per AI jet in `ai_flights.gd`) |
 | vehicles, helicopters (OBJ_* rows) | SFX_OBJECT_SPECIFIC OBJ_VEHICLE / OBJ_ARMEDVEHICLE / OBJ_HELICOPTER … | none: the rows are parsed (`FUN_004cc540`) but no code builds them; a vehicle's slot 0 keeps code 0 (no row) | silent, as in the original |
 
@@ -233,12 +218,13 @@ The stall buffet and touchdown / off-runway rumble are DirectInput force-feedbac
 * **Inside / outside volume**: ours follows the current view every frame. The original picks it when a sound
   starts; UNCERTAIN whether it updates running sounds.
 * **UNCERTAIN**:
-  - the logical-channel policy;
-  - the inside flag's setter;
+  - the logical-channel policy (§2). Here a new sound on a busy channel waits; queue vs replace was not traced;
+  - the setter of the inside flag `manager+0x34` was not found. We take it as "listener in the cockpit", from the
+    column names;
   - that the per-frame object sound update runs every frame.
 * **Original quirk kept** (tell the user): non-resident effects (touchdown, screech, extinguisher) play at the speech
-  volume.
+  volume (§2).
 * **v1.1**: the sound code audited here is unchanged (engine and flight sounds `FUN_0044fe30`, `FUN_00447e70` with
   the byte table `0x448094`, the mute toggle). The only data change is the tower phrase key `CHARLY_T` → `CHARLIE_T`
   in `phraseparticalsdata.trx`. The key is built from the callsign, so with v1.0 data the tower cannot say "Charlie"
-  (v1.0 behaviour, kept). The radio phrases: docs/radio.md (`radio.gd`, on the phrase channel 101).
+  (v1.0 behaviour, kept).
