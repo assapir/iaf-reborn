@@ -70,8 +70,8 @@ Each class below lists its tagged fields in read order: field id (fid), type (t)
 | 0x44c | S | mission title ("Engines ON") |
 | 0x456 | S | free text / sub-title, sometimes the briefing number ("232") — UNCERTAIN |
 | 0x460 | F | start time of day, seconds after midnight (28800 = 08:00) |
-| 0x46a | I | weather: probably wind speed or direction (0,10,240,270…) — UNCERTAIN |
-| 0x474 | I | weather: the other value of the pair (0,270,10,180…) — UNCERTAIN |
+| 0x46a | I | wind speed in kt (0, 10, 15, 20 …; a few missions store the pair swapped); the tower's wind (`FUN_00551320`, radio.md) |
+| 0x474 | I | wind direction in degrees (0, 270, 180 …; inferred, no reader found) |
 | 0x47e | S | success message text |
 | 0x488 | S | (always empty) |
 | 0x492 | S | failure message text |

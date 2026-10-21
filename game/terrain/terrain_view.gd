@@ -1560,6 +1560,14 @@ func _apply_player_prefs() -> void:
 	flight.set_invulnerable(Settings.invulnerable)
 	flight.set_no_crashes(Settings.no_crashes)
 	flight.set_unlimited_fuel(Settings.unlimited_fuel)
+	apply_wind()
+
+
+## Better physics "Wind and turbulence": the tower's wind (radio.gd, picked at the radio's start) moves the air mass;
+## NO WIND calms it (docs/flight-model.md §10).
+func apply_wind() -> void:
+	if flight != null and radio != null:
+		flight.set_wind(0.0 if Settings.no_wind else float(radio.wind), float(radio.wind_from))
 
 
 ## The player's autopilot runs the AI's control loops on this jet: [Autopilot] of bd.ibx, the airbases, the

@@ -140,6 +140,15 @@ impl IafFlight {
         }
     }
 
+    /// The mission's wind for Better physics `wind`: `knots` from `from_deg` (true); 0 knots for NO WIND
+    /// (docs/flight-model.md §10).
+    #[func]
+    fn set_wind(&mut self, knots: f64, from_deg: f64) {
+        if let Some(ac) = &mut self.aircraft {
+            ac.set_wind(knots as f32, from_deg as f32);
+        }
+    }
+
     /// The true-size gear clearance (the `height` helper at scale 1) for the ground effect's wing height: the
     /// physics is the same in both world scales (docs/flight-model.md §10).
     #[func]

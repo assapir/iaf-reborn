@@ -14,6 +14,8 @@ use std::f32::consts::PI;
 
 pub const G: f32 = 9.806;
 const LBF: f32 = 4.4479;
+/// One knot in m/s (1852 m / h), for the mission's wind.
+const KT: f32 = 1852.0 / 3600.0;
 /// Aero data refresh (plus every control event).
 const AERO_PERIOD: f64 = 1.0;
 /// Acceleration / rate refresh.
@@ -358,11 +360,13 @@ pub struct BetterPhysics {
     pub brake_pitch: bool,
     /// Unbalanced stores roll the jet: the stores' lateral moment × load factor against the roll control's moment.
     pub asymmetric_stores: bool,
+    /// The mission's wind moves the air mass (airspeed vs ground speed, drift) plus light low-level turbulence.
+    pub wind: bool,
 }
 
 impl BetterPhysics {
     /// Stable ids (snake_case) and English labels, in menu order.
-    pub const OPTIONS: [(&'static str, &'static str); 15] = [
+    pub const OPTIONS: [(&'static str, &'static str); 16] = [
         ("flight_path_hold", "1 g hold keeps the flight path (no slow climb/dive with neutral stick)"),
         ("force_angles", "Forces use the current angle of attack and sideslip"),
         ("start_lift", "Airborne start without the upward jolt"),
@@ -378,6 +382,7 @@ impl BetterPhysics {
         ("ground_idle", "Realistic idle thrust on the ground (taxi speed)"),
         ("brake_pitch", "Nose dips under braking, squats under thrust"),
         ("asymmetric_stores", "Unbalanced stores roll the jet"),
+        ("wind", "Wind and turbulence (the mission's wind; NO WIND turns it off)"),
     ];
 
     pub fn none() -> Self {
@@ -409,6 +414,7 @@ impl BetterPhysics {
             "ground_idle" => &mut self.ground_idle,
             "brake_pitch" => &mut self.brake_pitch,
             "asymmetric_stores" => &mut self.asymmetric_stores,
+            "wind" => &mut self.wind,
             _ => return None,
         })
     }
@@ -639,6 +645,10 @@ pub struct Aircraft {
     /// The true-size gear clearance (the `height` helper at scale 1, F-16 1.69 m in both world scales), for the ground
     /// effect's wing height; None: `gear_clearance`.
     pub true_clearance: Option<f32>,
+    /// The mission's wind (ENU m/s, [`Aircraft::set_wind`]); acts with Better physics `wind` only.
+    wind: Vec3,
+    /// The air mass's velocity the channels last moved with ([`Aircraft::carry_wind`]): velocity − this = airspeed.
+    carried: Vec3,
     /// Terrain under the wheels, supplied by the host: `nz/|n|` of the surface normal (1 = flat).
     pub ground_normal_z: f32,
     /// Terrain flags under the jet (terraintype.dat, `4024b0`, §15.6.2: `SURFACE_*`), supplied by the host for the
@@ -826,6 +836,8 @@ impl Aircraft {
             ground_height: f32::NEG_INFINITY,
             gear_clearance: 0.0,
             true_clearance: None,
+            wind: Vec3::ZERO,
+            carried: Vec3::ZERO,
             ground_normal_z: 1.0,
             ground_flags: None,
             surface: 0,
@@ -881,6 +893,54 @@ impl Aircraft {
         self.aero_update();
     }
 
+    /// The mission's wind (Better physics `wind`): `knots` blowing from `from_deg` (true, meteorological).
+    pub fn set_wind(&mut self, knots: f32, from_deg: f32) {
+        let (s, c) = from_deg.to_radians().sin_cos();
+        let w = knots * KT;
+        self.wind = Vec3::new((-w * s) as f64, (-w * c) as f64, 0.0);
+        self.carry_wind();
+    }
+
+    /// The air mass's velocity at `t` (Better physics `wind`, else still air): the mission's wind, in the air plus
+    /// light turbulence. The gusts' rms is 0.1 × the wind speed vertically (half that across) below 300 m above
+    /// the terrain, falling to 30 % of that at 1500 m and above; calm air (no wind, or NO WIND) has none.
+    fn wind_at(&self, t: f64) -> Vec3 {
+        if !self.better.wind || self.pivot.is_some() {
+            return Vec3::ZERO;
+        }
+        let w = self.wind.length() as f32;
+        if self.on_ground || w == 0.0 {
+            return self.wind;
+        }
+        let alt = self.axes[2].sample(t).0 as f32;
+        let low = 1.0 - 0.7 * ((alt - self.ground_height - 300.0) / 1200.0).clamp(0.0, 1.0);
+        // ponytail: three sines in time per axis (rms 1), not a Dryden spectrum in space; replace if the gusts must
+        // scale with the airspeed.
+        let tt = t * std::f64::consts::TAU;
+        let n = |ph: f64| {
+            ((0.17 * tt + ph).sin() + 0.7 * (0.43 * tt + 2.0 * ph).sin() + 0.4 * (1.1 * tt + 3.0 * ph).sin()) / 0.908
+        };
+        let sigma = (0.1 * w * low) as f64;
+        self.wind + Vec3::new(0.5 * sigma * n(0.4), 0.5 * sigma * n(2.1), sigma * n(1.3))
+    }
+
+    /// Moves the ground velocity with the air mass's change since the last call, so the airspeed is kept (a new wind,
+    /// the switch, a gust). The wheels hold the ground velocity.
+    fn carry_wind(&mut self) {
+        let t = self.t;
+        let w = self.wind_at(t);
+        let d = w - self.carried;
+        self.carried = w;
+        if self.on_ground || d == Vec3::ZERO {
+            return;
+        }
+        for (i, axis) in self.axes.iter_mut().enumerate() {
+            let (p, v) = axis.sample(t);
+            let a = axis.accel();
+            axis.set_state(t, p, v + d[i] as f32, a);
+        }
+    }
+
     /// All "better physics" options on or off (the game's single switch).
     pub fn set_better_physics(&mut self, on: bool) {
         self.set_better(if on { BetterPhysics::all() } else { BetterPhysics::none() });
@@ -901,6 +961,7 @@ impl Aircraft {
     pub fn set_better(&mut self, b: BetterPhysics) {
         let old = self.better;
         self.better = b;
+        self.carry_wind();
         if self.t != 0.0 || self.on_ground {
             return;
         }
@@ -919,7 +980,7 @@ impl Aircraft {
         }
         if b.start_alpha && !old.start_alpha {
             let alt = self.axes[2].sample(0.0).0 as f32;
-            let (_, v) = self.velocity_at(0.0);
+            let (_, v) = self.air_velocity_at(0.0);
             let at = self.alpha_target(self.lift_aoa.target(), q_s(alt, v, self.params.wing_area));
             self.alpha.set(0.0, at as f64, 0.0);
             changed = true;
@@ -1079,6 +1140,13 @@ impl Aircraft {
         (v, v.length() as f32)
     }
 
+    /// Velocity through the air mass and the airspeed (Better physics `wind`; else the velocity).
+    fn air_velocity_at(&self, t: f64) -> (Vec3, f32) {
+        let (v, _) = self.velocity_at(t);
+        let va = v - self.carried;
+        (va, va.length() as f32)
+    }
+
     fn position_at(&self, t: f64) -> Vec3 {
         if let Some(pv) = &self.pivot {
             let h = pv.heading(t) as f64;
@@ -1168,7 +1236,8 @@ impl Aircraft {
                 heading: wrap(self.spin_yaw.sample(t).0) as f32,
             };
         }
-        let (v, speed) = self.velocity_at(t);
+        // On the wheels the heading follows the ground velocity; in the air the nose follows the air velocity.
+        let (v, speed) = if self.on_ground { self.velocity_at(t) } else { self.air_velocity_at(t) };
         if self.on_ground {
             // Ground attitude `5bb300`: the heading follows the velocity (§14.5), else the last heading.
             let f = if speed > 0.5 { norm(Vec3::new(v[0], v[1], 0.0)) } else { self.ground_dir };
@@ -1447,10 +1516,12 @@ impl Aircraft {
         if self.crashed.is_some() {
             return;
         }
+        self.carry_wind();
         let t = self.t;
         let p = self.params.clone();
         let alt = self.axes[2].sample(t).0 as f32;
-        let (vel, v) = self.velocity_at(t); // not capped here
+        let (vel, v) = self.air_velocity_at(t); // not capped here
+        let (_, vg) = self.velocity_at(t); // the wheels roll at the ground speed
         let air = air(alt);
         let mach = v / air.sound;
         let qs = q_s(alt, v, p.wing_area);
@@ -1528,10 +1599,10 @@ impl Aircraft {
                 mu = 20.0; // belly
             }
             drag = (drag + 0.5 * mu * (mass * G - lift)).max(0.0);
-            if v > 1.0 && !self.better.ground_idle {
+            if vg > 1.0 && !self.better.ground_idle {
                 drag *= ROLL_DRAG;
             }
-            yaw_nw = self.nose_wheel_yaw(v, gear);
+            yaw_nw = self.nose_wheel_yaw(vg, gear);
         }
         // 5b4910: β_cmd = (ru + 10·asym)·MaxBeta, asym = S+0x428 − S+0x42c (the spin tick passes 0).
         let beta_cmd = (self.rudder + 10.0 * self.stores_asym()) * p.max_beta;
@@ -1549,7 +1620,7 @@ impl Aircraft {
         // the sampled α and the commanded β (better physics: β(t)); on the ground the raw nose-wheel yaw.
         let lift_old = self.lift.sample(t);
         let acc = if ground {
-            self.ground_acc(t, lift_old, v, yaw_nw, att)
+            self.ground_acc(t, lift_old, vg, yaw_nw, att)
         } else {
             let beta = if self.better.force_angles { beta_s } else { beta_cmd };
             self.air_acc(att, lift_old, v, alpha_s, beta)
@@ -1641,10 +1712,13 @@ impl Aircraft {
         if self.crashed.is_some() {
             return;
         }
+        self.carry_wind();
         let p = &self.params;
         let alt = self.axes[2].sample(t).0 as f32;
-        let (_, v) = self.velocity_at(t);
+        let (_, v) = self.air_velocity_at(t);
         let v = v.min(1200.0); // slot 0x3c caps the speed
+        let (_, vg) = self.velocity_at(t);
+        let vg = vg.min(1200.0);
         let qs = q_s(alt, v, p.wing_area);
         let beta_air = self.beta.sample(t).0 as f32;
         // On the ground the beta slot carries the nose-wheel yaw ramp (5bb9f0).
@@ -1677,7 +1751,7 @@ impl Aircraft {
         let alpha_t = self.alpha_target(self.lift_aoa.sample(t), qs);
         let lift = self.lift.sample(t);
         let mut acc = if self.on_ground {
-            self.ground_acc(t, lift, v, beta_s, att)
+            self.ground_acc(t, lift, vg, beta_s, att)
         } else {
             // The 5 Hz force uses the α target (better physics: α(t)).
             let alpha = if self.better.force_angles { wrap(self.alpha.sample(t).0) as f32 } else { alpha_t };
@@ -1694,7 +1768,7 @@ impl Aircraft {
                 acc += fwd * -a_fwd;
                 stop = true;
             }
-            if v > 0.5 {
+            if vg > 0.5 {
                 self.ground_dir = fwd;
             }
         }
@@ -1828,7 +1902,7 @@ impl Aircraft {
             self.mode = Mode::Normal; // touchdown (the landing check already ran)
             return;
         }
-        let (vel, v) = self.velocity_at(t);
+        let (vel, v) = self.air_velocity_at(t);
         let gamma = if v > 1.0 { (vel[2] / v as f64).clamp(-1.0, 1.0).asin() as f32 } else { -PI / 2.0 };
         let alpha = att.pitch - gamma;
         if self.ds_amp.sample(t) >= DS_EXIT_AMP && alpha < DS_EXIT_ALPHA {
@@ -1950,7 +2024,7 @@ impl Aircraft {
             io.p_cmd = 0.0;
             if self.better.spin_fixes {
                 // BP: drag bleeds the horizontal speed; the descent settles near 65 m/s.
-                let (vel, _) = self.velocity_at(t);
+                let (vel, _) = self.air_velocity_at(t);
                 let vh = Vec3::new(vel[0], vel[1], 0.0);
                 let d = (self.drag / self.mass) as f64;
                 let h = if vh.dot(vh) > 1e-6 { norm(vh) * -d } else { Vec3::ZERO };
@@ -2168,7 +2242,7 @@ impl Aircraft {
     /// the velocity becomes the nose turned back by β and α, times V (≤ 1200 m/s).
     fn tornado_exit(&mut self, t: f64) {
         let att = self.attitude(t);
-        let (_, v) = self.velocity_at(t);
+        let (_, v) = self.air_velocity_at(t);
         let beta = self.beta.sample(t).0 as f32;
         self.save_attitude(att);
         self.exit_velocity(t, att, v.min(1200.0), beta);
@@ -2185,10 +2259,12 @@ impl Aircraft {
         let u = norm(f.cross(w));
         let alpha = self.alpha.sample(t).0;
         let f2 = f.rotated(u, beta as f64).rotated(w, alpha);
+        // Through the air mass (Better physics `wind`); on the wheels the ground velocity.
+        let wind = if self.on_ground { Vec3::ZERO } else { self.carried };
         for (i, axis) in self.axes.iter_mut().enumerate() {
             let (pos, _) = axis.sample(t);
             let a = axis.accel();
-            axis.set_state(t, pos, (f2[i] * v as f64) as f32, a);
+            axis.set_state(t, pos, (f2[i] * v as f64 + wind[i]) as f32, a);
         }
     }
 
@@ -2260,7 +2336,8 @@ impl Aircraft {
     /// getters.
     pub fn ap_view(&self) -> ApView {
         let t = self.t;
-        let (v, speed) = self.velocity_at(t);
+        // The control loops fly through the air mass (Better physics `wind`): air velocity, TAS.
+        let (v, speed) = self.air_velocity_at(t);
         let a = Vec3::new(self.axes[0].accel() as f64, self.axes[1].accel() as f64, self.axes[2].accel() as f64);
         let h2 = v[0] * v[0] + v[1] * v[1];
         let turn = if h2 > 1e-6 { (a[0] * v[1] - a[1] * v[0]) / h2 } else { 0.0 };
@@ -2371,7 +2448,9 @@ impl Aircraft {
     pub fn state(&self) -> State {
         let t = self.t;
         let position = self.position_at(t);
-        let (v, speed) = self.velocity_at(t);
+        // `velocity` over the ground, `speed` / `mach` / the deep stall's path angle through the air mass.
+        let (v, _) = self.velocity_at(t);
+        let (va, speed) = self.air_velocity_at(t);
         let speed = speed.min(1200.0);
         let att = self.attitude(t);
         let (fwd, right, up) = att.basis();
@@ -2393,7 +2472,7 @@ impl Aircraft {
             roll: att.roll,
             heading: att.heading.rem_euclid(std::f32::consts::TAU),
             alpha: if self.mode == Mode::DeepStall {
-                let gamma = if speed > 1.0 { (v[2] as f32 / speed).clamp(-1.0, 1.0).asin() } else { -PI / 2.0 };
+                let gamma = if speed > 1.0 { (va[2] as f32 / speed).clamp(-1.0, 1.0).asin() } else { -PI / 2.0 };
                 att.pitch - gamma
             } else {
                 wrap(self.alpha.sample(t).0) as f32
@@ -3033,6 +3112,39 @@ mod tests {
         assert!(!a.better.ground_effect && a.better.spin_fixes);
         a.set_better_physics(false);
         assert_eq!(a.better, BetterPhysics::none());
+    }
+
+    /// Better physics `wind`: the air mass carries the jet (same airspeed, the ground track drifts downwind), gusts
+    /// bump it at low level, calm air and the option off fly as the original.
+    #[test]
+    fn wind_moves_the_air_mass() {
+        let fly = |better: bool, knots: f32, agl: f32| {
+            let mut a = airborne(100, 3000.0, 200.0);
+            a.ground_height = 3000.0 - agl;
+            a.set_better_option("wind", better);
+            a.set_wind(knots, 270.0);
+            let v0 = a.state().speed;
+            run(&mut a, 20.0);
+            (v0, a.state())
+        };
+        let (_, still) = fly(false, 0.0, 2000.0);
+        let (_, off) = fly(false, 20.0, 2000.0);
+        let (_, calm) = fly(true, 0.0, 2000.0);
+        assert_eq!((off.position, off.speed), (still.position, still.speed));
+        assert_eq!((calm.position, calm.speed), (still.position, still.speed));
+        let (v0, high) = fly(true, 20.0, 2000.0);
+        assert!((v0 - 200.0).abs() < 1e-3, "the airspeed is kept when the wind starts: {v0}");
+        let drift = high.position - still.position;
+        let expect = 20.0 * KT as f64 * 20.0;
+        assert!((drift[0] - expect).abs() < 3.0 && drift[1].abs() < 3.0, "drift {drift:?}, expected {expect} m east");
+        assert!(
+            (high.speed - still.speed).abs() < 1.0 && (high.velocity[0] - still.velocity[0] - 20.0 * KT).abs() < 0.5
+        );
+        // Gusts: bigger low down.
+        let ((_, low), (_, still_low)) = (fly(true, 20.0, 250.0), fly(false, 0.0, 250.0));
+        let (bump_low, bump_high) =
+            ((low.position[2] - still_low.position[2]).abs(), (high.position[2] - still.position[2]).abs());
+        assert!(bump_low > 2.0 * bump_high && bump_low > 0.3, "low {bump_low} high {bump_high}");
     }
 
     #[test]

@@ -28,6 +28,7 @@ const BETTER := {
 	"ground_idle": "Real idle thrust on the ground (taxi speed)",
 	"brake_pitch": "Nose dips under braking",
 	"asymmetric_stores": "Unbalanced stores roll the jet",
+	"wind": "Wind and turbulence",
 	"fix_fall_heading": "Falling jets keep their heading",
 	"fix_skill_damage": "No tougher enemies on easy AI levels",
 	"fix_lock_threat": "Locked enemies know who locked them",

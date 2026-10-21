@@ -109,7 +109,8 @@ clear, +0x3388 last message (0xb = none).
 
 **Wind** (`551320`, set at mission load from misc **0x46a**): a value of 0, 10, 15 or 20 kt is used as is. Any
 other value becomes a random one of {0, 10, 15, 20} (`rand() % 4`). All bases share it. The tower says "wind is NN
-knots" / "no wind".
+knots" / "no wind". Misc 0x474 (the direction, inferred) has no reader. Ours: Better physics "Wind and turbulence"
+flies the air mass at this speed (`radio.gd` `wind_from`: 0x474, or 0x46a above 60; flight-model.md §10).
 
 **Timer** (`550e40(period)`): a repeating event "TowersManagerTimer" every `period` s. Each call restarts it.
 

@@ -129,6 +129,10 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   - **"Unbalanced stores roll the jet"** (`asymmetric_stores`). Original: unbalanced stores only bias the sideslip
     through their drag; their weight has no lateral effect. Ours, with the switch: the stores' lateral moment × load
     factor rolls the jet toward the heavy wing, and the pilot holds it with stick (the original has no roll trim).
+  - **"Wind and turbulence"** (`wind`). Original: still air; the mission's wind (misc 0x46a) is only spoken by the
+    tower, and NO WIND has no effect but the score. Ours, with the switch: the tower's wind, from the mission's misc
+    0x474 direction, moves the air mass (airspeed vs ground speed, drift, crab on a crosswind approach), with light
+    gusts strongest below 300 m; NO WIND calms it — flight-model.md §10.
 - **"Locked enemies know who locked them"** (`fix_lock_threat`). Original: the player's radar lock writes the target
   itself into the AI target's threat (brain+0x7c). Ours, with the switch: the lock makes the player the target's
   threat — rwr.md §2.

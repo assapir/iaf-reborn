@@ -1184,7 +1184,7 @@ timer.
 
 | control | page rect | working / global | pref `DAT_00699424+` | default | effect in game (reader) |
 |---|---|---|---|---|---|
-| NO WIND | 24,45,154,78 | +0xa4 / da8 | +0x28 | 0 | no reader: every pref-getter call checked; the exe has no wind (docs/damage.md §5.3) |
+| NO WIND | 24,45,154,78 | +0xa4 / da8 | +0x28 | 0 | no reader: every pref-getter call checked; the exe has no wind (docs/damage.md §5.3). Ours: calms Better physics "Wind and turbulence" (flight-model.md §10) |
 | NO BLACKOUTS | 24,78,154,113 | +0xac / db0 | +0x30 | 0 | `FUN_0044fbb0` zeroes the G-effect output |
 | NO SPINS | 24,113,154,148 | +0xb0 / db4 | +0x34 | 0 | `FUN_005aab90` skips spin entry |
 | NO STALLS | 24,148,154,183 | +0xb4 / db8 | +0x38 | 0 | `5b4470`/`5b2940`: bStall = (+0x38==0) |

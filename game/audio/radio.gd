@@ -90,6 +90,9 @@ var _tick_period := 1.0  # the running timer's period
 var _next_tick := INF
 var _idle_t := 0.0  # static 0x83ff88
 var wind := 0  # +0x4dc (551320)
+## Where the mission's wind blows from (misc 0x474, degrees; 0x46a when a mission stores the pair swapped). Only
+## Better physics "Wind and turbulence" reads it (docs/flight-model.md §10).
+var wind_from := 0
 ## The player's landed flag (brain +0xe0): set at a landing, cleared at lift-off (v1.1).
 var landed := false
 ## brain+0xb8 of the player's brain: [last, next] (FUN_004d4100; 1e7 at start).
@@ -222,6 +225,9 @@ func _start() -> void:
 	last = NO_MSG
 	var w := int(_misc("0x46a", 0))
 	wind = w if w in [0, 10, 15, 20] else [0, 10, 15, 20][randi() % 4]
+	wind_from = w if w > 60 else int(_misc("0x474", 0))
+	if host != null and host.has_method("apply_wind"):
+		host.apply_wind()
 
 
 func _misc(key: String, def: Variant) -> Variant:

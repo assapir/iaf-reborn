@@ -654,6 +654,33 @@ throttle rules and preferences follow §15 (checklist §15.11). These items stil
       `asymmetric_stores_roll`).
     * A model without stations (A-4, transports: no attach points) gets no moment. Refreshed with the roll command
       by the 1 Hz / event update.
+  * **Wind and turbulence** [`wind`] (new; the original flies in still air).
+    * Original: the exe has no wind in the flight model. The Gameplay page's NO WIND (pref `+0x28`) has no reader
+      (§15.7); it only lowers the score multiplier by 5 % (front-end.md §12.3). The mission header's misc **0x46a**
+      (`FUN_00595b80` reads it into misc `+0x24`) feeds only the tower's spoken wind: `FUN_00551320` keeps 0, 10, 15
+      or 20 kt and turns any other value into a random one of them (radio.md). Misc **0x474** (`+0x28`) has no reader
+      found. Across the 133 missions the pair reads as speed (kt) / direction (°): (10, 270) 50 times, (0, 0) 43,
+      (10, 0) 12, (10, 180) 4; a few store it swapped, e.g. (240, 10), (300, 15) (inferred).
+    * BP: the air mass moves with the tower's wind (`radio.gd` `wind`, so the jet feels what the tower says) from
+      misc 0x474 (0x46a when it is above 60, the swapped pairs), meteorological "from", true. A mission without a
+      header has calm air, as its tower says "no wind". NO WIND calms the air (0 kt) with the switch on. The host
+      calls `IafFlight.set_wind(kt, from)` (`terrain_view.gd` `apply_wind`, at the radio's start and at a take-over).
+    * The channels keep the velocity over the ground. Lift, drag, Mach, the α / roll gains and the airborne attitude
+      use the velocity through the air (velocity − wind), so the nose points into the relative wind: the jet crabs,
+      and the ground track (`state().velocity`, the HUD's flight-path marker) drifts downwind. `state().speed` and
+      the autopilot's view are the airspeed. On the wheels the steering, the rolling friction, the stop rule and the
+      ground heading use the ground velocity, while lift and drag use the airspeed (a headwind shortens the take-off
+      run). At touchdown the heading follows the ground track (the crab comes out on the wheels).
+    * A change of the air mass in the air (a new wind, the switch, a gust) moves the ground velocity with it, so the
+      airspeed is kept; on the wheels it does not.
+    * Turbulence (inferred, light): in the air the air mass gets gusts, vertical rms 0.1 × the wind speed and across
+      half that, below 300 m above the terrain, falling linearly to 30 % of that at 1500 m and above; three sines per
+      axis (0.17, 0.43, 1.1 Hz). Calm air has none. 20 kt at low level: ≈ 1 m/s vertical. They are applied at the
+      5 Hz and 1 Hz updates.
+    * Only the player's jet: the AI jets, weapons, smoke and the clouds (front-end.md §12.4) stay in still air.
+    * Test `wind_moves_the_air_mass`: off and calm fly as the original; on, the airspeed is kept when the wind
+      starts, the track drifts 20 kt × 20 s east in a west wind, and the gusts move the jet 3 × as much at 250 m as
+      at 2000 m.
 * **Kept in both modes** (original quirks that better physics leaves as they are):
   * §15.10 item 14, the slope globals. In the original, the lift-ramp / β-gain slopes below 220 / 400 m/s come from
     the **last aircraft type set up** (shared globals). Our `Aircraft` keeps its own parameters, so every jet uses its
@@ -1781,7 +1808,7 @@ motions 8/9 "on" → max, "off" → min. After a `5a4d40` ground re-placement (o
 | +0x1c | Invulnerable | 0 | crash immunity `5abef0`; ground aero `5bac40` "easy" (lift gate, no belly μ) |
 | +0x20 | No crashes | 0 | same as +0x1c |
 | +0x24 | No malfunctions | 1 | — (no reader in the exe: all 37 getter `43b5d0` calls checked, docs/damage.md §5.3) |
-| +0x28 | No wind | 1 | — (same; the exe has no wind) |
+| +0x28 | No wind | 1 | — (same; the exe has no wind). Ours: calms Better physics `wind` (§10) |
 | +0x30 | No blackouts | 0 | §13 |
 | +0x34 | **No spins** | 0 | spin arming `5aab90` @5aac7e (only skips the arm step: spins start *earlier*, §15.5) |
 | +0x38 | **No stalls** | 0 | Lift `bStall` @5b44e8 (§14.3); vibration allowed `P+0x84` (`5b2940`) |
