@@ -50,15 +50,17 @@ void process() {
 const MOTION := """
 uniform float now;
 uniform float gravity = 0.0;
+uniform vec3 wind = vec3(0.0);
 varying float v_f;
 varying float v_age;
 float hash(float n) { return fract(sin(n * 12.9898) * 43758.5453); }
-// World position and velocity at `age`: drag k slows the velocity as e^(-kt); gravity pulls along -Y.
+// World position and velocity at `age`: drag k slows the velocity as e^(-kt); gravity pulls along -Y; the air
+// mass carries it with the wind (Better physics `wind`, zero: the original).
 vec3 motion(vec3 p0, vec3 v0, float k, float age, out vec3 vel) {
 	float e = exp(-k * age);
 	float tau = k > 0.0 ? (1.0 - e) / k : age;
-	vel = v0 * e - vec3(0.0, gravity * age, 0.0);
-	return p0 + v0 * tau - vec3(0.0, 0.5 * gravity * age * age, 0.0);
+	vel = v0 * e - vec3(0.0, gravity * age, 0.0) + wind;
+	return p0 + v0 * tau - vec3(0.0, 0.5 * gravity * age * age, 0.0) + wind * age;
 }
 """
 
@@ -200,6 +202,9 @@ void fragment() {
 )
 
 static var _noise_tex: Texture2D
+## The air mass in scene m/s (Better physics `wind`, terrain_view.gd `apply_wind`): smoke, fire, trails and chaff
+## drift with it; zero is the original.
+static var wind := Vector3.ZERO
 
 
 func _ready() -> void:
@@ -268,6 +273,7 @@ func _process(delta: float) -> void:
 	_now += delta
 	for m in _mats:
 		m.set_shader_parameter("now", _now)
+		m.set_shader_parameter("wind", wind)
 	if _sun != null and is_instance_valid(_sun):
 		var m: ShaderMaterial = _smoke.draw_pass_1.material
 		m.set_shader_parameter("sun_dir", _sun.global_basis.z)

@@ -98,6 +98,20 @@ func run() -> void:
 			t._process(STEP)
 	check(tb._mesh.get_surface_count() == 1, "wingtip trail: still a ribbon with Detailed")
 
+	# Better physics wind: trail points and smoke puffs drift with the air mass (gpu_fx.gd `wind`, scene m/s).
+	var gpu_fx: GDScript = load("res://mission/gpu_fx.gd")
+	gpu_fx.wind = Vector3(10, 0, 0)
+	var pt: Array = ta._trails[-1].pts[-1]
+	var x0: float = pt[0].x
+	ta._process(0.1)
+	check(absf(pt[0].x - x0 - 1.0) < 1e-4, "wind: a trail point drifts 10 m/s × 0.1 s (%.4f m)" % (pt[0].x - x0))
+	a.explosion(Vector3(0, 100, 0), a.F_FIREBALL | a.F_PUFF, 1.0, 5.0, 0.0)
+	var puff: Dictionary = a._puffs[-1]
+	var want: Vector3 = puff.pos + (puff.vel + gpu_fx.wind) * STEP
+	a._process(STEP)
+	check(puff.pos.is_equal_approx(want), "wind: a smoke puff moves with the air (%s)" % [puff.pos - want])
+	gpu_fx.wind = Vector3.ZERO
+
 	# Contrails (Detailed only): from each nozzle above the contrail altitude, none below.
 	var model_script := GDScript.new()
 	model_script.source_code = "extends Node3D\nvar flames: Array = []\n"

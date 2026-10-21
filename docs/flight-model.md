@@ -621,7 +621,9 @@ Where our port differs from the original. Everything else follows §15 (status i
       track holds the line to the waypoint (test `crabs_to_its_waypoint_in_a_crosswind`).
     * Bombs drift by their drag, and the bombing computer knows the wind (CCIP moves downwind, the release aims
       upwind): weapons.md §9.5. Gun rounds, rockets and missiles fly in still air (the drift of a round or a missile
-      in its few seconds is under a metre or corrected by its guidance); smoke and the clouds do not drift.
+      in its few seconds is under a metre or corrected by its guidance). Smoke, fire, sparks, missile and
+      wingtip trails and chaff drift with the wind (`gpu_fx.gd` `wind`; test_particle_effects.gd); the clouds keep the
+      original's fixed scroll.
     * Test `wind_moves_the_air_mass`: off and calm fly as the original; on, the airspeed is kept when the wind
       starts, the track drifts 20 kt × 20 s east in a west wind, and the gusts move the jet 3 × as much at 250 m as
       at 2000 m.

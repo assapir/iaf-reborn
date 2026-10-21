@@ -11,6 +11,7 @@ extends Node3D
 ## additive; the chaff pieces are one shader-driven MultiMesh (a ring of CAP pieces).
 
 const Stores := preload("res://weapons/stores.gd")
+const GpuFx := preload("res://mission/gpu_fx.gd")
 const RATE := 30.0
 ## missFLR.tga is 64 px; sprite width = 0.2 · size · texture width (docs/damage.md §6.1).
 const FLARE_W := 0.2 * 64.0
@@ -30,6 +31,7 @@ render_mode unshaded, cull_disabled;
 uniform sampler2D tex : source_color, filter_linear_mipmap;
 uniform float now;
 uniform float life;
+uniform vec3 wind = vec3(0.0);
 
 mat3 rot(vec3 a) {
 	vec3 c = cos(a);
@@ -47,7 +49,7 @@ void vertex() {
 		VERTEX = vec3(0.0);
 	} else {
 		VERTEX = rot(COLOR.rgb * t + COLOR.a * vec3(1.0, 2.0, 3.0)) * VERTEX
-			+ INSTANCE_CUSTOM.xyz * t - vec3(0.0, 15.0 * t * t, 0.0);
+			+ (INSTANCE_CUSTOM.xyz + wind) * t - vec3(0.0, 15.0 * t * t, 0.0);
 	}
 }
 
@@ -146,6 +148,7 @@ func update(now: float, decoys: Array, pos_at: Callable) -> void:
 	while not bursts.is_empty() and bursts[0][0] + CHAFF_MAX_DELAY + CHAFF_LIFE < now:
 		bursts.pop_front()
 	_mat.set_shader_parameter("now", now)
+	_mat.set_shader_parameter("wind", GpuFx.wind)
 
 
 ## One chaff event 0x10004 (scale 2) at scene position `p`, time `t`.
