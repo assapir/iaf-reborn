@@ -1,14 +1,24 @@
 # Jane's IAF front end (pre-flight menus), reverse-engineered spec
 
-This document describes how the original game's menus look and behave, so that the port can match them. It covers
-the window and its frame, the buttons and message boxes, fonts, every menu screen (main menu, mission lists,
-briefing, TSD map, Preferences, Pilot Records, Reference, Arming), the in-flight pause and On-The-Fly menu, and the
-v1.1 multiplayer rules. Paragraphs marked **Ours** or **iaf-reborn** say what the port does.
+How the original game's menus look and behave, so that the port can match them: the window and its frame, buttons,
+message boxes, fonts, every menu screen (main menu, mission lists, briefing, TSD map, Preferences, Pilot Records,
+Debrief, Reference, Arming, Mission Creator), the in-flight pause and On-The-Fly menu, start-up, and the v1.1
+multiplayer rules. Paragraphs marked **Ours** say what the port does; opt-in deviations are listed in
+[deviations.md](deviations.md), open work in [status.md](status.md).
+
+| § | screen / topic | § | screen / topic |
+|---|---|---|---|
+| 1–4 | window, frame, buttons, message box, fonts, credits roll | 12 | Preferences (with our Extras / Physics tabs) |
+| 5 | main menu, mission lists, navigation | 13 | Pilot Records, scoring, unlocks, Debrief (§13.14) |
+| 6–7 | briefing window, floating frames | 14 | Reference (with our Pilot guide) |
+| 8 | TSD map and its data | 15 | Arming |
+| 9 | menu sounds | 16 | in-flight pause, On-The-Fly menu, render box |
+| 10–11 | TSD target and 3D-model windows | 17–19 | multiplayer rules, start-up, Mission Creator |
 
 **Conventions**
 * Addresses are from `IAFJets.exe` **v1.1**, the reference version. [v1.1.md](v1.1.md) maps them to v1.0 and lists
   what the patch changed.
-* Source: `assets/ghidra_v11/iafjets.c`. For routines that Ghidra skipped we used `objdump` of `v1.1/iafjets.exe`:
+* Source: `assets/ghidra_v11/iafjets.c`. Routines that Ghidra skipped come from `objdump` of `v1.1/iafjets.exe`:
   the message box `4e4480`, the button paint `4f3120`, the main-menu hover `4fc350`, the TSD paint `501030`, the
   link opener `502cd0`, and the MFC message maps read from `.rdata`.
 * Paths are relative to `install/resource/menu/`, except paths that start with `brief/`.
@@ -106,14 +116,9 @@ Positions come from `.rdata` `0x6062f4` (BACK) and `0x6062f8` (MAIN); the object
 * Press animation (`FUN_004f3440`): `_0→_1→_2` with ButtonIn. Release: `_2→_1→_0` with ButtonOut.
 * `logbut_*` 114×22 belongs to the Log screen (not traced).
 
-* **BACK** (`FUN_004ed1b0`) goes to the parent screen:
-  * Pref/Ref/Training/CType → Main
-  * Basic/Combat → Training
-  * Jet 9 → Basic; Jet 10 → Combat
-  * His/Fut → Camp; mission lists → their war
-  * TSD → the previous screen, after the dialog "Are you sure you want to quit the mission?" (Yes/No).
-  * On Arm, BACK goes back to the TSD. The frame calls content vfunc `+0xd4` (`FUN_005073e0`), which
-    validates the loadout and asks "Use weapon load?" first (§15).
+* **BACK** (`FUN_004ed1b0`) goes to the parent screen (table in §5.4). From the TSD it first asks msg 8 (§8.1
+  "BACK / MAIN from the TSD"). On Arm the frame calls content vfunc `+0xd4` (`FUN_005073e0`), which validates the
+  loadout and asks "Use weapon load?" before it returns to the TSD (§15).
 * **MAIN** (`FUN_004ecff0`) goes to Main. From TSD or Arm it first asks msg 8 (Yes/No).
 * **QUIT** is handled by the same function as MAIN, `FUN_004ecff0`, and **does ask for confirmation**.
   * On screens 0/1 it first checks the content window's "can leave" query (vtable `+0xd8`). It then
@@ -191,7 +196,7 @@ Positions come from `.rdata` `0x6062f4` (BACK) and `0x6062f8` (MAIN); the object
   Ruler text is red RGB(255,0,0).
 * Briefing RTF: its own fonts (Arial, `\cf1` white); rich-edit background RGB(94,94,104)
   (`EM_SETBKGNDCOLOR 0x685e5e`, `FUN_0050d710`).
-* `II PAUSE` in-flight text: RGB(0,255,0) at (30,450) (`FUN_004e92b0`), for reference.
+* The in-flight `II  PAUSE` text: §16.1.
 
 ### 4.1 Credits roll (Quit Yes, `FUN_004e2e00` @4e2e86..4e2f69)
 The credits roll is a window over the whole screen: ctor `FUN_004e7280`, loop `FUN_004e7880`, draw `FUN_004e7de0`,
@@ -286,27 +291,21 @@ Moving off a button restores smain. Hover is driven by the frame's MOUSEMOVE (`4
   * If `f2`≠0 (the Jet list), pressing the button also starts **loading the mission**
     (`FUN_004edec0`): content shows `mis/wait.bmp` and the music fades out over 6 s.
   * Rows are disabled (button `_3`) for missions whose prerequisite is not passed (`FUN_004f1610`,
-    `4f6d40`). The exact rule is in §13.11: only Future missions 2–7 are ever locked.
-  * `FUN_00509b80` disables certain jets per mission (e.g. id 314, 322, 323, 325).
+    `4f6d40`; rule in §13.11: only Future missions 2–7 are ever locked).
+  * `FUN_00509b80` disables some jets per mission (table in §5.4).
 
 ### 5.3 Screen flow (`FUN_004ec770`, button-release dispatcher)
-* Main → **Training** (6), a list of 2 courses.
-* **Basic_Course** → Basic (7). Combat_Course → Combat (8).
-* Any mission button (e.g. Takeoff, id 311) → **Jet** (9 or 10), a list of 7 aircraft.
-* Jet button → load the mission (Wait.bmp) → **TSD** (0x1e).
-* On TSD:
-  * `Arm` → **Arming** (0x1f). Arming's `Fly`/`TacticalDisplay` handlers are in `FUN_005070c0`.
-  * **`Fly`** (`FUN_005045b0`): if a flight (formation) is selected, the menu closes with exit code 2
-    and flight starts. Otherwise msg 25 is shown.
-* Pre-flight has no CONTINUE button.
-* The briefing window opens automatically when the TSD opens (§6).
+A training flight: Main → **Training** (6, 2 courses) → Basic (7) or Combat (8) → a mission button (e.g. Takeoff,
+id 311) → **Jet** (9 or 10, 7 aircraft) → the mission loads (Wait.bmp) → **TSD** (0x1e), with the briefing window
+open (§6). From the TSD, `Arm` opens **Arming** (0x1f, §15) and `Fly` starts the flight (§8.1 "Fly"). Pre-flight has
+no CONTINUE button.
 
 ### 5.4 Navigation tables (decoded)
 Button-release dispatcher `FUN_004ec770`. Labels are compared ignoring case, spaces and `_`.
 
 | screen | button → screen |
 |---|---|
-| Main (1) | Training→6, Campaigns→0xb, Preferences→3, MissionCreator→0x14, PilotRecords→0 (Log), Reference→5, MultiPlayer→0x15, Jump_In→a scramble mission 401–407 (§13.11), loaded and flown straight away (no TSD); with the cheat, message boxes "Scramble Mission" ask for each one |
+| Main (1) | Training→6, Campaigns→0xb, Preferences→3, MissionCreator→0x14, PilotRecords→0 (Log), Reference→5, MultiPlayer→0x15, Jump_In→a scramble mission 401–407, flown straight away (no TSD; §13.11 "Jump_In") |
 | Training (6) | Basic_Course→7, Combat_Course→8 |
 | Basic (7) / Combat (8) | any mission button → Jet 9 / 10 |
 | Jet (9, 10), His1–3Mis, Fut1–3Mis (0xe–0x13) | load the mission → TSD 0x1e (single player). **Campaign missions skip the Jet list.** |
@@ -316,9 +315,10 @@ Button-release dispatcher `FUN_004ec770`. Labels are compared ignoring case, spa
 | TSD (0x1e) | Arm→0x1f |
 | Arm (0x1f) | TacticalDisplay / BACK → TSD 0x1e; Fly → flight (§15) |
 
-BACK (`FUN_004ed1b0`): 3/5/6/0x15→Main; 7/8→6; 9→7; 10→8; 0xb→Main (single player); 0xc/0xd→0xb;
-0xe–0x10→0xc; 0x11–0x13→0xd; 0x14→Main; 0x16/0x17→0x15; TSD→previous screen (msg 8 Yes/No first;
-mission 0x213 → MC).
+BACK (`FUN_004ed1b0`): Pref / Ref / Training / CType (3/5/6/0x15) → Main; Basic / Combat (7/8) → Training; Jet 9 →
+Basic; Jet 10 → Combat; Camp (0xb) → Main (single player); His / Fut (0xc/0xd) → Camp; the war's mission lists
+(0xe–0x10 / 0x11–0x13) → His / Fut; MC (0x14) → Main; TCP / IPX (0x16/0x17) → CType; TSD → the previous screen
+(msg 8 Yes/No first; mission 0x213 → MC).
 
 **Jet list** (`FUN_00509d60` sets the aircraft id `DAT_0083b818`; the labels were read from the exe
 `.rdata`): Mirage 6, Kfir 5, F4 2, F42000 3, F15 0, F16 1, Lavi 4. Aircraft id → cockpit: see
@@ -420,7 +420,7 @@ Jets disabled per mission (`FUN_00509b80`; rows 0x11c bytes apart in the list ob
 * **Default zoom = 1.0**, scroll (0,0) (`FUN_004f15a0`). The view is then centred on the selected
   flight (`FUN_00505cc0`).
 * Zoom_In: ×1.5, max 32. Zoom_Out: ×2/3, min 1. Both then **centre** the selected unit (or keep the
-  view centre) (`5032d0`, see §8.1). Each button is disabled at its limit.
+  view centre); each button is disabled at its limit (`5032d0`, §8.1 "Buttons, checks and scrollbars").
 * Scrollbars (screen coordinates):
   * V: `tsd/vscroll.bmp` 10×356 at (608,42); thumb `vslider` 10×75
   * H: `hscroll.bmp` 462×10 at (146,399); thumb `hslider` 74×10
@@ -439,17 +439,12 @@ Jets disabled per mission (`FUN_00509b80`; rows 0x11c bytes apart in the list ob
   * flight colours: 1 Alpha RGB(226,0,180), 2 Bravo RGB(4,178,39), 3 Charlie RGB(0,82,250),
     4 Delta RGB(215,134,1), 5–6 white
 * **Units** (`FUN_00504ea0`), drawn with a plain copy (no transparency):
-  * Ground icons are 27×34 with two rows of 17. The top row (blue) is used for sides 0 and 1, the
-    bottom row (red) for side 2. Types: 2 ship `icshp`, 3 structure `icstr` (`icairport` when the
-    class is 0x23), 4 vehicle `icveh`, 5 SAM `icsam`, 6 AAA `icaaa`.
-  * Aircraft use `icair` 216×63: 8 columns of 27 px (heading/45°, 0 = north, clockwise) × 3 rows of
-    21. Row 0 blue, row 1 red for side 2, row 2 light blue when side ≤1 and field `[0x18]==0`
-    (UNCERTAIN meaning).
-  * Aircraft in flight 1..4 get a 2 px outline rectangle in the flight colour.
-  * The selected unit gets `icselair`/`icselveh` (`FUN_005053c0`).
+  * Ground icons are 27×34: two rows of 17, blue (top) and red. Aircraft use `icair` 216×63: 8 heading columns of
+    27 px × 3 rows of 21 (blue leader, red, light-blue wingman). Bitmap and row rules: §8.1 "Drawing".
   * The 14 filter checks (Aircrafts/Vehicles/Ships/SAM/AAA/Structures/Airports × side 1/2) gate the
     drawing (`FUN_00504a10`).
-* Top-left text: mission title at (4,4); mission clock `HH:MM:SS` at (14, lineH+6) (decoded in §8.1).
+  * The selected unit gets `icselair`/`icselveh` and a label (§8.1 "Selected-unit label").
+* Top-left text: mission title and clock (§8.1 "Top-left text").
 * The overlay paint (`501300`) draws in this order: title and clock, the time rate, the routes, the units (the
   selected one last, with its label), the ruler.
 * **Ruler** (right button; message map `0x607ff0`: WM_RBUTTONDOWN `5022d0`, WM_MOUSEMOVE `501cb0`, WM_RBUTTONUP
@@ -480,23 +475,21 @@ Jets disabled per mission (`FUN_00509b80`; rows 0x11c bytes apart in the list ob
   only 0x2D comes from a key, Insert. Each zoom key updates the Zoom buttons' enable state.
 * **Left button**:
   * The press (`FUN_00501e50`) captures the mouse and hit-tests the icons (`FUN_00504c00`). A hit selects that unit
-    (`DAT_006548a4`). A miss clears the selection; then, in single player, a waypoint of the selected flight within
-    10 px starts a drag (`FUN_00504dd0`).
+    (`DAT_006548a4`). A miss clears the selection; then, in single player with Waypoint on, a waypoint of the
+    selected flight within 10 px starts a drag (`FUN_00504dd0`, the last waypoint tried first).
   * The hit test tries the selected unit first, then the others from the last record down. The rects are the drawn
     cells (27×21 aircraft, 27×17 others), inclusive on all sides. A quirk of its walk: after a visible selected unit it
     restarts at count − 1 and steps once before testing, so the last record is never hit then. A hidden selected unit
     makes the walk go on below it.
-  * A move with the left button held (`501cb0`) moves the dragged waypoint, clamped to the client, **before the flight
-    only** (`+0x54 == 0`). On the FlyTSD the waypoint stays put, as the manual says (EN 3.3).
+  * A move with the left button held (`501cb0`) moves the dragged waypoint through the inverse transform
+    (`FUN_00500f70`, `FUN_004d3130`), clamped to the client, **before the flight only** (`+0x54 == 0`); the cursor
+    stays the arrow. On the FlyTSD the waypoint stays put, as the manual says (EN 3.3).
   * The release (`501ed0`) ends the drag and releases the capture.
 * The selected unit (`DAT_006548a4`: label, selection icon, Visit, zoom pivot) and the selected flight
   (`DAT_0083b8a4`: Fly, Arm, the route drawn last, the waypoint drag) are separate. A formation button sets both
   (`FUN_00503cb0`); a click on an icon sets only the unit.
-* Defaults (`FUN_004f15a0`): all 14 unit filters on, and Text, Waypoint, Grid and Briefing on.
-  Stored in `DAT_0083b85c..d18`; flight `d1c`=0, zoom `d20`=1.0, scroll `d24/d28`=0.
-* Formation panel `pformation` (bottom1): Alpha–Delta CheckGroup selects the player's flight
-  (`DAT_0083b8a4`). In single-player it is pre-set from the mission.
-* Arm is disabled when no valid flight is selected (`FUN_00505c10`).
+* Formation panel `pformation` (bottom1): the Alpha–Delta CheckGroup selects the player's flight
+  (`DAT_0083b8a4`), pre-set from the mission in single player. Button rules, defaults and Arm: §8.1.
 
 ### 8.1 TSD data mapping (decoded)
 
@@ -584,15 +577,15 @@ Units that are never shown:
 * trees and parachutes (class 14);
 * player slots that were not spawned. In multiplayer only the slots marked used in the session slot table are spawned
   (`FUN_0058f110` @58f7fc). In single player every slot is spawned, also the unused ones at (−1, −1), except
-  `Player2..` in a training mission flown with a Jet list pick ("Spawned before take-off" above). Such a slot gets a
+  `Player2..` in a training mission flown with a Jet list pick ("Spawned before take-off" below). Such a slot gets a
   record when its `0x35c` is set; only mission 666's Player7 / 77 / 8 / 88 are. Ours never shows units at (−1, −1).
 
 **Drawing** (`FUN_00504ea0`). Record i is drawn only if `FUN_00504a10` passes:
 * icon class 1..6 × (side==1 → the `…1` filter, else → the `…2` filter);
 * icon class 3 is split: category 0x23 (type 450 runway) → `Airports1/2`, else `Structures1/2`.
 
-Bitmap choice (in `FUN_00504ea0`). Note: `FUN_004f6da0` is a different function, the type → category-index function
-of "Selected-unit label" below.
+Bitmap choice (in `FUN_00504ea0`; the type → category-index function `FUN_004f6da0` of "Selected-unit label" is a
+different one):
 
 | icon class | bitmap |
 |---|---|
@@ -622,7 +615,7 @@ Row choice:
   leader ([0x18]) and on the side rule (`FUN_005055a0`), its flight becomes the selected one and it **flies**
   (`FUN_004d3250`; exit code 2 before the flight, 4 in flight). Otherwise, in flight only, the unit is **visited**
   (`FUN_004d3450`, docs/views.md §1).
-* **Ours**: the label is drawn as below (`tsd.gd` `_draw_units`, `unit_label`).
+* **Ours**: `tsd.gd` `_draw_units`, `unit_label` (the label as below).
 
 #### Selected-unit label (`FUN_004f7670`)
 
@@ -710,7 +703,7 @@ Any other type code falls back to the unit's class (rec[0]):
   "Top-left text"). Font, colour and alignment are the same as line 1.
 * Flight numbers 7+ do not index the table directly (formations other than 1..6 take slots 7+, see
   "Flight table"), and names exist only for 1..6. Line 2 is therefore empty or unrelated for enemy/"Other" flights.
-  For units in no flight, the slot-0 exists flag is presumably 0, so no line 2 is drawn.
+  For units in no flight, the slot-0 exists flag is 0, so no line 2 is drawn (UNCERTAIN).
 
 #### Flights
 
@@ -740,7 +733,7 @@ the zeroed area holds 50 slots. Record layout:
 
 * Flight membership is the formation's **two** member slots (`0x41a` ids).
 * A flight exists if either member is spawned and alive.
-* **Spawned before take-off** (checked 2026-10-20). The formations are built after the spawn (`FUN_004b74f0`, then
+* **Spawned before take-off.** The formations are built after the spawn (`FUN_004b74f0`, then
   `FUN_004b3573`): `FUN_005bd2b0` → `FUN_005bd6d0` looks each member's object up by its descriptor, so a member has an
   object exactly when its entity was spawned. The single-player spawn (`FUN_0058f110`) creates every entity of the
   main file but the editor's placeholder row (`0x14` = 1, `FUN_0058a350`), wherever it stands. This includes the
@@ -788,10 +781,7 @@ Multiplayer adds slot checks.
 **Visit** (`FUN_005046b0`, FlyTSD only): with a selected unit, the camera follows it (`FUN_004d3450`) and the
 flight resumes (exit 4); with none, nothing happens.
 
-**Waypoints** are drawn for flights 1..4 only, then the selected flight. In SP, pressing the left
-button within 10 px of a waypoint of the selected flight (`FUN_00504dd0`, the last waypoint tried first; Waypoint
-on) starts a drag. The drag moves the waypoint through the inverse transform (`FUN_00500f70`, `FUN_004d3130`) before
-the flight only (`501cb0`); the cursor stays the arrow. The manual (EN 3.3) also allows the drag before take-off only.
+**Waypoints** are drawn for flights 1..4, then the selected flight; the drag is in §8 "Left button".
 
 #### Top-left text (overlay `501300`)
 
@@ -814,8 +804,9 @@ the flight only (`501cb0`); the cursor stays the arrow. The manual (EN 3.3) also
   * bottom2 `pTools`: **Zoom_In (543,429,55×23) and Zoom_Out (543,453,55×23)**, both Push.
 
   `tsd.trx` has no Ruler button.
-* Initial check state: the ctor copies `DAT_0083b860..d18` into each Check (`+0x3c`). Defaults are
-  all on (`FUN_004f15a0`, confirmed): Waypoint, Text, Grid, 14 filters, Briefing.
+* Initial check state: the ctor copies `DAT_0083b860..d18` into each Check (`+0x3c`). The defaults
+  (`FUN_004f15a0`, reset on every mission load) are all on: Waypoint, Text, Grid, the 14 filters, Briefing; flight
+  `d1c` = 0, zoom `d20` = 1.0, scroll `d24/d28` = 0.
   * Briefing is then forced to "file exists" (`FUN_005047a0`).
   * Briefing is disabled if `brief/txt/<id>.rtf` is missing (`FUN_00504720`).
 * Initially disabled in SP training (takeoff):
@@ -901,13 +892,13 @@ message `0x55c` to the frame with wParam = the target screen and lParam = the bu
 
 ## 10. TSD target window (brl type 5, `targ_t`, `FUN_00517fe0`)
 
-**iaf-reborn:** built (`tsd.gd` `_on_link` case 5 / `_target_unit`, `model_view.gd` `setup_target`).
-* It is a SubViewport with its own terrain streaming around the camera (origin at the object).
+**Ours** (`tsd.gd` `_on_link` case 5 / `_target_unit`, `model_view.gd` `setup_target`):
+* A SubViewport with its own terrain streaming around the camera (origin at the object).
 * It shows the mission's placed units within 6 km: the flight's models, Present scales and headings; underlays
   hidden; `LT_` light sets as points; ground units snapped to the terrain.
-* It renders live, every frame.
-* tests/godot/test_briefing_links.gd looks up every target file (over 100) in its mission. It prints the known
-  misses and still passes.
+* It renders every frame (deviations.md, "TSD target window").
+* tests/godot/test_briefing_links.gd looks up every target file (over 100) in its mission; it prints the known
+  misses and passes.
 
 **Summary.** This window is a **live 3D camera on the named mission object**, rendered by the flight engine, with a
 15 px tab strip underneath: SATELLITE VIEW, ZOOM VIEW and UAV VIEW. It shows no text and no separate model.
@@ -980,7 +971,7 @@ current mission time.
 
 ## 11. TSD 3D-model window (brl type 2, `obj_t`, `FUN_00518470`)
 
-**iaf-reborn:** built (`tsd.gd` `_on_link` case 2, `frame_window.gd` `set_model`, `model_view.gd`; the `_h.rtf`
+**Ours** (`tsd.gd` `_on_link` case 2, `frame_window.gd` `set_model`, `model_view.gd`; the `_h.rtf`
 descriptions and `.cp` limits in briefings.json `models`; tests/godot/test_briefing_links.gd).
 
 **Summary.** The left two-thirds is an orbit view of the brl's `_h.x` model. The right third is a
@@ -1239,8 +1230,8 @@ timer.
   ftol(F · extent · 0.7 / depth), F = 0x6284d8 = viewport width / tan(fov / 2); m < A → the `_l` model (+0x2b4), m < B
   → `_m` (+0x2b0), else `_h`; `41c120` loads `_m` / `_l` next to `_h`, a missing `_l` takes `_m`, a missing `_m` takes
   `_h`. `40bd90`: level ≥ 2 linear texture filtering (TEXTUREMAG / MIN), level 1 nearest; level 3 SPECULARENABLE.
-  It changes no draw distance and hides nothing. **Port** (`terrain_view.gd _add_lods`, `util/gltf.gd`): the mission
-  units' `_m` / `_l` copies (the converter now converts them) on Godot visibility ranges at the same distances
+  It changes no draw distance and hides nothing. **Ours** (`terrain_view.gd _add_lods`, `util/gltf.gd`): the mission
+  units' converted `_m` / `_l` copies on Godot visibility ranges at the same distances
   (F = 640 / tan 25°, the camera distance instead of the view depth, the extent of the scaled model as the
   collision radius uses); point-sampled textures at level 1 and no specular below 3 on every model; the copies are
   dropped when a unit is fatally hit or destroyed. AI jets and the player's jet keep `_h` (their `_m` models are
@@ -1254,16 +1245,13 @@ timer.
   the haze fill between the terrain's far edge and the dome; so the dome never covers drawn terrain); from above: the same radii flat at H. Ring j's colour = the cloud colour (white,
   7d194c) moved j/16 toward the fog colour. UVs u = (0.25·j·r·cos φ + Su − Cx) / (1.2·far) (v likewise), the scroll
   S += −15·dt·(sin, cos)(dir)·speed with direction 90° and speed 6 (775a74 / 78: a fixed "wind" for the clouds only;
-  the NO WIND preference does not read it). Whiteout (`41da60`) within 1000 m of H: a full-screen quad in the cloud
-  colour, alpha = clamp(j + 255 − ftol(0.255·|Δalt|), 0, 255), j a random walk of rand % 9 − 4 per frame, reset
-  outside the band. Off: no layer, no whiteout; the background is the clear colour 90, 90, 255 replaced by the
-  time-of-day table (`407ba0` / `4229c0`). The whiteout applies only within 1000 m of the layer (`fcomp 5fb53c` = 1000, `fmul 5fb540` = 0.255,
-  checked in the disassembly): none at 6000 m or below. **Port** `terrain/cloud_layer.gd` (far = 30000, the static
-  0x6284cc; our gradient sky stays behind it in both settings). The cut: the dome is drawn at the far plane
-  (depth 0), behind every terrain point, so our terrain (drawn to 200 km) hides it below its horizon as the cut
-  does; before this the lower rings were drawn over the distant terrain, a white band over the whole horizon at
-  2000 m. Cost (Iris Xe, 1920×1080): 0.15 ms GPU, see docs/rendering.md.
-* **Port of the rest:** TERRAIN DETAIL drives our mesh LOD by the tables' ratios (formats/ptt.md); the reduced
+  the NO WIND preference does not read it). Whiteout (`41da60`) only within 1000 m of H (`fcomp 5fb53c` = 1000), so
+  none at 6000 m or below: a full-screen quad in the cloud colour, alpha = clamp(j + 255 − ftol(0.255·|Δalt|), 0,
+  255) (`fmul 5fb540` = 0.255), j a random walk of rand % 9 − 4 per frame, reset outside the band. Off: no layer, no
+  whiteout; the background is the clear colour 90, 90, 255 replaced by the time-of-day table (`407ba0` / `4229c0`).
+  **Ours** `terrain/cloud_layer.gd` (far = 30000, the static 0x6284cc; our gradient sky behind it in both settings;
+  the dome drawn at the far plane in place of the cut): docs/rendering.md §2, deviations.md "Cloud layer".
+* **Ours, the rest:** TERRAIN DETAIL drives our mesh LOD by the tables' ratios (formats/ptt.md); the reduced
   terrain render resolution of levels 1–3 and the 21–31 km view distance are not ported (performance measures of
   1998; deviations.md). SHADOWS: Godot sun shadows on / off, only 08:00–17:00 as the original (docs/rendering.md §4).
   Test: `tests/godot/test_graphics_prefs.gd`.
@@ -1298,15 +1286,15 @@ Three two-way choices. The top option has value 1.
   shows and stores the choices and nothing changes** (docs/controls.md §5).
 * The joystick setup reads `menu/joy/*.joy` (`FUN_004e1590`, docs/controls.md §5.1); this page leaves it alone.
 
-**iaf-reborn**:
+**Ours**:
 * The page matches the original (Settings `flight_controls`, `rudder`, `throttle`, `[devices]` in settings.cfg).
-* The choices act through the `Joystick` autoload, only while a joypad is connected (docs/controls.md §5.2).
+  The choices act through the `Joystick` autoload, only while a joypad is connected (docs/controls.md §5.2).
 * The Godot axis numbers (`joy_axes`) are set in settings.cfg only; no page shows them.
-* Ours on the page: "Detent = MIL" (Off / Set at lever, `throttle_detent` in `[devices]`).
-* Ours on the page: "Stick response" under FLIGHT CONTROLS (Linear / Soft centre, `stick_response` in `[devices]`).
-  Our rows (Stick response, Detent = MIL) are drawn in the page art's style: the install's Gill Sans Bold Condensed
-  (`menu/fnt/cr4.ttf`) slanted as the art, its title and item greens, a dark shadow, at the art's text positions one
-  block lower; only the box shows the choice (`front_end.gd` `_draw_pref_pair`).
+* Two rows of ours (deviations.md "Preferences → Devices"): "Stick response" under FLIGHT CONTROLS (Linear / Soft
+  centre, `stick_response`) and "Detent = MIL" under THROTTLE (Off / Set at lever, `throttle_detent`), both in
+  `[devices]`. They are drawn in the page art's style: the install's Gill Sans Bold Condensed (`menu/fnt/cr4.ttf`)
+  slanted as the art, its title and item greens, a dark shadow, at the art's text positions one block lower; only the
+  box shows the choice (`front_end.gd` `_draw_pref_pair`).
 
 ### 12.7 Controls page (`cntrl_2.bmp`; `FUN_00511580`)
 The key table itself (records, modifiers, key names, dispatch, the full list) is in
@@ -1344,7 +1332,7 @@ The key table itself (records, modifiers, key names, dispatch, the full list) is
 * DEFAULT restores the whole table from `0x64c3c8` (@511ca5), the start of the default table. (`0x64c3e8` is
   record 0's +0x20 field.)
 
-**iaf-reborn**:
+**Ours**:
 * Built: the list, the scrollbar (arrows, thumb drag, track click = one page, UNCERTAIN), the key capture with
   msg 36 and DEFAULT. All edits go into the Preferences working copy; "Save changes?" Yes stores `[keys]` in
   settings.cfg.
@@ -1369,69 +1357,61 @@ against `_0` in both languages (pixel colour distance > 90, connected regions):
 
 So the Hebrew pages use the same rects as §12.3–§12.6.
 
-### 12.9 Implementation (game/menu/front_end.gd, game/settings.gd)
-* Everything above is ported: the tabs, "first visit Sound, then the last page" (`Settings.pref_page`,
-  kept for the session only), the `_0` art plus lit rects from `_1`, sliders with the
-  `slider.bmp` thumb (image through its mask), the scoring strip, DEFAULT on every page but Devices,
-  the working copy, and msg 38 Yes/No/Cancel when leaving by BACK, MAIN or Esc.
-* The live previews are ported: music volume and Mute on the front-end music, and the wav/pref loops
-  for engine / SFX / speech. MASTER VOLUME sets the Godot master bus and is not stored, like the
-  original's mixer write.
-* Stored in `user://settings.cfg` (sections sound / graphics / devices / gameplay) with the original
-  defaults. The hardware detection that overrides the graphics defaults is not ported. The Graphics page acts as
-  §12.4 says (all seven controls wired). Ours, in the empty strip left of DEFAULT:
+### 12.9 Ours (game/menu/front_end.gd, game/settings.gd)
+* §12.1–§12.7 are ported: the tabs, "first visit Sound, then the last page" (`Settings.pref_page`, kept for the
+  session only), the `_0` art plus lit rects from `_1`, sliders with the `slider.bmp` thumb (image through its
+  mask), the scoring strip, DEFAULT on every page but Devices, the working copy, and msg 38 Yes/No/Cancel when
+  leaving by BACK, MAIN or Esc.
+* Live previews: music volume and Mute on the front-end music, and the wav/pref loops for engine / SFX / speech.
+  MASTER VOLUME sets the Godot master bus and is not stored, like the original's mixer write.
+* Stored in `user://settings.cfg` (sections sound / graphics / devices / gameplay) with the original defaults; the
+  graphics defaults are a top-tier machine's (§12.2). Gameplay flags act where §12.3 says. Graphics sliders snap to
+  `round(v/step)·step` (UNCERTAIN, §12.4). Controls rebinds are stored in `[keys]` and used in flight
+  (docs/controls.md).
+* Ours on the Graphics page, in the empty strip left of DEFAULT:
   * a VSYNC check (page rect 8,330,110,23), default on, reset by DEFAULT, stored in `[graphics]`;
-  * **MORE** (page rect 230,330,110,23): opens our graphics options on the same tab (`GFX_MORE`, drawn like the
-    Extras page with the title GRAPHICS): Window, Anti-aliasing, Terrain close up, Sky, Upscaling, Night lights, Water, Particle effects, Airbases and
-    the terrain imagery rows (`front_end.gd` `GRAPHICS_KEYS`, docs/rendering.md, docs/imagery.md). The same spot
-    reads BACK there and returns to the original page. DEFAULT on that view resets those rows.
-* Gameplay flags act where the table above says; NO WIND and NO MALFUNCTIONS are read by nothing in the original
-  either (they are stored only).
-* Graphics sliders snap to `round(v/step)·step` (UNCERTAIN, see §12.4).
-* **Controls page:** built (§12.7): the original key list, scrollbar, key capture with msg 36 and
-  DEFAULT; rebinds are stored in `[keys]` and used in flight (docs/controls.md).
-* **Extras and Physics tabs (ours; added by iaf-reborn).** Two tabs below Gameplay, 44 px apart at the panel's
-  button spacing (Extras rect 16,287,109,39; Physics 44 px lower).
-  * **Button art:** the `pPref` band around the Gameplay button (panel rect 12,203,116,54 from `_0`,
-    the button rect from the current frame), moved down 44 px. Its label (panel 42,219,62,16) is
-    filled in per row by blending the pixels on either side, then "EXTRAS" / "תוספות" is drawn in
-    Arial bold.
-  * **Page:** `screens/sgeneral` background, rows 35 px apart on the Gameplay page's grid, and LEDs
-    copied from `gamep_0/_1`. Mirrored in Hebrew. Row rules are opaque and one page pixel thick, so the ones that
-    fall on the background's grid lines look like the rest.
-  * **Extras options** (`front_end.gd` `EXTRAS`, less the graphics rows, which are on Graphics → MORE): Flight
-    data (Original (1998) / Real aircraft), Weapon data (Original (1998) / Real weapons), Language (English / Hebrew;
-    Hebrew only when the pack is installed), Flight info (Ctrl+F12) show / hide, Blackbox, HUD pitch ladder
-    (Original / Conformal), HUD (Original (1998) / Real), All keys on the Keyboard page, F-35I replaces (Off / one of the
-    seven jets, docs/f35i.md), HARM targets (Original / Real, docs/deviations.md §2), Better cockpit (Original / Better:
-    the cockpit improvements of `Settings.BETTER_COCKPIT`, today the turning panel compass / HSI, docs/cockpit.md
-    "Better cockpit"), Mouse wheel (Regular / Natural, below), Settings file (Export / Import: a native file dialog;
-    Export writes the working copy as a settings.cfg, Import stores and saves the file's settings at once). 8 rows shown, with the Keyboard page's scrollbar beyond;
-    DEFAULT resets every Extras option except the language (and the settings file).
-  * **Blackbox** (ours): each flight recorded to `user://flights/flight-<date>_<time>-m<mission>.jsonl` (the newest 10
-    kept; format docs/blackbox.schema.json: a header with the mission, jet, loadout, route, the armed units, the terrain
-    origin and every setting, rows 10 per second, events: lift-off, touchdown with its sink rate, crash with its reason,
-    autopilot, each mission event fired with its name, each subtitle line, master mode / store changes, and the
-    engagement: a unit's lock / unlock, a launch at the jet, each hit with the damage and the system broken, the player's
-    kills, being shot down, an armed enemy's terrain line of sight gained / lost within its range, and the IR missile seeker's tone (seek / lock / off) and target with its distance, angle off the nose and afterburner when either changes). The debrief
-    screen's EXPORT FLIGHT DATA (top right of the content, above the tab strip) saves this flight's file where the player picks.
-    `python3 -I tools/flight_timeline.py <file> [--html out.html]` prints the timeline and, per leg of the route, how far
-    off the leg and how low the jet flew, and the threats that engaged it.
-  * **Physics** (`Settings.BETTER`): one check per option, 19 (13 flight-model improvements, docs/flight-model.md §10,
-    + 6 original-bug fixes, docs/deviations.md §2), rows of 20 px, 15 shown with the scrollbar, All on / All off in
-    the header; mirrored in Hebrew.
-  * **Behaviour:** the options go through the same working copy and "Save changes?" box. A language
-    change reloads the menus on Yes.
-  * In the original, the Hebrew pack replaces the resource files; the game has no language setting.
-* **Mouse wheel (ours).** The original reads no mouse wheel. Ours: one wheel notch scrolls by the step of the scroll
-  arrows, through the same scroll function, so the limits stay the original's:
-  * Preferences: the page's list moves one row (Keyboard, Extras, Graphics → MORE, Physics), wherever the pointer is
-    on the screen;
+  * **MORE** (page rect 230,330,110,23): our graphics options on the same tab (`GFX_MORE`, drawn like the Extras
+    page with the title GRAPHICS): Window, Anti-aliasing, Terrain close up, Sky, Upscaling, Night lights, Water,
+    Models, Rolling wheels, Particle effects, Airbases and the terrain imagery rows (`front_end.gd` `GRAPHICS_KEYS`,
+    docs/rendering.md, docs/imagery.md). The same spot reads BACK there and returns to the original page; DEFAULT
+    there resets those rows.
+* **Extras and Physics tabs** (ours). Two tabs below Gameplay at the panel's 44 px button spacing (Extras rect
+  16,287,109,39; Physics 44 px lower). The original has no language setting: the Hebrew pack replaces the resource
+  files.
+  * **Button art:** the `pPref` band around the Gameplay button (panel rect 12,203,116,54 from `_0`, the button rect
+    from the current frame), moved down 44 px. Its label (panel 42,219,62,16) is filled in per row by blending the
+    pixels on either side, then "EXTRAS" / "תוספות" is drawn in Arial bold.
+  * **Page:** `screens/sgeneral` background, rows 35 px apart on the Gameplay page's grid, and LEDs copied from
+    `gamep_0/_1`. Mirrored in Hebrew. Row rules are opaque and one page pixel thick, so the ones that fall on the
+    background's grid lines look like the rest.
+  * **Extras rows** (`front_end.gd` `EXTRAS` and `_extras_rows`, less the Graphics → MORE rows; each switch is in
+    deviations.md §2): Flight data, Weapon data, Language (English / Hebrew; Hebrew only when the pack is installed),
+    Flight info (Ctrl+F12), Blackbox, HUD pitch ladder, HUD (Original (1998) / Real), All keys on the Keyboard page,
+    F-35I replaces (Off / one of the seven jets, docs/f35i.md), HARM targets, CD launcher (§18.1), Mouse wheel
+    (below), Better cockpit (`Settings.BETTER_COCKPIT`, docs/cockpit.md "Better cockpit"), World scale
+    (docs/world-scale.md), Settings file. 8 rows show, with the Keyboard page's scrollbar beyond. DEFAULT resets
+    every row except Language and Settings file.
+  * **Settings file:** Export / Import through a native file dialog. Export writes the working copy as a
+    settings.cfg; Import stores and saves the file's settings at once.
+  * **Blackbox:** each flight is recorded to `user://flights/flight-<date>_<time>-m<mission>.jsonl`, the newest 10
+    kept: a header (mission, jet, loadout, route, armed units, terrain origin, every setting), rows 10 per second, and
+    events (flight, mission, weapon and engagement events; the full list in docs/blackbox.schema.json). The debrief
+    screen's EXPORT FLIGHT DATA (top right of the content, above the tab strip) saves this flight's file where the
+    player picks. `python3 -I tools/flight_timeline.py <file> [--html out.html]` prints the timeline and, per leg of
+    the route, how far off the leg and how low the jet flew, and the threats that engaged it.
+  * **Physics** (`Settings.BETTER`): one check per option, 23 (17 flight-model improvements, docs/flight-model.md
+    §10, then 6 fixes of original gameplay bugs, docs/deviations.md §2), rows of 20 px, 15 shown with the
+    scrollbar, All on / All off in the header; mirrored in Hebrew.
+  * **Behaviour:** the options go through the same working copy and "Save changes?" box. A language change reloads
+    the menus on Yes.
+* **Mouse wheel** (ours; the original reads no wheel). One notch scrolls by the step of the scroll arrows, through
+  the same scroll function, so the limits stay the original's:
+  * Preferences: the page's list moves one row (Keyboard, Extras, Graphics → MORE, Physics), wherever the pointer is;
   * the briefing window, its lesson / text link windows and the Reference screen's description (`frame_window.gd`):
-    the text moves one line (16 px), when the pointer is over the window.
+    the text moves one line (16 px) while the pointer is over the window.
   * A trackpad pan (`InputEventPanGesture`) steps once per whole unit of its vertical delta (`Settings.wheel_steps`).
   * Extras → **Mouse wheel**: Regular (wheel down scrolls down, the default) or Natural (reversed, as on macOS
-    trackpads). Stored as `wheel_scroll` in `[gameplay]`.
+    trackpads), stored as `wheel_scroll` in `[gameplay]`.
 
 ## 13. Login / Pilot Records screen (screen 0, `log.trx`)
 
@@ -1758,7 +1738,7 @@ disabled (button art `_3`) when all of these hold:
   and the callsign (`0x83b848`) is **"not war"**. With the cheat on:
   * all rows are unlocked;
   * the prerequisite for "next mission" is skipped;
-  * Jump_In asks "Do you want a 40N mission?" for each N (`4ec8a5`).
+  * Jump_In asks for each scramble mission in turn (`4ec8a5`, "Jump_In" below).
 
 **Debrief "next mission"** (`FUN_004ff7e0`; 0 = none):
 
@@ -1786,8 +1766,8 @@ Next Mission is disabled when this is 0.
 * other ids in 300–399 do nothing;
 * any other mission is reloaded (`FUN_004edec0` → TSD 0x1e; 400–499 go straight into the flight).
 
-Port: `front_end.gd` `_debrief_button`, `next_mission`, `new_mission_screen`, `scramble_mission`, `_jump_in`. All of
-this section is ported. Test: test_scramble.
+Ours: all of this section, in `front_end.gd` `_debrief_button`, `next_mission`, `new_mission_screen`,
+`scramble_mission`, `_jump_in`. Test: test_scramble.
 
 **Jump_In** (Main, `FUN_004ec770`):
 * Without the cheat, Jump_In picks a scramble mission (`FUN_004f1650`, below), loads it (`FUN_004edec0`, wait.bmp)
@@ -1822,7 +1802,7 @@ node's +4); "passed" is any attempt with a result > 0 (`FUN_004f6d40`). "Current
 * Page coordinates (Dossier, Records, Kills, Losses) are relative to content (26,55), so
   screen = (181 + x, 97 + y). The list box is already in screen coordinates.
 
-### 13.13 Implementation (game/menu/pilots.gd, pilot_records.gd)
+### 13.13 Ours (game/menu/pilots.gd, pilot_records.gd)
 * `pilots.gd`: the list, the histories, `record()` = `FUN_004f68b0`, `attempt_score()` = `FUN_004f7b30`,
   `totals()` = `FUN_004f66d0`, `rank()`, the categories / groups / points tables, the MissBonus read from the
   install's `scores.ibx`. Storage is our own JSON in `user://pilots` (docs/deviations.md): `pilots.json` = the
@@ -1923,13 +1903,13 @@ shows the new page.
   English art. The exe draws the same numbers in both languages, so in Hebrew the kill sum stands next to "losses".
   The port keeps it.
 
-Port: `game/menu/debrief.gd` (`items()` lists what a page draws; the front end creates it on the screen and routes
+Ours: `game/menu/debrief.gd` (`items()` lists what a page draws; the front end creates it on the screen and routes
 the content clicks to it), the data from `pilots.gd record()` (the attempt and the pilot's score). Test:
 test_debrief_flow (pages, names, counts, colours, tabs, the structure quirk), test_pilot_records (PILOT SCORE).
 
 ## 14. Reference screen (screen 5, `ref.trx`, content class ctor `FUN_004fc490`, vtable `0x607b18`)
 
-**iaf-reborn:** built.
+**Ours:**
 * Code: `game/menu/reference.gd`, wired by `front_end.gd`. `iaf-convert reference` converts the records,
   descriptions, model paths, `.cp` limits and pictures into `assets/converted/reference/` (parser
   `crates/iaf-formats/src/refs.rs`). Tests: tests/godot/test_reference.gd; real render
@@ -2059,27 +2039,24 @@ of the frame.
   * Pictures (`![caption](shots/<jet>/<name>.png)`) come from `assets/converted/guides/`. A missing picture leaves
     its caption.
   * When `assets/converted/guides/<dir>.pdf` exists, an **Open PDF** link at the top opens it in the system viewer.
-* **Making the pictures and the PDF.** Setup's last step makes them (it needs a display):
-  1. `tools/guide_shots.sh` renders each entry of `docs/guides/<jet>.shots.json` in a 3840×2160 frame, whatever
-     the screen's size (`tests/godot/_guide_shots.gd`: settings, start (mission / airborne / dive / final approach),
-     a placed target, actions such as a radar lock, a store or a camera on the target; crops: the whole frame, the
-     HUD, an MFD) and draws its numbered callouts (`annotations`: arrows to symbols found in the Real HUD's own
-     output, or to points of the crop) on the picture. The guide lists their legend as a numbered list right under
-     the picture.
+* **Making the pictures and the PDF.** Setup's last step makes them (it needs a display; docs/guides/README.md has
+  the shots' format). Both hold the original art, so they stay under `assets/`.
+  1. `tools/guide_shots.sh` renders each entry of `docs/guides/<jet>.shots.json` in a 3840×2160 frame, whatever the
+     screen's size (`tests/godot/_guide_shots.gd`: settings, start (mission / airborne / dive / final approach), a
+     placed target, actions such as a radar lock, a store or a camera on the target; crops: the whole frame, the HUD,
+     an MFD), and draws its numbered callouts (`annotations`: arrows to symbols found in the Real HUD's own output, or
+     to points of the crop). The guide lists their legend as a numbered list right under the picture.
      * Each Godot process takes up to 4 shots (`GUIDE_BATCH`), each from the default settings and a freshly loaded
-       mission; several processes run at once (`GUIDE_JOBS`, default half the cores, at most one per 2 GB of free
-       memory). On an 8-core laptop with integrated graphics (Iris Xe) the F-16's 13 shots take about 2.5 minutes,
-       against about 11.5 with one process per shot one after another.
+       mission. Several processes run at once (`GUIDE_JOBS`, default half the cores, at most one per 2 GB of free
+       memory). On an 8-core Iris Xe laptop the F-16's 13 shots take about 2.5 minutes (about 11.5 with one process
+       per shot in turn).
      * A picture whose stamp (`<name>.stamp`: its entry, the shot tools, Godot's version, the frame size and the
-       data's paths and sizes) still matches is kept, so setup runs again without rendering. Game code changes keep
-       the pictures too: `--force` renders every one.
+       data's paths and sizes) still matches is kept, also across game code changes; `--force` renders every one.
      * A FAIL line (a callout's symbol missing, a crash, a process stuck past its time) makes the exit status 1.
-  2. `python3 -I tools/guide_pdf.py` prints the guide as an A4 PDF (title page with the record's picture, contents,
-     the pictures with their legends, warning when a legend's length differs from the callouts) with headless
-     Firefox (Chrome / Chromium when Firefox is missing), a few guides at once. A PDF newer than its Markdown,
-     shots list and pictures is kept; `--force` prints every one.
-
-  Both hold the original art, so they stay under `assets/`.
+  2. `python3 -I tools/guide_pdf.py` prints each guide as an A4 PDF (title page with the record's picture, contents,
+     the pictures with their legends; a warning when a legend's length differs from the callouts) with headless
+     Firefox (Chrome / Chromium when Firefox is missing), a few guides at once. A PDF newer than its Markdown, shots
+     list and pictures is kept; `--force` prints every one.
 
 ## 15. Arming screen (0x1f, `arm.trx`, content ctor `FUN_00505e80`, vtable `0x6084b8`)
 
@@ -2249,8 +2226,8 @@ dragging, the arrow otherwise (`SETCURSOR 506720`).
 
 **Rules (confirmed in the exe).**
 * The original **blocks** an overweight load: `FUN_00507480` returns 0 when MAX T.O.W. (`+0x68`) < current
-  (`+0x6c`), and every way out (Fly, TacticalDisplay, BACK, a flight button) is cancelled. So there is no
-  "enforce max take-off weight" option to add. The wing balance check (5 % of the current load, stations 1–4
+  (`+0x6c`), and every way out (Fly, TacticalDisplay, BACK, a flight button) is cancelled, so the original already
+  enforces the max take-off weight. The wing balance check (5 % of the current load, stations 1–4
   against 6–9, the centreline not counted) blocks the same way.
 * Station compatibility = the allowed counts: a weapon drops only on a station with `max[i] ≠ 0`, always with
   `max[i]` stores. The balance check is the only symmetry rule.
@@ -2277,7 +2254,7 @@ dragging, the arrow otherwise (`SETCURSOR 506720`).
   (`FUN_004f0380` → `FUN_005bcb90`). The jet art is the flight record's member-0 type `+0x350` (`FUN_00507750`). None
   of them turns to member 1, unlike the flight buttons (`FUN_00507df0`, member 0's type, else member 1's). So a flight
   whose member 0 has no object has no art, allows nothing, and its table changes no aircraft. No shipped mission has
-  such a flight (checked 2026-10-20).
+  such a flight.
 * Any flight's leader type with jet art can be armed (the nine types); only the flyable-type rule of the buttons
   limits it.
 * **Sounds:** none in the Arming handlers (paint, drag, drop, right-click, list, `5061c0`–`507c30`,
@@ -2288,7 +2265,7 @@ dragging, the arrow otherwise (`SETCURSOR 506720`).
 * Quirk: picking up a station's weapon looks for its list row from row 1 (`506810`), so with the tab unchanged a
   weapon in row 0 does not become the selection.
 
-**Implementation** (`game/menu/arming.gd`, `game/weapons/mission_weapons.gd`, `game/menu/front_end.gd`):
+**Ours** (`game/menu/arming.gd`, `game/weapons/mission_weapons.gd`, `game/menu/front_end.gd`):
 * `mission_weapons.gd` = `CMissionWeapons`: the list (bdb order, tabs), `reset(n)` = `FUN_004ef8a0` from the
   leader object's `loads` (`CDMEWeaponLoadItem` `raw` = 9 int32 station flags), the three tables for slots
   1..10 (`MissionRuntime.flight_slots()` picks each slot's formation as above; the leader is member 0, a slot without
@@ -2311,11 +2288,9 @@ dragging, the arrow otherwise (`SETCURSOR 506720`).
   two member slots, and formations that no slot loads, carry their mission's default stores.
 * Not ported: the multiplayer paths (AG / Misc disabled in 0x29a / 0x213, the session wait, the `FUN_004f0000`
   messages).
-* Ours:
-  * Esc on Arming acts as BACK (the original's Esc here is not traced).
-  * The scrollbar's track click pages by 6 rows (UNCERTAIN, as the Controls page).
-  * A jet flown in place of a non-flyable type keeps its type's load.
-  * Text is clipped to its box by whole characters.
+* Esc on Arming acts as BACK (the original's Esc here is not traced). The scrollbar's track click pages by 6 rows
+  (UNCERTAIN, as the Controls page). A jet flown in place of a non-flyable type keeps its type's load. Text is
+  clipped to its box by whole characters.
 
 ## 16. In-flight pause and On-The-Fly menu (flight window `CFlightWnd::OnGameEvent` 0x4dc280)
 
@@ -2402,8 +2377,7 @@ In network mission 0x21d, Esc shows msg 8 (host) / msg 11 (client).
   RGB(186,186,173) and 1 px RGB(21,21,19), both `PS_INSIDEFRAME` (style 6). Font: Arial size 10, weight 400
   (`FUN_004eee10`, §4): 11 px em, text cell 14 px.
 * Placement: GDI on the flight window's own DC (client coordinates), so the menu sits in the window's
-  **top-left corner** at (5, 10) whatever the resolution (`FUN_004ee7b0(hdc, 5, 10)` from 0x4dc479). Ours: 640×480
-  units scaled to the window height and anchored at the top-left, as the "II  PAUSE" text.
+  **top-left corner** at (5, 10) whatever the resolution (`FUN_004ee7b0(hdc, 5, 10)` from 0x4dc479).
 * Layout: W = widest label, H = tallest label (GetTextExtentPoint32); item i: left 15, right
   15 + W + 16, top 20 + i·(H + 23), bottom top + H + 16 (7 px gaps). Outer frame (5, 10) to (item right
   + 10, last bottom + 10).
@@ -2437,8 +2411,9 @@ In network mission 0x21d, Esc shows msg 8 (host) / msg 11 (client).
     shape pixel matches a reference drawn from these rules.
   * The text is Arial with no smoothing. The positions and the cell come from the font file's own `hdmx` and
     `VDMX` tables. The glyph shapes come from Godot's FreeType, which can differ by one pixel from GDI's.
-  * On a larger window, the 640×480 units are scaled to the window height. Shapes are drawn at the window's
-    resolution, and text at round(11 × scale) px em with that size's widths (docs/deviations.md).
+  * On a larger window, the 640×480 units are scaled to the window height and anchored at the top-left, as the
+    "II  PAUSE" text. Shapes are drawn at the window's resolution, and text at round(11 × scale) px em with that
+    size's widths (docs/deviations.md).
 
 ### 16.3 Item actions (`FUN_004dc0d0`)
 Boxes: `FUN_004e3f30(msg, reply, group, 4 = Yes/No)`. In flight this is the render box (§16.4). Its base
@@ -2450,7 +2425,7 @@ constructor `FUN_004e3fd0` disables the keys. **NO closes the box; the menu stay
   (`FUN_004fe860`; still records the attempt, `FUN_004f68b0`), which after 50 ms (SetTimer in
   `FUN_004fef80`, WM_TIMER 0x4ff100) presses Replay itself → mission reloaded (`FUN_004edec0`,
   `Mis\Wait.bmp`) → pre-flight TSD (0x1e); missions 400–499 go straight into the flight; training missions open the
-  Jet list (v1.1, see "Debrief next mission"). (The debrief art may flash for ~50 ms, UNCERTAIN.)
+  Jet list (v1.1, §13.11 "Replay / Next"). (The debrief art may flash for ~50 ms, UNCERTAIN.)
 * **New mission**: msg 10 → code 6 → screen 0x25 ("New_Mission", auto-pressed the same way) →
   `FUN_004ff620`: missions 111–117 → 0xe, 121–127 → 0xf, 131–137 → 0x10, 211–217 → 0x11,
   221–227 → 0x12, 231–237 → 0x13, 311–315 → 7 Basic, 321–326 → 8 Combat, 0x213 / 0x29a → 0x14,
@@ -2529,7 +2504,8 @@ posts 0x75 with param 1, which does not pause sounds.
   box.
 
 ## 17. Multiplayer: v1.1 rules (not ported yet)
-Multiplayer is not ported. When it is, port the v1.1 behaviour (docs/v1.1.md):
+Multiplayer is not ported (research: [multiplayer.md](multiplayer.md)). Its port takes the v1.1 behaviour
+(docs/v1.1.md):
 - **Version check**: the session tag is `IAF11` (v1.0 `IAF01`; `FUN_00553ef0`, `FUN_00555530`, `FUN_00555830`,
   `FUN_0055bd80`, `FUN_0055db00`); joining a session of another version shows `msgs.trx` line 56 (`FUN_00559380`, §3.3).
 - **Rejoin** at the previous location (release note; same session code).
@@ -2550,12 +2526,11 @@ A button shows its focused ("active") art when it has the keyboard focus, its pr
 art when disabled. Tab and the arrow keys move the focus, Enter presses the focused button, Esc quits. The pointer
 passing over a button changes nothing.
 
-Ours, with the switch on: the poster shows centred in the 640×480 frame on black, before the main menu, drawn
-from `assets/install/autorun` at run time (the startup sound is read out of `jauto.exe`). PLAY opens the
-main menu; QUIT and Esc quit the game. INSTALL opens the setup wizard (to add or redo steps); UNINSTALL asks, then
-removes the setup's data (docs/setup.md "Uninstall") and quits. The other four buttons show their disabled art
-(docs/deviations.md §2). The focus starts on PLAY. Without the CD files (`iaf-extract --autorun <iso> assets/install`
-copies them) the start-up goes on without the launcher.
+Ours, with the switch on (what each button does: deviations.md §2 "CD launcher"): the poster shows centred in the
+640×480 frame on black, before the main menu, drawn from `assets/install/autorun` at run time (the startup sound is
+read out of `jauto.exe`). The focus starts on PLAY. UNINSTALL asks, uninstalls (docs/setup.md "Uninstall") and
+quits. Without the CD files (`iaf-extract --autorun <iso> assets/install` copies them) the start-up goes on without
+the launcher.
 
 ### 18.2 Intro videos
 - `FUN_004e2130` creates the video player (`FUN_004e7230` → `FUN_005c4960`: opens the MCI `avivideo` device and a
