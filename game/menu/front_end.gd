@@ -214,6 +214,8 @@ const EXTRAS := [
 	["better_cockpit", "Better cockpit", [["Original", false], ["Better", true]]],
 	# Ours: the Mission Creator's WIND / FROM combos (menu/mission_creator.gd, docs/front-end.md §19.4).
 	["better_mc", "Mission Creator", [["Original", false], ["Better", true]]],
+	# Ours: the RWR also shows the radars searching the jet, lost behind terrain (weapons/rwr.gd, docs/rwr.md §7).
+	["rwr_search", "RWR", [["Original", false], ["Real", true]]],
 ]
 
 

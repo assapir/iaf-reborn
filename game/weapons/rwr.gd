@@ -119,6 +119,13 @@ func update(t: float) -> void:
 	_sync()
 
 
+## Real RWR (ours, docs/rwr.md §7), on the refresh: of `sites` [{key, name, reach}], the radars that search the jet;
+## `terrain` the ground height. A new one plays WRN_NEW_GUY.
+func search(sites: Array, terrain: Callable) -> void:
+	_r.search(sites, unit, own.call(), _t(), terrain)
+	_sync()
+
+
 ## The nearest listed emitter within 370.8 km after a refresh (FUN_00451f70), "" = none.
 func nearest() -> String:
 	var k: String = _r.nearest(unit, own.call(), _t())
@@ -126,7 +133,7 @@ func nearest() -> String:
 	return k
 
 
-## The cockpit copy (FUN_00446200): [{type, pos (world X / Y), launch, active}].
+## The cockpit copy (FUN_00446200): [{type, pos (world X / Y), launch, active, search}].
 func display() -> Array:
 	return _r.display()
 

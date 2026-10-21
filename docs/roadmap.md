@@ -82,15 +82,6 @@ ranked order: [graphics-research.md](graphics-research.md).
   4.12–4.24, manual-audit.md); the guides give only the values the realistic options change (e.g. the radar ranges,
   guides/f16.md §14).
 
-## "Real RWR" option: search radars (Extras, wishlist)
-- **Original:** the RWR shows a ground site only once it locks or launches (rwr.md).
-- **Real RWR:** it also shows a SAM / AAA search or acquisition radar that is painting the jet (threat symbol + search
-  tone) before it engages, and loses it when terrain masks the jet. That is how real pilots learn terrain masking (a
-  real jet gives no "you are seen" cue).
-- **Option** (off by default): a radiating site radar inside its detection range, with terrain line of sight to the
-  jet (`IafRadar.line_of_sight`, the sites' own check), shows as a search contact; masked → gone. It helps the "fly
-  low" training (313).
-
 ## Mission replayer (after the missions work)
 Today a recorded blackbox flight (`user://flights/*.jsonl` with its mission events and subtitles,
 blackbox.schema.json) replays into the mission runtime at 8× speed and prints every subtitle / pass / box with its

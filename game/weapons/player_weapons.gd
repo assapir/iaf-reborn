@@ -1800,6 +1800,20 @@ func _rwr_unit(key: String) -> Dictionary:
 	}
 
 
+## Real RWR (docs/rwr.md §7): the hostile units, each with its name and its radar's range (the AI sensor's, combat.gd
+## sensor_nm); rwr.rs keeps the search radars in range and in sight.
+func _rwr_search() -> void:
+	var cb = host.ai.combat if host.get("ai") != null else null
+	if cb == null:
+		return
+	var sites := []
+	for u in _units():
+		if u.hostile:
+			var reach: float = cb.sensor_nm(int(u.ent.get("type_code", 0))) * cb.NM
+			sites.append({"key": u.key, "name": String(u.ent.get("name", "")), "reach": reach})
+	rwr.search(sites, host.mission_ground)
+
+
 ## The cockpit's radar snapshot (FUN_00445f10 → state+0x640.., +0xa00..): mode, range index (1..6),
 ## scope width, heading shift, antenna carets, the contacts and the lock.
 func radar_snapshot() -> Dictionary:
@@ -2009,6 +2023,8 @@ func update(t: float) -> void:
 	rwr.damaged = _flag(14)
 	var refreshed: bool = now >= rwr._next_refresh
 	rwr.update(now)
+	if refreshed and Settings.rwr_search:
+		_rwr_search()
 	if harm.active and refreshed:
 		_harm_capture()
 	_eo_update()

@@ -45,12 +45,15 @@ pub struct Unit {
     pub search: bool,
 }
 
+/// The class filter (vfunc +0x3c `FUN_0045b980`, called by the spatial query's callback `0x4b2240`): classes 9, 10
+/// and 11, and class 8 only when its name holds "RADAR" (0x631f3c, case sensitive: "RADARSA6", not "hawk 2 radar").
+pub fn radar_class(klass: i64, name: &str) -> bool {
+    matches!(klass, 9..=11) || (klass == 8 && name.contains("RADAR"))
+}
+
 impl Unit {
-    /// The class filter (vfunc +0x3c `FUN_0045b980`, called by the spatial query's callback `0x4b2240`): classes 9,
-    /// 10 and 11, and class 8 only when its name holds "RADAR" (0x631f3c, case sensitive: "RADARSA6", not "hawk 2
-    /// radar").
     fn scanned(&self) -> bool {
-        matches!(self.klass, 9..=11) || (self.klass == 8 && self.name.contains("RADAR"))
+        radar_class(self.klass, &self.name)
     }
 }
 

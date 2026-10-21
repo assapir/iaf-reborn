@@ -3,7 +3,7 @@
 
 use crate::world::{get, num, vec3, vector3};
 use godot::prelude::*;
-use iaf_avionics::rwr::{Emitter, Launched, Rwr, Shown, World, spo15};
+use iaf_avionics::rwr::{Emitter, Launched, Rwr, Shown, Site, World, spo15};
 use iaf_avionics::vec3::Vec3;
 
 fn emitter(d: &VarDictionary) -> Option<Emitter> {
@@ -88,6 +88,22 @@ impl IafRwr {
         with_world(&unit, &own, now, |w| self.rwr.update(w));
     }
 
+    /// Real RWR (`Rwr::search`): `sites` [{key, name, reach}] of the hostile ground units, `terrain` the ground height.
+    #[func]
+    fn search(&mut self, sites: VarArray, unit: Callable, own: VarDictionary, now: f64, terrain: Callable) {
+        let sites: Vec<Site> = sites
+            .iter_shared()
+            .filter_map(|v| v.try_to::<VarDictionary>().ok())
+            .map(|d| Site {
+                key: get::<GString>(&d, "key").unwrap_or_default().to_string(),
+                name: get::<GString>(&d, "name").unwrap_or_default().to_string(),
+                reach: num(&d, "reach").unwrap_or_default(),
+            })
+            .collect();
+        let ground = crate::world::terrain(Some(terrain));
+        with_world(&unit, &own, now, |w| self.rwr.search(w, &sites, &ground));
+    }
+
     /// The nearest listed emitter's key ("" none).
     #[func]
     fn nearest(&mut self, unit: Callable, own: VarDictionary, now: f64) -> GString {
@@ -100,7 +116,7 @@ impl IafRwr {
         self.rwr.take_new_guy()
     }
 
-    /// The cockpit copy: [{type, pos (world X / Y), launch, active}].
+    /// The cockpit copy: [{type, pos (world X / Y), launch, active, search}].
     #[func]
     fn display(&self) -> VarArray {
         self.rwr
@@ -108,7 +124,9 @@ impl IafRwr {
             .iter()
             .map(|s| {
                 let pos = Vector2::new(s.pos.x as f32, s.pos.y as f32);
-                vdict! { "type" => s.type_code, "pos" => pos, "launch" => s.launch, "active" => s.active }.to_variant()
+                vdict! { "type" => s.type_code, "pos" => pos, "launch" => s.launch, "active" => s.active,
+                "search" => s.search }
+                .to_variant()
             })
             .collect()
     }
@@ -128,6 +146,7 @@ impl IafRwr {
                     pos: Vec3::new(p.x as f64, p.y as f64, 0.0),
                     launch: get(&d, "launch").unwrap_or(false),
                     active: get(&d, "active").unwrap_or(false),
+                    search: get(&d, "search").unwrap_or(false),
                 }
             })
             .collect();

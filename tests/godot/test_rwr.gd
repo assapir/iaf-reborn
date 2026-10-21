@@ -1,7 +1,8 @@
 # The RWR (docs/rwr.md): synthetic emitters for the pure rules (lock / unlock, the emitter test, the
 # lights, the launch flag and its sounds, drops while missiles fly, damage), then mission 221 (F-16):
 # a locking AI jet behind the player lights 'ai' with WRN_NEW_GUY, the RWR page / panel dial position,
-# F5 views it, damage 14 clears it, and the player's radar lock marks the AI's brain+0x7c.
+# F5 views it, damage 14 clears it, and the player's radar lock marks the AI's brain+0x7c. Real RWR (§7): the
+# radars searching the jet, in range and in sight.
 extends "res://../tests/godot/base.gd"
 
 
@@ -110,6 +111,35 @@ func run() -> void:
 		r.count == 0 and r.missiles.is_empty() and not r.lamps[3] and not r.lamps[4],
 		"damage 14 / 19 / 21: list and lights cleared"
 	)
+
+	# Real RWR (ours, §7): the SA-3 searches within its reach and in sight; a ridge masks it; the MiG has no search
+	# radar; a lock shows once, as the lock.
+	var rs = Rwr.new()
+	rs.unit = r.unit
+	rs.own = r.own
+	rs.now = r.now
+	rs.play = r.play
+	played.clear()
+	units.sam.state = 1
+	var flat := func(_p): return 0.0
+	var ridge := func(p): return 5000.0 if absf(p.x - 7000.0) < 500.0 else 0.0
+	var sites := [{"key": "sam", "name": "RADARsa3", "reach": 37080.0}, {"key": "back", "reach": 37080.0}]
+	t[0] = 10.0
+	rs.search(sites, flat)
+	var sd: Array = rs.display()
+	check(
+		sd.size() == 1 and sd[0].search and sd[0].active and sd[0].type == 300 and rs.count == 0,
+		"Real RWR: the searching SA-3 shown, not listed (%s)" % [sd]
+	)
+	check(played == ["WRN_NEW_GUY"] and not rs.lamps[4], "Real RWR: a new search radar plays WRN_NEW_GUY, no light")
+	rs.search(sites, ridge)
+	check(rs.display().is_empty(), "Real RWR: masked by terrain, gone")
+	rs.search([{"key": "sam", "name": "RADARsa3", "reach": 10000.0}], flat)
+	check(rs.display().is_empty(), "Real RWR: beyond its radar's reach, not heard")
+	rs.search(sites, flat)
+	rs.lock("sam")
+	sd = rs.display()
+	check(sd.size() == 1 and not sd[0].search, "Real RWR: a locking radar shows once, as the lock")
 
 	# --- mission 221 ------------------------------------------------------------------------------
 	var tv = await start_mission(221)

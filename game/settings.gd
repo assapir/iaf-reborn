@@ -118,6 +118,7 @@ const PREFS := {
 		"wheel_scroll",
 		"better_cockpit",
 		"better_mc",
+		"rwr_search",
 		"world_scale"
 	],
 }
@@ -244,6 +245,8 @@ var cockpit_items := {}
 ## Mission Creator: Better (ours, Extras page; docs/front-end.md §19.4): false = the original screen; true = its WIND
 ## and FROM combos, whose wind FLY writes into mission 0x29a.
 var better_mc := false
+## RWR: Real (ours, Extras page; docs/rwr.md §7): the RWR also shows the SAM / AAA radars searching the jet.
+var rwr_search := false
 ## World scale (ours, Extras page; docs/world-scale.md): "original" (the models at their Present scale, ×2 for
 ## the jets) or "real" (true size, model_scale). Read at mission load.
 var world_scale := "original"

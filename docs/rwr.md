@@ -110,3 +110,23 @@ view (`@4ce003`), AI action 430 and condition 38 (for a unit with a controller) 
   `IafRwr.spo15`; docs/cockpit.md "MiG gauges").
 - Not ported: the network messages; the restart path of the launch loop in `FUN_00448120` (@4482ee, a flight
   restored with launch flags).
+
+## 7. Ours: Extras "RWR: Real" (search radars)
+The original RWR hears a ground site only once the site locks the jet or launches at it (§2). A real RWR also hears a
+search or acquisition radar that paints the jet, and loses it when terrain masks the jet. With Extras "RWR: Real"
+(`Settings.rwr_search`, off by default) ours does the same:
+- **Who searches:** every hostile unit that is a radar by the HARM sensor's class rule (classes 9–11, or class 8 with
+  "RADAR" in its name: `harm.rs` `radar_class`) and has a SAM / AAA radar type with an RWR glyph (290, 300, 310, 320,
+  330, 340, 350, 360, 380, 390), alive (state < 4), within its radar's range (the AI sensor range, `combat.gd`
+  `sensor_nm`: SA-3 / SA-6 10 NM, SA-2 / SA-5 / SA-8 / Hawk 20 NM, the AAA radars 5 NM) and in terrain line of sight of
+  the jet (`radar::line_of_sight`, both ends raised 1.5 m: the sites' own check). A SAM battery's launchers carry the
+  same type but are not radars, so one battery shows one symbol.
+- **When:** on the RWR's 2 s refresh (§1).
+- **Display:** a searching radar that is not listed (no lock, no launch) is added to the cockpit copy (§4) after the
+  listed entries, up to 15 in all, as a steady symbol. A lock shows only as the lock.
+- **Sound:** a new searching radar plays WRN_NEW_GUY through the same 1 s gate (§3). The 'ai' / 'sam' lights and the
+  AI's view of the list (count, the nearest threat) stay the locks'.
+- **SPO-15** (Better cockpit `spo15`): a searching radar lights its sector and type lamps, not the lock lamp.
+- **Damage 14:** the search list is cleared and nothing is heard.
+- **Code:** `rwr.rs` `Rwr::search`, `IafRwr.search`, `rwr.gd` `search`, `player_weapons.gd` `_rwr_search`; tests in
+  `rwr.rs` and `tests/godot/test_rwr.gd`.

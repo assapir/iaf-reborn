@@ -154,6 +154,10 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   when the round's path passes within the target's drawn half-span + 0.004 · range (×2 with Easy aiming), not the
   original's 25 m sphere at each 0.1 s check; the missiles and SAMs with a published lethal radius get a blast
   radius from it (real-weapons.md §1.4).
+- **RWR (Original / Real).** Original: the RWR shows a ground site only once it locks the jet or launches at it.
+  Ours, with Real (`rwr_search`): it also shows the hostile SAM / AAA radars searching the jet, within their radar's
+  range and in terrain line of sight, as steady symbols with WRN_NEW_GUY when a new one appears; terrain masking
+  drops them (rwr.md §7).
 - **HARM targets (Original / Real).** Original: the HARM page lists its sensor's own scan (the radar classes within
   20 NM in the ±15° cone, emitting or not, friendlies too, best 15). Ours, with Real (saved value "rwr"): the page lists the RWR's active
   emitters inside that cone and the hostile scanned sites without a brain (never on the RWR: they never lock; counted

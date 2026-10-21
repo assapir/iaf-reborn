@@ -3,8 +3,13 @@
 //! missiles launched at it (`FUN_0044e160` / `FUN_0044e1d0`), the 2 s refresh (`FUN_00451a70`), the panel lights 'ai' /
 //! 'sam' (`FUN_00450bc0`), the nearest threat (`FUN_00451f70`) and the cockpit copy (`FUN_00446200`).
 //!
+//! Extras "RWR: Real" (ours, docs/rwr.md §7) adds the SAM / AAA radars that search the jet: in their range and in
+//! terrain line of sight, kept apart from the original's slots.
+//!
 //! World frame X east, Y north, Z up, metres, sim seconds. The host looks the units up and plays the sounds.
 
+use crate::harm::radar_class;
+use crate::radar::line_of_sight;
 use crate::vec3::Vec3;
 use std::f64::consts::{PI, TAU};
 
@@ -23,6 +28,29 @@ const REFRESH: f64 = 2.0;
 const NEW_GUY_GATE: f64 = 1.0;
 /// The cockpit copy shows at most 15 entries.
 const DISPLAY_MAX: usize = 15;
+/// The search test raises both line-of-sight ends 1.5 m, as the sites' own check (combat.gd LOS_RAISE).
+const LOS_RAISE: f64 = 1.5;
+
+/// The ground radars with an RWR glyph (docs/mfd.md §3 "RWR"): SA-2 / 3 / 5 / 6 / 8, Hawk, the AAA radars.
+pub fn search_radar(type_code: i64) -> bool {
+    matches!(type_code, 290 | 300 | 310 | 320 | 330 | 340 | 350 | 360 | 380 | 390)
+}
+
+/// A hostile ground unit offered to the search test: its key, its mission name and its radar's range (m).
+#[derive(Clone, Debug)]
+pub struct Site {
+    pub key: String,
+    pub name: String,
+    pub reach: f64,
+}
+
+/// A radar searching the jet (Real RWR).
+#[derive(Clone, Debug, PartialEq)]
+pub struct Search {
+    pub key: String,
+    pub type_code: i64,
+    pub pos: Vec3,
+}
 
 /// A unit as the RWR sees it.
 #[derive(Clone, Copy, Debug, Default)]
@@ -100,6 +128,8 @@ pub struct Shown {
     pub pos: Vec3,
     pub launch: bool,
     pub active: bool,
+    /// A searching radar (Real RWR): no lock.
+    pub search: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -118,6 +148,8 @@ pub struct Rwr {
     next_refresh: f64,
     /// WRN_NEW_GUY to play.
     new_guy: bool,
+    /// Real RWR: the radars searching the jet, from the last [`Rwr::search`].
+    searching: Vec<Search>,
 }
 
 impl Default for Rwr {
@@ -132,6 +164,7 @@ impl Default for Rwr {
             gate: (f64::NEG_INFINITY, f64::NEG_INFINITY),
             next_refresh: 0.0,
             new_guy: false,
+            searching: Vec::new(),
         }
     }
 }
@@ -145,6 +178,9 @@ impl Rwr {
     }
     pub fn threats(&self) -> &[Threat] {
         &self.threats
+    }
+    pub fn searching(&self) -> &[Search] {
+        &self.searching
     }
     pub fn next_refresh(&self) -> f64 {
         self.next_refresh
@@ -286,6 +322,7 @@ impl Rwr {
 
     /// Damage 14 / 19 / 21 (`FUN_00451b90`): every entry and the missile list cleared.
     pub fn clear(&mut self) {
+        self.searching.clear();
         self.slots = Default::default();
         self.count = 0;
         self.threats.clear();
@@ -347,6 +384,36 @@ impl Rwr {
         self.new_guy = true;
     }
 
+    /// Real RWR (ours), on the 2 s refresh: the `sites` that are a radar (the HARM sensor's class rule, so a SAM
+    /// battery's launchers stay silent) with a search radar's type, alive, within their reach and in terrain line of
+    /// sight of the jet search it. A new one plays WRN_NEW_GUY through the lock's gate; the lights stay the
+    /// locks'. A damaged RWR hears none.
+    pub fn search(&mut self, w: &World, sites: &[Site], terrain: &dyn Fn(Vec3) -> Option<f64>) {
+        if self.damaged {
+            self.searching.clear();
+            return;
+        }
+        let raise = Vec3::new(0.0, 0.0, LOS_RAISE);
+        let now: Vec<Search> = sites
+            .iter()
+            .filter_map(|s| {
+                let u = (w.unit)(&s.key)?;
+                (search_radar(u.type_code)
+                    && radar_class(u.class, &s.name)
+                    && u.state < 4
+                    && u.pos.distance(w.pos) <= s.reach
+                    && line_of_sight(u.pos + raise, w.pos + raise, terrain))
+                .then(|| Search { key: s.key.clone(), type_code: u.type_code, pos: u.pos })
+            })
+            .collect();
+        let new = now.iter().any(|s| self.find(&s.key).is_none() && !self.searching.iter().any(|o| o.key == s.key));
+        self.searching = now;
+        if new && !(w.now >= self.gate.0 && w.now <= self.gate.1) {
+            self.gate = (w.now, w.now + NEW_GUY_GATE);
+            self.new_guy = true;
+        }
+    }
+
     /// The nearest listed emitter within 370.8 km after a refresh (`FUN_00451f70`: F5's threat, AI action 430,
     /// condition 38).
     pub fn nearest(&mut self, w: &World) -> Option<String> {
@@ -366,19 +433,31 @@ impl Rwr {
     }
 
     /// The cockpit copy (`FUN_00446200`): the first `count` slots (at most 15; original bug: slots are not compacted,
-    /// so after a removal an entry past `count` is not shown). With `compact` every listed slot is shown.
+    /// so after a removal an entry past `count` is not shown). With `compact` every listed slot is shown. Then the
+    /// searching radars not listed (Real RWR), up to 15 in all.
     pub fn display(&self) -> Vec<Shown> {
-        let shown = |s: &Slot| Shown { type_code: s.type_code, pos: s.pos, launch: s.launch, active: s.active };
-        if self.compact {
+        let shown =
+            |s: &Slot| Shown { type_code: s.type_code, pos: s.pos, launch: s.launch, active: s.active, search: false };
+        let mut out: Vec<Shown> = if self.compact {
             self.slots.iter().filter(|s| s.type_code != 0).take(DISPLAY_MAX).map(shown).collect()
         } else {
             self.slots.iter().take(self.count.min(DISPLAY_MAX)).map(shown).collect()
-        }
+        };
+        let searching = self.searching.iter().filter(|s| self.find(&s.key).is_none()).map(|s| Shown {
+            type_code: s.type_code,
+            pos: s.pos,
+            launch: false,
+            active: true,
+            search: true,
+        });
+        out.extend(searching.take(DISPLAY_MAX.saturating_sub(out.len())));
+        out
     }
 }
 
 /// Ours, Better cockpit `spo15` (docs/mig-cockpits.md §4.4): the MiG-23 panel's SPO-15 lamps from the cockpit
-/// copy. The game's RWR lists only the radars that lock the jet (docs/rwr.md §2), so every active entry locks it.
+/// copy. The original RWR lists only the radars that lock the jet (docs/rwr.md §2); a searching radar (Real RWR)
+/// lights its sector and type lamps without the lock lamp.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Spo15 {
     /// Sector lamps, bit i: 0..3 the left 10° / 30° / 50° / 90° lamps, 4..7 the right ones, 8 / 9 the left / right
@@ -444,7 +523,7 @@ pub fn spo15(shown: &[Shown], own: Vec3, heading_deg: f64) -> Spo15 {
         let rel = (dx.atan2(dy).to_degrees() - heading_deg + 540.0).rem_euclid(360.0) - 180.0;
         out.sectors |= spo15_sectors(rel);
         power = power.max(1.0 - e.pos.distance(own) / RANGE);
-        out.lock = true;
+        out.lock |= !e.search;
         out.launch |= e.launch;
         if let Some(t) = spo15_type(e.type_code) {
             out.types |= 1 << t;
@@ -500,6 +579,37 @@ mod tests {
     }
 
     #[test]
+    fn search_radars_in_range_and_in_sight() {
+        let site = |key: &str, reach| Site { key: key.into(), name: "RADARsa3".into(), reach };
+        let flat = |_: Vec3| Some(0.0);
+        let ridge = |p: Vec3| Some(if (p.x - 7000.0).abs() < 500.0 { 5000.0 } else { 0.0 });
+        let mut r = Rwr::default();
+        let sites = [site("sam", 37080.0), site("front", 37080.0)];
+        r.search(&world(0.0), &sites, &flat);
+        assert_eq!(r.searching().len(), 1, "the aircraft has no search radar");
+        r.search(&world(0.0), &[Site { name: "sa3 launcher".into(), ..site("sam", 37080.0) }], &flat);
+        assert!(r.searching().is_empty(), "a launcher is no radar");
+        r.search(&world(0.0), &sites, &flat);
+        assert!(r.take_new_guy());
+        let d = r.display();
+        assert!(d.len() == 1 && d[0].search && d[0].active && d[0].type_code == 300);
+        r.search(&world(3.0), &sites, &flat);
+        assert!(!r.take_new_guy(), "only a new radar sounds");
+        r.search(&world(5.0), &sites, &ridge);
+        assert!(r.searching().is_empty(), "masked by the ridge");
+        r.search(&world(7.0), &[site("sam", 10000.0)], &flat);
+        assert!(r.searching().is_empty(), "out of its reach");
+        r.search(&world(9.0), &sites, &flat);
+        r.lock(&world(9.0), "sam");
+        let d = r.display();
+        assert!(d.len() == 1 && !d[0].search, "a lock shows once, as the lock");
+        assert!(!spo15(&[Shown { search: true, ..d[0] }], Vec3::ZERO, 0.0).lock);
+        r.damaged = true;
+        r.search(&world(11.0), &sites, &flat);
+        assert!(r.searching().is_empty());
+    }
+
+    #[test]
     fn spo15_lamps() {
         assert_eq!(spo15_sectors(0.0), 0b1_0001, "the nose: both 10° lamps");
         assert_eq!(spo15_sectors(12.0), 1 << 4);
@@ -510,9 +620,17 @@ mod tests {
         assert_eq!(spo15_sectors(170.0), 1 << 9, "right rear");
         // Heading east: a SAM to the south is 90° right, half the range away; an aircraft ahead launching.
         let own = Vec3::new(0.0, 0.0, 0.0);
-        let sam = Shown { type_code: 320, pos: Vec3::new(0.0, -RANGE / 2.0, 0.0), launch: false, active: true };
-        let air = Shown { type_code: 180, pos: Vec3::new(30000.0, 0.0, 0.0), launch: true, active: true };
-        let off = Shown { type_code: 290, pos: Vec3::new(100.0, 0.0, 0.0), launch: false, active: false };
+        let sam = Shown {
+            type_code: 320,
+            pos: Vec3::new(0.0, -RANGE / 2.0, 0.0),
+            launch: false,
+            active: true,
+            search: false,
+        };
+        let air =
+            Shown { type_code: 180, pos: Vec3::new(30000.0, 0.0, 0.0), launch: true, active: true, search: false };
+        let off =
+            Shown { type_code: 290, pos: Vec3::new(100.0, 0.0, 0.0), launch: false, active: false, search: false };
         let s = spo15(&[sam, air, off], own, 90.0);
         assert_eq!(s.sectors, 1 << 7 | 0b1_0001);
         assert_eq!(s.power, 8, "the SAM at half the range: ceil(7.5)");
