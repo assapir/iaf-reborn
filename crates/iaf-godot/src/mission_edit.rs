@@ -8,6 +8,7 @@ use std::sync::{LazyLock, Mutex};
 use godot::prelude::*;
 use iaf_formats::terrain_types::TerrainTypes;
 use iaf_tools::mission_edit as me;
+use iaf_tools::mission_events as mev;
 use iaf_tools::mission_sanity as ms;
 use iaf_tools::mission_year as my;
 use serde_json::{Map, Value, json};
@@ -283,5 +284,29 @@ impl IafMissionEdit {
             .map(|x| (x[0].as_str().unwrap_or("").to_string(), x[1].as_f64().unwrap_or(0.0) as i64))
             .collect();
         text(&json!(my::base_issues(&b, year).iter().map(me::Issue::to_json).collect::<Vec<_>>()))
+    }
+
+    // --- the scenario rules (iaf_tools::mission_events, docs/mission-editor.md §18) ---
+
+    /// The mission's rules: a JSON array of {key, editable, why?, name, times, debrief, text, when, then, summary}.
+    #[func]
+    fn rules(mission: GString) -> GString {
+        let mut d = DATA.lock().unwrap();
+        d.load();
+        text(&mev::rules(&parse(&mission), d.bdb.as_ref().unwrap_or(&Value::Null)))
+    }
+
+    /// Writes the edited `rules` (JSON array): JSON {mission, errors: [{rule, text}], keys}.
+    #[func]
+    fn set_rules(mission: GString, rules: GString) -> GString {
+        text(&mev::set_rules(parse(&mission), &parse(&rules)))
+    }
+
+    /// The bdb's messages: a JSON array of {id, name, text}.
+    #[func]
+    fn audio_list() -> GString {
+        let mut d = DATA.lock().unwrap();
+        d.load();
+        text(&mev::audio_list(d.bdb.as_ref().unwrap_or(&Value::Null)))
     }
 }

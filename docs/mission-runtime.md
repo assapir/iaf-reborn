@@ -330,7 +330,7 @@ execute that entry and schedule its end timer.
 | 2 | **Launch at target** | `0x5c42f0` | `FUN_004aae40(target key from 0x8ac entity id, …)`: the unit's weapon at the target's position (no lead, no range check) through the release `FUN_004ab810` (docs/ai.md §14); 0x852 ≠ 0 a kill shot (the target explodes), 0 a "Miss …" for show (no blast damage). Port: `combat.gd` `script_fire` |
 | 3, 4, 15, 18, 19, 23, 26 | (15 = **Wait**, 19 = "Destroy entity") | `0x58a330` | **no-op** (only the duration). Op 19 is a no-op in this build |
 | 5 | **Explode** | `0x5c4310` | `FUN_004a8ae0(0,5,…)`: set damage level 5, entity destroyed (docs/damage.md §3). Skipped for the player when shielded (`FUN_0058a350`: the damage object's shield flag) |
-| 6 | — | `0x5c4340` | fire scenario event (arg) |
+| 6 | — | `0x5c4340` | fire scenario event `0x8ac` (`FUN_004ba7a1(+0x28)`; the factory `FUN_004b8f09` builds op 6 as op 7, whose +0x28 is the audio id `0x8ac`). No original uses it; the mission editor's waits do (mission-editor.md §18.4) |
 | 7 | **Play message** | `0x5c4360` | `PlayMessage(0x8ac)` (§3.3); 0 = none |
 | 8 | — | `0x5c4380` | subtitle console `FUN_0044a060(string 0x848)` |
 | 9 | — | `0x5c43a0` | `FUN_0044d760(arg)` — UNCERTAIN |

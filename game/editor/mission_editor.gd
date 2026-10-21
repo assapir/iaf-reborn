@@ -7,6 +7,7 @@ extends Control
 const Tsd := preload("res://menu/tsd.gd")
 const EditApi := preload("res://editor/_edit_api.gd")
 const Img := preload("res://util/img.gd")
+const ScenarioEditor := preload("res://editor/scenario_editor.gd")
 
 const UNDO_MAX := 50
 ## The Add picker's classes: label → bdb object classes (0x5aa).
@@ -755,6 +756,7 @@ func _refresh_ui() -> void:
 	_fill_conditions()
 	_fill_intel()
 	_fill_clipboard()
+	_ui.scenario.refresh()
 	host.preview.queue_redraw()
 
 
@@ -836,17 +838,18 @@ func _build_ui() -> void:
 	_build_flights_tab(_tab(tabs, "Flights"))
 	_build_mission_tab(_tab(tabs, "Mission"))
 	_build_intel_tab(_tab(tabs, "Intel"))
+	_ui.scenario = ScenarioEditor.new(self)
+	tabs.add_child(_ui.scenario)
 	_build_dialogs()
 	_wrap_texts(tabs)
 
 
-## Every label and check box text in the side panel wraps at its width, so no text widens the panel.
+## Every label and check box standing on a line of its own in the side panel wraps at its width, so no text widens the
+## panel (labels inside a row or a block palette keep their line).
 func _wrap_texts(node: Node) -> void:
-	for c in node.find_children("*", "Label", true, false):
-		if not c.get_parent() is HBoxContainer:
+	for c in node.find_children("*", "Label", true, false) + node.find_children("*", "CheckBox", true, false):
+		if c.get_parent() is VBoxContainer:
 			c.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	for c in node.find_children("*", "CheckBox", true, false):
-		c.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
 
 func _tab(tabs: TabContainer, name: String) -> VBoxContainer:

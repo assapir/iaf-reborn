@@ -48,6 +48,7 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
     another TSD map moves the mission to that map (§12.1).
   - **Intel:** what the pilot sees before the flight: the units shown on the pilot's TSD, the intel preview and the
     briefing's links (§14).
+  - **Scenario:** "when X then Y" rules built from blocks (§18).
 - **Bottom:** what passes and fails the mission (§13), red when it can never pass; under it the errors and warnings,
   errors first, in red and yellow (the list shows only when it has any). A click on one selects its unit and centres
   the map on it.
@@ -168,7 +169,8 @@ Missions go in and come back as JSON strings. Positions are engine world metres:
 - `add_entity` clears what belongs to the template's own mission: its event slots, both script lists and its related
   entity (`0xac`). The new entity is brain-controlled (`0x320` bit 0 clear).
 - `remove_entity` sets the formation members and targets that named the entity to -1, removes the event actions on
-  it, and sets every `0xac` that pointed at it to -1.
+  it, and sets every `0xac` that pointed at it to -1. A Launch at target (trigger op 2) or Yaw to target (motion op
+  11) at it becomes a Wait / Hover, which does nothing.
 
 ### 5.2 Routes for ground units and flyers
 A route uses the original's own mechanism: motion op 16 Path (mission-runtime.md §4 "Path details").
@@ -184,7 +186,8 @@ A route uses the original's own mechanism: motion op 16 Path (mission-runtime.md
 5. With `hover_end`, entry 2 is Hover (op 1): the unit stops at the last point.
 
 Several units can share one path. `clear_route` empties the unit's motion list, makes it brain-controlled again,
-and removes a path that no unit follows any more.
+removes the scenario rules' jumps into it (§18) and removes a path that no unit follows any more. A new route for a
+unit that a rule starts keeps waiting for the rule: Hover at entry 1, the Path at entry 2, the rule's jump moved to it.
 
 ### 5.3 Flights Alpha..Delta
 `set_flight(mission, number, spec)`: `spec` is `{type, count, slot_x, slot_y, alt, heading, points?}`.
@@ -335,7 +338,9 @@ Each flight record also carries `formation`, the index of its formation in the m
 - `tests/godot/test_mission_edit_red.gd`: two MiG-29s added at Damascus in a 1998 mission spawn as AI jets, take off
   and fly their route.
 - `cargo test -p iaf-tools --lib mission_`: names, edits and references, routes, red flights, flipped bases, the
-  check and its calibration; the year tables (`mission_year`).
+  check and its calibration; the year tables (`mission_year`); the scenario rules (`mission_events`, §18.5).
+- `tests/godot/test_mission_edit_scenario.gd`: the Scenario tab (§18.5).
+- `tests/godot/_scenario_shot.gd`: real-render screenshots of the Scenario tab (usage in its header).
 
 ## 12. Mission year
 
@@ -771,3 +776,103 @@ from every side". Leaving out the target's own site (5 km) and testing 15 km out
   - The pasted units become the list's selection, so Give a route or Target works on them at once.
 - Copy works on an original too; Paste only into your own mission. The copied units stay until the next Copy, also
   across missions.
+
+## 18. Scenario
+
+The **Scenario** tab holds the mission's rules: "when X then Y". Each rule is one WHEN block and any number of THEN
+blocks. The rules are written as the original's own event data (mission-runtime.md §2–§4), so the runtime runs them
+with no change, as it runs the originals' events.
+
+Code: `crates/iaf-tools/src/mission_events.rs` (`rules`, `set_rules`, `audio_list`, through `IafMissionEdit`), the
+tab `game/editor/scenario_editor.gd`.
+
+### 18.1 The tab
+- At the top, the WHEN and THEN palettes. Drag a block onto a rule, or click it: a WHEN block makes a new rule (or
+  replaces the highlighted rule's WHEN), a THEN block goes to the end of the highlighted rule.
+- Under them, the rules in the mission's event order, each with its summary in plain English, for example "When
+  SA6 is destroyed → Convoy starts its route". ↑ and ↓ move a rule, ✕ deletes it or one of its blocks.
+- A unit is picked from a list of the mission's units by name, kind and side ("SA6 (SA 6, red)", a flight leader
+  as "Alpha: …"), or with **Map** and then a click on the unit on the map. A message is picked by its subtitle.
+- A rule that cannot be written yet (a unit still to pick, a slot another rule uses) stays on the tab as a new rule
+  with what is missing ("To finish: …"); it is not in the mission until it can be written.
+- An original's rule that does not fit the blocks is listed with the reason and kept as it is: it cannot be changed,
+  moved into another form or deleted here.
+
+### 18.2 WHEN blocks
+| block | the original's data |
+|---|---|
+| Unit destroyed (one or more units, "or") | entity slot 1 (evDestroy) = the rule's event, on each unit (`FUN_004a6310`) |
+| Unit badly hit | slot 0 (evHit): the unit goes from alive to fatally hit, state 1 → 3 (`FUN_004a6240`) |
+| Comes within (a unit, a distance, a centre unit) | slot 5 (evReached), the watched unit `0xac`, the radius in slot 4's `0x348` (`FUN_004a6590`, checked every 4 s in 3-D, mission-runtime.md §2.2) |
+| Moves away | slot 4 (evLeft): armed only after the unit came within the distance |
+| Mission start | a holder sensor, mission-controlled: its trigger list starts at entry 1 with the flight (`FUN_004a61e0`) and fires the rule's event (op 6) |
+
+**Where a distance check goes.** The runtime arms a reached / left check only on a mission-controlled entity, and
+never on the player. The distance is symmetric, so:
+- a centre that does not move (no route, not in a flight): a new **area sensor** (bdb object 130, mission-controlled)
+  at the centre's position, watching the unit;
+- else the unit, or the centre, when it is mission-controlled (a unit on a route), is not in flights Alpha..Delta
+  and its slot is free (its other slot may hold a rule on the same unit and distance);
+- else the rule cannot be written: two moving units of which neither is on a route (for example a MiG and Alpha).
+
+The distance is 3-D: a jet at 5 km altitude is 8.7 km from a ground unit it passes over at "within 10 km".
+
+### 18.3 THEN blocks
+| block | the original's data |
+|---|---|
+| Radio message | the event's audio `0x3ac`: PlayMessage, the wav and its subtitle (`FUN_004bb10b`); a second message in the same moment is trigger op 7 in the holder's list |
+| Wait | trigger op 15 Wait for that many seconds in the holder's list, then op 6 fires the event of the blocks after it (§18.4) |
+| Start its route | an action jumping the unit's motion list to its Path (the route from the Units tab); the route waits on a Hover at entry 1 until then, the originals' pattern ("Wait" / "hov", Path at 2) |
+| Appear / Disappear | trigger op 13 / 14 (`FUN_00463f10` / `FUN_00463ec0`) in the unit's trigger list |
+| Cannot be hurt / Can be hurt | op 11 / 12 (the damage object's shield flag) |
+| May fight / Hold fire | op 21 / 22 (`FUN_00440830` / `FUN_004407e0`, docs/ai.md §6) |
+| Fire at a unit (to kill, or a miss for show) | op 2 Launch at target, `0x8ac` the target, `0x852` 1 or 0 (`FUN_004aae40`) |
+| Explode | op 5 (`FUN_004a8ae0`, damage level 5) |
+| Goal done | op 5 on a new role-1 sensor: it counts as a destroyed target (§13, `FUN_00599da0`) |
+| Mission fails | op 5 on a new role-0 sensor: a lost must-survive unit fails the mission |
+
+Read back only: Launch at location (op 1), shown as "fires at a point".
+
+Blocks at the same moment run together; the tab shows them in a fixed order (the message first).
+
+### 18.4 How a rule is written
+- **The event.** One event per rule (`CDMEEventItem`): its name, audio, executions (`0x398`, 1), debrief and text
+  are kept from the original when it is rewritten; its actions `[unit, motion index, trigger index]` jump the units'
+  lists (`FUN_004c35d6`).
+- **A unit's blocks.** Appended to the unit's trigger list as one chain of entries of 0 s. A list that was empty
+  first gets a Wait at entry 1 ("WAIT FOR RULE"), which ends the list at once: entry 1 runs with the flight on a
+  mission-controlled unit, and a route makes a unit mission-controlled.
+- **Waits.** The blocks after a wait need a later event. A **holder sensor** (brain-controlled, so its list waits
+  for the jump) gets the chain Wait N → op 6 (fire the next event) → … ; the rule's event jumps it. Trigger op 6 is
+  in the exe but in no original: its Execute `FUN_005c4340` fires the event at script +0x28, which the factory
+  `FUN_004b8f09` fills as for op 7 Play message (`0x8ac`).
+- **The editor's sensors** carry the label `0x316` "scenario rule", "scenario area" or "scenario goal" (the runtime
+  never reads it). They stand at (-1, -1), as the originals' sensors do, except an area sensor, which stands at its
+  centre. Their names: "Rule: …", "Area: near …", "Goal: …", "Lose: …".
+- **Keeping the original.** `set_rules` rewrites only the rules that changed; an unchanged rule (same key, same
+  blocks) and every rule not editable here keep their data byte for byte. A changed or deleted rule is taken out
+  first: its event and later events, the slots that fired them, its script entries (the lists renumbered, every
+  action and next link following), a route's Hover hold, and the sensors left with nothing to do.
+- **Order.** The events follow the order of the rules on the tab.
+
+### 18.5 Reading the originals
+`rules` reads every event: the slots that fire it, then its audio and actions, then the trigger chains the actions
+jump to (waits add up, op 6 follows to the next event). A rule is editable when it is one WHEN block, every entry is
+a block, it uses no counter, and its entries belong to it alone (not to another rule, nor to a script that runs from
+entry 1 at the start).
+
+Over the 131 converted files: 1197 events, 754 editable. Rewritten in the editor's form, all 754 read back as the
+same blocks; written back unchanged, every file stays byte-identical (Rust test `originals_round_trip`). Not
+editable are, for example, events no slot fires (205 in the data), events fired by several kinds of slots, and
+motion jumps other than to a Path (Hover, Yaw to target).
+
+**Not possible without a runtime change:** a flight that takes off when a rule fires. Disable combat stops a brain
+only when it is engaged (docs/ai.md §6), so a parked jet cannot be held on the ground and released by an event; the
+original holds no such rule either. Take-off times stay the route's planned arrival times (§12.5).
+
+**Tests:** `cargo test -p iaf-tools --lib mission_events` (the round trip; New with three rules written, read back,
+kept by a new route, all removed giving the mission back; references after `remove_entity`; a slot used twice);
+`tests/godot/test_mission_edit_scenario.gd` builds on the tab, on a New mission, "when the SA-6 is destroyed → the
+convoy starts its route" and "when Alpha comes within 10 km of the tank → play MiG's! MiG's! MiG's!", flies it
+through the runtime, and checks that the message plays and that the convoy waits until the SA-6 is destroyed and
+then drives.
