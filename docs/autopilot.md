@@ -170,6 +170,20 @@ approach and the float before touchdown steer to the centreline with a damped la
   and landing on Ramon's 07R), `tests/godot/test_wind_runway.gd` (the tower's calls, the signs, the starts, the
   cases without a turn, World scale Real's letter).
 
+### 2.5 Unbalanced stores (ours, Better physics "Asymmetric stores")
+- The switch adds the stores' rolling moment to the roll command as a stick deflection
+  ([flight-model.md](flight-model.md) §10). The roll laws (`5c9bc0`, `5cb4d0`) are proportional only, so against
+  that bias they hold a steady bank and the jet drifts sideways. The bias grows as the speed falls, most in the float
+  before touchdown.
+- So while a loop runs (`Aircraft::stores_trim`, set by `Autopilot::step` and `player_mode`), the flight model
+  adds the stick that cancels the moment, within full stick: `p_cmd = MaxRollRate · clamp(clamp(stick − s, −1, 1) +
+  s, −1, 1)`, s the stores' stick. The autopilot's own stick on the levers is unchanged.
+- Example: 312's F-16 carries a balanced load, but the model's pylons sit 9 mm further out on the left
+  (MK-84 at −1.735 / +1.726 m, MK-83 at −2.986 / +2.977 m), a 22 kg·m moment. Without the trim the demonstration
+  touched down 10–33 m left of the centreline with every switch on; with it, within 2 m, as with the switch off.
+  An AI jet with one MK-82 left on the right wing (680 kg·m) circles without the trim and lands on the centreline
+  with it (test `lands_at_ramat_david_with_unbalanced_stores`).
+
 ## 3. Landing training 312 "Eagle Baby"
 The player starts at 2000 m, heading 270°, east of Ramat David. The start is airborne, so the autopilot is on in level
 mode. The first message (audio 256, `LANDING1.WAV`): "Press the "A" key to engage the autopilot, and I'll demonstrate

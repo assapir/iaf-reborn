@@ -590,6 +590,8 @@ Where our port differs from the original. Everything else follows §15 (status i
     * Effect: the pilot holds the heavy wing up with stick. F-16, one 2000 lb bomb 3 m out: ≈ 18 % stick at 150 m/s
       and 1 g, ×n in a pull, about four times as much at landing speed; beyond full stick the jet rolls off (test
       `asymmetric_stores_roll`).
+    * The autopilot trims it: while a loop flies the jet, the stick that cancels the moment is added (within full
+      stick; [autopilot.md](autopilot.md) §2.5).
     * A model without stations (A-4, transports: no attach points) gets no moment. Refreshed with the roll command
       by the 1 Hz / event update.
   * **Wind and turbulence** [`wind`] (new; the original flies in still air).

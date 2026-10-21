@@ -643,6 +643,9 @@ pub struct Aircraft {
     pub stores_di_right: f32,
     /// Better physics "Asymmetric stores": the stores' lateral moment Σ mass · arm (kg·m, + right wing heavier).
     pub stores_moment: f32,
+    /// Better physics "Asymmetric stores": an autopilot loop flies the jet and holds the heavy wing up (its stick
+    /// on top of the stick that cancels the stores' moment). Set by `Autopilot::step` / `player_mode`.
+    pub stores_trim: bool,
     // Load-time derived constants.
     cl0: f32,
     cl_alpha: f32,
@@ -842,6 +845,7 @@ impl Aircraft {
             stores_di_left: 0.0,
             stores_di_right: 0.0,
             stores_moment: 0.0,
+            stores_trim: false,
             cl0,
             cl_alpha,
             stick_centre_v,
@@ -1698,7 +1702,9 @@ impl Aircraft {
         let beta_cmd = (self.rudder + 10.0 * self.stores_asym()) * p.max_beta;
         let mut p_cmd = if ground { 0.0 } else { p.max_roll_rate * self.stick[0] };
         if self.better.asymmetric_stores && !ground {
-            p_cmd = p.max_roll_rate * (self.stick[0] + self.stores_roll(lift, mass, qs)).clamp(-1.0, 1.0);
+            let s = self.stores_roll(lift, mass, qs);
+            let stick = if self.stores_trim { (self.stick[0] - s).clamp(-1.0, 1.0) } else { self.stick[0] };
+            p_cmd = p.max_roll_rate * (stick + s).clamp(-1.0, 1.0);
         }
 
         self.thrust = thrust;

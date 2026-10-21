@@ -1711,6 +1711,7 @@ impl Autopilot {
             // 5c7bc0 without a route starts the loop uninitialised (UNCERTAIN): nothing flies.
             _ => Loop::None,
         };
+        ac.stores_trim = !matches!(self.lp, Loop::None);
         self.watch = true;
         self.period = 0.5;
         self.next_tick = v.t + 0.5;
@@ -1723,6 +1724,9 @@ impl Autopilot {
 
     /// Runs the loop's ring tick when due, applies its outputs to the aircraft and returns them.
     pub fn step(&mut self, ac: &mut Aircraft, ground: Ground) -> Out {
+        // Better physics "Asymmetric stores" (ours): a running loop trims the stores' roll; its roll laws are
+        // P-only and would otherwise hold a steady bank against it (docs/autopilot.md §2.5).
+        ac.stores_trim = !matches!(self.lp, Loop::None);
         if matches!(self.lp, Loop::None) {
             return Out::default();
         }
@@ -2317,7 +2321,7 @@ impl Landing {
             // 5d2400 takes Vmin at 1.2 g (push 0x3f99999a @5d24ad), as in Fly2WayPt.
             Leg::Lw(speed) => {
                 // Ours (Real data, the player): LW2 ends below the gear's 300 kt lever limit (150 m/s = 292 kt),
-                // so step 7's gear command is not refused (docs/autopilot.md §2.3).
+                // so step 7's gear command is not refused (docs/autopilot.md §2.5).
                 let wait = self.step == 6 && self.player && l.v.gear_speed_wait;
                 level_wings_accel_max(l, &mut self.lw_pitch, speed, vmin12, wait.then_some(150.0))
             }

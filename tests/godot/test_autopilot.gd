@@ -80,7 +80,7 @@ func run() -> void:
 	Engine.time_scale = 1.0
 	st = tv.flight.state()
 	check(not st.crashed, "landed without a crash (%s)" % st.crash_reason)
-	check(touch != Vector2.INF and absf(touch.y - 602383.0) < 30.0, "touchdown on the centreline ±30 m (%s)" % touch)
+	check(touch != Vector2.INF and absf(touch.y - 602383.0) < 10.0, "touchdown on the centreline ±10 m (%s)" % touch)
 	check(tv.autopilot.mode == 0 and not tv.cockpit.indicators[8], "stopped: StopPlane's A key turns the autopilot off")
 	check(st.speed < 2.0, "stopped on the runway (%.1f m/s)" % st.speed)
 	check_instructor_312(tv, rec)

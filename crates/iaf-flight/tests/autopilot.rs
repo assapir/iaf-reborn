@@ -239,13 +239,13 @@ fn take_off_at_ramat_david(clearance: f32) {
 
 #[test]
 fn lands_at_ramat_david() {
-    land_at_ramat_david(0.0, false);
+    land_at_ramat_david(0.0, false, 0.0);
 }
 
 /// World scale Real 1:1: the autopilot landing with the true-size F-16's 1.69 m gear clearance.
 #[test]
 fn lands_at_ramat_david_real_size() {
-    land_at_ramat_david(F16_CLEARANCE_REAL, false);
+    land_at_ramat_david(F16_CLEARANCE_REAL, false, 0.0);
 }
 
 /// Better physics' ground effect: the jet floats and touches down further along, still on the runway, at the Present
@@ -255,17 +255,29 @@ fn lands_at_ramat_david_real_size() {
 #[test]
 fn lands_at_ramat_david_in_ground_effect() {
     for clearance in [2.0 * F16_CLEARANCE_REAL, F16_CLEARANCE_REAL] {
-        let (Some(off), Some(on)) = (land_at_ramat_david(clearance, false), land_at_ramat_david(clearance, true))
+        let (Some(off), Some(on)) =
+            (land_at_ramat_david(clearance, false, 0.0), land_at_ramat_david(clearance, true, 0.0))
         else {
             return;
         };
+        let (off, on) = (off[0], on[0]);
         println!("clearance {clearance} m: touchdown x {off:.2} -> {on:.2} ({:.2} m float)", off - on);
         assert!(on <= off, "touches down no earlier on the 270° approach");
     }
 }
 
-/// The touchdown's x (the landing runs west), None without the install.
-fn land_at_ramat_david(clearance: f32, ground_effect: bool) -> Option<f64> {
+/// Better physics "Asymmetric stores": one MK-82 left on the right wing (680 kg·m, about a quarter stick at landing
+/// speed). The autopilot holds the heavy wing up and lands on the centreline as with balanced stores.
+#[test]
+fn lands_at_ramat_david_with_unbalanced_stores() {
+    if let Some([_, off]) = land_at_ramat_david(0.0, false, 680.0) {
+        assert!(off.abs() < 5.0, "on the centreline ({off:.1} m off)");
+    }
+}
+
+/// The touchdown's x (the landing runs west) and its offset from the centreline, None without the install.
+/// `stores_moment` (kg·m, + right wing heavier) turns Better physics "Asymmetric stores" on.
+fn land_at_ramat_david(clearance: f32, ground_effect: bool, stores_moment: f32) -> Option<[f64; 2]> {
     let inst = install()?;
     let bases = Airbase::load_all(&std::fs::read(inst.join("iaf.ibx")).unwrap());
     let rd = bases.iter().find(|b| b.name == "David").unwrap().clone();
@@ -276,6 +288,8 @@ fn land_at_ramat_david(clearance: f32, ground_effect: bool) -> Option<f64> {
     ac.gear_clearance = clearance;
     ac.true_clearance = Some(F16_CLEARANCE_REAL);
     ac.better.ground_effect = ground_effect;
+    ac.better.asymmetric_stores = stores_moment != 0.0;
+    ac.set_stores_moment(stores_moment);
     let mut ap = Autopilot::new(Config::load(&inst));
     ap.bases = bases;
     ap.route = vec![home];
@@ -321,7 +335,7 @@ fn land_at_ramat_david(clearance: f32, ground_effect: bool) -> Option<f64> {
     let parked = rd.hangars.iter().any(|h| (st.position[0] - h.x as f64).hypot(st.position[1] - h.y as f64) < 100.0);
     println!("after taxi: {:.0} {:.0} speed {:.1} engine {}", st.position[0], st.position[1], st.speed, ac.engine_on);
     assert!(parked && !ac.engine_on, "parked at a hangar, engine off");
-    Some(p[0])
+    Some([p[0], p[1] - rd.lineup[1] as f64])
 }
 
 /// Ramat David's main runway as the setup measures it (airbases.json's first runway): its two ends.
