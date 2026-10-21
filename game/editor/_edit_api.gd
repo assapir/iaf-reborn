@@ -130,3 +130,23 @@ func year_jets(year: float, side: int, what_if: bool) -> PackedInt64Array:
 func year_issues(mission: Dictionary, year: float, what_if: bool) -> Array:
 	var v = JSON.parse_string(IafMissionEdit.year_issues(_js(mission), year, what_if))
 	return v if v is Array else []
+
+
+# --- the scenario rules (mission_events.rs, docs/mission-editor.md §14) ---
+
+
+## [{key, editable, why?, name, times, debrief, text, when, then, summary}].
+func rules(mission: Dictionary) -> Array:
+	var v = JSON.parse_string(IafMissionEdit.rules(_js(mission)))
+	return v if v is Array else []
+
+
+## {mission, errors: [{rule, text}], keys}: the edited rules written into the mission.
+func set_rules(mission: Dictionary, rules_list: Array) -> Dictionary:
+	return _parse(IafMissionEdit.set_rules(_js(mission), JSON.stringify(rules_list)))
+
+
+## [{id, name, text}]: the messages the bdb holds.
+func audio_list() -> Array:
+	var v = JSON.parse_string(IafMissionEdit.audio_list())
+	return v if v is Array else []

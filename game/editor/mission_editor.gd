@@ -7,6 +7,7 @@ extends Control
 const Tsd := preload("res://menu/tsd.gd")
 const EditApi := preload("res://editor/_edit_api.gd")
 const Img := preload("res://util/img.gd")
+const ScenarioEditor := preload("res://editor/scenario_editor.gd")
 
 const UNDO_MAX := 50
 ## The Add picker's classes: label → bdb object classes (0x5aa).
@@ -726,6 +727,7 @@ func _refresh_ui() -> void:
 	_fill_flights()
 	_fill_mission()
 	_fill_conditions()
+	_ui.scenario.refresh()
 	host.preview.queue_redraw()
 
 
@@ -800,6 +802,8 @@ func _build_ui() -> void:
 	_build_units_tab(_tab(tabs, "Units"))
 	_build_flights_tab(_tab(tabs, "Flights"))
 	_build_mission_tab(_tab(tabs, "Mission"))
+	_ui.scenario = ScenarioEditor.new(self)
+	tabs.add_child(_ui.scenario)
 	_build_dialogs()
 
 

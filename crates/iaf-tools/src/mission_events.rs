@@ -104,6 +104,8 @@ struct Walk {
     entries: Vec<(i64, usize, i64)>,
     events: Vec<i64>,
     why: Option<String>,
+    /// When the last script entry ends (a wait at the end).
+    end: f64,
 }
 
 impl Walk {
@@ -174,6 +176,9 @@ fn walk_chain(m: &Value, u: i64, mut idx: i64, mut t: f64, w: &mut Walk) {
             _ => w.fail(format!("{}: {}", name_of(m, u), s["0x8a2"].as_str().unwrap_or("?"))),
         }
         t += num(&s["0x87a"]).max(0.0);
+        if int(&s["0x83e"]) == 15 {
+            w.end = w.end.max(t);
+        }
         idx = int(&s["0x898"]);
     }
 }
@@ -202,7 +207,12 @@ fn order(b: &Value) -> (usize, i64) {
 
 /// The blocks in time order, a wait between different times.
 fn then_of(w: &Walk) -> Vec<Value> {
-    timed(&w.blocks)
+    let mut out = timed(&w.blocks);
+    let last = w.blocks.iter().map(|b| b.0).fold(0.0, f64::max);
+    if w.end > last && w.why.is_none() {
+        out.push(json!({"kind": "wait", "seconds": (w.end - last).round()}));
+    }
+    out
 }
 
 fn timed(blocks: &[(f64, Value)]) -> Vec<Value> {
@@ -686,9 +696,6 @@ fn segments(then: &[Value]) -> Vec<(i64, Vec<Value>)> {
             out.last_mut().unwrap().1.push(b.clone());
         }
     }
-    if out.len() > 1 && out.last().unwrap().1.is_empty() {
-        out.pop(); // a wait at the end does nothing
-    }
     out
 }
 
@@ -765,16 +772,28 @@ fn check_rule(m: &Value, r: &Value) -> Result<(), String> {
     for b in r["then"].as_array().into_iter().flatten() {
         let k = b["kind"].as_str().unwrap_or("");
         if !["wait", "message", "goal", "fail"].contains(&k) {
-            let u = entity(m, int(&b["unit"])).ok_or_else(|| format!("{k}: pick the unit"))?;
+            let label = match k {
+                "route" => "Start its route",
+                "show" => "Appear",
+                "hide" => "Disappear",
+                "shield_on" => "Cannot be hurt",
+                "shield_off" => "Can be hurt",
+                "combat_on" => "May fight",
+                "combat_off" => "Hold fire",
+                "fire_at" | "fire_point" => "Fire",
+                "explode" => "Explode",
+                _ => k,
+            };
+            let u = entity(m, int(&b["unit"])).ok_or_else(|| format!("{label}: pick the unit"))?;
             if k == "route" && !entries(u, 0).iter().any(|s| int(&s["0x83e"]) == 16) {
                 return Err(format!("{} has no route: give it one on the Units tab", name_of(m, int(&b["unit"]))));
             }
         }
         if k == "fire_at" && entity(m, int(&b["target"])).is_none() {
-            return Err("fire at: pick the target".into());
+            return Err("Fire at a unit: pick the target".into());
         }
         if k == "message" && !valid(int(&b["audio"])) {
-            return Err("message: pick the message".into());
+            return Err("Radio message: pick the message".into());
         }
     }
     Ok(())
@@ -880,6 +899,9 @@ fn write_rule(m: &mut Value, r: &Value, n: usize) -> i64 {
         }
         if *wait > 0 {
             chain.push(op(15, *wait, -1));
+        }
+        if blocks.is_empty() && k > 0 {
+            continue; // a wait at the end: kept, so the rule reads back as written
         }
         let ev = if k == 0 && start {
             e0
