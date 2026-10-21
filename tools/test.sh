@@ -11,7 +11,7 @@ echo "== tests/test_flight_timeline.py"
 python3 -I tests/test_flight_timeline.py || fail=1
 echo "== cargo test"
 cargo test -q --workspace 2>&1 | grep -E "test result|FAILED|panicked" || fail=1
-cargo build --release -p iaf-godot || fail=1
+cargo build -q --release -p iaf-godot || fail=1
 for t in tests/godot/test_*.gd; do
 	echo "== $t"
 	# The setup wizard's test builds its own data into an empty scratch folder, never into assets/.
