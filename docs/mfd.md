@@ -1,8 +1,8 @@
 # Cockpit MFDs (Jane's IAF, `iafjets.exe`)
 
-This doc describes how the original game draws and drives the cockpit's multi-function displays (MFDs): their
-geometry, text and colours, every page, the full-screen weapon MFD, the radar MAP picture, the keys, a short HUD note
-and the per-aircraft cockpit table. Use it to re-implement or check `game/cockpit/mfd.gd`, `game/cockpit/fs_mfd.gd`
+How the original game draws and drives the cockpit's multi-function displays (MFDs): geometry, text and colours,
+every page, the full-screen weapon MFD, the radar MAP picture, the keys, a short HUD note and the per-aircraft cockpit
+table. Use it to re-implement or check `game/cockpit/mfd.gd`, `game/cockpit/fs_mfd.gd`
 and the EO / HARM sensors in `crates/iaf-avionics`.
 
 Key facts:
@@ -49,9 +49,6 @@ Sources and conventions:
 - Colours are Windows COLORREF `0x00BBGGRR` unless written RGB().
 
 ## 1. Geometry and compositing
-
-Each MFD is drawn on its own small surface, then copied into the cockpit panel bitmap. This section gives the sizes,
-positions, draw passes and button hit areas.
 
 - Each MFD is a **132 x 132** px DirectDraw surface (renderer+0x5d8, `FUN_0051ea20`), colour key **cyan
   RGB(0,255,255)** (0xffff00). `mfds.bmp` is loaded into a 264x924 surface (renderer+0x5f8, `FUN_005295f0`), same key;
@@ -109,9 +106,6 @@ Misc sprites in (132..264, 792..924):
 
 ## 2. Text and colours
 
-All MFD text is drawn with a 5 × 5 sprite font; vectors use GDI pens. This section also traces where the HUD colour
-comes from.
-
 - **`mfd.fnt` is never referenced by `iafjets.exe`**: the exe has no such string. It loads only `%s\Fnt\hud.fnt` and
   `key.fnt`, and a menu / log object (`FUN_005190xx`) loads those. mfd.fnt itself: face "MFD", 11 px tall, ascent 9,
   proportional (max 9 px). Treat it as unused.
@@ -152,8 +146,6 @@ comes from.
     it really looks this dark on screen is UNCERTAIN: a later brightening or additive blend was not traced.
 
 ## 3. Pages (state+0x504+idx·4; dispatch `FUN_005296d0`, passes 3/4 in `FUN_0052abb0`)
-
-Each MFD shows one page; the page id lives at state+0x504+idx·4. This section lists the pages, then details each.
 
 Default pages (`FUN_00448120`, all aircraft; rule and per-plane result in §7): Left = radar (2) always; Right/Middle depend on
 the MFD count and `[PANELRWR] Active`. F-16: Left = radar, Right = TSD (3).
@@ -274,8 +266,6 @@ A/P 88, ELCT 97, GNRT 106. Redrawn when state+0x558.. flags change.
   the cursor (angle atan2(dx, −dy)·R·19.71 + heading about the centre), which becomes the clicked point.
 
 ### TSD (3) — `FUN_00531a50`
-The TSD is a heading-up tactical map with waypoints and SAM sites around the ownship.
-
 - Map = **`Emf\map.emf`** (the radar MAP uses isr.bmp, §4) (load `FUN_0053a630`, draw `FUN_00539f20`, clip (10,10)-(122,122)). 20
   POLYGON16 records, brushes 0xc7c7c8, 0x878889, 0x5b2222. EMF units: `u = ftol(ftol((X+166850)/819200·12601)·1.0071394)`,
   `v = ftol(ftol((1043816−Y)/1064960·16383)·1.0071394)` (floats `0x60c3e8..0x60c400`; ×1.0071394 meaning UNCERTAIN).
@@ -318,9 +308,8 @@ The TSD is a heading-up tactical map with waypoints and SAM sites around the own
 
 ### FLIR (6), TV (5): the EO sensor and its camera
 
-The FLIR pod and the TV-guided weapons share one camera (view slot 1). Its picture is the normal 3D scene drawn into
-the MFD's video box. This part covers who owns the camera, when each page is available, the aim, the slew / zoom /
-lock controls and the two pages.
+The FLIR pod and the TV-guided weapons share one camera (view slot 1): the normal 3D scene drawn into the MFD's
+video box.
 
 **Who owns what.** The controller's EO mode `ctl+0x7f4` (0 none, 1 TV weapon, 2 FLIR) picks one of two "mcp"
 objects (`ctl+0x7cc + 4·mode`: +0x7d0 TV, vtable 0x600c28, update `FUN_004604c0`; +0x7d4 FLIR, vtable 0x601360, update
@@ -415,13 +404,13 @@ no round of that store is left (`FUN_00456cd0` → `FUN_0053bcd0`) unless a laun
 - Pass 4, status ≠ 0: the seeker ticks — a vertical one at x = 66 − 56u, y 64..69, and a horizontal one at y = 66 +
   56v, x 63..69; u = az·6/π, v = el·6/π (`0x601524`): ±30° = ±56 px.
 - OSBs (case 5): 0xb zoom in, 0xc zoom out. No pass 2.
-- Key Z (event 0x1f): full-screen weapon MFD (`ctl+0x938`) only with an EO mode whose mcp vfunc +0x1c ≠ 0 —
-  built (below, "Full-screen weapon MFD").
+- Key Z (event 0x1f): the full-screen weapon MFD (`ctl+0x938`, next section), only with an EO mode whose mcp vfunc
+  +0x1c ≠ 0.
 
 ### Full-screen weapon MFD (key Z, v1.1) — `FullScreenRender.cpp`, object at cockpit+0x18
 
 Key Z replaces the whole cockpit view with the TV / FLIR picture at 385 × 382 px inside the `fsmfd/FsMfd.bmp` bezel,
-with its own symbology layer. It opens only with an EO mode active (a TV status ≠ 0, or FLIR).
+with its own symbology layer.
 
 **Flag.** `ctl+0x938` (player controller, dword 0x24e). Cleared at the flight start (`FUN_00447890`).
 
@@ -585,26 +574,16 @@ plays no part):
 `FsMfd` strings), and the controller's `mov [ctl+0x938], 1` exists. v1.0's dispatcher `FUN_004cce00` did not forward
 event 0x1f, so the mode was unreachable. v1.1 only wired Z (docs/v1.1.md).
 
-**iaf-reborn:** built — `eo.rs` `full_screen_ok`, `player_weapons.gd` `full_screen_key` / `_update_full_screen`
+**iaf-reborn:** built: `eo.rs` `full_screen_ok`, `player_weapons.gd` `full_screen_key` / `_update_full_screen`
 (Z, the per-frame exits, the impact fly-by via `terrain_view.gd` `full_screen_impact`), `terrain_view.gd`
 `_update_full_screen` (the overlay, the cockpit hidden, the main viewport's 3D off, the EO viewport at 385×382 ×
 the window height / 480, the waypoint projected through the EO camera) and `game/cockpit/fs_mfd.gd` (the layers,
-fsmfd.bmp and data.ibx read from the install, the OSB strips). Deviations: the cursor stays visible over the
-picture; ANSI_VAR_FONT is Arial 13 px; the frame is redrawn every frame. tests/godot/test_tv_weapons.gd (Z, F1, Z,
-the hit's fly-by).
-
-**Port needs:**
-- The flag with the toggle / exit rules above, and the Z view reset to 1 / 5.
-- A 385×382 render of the weapon camera (FoV 50°/zoom) placed at (128,49).
-- `fsmfd.bmp` as the frame, with white keyed out of the corners and drawn over the symbology.
-- The two GDI layers in 2 px 0x00ff00 lines plus ANSI_VAR_FONT text.
-- The waypoint circle in the camera projection.
-- The 4 px/° attitude bar.
-- The OSB hit table routed to the existing TV / FLIR OSB actions.
-- Panel, HUD and messages hidden.
+fsmfd.bmp and data.ibx read from the install, the OSB strips). Differences: the cursor stays visible over the
+picture; ANSI_VAR_FONT is Arial 13 px; the frame is redrawn every frame. Test: tests/godot/test_tv_weapons.gd (Z, F1,
+Z, the hit's fly-by).
 
 ### HARM (10) — `FUN_005358b0`, data `FUN_0045bb00` → `FUN_00446050`
-The HARM page lists the candidate targets (unit classes 9–11 and sites named "RADAR") inside a ±15° cone ahead and lets the pilot pick the HARM's target.
+The HARM page lists the candidate targets inside a ±15° cone ahead and lets the pilot pick the HARM's target.
 
 - Source: the **HARM sensor** (ctl+0x44c, vtable 0x601190, a subclass of the AI target sensor of docs/ai.md §14: ctor
   `FUN_0045b850(0, 3, 20)`: its own 15-slot list (`FUN_004b0790(0xf)`), query kind 3, range 20 NM; scan
@@ -647,24 +626,20 @@ The HARM page lists the candidate targets (unit classes 9–11 and sites named "
 
 **iaf-reborn** (`crates/iaf-avionics/src/eo.rs` via `weapons/eo_sensor.gd`, `cockpit/mfd.gd`,
 `terrain/terrain_view.gd`) builds all of the above. The TV weapons fly (`player_weapons.gd` `tv_weapon` /
-`tv_status`): the eye rides the launched weapon and "%3d" shows its time left. The full-screen weapon MFD (Z) is built
-as above. Differences from the original:
+`tv_status`): the eye rides the launched weapon and "%3d" shows its time left. Differences from the original:
 - The EO centre point is the nearest of the terrain under the line of sight (ray-marched) and the shown units' /
   buildings' model bounds on it (ray-tested, `eo.rs` `unit_pick`). The original reads back the depth buffer.
-- Before launch the eye is the jet's position (the original: the pylon).
-- The picture is a SubViewport camera of the same world at the display's on-screen resolution (deviations.md).
+- Before launch the eye is the jet's position (the original: the pylon). The picture is a SubViewport camera of the
+  same world at the display's on-screen resolution. Both: [deviations.md](deviations.md) §1.
 - HARM: the sensor's scan as above (`crates/iaf-avionics/src/harm.rs`). The distance is tested from the jet (the
   original: inside the query sphere; UNCERTAIN radius), with the radar's line of sight. It rescans with the RWR (2 s),
   when it comes on and on a click (the original only re-captures the page on a click). "In Range" comes from the
   HARM's DLZ (docs/weapons.md §11.5). Ctrl+Return steps the list.
-- Extras "HARM targets: Real" (ours, docs/deviations.md §2): the list holds the RWR's active emitters inside the cone
-  and the hostile scanned sites without a brain the scan accepts (they never lock; mission 322's dummy SA-2 radar),
-  the nearest 5, with the nearest preselected.
+- Extras "HARM targets: Real" lists the RWR's emitters instead: [deviations.md](deviations.md) §2.
 
 ## 4. isr.bmp / MAPFRAME georeference
 
-The radar MAP page shows `isr.bmp`, a green 640 × 832 picture of the theatre at 1280 m per pixel. This section maps
-world coordinates to its pixels and describes how the page samples it.
+The radar MAP page's ground picture: world coordinates to `isr.bmp` pixels, and how the page samples it.
 
 - `cockpits.ibx [MAPFRAME]` read in `FUN_005226e0` into ini+0x61c left, +0x620 top, +0x628 bottom, +0x624 right
   (F-16 file: 0, 1064960, 0, 819200; exe defaults 0x39080/0xaf500/0x3ef8a/0x75801).
@@ -712,9 +687,8 @@ world coordinates to its pixels and describes how the page samples it.
   0x5a, tail @44d269).
 - Radar events first put the radar page on an MFD if none shows it.
 - STT comes from a lock (event 0x2a).
-- Master mode → page (`FUN_00449810`): NAV→0; modes 1/2→stores; 3→radar; 4→HARM(10)/radar by weapon; 5→FLIR or
-  stores; 6→TV (names of modes 1–6 UNCERTAIN). A page no active MFD shows (`FUN_00449f90`) goes to the first MFD
-  not showing the radar, slot order Left, Right, Middle (`FUN_00449f20`, `IafModes.free_slot`). All three on the
+- Master mode → page (`FUN_00449810`): the table in [weapons.md](weapons.md) §2.3. A page no active MFD shows
+  (`FUN_00449f90`) goes to the first MFD not showing the radar, slot order Left, Right, Middle (`FUN_00449f20`, `IafModes.free_slot`). All three on the
   radar: the Left. Two MFDs both on the radar: the exe writes the unused slot `ctl+0x70`, so no MFD shows the page.
   One MFD: the Left. Page 10 keeps the page it replaced in `ctl+0x92c`. When the HUD mode
   was 8 (HARM), the sensor goes off (`FUN_0045c2f0`) unless a 590 stays selected, and page 10 goes back to `+0x92c`
@@ -755,7 +729,7 @@ world coordinates to its pixels and describes how the page samples it.
 
 ## 7. Per-aircraft cockpit table (all cockpits; general layout/HUD/gauge data in `docs/cockpit.md`)
 
-This section shows which cockpit each jet gets and how its `cockpit.ibx` sets the MFDs, default pages, RWR and ADI.
+Which cockpit each jet gets, and how its `cockpit.ibx` sets the MFDs, default pages, RWR and ADI.
 
 ### General decoding rule
 To find a jet's cockpit layout:
@@ -839,6 +813,5 @@ set (the "Real MFDs" option, docs/roadmap.md) can reuse them.
 - Unreferenced tiles (132,132) "Debug", (132,264) LAS, (132,396) TWS, (0,528): leftovers?
 - Straight-ahead vertical pan (+0x568) → exact on-screen MFD y.
 - Meaning of the TSD ×1.0071394 factor and the ~20 m offsets between TSD, MAP and DataShift constants.
-- state+0x70 (steerpoint vs ownship copy); contact +0x67c; state+0x348/+0x3a0 (STT envelope/closure).
-- Names of master modes 1–6 (the manual names the HUD modes only); the TV page's "%3d" (weapon motion vfunc +0x80); that the NAV ETA's
-  clock offset (clock+0x18) is the mission start time 0x460.
+- state+0x3a0 (the STT closure source).
+- That the NAV ETA's clock offset (clock+0x18) is the mission start time 0x460.

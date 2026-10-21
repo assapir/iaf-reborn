@@ -1,17 +1,14 @@
 # Cockpit data, all aircraft (`resource/cockpits/<dir>/cockpit.ibx`)
 
 This doc describes each aircraft's cockpit data file, `cockpit.ibx`, and how the original exe draws from it: the
-head-up display (HUD), the 3D view's projection, the attitude indicators, the round gauges and the panel lights. It
-covers all nine cockpits. The key facts:
+head-up display (HUD), the 3D view's projection, the attitude indicators, the round gauges and the panel lights, for
+all nine cockpits. It also holds our opt-in "Better cockpit" items. Key facts:
 * One generic code path draws every cockpit; only the values in `cockpit.ibx` differ.
 * The panel is 1920 px wide, cut into 320-px slices; the screen shows 640x480.
-* UNCERTAIN marks points the trace has not settled; "Open" at the end lists the unresolved tracing questions.
+* UNCERTAIN marks points the trace has not settled; "Open" at the end lists the open tracing questions.
 
-Addresses are `IAFJets.exe` **v1.1** (the reference version); [v1.1.md](v1.1.md) maps them to v1.0 and lists what the
-patch changed.
-
-The companion doc is `mfd.md`: it covers the multi-function display (MFD) pages, their defaults and the per-aircraft MFD
-table (its §7).
+Addresses are `IAFJets.exe` **v1.1**; [v1.1.md](v1.1.md) maps them to v1.0 and lists what the patch changed. The
+multi-function display (MFD) pages and the per-aircraft MFD table are in [mfd.md](mfd.md) (its §7).
 
 Sources: the nine `cockpit.ibx` files and their reader `FUN_005228a0` in `assets/ghidra_v11/iafjets.c`. Reading rules:
 * The reader reads sections and keys with `GetPrivateProfileInt`. A missing key takes the exe's per-key default; an
@@ -30,7 +27,13 @@ Sources: the nine `cockpit.ibx` files and their reader `FUN_005228a0` in `assets
   Kfir `cfirligh.bmp`, Mirage `mrglight.bmp`, F-4E `f4lights.bmp`.
 * **Referenced but not shipped**: `StateLights.bmp` (F-15, F-16, Lavi, Mirage).
 * **Shipped but unreferenced**: `cfir/cfir-lights.bmp`, `lavi/lavi-lig.bmp`, `phantom/f16adi.bmp`,
-  `phantom/lights-1.bmp`.
+  `phantom/lights-1.bmp`. None is better than the loaded art, so ours uses none of them:
+  * `cfir/cfir-lights.bmp` (108×198) is an earlier Kfir lights sheet: a HOOK lamp, red FLPS / AP / BRK lamps and no
+    ECM lamp. The loaded `cfirligh.bmp` (64×139) has the ECM lamp the Kfir uses (`[LIGHT006]`) and green FLPS / AP /
+    BRK; the hook lamp has no state in the game (`[LIGHT007]` is never set).
+  * `lavi/lavi-lig.bmp` (62×165) is `laviligh.bmp` (57×165) without the ECM lamp the Lavi uses.
+  * `phantom/f16adi.bmp` is not the F-16's blue / brown ball: it is the F-4E's own grey / black ball, 121 pixels
+    (0.7 %) off the loaded `phantom/adi.bmp`.
 
 ## Decoding rules
 These rules turn the file's values into screen positions.
@@ -127,8 +130,10 @@ renderer, S = the cockpit state (`0x82f544`). The reader stores the `[HUD]` keys
     ⌊A/500⌋·0.5 − (i − 2)·0.5, i = −1..3. A label shows for −46 < y < 0 or 10 < y < 53, as sprite text ending at
     x + 25, top y − 7.
 * **Speed** (`FUN_005386c0`) at x = cx − LeftBorder, the same y:
-  * Value by the HUD mode (S+0xfec): 0 NAV (navigation) ground speed `"% 3dG"` (true airspeed `"% 3dT"` with the gear
-    handle down); 1–3 / 9 indicated `"% 3d"`; 4–8 true `"% 3dT"`; none above 9.
+  * Value by the HUD mode (S+0xfec, the weapon handler's; byte table 0x538c78 → 0x538c64 @538739): 0 NAV
+    (navigation) ground speed `"% 3dG"` (true airspeed `"% 3dT"` with the gear handle down, S+0x544); 1–3 (SRM, MRM =
+    short- / medium-range missile, A-A gun) / 9 indicated `"% 3d"`; 4–8 true `"% 3dT"`; none above 9. Mode 9 is
+    absent from the master-mode table (docs/weapons.md §2.3).
   * Text TA_RIGHT at (x − 2, y + 4); box (x − 34 .. x, y ± 6).
   * With ShowLRScales, a tape: line (x, y ± 51); 17 ticks of 6 px = 10 kt (0.6 px per kt, off = ⌊0.6V⌋ % 6), pointing
     left, 3 px long on the 50 kt ones, else 4. Labels `"%d"` every 50 kt (≥ 0) at y = (⌊0.6V⌋ % 30 + 5) + 30(i − 1),
@@ -225,12 +230,11 @@ renderer, S = the cockpit state (`0x82f544`). The reader stores the `[HUD]` keys
   * Right 2: NAV `"%3.1f MIN"` below 60 min; modes 1 / 2 / 8 `"%2d SEC"` and 4 `"%2d"` of S+0x380 (@52f2a6, the same
     weapon time); mode 5 `"%2d SEC"` / `"XX SEC"` (≥ 90) of S+0x638 when S+0x620 = 1.
   * The original HUD shows **no Mach, AoA (angle of attack) or G-limit readout**.
-* **Per jet** (the keys above):
+* **Per jet** (the `[HUD]` table):
   * The F-4E (phantom) and MiG-23 have **ShowHorizon 0** (the marker without a ladder) and **ShowLRScales 0** (the speed
     / altitude boxes without tapes or carets). The others show both.
   * VertSclOffY moves both boxes: F-16 15 px above the centre, Mirage 20, F-15 / F-4 2000 5, Lavi 5 below, the others
     at the centre.
-  * Dash 1 (helmet display) on the F-15, F-16, F-4 2000, Lavi, MiG-23, MiG-29.
   * The ILS, the cues and the text block are the same for all.
 * **Port** (`game/cockpit/hud.gd`, tests/godot/test_hud.gd; the ILS in Rust `iaf_flight::airbase::ils`,
   `IafFlight.ils()`):
@@ -297,57 +301,25 @@ F12 turns it on and off (EN 4.1, EN 6.1).
   built, so its all-enemy rule is not ported.
 
 ### Real HUD (ours, Extras > HUD)
-Our addition (an opt-in Extra): each jet's real HUD / sight / helmet symbology. The per-aircraft reference, with
-every source and its confidence, is [docs/real-hud.md](real-hud.md). Rust lays it out
-(`crates/iaf-avionics/src/real_hud/`, `IafRealHud`) as lines / circles / dots / arcs / texts in the HUD's pixels;
-`hud.gd` draws them (`real_hud()`, `_draw_prims`).
-
-**The display per cockpit:**
-* `f16`: the F-16C/D HUD (dash-34).
-* `lavi`: its own wide-angle HUD (a reconstruction, `lavi.rs`).
-* `f4-2000`: the Kurnass 2000's own wide-angle HUD (a reconstruction, `k2000.rs`).
-* `cfir`: the Kfir C7's own (modes from the Elbit System 82, layout a reconstruction, `kfir.rs`).
-* `f15`: the F-15A/C HUD (flight manual TO 1F-15A-1).
-* `phantom`: the F-4E's ASG-26 optical sight (red reticle only).
-* `mirage`: the CSF gyro gunsight (orange reticle only).
-* The F-35I: its helmet's forward virtual HUD (green, its own 32° × 22° field, unclipped by the glass).
-
-**Looking aside** (the original's dash condition), the `f16` and `f15` cockpits show the **Real DASH**: the Elbit
-helmet's set around the helmet's line of sight (docs/real-hud.md "DASH helmet", `real_hud/dash.rs`). It replaces the
-original DASH symbol there; the other cockpits keep the original's.
-
-**Clip at the panel**: the HUDs (the F-35I's helmet excepted) are cut at the panel's top edge (`panel_top()`, which
-follows the panel slide). So the glareshield hides what falls below the glass, as on the real jet. The original HUD
-draws over the panel. While looking aside, where the DASH draws, there is no cut.
-
-**Ladder**: as on a real HUD, the ladder is referenced to the nose. Its horizon is placed from the nose's point on the
-HUD by the jet's pitch and roll, at the view centre's scale (linear in degrees). So it holds when climbing straight up
-and past the vertical (the camera looks 5.5° below the nose and passes the vertical first).
-
-**Symbol sizes** are the real ones, in milliradians at the view's scale.
-
-**Hidden in Real mode**: the original's ladder, marker, scales, text block, gun cross, waypoint marker, target box and
-weapon symbols. The ILS, the BORE (boresight) cross and the TV / HARM diamonds (the TV-guided weapon's and the
-anti-radiation missile's seeker marks) stay. The sight-only jets draw nothing else.
-
-**Weapon cues per jet:**
-* F-16: SRM (short-range missile) reticle + seeker diamond, MRM (medium-range missile) ASEC (allowable steering error
-  circle) + steering dot, DLZ (dynamic launch zone: closure, target range), EEGS (enhanced envelope gun sight) funnel
-  (ours: 35 ft wingspan, M61A1 muzzle speed) with the TD (target designator) circle, strafe / CCIP (continuously
-  computed impact point) pipper and fall line, steerpoint diamond.
-  * EEGS without a lock: level 2, the 600-3,000 ft funnel and the sweeping MRGS lines (the gun sight's
-    moving reticle lines).
-  * EEGS with a track: level 5, the lengthened funnel, the T-symbol with the 1 g "+" and 9 g tic, the 4 mr pipper, the
-    TD circle with its maximum-range dot.
-  * EEGS has no heading scale or roll indicator.
-* F-15: TD box, ASE (allowable steering error) circle and dot, range scale with IN RNG, LCOS
-  (lead-computing optical sight) reticle, bomb fall line to the target square.
-* F-35: target X, steering circle, DLZ bracket with the range. Looking off the nose (the helmet view): the
-  head-stabilised set, i.e. "+", the head's heading tape, bare airspeed / altitude, steerpoint block, target.
-* The sights' reticles ride the LCOS / CCIP pipper (ours: the bombing depression set automatically).
-
-**Tests**: `tests/godot/test_real_hud.gd` and unit tests in each module. Screenshots:
-`tests/godot/_real_hud_jets_shot.gd` (every jet), `_hud_compare_shot.gd` (original vs real).
+Ours, opt-in: each jet's real HUD / sight / helmet symbology. What each jet draws, with every source, is in
+[real-hud.md](real-hud.md) ("What ours draws"); the switch is in [deviations.md](deviations.md). How it hooks into
+the cockpit:
+* Rust lays it out (`crates/iaf-avionics/src/real_hud/`, `IafRealHud`) as lines / circles / dots / arcs / texts in
+  the HUD's pixels; `hud.gd` draws them (`real_hud()`, `_draw_prims`). Symbol sizes are the real ones, in
+  milliradians at the view's scale.
+* **Looking aside** (the original's dash condition), the `f16` and `f15` cockpits show the Real DASH
+  (`real_hud/dash.rs`) and the MiG-29 its Щель-3УМ helmet sight in place of the original DASH symbol; the other
+  cockpits keep the original's.
+* **Clip at the panel**: the HUDs (the F-35I's helmet excepted) are cut at the panel's top edge (`panel_top()`, which
+  follows the panel slide), so the glareshield hides what falls below the glass. The original HUD draws over the
+  panel. While the DASH draws there is no cut.
+* **Ladder**: referenced to the nose. Its horizon is placed from the nose's point on the HUD by the jet's pitch and
+  roll, at the view centre's scale (linear in degrees), so it holds past the vertical (the camera looks 5.5° below
+  the nose and passes the vertical first).
+* **Hidden**: the original's ladder, marker, scales, text block, gun cross, waypoint marker, target box and weapon
+  symbols. The ILS, the BORE (boresight) cross and the TV / HARM seeker diamonds stay.
+* Tests: `tests/godot/test_real_hud.gd` and unit tests in each module. Screenshots:
+  `tests/godot/_real_hud_jets_shot.gd` (every jet), `_hud_compare_shot.gd` (original vs real).
 
 ### 3D view: the cockpit camera's projection (v1.1)
 This section gives the camera that draws the world behind the cockpit: a 50° horizontal field of view (focal length
@@ -464,18 +436,16 @@ Every round gauge is a linear needle; the table under "Panel draw" gives each ga
   * MIL (military power, throttle 0.74) is rpm 1.0, so THROTTLECLOCK reads a full turn (100 %). The AB (afterburner)
     stages read the same, because the ramp stops at 100.
   * The heading shows only on the HUD tape and the MFD pages. No cockpit section or code turns a panel compass / HSI
-    (horizontal situation indicator), so the panels' compass dials (e.g. the Kfir's) are static art in the original
-    too. Ours, with Better cockpit: they turn ("Better cockpit" below).
-  * With Better cockpit, the RPM, TEMP, THROTTLE and FUEL needles read the flight model's own values ("Engine
-    gauges" and "Fuel gauge" under "Better cockpit" below). The F-16's, Kfir's and MiGs' needles sit on dials whose labels
-    name other values; "Panel instruments per jet" below lists them, and `dials_by_label` moves them.
+    (horizontal situation indicator): the panels' compass dials are static art.
+  * The F-16's, Kfir's and MiGs' needles sit on dials whose labels name other values ("Panel instruments per jet").
+    "Better cockpit" below has our opt-in fixes for these points.
   * Per-jet check: tests/godot/test_gauges_all_jets.gd. On the seven Jet list jets and the F-35I, every active needle
     turns from idle to military / climbing; military reads 100 % without AB, and AB 1 lights it; with the Real HUD on
     and off.
 * **Engine values** (@45ac00, the player controller; damage flags at +0x3d8):
   * `rpm` = FM (flight model) query 0x11 · 0.01. Path: `FUN_0045a9d0` → FM vtable `0x611dc8` slot 26 `0x5a9280`, case
-    0x11 @5a997a: the RPM ramp `S+0x1b0` of the FM read copy `veh+0xc30` (docs/flight-model.md "RPM ramp": 100·rpm at
-    15 %/s).
+    0x11 @5a997a: the RPM ramp `S+0x1b0` of the FM read copy `veh+0xc30` (100·rpm at 15 %/s, flight-model.md §4
+    step 3; with Better physics `engine_spool`, each real engine's spool, §10.2).
   * The setters `FUN_00446490` (left engine → S+0x103c..+0x1058) and `FUN_004464f0` (right → S+0x105c..+0x1078) get
     **the same rpm**: the original also has one engine state.
   * Only the damage flags differ (docs/damage.md §5, left / right): cut out 2 / 3 → RPM 0; fire 16 / 17 → TEMP 0.9;
@@ -555,12 +525,7 @@ The cockpit state S:
     r·0.5147 (m/s) when 50 ≤ r ≤ 999, else V **in kt**, which the caller converts once more. So below 50 kt indicated
     (taxiing) the cockpit shows 1.94 × the speed. This original unit slip is kept with Flight data = Original; Real
     fixes it (docs/real-aircraft.md §2.3).
-* **HUD speed** (`FUN_005386c0` @538739): chosen by the HUD mode S+0xfec (the weapon handler's), through the byte
-  table 0x538c78 → 0x538c64.
-  * Mode 0 NAV: `% 3dG` (ground speed); `% 3dT` (true airspeed) with the gear handle down (S+0x544).
-  * 1..3 (SRM, MRM, AA (air-to-air) gun) and 9: `% 3d` (indicated).
-  * 4..8: `% 3dT`. Above 9: none.
-  * Mode 9 is absent from the master-mode table (docs/weapons.md §2.3).
+* **HUD speed**: "HUD symbology", Speed.
 * **Port**:
   * The values are in Rust, `iaf_flight::instruments`: speeds, vario, height above ground, fuel fill, engine needles
     with the damage flags. `IafFlight.instruments(damage flags)` → the cockpit state each frame.
@@ -571,13 +536,15 @@ The cockpit state S:
     Kfir).
 
 ## Better cockpit (ours, Extras > Better cockpit)
-One Extras switch, Original / Better (default Original), for our improvements to the original cockpits. Each item
-is listed in `Settings.BETTER_COCKPIT` and has its own flag, on by default (settings.cfg `[cockpit] bc_<id>`);
-`Settings.better_cockpit_on(id)` is true when the switch and the item are both on. Visual only. Items:
+One Extras switch, Original / Better (default Original), for our improvements to the original cockpits; the
+Original-vs-Better summary of each item is in [deviations.md](deviations.md). Each item is listed in
+`Settings.BETTER_COCKPIT` and has its own flag, on by default (settings.cfg `[cockpit] bc_<id>`);
+`Settings.better_cockpit_on(id)` is true when the switch and the item are both on. Visual only. This section holds
+each item's details.
 
 ### Turning compass / HSI (`turning_compass`)
-In the original every panel compass is static art. With the item on, the compass card turns with the heading, so the
-heading reads under the lubber mark at the top (`game/cockpit/compass.gd`, `compass.gdshader`).
+The compass card turns with the heading, so the heading reads under the lubber mark at the top
+(`game/cockpit/compass.gd`, `compass.gdshader`).
 * **The art:** the card is a disc cut from the panel art itself (the 4x converted panel, mipmapped), so it keeps the
   original look. The shader turns the disc by the heading; inside the hub radius the panel's own art shows (the face
   with its aircraft symbol). The dial pans and slides with the panel.
@@ -827,19 +794,9 @@ A lamp the original leaves unlit is lit for the state its legend names: the pain
   `[LIGHT002]` is inactive and its two unlabelled red lamps are not tied to it.
 * Logic: `iaf_flight::instruments::warnings` (unit tests there), via IafFlight.better_instruments.
 
-### The unused shipped art
-The three bitmaps the game ships but never loads, compared with the art the cockpits load. None is better, so none is
-used:
-* `cfir/cfir-lights.bmp` (108×198) is an earlier Kfir lights sheet: a HOOK lamp, red FLPS / AP / BRK lamps and no ECM
-  lamp. The loaded `cfirligh.bmp` (64×139) has the ECM lamp the Kfir uses (`[LIGHT006]`) and green FLPS / AP / BRK;
-  the hook lamp has no state in the game (`[LIGHT007]` is never set).
-* `lavi/lavi-lig.bmp` (62×165) is `laviligh.bmp` (57×165) without the ECM lamp the Lavi uses.
-* `phantom/f16adi.bmp` is not the F-16's blue / brown ball: it is the F-4E's own grey / black ball, 121 pixels (0.7 %)
-  off the loaded `phantom/adi.bmp`.
-
-* Test: tests/godot/test_better_instruments.gd (Original static; Better: the F-16 indexer symbol and lamps follow
-  their inputs, the Mirage VVI needle the vertical speed; each item's own flag). Pictures:
-  tests/godot/_instruments_shot.gd.
+* Test (AoA indexer, live painted instruments, warning lamps): tests/godot/test_better_instruments.gd (Original
+  static; Better: the F-16 indexer symbol and lamps follow their inputs, the Mirage VVI needle the vertical speed;
+  each item's own flag). Pictures: tests/godot/_instruments_shot.gd.
 
 ### Engine gauges (`engine_rpm`, `engine_temp`, `throttle_ab`)
 With these items on, the round engine needles read the flight model's own values (`iaf_flight::instruments::
@@ -849,7 +806,7 @@ with its own damage flags.
 
 | Needle | Original | Better |
 |---|---|---|
-| `RPMCLOCK` | clamp(rpm, 0.6, 0.97) | the RPM ramp (docs/flight-model.md "RPM ramp"): 0 with the engine off, 0.6 idle, 1.0 military, the spool-up at 15 %/s |
+| `RPMCLOCK` | clamp(rpm, 0.6, 0.97) | the RPM ramp: 0 with the engine off, 0.6 idle, 1.0 military, the spool-up at 15 %/s (with `engine_spool`, the real engine's spool) |
 | `TEMPCLOCK` | clamp(rpm, 0.5, 0.8) | the engine temperature in °C / 1000 (below) |
 | `THROTTLECLOCK` | rpm (military and AB both 1.0) | rpm, then 1.1 in AB 1 and 1.2 in AB 2; drawn with FullClock at least 1.25, so on the dials with FullClock 1 (one turn = military) AB 2 reads before the zero mark |
 
@@ -907,26 +864,22 @@ The faces paint no hands. The other panels show no clock face (checked on each p
   tests/godot/_gauges_shot.gd.
 
 ### Crisp MFD pages (`crisp_mfd`)
-In the original every MFD page is a 132 × 132 px picture, which a modern screen scales up blocky. With the item on,
-every page has the same layout, content and colours, drawn at the MFD's screen resolution: the vectors antialiased at
-their original coordinates, the pixel art (tiles, the 5 × 5 font, the range numbers, the RWR symbols, the ADI page's
-digits) as smooth strokes through its original pixels. The EO and MAP pictures stay as they are. How it works:
-docs/mfd.md §8.
+Every MFD page drawn at the screen's resolution with the original layout, content and colours: [mfd.md](mfd.md) §8.
 
 ## What our tooling assumes
-* `crates/iaf-tools/src/convert.rs` `cockpit` is generic. It takes the dir name as its argument and
-  converts:
-  * the whole ini -> `cockpit.json`;
-  * every `*.bmp` in the dir + `mfds.bmp`, `rwrsymb.bmp`, `isr.bmp`;
+* `crates/iaf-tools/src/convert.rs` `cockpit` is generic. It takes the dir name as its argument and converts:
+  * the whole `cockpit.ibx` -> `cockpit.json` (`cockpit.ini` is ignored, as in the exe);
+  * every `*.bmp` in the dir (the unreferenced ones too, harmless extras) + `mfds.bmp`, `rwrsymb.bmp`, `isr.bmp` (4x
+    with `--upscale`);
   * `emf/map.emf` -> `map.json`.
 
-  Gaps: it leaves `fsmfd/fsmfd.bmp` and `fsmfd/data.ibx` unconverted, and it has no special handling for `cockpit.ini`
-  or the unreferenced bitmaps (harmless extras).
+  The full-screen MFD's `fsmfd/fsmfd.bmp` and
+  `fsmfd/data.ibx` are not converted: `fs_mfd.gd` reads them from `assets/install` at run time.
 
-  Empty ini values (`ClockCenterX =`, `MiddleOffsetX =`) are left out of the JSON, so the reader's default (the exe's)
-  applies. `GetPrivateProfileInt` returns the default when the value reads as an empty string (Wine's
+  Empty ini values (`ClockCenterX =`, `MiddleOffsetX =`) are left out of the JSON, so the exe's default applies.
+  `GetPrivateProfileInt` returns the default when the value reads as an empty string (Wine's
   `GetPrivateProfileIntW`; 0 only for text that is not a number). So the Mirage's empty `ClockCenterX` is 960, under
-  the opaque panel, and its standby disc is hidden. (Read as 0, it showed at the panel's left edge.)
+  the opaque panel, and its standby disc is hidden.
 * `tools/setup-cli.sh` converts every cockpit (step "cockpits": f16, f15, f4-2000, phantom, cfir, lavi, mirage, mig23,
   mig29).
 * `game/cockpit/cockpit.gd`:
@@ -937,8 +890,7 @@ docs/mfd.md §8.
   * It draws the lights (`_draw_lights`, "Panel lights" below).
 * `game/terrain/terrain_view.gd` flies the player's type (`aircraft/player_aircraft.gd`, docs/aircraft.md §5) and
   loads its cockpit (`cockpit.load_cockpit`).
-* `game/aircraft/aircraft_model.gd` keeps the per-type mixing constants. They are aircraft data, listed here for
-  completeness.
+* `game/aircraft/aircraft_model.gd` keeps the per-type mixing constants (aircraft data).
 
 ## Panel lights (`[LIGHTSON]`, `[LIGHT000..009]`, `[SLIGHT000..003]`, `[TEXTMESSAGE]`, `[CHAFF]`/`[FLARE]`, `[PANELST]`)
 The panel lights are warning and state lamps, plus the gear handle, cut from one light bitmap per cockpit. One generic

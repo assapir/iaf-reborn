@@ -1,8 +1,7 @@
 # In-flight views, pause, menu and time compression
 
-This page describes what the in-flight keys for pause, the menu, time compression, mute and the cameras do in the
-original, and what the port does with them. Sections: pause and the On-The-Fly menu (§1), time compression (§2),
-mute (§3), the views / cameras (§4).
+What the in-flight keys for pause, the menu, time compression, mute and the cameras do in the original, and what the
+port does with them: pause and the On-The-Fly menu (§1), time compression (§2), mute (§3), the views / cameras (§4).
 
 Addresses are `IAFJets.exe` **v1.1**. Keys and command ids: [controls.md](controls.md). The pause / menu GDI
 (Windows drawing) details are in [front-end.md](front-end.md) §16.
@@ -29,14 +28,14 @@ directly (`CFlightWnd::OnGameEvent` 0x4dc280). They bypass the game-event queue.
 | keys meanwhile | only Ctrl+P (key manager counter −1) | Esc / Ctrl+O; flight commands dropped (`FUN_004cd3b0`: clock stopped) | the menu frame's keys |
 | shown | "II  PAUSE" blinking + white wash | the six-item menu | the TSD screen |
 
-* **Esc in a paused flight**: the key manager passes only Ctrl+P. So the flight keys cannot reach the "unpause"
-  branch of Esc. That branch is on the FlyTSD, whose frame handles its own Esc.
+* **Esc in a paused flight**: the key manager passes only Ctrl+P, so the flight's Esc never reaches its "unpause"
+  branch. The FlyTSD's frame handles its own Esc.
 * **FlyTSD** (`flytsd.trx`: Fly, Visit, the layer checks, Alpha–Delta, Zoom):
   * Esc and BACK (frame handler `FUN_004ea090` 0x7a, BACK `FUN_004ed1b0`) return to the flight (exit 4) when
     `FUN_004bb8f9` holds (the player has a unit, UNCERTAIN).
   * MAIN (`FUN_004ecff0`) on screens 0x20 / 0x21 opens the Ctrl+Q quit-mission box (`FUN_004e2fa0(3)`).
   * The map is the live battle: the unit table is rebuilt from the spawned objects on every paint (`FUN_00517cd0` →
-    `FUN_004d2900`), with the sim clock stopped. Docs/front-end.md §8.1 lists which units get a record. A downed
+    `FUN_004d2900`), with the sim clock stopped. front-end.md §8.1 lists which units get a record. A downed
     formation leaves the map and its button is disabled (`FUN_00505820`). The clock is the time of day now.
   * **Fly** (`FUN_005045b0`) with a selected flight that exists calls `FUN_004d31f0`: its current leader (member 0
     while alive, else member 1, `FUN_004d35c0`) goes to `FUN_004d3250` (the TSD object's vfunc +0x14). Then the flight
@@ -49,10 +48,10 @@ directly (`CFlightWnd::OnGameEvent` 0x4dc280). They bypass the game-event queue.
        old jet becomes brain controlled (`FUN_004a8e70(1)`).
     3. The camera goes to the cockpit view on the player's jet (`FUN_0057f2a0(…, 1, player)`).
 
-    Fly on the player's own flight therefore only returns the cockpit view.
+    So Fly on the player's own flight only returns the cockpit view.
   * **Visit** (`FUN_005046b0`, in flight with a selected unit) calls `FUN_004d3450` with that unit, then the flight
-    resumes. `FUN_004d3450` sets the main camera to the radar-target view on the unit (`FUN_00580f50`, type 9:
-    aircraft {300, 700, 300, 10°, ·, 2°} ×1, others {500, 900, 500, 30°, ·, 120°} ×3, no randomness). It also sets
+    resumes. `FUN_004d3450` sets the main camera to the radar-target view on the unit (`FUN_00580f50`, type 9, the F4
+    offsets of §4.2, no randomness). It also sets
     `+8 = 1` in the visual record (`obj+4`) of the unit and of the living player's jet, and clears `+8` of the record's
     cockpit part when there is one (UNCERTAIN: "drawn from outside"). The player keeps flying the own jet. Esc gives the
     FlyTSD again (EN 3.1).
@@ -122,10 +121,7 @@ directly (`CFlightWnd::OnGameEvent` 0x4dc280). They bypass the game-event queue.
 
 ## 2. Time compression (C 0x77, Ctrl+C 0x78)
 
-Key facts:
-* C steps the rate x1 → x2 → x4 → x1. Ctrl+C sets x1.
-* Any situation allows it, and only these keys change it.
-* The cockpit shows the rate at (630, 10) while it is > 1.0.
+C steps the rate x1 → x2 → x4 → x1; Ctrl+C sets x1. Nothing else changes or refuses it.
 
 The clock: the single-player sim clock (`DAT_006992d0`, ctor `FUN_004cf910`, vtable 0x604c50) has a rate `+0x48`
 (start 1.0) and a cap `+0x58` = 16.0 (0x604bf0). Sim time = real time × rate + offset (`FUN_004cfa50`).
@@ -134,10 +130,8 @@ The clock: the single-player sim clock (`DAT_006992d0`, ctor `FUN_004cf910`, vta
   1. `r = ftol(rate)` (vfunc +0x20 `FUN_004cf990`).
   2. If `r < 4.0` (0x604ba8): vfunc 0 `FUN_004cf9c0(r)` sets rate + r (only if < 16): 1 → 2 → 4.
   3. Else: vfunc +4 `FUN_004cf9f0` sets 1.0.
-
-  So x1 → x2 → x4 → x1.
 * **Ctrl+C** (case 0x78 @4cec01): vfunc +4 → 1.0.
-* **No other rule**: nothing refuses it (on the ground, near enemies, under attack) and nothing resets it.
+* **No other rule**: it works on the ground, near enemies and under attack, and nothing resets it.
   * The rate functions have no other callers. All vcalls on `DAT_006992d0` were checked: @4497b0 HUD copy,
     @5013f0 FlyTSD text.
   * The events go through the queue (`FUN_004cd3b0`), so they act only while the clock runs (not paused / in the
@@ -162,7 +156,7 @@ The clock: the single-player sim clock (`DAT_006992d0`, ctor `FUN_004cf910`, vta
 
 ## 3. Mute (Ctrl+M, 0x87)
 `0x4e3442` flips the Sound page's MUTE (`DAT_0083b8b8`) and applies it (`FUN_004c5930`). Port: `sound_buses.gd`
-`toggle_mute()`. The port does not save it (UNCERTAIN whether the original saves it).
+`toggle_mute()`. The port does not save it (UNCERTAIN whether the original does).
 
 ## 4. Views (cameras)
 
@@ -209,6 +203,7 @@ Port: `game/terrain/views.gd`, `terrain_view.gd` `_view_command` / `_snap_comman
 | F2, Numpad 1–4, 6–9 (held) | event 22 | snap view in slot 2 (cockpit-like views): head yaw 0, ±36° (0.2π), ±90°, ±144° (0.8π), 180° (F2 / Numpad 2, pitch 12°), Numpad 8 pitch 15°; release → slot 0 | — |
 | Shift+Numpad / Shift+arrows | 23, 24, 26, 27 | cockpit: free look; external orbit: ±45°/s heading / pitch | — |
 | Numpad + / − , = / − | 20, 21 | external orbit: distance ∓60 m/s | — |
+
 `DAT_00833704` = the last id (padlock excluded). F5 / F6 use it for their "again" rule. In the external views the
 Numpad snap keys turn the orbit: 8 / 2 pitch, 6 / 4 heading. F2 and 1 / 3 / 7 / 9 do nothing there.
 
@@ -218,15 +213,19 @@ Numpad snap keys turn the orbit: 8 / 2 pitch, 6 / 4 heading. F2 and 1 / 3 / 7 / 
   * F1 from a turned head returns it to (0, 0) linearly at 45°/s on the larger axis (`FUN_0057fa10`).
   * The panel art pans with the head (docs/cockpit.md "Pans"): 1920 / AzimutAngleDeg px per rad of yaw,
     (PanelHeight + HUD CenterY) / ElevationAngleDeg per rad of pitch.
-* **Own jet in the cockpit views** (1, 0x12, 0x16; `FUN_004d9d70` with the view test `FUN_0045e290`): the player's
-  jet is drawn with its cockpit-view model, model slot [8] = `<plane>_bc.x` (wings, fuselage aft of the eye, tail and
-  seat back; docs/damage.md §2). The canopy structure follows each jet: a hoop behind the seat on the F-16 and Lavi,
-  a heavy rear frame on the Kurnass 2000, a rear hood on the Kfir, a rear fairing on the Mirage, sill rails only on
-  the frameless-canopy F-15, through `FUN_004da060` (display slot 4, the crew's cockpit flag
-  set so the pilot and canopy stay hidden) and back to slot 1 after the draw (`FUN_004c3210`). The model is moved
-  by the eye offset (`FUN_00444da0`) so the eye sits at the camera. The same draw (`FUN_004da090`) then draws the stores on their slots (`FUN_0053e430`, EXTERNAL STORES on), so
-  looking aside or back shows the loads on the wings. The HUD-only view (5) draws no own jet. The
-  F-4E draws only its cockpit. Ours: the F-35I's is `f35i_bc.gltf` (`tools/f35i/bc.py`, docs/f35i.md §4.4).
+* **Own jet in the cockpit views** (1, 0x12, 0x16; `FUN_004d9d70` with the view test `FUN_0045e290`):
+  * The player's jet is drawn with its cockpit-view model, model slot [8] = `<plane>_bc.x` (wings, fuselage aft of
+    the eye, tail and seat back; docs/damage.md §2).
+  * It is drawn through `FUN_004da060` (display slot 4, the crew's cockpit flag set so the pilot and canopy stay
+    hidden), then back to slot 1 (`FUN_004c3210`). The model is moved by the eye offset (`FUN_00444da0`) so the eye
+    sits at the camera.
+  * The canopy structure per jet: a hoop behind the seat on the F-16 and Lavi, a heavy rear frame on the Kurnass
+    2000, a rear hood on the Kfir, a rear fairing on the Mirage, sill rails only on the frameless-canopy F-15. The
+    F-4E draws only its cockpit.
+  * The same draw (`FUN_004da090`) then draws the stores on their slots (`FUN_0053e430`, EXTERNAL STORES on), so
+    looking aside or back shows the loads on the wings.
+  * The HUD-only view (5) draws no own jet.
+  * Ours: the F-35I's is `f35i_bc.gltf` (`tools/f35i/bc.py`, docs/f35i.md §4.4).
 * **Free look** (0x12, `FUN_00582370`):
   * Press: angle = start + rate · 2·t·(1 − 0.9^t). The rate is 45°/s, so the pan speeds up toward 90°/s.
   * Limits: pitch −12°…+85°, yaw unlimited.
@@ -257,7 +256,7 @@ Numpad snap keys turn the orbit: 8 / 2 pitch, 6 / 4 heading. F2 and 1 / 3 / 7 / 
   parachuter {1000, 600, 200, 230°, ·, 160°} ×2 (docs/mission-runtime.md §5.4).
 
 ### 4.4 iaf-reborn
-* **Built**: all of the above, with these differences:
+* **Built**: all of §4.1–§4.3, with these differences:
   * **F5 threat** follows the RWR (`terrain_view.threat()`; the AI's locks `ai/combat.gd` `_pick` and launches
     fill it). Without a threat it does nothing, as the original.
   * **F4 / F7 / F8 / F3** use the radar's A-A lock / TWS selection (`radar.locked()`; A-A: air-to-air, TWS: track
@@ -285,6 +284,6 @@ Numpad snap keys turn the orbit: 8 / 2 pitch, 6 / 4 heading. F2 and 1 / 3 / 7 / 
 * **HUD only** (type 5): the HUD symbology and the message lines, with no panel / MFDs. The projection stays the
   cockpit's, so the HUD stays registered. (The original's viewport grows to 480 rows, which moves the projection
   centre: not ported.)
-* **EO camera** (slot 1, type 0xb): built for the FLIR pod and the TV weapons, riding a launched one (docs/mfd.md
-  "FLIR (6), TV (5)"; a SubViewport camera, terrain_view.gd `_update_eo_view`). The full-screen weapon MFD (Z) is
-  built (`_update_full_screen`, `cockpit/fs_mfd.gd`).
+* **EO camera** (slot 1, type 0xb): a SubViewport camera for the FLIR pod and the TV weapons, riding a launched one
+  (terrain_view.gd `_update_eo_view`). The pages and the full-screen weapon MFD (Z): docs/mfd.md "FLIR (6), TV (5)"
+  and "Full-screen weapon MFD".
