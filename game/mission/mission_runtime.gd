@@ -49,13 +49,15 @@ var formation_of := {}  # entity key -> its formation's flight (0x3f2, formation
 
 ## The files of menu mission `id` (missionlist.json: the main .mis, then its base missions, as
 ## converted by `iaf-convert missions`): [{name, data}] in that order, data {} for a missing file;
-## [] when the id is not listed.
+## [] when the id is not listed. The mission editor's Fly gives the whole list (Settings.mission_files_override).
 static func mission_files(id: int) -> Array:
 	var dir := Settings.assets_dir().path_join("converted/missions")
 	var out := []
 	var moved := Settings.sync_bases()
-	if id == 0x29a:  # the Mission Creator's (docs/front-end.md §19.3), built on FLY
-		for f in Settings.mc_files:
+	# The Mission Creator's (docs/front-end.md §19.3), built on FLY; the mission editor's Fly (Settings.fly_edited).
+	var given: Array = Settings.mc_files if id == 0x29a else Settings.mission_files_override
+	if id == 0x29a or not given.is_empty():
+		for f in given:
 			var data: Dictionary = f.data.duplicate(true)
 			_into_wind(id, data, out.is_empty())
 			if moved:

@@ -374,6 +374,10 @@ Each entry names the switch and where it lives, then the difference: "Original: 
 screen gets a **PILOT GUIDE** button and view, with an Open PDF link when the guide's PDF was made — front-end.md
 §14, reference.gd.
 
+**Mission editor** (ours, a separate tool: `./mission-editor`; no Extras row): forks an original mission into
+`user://missions/`, edits its units, routes, flights, wind, time and briefing, and flies it from the editor; the
+debrief returns to the editor — mission-editor.md. The original has only the Mission Creator (front-end.md §19).
+
 ## 3. Original quirks we keep on purpose (decided)
 Original and ours behave the same in each of these.
 - **Sea west of Suez:** the sea west of Suez (and the Nile delta / Western desert) is one flat plane at −557 m in

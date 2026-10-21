@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Starts the mission editor (docs/mission-editor.md): the game's own build and start (./iafjets) on the editor's scene.
+# Its Fly flies the edited mission in the same window; the debrief comes back to the editor.
+IAF_SCENE=res://editor/mission_editor.tscn exec "$(dirname "$0")/iafjets" "$@"

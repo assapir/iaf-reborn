@@ -410,14 +410,21 @@ func _ready() -> void:
 		var p := {}
 		for k in Settings.PREFS.gameplay:
 			p[k] = Settings.get(k)
-		# Without a logged-in pilot nothing is saved; the Debrief still shows the flight's numbers.
-		Settings.debrief["stats"] = Pilots.record(
-			Settings.pilot_id, Settings.mission_id, Settings.debrief, score_multiplier(p)
-		)
+		# Without a logged-in pilot nothing is saved; the Debrief still shows the flight's numbers. A flight of the
+		# mission editor's (Settings.fly_edited) is not the original mission: never saved either.
+		var pilot := -1 if Settings.return_to_editor else Settings.pilot_id
+		Settings.debrief["stats"] = Pilots.record(pilot, Settings.mission_id, Settings.debrief, score_multiplier(p))
 	var at := args.find("--mission")
 	if at >= 0:
 		Settings.mission_id = int(args[at + 1])
 		_reset_tsd_checks()
+	if Settings.return_to_editor and Settings.debrief.is_empty():
+		# The mission editor's Fly (Settings.fly_edited): straight to its mission's TSD, its flight selected.
+		_reset_tsd_checks()
+		if Settings.editor_flight >= 1 and Settings.editor_flight <= 4:
+			tsd_checks.erase("player_flight")
+			tsd_checks[Tsd.FLIGHT_NAMES[Settings.editor_flight - 1]] = true
+		screen = "tsd"
 	_enter_screen()
 	_start_music()
 	# On-The-Fly menu Restart / New mission (docs/front-end.md §16.3): the debrief screen 0x23 / 0x25
@@ -2068,7 +2075,8 @@ func _animate_release(key: String, inside: bool) -> void:
 func _on_button(key: String) -> void:
 	if key == "back":
 		if screen == "tsd":
-			_message(8, [["yes", _go.bind(tsd_return)], ["no", Callable()]])
+			var leave := Settings.back_to_editor if Settings.return_to_editor else _go.bind(tsd_return)
+			_message(8, [["yes", leave], ["no", Callable()]])
 		elif screen == "arm":  # the content's vfunc +0xd4 (FUN_005073e0): checks, then TSD
 			arm.leave(3)
 		else:
@@ -2080,7 +2088,11 @@ func _on_button(key: String) -> void:
 			# (FUN_004e2fa0(3)), as the flight shows it (game/terrain/terrain_view.gd _quit_key).
 			_message(8, [["yes", flight._end_flight.bind(true)], ["no", Callable()]])
 			return
-		if screen in QUIT_SCREENS:
+		if Settings.return_to_editor and screen == "deb":
+			Settings.back_to_editor()
+		elif Settings.return_to_editor and screen in ["tsd", "arm"]:
+			_message(8, [["yes", Settings.back_to_editor], ["no", Callable()]])
+		elif screen in QUIT_SCREENS:
 			_quit()
 		elif screen in ["tsd", "arm"]:
 			_message(8, [["yes", _go.bind("main")], ["no", Callable()]])
@@ -2163,6 +2175,9 @@ func _on_button(key: String) -> void:
 ## flight (v1.1; v1.0 reloaded the mission), other 300–399 ids do nothing, the rest reload the mission
 ## (-> TSD).
 func _debrief_button(label: String) -> void:
+	if Settings.return_to_editor:  # flown from the mission editor: every button goes back to it
+		Settings.back_to_editor()
+		return
 	var passed: bool = Settings.debrief.get("passed", false)
 	Settings.debrief = {}
 	var id: int = Settings.mission_id

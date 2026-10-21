@@ -12,6 +12,7 @@ mod heights;
 mod imode;
 mod mcr;
 mod missile;
+mod mission_edit;
 mod radar;
 mod real_hud;
 mod release;

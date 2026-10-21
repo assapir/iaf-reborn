@@ -13,6 +13,7 @@ pub mod imagery_run;
 pub mod itm;
 pub mod mis;
 pub mod mission_creator;
+pub mod mission_edit;
 pub mod pack;
 pub mod patch;
 pub mod plane;

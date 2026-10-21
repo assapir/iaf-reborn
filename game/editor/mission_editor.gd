@@ -61,7 +61,7 @@ func _ready() -> void:
 	mission_dir = Settings.assets_dir().path_join("converted/missions")
 	_load_originals()
 	_build_ui()
-	var reopen: String = String(Settings.get("editor_file")) if Settings.get("editor_file") != null else ""
+	var reopen: String = Settings.editor_file
 	if reopen != "" and FileAccess.file_exists(reopen):
 		open_file(reopen)
 	else:
@@ -505,8 +505,7 @@ func fly(anyway := false) -> void:
 		_ui.fly_anyway.popup_centered()
 		return
 	save()
-	if Settings.has_method("fly_edited"):
-		Settings.call("fly_edited", source, files(), briefing.duplicate(), fly_flight(), file)
+	Settings.fly_edited(source, files(), briefing.duplicate(), fly_flight(), file)
 
 
 # --- UI -------------------------------------------------------------------------------------------------------------

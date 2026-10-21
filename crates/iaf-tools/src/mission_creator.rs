@@ -153,13 +153,7 @@ impl Ctx<'_> {
         let (mut x, mut y, mut z, mut h);
         if self.m.alt == 0 && n <= 2 {
             (x, y, z, h) = (bx, by, bz, yaw);
-            // FUN_0058eb40: (0, 50, 0) through the rotation about z by the bearing (FUN_0043d5b0), i.e.
-            // (−50 sin, 50 cos).
-            let mut step = |bearing: f64| {
-                let r = bearing.to_radians();
-                x -= 50.0 * r.sin();
-                y += 50.0 * r.cos();
-            };
+            let mut step = |bearing: f64| (x, y) = beside(x, y, bearing);
             if !leader {
                 step(yaw + 90.0);
             }
@@ -200,6 +194,13 @@ impl Ctx<'_> {
         }
         (json!(points), json!(names))
     }
+}
+
+/// 50 m from (x, y) toward `bearing` − 90°, as `FUN_0058eb40` steps a wingman: (0, 50, 0) turned about z by the bearing
+/// (`FUN_0043d5b0`), i.e. (−50 sin, 50 cos).
+pub fn beside(x: f64, y: f64, bearing: f64) -> (f64, f64) {
+    let r = bearing.to_radians();
+    (x - 50.0 * r.sin(), y + 50.0 * r.cos())
 }
 
 /// `Player<n>` (leader) / `Player<nn>` (wingman) → (n, leader); n from the last character (`FUN_0058ea00`).
