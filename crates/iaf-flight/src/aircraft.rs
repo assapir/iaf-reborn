@@ -75,6 +75,12 @@ const TORNADO_PITCH: f32 = 0.872_664_6;
 const JITTER_V: f32 = 100.0;
 const JITTER_PITCH: f32 = 1.0 * PI / 180.0 * 2.0 / 74.53;
 const JITTER_ROLL: f32 = 2.0 * PI / 180.0 * 2.0 / 74.53;
+/// Better physics "brake pitch" (not in the original): ground pitch per g of along-track acceleration (the struts
+/// give under the CG's inertia; inferred), nose down under braking, nose up (squat) under thrust.
+const SQUAT_PER_G: f32 = 8.0 * PI / 180.0;
+/// Its limits: 2° nose down (the nose strut's travel), 1° nose up (the main struts').
+const SQUAT_DOWN: f32 = 2.0 * PI / 180.0;
+const SQUAT_UP: f32 = 1.0 * PI / 180.0;
 
 // Better physics: FLCS (fly-by-wire) departure = deep stall (types 100 F-16, 140 Lavi; not in the
 // original, which never lets them depart). Estimates from public F-16 high-AoA data (NASA TP-1538 wind-tunnel
@@ -345,11 +351,13 @@ pub struct BetterPhysics {
     pub ground_effect: bool,
     /// On the ground the idle thrust falls with speed (ram drag) and no ×0.8 ground drag: taxi speeds near 30 kt, not 90+.
     pub ground_idle: bool,
+    /// On the wheels the nose dips under braking and rises under thrust (along-track acceleration).
+    pub brake_pitch: bool,
 }
 
 impl BetterPhysics {
     /// Stable ids (snake_case) and English labels, in menu order.
-    pub const OPTIONS: [(&'static str, &'static str); 13] = [
+    pub const OPTIONS: [(&'static str, &'static str); 14] = [
         ("flight_path_hold", "1 g hold keeps the flight path (no slow climb/dive with neutral stick)"),
         ("force_angles", "Forces use the current angle of attack and sideslip"),
         ("start_lift", "Airborne start without the upward jolt"),
@@ -363,6 +371,7 @@ impl BetterPhysics {
         ("no_nose_wheel_lift", "No lift jump from nose-wheel steering"),
         ("ground_effect", "Ground effect (less drag, more lift near the ground)"),
         ("ground_idle", "Realistic idle thrust on the ground (taxi speed)"),
+        ("brake_pitch", "Nose dips under braking, squats under thrust"),
     ];
 
     pub fn none() -> Self {
@@ -392,6 +401,7 @@ impl BetterPhysics {
             "no_nose_wheel_lift" => &mut self.no_nose_wheel_lift,
             "ground_effect" => &mut self.ground_effect,
             "ground_idle" => &mut self.ground_idle,
+            "brake_pitch" => &mut self.brake_pitch,
             _ => return None,
         })
     }
@@ -1195,6 +1205,13 @@ impl Aircraft {
             let s = (v[1] as f32).abs().min(JITTER_V);
             pj = jitter(t, 1) * s * JITTER_PITCH;
             rj = jitter(t, 2) * s * JITTER_ROLL;
+        }
+        if self.better.brake_pitch && self.gear_flag(t) && self.surface != 2 {
+            // BP: the along-track acceleration of the ground roll (§14.5) tilts the jet on its struts; the easing
+            // below is the struts' lag, so the nose recovers within about a second once the braking stops.
+            let f = if v[0].hypot(v[1]) > 0.5 { norm(Vec3::new(v[0], v[1], 0.0)) } else { self.ground_dir };
+            let ax = self.axes[0].accel() as f64 * f[0] + self.axes[1].accel() as f64 * f[1];
+            pj += (ax as f32 / G * SQUAT_PER_G).clamp(-SQUAT_DOWN, SQUAT_UP);
         }
         // [TAXI] PitchRate (`0x8454cc`) would scale the nose-up easing; iaf.ibx has none, so it is 1.0.
         let (p, r) = (self.saved.pitch, self.saved.roll);
@@ -3362,6 +3379,39 @@ mod tests {
 
     /// `5bb9f0` surface states and the `5bb300` ground attitude: level on the runway, a random pitch / roll off the
     /// runway and on the belly, growing with the north speed.
+    /// Better physics "brake pitch": thrust squats the nose up, braking dips it, and it settles level when the jet
+    /// stops. Off (the original, `5bb300`): level throughout.
+    #[test]
+    fn brake_pitch_dips_and_recovers() {
+        let deg = PI / 180.0;
+        let mut roll_out = vec![];
+        for on in [false, true] {
+            let mut a = ground(true);
+            a.better.brake_pitch = on;
+            a.ground_flags = Some(0x10); // runway
+            a.set_controls(Controls { throttle: 0.74, brakes: false, ..a.controls() });
+            run(&mut a, 6.0);
+            let squat = a.state().pitch;
+            assert!(a.state().on_ground && a.state().velocity[1] > 30.0, "{:?}", a.state());
+            a.set_controls(Controls { throttle: 0.0, brakes: true, ..a.controls() });
+            a.engine_on = false; // the player's ground thrust at throttle 0 outruns the brakes (§14.2)
+            run(&mut a, 2.0);
+            let dip = a.state().pitch;
+            roll_out.push(a.state().position);
+            run(&mut a, 40.0);
+            let st = a.state();
+            assert!(st.speed < 0.1, "stopped: {st:?}");
+            if on {
+                assert!(squat > 0.3 * deg && squat <= SQUAT_UP + 1e-4, "squat {}", squat / deg);
+                assert!(dip < -deg && dip >= -SQUAT_DOWN - 1e-4, "dip {}", dip / deg);
+                assert!(st.pitch.abs() < 0.05 * deg, "recovered {}", st.pitch / deg);
+            } else {
+                assert_eq!((squat, dip, st.pitch), (0.0, 0.0, 0.0));
+            }
+        }
+        assert_eq!(roll_out[0], roll_out[1], "the pitch is the attitude only: the ground roll is the same");
+    }
+
     #[test]
     fn ground_attitude_jitter_off_the_runway() {
         let mut a = ground(true);

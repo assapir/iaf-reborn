@@ -627,6 +627,17 @@ throttle rules and preferences follow §15 (checklist §15.11). These items stil
       ×0.8 step is removed; the rolling friction μ 0.05/2 is already realistic.
     * Result: Vj gives the F-16 (Original, start weight) ≈ 31 kt. After 10 min the seven jets settle at 11–40 kt
       (Original) and 35–44 kt (Real data). The throttle's share above idle stays the same.
+  * **Brake pitch** [`brake_pitch`] (§14.5a).
+    * Original: on the wheels the pitch eases to level (`FUN_005bb300`: its target is 0 on the runway, a random
+      shake off it); no brake, thrust or acceleration input reaches it, so the jet stays level under hard braking.
+    * BP: with the gear down and not on the belly, the pitch target adds 8° per g of along-track acceleration (the
+      X / Y axes' acceleration on the ground heading), limited to 2° nose down and 1° nose up (inferred: the struts
+      give under the CG's inertia). Braking dips the nose (F-16 wheel brakes, ≈ 0.16 g: ≈ 1.2°); full thrust at brake
+      release squats it up (military: the 1° limit); the stop rule zeroes the acceleration, so the nose recovers.
+    * The τ easing of `5bb300` is the struts' lag: the nose follows within about a second.
+    * The attitude only: the ground forces keep the level frame (§14.5), the jet's origin keeps its height, and the
+      external and cockpit views both take this attitude. The model turns about its origin, so the nose wheel sinks
+      ≈ 10 cm into the runway at 1.5° (the struts are not animated). Test `brake_pitch_dips_and_recovers`.
 * **Kept in both modes** (original quirks that better physics leaves as they are):
   * §15.10 item 14, the slope globals. In the original, the lift-ramp / β-gain slopes below 220 / 400 m/s come from
     the **last aircraft type set up** (shared globals). Our `Aircraft` keeps its own parameters, so every jet uses its
@@ -1091,7 +1102,8 @@ heading from the velocity (atan2(vx, vy)) and the nose-wheel ramp S+0x2a8 (5bdd5
 * The saved values come from the update before, and each update saves the attitude it samples. So the eased value
   carries from one update to the next.
 * Port: `Aircraft::ground_pitch_roll`. `rand()` is a hash of the sample time (deterministic per sample).
-  Test: `ground_attitude_jitter_off_the_runway`.
+  Test: `ground_attitude_jitter_off_the_runway`. Better physics `brake_pitch` adds the braking / thrust pitch to the
+  target (§10).
 
 ### 14.6 Air ↔ ground transitions — `FUN_005bb9f0(now, &speed, &Z, &beta)`
 This function is called at the start of every 5 Hz tick (`5a4230` @5a4360) and nowhere per frame.
