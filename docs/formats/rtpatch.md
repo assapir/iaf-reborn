@@ -8,14 +8,16 @@ This page describes the patch file format of the official IAF v1.1 update and ho
 - **Layout.** The patch engine, `PATCHW32.DLL` 5.00, is stored as a resource inside the exe. The patch file itself
   is appended after the PE (Portable Executable) image.
 
-`iaf-patch` (crates/iaf-tools/src/rtpatch.rs) applies the patch on any OS:
+`iaf-patch` (`crates/iaf-tools/src/rtpatch.rs`, driven by `patch.rs`) applies the patch on any OS:
 
 ```sh
 cargo run --release -p iaf-tools --bin iaf-patch -- list  <patch>
 cargo run --release -p iaf-tools --bin iaf-patch -- apply <patch> assets/install <out-dir>
+cargo run --release -p iaf-tools --bin iaf-patch -- unwrap <patch> <out.exe>
 ```
 
-- `<patch>` may be the downloaded self-extractor, `iafp1_1.exe` or a bare patch file.
+- `<patch>` may be the downloaded self-extractor (or a zip holding the patch), `iafp1_1.exe` or a bare patch file.
+- `unwrap` writes the patch exe found inside a zip or self-extractor.
 - `apply` leaves the install untouched: it reads it and writes each updated file under `<out-dir>` (lower-cased
   path).
 - `apply` checks every source file against the size and checksums the patch expects, and every result against the

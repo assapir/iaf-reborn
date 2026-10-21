@@ -3,7 +3,8 @@
 Every 3D object in the game is a Microsoft DirectX `.X` file in binary form, with 32-bit floats. The header is
 `xof 0302bin 0032` or `xof 0303bin 0032`. The models were exported from 3D Studio with the "x3ds" exporter, so their
 names start with `x3ds_` or `x3ds_mat_`. This page lists the files per aircraft, the frame names, and what the
-converter to glTF (the GL Transmission Format, which Godot loads) must do.
+converter to glTF (the GL Transmission Format, which Godot loads) must do. Parser: `crates/iaf-formats/src/xfile.rs` / `model.rs`;
+converter: `crates/iaf-tools/src/gltf.rs` (`iaf-convert model`).
 
 Each aircraft has a folder `resource/3dobjects/controllableplanes/<plane>/` with these files (LOD = level of
 detail):

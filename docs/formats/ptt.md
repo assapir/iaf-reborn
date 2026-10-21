@@ -115,7 +115,8 @@ heights (it is not flattened).
     8 to 80 km, 9 to 100 km.
   - The TERRAIN DETAIL slider (Graphics page) moves in 0.25 steps, capped at `(0x779508 − 1)·0.25`. `0x779508` =
     RAM/10 below 61 MB (32 MB → 3, 48 MB → 4), else 5 (`FUN_00407670`). Detail = 1 + 4·slider (UNCERTAIN).
-  - The "renderer angle 8°→5.5°" of the v1.1 notes (`585270`) is AI code; it does not touch the terrain.
+  - The v1.1 look-down change 8°→5.5° (`585270`) is the cockpit camera's (cockpit.md "3D view"); it does not touch
+    the terrain.
 - **View distance** (`FUN_00408070`, per frame): `min(100000, (AGL·1e-4 + 0.7) × base)` terrain units (AGL = height
   above ground level).
   - base = 26000..31000 m / PlaneScale for detail 1..5 (`405c20`). That is about 21 km on the ground and 30 km at
@@ -135,8 +136,8 @@ heights (it is not flattened).
   - Height + normal (`4045e0`): offsets 5 px, `normal = normalize(W−E, N−S, 10·2^L)`.
 
 ## Converted layout (`iaf-terrain theatre`)
-`iaf-terrain theatre <map.ptt> <out> [threads]` converts **every level and every inset**. `tools/setup-cli.sh` runs it,
-with output in `assets/converted/terrain/theatre`. The output is a quadtree of nodes on a grid aligned to the theatre
+`iaf-terrain theatre <map.ptt> <out> [threads]` converts **every level and every inset**. Setup runs it (step
+`theatre`), with output in `assets/converted/terrain/theatre`. The output is a quadtree of nodes on a grid aligned to the theatre
 origin:
 
 - A node of level L covers `1024·2^L` units with a 1024² colour JPEG (q 90) at `2^L` units per pixel, the resolution
@@ -194,8 +195,8 @@ terrain units (`FUN_004053f0`): `X = tx·1.2411389 − 166850`, `Y = 1043780 −
   - a 200 km view distance; the original has ~21–124 km;
   - continuous heights; the original has 1.24 m steps;
   - the physics height is the drawn surface; the original takes a 5-tap smoothed sample of the finest decoded tile.
-- **Frame rate** (Intel Iris Xe, 1920×1080, vsync off, cockpit view; old = the level-4 Israel rectangle + detail
-  tiles): on the runway 83 → 111 fps, at 1500 m 54 → 73 fps, at 6000 m 37 → 60 fps.
+- **Frame rate** (Intel Iris Xe, 1920×1080, vsync off, cockpit view): on the runway 111 fps, at 1500 m 73 fps, at
+  6000 m 60 fps.
 
 ## Terrain types (`terraintype.dat`)
 The terrain-type map says whether a point is land, water, runway or map edge. `terraintype.dat` is 784188 bytes,
@@ -232,7 +233,8 @@ Users of the mask:
 Original quirk: island leaves carry the water bit, so touching down on Cyprus counts as water.
 
 Ported: `terrain.gd` reads the main tree from the install at start, and `surface_at(pos)` returns the mask. The
-flight gets water / rough every frame (`set_ground_surface`).
+flight gets water / rough every frame (`set_ground_surface`). `IafSurface` (`crates/iaf-godot/src/surface.rs`, parser
+`crates/iaf-formats/src/terrain_types.rs`) rasterises the mask around the camera for the terrain shader.
 
 **Airbase footprints.** The 0x10 polygons cover the whole airbase: runway, taxiways, aprons and the grass between.
 Landing beside the runway inside the base is therefore safe. `tests/godot/test_runway_edges.gd` measures each
@@ -256,8 +258,8 @@ crashes; outside is rough ground (water where the mask has 0x6).
 
 **Rule:** a runway-end number N must read upright to a pilot landing on that end (facing heading N×10°).
 
-**What is wrong:** only some painted digits. The terrain itself is correctly oriented: the coastline matches, the
-coarse levels match, and roads run continuously across the inset edges.
+**What is wrong:** only some painted digits. The terrain itself is correctly oriented: the coastline and the coarse
+levels match, and roads run on across the inset edges.
 
 **Survey:** every runway end in the 149 detail tiles was checked: crop, rotate so the landing direction points up,
 read the digits at 1 px resolution. The artist's layout puts each number on the light concrete between the runway
@@ -304,8 +306,8 @@ The other clusters (Tel Aviv, Ashdod, Haifa, Jerusalem, the small desert site at
 painted numbers inside the insets. The artists evidently re-used one runway-end template (09/27, 15/33) whatever the
 real runway heading. The numbers stay as painted, because replacing them would mean inventing digits.
 
-**Mirror vs 180° rotation.** "33" looks the same mirrored or rotated. Every asymmetric digit reads correctly (all
-09/27/15 are upright), so the artist pattern cannot decide. The glyph shape does:
+**Mirror vs 180° rotation.** "33" looks the same mirrored or rotated, and every asymmetric digit (09/27/15) is
+upright, so only the glyph shape decides:
 
 - In the painted "ƐƐ" the middle stroke sits at ~0.37–0.40 of the glyph height from the far (top) end. The small
   bowl is therefore at the top, as in a normal "3" (and close to the artist's "5", 0.46).
