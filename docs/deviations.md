@@ -133,6 +133,10 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     tower, and NO WIND has no effect but the score. Ours, with the switch: the tower's wind, from the mission's misc
     0x474 direction, moves the air mass (airspeed vs ground speed, drift, crab on a crosswind approach), with light
     gusts strongest below 300 m; NO WIND calms it — flight-model.md §10.
+  - **"Engine spool-up per real engine"** (`engine_spool`). Original: the thrust follows the throttle at once; only
+    the RPM gauge ramps (15 %/s) and the afterburner waits for that ramp. Ours, with the switch: the player's thrust
+    and RPM gauge follow the jet's real engine (core lag, slower at low RPM, then the afterburner's light-off and
+    fill; per-type table `spool::ENGINES`) — flight-model.md §10.2.
 - **"Locked enemies know who locked them"** (`fix_lock_threat`). Original: the player's radar lock writes the target
   itself into the AI target's threat (brain+0x7c). Ours, with the switch: the lock makes the player the target's
   threat — rwr.md §2.

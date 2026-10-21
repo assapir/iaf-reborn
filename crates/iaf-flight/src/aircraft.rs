@@ -9,6 +9,7 @@ use crate::atmosphere::{air, q_s};
 use crate::channels::{Angle, Axis, Ramp};
 use crate::envelope::{Envelope, GLimit};
 use crate::params::Params;
+use crate::spool::{self, Core, Spool};
 use crate::vec3::Vec3;
 use std::f32::consts::PI;
 
@@ -362,11 +363,13 @@ pub struct BetterPhysics {
     pub asymmetric_stores: bool,
     /// The mission's wind moves the air mass (airspeed vs ground speed, drift) plus light low-level turbulence.
     pub wind: bool,
+    /// Thrust follows each real engine's spool-up (core lag, afterburner light-off and fill; `spool::ENGINES`).
+    pub engine_spool: bool,
 }
 
 impl BetterPhysics {
     /// Stable ids (snake_case) and English labels, in menu order.
-    pub const OPTIONS: [(&'static str, &'static str); 16] = [
+    pub const OPTIONS: [(&'static str, &'static str); 17] = [
         ("flight_path_hold", "1 g hold keeps the flight path (no slow climb/dive with neutral stick)"),
         ("force_angles", "Forces use the current angle of attack and sideslip"),
         ("start_lift", "Airborne start without the upward jolt"),
@@ -383,6 +386,7 @@ impl BetterPhysics {
         ("brake_pitch", "Nose dips under braking, squats under thrust"),
         ("asymmetric_stores", "Unbalanced stores roll the jet"),
         ("wind", "Wind and turbulence (the mission's wind; NO WIND turns it off)"),
+        ("engine_spool", "Engine spool-up per real engine (thrust lag, afterburner light-off)"),
     ];
 
     pub fn none() -> Self {
@@ -415,6 +419,7 @@ impl BetterPhysics {
             "brake_pitch" => &mut self.brake_pitch,
             "asymmetric_stores" => &mut self.asymmetric_stores,
             "wind" => &mut self.wind,
+            "engine_spool" => &mut self.engine_spool,
             _ => return None,
         })
     }
@@ -554,6 +559,9 @@ pub struct Aircraft {
     lift: Ramp,
     lift_aoa: Ramp,
     rpm: Ramp,
+    /// BP `engine_spool`: the core's spool state and the afterburner fill (0 out, 1 min AB, 2 max AB).
+    core: Core,
+    ab_fill: Ramp,
     fuel: Ramp,
     flaps: Ramp,
     gear: Ramp,
@@ -777,6 +785,8 @@ impl Aircraft {
             lift: Ramp::new(lift0, lift_lo, lift_hi),
             lift_aoa: Ramp::new(lift0, lift_lo, lift_hi),
             rpm: Ramp::new(if st.airborne { 70.0 } else { 0.0 }, 0.0, 100.0),
+            core: Core::default(),
+            ab_fill: Ramp::new(0.0, 0.0, 2.0),
             fuel: Ramp::new(p.fuel_mass, 0.0, p.fuel_mass),
             flaps: Ramp::new(if st.airborne { 0.0 } else { FLAPS_MAX }, 0.0, FLAPS_MAX),
             gear: Ramp::new(if st.airborne { GEAR_UP } else { 0.0 }, 0.0, GEAR_UP),
@@ -856,6 +866,7 @@ impl Aircraft {
         };
         // The RPM ramp starts at its value (70 → 70 in the air, 0 on the ground), rate 15.
         ac.rpm.set(0.0, ac.rpm.sample(0.0), RPM_RATE);
+        ac.sync_core();
         // Immediate aero update (5a4200); the timers then run at 1 s / 0.2 s.
         ac.aero_update();
         ac
@@ -962,6 +973,9 @@ impl Aircraft {
         let old = self.better;
         self.better = b;
         self.carry_wind();
+        if b.engine_spool && !old.engine_spool {
+            self.sync_core();
+        }
         if self.t != 0.0 || self.on_ground {
             return;
         }
@@ -977,6 +991,7 @@ impl Aircraft {
         if b.start_rpm && !old.start_rpm {
             let target = self.rpm.target();
             self.rpm.reset(0.0, target);
+            self.sync_core();
         }
         if b.start_alpha && !old.start_alpha {
             let alt = self.axes[2].sample(0.0).0 as f32;
@@ -1079,7 +1094,11 @@ impl Aircraft {
         }
         if !ai && self.throttle < AB && new >= AB {
             self.throttle = MILITARY;
-            let delay = ((100.0 - self.rpm.sample(self.t)) / RPM_RATE).max(0.0) as f64;
+            // BP engine_spool: the core's own time to military, then the light-off.
+            let delay = match self.spool() {
+                Some(s) => (self.core.to_military(&s, self.t) + s.ab_light) as f64,
+                None => ((100.0 - self.rpm.sample(self.t)) / RPM_RATE).max(0.0) as f64,
+            };
             self.ab_request = Some((self.t + delay, new));
         } else {
             self.throttle = new.clamp(0.0, 1.0);
@@ -1178,6 +1197,39 @@ impl Aircraft {
     /// A control loop flies the jet (`FUN_005c89f0() != 0`).
     fn ai(&self) -> bool {
         self.ai_mode != 0
+    }
+
+    /// noAB: the ground call passes "ai"; airborne !HasAfterBurner, or an AI outside modes 7 / 8.
+    fn no_ab(&self) -> bool {
+        let ai = self.ai();
+        if self.on_ground { ai } else { !self.params.has_afterburner || (ai && !matches!(self.ai_mode, 7 | 8)) }
+    }
+
+    /// BP `engine_spool`: the player's engine transient times (none for the AI or a type without a row).
+    fn spool(&self) -> Option<Spool> {
+        if self.better.engine_spool && !self.ai() { spool::engine(self.params.type_code) } else { None }
+    }
+
+    /// Puts the spool state at the RPM ramp's value (start, `start_rpm`, the switch turned on).
+    fn sync_core(&mut self) {
+        let t = self.t;
+        self.core.reset(t, (self.rpm.sample(t) - 60.0) / 40.0);
+        let u = if self.throttle >= 0.875 {
+            2.0
+        } else if self.throttle >= AB {
+            1.0
+        } else {
+            0.0
+        };
+        self.ab_fill.reset(t, u);
+    }
+
+    /// The RPM gauge: with `engine_spool` the core's 60 + 40·x once the ramp has the engine at idle.
+    fn rpm_at(&self, t: f64) -> f32 {
+        let r = self.rpm.sample(t);
+        let Some(s) = self.spool() else { return r };
+        let x = 60.0 + 40.0 * self.core.sample(&s, t);
+        if self.rpm.target() > 0.0 && r >= 60.0 { x } else { r.min(x) }
     }
 
     /// The player's "No crashes" / "Invulnerable" preferences (never for an AI jet).
@@ -1314,6 +1366,7 @@ impl Aircraft {
         // 5a70f0 step 4: bit 2 = no fuel, then the damage bits (`5bc350`).
         let flags = damage_bits(self.damage, self.twin) | if self.fuel.sample(self.t) < 1e-5 { 2 } else { 0 };
         let mut thr = if flags & 2 != 0 { 0.0 } else { self.throttle };
+        let spool = self.spool();
         let (mut thrust, mut rpm, mut ff, mut stage) = (0.0, 0.0, 0.0, 0);
         // Both engines dead (a single-engine jet: either flag), the engine off or no fuel: nothing, but a
         // fuel leak still drains (below).
@@ -1321,6 +1374,16 @@ impl Aircraft {
             // Both afterburners damaged (a single-engine jet: flag 8): the throttle stops at military.
             if flags & 0x180 == 0x180 && thr >= 0.75 {
                 thr = 0.74;
+            }
+            // BP engine_spool: the dry range follows the core, a lit afterburner its fill (below).
+            let lit = spool.is_some() && !no_ab && thr >= AB;
+            if let Some(s) = spool {
+                let x = self.core.sample(&s, self.t);
+                if no_ab {
+                    thr = x;
+                } else if !lit {
+                    thr = MILITARY * x;
+                }
             }
             let stage_of = |thr: f32| {
                 if thr < 0.75 {
@@ -1349,6 +1412,12 @@ impl Aircraft {
             } else {
                 ((thr - 0.2) * 1.25, stage_of(thr))
             };
+            if lit {
+                // Fill 0 → 1 → 2: military → minimum (k 0.875) → maximum afterburner (1.0).
+                let u = self.ab_fill.sample(self.t);
+                let mil = (0.05 + 0.743_243_2 * MILITARY) * p.dry_thrust;
+                k = if u < 1.0 { mil + (0.875 - mil) * u } else { 0.875 + 0.125 * (u - 1.0) };
+            }
             // One engine of a twin dead: half the thrust (the dry fuel-flow test below sees the halved k).
             if flags & 0xc != 0 {
                 k *= 0.5;
@@ -1540,8 +1609,24 @@ impl Aircraft {
 
         // noAB: the ground call passes "ai"; airborne !HasAfterBurner, or an AI outside modes 7 / 8.
         let ai = self.ai();
-        let no_ab = if ground { ai } else { !p.has_afterburner || (ai && !matches!(self.ai_mode, 7 | 8)) };
+        let no_ab = self.no_ab();
         let (mut thrust, rpm, ff, stage) = self.thrust_at(alt, mach, no_ab);
+        if let Some(s) = self.spool() {
+            // The core spools toward the throttle (0 with the engine stopped), the afterburner fills to its stage.
+            let target = if rpm == 0.0 {
+                0.0
+            } else if no_ab {
+                self.throttle
+            } else {
+                self.throttle.min(MILITARY) / MILITARY
+            };
+            self.core.set(&s, t, target);
+            if stage > 0 && !no_ab {
+                self.ab_fill.set(t, stage as f32, 2.0 / s.ab_fill.max(1e-3));
+            } else {
+                self.ab_fill.reset(t, 0.0);
+            }
+        }
         // The ground call passes latched = 0 (§14.3).
         let lo =
             self.lift_fn(LiftIn { v, alt, mass, att, latched: latched && !ground, gamma, alpha_now: alpha_s, flaps });
@@ -1713,6 +1798,13 @@ impl Aircraft {
             return;
         }
         self.carry_wind();
+        if self.spool().is_some() {
+            // BP engine_spool: the thrust follows the spool between the aero updates too.
+            let alt = self.axes[2].sample(t).0 as f32;
+            let mach = self.air_velocity_at(t).1 / air(alt).sound;
+            let thrust = self.thrust_at(alt, mach, self.no_ab()).0;
+            self.thrust = if self.on_ground { thrust.max(0.0) } else { thrust };
+        }
         let p = &self.params;
         let alt = self.axes[2].sample(t).0 as f32;
         let (_, v) = self.air_velocity_at(t);
@@ -2479,7 +2571,7 @@ impl Aircraft {
             },
             beta: self.beta.sample(t).0 as f32,
             g,
-            rpm: self.rpm.sample(t),
+            rpm: self.rpm_at(t),
             throttle: self.throttle,
             afterburner: self.afterburner,
             thrust_n: self.thrust,
@@ -2671,6 +2763,62 @@ mod tests {
         assert!(!down.immune());
         down.ai_since = down.t - 4.0;
         assert!(down.immune());
+    }
+
+    #[test]
+    fn engine_spool_lags_the_thrust_and_lights_the_afterburner_late() {
+        // F-16 at idle, then full throttle. Fractions of the idle → military thrust at the same flight condition.
+        let s = spool::engine(100).unwrap();
+        let thrust = |a: &Aircraft, throttle: Option<f32>| {
+            let mut c = a.clone();
+            let alt = c.axes[2].sample(c.t).0 as f32;
+            let mach = c.velocity_at(c.t).1 / air(alt).sound;
+            if let Some(thr) = throttle {
+                c.better.engine_spool = false;
+                c.throttle = thr;
+            }
+            c.thrust_at(alt, mach, c.no_ab()).0
+        };
+        let frac = |a: &Aircraft| {
+            let (idle, mil) = (thrust(a, Some(0.0)), thrust(a, Some(MILITARY)));
+            (thrust(a, None) - idle) / (mil - idle)
+        };
+        let idle = |spool: bool| {
+            let mut a = airborne(100, 5000.0, 200.0);
+            a.params.has_afterburner = true;
+            a.set_better_option("engine_spool", spool);
+            a.set_controls(Controls { throttle: 0.0, ..Default::default() });
+            run(&mut a, 8.0);
+            a.set_controls(Controls { throttle: 1.0, ..Default::default() });
+            a
+        };
+        // Switch off: the original's thrust is at military at once.
+        let b = idle(false);
+        assert!((frac(&b) - 1.0).abs() < 1e-4);
+        let mut a = idle(true);
+        assert!(frac(&a) < 0.01 && (a.state().rpm - 60.0).abs() < 0.5);
+        // Slow at low RPM: half the time gives under a quarter of the way; the gauge shows the same spool.
+        run(&mut a, s.idle_mil as f64 / 2.0);
+        let f = frac(&a);
+        assert!(f > 0.05 && f < 0.25, "{f}");
+        assert!((a.state().rpm - (60.0 + 40.0 * f)).abs() < 0.5, "{}", a.state().rpm);
+        // The 5 Hz path keeps the thrust current (within one 0.2 s tick of the spool).
+        let span = thrust(&a, Some(MILITARY)) - thrust(&a, Some(0.0));
+        assert!((a.thrust - thrust(&a, None)).abs() < 0.05 * span);
+        // At military after idle_mil; the afterburner lights ab_light later and fills over ab_fill.
+        run(&mut a, (s.idle_mil / 2.0 + s.ab_light) as f64 - 0.05);
+        assert!((frac(&a) - 1.0).abs() < 1e-3 && a.state().afterburner == 0);
+        run(&mut a, 0.1);
+        let max = thrust(&a, Some(1.0));
+        assert!(a.state().afterburner == 2 && thrust(&a, None) < 0.9 * max);
+        run(&mut a, s.ab_fill as f64);
+        let max = thrust(&a, Some(1.0));
+        assert!(
+            (thrust(&a, None) - max).abs() < 1.0 && (a.state().rpm - 100.0).abs() < 1e-3,
+            "{} {max} {}",
+            thrust(&a, None),
+            a.state().rpm
+        );
     }
 
     #[test]
@@ -3225,6 +3373,7 @@ mod tests {
         // Airborne start: the RPM at the start throttle's value (AB at once) and α at its trim value.
         let mut a = airborne(100, 3000.0, 180.0);
         a.set_better_physics(true);
+        a.set_better_option("engine_spool", false); // its afterburner light-off is a delay of its own
         assert!((a.state().rpm - 100.0).abs() < 1e-3);
         let at = a.alpha.sample(0.0).0 as f32;
         let trim = a.alpha_target(a.lift_aoa.target(), q_s(3000.0, 180.0, a.params.wing_area));

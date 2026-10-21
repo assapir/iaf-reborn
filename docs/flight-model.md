@@ -681,6 +681,10 @@ throttle rules and preferences follow §15 (checklist §15.11). These items stil
     * Test `wind_moves_the_air_mass`: off and calm fly as the original; on, the airspeed is kept when the wind
       starts, the track drifts 20 kt × 20 s east in a west wind, and the gusts move the jet 3 × as much at 250 m as
       at 2000 m.
+  * **Engine spool-up** [`engine_spool`] (§4.1, §15.8; the table and the sources in §10.2). Original: the thrust follows
+    the throttle at the next aero update; only the RPM gauge and the afterburner light-up wait for the 15 %/s ramp.
+    BP: the player's thrust follows each real engine's core spool (slow at low RPM), then the afterburner's
+    light-off and fill; the RPM gauge shows the same spool.
 * **Kept in both modes** (original quirks that better physics leaves as they are):
   * §15.10 item 14, the slope globals. In the original, the lift-ramp / β-gain slopes below 220 / 400 m/s come from
     the **last aircraft type set up** (shared globals). Our `Aircraft` keeps its own parameters, so every jet uses its
@@ -787,6 +791,53 @@ slot, its pitch/roll/yaw channels and the stall latch.
 * UNCERTAIN (estimates): the 60° trim AoA and CN, the entry thresholds (30° pitch, 1 g Vmin), the oscillation periods
   and amplitudes, the pumping rates. Descent rates reported for real F-16 deep stalls are of the same order
   (≈ 10,000 ft/min class) but were not checked against a primary source.
+
+### 10.2 Engine spool-up per real engine (better physics `engine_spool`, `crates/iaf-flight/src/spool.rs`)
+**The original** has no engine lag in its thrust:
+* Thrust `FUN_005b4120` takes the throttle `S+0x2dc` itself (§4.1). The aero update `FUN_005a70f0` runs at 1 Hz and
+  after every control event, so a throttle move reaches the thrust at once.
+* The RPM is only a gauge: `FUN_005a70f0` step 3 ramps `S+0x1b0` toward `100·rpm` at 15 %/s (`0x612050`), and
+  `rpm = 0.6 + 0.4·thr/0.74` (60 % idle, 100 % military).
+* The afterburner waits for that ramp: a throttle move into AB holds 0.74 and the timer of `FUN_0059f7d0` applies it
+  after `(100 − RPM)/15` s (2.67 s from idle, 0 from military; §15.8). Out of AB and down to idle the thrust drops at
+  once.
+
+**With the switch** (the player's jet; AI jets and types without a row keep the original):
+* The core's state x (0 idle, 1 military) is a closed-form channel like the original's ramps:
+  `x + 0.1 = (x0 + 0.1)·e^(±c·τ)`, with `c = ln 11 / idle_mil` up and `ln 11 / mil_idle` down. The rate grows
+  with x, so the core spools 11× faster near military than at idle (inferred: the compressor's surplus power grows
+  with its speed). From idle, half of `idle_mil` gives 23 % of the way.
+* The core's target is the throttle's dry share (`min(thr, 0.74)/0.74`; jets without an afterburner: the throttle);
+  0 with the engine stopped or out of fuel. It is re-aimed at every aero update.
+* Thrust and fuel flow use the throttle `0.74·x` in the dry range. A lit afterburner fills from military (k
+  `0.6·dry_thrust`) to minimum AB (k 0.875) to maximum AB (k 1.0) over `ab_fill` s; leaving AB cuts it at once.
+* A move into AB lights after the core's own time to military plus `ab_light` (instead of `(100 − RPM)/15`).
+* The 5 Hz update re-samples the thrust, so it changes smoothly between the 1 Hz updates.
+* The RPM gauge shows `60 + 40·x` once the original's ramp has the engine at idle (a ground start still winds up
+  from 0 at 15 %/s, and a stopped engine winds down that way).
+* The start keeps the original's RPM: an airborne start spools up from 70 % (x = 0.25), or from the throttle's value
+  with `start_rpm`.
+
+Table `spool::ENGINES` (seconds, sea level; `mil_idle` 5 s for every engine, inferred from the F100's slow last part[^burcham]):
+
+| Type | Engine | idle → military | AB light-off | AB fill | Sources |
+|---|---|---|---|---|---|
+| F-16 (100) | F110-GE-100 | 3.0 | 0.5 | 2.0 | open: the F100's figures |
+| F-15 (110) | F100-PW-220 | 3.0 | 0.5 | 2.0 | 3 s idle → intermediate[^tm4320] (2.5 s[^burcham]); AB initiation at military, 1 s hold per segment[^tm85902] |
+| F-4E / Kurnass 2000 (120) | J79-GE-17 | 5.0 | 1.0 | 1.5 | 5 s at best (test-cell chart[^dcsj79]); AB open |
+| Kfir (130) | J79-J1E | 5.0 | 1.0 | 1.5 | the J79-GE-17's (inferred) |
+| Lavi (140) | PW1120 | 3.0 | 0.5 | 2.0 | the F100's (inferred: the PW1120 kept its core and control) |
+| MiG-23ML (160) | R-35-300 | 5.0 | 1.0 | 1.5 | open: the 5 s idle → maximum limit[^bigenc] |
+| MiG-29 (180) | RD-33 | 3.0 | 0.8 | 1.2 | idle → maximum 3–4 s, maximum → full AB 2–3 s, idle → full AB 4–5 s[^rd33] |
+| Mirage (190) | Atar 9C | 5.0 | 1.0 | 1.5 | open: the 5 s limit[^bigenc][^far3373] |
+| F-35I (1000) | F135-PW-100 | 4.0 | 0.8 | 1.2 | flight idle → maximum power about 6 s[^pw135]; the split inferred |
+
+* The F-15 test engine's afterburner first lit only weakly (strong flame 1.8 s after initiation); the fixed spray ring
+  lit at once[^tm85902]. `ab_light` 0.5 s is between (inferred).
+* Open: the F110, PW1120, R-35, Atar and J79 afterburner times; the decelerations (the F100 drops fast to low thrust,
+  then takes up to 10 s to idle[^burcham]). The sources time idle → 95 % thrust; the table takes that as the time to
+  military. The real RPM leads the thrust (J79: idle → 90 % RPM in 1 s, then 2 s to 100 %[^dcsj79]); the gauge here
+  is linear in the thrust, like the original's.
 
 ## 11. Data sets (`crates/iaf-flight/src/data_set.rs`) — chosen before the flight
 The player picks one data set before the flight: Preferences "Flight data" (Original / Real aircraft) or the `--real`
@@ -2136,3 +2187,26 @@ and spin β apply underneath in both modes (§10).
     <https://ocw.tudelft.nl/course-readings/4-1-3-optional-lift-curve-slope-in-more-detail>.
 [^cpp]: A. Serang, Cal Poly Pomona research poster on wings in ground effect, citing McCormick's AR = 6 results,
     <https://www.cpp.edu/honorscollege/documents/research-posters/EGR/aro_serang.pdf>.
+[^tm4320]: NASA TM-4320 (1991), F-15 with F100 engines: "The engine response is fast, 3 sec from idle to intermediate
+    power", <https://ntrs.nasa.gov/api/citations/19910020816/downloads/19910020816.pdf>.
+[^burcham]: F. W. Burcham, T. A. Maine, T. Wolf, AIAA-92-4109, F-15 F100 throttle response: "Idle to intermediate power
+    throttle snaps take approximately 2.5 sec … a very slow spooldown taking up to 10 sec occurs before idle thrust is
+    reached", <https://ntrs.nasa.gov/api/citations/19930027281/downloads/19930027281.pdf>.
+[^tm85902]: NASA TM-85902 (1984), F100 EMD engine with DEEC in the F-15: augmentor initiation at t ≈ 2.7 s after an idle →
+    maximum snap, strong flame at 4.5 s, "the DEEC logic held the segment sequencing for 1 sec after a strong flame",
+    <https://ntrs.nasa.gov/api/citations/19840016520/downloads/19840016520.pdf>.
+[^dcsj79]: DCS World forum, "Spoolup time of J79 engines too quick": a J79-GE-17 test-cell chart, 5 s idle → military at
+    best (10 °C), longer when colder or warmer; the -15's chart 4.5 s; a J79 manual table idle → 90 % in 1 s, 90 → 100 %
+    2 s (forum posts quoting the charts), <https://forum.dcs.world/topic/349516-spoolup-time-of-j79-engines-too-quick/>.
+[^rd33]: propulsionplant.ru, RD-33: "Время приемистости двигателя при переходе с малого газа на максимальный режим 3...4
+    секунды, с максимального на полный форсированный режим - 2...3 секунды, с малого газа на полный форсированный режим
+    – 4...5 секунд" (secondary, no source given),
+    <http://www.propulsionplant.ru/dvigateli/aviacionnye-raketnye-morskie-promyshlennye/82178217zavod-imeni-v-ja-klimova82178217-gunpp/rd-33.html>;
+    the same idle → full AB 4–5 s at <https://aviaros.narod.ru/rd-33.htm>.
+[^pw135]: Pratt & Whitney, "Five facts about the most advanced fighter engine in the world" (2019): "The F135 engine can go
+    from flight idle to maximum power in about six seconds" (quoted from the search summary; the page renders by script),
+    <https://www.rtx.com/prattwhitney/newsroom/news/2019/07/18/five-facts-about-the-most-advanced-fighter-engine-in-the-world>.
+[^bigenc]: Большая российская энциклопедия, «Приёмистость авиационного двигателя»: the norms limit idle → maximum at sea
+    level to 5 s, timed to 95 % of the final thrust, <https://bigenc.ru/c/priiomistost-aviatsionnogo-dvigatelia-481568>.
+[^far3373]: 14 CFR 33.73(b): 15 % → 95 % of the rated take-off thrust "in not over 5 seconds",
+    <https://www.ecfr.gov/current/title-14/part-33/section-33.73>.

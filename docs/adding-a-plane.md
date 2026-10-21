@@ -186,8 +186,11 @@ A new type is defined in code; it needs no install file:
 3. **Fit** CD0, wave drag and `alt_thrust` to the published top speeds (sea level and at altitude), the method of
    [real-aircraft.md](real-aircraft.md). The model has a 2×2 Mach/altitude thrust table. Military power is 60% of
    max unless `mil_ratio` is set. Fuel flow is the same at every altitude.
-4. **Fly-by-wire:** add the code to the no-spin and deep-stall cases of `crates/iaf-flight/src/aircraft.rs` (§1).
-5. **Test:** a reference row in `crates/iaf-flight/tests/validation.rs` (top speeds, ceiling, g).
+4. **Engine spool-up:** a row in `crates/iaf-flight/src/spool.rs` `ENGINES` (idle → military, military → idle,
+   afterburner light-off and fill, seconds; better physics `engine_spool`, flight-model.md §10.2). Without a row
+   the type keeps the original's instant thrust.
+5. **Fly-by-wire:** add the code to the no-spin and deep-stall cases of `crates/iaf-flight/src/aircraft.rs` (§1).
+6. **Test:** a reference row in `crates/iaf-flight/tests/validation.rs` (top speeds, ceiling, g).
 
 A jet new to the game has only Real numbers of its own. List it in `data_set.rs` `NO_ORIGINAL` and it flies its Real
 row with either Flight data (`data_set::effective()`), as the F-35I does. If it is left out of that list, it flies its

@@ -29,6 +29,7 @@ const BETTER := {
 	"brake_pitch": "Nose dips under braking",
 	"asymmetric_stores": "Unbalanced stores roll the jet",
 	"wind": "Wind and turbulence",
+	"engine_spool": "Engine spool-up per real engine",
 	"fix_fall_heading": "Falling jets keep their heading",
 	"fix_skill_damage": "No tougher enemies on easy AI levels",
 	"fix_lock_threat": "Locked enemies know who locked them",

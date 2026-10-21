@@ -175,6 +175,12 @@ pub const TABLES: &[Table] = &[
         list: false,
     },
     Table {
+        file: "crates/iaf-flight/src/spool.rs",
+        anchor: "pub const ENGINES: &[(u32, Spool)] = &[",
+        what: "engine spool-up times (better physics engine_spool)",
+        list: true,
+    },
+    Table {
         file: "crates/iaf-flight/src/params.rs",
         anchor: "pub fn type_code(section: &str)",
         what: "section -> type code (original sections only)",

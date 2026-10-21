@@ -11,6 +11,7 @@ pub mod data_set;
 pub mod envelope;
 pub mod instruments;
 pub mod params;
+pub mod spool;
 pub mod vec3;
 
 pub use aircraft::{Aircraft, BetterPhysics, Controls, Crash, Start, State};
