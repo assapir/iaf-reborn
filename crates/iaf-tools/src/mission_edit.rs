@@ -385,7 +385,123 @@ pub fn blank(mut mission: Value) -> Value {
     for part in ["paths", "events", "debrief", "timevars"] {
         items(&mut mission, part).retain(|r| !real(r));
     }
+    // The original's own debrief headlines and its pass / fail audio do not fit a new mission (Win and lose).
+    if let Some(misc) = mission["misc"]["items"].get_mut(0) {
+        (misc["0x47e"], misc["0x492"]) = (json!(PASSED_TEXT), json!(FAILED_TEXT));
+        (misc["0x4ce"], misc["0x4c4"]) = (json!(-1), json!(-1));
+    }
     mission
+}
+
+// --- Win and lose (docs/mission-editor.md §12) ---------------------------------------------------------------------
+
+/// The headlines a new mission's debrief shows (misc 0x47e / 0x492), as most originals word them.
+pub const PASSED_TEXT: &str = "Mission - successful.";
+pub const FAILED_TEXT: &str = "Mission - failed.";
+/// Entity role 0x32a (docs/mission-runtime.md §1 "Role").
+pub const MUST_SURVIVE: i64 = 0;
+pub const TARGET: i64 = 1;
+/// bdb object 130 `sensor`: an invisible logic node; a role-1 sensor is a goal the mission's events explode.
+const SENSOR: i64 = 130;
+
+/// The main file's entities that the runtime spawns (`mission_runtime.gd` skips unused, unplaced Player slots).
+fn spawned(mission: &Value) -> impl Iterator<Item = &Value> {
+    mission["entities"]["items"].as_array().into_iter().flatten().filter(|e| {
+        let unplaced = num(&e["0x2e4"]) < 0.0 && num(&e["0x2ee"]) < 0.0;
+        real(e) && !(unplaced && e["0x2bc"].as_str().unwrap_or("").to_ascii_lowercase().starts_with("player"))
+    })
+}
+
+fn role(e: &Value) -> i64 {
+    e["0x32a"].as_i64().or_else(|| e["0x32a"].as_f64().map(|f| f as i64)).unwrap_or(2)
+}
+
+/// Sets role `role` (0 must survive, 1 target, 2 neutral) on the entities `ids`.
+pub fn set_role(mut mission: Value, ids: &[i64], role: i64) -> Value {
+    for e in items(&mut mission, "entities").iter_mut().filter(|e| real(e) && ids.contains(&int(&e["0x1e"]))) {
+        e["0x32a"] = json!(role);
+    }
+    mission
+}
+
+/// What ends the mission passed or failed, from the entities' roles alone, as the runtime decides it
+/// (`FUN_00599da0`): passed when every target (role 1) is destroyed before a must-survive unit (role 0); else
+/// failed when the flight ends. JSON {targets: [{id, name, kind}], scripted: [{id, name}] (role-1 sensors the
+/// events explode), keep_alive: [{id, name}], can_pass, passed_text, failed_text (misc 0x47e / 0x492), summary}.
+/// `bdb` (the converted default6_1.bdb) names the targets' kinds; Null names them "unit".
+pub fn conditions(mission: &Value, bdb: &Value) -> Value {
+    let kind_of = |t: i64| {
+        let o = bdb["objects"]["items"].as_array().into_iter().flatten().find(|o| int(&o["0x1e"]) == t);
+        let name = |k: &str| o.and_then(|o| o[k].as_str()).filter(|s| !s.is_empty()).map(String::from);
+        name("0x528").or_else(|| name("0x514")).unwrap_or_else(|| "unit".into())
+    };
+    let unit = |e: &Value| json!({"id": int(&e["0x1e"]), "name": e["0x2bc"].as_str().unwrap_or("")});
+    let (mut targets, mut scripted, mut keep) = (vec![], vec![], vec![]);
+    for e in spawned(mission) {
+        match role(e) {
+            TARGET if int(&e["0x2c6"]) == SENSOR => scripted.push(unit(e)),
+            TARGET => {
+                let mut u = unit(e);
+                u["kind"] = json!(kind_of(int(&e["0x2c6"])));
+                targets.push(u);
+            }
+            MUST_SURVIVE => keep.push(unit(e)),
+            _ => {}
+        }
+    }
+    // "2 SA 6, 1 Building", in the order the kinds first appear.
+    let mut kinds: Vec<(String, usize)> = vec![];
+    for t in &targets {
+        let k = t["kind"].as_str().unwrap_or("").to_string();
+        match kinds.iter_mut().find(|(n, _)| *n == k) {
+            Some(c) => c.1 += 1,
+            None => kinds.push((k, 1)),
+        }
+    }
+    let plural = |n: usize, one: &str| if n == 1 { format!("1 {one}") } else { format!("{n} {one}s") };
+    let groups = kinds.iter().map(|(k, n)| format!("{n} {k}")).collect::<Vec<_>>().join(", ");
+    let mut pass = vec![];
+    if !targets.is_empty() {
+        pass.push(format!("destroy {} ({groups})", plural(targets.len(), "target")));
+    }
+    if !scripted.is_empty() {
+        pass.push(format!("{} the mission's events complete", plural(scripted.len(), "scripted goal")));
+    }
+    let can_pass = !pass.is_empty();
+    let mut parts = vec![if can_pass {
+        format!("Pass: {}", pass.join(" and "))
+    } else {
+        "Pass: never (no unit is a Target)".into()
+    }];
+    if !keep.is_empty() {
+        let names: Vec<&str> = keep.iter().take(6).map(|u| u["name"].as_str().unwrap_or("")).collect();
+        let more = if keep.len() > 6 { format!(" and {} more", keep.len() - 6) } else { String::new() };
+        parts.push(format!("Keep alive: {}{more}", names.join(", ")));
+    }
+    parts.push(format!(
+        "Fail: {}the flight ends first",
+        if keep.is_empty() { "" } else { "a keep-alive unit is lost, or " }
+    ));
+    let misc = &mission["misc"]["items"][0];
+    json!({
+        "targets": targets, "scripted": scripted, "keep_alive": keep, "can_pass": can_pass,
+        "passed_text": misc["0x47e"].as_str().unwrap_or(""), "failed_text": misc["0x492"].as_str().unwrap_or(""),
+        "summary": parts.join(" · "),
+    })
+}
+
+/// The win and lose check: an error when no unit is a target (the mission can never pass), a warning for a red unit
+/// that must survive (its loss fails the mission; red sensors are the originals' lose tokens and pass).
+pub fn condition_issues(mission: &Value) -> Vec<Issue> {
+    let mut out = vec![];
+    if !spawned(mission).any(|e| role(e) == TARGET) {
+        out.push(error(-1, "the mission can never pass: no unit is a Target".into()));
+    }
+    for e in spawned(mission).filter(|e| role(e) == MUST_SURVIVE && int(&e["0x2d0"]) == 2 && int(&e["0x2c6"]) != SENSOR)
+    {
+        out.push(warning(int(&e["0x1e"]), "must survive, but it is on the red side".into()));
+    }
+    out
 }
 
 /// The terrain heights of the level-6 height tiles (`<theatre>/L6/h_<i>_<j>.png`, `meta.json`), read as a tile is
@@ -606,6 +722,7 @@ pub fn check(mission: &Value, bdb: &Value, heights: &mut Heights, surface: Optio
             }
         }
     }
+    out.extend(condition_issues(mission));
     out
 }
 
@@ -658,6 +775,46 @@ mod tests {
         for part in ["entities", "formations", "events"] {
             assert_eq!(m[part]["items"].as_array().unwrap().last().unwrap()["0x14"], 1, "{part} placeholder");
         }
+    }
+
+    #[test]
+    fn conditions_of_originals_and_a_new_mission() {
+        let Some(a) = assets() else {
+            eprintln!("skip: no converted missions (tools/setup-cli.sh)");
+            return;
+        };
+        let bdb = read(&a, "default6_1.bdb");
+        let count = |c: &Value, k: &str| c[k].as_array().unwrap().len();
+        // 311: the takeoff's win sensor, exploded by the events, is the only target.
+        let c = conditions(&read(&a, "takeoff"), &bdb);
+        assert_eq!((count(&c, "targets"), count(&c, "scripted"), c["can_pass"].clone()), (0, 1, json!(true)), "{c}");
+        // 231: two T-62s to destroy, the Hermon post to keep.
+        let lic = read(&a, "license");
+        let c = conditions(&lic, &bdb);
+        let s = c["summary"].as_str().unwrap();
+        assert!(s.starts_with("Pass: destroy 2 targets (2 ") && s.contains("Keep alive: HermonPost"), "{s}");
+        assert!(s.ends_with("Fail: a keep-alive unit is lost, or the flight ends first"), "{s}");
+        assert!(c["passed_text"].as_str().unwrap().starts_with("Mission - successful."));
+        assert!(condition_issues(&lic).iter().all(|i| i.level != "error"));
+        // New: no target, so it can never pass, until an SA-6 is marked one.
+        let m = blank(lic);
+        let c = conditions(&m, &bdb);
+        assert_eq!((c["can_pass"].clone(), c["passed_text"].clone()), (json!(false), json!(PASSED_TEXT)));
+        assert!(condition_issues(&m).iter().any(|i| i.id == -1 && i.level == "error"));
+        let sam = read(&a, "against_all_odds")["entities"]["items"][0].clone();
+        let mut f = Map::new();
+        for (k, v) in [("0x2c6", json!(6)), ("0x2d0", json!(2)), ("0x32a", json!(2))] {
+            f.insert(k.into(), v);
+        }
+        let (m, id) = add_entity(m, &sam, &f);
+        let m = set_role(m, &[id], TARGET);
+        let c = conditions(&m, &bdb);
+        assert_eq!(c["summary"], "Pass: destroy 1 target (1 SA 6) · Fail: the flight ends first");
+        assert!(condition_issues(&m).is_empty());
+        // A red unit to keep alive is a warning.
+        let m = set_role(m, &[id], MUST_SURVIVE);
+        let i = condition_issues(&m);
+        assert!(i.iter().any(|i| i.id == id && i.level == "warning") && i.iter().any(|i| i.id == -1), "{i:?}");
     }
 
     #[test]
@@ -745,7 +902,8 @@ mod tests {
         let bdb = read(&a, "default6_1.bdb");
         let types = std::fs::read(a.join("install/terraintype.dat")).ok().and_then(|d| TerrainTypes::parse(&d).ok());
         let m = read(&a, "2vs2");
-        assert!(check(&m, &bdb, &mut h, types.as_ref()).iter().all(|i| i.level != "error"), "2vs2 flies");
+        // 2vs2 (multiplayer) has no target: the only error is that it can never pass.
+        assert!(check(&m, &bdb, &mut h, types.as_ref()).iter().all(|i| i.level != "error" || i.id == -1), "2vs2 flies");
         let mut bad = m.clone();
         bad["formations"]["items"][0]["members"][1]["0x41a"] = json!(99);
         assert!(check(&bad, &bdb, &mut h, types.as_ref()).iter().any(|i| i.id == 99 && i.level == "error"));
@@ -785,6 +943,9 @@ mod tests {
             }
         }
         eprintln!("calibration: {files} files, {counts:?}");
+        // Only 666 (the Mission Creator's template: roles set at run time) and 777 (multiplayer) have no target.
+        let never = counts.remove("error no unit is a Target");
+        assert_eq!(never, Some(2), "missions that can never pass");
         let errors: usize = counts.iter().filter(|(k, _)| k.starts_with("error")).map(|(_, n)| n).sum();
         assert_eq!(errors, 10, "the originals' errors in docs/mission-editor.md");
     }

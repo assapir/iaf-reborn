@@ -74,3 +74,13 @@ func check(mission: Dictionary) -> Array:
 ## A mission from scratch on an original of the wanted era: only flight 1 (Alpha) stays.
 func blank(mission: Dictionary) -> Dictionary:
 	return _parse(IafMissionEdit.blank(_js(mission)))
+
+
+## Role `role` (0 must survive, 1 target, 2 neutral) on the units `ids`.
+func set_role(mission: Dictionary, ids: PackedInt64Array, role: int) -> Dictionary:
+	return _parse(IafMissionEdit.set_role(_js(mission), ids, role))
+
+
+## What passes and fails the mission: {targets, scripted, keep_alive, can_pass, passed_text, failed_text, summary}.
+func conditions(mission: Dictionary) -> Dictionary:
+	return _parse(IafMissionEdit.conditions(_js(mission)))

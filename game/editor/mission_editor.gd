@@ -20,6 +20,8 @@ const ADD_CLASSES := [
 const AIR_CLASSES := [2, 3, 0x1c]
 const SIDES := ["Blue", "Red", "Neutral"]
 const ROLES := ["Must survive", "Target", "Neutral"]
+## The Units list's colour of a must-survive unit and a target.
+const ROLE_COLORS := [Color(0.5, 0.9, 0.5), Color(1.0, 0.55, 0.45)]
 ## Wind as the Mission Creator's Better combos (mission_creator.gd); Random stores 1, which the game turns into a
 ## random one of 0 / 10 / 15 / 20 kt (Settings.pick_wind).
 const WIND_KT := [["Calm", 0], ["10 kt", 10], ["15 kt", 15], ["20 kt", 20], ["Random", 1]]
@@ -61,6 +63,7 @@ var read_only := true
 var objects := {}  # the bdb's Objects by id
 var undo: Array = []
 var issues: Array = []
+var conditions := {}  # what passes and fails the mission (IafMissionEdit.conditions)
 var sel_id := -1  # the selected entity (main file)
 var sel_wp := -1  # the selected waypoint of the TSD's selected flight
 var mode := ""  # "" | "add" | "route"
@@ -591,6 +594,7 @@ func _refresh() -> void:
 			if tsd.units[i].key == "0:%d" % keep_sel:
 				tsd.selected = i
 	issues = api.check(data) if not data.is_empty() else []
+	conditions = api.conditions(data) if not data.is_empty() else {}
 	if tsd != null:
 		tsd.issues = {}
 		for it in issues:
@@ -636,6 +640,7 @@ func _refresh_ui() -> void:
 	_fill_props()
 	_fill_flights()
 	_fill_mission()
+	_fill_conditions()
 	host.preview.queue_redraw()
 
 
@@ -669,6 +674,10 @@ func _build_ui() -> void:
 	_ui.fly_as.item_selected.connect(func(_i): _refresh_ui())
 	bar.add_child(_ui.fly_as)
 	_ui.fly = _button(bar, "Fly", fly)
+	_ui.cond_line = _label("")
+	_ui.cond_line.clip_text = true
+	_ui.cond_line.mouse_filter = Control.MOUSE_FILTER_PASS
+	root.add_child(_ui.cond_line)
 	var split := HSplitContainer.new()
 	split.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(split)
@@ -763,6 +772,7 @@ func _build_units_tab(box: VBoxContainer) -> void:
 	_ui.p_alt = _row(box, "Altitude m", _spin(-1000, 20000, 1, func(v): set_field("0x2f8", v)))
 	_ui.p_where = _row(box, "Position", _label(""))
 	_button(box, "Delete unit", delete_selected)
+	_build_roles(box)
 	box.add_child(HSeparator.new())
 	box.add_child(_label("Add a unit"))
 	_ui.add_class = _row(box, "Kind", _options(ADD_CLASSES.map(func(c): return c[0]), func(_i): _fill_object_picker()))
@@ -817,6 +827,7 @@ func _build_flights_tab(box: VBoxContainer) -> void:
 
 
 func _build_mission_tab(box: VBoxContainer) -> void:
+	_build_conditions(box)
 	_ui.m_name = _row(box, "Name", _label(""))
 	_ui.m_hour = _row(box, "Start hour", _spin(0, 23, 1, func(_v): _set_time()))
 	_ui.m_min = _row(box, "Start minute", _spin(0, 59, 1, func(_v): _set_time()))
@@ -1030,8 +1041,12 @@ func _fill_units() -> void:
 		var id := int(e.get("0x1e", -1))
 		var obj: Dictionary = objects.get(int(e.get("0x2c6", -1)), {})
 		var side: int = clampi(int(e.get("0x2d0", 1)), 1, 3)
-		l.add_item("%d  %s  (%s, %s)" % [id, e.get("0x2bc", ""), obj.get("0x514", "?"), SIDES[side - 1]])
+		var role := clampi(int(e.get("0x32a", 2)), 0, 2)
+		var tag: String = "" if role == 2 else "  [%s]" % ROLES[role]
+		l.add_item("%d  %s  (%s, %s)%s" % [id, e.get("0x2bc", ""), obj.get("0x514", "?"), SIDES[side - 1], tag])
 		l.set_item_metadata(l.item_count - 1, id)
+		if role != 2:
+			l.set_item_custom_fg_color(l.item_count - 1, ROLE_COLORS[role])
 		if picked.has(id) or id == sel_id:
 			l.select(l.item_count - 1, false)
 
@@ -1231,3 +1246,67 @@ class MapHost:
 			preview.draw_polyline(pts, Color.WHITE, 2.0)
 		for p in pts:
 			preview.draw_circle(p, 5.0, Color.WHITE)
+
+
+# --- win and lose (docs/mission-editor.md §12) ---------------------------------------------------------------------
+
+
+## Sets role `role` (0 must survive, 1 target, 2 neutral) on every unit selected in the Units list (else the selected
+## unit).
+func mark_selected(role: int) -> void:
+	var ids := PackedInt64Array()
+	for i in _ui.units.get_selected_items():
+		ids.append(int(_ui.units.get_item_metadata(i)))
+	if ids.is_empty() and sel_id >= 0:
+		ids.append(sel_id)
+	if not ids.is_empty():
+		_edit(api.set_role(data, ids, role))
+
+
+## Selects in the Units list every unit of the selected unit's bdb object (all the SA-6s, all the T-62s…).
+func select_same_kind() -> void:
+	var obj := int(entity(sel_id).get("0x2c6", -2))
+	for i in _ui.units.item_count:
+		if int(entity(int(_ui.units.get_item_metadata(i))).get("0x2c6", -1)) == obj:
+			_ui.units.select(i, false)
+
+
+func _build_roles(box: VBoxContainer) -> void:
+	box.add_child(HSeparator.new())
+	box.add_child(_label("Win and lose: mark the units selected in the list"))
+	var h := HBoxContainer.new()
+	box.add_child(h)
+	_ui.mark = [
+		_button(h, "Target", func(): mark_selected(1)),
+		_button(h, "Must survive", func(): mark_selected(0)),
+		_button(h, "Neutral", func(): mark_selected(2)),
+	]
+	_ui.same_kind = _button(box, "Select all units of this kind", select_same_kind)
+
+
+func _build_conditions(box: VBoxContainer) -> void:
+	box.add_child(_label("Win and lose"))
+	_ui.cond = _label("")
+	_ui.cond.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(_ui.cond)
+	_ui.passed_text = _row(box, "Passed headline", LineEdit.new())
+	_ui.passed_text.text_submitted.connect(func(t): set_misc("0x47e", t))
+	_ui.passed_text.focus_exited.connect(func(): set_misc("0x47e", _ui.passed_text.text))
+	_ui.failed_text = _row(box, "Failed headline", LineEdit.new())
+	_ui.failed_text.text_submitted.connect(func(t): set_misc("0x492", t))
+	_ui.failed_text.focus_exited.connect(func(): set_misc("0x492", _ui.failed_text.text))
+	box.add_child(HSeparator.new())
+
+
+func _fill_conditions() -> void:
+	var text := String(conditions.get("summary", ""))
+	_ui.cond.text = text
+	_ui.cond_line.text = text
+	_ui.cond_line.tooltip_text = text
+	_ui.cond_line.modulate = Color.WHITE if conditions.get("can_pass", true) else Color.RED
+	for k in ["passed_text", "failed_text"]:
+		if not _ui[k].has_focus():
+			_ui[k].text = String(conditions.get(k, ""))
+		_ui[k].editable = not read_only
+	for b in _ui.mark:
+		b.disabled = read_only
