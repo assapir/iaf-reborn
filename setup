@@ -25,6 +25,7 @@ command -v cargo >/dev/null || { tell "Setup needs Rust (cargo) to build the gam
 godot=${GODOT:-godot}
 if ! command -v "$godot" >/dev/null && [[ -x /Applications/Godot.app/Contents/MacOS/Godot ]]; then
 	godot=/Applications/Godot.app/Contents/MacOS/Godot
+	export PATH="/Applications/Godot.app/Contents/MacOS:$PATH"  # the guides' scripts call `godot` (APFS: any case)
 fi
 command -v "$godot" >/dev/null || { tell "Setup needs Godot 4.7. Install it: $install"; exit 1; }
 [[ $("$godot" --version 2>/dev/null) == 4.7* ]] || { tell "Setup needs Godot 4.7 (this one is $("$godot" --version 2>/dev/null))."; exit 1; }

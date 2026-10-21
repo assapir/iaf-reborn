@@ -33,6 +33,8 @@ if [[ ${1:-} == --job ]]; then  # one process: --job <jet> <name,name,…> (xarg
 		[[ -n $note ]] && echo "$note"
 		grep -q "^RESULT " "$log.log" || [[ $note == FAIL* ]] || echo "FAIL $jet $names: Godot ended without a RESULT line ($log.log)"
 	} >"$log.out"
+	# Every failure line names its process's log.
+	sed -i.bak -E "/^FAIL|SCRIPT ERROR/s|\$| [log: $log.log]|" "$log.out" && rm -f "$log.out.bak"
 	# The stamp (up to date, see below) only for a shot that passed every check.
 	for n in ${names//,/ }; do
 		if [[ -f $shots_dir/$jet/$n.png ]] && grep -q "^PASS shot $n " "$log.out" && ! grep -q "^FAIL shot $n:" "$log.out"; then
@@ -44,8 +46,10 @@ if [[ ${1:-} == --job ]]; then  # one process: --job <jet> <name,name,…> (xarg
 	cat "$log.out"
 	exit 0
 fi
-# Godot logs go here, not into the player's user folder (whose rotation keeps only the newest logs).
-logs=$(mktemp -d "${TMPDIR:-/tmp}/iaf-logs.XXXXXX")
+# Godot logs go here, not into the player's user folder (whose rotation keeps only the newest logs); kept only when
+# something failed, and each failed process's log is named at the end.
+logs=$PWD/assets/logs/guide-shots-$(date +%Y-%m-%d-%H%M%S)-$$
+mkdir -p "$logs"
 only=""
 force=0
 jets=()
@@ -118,7 +122,10 @@ export logs shots_dir
 [[ ! -s $logs/jobs ]] || xargs -P "$jobs" -L 1 tools/guide_shots.sh --job <"$logs/jobs"
 fails=$(cat "$logs"/*.out 2>/dev/null | grep -cE "^FAIL|SCRIPT ERROR" || true)
 if ((fails > 0)); then
-	echo "guide shots: $fails failures (logs: $logs)"
+	echo "guide shots: $fails failures; the failed processes' Godot logs:"
+	for o in "$logs"/*.out; do
+		grep -qE "^FAIL|SCRIPT ERROR" "$o" && echo "  ${o%.out}.log"
+	done
 	exit 1
 fi
 rm -rf "$logs"  # kept above only when something failed

@@ -129,4 +129,6 @@ The wizard uses the original menus' colours. Pages:
 8. **Done**: "Start the game".
 
 The pages start from the last run's inputs (`assets/setup.json`). The log names files relative to the assets
-folder.
+folder. Each run also writes its whole log, with full paths and every step's state, to
+`assets/logs/setup-<date>-<time>.log`. The log's first line names that file, and so does the message when a step
+fails. Uninstall keeps `assets/logs`.

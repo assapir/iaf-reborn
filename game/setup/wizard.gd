@@ -93,6 +93,8 @@ var rows_box: VBoxContainer
 var rows := {}
 var install_note: Label
 var log_view: TextEdit
+## This run's log file (assets/logs/setup-<date>-<time>.log).
+var log_file := ""
 var log_button: Button
 var done_label: Label
 
@@ -1186,11 +1188,15 @@ func start_install() -> void:
 	_fill_rows([], false)
 	failed = ""
 	finished = false
-	var err: String = setup.start(assets, repo, JSON.stringify(inputs()), redo, only_steps)
+	# The whole run, with full paths, also goes to assets/logs (kept; named in the log and when a step fails).
+	var stamp := Time.get_datetime_string_from_system().replace(":", "").replace("T", "-")
+	log_file = assets.path_join("logs/setup-%s.log" % stamp)
+	var err: String = setup.start(assets, repo, JSON.stringify(inputs()), redo, only_steps, log_file)
 	if err != "":
 		install_note.text = "Setup did not start: " + err
 		return
 	running = true
+	log_view.text = "Log file: %s\n" % log_file
 	install_note.text = "Installing…"
 	_update()
 
@@ -1237,7 +1243,10 @@ func _process(_delta: float) -> void:
 		failed = p.error
 		var up: int = p.steps.filter(func(s): return s.state == "up_to_date").size()
 		install_note.text = (
-			("Setup stopped: %s. The log has the details; fix the input and press Back, then Install again." % failed)
+			(
+				"Setup stopped: %s. The log has the details (%s); fix the input and press Back, then Install again."
+				% [failed, log_file]
+			)
 			if failed != ""
 			else "Done: %d steps ran, %d were up to date." % [p.steps.size() - up, up]
 		)

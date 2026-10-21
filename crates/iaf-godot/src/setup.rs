@@ -2,6 +2,7 @@
 //! the plan on its own thread; the wizard calls `poll` every frame for the steps' states, fractions and new log lines.
 //! Inputs travel as setup.json's JSON text (`iaf_setup::to_json` / `from_json`).
 
+use std::io::Write;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -27,8 +28,17 @@ struct Shared {
     error: String,
 }
 
-/// The run's events into `Shared`; log lines name files relative to the assets folder (`prefix`).
-struct Sink(Arc<Mutex<Shared>>, String);
+/// The run's events into `Shared`; log lines name files relative to the assets folder (`prefix`). The log file gets
+/// every line and state change with full paths.
+struct Sink(Arc<Mutex<Shared>>, String, Option<Mutex<std::fs::File>>);
+
+impl Sink {
+    fn write(&self, line: &str) {
+        if let Some(f) = &self.2 {
+            let _ = writeln!(f.lock().unwrap(), "{line}");
+        }
+    }
+}
 
 fn state_name(s: &State) -> (&'static str, String) {
     match s {
@@ -45,6 +55,8 @@ fn state_name(s: &State) -> (&'static str, String) {
 
 impl Events for Sink {
     fn state(&self, step: &Step, state: &State) {
+        let (name, why) = state_name(state);
+        self.write(&format!("{}: [{name}] {why}", step.id));
         let mut sh = self.0.lock().unwrap();
         if let Some(r) = sh.rows.iter_mut().find(|r| r.id == step.id) {
             (r.state, r.detail) = state_name(state);
@@ -54,6 +66,7 @@ impl Events for Sink {
         }
     }
     fn log(&self, step: &Step, line: &str) {
+        self.write(&format!("{}: {line}", step.id));
         self.0.lock().unwrap().log.push(format!("{}: {}", step.id, line.replace(&self.1, "")));
     }
     fn fraction(&self, step: &Step, f: f32) {
@@ -205,8 +218,8 @@ impl IafSetup {
     }
 
     /// Starts setup on its own thread: saves the inputs to setup.json, then runs the plan (or only the steps `only`
-    /// and what they wait for); the steps in `redo` run although they are up to date ("*": all). "" when started,
-    /// else why not.
+    /// and what they wait for); the steps in `redo` run although they are up to date ("*": all). The whole log also
+    /// goes to `log_file` (its folder made; "" none). "" when started, else why not.
     #[func]
     fn start(
         &mut self,
@@ -215,6 +228,7 @@ impl IafSetup {
         inputs_json: GString,
         redo: PackedStringArray,
         only: PackedStringArray,
+        log_file: GString,
     ) -> GString {
         if self.shared.lock().unwrap().rows.iter().any(|r| r.state == "running") {
             return "setup is running".into();
@@ -247,6 +261,15 @@ impl IafSetup {
                 .collect(),
             ..Default::default()
         };
+        let log_file = PathBuf::from(log_file.to_string());
+        let file = (!log_file.as_os_str().is_empty())
+            .then(|| {
+                std::fs::create_dir_all(log_file.parent()?).ok()?;
+                let mut f = std::fs::File::create(&log_file).ok()?;
+                let _ = writeln!(f, "setup: {inputs_json}\nredo: {redo:?}, only: {only:?}");
+                Some(Mutex::new(f))
+            })
+            .flatten();
         self.cancel = Arc::new(AtomicBool::new(false));
         let (shared, cancel) = (self.shared.clone(), self.cancel.clone());
         std::thread::spawn(move || {
@@ -258,7 +281,7 @@ impl IafSetup {
                     &steps,
                     &ctx,
                     &|id| redo.iter().any(|r| r == "*" || r == id),
-                    &Sink(shared.clone(), prefix),
+                    &Sink(shared.clone(), prefix, file),
                     &cancel,
                 )
             }));
