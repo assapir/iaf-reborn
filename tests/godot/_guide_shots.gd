@@ -18,7 +18,8 @@
 # on the placed unit, "on_impact" the placed unit onto the bomb's predicted impact, "station:N" the A-A store / gun on
 # station N, "ag:N" the A-G store on station N, "flir" / "tv" the camera on the placed unit (FLIR with the laser),
 # "emitter" the placed unit's radar locks the jet, "fire" Space held, "look:Y,P" the head turned Y° right / P° up (free
-# look), "key:X" a game key, "wait:S"), panel (0 the forward view … 1 the whole panel), "dive" (an airborne start in a
+# look), "key:X" a game key, "wait:S", "pcd:F1,F2,F3,F4" the F-35I portals' formats), panel (0 the forward view … 1
+# the whole panel), "dive" (an airborne start in a
 # `dive_deg` dive `dive_agl` m above the ground), view ("cockpit" / "hud", the HUD-only view / "external"), crop
 # ("full", "hud", "dash", "mfd_left", "mfd_right"; "hud" takes `crop_w`, the box's width as a fraction of the frame,
 # default 0.38: smaller zooms in; and `crop_dy`, the box moved down by that fraction of the frame's height, negative
@@ -320,6 +321,10 @@ func _action(a: String) -> void:
 				tv.mission_entity_moved(target)
 		"fire":  # Space held (the release; bombs: the delayed CCIP's designation)
 			w.fire_selected()
+		"pcd":  # the F-35I's portals' formats, left to right ("pcd:TSD-1,SRCH,SMS,TWD"; pcd.gd)
+			var fs := arg.split(",")
+			for i in mini(fs.size(), 4):
+				tv.cockpit.pcd._show(i, fs[i])
 		"emitter":
 			if not target.is_empty():
 				w.rwr.lock(target.key)

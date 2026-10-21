@@ -1575,7 +1575,7 @@ func _apply_player_prefs() -> void:
 	else:
 		# The fixes outside the flight model are unknown to it (set_better_option ignores them).
 		for id in Settings.BETTER:
-			flight.set_better_option(id, Settings.better[id])
+			flight.set_better_option(id, Settings.better.get(id, false))
 	DamageModel.fall_keep_heading = _all_better or Settings.better.fix_fall_heading
 	DamageModel.no_skill_scale = _all_better or Settings.better.fix_skill_damage
 	# Gameplay preferences (docs/flight-model.md §15.7); Easy landing is on by default.
