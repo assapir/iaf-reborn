@@ -249,10 +249,11 @@ func _arm(load: Array, entity: Dictionary) -> Array:
 	return load
 
 
-## The flight model carries the stores (S+0x424, S+0x42c, S+0x428).
+## The flight model carries the stores (S+0x424, S+0x42c, S+0x428) and their lateral moment (Better physics).
 func _push_stores() -> void:
 	if host != null and host.flight != null:
 		host.flight.set_stores(stores.fm_mass, stores.fm_di_left, stores.fm_di_right)
+		host.flight.set_stores_moment(stores.roll_moment)
 
 
 # --- world <-> scene --------------------------------------------------------------------------------

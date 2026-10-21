@@ -53,7 +53,8 @@ impl IafStores {
             .collect()
     }
 
-    /// The 12 stations: {} none, else {type, name, weight_lb, drag, rounds_per_tick (optional), count}.
+    /// The 12 stations: {} none, else {type, name, weight_lb, drag, rounds_per_tick (optional), count, arm (the attach
+    /// point's glTF x, + right)}.
     #[func]
     fn setup(&mut self, stations: VarArray, player: bool, weight_fix: bool, unlimited: bool) {
         let station = |i: usize| {
@@ -66,7 +67,8 @@ impl IafStores {
                 rounds_per_tick: num(&d, "rounds_per_tick"),
             };
             let count = num(&d, "count").unwrap_or_default();
-            Some(Station { weapon, count, initial: count, unlimited: false })
+            let arm = num(&d, "arm").unwrap_or_default();
+            Some(Station { weapon, count, initial: count, unlimited: false, arm })
         };
         self.stores.player = player;
         self.stores.weight_fix = weight_fix;
@@ -155,7 +157,7 @@ impl IafStores {
             "counts" => &counts, "unlimited" => &unl, "last_fired" => s.last_fired() as i64,
             "releases" => s.releases() as i64, "unlimited_all" => s.unlimited(), "fm_mass" => load.mass,
             "fm_di_left" => load.di_left, "fm_di_right" => load.di_right, "has_tank" => s.has_tank(),
-            "tank_fuel" => s.tank_fuel(),
+            "tank_fuel" => s.tank_fuel(), "roll_moment" => s.roll_moment(),
         }
     }
 }

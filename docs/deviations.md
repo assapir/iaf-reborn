@@ -126,6 +126,9 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   - **"Nose dips under braking"** (`brake_pitch`). Original: on the wheels the jet stays level whatever the brakes
     or thrust do. Ours, with the switch: braking dips the nose up to 2°, thrust at brake release squats it up to 1°,
     and it eases back level within about a second — flight-model.md §10.
+  - **"Unbalanced stores roll the jet"** (`asymmetric_stores`). Original: unbalanced stores only bias the sideslip
+    through their drag; their weight has no lateral effect. Ours, with the switch: the stores' lateral moment × load
+    factor rolls the jet toward the heavy wing, and the pilot holds it with stick (the original has no roll trim).
 - **"Locked enemies know who locked them"** (`fix_lock_threat`). Original: the player's radar lock writes the target
   itself into the AI target's threat (brain+0x7c). Ours, with the switch: the lock makes the player the target's
   threat — rwr.md §2.

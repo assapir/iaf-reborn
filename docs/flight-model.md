@@ -638,6 +638,22 @@ throttle rules and preferences follow §15 (checklist §15.11). These items stil
     * The attitude only: the ground forces keep the level frame (§14.5), the jet's origin keeps its height, and the
       external and cockpit views both take this attitude. The model turns about its origin, so the nose wheel sinks
       ≈ 10 cm into the runway at 1.5° (the struts are not animated). Test `brake_pitch_dips_and_recovers`.
+  * **Asymmetric stores** [`asymmetric_stores`] (new). Unbalanced stores roll the jet.
+    * Original: the stores' left / right drag-index difference biases the sideslip command, `β_cmd = (ru +
+      10·asym)·MaxBeta` (`FUN_005b4910`, §4); the stores' weight has no lateral effect, and no key or control trims roll
+      (the keyboard table has no trim command).
+    * BP: the stores' lateral moment `Mₛ = Σ count · weight · arm` (kg·m) comes from the pylons: each store at its bdb
+      weight in kg (a tank at its full fuel, a gun pod as one store), the arm the station attach point's lateral
+      position in the model (glTF x, F-16 wingtip 4.78 m). The host sends it with `set_stores_moment` after every
+      release. The rolling moment is `Mₛ · g · n` (n = L / W, the load factor). Against it stands the full roll
+      control's moment `Cl · q·S · b` with Cl = 0.04 (inferred, one value for every jet), so the stores are worth a
+      stick deflection `Mₛ·g·n / (Cl·q·S·b)`, added to the stick in the roll command: `p_cmd = MaxRollRate ·
+      clamp(stick + that, −1, 1)` (airborne only).
+    * Effect: the pilot holds the heavy wing up with stick. F-16, one 2000 lb bomb 3 m out: ≈ 18 % stick at 150 m/s
+      and 1 g, ×n in a pull, about four times as much at landing speed; beyond full stick the jet rolls off (test
+      `asymmetric_stores_roll`).
+    * A model without stations (A-4, transports: no attach points) gets no moment. Refreshed with the roll command
+      by the 1 Hz / event update.
 * **Kept in both modes** (original quirks that better physics leaves as they are):
   * §15.10 item 14, the slope globals. In the original, the lift-ramp / β-gain slopes below 220 / 400 m/s come from
     the **last aircraft type set up** (shared globals). Our `Aircraft` keeps its own parameters, so every jet uses its

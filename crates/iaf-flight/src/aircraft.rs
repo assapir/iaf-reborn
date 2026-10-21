@@ -67,6 +67,9 @@ pub const SURFACE_BORDER: u32 = 0xc0;
 /// Tornado (`5ad450`, §15.5a): the push-back ramps start at −1.5·V (`0x611d40`) along the heading and run to 0
 /// at 10 m/s² (limits ±1e8); the mode ends 8 s after entry (`0x611d38`); the nose pitches to 50° (`0x3f5f66f3`).
 const TORNADO_K: f32 = -1.5;
+/// Better physics "Asymmetric stores": rolling-moment coefficient of full roll control, `Cl = M / (q·S·b)` (inferred:
+/// the F-16's aileron ≈ 0.0013/° × 21.5° plus the differential tail; one value for every jet).
+const ROLL_CONTROL_CL: f32 = 0.04;
 const TORNADO_RAMP_RATE: f32 = 10.0;
 const TORNADO_TIME: f64 = 8.0;
 const TORNADO_PITCH: f32 = 0.872_664_6;
@@ -353,11 +356,13 @@ pub struct BetterPhysics {
     pub ground_idle: bool,
     /// On the wheels the nose dips under braking and rises under thrust (along-track acceleration).
     pub brake_pitch: bool,
+    /// Unbalanced stores roll the jet: the stores' lateral moment × load factor against the roll control's moment.
+    pub asymmetric_stores: bool,
 }
 
 impl BetterPhysics {
     /// Stable ids (snake_case) and English labels, in menu order.
-    pub const OPTIONS: [(&'static str, &'static str); 14] = [
+    pub const OPTIONS: [(&'static str, &'static str); 15] = [
         ("flight_path_hold", "1 g hold keeps the flight path (no slow climb/dive with neutral stick)"),
         ("force_angles", "Forces use the current angle of attack and sideslip"),
         ("start_lift", "Airborne start without the upward jolt"),
@@ -372,6 +377,7 @@ impl BetterPhysics {
         ("ground_effect", "Ground effect (less drag, more lift near the ground)"),
         ("ground_idle", "Realistic idle thrust on the ground (taxi speed)"),
         ("brake_pitch", "Nose dips under braking, squats under thrust"),
+        ("asymmetric_stores", "Unbalanced stores roll the jet"),
     ];
 
     pub fn none() -> Self {
@@ -402,6 +408,7 @@ impl BetterPhysics {
             "ground_effect" => &mut self.ground_effect,
             "ground_idle" => &mut self.ground_idle,
             "brake_pitch" => &mut self.brake_pitch,
+            "asymmetric_stores" => &mut self.asymmetric_stores,
             _ => return None,
         })
     }
@@ -613,6 +620,8 @@ pub struct Aircraft {
     pub stores_mass: f32,
     pub stores_di_left: f32,
     pub stores_di_right: f32,
+    /// Better physics "Asymmetric stores": the stores' lateral moment Σ mass · arm (kg·m, + right wing heavier).
+    pub stores_moment: f32,
     // Load-time derived constants.
     cl0: f32,
     cl_alpha: f32,
@@ -805,6 +814,7 @@ impl Aircraft {
             stores_mass: 0.0,
             stores_di_left: 0.0,
             stores_di_right: 0.0,
+            stores_moment: 0.0,
             cl0,
             cl_alpha,
             stick_centre_v,
@@ -1525,7 +1535,10 @@ impl Aircraft {
         }
         // 5b4910: β_cmd = (ru + 10·asym)·MaxBeta, asym = S+0x428 − S+0x42c (the spin tick passes 0).
         let beta_cmd = (self.rudder + 10.0 * self.stores_asym()) * p.max_beta;
-        let p_cmd = if ground { 0.0 } else { p.max_roll_rate * self.stick[0] };
+        let mut p_cmd = if ground { 0.0 } else { p.max_roll_rate * self.stick[0] };
+        if self.better.asymmetric_stores && !ground {
+            p_cmd = p.max_roll_rate * (self.stick[0] + self.stores_roll(lift, mass, qs)).clamp(-1.0, 1.0);
+        }
 
         self.thrust = thrust;
         self.afterburner = stage;
@@ -2184,6 +2197,19 @@ impl Aircraft {
         self.stores_di_right - self.stores_di_left
     }
 
+    /// Better physics "Asymmetric stores" (not in the original: there unbalanced stores only bias β through the drag
+    /// asymmetry): the stick deflection the stores' rolling moment is worth. Moment = Σ mass · arm · g · n (n = lift /
+    /// weight, the load factor), over the full roll control's `ROLL_CONTROL_CL · q·S · b`; + rolls right.
+    fn stores_roll(&self, lift: f32, mass: f32, qs: f32) -> f32 {
+        let moment = self.stores_moment * lift / mass.max(1.0);
+        moment / (ROLL_CONTROL_CL * qs.max(1.0) * self.params.wing_span.max(1.0))
+    }
+
+    /// Better physics: the stores' lateral moment (kg·m, + right wing heavier); read at the next aero update.
+    pub fn set_stores_moment(&mut self, kg_m: f32) {
+        self.stores_moment = kg_m;
+    }
+
     /// External stores: extra mass `S+0x424` (kg) and the left (`S+0x42c`) / right (`S+0x428`) stores
     /// drag index (×1e-4 already applied).
     pub fn set_stores(&mut self, mass_kg: f32, di_left: f32, di_right: f32) {
@@ -2461,6 +2487,30 @@ mod tests {
         asym.set_stores(0.0, 0.0, 0.001);
         run(&mut asym, 1.5);
         assert!((asym.beta_cmd - 0.01 * asym.params.max_beta).abs() < 1e-6, "β_cmd {}", asym.beta_cmd);
+    }
+
+    /// Better physics "Asymmetric stores": a right-heavy load (a 2000 lb bomb 3 m out) rolls the jet right with the
+    /// stick centred, the original stays wings level, and the stick deflection worth the moment at 1 g holds it.
+    #[test]
+    fn asymmetric_stores_roll() {
+        let roll_after = |bp: bool, hold: bool| {
+            let mut a = airborne(100, 3000.0, 150.0);
+            a.better.asymmetric_stores = bp;
+            a.set_stores_moment(907.0 * 3.0);
+            if hold {
+                let (m, qs) = (a.mass, q_s(3000.0, 150.0, a.params.wing_area));
+                let stick_x = -a.stores_roll(m * G, m, qs);
+                assert!(stick_x < -0.05 && stick_x > -0.5, "stick {stick_x}");
+                a.set_controls(Controls { stick_x, ..a.controls() });
+            }
+            run(&mut a, 3.0);
+            a.state().roll
+        };
+        assert!(roll_after(false, false).abs() < 1e-3, "original: no roll");
+        let free = roll_after(true, false);
+        assert!(free > 0.1, "rolls toward the heavy right wing: {free}");
+        let held = roll_after(true, true);
+        assert!(held.abs() < 0.2 * free, "held {held} vs free {free}");
     }
 
     #[test]

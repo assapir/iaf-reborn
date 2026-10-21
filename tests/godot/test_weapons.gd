@@ -31,6 +31,18 @@ func run() -> void:
 	check(
 		is_equal_approx(st.fm_di_left, 0.0108) and is_equal_approx(st.fm_di_right, 0.0108), "stores drag index per side"
 	)
+	var sym = Stores.new()
+	sym.setup(Stores.loadout({}, f16), db, desc, Callable(), 100)
+	var balanced: float = sym.roll_moment
+	var left := -1
+	for i in [3, 2, 1, 0]:
+		if not sym.station(i).is_empty() and left < 0:
+			left = i
+	sym.fired(left)
+	check(
+		absf(balanced) < 50.0 and sym.roll_moment > 1000.0,
+		"asymmetric stores: balanced %.1f kg·m, right-heavy %.1f after station %d" % [balanced, sym.roll_moment, left]
+	)
 	var fix = Stores.new()
 	fix.weight_fix = true
 	fix.setup(Stores.loadout({}, f16), db, desc, Callable(), 100)

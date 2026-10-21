@@ -250,6 +250,15 @@ impl IafFlight {
         }
     }
 
+    /// Better physics "Asymmetric stores": the stores' lateral moment (kg·m, + right wing heavier), after every
+    /// `set_stores`.
+    #[func]
+    fn set_stores_moment(&mut self, kg_m: f64) {
+        if let Some(ac) = &mut self.aircraft {
+            ac.set_stores_moment(kg_m as f32);
+        }
+    }
+
     /// External fuel tanks at the start: fuel maximum = FuelWeight + `extra_kg`, filled (FUN_005a8980
     /// then the start, docs/weapons.md "Fuel tanks").
     #[func]

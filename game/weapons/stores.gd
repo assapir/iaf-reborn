@@ -66,6 +66,10 @@ var has_tank: bool:
 var tank_fuel: float:
 	get:
 		return _st.tank_fuel
+## Better physics "Asymmetric stores" (ours): the pylon stores' lateral moment, kg·m, + right wing heavier.
+var roll_moment: float:
+	get:
+		return _st.roll_moment
 
 var _s = ClassDB.instantiate("IafStores")
 var _st := {}
@@ -121,7 +125,12 @@ func setup(load: Array, db: RefCounted, descriptor: Dictionary, pilon_of: Callab
 			st.slots = ClassDB.class_call_static("IafStores", "slots", i, attach, n, w.type in BOMBS, pilon)
 		stations[i] = st
 		var r := {
-			"type": w.type, "name": w.name, "weight_lb": w.get("weight_lb", 0.0), "drag": w.get("drag", 0.0), "count": n
+			"type": w.type,
+			"name": w.name,
+			"weight_lb": w.get("weight_lb", 0.0),
+			"drag": w.get("drag", 0.0),
+			"count": n,
+			"arm": attach.x,
 		}
 		if w.has("rounds_per_tick"):
 			r.rounds_per_tick = w.rounds_per_tick

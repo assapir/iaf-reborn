@@ -66,6 +66,8 @@ pub struct Station {
     pub initial: f64,
     /// Unlimited ammo on this station (never chaff / flares).
     pub unlimited: bool,
+    /// The attach point's lateral position (glTF x, metres, + right wing); ours, for the asymmetric stores option.
+    pub arm: f64,
 }
 
 impl Station {
@@ -318,6 +320,19 @@ impl Stores {
         }
     }
 
+    /// Better physics "Asymmetric stores" (ours, docs/flight-model.md §10): the pylon stores' lateral moment Σ mass ·
+    /// arm in kg·m, + right wing heavier. Every store counts at its bdb weight in kg (a tank at its full fuel; a gun
+    /// pod's rounds as one store).
+    pub fn roll_moment(&self) -> f64 {
+        let stores = self.stations.iter().take(PYLONS).flatten();
+        stores
+            .map(|s| {
+                let n = if s.weapon.rounds_per_tick.is_some() { s.count.min(1.0) } else { s.count };
+                n * s.weapon.weight_lb * KG_PER_LB * s.arm
+            })
+            .sum()
+    }
+
     /// A tank jettisoned from station `i` (`FUN_00458760`): count −1 and the drag update only.
     pub fn jettisoned(&mut self, i: usize) {
         let Some(w) = self.station(i).map(|s| s.weapon.clone()) else { return };
@@ -416,7 +431,7 @@ mod tests {
 
     fn st(type_code: i64, name: &str, count: f64) -> Option<Station> {
         let weapon = Weapon { type_code, name: name.into(), weight_lb: 200.0, drag: 10.0, rounds_per_tick: None };
-        Some(Station { weapon, count, initial: count, unlimited: false })
+        Some(Station { weapon, count, initial: count, unlimited: false, arm: 0.0 })
     }
 
     fn f16() -> Stores {
@@ -428,6 +443,11 @@ mod tests {
         stations[6] = st(500, "MK-82", 3.0);
         stations[8] = st(570, "AIM-9L", 1.0);
         stations[9] = st(GUN, "20 MM", 100.0);
+        for (i, st) in stations.iter_mut().enumerate().take(PYLONS) {
+            if let Some(st) = st {
+                st.arm = i as f64 - 4.0; // 1 m per station, + right
+            }
+        }
         s.setup(stations);
         s
     }
@@ -458,6 +478,8 @@ mod tests {
         s.fired(2);
         assert!((s.load().mass - (800.0 * LB_PER_KG - 200.0) * KG_PER_LB).abs() < 1e-9);
         assert!((s.load().di_left - 15e-4).abs() < 1e-12);
+        // Better physics: station 2 lost one MK-82, so the right wing (station 6) is heavier.
+        assert!((s.roll_moment() - 200.0 * KG_PER_LB * 2.0).abs() < 1e-9, "{}", s.roll_moment());
         s.jettisoned(4);
         assert!((s.load().di_left - 10e-4).abs() < 1e-12 && (s.load().di_right - 20e-4).abs() < 1e-12);
     }
