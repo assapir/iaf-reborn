@@ -263,7 +263,7 @@ func _create_mfds() -> void:
 	var m: Dictionary = layout.get("MFD", {})
 	# Ours: a panoramic display (F-35I) as `Portals`, [x, y, scale, page] each (the page's top-left in panel px).
 	if m.has("Portals"):
-		# Its display around the portals ([PCD], pcd.gd): the glass, bar and windows under them, the sheen over them.
+		# Its display ([PCD], pcd.gd): the glass, the strip and the formats in the portals; the sheen over them.
 		if layout.has("PCD"):
 			pcd = _pcd_layer(0)
 		for i in m.Portals.size():
@@ -271,9 +271,8 @@ func _create_mfds() -> void:
 			var node := Mfd.new()
 			node.setup(self, i, int(pt[3]))
 			node.portal_scale = float(pt[2])
-			if pcd != null:
-				node.material = ShaderMaterial.new()
-				node.material.shader = preload("res://cockpit/portal.gdshader")
+			# With the panoramic display the node only keeps the page (pcd.gd draws the formats and hides it).
+			node.visible = pcd == null
 			add_child(node)
 			mfds.append(node)
 		if layout.has("PCD"):

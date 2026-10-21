@@ -66,7 +66,6 @@ var _k := 1.0
 var trace = null
 ## The EO / MAP pictures, under the page's art (show_behind_parent): pictures, drawn as they are in both modes.
 var _under: Control
-const PORTAL_SHADER := preload("res://cockpit/portal.gdshader")
 static var _crisp_material: ShaderMaterial
 ## The original bitmaps (install resource/cockpits/<file>) and the crisp sprites cut from them, by "file rect".
 static var _art := {}
@@ -130,9 +129,6 @@ func _process(_delta: float) -> void:
 
 func _set_crisp(on: bool) -> void:
 	crisp = on
-	if material is ShaderMaterial and material.shader == PORTAL_SHADER:
-		material.set_shader_parameter("crisp", on)
-		return
 	if on and _crisp_material == null:
 		_crisp_material = ShaderMaterial.new()
 		_crisp_material.shader = preload("res://cockpit/mfd_crisp.gdshader")

@@ -796,8 +796,7 @@ set (the "Real MFDs" option, docs/roadmap.md) can reuse them.
   last (LineTo leaves its end pixel unlit). Original draws its strokes half a pixel up and left of those pixels.
   Fills (rectangles, the TSD map, the waypoint boxes) cover the same area in both modes.
 - **The pixel art** comes from the original `mfds.bmp` / `rwrsymb.bmp` (install `resource/cockpits`), one texture per
-  sprite with a clear 1-px border (`crisp_sprite`), drawn through `mfd_crisp.gdshader` (`mfd_crisp.gdshaderinc`; the
-  F-35I's portals use it from `portal.gdshader`). The shader draws each lit pixel's centre joined to its lit
+  sprite with a clear 1-px border (`crisp_sprite`), drawn through `mfd_crisp.gdshader` (`mfd_crisp.gdshaderinc`). The shader draws each lit pixel's centre joined to its lit
   neighbours by a stroke 1 px wide (a diagonal only where no straight step joins the two). A pixel on a stair (one
   straight and one diagonal neighbour, opposite) joins the two half-way points instead, so shallow lines and arcs
   turn smooth while square corners stay square. The black ground is the opaque pixels' coverage cut at one half, so

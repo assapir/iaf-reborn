@@ -68,9 +68,10 @@ the details.
 
 ## F-35I Adir: the panoramic cockpit display (PCD)
 
-Built today (f35i.md §4.3, `game/cockpit/pcd.gd`): a status bar (ICAWS and its count, AP, the time), 4 portals that
-hold the game's pages (radar, TSD, stores, RWR) tinted navy, 8 lower windows (FUEL, ENG, GEAR, ICAWS × 2, AP, CM,
-CNI) and the ESIS (the standby display).
+Built (2026-10-21; f35i.md §4.3, `game/cockpit/pcd.gd`, `pcd_formats.gd`): the black glass, the Function Access Button
+strip, four portals with their headers, legends and sub-portal tabs, the MENU grid, and the formats TSD-1 / 2 / 3,
+SRCH / ASR, SMS, TFLIR, TWD, EFI, ICAWS, FUEL and ENG, plus the ESIS. The F-35I has no original display, so this is
+its only one.
 
 ### Sources
 
@@ -174,16 +175,12 @@ called TFLIR on the cockpit displays"[^baseline]. The threat format is TWD. MENU
 | 0 NAV | not offered: the route is on the TSD, the steerpoint in the CNI / NAV pop-up (inferred) | — |
 | — (new) | FUEL, ENG, FCS, AP, CNI in the function bar and the sub-portals | fuel, RPM / throttle / afterburner, gear / flaps, autopilot mode, heading / speed |
 
-### What the real PCD needs beyond ours
+### What is left on the F-35I
 
-1. The function bar as the real one (engine dial, fuel bars with JOKER / BINGO, weapon counts, gear planform, ICAWS,
-   AP / AT, COM, NAV source, MENU, IFF, BARO / GCAS / ALOW, time). Ours has 3 of its items.
-2. The portal chrome: name and master mode at the upper left, `CNTL>`, cyan edge legends, 2 sub-portal tabs per
-   portal. The lower 8 windows become the sub-portals (inferred).
-3. A black background in place of navy.
-4. The real formats in place of the F-16 pages: TSD-1 with F-35 symbology, SRCH / ASR, the SMS planform, TFLIR, TWD,
-   EFI; ENG and FUEL as full formats; ICAWS as a format.
-5. A double-width TSD, as in LM's slide 8 (inferred: a good default layout).
+1. A format widened over two portals, as in LM's slide 8 (a double-width TSD), and the 5 preset layouts.
+2. WPN-A / WPN-S, CNI, FCS, DAS, PHM, CHKLST, IFF and BARO pop-ups from the strip.
+3. The radar MAP picture on ASR; the SRCH and TWD layouts once a source shows them (open).
+4. The datalink's tracks on the TSD (ours shows the radar's), and the unknown (yellow square) identity.
 
 ## F-16C/D Barak (Block 30/40)
 
