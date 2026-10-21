@@ -30,15 +30,17 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
   that way (`tsd.gd bar_shown`); the original TSD always draws both.
 - **HiDPI:** on a Retina or other HiDPI screen the window's content grows by the screen's scale
   (`content_scale_factor`), as the setup wizard's does.
-- **Side panel**, three tabs:
+- **Side panel**, four tabs:
   - **Units:** every entity of the main file, a target or a must-survive unit tagged and coloured; the selected
     unit's name, side, role, heading and altitude; Delete; mark the selected units Target / Must survive / Neutral;
-    Add a unit; Give a route (§13).
+    Add a unit; Give a route (§13); Random: the chance to appear and the start spread, the roll preview (§15).
   - **Flights:** Alpha … Delta (type, number of jets, Set, Remove), and the route of any flight, blue or red: its
     waypoints with altitude (m) and speed (km/h), Insert a waypoint after, Delete the waypoint. **Add an enemy
     flight:** a red base, a red jet and 1 or 2 jets (§12.5).
   - **Mission:** the win and lose summary and the debrief headlines (§13), the year and the what-if switch (§12), the start time, the wind and the briefing in English and
     Hebrew. A new year runs the checks again.
+  - **Intel:** what the pilot sees before the flight: the units shown on the pilot's TSD, the intel preview and the
+    briefing's links (§14).
 - **Summary line:** under the top bar, what passes and fails the mission (§13); red when it can never pass.
 
 ## 2. Opening and saving
@@ -92,7 +94,9 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
   "data": {…}}` (§12.5). Without `bases`, the source's.
 - `year`: the mission year (§12). Without it, the source's year (§12.6).
 - `what_if`: true when never-served aircraft are allowed (§12.4). Without it, true for sources 200 and up.
-- `briefing`: the English and the Hebrew text (plain text), both optional.
+- `briefing`: the English and the Hebrew text (plain text), both optional; `entries`, the briefing's links (§14.3).
+- `random`: the chance and start spread per entity id, `{"12": {"chance": 50, "spread_km": 2}}` (§15). The mission
+  data never holds them.
 
 **Names** (`mission_edit::valid_name`, `stem`, `free_name`):
 - Allowed: `^[A-Za-z0-9][A-Za-z0-9 _-]{0,39}$`, English letters only, because the name is also the file name.
@@ -139,6 +143,10 @@ Missions go in and come back as JSON strings. Positions are engine world metres:
 | `year_bases(year, side)`, `base_owner(stem, year)` | the bases a side holds; a base's owner (§12.2) |
 | `year_jets(year, side, what_if)` | the jets a side has in service (§12.3) |
 | `year_issues(mission, year, what_if)` | the year's warnings (§12.7) |
+| `set_known(mission, ids, known)` | entity flag `0x35c` on the units `ids` (§14) |
+| `intel_links(mission)` | the model links the mission's unit types can have (§14.3) |
+| `roll(mission, random, seed)` | one roll of the random settings (§15) |
+| `random_issues(mission, random)` | the randomness warnings (§15) |
 
 ### 5.1 Ids and references
 - A new row takes the placeholder row's id, and the placeholder moves one up. Ids are never reused, so an old
@@ -202,7 +210,7 @@ One height sample covers about 79 m (inferred from `meta.json`: 64 terrain units
 2. The front end opens on that mission's TSD with the chosen flight selected (`tsd.select_flight`).
    - `MissionRuntime.mission_files` returns the override for any id while it is set.
    - The TSD's briefing is the override as plain text, in the game's language, falling back to English
-     (`tsd.gd _text_of`).
+     (`tsd.gd _text_of`). The override's `entries` are the briefing's links (§14.3).
 3. The TSD's own Fly starts the flight as usual.
 4. Back from the flight, every debrief button goes back to the editor (`res://editor/mission_editor.tscn`), which
    reopens `editor_file`. So do the TSD's BACK and MAIN.
@@ -300,6 +308,12 @@ Each flight record also carries `formation`, the index of its formation in the m
   flown through the runtime, the SA-6 destroyed passes it, the Merkava lost first fails it (§13).
 - `cargo test -p iaf-tools --lib mission_edit`: names, edits and references, routes, the check and its calibration,
   the win and lose summary of 231, 311 and a New mission.
+- `tests/godot/test_mission_edit_intel.gd`: on a fork of 115, the TSD flag per unit and by the quick picks, the
+  intel preview, the links, the random settings, Save and Open keeping them; Fly with a fixed seed gives the game
+  the roll, and its TSD shows only the known units and the link, which opens the model window (§14, §15).
+- `cargo test -p iaf-tools --lib mission_intel`: the TSD flag, the links of 115, a roll (chance 0 removes, 100 keeps,
+  Alpha always appears, a spread unit within its radius on land at the ground's height, a flight moving as one with
+  its route, the same seed giving the same roll), the targets that do not appear no longer counted.
 - `tests/godot/test_mission_edit_red.gd`: two MiG-29s added at Damascus in a 1998 mission spawn as AI jets, take off
   and fly their route.
 - `cargo test -p iaf-tools --lib mission_`: names, edits and references, routes, red flights, flipped bases, the
@@ -563,3 +577,81 @@ Only the original's own data, so the runtime needs no change:
 - `kind` is the bdb object's name (`0x528`, else `0x514`); the summary groups the targets by kind.
 - `scripted` are the role-1 sensors: "1 scripted goal the mission's events complete".
 - The summary shows at the top of the Mission tab and on the line under the top bar.
+
+## 14. Intel
+
+What the pilot sees before the flight, through the game's own mechanisms; the runtime is unchanged.
+Code: `crates/iaf-tools/src/mission_intel.rs`, through `IafMissionEdit` (§5); the editor's Intel tab.
+
+### 14.1 Units on the pilot's TSD
+- The pre-flight TSD shows a unit only when its entity flag `0x35c` ("known to the player") is set
+  (front-end.md §8.1, the `+0x44` state of `FUN_004d2900`'s records). In flight a unit also becomes known when the
+  player's radar records it (`FUN_004af300`).
+- **Shown on the pilot's TSD** sets or clears the flag on the units selected in the Units list (`set_known`).
+- **Show all / Hide all** do the same for every unit of a kind (all units, SAM / AAA, ground units, aircraft, ships)
+  on a side (red, blue, any).
+- Markers, sensors, ground radars and trees never show on the TSD, flag or not (front-end.md §8.1).
+- In the original missions and base missions the flag is set on 1159 of 4646 units (about 1 in 4).
+
+### 14.2 SAM rings
+The TSD draws a SAM's range ring around each SAM record it has (`FUN_00504ea0`; tsd.gd `_draw_units`: class 8 with
+the type codes 290 / 340, 300, 320). A record exists only for a known unit, so the rings follow the known SAMs: a
+hidden SAM has no ring before the flight.
+
+### 14.3 The briefing's links
+The TSD's briefing links open the model, image, text and target windows (front-end.md §6, `FUN_00502cd0`; tsd.gd
+`_on_link`). They are briefings.json `missions[id].entries`, `{file, title {en, he}, type}`.
+
+- A fork keeps its original's links; New starts with none.
+- **Add the link** offers a model link (type 2, the 3D-model window) for each unit type in the mission that has an
+  info page (briefings.json `models`; the type's model from its bdb Present record `0x53c`). The title is the one the
+  originals' briefings give that model most often, else the bdb object's name (`intel_links`).
+- The titles in English and Hebrew can be edited; **Remove the link** drops one.
+- The links are saved in the custom file's `briefing.entries`. Fly passes them in `Settings.briefing_override`, and
+  the TSD's briefing (`tsd.gd _briefing`) lists them at the end of the text as "Intel: …" (Hebrew "מודיעין: …"),
+  marked `[u]title[/u]` as the originals mark a link (`frame_window.gd _linkify`). A Hebrew briefing left empty shows
+  the English text with the Hebrew titles.
+
+### 14.4 Intel preview
+**Intel preview** shows the map as the pilot will see it: the TSD out of its edit mode, so only the known units
+show, and only the routes of Alpha..Delta. The map cannot be edited while it is on.
+
+## 15. Randomness
+
+Rolled by the editor at each Fly, so the game gets a normal mission; the runtime is unchanged.
+Code: `mission_intel::roll` and `random_issues`, through `IafMissionEdit` (§5).
+
+### 15.1 Settings
+In the Units tab's Random group, for the units selected in the list:
+- **Appears %**: the chance (0–100) the unit is in the flight.
+- **Start spread km**: the unit starts at a random point within this distance of its place.
+
+100 % and 0 km remove the setting. The settings live in the custom file's `random`, per entity id (§3).
+
+### 15.2 The roll
+`roll(mission, random, seed)` (seeded, so a seed repeats its roll):
+
+- **Groups:** a flight (a formation's placed members) rolls as one, with the setting of its first member that has
+  one; every other unit alone.
+- **Chance:** a group that does not appear is removed (`remove_entity`: its formation slots, event actions and
+  related entities lose it). Flights Alpha..Delta always appear, because the pilot flies one of them.
+- **Spread:** the group moves by one offset, uniform in the disc of the spread. A flight's waypoints move with it.
+  - Each new place must be inside the map. A vehicle, site or ship must also pass the ground check (§9) with no
+    finding: a land unit on land, a ship on water, no steep slope, off the runway area.
+  - A ground unit takes the ground's height there; an aircraft keeps its altitude.
+  - After 64 samples without a fit the group keeps its place.
+- A unit on a route (§5.2) joins its path from its new place, as the runtime joins a path from the closest point.
+
+**Fly** saves the mission as edited, then gives the game one roll with a fresh seed. **Roll preview** shows one roll
+on the map (the map cannot be edited while it shows); **Roll again** draws another.
+
+### 15.3 Targets and the pass rule
+A target that does not appear is removed from the flown mission, so the runtime never counts it
+(`FUN_00599980` counts the targets at the start, §13): the mission passes when the targets that appeared are
+destroyed. `random_issues` warns:
+- for each target with a chance under 100 %: "a target that appears in N% of flights: when it does not, it is not
+  needed to pass";
+- when every target may be missing: "in P% of flights no target appears: the mission cannot pass then", P being the
+  product of the targets' chances of not appearing.
+
+A must-survive unit that does not appear cannot be lost, so it never fails the mission.

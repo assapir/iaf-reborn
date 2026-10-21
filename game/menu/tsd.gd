@@ -433,11 +433,22 @@ func set_layer(name: String, on: bool) -> void:
 
 
 func _briefing() -> Dictionary:
-	if not Settings.briefing_override.is_empty():  # the mission editor's Fly (Settings.fly_edited): plain text
+	var o: Dictionary = Settings.briefing_override
+	if not o.is_empty():  # the mission editor's Fly (Settings.fly_edited): plain text and its intel links
 		var plain := {}
-		for lang in Settings.briefing_override:
-			plain[lang] = String(Settings.briefing_override[lang]).replace("[", "[lb]")
-		return {"text": plain}
+		var links: Array = o.get("entries", [])
+		for lang in ["en", "he"]:
+			var text := String(o.get(lang, ""))
+			if text == "" and links.is_empty():
+				continue
+			plain[lang] = (text if text != "" else String(o.get("en", ""))).replace("[", "[lb]")
+			# The links as the originals mark them ([u]title[/u], frame_window.gd _linkify), listed at the end.
+			var titles := links.map(
+				func(e): return "[u]%s[/u]" % (e.title.get(lang) if e.title.get(lang) else e.title.en)
+			)
+			if not titles.is_empty():
+				plain[lang] += "\n\n%s %s" % ["מודיעין:" if lang == "he" else "Intel:", ", ".join(titles)]
+		return {"text": plain, "entries": links}
 	return fe.briefings.get("missions", {}).get(str(mission_id), {})
 
 

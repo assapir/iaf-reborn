@@ -130,3 +130,28 @@ func year_jets(year: float, side: int, what_if: bool) -> PackedInt64Array:
 func year_issues(mission: Dictionary, year: float, what_if: bool) -> Array:
 	var v = JSON.parse_string(IafMissionEdit.year_issues(_js(mission), year, what_if))
 	return v if v is Array else []
+
+
+# --- intel and randomness (mission_intel.rs, docs/mission-editor.md §14, §15) ---
+
+
+## Entity flag 0x35c (the pre-flight TSD shows the unit) on or off for the units `ids`.
+func set_known(mission: Dictionary, ids: PackedInt64Array, known: bool) -> Dictionary:
+	return _parse(IafMissionEdit.set_known(_js(mission), ids, known))
+
+
+## [{file, title {en, he}, type}]: the model links the mission's unit types can have in its briefing.
+func intel_links(mission: Dictionary) -> Array:
+	var v = JSON.parse_string(IafMissionEdit.intel_links(_js(mission)))
+	return v if v is Array else []
+
+
+## One roll of `random` ({"<id>": {chance, spread_km}}) with `seed`: the mission the pilot gets.
+func roll(mission: Dictionary, random: Dictionary, seed: int) -> Dictionary:
+	return _parse(IafMissionEdit.roll(_js(mission), _js(random), seed))
+
+
+## The randomness warnings: [{id, level, text}].
+func random_issues(mission: Dictionary, random: Dictionary) -> Array:
+	var v = JSON.parse_string(IafMissionEdit.random_issues(_js(mission), _js(random)))
+	return v if v is Array else []

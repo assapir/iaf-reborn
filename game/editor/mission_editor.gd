@@ -142,6 +142,7 @@ func open_original(id: int) -> void:
 	)
 	for lang in ["en", "he"]:
 		briefing[lang] = _plain(String(b.get(lang))) if b.get(lang) != null else ""
+	_intel_opened(_original_links(id), {})
 	read_only = true
 	file = ""
 	_default_year()
@@ -167,6 +168,7 @@ func open_file(path: String) -> void:
 		_refresh()
 	var b: Dictionary = d.get("briefing", {})
 	briefing = {"en": String(b.get("en", "")), "he": String(b.get("he", ""))}
+	_intel_opened(b.get("entries", []), d.get("random", {}))
 	read_only = false
 	file = path
 	_refresh()
@@ -282,6 +284,7 @@ func new_mission(name: String, y: float, base: String, jet: int, wingman: bool, 
 	spec.merge({"heading": st[3], "points": [[ahead.x, ahead.y, 3000.0, 800.0]]})
 	data = api.set_flight(data, 1, spec)
 	briefing = {"en": "", "he": ""}
+	_intel_opened([], {})
 	read_only = false
 	file = ""
 	save_as(name)
@@ -360,7 +363,8 @@ func save() -> void:
 	)
 	out["year"] = year
 	out["what_if"] = what_if
-	out["briefing"] = briefing.duplicate()
+	out["briefing"] = briefing.duplicate(true)
+	out["random"] = random
 	var f := FileAccess.open(file, FileAccess.WRITE)
 	if f != null:
 		f.store_string(JSON.stringify(out, "\t", false, true))
@@ -635,7 +639,7 @@ func fly(anyway := false) -> void:
 		_ui.fly_anyway.popup_centered()
 		return
 	save()
-	Settings.fly_edited(source, files(), briefing.duplicate(), fly_flight(), file)
+	Settings.fly_edited(source, _fly_files(), briefing.duplicate(true), fly_flight(), file)
 
 
 # --- UI -------------------------------------------------------------------------------------------------------------
@@ -644,12 +648,14 @@ func fly(anyway := false) -> void:
 func _refresh() -> void:
 	if tsd != null:
 		var keep_sel := sel_id
-		tsd.reload(files())
+		tsd.edit = not (intel_preview or roll_preview)
+		tsd.reload(_map_files())
 		tsd.selected = -1
 		for i in tsd.units.size():
 			if tsd.units[i].key == "0:%d" % keep_sel:
 				tsd.selected = i
 	issues = api.check(data) + api.year_issues(data, year, what_if) if not data.is_empty() else []
+	issues += api.random_issues(data, random) if not data.is_empty() else []
 	conditions = api.conditions(data) if not data.is_empty() else {}
 	if tsd != null:
 		tsd.issues = {}
@@ -697,6 +703,7 @@ func _refresh_ui() -> void:
 	_fill_flights()
 	_fill_mission()
 	_fill_conditions()
+	_fill_intel()
 	host.preview.queue_redraw()
 
 
@@ -757,6 +764,7 @@ func _build_ui() -> void:
 	_build_units_tab(_tab(tabs, "Units"))
 	_build_flights_tab(_tab(tabs, "Flights"))
 	_build_mission_tab(_tab(tabs, "Mission"))
+	_build_intel_tab(_tab(tabs, "Intel"))
 	_build_dialogs()
 
 
@@ -849,6 +857,7 @@ func _build_units_tab(box: VBoxContainer) -> void:
 	_ui.route_mode.toggle_mode = true
 	_button(box, "Give the route", apply_route)
 	_button(box, "Clear the selected unit's route", clear_route)
+	_build_random(box)
 
 
 func _build_flights_tab(box: VBoxContainer) -> void:
@@ -1429,3 +1438,222 @@ func _fill_conditions() -> void:
 		_ui[k].editable = not read_only
 	for b in _ui.mark:
 		b.disabled = read_only
+
+
+# --- intel and randomness (docs/mission-editor.md §14, §15) ---------------------------------------------------------
+
+## The quick intel picks: label → bdb object classes (0x5aa); [] every class.
+const KNOWN_KINDS := [
+	["All units", []],
+	["SAM / AAA", [8, 9, 10]],
+	["Ground units", [5, 6, 8, 9, 10, 11, 0xc, 0xd, 0x1d, 0x1e, 0xf, 0x10]],
+	["Aircraft", [2, 3, 0x1c]],
+	["Ships", [0xf, 0x10]],
+]
+const KNOWN_SIDES := ["Red", "Blue", "Any side"]
+
+## The random settings per entity id ({"<id>": {chance (%), spread_km}}), saved as the custom file's "random"; Fly
+## rolls them (IafMissionEdit roll), the mission data never holds them.
+var random := {}
+## The map as the pilot sees it before the flight: the TSD out of its edit mode (only known units).
+var intel_preview := false
+## The map shows one roll (preview_seed) of the random settings.
+var roll_preview := false
+var preview_seed := 0
+## Fly's roll seed; -1 a fresh one each Fly (a test sets it).
+var roll_seed := -1
+
+
+## The briefing links, the random settings and the previews of a mission just opened.
+func _intel_opened(entries: Array, rnd: Dictionary) -> void:
+	briefing["entries"] = entries.duplicate(true)
+	random = rnd.duplicate(true)
+	intel_preview = false
+	roll_preview = false
+
+
+## An original mission's briefing links (briefings.json missions[id].entries).
+func _original_links(id: int) -> Array:
+	var b := Settings.load_json(Settings.assets_dir().path_join("converted/briefings/briefings.json"))
+	return b.get("missions", {}).get(str(id), {}).get("entries", [])
+
+
+## The files the map shows: the edited ones, or one roll of them in the roll preview.
+func _map_files() -> Array:
+	return _rolled(preview_seed) if roll_preview else files()
+
+
+## The files Fly gives the game: the random settings rolled with a fresh seed (roll_seed when set).
+func _fly_files() -> Array:
+	return _rolled(roll_seed if roll_seed >= 0 else randi())
+
+
+func _rolled(seed: int) -> Array:
+	if random.is_empty():
+		return files()
+	return [{"name": main_name, "data": api.roll(data, random, seed)}] + base_files
+
+
+## The units selected in the Units list, else the selected unit.
+func _picked_ids() -> PackedInt64Array:
+	var ids := PackedInt64Array()
+	for i in _ui.units.get_selected_items():
+		ids.append(int(_ui.units.get_item_metadata(i)))
+	if ids.is_empty() and sel_id >= 0:
+		ids.append(sel_id)
+	return ids
+
+
+## "Shown on the pilot's TSD" (entity 0x35c) on or off for `ids`.
+func set_known(ids: PackedInt64Array, known: bool) -> void:
+	if not ids.is_empty():
+		_edit(api.set_known(data, ids, known))
+
+
+## The units of bdb classes `classes` ([] all) on side `side` (1 blue, 2 red, 0 any).
+func units_of(classes: Array, side: int) -> PackedInt64Array:
+	var ids := PackedInt64Array()
+	for e in data.get("entities", {}).get("items", []):
+		if int(e.get("0x14", 0)) != 0 or (side > 0 and int(e.get("0x2d0", 0)) != side):
+			continue
+		if classes.is_empty() or _class_of(e) in classes:
+			ids.append(int(e.get("0x1e", -1)))
+	return ids
+
+
+## The chance (0..100 %) and the start spread (km) of the units `ids`; 100 % and 0 km remove the setting.
+func set_random(ids: PackedInt64Array, chance: float, spread_km: float) -> void:
+	if read_only:
+		return
+	for id in ids:
+		if chance >= 100.0 and spread_km <= 0.0:
+			random.erase(str(id))
+		else:
+			random[str(id)] = {"chance": chance, "spread_km": spread_km}
+	_refresh()
+
+
+func set_intel_preview(on: bool) -> void:
+	intel_preview = on
+	_refresh()
+
+
+## The map shows a new roll (on), or the mission as edited.
+func set_roll_preview(on: bool) -> void:
+	roll_preview = on
+	preview_seed = randi()
+	_refresh()
+
+
+func add_link(link: Dictionary) -> void:
+	if read_only or briefing.entries.any(func(l): return l.file == link.file):
+		return
+	briefing.entries.append(link.duplicate(true))
+	_refresh_ui()
+
+
+func remove_link(i: int) -> void:
+	if not read_only and i >= 0 and i < briefing.entries.size():
+		briefing.entries.remove_at(i)
+		_refresh_ui()
+
+
+func _set_link_title(lang: String, t: String) -> void:
+	var sel: PackedInt32Array = _ui.links.get_selected_items()
+	if not read_only and not sel.is_empty() and t.strip_edges() != "":
+		briefing.entries[sel[0]].title[lang] = t.strip_edges()
+		_refresh_ui()
+
+
+func _build_random(box: VBoxContainer) -> void:
+	box.add_child(HSeparator.new())
+	box.add_child(_label("Random, rolled at each Fly (the units selected in the list; a flight rolls as one)"))
+	_ui.r_chance = _row(box, "Appears %", _spin(0, 100, 5, func(_v): pass))
+	_ui.r_chance.value = 100
+	_ui.r_spread = _row(box, "Start spread km", _spin(0, 100, 0.5, func(_v): pass))
+	_ui.r_set = _button(
+		box, "Set for the selected units", func(): set_random(_picked_ids(), _ui.r_chance.value, _ui.r_spread.value)
+	)
+	var h := HBoxContainer.new()
+	box.add_child(h)
+	_ui.r_preview = _button(h, "Roll preview", func(): set_roll_preview(_ui.r_preview.button_pressed))
+	_ui.r_preview.toggle_mode = true
+	_button(h, "Roll again", func(): set_roll_preview(true))
+
+
+func _build_intel_tab(box: VBoxContainer) -> void:
+	box.add_child(_label("What the pilot sees before the flight"))
+	_ui.i_preview = _row(box, "", CheckBox.new())
+	_ui.i_preview.text = "Intel preview: the map as the pilot sees it"
+	_ui.i_preview.toggled.connect(set_intel_preview)
+	_ui.i_known = _row(box, "", CheckBox.new())
+	_ui.i_known.text = "Shown on the pilot's TSD (the units selected in the list)"
+	_ui.i_known.toggled.connect(func(on): set_known(_picked_ids(), on))
+	var note := _label("The TSD draws a SAM's range ring around each SAM it shows.")
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(note)
+	_ui.i_kind = _row(box, "Units", _options(KNOWN_KINDS.map(func(k): return k[0]), func(_i): pass))
+	_ui.i_side = _row(box, "Side", _options(KNOWN_SIDES, func(_i): pass))
+	var h := HBoxContainer.new()
+	box.add_child(h)
+	_ui.i_quick = [
+		_button(h, "Show all", func(): set_known(_quick_ids(), true)),
+		_button(h, "Hide all", func(): set_known(_quick_ids(), false)),
+	]
+	box.add_child(HSeparator.new())
+	box.add_child(_label("Briefing links (the TSD briefing's model windows)"))
+	_ui.links = ItemList.new()
+	_ui.links.custom_minimum_size.y = 140
+	_ui.links.item_selected.connect(func(_i): _fill_intel())
+	box.add_child(_ui.links)
+	_ui.link_en = _row(box, "Title (English)", LineEdit.new())
+	_ui.link_en.text_submitted.connect(func(t): _set_link_title("en", t))
+	_ui.link_he = _row(box, "Title (Hebrew)", LineEdit.new())
+	_ui.link_he.text_direction = Control.TEXT_DIRECTION_RTL
+	_ui.link_he.text_submitted.connect(func(t): _set_link_title("he", t))
+	_ui.link_remove = _button(box, "Remove the link", func(): remove_link(_selected_link()))
+	_ui.link_pick = _row(box, "Unit type", OptionButton.new())
+	_ui.link_add = _button(box, "Add the link", _on_add_link)
+
+
+func _quick_ids() -> PackedInt64Array:
+	return units_of(KNOWN_KINDS[_ui.i_kind.selected][1], [2, 1, 0][_ui.i_side.selected])
+
+
+func _selected_link() -> int:
+	var sel: PackedInt32Array = _ui.links.get_selected_items()
+	return sel[0] if not sel.is_empty() else -1
+
+
+func _on_add_link() -> void:
+	var i: int = _ui.link_pick.selected
+	if i >= 0:
+		add_link(_ui.link_pick.get_item_metadata(i))
+
+
+func _fill_intel() -> void:
+	if not _ui.has("links"):
+		return
+	var e := entity(sel_id)
+	_ui.i_known.set_pressed_no_signal(int(e.get("0x35c", 0)) != 0)
+	_ui.i_preview.set_pressed_no_signal(intel_preview)
+	_ui.r_preview.set_pressed_no_signal(roll_preview)
+	var r: Dictionary = random.get(str(sel_id), {})
+	_ui.r_chance.set_value_no_signal(float(r.get("chance", 100)))
+	_ui.r_spread.set_value_no_signal(float(r.get("spread_km", 0)))
+	for c in [_ui.i_known, _ui.r_set, _ui.link_remove, _ui.link_add] + _ui.i_quick:
+		c.disabled = read_only or data.is_empty()
+	var keep := _selected_link()
+	_ui.links.clear()
+	var entries: Array = briefing.get("entries", [])
+	for l in entries:
+		_ui.links.add_item("%s / %s" % [l.title.get("en", ""), l.title.get("he", "")])
+	if keep >= 0 and keep < entries.size():
+		_ui.links.select(keep)
+		_ui.link_en.text = String(entries[keep].title.get("en", ""))
+		_ui.link_he.text = String(entries[keep].title.get("he", ""))
+	_ui.link_pick.clear()
+	for l in api.intel_links(data) if not data.is_empty() else []:
+		if not entries.any(func(x): return x.file == l.file):
+			_ui.link_pick.add_item(String(l.title.en))
+			_ui.link_pick.set_item_metadata(_ui.link_pick.item_count - 1, l)

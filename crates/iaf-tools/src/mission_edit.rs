@@ -58,22 +58,22 @@ pub fn free_name(base: &str, taken: &[String]) -> String {
     (2..).map(|k| format!("{base} {k}")).find(|n| !used(n)).unwrap()
 }
 
-fn items<'a>(m: &'a mut Value, part: &str) -> &'a mut Vec<Value> {
+pub(crate) fn items<'a>(m: &'a mut Value, part: &str) -> &'a mut Vec<Value> {
     if !m[part]["items"].is_array() {
         m[part]["items"] = json!([]);
     }
     m[part]["items"].as_array_mut().unwrap()
 }
 
-fn real(v: &Value) -> bool {
+pub(crate) fn real(v: &Value) -> bool {
     int(&v["0x14"]) == 0
 }
 
-fn int(v: &Value) -> i64 {
+pub(crate) fn int(v: &Value) -> i64 {
     v.as_i64().or_else(|| v.as_f64().map(|f| f as i64)).unwrap_or(-1)
 }
 
-fn num(v: &Value) -> f64 {
+pub(crate) fn num(v: &Value) -> f64 {
     v.as_f64().unwrap_or(0.0)
 }
 
@@ -492,17 +492,17 @@ pub const FAILED_TEXT: &str = "Mission - failed.";
 pub const MUST_SURVIVE: i64 = 0;
 pub const TARGET: i64 = 1;
 /// bdb object 130 `sensor`: an invisible logic node; a role-1 sensor is a goal the mission's events explode.
-const SENSOR: i64 = 130;
+pub(crate) const SENSOR: i64 = 130;
 
 /// The main file's entities that the runtime spawns (`mission_runtime.gd` skips unused, unplaced Player slots).
-fn spawned(mission: &Value) -> impl Iterator<Item = &Value> {
+pub(crate) fn spawned(mission: &Value) -> impl Iterator<Item = &Value> {
     mission["entities"]["items"].as_array().into_iter().flatten().filter(|e| {
         let unplaced = num(&e["0x2e4"]) < 0.0 && num(&e["0x2ee"]) < 0.0;
         real(e) && !(unplaced && e["0x2bc"].as_str().unwrap_or("").to_ascii_lowercase().starts_with("player"))
     })
 }
 
-fn role(e: &Value) -> i64 {
+pub(crate) fn role(e: &Value) -> i64 {
     e["0x32a"].as_i64().or_else(|| e["0x32a"].as_f64().map(|f| f as i64)).unwrap_or(2)
 }
 
@@ -697,13 +697,13 @@ fn error(id: i64, text: String) -> Issue {
     Issue { id, level: "error", text }
 }
 
-fn warning(id: i64, text: String) -> Issue {
+pub(crate) fn warning(id: i64, text: String) -> Issue {
     Issue { id, level: "warning", text }
 }
 
 /// The ground check of one place for a unit of bdb class `class`: off the terrain, a land unit on water, a ship on
 /// land, a unit on a runway, a slope steeper than its class allows.
-fn ground_issues(
+pub(crate) fn ground_issues(
     id: i64,
     class: i64,
     x: f64,
