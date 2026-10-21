@@ -1331,7 +1331,7 @@
  },
  {
   "name": "panel",
-  "caption": "The panoramic display: status bar, radar, TSD, stores and RWR portals, the lower windows; the standby display, gear handle and warning lights",
+  "caption": "The panoramic display: the top strip, the TSD, radar, stores and threat portals with their tabs; the standby display, gear handle and warning lights",
   "mission": 231,
   "jet": 4,
   "settings": {
@@ -1421,19 +1421,19 @@
    {
     "n": 1,
     "px": [
-     0.346,
-     0.592
+     0.345,
+     0.597
     ],
     "label_at": [
-     0.29,
+     0.28,
      0.5
     ]
    },
    {
     "n": 2,
     "px": [
-     0.369,
-     0.663
+     0.43,
+     0.597
     ],
     "label_at": [
      0.37,
@@ -1443,30 +1443,8 @@
    {
     "n": 3,
     "px": [
-     0.456,
-     0.663
-    ],
-    "label_at": [
-     0.45,
-     0.5
-    ]
-   },
-   {
-    "n": 4,
-    "px": [
-     0.544,
-     0.663
-    ],
-    "label_at": [
-     0.55,
-     0.5
-    ]
-   },
-   {
-    "n": 5,
-    "px": [
-     0.631,
-     0.663
+     0.58,
+     0.597
     ],
     "label_at": [
      0.64,
@@ -1474,32 +1452,43 @@
     ]
    },
    {
-    "n": 6,
+    "n": 4,
     "px": [
-     0.347,
-     0.835
+     0.332,
+     0.62
+    ],
+    "label_at": [
+     0.19,
+     0.56
+    ]
+   },
+   {
+    "n": 5,
+    "px": [
+     0.37,
+     0.74
     ],
     "label_at": [
      0.21,
-     0.63
+     0.66
+    ]
+   },
+   {
+    "n": 6,
+    "px": [
+     0.456,
+     0.8
+    ],
+    "label_at": [
+     0.455,
+     0.5
     ]
    },
    {
     "n": 7,
     "px": [
-     0.434,
-     0.835
-    ],
-    "label_at": [
-     0.21,
-     0.74
-    ]
-   },
-   {
-    "n": 8,
-    "px": [
-     0.5,
-     0.835
+     0.544,
+     0.71
     ],
     "label_at": [
      0.79,
@@ -1507,14 +1496,25 @@
     ]
    },
    {
-    "n": 9,
+    "n": 8,
     "px": [
-     0.609,
-     0.835
+     0.631,
+     0.73
     ],
     "label_at": [
      0.79,
      0.74
+    ]
+   },
+   {
+    "n": 9,
+    "px": [
+     0.35,
+     0.853
+    ],
+    "label_at": [
+     0.21,
+     0.77
     ]
    },
    {
@@ -1551,6 +1551,96 @@
     ]
    }
   ]
+ },
+ {
+  "name": "panel_formats",
+  "caption": "Other formats in the portals: EFI (flight instruments), FUEL, ENG and ICAWS",
+  "mission": 231,
+  "jet": 4,
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   },
+   "f35i_slot": 4
+  },
+  "start": "airborne",
+  "loadout": [
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    8,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    8,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "place": {
+   "unit_prefix": "mig23",
+   "ahead_m": 14800
+  },
+  "actions": [
+   "lock",
+   "wait:1",
+   "pcd:EFI,FUEL,ENG,ICAWS"
+  ],
+  "panel": 1.0,
+  "crop": "full"
  },
  {
   "name": "panel_night",

@@ -84,29 +84,42 @@ func run() -> void:
 					% name
 				)
 			)
-			# The panoramic display (pcd.gd): its glass holds the 4 portal pages side by side over the 8 lower
-			# windows, the pages restyled (portal.gdshader); the night art and the cockpit-view model load.
+			# The panoramic display (pcd.gd): the 4 portals in its glass under the strip, the MFD nodes hidden (they keep
+			# the pages); a tab swaps a format in and sets its node's page; a page set elsewhere picks the format; the
+			# night art and the cockpit-view model load.
 			await process_frame
 			var pcd = tv.cockpit.pcd
 			var g: Rect2 = pcd.glass() if pcd != null else Rect2()
-			var inside: bool = pcd != null
+			var ps: Array = pcd.portals() if pcd != null else []
+			var inside: bool = pcd != null and ps.size() == 4
+			for r in ps:
+				inside = inside and g.grow(1.0).encloses(r)
 			for m in tv.cockpit.mfds:
-				inside = inside and g.grow(1.0).encloses(Rect2(m.position, m.size)) and m.material != null and m.visible
-			var w: Array = pcd.windows() if pcd != null else []
+				inside = inside and not m.visible
 			check(
 				(
 					inside
-					and w.size() == 8
-					and w[0].position.y >= tv.cockpit.mfds[0].position.y + tv.cockpit.mfds[0].size.y - 1.0
 					and pcd.visible
+					and pcd.main == ["TSD-1", "SRCH", "SMS", "TWD"]
 					and tv.cockpit.tex.has("PANEL_NIGHT")
 					and tv.cockpit.tex.has("LIGHTS_NIGHT")
 					and tv.own_bc != null
 				),
 				(
-					"%s: the PCD's glass holds the 4 portals over 8 windows; night art and cockpit-view model (%s)"
+					(
+						"%s: the PCD's glass holds 4 portals (TSD, SRCH, SMS, TWD), the MFD nodes hidden; night art and "
+						+ "cockpit-view model (%s)"
+					)
 					% [name, g]
 				)
+			)
+			pcd._show(1, "TFLIR")
+			var swapped: bool = pcd.main[1] == "TFLIR" and pcd.tabs[1][0] == "SRCH" and tv.cockpit.mfds[1].page == 6
+			tv.cockpit.mfds[0].page = 4
+			await process_frame
+			check(
+				swapped and pcd.main[0] == "ICAWS",
+				"%s: a tab swaps TFLIR in (page 6); the damage page set elsewhere shows ICAWS" % name
 			)
 			# The ESIS horizon grazing a corner (pitch 33°, roll −5° in a 141 × 118 box) leaves an untriangulable sliver
 			# ("Invalid polygon data"): ground_polys leaves it out, and a level horizon keeps the box's lower half.

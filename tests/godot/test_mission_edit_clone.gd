@@ -6,6 +6,7 @@
 # - Alpha sent to Inshas and back gets a fuel warning;
 # - 1973 moves the mission onto 121's map and bases, kept by Save / Open; 1966 onto 111's, with a warning for
 #   Refidim's blue base mission;
+# - Ramon's base mission leaves in 1973 and comes back in 1998;
 # - an enemy flight from Damascus is removed with its jets.
 # Writes only under user://missions_test_clone.
 extends "res://../tests/godot/base.gd"
@@ -119,6 +120,13 @@ func run() -> void:
 	)
 	ed.set_year(1998.0, false)
 	check(ed.source == 231 and not "bmisrfdim" in names.call(), "1998: 231 again, Refidim gone (%s)" % [names.call()])
+
+	# Ramon (from 1982): 1973 drops its base mission, 1998 brings it back.
+	ed.new_mission("Clone R", 1998.0, "Ramon", 1, false)
+	ed.set_year(1973.0, false)
+	check(ed.source == 121 and not "bmisrmon" in names.call(), "1973: no Ramon (%s)" % [names.call()])
+	ed.set_year(1998.0, false)
+	check(ed.source == 231 and "bmisrmon" in names.call(), "1998: Ramon back (%s)" % [names.call()])
 
 	# Remove an enemy flight from the Flights tab.
 	ed.add_enemy_flight("bmisdmsk", 8, 2)

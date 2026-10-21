@@ -23,9 +23,10 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
 ## 1. The window
 
 - **Start:** with no mission open, two choices stand where the map goes: **New mission** and **Open a mission**.
-- **Top bar:** New, Open, Fork, Duplicate (§15), Save, Save as, Undo, the mission's name, the issues, **Fly as**
-  (Alpha … Delta) and Fly.
-- **Map:** the TSD (`game/menu/tsd.gd`) in its edit mode, scaled to the window. The mouse wheel zooms; the
+- **Top bar:** New, Open, Fork, Duplicate (your own mission, §15), Save, Save as, Undo, Delete (your own mission,
+  after a confirmation; originals have none), the mission's name, **Fly as** (Alpha … Delta) and Fly.
+- **Map:** the TSD (`game/menu/tsd.gd`) in its edit mode, scaled to the window. The + / − buttons at its top right
+  and the mouse wheel zoom; the
   scrollbars and arrow art are the TSD's own. The right button is the TSD's ruler.
   It opens zoomed in two TSD steps on the blue units. The editor hides a scrollbar when there is nothing to scroll
   that way (`tsd.gd bar_shown`); the original TSD always draws both.
@@ -35,13 +36,16 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
   - **Units:** every entity of the main file, a target or a must-survive unit tagged and coloured; the selected
     unit's name, side, role, heading and altitude; Delete; mark the selected units Target / Must survive / Neutral;
     Copy and Paste (§15); Add a unit; Give a route (§13).
-  - **Flights:** Alpha … Delta (type, number of jets, Set, Remove), and the route of any flight, blue or red: its
-    waypoints with altitude (m) and speed (km/h), Insert a waypoint after, Delete the waypoint; **Remove this enemy
-    flight** for a flight other than Alpha … Delta (§12.5). **Add an enemy flight:** a red base, a red jet and 1 or 2
-    jets (§12.5).
-  - **Mission:** the win and lose summary and the debrief headlines (§13), the year and the what-if switch (§12), the start time, the wind and the briefing in English and
-    Hebrew. A new year runs the checks again; a year on another TSD map moves the mission to that map (§12.1).
-- **Summary line:** under the top bar, what passes and fails the mission (§13); red when it can never pass.
+  - **Flights:** the what-if switch (§12.4) above the jet lists it widens; Alpha … Delta (type: the blue jets in
+    service in the mission's year, number of jets, Set, Remove); the route of any flight, blue or red: its waypoints
+    with altitude (m) and planned arrival time (seconds after the start: the file's "speed" field, docs/ai.md §7.2),
+    Insert a waypoint after, Delete the waypoint; **Remove this enemy flight** for a flight other than Alpha … Delta
+    (§12.5). **Add an enemy flight:** a red base, a red jet and 1 or 2 jets (§12.5).
+  - **Mission:** the win and lose summary and the debrief headlines (§13), the year (§12), the start time, the wind
+    and the briefing in English and Hebrew. A new year runs the checks again and refills the jet lists; a year on
+    another TSD map moves the mission to that map (§12.1).
+- **Bottom:** what passes and fails the mission (§13), red when it can never pass; under it the errors and warnings,
+  errors first, in red and yellow. A click on one selects its unit and centres the map on it.
 
 ## 2. Opening and saving
 
@@ -192,7 +196,7 @@ One height sample covers about 79 m (inferred from `meta.json`: 64 terrain units
 ## 7. Issues, Fly as and Fly
 
 - After each edit the editor checks the mission. A unit with an error gets a red ring on the map, a warning a yellow
-  one; the list is under the issues button beside Fly.
+  one; the list is in the list at the bottom.
 - An error turns Fly off. With only warnings, Fly asks "Fly anyway".
 - **Fly as** lists Alpha … Delta; a flight is enabled by the TSD's own rule (`tsd.gd flight_enabled`: it exists, its
   leader's type is flyable, side 1).
@@ -296,8 +300,8 @@ Each flight record also carries `formation`, the index of its formation in the m
 
 ## 11. Tests
 
-- `tests/godot/test_mission_editor.gd`: New by year (1967 before June offers Tel Nof and Ramat David and the
-  Mirage; 1973 adds Refidim; no Lavi without what-if), an enemy flight from Damascus, a flipped Refidim before June
+- `tests/godot/test_mission_editor.gd`: New by year (1967 offers Tel Nof and Ramat David and the
+  Mirage; 1973 adds Refidim; no Lavi without what-if), an enemy flight from Damascus, a flipped Refidim in 1967
   1967, the year and the bases kept by Save and Open, the Refidim warning in 1990; then Fork's name, the name rules, a drag moving an Alpha jet, an added SA-6 at the
   ground's height, Undo, an SA-6 in the sea as an error (red ring, Fly off), Save and Open giving the same mission,
   and the original file unchanged.
@@ -318,8 +322,8 @@ Each flight record also carries `formation`, the index of its formation in the m
 
 ## 12. Mission year
 
-Every mission has a year from 1966 to 1998. 1998 is the game's present. The year 1967 has two entries, before and
-after the Six-Day War (5 June 1967). The year decides:
+Every mission has a year from 1966 to 1998, set in a number box. 1998 is the game's present. 1967 is the Six-Day War
+itself (5–10 June 1967), fought from the pre-war lines. The year decides:
 - the original that New builds on, and so its TSD map (§12.1);
 - the bases each side holds (§12.2);
 - the aircraft and SAM / AAA each side has in service (§12.3);
@@ -327,9 +331,8 @@ after the Six-Day War (5 June 1967). The year decides:
 
 Code: `crates/iaf-tools/src/mission_year.rs`, through `IafMissionEdit` (§5).
 
-- **Values:** a whole year stands for mid-year (1973 is mid-1973). 1967 before June is stored as 1967.25, 1967 after
-  as 1967.75. The tables below use dates.
-- **Labels:** "1967 (before the Six-Day War, June)", "1967 (after)", else the year.
+- **Values:** a whole year stands for mid-year (1973 is mid-1973); 1967 stands for the war's first day. The tables
+  below use dates. A file saved with the earlier 1967.25 / 1967.75 opens as 1967.
 
 ### 12.1 The TSD map
 The TSD draws one of three maps, chosen by the mission id (`tsd.gd setup`, front-end.md §8). Rendered from
@@ -337,8 +340,8 @@ The TSD draws one of three maps, chosen by the mission id (`tsd.gd setup`, front
 
 | Map | Missions | Borders drawn | Years in the editor | Source original |
 |---|---|---|---|---|
-| `67` | 110–119 | the 1949 Green Line round the West Bank and Gaza; the Sinai border; the Golan Syrian | 1966, 1967 before June | 111 Battle Against Time |
-| `73` | 120–129 | no Green Line; no Sinai border, the line on the Suez Canal; the Golan inside Israel's line | 1967 after June to 1981 | 121 7 Columns of Fire |
+| `67` | 110–119 | the 1949 Green Line round the West Bank and Gaza; the Sinai border; the Golan Syrian | 1966, 1967 | 111 Battle Against Time |
+| `73` | 120–129 | no Green Line; no Sinai border, the line on the Suez Canal; the Golan inside Israel's line | 1968 to 1981 | 121 7 Columns of Fire |
 | `82` | the rest | the Sinai border again; no Green Line; the Golan inside Israel's line | 1982 to 1998 | 231 License to Kill |
 
 - The cut years follow the history: Israel took Sinai, the West Bank and the Golan on 5–10 June 1967[^sinai-occ]
@@ -353,8 +356,11 @@ there (`year_map_source`):
   new id. A year on the same map keeps the source: a fork of 512 stays on 512 from 1982 to 1998.
 - The units, flights, roles and briefing stay as they are.
 - The base missions become the new original's, plus the ones the mission had before. An airbase of §12.2 that
-  nobody holds in the new year goes (Refidim from 1980). A base mission of yours (a flipped copy too) takes the
-  place of the original's of the same base.
+  nobody holds in the new year leaves (Refidim from 1980, Ramon before 1982); a later year change that allows it
+  brings it back, while the mission stays open. A base mission of yours (a flipped copy too) takes the place of the
+  original's of the same base.
+- Going back to the first map gives that map's original, not the one the mission was forked from: a fork of 512 set
+  to 1973 and back to 1998 is on 231.
 - The check warns of a base mission whose side is not the side holding it that year (`base_issues`): "Refidim: red
   holds it in 1966, but its base is blue". The editor does not flip it; an enemy flight from it does (§12.5). The 66
   originals at their own years have no such warning.
@@ -436,7 +442,7 @@ does not tell the countries apart, so red has a type from the first year any of 
 
 ### 12.4 What-if aircraft
 A type that never served (the Lavi: first flight 31 December 1986, cancelled 30 August 1987[^lavi]) is offered only
-with the **What-if (hypothetical) aircraft** switch, in New and on the Mission tab. The switch is saved as
+with the **What-if (hypothetical) aircraft** switch, in New (above the jet list) and on the Flights tab. The switch is saved as
 `"what_if"`. With it off, a Lavi in the mission gets the warning "Lavi: never in service (a what-if aircraft)".
 Originals from 200 up (the game's own future, where the Lavi flies: 213, 513) open with the switch on.
 
@@ -455,7 +461,7 @@ a red jet in service that year, 1 or 2 jets (`set_red_flight`). It follows the o
   250 m/s.
 
 The base's base mission is added to the mission's `"bases"`. When the data has that base for the other side (Refidim
-before June 1967 is Egyptian, its base mission blue), the editor writes a copy with blue and red swapped
+in 1967 (the war's start) is Egyptian, its base mission blue), the editor writes a copy with blue and red swapped
 (`flip_base`), named `<stem>_flipped`, into the custom file. Only the files under `user://` change.
 
 The route is then edited as any flight's (§1). **Remove this enemy flight** on the Flights tab removes the flight
@@ -466,7 +472,7 @@ A fork starts with its original's year, by the mission id (front-end.md §5.4, t
 
 | Ids | Campaign | Year |
 |---|---|---|
-| 111–117 | Six-Day War | 1967 (after) |
+| 111–117 | Six-Day War | 1967 |
 | 121–127 | Yom Kippur War | 1973 |
 | 131–137 | Lebanon War | 1982 |
 | 2xx, 3xx, 4xx, 5xx | the future campaigns, training, scramble, multiplayer | 1998 |

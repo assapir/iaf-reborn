@@ -300,7 +300,7 @@ def layout(cam):
     tl, tr, bl, br = g(-PCD[0] / 2, PCD[1] / 2), g(PCD[0] / 2, PCD[1] / 2), g(-PCD[0] / 2, -PCD[1] / 2), g(PCD[0] / 2, -PCD[1] / 2)
     x0, x1, y0, y1 = max(tl.x, bl.x), min(tr.x, br.x), max(tl.y, tr.y), min(bl.y, br.y)
     bar = (y1 - y0) * BAR_IN / 8.0
-    portal_list, k = kit.portals(x0, x1, y0 + bar, [2, 3, 1, 7])
+    portal_list, k = kit.portals(x0, x1, y0 + bar, [3, 2, 1, 7])
     win_top = y0 + bar + 132 * k
     ex, ez, ew, eh = ESIS
     e0, e1 = px(on_face(ex - ew / 2, ez + eh / 2, 0.0245)), px(on_face(ex + ew / 2, ez - eh / 2, 0.0245))

@@ -2,8 +2,8 @@
 //! who owns each airbase, which aircraft and SAM / AAA each side has in service, and the warnings for a mission that
 //! does not fit its year. Every fact is cited in docs/mission-editor.md §12.
 //!
-//! A year is a number: a whole year means mid-year (1973 → 1973.5); the year 1967 is split at the Six-Day War into
-//! 1967.25 ("before") and 1967.75 ("after"). The tables use dates as decimal years.
+//! A year is a whole number: it means mid-year (1973 → 1973.5), except 1967, which means the Six-Day War itself, fought
+//! from the pre-war lines (its first day). The tables use dates as decimal years.
 
 use serde_json::Value;
 
@@ -12,9 +12,6 @@ use crate::mission_edit::Issue;
 /// The first and the last year the editor offers. 1998 is the game's present.
 pub const FIRST: i64 = 1966;
 pub const LAST: i64 = 1998;
-/// 1967 before / after the Six-Day War.
-pub const BEFORE_1967: f64 = 1967.25;
-pub const AFTER_1967: f64 = 1967.75;
 /// 5 June 1967, the Six-Day War.
 const SIX_DAY_WAR: f64 = 1967.43;
 /// 25 April 1982, Israel's last withdrawal from Sinai.
@@ -24,21 +21,19 @@ const ALWAYS: f64 = f64::NEG_INFINITY;
 
 /// The date (decimal year) of mission year `year`.
 pub fn date(year: f64) -> f64 {
-    if year.fract() == 0.0 { year + 0.5 } else { year }
+    let y = year.floor();
+    if y == 1967.0 { SIX_DAY_WAR - 0.001 } else { y + 0.5 }
 }
 
 /// The years the editor offers: (value, label).
 pub fn years() -> Vec<(f64, String)> {
-    let mut out = vec![(1966.0, "1966".to_string())];
-    out.push((BEFORE_1967, "1967 (before the Six-Day War, June)".into()));
-    out.push((AFTER_1967, "1967 (after)".into()));
-    out.extend((1968..=LAST).map(|y| (y as f64, y.to_string())));
-    out
+    (FIRST..=LAST).map(|y| (y as f64, label(y as f64))).collect()
 }
 
-/// The label of `year` ("1967 (after)", "1973").
+/// The label of `year` ("1967 (the Six-Day War)", "1973").
 pub fn label(year: f64) -> String {
-    years().into_iter().find(|(y, _)| *y == year).map_or_else(|| format!("{year}"), |(_, l)| l)
+    let y = year.floor() as i64;
+    if y == 1967 { "1967 (the Six-Day War)".into() } else { y.to_string() }
 }
 
 /// The original a new mission of `year` is built on: its TSD map and airbases. The map follows the source's id
@@ -59,7 +54,7 @@ pub fn source_for(year: f64) -> i64 {
 /// 131–137 the Lebanon War, every other (the future campaigns, training, scramble, multiplayer) 1998.
 pub fn default_year(source: i64) -> f64 {
     match source {
-        110..=119 => AFTER_1967,
+        110..=119 => 1967.0,
         120..=129 => 1973.0,
         130..=139 => 1982.0,
         _ => LAST as f64,
@@ -315,31 +310,31 @@ mod tests {
     #[test]
     fn bases_by_year() {
         assert_eq!(owner_of("bmisrfdim", 1966.0), 2, "Refidim Egyptian in 1966");
-        assert_eq!(owner_of("bmisrfdim", BEFORE_1967), 2);
-        assert_eq!(owner_of("bmisrfdim", AFTER_1967), 1);
+        assert_eq!(owner_of("bmisrfdim", 1967.0), 2, "the Six-Day War starts from the pre-war lines");
+        assert_eq!(owner_of("bmisrfdim", 1968.0), 1);
         assert_eq!(owner_of("bmisrfdim", 1970.0), 1, "Israeli in 1970");
         assert_eq!(owner_of("bmisrfdim", 1979.0), 1);
         assert_eq!(owner_of("bmisrfdim", 1990.0), 0, "nobody's in 1990");
         assert_eq!(owner_of("bmisrmon", 1981.0), 0, "Ramon not before 1982");
         assert_eq!(owner_of("bmisrmon", 1982.0), 1);
         let names = |y, s| bases(y, s).iter().map(|b| b.name).collect::<Vec<_>>();
-        assert_eq!(names(BEFORE_1967, 1), ["Tel Nof", "Ramat David"]);
+        assert_eq!(names(1967.0, 1), ["Tel Nof", "Ramat David"]);
         assert_eq!(names(1973.0, 1), ["Tel Nof", "Ramat David", "Refidim"]);
-        assert!(names(BEFORE_1967, 2).contains(&"Refidim"));
+        assert!(names(1967.0, 2).contains(&"Refidim"));
         assert_eq!(names(1998.0, 1), ["Tel Nof", "Ramat David", "Ramon"]);
     }
 
     #[test]
     fn maps_and_defaults() {
-        assert_eq!(source_for(BEFORE_1967), 111);
-        assert_eq!(source_for(AFTER_1967), 121);
+        assert_eq!(source_for(1967.0), 111);
+        assert_eq!(source_for(1968.0), 121);
         assert_eq!(source_for(1981.0), 121);
         assert_eq!(source_for(1982.0), 231);
-        assert_eq!(default_year(115), AFTER_1967);
+        assert_eq!(default_year(115), 1967.0);
         assert_eq!(default_year(124), 1973.0);
         assert_eq!(default_year(512), 1998.0);
-        assert_eq!(years().len(), 34);
-        assert_eq!(label(AFTER_1967), "1967 (after)");
+        assert_eq!(years().len(), 33);
+        assert_eq!(label(1967.0), "1967 (the Six-Day War)");
         assert_eq!(year_map_source(512, 1990.0), 512, "the 1982 map already");
         assert_eq!(year_map_source(512, 1973.0), 121);
         assert_eq!(year_map_source(115, 1966.0), 115, "111–117 draw the 1967 map");
@@ -357,7 +352,7 @@ mod tests {
         assert!(jets(1998.0, 1, false).contains(&1));
         assert!(!jets(1998.0, 1, false).contains(&74), "the Lavi only as a what-if");
         assert!(jets(1998.0, 1, true).contains(&74));
-        assert_eq!(jets(BEFORE_1967, 1, false), [47], "only the Mirage");
+        assert_eq!(jets(1967.0, 1, false), [47], "only the Mirage");
         assert!(jets(1998.0, 2, false).contains(&2) && !jets(1973.0, 2, false).contains(&2), "MiG-29 from 1987");
     }
 
