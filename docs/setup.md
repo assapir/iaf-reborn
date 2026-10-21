@@ -2,9 +2,10 @@
 
 Setup turns your own copy of Jane's IAF into everything the game reads under `assets/`. Three front ends run it:
 
-- `./setup`: the setup wizard, a window that asks for the inputs and shows each step (below).
-
-- `tools/setup-cli.sh`: the scripted way (README "Quick start").
+- `./setup`: the setup wizard, a window that asks for the inputs and shows each step ([below](#the-wizard)).
+- `tools/setup-cli.sh [--patch P] [--hebrew-iso ISO] [--imagery …] ISO [Brief.zip Menu.zip]`: the scripted way.
+  `--patch` also reads the `IAF_PATCH` environment variable, `--hebrew-iso` `IAF_HEBREW_ISO`. Without the ISO only the
+  imagery steps run, on an install set up before.
 - `crates/iaf-setup`: the same steps in-process, for the setup wizard. Its small CLI is for testing:
   ```sh
   cargo run --release -p iaf-setup -- [--assets DIR] [--patch P] [--hebrew-iso ISO] [--imagery sentinel2,mapi2015] \
@@ -23,8 +24,8 @@ Setup turns your own copy of Jane's IAF into everything the game reads under `as
 | Imagery sources | no | modern terrain imagery (docs/imagery.md) |
 | Pilot guides | no | the guides' pictures and PDFs (python3 and Firefox; the renders open game windows briefly) |
 
-The Hebrew CD alone cannot set up the game: its `iafjets.exe` is the copy-protected build, and the English v1.1
-patch does not apply to it. So the English CD is always the base; the Hebrew CD adds the translations.
+The English CD is always the base: the Hebrew CD's `iafjets.exe` is the copy-protected build, and the English v1.1
+patch does not apply to it (packs.md). The Hebrew CD adds the translations.
 
 `check_cd` tells the CDs apart: the install script and archive make it a Jane's IAF CD, Hebrew menu strings make it
 the Hebrew CD, and the English CD's `iafjets.exe` is a release the tools know.
@@ -73,6 +74,7 @@ The imagery steps keep their own marks per work unit instead: a run converts onl
 were made under older rules, and is up to date when there are none. The guides decide per picture.
 
 ## Uninstall
+
 The CD launcher's UNINSTALL button (Extras → CD launcher, docs/front-end.md §18.1) asks first, then removes what the
 setup wrote under `assets/` (`iaf_setup::OUTPUTS`): `install`, `v1.0`, `v1.1`, `patch`, `converted`,
 `packs-none`, `hebrew-cd`, `hebrew-cd-pick`, the stamps and `setup.json`. The imported packs (`packs`) and the imagery
@@ -86,7 +88,7 @@ game then quits; `./setup` installs again. The launcher's INSTALL button opens t
 - GDAL (`gdal_translate`, `gdalbuildvrt`): the imagery steps. Without it they are skipped.
 - `tools/imagery/fetch-mapi2015-curl.sh` (curl, python3, Firefox's data.gov.il token): the Survey sheets.
 - `tools/install-launcher.sh`: the desktop launcher (its `XDG_DATA_HOME` can be set).
-- The guides: the wizard renders them in-process; the CLI runs `tools/guide_shots.sh` and `tools/guide_pdf.py`.
+- The guides: `tools/guide_shots.sh` and `tools/guide_pdf.py` (both front ends).
 
 Their output goes to the step's log.
 
@@ -97,9 +99,7 @@ osascript on macOS, else the terminal) with the install command. Then it builds 
 wizard (`game/setup/wizard.tscn`). `./iafjets` starts `./setup` when there is no game data, and so does the game's
 start-up when `assets/converted` is missing. The desktop launcher "Jane's IAF (reborn) — Setup" runs it too.
 
-Pages:
-
-The wizard uses the original menus' colours.
+The wizard uses the original menus' colours. Pages:
 
 1. **Welcome**: the game's name, what is needed and what is optional, the next pages, where the data goes, the
    repository link, the licence and the attributions (the models and the imagery, as in the credits roll).
@@ -122,11 +122,11 @@ The wizard uses the original menus' colours.
      again.
 6. **Summary**: the inputs and the number of steps.
 7. **Install**: one row per step. Before Install each row says whether it is "up to date" or "will run"
-   (`iaf_setup::preview`, checked in the background: it reads the CD images). Then its state and progress (a long step adds the time left at its pace so
-   far, once it has run 30 s), the log, Cancel, "Redo everything", and a "redo" tick
-   per step: a ticked step runs again although it is up to date. The steps after it stay up to date; tick them too
+   (`iaf_setup::preview`, checked in the background: it reads the CD images). Then its state and progress (a long
+   step adds the time left at its pace so far, once it has run 30 s), the log, Cancel, "Redo everything", and a
+   "redo" tick per step: a ticked step runs again although it is up to date. The steps after it stay up to date; tick them too
    to redo them.
 8. **Done**: "Start the game".
 
 The pages start from the last run's inputs (`assets/setup.json`). The log names files relative to the assets
-folder. The pilot guides render through `tools/guide_shots.sh` for now: the renders open game windows briefly.
+folder.

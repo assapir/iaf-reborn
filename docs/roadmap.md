@@ -1,105 +1,86 @@
 # Roadmap notes
 
-This page lists features planned beyond the original game, and the decisions taken on them. What works today and
-the current priorities are in docs/status.md.
+This page lists features planned beyond the original game, and the decisions taken on them. What works today, the
+current priorities and what is built: [status.md](status.md).
 
 - **Original by default:** every item that changes the 1998 game is an opt-in switch (Preferences → Extras or
   Physics); the original stays the default.
-- **Tags:** each heading carries its priority or status in brackets or after a dash: "nice to have", "wishlist",
-  "later", "low priority", "maybe", "after the …", "post everything", "parked", "started", "built", "done",
-  "analysed", "decided".
+- **Tags:** each heading carries its priority or state: "wishlist", "later", "low priority", "maybe", "after …",
+  "post everything", "started", "measured, skipped".
 - **Order:** the "Later" list first, then one section per feature.
 
 **Terms:** AAA = anti-aircraft artillery; ASE / ASC = the F-16 HUD's allowable steering error circle / attack steering
-cue; BFM = basic fighter manoeuvres; DEM = digital elevation model (terrain heights); DLZ = dynamic launch zone
-(missile range band); EEGS = enhanced envelope gun sight; EO = electro-optical sensor; FCR / SMS / HSD / WPN / TGP =
-F-16 MFD pages (fire-control radar, stores management, horizontal situation display, weapon, targeting pod); FOV =
-field of view; HSI = horizontal situation indicator; HARM = anti-radiation missile; HUD = head-up display; IR =
-infrared; JHMCS = joint helmet-mounted cueing system; LLM = large language model; MFD = multi-function display; OSB =
-option select button (the MFD's edge buttons); PBR = physically based rendering (modern material maps); RWR = radar
-warning receiver; SAM = surface-to-air missile; TSD = tactical situation display (map).
+cue; BFM = basic fighter manoeuvres; DEM = digital elevation model (terrain heights); EO = electro-optical sensor; FCR
+/ SMS / HSD / WPN / TGP = F-16 MFD pages (fire-control radar, stores management, horizontal situation display,
+weapon, targeting pod); HUD = head-up display; JHMCS = joint helmet-mounted cueing system; LLM = large language
+model; MFD = multi-function display; OSB = option select button (the MFD's edge buttons); PBR = physically based
+rendering (modern material maps); RWR = radar warning receiver; SAM = surface-to-air missile; TSD = tactical
+situation display (map).
 
 ## Later
 Graphics options (models, cockpit, DEM, water, effects, vegetation, lighting, upscaling), with measured costs and a
-ranked order, are in [docs/graphics-research.md](graphics-research.md).
+ranked order: [graphics-research.md](graphics-research.md).
 
 - **Iran theatre** (wishlist, user 2026-10-20): a second map east of the original's, for modern long-range strikes.
   The 1998 world is one fixed theatre (Israel and its neighbours); Iran is far outside it, so this means new terrain,
   imagery, bases and units (large).
 - **Fighting in Gaza** (wishlist, user 2026-10-20): missions over Gaza, which lies inside the theatre. The Mission
   Creator (original first, then a freer editor) is the way in.
-- **More airbases** (wishlist, user 2026-10-20): the game has ten bases (Israel: Ramon, Tel Nof, Ramat David;
-  Refidim / Bir Gifgafa in Sinai; Inshas, Damascus (Mezzeh), Al Qusayr, Bley, Rayak, Amman). Wanted: Hatzerim, Hatzor,
-  Nevatim, Ovda, and maybe the civil airports Ben Gurion (LLBG) and Ramon Airport (LLER, "Ilan and Asaf Ramon",
-  Timna; not the game's Ramon air base). Each needs a base layout (runways, taxiways,
-  shelters, tower, lineup / taxi / hangar points in iaf.ibx terms), its 3D objects and ground art, and missions that
-  use it (inferred: the Mission Creator and the Real 1:1 base move already read bases from data).
+- **More airbases, pick your base** (wishlist, user 2026-10-20; post everything). The game has ten bases (Israel:
+  Ramon, Tel Nof, Ramat David; Refidim / Bir Gifgafa in Sinai; Inshas, Damascus (Mezzeh), Al Qusayr, Bley, Rayak,
+  Amman), three of them spawn bases (Tel Nof, Ramat David, Ramon).
+  - Wanted: Hatzerim, Hatzor, Nevatim, Ovda, Palmachim, and maybe the civil airports Ben Gurion (LLBG) and Ramon
+    Airport (LLER, "Ilan and Asaf Ramon", Timna; not the game's Ramon air base).
+  - Each needs a base layout (runways, taxiways, shelters, tower, lineup / taxi / hangar points in iaf.ibx terms),
+    its 3D objects and ground art at its real coordinates, and missions that use it (inferred: the Mission Creator
+    and the Real 1:1 base move already read bases from data).
+  - The player picks the home base in the briefing / Jump In.
 - **Mission Creator "Better"** (wishlist): a free map editor on the TSD, after the original screen. Wind levels
   (user 2026-10-21): a wind choice beside the time of day (e.g. calm / light / moderate / strong, plus a direction),
   written to the mission's wind fields (misc 0x46a / 0x474) that the "Wind and turbulence" switch flies in
   (flight-model.md §10).
-- **A modern TSD map** (wishlist, user 2026-10-20): today's borders and place names on the TSD (an opt-in; the 1998
-  map stays the default).
-
-- **Multiplayer** (after the single-player game, docs/status.md "Decisions"): how the original does it and the
-  recommended plan (our own protocol, the original's authority split) are in [docs/multiplayer.md](multiplayer.md).
+- **A modern TSD map** (wishlist, user 2026-10-20; "just for fun"): an Extras overlay on the static maps (TSD /
+  briefing EMF maps, map texts) with today's borders, names and places, drawn by us; the 1998 maps stay the default.
+- **Multiplayer** (not approved; if it goes ahead, after the single-player game): how the original does it, a plan
+  and the discussion so far: [multiplayer.md](multiplayer.md) (§3.5 is discussion, not decisions).
 - **Separate joystick / throttle / pedal devices** (e.g. a stick, a throttle quadrant and pedals as three USB
-  devices). Today the original and the port use one device: the first connected joypad (docs/controls.md §5). Later:
-  an Extras option to take each role (stick, throttle, rudder, buttons) from its own device.
-- **Extra joystick axes** (e.g. the Hotas X's 5th axis, the throttle rocker = raw axis 4 in its 5-axis mode). The
-  original reads four (x, y, throttle, rudder). Later: an Extras option to give a spare axis a role (e.g. zoom, panel
-  slide, head pan, rudder on the rocker in place of the twist), and an axis-mapping row so nobody edits
-  `[devices] joy_axes` by hand.
-- **Better aircraft graphics** (wishlist; Extras switch, the 1998 meshes by default): high-detail PBR models to
-  replace the 1998 meshes (~800 triangles).
-  - Order: the F-16 first (candidate: FlightGear's F-16, check the licence, or a CC-licensed model), then the other
-    flyable jets and the AI types.
-  - Keep the original dimensions, hinge points (`<part>1/2` helpers), weapon stations, camera eye point and IAF
-    markings; fit each model and repaint onto the new UVs.
-- **Better weapon / store models** (Extras switch "Models: Original / Detailed", the 1998 meshes by default): bombs,
-  missiles, tanks and pods to a DCS-level bar (FlightGear F-16 shapes, GPLv2+, with our own PBR pass; our own for the
-  gaps), committed to the repo and fitted at load time. Design: [docs/graphics-research.md](graphics-research.md)
-  §3.13.
-- **Modern DEM** (SRTM / Copernicus 30 m) for finer relief. (The modern imagery itself: Sentinel-2 outside Israel is
-  done, docs/imagery.md; Survey of Israel 2 m over Israel is done too; SPOT 5 is left, below.)
-- **Own jet seen from the cockpit** — done (a fidelity fix, docs/views.md §4.3): the original draws the jet's
-  cockpit-view model (`<plane>_bc`) in the cockpit, free-look and padlock views; the port does too. With the
-  detailed models (graphics-research.md §3.7, §3.13) a detailed cockpit-view model can follow.
+  devices). The original and the port read one device: the first connected joypad (controls.md §5). Later: an Extras
+  option to take each role (stick, throttle, rudder, buttons) from its own device.
+- **Extra joystick axes** (e.g. the Hotas X's throttle rocker = raw axis 4 in its 5-axis mode). The original reads
+  four (x, y, throttle, rudder). Later: an Extras option to give a spare axis a role (e.g. zoom, panel slide, head
+  pan, rudder on the rocker), and an axis-mapping row so nobody edits `[devices] joy_axes` by hand.
+- **Better aircraft graphics** (wishlist; Extras → Models, the 1998 meshes by default): high-detail PBR models in
+  place of the 1998 meshes (~800 triangles). The F-16D is built (aircraft-models.md); next the other flyable jets,
+  then the AI types. Keep the original dimensions, hinge points (`<part>1/2` helpers), weapon stations, camera eye
+  point and IAF markings; fit each model and repaint onto the new UVs.
+- **Better weapon / store models** (Extras → Models, the 1998 meshes by default): bombs, missiles, tanks and pods to a
+  DCS-level bar (FlightGear F-16 shapes, GPLv2+, with our own PBR pass; our own for the gaps), committed to the repo
+  and fitted at load time. Design: graphics-research.md §3.13.
+- **Modern DEM** (SRTM / Copernicus 30 m) for finer relief.
+- **Detailed cockpit-view model:** with the detailed models (graphics-research.md §3.7, §3.13), a detailed
+  `<plane>_bc` can follow the original one (views.md §4.3).
 - **Realistic 3D cockpit** (wishlist; Extras switch, the original 2D cockpit by default): a modelled cockpit per jet
   (DCS-style: free head look, the real panel layout, clickable switches, the MFDs / HUD / gauges drawn live on it),
   together with the high-detail model of that jet, the F-16 first.
-  - Licence rule: the repo is GPL-3.0-or-later, so a model can ship only under GPL-2.0-**or-later** / a compatible
+  - Licence rule: the repo is GPL-3.0-or-later, so a model can ship only under GPL-2.0-**or-later** or a compatible
     licence. Check each file's copyright first.
   - Open references:
 
     | jet | source | licence |
     |---|---|---|
-    | F-16 | FlightGear `github.com/NikolaiVChr/f16` | GPL-2.0 (check "or later" in its copyright.txt) |
+    | F-16 | FlightGear `github.com/NikolaiVChr/f16` | GPL-2.0 or later (the Detailed F-16D uses it, credits.md) |
     | F-15C/D | `github.com/Zaretto/fg-aircraft` (model Enrique Laso, cockpit photo textures GeneB) | not stated on the repo page |
     | F-4 | `github.com/Zaretto/F-4X` (early alpha, an F-4S) | GPLv2+ |
     | Mirage 2000 | FlightGear Mirage 2000 / 2000-5 | GPLv2+ |
     | Kfir, Lavi, F-35I | no open model found (only paid ones) | — |
 
-- **Validate the F-16 flight data** against public sources: USAF fact sheet / RTF reference card, NASA TP-1538
-  (F-16 wind-tunnel aero data, used by JSBSim), JSBSim/FlightGear F-16, engine thrust data (F100-PW-220/229,
-  F110-GE-100/129), E-M (energy-manoeuvrability) diagrams.
-  - Automated checks in `iaf-flight`: max level speed (SL, 40k ft), sustained / instantaneous turn at corner speed,
-    roll rate, climb, stall/approach speeds, fuel burn.
-  - Report deviations; let the user choose "faithful 1998" vs "realistic" per item (or a setting).
-- **F-35I built-in EOTS** (not built yet): the real jet's targeting sensor under the nose, so the F-35I has the FLIR
-  page and the laser with no FLIR pod store (today it needs the pod like every jet; docs/f35i.md §3.1).
-- **Pilot guides: the MFD and radar pages** (after "Real MFDs", below): an annotated section per real page, with
-  pictures, as the HUD sections have. Until then the MFDs are the original pages, which the original manual covers
-  (EN 4.12–4.24, docs/manual-audit.md); the guides give only the values the realistic options change (e.g. the radar
-  ranges, docs/guides/f16.md §14).
-
-## Mouse wheel in the settings (nice to have) — done
-The mouse wheel scrolls the settings / preferences pages and their lists. An Extras option sets the direction:
-regular (wheel down scrolls down) or natural (reversed, as on macOS trackpads). **Done**, also for the briefing
-and Reference texts and trackpad pans (docs/front-end.md §12.9).
+- **Pilot guides: the MFD and radar pages** (after "Real MFDs"): an annotated section per real page, with pictures,
+  as the HUD sections have. Until then the MFDs are the original pages, which the original manual covers (EN
+  4.12–4.24, manual-audit.md); the guides give only the values the realistic options change (e.g. the radar ranges,
+  guides/f16.md §14).
 
 ## "Real RWR" option: search radars (Extras, wishlist)
-- **Original:** the RWR shows a ground site only once it locks or launches (docs/rwr.md).
+- **Original:** the RWR shows a ground site only once it locks or launches (rwr.md).
 - **Real RWR:** it also shows a SAM / AAA search or acquisition radar that is painting the jet (threat symbol + search
   tone) before it engages, and loses it when terrain masks the jet. That is how real pilots learn terrain masking (a
   real jet gives no "you are seen" cue).
@@ -107,23 +88,11 @@ and Reference texts and trackpad pans (docs/front-end.md §12.9).
   jet (`IafRadar.line_of_sight`, the sites' own check), shows as a search contact; masked → gone. It helps the "fly
   low" training (313).
 
-## "Better physics" option (separate from original / real data)
-Improvements over the 1998 model that the player can opt into, decided case by case with the user. Every "better
-physics" option has its own switch; all are listed in docs/flight-model.md §10.
-- Ground effect — **done** for the induced drag (McCormick φ(h/b)) and the lift (lift-curve slope at the effective
-  aspect ratio A/φ: more lift at the same α, the flare floats), docs/flight-model.md §10. The pitching moment and the
-  stall speed in ground effect stay unmodelled (the model commands α / g, not CL).
-- 1 g hold on the flight path (in place of the nose pitch), so there is no slow dive at high speed — **done**
-  (`flight_path_hold`).
-- F-16 / Lavi departure: FLCS (flight control system) deep stall with MPO (manual pitch override) rocking recovery —
-  **done** (`fbw_departure`, docs/flight-model.md §10.1).
-- Braking pitch (later): the wheel brakes pitch the nose down (weight transfer / nose-gear compression).
-
 ## Mission replayer (after the missions work)
-Turn the blackbox replay used to debug "Engines ON" into a tool for any mission. Today it feeds a recorded blackbox
-flight (`user://flights/*.jsonl` with its mission events and subtitles, docs/blackbox.schema.json) into the mission
-runtime at 8× speed and prints every subtitle / pass / box with its time. Goal: record → replay → timeline, and
-replay recorded flights as regression tests.
+Today a recorded blackbox flight (`user://flights/*.jsonl` with its mission events and subtitles,
+blackbox.schema.json) replays into the mission runtime at 8× speed and prints every subtitle / pass / box with its
+time; `tools/flight_timeline.py` turns a flight into a timeline and summary. Goal: replay any mission's recorded
+flights as regression tests.
 
 ## AI debrief (later)
 An opt-in debrief after a flight, written by an LLM.
@@ -135,84 +104,59 @@ An opt-in debrief after a flight, written by an LLM.
   the speed and the stick shown).
 - **Needs:** an API key setting and the user's consent to send the data.
 
-## "Real weapons" option (like the Real flight data set)
-- **Method:** compare the original's weapon data (ranges, speeds, seeker limits, warhead / Pk, drag and weight on the
-  stations) with public data — the same method as the flight model's validation report. Where the 1998 numbers are
-  off, offer a corrected set behind its own Extras switch "Weapon data: Original / Real" (separate from Flight data).
-- **Station rules:** also the real station rules per jet (which stores may go on which station, counts per rack, e.g.
-  F-16 stations 1/9 wingtip rails, centreline 5 tank / pod) vs the game's CDMEWeaponLoadItem lists.
-- The original stays the default.
-- **Status: started** for the gun and IR missiles (docs/real-weapons.md: weights, top speed, range, gun rounds / rate
-  / muzzle velocity) and the radar ranges of the seven jets. Bombs and rockets keep the 1998 numbers so far. Extend
-  with each new weapon type (seeker limits and g limits need sources).
+## "Real weapons" option — started
+Extras → Weapon data: Original / Real (real-weapons.md). Built: the missiles (weights, top speed, range, IR seeker
+lock ranges and cones), the guns, the seven jets' radar ranges, the gun's hit test and the published lethal radii.
+- **Left:** the bombs and rockets keep the 1998 numbers; the real station rules per jet (which stores may go on which
+  station, counts per rack, e.g. F-16 stations 1/9 wingtip rails, centreline 5 tank / pod) vs the game's
+  CDMEWeaponLoadItem lists; each new weapon type as it comes (g limits need sources).
 
 ## "Better AI" option
-- **Today:** the original AI brain is ported for flight (docs/ai.md: the bdb brains fly every AI jet through the same
-  flight model, docs/flight-model.md §15); its combat is traced, not built (ai.md §13).
-- **Plan:** once it fights, offer smarter behaviour behind its own switches (e.g. energy-aware BFM, realistic missile
-  employment / defence, wingman coordination, SAM/AAA radar discipline). The original stays the default.
-- **Switches:** separate ones for enemies and wingmen (the original's skill level seems to apply to sides 2/3 only;
+- **Today:** the original AI brain flies and fights as the exe (ai.md §13–§14).
+- **Plan:** smarter behaviour behind its own switches (e.g. energy-aware BFM, realistic missile employment /
+  defence, wingman coordination, SAM / AAA radar discipline). The original stays the default.
+- **Switches:** separate ones for enemies and wingmen (the original's skill level seems to apply to sides 2 / 3 only;
   wingmen probably have their own command-driven logic), and an option to apply the skill level to both sides.
 
 ## Extra sounds (not in the original)
-Optional sound additions behind an Extras switch, off by default (original):
+Optional sound additions behind an Extras switch, off by default (sound.md):
 - wind / airflow noise vs speed (the original has an unused `SFX_WIND` code);
 - canopy, engine start-up / spool-down;
 - the shipped-but-unused engine idle loops, `afterburner1/2`, `gearup` / `geardown`, `speedbreak(loop)`;
 - the silent Betty rows whose files exist (`cock_bty_pull.wav`, `cock_bty_bingo.wav`, `cock_bty_spin.wav`).
 
-Details: docs/sound.md.
-
 ## Low-end profile (low priority) — e.g. Raspberry Pi 5
-- A performance pass: draw calls, streaming cost (the dev machine dips to 13–24 fps in places).
+- A performance pass: draw calls, streaming cost (measured hotspots: graphics-research.md §1–§2).
 - A low-end profile: Godot Compatibility renderer (GLES3) with the terrain / detail / afterburner shaders checked
   there; ETC2 texture compression (the Pi's GPU has no S3TC, so BC1 is out); lower terrain detail and resolution.
 - Rust / godot-rust already build for ARM64 Linux.
 
 ## "Real MFDs" option (wishlist)
 Like the Real HUD: realistic MFD pages per jet behind their own Extras switch (the original's MFD pages by default,
-docs/mfd.md).
+mfd.md). Crisp MFD pages (Better cockpit, mfd.md §8) are the first step.
 - The real page formats and symbology from public references (e.g. F-16 FCR, SMS, HSD, WPN / TGP, RWR; F-15 / F-4E /
   Mirage / Kfir / Lavi / F-35I equivalents), the OSB labels and their functions.
 - Driven by the same avionics state (radar, stores, RWR, EO / HARM sensors).
-- IFF on the radar formats, as the real jets show it (docs/real-hud.md "IFF"): the F-15C's and F-4E's interrogation
+- IFF on the radar formats, as the real jets show it (real-hud.md "IFF"): the F-15C's and F-4E's interrogation
   replies, and the F-35I's track colours and shapes (green circle friend, yellow square unknown, red diamond hostile).
 - Pairs with the realistic 3D cockpit (MFDs drawn live on it).
 
-## "Real HUD" option
-The original HUD is a simplified 1998 F-16 HUD. This option offers a realistic HUD per aircraft behind its own Extras
-switch (original by default): real symbology and layout, from public references (collected per aircraft in
-docs/real-hud.md).
-- **Built** (Extras > HUD, docs/cockpit.md "Real HUD"): every flyable jet's HUD / sight per docs/real-hud.md "What
-  ours draws" (F-16 incl. EEGS, ASE / ASC, DLZ; F-15; F-4E / Mirage reticles; F-35I).
-- **Left:**
-  - a settable bingo;
-  - what that list marks "not drawn";
-  - **the real field of view.** The cockpit art's HUD glass is shorter than the real HUD's (the F-16's ≈ 25° total),
-    so the F-16 bank scale sits raised into the glass, away from its real place 50 mr below the FOV centre
-    (`real_hud/f16.rs` `roll_indicator`). Fix the view so the whole real field fits the glass (eye position / zoom,
-    or a taller glass in the art), then put the bank scale back at its real place.
+## "Real HUD" and "Real DASH": what is left
+Built: every jet's real HUD / sight and the F-16 / F-15 DASH helmet set (real-hud.md "What ours draws", "DASH
+helmet"). Left:
+- a settable bingo;
+- what real-hud.md marks "not drawn";
+- **the real field of view.** The cockpit art's HUD glass is shorter than the real HUD's (the F-16's ≈ 25° total),
+  so the F-16 bank scale sits raised into the glass, away from its real place 50 mr below the FOV centre
+  (`real_hud/f16.rs` `roll_indicator`). Fix the view so the whole real field fits the glass (eye position / zoom, or
+  a taller glass in the art), then put the bank scale back at its real place;
+- the DASH's own horizon symbol, shoot cue and Python-specific cues if a source appears; the RWR symbols and
+  declutter levels. The Lavi / Kurnass 2000 / Kfir keep the original helmet display (their helmets are not
+  documented).
 
-## "Real DASH" (with the Real HUD) — built for the F-16 / F-15 cockpits
-Looking aside with the Real HUD on, the F-16 and F-15 now show the Elbit DASH's helmet set (docs/real-hud.md "DASH
-helmet": fielding and optics sourced, the layout from the DASH-derived JHMCS).
-- **Left:** the DASH's own horizon symbol, shoot cue and Python-specific cues if a source appears; the RWR symbols and
-  declutter levels.
-- The Lavi / Kurnass 2000 / Kfir keep the original helmet display (their helmets are not documented).
-
-## Updated maps (later, just for fun)
-The static maps (TSD / briefing EMF maps, map texts, borders, city names) show the 1998 situation. An optional Extras
-switch adds an updated overlay with today's borders, names and places (drawn by us; original maps by default).
-
-## Setup wizard (in progress, 2026-10-19)
-A first-run wizard in the game itself (Linux + macOS), a second way to set up next to `tools/setup-cli.sh` (which stays
-for scripting):
-1. the English CD (required), optionally the v1.1 patch, the Hebrew CD (or, without it, the Hebrew packs), imagery
-   and the pilot guides, each checked when picked and each optional extra with its warning (download size, time,
-   disk);
-2. progress per step; the steps run in parallel where they don't depend on each other;
-3. running setup again adds an extra or redoes a step (only what changed runs); no button in the game (user decision).
-Built: `./setup` and `game/setup/` (docs/setup.md); waiting for the user's review of the pages.
+## Setup wizard: the user's review
+Built (`./setup`, `game/setup/`, setup.md); the pages wait for the user's review. Running setup again is the way to
+add an extra or redo a step; there is no setup button in the game (user decision).
 
 ## Exported build (with the setup wizard)
 A packaged Linux and macOS build of the game (Godot export: one program and its game file, the Rust extension
@@ -224,59 +168,13 @@ at all.
 - Development keeps running unexported; the export is built for releases.
 
 ## Keyboard stick option (maybe, post game)
-The original keyboard stick is full deflection at once (taps > ~0.45 s reach 3 g in the F-16; docs/flight-model.md
-§8). Possible Extras option: a key ramp / sensitivity setting for keyboard players, original by default.
+The original keyboard stick is full deflection at once (taps > ~0.45 s reach 3 g in the F-16; flight-model.md §8).
+Possible Extras option: a key ramp / sensitivity setting for keyboard players, original by default.
 
 ## Pilot photo: your own picture (after the work)
-The original already lets you change it: left click on the Dossier photo cycles the 14 stock photos, right click
-opens a file dialog for a custom .bmp (ported, docs/front-end.md §13.4). Later: any image (PNG / JPEG / camera), with
-a crop to the photo frame, and an easier way to find it than a right click (e.g. a small "Change" hint).
-
-## Better cockpit (Extras switch) — started
-One Extras switch, "Better cockpit" (Original / Better, original by default), for our improvements to the original
-cockpits. Each improvement is an item with its own flag under the switch (`Settings.BETTER_COCKPIT`: a new item is one
-more id there; docs/cockpit.md "Better cockpit"). Items (approved 2026-10-20):
-1. Turning panel compass / HSI (`turning_compass`) — **done** (2026-10-20). In the original, every panel compass and
-   HSI is static art; the heading shows only on the HUD tape and the MFD pages. Better: the card turns with the
-   heading on the Kfir, F-4E and Mirage panels, and the Mirage dial's bearing / course pointers point at the current
-   waypoint and the route leg.
-2. RPM gauge from the flight model's real RPM % (`engine_rpm`) — **done** (2026-10-20). The original clamps the rpm
-   to 0.6–0.97 (`FUN_0045aa10`).
-3. Engine temperature gauge from a temperature model (`engine_temp`) — **done** (2026-10-20). The original shows the
-   rpm clamped to 0.5–0.8 (`FUN_0045aa40`).
-4. Throttle gauge that shows the AB stages above MIL (`throttle_ab`) — **done** (2026-10-20). The original reads
-   100 % for both.
-5. Fuel gauge with internal + external fuel, and a digital lb readout where the art has one (`fuel_total`) —
-   **done** (2026-10-20). The original shows total / internal fuel, capped at 1 (@45acb9).
-6. Live G-meter with a max-G memory, where the panel art has one — **none to do** (2026-10-20): no panel paints a
-   G-meter (docs/cockpit.md "The panels' instruments").
-7. AoA indexer lights (slow / on-speed / fast) (`aoa_indexer`) — **done** (2026-10-20): the F-16's, the only one in the
-   art; gear up or down, as the real one.
-8. Panel clock that shows the mission time (`panel_clock`) — **done** (2026-10-20): the Lavi and Mirage panels.
-9. Live standby instruments, where the art paints them (`standby_instruments`) — **done** (2026-10-20): every painted
-   standby ASI / altimeter / ADI was already live; the Mirage's needle-less VVI is now live. Open: the Kfir's likely
-   VVI (its scale is unreadable).
-10. A warning lamp lit for every damage / system state (`warning_lamps`) — **done** (2026-10-20) where the legend is
-    readable: the F-16's FLCS and TO/LDG CONFIG. The other jets' unwired lamps have unreadable legends.
-11. Crisp MFD pages (`crisp_mfd`, the first step to Real MFDs) — **done** (2026-10-20): every page drawn at the
-    screen's resolution through one set of drawing primitives (docs/mfd.md §8).
-12. The shipped art the game never loads (`cfir/cfir-lights.bmp`, `lavi/lavi-lig.bmp`, `phantom/f16adi.bmp`; no exe
-    string, no decompiled reference, in no cockpit.ibx, unused by our code), used where it is better than the loaded
-    art — **none to do** (2026-10-20): each is an earlier or equal version of the loaded art (docs/cockpit.md "The
-    unused shipped art").
-
-13. Gauges on their labelled dials (`dials_by_label`) — **done** (2026-10-20): the F-16's four engine dials (OIL,
-    NOZ POS, RPM, FTIT) and the Kfir's FUEL FLOW / EXH TEMP; the other jets' needles already match their labels or
-    the labels are unreadable (docs/cockpit.md "Panel instruments per jet").
-14. Painted status lamps the original never lights, where the game has the state (`ar_nws_lights`) — **done**
-    (2026-10-20): the F-16's AR/NWS lamp (nose-wheel steering on the ground). The other jets' unwired lamps have
-    unreadable legends. Digital readouts in the wrong place: the F-16's fuel counter stays (the art paints no fuel
-    quantity indicator); the F-15's counter is already on its fuel gauge.
-
-## Glance-down key — done (2026-10-20)
-Hold V to slide the panel fully into view, release to look ahead again (as modern sims do; a real pilot glances
-down with the eyes). A tap keeps the jump: the whole panel, or from there none (docs/controls.md "Own keys",
-`cockpit.gd` `toggle_panel` / `release_panel`). The original has only the stepped panel slide (PgUp / PgDn).
+The original lets you change it: left click on the Dossier photo cycles the 14 stock photos, right click opens a
+file dialog for a custom .bmp (ported, front-end.md §13.4). Later: any image (PNG / JPEG / camera), with a crop to
+the photo frame, and an easier way to find it than a right click (e.g. a small "Change" hint).
 
 ## Video record key (Extras, future idea; 2026-10-18)
 A key in flight starts and stops a video recording, next to the screenshot key. Godot's movie writer
@@ -288,8 +186,9 @@ live play while recording at 4K. Two ways:
    every unit (the flight recorder holds only the player's jet).
 
 ## "Real Betty" option (Extras switch, wishlist; researched 2026-10-19)
-- **Switch:** voice warnings per real aircraft. The default is the game's Betty (docs/sound.md §4).
-- **Per jet** (research 2026-10-19; sources below):
+- **Switch:** voice warnings per real aircraft. The default is the game's Betty (sound.md §4). With Real HUD the F-16
+  and F-35I already speak their real dive and height warnings (deviations.md §2 "HUD").
+- **Per jet** (research 2026-10-19; sources in real-betty.md):
   - F-16: the VMS (voice message system), in priority order PULL UP, ALTITUDE (below the low-altitude setting,
     default 300 ft, gear up), WARNING, BINGO, CAUTION, LOCK, CHAFF FLARE / LOW / OUT. A fire or engine failure is
     "WARNING" with its light; there is no Over-G voice.
@@ -303,74 +202,38 @@ live play while recording at 4K. Two ways:
   `Sounds/betty/`, GPL-2.0, origin of the recordings unknown) only as an optional download during setup, after asking
   its author where the recordings came from. Not usable: Falcon BMS, DCS, video rips.
 - **Open:** do IAF jets speak English or Hebrew; which F-16 VMS software version fits the 1990s F-16D.
-- **Research:** [real-betty.md](real-betty.md) (per-jet phrases, voice actors, recordings and licences, sources).
 
-## F-16I Sufa option (Extras switch, wishlist; decided 2026-10-17, F-16I chosen 2026-10-19, research first)
+## F-16I Sufa option (Extras switch, wishlist; decided 2026-10-17, F-16I chosen 2026-10-19)
 - **Switch:** "F-16: Barak (1990s) / Sufa (F-16I)". The default is the game's early-1990s F-16D Barak.
 - **Sufa:** the IAF's F-16I (Block 52+ two-seater), in the same cockpit and model slot as the F-16D.
-- **What it changes** (each with public sources, as docs/real-aircraft.md and docs/real-hud.md):
+- **What it changes** (each with public sources, as real-aircraft.md and real-hud.md):
   - flight data (F100-PW-229 engine, weights, the conformal fuel tanks);
   - radar (APG-68(V)9) and its modes;
-  - AIFF (APX-113 class interrogator; docs/real-hud.md "IFF");
+  - AIFF (APX-113 class interrogator; real-hud.md "IFF");
   - helmet (Elbit DASH) and the HUD symbology of its software;
   - weapons (AIM-120C, Python 5, Derby, JDAM / SPICE as in "Modern aircraft and weapons");
   - RWR / self-protection suite;
   - how it looks: the Sufa model on the Detailed F-16D (tools/f16d/rig.py: conformal fuel tanks, the large dorsal
     spine, the IAF Sufa livery and markings), and its cockpit (colour MFDs);
   - its voice warnings ("Real Betty" option above).
-- **Steps:**
-  1. Research the F-16I and its public data; write it into docs/real-aircraft.md (done 2026-10-19:
-     docs/f16i.md, with its open questions and build outline).
-  2. Build it behind the switch, the 1990s Barak unchanged.
+- **Steps:** 1. research (done: [f16i.md](f16i.md), with its open questions and build outline); 2. build it behind the
+  switch, the 1990s Barak unchanged.
 
 ## Modern aircraft and weapons (post everything)
-- Newer aircraft (e.g. F-16I Sufa, F-15I Ra'am, F-35I Adir, and modern threats) together with their weapons (e.g.
-  AIM-120 AMRAAM, AIM-9X, Python 5, Derby, JDAM / SPICE / GBU families, Delilah, modern SAMs).
-- Follow docs/aircraft.md "adding a new aircraft" and the weapon data format from docs/weapons.md; real public data
-  with sources.
+- Newer aircraft (e.g. F-16I Sufa, F-15I Ra'am, and modern threats; the F-35I Adir is built, f35i.md) together with
+  their weapons (e.g. AIM-120 AMRAAM, AIM-9X, Python 5, Derby, JDAM / SPICE / GBU families, Delilah, modern SAMs).
+- Follow adding-a-plane.md and the weapon data format from weapons.md; real public data with sources.
 - Needs new models and cockpits (the original data has none).
 
-## More airbases, pick your base (post everything)
-- Let the player choose the home airbase (the original has 3 spawn bases: Tel Nof, Ramat David, Ramon).
-- Add more Israeli bases (e.g. Hatzerim, Nevatim, Hatzor, Palmachim, Ovda) with their real layouts where the terrain
-  has no inset (our own airbase imagery / models, real coordinates), selectable in the briefing / Jump In.
+## Imagery sources — decisions (2026-10-01, imagery-sources.md)
+- Generic, pluggable imagery layers, picked per region from what was converted; an option is disabled while its data
+  is missing (built: imagery.md).
+- Left: SPOT 5 (CNES SWH, 5 m) outside Israel, maybe also over Israel if it is smaller.
+- Cyprus orthophotos: not used. No inquiry to the Survey of Israel for now.
 
-## Real world scale — 1:1 mode (next: after the current parity and wishlist work, user decision 2026-10-20)
-- **Switch:** an Extras option (World scale: Original / Real 1:1), the original's scale by default.
-- **Today:** the terrain itself is real size (measured with the georeference: ×0.99–1.01, docs/georef.md). Two
-  things are enlarged: the models (bdb Present scale ×2 aircraft / buildings, ×3–4 vehicles) and the airbases
-  (runways, base distances 0.75–1.13 of real, away from their real positions — not uniform).
-- **Cost:** scaling to real size would touch mission coordinates, terrain, route timing, weapon/sensor ranges.
-- **Fit:** it fits naturally with the modern imagery (which is real-scale and gets warped to the game frame). Both
-  exist now (docs/georef.md, docs/imagery.md); evaluate the option when it is unparked.
-- **Research and plan (2026-10-20):** [world-scale.md](world-scale.md): the models at true size (scale 1), each
-  airbase shrunk in place to its real runway length by a runtime base warp; moving bases to their real places left
-  open. Nine steps.
-
-## Better imagery outside Israel (Extras switch) — done (imagery phase 1, docs/imagery.md)
-- Sentinel-2 10 m (the ESA WorldCover 2021 composite, CC BY 4.0) where the original has only ~79 m/px (Sinai, Egypt,
-  Jordan, Syria, Lebanon, Cyprus).
-- The original stays over Israel (≈10 m, as good or better).
-- 1998 colours by default (a local colour match to the original, imagery.md §4); modern colours as their own choice.
-- Comparisons: docs/imagery-research.md.
-
-## Imagery sources — decisions (2026-10-01, docs/imagery-sources.md)
-- Generic, pluggable imagery layers: each source is converted into its own node set, and the game picks per region
-  from what was converted (a drop-down per region, e.g. Israel: Original / Survey of Israel 2 m / SPOT 5; outside
-  Israel: Original / SPOT 5 / Sentinel-2). An option is disabled while its data is not downloaded / converted.
-- Israel: Survey of Israel 2015 2 m — done (imagery phase 2, docs/imagery.md; data.gov.il, open licence, no account;
-  large download, the user fetches the sheets in a browser). Outside Israel: SPOT 5 (CNES SWH, 5 m; maybe also over
-  Israel if it is smaller).
-- Cyprus orthophotos: not used. (No inquiry to the Survey of Israel for now.)
-
-## Hebrew retail edition ("כוכב כחול" / Blue Star) — analysed (docs/packs.md)
-- The Hebrew CD (archive.org `iaf_20230527`, `IAF.Iso`) is v1.0 with copy protection. Its 591 translated files are
-  byte-identical to Brief.zip + Menu.zip.
-- Setup's `--hebrew-iso` takes the only extras (startup splash, Graphics page).
-- Its patch `IAFheb1_1.EXE` fails on the CD's protected `iafjets.exe` (it wants preflight.us's
-  `IAF_Hebrew_Fix.zip`, offline) and turns those extras back into the English v1.1 files.
-- Left: the CD's Hebrew briefing 112 is v1.0 text (v1.1 changed its objective), unused unless that sentence is
-  corrected.
+## Hebrew retail edition ("כוכב כחול" / Blue Star)
+Analysed in packs.md. Left: the CD's Hebrew briefing 112 is v1.0 text (v1.1 changed its objective), unused unless
+that sentence is corrected.
 
 ## Faster mission start: pre-baked terrain, shader warm-up — measured, skipped (2026-10-20)
 Two ideas to shorten a mission start, both measured on 2026-10-20 (Intel Iris Xe, 8 cores, Vulkan) and skipped by
