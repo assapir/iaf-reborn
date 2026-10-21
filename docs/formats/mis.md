@@ -10,7 +10,8 @@ field means. Key facts:
 - `crates/iaf-tools/src/mis.rs` parses every file end to end, and also parses `default6_1.bdb`. The layout below is
   therefore exact.
 - Field *meanings* come from how the game uses each field and from value statistics over all 131 missions. A meaning
-  that no code backs is marked **UNCERTAIN**.
+  that no code backs is marked **UNCERTAIN**. What the engine does with each field at run time is in
+  [mission-runtime.md](../mission-runtime.md).
 - Loaders: `FUN_0058bce0` reads the mission (the mission document's `Serialize`); `FUN_0058c640` reads the bdb.
 - The `CRuntimeClass` table (one entry per class) lies at `0x66fbb8..0x66feb8`; every class has schema 0x0b.
 - All integers are little-endian.
@@ -69,18 +70,18 @@ Each class below lists its tagged fields in read order: field id (fid), type (t)
 |---|---|---|
 | 0x44c | S | mission title ("Engines ON") |
 | 0x456 | S | free text / sub-title, sometimes the briefing number ("232") — UNCERTAIN |
-| 0x460 | F | start time of day, seconds after midnight (28800 = 08:00) |
+| 0x460 | F | start time of day, seconds after midnight (28800 = 08:00); the time-of-day option overrides it (mission-runtime.md §5.3) |
 | 0x46a | I | wind speed in kt (0, 10, 15, 20 …; a few missions store the pair swapped); the tower's wind (`FUN_00551320`, radio.md) |
 | 0x474 | I | wind direction in degrees (0, 270, 180 …; inferred, no reader found) |
-| 0x47e | S | success message text |
+| 0x47e | S | debrief headline when passed |
 | 0x488 | S | (always empty) |
-| 0x492 | S | failure message text |
+| 0x492 | S | debrief headline when not passed |
 | 0x49c | S | (empty) |
-| 0x4a6 | S | second failure message text (e.g. time-out/abort) — UNCERTAIN |
+| 0x4a6 | S | unused in single player (default "Passed") |
 | 0x4b0 | S | (empty) |
-| 0x4ba | I | audio id (bdb Audio) of the success message, -1 none (23 = "GOOD WORK") |
-| 0x4c4 | I | audio id of the failure message, -1 none |
-| 0x4ce | I | audio id of the 2nd failure message, -1 none |
+| 0x4ba | I | bdb Audio id, -1 none (23 = "GOOD WORK"); no reader found |
+| 0x4c4 | I | bdb Audio id played at the role-0 failure, -1 none |
+| 0x4ce | I | bdb Audio id played at success, -1 none |
 | 0x4d8 | S | category / campaign label ("training", "Future/Lebanon") |
 | 0x4e2 | I | unknown small int 0..7 — UNCERTAIN |
 | 0x4ec | I | unknown small int 0..12 (players/flights?) — UNCERTAIN |
@@ -112,31 +113,27 @@ In the table, "obj" is the offset in the loaded object. `[n]` is the dword index
 | 0x302 | I | +0x30 | **heading**, compass degrees (0 = N, clockwise; RD runway 15 → 150) → `[11]`; same meaning as the engine's `*Yaw` defaults |
 | 0x30c | I | +0xbc | unused (always junk/0) |
 | 0x316 | S | +0xc0 | group label ("Alpha leader", "SA-6 North") — UNCERTAIN |
-| 0x320 | I | +0xc4 | 1 = surface unit (vehicles, buildings, markers), 0 = aircraft/sensor; `[7] = !(v&1)` selects spawn mode 1/2 in `FUN_004b7634` — "on ground" semantics UNCERTAIN |
-| 0x32a | I | +0xc8 | 0/1/2 → `[14]`; the options force 2 (or 1) for players — AI skill? UNCERTAIN |
+| 0x320 | I | +0xc4 | control mode, bit 0: 1 = mission-controlled (scripts run from the start), 0 = brain-controlled; `[7] = !(v&1)` (mission-runtime.md §1 "Control mode") |
+| 0x32a | I | +0xc8 | **role** → `[14]`: 0 must survive, 1 target, 2 neutral (mission-runtime.md §1 "Role") |
 | 0x35c | I | +0xf4 | 0/1 → `[0x43]`; set on the player and on key friendlies/targets — UNCERTAIN (mission-critical flag?) |
 
 **Event slots.** Then come **7 event slots** (i = 0..6, at object +0x34+16i). Each slot holds:
 
-- `0x334 S` event name (a display copy);
+- `0x334 S` event name (the editor's display copy; nothing reads it);
 - `0x33e I` **event id**: the CDMEEventItem id it fires, 0 = none;
 - `0x348 I` parameter;
 - `0x352 I` (junk);
 - `Junk(0x200)`.
 
-The slot meanings below are inferred from the names used across all missions — UNCERTAIN:
-
-| slot | fires when | example names |
-|---|---|---|
-| 0 | hit/damaged | "friendly hit", "were hit" |
-| 1 | destroyed | "Player dead", "Mig down" |
-| 2 | other end-of-life/landed | "landed2", "Echo 1 Dest" |
-| 3 | starts combat | "ZSU 1 Combat" |
-| 4 | proximity: `0x348` = radius (70…10000); fires its event when the watched entity comes within it | |
-| 5 | "reached" events | "Tank reach sensor", "safe landing" |
-| 6 | unused (junk) | |
-
-In takeoff.mis, the marker's slot 4 holds the radius and slot 5 holds the event.
+| slot | runtime meaning (mission-runtime.md §2) |
+|---|---|
+| 0 | fires when the entity is damaged |
+| 1 | fires when the entity is destroyed |
+| 2 | **a debrief id**, shown at the end of the flight if the entity is not destroyed (the editor stores event names here) |
+| 3 | no reader found (3 uses, all named "…Combat") |
+| 4 | fires when the watched entity leaves the radius `0x348` (70…10000) |
+| 5 | fires when the watched entity comes within that radius |
+| 6 | unused (junk) |
 
 **Trailing fields.** Then come these reads, all version-gated in `FUN_00596c50`:
 ```
@@ -166,9 +163,9 @@ low byte of count is used (`FUN_005951f0`).
 | 0x834 | S | name |
 | 0x83e | I | **opcode** (see below) |
 | 0x848 | S | string argument (audio name, path name, entity name) |
-| 0x852,0x85c,0x866,0x870 | F | numeric args (0x852 = 1.0 for Path; the others x/y/z? UNCERTAIN) |
-| 0x87a | I | int argument, e.g. seconds for Wait (15) — UNCERTAIN in general |
-| 0x884 | I | int argument, usually -1 (target entity id?) — UNCERTAIN |
+| 0x852,0x85c,0x866,0x870 | F | numeric args (Path: 0x852 ≥ 0 runs toward the last point; Launch at location: y / z in 0x852 / 0x85c, x in 0x848) |
+| 0x87a | I | **duration** in seconds: every entry holds its list this long (Wait 15) |
+| 0x884 | I | motion list: a TimeVar added to the duration when ≥ 1; Path: −1 selects the constant-speed variant |
 | 0x88e | S | name of the next script ("N.A" = none) |
 | 0x898 | I | index of the next script (matches the next script's *index* below), -1 = stop |
 | 0x8a2 | S | opcode name (repeats 0x83e) |
@@ -176,17 +173,15 @@ low byte of count is used (`FUN_005951f0`).
 
 After the fields: 4 bytes skipped, `i32 index` (+0x10, the 1-based position within its list), `Junk(0x1f8)`.
 
-Opcodes seen (id: name):
+The two lists have separate opcode spaces (mission-runtime.md §4). Opcodes in the data:
 
-- 1 Hover (also "Launch at location"), 2 Launch at target, 5 Explode (also "Turn"), 7 Play message;
-- 11 Shield on / Yaw to target, 12 Shield off, 13 Visible on, 14 Visible off, 15 Wait;
-- 16 Path (jump/follow a CDMEPathsItem), 19 Destroy entity, 21 Enable combat, 22 Disable combat.
-
-A few ids carry two names because the editor reused slots; trust the number. UNCERTAIN.
+- motion list (`scripts0`): 1 Hover, 5 Turn, 11 Yaw to target, 16 Path (follow a CDMEPathsItem);
+- trigger list (`scripts1`): 1 Launch at location, 2 Launch at target, 5 Explode, 7 Play message, 11 / 12 Shield
+  on / off, 13 / 14 Visible on / off, 15 Wait, 19 Destroy entity (a no-op), 21 / 22 Enable / Disable combat.
 
 ### CDMEFormationItem (`FUN_005974f0`, `Serialize` `0x5974a0`) — flights and their routes
 ```
-0x3e8 S name ("Alpha", "Mig 29")   0x3f2 I kind (1 player flight, 8 enemy, 0..6, -1) UNCERTAIN
+0x3e8 S name ("Alpha", "Mig 29")   0x3f2 I flight number (1 Alpha … 10 India, −1 → 8; front-end.md "Flights")
 0x3fc I, 0x406 I  unused (junk)   Junk(0x200)
 2 × { 0x410 S member name, 0x41a I member entity id (-1 none), 0x424 I target entity id (-1 none), Junk(0x200) }
 CList waypoints (0x598ea0): Count × 24 bytes {i32 id, f32 x, f32 y, f32 alt, f32 speed, i32 action}
@@ -197,14 +192,15 @@ if version>=9: CList names (0x598fe0): Count × {u32 waypoint id, CString name} 
 - `action` is 0..8 (3 most common): the waypoint type, UNCERTAIN.
 
 ### CDMEDebriefItem (`FUN_005978d0`)
-Fields: `0x258 S` name, `0x262 I` 0/1 (probably 0 = failure debrief, 1 = success — UNCERTAIN), `0x26c S` text.
+Fields: `0x258 S` name, `0x262 I` 0/1 (which half of the debrief text it joins: 0 first, 1 second), `0x26c S` text.
 
 ### CDMEEventItem (`FUN_00597c70`, `Serialize` `0x597c40`) — triggers
 ```
-0x384 S name   0x38e I debrief id shown when it fires (-1 none)   0x398 I count/threshold (1 mostly) UNCERTAIN
+0x384 S name   0x38e I debrief id shown when it fires (-1 none)   0x398 I maximum fire count (1 mostly)
 0x3a2 S subtitle text   0x3ac I bdb Audio id to play (-1 none)   Junk(0x200)
-3 × condition { 0x3b6 S variable ("", "COUNT", "NUMOFLAUNCHERS"), 0x3c0 S operator ("==", "++", ">="),
-                0x3ca I value, 0x3d4 I (junk), [version>5: 0x3de I counter id, Junk(0x1f7)] else Junk(0x200) }
+3 × condition { 0x3b6 S variable ("", "COUNT", "NUMOFLAUNCHERS"), 0x3c0 S operator ("==", "++", ">="): both
+                editor-only; 0x3ca I value, 0x3d4 I operator code, [version>5: 0x3de I counter id, Junk(0x1f7)]
+                else Junk(0x200) }
 CList actions (0x599110): Count × {i32 entity id, i32 script index in scripts0 (-1), i32 script index in scripts1 (-1)}
 ```
 When an event fires, it:
@@ -214,7 +210,7 @@ When an event fires, it:
 3. (re)starts the listed scripts on the listed entities. Read this way, 829 of the 892 action records resolve to
    existing script indices.
 
-The scripts and debriefs then drive the mission's success or failure. The exact win/lose rule is an open question.
+The mission ends through the entities' roles (`0x32a`): mission-runtime.md §5.
 
 ## 4. The .bdb object database (`FUN_0058c640`)
 The bdb starts with `u32 magic 0x0004D769`, then 6 `Obj` parts. It has *no* version of its own: the reader uses the
@@ -222,7 +218,7 @@ version of the loaded .mis. The parts, in order:
 
 | part | count | fields |
 |---|---|---|
-| Present | 221 3D models | `0x640 S` name, `0x64a S` model path `CONTROLLABLEPLANES\MIG29\MIG29_H.XFR`, `0x654 I`, `[v>=5] 0x65e F`, Junk(0x1ee\|0x1f7) |
+| Present | 221 3D models | `0x640 S` name, `0x64a S` model path `CONTROLLABLEPLANES\MIG29\MIG29_H.XFR`, `0x654 I`, `[v>=5] 0x65e F` model scale ([world-scale.md](../world-scale.md)), Junk(0x1ee\|0x1f7) |
 | Weapons | 62 | `0x708 S` name "AA-10", `0x712 S` class, … 14 fields `0x708..0x78a` |
 | Actions | 38 AI manoeuvres | `0x64..0xc8` |
 | Audio | 496 | `0x12c S` name, `0x136 S` wav file, `0x140 S` subtitle |
@@ -239,7 +235,8 @@ Full parser: `mis.rs` `parse_bdb`.
 
 ## 5. Coordinates
 
-Mission X/Y/alt are **engine world units** (≈ metres; X east, Y **north**, alt above MSL). The engine's hard-coded
+Mission X/Y/alt are **engine world units**: metres (the ground is real size within 1 %, [georef.md](../georef.md)), X east, Y
+**north**, alt above MSL. The engine's hard-coded
 airbase spawn points (`FUN_0058ed60`, registry `BlueTeam\*`) use the same units:
 
 | base | X | Y | Z | yaw |
@@ -258,8 +255,8 @@ X  = tx * PlaneScalePR + DataXShiftPR ;  Y = DataYShiftPR - ty * PlaneScalePR
 Check: the three bases map to (386608, 437760), (421592, 355623) and (390197, 509729). Each lies inside a level-0
 airbase inset of map.ptt (records 31–33, 28–30, 25–27).
 
-Vertical (open): the same transform divides height by PlaneScale and adds a sea-level offset; this still needs a check
-against the map.ptt elevations.
+Heights: mission altitudes are metres above MSL. map.ptt's raw elevation converts to metres as in
+[ptt.md](ptt.md) "Tile data"; Ramat David's runway is 63.7 m there and 63 in takeoff.mis.
 
 ### Worked example — takeoff.mis ("Engines ON", training mission 311, `brief/txt/311.brl` → "takeoff")
 **Player.** Entity 1 `Player1`: type 1 (f16), side 1, brain -1, X = 356226, Y = 600689, alt 63, heading 150,
@@ -278,7 +275,7 @@ Heading 150° = runway 15.
 - Three invisible `civilhouse` audio markers along the runway (proximity radii 70/85/500 m). They fire events 1–4:
   instructor audio Eagle1–4, bdb audio 211–214.
 - A `sensor` "Win sensor". Its scripts1 chain runs Wait → Play message "GOOD WORK" (audio 23) → Explode; events 3/4
-  start it via the action `(6, -1, 2)`.
+  start it via the action `(6, -1, 2)`. The whole chain at run time: mission-runtime.md §7.
 
 **Header and formation.** Start time 08:00. Formation "Alpha" = member "player" (entity 1), with one waypoint
 "Departure" (347870, 602383, 1000, 900, action 3).
@@ -289,11 +286,8 @@ positions with the airbase spawn table above, adding +1666/+3333/+5000 to the al
 
 ## 6. Open questions
 
-**See [../mission-runtime.md](../mission-runtime.md).** It decodes the runtime: slots, 0x32a role, 0x320 control
-mode, 0x398, the conditions, both script opcode tables, the win/lose rule and the misc audio usage. Where it
-disagrees with the guesses above, it takes precedence.
+[mission-runtime.md](../mission-runtime.md) decodes the runtime and takes precedence over this page. Still open:
 
-- Exact win/lose rule (debrief 0x262 flag? scripted Explode of a `sensor`? misc 0x4e2/0x4ec?).
-- Slot semantics 0/2/3/5, script float args, formation `0x3f2` and waypoint `action`, misc 0x46a/0x474.
-- Whether `0x2f8` for ground entities is absolute MSL (values match terrain) or gets re-clamped.
-- Units of waypoint speed (km/h assumed); whether world units are exactly metres.
+- misc `0x456`, `0x4e2`, `0x4ec`; the slot 3 reader;
+- the script float args of the unused opcodes; the waypoint `action`;
+- the unit of waypoint speed (km/h assumed).

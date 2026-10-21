@@ -8,7 +8,7 @@ three sets that the installer copies straight from the CD:
 - the help files.
 
 The archive is a header string followed by a directory of entries, then the file data. All integers are
-little-endian.
+little-endian. Parser: `crates/iaf-formats/src/esa.rs`.
 
 ```
 "ELECTRONIC_ARTS_ARCHIVE_FILE\0"
