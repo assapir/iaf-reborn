@@ -15,12 +15,11 @@ missile / anti-aircraft guns; STT = single-target track (radar lock); TSD = tact
 STBY / STT / BORE / LRS / TWS / ACM / GMT / MAP are the radar modes (radar.md).
 
 ## Where we are
-- **Playable missions: 60 of 68 by the coverage report** (every feature they need is built; mission-coverage.md).
+- **Playable missions: 61 of 68 by the coverage report** (every feature they need is built; mission-coverage.md).
   - Flown end to end: 311, 312, 315 (bombing).
   - Checked in part: 313 / 322 ground fire; 134 (Delta flight dive-bombs and destroys both P-40 radars) and 406 (the
     AI wingman destroys its target). The player's own targets there were not flown.
-  - Left: the 8 multiplayer missions (511–516, 666, 777); 666 also flies in single player as the Mission Creator's
-    mission.
+  - Left: the 7 multiplayer missions (511–516, 777). 666 flies in single player as the Mission Creator's mission.
 - **Flyable jets:** the Jet list's seven — F-15, F-16, F-4E, F-4 Kurnass 2000, Lavi, Kfir, Mirage (the Jet list or a
   mission's jet; aircraft.md §5); the MiG-23 / MiG-29 with their own cockpits wherever a mission puts the player in
   one (the Mission Creator does; no campaign mission does); our F-35I in one jet's slot (Extras, f35i.md). A mission

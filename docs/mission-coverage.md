@@ -9,7 +9,7 @@ This report lists which of the original missions our engine can play today, and 
 - **Regenerate:** `./target/release/iaf-mission-report assets/converted/missions docs/mission-coverage.md`.
 - **Terms:** AAA = anti-aircraft artillery (guns); AAM = air-to-air missile; bdb = the mission database file; SAM = surface-to-air missile; TSD = tactical situation display (the briefing map).
 
-**Playable today: 60 of 68** (111, 112, 113, 114, 115, 116, 117, 121, 122, 123, 124, 125, 126, 127, 131, 132, 133, 134, 135, 136, 137, 211, 212, 213, 214, 215, 216, 217, 221, 222, 223, 224, 225, 226, 227, 231, 232, 233, 234, 235, 236, 237, 311, 312, 313, 314, 315, 321, 322, 323, 324, 325, 326, 401, 402, 403, 404, 405, 406, 407). Missions the F-16 can fly (its campaign / scramble missions, and the training missions through the Jet list): 68 (all seven Jet list jets fly).
+**Playable today: 61 of 68** (111, 112, 113, 114, 115, 116, 117, 121, 122, 123, 124, 125, 126, 127, 131, 132, 133, 134, 135, 136, 137, 211, 212, 213, 214, 215, 216, 217, 221, 222, 223, 224, 225, 226, 227, 231, 232, 233, 234, 235, 236, 237, 311, 312, 313, 314, 315, 321, 322, 323, 324, 325, 326, 401, 402, 403, 404, 405, 406, 407, 666). Missions the F-16 can fly (its campaign / scramble missions, and the training missions through the Jet list): 68 (all seven Jet list jets fly).
 
 ## 1. Unlock order (greedy)
 
@@ -17,21 +17,21 @@ The order in which to build features so that each step unlocks the most missions
 
 ### 1.1 All missions
 
-Start: **60** playable.
+Start: **61** playable.
 
 | step | add | size | newly playable | cumulative |
 |---|---|---|---|---|
-| 1 | multiplayer session | L | 8 (511, 512, 513, 514, 515, 516, 666, 777) | **68** |
+| 1 | multiplayer session | L | 7 (511, 512, 513, 514, 515, 516, 777) | **68** |
 
 ### 1.2 F-16 only (no other jet)
 
 The same order for the F-16 alone (every other jet left out): the order to build the F-16's missions.
 
-Start: **60** playable.
+Start: **61** playable.
 
 | step | add | size | newly playable | cumulative |
 |---|---|---|---|---|
-| 1 | multiplayer session | L | 8 (511, 512, 513, 514, 515, 516, 666, 777) | **68** |
+| 1 | multiplayer session | L | 7 (511, 512, 513, 514, 515, 516, 777) | **68** |
 
 ### 1.3 Per jet
 
@@ -59,7 +59,6 @@ The missions that lack one to four features (an "or" choice counts once).
 | 514 | Crucial Moments | Lavi (140) | multiplayer session |
 | 515 | Blackhawk Rally | Phantom (200) | multiplayer session |
 | 516 | The Reactor | Kfir (130) | multiplayer session |
-| 666 | Mission Creator | F16 (100) | multiplayer session |
 | 777 | DOG CHASE | F16 (100) | multiplayer session |
 
 ## 2. Most-needed features
@@ -68,7 +67,7 @@ The missing features, most needed first. "needed by" = the missions that list th
 
 | feature | size | needed by | F-16 |
 |---|---|---|---|
-| multiplayer session | L | 8 | 8 |
+| multiplayer session | L | 7 | 7 |
 | no weapon the jet can load kills the targets | M | 0 | 0 |
 
 ## 3. Missions
@@ -143,7 +142,7 @@ One row per mission. Columns: player = default flight's leader type (training: t
 | 514 | crucial moments | Crucial Moments | Lavi (140) | Alpha (1) | 2:Kfir | air, 14:00 | 4 scripted | AIM-9L×1 AMRAAM×1 AMRAAM×1 AGM88×1 AGM88×1 AMRAAM×1 AMRAAM×1 AIM-9L×1 20 MM×235 | no | multiplayer session |
 | 515 | blackhawk raleigh | Blackhawk Rally | Phantom (200) | Alpha (1) | 2:Lavi | air, 05:55 | 2 scripted | MK-83×3 PYTH-3×1 MK-82×6 PYTH-3×1 MK-83×3 20 MM×160 | no | multiplayer session |
 | 516 | the reactor | The Reactor | Kfir (130) | Alpha (1) | 2:F16 | air, 13:00 | 4 air | AIM-9L×1 AIM-9L×1 AIM-9L×1 AIM-9L×1 DEFA×150 | no | multiplayer session |
-| 666 | mission | Mission Creator | F16 (100) | Alpha (1) | 2:F15 | ground, 12:10 | none (cannot be won) | AIM-9L×1 AMRAAM×1 MK-83×3 MK-84×1 MK-84×1 MK-83×3 AMRAAM×1 AIM-9L×1 20 MM×235 | no | multiplayer session |
+| 666 | mission | Mission Creator | F16 (100) | Alpha (1) | 2:F15 | ground, 12:10 | set by the Mission Creator's VICTORY CONDITION | AIM-9L×1 AMRAAM×1 MK-83×3 MK-84×1 MK-84×1 MK-83×3 AMRAAM×1 AIM-9L×1 20 MM×235 | **yes** |  |
 | 777 | allout | DOG CHASE | F16 (100) | Alpha (1) | 2:F15 3:Phantom | air, 12:10 | none (cannot be won) | AIM-9L×1 AMRAAM×1 MK-83×3 MK-84×1 MK-84×1 MK-83×3 AMRAAM×1 AIM-9L×1 20 MM×235 | no | multiplayer session |
 
 ## 4. Rules used (ported from the original)
@@ -151,7 +150,7 @@ One row per mission. Columns: player = default flight's leader type (training: t
 * **Player aircraft.** At mission load the player object is the leader of flight 1, else of flights 2..4
   (`FUN_004bb439` asks the flight map for 1, then 2..4). The TSD's default flight is the formation holding it
   (`FUN_005bcd70`, docs/front-end.md §8).
-  * A flight is formation `0x3f2` 1..4. Its leader is member 0 (`FUN_005bcb40`).
+  * A flight is formation `0x3f2` 1..4. Its leader is member 0 if placed, else member 1.
   * Campaign and scramble missions have no `Player1`: the player flies that leader's bdb type (`0x5b4`).
   * Training missions 311–326 except 325 are entered through the Jet list and load the chosen jet (`FUN_004c2e30`;
     jets disabled per mission by `FUN_00509b80`), so any allowed jet flies them.
@@ -163,7 +162,8 @@ One row per mission. Columns: player = default flight's leader type (training: t
   * A role-1 entity with Explode (trigger op 5) in its own scripts is destroyed by the mission ("scripted").
   * Every other one must be killed. Aircraft / helicopters that move (brain-controlled, or a Path / Turn script) are
     air targets; everything else (buildings, parked aircraft, vehicles, runway "fire sensors") is a ground target.
-  * A mission with no role-1 entity can never be won automatically (the multiplayer 666 / 777).
+  * A mission with no role-1 entity can never be won automatically (the multiplayer 777). 666 is the Mission Creator's
+  template: FLY makes its targets from the VICTORY CONDITION (By Kills: the red jets; docs/front-end.md §19).
 * **Weapons.** The report sorts the player's default loadout (pylons 0–8 from the entity's `CArmament` when any is
   set, else the type's; 9–11 from the type) by bdb Weapons type `0x780`:
   * 565 gun, 570/580 IR AAM, 600/610 radar AAM, 500/510 bombs, 560 rockets, 650 laser-guided, 635/640 TV / IR
@@ -197,8 +197,9 @@ One row per mission. Columns: player = default flight's leader type (training: t
   after 20:00, docs/rendering.md §4): 05:xx starts are dawn.
 * **Scripts**: trigger ops the runtime implements: 3–8, 10–19, 21, 22, 23, 26; motion: 1 Hover, 16 Path. Event
   conditions never take effect in the shipped missions (docs/mission-runtime.md §3.1).
-* **Multiplayer**: 511–516 and 666 / 777 are multiplayer ids (the 0x1ff–0x207 range, 0x29a; 777 has sixteen
-  `PlayerN` slots). The report analyses them like the others, plus a "multiplayer session" feature.
+* **Multiplayer**: 511–516 and 777 are multiplayer ids (the 0x1ff–0x207 range; 777 has sixteen `PlayerN` slots).
+  The report analyses them like the others, plus a "multiplayer session" feature. 666 (0x29a) is the Mission
+  Creator's mission; single player flies it (docs/front-end.md §19).
 
 ## 5. What this report cannot know
 

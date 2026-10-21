@@ -294,7 +294,8 @@ fn analyse(dir: &Path, id: i64, names: &[String], bdbs: &mut BTreeMap<String, Bd
     let misc = items(main, "misc").next().cloned().unwrap_or(Value::Null);
     let title = misc["0x44c"].as_str().unwrap_or("").to_string();
     let mut clauses: Vec<Clause> = Vec::new();
-    let mp = (500..600).contains(&id) || id == 666 || id == 777;
+    // 666 (0x29a) is the Mission Creator's template: single player flies it through FLY (docs/front-end.md §19).
+    let mp = (500..600).contains(&id) || id == 777;
     if mp {
         clauses.push(one(F_MP));
     }
@@ -608,7 +609,11 @@ fn analyse(dir: &Path, id: i64, names: &[String], bdbs: &mut BTreeMap<String, Bd
             targets.push(format!("{n} {what}"));
         }
     }
-    let targets = if targets.is_empty() { "none (cannot be won)".to_string() } else { targets.join(", ") };
+    let targets = match (targets.is_empty(), id) {
+        (true, 666) => "set by the Mission Creator's VICTORY CONDITION".to_string(),
+        (true, _) => "none (cannot be won)".to_string(),
+        _ => targets.join(", "),
+    };
     let mut seen = BTreeSet::new();
     clauses.retain(|c| seen.insert(c.clone()));
     Ok(Mission {
@@ -871,7 +876,8 @@ const NOTES: &str = r#"
   * A role-1 entity with Explode (trigger op 5) in its own scripts is destroyed by the mission ("scripted").
   * Every other one must be killed. Aircraft / helicopters that move (brain-controlled, or a Path / Turn script) are
     air targets; everything else (buildings, parked aircraft, vehicles, runway "fire sensors") is a ground target.
-  * A mission with no role-1 entity can never be won automatically (the multiplayer 666 / 777).
+  * A mission with no role-1 entity can never be won automatically (the multiplayer 777). 666 is the Mission Creator's
+  template: FLY makes its targets from the VICTORY CONDITION (By Kills: the red jets; docs/front-end.md §19).
 * **Weapons.** The report sorts the player's default loadout (pylons 0–8 from the entity's `CArmament` when any is
   set, else the type's; 9–11 from the type) by bdb Weapons type `0x780`:
   * 565 gun, 570/580 IR AAM, 600/610 radar AAM, 500/510 bombs, 560 rockets, 650 laser-guided, 635/640 TV / IR
@@ -905,8 +911,9 @@ const NOTES: &str = r#"
   after 20:00, docs/rendering.md §4): 05:xx starts are dawn.
 * **Scripts**: trigger ops the runtime implements: 3–8, 10–19, 21, 22, 23, 26; motion: 1 Hover, 16 Path. Event
   conditions never take effect in the shipped missions (docs/mission-runtime.md §3.1).
-* **Multiplayer**: 511–516 and 666 / 777 are multiplayer ids (the 0x1ff–0x207 range, 0x29a; 777 has sixteen
-  `PlayerN` slots). The report analyses them like the others, plus a "multiplayer session" feature.
+* **Multiplayer**: 511–516 and 777 are multiplayer ids (the 0x1ff–0x207 range; 777 has sixteen `PlayerN` slots).
+  The report analyses them like the others, plus a "multiplayer session" feature. 666 (0x29a) is the Mission
+  Creator's mission; single player flies it (docs/front-end.md §19).
 
 ## 5. What this report cannot know
 
