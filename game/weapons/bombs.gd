@@ -8,13 +8,19 @@ extends RefCounted
 ## The terrain height where none is loaded (0x60ce14).
 const NO_GROUND := 0.1
 
+## The air mass (m/s, this frame) for Better physics `wind`: the bombing computer knows it and the stores drift with
+## it (terrain_view.gd `apply_wind`); zero is the original.
+static var wind := Vector3.ZERO
+
 
 ## FUN_0045e7f0 (the HUD's predicted impact, with the terrain ray FUN_0045ed40; `cockpit`: the
 ## cockpit-like views 1 / 5 / 0x12 / 0x16): {point, t}.
 static func predict_impact(
 	p: Vector3, vel: Vector3, nose: Vector3, drag: float, extra: float, ground: Callable, cockpit := true
 ) -> Dictionary:
-	return ClassDB.class_call_static("IafBomb", "predict_impact", p, vel, nose, drag, extra, cockpit, ground)
+	return ClassDB.class_call_static(
+		"IafBomb", "predict_impact", p, vel, nose, Vector2(drag, extra), cockpit, wind, ground
+	)
 
 
 ## FUN_0045e330: the later root of h + vz·t − 4.903·t² = 0 (0 when there is none).
@@ -34,7 +40,7 @@ static func ripple_line(p: Vector3, qty: int, spacing: float, heading_rad: float
 
 ## The falling store toward `aim` (the solver FUN_005611b0), the along-track correction clamped to ±`clamp_acc`.
 static func launch(now: float, p: Vector3, v: Vector3, aim: Vector3, clamp_acc: float) -> Dictionary:
-	return ClassDB.class_call_static("IafBomb", "launch", now, p, v, aim, clamp_acc)
+	return ClassDB.class_call_static("IafBomb", "launch", now, p, v, aim, clamp_acc, wind)
 
 
 static func position(b: Dictionary, now: float) -> Vector3:

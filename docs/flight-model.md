@@ -677,7 +677,13 @@ throttle rules and preferences follow §15 (checklist §15.11). These items stil
       half that, below 300 m above the terrain, falling linearly to 30 % of that at 1500 m and above; three sines per
       axis (0.17, 0.43, 1.1 Hz). Calm air has none. 20 kt at low level: ≈ 1 m/s vertical. They are applied at the
       5 Hz and 1 Hz updates.
-    * Only the player's jet: the AI jets, weapons, smoke and the clouds (front-end.md §12.4) stay in still air.
+    * The AI jets fly in the same air (`terrain_view.gd` `ai_wind`): of the Better physics set they get only this
+      option, its gusts included. In a wind the autopilot's loops (the AI's and the player's A key) steer the ground
+      track (`ap_view`'s heading = the track: an INS-coupled autopilot), so the nose crabs into the wind and the
+      track holds the line to the waypoint (test `crabs_to_its_waypoint_in_a_crosswind`).
+    * Bombs drift by their drag, and the bombing computer knows the wind (CCIP moves downwind, the release aims
+      upwind): weapons.md §9.5. Gun rounds, rockets and missiles fly in still air (the drift of a round or a missile
+      in its few seconds is under a metre or corrected by its guidance); smoke and the clouds do not drift.
     * Test `wind_moves_the_air_mass`: off and calm fly as the original; on, the airspeed is kept when the wind
       starts, the track drifts 20 kt × 20 s east in a west wind, and the gusts move the jet 3 × as much at 250 m as
       at 2000 m.

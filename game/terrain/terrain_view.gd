@@ -14,6 +14,7 @@
 extends Node3D
 
 ## Screenshot runs give up waiting for terrain after this long.
+const Bombs := preload("res://weapons/bombs.gd")
 const SCREENSHOT_TIMEOUT_MS := 20000
 
 @onready var terrain: Node3D = $Terrain
@@ -267,6 +268,7 @@ var time_factor := 1
 
 
 func _ready() -> void:
+	Bombs.wind = Vector3.ZERO  # apply_wind sets it for this mission
 	Joystick.consumer = self
 	# Graphics page SHADOWS (our renderer's sun shadows; the original's shadow method is not used).
 	($Sun as DirectionalLight3D).shadow_enabled = Settings.shadows
@@ -1563,11 +1565,27 @@ func _apply_player_prefs() -> void:
 	apply_wind()
 
 
-## Better physics "Wind and turbulence": the tower's wind (radio.gd, picked at the radio's start) moves the air mass;
-## NO WIND calms it (docs/flight-model.md §10).
+## Better physics "Wind and turbulence": the tower's wind (radio.gd, picked at the radio's start) moves the air mass
+## for the player, the AI jets (only this option of the set) and the bombs; NO WIND calms it (docs/flight-model.md
+## §10).
 func apply_wind() -> void:
-	if flight != null and radio != null:
-		flight.set_wind(0.0 if Settings.no_wind else float(radio.wind), float(radio.wind_from))
+	if flight == null or radio == null:
+		return
+	wind_kt = 0.0 if Settings.no_wind else float(radio.wind)
+	wind_from = float(radio.wind_from)
+	flight.set_wind(wind_kt, wind_from)
+	var on: bool = _all_better or Settings.better.get("wind", false)
+	var from := deg_to_rad(wind_from)
+	Bombs.wind = Vector3(-sin(from), -cos(from), 0.0) * wind_kt * 1852.0 / 3600.0 if on else Vector3.ZERO
+	if ai != null:
+		for p in ai.pilots:
+			ai_wind(p.flight)
+
+
+## The AI jets' share of Better physics: the wind only.
+func ai_wind(f) -> void:
+	f.set_better_option("wind", _all_better or Settings.better.get("wind", false))
+	f.set_wind(wind_kt, wind_from)
 
 
 ## The player's autopilot runs the AI's control loops on this jet: [Autopilot] of bd.ibx, the airbases, the
@@ -3134,6 +3152,9 @@ var scripted_stick = null
 var scripted_rudder = null
 ## --better: every "better physics" option on.
 var _all_better := OS.get_cmdline_user_args().has("--better")
+## The mission's wind as the radio picked it (apply_wind).
+var wind_kt := 0.0
+var wind_from := 0.0
 ## --freeze: don't advance the flight model (for posed test captures).
 var frozen := false
 

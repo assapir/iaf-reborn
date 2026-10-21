@@ -37,19 +37,20 @@ pub struct IafBomb {}
 
 #[godot_api]
 impl IafBomb {
-    /// `FUN_0045e7f0`: {point, t}.
+    /// `FUN_0045e7f0`: {point, t}. `wind`: Better physics `wind` (zero: the original).
     #[func]
     fn predict_impact(
         p: Vector3,
         vel: Vector3,
         nose: Vector3,
-        drag: f64,
-        extra: f64,
+        drag_extra: Vector2,
         cockpit: bool,
+        wind: Vector3,
         ground: Callable,
     ) -> VarDictionary {
+        let de = (drag_extra.x.into(), drag_extra.y.into());
         let (i, t) =
-            bombs::predict_impact(vec3(p), vec3(vel), vec3(nose), drag, extra, cockpit, &terrain(Some(ground)));
+            bombs::predict_impact(vec3(p), vec3(vel), vec3(nose), de, cockpit, vec3(wind), &terrain(Some(ground)));
         vdict! { "point" => vector3(i), "t" => t }
     }
 
@@ -68,10 +69,10 @@ impl IafBomb {
             .collect()
     }
 
-    /// The falling store's state at launch.
+    /// The falling store's state at launch; `wind`: Better physics `wind` (zero: the original).
     #[func]
-    fn launch(now: f64, p: Vector3, v: Vector3, aim: Vector3, clamp_acc: f64) -> VarDictionary {
-        bomb_dict(&Bomb::launch(now, vec3(p), vec3(v), vec3(aim), clamp_acc))
+    fn launch(now: f64, p: Vector3, v: Vector3, aim: Vector3, clamp_acc: f64, wind: Vector3) -> VarDictionary {
+        bomb_dict(&Bomb::launch(now, vec3(p), vec3(v), vec3(aim), clamp_acc, vec3(wind)))
     }
 
     #[func]

@@ -17,6 +17,13 @@ pub const G: f32 = 9.806;
 const LBF: f32 = 4.4479;
 /// One knot in m/s (1852 m / h), for the mission's wind.
 const KT: f32 = 1852.0 / 3600.0;
+
+/// The mission's wind as a velocity (ENU m/s, level): `knots` blowing from `from_deg` (true, meteorological).
+pub fn wind(knots: f32, from_deg: f32) -> Vec3 {
+    let (s, c) = from_deg.to_radians().sin_cos();
+    let w = knots * KT;
+    Vec3::new((-w * s) as f64, (-w * c) as f64, 0.0)
+}
 /// Aero data refresh (plus every control event).
 const AERO_PERIOD: f64 = 1.0;
 /// Acceleration / rate refresh.
@@ -906,9 +913,7 @@ impl Aircraft {
 
     /// The mission's wind (Better physics `wind`): `knots` blowing from `from_deg` (true, meteorological).
     pub fn set_wind(&mut self, knots: f32, from_deg: f32) {
-        let (s, c) = from_deg.to_radians().sin_cos();
-        let w = knots * KT;
-        self.wind = Vec3::new((-w * s) as f64, (-w * c) as f64, 0.0);
+        self.wind = wind(knots, from_deg);
         self.carry_wind();
     }
 
@@ -2436,13 +2441,20 @@ impl Aircraft {
         let s2 = h2 + v[2] * v[2];
         let path = if h2 > 1e-6 && s2 > 1e-6 { (a[2] * s2 - v[2] * v.dot(a)) / (s2 * h2.sqrt()) } else { 0.0 };
         let p = &self.params;
+        // In a wind the loops steer the ground track (an INS-coupled autopilot): the nose crabs into the wind and the
+        // track holds the line to the point. In still air the track is the flight path.
+        let mut att = self.attitude_ab(t, false);
+        let g = v + self.carried;
+        if !self.on_ground && self.carried != Vec3::ZERO && g[0].hypot(g[1]) > 0.5 {
+            att.heading = g[0].atan2(g[1]) as f32;
+        }
         ApView {
             t,
             pos: self.position_at(t),
             vel: v,
             acc: a,
             speed,
-            att: self.attitude_ab(t, false),
+            att,
             rates: [path as f32, self.roll.sample(t).1, turn as f32],
             max_roll_rate: p.max_roll_rate,
             max_g: p.max_g_m1 + 1.0,

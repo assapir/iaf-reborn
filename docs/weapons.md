@@ -685,6 +685,14 @@ Fields: +0xc impact I, +0x18 target T, +0x24 / +0x28 the pipper's screen point, 
   s as a small fire (0x10000000) and every odd one adds a smoke column (0x800, 5 s); the flag ends when age /
   duration ≥ 1 (`_DAT_005ff288`). Visual only: the damage is the one blast.
 
+- **Wind** (Better physics `wind`, ours; flight-model.md §10). The store drifts by Didion's lag rule
+  (`iaf_avionics::air::drift`): it lags t − x/s₀ behind its drag-free self, and the wind times that lag is its
+  drift. For the falling store the along-track deceleration a gives a constant drift acceleration −a / |v_h| · wind.
+  The bombing computer knows the wind: the HUD impact (`predict_impact`) moves downwind by that drift, and the
+  release (`Bomb::launch`) aims the still-air solution upwind, so the store lands on the aim and its fall bends
+  downwind (test `the_wind_drifts_the_bomb_and_ccip_follows`). The AI's drops use the same solver. `bombs.gd`
+  `wind` carries it (set by `terrain_view.gd` `apply_wind`, zero with the switch off).
+
 ### 9.6 Bombs jettison (Shift+C after the tanks, `FUN_00458d10`, once, `W+0xbc`)
 It works only with the release permission (§9.2), and Unlimited ammo is off during the loop.
 - Stations 0..8 with a bomb type 500 / 510 / 650 (rockets 560 stay) release every round.

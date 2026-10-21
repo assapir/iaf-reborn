@@ -89,6 +89,37 @@ fn follows_its_route() {
     assert!((s.speed - 275.0).abs() < 40.0, "cruise 275 m/s without ETAs ({})", s.speed);
 }
 
+/// Better physics `wind` on an AI jet: a 40 kt wind from the west. The autopilot steers the ground track, so the jet
+/// crabs into the wind (nose left of north) and its track holds the line to the waypoint 40 km north.
+#[test]
+fn crabs_to_its_waypoint_in_a_crosswind() {
+    let Some(inst) = install() else { return };
+    let mut ac = jet(&inst, "MIG29", Vec3::new(0.0, 0.0, 3000.0), 0.0, true);
+    ac.set_better_option("wind", true);
+    ac.set_wind(40.0, 270.0);
+    let mut ap = Autopilot::new(Config::load(&inst));
+    ap.route = vec![
+        Waypoint { x: 0.0, y: 40000.0, z: 3000.0, t: 0.0, action: 3 },
+        Waypoint { x: 0.0, y: 80000.0, z: 3000.0, t: 0.0, action: 3 },
+    ];
+    ap.set_mode(&mut ac, 7);
+    let (mut closest, mut off_track, mut crab) = (f64::MAX, 0.0f64, 0.0f32);
+    for t in 0..140 {
+        fly(&mut ac, &mut ap, 1.0, 0.0);
+        let s = ac.state();
+        closest = closest.min(s.position[0].hypot(s.position[1] - 40000.0));
+        if t > 30 && s.position[1] < 35000.0 {
+            off_track = off_track.max(s.position[0].abs());
+            crab = (s.heading.to_degrees() + 180.0).rem_euclid(360.0) - 180.0;
+        }
+    }
+    // The crab angle: asin(20.6 / ~280) ≈ 4°.
+    println!("closest {closest:.0} m, off track {off_track:.0} m, crab {crab:.1}°");
+    assert!(closest < 1000.0, "reached the waypoint ({closest:.0} m)");
+    assert!(off_track < 300.0, "the track holds the line ({off_track:.0} m off)");
+    assert!((-6.0..-2.5).contains(&crab), "crabbed into the wind: {crab:.1}°");
+}
+
 #[test]
 fn keeps_close_formation() {
     let Some(inst) = install() else { return };

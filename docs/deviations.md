@@ -132,7 +132,8 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   - **"Wind and turbulence"** (`wind`). Original: still air; the mission's wind (misc 0x46a) is only spoken by the
     tower, and NO WIND has no effect but the score. Ours, with the switch: the tower's wind, from the mission's misc
     0x474 direction, moves the air mass (airspeed vs ground speed, drift, crab on a crosswind approach), with light
-    gusts strongest below 300 m; NO WIND calms it — flight-model.md §10.
+    gusts strongest below 300 m; NO WIND calms it — flight-model.md §10. The AI jets fly in the same wind, the
+    autopilots crab, and bombs drift with a wind-aware CCIP — weapons.md §9.5.
   - **"Engine spool-up per real engine"** (`engine_spool`). Original: the thrust follows the throttle at once; only
     the RPM gauge ramps (15 %/s) and the afterburner waits for that ramp. Ours, with the switch: the player's thrust
     and RPM gauge follow the jet's real engine (core lag, slower at low RPM, then the afterburner's light-off and

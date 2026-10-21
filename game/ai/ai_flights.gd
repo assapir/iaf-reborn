@@ -287,6 +287,8 @@ func _start(p: Pilot, install: String, plane: String) -> bool:
 		push_warning("AI %s: %s" % [p.ent.name, err])
 		return false
 	flight.set_ai(host.enemy_of_player(p.ent), int(host.mission_pref("ai_level")))
+	if host.has_method("ai_wind"):
+		host.ai_wind(flight)
 	flight.ap_setup(install, host.terrain.world_origin.x, host.terrain.world_origin.y)
 	flight.ap_set_ground(
 		func(pos: Vector3):

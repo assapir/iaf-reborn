@@ -2,6 +2,7 @@
 //! falling store, the original's ballistic class 0x16 (solver `FUN_005611b0`, motion `FUN_00468470`, impact check
 //! `FUN_00561750`). World frame X east, Y north, Z up, metres, sim seconds.
 
+use crate::air;
 use crate::vec3::Vec3;
 
 /// ½g and g of the impact solvers (0x601414 4.903, 0x60cde0 −19.612, 0x60cdf0 1/9.806).
@@ -90,20 +91,22 @@ pub fn sight_ray(eye: Vec3, p: Vec3, terrain: &dyn Fn(Vec3) -> Option<f64>) -> O
     None
 }
 
-/// `FUN_0045e7f0` (the HUD's predicted impact) and its fall time: V = the jet's velocity, minus the store's bdb drag
+/// `FUN_0045e7f0` (the HUD's predicted impact) and its fall time: V = the jet's velocity, minus the store's bdb `drag`
 /// (0x73a) as m/s along the nose, plus `extra` m/s along the nose (rockets: _limitVel); t to the terrain under the
 /// jet, I = P + V·t − (0, 0, 4.903·t²); then once more for the terrain under I, whose height I takes. Then the
 /// terrain ray P → I (`FUN_0045ed40`: in the cockpit views 1 / 5 / 0x12 / 0x16 `sight_ray`, else `terrain_ray`
 /// with both ends 1.5 m up): a hit H is the impact (fall time to the terrain under H); a second ray P → the impact
 /// solved for that height, if it hits too, moves it to that hit, on the terrain. A hill in front of the impact
-/// takes the pipper.
+/// takes the pipper. `wind` (Better physics `wind`, ours; zero: the original): the bombing computer knows the wind,
+/// and the impact moves downwind by the drag's Didion drift ([`air::drift`]): the store covers |V_h|·t of the
+/// jet's |vel_h|·t, a lag growing linearly with t, so the drift is a velocity added to V.
 pub fn predict_impact(
     p: Vec3,
     vel: Vec3,
     nose: Vec3,
-    drag: f64,
-    extra: f64,
+    (drag, extra): (f64, f64),
     cockpit: bool,
+    wind: Vec3,
     terrain: &dyn Fn(Vec3) -> Option<f64>,
 ) -> (Vec3, f64) {
     let mut v = vel;
@@ -113,6 +116,7 @@ pub fn predict_impact(
     if drag > 0.0 {
         v = v - nose * drag;
     }
+    v += air::drift(wind, 1.0, v.x.hypot(v.y), vel.x.hypot(vel.y));
     let at = |t: f64| p + v * t - Vec3::UP * (HALF_G * t * t);
     let mut t = fall_time(v.z, p.z - height(terrain, p));
     let mut i = at(t);
@@ -174,7 +178,27 @@ impl Bomb {
     /// The ballistic motion (the solver `FUN_005611b0` at launch): the horizontal velocity is turned toward the aim
     /// (speed kept), the fall time to the aim's height fixes the along-track acceleration that lands it on the aim,
     /// clamped to ±`clamp_acc` (the player's bombs in single player: _debugParam016 15 m/s²; 0 = none).
-    pub fn launch(now: f64, p: Vec3, v: Vec3, aim: Vec3, clamp_acc: f64) -> Self {
+    ///
+    /// `wind` (Better physics `wind`, ours; zero: the original): the store's along-track deceleration a makes it lag
+    /// −½·a·t² / |v_h| (Didion, [`air::drift`]), so the wind adds the constant acceleration −a / |v_h| · wind. The
+    /// release computer knows the wind: the still-air solution aims that drift upwind of the aim, which the store
+    /// still meets.
+    pub fn launch(now: f64, p: Vec3, v: Vec3, aim: Vec3, clamp_acc: f64, wind: Vec3) -> Self {
+        let b = Self::solve(now, p, v, aim, clamp_acc);
+        let vh = v.x.hypot(v.y);
+        if wind == Vec3::ZERO || vh <= 0.0 {
+            return b;
+        }
+        let along = (b.acc.x * b.v0.x + b.acc.y * b.v0.y) / vh;
+        let acc_w = wind * ((-along).max(0.0) / vh);
+        let t = b.end - now;
+        let mut b = Self::solve(now, p, v, aim - acc_w * (0.5 * t * t), clamp_acc);
+        b.aim = aim;
+        b.acc += acc_w;
+        b
+    }
+
+    fn solve(now: f64, p: Vec3, v: Vec3, aim: Vec3, clamp_acc: f64) -> Self {
         let flat = Vec3::new(aim.x - p.x, aim.y - p.y, 0.0);
         let dist = flat.length();
         let vh = v.x.hypot(v.y);
@@ -277,9 +301,9 @@ mod tests {
                 Vec3::new(0.0, 0.0, 1000.0),
                 Vec3::new(0.0, 200.0, 0.0),
                 Vec3::NORTH,
-                0.0,
-                0.0,
+                (0.0, 0.0),
                 cockpit,
+                Vec3::ZERO,
                 FLAT,
             );
             assert!((t - (1000.0f64 / HALF_G).sqrt()).abs() < 1e-9);
@@ -296,9 +320,9 @@ mod tests {
                 Vec3::new(0.0, 0.0, 1000.0),
                 Vec3::new(0.0, 200.0, 0.0),
                 Vec3::NORTH,
-                0.0,
-                0.0,
+                (0.0, 0.0),
                 cockpit,
+                Vec3::ZERO,
                 hill,
             );
             assert!((1500.0..1700.0).contains(&i.y), "{cockpit} {i:?}");
@@ -309,10 +333,31 @@ mod tests {
     #[test]
     fn the_bomb_lands_on_its_aim() {
         let aim = Vec3::new(0.0, 3000.0, 0.0);
-        let mut b = Bomb::launch(0.0, Vec3::new(0.0, 0.0, 1000.0), Vec3::new(0.0, 200.0, 0.0), aim, 0.0);
+        let mut b = Bomb::launch(0.0, Vec3::new(0.0, 0.0, 1000.0), Vec3::new(0.0, 200.0, 0.0), aim, 0.0, Vec3::ZERO);
         assert!(b.position(b.end).distance(aim) < 1e-6);
         let (p, _) = (0..100).find_map(|k| b.check(k as f64 * 0.5, FLAT, true, 0.0)).unwrap();
         assert!(p.distance(aim) < 60.0, "{p:?}");
+    }
+
+    /// Better physics `wind`: a 20 kt wind from the west moves a draggy store's CCIP impact east by the Didion drift,
+    /// and the store released at that pipper lands on it, its fall bent downwind.
+    #[test]
+    fn the_wind_drifts_the_bomb_and_ccip_follows() {
+        let (p, vel) = (Vec3::new(0.0, 0.0, 1000.0), Vec3::new(0.0, 200.0, 0.0));
+        let wind = iaf_flight::aircraft::wind(20.0, 270.0);
+        let ccip = |w: Vec3| predict_impact(p, vel, Vec3::NORTH, (30.0, 0.0), false, w, FLAT);
+        let ((still, t), (windy, tw)) = (ccip(Vec3::ZERO), ccip(wind));
+        // Lag t·(1 − 170 / 200) = 0.15·t.
+        let expect = wind.x * 0.15 * t;
+        assert!((windy.x - still.x - expect).abs() < 1e-6 && (windy.y - still.y).abs() < 1e-6, "{windy:?} {still:?}");
+        assert!(tw == t && expect > 20.0, "fall {t} s, drift {expect} m");
+        let mut b = Bomb::launch(0.0, p, vel, windy, 15.0, wind);
+        let still_b = Bomb::launch(0.0, p, vel, still, 15.0, Vec3::ZERO);
+        assert!(b.position(b.end).distance(windy) < 1e-6, "lands on the pipper");
+        let mid = b.position(0.5 * t) - still_b.position(0.5 * t);
+        assert!((mid.x - 0.25 * expect).abs() < 0.05 * expect, "the drift grows as t²: {mid:?}");
+        let (hit, _) = (0..100).find_map(|k| b.check(k as f64 * 0.5, FLAT, true, 0.0)).unwrap();
+        assert!(hit.distance(windy) < 60.0, "{hit:?}");
     }
 
     #[test]
