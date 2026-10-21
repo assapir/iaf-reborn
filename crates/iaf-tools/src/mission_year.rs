@@ -264,6 +264,40 @@ pub fn year_issues(mission: &Value, year: f64, what_if: bool) -> Vec<Issue> {
     out
 }
 
+/// The TSD map an original draws (`tsd.gd setup`, `FUN_004ffba0`): 67 for missions 110–119, 73 for 120–129, else 82.
+pub fn map_of(source: i64) -> i64 {
+    match source {
+        110..=119 => 67,
+        120..=129 => 73,
+        _ => 82,
+    }
+}
+
+/// The source a mission on `source` takes when its year becomes `year`: `source` while the year's map is its map,
+/// else the year's original ([`source_for`]), so the TSD draws the year's borders.
+pub fn year_map_source(source: i64, year: f64) -> i64 {
+    let s = source_for(year);
+    if map_of(s) == map_of(source) { source } else { s }
+}
+
+/// The base missions whose side does not match who holds the base in `year`: `bases` is (base mission name, the side
+/// of its units, 1 blue / 2 red); a flipped copy is named `<stem>_flipped`. Warnings for the mission as a whole.
+pub fn base_issues(bases: &[(String, i64)], year: f64) -> Vec<Issue> {
+    let side = |s: i64| if s == 1 { "blue" } else { "red" };
+    bases
+        .iter()
+        .filter_map(|(name, s)| {
+            let b = base(name.strip_suffix("_flipped").unwrap_or(name))?;
+            let o = owner(b, year);
+            (o != 0 && (*s == 1 || *s == 2) && o != *s).then(|| Issue {
+                id: -1,
+                level: "warning",
+                text: format!("{}: {} holds it in {}, but its base is {}", b.name, side(o), label(year), side(*s)),
+            })
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -301,6 +335,15 @@ mod tests {
         assert_eq!(default_year(512), 1998.0);
         assert_eq!(years().len(), 33);
         assert_eq!(label(1967.0), "1967 (the Six-Day War)");
+        assert_eq!(year_map_source(512, 1990.0), 512, "the 1982 map already");
+        assert_eq!(year_map_source(512, 1973.0), 121);
+        assert_eq!(year_map_source(115, 1966.0), 115, "111–117 draw the 1967 map");
+        assert_eq!(year_map_source(121, 1998.0), 231);
+        let b = |n: &str, s| (n.to_string(), s);
+        let i = base_issues(&[b("bmisrfdim", 1), b("bmistlnf", 1), b("bmisrfdim_flipped", 2)], 1966.0);
+        assert_eq!(i.len(), 1, "{i:?}");
+        assert_eq!(i[0].text, "Refidim: red holds it in 1966, but its base is blue");
+        assert!(base_issues(&[b("bmisrfdim", 1)], 1990.0).is_empty(), "nobody's: the flight check warns");
     }
 
     #[test]

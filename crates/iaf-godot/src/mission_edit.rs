@@ -8,6 +8,7 @@ use std::sync::{LazyLock, Mutex};
 use godot::prelude::*;
 use iaf_formats::terrain_types::TerrainTypes;
 use iaf_tools::mission_edit as me;
+use iaf_tools::mission_sanity as ms;
 use iaf_tools::mission_year as my;
 use serde_json::{Map, Value, json};
 
@@ -219,5 +220,68 @@ impl IafMissionEdit {
         let issues: Vec<Value> =
             me::check(&parse(&mission), bdb, h, types.as_ref()).iter().map(me::Issue::to_json).collect();
         text(&json!(issues))
+    }
+
+    // --- the sanity check, copy / paste, the year's map (docs/mission-editor.md §16, §17, §12) ---
+
+    /// The sanity check (mission_sanity::sanity_issues): a JSON array of {id, level "warning", text}; none without
+    /// the converted bdb.
+    #[func]
+    fn sanity(mission: GString) -> GString {
+        let mut d = DATA.lock().unwrap();
+        d.load();
+        let Some(bdb) = &d.bdb else { return text(&json!([])) };
+        let install = d.assets.join("install");
+        text(&json!(
+            ms::sanity_issues(&parse(&mission), bdb, &install).iter().map(me::Issue::to_json).collect::<Vec<_>>()
+        ))
+    }
+
+    /// {"mission", "ids"}: copies of the JSON array `entities` moved by (dx, dy) m, new ids, a ground unit at the
+    /// terrain's height (mission_edit::paste_group).
+    #[func]
+    fn paste_group(mission: GString, entities: GString, dx: f64, dy: f64) -> GString {
+        let mut d = DATA.lock().unwrap();
+        d.load();
+        let ents = parse(&entities).as_array().cloned().unwrap_or_default();
+        let Data { heights, bdb, .. } = &mut *d;
+        let air = |e: &Value| {
+            let o = bdb.as_ref().and_then(|b| {
+                b["objects"]["items"]
+                    .as_array()?
+                    .iter()
+                    .find(|o| o["0x1e"].as_i64() == e["0x2c6"].as_f64().map(|f| f as i64))
+            });
+            o.and_then(|o| o["0x5aa"].as_f64()).is_some_and(|c| [2.0, 3.0, 28.0].contains(&c))
+        };
+        let (m, ids) = me::paste_group(parse(&mission), &ents, dx, dy, |e, x, y| {
+            if air(e) { None } else { heights.as_mut().and_then(|h| h.ground_height(x, y)) }
+        });
+        text(&json!({"mission": m, "ids": ids}))
+    }
+
+    /// Removes the formation at index `index` of formations.items (an enemy flight too) and its jets.
+    #[func]
+    fn remove_formation(mission: GString, index: i64) -> GString {
+        text(&me::remove_formation(parse(&mission), usize::try_from(index).unwrap_or(usize::MAX)))
+    }
+
+    /// The source for `year` (mission_year::year_map_source): `source`, or the year's original when the year's TSD
+    /// map differs.
+    #[func]
+    fn year_map_source(source: i64, year: f64) -> i64 {
+        my::year_map_source(source, year)
+    }
+
+    /// The base missions whose side does not fit `year`: `bases` JSON [[name, side]]; a JSON array of issues.
+    #[func]
+    fn base_issues(bases: GString, year: f64) -> GString {
+        let b: Vec<(String, i64)> = parse(&bases)
+            .as_array()
+            .into_iter()
+            .flatten()
+            .map(|x| (x[0].as_str().unwrap_or("").to_string(), x[1].as_f64().unwrap_or(0.0) as i64))
+            .collect();
+        text(&json!(my::base_issues(&b, year).iter().map(me::Issue::to_json).collect::<Vec<_>>()))
     }
 }

@@ -15,6 +15,7 @@ pub mod mis;
 pub mod mission_creator;
 pub mod mission_edit;
 pub mod mission_intel;
+pub mod mission_sanity;
 pub mod mission_year;
 pub mod pack;
 pub mod patch;

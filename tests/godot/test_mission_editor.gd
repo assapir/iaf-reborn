@@ -39,6 +39,16 @@ func run() -> void:
 	)
 	check(real.size() == 2 and ed.fly_flight() == 1, "New: Alpha's 2 jets only, Alpha flyable (%d units)" % real.size())
 	check(FileAccess.file_exists(DIR.path_join("scratch_1.json")) and ed.source == 231, "New saves scratch_1.json")
+	# The side panel keeps its width on every tab, so the map does not move.
+	var tabs: TabContainer = ed.find_children("*", "TabContainer", true, false)[0]
+	var widths := []
+	for i in tabs.get_tab_count():
+		tabs.current_tab = i
+		await frames(2)
+		widths.append(ed.host.size.x)
+	check(
+		widths.all(func(w): return is_equal_approx(w, widths[0])), "the map keeps its width on every tab %s" % [widths]
+	)
 	# 1973 from Refidim (Sinai), a lone Mirage: Refidim's base mission comes with it and is kept by Save / Open.
 	ed.new_mission("Scratch 2", 1973.0, "Refidim", 47, false)
 	real = ed.data.entities.items.filter(func(e): return int(e["0x14"]) == 0)
