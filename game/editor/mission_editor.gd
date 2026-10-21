@@ -25,9 +25,10 @@ const ROLES := ["Must survive", "Target", "Neutral"]
 const WIND_KT := [["Calm", 0], ["10 kt", 10], ["15 kt", 15], ["20 kt", 20], ["Random", 1]]
 ## New: per era, the original the mission is built on (its TSD map and airbases), the blue home bases and jets.
 ## Inferred from history: Sinai's Refidim was Israeli 1967–1982 (so 1973 only); Ramon opened in 1982; the jets by
-## their IAF service (bdb object ids: 47 Mirage, 48 F-4 of the 1970s, 1 F-16, 40 F-15, 17 F-4 2000, 99 Kfir, 74 Lavi).
+## their IAF service (bdb object ids: 47 Mirage, 48 F-4 of the 1970s, 1 F-16, 40 F-15, 17 F-4 2000, 99 Kfir; the
+## Lavi never served).
 const NEW_ERAS := [
-	["1998", 231, ["Ramat David", "Tel Nof", "Ramon"], [1, 40, 17, 99, 74]],
+	["1998", 231, ["Ramat David", "Tel Nof", "Ramon"], [1, 40, 17, 99]],
 	["1973", 121, ["Ramat David", "Tel Nof", "Refidim"], [48, 47]],
 	["1967", 111, ["Ramat David", "Tel Nof"], [47]],
 ]

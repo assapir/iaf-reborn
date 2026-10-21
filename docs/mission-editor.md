@@ -48,7 +48,7 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
 
   | Era | Built on (map, airbases) | Home bases (blue) | Jets |
   |---|---|---|---|
-  | 1998 (the game's present) | 231 License to Kill | Ramat David, Tel Nof, Ramon | F-16, F-15, F-4 2000, Kfir, Lavi |
+  | 1998 (the game's present) | 231 License to Kill | Ramat David, Tel Nof, Ramon | F-16, F-15, F-4 2000, Kfir |
   | 1973 | 121 7 Columns of Fire | Ramat David, Tel Nof, Refidim | F-4, Mirage |
   | 1967 | 111 Battle Against Time | Ramat David, Tel Nof | Mirage |
 
