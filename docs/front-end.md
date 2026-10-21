@@ -415,6 +415,11 @@ Jets disabled per mission (`FUN_00509b80`; rows 0x11c bytes apart in the list ob
   * Overlays: `emf/grid.emf` when **Grid** is on; `emf/text.emf` when **Text** is on.
     * Text records (EMR_EXTTEXTOUTW) are re-issued as `TextOutA` at their EMF position (`501060`), so
       the labels do not scale.
+  * Polygons fill as GDI fills a `PolyPolygon`: all rings of a record are one region under its fill mode, ALTERNATE
+    (even-odd) or WINDING (non-zero; 752 of the 1008 polygons in `82.emf`). The rings cross themselves and overlap.
+    `menu/tsd_map.gd` gets the triangles from `IafEmf.fill_triangles` (`iaf_formats::emf::fill_triangles`, a sweep
+    into trapezoids); a capture matches an ImageMagick render of the same records except along the 1-px outlines.
+    Test: `tests/godot/test_tsd_map_fill.gd`.
 * World extent is **454×590** map units (`0x607fa8/e4`). The metafile is played into
   `(-sx·z, -sy·z, 454z−sx·z, 590z−sy·z)`, where `z` is the zoom and `(sx,sy)` the scroll.
 * **Default zoom = 1.0**, scroll (0,0) (`FUN_004f15a0`). The view is then centred on the selected

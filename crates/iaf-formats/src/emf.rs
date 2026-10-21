@@ -270,6 +270,100 @@ pub fn parse(data: &[u8]) -> Result<Metafile, Error> {
     Ok(Metafile { frame, device_px, device_mm, ops })
 }
 
+/// The region GDI fills for a `Polygon` / `PolyPolygon`, as triangles (three points each): every ring together as
+/// one region under the fill mode, ALTERNATE (`alternate`, even-odd) or WINDING (non-zero). Rings may self-intersect
+/// and overlap one another, as they do in the TSD maps.
+///
+/// A sweep in y: the slabs between successive vertex and edge-crossing heights hold no crossing, so in each one the
+/// edges keep their left-to-right order and the filled spans lie between known edge pairs. A span bounded by the
+/// same two edges in successive slabs grows into one trapezoid (two triangles).
+pub fn fill_triangles(rings: &[Vec<[f32; 2]>], alternate: bool) -> Vec<[f32; 2]> {
+    // Edges with a < b in y, and +1 / -1 for the ring's direction; horizontal edges bound no span.
+    let mut edges: Vec<([f64; 2], [f64; 2], i32)> = Vec::new();
+    for r in rings {
+        for (i, p) in r.iter().enumerate() {
+            let q = r[(i + 1) % r.len()];
+            let (p, q) = ([p[0] as f64, p[1] as f64], [q[0] as f64, q[1] as f64]);
+            if p[1] < q[1] {
+                edges.push((p, q, 1));
+            } else if p[1] > q[1] {
+                edges.push((q, p, -1));
+            }
+        }
+    }
+    let x_at = |e: &([f64; 2], [f64; 2], i32), y: f64| e.0[0] + (e.1[0] - e.0[0]) * (y - e.0[1]) / (e.1[1] - e.0[1]);
+    let mut ys: Vec<f64> = edges.iter().flat_map(|e| [e.0[1], e.1[1]]).collect();
+    // ponytail: all-pairs crossing test, O(n²) per polygon; fine for the maps' rings (at most ~1500 points).
+    for (i, e) in edges.iter().enumerate() {
+        for f in &edges[i + 1..] {
+            if e.1[1] <= f.0[1] || f.1[1] <= e.0[1] {
+                continue;
+            }
+            let (r, s) = ([e.1[0] - e.0[0], e.1[1] - e.0[1]], [f.1[0] - f.0[0], f.1[1] - f.0[1]]);
+            let d = r[0] * s[1] - r[1] * s[0];
+            if d == 0.0 {
+                continue; // parallel: equal x along a shared stretch, the span walk handles them
+            }
+            let w = [f.0[0] - e.0[0], f.0[1] - e.0[1]];
+            let (t, u) = ((w[0] * s[1] - w[1] * s[0]) / d, (w[0] * r[1] - w[1] * r[0]) / d);
+            if t > 0.0 && t < 1.0 && u > 0.0 && u < 1.0 {
+                ys.push(e.0[1] + t * r[1]);
+            }
+        }
+    }
+    ys.sort_by(f64::total_cmp);
+    ys.dedup();
+    let mut out = Vec::new();
+    let mut emit = |l: usize, r: usize, y0: f64, y1: f64| {
+        let (el, er) = (&edges[l], &edges[r]);
+        let p = |x: f64, y: f64| [x as f32, y as f32];
+        let (lt, rt, rb, lb) = (p(x_at(el, y0), y0), p(x_at(er, y0), y0), p(x_at(er, y1), y1), p(x_at(el, y1), y1));
+        // Zero-area triangles (a span's pointed end, a slab thinner than f32) are left out.
+        for t in [[lt, rt, rb], [lt, rb, lb]] {
+            if (t[1][0] - t[0][0]) * (t[2][1] - t[0][1]) != (t[2][0] - t[0][0]) * (t[1][1] - t[0][1]) {
+                out.extend(t);
+            }
+        }
+    };
+    // Open trapezoids: (left edge, right edge, top y).
+    let mut open: Vec<(usize, usize, f64)> = Vec::new();
+    let mut active: Vec<(f64, usize)> = Vec::new();
+    for w in ys.windows(2) {
+        let (y0, y1) = (w[0], w[1]);
+        let ym = 0.5 * (y0 + y1);
+        active.clear();
+        active.extend(
+            edges.iter().enumerate().filter(|(_, e)| e.0[1] < ym && ym < e.1[1]).map(|(i, e)| (x_at(e, ym), i)),
+        );
+        active.sort_by(|a, b| a.0.total_cmp(&b.0));
+        let mut spans: Vec<(usize, usize, f64)> = Vec::new();
+        let (mut wind, mut left) = (0, 0);
+        for &(_, i) in &active {
+            let was = if alternate { wind & 1 != 0 } else { wind != 0 };
+            wind += edges[i].2;
+            let is = if alternate { wind & 1 != 0 } else { wind != 0 };
+            if !was && is {
+                left = i;
+            } else if was && !is {
+                let top = open.iter().find(|o| o.0 == left && o.1 == i).map_or(y0, |o| o.2);
+                spans.push((left, i, top));
+            }
+        }
+        for &(l, r, top) in &open {
+            if !spans.iter().any(|s| s.0 == l && s.1 == r) {
+                emit(l, r, top, y0);
+            }
+        }
+        open = spans;
+    }
+    if let Some(&y) = ys.last() {
+        for &(l, r, top) in &open {
+            emit(l, r, top, y);
+        }
+    }
+    out
+}
+
 fn set(objects: &mut Vec<Option<Obj>>, ih: usize, obj: Obj) {
     if objects.len() <= ih {
         objects.resize(ih + 1, None);
@@ -279,6 +373,30 @@ fn set(objects: &mut Vec<Option<Obj>>, ih: usize, obj: Obj) {
 
 #[cfg(test)]
 mod tests {
+    fn area(tris: &[[f32; 2]]) -> f32 {
+        tris.chunks(3)
+            .map(|t| {
+                ((t[1][0] - t[0][0]) * (t[2][1] - t[0][1]) - (t[2][0] - t[0][0]) * (t[1][1] - t[0][1])).abs() / 2.0
+            })
+            .sum()
+    }
+
+    /// GDI's fill rules: a hole (even-odd), a same-direction overlap (non-zero fills it) and a self-crossing bow tie.
+    #[test]
+    fn fill_rules() {
+        let sq = |a: f32, b: f32| vec![[a, a], [b, a], [b, b], [a, b]];
+        let rings = [sq(0.0, 4.0), sq(1.0, 3.0)];
+        assert_eq!(area(&super::fill_triangles(&rings, true)), 12.0);
+        assert_eq!(area(&super::fill_triangles(&rings, false)), 16.0);
+        let bow = [vec![[0.0, 0.0], [2.0, 2.0], [2.0, 0.0], [0.0, 2.0]]];
+        assert_eq!(area(&super::fill_triangles(&bow, false)), 2.0);
+        // A spiral wound twice round the centre: non-zero fills the inner square, even-odd leaves it empty.
+        let twice =
+            [vec![[0.0, 0.0], [4.0, 0.0], [4.0, 4.0], [0.0, 4.0], [0.0, 0.0], [4.0, 0.0], [4.0, 4.0], [0.0, 4.0]]];
+        assert_eq!(area(&super::fill_triangles(&twice, false)), 16.0);
+        assert_eq!(area(&super::fill_triangles(&twice, true)), 0.0);
+    }
+
     /// Parses the TSD maps of a local install (skipped when the install is absent).
     #[test]
     fn tsd_maps() {

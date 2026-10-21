@@ -5,6 +5,7 @@ use godot::prelude::*;
 mod autorun;
 mod bases;
 mod bombs;
+mod emf;
 mod fctrl;
 mod flight;
 mod gun;

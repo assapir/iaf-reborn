@@ -51,11 +51,16 @@ func _batches(mf: Dictionary) -> Array:
 				if op.brush != null:
 					_begin("fill")
 					var c := Color8(op.brush[0], op.brush[1], op.brush[2])
-					# Outer ring only (holes are rare in these maps and drawn over later).
-					var pts := _points(op.rings[0], map_size)
-					for i in Geometry2D.triangulate_polygon(pts):
-						_verts.append(pts[i])
-						_colors.append(c)
+					# GDI's fill: all rings as one region under the fill mode (rings cross and overlap).
+					var rings: Array[PackedVector2Array] = []
+					for ring in op.rings:
+						rings.append(_points(ring, map_size))
+					var tris := IafEmf.fill_triangles(rings, op.alternate)
+					_verts.append_array(tris)
+					var cs := PackedColorArray()
+					cs.resize(tris.size())
+					cs.fill(c)
+					_colors.append_array(cs)
 				if op.pen != null:
 					for ring in op.rings:
 						var pts := _points(ring, map_size)
