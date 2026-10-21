@@ -25,6 +25,9 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
 - **Top bar:** Open, Fork, Save, Save as, Undo, the mission's name, the issues, **Fly as** (Alpha … Delta) and Fly.
 - **Map:** the TSD (`game/menu/tsd.gd`) in its edit mode, scaled to the window. The mouse wheel zooms; the
   scrollbars and arrow art are the TSD's own. The right button is the TSD's ruler.
+  Before a mission is open it shows the modern map with no units.
+- **HiDPI:** on a Retina or other HiDPI screen the window's content grows by the screen's scale
+  (`content_scale_factor`), as the setup wizard's does.
 - **Side panel**, three tabs:
   - **Units:** every entity of the main file; the selected unit's name, side, role, heading and altitude; Delete;
     Add a unit; Give a route.
@@ -34,7 +37,8 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
 
 ## 2. Opening and saving
 
-- **Original missions** are the menu missions of `missionlist.json`, listed by their title (misc `0x44c`). They open
+- **Original missions** are the menu missions of `missionlist.json` except 666 (0x29a, the Mission Creator's
+  template) and 777 (multiplayer All-Out War), listed by their title (misc `0x44c`). They open
   read-only. The only action on them is **Fork**.
 - **My missions** are the files in `user://missions/`. Only these can be edited.
 - **Fork** asks for a name and suggests a free one (`<title> 2`, `3` …). The fork is saved at once.

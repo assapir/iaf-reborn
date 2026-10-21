@@ -61,10 +61,12 @@ func _ready() -> void:
 	mission_dir = Settings.assets_dir().path_join("converted/missions")
 	_load_originals()
 	_build_ui()
+	_hidpi()
 	var reopen: String = Settings.editor_file
 	if reopen != "" and FileAccess.file_exists(reopen):
 		open_file(reopen)
 	else:
+		_new_map(0)
 		_refresh()
 
 
@@ -74,6 +76,9 @@ func _ready() -> void:
 func _load_originals() -> void:
 	var list := Settings.load_json(mission_dir.path_join("missionlist.json"))
 	for k in list:
+		# 666 (0x29a) is the Mission Creator's template and 777 multiplayer All-Out War: not missions to fork.
+		if int(k) in [0x29a, 777]:
+			continue
 		var stems: Array = list[k]
 		var m := Settings.load_json(mission_dir.path_join(String(stems[0]) + ".json"))
 		if m.is_empty():
@@ -156,6 +161,13 @@ func _open(id: int, name: String, main: String, main_data: Dictionary) -> void:
 	sel_id = -1
 	sel_wp = -1
 	mode = ""
+	_new_map(id)
+	_fill_object_picker()
+	_fill_flight_types()
+
+
+## A fresh TSD for mission `id` (its era's map; 0 = the modern map with no units).
+func _new_map(id: int) -> void:
 	if tsd != null:
 		tsd.queue_free()
 	tsd = Tsd.new()
@@ -167,8 +179,14 @@ func _open(id: int, name: String, main: String, main_data: Dictionary) -> void:
 	tsd.unit_dragged.connect(_on_unit_dragged)
 	tsd.waypoint_dragged.connect(_on_waypoint_dragged)
 	tsd.map_clicked.connect(_on_map_clicked)
-	_fill_object_picker()
-	_fill_flight_types()
+
+
+## HiDPI (a Mac's Retina screen): the controls grow with the OS scale, as the setup wizard's do.
+func _hidpi() -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	var win := get_window()
+	win.content_scale_factor = maxf(1.0, DisplayServer.screen_get_scale(win.current_screen))
 
 
 ## The briefing's BBCode as plain text.
