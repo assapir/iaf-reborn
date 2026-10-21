@@ -1,7 +1,7 @@
 # The RWR (radar warning receiver)
 
-This doc describes the RWR (radar warning receiver) of a controller (`ctl+0x5b0`, ctor `FUN_004515d0`, v1.1
-addresses) and how ours follows it. The RWR lists the radars that lock the jet and the missiles launched at it, and
+This doc describes the RWR of a controller (`ctl+0x5b0`, ctor `FUN_004515d0`, v1.1 addresses) and how ours follows
+it. The RWR lists the radars that lock the jet and the missiles launched at it, and
 lights the 'ai' / 'sam' lamps.
 
 - **Code:** `crates/iaf-avionics/src/rwr.rs` (unit tests there). `IafRwr` runs it for `game/weapons/rwr.gd`, which
@@ -29,8 +29,8 @@ list matters only to the decoy rule, which reads the missiles launched at it (do
   (`0x600d18`, 2.0944 rad), that is, an aircraft in the rear sector.
 - **Refresh** (`FUN_00451a70`) runs on the controller's 2.0 s timer (`DAT_0082f4a8`, object 0x600b60 →
   `FUN_0044a1a0`, the same timer as the radar scan; first at the flight start, `FUN_00448120` @44859e). It updates
-  positions and sets active = the emitter test or the launch flag. An emitter in state 5 is removed. (docs/ai.md §14
-  said 0.25 s: that is the other timer, `0x82f3f8`, which drives `FUN_0044a180`.)
+  positions and sets active = the emitter test or the launch flag. An emitter in state 5 is removed. (The 0.25 s
+  timer `0x82f3f8` drives `FUN_0044a180`, not the RWR.)
 - **Clear** (`FUN_00451b90`): empties every slot and the missile list. Damage 14 (RWR), 19 and 21 (generators) call
   it (`FUN_0044d760` @44d8b6 / @44da17 / @44da83).
 - Every RWR entry point first checks damage flag 14 (`FUN_0045cc90(0xe)`): a damaged RWR hears nothing.
@@ -45,14 +45,14 @@ list matters only to the decoy rule, which reads the missiles launched at it (do
   them with from-network = 1 (`0x5c29b0`).
 - A target **without a controller** (an AI unit): its brain+0x7c is set on the lock when it is 0, and cleared on the
   unlock when it matches.
+  - Brain condition 38 (`FUN_005c1410`, "my target is my threat") and action 430 (`FUN_00444a60`, target =
+    brain+0x7c; used by no brain) read brain+0x7c as the threat of a unit without a controller. For such a unit,
+    condition 39 (`FUN_005c1490`) is 0 and condition 19 (`FUN_005c14e0`) is invalid.
   - Original bug: the value written is the locked unit itself, where the radar's owner was meant. So condition 38
-    ("my target is my threat") never holds and the designed reactions never fire (default6_1.bdb: 8 brains "Tail
-    clear" / weapon + dogfight sub-brain when their aircraft target locks them within 2–9 km; 2 interceptors keep a
-    target that is their threat).
+    never holds and the designed reactions never fire (default6_1.bdb: 8 brains "Tail clear" / weapon + dogfight
+    sub-brain when their aircraft target locks them within 2–9 km; 2 interceptors keep a target that is their
+    threat).
   - Ours: Preferences → Physics "Locked enemies know who locked them" (`fix_lock_threat`) writes the player.
-  - Action 430 (target = brain+0x7c) is used by no brain. Brain condition 38 (`FUN_005c1410`) and action 430
-    (`FUN_00444a60`) use brain+0x7c as the threat of a unit without a controller. For such a unit, condition 39
-    (`FUN_005c1490`) is 0 and condition 19 (`FUN_005c14e0`) is invalid.
 - **Launches** (`FUN_0044e160` ← the missile's guidance start `@4d814b`, ECX = the missile's target's controller,
   args (the launcher `missile+0xfc`, the missile)) → `FUN_00451be0`:
   1. The emitter's entry gets the launch flag, one more missile, and active. The entry is added if new. Original
