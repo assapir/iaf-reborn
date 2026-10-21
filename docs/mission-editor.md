@@ -31,7 +31,8 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
   It opens zoomed in two TSD steps on the blue units. The editor hides a scrollbar when there is nothing to scroll
   that way (`tsd.gd bar_shown`); the original TSD always draws both.
 - **HiDPI:** on a Retina or other HiDPI screen the window's content grows by the screen's scale
-  (`content_scale_factor`), as the setup wizard's does.
+  (`content_scale_factor`), and the window grows to hold 1600 × 1000 of those units as far as the work area allows,
+  as the setup wizard's does.
 - **Side panel**, three tabs:
   - **Units:** every entity of the main file, a target or a must-survive unit tagged and coloured; the selected
     unit's name, side, role, heading and altitude; Delete; mark the selected units Target / Must survive / Neutral;
@@ -44,7 +45,8 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
   - **Mission:** the win and lose summary and the debrief headlines (§13), the year (§12), the start time, the wind
     and the briefing in English and Hebrew. A new year runs the checks again and refills the jet lists.
 - **Bottom:** what passes and fails the mission (§13), red when it can never pass; under it the errors and warnings,
-  errors first, in red and yellow. A click on one selects its unit and centres the map on it.
+  errors first, in red and yellow (the list shows only when it has any). A click on one selects its unit and centres
+  the map on it.
 
 ## 2. Opening and saving
 

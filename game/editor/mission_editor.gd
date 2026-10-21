@@ -217,11 +217,24 @@ func _frame_view() -> void:
 
 
 ## HiDPI (a Mac's Retina screen): the controls grow with the OS scale, as the setup wizard's do.
+## The window then grows to hold 1600 × 1000 of those scaled units (as far as the work area allows), centred, as the
+## setup wizard sizes its window (wizard.gd).
 func _hidpi() -> void:
 	if DisplayServer.get_name() == "headless":
 		return
+	await get_tree().process_frame
 	var win := get_window()
-	win.content_scale_factor = maxf(1.0, DisplayServer.screen_get_scale(win.current_screen))
+	if win.mode == Window.MODE_FULLSCREEN or win.mode == Window.MODE_EXCLUSIVE_FULLSCREEN:
+		return
+	if win.mode != Window.MODE_WINDOWED:
+		win.mode = Window.MODE_WINDOWED
+		await get_tree().process_frame
+	var scale := maxf(1.0, DisplayServer.screen_get_scale(win.current_screen))
+	win.content_scale_factor = scale
+	var screen := DisplayServer.screen_get_usable_rect(win.current_screen)
+	var want := Vector2i(mini(int(1600 * scale), screen.size.x), mini(int(1000 * scale), screen.size.y))
+	DisplayServer.window_set_size(want, win.get_window_id())
+	DisplayServer.window_set_position(screen.position + (screen.size - want) / 2, win.get_window_id())
 
 
 ## The briefing's BBCode as plain text.
@@ -714,6 +727,8 @@ func _refresh_ui() -> void:
 				list.add_item("%s: %s" % [level.capitalize(), it.text])
 				list.set_item_metadata(list.item_count - 1, int(it.id))
 				list.set_item_custom_fg_color(list.item_count - 1, Color.RED if level == "error" else Color.YELLOW)
+	# The list shows only when there is something in it.
+	list.visible = not issues.is_empty()
 	_ui.issues_head.text = (
 		"No errors or warnings"
 		if issues.is_empty()
