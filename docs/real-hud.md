@@ -7,18 +7,15 @@ is built from: per aircraft, what is shown, where, in what format, and how sure 
 
 Key facts:
 - Researched October 2026 from public sources. The repo keeps no source images.
-- Real-world documents describe the F-16, F-15, F-4E, Mirage IIICJ and F-35 displays [V].
+- Real-world documents describe the F-16, F-15, F-4E, Mirage IIICJ and F-35
+  displays[^dash34][^f15-1][^f4e-1][^raaf][^lm-slides].
 - The Lavi, Kurnass 2000, Kfir and MiG-23 layouts and the DASH helmet's layout are public only in outline; ours are
-  reconstructions [R]. The MiG-29's comes from simulator manuals (docs/mig-cockpits.md §6).
+  reconstructions (inferred). The MiG-29's comes from simulator manuals (docs/mig-cockpits.md §6).
 - [What ours draws (status)](#what-ours-draws-status) lists, per jet, what the code draws and what it leaves out.
 - [IFF](#iff-identification-friend-or-foe) says how each real jet shows a friend, with a proposed build.
 
-Confidence tags:
-- **[V]** verified: from a real-world document or footage.
-- **[S]** secondary: a book, encyclopedia or pilot account that cites real sources.
-- **[SIM]** only from a simulator manual: used for detail where the real source agrees in outline.
-- **[R]** our reconstruction: nothing is public, so it is inferred from the era / maker and marked as such in
-  docs/deviations.md.
+Sources are footnotes; a simulator source says so in its footnote. "Inferred" marks our own reconstruction (from
+the era and the maker, recorded in docs/deviations.md); "open" marks what no source gives.
 
 Units: 1 mr (milliradian) = 0.0573°. HUD positions are angles from the boresight (the gun cross).
 
@@ -34,33 +31,28 @@ Terms used throughout:
 
 | Jet | Cockpit dir | Real display | Basis |
 |---|---|---|---|
-| F-16C/D (Barak) | `f16` | F-16 Block 30/40/50 HUD | dash-34 manual [V] |
-| Lavi | `lavi` | Hughes wide-angle diffractive HUD, Elbit integrated display system; symbology not public | hardware [S]; layout [R] (a 1980s US / Israeli wide-angle HUD with its own layout) |
-| F-15A/C (Baz) | `f15` | F-15A/C HUD (moving tapes, no digital boxes) | TO 1F-15A-1 + NADC 1976 [V] |
-| F-4E (Kurnass) | `phantom` | AN/ASG-26 lead-computing optical sight (no HUD) | T.O.-derived [V/SIM] |
-| F-4E 2000 (Kurnass 2000) | `f4-2000` | Kaiser / El-Op wide-angle holographic HUD, Elbit ACE-3; symbology not public | [R] its own (MIL-STD-1787 style) |
-| Kfir C2/C7 | `cfir` | El-Op HUD with the Elbit System 82 / WDNS-341; layout not public | modes [S], layout [R] |
-| Mirage IIICJ (Shahak) | `mirage` | CSF 95 gyro gunsight (reflector, no HUD) | CSF 97K manual drawings [V] + IAF books [S] |
-| F-35I (Adir) | `extra/planes/f35i` | Gen III helmet display (no HUD) | Lockheed Martin (LM) slides + flight-test video [V] |
+| F-16C/D (Barak) | `f16` | F-16 Block 30/40/50 HUD | dash-34 manual[^dash34] |
+| Lavi | `lavi` | Hughes wide-angle diffractive HUD, Elbit integrated display system; symbology not public | hardware[^deurenberg]; layout inferred (a 1980s US / Israeli wide-angle HUD with its own layout) |
+| F-15A/C (Baz) | `f15` | F-15A/C HUD (moving tapes, no digital boxes) | TO 1F-15A-1[^f15-1] + NADC 1976[^nadc] |
+| F-4E (Kurnass) | `phantom` | AN/ASG-26 lead-computing optical sight (no HUD) | a simulator manual paraphrasing the T.O.[^heatblur-lcoss] |
+| F-4E 2000 (Kurnass 2000) | `f4-2000` | Kaiser / El-Op wide-angle holographic HUD, Elbit ACE-3; symbology not public | inferred: its own (MIL-STD-1787 style) |
+| Kfir C2/C7 | `cfir` | El-Op HUD with the Elbit System 82 / WDNS-341; layout not public | modes[^flight1983][^wt-kfir], layout inferred |
+| Mirage IIICJ (Shahak) | `mirage` | CSF 95 gyro gunsight (reflector, no HUD) | CSF 97K manual drawings[^raaf] + IAF books[^aloni] |
+| F-35I (Adir) | `extra/planes/f35i` | Gen III helmet display (no HUD) | Lockheed Martin (LM) slides[^lm-slides] + flight-test video[^twz-f35] |
 | MiG-23ML | `mig23` | АСП-17МЛ sight: radar / IRST data on the sight, no flight data | outline[^airwar-ml]; layout inferred |
 | MiG-29 9.12 | `mig29` | ИЛС-31 HUD (СЕИ-31); Щель-3УМ helmet sight looking aside | simulator manuals built on the real jet[^ea29][^fc3] |
-| F-16C/D, F-15C/D helmet (looking aside) | `f16`, `f15` | Elbit DASH III (Display And Sight Helmet) | fielding / optics [S]; symbology from the DASH-derived JHMCS [SIM]; layout [R] |
+| F-16C/D, F-15C/D helmet (looking aside) | `f16`, `f15` | Elbit DASH III (Display And Sight Helmet) | fielding / optics[^ausairpower-hmd][^avhandbook]; symbology from the DASH-derived JHMCS in a simulator guide[^chucks]; layout inferred |
 
 ## F-16C/D (Block 30/40/50)
 
-The Block 50 dash-34 manual documents this HUD in full [V]. The D is the two-seater with the same HUD (a repeater in
-the rear cockpit). Barak-specific differences: none public.
+The Block 50 dash-34 manual documents this HUD in full[^dash34]. The D is the two-seater with the same HUD (a repeater
+in the rear cockpit). Barak-specific differences: none public.
 
-Sources:
-- T.O. GR1F-16CJ-34-1-1 (Hellenic AF Block 50 dash-34, 1997): HUD chapter pp. 1-158..1-183, A-A pp. 403-423, A-G
-  pp. 441-458 (https://falcon.blu3wolf.com/Docs/HAF-F16-34.pdf).
-- T.O. GR1F-16CJ-1 (dash-1).
-- Lockheed MLU (Mid-Life Update) pilot's guides M1-M3 (https://falcon.blu3wolf.com/Docs/MLU_M3.pdf).
-- RoKAF AFTTP 3-3 Vol 5 F-16C Basic Employment Manual
-  (https://falcon.blu3wolf.com/Docs/Basic-Employment-Manual-F-16C-RoKAF.pdf).
-- f-16.net pilot / test-pilot accounts.
+Sources: the dash-34[^dash34] and dash-1[^dash1]; the Lockheed MLU (Mid-Life Update) pilot's guides
+M1-M3[^mlu1][^mlu2][^mlu3]; the RoKAF Basic Employment Manual[^rokaf]; the MCH 11-F16 handbook[^mch]; f-16.net pilot /
+test-pilot accounts[^f16net].
 
-**Scales** [V]
+**Scales**[^dash34]
 - Airspeed: on the left, a moving tape. One tick per 10 kt; labels every 50 kt, in tens (`50` = 500). A fixed index
   carries a boxed readout `[450]` and a caret at the tape. The mnemonic `C` / `T` / `G` sits beside it. The HUD always
   shows CAS (calibrated airspeed) with the gear down or in DGFT (the dogfight mode).
@@ -78,21 +70,21 @@ Sources:
   its lowest tic stays inside the cockpit art's glass. That glass is shorter than the real field of view, and the HUD
   is cut at the panel's top edge.
 
-**Ladder / markers** [V]
+**Ladder / markers**[^dash34]
 - Pitch ladder ("attitude bars"): a bar every 5° to ±60°, compressed beyond.
   - Climb bars are solid, dive bars dashed. Tips point toward the horizon; a centre gap leaves room for the FPM;
     numbers at both ends.
-  - **Bars bend toward the horizon increasingly with pitch** (test-pilot account + figure). The exact "half the
-    angle" rule is MIL-STD-1787 convention [SIM].
+  - **Bars bend toward the horizon increasingly with pitch** (test-pilot account[^f16net] + figure). The exact "half
+    the angle" rule is MIL-STD-1787 convention, as the simulator references give it[^falconpedia][^fg-hud].
 - Zenith / nadir: straight up a star (a circle with eight spokes), straight down the earth (a circle with a cross),
-  in place of the ±90° bars [R]. This is the MIL-STD-1787 convention; no public F-16 figure shows them.
+  in place of the ±90° bars (inferred). This is the MIL-STD-1787 convention; no public F-16 figure shows them.
 - FPM: 10 mr circle, 10 mr wings, 5 mr tail; an X over it when limited.
 - Gun / boresight cross: an incomplete plus at the fuselage reference line.
-- AoA bracket (gear down): the FPM at its top = 11°, centre 13°, bottom 15° (dash-1).
+- AoA bracket (gear down): the FPM at its top = 11°, centre 13°, bottom 15° (dash-1[^dash1]).
 - Steerpoint: a **6 mr diamond drawn on the ground at the steerpoint** (conformal); an X when limited at the FOV
   edge.
 
-**Data windows** (dash-34 fig 1-115) [V]
+**Data windows** (dash-34 fig 1-115[^dash34])
 - Left column, under the airspeed scale: `ARM` / `SIM`; Mach `0.96`; max G `4.1`; the mode / weapon (`NAV`, `6 SRM`,
   `3 MRM`, `EEGS`, `LCOS`, `CCIP`, `DTOS`, `STRF`, ...); fuel / bingo.
 - Top left, above the airspeed scale: current G `1.0`.
@@ -104,7 +96,7 @@ Sources:
   - time: `MMM:SS` to the steerpoint / release, or closure in the A-A gun mode;
   - steerpoint `distance>number` (`020>03`).
 
-**A-A missiles** [V]
+**A-A missiles**[^dash34]
 - TD box: 25 mr, segmented when coasting. When the target is off the HUD, a 40 mr locator line from the gun cross
   points to it, with the angle.
 - AIM-9 reticle: 3° below the cross; 35 / 65 / 100 mr by seeker mode; a seeker diamond. Under 12,000 ft it shows
@@ -117,7 +109,7 @@ Sources:
   - The Rmax1 / Rmin1 bracket and the Rmax2 / Rmin2 thick maneuver bar.
   - Below: the `A37` / `T09` times.
 
-**A-A gun** [V]
+**A-A gun**[^dash34][^rokaf]
 - EEGS (enhanced envelope gun sight) levels:
   - I: gun cross only.
   - II: funnel + MRGS lines (no lock).
@@ -130,7 +122,7 @@ Sources:
 - LCOS (selectable): 1 mr pipper, 8 mr inner circle, 50 mr outer circle, range "L" at 1,000 ft per hour, closure
   caret, lag line.
 
-**A-G** [V]
+**A-G**[^dash34]
 - CCIP: a 1 mr dot in a 12 mr circle, with a bomb fall line from the FPM. When the impact point is out of the FOV, the
   pipper is held ~14° below the cross with a time-delay cue. After designation: a steering line + a solution cue to
   the FPM.[^dash34ccip]
@@ -153,22 +145,23 @@ Sources:
 
 ## Lavi
 
-The Lavi's HUD hardware is known [S]. Its symbology is not public, so ours is a reconstruction [R].
+The Lavi's HUD hardware is known[^deurenberg][^wiki-lavi]. Its symbology is not public, so ours is a reconstruction
+(inferred).
 
-Sources: Deurenberg, *IAI Lavi* (dror-aero.com, citing Flight International / Jane's) [S]; Wikipedia "IAI Lavi" [S];
-for general diffractive-HUD optics, Rochester Avionic Archives "Wide Angle Raster HUD" [S].
-- **Hardware** [S]: "a Hughes Aircraft wide-angle diffractive optics head-up display (HUD) surmounting a single El-Op
-  up-front control panel".
+Sources: Deurenberg, *IAI Lavi* (citing Flight International / Jane's)[^deurenberg]; Wikipedia "IAI Lavi"[^wiki-lavi];
+for general diffractive-HUD optics, Rochester Avionic Archives[^rochester].
+- **Hardware**[^deurenberg]: "a Hughes Aircraft wide-angle diffractive optics head-up display (HUD) surmounting a single
+  El-Op up-front control panel".
   - Elbit Computers was prime contractor for the integrated display system: the HUD, three head-down displays (two
     colour, one monochrome), the display computers and the communications controller.
   - The Elbit ACE-4 mission computer; HOTAS; a central stick (not a side-stick).
-  - Some sources give Kaiser for the HUD (dokumen.pub *Lavi*).
-- **Field of view** [S, general]: a diffractive HUD of that generation gives ~30° × 18°, against ~13° × 9° for a
-  refractive one. Green P43 phosphor (matched to the diffractive combiner's narrow band).
+  - Some sources give Kaiser for the HUD[^dokumen-lavi].
+- **Field of view** (diffractive HUDs in general[^rochester]): a diffractive HUD of that generation gives ~30° × 18°,
+  against ~13° × 9° for a refractive one. Green P43 phosphor (matched to the diffractive combiner's narrow band).
 - **Symbology: not public.** No photo or video through the Lavi's HUD was found, and no description of its symbology.
   The B-1 / B-2 prototypes flew 1986–87, the TD B-3 (technology demonstrator) from 1989.
-- **Ours** [R]: a reconstruction of a late-1980s US / Israeli wide-angle HUD, with MIL-STD-1787 conventions and the
-  F/A-18's digital boxes. Its layout is its own, distinct by design from the F-16's dash-34 layout:
+- **Ours** (inferred): a reconstruction of a late-1980s US / Israeli wide-angle HUD, with MIL-STD-1787 conventions and
+  the F/A-18's digital boxes. Its layout is its own, distinct by design from the F-16's dash-34 layout:
   - boxed airspeed (KCAS, knots calibrated airspeed) left and barometric altitude right; under them Mach, G, AoA
     (gear down), the mode / weapon and SHOOT; the radar altitude `R` below 5,000 ft and the steerpoint block (`WP n`,
     distance in NM, time to go);
@@ -183,14 +176,10 @@ for general diffractive-HUD optics, Rochester Avionic Archives "Wide Angle Raste
 
 ## F-15A/C
 
-The F-15A/C HUD has **no digital speed / altitude boxes**: it shows moving tapes with fixed carets [V].
+The F-15A/C HUD has **no digital speed / altitude boxes**: it shows moving tapes with fixed carets[^f15-1][^nadc].
 
-Sources:
-- TO 1F-15A-1 (15 Jan 1984) "Navigation Head-Up Displays" pp. 1-65ff, figs 1-14 / 1-15
-  (https://archive.org/details/f-15-manual).
-- NADC-75267-40 "Head-Up Display Symbology" 1976 (DTIC ADA022655, https://archive.org/details/DTIC_ADA022655).
-- Pilot account (https://www.twz.com/35765/).
-- Falcon BMS F-15C -34 [SIM].
+Sources: TO 1F-15A-1[^f15-1]; NADC-75267-40[^nadc]; a pilot account[^twz-f15]; the Falcon BMS F-15C -34, a
+simulator manual[^bms-f15].
 
 Symbology:
 - Airspeed: left edge, **increasing downward**. 160 kt window, 10 kt ticks, labels every 50 kt (full value: `250`,
@@ -209,90 +198,94 @@ Symbology:
 - NAV window: lower right, three lines `B   NAV` / `N 20.1` / `4 MIN` (destination + mode, range with a source letter,
   minutes to go).
 - Steering: a bank steering bar. ILS: a flight-director cross.
-- A-A [V]: the TD box; the ASE (allowable steering error) circle with a steering dot; a range scale inboard of the
-  altitude scale (top = the radar range, a `320>` closure caret, two MAX ticks and one MIN tick, `IN RNG`); the
-  breakaway X. SHOOT is a light on the canopy bow, outside the HUD [V].
-- Gun: LCOS (no funnel): an outer ring with 12 ticks, a dashed inner circle, a centre pipper and a thick range arc
-  [V]; 1,000 ft per tick [SIM].
+- A-A[^f15-1][^twz-f15]: the TD box; the ASE (allowable steering error) circle with a steering dot; a range scale
+  inboard of the altitude scale (top = the radar range, a `320>` closure caret, two MAX ticks and one MIN tick, `IN
+  RNG`); the breakaway X. SHOOT is a light on the canopy bow, outside the HUD[^f15-1].
+- Gun: LCOS (no funnel): an outer ring with 12 ticks, a dashed inner circle, a centre pipper and a thick range
+  arc[^f15-1]; 1,000 ft per tick (simulator manual only[^bms-f15]).
 - A-G: no CCIP. A bomb fall line runs from the velocity vector to a target square, with a pull-up bracket and a
-  release cue [V].
+  release cue[^f15-1].
 
 ## F-4E Kurnass: AN/ASG-26 LCOSS (no HUD)
 
 The Kurnass aims through the AN/ASG-26 LCOSS (lead-computing optical sight system), drawn **red**. Its reticle, like
 the Mirage's, is not cut to the original HUD's symbology field: only the panel's top edge cuts it.
 
-Sources: Heatblur DCS F-4E manual (paraphrasing T.O. 1F-4E-1/-34) https://f4.manuals.heatblur.se/systems/weapon_systems/lcoss.html
-and the BIT procedure; Joe Baugher; flyandwire.com.
-- Reticle [V]: a 2 mr pipper dot; a 25 mr dashed inner ring; a 50 mr solid outer ring; three roll tabs on the outer
-  ring (bank, or WRCS (weapon release computer system) steering).
-- Range bar [V]: inside the outer ring, from 6 o'clock counter-clockwise, **with a radar lock only**.
+Sources: the Heatblur DCS F-4E manual, a simulator manual paraphrasing T.O. 1F-4E-1 / -34[^heatblur-lcoss], and its
+BIT procedure[^heatblur-bit]; Joe Baugher[^baugher-f4e]; flyandwire.com[^flyandwire].
+- Reticle[^heatblur-lcoss]: a 2 mr pipper dot; a 25 mr dashed inner ring; a 50 mr solid outer ring; three roll tabs on
+  the outer ring (bank, or WRCS (weapon release computer system) steering).
+- Range bar[^heatblur-lcoss]: inside the outer ring, from 6 o'clock counter-clockwise, **with a radar lock only**.
   - Guns: 1,000 ft at 6 o'clock + 1,000 ft per hour (max 6,667 ft).
   - Missiles: 3,000 ft per hour (max 20,000 ft).
 - A/A: gyro lead with the radar range (default 1,000 ft). Missiles: the reticle at the RBL (radar boresight line,
   35 mr) for a boresight lock.
-- A/G: manual depression 0-245 mr (35 mr = the gun cross); no CCIP [V].
-- The sight shows **no airspeed, altitude, heading or text** [V]. Missile status / IN RANGE / SHOOT are lights.
+- A/G: manual depression 0-245 mr (35 mr = the gun cross); no CCIP[^heatblur-lcoss].
+- The sight shows **no airspeed, altitude, heading or text**[^heatblur-lcoss]. Missile status / IN RANGE / SHOOT are
+  lights.
 
 ## F-4E 2000 (Kurnass 2000)
 
-The upgrade's HUD hardware is known [S]; its symbology is not public, so ours is a reconstruction [R].
+The upgrade's HUD hardware is known[^baugher-k2000][^globalsecurity-k2000]; its symbology is not public, so ours is a
+reconstruction (inferred).
 
-Sources: Joe Baugher, airvectors, warmachinesdrawn; GlobalSecurity "Kurnass 2000".
-- **The upgrade** [S]: by IAI; the PW1120 test aircraft first flew 1986-87, in service from 1989. It brought a Kaiser /
-  El-Op wide-angle (holographic) HUD, an Elbit ACE-3 mission computer, a display computer for the new MFDs, a HUD
-  video camera and HOTAS.
-- **The HUD** [S]: said to show speed, altitude, the direction of flight and the wind. GlobalSecurity claims a field
-  of view of "60 % of the pilot's forward view, twice other systems" [S, unconfirmed]. The same El-Op wide-angle HUD
-  family went into the Turkish F-4E-2020 (El-Op 976) [S].
+Sources: Joe Baugher[^baugher-k2000], airvectors[^airvectors], warmachinesdrawn[^warmachines]; GlobalSecurity
+"Kurnass 2000"[^globalsecurity-k2000].
+- **The upgrade**[^baugher-k2000][^airvectors][^warmachines]: by IAI; the PW1120 test aircraft first flew 1986-87, in
+  service from 1989. It brought a Kaiser / El-Op wide-angle (holographic) HUD, an Elbit ACE-3 mission computer, a
+  display computer for the new MFDs, a HUD video camera and HOTAS.
+- **The HUD**[^globalsecurity-k2000]: said to show speed, altitude, the direction of flight and the wind. GlobalSecurity
+  claims a field of view of "60 % of the pilot's forward view, twice other systems" (unconfirmed). The same El-Op
+  wide-angle HUD family went into the Turkish F-4E-2020 (El-Op 976)[^elbit-ihud].
 - **No symbology figure, photo through the HUD or manual is public.** Searched: Flight International, IAF / IAI /
   Elbit material, CombatACE, War Thunder / DCS communities.
 
-Ours (`real_hud/k2000.rs`) is therefore a reconstruction [R] in the MIL-STD-1787 manner of an Elbit-generated HUD of
-the late 1980s. Its layout is its own, distinct by design from the F-16's dash-34 layout:
-- Airspeed and altitude: **boxed digital readouts** on the field's edges (no tapes) [R]. The radar altitude `R…`
-  under the altitude below 5,000 ft [R].
+Ours (`real_hud/k2000.rs`) is therefore a reconstruction in the MIL-STD-1787 manner of an Elbit-generated HUD of the
+late 1980s; all of the list below is inferred. Its layout is its own, distinct by design from the F-16's dash-34
+layout:
+- Airspeed and altitude: **boxed digital readouts** on the field's edges (no tapes). The radar altitude `R…`
+  under the altitude below 5,000 ft.
 - Left column: g, Mach, the master mode (`NAV`, `SRM`, `MRM`, `GUN`, `STRF`, `CCIP`, `LGB`, `TV`, `HARM`); gear down
-  `AOA…` [R]. Right column: `WP<n> <NM>`, the time to the waypoint, the target's range in A-A [R].
+  `AOA…`. Right column: `WP<n> <NM>`, the time to the waypoint, the target's range in A-A.
 - Heading scale on top: a 30° window with the heading boxed under its centre, and a **filled steering caret** above
-  it at the waypoint's bearing. Outside the window the caret is held at the scale's end with the angle still to turn
-  [R].
+  it at the waypoint's bearing. Outside the window the caret is held at the scale's end with the angle still to turn.
 - Flight path marker; a straight-rung pitch ladder (climb solid, dive dashed, signed labels at both ends, no bending,
-  no zenith / nadir symbols) [R]; the waypoint's diamond on the ground (an X when limited) outside the A-A modes [R].
-- A-A [R]:
+  no zenith / nadir symbols); the waypoint's diamond on the ground (an X when limited) outside the A-A modes.
+- A-A:
   - the target box;
   - SRM: the missile circle with the seeker diamond;
   - MRM: the circle (sized by the launch zone) with the steering dot and the launch-range scale (Rmax / Rmin, range
     caret, closure) inboard of the altitude box;
   - gun: an **LCOS** ring with the pipper dot and a range arc (12,000 ft a turn).
-- A-G: the CCIP pipper (a dot in a ring) with the fall line from the marker; strafe: the pipper [R].
-- `SHOOT` (or `FUEL` below the bingo) at the bottom centre [R]. No wind readout [R].
+- A-G: the CCIP pipper (a dot in a ring) with the fall line from the marker; strafe: the pipper.
+- `SHOOT` (or `FUEL` below the bingo) at the bottom centre. No wind readout.
 
 ## Kfir C2/C7
 
-The Kfir's HUD modes and shown data are known [S]; its layout is not public, so ours is a reconstruction [R].
+The Kfir's HUD modes and shown data are known[^flight1983][^janes-kfir][^wt-kfir]; its layout is not public, so ours
+is a reconstruction (inferred).
 
 Sources:
-- Flight International 27 Aug 1983 p. 542 (Elbit System 82 WDNS, weapon delivery and navigation system) [V].
+- Flight International 27 Aug 1983 p. 542 (Elbit System 82 WDNS, weapon delivery and navigation system)[^flight1983].
 - Jane's: the C7 from mid-1983 has a HOTAS cockpit and the WDNS-341 with the Elbit System 82 stores management /
-  release computer [S].
+  release computer[^janes-kfir].
 - The System 82 document as quoted in War Thunder research threads (modes), and Colombian Air Force Kfir C7 HUD
-  footage (CACOM-1 / Python 3 launch) as described there [S].
-- militaryfactory / milavia [S].
+  footage (CACOM-1 / Python 3 launch) as described there[^wt-kfir].
+- militaryfactory[^militaryfactory] / milavia[^milavia]; Forecast International[^forecast].
 
 What is known:
-- **Modes** [S]:
+- **Modes**[^flight1983][^wt-kfir]:
   - A-A gun: **LCOS** and **HOTLINE** (also listed: SNAP / SHOOT, unconfirmed).
   - A-G: **DIR** (direct / manual), **CCIP**, **TOSS** / DTOSS.
   - Waypoint navigation and toss with the Doppler fitted.
-  - TV weapons are run from the head-down CRT (cathode-ray tube display), outside the HUD [S].
-- **Data shown** [S]: airspeed, altitude, Mach, AoA, armament status. The footage shows a pitch ladder (horizon).
-- **Missile cue** [S]: the Python 3 launch footage shows a diamond that spins until it locks, then stays on the
+  - TV weapons are run from the head-down CRT (cathode-ray tube display), outside the HUD[^wt-kfir].
+- **Data shown**[^wt-kfir]: airspeed, altitude, Mach, AoA, armament status. The footage shows a pitch ladder (horizon).
+- **Missile cue**[^wt-kfir]: the Python 3 launch footage shows a diamond that spins until it locks, then stays on the
   target.
-- **Gun** [S]: the footage shows the gun's lead indicator (a pipper moving with the lead) and, with the EL/M-2001B
+- **Gun**[^wt-kfir]: the footage shows the gun's lead indicator (a pipper moving with the lead) and, with the EL/M-2001B
   ranging radar, the radar gun lead on the target.
 
-**Layout not public** [R]. Ours (`real_hud/kfir.rs`) is an Elbit early-80s reconstruction:
+**Layout not public.** Ours (`real_hud/kfir.rs`) is an Elbit early-80s reconstruction (inferred):
 - Airspeed and Mach as numbers on the left, altitude on the right (no tapes).
 - A 30° heading scale on top with the centre caret. Under it the **steering bug** (a triangle) at the waypoint's
   bearing; outside the scale it is held at the scale's end with an arrow pointing the way.
@@ -309,28 +302,29 @@ What is known:
 
 ## Mirage IIICJ Shahak: CSF 95 gyro sight (no HUD)
 
-The Shahak aims through a CSF 95 gyro gunsight. The CSF 97K's dimensioned drawings give the reticle [V].
+The Shahak aims through a CSF 95 gyro gunsight. The CSF 97K's dimensioned drawings give the reticle[^raaf].
 
-Sources: RAAF Mirage IIIO/IIID Flight Manual AAP 7213.003-1 (1978) pp. 1-109..1-121 (CSF 97K, dimensioned drawings)
-[V]; Aloni, *Mirage III vs MiG-21* and *Israeli Mirage III and Nesher Aces* (Osprey) via Hebrew Wikipedia [S]. The
-Shahak's CSF 95 lacks the 97's gyro horizon / heading [S].
+Sources: the RAAF Mirage IIIO/IIID Flight Manual (CSF 97K, dimensioned drawings)[^raaf]; Aloni's Osprey books via
+Hebrew Wikipedia[^aloni]; Callaway, *Dassault Mirage III/5*[^callaway]. The Shahak's CSF 95 lacks the 97's gyro
+horizon / heading[^aloni].
 - Moving reticle: a 2.5 mr pipper dot inside a fixed 50 mr ring of 14 small diamonds. It moves up to 9° from the
-  fixed cross [V].
-- Fixed cross: 40 mr wide (vertical stub 10 mr up / down), with an inverted V 40 mr above it [V].
-- Guns: lead-computing. The IAF fed in a pilot-selected range of 600 / 400 / 250 m, as radar ranging was unreliable
-  [S].
-- Missiles: lock / in-zone lights in a column right of the glass (blue = lock) [S]. The reticle has no missile
+  fixed cross[^raaf].
+- Fixed cross: 40 mr wide (vertical stub 10 mr up / down), with an inverted V 40 mr above it[^raaf].
+- Guns: lead-computing. The IAF fed in a pilot-selected range of 600 / 400 / 250 m, as radar ranging was
+  unreliable[^aloni].
+- Missiles: lock / in-zone lights in a column right of the glass (blue = lock)[^aloni]. The reticle has no missile
   symbols.
-- Colour: drawn as a lamp reflector sight, orange-red [R, period practice].
+- Colour: drawn as a lamp reflector sight, orange-red (inferred from period practice).
 
 ## F-35I Adir: Gen III helmet display (no HUD)
 
 The F-35I shows its flight data in the Gen III helmet display: green, 40° × 30°. Looking forward, it shows an
-aircraft-stabilised "virtual HUD" [V]. The symbols the game adds over it (the ILS lines, the weapon symbols, the
-radar's BORE cross) are green too, as over the DASH (`hud.gd` `_hc`).
+aircraft-stabilised "virtual HUD"[^lm-slides][^twz-f35]. The symbols the game adds over it (the ILS lines, the weapon
+symbols, the radar's BORE cross) are green too, as over the DASH (`hud.gd` `_hc`).
 
-Sources: Lockheed Martin "The F-35 Cockpit" slides (c. 2012; https://www.f-16.net/forum/viewtopic.php?t=16223&start=180);
-US Navy flight-test helmet video (https://www.twz.com/12297/); Collins datasheet; Aviation Today 2010 / 2015.
+Sources: Lockheed Martin "The F-35 Cockpit" slides[^lm-slides]; US Navy flight-test helmet video[^twz-f35]; the Collins
+datasheet[^collins]; Aviation Today 2010 / 2015[^avtoday]; Code One[^codeone-sight]; SLDinfo[^sldinfo]; National
+Interest on the F-35I helmet[^natint].
 
 The forward virtual HUD:
 - Heading tape at the top, the boxed heading `[092]`, a caret (see Navigation below).
@@ -346,28 +340,30 @@ The forward virtual HUD:
   the time `00:02:33`.
 - A-A: the target designator (an X over a circle); a steering circle with a dot; a DLZ bracket with the range `27.4`
   under it; closure `495>`. The designation cue is held at the FOV edge.
-- Gun (A-A funnel and pipper, A-G strafe) and A-G cues: they exist, but the graphics are not public [R].
+- Gun (A-A funnel and pipper, A-G strafe) and A-G cues: they exist[^dote-gun], but the graphics are not public (ours:
+  inferred).
 
 Off-boresight: the virtual HUD stays with the airframe. The helmet shows a reduced head-stabilised set: bare airspeed
-/ altitude, heading, steerpoint, targets [V].
+/ altitude, heading, steerpoint, targets[^lm-slides].
 
 Navigation. No public source names the helmet's navigation symbols or says how they behave.
 The F-35 flight manual and the Collins symbology are not public; Collins, Elbit, Code One and the Aviation Today
 articles describe the helmet only in general terms. The two LM frames are the only primary evidence. Ours reads them as
 follows:
-- **Steering caret** `^` on the heading tape [V, our reading]. The forward frame (heading 092°, steerpoint `001
-  110/22.0`) shows a `^` just past the tape's last tic on the right, the side of the steerpoint. The "Looking Behind"
-  frame shows a `^` under the head's heading tape too. Ours: the caret sits under the tics at the steerpoint's bearing
-  and is held at the tape's end (±17°) when the bearing is off the tape [R, the limit].
-- **Steerpoint square** on the ground [V, our reading]. The forward frame shows a small square far right, about 16°
-  right and 6° below the horizon (scaled from the ladder: 5° = 210 px). The steerpoint 22 NM away at 110° from
-  19,067 ft lies 18° right and 8° below, so the square is most likely the steerpoint. Ours draws it in every master
-  mode, ground-stabilised at the steerpoint's projection.
+- **Steering caret** `^` on the heading tape (our reading of the LM frames[^lm-slides]). The forward frame (heading
+  092°, steerpoint `001 110/22.0`) shows a `^` just past the tape's last tic on the right, the side of the steerpoint.
+  The "Looking Behind" frame shows a `^` under the head's heading tape too. Ours: the caret sits under the tics at the
+  steerpoint's bearing and is held at the tape's end (±17°) when the bearing is off the tape (the limit: inferred).
+- **Steerpoint square** on the ground (our reading of the forward frame[^lm-slides]). The forward frame shows a small
+  square far right, about 16° right and 6° below the horizon (scaled from the ladder: 5° = 210 px). The steerpoint 22 NM
+  away at 110° from 19,067 ft lies 18° right and 8° below, so the square is most likely the steerpoint. Ours draws it in
+  every master mode, ground-stabilised at the steerpoint's projection.
 - Off the field: the square is held at the field's edge on the line from the boresight, as the slide says for the
-  target designator [R]. Behind the view, only the caret shows [R].
-- Looking aside: the head set keeps the caret on its own heading tape [V, the "Looking Behind" frame]; it draws no
-  square [R: no frame shows one].
-- No steering line, no distance or time beside the square [R: none is visible in either frame]. The readouts stay in
+  target designator (inferred). Behind the view, only the caret shows (inferred).
+- Looking aside: the head set keeps the caret on its own heading tape (the "Looking Behind" frame[^lm-slides]); it draws
+  no square (inferred: no frame shows one).
+- No steering line, no distance or time beside the square (inferred: none is visible in either
+  frame). The readouts stay in
   the steerpoint block (`001 110/22.0` and the time).
 
 ## MiG-23ML: АСП-17МЛ sight (no HUD flight data)
@@ -425,24 +421,25 @@ letters.
 
 The Elbit **DASH** (Display And Sight Helmet) puts flight and weapon data on the visor and aims by the pilot's look.
 No DASH symbology figure is public. The content below follows the published outline and the JHMCS (Joint
-Helmet-Mounted Cueing System, its descendant), whose F-16 set is documented in simulator manuals [SIM].
+Helmet-Mounted Cueing System, its descendant), whose F-16 set is documented in a simulator guide[^chucks].
 - **History**:
   - An IAF requirement for the F-15 and F-16 from the mid-1980s. GEN I was in production c. 1986; **GEN III**
-    (early–mid 1990s) is on the IAF F-15C/D, F-16C/D and F-15I [S, ausairpower].
-  - Fielded in 1993–94 for off-axis targeting of the Rafael **Python 4** [S, Avionics Handbook ch. 5].
+    (early–mid 1990s) is on the IAF F-15C/D, F-16C/D and F-15I[^ausairpower-hmd].
+  - Fielded in 1993–94 for off-axis targeting of the Rafael **Python 4**[^avhandbook].
   - Elbit's fixed-wing HMD (helmet-mounted display) is the basis of the US **JHMCS**, built by Vision Systems
-    International (VSI), Elbit's joint venture with Kaiser, later Rockwell Collins [S, Elbit / VSI releases].
+    International (VSI), Elbit's joint venture with Kaiser, later Rockwell Collins[^elbit-vsi].
 - **Display**: monocular, **20° circular** field of view, 15 mm exit pupil, collimated on the visor; calligraphic
-  (stroke) symbology in **green** phosphor [S]. Head tracking is electromagnetic; the line of sight goes to the
-  mission computer (MIL-STD-1553B) [S].
-- **Use**: aim by looking. The measured line of sight slaves the radar and the missile seeker to the target [S,
-  Elbit]. A boxed target cues the Python 4's seeker, and a **diamond** shows the seeker tracking it [S, ausairpower].
-  The seeker follows the pilot's line of sight off boresight [S, TWZ / GlobalSecurity]. Its limits are the missile's
-  and unpublished; ours keeps the game's cones (docs/weapons.md §5.4).
-- **Content** [S]: flight and weapon data on the visor (airspeed, altitude, weapons status, aiming), so the pilot
-  reads them without looking at the HUD. The JHMCS adds compass heading, an artificial horizon, "look-to" and shoot
-  cues [S, Avionics Handbook].
-- **Layout** (the JHMCS F-16 basic / A-A set [SIM, the DCS F-16C guide], kept for the DASH [R]):
+  (stroke) symbology in **green** phosphor[^ausairpower-hmd]. Head tracking is electromagnetic; the line of sight goes
+  to the mission computer (MIL-STD-1553B)[^ausairpower-hmd][^avhandbook].
+- **Use**: aim by looking. The measured line of sight slaves the radar and the missile seeker to the target[^elbit-vsi].
+  A boxed target cues the Python 4's seeker, and a **diamond** shows the seeker tracking
+  it[^ausairpower-hmd][^ausairpower-python4]. The seeker follows the pilot's line of sight off
+  boresight[^twz-dash][^globalsecurity-dash]. Its limits are the missile's and unpublished; ours keeps the game's cones
+  (docs/weapons.md §5.4).
+- **Content**[^ausairpower-hmd][^avhandbook]: flight and weapon data on the visor (airspeed, altitude, weapons status,
+  aiming), so the pilot reads them without looking at the HUD. The JHMCS adds compass heading, an artificial horizon,
+  "look-to" and shoot cues[^avhandbook].
+- **Layout** (the JHMCS F-16 basic / A-A set from a simulator guide[^chucks], kept for the DASH: inferred):
   - the **aiming cross**, fixed at the field's centre (the helmet line of sight);
   - a **line-of-sight indicator**: a circle whose gap points where the head looks relative to the nose (a gap at
     11 o'clock = looking left and up);
@@ -450,10 +447,10 @@ Helmet-Mounted Cueing System, its descendant), whose F-16 set is documented in s
   - on the right, the **barometric altitude**, with the range / steerpoint under it;
   - the helmet's **magnetic heading** at the bottom;
   - the radar target's **TD box** where it is in the field; the IR seeker's diamond;
-  - HUD and cockpit **blanking**: the symbols blank while the head looks through the HUD or down into the cockpit
-    [SIM].
+  - HUD and cockpit **blanking**: the symbols blank while the head looks through the HUD or down into the
+    cockpit[^chucks].
 - Not public: the DASH's own fonts / positions, its horizon symbol, Python-specific cues and shoot cue, declutter
-  levels. Ours leaves them out [R].
+  levels. Ours leaves them out.
 
 ## IFF (identification friend or foe)
 
@@ -471,79 +468,79 @@ Terms:
 
 Key facts:
 - In every real document found, the interrogator's reply is a **symbol on the radar display**, drawn at the reply's
-  own range and bearing. It is not tied to the radar track. The pilot matches the two by eye [V, F-16 MLU M3].
+  own range and bearing. It is not tied to the radar track. The pilot matches the two by eye[^mlu3].
 - No real or simulator document shows an IFF reply **on a HUD** or **on a helmet**.
 - Each interrogation is **started by the aircrew** with a momentary switch. No source gives a continuous, automatic
   interrogation for the 1980s–90s jets.
-- How long a reply stays on the display is in no real document. One simulator guide gives 3 s [SIM].
+- How long a reply stays on the display is in no real document. One simulator guide gives 3 s[^chucks].
 - The F-35 is different: its mission systems fuse every sensor into tracks, and each track carries an identity
-  colour and shape on the head-down display [S].
+  colour and shape on the head-down display[^codeone-kent][^skaff].
 
 ### Per jet
 
-| Jet (game period) | Interrogator | Control | Where the answer shows | Symbol | Time shown | Confidence |
+| Jet (game period) | Interrogator | Control | Where the answer shows | Symbol | Time shown | Sources |
 |---|---|---|---|---|---|---|
-| F-16C/D Block 30/40 (Barak, 1987–91) | none: the AN/APX-101 is a transponder only | — | — | — | — | [S] |
-| F-16 with AIFF (MLU 1998, USAF CCIP 2000s; later than the game) | AN/APX-113 | TMS (target management switch) left: under 0.5 s a SCAN interrogation, 0.5 s or more a line-of-sight (LOS) one | FCR A-A page; HSD on selection | green circle = friend, yellow square = unknown, nothing = no reply | not stated ([SIM]: 3 s) | [V] |
+| F-16C/D Block 30/40 (Barak, 1987–91) | none: the AN/APX-101 is a transponder only | — | — | — | — | [^apx113] |
+| F-16 with AIFF (MLU 1998, USAF CCIP 2000s; later than the game) | AN/APX-113 | TMS (target management switch) left: under 0.5 s a SCAN interrogation, 0.5 s or more a line-of-sight (LOS) one | FCR A-A page; HSD on selection | green circle = friend, yellow square = unknown, nothing = no reply | not stated (a simulator guide: 3 s[^chucks]) | [^mlu1][^mlu3] |
 | DASH helmet (F-16, F-15) | — | — | nothing public | nothing public | — | — |
-| F-15A/C (Baz) | AN/APX-76 | IFF interrogate button on the throttle; with MSIP grips, the coolie switch left; held for contact | VSD, at the reply's range and azimuth | circle = high confidence, diamond = low confidence, nothing = no reply | not stated | control [V]; display [SIM] |
-| F-4E (Kurnass) | AN/APX-81, AN/APX-80 after TO 1F-4E-587 | the WSO's interrogator push button | the WSO's radar scope | lines at the contact: one above = matching mode, one below = matching code | not stated | sets [V]; display [SIM] |
-| ASG-26 sight (F-4E) | — | — | nothing: the sight has no IFF symbol | — | — | [V] (sight description) |
+| F-15A/C (Baz) | AN/APX-76 | IFF interrogate button on the throttle; with MSIP grips, the coolie switch left; held for contact | VSD, at the reply's range and azimuth | circle = high confidence, diamond = low confidence, nothing = no reply | not stated | control[^f15-1]; display: a simulator manual[^bms-f15] |
+| F-4E (Kurnass) | AN/APX-81, AN/APX-80 after TO 1F-4E-587 | the WSO's interrogator push button | the WSO's radar scope | lines at the contact: one above = matching mode, one below = matching code | not stated | sets[^f4e-1]; display: a simulator manual[^heatblur-iff] |
+| ASG-26 sight (F-4E) | — | — | nothing: the sight has no IFF symbol | — | — | sight description[^heatblur-lcoss] |
 | Kurnass 2000 | nothing public | — | — | — | — | — |
 | Kfir C2/C7 | nothing public | — | — | — | — | — |
 | Lavi | nothing public | — | — | — | — | — |
 | Mirage IIICJ (Shahak) | nothing public | — | — | — | — | — |
-| CSF 95 sight (Mirage) | — | — | nothing: the reticle has no IFF symbol | — | — | [V] (CSF 97K drawings) |
-| F-35I (Adir) | part of the communication, navigation and identification (CNI) system; fused into tracks | not public | PCD tactical display; helmet: not public | green = friend, yellow = unknown / suspect, red = hostile; green circle, yellow square, red diamond | continuous (a track property) | [S] |
+| CSF 95 sight (Mirage) | — | — | nothing: the reticle has no IFF symbol | — | — | CSF 97K drawings[^raaf] |
+| F-35I (Adir) | part of the communication, navigation and identification (CNI) system; fused into tracks | not public | PCD tactical display; helmet: not public | green = friend, yellow = unknown / suspect, red = hostile; green circle, yellow square, red diamond | continuous (a track property) | [^codeone-kent][^skaff] |
 
 ### Details and sources
 
 **F-16C/D.**
-- Era [S]: the USAF chose the AN/APX-113 combined interrogator / transponder in 1999 to replace the transponder-only
-  AN/APX-101 on its F-16C/D. It was fielded with the CCIP (Common Configuration Implementation Program) on Block
-  50/52 in the early 2000s (Lockheed Martin releases, f-16.net). So the Block 30/40 jets of the game's period most
-  likely had no air-to-air interrogator. Nothing public covers the IAF's Barak.
+- Era[^apx113]: the USAF chose the AN/APX-113 combined interrogator / transponder in 1999 to replace the
+  transponder-only AN/APX-101 on its F-16C/D. It was fielded with the CCIP (Common Configuration Implementation Program)
+  on Block 50/52 in the early 2000s (Lockheed Martin releases, f-16.net). So the Block 30/40 jets of the game's period
+  most likely had no air-to-air interrogator. Nothing public covers the IAF's Barak.
 - The MLU M1 guide (15 Nov 1998) lists the APX-113 as **new**: it "expands the traditional IFF transponder
-  capabilities to include Mode S and adds an on-board interrogation feature" [V, MLU M1 p. 1].
-- Control [V, MLU M1 pp. 52–54]: "The pilot commands SCAN interrogations by depressing TMS left for less than 1/2
+  capabilities to include Mode S and adds an on-board interrogation feature" (MLU M1 p. 1[^mlu1]).
+- Control (MLU M1 pp. 52–54[^mlu1]): "The pilot commands SCAN interrogations by depressing TMS left for less than 1/2
   second"; "Depressing TMS left for 1/2 second or more commands LOS interrogations". SCAN covers ±60° azimuth and
-  elevation; LOS covers ±15° azimuth about the FCR cursor. The M3 tape moved the split to 0.6 s [V, MLU M3 p. 10].
-- Display [V, MLU M1 p. 53]: "The green circles denote 'friendly' replies and yellow squares indicate responses that
+  elevation; LOS covers ±15° azimuth about the FCR cursor. The M3 tape moved the split to 0.6 s (MLU M3 p. 10[^mlu3]).
+- Display (MLU M1 p. 53[^mlu1]): "The green circles denote 'friendly' replies and yellow squares indicate responses that
   are of an 'unknown' nature." "Interrogation replies are always displayed on the FCR A-A MFD format and may be
   selected to appear on the … HSD." During a SCAN interrogation the FCR blanks its own targets and track files.
-- Correlation [V, MLU M3 p. 167]: "The AIFF can interrogate a target; however, the response (or lack of response) is
+- Correlation (MLU M3 p. 167[^mlu3]): "The AIFF can interrogate a target; however, the response (or lack of response) is
   not correlated to a target track. The pilot must make his own assessment".
 - HUD: the dash-34 HUD chapter (§ F-16C/D above) has no IFF symbol.
-- Timing [SIM, Chuck's DCS F-16C guide pp. 643–644]: "If the contact is friendly, a green circle is drawn around the
-  contact for three seconds"; "If no reply is received, no indication is displayed". DCS draws the circle on the
-  track; the real guide draws it at the reply's own position.
+- Timing (simulator: Chuck's DCS F-16C guide pp. 643–644[^chucks]): "If the contact is friendly, a green circle is drawn
+  around the contact for three seconds"; "If no reply is received, no indication is displayed". DCS draws the circle on
+  the track; the real guide draws it at the reply's own position.
 
 **F-15A/C.**
-- Control [V, TO 1F-15A-1 fig. 1-2 sheet 1, p. 1-5]: "IFF INTERROGATE & AIM-9L MANUAL BORESIGHT BUTTON — INITIATES
+- Control (TO 1F-15A-1 fig. 1-2 sheet 1, p. 1-5[^f15-1]): "IFF INTERROGATE & AIM-9L MANUAL BORESIGHT BUTTON — INITIATES
   SELECTED IFF MODE". With MSIP grips (sheet 2, p. 1-6), the multi-function (coolie) switch: "(LEFT) IFF
   INTERROGATE", momentary, "MUST BE HELD FOR CONTACT".
-- The interrogator panel on the left console provides "air-to-air (AAI) target identification" [V, -1 pp. 1-80/81].
+- The interrogator panel on the left console provides "air-to-air (AAI) target identification" (-1 pp. 1-80/81[^f15-1]).
   Its display is described in TO 1F-15A/C-34-1-1, which is not public.
-- Display [SIM, Falcon BMS TO 1F-15C-34-1-1 §16, p. 83]: the AAI "generates display symbols on the VSD at the correct
-  target range and azimuth position". "A high confidence (HC) return is indicated by a O symbol, a low confidence
-  (LC) return is indicated by a ◊." At long range a reply is hard to match to its track.
+- Display (simulator: Falcon BMS TO 1F-15C-34-1-1 §16, p. 83[^bms-f15]): the AAI "generates display symbols on the VSD
+  at the correct target range and azimuth position". "A high confidence (HC) return is indicated by a O symbol, a low
+  confidence (LC) return is indicated by a ◊." At long range a reply is hard to match to its track.
 - HUD: the public HUD descriptions (the -1, NADC 1976) have no IFF symbol.
 
 **F-4E.**
-- Sets [V, TO 1F-4E-1 (1979)]: "AN/APX-81 interrogator set before TO 1F-4E-587 or … the APX-80 interrogator set
+- Sets (TO 1F-4E-1, 1979[^f4e-1]): "AN/APX-81 interrogator set before TO 1F-4E-587 or … the APX-80 interrogator set
   after"; change 1F-4E-587 "Adds AN/APX-80 A/A IFF". The display is in TO 1F-4C-34-1-1-2, which is not public. The
   foldout panel legend lists an "INTERROGATOR PUSH BUTTON (SOME AIRCRAFT)" among the rear cockpit's radar controls.
-- Display [SIM, Heatblur DCS F-4E manual, identification systems]: the WSO challenges with a button on the antenna
-  hand control. "The radar screen presents the results of the interrogation with lines around the contacts
-  position": a line above = a matching transponder mode, a line below = a matching code.
+- Display (simulator: Heatblur DCS F-4E manual, identification systems[^heatblur-iff]): the WSO challenges with a button
+  on the antenna hand control. "The radar screen presents the results of the interrogation with lines around the
+  contacts position": a line above = a matching transponder mode, a line below = a matching code.
 - The ASG-26 sight shows no IFF (§ F-4E Kurnass above).
 
 **F-35.**
-- [S, Code One, J. Kent, "The New Front Office", 2006]: "Symbols on the tactical display appear green if the
+- Code One, J. Kent, "The New Front Office", 2006[^codeone-kent]: "Symbols on the tactical display appear green if the
   aircraft's sensors or off-board assets determine these objects are friendly. If unknown to the sensors, objects
   appear yellow. If identified as potential adversaries, objects appear red."
-- [S, M. Skaff (Lockheed Martin), "The Impact of Advanced Fusion in 5th Generation Fighters", 2013, as quoted on
-  f-16.net]: "red diamonds, green circles, and yellow squares correspond to foe, friend, and suspect."
+- M. Skaff (Lockheed Martin), "The Impact of Advanced Fusion in 5th Generation Fighters", 2013, as quoted on
+  f-16.net[^skaff]: "red diamonds, green circles, and yellow squares correspond to foe, friend, and suspect."
 - Not public: whether the pilot starts an interrogation, and the track shapes on the green helmet display.
 
 **Kurnass 2000, Kfir, Lavi, Mirage IIICJ.** No public document describes an interrogator or an IFF display for these
@@ -554,9 +551,10 @@ jets. Searched: flight-manual text, Jane's, Flight International, IAI / Elbit ma
 Only from the findings above, under the Real HUD switch only; the original HUD's friendly X and the original radar
 page stay as they are.
 - **Every HUD, sight and helmet**: no friend mark (as today). No public source puts IFF on any of these displays.
-- **F-15C**: an interrogate key (the throttle button; a new, unused key). While the key is held, reply symbols on
-  the radar page at each friendly reply's range and azimuth: a circle (high confidence). No symbol for a unit that
-  does not reply. A reply stays 3 s after release (ours, the only figure found [SIM]; goes in docs/deviations.md).
+- **F-15C**: an interrogate key (the throttle button; a new, unused key). While the key is held, reply symbols on the
+  radar page at each friendly reply's range and azimuth: a circle (high confidence). No symbol for a unit that does not
+  reply. A reply stays 3 s after release (ours; the only figure found is a simulator guide's[^chucks]; goes in
+  docs/deviations.md).
 - **F-4E (Kurnass)**: the game has no back seat, so the WSO's interrogation is automatic. The virtual WSO
   interrogates each new radar contact once and the locked contact every few seconds; the replies show on the radar
   page as a line above and a line below the friendly contact (matching mode and code), for the F-15's display time.
@@ -601,8 +599,8 @@ F-16 ground avoidance advisory (GAAF, `crates/iaf-avionics/src/gaaf.rs`)[^dash34
 - Not built: the pull-up anticipation cue (the U that rises to the flight path marker in the A-G modes) and the LOW
   mnemonic[^dash34brk]; the MFD break X.
 
-CARA ALOW (`gaaf::alow`)[^dash34alow]: below the ALOW height; it stops above it, climbing faster than 1,200 fpm, with the
-gear handle down, or below 15 ft. Ours repeats the call every 4 s (the game's Betty period; inferred).
+CARA ALOW (`gaaf::alow`)[^dash34alow]: below the ALOW height; it stops above it, climbing faster than 1,200 fpm, with
+the gear handle down, or below 15 ft. Ours repeats the call every 4 s (the game's Betty period; inferred).
 
 ## What ours draws (status)
 
@@ -659,48 +657,107 @@ its scale. The original HUD keeps the original layout.
   - Not drawn: a horizon, shoot cue, RWR (radar warning receiver) symbols, declutter. Blanking is implied: the helmet
     set shows only while looking aside.
 
-## References
-
-Real-world documents (primary):
-- F-16: [T.O. GR1F-16CJ-34-1-1, Hellenic AF F-16C/D Block 50 avionics and weapons delivery (dash-34), 1997](https://falcon.blu3wolf.com/Docs/HAF-F16-34.pdf) — HUD chapter pp. 1-158..1-183 (fig. 1-115 "HUD Window and Scale Positions"), A-A gun pp. 403-411, A-A missiles pp. 413-423, A-G pp. 441-458.
-- F-16 IFF: [Lockheed Martin F-16 A/B MLU Production Tape M1 pilot's guide (16PR14341, 15 Nov 1998)](https://falcon.blu3wolf.com/Docs/MLU_M1.pdf) — AN/APX-113 AIFF pp. 49–55, fig. 1-54 "AIFF Controls and Symbology".
-- F-15 IFF: TO 1F-15A-1 above, fig. 1-2 sheets 1–2 pp. 1-5 / 1-6 (interrogate button / coolie), pp. 1-80/81 (interrogator set).
-- F-4E IFF: [TO 1F-4E-1 flight manual (1979)](https://archive.org/details/f-4e-1-flight-manual) — AN/APX-80 / 81 interrogator sets, TO 1F-4E-587, p. 4-19, foldout FO-10.
-- F-16: [T.O. GR1F-16CJ-1, Hellenic AF F-16C/D flight manual (dash-1)](https://falcon.blu3wolf.com/Docs/HAF-F16.pdf) — AoA bracket, ILS.
-- F-16: Lockheed Martin F-16 MLU tape pilot's guides [M1](https://falcon.blu3wolf.com/Docs/MLU_M1.pdf), [M2](https://falcon.blu3wolf.com/Docs/MLU_M2.pdf), [M3 (16PR16226, 2004)](https://falcon.blu3wolf.com/Docs/MLU_M3.pdf).
-- F-16: [RoKAF AFTTP 3-3 Vol 5, F-16C Basic Employment Manual (2005)](https://falcon.blu3wolf.com/Docs/Basic-Employment-Manual-F-16C-RoKAF.pdf) — EEGS, CCIP employment.
-- F-16: [MCH 11-F16 Vol 5, Combat Aircraft Fundamentals (1996)](https://falcon.blu3wolf.com/Docs/F-16%20COMBAT%20AIRCRAFT%20FUNDAMENTALS%20-%20Multi-Command%20Handbook%2011-F16%20Vol5.pdf).
-- F-15: [TO 1F-15A-1, F-15A/B/C/D flight manual (15 Jan 1984)](https://archive.org/details/f-15-manual) — "Navigation Head-Up Displays" pp. 1-65ff, figs. 1-14 (NAV HUD) and 1-15 (ILS HUD).
-- F-15 and others: [NADC-75267-40 "Head-Up Display Symbology" (1976), DTIC ADA022655](https://archive.org/details/DTIC_ADA022655) — per-aircraft HUD symbology tables and figures.
-- Mirage III: [RAAF AAP 7213.003-1 Mirage IIIO / IIID Flight Manual (1978)](https://aviationarchives.blogspot.com/2023/03/australia-dassault-mirage-iiio-and-iiid.html) ([Avialogs listing](https://www.avialogs.com/aircraft-d/dassault/item/2766-aap-7213003-1-flight-manual-mirage-iiio-and-iiid)) — CSF 97K sight pp. 1-109..1-121, figs. 1-60..1-73.
-- Kfir: [Flight International, 27 Aug 1983, p. 542 "Smart nav/attack system for Kfir"](https://cdnc.heyzine.com/files/uploaded/v3/3c1262af2443f80fe2c7293f1cedb885c62cfe96.pdf) — Elbit System 82 WDNS.
-- Kfir: [Jane's All the World's Aircraft, IAI Kfir](https://janes.migavia.com/?view=article&id=155:kfir) (C7, WDNS-341, System 82); [War Thunder research thread (System 82 modes, Colombian C7 HUD footage)](https://forum.warthunder.com/t/kfir-aircraft-c-1-c-10-blk-60-from-cub-to-lion-discussion-analysis-and-research/285880).
-- F-35: Lockheed Martin "The F-35 Cockpit" slides ([SlideShare](http://www.slideshare.net/robbinlaird/the-f35-cockpit/download); images [mirrored on f-16.net](https://www.f-16.net/forum/viewtopic.php?t=16223&start=180)) — "Virtual HUD Looking Forward", "HMD Looking Behind the Aircraft".
-- F-35: US Navy flight-test helmet-display videos, [The War Zone](https://www.twz.com/12297/navy-presents-new-f-35-helmet-display-videos-and-flight-test-dangers) and [HMS Queen Elizabeth landing](https://www.twz.com/29569/check-out-this-f-35-helmet-display-video-of-a-rolling-landing-on-the-hms-queen-elizabeth).
-- DASH: [Helmet Mounted Sights and Displays (Air Power Australia)](https://www.ausairpower.net/hmd-technology.html) — DASH GEN I–III fielding, 20° FoV, green calligraphic symbology, boxed target / seeker diamond; [Rafael Python 4 (Air Power Australia)](https://www.ausairpower.net/TE-Gen-4-AAM-97.html).
-- DASH: [The Avionics Handbook, ch. 5 "Head-Mounted Displays" (CRC 2001)](https://helitavia.com/avionics/TheAvionicsHandbook_Cap_5.pdf) — DASH for the Python 4 (1993–94); JHMCS look-to / shoot cues, altitude, airspeed, heading, horizon; 20° FoV.
-- DASH: Elbit / VSI: [Elbit–Kaiser tie-up (Flight)](https://flightglobal.com/elbit/kaiser-tie-up/10418.article), [VSI JHMCS contracts (2004)](https://www.securityinfowatch.com/home/article/10553909/elbit-systems-joint-venture-with-rockwell-collins-vsi-awarded-jhmcs-contracts-valued-at-more-than-60-million), [Israeli helmets for US pilots (Israel21c)](https://archive.israel21c.org/israeli-company-to-supply-u-s-fighter-pilots-with-seeing-eye-helmets/).
-- DASH: [IAF F-15 Baz cockpit / DASH (The War Zone)](https://www.twz.com/f-15a-baz-upgraded-cockpit-seen-in-rare-israeli-air-force-photo), [Python training rounds and the DASH (The War Zone)](https://www.twz.com/israeli-python-training-missiles-are-cleverly-disguised-as-u-s-sidewinders).
-- DASH layout (JHMCS F-16, simulator): [DCS F-16C Viper guide, §4.3 HMD symbology / setup (Chuck's Guides)](https://assets.chucksguides.com/pdf/DCS%20F-16C%20Viper%20Guide.pdf) [SIM].
-- F-35: [Collins Aerospace F-35 Gen III HMDS datasheet](https://prd-sc102-cdn.rtx.com/-/media/ca/f/f35/jsf-f35-datasheet.pdf).
-
-Secondary (articles, books, pilot accounts):
-- F-35: Aviation Today, [“Such a Capable Helmet” (2010)](https://www.aviationtoday.com/2010/07/01/such-a-capable-helmet/) and [“F-35 Gen III Helmet” (2015)](https://www.aviationtoday.com/2015/09/04/f-35-gen-iii-helmet-a-generational-leap-in-technology/); [Code One “Lightning Sight”](http://www.codeonemagazine.com/article.html?item_id=12); [SLDinfo F-35 cockpit overview](https://sldinfo.com/whitepapers/an-overview-of-the-f-35-cockpit-what-5th-generation-aircraft-are-all-about/); gun symbology (DOT&E via [The War Zone](https://www.twz.com/air/f-35as-beleaguered-25mm-cannon-is-finally-effective)); [F-35I helmet (National Interest)](https://nationalinterest.org/blog/buzz/israels-unique-f-35-variant-comes-with-unique-combat-helmet-ps-031326).
-- F-35 IFF: [Code One, J. Kent, "The New Front Office" (2006)](https://www.codeonemagazine.com/u2_article.html?item_id=35) (track colours); M. Skaff, "The Impact of Advanced Fusion in 5th Generation Fighters" (2013), quoted [on f-16.net](https://www.f-16.net/forum/viewtopic.php?f=22&t=29126) (track shapes).
-- F-15: [F-15C pilot account, The War Zone](https://www.twz.com/35765/confessions-of-an-f-15-eagle-driver-with-three-mig-kills) (ASE circle, steering dot, TD box).
-- F-16: [f-16.net pilot / test-pilot discussions](https://www.f-16.net/forum/viewtopic.php?t=5116) (bending ladder bars, ghost horizon).
-- F-4E: [Joe Baugher, F-4E](https://www.joebaugher.com/usaf_fighters/f4_11.html); Kurnass 2000: [Joe Baugher](https://www.aircraftinformation.info/JB_AIF/usaf_fighters/f4_35.html), [airvectors](http://www.airvectors.net/avf4_4.html), [warmachinesdrawn](https://warmachinesdrawn.blogspot.com/2017/06/mcdonnell-douglas-f-4e-kurnass-2000.html), [GlobalSecurity](https://www.globalsecurity.org/military/world/israel/kurnass-2000.htm); the F-4E-2020's El-Op 976: [Elbit F-16 I-HUD (same wide-angle family)](https://elbitsystems.com/media/f-16_I-HUD2_2022.pdf).
-- Mirage IIICJ: Shlomo Aloni, *Mirage III vs MiG-21* (Osprey 2010) and *Israeli Mirage III and Nesher Aces* (Osprey 2004), via [Hebrew Wikipedia “מיראז' 3”](https://he.wikipedia.org/wiki/%D7%9E%D7%99%D7%A8%D7%90%D7%96%27_3); Tim Callaway, *Dassault Mirage III/5* (Aviation Classics 17, 2012).
-- Kfir: [militaryfactory](https://www.militaryfactory.com/aircraft/detail.php?aircraft_id=152), [milavia](https://www.milavia.net/aircraft/kfir/kfir.htm), [Forecast International archive](https://www.forecastinternational.com/archive/disp_old_pdf.cfm?ARC_ID=1014).
-- Lavi: [Ruud Deurenberg, *IAI Lavi*](https://www.dror-aero.com/pro/lavi5.pdf).
-
-Simulator documentation (used only for detail, each fact tagged [SIM] above):
-- F-4E IFF: [Heatblur DCS F-4E manual, identification systems](https://f4.manuals.heatblur.se/systems/identification_systems.html) (APX-76 / Combat Tree reply lines).
-- F-15 IFF: the Falcon BMS TO 1F-15C-34-1-1 below, §16 p. 83 (VSD reply symbols). F-16 IFF timing: the DCS F-16C guide (Chuck's Guides) above, pp. 643–644.
-- F-4E: [Heatblur DCS F-4E manual, LCOSS](https://f4.manuals.heatblur.se/systems/weapon_systems/lcoss.html) and [optical sight BIT](https://f4.manuals.heatblur.se/procedures/bit_tests/optical_sight.html) (paraphrasing T.O. 1F-4E-1 / -34).
-- F-15: [Falcon BMS TO 1F-15C-34-1-1](https://cdn.falcon-bms.com/docs/4.37/TO%201F-15C-34-1-1%20BMS.pdf).
-- F-16: [Falconpedia HUD](http://falcon4.wikidot.com/avionics:hud), [NikolaiVChr FlightGear F-16 HUD wiki](https://github.com/NikolaiVChr/f16/wiki/HUD).
-
+[^dash34]: T.O. GR1F-16CJ-34-1-1, Hellenic AF F-16C/D Block 50 avionics and weapons delivery (dash-34), 1997: HUD
+    chapter pp. 1-158..1-183 (fig. 1-115 "HUD Window and Scale Positions"), A-A gun pp. 403-411, A-A missiles
+    pp. 413-423, A-G pp. 441-458: https://falcon.blu3wolf.com/Docs/HAF-F16-34.pdf
+[^dash1]: T.O. GR1F-16CJ-1, Hellenic AF F-16C/D flight manual (dash-1): AoA bracket, ILS:
+    https://falcon.blu3wolf.com/Docs/HAF-F16.pdf
+[^mlu1]: Lockheed Martin F-16 A/B MLU Production Tape M1 pilot's guide (16PR14341, 15 Nov 1998): AN/APX-113 AIFF
+    pp. 49–55, fig. 1-54 "AIFF Controls and Symbology": https://falcon.blu3wolf.com/Docs/MLU_M1.pdf
+[^mlu2]: Lockheed Martin F-16 MLU tape M2 pilot's guide: https://falcon.blu3wolf.com/Docs/MLU_M2.pdf
+[^mlu3]: Lockheed Martin F-16 MLU tape M3 pilot's guide (16PR16226, 2004): https://falcon.blu3wolf.com/Docs/MLU_M3.pdf
+[^rokaf]: RoKAF AFTTP 3-3 Vol 5, F-16C Basic Employment Manual (2005): EEGS, CCIP employment:
+    https://falcon.blu3wolf.com/Docs/Basic-Employment-Manual-F-16C-RoKAF.pdf
+[^mch]: MCH 11-F16 Vol 5, Combat Aircraft Fundamentals (1996):
+    https://falcon.blu3wolf.com/Docs/F-16%20COMBAT%20AIRCRAFT%20FUNDAMENTALS%20-%20Multi-Command%20Handbook%2011-F16%20Vol5.pdf
+[^f16net]: f-16.net pilot / test-pilot discussions (bending ladder bars, ghost horizon):
+    https://www.f-16.net/forum/viewtopic.php?t=5116
+[^falconpedia]: Falconpedia, "HUD", simulator documentation (Falcon 4): http://falcon4.wikidot.com/avionics:hud
+[^fg-hud]: NikolaiVChr, FlightGear F-16 HUD wiki, simulator documentation: https://github.com/NikolaiVChr/f16/wiki/HUD
+[^f15-1]: TO 1F-15A-1, F-15A/B/C/D flight manual (15 Jan 1984): "Navigation Head-Up Displays" pp. 1-65ff, figs. 1-14
+    (NAV HUD) and 1-15 (ILS HUD); fig. 1-2 sheets 1–2 pp. 1-5 / 1-6 (interrogate button / coolie), pp. 1-80/81
+    (interrogator set): https://archive.org/details/f-15-manual
+[^nadc]: NADC-75267-40, "Head-Up Display Symbology" (1976), DTIC ADA022655: per-aircraft HUD symbology tables and
+    figures: https://archive.org/details/DTIC_ADA022655
+[^twz-f15]: The War Zone, F-15C pilot account (ASE circle, steering dot, TD box):
+    https://www.twz.com/35765/confessions-of-an-f-15-eagle-driver-with-three-mig-kills
+[^bms-f15]: Falcon BMS TO 1F-15C-34-1-1, a simulator manual (§16 p. 83: the VSD reply symbols):
+    https://cdn.falcon-bms.com/docs/4.37/TO%201F-15C-34-1-1%20BMS.pdf
+[^heatblur-lcoss]: Heatblur DCS F-4E manual, "LCOSS", a simulator manual paraphrasing T.O. 1F-4E-1 / -34:
+    https://f4.manuals.heatblur.se/systems/weapon_systems/lcoss.html
+[^heatblur-bit]: Heatblur DCS F-4E manual, optical sight BIT procedure, a simulator manual:
+    https://f4.manuals.heatblur.se/procedures/bit_tests/optical_sight.html
+[^heatblur-iff]: Heatblur DCS F-4E manual, identification systems, a simulator manual (APX-76 / Combat Tree reply
+    lines): https://f4.manuals.heatblur.se/systems/identification_systems.html
+[^f4e-1]: TO 1F-4E-1 flight manual (1979): AN/APX-80 / 81 interrogator sets, TO 1F-4E-587, p. 4-19, foldout FO-10:
+    https://archive.org/details/f-4e-1-flight-manual
+[^baugher-f4e]: Joe Baugher, F-4E: https://www.joebaugher.com/usaf_fighters/f4_11.html
+[^flyandwire]: flyandwire.com (F-4E).
+[^baugher-k2000]: Joe Baugher, Kurnass 2000: https://www.aircraftinformation.info/JB_AIF/usaf_fighters/f4_35.html
+[^airvectors]: airvectors, F-4 Phantom: http://www.airvectors.net/avf4_4.html
+[^warmachines]: warmachinesdrawn, "McDonnell Douglas F-4E Kurnass 2000":
+    https://warmachinesdrawn.blogspot.com/2017/06/mcdonnell-douglas-f-4e-kurnass-2000.html
+[^globalsecurity-k2000]: GlobalSecurity, "Kurnass 2000": https://www.globalsecurity.org/military/world/israel/kurnass-2000.htm
+[^elbit-ihud]: Elbit Systems, F-16 I-HUD (the wide-angle family of the F-4E-2020's El-Op 976):
+    https://elbitsystems.com/media/f-16_I-HUD2_2022.pdf
+[^flight1983]: Flight International, 27 Aug 1983, p. 542, "Smart nav/attack system for Kfir" (Elbit System 82 WDNS):
+    https://cdnc.heyzine.com/files/uploaded/v3/3c1262af2443f80fe2c7293f1cedb885c62cfe96.pdf
+[^janes-kfir]: Jane's All the World's Aircraft, IAI Kfir (C7, WDNS-341, System 82):
+    https://janes.migavia.com/?view=article&id=155:kfir
+[^wt-kfir]: War Thunder forum research thread on the Kfir (System 82 modes, Colombian C7 HUD footage):
+    https://forum.warthunder.com/t/kfir-aircraft-c-1-c-10-blk-60-from-cub-to-lion-discussion-analysis-and-research/285880
+[^militaryfactory]: militaryfactory, IAI Kfir: https://www.militaryfactory.com/aircraft/detail.php?aircraft_id=152
+[^milavia]: milavia, IAI Kfir: https://www.milavia.net/aircraft/kfir/kfir.htm
+[^forecast]: Forecast International archive, Kfir: https://www.forecastinternational.com/archive/disp_old_pdf.cfm?ARC_ID=1014
+[^raaf]: RAAF AAP 7213.003-1, Mirage IIIO / IIID Flight Manual (1978): CSF 97K sight pp. 1-109..1-121, figs.
+    1-60..1-73: https://aviationarchives.blogspot.com/2023/03/australia-dassault-mirage-iiio-and-iiid.html (Avialogs
+    listing: https://www.avialogs.com/aircraft-d/dassault/item/2766-aap-7213003-1-flight-manual-mirage-iiio-and-iiid)
+[^aloni]: Shlomo Aloni, *Mirage III vs MiG-21* (Osprey 2010) and *Israeli Mirage III and Nesher Aces* (Osprey 2004),
+    via Hebrew Wikipedia "מיראז' 3": https://he.wikipedia.org/wiki/%D7%9E%D7%99%D7%A8%D7%90%D7%96%27_3
+[^callaway]: Tim Callaway, *Dassault Mirage III/5* (Aviation Classics 17, 2012).
+[^lm-slides]: Lockheed Martin, "The F-35 Cockpit" slides (c. 2012): "Virtual HUD Looking Forward", "HMD Looking Behind
+    the Aircraft": http://www.slideshare.net/robbinlaird/the-f35-cockpit/download (images mirrored on f-16.net:
+    https://www.f-16.net/forum/viewtopic.php?t=16223&start=180)
+[^twz-f35]: The War Zone, US Navy flight-test helmet-display videos:
+    https://www.twz.com/12297/navy-presents-new-f-35-helmet-display-videos-and-flight-test-dangers and the HMS Queen
+    Elizabeth landing: https://www.twz.com/29569/check-out-this-f-35-helmet-display-video-of-a-rolling-landing-on-the-hms-queen-elizabeth
+[^collins]: Collins Aerospace, F-35 Gen III HMDS datasheet: https://prd-sc102-cdn.rtx.com/-/media/ca/f/f35/jsf-f35-datasheet.pdf
+[^avtoday]: Aviation Today, "Such a Capable Helmet" (2010): https://www.aviationtoday.com/2010/07/01/such-a-capable-helmet/
+    and "F-35 Gen III Helmet" (2015):
+    https://www.aviationtoday.com/2015/09/04/f-35-gen-iii-helmet-a-generational-leap-in-technology/
+[^codeone-sight]: Code One, "Lightning Sight": http://www.codeonemagazine.com/article.html?item_id=12
+[^sldinfo]: SLDinfo, F-35 cockpit overview:
+    https://sldinfo.com/whitepapers/an-overview-of-the-f-35-cockpit-what-5th-generation-aircraft-are-all-about/
+[^dote-gun]: DOT&E on the F-35 gun symbology, via The War Zone:
+    https://www.twz.com/air/f-35as-beleaguered-25mm-cannon-is-finally-effective
+[^natint]: National Interest, the F-35I helmet:
+    https://nationalinterest.org/blog/buzz/israels-unique-f-35-variant-comes-with-unique-combat-helmet-ps-031326
+[^codeone-kent]: Code One, J. Kent, "The New Front Office" (2006), track colours:
+    https://www.codeonemagazine.com/u2_article.html?item_id=35
+[^skaff]: M. Skaff (Lockheed Martin), "The Impact of Advanced Fusion in 5th Generation Fighters" (2013), track shapes,
+    quoted on f-16.net: https://www.f-16.net/forum/viewtopic.php?f=22&t=29126
+[^apx113]: Lockheed Martin releases and f-16.net on the AN/APX-113 for the USAF F-16C/D (no link recorded).
+[^deurenberg]: Ruud Deurenberg, *IAI Lavi* (citing Flight International / Jane's): https://www.dror-aero.com/pro/lavi5.pdf
+[^wiki-lavi]: Wikipedia, "IAI Lavi".
+[^dokumen-lavi]: dokumen.pub, *Lavi*.
+[^rochester]: Rochester Avionic Archives, "Wide Angle Raster HUD".
+[^ausairpower-hmd]: Air Power Australia, "Helmet Mounted Sights and Displays" (DASH GEN I–III fielding, 20° FoV, green
+    calligraphic symbology, boxed target / seeker diamond): https://www.ausairpower.net/hmd-technology.html
+[^ausairpower-python4]: Air Power Australia, Rafael Python 4: https://www.ausairpower.net/TE-Gen-4-AAM-97.html
+[^avhandbook]: The Avionics Handbook, ch. 5 "Head-Mounted Displays" (CRC 2001): DASH for the Python 4 (1993–94); JHMCS
+    look-to / shoot cues, altitude, airspeed, heading, horizon; 20° FoV:
+    https://helitavia.com/avionics/TheAvionicsHandbook_Cap_5.pdf
+[^elbit-vsi]: Elbit / VSI: the Elbit–Kaiser tie-up (Flight): https://flightglobal.com/elbit/kaiser-tie-up/10418.article;
+    VSI JHMCS contracts (2004):
+    https://www.securityinfowatch.com/home/article/10553909/elbit-systems-joint-venture-with-rockwell-collins-vsi-awarded-jhmcs-contracts-valued-at-more-than-60-million;
+    Israeli helmets for US pilots (Israel21c):
+    https://archive.israel21c.org/israeli-company-to-supply-u-s-fighter-pilots-with-seeing-eye-helmets/
+[^twz-dash]: The War Zone, IAF F-15 Baz cockpit / DASH:
+    https://www.twz.com/f-15a-baz-upgraded-cockpit-seen-in-rare-israeli-air-force-photo and Python training rounds and
+    the DASH: https://www.twz.com/israeli-python-training-missiles-are-cleverly-disguised-as-u-s-sidewinders
+[^globalsecurity-dash]: GlobalSecurity, on the DASH (no link recorded).
+[^chucks]: Chuck's Guides, DCS F-16C Viper guide, a simulator guide: §4.3 HMD symbology / setup (the JHMCS F-16 set);
+    pp. 643–644 (IFF reply timing): https://assets.chucksguides.com/pdf/DCS%20F-16C%20Viper%20Guide.pdf
 [^dash34brk]: T.O. GR1F-16CJ-34-1-1 (Hellenic AF, 16 Jun 1997), p. 1-173 "Pullup Anticipation and Breakaway Cue (Break
     X)", https://falcon.blu3wolf.com/Docs/HAF-F16-34.pdf (PDF page 189).
 [^dash34gaaf]: T.O. GR1F-16CJ-34-1-1, pp. 1-313..1-315 "Ground Avoidance Advisory Function (GAAF)" and fig. 1-212,
