@@ -1,4 +1,6 @@
-# The mission editor (game/editor/mission_editor.gd, docs/mission-editor.md): the start choices, New from scratch;
+# The mission editor (game/editor/mission_editor.gd, docs/mission-editor.md): the start choices, New from scratch
+# by year (the year's bases and jets, a red flight from a red base, a flipped Refidim before June 1967, the year kept
+# by Save / Open);
 # then on 512 Wild West: Fork offers a free
 # name, a Hebrew name and an original title are refused; a drag on the map moves Alpha's leader; an added SA-6 stands
 # at the terrain's height and Undo removes it; an SA-6 in the sea is an error (a red ring, Fly off); Save and Open
@@ -28,8 +30,8 @@ func run() -> void:
 	root.add_child(ed)
 	await frames(3)
 	check(ed._ui.start.visible and ed.tsd == null, "nothing open: the start choices, no map")
-	# New: from scratch on the modern era's original (231), only Alpha left; the map zoomed in on it.
-	ed.new_mission("Scratch 1", 0, "Ramat David", 1, true)
+	# New: from scratch on 1998's original (231), only Alpha left; the map zoomed in on it.
+	ed.new_mission("Scratch 1", 1998.0, "Ramat David", 1, true)
 	var real: Array = ed.data.entities.items.filter(func(e): return int(e["0x14"]) == 0)
 	check(
 		not ed._ui.start.visible and ed.tsd != null and ed.tsd.zoom > 1.0,
@@ -38,7 +40,7 @@ func run() -> void:
 	check(real.size() == 2 and ed.fly_flight() == 1, "New: Alpha's 2 jets only, Alpha flyable (%d units)" % real.size())
 	check(FileAccess.file_exists(DIR.path_join("scratch_1.json")) and ed.source == 231, "New saves scratch_1.json")
 	# 1973 from Refidim (Sinai), a lone Mirage: Refidim's base mission comes with it and is kept by Save / Open.
-	ed.new_mission("Scratch 2", 1, "Refidim", 47, false)
+	ed.new_mission("Scratch 2", 1973.0, "Refidim", 47, false)
 	real = ed.data.entities.items.filter(func(e): return int(e["0x14"]) == 0)
 	check(real.size() == 1 and int(real[0]["0x2c6"]) == 47, "New: a lone Mirage, no wingman (%d units)" % real.size())
 	var lead: Dictionary = real[0]
@@ -48,11 +50,56 @@ func run() -> void:
 	)
 	ed.open_file(DIR.path_join("scratch_2.json"))
 	check("bmisrfdim" in ed.base_files.map(func(f): return f.name), "Refidim's base mission is saved and read back")
+	check(
+		is_equal_approx(ed.year, 1973.0) and ed._ui.m_year.get_item_text(ed._ui.m_year.selected) == "1973", "1973 kept"
+	)
+	# An enemy flight from Damascus (MiG-21): its base mission comes, Save / Open keep it and the year.
+	ed.add_enemy_flight("bmisdmsk", 8, 2)
+	var reds: Array = ed.data.formations.items.filter(func(f): return int(f.get("0x3f2", 0)) == 8)
+	check(reds.size() == 1 and int(reds[0].points[0][5]) == 2, "a red flight (number 8) taking off")
+	ed.save()
+	ed.open_file(DIR.path_join("scratch_2.json"))
+	check(
+		"bmisdmsk" in ed.base_files.map(func(f): return f.name) and is_equal_approx(ed.year, 1973.0),
+		"Save / Open keep Damascus and 1973"
+	)
+	# New's pickers by year: before June 1967 no Sinai base for blue, the Mirage only; 1973 has Refidim.
 	ed._ask_name("new", "x")
-	ed._fill_new_choices(2)
-	var bases := range(ed._ui.new_base.item_count).map(func(i): return ed._ui.new_base.get_item_text(i))
-	check(not "Refidim" in bases, "1967: no Sinai home base (%s)" % [bases])
+	var names := func(o): return range(o.item_count).map(func(i): return o.get_item_text(i))
+	for i in ed._ui.new_year.item_count:
+		if is_equal_approx(float(ed._ui.new_year.get_item_metadata(i)), 1967.25):
+			ed._ui.new_year.select(i)
+	ed._fill_new_choices()
+	var bases: Array = names.call(ed._ui.new_base)
+	check(bases == ["Tel Nof", "Ramat David"], "1967 before June: no Sinai home base (%s)" % [bases])
+	check(names.call(ed._ui.new_jet) == ["Mirage"], "1967: the Mirage (%s)" % [names.call(ed._ui.new_jet)])
+	for i in ed._ui.new_year.item_count:
+		if is_equal_approx(float(ed._ui.new_year.get_item_metadata(i)), 1973.0):
+			ed._ui.new_year.select(i)
+	ed._fill_new_choices()
+	check("Refidim" in names.call(ed._ui.new_base), "1973: Refidim (%s)" % [names.call(ed._ui.new_base)])
+	check(not "Lavi" in names.call(ed._ui.new_jet), "no Lavi without what-if")
 	ed._ui.name_dlg.hide()
+	# Before June 1967 Refidim is Egyptian: a red flight from it brings a flipped copy of its base mission.
+	ed.new_mission("Scratch 3", 1967.25, "Tel Nof", 47, true)
+	check(ed.source == 111, "1967 before June: on 111's map")
+	ed.add_enemy_flight("bmisrfdim", 8, 2)
+	ed.save()
+	ed.open_file(DIR.path_join("scratch_3.json"))
+	var flip: Array = ed.base_files.filter(func(f): return f.name == "bmisrfdim_flipped")
+	check(
+		flip.size() == 1 and ed._base_side(flip[0].data) == 2 and is_equal_approx(ed.year, 1967.25),
+		"a red Refidim (flipped) is saved and read back"
+	)
+	check(
+		not ed.issues.any(func(it): return String(it.text).contains("starts at")),
+		"no base warning (%s)" % [ed.issues.map(func(it): return it.text)]
+	)
+	ed.set_year(1990.0, false)
+	check(
+		ed.issues.any(func(it): return String(it.text).contains("Refidim in 1990: no fighter base")),
+		"in 1990 Refidim is no fighter base: a warning"
+	)
 	ed.open_original(512)
 	await frames(3)
 	check(ed.read_only and ed.mission_name == "Wild West", "512 opens read-only as Wild West")
@@ -115,7 +162,7 @@ func run() -> void:
 	check(tsd.issues.get("0:%d" % id, "") == "error", "its map ring is red")
 	check(ed._ui.fly.disabled, "an error turns Fly off")
 	ed.undo_last()
-	check(not ed._ui.fly.disabled and tsd.issues.is_empty(), "Undo clears the error")
+	check(not ed._ui.fly.disabled and not tsd.issues.values().has("error"), "Undo clears the error")
 
 	# Save, reopen: the same mission.
 	ed.briefing.en = "Edited briefing."

@@ -25,7 +25,7 @@ func run() -> void:
 	root.size = Vector2i(1600, 1000)
 	root.add_child(ed)
 	await frames(3)
-	ed.new_mission("Win 1", 0, "Ramat David", 1, true)
+	ed.new_mission("Win 1", 1998.0, "Ramat David", 1, true)
 	check(
 		ed.issues.any(func(it): return it.level == "error" and "never pass" in String(it.text)) and ed._ui.fly.disabled,
 		"New: no target, it can never pass (an error, Fly off)"
