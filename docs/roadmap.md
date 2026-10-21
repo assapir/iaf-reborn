@@ -41,6 +41,10 @@ ranked order: [graphics-research.md](graphics-research.md).
   (flight-model.md §10).
 - **A modern TSD map** (wishlist, user 2026-10-20; "just for fun"): an Extras overlay on the static maps (TSD /
   briefing EMF maps, map texts) with today's borders, names and places, drawn by us; the 1998 maps stay the default.
+- **Realistic night vision** (wishlist, user 2026-10-21): an Extras night-vision view for night missions (the
+  original's night is 20:00–05:30: cockpit.md), with an NVG-style green image, its gain, noise and halos around lights.
+- **Rain** (wishlist, user 2026-10-21): rain as a weather choice (Extras), with falling rain, wet surfaces and
+  lower visibility.
 - **Multiplayer** (not approved; if it goes ahead, after the single-player game): how the original does it, a plan
   and the discussion so far: [multiplayer.md](multiplayer.md) (§3.5 is discussion, not decisions).
 - **Separate joystick / throttle / pedal devices** (e.g. a stick, a throttle quadrant and pedals as three USB
