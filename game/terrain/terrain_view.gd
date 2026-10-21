@@ -710,7 +710,12 @@ func _mission_player() -> Dictionary:
 	var obj: Dictionary = MissionRuntime.bdb_objects(mission_bdb).get(int(e.get("0x2c6", -1)), {})
 	mission_entity = e
 	mission_object = obj
-	print("player: %s (flight %d, type %d)" % [e.get("0x2bc", ""), player_flight_number, int(obj.get("0x5b4", -1))])
+	print(
+		(
+			'mission %d "%s": player %s (flight %d, type %d)'
+			% [mission_id, mission_name, e.get("0x2bc", ""), player_flight_number, int(obj.get("0x5b4", -1))]
+		)
+	)
 	_load_route(mission, player_entity_id)
 	return e
 
@@ -741,6 +746,12 @@ func _choose_player() -> void:
 	player = PlayerAircraft.profile(jet)
 	if player.type != jet:
 		print("jet type %d is AI-only (as in the original): flying the %s" % [jet, player.fm_section])
+	print(
+		(
+			"jet: %s (type %d, model %s, cockpit %s), loadouts %s"
+			% [player.fm_section, player.type, player.plane, player.cockpit_dir, Settings.arm_loadouts]
+		)
+	)
 	if cockpit.cockpit_dir != player.cockpit_dir:
 		cockpit.load_cockpit(player.cockpit_dir)
 	cockpit.twin_engines = player.twin
@@ -1474,6 +1485,12 @@ func _on_box_choice(choice: String, on_choice: Callable) -> void:
 
 ## `auto`: the debrief's button the front end presses itself (On-The-Fly Restart / New mission).
 func _end_flight(debrief: bool, auto := "") -> void:
+	print(
+		(
+			"flight end: mission %d, %s after %.0f s sim%s"
+			% [mission_id, "debrief" if debrief else "exit", _sim_time, (", auto " + auto) if auto != "" else ""]
+		)
+	)
 	Settings.debrief = runtime.debrief_text(Settings.mission_id) if debrief and runtime != null else {}
 	if auto != "":
 		Settings.debrief["auto"] = auto
@@ -1846,6 +1863,7 @@ func _record(st: Dictionary, delta: float) -> void:
 			return
 		if blackbox_path == "":
 			Settings.blackbox_file = path
+		print("blackbox: %s" % ProjectSettings.globalize_path(path))
 		var cfg: ConfigFile = Settings.write_config()
 		var settings := {}
 		for section in cfg.get_sections():
