@@ -638,12 +638,19 @@ func _target_unit(name: String) -> Dictionary:
 func _draw() -> void:
 	# Each bar: track, arrows at the ends, thumb between them.
 	for axis in 2:
+		if not bar_shown(axis):
+			continue
 		var bar: Rect2 = BARS[axis]
 		var a: String = BAR_ART[axis]
 		fe_blit("tsd/%sscroll.png" % a, bar.position)
 		for arrow in bar_arrows(axis):
 			fe_blit(arrow[0], arrow[1])
 		fe_blit("tsd/%sslider.png" % a, _along(bar.position, axis, _thumb(axis)))
+
+
+## The editor hides a bar with nothing to scroll; the original always draws both.
+func bar_shown(axis: int) -> bool:
+	return not edit or MAP_SIZE[axis] > _view_size()[axis] + 0.001
 
 
 ## A bar's two arrows as [art path, screen position]: the start one (sldownb, left / top), then the end one (slupb).
@@ -931,7 +938,7 @@ func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
 			for axis in [1, 0]:
-				if BARS[axis].has_point(p):
+				if bar_shown(axis) and BARS[axis].has_point(p):
 					_bar_press(p, axis)
 					accept_event()
 					break

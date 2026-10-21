@@ -22,10 +22,12 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
 
 ## 1. The window
 
-- **Top bar:** Open, Fork, Save, Save as, Undo, the mission's name, the issues, **Fly as** (Alpha … Delta) and Fly.
+- **Start:** with no mission open, two choices stand where the map goes: **New mission** and **Open a mission**.
+- **Top bar:** New, Open, Fork, Save, Save as, Undo, the mission's name, the issues, **Fly as** (Alpha … Delta) and Fly.
 - **Map:** the TSD (`game/menu/tsd.gd`) in its edit mode, scaled to the window. The mouse wheel zooms; the
   scrollbars and arrow art are the TSD's own. The right button is the TSD's ruler.
-  Before a mission is open it shows the modern map with no units.
+  It opens zoomed in two TSD steps on the blue units. The editor hides a scrollbar when there is nothing to scroll
+  that way (`tsd.gd bar_shown`); the original TSD always draws both.
 - **HiDPI:** on a Retina or other HiDPI screen the window's content grows by the screen's scale
   (`content_scale_factor`), as the setup wizard's does.
 - **Side panel**, three tabs:
@@ -41,6 +43,11 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
   template) and 777 (multiplayer All-Out War), listed by their title (misc `0x44c`). They open
   read-only. The only action on them is **Fork**.
 - **My missions** are the files in `user://missions/`. Only these can be edited.
+- **New** asks for a name and an era, and builds a mission from scratch on that era's original (`NEW_ERAS`):
+  Modern on 231 License to Kill, 1973 on 121 7 Columns of Fire, 1967 on 111 Battle Against Time.
+  - `IafMissionEdit.blank` keeps only flight 1 (Alpha), with its jets, start and route, so the mission flies at once.
+    Every other unit and flight, the paths, events, debrief texts and the briefing go.
+  - The original's base missions (its airbases and their defences) stay, as for a fork; `source` is that original.
 - **Fork** asks for a name and suggests a free one (`<title> 2`, `3` …). The fork is saved at once.
 - **Names:** 1 to 40 English letters, digits, spaces, `_` or `-`, starting with a letter or digit. A name in Hebrew or
   another script is refused with the reason shown. Names compare without case:
@@ -108,6 +115,7 @@ Missions go in and come back as JSON strings. Positions are engine world metres:
 | `set_flight(mission, number, spec)`, `remove_flight(mission, number)` | blue flight 1..4, Alpha..Delta (§5.3) |
 | `ground_height(x, y)` | the terrain height, or null outside the terrain (§6) |
 | `check(mission)` | the Fly and ground check as a JSON array of `{id, level, text}` (Checks and calibration) |
+| `blank(mission)` | a mission from scratch: only flight 1 (Alpha) and its jets stay (New, §2) |
 
 ### 5.1 Ids and references
 - A new row takes the placeholder row's id, and the placeholder moves one up. Ids are never reused, so an old

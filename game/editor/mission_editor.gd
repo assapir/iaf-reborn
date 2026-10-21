@@ -23,6 +23,9 @@ const ROLES := ["Must survive", "Target", "Neutral"]
 ## Wind as the Mission Creator's Better combos (mission_creator.gd); Random stores 1, which the game turns into a
 ## random one of 0 / 10 / 15 / 20 kt (Settings.pick_wind).
 const WIND_KT := [["Calm", 0], ["10 kt", 10], ["15 kt", 15], ["20 kt", 20], ["Random", 1]]
+## New: the era's original the mission is built on (its map, airbases and Alpha's start): 231 License to Kill
+## (an F-16 at Ramat David), 121 7 Columns of Fire, 111 Battle Against Time.
+const NEW_ERAS := [["Modern", 231], ["1973", 121], ["1967", 111]]
 const WIND_FROM := ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
 
 ## Where your missions are saved (a test points it elsewhere).
@@ -66,7 +69,6 @@ func _ready() -> void:
 	if reopen != "" and FileAccess.file_exists(reopen):
 		open_file(reopen)
 	else:
-		_new_map(0)
 		_refresh()
 
 
@@ -179,6 +181,19 @@ func _new_map(id: int) -> void:
 	tsd.unit_dragged.connect(_on_unit_dragged)
 	tsd.waypoint_dragged.connect(_on_waypoint_dragged)
 	tsd.map_clicked.connect(_on_map_clicked)
+	_frame_view()
+
+
+## The editor opens zoomed in (two TSD steps) on the blue units, else on Israel (near Jerusalem's label).
+func _frame_view() -> void:
+	var sum := Vector2.ZERO
+	var n := 0
+	for u in tsd.units:
+		if int(u.side) == 1:
+			sum += u.pos
+			n += 1
+	tsd.zoom = Tsd.ZOOM_STEP * Tsd.ZOOM_STEP
+	tsd.centre_on(sum / n if n > 0 else Vector2(255, 300))
 
 
 ## HiDPI (a Mac's Retina screen): the controls grow with the OS scale, as the setup wizard's do.
@@ -225,6 +240,18 @@ func _path_of(name: String) -> String:
 
 func suggest_name() -> String:
 	return api.free_name(mission_name, _taken())
+
+
+## A new mission called `name` from scratch on the era's original (NEW_ERAS): only its Alpha flight stays.
+func new_mission(name: String, era_id: int) -> void:
+	open_original(era_id)
+	data = api.blank(data)
+	briefing = {"en": "", "he": ""}
+	read_only = false
+	file = ""
+	save_as(name)
+	_refresh()
+	_frame_view()
 
 
 ## The open mission copied into your own, called `name` (name_error / own_clash answered first).
@@ -553,6 +580,7 @@ func _refresh_ui() -> void:
 	var title := mission_name if mission_name != "" else "No mission"
 	_ui.title.text = title + (" (original, read-only: Fork to edit)" if read_only and source >= 0 else "")
 	_ui.fork.disabled = source < 0
+	_ui.start.visible = source < 0
 	_ui.save.disabled = read_only
 	_ui.save_as.disabled = read_only
 	_ui.undo.disabled = read_only or undo.is_empty()
@@ -596,6 +624,7 @@ func _build_ui() -> void:
 	add_child(root)
 	var bar := HBoxContainer.new()
 	root.add_child(bar)
+	_ui.new = _button(bar, "New", func(): _ask_name("new", api.free_name("My mission", _taken())))
 	_ui.open = _button(bar, "Open", _show_open)
 	_ui.fork = _button(bar, "Fork", func(): _ask_name("fork", suggest_name()))
 	_ui.save = _button(bar, "Save", save)
@@ -622,6 +651,14 @@ func _build_ui() -> void:
 	host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	host.size_flags_stretch_ratio = 3.0
 	split.add_child(host)
+	# Nothing open: the start choices stand where the map goes.
+	_ui.start = CenterContainer.new()
+	_ui.start.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	host.add_child(_ui.start)
+	var choices := VBoxContainer.new()
+	_ui.start.add_child(choices)
+	_button(choices, "New mission", func(): _ask_name("new", api.free_name("My mission", _taken())))
+	_button(choices, "Open a mission (yours, or an original to fork)", _show_open)
 	var tabs := TabContainer.new()
 	tabs.custom_minimum_size.x = 400
 	tabs.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -789,6 +826,13 @@ func _build_dialogs() -> void:
 	add_child(_ui.open_dlg)
 	_ui.name_dlg = ConfirmationDialog.new()
 	var v := VBoxContainer.new()
+	_ui.era_row = HBoxContainer.new()
+	_ui.era_row.add_child(_label("Era"))
+	_ui.era = OptionButton.new()
+	for e in NEW_ERAS:
+		_ui.era.add_item(e[0])
+	_ui.era_row.add_child(_ui.era)
+	v.add_child(_ui.era_row)
 	_ui.name_edit = LineEdit.new()
 	_ui.name_edit.custom_minimum_size.x = 360
 	_ui.name_edit.text_changed.connect(func(t): _ui.name_why.text = name_error(t))
@@ -842,7 +886,8 @@ func _open_picked() -> void:
 
 func _ask_name(purpose: String, suggestion: String) -> void:
 	_name_purpose = purpose
-	_ui.name_dlg.title = "Fork: the new mission's name" if purpose == "fork" else "Save as"
+	_ui.name_dlg.title = {"fork": "Fork: the new mission's name", "new": "New mission"}.get(purpose, "Save as")
+	_ui.era_row.visible = purpose == "new"
 	_ui.name_edit.text = suggestion
 	_ui.name_why.text = name_error(suggestion)
 	_ui.name_dlg.popup_centered()
@@ -864,7 +909,9 @@ func _name_confirmed() -> void:
 
 func _name_done() -> void:
 	var n: String = _ui.name_edit.text.strip_edges()
-	if _name_purpose == "fork":
+	if _name_purpose == "new":
+		new_mission(n, NEW_ERAS[_ui.era.selected][1])
+	elif _name_purpose == "fork":
 		fork(n)
 	else:
 		save_as(n)

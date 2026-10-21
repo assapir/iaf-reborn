@@ -350,6 +350,44 @@ pub fn remove_flight(mut mission: Value, number: i64) -> Value {
     mission
 }
 
+/// A mission from scratch on `mission` (an original of the wanted era): flight 1 (Alpha) and its members stay, so it
+/// flies from the original's start; every other unit, flight, path, event and debrief text goes. The base missions
+/// (airbases and their defences) come with the source as for a fork.
+pub fn blank(mut mission: Value) -> Value {
+    let keep_f = formation_index(&mut mission, 1);
+    let mut keep: Vec<i64> = vec![];
+    if let Some(fi) = keep_f {
+        let f = &items(&mut mission, "formations")[fi];
+        keep = f["members"].as_array().into_iter().flatten().map(|m| int(&m["0x41a"])).filter(|&i| i >= 0).collect();
+    }
+    let ids: Vec<i64> = items(&mut mission, "entities")
+        .iter()
+        .filter(|e| real(e) && !keep.contains(&int(&e["0x1e"])))
+        .map(|e| int(&e["0x1e"]))
+        .collect();
+    for id in ids {
+        mission = remove_entity(mission, id);
+    }
+    for e in items(&mut mission, "entities") {
+        if real(e) {
+            for k in ["scripts0", "scripts1"] {
+                e[k] = json!({"_class": "CObArray", "items": []});
+            }
+            e["0x320"] = json!(0);
+            if let Some(slots) = e["slots"].as_array_mut() {
+                for s in slots {
+                    (s["0x334"], s["0x33e"], s["0x348"]) = (json!(""), json!(0), json!(0));
+                }
+            }
+        }
+    }
+    items(&mut mission, "formations").retain(|f| !real(f) || int(&f["0x3f2"]) == 1);
+    for part in ["paths", "events", "debrief", "timevars"] {
+        items(&mut mission, part).retain(|r| !real(r));
+    }
+    mission
+}
+
 /// The terrain heights of the level-6 height tiles (`<theatre>/L6/h_<i>_<j>.png`, `meta.json`), read as a tile is
 /// first asked for: the surface `terrain.gd height_at` gives (`iaf_avionics::heights`).
 pub struct Heights {
@@ -599,6 +637,27 @@ mod tests {
         let taken = vec!["DOG CHASE".to_string(), "dog chase 2".to_string()];
         assert_eq!(free_name("Dog Chase", &taken), "Dog Chase 3");
         assert_eq!(free_name("Other", &taken), "Other");
+    }
+
+    #[test]
+    fn blank_keeps_alpha_only() {
+        let Some(a) = assets() else {
+            eprintln!("skip: no converted missions (tools/setup-cli.sh)");
+            return;
+        };
+        let m = blank(read(&a, "license"));
+        let real_rows = |part: &str| m[part]["items"].as_array().unwrap().iter().filter(|r| real(r)).count();
+        let f = &m["formations"]["items"].as_array().unwrap()[0];
+        assert_eq!((real_rows("formations"), int(&f["0x3f2"])), (1, 1), "only Alpha");
+        let members: Vec<i64> =
+            f["members"].as_array().unwrap().iter().map(|x| int(&x["0x41a"])).filter(|&i| i >= 0).collect();
+        assert_eq!(real_rows("entities"), members.len(), "only Alpha's jets");
+        for part in ["paths", "events", "debrief"] {
+            assert_eq!(real_rows(part), 0, "{part}");
+        }
+        for part in ["entities", "formations", "events"] {
+            assert_eq!(m[part]["items"].as_array().unwrap().last().unwrap()["0x14"], 1, "{part} placeholder");
+        }
     }
 
     #[test]

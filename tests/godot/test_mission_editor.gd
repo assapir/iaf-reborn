@@ -1,4 +1,5 @@
-# The mission editor (game/editor/mission_editor.gd, docs/mission-editor.md) on 512 Wild West: Fork offers a free
+# The mission editor (game/editor/mission_editor.gd, docs/mission-editor.md): the start choices, New from scratch;
+# then on 512 Wild West: Fork offers a free
 # name, a Hebrew name and an original title are refused; a drag on the map moves Alpha's leader; an added SA-6 stands
 # at the terrain's height and Undo removes it; an SA-6 in the sea is an error (a red ring, Fly off); Save and Open
 # give the same mission back; the original mission file stays byte-identical. Writes only under user://missions_test.
@@ -26,6 +27,16 @@ func run() -> void:
 	root.size = Vector2i(1600, 1000)  # headless starts at 64 × 64
 	root.add_child(ed)
 	await frames(3)
+	check(ed._ui.start.visible and ed.tsd == null, "nothing open: the start choices, no map")
+	# New: from scratch on the modern era's original (231), only Alpha left; the map zoomed in on it.
+	ed.new_mission("Scratch 1", 231)
+	var real: Array = ed.data.entities.items.filter(func(e): return int(e["0x14"]) == 0)
+	check(
+		not ed._ui.start.visible and ed.tsd != null and ed.tsd.zoom > 1.0,
+		"New: the map, zoomed in, in place of the start choices"
+	)
+	check(real.size() == 2 and ed.fly_flight() == 1, "New: Alpha's 2 jets only, Alpha flyable (%d units)" % real.size())
+	check(FileAccess.file_exists(DIR.path_join("scratch_1.json")) and ed.source == 231, "New saves scratch_1.json")
 	ed.open_original(512)
 	await frames(3)
 	check(ed.read_only and ed.mission_name == "Wild West", "512 opens read-only as Wild West")

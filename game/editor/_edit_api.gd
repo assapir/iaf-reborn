@@ -69,3 +69,8 @@ func ground_height(x: float, y: float):
 func check(mission: Dictionary) -> Array:
 	var v = JSON.parse_string(IafMissionEdit.check(_js(mission)))
 	return v if v is Array else []
+
+
+## A mission from scratch on an original of the wanted era: only flight 1 (Alpha) stays.
+func blank(mission: Dictionary) -> Dictionary:
+	return _parse(IafMissionEdit.blank(_js(mission)))

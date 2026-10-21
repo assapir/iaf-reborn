@@ -118,6 +118,12 @@ impl IafMissionEdit {
         text(&me::remove_flight(parse(&mission), number))
     }
 
+    /// A mission from scratch on an original of the wanted era: only flight 1 (Alpha) stays (mission_edit::blank).
+    #[func]
+    fn blank(mission: GString) -> GString {
+        text(&me::blank(parse(&mission)))
+    }
+
     /// The ground height (m) at world (x, y); null outside the terrain or without it.
     #[func]
     fn ground_height(x: f64, y: f64) -> Variant {
