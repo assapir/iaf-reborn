@@ -1,15 +1,14 @@
 # Jane's IAF flight model (reverse-engineered spec)
-This document specifies the original game's flight model, read from the decompiled exe, so that a developer can
-re-implement or maintain the port in `crates/iaf-flight`. §0–§9 describe the model, §10–§11 our port's deviations
-and data sets, §12–§13 the gear lever and G effects, §14–§15 the line-by-line port audits, and §16 the v1.1 patch.
+This document specifies the original game's flight model, read from the decompiled exe, for the port in
+`crates/iaf-flight`. §0–§9 describe the model, §10–§11 our deviations and data sets, §12–§13 the gear lever and G
+effects, §14–§15 the line-by-line audits, §16 the v1.1 patch.
 
-* **Reference version: v1.1** (the official patch, docs/v1.1.md). Every address here is a **v1.1** address
-  (`assets/v1.1/iafjets.exe`; Ghidra dump `assets/ghidra_v11/iafjets.c`). The addresses were converted from the original
-  v1.0 analysis with the address map of docs/v1.1.md (`assets/ghidra_v11/cited_map.tsv`). A v1.0 address appears as
-  "(v1.0: …)" only where it helps. §16 summarises the v1.0 → v1.1 flight-model changes; all are ported.
-* Several key routines (e.g. `5a4230`, `5b9250`, `5b9530`) were read from the disassembly (`objdump -d -M intel`).
-  Ghidra shifts stdcall argument lists by one; the push order is authoritative.
-* All physics is SI: m, kg, s, N, rad. Constants were read from the `.rdata` of the exe.
+* **Reference version: v1.1** (docs/v1.1.md). Every address is a v1.1 address (`assets/v1.1/iafjets.exe`; Ghidra dump
+  `assets/ghidra_v11/iafjets.c`), mapped from the v1.0 analysis with `assets/ghidra_v11/cited_map.tsv`. "(v1.0: …)"
+  gives a v1.0 address where it helps. All v1.1 changes are ported (§16).
+* Some routines (`5a4230`, `5b9250`, `5b9530`) were read from the disassembly (`objdump -d -M intel`). Ghidra shifts
+  stdcall argument lists by one; the push order is authoritative.
+* Physics is SI (m, kg, s, N, rad). Constants come from the exe's `.rdata`.
 * `UNCERTAIN` marks guesses.
 
 **Terms used in this document**
@@ -76,8 +75,7 @@ and data sets, §12–§13 the gear lever and G effects, §14–§15 the line-by
     * Sampled with `τ≤1.1`: `τ≤t_end: pos0+rate0·τ+½accel·τ², rate0+accel·τ`; else
       `pos_end+targetRate·(τ-t_end), targetRate`.
     * Angles are reduced with `fmod(x, 2π)` (`FUN_0056886a` = `_CIfmod`, divisor `DAT_0084549c` = 2π), so they lie in
-      (−2π, 2π) (corrected, §15; an earlier version of this file said (−π, π]). Only the angle-difference helper
-      `5bdd50` wraps to (−π, π].
+      (−2π, 2π). Only the angle-difference helper `5bdd50` wraps to (−π, π] (§15).
   * **Kinematic axis** (type C, 0x20 bytes: `p0, t0:f64, v, a, min, max`), `FUN_005ada80/aab50`:
     `τ=clamp(t-t0,0,1.1)`, `p = p0 + v·τ + ½a·τ²` (clamped `[min,max]`), velocity `v + a·τ`.
     There are three: `S+0x20` X (east), `S+0x40` Y (north), `S+0x60` Z (up, altitude).
@@ -88,8 +86,8 @@ and data sets, §12–§13 the gear lever and G effects, §14–§15 the line-by
     re-based at once, §14.1/§15.1).
   * **UpdateAccelAndRates** runs every **0.2 s** (`5a4230`, disassembly only). It recomputes the alpha target, beta
     (also in the spin, v1.1) and the acceleration vector from the current channel values, and re-bases every channel.
-  * A port can run both at a fixed dt (e.g. 60 Hz). That is smoother, but not bit-faithful. To be faithful, keep the
-    1 Hz/5 Hz + event updates and constant acceleration between 5 Hz ticks.
+  * A fixed dt (e.g. 60 Hz) is smoother but not faithful. Faithful = the 1 Hz / 5 Hz + event updates with constant
+    acceleration between 5 Hz ticks.
 
 ## 1. Parameters (loader `FUN_005b2940` @005b2940, reads `FUN_005b4af0(section,key,default)`)
 
@@ -302,7 +300,7 @@ L = Lnoflap;  if V < 125: L += |L| * FlapsLiftCoef * flaps * 3.4158838
 `dragX` feeds only the stall/limit latch (`S+0x2f8`) and the shake; Drag (§4.3) leaves it out.
 
 ### 4.3 Drag — `FUN_005b4800` @005b4800 (checked in disassembly)
-Config ints (corrected in §15.1):
+Config ints (§15.1 step 3):
 * `sb=[6]` brakes: `S+0x340` ramp finished at max in the air; on the ground any value ≥ 1e-5.
 * `gear=[7]`: gear ramp `S+0x320` fully extended, `|x| < 1e-5`.
 * `hook=[8]`: `S+0x360` ramp finished at max.
@@ -358,7 +356,7 @@ Normal mode samples v(t) (type C velocities), roll φ(t) (S+0x80), α(t) and β(
 f = v/|v|;  w = S+0x08 (LEFT-wing vector saved at the last 1 Hz or 5 Hz update, with φ_ref = S+0x18)
 w = rotate(w, axis n, φ - φ_ref)            // n = nose of the saved Euler S+0x14..0x1c (v1.1; v1.0: axis f)
 f = rotate(f, axis w, -α)                   // nose above velocity
-f = rotate(f, axis w×f, β)                  // (was written f×w here; the code builds w×f explicitly @5b98eb)
+f = rotate(f, axis w×f, β)                  // w×f, built explicitly @5b98eb
 heading = atan2(f.x, f.y);  pitch = asin(f.z);  roll = ±acos(clamp(−w_local.x,−1,1)) (sign by w_local.z)
 ```
 * The exact version with the frames and helpers is in §15.3.
@@ -380,17 +378,15 @@ D = Drag(alpha=0, n=L/(m g)) + 0.5*mu*(m*9.806 - L);  D = max(D,0);  if V > 1: D
 T = max(T,0);  nose-wheel yaw rate = clamp(sx*V*K/74.53, ±K), K = DAT_008454d4 = 20°/s = 0.3490659 rad/s
 (0 if gear up; 0 if |rate| < 1e-4).  sx = stick X S+0x2e8, NOT the rudder (see "Nose-wheel steering input")
 ```
-* The single "Brakes in/out" key drives ramp `S+0x340` (motion 8, `FUN_0059ffc0`, range 0..0.855, 0.5/s). It is the
-  speed brake in the air and the wheel brake on the ground. (An earlier version said "S+0x360 = brakes"; that was
-  wrong, §15.1.)
+* The single "Brakes in/out" key drives ramp `S+0x340` (motion 8, `FUN_0059ffc0`, range 0..0.855, 0.5/s): the
+  speed brake in the air, the wheel brake on the ground (§15.1).
 * Motion 7 = gear `S+0x320`; motion 9 = `S+0x360` (→ HookDI; "Motion Input - Landing hook" in `FUN_0046c705`).
 * The nose-wheel yaw moves through ramp `S+0x2a8` at rate |BetaRate|, clamped to ±MaxBeta (§15.2.6).
 
 ### Nose-wheel steering input
-**Rule: on the ground the stick's roll axis (`S+0x2e8`) steers the nose wheel, always and directly. The ground
-code ignores the rudder input.** This matches the instructor line "The stick controls the nose wheel steering." Stick X
-reaches the FM only as stick X: no code turns it into a rudder input (motion 5), on the ground or as an airborne
-auto-rudder.
+**Rule: on the ground the stick's roll axis (`S+0x2e8`) steers the nose wheel, always and directly; the ground
+code ignores the rudder input** (the instructor: "The stick controls the nose wheel steering."). No code turns stick X
+into a rudder input (motion 5), on the ground or as an airborne auto-rudder.
 
 Evidence (all checked in objdump):
 * **Call chain, stick X → nose wheel.**
@@ -399,10 +395,9 @@ Evidence (all checked in objdump):
     arg 18 is the vehicle.
   * The ground branch @5b3b0c–5b3bfe forwards 30 stack args to `FUN_005bac40` (`ret 0x78`). It drops b0a20 args 6/7
     and 29, so 7a20 stack arg 14 (`param_15`) = b0a20 arg 16 = **stick X**, `param_14` = stick Y and `param_16` =
-    rudder. Ghidra shows these argument lists shifted by one; the push order is authoritative.
+    rudder (Ghidra's lists are shifted by one).
   * 7a20 computes the yaw rate @5bafc6: `fld [esp+0x5c]` (entry+0x38 = `param_15`) `fmul [esp+0x2c]` (V)
     `fmul [0x8454d4]` `fdiv [0x612440]` (74.53). 7a20 never reads `param_16` (rudder).
-  * Earlier notes here said "`ru`"/"rudder"; that was wrong.
 * **The rudder handler drops the command on the ground.**
   * Motion 5 `FUN_0059f5a0` @59f5c6 stores `S+0x2e0`/`S+0x2ec = clamp(in+0x10, ±1)` and starts the ×0.3926 ramp only
     if `S+0x2a0 == 0`. On the ground `S+0x2ec` keeps its last airborne value.
@@ -423,67 +418,27 @@ Evidence (all checked in objdump):
   * Motion 1 `FUN_0059f3d0` writes `S+0x2e8 = clamp(in+0x14, ±1)` (X) and `S+0x2e4 = −clamp(in+0x10, ±1)` (Y), in the
     air and on the ground alike.
   * `FUN_0044e470` type 1 sets `+0x14 = arg[0]·0.01` and `+0x10 = arg[1]·0.01` (`0x600b2c` = 0.01).
-  * The controller `FUN_0044a240` case 1 (@44bd01) posts motion 1 with the raw `(x,y)` in the range ±100. When
-    indicator 8 (the autopilot lamp, docs/autopilot.md) is set and |x| or |y| ≥ 51, it first clears that indicator.
-  * Case 10 posts motion 5. Cases 2/3 fall to the default and return (jump table `0x44c714`, index bytes `0x44d390`).
+  * The controller `FUN_0044a240` case 1 (@44bd01) posts motion 1 with the raw `(x,y)` (±100), after the autopilot's
+    ±51 break-out test (autopilot.md §1). Case 10 posts motion 5. Cases 2/3 fall to the default and return (jump table
+    `0x44c714`, index bytes `0x44d390`).
 * **K = 20°/s.** A static initialiser sets `DAT_008454d4`: CRT table `.data 0x6277ac` → `0x5bab70` → @5bab80
   `K = DAT_008454b0 · 20.0` (`0x61245c`). Initialiser `0x6277a8` → `0x5ba9a0` sets `DAT_008454b0` = 1.0° (`0x612450`),
   wrapped and converted to radians = 0.01745329. So K = 0.3490659 rad/s. Ghidra misses both writes.
 
-**Keyboard path (`FUN_004e0b80`, key → `WM 0x532`).** The "Roll left/right" keys send GEV 2 and
-"Pitch up/down" send GEV 3. Before sending, `FUN_004e0b80` rewrites both into **GEV 1 (stick)**:
-* GEV 2: x = the key's lParam, y = the last keyboard y `DAT_008338f4`; x is stored in `DAT_008338f0`.
-* GEV 3: the same with the axes swapped.
+**Keyboard.** The "Roll left/right" keys (Left / Right arrow, records 26 / 27) send GEV 2 ±100, which
+`FUN_004e0b80` rewrites into GEV 1 (stick) with the last keyboard y (controls.md §2). So a keyboard-only player steers
+the nose wheel with Left / Right as a full ±1 stick X while the key is held; the release sends x = 0. The rudder keys
+(Numpad 0 / Decimal, GEV 10) stay rudder commands on the ground, and roll input adds no rudder. Keys whose axis a
+joystick covers are dropped (controls.md §2).
 
-So a keyboard-only player steers the nose wheel with **Left/Right arrow** as a full ±1 stick X while the key
-is held. The release record sends x = 0.
-
-Keys are dropped when the joystick covers their axis:
-* GEV 2/3 keys are dropped when `this+0x24 && this+0x18`.
-* GEV 10 rudder keys are dropped when `this+0x2c && this+0x20`.
-* GEV 5/6/9 throttle keys are dropped when `this+0x28 && this+0x1c`.
-
-(Resolved: `+0x18 / 0x1c / 0x20` = the joystick has a stick / throttle (lZ) / rudder (slider 0 or lRz) axis
-(`FUN_004e0f90`); `+0x24 / 0x28 / 0x2c` = the Devices page's choices (`FUN_004df4e0`). The DirectInput poller
-`FUN_004df560` sends GEV 1 from lX / lY when `+0x24`, GEV 9 from lZ when `+0x28` and GEV 10 from lRz when
-`+0x2c`; docs/controls.md §5.) On the ground the Rudder keys stay rudder commands, and roll input adds no rudder.
-
-**Default key table.** `0x64c3c8 + n·0x24`, n = keys.trx line (0-based), 117 records, copied into the
-runtime table `0x83b99c` (`rep movs 0x41d` @4f08c0; "defaults" button @511ca5). Record layout:
-* +0 press GEV, +4/+8 press arg (x, y); +0xc release GEV, +0x10/+0x14 release args;
-* +0x18 key: DirectInput DIK code (ushort), modifier byte at +0x1a (0x22 = Shift, e.g. Shift+W);
-* +0x1c: joystick button (0-based, −1 = none; `FUN_004e0dc0`, Controls page "Button n");
-* +0x20: listed on the Controls page (one-shot or held; held keys are the ones with a release command). Full table and
-  dispatch: docs/controls.md.
-
-The key code of record k is at `0x64c3e0 + k·0x24`; this is the source of the `0x64c3e0` in docs/mfd.md.
-
-| n | keys.trx | Default key | Press → release |
-|---|---|---|---|
-| 24 | Pitch up | Up arrow (DIK 0xc8) | GEV 3 (0,+100) → GEV 3 (0,0) |
-| 25 | Pitch down | Down arrow (0xd0) | GEV 3 (0,−100) → GEV 3 (0,0) |
-| 26 | Roll left | Left arrow (0xcb) | GEV 2 (−100) → GEV 2 (0) |
-| 27 | Roll right | Right arrow (0xcd) | GEV 2 (+100) → GEV 2 (0) |
-| 37 | Rudder left | Numpad 0 / Ins (DIK_NUMPAD0 0x52) | GEV 10 (−100) → GEV 10 (0) |
-| 38 | Rudder right | Numpad . / Del (DIK_DECIMAL 0x53) | GEV 10 (+100) → GEV 10 (0) |
-
-For the port:
-* On the ground, yaw rate = `clamp(stickX·V·0.3490659/74.53, ±0.3490659)` rad/s, i.e. full steering authority at
-  74.53 m/s and above.
-* It is 0 with the gear up.
-* Ignore the rudder while `S+0x2a0` ≠ 0.
-* The sign convention of the yaw rate (right stick → right turn) was not traced (UNCERTAIN).
+So steering has full authority at 74.53 m/s and above, none with the gear up, and the rudder `S+0x2ec` is ignored
+while `S+0x2a0` ≠ 0. UNCERTAIN: the yaw-rate sign (right stick → right turn) was not traced.
 
 ## 8. Controls / keys (dispatcher `FUN_0059f180`, event type → handler)
-**Joystick axes → the flight model** (`FUN_004df560`, docs/controls.md §5). The axes reach the FM through the same
-game events as the keys, sent when their integer value changes:
-* stick x = `MulDiv(lX, 200, range) − 100`, y = `MulDiv(lY, −200, range) + 100` → GEV 1 → motion 1
-  (`S+0x2e4 = −y·0.01`, `S+0x2e8 = x·0.01`);
-* throttle = `MulDiv(lZ, −100, range) + 100` → GEV 9 → motion 2 (`t·0.01`, the AB delay below);
-* rudder = `MulDiv(lRz, 200, range) − 100` → GEV 10 → motion 5.
-
-The mapping is linear in 1 % steps, with DirectInput's 25 % dead zone on x, y and rudder and none on the throttle. It
-has no curve and no filtering. The only smoothing is the lift ramp (G_Rate) and the rudder ramp.
+**Joystick axes** (`FUN_004df560`, formulas in controls.md §5.1) reach the FM through the same game events as the
+keys: stick → GEV 1 → motion 1, throttle → GEV 9 → motion 2, rudder → GEV 10 → motion 5. The mapping is linear in 1 %
+steps (DirectInput's 25 % dead zone on x, y and rudder), with no curve or filter; the only smoothing is the lift ramp
+(G_Rate) and the rudder ramp.
 
 **Motion handlers**
 * 1 stick (`FUN_0059f3d0`): `S+0x2e4 = −clamp(y,−1,1)`, `S+0x2e8 = clamp(x,−1,1)`; ×0.25 with damage flag 0x12
@@ -496,23 +451,16 @@ has no curve and no filtering. The only smoothing is the lift ramp (G_Rate) and 
 * 6 flaps (`S+0x300`, ×0.33 target for aircraft type 100).
 * 7/8/9 ramps `S+0x320/0x340/0x360`.
 
-**Throttle presets** (keys 1–8, key-table records 7–14) send GEV 9 with p1 = 0, 10, 19, 38, 56, 74, 78, 100. The
-controller (`FUN_0044a240` case 9 → `FUN_0044e470` motion 2) makes throttle = p1 · 0.01: idle 0, 65 % 0.10, 70 % 0.19,
-80 % 0.38, 90 % 0.56, military 0.74, AB1 0.78, AB2 1.0 (docs/controls.md). `FUN_004e3c70` loads the key names from
-`keys.trx` into `0x833900` (100-byte stride). The default key→command table is at `0x64c3c8` (record layout in §7
-"Nose-wheel steering input").
+**Throttle presets** (keys 1–8, records 7–14) send GEV 9 with p1 = 0, 10, 19, 38, 56, 74, 78, 100; the controller
+(`FUN_0044a240` case 9 → `FUN_0044e470` motion 2) sets throttle = p1 · 0.01: idle 0, 65 % 0.10, 70 % 0.19, 80 % 0.38,
+90 % 0.56, military 0.74, AB1 0.78, AB2 1.0. Key table and names: controls.md §1.
 
-**Keyboard stick (traced, v1.0 = v1.1).**
-1. A pitch / roll key press sends GEV 3 / 2 with ±100, its release 0 (`FUN_004e0b80`, per DirectInput key event,
-   rewritten to GEV 1 with the other axis's last keyboard value).
-2. The controller `FUN_0044a240` case 1 posts motion 1 at once (it only first clears indicator 8 when |x| or |y| ≥ 51).
-3. Motion 1 `FUN_0059f3d0` stores `sY = −y·0.01`, `sX = x·0.01`, and the event runs UpdateAeroData (§0).
-
-So the stick goes **full at once** and back to centre at once. The path is direct: one step from key to stick value,
-with the same linear scale as the joystick (the poller `FUN_004df560` maps linearly with `MulDiv` to ±100). Commanded
-g jumps to `c + sY·(MaxG−1)` (§4.2). The only smoothing is the lift ramp, `G_Rate` g/s (× `gRateSlope` below 220 m/s:
-≈ 4.4 g/s for the F-16 at 350 kt). Peak g of a Down-arrow (pull) tap, 10,000 ft, 350 kt, military (port,
-original / real data; push taps are the mirror down to MinG):
+**Keyboard stick (v1.0 = v1.1).** A pitch / roll key sends ±100 on press and 0 on release (`FUN_004e0b80`, rewritten
+to GEV 1); the controller `FUN_0044a240` case 1 posts motion 1 at once; motion 1 `FUN_0059f3d0` stores `sY = −y·0.01`,
+`sX = x·0.01` and runs UpdateAeroData (§0). So the stick goes full and back to centre at once, on the joystick's
+linear scale. Commanded g jumps to `c + sY·(MaxG−1)` (§4.2); the only smoothing is the lift ramp, `G_Rate` g/s
+(× `gRateSlope` below 220 m/s: ≈ 4.4 g/s for the F-16 at 350 kt). Peak g of a Down-arrow (pull) tap, 10,000 ft,
+350 kt, military (port, original / real data; push taps mirror down to MinG):
 
 | tap | F-16 | F-15 | F-4 | Kfir | Lavi | Mirage | MiG-29 |
 |---|---|---|---|---|---|---|---|
@@ -521,29 +469,24 @@ original / real data; push taps are the mirror down to MinG):
 | 0.5 s | 3.18 / 3.31 | | 2.26 / 2.35 | | | | |
 | 1.0 s | 5.36 / 5.61 | 5.43 / 5.68 | 3.52 / 3.71 | 4.38 / 4.59 | 5.49 / 5.64 | 4.38 / 4.58 | 4.56 / 4.76 |
 
-So in the original an F-16 key tap longer than ≈ 0.45 s gives 3+ g. Our former invented ramp (2.5 /s out,
-4 /s back) gave *more*: 0.3 s → 2.82 g, 0.5 s → 3.83 g, because the stick was still off centre after the release while
-the lift ramp kept rising. Test: `tests/godot/test_keyboard_stick.gd`.
+So an F-16 key tap longer than ≈ 0.45 s gives 3+ g. Test: `tests/godot/test_keyboard_stick.gd`.
 
 ## 9. Misc
 * g = 9.806 everywhere; lbf→N 4.4479; dt clamps: ramps 3.5 s, angles/axes 1.1 s.
-* Stall shake/buffet: `FUN_005a9e60` sets `S+0x1a8/0x1ac = 0.5` while the vibration flag is set (only if
-  `veh+0xc60 == 0`). It starts/stops the force-feedback effect "StallShake" with the stall latch (§15.2.4).
-* Over-G: the player controller (@449525) compares `OverGThresh` (getter id 27) with the current G. Above it, the
-  "Over G" Betty voice plays every 4 s. Over-G causes no damage. See §13.
+* Stall shake/buffet: `S+0x1a8/0x1ac = 0.5` while the vibration flag is set; force-feedback "StallShake" follows
+  the stall latch (`FUN_005a9e60`, §15.2.4).
+* Over-G: above `OverGThresh` the Betty "Over G" voice plays every 4 s; no damage (§13.5).
 * Ceiling/Vmin extras: `P+0x14c` (Vmin 1 g @10 km) used by AI only (UNCERTAIN).
 
 ## 10. Deviations in our port (`crates/iaf-flight`)
-This section lists where our port differs from the original. The airborne branch, modes, landing check, start rules,
-throttle rules and preferences follow §15 (checklist §15.11). These items still differ:
-* **"Better physics"** (Preferences; off by default, which gives the original). Each item below is an opt-in fix of an
-  original quirk (§15.10 "BP") and has its own switch.
-  * The switches are `Aircraft::better: BetterPhysics`: one bool per item, with the id in brackets below.
-    `BetterPhysics::OPTIONS` lists the ids with English labels; `none()` = default, `all()`.
-  * `set_better_physics(on)` switches all of them (the `--better` launch option); `set_better_option(id, on)` switches
-    one. Godot: `IafFlight.set_better_option(id, on)`, `IafFlight.better_options()`.
-  * The game sets each one from Preferences > Physics, `Settings.BETTER`. That setting also holds six gameplay fixes
-    outside the FM (deviations.md §2).
+Where our port differs from the original. Everything else follows §15 (status in §15.11).
+* **"Better physics"** (Preferences > Physics; all off by default = the original). Each item is an opt-in fix of an
+  original quirk ("BP" in §15.11), with its own switch:
+  * `Aircraft::better: BetterPhysics`, one bool per item (id in brackets below). `BetterPhysics::OPTIONS` lists the
+    ids with English labels; `none()` = default, `all()`.
+  * `set_better_physics(on)` switches all (the `--better` launch option), `set_better_option(id, on)` one. Godot:
+    `IafFlight.set_better_option(id, on)`, `IafFlight.better_options()`.
+  * The game sets them from `Settings.BETTER`, which also holds six gameplay fixes outside the FM (deviations.md §2).
   * The start options act when set at t = 0. AI jets get none of them.
 
   The items:
@@ -579,21 +522,19 @@ throttle rules and preferences follow §15 (checklist §15.11). These items stil
     * a spin with zero yaw rotation (s1 = 0) is recoverable;
     * the yaw-rate sign uses the channel's own τ.
 
-    v1.1 changed two things: the recovery slope (π/(2.2·MaxBeta), was 1.8) and the β update in the spin (added). Both
-    are now the original behaviour and apply in both modes. v1.1 left everything this option fixes unchanged, so the
-    option stays as it is.
+    v1.1's recovery slope and spin β update (§16) are original behaviour and apply in both modes; v1.1 changed none
+    of the rules above.
   * **Fly-by-wire departure** [`fbw_departure`] (F-16 type 100, Lavi 140, ours: F-35I 1000; §10.1). Original: these
     jets never depart (early return in the spin entry). BP gives them the FLCS deep stall; the other jets keep the (BP)
     spin.
-  * **Lift-ramp rate factor** [`lift_rate_floor`] (§15.10 item 14). The original's factor `0.01 + 0.99·(V − 20)/200`
+  * **Lift-ramp rate factor** [`lift_rate_floor`] (§15.11 item 14). The original's factor `0.01 + 0.99·(V − 20)/200`
     has no floor. Below 18 m/s it turns negative and its magnitude grows again, so the lift changes as fast at 0 m/s
     as at 20 m/s. BP floors it at 1 %.
-  * **Roll command at very low speed** [`low_speed_roll`] (§15.10 item 13a). `kroll = 0.00475·Veff − 0.045` has no
+  * **Roll command at very low speed** [`low_speed_roll`] (§15.11 item 13a). `kroll = 0.00475·Veff − 0.045` has no
     lower clamp, so below Veff ≈ 9.5 m/s the stick rolls the jet the wrong way. BP clamps it at 0.
   * **Nose-wheel ×4 lift** [`no_nose_wheel_lift`] (§14.5). In the original data set, a nose-wheel side force above
     0.1·L (V > 20.6 m/s) multiplies the vertical lift by 4. Steering during the take-off run then throws the jet into
-    the air. This is not physical, and BP leaves it out. The real data set already leaves it out: it uses geometric
-    steering.
+    the air. BP leaves it out; the Real data set never has it (geometric steering).
   * **Ground effect** [`ground_effect`] (new; the original has none). One switch covers the drag and the lift.
     h = height of the aircraft origin above the terrain, b = span, A = b²/S (aspect ratio).
     * Drag: BP multiplies the induced drag `K·CL²` by McCormick's `φ = (16h/b)² / (1 + (16h/b)²)`[^mccormick].
@@ -681,16 +622,14 @@ throttle rules and preferences follow §15 (checklist §15.11). These items stil
     * Test `wind_moves_the_air_mass`: off and calm fly as the original; on, the airspeed is kept when the wind
       starts, the track drifts 20 kt × 20 s east in a west wind, and the gusts move the jet 3 × as much at 250 m as
       at 2000 m.
-  * **Engine spool-up** [`engine_spool`] (§4.1, §15.8; the table and the sources in §10.2). Original: the thrust follows
-    the throttle at the next aero update; only the RPM gauge and the afterburner light-up wait for the 15 %/s ramp.
-    BP: the player's thrust follows each real engine's core spool (slow at low RPM), then the afterburner's
-    light-off and fill; the RPM gauge shows the same spool.
-* **Kept in both modes** (original quirks that better physics leaves as they are):
-  * §15.10 item 14, the slope globals. In the original, the lift-ramp / β-gain slopes below 220 / 400 m/s come from
-    the **last aircraft type set up** (shared globals). Our `Aircraft` keeps its own parameters, so every jet uses its
-    own slopes in both modes. Reproducing the leak would need a process-wide "last type". It matters only when several
-    types fly the FM at once (AI jets do: docs/ai.md).
-  * §15.10 item 15, the "Tornado" map-edge push-back (acceleration ramps that never decay, §15.5a).
+  * **Engine spool-up** [`engine_spool`]: the player's thrust and RPM gauge follow each real engine's spool and
+    afterburner light-off (§10.2).
+* **Kept in both modes** (not changed by better physics):
+  * The slope globals (§15.11 item 14). In the original, the lift-ramp / β-gain slopes below 220 / 400 m/s come from
+    the **last aircraft type set up** (e.g. F-4 G_Rate 3 vs F-16 5). Our `Aircraft` keeps its own, in both modes;
+    the leak would need a process-wide "last type". It matters only when several types fly the FM at once (AI jets
+    do: docs/ai.md).
+  * The "Tornado" map-edge push-back (acceleration ramps that never decay, §15.5a; §15.11 item 15).
   * The 3 s zero-lift stall latch itself (§15.2.4) is kept. It is the model's only stall, and the F-16's deep stall
     starts from it.
 * **Envelope** (§15.9, `envelope.rs`): the exact algorithm, computed in f64 (the original: float32/x87; UNCERTAIN:
@@ -719,7 +658,7 @@ throttle rules and preferences follow §15 (checklist §15.11). These items stil
     original.
 * **Z-axis limits in the spin**: v1.1 re-bases Z in the spin's stay branch through `5adae0`, which clamps the height
   to the Z-axis limits [−1500, 30000] m. Our axes have no limits (flight never reaches them).
-* **Sampling**: every channel uses its own base time; the original samples all with the X-axis τ (§15.10 13d). The
+* **Sampling**: every channel uses its own base time; the original samples all with the X-axis τ (§15.11 item 13d). The
   channels are re-based together, so this differs only between updates. Angles are wrapped to (−π, π]; the original
   uses `fmod(x, 2π)`. The spin's yaw-rate sign keeps the axis-τ quirk (off with better physics).
 * **Validation** against public data for every flyable jet (docs/real-aircraft.md):
@@ -845,7 +784,8 @@ launch option.
 * **Original**: the 1998 numbers as shipped. These are the v1.1 files (`bdgen.dat`, `<n>gen.skp`, XOR-encoded) when
   the patch output is present, else v1.0's (`iaf_flight::read_md`; v1.1 changes: docs/real-aircraft.md §1).
 * **Real**: one table row per flyable jet (F-16, F-15, F-4 / Kurnass 2000, Kfir, Lavi, Mirage, F-35I) with public
-  real-world values. A field left out keeps the original value. Per jet:
+  real-world values; a field left out keeps the original value. The F-35I has no original data and always flies its
+  Real row. Per jet:
   * weights, fuel;
   * thrust (SL static full AB, military ratio via `Params::dry_thrust`);
   * fuel flow at AB and military (`Params::dry_fuel_frac`);
@@ -860,12 +800,10 @@ launch option.
 * The AI types have rows too, one per type (the shared sections are split): docs/real-aircraft.md §9.
 
 ## 12. Gear lever rules (player controller `FUN_0044a240`, case GEV 0xe)
-This section gives the rules for raising and lowering the gear. They are the same for every aircraft and use no
-per-type data. GEV = game event code.
+The rules for raising and lowering the gear, the same for every aircraft (no per-type data).
 
-**Key → event chain.** Key bindings live in a runtime table at `0x83b99c` (stride 0x24: press cmd,
-press lParam, release cmd/lParam, key code `ushort`+modifier at +0x18; defaults at `0x64c3c8`, see §7; keys.trx
-only supplies the display names). `FUN_004e0b80` sends `WM 0x532, wParam = GEV code` → handler
+**Key → event chain.** The key table (`0x83b99c`, controls.md §1) → `FUN_004e0b80` sends `WM 0x532, wParam = GEV
+code` → handler
 `0x4e33c0` (MFC map entry @`0x6057e0`; codes 0x7d–0x89 are UI, all others fall to `0x4e36e5`) →
 `FUN_005bf840` (ManageUnit log) → `FUN_004cd3b0` queues a `SimGameEventNode` → the player controller
 `FUN_0044a240(this=ctl, gev, int *arg, int forced)`. (UNCERTAIN: the queue→`FUN_0044a240` hop was not
@@ -903,8 +841,7 @@ if the state is already equal, and steps 1–2 are skipped.
 **Related:**
 * Gear damage: `FUN_0044d760(7)` shows "Gear damage" (for the player) and sets the leg lights to 1. Besides combat
   damage it comes from **gear overspeed** (`FUN_00448b20` @448fe2–4490a1, every frame): speed (getter 5) · 1.9428 >
-  450 kt with the handle down, leg 1 == 2, no flag 7 and not Invulnerable (docs/damage.md §5.3; this page said
-  before that none exists).
+  450 kt with the handle down, leg 1 == 2, no flag 7 and not Invulnerable (docs/damage.md §5.3).
 * Touchdown check `FUN_005bb7d0`: if the gear ramp is ≥1e-5 (not fully down), the three landing tolerances are
   multiplied by 0.2/0.2/0.25 (and ×2 with the "Easy landing" preference `pref+0x3c`, default on, or in multiplayer; §15.6). The ground roll uses μ=20 for a belly landing (§7).
 * Air traffic control (ATC) text `ACFT_GEARS_NOT_OPEN` (`FUN_00551c20` case 10). The `BACKSEAT_GEAR_UP/DOWN` voices
@@ -1020,12 +957,11 @@ colour `ARGB(a, r, g, b)` (colour built @419faa).
 
 ## 14. Port audit (ground roll and lift)
 
-This section records how the original computes lift, drag and acceleration on the ground, and where an earlier
-port differed (§14.8). The fixes are in the port (checklist §15.11).
+How the original computes lift, drag and acceleration on the ground; all of it is ported (§15.11).
 
-Source: `objdump -d -M intel` of `iafjets.exe`. We mapped the stack arguments by tracking every push, because the
-Ghidra listing of these calls is shifted by one argument. Constants come from `.rdata`/`.data`. We also checked the
-C runtime (CRT) initialiser table `0x627754..0x6277c0` for load-time writes.
+Source: `objdump -d -M intel` of `iafjets.exe`, stack arguments mapped by tracking every push (Ghidra's listing of
+these calls is shifted by one). Constants from `.rdata`/`.data`; the C runtime (CRT) initialiser table
+`0x627754..0x6277c0` checked for load-time writes.
 
 Terms in this section:
 * `sY` = stick Y `S+0x2e4` (+ = pull); `sX` = stick X `S+0x2e8`.
@@ -1043,19 +979,16 @@ Terms in this section:
   7a20 args: 1 alt, 2 V=|v|, 5 &attitude(pitch,roll,heading), 6 engine on (`S+0x1d0`), 7 &cfg, 8 extra mass
   (`S+0x424`+fuel), 9 stores DI, 13 sY, 14 sX, 15 rudder (unused), 16 vehicle.
   Outputs: 19 nose-wheel yaw, 20 roll-rate cmd, 24 L, 25 dragX, 26 stall flag, 27 Lnoflap, 28 T, 29 D, 30 m.
-* `cfg` (built in 5a70f0) — **corrected in §15.1**: `[0]` flaps (float, `S+0x300` ramp); `[6]` brakes from ramp
-  `S+0x340` (in the air: finished at its maximum; on the ground: any sample ≥ 1e-5); `[7]` gear = gear ramp
-  `S+0x320` fully extended (`|x| < 1e-5`); `[8]` = `S+0x360` finished at max (hook). (`S+0x2cc`==2 is `[9]`, unused.)
+* `cfg` (built in 5a70f0): §15.1 step 3.
 * After b0a20, 5a70f0 sets `S+0x1d4`=T, `S+0x1dc`=D, `S+0x1d8`=m, ramp `S+0x1e0`→L and ramp `S+0x200`→Lnoflap
   (rates as §4). It passes the stall flag to `5a9e60` (latch). It also calls the acceleration routine
   `5b3ef0` (@5a784b) with the lift ramp value sampled *before* the new target is set, and re-bases the X/Y/Z
   axes (@5a7eaa–5a7f9e). **So every aero update and every control event also changes the acceleration at
   once**, in addition to the 5 Hz tick.
 * On the ground, 5a70f0 skips the beta update `5aa700`. Instead it steps the β channel with its stored gains and command
-  (`5ae4c0`/`5ae240`, v1.1; v1.0 re-based the ramp) and ramps `S+0x2a8` toward the nose-wheel yaw (arg 19) at rate
-  `S+0x2b8`. **Correction:** the constructor's 10000/s (@5ba20a) is overwritten by `5b1f30` at
-  SetType and by the placement inits with `|BetaRate|`, and the ramp is clamped to ±MaxBeta (F-16: 32°/s², ±15°/s,
-  below K = 20°/s). The 5 Hz force uses the ramp sample; the 1 Hz/event force uses the raw target (arg 19). §15.2.6.
+  (`5ae4c0`/`5ae240`, v1.1; v1.0 re-based the ramp) and ramps `S+0x2a8` toward the nose-wheel yaw (arg 19) at
+  `|BetaRate|`, clamped to ±MaxBeta (§15.2.6). The 5 Hz force uses the ramp sample; the 1 Hz/event force the raw
+  target (arg 19).
 
 ### 14.2 `FUN_005bac40` ground aero (ret 0x78)
 ```
@@ -1231,87 +1164,19 @@ if *Z > clear && vz > 0.001:                          // lift-off (@5bbf54)
   latch, but the first airborne updates within 3 s get L = 0.
 * `5b4c60` (alpha target) returns 0 on the ground.
 
-### 14.7 Worked example (the bug report: F-16, V = 65.3 m/s = 127 kt, sea level, full aft, gear down, flaps up)
-Original: g_cmd ≈ 8.7 (stick-centre shift). GLimit gives code 4 with lim ≈ 1.65 (Vmin: 1 g = 86 kt,
-2 g = 148 kt). So g = 1.65 and L = 0.5·1.65·W ≈ 0.83 W. n = 0.83 and CL ≈ 1.17, so D ≈ (0.072 + 0.143)·qS
-≈ 15.6 kN, plus friction 0.43 kN, ×0.7 ≈ 11 kN (v1.0 factor; v1.1 ×0.8 ≈ 12.8 kN). With T ≈ 86 kN the jet keeps accelerating and stays on the
-ground. Exception: nose-wheel steering. At this speed any sX gives |Fc| > 0.1·L, which multiplies the
-vertical lift by 4, and the jet lifts off.
-Port: g ≈ 8.7 with no envelope, so L = 4.33 W and n = 4.33, CL ≈ 6. Induced drag ≈ 280 kN (×0.7 ≈ 200 kN)
-exceeds the thrust, and az = 3.3 g. The jet decelerates hard and is thrown into the air. At 25 kt the original
-would give L = 0 (code 0, below 46 kt), but the port still gives 4.5 W.
-
-### 14.8 Mismatches, most important first (our file `crates/iaf-flight/src/aircraft.rs`)
-This list audits an earlier `aircraft.rs`. The line numbers (l.) are historical; the fixes are in the port (checklist
-§15.11).
-1. **Envelope skipped on the ground** (l. 429, `&& !self.on_ground`). Original: Lift runs GLimit on the ground
-   too (latched=0), so g ≤ lim(alt,V), and below Vmin(g=0) it gives g = 0 plus the stall flag. This is the
-   direct cause of the report (4.3–4.5 W of lift and matching induced drag at 25–127 kt).
-2. **Departure latch applied on the ground** (l. 411–413). Original: the ground call passes latched = 0. The
-   original also *sets* the latch from a code-0 result on the ground; the port never set it (l. 429, 446).
-3. **Flaps counted once on the ground** (l. 452–460). Original: `L = 0.5·Lift(); L += |L|·c_f`, and Lift has
-   already added `|L|·c_f` when V < 125. The ground lift is `0.5·g·W·(1+c_f)²`.
-4. **Rolling friction fric1 = 0.05 missing** (l. 477). Original: `mu = brakeFlag·WheelsBrakeDI·(ai?2:1) + 0.05`
-   (IAF.ibx `[TAXI] fric1`, load-time initialiser). The port had mu = 0 without brakes. The doc's §7 claim
-   "DAT_008454a8 = 0" is wrong.
-5. **Ground acceleration model** (`ground_roll_update` l. 568–588, `steer` l. 278–305):
-   * The port snaps the velocity to `ground_dir` and rotates `ground_dir` kinematically at the nose-wheel
-     rate, every frame. Original: a lateral force `Fc = V·m·g·tan(yaw)·f` (f = 1 below 25.7 m/s, else
-     |0.1 − 0.000777·V|, R ≥ 2 m) turns the velocity at 5 Hz/events, and the heading follows the velocity.
-   * The port omits the scrub `Fx −= |Fc|/16` and the rule `L_vertical ×4 when |Fc| > 0.1·L && V > 20.59`.
-   * The port's stop rule is `along < 0.05 && a < 0 → v=a=0` along the direction. Original:
-     `Fx = 0 if V < 0.01 && T < D`, plus the 5 Hz rule `a_fwd < 0 && v_fwd + 0.2·a_fwd < 0` → all three
-     velocities = 0 and a_fwd = 0.
-   * Steering speed: the port uses `dot(v, ground_dir)`; the original uses |v|.
-6. **Transitions** (`ground_contact` l. 590–612, `step` l. 268–271). The port checks per frame. Original:
-   once per 5 Hz tick, before the forces are computed.
-   * Lift-off: the port uses `z > floor + 1.0` (a 1 m hysteresis of our own). Original: `Z > clear && vz > 0.001`.
-   * Touchdown: the original sets vz = 0 and keeps a_z. The port uses `vz.max(0)` and a_z = 0, and it re-clamps
-     z and zeroes a_z every frame while z ≤ floor (l. 607).
-   * Roll: the port resets the roll channel completely at touchdown (l. 602–603). Original: roll is untouched
-     at touchdown, and at lift-off pos := 0 with the rate and target kept (the port does nothing at lift-off).
-7. **Aero update does not re-base the acceleration** (l. 391–506 vs `5a70f0` @5a784b/5a7eaa). Original: every
-   1 Hz update and every control event recomputes the acceleration (using the old lift-ramp sample and the
-   new T/D) and re-bases the axes at once. The port waits for the next 5 Hz tick.
-8. **Speed-brake drag excluded on the ground** (l. 475). Original: `cfg[6]` adds SpeedBrakesDI on the ground
-   too, as well as the wheel friction. `cfg[6]` is the 0/1 "ramp finished at max" flag; the port uses the
-   continuous ramp value (l. 467, 477).
-9. **Ground drag uses α ≠ 0** (l. 463–465). Original: alpha = 0 in the ground Drag call, so CL = L/qS.
-10. **Lnoflap not zeroed by the ground lift gate** (l. 457–458, 492). Original: the gate zeroes L,
-    Lnoflap and the stall flag, so the `S+0x200` ramp also goes to 0.
-11. **Alpha on the ground** (l. 520–533, 585). Original: alpha target = 0 (`5b4c60`), with normal dynamics.
-    The port computes the target from lift_aoa and then snaps α to 0.
-12. **Beta on the ground** (l. 503–505). Original: the force uses `S+0x2a8` (nose-wheel yaw). v1.0 leaves the beta
-    ramp unchanged on the ground; v1.1 steps the β channel with its stored gains (§15.2.6).
-13. **Thrust on the ground ignores HasAfterBurner** (l. 358). Original: the ground call passes `noAB = ai`,
-    so every player jet gets the AB curve on the ground, also one with HasAfterBurner = 0. For noAB the stage
-    follows thr (the port gave 0). Only the ground T is clamped to ≥ 0; the airborne T has no clamp (l. 379
-    clamps both).
-14. **Lift-gate conditions** (l. 457): the port lacked the multiplayer, AI, pref+0x3c and "easy" bypasses of the
-    gear test, and the "easy" bypass of the belly μ = 20 (l. 477).
-15. **Lift for !bStall** (pref "stalls off"): code 2 → 0.4, code 4 → `max(r,0.4)` unless g_cmd < 0.4. The port
-    lacked this and always assumed bStall.
-16. **Buffet** (l. 442): the original tests `g_cmd > 0`, `P+0x84` and `!ai`. The port tests the clamped g.
-17. **GLimit itself** (`envelope.rs` l. 141–174): the port bisected on vmin; the original uses per-altitude-level
-    point lists with a plane fit. The port approximated the stall test (below the lowest point of level k or k+1)
-    and code 2 (`k+1 > count−1`, i.e. from the list count; the port used ceiling + step). §10 also lists this.
-18. **Terms of our own**: `wave_drag` (l. 469–471) and the `nose_wheel` geometric steering (l. 285–291) are
-    additions to the original. They are active only with `DataSet::Real`.
+### 14.7 Worked example (F-16, V = 65.3 m/s = 127 kt, sea level, full aft, gear down, flaps up)
+g_cmd ≈ 8.7 (stick-centre shift). GLimit gives code 4 with lim ≈ 1.65 (Vmin: 1 g = 86 kt, 2 g = 148 kt). So
+g = 1.65 and L = 0.5·1.65·W ≈ 0.83 W. n = 0.83 and CL ≈ 1.17, so D ≈ (0.072 + 0.143)·qS ≈ 15.6 kN, plus friction
+0.43 kN, ×0.8 ≈ 12.8 kN (v1.0 ×0.7 ≈ 11 kN). With T ≈ 86 kN the jet keeps accelerating and stays on the ground.
+Exception: nose-wheel steering. At this speed any sX gives |Fc| > 0.1·L, which multiplies the vertical lift by 4,
+and the jet lifts off.
 
 ## 15. Port audit (airborne branch and modes)
 
-This section audits the airborne branch of the flight model and its mode objects against the exe. It lists the call
-graph at 1 Hz and 5 Hz, the airborne aero, acceleration, lift, stall latch, α and β dynamics, the attitude and the
-modes.
-
-Source and method are those of §14:
-* the disassembly (`objdump -d -M intel` of `iafjets.exe`);
-* stack arguments mapped by tracking the pushes (Ghidra's argument lists of these calls are shifted by one);
-* constants read from `.rdata`/`.data`;
-* the whole CRT (C runtime) initialiser table checked for load-time writes.
-
-**The CRT table is `0x627004..0x62790c`** (v1.0 `0x623004..0x623890`, 547 entries). Its FM part is
-`0x62770c..0x6277c8`, which covers more than the `0x627754..0x6277c0` range used in §14.
+The airborne branch and the mode objects against the exe: the 1 Hz and 5 Hz call graph, the airborne aero,
+acceleration, lift, stall latch, α and β dynamics, the attitude and the modes. Source and method as §14, with the
+whole CRT initialiser table checked: **`0x627004..0x62790c`** (v1.0 `0x623004..0x623890`, 547 entries), FM part
+`0x62770c..0x6277c8`.
 
 Notation (as in §14):
 * `sY` = stick Y `S+0x2e4` (+ = pull), `sX` = stick X `S+0x2e8`, `ru` = rudder `S+0x2ec`;
@@ -1340,15 +1205,15 @@ Channel layouts needed below (offsets inside the channel):
    `α_s = fmod(α(τ), 2π)` (α channel `S+0x220`); `v = (vx, vy, vz)(τ)`, **`V = |v|` (not capped here)**.
 2. Attitude `att = (pitch, roll, heading)`: `veh+0xc` unit → vtable `+0x54`, cached per `now` in `unit+0x88` (so the mode
    object's `5b9250`, §15.3, runs at most once per time stamp).
-3. `cfg[10]` (ints, `cfg[0]` float) at `&L58` — **corrects §14.1**:
+3. `cfg[10]` (ints, `cfg[0]` float) at `&L58`:
    * `cfg[0]` = flaps ramp `S+0x300` sample;
    * `cfg[6]` (brakes) = on the ground (getter `0x1a` ≠ 0): `|S+0x340(t)| ≥ 1e-5`; in the air: the `S+0x340` ramp has
      finished (`τ ≥ t_end`) **and** `|target − max| < 0.01·(max − min)`. `S+0x340` is the ramp of motion 8
      (`FUN_0059ffc0`), which the player controller posts @44c8d9/@44c949 next to the GEV 0x11 brake handler (@44cac1).
-     §7 and §14.1 said `S+0x360`; that was wrong.
    * `cfg[7]` (gear) = `|S+0x320(t)| < 1e-5`: the gear ramp is exactly at its "extended" end (0). Gear drag, the
      ground lift gate and the belly rule use this, so they switch only once the gear is fully down; while the gear moves
-     they see it up. §14.1 said `S+0x2cc == 2`; that is `cfg[9]`, which Drag, Lift and the ground aero leave unread.
+     they see it up.
+   * `cfg[9]` = (`S+0x2cc == 2`), which Drag, Lift and the ground aero leave unread.
    * `cfg[8]` = `S+0x360` ramp finished at its max (motion 9) → `HookDragIndex` in Drag (UNCERTAIN: hook).
    * `cfg[1..5]` = 0.
 4. Mass/stores: `m_x = S+0x424 + fuel(S+0x430)`, `DI_s = S+0x428 + S+0x42c`, `asym = S+0x428 − S+0x42c`.
@@ -1425,7 +1290,7 @@ stall flag stays **clear**. So during the latch:
 * the jet flies ballistic (thrust, drag with `n = 0`, gravity).
 
 #### 15.2.1 Drag, thrust
-As §14.4 with the corrected `cfg` (15.1 step 3): `CD = PlaneDI + cfg[6]·SpeedBrakesDI + cfg[8]·HookDI +
+As §14.4 with `cfg` of §15.1 step 3: `CD = PlaneDI + cfg[6]·SpeedBrakesDI + cfg[8]·HookDI +
 cfg[7]·GearDI·(ai ? 0 : 1) + FlapsDI·flaps·3.4158838 + DI_s + K·CL²`, `CL = cos(α_D)·L/qS` (L includes the flap
 increment). Thrust as §4.1; the airborne T has no clamp.
 
@@ -1539,7 +1404,7 @@ This is exactly the α law of §15.2.5 with the rudder keys. When a key is missi
   ramp's rate field; the immediate aero update re-bases the channel at the same time, so it has no effect. The
   state-set path sets pos = 0. The β
   samplers (`5ad450`, `5acfc0`, `5b9250`, `5bb9f0`) use `fmod(pos)`.
-* The slope `0x8453e8/ec` is a global written by the last aircraft type set up (like the v1.0 one, §15.10 item 14).
+* The slope `0x8453e8/ec` is a global written by the last aircraft type set up (like the v1.0 one, §10).
 
 **Behaviour (port, `validation.rs` "rudder step", full pedal at 350 kt / 10k ft, k ≈ 0.45):** β starts from rest at
 startAccel (second order), reaches 90 % of MaxBeta in ≈ 3.0 s (RudderK 5.5: F-15, F-16, MiG-29) / 2.2 s (7.5: F-4, Kfir,
@@ -1555,12 +1420,11 @@ port keeps the original as it is, and Better physics has no option for it.
 `S+0x294/0x298 = ∓MaxBeta`, the same for `S+0x270..0x278`); the **nose-wheel ramp `S+0x2b8 = |BetaRate|`, `S+0x2bc/0x2c0 = ∓MaxBeta`**; lift ramps
 `S+0x1f0 = |MaxWeight·G_Rate·g|`, `S+0x1f4/0x1f8 = MaxWeight·(MinG−1)·g / MaxWeight·(MaxG−1)·g` (same for `0x210..0x218`
 with `G_RateForAoa`); α as above with f = 1; fuel `S+0x440 = |FuelFlow|`, limits `[0, FuelWeight]`; RPM `S+0x1c8 = 100`.
-The constructor value `S+0x2b8 = 10000` (@5ba20a) quoted in §14.1 is overwritten here, and the placement init
-`5a4d40` sets `S+0x2b8 = |BetaRate|` again (@5a5066). **So the nose-wheel yaw is a ramp at `BetaRate` (rad/s²) clamped to
-±MaxBeta (rad/s)**: F-16 32°/s² and ±15°/s, which is below `K` = 20°/s. §14.1 ("in effect instant") was wrong
-(corrected here).
-The slopes `0x845420/24` (G_Rate), `0x845440/44` (G_RateForAoa), `0x8453e8/ec` (β gain k) are **globals** written by `5b1f30`,
-i.e. by the last aircraft type set up; all aircraft use them (see mismatch list).
+The constructor's `S+0x2b8 = 10000` (@5ba20a) is overwritten here, and the placement init `5a4d40` sets
+`S+0x2b8 = |BetaRate|` again (@5a5066). **So the nose-wheel yaw is a ramp at `BetaRate` (rad/s²) clamped to ±MaxBeta
+(rad/s)**: F-16 32°/s² and ±15°/s, below `K` = 20°/s.
+The slopes `0x845420/24` (G_Rate), `0x845440/44` (G_RateForAoa), `0x8453e8/ec` (β gain k) are **globals** written by
+`5b1f30`, i.e. by the last aircraft type set up; all aircraft use them (§10 "Kept in both modes").
 
 ### 15.3 Attitude — mode object vtable `0x611db0` slot 0 `5b9250(&out, &now)` → slot 1 `5b9530`
 `5b9250` (reads `S = veh+0xc30`): `τ = clamp(now − S+0x28, 0, 1.1)`; `φ = fmod(roll(τ), 2π)` (channel `S+0x80`);
@@ -2009,154 +1873,60 @@ return 4                                               // code 1 is never return
 min(a34·alt + b38, 0) : max(a28·alt + b2c, 0)` — the line from (ceilAlt(gmax graph), gmax) to (ceilAlt(g0), 0), and the
 mirror with gmin. F-16: `14 − 6.5617e-4·alt` (9 g at 7620 m, 0 at 21336 m), `−10.5 + 4.9213e-4·alt`.
 
-**F-16 `16.dat` check.** The table compares the Python reconstruction `tools/envelope_ref.py` ("original") with the
-old linear `envelope.rs` ("port"). The ported version now matches the "original" column (test
-`f16_file_matches_the_audit_table`).
+**F-16 `16.dat` check** (the Python reconstruction `tools/envelope_ref.py`; `envelope.rs` matches it, test
+`f16_file_matches_the_audit_table`):
 
-| quantity | original | port |
-|---|---|---|
-| Vmin(330 m, 1 g) / (330 m, 9 g) | 87.95 / 422.41 kt | same (e4/e8 identical) |
-| P+0x144 = Vmin(3048 m, 2.2 g) | 191.60 kt | 192.20 kt |
-| Vmin(3048 m, ±1.5 g) | 138.0 kt | 143.0 kt |
-| GLimit(0 m, 65.3 m/s, 8.7) | 4, 1.659 | 4, 1.659 |
-| GLimit(0 m, 48 / 50 kt, 1) | **0 (stall)** | 4, 0.05 / 0.10 |
-| GLimit(915 m, 53 kt, 1) | **0** | 4, 0.023 |
-| GLimit(3000 m, 200 m/s, 9) | 4, 7.245 | 4, 7.256 |
-| GLimit(10000 m, 250 m/s, 9) | 4, 5.115 | 4, 5.244 |
-| GLimit(17000 m, 300 m/s, 1) | **4, 2.845** (line) | 4, 5.433 |
-| GLimit(20000 m, 250 m/s, 1) | **4, 0.877** | 4, 3.647 |
-| GLimit(22000 m, 300 m/s, 1) | **2** | 4, 5.433 |
-| GLimit(1000 m, 120 kt, −1) | 4, −1.422 | 4, −1.426 |
+| quantity | value |
+|---|---|
+| Vmin(330 m, 1 g) / (330 m, 9 g) | 87.95 / 422.41 kt |
+| P+0x144 = Vmin(3048 m, 2.2 g) | 191.60 kt |
+| Vmin(3048 m, ±1.5 g) | 138.0 kt |
+| GLimit(0 m, 65.3 m/s, 8.7) | 4, 1.659 |
+| GLimit(0 m, 48 / 50 kt, 1) | 0 (stall) |
+| GLimit(915 m, 53 kt, 1) | 0 |
+| GLimit(3000 m, 200 m/s, 9) | 4, 7.245 |
+| GLimit(10000 m, 250 m/s, 9) | 4, 5.115 |
+| GLimit(17000 m, 300 m/s, 1) | 4, 2.845 (the `5b5840` line) |
+| GLimit(20000 m, 250 m/s, 1) | 4, 0.877 |
+| GLimit(22000 m, 300 m/s, 1) | 2 |
+| GLimit(1000 m, 120 kt, −1) | 4, −1.422 |
 
-Findings (old port against the original):
-- The effective stall speed is the g0 speed of the **next** level up (F-16 sea level: 52.1 kt; old port 46 kt).
-- Code 2 comes ≈ 1.2 km lower than in the old port.
-- Above ≈ 12 km the old port allows 3–5 g too much.
+The effective stall speed is the g0 speed of the **next** level up (F-16 sea level: 52.1 kt, not the level's own
+46 kt). UNCERTAIN: float32/x87 rounding (the check used doubles).
 
-UNCERTAIN: float32/x87 rounding (the check used doubles).
-
-### 15.10 Mismatches, most important first (`crates/iaf-flight/src/aircraft.rs`, `envelope.rs`)
-This list records where the earlier port differed from the original, with the decision for each. §15.11 tracks what is
-now ported. Each item names a decision:
-- **PO** (port as original): port the original's behaviour.
-- **BP**: the original looks wrong, so the better behaviour is a candidate for an `Aircraft::better` option
-  (`BetterPhysics`). The default stays the original.
-
-The 1 g hold was decided earlier (§10: original by default, γ-based under `flight_path_hold`), so it has no item here.
-
-1. **Envelope** (`envelope.rs` l. 141–174; known deliberate deviation, §10) — PO, using §15.9 exactly. The linear
-   version also gives different results: (a) the stall test must be "V below the lowest point of level k **or** k+1"
-   (F-16 sea level: original 52 kt, port 46 kt; at 48–50 kt the port gives lift where the original stalls and
-   latches); (b) the
-   "above all points of level k" branch must use Ceiling and then the `5b5840` line (the port allows 3–5 g too much
-   above ≈ 12 km); (c) code 2 from the level count (`trunc(alt/step) + 1 > levels − 1`, ≈ 1.2 km lower); (d) Vmin and
-   the limit by the 3-point plane fits (≤ 0.13 g, ≤ 5 kt; `P+0x144` changes by 0.6 kt); (e) the parser: graphs by change
-   of g in file order, trailing text after the 3rd integer accepted, pass-2 lists from the raw rows, g = 0 in both lists.
-   `stall_floor` stays `DataSet::Real` only.
-2. **No landing/crash check** (`transitions` l. 643–654) — PO: §15.6.1 at touchdown (and the rolling re-checks of
-   §15.6.2) with the Easy-landing ×2 (default on), the gear-not-down ×0.2/0.2/0.25, the slope test, immunity §15.6.3;
-   failure = destroyed. This check is the only ground collision, so it is also "crash into terrain". BP: the 40 m/s sink
-   limit (80 m/s by default) is absurdly lenient (real gear ≈ 3–5 m/s), any nose-up attitude passes (the original lacks
-   a tail-strike limit), and the attitude used is up to 1 s old; better: ≈ 3–5 m/s, current attitude, a tail-strike
-   limit.
-3. **Spin mode missing** — PO: §15.4/§15.5 (mode state, three spin channels with their limits, the two-stage entry in
-   `aero_update` after the latch, the update in both updates with `accel_update` skipping `apply_forces`, attitude
-   from the spin channels, the exit that sets velocity := rotated nose·V, `p_cmd = s1·0.1`). BP: (a) "No spins"
-   removes the arm step so spins start *earlier* — better: block entry; (b) the arm timer resets itself so the 1.2 s
-   never applies — better: require the condition for 1.2 s; (c) the horizontal velocity is frozen during the spin and
-   `acc.z = min(0, 0.04V − g)` uses the total speed, so a spin entered above 245 m/s never descends — better: bleed
-   the horizontal speed with drag toward a 50–80 m/s descent; (d) velocity snaps to nose·V at recovery — better: keep
-   the velocity and let the aero forces turn it; (e) s1 == 0 (or damage 0x18 with β = 0) never recovers — better:
-   treat as recoverable; (f) the yaw-rate sign is sampled with the axis τ. (v1.1 retuned the recovery slope to
-   π/(2.2·MaxBeta) and runs β in the spin at 5 Hz, §15.5; both are now original behaviour, so they left the BP list.)
-4. **Nose-wheel yaw is instant and unlimited** (l. 278–286, 593) — PO: ramp `S+0x2a8` toward the 7a20 yaw at
-   `|BetaRate|` (rad/s²), clamped ±MaxBeta (F-16 32°/s², ±15°/s < K = 20°/s); the 5 Hz force uses the ramp sample,
-   the 1 Hz/event force uses the raw target (§15.2.6, correcting §14.1).
-5. **Force decomposition angles** (`apply_forces` l. 560–566) — PO: the 5 Hz tick must use `αT` (from the `S+0x200`
-   ramp sample, clamped by LimitAlphaVisual, §15.1 step 6) and `β(t)` (the β channel); the 1 Hz/event path uses `α(t)` and the
-   commanded `β_cmd = rudder·MaxBeta` (§15.2.2). The port uses α(t)/β(t) in both. BP: `M` already contains α(t) and
-   β(t), so using αT leans the lift forward by αT − α(t) during a pull (free forward force) and β_cmd applies the side
-   force before the nose has yawed; better: α(t) and β(t) in both paths.
-6. **α 1 Hz update missing** (`aero_update` has none) — PO: `5aa3a0` at every aero update/event with
-   `αT = 5b4c60(V, alt, Lnoflap_target, …)` (from the new target; the ramp is left out) and recompute the gains
-   `f(V)` only there;
-   the 5 Hz tick reuses the stored gains (the port recomputes f at 5 Hz, l. 539–542). Damping ×0.5 when |rate| > π
-   (unreachable with MaxAlphaRate ≤ 2.5).
-7. **Gear, brake, flap ramps and `cfg`** (l. 254–255, 471–478, 481) — PO: add the gear ramp `S+0x320` (0 = down,
-   1.569 = up, 0.5/s, 3.1 s); gear drag, the ground lift gate and the belly μ only when the ramp is exactly at 0; brake
-   flag in the air = ramp finished at max, on the ground = any value ≥ 1e-5; flaps 0..0.29275 at 0.5/s (full = 1.0
-   after ×3.4158838), brakes 0..0.855 at 0.5/s, the type-100 flaps ×0.33 (§15.6.4 table). The port's 0.25/s and
-   1.0/s rates and its gear-lever test are invented.
-8. **Throttle/AB** (`set_controls` l. 249–257) — PO §15.8: crossing into AB sets 0.74 and applies the request after
-   `(100 − RPM)/15` s (any change cancels it, v1.1: also a second AB request, which re-times it); player moves < 0.015 are ignored; the first throttle event turns
-   the engine on; key steps ±0.0925 up to 0.925. RPM ramp max 100 (port 110, l. 174), rate 15 %/s.
-9. **Start rules** (`Aircraft::new` l. 155–208; host) — PO §15.6.4: airborne ⇔ z > 800 m and not near the base; roll
-   = mission roll, vz from the start velocity, speed along the heading; throttle 0.74; RPM 70; gear up; ground start:
-   gear down, full flaps, brakes on, throttle 0, RPM 0, engine on only within 100 m of the runway start point.
-   Lift ramps start at MaxWeight·g (port: m·g, l. 172–173) — BP: this gives a short up-jolt until the first update;
-   better: m·g.
-10. **Stall latch** (l. 405, 462–464) — PO: latched while `now − t ≤ 3.0` (port `<`), started only when unset, cleared
-    only at an aero update with `now − t > 3.0` (so with 1 Hz updates L = 0 for three further updates); the ground
-    lift may set it. FF "StallShake" start/stop for the player.
-11. **Preferences** (§15.7) — PO: "No stalls" (`!bStall`: code 0 → `min(0.4, g_cmd)`, code 2 → 0.4, code 4 →
-    `max(r, 0.4)` unless g_cmd < 0.4, latch off), "No spins" (quirk above), "Easy landing" (default on), "Invulnerable"
-    / "No crashes" (immunity and the ground "easy" gate), "Unlimited fuel" (ff = 0), each ignored or forced in
-    multiplayer as listed there. The vibration flag also needs `P+0x84` (pref +0x0e/multiplayer) and `!ai`.
-12. **β channel** — PO (v1.1, §15.2.6): the second-order channel with the rudder keys (defaults for v1.0 data), gains
-    from V below 400 m/s, unclamped (no ±MaxBeta clamp); `5aa700` at every aero update in the air and at every 5 Hz tick (also on
-    the ground and in the spin); the ground 1 Hz update steps it with the stored gains, so rudder held on the ground
-    shows as β at lift-off.
-13. **Roll channel and attitude details** — PO: (0) v1.1 rolls the wing about the saved body nose (v1.0: about the velocity)
-    (§15.3); (a) `kroll` has no lower clamp (port `.max(0.0)`, l. 503; negative
-    below Veff ≈ 9.5 m/s); (b) the roll channel is re-based with `pos = attitude roll` and `5aa330` refreshes
-    `w`/`φ_ref` at the 1 Hz update as well as at 5 Hz (port only at 5 Hz, l. 573–577); (c) `5b9530` keeps `w`
-    as it is, without re-orthogonalising it (port l. 317), and takes the roll from the raw `w` via the heading/pitch frame (port uses
-    `right` recomputed after β, l. 323/331); (d) all channels are sampled with the X-axis τ (1.1 s clamp).
-14. **Lift-ramp rate factor** (l. 494) — PO: drop the `.max(0.01)` floor (factor 0 at 17.98 m/s, negative below,
-    its magnitude growing); guard the division when the rate is 0. BP: the slope globals (`0x845420/24/40/44`, β `0x8453e8/ec`) belong to the **last
-    aircraft type set up**, so every jet uses that type's G_Rate/G_RateForAoa/BetaRate below 220/400 m/s; better:
-    per aircraft (F-4 G_Rate 3 vs F-16 5).
-15. **Terrain types and map edge** — PO: rough ground > 25.7 m/s and water destroy the jet, `S+0x2c8` states,
-    OutRunway FF; the "Tornado" push-back (§15.5a) — BP: its acceleration ramps never decay (axis τ), reversing the
-    velocity to ≈ 11×V₀ (inferred, not checked in game); low priority.
-16. **Minor** — PO: only the 5 Hz V is capped at 1200 m/s (the 1 Hz V is uncapped); the airborne thrust may go below 0
-    (already so, l. 392–395); `S+0x420` effects flag (75 < V < 150 && sY > 0.7); force-feedback effects and SFX 0x28/
-    0x29, EndWorld wav (host/audio); ground roll constants ×0.8 (rolling drag) and AI brake ×4 (v1.1).
-17. **Landed flag** (v1.1) — PO: the mission's landed handler fires at every gear-down touchdown that passes the check,
-    re-armed at lift-off (§15.6.2).
+### 15.10 Mismatches of an earlier port
+An audit of an earlier port found the 17 items of §15.11 (most important first). Each is now ported as the original.
+Where the original looks wrong, a Better physics option adds the fix (**BP**, §10); the default stays the original.
+The 1 g hold has no item (§10 `flight_path_hold`).
 
 Items still UNCERTAIN: the Euler convention of `46d056` and the Rodrigues order in the mode exits, which unit types
 are 100/140, the Tornado timing, the terrain flag meanings, modes c74/c78, the mover that supplies the start velocity,
 `4020a0`'s return value and the reader of `veh+0xc3c`.
 
-### 15.11 Ported (checklist of §15.10)
-The status of each §15.10 item, by its number:
-- **done**: ported as the original.
-- **BP**: the better behaviour is behind an `Aircraft::better` option (`BetterPhysics`, one switch each). The original
-  stays the default (§10).
-
-Tests: Rust unit tests in `aircraft.rs` / `envelope.rs`; headless Godot test `tests/godot/test_crash.gd`.
+### 15.11 Ported (status of the §15.10 items)
+**done** = ported as the original; **BP** = the opt-in fix behind its `Aircraft::better` switch (§10). Tests: Rust unit
+tests in `aircraft.rs` / `envelope.rs`; headless Godot test `tests/godot/test_crash.gd`.
 
 | # | item | status |
 |---|---|---|
 | 1 | Envelope | done: `envelope.rs` is §15.9 exactly (parser, pads, ceilings, lines, per-level lists, bracket, plane fits, codes 0/2/3/4). Tests: Python reference `tools/envelope_ref.py` run at test time (ceilings, Vmin, GLimit grid on a synthetic text and on every install `md/*.dat`) and the F-16 values of §15.9. `stall_floor` stays Real-only |
 | 2 | Landing / crash check | done: `landing_check` at touchdown (saved Euler, Easy landing ×2 default on, gear-not-down ×0.2/0.2/0.25, slope > 10°, immunity = Invulnerable / No crashes); water and rough ground (> 25.7 m/s) destroy while rolling; the sim freezes (`crashed` + reason). Host: slope from `height_at`, water / rough ground from `terrain.gd surface_at`, crash → mission runtime player death → flight ends after 5 s. BP: sink 4 m/s, tail strike 15°, current attitude |
-| 3 | Spin mode | done: mode, three channels with their limits, two-stage entry (with the "No spins" quirk), update in both updates (5 Hz skips the forces), spin attitude, exit (velocity := rotated nose·V, `p_cmd = s1·0.1`), types 100/140 (F-16, Lavi; ours: also the F-35I, 1000) never spin — so the F-16 we fly cannot depart in the original. v1.1: recovery slope π/(2.2·MaxBeta), β updated at 5 Hz in the spin, axes re-based in the stay branch (test `spin_recovery_slope_v11`). BP: (a)–(f); types 100/140 get the FLCS deep stall instead (§10.1, tests `fbw_deep_stall_*`). damage 0x18 forces entry (test `hydraulics_and_flight_control_damage`) |
+| 3 | Spin mode | done: mode, three channels with their limits, two-stage entry (with the "No spins" quirk), update in both updates (5 Hz skips the forces), spin attitude, exit (velocity := rotated nose·V, `p_cmd = s1·0.1`); types 100/140 (F-16, Lavi; ours: also the F-35I, 1000) never spin. v1.1: recovery slope π/(2.2·MaxBeta), β updated at 5 Hz in the spin, axes re-based in the stay branch (test `spin_recovery_slope_v11`). BP: §10 `spin_fixes`; types 100/140 get the FLCS deep stall instead (§10.1, tests `fbw_deep_stall_*`). damage 0x18 forces entry (test `hydraulics_and_flight_control_damage`) |
 | 4 | Nose-wheel yaw ramp | done: `S+0x2a8` at \|BetaRate\|, ±MaxBeta; 5 Hz uses the ramp, 1 Hz the raw target |
 | 5 | Force angles | done: 5 Hz αT and β(t) (the β channel; ground: nose-wheel ramp), 1 Hz α(t) and β_cmd. BP: α(t)/β(t) in both |
-| 6 | α 1 Hz update | done: `5aa3a0` at every aero update with αT from the new Lnoflap, gains only there, ×0.5 damping above π |
-| 7 | Gear / brake / flap ramps, `cfg` | done: gear 0..1.569, flaps 0..0.29275 (F-16 lever ×0.33), brakes 0..0.855, all 0.5/s; gear flag exactly at 0, brake flag (air: finished at max; ground: ≥ 1e-5). The model's gear animation already used 0.5/s (3.1 s); the cockpit lamps keep the controller's 2 s (§12). Hook (`cfg[8]`, motion 9 "Landing hook" in the debug names of `FUN_0046c705`) stays 0: the player controller `FUN_0044a240` has no case for GEV 0xd (GEV_LANDING_HOOK), so no key lowers the hook in the original either |
+| 6 | α 1 Hz update | done: `5aa3a0` at every aero update with αT from the new Lnoflap, gains only there, ×0.5 damping above π (unreachable with MaxAlphaRate ≤ 2.5) |
+| 7 | Gear / brake / flap ramps, `cfg` | done: gear 0..1.569, flaps 0..0.29275 (F-16 lever ×0.33), brakes 0..0.855, all 0.5/s; gear flag exactly at 0, brake flag (air: finished at max; ground: ≥ 1e-5). The gear model animates in 3.1 s; the cockpit lamps keep the controller's 2 s (§12). Hook (`cfg[8]`, motion 9 "Landing hook" in the debug names of `FUN_0046c705`) stays 0: the player controller `FUN_0044a240` has no case for GEV 0xd (GEV_LANDING_HOOK), so no key lowers the hook in the original either |
 | 8 | Throttle / AB | done: AB request after `(100 − RPM)/15` s (v1.1: any change cancels a pending request, a new AB request re-times it; test `new_throttle_request_cancels_the_pending_afterburner`), 0.015 dead band, first event starts the engine, RPM ramp 0..100 at 15 %/s; host keys step the FM throttle by 0.0925 only while ≤ 1.0 and reach the FM at once |
 | 9 | Start rules | done: `Aircraft::start` / `start_is_airborne` (z > 800 m, not near a base); air: throttle 0.74, RPM 70, gear up, lift ramps MaxWeight·g; ground: gear down, full flaps, brakes, throttle 0, RPM 0, engine only near the runway start point. Host: near-base / runway start point from the iaf.ibx airbases (`IafFlight.start_rule`), airborne start 282.84 m/s along the heading (§10). BP: lift ramps m·g, RPM at the start throttle's value (no AB light-up delay), α at its trim value |
 | 10 | Stall latch | done: `≤ 3.0`, set only when unset, cleared only by an update with `now − t > 3`, set on the ground too. FF "StallShake" skipped (no force feedback) |
 | 11 | Preferences | done: No stalls (code 0/2/4 rules, no latch, no vibration), No spins (quirk; BP blocks), Easy landing (default on; landing ×2, ground lift gate), Invulnerable / No crashes (immunity, ground "easy" gate, no belly μ), Unlimited fuel. Pub fields on `Aircraft`, setters on `IafFlight`, set from `Settings` in `terrain_view.gd`. Multiplayer overrides n/a |
 | 12 | β channel | done (v1.1): `beta_update` = `5aa700` (second-order, RudderK/Beta/StartAccel/StopAccel with the exe defaults for v1.0 data, 400 m/s, K ×1.5 near centre, no clamp), `beta_step` = the ground 1 Hz step, 5 Hz also in the spin; the rudder `S+0x2ec` is taken only while airborne. Tests `rudder_keys_and_v10_defaults`, `beta_channel_second_order`, `beta_steps_on_the_ground_and_in_the_spin`; validation row "rudder step" |
 | 13 | Roll / attitude | done: (0) v1.1 roll about the saved body nose (test `roll_about_the_body_nose`); (a) no `kroll` clamp; (b) roll re-based on the attitude roll and `5aa330` at 1 Hz and 5 Hz; (c) no re-orthogonalisation, roll from the raw left wing in the heading/pitch frame, force matrix from the Euler angles. (d) skipped: channels use their own base time (§10). BP: `kroll ≥ 0` (no reversed roll below Veff ≈ 9.5 m/s) |
-| 14 | Lift-ramp rate factor | done: no `.max(0.01)` floor; BP: floor 1 %. The per-type slope globals: not reproduced in either mode (our slopes are per aircraft, i.e. the better behaviour; it differs from the original when several types fly, §10) |
+| 14 | Lift-ramp rate factor | done: no floor (0 at 17.98 m/s, negative below); BP: floor 1 %. The per-type slope globals: not reproduced in either mode (our slopes are per aircraft, i.e. the better behaviour; it differs from the original when several types fly, §10) |
 | 15 | Terrain types, map edge | done: water / rough-ground rules, the `S+0x2c8` states (§15.6.2) and the "Tornado" push-back (§15.5a) are in the FM; the host passes the player's terraintype.dat flags (`terrain.gd surface_at`, formats/ptt.md "Terrain types"). Skipped: OutRunway FF |
 | 16 | Minor | done: the 1 Hz V is not capped (5 Hz caps at 1200 m/s); airborne thrust unclamped; v1.1 rolling drag ×0.8 (test `ground_roll_drag_factor`; the AI wheel brake ×4, `AI_BRAKE`). `S+0x420` is `Aircraft::vortex` (the wingtip vortex trails). EndWorld.wav (host, from `end_worlds`). Skipped: FF effects, SFX 0x28/0x29, the map-edge console line |
 | 17 | Landed flag | done (v1.1): `State::landings` / Godot `landings` +1 at each gear-down touchdown that passes the check, re-armed at lift-off (test `landed_flag_rearmed_at_lift_off`); the mission runtime's landed trigger is the host's |
-| — | Also BP (§10): the nose-wheel ×4 lift quirk off (§14.5), ground effect on the induced drag and the lift (not in the original) | done, test `better_physics_minor_fixes` |
+| — | Other BP items (§10): the nose-wheel ×4 lift quirk off (§14.5) and ground effect (test `better_physics_minor_fixes`); ground idle, brake pitch, unbalanced stores, wind, engine spool (tests in §10) | done |
 
 ## 16. v1.0 → v1.1 (what the patch changed in the flight model)
 The official v1.1 patch changed the flight model in the ways below. Each change comes from docs/v1.1.md, was verified

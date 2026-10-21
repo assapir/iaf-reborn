@@ -40,8 +40,8 @@ dropped. The keys build one GEV 1 from both axes (`FUN_004e0b80` adds the other 
 sees both axes.
 
 **Throttle re-sync** (`FUN_005a29d0`, when leaving NAV) posts motion 2 with the throttle axis × 0.01:
-- With a throttle axis, the throttle goes back to the lever (the axis's last value, docs/controls.md §5). The port
-  does the same (`Joystick.throttle_axis()`).
+- With a throttle axis, the throttle goes back to the lever (the axis's last value, docs/controls.md §5;
+  port: `Joystick.throttle_axis()`).
 - When `FUN_004e0f40` returns −1 (THROTTLE set to keyboard on the Devices page, or no joystick), the value is 0.74
   (military), posted only when airborne.
 
@@ -113,8 +113,8 @@ approach and the float before touchdown steer to the centreline with a damped la
 - Gear and flaps go down at landing step 7, as for the AI. The commands reach the levers through the controller.
   The port mirrors them on the cockpit levers, so the gear's 300 kt rule and the flaps damage still apply.
   Step 7 comes when LW2 ends, and LW2 ends at any speed above its 102.944 m/s target. So a jet still faster than
-  300 kt there keeps its gear up and lands on its belly: the F-35I did before the fix below (mission 214, Home
-  waypoint: 369 kt at step 7, touchdown gear up), the mission's own jet slows to 220 kt first and lands on its gear.
+  300 kt there keeps its gear up and lands on its belly (with Original rules, an F-35I at mission 214's Home
+  waypoint: 369 kt at step 7); the mission's own jet slows to 220 kt first and lands on its gear.
 - Ours, Flight data = Real (`Params::gear_speed_wait`; the F-35I always flies it): in the player's landing, LW2 also
   waits for 150 m/s (292 kt), at idle and wings level, so step 7's gear command comes under the 300 kt limit. The
   Real jets enter faster (the F-16 Real: 371 kt at LW2 from 312's start at 550 kt). The AI's gear has no lever limit
@@ -170,8 +170,8 @@ the centreline and CH5 at once; FinalApproach starts about 5.5 km out at about 4
 path. The F-16 crosses the threshold a few metres high, StopPlane's flare (throttle 0, flight-path pitch 0) floats it,
 and it touches down on the centreline (about 1 m off) 1–2 km down the runway and stops.
 
-**How the original flies it (checked against the disassembly, step by step).** The loops themselves make the circuit
-fast and steep; the port reproduces this:
+**How the original flies it (checked against the disassembly).** The loops make the circuit fast and steep; the
+port reproduces this:
 - GoHome's Fly2WayPt gets ETA = now − (−60 s) (`5cd53b` fld the time, `fsub 0x612ff0` = −60.0), so its ETA law asks
   for 275–300 m/s until the slow-down to 180.15 m/s (350 kt) within 6 km of G: the circuit starts at about 350–380 kt.
 - LevelWingsPitch0Accel (LW1 250 kt, LW2 200 kt) is done when the jet is *faster* than its speed
@@ -210,10 +210,9 @@ downwind and the base, moving from about 2.3 km before the centreline on the bas
 the localizer moves"), centred when CH4 rolls out; the glideslope line above the centre (low: the final starts at
 ~4°) and crossing to below it at about 4 km. Checked in the Godot run (caret, ILS values logged every 3 s).
 
-(The port rounds in world coordinates even though the Godot host shifts the bases by the terrain origin:
-`Autopilot::origin`. An earlier port built the points in f64: P3 and P4 then differed by ~4·10⁻⁵ m, the search took its general branch
-with a ~10⁻⁸ slope, diverged and switched itself off. The turn onto final ended ~1 km off the centreline and the
-final approach began 600 m short at 400 m: the dive into the ground.)
+The port rounds the points to f32 in world coordinates, although the Godot host shifts the bases by the terrain
+origin (`Autopilot::origin`). In f64, P3 and P4 differ by ~4·10⁻⁵ m: the search takes its general branch with a
+~10⁻⁸ slope, diverges and switches itself off, and the turn onto final ends ~1 km off the centreline.
 
 ## 4. Port
 - `crates/iaf-flight/src/autopilot.rs`: `Autopilot::player_mode` (motion 0xf), `player_active`, the `Level` / `Fly`
@@ -223,8 +222,8 @@ final approach began 600 m short at 400 m: the dive into the ground.)
 - `game/controls/autopilot.gd`: the mode, the lamp, the A key, stick / rudder break-out, throttle drop and re-sync,
   damage, waypoint sequencing, and the commands mirrored on the levers. `terrain_view.gd` wires it in.
   `hud.gd` draws `AP LVL` / `AP NAV`.
-- Tests: `crates/iaf-flight/tests/autopilot.rs` (`player_level_mode_…`, `player_nav_…`, `player_approach_mission_312`)
-  `player_circuit_312_from_engage_points` (every step in order, the corners, turn directions and bank limits, the
-  gear on the downwind, the touchdown, from six engage points)
-  and `tests/godot/test_autopilot.gd` (312: start in level mode, A cycle, stick break-out, NAV throttle drop, the
-  circuit with gear and flaps on the levers, touchdown on the runway centreline, StopPlane's A key).
+- Tests: `crates/iaf-flight/tests/autopilot.rs` (`player_level_mode_…`, `player_nav_…`, `player_approach_mission_312`,
+  `player_circuit_312_from_engage_points`: every step in order, the corners, turn directions and bank limits, the
+  gear on the downwind, the touchdown, from six engage points); `tests/godot/test_autopilot.gd` (312: start in level mode, A cycle, stick
+  break-out, NAV throttle drop, the circuit with gear and flaps on the levers, touchdown on the centreline,
+  StopPlane's A key, the instructor's events) and `test_autopilot_real.gd` (the same in World scale Real).
