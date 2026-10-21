@@ -41,6 +41,7 @@ Set these on the Preferences screen before the flight. Every row starts at the 1
 | Extras | HUD | Real | The CSF 95 gunsight |
 | Extras | Better cockpit | Better | A turning bearing-distance-heading dial, the fuel needle with the tanks, a working clock and vertical-speed dial (section 9) |
 | Extras | World scale | Real 1:1 | True-size models; every airbase at its real place, with its real runway numbers |
+| Extras | RWR | Real | The SAM / AAA radars searching you show too, until terrain hides you (section 5) |
 | Graphics → MORE | Sky, Terrain close up, Imagery Israel / outside Israel | Atmospheric, Detailed, Survey 2 m / Sentinel-2 | A physical sky, ground detail and photo imagery, if setup converted it |
 | Graphics → MORE | Airbases | Detailed | Runways, taxiways and aprons with real markings near the ground |
 | Physics | every row | on | Section 4 lists the ones that change how the Mirage flies |
@@ -167,8 +168,9 @@ A-G (air-to-ground). The single display shows it.
 | **Backspace** | Drop the lock |
 | **\\** (hold) | Boresight |
 
-- **RWR** (radar warning receiver): on the display's RWR page (MENU) and the AI / ML lamps; a new threat sounds a
-  tone, a missile launch at you the launch warning.
+- **RWR** (radar warning receiver): on the display's RWR page (MENU) and the AI / ML lamps; a new threat sounds a tone,
+  a missile launch at you the launch warning. With Extras → *RWR: Real* it also shows the SAM and AAA radars searching
+  you before they lock: a steady symbol and the new-threat tone. Drop behind a ridge and the symbol goes.
 - **Chaff (Insert)** and **flares (Delete)**: 60 chaff and 30 flares. Chaff fools a radar missile with 10 % (30 %
   above 4 g), a flare an IR (infrared) missile with 33 % (50 % above 4 g) while the afterburner is off.
 - Chaff and flares are the Mirage's whole self-protection; the **J** jammer key belongs to jets with a jammer.

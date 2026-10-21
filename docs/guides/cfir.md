@@ -45,6 +45,7 @@ Set these on the Preferences screen before the flight. Every row starts at the 1
 | Extras | HUD | Real | The Kfir's HUD (looking aside shows the original's helmet display) |
 | Extras | Better cockpit | Better | A turning panel compass, live engine and fuel needles on their labelled dials, sharp display pages (section 11) |
 | Extras | World scale | Real 1:1 | True-size models; every airbase at its real place, with its real runway numbers |
+| Extras | RWR | Real | The SAM / AAA radars searching you show too, until terrain hides you (section 5) |
 | Graphics → MORE | Sky, Terrain close up, Imagery Israel / outside Israel | Atmospheric, Detailed, Survey 2 m / Sentinel-2 | A physical sky, ground detail and photo imagery, if setup converted it |
 | Graphics → MORE | Airbases | Detailed | Runways, taxiways and aprons with real markings near the ground |
 | Physics | every row | on | Section 4 lists the ones that change how the Kfir flies |
@@ -163,7 +164,8 @@ close range. It sees targets from 30 m above the ground, in line of sight; the o
 | **\\** (hold) | Boresight: a ±12° lock cone straight ahead |
 
 - **RWR** (radar warning receiver): the panel dial shows emitters and missiles around you; a missile launch at you
-  sounds the launch warning.
+  sounds the launch warning. With Extras → *RWR: Real* it also shows the SAM and AAA radars searching you before they
+  lock: a steady symbol and the new-threat tone. Drop behind a ridge and the symbol goes.
 - **Chaff (Insert)** and **flares (Delete)**: 90 chaff and 60 flares. A flare fools an IR (infrared) missile with 33 %
   (50 % above 4 g) while the afterburner is off: pull hard, come out of afterburner, then flare. Self-protection is
   chaff and flares; **J** is the ECM pod's key on the jets that carry one.

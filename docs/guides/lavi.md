@@ -51,6 +51,7 @@ Set these on the Preferences screen before the flight. Every row starts at the 1
 | Extras | HUD | Real | The Lavi's HUD reconstruction |
 | Extras | Better cockpit | Better | Live engine and fuel needles, the panel clock, sharp MFD pages (section 12) |
 | Extras | World scale | Real 1:1 | True-size models; every airbase at its real place, with its real runway numbers |
+| Extras | RWR | Real | The SAM / AAA radars searching you show too, until terrain hides you (section 5) |
 | Graphics → MORE | Sky, Terrain close up, Imagery Israel / outside Israel | Atmospheric, Detailed, Survey 2 m / Sentinel-2 | A physical sky, ground detail and photo imagery, if setup converted it |
 | Graphics → MORE | Airbases | Detailed | Runways, taxiways and aprons with real markings near the ground |
 | Physics | every row | on | Section 4 lists the ones that change how the Lavi flies |
@@ -169,6 +170,9 @@ weapon's page replaces the right display.
 | **Backspace** | Drop the lock |
 | **\\** (hold) | Boresight: a ±12° lock cone straight ahead |
 
+- **RWR** (radar warning receiver): the RWR page shows emitters and missiles around you; a new threat sounds a tone, a
+  missile launch at you the launch warning. With Extras → *RWR: Real* it also shows the SAM and AAA radars searching you
+  before they lock: a steady symbol and the new-threat tone. Drop behind a ridge and the symbol goes.
 - **Chaff (Insert)** and **flares (Delete)**: 120 chaff and 60 flares. A flare fools an IR missile with 33 % (50 %
   above 4 g) while the afterburner is off.
 - **ECM (J)** (electronic countermeasures), built in: each radar-guided missile already flying at you is jammed with a

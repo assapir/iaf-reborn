@@ -47,6 +47,7 @@ Set these on the Preferences screen before the flight. Every row starts at the 1
 | Extras | Better cockpit | Better | Each needle on its own dial, metric units, the SPO-15 lamps, the range counter, the HSI bars (section 10) |
 | Extras | Mission Creator | Better | WIND and FROM boxes on the Mission Creator screen: the mission's wind |
 | Extras | World scale | Real 1:1 | True-size models; every airbase at its real place, with its real runway numbers |
+| Extras | RWR | Real | The SAM / AAA radars searching you show too, until terrain hides you (section 5) |
 | Graphics → MORE | Sky, Terrain close up, Imagery Israel / outside Israel | Atmospheric, Detailed, Survey 2 m / Sentinel-2 | A physical sky, ground detail and photo imagery, if setup converted it |
 | Graphics → MORE | Airbases | Detailed | Runways, taxiways and aprons with real markings near the ground |
 | Physics | every row | on | Section 4 lists the ones that change how the MiG-23 flies |
@@ -149,6 +150,9 @@ numbers. The MFD (multi-function display) under the sight shows the radar; the r
 
 - **SPO-15 and the lamps**: the panel's AI / ML boxes light for an air threat and a missile launch at you. With Better
   cockpit on, the SPO-15's lamps work too (section 10). The display's RWR page (MENU) lists the threats.
+- **RWR: Real** (Extras): the RWR page also shows the SAM and AAA radars searching you before they lock: a steady symbol
+  and the new-threat tone; the SPO-15 lights their direction and type lamps, not the lock lamp. Drop behind a ridge and
+  they go.
 - **Chaff (Insert)** and **flares (Delete)**: 40 chaff and 20 flares. Chaff fools a radar missile with 10 % (30 %
   above 4 g), a flare an IR (infrared) missile with 33 % (50 % above 4 g) while the afterburner is off.
 - Chaff and flares are the MiG-23's whole self-protection; the **J** jammer key belongs to jets with a jammer.
