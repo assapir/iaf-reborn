@@ -1,16 +1,12 @@
 # Controls — the original key table
 
-This page describes the original game's key table and how iaf-reborn uses it. It covers the table layout (§1),
-how a key becomes a command in flight (§2), every key (§3), the hidden and cheat commands (§4) and the joystick (§5).
+Jane's IAF sends every keyboard and joystick command through one table of **117 records** in `iafjets.exe`. This page
+covers the table layout (§1), how a key becomes a command in flight (§2), every key (§3), the hidden and cheat
+commands (§4) and the joystick (§5). iaf-reborn converts the table (`iaf-convert keys` →
+`assets/converted/keys.json`), shows it on the Preferences Controls page (docs/front-end.md §12.7) and looks up every
+in-flight key in it (`game/controls/key_table.gd`, `game/terrain/terrain_view.gd`).
 
-Addresses are `IAFJets.exe` **v1.1** (the reference version). [v1.1.md](v1.1.md) maps them to v1.0 and lists what
-the patch changed.
-
-Key facts:
-* Jane's IAF sends every keyboard and joystick command through one table of **117 records** in `iafjets.exe`.
-* iaf-reborn converts the table (`iaf-convert keys` → `assets/converted/keys.json`).
-* The Preferences Controls page shows it (docs/front-end.md §12.7).
-* The flight looks up every in-flight key in it (`game/controls/key_table.gd`, `game/terrain/terrain_view.gd`).
+Addresses are `IAFJets.exe` **v1.1**; [v1.1.md](v1.1.md) maps them to v1.0.
 
 Terms used on this page:
 * **TSD**: Tactical Situation Display, the map screen. **MFD**: multi-function display, a cockpit screen.
@@ -39,15 +35,13 @@ Terms used on this page:
   | +0x1c | joystick button, 0-based (−1 = none) |
   | +0x20 | listed on the Controls page (≠ 0) |
 
-* **Record i ↔ `txt/keys.trx` line i (0-based).** This is resolved:
+* **Record i ↔ `txt/keys.trx` line i (0-based)**, so line 0 "TSD and cockpit toggle" is record 0 (Esc, command 122):
   * `FUN_004e3c70` loads the 117 lines of keys.trx into `0x833900 + 100·i` (loop to `0x8366b4` = 117 × 100).
   * The dispatcher `FUN_004e0b80` traces `"pressed %s"` / `"released %s"` with `0x833900 + 100·i` for the record i
     it just matched.
   * The Controls row painter `FUN_00512080` draws label i next to record i's key.
-
-  So line 0 "TSD and cockpit toggle" is record 0 (Esc, command 122). An earlier reading of "116 records at
-  0x64c3e8" was off by one. `0x64c3e8` is record 0's +0x20 field (the listed flag). `FUN_00511cf0` walks that
-  field (`0x64c3e8 .. 0x64d45c`, stride 36) to fill the list.
+  * `FUN_00511cf0` fills the list from the listed flags (`0x64c3e8 .. 0x64d45c`, stride 36; `0x64c3e8` is record
+    0's +0x20). Record k's key is at `0x64c3e0 + k·0x24`.
 * **Modifiers** (one per key): 0x11 Ctrl, 0x22 Shift, 0x44 Alt, 0x88 Win. `FUN_004e08c0` maps the left / right
   keys: Ctrl 0x1d/0x9d, Shift 0x2a/0x36, Alt 0x38/0xb8, Win 0xdb/0xdc. A key matches only with exactly its
   modifier: `FUN_004e0b80` compares the scancode and the modifier byte. So W and Shift+W are different keys.
@@ -68,21 +62,18 @@ Terms used on this page:
   * Ids 2 (roll) and 3 (pitch) become id 1 (stick). The other axis comes from the last keyboard value
     (`DAT_008338f0` x, `DAT_008338f4` y).
   * Ids 0x8b / 0x8c (EO pan) become 0x8a the same way.
-* **Dropped commands**:
-  * Ids 2 / 3 while a joystick stick axis is in use.
-  * Ids 5 / 6 / 9 while a throttle axis is in use.
-  * Id 10 while a rudder axis is in use (`this+0x18..0x2c`, UNCERTAIN flag names; docs/flight-model.md §7).
+* **Dropped commands** (keys only, not buttons):
+  * Ids 2 / 3 while `+0x24 && +0x18`, ids 5 / 6 / 9 while `+0x28 && +0x1c`, id 10 while `+0x2c && +0x20`.
+    `+0x18 / 0x1c / 0x20` = the joystick has a stick / throttle (lZ) / rudder (slider 0 or lRz) axis
+    (`FUN_004e0f90`); `+0x24 / 0x28 / 0x2c` = the Devices page's choices (`FUN_004df4e0`). So a drop needs both the
+    Devices choice and a device with that axis; without a joystick the axis flags are 0 (`FUN_004e0230`) and the
+    Devices page has no effect.
   * Every id except 0x84 while `this+0x10 < 1` (UNCERTAIN: not in flight).
 * **Held commands** are the records with a release command: pitch / roll / rudder, EO pan, view pan and zoom.
   Every other command is one-shot.
 * **v1.1 changes**: the key table (all 117 records byte-identical, `0x64c3c8`; v1.0 `0x647ff8`), this dispatch and
-  the mute key are the same as v1.0. One handler changed: **Z "Full screen weapon MFD"** (event 0x1f in
-  `FUN_004cd630`).
-  * v1.1 forwards it to the controller. `FUN_0044a240` case 0x1f toggles `ctl+0x938`, which is set only with a TV
-    status ≠ 0 or FLIR.
-  * v1.1 always sets the main view to cockpit / HUD-only (1 / 5, the last F1 choice).
-  * In v1.0 the key did nothing, although its renderer and controller case exist.
-  * Full spec (exits, render, OSBs, the option select buttons): docs/mfd.md §3 "Full-screen weapon MFD". Built.
+  the mute key are as in v1.0. One handler changed: **Z "Full screen weapon MFD"** (event 0x1f in `FUN_004cd630`)
+  works only in v1.1 (docs/mfd.md §3 "Full-screen weapon MFD"; built).
 
 ### iaf-reborn
 
@@ -94,13 +85,11 @@ Terms used on this page:
   exactly its modifier down).
   * A press sets the axis **at once** to the press value (±1). A release sets it to the release value (0). The
     last event wins.
-  * This matches the original. The path from the key to `S+0x2e4/0x2e8` is direct, with no ramp, curve or
-    spring: `FUN_004e0b80` → controller `FUN_0044a240` case 1 → motion 1 `FUN_0059f3d0` (v1.0 identical). The
-    joystick poller `FUN_004df560` is linear too: ±100 by `MulDiv`.
+  * As the original: the path to `S+0x2e4/0x2e8` has no ramp, curve or spring; the only smoothing is the flight
+    model's lift ramp (docs/flight-model.md §8 "Keyboard stick").
   * So Up held + Down pressed = full pull. Releasing either key centres the stick.
-  * The only smoothing is the flight model's lift ramp (G_Rate, docs/flight-model.md §8 "Keyboard stick").
-  * Original y +100 (Up arrow, "Pitch up") is our stick **forward** (nose down), as before (docs/flight-model.md
-    §7: `S+0x2e4 = −y`). The keys.trx wording is the original's.
+  * Original y +100 (Up arrow, "Pitch up") is the stick **forward** (nose down; `S+0x2e4 = −y`, docs/flight-model.md
+    §8). The keys.trx wording is the original's.
 * **Own keys**: these keys are ours. Each sits on a key with no table record, or on an original key whose command
   we do not implement yet. Ours runs only when the table gives no implemented command for that key:
 
@@ -257,15 +246,14 @@ How to read the table:
 | 116 |  | SysRQ |  | (136, 0, 0) |  | no | — |
 
 Notes on the list:
-* **Throttle presets** (records 7–14) send command 9 with p1 = 0, 10, 19, 38, 56, 74, 78, 100. The player
-  controller (`FUN_0044a240` case 9 → `FUN_0044e470` motion 2) sets throttle = p1 · 0.01. (Earlier ports guessed
-  0.0925 steps; these are the exe's numbers.)
+* **Throttle presets** (records 7–14) send command 9 with p1 = 0, 10, 19, 38, 56, 74, 78, 100; the controller sets
+  throttle = p1 · 0.01 (docs/flight-model.md §8).
 * **Snap views** (28–36) send command 22 with (angle, n) and release with (22, −1, −n). The padlock / external
   views (73–84) are command 28 with the view id.
 * **View pan** (86–93): Shift + Numpad 8/2/4/6 (listed) and Shift + arrows (unlisted).
 * **Wingman commands** (98–103) use Alt (command 108, p1 = the command; docs/radio.md §3). The chat keys
   (104–107) use `~` with modifiers.
-* **Cheats** (108–115) and screen capture (116, SysRQ) are unlisted.
+* **Cheats and capture** (108–116) are unlisted (§4).
 
 ## 4. Unlabelled and cheat commands
 
@@ -395,9 +383,7 @@ the same code).
     the drops, the "not in flight" gate and the roll / pitch rewrite. So a button on Roll / Pitch sends GEV 2 / 3,
     which the controller `FUN_0044a240` has no case for: nothing happens. A button on Rudder sends GEV 10, which
     works.
-* **Key drops** (`FUN_004e0b80`, keys only): ids 2 / 3 while `+0x24 && +0x18`, 5 / 6 / 9 while `+0x28 && +0x1c`,
-  10 while `+0x2c && +0x20`. A drop needs both the Devices choice **and** a device with that axis. Without a
-  joystick the flags +0x18..0x20 are 0 (`FUN_004e0230`), so the Devices page has no effect.
+* **Key drops** while an axis is in use: §2.
 * **Flush** (`FUN_004e0a60(1)`: pause, On-The-Fly menu, losing focus): every held key and button sends its
   release, then GEV 22 (−1, −5). The last POV becomes 0xffff, so a held hat direction is sent again.
 * **Getters**:
@@ -406,7 +392,7 @@ the same code).
   * `FUN_005a29d0` (autopilot leaving NAV) posts motion 2 with `throttle · 0.01`, or 0.74 without an axis
     (docs/autopilot.md).
   * `FUN_005a28c0` (taking over a jet, from `4a8e70` / `4a9100`) also posts the stick at (x · −0.01, y · 0.01).
-    Not ported: there is no jet switch yet.
+    Ported with Fly (docs/views.md §1): the stick and throttle stay the player's (`terrain_view.gd` `_take_over`).
 * **menu/joy/*.joy** button presets (`FUN_004e1590`). The callback calls it with the device's product name
   (`DIDEVICEINSTANCE.tszProductName`).
   1. It reads each `<install>\Joy\*.JOY` in directory order. Line 1 is a name.
@@ -465,7 +451,7 @@ the same code).
   Godot's device name (SDL's name, which may differ from the DirectInput product name). A file changes the
   **defaults**. Our rebinds are stored as differences from the defaults, so un-rebound records follow the file.
 * **Without a device** nothing changes: no event, no key dropped. The Devices page still stores its choices.
-* **Not ported**: force feedback; the stick re-sync when taking over another jet.
+* **Not ported**: force feedback.
 * **Ours: Devices page "Detent = MIL"** (under THROTTLE; off = the original's linear lever). It maps the lever so
   its detent gives military thrust (`Joystick.detent_map`):
   1. Put the lever in its detent and press "Set at lever". The port stores that raw value d.
