@@ -15,6 +15,7 @@ extends Node3D
 
 ## Screenshot runs give up waiting for terrain after this long.
 const Bombs := preload("res://weapons/bombs.gd")
+const GpuFx := preload("res://mission/gpu_fx.gd")
 const SCREENSHOT_TIMEOUT_MS := 20000
 
 @onready var terrain: Node3D = $Terrain
@@ -269,6 +270,7 @@ var time_factor := 1
 
 func _ready() -> void:
 	Bombs.wind = Vector3.ZERO  # apply_wind sets it for this mission
+	GpuFx.wind = Vector3.ZERO
 	Joystick.consumer = self
 	# Graphics page SHADOWS (our renderer's sun shadows; the original's shadow method is not used).
 	($Sun as DirectionalLight3D).shadow_enabled = Settings.shadows
@@ -1577,6 +1579,7 @@ func apply_wind() -> void:
 	var on: bool = _all_better or Settings.better.get("wind", false)
 	var from := deg_to_rad(wind_from)
 	Bombs.wind = Vector3(-sin(from), -cos(from), 0.0) * wind_kt * 1852.0 / 3600.0 if on else Vector3.ZERO
+	GpuFx.wind = Vector3(Bombs.wind.x, 0.0, -Bombs.wind.y)  # scene: X east, Y up, Z south
 	if ai != null:
 		for p in ai.pilots:
 			ai_wind(p.flight)

@@ -5,6 +5,8 @@
 # vertical) textured with a frame of trail.tga chosen by the segment's age. Positions are scene coordinates.
 extends Node3D
 
+const GpuFx := preload("res://mission/gpu_fx.gd")
+
 ## Trail kinds (the sprite slots of FUN_0058a420): lifetime s, half-width at the head, growth (create arg).
 const MISSILE := {"life": 3.5, "size": 0.6, "growth": 0.15, "glow": true, "refill": true}
 const WINGTIP := {"life": 1.0, "size": 0.1, "growth": 0.01, "glow": false, "refill": false}
@@ -111,6 +113,7 @@ func _process(delta: float) -> void:
 		var tr: Dictionary = _trails[i]
 		for p in tr.pts:
 			p[1] += delta
+			p[0] += GpuFx.wind * delta
 		while not tr.pts.is_empty() and tr.pts[0][1] > tr.kind.life:
 			tr.pts.pop_front()
 		if tr.kind.glow and tr.added and not tr.pts.is_empty():

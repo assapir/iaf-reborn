@@ -6,6 +6,8 @@
 # Positions are Godot scene coordinates (metres, Y up).
 extends Node3D
 
+const GpuFx := preload("res://mission/gpu_fx.gd")
+
 ## Explosion flag bits (FUN_00416880 / FUN_00416a70, docs/damage.md §6.1).
 const F_SHATTER := 0x2
 const F_SMOKE_TRAILS := 0x8
@@ -115,7 +117,7 @@ func _ready() -> void:
 	_mm_smoke = _make_layer(false)
 	_mm_fire = _make_layer(true)
 	if Settings.particle_effects:
-		gpu = preload("res://mission/gpu_fx.gd").new()
+		gpu = GpuFx.new()
 		add_child(gpu)
 
 
@@ -764,7 +766,7 @@ func _update_puffs(delta: float) -> void:
 		if p.age >= p.life:
 			_puffs.remove_at(i)
 			continue
-		p.pos += p.vel * delta
+		p.pos += (p.vel + GpuFx.wind) * delta
 		if p.age < p.delay:
 			continue
 		(fire if p.fire else smoke).append(p)
