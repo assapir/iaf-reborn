@@ -124,6 +124,21 @@ impl IafMissionEdit {
         text(&me::blank(parse(&mission)))
     }
 
+    /// Role `role` (0 must survive, 1 target, 2 neutral) on the entities `ids`.
+    #[func]
+    fn set_role(mission: GString, ids: PackedInt64Array, role: i64) -> GString {
+        text(&me::set_role(parse(&mission), ids.as_slice(), role))
+    }
+
+    /// What passes and fails the mission (mission_edit::conditions): JSON {targets, scripted, keep_alive, can_pass,
+    /// passed_text, failed_text, summary}.
+    #[func]
+    fn conditions(mission: GString) -> GString {
+        let mut d = DATA.lock().unwrap();
+        d.load();
+        text(&me::conditions(&parse(&mission), d.bdb.as_ref().unwrap_or(&Value::Null)))
+    }
+
     /// The ground height (m) at world (x, y); null outside the terrain or without it.
     #[func]
     fn ground_height(x: f64, y: f64) -> Variant {

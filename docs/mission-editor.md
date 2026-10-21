@@ -31,11 +31,14 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
 - **HiDPI:** on a Retina or other HiDPI screen the window's content grows by the screen's scale
   (`content_scale_factor`), as the setup wizard's does.
 - **Side panel**, three tabs:
-  - **Units:** every entity of the main file; the selected unit's name, side, role, heading and altitude; Delete;
-    Add a unit; Give a route.
+  - **Units:** every entity of the main file, a target or a must-survive unit tagged and coloured; the selected
+    unit's name, side, role, heading and altitude; Delete; mark the selected units Target / Must survive / Neutral;
+    Add a unit; Give a route (§12).
   - **Flights:** Alpha … Delta (type, number of jets, Set, Remove), and the route of any flight, blue or red: its
     waypoints with altitude (m) and speed (km/h), Insert a waypoint after, Delete the waypoint.
-  - **Mission:** the start time, the wind and the briefing in English and Hebrew.
+  - **Mission:** the win and lose summary and the debrief headlines (§12), the start time, the wind and the briefing
+    in English and Hebrew.
+- **Summary line:** under the top bar, what passes and fails the mission (§12); red when it can never pass.
 
 ## 2. Opening and saving
 
@@ -55,7 +58,8 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
   - The bases and jets per era are inferred from history: Refidim in Sinai was an Israeli base from 1967 to 1982,
     so blue starts there only in 1973; Ramon opened in 1982.
   - `IafMissionEdit.blank` empties the original: every unit and flight but Alpha, the paths, events, debrief texts and
-    the briefing go. `set_flight` then puts Alpha on the home base's start point (the Mission Creator's, Refidim's
+    the briefing go. The debrief headlines become "Mission - successful." / "Mission - failed." and the pass / fail
+    audio none (§12). `set_flight` then puts Alpha on the home base's start point (the Mission Creator's, Refidim's
     from 121's Alpha) with one waypoint 20 km ahead.
   - **No wingman** is allowed: Alpha flies alone, as the original Mission Creator's number 1 does.
   - The original's base missions (its airbases and their defences) stay, as for a fork, plus the home base's own
@@ -129,6 +133,8 @@ Missions go in and come back as JSON strings. Positions are engine world metres:
 | `ground_height(x, y)` | the terrain height, or null outside the terrain (§6) |
 | `check(mission)` | the Fly and ground check as a JSON array of `{id, level, text}` (Checks and calibration) |
 | `blank(mission)` | a mission from scratch: only flight 1 (Alpha) and its jets stay (New, §2) |
+| `set_role(mission, ids, role)` | role 0 must survive, 1 target, 2 neutral on the units `ids` (§12) |
+| `conditions(mission)` | what passes and fails the mission, with its summary (§12) |
 
 ### 5.1 Ids and references
 - A new row takes the placeholder row's id, and the placeholder moves one up. Ids are never reused, so an old
@@ -212,6 +218,10 @@ start, the jeeps' speed on their route, and the ground height.
 - error: a flight 1..4 lists a member that does not exist (warning for flights 5 and up: they never spawn);
 - error: a unit or a waypoint outside the map.
 
+**Win and lose check** (§12):
+- error: the mission can never pass: no unit is a Target;
+- warning: a red unit must survive (red sensors are left out: the originals use them as lose tokens).
+
 **Ground check**, for vehicles (bdb class 5, 6), sites (8–13: SAM, AAA, radars, buildings) and ships (15, 16), at
 the unit and at each point of its route:
 
@@ -242,6 +252,8 @@ The Rust test `check_finds_problems_and_calibration` repeats it and fails when t
 | on an airbase runway area | 76 warnings |
 | a slope over the limit | 38 warnings |
 | a member that does not exist (flights 5 and up) | 3 warnings |
+| a red unit that must survive | 24 warnings |
+| no target | 2 errors, not counted in the 10: 666 (the Mission Creator's template, its roles are set at run time) and 777 (multiplayer) |
 
 The 10 errors are in the originals' data:
 - 4 BMPs in "chaos" stand at X = -1, in the sea;
@@ -278,4 +290,63 @@ Each flight record also carries `formation`, the index of its formation in the m
   and the original file unchanged.
 - `tests/godot/_mission_editor_shot.gd`: a real-render screenshot (usage in its header).
 - `tests/godot/test_mission_edit_fly.gd`: Fly from an edited mission 115 (§8).
-- `cargo test -p iaf-tools --lib mission_edit`: names, edits and references, routes, the check and its calibration.
+- `tests/godot/test_mission_edit_win.gd`: New can never pass; an SA-6 marked Target and a Merkava marked Must survive;
+  flown through the runtime, the SA-6 destroyed passes it, the Merkava lost first fails it (§12).
+- `cargo test -p iaf-tools --lib mission_edit`: names, edits and references, routes, the check and its calibration,
+  the win and lose summary of 231, 311 and a New mission.
+
+## 12. Win and lose
+
+### How the original decides
+The roles alone decide a mission's end (mission-runtime.md §5). Each entity has a role (`0x32a`): 0 must survive,
+1 target, 2 neutral. The role accounting `FUN_00599da0` runs when an entity is destroyed:
+
+- **Passed:** the last target (role 1) is destroyed, and no must-survive unit was lost before. At mission start
+  `FUN_00599980` counts the targets (`FUN_0059ac00`). The box "Mission Accomplished!" follows 10 s later.
+- **Failed:** a must-survive unit (role 0) is destroyed. From then on the mission can no longer pass. The box
+  "Mission failed." follows 10 s later.
+- **Every player jet lost** (or the player ejected) ends the flight 5 s later, into the debrief.
+- At the debrief (`FUN_0059a0f0`) the headline is misc `0x47e` when the mission passed, else misc `0x492`. A flight
+  that ends with targets left is therefore failed.
+- The engine has no time, landing or waypoint rule. Misc `0x4ce` (audio at the pass) and `0x4c4` (audio at the
+  failure) are the only other misc fields used.
+
+Events do not decide the end by themselves. In all 131 original files no event names a counter (`0x3de`), so the
+conditions and counter actions never take effect (mission-runtime.md §3.1). Events reach the end only through the
+roles: an event's Explode (trigger op 5) destroys a **sensor** (bdb object 130), and a role-1 sensor counts as a
+destroyed target, a role-0 sensor as a lost must-survive unit.
+
+**The 66 original missions** (missionlist.json without 666 and 777):
+
+| what makes them pass | missions |
+|---|---|
+| units to destroy only | 46 |
+| units to destroy and sensors the events explode | 10 |
+| sensors the events explode only (the training, rescue and escort missions, e.g. 311 Takeoff) | 10 |
+| no target | 0 |
+
+- 44 missions have a must-survive unit other than a player jet; 17 have a must-survive sensor (a lose token).
+- No base mission has a target or a must-survive unit.
+- Every mission has a passed and a failed headline of its own.
+
+### What the editor writes
+Only the original's own data, so the runtime needs no change:
+
+- **Role** (`0x32a`): the Units tab's Role, or Target / Must survive / Neutral for every unit selected in the list
+  (`set_role`). "Select all units of this kind" selects every unit of the selected unit's bdb object.
+- **Headlines:** misc `0x47e` (passed) and `0x492` (failed), on the Mission tab, in English.
+- **New** (`blank`) removes the events, so only units can be targets; its headlines are "Mission - successful." and
+  "Mission - failed.", and the original's pass / fail audio is cleared (`0x4ce`, `0x4c4` = -1).
+
+### The summary
+`conditions(mission)` counts the units the runtime spawns (unplaced, unused Player slots left out):
+
+```json
+{"targets": [{"id", "name", "kind"}], "scripted": [{"id", "name"}], "keep_alive": [{"id", "name"}],
+ "can_pass": true, "passed_text": "…", "failed_text": "…",
+ "summary": "Pass: destroy 2 targets (2 Tank) · Keep alive: HermonPost · Fail: a keep-alive unit is lost, or the flight ends first"}
+```
+
+- `kind` is the bdb object's name (`0x528`, else `0x514`); the summary groups the targets by kind.
+- `scripted` are the role-1 sensors: "1 scripted goal the mission's events complete".
+- The summary shows at the top of the Mission tab and on the line under the top bar.
