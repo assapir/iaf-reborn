@@ -330,6 +330,7 @@ func add_enemy_flight(stem: String, jet: int, count: int) -> void:
 func set_year(y: float, hypothetical: bool) -> void:
 	year = y
 	what_if = hypothetical
+	_follow_year_map()
 	_refresh()
 
 
@@ -610,6 +611,8 @@ func _on_map_clicked(at: Vector2) -> void:
 		"route":
 			route_pts.append(Vector3(roundf(w.x), roundf(w.y), 0.0))  # z 0: on the terrain
 			host.preview.queue_redraw()
+		"paste":
+			paste_at(w.x, w.y)
 		_:
 			sel_id = -1
 			sel_wp = -1
@@ -650,6 +653,7 @@ func _refresh() -> void:
 			if tsd.units[i].key == "0:%d" % keep_sel:
 				tsd.selected = i
 	issues = api.check(data) + api.year_issues(data, year, what_if) if not data.is_empty() else []
+	issues += _more_issues()
 	conditions = api.conditions(data) if not data.is_empty() else {}
 	if tsd != null:
 		tsd.issues = {}
@@ -697,6 +701,7 @@ func _refresh_ui() -> void:
 	_fill_flights()
 	_fill_mission()
 	_fill_conditions()
+	_fill_clipboard()
 	host.preview.queue_redraw()
 
 
@@ -714,6 +719,7 @@ func _build_ui() -> void:
 	_ui.new = _button(bar, "New", func(): _ask_name("new", api.free_name("My mission", _taken())))
 	_ui.open = _button(bar, "Open", _show_open)
 	_ui.fork = _button(bar, "Fork", func(): _ask_name("fork", suggest_name()))
+	_ui.duplicate = _button(bar, "Duplicate", func(): _ask_name("duplicate", suggest_name()))
 	_ui.save = _button(bar, "Save", save)
 	_ui.save_as = _button(bar, "Save as", func(): _ask_name("save_as", mission_name))
 	_ui.undo = _button(bar, "Undo", undo_last)
@@ -829,6 +835,7 @@ func _build_units_tab(box: VBoxContainer) -> void:
 	_ui.p_where = _row(box, "Position", _label(""))
 	_button(box, "Delete unit", delete_selected)
 	_build_roles(box)
+	_build_clipboard(box)
 	box.add_child(HSeparator.new())
 	box.add_child(_label("Add a unit"))
 	_ui.add_class = _row(box, "Kind", _options(ADD_CLASSES.map(func(c): return c[0]), func(_i): _fill_object_picker()))
@@ -880,6 +887,7 @@ func _build_flights_tab(box: VBoxContainer) -> void:
 	_ui.wp_speed = _row(box, "Speed km/h", _spin(0, 3000, 10, func(v): set_waypoint_value(4, v)))
 	_button(box, "Insert a waypoint after", insert_waypoint)
 	_button(box, "Delete the waypoint", delete_waypoint)
+	_ui.red_remove = _button(box, "Remove this enemy flight (and its jets)", remove_enemy_flight)
 	box.add_child(HSeparator.new())
 	box.add_child(_label("Add an enemy flight (red, from a base red holds in the mission's year)"))
 	_ui.red_base = _row(box, "Base", OptionButton.new())
@@ -1001,7 +1009,10 @@ func _open_picked() -> void:
 
 func _ask_name(purpose: String, suggestion: String) -> void:
 	_name_purpose = purpose
-	_ui.name_dlg.title = {"fork": "Fork: the new mission's name", "new": "New mission"}.get(purpose, "Save as")
+	_ui.name_dlg.title = (
+		{"fork": "Fork: the new mission's name", "new": "New mission", "duplicate": "Duplicate: the copy's name"}
+		. get(purpose, "Save as")
+	)
 	_ui.era_row.visible = purpose == "new"
 	if purpose == "new":
 		_fill_new_choices()
@@ -1061,6 +1072,8 @@ func _name_done() -> void:
 		new_mission(n, y, base, jet, _ui.wingman.button_pressed, _ui.new_what_if.button_pressed)
 	elif _name_purpose == "fork":
 		fork(n)
+	elif _name_purpose == "duplicate":
+		duplicate_mission(n)
 	else:
 		save_as(n)
 
@@ -1078,6 +1091,7 @@ func _set_mode(m: String) -> void:
 	mode = "" if mode == m else m
 	route_pts.clear()
 	_ui.add_mode.set_pressed_no_signal(mode == "add")
+	_ui.paste.set_pressed_no_signal(mode == "paste")
 	_ui.route_mode.set_pressed_no_signal(mode == "route")
 	host.preview.queue_redraw()
 
@@ -1429,3 +1443,137 @@ func _fill_conditions() -> void:
 		_ui[k].editable = not read_only
 	for b in _ui.mark:
 		b.disabled = read_only
+
+
+# --- the sanity check, Duplicate, Copy / Paste, the year's map (docs/mission-editor.md §14, §15, §12) ---------------
+
+## The units Copy took: their entities as they were (any mission's).
+var clipboard: Array = []
+
+
+## The sanity check's warnings and the base missions that do not fit the year, added to the check.
+func _more_issues() -> Array:
+	if data.is_empty():
+		return []
+	var bases := base_files.map(func(f): return [String(f.name), _base_side(f.data)])
+	return api.sanity(data) + api.base_issues(bases, year)
+
+
+## The open mission of your own copied under `name`; you go on editing this one (Save as edits the copy).
+func duplicate_mission(name: String) -> void:
+	if read_only or file == "" or name_error(name) != "":
+		return
+	var keep := [file, mission_name]
+	save_as(name)
+	file = keep[0]
+	mission_name = keep[1]
+	data.misc.items[0]["0x44c"] = mission_name
+	_refresh()
+
+
+## The units selected in the Units list (else the selected unit) copied for Paste. Their routes are not copied.
+func copy_selected() -> void:
+	var ids := []
+	for i in _ui.units.get_selected_items():
+		ids.append(int(_ui.units.get_item_metadata(i)))
+	if ids.is_empty() and sel_id >= 0:
+		ids.append(sel_id)
+	clipboard = ids.map(func(id): return entity(id).duplicate(true)).filter(func(e): return not e.is_empty())
+	_fill_clipboard()
+
+
+## The copied units placed with their centre at world X / Y, keeping their layout and headings: new ids, a ground unit
+## at the terrain's height, roles kept, no routes. The pasted units become the selection.
+func paste_at(x: float, y: float) -> Array:
+	if read_only or data.is_empty() or clipboard.is_empty():
+		return []
+	var c := Vector2.ZERO
+	for e in clipboard:
+		c += Vector2(float(e["0x2e4"]), float(e["0x2ee"]))
+	c /= clipboard.size()
+	var r := api.paste_group(data, clipboard, x - c.x, y - c.y)
+	var ids: Array = r.ids.map(func(i): return int(i))
+	if ids.is_empty():
+		return []
+	sel_id = ids[-1]
+	_set_mode("")
+	_edit(r.mission)
+	_ui.units.deselect_all()
+	for i in _ui.units.item_count:
+		if int(_ui.units.get_item_metadata(i)) in ids:
+			_ui.units.select(i, false)
+	return ids
+
+
+## Removes the enemy flight picked on the Flights tab, with its jets.
+func remove_enemy_flight() -> void:
+	if read_only or tsd == null or tsd.sel_flight <= 4 or not tsd.flights.has(tsd.sel_flight):
+		return
+	var fo := _formation_of(tsd.sel_flight)
+	tsd.sel_flight = 0
+	sel_wp = -1
+	sel_id = -1
+	_edit(api.remove_formation(data, fo))
+
+
+## A year on another TSD map than the source's: the mission moves to the year's original (its map, its base
+## missions), its units kept. The bases of before stay while someone holds them that year; base_issues warns of a base
+## now held by the other side.
+func _follow_year_map() -> void:
+	if read_only or source < 0:
+		return
+	var s := api.year_map_source(source, year)
+	if s == source or not originals.has(s):
+		return
+	var new_bases := _read_bases(s)
+	var stems := new_bases.map(func(f): return String(f.name).trim_suffix("_flipped"))
+	for f in base_files:
+		var stem := String(f.name).trim_suffix("_flipped")
+		# An airbase of the year table (held in 1966 or 1998) that nobody holds this year goes.
+		var airbase := api.base_owner(stem, 1966.0) != 0 or api.base_owner(stem, 1998.0) != 0
+		if airbase and api.base_owner(stem, year) == 0:
+			continue
+		var i: int = stems.find(stem)
+		if i >= 0:
+			new_bases[i] = f  # yours (a flipped copy too) in place of the original's
+		else:
+			new_bases.append(f)
+			stems.append(stem)
+	source = s
+	base_files = new_bases
+	_new_map(s)
+
+
+func _build_clipboard(box: VBoxContainer) -> void:
+	box.add_child(HSeparator.new())
+	box.add_child(_label("Copy the units selected in the list (Ctrl+C); Paste (Ctrl+V) places them where you click"))
+	var h := HBoxContainer.new()
+	box.add_child(h)
+	_ui.copy = _button(h, "Copy", copy_selected)
+	_ui.paste = _button(h, "Paste (click the map)", func(): _set_mode("paste"))
+	_ui.paste.toggle_mode = true
+	_ui.clip_info = _label("")
+	_ui.clip_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(_ui.clip_info)
+
+
+func _fill_clipboard() -> void:
+	_ui.duplicate.disabled = read_only or file == ""
+	_ui.copy.disabled = data.is_empty()
+	_ui.paste.disabled = read_only or clipboard.is_empty()
+	_ui.clip_info.text = (
+		"" if clipboard.is_empty() else "%d units copied (their routes are not copied)" % clipboard.size()
+	)
+	_ui.red_remove.disabled = read_only or tsd == null or tsd.sel_flight <= 4
+
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	if not (event is InputEventKey and event.pressed and not event.echo):
+		return
+	if event.is_command_or_control_pressed() and event.keycode == KEY_C:
+		copy_selected()
+	elif event.is_command_or_control_pressed() and event.keycode == KEY_V and not clipboard.is_empty():
+		_set_mode("paste")
+	else:
+		return
+	get_viewport().set_input_as_handled()

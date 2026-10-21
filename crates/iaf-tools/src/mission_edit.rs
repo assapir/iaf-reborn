@@ -431,6 +431,15 @@ fn blue_aircraft(m: &Value) -> Option<Value> {
 /// Removes blue flight `number` and its members.
 pub fn remove_flight(mut mission: Value, number: i64) -> Value {
     let Some(fi) = formation_index(&mut mission, number) else { return mission };
+    remove_formation(mission, fi)
+}
+
+/// Removes the formation at index `fi` of `formations.items` (any flight, an enemy one too) and its members; the
+/// placeholder row and an index out of range leave the mission unchanged.
+pub fn remove_formation(mut mission: Value, fi: usize) -> Value {
+    if !items(&mut mission, "formations").get(fi).is_some_and(real) {
+        return mission;
+    }
     let f = items(&mut mission, "formations").remove(fi);
     for mm in f["members"].as_array().into_iter().flatten() {
         if int(&mm["0x41a"]) >= 0 {
@@ -438,6 +447,34 @@ pub fn remove_flight(mut mission: Value, number: i64) -> Value {
         }
     }
     mission
+}
+
+/// Pastes copies of `entities` (from any mission) moved by (`dx`, `dy`) m: each a new entity through [`add_entity`]
+/// (a new id; no route, events or related entity), its heading, altitude, side and role kept. `ground(entity, x,
+/// y)` gives a unit's altitude at its new place (None keeps it: an aircraft, or off the terrain). Returns the mission
+/// and the new ids in the order of `entities`.
+pub fn paste_group(
+    mut mission: Value,
+    entities: &[Value],
+    dx: f64,
+    dy: f64,
+    mut ground: impl FnMut(&Value, f64, f64) -> Option<f64>,
+) -> (Value, Vec<i64>) {
+    let mut ids = vec![];
+    for e in entities.iter().filter(|e| e.is_object()) {
+        let (x, y) = ((num(&e["0x2e4"]) + dx).round(), (num(&e["0x2ee"]) + dy).round());
+        let mut f = Map::new();
+        f.insert("0x2e4".into(), json!(x));
+        f.insert("0x2ee".into(), json!(y));
+        f.insert("0x14".into(), json!(0));
+        if let Some(z) = ground(e, x, y) {
+            f.insert("0x2f8".into(), json!(z.round()));
+        }
+        let (m, id) = add_entity(mission, e, &f);
+        mission = m;
+        ids.push(id);
+    }
+    (mission, ids)
 }
 
 /// A mission from scratch on `mission` (an original of the wanted era): flight 1 (Alpha) and its members stay, so it
@@ -977,6 +1014,41 @@ mod tests {
         let fl = remove_flight(fl, 4);
         assert!(!fl["formations"]["items"].as_array().unwrap().iter().any(|f| f["0x3f2"] == 4));
         assert!(last_is_placeholder(&fl, "formations"));
+    }
+
+    #[test]
+    fn paste_keeps_layout_and_remove_formation() {
+        let Some(a) = assets() else {
+            eprintln!("skip: no converted missions (tools/setup-cli.sh)");
+            return;
+        };
+        let m = read(&a, "license");
+        let group: Vec<Value> =
+            m["entities"]["items"].as_array().unwrap().iter().filter(|e| real(e)).take(3).cloned().collect();
+        let (p, ids) = paste_group(m.clone(), &group, 1000.0, -500.0, |_, _, _| Some(42.0));
+        assert_eq!(ids.len(), 3);
+        let ents = p["entities"]["items"].as_array().unwrap();
+        for (src, id) in group.iter().zip(&ids) {
+            let e = ents.iter().find(|e| int(&e["0x1e"]) == *id).unwrap();
+            assert_eq!(num(&e["0x2e4"]), (num(&src["0x2e4"]) + 1000.0).round());
+            assert_eq!(num(&e["0x2ee"]), (num(&src["0x2ee"]) - 500.0).round());
+            assert_eq!(
+                (e["0x302"].clone(), e["0x32a"].clone(), num(&e["0x2f8"])),
+                (src["0x302"].clone(), src["0x32a"].clone(), 42.0)
+            );
+            assert!(e["scripts0"]["items"].as_array().unwrap().is_empty(), "no route copied");
+        }
+        assert!(ents.last().unwrap()["0x14"] == 1, "placeholder last");
+        // An enemy flight removed by its formation index, with its jets.
+        let r = set_red_flight(m.clone(), &json!({"type": 2, "count": 2, "base": "bmisdmsk", "name": "MiG-29"}));
+        let fs = r["formations"]["items"].as_array().unwrap();
+        let fi = fs.iter().position(|f| f["0x3e8"] == "MiG-29").unwrap();
+        let jets: Vec<i64> = fs[fi]["members"].as_array().unwrap().iter().map(|x| int(&x["0x41a"])).collect();
+        let r = remove_formation(r, fi);
+        assert!(!r["formations"]["items"].as_array().unwrap().iter().any(|f| f["0x3e8"] == "MiG-29"));
+        assert!(r["entities"]["items"].as_array().unwrap().iter().all(|e| !jets.contains(&int(&e["0x1e"]))));
+        let n = r["formations"]["items"].as_array().unwrap().len();
+        assert_eq!(remove_formation(r.clone(), n - 1), r, "the placeholder stays");
     }
 
     #[test]

@@ -130,3 +130,34 @@ func year_jets(year: float, side: int, what_if: bool) -> PackedInt64Array:
 func year_issues(mission: Dictionary, year: float, what_if: bool) -> Array:
 	var v = JSON.parse_string(IafMissionEdit.year_issues(_js(mission), year, what_if))
 	return v if v is Array else []
+
+
+# --- the sanity check, copy / paste, the year's map (docs/mission-editor.md §14, §15, §12) ---
+
+
+## The sanity check's warnings: [{id, level, text}].
+func sanity(mission: Dictionary) -> Array:
+	var v = JSON.parse_string(IafMissionEdit.sanity(_js(mission)))
+	return v if v is Array else []
+
+
+## {mission, ids}: copies of `entities` moved by (dx, dy) m, new ids, ground units at the terrain's height.
+func paste_group(mission: Dictionary, entities: Array, dx: float, dy: float) -> Dictionary:
+	var r := _parse(IafMissionEdit.paste_group(_js(mission), JSON.stringify(entities, "", false, true), dx, dy))
+	return {"mission": r.get("mission", mission), "ids": r.get("ids", [])}
+
+
+## Removes the formation at `index` of formations.items (an enemy flight too) and its jets.
+func remove_formation(mission: Dictionary, index: int) -> Dictionary:
+	return _parse(IafMissionEdit.remove_formation(_js(mission), index))
+
+
+## `source`, or the year's original when `year` draws another TSD map.
+func year_map_source(source: int, y: float) -> int:
+	return IafMissionEdit.year_map_source(source, y)
+
+
+## The base missions whose side does not fit the year: `bases` [[name, side]] → [{id, level, text}].
+func base_issues(bases: Array, y: float) -> Array:
+	var v = JSON.parse_string(IafMissionEdit.base_issues(JSON.stringify(bases), y))
+	return v if v is Array else []

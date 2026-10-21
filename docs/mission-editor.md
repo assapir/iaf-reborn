@@ -23,7 +23,8 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
 ## 1. The window
 
 - **Start:** with no mission open, two choices stand where the map goes: **New mission** and **Open a mission**.
-- **Top bar:** New, Open, Fork, Save, Save as, Undo, the mission's name, the issues, **Fly as** (Alpha … Delta) and Fly.
+- **Top bar:** New, Open, Fork, Duplicate (§15), Save, Save as, Undo, the mission's name, the issues, **Fly as**
+  (Alpha … Delta) and Fly.
 - **Map:** the TSD (`game/menu/tsd.gd`) in its edit mode, scaled to the window. The mouse wheel zooms; the
   scrollbars and arrow art are the TSD's own. The right button is the TSD's ruler.
   It opens zoomed in two TSD steps on the blue units. The editor hides a scrollbar when there is nothing to scroll
@@ -33,12 +34,13 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
 - **Side panel**, three tabs:
   - **Units:** every entity of the main file, a target or a must-survive unit tagged and coloured; the selected
     unit's name, side, role, heading and altitude; Delete; mark the selected units Target / Must survive / Neutral;
-    Add a unit; Give a route (§13).
+    Copy and Paste (§15); Add a unit; Give a route (§13).
   - **Flights:** Alpha … Delta (type, number of jets, Set, Remove), and the route of any flight, blue or red: its
-    waypoints with altitude (m) and speed (km/h), Insert a waypoint after, Delete the waypoint. **Add an enemy
-    flight:** a red base, a red jet and 1 or 2 jets (§12.5).
+    waypoints with altitude (m) and speed (km/h), Insert a waypoint after, Delete the waypoint; **Remove this enemy
+    flight** for a flight other than Alpha … Delta (§12.5). **Add an enemy flight:** a red base, a red jet and 1 or 2
+    jets (§12.5).
   - **Mission:** the win and lose summary and the debrief headlines (§13), the year and the what-if switch (§12), the start time, the wind and the briefing in English and
-    Hebrew. A new year runs the checks again.
+    Hebrew. A new year runs the checks again; a year on another TSD map moves the mission to that map (§12.1).
 - **Summary line:** under the top bar, what passes and fails the mission (§13); red when it can never pass.
 
 ## 2. Opening and saving
@@ -139,6 +141,11 @@ Missions go in and come back as JSON strings. Positions are engine world metres:
 | `year_bases(year, side)`, `base_owner(stem, year)` | the bases a side holds; a base's owner (§12.2) |
 | `year_jets(year, side, what_if)` | the jets a side has in service (§12.3) |
 | `year_issues(mission, year, what_if)` | the year's warnings (§12.7) |
+| `year_map_source(source, year)` | the source for a new year: `source`, or the year's original on another map (§12.1) |
+| `base_issues(bases, year)` | warnings for base missions whose side does not fit the year (§12.1) |
+| `sanity(mission)` | the sanity check's warnings (§14) |
+| `paste_group(mission, entities, dx, dy)` | copies of units moved by (dx, dy); returns `{"mission", "ids"}` (§15) |
+| `remove_formation(mission, index)` | removes the formation at `index` of `formations.items` and its jets (§12.5) |
 
 ### 5.1 Ids and references
 - A new row takes the placeholder row's id, and the placeholder moves one up. Ids are never reused, so an old
@@ -299,7 +306,11 @@ Each flight record also carries `formation`, the index of its formation in the m
 - `tests/godot/test_mission_edit_win.gd`: New can never pass; an SA-6 marked Target and a Merkava marked Must survive;
   flown through the runtime, the SA-6 destroyed passes it, the Merkava lost first fails it (§13).
 - `cargo test -p iaf-tools --lib mission_edit`: names, edits and references, routes, the check and its calibration,
-  the win and lose summary of 231, 311 and a New mission.
+  the win and lose summary of 231, 311 and a New mission, Paste and removing an enemy flight.
+- `cargo test -p iaf-tools --lib mission_sanity`: the fuel estimate, a too-long route, the calibration on the
+  originals (§14).
+- `tests/godot/test_mission_edit_clone.gd`: Duplicate, Copy / Paste (keys too), a fuel warning with its ring, a year
+  on another map (1973, 1966, 1998) kept by Save / Open, Remove for an enemy flight.
 - `tests/godot/test_mission_edit_red.gd`: two MiG-29s added at Damascus in a 1998 mission spawn as AI jets, take off
   and fly their route.
 - `cargo test -p iaf-tools --lib mission_`: names, edits and references, routes, red flights, flipped bases, the
@@ -334,7 +345,19 @@ The TSD draws one of three maps, chosen by the mission id (`tsd.gd setup`, front
   and completed its withdrawal from Sinai on 25 April 1982[^1982].
 - The `73` map shows the lines of 1967–1973. It does not draw the 1974 and 1975 pull-backs in Sinai[^sinai2] or
   the 1980 interim line[^jta-1980]; the editor uses it up to 1981 (inferred: the closest of the three maps).
-- The map follows the source's id. A year changed on the Mission tab changes the checks, not the map or the source.
+- The map follows the source's id.
+
+**A new year on the Mission tab** (your own mission) that the table above puts on another map moves the mission
+there (`year_map_source`):
+- `source` becomes the year's original (111, 121 or 231), so the TSD draws its map, and Fly, Save and Open use the
+  new id. A year on the same map keeps the source: a fork of 512 stays on 512 from 1982 to 1998.
+- The units, flights, roles and briefing stay as they are.
+- The base missions become the new original's, plus the ones the mission had before. An airbase of §12.2 that
+  nobody holds in the new year goes (Refidim from 1980). A base mission of yours (a flipped copy too) takes the
+  place of the original's of the same base.
+- The check warns of a base mission whose side is not the side holding it that year (`base_issues`): "Refidim: red
+  holds it in 1966, but its base is blue". The editor does not flip it; an enemy flight from it does (§12.5). The 66
+  originals at their own years have no such warning.
 
 ### 12.2 Airbases
 The base missions' airbases, who holds them, and where a flight starts. A blue start is the Mission Creator's
@@ -435,7 +458,8 @@ The base's base mission is added to the mission's `"bases"`. When the data has t
 before June 1967 is Egyptian, its base mission blue), the editor writes a copy with blue and red swapped
 (`flip_base`), named `<stem>_flipped`, into the custom file. Only the files under `user://` change.
 
-The route is then edited as any flight's (§1). Remove a red flight's jets on the Units tab.
+The route is then edited as any flight's (§1). **Remove this enemy flight** on the Flights tab removes the flight
+picked there with its jets (`remove_formation`); it is on for any flight other than Alpha … Delta.
 
 ### 12.6 The year of an original
 A fork starts with its original's year, by the mission id (front-end.md §5.4, the campaign lists):
@@ -563,3 +587,86 @@ Only the original's own data, so the runtime needs no change:
 - `kind` is the bdb object's name (`0x528`, else `0x514`); the summary groups the targets by kind.
 - `scripted` are the role-1 sensors: "1 scripted goal the mission's events complete".
 - The summary shows at the top of the Mission tab and on the line under the top bar.
+
+## 14. Sanity check
+
+`sanity(mission)` (`crates/iaf-tools/src/mission_sanity.rs`) adds warnings to the check (§9) for a mission that flies
+but may not play as meant. Each names its unit, so the unit gets a yellow ring on the map. They never block Fly.
+
+| finding | text |
+|---|---|
+| a blue flight burns more than 80 % of its fuel on its route | "Alpha: about 120% of its fuel for this route" |
+| a target that the SAM rings cover from every side | "SA 6 battery covers this target from every side" |
+| an enemy flight without waypoints | "enemy flight MiG-29 has no waypoints" |
+| a unit on a route (Path, §5.2) whose path is missing or has fewer than two points | "its route has no points: it stays where it is" |
+| a target that no blue flight's loadout can destroy | "no blue flight carries an air-to-ground weapon for this SA 6" |
+
+### 14.1 Fuel
+For each blue flight Alpha … Delta, from its leader's data:
+- **Fuel:** the flight model's `FuelWeight` plus the tanks of its loadout (one tank per station, its bdb weight; as
+  `Aircraft::set_fuel_capacity`). The original data set; the Real set and the stores weight fix are left out.
+- **Loadout:** the stores the leader spawns with (`stores::loadout`, `FUN_0058f110`): its own pylons, else its type's.
+  A loadout changed on the Arming screen before the flight is not known to the editor.
+- **Route:** from the leader's start through every waypoint, then back to the start, unless the last waypoint lands
+  (action 7) or ends within 10 km of the start (inferred: an airborne start is the flight's way in).
+- **Each leg:** level flight at the waypoint's altitude and its planned speed, the speed the AI flies a waypoint at
+  (docs/ai.md §7.2, `FUN_005d6dc0`): the distance over the time to its arrival time, clamped to 180–300 m/s, or
+  275 m/s without one.
+- **Burn per metre:** the flight model's drag at 1 g (flight-model.md §4.3: the clean drag, the stores drag and the
+  induced drag, the mass with half the fuel burnt), the throttle whose thrust (§4.1) equals it, that throttle's fuel
+  flow (dry: ×`dry_fuel_frac`), divided by the speed. A drag beyond military thrust burns at afterburner.
+- **Warning:** above 80 % of the fuel (inferred: the rest is for the take-off, the climb, the fight and a reserve).
+  The text rounds the share to 5 %.
+
+Not counted (inferred, covered by the margin): the take-off and climb, turns, combat, wind.
+
+Example (the Rust test): an F-16 at 6 km and 275 m/s burns 1.7 kg/km clean. With its type's own stores at 3 km it
+burns 9.9 kg/km: the original adds the stores' weight in pounds to the kilogram field (stores.rs
+`init_weight_drag`), so the jet is heavy and needs afterburner.
+
+### 14.2 SAM rings
+- **Rings:** the red SAM sites of the main file whose type the TSD rings (`tsd.gd SAM_RING`): SA-2 and Hawk 37.1 km,
+  SA-6 22.2 km, SA-3 16.7 km. A SAM that is itself a Target is meant to be attacked, so it is left out. The base
+  missions' SAMs are left out too.
+- **Covered from every side** (inferred): a ground target inside a ring, where every point 15 km from it, on 36
+  bearings, is inside a ring too. A SAM within 5 km of the target is the target's own site's defence and counts for
+  neither test. The warning names the nearest covering SAM.
+
+### 14.3 Routes and weapons
+- An enemy flight is a formation whose leader is red.
+- **Weapons:** the stores of every jet of the blue flights Alpha … Delta, by the weapon category (`Category::of`,
+  `FUN_004d72a0`). An aircraft target needs an air-to-air weapon or a gun; any other target an air-to-ground one
+  (bombs, rockets, HARM, Maverick, TV and laser weapons). The gun does not count against ground targets (inferred:
+  every jet has one). Sensors (scripted goals) are left out.
+
+### 14.4 Calibration on the original missions
+The Rust test `sanity_warns_and_originals_stay_clean` runs the check over the 66 original missions (missionlist.json
+without 666 and 777) and fails when a count changes. 57 missions are clean; 16 warnings in 9 missions:
+
+| finding | count | missions |
+|---|---|---|
+| fuel | 3 | 225 (Delta 90 %), 227 (Delta 85 %), 314 (Alpha 100 %) |
+| covered from every side | 11 | 122 (2), 134 (6), 322, 511 (2) |
+| a route without points | 2 | 215 (two units on a path with fewer than two points) |
+| no weapon for a target | 0 | |
+
+Before the tuning, with every SAM counted and the approach points 8 km out, 48 targets in 18 missions were "covered
+from every side". Leaving out the target's own site (5 km) and testing 15 km out left 11.
+
+## 15. Duplicate and Copy / Paste
+
+- **Duplicate** (top bar) is for your own missions. It asks for a name, suggesting a free one ("Clone A 2" for
+  "Clone A"), and saves a copy under it. You go on editing the mission you had open; Save as goes on with the copy
+  instead. An original has no Duplicate: Fork it.
+- **Copy** (Units tab, or Ctrl+C / Cmd+C) takes the units selected in the Units list, else the selected unit.
+- **Paste** (or Ctrl+V / Cmd+V) waits for a click on the map, then places the copied units with their centre there
+  (`paste_group`):
+  - their layout and headings are kept;
+  - each gets a new id (`add_entity`, §5.1);
+  - a ground unit takes the terrain's height at its new place; an aircraft keeps its altitude;
+  - side and role are kept;
+  - **routes are not copied**: a pasted unit is brain-controlled with no motion list, no events and no related
+    entity. A pasted aircraft is in no flight.
+  - The pasted units become the list's selection, so Give a route or Target works on them at once.
+- Copy works on an original too; Paste only into your own mission. The copied units stay until the next Copy, also
+  across missions.
