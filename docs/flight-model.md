@@ -148,10 +148,7 @@ DragIndex ×1e-4. "deg→rad*" = wrapped to (-180,180] then ×π/180.
 
 The four rudder keys are new in v1.1. They are read after AlphaBeta. The params stride grew `0x17c` → `0x18c`, and the
 derived fields below moved up by 0x10: load counter `0x16c` → `0x17c`, stick-centre line `0x170/174/178` →
-`0x180/184/188`. v1.1's `bdgen.dat` sets only **RudderK** (7.5 F-4 / Mirage / Kfir / Lavi, 5.5 F-15 / F-16 / MiG-29,
-6.25 MiG-23); every file lacks the other three keys, so their defaults apply. **A v1.0 `bd.ibx` lacks all four: the v1.1
-exe (and our port) then runs the β channel on the defaults 5 / 0 / 0.5 / 0.5.** That is how v1.0 data plays with the
-v1.1 logic.
+`0x180/184/188`. Which keys v1.1's `bdgen.dat` sets, and how v1.0 data runs on the defaults: §15.2.6.
 
 Thrust offsets: MinMachMinAlt0/1 = 0x114/0x118, MinMachMaxAlt0/1 = 0x11c/0x120,
 MaxMachMinAlt0/1 = 0x124/0x128, MaxMachMaxAlt0/1 = 0x12c/0x130 (defaults 12012.6, 19230.4, 1629.7,

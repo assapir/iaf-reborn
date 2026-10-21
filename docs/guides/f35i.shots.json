@@ -693,7 +693,7 @@
  },
  {
   "name": "hud_srm",
-  "caption": "An AIM-9L locked on a MiG-23 1.6 NM ahead",
+  "caption": "An AIM-9M locked on a MiG-23 1.6 NM ahead",
   "mission": 231,
   "jet": 4,
   "settings": {

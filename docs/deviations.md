@@ -259,9 +259,8 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     AIM-9X's) take the newest AIM-9 the game has, the AIM-9M, and the Python 4.
 - **HUD (Original (1998) / Real)** (references: [real-hud.md](real-hud.md)). Original: the 1998 HUD on every jet.
   Ours, with Real: each jet's real display:
-  - the F-16C/D dash-34 HUD (also, as reconstructions, on the Kurnass 2000 and the Kfir, whose symbology is not
-    public);
-  - the Lavi's own wide-angle HUD (a reconstruction: its symbology is not public);
+  - the F-16C/D dash-34 HUD;
+  - the Lavi's, Kurnass 2000's and Kfir's own HUDs (reconstructions: their symbology is not public);
   - the F-15A/C HUD;
   - the F-4E's and the Mirage's optical gunsights;
   - the F-35I's helmet display;

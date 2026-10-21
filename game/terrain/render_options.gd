@@ -1,4 +1,4 @@
-# Our render options for high resolutions (Preferences > Extras; docs/rendering.md): anti-aliasing, the
+# Our render options for high resolutions (Preferences > Graphics → MORE; docs/rendering.md): anti-aliasing, the
 # terrain close up (detail texture, normal detail, 16× anisotropic filtering), the atmospheric sky and the water. The
 # defaults are the look we had (the original's look, rendered by Godot); each improvement is opt-in. Rendering
 # only: nothing here touches the simulation.

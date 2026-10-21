@@ -1,6 +1,6 @@
 # Terrain imagery layers (docs/imagery.md): the sources a region can show, which of them are
 # converted (assets/converted/imagery/<id>/manifest.json, written by `iaf-imagery`), and the layers
-# the player picked on the Extras page (Settings.imagery_israel / imagery_outside). "original" is
+# the player picked on Graphics → MORE (Settings.imagery_israel / imagery_outside). "original" is
 # the 1998 map.ptt imagery and always available.
 extends RefCounted
 
@@ -12,7 +12,7 @@ const REGIONS := {
 	"imagery_outside":
 	[["original", "Original"], ["sentinel2", "Sentinel-2"], ["sentinel2_modern", "Sentinel-2 modern"]],
 }
-## Row labels on the Extras page ("Sentinel-2" / "Survey 2 m" (Survey of Israel 2015) = 1998 colours,
+## Row labels on Graphics → MORE ("Sentinel-2" / "Survey 2 m" (Survey of Israel 2015) = 1998 colours,
 ## "modern" = the source's own colours).
 const REGION_LABELS := {"imagery_israel": "Imagery Israel", "imagery_outside": "Imagery outside Israel"}
 

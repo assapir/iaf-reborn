@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The real runway table of World scale Real 1:1 (docs/world-scale.md §3.4).
+"""The real runway table of World scale Real 1:1 (docs/world-scale.md §3.3).
 
 Fetches the OpenStreetMap runway ways of the ten iaf.ibx airbases from the Overpass API (or reads a saved answer),
 puts their ends into engine metres with the georeference (`iaf-terrain game`, docs/georef.md) and writes

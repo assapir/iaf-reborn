@@ -1212,7 +1212,7 @@ timer.
 
 | control | page rect | global | default (ctor, then hardware detection) | applied |
 |---|---|---|---|---|
-| TERRAIN DETAIL slider | 19,62,419,77 | d68, step 0.25 (5 positions); v1.1 caps it at `(FUN_00402530() − 1)·0.25` (a Tgen capability, new global `0x779508`; UNCERTAIN meaning) | 0.75, then (det−1)·0.25; ours 1.0 (top tier) | level = 1 − ftol(−4v), min 1 (1..5): the LOD tables (`408ea0`, formats/ptt.md), the view-distance base 26000 / 28000 / 29000 / 30000 / 31000 and the terrain render resolution 0.7 / 0.8 / 0.9 / 1 / 1 × the viewport (`405c20` → `405990`) |
+| TERRAIN DETAIL slider | 19,62,419,77 | d68, step 0.25 (5 positions); v1.1 caps it by the memory (formats/ptt.md "Rendering in the original") | 0.75, then (det−1)·0.25; ours 1.0 (top tier) | level = 1 − ftol(−4v), min 1 (1..5): the LOD tables (`408ea0`, formats/ptt.md), the view-distance base 26000 / 28000 / 29000 / 30000 / 31000 and the terrain render resolution 0.7 / 0.8 / 0.9 / 1 / 1 × the viewport (`405c20` → `405990`) |
 | OBJECT DETAIL slider | 19,148,419,163 | d6c, step 0.5 (3 positions) | 1.0, then (det−1)·0.5 | level = 1 − ftol(−2v) (1..3) → 0x7d1924: the `_h` / `_m` / `_l` model switch and two render states (below) |
 | VISUAL EFFECTS slider | 19,236,419,251 | d70, step 0.5 | 1.0, then (det−1)·0.5 | level 1..3 → 0x7d1928: only the smoke column (explosion flag 0x800): 33 / (4 − L) puffs, each visible until 36 / (4 − L) s (docs/damage.md §6.1) |
 | SMOKE TRAILS | 7,306,112,326 | d58 | 1 | pref +0x48, read only by `4da090` @4da1bb: the missile / rocket trails with the motor glow and the wingtip vortex trails (docs/damage.md §6.4). Damage smoke, decoy and explosion smoke are not gated |
@@ -2039,24 +2039,10 @@ of the frame.
   * Pictures (`![caption](shots/<jet>/<name>.png)`) come from `assets/converted/guides/`. A missing picture leaves
     its caption.
   * When `assets/converted/guides/<dir>.pdf` exists, an **Open PDF** link at the top opens it in the system viewer.
-* **Making the pictures and the PDF.** Setup's last step makes them (it needs a display; docs/guides/README.md has
-  the shots' format). Both hold the original art, so they stay under `assets/`.
-  1. `tools/guide_shots.sh` renders each entry of `docs/guides/<jet>.shots.json` in a 3840×2160 frame, whatever the
-     screen's size (`tests/godot/_guide_shots.gd`: settings, start (mission / airborne / dive / final approach), a
-     placed target, actions such as a radar lock, a store or a camera on the target; crops: the whole frame, the HUD,
-     an MFD), and draws its numbered callouts (`annotations`: arrows to symbols found in the Real HUD's own output, or
-     to points of the crop). The guide lists their legend as a numbered list right under the picture.
-     * Each Godot process takes up to 4 shots (`GUIDE_BATCH`), each from the default settings and a freshly loaded
-       mission. Several processes run at once (`GUIDE_JOBS`, default half the cores, at most one per 2 GB of free
-       memory). On an 8-core Iris Xe laptop the F-16's 13 shots take about 2.5 minutes (about 11.5 with one process
-       per shot in turn).
-     * A picture whose stamp (`<name>.stamp`: its entry, the shot tools, Godot's version, the frame size and the
-       data's paths and sizes) still matches is kept, also across game code changes; `--force` renders every one.
-     * A FAIL line (a callout's symbol missing, a crash, a process stuck past its time) makes the exit status 1.
-  2. `python3 -I tools/guide_pdf.py` prints each guide as an A4 PDF (title page with the record's picture, contents,
-     the pictures with their legends; a warning when a legend's length differs from the callouts) with headless
-     Firefox (Chrome / Chromium when Firefox is missing), a few guides at once. A PDF newer than its Markdown, shots
-     list and pictures is kept; `--force` prints every one.
+* **Making the pictures and the PDF.** Setup's last step makes them with `tools/guide_shots.sh` (the pictures, from
+  each `docs/guides/<jet>.shots.json`) and `tools/guide_pdf.py` (an A4 PDF per guide); it needs a display. Both hold
+  the original art, so they stay under `assets/`. The pipeline, the shots' format and the options:
+  [guides/README.md](guides/README.md#pictures-and-pdfs).
 
 ## 15. Arming screen (0x1f, `arm.trx`, content ctor `FUN_00505e80`, vtable `0x6084b8`)
 

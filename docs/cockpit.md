@@ -64,7 +64,8 @@ These rules turn the file's values into screen positions.
 | mig29 | hud.bmp | 385x181 (bmp 386) | 104/15/156 | 100 | 120 | 140 | 0 | 70/67/56/52 | 82,55 | ShowHorizon 1, ShowLRScales 1, Dash 1 |
 
 The v1.1 patch lowered `GunRetPositionY` by 10 px in the five cockpits that show a v1.0 value above, so the gun now
-fires 1° up onto the cross (docs/damage.md §4.4). The patch changed nothing else in `cockpit.ibx`.
+fires 1° up onto the cross (docs/weapons.md §3.2). The patch changed nothing else in `cockpit.ibx`. With a v1.0
+`cockpit.ibx` (its cross ~0.8° above the bullet line), ours subtracts 10 px from these five cockpits' value.
 
 ### HUD symbology (v1.1, `FUN_00530b70`)
 **Every cockpit uses the same HUD code; only the `[HUD]` keys differ** (table above). Nothing in the HUD path tests the
@@ -243,8 +244,6 @@ renderer, S = the cockpit state (`0x82f544`). The reader stores the `[HUD]` keys
   * The marker is the velocity projected through our camera, which uses the original projection (next section). With
     it the 12 px/deg ladder matches the world (focal length 686.2 px = 11.98 px/deg).
   * Deviations: docs/deviations.md (HUD rows).
-* **Gun cross with v1.0 cockpit data**: the v1.0 file's `GunRetPositionY` is 10 px higher than the v1.1 bullet line
-  (~0.8°). Ours subtracts 10 when one of the five cockpits above still has its v1.0 value.
 
 ### I-mode (F12, v1.1)
 I-mode puts a mark on the edge of the 3D view for each aircraft you cannot see on screen. Each mark is a small square,
@@ -585,7 +584,7 @@ the 1x original art and its 4x conversion; the art is small, so many dial faces 
 * **Engine dials against their labels:** "Panel instruments per jet" below.
 * **G-meter (accelerometer): no panel paints one that the art shows clearly.** The F-16 art is an earlier panel than
   the dash-1's figure, whose accelerometer sits beside the altimeter[^f16-dash1]; the game's F-16 panel has none
-  there. So the roadmap's item 6 has nothing to drive; no item id.
+  there, so there is no G-meter for a Better cockpit item to drive.
 * **AoA indexer:** only the F-16's HUD frame art paints one. The original lights none of it: the three symbols are
   painted lit, and no `[LIGHT00x]` rect covers the HUD frame.
 * **Standby instruments:** every painted standby airspeed, altimeter and ADI is already live (the F-16's and Kfir's
@@ -645,7 +644,7 @@ the original draws on it. With `dials_by_label`:
 | mig23 | exhaust temperature, × 100 °C (1183,226) | `FUELCLOCK` | the TEMP needle value |
 | mig23 | fuel, × 1000 l (1175,280) | `RPMCLOCK` | the fuel in litres (kg ÷ 0.78 kg/l, inferred); with `fuel_total` all the fuel, else capped at the internal capacity |
 | mig23 | vertical speed, 1 / 2 / 4 / 6 (1098,270) | `VARIOCLOCK`: 30,000 ft/min per turn | the vertical speed on the face's marks, × 1000 ft/min (× 10 m/s with `metric_gauges`; unit open) |
-| mig23 | hydraulic pressure (1051,336), wing sweep (1245,192) | `TEMPCLOCK`, `THROTTLECLOCK` | nothing (static): the panel has no tachometer or throttle dial |
+| mig23 | hydraulic pressure (1051,336), wing sweep (1245,192) | `TEMPCLOCK`, `THROTTLECLOCK` | nothing (static): the panel has no tachometer or throttle dial; with `hyd_gauge` the hydraulic pressure ("MiG gauges") |
 | mig29 | two tachometers, % (1009,253 / 1062,253) | `THROTTLECLOCK` / `…SECONDARY`: rpm from 12 o'clock | each engine's RPM on the face's scale |
 | mig29 | radar altimeter (904,168) | `SPEEDCLOCK` | nothing; with `radar_alt` the radar height |
 | mig29 | AoA / g meter (1116,55) | `VARIOCLOCK` | nothing; with `uua` the AoA and g |

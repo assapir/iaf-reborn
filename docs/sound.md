@@ -60,7 +60,9 @@ DoorCloseFx, RadarLock, MislSeekTon, VocAircraftCrash, ….
 
 **Shipped files that no row and no code uses**: `cock_eng_gnrlsnd`, `cock_eng_idle_air`,
 `cock_eng_idle_gnd_f100/_j79`, `afterburner1/2`, `internal plane 1`, `gearup`, `geardown`, `speedbreak`,
-`speedbreakloop`, `parachute open`, `mfd click`, `wind1–5` (radio "wind is …" phrases), and more.
+`speedbreakloop`, `parachute open`, `mfd click`, and more. (`wind1–5` are the "Wind Water Fire" mission's
+radio messages, `default6_1.bdb` messages Wind1–Wind5, such as "This is Navy 1. Two enemy helicopters are approaching
+us from the east."; they play as mission messages, docs/mission-runtime.md §3.3.)
 
 **Wind**: the table has **no SFX_WIND row**, and no code calls code 0x24: the original plays no airflow noise.
 

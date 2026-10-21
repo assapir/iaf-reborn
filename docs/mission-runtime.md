@@ -652,16 +652,7 @@ Failure: if Player1 is destroyed, event 5 fires and adds debrief 1 ("The first r
 - STAY ALIVE."). After 5 s the flight ends (0x82) and the debrief headline is 0x492 "Mission - failed. Better
 try again."
 
-## 8. Corrections to formats/mis.md and open items
-
-Corrections (formats/mis.md still has the older readings):
-- Slot meanings are in §2. Slot 2 is a debrief id (formats/mis.md called it a "landed" event). Slot 4 is left +
-  radius, slot 5 is reached.
-- 0x32a = role. 0x320 bit 0 = mission vs brain control.
-- 0x398 = the maximum fire count.
-- 0x3d4 = the operator code, 0x3de = the counter id.
-- The misc audio pairing is in §5.3: 0x4a6 / 0x4ce are no "second failure" message (0x4ce plays at success).
-- Script opcodes: scripts0 and scripts1 have separate opcode spaces (§4).
+## 8. Open items
 
 UNCERTAIN / open:
 - Slot 3 reader.

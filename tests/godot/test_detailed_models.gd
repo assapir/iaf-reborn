@@ -1,4 +1,4 @@
-# Detailed models (Preferences → Extras → Models, docs/aircraft-models.md): with the switch off every F-16 is exactly
+# Detailed models (Graphics → MORE → Models, docs/aircraft-models.md): with the switch off every F-16 is exactly
 # the original model; on, the detailed F-16D loads (KTX2 textures, LODs, one shared parse), carries every helper of
 # the original at the original's position (stations, gun, eye, engine, wingtips, height: 1 cm), every moving part
 # hinged on its own surface (FlightGear's hinge lines; the offsets from the original's are printed) with an axis

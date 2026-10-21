@@ -270,29 +270,12 @@ Gun rounds (type 0x235) fired by any unit other than the player hit the target's
 - `set_damage_level(target, level, source)`;
 - `kind` "gun" selects the gun-rounds thump for the player.
 
-### 4.4 v1.1 weapon and AI rules (gun and missile rules ported: docs/weapons.md; AI rules: `game/ai/combat.gd`)
-The v1.1 patch changed these rules. The v1.0 behaviour appears only for comparison (docs/v1.1.md).
-- **Gun** (`FUN_00456ff0`, docs/weapons.md §3.2): the player's shot line turns **+1°** up, onto the gun cross; the
-  aim distance without a lock is **2781 m** (v1.0 1854 m), and the AI's auto-hit sphere scales with it. The AA LCOS
-  `FUN_0045f410` keeps v1.0's line; the AG pipper `FUN_0045ef10` is new (§3.7 there).
-- **Ballistic correction** of the falling store (`FUN_005611b0`, `FUN_00468470`, docs/weapons.md §9.5): clamped to
-  ±`_debugParam016` (15 m/s² in v1.1), single player, the player's stores only; the flight time has no cap at impact
-  (v1.0 capped it). v1.0 data has `_debugParam016` = `_debugParam018` = 1; ours then uses 15 (v1.1 logic with any
-  data, user decision).
-- **Fixed-weapon hit sphere** (`FUN_005604a0`, `FUN_005605c0`): `_spiralAccel` ×0.5, ×1 with Easy aiming (25 / 50 m
-  for the gun, docs/weapons.md §3.4).
-- **Missile launch q** (`FUN_00457f70`): ×0.8 without Easy aiming (docs/weapons.md §5.2).
-- **AI fire decision** (`FUN_004440d0`): the AI fires when the angle between the shooter's nose and the target (acos
-  of the clamped dot product) is ≤ the cone. The cone is **30°** for missiles and **5°** for guns (v1.0 7°), ×**0.5**
-  Rookie / ×1 Normal / ×**1.5** Expert. v1.0 compared the cosine with a threshold scaled 0.75 / 1 / 1.5, so an Expert
-  enemy (threshold > 1) could never fire.
-- **Missile after guns** (`FUN_00452710`): the heat request 570 also accepts 580. The new BDB brain rule "Over 2000m
-  and out of DLZ - change missile" (brains 29 / 45 / 67 in `default6_1.bdb`) is data. v1.0 data lacks the rule; do
-  not synthesise it.
-- **Relative bearing** (`FUN_0044e770`): the result is wrapped to (−π, π] (v1.0 returned it unwrapped). It feeds the
-  RWR emitter test (`FUN_004521c0`), the AI and the HUD bearing. Wrap it wherever we compute it.
-- **Multiplayer**: the last shooter is kept when the pilot ejects, for the kill credit (`FUN_004a8ae0`, eject event
-  `FUN_00548f00`).
+### 4.4 v1.1 weapon and AI rules
+The v1.1 patch changed the gun aim and range, the ballistic correction of falling stores, the fixed-weapon hit
+sphere, the missile launch q, the AI fire cone, the missile after guns, the relative-bearing wrap and the multiplayer
+kill credit. Each rule, its v1.0 → v1.1 addresses and our port: [v1.1.md](v1.1.md#summary-release-notes--codedata--port);
+v1.0 data handling: [v1.1.md](v1.1.md#v10-data-compatibility). The gun and missile rules are in docs/weapons.md, the
+AI rules in `game/ai/combat.gd`.
 
 ## 5. The player's jet: systems damage
 A hit that leaves a controlled aircraft (class 0x1c) alive runs its controller's reaction `FUN_0044d590`:

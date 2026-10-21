@@ -53,7 +53,7 @@ ranked order: [graphics-research.md](graphics-research.md).
   place of the 1998 meshes (~800 triangles). The F-16D is built (aircraft-models.md); next the other flyable jets,
   then the AI types. Keep the original dimensions, hinge points (`<part>1/2` helpers), weapon stations, camera eye
   point and IAF markings; fit each model and repaint onto the new UVs.
-- **Better weapon / store models** (Extras → Models, the 1998 meshes by default): bombs, missiles, tanks and pods to a
+- **Better weapon / store models** (Graphics → MORE → Models, the 1998 meshes by default): bombs, missiles, tanks and pods to a
   DCS-level bar (FlightGear F-16 shapes, GPLv2+, with our own PBR pass; our own for the gaps), committed to the repo
   and fitted at load time. Design: graphics-research.md §3.13.
 - **Modern DEM** (SRTM / Copernicus 30 m) for finer relief.
@@ -188,20 +188,8 @@ live play while recording at 4K. Two ways:
 ## "Real Betty" option (Extras switch, wishlist; researched 2026-10-19)
 - **Switch:** voice warnings per real aircraft. The default is the game's Betty (sound.md §4). With Real HUD the F-16
   and F-35I already speak their real dive and height warnings (deviations.md §2 "HUD").
-- **Per jet** (research 2026-10-19; sources in real-betty.md):
-  - F-16: the VMS (voice message system), in priority order PULL UP, ALTITUDE (below the low-altitude setting,
-    default 300 ft, gear up), WARNING, BINGO, CAUTION, LOCK, CHAFF FLARE / LOW / OUT. A fire or engine failure is
-    "WARNING" with its light; there is no Over-G voice.
-  - F-15C: a smaller set ("Warning", "Engine fire", "Overheat" in 1978; more later); to check against the flight
-    manual.
-  - F-35I: voice warnings with PULL UP likely; no public list yet.
-  - F-4E, Kfir C7, Mirage IIICJ: tones and lights, no voice (to confirm).
-  - Kurnass 2000, Lavi: unknown; they keep the game's Betty until a source says otherwise.
-- **Voice:** the original game's `Cock_Bty_*.wav` where the word matches; the other phrases recorded by us or made
-  with a text-to-speech voice whose licence allows redistribution. FlightGear's F-16 set (github.com/NikolaiVChr/f16,
-  `Sounds/betty/`, GPL-2.0, origin of the recordings unknown) only as an optional download during setup, after asking
-  its author where the recordings came from. Not usable: Falcon BMS, DCS, video rips.
-- **Open:** do IAF jets speak English or Hebrew; which F-16 VMS software version fits the 1990s F-16D.
+- **Per jet:** which jets speak which warnings, with sources: [real-betty.md](real-betty.md) §1.
+- **Voice, licences and open questions:** real-betty.md §2–§6.
 
 ## F-16I Sufa option (Extras switch, wishlist; decided 2026-10-17, F-16I chosen 2026-10-19)
 - **Switch:** "F-16: Barak (1990s) / Sufa (F-16I)". The default is the game's early-1990s F-16D Barak.

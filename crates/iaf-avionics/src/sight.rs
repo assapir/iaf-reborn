@@ -114,7 +114,7 @@ const SNAP_PX: f64 = 5.0;
 /// Weapon data Real: the rear sector, the target's tail within 60° of the line of sight (inferred).
 const REAR_SECTOR_DEG: f64 = 60.0;
 
-/// Weapon data Real lock ranges in metres (docs/real-weapons.md §1.4): in the rear sector, and from the front
+/// Weapon data Real lock ranges in metres (docs/real-weapons.md §1.2): in the rear sector, and from the front
 /// without / with the target's afterburner (0 = no front lock: a rear-aspect missile).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RealLock {

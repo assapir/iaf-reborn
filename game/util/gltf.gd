@@ -67,7 +67,7 @@ static func _settings() -> Node:
 	return Engine.get_main_loop().root.get_node("Settings")
 
 
-## Detailed models (ours, Preferences → Extras → Models: Detailed; docs/aircraft-models.md): the original model's
+## Detailed models (ours, Graphics → MORE → Models: Detailed; docs/aircraft-models.md): the original model's
 ## file -> our model in the repo (GPL, tools/f16d/rig.py). Each model falls back on the original on its own.
 const DETAILED := {"f16_h.gltf": "res://extra/models/f16/f16d.glb"}
 static var _detailed := {}

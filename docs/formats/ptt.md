@@ -113,8 +113,9 @@ heights (it is not flattened).
 
   - **v1.1** ("two highest settings tuned"): details 4 and 5 end with level 8 from 50 to 100 km. v1.0 had 7 to 50 km,
     8 to 80 km, 9 to 100 km.
-  - The TERRAIN DETAIL slider (Graphics page) moves in 0.25 steps, capped at `(0x779508 − 1)·0.25`. `0x779508` =
-    RAM/10 below 61 MB (32 MB → 3, 48 MB → 4), else 5 (`FUN_00407670`). Detail = 1 + 4·slider (UNCERTAIN).
+  - The TERRAIN DETAIL slider (Graphics page `515540` / `515b60`) moves in 0.25 steps, capped at
+    `(FUN_00402530() − 1)·0.25`; `FUN_00402530` returns `0x779508`. `0x779508` = RAM/10 below 61 MB (32 MB → 3,
+    48 MB → 4), else 5 (`FUN_00407670`). Detail = 1 + 4·slider (UNCERTAIN).
   - The v1.1 look-down change 8°→5.5° (`585270`) is the cockpit camera's (cockpit.md "3D view"); it does not touch
     the terrain.
 - **View distance** (`FUN_00408070`, per frame): `min(100000, (AGL·1e-4 + 0.7) × base)` terrain units (AGL = height
