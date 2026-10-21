@@ -2,10 +2,9 @@
 
 This guide covers what changes in the Kfir C7 when you switch on the realistic options: the Kfir's own HUD (head-up
 display), the real jet's numbers and the real weapons. The Kfir C7 is the single-seat delta of the game's model. Each
-HUD mode has its own section: when to use it, the keys, a picture with numbered callouts, what each symbol means, and
-a worked example. The numbers come from the game's own data and tests. Section 13 explains the abbreviations.
-
-How to read the pictures: each yellow number points at one symbol. The list under the picture explains it.
+HUD mode has its own section: when to use it, the keys, a picture whose numbered yellow callouts the list under it
+explains, and a worked example. The numbers come from the game's own data and tests. Section 13 explains the
+abbreviations.
 
 ---
 
@@ -19,7 +18,7 @@ How to read the pictures: each yellow number points at one symbol. The list unde
 | Bombs | A pipper circle with a fall line | The Kfir's CCIP pipper (a dot in a 20 mr circle) and its fall line from the flight path marker |
 | Flight data | The game's own Kfir: 20,000 lb empty, 9,600 / 16,000 lbf | Kfir C7 (J79-J1E): 16,060 lb empty, 11,870 / 17,900 lbf, 5,670 lb internal fuel (the original 8,000 lb), +7.5 / −3.5 g |
 | Weapon data | The game's own values | 2 × DEFA 553 guns with 2 × 140 rounds, the EL/M-2001B ranging radar at 14.8 km, real missile weights, speeds and ranges |
-| Physics | The original's quirks | Real touchdown limits, ground effect, a flight-path hold with the stick centred, realistic spins |
+| Physics | The original's quirks: still air, instant thrust | Real touchdown limits, ground effect, a flight-path hold with the stick centred, realistic spins, the tower's wind, the engine's real spool-up |
 
 \[R\] marks a reconstruction: the Kfir's modes and the data it shows are public (Flight International 1983, the Elbit
 System 82), its HUD layout is public in outline, so the game draws an early-1980s Elbit layout.
@@ -29,9 +28,9 @@ System 82), its HUD layout is public in outline, so the game draws an early-1980
 The same moment with the Real HUD is the first picture of section 3.
 
 **HUD warnings.** The Kfir has no Betty voice. The 1998 HUD draws a large X across its centre in the A-G gun and bomb
-modes while the dive is steeper than 1° for each 100 ft above the ground (more than 20° at 2,000 ft), and when the
-locked target is closer than the selected missile's minimum range (Rmin): then it hides the missile circle. The Real
-HUD draws no X (the real Kfir's marks are not public).
+modes while the dive is steeper than 1° per 100 ft above the ground (20° at 2,000 ft), and in place of the missile
+circle when the locked target is inside the missile's minimum range (Rmin). The Real HUD draws no X (the real Kfir's
+marks are not public).
 
 ---
 
@@ -41,14 +40,15 @@ Set these on the Preferences screen before the flight. Every row starts at the 1
 
 | Tab | Row | Set to | What it changes |
 | --- | --- | --- | --- |
-| Extras | Flight data | Real aircraft | The Kfir C7 numbers (section 11) |
+| Extras | Flight data | Real aircraft | The Kfir C7 numbers (section 4) |
 | Extras | Weapon data | Real weapons | Radar range, gun rounds, missile weights, speeds and ranges |
 | Extras | HUD | Real | The Kfir's HUD (looking aside shows the original's helmet display) |
-| Extras | Better cockpit | Better | A turning panel compass, live engine and fuel needles on their labelled dials, sharp display pages (section 5) |
-| Graphics → MORE | Sky, Terrain close up, Imagery | Atmospheric, Detailed, Survey 2 m / Sentinel-2 | A physical sky, ground detail and photo imagery, if setup converted it |
+| Extras | Better cockpit | Better | A turning panel compass, live engine and fuel needles on their labelled dials, sharp display pages (section 11) |
+| Extras | World scale | Real 1:1 | True-size models; every airbase at its real place, with its real runway numbers |
+| Graphics → MORE | Sky, Terrain close up, Imagery Israel / outside Israel | Atmospheric, Detailed, Survey 2 m / Sentinel-2 | A physical sky, ground detail and photo imagery, if setup converted it |
 | Graphics → MORE | Airbases | Detailed | Runways, taxiways and aprons with real markings near the ground |
-| Physics | every row | on | Section 11 lists the ones that change how the Kfir flies |
-| Gameplay | Easy landing, Easy aiming, No blackouts / spins / stalls | off | Real landing limits, real launch rules, g-effects and stalls |
+| Physics | every row | on | Section 4 lists the ones that change how the Kfir flies |
+| Gameplay | Easy landing, Easy aiming, No blackouts / spins / stalls, No wind | off | Real landing limits, real launch rules, g-effects, stalls and the mission's wind |
 
 A greyed-out imagery choice needs its data: convert it with `tools/setup-cli.sh --imagery`.
 
@@ -82,29 +82,49 @@ leaves the edge, then put the flight path marker on it.
 
 ---
 
-## 4. Landing: the gear-down HUD
+## 4. Flying the Kfir with Real flight data
 
-**When**: on final approach, gear handle down (**G**). **Keys**: **G** gear, **F** flaps, **B** wheel brakes,
-**Ctrl+T** calls the tower near an Israeli base.
+With Flight data = Real the Kfir C7 row comes from Jane's and other public figures, checked by the game's validation
+test. The 1998 Kfir weighed 25 % more and had less thrust.
 
-With the gear down the AoA (angle of attack) takes the row under the g. The ILS (instrument landing system) lines
-guide you to the nearest airbase's runway.
+| Item | In the game | Real Kfir C7 |
+| --- | --- | --- |
+| Empty weight | 16,060 lb | 16,060 lb (Jane's) |
+| Internal fuel | 5,670 lb | 2,572 kg = 5,670 lb (Jane's) |
+| Thrust, military / full afterburner | 11,870 / 17,900 lbf | 11,870 / 17,900 lbf (J79-J1E) |
+| Wing area | 375 ft² | 375 ft² |
+| 1 g stall speed | 127 kt (uncertain) | approach about 160–175 kt (uncertain) |
+| g limits | +7.5 / −3.5 | +7.5 / −3.5 |
+| Maximum roll rate | 150°/s (the original's) | unpublished |
+| Maximum speed, sea level / 40,000 ft | 771 kt / 1,139 kt (Mach 1.99) | about 750 kt / Mach 2.0 sustained |
+| Climb at 350 kt, sea level | about 27,900 ft/min | 45,930 ft/min (peak, light) |
+| Fuel flow, military / full afterburner | 9,970 / 35,200 lb/h | about 9,970 / 35,200 lb/h |
+| Service ceiling | 58,000 ft | above 58,000 ft |
 
-![Final approach, 3.6 NM out at about 900 ft, 141 kt](shots/cfir/landing_final.png)
+What changes in the cockpit:
 
-1. **Flight path marker**: on the runway here.
-2. **AoA**: 3° here.
-3. **ILS glide-slope line**: it crosses the localizer line at the HUD's centre when you are on the runway's centre
-   line and on a 5° glide path. It drops when you are high.
-4. **ILS localizer line**, held at the HUD's left edge here.
-5. **Steering bug** held at the scale's right end, its arrow pointing right: the waypoint is more than 15° right.
-6. **Waypoint marker** with its X, held at the edge.
-7. **Airspeed**: 141 kt.
-8. **Altitude**: about 900 ft.
-
-**Example**: here the jet flies a 3° path at 3° AoA, the glide-slope line above the HUD's centre: you are under the
-5° path. Fly the approach on the speed: 165 kt on final (the game's landing lesson). Above about 4° AoA the marker
-sits under the HUD glass's lower edge in this cockpit.
+- **Fuel**: about 10 minutes at full afterburner, about 34 minutes at military power. The Kfir carries the least fuel
+  of the game's jets; the 2,550 lb tanks go on stations 3, 5 and 7.
+- **Turns**: the delta bleeds speed fast in a hard turn, and the g limit is 7.5. Turn in short pulls and keep the
+  speed up.
+- **Mechanical flight controls**: the stick moves the surfaces directly. A hard pull at low speed stalls the wing, and
+  with Realistic spins on the jet can spin. Recover with the stick forward and the rudder against the spin, then pull
+  out of the dive.
+- **Flight-path hold** (Physics): with the stick centred the jet holds its flight path.
+- **Ground effect** (Physics): a longer float in the flare. **Real idle thrust on the ground**: at idle the jet taxis at
+  about 35–45 kt.
+- **The stick on the keyboard** gives full deflection at once, as in the original; a joystick is smoother.
+- **Engine spool-up** (Physics): the thrust follows the J79's spool, slowest at first: 5 s from idle to military; the
+  afterburner lights 1 s after the core reaches military and fills in 1.5 s. Out of afterburner the thrust drops at
+  once.
+- **Wind and turbulence** (Physics): the air moves with the tower's wind. The jet crabs into a crosswind and drifts
+  downwind, a headwind shortens the take-off run, and light gusts shake it, strongest below 300 m (1,000 ft). Gameplay →
+  No wind calms the air.
+- **Brakes and stores** (Physics: Nose dips under braking, Unbalanced stores roll the jet): the nose dips up to 2° under
+  the wheel brakes and squats up to 1° at full thrust on the brakes. Stores left on one wing roll the jet toward it:
+  hold that wing up with the stick (the game has no roll trim).
+- **The map edge**: 12 km (6.5 NM) before it the EndWorld warning sounds: turn back. Past it the game pushes the jet
+  back for about 8 s (the nose rises and the jet turns).
 
 ### Take-off and landing numbers
 
@@ -120,38 +140,32 @@ sits under the HUD glass's lower edge in this cockpit.
 
 ---
 
-## 5. Better cockpit
+## 5. Radar and self-protection
 
-**When**: any flight. **Keys**: Preferences → Extras → Better cockpit; **V** brings the panel up into view, **PgUp** /
-**PgDn** slide it.
+The real Kfir C7 carries the **EL/M-2001B ranging radar**. In the game it has the same radar modes as every jet; with
+Weapon data = Real its detection range is **14.8 km** (8 NM; uncertain, one database). Use it to lock and range at
+close range. It sees targets from 30 m above the ground, in line of sight; the one display starts on it.
 
-With Better cockpit on, the compass at the bottom of the panel turns with the heading, the engine and fuel needles on
-the right of the panel show the flight model's own values, and each engine needle sits on the dial its label names.
-The display's pages are drawn sharp at the screen's resolution. In the 1998 game the compass is a still picture, the
-needles read rough values, and the temperature needle sits on the FUEL FLOW dial while the EXH TEMP dial stays still.
+| Key | Action |
+| --- | --- |
+| **R** / **Q** / **S** | Radar on, A-A (air-to-air) ↔ A-G (air-to-ground) / mode (LRS → TWS → ACM; GMT ↔ MAP) / standby |
+| **.** / **,** | Range scale up / down |
+| **Return** / **Shift+Return** | Next / previous contact (in LRS this locks it: STT) |
+| **Backspace** | Drop the lock |
+| **\\** (hold) | Boresight: a ±12° lock cone straight ahead |
 
-![The Kfir panel with Better cockpit on](shots/cfir/better_panel.png)
-
-1. **Lubber mark**: the heading reads on the card under it, here about 320°.
-2. **Compass card**: it turns as the jet turns. The letters are the cardinal points (N, E, S, W), the numbers tens of
-   degrees (`33` = 330°).
-3. **Aircraft symbol**: fixed; it stands for your jet, its nose toward the lubber mark.
-4. **RPM** (PERCENT RPM): the engine's real RPM, 60 % at idle, 100 % at military. It needs about 3 s from idle to
-   military.
-5. **Exhaust temperature** (EXH TEMP, lower left of the engine dials): about 450 °C at idle and 650 °C at military, a
-   little more in AB; 900 °C with an engine fire. It rises in about 2 s and falls slowly.
-6. **Fuel flow** (FUEL FLOW): it follows the throttle, as on the F-4E: military at the full mark; in AB it moves on
-   past military, further in AB 2.
-7. **Fuel needle**: all the fuel you carry, the drop tanks too, over the most the jet holds with them. It falls from
-   the first pound burnt (in the 1998 game it stays full until the tanks are empty).
-
-The small dial right of the RPM dial, where the 1998 game draws the throttle needle, then has no needle: its label is
-too small to read.
-
-**Example**: the HUD's heading scale is a 30° window; the compass shows the whole circle. To fly 090° from 320°, find
-9 on the card: it sits on the card's right half, so turn right and roll out when 9 reaches the lubber mark. Take off
-with a drop tank: the fuel needle starts full and falls from the first minute. At half scale you have half of all
-the fuel you took off with, the tank's included.
+- **RWR** (radar warning receiver): the panel dial shows emitters and missiles around you; a missile launch at you
+  sounds the launch warning.
+- **Chaff (Insert)** and **flares (Delete)**: 90 chaff and 60 flares. A flare fools an IR (infrared) missile with 33 %
+  (50 % above 4 g) while the afterburner is off: pull hard, come out of afterburner, then flare. Self-protection is
+  chaff and flares; **J** is the ECM pod's key on the jets that carry one.
+- **AWACS calls**: from 60 s into the flight the airborne controller calls the enemy aircraft within 35 NM, one scan
+  every 12 s. "Alpha, bearing 090, 15 miles, target, heading 270, free to engage": the contact's bearing and distance
+  from you, then its heading ("targets are already engaged" in place of "free to engage").
+  "Unidentified contacts, please identify": your radar has not seen it yet; find it before you engage. A contact is
+  called again, in short, after 60 s or when it moved more than 5 NM. Below 50 m (165 ft) the controller is silent.
+- **Flight reports**: the radio reports your side's jets airborne, landed, crashed or ejected, and each kill 5 s after
+  it ("Alpha leader shot down MiG 29").
 
 ---
 
@@ -267,71 +281,65 @@ the edge and hold **Space**. The bombs go at 0.9 s to go, with positive g and le
 
 ---
 
-## 10. Radar and self-protection
+## 10. Landing: the gear-down HUD
 
-The real Kfir C7 carries the **EL/M-2001B ranging radar**. In the game it has the same radar modes as every jet; with
-Weapon data = Real its detection range is **14.8 km** (8 NM; uncertain, one database). Use it to lock and range at
-close range. It sees targets from 30 m above the ground, in line of sight; the one display starts on it.
+**When**: on final approach, gear handle down (**G**). **Keys**: **G** gear, **F** flaps, **B** wheel brakes, **Ctrl+T**
+calls the tower near an Israeli base. The approach speeds and touchdown limits are in section 4.
 
-| Key | Action |
-| --- | --- |
-| **R** / **Q** / **S** | Radar on, A-A (air-to-air) ↔ A-G (air-to-ground) / mode (LRS → TWS → ACM; GMT ↔ MAP) / standby |
-| **.** / **,** | Range scale up / down |
-| **Return** / **Shift+Return** | Next / previous contact (in LRS this locks it: STT) |
-| **Backspace** | Drop the lock |
-| **\\** (hold) | Boresight: a ±12° lock cone straight ahead |
+With the gear down the AoA (angle of attack) takes the row under the g. The ILS (instrument landing system) lines
+guide you to the nearest airbase's runway.
 
-- **RWR** (radar warning receiver): the panel dial shows emitters and missiles around you; a missile launch at you
-  sounds the launch warning.
-- **Chaff (Insert)** and **flares (Delete)**: 90 chaff and 60 flares. A flare fools an IR (infrared) missile with 33 %
-  (50 % above 4 g) while the afterburner is off: pull hard, come out of afterburner, then flare. Self-protection is
-  chaff and flares; **J** is the ECM pod's key on the jets that carry one.
-- **AWACS calls** (AWACS: the airborne early-warning controller): from 60 s into the flight the controller calls the
-  enemy aircraft within 35 NM, one scan every 12 s. "Alpha, bearing 090, 15 miles, target, heading 270, free to
-  engage" gives the contact's bearing and distance from you, then the heading it flies; sometimes "targets are already
-  engaged" takes the place of "free to engage". "Unidentified contacts, please identify" is a contact your radar has
-  not seen yet: find it on the radar before you engage. A contact is called again after 60 s, or at once when it moved
-  more than 5 NM; the repeat is short ("bearing 090, 15 miles, target"). The controller is silent while you fly less
-  than 50 m (165 ft) above the ground.
-- **Flight reports**: the radio also says when a jet of your side is airborne, has landed, crashed or ejected, and
-  calls each kill 5 s after it ("Alpha leader shot down MiG 29").
+![Final approach, 3.6 NM out at about 900 ft, 141 kt](shots/cfir/landing_final.png)
+
+1. **Flight path marker**: on the runway here.
+2. **AoA**: 3° here.
+3. **ILS glide-slope line**: it crosses the localizer line at the HUD's centre when you are on the runway's centre
+   line and on a 5° glide path. It drops when you are high.
+4. **ILS localizer line**, held at the HUD's left edge here.
+5. **Steering bug** held at the scale's right end, its arrow pointing right: the waypoint is more than 15° right.
+6. **Waypoint marker** with its X, held at the edge.
+7. **Airspeed**: 141 kt.
+8. **Altitude**: about 900 ft.
+
+**Example**: here the jet flies a 3° path at 3° AoA, the glide-slope line above the HUD's centre: you are under the
+5° path. Fly the approach on the speed: 165 kt on final (the game's landing lesson). Above about 4° AoA the marker
+sits under the HUD glass's lower edge in this cockpit.
 
 ---
 
-## 11. Flying the Kfir with Real flight data
+## 11. Better cockpit
 
-With Flight data = Real the Kfir C7 row comes from Jane's and other public figures, checked by the game's validation
-test. The 1998 Kfir weighed 25 % more and had less thrust.
+**When**: any flight. **Keys**: tap **V** for the whole panel (hold it to glance down and back), **PgUp** / **PgDn**
+slide it.
 
-| Item | In the game | Real Kfir C7 |
-| --- | --- | --- |
-| Empty weight | 16,060 lb | 16,060 lb (Jane's) |
-| Internal fuel | 5,670 lb | 2,572 kg = 5,670 lb (Jane's) |
-| Thrust, military / full afterburner | 11,870 / 17,900 lbf | 11,870 / 17,900 lbf (J79-J1E) |
-| Wing area | 375 ft² | 375 ft² |
-| 1 g stall speed | 127 kt (uncertain) | approach about 160–175 kt (uncertain) |
-| g limits | +7.5 / −3.5 | +7.5 / −3.5 |
-| Maximum roll rate | 150°/s (the original's) | unpublished |
-| Maximum speed, sea level / 40,000 ft | 771 kt / 1,139 kt (Mach 1.99) | about 750 kt / Mach 2.0 sustained |
-| Climb at 350 kt, sea level | about 27,900 ft/min | 45,930 ft/min (peak, light) |
-| Fuel flow, military / full afterburner | 9,970 / 35,200 lb/h | about 9,970 / 35,200 lb/h |
-| Service ceiling | 58,000 ft | above 58,000 ft |
+With Better cockpit on, the compass at the bottom of the panel turns with the heading, the engine and fuel needles on
+the right of the panel show the flight model's own values, and each engine needle sits on the dial its label names. The
+display's pages are drawn sharp at the screen's resolution. In the 1998 game the compass is a still picture, the needles
+read rough values, and the temperature needle sits on the FUEL FLOW dial while the EXH TEMP dial stays still. The
+needles follow their values with a 0.3 s instrument lag.
 
-What changes in the cockpit:
+![The Kfir panel with Better cockpit on](shots/cfir/better_panel.png)
 
-- **Fuel**: about 10 minutes at full afterburner, about 34 minutes at military power. The Kfir carries the least fuel
-  of the game's jets; the 2,550 lb tanks go on stations 3, 5 and 7.
-- **Turns**: the delta bleeds speed fast in a hard turn, and the g limit is 7.5. Turn in short pulls and keep the
-  speed up.
-- **Mechanical flight controls**: the stick moves the surfaces directly. A hard pull at low speed stalls the wing, and
-  with Realistic spins on the jet can spin. Recover with the stick forward and the rudder against the spin, then pull
-  out of the dive.
-- **Flight-path hold** (Physics): with the stick centred the jet holds its flight path.
-- **Ground effect** (Physics): a longer float in the flare. **Real idle thrust on the ground**: the jet settles near
-  30 kt at idle.
-- **The stick on the keyboard** gives full deflection at once, as in the original; a joystick is smoother.
-- **The map edge**: about 12 km (6.5 NM) before the map's edge the EndWorld warning sounds: turn back. Past it the
-  game pushes the jet back for about 8 s: the nose rises and the jet turns back toward the map.
+1. **Lubber mark**: the heading reads on the card under it, here about 320°.
+2. **Compass card**: it turns as the jet turns. The letters are the cardinal points (N, E, S, W), the numbers tens of
+   degrees (`33` = 330°).
+3. **Aircraft symbol**: fixed; it stands for your jet, its nose toward the lubber mark.
+4. **RPM** (PERCENT RPM): the engine's real RPM, 60 % at idle, 100 % at military. It needs about 5 s from idle to
+   military (3 s with Engine spool-up off).
+5. **Exhaust temperature** (EXH TEMP, lower left of the engine dials): about 450 °C at idle and 650 °C at military, a
+   little more in AB; 900 °C with an engine fire. It rises in about 2 s and falls slowly.
+6. **Fuel flow** (FUEL FLOW): it follows the throttle, as on the F-4E: military at the full mark; in AB it moves on
+   past military, further in AB 2.
+7. **Fuel needle**: all the fuel you carry, the drop tanks too, over the most the jet holds with them. It falls from
+   the first pound burnt (in the 1998 game it stays full until the tanks are empty).
+
+The small dial right of the RPM dial, where the 1998 game draws the throttle needle, then has no needle: its label is
+too small to read.
+
+**Example**: the HUD's heading scale is a 30° window; the compass shows the whole circle. To fly 090° from 320°, find
+9 on the card: it sits on the card's right half, so turn right and roll out when 9 reaches the lubber mark. Take off
+with a drop tank: the fuel needle starts full and falls from the first minute. At half scale you have half of all
+the fuel you took off with, the tank's included.
 
 ---
 
@@ -341,7 +349,7 @@ What changes in the cockpit:
 | --- | --- |
 | 1 … 8 | Throttle: idle, 65, 70, 80, 90 %, military, AB 1, AB 2 |
 | 9 / 0 | Throttle − / + 5 % |
-| V / PgUp / PgDn | Panel into view / slide it up / down |
+| V / PgUp / PgDn | Whole panel ↔ none (hold V: a glance down) / slide the panel up / down |
 | Arrows | Stick |
 | Numpad 0 / Decimal | Rudder left / right |
 | G / F / B | Gear / flaps / wheel brakes |
@@ -363,6 +371,7 @@ What changes in the cockpit:
 | Shift+arrows, Numpad 1–9, F3 | Look around, snap views, padlock |
 | F1 / Ctrl+F2 | Cockpit ↔ HUD only / cockpit ↔ external |
 | SysRQ | Screen capture: a PNG in the `screenshots` folder of the game's user folder |
+| X | Fire extinguisher (one charge) |
 | E | Eject |
 | C / Ctrl+C | Time ×2 ×4 ×1 / normal time |
 | Ctrl+P / Ctrl+O / Esc | Pause / in-flight menu / TSD map |
