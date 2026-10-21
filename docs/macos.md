@@ -46,4 +46,4 @@ GDI's exact pixels come from Arial's `hdmx` and `VDMX` tables (front-end.md §16
 Install Arial (Arch: `ttf-ms-fonts`) for the exact layout; `test_views` skips its pixel checks without it.
 
 User data is Godot's `user://` folder. It holds the settings, key bindings, pilots, screenshots and the blackbox's
-`flights/`.
+`flights/`. The game's logs are in its `logs/` folder: [logs.md](logs.md).

@@ -307,18 +307,75 @@ func _ready() -> void:
 	if isolated():
 		# Test windows must never take the player's keyboard focus.
 		get_window().unfocusable = true
+		_log_startup()
 		return
 	var cfg := ConfigFile.new()
 	if cfg.load(PATH) == OK:
 		read_config(cfg)
 	if language == "he" and not hebrew_available():
 		language = "en"
+	_log_startup()
 	apply_display()
 	_update_splash()
 	# The original icon (setup: iaf-convert icon) for compositors / desktops that take the window icon.
 	var icon := assets_dir().path_join("converted/icon.png")
 	if FileAccess.file_exists(icon):
 		DisplayServer.set_icon(Image.load_from_file(icon))
+
+
+## The game log's first lines (docs/logs.md): the build, the machine, this log file and the settings changed from the
+## defaults, so a log sent in names everything needed to reproduce it.
+func _log_startup() -> void:
+	var info = ClassDB.instantiate("IafInfo") if ClassDB.class_exists("IafInfo") else null
+	var mem: Dictionary = OS.get_memory_info()
+	var win := get_window()
+	print(
+		(
+			"iaf-reborn %s | Godot %s | %s %s, %s, %d cores, %d GB RAM"
+			% [
+				info.commit() if info != null else "(no extension)",
+				Engine.get_version_info().string,
+				OS.get_name(),
+				OS.get_version_alias() if OS.get_version_alias() != "" else OS.get_version(),
+				OS.get_processor_name(),
+				OS.get_processor_count(),
+				int(mem.get("physical", 0) / 1073741824.0 + 0.5)
+			]
+		)
+	)
+	print(
+		(
+			"gpu: %s (%s), %s %s | window %s, scale %.2f"
+			% [
+				RenderingServer.get_video_adapter_name(),
+				RenderingServer.get_video_adapter_vendor(),
+				RenderingServer.get_current_rendering_method(),
+				RenderingServer.get_video_adapter_api_version(),
+				win.size,
+				win.content_scale_factor
+			]
+		)
+	)
+	var log_path: String = ProjectSettings.get_setting("debug/file_logging/log_path", "user://logs/godot.log")
+	# The game's own log (a --log-file run writes elsewhere; Godot does not show scripts that argument).
+	print("game log: %s | assets: %s" % [ProjectSettings.globalize_path(log_path), assets_dir()])
+	print("settings changed from the defaults: %s" % [changed_settings()])
+
+
+## The preferences that differ from the defaults, {key: value}, plus the Physics switches on (`physics`) and the
+## Better cockpit items off (`cockpit_off`).
+func changed_settings() -> Dictionary:
+	var out := {}
+	for key in _defaults:
+		if get(key) != _defaults[key]:
+			out[key] = get(key)
+	var on := better.keys().filter(func(id): return better[id])
+	if not on.is_empty():
+		out["physics"] = on
+	var off := cockpit_items.keys().filter(func(id): return not cockpit_items[id])
+	if not off.is_empty():
+		out["cockpit_off"] = off
+	return out
 
 
 var _applied_fullscreen := false
