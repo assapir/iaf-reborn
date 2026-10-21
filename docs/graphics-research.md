@@ -1,8 +1,8 @@
 # Better graphics: research and options (2026-10-16)
 
 This doc lists what could make the game look better, what each option costs on our machine (Apple M4 Pro, Godot
-4.7.2 Forward+ on Metal 4.0), and a suggested order. It is research: nothing here is built yet, unless a row says
-**done** or **built**. Key facts:
+4.7.2 Forward+ on Metal 4.0), and a suggested order. Options marked **done** or **built** link to the doc that
+describes them (mostly docs/rendering.md); the rest are proposals. Key facts:
 
 - Every option is an **opt-in switch**: the graphics ones on Preferences → Graphics → MORE, the rest on Extras. The
   original look stays the default (docs/deviations.md).
@@ -84,8 +84,8 @@ shader compilation, disk cache). Runs in parallel with other Godot processes are
     through a Callable once per sample (radar.rs `line_of_sight`).
   - terrain streaming's main-thread part (≈ 2–3 ms worst);
   - the mission runtime's first events (8 ms once).
-- The earlier "13–24 fps dips" (docs/roadmap.md) do not reproduce on this machine when warm. They came from a heavier
-  earlier build or cold caches.
+- The "13–24 fps dips" once reported do not reproduce on this machine when warm (inferred: a heavier earlier build
+  or cold caches).
 
 ## 2. Where the work runs (CPU → GPU, Rust or threads)
 
@@ -93,9 +93,9 @@ This section lists each measured hotspot and where its work should run: on the G
 
 | Hotspot (measured) | Today | Recommendation | Payoff | Effort |
 |---|---|---|---|---|
-| Terrain line of sight in sensor scans: 5–13 ms spikes | Rust walk, GDScript height per sample | **Rust**: the terrain heights in Rust (the PTT level-6 grid as a Rust height field, `iaf-formats` already parses PTT), no Callable per sample; scans then < 0.5 ms | removes the worst spikes | M — **done**: `IafHeights` (iaf_avionics::heights) holds the streamed full-detail nodes terrain.gd loads; `world::terrain` answers `mission_ground` from it (same nodes and interpolation, ≤ 1 cm from the float32 GDScript path; line of sight identical on 400 pairs, test_heights.gd); 400 checks 93 → 2.4 ms; mission 221 live: AI combat worst 4.3 → 0.5 ms |
+| Terrain line of sight in sensor scans: 5–13 ms spikes (measured before the fix) | **done**: `IafHeights` (iaf_avionics::heights) holds the streamed full-detail nodes terrain.gd loads; `world::terrain` answers `mission_ground` from it, with no Callable per sample (same nodes and interpolation, ≤ 1 cm from the float32 GDScript path; line of sight identical on 400 pairs, test_heights.gd) | keep | 400 checks 93 → 2.4 ms; mission 221 live: AI combat worst 4.3 → 0.5 ms | M |
 | Terrain mesh / heights | already on the GPU: heights sampled in the vertex shader; JPEG decode, mipmaps, BC1 on 6 worker threads | keep; batch the node swaps to cut the main-thread part (2–3 ms worst on splits) | small | S |
-| Explosions, smoke, trails, decoys | MultiMesh billboards (GPU-instanced), positions filled by GDScript each frame | **GPUParticles3D** for smoke / fire / contrails (simulation on the GPU, collision with the heightfield); better effects need it anyway (§3.4) | better look, ≈ 0.1–0.3 ms CPU back | M — **done** (Particle effects = Detailed, docs/rendering.md §6): the puffs per frame 0.67 → 0.08 ms CPU |
+| Explosions, smoke, trails, decoys | Original: MultiMesh billboards (GPU-instanced), positions filled by GDScript each frame | **GPUParticles3D** — **done** (Particle effects = Detailed, §3.4) | the puffs per frame 0.67 → 0.08 ms CPU | M |
 | HUD / MFD drawing (`_draw` every frame) | `_process` < 0.02 ms; the `_draw` canvas calls run on the main thread (small; not separately measured) | redraw only on change, or a SubViewport per MFD updated at the original's rate; low priority, since it is a minor cost today | low | S |
 | Vegetation / clutter (new) | — | **MultiMesh**, placement from the WorldCover classes on worker threads or a compute shader | needed for §3.6 | — |
 | Flight model, AI brains, mission runtime, weapons | Rust (FM = flight model, avionics) + GDScript (brains, runtime) | keep on the CPU: the code is branchy and serial, a poor fit for the GPU. Rust per our rule; brains / sensors on the WorkerThreadPool (the M4 Pro has 12+ cores) | keeps headroom as missions grow | M–L |
@@ -131,18 +131,15 @@ These effects add shading from nearby geometry. Over our terrain they show no vi
 
 ### 3.3 Modern DEM (SRTM / Copernicus GLO-30) — payoff 4, effort L
 A 30 m DEM gives real relief; the work is a converter plus keeping physics, AI and missions on the same surface.
+Sources, licences and the two phases (normal map, then geometry): docs/imagery-research.md §3, §4.5.
 - **Today:** the original's heights are coarse (level-6 grid), and the physics uses the same surface.
-- **Sources:** Copernicus GLO-30 has a free licence with the attribution "© DLR e.V. 2010-2014 and © Airbus Defence
-  and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA" (ESA = European Space Agency).
-  SRTM (Shuttle Radar Topography Mission) is public domain.
+- **Copernicus GLO-30 attribution:** "© DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided
+  under COPERNICUS by the European Union and ESA".
 - **Gain:** real ridgelines, wadis and the Golan escarpment, and normals for lighting, so the relief shows in the
   light as well as in the outline.
-- **Work:**
-  1. a converter like `iaf-imagery` (GDAL is already a setup dependency) that warps the DEM into the game frame
-     (docs/georef.md);
-  2. finer height nodes;
-  3. the physics and AI on the same surface. Heights move, so airbases must stay flat: blend to the original around
-     the bases. Mission objects placed on the original heights need re-seating.
+- **Work:** a converter like `iaf-imagery` (GDAL is already a setup dependency) that warps the DEM into the game frame
+  (docs/georef.md); finer height nodes; the physics and AI on the same surface. Airbases must stay flat (blend to the
+  original around them), and mission objects placed on the original heights need re-seating.
 - **GPU:** finer vertex grids near the camera, small on the M4 Pro.
 - **Risk:** missions tuned to the original terrain (masking routes like 313) change, so it must stay an opt-in.
 - **Recommendation:** worth it, after the cheaper items; pairs with the modern imagery already built.
@@ -154,20 +151,14 @@ A 30 m DEM gives real relief; the work is a converter plus keeping physics, AI a
   heightfield, a heat-haze distortion pass behind the engines (a Compositor effect or a refraction shader on the
   afterburner), and contrails above a height / temperature.
 - **GPU:** modest (particles are cheap; the distortion is one extra pass). **Metal:** works well.
-- **Recommendation:** good payoff per effort; do it after the CPU spike fix.
-- **Built:** three GPUParticles3D pools (smoke, fire, sparks) with noise textures made at run time, a closed-form motion
-  in the draw shader, a refraction cone behind each nozzle, contrails above 9000 m. The original spawns, timings and
-  lifetimes stay; the puffs rise and fall by the original's rules, and the debris keeps its own ground test.
-  Measured ≈ 0.3 ms at 1080p in a heavy burst (docs/rendering.md §6).
+- **Built** (docs/rendering.md §6): three particle pools, a heat-haze cone behind each nozzle and contrails, with the
+  original's spawns and timings; ≈ 0.3 ms at 1080p in a heavy burst. Not built: flipbook textures and heightfield
+  collision.
 
 ### 3.5 Water shader — payoff 3, effort M — **done** (docs/rendering.md §1.3)
-- **Built:** Preferences → Graphics → MORE → Water (Original / Detailed). Six cosine waves with a crest warp, two
-  ripple layers and wind patches; the sun's GGX glint, which spreads into a glitter path with distance; the sky's
-  reflection with Fresnel. Water is the generated sea plus the photo's blue-green pixels inside terraintype.dat's
-  water, from a 24.6 km raster built in Rust (`IafSurface`).
-- **Measured:** ≈ 0.11 ms per million water pixels on the M4 Pro (+2.27 ms at 21 Mpx): ≈ 0.23 ms at 1920 × 1080
-  with water over the whole view. The raster costs 0.7 ms of CPU every 4 km.
-- **Shoreline foam:** the photo's own surf; a procedural foam on the 96 m mask would draw blocks.
+- **Built:** Graphics → MORE → Water: waves, glint and sky reflection; ≈ 0.23 ms at 1920 × 1080 with water over the
+  whole view.
+- **Shoreline foam:** left to the photo's own surf; a procedural foam on the 96 m mask would draw blocks.
 
 ### 3.6 Vegetation / ground clutter — payoff 4 (low level), effort L
 - **Option:** trees, orchards and scrub as MultiMesh instances near the ground. Placement comes from the ESA
@@ -210,7 +201,8 @@ GPL-2.0-only files cannot ship in it.
 5. Make PBR textures (repaint in IAF camouflage: ours).
 
 **Wheels:** the original's wheels never roll. Part ids 0x21–0x26 are hidden for aircraft (docs/part-animation.md),
-and no aircraft model has Wheels frames. A detailed model could add rolling wheels as an extra.
+and no aircraft model has Wheels frames. Built: Graphics → MORE → Rolling wheels turns a model's own wheel frames
+(today the F-35I's; docs/part-animation.md §2.2).
 
 **Switch:** Preferences → Graphics → MORE → Models: Original / Detailed.
 
@@ -236,8 +228,8 @@ clickables, then the F-15C.
   modelled pit: MFDs, DED (data entry display), RWR, CDU (control display unit), ICP (integrated control panel) and
   gauges. It must be live:
   - our MFD and RWR drawers rendered into SubViewport textures on the 3D screens;
-  - the Real HUD drawn on the combiner glass at its real field of view. This also fixes the "real FOV" TODO
-    (docs/roadmap.md): the glass becomes the real one;
+  - the Real HUD drawn on the combiner glass at its real field of view. The glass becomes the real one, so the
+    HUD's field of view is the real one too;
   - the gauges' needles driven from our cockpit state, and the lamps.
 
   Head movement: free look already exists (views.gd); TrackIR-style 6-DoF (six degrees of freedom) later; VR
@@ -292,23 +284,16 @@ process cycles every mode 12 times, so load from other processes hits every mode
   keeps the line whole, so Quality is the choice for looks.
 
 ### 3.11 Night lighting — payoff 3, effort M — **done**
-Built (docs/rendering.md §4–§5, `game/terrain/night_lights.gd`, `tests/godot/test_night_lights.gd`):
-- **Fidelity fix (default):** the original's `LT_` light sets (airbase, Damascus, chimney and boat lights;
-  `FUN_0041ee60` flag 0x4, drawn as a point list by `FUN_0041ac40`) draw as one-pixel points at every hour. The
-  cockpit's night darkening was already in (docs/cockpit.md).
-- **Graphics → MORE → Night lights = Detailed:** glowing light points (point sprites), the home airbases' original light sets
-  at night, navigation lights and a strobe on every jet, stars, a moon and moonlight.
-- Cost: +3 to +6 draw calls (about 2 per jet in view), ≈ 5 000 points; the frame time change is below the noise.
+- **Built** (docs/rendering.md §4–§5): the original's `LT_` light points by default, and Night lights = Detailed
+  (glows, base and jet lights, stars, moon); below the frame-time noise.
 - Next: city lights from the imagery's built-up classes (WorldCover); the panel's floodlight in the 3D cockpit (#5).
 
 ### 3.12 Runway / airbase detail, buildings (OSM) — payoff 3, effort L
 - **Runways (built, docs/rendering.md §7):** Graphics → MORE → Airbases = Detailed draws a procedural surface with ICAO
-  markings in the terrain shader at all ten iaf.ibx bases, on the runways, taxiways and aprons derived from the 1998
-  art. The original's light sets (`lt_*_h`) stand ≈ 2 m outside the derived runway edges. Next: runway-holding
-  markings and taxiway edge lines, signs, approach lights; the real layouts stay out (docs/imagery.md §9).
-- **Paved mask: built** (2026-10-17, docs/imagery.md §2 step 7, docs/rendering.md §7): with the airbase imagery, the
-  Detailed surface follows the real pavement (runways, taxiways, aprons) with a smooth edge, so it no longer lies as a
-  second layer over the photo.
+  markings in the terrain shader at all ten iaf.ibx bases, inside a paved mask (runways, taxiways, aprons) derived
+  from the 1998 art, with a smooth edge. The original's light sets (`lt_*_h`) stand ≈ 2 m outside the derived runway
+  edges. Next: runway-holding markings and taxiway edge lines, signs, approach lights; the real layouts stay out
+  (docs/imagery.md §9).
 - **OSM buildings:** the ODbL is share-alike on the *database*. The safe pattern is a derived 3D-building dataset
   generated at setup and kept local in `assets/`, like the imagery.
 - The original's object placement must stay, because missions place targets.
@@ -333,21 +318,20 @@ under `objects/weapons/` (bombs, missiles, tanks, pods, the ZUNI box), plus the 
 `groundforces/` (`sa2lcr` … `sa6lcr`, `scdlcr`) and the MiG-29 tank (`controllableplanes/mig29/mig29ftk_m`). Players
 see them close in the external views, on the pylons and in flight.
 
-**Switch.** Preferences → Extras → **Models: Original / Detailed** (default Original; docs/deviations.md entry:
-visual only, no behaviour change). The detailed aircraft (§3.7) join this one switch later, with no second toggle —
-the user's call.
+**Switch.** Preferences → Graphics → MORE → **Models: Original / Detailed** (built with the F-16D, §3.7; default
+Original; visual only). The stores join this one switch, with no second toggle (the user's call).
 
-**One hook: `Gltf.object(path)`** (`game/util/gltf.gd`). Every weapon model goes through it:
+**One hook: `Gltf.object(path)`** (`game/util/gltf.gd`, built). Every weapon model goes through it:
 - the pylon stores and the launched / dropped weapons (`player_weapons.gd` `_instance`);
 - the AI jets' stores and rounds (`combat.gd`);
 - the Reference viewer (`model_view.gd`);
 - the mission objects (`terrain_view.gd`).
 
-With the switch on, the hook opens the detailed model mapped to that original path when there is one, else the
-original. Each model falls back on its own, so the models ship a few at a time; later, ground units and ships take
-the same path.
-- **Cache key:** the static cache key becomes `"level:detailed:path"`. Today's `"level:path"` survives across scenes,
-  so toggling between flights would keep the old models.
+With the switch on, the hook opens the detailed model mapped to that original path (`DETAILED`, today only
+`f16_h.gltf`) when there is one, else the original. Each model falls back on its own, so the models ship a few at a
+time; later, ground units and ships take the same path.
+- **Cache:** the switch is read before the cache, and detailed models have their own cache, so toggling between
+  flights takes effect.
 - **Far LOD:** far away a detailed store is not worth its triangles, so the original model serves as its far LOD
   (`visibility_range`, as the mission objects' LODs in `terrain_view.gd`).
 
@@ -409,7 +393,7 @@ memory at worst (≈ 2 GB as the RGBA8 the runtime loader decodes KTX2 to, above
 **Scope:** stores and rounds only. Plumes and motor glow (`mission/trails.gd`), moving fins in flight, and aircraft
 (§3.7) are out of scope.
 
-**Check** (a new Godot test, `test_detailed_models`):
+**Check** (to add to `tests/godot/test_detailed_models.gd`, which checks the F-16D today):
 - with the switch on, every mapped model loads;
 - the store's pilon helper and AABB that the game code reads equal the original's, and the detailed mesh's lug sits
   on the helper;
@@ -423,9 +407,9 @@ memory at worst (≈ 2 GB as the RGBA8 the runtime loader decodes KTX2 to, above
 2. **Angles per store:** close up on the pylon (front quarter, side, below), a launch / drop in flight, a chase at
    50 m, and a pass at 300–1500 m to catch the switch to the far LOD popping.
 3. **Sheet:** one HTML page, original | detailed side by side (as `tools/flight_timeline.py --html`).
-4. **Review:** I look at every picture first for defects a script cannot judge: wrong colours, missing / stretched
-   textures, black or inside-out faces, floating or sunk lugs, shading seams. You pass or fail each store on the
-   sheet. A failed store stays out of the mapping (it falls back to the original) until fixed.
+4. **Review:** the agent looks at every picture first for defects a script cannot judge: wrong colours, missing /
+   stretched textures, black or inside-out faces, floating or sunk lugs, shading seams. The user passes or fails each
+   store on the sheet. A failed store stays out of the mapping (it falls back to the original) until fixed.
 5. **Numbers alongside:** triangles, texture size, and frame time on 231 (the busiest mission), Original vs Detailed.
 
 **In motion** (flying, falling, hitting). Some faults appear only while a weapon moves, so stills miss them:
@@ -446,7 +430,7 @@ memory at worst (≈ 2 GB as the RGBA8 the runtime loader decodes KTX2 to, above
   show it. If it shows, keep the roll continuous (visual only, same switch).
 
 **Order.**
-1. the switch, the hook, the load-time fit and the test;
+1. the load-time fit and its test (the switch and the hook are built);
 2. the FlightGear stores (bombs, AIM-9 / 120 / 7, Maverick, HARM, tanks, pods), compared side by side in the
    Reference viewer;
 3. the FGAddon check;

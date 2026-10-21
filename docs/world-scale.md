@@ -1,9 +1,8 @@
-# World scale: Original / Real 1:1 (research and plan)
+# World scale: Original / Real 1:1
 
-This page is the research and the plan for the roadmap item "Real world scale — 1:1 mode" ([roadmap.md](roadmap.md)).
-It lists what is not drawn at real size today, what depends on those sizes, a design for the switch, and a step
-plan. Steps 1–4 (true-size models on the original bases) are built, behind a dev flag (§4.1); steps 5–9 move every
-base to its real place (§3.3). Research date: 2026-10-20.
+This page covers the opt-in "Real world scale — 1:1" mode: what the original does not draw at real size, what
+depends on those sizes, the design of the switch, and what is built. Everything is built (§4): true-size models
+(§4.1) and every base at its real place (§4.2, §4.3). Research date: 2026-10-20.
 
 **The switch:** Extras → World scale: **Original** (the default, the 1998 game unchanged) / **Real 1:1**.
 
@@ -66,7 +65,7 @@ Where ours applies it (every place reads `0x65e`):
 - the AI jets (`game/ai/ai_flights.gd` `_attach`);
 - weapons and rounds (`game/weapons/weapon_db.gd`, `STORE_PRESENT_SCALE` in `game/weapons/player_weapons.gd`,
   `game/ai/combat.gd`);
-- the briefing's target view (`game/menu/tsd.gd`).
+- the briefing's target view (`game/menu/tsd.gd` reads the scales, `game/menu/model_view.gd` applies them).
 
 The front-end model viewer uses a fixed 10.0, as the exe (`FUN_0050f9e6`).
 
@@ -225,8 +224,7 @@ One helper decides every model scale: `model_scale(present, keep)` (§4.1).
 
 ### 3.3 Airbases: each base at its real place (the base move)
 
-Decision 1 (§5) moves all ten bases to their real places. This replaces the in-place "base warp" of the first plan.
-The game's base layout (its runways, taxi paths, hangars, shelters, parked jets) moves as one piece; it is not the
+Decision 1 (§5) moves all ten bases to their real places. The game's base layout (its runways, taxi paths, hangars, shelters, parked jets) moves as one piece; it is not the
 real layout (§1.2), but its main runway lies exactly on the real one.
 
 **The real runway table.** `crates/iaf-flight/data/real_runways.csv`: the OpenStreetMap runway ways of the ten real
@@ -301,42 +299,27 @@ the radio's zone sizes (fixed metres in the exe), the 1998 imagery and heights a
 in Original. The moved base keeps every mission's logic (its units and markers move with it). It needs no new
 imagery: the 2015 photo hides the real Israeli bases (imagery.md §9), and the procedural surface draws the base.
 
-## 4. Step plan
+## 4. What is built (2026-10-20)
 
-Each step is testable on its own and changes nothing in Original. Sizes: S < 150 lines, M 150–500, L > 500.
-Godot tests set `Settings.world_scale = "real"` before `start_mission()` and run with `IAF_DEFAULT_SETTINGS=1`.
+The switch was built in nine steps; each is testable on its own and changes nothing in Original. Steps 1–4 give
+true-size models (§4.1), steps 5–8 move the bases (§4.2), step 9 is the docs and the mission sweep (§4.2, "Sweep").
+§4.3 is the polish after them. Godot tests set `Settings.world_scale = "real"` before `start_mission()` and run with
+`IAF_DEFAULT_SETTINGS=1`.
 
-| # | step | tests | size |
-|---|---|---|---|
-| 1 ✓ | The setting: `world_scale` in `settings.gd` / settings.cfg, the Extras row, the `model_scale()` helper (returns the Present scale in Original). docs/deviations.md row | Original: `test_airbase_scale.gd` passes unchanged; a settings round trip | S |
-| 2 ✓ | Mission models at true size (objects 1, ground models kept at ×2 for now); the underlay test on the Original height | 311 in Real: an AI F-16's node scale 1, a T-72 1, the Ramat David underlay 2; coll_radius half of Original's; the same units hidden in both modes | S |
-| 3 ✓ | The player's and AI jets at true size: model, `own_bc`, gear clearance | 311 ground start in Real: clearance 1.69 m, the jet stays on the runway (no crash, wheels on the ground), eye offset half; Rust `cargo test -p iaf-flight` with a 1.69 m clearance: take-off to 100 m AGL and an autopilot landing at David | M |
-| 4 ✓ | Weapons, stores, rounds at true size (`STORE_PRESENT_SCALE`, rocket box, `w.scale`) | a store's drawn position equals its launch point; the stores sit on the pylons (`_stores_shot`-style capture, by eye) | S |
-| 5 ✓ | The real runway table (`tools/real_runways.py`, `real_runways.csv`, ODbL) and the base move in Rust (`iaf_flight::base_move`): the transform, zones A / B, the inverse, iaf.ibx mapped, the surface rule, the pad heights | unit tests: each moved main runway on its real one (ends < 1 m, length, heading), zone continuity, identity beyond, inverse round trip; an autopilot take-off and landing at the moved Ramat David and Ramon (flat ground at the new elevation, the surface rule's runway bit under the wheels) | M |
-| 6 ✓ | Godot wiring of the base data: `IafBases` (set up from Settings.world_scale: airbases.json, the masks, the elevations), `ap_setup` / `start_rule` / `radio.gd`, `surface_at` and the surface raster, the height pad | headless: in Real the ground is flat at the moved lineup, its surface has the runway bit and the old lineup's has not; a ground start at the moved lineup; Original unchanged | M |
-| 7 ✓ | Mission data through the move (`mission_files()`): entities, paths, routes; kept models × k and turned; `BASE_LIGHTS` | 311 in Real: the player on the moved lineup with the engine on, the parked jets on the moved apron (relative positions = Original's × k, turned), the take-off markers fire on the take-off; a SAM site around a moved base kept relative; 312's landing completes with the autopilot | M |
-| 8 ✓ | Drawing: the old site painted over, the new site's paved surface (colour images), the Detailed airbases surface at the new site (turned mask, real width), forced on in Real | `test_airbase_scale.gd` (Original) unchanged; Real: the moved base data; real-render shots of Ramat David and Ramon (original terrain and Survey imagery) and of the old site | M–L |
-| 9 ✓ | Docs (deviations, status, rendering §7, autopilot, this page) and a sweep | `tools/mission_sweep.sh` over the menu missions in Real: no SCRIPT ERROR, no ground start crash | S |
-
-Steps 1–4 give true-size models on the ×2 bases; steps 5–9 move the bases. The switch stays hidden (a dev flag)
-until the user decides to show it.
-
-### 4.1 Steps 1–4: what was built (2026-10-20)
+### 4.1 Steps 1–4: true-size models
 
 - **The setting:** `Settings.world_scale` ("original" / "real", settings.cfg `[gameplay]`), read at mission load.
-  Its Extras row: "World scale", Original / Real 1:1 (shown since 2026-10-20).
+  Its Extras row: "World scale", Original / Real 1:1.
 - **The helpers** (`game/settings.gd`): `model_scale(present, keep)` returns the Present scale in Original and in
   Real for a kept model, else 1. `keeps_present(path, raw_box, present, klass, flat)` names the kept models: the
   light sets (`LT_*`), the flat underlays (their Original height under 0.05 m), the multi-part layouts
   `KEPT_LAYOUTS` (the sign groups SIGNTLNF / SIGNRMON / SIGNRFID / SIGNDVID, the SA-5 cables), the effects (Present
-  ≥ 7: the cloud, the crater) and the ships (class 15, 16; since §4.3 the three ship models take their real length). Following decision 2 (§5), buildings, shelters, hangars,
-  the single runway signs (`sign09l` …) and the power plant (`ppchbg_h`, 302 m raw) are objects at 1, not kept by
-  their size; the 200 m rule of §3.2 is replaced by this list.
-- **Where it applies:** mission models (`terrain_view.gd` `_spawn_mission_objects`; the underlay hide test reads
-  the Original height, so the same units hide in both modes), the player's jet and its cockpit model
-  (`_spawn_player`), the AI jets (`ai_flights.gd`), the weapon models and rounds (`weapon_db.gd`: `w.scale`; the
-  stores on the pylons ride on the jet's scale, the rocket box keeps its ×2 relative to the jet), the briefing's
-  target view (`model_view.gd`). The front-end model viewer's fixed ×10 stays.
+  ≥ 7: the cloud, the crater) and any other ship (class 15, 16); the three ship models in `SHIP_LENGTHS` take their
+  real length (§3.2). Following decision 2 (§5), buildings, shelters, hangars, the single runway signs (`sign09l` …)
+  and the power plant (`ppchbg_h`, 302 m raw) are objects at 1, not kept by their size.
+- **Where it applies:** every reader of `0x65e` listed in §1.1. The underlay hide test reads the Original height, so
+  the same units hide in both modes; the stores on the pylons ride on the jet's scale, and the rocket box keeps its ×2
+  relative to the jet. The front-end model viewer's fixed ×10 stays.
 - **What follows by itself** (derived from the node scale): collision radii, the gear clearance (`height` helper ×
   scale: F-16 3.38 → 1.69 m, set into the FM by `set_gear_clearance`), the eye offset (F-16 8.98 → 4.49 m ahead),
   the gun muzzle, the LOD distances, the orbit views, the EO pick, the missile trail head, the burned copy jitter.
@@ -358,7 +341,7 @@ until the user decides to show it.
   launch points; a take-off from 311 and the autopilot's landing in 312 in Real). Rust:
   `takes_off_from_ramat_david_real_size`, `lands_at_ramat_david_real_size` (crates/iaf-flight/tests/autopilot.rs).
 
-### 4.2 Steps 5–8: what was built (2026-10-20)
+### 4.2 Steps 5–8: the base move
 
 - **Rust** (`crates/iaf-flight/src/base_move.rs`): the table, the transform, zones A / B, iaf.ibx mapped
   (`map_airbase`), the surface rule, the flattened sites, and the image patches (`bake_heights`, `bake_colour`).
@@ -397,24 +380,23 @@ until the user decides to show it.
 - **Shorter runways.** The runways are 0.69–0.86 × the game's, and the AI's touchdown (≈ 1.9 km past the lineup point,
   as in Original) leaves 0.5 km at Ramat David. A take-off from a mission start that is not the lineup can run out
   of runway: 311's start is 0.7 km from the end of the runway it faces.
-- **The old site** (after §4.3): a faint smooth patch where the paved surface was; the painted shelters, trees and
-  buildings more than ≈ 100 m off the paved surface stay.
-- **The new site's ground** (after §4.3) is the old site's art: its fields, orchards and buildings, not the real
-  site's. Ryak, Aman and Inshas have no fine art at their old sites and keep the coarse level (≈ 10 m a pixel).
-- **Seen from the cockpit, the targets halve.** Gun and missile rules are unchanged (25 m hit sphere), so hitting is
-  as easy as before, but finding a target by eye is harder (the original chose ×2, maybe for 640 × 480; inferred).
-- **The two sites.** The old site keeps the 1998 art's painted shelters and buildings outside the paved surface
-  (only the paved surface is painted over). The new site is the game's layout, not the real one; with a modern
-  imagery layer the real base's own runways may show beside the drawn ones where the photo shows them (outside
-  Israel's 2015 photo).
-- **Gear clearance.** Halving it changes the take-off rotation. The ground effect uses the true-size clearance in
-  both scales (`set_true_gear_clearance`, flight-model.md §10), so it stays the same. Checked (§4.1): the autopilot's take-off and landing at David and the player's take-off and landing
-  work at 1.69 m. docs/flight-model.md §10 quoted 1.69 m for Original; corrected to 3.38 m (the helper's 1.69 m × 2).
+- **The old site** (§4.3): a faint smooth patch where the paved surface was; the 1998 art's painted shelters, trees
+  and buildings more than ≈ 100 m off the paved surface stay.
+- **The new site's ground** (§4.3) is the old site's art: its fields, orchards and buildings, and the game's layout,
+  not the real site's. Ryak, Aman and Inshas have no fine art at their old sites and keep the coarse level (≈ 10 m a
+  pixel). With a modern imagery layer the real base's own runways may show beside the drawn ones where the photo
+  shows them (outside Israel's 2015 photo).
+- **Seen from the cockpit, the targets halve.** With Weapon data Original the hit rules stay (25 m hit sphere), so
+  hitting is as easy as before, but finding a target by eye is harder (the original chose ×2, maybe for 640 × 480;
+  inferred).
+- **Gear clearance.** Halving it (3.38 → 1.69 m) changes the take-off rotation. The ground effect uses the true-size
+  clearance in both scales (`set_true_gear_clearance`, flight-model.md §10), so it stays the same. Checked (§4.1):
+  the autopilot's and the player's take-off and landing at David work at 1.69 m.
 - **The shatter pieces** use the unscaled local offset for their speed, so their spread already ignores the scale
   (half the exe's at ×2, inferred); unrelated to this switch but visible after it.
-- **iaf.ibx parse bug (found here, unrelated to the switch) — fixed 2026-10-20.** Ramon writes `RunwayNumber=230.0`
-  and counts `5.0`, Ryak `90.0`, Aman `260.0`; the ini reader's integers now take a written float and truncate it, as
-  the exe does (`FUN_0054eda0`), so those bases get their headings and Ramon its taxi points and hangars.
+- **iaf.ibx floats.** Ramon writes `RunwayNumber=230.0` and counts `5.0`, Ryak `90.0`, Aman `260.0`; the ini reader's
+  integers take a written float and truncate it, as the exe does (`FUN_0054eda0`), so those bases get their headings
+  and Ramon its taxi points and hangars.
 
 ### 4.3 Polish (2026-10-20)
 
@@ -427,18 +409,17 @@ until the user decides to show it.
   30°. Touchdown at the moved Ramat David and Ramon: 0.0 m off the centreline (was −8 and 78 m). Original keeps the
   exe's law. Tests: `crates/iaf-flight/tests/base_move.rs` (touchdown within 3 m of the centreline),
   `tests/godot/test_world_scale.gd`.
-- **The old site's ghost and seams** (`BaseMoves::add_fill_source` / `finish_fill`, `terrain.gd _fill_sources`).
-  Each node used to paint the old paved surface from its own pixels: the 400 m blur ran out at the node's edges, so
-  neighbouring nodes and levels painted different colours (square seams), and every grey pixel of zone A counted as
-  paved, so zone A's rectangle showed over grey fields. Now the terrain hands the level-3 colour nodes (≈ 10 m a
-  pixel) under each old site to `IafBases.fill_source` once at load; the fill colour (the surroundings' mean plus the
-  texture of unpaved ground 400 m away) is computed on that one world grid and every node and level samples it. The
-  grey off the paved surface goes only within ≈ 100 m of it, and the paved surface grows by ≈ 20 m, fading out over
-  60 m, so the light dirt shoulders along the runways go too. Pictures (old Ramat David from 2.2 km, old Ramon from
+- **The old site's fill** (`BaseMoves::add_fill_source` / `finish_fill`, `terrain.gd _fill_sources`). The terrain
+  hands the level-3 colour nodes (≈ 10 m a pixel) under each old site to `IafBases.fill_source` once at load; the fill
+  colour (the surroundings' mean plus the texture of unpaved ground 400 m away) is computed on that one world grid and
+  every node and level samples it. So neighbouring nodes and levels paint the same colour (a fill per node from its
+  own pixels leaves square seams, because the 400 m blur runs out at the node's edges). Only grey within ≈ 100 m of
+  the paved surface is painted over (counting every grey pixel of zone A shows zone A's rectangle over grey fields),
+  and the paved surface grows by ≈ 20 m, fading out over 60 m, so the light dirt shoulders along the runways go too. Pictures (old Ramat David from 2.2 km, old Ramon from
   2.5 km): `david_oldtop_before.png` / `david_oldtop_after.png`, `cmp_ramon_oldtop.jpg` (local captures,
   `tests/godot/_airbase_shot.gd`). Left: a faint smooth patch. Tests: the unit tests in `base_move.rs`,
   `tests/godot/test_base_move.gd`.
-- **Ships at their real size** (§1.1, §3.2): `Settings.ship_scale` in `terrain_view.gd` and the briefing's
+- **Ships at their real size** (§3.2): `Settings.ship_scale` in `terrain_view.gd` and the briefing's
   `model_view.gd`. Tests: `test_world_scale.gd` (the Osa 38.6 m in Real, the Present scale in Original), mission 125
   (six Osas) in Real through `tools/mission_sweep.sh`: passes, no errors.
 - **The real runway designators** (`BaseMove::designation`, from real_runways.csv's `designator`). The Detailed
@@ -482,8 +463,8 @@ until the user decides to show it.
 - **The new site's ground close up** (`BaseMove::inset_source` / `bake_inset` in
   `crates/iaf-flight/src/base_move.rs`, `IafBases.moved_insets` in `crates/iaf-godot/src/bases.rs`, `terrain.gd
   _add_insets` / `_inset_image`). The 1998 art has fine levels only over its painted bases (Ramat David's old site
-  level 0, 1.2 m a pixel); at the real sites its finest is level 3 (≈ 10 m a pixel), so low over a moved base the
-  ground looked dark and blurred. Now each new site gets fine nodes at levels 0–2 wherever the old site has them:
+  level 0, 1.2 m a pixel); at the real sites its finest is level 3 (≈ 10 m a pixel), dark and blurred low over a
+  moved base. So each new site gets fine nodes at levels 0–2 wherever the old site has them:
   every pixel over the new zone A shows the old site's original art at the point the move's inverse gives (the
   similarity: translation, turn and the base's k), bilinear. The art fades in over 250 m inside zone A's edge
   (`INSET_FADE`) onto the node's own coarse colour, so the old aprons, taxiways, buildings and fields lie around the
@@ -516,16 +497,14 @@ Decided by the agent, confirmed by the user (2026-10-20):
 - A real runway without a sourced width: 45 m (now only Bir Gifgafa's main runway and two other ways; the rest from
   OurAirports, §3.3).
 - The main real runway: the one whose heading is nearest RunwayNumber's (the longer of a parallel pair).
-- Zones: zone A = the base's box + 500 m (similarity); zone B (6 km, move and turn without scaling) only at the seven
-  far-moved bases; the near bases' surroundings stay.
+- Zones: zone A = the base's box + 500 m (similarity); zone B (10 km, move and turn without scaling) only at the
+  seven far-moved bases; the near bases' surroundings stay.
 - The light sets and sign groups are scaled by k with their base; at the real width the runway edge lights stand
   beside the runway (about 11 m outside the edge line at Ramat David).
 - The Detailed airbases surface is on at a moved base whatever the Graphics setting (the new site has no painted base).
 
-Changed by the user (2026-10-20):
-- The FM's runway surface: first the original's leaves through the move, with paved unmarked shoulders out to the
-  game's width × k; now the real width + 5 m, the wider part ground except at taxiway and apron joins (§4.3).
-- The taxi signs: first hidden where the number disagreed; now re-lettered with the real designation (§4.3).
+Changed by the user (2026-10-20): the FM's runway surface at the real width + 5 m (decision 3, §4.3), and the taxi
+signs re-lettered with the real designation in place of hidden (§4.3).
 
 Open:
 - Bley's real base: Marj Ruhayyil is inferred from a source that names "Ble" and its region but no place (§1.2).
