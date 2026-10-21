@@ -126,11 +126,9 @@ Optional sound additions behind an Extras switch, off by default (sound.md):
 - Rust / godot-rust already build for ARM64 Linux.
 
 ## "Real MFDs" option (wishlist)
-Like the Real HUD: realistic MFD pages per jet behind their own Extras switch (the original's MFD pages by default,
-mfd.md). Crisp MFD pages (Better cockpit, mfd.md §8) are the first step.
-- The real page formats and symbology from public references (e.g. F-16 FCR, SMS, HSD, WPN / TGP, RWR; F-15 / F-4E /
-  Mirage / Kfir / Lavi / F-35I equivalents), the OSB labels and their functions.
-- Driven by the same avionics state (radar, stores, RWR, EO / HARM sensors).
+Started: research done, nothing built. Each jet's real head-down formats behind their own Extras switch (the
+original's pages by default, mfd.md); the per-jet reference, the user's decisions (2026-10-21) and the build order
+(F-35I and F-16 first) are in [real-mfd.md](real-mfd.md).
 - IFF on the radar formats, as the real jets show it (real-hud.md "IFF"): the F-15C's and F-4E's interrogation
   replies, and the F-35I's track colours and shapes (green circle friend, yellow square unknown, red diamond hostile).
 - Pairs with the realistic 3D cockpit (MFDs drawn live on it).
