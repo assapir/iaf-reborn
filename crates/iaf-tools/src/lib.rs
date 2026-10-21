@@ -14,6 +14,7 @@ pub mod itm;
 pub mod mis;
 pub mod mission_creator;
 pub mod mission_edit;
+pub mod mission_events;
 pub mod mission_year;
 pub mod pack;
 pub mod patch;

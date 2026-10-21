@@ -11,6 +11,7 @@ use iaf_formats::terrain_types::{RUNWAY, SEA, TerrainTypes};
 use serde_json::{Map, Value, json};
 
 use crate::mission_creator::beside;
+use crate::mission_events;
 
 /// The jets the TSD lets the player fly (`tsd.gd FLYABLE_TYPES`, bdb object 0x5b4).
 const FLYABLE: [i64; 9] = [100, 110, 120, 130, 140, 160, 180, 190, 200];
@@ -58,28 +59,28 @@ pub fn free_name(base: &str, taken: &[String]) -> String {
     (2..).map(|k| format!("{base} {k}")).find(|n| !used(n)).unwrap()
 }
 
-fn items<'a>(m: &'a mut Value, part: &str) -> &'a mut Vec<Value> {
+pub(crate) fn items<'a>(m: &'a mut Value, part: &str) -> &'a mut Vec<Value> {
     if !m[part]["items"].is_array() {
         m[part]["items"] = json!([]);
     }
     m[part]["items"].as_array_mut().unwrap()
 }
 
-fn real(v: &Value) -> bool {
+pub(crate) fn real(v: &Value) -> bool {
     int(&v["0x14"]) == 0
 }
 
-fn int(v: &Value) -> i64 {
+pub(crate) fn int(v: &Value) -> i64 {
     v.as_i64().or_else(|| v.as_f64().map(|f| f as i64)).unwrap_or(-1)
 }
 
-fn num(v: &Value) -> f64 {
+pub(crate) fn num(v: &Value) -> f64 {
     v.as_f64().unwrap_or(0.0)
 }
 
 /// Inserts `row` before the placeholder row with a fresh id: the placeholder's (ids are never reused, so a stale
 /// reference cannot name the new row), the placeholder moving one up. Returns the id.
-fn insert(rows: &mut Vec<Value>, mut row: Value) -> i64 {
+pub(crate) fn insert(rows: &mut Vec<Value>, mut row: Value) -> i64 {
     let max = rows.iter().map(|r| int(&r["0x1e"])).max().unwrap_or(0);
     let at = rows.iter().rposition(|r| !real(r));
     let id = match at {
@@ -145,6 +146,16 @@ pub fn remove_entity(mut mission: Value, id: i64) -> Value {
             list.retain(|a| int(&a[0]) != id);
         }
     }
+    // A Launch at target (trigger op 2) or Yaw to target (motion op 11) at it does nothing: a Wait / Hover.
+    for e in items(&mut mission, "entities") {
+        for (li, from, to, name) in [("scripts1", 2, 15, "Wait"), ("scripts0", 11, 1, "Hover")] {
+            for s in e[li]["items"].as_array_mut().into_iter().flatten() {
+                if int(&s["0x83e"]) == from && int(&s["0x8ac"]) == id {
+                    (s["0x83e"], s["0x8a2"], s["0x8ac"]) = (json!(to), json!(name), json!(-1));
+                }
+            }
+        }
+    }
     mission
 }
 
@@ -184,6 +195,8 @@ pub fn set_route(mut mission: Value, ids: &[i64], points: &[[f64; 3]], speed_kmh
     if ids.is_empty() || points.len() < 2 {
         return mission;
     }
+    // A route a scenario rule starts keeps waiting for it (mission_events.rs).
+    let jumps: Vec<(i64, Vec<i64>)> = ids.iter().map(|&id| (id, mission_events::route_jumps(&mission, id))).collect();
     for &id in ids {
         mission = clear_route(mission, id);
     }
@@ -203,6 +216,9 @@ pub fn set_route(mut mission: Value, ids: &[i64], points: &[[f64; 3]], speed_kmh
         e["scripts0"] = json!({"_class": "CObArray", "items": list});
         e["0x320"] = json!(int(&e["0x320"]).max(0) | 1);
     }
+    for (id, events) in jumps.iter().filter(|j| !j.1.is_empty()) {
+        mission = mission_events::wait_for(mission, *id, events);
+    }
     mission
 }
 
@@ -218,6 +234,7 @@ pub fn clear_route(mut mission: Value, id: i64) -> Value {
             .map(|s| int(&s["0x8ac"]))
             .collect()
     };
+    mission = mission_events::drop_route_jumps(mission, id);
     let mut dropped = vec![];
     for e in items(&mut mission, "entities").iter_mut().filter(|e| real(e) && int(&e["0x1e"]) == id) {
         dropped.extend(paths_of(e));
