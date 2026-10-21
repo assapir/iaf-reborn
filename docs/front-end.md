@@ -2035,7 +2035,7 @@ of the frame.
   * The view is the same borderless rich edit as Description (`frame_window.gd` `bare`, its scrollbar and the mouse
     wheel).
   * It shows the guide's Markdown subset (`guide_md.gd`: headings, paragraphs, bold / italic / code, lists, pipe
-    tables, rules, pictures with captions) at 12 px.
+    tables, rules, footnotes as `[name]`, pictures with captions) at 12 px.
   * Pictures (`![caption](shots/<jet>/<name>.png)`) come from `assets/converted/guides/`. A missing picture leaves
     its caption.
   * When `assets/converted/guides/<dir>.pdf` exists, an **Open PDF** link at the top opens it in the system viewer.

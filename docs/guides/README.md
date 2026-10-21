@@ -39,13 +39,18 @@ the shot's own values.
 - [F-4E](f4.md): the F-4E Kurnass: the AN/ASG-26 lead-computing sight, the APQ-120, the drag chute.
 - [Kurnass 2000](f42000.md): the F-4E Phantom 2000 upgrade: its HUD reconstruction, the APG-76, laser / TV / HARM.
 - [Kfir](cfir.md): the Kfir C7: the Elbit HUD reconstruction, the ranging radar, DEFA guns.
+- [MiG-23ML](mig23.md): flown from the Mission Creator: the АСП-17МЛ sight (a reconstruction), the metric dials, the
+  SPO-15 lamps, the R-60s.
+- [MiG-29](mig29.md): flown from the Mission Creator: the ИЛС-31 HUD in km/h and metres, the Щель-3УМ helmet sight, the
+  radar altimeter and AoA / g meter.
 
-The file names follow the Reference screen's record folders (`f4`, `f42000`, `cfir`).
+The file names follow the Reference screen's record folders (`f4`, `f42000`, `cfir`, `mig23`, `mig29`).
 
 ## Markdown
 
 The guides use the Markdown subset of `game/menu/guide_md.gd`, which `tools/guide_pdf.py` reads too: `#` / `##` /
-`###` headings, paragraphs, bold / italic / code, one-level lists, pipe tables, `---`, and pictures on a line of
+`###` headings, paragraphs, bold / italic / code, one-level lists, pipe tables, `---`, footnotes (`[^name]` in the
+text, `[^name]: source` at the end, shown as `[name]`) and pictures on a line of
 their own, `![caption](shots/<jet>/<name>.png)`. A numbered list right under a picture is its legend: one item per
 numbered callout, in order.
 
@@ -57,7 +62,8 @@ Setup's last step makes both (it needs a display). They show the original game's
 1. `tools/guide_shots.sh [jet …] [--only name,…] [--force]` renders each entry of `<jet>.shots.json` (its schema in
    the header of `tests/godot/_guide_shots.gd`) into `shots/<jet>/<name>.png`, in a 3840×2160 frame whatever the
    screen's size.
-   - An entry sets the settings, the start (mission, airborne, dive, final approach), a placed target, actions (a
+   - An entry sets the settings, the mission (`mc` builds a Mission Creator mission, 666: the MiGs fly only there),
+     the start (mission, airborne, dive, final approach), a placed target, actions (a
      radar lock, a store, a camera on the target) and the crop: the whole frame, `hud`, an MFD, `compass` (the panel
      compass dial) or `panel` (a box around `crop_at`, [x, y] panel px of the 1920-px strip). `hud` and `compass`
      take `crop_w` (the box's width as a fraction of the frame; smaller zooms in) and `crop_dy` (the box moved down

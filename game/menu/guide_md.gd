@@ -1,9 +1,9 @@
 # Ours (docs/front-end.md §14 "Pilot guide"): the pilot guides' Markdown subset (docs/guides/<jet>.md) as
 # RichTextLabel parts. # / ## / ### headings, paragraphs, **bold**, *italic*, `code`, one-level bullet and
-# numbered lists, pipe tables, `---` rules, [text](link) as its text, and images on a line of their own:
-# `![caption](shots/<jet>/<name>.png)` resolved under `base` (assets/converted/guides); a missing image leaves
-# its caption only; a numbered list right under a picture is its legend (the callouts drawn on it). tools/guide_pdf.py
-# reads the same subset.
+# numbered lists, pipe tables, `---` rules, [text](link) as its text, footnotes [^name] as [name], and images on a
+# line of their own: `![caption](shots/<jet>/<name>.png)` resolved under `base` (assets/converted/guides); a missing
+# image leaves its caption only; a numbered list right under a picture is its legend (the callouts drawn on it).
+# tools/guide_pdf.py reads the same subset.
 extends RefCounted
 
 const CAPTION := Color8(170, 170, 180)
@@ -20,6 +20,8 @@ static func inline(text: String) -> String:
 	for m in esc.search_all(text):
 		t = t.replace(m.get_string(0), char(0xE000 + m.get_string(1).unicode_at(0)))
 	t = t.replace("[", "[lb]")
+	# Footnotes: a reference [^name] and a definition's start [^name]: as [name].
+	t = RegEx.create_from_string("\\[lb\\]\\^([^\\]]+)\\]:?").sub(t, "[lb]$1]", true)
 	# Links: [text](url) -> text (escaped "[" is now "[lb]").
 	t = RegEx.create_from_string("\\[lb\\]([^\\]]*)\\]\\([^)]*\\)").sub(t, "$1", true)
 	t = RegEx.create_from_string("`([^`]+)`").sub(t, "[code]$1[/code]", true)

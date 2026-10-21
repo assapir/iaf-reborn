@@ -87,6 +87,8 @@ hr { border: 0; border-top: 1px solid #d4d6dc; margin: 5mm 0; }
 def inline(t: str) -> str:
     t = re.sub(r"\\([\\`*_\[\]()#|])", lambda m: "\x00%d\x00" % ord(m.group(1)), t)  # escaped punctuation kept as text
     t = html.escape(t, quote=False)
+    t = re.sub(r"^\[\^([^\]]+)\]:", r"<b>[\1]</b>", t)  # a footnote's definition
+    t = re.sub(r"\[\^([^\]]+)\]", r"<sup>[\1]</sup>", t)  # a footnote reference
     t = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", t)
     t = re.sub(r"`([^`]+)`", r"<code>\1</code>", t)
     t = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", t)

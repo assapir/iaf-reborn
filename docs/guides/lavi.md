@@ -54,6 +54,7 @@ Set these on the Preferences screen before the flight. Every row starts at the 1
 | Graphics → MORE | Sky, Terrain close up, Imagery Israel / outside Israel | Atmospheric, Detailed, Survey 2 m / Sentinel-2 | A physical sky, ground detail and photo imagery, if setup converted it |
 | Graphics → MORE | Airbases | Detailed | Runways, taxiways and aprons with real markings near the ground |
 | Physics | every row | on | Section 4 lists the ones that change how the Lavi flies |
+| Physics | Nose dips under braking, Unbalanced stores roll the jet, Wind and turbulence, Engine spool-up per real engine | on | The brakes' pitch, the stores' roll, the tower's wind and the engine's real spool (section 4) |
 | Gameplay | Easy landing, Easy aiming, No blackouts / spins / stalls, No wind | off | Real landing limits, real launch rules, g-effects, stalls and the mission's wind |
 
 A greyed-out imagery choice needs its data: convert it with `tools/setup-cli.sh --imagery`.
@@ -121,15 +122,22 @@ What changes in the cockpit:
   nose rocking near the horizon. Holding the stick forward keeps it there. **Recovery**: rock the stick in phase
   with the nose (pull while it rises, push while it falls) until the nose falls through, then pull out of the dive.
 - **Ground effect** (Physics): a longer float in the flare.
-- **Engine spool-up** (Physics): the thrust follows the PW1120's spool, slowest at first: 3 s from idle to military; the
-  afterburner lights 0.5 s after the core reaches military and fills in 2 s. Out of afterburner the thrust drops at
-  once.
+- **Engine spool-up per real engine** (Physics): the thrust follows the PW1120's spool, slowest at first: 3 s from idle
+  to military; the afterburner lights 0.5 s after the core reaches military and fills in 2 s. Out of afterburner the
+  thrust drops at once. The PW1120 kept the F100's core and control, so the game uses the F100's times
+  (inferred)[^tm4320].
 - **Wind and turbulence** (Physics): the air moves with the tower's wind. The jet crabs into a crosswind and drifts
-  downwind, a headwind shortens the take-off run, and light gusts shake it, strongest below 300 m (1,000 ft). Gameplay →
-  No wind calms the air.
-- **Brakes and stores** (Physics: Nose dips under braking, Unbalanced stores roll the jet): the nose dips up to 2° under
-  the wheel brakes and squats up to 1° at full thrust on the brakes. Stores left on one wing roll the jet toward it:
-  hold that wing up with the stick (the game has no roll trim).
+  downwind, a headwind shortens the take-off run, and light gusts shake it, strongest below 300 m (1,000 ft). The AI
+  jets fly in the same air, bombs drift downwind (the bombing computer allows for it: the impact pipper moves downwind),
+  and smoke, fire and trails drift with it. With a wind of 5 kt or more from behind the main runway the tower turns the
+  base to the runway's other end: the starts, the tower's calls, the taxi signs, the autopilot, the AI and the ILS use
+  that end; training missions keep their runway. Gameplay → No wind calms the air.
+- **Nose dips under braking** (Physics): the nose dips up to 2° under the wheel brakes and squats up to 1° at full
+  thrust on the brakes; it levels within about a second once the jet stops.
+- **Unbalanced stores roll the jet** (Physics): stores left on one wing roll the jet toward it: hold that wing up with
+  the stick (the game has no roll trim), or let the autopilot (**A**) hold it while it flies. One 2,000 lb bomb on an
+  outer wing pylon, 3.7 m out, takes about 18 % stick at 290 kt and 1 g. It grows with the g in a pull, and at half the
+  speed it takes four times as much.
 - **The map edge**: 12 km (6.5 NM) before it the EndWorld warning sounds: turn back. Past it the game pushes the jet
   back for about 8 s (the nose rises and the jet turns).
 
@@ -427,3 +435,6 @@ The **F-35I** (ours) can take the Lavi's place on the Jet list (Extras → F-35I
 | STT | single-target track: a radar lock |
 | TSD | tactical situation display: the map |
 | TWS | track while scan |
+
+[^tm4320]: NASA TM-4320 (1991), F-15 with F100 engines: "3 sec from idle to intermediate power", https://ntrs.nasa.gov/api/citations/19910020816/downloads/19910020816.pdf
+

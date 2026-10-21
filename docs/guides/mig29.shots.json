@@ -1,0 +1,1165 @@
+[
+ {
+  "name": "hud_original",
+  "caption": "The 1998 HUD in a Mission Creator MiG-29",
+  "mission": 666,
+  "jet": -1,
+  "mc": {
+   "count": [
+    1,
+    0,
+    1
+   ],
+   "type": [
+    8,
+    0,
+    11
+   ],
+   "weapons": 1,
+   "target": 2
+  },
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "original",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "brake_pitch": true,
+    "asymmetric_stores": true,
+    "wind": true,
+    "engine_spool": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   }
+  },
+  "start": "airborne",
+  "crop": "hud",
+  "crop_w": 0.28
+ },
+ {
+  "name": "hud_nav",
+  "caption": "The ИЛС-31 HUD in NAV (МРШ)",
+  "mission": 666,
+  "jet": -1,
+  "mc": {
+   "count": [
+    1,
+    0,
+    1
+   ],
+   "type": [
+    8,
+    0,
+    11
+   ],
+   "weapons": 1,
+   "target": 2
+  },
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "brake_pitch": true,
+    "asymmetric_stores": true,
+    "wind": true,
+    "engine_spool": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   }
+  },
+  "start": "airborne",
+  "turn_deg": -15,
+  "crop": "hud",
+  "crop_w": 0.3,
+  "crop_dy": -0.03,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "text:^7\\d\\d$",
+    "off": [
+     -0.1,
+     -0.08
+    ]
+   },
+   {
+    "n": 2,
+    "sym": "text:^3\\d\\d\\d$",
+    "off": [
+     0.1,
+     -0.08
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "text:^25$",
+    "off": [
+     -0.08,
+     -0.06
+    ]
+   },
+   {
+    "n": 4,
+    "sym": "text:^10$",
+    "off": [
+     0.1,
+     0.0
+    ]
+   },
+   {
+    "n": 5,
+    "sym": "text:^МРШ$",
+    "off": [
+     -0.08,
+     0.06
+    ]
+   },
+   {
+    "n": 6,
+    "sym": "text:^\\d+\\.\\d$",
+    "off": [
+     0.1,
+     0.06
+    ]
+   },
+   {
+    "n": 7,
+    "sym": "circle:1",
+    "edge": 225,
+    "off": [
+     -0.1,
+     0.1
+    ]
+   },
+   {
+    "n": 8,
+    "sym": "boresight",
+    "off": [
+     0.06,
+     0.1
+    ]
+   }
+  ]
+ },
+ {
+  "name": "hud_srm",
+  "caption": "An R-73 (AA-11) on a MiG-21 flying away 2,000 m ahead",
+  "mission": 666,
+  "jet": -1,
+  "mc": {
+   "count": [
+    1,
+    0,
+    1
+   ],
+   "type": [
+    8,
+    0,
+    11
+   ],
+   "weapons": 1,
+   "target": 2
+  },
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "brake_pitch": true,
+    "asymmetric_stores": true,
+    "wind": true,
+    "engine_spool": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   }
+  },
+  "start": "airborne",
+  "loadout": [
+   [
+    2,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    1,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    1,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    2,
+    1
+   ]
+  ],
+  "place": {
+   "unit_prefix": "Player3",
+   "ahead_m": 2000,
+   "vel_ms": 200
+  },
+  "actions": [
+   "lock",
+   "station:0",
+   "wait:1.5"
+  ],
+  "crop": "hud",
+  "crop_w": 0.3,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "target",
+    "off": [
+     0.1,
+     -0.08
+    ]
+   },
+   {
+    "n": 2,
+    "sym": "text:^ТП$",
+    "off": [
+     -0.08,
+     0.06
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "text:^ПР$",
+    "off": [
+     0.1,
+     0.06
+    ]
+   },
+   {
+    "n": 4,
+    "sym": "text:^25$",
+    "off": [
+     -0.1,
+     -0.04
+    ]
+   },
+   {
+    "n": 5,
+    "sym": "text:^2\\.0$",
+    "off": [
+     -0.08,
+     0.06
+    ]
+   }
+  ]
+ },
+ {
+  "name": "hud_mrm",
+  "caption": "An R-27 (AA-10) on a MiG-21 15 km ahead (ДВБ)",
+  "mission": 666,
+  "jet": -1,
+  "mc": {
+   "count": [
+    1,
+    0,
+    1
+   ],
+   "type": [
+    8,
+    0,
+    11
+   ],
+   "weapons": 1,
+   "target": 2
+  },
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "brake_pitch": true,
+    "asymmetric_stores": true,
+    "wind": true,
+    "engine_spool": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   }
+  },
+  "start": "airborne",
+  "loadout": [
+   [
+    2,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    1,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    1,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    2,
+    1
+   ]
+  ],
+  "place": {
+   "unit_prefix": "Player3",
+   "ahead_m": 15000
+  },
+  "actions": [
+   "lock",
+   "station:2",
+   "wait:1.5"
+  ],
+  "crop": "hud",
+  "crop_w": 0.3,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "target",
+    "off": [
+     0.12,
+     0.1
+    ]
+   },
+   {
+    "n": 2,
+    "sym": "circle:1",
+    "edge": 45,
+    "off": [
+     0.1,
+     -0.06
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "text:^ДВБ$",
+    "off": [
+     -0.08,
+     0.06
+    ]
+   },
+   {
+    "n": 4,
+    "sym": "text:^100$",
+    "off": [
+     -0.1,
+     -0.04
+    ]
+   },
+   {
+    "n": 5,
+    "sym": "text:^15$",
+    "off": [
+     -0.08,
+     0.06
+    ]
+   },
+   {
+    "n": 6,
+    "sym": "text:^ПР$",
+    "off": [
+     0.1,
+     0.06
+    ]
+   }
+  ]
+ },
+ {
+  "name": "hud_gun",
+  "caption": "The gun: a MiG-21 600 m ahead",
+  "mission": 666,
+  "jet": -1,
+  "mc": {
+   "count": [
+    1,
+    0,
+    1
+   ],
+   "type": [
+    8,
+    0,
+    11
+   ],
+   "weapons": 1,
+   "target": 2
+  },
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "brake_pitch": true,
+    "asymmetric_stores": true,
+    "wind": true,
+    "engine_spool": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   }
+  },
+  "start": "airborne",
+  "loadout": [
+   [
+    2,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    2,
+    1
+   ]
+  ],
+  "place": {
+   "unit_prefix": "Player3",
+   "ahead_m": 600
+  },
+  "actions": [
+   "lock",
+   "station:9",
+   "wait:1"
+  ],
+  "crop": "hud",
+  "crop_w": 0.3,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "lcos",
+    "off": [
+     -0.14,
+     0.08
+    ]
+   },
+   {
+    "n": 2,
+    "sym": "circle:1",
+    "edge": 45,
+    "off": [
+     0.1,
+     -0.06
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "target",
+    "off": [
+     0.12,
+     0.1
+    ]
+   }
+  ]
+ },
+ {
+  "name": "hud_bomb",
+  "caption": "A 45° dive at 800 m above the ground, two MK-83s (ОПТ ЗЕМЛЯ)",
+  "mission": 666,
+  "jet": -1,
+  "mc": {
+   "count": [
+    1,
+    0,
+    1
+   ],
+   "type": [
+    8,
+    0,
+    11
+   ],
+   "weapons": 1,
+   "target": 2
+  },
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "brake_pitch": true,
+    "asymmetric_stores": true,
+    "wind": true,
+    "engine_spool": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   }
+  },
+  "start": "dive",
+  "loadout": [
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    17,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    17,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "place": {
+   "ground_unit": true,
+   "ahead_m": 2000
+  },
+  "actions": [
+   "ag:3",
+   "wait:0.5",
+   "on_impact",
+   "wait:0.5"
+  ],
+  "dive_deg": 45,
+  "dive_agl": 800,
+  "speed": 220,
+  "crop": "hud",
+  "crop_w": 0.3,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "pipper",
+    "off": [
+     0.12,
+     0.04
+    ]
+   },
+   {
+    "n": 2,
+    "sym": "text:^ОПТ ЗЕМЛЯ$",
+    "off": [
+     -0.06,
+     0.08
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "boresight",
+    "off": [
+     0.1,
+     -0.06
+    ]
+   }
+  ]
+ },
+ {
+  "name": "landing",
+  "caption": "Final approach (ПОС)",
+  "mission": 666,
+  "jet": -1,
+  "mc": {
+   "count": [
+    1,
+    0,
+    1
+   ],
+   "type": [
+    8,
+    0,
+    11
+   ],
+   "weapons": 1,
+   "target": 2
+  },
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "brake_pitch": true,
+    "asymmetric_stores": true,
+    "wind": true,
+    "engine_spool": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   }
+  },
+  "start": "final",
+  "final_m": 4000,
+  "final_alt": 210,
+  "crop": "hud",
+  "crop_w": 0.3,
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "text:^ПОС$",
+    "off": [
+     -0.08,
+     0.06
+    ]
+   },
+   {
+    "n": 2,
+    "sym": "text:^\\d+\\.\\d$",
+    "off": [
+     0.1,
+     0.06
+    ]
+   },
+   {
+    "n": 3,
+    "sym": "circle:1",
+    "edge": 270,
+    "off": [
+     -0.1,
+     0.1
+    ]
+   },
+   {
+    "n": 4,
+    "sym": "text:^1\\d\\d$",
+    "off": [
+     0.1,
+     -0.06
+    ]
+   }
+  ]
+ },
+ {
+  "name": "helmet",
+  "caption": "The Щель-3УМ helmet sight on a MiG-21 45° left",
+  "mission": 666,
+  "jet": -1,
+  "mc": {
+   "count": [
+    1,
+    0,
+    1
+   ],
+   "type": [
+    8,
+    0,
+    11
+   ],
+   "weapons": 1,
+   "target": 2
+  },
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "brake_pitch": true,
+    "asymmetric_stores": true,
+    "wind": true,
+    "engine_spool": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   }
+  },
+  "start": "airborne",
+  "loadout": [
+   [
+    2,
+    1
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    2,
+    1
+   ]
+  ],
+  "place": {
+   "unit_prefix": "Player3",
+   "ahead_m": 2000,
+   "bearing_deg": -45,
+   "vel_ms": 200
+  },
+  "actions": [
+   "station:0",
+   "look:-45,0",
+   "wait:1"
+  ],
+  "crop": "dash",
+  "annotations": [
+   {
+    "n": 1,
+    "sym": "text:^ШЛЕМ$",
+    "off": [
+     0.1,
+     0.08
+    ]
+   },
+   {
+    "n": 2,
+    "sym": "seeker",
+    "off": [
+     0.1,
+     -0.1
+    ]
+   },
+   {
+    "n": 3,
+    "px": [
+     0.5,
+     0.64
+    ],
+    "off": [
+     -0.12,
+     0.0
+    ]
+   }
+  ]
+ },
+ {
+  "name": "better_panel",
+  "caption": "The panel with Better cockpit on, on final",
+  "mission": 666,
+  "jet": -1,
+  "mc": {
+   "count": [
+    1,
+    0,
+    1
+   ],
+   "type": [
+    8,
+    0,
+    11
+   ],
+   "weapons": 1,
+   "target": 2
+  },
+  "settings": {
+   "flight_data": "real",
+   "weapon_data": "real",
+   "hud_style": "real",
+   "hud_ladder": "conformal",
+   "sky": "atmospheric",
+   "terrain_closeup": true,
+   "imagery_israel": "mapi2015",
+   "imagery_outside": "sentinel2",
+   "easy_landing": false,
+   "easy_aiming": false,
+   "better": {
+    "flight_path_hold": true,
+    "force_angles": true,
+    "start_lift": true,
+    "start_rpm": true,
+    "start_alpha": true,
+    "landing_limits": true,
+    "spin_fixes": true,
+    "fbw_departure": true,
+    "lift_rate_floor": true,
+    "low_speed_roll": true,
+    "no_nose_wheel_lift": true,
+    "ground_effect": true,
+    "ground_idle": true,
+    "brake_pitch": true,
+    "asymmetric_stores": true,
+    "wind": true,
+    "engine_spool": true,
+    "fix_fall_heading": true,
+    "fix_skill_damage": true,
+    "fix_lock_threat": true,
+    "fix_stores_weight": true,
+    "fix_bomb_burst": true,
+    "fix_ghost_collision": true
+   },
+   "better_cockpit": true
+  },
+  "start": "final",
+  "final_m": 4000,
+  "final_alt": 210,
+  "panel": 1.0,
+  "crop": "panel",
+  "crop_at": [
+   960,
+   160
+  ],
+  "crop_w": 0.7,
+  "actions": [
+   "wait:1"
+  ],
+  "annotations": [
+   {
+    "n": 1,
+    "px": [
+     0.443,
+     0.633
+    ],
+    "label_at": [
+     0.4,
+     0.5
+    ]
+   },
+   {
+    "n": 2,
+    "px": [
+     0.488,
+     0.757
+    ],
+    "label_at": [
+     0.42,
+     0.9
+    ]
+   },
+   {
+    "n": 3,
+    "px": [
+     0.578,
+     0.658
+    ],
+    "label_at": [
+     0.6,
+     0.53
+    ]
+   },
+   {
+    "n": 4,
+    "px": [
+     0.548,
+     0.801
+    ],
+    "label_at": [
+     0.52,
+     0.92
+    ]
+   },
+   {
+    "n": 5,
+    "px": [
+     0.6,
+     0.801
+    ],
+    "label_at": [
+     0.64,
+     0.92
+    ]
+   },
+   {
+    "n": 6,
+    "px": [
+     0.655,
+     0.41
+    ],
+    "label_at": [
+     0.66,
+     0.27
+    ]
+   },
+   {
+    "n": 7,
+    "px": [
+     0.713,
+     0.45
+    ],
+    "label_at": [
+     0.76,
+     0.33
+    ]
+   },
+   {
+    "n": 8,
+    "px": [
+     0.72,
+     0.707
+    ],
+    "label_at": [
+     0.8,
+     0.6
+    ]
+   }
+  ]
+ }
+]
