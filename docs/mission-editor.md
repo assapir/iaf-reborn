@@ -43,11 +43,23 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
   template) and 777 (multiplayer All-Out War), listed by their title (misc `0x44c`). They open
   read-only. The only action on them is **Fork**.
 - **My missions** are the files in `user://missions/`. Only these can be edited.
-- **New** asks for a name and an era, and builds a mission from scratch on that era's original (`NEW_ERAS`):
-  1998 (the game's present) on 231 License to Kill, 1973 on 121 7 Columns of Fire, 1967 on 111 Battle Against Time.
-  - `IafMissionEdit.blank` keeps only flight 1 (Alpha), with its jets, start and route, so the mission flies at once.
-    Every other unit and flight, the paths, events, debrief texts and the briefing go.
-  - The original's base missions (its airbases and their defences) stay, as for a fork; `source` is that original.
+- **New** builds a mission from scratch. It asks for a name, an era, a home base, a jet and whether Alpha has a
+  wingman (`NEW_ERAS`, `NEW_BASES` in `mission_editor.gd`):
+
+  | Era | Built on (map, airbases) | Home bases (blue) | Jets |
+  |---|---|---|---|
+  | 1998 (the game's present) | 231 License to Kill | Ramat David, Tel Nof, Ramon | F-16, F-15, F-4 2000, Kfir, Lavi |
+  | 1973 | 121 7 Columns of Fire | Ramat David, Tel Nof, Refidim | F-4, Mirage |
+  | 1967 | 111 Battle Against Time | Ramat David, Tel Nof | Mirage |
+
+  - The bases and jets per era are inferred from history: Refidim in Sinai was an Israeli base from 1967 to 1982,
+    so blue starts there only in 1973; Ramon opened in 1982.
+  - `IafMissionEdit.blank` empties the original: every unit and flight but Alpha, the paths, events, debrief texts and
+    the briefing go. `set_flight` then puts Alpha on the home base's start point (the Mission Creator's, Refidim's
+    from 121's Alpha) with one waypoint 20 km ahead.
+  - **No wingman** is allowed: Alpha flies alone, as the original Mission Creator's number 1 does.
+  - The original's base missions (its airbases and their defences) stay, as for a fork, plus the home base's own
+    when the original lacks it. The file keeps the list as `"bases"`; `source` is the original.
 - **Fork** asks for a name and suggests a free one (`<title> 2`, `3` …). The fork is saved at once.
 - **Names:** 1 to 40 English letters, digits, spaces, `_` or `-`, starting with a letter or digit. A name in Hebrew or
   another script is refused with the reason shown. Names compare without case:
@@ -56,7 +68,8 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
 - **The file** is `user://missions/<stem>.json` (the stem is the name in lower case, spaces as `_`):
 
   ```json
-  {"source": 512, "name": "Wild West 2", "files": [{"name": "wild_west", "data": {…}}], "briefing": {"en": "…", "he": "…"}}
+  {"source": 512, "name": "Wild West 2", "files": [{"name": "wild_west", "data": {…}}], "bases": ["bmisrmon", "bmistlnf"],
+   "briefing": {"en": "…", "he": "…"}}
   ```
 
   Only the edited main file is saved. The base missions are read again from `source` when the mission opens and when

@@ -23,9 +23,22 @@ const ROLES := ["Must survive", "Target", "Neutral"]
 ## Wind as the Mission Creator's Better combos (mission_creator.gd); Random stores 1, which the game turns into a
 ## random one of 0 / 10 / 15 / 20 kt (Settings.pick_wind).
 const WIND_KT := [["Calm", 0], ["10 kt", 10], ["15 kt", 15], ["20 kt", 20], ["Random", 1]]
-## New: the era's original the mission is built on (its map, airbases and Alpha's start): 231 License to Kill
-## (an F-16 at Ramat David), 121 7 Columns of Fire, 111 Battle Against Time.
-const NEW_ERAS := [["1998", 231], ["1973", 121], ["1967", 111]]
+## New: per era, the original the mission is built on (its TSD map and airbases), the blue home bases and jets.
+## Inferred from history: Sinai's Refidim was Israeli 1967–1982 (so 1973 only); Ramon opened in 1982; the jets by
+## their IAF service (bdb object ids: 47 Mirage, 48 F-4 of the 1970s, 1 F-16, 40 F-15, 17 F-4 2000, 99 Kfir, 74 Lavi).
+const NEW_ERAS := [
+	["1998", 231, ["Ramat David", "Tel Nof", "Ramon"], [1, 40, 17, 99, 74]],
+	["1973", 121, ["Ramat David", "Tel Nof", "Refidim"], [48, 47]],
+	["1967", 111, ["Ramat David", "Tel Nof"], [47]],
+]
+## Home base → its base mission and start point (x, y, z, heading): the Mission Creator's (mission_creator.rs
+## BASES), Refidim from 121's Alpha.
+const NEW_BASES := {
+	"Tel Nof": ["bmistlnf", 312984.0, 500459.0, 59.0, 90.0],
+	"Ramat David": ["bmisrdvd", 356404.0, 602402.0, 28.0, 270.0],
+	"Ramon": ["bmisrmon", 317439.0, 411135.0, 579.0, 230.0],
+	"Refidim": ["bmisrfdim", 153765.0, 373720.0, 98.0, 0.0],
+}
 const WIND_FROM := ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
 
 ## Where your missions are saved (a test points it elsewhere).
@@ -114,9 +127,9 @@ func _taken() -> PackedStringArray:
 	return out
 
 
-func _read_bases(id: int) -> Array:
+func _read_bases(id: int, stems: Array = []) -> Array:
 	var out := []
-	for stem in originals.get(id, {}).get("files", []).slice(1):
+	for stem in stems if not stems.is_empty() else originals.get(id, {}).get("files", []).slice(1):
 		out.append({"name": String(stem), "data": Settings.load_json(mission_dir.path_join(String(stem) + ".json"))})
 	return out
 
@@ -145,6 +158,9 @@ func open_file(path: String) -> void:
 	if d.is_empty() or d.get("files", []).is_empty():
 		return
 	_open(int(d.source), String(d.name), String(d.files[0].name), d.files[0].data)
+	if d.has("bases"):
+		base_files = _read_bases(source, d.bases)
+		_refresh()
 	var b: Dictionary = d.get("briefing", {})
 	briefing = {"en": String(b.get("en", "")), "he": String(b.get("he", ""))}
 	read_only = false
@@ -243,9 +259,17 @@ func suggest_name() -> String:
 
 
 ## A new mission called `name` from scratch on the era's original (NEW_ERAS): only its Alpha flight stays.
-func new_mission(name: String, era_id: int) -> void:
-	open_original(era_id)
+func new_mission(name: String, era: int, base: String, jet: int, wingman: bool) -> void:
+	var e: Array = NEW_ERAS[era]
+	var b: Array = NEW_BASES[base]
+	open_original(e[1])
 	data = api.blank(data)
+	if not b[0] in base_files.map(func(f): return f.name):
+		base_files.append({"name": b[0], "data": Settings.load_json(mission_dir.path_join(b[0] + ".json"))})
+	var ahead := Vector2(b[1], b[2]) + Vector2.from_angle(deg_to_rad(90.0 - b[4])) * 20000.0
+	var spec := {"type": jet, "count": 2 if wingman else 1, "slot_x": b[1], "slot_y": b[2], "alt": b[3]}
+	spec.merge({"heading": b[4], "points": [[ahead.x, ahead.y, 3000.0, 800.0]]})
+	data = api.set_flight(data, 1, spec)
 	briefing = {"en": "", "he": ""}
 	read_only = false
 	file = ""
@@ -275,6 +299,8 @@ func save() -> void:
 		return
 	DirAccess.make_dir_recursive_absolute(missions_dir)
 	var out := {"source": source, "name": mission_name, "files": [{"name": main_name, "data": data}]}
+	# The base missions by name (New may add a home base the source lacks); read again at Open.
+	out["bases"] = base_files.map(func(f): return f.name)
 	out["briefing"] = briefing.duplicate()
 	var f := FileAccess.open(file, FileAccess.WRITE)
 	if f != null:
@@ -826,12 +852,21 @@ func _build_dialogs() -> void:
 	add_child(_ui.open_dlg)
 	_ui.name_dlg = ConfirmationDialog.new()
 	var v := VBoxContainer.new()
-	_ui.era_row = HBoxContainer.new()
-	_ui.era_row.add_child(_label("Era"))
+	# New's choices: era, then the era's home bases and jets, and the wingman.
+	_ui.era_row = GridContainer.new()
+	_ui.era_row.columns = 2
 	_ui.era = OptionButton.new()
 	for e in NEW_ERAS:
 		_ui.era.add_item(e[0])
-	_ui.era_row.add_child(_ui.era)
+	_ui.era.item_selected.connect(_fill_new_choices)
+	_ui.new_base = OptionButton.new()
+	_ui.new_jet = OptionButton.new()
+	_ui.wingman = CheckBox.new()
+	_ui.wingman.text = "Wingman"
+	_ui.wingman.button_pressed = true
+	for row in [["Era", _ui.era], ["Home base", _ui.new_base], ["Jet", _ui.new_jet], ["", _ui.wingman]]:
+		_ui.era_row.add_child(_label(row[0]))
+		_ui.era_row.add_child(row[1])
 	v.add_child(_ui.era_row)
 	_ui.name_edit = LineEdit.new()
 	_ui.name_edit.custom_minimum_size.x = 360
@@ -888,9 +923,24 @@ func _ask_name(purpose: String, suggestion: String) -> void:
 	_name_purpose = purpose
 	_ui.name_dlg.title = {"fork": "Fork: the new mission's name", "new": "New mission"}.get(purpose, "Save as")
 	_ui.era_row.visible = purpose == "new"
+	if purpose == "new":
+		_fill_new_choices(_ui.era.selected)
 	_ui.name_edit.text = suggestion
 	_ui.name_why.text = name_error(suggestion)
 	_ui.name_dlg.popup_centered()
+
+
+## The home bases and jets of era `i` (NEW_ERAS) into New's pickers.
+func _fill_new_choices(i: int) -> void:
+	var e: Array = NEW_ERAS[i]
+	_ui.new_base.clear()
+	for b in e[2]:
+		_ui.new_base.add_item(b)
+	_ui.new_jet.clear()
+	var bdb := Tsd.MissionRuntime.bdb_objects(Tsd.MissionRuntime.load_bdb({"bdb": "default6_1.bdb"}))
+	for id in e[3]:
+		_ui.new_jet.add_item(String(bdb.get(id, {}).get("0x528", str(id))))
+		_ui.new_jet.set_item_metadata(_ui.new_jet.item_count - 1, id)
 
 
 func _name_confirmed() -> void:
@@ -910,7 +960,9 @@ func _name_confirmed() -> void:
 func _name_done() -> void:
 	var n: String = _ui.name_edit.text.strip_edges()
 	if _name_purpose == "new":
-		new_mission(n, NEW_ERAS[_ui.era.selected][1])
+		var era: int = _ui.era.selected
+		var jet: int = _ui.new_jet.get_selected_metadata()
+		new_mission(n, era, _ui.new_base.get_item_text(_ui.new_base.selected), jet, _ui.wingman.button_pressed)
 	elif _name_purpose == "fork":
 		fork(n)
 	else:

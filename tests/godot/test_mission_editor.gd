@@ -29,7 +29,7 @@ func run() -> void:
 	await frames(3)
 	check(ed._ui.start.visible and ed.tsd == null, "nothing open: the start choices, no map")
 	# New: from scratch on the modern era's original (231), only Alpha left; the map zoomed in on it.
-	ed.new_mission("Scratch 1", 231)
+	ed.new_mission("Scratch 1", 0, "Ramat David", 1, true)
 	var real: Array = ed.data.entities.items.filter(func(e): return int(e["0x14"]) == 0)
 	check(
 		not ed._ui.start.visible and ed.tsd != null and ed.tsd.zoom > 1.0,
@@ -37,6 +37,22 @@ func run() -> void:
 	)
 	check(real.size() == 2 and ed.fly_flight() == 1, "New: Alpha's 2 jets only, Alpha flyable (%d units)" % real.size())
 	check(FileAccess.file_exists(DIR.path_join("scratch_1.json")) and ed.source == 231, "New saves scratch_1.json")
+	# 1973 from Refidim (Sinai), a lone Mirage: Refidim's base mission comes with it and is kept by Save / Open.
+	ed.new_mission("Scratch 2", 1, "Refidim", 47, false)
+	real = ed.data.entities.items.filter(func(e): return int(e["0x14"]) == 0)
+	check(real.size() == 1 and int(real[0]["0x2c6"]) == 47, "New: a lone Mirage, no wingman (%d units)" % real.size())
+	var lead: Dictionary = real[0]
+	check(
+		Vector2(lead["0x2e4"], lead["0x2ee"]).distance_to(Vector2(153765, 373720)) < 1.0 and ed.source == 121,
+		"New: on Refidim's start, on 1973's original"
+	)
+	ed.open_file(DIR.path_join("scratch_2.json"))
+	check("bmisrfdim" in ed.base_files.map(func(f): return f.name), "Refidim's base mission is saved and read back")
+	ed._ask_name("new", "x")
+	ed._fill_new_choices(2)
+	var bases := range(ed._ui.new_base.item_count).map(func(i): return ed._ui.new_base.get_item_text(i))
+	check(not "Refidim" in bases, "1967: no Sinai home base (%s)" % [bases])
+	ed._ui.name_dlg.hide()
 	ed.open_original(512)
 	await frames(3)
 	check(ed.read_only and ed.mission_name == "Wild West", "512 opens read-only as Wild West")
