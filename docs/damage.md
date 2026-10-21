@@ -98,12 +98,11 @@ The data holds only normal models. The game builds the damaged and destroyed loo
 - **Classes 0x11, 0x12 (fire sensors), 0x1b** are never drawn.
 - **Display:** state 1 → [5], state 3 → [6], state 5 → [7]. State 4 leaves the display as it is.
 - **[8]** = `0x546` is the `*_BC.X` model: **the jet's exterior as seen from its own cockpit** (texture `bcf16.bmp`
-  = seat back). Only the flyable jets and the MiG-23 / MiG-29 have one. docs/formats/x.md's "damaged / burnt" guess
-  for `_bc` is wrong.
+  = seat back). Only the flyable jets and the MiG-23 / MiG-29 have one.
 - **v1.0 vs v1.1:** v1.0 showed [8] on the player's own jet in the cockpit views (1, 0x12, 0x16, 5) when entering
   state 1. **v1.1 removed that branch** (part of the eject fix): entering state 1 always shows [5] and clears the
   crew's cockpit flag (docs/part-animation.md "Ejection").
-- The data has no damaged or destroyed meshes. The converter already exports every Present model.
+- The converter exports every Present model; nothing more is needed.
 - **Port:** `terrain_view.gd` `_entity_fatally_hit` / `_entity_final` / `_burned_copy` (vertex colours on duplicated
   materials). The port skips spawning the hidden classes.
 
@@ -179,7 +178,7 @@ player, the flight model freezes (`FUN_005a6510`) and the jet stops answering th
   - the nose goes to −(90° − 5°) (FlightModel/pitchEpsilon) at 18°/s. s = −1 when −85° < θ0 < 90°; otherwise
     s > 0 snaps it to −95°;
   - **heading = 0**. The code writes the heading output only on the helicopter path: an original bug, kept.
-    Preferences > Physics "Falling jets keep their heading" (`bp_fix_fall_heading`) keeps the heading (opt-in,
+    Preferences > Physics "Falling jets keep their heading" (`fix_fall_heading`) keeps the heading (opt-in,
     deviations.md §2).
 - **Attitude, helicopters:** pitch = θ0 + s·ω·τ, ω = (n·2π − s·θ0)/T, n ∈ {0,1,2}. Roll levels linearly. Heading
   turns at s·U·π rad/s.
@@ -221,9 +220,8 @@ damage += dmg / strength; ≥ 1.0  -> destroyed
 - **Original bug: at Rookie and Normal the enemies are tougher.** This is backwards for an "easier" setting
   (verified at 464636–46467c: the call returns 1 for a different side). v1.1 left this block unchanged, so v1.1 has
   the bug too. Ours keeps it by default. Preferences > Physics "No tougher enemies on easy AI levels"
-  (`bp_fix_skill_damage`) turns the scaling off.
-- Other AI-level readers: `4404d0`, and the AI fire decision `4440d0` (§4.4). `443f60`, once listed here as a skill
-  reader, reads no skill value.
+  (`fix_skill_damage`) turns the scaling off.
+- Other AI-level readers: `4404d0`, and the AI fire decision `4440d0` (§4.4). (`443f60` reads no skill value.)
 
 ### 4.2 The hit handler (`FUN_004a97b0` → `FUN_004a9970`)
 1. If the target is the player's jet with **Invulnerable** on (pref +0x1c; always applies in single player), stop.
@@ -255,8 +253,7 @@ The weapon detonation `FUN_004d6130` (@4d664d) is the only caller of the hit han
 the weapon's vtable +0x1c returns and passes S = {impact position, time, **power = weapon+0x70**, **radius =
 weapon+0x80**}.
 
-The values come from the bdb Weapons record (parser `FUN_00593ee0`): power = **`0x744`**, radius = **`0x74e`**, +0x74
-weight `0x758` (lb), +0x78 `0x73a`, +0x7c `0x762`, model `0x730`, type `0x780`; +0x84 = radius + 20.
+Power and radius are the bdb Weapons fields **`0x744`** / **`0x74e`** (docs/weapons.md §1.1).
 
 | weapon | power | radius (m) |
 |---|---|---|
@@ -265,8 +262,7 @@ weight `0x758` (lb), +0x78 `0x73a`, +0x7c `0x762`, model `0x730`, type `0x780`; 
 | AIM-9L / 9M / 9D | 400 / 500 / 300 | 15 / 15 / 30 |
 | MK-82 / 83 / 84 | 5000 / 7000 / 20000 | 50 / 80 / 100 |
 
-A direct gun hit does 100, so an F-16 (strength 300) takes three. Gun rounds (type 0x235) fired by any unit other than
-the player hit the target's centre (UNCERTAIN).
+Gun rounds (type 0x235) fired by any unit other than the player hit the target's centre (UNCERTAIN).
 
 **Port API** (`mission_runtime.gd`):
 - `area_damage(point, power, radius, source, kind)`: the detonation over every unit;
@@ -276,25 +272,16 @@ the player hit the target's centre (UNCERTAIN).
 
 ### 4.4 v1.1 weapon and AI rules (gun and missile rules ported: docs/weapons.md; AI rules: `game/ai/combat.gd`)
 The v1.1 patch changed these rules. The v1.0 behaviour appears only for comparison (docs/v1.1.md).
-- **Gun** (fire `FUN_00456ff0`):
-  - The player's shot direction turns **+1° about the lateral axis** before the lead is applied. The bullets fly 1°
-    higher, onto the gun cross (docs/cockpit.md).
-  - With no lock, the aim distance is **2781 m** (1.5 mi; v1.0 1854 m). The AI's auto-hit sphere scales with it.
-- **Gun pippers** (corrected, docs/weapons.md §3.7):
-  - AA LCOS `FUN_0045f410`: the same as v1.0, without the +1°.
-  - The new AG pipper `FUN_0045ef10`: the projection of the +1° aim point.
-  - `FUN_004604c0` is a seeker for weapon 0x27b.
-- **Ballistic correction** (`FUN_005611b0`, `FUN_00468470`; corrected: it applies to the bomb / shell class 0x16, and
-  gun rounds are outside it, docs/weapons.md §8). Single player, the player's rounds only:
-  - the homing correction is clamped to **±`weapons.ibx [DEBUGDATA] _debugParam016`** m/s² (15 in v1.1);
-  - the flight time has no cap at impact (v1.0 capped it there).
-  - v1.0 data has `_debugParam016` = `_debugParam018` = 1. Ours then uses the v1.1 value 15 (v1.1 logic with any
-    data, user decision).
-- **Missiles** (`FUN_005604a0`, `FUN_005605c0`, `FUN_00457f70`; corrected, docs/weapons.md §3.4 / §5.2):
-  - The value scaled "`_spiralAccel` ×0.5 unless Easy aiming" is the **gun round / fixed weapon hit sphere**
-    (25 / 50 m).
-  - The player's missile launch q is ×0.8 without Easy aiming. The chase init reads it (gain, and dog vs
-    proportional chase).
+- **Gun** (`FUN_00456ff0`, docs/weapons.md §3.2): the player's shot line turns **+1°** up, onto the gun cross; the
+  aim distance without a lock is **2781 m** (v1.0 1854 m), and the AI's auto-hit sphere scales with it. The AA LCOS
+  `FUN_0045f410` keeps v1.0's line; the AG pipper `FUN_0045ef10` is new (§3.7 there).
+- **Ballistic correction** of the falling store (`FUN_005611b0`, `FUN_00468470`, docs/weapons.md §9.5): clamped to
+  ±`_debugParam016` (15 m/s² in v1.1), single player, the player's stores only; the flight time has no cap at impact
+  (v1.0 capped it). v1.0 data has `_debugParam016` = `_debugParam018` = 1; ours then uses 15 (v1.1 logic with any
+  data, user decision).
+- **Fixed-weapon hit sphere** (`FUN_005604a0`, `FUN_005605c0`): `_spiralAccel` ×0.5, ×1 with Easy aiming (25 / 50 m
+  for the gun, docs/weapons.md §3.4).
+- **Missile launch q** (`FUN_00457f70`): ×0.8 without Easy aiming (docs/weapons.md §5.2).
 - **AI fire decision** (`FUN_004440d0`): the AI fires when the angle between the shooter's nose and the target (acos
   of the clamped dot product) is ≤ the cone. The cone is **30°** for missiles and **5°** for guns (v1.0 7°), ×**0.5**
   Rookie / ×1 Normal / ×**1.5** Expert. v1.0 compared the cosine with a threshold scaled 0.75 / 1 / 1.5, so an Expert
@@ -385,17 +372,18 @@ ENG at +0x560 / +0x598 / +0x5b0 = flags 2 / 16 / 22, so the copy starts at +0x55
 | 2 / 3, 16 / 17, 22 / 23 | engine panel `45ac00` | gauges (docs/cockpit.md "Engine values"; ported in `instruments.rs`) |
 | 16, 17 | GEV 0x49 extinguisher (X, `44a240` @44b4cf) | with a fire and the panel's one charge (`+0x3c`, set by `45af00`; `45ae10` uses it up and plays `SFX_FIRE_EXTINGUISHER` 0x27 for the player): clears 17, 16, 3, 2 and the fire lights 2, 1. Flags 8 / 9 that the fire set stay. Without a fire nothing happens (the charge is kept) |
 | 4 / 5 / 6 / 7 | GEV 0xc / 0x11 / 0x10 / 0xe and the gear legs `44f970` | flaps lever, **air brakes key** (@44c821) and autopilot key refused; gear legs stuck |
-| 7 | per frame `448b20` @448fe2–4490a1 | **gear overspeed**: FM getter 5 (speed, capped 1200 m/s) · 1.9428 > **450 kt** (`0x600af0`), not Invulnerable, gear handle down (ind[9]), no flag 7 yet, leg 1 (`ctl+0x53c`) == 2 (down and locked) → `FUN_0044d760(7)` (corrects flight-model.md §12, which said none exists) |
+| 7 | per frame `448b20` @448fe2–4490a1 | **gear overspeed**: FM getter 5 (speed, capped 1200 m/s) · 1.9428 > **450 kt** (`0x600af0`), not Invulnerable, gear handle down (ind[9]), no flag 7 yet, leg 1 (`ctl+0x53c`) == 2 (down and locked) → `FUN_0044d760(7)` |
 | 1, 20 | GEV 0x46 ECM, 0x40 / 0x42 / 0x44 / 0x45 weapons | refused (docs/weapons.md) |
 | 13, 15, 20 | `44d760` once: `456200` (gun +0x9c), `4adb20` (radar off for good), `456cc0` (weapons +0xa0) | gun / weapons: docs/weapons.md; radar: `radar.rs set_damaged` |
 | 14 | RWR (`44deb0` …, cockpit `S+0x590`) | docs/rwr.md |
 | 11 (instruments), 19, 21 | — | **only the damage page** (and 19 / 21 through the flags they set): no gauge reads them |
 | 12 (HUD) | `45cd30` → `446830`: S+0x5c0 | the HUD pass `FUN_00530b70` returns at once while it is set: no HUD symbols and no I-mode marks (docs/cockpit.md "I-mode"). Ported: `hud.gd` `hud_failed` |
 
-**"No malfunctions"** (Gameplay, pref `+0x24`) and **"No wind"** (`+0x28`) have no effect. The exe touches them only
-in the copy from the menu (`4fe5f8`, `4fe676`) and in save / load; none of the 37 pref-getter (`43b5d0`) calls reads
-them. So systems still break with "No malfunctions" on, as in the original. The exe has no wind at all (no
-weather / wind code or strings), so there is nothing to port.
+**"No malfunctions"** (Gameplay, pref `+0x24`) and **"No wind"** (`+0x28`) have no reader. The exe touches them only in
+the copy from the menu (`4fe5f8`, `4fe676`) and in save / load; none of the 37 pref-getter (`43b5d0`) calls reads
+them. So systems still break with "No malfunctions" on, as in the original. The exe's flight model has no wind; the
+mission's wind feeds only the tower's call. Ours: NO WIND calms Better physics "Wind and turbulence"
+(docs/flight-model.md §10).
 
 **Port:**
 - `iaf_flight::damage_bits` / `Aircraft::set_damage`: thrust, stick, spin. The host passes the flags every frame.
@@ -419,8 +407,8 @@ weather / wind code or strings), so there is nothing to port.
 
 ## 6. Explosions, smoke, debris
 
-This section gives the original's rules. Graphics → MORE → Particle effects = Detailed draws the same spawns as GPU particles
-(docs/rendering.md §6).
+This section gives the original's rules. Graphics → MORE → Particle effects = Detailed draws the same spawns as GPU
+particles (docs/rendering.md §6).
 
 ### 6.1 The explosion object (Tgen `FUN_00416880`, per-frame `FUN_004167b0` / `FUN_00416a70`)
 An explosion is one object whose flags pick the effects (table below).
@@ -435,7 +423,7 @@ An explosion is one object whose flags pick the effects (table below).
 - **Sprites are centred** on the position. Every effect sprite (AirExp1, smoke3, smokeseg, trail, missFLR, chaff,
   splash / ring, lens, afterburn, gun) loads with the 6th loader argument +0x178 = 1 (`FUN_0058a420` →
   `FUN_004102a0` @41062b). `FUN_00410690` then spans ±h. (With 0 it would span −2h..0, bottom-anchored; no effect
-  uses that. Earlier versions of this page said bottom-anchored: wrong.)
+  uses that.)
 - Sprites are drawn for 4 ≤ z ≤ 30000, depth-tested, without z-write.
 
 In the table, t = age / the sprite's time (0..1) and S = the event's scale [7]. Splash and ring are fixed in the
@@ -499,7 +487,7 @@ world (they do not turn to the camera) and drawn without z-write. Their sprite t
 Our choices:
 - Puffs at a fixed 30 Hz. The original makes one per frame, so its density follows the frame rate.
 - The column follows the VISUAL EFFECTS level.
-- No wind: the exe has none (the mission weather is not decoded).
+- No wind drift, as in the original (Better physics "Wind and turbulence" moves only the flight model).
 - An event's duration [6] cuts its fireball short, as `FUN_004167b0` frees the event (effect 0x18: 0.8 s).
 - The splash and ring are the original quads with the install's textures. Weapons on water use them too: gun
   rounds and rockets at scale 1, bombs and missiles at scale 3 (docs/weapons.md).
@@ -628,8 +616,7 @@ that frame.
 ## 8. Uncertain / not ported
 - The lens-flash texture.
 - State 4.
-- Radio kill / "is down" calls, FlyTSD 6.5 s after the player's death (campaign), network play.
+- FlyTSD 6.5 s after the player's death (multiplayer only, §3.2), network play.
 - The flight model's reaction to the hit shake.
 - Collision: full vs half extents (the renderer call behind vtable +0xb0 is not traced).
-- Original-vs-better decision for the user: puffs per frame (§6.3). The heading-0 fall and the Rookie / Normal factor
-  are already Physics opt-ins (deviations.md §2).
+- Open for the user: puffs per frame (the original) or at 30 Hz (ours, §6.3).

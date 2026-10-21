@@ -1,8 +1,9 @@
 # Weapons — the player's gun, IR missiles, stores (v1.1)
 
-This doc describes how Jane's IAF v1.1 arms the player's jet, and how iaf-reborn ports it (`game/weapons/`, logic in
-`crates/iaf-avionics`). Use it to re-implement or check any weapon: the data records, the stores, the gun, the
-missiles, the bombs and rockets, the decoys and the TV weapons.
+This doc describes how Jane's IAF v1.1 arms the player's jet and how ours ports it (`game/weapons/`, logic in
+`crates/iaf-avionics`): the data records, the stores, the gun, the missiles, the bombs and rockets, the decoys and
+the TV weapons. The radar and its lock are in docs/radar.md, the RWR in docs/rwr.md, the Real numbers in
+docs/real-weapons.md.
 
 Key facts:
 - All addresses are v1.1 (`assets/ghidra_v11/iafjets.c`); docs/v1.1.md maps them to v1.0.
@@ -59,8 +60,6 @@ What is built:
 - The TV weapons (635 Maverick, 640 TV missile) with the guided motion, the camera riding the weapon and the TV
   page's TRA / TER and time (§12).
 - The laser bombs with the FLIR designation (§9.8).
-
-The radar and its lock (the seeker slaved to it) are in docs/radar.md.
 
 ## 1. Data
 
@@ -153,22 +152,20 @@ Drawing (`FUN_0053e430`) applies to any aircraft whose entity +0x34 object is se
 - A station whose model lacks a `Station*` helper (Su-24, Su-22, MiG-21, MiG-25, …) has no attach point. Ours draws
   nothing there (UNCERTAIN: the original's attach point without the helper); its weight / drag still count.
 
-**Pylons.** The pylons are **part of each jet's model**. The code draws and attaches stores only:
-- `FUN_0053e430` draws the store models;
-- `FUN_0053c1f0` attaches the store (weapon record +0x1c) and the 560 rocket box;
-- the bdb Weapons and Objects records carry no pylon / rail field ("Pilon" in the code is the pilot eye or the
-  store's lug helper).
-
-The pylon geometry: thin vertical double-sided quads (F-16: material `f16_2side1`, alpha mask, UV v 1.07–1.11 with
-repeat) under stations B..D / F..H, from the wing to ≈ 0.1 model units below the attach point. The wingtip rails A / I
-have none. So the pylons are always drawn, loaded or empty, they stay after a release, and EXTERNAL STORES leaves them
-visible. The store's lug (its `pilon` helper) sits at the attach point, inside the pylon's lower edge. Seen from
-ahead, behind or below, the quads are edge-on and nearly invisible, so the stores look detached, as in the original.
-Ported as is: the converted models carry the quads, and `test_pylons.gd` checks the geometry under every wing station
-of the six models of the seven flyable jets.
+**Pylons** are **part of each jet's model**. The code only draws the stores (`FUN_0053e430`) and attaches them
+(`FUN_0053c1f0`: the store, weapon record +0x1c, and the 560 rocket box). The bdb Weapons and Objects records carry
+no pylon / rail field ("Pilon" in the code is the pilot eye or the store's lug helper).
+- The geometry: thin vertical double-sided quads (F-16: material `f16_2side1`, alpha mask, UV v 1.07–1.11 with repeat)
+  under stations B..D / F..H, from the wing to ≈ 0.1 model units below the attach point. The wingtip rails A / I have
+  none.
+- So the pylons are always drawn, loaded or empty, after a release and with EXTERNAL STORES off.
+- The store's lug (its `pilon` helper) sits at the attach point, inside the pylon's lower edge. From ahead, behind or
+  below the quads are edge-on and nearly invisible, so the stores look detached, as in the original.
+- Ported as is: the converted models carry the quads; `test_pylons.gd` checks the geometry under every wing station
+  of the six models of the seven flyable jets.
 
 ### 2.3 Selection (`FUN_0053b8b0`)
-'Keys: ']' (event 0x3e) selects the next AA store, '[' (0x3c) the next AG store. **Shift+[ / Shift+] send the same
+Keys: ']' (event 0x3e) selects the next AA store, '[' (0x3c) the next AG store. **Shift+[ / Shift+] send the same
 events (they also step forward).** Selection works only while nothing is being released or fired.
 
 The cycle:
@@ -191,13 +188,10 @@ Master mode `ctl+0x78` (`FUN_0044ec80`) → HUD mode `ctl+0x5c` and MFD page (`F
 | 590 | 4 | 8 HARM | HARM |
 | 650 | 5 | 5 (6 with a FLIR pod: the FLIR starts) | stores / FLIR |
 | 635, 640 | 6 | 7 | TV (the TV camera starts) |
-- M (0x63) cycles NAV → AA → AG → NAV (`ctl+0x7c`) with SFX_BUTTON, then sets every MFD's page (docs/mfd.md §5):
-  NAV radar / NAV / TSD (2 MFDs radar / TSD), AA radar / RWR / TSD (2 MFDs: TSD on the Right with a panel RWR),
-  AG radar / stores / TSD (the HARM page for a selected 590).
+- M (0x63) cycles NAV → AA → AG → NAV (`ctl+0x7c`) with SFX_BUTTON, then sets every MFD's page (docs/mfd.md §5).
 - Changing to NAV leaves the EO mode on (`FUN_00449810` case 0 skips `FUN_0044e6e0`).
 - N (0x62, p 0) goes to NAV.
 - '[' / ']' / N play no button click.
-- There is no master arm: firing the selected store needs HUD mode 1..8.
 
 ### 2.4 Release (Space 0x40 / up 0x41)
 Space works in HUD mode 1..8. With the gear handle down it works only with Safety off **and** the gun selected.
@@ -210,8 +204,6 @@ Weapon systems damage (flag 20) refuses it.
    weapon with rounds left farthest from it (AIM-9: 0 → 8 → 0 …).
 4. Releases from the store's slot[count−1] (else the pylon) through the attitude, at the jet's velocity.
 5. Decrements the count (`FUN_0053c8b0`; skipped with Unlimited ammo) and updates drag / weight (§2.5).
-
-No message or sound tells the player the store is empty.
 
 ### 2.5 Weight and drag (`FUN_00454010` from the FM init `FUN_005a8980`)
 The sum runs over pylons 0..8 and counts **one store per station whatever the count**.
@@ -316,9 +308,8 @@ Every 0.1 s (`FUN_00560710`) the round detonates:
 
 The round moves ~145 m per check, so it can step over the sphere (original).
 
-Ours, with Weapon data Real (docs/real-weapons.md §1.4): the check sweeps the segment flown since the last one and
-hits within the target's drawn half-span + 0.004 · range (×2 with Easy aiming); the blast goes off at the target's
-origin.
+Weapon data Real sweeps the segment flown since the last check against the target's half-span (docs/real-weapons.md
+§1.4).
 
 ### 3.5 Detonation (`FUN_004d6130`, `FUN_004d7c80`)
 - Sphere hit: the blast (power 100, radius 50 for "20 MM" / DEFA) reaches the round's candidate list only.
@@ -361,8 +352,8 @@ With a radar lock (S+0xa20) the **range arc** shows:
 - a 2 px pen arc of radius 11 px about the pipper centre, from 12 o'clock clockwise by r·π (a full turn at 2 NM). The
   GDI `Arc` draws it counterclockwise from the end at r·π back to 12 o'clock.
 
-Ours starts the rate filters from the attitude at mode entry. The original's first values are untraced; starting from
-0, the first heading step would throw the pipper off for about a second.
+Ours starts the rate filters from the attitude at mode entry (the original's first values are untraced; from 0 the
+first heading step throws the pipper off for about a second).
 
 **Mode 4** (`FUN_0045ef10`, new in v1.1): the pipper is the projection of the mode-4 aim point A.
 
@@ -462,8 +453,8 @@ reaches every unit around. After launch the missile flies on its own: the seeker
 
 ### 5.4 Helmet sight: DASH (off-boresight IR lock)
 DASH (Elbit's Display And Sight Helmet) lets the IR seeker lock where the pilot looks. In the exe the helmet is two
-things (the exe has no "helmet" string): the cockpit key `[HUD] Dash` (docs/cockpit.md "HUD dash repeater") and a
-view-dependent branch of the seeker. Traced (v1.1, objdump):
+things (it has no "helmet" string): the cockpit key `[HUD] Dash` (docs/cockpit.md "HUD dash repeater") and a
+view-dependent branch of the seeker:
 * **Seeker, `FUN_00461f10` @461fb0**: when the radar has no A-A lock and the current view (`DAT_00699304` camera
   slot +0x458 → +8) is **free look 0x12 or padlock 0x16**: A = the 3D camera's forward axis (`FUN_00582880`: the
   head yaw / pitch with the 5.5° look-down, docs/views.md §4.3), B = the jet's nose; **B·A ≥ cos(generation cone)**
@@ -482,9 +473,8 @@ view-dependent branch of the seeker. Traced (v1.1, objdump):
   of a turned head (docs/cockpit.md "3D view"). With the head ≤ cone off the nose the seeker locks. The seeker's
   target comes from the screen search; the padlock only turns the head.
 * **Symbols**: the helmet display's missile circle on (320, 220), the seeker diamond eased onto the target's screen
-  point (held in the field), the DASH aircraft symbol and attitude bar (docs/cockpit.md). **Sounds**: the same seek /
-  lock tones. **Launch** (§5.2), the same rule: the seeker target inside the 6000 px² circle around the HUD centre,
-  q = (lock ? 1 : 0.1)·0.8. The missile chases that target on its own after launch.
+  point (held in the field), the DASH aircraft symbol and attitude bar (docs/cockpit.md). **Sounds** and **launch**
+  are §5.1 / §5.2's.
 * **Radar-slaved** (any view): the A-A lock's unit at once, visible within the generation cone of the **nose** (the
   first branch of `FUN_00461f10`).
 
@@ -508,21 +498,19 @@ The whole text block (six rows) is in docs/cockpit.md "HUD symbology".
 The quantity and interval strings appear on the stores page only; the HUD weapon line omits them.
 
 ## 7. Weapon data: Real (Extras)
-Preferences > Extras > Weapon data = Real overlays public numbers (docs/real-weapons.md): missile weights, top speed
-(β) and range (burn), IR seeker lock ranges by aspect (real-weapons.md §1.2), seeker cones and g limits, radar detection ranges, gun rounds per jet, rate
-of fire and muzzle velocity. The default is Original. The Arming screen's CURRENT LOAD and weights use the same
-numbers as the flight, so Real shows the real weights.
+Preferences > Extras > Weapon data = Real (default Original) overlays public numbers: docs/real-weapons.md. The
+Arming screen's CURRENT LOAD and weights use the flight's numbers, so Real shows the real weights.
 
-## 8. Corrections to earlier docs
-- `FUN_004604c0` is a seeker for weapon 0x27b (damage.md §4.4 named it as the LCOS solver). The gun pippers are
+## 8. Function identities
+- `FUN_004604c0` is the TV seeker / camera of weapon 0x27b (635, §12.3), not an LCOS solver. The gun pippers are
   `FUN_0045f410` (AA, mode 3) and `FUN_0045ef10` (AG, mode 4).
 - `FUN_005611b0` / `FUN_00468470` (the ±`_debugParam016` clamp) are the bomb / shell ballistics (class 0x16). Nothing
   steers a gun round.
 - The `_spiralAccel` ×0.5 of `FUN_005604a0` / `FUN_005605c0` is the hit sphere of the fixed weapons (gun round,
   rocket). The missiles use another rule (§5.3).
-- The bdb Weapons parser is `FUN_00593ee0` (an earlier doc said `FUN_004c37c2`).
-- controls.md §4 already has the right meanings of (110,27) Shift+S = Safety toggle, (110,4) Shift+R = reload stores,
-  (110,26) Ctrl+W = re-read Weapons.ibx (the keys.trx labels are wrong).
+- The bdb Weapons parser is `FUN_00593ee0`, not `FUN_004c37c2`.
+- The keys.trx labels of (110,27) Shift+S, (110,4) Shift+R and (110,26) Ctrl+W are wrong; their meanings (Safety
+  toggle, reload stores, re-read Weapons.ibx) are in docs/controls.md §4.
 
 ## 9. Bombs and rockets (500, 510, 560, 650)
 Built: `crates/iaf-avionics/src/bombs.rs` via `game/weapons/bombs.gd`, `player_weapons.gd`, HUD `hud.gd _draw_ag`;
@@ -573,7 +561,7 @@ A ripple releases `quantity` stores, `interval` metres apart on the ground, one 
   Sounds: SFX_AIRCRAFT_FIRED_WEAPON / OST_BOMB (WPN_BGBMB_RLS), OST_CLUSTERBOMB (WPN_SMLBMB_RLS), OST_ROCKET,
   OST_LASERBOMB (WPN_RDRMIS_RLS). A falling store loops SFX_OBJECT_SPECIFIC / its OST (WPN_BGMB_FLY, WPN_SMLBNB_FLY,
   WPN_RDRMIS_FLY).
-- Any height works: there is no master arm, no minimum release altitude and no arming / fuse time. A store bursts at
+- Any height works: there is no minimum release altitude and no arming / fuse time. A store bursts at
   the ground (or at its aim). The gear rule is Space's (§2.4: gear handle down → only the gun with Safety off).
 
 ### 9.3 The aim and the ripple line (`FUN_00454b70` cases 500 / 510 / 560 and 650 without a designation)
@@ -589,8 +577,8 @@ is frozen in `W+0xf4..`: aim[k] = P + (k − ⌊qty/2⌋)·interval·(sin h, cos
 terrain. Store n aims at aim[qty − remaining].
 
 **The radar's GMT (ground moving target) / MAP designation (radar.gd `designate`) plays no part**: the mode-5 update
-and the aim ignore it. In the exe only the MAP cross reads the designated point (docs/radar.md §8), so the game has no
-CCRP.
+and the aim ignore it. Only the MAP cross and the HUD's TD box read the designated point (docs/radar.md §8), so the
+game has no CCRP.
 
 ### 9.4 The mode-5 HUD object (`FUN_0045d0a0`, update vtable +0x10 `FUN_0045d470` → `FUN_0045d1d0`)
 This object predicts the impact point, draws the CCIP / delayed-release symbols and feeds the release cue.
@@ -642,9 +630,9 @@ Fields: +0xc impact I, +0x18 target T, +0x24 / +0x28 the pipper's screen point, 
     other 300 ms.
   - HUD text (`FUN_0052ef20` case 5): row 3 "R %2.1f" with a lock, row 4 "W%02d %02.1f" (waypoint), and only off the
     HUD row 5 "%2d SEC" of the time-to-go, "XX SEC" from 90 s (0x65d4ac, 0x65d4bc).
-- In short, the original's A-G modes are CCIP and a "delayed CCIP" (the target under the HUD-edge pipper, release on
-  the 0.9 s cue), with the 12 px/deg 3-D projection of the cockpit view. Ours: the HUD rectangle is our HUD Control,
-  and the ray through the clipped point comes from our camera (docs/deviations.md).
+- So the A-G modes are CCIP and a "delayed CCIP" (the target under the HUD-edge pipper, release on the 0.9 s cue),
+  with the 12 px/deg 3-D projection of the cockpit view. Ours: the HUD rectangle is our HUD Control, and the ray
+  through the clipped point comes from our camera (docs/deviations.md).
 
 ### 9.5 The falling store (500 / 510 / 660 → class 0x16, BallisticMotion 0x1c, ctor `FUN_00467ed0`, vtable 0x601b40)
 - **Launch** (`FUN_004d6c10` → `FUN_00561b40` sets the aim; the launch variants `FUN_00560c20` / `FUN_00560e80` /
@@ -902,8 +890,8 @@ docs/real-weapons.md §2); the Original data keeps this rule.
   motion's vfunc +0x80, clamped by `FUN_004d6ac0`: below 0 → 0, above 300 → 60).
 - **STT envelope ticks** (MFD, `FUN_00534160`): three black ticks at y 39 / 65 / 91 and the DLZ max / min as ticks
   x 121..117 at y = 122 − ⌊v·112/(R·1853)⌋ while inside the scale (docs/mfd.md).
-- Ours: the screen offsets come from the camera ray through the HUD centre built from the camera's projection matrix
-  (Godot's `project_ray_normal` ignores the cockpit camera's frustum offset: the sight was ≈ 5° low before).
+- Ours: the screen offsets come from the camera ray through the HUD centre, built from the camera's projection
+  matrix (Godot's `project_ray_normal` ignores the cockpit camera's frustum offset, ≈ 5°).
 
 ### 11.4 Semi-active (610)
 A semi-active missile (610) needs the launcher's radar to keep its lock.
@@ -934,8 +922,8 @@ the selected store's DLZ max, the seeker diamond at its screen point) and +0x28 
   Ctrl+Return steps to the next one.
 - Extras "HARM targets: Real" (ours) lists the RWR's active emitters as the targets, plus the hostile scanned sites
   without a brain (they never lock, so the RWR never lists them; ours counts them as searching, inferred). Mission
-  322's HARM target, the "dummy SA-2" radar (brain −1), is one. They are common: 28 missions have "RADAR…" sites with brain −1, most of them
-  all their radar sites, so the rule applies in every mission, not only the lessons.
+  322's HARM target, the "dummy SA-2" radar (brain −1), is one. 28 missions have "RADAR…" sites with brain −1 (in
+  most, all their radar sites), so the rule matters beyond the lessons.
 
 ### 11.6 Validation
 `tests/godot/test_radar_missiles.gd`: the DLZ (AMRAAM example, receding target, target behind, no target), the circle,
@@ -1047,7 +1035,6 @@ Open points:
 - the rocket box when empty;
 - the hit effects look; the tracer look;
 - the muzzle flash scale / blend / cockpit visibility;
-- the MFD page placement for weapon modes (taken as event 0x5a's rule);
 - the missile flight loop sound and explosion look;
 - `FUN_0045ee10`'s selector 0 (taken as the load factor);
 - the snap views' camera type for the seeker's helmet branch (§5.4);

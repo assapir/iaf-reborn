@@ -67,7 +67,7 @@ STT takes LRS's (max index, NM). A jet without LRS uses ACM's.
 | key | event | rule |
 |---|---|---|
 | Q | 0x24 (`FUN_004ad6f0`) | A-A: LRS → TWS → ACM → LRS (missing modes skipped; leaving STT unlocks); A-G: GMT ↔ MAP; an off radar starts |
-| R | 0x2b (`FUN_004ad8f0`) | A-G or off → the last A-A mode, else the last A-G mode (the lock is dropped). If no MFD shows the radar, R first puts the page up. M calls it too (docs/mfd.md §5) |
+| R | 0x2b (`FUN_004ad8f0`) | A-G or off → the last A-A mode, else the last A-G mode (the lock is dropped). M calls it too (docs/mfd.md §5) |
 | S | 0x2c (`FUN_004ad9c0`) | STBY (an on radar is turned off first: lists cleared) |
 | . / , | 0x21 / 0x22 (`FUN_004adb70`) | range index ±1 in [1, max], then a scan; ignored in STT |
 | \ down / up | 0x2d / 0x2e | BORE while held (A-A only), back to the saved mode |
@@ -144,29 +144,28 @@ Damage cases 0xf / 0x13 / 0x15 (`FUN_004adb20`) turn the radar OFF, and every la
 `player_weapons.gd` calls `set_damaged` when the player's damage flag 15 is set. Generator failures 19 / 21 set it too
 (docs/damage.md §5.2).
 
-## 8. Not built / ours
-- **ECM (electronic countermeasures):** the player's jammer is built (J, `player_weapons.gd` `ecm_key`,
-  docs/weapons.md §10). AI units carry no ECM: nothing sets a target's `ecm`, so the launch q − rand of
-  `_launch_target` never applies. The AI sensors ignore the player's jammer.
-- **The designated point is used by the MAP page's cross and the HUD's TD box**, as in the original.
-  - Its X / Y / height (+0x58 / +0x5c / +0x60) are written by `FUN_004ade90` and read through the controller's
-    ctl+0xdc by `FUN_0044e370` (the HUD below).
-  - The flag +0x50 goes to state+0xa1c (`FUN_00445f10`). The MFD cross (`FUN_00535ea0`) and the HUD read it.
-  - The HUD: `FUN_0052f690` calls the TD box `FUN_00537330` with a lock or a designation. The box sits at S+0xff4, the
-    target point of `FUN_0045a810` → `FUN_0044e370`. That point is the lock or, without one, the vector at ctl+0xdc.
-    The radar sits at ctl+0x84, so ctl+0xdc..0xe4 is radar+0x58..0x60: the designated point. Ours draws the box at
-    the lock, else at the designated point (`hud.gd` `target_box`).
-  - No bomb / rocket aim (docs/weapons.md §9.3), EO / FLIR / TV slew or laser reads it. The game has no CCRP
+## 8. Ours
+- **ECM (electronic countermeasures):** the player's jammer is built (docs/weapons.md §10). AI units carry no ECM,
+  so the launch q − rand of `_launch_target` never applies. The AI's scans and launches react to the player's jammer
+  (docs/ai.md §13).
+- **The designated point** (+0x58 / +0x5c / +0x60, written by `FUN_004ade90`) is read by the MAP page's cross and
+  the HUD's TD box, as in the original:
+  - the flag +0x50 goes to state+0xa1c (`FUN_00445f10`), which the MFD cross (`FUN_00535ea0`) and the HUD read;
+  - `FUN_0052f690` calls the TD box `FUN_00537330` with a lock or a designation. The box sits at S+0xff4, the target
+    point of `FUN_0045a810` → `FUN_0044e370`: the lock or, without one, the vector at ctl+0xdc. The radar sits at
+    ctl+0x84, so ctl+0xdc..0xe4 is radar+0x58..0x60, the designated point. Ours: `hud.gd` `target_box` draws the box
+    at the lock, else at the designated point;
+  - no bomb / rocket aim (docs/weapons.md §9.3), EO / FLIR / TV slew or laser reads it. The game has no CCRP
     (continuously computed release point).
-- **STT envelope ticks:** the STT range scale's envelope ticks are drawn (the selected store's DLZ, dynamic launch
-  zone; docs/weapons.md §11.2, docs/mfd.md).
-- **Semi-active missiles (610):** a launch locks STT. Every track drop / change turns their guidance off
-  (`FUN_00458130`, docs/weapons.md §11.4). Radar damage leaves their guidance on (original quirk kept).
+- **STT envelope ticks:** the selected store's DLZ (dynamic launch zone) on the STT range scale (docs/weapons.md
+  §11.3, docs/mfd.md).
+- **Semi-active missiles (610):** a launch locks STT; a track drop or change turns their guidance off (docs/weapons.md
+  §11.4).
 - **Terrain line of sight** (`line_of_sight`; also used by the HARM sensor and by the ground units' sensors / fire,
   `IafRadar.line_of_sight`): ours steps by the clearance, at least every 20 m, so it never steps over a narrow ridge
   (the original's sampling is UNCERTAIN). The heights come from the Rust height field `IafHeights`
   (crates/iaf-avionics/src/heights.rs: the full-detail nodes terrain.gd streams, the same interpolation as
-  `height_at`), so there is no GDScript call per sample (tests/godot/test_heights.gd).
+  `height_at`), with no GDScript call per sample (tests/godot/test_heights.gd).
 - **Weapon data Real:** the LRS / STT detection range of each Jet list jet is its real radar's (F-16 APG-68 80 km,
   F-15 APG-63 135 km, …; docs/real-weapons.md §1.3). The MiGs keep the table.
 
