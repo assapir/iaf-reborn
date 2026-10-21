@@ -34,6 +34,10 @@ ranked order, are in [docs/graphics-research.md](graphics-research.md).
   Timna; not the game's Ramon air base). Each needs a base layout (runways, taxiways,
   shelters, tower, lineup / taxi / hangar points in iaf.ibx terms), its 3D objects and ground art, and missions that
   use it (inferred: the Mission Creator and the Real 1:1 base move already read bases from data).
+- **Mission Creator "Better"** (wishlist): a free map editor on the TSD, after the original screen. Wind levels
+  (user 2026-10-21): a wind choice beside the time of day (e.g. calm / light / moderate / strong, plus a direction),
+  written to the mission's wind fields (misc 0x46a / 0x474) that the "Wind and turbulence" switch flies in
+  (flight-model.md §10).
 - **A modern TSD map** (wishlist, user 2026-10-20): today's borders and place names on the TSD (an opt-in; the 1998
   map stays the default).
 
