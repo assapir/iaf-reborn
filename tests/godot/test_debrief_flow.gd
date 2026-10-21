@@ -173,6 +173,19 @@ func _pages() -> void:
 		),
 		"losses: F-4E, −700 red, empty rows not drawn"
 	)
+	# The Mission Creator's mission: "N/A" in green but the pilot's score; empty rows still not drawn.
+	settings().mission_id = 0x29a
+	p2 = dv.items(2)
+	check(
+		(
+			_line(p2, 58) == ["N/A", Color8(0, 255, 0)]
+			and _line(p2, 128).is_empty()
+			and _line(p2, 234) == ["N/A", Color8(0, 255, 0)]
+			and _line(p2, 269)[0] == str(int(dv.stats.pilot_score))
+		),
+		"mission 0x29a: N/A, green, the pilot's score a number"
+	)
+	settings().mission_id = 113
 	# The structure row's bound reads the ground row's slot (< 4 ground icons placed).
 	settings().debrief = {
 		"passed": false,

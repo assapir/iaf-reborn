@@ -1916,8 +1916,9 @@ shows the new page.
   red; on these two pages a row is drawn only when it is not 0. The bonus is red when negative. The kill sum is green,
   the loss sum always red (also when it is 0). The score and the pilot's score are
   always green.
-* On the multiplayer missions (0x21d, 0x29a, 0x213, or a multiplayer game) every number but the pilot's score is
-  "N/A". Not ported.
+* On missions 0x21d, 0x29a (the Mission Creator's), 0x213 and in a multiplayer game every number but the pilot's score is
+  "N/A" (`DAT_0065aba8`), green, also where the number would be red; a KILL TALLY / LOSSES row still shows only when
+  its value is not 0. The port does the same for the three missions (it has no multiplayer game).
 * The Hebrew art labels the 219 line "losses" (אבדות) and the 234 line "kills" (פגיעות), the other way round from the
   English art. The exe draws the same numbers in both languages, so in Hebrew the kill sum stands next to "losses".
   The port keeps it.

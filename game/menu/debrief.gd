@@ -131,20 +131,24 @@ func items(t: int) -> Array:
 			out.append({"icon": [0, ground_cell(c), 5][row], "at": at})
 			var label: String = Pilots.CATEGORY_NAMES[c] if n < 2 else "%sX%d" % [Pilots.CATEGORY_NAMES[c], n]
 			out.append({"text": label, "at": at + Vector2(13, 17), "align": "center", "key": true, "color": GREEN})
+	# Missions 0x21d, 0x29a (the Mission Creator's) and 0x213 show "N/A", all green, for every number but the pilot's
+	# score; a row's visibility still follows its value (FUN_00517130).
+	var na: bool = Settings.mission_id in [0x21d, 0x29a, 0x213]
 	for r in 3:
 		var v: int = [sc.k[r] - sc.l[r], sc.k[r], -sc.l[r]][t]
 		if t == 0 or v != 0:
-			out.append(_num(v, ROW_Y[r], RED if v < 0 else GREEN))
-	out.append(_num(int(a.bonus), BONUS_Y, RED if int(a.bonus) < 0 else GREEN))
-	out.append(_num(sc.k[0] + sc.k[1] + sc.k[2], KILLS_Y, GREEN))
-	out.append(_num(-(sc.l[0] + sc.l[1] + sc.l[2]), LOSSES_Y, RED))
-	out.append(_num(sc.score, SCORE_Y, GREEN))
+			out.append(_num(v, ROW_Y[r], RED if v < 0 else GREEN, na))
+	out.append(_num(int(a.bonus), BONUS_Y, RED if int(a.bonus) < 0 else GREEN, na))
+	out.append(_num(sc.k[0] + sc.k[1] + sc.k[2], KILLS_Y, GREEN, na))
+	out.append(_num(-(sc.l[0] + sc.l[1] + sc.l[2]), LOSSES_Y, RED, na))
+	out.append(_num(sc.score, SCORE_Y, GREEN, na))
 	out.append(_num(int(stats.pilot_score), PILOT_Y, GREEN))
 	return out
 
 
-func _num(v: int, y: int, color: Color) -> Dictionary:
-	return {"text": "%d" % v, "at": Vector2(SCORE_X, y), "align": "right", "key": false, "color": color}
+func _num(v: int, y: int, color: Color, na := false) -> Dictionary:
+	var text: String = "N/A" if na else "%d" % v
+	return {"text": text, "at": Vector2(SCORE_X, y), "align": "right", "key": false, "color": GREEN if na else color}
 
 
 func _draw() -> void:
