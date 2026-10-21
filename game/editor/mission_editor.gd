@@ -25,7 +25,7 @@ const ROLES := ["Must survive", "Target", "Neutral"]
 const WIND_KT := [["Calm", 0], ["10 kt", 10], ["15 kt", 15], ["20 kt", 20], ["Random", 1]]
 ## New: the era's original the mission is built on (its map, airbases and Alpha's start): 231 License to Kill
 ## (an F-16 at Ramat David), 121 7 Columns of Fire, 111 Battle Against Time.
-const NEW_ERAS := [["Modern", 231], ["1973", 121], ["1967", 111]]
+const NEW_ERAS := [["1998", 231], ["1973", 121], ["1967", 111]]
 const WIND_FROM := ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
 
 ## Where your missions are saved (a test points it elsewhere).

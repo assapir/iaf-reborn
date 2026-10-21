@@ -44,7 +44,7 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
   read-only. The only action on them is **Fork**.
 - **My missions** are the files in `user://missions/`. Only these can be edited.
 - **New** asks for a name and an era, and builds a mission from scratch on that era's original (`NEW_ERAS`):
-  Modern on 231 License to Kill, 1973 on 121 7 Columns of Fire, 1967 on 111 Battle Against Time.
+  1998 (the game's present) on 231 License to Kill, 1973 on 121 7 Columns of Fire, 1967 on 111 Battle Against Time.
   - `IafMissionEdit.blank` keeps only flight 1 (Alpha), with its jets, start and route, so the mission flies at once.
     Every other unit and flight, the paths, events, debrief texts and the briefing go.
   - The original's base missions (its airbases and their defences) stay, as for a fork; `source` is that original.
