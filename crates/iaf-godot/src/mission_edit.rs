@@ -8,6 +8,7 @@ use std::sync::{LazyLock, Mutex};
 use godot::prelude::*;
 use iaf_formats::terrain_types::TerrainTypes;
 use iaf_tools::mission_edit as me;
+use iaf_tools::mission_year as my;
 use serde_json::{Map, Value, json};
 
 /// The assets directory and what `check` / `ground_height` read from it, loaded when first asked for.
@@ -116,6 +117,65 @@ impl IafMissionEdit {
     #[func]
     fn remove_flight(mission: GString, number: i64) -> GString {
         text(&me::remove_flight(parse(&mission), number))
+    }
+
+    /// A red flight taking off from a base (mission_edit::set_red_flight): `spec` JSON {type, count, base (stem),
+    /// name, template?, points?}.
+    #[func]
+    fn set_red_flight(mission: GString, spec: GString) -> GString {
+        text(&me::set_red_flight(parse(&mission), &parse(&spec)))
+    }
+
+    /// A base mission with blue and red swapped.
+    #[func]
+    fn flip_base(base: GString) -> GString {
+        text(&me::flip_base(parse(&base)))
+    }
+
+    /// The mission years: a JSON array of [value, label] (mission_year::years).
+    #[func]
+    fn years() -> GString {
+        text(&json!(my::years()))
+    }
+
+    /// The original a new mission of `year` is built on (its TSD map and airbases).
+    #[func]
+    fn year_source(year: f64) -> i64 {
+        my::source_for(year)
+    }
+
+    /// The year an original mission is set in.
+    #[func]
+    fn default_year(source: i64) -> f64 {
+        my::default_year(source)
+    }
+
+    /// The bases `side` (1 blue, 2 red) owns in `year`: a JSON array of {stem, name, start: [x, y, z, heading]}.
+    #[func]
+    fn year_bases(year: f64, side: i64) -> GString {
+        let b: Vec<Value> =
+            my::bases(year, side).iter().map(|b| json!({"stem": b.stem, "name": b.name, "start": b.start})).collect();
+        text(&json!(b))
+    }
+
+    /// The side that owns base `stem` in `year`: 1 blue, 2 red, 0 none.
+    #[func]
+    fn base_owner(stem: GString, year: f64) -> i64 {
+        my::base(&stem.to_string()).map_or(0, |b| my::owner(b, year))
+    }
+
+    /// The jets (bdb object ids) `side` has in service in `year`; the never-served ones only with `what_if`.
+    #[func]
+    fn year_jets(year: f64, side: i64, what_if: bool) -> PackedInt64Array {
+        PackedInt64Array::from(my::jets(year, side, what_if).as_slice())
+    }
+
+    /// The year check (warnings): a JSON array of {id, level, text}.
+    #[func]
+    fn year_issues(mission: GString, year: f64, what_if: bool) -> GString {
+        text(&json!(
+            my::year_issues(&parse(&mission), year, what_if).iter().map(me::Issue::to_json).collect::<Vec<_>>()
+        ))
     }
 
     /// A mission from scratch on an original of the wanted era: only flight 1 (Alpha) stays (mission_edit::blank).

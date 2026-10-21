@@ -34,8 +34,10 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
   - **Units:** every entity of the main file; the selected unit's name, side, role, heading and altitude; Delete;
     Add a unit; Give a route.
   - **Flights:** Alpha … Delta (type, number of jets, Set, Remove), and the route of any flight, blue or red: its
-    waypoints with altitude (m) and speed (km/h), Insert a waypoint after, Delete the waypoint.
-  - **Mission:** the start time, the wind and the briefing in English and Hebrew.
+    waypoints with altitude (m) and speed (km/h), Insert a waypoint after, Delete the waypoint. **Add an enemy
+    flight:** a red base, a red jet and 1 or 2 jets (§12.5).
+  - **Mission:** the year and the what-if switch (§12), the start time, the wind and the briefing in English and
+    Hebrew. A new year runs the checks again.
 
 ## 2. Opening and saving
 
@@ -43,20 +45,13 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
   template) and 777 (multiplayer All-Out War), listed by their title (misc `0x44c`). They open
   read-only. The only action on them is **Fork**.
 - **My missions** are the files in `user://missions/`. Only these can be edited.
-- **New** builds a mission from scratch. It asks for a name, an era, a home base, a jet and whether Alpha has a
-  wingman (`NEW_ERAS`, `NEW_BASES` in `mission_editor.gd`):
-
-  | Era | Built on (map, airbases) | Home bases (blue) | Jets |
-  |---|---|---|---|
-  | 1998 (the game's present) | 231 License to Kill | Ramat David, Tel Nof, Ramon | F-16, F-15, F-4 2000, Kfir, Lavi |
-  | 1973 | 121 7 Columns of Fire | Ramat David, Tel Nof, Refidim | F-4, Mirage |
-  | 1967 | 111 Battle Against Time | Ramat David, Tel Nof | Mirage |
-
-  - The bases and jets per era are inferred from history: Refidim in Sinai was an Israeli base from 1967 to 1982,
-    so blue starts there only in 1973; Ramon opened in 1982.
+- **New** builds a mission from scratch. It asks for a name, a year (§12), a home base, a jet, whether Alpha has a
+  wingman, and whether what-if aircraft are offered:
+  - The year picks the original the mission is built on, so its TSD map and airbases (§12.1).
+  - The home bases are the bases blue holds that year (§12.2); the jets are the blue jets in service that year
+    (§12.3).
   - `IafMissionEdit.blank` empties the original: every unit and flight but Alpha, the paths, events, debrief texts and
-    the briefing go. `set_flight` then puts Alpha on the home base's start point (the Mission Creator's, Refidim's
-    from 121's Alpha) with one waypoint 20 km ahead.
+    the briefing go. `set_flight` then puts Alpha on the home base's start point with one waypoint 20 km ahead.
   - **No wingman** is allowed: Alpha flies alone, as the original Mission Creator's number 1 does.
   - The original's base missions (its airbases and their defences) stay, as for a fork, plus the home base's own
     when the original lacks it. The file keeps the list as `"bases"`; `source` is the original.
@@ -69,11 +64,11 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
 
   ```json
   {"source": 512, "name": "Wild West 2", "files": [{"name": "wild_west", "data": {…}}], "bases": ["bmisrmon", "bmistlnf"],
-   "briefing": {"en": "…", "he": "…"}}
+   "year": 1998, "what_if": true, "briefing": {"en": "…", "he": "…"}}
   ```
 
-  Only the edited main file is saved. The base missions are read again from `source` when the mission opens and when
-  it flies. The editor never writes under `assets/`.
+  Only the edited main file is saved. The base missions are read again from `assets/` when the mission opens and when
+  it flies, except a flipped base (§12.5), which the file holds whole. The editor never writes under `assets/`.
 - **Save as** saves a copy under the new name and goes on editing the copy.
 - **Undo** steps back through up to 50 edits.
 
@@ -90,6 +85,10 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
   debrief texts and the training rules are the source mission's.
 - `name`: the mission's name, also written to `misc 0x44c`.
 - `files`: the edited main file only. The base missions are read again from `source`.
+- `bases`: the base missions by name; a base with its sides flipped is an object `{"name": "bmisrfdim_flipped",
+  "data": {…}}` (§12.5). Without `bases`, the source's.
+- `year`: the mission year (§12). Without it, the source's year (§12.6).
+- `what_if`: true when never-served aircraft are allowed (§12.4). Without it, true for sources 200 and up.
 - `briefing`: the English and the Hebrew text (plain text), both optional.
 
 **Names** (`mission_edit::valid_name`, `stem`, `free_name`):
@@ -129,6 +128,12 @@ Missions go in and come back as JSON strings. Positions are engine world metres:
 | `ground_height(x, y)` | the terrain height, or null outside the terrain (§6) |
 | `check(mission)` | the Fly and ground check as a JSON array of `{id, level, text}` (Checks and calibration) |
 | `blank(mission)` | a mission from scratch: only flight 1 (Alpha) and its jets stay (New, §2) |
+| `set_red_flight(mission, spec)` | a red flight taking off from a base (§12.5) |
+| `flip_base(base)` | a base mission with blue and red swapped (§12.5) |
+| `years()`, `year_source(year)`, `default_year(source)` | the years; the original a year builds on; an original's year (§12) |
+| `year_bases(year, side)`, `base_owner(stem, year)` | the bases a side holds; a base's owner (§12.2) |
+| `year_jets(year, side, what_if)` | the jets a side has in service (§12.3) |
+| `year_issues(mission, year, what_if)` | the year's warnings (§12.7) |
 
 ### 5.1 Ids and references
 - A new row takes the placeholder row's id, and the placeholder moves one up. Ids are never reused, so an old
@@ -273,9 +278,217 @@ Each flight record also carries `formation`, the index of its formation in the m
 
 ## 11. Tests
 
-- `tests/godot/test_mission_editor.gd`: Fork's name, the name rules, a drag moving an Alpha jet, an added SA-6 at the
+- `tests/godot/test_mission_editor.gd`: New by year (1967 before June offers Tel Nof and Ramat David and the
+  Mirage; 1973 adds Refidim; no Lavi without what-if), an enemy flight from Damascus, a flipped Refidim before June
+  1967, the year and the bases kept by Save and Open, the Refidim warning in 1990; then Fork's name, the name rules, a drag moving an Alpha jet, an added SA-6 at the
   ground's height, Undo, an SA-6 in the sea as an error (red ring, Fly off), Save and Open giving the same mission,
   and the original file unchanged.
 - `tests/godot/_mission_editor_shot.gd`: a real-render screenshot (usage in its header).
 - `tests/godot/test_mission_edit_fly.gd`: Fly from an edited mission 115 (§8).
-- `cargo test -p iaf-tools --lib mission_edit`: names, edits and references, routes, the check and its calibration.
+- `tests/godot/test_mission_edit_red.gd`: two MiG-29s added at Damascus in a 1998 mission spawn as AI jets, take off
+  and fly their route.
+- `cargo test -p iaf-tools --lib mission_`: names, edits and references, routes, red flights, flipped bases, the
+  check and its calibration; the year tables (`mission_year`).
+
+## 12. Mission year
+
+Every mission has a year from 1966 to 1998. 1998 is the game's present. The year 1967 has two entries, before and
+after the Six-Day War (5 June 1967). The year decides:
+- the original that New builds on, and so its TSD map (§12.1);
+- the bases each side holds (§12.2);
+- the aircraft and SAM / AAA each side has in service (§12.3);
+- the year's warnings (§12.7).
+
+Code: `crates/iaf-tools/src/mission_year.rs`, through `IafMissionEdit` (§5).
+
+- **Values:** a whole year stands for mid-year (1973 is mid-1973). 1967 before June is stored as 1967.25, 1967 after
+  as 1967.75. The tables below use dates.
+- **Labels:** "1967 (before the Six-Day War, June)", "1967 (after)", else the year.
+
+### 12.1 The TSD map
+The TSD draws one of three maps, chosen by the mission id (`tsd.gd setup`, front-end.md §8). Rendered from
+`menu/emf/*.json`, the three maps show:
+
+| Map | Missions | Borders drawn | Years in the editor | Source original |
+|---|---|---|---|---|
+| `67` | 110–119 | the 1949 Green Line round the West Bank and Gaza; the Sinai border; the Golan Syrian | 1966, 1967 before June | 111 Battle Against Time |
+| `73` | 120–129 | no Green Line; no Sinai border, the line on the Suez Canal; the Golan inside Israel's line | 1967 after June to 1981 | 121 7 Columns of Fire |
+| `82` | the rest | the Sinai border again; no Green Line; the Golan inside Israel's line | 1982 to 1998 | 231 License to Kill |
+
+- The cut years follow the history: Israel took Sinai, the West Bank and the Golan on 5–10 June 1967[^sinai-occ]
+  and completed its withdrawal from Sinai on 25 April 1982[^1982].
+- The `73` map shows the lines of 1967–1973. It does not draw the 1974 and 1975 pull-backs in Sinai[^sinai2] or
+  the 1980 interim line[^jta-1980]; the editor uses it up to 1981 (inferred: the closest of the three maps).
+- The map follows the source's id. A year changed on the Mission tab changes the checks, not the map or the source.
+
+### 12.2 Airbases
+The base missions' airbases, who holds them, and where a flight starts. A blue start is the Mission Creator's
+(`mission_creator.rs` BASES; Refidim's is 121's Alpha). A red start is the base's lineup point and runway heading in
+`iaf.ibx` (docs/ai.md §9), where the originals' red flights take off.
+
+| Base (base mission) | Held by | Start (x, y, z, heading) |
+|---|---|---|
+| Tel Nof (`bmistlnf`) | blue throughout[^telnof] | 312984, 500459, 59, 90 |
+| Ramat David (`bmisrdvd`) | blue throughout[^ramatdavid] | 356404, 602402, 28, 270 |
+| Ramon (`bmisrmon`) | blue from 1982[^ramon] | 317439, 411135, 579, 230 |
+| Refidim (`bmisrfdim`) | red to 5 June 1967; blue to 25 January 1980; then nobody[^gifgafa][^jta-1980][^treaty] | 153765, 373720, 98, 0 |
+| Inshas (`bmisinsa`) | red throughout[^inshas] | −23742, 360968, −556, 270 |
+| Damascus (`bmisdmsk`) | red throughout[^mezzeh] | 450815, 699907, 889, 240 |
+| Al-Qusayr (`bmiskuzr`, "Kutzeir") | red throughout[^syaf] | 487086, 820615, 614, 280 |
+| Bley (`bmisbley`) | red throughout (open) | 468942, 614520, 856, 235 |
+| Rayak (`bmisryak`) | red throughout[^rayak] | 446008, 762295, 1200, 90 |
+| Amman (`bmisamman`) | red throughout[^amman] | 430218, 505154, 924, 260 |
+
+- **Refidim** (Bir Gifgafa) was Egyptian until the IDF took it on 7 June 1967 (the table uses 5 June, the war's
+  start)[^gifgafa]. It was the first base Israel left after the peace treaty; JTA on 22 January 1980 reports its
+  handover "at a ceremony Friday", so 25 January 1980[^jta-1980]. After that the treaty's zones allow no fighter base
+  there: only unarmed transports in Zone B and civilian airfields[^treaty].
+- **Ramon** was built from 1979 to 1982; squadrons moved in from Sinai from 1981[^ramon]. The table uses 1982.
+- **Rayak** is a Lebanese Air Force base[^rayak]. The originals use it as a red base (237, 325); Syrian use of it is
+  open. Red throughout is inferred from the originals.
+- **Amman** (Marka) opened in 1950 as a joint military and civil airport[^amman]. It stays red after the 1994 peace
+  treaty, as in the originals (516 The Reactor, set in 1998): inferred.
+- **Bley** stands about 45 km south of Damascus, where a source lists a "Ble" military airfield[^ble]. Its opening
+  year is open.
+- `bmistlnf_red` (Tel Nof as red, for multiplayer 513) is not in the table.
+
+### 12.3 Aircraft and SAM / AAA in service
+Per bdb object (`default6_1.bdb`): the years each side has it. Red is any of Egypt, Syria, Jordan and Iraq; the data
+does not tell the countries apart, so red has a type from the first year any of them had it. "—" means never in
+1966–1998. A type not listed has no year check.
+
+| Type (bdb ids) | Blue | Red |
+|---|---|---|
+| F-16 (1, 146, 177) | from July 1980[^f16-ops][^fas-iaf] | from March 1982 (Egypt)[^egaf] |
+| F-15 (40, 147) | from December 1976[^f15] | —[^f15-wiki] |
+| F-4 (48, 156, 179) | from September 1969[^f4] | from September 1979 (Egypt)[^acig-f4] |
+| F-4 2000 (17) | from August 1987[^f4] | — |
+| Mirage (47, 180) | to 1982[^mirage3][^acig-mirage] | from 1973 (Egypt, Libyan Mirages)[^egaf] |
+| Kfir (99, 181) | from 1975[^kfir] | — |
+| A-4 (144) | from December 1967[^a4] | — |
+| Lavi (74) | never: a what-if (§12.4)[^lavi] | — |
+| MiG-17 (44) | — | throughout (Egypt 1956)[^mig17] |
+| MiG-21 (8) | — | throughout (Iraq 1962)[^mig21] |
+| MiG-23 (11) | — | from April 1974 (Syria)[^mig23] |
+| MiG-25 (33) | — | from March 1971 (Egypt, Soviet crews)[^mig25] |
+| MiG-29 (2) | — | from 1987 (Iraq)[^fas-iraq] |
+| Su-22 (45) | — | from 1973 (Iraq's Su-20)[^su17] |
+| Su-24 (73) | — | from 1987 (Syria)[^su24] |
+| Tu-22 (54) | — | 1973 to 1991 (Iraq)[^tu22] |
+| Black Hawk (39) | from August 1994[^uh60] | — |
+| CH-53 (53) | from October 1969[^ch53] | — |
+| Mi-8 (43) | — | from 1967[^mi8] |
+| Mi-24 (42) | — | from 1972[^mi24] |
+| Il-76 (15, 131) | — | from 1974[^il76] |
+| Hawk (30–32) | throughout (1965)[^hawk] | — |
+| SA-3 (22, 23) | — | from March 1970 (Egypt)[^sa3] |
+| SA-5 (19–21) | — | from January 1983 (Syria)[^sa5] |
+| SA-6 (6, 13) | — | from 1973[^sa6] |
+| SA-8 (75, labelled "SA 10") | — | from 1982 (Syria)[^sa8] |
+| SA-13 (26) | — | from May 1976[^sa13] |
+| ZSU-23-4 (50) | — | from 1968 (Egypt, Syria)[^zsu] |
+
+- **Inferred:** the Mirage's end is the sale of the IAF's Mirages to Argentina, delivered from December
+  1982[^acig-mirage]. The Tu-22's start: "during the 1970s"[^tu22]; 1973 is inferred, the exact year is open.
+- **Inferred lower bounds:** the Mi-8, Mi-24, Il-76 and SA-13 years are their first Soviet service; an export is no
+  earlier. Their first Arab years are open.
+- **SA-6:** Egypt and Syria used it in October 1973[^sa6]; an earlier delivery is open.
+- **Open, no year check:** SA-2 (Egypt had it by 1967[^sa2]), C-130 and Boeing 707 (the IAF's first years), the
+  Kfir's IAF retirement ("the second half of the 1990s"[^kfir]), tanks and other vehicles.
+
+### 12.4 What-if aircraft
+A type that never served (the Lavi: first flight 31 December 1986, cancelled 30 August 1987[^lavi]) is offered only
+with the **What-if (hypothetical) aircraft** switch, in New and on the Mission tab. The switch is saved as
+`"what_if"`. With it off, a Lavi in the mission gets the warning "Lavi: never in service (a what-if aircraft)".
+Originals from 200 up (the game's own future, where the Lavi flies: 213, 513) open with the switch on.
+
+### 12.5 Enemy flights
+**Add an enemy flight** on the Flights tab adds a red flight that takes off from a base red holds in the year, with
+a red jet in service that year, 1 or 2 jets (`set_red_flight`). It follows the originals' red flights:
+- the formation number is 8, as for all 172 red flights of the originals ("Other"; the TSD's edit mode keys each by
+  `100 + formation index`);
+- the brains (`0x2da`) are 13 for the leader and 15 for the wingman, the commonest pair (55 red flights);
+- the leader stands at the base's red start (§12.2), the wingman 50 m off its left; ground-start jets near the lineup
+  roll straight out (docs/ai.md §8.2);
+- the template is a red jet of that type from the originals; the pylons are left empty, so the type's own stores load;
+- the route: take off to a point 10 km ahead on the runway heading (action 2), on 30 km further (action 3), back to
+  the base to land (action 7). The originals' red take-off points are 10–11 km ahead too. A waypoint's "speed" is its
+  planned arrival time in sim seconds (docs/ai.md §7.2): the take-off waits for wp0's 30 s; the others are timed at
+  250 m/s.
+
+The base's base mission is added to the mission's `"bases"`. When the data has that base for the other side (Refidim
+before June 1967 is Egyptian, its base mission blue), the editor writes a copy with blue and red swapped
+(`flip_base`), named `<stem>_flipped`, into the custom file. Only the files under `user://` change.
+
+The route is then edited as any flight's (§1). Remove a red flight's jets on the Units tab.
+
+### 12.6 The year of an original
+A fork starts with its original's year, by the mission id (front-end.md §5.4, the campaign lists):
+
+| Ids | Campaign | Year |
+|---|---|---|
+| 111–117 | Six-Day War | 1967 (after) |
+| 121–127 | Yom Kippur War | 1973 |
+| 131–137 | Lebanon War | 1982 |
+| 2xx, 3xx, 4xx, 5xx | the future campaigns, training, scramble, multiplayer | 1998 |
+
+### 12.7 The year's warnings
+After each edit, and when the year changes, the editor adds `year_issues` to the check (§9). They are warnings only:
+- a blue or red unit outside its side's years in §12.3: "MiG-29 in 1973: not in red service then";
+- a flight whose leader starts on the ground at a base (within 3 km of its start point and less than 300 m above it)
+  that its side does not hold that year: "flight Alpha starts at Refidim in 1990: no fighter base".
+
+Run over the originals at their own years, the warnings show the game's own liberties, for example:
+- 111–117: CH-53, A-4, Il-76, Tu-22, ZSU-23-4 and Mi-24 in 1967;
+- 126: MiG-29 and MiG-23 in 1973;
+- the training missions: the Mirage in 1998;
+- 512, 513, 666, 777: blue types on the red side.
+
+[^sinai-occ]: Wikipedia, "Israeli occupation of the Sinai Peninsula": https://en.wikipedia.org/wiki/Israeli_occupation_of_the_Sinai_Peninsula
+[^1982]: Wikipedia, "1982 in Israel", 25 April: "Israel completes its withdrawal from the Sinai Peninsula": https://en.wikipedia.org/wiki/1982_in_Israel
+[^sinai2]: Wikipedia, "Sinai Interim Agreement" (4 September 1975): https://en.wikipedia.org/wiki/Sinai_Interim_Agreement
+[^jta-1980]: JTA, "Israel moving to new Sinai line", 22 January 1980: "the Refidim military base and airfield, the largest in the Sinai, will be given back to the Egyptians at a ceremony Friday": https://www.jta.org/archive/israel-moving-to-new-sinai-line
+[^telnof]: Wikipedia, "Tel Nof Airbase": RAF Aqir from 1941, an Israeli base from 17 August 1948: https://en.wikipedia.org/wiki/Tel_Nof_Airbase
+[^ramatdavid]: Wikipedia, "Ramat David Airbase": an RAF field from 1942, Israeli from 1948: https://en.wikipedia.org/wiki/Ramat_David_Airbase
+[^ramon]: Wikipedia, "Ramon Airbase": "built between 1979 and 1982": https://en.wikipedia.org/wiki/Ramon_Airbase
+[^gifgafa]: Wikipedia, "Bir Gifgafa Airfield": "taken by the IDF's 84th Tal Division on June 7"; "the very first air base from which Israel withdrew": https://en.wikipedia.org/wiki/Bir_Gifgafa_Airfield
+[^treaty]: Peace treaty between Israel and Egypt (1979), Annex I Art. III: Egyptian combat aircraft only over Zone A; unarmed transports in Zone B; only civilian airfields in the zones: https://jewishvirtuallibrary.org/peace-treaty-between-israel-and-egypt
+[^inshas]: Wikipedia, "Inchas Air Base": "In 1954, the airfield was taken over by the Egyptian Air Force": https://en.wikipedia.org/wiki/Inchas_Air_Base
+[^mezzeh]: Wikipedia, "Mezzeh Military Airport": a Syrian Air Force base after 1946, MiG-17 squadrons by 1957: https://en.wikipedia.org/wiki/Mezzeh_Military_Airport
+[^syaf]: Wikipedia, "List of Syrian Air Force bases" (Al-Qusayr, 825 Squadron); the opening year is open: https://en.wikipedia.org/wiki/List_of_Syrian_Air_Force_bases
+[^rayak]: Wikipedia, "Rayak Air Base": "the place where the Lebanese Air Force was born on June 1, 1949": https://en.wikipedia.org/wiki/Rayak_Air_Base
+[^amman]: Wikipedia, "Amman Civil Airport": "founded in 1950 by the British as a joint military-civilian airport": https://en.wikipedia.org/wiki/Amman_Civil_Airport
+[^ble]: Enab Baladi, "Eight military airfields around Damascus" (read from the search summary only): https://english.enabbaladi.net/archives/2025/11/eight-military-airfields-around-damascus-what-are-they/
+[^f16-ops]: Wikipedia, "General Dynamics F-16 Fighting Falcon operators": Peace Marble I, deliveries 1979–1981; Jordan 1997: https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon_operators
+[^fas-iaf]: FAS, "Israeli Air Force": the first F-16s "became operational in Israel in 1980": https://nuke.fas.org/guide/israel/agency/iaf.htm
+[^egaf]: Wikipedia, "Egyptian Air Force": "In March 1982, Egypt received its first 12 F-16"; Libyan Mirages in the 1973 war: https://en.wikipedia.org/wiki/Egyptian_Air_Force
+[^f15]: GlobalSecurity, "F-15 Baz": "the first Baz planes arrived in Israel on 10 December 1976": https://www.globalsecurity.org/military/world/israel/f-15.htm
+[^f15-wiki]: Wikipedia, "McDonnell Douglas F-15 Eagle": Saudi Arabia is the only Arab operator: https://en.wikipedia.org/wiki/McDonnell_Douglas_F-15_Eagle
+[^f4]: Wikipedia, "McDonnell Douglas F-4 Phantom II non-U.S. operators": first F-4Es accepted 5 September 1969; Kurnass 2000 "formally accepted on 11 August 1987": https://en.wikipedia.org/wiki/McDonnell_Douglas_F-4_Phantom_II_non-U.S._operators
+[^acig-f4]: ACIG, Egyptian F-4Es: "first 18 arrived in September 1979": https://acig.org/artman/publish/article_361.shtml
+[^mirage3]: Wikipedia, "Dassault Mirage III": the IAF's Mirage IIICJs delivered "between April 1962 and July 1964": https://en.wikipedia.org/wiki/Dassault_Mirage_III
+[^acig-mirage]: ACIG, Argentina received "19 Mirage IIICJ and 3 Mirage IIIBJ … between 12/1982 and 02/1983": https://acig.org/artman/publish/article_274.shtml
+[^kfir]: Wikipedia, "IAI Kfir": "The Kfir entered service with the IAF in 1975"; withdrawn "during the second half of the 1990s": https://en.wikipedia.org/wiki/IAI_Kfir
+[^a4]: Wikipedia, "McDonnell Douglas A-4 Skyhawk": "The first deliveries took place in December 1967": https://en.wikipedia.org/wiki/McDonnell_Douglas_A-4_Skyhawk
+[^lavi]: Wikipedia, "IAI Lavi": first flight 31 December 1986; cancelled on 30 August 1987: https://en.wikipedia.org/wiki/IAI_Lavi
+[^mig17]: Wikipedia, "Mikoyan-Gurevich MiG-17": "The Egyptian Air Force received its first MiG-17s in 1956": https://en.wikipedia.org/wiki/Mikoyan-Gurevich_MiG-17
+[^mig21]: Wikipedia, "Mikoyan-Gurevich MiG-21 operators": "Iraq received its first 16 MiG-21F-13s in 1962": https://en.wikipedia.org/wiki/Mikoyan-Gurevich_MiG-21_operators
+[^mig23]: Wikipedia, "Mikoyan-Gurevich MiG-23": "The first MiG-23s were supplied to Syria in April 1974": https://en.wikipedia.org/wiki/Mikoyan-Gurevich_MiG-23
+[^mig25]: Wikipedia, "Mikoyan-Gurevich MiG-25": MiG-25R / RB in Egypt from March 1971: https://en.wikipedia.org/wiki/Mikoyan-Gurevich_MiG-25
+[^fas-iraq]: FAS, "Iraqi Air Force": "a squadron of 24 MiG-29s to Baghdad in early 1987": https://nuke.fas.org/guide/iraq/agency/af.htm
+[^su17]: Wikipedia, "Sukhoi Su-17": "Su-20s Iraq acquired in 1973": https://en.wikipedia.org/wiki/Sukhoi_Su-17
+[^su24]: Wikipedia, "Sukhoi Su-24": Syria, "20 Su-24MKs … starting in 1987": https://en.wikipedia.org/wiki/Sukhoi_Su-24
+[^tu22]: Wikipedia, "Tupolev Tu-22": exported to Iraq "during the 1970s"; the rest destroyed in the 1991 Gulf War: https://en.wikipedia.org/wiki/Tupolev_Tu-22
+[^uh60]: Wikipedia, "Sikorsky UH-60 Black Hawk": the IAF "received 10 surplus UH-60A Black Hawks … in August 1994": https://en.wikipedia.org/wiki/Sikorsky_UH-60_Black_Hawk
+[^ch53]: Wikipedia, "Sikorsky CH-53 Sea Stallion": "On 2 October 1969, the first … were delivered to Israel": https://en.wikipedia.org/wiki/Sikorsky_CH-53_Sea_Stallion
+[^mi8]: Wikipedia, "Mil Mi-8": Soviet service from 1967: https://en.wikipedia.org/wiki/Mil_Mi-8
+[^mi24]: Wikipedia, "Mil Mi-24": Soviet service from 1972: https://en.wikipedia.org/wiki/Mil_Mi-24
+[^il76]: Wikipedia, "Ilyushin Il-76": Soviet service from 1974; Iraq and Syria flew it: https://en.wikipedia.org/wiki/Ilyushin_Il-76
+[^hawk]: Wikipedia, "MIM-23 Hawk": the first Hawk battalion deployed to Israel in 1965: https://en.wikipedia.org/wiki/MIM-23_Hawk
+[^sa3]: Wikipedia, "S-125 Neva/Pechora": Soviet S-125 battalions in Egypt from March 1970: https://en.wikipedia.org/wiki/S-125_Neva/Pechora
+[^sa5]: Wikipedia, "S-200 (missile)": "Starting in January 1983, Syria received supplies of S-200 missiles": https://en.wikipedia.org/wiki/S-200_(missile)
+[^sa6]: Wikipedia, "2K12 Kub": the Egyptian and Syrian 2K12s in the 1973 war: https://en.wikipedia.org/wiki/2K12_Kub
+[^sa8]: Wikipedia, "9K33 Osa": the Syrians deployed Osas in the 1982 Lebanon war: https://en.wikipedia.org/wiki/9K33_Osa
+[^sa13]: Wikipedia, "9K35 Strela-10": Soviet service from 16 May 1976: https://en.wikipedia.org/wiki/9K35_Strela-10
+[^zsu]: Wikipedia, "ZSU-23-4 Shilka": "1968–1970: War of Attrition (Egypt and Syria)": https://en.wikipedia.org/wiki/ZSU-23-4_Shilka
+[^sa2]: techno-science.net, "S-75 Dvina": Israel captured S-75 batteries in 1967: https://www.techno-science.net/fr/definitions/s-75-dvina

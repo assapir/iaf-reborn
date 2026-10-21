@@ -74,3 +74,49 @@ func check(mission: Dictionary) -> Array:
 ## A mission from scratch on an original of the wanted era: only flight 1 (Alpha) stays.
 func blank(mission: Dictionary) -> Dictionary:
 	return _parse(IafMissionEdit.blank(_js(mission)))
+
+
+# --- the mission year (mission_year.rs, docs/mission-editor.md §12) ---
+
+
+## A red flight taking off from base `spec.base` (a base mission stem): {type, count, base, name, template?}.
+func set_red_flight(mission: Dictionary, spec: Dictionary) -> Dictionary:
+	return _parse(IafMissionEdit.set_red_flight(_js(mission), _js(spec)))
+
+
+## A base mission with blue and red swapped.
+func flip_base(base: Dictionary) -> Dictionary:
+	return _parse(IafMissionEdit.flip_base(_js(base)))
+
+
+## [[value, label]]: the years New and the Mission tab offer.
+func years() -> Array:
+	return JSON.parse_string(IafMissionEdit.years())
+
+
+func year_source(year: float) -> int:
+	return IafMissionEdit.year_source(year)
+
+
+func default_year(source: int) -> float:
+	return IafMissionEdit.default_year(source)
+
+
+## [{stem, name, start: [x, y, z, heading]}]: the bases `side` (1 blue, 2 red) owns in `year`.
+func year_bases(year: float, side: int) -> Array:
+	return JSON.parse_string(IafMissionEdit.year_bases(year, side))
+
+
+## 1 blue, 2 red, 0 nobody's.
+func base_owner(stem: String, year: float) -> int:
+	return IafMissionEdit.base_owner(stem, year)
+
+
+func year_jets(year: float, side: int, what_if: bool) -> PackedInt64Array:
+	return IafMissionEdit.year_jets(year, side, what_if)
+
+
+## The year's warnings: [{id, level, text}].
+func year_issues(mission: Dictionary, year: float, what_if: bool) -> Array:
+	var v = JSON.parse_string(IafMissionEdit.year_issues(_js(mission), year, what_if))
+	return v if v is Array else []

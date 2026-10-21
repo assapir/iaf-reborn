@@ -23,22 +23,6 @@ const ROLES := ["Must survive", "Target", "Neutral"]
 ## Wind as the Mission Creator's Better combos (mission_creator.gd); Random stores 1, which the game turns into a
 ## random one of 0 / 10 / 15 / 20 kt (Settings.pick_wind).
 const WIND_KT := [["Calm", 0], ["10 kt", 10], ["15 kt", 15], ["20 kt", 20], ["Random", 1]]
-## New: per era, the original the mission is built on (its TSD map and airbases), the blue home bases and jets.
-## Inferred from history: Sinai's Refidim was Israeli 1967–1982 (so 1973 only); Ramon opened in 1982; the jets by
-## their IAF service (bdb object ids: 47 Mirage, 48 F-4 of the 1970s, 1 F-16, 40 F-15, 17 F-4 2000, 99 Kfir, 74 Lavi).
-const NEW_ERAS := [
-	["1998", 231, ["Ramat David", "Tel Nof", "Ramon"], [1, 40, 17, 99, 74]],
-	["1973", 121, ["Ramat David", "Tel Nof", "Refidim"], [48, 47]],
-	["1967", 111, ["Ramat David", "Tel Nof"], [47]],
-]
-## Home base → its base mission and start point (x, y, z, heading): the Mission Creator's (mission_creator.rs
-## BASES), Refidim from 121's Alpha.
-const NEW_BASES := {
-	"Tel Nof": ["bmistlnf", 312984.0, 500459.0, 59.0, 90.0],
-	"Ramat David": ["bmisrdvd", 356404.0, 602402.0, 28.0, 270.0],
-	"Ramon": ["bmisrmon", 317439.0, 411135.0, 579.0, 230.0],
-	"Refidim": ["bmisrfdim", 153765.0, 373720.0, 98.0, 0.0],
-}
 const WIND_FROM := ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
 
 ## Where your missions are saved (a test points it elsewhere).
@@ -56,6 +40,10 @@ var main_name := ""  # the main file's name (the source's)
 var data := {}  # the main file being edited
 var base_files: Array = []  # [{name, data}], re-read from the source
 var briefing := {"en": "", "he": ""}
+## The mission year (IafMissionEdit years: 1967.25 / 1967.75 are 1967 before / after the Six-Day War) and whether
+## never-served (what-if) aircraft are allowed; both saved in the custom file (docs/mission-editor.md §12).
+var year := 1998.0
+var what_if := false
 var file := ""  # its user:// file, "" while unsaved
 var read_only := true
 var objects := {}  # the bdb's Objects by id
@@ -130,6 +118,9 @@ func _taken() -> PackedStringArray:
 func _read_bases(id: int, stems: Array = []) -> Array:
 	var out := []
 	for stem in stems if not stems.is_empty() else originals.get(id, {}).get("files", []).slice(1):
+		if stem is Dictionary:  # a base mission with its sides flipped, kept in the custom file
+			out.append({"name": String(stem.name), "data": stem.data, "flipped": true})
+			continue
 		out.append({"name": String(stem), "data": Settings.load_json(mission_dir.path_join(String(stem) + ".json"))})
 	return out
 
@@ -150,7 +141,14 @@ func open_original(id: int) -> void:
 		briefing[lang] = _plain(String(b.get(lang))) if b.get(lang) != null else ""
 	read_only = true
 	file = ""
+	_default_year()
 	_refresh()
+
+
+## An original's year by its id; the game's own future (2xx and up) flies the Lavi, so what-if is on there.
+func _default_year() -> void:
+	year = api.default_year(source)
+	what_if = source >= 200
 
 
 func open_file(path: String) -> void:
@@ -158,6 +156,9 @@ func open_file(path: String) -> void:
 	if d.is_empty() or d.get("files", []).is_empty():
 		return
 	_open(int(d.source), String(d.name), String(d.files[0].name), d.files[0].data)
+	_default_year()
+	year = float(d.get("year", year))
+	what_if = bool(d.get("what_if", what_if))
 	if d.has("bases"):
 		base_files = _read_bases(source, d.bases)
 		_refresh()
@@ -258,17 +259,24 @@ func suggest_name() -> String:
 	return api.free_name(mission_name, _taken())
 
 
-## A new mission called `name` from scratch on the era's original (NEW_ERAS): only its Alpha flight stays.
-func new_mission(name: String, era: int, base: String, jet: int, wingman: bool) -> void:
-	var e: Array = NEW_ERAS[era]
-	var b: Array = NEW_BASES[base]
-	open_original(e[1])
+## A new mission called `name` from scratch on the year's original (IafMissionEdit year_source: its TSD map and
+## airbases): only Alpha stays, at blue home base `base` (a name of year_bases) with `jet`, and a wingman if asked.
+func new_mission(name: String, y: float, base: String, jet: int, wingman: bool, hypothetical := false) -> void:
+	var b := {}
+	for it in api.year_bases(y, 1):
+		if it.name == base:
+			b = it
+	if b.is_empty():
+		return
+	open_original(api.year_source(y))
+	year = y
+	what_if = hypothetical
 	data = api.blank(data)
-	if not b[0] in base_files.map(func(f): return f.name):
-		base_files.append({"name": b[0], "data": Settings.load_json(mission_dir.path_join(b[0] + ".json"))})
-	var ahead := Vector2(b[1], b[2]) + Vector2.from_angle(deg_to_rad(90.0 - b[4])) * 20000.0
-	var spec := {"type": jet, "count": 2 if wingman else 1, "slot_x": b[1], "slot_y": b[2], "alt": b[3]}
-	spec.merge({"heading": b[4], "points": [[ahead.x, ahead.y, 3000.0, 800.0]]})
+	_add_base(b.stem, 1)
+	var st: Array = b.start
+	var ahead := Vector2(st[0], st[1]) + Vector2.from_angle(deg_to_rad(90.0 - st[3])) * 20000.0
+	var spec := {"type": jet, "count": 2 if wingman else 1, "slot_x": st[0], "slot_y": st[1], "alt": st[2]}
+	spec.merge({"heading": st[3], "points": [[ahead.x, ahead.y, 3000.0, 800.0]]})
 	data = api.set_flight(data, 1, spec)
 	briefing = {"en": "", "he": ""}
 	read_only = false
@@ -276,6 +284,50 @@ func new_mission(name: String, era: int, base: String, jet: int, wingman: bool) 
 	save_as(name)
 	_refresh()
 	_frame_view()
+
+
+## Base mission `stem` among the base files, for `side`: added when missing; a copy with blue and red swapped when the
+## data has it for the other side (its runway, the first unit, tells).
+func _add_base(stem: String, side: int) -> void:
+	for i in base_files.size():
+		var f: Dictionary = base_files[i]
+		if f.name == stem or f.name == stem + "_flipped":
+			if _base_side(f.data) == side:
+				return
+			base_files.remove_at(i)
+			break
+	var d := Settings.load_json(mission_dir.path_join(stem + ".json"))
+	if _base_side(d) == side:
+		base_files.append({"name": stem, "data": d})
+	else:
+		base_files.append({"name": stem + "_flipped", "data": api.flip_base(d), "flipped": true})
+
+
+static func _base_side(d: Dictionary) -> int:
+	for e in d.get("entities", {}).get("items", []):
+		if int(e.get("0x14", 0)) == 0:
+			return int(e.get("0x2d0", 0))
+	return 0
+
+
+## A red flight of `count` `jet`s taking off from red base `stem` (IafMissionEdit set_red_flight); the base mission
+## comes with it.
+func add_enemy_flight(stem: String, jet: int, count: int) -> void:
+	if read_only or data.is_empty():
+		return
+	_add_base(stem, 2)
+	var name := String(objects.get(jet, {}).get("0x528", "Red")).replace("MIG", "MiG")
+	var spec := {"type": jet, "count": count, "base": stem, "name": name}
+	if templates.has(jet):
+		spec["template"] = templates[jet]
+	_edit(api.set_red_flight(data, spec))
+
+
+## The year (or the what-if switch) changed: the checks run again.
+func set_year(y: float, hypothetical: bool) -> void:
+	year = y
+	what_if = hypothetical
+	_refresh()
 
 
 ## The open mission copied into your own, called `name` (name_error / own_clash answered first).
@@ -300,7 +352,11 @@ func save() -> void:
 	DirAccess.make_dir_recursive_absolute(missions_dir)
 	var out := {"source": source, "name": mission_name, "files": [{"name": main_name, "data": data}]}
 	# The base missions by name (New may add a home base the source lacks); read again at Open.
-	out["bases"] = base_files.map(func(f): return f.name)
+	out["bases"] = base_files.map(
+		func(f): return {"name": f.name, "data": f.data} if f.get("flipped", false) else f.name
+	)
+	out["year"] = year
+	out["what_if"] = what_if
 	out["briefing"] = briefing.duplicate()
 	var f := FileAccess.open(file, FileAccess.WRITE)
 	if f != null:
@@ -590,7 +646,7 @@ func _refresh() -> void:
 		for i in tsd.units.size():
 			if tsd.units[i].key == "0:%d" % keep_sel:
 				tsd.selected = i
-	issues = api.check(data) if not data.is_empty() else []
+	issues = api.check(data) + api.year_issues(data, year, what_if) if not data.is_empty() else []
 	if tsd != null:
 		tsd.issues = {}
 		for it in issues:
@@ -814,10 +870,21 @@ func _build_flights_tab(box: VBoxContainer) -> void:
 	_ui.wp_speed = _row(box, "Speed km/h", _spin(0, 3000, 10, func(v): set_waypoint_value(4, v)))
 	_button(box, "Insert a waypoint after", insert_waypoint)
 	_button(box, "Delete the waypoint", delete_waypoint)
+	box.add_child(HSeparator.new())
+	box.add_child(_label("Add an enemy flight (red, from a base red holds in the mission's year)"))
+	_ui.red_base = _row(box, "Base", OptionButton.new())
+	_ui.red_jet = _row(box, "Jet", OptionButton.new())
+	_ui.red_count = _row(box, "Jets", _spin(1, 2, 1, func(_v): pass))
+	_ui.red_count.value = 2
+	_ui.red_add = _button(box, "Add enemy flight", _on_add_enemy)
 
 
 func _build_mission_tab(box: VBoxContainer) -> void:
 	_ui.m_name = _row(box, "Name", _label(""))
+	_ui.m_year = _row(box, "Year", _year_picker(func(_i): _on_year_picked()))
+	_ui.m_what_if = _row(box, "", CheckBox.new())
+	_ui.m_what_if.text = "What-if (hypothetical) aircraft"
+	_ui.m_what_if.toggled.connect(func(_on): _on_year_picked())
 	_ui.m_hour = _row(box, "Start hour", _spin(0, 23, 1, func(_v): _set_time()))
 	_ui.m_min = _row(box, "Start minute", _spin(0, 59, 1, func(_v): _set_time()))
 	_ui.m_wind = _row(
@@ -852,19 +919,21 @@ func _build_dialogs() -> void:
 	add_child(_ui.open_dlg)
 	_ui.name_dlg = ConfirmationDialog.new()
 	var v := VBoxContainer.new()
-	# New's choices: era, then the era's home bases and jets, and the wingman.
+	# New's choices: the year, then that year's blue home bases and jets, the wingman and the what-if switch.
 	_ui.era_row = GridContainer.new()
 	_ui.era_row.columns = 2
-	_ui.era = OptionButton.new()
-	for e in NEW_ERAS:
-		_ui.era.add_item(e[0])
-	_ui.era.item_selected.connect(_fill_new_choices)
+	_ui.new_year = _year_picker(func(_i): _fill_new_choices())
+	_ui.new_year.select(_ui.new_year.item_count - 1)
 	_ui.new_base = OptionButton.new()
 	_ui.new_jet = OptionButton.new()
 	_ui.wingman = CheckBox.new()
 	_ui.wingman.text = "Wingman"
 	_ui.wingman.button_pressed = true
-	for row in [["Era", _ui.era], ["Home base", _ui.new_base], ["Jet", _ui.new_jet], ["", _ui.wingman]]:
+	_ui.new_what_if = CheckBox.new()
+	_ui.new_what_if.text = "What-if (hypothetical) aircraft"
+	_ui.new_what_if.toggled.connect(func(_on): _fill_new_choices())
+	var rows := [["Year", _ui.new_year], ["Home base", _ui.new_base], ["Jet", _ui.new_jet], ["", _ui.wingman]]
+	for row in rows + [["", _ui.new_what_if]]:
 		_ui.era_row.add_child(_label(row[0]))
 		_ui.era_row.add_child(row[1])
 	v.add_child(_ui.era_row)
@@ -924,23 +993,38 @@ func _ask_name(purpose: String, suggestion: String) -> void:
 	_ui.name_dlg.title = {"fork": "Fork: the new mission's name", "new": "New mission"}.get(purpose, "Save as")
 	_ui.era_row.visible = purpose == "new"
 	if purpose == "new":
-		_fill_new_choices(_ui.era.selected)
+		_fill_new_choices()
 	_ui.name_edit.text = suggestion
 	_ui.name_why.text = name_error(suggestion)
 	_ui.name_dlg.popup_centered()
 
 
-## The home bases and jets of era `i` (NEW_ERAS) into New's pickers.
-func _fill_new_choices(i: int) -> void:
-	var e: Array = NEW_ERAS[i]
-	_ui.new_base.clear()
-	for b in e[2]:
-		_ui.new_base.add_item(b)
-	_ui.new_jet.clear()
+## A year picker (IafMissionEdit years), each item's metadata its value.
+func _year_picker(cb: Callable) -> OptionButton:
+	var o := OptionButton.new()
+	for y in api.years():
+		o.add_item(String(y[1]))
+		o.set_item_metadata(o.item_count - 1, float(y[0]))
+	o.item_selected.connect(cb)
+	return o
+
+
+## The bdb's name of each id in `ids` into picker `o` (metadata: the id).
+func _fill_jets(o: OptionButton, ids: PackedInt64Array) -> void:
+	o.clear()
 	var bdb := Tsd.MissionRuntime.bdb_objects(Tsd.MissionRuntime.load_bdb({"bdb": "default6_1.bdb"}))
-	for id in e[3]:
-		_ui.new_jet.add_item(String(bdb.get(id, {}).get("0x528", str(id))))
-		_ui.new_jet.set_item_metadata(_ui.new_jet.item_count - 1, id)
+	for id in ids:
+		o.add_item(String(bdb.get(id, {}).get("0x528", str(id))))
+		o.set_item_metadata(o.item_count - 1, id)
+
+
+## New's year's blue home bases and jets into its pickers.
+func _fill_new_choices() -> void:
+	var y: float = _ui.new_year.get_selected_metadata()
+	_ui.new_base.clear()
+	for b in api.year_bases(y, 1):
+		_ui.new_base.add_item(b.name)
+	_fill_jets(_ui.new_jet, api.year_jets(y, 1, _ui.new_what_if.button_pressed))
 
 
 func _name_confirmed() -> void:
@@ -960,9 +1044,10 @@ func _name_confirmed() -> void:
 func _name_done() -> void:
 	var n: String = _ui.name_edit.text.strip_edges()
 	if _name_purpose == "new":
-		var era: int = _ui.era.selected
+		var y: float = _ui.new_year.get_selected_metadata()
 		var jet: int = _ui.new_jet.get_selected_metadata()
-		new_mission(n, era, _ui.new_base.get_item_text(_ui.new_base.selected), jet, _ui.wingman.button_pressed)
+		var base: String = _ui.new_base.get_item_text(_ui.new_base.selected)
+		new_mission(n, y, base, jet, _ui.wingman.button_pressed, _ui.new_what_if.button_pressed)
 	elif _name_purpose == "fork":
 		fork(n)
 	else:
@@ -1118,8 +1203,42 @@ func _fill_flights() -> void:
 		_ui.wp_speed.set_value_no_signal(float(pts[sel_wp][4]))
 
 
+func _on_year_picked() -> void:
+	set_year(_ui.m_year.get_selected_metadata(), _ui.m_what_if.button_pressed)
+
+
+func _on_add_enemy() -> void:
+	if _ui.red_base.selected >= 0 and _ui.red_jet.selected >= 0:
+		var stem: String = _ui.red_base.get_selected_metadata()
+		add_enemy_flight(stem, _ui.red_jet.get_selected_metadata(), int(_ui.red_count.value))
+
+
+## The Flights tab's enemy flight pickers: red's bases and jets in the mission's year.
+func _fill_enemy() -> void:
+	var keep: String = _ui.red_base.get_item_text(_ui.red_base.selected) if _ui.red_base.selected >= 0 else ""
+	_ui.red_base.clear()
+	for b in api.year_bases(year, 2):
+		_ui.red_base.add_item(b.name)
+		_ui.red_base.set_item_metadata(_ui.red_base.item_count - 1, b.stem)
+		if b.name == keep:
+			_ui.red_base.select(_ui.red_base.item_count - 1)
+	var jet = _ui.red_jet.get_selected_metadata() if _ui.red_jet.selected >= 0 else -1
+	_fill_jets(_ui.red_jet, api.year_jets(year, 2, what_if))
+	for i in _ui.red_jet.item_count:
+		if _ui.red_jet.get_item_metadata(i) == jet:
+			_ui.red_jet.select(i)
+	_ui.red_add.disabled = read_only or data.is_empty()
+
+
 func _fill_mission() -> void:
 	_ui.m_name.text = mission_name
+	for i in _ui.m_year.item_count:
+		if is_equal_approx(float(_ui.m_year.get_item_metadata(i)), year):
+			_ui.m_year.select(i)
+	_ui.m_what_if.set_pressed_no_signal(what_if)
+	_ui.m_year.disabled = read_only
+	_ui.m_what_if.disabled = read_only
+	_fill_enemy()
 	if data.is_empty():
 		return
 	var misc: Dictionary = data.misc.items[0]

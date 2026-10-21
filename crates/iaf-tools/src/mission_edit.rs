@@ -332,6 +332,96 @@ pub fn set_flight(mut mission: Value, number: i64, spec: &Value) -> Value {
     mission
 }
 
+/// The red flights' formation number: the originals give every red flight 8 ("Other", docs/ai.md §7.2).
+const RED_FLIGHT: i64 = 8;
+/// The originals' red brains: leader 13, wingman 15 (the commonest pair, 55 of the originals' red flights).
+const RED_BRAINS: [i64; 2] = [13, 15];
+/// The planned speed (m/s) for a red route's arrival times.
+const RED_ROUTE_SPEED: f64 = 250.0;
+
+/// Adds a red flight taking off from base `spec.base` (a `mission_year::BASES` stem): {type (bdb object id), count
+/// (1..2), base, name, template? (a red aircraft entity of that type from an original), points? ([[x, y, alt, T,
+/// action]])}. It follows the originals' red flights: formation number 8, brains 13 / 15, the leader at the base's
+/// lineup on its runway heading, the wingman 50 m off its left; the route takes off 10 km ahead (action 2), flies
+/// 30 km on (3) and lands at the base (7). A waypoint's "speed" is its planned arrival time in sim seconds (docs/ai.md
+/// §7.2); the take-off waits for wp0's.
+pub fn set_red_flight(mut mission: Value, spec: &Value) -> Value {
+    let Some(b) = crate::mission_year::base(spec["base"].as_str().unwrap_or("")) else { return mission };
+    let [x, y, z, h] = b.start;
+    let name = spec["name"].as_str().filter(|n| !n.is_empty()).unwrap_or(b.name).to_string();
+    let template = if spec["template"].is_object() {
+        spec["template"].clone()
+    } else {
+        let a = mission["entities"]["items"].as_array().cloned().unwrap_or_default();
+        a.iter().find(|e| real(e) && int(&e["0x2d0"]) == 2 && e["armament"].is_object()).cloned().unwrap_or_else(|| {
+            blue_aircraft(&mission).unwrap_or_else(|| a.first().cloned().unwrap_or_else(|| json!({})))
+        })
+    };
+    let (wx, wy) = beside(x, y, h + 90.0);
+    let mut members = vec![];
+    for (k, [px, py]) in [[x, y], [wx, wy]].into_iter().enumerate().take(int(&spec["count"]).clamp(1, 2) as usize) {
+        let mut f = Map::new();
+        for (key, v) in [
+            ("0x2bc", json!(format!("{name} {}", k + 1))),
+            ("0x2c6", spec["type"].clone()),
+            ("0x2d0", json!(2)),
+            ("0x2da", json!(RED_BRAINS[k])),
+            ("0x2e4", json!(px.round())),
+            ("0x2ee", json!(py.round())),
+            ("0x2f8", json!(z)),
+            ("0x302", json!(h)),
+            ("0x35c", json!(0)),
+            ("0x14", json!(0)),
+            // Empty pylons load the type's own stores (FUN_005951c0).
+            ("armament", json!({"_class": "CArmament", "hardpoints": vec![0; 24]})),
+        ] {
+            f.insert(key.into(), v);
+        }
+        let (m, id) = add_entity(mission, &template, &f);
+        mission = m;
+        members.push(json!({"0x410": format!("{name} {}", k + 1), "0x41a": id, "0x424": -1}));
+    }
+    if members.len() < 2 {
+        members.push(json!({"0x410": "", "0x41a": -1, "0x424": -1}));
+    }
+    let points: Vec<Value> = match spec["points"].as_array() {
+        Some(p) => p
+            .iter()
+            .enumerate()
+            .map(|(i, q)| json!([i + 1, num(&q[0]), num(&q[1]), num(&q[2]), num(&q[3]), int(&q[4]).max(0)]))
+            .collect(),
+        None => {
+            let ahead = |d: f64| (x + d * h.to_radians().sin(), y + d * h.to_radians().cos());
+            let (t1, t2) = (ahead(10000.0), ahead(40000.0));
+            let t = [30.0, 30.0 + 30000.0 / RED_ROUTE_SPEED, 30.0 + 70000.0 / RED_ROUTE_SPEED];
+            vec![
+                json!([1, t1.0.round(), t1.1.round(), z + 1500.0, t[0], 2]),
+                json!([2, t2.0.round(), t2.1.round(), 4000.0, t[1].round(), 3]),
+                json!([3, x, y, z + 1500.0, t[2].round(), 7]),
+            ]
+        }
+    };
+    let row = json!({
+        "_class": "CDMEFormationItem", "0x3e8": name, "0x3f2": RED_FLIGHT, "0x3fc": 0, "0x406": 0,
+        "members": members, "names": (1..=points.len()).map(|i| json!([i, ""])).collect::<Vec<_>>(), "points": points,
+    });
+    insert(items(&mut mission, "formations"), row);
+    mission
+}
+
+/// A base mission with its sides swapped (blue 1 ↔ red 2): a base the data has for one side, used by the other
+/// (Refidim before the Six-Day War is Egyptian).
+pub fn flip_base(mut base: Value) -> Value {
+    for e in items(&mut base, "entities").iter_mut().filter(|e| real(e)) {
+        match int(&e["0x2d0"]) {
+            1 => e["0x2d0"] = json!(2),
+            2 => e["0x2d0"] = json!(1),
+            _ => {}
+        }
+    }
+    base
+}
+
 /// A blue aircraft with a brain: the template for a new flight member.
 fn blue_aircraft(m: &Value) -> Option<Value> {
     let a = m["entities"]["items"].as_array()?;
@@ -730,6 +820,31 @@ mod tests {
         let fl = remove_flight(fl, 4);
         assert!(!fl["formations"]["items"].as_array().unwrap().iter().any(|f| f["0x3f2"] == 4));
         assert!(last_is_placeholder(&fl, "formations"));
+    }
+
+    #[test]
+    fn red_flight_from_a_base() {
+        let Some(a) = assets() else {
+            eprintln!("skip: no converted missions (tools/setup-cli.sh)");
+            return;
+        };
+        let m = read(&a, "license");
+        let mig = read(&a, "change")["entities"]["items"].as_array().unwrap().iter().find(|e| e["0x2c6"] == 8).cloned();
+        let spec = json!({"type": 2, "count": 2, "base": "bmisdmsk", "name": "MiG-29", "template": mig});
+        let r = set_red_flight(m.clone(), &spec);
+        let f = r["formations"]["items"].as_array().unwrap().iter().find(|f| f["0x3e8"] == "MiG-29").unwrap();
+        assert_eq!((int(&f["0x3f2"]), f["points"][0][5].clone(), f["points"][2][5].clone()), (8, json!(2), json!(7)));
+        let ids: Vec<i64> = f["members"].as_array().unwrap().iter().map(|x| int(&x["0x41a"])).collect();
+        let ents = r["entities"]["items"].as_array().unwrap();
+        for (k, id) in ids.iter().enumerate() {
+            let e = ents.iter().find(|e| int(&e["0x1e"]) == *id).unwrap();
+            assert_eq!((int(&e["0x2c6"]), int(&e["0x2d0"]), int(&e["0x2da"])), (2, 2, [13, 15][k]));
+        }
+        assert_eq!(r["formations"]["items"].as_array().unwrap().last().unwrap()["0x14"], 1, "placeholder last");
+        assert_eq!(set_red_flight(m.clone(), &json!({"type": 2, "base": "nowhere"})), m, "an unknown base: no change");
+        // Refidim's base mission is blue; flipped for a red Refidim.
+        let flipped = flip_base(read(&a, "bmisrfdim"));
+        assert!(flipped["entities"]["items"].as_array().unwrap().iter().filter(|e| real(e)).all(|e| e["0x2d0"] != 1));
     }
 
     #[test]
