@@ -2,14 +2,13 @@
 
 This page is the research for the two MiGs the player can fly from the Mission Creator: the MiG-23 (`mig23`, type 160)
 and the MiG-29 (`mig29`, type 180). It covers:
-* what each 1998 panel paints and what the original drives;
-* what each painted instrument is in the real jet;
-* which "Better cockpit" items apply and what they would need;
-* new MiG-only items (proposals);
-* the real HUDs and how they map onto our Real HUD code.
+* what each 1998 panel paints and what the original drives (§2, §3);
+* what each painted instrument is in the real jet (§2, §3);
+* which "Better cockpit" items apply, and the MiG-only items (§4);
+* the real HUDs (§5, §6).
 
-It is the MiG counterpart of docs/cockpit.md "The panels' instruments" / "Panel instruments per jet" and
-docs/real-hud.md. Research date: 2026-10-20.
+What ours draws: docs/cockpit.md "Gauges on their labelled dials" / "MiG gauges" (the panels) and docs/real-hud.md
+"MiG-23ML" / "MiG-29 9.12" (the HUDs). The opt-in changes are in docs/deviations.md. Research date: 2026-10-20.
 
 **Terms**
 * **Panel px:** a point on the 1920-px panel strip, as in docs/cockpit.md. The converted art is 4× that.
@@ -22,7 +21,8 @@ docs/real-hud.md. Research date: 2026-10-20.
 
 **Which real jets the game models:** the MiG-23ML and the MiG-29 9.12 (docs/real-aircraft.md §9.2, §9.4).
 
-**Pictures** (local captures made during the research, not in the repo: they hold the original art; panel crops at full 4× resolution):
+**Pictures** (local research captures, not in the repo because they hold the original art; panel crops at the full 4×
+resolution):
 * `mig/mig23_annotated.png` and `mig/mig29_annotated.png`: each panel with the numbered items of the tables below.
 * `mig/mig23-z-*.png`, `mig/mig29-z-*.png`: zooms of each dial.
 * `mig/lights_both.png`: the two lights bitmaps. `mig/huds.png`: the two HUD glass bitmaps.
@@ -42,31 +42,17 @@ docs/real-hud.md. Research date: 2026-10-20.
 * **Neither panel paints a dial for some values.** The MiG-23 panel has no airspeed dial and no tachometer. The
   MiG-29 panel has no airspeed dial, no VVI (vertical speed indicator), no HSI (horizontal situation indicator), no EGT
   (exhaust gas temperature) dials and no RWR (radar warning receiver).
-* **Better items that apply as they stand:** `smooth_needles` and `crisp_mfd` on both; `turning_compass` on the
-  MiG-23's HSI; `fuel_total` on both, with a change for the MiG-23; `engine_rpm`, `engine_temp`, `throttle_ab` and
-  `dials_by_label` only after the needles move to their labelled dials.
-* **Proposals:**
-  * metric gauges (km/h, m, m/s, litres);
-  * the MiG-29's AoA / g meter live;
-  * the MiG-29's radar altimeter live;
-  * the MiG-23's SPO-15 lamps live;
-  * the MiG-23's HSI bars and the RSBN range counter;
-  * the MiG-23's hydraulic pressure gauge.
-* **Real HUD:** built (2026-10-20): `Jet::MiG23` (`real_hud/mig23.rs`) and `Jet::MiG29` (`real_hud/mig29.rs`).
-  §5 and §6 describe each MiG's own sight / HUD; docs/real-hud.md says what ours draws.
-
-### What is built (2026-10-20)
-docs/cockpit.md "Gauges on their labelled dials" and "MiG gauges" describe the built items; test
-tests/godot/test_mig_cockpit.gd.
-* `dials_by_label` for both MiGs (`gauges.gd` `DIALS` `mig23` / `mig29`): the MiG-23's Mach, EGT, litre and VVI
-  needles on their faces, RPM / THROTTLE / the hydraulic needle off; the MiG-29's two tachometers per engine, the
-  airspeed and vertical speed off the radar altimeter and the UUA. The scales were measured again on the art; they
-  differ from §4's first reading by up to 10°.
-* `turning_compass` on the MiG-23's ПНП; `fuel_total`, `smooth_needles`, `crisp_mfd`, `engine_rpm`, `engine_temp`
-  apply as they stand.
-* Proposals 4.1 (`metric_gauges`), 4.2 (`uua`), 4.3 (`radar_alt`) and 4.5 (`rsbn_counter`).
-* Open: proposal 4.4 (SPO-15 lamps), 4.6 (the HSI bars, the hydraulic gauge); `panel_clock` on # 13 (the art paints
-  hands on that face, so a clock is likely but the hands would need erasing; open).
+* **Built (2026-10-20; test `tests/godot/test_mig_cockpit.gd`):**
+  * `dials_by_label` for both MiGs (`gauges.gd` `DIALS`): the MiG-23's Mach, EGT, litre and VVI needles on their
+    faces, RPM / THROTTLE / the hydraulic needle off; the MiG-29's tachometer per engine, its airspeed and vertical
+    speed off the radar altimeter and the UUA. The scales were measured again on the art; they differ from the first
+    reading by up to 10°.
+  * `turning_compass` on the MiG-23's ПНП; `fuel_total`, `smooth_needles`, `crisp_mfd`, `engine_rpm`, `engine_temp`
+    as for the other jets.
+  * The MiG-only items 4.1 `metric_gauges`, 4.2 `uua`, 4.3 `radar_alt` and 4.5 `rsbn_counter`.
+  * The Real HUD for both: `Jet::MiG23` (`real_hud/mig23.rs`) and `Jet::MiG29` (`real_hud/mig29.rs`).
+* **Open:** 4.4 (SPO-15 lamps), 4.6 (the HSI bars, the hydraulic gauge), `panel_clock` on the MiG-23's # 13 (the art
+  paints hands on that face, so they would need erasing).
 
 ## 2. MiG-23 panel (`mig23`)
 
@@ -86,7 +72,7 @@ The numbers match the annotated picture (`mig/mig23_annotated.png`).
 | 1 | altimeter, 0–9 outer ring, inner ring (735,198) | ВДИ-30К two-needle barometric altimeter[^airwar-ml][^ub]: the long needle 1000 m per turn (inferred from the 0–9 face); the inner scale km | `ALTITUDELOCK`: 1000 ft per turn, the short needle 10,000 ft per turn | a metric face read in feet |
 | 2 | dial numbered 0.6 … 3 clockwise from 1 o'clock (735,275) | the Mach meter, УСМ-1К[^airwar-ml] or the Mach half of a combined УСИМ[^ub]; the photo's dial below the altimeter has the same 1.2 … 2.8 numbers[^kiev] | `SPEEDCLOCK`: 1000 kt per turn | **the airspeed needle on a Mach face** |
 | 3 | lens ADI with its bank ring and slip ball (824,133) | КПП: attitude with the flight director bars; the САУ-23АМ autopilot gives its director signals to the КПП and to the sight[^airwar-ml] | `LENHORIZON` (live) | the ball is grey over black (`adi.bmp`) |
-| 4 | HSI: compass card, a vertical bar, a horizontal bar, flags К and Г (≈ 826,228) | ПНП: heading card, course (К) and glide-slope (Г) bars[^kiev] | static | `turning_compass` candidate |
+| 4 | HSI: compass card, a vertical bar, a horizontal bar, flags К and Г (≈ 826,228) | ПНП: heading card, course (К) and glide-slope (Г) bars[^kiev] | static | `turning_compass` (built) |
 | 5 | MFD under the sight (903,120 top-left) | the real ML has **no** radar scope here: the Sapfir-23ML radar picture shows on the sight[^warhistory][^airwar-ml]; the photo shows a bare plate[^kiev] | the radar page (the original's MFD) | ours keeps the MFD (the game needs it) |
 | 6 | SPO-15 indicator: aircraft symbol, ring of sector lamps, power strip, the bottom type lamps (1185,140) | СПО-15Л «Берёза» RWR: on the MLD; the ML had the СПО-10 «Сирена»[^airwar-ml][^airwar-mld] | its two lower boxes are `LIGHT004` / `LIGHT003` ("ML" / "AI" lamps); the rest is static | the art follows the MLD here |
 | 7 | dial with 0 at 9 o'clock and 1, 2, 4, 6 both ways (1099,270) | vertical speed indicator (inferred from the face); type and unit open (× 10 m/s or × 1000 ft/min, as the Mirage's identical face) | `VARIOCLOCK`: 30,000 ft/min per turn from 9 o'clock (6000 ft/min reads at 72°; the painted 6 is at 180°) | live, but off the face's scale |
@@ -94,7 +80,7 @@ The numbers match the annotated picture (`mig/mig23_annotated.png`).
 | 9 | dial 0–8, orange hub, legend "× 1000 Л" (1176,280) | the fuel gauge in thousands of **litres** (photo: "×1000Л" on the same face[^kiev]; РТСТ-50Т in the ML list[^airwar-ml]) | `RPMCLOCK`: clamp(rpm, 0.6, 0.97), one turn = 1, 0 on the painted 0 (204°) | **RPM on the fuel gauge**; the face is 37.6° per 1000 l, 0–8 over 301° |
 | 10 | small framed dial: aircraft planform, arc scale, legends "235 … M / V" at the top (1245,192) | the wing-sweep indicator: 16 / 30 / 45 / 60 marks and "235 M 1400 V", the speed / Mach limits per sweep (photo[^kiev]); the sweep settings are 16 / 45 / 72°[^nmusaf] | `THROTTLECLOCK`: rpm | the game has no wing sweep (docs/aircraft.md: the wing parts are dropped) |
 | 11 | twin-arc dial with a plate "…ГИДРО… / ГИДРОСИСТ." (1051,336) | the two-needle hydraulic pressure gauge (УИ2-300К on the MiG-23UB[^ub]) | `TEMPCLOCK`: clamp(rpm, 0.5, 0.8) | TEMP on a hydraulics face |
-| 12 | 3-digit drum counter "30Я" with "км" (876,325) | the RSBN range counter (ППД-2 on the MiG-23UB[^ub]; the photo's "000 КМ"[^kiev]) | static | proposal 4.5 |
+| 12 | 3-digit drum counter "30Я" with "км" (876,325) | the RSBN range counter (ППД-2 on the MiG-23UB[^ub]; the photo's "000 КМ"[^kiev]) | static | `rsbn_counter` (4.5) |
 | 13 | small dial with dense ticks and a knob at lower left (1240,160) | likely the АЧС-1 clock[^ub] (inferred from the knob; the numbers are unreadable) | static | `panel_clock` candidate, open |
 | 14 | two red lamp boards with ДЕНЬ / НОЧЬ knobs (1060..1150,160..225) | the red and green warning boards (табло Т-10У2 / Т-4У2 on the MiG-23UB, legends not public[^ub]) | `LIGHT000` MASTER CAUTION at 1059,165 and `LIGHT001` FIRE at 1059,185 cover the left board's top cells; the others are static | legends unreadable |
 | 15 | white card with a table (1244,250) | a placard (inferred) | static | — |
@@ -148,66 +134,57 @@ are in %, as the game. The fuel face is in lb (Western art), as the game.
 
 ## 4. Better cockpit items per MiG
 
-`Settings.BETTER_COCKPIT` (game/settings.gd) and docs/cockpit.md "Better cockpit". "Applies" means the item changes
-something on that panel. At the time of the research no per-cockpit table had a MiG entry; `gauges.gd` `DIALS` and
-`compass.gd` `INSTRUMENTS` now have (see "What is built" in §1).
+The items: `Settings.BETTER_COCKPIT` (`game/settings.gd`) and docs/cockpit.md "Better cockpit". "Applies" means the
+item changes something on that panel.
 
 | Item | MiG-23 | MiG-29 |
 |---|---|---|
-| `turning_compass` | **yes**: the ПНП card (≈ 826,228; centre and radii to fit on the art as for the Kfir). The painted bars stay unless proposal 4.6 draws them | no dial (the art paints no HSI) |
-| `engine_rpm` | today it would make `RPMCLOCK` a better RPM **on the fuel gauge**. The art paints no tachometer, so with `dials_by_label` RPM has no dial (as the F-16's throttle) | no effect: `RPMCLOCK` is inactive; the tachometers are `THROTTLECLOCK` records. With `dials_by_label` they should read RPM (below) |
-| `engine_temp` | today: `TEMPCLOCK` on the hydraulic gauge. With `dials_by_label`: on the EGT face (# 8), × 100 °C, scale measured on the art | no dial (the art paints no EGT gauge; `TEMPCLOCK` inactive) |
-| `throttle_ab` | today: on the wing-sweep indicator. With `dials_by_label` the throttle needle goes (the real jet has no throttle dial) | today: the tachometers pass 12 o'clock ("100 %") in AB. With `dials_by_label` they read RPM instead (the real tachometer reads 100 % in full AB[^fc3]) |
-| `fuel_total` | the needle applies. With `dials_by_label` it moves to the litre gauge (# 9): litres = kg / 0.78 (inferred: a kerosene density), 0–8000 l on the measured 37.6° per 1000 l. The original's capacity (12,500 lb internal) is far above the real one (docs/real-aircraft.md §9.2), so the full needle sits near 7 | **yes**: total fuel on the lb face. No counter (the face's digit windows sit under the hub, as the F-4's) |
-| `aoa_indexer` | no indexer painted | no indexer painted; the UUA is proposal 4.2 |
+| `turning_compass` | **yes**: the ПНП card turns (`compass.gd` `INSTRUMENTS`; the card's painted course arrow and lubber erased). The painted К / Г bars stay (4.6) | no dial (the art paints no HSI) |
+| `engine_rpm` | alone: a better RPM, still **on the fuel gauge**. With `dials_by_label` RPM has no dial (the art paints no tachometer), as the F-16's throttle | `RPMCLOCK` is inactive; the tachometers are `THROTTLECLOCK` records. With `dials_by_label` they read RPM, Better RPM with this item |
+| `engine_temp` | alone: `TEMPCLOCK` on the hydraulic gauge. With `dials_by_label`: on the EGT face (# 8), × 100 °C | no dial (the art paints no EGT gauge; `TEMPCLOCK` inactive) |
+| `throttle_ab` | alone: on the wing-sweep indicator. With `dials_by_label` the throttle needle goes (the real jet has no throttle dial) | alone: the tachometers pass 12 o'clock ("100 %") in AB. With `dials_by_label` they read RPM instead (the real tachometer reads 100 % in full AB[^fc3]) |
+| `fuel_total` | the needle applies. With `dials_by_label` it moves to the litre gauge (# 9): litres = kg / 0.78 (inferred: a kerosene density), 0–8000 l at 37.6° per 1000 l. The original's capacity (12,500 lb internal) is far above the real one (docs/real-aircraft.md §9.2), so the full needle sits near 7 | **yes**: total fuel on the lb face. No counter (the face's digit windows sit under the hub, as the F-4's) |
+| `aoa_indexer` | no indexer painted | no indexer painted; the UUA is 4.2 |
 | `panel_clock` | candidate: # 13 if a closer look confirms a clock face (open) | no clock painted |
-| `standby_instruments` | the VVI (# 7) is already live; its scale is wrong (see `dials_by_label`) | none painted |
+| `standby_instruments` | the VVI (# 7) is already live, off its scale (`dials_by_label` fixes it) | none painted |
 | `warning_lamps` | none: the red boards' legends are unreadable | none: no readable unwired legend |
 | `crisp_mfd` | yes (one MFD) | yes (two MFDs) |
-| `dials_by_label` | **yes, the main fix**: Mach needle on # 2 (from the Mach number); fuel on # 9 (litres); TEMP on # 8; THROTTLE and RPM off (no dial); VVI on its measured face; TEMPCLOCK off the hydraulic gauge (or proposal 4.6) | **yes**: tachometers on their measured scales, left and right engine each (needs twin-engine support: `DIALS` is single-engine only today); `SPEEDCLOCK` off the radar altimeter (proposal 4.3); `VARIOCLOCK` off the UUA (proposal 4.2) |
+| `dials_by_label` | **yes, the main fix**: the Mach number on # 2; fuel in litres on # 9; TEMP on # 8; the VVI on its measured face; THROTTLE, RPM and the hydraulic needle off | **yes**: each engine's RPM on its tachometer (`RPM_R` for the right one); `SPEEDCLOCK` off the radar altimeter (4.3) and `VARIOCLOCK` off the UUA (4.2) |
 | `ar_nws_lights` | no AR / NWS lamp painted | no AR / NWS lamp painted |
 | `smooth_needles` | yes, every needle | yes, every needle |
 
-What `dials_by_label` needs for the MiG-23 (inferred from the table in §2.1):
-* the Mach meter's scale: value / clock-degree pairs measured on the art (0.6 at about 30°, 1 at 60°, 1.2 at 95°,
-  1.4 at 130°, 1.6 at 160°, 1.8 at 195°, 2 at 225°, 2.2 at 245°, 2.4 at 270°, 2.6 at 295°, 2.8 at 325°, 3 at 350°;
-  ±5°, to check), and a new `value` "MACH" (the cockpit state has `mach`);
-* the litre gauge's scale (0 at 204°, 37.6° per 1000 l) and a new `value` "FUEL_L";
-* the EGT face's scale (2 at about 8 o'clock, 10 at 3 o'clock; to measure);
-* the VVI's scale, as the Mirage's (`standby_instruments`): marks 1, 2, 4, 6 at 10:30, 11:30, 1 and 3 o'clock; the
-  unit is open (see proposal 4.1).
+The measured scales (value / clock-degree pairs) are in `gauges.gd` `DIALS`.
 
 ### Proposals (MiG-only)
-4.1, 4.2, 4.3 and 4.5 are built (§1 "What is built"); 4.4 and 4.6 are open.
+4.1, 4.2, 4.3 and 4.5 are built; 4.4 and 4.6 are open.
 
-**4.1 Metric gauges (`metric_gauges`, built).** Each MiG face reads its own unit: the altimeters in metres (one turn = 1000
-m), the radar altimeter in metres, fuel in litres (MiG-23) and the vertical speed in m/s if the MiG-23's face is
-metric (open). The original reads ft and kt everywhere. Needs: a per-dial unit in `DIALS`; the HUD stays in the
-original's units unless the Real HUD is on (§5, §6).
+**4.1 Metric gauges (`metric_gauges`, built).** Each MiG face reads its own unit: the altimeters in metres (one turn =
+1000 m), the radar altimeter in metres, fuel in litres (MiG-23) and the MiG-23's vertical speed in × 10 m/s (unit
+inferred; open, §7 question 2). The original reads ft and kt everywhere. The HUD stays in the original's units
+unless the Real HUD is on (§5, §6).
 
-**4.2 MiG-29 AoA / g meter live (`uua`, built).** Two needles on the UUA (# 6): AoA on the left scale (0 … 30°, with the 15°
-/ 25° marks[^ea]) and g on the right (0 … 10). It replaces the vertical speed the original draws there. The cockpit
-state has `aoa` and `g`. Needs: both scales measured on the art. A max-g memory needle is open (the real meter has a
-reset button[^ea], which suggests one).
+**4.2 MiG-29 AoA / g meter live (`uua`, built).** Two needles on the UUA (# 6): AoA on the left scale (0 … 30°, with the
+15° / 25° marks[^ea]) and g on the right (0 … 10). It replaces the vertical speed the original draws there. A max-g
+memory needle is open (the real meter has a reset button[^ea], which suggests one).
 
-**4.3 MiG-29 radar altimeter live (`radar_alt`, built).** The needle shows the radar height (`agl_ft` → m) on the non-linear
-0–1500 m face (# 1). The red flag shows when the height is invalid (above the set's range, or a large bank; inferred).
-The yellow index is the danger height (ours: a fixed value, e.g. 50 m; inferred). It replaces the airspeed the
-original draws there. The panel then shows no airspeed; the HUD and the MFD still do.
+**4.3 MiG-29 radar altimeter live (`radar_alt`, built).** The needle shows the radar height (`agl_ft` → m) on the
+non-linear 0–1500 m face (# 1). The red flag hides while the height is valid: at most 1500 m and 60° of bank
+(inferred). The yellow danger-height index stays as painted. It replaces the airspeed the original draws there, so
+the panel shows no airspeed; the HUD and the MFD still do.
 
-**4.4 MiG-23 SPO-15 lamps live (`spo15`).** The SPO-15's sector lamps light toward each emitter, the power strip
+**4.4 MiG-23 SPO-15 lamps live (`spo15`, open).** The SPO-15's sector lamps light toward each emitter, the power strip
 shows the strongest signal, and the red centre lamp lights on a lock (steady) or a launch (flashing)[^su25t][^hoggit].
 Threat-type lamps: П airborne radar, З long-range, Х medium-range, Н short-range SAM radars[^su25t][^fc3]. Data from
 `iaf-avionics` `rwr.rs` (the contacts' bearings and kinds). About 10° resolution within ±50°[^spo15-ed]. The
 original's ML / AI boxes stay. Open: the lamp count on the MLD panel.
 
-**4.5 MiG-23 RSBN range counter (`rsbn_counter`, built).** The drum (# 12) shows the distance to the current waypoint in km
-(the real counter shows the range to the RSBN beacon[^ub]; the game has no beacons, so the waypoint stands in:
-inferred).
+**4.5 MiG-23 RSBN range counter (`rsbn_counter`, built).** The drum (# 12) shows the distance to the current waypoint
+in km. The real counter shows the range to the RSBN beacon[^ub]; the game has no beacons, so the waypoint stands in
+(inferred).
 
-**4.6 MiG-23 HSI bars and hydraulic gauge.** The ПНП's К / Г bars follow the ILS deviation when the original HUD
-shows its ILS (gear down), and the flags drop otherwise. The hydraulic gauge's two needles show the normal pressure
-(value open), and fall to 0 with the hydraulics damage (18).
+**4.6 MiG-23 HSI bars and hydraulic gauge (open).** The ПНП's К / Г bars follow the ILS deviation when the original
+HUD shows its ILS (gear down), and the flags drop otherwise. The hydraulic gauge's two needles show the normal
+pressure (value open), and fall to 0 with the hydraulics damage (18).
 
 ## 5. Real HUD: MiG-23ML (АСП-17МЛ sight)
 
@@ -243,27 +220,9 @@ shows its ILS (gear down), and the flags drop otherwise. The hydraulic gauge's t
 * **Open:** the colour of the symbology, the reflector's field of view, the exact reticle drawing and the lamp
   legends.
 
-### 5.2 Mapping onto our code
+### 5.2 Ours
 
-**Built** (docs/real-hud.md "MiG-23ML"). The plan below is kept as the research's proposal.
-
-The ML's sight sits between the gyro sights (`sights.rs`) and the reconstructed HUDs (`kfir.rs`): a reticle-centred
-display with a few legends and no flight data. Layout: a reconstruction, as the Kfir's (docs/deviations.md entry
-needed).
-* **New:** `Jet::MiG23` (`of_cockpit`: `ends_with("mig23")`) and `real_hud/mig23.rs`.
-* **Reuse:** from `sights.rs`, the ring-and-pipper reticle with the range bar on the ring (the LCOSS's arc, in metres);
-  `reticle_at` for where the reticle sits per mode; from `mod.rs`, `pipper`, `diamond` (radar / IRST target mark),
-  `x_over`, `Field::clamp_from`.
-* **Drawn (proposal):**
-  * NAV: the fixed cross; the К / Г director marks (the ILS) with the gear down; a steering mark toward the waypoint.
-  * A-A missile: the target mark on the radar / IRST target; a vertical range scale with Dmin / Dmax (the `dlz`) in
-    km; «ПР» when `shoot`; «НОП» when the target leaves the seeker's limits (inferred mapping).
-  * A-A gun: the ring with the moving mark (the game's LCOS point) and the range bar.
-  * A-G: the CCIP mark and fall line (as the Kfir's).
-* **Not drawn:** a ladder, tapes and numbers (not shown on the real sight: inferred); the helmet (none in the jet).
-* **Text:** Cyrillic legends. The Real HUD text goes through `hud.gd` `_gdi` with `Img.arial()`. Whether that font
-  has Cyrillic glyphs: yes (§7 question 8).
-* **Colour:** open; ours keeps the HUD colour until a source says otherwise.
+`real_hud/mig23.rs`, a reconstruction: docs/real-hud.md "MiG-23ML".
 
 ## 6. Real HUD: MiG-29 9.12 (ИЛС-31, СЕИ-31)
 
@@ -326,46 +285,22 @@ ring, a time-to-release scale and «Г» at the pull-up.
 **Limits shown:** the AoA limiter: 26° with the SOS-3M (forum, uncertain[^wt-29]); 9 g below M0.85, 7 g above
 (forum[^wt-29]); the СОС-3М shows the current and limit AoA and g[^ru-wiki-29].
 
-### 6.2 Mapping onto our code
+### 6.2 Ours
 
-**Built** (docs/real-hud.md "MiG-29 9.12"). The plan below is kept as the research's proposal.
-
-* **New:** `Jet::MiG29` (`of_cockpit`: `ends_with("mig29")`) and `real_hud/mig29.rs`. Layout from [EA] / [FC3] (sim
-  sources built on the real one); docs/deviations.md entry needed.
-* **Reuse:**
-  * the heading tape in tens of degrees: the Kfir's `heading` (30° scale, caret) with two-digit labels;
-  * `dlz_scale`: in km with Rmax / Rmin; Rtr has no game value (`Dlz` holds only `max` / `min`), so it is left out or
-    inferred;
-  * `diamond` (target), `pipper` + `funnel` (the gun: ring and cross, funnel without a lock; the funnel needs the
-    GSh-30-1's muzzle speed instead of the M61's `MUZZLE`), `x_over` (out of the seeker's limits);
-  * `dash.rs` for the Щель-3УМ: the helmet's aiming cross, a flashing «ПР»; looking aside, as the F-16 / F-15 DASH
-    (`Jet::MiG29 if i.off_boresight`).
-* **New pieces:**
-  * the numbers block: km/h (`kcas` × 1.852), the radar height in m below 1000 m else the barometric height in m;
-  * the right-hand pitch scale and the bank scale (not the conformal ladder);
-  * the steering circle toward the waypoint;
-  * the Cyrillic legends: МРШ / ВЗВ / ПОС, ДВБ / БВБ / ОПТ / ШЛЕМ / Ф0, ПР, ОТВ, Г, РЛ / ТП;
-  * the range to the waypoint in km at the bottom centre.
-* **Field:** 13° × 18° instantaneous (the art's glass, 385 × 181 px with `[HUD]` borders 70 / 67 / 56 / 52, is wider
-  than tall; fit by the least inset, as the other jets).
-* **Not drawn:** the Ekran / ИПВ repeats (the MFDs stay), the toss mode (the game has none), the datalink commands
-  (no ground control in the game).
-* **Text:** Cyrillic, as §5.2.
+`real_hud/mig29.rs`, laid out from the simulator manuals[^ea][^fc3]: docs/real-hud.md "MiG-29 9.12".
 
 ## 7. Open questions
 
 1. MiG-23 # 8: is the face the ИТГ-1 EGT (× 100 °C) or a fuel gauge? The legend under the hub reads like "× 100 °C";
    the game's artist added a "FUEL" plate and the coloured arc.
-2. MiG-23 # 7: the VVI's type and unit (the faces' 1 / 2 / 4 / 6 marks).
+2. MiG-23 # 7: the VVI's type and unit (the face's 1 / 2 / 4 / 6 marks). Ours reads × 10 m/s (inferred).
 3. MiG-23 # 13: is it the АЧС-1 clock? Its numbers are unreadable on the art.
 4. MiG-23 internal fuel: 4,250 l in docs/real-aircraft.md, 5500 kg on airwar[^airwar-ml]; the litre gauge's full
    mark depends on it.
 5. The real designations: КУС-*, ВДИ-30 (MiG-29), УУАП-72, ИТ-23: no source confirms them for these jets.
 6. The HUD colours of both jets, the АСП-17МЛ's field of view and reticle drawing.
 7. The lamp legends on both jets: the MiG-23's red boards and the sight's side lamps, the MiG-29's blocks (# 17).
-8. Answered: the Real HUD's text font (Arial, else Liberation Sans, with Godot's system fallback) has the Cyrillic
-   glyphs (`tests/godot/test_real_hud.gd`).
-9. The best unread source: an ML flight manual PDF on an expired Discord link (cited on the War Thunder forum[^wt-23]),
+8. The best unread source: an ML flight manual PDF on an expired Discord link (cited on the War Thunder forum[^wt-23]),
    and the Markovsky / Prikhodchenko book on Calameo[^calameo].
 
 [^ea]: Eagle Dynamics, *DCS MiG-29A Early Access Manual* (Sept 2025), pp. 8–31 (instruments), 65–104 (HUD):

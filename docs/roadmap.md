@@ -262,8 +262,8 @@ more id there; docs/cockpit.md "Better cockpit"). Items (approved 2026-10-20):
     screen's resolution through one set of drawing primitives (docs/mfd.md §8).
 12. The shipped art the game never loads (`cfir/cfir-lights.bmp`, `lavi/lavi-lig.bmp`, `phantom/f16adi.bmp`; no exe
     string, no decompiled reference, in no cockpit.ibx, unused by our code), used where it is better than the loaded
-    art — **none to do** (2026-10-20): each is an earlier or equal version of the loaded art (docs/cockpit.md "The
-    unused shipped art").
+    art — **none to do** (2026-10-20): each is an earlier or equal version of the loaded art (docs/cockpit.md "Sections
+    present in every cockpit").
 
 13. Gauges on their labelled dials (`dials_by_label`) — **done** (2026-10-20): the F-16's four engine dials (OIL,
     NOZ POS, RPM, FTIT) and the Kfir's FUEL FLOW / EXH TEMP; the other jets' needles already match their labels or
