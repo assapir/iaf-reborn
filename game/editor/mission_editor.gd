@@ -42,7 +42,7 @@ var main_name := ""  # the main file's name (the source's)
 var data := {}  # the main file being edited
 var base_files: Array = []  # [{name, data}], re-read from the source
 var briefing := {"en": "", "he": ""}
-## The mission year (IafMissionEdit years: 1967.25 / 1967.75 are 1967 before / after the Six-Day War) and whether
+## The mission year (1966 … 1998; 1967 is the Six-Day War itself, from the pre-war lines) and whether
 ## never-served (what-if) aircraft are allowed; both saved in the custom file (docs/mission-editor.md §12).
 var year := 1998.0
 var what_if := false
@@ -160,7 +160,7 @@ func open_file(path: String) -> void:
 		return
 	_open(int(d.source), String(d.name), String(d.files[0].name), d.files[0].data)
 	_default_year()
-	year = float(d.get("year", year))
+	year = floorf(float(d.get("year", year)))
 	what_if = bool(d.get("what_if", what_if))
 	if d.has("bases"):
 		base_files = _read_bases(source, d.bases)
@@ -330,6 +330,25 @@ func add_enemy_flight(stem: String, jet: int, count: int) -> void:
 func set_year(y: float, hypothetical: bool) -> void:
 	year = y
 	what_if = hypothetical
+	_refresh()
+
+
+## Deletes the open mission's file (your own only: originals are never touched) and closes it.
+func delete_mission() -> void:
+	if read_only or file == "" or not file.begins_with(missions_dir):
+		return
+	DirAccess.remove_absolute(file)
+	source = -1
+	mission_name = ""
+	data = {}
+	base_files = []
+	file = ""
+	read_only = true
+	undo.clear()
+	if tsd != null:
+		tsd.queue_free()
+		tsd = null
+		host.tsd = null
 	_refresh()
 
 
@@ -667,8 +686,12 @@ func _refresh_ui() -> void:
 	_ui.title.text = title + (" (original, read-only: Fork to edit)" if read_only and source >= 0 else "")
 	_ui.fork.disabled = source < 0
 	_ui.start.visible = source < 0
+	_ui.zoom_in.get_parent().visible = tsd != null
+	_ui.zoom_in.disabled = tsd == null or not tsd.can_zoom_in()
+	_ui.zoom_out.disabled = tsd == null or not tsd.can_zoom_out()
 	_ui.save.disabled = read_only
 	_ui.save_as.disabled = read_only
+	_ui.delete.disabled = read_only or file == ""
 	_ui.undo.disabled = read_only or undo.is_empty()
 	# Fly as: the flights the TSD lets you fly (tsd.gd flight_enabled).
 	var fa: OptionButton = _ui.fly_as
@@ -682,18 +705,24 @@ func _refresh_ui() -> void:
 				keep = n
 				break
 	fa.select(keep)
-	var pop: PopupMenu = _ui.issues.get_popup()
-	pop.clear()
-	for it in issues:
-		pop.add_item("%s: %s" % [it.level.capitalize(), it.text])
-		pop.set_item_metadata(pop.item_count - 1, int(it.id))
-	_ui.issues.text = (
-		"No issues" if issues.is_empty() else "%d errors, %d warnings" % [errors(), issues.size() - errors()]
+	var list: ItemList = _ui.issues
+	list.clear()
+	# Errors first, then warnings.
+	for level in ["error", "warning"]:
+		for it in issues:
+			if it.level == level:
+				list.add_item("%s: %s" % [level.capitalize(), it.text])
+				list.set_item_metadata(list.item_count - 1, int(it.id))
+				list.set_item_custom_fg_color(list.item_count - 1, Color.RED if level == "error" else Color.YELLOW)
+	_ui.issues_head.text = (
+		"No errors or warnings"
+		if issues.is_empty()
+		else "%d errors, %d warnings" % [errors(), issues.size() - errors()]
 	)
-	_ui.issues.modulate = Color.RED if errors() > 0 else (Color.YELLOW if not issues.is_empty() else Color.WHITE)
 	_ui.fly.disabled = read_only or errors() > 0 or fly_flight() == 0
 	_fill_units()
 	_fill_props()
+	_fill_flight_types()
 	_fill_flights()
 	_fill_mission()
 	_fill_conditions()
@@ -717,12 +746,10 @@ func _build_ui() -> void:
 	_ui.save = _button(bar, "Save", save)
 	_ui.save_as = _button(bar, "Save as", func(): _ask_name("save_as", mission_name))
 	_ui.undo = _button(bar, "Undo", undo_last)
+	_ui.delete = _button(bar, "Delete", func(): _ui.delete_dlg.popup_centered())
 	_ui.title = Label.new()
 	_ui.title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bar.add_child(_ui.title)
-	_ui.issues = MenuButton.new()
-	_ui.issues.get_popup().index_pressed.connect(_on_issue_pressed)
-	bar.add_child(_ui.issues)
 	bar.add_child(_label("Fly as"))
 	_ui.fly_as = OptionButton.new()
 	for n in Tsd.FLIGHT_LABELS.slice(1, 5):
@@ -730,13 +757,21 @@ func _build_ui() -> void:
 	_ui.fly_as.item_selected.connect(func(_i): _refresh_ui())
 	bar.add_child(_ui.fly_as)
 	_ui.fly = _button(bar, "Fly", fly)
+	var split := HSplitContainer.new()
+	split.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_child(split)
+	# Bottom: what passes and fails the mission, then its errors and warnings (a click selects the unit).
 	_ui.cond_line = _label("")
 	_ui.cond_line.clip_text = true
 	_ui.cond_line.mouse_filter = Control.MOUSE_FILTER_PASS
 	root.add_child(_ui.cond_line)
-	var split := HSplitContainer.new()
-	split.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(split)
+	_ui.issues_head = _label("")
+	root.add_child(_ui.issues_head)
+	_ui.issues = ItemList.new()
+	_ui.issues.custom_minimum_size.y = 120
+	_ui.issues.size_flags_vertical = Control.SIZE_SHRINK_END
+	_ui.issues.item_clicked.connect(func(i, _at, _button): _on_issue_pressed(i))
+	root.add_child(_ui.issues)
 	host = MapHost.new()
 	host.editor = self
 	host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -750,9 +785,17 @@ func _build_ui() -> void:
 	_ui.start.add_child(choices)
 	_button(choices, "New mission", func(): _ask_name("new", api.free_name("My mission", _taken())))
 	_button(choices, "Open a mission (yours, or an original to fork)", _show_open)
+	# Zoom, top right of the map (the mouse wheel zooms too).
+	var zoom := HBoxContainer.new()
+	zoom.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	zoom.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	host.add_child(zoom)
+	_ui.zoom_in = _button(zoom, " + ", func(): _zoom(Tsd.ZOOM_STEP))
+	_ui.zoom_out = _button(zoom, " − ", func(): _zoom(1.0 / Tsd.ZOOM_STEP))
 	var tabs := TabContainer.new()
-	tabs.custom_minimum_size.x = 400
-	tabs.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# A fixed side panel: the map keeps its size whichever tab is open.
+	tabs.custom_minimum_size.x = 560
+	tabs.size_flags_horizontal = Control.SIZE_FILL
 	split.add_child(tabs)
 	_build_units_tab(_tab(tabs, "Units"))
 	_build_flights_tab(_tab(tabs, "Flights"))
@@ -852,6 +895,11 @@ func _build_units_tab(box: VBoxContainer) -> void:
 
 
 func _build_flights_tab(box: VBoxContainer) -> void:
+	# Above the jet lists it widens: the never-served types (the Lavi).
+	_ui.m_what_if = CheckBox.new()
+	_ui.m_what_if.text = "What-if (hypothetical) aircraft"
+	_ui.m_what_if.toggled.connect(func(_on): _on_year_picked())
+	box.add_child(_ui.m_what_if)
 	_ui.flight_rows = []
 	for n in 4:
 		var h := HBoxContainer.new()
@@ -865,10 +913,10 @@ func _build_flights_tab(box: VBoxContainer) -> void:
 		var c := _spin(1, 2, 1, func(_v): pass)
 		h.add_child(c)
 		var k := n + 1
-		_button(h, "Set", func(): apply_flight(k))
-		_button(h, "Remove", func(): remove_flight(k))
+		var add := _button(h, "Add", func(): apply_flight(k))
+		var rm := _button(h, "Remove", func(): remove_flight(k))
 		box.add_child(h)
-		_ui.flight_rows.append({"type": t, "count": c})
+		_ui.flight_rows.append({"type": t, "count": c, "set": add, "remove": rm})
 	box.add_child(HSeparator.new())
 	box.add_child(_label("Route of the flight (click its unit or pick it here)"))
 	_ui.route_of = _row(box, "Flight", _options([], _on_route_flight))
@@ -877,7 +925,8 @@ func _build_flights_tab(box: VBoxContainer) -> void:
 	_ui.wps.item_selected.connect(_on_waypoint_listed)
 	box.add_child(_ui.wps)
 	_ui.wp_alt = _row(box, "Altitude m", _spin(0, 20000, 10, func(v): set_waypoint_value(3, v)))
-	_ui.wp_speed = _row(box, "Speed km/h", _spin(0, 3000, 10, func(v): set_waypoint_value(4, v)))
+	# The waypoint's 5th field is its planned arrival time, seconds after the start (docs/ai.md §7.2), 0 none.
+	_ui.wp_speed = _row(box, "Arrive at (s)", _spin(0, 36000, 10, func(v): set_waypoint_value(4, v)))
 	_button(box, "Insert a waypoint after", insert_waypoint)
 	_button(box, "Delete the waypoint", delete_waypoint)
 	box.add_child(HSeparator.new())
@@ -892,10 +941,7 @@ func _build_flights_tab(box: VBoxContainer) -> void:
 func _build_mission_tab(box: VBoxContainer) -> void:
 	_build_conditions(box)
 	_ui.m_name = _row(box, "Name", _label(""))
-	_ui.m_year = _row(box, "Year", _year_picker(func(_i): _on_year_picked()))
-	_ui.m_what_if = _row(box, "", CheckBox.new())
-	_ui.m_what_if.text = "What-if (hypothetical) aircraft"
-	_ui.m_what_if.toggled.connect(func(_on): _on_year_picked())
+	_ui.m_year = _row(box, "Year", _year_picker(func(_v): _on_year_picked()))
 	_ui.m_hour = _row(box, "Start hour", _spin(0, 23, 1, func(_v): _set_time()))
 	_ui.m_min = _row(box, "Start minute", _spin(0, 59, 1, func(_v): _set_time()))
 	_ui.m_wind = _row(
@@ -933,8 +979,7 @@ func _build_dialogs() -> void:
 	# New's choices: the year, then that year's blue home bases and jets, the wingman and the what-if switch.
 	_ui.era_row = GridContainer.new()
 	_ui.era_row.columns = 2
-	_ui.new_year = _year_picker(func(_i): _fill_new_choices())
-	_ui.new_year.select(_ui.new_year.item_count - 1)
+	_ui.new_year = _year_picker(func(_v): _fill_new_choices())
 	_ui.new_base = OptionButton.new()
 	_ui.new_jet = OptionButton.new()
 	_ui.wingman = CheckBox.new()
@@ -943,11 +988,12 @@ func _build_dialogs() -> void:
 	_ui.new_what_if = CheckBox.new()
 	_ui.new_what_if.text = "What-if (hypothetical) aircraft"
 	_ui.new_what_if.toggled.connect(func(_on): _fill_new_choices())
-	var rows := [["Year", _ui.new_year], ["Home base", _ui.new_base], ["Jet", _ui.new_jet], ["", _ui.wingman]]
-	for row in rows + [["", _ui.new_what_if]]:
+	var rows := [["Year", _ui.new_year], ["Home base", _ui.new_base], ["", _ui.new_what_if], ["Jet", _ui.new_jet]]
+	for row in rows + [["", _ui.wingman]]:
 		_ui.era_row.add_child(_label(row[0]))
 		_ui.era_row.add_child(row[1])
-	v.add_child(_ui.era_row)
+	# The name first (English letters, digits, spaces, _ and -: it is also the file's name), then New's choices.
+	v.add_child(_label("Name (English letters, digits, spaces, _ or -)"))
 	_ui.name_edit = LineEdit.new()
 	_ui.name_edit.custom_minimum_size.x = 360
 	_ui.name_edit.text_changed.connect(func(t): _ui.name_why.text = name_error(t))
@@ -955,9 +1001,17 @@ func _build_dialogs() -> void:
 	_ui.name_why = _label("")
 	_ui.name_why.modulate = Color.RED
 	v.add_child(_ui.name_why)
+	v.add_child(_ui.era_row)
 	_ui.name_dlg.add_child(v)
 	_ui.name_dlg.confirmed.connect(_name_confirmed)
 	add_child(_ui.name_dlg)
+	_ui.delete_dlg = ConfirmationDialog.new()
+	_ui.delete_dlg.ok_button_text = "Delete"
+	_ui.delete_dlg.about_to_popup.connect(
+		func(): _ui.delete_dlg.dialog_text = "Delete your mission %s? This cannot be undone." % mission_name
+	)
+	_ui.delete_dlg.confirmed.connect(delete_mission)
+	add_child(_ui.delete_dlg)
 	_ui.replace_dlg = ConfirmationDialog.new()
 	_ui.replace_dlg.ok_button_text = "Replace"
 	_ui.replace_dlg.confirmed.connect(_name_done)
@@ -1010,20 +1064,20 @@ func _ask_name(purpose: String, suggestion: String) -> void:
 	_ui.name_dlg.popup_centered()
 
 
-## A year picker (IafMissionEdit years), each item's metadata its value.
-func _year_picker(cb: Callable) -> OptionButton:
-	var o := OptionButton.new()
-	for y in api.years():
-		o.add_item(String(y[1]))
-		o.set_item_metadata(o.item_count - 1, float(y[0]))
-	o.item_selected.connect(cb)
-	return o
+## A year box, 1966 … 1998 (1998 the game's present; 1967 is the Six-Day War itself).
+func _year_picker(cb: Callable) -> SpinBox:
+	var y := _spin(1966, 1998, 1, cb)
+	y.value = 1998
+	y.tooltip_text = "1967 is the Six-Day War itself, from the pre-war lines."
+	return y
 
 
 ## The bdb's name of each id in `ids` into picker `o` (metadata: the id).
 func _fill_jets(o: OptionButton, ids: PackedInt64Array) -> void:
 	o.clear()
-	var bdb := Tsd.MissionRuntime.bdb_objects(Tsd.MissionRuntime.load_bdb({"bdb": "default6_1.bdb"}))
+	if objects.is_empty():
+		objects = Tsd.MissionRuntime.bdb_objects(Tsd.MissionRuntime.load_bdb({"bdb": "default6_1.bdb"}))
+	var bdb := objects
 	for id in ids:
 		o.add_item(String(bdb.get(id, {}).get("0x528", str(id))))
 		o.set_item_metadata(o.item_count - 1, id)
@@ -1031,7 +1085,7 @@ func _fill_jets(o: OptionButton, ids: PackedInt64Array) -> void:
 
 ## New's year's blue home bases and jets into its pickers.
 func _fill_new_choices() -> void:
-	var y: float = _ui.new_year.get_selected_metadata()
+	var y: float = _ui.new_year.value
 	_ui.new_base.clear()
 	for b in api.year_bases(y, 1):
 		_ui.new_base.add_item(b.name)
@@ -1055,7 +1109,7 @@ func _name_confirmed() -> void:
 func _name_done() -> void:
 	var n: String = _ui.name_edit.text.strip_edges()
 	if _name_purpose == "new":
-		var y: float = _ui.new_year.get_selected_metadata()
+		var y: float = _ui.new_year.value
 		var jet: int = _ui.new_jet.get_selected_metadata()
 		var base: String = _ui.new_base.get_item_text(_ui.new_base.selected)
 		new_mission(n, y, base, jet, _ui.wingman.button_pressed, _ui.new_what_if.button_pressed)
@@ -1065,8 +1119,15 @@ func _name_done() -> void:
 		save_as(n)
 
 
+func _zoom(factor: float) -> void:
+	if tsd != null:
+		tsd.zoom_by(factor)
+		tsd.queue_redraw()
+		_refresh_ui()
+
+
 func _on_issue_pressed(i: int) -> void:
-	var id = _ui.issues.get_popup().get_item_metadata(i)
+	var id = _ui.issues.get_item_metadata(i)
 	if id != null and int(id) >= 0:
 		sel_id = int(id)
 		_refresh()
@@ -1172,17 +1233,11 @@ func _fill_object_picker() -> void:
 	add_object = o.get_item_metadata(0) if o.item_count > 0 else -1
 
 
+## Alpha … Delta's jet lists: the blue jets in service in the mission's year (what-if adds the never-served).
 func _fill_flight_types() -> void:
+	var ids := api.year_jets(year, 1, what_if)
 	for row in _ui.flight_rows:
-		var t: OptionButton = row.type
-		t.clear()
-		var ids := objects.keys()
-		ids.sort()
-		for id in ids:
-			var obj: Dictionary = objects[id]
-			if int(obj.get("0x5aa", -1)) == 0x1c and int(obj.get("0x5b4", -1)) in Tsd.FLYABLE_TYPES:
-				t.add_item(String(obj.get("0x528", obj.get("0x514", ""))))
-				t.set_item_metadata(t.item_count - 1, int(id))
+		_fill_jets(row.type, ids)
 
 
 func _fill_flights() -> void:
@@ -1193,10 +1248,24 @@ func _fill_flights() -> void:
 		if tsd.flights.has(n + 1):
 			var lead: Dictionary = tsd.units[tsd.flights[n + 1].leader]
 			var obj := int(entity(_key_id(lead.key)).get("0x2c6", -1))
+			var found := false
 			for i in row.type.item_count:
 				if row.type.get_item_metadata(i) == obj:
 					row.type.select(i)
+					found = true
+			if not found:
+				# A type outside the year's list (a forked original's) stays shown, marked.
+				row.type.add_item("%s (not in %d)" % [objects.get(obj, {}).get("0x528", str(obj)), int(year)])
+				row.type.set_item_metadata(row.type.item_count - 1, obj)
+				row.type.select(row.type.item_count - 1)
 			row.count.set_value_no_signal(tsd.flights[n + 1].members.size())
+		else:
+			# No such flight yet: no jet shown, Add makes it.
+			row.type.select(-1)
+			row.count.set_value_no_signal(2)
+		row.set.text = "Set" if tsd.flights.has(n + 1) else "Add"
+		row.remove.disabled = read_only or not tsd.flights.has(n + 1)
+		row.set.disabled = read_only
 	var ro: OptionButton = _ui.route_of
 	ro.clear()
 	var keys: Array = tsd.flights.keys()
@@ -1211,7 +1280,7 @@ func _fill_flights() -> void:
 	var fo := _formation_of(tsd.sel_flight)
 	var pts: Array = data.formations.items[fo].points if fo >= 0 else []
 	for i in pts.size():
-		_ui.wps.add_item("%d: alt %d m, %d km/h" % [i + 1, int(pts[i][3]), int(pts[i][4])])
+		_ui.wps.add_item("%d: alt %d m, arrive at %d s" % [i + 1, int(pts[i][3]), int(pts[i][4])])
 	if sel_wp >= 0 and sel_wp < pts.size():
 		_ui.wps.select(sel_wp)
 		_ui.wp_alt.set_value_no_signal(float(pts[sel_wp][3]))
@@ -1219,7 +1288,7 @@ func _fill_flights() -> void:
 
 
 func _on_year_picked() -> void:
-	set_year(_ui.m_year.get_selected_metadata(), _ui.m_what_if.button_pressed)
+	set_year(_ui.m_year.value, _ui.m_what_if.button_pressed)
 
 
 func _on_add_enemy() -> void:
@@ -1247,11 +1316,9 @@ func _fill_enemy() -> void:
 
 func _fill_mission() -> void:
 	_ui.m_name.text = mission_name
-	for i in _ui.m_year.item_count:
-		if is_equal_approx(float(_ui.m_year.get_item_metadata(i)), year):
-			_ui.m_year.select(i)
+	_ui.m_year.set_value_no_signal(year)
 	_ui.m_what_if.set_pressed_no_signal(what_if)
-	_ui.m_year.disabled = read_only
+	_ui.m_year.editable = not read_only
 	_ui.m_what_if.disabled = read_only
 	_fill_enemy()
 	if data.is_empty():
@@ -1404,10 +1471,7 @@ func _build_roles(box: VBoxContainer) -> void:
 
 
 func _build_conditions(box: VBoxContainer) -> void:
-	box.add_child(_label("Win and lose"))
-	_ui.cond = _label("")
-	_ui.cond.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	box.add_child(_ui.cond)
+	box.add_child(_label("Win and lose (what passes and fails it: the line under the map)"))
 	_ui.passed_text = _row(box, "Passed headline", LineEdit.new())
 	_ui.passed_text.text_submitted.connect(func(t): set_misc("0x47e", t))
 	_ui.passed_text.focus_exited.connect(func(): set_misc("0x47e", _ui.passed_text.text))
@@ -1419,7 +1483,6 @@ func _build_conditions(box: VBoxContainer) -> void:
 
 func _fill_conditions() -> void:
 	var text := String(conditions.get("summary", ""))
-	_ui.cond.text = text
 	_ui.cond_line.text = text
 	_ui.cond_line.tooltip_text = text
 	_ui.cond_line.modulate = Color.WHITE if conditions.get("can_pass", true) else Color.RED
