@@ -6,7 +6,8 @@ This doc lists the rendering options of the flight scene, what each one sets, an
 - The game logic is the original's. The rendering may look better than the original's, but the original look is the
   default and every improvement is opt-in.
 - Preferences → Graphics holds the original's own switches and our VSYNC (vertical sync) check. Its **MORE** button
-  opens our graphics options (the rows below and the terrain imagery). Preferences → Extras holds the rest of ours.
+  opens our graphics options: the Window row (framed / full screen), the rows below and the terrain imagery
+  (docs/imagery.md §5). Preferences → Extras holds the rest of ours.
 - The time of day (§4) follows the original's rules: the sun, light and fog colours come from the mission start time.
 
 Code: `game/terrain/render_options.gd` (applied by `terrain_view.gd apply_render_options()` at the start of a flight
@@ -29,7 +30,8 @@ TAA = temporal anti-aliasing.
 | Water | Original / Detailed | in `terrain.gdshader`: waves, sun glint and the sky's reflection on the sea and on lakes (§1.3) |
 | Models | Original / Detailed | Detailed: our detailed aircraft models where one exists (today the F-16D), parsed once and shared, with runtime LODs ([aircraft-models.md](aircraft-models.md)) |
 | Particle effects | Original / Detailed | Detailed: explosions, smoke and missile trails as GPU particles, contrails above 9000 m and a heat haze behind each engine (§6). Takes effect at the next flight |
-| Airbases | Original / Detailed | in `terrain.gdshader`: near the ground, a procedural runway, taxiway and apron surface with ICAO markings over the nearest base's paved surface (§7) |
+| Rolling wheels | Original / Rolling | the wheels of a model with wheel frames turn as the jet rolls (today the F-35I; docs/part-animation.md §2.2) |
+| Airbases | Original / Detailed | in `terrain.gdshader`: near the ground, a procedural runway, taxiway and apron surface with ICAO markings over the nearest base's paved surface (§7); always on in World scale Real |
 
 ### 1.1 Terrain close up
 
@@ -45,7 +47,7 @@ treats three kinds of ground:
 - **Grey ground** (asphalt, concrete, rock): a faint grain only (± ≈ 4 %) and a fifth of the normal detail, so runways
   stay free of grass noise. Inside an airbase (terraintype.dat 0x10) the chroma limit is higher, because the imagery
   tints the aprons blue / purple.
-- **Water** keeps the plain imagery. Water means the generated open sea (as before) and the inland water of
+- **Water** keeps the plain imagery. Water means the generated open sea and the inland water of
   terraintype.dat (0x6, island leaves excluded). To find it, `render_options.gd` asks Rust (`IafSurface`,
   `iaf_formats::terrain_types`) for terraintype.dat around the camera as a 256 × 256 texture of 96 m texels, 24.6 km
   across (global `terrain_surface`, R = water, G = airbase). It rebuilds the texture in one call when the camera is
@@ -56,9 +58,9 @@ Design points:
 - The noise textures are centred (mean 0.5) and every term is 0 at their mean. Distant mipmaps and the fade-out
   therefore leave the imagery's colours unchanged from afar.
 - The terrain grid has no tangents. The fragment shader builds the detail normal from the world X / Z axes and leaves
-  `NORMAL_MAP` unset (setting it made Godot warn on every node).
-- Before: one brightness noise (±7 %) at 2.4 m / 0.5 m features. It was sub-pixel beyond ≈ 50 m, so it was barely
-  visible.
+  `NORMAL_MAP` unset (setting it makes Godot warn on every node).
+- The scales are coarse on purpose: finer noise (the first version: ±7 % brightness at 2.4 m / 0.5 m features) is
+  sub-pixel beyond ≈ 50 m.
 
 ### 1.2 Atmospheric sky
 
@@ -75,14 +77,14 @@ The Atmospheric sky computes the radiance L of each view direction with single s
 
 Tuning:
 
-- The τ_R values (0.045, 0.13, 0.6) are tuned, not the physical λ⁻⁴ values. Plain single scattering (the first
-  version) gave a pale cyan zenith and a white horizon 7× brighter, which the AgX tonemapper turns grey.
+- The τ_R values (0.045, 0.13, 0.6) are tuned, not the physical λ⁻⁴ values. Plain single scattering gives a pale
+  cyan zenith and a white horizon 7× brighter, which the AgX tonemapper turns grey.
 - The tuned values give a deep blue zenith (≈ the gradient sky's top), a pale horizon 2–3× brighter, and a darker
   zenith at 9000 m.
-- Below the horizon the colour is the horizon's, and the fog over the ground takes it. Before, it was a dark "ground"
-  colour, which made a brown-grey haze.
-- The sun's disc (0.53°) has a crisp edge: the shader takes its angle from the chord, because `cos` near 1 lost the
-  disc in float precision before. Around it is a narrow glare (e-folding 1.5°).
+- Below the horizon the colour is the horizon's, and the fog over the ground takes it (a dark "ground" colour there
+  makes a brown-grey haze).
+- The sun's disc (0.53°) has a crisp edge: the shader takes its angle from the chord, because `cos` near 1 loses the
+  disc in float precision. Around it is a narrow glare (e-folding 1.5°).
 
 The cloud layer (Graphics TEXTURED SKY, the original's) maps its texture's alpha 0.3–0.9 to 0–1 with this sky. The
 result is separate clouds with clear sky between them, in place of a grey veil over the whole sky. With the nearly
@@ -106,8 +108,8 @@ rest: the sun's GGX highlight becomes the glint, and the sky's radiance gives th
 
 With either Water choice, the vertex shader (`is_open_sea`) gives the generated open sea a flat normal, so the sea-bed
 relief under the data surface does not shade the water. It takes the colour from mip level 3 and compares it in sRGB
-within 0.08 of `sea_colour`, the outer edge of the fragment test above. Until October 2026 it compared the linear
-colour, so no vertex matched and the sea bed left faint streaks (up to 5 / 255) on the water off Haifa and Nahariya.
+within 0.08 of `sea_colour`, the outer edge of the fragment test above. (Compared in linear colour, no vertex
+matches, and the sea bed leaves faint streaks of up to 5 / 255 on the water off Haifa and Nahariya.)
 
 **The surface (per water pixel):**
 
@@ -144,18 +146,18 @@ coast at 150 m and 1500 m), `glint150_*` and `glint1500_*` (towards the sun over
 The cloud layer is a dome of cloud texture plus a flat layer, and a whiteout near its altitude. Three findings:
 
 - **Cut.** The original cuts the dome at the terrain's far horizon (`407c70` → `41dc30` → +0x1098) and fills the gap
-  at the dome's depth, so the dome never covers drawn terrain. Our port drew the lower rings (down to height 0 at
-  21.9 km) over the terrain we draw out to 200 km. That made a white band across the whole horizon; at 2000 m it
-  covered most of the view above the hills. Now the dome is drawn at the far plane (reverse-Z depth 0, `at_far`),
-  behind every terrain point. The flat layer seen from above stays at its depth.
+  at the dome's depth, so the dome never covers drawn terrain. We draw terrain out to 200 km, beyond the dome's lower
+  rings (down to height 0 at 21.9 km), so the port draws the dome at the far plane (reverse-Z depth 0, `at_far`),
+  behind every terrain point; drawn at its depth it makes a white band across the horizon. The flat layer seen from
+  above stays at its depth.
 - **Whiteout**, checked in the disassembly (v1.0 41da5e–41da9f):
   - It shows only while |altitude − 7000| < 1000 (`5fb53c`).
   - alpha = clamp(j + 255 − ftol(0.255·|Δ|), 0, 255) (`5fb540` = 0.255).
   - At 6000 m or below there is none. The white "haze" in the 2000 m explosion shot was the dome band (above) and the
     explosion's own smoke column 40 m away.
   - The full-screen whiteout rect is hidden while its alpha is 0.
-- **Cost.** The reported 36 vs 68 fps was wrong: that run averaged its first frames after load. Measured: 0.15–0.5 ms
-  GPU below the layer, 1.4 ms above it (the flat layer covers half the screen). See the table below.
+- **Cost.** 0.15–0.5 ms GPU below the layer, 1.4 ms above it (the flat layer covers half the screen); §3 (a bench
+  must skip its first frames after load).
 
 ## 3. Measurements
 
@@ -182,7 +184,8 @@ Costs:
 - + FXAA ≈ +0.5–1.2 ms.
 - TAA ≈ +0.4–2.7 ms near the ground, and 1.5–2.4 ms cheaper than MSAA 4× at altitude (MSAA 4× itself is ≈ 6 ms here).
 - MSAA 8× (+5 ms) and MSAA + TAA (+7 ms) were measured and left out.
-- The close up and atmospheric columns above are the first versions (§1.1 / §1.2 "before").
+- The close up and atmospheric columns above are the first versions (the fine brightness noise of §1.1, plain
+  single scattering in §1.2).
 
 The next table measures the tuned close up and atmospheric sky over three bench runs. The machine was shared with
 builds, so single values vary by ±1–2 ms. The costs are therefore the differences within a run, each pair rendered
@@ -221,7 +224,7 @@ sentinel2 imagery, at 1920×1080:
     (each write re-renders the sky radiance). It now writes them only on change, and the sky radiance is
     incremental.
 
-  These last two changes were not yet re-measured in a clean A/B on the Iris.
+  The last two changes are not yet re-measured in a clean A/B on the Iris.
 
 ## 4. Time of day (built: game/terrain/time_of_day.gd)
 
@@ -329,7 +332,7 @@ Y-flipped. The shaders get the viewport rows as a uniform and take the focal len
 
 Preferences → Graphics → MORE → **Particle effects = Detailed** (ours, docs/deviations.md §2) draws the original's effects
 with GPU particles. It takes effect at the next flight. What spawns, when, where, how fast, how wide and for how long stays the original's
-(docs/damage.md §6): `damage_effects.gd` and `trails.gd` make every decision as before and hand each spawn to
+(docs/damage.md §6): `damage_effects.gd` and `trails.gd` make every decision as in Original and hand each spawn to
 `gpu_fx.gd`, which only draws it.
 
 **How it works.** Three particle pools (`GPUParticles3D`, fed one particle at a time with `emit_particle`):
@@ -388,11 +391,8 @@ Preferences → Graphics → MORE → **Airbases = Detailed** (ours, docs/deviat
 taxiways and aprons as a procedural surface with ICAO markings when the camera is near the ground. Original shows the
 1998 imagery's painted runways. Rendering only: the flight model's runway surface stays terraintype.dat's.
 
-**World scale Real** ([world-scale.md](world-scale.md) §3.3, §4.2): the surface is always on, each base at its new
-site: `IafBases.base()` hands `airbases.gd` the moved runways (the real width, thresholds × k, numbers from the new
-headings) and the mask's inverse map, and the shader reads the mask through `airbase_mask_xf` (a 2 × 2 matrix) plus
-the offset in `airbase_mask_rect.xy`. The terrain's colour images are patched as they load: the old site's paved
-surface painted over, the new site's painted grey (seen from afar, where the surface has faded out).
+**World scale Real**: the surface is always on, each base drawn at its real site from the moved runways and the
+turned mask ([world-scale.md](world-scale.md) §4.2, §4.3).
 
 **The data** (`iaf-terrain airbases <install> <theatre> <out>`, run by `tools/setup-cli.sh`; `crates/iaf-tools/src/airbases.rs`).
 For each of iaf.ibx's ten bases, from the 1998 art at level 1 (2.5 m per pixel) around the base's terraintype.dat
@@ -473,9 +473,8 @@ thresholds. In the terrain's fragment, inside the mask's rectangle and within 6 
   side, 1.8 m, 30 m long, 6 m past the threshold), the designation (two digits 9 m tall, 12 m past the stripes),
   centreline (30 m dashes, 20 m gaps), touchdown zone marks every 150 m (3, 3, 2, 2, 1, 1 bars), the aiming point
   (45 × 8 m at 400 m, on runways over 2400 m), edge lines. Before a threshold: yellow chevrons 30 m apart. Taxi lines:
-  yellow, 0.3 m, within 2 km. World scale Real (world-scale.md §4.3): a parallel runway's letter (L, R, C) between
-  the stripes and the digits, the taxi lines 1 m wide, and the 1998 runways' paved part beyond the real width plus
-  5 m drawn as ground (`IafBases.moved_mask`).
+  yellow, 0.3 m, within 2 km. World scale Real adds the runway letters, wider taxi lines and the real runway width
+  (world-scale.md §4.3).
 - **Tyre rubber**: dark streaks in the main gears' tracks (1–6 m off the centreline) from ≈ 150 to 1100 m past each
   threshold.
 - Every mark is box-filtered over the pixel's footprint along and across the runway, so it fades to its average far

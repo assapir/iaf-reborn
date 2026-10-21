@@ -30,7 +30,7 @@ The warp is a smoothed thin-plate spline with an exact numerical inverse.
 
 ## 2. Control points (automatic)
 
-A developer tool measures the control points once; its output is committed:
+A developer tool measures the control points once, and its output is committed:
 
 `iaf-terrain georef-points <theatre-dir> <eox-z9-dir> <eox-z10-dir> <out.json> <lambda>`
 
@@ -110,16 +110,13 @@ The large hold-out values come from the isolated coarse points: removing one lea
 | 34.53 N 33.11 E (Cyprus, Akrotiri) | 1390 m |
 | 35.36 N 34.06 E (Cyprus, Karpass) | 872 m |
 
-The tool prints the per-point residuals, and the test bounds them (rms < 80 m, 95th percentile
-< 150 m).
+The tool prints the per-point residuals, and the test bounds them (rms < 80 m, 95th percentile < 150 m).
 
 ## 4. Airbases are not at their real positions (validation)
 
-Most game airbases sit kilometres from the real ones, by design. So airbases cannot serve as control points.
-
-The task suggested airbase runways as control points. The table puts the ten iaf.ibx airbases (LineupLoc, engine
-metres) through the warp and compares them with the real airbase (OpenStreetMap aerodrome centre, Overpass query
-2026-10-01):
+Most game airbases sit kilometres from the real ones, by design, so airbases cannot serve as control points. The
+table puts the ten iaf.ibx airbases (LineupLoc, engine metres) through the warp and compares them with the real
+airbase (OpenStreetMap aerodrome centre, Overpass query 2026-10-01):
 
 | iaf.ibx base | warp of the lineup point | real airbase | distance km |
 |---|---|---|---|
@@ -140,8 +137,7 @@ What the table shows:
   OpenStreetMap point at the centre. Other places confirm it too: Ashdod port in the original level 6 maps to
   31.831 N 34.642 E, the real port.
 - **The designers placed the other bases by choice.** The game's "Tel Nof" inset is 17 km south of the real base,
-  "Ramon" 20 km north-east, and so on. This is consistent with the "base distances 0.75–1.13 of real" in
-  docs/roadmap.md.
+  "Ramon" 20 km north-east, and so on. The base-to-base distances: [world-scale.md](world-scale.md) §1.2.
 - **Consequence:** a modern layer must **keep the original imagery at the game's airbases** (docs/imagery.md §3).
   Otherwise the mission's airbase would sit in empty modern desert, with the real base kilometres away.
 
@@ -164,5 +160,5 @@ To re-measure the control points:
 4. Commit the JSON.
 
 [^bley]: No real airfield is named Bley in OpenStreetMap; the name matches the village Beli (بلي, 33.224 N 36.463 E),
-    6.6 km south of Marj Ruhayyil Air Base. Khalkhalah (33.081 N 36.562 E, 17 km from Beli) was the earlier guess.
+    6.6 km south of Marj Ruhayyil Air Base; Khalkhalah (33.081 N 36.562 E) lies 17 km from Beli.
     Reasoning and sources: [world-scale.md](world-scale.md) §1.2.

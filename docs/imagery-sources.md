@@ -14,12 +14,11 @@ base. The rules for a usable source:
   it**.
 - **Access**: no "bring your own API key" step.
 
-Status: research only, no code. Built since: the Survey of Israel 2 m layers (docs/imagery.md §8). SPOT 5 not started.
+Built from it: the Survey of Israel 2 m layers (docs/imagery.md §8). SPOT 5 and the other sources are not started.
 Checked 2026-10-01. The clauses are quoted from the providers' own pages (links inline). This is not legal advice;
 where a clause is ambiguous, the text says so.
 
-Our levels for reference (docs/imagery-research.md §3): L0 1.24 m, L1 2.5 m, L2 5.0 m, L3 9.9 m,
-L4 19.9 m, L5 39.7 m, L6 79.4 m per pixel. The original has L0..L2 only at ~20 airbase/target insets.
+Our levels (Ln, metres per pixel) and the original's cover per level: docs/imagery-research.md §3.
 
 Check sites used below:
 
@@ -41,7 +40,7 @@ NC = non-commercial; OAM = OpenAerialMap; DLS = Cyprus Department of Lands and S
 | rank | source | res. | where | dates | licence (short) | access | verdict |
 |---|---|---|---|---|---|---|---|
 | 1 | **Survey of Israel aerial orthophoto "2015, 2 m"** on data.gov.il | **2 m** colour | all Israel + West Bank + Golan (79 map sheets) | 2015 | **data.gov.il open licence**: copy, distribute, derive, commercial OK, credit the source | direct ZIP per sheet (no account); AWS-WAF bot challenge | **use — best legal high-res for Israel** |
-| 2 | ESA WorldCover S2 composite / EOX S2 cloudless 2016–17 | 10 m colour | whole theatre | 2016–2021 | CC BY 4.0 | AWS COGs / WMTS | keep as base (as already planned) |
+| 2 | ESA WorldCover S2 composite / EOX S2 cloudless 2016–17 | 10 m colour | whole theatre | 2016–2021 | CC BY 4.0 | AWS COGs / WMTS | keep as base (built: `sentinel2`, imagery.md) |
 | 3 | **CNES SPOT World Heritage** (SPOT 1–5 archive) | **5 m pan** (SPOT 5; 2.5 m "THR" pairs exist), 10 m pan SPOT 1–4, 10/20 m colour | whole theatre (1 810 SPOT 5 scenes touch Ramat David, 374 Cairo, 364 Damascus, 135 one Sinai point) | 1986–2015 (incl. **1997–98**) | **Etalab Open Licence 2.0** (≈ CC BY) | GEODES STAC API, free CNES account (a free login; no paid key); raw L1A — we orthorectify | **use for the rest of the theatre** (5 m modern-ish, or 10 m period-correct 1998) |
 | 4 | **Declassified CORONA KH-4B** (USGS Declass 1) / CAST "CORONA Atlas" | **~1.8 m** B&W | very heavy Middle East coverage | 1967–72 | **public domain** (USGS); CAST's orthorectification aids CC BY-SA 4.0 | EarthExplorer (free account; $30/frame to scan unscanned film); CAST atlas download with RPCs | **use as an optional "historical" look** |
 | 5 | Declassified KH-7 GAMBIT (Declass 2) | 0.6–1.2 m B&W | targeted frames only | 1963–67 | public domain | EarthExplorer | spot patches, if frames exist over our bases |
@@ -113,12 +112,10 @@ download a manual browser step.
     the country (estimate).
   - The site is behind CloudFront + AWS WAF. The first few `curl` range requests returned 206; after that every
     request got **HTTP 202 with a JavaScript challenge** (also for the HTML pages; the CKAN `/api/3/` JSON stayed
-    open). So a scripted bulk download is unreliable.
-  - The setup step should therefore: (1) list the 79 links (from the CKAN API); (2) let the user download them in a
-    browser into a folder (or retry slowly); (3) convert.
-  - Internal format (GeoTIFF / ECW / JPEG2000, ITM grid — Israeli Transverse Mercator) is not yet confirmed: the ZIP
-    central directory could not be read once the challenge kicked in. Check one sheet by hand before writing the
-    converter.
+    open). So a plain scripted bulk download is unreliable.
+  - Built (docs/imagery.md §8): the sheet list is committed (tools/imagery/mapi2015_sheets.tsv); the download uses
+    curl with the WAF token the user's Firefox earned, else browser tabs; then the converter runs. The ZIPs hold
+    GeoTIFFs on the Israeli TM Grid (EPSG:2039).
 - **Caveats**:
   - The photos are from 2015, newer than the game's 1998: towns, roads and airbase shelters differ. See the "original
     wins" rule in imagery-research.md §4.1.
@@ -363,7 +360,7 @@ Gpx = gigapixels).
 
 | source | native | best game level it can feed | theatre part | download | on disk (converted) |
 |---|---|---|---|---|---|
-| Survey of Israel 2015 | 2 m | **L1 (2.5 m)** | Israel, WB, Golan (~28 000 km²) | ~20 GB (79 ZIPs) | L1 ≈ 4.5 Gpx → ~1.2–1.5 GB JPEG nodes, + L2/L3 ≈ 0.4 GB |
+| Survey of Israel 2015 | 2 m | **L1 (2.5 m)** | Israel, WB, Golan (~28 000 km²) | ~20 GB (79 ZIPs, estimate) | estimated L1 ≈ 4.5 Gpx → ~1.2–1.5 GB JPEG nodes, + L2/L3 ≈ 0.4 GB; measured ≈ 2.4 GB per look (imagery.md §8) |
 | SPOT 5 pan-sharpened | 5 m | **L2 (5 m)** / L3 | rest of the land (~600 000 km²) | ~20–40 GB (est., per pass) | L3 everywhere ≈ 2.5 GB; L2 everywhere ≈ 10 GB (or L2 only within ~30 km of bases) |
 | SPOT 2/4 (1997–98) | 10 m pan / 20 m colour | L3 | whole theatre | ~20 GB | ~2.5 GB |
 | WorldCover / EOX | 10 m | L3 | whole theatre | 11–43 GB (COG ranges) | 0.8–3 GB |
@@ -379,16 +376,13 @@ The original's L4 (19.9 m) over Israel is already sharp. The visible wins:
 Use these sources, in this order of priority:
 
 1. **Israel (incl. West Bank, Golan): Survey of Israel 2015 2 m** (open licence, credit "© Survey of Israel").
-   1. Setup lists the 79 sheet URLs from the CKAN API.
-   2. The user downloads them (in a browser, because of the WAF challenge) into `assets/source/imagery/mapi2015/`.
-   3. `iaf-terrain imagery` converts them through the georeference warp into L1..L3 nodes.
-
-   Original L0..L2 insets still win by default (they match the 1998 airbases); a sub-option may let the 2 m data
-   replace them.
+   Built (docs/imagery.md §8): the sheets download into `assets/source/imagery/mapi2015/`, and `iaf-imagery
+   mapi2015` converts them through the georeference warp into L1 nodes and coarser. The airbases keep their
+   footprint and the target sites their inset; the original's L3 regional cover is replaced (imagery.md §3).
 2. **Rest of the theatre: SPOT 5 (SWH, Etalab 2.0), 5 m pan + 10 m colour, pan-sharpened**: the best low-cloud scene
    per area, 2003–2012, orthorectified with OTB/GDAL + GLO-30, colour-matched to WorldCover. Needs a free CNES account
    (open question: acceptable as a one-time setup login?). Feeds L2 near bases / targets, L3 elsewhere.
-3. **Fallback / colour reference everywhere: WorldCover S2 10 m** (as already planned). It fills gaps (clouds, missing
+3. **Fallback / colour reference everywhere: WorldCover S2 10 m** (built outside Israel). It fills gaps (clouds, missing
    SPOT scenes) and is the colour target for both packs.
 4. **Optional "Historical recon" layer: CORONA KH-4B 1967–72** (public domain; CAST RPCs), B&W, over a handful of
    airbases and targets. Cheap to try on one base (Ramat David or an Egyptian base) before committing.
@@ -400,7 +394,7 @@ Use these sources, in this order of priority:
 Open questions for the user:
 
 - (a) Free-account downloads (CNES GEODES, USGS EarthExplorer): OK as a one-time setup step, or manual-download only?
-- (b) Should the 2015 Israeli 2 m imagery replace the original insets, or only fill around them?
+- (b) Answered by the build: the 2 m imagery fills around the airbase footprints and target-site insets (imagery.md §3).
 - (c) Is it worth an e-mail to Cyprus DLS (licence) and to the Survey of Israel (newer orthophoto for a free
   non-commercial game)?
 - (d) Which default outside Israel: SPOT 5 "modern-ish 5 m" or SPOT 2/4 "1998 10 m"?

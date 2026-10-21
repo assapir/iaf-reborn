@@ -1,6 +1,6 @@
 # Jane's IAF: how aircraft model parts move (reverse-engineered spec)
 
-This spec says how the original exe finds an aircraft model's moving parts at load time and poses them every frame:
+This spec describes how the original exe finds an aircraft model's moving parts at load time and poses them every frame:
 control surfaces, gear, hook, drag chute, ejection, vehicle parts and the afterburner flame. It is for developers who
 port or maintain `game/aircraft/aircraft_model.gd` and the ejection code.
 
@@ -179,7 +179,7 @@ Callback `0x53eb50` (jump table `0x53ee54`/`0x53ee6c`):
 | 0x18–0x1c | forwarded to the vehicle |
 
 So in the original, **the pilot and the canopy are drawn on every aircraft seen from outside** and hidden only in the cockpit
-view. (Corrected: an earlier note said "hidden on the flying aircraft", which describes only the FM callback.)
+view. The FM callback alone would hide them; the crew object answers first.
 
 **Ejection graphics** (called by `FUN_005485a0`, docs/mission-runtime.md §5.4):
 1. `FUN_0053fb00`, at t0: two "Throwing subpart motion" objects (vtable `0x60c728`, 0x34 bytes: +4 dir, +0x10
@@ -262,8 +262,7 @@ the rotors' and wheels' speed depends on the frame rate (kept: per our frame).
 Port: `game/mission/vehicle_parts.gd` (Turret, Carrier, Launcher, Missile incl. its hiding, the Radar step, the rotors
 `step_rotors`), driven per frame by `terrain_view.gd` `_dishes`; a flown aircraft's rotors in `aircraft_model.gd`
 (the crew object's +0x10, the same rule). Wheels: the shipped vehicle models carry no Wheels frames, so nothing turns.
-The vehicles' frames come from their `_h.xfr` (the object database names it); `iaf-convert objects` used to overwrite
-it with the flattened `_h.x` in its briefing-models pass, so no unit had parts until then.
+The vehicles' frames come from their `_h.xfr` (the object database names it).
 
 ## 2.2 Wheels on flown aircraft
 The original never turns a flown aircraft's wheels:
@@ -318,5 +317,5 @@ load(xfr):  for child in root.children: id = lookup_ci(child.name); if !id: skip
 frame(t):   for part id: (θ, vis) = table §2 (sample ramps at t); if !vis: hide
               else part.local = T(P[id]) · R(axis=d[id], angle=−θ)   // X-file (LH) space
 ```
-Discrepancy with flight-model.md §7/§8: the visuals prove that event 8 / `S+0x340` = speed brakes,
-event 9 / `S+0x360` = hook, and `S+0x2cc` = drag-chute state (earlier mislabelled as gear). flight-model.md §7 / §15.1 now use these labels.
+Labels proved by the visuals: event 8 / `S+0x340` = speed brakes, event 9 / `S+0x360` = hook, and `S+0x2cc` =
+drag-chute state (flight-model.md §7 / §15.1 use the same labels).
