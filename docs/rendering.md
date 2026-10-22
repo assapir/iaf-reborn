@@ -12,8 +12,8 @@ This doc lists the rendering options of the flight scene, what each one sets, an
 
 Code: `game/terrain/render_options.gd` (applied by `terrain_view.gd apply_render_options()` at the start of a flight
 and when the in-flight Preferences close), `terrain/terrain.gdshader`, `terrain/atmosphere.gdshader`,
-`terrain/cloud_layer.gd`, `terrain/night_lights.gd`, `terrain/night_vision.gdshader`, `terrain/airbases.gd`. Tests: `tests/godot/test_graphics_prefs.gd` (switches → render
-settings, save / load), `test_ui_smoke.gd` (Graphics → MORE and Extras rows in EN / HE), `test_night_lights.gd` (§4 light points, §5, §8 the goggles key), `test_water.gd` (§1.3), `test_particle_effects.gd` (§6), `test_airbases.gd` (§7).
+`terrain/cloud_layer.gd`, `terrain/night_lights.gd`, `terrain/night_vision.gdshader`, `terrain/airbases.gd`, `terrain/ground_textures.gd`, `util/model_detail.gd`. Tests: `tests/godot/test_graphics_prefs.gd` (switches → render
+settings, save / load), `test_ui_smoke.gd` (Graphics → MORE and Extras rows in EN / HE), `test_night_lights.gd` (§4 light points, §5, §8 the goggles key), `test_water.gd` (§1.3), `test_ground_textures.gd` (§1.4), `test_particle_effects.gd` (§6), `test_airbases.gd` (§7), `test_model_detail.gd` (§9).
 
 ## 1. Options
 
@@ -30,9 +30,11 @@ TAA = temporal anti-aliasing.
 | Night vision (Shift+N) | Off / Goggles | Goggles: Shift+N in flight puts the night-vision goggles on and off: the 3D view turns into a green image-intensified picture, the cockpit stays as it is (§8) |
 | Water | Original / Detailed | in `terrain.gdshader`: waves, sun glint and the sky's reflection on the sea and on lakes (§1.3) |
 | Models | Original / Detailed | Detailed: our detailed aircraft models where one exists (today the F-16D), parsed once and shared, with runtime LODs ([aircraft-models.md](aircraft-models.md)) |
+| Model detail | Original / ambientCG | ambientCG: fine CC0 surface detail (normal, roughness and brightness: paint chips, scratches, grime, rubber grain) on the original models up close, over their own textures (§9). Greyed out ("Not downloaded") until setup has downloaded the materials. Takes effect when a model loads (the next flight) |
 | Particle effects | Original / Detailed | Detailed: explosions, smoke and missile trails as GPU particles, contrails above 9000 m and a heat haze behind each engine (§6). Takes effect at the next flight |
 | Rolling wheels | Original / Rolling | the wheels of a model with wheel frames turn as the jet rolls (today the F-35I; docs/part-animation.md §2.2) |
 | Airbases | Original / Detailed | in `terrain.gdshader`: near the ground, a procedural runway, taxiway and apron surface with ICAO markings over the nearest base's paved surface (§7); always on in World scale Real |
+| Ground textures | Original / ambientCG | in `terrain.gdshader`: near the camera, where they resolve, CC0 photo textures of asphalt, concrete, sand, gravel, grass, soil and rock, chosen per pixel from the imagery's colour (§1.4). Greyed out and not clickable ("Not downloaded") until setup has downloaded them; a saved ambientCG without them loads as Original |
 
 ### 1.1 Terrain close up
 
@@ -141,6 +143,84 @@ the whole view. The surface raster costs 0.7 ms of CPU (Rust, 65 536 lookups) on
 **Shots** (local, `assets/converted/research/water/`, Original then Detailed): `ta150_*` and `ta1500_*` (the Tel Aviv
 coast at 150 m and 1500 m), `glint150_*` and `glint1500_*` (towards the sun over the sea), `kin150_*` (the Kinneret at
 150 m), `cmp_*.png` (the pairs stacked).
+
+### 1.4 Ground textures
+
+The ambientCG choice puts real ground textures under the jet. They are CC0 (public domain) photo-scanned materials from
+ambientCG[^ambientcg]. The repo holds none of them: setup's optional `textures` step downloads them (docs/setup.md).
+Without them the row's ambientCG choice is greyed out, cannot be picked and reads "Not downloaded" (run `./setup`
+again online); a saved ambientCG then loads as Original, so the switch is never half on.
+
+| layer | material | real size of one repeat | used for |
+|---|---|---|---|
+| 0 | Asphalt027C | 2.5 m (inferred: ambientCG gives none; the sibling Asphalt033 is 2.5 m) | grey ground in an airbase: runways and taxiways |
+| 1 | Concrete040 | 1.4 m | the blue / purple tinted aprons in an airbase; the Detailed airbases' apron slabs |
+| 2 | Ground054 | 3.5 m | pale ground: sand |
+| 3 | Ground062L | 3.0 m | grey-brown ground: gravel desert, and grey ground outside airbases (towns, roads) at 60 % strength |
+| 4 | Ground037 | 2.1 m | green ground: grass and fields |
+| 5 | Ground109 | 2.8 m | saturated brown ground: dry soil and scrub |
+| 6 | Rock045 | 2.4 m | slopes steeper than ≈ 30° |
+
+How the shader uses them:
+
+- **Where**: where a texture resolves; none on water. The shader takes the pixel's ground footprint gm (the geometric
+  mean of its two axes, as the anisotropic filter sees it): full strength up to 0.05 m, none past 0.12 m (a repeat of
+  2–3 m under ≈ 20 pixels). At 2560 × 1440 that is ≈ 100–250 m looking down, less at a grazing angle. Farther and
+  grazing pixels skip the samples. The first fade (0.1–0.25 m) showed the grass layer's tiling as a lattice of
+  diagonal stripes at 100 m above fields.
+- **Colour**: the texture's colour divided by its own mean colour multiplies the imagery's colour. Setup stores that
+  ratio, halved, in the colour map. The photo keeps its own hue and brightness; the texture adds cracks, stones and
+  grass blades.
+- **No grid of repeats**: the strength varies over ≈ 9 m clumps (pavement: ≈ 4 m) with the close up's noise.
+- **Normal and roughness**: the material's normal map tilts the surface normal, and its roughness map sets the
+  roughness (0.8–1.0 on natural ground, 0.75–1.0 on pavement).
+- **Choice per pixel**: the imagery's colour picks the layer weights, compared in ≈ sRGB. In an airbase
+  (terraintype.dat 0x10) grey is asphalt and the blue / purple tint is concrete. Elsewhere green is grass, bright
+  (≥ 0.55) is sand, saturated brown is soil, and the rest is gravel. The slope of the terrain grid picks rock. The
+  strongest layer is sampled, and the second one too where it weighs a fifth or more: two or four texture samples
+  per pixel (colour, roughness + normal).
+- **With Terrain close up**: the textures take the place of the close up's fine grain (the 16 m noise and its normal
+  detail) up to a 0.03 m footprint, and share it up to 0.1 m. Past that a texture of a few metres no longer reads,
+  and the grain reads better. The close up's patches stay at every distance.
+- **With Detailed airbases** (§7): the procedural pavement takes asphalt in place of its 2.3 m aggregate grain and
+  its micro relief, and its apron slabs take concrete. The markings, tyre rubber, seams and repairs are drawn as
+  before, over the texture. The close up's own airbase layers are skipped there, so a pixel never samples both.
+- **Scale**: the textures repeat at their real size in world metres. The imagery's colour changes every few metres
+  and breaks up the repeat.
+
+Files and loading:
+
+- Setup (`iaf_tools::thirdparty`, `iaf-textures`) downloads `<id>_2K-JPG.zip` for each material, checks it against a
+  pinned SHA-256, and keeps the colour, normal (OpenGL) and roughness maps in `assets/thirdparty/ambientcg/<id>/`.
+  It packs them at 1024² with every mip level, compressed as the GPU reads them (texpresso, cluster fit): `albedo.bc1`
+  (BC1 / DXT1, RGB: the linear colour over its mean, halved) and `nr.bc3` (BC3 / DXT5: R roughness, G normal Y, B the brightness detail Model detail reads (§9),
+  A normal X). `ground.json` lists the layers in order with their sizes. The step takes ≈ 1 minute after the
+  download.
+- 1024² is ≈ 2.4 mm per texel on a 2.5 m repeat, finer than a pixel of the ground at 2560 × 1440 from the cockpit.
+- The game (`terrain/ground_textures.gd`) reads the packed maps (≈ 15 MB, ≈ 5 ms) on a worker thread while the
+  mission screens are open (`terrain_preload.gd`); the flight's start uploads them as two texture arrays. Nothing is
+  decoded or compressed in the game. The switch itself is a shader uniform (`ground_tex`), so the terrain shader is
+  the same with it on or off: no new shader compiles in flight.
+- Video memory: 7 layers × (0.7 MB + 1.4 MB) ≈ 15 MB.
+
+Cost on an Intel Iris Xe (TigerLake GT2) laptop at 2560 × 1440, 2026-10-22, X11 window, vsync off. The GPU column
+is the median of 12 pairs switching `ground_tex` 0 / 1 in place (`tests/godot/_airbase_shot.gd`, `SHOT_BENCH=ground_tex`):
+
+| pose | other options | frame, switch off | GPU cost of the switch |
+|---|---|---|---|
+| lineup on Ramat David's runway 27, cockpit | defaults | 13.5 ms (74 fps) | +1.05 ms (−7 % fps) |
+| the same | Terrain close up + Detailed airbases | 20.0 ms (50 fps) | +0.92 ms (−4.5 %) |
+| 300 m above the Halutza sands, looking 35° down | defaults | 17.8 ms (56 fps) | +1.61 ms (−9 %) |
+| the same | Terrain close up + Detailed airbases | 20.1 ms (50 fps) | +1.18 ms (−6 %) |
+
+Hitches (`tests/godot/_ground_tex_bench.gd`, mission 311, three runs each, the switch off / on):
+
+- Upload at the flight's start, after the mission screens' preload: 0 / 5.5–6.4 ms.
+- Mission start (scene change to the first flying frame, without the terrain preload): 37–46 s / 44–48 s, within the
+  run-to-run spread.
+- Worst frame in the first 30 s on the ground: 61–86 / 62–65 ms; average 52–59 / 55 fps.
+- Worst frame in a low pass over the base (60 m, 150 m/s): 29–31 / 30–31 ms; average 55 / 53–54 fps.
+- Video memory: +15.9 MB (Godot's texture memory monitor).
 
 ## 2. Cloud layer (Graphics TEXTURED SKY, docs/front-end.md §12.4)
 
@@ -585,6 +665,106 @@ original's by its id (`mission_year.rs default_year`: 111–117 1967, 121–127 
 ground's texture and the AI jet ahead, which are black without them. Cost: 68.5 against 71.4 fps at 1920×1080 on this
 Iris Xe laptop, measured while another render ran (to measure again on an idle machine).
 
+## 9. Model detail (built: game/util/model_detail.gd, model_detail.gdshaderinc)
+
+Preferences → Graphics → MORE → **Model detail = ambientCG** (ours, docs/deviations.md §2) gives the original models
+a fine surface up close: the stores read as painted metal, the jets as worn paint, the vehicles as weathered steel,
+the buildings as cast concrete and the tyres as rubber. Each model keeps its own texture, colours and markings; the
+detail only adds a normal map, a roughness map and a brightness variation (chips, scratches, stains) on top. Original draws the models as
+the 1998 textures alone.
+
+**The materials** are four CC0 PBR materials from ambientCG[^ambientcg], pinned with their zips' SHA-256 in
+`crates/iaf-tools/src/thirdparty.rs` (`MODEL_DETAIL`, the list `model`):
+
+| class | ambientCG material | used for |
+|---|---|---|
+| painted | PaintedMetal002[^acg-pm002] | stores, jets |
+| worn | Metal016[^acg-m016] | ground vehicles, ships, the hangar shell, metal structures |
+| concrete | Concrete029[^acg-c029] | shelters, bunkers, buildings |
+| rubber | Rubber004[^acg-r004] | tyres |
+
+**Setup**: the same optional `textures` step as Ground textures (§1.4, docs/setup.md; CLI `iaf-textures`) fetches
+them. Each material's `nr.bc3` (1024², DXT5 with every mip level) carries what Model detail reads: R roughness, G
+normal Y, B the colour map's brightness about its mean (0.5 = the mean, ±2 σ spans 0..1), A normal X (OpenGL
+normals). `model.json` lists them in the classes' order (`model_detail.gd MATERIALS`). Offline, the step is skipped,
+the row stays greyed out ("Not downloaded", not clickable), a saved ambientCG loads as Original and the switch has no
+effect. The uninstall keeps the downloads unless asked (docs/setup.md).
+
+**Loading, without hitches**:
+
+- The packs load off the main thread: the front end starts reading them while the mission's screens (TSD, briefing,
+  Arming) are open, the flight scene again at its start for a flight started otherwise (`preload_packs`). Setup
+  stored them compressed with their mips, so the game only reads and uploads them: 1.3 MiB per pack, 5.3 MiB of video
+  memory for all four. The mean roughness comes from the 1×1 mip.
+- One shader with uniforms (a variant per cull mode: two in all, as only a few original materials are two-sided). The
+  tyres are a uniform, not a variant.
+- Behind the loading screen, the flight scene draws every class once, too small to see, in front of each camera
+  (`warm_up`), so the GPU pipelines are built before the first model shows.
+- One material per original material and class, shared by every parse of the file (`Gltf.open` tags each material with
+  its file and index), so ten jets of a type, and a store released from a pylon, use the materials already made.
+  Placing a model creates no texture and, after the first of its type, no material.
+
+**Which surfaces take which class** (from the original data; `model_class` and `detail_material`):
+
+| original data | class |
+|---|---|
+| a model under `converted/objects/weapons` (bombs, missiles, drop tanks, pods) | painted, 0.8 m per repeat |
+| `converted/planes`, `objects/controllableplanes`, `objects/noncontrollableplanes` (every original jet, helicopter, transport) | painted, 1.2 m per repeat |
+| a jet's gear legs (meshes under the LdgL / LdgR / LdgF / LdGr frames; docs/part-animation.md) | painted, and rubber where the texel is dark (brightness below 0.16): the tyres |
+| `objects/groundforces`, `objects/seaforces` | worn, 1.5 m per repeat |
+| `objects/stationary` | concrete, 3 m per repeat |
+| stationary `hgrsk1` (hangar shell), `cntnr` (containers), `antenas`, `ftank`, `hvtgpl`, `wtrtwr`, `radum` | worn. A corrugated-sheet material was tried on the hangar shell: mapped triplanar it crossed the corrugation its own texture paints and ribbed its brick wall |
+| stationary `tent10`, `crater`; any `*_ul*` model (the airbases' flat surface pieces, the ground's) | none |
+| a blended material (glass: canopies, cockpit windows, building windows; rotor and propeller discs; clouds) | none |
+| the pilots (meshes under the pilot / pilotB frames) | none |
+| an unshaded or glowing material, or any model at OBJECT DETAIL 1 (point-sampled textures) | none |
+| our own models (the detailed F-16D, the F-35I) | none: they carry their own maps |
+
+**The shader** maps the pack triplanar in the model's frame, scaled to world metres by the model's own scale, so the
+detail sticks to the model as it moves and keeps its real size at either World scale. The detail normal is blended
+onto the model's normal (UDN blend); the roughness is the class's mean plus part of the pack's variation; the
+brightness is multiplied by 1 ± the class's strength at ±2 σ of the material's own brightness, so the hue stays and the
+mean brightness is unchanged.
+
+| class | metres per repeat | normal strength | brightness | roughness mean |
+|---|---|---|---|---|
+| store | 0.8 | 1.6 | ±45 % | 0.42 |
+| aircraft | 1.2 | 1.3 | ±35 % | 0.48 |
+| vehicle | 1.5 | 1.6 | ±45 % | 0.62 |
+| concrete | 3.0 | 1.5 | ±40 % | 0.9 |
+| rubber (tyres) | 0.25 | 1.5 | ±60 % | 0.92 |
+
+The first strengths (normal 0.55–1.0, brightness ±10–20 %, jets at 2 m per repeat) showed no difference at the
+pylons or on the ramp; with these the chips and scratches of PaintedMetal002 read on the stores and the jets' skin from
+a few metres, and the grime on the vehicles. The detail fades out between 40 and 120 m from the camera and is not sampled
+beyond, so far models draw exactly as before and nothing shimmers. Code that reads a model's texture (the shatter
+pieces, the re-lettered taxi signs) asks `ModelDetail.base_material` for the original material.
+
+**Cost, with Ground textures** (Iris Xe, TigerLake GT2, 2560 × 1440, Linux, X11 with immediate present, vsync off, an
+idle GPU; `tests/godot/_ground_tex_bench.gd` with `GT_PRELOAD=1`, mission 311 in the F-16, 2026-10-22; average fps,
+two or three runs each, the first cold run left out):
+
+| measurement | both Original | Model detail | Ground textures | both ambientCG |
+|---|---|---|---|---|
+| lineup on Ramat David's runway 27, cockpit, first 30 s | 59.3 fps | 59.3–60.0 fps | 54.7–55.0 fps | 54.9–55.7 fps (−7 %) |
+| the same, external view of the jet and its stores, 15 s | 53.0–53.1 fps | 53.1 fps | 48.9–49.1 fps | 48.8–49.6 fps (−7 %) |
+| 300 m above the Halutza sands, 35° down (`--at 307000 446000 520 0 -35 --freeze`) | 53.5–53.9 fps | 53.4–53.5 fps | 51.9–53.3 fps | 51.8–53.3 fps (−1 to −3 %) |
+| worst frame, first 30 s on the runway | 61.8 ms | 60.8–61.3 ms | 61.2–62.8 ms | 60.8–61.8 ms |
+| mission start (scene change to the first flying frame) | 43.7–45.3 s | 44.1–45.4 s | 47.5–48.8 s | 47.2–49.4 s |
+| upload at the flight's start, after the preload | 0 | 0 | 5.7–6.7 ms | 4.4–6.5 ms |
+
+Model detail costs nothing measurable in these views; its own busy view (four more jets, a tank column, a shelter, a
+hangar; `_model_detail_shot.gd SHOT_BENCH=1`, measured before the strength change, which adds no samples) cost 1.6 %
+(GPU +0.47 ms). The worst frame of the first 30 s is the same with either switch. The start takes ≈ 3 s longer with
+Ground textures; where that time goes is open (the textures' upload is 6 ms).
+
+Video memory added: 5.3 MiB (the packs). Far models cost nothing: past 120 m the shader samples no detail.
+
+**Shots**: `_model_detail_shot.gd` saves each view twice, Original and ambientCG, from the same camera: the Kfir and
+an F-4 on the ramp, the Kfir's pylons (Mk-82s, a drop tank), its wheels, a tank and truck column, a hardened shelter, a
+hangar. On Linux, run it on X11 with `MESA_VK_WSI_PRESENT_MODE=immediate` (`DISPLAY=:0 … --display-driver x11`): a
+Wayland window covered by other windows is drawn once a second.
+
 [^nvd]: Wikipedia, "Night-vision device" (Gen III 500–900 nm, the ion barrier's halo effect, green images):
     https://en.wikipedia.org/wiki/Night-vision_device
 [^rash]: C. E. Rash, "A 25-year retrospective on NVGs", Flight Safety Foundation AeroSafety World, Aug 2010 (40°
@@ -622,3 +802,8 @@ Iris Xe laptop, measured while another render ran (to measure again on an idle m
     https://apps.dtic.mil/sti/pdfs/ADA517298.pdf
 [^gzw]: Gray Zone Warfare devlog 7 (grain in dark areas, halos, auto-shutdown in bright light):
     https://www.grayzonewarfare.com/news/devlog-7-daylight-to-darkness
+[^ambientcg]: ambientCG, https://ambientcg.com/. Licence: "All ambientCG assets are provided under the Creative Commons CC0 1.0 Universal License", https://docs.ambientcg.com/license/ (read 2026-10-22).
+[^acg-pm002]: ambientCG, Painted Metal 002, https://ambientcg.com/a/PaintedMetal002
+[^acg-m016]: ambientCG, Metal 016, https://ambientcg.com/a/Metal016
+[^acg-c029]: ambientCG, Concrete 029, https://ambientcg.com/a/Concrete029
+[^acg-r004]: ambientCG, Rubber 004, https://ambientcg.com/a/Rubber004

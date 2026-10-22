@@ -105,6 +105,12 @@ pub fn plan(inputs: &Inputs) -> Vec<Step> {
     add("airbases", "airbases: runways, taxi paths and paved surface", true, &["theatre"]);
     add("icon", "icon (the original icon from iafjets.exe)", true, &[base]);
     add("launcher", "desktop launcher", false, &["icon"]);
+    add(
+        "textures",
+        "textures: ambientCG CC0 materials for Ground textures and Model detail (download, about 310 MB)",
+        false,
+        &[],
+    );
     let mut last: Vec<&'static str> = Vec::new();
     for im in &inputs.imagery {
         match im {
@@ -416,7 +422,8 @@ mod tests {
                 "theatre",
                 "airbases",
                 "icon",
-                "launcher"
+                "launcher",
+                "textures"
             ]
         );
         assert!(base.iter().filter(|s| s.id != "extract" && s.after.contains(&"extract")).count() >= 8);
@@ -478,6 +485,7 @@ mod tests {
             ("airbases:", &["airbases"]),
             ("Godot extension", &["cli"]),
             ("icon and desktop launcher", &["icon", "launcher"]),
+            ("textures: ambientCG", &["textures"]),
             ("pilot guides", &["guides"]),
             ("done", &["cli"]),
         ];

@@ -91,6 +91,26 @@ airbase_info={
 "type": "vec4",
 "value": Vector4(0, 0, 0, 0)
 }
+ground_tex={
+"type": "float",
+"value": 0.0
+}
+ground_albedo={
+"type": "sampler2DArray",
+"value": ""
+}
+ground_nr={
+"type": "sampler2DArray",
+"value": ""
+}
+ground_scale_a={
+"type": "vec4",
+"value": Vector4(1, 1, 1, 1)
+}
+ground_scale_b={
+"type": "vec4",
+"value": Vector4(1, 1, 1, 1)
+}
 
 [rendering]
 

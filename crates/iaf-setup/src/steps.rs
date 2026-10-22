@@ -9,7 +9,7 @@ use anyhow::{Context, Result, bail};
 use iaf_tools::convert::{self, Options};
 use iaf_tools::imagery_run::{self, MAPI2015, Run, SENTINEL2};
 use iaf_tools::progress::{Progress, check, par_map, threads};
-use iaf_tools::{extract, pack, patch, terrain};
+use iaf_tools::{extract, pack, patch, terrain, thirdparty};
 
 use crate::{Ctx, Hebrew, Imagery, Outcome, Step};
 
@@ -46,8 +46,8 @@ pub const OUTPUTS: &[&str] = &[
 ];
 
 /// What the setup keeps on an uninstall unless asked: the imported packs (the pack zips may be gone) and the
-/// imagery downloads (hours and tens of GB to fetch again).
-pub const KEPT: &[&str] = &["packs", "source/imagery"];
+/// downloads (imagery: hours and tens of GB to fetch again; the third-party textures).
+pub const KEPT: &[&str] = &["packs", "source/imagery", "thirdparty"];
 
 /// Removes the setup's outputs ([`OUTPUTS`]) from `assets`, and with `everything` the [`KEPT`] ones too; a
 /// missing one is fine.
@@ -192,6 +192,7 @@ pub(crate) fn run(step: &Step, ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool
             child(cmd, pr, cancel)?;
         }
         "sentinel2" | "mapi2015" => return imagery(step, ctx, pr, cancel),
+        "textures" => return textures(&a.join("thirdparty/ambientcg"), thirdparty::AMBIENTCG, pr, cancel),
         "imagery-refresh" => {
             let mut any = false;
             for spec in [&SENTINEL2, &MAPI2015] {
@@ -292,6 +293,30 @@ impl Progress for Quiet {
     fn log(&self, _line: &str) {}
 }
 
+/// The third-party textures (iaf_tools::thirdparty::LISTS) into `dir` from `base`: up to date when every material is
+/// there; skipped (the game's switch then stays Original) when `base` cannot be reached.
+fn textures(dir: &Path, base: &str, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Outcome> {
+    let all = || thirdparty::LISTS.iter().flat_map(|(_, l)| l.iter());
+    if all().all(|m| thirdparty::is_done(dir, m)) {
+        return Ok(Outcome::UpToDate);
+    }
+    // Any answer from the server will do (no -f); no connection is offline.
+    let reachable = Command::new("curl")
+        .args(["-sI", "--max-time", "15", base])
+        .stdout(Stdio::null())
+        .status()
+        .is_ok_and(|s| s.success());
+    if !reachable {
+        return Ok(Outcome::Skipped(
+            "ambientcg.com cannot be reached (offline?): Ground textures and Model detail stay Original; run setup again online".into(),
+        ));
+    }
+    for (name, list) in thirdparty::LISTS {
+        thirdparty::fetch(name, list, base, dir, pr, cancel)?;
+    }
+    Ok(Outcome::Done)
+}
+
 /// A modern imagery layer: the estimate first; nothing to convert (every unit's mark holds) is up to date.
 fn imagery(step: &Step, ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Outcome> {
     if !crate::tools().gdal {
@@ -386,6 +411,19 @@ mod tests {
         assert!(a.join("ghidra/iafjets.c").exists() && a.join("source/keep").is_dir(), "the rest stays");
         uninstall(&a, true).unwrap(); // nothing left to remove: fine
         std::fs::remove_dir_all(&a).unwrap();
+    }
+}
+
+#[cfg(test)]
+mod textures_tests {
+    use super::*;
+
+    #[test]
+    fn textures_skip_offline() {
+        let dir = std::env::temp_dir().join(format!("iaf-setup-textures-{}", std::process::id()));
+        let r = textures(&dir, "http://127.0.0.1:9/", &Quiet, &AtomicBool::new(false)).unwrap();
+        assert!(matches!(r, Outcome::Skipped(ref w) if w.contains("Original")));
+        assert!(!dir.exists(), "nothing written");
     }
 }
 

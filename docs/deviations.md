@@ -345,6 +345,11 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     and the sky's reflection with Fresnel.
   - Water is the generated open sea plus the photo's blue-green pixels inside terraintype.dat's water within ≈ 12 km
     of the camera.
+- **Ground textures** (ours, docs/rendering.md §1.4). Rendering only; the default is Original (the imagery, with the
+  close up's noise when that is on).
+  - ambientCG: within 300 m of the camera, CC0 photo textures (asphalt, concrete, sand, gravel, grass, soil, rock)
+    modulate the imagery's colour, with their normal and roughness. The imagery's colour picks the texture per pixel.
+  - New content: the textures are third-party (ambientCG, CC0), downloaded by setup, not part of the 1998 game.
 - **Particle effects** (ours, docs/rendering.md §6). Rendering only; the default is Original (the soft billboards and the
   trail ribbons).
   - Detailed: explosions, smoke and missile trails are GPU particles. Each original spawn keeps its time, place,
@@ -363,6 +368,13 @@ Each entry names the switch and where it lives, then the difference: "Original: 
     art paints a template (09/27, 15/33) whatever the heading (formats/ptt.md "Runway number fix"); Detailed covers it.
   - Bases the art shows only in the coarse imagery (Inshas, Ryak, Aman) get the AI's runway: 3000 × 45 m from 150 m
     behind the lineup point on RunwayNumber.
+
+- **Model detail** (ours, Graphics → MORE, docs/rendering.md §9). Rendering only; the default is Original (the 1998
+  textures alone).
+  - ambientCG: up close (fading out from 40 to 120 m), the original models get CC0 surface detail over their own
+    textures: painted metal on the stores and jets, worn steel on the vehicles, ships and hangar shells, concrete on the
+    buildings, rubber on the tyres. Glass, the pilots and the airbases' flat pieces keep their
+    look. Needs setup's download; without it the switch has no effect.
 
 **Preferences → Devices**
 - **Detent = MIL** (ours, under THROTTLE, off by default). Original: the throttle lever maps linearly. Ours, with the

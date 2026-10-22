@@ -6,6 +6,7 @@
 extends RefCounted
 
 const Terrain := preload("res://terrain/terrain.gd")
+const GroundTextures := preload("res://terrain/ground_textures.gd")
 
 static var _terrain: Node3D = null
 static var _focus: Node3D = null
@@ -15,6 +16,7 @@ static var _target := Vector3(INF, INF, INF)
 ## Loads around engine world `world` (X east, Y north, altitude m); a new target re-aims the same
 ## node (already decoded textures are kept, the old area's are evicted as unused).
 static func target(tree: SceneTree, world: Vector3) -> void:
+	GroundTextures.preload_async()  # the Ground textures, decoded meanwhile on a worker thread
 	if world == _target and _alive():
 		return
 	if not _alive():

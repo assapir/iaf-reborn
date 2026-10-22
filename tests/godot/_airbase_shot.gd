@@ -3,7 +3,8 @@
 # "now:" = the settings as they are), saved to SHOT_DIR/SHOT_NAME_<name>.png, with the average frame over 300
 # frames (vsync off). SHOT_SCALE (e.g. 2.0) sets the 3D render scale so the GPU, not the display, sets the frame.
 # SHOT_ORBIT="yaw,pitch,dist" draws from the external view. SHOT_BENCH=1 then times the global `terrain_airbases` 0 / 1
-# in place (12 pairs of 120 frames; the median difference). Pose with terrain_view's args:
+# in place (12 pairs of 120 frames; the median difference); SHOT_BENCH=<global> times that global instead (e.g.
+# ground_tex). Each shot also prints the video memory of the textures. Pose with terrain_view's args:
 #   tools/godot_window.sh IAF_DEFAULT_SETTINGS=1 SHOT_DIR=/tmp/s SHOT_NAME=david_final \
 #     SHOT_CONFIGS="o:airbases=\"original\";d:airbases=\"detailed\"" \
 #       -- --log-file /tmp/g.log --path game --resolution 1920x1080 -s ../tests/godot/_airbase_shot.gd -- --mission \
@@ -49,26 +50,39 @@ func run() -> void:
 		await RenderingServer.frame_post_draw
 		var path := dir.path_join("%s_%s.png" % [OS.get_environment("SHOT_NAME"), name_kv[0]])
 		root.get_viewport().get_texture().get_image().save_png(path)
-		print("SHOT %-10s frame %6.2f ms  %s" % [name_kv[0], ms, path])
-	if OS.get_environment("SHOT_BENCH") != "":
-		await _bench()
+		var vram := Performance.get_monitor(Performance.RENDER_TEXTURE_MEM_USED) / 1048576.0
+		print("SHOT %-10s frame %6.2f ms  textures %6.1f MB  %s" % [name_kv[0], ms, vram, path])
+	var bench := OS.get_environment("SHOT_BENCH")
+	if bench != "":
+		await _bench("terrain_airbases" if bench == "1" else bench)
 	print("RESULT PASS")
 	quit()
 
 
-## In the last flight: the global `terrain_airbases` switched 0 / 1 every 120 frames, 12 pairs; the median of the
-## pairs' differences (on − off), robust to other processes on the machine.
-func _bench() -> void:
+## In the last flight: the float global `key` switched 0 / 1 every 120 frames, 12 pairs; the median of the pairs'
+## differences (on − off), robust to other processes on the machine.
+func _bench(key: String) -> void:
+	var vp := root.get_viewport().get_viewport_rid()
+	RenderingServer.viewport_set_measure_render_time(vp, true)
 	var diffs: Array[float] = []
+	var gdiffs: Array[float] = []
 	for pair in 12:
 		var avg := [0.0, 0.0]
+		var gpu := [0.0, 0.0]
 		for on in [0, 1]:
-			RenderingServer.global_shader_parameter_set("terrain_airbases", float(on))
+			RenderingServer.global_shader_parameter_set(key, float(on))
 			await frames(20)
 			var t0 := Time.get_ticks_usec()
-			await frames(120)
+			for f in 120:
+				await process_frame
+				gpu[on] += RenderingServer.viewport_get_measured_render_time_gpu(vp) / 120.0
 			avg[on] = (Time.get_ticks_usec() - t0) / 120000.0
 		diffs.append(avg[1] - avg[0])
-		print("BENCH pair %2d  off %6.2f  on %6.2f ms" % [pair, avg[0], avg[1]])
+		gdiffs.append(gpu[1] - gpu[0])
+		print("BENCH pair %2d  off %6.2f  on %6.2f ms  (GPU %6.2f / %6.2f)" % [pair, avg[0], avg[1], gpu[0], gpu[1]])
 	diffs.sort()
-	print("BENCH airbases on - off: median %+.2f ms (quartiles %+.2f / %+.2f)" % [diffs[6], diffs[3], diffs[9]])
+	gdiffs.sort()
+	print("BENCH " + key + " on - off: median %+.2f ms (quartiles %+.2f / %+.2f)" % [diffs[6], diffs[3], diffs[9]])
+	print(
+		"BENCH " + key + " GPU on - off: median %+.2f ms (quartiles %+.2f / %+.2f)" % [gdiffs[6], gdiffs[3], gdiffs[9]]
+	)

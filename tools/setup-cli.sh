@@ -317,9 +317,14 @@ j_icon() {
 	./target/release/iaf-convert icon assets/install assets/converted/icon.png
 	tools/install-launcher.sh
 }
+j_textures() {  # optional: a failure (offline) only leaves Graphics → MORE → Ground textures / Model detail on Original
+	step "textures: ambientCG CC0 materials for Ground textures and Model detail (download, about 310 MB; docs/credits.md)"
+	./target/release/iaf-textures assets/thirdparty/ambientcg ||
+		echo "WARNING: the ambientCG textures could not be fetched (offline?): Ground textures and Model detail stay Original; run setup again online"
+}
 
 for j in fonts cockpits hebrew briefings reference menu menu_he arm keys missions aircraft objects theatre airbases \
-	godot icon; do
+	godot icon textures; do
 	job "$j" "j_$j"
 done
 wait_jobs
