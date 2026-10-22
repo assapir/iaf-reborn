@@ -142,11 +142,40 @@ Two runs give the same bytes (the SHA-256 of every cell file compared).
 
 ## 2. Runtime
 
-See below.
+- Loaded cells live in one process-wide store (`iaf_avionics::scenery::Scenery`, exposed to Godot as `IafScenery`,
+  `crates/iaf-godot/src/scenery.rs`). Each cell is indexed in 16 m buckets.
+- `top(x, y)` is the scenery's height above ground at a point:
+  - inside a building's footprint: its roof. The building stands on the lowest terrain under its corners, as drawn,
+    so the roof stays level on a slope. A damaged building counts at 25 % of its height;
+  - inside a tree's crown (radius 0.3 × its height): the tree's top;
+  - elsewhere: 0.
+- `world.rs terrain()` and `terrain_view.gd mission_ground` add `top` to the terrain height. Guns, bombs, missiles,
+  the radar's line of sight and the RWR all meet roofs and trees. With no cell loaded the ground is unchanged.
+- `ray` returns the distance to the first building prism or tree cylinder along a line.
+- Meshes are built in Rust:
+  - near: walls, a flat roof 0.8 m below the top behind a parapet, gabled roofs (four-cornered footprints, 30°
+    pitch) or domes where tagged;
+  - far: bare prisms.
+- Damage is kept by building id `<i>_<j>:<index>` across cell loads. The data itself never changes.
 
 ## 3. Rendering and the switch
 
-See below.
+- **The switch:** Graphics → MORE → Scenery (Off / On, default Off), under Imagery Israel.
+  - On is greyed with "Not downloaded" until setup has made the scenery.
+  - On is greyed with "Needs Survey 2 m" while the Israel imagery picked on the page is not a Survey 2 m layer.
+  - Picking another Israel imagery turns Scenery off. A saved On without both loads as Off.
+- **Streaming:** `game/terrain/scenery.gd` keeps the cells within 8 km of the camera's focus, and only the Survey
+  layer's level-1 nodes. Worker threads read the files into `IafScenery`; the main thread builds one cell per frame.
+- **Per cell:**
+  - a near mesh to 3 km: walls with windows, and roofs;
+  - a far mesh from 3 to 8 km: bare prisms;
+  - our own low-poly trees to 2 km.
+
+  Each fades out at the ends of its range.
+- **Shading:** `scenery.gdshader` colours roofs from the photo. Walls get the ambientCG plaster, stone, concrete or
+  corrugated-steel detail, a window grid (3 m levels, 3.2 m bays) and darker feet. Damaged buildings are sooted. With
+  Night lights = Detailed, some windows are lit at night.
+- The flight starts once the near cells are drawn.
 
 [^geofabrik]: Geofabrik, "Israel and Palestine" downloads (dated extracts):
     https://download.geofabrik.de/asia/israel-and-palestine.html
