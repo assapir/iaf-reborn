@@ -19,6 +19,7 @@ mod radar;
 mod real_hud;
 mod release;
 mod rwr;
+mod scenery;
 mod sensors;
 mod setup;
 mod sight;

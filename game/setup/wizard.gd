@@ -566,7 +566,7 @@ func _page_welcome() -> Control:
 				(
 					"[color=%s][b]Optional[/b][/color]\n[ul]the official v1.1 patch (free download)\nthe Hebrew CD, or the Hebrew "
 					+ "packs: the briefings and menus in Hebrew\nmodern terrain imagery: Survey of Israel 2015, Sentinel-2\nthe "
-					+ "pilot guides: pictures and PDFs[/ul]\n"
+					+ "pilot guides: pictures and PDFs\nground and model textures (ambientCG)[/ul]\n"
 				)
 				% g
 			)
@@ -583,8 +583,12 @@ func _page_welcome() -> Control:
 	left.size_flags_stretch_ratio = 1.4
 	for f in ["normal_font_size", "bold_font_size", "italics_font_size", "bold_italics_font_size"]:
 		left.add_theme_font_size_override(f, 15)
+	# About, then a button: the third-party credits open in a window, so the welcome page stays short.
+	var box := VBoxContainer.new()
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	h.add_child(box)
 	var right := _rich(
-		h,
+		box,
 		(
 			("[color=%s][b]About[/b][/color]\n" % g)
 			+ ("Source code: [url=%s]iaf-reborn on GitHub[/url]\n" % REPO_URL)
@@ -596,8 +600,25 @@ func _page_welcome() -> Control:
 				'"Jane\'s" and "Jane\'s IAF" are trademarks of their owners. This is an independent, non-commercial project, '
 				+ "not affiliated with or endorsed by them, Electronic Arts or the original developer.\n\n"
 			)
-			+ ("[color=%s][b]Attributions[/b][/color]\n" % g)
-			+ (
+		)
+	)
+	right.add_theme_font_size_override("normal_font_size", 14)
+	right.add_theme_font_size_override("bold_font_size", 14)
+	right.fit_content = true
+	right.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	var attr_btn := Button.new()
+	attr_btn.text = "Attributions…"
+	attr_btn.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	box.add_child(attr_btn)
+	var dlg := AcceptDialog.new()
+	dlg.title = "Attributions"
+	dlg.min_size = Vector2i(640, 420)
+	var holder := MarginContainer.new()
+	dlg.add_child(holder)
+	var attr := _rich(
+		holder,
+		(
+			(
 				"[ul]Detailed F-16D: from the [url=https://github.com/NikolaiVChr/f16]FlightGear F-16[/url] by Erik Hofman, "
 				+ "Nikolai V. Chr. and the other authors ([url=https://www.gnu.org/licenses/old-licenses/gpl-2.0.html]GPL "
 				+ "2.0[/url] or later)\n"
@@ -616,6 +637,10 @@ func _page_welcome() -> Control:
 				+ 'Israel.svg"[/url] by Zscout370 (Wikimedia Commons, [url=https://creativecommons.org/licenses/by-sa/4.0/]CC '
 				+ "BY-SA 4.0[/url])\n"
 			)
+			+ (
+				"Ground textures and Model detail: materials from [url=https://ambientcg.com]ambientCG[/url] "
+				+ "([url=https://creativecommons.org/publicdomain/zero/1.0/]CC0 1.0[/url]), downloaded by setup\n"
+			)
 			+ "Survey of Israel imagery: © Survey of Israel 2015, via [url=https://data.gov.il]data.gov.il[/url]\n"
 			+ (
 				"Sentinel-2 imagery: contains modified Copernicus Sentinel data (2021) processed by "
@@ -624,8 +649,9 @@ func _page_welcome() -> Control:
 			)
 		)
 	)
-	right.add_theme_font_size_override("normal_font_size", 14)
-	right.add_theme_font_size_override("bold_font_size", 14)
+	attr.add_theme_font_size_override("normal_font_size", 14)
+	add_child(dlg)
+	attr_btn.pressed.connect(func(): dlg.popup_centered())
 	return h
 
 

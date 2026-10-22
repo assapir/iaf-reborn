@@ -51,7 +51,8 @@ for each.
 
 Setup downloads these materials from ambientCG into `assets/thirdparty/ambientcg/<id>/` (the repo holds none). They
 are CC0 1.0 (public domain): "All ambientCG assets are provided under the Creative Commons CC0 1.0 Universal
-License"[^acg-licence]. CC0 asks for no credit; we give it anyway. The list lives in one place:
+License"[^acg-licence]. CC0 asks for no credit; we give it anyway. One line names ambientCG in the setup wizard's Attributions and in the
+roll (`credits_ours.json`, "Ground Textures and Model Detail"). The list lives in one place:
 `crates/iaf-tools/src/thirdparty.rs` (`GROUND_TEXTURES` and `MODEL_DETAIL`, with each zip's pinned SHA-256).
 
 | Material | Used for (docs/rendering.md) | Source |

@@ -288,6 +288,7 @@ name = "iaf-avionics"
 version = "0.1.0"
 dependencies = [
  "iaf-flight",
+ "iaf-formats",
 ]
 
 [[package]]

@@ -24,14 +24,21 @@ pub fn num(d: &VarDictionary, key: &str) -> Option<f64> {
 
 /// The terrain height at a world point through `f` (Callable(Vector3) -> float or null); no terrain when invalid.
 /// `mission_ground` (terrain_view.gd) is answered from the Rust height field it would read (`IafHeights`, the same
-/// nodes and interpolation) without a call into GDScript per sample.
+/// nodes and interpolation, plus `IafScenery.top`) without a call into GDScript per sample.
 pub fn terrain(f: Option<Callable>) -> impl Fn(Vec3) -> Option<f64> {
     let f = f.filter(Callable::is_valid);
     // ponytail: matched by method name; a second callable named mission_ground would read the field too.
     let field = f.as_ref().and_then(Callable::method_name).is_some_and(|m| m == "mission_ground");
     move |p| {
         if field {
-            return crate::heights::FIELD.read().unwrap().height(p);
+            // The scenery's roofs and trees on top (0 where none, or with Scenery off: no cell loaded).
+            let h = crate::heights::FIELD.read().unwrap().height(p)?;
+            let s = crate::scenery::SCENERY.read().unwrap();
+            return Some(if s.is_empty() {
+                h
+            } else {
+                h + s.top(p.x, p.y, &|q| crate::heights::FIELD.read().unwrap().height(q))
+            });
         }
         f.as_ref()?.call(&[vector3(p).to_variant()]).try_to().ok()
     }

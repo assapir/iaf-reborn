@@ -1227,9 +1227,12 @@ func mission_takeoff(ent: Dictionary) -> void:
 		ai.take_off(ent)
 
 
-## Terrain height (m) under a world position (X, Y, alt); null where not loaded.
+## Ground height (m) under a world position (X, Y, alt): the terrain plus the scenery's roofs and trees standing
+## there (IafScenery.top, 0 with Scenery off); null where the terrain is not loaded. world.rs terrain() answers the
+## same from Rust.
 func mission_ground(w: Vector3) -> Variant:
-	return terrain.height_at(world_to_scene(Vector3(w.x, w.y, 0)))
+	var h: Variant = terrain.height_at(world_to_scene(Vector3(w.x, w.y, 0)))
+	return null if h == null else h + IafScenery.top(w)
 
 
 ## A unit's attitude (pitch, roll, heading, degrees) and world velocity (X east, Y north, up m/s)
