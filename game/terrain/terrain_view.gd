@@ -213,6 +213,7 @@ var crashed := false
 const MissionRuntime := preload("res://mission/mission_runtime.gd")
 const Gltf := preload("res://util/gltf.gd")
 const NightLights := preload("res://terrain/night_lights.gd")
+const Scenery := preload("res://terrain/scenery.gd")
 const Terrain := preload("res://terrain/terrain.gd")
 ## Models flatter than this (m) are ground underlays (not drawn, _spawn_mission_objects).
 const UNDERLAY_MAX_HEIGHT := 0.05
@@ -280,6 +281,7 @@ var time_factor := 1
 
 func _ready() -> void:
 	Bombs.wind = Vector3.ZERO  # apply_wind sets it for this mission
+	Scenery.night = false  # _night_detailed sets it at night
 	GpuFx.wind = Vector3.ZERO
 	Joystick.consumer = self
 	# Graphics page SHADOWS (our renderer's sun shadows; the original's shadow method is not used).
@@ -314,6 +316,10 @@ func _ready() -> void:
 		var w = Gltf.ModelDetail.warm_up(cam)
 		if w != null:
 			_warm_up.append(w)
+		# Scenery (docs/scenery.md §3): the building and tree materials, likewise.
+		var sw = Scenery.warm_up(cam, terrain.layers)
+		if sw != null:
+			_warm_up.append(sw)
 	if args.has("--external"):
 		_start_external = true
 	# Test poses: --orbit yaw pitch dist (degrees, metres), --gear.
@@ -501,6 +507,7 @@ func _night_detailed(sun: DirectionalLight3D, env: Environment, night: bool) -> 
 	# The 3D scene renders at the upscaling's scale (Quality / Balanced): the glows' pixel sizes are its rows.
 	var rows := get_viewport().get_visible_rect().size.y * get_viewport().scaling_3d_scale
 	NightLights.set_gain(night, env.fog_density, rows)
+	Scenery.night = night  # the scenery's lit windows
 	if _night_sky == null:
 		_night_sky = NightLights.sky()
 		add_child(_night_sky)
@@ -1220,9 +1227,12 @@ func mission_takeoff(ent: Dictionary) -> void:
 		ai.take_off(ent)
 
 
-## Terrain height (m) under a world position (X, Y, alt); null where not loaded.
+## Ground height (m) under a world position (X, Y, alt): the terrain plus the scenery's roofs and trees standing
+## there (IafScenery.top, 0 with Scenery off); null where the terrain is not loaded. world.rs terrain() answers the
+## same from Rust.
 func mission_ground(w: Vector3) -> Variant:
-	return terrain.height_at(world_to_scene(Vector3(w.x, w.y, 0)))
+	var h: Variant = terrain.height_at(world_to_scene(Vector3(w.x, w.y, 0)))
+	return null if h == null else h + IafScenery.top(w)
 
 
 ## A unit's attitude (pitch, roll, heading, degrees) and world velocity (X east, Y north, up m/s)

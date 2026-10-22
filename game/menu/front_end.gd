@@ -108,7 +108,8 @@ const GRAPHICS_KEYS := [
 	"rolling_wheels",
 	"particle_effects",
 	"airbases",
-	"ground_textures"
+	"ground_textures",
+	"scenery"
 ]
 ## Ours on the debrief screen: EXPORT FLIGHT DATA at the content's top right, above the tab strip (content
 ## coordinates; the original's pages fill the rest).
@@ -150,6 +151,7 @@ const Pilots := preload("res://menu/pilots.gd")
 const ImageryLayers := preload("res://terrain/imagery_layers.gd")
 const GroundTextures := preload("res://terrain/ground_textures.gd")
 const ModelDetail := preload("res://util/model_detail.gd")
+const Scenery := preload("res://terrain/scenery.gd")
 
 ## Our own "Extras" tab (not in the original): directly below Gameplay at the panel's spacing
 ## (44 px). Drawn from the pPref art: the band holding the Gameplay button (panel coordinates, inside
@@ -241,6 +243,9 @@ func _extras_rows() -> Array:
 		rows.append(
 			[key, ImageryLayers.REGION_LABELS[key], ImageryLayers.REGIONS[key].map(func(o): return [o[1], o[0]])]
 		)
+		# Ours (docs/scenery.md §3): buildings and trees over the Survey 2 m photo, under the Israel imagery it needs.
+		if key == "imagery_israel":
+			rows.append(["scenery", "Scenery", [["Off", "off"], ["On", "on"]]])
 	# Ours: the preferences to / from a .cfg file (not a setting: a press opens the file dialog, _settings_file).
 	rows.append(["settings_file", "Settings file", [["Export", "export"], ["Import", "import"]]])
 	# Our graphics options show on the Graphics page's MORE view, the rest on Extras.
@@ -1616,6 +1621,13 @@ func _extras_items() -> Array:
 				available = GroundTextures.available() if opt[0] == "ground_textures" else ModelDetail.available()
 				if not available:
 					label = "Not downloaded"
+			elif opt[0] == "scenery" and value == "on":
+				# Only over the Survey 2 m photo: the Israel imagery picked on this page (not saved yet).
+				available = Scenery.available() and Scenery.survey(String(pref_work.get("imagery_israel", "")))
+				if not Scenery.available():
+					label = "Not downloaded"
+				elif not available:
+					label = "Needs Survey 2 m"
 			items.append({"rect": r, "key": opt[0], "value": value, "label": label, "available": available})
 	return items
 
@@ -1880,6 +1892,9 @@ func _pref_press(q: Vector2) -> bool:
 					_settings_file(it.value == "export")
 				else:
 					pref_work[it.key] = it.value
+					# Scenery shows only over the Survey 2 m photo: another Israel imagery turns it off.
+					if it.key == "imagery_israel" and not Scenery.survey(String(it.value)):
+						pref_work["scenery"] = "off"
 				return true
 		return false
 	if page == "Physics":

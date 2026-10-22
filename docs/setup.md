@@ -117,7 +117,8 @@ start-up when `assets/converted` is missing. The desktop launcher "Jane's IAF (r
 The wizard uses the original menus' colours. Pages:
 
 1. **Welcome**: the game's name, what is needed and what is optional, the next pages, where the data goes, the
-   repository link, the licence and the attributions (the models and the imagery, as in the credits roll).
+   repository link and the licence. An **Attributions…** button opens the third-party credits in a window (the
+   models, the imagery and the ambientCG textures, as in the credits roll).
 2. **Requirements**: a table of the parts, why each is needed, and whether it is required: the graphics driver and
    the disk space for the game (required); the disk space for imagery, GDAL, curl, python3 and Firefox (optional).
    A missing part shows its install command. "Check again", next to Next, looks once more.

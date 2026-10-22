@@ -79,6 +79,7 @@ var packs_box: VBoxContainer
 # Extras
 var mapi_check: CheckBox
 var mapi_scope: OptionButton
+var scenery_check: CheckBox
 var sentinel_check: CheckBox
 var refresh_check: CheckBox
 var refresh_note: Label
@@ -565,7 +566,7 @@ func _page_welcome() -> Control:
 				(
 					"[color=%s][b]Optional[/b][/color]\n[ul]the official v1.1 patch (free download)\nthe Hebrew CD, or the Hebrew "
 					+ "packs: the briefings and menus in Hebrew\nmodern terrain imagery: Survey of Israel 2015, Sentinel-2\nthe "
-					+ "pilot guides: pictures and PDFs[/ul]\n"
+					+ "pilot guides: pictures and PDFs\nground and model textures (ambientCG)[/ul]\n"
 				)
 				% g
 			)
@@ -582,8 +583,12 @@ func _page_welcome() -> Control:
 	left.size_flags_stretch_ratio = 1.4
 	for f in ["normal_font_size", "bold_font_size", "italics_font_size", "bold_italics_font_size"]:
 		left.add_theme_font_size_override(f, 15)
+	# About, then a button: the third-party credits open in a window, so the welcome page stays short.
+	var box := VBoxContainer.new()
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	h.add_child(box)
 	var right := _rich(
-		h,
+		box,
 		(
 			("[color=%s][b]About[/b][/color]\n" % g)
 			+ ("Source code: [url=%s]iaf-reborn on GitHub[/url]\n" % REPO_URL)
@@ -595,8 +600,25 @@ func _page_welcome() -> Control:
 				'"Jane\'s" and "Jane\'s IAF" are trademarks of their owners. This is an independent, non-commercial project, '
 				+ "not affiliated with or endorsed by them, Electronic Arts or the original developer.\n\n"
 			)
-			+ ("[color=%s][b]Attributions[/b][/color]\n" % g)
-			+ (
+		)
+	)
+	right.add_theme_font_size_override("normal_font_size", 14)
+	right.add_theme_font_size_override("bold_font_size", 14)
+	right.fit_content = true
+	right.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	var attr_btn := Button.new()
+	attr_btn.text = "Attributions…"
+	attr_btn.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	box.add_child(attr_btn)
+	var dlg := AcceptDialog.new()
+	dlg.title = "Attributions"
+	dlg.min_size = Vector2i(640, 420)
+	var holder := MarginContainer.new()
+	dlg.add_child(holder)
+	var attr := _rich(
+		holder,
+		(
+			(
 				"[ul]Detailed F-16D: from the [url=https://github.com/NikolaiVChr/f16]FlightGear F-16[/url] by Erik Hofman, "
 				+ "Nikolai V. Chr. and the other authors ([url=https://www.gnu.org/licenses/old-licenses/gpl-2.0.html]GPL "
 				+ "2.0[/url] or later)\n"
@@ -615,6 +637,10 @@ func _page_welcome() -> Control:
 				+ 'Israel.svg"[/url] by Zscout370 (Wikimedia Commons, [url=https://creativecommons.org/licenses/by-sa/4.0/]CC '
 				+ "BY-SA 4.0[/url])\n"
 			)
+			+ (
+				"Ground textures and Model detail: materials from [url=https://ambientcg.com]ambientCG[/url] "
+				+ "([url=https://creativecommons.org/publicdomain/zero/1.0/]CC0 1.0[/url]), downloaded by setup\n"
+			)
 			+ "Survey of Israel imagery: © Survey of Israel 2015, via [url=https://data.gov.il]data.gov.il[/url]\n"
 			+ (
 				"Sentinel-2 imagery: contains modified Copernicus Sentinel data (2021) processed by "
@@ -623,8 +649,9 @@ func _page_welcome() -> Control:
 			)
 		)
 	)
-	right.add_theme_font_size_override("normal_font_size", 14)
-	right.add_theme_font_size_override("bold_font_size", 14)
+	attr.add_theme_font_size_override("normal_font_size", 14)
+	add_child(dlg)
+	attr_btn.pressed.connect(func(): dlg.popup_centered())
 	return h
 
 
@@ -821,6 +848,17 @@ func _page_extras() -> Control:
 	mapi_scope.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	mapi_scope.disabled = mapi_check.disabled
 	mapi_check.get_parent().add_child(mapi_scope)
+	# Scenery (docs/scenery.md): only over the Survey 2 m photo, so only with it ticked or on disk (_update).
+	scenery_check = _extra(
+		v,
+		"Scenery (buildings and trees)",
+		(
+			"Downloads OpenStreetMap, Microsoft building footprints, building heights and tree canopy data (over 1 GB, "
+			+ "kept), then builds the buildings and trees over the Survey of Israel 2 m photo. Needs the Survey imagery. "
+			+ "Turn it on in the game under Graphics → MORE."
+		),
+		"" if gdal and tools.get("curl", false) else "Needs GDAL and curl (see Requirements)."
+	)
 	sentinel_check = _extra(
 		v,
 		"Sentinel-2 imagery (10 m, outside Israel)",
@@ -848,7 +886,7 @@ func _page_extras() -> Control:
 			else "Needs python3 and Firefox (see Requirements)."
 		)
 	)
-	for c in [mapi_check, sentinel_check, refresh_check, guides_check]:
+	for c in [mapi_check, scenery_check, sentinel_check, refresh_check, guides_check]:
 		c.toggled.connect(func(_on): _update())
 	return v
 
@@ -865,6 +903,13 @@ func _extra(parent: Control, label: String, warning: String, missing: String) ->
 	var w := _text(box, warning if missing == "" else "%s %s" % [missing, warning], true)
 	w.custom_minimum_size.x = 600
 	return c
+
+
+## Scenery can be made: its tools are here and the Survey 2 m imagery is ticked or on disk.
+func _scenery_ok() -> bool:
+	var tools_ok: bool = tools.get("gdal", false) and tools.get("curl", false)
+	var mapi := (mapi_check.button_pressed and not mapi_check.disabled) or "mapi2015" in _layers()
+	return tools_ok and mapi
 
 
 ## The imagery layers on disk.
@@ -1020,6 +1065,7 @@ func _update() -> void:
 			next_button.text = "Next"
 	if pg == "Extras" and mapi_scope != null:
 		mapi_scope.disabled = mapi_check.disabled or not mapi_check.button_pressed
+		scenery_check.disabled = not _scenery_ok()
 
 
 func _on_back() -> void:
@@ -1067,6 +1113,7 @@ func inputs() -> Dictionary:
 		"imagery": imagery,
 		"refresh": refresh_check.button_pressed and not refresh_check.disabled and refresh_check.get_parent().visible,
 		"guides": guides_check.button_pressed and not guides_check.disabled,
+		"scenery": scenery_check.button_pressed and _scenery_ok(),
 	}
 
 
@@ -1093,6 +1140,7 @@ func _prefill() -> void:
 	sentinel_check.button_pressed = "sentinel2" in imagery
 	refresh_check.button_pressed = i.get("refresh", false)
 	guides_check.button_pressed = i.get("guides", false)
+	scenery_check.button_pressed = i.get("scenery", false)
 
 
 func _fill_summary() -> void:
@@ -1119,6 +1167,8 @@ func _fill_summary() -> void:
 		extras.append("bring the imagery up to date")
 	if i.guides:
 		extras.append("pilot guides")
+	if i.scenery:
+		extras.append("scenery (buildings and trees)")
 	t += "[b]Extras[/b]\n    %s\n\n" % (", ".join(extras) if extras else "none")
 	var steps: Array = IafSetup.plan(JSON.stringify(i))
 	t += "[b]%d steps[/b] write into %s. Steps already done with the same inputs are skipped." % [steps.size(), assets]

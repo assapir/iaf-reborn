@@ -19,6 +19,9 @@
 		{"style": "role", "text": "Detailed F-16D Model", "he": "דגם F-16D מפורט"},
 		{"style": "small", "text": "Based on the FlightGear F-16 (github.com/NikolaiVChr/f16) by Erik Hofman, Nikolai V. Chr., J Maverick 16, Pensacola and the FlightGear F-16 team, GPL 2.0 or later", "he": "מבוסס על ה-F-16 של FlightGear (github.com/NikolaiVChr/f16) מאת Erik Hofman, Nikolai V. Chr., J Maverick 16, Pensacola וצוות ה-F-16 של FlightGear, GPL 2.0 ואילך"},
 		{"style": "gap"},
+		{"style": "role", "text": "Ground Textures and Model Detail", "he": "טקסטורות קרקע ופירוט דגמים"},
+		{"style": "small", "text": "Materials from ambientCG (ambientcg.com), CC0 1.0", "he": "חומרים מ-ambientCG (ambientcg.com), CC0 1.0"},
+		{"style": "gap"},
 		{"style": "imagery", "text": "Terrain Imagery", "he": "צילומי השטח"},
 		{"style": "blank"}
 	]
