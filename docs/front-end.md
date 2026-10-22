@@ -1376,9 +1376,10 @@ So the Hebrew pages use the same rects as §12.3–§12.6.
 * Ours on the Graphics page, in the empty strip left of DEFAULT:
   * a VSYNC check (page rect 8,330,110,23), default on, reset by DEFAULT, stored in `[graphics]`;
   * **MORE** (page rect 230,330,110,23): our graphics options on the same tab (`GFX_MORE`, drawn like the Extras
-    page with the title GRAPHICS): Window, Anti-aliasing, Terrain close up, Sky, Upscaling, Night lights, Water,
-    Models, Rolling wheels, Particle effects, Airbases and the terrain imagery rows (`front_end.gd` `GRAPHICS_KEYS`,
-    docs/rendering.md, docs/imagery.md). The same spot reads BACK there and returns to the original page; DEFAULT
+    page with the title GRAPHICS): Window, Anti-aliasing, Terrain close up, Sky, Upscaling, Night lights, Night
+    vision, Water, Models, Model detail, Rolling wheels, Particle effects, Airbases, Ground textures, Imagery Israel,
+    Scenery (under the Israel imagery it needs; docs/scenery.md §3) and Imagery outside Israel (`front_end.gd`
+    `GRAPHICS_KEYS`, docs/rendering.md, docs/imagery.md). The same spot reads BACK there and returns to the original page; DEFAULT
     there resets those rows.
 * **Extras and Physics tabs** (ours). Two tabs below Gameplay at the panel's 44 px button spacing (Extras rect
   16,287,109,39; Physics 44 px lower). The original has no language setting: the Hebrew pack replaces the resource

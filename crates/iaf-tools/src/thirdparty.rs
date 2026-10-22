@@ -1,6 +1,6 @@
 //! Third-party CC0 textures from ambientCG (<https://ambientcg.com/>, licence: <https://docs.ambientcg.com/license/>),
 //! downloaded by setup into `assets/thirdparty/ambientcg/<id>/` (docs/rendering.md §1.4, §9, docs/credits.md). Each
-//! list below is one use (Ground textures, Model detail); `fetch` takes any list, so more uses add a list.
+//! list below is one use (Ground textures, Model detail, Scenery); `fetch` takes any list, so more uses add a list.
 //!
 //! Per material `fetch` downloads `<id>_2K-JPG.zip`, checks its SHA-256 against the pinned one, keeps the colour,
 //! normal (OpenGL) and roughness maps, and packs them at 1024² with every mip level, compressed as the GPU reads them
@@ -109,8 +109,38 @@ pub const MODEL_DETAIL: &[Material] = &[
     },
 ];
 
+/// The "Scenery" wall materials (Graphics → MORE, game/terrain/scenery.gdshader), in the shader's layer order = the
+/// cell file's wall index (docs/scenery.md): plaster, stone, concrete, corrugated steel. The roof colour tints them.
+pub const SCENERY_WALLS: &[Material] = &[
+    Material {
+        id: "Plaster003",
+        sha256: "7088106ca868dab12f702c1bac8dc012f445f572a3e02d5377b42ed497be1fd8",
+        size_m: 2.0,
+        used_for: "houses and flats: white rough plaster",
+    },
+    Material {
+        id: "Bricks084",
+        sha256: "25d921f3acf9ed59732ae1edb1cbe478a073ccc8df1f68eee09a8b9b617758c3",
+        size_m: 2.0,
+        used_for: "stone-clad buildings: beige sandstone blocks (Jerusalem stone)",
+    },
+    Material {
+        id: "Concrete034",
+        sha256: "fafd7cd3aee2b703abbb12b7810ef565ab76ac7ea3b1ea9a73b088e423e670b3",
+        size_m: 1.1,
+        used_for: "offices and towers: cast concrete",
+    },
+    Material {
+        id: "CorrugatedSteel005",
+        sha256: "9bec057d9db923cdf2208c0cc5b41e4df2072237c951ef4a4e22db0830a2a00a",
+        size_m: 2.0,
+        used_for: "sheds and industry: painted corrugated steel",
+    },
+];
+
 /// Every list setup fetches: (name, materials). A new use adds its list here; `<dir>/<name>.json` lists it for the game.
-pub const LISTS: &[(&str, &[Material])] = &[("ground", GROUND_TEXTURES), ("model", MODEL_DETAIL)];
+pub const LISTS: &[(&str, &[Material])] =
+    &[("ground", GROUND_TEXTURES), ("model", MODEL_DETAIL), ("scenery", SCENERY_WALLS)];
 
 /// Where ambientCG serves the zips.
 pub const AMBIENTCG: &str = "https://ambientcg.com/get?file=";

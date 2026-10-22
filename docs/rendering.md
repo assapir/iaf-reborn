@@ -35,6 +35,7 @@ TAA = temporal anti-aliasing.
 | Rolling wheels | Original / Rolling | the wheels of a model with wheel frames turn as the jet rolls (today the F-35I; docs/part-animation.md §2.2) |
 | Airbases | Original / Detailed | in `terrain.gdshader`: near the ground, a procedural runway, taxiway and apron surface with ICAO markings over the nearest base's paved surface (§7); always on in World scale Real |
 | Ground textures | Original / ambientCG | in `terrain.gdshader`: near the camera, where they resolve, CC0 photo textures of asphalt, concrete, sand, gravel, grass, soil and rock, chosen per pixel from the imagery's colour (§1.4). Greyed out and not clickable ("Not downloaded") until setup has downloaded them; a saved ambientCG without them loads as Original |
+| Scenery | Off / On | On: buildings and trees over the Survey of Israel 2 m photo, streamed with the ground (`terrain/scenery.gd`, `scenery.gdshader`; [scenery.md](scenery.md) §3). The row sits under Imagery Israel. "On" is greyed out with "Not downloaded" until setup has made the scenery, and with "Needs Survey 2 m" while the Israel imagery picked on the page is not a Survey 2 m layer; picking another Israel imagery turns it off. A saved On without either loads as Off. Takes effect at the next flight |
 
 ### 1.1 Terrain close up
 
