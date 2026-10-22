@@ -38,6 +38,8 @@ const EVICT_MS := 20000
 ## data arrived.
 const RESELECT_M := 100.0
 const RESELECT_MS := 500
+const LOADED_RESELECT_MS := 100
+var _loaded := false  # data arrived since the last choice
 
 ## terraintype.dat surface flags (docs/formats/ptt.md "Terrain types", FUN_004024b0).
 const SURFACE_LAND := 0x1
@@ -73,6 +75,9 @@ var _inset := {}
 var _inset_dir := ""
 var _finest := {}  # Vector3i -> finest level with its own texture in the node's subtree
 var _meshes: Array[ArrayMesh] = []
+## Colour nodes load setup's pre-compressed BC1 .dds files when there (docs/rendering.md §1.5); false: always the
+## JPEG, compressed at run time (tests, benches).
+static var precompressed := true
 var shader := preload("res://terrain/terrain.gdshader")
 
 # Resources (colour texture per textured node, height texture + image per theatre node), keyed by
@@ -110,28 +115,21 @@ var _bake_bounds := PackedFloat64Array()  # IafBases.bounds()
 var scenery: Node3D = null
 const Scenery := preload("res://terrain/scenery.gd")
 
+## The node lists, meshes and surface tree: no engine extension and no scene tree, so the front end's preload runs it
+## on a worker thread (terrain_preload.gd) before the node enters the tree (~80 ms with imagery layers); else _ready.
+var _prepared := false
 
-func _ready() -> void:
+
+func prepare() -> void:
+	_prepared = true
 	dir = Settings.assets_dir().path_join(data_dir)
 	meta = Settings.load_json(dir.path_join("meta.json"))
 	if meta.is_empty():
-		push_error("terrain: %s/meta.json not found — run tools/setup-cli.sh (iaf-terrain theatre)" % dir)
 		return
 	m_per_unit = float(meta.get("units_to_metres", 1.0))
 	_span0 = float(meta.node_pixels)
 	_theatre = PackedFloat64Array(meta.theatre)
 	_height_level = int(meta.height_level)
-	IafHeights.set_meta(
-		{
-			"node_pixels": meta.node_pixels,
-			"span": _span(_height_level),
-			"sea_level_raw": meta.sea_level_raw,
-			"height_scale": meta.height_scale,
-			"m_per_unit": m_per_unit,
-			"x_shift": meta.get("x_shift", 0),
-			"y_shift": meta.get("y_shift", 0)
-		}
-	)
 	_root_level = int(meta.root_level)
 	for l in meta.nodes:
 		for ij in meta.nodes[l]:
@@ -148,12 +146,31 @@ func _ready() -> void:
 				if not _layer_dir.has(n):
 					_layer_dir[n] = ldir
 					_add_colour_node(n)
-	_bases_moved = Settings.sync_bases()
-	if _bases_moved:
-		_add_insets()
 	for l in _root_level + 1:
 		_meshes.append(_grid_mesh(_span_m(l), _quads(l)))
 	_load_terrain_types(Settings.assets_dir().path_join("install/terraintype.dat"))
+
+
+func _ready() -> void:
+	if not _prepared:
+		prepare()
+	if meta.is_empty():
+		push_error("terrain: %s/meta.json not found — run tools/setup-cli.sh (iaf-terrain theatre)" % dir)
+		return
+	IafHeights.set_meta(
+		{
+			"node_pixels": meta.node_pixels,
+			"span": _span(_height_level),
+			"sea_level_raw": meta.sea_level_raw,
+			"height_scale": meta.height_scale,
+			"m_per_unit": m_per_unit,
+			"x_shift": meta.get("x_shift", 0),
+			"y_shift": meta.get("y_shift", 0)
+		}
+	)
+	_bases_moved = Settings.sync_bases()
+	if _bases_moved:
+		_add_insets()
 	IafSurface.load(Settings.assets_dir().path_join("install/terraintype.dat"))
 	_bake_bounds = IafBases.bounds() if _bases_moved else PackedFloat64Array()
 	if _bases_moved:
@@ -357,15 +374,18 @@ func _select(n: Vector3i, d: float, draw: bool, selected: Dictionary) -> void:
 func _process(_delta: float) -> void:
 	if meta.is_empty() or focus == null:
 		return
-	var loaded := _finish_jobs()
-	# The tree is re-chosen when data arrived, the focus moved or every RESELECT_MS.
+	_loaded = _finish_jobs() or _loaded
+	# The tree is re-chosen when data arrived (at most every LOADED_RESELECT_MS: a choice takes ~12 ms with imagery
+	# layers), the focus moved or every RESELECT_MS.
 	var fp := focus.global_position
-	if loaded or fp.distance_to(_last_focus) > RESELECT_M or Time.get_ticks_msec() - _last_select > RESELECT_MS:
+	var since := Time.get_ticks_msec() - _last_select
+	if (_loaded and since >= LOADED_RESELECT_MS) or fp.distance_to(_last_focus) > RESELECT_M or since > RESELECT_MS:
 		_reselect(fp)
 	_start_jobs()
 
 
 func _reselect(fp: Vector3) -> void:
+	_loaded = false
 	_last_focus = fp
 	_last_select = Time.get_ticks_msec()
 	var t := godot_to_terrain(fp)
@@ -532,9 +552,16 @@ func _work() -> void:
 		_results_mutex.unlock()
 
 
-## Colour -> mipmapped BC1; heights -> RG8 (R = high byte, G = low byte of the raw u16).
+## Colour -> mipmapped BC1 (setup's pre-compressed .dds beside the tile when there, else the JPEG compressed here);
+## heights -> RG8 (R = high byte, G = low byte of the raw u16).
 func _decode(key: Vector4i) -> Image:
 	var n := Vector3i(key.y, key.z, key.w)
+	if key.x == 0 and precompressed and not _inset.has(n) and not _needs_bake(key):
+		var dds := _path(key).get_basename() + ".dds"
+		if FileAccess.file_exists(dds):
+			var img := Image.new()
+			if img.load_dds_from_buffer(FileAccess.get_file_as_bytes(dds)) == OK:
+				return img
 	var img := _inset_image(n) if key.x == 0 and _inset.has(n) else Image.load_from_file(_path(key))
 	if img != null and _needs_bake(key):
 		img.set_meta("bake", true)  # patched on the main thread (_finish_jobs), then compressed there
@@ -634,18 +661,25 @@ static func _bake(img: Image, key: Vector4i) -> Image:
 	)
 
 
-## Takes the decoded images (texture upload on the main thread); true if any. `block`: stops the
-## queue and waits for the running decodes too.
+## Takes the decoded images (texture upload on the main thread) for up to UPLOAD_MS a frame, the rest the next
+## frames; true if any. `block`: stops the queue, waits for the running decodes and takes them all.
+const UPLOAD_MS := 4
+
+
 func _finish_jobs(block := false) -> bool:
 	if block:
 		_stop_jobs()
-	_results_mutex.lock()
-	var done := _results
-	_results = {}
-	_results_mutex.unlock()
+	var t0 := Time.get_ticks_msec()
 	var any := false
-	for key in done:
-		var img: Image = done[key]
+	while true:
+		_results_mutex.lock()
+		if _results.is_empty() or (not block and Time.get_ticks_msec() - t0 >= UPLOAD_MS):
+			_results_mutex.unlock()
+			return any
+		var key: Vector4i = _results.keys()[0]
+		var img: Image = _results[key]
+		_results.erase(key)
+		_results_mutex.unlock()
 		if img == null:
 			push_error("terrain: cannot load %s" % _path(key))
 			img = Image.create(1, 1, false, Image.FORMAT_RG8 if key.x == 1 else Image.FORMAT_RGB8)

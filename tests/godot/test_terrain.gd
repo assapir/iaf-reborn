@@ -62,6 +62,7 @@ func run() -> void:
 	)
 	var h = tv.terrain.height_at(tv.rig.position)
 	check(h != null and absf(h - 63.7) < 2.0, "Ramat David runway height %s m (takeoff.mis: 63 m)" % h)
+	_check_precompressed(tv.terrain)
 	tv.queue_free()
 	await frames(5)
 
@@ -95,3 +96,47 @@ func run() -> void:
 	var land: int = t2.surface_at(Vector3.ZERO)
 	check((land & t2.SURFACE_ROUGH) != 0 and (land & t2.SURFACE_WATER) == 0, "Negev = rough land (surface %x)" % land)
 	await drop(t2)
+
+
+## Setup's pre-compressed BC1 (.dds beside the JPEG, docs/rendering.md §1.5) loads as the run-time path's image
+## (BC1, every mip); without it (or `precompressed` off) the JPEG is compressed at run time.
+func _check_precompressed(t: Node3D) -> void:
+	var key = null
+	for k in t._res:
+		if k.x == 0 and not t._inset.has(Vector3i(k.y, k.z, k.w)) and not t._needs_bake(k):
+			key = k
+			break
+	var dds: String = t._path(key).get_basename() + ".dds"
+	var pre: Image = t._decode(key)
+	t.precompressed = false
+	var old: Image = t._decode(key)
+	t.precompressed = true
+	check(
+		old.get_format() == Image.FORMAT_DXT1 and old.get_mipmap_count() > 8,
+		"without the .dds: the JPEG compressed at run time (BC1, %d mips)" % old.get_mipmap_count()
+	)
+	if not FileAccess.file_exists(dds):
+		print("SKIP precompressed: %s missing (setup's bc1 step not run)" % dds)
+		return
+	check(
+		pre.get_format() == Image.FORMAT_DXT1 and pre.get_data().size() == old.get_data().size(),
+		"the .dds loads as BC1 with the same mips (%d bytes)" % pre.get_data().size()
+	)
+	# The 64-pixel mip of both, decoded: same picture within BC1's error.
+	var a := Image.create_from_data(
+		64, 64, false, Image.FORMAT_DXT1, pre.get_data().slice(pre.get_mipmap_offset(4), pre.get_mipmap_offset(5))
+	)
+	var b := Image.create_from_data(
+		64, 64, false, Image.FORMAT_DXT1, old.get_data().slice(old.get_mipmap_offset(4), old.get_mipmap_offset(5))
+	)
+	a.decompress()
+	b.decompress()
+	var da := a.get_data()
+	var db := b.get_data()
+	var sum := 0
+	for i in da.size():
+		sum += absi(da[i] - db[i])
+	check(
+		float(sum) / da.size() < 6.0,
+		"the .dds and the run-time BC1 match: mean difference %.2f" % (float(sum) / da.size())
+	)

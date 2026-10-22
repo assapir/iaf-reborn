@@ -114,6 +114,8 @@ ground_scale_b={
 
 [rendering]
 
+textures/vram_compression/compress_with_gpu=false
+
 lights_and_shadows/directional_shadow/size=4096
 lights_and_shadows/directional_shadow/soft_shadow_filter_quality=3
 

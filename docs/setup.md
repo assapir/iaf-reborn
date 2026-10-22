@@ -51,10 +51,11 @@ and each step uses every core inside.
 | `sentinel2`, `mapi2015-fetch`, `mapi2015` | airbases | `assets/converted/imagery` |
 | `scenery-fetch` | | `assets/source/scenery`: the sources the chosen kinds need (both 520 MB, buildings 373 MB, trees 267 MB; docs/scenery.md §1.1) |
 | `scenery` | mapi2015, scenery-fetch, missions, objects, airbases | `assets/converted/scenery`: the chosen kinds, buildings and trees, buildings only or trees only (docs/scenery.md §1.6) |
+| `bc1` | theatre, the imagery steps | a BC1 `.dds` beside each colour tile (docs/rendering.md §1.5) |
 | `guides` | the conversions and imagery | the pilot guides |
 
 "The install" is `patch` when a patch is given, else `extract`. A failed required step stops the setup; the steps
-that wait for it do not run. `launcher`, `textures`, the imagery, the scenery and the guides are optional: their failure stops only
+that wait for it do not run. `launcher`, `textures`, the imagery, `bc1`, the scenery and the guides are optional: their failure stops only
 what waits for them.
 
 `textures` (`iaf_tools::thirdparty`, CLI `iaf-textures`) fetches each material of `thirdparty::LISTS` with curl,
@@ -62,6 +63,22 @@ checks its zip against the pinned SHA-256 and packs its maps. A material done be
 date without the network. When ambientcg.com cannot be reached the step is skipped with a note, and Graphics → MORE →
 Ground textures and Model detail stay Original. A checksum mismatch (the file on ambientCG changed) fails the step and leaves nothing
 behind.
+
+`bc1` (`iaf_tools::bc1`, CLI `iaf-terrain bc1 <tile-dir>…`) pre-compresses the terrain's colour tiles: for each
+`L*/c_*.jpg` of the theatre and of every imagery layer on disk it writes `c_*.dds` beside it, BC1 with every mipmap
+down to 1 × 1 (a 128-byte DDS header, FourCC DXT1; a 2 × 2 box filter per mip, texpresso's range fit). The game then
+loads a tile without decoding or compressing it. A tile whose `.dds` is missing or older than its JPEG is written
+again, so a run after new imagery picks up only the new tiles; the step is up to date when there are none. Measured on
+the 8-thread i7-1185G7: 9007 tiles (the theatre and `mapi2015_modern`) in 351 s, ≈ 39 ms a tile.
+
+Each 1024-pixel tile takes 699 KB (the JPEGs ≈ 200–400 KB), so the step adds about 1.8–3.4 times the tiles' size:
+
+| tiles | count | JPEG | `.dds` |
+|---|---|---|---|
+| `terrain/theatre` | 2342 | 0.59 GB | 1.64 GB (measured) |
+| `imagery/mapi2015_modern` | 6665 | 2.53 GB | 4.66 GB (measured) |
+| `imagery/mapi2015` | 6665 | 2.63 GB | 4.66 GB |
+| `imagery/sentinel2`, `sentinel2_modern` | 6247 each | 1.27 GB, 1.37 GB | 4.37 GB each |
 
 ## Running only what changed
 
@@ -137,8 +154,8 @@ The wizard uses the original menus' colours. Pages:
      downloaded again.
    - Scenery: the download of the chosen kinds, from the pinned files' sizes (both 520 MB, buildings only 373 MB,
      trees only 267 MB). Files already downloaded are kept.
-   - Sentinel-2: about 28 GB read over the network, about 2.5 GB on disk. Units already converted are not read
-     again.
+   - Sentinel-2: about 28 GB read over the network, about 11 GB on disk (the tiles 2.6 GB, their pre-compressed
+     copies 8.7 GB). Units already converted are not read again.
 
    Under the extras one line gives the expected size of `assets/` for the choices, updated as they change:
    "Expected size of assets: about 24 GB (19 GB of it downloads); 6.2 GB of it is new; 120 GB free". The total is

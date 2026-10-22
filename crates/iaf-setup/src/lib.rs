@@ -152,6 +152,10 @@ pub fn plan(inputs: &Inputs) -> Vec<Step> {
         add("imagery-refresh", "imagery: convert again what older rules made", false, &["airbases"]);
         last.push("imagery-refresh");
     }
+    // After every step that writes colour tiles; tiles added later (imagery) are picked up on the next run.
+    let mut after = vec!["theatre"];
+    after.extend(&last);
+    add("bc1", "terrain: colour tiles pre-compressed (BC1 with mipmaps, docs/rendering.md §1.5)", false, &after);
     if inputs.guides {
         let mut after =
             vec!["briefings", "reference", "menu", "arm", "keys", "aircraft", "objects", "airbases", "icon"];
@@ -448,7 +452,8 @@ mod tests {
                 "airbases",
                 "icon",
                 "launcher",
-                "textures"
+                "textures",
+                "bc1"
             ]
         );
         assert!(base.iter().filter(|s| s.id != "extract" && s.after.contains(&"extract")).count() >= 8);
@@ -477,6 +482,7 @@ mod tests {
             plan(&Inputs { scenery_kinds: iaf_tools::scenery::Kinds::parse("trees").unwrap(), ..full_inputs.clone() });
         let t = |id: &str| trees.iter().find(|s| s.id == id).unwrap().title;
         assert!(t("scenery").starts_with("scenery: trees") && t("scenery-fetch").contains("267 MB"));
+        assert_eq!(get("bc1").after, ["theatre", "sentinel2", "mapi2015"]);
         // Every step waits only for steps planned before it.
         for (k, s) in full.iter().enumerate() {
             for a in &s.after {
@@ -517,7 +523,8 @@ mod tests {
             ("missions (", &["missions"]),
             ("aircraft:", &["aircraft"]),
             ("mission object models", &["objects"]),
-            ("terrain:", &["theatre"]),
+            ("terrain: every level", &["theatre"]),
+            ("terrain: colour tiles", &["bc1"]),
             ("airbases:", &["airbases"]),
             ("Godot extension", &["cli"]),
             ("icon and desktop launcher", &["icon", "launcher"]),
@@ -644,7 +651,7 @@ mod tests {
         assert_eq!(go(&first).len(), plan(&first).len());
         assert!(go(&first).is_empty());
         let more = Inputs { imagery: vec![Imagery::Sentinel2], ..first.clone() };
-        assert_eq!(go(&more), ["sentinel2"]);
+        assert_eq!(go(&more), ["bc1", "sentinel2"]);
         let scenery = Inputs { scenery: true, ..more.clone() };
         assert_eq!(go(&scenery), ["scenery", "scenery-fetch"]);
         let he = Inputs {

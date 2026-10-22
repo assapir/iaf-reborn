@@ -12,7 +12,7 @@
 # three Hebrew images the packs lack (the startup splash and the Graphics page) are taken from it.
 # --imagery <source>[,<source>…] (off by default) adds modern terrain imagery (docs/imagery.md, README
 # "Terrain imagery data"): sentinel2 = ESA WorldCover 2021 Sentinel-2 outside Israel, fetched and
-# converted (needs GDAL; ~28 GB of range reads, ~2.5 GB on disk); mapi2015 / mapi2015-bases = the Survey of
+# converted (needs GDAL; ~28 GB of range reads, ~2.6 GB on disk + 8.7 GB pre-compressed tiles); mapi2015 / mapi2015-bases = the Survey of
 # Israel 2015 2 m sheets (all / around the airbases), downloaded with curl and Firefox's data.gov.il
 # token, else through your browser (tools/imagery/fetch-mapi2015-curl.sh), then converted into the
 # Israel layers (needs GDAL; re-run after adding sheets: only the 20 km units they touch are redone). Without the ISO argument only the imagery steps run
@@ -146,9 +146,19 @@ scenery_steps() {
 	./target/release/iaf-scenery build assets --kinds "$scenery"
 }
 
+# The terrain's colour tiles pre-compressed (BC1 .dds beside each JPEG; docs/rendering.md §1.5): only tiles without
+# one or newer than theirs, so it picks up the imagery added above.
+bc1_step() {
+	step "terrain: colour tiles pre-compressed (BC1 with mipmaps)"
+	[[ -f assets/converted/terrain/theatre/meta.json ]] || return 0
+	cargo build --release -p iaf-tools
+	./target/release/iaf-terrain bc1 assets/converted/terrain/theatre $(find assets/converted/imagery -mindepth 1 -maxdepth 1 -type d ! -name '.*' 2>/dev/null)
+}
+
 if [[ -z $iso ]]; then
 	imagery_refresh
 	[[ -n $imagery ]] && imagery_steps
+	bc1_step
 	[[ -n $scenery ]] && scenery_steps
 	step "done"
 	exit 0
@@ -351,6 +361,7 @@ wait_jobs
 
 imagery_refresh
 [[ -n $imagery ]] && imagery_steps
+bc1_step
 [[ -n $scenery ]] && scenery_steps
 
 # The pilot guides' pictures and PDFs (docs/guides; the Reference screen's Pilot guide view): real renders, so only

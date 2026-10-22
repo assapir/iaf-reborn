@@ -234,14 +234,15 @@ detail and the mission's models are parsed. What runs where:
 | the flight scene's scripts and resources | a loader thread, while the mission screens are open (`terrain_preload.gd` `preload_scene`) | ≈ 0.85 s |
 | the first frame's art: the loading screen's menu art, the cockpit art (the scene's default F-16 cockpit and the player's jet's), the player's jet model and its cockpit-view model | worker threads, once the scene has loaded (`prefetch_flight`: `Img.prefetch`, `Gltf.parse_file_ahead`) | ≈ 0.17 + 0.23 + 0.15 s |
 | the scene's build (`_ready`) | the main thread, over six frames behind the loading screen; between them only the terrain and the loading screen run | ≤ 0.2 s a frame |
-| the terrain's nodes: about 300 colour nodes (JPEG, mipmaps, BC1) and 50 height nodes | 4 worker threads (`terrain.gd` `max_jobs`) | ≈ 2–3 s |
+| the terrain's nodes: about 300 colour nodes (setup's BC1 `.dds`, else JPEG, mipmaps, BC1) and 50 height nodes | 4 worker threads (`terrain.gd` `max_jobs`); the texture uploads on the main thread, ≤ 4 ms a frame (`UPLOAD_MS`) | ≈ 1–3 s |
 | the mission's models (every placed unit's model and its LOD copies) | worker threads parse the files (`Gltf.parse_ahead`), the main thread finishes them for ≤ 12 ms a frame (one model up to ≈ 50 ms) | ≈ 1.5 s, inside the terrain's time |
 | the spawn of the mission's units | the main thread, the first flying frame | ≈ 40 ms |
 
 Three things made the start slow, measured 2026-10-22:
 
-- **The GPU encoder and the loading screen's frame rate.** In a window `Image.compress` (BC1) runs on the GPU (Godot's
-  Betsy encoder, ≈ 6 ms an image on an idle GPU), one image at a time. Behind the loading screen the 3D view still
+- **The GPU encoder and the loading screen's frame rate.** In a window `Image.compress` (BC1) ran on the GPU (Godot's
+  Betsy encoder, ≈ 6 ms an image on an idle GPU), one image at a time. Setup's pre-compressed tiles and the CPU
+  encoder (below) have since removed it. Behind the loading screen the 3D view still
   renders every frame. Uncapped (the bench turns vsync off; the X11 window presents at once) the frames took the GPU
   and each image waited ≈ 250 ms: the ground took 35–45 s. While the loading screen is up the frame rate is capped at
   30 fps (`LOADING_FPS`; a lower Max FPS stays): the images take ≈ 20 ms and the ground ≈ 2–3 s. Ground textures on
@@ -267,6 +268,64 @@ the switch off / on, X11 window, vsync off):
 The bench's own stalls before the scene change (one of ≈ 1000 ms every ≈ 1.35 s while it waits, the scene shown as
 `?`) come from the test harness under X11 (XWayland): a script with no scene, in an empty project, shows them too; the
 main thread waits in the Intel Vulkan driver's present. Headless or in a Wayland window they do not occur.
+
+#### Pre-compressed tiles and the mission screens
+
+The terrain compresses nothing at run time when setup's `bc1` step has run (docs/setup.md): beside each colour tile
+`c_<x>_<y>.jpg` lies `c_<x>_<y>.dds`, BC1 with every mip down to 1 × 1. A decode worker reads the file and hands it
+to `Image.load_dds_from_buffer` (≈ 0.3 ms a node, no decode, no compression). Without the file (a setup without the
+step, or `Terrain.precompressed` off) the worker decodes the JPEG, makes the mipmaps and compresses them as before.
+That fallback runs on the CPU encoder: `rendering/textures/vram_compression/compress_with_gpu` is off in
+`project.godot` (Godot reads it at each `Image.compress`; the project imports no VRAM-compressed textures), so the
+workers no longer wait for the GPU (Betsy here, Metal's on a Mac) behind the frames. The few nodes that World scale
+Real patches or overlays (`_bake`, `_inset_image`) still take the JPEG path.
+
+The `.dds` is the same picture within BC1's error: over four `mapi2015_modern` tiles the mean absolute difference to
+the JPEG is 3.8–3.9 (of 255) for the `.dds` and 4.8–5.0 for Godot's CPU encoder; between the two 4.7–4.8. The test
+(`test_terrain.gd`) compares a node's 64-pixel mip both ways (3.6).
+
+What froze the mission screens: the TSD preloads the start's ground (`terrain_preload.gd`) and, since the scene
+preload, the flight scene and its first frame's art. Three main-thread steps took a frame each, measured on the TSD
+with the imagery layers on:
+
+- the texture uploads: every decoded node of the frame at once, up to 233 in one frame (116 ms) once the `.dds`
+  made the workers fast. Now ≤ 4 ms a frame, the rest the next frames (`_finish_jobs`; the flight's `adopt` still
+  takes them all);
+- the preload terrain's set-up (`_ready`: the layers' manifests, the node lists, the meshes, `terraintype.dat`;
+  ≈ 80 ms). Its pure part (`prepare()`) now runs on a worker thread before the node enters the tree;
+- the choice of nodes (`_reselect`, ≈ 12 ms with the imagery layers) after every frame that brought data: now at
+  most every 100 ms (`LOADED_RESELECT_MS`).
+
+Left on the main thread: the flight's first-frame prefetch (`prefetch_flight`, ≈ 30 ms once: the mission's files
+and the jet's descriptor) and the node choice (≈ 12 ms every 100 ms while data arrives).
+
+Measured 2026-10-23 on the Iris Xe laptop (2560 × 1440, X11 window, vsync off; other agents' headless jobs ran on the
+CPU meanwhile). Imagery: Israel `mapi2015_modern`, outside `sentinel2_modern` (the latter has no `.dds` yet on this
+machine, so outside Israel takes the fallback), TAA, atmospheric sky, detailed models and airbases.
+
+TSD, 20 s from the screen's opening with a flight change every 2 s (`tests/godot/_tsd_bench.gd`); no stall over
+250 ms in any run:
+
+| | before | after, `.dds` | after, fallback |
+|---|---|---|---|
+| worst frame, imagery on | 179 / 81 / 234 ms | 46 / 46 / 37 ms | 81 / 55 ms |
+| the start's ground loaded, imagery on | 3.9–8.1 s | 0.6–0.8 s | 2.8–3.3 s |
+| worst frame, original imagery | 49 / 53 / 55 ms | 48 / 39 ms (89 ms in a run under heavy CPU load) | |
+| the start's ground loaded, original imagery | 2.9–3.2 s | 0.7 s | |
+
+Flight start and a low fast pass (600 kt at 300 m for 60 s, heading west, frozen flight model;
+`tests/godot/_stream_bench.gd`), two runs each:
+
+| | before | after, `.dds` | after, fallback |
+|---|---|---|---|
+| one colour node on a worker thread | 88–99 ms | 0.3 ms | 40–60 ms |
+| mission start 311 / 115 | 4.1–5.8 s / 4.0–6.3 s | 4.0–5.0 s / 3.3–3.8 s | 5.5–6.5 s / 4.2–4.3 s |
+| pass: node-seconds waiting (the sum over frames of the nodes queued or decoding × the frame's time) | 21–26 | 3–4 | 9–15 |
+| pass: worst frame | 59–124 ms | 41–92 ms | 74–90 ms |
+
+The mission start with these settings still shows one or two stalls of 0.5–2.8 s in the flight scene's first frames,
+before and after alike (not the terrain: its nodes were loaded by then). The pass's worst frames are the 3D view's
+own (≈ 45 fps average); the waiting nodes drop by a factor of 6.
 
 ## 2. Cloud layer (Graphics TEXTURED SKY, docs/front-end.md §12.4)
 

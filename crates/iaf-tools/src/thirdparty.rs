@@ -587,9 +587,12 @@ fn unpack(m: &Material, zip_path: &Path, out: &Path) -> Result<()> {
         let n = normal.get_pixel(x, y).0;
         p.0 = [rough.get_pixel(x, y).0[0], n[1], bright.get_pixel(x, y).0[0], n[0]];
     }
-    std::fs::write(out.join("albedo.bc1"), compress(&mip_chain(albedo), Format::Bc1, [1.0, 1.0, 1.0]))?;
+    std::fs::write(
+        out.join("albedo.bc1"),
+        compress(&mip_chain(albedo), Format::Bc1, Algorithm::ClusterFit, [1.0, 1.0, 1.0]),
+    )?;
     // The normal's Y in G weighs most.
-    std::fs::write(out.join("nr.bc3"), compress(&mip_chain(nr), Format::Bc3, [0.3, 1.0, 0.5]))?;
+    std::fs::write(out.join("nr.bc3"), compress(&mip_chain(nr), Format::Bc3, Algorithm::ClusterFit, [0.3, 1.0, 0.5]))?;
     let meta = json!({ "id": m.id, "size_m": m.size_m, "sha256": m.sha256, "side": SIDE, "pack": PACK, "licence": "CC0 1.0",
         "source": format!("https://ambientcg.com/a/{}", m.id) });
     std::fs::write(out.join("material.json"), serde_json::to_string_pretty(&meta)?)?;
@@ -629,10 +632,10 @@ pub fn brightness_detail(g: &GrayImage) -> GrayImage {
     })
 }
 
-/// Every level of `levels` compressed as `format` (block weights `w` for R, G, B), concatenated (Godot's
-/// `Image.create_from_data` layout for a compressed image with mipmaps).
-pub fn compress(levels: &[RgbaImage], format: Format, w: [f32; 3]) -> Vec<u8> {
-    let params = Params { algorithm: Algorithm::ClusterFit, weights: w, weigh_colour_by_alpha: false };
+/// Every level of `levels` compressed as `format` with `algorithm` (block weights `w` for R, G, B), concatenated
+/// (Godot's `Image.create_from_data` layout for a compressed image with mipmaps).
+pub fn compress(levels: &[RgbaImage], format: Format, algorithm: Algorithm, w: [f32; 3]) -> Vec<u8> {
+    let params = Params { algorithm, weights: w, weigh_colour_by_alpha: false };
     let mut out = Vec::new();
     for l in levels {
         let (wd, ht) = (l.width() as usize, l.height() as usize);
@@ -703,7 +706,7 @@ mod tests {
         assert_eq!(v.iter().map(|l| l.width()).collect::<Vec<_>>(), [4, 2, 1]);
         assert_eq!(v[2].get_pixel(0, 0).0, [10, 20, 30, 40]);
         // BC1: 8 bytes per 4×4 block, a level under 4 px one block.
-        assert_eq!(compress(&v, Format::Bc1, [1.0; 3]).len(), 3 * 8);
+        assert_eq!(compress(&v, Format::Bc1, Algorithm::ClusterFit, [1.0; 3]).len(), 3 * 8);
     }
 
     #[test]

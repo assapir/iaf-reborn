@@ -9,16 +9,18 @@ extends Control
 const TITLE := "Jane's IAF (reborn) — Setup"
 const PAGES := ["Welcome", "Requirements", "Your CD", "Optional", "Extras", "Summary", "Install", "Done"]
 ## Sizes on disk (GB), measured with du on the developer's Linux laptop (2026-10-22) unless said: the install,
-## the conversions without imagery or scenery, the ambientCG materials (thirdparty/, downloaded); the game is their sum.
+## the conversions without imagery or scenery (with the theatre's pre-compressed tiles, 1.64 GB; docs/setup.md bc1),
+## the ambientCG materials (thirdparty/, downloaded); the game is their sum.
 const INSTALL_GB := 0.69
-const CONVERTED_GB := 2.7
+const CONVERTED_GB := 4.3
 const TEXTURES_GB := 0.26
 const BASE_GB := INSTALL_GB + CONVERTED_GB + TEXTURES_GB
-## Imagery (GB): the Survey's kept sheet downloads and its conversion (1998 and modern looks), all of Israel
-## (measured) / around the airbases (estimated); Sentinel-2 converted, both looks (its reads are not kept).
-const SURVEY_GB := [17.3, 5.2]
-const SURVEY_BASES_GB := [2.0, 0.6]
-const SENTINEL_GB := 2.6
+## Imagery (GB): the Survey's kept sheet downloads and its conversion (1998 and modern looks, with the pre-compressed
+## tiles: 4.66 GB a look), all of Israel (measured) / around the airbases (estimated); Sentinel-2 converted, both
+## looks with their pre-compressed tiles (4.37 GB a look; its reads are not kept).
+const SURVEY_GB := [17.3, 14.5]
+const SURVEY_BASES_GB := [2.0, 1.7]
+const SENTINEL_GB := 11.3
 ## Scenery made, by kind (GB; the downloads come from IafSetup.scenery_download_bytes): both measured (cells 0.58 +
 ## work files 0.49); one kind computed from the cell format (a tree is 16 bytes: 28.6 M trees 0.46 GB, buildings
 ## 0.12 GB) and the work files (the OpenStreetMap extract 0.45 GB, the reduced canopy 0.04 GB for trees).
@@ -849,7 +851,7 @@ func _page_extras() -> Control:
 		(
 			"Downloads the Survey's sheets from data.gov.il with curl and your Firefox's data.gov.il token (without one it "
 			+ "opens them in your browser's tabs), then converts them. All of Israel: 79 sheets, about 17 GB of downloads "
-			+ "(kept) and 5 GB converted. Around the airbases: 9 sheets, about 2 GB of downloads. Sheets already downloaded "
+			+ "(kept) and 14 GB converted. Around the airbases: 9 sheets, about 2 GB of downloads. Sheets already downloaded "
 			+ "are not downloaded again, and converted units are kept."
 		),
 		(
@@ -886,7 +888,7 @@ func _page_extras() -> Control:
 	sentinel_check = _extra(
 		v,
 		"Sentinel-2 imagery (10 m, outside Israel; 28 GB read)",
-		"About 28 GB read over the network, about 2.5 GB on disk. Units already converted are not read again.",
+		"About 28 GB read over the network, about 11 GB on disk. Units already converted are not read again.",
 		need_gdal
 	)
 	refresh_check = _extra(

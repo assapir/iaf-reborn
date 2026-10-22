@@ -204,6 +204,20 @@ pub(crate) fn run(step: &Step, ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool
             return scenery_fetch(&list, &a.join("source/scenery"), SCENERY_PROBE, pr, cancel);
         }
         "scenery" => return scenery(a, ctx.inputs.scenery_kinds, pr, cancel),
+        "bc1" => {
+            let mut dirs = vec![conv.join("terrain/theatre")];
+            if let Ok(rd) = std::fs::read_dir(conv.join("imagery")) {
+                dirs.extend(
+                    rd.flatten()
+                        .map(|e| e.path())
+                        .filter(|p| p.is_dir() && !p.file_name().is_some_and(|n| n.to_string_lossy().starts_with('.'))),
+                );
+            }
+            dirs.sort();
+            if iaf_tools::bc1::trees(&dirs, pr, cancel)? == 0 {
+                return Ok(Outcome::UpToDate);
+            }
+        }
         "imagery-refresh" => {
             let mut any = false;
             for spec in [&SENTINEL2, &MAPI2015] {

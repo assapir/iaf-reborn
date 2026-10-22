@@ -3,6 +3,9 @@
 //! `iaf-terrain theatre <map.ptt> <out-dir> [threads]` — every level and every inset of the file as
 //! a quadtree of 1024-pixel nodes (docs/formats/ptt.md "Converted layout"): colour JPEGs per level,
 //! raw heights for the whole-theatre levels 6..11, `meta.json`.
+//!
+//! `iaf-terrain bc1 <tile-dir>…` — each colour tile's BC1 `.dds` beside it (missing or older ones only;
+//! docs/rendering.md §1.5).
 
 use std::path::Path;
 use std::sync::atomic::AtomicBool;
@@ -35,6 +38,12 @@ fn main() -> Result<()> {
             &Stdout,
             &AtomicBool::new(false),
         ),
+        [_, "bc1", ref dirs @ ..] if !dirs.is_empty() => {
+            let dirs: Vec<_> = dirs.iter().map(std::path::PathBuf::from).collect();
+            let n = iaf_tools::bc1::trees(&dirs, &Stdout, &AtomicBool::new(false))?;
+            println!("{n} tiles compressed");
+            Ok(())
+        }
         [_, "georef-points", theatre, z9, z10, out, lambda] => {
             georef_points(Path::new(theatre), Path::new(z9), Path::new(z10), Path::new(out), lambda.parse()?)
         }
@@ -57,6 +66,7 @@ fn main() -> Result<()> {
         _ => bail!(
             "usage: iaf-terrain theatre <map.ptt> <out-dir> [threads]\n       \
              iaf-terrain airbases <install-dir> <theatre-dir> <out-dir> [--debug <dir>]\n       \
+             iaf-terrain bc1 <tile-dir>…\n       \
              iaf-terrain georef-points <theatre-dir> <eox-z9-dir> <eox-z10-dir> <out.json> <lambda>\n       \
              iaf-terrain geo <points.json> <X> <Y>      (engine metres -> lat lon)\n       \
              iaf-terrain game <points.json> <lat> <lon>  (lat lon -> engine metres X Y)"

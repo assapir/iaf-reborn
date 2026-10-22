@@ -29,13 +29,29 @@ static func target(tree: SceneTree, world: Vector3, flight := 0) -> void:
 		_terrain = Terrain.new()
 		_terrain.name = "TerrainPreload"
 		_terrain.draw_nodes = false
-		tree.root.add_child(_focus)
-		tree.root.add_child(_terrain)
 		_terrain.focus = _focus
+		# Its node lists and meshes on a worker thread; poll() puts it in the tree once they are made.
+		_prepare_task = WorkerThreadPool.add_task(_terrain.prepare, true, "terrain prepare")
+		_tree = tree
 	_target = world
 	_terrain.world_origin = Vector2(world.x, world.y)
 	_focus.position = Vector3(0, world.z, 0)
 	_terrain._last_focus = Vector3(INF, INF, INF)  # re-choose now
+
+
+static var _prepare_task := -1
+static var _tree: SceneTree = null
+
+
+## Waits for the terrain's prepare() and adds it (and its focus) to the tree.
+static func _enter_tree() -> void:
+	if _prepare_task < 0:
+		return
+	WorkerThreadPool.wait_for_task_completion(_prepare_task)
+	_prepare_task = -1
+	if _alive():
+		_tree.root.add_child(_focus)
+		_tree.root.add_child(_terrain)
 
 
 ## Every frame of the mission screens: once the flight scene is loaded (its scripts compiled on the loader thread),
@@ -44,6 +60,8 @@ static var _flight := 0
 
 
 static func poll() -> void:
+	if _prepare_task >= 0 and WorkerThreadPool.is_task_completed(_prepare_task):
+		_enter_tree()
 	if ResourceLoader.load_threaded_get_status(SCENE) == ResourceLoader.THREAD_LOAD_LOADED:
 		prefetch_flight(Settings.mission_id, _flight)
 
@@ -102,12 +120,14 @@ static func scene() -> PackedScene:
 
 ## The flight's terrain takes over the preloaded textures; the preload ends.
 static func hand_over(to: Node3D) -> void:
+	_enter_tree()
 	if _alive():
 		to.adopt(_terrain)
 	stop()
 
 
 static func stop() -> void:
+	_enter_tree()
 	if _alive():
 		_terrain.queue_free()
 		_focus.queue_free()
