@@ -9,7 +9,7 @@ Setup turns your own copy of Jane's IAF into everything the game reads under `as
 - `crates/iaf-setup`: the same steps in-process, for the setup wizard. Its small CLI is for testing:
   ```sh
   cargo run --release -p iaf-setup -- [--assets DIR] [--patch P] [--hebrew-iso ISO] [--imagery sentinel2,mapi2015] \
-      [--guides] [--redo-all] ["/path/to/Jane's IAF.iso" [Brief.zip] [Menu.zip]]
+      [--guides] [--scenery] [--scenery-kinds both|buildings|trees] [--redo-all] ["/path/to/Jane's IAF.iso" [Brief.zip] [Menu.zip]]
   cargo run --release -p iaf-setup -- check <file>      # what a CD image, patch or pack is
   ```
 
@@ -49,8 +49,8 @@ and each step uses every core inside.
 | `launcher` | icon | the desktop launcher (`tools/install-launcher.sh`) |
 | `textures` | | `assets/thirdparty/ambientcg`: the CC0 textures of Ground textures and Model detail (≈ 250 MB download; docs/rendering.md §1.4, §9) |
 | `sentinel2`, `mapi2015-fetch`, `mapi2015` | airbases | `assets/converted/imagery` |
-| `scenery-fetch` | | `assets/source/scenery`: the scenery's sources (about 520 MB download; docs/scenery.md §1.1) |
-| `scenery` | mapi2015, scenery-fetch, missions, objects, airbases | `assets/converted/scenery`: buildings and trees (docs/scenery.md) |
+| `scenery-fetch` | | `assets/source/scenery`: the sources the chosen kinds need (both 520 MB, buildings 373 MB, trees 267 MB; docs/scenery.md §1.1) |
+| `scenery` | mapi2015, scenery-fetch, missions, objects, airbases | `assets/converted/scenery`: the chosen kinds, buildings and trees, buildings only or trees only (docs/scenery.md §1.6) |
 | `guides` | the conversions and imagery | the pilot guides |
 
 "The install" is `patch` when a patch is given, else `extract`. A failed required step stops the setup; the steps
@@ -127,16 +127,25 @@ The wizard uses the original menus' colours. Pages:
    the CD images, the v1.1 patch and the Hebrew packs (`iaf_setup::scan`, in the background), and fills the empty
    fields.
 4. **Optional**: the v1.1 patch, the Hebrew CD, or without it the Hebrew packs; each with a link to where to get it.
-5. **Extras**: the Survey of Israel imagery (all of Israel or around the airbases), the Sentinel-2 imagery,
+5. **Extras**: the Survey of Israel imagery (all of Israel or around the airbases), the Scenery (buildings and
+   trees, buildings only or trees only; only with the Survey imagery ticked or on disk), the Sentinel-2 imagery,
    "Bring the imagery up to date" (only with imagery on disk; it shows how many units older rules made) and the
    pilot guides. Each shows its downloads and disk use (no download times: they depend on the network), and is
    greyed with the reason when a program it needs is missing:
    - Survey of Israel, all of Israel: 79 sheets, about 17 GB of downloads (kept in `assets/source`), about 5 GB
      converted. Around the airbases: 9 sheets, about 2 GB of downloads. Sheets already downloaded are not
      downloaded again.
+   - Scenery: the download of the chosen kinds, from the pinned files' sizes (both 520 MB, buildings only 373 MB,
+     trees only 267 MB). Files already downloaded are kept.
    - Sentinel-2: about 28 GB read over the network, about 2.5 GB on disk. Units already converted are not read
      again.
-6. **Summary**: the inputs and the number of steps.
+
+   Under the extras one line gives the expected size of `assets/` for the choices, updated as they change:
+   "Expected size of assets: about 24 GB (19 GB of it downloads); 6.2 GB of it is new; 120 GB free". The total is
+   what is on disk now plus the new part. Each chosen part (the game, each extra) counts only what it lacks on disk
+   as new. The part sizes are constants in `game/setup/wizard.gd`, measured on the developer's laptop. The line
+   turns orange when the new part is larger than the free space.
+6. **Summary**: the inputs, the expected size line (orange when it does not fit) and the number of steps.
 7. **Install**: one row per step. Before Install each row says whether it is "up to date" or "will run"
    (`iaf_setup::preview`, checked in the background: it reads the CD images). Then its state and progress (a long
    step adds the time left at its pace so far, once it has run 30 s), the log, Cancel, "Redo everything", and a

@@ -5,6 +5,8 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result, bail};
 use serde_json::{Value, json};
 
+use iaf_tools::scenery::Kinds;
+
 use crate::{Hebrew, Imagery, Inputs};
 
 /// `assets/setup.json`.
@@ -29,7 +31,7 @@ pub fn to_json(i: &Inputs) -> Value {
             Imagery::Mapi2015 { bases: true } => "mapi2015-bases",
         })
         .collect();
-    json!({ "cd": i.cd.to_string_lossy(), "patch": p(&i.patch), "hebrew": hebrew, "imagery": imagery, "refresh": i.refresh, "guides": i.guides, "scenery": i.scenery })
+    json!({ "cd": i.cd.to_string_lossy(), "patch": p(&i.patch), "hebrew": hebrew, "imagery": imagery, "refresh": i.refresh, "guides": i.guides, "scenery": i.scenery, "scenery_kinds": i.scenery_kinds.name() })
 }
 
 pub fn save_inputs(assets: &Path, i: &Inputs) -> Result<()> {
@@ -68,6 +70,11 @@ pub fn from_json(v: &Value) -> Result<Inputs> {
         refresh: v["refresh"].as_bool().unwrap_or(false),
         guides: v["guides"].as_bool().unwrap_or(false),
         scenery: v["scenery"].as_bool().unwrap_or(false),
+        // Older setup.json files have none: both.
+        scenery_kinds: match v["scenery_kinds"].as_str() {
+            None => Kinds::BOTH,
+            Some(s) => Kinds::parse(s).with_context(|| format!("setup.json: unknown scenery_kinds {s:?}"))?,
+        },
     })
 }
 
@@ -90,10 +97,20 @@ mod tests {
                 refresh: true,
                 guides: true,
                 scenery: true,
+                scenery_kinds: Kinds::parse("trees").unwrap(),
             };
             save_inputs(&dir, &i).unwrap();
             assert_eq!(load_inputs(&dir).unwrap(), Some(i));
         }
         std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn scenery_kinds_default_to_both() {
+        let i = from_json(&json!({ "cd": "/cd.iso", "scenery": true })).unwrap();
+        assert_eq!(i.scenery_kinds, Kinds::BOTH, "an older setup.json");
+        let i = from_json(&json!({ "cd": "/cd.iso", "scenery_kinds": "buildings" })).unwrap();
+        assert!(i.scenery_kinds.buildings && !i.scenery_kinds.trees);
+        assert!(from_json(&json!({ "cd": "/cd.iso", "scenery_kinds": "houses" })).is_err());
     }
 }

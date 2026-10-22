@@ -64,6 +64,12 @@ pub fn uninstall(assets: &Path, everything: bool) -> Result<()> {
     Ok(())
 }
 
+/// The bytes of the files under `p` (a file: its size; missing: 0), for the wizard's expected size.
+pub fn disk_bytes(p: &Path) -> u64 {
+    let files = if p.is_dir() { iaf_tools::walk_files(p).unwrap_or_default() } else { vec![p.to_path_buf()] };
+    files.iter().filter_map(|f| std::fs::metadata(f).ok()).map(|m| m.len()).sum()
+}
+
 /// Copies every file under `from` to the same path under `to`.
 fn copy_tree(from: &Path, to: &Path) -> Result<()> {
     for f in iaf_tools::walk_files(from)? {
@@ -193,8 +199,11 @@ pub(crate) fn run(step: &Step, ctx: &Ctx, pr: &dyn Progress, cancel: &AtomicBool
         }
         "sentinel2" | "mapi2015" => return imagery(step, ctx, pr, cancel),
         "textures" => return textures(&a.join("thirdparty/ambientcg"), thirdparty::AMBIENTCG, pr, cancel),
-        "scenery-fetch" => return scenery_fetch(&a.join("source/scenery"), SCENERY_PROBE, pr, cancel),
-        "scenery" => return scenery(a, pr, cancel),
+        "scenery-fetch" => {
+            let list = ctx.inputs.scenery_kinds.downloads();
+            return scenery_fetch(&list, &a.join("source/scenery"), SCENERY_PROBE, pr, cancel);
+        }
+        "scenery" => return scenery(a, ctx.inputs.scenery_kinds, pr, cancel),
         "imagery-refresh" => {
             let mut any = false;
             for spec in [&SENTINEL2, &MAPI2015] {
@@ -322,10 +331,16 @@ fn textures(dir: &Path, base: &str, pr: &dyn Progress, cancel: &AtomicBool) -> R
 /// Answers when the scenery's sources can be downloaded (Geofabrik, the largest).
 const SCENERY_PROBE: &str = "https://download.geofabrik.de/";
 
-/// The scenery's sources (iaf_tools::thirdparty::SCENERY) into `dir`: up to date when every file is there; skipped
-/// (Scenery then stays off in the game) when `probe` cannot be reached.
-fn scenery_fetch(dir: &Path, probe: &str, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Outcome> {
-    if thirdparty::SCENERY.iter().all(|d| thirdparty::file_done(dir, d)) {
+/// The scenery's sources the chosen kinds need (`list`, from iaf_tools::thirdparty::SCENERY) into `dir`: up to date
+/// when every file is there; skipped (Scenery then stays off in the game) when `probe` cannot be reached.
+fn scenery_fetch(
+    list: &[thirdparty::Download],
+    dir: &Path,
+    probe: &str,
+    pr: &dyn Progress,
+    cancel: &AtomicBool,
+) -> Result<Outcome> {
+    if list.iter().all(|d| thirdparty::file_done(dir, d)) {
         return Ok(Outcome::UpToDate);
     }
     let reachable = Command::new("curl")
@@ -338,22 +353,22 @@ fn scenery_fetch(dir: &Path, probe: &str, pr: &dyn Progress, cancel: &AtomicBool
             "the scenery's sources cannot be reached (offline?): Scenery stays off; run setup again online".into(),
         ));
     }
-    thirdparty::fetch_files(thirdparty::SCENERY, dir, pr, cancel)?;
+    thirdparty::fetch_files(list, dir, pr, cancel)?;
     Ok(Outcome::Done)
 }
 
 /// The scenery cells (iaf_tools::scenery): skipped without GDAL, the sources or the Survey 2 m layer.
-fn scenery(a: &Path, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Outcome> {
+fn scenery(a: &Path, kinds: iaf_tools::scenery::Kinds, pr: &dyn Progress, cancel: &AtomicBool) -> Result<Outcome> {
     if !crate::tools().gdal {
         return Ok(Outcome::Skipped("GDAL is needed (gdalwarp, ogr2ogr)".into()));
     }
-    if !thirdparty::SCENERY.iter().all(|d| thirdparty::file_done(&a.join("source/scenery"), d)) {
+    if !kinds.downloads().iter().all(|d| thirdparty::file_done(&a.join("source/scenery"), d)) {
         return Ok(Outcome::Skipped("the scenery's sources are not downloaded (step scenery-fetch)".into()));
     }
     if !a.join("converted/imagery/mapi2015/L1").is_dir() {
         return Ok(Outcome::Skipped("Scenery needs the Survey of Israel 2 m layer (imagery mapi2015)".into()));
     }
-    let r = iaf_tools::scenery::Run { assets: a.to_path_buf(), near: None };
+    let r = iaf_tools::scenery::Run { assets: a.to_path_buf(), near: None, kinds };
     Ok(if iaf_tools::scenery::build(&r, pr, cancel)?.up_to_date { Outcome::UpToDate } else { Outcome::Done })
 }
 
@@ -450,6 +465,8 @@ mod tests {
         }
         assert!(a.join("ghidra/iafjets.c").exists() && a.join("source/keep").is_dir(), "the rest stays");
         uninstall(&a, true).unwrap(); // nothing left to remove: fine
+        assert_eq!(disk_bytes(&a), 1, "ghidra/iafjets.c");
+        assert_eq!(disk_bytes(&a.join("nothing")), 0);
         std::fs::remove_dir_all(&a).unwrap();
     }
 }
@@ -464,7 +481,8 @@ mod textures_tests {
         let r = textures(&dir, "http://127.0.0.1:9/", &Quiet, &AtomicBool::new(false)).unwrap();
         assert!(matches!(r, Outcome::Skipped(ref w) if w.contains("Original")));
         assert!(!dir.exists(), "nothing written");
-        let r = scenery_fetch(&dir, "http://127.0.0.1:9/", &Quiet, &AtomicBool::new(false)).unwrap();
+        let list = thirdparty::SCENERY;
+        let r = scenery_fetch(list, &dir, "http://127.0.0.1:9/", &Quiet, &AtomicBool::new(false)).unwrap();
         assert!(matches!(r, Outcome::Skipped(ref w) if w.contains("offline")));
         assert!(!dir.exists(), "nothing written");
     }

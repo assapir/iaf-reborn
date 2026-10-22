@@ -8,13 +8,24 @@ extends Control
 
 const TITLE := "Jane's IAF (reborn) — Setup"
 const PAGES := ["Welcome", "Requirements", "Your CD", "Optional", "Extras", "Summary", "Install", "Done"]
-## The game data without imagery: the install, the conversions (GB).
-const BASE_GB := 3.0
-## Imagery on disk (GB): the Survey's kept sheet downloads and its conversion, all of Israel / around the airbases
-## (README "Imagery"); Sentinel-2 converted (its reads are not kept).
-const SURVEY_GB := [17.0, 5.0]
+## Sizes on disk (GB), measured with du on the developer's Linux laptop (2026-10-22) unless said: the install,
+## the conversions without imagery or scenery, the ambientCG materials (thirdparty/, downloaded); the game is their sum.
+const INSTALL_GB := 0.69
+const CONVERTED_GB := 2.7
+const TEXTURES_GB := 0.26
+const BASE_GB := INSTALL_GB + CONVERTED_GB + TEXTURES_GB
+## Imagery (GB): the Survey's kept sheet downloads and its conversion (1998 and modern looks), all of Israel
+## (measured) / around the airbases (estimated); Sentinel-2 converted, both looks (its reads are not kept).
+const SURVEY_GB := [17.3, 5.2]
 const SURVEY_BASES_GB := [2.0, 0.6]
-const SENTINEL_GB := 2.5
+const SENTINEL_GB := 2.6
+## Scenery made, by kind (GB; the downloads come from IafSetup.scenery_download_bytes): both measured (cells 0.58 +
+## work files 0.49); one kind computed from the cell format (a tree is 16 bytes: 28.6 M trees 0.46 GB, buildings
+## 0.12 GB) and the work files (the OpenStreetMap extract 0.45 GB, the reduced canopy 0.04 GB for trees).
+const SCENERY_BUILT_GB := {"both": 1.06, "buildings": 0.57, "trees": 0.94}
+const SCENERY_KINDS := ["both", "buildings", "trees"]
+## The pilot guides' pictures and PDFs (GB, estimated).
+const GUIDES_GB := 0.3
 const REPO_URL := "https://github.com/assapir/iaf-reborn"
 const PATCH_URL := "https://community.pcgamingwiki.com/files/file/69-janes-israeli-air-force-patch"
 const BRIEF_URL := "https://www.preflight.us/HE/downloadview-details-104.html"
@@ -80,6 +91,11 @@ var packs_box: VBoxContainer
 var mapi_check: CheckBox
 var mapi_scope: OptionButton
 var scenery_check: CheckBox
+var scenery_kinds: OptionButton
+## The expected size of assets/ for the choices (_expected), on the Extras page.
+var size_label: Label
+## What an earlier run left on disk (GB), by path under assets/ ("" = all of it): measured once per visit to Extras.
+var on_disk := {}
 var sentinel_check: CheckBox
 var refresh_check: CheckBox
 var refresh_note: Label
@@ -443,7 +459,7 @@ func _fill_requirements() -> void:
 			true,
 			free_gb < 0 or free_gb >= BASE_GB,
 			"Disk space: the game",
-			"the install and the converted data, about %.0f GB" % BASE_GB,
+			"the install and the converted data, about %.1f GB" % BASE_GB,
 			free_text,
 			"%s; free some space on this disk" % free_text
 		],
@@ -849,16 +865,24 @@ func _page_extras() -> Control:
 	mapi_scope.disabled = mapi_check.disabled
 	mapi_check.get_parent().add_child(mapi_scope)
 	# Scenery (docs/scenery.md): only over the Survey 2 m photo, so only with it ticked or on disk (_update).
+	var mb := func(k: String) -> String: return "%.0f MB" % (IafSetup.scenery_download_bytes(k) / 1e6)
 	scenery_check = _extra(
 		v,
-		"Scenery (buildings and trees; 520 MB download)",
+		"Scenery (buildings and trees; up to %s download)" % mb.call("both"),
 		(
-			"Downloads OpenStreetMap, Microsoft building footprints, building heights and tree canopy data (30 files, "
-			+ "520 MB, kept), then builds the buildings and trees over the Survey of Israel 2 m photo (about 600 MB, "
-			+ "a few minutes). Needs the Survey imagery. Turn it on in the game under Graphics → MORE."
+			"Downloads OpenStreetMap, Microsoft building footprints and building heights for the buildings, tree "
+			+ "canopy data for the trees (kept), then builds them over the Survey of Israel 2 m photo (a few "
+			+ "minutes). Needs the Survey imagery. Turn it on in the game under Graphics → MORE."
 		),
 		"" if gdal and tools.get("curl", false) else "Needs GDAL and curl (see Requirements)."
 	)
+	scenery_kinds = OptionButton.new()
+	scenery_kinds.add_item("buildings and trees (%s)" % mb.call("both"))
+	scenery_kinds.add_item("buildings only (%s)" % mb.call("buildings"))
+	scenery_kinds.add_item("trees only (%s)" % mb.call("trees"))
+	scenery_kinds.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	scenery_kinds.disabled = scenery_check.disabled
+	scenery_check.get_parent().add_child(scenery_kinds)
 	sentinel_check = _extra(
 		v,
 		"Sentinel-2 imagery (10 m, outside Israel; 28 GB read)",
@@ -888,7 +912,83 @@ func _page_extras() -> Control:
 	)
 	for c in [mapi_check, scenery_check, sentinel_check, refresh_check, guides_check]:
 		c.toggled.connect(func(_on): _update())
+	for o in [mapi_scope, scenery_kinds]:
+		o.item_selected.connect(func(_i): _update())
+	size_label = _text(v, "")
 	return v
+
+
+## Bytes under `rel` in assets/ as GB, measured once per visit to Extras (`on_disk`).
+func _here(rel: String) -> float:
+	if not on_disk.has(rel):
+		on_disk[rel] = IafSetup.disk_bytes(assets.path_join(rel) if rel != "" else assets) / 1e9
+	return on_disk[rel]
+
+
+## The expected size of assets/ for the current choices (GB): {total, downloads, new, free}. Each chosen part
+## (the game, each extra) counts only what it lacks on disk as new; the total is what is on disk plus the new part.
+func _expected() -> Dictionary:
+	var i := inputs()
+	var here := func(rels: Array) -> float: return rels.reduce(func(a, r): return a + _here(r), 0.0)
+	var imagery := "converted/imagery/"
+	# [expected, of it downloads, on disk now]
+	var parts := [
+		[
+			BASE_GB,
+			TEXTURES_GB,
+			(
+				here.call(["install", "thirdparty", "converted"])
+				- here.call(["converted/imagery", "converted/scenery", "converted/guides"])
+			)
+		]
+	]
+	for m in i.imagery:
+		match m:
+			"mapi2015", "mapi2015-bases":
+				var g: Array = SURVEY_GB if m == "mapi2015" else SURVEY_BASES_GB
+				parts.append(
+					[
+						g[0] + g[1],
+						g[0],
+						here.call(["source/imagery/mapi2015", imagery + "mapi2015", imagery + "mapi2015_modern"])
+					]
+				)
+			"sentinel2":
+				parts.append([SENTINEL_GB, 0.0, here.call([imagery + "sentinel2", imagery + "sentinel2_modern"])])
+	if i.scenery:
+		var dl: float = IafSetup.scenery_download_bytes(i.scenery_kinds) / 1e9
+		parts.append([dl + SCENERY_BUILT_GB[i.scenery_kinds], dl, here.call(["source/scenery", "converted/scenery"])])
+	if i.guides:
+		parts.append([GUIDES_GB, 0.0, _here("converted/guides")])
+	var new := 0.0
+	var downloads := 0.0
+	for p in parts:
+		new += maxf(0.0, p[0] - p[2])
+		downloads += p[1]
+	return {"total": _here("") + new, "downloads": downloads, "new": new, "free": _free_gb()}
+
+
+## "about 24 GB" / "about 1.2 GB".
+func _gb(x: float) -> String:
+	return ("about %.0f GB" if x >= 10.0 else "about %.1f GB") % x
+
+
+## The expected size as one line, and whether the new part fits the free space.
+func _size_text() -> Array:
+	var e := _expected()
+	var t := (
+		"Expected size of assets: %s (%s of it downloads); %s"
+		% [
+			_gb(e.total),
+			_gb(e.downloads).trim_prefix("about "),
+			"all of it is new" if e.new >= e.total - 0.05 else _gb(e.new).trim_prefix("about ") + " of it is new"
+		]
+	)
+	var fits: bool = e.free < 0 or e.new <= e.free
+	t += ("; %.0f GB free" % e.free) if e.free >= 0 else "; free space unknown"
+	if not fits:
+		t += ". Not enough free space for the new part: untick an extra or free some space."
+	return [t, fits]
 
 
 ## An extra's checkbox with its warning; disabled with `missing` (the reason) when its tools are not here.
@@ -1019,6 +1119,7 @@ func show_page(n: int) -> void:
 	)
 	match PAGES[page]:
 		"Extras":
+			on_disk.clear()
 			_count_stale()
 		"Summary":
 			_fill_summary()
@@ -1066,6 +1167,10 @@ func _update() -> void:
 	if pg == "Extras" and mapi_scope != null:
 		mapi_scope.disabled = mapi_check.disabled or not mapi_check.button_pressed
 		scenery_check.disabled = not _scenery_ok()
+		scenery_kinds.disabled = scenery_check.disabled or not scenery_check.button_pressed
+		var st := _size_text()
+		size_label.text = st[0]
+		size_label.add_theme_color_override("font_color", TEXT if st[1] else ORANGE)
 
 
 func _on_back() -> void:
@@ -1114,6 +1219,7 @@ func inputs() -> Dictionary:
 		"refresh": refresh_check.button_pressed and not refresh_check.disabled and refresh_check.get_parent().visible,
 		"guides": guides_check.button_pressed and not guides_check.disabled,
 		"scenery": scenery_check.button_pressed and _scenery_ok(),
+		"scenery_kinds": SCENERY_KINDS[maxi(0, scenery_kinds.selected)],
 	}
 
 
@@ -1141,6 +1247,7 @@ func _prefill() -> void:
 	refresh_check.button_pressed = i.get("refresh", false)
 	guides_check.button_pressed = i.get("guides", false)
 	scenery_check.button_pressed = i.get("scenery", false)
+	scenery_kinds.selected = maxi(0, SCENERY_KINDS.find(i.get("scenery_kinds", "both")))
 
 
 func _fill_summary() -> void:
@@ -1168,8 +1275,18 @@ func _fill_summary() -> void:
 	if i.guides:
 		extras.append("pilot guides")
 	if i.scenery:
-		extras.append("scenery (buildings and trees)")
+		extras.append(
+			{
+				"both": "scenery (buildings and trees)",
+				"buildings": "scenery (buildings only)",
+				"trees": "scenery (trees only)"
+			}[i.scenery_kinds]
+		)
 	t += "[b]Extras[/b]\n    %s\n\n" % (", ".join(extras) if extras else "none")
+	var st := _size_text()
+	t += (
+		"[b]Disk space[/b]\n    %s\n\n" % (st[0] if st[1] else "[color=#%s]%s[/color]" % [ORANGE.to_html(false), st[0]])
+	)
 	var steps: Array = IafSetup.plan(JSON.stringify(i))
 	t += "[b]%d steps[/b] write into %s. Steps already done with the same inputs are skipped." % [steps.size(), assets]
 	summary_label.text = t

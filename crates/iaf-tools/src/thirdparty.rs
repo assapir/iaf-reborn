@@ -148,6 +148,7 @@ pub const LISTS: &[(&str, &[Material])] =
 
 /// One downloaded file kept as it comes (the scenery's sources, docs/scenery.md §1.1): its name under the download
 /// folder, where it comes from and its pinned SHA-256.
+#[derive(Clone, Copy)]
 pub struct Download {
     pub file: &'static str,
     pub url: &'static str,

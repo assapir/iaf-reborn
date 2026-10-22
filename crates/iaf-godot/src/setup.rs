@@ -140,6 +140,19 @@ impl IafSetup {
         }
     }
 
+    /// The bytes of the files under `path` (0 when missing): what an earlier run left on disk.
+    #[func]
+    fn disk_bytes(path: GString) -> i64 {
+        iaf_setup::disk_bytes(&PathBuf::from(path.to_string())) as i64
+    }
+
+    /// The bytes the scenery's sources for `kinds` ("both", "buildings", "trees") download (the pinned sizes).
+    #[func]
+    fn scenery_download_bytes(kinds: GString) -> i64 {
+        let k = iaf_tools::scenery::Kinds::parse(&kinds.to_string()).unwrap_or_default();
+        k.downloads().iter().map(|d| d.bytes as i64).sum()
+    }
+
     /// The last run's inputs (setup.json's text), or "" before the first run.
     #[func]
     fn load_inputs(assets: GString) -> GString {
