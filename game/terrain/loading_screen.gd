@@ -34,16 +34,16 @@ func _ready() -> void:
 	# Full-rect offsets too: anchors alone left the control 0 × 0 (nothing was drawn).
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var dir := Settings.assets_dir().path_join("converted/menu_he" if Settings.language == "he" else "converted/menu")
+	var dir := _dir()
 	var scale_file := dir.path_join("image_scale.txt")
 	_art_scale = (
 		float(FileAccess.get_file_as_string(scale_file).strip_edges()) if FileAccess.file_exists(scale_file) else 1.0
 	)
-	var Img := preload("res://util/img.gd")
-	_back = Img.load_texture(dir.path_join("img/back.png"), true)
-	_wait = Img.load_texture(dir.path_join("img/mis/wait.png"), true)
-	_pb_back = Img.load_texture(dir.path_join("img/mis/pbback.png"), true)
-	_pb_bar = Img.load_texture(dir.path_join("img/mis/pbbar.png"), true)
+	var t := ART.map(func(f): return Img.load_texture(dir.path_join(f), true))
+	_back = t[0]
+	_wait = t[1]
+	_pb_back = t[2]
+	_pb_bar = t[3]
 	var knob := (
 		Image.load_from_file(dir.path_join("img/mis/pbslider.png"))
 		if FileAccess.file_exists(dir.path_join("img/mis/pbslider.png"))
@@ -54,6 +54,22 @@ func _ready() -> void:
 		var k := Img.masked_sprite(knob)
 		k.generate_mipmaps()
 		_knob = ImageTexture.create_from_image(k)
+
+
+const Img := preload("res://util/img.gd")
+## The menu art drawn (back, wait, progress window, bar), mipmapped (the menus' art is drawn scaled).
+const ART := ["img/back.png", "img/mis/wait.png", "img/mis/pbback.png", "img/mis/pbbar.png"]
+
+
+static func _dir() -> String:
+	return Settings.assets_dir().path_join("converted/menu_he" if Settings.language == "he" else "converted/menu")
+
+
+## Decodes the art on worker threads ahead of the flight (terrain_preload.gd): ~170 ms of the flight scene's first
+## frame otherwise.
+static func prefetch() -> void:
+	for f in ART:
+		Img.prefetch(_dir().path_join(f), true)
 
 
 func _process(delta: float) -> void:

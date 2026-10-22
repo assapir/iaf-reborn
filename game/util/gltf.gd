@@ -17,12 +17,13 @@ static func detail_level(slider: float) -> int:
 ## glTF import creates the textures without mipmaps, so a model seen from afar samples its full-size
 ## texture and shimmers while the camera moves; every texture gets mipmaps and anisotropic filtering.
 static func open(path: String) -> Variant:
-	if not FileAccess.file_exists(path):
+	var parsed = _take_parsed(path)
+	if parsed == null:
+		parsed = _parse(path)
+	if parsed.is_empty():
 		return null
-	var doc := GLTFDocument.new()
-	var state := GLTFState.new()
-	if doc.append_from_file(path, state) != OK:
-		return null
+	var doc: GLTFDocument = parsed[0]
+	var state: GLTFState = parsed[1]
 	var done := {}
 	var mats := state.get_materials()
 	for i in mats.size():
@@ -51,6 +52,61 @@ static func open(path: String) -> Variant:
 		bm.albedo_texture = done[t]
 	state.set_meta("path", path)
 	return [doc, state]
+
+
+## The file's glTF parsed ([doc, state], [] when missing / unreadable): its images decoded and its textures created.
+static func _parse(path: String) -> Array:
+	if not FileAccess.file_exists(path):
+		return []
+	var doc := GLTFDocument.new()
+	var state := GLTFState.new()
+	return [doc, state] if doc.append_from_file(path, state) == OK else []
+
+
+## Models parsed ahead on worker threads (parse_ahead): full path -> task id, then -> _parse()'s result.
+static var _ahead_tasks := {}
+static var _ahead := {}
+static var _ahead_lock := Mutex.new()
+
+
+## Starts parsing the converted object models at `paths` (under converted/objects) on worker threads, so object()
+## only finishes them (the flight's loading screen: the mission's models, ~20–240 ms each).
+static func parse_ahead(paths: Array) -> void:
+	for p in paths:
+		if not _objects.has("%d:%s" % [object_level, p]) and detailed(p) == "":
+			parse_file_ahead(_settings().assets_dir().path_join("converted/objects").path_join(p))
+
+
+## parse_ahead() of a file for open(path).
+static func parse_file_ahead(path: String) -> void:
+	if not _ahead_tasks.has(path):
+		_ahead_tasks[path] = WorkerThreadPool.add_task(_parse_task.bind(path), false, "glTF parse")
+
+
+## True when parse_ahead's work for `p` (a path under converted/objects) is done or was never asked for.
+static func parsed_ahead(p: String) -> bool:
+	var full: String = _settings().assets_dir().path_join("converted/objects").path_join(p)
+	return not _ahead_tasks.has(full) or WorkerThreadPool.is_task_completed(_ahead_tasks[full])
+
+
+static func _parse_task(full: String) -> void:
+	var r := _parse(full)
+	_ahead_lock.lock()
+	_ahead[full] = r
+	_ahead_lock.unlock()
+
+
+## parse_ahead's result for `path` (waiting for it if still running), null when it was not asked for.
+static func _take_parsed(path: String) -> Variant:
+	if not _ahead_tasks.has(path):
+		return null
+	WorkerThreadPool.wait_for_task_completion(_ahead_tasks[path])
+	_ahead_tasks.erase(path)
+	_ahead_lock.lock()
+	var r = _ahead.get(path, [])
+	_ahead.erase(path)
+	_ahead_lock.unlock()
+	return r
 
 
 ## open() of a converted object model (path under converted/objects), cached per OBJECT DETAIL level; with

@@ -216,11 +216,56 @@ is the median of 12 pairs switching `ground_tex` 0 / 1 in place (`tests/godot/_a
 Hitches (`tests/godot/_ground_tex_bench.gd`, mission 311, three runs each, the switch off / on):
 
 - Upload at the flight's start, after the mission screens' preload: 0 / 5.5–6.4 ms.
-- Mission start (scene change to the first flying frame, without the terrain preload): 37–46 s / 44–48 s, within the
-  run-to-run spread.
+- Mission start (scene change to the first flying frame, without the terrain preload): 37–46 s / 44–48 s before the
+  loading screen's frame cap; 2.6–2.8 s now (§1.5).
 - Worst frame in the first 30 s on the ground: 61–86 / 62–65 ms; average 52–59 / 55 fps.
 - Worst frame in a low pass over the base (60 m, 150 m/s): 29–31 / 30–31 ms; average 55 / 53–54 fps.
 - Video memory: +15.9 MB (Godot's texture memory monitor).
+
+### 1.5 Loading the flight
+
+Between Fly and the first flying frame the flight scene loads, builds itself and waits for its ground behind the
+loading screen (`terrain_view.gd` `waiting_for_ground`). The flight starts once every terrain node in view is at full
+detail and the mission's models are parsed. What runs where:
+
+| step | where | cost on the Iris Xe laptop (mission 311, 2560 × 1440) |
+|---|---|---|
+| the flight scene's scripts and resources | a loader thread, while the mission screens are open (`terrain_preload.gd` `preload_scene`) | ≈ 0.85 s |
+| the first frame's art: the loading screen's menu art, the cockpit art (the scene's default F-16 cockpit and the player's jet's), the player's jet model and its cockpit-view model | worker threads, once the scene has loaded (`prefetch_flight`: `Img.prefetch`, `Gltf.parse_file_ahead`) | ≈ 0.17 + 0.23 + 0.15 s |
+| the scene's build (`_ready`) | the main thread, over six frames behind the loading screen; between them only the terrain and the loading screen run | ≤ 0.2 s a frame |
+| the terrain's nodes: about 300 colour nodes (JPEG, mipmaps, BC1) and 50 height nodes | 4 worker threads (`terrain.gd` `max_jobs`) | ≈ 2–3 s |
+| the mission's models (every placed unit's model and its LOD copies) | worker threads parse the files (`Gltf.parse_ahead`), the main thread finishes them for ≤ 12 ms a frame (one model up to ≈ 50 ms) | ≈ 1.5 s, inside the terrain's time |
+| the spawn of the mission's units | the main thread, the first flying frame | ≈ 40 ms |
+
+Three things made the start slow, measured 2026-10-22:
+
+- **The GPU encoder and the loading screen's frame rate.** In a window `Image.compress` (BC1) runs on the GPU (Godot's
+  Betsy encoder, ≈ 6 ms an image on an idle GPU), one image at a time. Behind the loading screen the 3D view still
+  renders every frame. Uncapped (the bench turns vsync off; the X11 window presents at once) the frames took the GPU
+  and each image waited ≈ 250 ms: the ground took 35–45 s. While the loading screen is up the frame rate is capped at
+  30 fps (`LOADING_FPS`; a lower Max FPS stays): the images take ≈ 20 ms and the ground ≈ 2–3 s. Ground textures on
+  made each of those frames ≈ 1 ms dearer, which slowed the encoder by ≈ 3 s in the uncapped bench; capped it is
+  within the spread. Headless runs have no GPU encoder: the CPU encoder takes ≈ 5 ms an image.
+- **Two decode threads.** The terrain's decode tasks were low-priority pool tasks, which Godot runs on 30 % of its
+  threads[^wtp]: 2 of 8 here. They are high-priority now, 4 at once; 6 slowed the main and render threads, and the
+  first frame of the built scene took ≈ 0.5 s instead of ≈ 0.1 s.
+- **Work in one frame.** The scene load (0.85 s), its build (0.85 s: the loading screen's 2560-pixel menu art
+  0.17 s, the cockpit art 0.26 s, the jet model 0.15 s, the first draw 0.1 s) and the mission's units after the ground
+  (0.5 s, mostly the PNG textures of the runway model) each froze one frame.
+
+Measured with `tests/godot/_ground_tex_bench.gd` (`GT_PRELOAD=1` does the mission screens' preload; three runs each,
+the switch off / on, X11 window, vsync off):
+
+| | before | after |
+|---|---|---|
+| mission start (scene change to the first flying frame) | 37–45 s / 45–47 s | 2.6–2.7 s / 2.6–2.8 s |
+| stalls over 250 ms from Fly on | three each: the scene load 0.87–0.91 s, its build 0.87–0.91 s, the units' spawn 0.58–1.10 s | none |
+| worst frame in the first 30 s on the ground | 52–62 / 62–64 ms | 28–61 / 49–73 ms |
+| video memory at the end | 972 / 988 MB | 972 / 988 MB |
+
+The bench's own stalls before the scene change (one of ≈ 1000 ms every ≈ 1.35 s while it waits, the scene shown as
+`?`) come from the test harness under X11 (XWayland): a script with no scene, in an empty project, shows them too; the
+main thread waits in the Intel Vulkan driver's present. Headless or in a Wayland window they do not occur.
 
 ## 2. Cloud layer (Graphics TEXTURED SKY, docs/front-end.md §12.4)
 
@@ -765,6 +810,8 @@ an F-4 on the ramp, the Kfir's pylons (Mk-82s, a drop tank), its wheels, a tank 
 hangar. On Linux, run it on X11 with `MESA_VK_WSI_PRESENT_MODE=immediate` (`DISPLAY=:0 … --display-driver x11`): a
 Wayland window covered by other windows is drawn once a second.
 
+[^wtp]: Godot docs, ProjectSettings `threading/worker_pool/low_priority_thread_ratio` (default 0.3):
+    https://docs.godotengine.org/en/stable/classes/class_projectsettings.html#class-projectsettings-property-threading-worker-pool-low-priority-thread-ratio
 [^nvd]: Wikipedia, "Night-vision device" (Gen III 500–900 nm, the ion barrier's halo effect, green images):
     https://en.wikipedia.org/wiki/Night-vision_device
 [^rash]: C. E. Rash, "A 25-year retrospective on NVGs", Flight Safety Foundation AeroSafety World, Aug 2010 (40°

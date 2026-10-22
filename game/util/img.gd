@@ -4,12 +4,52 @@ extends RefCounted
 
 ## An image file as a texture (with mipmaps when asked); null when the file is missing.
 static func load_texture(path: String, mipmaps := false) -> ImageTexture:
-	var img := Image.load_from_file(path) if FileAccess.file_exists(path) else null
+	var img := _take(path, mipmaps)
 	if img == null:
-		return null
-	if mipmaps:
+		img = _decode(path, mipmaps)
+	return ImageTexture.create_from_image(img) if img != null else null
+
+
+## Images decoded ahead on worker threads (prefetch): "path|mipmaps" -> task id, then -> the Image. load_texture()
+## takes each once (the flight's loading screen and cockpit art, decoded while the mission screens are open).
+static var _tasks := {}
+static var _ready := {}
+static var _lock := Mutex.new()
+
+
+## Starts decoding `path` (with its mipmaps) on a worker thread for a later load_texture().
+static func prefetch(path: String, mipmaps := false) -> void:
+	var key := "%s|%s" % [path, mipmaps]
+	if not _tasks.has(key):
+		_tasks[key] = WorkerThreadPool.add_task(_prefetch_task.bind(path, mipmaps, key), false, "image prefetch")
+
+
+static func _prefetch_task(path: String, mipmaps: bool, key: String) -> void:
+	var img := _decode(path, mipmaps)
+	_lock.lock()
+	_ready[key] = img
+	_lock.unlock()
+
+
+static func _decode(path: String, mipmaps: bool) -> Image:
+	var img := Image.load_from_file(path) if FileAccess.file_exists(path) else null
+	if img != null and mipmaps:
 		img.generate_mipmaps()
-	return ImageTexture.create_from_image(img)
+	return img
+
+
+## prefetch()'s Image (waiting for it if still decoding), null when none was asked for.
+static func _take(path: String, mipmaps: bool) -> Image:
+	var key := "%s|%s" % [path, mipmaps]
+	if not _tasks.has(key):
+		return null
+	WorkerThreadPool.wait_for_task_completion(_tasks[key])
+	_tasks.erase(key)
+	_lock.lock()
+	var img: Image = _ready.get(key)
+	_ready.erase(key)
+	_lock.unlock()
+	return img
 
 
 ## The original's masked sprites: the top half is the sprite, the bottom half its AND mask

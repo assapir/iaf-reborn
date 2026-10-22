@@ -77,6 +77,14 @@ var waiting_for_ground := true
 ## Model detail's warm-up draws (util/model_detail.gd warm_up), freed with the loading screen.
 var _warm_up: Array = []
 var _loading: CanvasLayer
+## The frame rate while the loading screen is up (docs/rendering.md §1.5): the 3D view renders unseen behind it, and
+## its frames hold up the GPU that compresses the terrain's colour nodes (Image.compress uses Godot's GPU BC1 encoder
+## in a window): uncapped at 2560×1440 on an Iris Xe the ground took ~45 s, at 30 fps ~5 s. The setting before it.
+const LOADING_FPS := 30
+var _fps_before := 0
+## Mission models (paths for Gltf.object) parsed ahead on worker threads while the loading screen is up and finished
+## here (_parse_ahead), so the spawn after it finds them ready; null until the first frame starts them.
+var _parse_queue = null
 ## The menu mission flown (--mission, else the one picked in the menus); -1 = free flight.
 var mission_id := -1
 var mission_name := ""
@@ -285,12 +293,20 @@ func _ready() -> void:
 	_loading.layer = 20
 	_loading.add_child(preload("res://terrain/loading_screen.gd").new())
 	add_child(_loading)
+	_fps_before = Engine.max_fps
+	if _fps_before == 0 or _fps_before > LOADING_FPS:
+		Engine.max_fps = LOADING_FPS
 	chase.fov = 60.0
 	var args := OS.get_cmdline_user_args()
 	_choose_start(args)
 	_choose_player()
 	# The ground the front end preloaded around the start (briefing / TSD time).
 	preload("res://terrain/terrain_preload.gd").hand_over(terrain)
+	# The rest of the flight is built over the next five frames, so the loading screen shows first and no frame is long
+	# (~0.85 s in one otherwise). Meanwhile only the terrain and the loading screen run (_hold).
+	_hold(true)
+	if not await _next_frame(true):
+		return
 	# Model detail (docs/rendering.md §9): its textures (preloaded by the front end) and shaders drawn once behind the
 	# loading screen.
 	Gltf.ModelDetail.preload_packs()
@@ -319,6 +335,8 @@ func _ready() -> void:
 	radio = preload("res://audio/radio.gd").new()
 	radio.host = self
 	add_child(radio)
+	if not await _next_frame():
+		return
 	# OBJECT DETAIL (docs/front-end.md §12.4): the level the model loader and the LOD switch use.
 	Gltf.object_level = Gltf.detail_level(float(Settings.object_detail))
 	# Explosions, debris and smoke (docs/damage.md §6) and the player's systems damage (§5).
@@ -338,6 +356,8 @@ func _ready() -> void:
 	player_damage.twin = player.twin
 	cockpit.damage_flags = player_damage.flags
 	cockpit.waypoints = route
+	if not await _next_frame():
+		return
 	var ol := CanvasLayer.new()
 	ol.layer = 15
 	ol.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -347,6 +367,8 @@ func _ready() -> void:
 	ol.add_child(overlay)
 	_start_flight()
 	_apply_view()
+	if not await _next_frame():
+		return
 	_spawn_player()
 	_setup_views(args)
 	_setup_weapons()
@@ -355,6 +377,9 @@ func _ready() -> void:
 		var h := aircraft.find_child("height", true, false) as Node3D
 		flight.set_gear_clearance(-h.position.y * aircraft.scale.y if h != null else 0.0)
 		flight.set_true_gear_clearance(-h.position.y if h != null else 0.0)
+	if not await _next_frame():
+		return
+	_hold(false)
 	var shot := args.find("--screenshot")
 	if shot >= 0:
 		# Captures ignore stray keyboard / mouse input (the window may receive the user's typing).
@@ -368,6 +393,26 @@ func _ready() -> void:
 
 var _start_external := false
 var _orbit_arg := -1
+
+
+## While _ready builds the flight over frames: this node and its children wait (the cockpit hidden), but for the
+## terrain (the start area loading) and the loading screen.
+func _hold(on: bool) -> void:
+	process_mode = Node.PROCESS_MODE_DISABLED if on else Node.PROCESS_MODE_INHERIT
+	terrain.process_mode = Node.PROCESS_MODE_ALWAYS if on else Node.PROCESS_MODE_INHERIT
+	_loading.process_mode = Node.PROCESS_MODE_ALWAYS if on else Node.PROCESS_MODE_INHERIT
+	$CockpitLayer.visible = not on
+
+
+## Waits for the next frame. `in_ready`: called from _ready, where a scene change's process_frame still fires in this
+## frame. (Not frame_post_draw: headless runs never draw.)
+## False when the scene left the tree meanwhile (the build stops).
+func _next_frame(in_ready := false) -> bool:
+	var tree := get_tree()
+	if in_ready:
+		await tree.process_frame
+	await tree.process_frame
+	return is_inside_tree()
 
 
 ## The render preferences that can change during a flight: Graphics TEXTURED SKY (renderer +4 → 0x7d1944:
@@ -705,6 +750,7 @@ func _mission_player() -> Dictionary:
 		push_error("mission %d not found — run tools/setup-cli.sh" % mission_id)
 		return {}
 	mission_name = files[0].name
+	_start_files = files
 	var mission: Dictionary = files[0].data
 	if mission.is_empty():
 		return {}
@@ -786,6 +832,57 @@ var _sim_time := 0.0
 var _msgbox: Control
 ## The open box froze the sim (single player, the clock running: FUN_004e3fd0 event 0x75(0); its close sends 0x76).
 var _box_froze := false
+
+## The mission's files as _mission_player read them (read only: the model list of _parse_ahead).
+var _start_files := []
+
+## Parses the mission's models while the ground loads (Gltf.parse_ahead on worker threads; Gltf.object here once a
+## file is parsed, for up to PARSE_FINISH_MS a frame): every model _spawn_mission_objects draws and its LOD copies.
+## The flight waits for them too (a big model is ~240 ms: a hitch at the start otherwise).
+const PARSE_FINISH_MS := 12
+
+
+func _parse_ahead() -> void:
+	if _parse_queue == null:
+		_parse_queue = _mission_model_paths()
+		Gltf.parse_ahead(_parse_queue)
+	var t0 := Time.get_ticks_msec()
+	for p in _parse_queue.filter(func(q): return Gltf.parsed_ahead(q)):
+		if Time.get_ticks_msec() - t0 >= PARSE_FINISH_MS:
+			break
+		Gltf.object(p)
+		_parse_queue.erase(p)
+
+
+func _mission_model_paths() -> Array:
+	var out := {}
+	if _start_files.is_empty() or mission_bdb.is_empty():
+		return []
+	var objs := MissionRuntime.bdb_objects(mission_bdb)
+	var paths: Dictionary = Settings.load_json(Settings.assets_dir().path_join("converted/objects/objects.json")).get(
+		String(_start_files[0].data.get("bdb", "")).to_lower(), {}
+	)
+	for f in _start_files:
+		for e in f.data.get("entities", {}).get("items", []):
+			var obj: Dictionary = objs.get(int(e.get("0x2c6", -1)), {})
+			var path: String = paths.get(str(int(obj.get("0x53c", -1))), "")
+			var klass := int(obj.get("0x5aa", -1))
+			var unplaced := float(e.get("0x2e4", -1)) < 0 and float(e.get("0x2ee", -1)) < 0
+			# Not drawn by the spawn: the unused player slots, the never-drawn classes, the jets the AI flies (their
+			# own models, ai_flights.gd), the player's; a detailed model (its LODs are made on the main thread).
+			if (
+				path == ""
+				or (unplaced and String(e.get("0x2bc", "")).to_lower().begins_with("player"))
+				or klass in [0x11, 0x12, 0x1b]
+				or (klass in [0x1c, 3] and int(e.get("0x320", 0)) & 1 == 0)
+				or Gltf.detailed(path) != ""
+			):
+				continue
+			out[path] = true
+			if path.ends_with("_h.gltf"):
+				out[path.trim_suffix("_h.gltf") + "_m.gltf"] = true
+				out[path.trim_suffix("_h.gltf") + "_l.gltf"] = true
+	return out.keys()
 
 
 func _spawn_mission_objects() -> void:
@@ -1517,6 +1614,8 @@ func _exit_tree() -> void:
 	if Joystick.consumer == self:
 		Joystick.consumer = null
 	Settings.clear_runway_wind()  # the next flight picks its wind and runways again
+	if waiting_for_ground:
+		Engine.max_fps = _fps_before
 	# The sim clock and its rate belong to this flight.
 	Engine.time_scale = 1.0
 	if get_tree() != null:
@@ -3082,8 +3181,11 @@ func _process(delta: float) -> void:
 		# loading screen).
 		if _loading != null:
 			_loading.get_child(0).progress = terrain.ground_progress()
-		if waiting_for_ground and terrain.ground_ready():
+		if waiting_for_ground:
+			_parse_ahead()
+		if waiting_for_ground and terrain.ground_ready() and _parse_queue != null and _parse_queue.is_empty():
 			waiting_for_ground = false
+			Engine.max_fps = _fps_before
 			if _loading != null:
 				_loading.queue_free()
 				_loading = null
