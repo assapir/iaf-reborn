@@ -301,6 +301,8 @@ pub enum Crash {
     RoughGround,
     /// Better physics only: sink rate beyond the real gear's limit.
     SinkRate,
+    /// Scenery under the jet (a roof or a tree top, [`Aircraft::ground_obstacle`]) met at any speed.
+    Scenery,
     /// Better physics only: nose too high at touchdown (tail strike).
     TailStrike,
 }
@@ -312,6 +314,7 @@ impl Crash {
             Crash::Water => "water",
             Crash::RoughGround => "rough ground",
             Crash::SinkRate => "sink rate",
+            Crash::Scenery => "scenery",
             Crash::TailStrike => "tail strike",
         }
     }
@@ -672,6 +675,10 @@ pub struct Aircraft {
     /// Terrain flags under the jet (terraintype.dat, `4024b0`, §15.6.2: `SURFACE_*`), supplied by the host for the
     /// player's jet. None (the AI jets): no water / rough-ground crashes, no surface states, no map edge.
     pub ground_flags: Option<u32>,
+    /// The ground under the jet is scenery (a roof or a tree top over the terrain, docs/scenery.md §4), supplied by
+    /// the host with `ground_height`: meeting it destroys any jet, AI ones included, at any speed (not the
+    /// player's Invulnerable / No crashes).
+    pub ground_obstacle: bool,
     /// Surface state `S+0x2c8`: 0 runway, 1 off-runway ground, 2 belly, 4 water (`5bb9f0`). States 1 and 2 shake
     /// the ground attitude (`5bb300`).
     surface: u8,
@@ -861,6 +868,7 @@ impl Aircraft {
             carried: Vec3::ZERO,
             ground_normal_z: 1.0,
             ground_flags: None,
+            ground_obstacle: false,
             surface: 0,
             tornado_acc: [Ramp::new(0.0, -1e8, 1e8); 2],
             tornado_end: f64::INFINITY,
@@ -1149,6 +1157,17 @@ impl Aircraft {
             }
         }
         self.t = end;
+        // Every step, not only the 5 Hz ticks: a building's side passes under a fast jet between two ticks.
+        if self.crashed.is_none() && self.hits_scenery(end) {
+            self.crashed = Some(Crash::Scenery);
+        }
+    }
+
+    /// The jet at or below scenery under it (`ground_obstacle`), outside the player's crash cheats.
+    fn hits_scenery(&self, t: f64) -> bool {
+        self.ground_obstacle
+            && !self.cheat()
+            && self.axes[2].sample(t).0 <= (self.ground_height + self.gear_clearance) as f64
     }
 
     // --- sampling ------------------------------------------------------------------------------
@@ -2224,6 +2243,10 @@ impl Aircraft {
         let (z, vz) = self.axes[2].sample(t);
         let (_, v) = self.velocity_at(t);
         let rough = flags & SURFACE_ROUGH != 0 && v > ROUGH_CRASH_SPEED;
+        if self.hits_scenery(t) {
+            self.crashed = Some(Crash::Scenery);
+            return;
+        }
         if !self.on_ground {
             if z > clear {
                 return;
@@ -3278,6 +3301,25 @@ mod tests {
         assert!(!a.better.ground_effect && a.better.spin_fixes);
         a.set_better_physics(false);
         assert_eq!(a.better, BetterPhysics::none());
+    }
+
+    /// Scenery (docs/scenery.md §4): a roof or tree top above the jet's gear destroys it at once, between the 5 Hz
+    /// ticks too; terrain at the same height, the crash cheats and a jet above the roof fly on.
+    #[test]
+    fn scenery_under_the_jet_is_a_crash() {
+        let fly = |obstacle: bool, roof: f32, cheat: bool| {
+            let mut a = airborne(100, 100.0, 200.0);
+            a.ground_height = 90.0 + roof;
+            a.ground_obstacle = obstacle;
+            a.no_crashes = cheat;
+            a.step(0.01);
+            a.crashed
+        };
+        assert_eq!(fly(true, 15.0, false), Some(Crash::Scenery), "a 15 m building's side at 10 m above the ground");
+        assert_eq!(fly(true, 5.0, false), None, "5 m over the roof");
+        assert_eq!(fly(false, 15.0, false), None, "terrain: the next tick's touchdown rules");
+        assert_eq!(fly(true, 15.0, true), None, "No crashes");
+        assert_eq!(Crash::Scenery.name(), "scenery");
     }
 
     /// Better physics `wind`: the air mass carries the jet (same airspeed, the ground track drifts downwind), gusts

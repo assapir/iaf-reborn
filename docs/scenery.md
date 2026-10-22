@@ -205,6 +205,33 @@ What got it there, from 20 % lost and a 246 ms stall:
 - a re-selection that looks at ≈ 80 nearby cells instead of all ≈ 4 000 (8–19 ms each 0.8 s);
 - the mesh threads working on a copy of the cell, so the main thread's drop of a cell does not wait for them.
 
+## 4. Solid ground and hits
+
+Roofs and tree tops are ground. With Scenery off no cell is loaded, `top` is 0 everywhere and everything below works
+as in the original.
+
+- **What sees them:**
+  - every Rust weapon and sensor, through `world.rs terrain()` (§2);
+  - GDScript through `mission_ground` (world frame) and `scene_ground` (scene frame) in `terrain_view.gd`;
+  - the player's jet, the AI jets and a derelict jet: `feed_ground` gives their flight model the terrain plus `top`;
+  - the AI autopilot's terrain watch (`ap_set_ground`, the player's autopilot too), so it climbs over towers;
+  - the external cameras and the cockpit eye stay above roofs (`views.gd`, `_apply_view`);
+  - debris, the wreck's explosion, the weapons' explosions and the ejected pilot's parachute land on roofs;
+  - the EO centre point: `IafScenery.ray` finds the first wall, roof or crown along the line of sight, so the
+    camera's point lands on a building the terrain ray march would step past.
+- **Crash rule:** when scenery stands under a jet, its flight model gets `set_ground_obstacle(true)`
+  (`Aircraft::ground_obstacle`). A jet whose gear is at or below that roof or tree top is destroyed at once, at any
+  speed: reason `scenery`. The check runs at every flight-model step, not only at the 5 Hz ground checks, so a jet
+  flying into a building's side between two checks crashes too. It applies to the AI jets as well (their crash
+  immunity covers the original terrain only); the player's Invulnerable and No crashes still protect.
+- **Damage rule:** every blast of `mission_runtime.gd area_damage` except gun rounds (bombs, missiles, rockets, the
+  AI's too) calls `IafScenery.blast`. It marks one building damaged:
+  - the building whose footprint holds the blast point, else the one with the nearest centroid within the blast
+    radius, at most 15 m;
+  - only when the point is at most 10 m above that roof (an air burst leaves it whole).
+
+  The building stays. A damaged building is drawn sooted and counts at 25 % of its height (§2).
+
 [^geofabrik]: Geofabrik, "Israel and Palestine" downloads (dated extracts):
     https://download.geofabrik.de/asia/israel-and-palestine.html
 [^osm]: OpenStreetMap, "Copyright and License": https://www.openstreetmap.org/copyright

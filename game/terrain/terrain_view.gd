@@ -352,7 +352,7 @@ func _ready() -> void:
 		trails = preload("res://mission/trails.gd").new()
 		add_child(trails)
 	effects = preload("res://mission/damage_effects.gd").new()
-	effects.ground_at = func(p: Vector3): return terrain.height_at(p)
+	effects.ground_at = scene_ground
 	add_child(effects)
 	if trails != null:
 		trails.gpu = effects.gpu
@@ -527,7 +527,7 @@ var _night_sky: Node3D
 ## heading (ours: 180 = behind) / pitch (ours: negative = above) / distance for test poses).
 func _setup_views(args: PackedStringArray) -> void:
 	views.player = rig
-	views.ground_at = func(p: Vector3): return terrain.height_at(p)
+	views.ground_at = scene_ground
 	chase.keep_aspect = Camera3D.KEEP_HEIGHT
 	# One 50° horizontal field across the original 640×480 for every view (docs/views.md §4): the
 	# cockpit's 686.2 px focal length over 480 rows.
@@ -1243,6 +1243,21 @@ func mission_ground(w: Vector3) -> Variant:
 	return null if h == null else h + IafScenery.top(w)
 
 
+## mission_ground under a scene position.
+func scene_ground(p: Vector3) -> Variant:
+	var h: Variant = terrain.height_at(p)
+	return null if h == null else h + IafScenery.top(scene_to_world(p))
+
+
+## A flight model's ground under scene position `p`: the terrain plus the scenery's roofs and trees, which are an
+## obstacle (meeting one is a crash, docs/scenery.md §4); −1e9 where the terrain is not loaded.
+func feed_ground(f: Object, p: Vector3) -> void:
+	var g = terrain.height_at(p)
+	var top: float = IafScenery.top(scene_to_world(p)) if g != null else 0.0
+	f.set_ground_height(g + top if g != null else -1.0e9)
+	f.set_ground_obstacle(top > 0.0)
+
+
 ## A unit's attitude (pitch, roll, heading, degrees) and world velocity (X east, Y north, up m/s)
 ## when its destruction motion starts.
 func mission_unit_motion(ent: Dictionary) -> Array:
@@ -1318,7 +1333,7 @@ func mission_entity_state(ent: Dictionary) -> void:
 ## shipped data.
 func _fatal_hit_effect(ent: Dictionary) -> void:
 	var pos := _entity_scene_pos(ent)
-	var ground = terrain.height_at(pos)
+	var ground = scene_ground(pos)
 	effects.explosion(pos, effects.F_FIREBALL, 4.0, 0.8, ground if ground != null else pos.y)
 
 
@@ -1383,7 +1398,7 @@ func _entity_final(ent: Dictionary) -> void:
 ## crash explosion is played by FlightSounds). Returns the position.
 func _class_explosion(ent: Dictionary) -> Vector3:
 	var pos := _entity_scene_pos(ent)
-	var ground = terrain.height_at(pos)
+	var ground = scene_ground(pos)
 	var g: float = ground if ground != null else pos.y
 	# Water: terraintype.dat inland water / sea under the unit (FUN_0059df20 terrain type 1 / 2).
 	var water: bool = (terrain.surface_at(pos) & terrain.SURFACE_WATER) != 0
@@ -1750,7 +1765,7 @@ func _setup_autopilot(install: String) -> void:
 	flight.ap_setup(install, terrain.world_origin.x, terrain.world_origin.y)
 	flight.ap_set_ground(
 		func(pos: Vector3):
-			var g = terrain.height_at(pos)
+			var g = scene_ground(pos)
 			return float(g) if g != null else -1.0e9
 	)
 	_start_autopilot(start_airborne)
@@ -1896,7 +1911,7 @@ func _apply_view() -> void:
 	var pitch := maxf(h.y - deg_to_rad(cockpit.VIEW_LOOK_DOWN_DEG), 0.1 * (absf(h.x) - PI / 2.0))
 	camera.rotation = Vector3(pitch, -h.x, 0)
 	# Cockpit eye ≥ 1 m above the terrain (0x610e14).
-	var g = terrain.height_at(rig.global_position)
+	var g = scene_ground(rig.global_position)
 	camera.position = Vector3.ZERO
 	if g != null and rig.global_position.y < g + 1.0:
 		camera.global_position.y = g + 1.0
@@ -2624,8 +2639,7 @@ func _derelict_update(delta: float) -> void:
 	if int(ent.state) >= 3 or ent.node == null:
 		_derelict = {}
 		return
-	var g = terrain.height_at(ent.node.position)
-	f.set_ground_height(g if g != null else -1.0e9)
+	feed_ground(f, ent.node.position)
 	f.step(delta)
 	var st: Dictionary = f.state()
 	ent.node.position = st.position
@@ -3186,8 +3200,7 @@ func _process(delta: float) -> void:
 	_read_controls(delta)
 	_update_indicators(delta)
 	if flight != null:
-		var ground = terrain.height_at(rig.position)
-		flight.set_ground_height(ground if ground != null else -1.0e9)
+		feed_ground(flight, rig.position)
 		# The terraintype.dat flags (FUN_005bb9f0: water, runway, rough ground, map edge).
 		var surface: int = terrain.surface_at(rig.position)
 		flight.set_ground_surface(_ground_normal_z(rig.position), surface)
@@ -3518,7 +3531,7 @@ func _eject() -> void:
 	var st: Dictionary = flight.state() if flight != null else {}
 	if flight != null:
 		flight.set_engine_on(false)
-	var ground = terrain.height_at(rig.position)
+	var ground = scene_ground(rig.position)
 	var agl: float = rig.position.y - ground if ground != null else 1.0e9
 	var roll: float = absf(float(st.get("roll", 0.0)))
 	eject_short = agl < EJECT_LOW or (agl < EJECT_LOW_INVERTED and roll > 90.0)
@@ -3592,7 +3605,7 @@ func _chutes_update() -> void:
 		var ct: float = _sim_time - pc.t0
 		var w: Vector3 = pc.p0 + CHUTE_V0 * ct + 0.5 * CHUTE_ACCEL * ct * ct
 		var pos := world_to_scene(w)
-		var g = terrain.height_at(pos)
+		var g = scene_ground(pos)
 		if g == null or pos.y - g > CHUTE_STOP_AGL:
 			pc.node.position = pos
 			while _sim_time >= pc.next:

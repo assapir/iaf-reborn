@@ -791,9 +791,9 @@ func _add_debrief(file: int, id: int) -> void:
 
 
 ## A blast at `point` (world X, Y, alt) of `power` within `radius` m: every unit it reaches takes
-## FUN_004642f0's share (DamageModel.blast). `source` = the entity that fired (hits need one, as in
-## FUN_004a9970); `kind` = "gun" for gun rounds (the player's hit thump), else a weapon / "blast".
-## `only` = the unit keys the blast may reach (a gun round's candidate list, docs/weapons.md §3.7);
+## FUN_004642f0's share (DamageModel.blast); all but gun rounds damage the scenery building there. `source` = the
+## entity that fired (hits need one, as in FUN_004a9970); `kind` = "gun" for gun rounds (the player's hit thump), else
+## a weapon / "blast". `only` = the unit keys the blast may reach (a gun round's candidate list, docs/weapons.md §3.7);
 ## null = every unit. Returns the entities it damaged.
 func area_damage(
 	point: Vector3, power: float, radius: float, source: Dictionary, kind := "blast", only = null
@@ -807,6 +807,8 @@ func area_damage(
 		var dmg := DamageModel.blast(_world_of(ent), ent.size, point, power, radius)
 		if dmg > 0.0 and _hit(ent, dmg, source, kind):
 			out.append(ent)
+	if kind != "gun":
+		IafScenery.blast(point, radius)  # the building it meets is damaged, never removed (docs/scenery.md §4)
 	return out
 
 
