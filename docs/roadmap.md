@@ -45,6 +45,10 @@ ranked order: [graphics-research.md](graphics-research.md).
   (rendering.md §8). Open: a gain knob, NVG-compatible cockpit lighting, the goggles' round view.
 - **Rain** (wishlist, user 2026-10-21): rain as a weather choice (Extras), with falling rain, wet surfaces and
   lower visibility.
+- **Four-ship flights** (wishlist, user 2026-10-22): a real flight of four (Extras). The original's flight is a pair:
+  two member slots in the mission file (formats/mis.md) and a leader / wingman formation in the AI (ai.md §7.2); its
+  4-ships are two pairs on one route. Ours would add slots 3 and 4 holding finger-four on the leader, the radio's
+  commands to the whole flight, #4 taking over a lost #3, and the mission editor's flights of up to 4 jets.
 - **Multiplayer** (not approved; if it goes ahead, after the single-player game): how the original does it, a plan
   and the discussion so far: [multiplayer.md](multiplayer.md) (§3.5 is discussion, not decisions).
 - **Separate joystick / throttle / pedal devices** (e.g. a stick, a throttle quadrant and pedals as three USB
