@@ -1,66 +1,21 @@
 # Scenery (docs/scenery.md §3): the switch only with the scenery files and a Survey 2 m Israel imagery (Settings
-# read_config, Graphics → MORE), and the cells loaded and freed around the terrain's focus. The Rust side is a stub
-# here (a box per cell, Stub below) unless the extension has IafScenery and setup made assets/converted/scenery
-# (SCENERY_REAL=1 uses them).
+# read_config, Graphics → MORE), and the cells loaded and freed around the terrain's focus. The cells are our own test
+# files (a 20 m house and a tree in the 3 × 3 cells around one of the layer's level-1 nodes), read by IafScenery.
 extends "res://../tests/godot/base.gd"
 
 const TMP := "user://test_scenery"
 
 
-## IafScenery's static funcs, faked: a 20 m box per cell at its north-west corner, one tree.
-class Stub:
-	static var loaded := {}
-	static var dropped := []
-	static var meta := {}
-
-	static func load_cell(_path: String, i: int, j: int) -> bool:
-		loaded[Vector2i(i, j)] = true
-		return true
-
-	static func drop_cell(i: int, j: int) -> void:
-		loaded.erase(Vector2i(i, j))
-		dropped.append(Vector2i(i, j))
-
-	static func cell_origin(i: int, j: int) -> Vector3:
-		var s := 2048.0 * float(meta.units_to_metres)
-		return Vector3(i * s + float(meta.x_shift), float(meta.y_shift) - j * s, 0.0)
-
-	static func mesh_arrays(_i: int, _j: int, _near: bool, _modern: bool) -> Array:
-		var box := BoxMesh.new()
-		box.size = Vector3(20, 12, 20)
-		var a := box.get_mesh_arrays()
-		var n: int = (a[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()
-		var uv2 := PackedVector2Array()
-		var col := PackedColorArray()
-		for k in n:
-			uv2.append(Vector2(0, 1.0 if a[Mesh.ARRAY_NORMAL][k].y > 0.5 else 0.0))
-			col.append(Color(0.7, 0.4, 0.3, 1.0 / 255.0))
-			a[Mesh.ARRAY_TEX_UV][k] *= 20.0
-		a[Mesh.ARRAY_TEX_UV2] = uv2
-		a[Mesh.ARRAY_COLOR] = col
-		return a
-
-	static func trees(_i: int, _j: int) -> Dictionary:
-		return {0: PackedFloat32Array([1, 0, 0, 30, 0, 1, 0, 0, 0, 0, 1, 30])}
-
-	static func top(_p: Vector3) -> float:
-		return 0.0
-
-	static func damage_index(_i: int, _j: int) -> PackedByteArray:
-		return PackedByteArray([0])
-
-
 func run() -> void:
 	var Scenery: GDScript = load("res://terrain/scenery.gd")
-	var real: bool = OS.get_environment("SCENERY_REAL") == "1" and Scenery.available()
 	var layer := load("res://terrain/imagery_layers.gd").manifest("mapi2015") as Dictionary
 	if layer.is_empty():
 		print("SKIP test_scenery: no mapi2015 imagery converted")
 		return
-	if not real:
-		Stub.meta = settings().load_json(settings().assets_dir().path_join("converted/terrain/theatre/meta.json"))
-		Scenery.backend = Stub
-		Scenery.base_dir = ProjectSettings.globalize_path(TMP)
+	Scenery.base_dir = ProjectSettings.globalize_path(TMP)
+	var meta: Dictionary = settings().load_json(
+		settings().assets_dir().path_join("converted/terrain/theatre/meta.json")
+	)
 	# A cell with all eight neighbours in the layer, its manifest (stub) listing them.
 	var have := {}
 	for ij in layer.nodes["1"]:
@@ -73,22 +28,25 @@ func run() -> void:
 		if all:
 			c = k
 			break
-	if not real:
-		_write_manifest([])
+	_write_manifest([])
 
 	# --- the gate: no files -> greyed and off ---
 	check(not Scenery.available(), "no manifest: not available")
 	_read({"imagery_israel": "mapi2015", "scenery": "on"})
 	check(settings().scenery == "off", "read_config: no files -> off")
 	var it: Array = await _row("scenery")
-	check(it.size() == 2 and not it[1].available and it[1].label == "Not downloaded", "no files: On greyed, Not downloaded")
+	check(
+		it.size() == 2 and not it[1].available and it[1].label == "Not downloaded",
+		"no files: On greyed, Not downloaded"
+	)
 
-	if not real:
-		var cells := []
-		for j in range(c.y - 4, c.y + 5):
-			for i in range(c.x - 4, c.x + 5):
-				cells.append([i, j])
-		_write_manifest(cells)
+	var cells := []
+	for j in range(c.y - 4, c.y + 5):
+		for i in range(c.x - 4, c.x + 5):
+			cells.append("%d_%d" % [i, j])
+			if absi(i - c.x) <= 1 and absi(j - c.y) <= 1:
+				_write_cell(meta, Vector2i(i, j))
+	_write_manifest(cells)
 	check(Scenery.available(), "manifest: available")
 	_read({"imagery_israel": "original", "scenery": "on"})
 	check(settings().scenery == "off", "read_config: Original imagery -> off")
@@ -104,7 +62,9 @@ func run() -> void:
 	check(_fe.pref_work.scenery == "on", "a click turns Scenery on")
 	var im: Array = await _row("imagery_israel")
 	_click(im[0])
-	check(_fe.pref_work.imagery_israel == "original" and _fe.pref_work.scenery == "off", "Original imagery: Scenery off")
+	check(
+		_fe.pref_work.imagery_israel == "original" and _fe.pref_work.scenery == "off", "Original imagery: Scenery off"
+	)
 	_fe.queue_free()
 
 	# --- the cells around the focus ---
@@ -129,23 +89,54 @@ func run() -> void:
 	check(far.is_empty(), "nothing loaded beyond %d m (%s)" % [Scenery.RANGE, far])
 	var node: Node3D = t.scenery._cells[c].node
 	check(node.get_child_count() >= 2, "near + far meshes and trees (%d nodes)" % node.get_child_count())
+	var house := _house(meta, c)
+	check(IafScenery.top(house) > 10.0, "IafScenery has the house (top %.1f m)" % IafScenery.top(house))
 	var n0: int = t.scenery.loaded().size()
 	# 30 km east: the old cells are freed.
 	focus.position += Vector3(30000, 0, 0)
 	await frames(10)
 	check(not t.scenery.loaded().has(c) and not is_instance_valid(node), "moved 30 km: the old cell freed")
-	if not real:
-		check(Stub.dropped.has(c), "drop_cell called for it")
+	check(IafScenery.top(house) == 0.0, "drop_cell: IafScenery forgot it")
 	print("cells loaded at the start: %d" % n0)
 	t.queue_free()
 	focus.queue_free()
 	await frames(2)
-	if not real:
-		check(Stub.loaded.is_empty(), "terrain freed: every cell dropped")
-	Scenery.backend = null
 	Scenery.base_dir = ""
 	settings().scenery = "off"
 	settings().imagery_israel = "original"
+
+
+## The north-west corner of cell `k` (world X east, Y north; IafScenery.cell_origin).
+func _corner(meta: Dictionary, k: Vector2i) -> Vector2:
+	var s := 2048.0 * float(meta.units_to_metres)
+	return Vector2(k.x * s + float(meta.x_shift), float(meta.y_shift) - k.y * s)
+
+
+## The house's centre, world frame, at 1000 m (top() reads the height above the ground there).
+func _house(meta: Dictionary, k: Vector2i) -> Vector3:
+	var o := _corner(meta, k)
+	return Vector3(o.x + 110.0, o.y - 110.0, 1000.0)
+
+
+## A cell file (crates/iaf-avionics/src/scenery.rs): one 20 m square house, 12 m high, plaster, and one pine.
+func _write_cell(meta: Dictionary, k: Vector2i) -> void:
+	var o := _corner(meta, k)
+	DirAccess.make_dir_recursive_absolute(TMP.path_join("converted/scenery/L1"))
+	var f := FileAccess.open(TMP.path_join("converted/scenery/L1/s_%d_%d.bin" % [k.x, k.y]), FileAccess.WRITE)
+	f.store_buffer("IAFS".to_ascii_buffer())
+	for v in [1, 1, 1]:  # version, buildings, trees
+		f.store_32(v)
+	f.store_16(4)
+	f.store_buffer(PackedByteArray([0, 0]))  # flat roof, plaster
+	f.store_float(12.0)
+	f.store_buffer(PackedByteArray([180, 90, 70, 170, 100, 80, 0, 4]))  # roof 1998, modern, OSM, 4 levels
+	for p in [Vector2(100, -120), Vector2(120, -120), Vector2(120, -100), Vector2(100, -100)]:
+		f.store_float(o.x + p.x)
+		f.store_float(o.y + p.y)
+	for v in [o.x + 200.0, o.y - 200.0, 9.0]:
+		f.store_float(v)
+	f.store_buffer(PackedByteArray([0, 0, 0, 0]))
+	f.close()
 
 
 func _write_manifest(cells: Array) -> void:

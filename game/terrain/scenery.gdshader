@@ -1,17 +1,15 @@
 // Scenery buildings (terrain/scenery.gd, docs/scenery.md §3). The mesh arrays come from IafScenery:
 //   UV   = wall coordinates in metres (x along the wall, y above the building's base);
 //   UV2  = (building index in the cell, 0 = wall / 1 = roof);
-//   COLOR.rgb = the roof colour on the active Survey 2 m look (sRGB), COLOR.a = the wall material / 255
-//   (iaf_tools::thirdparty::SCENERY order: plaster, stone, concrete, corrugated steel).
-// Walls: the ambientCG colour detail (colour over its mean) on the material's mean colour, tinted by the roof colour;
+//   COLOR.rgb = the roof colour on the active Survey 2 m look on roofs, lightened toward plaster on walls (sRGB);
+//   COLOR.a = the wall material / 255 (iaf_tools::thirdparty::SCENERY_WALLS: plaster, stone, concrete, corrugated).
+// Walls: that colour times the ambientCG material's colour detail (its colour over its mean);
 // our window mask (a row per 3 m level, a column every 3.2 m); a ground AO gradient. Damaged buildings: sooted.
 shader_type spatial;
 render_mode cull_back;
 
-uniform sampler2DArray walls : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2DArray walls : filter_linear_mipmap_anisotropic, repeat_enable;
 uniform bool has_walls = false;
-// The four materials' mean colours (linear).
-uniform vec4 wall_mean[4];
 // The repeat of each material's texture (m).
 uniform vec4 wall_size = vec4(2.0, 2.0, 1.1, 2.0);
 // A byte per building, 256 per row: 0 = intact.
@@ -42,16 +40,16 @@ void vertex() {
 
 void fragment() {
 	int b = int(v_building + 0.5);
-	float dmg = texelFetch(damage, ivec2(b % 256, b / 256), 0).r;
-	vec3 roof = srgb_to_linear(COLOR.rgb);
+	float damaged = step(0.5 / 255.0, texelFetch(damage, ivec2(b % 256, b / 256), 0).r);
+	vec3 colour = srgb_to_linear(COLOR.rgb);
 	vec3 albedo;
 	float rough = 0.9;
 	float emit = 0.0;
 	if (v_roof > 0.5) {
-		albedo = roof;
+		albedo = colour;
 	} else {
 		int w = clamp(int(v_wall), 0, 3);
-		vec3 base = mix(wall_mean[w].rgb, roof, 0.3);
+		vec3 base = colour;
 		if (has_walls) {
 			base *= 2.0 * texture(walls, vec3(UV / wall_size[w], float(w))).rgb;
 		}
@@ -69,10 +67,10 @@ void fragment() {
 		albedo *= mix(0.55, 1.0, smoothstep(0.0, 2.5, UV.y));
 		if (night && win > 0.0) {
 			float lit = step(hash(floor(g) + vec2(float(b) * 0.37, 0.0)), 0.12);
-			emit = lit * win * (1.0 - dmg);
+			emit = lit * win * (1.0 - damaged);
 		}
 	}
-	albedo *= mix(1.0, 0.25, step(0.5 / 255.0, dmg));
+	albedo *= mix(1.0, 0.25, damaged);
 	ALBEDO = albedo;
 	ROUGHNESS = rough;
 	SPECULAR = 0.3;

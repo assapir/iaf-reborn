@@ -21,24 +21,20 @@ const RESELECT_M := 200.0
 const RESELECT_MS := 1000
 ## Workers at once (the terrain's decodes have priority: 4 of them).
 const MAX_JOBS := 2
-## Meshes built per frame (the upload runs on the main thread).
-const BUILDS_PER_FRAME := 2
+## Cells drawn per frame (their arrays are made and uploaded on the main thread).
+const BUILDS_PER_FRAME := 1
 ## Damage states read back this often (ms).
 const DAMAGE_MS := 1000
-## Wall materials (iaf_tools::thirdparty::SCENERY, the cell file's wall index): [ambientCG id, mean colour (linear)].
-const WALLS := [
-	["Plaster003", Color(0.80, 0.78, 0.72)],
-	["Bricks084", Color(0.66, 0.55, 0.38)],
-	["Concrete034", Color(0.45, 0.45, 0.43)],
-	["CorrugatedSteel005", Color(0.40, 0.44, 0.46)],
-]
+## Wall materials (iaf_tools::thirdparty::SCENERY_WALLS, in the cell file's wall index order: plaster, stone, concrete,
+## corrugated steel), listed by setup in this file.
 const WALL_LIST := "scenery.json"
+const WALL_COUNT := 4
 ## Tree kinds (the cell file's TreeKind): trunk height, canopy [shape, bottom, top, radius] in metres for a 10 m tree,
 ## canopy colour (linear).
 const KINDS := [
 	[3.0, ["cone", 2.5, 10.0, 2.6], Color(0.05, 0.10, 0.04)],  # pine
 	[3.0, ["ball", 2.5, 9.0, 3.6], Color(0.12, 0.15, 0.07)],  # broadleaf (olive, carob, oak)
-	[9.0, ["ball", 8.4, 10.0, 3.0], Color(0.10, 0.16, 0.05)],  # palm
+	[8.5, ["ball", 7.6, 10.0, 2.6], Color(0.10, 0.16, 0.05)],  # palm
 	[1.5, ["cone", 1.0, 10.0, 1.1], Color(0.04, 0.08, 0.03)],  # cypress
 ]
 const TRUNK := Color(0.16, 0.11, 0.07)
@@ -46,8 +42,6 @@ const ImageryLayers := preload("res://terrain/imagery_layers.gd")
 const GroundTextures := preload("res://terrain/ground_textures.gd")
 const SHADER := preload("res://terrain/scenery.gdshader")
 
-## The Rust side: IafScenery when the extension has it; tests put a script with the same static funcs here.
-static var backend: Object = null
 ## The folder holding DIR ("" = Settings.assets_dir(); tests point it elsewhere).
 static var base_dir := ""
 ## Detailed night lights at night: the windows lit (terrain_view.gd _night_detailed).
@@ -62,8 +56,10 @@ var modern := false
 ## false: load only (the front end's preload terrain); the flight's terrain adopts the loaded cells.
 var draw := true
 var _span := 0.0  # a cell's side (m)
-var _cells := {}  # Vector2i -> {state: "wait" | "busy" | "retry" | "built" | "none", ...}
-var _queue: Array = []  # [cell, loaded] to load, nearest first (under the mutex)
+## Vector2i -> {state: "wait" (not loaded) | "loaded" (in IafScenery, origin) | "built" (drawn: node, mat) | "none"
+## (no file)}.
+var _cells := {}
+var _queue: Array = []  # cells to load, nearest first (under the mutex)
 var _busy := {}  # cells a worker has (under the mutex)
 var _results := {}  # Vector2i -> worker result (under the mutex)
 var _mutex := Mutex.new()
@@ -73,13 +69,6 @@ var _last_select := 0
 var _last_damage := 0
 var _night_shown := false
 var _materials: Array[ShaderMaterial] = []
-
-
-## Calls the Rust side (IafScenery's static funcs, or the test's backend).
-static func call_api(method: String, args: Array = []) -> Variant:
-	if backend != null:
-		return backend.callv(method, args)
-	return ClassDB.class_call_static.callv(["IafScenery", method] + args)
 
 
 static func dir() -> String:
@@ -92,7 +81,7 @@ static func manifest() -> Dictionary:
 
 ## Setup made the scenery and the game can read it.
 static func available() -> bool:
-	return (backend != null or ClassDB.class_exists("IafScenery")) and not manifest().is_empty()
+	return not manifest().is_empty()
 
 
 ## The Survey 2 m layers (the only imagery scenery is shown over).
@@ -105,21 +94,12 @@ static func wanted(layers: Array) -> bool:
 	return Settings.scenery == "on" and available() and layers.any(func(l): return survey(String(l)))
 
 
-## The cells (Vector2i -> true): the manifest's cells that the Survey layer `id` has a level-1 node for.
+## The cells (Vector2i -> true): the level-1 nodes of the Survey layer `id` (scenery stands only over its photo).
+## Setup writes a file only for the nodes with a building or tree; the others read as "none" once.
 static func cells_for(id: String) -> Dictionary:
-	var have := {}
-	for ij in ImageryLayers.manifest(id).get("nodes", {}).get("1", []):
-		have[Vector2i(int(ij[0]), int(ij[1]))] = true
 	var out := {}
-	for c in manifest().get("cells", []):
-		var k := Vector2i.ZERO
-		if c is String:
-			var p := String(c).split("_")
-			k = Vector2i(int(p[0]), int(p[1]))
-		else:
-			k = Vector2i(int(c[0]), int(c[1]))
-		if have.has(k):
-			out[k] = true
+	for ij in ImageryLayers.manifest(id).get("nodes", {}).get("1", []):
+		out[Vector2i(int(ij[0]), int(ij[1]))] = true
 	return out
 
 
@@ -131,7 +111,7 @@ static func walls() -> Texture2DArray:
 	_walls_read = true
 	var imgs: Array[Image] = []
 	var mats: Array = Settings.load_json(GroundTextures.dir().path_join(WALL_LIST)).get("materials", [])
-	if mats.size() != WALLS.size():
+	if mats.size() != WALL_COUNT:
 		return null
 	for m in mats:
 		var img := GroundTextures.mips(
@@ -177,7 +157,6 @@ static func _building_material(damage: PackedByteArray) -> ShaderMaterial:
 	var w := walls()
 	m.set_shader_parameter("walls", w)
 	m.set_shader_parameter("has_walls", w != null)
-	m.set_shader_parameter("wall_mean", PackedColorArray(WALLS.map(func(x): return x[1])))
 	m.set_shader_parameter("night", night)
 	_set_damage(m, damage)
 	return m
@@ -298,16 +277,14 @@ func _reselect(fp: Vector3) -> void:
 	var busy := _busy.merged(_results)  # cells whose result is not taken yet
 	_mutex.unlock()
 	for k in _cells:
-		var c: Dictionary = _cells[k]
 		var d := _dist(k, fp)
-		if d > RANGE + KEEP and c.state in ["built", "retry"] and not busy.has(k):
+		if d > RANGE + KEEP and _cells[k].state in ["loaded", "built"]:
 			_drop(k)
-		elif d <= RANGE and c.state in ["wait", "retry"]:
+		elif d <= RANGE and _cells[k].state == "wait" and not busy.has(k):
 			want.append([d, k])
 	want.sort()
 	_mutex.lock()
-	want = want.filter(func(w): return not busy.has(w[1]))
-	_queue = want.map(func(w): return [w[1], _cells[w[1]].has("origin")])
+	_queue = want.map(func(w): return w[1])
 	_mutex.unlock()
 	for id in _jobs.filter(func(t): return WorkerThreadPool.is_task_completed(t)):
 		WorkerThreadPool.wait_for_task_completion(id)
@@ -316,26 +293,19 @@ func _reselect(fp: Vector3) -> void:
 		_jobs.append(WorkerThreadPool.add_task(_work, false, "scenery"))
 
 
-## Worker: loads queued cells and builds their arrays until the queue is empty.
+## Worker: reads the queued cells' files into IafScenery until the queue is empty. (Its arrays are made on the main
+## thread: godot-rust builds Godot arrays there only.)
 func _work() -> void:
 	while true:
 		_mutex.lock()
 		if _queue.is_empty():
 			_mutex.unlock()
 			return
-		var q: Array = _queue.pop_front()
-		var k: Vector2i = q[0]
-		var loaded: bool = q[1]
+		var k: Vector2i = _queue.pop_front()
 		_busy[k] = true
 		_mutex.unlock()
-		var r := {}
-		if loaded or call_api("load_cell", [dir().path_join("L1/s_%d_%d.bin" % [k.x, k.y]), k.x, k.y]):
-			r = {
-				"origin": call_api("cell_origin", [k.x, k.y]),
-				"near": call_api("mesh_arrays", [k.x, k.y, true, modern]),
-				"far": call_api("mesh_arrays", [k.x, k.y, false, modern]),
-				"trees": call_api("trees", [k.x, k.y]),
-			}
+		var ok: bool = IafScenery.load_cell(dir().path_join("L1/s_%d_%d.bin" % [k.x, k.y]), k.x, k.y)
+		var r = IafScenery.cell_origin(k.x, k.y) if ok else null
 		_mutex.lock()
 		_results[k] = r
 		_busy.erase(k)
@@ -348,36 +318,31 @@ func _finish_jobs() -> void:
 	_results = {}
 	_mutex.unlock()
 	for k in done:
-		var r: Dictionary = done[k]
-		var c: Dictionary = _cells[k]
-		if r.is_empty():
-			c.state = "none"  # no file for it (or unreadable): never retried
-			continue
-		c.origin = r.origin
-		# No arrays: the heights under the cell are not loaded yet (or it has no buildings).
-		var centre := _corner(k) + Vector2(_span, _span) / 2.0
-		if (r.near as Array).is_empty() and terrain.height_at(Vector3(centre.x, 0, centre.y)) == null:
-			c.state = "retry"
-			continue
-		c.near = r.near
-		c.far = r.far
-		c.trees = r.trees
-		c.state = "built"
+		if done[k] == null:
+			_cells[k] = {"state": "none"}  # no file for it (or unreadable): never retried
+		else:
+			_cells[k] = {"state": "loaded", "origin": done[k]}
 
 
-## Turns up to BUILDS_PER_FRAME loaded cells into nodes, nearest first.
+## Draws up to BUILDS_PER_FRAME loaded cells, nearest first.
 func _build_some(fp: Vector3) -> void:
 	var todo := []
 	for k in _cells:
-		if _cells[k].state == "built" and not _cells[k].has("node"):
+		if _cells[k].state == "loaded":
 			todo.append([_dist(k, fp), k])
 	todo.sort()
 	for t in todo.slice(0, BUILDS_PER_FRAME):
 		_build(t[1])
 
 
+## The cell's meshes and trees (IafScenery builds them on the heights it has; none yet: tried again next frame).
 func _build(k: Vector2i) -> void:
 	var c: Dictionary = _cells[k]
+	var near_arrays: Array = IafScenery.mesh_arrays(k.x, k.y, true, modern)
+	var centre := _corner(k) + Vector2(_span, _span) / 2.0
+	if near_arrays.is_empty() and terrain.height_at(Vector3(centre.x, 0, centre.y)) == null:
+		return  # the heights under it are not loaded yet
+	c.state = "built"
 	var root := Node3D.new()
 	root.name = "Cell_%d_%d" % [k.x, k.y]
 	var o: Vector3 = c.origin
@@ -386,33 +351,29 @@ func _build(k: Vector2i) -> void:
 	root.position = Vector3(o.x - wo.x, o.z, -(o.y - wo.y))
 	add_child(root)
 	c.node = root
-	var mat: ShaderMaterial = null
-	for near in [true, false]:
-		var arrays: Array = c.near if near else c.far
-		if arrays.is_empty():
-			continue
-		if mat == null:
-			mat = _building_material(call_api("damage_index", [k.x, k.y]))
-			_materials.append(mat)
-			c.mat = mat
-		var mesh := ArrayMesh.new()
-		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-		var mi := MeshInstance3D.new()
-		mi.mesh = mesh
-		mi.material_override = mat
-		mi.visibility_range_begin = 0.0 if near else NEAR
-		mi.visibility_range_begin_margin = 0.0 if near else FADE
-		mi.visibility_range_end = NEAR if near else RANGE
-		mi.visibility_range_end_margin = FADE
-		mi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
-		if not near:
-			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		root.add_child(mi)
-	var trees: Dictionary = c.trees
+	if not near_arrays.is_empty():
+		var mat := _building_material(IafScenery.damage_index(k.x, k.y))
+		_materials.append(mat)
+		c.mat = mat
+		for near in [true, false]:
+			var mesh := ArrayMesh.new()
+			mesh.add_surface_from_arrays(
+				Mesh.PRIMITIVE_TRIANGLES, near_arrays if near else IafScenery.mesh_arrays(k.x, k.y, false, modern)
+			)
+			var mi := MeshInstance3D.new()
+			mi.mesh = mesh
+			mi.material_override = mat
+			mi.visibility_range_begin = 0.0 if near else NEAR
+			mi.visibility_range_begin_margin = 0.0 if near else FADE
+			mi.visibility_range_end = NEAR if near else RANGE
+			mi.visibility_range_end_margin = FADE
+			mi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+			if not near:
+				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			root.add_child(mi)
+	var trees: Dictionary = IafScenery.trees(k.x, k.y)
 	for kind in trees:
 		var rows: PackedFloat32Array = trees[kind]
-		if rows.size() < 12:
-			continue
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
 		mm.mesh = tree_mesh(int(kind))
@@ -425,10 +386,6 @@ func _build(k: Vector2i) -> void:
 		mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		root.add_child(mmi)
-	# The arrays are uploaded; only the node keeps them.
-	c.erase("near")
-	c.erase("far")
-	c.erase("trees")
 
 
 ## The damage states of the drawn cells, when they changed (a destroyed scenery target).
@@ -436,7 +393,7 @@ func _refresh_damage() -> void:
 	for k in _cells:
 		var c: Dictionary = _cells[k]
 		if c.has("mat"):
-			var d: PackedByteArray = call_api("damage_index", [k.x, k.y])
+			var d: PackedByteArray = IafScenery.damage_index(k.x, k.y)
 			if d != c.mat.get_meta("damage"):
 				_set_damage(c.mat, d)
 
@@ -448,7 +405,7 @@ func _drop(k: Vector2i) -> void:
 	if c.has("mat"):
 		_materials.erase(c.mat)
 	if c.has("origin"):
-		call_api("drop_cell", [k.x, k.y])
+		IafScenery.drop_cell(k.x, k.y)
 	_cells[k] = {"state": "wait"}
 
 
@@ -461,12 +418,12 @@ func ground_ready() -> bool:
 	for k in _cells:
 		if _dist(k, fp) <= NEAR:
 			var c: Dictionary = _cells[k]
-			if not (c.state == "none" or (c.state == "built" and (c.has("node") or not draw))):
+			if not (c.state in ["none", "built"] or (c.state == "loaded" and not draw)):
 				return false
 	return true
 
 
-## The cells loaded with the drawn cells (loaded cells, Vector2i keys).
+## The cells in IafScenery (Vector2i), drawn or not.
 func loaded() -> Array:
 	return _cells.keys().filter(func(k): return _cells[k].has("origin"))
 
@@ -483,7 +440,7 @@ func adopt(other: Node) -> void:
 		return
 	for k in other._cells:
 		var c: Dictionary = other._cells[k]
-		if _cells.has(k) and c.state in ["built", "retry", "none"] and not c.has("node"):
+		if _cells.has(k) and c.state in ["loaded", "none"]:
 			_cells[k] = c
 		other._cells[k] = {"state": "wait"}
 	_last_focus = Vector3(INF, INF, INF)
@@ -503,4 +460,4 @@ func _exit_tree() -> void:
 	_finish_jobs()
 	for k in _cells:
 		if _cells[k].has("origin"):
-			call_api("drop_cell", [k.x, k.y])
+			IafScenery.drop_cell(k.x, k.y)

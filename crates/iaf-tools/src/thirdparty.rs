@@ -111,7 +111,7 @@ pub const MODEL_DETAIL: &[Material] = &[
 
 /// The "Scenery" wall materials (Graphics → MORE, game/terrain/scenery.gdshader), in the shader's layer order = the
 /// cell file's wall index (docs/scenery.md): plaster, stone, concrete, corrugated steel. The roof colour tints them.
-pub const SCENERY: &[Material] = &[
+pub const SCENERY_WALLS: &[Material] = &[
     Material {
         id: "Plaster003",
         sha256: "7088106ca868dab12f702c1bac8dc012f445f572a3e02d5377b42ed497be1fd8",
@@ -139,7 +139,8 @@ pub const SCENERY: &[Material] = &[
 ];
 
 /// Every list setup fetches: (name, materials). A new use adds its list here; `<dir>/<name>.json` lists it for the game.
-pub const LISTS: &[(&str, &[Material])] = &[("ground", GROUND_TEXTURES), ("model", MODEL_DETAIL), ("scenery", SCENERY)];
+pub const LISTS: &[(&str, &[Material])] =
+    &[("ground", GROUND_TEXTURES), ("model", MODEL_DETAIL), ("scenery", SCENERY_WALLS)];
 
 /// Where ambientCG serves the zips.
 pub const AMBIENTCG: &str = "https://ambientcg.com/get?file=";
