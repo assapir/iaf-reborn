@@ -177,13 +177,19 @@ static func target_lines(main: Dictionary, lang: String) -> Array:
 		var h := roundi(float(e.get("scenery_height", 0.0)))
 		var n := int(e.get("scenery_count", 0))
 		var line := (
-			"%s: בניין בגובה %d מ'; %d בניינים בטווח ק"מ." if he else "%s: a building %d m high; %d buildings within 1 km."
-		) % [String(e.get("0x2bc", "")), h, n]
+			(
+				"%s: בניין בגובה %d מ'; %d בניינים בטווח ק״מ."
+				if he
+				else "%s: a building %d m high; %d building%s within 1 km."
+			)
+			% ([String(e.get("0x2bc", "")), h, n] + ([] if he else ["" if n == 1 else "s"]))
+		)
 		var why := target_reason(e, String(main.get("scenery_release", "")))
 		if why != "":
-			line += (" מוצג כ%s מקורי (%s)." if he else " Shown as an original %s (%s).") % [
-				STAND_IN_NAMES[stand_in(e)][he], REASONS[why][he]
-			]
+			line += (
+				(" מוצג כ%s מקורי (%s)." if he else " Shown as an original %s (%s).")
+				% [STAND_IN_NAMES[stand_in(e)][he], REASONS[why][he]]
+			)
 		out.append(line)
 	return out
 

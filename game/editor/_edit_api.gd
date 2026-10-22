@@ -5,6 +5,30 @@ extends RefCounted
 
 func _init() -> void:
 	IafMissionEdit.set_assets(Settings.assets_dir())
+	IafMissionEdit.set_scenery(preload("res://terrain/scenery.gd").dir())
+
+
+# --- the scenery (docs/scenery.md §5) ---
+
+
+func has_scenery() -> bool:
+	return IafMissionEdit.has_scenery()
+
+
+## The building nearest world (x, y) within `r` m: {id, height, area, points (world)}, {} for none.
+func scenery_at(x: float, y: float, r: float) -> Dictionary:
+	return IafMissionEdit.scenery_at(x, y, r)
+
+
+## The building outlines in the world box (x0, y0)–(x1, y1), as segment pairs through `xf` (world → pixels).
+func scenery_outlines(x0: float, y0: float, x1: float, y1: float, xf: Transform2D) -> PackedVector2Array:
+	return IafMissionEdit.scenery_outlines(x0, y0, x1, y1, xf)
+
+
+## {mission, id}: the building nearest (x, y) within `r` m set as a target (id -1: no building there).
+func scenery_target(mission: Dictionary, template: Dictionary, x: float, y: float, r: float) -> Dictionary:
+	var out := _parse(IafMissionEdit.scenery_target(_js(mission), _js(template), x, y, r))
+	return {"mission": out.get("mission", mission), "id": int(out.get("id", -1))}
 
 
 static func _js(d: Dictionary) -> String:

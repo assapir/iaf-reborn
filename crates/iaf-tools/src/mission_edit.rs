@@ -844,7 +844,12 @@ pub fn clear_ground(s: &Scenery, x: f64, y: f64, r: f64) -> Option<[f64; 2]> {
 /// of the main file, not the scenery targets themselves.
 pub fn scenery_issues(mission: &Value, bdb: &Value, s: &Scenery) -> Vec<Issue> {
     let class_of = |t: i64| {
-        bdb["objects"]["items"].as_array().into_iter().flatten().find(|o| int(&o["0x1e"]) == t).map(|o| int(&o["0x5aa"]))
+        bdb["objects"]["items"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .find(|o| int(&o["0x1e"]) == t)
+            .map(|o| int(&o["0x5aa"]))
     };
     let mut out = vec![];
     for e in spawned(mission).filter(|e| e.get("scenery").is_none()) {
@@ -1342,7 +1347,10 @@ mod tests {
         let e = m["entities"]["items"].as_array().unwrap().iter().find(|e| int(&e["0x1e"]) == id).unwrap();
         assert_eq!(m["scenery_release"], "r1");
         assert_eq!(e["scenery"], "5_7:0");
-        assert_eq!((e["0x2e4"].as_f64(), e["0x2ee"].as_f64(), e["0x2f8"].as_f64()), (Some(1010.0), Some(1010.0), Some(42.0)));
+        assert_eq!(
+            (e["0x2e4"].as_f64(), e["0x2ee"].as_f64(), e["0x2f8"].as_f64()),
+            (Some(1010.0), Some(1010.0), Some(42.0))
+        );
         assert_eq!((int(&e["0x2c6"]), int(&e["0x32a"]), int(&e["0x2d0"]), int(&e["0x35c"])), (51, TARGET, 2, 1));
         assert_eq!((e["scenery_area"].as_f64(), e["scenery_height"].as_f64()), (Some(400.0), Some(12.0)));
         assert_eq!(e["scenery_count"], 1, "the other house within 1 km");

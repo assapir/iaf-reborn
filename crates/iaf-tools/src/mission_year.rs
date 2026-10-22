@@ -289,7 +289,10 @@ pub fn base_issues(bases: &[(String, i64)], year: f64) -> Vec<Issue> {
             let b = base(name.strip_suffix("_flipped").unwrap_or(name))?;
             let o = owner(b, year);
             (o != 0 && (*s == 1 || *s == 2) && o != *s).then(|| {
-                warning(-1, format!("{}: {} holds it in {}, but its base is {}", b.name, side(o), label(year), side(*s)))
+                warning(
+                    -1,
+                    format!("{}: {} holds it in {}, but its base is {}", b.name, side(o), label(year), side(*s)),
+                )
             })
         })
         .collect()
