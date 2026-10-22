@@ -7,3 +7,4 @@ description = "The player's avionics of Jane's IAF (1998): radar, weapon sights,
 
 [dependencies]
 iaf-flight = { path = "../iaf-flight" }
+iaf-formats = { path = "../iaf-formats" }

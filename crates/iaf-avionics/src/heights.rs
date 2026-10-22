@@ -37,6 +37,10 @@ impl HeightField {
         self.meta = meta;
     }
 
+    pub fn meta(&self) -> Meta {
+        self.meta
+    }
+
     /// A height node (its RG8 image bytes: raw = r·256 + g) loaded by one more terrain instance.
     pub fn add(&mut self, i: i64, j: i64, width: usize, rg8: &[u8]) {
         let node = self.nodes.entry((i, j)).or_insert_with(|| Node {
