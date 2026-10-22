@@ -315,7 +315,8 @@ Each entry names the switch and where it lives, then the difference: "Original: 
   - Off: the original has no night vision.
   - Goggles: Shift+N in flight puts the goggles on and off: the 3D view turns green and image-intensified (automatic
     gain, halos around lights, grain), the HUD shows in its brightest green, the panel stays as it is. The tube follows
-    the mission's year: none before 1972, Gen II, early Gen III from 1982, late Gen III from 1996 (rendering.md §8.1).
+    the mission's year: none before 1972, Gen II, early Gen III from 1982, late Gen III from 1996 (rendering.md §8.1). A
+    cockpit whose lighting does not suit goggles veils the picture; a view full of light darkens it (§8.3).
 - **Models** (ours, [aircraft-models.md](aircraft-models.md)). Visual only; the default is Original.
   - Original: the 1998 aircraft models.
   - Detailed: our F-16D (built from the FlightGear F-16, GPL) for every F-16: the player's, the AI's, parked ones and

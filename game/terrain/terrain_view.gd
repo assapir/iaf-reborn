@@ -2991,6 +2991,7 @@ func _toggle_goggles() -> void:
 		mat.shader = preload("res://terrain/night_vision.gdshader")
 		for k in goggles_tube():
 			mat.set_shader_parameter(k, goggles_tube()[k])
+		mat.set_shader_parameter("glare", 0.0 if goggles_lit(player.get("type", 0), Settings.mission_year()) else 0.15)
 		var rect := ColorRect.new()
 		rect.material = mat
 		rect.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -3034,6 +3035,13 @@ func goggles_tube() -> Dictionary:
 	if player.get("type", 0) in [160, 180] or year < 1982.0:
 		return TUBES.gen2
 	return TUBES.gen3 if year < 1996.0 else TUBES.gen3_late
+
+
+## Whether the jet's cockpit lighting suits the goggles (rendering.md §8.3): the F-15 and F-16 from 1996 (inferred
+## from the USAF's F-16 retrofit and the F-15I), the F-35I (its helmet camera); every other jet's panel glow washes out
+## the picture's lower part (the shader's `glare`).
+static func goggles_lit(type: int, year: float) -> bool:
+	return type == PlayerAircraft.F35I or (type in [100, 110] and year >= 1996.0)
 
 
 func _process(delta: float) -> void:

@@ -80,6 +80,15 @@ func run() -> void:
 		settings().mission_id = c[0]
 		check(tv.goggles_tube() == c[1], "mission %d (%d): its year's tube" % [c[0], settings().mission_year()])
 	settings().mission_id = keep_id
+	check(
+		(
+			tv.goggles_lit(100, 1998.0)
+			and not tv.goggles_lit(100, 1990.0)
+			and not tv.goggles_lit(120, 1998.0)
+			and tv.goggles_lit(1000, 1973.0)
+		),
+		"goggle-lit cockpits: the F-16 / F-15 from 1996, the F-35I; not the F-4E"
+	)
 	settings().night_vision = false
 
 	# Original by day, 125 (lt_ossa boats): light points at every hour.

@@ -513,7 +513,7 @@ night lighting. The tube depends on the mission's year (§8.1). The shader:
 2. **Automatic gain control.** The shader works on the square root of the brightness, so the moonlit ground keeps
    its detail beside the brighter sky (inferred). The gain is set so the screen's mean (the screen texture's last
    mip) reaches 0.55, from ×1 up to the tube's top gain. A real tube raises its gain as the light falls[^rash].
-   By day the gain stays at ×1.
+   By day the gain stays at ×1, and the bright-source protection darkens the picture (§8.3).
 3. **Sharpness.** The image is read from a blurred screen mip: none for the late Gen III, 0.7 for the early Gen III,
    1.2 for the Gen II. These follow the tubes' resolution against the late Gen III's 64 lp/mm: 36–51 lp/mm
    (×1.6 blur) and 28 lp/mm (×2.3)[^omni][^gen2].
@@ -568,6 +568,18 @@ original's by its id (`mission_year.rs default_year`: 111–117 1967, 121–127 
   making its Block 40 F-16s goggle-compatible in 1996[^f16nvg]. Open: the Netz / Barak, Kurnass 2000 and Kfir.
 - **Night attack in 1982** used laser-guided bombs; no source mentions goggles[^bekaa].
 
+### 8.3 Cockpit glare and bright light
+
+- **Cockpit lighting.** One cockpit light that does not suit goggles is enough to degrade the picture[^dtic]. Where
+  the jet's lighting does not suit them (`terrain_view.gd goggles_lit`), the shader's `glare` (0.15) adds to the
+  mean, which lowers the gain, and veils the picture toward the panel below (from 30 % of the height down). Suited:
+  the F-15 and F-16 from 1996 (inferred from the USAF's F-16 retrofit[^f16nvg] and the F-15I[^f15i]) and the F-35I
+  (its helmet camera). Every other jet and year glares. The original itself lights the F-4E's night cockpit red, the
+  colour a Gen III tube sees best.
+- **Bright-source protection.** When the view's mean (linear, through the tube's weights) passes 0.35, the picture
+  darkens, down to 10 % at 0.6: a close blast filling the view, or daylight. The picture comes back as soon as the
+  light goes (no hold time). Gray Zone Warfare shuts its goggles down the same way[^gzw]; the limits are inferred.
+
 **Shots**: `tests/godot/_night_shot.gd` with `NIGHT_VISION=1`; the pilot guides' `night` / `night_nvg` pictures
 (their "Night vision" section). In mission 214 (01:00, Detailed night lights) the goggles show the hills, the
 ground's texture and the AI jet ahead, which are black without them. Cost: 68.5 against 71.4 fps at 1920×1080 on this
@@ -606,3 +618,7 @@ Iris Xe laptop, measured while another render ran (to measure again on an idle m
     https://flightglobal.com/nvg-modifications-begin-on-f-16s/11115.article
 [^bekaa]: Air & Space Forces Magazine, the Bekaa Valley 1982 (seen as a search summary):
     https://www.airandspaceforces.com/article/0602bekaa/
+[^dtic]: DTIC ADA517298 (one incompatible cockpit light degrades the goggles' picture):
+    https://apps.dtic.mil/sti/pdfs/ADA517298.pdf
+[^gzw]: Gray Zone Warfare devlog 7 (grain in dark areas, halos, auto-shutdown in bright light):
+    https://www.grayzonewarfare.com/news/devlog-7-daylight-to-darkness
