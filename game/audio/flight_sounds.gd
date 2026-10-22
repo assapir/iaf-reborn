@@ -128,7 +128,8 @@ func _process(_delta: float) -> void:
 			var st: Dictionary = f.state()
 			if not st.is_empty():
 				global_position = host.rig.global_position
-				var ground = host.terrain.height_at(host.rig.position)
+				# The ground with the scenery's roofs and tree tops (docs/scenery.md §4): the warnings call the building.
+				var ground = host.scene_ground(host.rig.position)
 				var wp = host.get("weapons")
 				var ck = host.get("cockpit")
 				update(

@@ -3347,7 +3347,7 @@ func _process(delta: float) -> void:
 		)
 		Airbases.update_view(get_viewport().get_camera_3d().global_position, terrain)
 	var p := rig.position
-	var ground_h = terrain.height_at(p)
+	var ground_h = scene_ground(p)  # roofs and tree tops count (docs/scenery.md §4)
 	var agl := "" if ground_h == null else "  (%.0f m above ground)" % (p.y - ground_h)
 	var st2: Dictionary = cockpit.state
 	hud_label.visible = Settings.show_info

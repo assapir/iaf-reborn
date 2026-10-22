@@ -182,7 +182,9 @@ Two runs give the same bytes (the SHA-256 of every cell file compared).
   - our own low-poly trees to 2 km.
 
   None of them casts a shadow: the photo under them already holds the buildings' shadows.
-- **Shading:** `scenery.gdshader` colours roofs from the photo. Walls get the ambientCG plaster, stone, concrete or
+- **Shading:** `scenery.gdshader` colours roofs from the photo. The photo's colour already holds the sun's light and
+  the scene lights it again, so roofs take 0.6 of it and walls 0.5, both at most 0.45 (linear albedo): a town is as
+  bright as the photo under it. Walls get the ambientCG plaster, stone, concrete or
   corrugated-steel detail, a window grid (3 m levels, 3.2 m bays) and darker feet. Damaged buildings are sooted. With
   Night lights = Detailed, some windows are lit at night.
 - The flight starts once the near cells are drawn.
@@ -218,6 +220,9 @@ as in the original.
   - the player's jet, the AI jets and a derelict jet: `feed_ground` gives their flight model the terrain plus `top`;
   - the AI autopilot's terrain watch (`ap_set_ground`, the player's autopilot too), so it climbs over towers;
   - the external cameras and the cockpit eye stay above roofs (`views.gd`, `_apply_view`);
+  - the height warnings: the HUD's height and the radar altimeter (from the flight model's ground), Betty's "Pull up"
+    and "Altitude", the F-16's GAAF and CARA ALOW calls (`flight_sounds.gd`), and the info line's height above
+    ground. A real radar altimeter measures to whatever is under the jet, roofs and trees included.
   - debris, the wreck's explosion, the weapons' explosions and the ejected pilot's parachute land on roofs;
   - the EO centre point: `IafScenery.ray` finds the first wall, roof or crown along the line of sight, so the
     camera's point lands on a building the terrain ray march would step past.

@@ -3,6 +3,8 @@
 //   UV2  = (building index in the cell, 0 = wall / 1 = roof);
 //   COLOR.rgb = the roof colour on the active Survey 2 m look on roofs, lightened toward plaster on walls (sRGB);
 //   COLOR.a = the wall material / 255 (iaf_tools::thirdparty::SCENERY_WALLS: plaster, stone, concrete, corrugated).
+// The photo's colour already holds the sun's light, and the scene lights it again: roofs take ROOF_GAIN of it, walls
+// WALL_GAIN, both at most MAX_ALBEDO (linear), so a town reads as bright as the photo under it, not white.
 // Walls: that colour times the ambientCG material's colour detail (its colour over its mean);
 // our window mask (a row per 3 m level, a column every 3.2 m); a ground AO gradient. Damaged buildings: sooted.
 shader_type spatial;
@@ -17,6 +19,9 @@ uniform sampler2D damage : filter_nearest;
 // Detailed night lights at night: some windows lit.
 uniform bool night = false;
 
+const float ROOF_GAIN = 0.6;
+const float WALL_GAIN = 0.5;
+const float MAX_ALBEDO = 0.45;
 const float LEVEL_M = 3.0;
 const float BAY_M = 3.2;
 
@@ -46,10 +51,10 @@ void fragment() {
 	float rough = 0.9;
 	float emit = 0.0;
 	if (v_roof > 0.5) {
-		albedo = colour;
+		albedo = min(colour * ROOF_GAIN, vec3(MAX_ALBEDO));
 	} else {
 		int w = clamp(int(v_wall), 0, 3);
-		vec3 base = colour;
+		vec3 base = min(colour * WALL_GAIN, vec3(MAX_ALBEDO));
 		if (has_walls) {
 			base *= 2.0 * texture(walls, vec3(UV / wall_size[w], float(w))).rgb;
 		}
