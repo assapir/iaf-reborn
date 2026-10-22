@@ -25,11 +25,12 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
 - **Start:** with no mission open, two choices stand where the map goes: **New mission** and **Open a mission**.
 - **Top bar:** New, Open, Fork, Duplicate (your own mission, §17), Save, Save as, Undo, Delete (your own mission,
   after a confirmation; originals have none), the mission's name, **Fly as** (Alpha … Delta) and Fly.
-- **Map:** the TSD (`game/menu/tsd.gd`) in its edit mode, scaled to the window. The + / − buttons at its top right
-  and the mouse wheel zoom; the
-  scrollbars and arrow art are the TSD's own. The right button is the TSD's ruler.
-  It opens zoomed in two TSD steps on the blue units. The editor hides a scrollbar when there is nothing to scroll
-  that way (`tsd.gd bar_shown`); the original TSD always draws both.
+- **Map:** the TSD (`game/menu/tsd.gd`) in its edit mode. Its client (`tsd.area`) grows to the whole map pane, so
+  the map fills it at any window size, 4K full screen included; the art and icons keep the size the original's frame
+  would have there, and the farthest zoom still fills the pane (`tsd.min_zoom`). The mouse moves it: the wheel zooms
+  about the point under the cursor (the + / − buttons at the top right zoom too), and a drag with the middle button,
+  or with the left one from empty map when no tool is on, pans it; the editor draws no scrollbars. The right button
+  is the TSD's ruler. It opens zoomed in on the blue units.
 - **HiDPI:** on a Retina or other HiDPI screen the window's content grows by the screen's scale
   (`content_scale_factor`), and the window grows to hold 1600 × 1000 of those units as far as the work area allows,
   as the setup wizard's does.
@@ -39,7 +40,9 @@ The editor scene calls `IafMissionEdit` through `game/editor/_edit_api.gd`.
     Copy and Paste (§17); Add a unit; Give a route (§13); Random: the chance to appear and the start spread, the roll
     preview (§15).
   - **Flights:** the what-if switch (§12.4) above the jet lists it widens; Alpha … Delta (type: the blue jets in
-    service in the mission's year, number of jets, Set, Remove); the route of any flight, blue or red: its waypoints
+    service in the mission's year, number of jets; on its second line where it starts: "as placed" (a new flight: in
+    the air at the map's centre) or a base blue holds that year, on its runway with a route that takes off; Add / Set,
+    Remove); the route of any flight, blue or red: its waypoints
     with altitude (m) and planned arrival time (seconds after the start: the file's "speed" field, docs/ai.md §7.2),
     Insert a waypoint after, Delete the waypoint; **Waits parked at its base until a rule makes it take off** for a
     flight whose first waypoint is a take-off (§18.6); **Remove this enemy flight** for a flight other than Alpha …

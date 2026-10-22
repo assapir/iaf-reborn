@@ -6,6 +6,8 @@ extends Control
 
 ## Content window (TSD client) in 640x480 space.
 const CLIENT := Rect2(155, 42, 453, 357)
+## The client in use: CLIENT, or in the editor's edit mode the whole map pane (mission_editor.gd MapHost).
+var area := CLIENT
 ## Map extent at zoom 1 (0x607fa8/e4).
 const MAP_SIZE := Vector2(454, 590)
 const ZOOM_STEP := 1.5
@@ -378,7 +380,7 @@ func _map(name: String) -> Dictionary:
 
 
 func _process(_delta: float) -> void:
-	var client: Rect2 = fe._rect(CLIENT)
+	var client: Rect2 = fe._rect(area)
 	for c in [get_child(0), windows]:
 		c.position = client.position
 		c.size = client.size
@@ -393,7 +395,7 @@ func _process(_delta: float) -> void:
 
 
 func _view_size() -> Vector2:
-	return CLIENT.size / zoom
+	return area.size / zoom
 
 
 func _clamp_scroll() -> void:
@@ -403,7 +405,7 @@ func _clamp_scroll() -> void:
 ## Zoom, then centre the selected unit, or keep the view centre (5032d0).
 func zoom_by(factor: float) -> void:
 	var centre: Vector2 = units[selected].pos if selected >= 0 else scroll + _view_size() / 2
-	var new_zoom := clampf(zoom * factor, 1.0, ZOOM_MAX)
+	var new_zoom := clampf(zoom * factor, min_zoom(), ZOOM_MAX)
 	if is_equal_approx(new_zoom, zoom):
 		return
 	zoom = new_zoom
@@ -416,7 +418,13 @@ func can_zoom_in() -> bool:
 
 
 func can_zoom_out() -> bool:
-	return zoom > 1.001
+	return zoom > min_zoom() + 0.001
+
+
+## The farthest zoom: 1 (the whole map in the client), or in the editor's larger pane the zoom at which the map still
+## fills it, so no black shows beside the map.
+func min_zoom() -> float:
+	return maxf(1.0, maxf(area.size.x / MAP_SIZE.x, area.size.y / MAP_SIZE.y)) if edit else 1.0
 
 
 func centre_on(map_point: Vector2) -> void:
@@ -469,7 +477,7 @@ func open_briefing(open: bool) -> void:
 	var b := _briefing()
 	if b.is_empty():
 		return
-	brief_window = _new_window(Rect2(0, 0, floor(2 * CLIENT.size.x / 3), CLIENT.size.y), "framewnd/brief_t.png")
+	brief_window = _new_window(Rect2(0, 0, floor(2 * area.size.x / 3), area.size.y), "framewnd/brief_t.png")
 	brief_window.set_text(_text_of(b), _link_names(b))
 	brief_window.link_clicked.connect(_on_link.bind(b))
 	brief_window.closed.connect(func(): fe.tsd_briefing_closed())
@@ -477,9 +485,9 @@ func open_briefing(open: bool) -> void:
 
 func _new_window(r: Rect2, tab: String) -> Control:
 	var w := preload("res://menu/frame_window.gd").new()
-	w.setup(fe, CLIENT.position, r)
+	w.setup(fe, area.position, r)
 	w.tab_art = tab
-	w.bounds = Rect2(Vector2.ZERO, CLIENT.size)
+	w.bounds = Rect2(Vector2.ZERO, area.size)
 	windows.add_child(w)
 	return w
 
@@ -524,8 +532,8 @@ func _on_link(name: String, entry: Dictionary) -> void:
 	# A closed window is freed: its slot reads as none (a typed Control would refuse the freed instance).
 	var held = link_windows.get(kind)
 	var w: Control = held if is_instance_valid(held) else null
-	var cw := CLIENT.size.x
-	var ch := CLIENT.size.y
+	var cw := area.size.x
+	var ch := area.size.y
 	match kind:
 		0:
 			# An RTF: a lesson (brief/text) or another briefing text (brief/txt, e.g. the war history 67.rtf).
@@ -659,9 +667,9 @@ func _draw() -> void:
 		fe_blit("tsd/%sslider.png" % a, _along(bar.position, axis, _thumb(axis)))
 
 
-## The editor hides a bar with nothing to scroll; the original always draws both.
-func bar_shown(axis: int) -> bool:
-	return not edit or MAP_SIZE[axis] > _view_size()[axis] + 0.001
+## The editor pans with the mouse, so it draws no bars; the original always draws both.
+func bar_shown(_axis: int) -> bool:
+	return not edit
 
 
 ## A bar's two arrows as [art path, screen position]: the start one (sldownb, left / top), then the end one (slupb).
@@ -742,7 +750,7 @@ func _draw_overlay() -> void:
 		var w: float = fe.font_bold.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 		overlay.draw_string(
 			fe.font_bold,
-			Vector2((CLIENT.size.x - 4) * s - w, 4 * s + fe.font_bold.get_ascent(fs)),
+			Vector2((area.size.x - 4) * s - w, 4 * s + fe.font_bold.get_ascent(fs)),
 			t,
 			HORIZONTAL_ALIGNMENT_LEFT,
 			-1,
@@ -943,7 +951,7 @@ func _gui_input(event: InputEvent) -> void:
 	if not (event is InputEventMouse):
 		return
 	var p: Vector2 = fe._to_menu(event.position)
-	if _map_input(event, p - CLIENT.position):
+	if _map_input(event, p - area.position):
 		accept_event()
 		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
@@ -975,7 +983,7 @@ func _gui_input(event: InputEvent) -> void:
 ##   other unit is visited;
 ## * right press / move / release (5022d0 / 501cb0 / 502380): the ruler.
 func _map_input(event: InputEvent, c: Vector2) -> bool:
-	var inside := Rect2(Vector2.ZERO, CLIENT.size).has_point(c)
+	var inside := Rect2(Vector2.ZERO, area.size).has_point(c)
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT:
 		if event.pressed and inside:
 			ruler_on = true
@@ -1014,7 +1022,7 @@ func _map_input(event: InputEvent, c: Vector2) -> bool:
 		if event.button_mask & MOUSE_BUTTON_MASK_LEFT and drag_wp >= 0:
 			var n := default_flight()
 			if fe.flight == null and flights.has(n):
-				flights[n].points[drag_wp] = (c.clamp(Vector2.ZERO, CLIENT.size) / zoom + scroll).clamp(
+				flights[n].points[drag_wp] = (c.clamp(Vector2.ZERO, area.size) / zoom + scroll).clamp(
 					Vector2.ZERO, MAP_SIZE
 				)
 			return true
@@ -1027,7 +1035,7 @@ func _map_input(event: InputEvent, c: Vector2) -> bool:
 ## Ours, the editor's left button: a pressed unit is selected (its flight too) and drags; a press elsewhere takes the
 ## selected flight's waypoint, or reports the map point. The release reports the drag.
 func _edit_input(event: InputEvent, c: Vector2) -> bool:
-	var at := (c.clamp(Vector2.ZERO, CLIENT.size) / zoom + scroll).clamp(Vector2.ZERO, MAP_SIZE)
+	var at := (c.clamp(Vector2.ZERO, area.size) / zoom + scroll).clamp(Vector2.ZERO, MAP_SIZE)
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.double_click:
 		if event.pressed:
 			selected = unit_at(c)

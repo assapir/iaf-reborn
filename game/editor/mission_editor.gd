@@ -206,6 +206,7 @@ func _new_map(id: int) -> void:
 	host.tsd = tsd
 	tsd.setup(host, id)
 	tsd.edit = true
+	host.fit()
 	tsd.unit_dragged.connect(_on_unit_dragged)
 	tsd.waypoint_dragged.connect(_on_waypoint_dragged)
 	tsd.map_clicked.connect(_on_map_clicked)
@@ -301,7 +302,7 @@ func new_mission(name: String, y: float, base: String, jet: int, wingman: bool, 
 	var ahead := Vector2(st[0], st[1]) + Vector2.from_angle(deg_to_rad(90.0 - st[3])) * 20000.0
 	var spec := {"type": jet, "count": 2 if wingman else 1, "slot_x": st[0], "slot_y": st[1], "alt": st[2]}
 	# Planned arrival 150 s after the start: the take-off and 20 km at about 250 m/s (inferred).
-	spec.merge({"heading": st[3], "points": [[ahead.x, ahead.y, 3000.0, 150.0]]})
+	spec.merge({"heading": st[3], "points": [[ahead.x, ahead.y, 3000.0, 150.0, 2]]})
 	data = api.set_flight(data, 1, spec)
 	briefing = {"en": "", "he": ""}
 	_intel_opened([], {})
@@ -609,6 +610,18 @@ func apply_flight(n: int) -> void:
 	if row.type.selected < 0:
 		return
 	var spec := {"type": row.type.get_selected_metadata(), "count": int(row.count.value)}
+	var stem = row.start.get_selected_metadata() if row.start.selected >= 0 else ""
+	if stem != "":
+		# On the base's runway, its route taking off to 20 km ahead (as New).
+		for b in api.year_bases(year, 1):
+			if b.stem == stem:
+				_add_base(stem, 1)
+				var st: Array = b.start
+				var ahead := Vector2(st[0], st[1]) + Vector2.from_angle(deg_to_rad(90.0 - st[3])) * 20000.0
+				spec.merge({"slot_x": st[0], "slot_y": st[1], "alt": st[2], "heading": st[3]})
+				spec["points"] = [[ahead.x, ahead.y, 3000.0, 150.0, 2]]
+				_edit(api.set_flight(data, n, spec))
+				return
 	var lead := {}
 	if tsd.flights.has(n):
 		lead = entity(int(String(tsd.units[tsd.flights[n].leader].key).split(":")[1]))
@@ -670,6 +683,7 @@ func _on_map_clicked(at: Vector2) -> void:
 			sel_id = -1
 			sel_wp = -1
 			_refresh()
+			host.panning = true  # a drag from empty map pans it
 
 
 # --- checks and Fly -------------------------------------------------------------------------------------------------
@@ -724,6 +738,7 @@ func _refresh_ui() -> void:
 		return
 	var title := mission_name if mission_name != "" else "No mission"
 	_ui.title.text = title + (" (original, read-only: Fork to edit)" if read_only and source >= 0 else "")
+	_ui.title.tooltip_text = _ui.title.text
 	_ui.fork.disabled = source < 0
 	_ui.start.visible = source < 0
 	_ui.zoom_in.get_parent().visible = tsd != null
@@ -795,6 +810,11 @@ func _build_ui() -> void:
 	_ui.delete = _button(bar, "Delete", func(): _ui.delete_dlg.popup_centered())
 	_ui.title = Label.new()
 	_ui.title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# A long title clips (its full text is the tooltip) so it never pushes Fly off the bar.
+	_ui.title.clip_text = true
+	_ui.title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_ui.title.custom_minimum_size.x = 80
+	_ui.title.mouse_filter = Control.MOUSE_FILTER_PASS
 	bar.add_child(_ui.title)
 	bar.add_child(_label("Fly as"))
 	_ui.fly_as = OptionButton.new()
@@ -979,10 +999,22 @@ func _build_flights_tab(box: VBoxContainer) -> void:
 		var c := _spin(1, 2, 1, func(_v): pass)
 		h.add_child(c)
 		var k := n + 1
-		var add := _button(h, "Add", func(): apply_flight(k))
-		var rm := _button(h, "Remove", func(): remove_flight(k))
 		box.add_child(h)
-		_ui.flight_rows.append({"type": t, "count": c, "set": add, "remove": rm})
+		# Its second line: where it starts, then Add / Set and Remove.
+		var h2 := HBoxContainer.new()
+		var pad := _label("from")
+		pad.custom_minimum_size.x = 70
+		pad.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		h2.add_child(pad)
+		var st := OptionButton.new()
+		st.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		st.fit_to_longest_item = false
+		st.tooltip_text = "Where the flight starts: on a base's runway (blue's bases in the mission's year), or in the air"
+		h2.add_child(st)
+		var add := _button(h2, "Add", func(): apply_flight(k))
+		var rm := _button(h2, "Remove", func(): remove_flight(k))
+		box.add_child(h2)
+		_ui.flight_rows.append({"type": t, "count": c, "start": st, "set": add, "remove": rm})
 	box.add_child(HSeparator.new())
 	box.add_child(_label("Route of the flight (click its unit or pick it here)"))
 	_ui.route_of = _row(box, "Flight", _options([], _on_route_flight))
@@ -1315,8 +1347,19 @@ func _fill_object_picker() -> void:
 ## Alpha … Delta's jet lists: the blue jets in service in the mission's year (what-if adds the never-served).
 func _fill_flight_types() -> void:
 	var ids := api.year_jets(year, 1, what_if)
+	var bases := api.year_bases(year, 1) if not data.is_empty() else []
 	for row in _ui.flight_rows:
 		_fill_jets(row.type, ids)
+		var o: OptionButton = row.start
+		var keep = o.get_selected_metadata() if o.selected >= 0 else ""
+		o.clear()
+		o.add_item("as placed (new: in the air)")
+		o.set_item_metadata(0, "")
+		for b in bases:
+			o.add_item(String(b.name))
+			o.set_item_metadata(o.item_count - 1, String(b.stem))
+			if b.stem == keep:
+				o.select(o.item_count - 1)
 
 
 func _fill_flights() -> void:
@@ -1455,11 +1498,26 @@ class MapHost:
 		if FileAccess.file_exists(f):
 			art_scale = float(FileAccess.get_file_as_string(f).strip_edges())
 
+	## The scale keeps the TSD's art and icons at the size the original's frame would have here; the TSD's client
+	## (tsd.area) then grows to the whole pane, so the map fills it at any window size (fit()).
 	func _scale() -> float:
-		return minf(size.x / AREA.size.x, size.y / AREA.size.y)
+		return maxf(0.01, minf(size.x / AREA.size.x, size.y / AREA.size.y))
 
 	func _origin() -> Vector2:
-		return (size - AREA.size * _scale()) / 2 - AREA.position * _scale()
+		return -Tsd.CLIENT.position * _scale()
+
+	## The TSD's client: the whole pane, in its 640 × 480 units; the zoom and scroll kept inside the map.
+	func fit() -> void:
+		if tsd == null:
+			return
+		tsd.area = Rect2(Tsd.CLIENT.position, size / _scale())
+		tsd.zoom = maxf(tsd.zoom, tsd.min_zoom())
+		tsd._clamp_scroll()
+		tsd.map_canvas.queue_redraw()
+
+	func _notification(what: int) -> void:
+		if what == NOTIFICATION_RESIZED:
+			fit()
 
 	func _to_screen(p: Vector2) -> Vector2:
 		return _origin() + p * _scale()
@@ -1494,12 +1552,34 @@ class MapHost:
 	func briefing_image(_stem: String) -> Texture2D:
 		return null
 
+	## Mouse: the wheel zooms about the point under the cursor; a drag with the middle button, or with the left one on
+	## empty map while no tool is on (Add, route, paste), pans the map.
+	var panning := false
+
 	func _gui_input(event: InputEvent) -> void:
-		if tsd != null and event is InputEventMouseButton and event.pressed:
-			if event.button_index == MOUSE_BUTTON_WHEEL_UP and tsd.can_zoom_in():
-				tsd.zoom_by(tsd.ZOOM_STEP)
-			elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN and tsd.can_zoom_out():
-				tsd.zoom_by(1.0 / tsd.ZOOM_STEP)
+		if tsd == null:
+			return
+		if event is InputEventMouseButton:
+			var b: int = event.button_index
+			if event.pressed and b in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
+				var c: Vector2 = _to_menu(event.position) - tsd.area.position
+				var at: Vector2 = tsd.scroll + c / tsd.zoom
+				var f: float = tsd.ZOOM_STEP if b == MOUSE_BUTTON_WHEEL_UP else 1.0 / tsd.ZOOM_STEP
+				tsd.zoom = clampf(tsd.zoom * f, tsd.min_zoom(), tsd.ZOOM_MAX)
+				tsd.scroll = at - c / tsd.zoom
+				tsd._clamp_scroll()
+				tsd.map_canvas.queue_redraw()
+				editor._refresh_ui()
+				accept_event()
+			elif b == MOUSE_BUTTON_MIDDLE:
+				panning = event.pressed
+			elif b == MOUSE_BUTTON_LEFT and not event.pressed:
+				panning = false  # a left press on empty map starts it (the editor's _on_map_clicked)
+		elif event is InputEventMouseMotion and panning:
+			tsd.scroll -= event.relative / (_scale() * tsd.zoom)
+			tsd._clamp_scroll()
+			tsd.map_canvas.queue_redraw()
+			accept_event()
 
 	func _draw() -> void:
 		draw_rect(Rect2(Vector2.ZERO, size), Color.BLACK)
@@ -1510,7 +1590,7 @@ class MapHost:
 			return
 		var pts := PackedVector2Array()
 		for p in editor.route_pts:
-			pts.append(_to_screen(tsd.CLIENT.position + tsd._to_client(tsd.world_to_map(p.x, p.y))))
+			pts.append(_to_screen(tsd.area.position + tsd._to_client(tsd.world_to_map(p.x, p.y))))
 		if pts.size() > 1:
 			preview.draw_polyline(pts, Color.WHITE, 2.0)
 		for p in pts:

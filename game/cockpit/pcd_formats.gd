@@ -64,20 +64,24 @@ func _init(canvas: CanvasItem, c: Control, f: Font) -> void:
 
 
 func text(at: Vector2, t: String, size: float, col: Color, align := HORIZONTAL_ALIGNMENT_LEFT, width := -1.0) -> void:
-	# draw_string takes an int size: the text is drawn 8× larger at 1/8 scale, so sizes in panel px keep their
-	# fraction (the font is an MSDF font: sharp at any scale).
-	var k := 8.0
+	# Drawn unscaled at its screen size (a raster font: each glyph rasterises once per size, fast; an MSDF font
+	# built each new glyph's field on the main thread, a stall when a click brought up new text).
+	var px := _px(size)
 	var x := at.x
 	if align != HORIZONTAL_ALIGNMENT_LEFT and width > 0.0:
-		var w := font.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, int(size * k)).x / k
-		x += (width - w) * (0.5 if align == HORIZONTAL_ALIGNMENT_CENTER else 1.0)
-	ci.draw_set_transform_matrix(_base * Transform2D(0.0, Vector2.ONE / k, 0.0, Vector2(x, at.y)))
-	ci.draw_string(font, Vector2.ZERO, t, HORIZONTAL_ALIGNMENT_LEFT, -1, int(size * k), col)
+		x += (width - text_width(t, size)) * (0.5 if align == HORIZONTAL_ALIGNMENT_CENTER else 1.0)
+	ci.draw_set_transform_matrix(Transform2D(0.0, (_base * Vector2(x, at.y)).round()))
+	ci.draw_string(font, Vector2.ZERO, t, HORIZONTAL_ALIGNMENT_LEFT, -1, px, col)
 	ci.draw_set_transform_matrix(_base)
 
 
+## A size in panel px as whole screen px.
+func _px(size: float) -> int:
+	return maxi(int(round(size * _base.get_scale().x)), 6)
+
+
 func text_width(t: String, size: float) -> float:
-	return font.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, int(size * 8.0)).x / 8.0
+	return font.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, _px(size)).x / _base.get_scale().x
 
 
 var _base := Transform2D.IDENTITY

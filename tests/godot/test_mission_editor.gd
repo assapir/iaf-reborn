@@ -49,6 +49,42 @@ func run() -> void:
 	check(
 		widths.all(func(w): return is_equal_approx(w, widths[0])), "the map keeps its width on every tab %s" % [widths]
 	)
+	# The map fills its pane (any window size, 4K full screen too); the mouse pans and zooms it.
+	var mh: Control = ed.host
+	var mt: Control = ed.tsd
+	check((mt.area.size * mh._scale()).distance_to(mh.size) < 1.0, "the map's client fills the pane")
+	var sc0: Vector2 = mt.scroll
+	mh._gui_input(_mouse(InputEventMouseButton.new(), mh.size / 2, MOUSE_BUTTON_MIDDLE, true))
+	mh._gui_input(_mouse(InputEventMouseMotion.new(), Vector2(-40, -30)))
+	mh._gui_input(_mouse(InputEventMouseButton.new(), mh.size / 2, MOUSE_BUTTON_MIDDLE, false))
+	check(
+		mt.scroll.x > sc0.x and mt.scroll.y > sc0.y, "a middle-button drag pans the map (%s -> %s)" % [sc0, mt.scroll]
+	)
+	var cur: Vector2 = mh.size * 0.3
+	var under: Vector2 = mt.scroll + (mh._to_menu(cur) - mt.area.position) / mt.zoom
+	var z0: float = mt.zoom
+	mh._gui_input(_mouse(InputEventMouseButton.new(), cur, MOUSE_BUTTON_WHEEL_UP, true))
+	var after: Vector2 = mt.scroll + (mh._to_menu(cur) - mt.area.position) / mt.zoom
+	check(mt.zoom > z0 and after.distance_to(under) < 0.5, "the wheel zooms about the point under the cursor")
+	# A flight's jet and start: Bravo, F-15s from Tel Nof's runway, its route taking off.
+	var row: Dictionary = ed._ui.flight_rows[1]
+	for i in row.type.item_count:
+		if row.type.get_item_metadata(i) == 40:
+			row.type.select(i)
+	for i in row.start.item_count:
+		if row.start.get_item_text(i) == "Tel Nof":
+			row.start.select(i)
+	ed.apply_flight(2)
+	var bravo: Dictionary = ed.entity(ed._key_id(ed.tsd.units[ed.tsd.flights[2].leader].key))
+	var fo: Dictionary = ed.data.formations.items[ed._formation_of(2)]
+	check(
+		(
+			int(bravo["0x2c6"]) == 40
+			and Vector2(bravo["0x2e4"], bravo["0x2ee"]).distance_to(Vector2(312984, 500459)) < 1.0
+			and int(fo.points[0][5]) == 2
+		),
+		"Bravo: F-15s on Tel Nof's runway, the route taking off"
+	)
 	# 1973 from Refidim (Sinai), a lone Mirage: Refidim's base mission comes with it and is kept by Save / Open.
 	ed.new_mission("Scratch 2", 1973.0, "Refidim", 47, false)
 	real = ed.data.entities.items.filter(func(e): return int(e["0x14"]) == 0)
@@ -123,9 +159,9 @@ func run() -> void:
 	for k in tsd.units.size():
 		if tsd.units[k].key == "0:1":
 			i = k
-	var from: Vector2 = host._to_screen(tsd.CLIENT.position + tsd._to_client(tsd.units[i].pos))
+	var from: Vector2 = host._to_screen(tsd.area.position + tsd._to_client(tsd.units[i].pos))
 	var to := from + Vector2(60, 40)
-	i = tsd.unit_at(host._to_menu(from) - tsd.CLIENT.position)
+	i = tsd.unit_at(host._to_menu(from) - tsd.area.position)
 	var id: int = int(String(tsd.units[i].key).split(":")[1])
 	var x0: float = ed.entity(id)["0x2e4"]
 	tsd._gui_input(mouse_button(from, true))
@@ -187,3 +223,14 @@ func run() -> void:
 	ed.queue_free()
 	await frames(2)
 	_clean()
+
+
+func _mouse(ev: InputEvent, pos: Vector2, button := MOUSE_BUTTON_NONE, pressed := false) -> InputEvent:
+	if ev is InputEventMouseButton:
+		ev.position = pos
+		ev.button_index = button
+		ev.pressed = pressed
+	else:
+		ev.relative = pos
+		ev.button_mask = MOUSE_BUTTON_MASK_MIDDLE
+	return ev

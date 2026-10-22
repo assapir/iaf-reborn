@@ -46,7 +46,6 @@ func setup(c: Control, l: int) -> void:
 		["Arial Narrow", "Liberation Sans Narrow", "DejaVu Sans Condensed", "Arial", "Liberation Sans"]
 	)
 	sf.font_weight = 600
-	sf.multichannel_signed_distance_field = true
 	font = sf
 	fmt = Formats.new(self, c, font)
 
