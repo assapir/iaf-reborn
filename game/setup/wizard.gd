@@ -887,7 +887,11 @@ func _count_stale() -> void:
 		[assets] + Array(_layers()),
 		func(n):
 			refresh_note.text = (
-				("Could not count them (offline?). " if n < 0 else "%d units were made under older rules. " % n)
+				(
+					"Could not count them (offline?). "
+					if n == null or int(n) < 0
+					else "%d units were made under older rules. " % n
+				)
 				+ "Converts them again (after copying imagery from another computer)."
 			)
 	)

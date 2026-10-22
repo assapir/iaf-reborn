@@ -535,7 +535,10 @@ pub fn footprint(
         seeds.disc(*p, POINT_M / UNITS_TO_METRES);
     }
     let rgb = art(px0, py0, w, h);
-    let paved = Grid { v: rgb.iter().map(|&c| is_paved(c)).collect(), ..seeds.clone() };
+    // No art for the rect (its tiles not converted, a read error): no paved cells, so the footprint is the runways,
+    // the base points and the units alone, coarser but never a short grid.
+    let paved_v = if rgb.len() == w * h { rgb.iter().map(|&c| is_paved(c)).collect() } else { vec![false; w * h] };
+    let paved = Grid { v: paved_v, ..seeds.clone() };
     let paved = paved.erode(cells(ROAD_M) / 2).dilate(cells(ROAD_M) / 2);
     let mut core = Grid::grow(&seeds, &paved, cells(GROW_M));
     core.or(&seeds);
@@ -1428,6 +1431,16 @@ mod tests {
     /// A 4 km × 4 km site (units) with one runway leaf, a paved apron beside it, a grey road leading away and a unit
     /// near the apron: the footprint covers the leaf, the apron and the unit plus the margin, and not the road's far
     /// end nor the far corner.
+    /// No art for the rect (tiles not converted): the footprint still covers the runway leaf and does not panic
+    /// (the Mac setup crashed in imagery_stale with an empty art list).
+    #[test]
+    fn footprint_without_art() {
+        let leaf = vec![[800.0, 1500.0], [2400.0, 1500.0], [2400.0, 1600.0], [800.0, 1600.0]];
+        let art = |_: i64, _: i64, _: usize, _: usize| Vec::new();
+        let f = footprint([0, 0, 3200, 3200], &art, &[leaf], &[], &[]).unwrap();
+        assert!(f.at(1600.0, 1550.0), "the runway leaf");
+    }
+
     #[test]
     fn footprint_covers_the_base_not_the_country() {
         let size = 3200u32; // units (≈ 4 km)
