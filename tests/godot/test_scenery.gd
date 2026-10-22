@@ -85,8 +85,9 @@ func run() -> void:
 		await process_frame
 	check(t.scenery.drawn().has(c), "the focus' cell is drawn")
 	check(t.ground_ready(), "ground_ready with the near scenery")
-	var far: Array = t.scenery.loaded().filter(func(k): return t.scenery._dist(k, focus.position) > Scenery.RANGE)
-	check(far.is_empty(), "nothing loaded beyond %d m (%s)" % [Scenery.RANGE, far])
+	var reach: float = Scenery.RANGE + Scenery.AHEAD
+	var far: Array = t.scenery.loaded().filter(func(k): return t.scenery._dist(k, focus.position) > reach)
+	check(far.is_empty(), "nothing loaded beyond %d m (%s)" % [reach, far])
 	var node: Node3D = t.scenery._cells[c].node
 	check(node.get_child_count() >= 2, "near + far meshes and trees (%d nodes)" % node.get_child_count())
 	var house := _house(meta, c)

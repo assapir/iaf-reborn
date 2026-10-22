@@ -203,7 +203,8 @@ Two runs give the same bytes (the SHA-256 of every cell file compared).
   - On is greyed with "Not downloaded" until setup has made the scenery.
   - On is greyed with "Needs Survey 2 m" while the Israel imagery picked on the page is not a Survey 2 m layer.
   - Picking another Israel imagery turns Scenery off. A saved On without both loads as Off.
-- **Streaming:** `game/terrain/scenery.gd` keeps the cells within 4.5 km of the camera's focus, and only the Survey
+- **Streaming:** `game/terrain/scenery.gd` keeps the cells within 6 km of the camera's focus (4.5 km drawn plus 1.5 km
+  made ahead, so a cell is uploaded before it comes into view), and only the Survey
   layer's level-1 nodes; each re-selection looks only at the cells around the focus.
   1. Worker threads read the files into `IafScenery`.
   2. `IafScenery.prepare` makes a cell's meshes and trees on a Rust thread of its own, from a copy of the cell, so the

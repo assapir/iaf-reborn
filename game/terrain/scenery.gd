@@ -8,10 +8,12 @@
 extends Node3D
 
 const DIR := "converted/scenery"
-## Cells are loaded within this distance (m) of the focus (horizontal, to the cell's square) and freed beyond
+## Buildings are drawn to RANGE (m). Cells are loaded within RANGE + AHEAD of the focus (horizontal, to the cell's
+## square), so a cell is made and uploaded before it comes into view (1.5 km: 6 s at 250 m/s), and freed beyond
 ## RANGE + KEEP.
 const RANGE := 4500.0
-const KEEP := 1000.0
+const AHEAD := 1500.0
+const KEEP := 2500.0
 const NEAR := 2500.0
 const TREES := 2000.0
 ## Trees draw their full model to this distance (m), the far one beyond; they grow in over the last TREES_GROW m
@@ -414,7 +416,7 @@ func _reselect(fp: Vector3) -> void:
 			_live.append(k)
 		if d > RANGE + KEEP and _cells[k].state in ["loaded", "preparing", "prepared", "uploading", "built"]:
 			_drop(k)
-		elif d <= RANGE and _cells[k].state == "wait" and not busy.has(k):
+		elif d <= RANGE + AHEAD and _cells[k].state == "wait" and not busy.has(k):
 			want.append([d, k])
 	want.sort()
 	_mutex.lock()
