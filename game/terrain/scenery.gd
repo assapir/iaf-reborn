@@ -1,18 +1,18 @@
 # Scenery (ours, Graphics → MORE, Settings.scenery; docs/scenery.md §3): the buildings and trees setup generates over
 # the Survey of Israel 2 m photo, streamed around the terrain's focus. One cell per level-1 node of the mapi2015 layer
 # (assets/converted/scenery/L1/s_<i>_<j>.bin, the layer's own keys); the cells within RANGE of the focus are loaded on
-# worker threads (IafScenery parses the file and builds the mesh arrays in Rust, on the heights IafHeights has), then
-# drawn as a near mesh (walls with windows, roofs; to NEAR m), a far mesh (bare prisms; NEAR to RANGE m) and one
-# MultiMesh per tree kind (to TREES m). Owned by terrain.gd (its focus, its world origin, its layers). Rendering only:
-# the queries (roof heights, the EO ray) are IafScenery's.
+# worker threads (IafScenery parses the file), their meshes made on IafScenery's own threads (on the heights
+# IafHeights has) and uploaded a chunk per frame, drawn as a near mesh (walls with windows, roofs; to NEAR m), a far
+# mesh (bare prisms; NEAR to RANGE m) and one MultiMesh per tree kind (to TREES m). Owned by terrain.gd (its focus,
+# its world origin, its layers). Rendering only: the queries (roof heights, the EO ray) are IafScenery's.
 extends Node3D
 
 const DIR := "converted/scenery"
 ## Cells are loaded within this distance (m) of the focus (horizontal, to the cell's square) and freed beyond
 ## RANGE + KEEP.
-const RANGE := 8000.0
+const RANGE := 4500.0
 const KEEP := 1000.0
-const NEAR := 3000.0
+const NEAR := 2500.0
 const TREES := 2000.0
 ## The visibility ranges' fade margins (m).
 const FADE := 300.0
@@ -21,7 +21,7 @@ const RESELECT_M := 200.0
 const RESELECT_MS := 1000
 ## Workers at once (the terrain's decodes have priority: 4 of them).
 const MAX_JOBS := 2
-## Cells drawn per frame (their arrays are made and uploaded on the main thread).
+## Cells drawn per frame (IafScenery makes their arrays on its threads; the main thread copies and uploads them).
 const BUILDS_PER_FRAME := 1
 ## Damage states read back this often (ms).
 const DAMAGE_MS := 1000
@@ -56,9 +56,11 @@ var modern := false
 ## false: load only (the front end's preload terrain); the flight's terrain adopts the loaded cells.
 var draw := true
 var _span := 0.0  # a cell's side (m)
-## Vector2i -> {state: "wait" (not loaded) | "loaded" (in IafScenery, origin) | "built" (drawn: node, mat) | "none"
-## (no file)}.
+## Vector2i -> {state: "wait" (not loaded) | "loaded" (in IafScenery, origin) | "preparing" (IafScenery making its
+## meshes) | "prepared" (made, waiting in IafScenery) | "uploading" (node, mat; pieces arriving) | "built" (drawn) |
+## "none" (no file)}.
 var _cells := {}
+var _live: Array = []  # the cells within RANGE + KEEP of the focus at the last reselect (the per-frame work's list)
 var _queue: Array = []  # cells to load, nearest first (under the mutex)
 var _busy := {}  # cells a worker has (under the mutex)
 var _results := {}  # Vector2i -> worker result (under the mutex)
@@ -258,8 +260,8 @@ func _process(_delta: float) -> void:
 	var now := Time.get_ticks_msec()
 	if fp.distance_to(_last_focus) > RESELECT_M or now - _last_select > RESELECT_MS:
 		_reselect(fp)
+	_build_some(fp)
 	if draw:
-		_build_some(fp)
 		if now - _last_damage > DAMAGE_MS:
 			_last_damage = now
 			_refresh_damage()
@@ -276,9 +278,23 @@ func _reselect(fp: Vector3) -> void:
 	_mutex.lock()
 	var busy := _busy.merged(_results)  # cells whose result is not taken yet
 	_mutex.unlock()
-	for k in _cells:
+	# Only the cells around the focus (the grid is linear in Godot x / z) and the ones held before: a pass over every
+	# cell of the layer (≈ 4 000) took 8–19 ms.
+	var o := _corner(Vector2i.ZERO)
+	var c := Vector2i(floori((fp.x - o.x) / _span), floori((fp.z - o.y) / _span))
+	var r := ceili((RANGE + KEEP) / _span)
+	var around: Array = _live.duplicate()
+	for i in range(c.x - r, c.x + r + 1):
+		for j in range(c.y - r, c.y + r + 1):
+			var k := Vector2i(i, j)
+			if _cells.has(k) and not k in around:
+				around.append(k)
+	_live = []
+	for k in around:
 		var d := _dist(k, fp)
-		if d > RANGE + KEEP and _cells[k].state in ["loaded", "built"]:
+		if d <= RANGE + KEEP:
+			_live.append(k)
+		if d > RANGE + KEEP and _cells[k].state in ["loaded", "preparing", "prepared", "uploading", "built"]:
 			_drop(k)
 		elif d <= RANGE and _cells[k].state == "wait" and not busy.has(k):
 			want.append([d, k])
@@ -293,8 +309,8 @@ func _reselect(fp: Vector3) -> void:
 		_jobs.append(WorkerThreadPool.add_task(_work, false, "scenery"))
 
 
-## Worker: reads the queued cells' files into IafScenery until the queue is empty. (Its arrays are made on the main
-## thread: godot-rust builds Godot arrays there only.)
+## Worker: reads the queued cells' files into IafScenery until the queue is empty. (IafScenery.prepare makes their
+## meshes on its own threads: godot-rust builds Godot arrays on the main thread only.)
 func _work() -> void:
 	while true:
 		_mutex.lock()
@@ -324,25 +340,44 @@ func _finish_jobs() -> void:
 			_cells[k] = {"state": "loaded", "origin": done[k]}
 
 
-## Draws up to BUILDS_PER_FRAME loaded cells, nearest first.
+## Starts IafScenery making the nearest loaded cells' meshes on its threads (MAX_JOBS at once), and uploads up to
+## BUILDS_PER_FRAME made pieces (a mesh chunk or a cell's trees), nearest cell first. The front end's preload
+## (draw false) only has them made, for the flight's scenery to adopt.
 func _build_some(fp: Vector3) -> void:
-	var todo := []
-	for k in _cells:
-		if _cells[k].state == "loaded":
-			todo.append([_dist(k, fp), k])
-	todo.sort()
-	for t in todo.slice(0, BUILDS_PER_FRAME):
-		_build(t[1])
+	var ready := []
+	var waiting := []
+	var preparing := 0
+	for k in _live:
+		var c: Dictionary = _cells[k]
+		if c.state == "preparing":
+			preparing += 1
+			var r: int = IafScenery.prepared(k.x, k.y)
+			if r == 1:
+				c.state = "prepared"
+			elif r == -1:
+				c.state = "loaded"  # the heights under it are not loaded yet: made again later
+		if c.state == "prepared" and draw:
+			_start_cell(k)
+		if c.state == "uploading":
+			ready.append([_dist(k, fp), k])
+		elif c.state == "loaded":
+			waiting.append([_dist(k, fp), k])
+	ready.sort()
+	var pieces := 0
+	for t in ready:
+		while pieces < BUILDS_PER_FRAME and _cells[t[1]].state == "uploading":
+			_upload(t[1])
+			pieces += 1
+	waiting.sort()
+	for t in waiting.slice(0, maxi(0, MAX_JOBS - preparing)):
+		_cells[t[1]].state = "preparing"
+		IafScenery.prepare(t[1].x, t[1].y, modern)
 
 
-## The cell's meshes and trees (IafScenery builds them on the heights it has; none yet: tried again next frame).
-func _build(k: Vector2i) -> void:
+## A made cell's node and material; its pieces follow (_upload).
+func _start_cell(k: Vector2i) -> void:
 	var c: Dictionary = _cells[k]
-	var near_arrays: Array = IafScenery.mesh_arrays(k.x, k.y, true, modern)
-	var centre := _corner(k) + Vector2(_span, _span) / 2.0
-	if near_arrays.is_empty() and terrain.height_at(Vector3(centre.x, 0, centre.y)) == null:
-		return  # the heights under it are not loaded yet
-	c.state = "built"
+	c.state = "uploading"
 	var root := Node3D.new()
 	root.name = "Cell_%d_%d" % [k.x, k.y]
 	var o: Vector3 = c.origin
@@ -351,46 +386,55 @@ func _build(k: Vector2i) -> void:
 	root.position = Vector3(o.x - wo.x, o.z, -(o.y - wo.y))
 	add_child(root)
 	c.node = root
-	if not near_arrays.is_empty():
-		var mat := _building_material(IafScenery.damage_index(k.x, k.y))
-		_materials.append(mat)
-		c.mat = mat
-		for near in [true, false]:
-			var mesh := ArrayMesh.new()
-			mesh.add_surface_from_arrays(
-				Mesh.PRIMITIVE_TRIANGLES, near_arrays if near else IafScenery.mesh_arrays(k.x, k.y, false, modern)
-			)
-			var mi := MeshInstance3D.new()
-			mi.mesh = mesh
-			mi.material_override = mat
-			mi.visibility_range_begin = 0.0 if near else NEAR
-			mi.visibility_range_begin_margin = 0.0 if near else FADE
-			mi.visibility_range_end = NEAR if near else RANGE
-			mi.visibility_range_end_margin = FADE
+	var mat := _building_material(IafScenery.damage_index(k.x, k.y))
+	_materials.append(mat)
+	c.mat = mat
+
+
+## One piece of a made cell: a chunk of its near or far buildings, or its trees; the cell is drawn when none is left.
+func _upload(k: Vector2i) -> void:
+	var c: Dictionary = _cells[k]
+	var piece: Dictionary = IafScenery.take_next(k.x, k.y)
+	if piece.is_empty():
+		c.state = "built"
+	elif piece.has("arrays"):
+		var near: bool = piece.near
+		var mesh := ArrayMesh.new()
+		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, piece.arrays)
+		var mi := MeshInstance3D.new()
+		mi.mesh = mesh
+		mi.material_override = c.mat
+		mi.visibility_range_begin = 0.0 if near else NEAR
+		mi.visibility_range_begin_margin = 0.0 if near else FADE
+		mi.visibility_range_end = NEAR if near else RANGE
+		mi.visibility_range_end_margin = FADE
+		# Fading draws the whole mesh as transparent while in the margin; the far end pops instead (a few pixels).
+		if near:
 			mi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
-			if not near:
-				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-			root.add_child(mi)
-	var trees: Dictionary = IafScenery.trees(k.x, k.y)
-	for kind in trees:
-		var rows: PackedFloat32Array = trees[kind]
-		var mm := MultiMesh.new()
-		mm.transform_format = MultiMesh.TRANSFORM_3D
-		mm.mesh = tree_mesh(int(kind))
-		mm.instance_count = rows.size() / 12
-		mm.buffer = rows
-		var mmi := MultiMeshInstance3D.new()
-		mmi.multimesh = mm
-		mmi.visibility_range_end = TREES
-		mmi.visibility_range_end_margin = FADE
-		mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
-		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		root.add_child(mmi)
+		# The photo under it already holds the buildings' shadows.
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		c.node.add_child(mi)
+	else:
+		var trees: Dictionary = piece.trees
+		for kind in trees:
+			var rows: PackedFloat32Array = trees[kind]
+			var mm := MultiMesh.new()
+			mm.transform_format = MultiMesh.TRANSFORM_3D
+			mm.mesh = tree_mesh(int(kind))
+			mm.instance_count = rows.size() / 12
+			mm.buffer = rows
+			var mmi := MultiMeshInstance3D.new()
+			mmi.multimesh = mm
+			mmi.visibility_range_end = TREES
+			mmi.visibility_range_end_margin = FADE
+			mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			c.node.add_child(mmi)
 
 
 ## The damage states of the drawn cells, when they changed (a destroyed scenery target).
 func _refresh_damage() -> void:
-	for k in _cells:
+	for k in _live:
 		var c: Dictionary = _cells[k]
 		if c.has("mat"):
 			var d: PackedByteArray = IafScenery.damage_index(k.x, k.y)
@@ -418,7 +462,7 @@ func ground_ready() -> bool:
 	for k in _cells:
 		if _dist(k, fp) <= NEAR:
 			var c: Dictionary = _cells[k]
-			if not (c.state in ["none", "built"] or (c.state == "loaded" and not draw)):
+			if not (c.state in ["none", "built"] or (c.state in ["loaded", "preparing", "prepared"] and not draw)):
 				return false
 	return true
 
@@ -440,7 +484,7 @@ func adopt(other: Node) -> void:
 		return
 	for k in other._cells:
 		var c: Dictionary = other._cells[k]
-		if _cells.has(k) and c.state in ["loaded", "none"]:
+		if _cells.has(k) and c.state in ["loaded", "preparing", "prepared", "none"]:
 			_cells[k] = c
 		other._cells[k] = {"state": "wait"}
 	_last_focus = Vector3(INF, INF, INF)

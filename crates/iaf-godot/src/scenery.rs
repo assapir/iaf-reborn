@@ -5,17 +5,66 @@
 //! Frames: `cell_origin` and every point passed in are the engine world frame (X east, Y north, Z up); mesh vertices
 //! and tree transforms are Godot axes (x east, y up, z south) relative to `cell_origin`, heights absolute.
 
-use std::sync::{LazyLock, RwLock};
+use std::collections::{HashMap, VecDeque};
+use std::sync::{LazyLock, Mutex, RwLock};
 
 use godot::classes::mesh::ArrayType;
 use godot::prelude::*;
 use iaf_avionics::Vec3;
-use iaf_avionics::scenery::{self, Cell, Scenery};
+use iaf_avionics::scenery::{self, Cell, Mesh, Scenery};
 
 use crate::heights::FIELD;
 use crate::world::vec3;
 
 pub static SCENERY: LazyLock<RwLock<Scenery>> = LazyLock::new(Default::default);
+
+/// A cell's meshes and trees made off the main thread (`prepare`), handed over one piece per call (`take_next`):
+/// None when the terrain under it was not loaded.
+enum Piece {
+    Near(Mesh),
+    Far(Mesh),
+    Trees([Vec<f32>; 4]),
+}
+type Built = Option<VecDeque<Piece>>;
+
+/// Vertices per uploaded mesh: a dense cell reaches the GPU over several frames.
+const CHUNK_VERTICES: usize = 60_000;
+static BUILT: LazyLock<Mutex<HashMap<(i64, i64), Built>>> = LazyLock::new(Default::default);
+
+fn build(i: i64, j: i64, modern: bool) -> Built {
+    // A copy: holding the store's read lock through the build would stall the main thread's drop_cell (a write).
+    let c = SCENERY.read().unwrap().cell(i, j)?.clone();
+    let (c, o) = (&c, origin(i, j));
+    let near = scenery::mesh_chunks(c, o, true, modern, &ground, CHUNK_VERTICES)?;
+    let far = scenery::mesh_chunks(c, o, false, modern, &ground, CHUNK_VERTICES)?;
+    let trees = scenery::tree_rows(c, o, &ground)?;
+    let mut q: VecDeque<Piece> = near.into_iter().map(Piece::Near).chain(far.into_iter().map(Piece::Far)).collect();
+    q.push_back(Piece::Trees(trees));
+    Some(q)
+}
+
+fn arrays(m: &Mesh) -> VarArray {
+    if m.index.is_empty() {
+        return VarArray::new();
+    }
+    let mut a: Vec<Variant> = vec![Variant::nil(); ArrayType::MAX.ord() as usize];
+    a[ArrayType::VERTEX.ord() as usize] = v3(&m.vertex).to_variant();
+    a[ArrayType::NORMAL.ord() as usize] = v3(&m.normal).to_variant();
+    a[ArrayType::TEX_UV.ord() as usize] = v2(&m.uv).to_variant();
+    a[ArrayType::TEX_UV2.ord() as usize] = v2(&m.uv2).to_variant();
+    let colors: PackedColorArray = m.color.iter().map(|c| Color::from_rgba(c[0], c[1], c[2], c[3])).collect();
+    a[ArrayType::COLOR.ord() as usize] = colors.to_variant();
+    a[ArrayType::INDEX.ord() as usize] = PackedInt32Array::from(m.index.as_slice()).to_variant();
+    a.into_iter().collect()
+}
+
+fn tree_dict(rows: &[Vec<f32>; 4]) -> VarDictionary {
+    let mut d = VarDictionary::new();
+    for (k, r) in rows.iter().enumerate().filter(|(_, r)| !r.is_empty()) {
+        d.set(k as i64, &PackedFloat32Array::from(r.as_slice()).to_variant());
+    }
+    d
+}
 
 fn ground(p: Vec3) -> Option<f64> {
     FIELD.read().unwrap().height(p)
@@ -53,6 +102,7 @@ impl IafScenery {
     #[func]
     fn drop_cell(i: i64, j: i64) {
         SCENERY.write().unwrap().remove(i, j);
+        BUILT.lock().unwrap().remove(&(i, j));
     }
 
     /// The cell's mesh origin, world frame (Z = 0); needs `IafHeights.set_meta` first.
@@ -62,41 +112,80 @@ impl IafScenery {
         Vector3::new(x as f32, y as f32, 0.0)
     }
 
-    /// The cell's buildings for `ArrayMesh.add_surface_from_arrays` (Mesh.ARRAY_MAX entries: VERTEX, NORMAL, COLOR,
-    /// TEX_UV, TEX_UV2, INDEX); near = parapets, gabled and dome roofs, far = bare prisms; `modern` picks the roof
-    /// colours of the modern photo. Empty while the cell or the terrain under it is not loaded, or it has no buildings.
+    /// Starts making the cell's meshes and trees on a thread of its own (the main thread only copies them out);
+    /// `prepared` tells when they are done.
+    #[func]
+    fn prepare(i: i64, j: i64, modern: bool) {
+        std::thread::spawn(move || {
+            let b = build(i, j, modern);
+            // A cell dropped meanwhile keeps nothing.
+            if SCENERY.read().unwrap().cell(i, j).is_some() {
+                BUILT.lock().unwrap().insert((i, j), b);
+            }
+        });
+    }
+
+    /// 1 when `prepare` finished the cell (pieces wait in `take_next`), −1 when it could not (the terrain under it not
+    /// loaded yet: prepare again), 0 while it runs. A −1 is reported once.
+    #[func]
+    fn prepared(i: i64, j: i64) -> i64 {
+        let mut built = BUILT.lock().unwrap();
+        match built.get(&(i, j)) {
+            None => 0,
+            Some(Some(_)) => 1,
+            Some(None) => {
+                built.remove(&(i, j));
+                -1
+            }
+        }
+    }
+
+    /// The prepared cell's next piece, {} when none is left: {near: true, arrays} or {near: false, arrays} (a chunk of
+    /// the near / far buildings for `ArrayMesh.add_surface_from_arrays`, Mesh.ARRAY_MAX arrays: VERTEX, NORMAL, COLOR,
+    /// TEX_UV, TEX_UV2, INDEX, at most `CHUNK_VERTICES`), or {trees} (kind (TreeKind as int) → PackedFloat32Array of
+    /// TRANSFORM_3D rows, 12 floats each, for a 10 m model). Near = parapets, gabled and dome roofs; far = bare prisms.
+    #[func]
+    fn take_next(i: i64, j: i64) -> VarDictionary {
+        let mut built = BUILT.lock().unwrap();
+        let mut d = VarDictionary::new();
+        let Some(Some(q)) = built.get_mut(&(i, j)) else { return d };
+        loop {
+            match q.pop_front() {
+                None => {
+                    built.remove(&(i, j));
+                    return d;
+                }
+                Some(Piece::Near(m) | Piece::Far(m)) if m.index.is_empty() => continue,
+                Some(Piece::Near(m)) => {
+                    d.set("near", true);
+                    d.set("arrays", &arrays(&m));
+                }
+                Some(Piece::Far(m)) => {
+                    d.set("near", false);
+                    d.set("arrays", &arrays(&m));
+                }
+                Some(Piece::Trees(t)) => d.set("trees", &tree_dict(&t)),
+            }
+            return d;
+        }
+    }
+
+    /// The cell's buildings, made on the calling thread (`prepare` / `take_next` for the streamed cells).
     #[func]
     fn mesh_arrays(i: i64, j: i64, near: bool, modern: bool) -> VarArray {
         let s = SCENERY.read().unwrap();
-        let Some(m) = s.cell(i, j).and_then(|c| scenery::mesh(c, origin(i, j), near, modern, &ground)) else {
-            return VarArray::new();
-        };
-        if m.index.is_empty() {
-            return VarArray::new();
-        }
-        let mut a: Vec<Variant> = vec![Variant::nil(); ArrayType::MAX.ord() as usize];
-        a[ArrayType::VERTEX.ord() as usize] = v3(&m.vertex).to_variant();
-        a[ArrayType::NORMAL.ord() as usize] = v3(&m.normal).to_variant();
-        a[ArrayType::TEX_UV.ord() as usize] = v2(&m.uv).to_variant();
-        a[ArrayType::TEX_UV2.ord() as usize] = v2(&m.uv2).to_variant();
-        let colors: PackedColorArray = m.color.iter().map(|c| Color::from_rgba(c[0], c[1], c[2], c[3])).collect();
-        a[ArrayType::COLOR.ord() as usize] = colors.to_variant();
-        a[ArrayType::INDEX.ord() as usize] = PackedInt32Array::from(m.index.as_slice()).to_variant();
-        a.into_iter().collect()
+        s.cell(i, j)
+            .and_then(|c| scenery::mesh(c, origin(i, j), near, modern, &ground))
+            .map_or_else(VarArray::new, |m| arrays(&m))
     }
 
-    /// The cell's trees: {kind (TreeKind as int): PackedFloat32Array of MultiMesh TRANSFORM_3D rows, 12 floats each}
-    /// for a 10 m model; empty while the cell or the terrain under it is not loaded.
+    /// The cell's trees, made on the calling thread.
     #[func]
     fn trees(i: i64, j: i64) -> VarDictionary {
         let s = SCENERY.read().unwrap();
-        let mut d = VarDictionary::new();
-        if let Some(rows) = s.cell(i, j).and_then(|c| scenery::tree_rows(c, origin(i, j), &ground)) {
-            for (k, r) in rows.iter().enumerate().filter(|(_, r)| !r.is_empty()) {
-                d.set(k as i64, &PackedFloat32Array::from(r.as_slice()).to_variant());
-            }
-        }
-        d
+        s.cell(i, j)
+            .and_then(|c| scenery::tree_rows(c, origin(i, j), &ground))
+            .map_or_else(VarDictionary::new, |r| tree_dict(&r))
     }
 
     /// The scenery's height above ground (m) at a world point; 0 where none stands.

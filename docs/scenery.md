@@ -164,18 +164,46 @@ Two runs give the same bytes (the SHA-256 of every cell file compared).
   - On is greyed with "Not downloaded" until setup has made the scenery.
   - On is greyed with "Needs Survey 2 m" while the Israel imagery picked on the page is not a Survey 2 m layer.
   - Picking another Israel imagery turns Scenery off. A saved On without both loads as Off.
-- **Streaming:** `game/terrain/scenery.gd` keeps the cells within 8 km of the camera's focus, and only the Survey
-  layer's level-1 nodes. Worker threads read the files into `IafScenery`; the main thread builds one cell per frame.
+- **Streaming:** `game/terrain/scenery.gd` keeps the cells within 4.5 km of the camera's focus, and only the Survey
+  layer's level-1 nodes; each re-selection looks only at the cells around the focus.
+  1. Worker threads read the files into `IafScenery`.
+  2. `IafScenery.prepare` makes a cell's meshes and trees on a Rust thread of its own, from a copy of the cell, so the
+     main thread never waits on it.
+  3. The main thread takes one piece per frame (`take_next`): a chunk of at most 60 000 vertices, or the cell's
+     trees. A dense Tel Aviv cell reaches the GPU over several frames.
+
+  The front end's preload (briefing, TSD, arming) already has the near cells made.
 - **Per cell:**
-  - a near mesh to 3 km: walls with windows, and roofs;
-  - a far mesh from 3 to 8 km: bare prisms;
+  - a near mesh to 2.5 km: walls with windows, and roofs. It fades out over 300 m;
+  - a far mesh from 2.5 to 4.5 km: bare prisms of every building. Its far end has no fade: fading draws a whole mesh
+    as transparent while in the margin, and a building that far covers a few pixels;
   - our own low-poly trees to 2 km.
 
-  Each fades out at the ends of its range.
+  None of them casts a shadow: the photo under them already holds the buildings' shadows.
 - **Shading:** `scenery.gdshader` colours roofs from the photo. Walls get the ambientCG plaster, stone, concrete or
   corrugated-steel detail, a window grid (3 m levels, 3.2 m bays) and darker feet. Damaged buildings are sooted. With
   Night lights = Detailed, some windows are lit at night.
 - The flight starts once the near cells are drawn.
+
+### 3.1 Cost
+
+Intel Iris Xe (TigerLake GT2) laptop, 2560 × 1440, 2026-10-22: `tests/godot/_flight_bench.gd` with `BENCH_BEST=1`
+(mission 311, Ramat David), the Survey 2 m layer on, two runs each, Scenery Off then On:
+
+| leg | Off | On | lost |
+|---|---|---|---|
+| 150 m, 250 m/s | 77 fps | 70 fps | 9 % |
+| 1500 m, 250 m/s | 56 fps | 52 fps | 6 % |
+| 6000 m, 300 m/s | 51 fps | 51 fps | 0 % |
+
+Frames over 50 ms: one per run either way (the take-off).
+
+What got it there, from 20 % lost and a 246 ms stall:
+
+- the meshes made on Rust threads instead of the main thread, then uploaded in chunks;
+- the far ring cut from 8 km to 4.5 km, its fade removed, and no scenery shadows;
+- a re-selection that looks at ≈ 80 nearby cells instead of all ≈ 4 000 (8–19 ms each 0.8 s);
+- the mesh threads working on a copy of the cell, so the main thread's drop of a cell does not wait for them.
 
 [^geofabrik]: Geofabrik, "Israel and Palestine" downloads (dated extracts):
     https://download.geofabrik.de/asia/israel-and-palestine.html

@@ -742,10 +742,27 @@ pub fn mesh(
     modern: bool,
     ground: &dyn Fn(Vec3) -> Option<f64>,
 ) -> Option<Mesh> {
+    Some(mesh_chunks(cell, origin, near, modern, ground, usize::MAX)?.pop().unwrap_or_default())
+}
+
+/// `mesh` split into meshes of at most about `max_vertices` each (whole buildings; the (y, x) order keeps each a strip
+/// of the cell), so the main thread can upload a dense cell over several frames.
+pub fn mesh_chunks(
+    cell: &Cell,
+    origin: [f64; 2],
+    near: bool,
+    modern: bool,
+    ground: &dyn Fn(Vec3) -> Option<f64>,
+    max_vertices: usize,
+) -> Option<Vec<Mesh>> {
+    let mut chunks = Vec::new();
     let mut bld = Builder { m: Mesh::default(), origin, building: 0.0, roof: [0.0; 4], wall: [0.0; 4] };
     for (k, b) in cell.buildings.iter().enumerate() {
         if b.points.len() < 3 {
             continue;
+        }
+        if bld.m.vertex.len() >= max_vertices {
+            chunks.push(std::mem::take(&mut bld.m));
         }
         let base = base(b, ground)?;
         let top = base + f64::from(b.height);
@@ -774,7 +791,10 @@ pub fn mesh(
             }
         }
     }
-    Some(bld.m)
+    if !bld.m.index.is_empty() || chunks.is_empty() {
+        chunks.push(bld.m);
+    }
+    Some(chunks)
 }
 
 /// The trees of a cell as MultiMesh `TRANSFORM_3D` rows (12 floats each, Godot frame from `origin`), one list per
